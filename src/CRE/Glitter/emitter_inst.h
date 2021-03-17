@@ -9,25 +9,23 @@
 
 extern glitter_emitter_inst* FASTCALL glitter_emitter_inst_init(glitter_emitter* a1,
     glitter_scene* a2, glitter_effect_inst* a3);
-extern void FASTCALL glitter_emitter_inst_dispose(glitter_emitter_inst* ei);
-
-extern void FASTCALL Glitter__EmitterInst__GetValue(glitter_emitter_inst* a1,
-    float_t frame, int32_t efct_val);
-extern void FASTCALL Glitter__EmitterInst__EmitStep(glitter_emitter_inst* a1,
-    glitter_scene* a2, glitter_effect_inst* a3, float_t delta_frame);
-extern void FASTCALL Glitter__EmitterInst__EmitInit(glitter_emitter_inst* a1,
-    glitter_scene* a2, glitter_effect_inst* a3, float_t delta_frame);
-extern void FASTCALL Glitter__EmitterInst__RenderGroupInit(glitter_emitter_inst* emitter, float_t delta_frame);
-extern void FASTCALL Glitter__EmitterInst__UpdateValueFrame(glitter_emitter_inst* a1,
-    glitter_effect_inst* a2, float_t delta_frame);
-extern void FASTCALL Glitter__EmitterInst__UpdateValueInit(glitter_emitter_inst* a1,
-    float_t frame, float_t delta_frame);
-extern void FASTCALL Glitter__EmitterInst__Copy(glitter_emitter_inst* a1,
+extern void FASTCALL glitter_emitter_inst_copy(glitter_emitter_inst* a1,
     glitter_emitter_inst* a2, glitter_scene* a3);
-extern void FASTCALL Glitter__EmitterInst__Emit(glitter_emitter_inst* a1, glitter_scene* a2);
-extern void FASTCALL Glitter__EmitterInst__UpdateMat(glitter_emitter_inst* a1, glitter_effect_inst* a2);
-extern bool FASTCALL Glitter__EmitterInst__HasEnded(glitter_emitter_inst* emitter, bool a2);
-extern void FASTCALL Glitter__EmitterInst__Reset(glitter_emitter_inst* a1);
-extern void FASTCALL Glitter__EmitterInst__Free(glitter_emitter_inst* a1, glitter_scene* a2, bool free);
-extern void FASTCALL Glitter__EmitterInst__EffectVal__GetFloatType(glitter_emitter_inst* a1,
-    int32_t a2, vec3* scale, vec3* a4, vec3* direction);
+extern void FASTCALL glitter_emitter_inst_emit(glitter_emitter_inst* a1, glitter_scene* a2);
+extern void FASTCALL glitter_emitter_inst_emit_init(glitter_emitter_inst* a1,
+    glitter_scene* a2, glitter_effect_inst* a3, float_t delta_frame);
+extern void FASTCALL glitter_emitter_inst_emit_step(glitter_emitter_inst* a1,
+    glitter_scene* a2, glitter_effect_inst* a3, float_t delta_frame);
+extern void FASTCALL glitter_emitter_inst_free(glitter_emitter_inst* a1, glitter_scene* a2, bool free);
+extern void FASTCALL glitter_emitter_inst_get_mesh_by_type(glitter_emitter_inst* a1,
+    int32_t index, vec3* scale, vec3* base_translation, vec3* direction);
+extern void FASTCALL glitter_emitter_inst_get_value(glitter_emitter_inst* a1, float_t frame, int32_t random);
+extern bool FASTCALL glitter_emitter_inst_has_ended(glitter_emitter_inst* emitter, bool a2);
+extern void FASTCALL glitter_emitter_inst_render_group_init(glitter_emitter_inst* emitter, float_t delta_frame);
+extern void FASTCALL glitter_emitter_inst_reset(glitter_emitter_inst* a1);
+extern void FASTCALL glitter_emitter_inst_update_mat(glitter_emitter_inst* a1, glitter_effect_inst* a2);
+extern void FASTCALL glitter_emitter_inst_update_value_frame(glitter_emitter_inst* a1,
+    glitter_effect_inst* a2, float_t delta_frame);
+extern void FASTCALL glitter_emitter_inst_update_value_init(glitter_emitter_inst* a1,
+    float_t frame, float_t delta_frame);
+extern void FASTCALL glitter_emitter_inst_dispose(glitter_emitter_inst* ei);

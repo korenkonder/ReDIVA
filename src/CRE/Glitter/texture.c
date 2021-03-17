@@ -44,12 +44,12 @@ typedef struct glitter_texture {
 
 static void load_texture_data(glitter_texture_sub_data* data, int32_t mipmap);
 
-bool FASTCALL Glitter__Texture__Hashes__UnpackFile(glitter_effect_group* a1, f2_header* header) {
+bool FASTCALL glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_header* header) {
     uint64_t data;
     uint32_t count;
     uint64_t* resource_hashes;
 
-    data = (uint64_t)Glitter__ParseFile__GetDataPointer(header);
+    data = (uint64_t)glitter_parse_file_get_data_ptr(header);
     if (!data)
         return false;
 
@@ -66,7 +66,7 @@ bool FASTCALL Glitter__Texture__Hashes__UnpackFile(glitter_effect_group* a1, f2_
     return true;
 }
 
-bool FASTCALL Glitter__Texture__Resource__UnpackFile(glitter_effect_group* a1, uint64_t data) {
+bool FASTCALL glitter_texture_resource_unpack_file(glitter_effect_group* a1, uint64_t data) {
     int64_t i;
     int64_t j;
     int64_t k;
@@ -130,7 +130,7 @@ bool FASTCALL Glitter__Texture__Resource__UnpackFile(glitter_effect_group* a1, u
     
     if (!a1->resources) {
         a1->resources = force_malloc_s(sizeof(int32_t), a1->resources_count);
-        glCreateTextures(GL_TEXTURE_2D, a1->resources_count, a1->resources);
+        glGenTextures(a1->resources_count, a1->resources);
 
         tex_data = tex.data;
         for (i = 0; i < tex.count; i++, tex_data++) {

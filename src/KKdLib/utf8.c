@@ -52,7 +52,7 @@ wchar_t* utf8_decode(char* s) {
 
     for (size_t i = 0; i < len; i++) {
         char t = s[i];
-        if (!(t & 0x80)) {
+        if (~t & 0x80) {
             l = 0;
             length++;
             continue;
@@ -74,7 +74,7 @@ wchar_t* utf8_decode(char* s) {
     wchar_t* str = force_malloc_s(sizeof(wchar_t), length + 1);
     for (size_t i = 0, j = 0; i < len; i++) {
         char t = s[i];
-        if (!(t & 0x80)) {
+        if (~t & 0x80) {
             l = 0;
             str[j++] = t;
             c = 0;

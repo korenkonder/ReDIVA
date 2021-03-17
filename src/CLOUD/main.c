@@ -98,8 +98,9 @@ wchar_t* glitter_file;
 
 int wmain(int argc, wchar_t** argv) {
     if (argc <= 1)
-        return;
-        //glitter_file = L"eff_pv701_particle";
+        //return;
+        glitter_file = 0;
+        //glitter_file = L"eff_pv249_kirakira";
     else
         glitter_file = argv[1];
 

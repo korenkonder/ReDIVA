@@ -5,40 +5,28 @@
 
 #include "parse_file.h"
 
-f2_header* FASTCALL Glitter__ParseFile__GetSubStructPointer(f2_header* header) {
-    if (!Glitter__ParseFile__ShiftBy28Bits(header))
-        return Glitter__ParseFile__GetDataPointer(header);
+f2_header* FASTCALL glitter_parse_file_check_for_end_of_container(f2_header* header) {
+    header = (void*)((char*)header + header->data_size + header->length);
+    return glitter_parse_file_reverse_signature_endianess(header) == 'EOFC' ? 0 : header;
+}
+
+void* FASTCALL glitter_parse_file_get_data_ptr(f2_header* header) {
+    return (header->use_section_size ? header->section_size : header->data_size)
+        ? (char*)header + header->length : 0;
+}
+
+f2_header* FASTCALL glitter_parse_file_get_sub_struct_ptr(f2_header* header) {
+    if (!header->use_section_size)
+        return glitter_parse_file_get_data_ptr(header);
     
     return header->data_size > header->section_size
         ? (f2_header*)((char*)header + header->section_size + header->length) : 0;
 }
 
-void* FASTCALL Glitter__ParseFile__GetDataPointer(f2_header* header) {
-    return Glitter__ParseFile__GetSectionSize(header) ? (char*)header + header->length : 0;
-}
+uint32_t FASTCALL glitter_parse_file_reverse_signature_endianess(f2_header* header) {
+    uint32_t signature;
 
-f2_header* FASTCALL Glitter__ParseFile__CheckForEOFC(f2_header* header) {
-    void* v1;
-
-    v1 = (void*)((char*)header + header->data_size + header->length);
-    if (Glitter__ParseFile__ReverseSignatureEndianess(v1) == 'EOFC')
-        v1 = 0;
-    return v1;
-}
-
-uint32_t FASTCALL Glitter__ParseFile__ReverseSignatureEndianess(f2_header* header) {
-    return ((header->signature >> 24) & 0xFF) | (header->signature >> 8) & 0xFF00
-        | ((header->signature & 0xFF00) << 8) | ((header->signature & 0xFF) << 24);
-}
-
-uint32_t FASTCALL Glitter__ParseFile__GetVersion(f2_header* header) {
-    return header->version;
-}
-
-uint32_t FASTCALL Glitter__ParseFile__GetSectionSize(f2_header* header) {
-    return Glitter__ParseFile__ShiftBy28Bits(header) ? header->section_size : header->data_size;
-}
-
-uint32_t FASTCALL Glitter__ParseFile__ShiftBy28Bits(f2_header* header) {
-    return (uint32_t)header->flags >> 28;
+    signature = header->signature;
+    reverse_endianess_uint32_t(signature);
+    return signature;
 }

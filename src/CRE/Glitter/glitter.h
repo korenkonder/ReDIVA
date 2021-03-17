@@ -7,16 +7,16 @@
 
 #include "shared.h"
 
-typedef enum glitter_curve_flags {
-    GLITTER_CURVE_RANDOMIZE    = 0b0000001,
-    GLITTER_CURVE_RANDOM_RANGE = 0b0000010,
-    GLITTER_CURVE_NEGATE       = 0b0000100,
-    GLITTER_CURVE_ABSOLUTE     = 0b0000100,
-    GLITTER_CURVE_STEP         = 0b0001000,
-    GLITTER_CURVE_INVERSE      = 0b0010000,
-    GLITTER_CURVE_MULT         = 0b0100000,
-    GLITTER_CURVE_PLAIN        = 0b1000000,
-} glitter_curve_flags;
+typedef enum glitter_curve_flag {
+    GLITTER_CURVE_FLAG_RANDOMIZE       = 0x01,
+    GLITTER_CURVE_FLAG_RANDOM_RANGE    = 0x02,
+    GLITTER_CURVE_FLAG_NEGATIVE_RANDOM = 0x04,
+    GLITTER_CURVE_FLAG_ABSOLUTE        = 0x04,
+    GLITTER_CURVE_FLAG_STEP            = 0x08,
+    GLITTER_CURVE_FLAG_NEGATE          = 0x10,
+    GLITTER_CURVE_FLAG_MULT            = 0x20,
+    GLITTER_CURVE_FLAG_PLAIN           = 0x40,
+} glitter_curve_flag;
 
 typedef enum glitter_curve_type {
     GLITTER_CURVE_TRANSLATION_X          = 0,
@@ -56,6 +56,12 @@ typedef enum glitter_direction {
     GLITTER_DIRECTION_PARTICLE_ROTATION = 11,
 } glitter_direction;
 
+typedef enum glitter_effect_a3da_flag {
+    GLITTER_EFFECT_A3DA_FLAG_SET_A3DA_ONCE            = 0x00001,
+    GLITTER_EFFECT_A3DA_FLAG_SET_A3DA_TRANS_ONLY      = 0x00002,
+    GLITTER_EFFECT_A3DA_FLAG_SET_A3DA_BY_OBJECT_INDEX = 0x10000,
+} glitter_effect_a3da_flag;
+
 typedef enum glitter_effect_flag {
     GLITTER_EFFECT_FLAG_NONE       = 0x00,
     GLITTER_EFFECT_FLAG_LOOP       = 0x01,
@@ -72,6 +78,29 @@ typedef enum glitter_effect_file_flag {
     GLITTER_EFFECT_FILE_FLAG_FOG_HEIGHT = 0x04,
     GLITTER_EFFECT_FILE_FLAG_EMISSION   = 0x08,
 } glitter_effect_file_flag;
+
+typedef enum glitter_effect_inst_flag {
+    GLITTER_EFFECT_INST_FLAG_NONE                     = 0x000,
+    GLITTER_EFFECT_INST_FLAG_FREE                     = 0x001,
+    GLITTER_EFFECT_INST_FLAG_JUST_INIT                = 0x002,
+    GLITTER_EFFECT_INST_FLAG_HAS_A3DA                 = 0x004,
+    GLITTER_EFFECT_INST_FLAG_HAS_A3DA_TRANS           = 0x008,
+    GLITTER_EFFECT_INST_FLAG_HAS_A3DA_NON_INIT        = 0x010,
+    GLITTER_EFFECT_INST_FLAG_SET_A3DA_BY_OBJECT_INDEX = 0x020,
+    GLITTER_EFFECT_INST_FLAG_SET_A3DA_BY_OBJECT_NAME  = 0x040,
+    GLITTER_EFFECT_INST_FLAG_SET_A3DA_ONCE            = 0x080,
+    GLITTER_EFFECT_INST_FLAG_SET_A3DA_TRANS_ONLY      = 0x100,
+    GLITTER_EFFECT_INST_FLAG_SET_MIN_COLOR            = 0x200,
+    GLITTER_EFFECT_INST_FLAG_SET_ADD_MIN_COLOR        = 0x400,
+    GLITTER_EFFECT_INST_FLAG_HAS_A3DA_SCALE           = 0x800,
+} glitter_effect_inst_flag;
+
+typedef enum glitter_emitter_emission {
+    GLITTER_EMITTER_EMISSION_ON_TIMER = 0,
+    GLITTER_EMITTER_EMISSION_ON_START = 1,
+    GLITTER_EMITTER_EMISSION_ON_END   = 2,
+    GLITTER_EMITTER_EMISSION_EMITTED  = 3,
+} glitter_emitter_emission;
 
 typedef enum glitter_emitter_emission_direction {
     GLITTER_EMITTER_EMISSION_DIRECTION_PARTICLE_VELOCITY = 0,
@@ -217,14 +246,14 @@ struct glitter_curve {
     bool repeat;
     float_t start_time;
     float_t end_time;
-    glitter_curve_flags flags;
+    glitter_curve_flag flags;
     float_t max_rand;
     vector_glitter_curve_key keys;
 };
 
 struct glitter_effect_a3da {
     int32_t object_index;
-    int32_t flags;
+    glitter_effect_a3da_flag flags;
     int32_t index;
     char mesh_name[128];
 };
@@ -287,8 +316,8 @@ struct glitter_effect_inst {
     float_t scale_all;
     mat4 mat;
     vector_ptr_glitter_emitter_inst emitters;
-    uint32_t effect_val;
-    int32_t flags;
+    int32_t random;
+    glitter_effect_inst_flag flags;
     int32_t id;
     glitter_effect_inst_a3da* a3da;
     vec4 min_color;
@@ -336,8 +365,8 @@ struct glitter_emitter_data {
     glitter_emitter_flag flags;
     vec3 rotation_add;
     vec3 rotation_add_random;
-    int32_t dword2C;
-    int32_t dword30;
+    //int32_t dword2C;
+    //int32_t dword30;
     float_t emission_interval;
     float_t particles_per_emission;
     glitter_direction direction;
@@ -369,9 +398,9 @@ struct glitter_emitter_inst {
     glitter_emitter_data data;
     float_t emission_interval;
     float_t particles_per_emission;
-    uint32_t effect_val;
+    int32_t random;
     bool loop;
-    int32_t dword154;
+    glitter_emitter_emission emission;
     float_t frame;
     bool ended;
 };
@@ -389,8 +418,8 @@ struct glitter_particle_manager {
     vector_ptr_glitter_file_reader file_readers;
     vector_ptr_glitter_effect_group effect_groups;
     float_t delta_frame;
-    uint32_t effect_val;
-    uint32_t counter;
+    int32_t random;
+    int32_t counter;
     bool f2;
 };
 
@@ -488,7 +517,7 @@ struct glitter_particle_inst {
 struct glitter_render_group_sub {
     bool alive;
     uint8_t uv_index;
-    uint32_t effect_val;
+    int32_t random;
     float_t frame;
     float_t life_time;
     float_t rebound_time;

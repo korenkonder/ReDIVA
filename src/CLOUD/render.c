@@ -7,6 +7,8 @@
 
 #include "render.h"
 #include "../CRE/camera.h"
+#include "../CRE/microui.h"
+#include "../CRE/microui_atlas.inl"
 #include "../CRE/post_process.h"
 #include "../CRE/random.h"
 #include "../CRE/static_var.h"
@@ -20,6 +22,8 @@
 #include "../CRE/fbo_hdr.h"
 #include "../CRE/fbo_pp.h"
 #include "../CRE/fbo_render.h"
+#include "../CRE/Glitter/glitter.h"
+#include "../CRE/Glitter/effect_group.h"
 #include "../CRE/Glitter/file_reader.h"
 #include "../CRE/Glitter/particle_manager.h"
 #include "../CRE/Glitter/scene.h"
@@ -63,6 +67,7 @@ static shader_fbo hfbs[2];
 static shader_fbo tfbs;
 shader_fbo particle_shader;
 shader_fbo sprite_shader;
+shader_fbo mu_shader;
 
 static int32_t fb_vao, fb_vbo;
 static int32_t common_ubo = 0;
@@ -71,6 +76,7 @@ static int32_t dof_texcoords_ubo = 0;
 static int32_t tone_map_ubo = 0;
 static int32_t global_matrices_ubo = 0;
 
+bool   micro_ui = true;
 bool         ui = true;
 bool   front_2d = true;
 bool g_front_3d = true;
@@ -105,9 +111,11 @@ static float_t old_scale, scale;
 
 static vec2i old_internal_2d_res;
 static vec2i old_internal_3d_res;
-static vec2i internal_2d_res;
-static vec2i internal_3d_res;
-static vec2i internal_res;
+vec2i internal_2d_res;
+vec2i internal_3d_res;
+vec2i internal_res;
+int32_t width;
+int32_t height;
 
 render_state state;
 
@@ -119,6 +127,21 @@ tone_map_sat_gamma* tmsg;
 tone_map_data* tmd;
 glitter_particle_manager* gpm;
 
+mu_Context* muctx;
+texture mu_font;
+HANDLE mu_lock = 0;
+
+#define MU_BUFFER_SIZE 16384
+static GLfloat mu_uv_buf[MU_BUFFER_SIZE * 8];
+static GLfloat mu_vert_buf[MU_BUFFER_SIZE * 8];
+static GLfloat mu_color_buf[MU_BUFFER_SIZE * 16];
+static GLuint mu_index_buf[MU_BUFFER_SIZE * 6];
+static GLfloat mu_depth_buf[MU_BUFFER_SIZE * 4];
+static size_t mu_buf_idx;
+static int32_t mu_vao, mu_uv_vbo, mu_vert_vbo, mu_color_vbo, mu_depth_vbo;
+
+float_t mui_bg[3] = { 0.74117647f, 0.74117647f, 0.74117647f };
+
 /*
 Camera.Struct camStruct = new Camera.Struct();
 Camera.DOF dof = new Camera.DOF();*/
@@ -127,14 +150,12 @@ static mat4* dir_light_data;
 static mat4* point_light_trans;
 static mat4* point_light_data;
 
-static int32_t width;
-static int32_t height;
-
 static void render_load();
 static void render_update();
 static void render_draw();
 static void render_dispose();
 
+static void render_micro_ui();
 static void render_ui();
 static void render_front_2d();
 static void render_c_front_3d();
@@ -142,10 +163,19 @@ static void render_g_front_3d();
 static void render_back_3d();
 static void render_back_2d();
 
-static void render_set_internal_res(vec2i* res);
+static void render_resize_fb_glfw(GLFWwindow* window, int w, int h);
 static void render_resize_fb(bool change_fb);
 
 static void render_dof_get_texcoords(float_t* a1, float_t a2);
+
+static void render_mui_flush();
+static void render_mui_push_quad(mu_Rect dst, mu_Rect src, mu_Color color);
+static void render_mui_draw_rect(mu_Rect rect, mu_Color color);
+static void render_mui_draw_text(const char* text, mu_Vec2 pos, mu_Color color);
+static void render_mui_draw_icon(int id, mu_Rect rect, mu_Color color);
+static int render_mui_get_text_width(mu_Font font, const char* text, size_t len);
+static int render_mui_get_text_height(mu_Font font);
+static void render_mui_set_clip_rect(mu_Rect rect);
 
 extern bool close;
 HANDLE render_lock = 0;
@@ -164,6 +194,10 @@ int32_t render_main(void* arg) {
     if (!render_lock)
         goto End;
 
+    mu_lock = CreateMutexW(0, 0, L"microui");
+    if (!mu_lock)
+        goto End;
+
     render_init_struct* ris = (render_init_struct*)arg;
     window_handle = 0;
     state = RENDER_UNINITIALIZED;
@@ -171,20 +205,17 @@ int32_t render_main(void* arg) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     width = ris->res.x > 0 && ris->res.x < 8192 ? ris->res.x : mode->width;
     height = ris->res.y > 0 && ris->res.y < 8192 ? ris->res.y : mode->height;
 
-    width = (int32_t)(width / 1.0625f);
-    height = (int32_t)(height / 1.0625f);
-
-    old_scale = scale = ris->scale > 0 ? ris->scale : 1.0f;
-    internal_res.x = ris->internal_res.x > 0 && ris->internal_res.x < 8192 ? ris->internal_res.x : width;
-    internal_res.y = ris->internal_res.y > 0 && ris->internal_res.y < 8192 ? ris->internal_res.y : height;
+    width = (int32_t)(width / 1.5f);
+    height = (int32_t)(height / 1.5f);
 
     glfwWindowHint(GLFW_RED_BITS, mode->redBits);
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
@@ -199,9 +230,19 @@ int32_t render_main(void* arg) {
     }
 
     window_handle = glfwGetWin32Window(window);
-
     glfwMakeContextCurrent(window);
     glfwFocusWindow(window);
+    glfwSetWindowSizeCallback(window, (void*)&render_resize_fb_glfw);
+    glfwSetWindowSizeLimits(window, 640, 360, GLFW_DONT_CARE, GLFW_DONT_CARE);
+
+    RECT window_rect;
+    GetClientRect(window_handle, &window_rect);
+    width = window_rect.right;
+    height = window_rect.bottom;
+
+    old_scale = scale = ris->scale > 0 ? ris->scale : 1.0f;
+    internal_res.x = ris->internal_res.x > 0 && ris->internal_res.x < 8192 ? ris->internal_res.x : width;
+    internal_res.y = ris->internal_res.y > 0 && ris->internal_res.y < 8192 ? ris->internal_res.y : height;
 
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
@@ -216,7 +257,11 @@ int32_t render_main(void* arg) {
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 
     state = RENDER_INITIALIZING;
+    WaitForSingleObject(render_lock, INFINITE);
+    WaitForSingleObject(mu_lock, INFINITE);
     render_load();
+    ReleaseMutex(mu_lock);
+    ReleaseMutex(render_lock);
     state = RENDER_INITIALIZED;
 
     glfwGetFramebufferSize(window, &width, &height);
@@ -235,18 +280,25 @@ int32_t render_main(void* arg) {
         WaitForSingleObject(render_lock, INFINITE);
         render_update();
         ReleaseMutex(render_lock);
+        WaitForSingleObject(mu_lock, INFINITE);
         render_draw();
+        ReleaseMutex(mu_lock);
         glfwSwapBuffers(window);
         close |= glfwWindowShouldClose(window);
         double_t cycle_time = timer_calc_post(render);
         msleep(1000.0 / FREQ - cycle_time);
     }
+    CloseHandle(mu_lock);
+    mu_lock = 0;
 
+    WaitForSingleObject(render_lock, INFINITE);
     render_dispose();
+    ReleaseMutex(render_lock);
 
     glfwDestroyWindow(window);
     glfwTerminate();
     CloseHandle(render_lock);
+    render_lock = 0;
 
 End:
     timer_dispose(render);
@@ -260,13 +312,17 @@ static void render_load() {
     tmsg = tone_map_sat_gamma_init();
     tmd = tone_map_data_init();
     gpm = glitter_particle_manager_init();
+    muctx = force_malloc(sizeof(mu_Context));
 
-    radius_initialize_value(rad, 2.0f);
-    intensity_initialize_value(inten, 1.0f);
+    radius_initialize(rad, (vec3[]) { 2.0f, 2.0f, 2.0f });
+    intensity_initialize(inten, (vec3[]) { 1.0f, 1.0f, 1.0f });
     tone_map_sat_gamma_initialize(tmsg, 1.0f, 1, 1.0f);
     tone_map_data_initialize(tmd, 2.0f, true, (vec3[]) { 0.0f, 0.0f, 0.0f}, 0.0f, 0,
         (vec3[]) { 0.0f, 0.0f, 0.0f }, (vec3[]) { 1.0f, 1.0f, 1.0f }, 0);
 
+    mu_init(muctx);
+    muctx->text_width = render_mui_get_text_width;
+    muctx->text_height = render_mui_get_text_height;
 
     camera_initialize(cam, aspect, 70.0);
     camera_reset(cam);
@@ -295,6 +351,7 @@ static void render_load() {
     glBindBuffer(GL_UNIFORM_BUFFER, tone_map_ubo);
     glBufferData(GL_UNIFORM_BUFFER, 16 * 4, 0, GL_STREAM_DRAW);
     glBindBufferRange(GL_UNIFORM_BUFFER, 0, tone_map_ubo, 0, 16 * 4);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     glGenBuffers(1, &dof_texcoords_ubo);
 
@@ -437,6 +494,12 @@ static void render_load() {
     param.frag = L"sprite";
     shader_fbo_load(&sprite_shader, f, &param);
 
+    memset(&param, 0, sizeof(shader_param));
+    param.name = L"microui";
+    param.vert = L"microui";
+    param.frag = L"microui";
+    shader_fbo_load(&mu_shader, f, &param);
+
     for (int32_t i = 0; i < 10; i++) {
         shader_fbo_set_int(&cfbs[i], "ColorTexture", 0);
         if (i >= 5)
@@ -514,12 +577,17 @@ static void render_load() {
     shader_fbo_set_int(&sprite_shader, "Texture2", 1);
     shader_fbo_set_uniform_block_binding(&sprite_shader, "Common", 0);
 
+    shader_fbo_set_int(&mu_shader, "Texture", 0);
+    shader_fbo_set_uniform_block_binding(&mu_shader, "Common", 0);
+
     render_resize_fb(false);
 
     fbo_render_initialize(rfbo, &internal_3d_res, fb_vao, cfbs, gfbs);
     fbo_hdr_initialize(hfbo, &internal_3d_res, &internal_2d_res, fb_vao, &ffbs, hfbs);
     fbo_dof_initialize(dfbo, &internal_3d_res, fb_vao, dfbs, dof_common_ubo, dof_texcoords_ubo);
     fbo_pp_initialize(pfbo, &internal_3d_res, fb_vao, bfbs, &tfbs, tone_map_ubo);
+
+    render_resize_fb(true);
 
     static const int32_t len = 7 * 7 * 2;
     float_t dof_texcoords[7 * 7 * 2];
@@ -537,23 +605,76 @@ static void render_load() {
     memset(&point_lights, 0, sizeof(texture));
     point_lights_count = 0;
 
-    uint64_t hash = gpm->f2 ? hash_wchar_t_murmurhash(glitter_file, 0, false)
-        : hash_wchar_t_fnv1a64(glitter_file);
-    glitter_file_reader* fr = glitter_file_reader_init(0, glitter_file, gpm->f2);
-    vector_ptr_glitter_file_reader_append_element(&gpm->file_readers, &fr);
-    glitter_particle_manager_update_file_reader(gpm);
-    glitter_particle_manager_load_scene(gpm, hash);
+    memset(&mu_font, 0, sizeof(texture));
+    texture_data muctx_font_data = {
+        .type = TEXTURE_2D,
+        .width = ATLAS_WIDTH,
+        .height = ATLAS_HEIGHT,
+        .depth = 0,
+        .data = atlas_texture,
+        .pixel_format = GL_RED,
+        .pixel_type = GL_UNSIGNED_BYTE,
+        .pixel_internal_format = GL_RED,
+        .generate_mipmap = false,
+        .wrap_mode_s = GL_CLAMP,
+        .wrap_mode_t = GL_CLAMP,
+        .wrap_mode_r = GL_CLAMP,
+        .min_filter = GL_NEAREST,
+        .mag_filter = GL_NEAREST,
+    };
+    texture_load(&mu_font, &muctx_font_data);
+
+    glGenBuffers(1, &mu_vert_vbo);
+    glGenBuffers(1, &mu_uv_vbo);
+    glGenBuffers(1, &mu_color_vbo);
+    glGenBuffers(1, &mu_depth_vbo);
+    glGenVertexArrays(1, &mu_vao);
+
+    glBindVertexArray(mu_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, mu_vert_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mu_vert_buf), mu_vert_buf, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, false, 8, 0); // Pos
+    glBindBuffer(GL_ARRAY_BUFFER, mu_uv_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mu_uv_buf), mu_uv_buf, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, false, 8, 0); // UV
+    glBindBuffer(GL_ARRAY_BUFFER, mu_color_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mu_color_buf), mu_color_buf, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_FLOAT, false, 16, 0); // Color
+    glBindBuffer(GL_ARRAY_BUFFER, mu_depth_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mu_depth_buf), mu_depth_buf, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 1, GL_FLOAT, false, 4, 0); // Depth
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+    if (glitter_file) {
+        uint64_t hash = gpm->f2
+            ? hash_wchar_t_murmurhash(glitter_file, 0, false)
+            : hash_wchar_t_fnv1a64(glitter_file);
+        glitter_file_reader* fr = glitter_file_reader_init(0, glitter_file, gpm->f2);
+        vector_ptr_glitter_file_reader_append_element(&gpm->file_readers, &fr);
+        glitter_particle_manager_update_file_reader(gpm);
+        glitter_particle_manager_load_scene(gpm, hash);
+    }
 }
 
 extern vec2 input_move;
 extern vec2 input_rotate;
 extern bool input_reset;
-extern bool input_reset_glitter;
+extern bool input_play_glitter;
+extern bool input_stop_glitter;
+extern bool input_auto_glitter;
 extern bool input_pause_glitter;
+float_t glitter_frame_counter = 0.0f;
 
 static void render_update() {
     if (window_handle == GetForegroundWindow()) {
         if (input_reset) {
+            input_reset = false;
             camera_reset(cam);
             //camera_move_vec3(cam, &(vec3){ 1.35542f, 1.41634f, 1.27852f });
             //camera_rotate_vec2(cam, &(vec2){ -45.0f, -32.5f });
@@ -564,13 +685,6 @@ static void render_update() {
         else {
             camera_move_vec2(cam, &input_move);
             camera_rotate_vec2(cam, &input_rotate);
-        }
-
-        if (input_reset_glitter) {
-            uint64_t hash = gpm->f2 ? hash_wchar_t_murmurhash(glitter_file, 0, false)
-                : hash_wchar_t_fnv1a64(glitter_file);
-            glitter_particle_manager_free_scene(gpm, hash);
-            glitter_particle_manager_load_scene(gpm, hash);
         }
     }
 
@@ -920,6 +1034,40 @@ static void render_update() {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
+    if (!input_pause_glitter && gpm->scenes.end != gpm->scenes.begin)
+        glitter_frame_counter += get_frame_speed();
+
+    if (glitter_file) {
+        uint64_t hash = gpm->f2
+            ? hash_wchar_t_murmurhash(glitter_file, 0, false)
+            : hash_wchar_t_fnv1a64(glitter_file);
+        if (input_play_glitter || input_stop_glitter) {
+            glitter_particle_manager_free_scene(gpm, hash);
+            glitter_frame_counter = 0.0f;
+        }
+
+        if (input_auto_glitter && !glitter_particle_manager_check_scene(gpm, hash)) {
+            if (glitter_particle_manager_check_effect_group(gpm, hash))
+                goto glitter_load;
+            else
+                goto glitter_reset;
+        }
+        else if (input_play_glitter && !glitter_particle_manager_load_scene(gpm, hash)) {
+        glitter_reset:
+            vector_ptr_glitter_scene_clear(&gpm->scenes, (void*)&glitter_scene_dispose);
+            vector_ptr_glitter_effect_group_clear(&gpm->effect_groups, (void*)&glitter_effect_group_dispose);
+
+            glitter_file_reader* fr = glitter_file_reader_init(0, glitter_file, gpm->f2);
+            vector_ptr_glitter_file_reader_append_element(&gpm->file_readers, &fr);
+            glitter_particle_manager_update_file_reader(gpm);
+        glitter_load:
+            glitter_frame_counter = 0.0f;
+            glitter_particle_manager_load_scene(gpm, hash);
+        }
+        input_play_glitter = false;
+        input_stop_glitter = false;
+    }
+
     if (!input_pause_glitter)
         glitter_particle_manager_update_scene(gpm);
 
@@ -996,7 +1144,7 @@ static void render_draw() {
             glDrawBuffers(4, fbo_render_g_attachments);
             glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glDrawBuffers(1, fbo_render_f_attachments);
-            glClearColor(0.74117647f, 0.74117647f, 0.74117647f, 1.0f);
+            glClearColor(mui_bg[0], mui_bg[1], mui_bg[2], 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
             glDepthMask(false);
             if (back_3d)
@@ -1008,6 +1156,7 @@ static void render_draw() {
 
             glDrawBuffers(1, fbo_render_f_attachments);
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, global_matrices_ubo);
+            glitter_particle_manager_reset_scene_disp_counter(gpm);
             glitter_particle_manager_draw(gpm, 0);
             glitter_particle_manager_draw(gpm, 2);
             glitter_particle_manager_draw(gpm, 1);
@@ -1038,12 +1187,15 @@ static void render_draw() {
 
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo);
     if (front_2d || ui) {
-        glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
+        glViewport((width - internal_2d_res.x) / 2, (height - internal_2d_res.y) / 2,
+            internal_2d_res.x, internal_2d_res.y);
         if (front_2d)
             render_front_2d();
         if (ui)
             render_ui();
         glViewport(0, 0, width, height);
+        if (micro_ui)
+            render_micro_ui();
     }
 }
 
@@ -1097,9 +1249,11 @@ static void render_dispose() {
     tone_map_sat_gamma_dispose(tmsg);
     tone_map_data_dispose(tmd);
     glitter_particle_manager_dispose(gpm);
+    free(muctx);
 
     texture_free(&dir_lights);
     texture_free(&point_lights);
+    texture_free(&mu_font);
 
     free(dir_light_data);
     free(point_light_trans);
@@ -1130,6 +1284,13 @@ static void render_dispose() {
     shader_fbo_free(&tfbs);
     shader_fbo_free(&particle_shader);
     shader_fbo_free(&sprite_shader);
+    shader_fbo_free(&mu_shader);
+
+    glDeleteBuffers(1, &mu_uv_vbo);
+    glDeleteBuffers(1, &mu_vert_vbo);
+    glDeleteBuffers(1, &mu_color_vbo);
+    glDeleteBuffers(1, &mu_depth_vbo);
+    glDeleteVertexArrays(1, &mu_vao);
 
     glDeleteBuffers(1, &global_matrices_ubo);
     glDeleteBuffers(1, &dof_common_ubo);
@@ -1137,6 +1298,50 @@ static void render_dispose() {
     glDeleteBuffers(1, &tone_map_ubo);
     glDeleteBuffers(1, &fb_vbo);
     glDeleteVertexArrays(1, &fb_vao);
+}
+
+static void render_micro_ui() {
+    mu_Command* cmd;
+    size_t count;
+    mat4 mat;
+
+    mat4_identity(&mat);
+    mat.row0.x = 2.0f / width;
+    mat.row1.y = -2.0f / height;
+    mat.row2.z = -1.0f;
+    mat.row3 = (vec4){ -1.0f, 1.0f, 0.0f, 1.0f };
+
+    shader_fbo_set_mat4(&mu_shader, "mat", false, &mat);
+    glEnablei(GL_BLEND, 0);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(0, 0, width, height);
+    cmd = 0;
+    count = 0;
+    while (mu_next_command(muctx, &cmd)) {
+        count++;
+        switch (cmd->type) {
+        case MU_COMMAND_TEXT:
+            render_mui_draw_text(cmd->text.str, cmd->text.pos, cmd->text.color);
+            break;
+        case MU_COMMAND_RECT:
+            render_mui_draw_rect(cmd->rect.rect, cmd->rect.color);
+            break;
+        case MU_COMMAND_ICON:
+            render_mui_draw_icon(cmd->icon.id, cmd->icon.rect, cmd->icon.color);
+            break;
+        case MU_COMMAND_CLIP:
+            render_mui_set_clip_rect(cmd->clip.rect);
+            break;
+        }
+
+        if (!cmd->type)
+            break;
+    }
+    render_mui_flush();
+    glScissor(0, 0, width, height);
+    glDisablei(GL_BLEND, 0);
+    glDisable(GL_SCISSOR_TEST);
 }
 
 static void render_ui() {
@@ -1399,10 +1604,6 @@ void render_set_scale(double_t value) {
     render_resize_fb(true);
 }
 
-static void render_set_internal_res(vec2i* res) {
-    internal_res = *res;
-}
-
 static void render_get_aspect_correct_res(vec2i* res) {
     int32_t width = res->x;
     int32_t height = res->y;
@@ -1415,8 +1616,14 @@ static void render_get_aspect_correct_res(vec2i* res) {
         res->y = (int32_t)round(res->x / aspect);
 }
 
-static void render_resize_fb(bool change_fb)
-{
+static void render_resize_fb_glfw(GLFWwindow* window, int w, int h) {
+    bool change_fb = width != w || height != h;
+    width = w;
+    height = h;
+    render_resize_fb(change_fb);
+}
+
+static void render_resize_fb(bool change_fb) {
     if (internal_3d_res.x < 20) internal_3d_res.x = 20;
     if (internal_3d_res.y < 20) internal_3d_res.y = 20;
 
@@ -1515,4 +1722,136 @@ static void render_dof_get_texcoords(float_t* a1, float_t a2) {
             a1[v4++] = (float_t)(sin(v9) * v6 * v8);
         }
     }
+}
+
+static void render_mui_flush() {
+    if (mu_buf_idx == 0)
+        return;
+
+    glBindBuffer(GL_ARRAY_BUFFER, mu_vert_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mu_vert_buf) / MU_BUFFER_SIZE * mu_buf_idx, mu_vert_buf, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, mu_uv_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mu_uv_buf) / MU_BUFFER_SIZE * mu_buf_idx, mu_uv_buf, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, mu_color_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mu_color_buf) / MU_BUFFER_SIZE * mu_buf_idx, mu_color_buf, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, mu_depth_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(mu_depth_buf) / MU_BUFFER_SIZE * mu_buf_idx, mu_depth_buf, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    shader_fbo_use(&mu_shader);
+    texture_bind(&mu_font, 0);
+    glBindVertexArray(mu_vao);
+    glDrawElements(GL_TRIANGLES, (GLsizei)(mu_buf_idx * 6), GL_UNSIGNED_INT, mu_index_buf);
+    shader_fbo_use(0);
+    texture_reset(&mu_font, 0);
+    glBindVertexArray(0);
+    mu_buf_idx = 0;
+}
+
+static void render_mui_push_quad(mu_Rect dst, mu_Rect src, mu_Color color) {
+    if (mu_buf_idx >= MU_BUFFER_SIZE) {
+        render_mui_flush();
+        mu_buf_idx = 0;
+    }
+
+    size_t      uv_idx = mu_buf_idx * 8;
+    size_t    vert_idx = mu_buf_idx * 8;
+    size_t   color_idx = mu_buf_idx * 16;
+    size_t   depth_idx = mu_buf_idx * 4;
+    size_t element_idx = mu_buf_idx * 4;
+    size_t   index_idx = mu_buf_idx * 6;
+    mu_buf_idx++;
+
+    GLfloat x = (GLfloat)src.x * (GLfloat)(1.0f / ATLAS_WIDTH);
+    GLfloat y = (GLfloat)src.y * (GLfloat)(1.0f / ATLAS_HEIGHT);
+    GLfloat w = (GLfloat)src.w * (GLfloat)(1.0f / ATLAS_WIDTH);
+    GLfloat h = (GLfloat)src.h * (GLfloat)(1.0f / ATLAS_HEIGHT);
+    mu_uv_buf[uv_idx + 0] = x;
+    mu_uv_buf[uv_idx + 1] = y;
+    mu_uv_buf[uv_idx + 2] = x + w;
+    mu_uv_buf[uv_idx + 3] = y;
+    mu_uv_buf[uv_idx + 4] = x;
+    mu_uv_buf[uv_idx + 5] = y + h;
+    mu_uv_buf[uv_idx + 6] = x + w;
+    mu_uv_buf[uv_idx + 7] = y + h;
+
+    mu_vert_buf[vert_idx + 0] = (GLfloat)dst.x;
+    mu_vert_buf[vert_idx + 1] = (GLfloat)dst.y;
+    mu_vert_buf[vert_idx + 2] = (GLfloat)dst.x + dst.w;
+    mu_vert_buf[vert_idx + 3] = (GLfloat)dst.y;
+    mu_vert_buf[vert_idx + 4] = (GLfloat)dst.x;
+    mu_vert_buf[vert_idx + 5] = (GLfloat)dst.y + dst.h;
+    mu_vert_buf[vert_idx + 6] = (GLfloat)dst.x + dst.w;
+    mu_vert_buf[vert_idx + 7] = (GLfloat)dst.y + dst.h;
+
+    mu_color_buf[color_idx + 0] = (GLfloat)color.r * (1.0f / 255.0f);
+    mu_color_buf[color_idx + 1] = (GLfloat)color.g * (1.0f / 255.0f);
+    mu_color_buf[color_idx + 2] = (GLfloat)color.b * (1.0f / 255.0f);
+    mu_color_buf[color_idx + 3] = (GLfloat)color.a * (1.0f / 255.0f);
+    memcpy(&mu_color_buf[color_idx + 4], &mu_color_buf[color_idx + 0], sizeof(GLfloat) * 4);
+    memcpy(&mu_color_buf[color_idx + 8], &mu_color_buf[color_idx + 0], sizeof(GLfloat) * 4);
+    memcpy(&mu_color_buf[color_idx + 12], &mu_color_buf[color_idx + 0], sizeof(GLfloat) * 4);
+
+    mu_depth_buf[depth_idx + 0] = (GLfloat)(MU_BUFFER_SIZE - 1 - mu_buf_idx) * (1.0f / (MU_BUFFER_SIZE - 1));
+    memcpy(&mu_depth_buf[depth_idx + 1], &mu_depth_buf[depth_idx + 0], sizeof(GLfloat));
+    memcpy(&mu_depth_buf[depth_idx + 2], &mu_depth_buf[depth_idx + 0], sizeof(GLfloat));
+    memcpy(&mu_depth_buf[depth_idx + 3], &mu_depth_buf[depth_idx + 0], sizeof(GLfloat));
+
+    mu_index_buf[index_idx + 0] = (GLuint)(element_idx + 0);
+    mu_index_buf[index_idx + 1] = (GLuint)(element_idx + 1);
+    mu_index_buf[index_idx + 2] = (GLuint)(element_idx + 2);
+    mu_index_buf[index_idx + 3] = (GLuint)(element_idx + 2);
+    mu_index_buf[index_idx + 4] = (GLuint)(element_idx + 3);
+    mu_index_buf[index_idx + 5] = (GLuint)(element_idx + 1);
+}
+
+static void render_mui_draw_rect(mu_Rect rect, mu_Color color) {
+    render_mui_push_quad(rect, atlas[ATLAS_WHITE], color);
+}
+
+static void render_mui_draw_text(const char* text, mu_Vec2 pos, mu_Color color) {
+    mu_Rect dst = { pos.x, pos.y, 0, 0 };
+    for (const char* p = text; *p; p++) {
+        if ((*p & 0xc0) == 0x80)
+            continue;
+
+        mu_Rect src = atlas[ATLAS_FONT + mu_min(*p, 127)];
+        dst.w = src.w;
+        dst.h = src.h;
+        render_mui_push_quad(dst, src, color);
+        dst.x += dst.w;
+    }
+}
+
+static void render_mui_draw_icon(int id, mu_Rect rect, mu_Color color) {
+    mu_Rect src = atlas[id];
+    int x = rect.x + (rect.w - src.w) / 2;
+    int y = rect.y + (rect.h - src.h) / 2;
+    render_mui_push_quad(mu_rect(x, y, src.w, src.h), src, color);
+}
+
+static int render_mui_get_text_width(mu_Font font, const char* text, size_t len) {
+    if (!len)
+        len = strlen(text);
+
+    int res = 0;
+    for (const char* p = text; *p && len--; p++) {
+        if ((*p & 0xc0) == 0x80)
+            continue;
+
+        res += atlas[ATLAS_FONT + mu_min(*p, 127)].w;
+    }
+    return res;
+}
+
+static int render_mui_get_text_height(mu_Font font) {
+    return 18;
+}
+
+static void render_mui_set_clip_rect(mu_Rect rect) {
+    render_mui_flush();
+    if (rect.w == 0x1000000 || rect.h == 0x1000000)
+        glScissor(0, 0, width, height);
+    else
+        glScissor(rect.x, height - (rect.y + rect.h), rect.w, rect.h);
 }

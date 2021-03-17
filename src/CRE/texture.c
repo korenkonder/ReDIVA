@@ -143,13 +143,49 @@ void texture_load(texture* tex, texture_data* data) {
 }
 
 void texture_bind(texture* tex, int32_t index) {
-    glActiveTexture(GL_TEXTURE0 + index);
-    glBindTexture(tex->type, tex->id);
+    GLenum target = 0;
+    switch (tex->type) {
+    case TEXTURE_1D:
+        target = GL_TEXTURE_1D;
+        break;
+    case TEXTURE_2D:
+        target = GL_TEXTURE_2D;
+        break;
+    case TEXTURE_3D:
+        target = GL_TEXTURE_3D;
+        break;
+    case TEXTURE_CUBE:
+        target = GL_TEXTURE_CUBE_MAP;
+        break;
+    }
+
+    if (target) {
+        glActiveTexture(GL_TEXTURE0 + index);
+        glBindTexture(target, tex->id);
+    }
 }
 
 void texture_reset(texture* tex, int32_t index) {
-    glActiveTexture(GL_TEXTURE0 + index);
-    glBindTexture(tex->type, 0);
+    GLenum target = 0;
+    switch (tex->type) {
+    case TEXTURE_1D:
+        target = GL_TEXTURE_1D;
+        break;
+    case TEXTURE_2D:
+        target = GL_TEXTURE_2D;
+        break;
+    case TEXTURE_3D:
+        target = GL_TEXTURE_3D;
+        break;
+    case TEXTURE_CUBE:
+        target = GL_TEXTURE_CUBE_MAP;
+        break;
+    }
+
+    if (target) {
+        glActiveTexture(GL_TEXTURE0 + index);
+        glBindTexture(target, 0);
+    }
 }
 
 void texture_update(texture* tex) {

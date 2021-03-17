@@ -13,17 +13,12 @@
 typedef struct radius {
     bool update;
     float_t val[4 * GAUSSIAN_KERNEL_SIZE];
-    bool independent_alpha;
-    bool separate;
-    float_t y;
-    vec4 rgba;
+    vec3 rgb;
 } radius;
 
 typedef struct intensity {
     bool update;
     vec3 val;
-    bool separate;
-    float_t y;
     vec3 rgb;
 } intensity;
 
@@ -52,28 +47,15 @@ typedef struct tone_map_data {
 } tone_map_data;
 
 extern radius* radius_init();
-extern void radius_initialize_value(radius* rad, float_t y);
-extern void radius_initialize_vec4(radius* rad, vec4* rgba);
-extern void radius_initialize_vec3(radius* rad, vec3* rgb);
-extern bool radius_get_independent_alpha(radius* rad);
-extern void radius_set_independent_alpha(radius* rad, bool value);
-extern bool radius_get_separate(radius* rad);
-extern void radius_set_separate(radius* rad, bool value);
-extern float_t radius_get_y(radius* rad);
-extern void radius_set_y(radius* rad, float_t value);
-extern vec4* radius_get_rgba(radius* rad);
-extern void radius_set_rgba(radius* rad, vec4* value);
+extern void radius_initialize(radius* rad, vec3* rgb);
+extern vec3* radius_get(radius* rad);
+extern void radius_set(radius* rad, vec3* value);
 extern void radius_dispose(radius* rad);
 
 extern intensity* intensity_init();
-extern void intensity_initialize_value(intensity* inten, float_t y);
-extern void intensity_initialize_vec3(intensity* inten, vec3* rgb);
-extern bool intensity_get_separate(intensity* inten);
-extern void intensity_set_separate(intensity* inten, bool value);
-extern float_t intensity_get_y(intensity* inten);
-extern void intensity_set_y(intensity* inten, float_t value);
-extern vec3* intensity_get_rgb(intensity* inten);
-extern void intensity_set_rgb(intensity* inten, vec3* value);
+extern void intensity_initialize(intensity* inten, vec3* rgb);
+extern vec3* intensity_get(intensity* inten);
+extern void intensity_set(intensity* inten, vec3* value);
 extern void intensity_dispose(intensity* inten);
 
 extern tone_map_sat_gamma* tone_map_sat_gamma_init();

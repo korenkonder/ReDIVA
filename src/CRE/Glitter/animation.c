@@ -7,18 +7,18 @@
 #include "curve.h"
 #include "parse_file.h"
 
-void FASTCALL Glitter__Animation__ParseFile(glitter_file_reader* a1,
+void FASTCALL glitter_animation_parse_file(glitter_file_reader* a1,
     f2_header* header, vector_ptr_glitter_curve* a3) {
     f2_header* i;
 
-    if (!header || !header->data_size || Glitter__ParseFile__ReverseSignatureEndianess(header) != 'ANIM')
+    if (!header || !header->data_size || glitter_parse_file_reverse_signature_endianess(header) != 'ANIM')
         return;
 
-    for (i = Glitter__ParseFile__GetSubStructPointer(header); i; i = Glitter__ParseFile__CheckForEOFC(i)) {
+    for (i = glitter_parse_file_get_sub_struct_ptr(header); i; i = glitter_parse_file_check_for_end_of_container(i)) {
         if (!i->data_size)
             continue;
 
-        if (Glitter__ParseFile__ReverseSignatureEndianess(i) == 'CURV')
-            Glitter__Curve__ParseFile(a1, i, a3);
+        if (glitter_parse_file_reverse_signature_endianess(i) == 'CURV')
+            glitter_curve_parse_file(a1, i, a3);
     }
 }

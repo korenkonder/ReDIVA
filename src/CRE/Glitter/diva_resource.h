@@ -7,4 +7,4 @@
 
 #include "glitter.h"
 
-extern bool FASTCALL Glitter__DivaResource__ParseFile(glitter_effect_group* a1, f2_header* header);
+extern bool FASTCALL glitter_diva_resource_parse_file(glitter_effect_group* a1, f2_header* header);

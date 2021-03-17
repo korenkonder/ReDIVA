@@ -7,5 +7,7 @@
 
 #include "glitter.h"
 
-glitter_locus_history* FASTCALL glitter_locus_history_init(size_t size);
-void FASTCALL glitter_locus_history_dispose(glitter_locus_history* lh);
+extern glitter_locus_history* FASTCALL glitter_locus_history_init(size_t size);
+extern void FASTCALL glitter_locus_history_append(glitter_locus_history* a1,
+    glitter_render_group_sub* a2, glitter_particle_inst* a3);
+extern void FASTCALL glitter_locus_history_dispose(glitter_locus_history* lh);

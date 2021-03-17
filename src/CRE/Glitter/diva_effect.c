@@ -9,17 +9,17 @@
 #include "particle_manager.h"
 #include "scene.h"
 
-bool FASTCALL Glitter__DivaEffect__ParseFile(glitter_file_reader* a1, f2_header* header) {
+bool FASTCALL glitter_diva_effect_parse_file(glitter_file_reader* a1, f2_header* header) {
     glitter_effect_group* effect_group;
 
-    if (!header->data_size || Glitter__ParseFile__ReverseSignatureEndianess(header) != 'DVEF')
+    if (!header->data_size || glitter_parse_file_reverse_signature_endianess(header) != 'DVEF')
         return false;
 
-    a1->version = Glitter__ParseFile__GetVersion(header);
+    a1->version = header->version;
     effect_group = glitter_effect_group_init();
     effect_group->hash = a1->hash;
-    if (!Glitter__EffectGroup__ParseFile(a1,
-        Glitter__ParseFile__GetSubStructPointer(header), effect_group)) {
+    if (!glitter_effect_group_parse_file(a1,
+        glitter_parse_file_get_sub_struct_ptr(header), effect_group)) {
         glitter_effect_group_dispose(effect_group);
         return false;
     }

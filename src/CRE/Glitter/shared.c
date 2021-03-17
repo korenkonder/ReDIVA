@@ -23,7 +23,7 @@ void FASTCALL axis_angle_from_vectors(vec3* axis, float_t* angle, vec3* vec1, ve
     if (*angle >= 0.000001f)
         *angle = asinf(min(*angle, 1.0f));
     else {
-        *angle = 0.0;
+        *angle = 0.0f;
         axis->x = vec1->z;
         axis->y = 0.0f;
         axis->z = vec1->x;
@@ -31,12 +31,12 @@ void FASTCALL axis_angle_from_vectors(vec3* axis, float_t* angle, vec3* vec1, ve
         if (t < 0.000001f) {
             axis->x = -vec1->y;
             axis->y = vec1->x;
-            axis->z = 0.f;
+            axis->z = 0.0f;
         }
     }
 
     vec3_dot(*vec1, *vec2, t);
-    if (t < 0.0)
+    if (t < 0.0f)
         *angle = (float_t)M_PI - *angle;
 }
 

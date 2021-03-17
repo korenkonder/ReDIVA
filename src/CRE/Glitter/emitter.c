@@ -14,41 +14,32 @@ glitter_emitter* FASTCALL glitter_emitter_init() {
     return e;
 }
 
-void FASTCALL glitter_emitter_dispose(glitter_emitter* e) {
-    vector_ptr_glitter_curve_clear(&e->curve, (void*)&glitter_curve_dispose);
-    vector_ptr_glitter_curve_dispose(&e->curve);
-    vector_ptr_glitter_particle_clear(&e->particles, (void*)&glitter_particle_dispose);
-    vector_ptr_glitter_particle_dispose(&e->particles);
-    free(e);
-}
-
-bool FASTCALL Glitter__Emitter__ParseFile(glitter_file_reader* a1, f2_header* a2, glitter_effect* a3) {
+bool FASTCALL glitter_emitter_parse_file(glitter_file_reader* a1, f2_header* a2, glitter_effect* a3) {
     glitter_emitter* emitter;
     f2_header* v10;
 
-    if (!a2->data_size || Glitter__ParseFile__ReverseSignatureEndianess(a2) != 'EMIT')
+    if (!a2->data_size || glitter_parse_file_reverse_signature_endianess(a2) != 'EMIT')
         return false;
 
     emitter = glitter_emitter_init(sizeof(glitter_emitter));
-    if (!Glitter__Emitter__UnpackFile(a1, Glitter__ParseFile__GetDataPointer(a2),
-        emitter, Glitter__ParseFile__GetVersion(a2))) {
+    if (!glitter_emitter_unpack_file(a1, glitter_parse_file_get_data_ptr(a2), emitter, a2->version)) {
         glitter_emitter_dispose(emitter);
         return false;
     }
 
-    v10 = Glitter__ParseFile__GetSubStructPointer(a2);
+    v10 = glitter_parse_file_get_sub_struct_ptr(a2);
     if (v10) {
-        while (Glitter__ParseFile__ReverseSignatureEndianess(v10) == 'ENRS') {
-            v10 = Glitter__ParseFile__CheckForEOFC(v10);
+        while (glitter_parse_file_reverse_signature_endianess(v10) == 'ENRS') {
+            v10 = glitter_parse_file_check_for_end_of_container(v10);
             if (!v10) {
                 vector_ptr_glitter_emitter_append_element(&a3->emitters, &emitter);
                 return true;
             }
         }
-        Glitter__Animation__ParseFile(a1, v10, &emitter->curve);
+        glitter_animation_parse_file(a1, v10, &emitter->curve);
         while (v10) {
-            Glitter__Particle__ParseFile(a1, v10, emitter, a3);
-            v10 = Glitter__ParseFile__CheckForEOFC(v10);
+            glitter_particle_parse_file(a1, v10, emitter, a3);
+            v10 = glitter_parse_file_check_for_end_of_container(v10);
         }
     }
 
@@ -56,14 +47,14 @@ bool FASTCALL Glitter__Emitter__ParseFile(glitter_file_reader* a1, f2_header* a2
     return true;
 }
 
-bool FASTCALL Glitter__Emitter__UnpackFile(glitter_file_reader* a1,
+bool FASTCALL glitter_emitter_unpack_file(glitter_file_reader* a1,
     int32_t* data, glitter_emitter* a3, uint32_t emit_version) {
     a3->data.start_time = (float_t)*data;
     a3->data.life_time = (float_t)data[1];
     a3->data.loop_start_time = (float_t)data[2];
     a3->data.loop_life_time = (float_t)data[3];
     a3->data.flags = data[4];
-    a3->data.dword30 = 0;
+    //a3->data.dword30 = 0;
     if (!emit_version)
         return false;
 
@@ -71,9 +62,9 @@ bool FASTCALL Glitter__Emitter__UnpackFile(glitter_file_reader* a1,
     a3->data.direction = *((int16_t*)data + 11);
     a3->data.emission_interval = *(float_t*)(data + 6);
     a3->data.particles_per_emission = *(float_t*)(data + 7);
-    a3->data.dword2C = *((int16_t*)data + 16);
-    if (emit_version >= 2)
-        a3->data.dword30 = *((uint16_t*)data + 17);
+    //a3->data.dword2C = *((int16_t*)data + 16);
+    /*if (emit_version >= 2)
+        a3->data.dword30 = *((uint16_t*)data + 17);*/
 
     a3->translation = *(vec3*)(data + 9);
     a3->rotation = *(vec3*)(data + 12);
@@ -109,4 +100,12 @@ bool FASTCALL Glitter__Emitter__UnpackFile(glitter_file_reader* a1,
     default:
         return false;
     }
+}
+
+void FASTCALL glitter_emitter_dispose(glitter_emitter* e) {
+    vector_ptr_glitter_curve_clear(&e->curve, (void*)&glitter_curve_dispose);
+    vector_ptr_glitter_curve_dispose(&e->curve);
+    vector_ptr_glitter_particle_clear(&e->particles, (void*)&glitter_particle_dispose);
+    vector_ptr_glitter_particle_dispose(&e->particles);
+    free(e);
 }

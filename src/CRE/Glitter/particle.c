@@ -13,36 +13,30 @@ glitter_particle* FASTCALL glitter_particle_init() {
     return p;
 }
 
-void FASTCALL glitter_particle_dispose(glitter_particle* p) {
-    vector_ptr_glitter_curve_clear(&p->curve, (void*)&glitter_curve_dispose);
-    vector_ptr_glitter_curve_dispose(&p->curve);
-    free(p);
-}
-
-bool FASTCALL Glitter__Particle__ParseFile(glitter_file_reader* a1,
+bool FASTCALL glitter_particle_parse_file(glitter_file_reader* a1,
     f2_header* header, glitter_emitter* a3, glitter_effect* a4) {
     glitter_particle* particle; // rax
     int32_t count; // ecx
 
-    if (!header->data_size || Glitter__ParseFile__ReverseSignatureEndianess(header) != 'PTCL')
+    if (!header->data_size || glitter_parse_file_reverse_signature_endianess(header) != 'PTCL')
         return false;
 
     particle = glitter_particle_init();
-    if (!Glitter__Particle__UnpackFile(a1, (int64_t)Glitter__ParseFile__GetDataPointer(header),
-        particle, Glitter__ParseFile__GetVersion(header), a4)) {
+    if (!glitter_particle_unpack_file(a1, (int64_t)glitter_parse_file_get_data_ptr(header),
+        particle, header->version, a4)) {
         glitter_particle_dispose(particle);
         return false;
     }
 
-    header = Glitter__ParseFile__GetSubStructPointer(header);
+    header = glitter_parse_file_get_sub_struct_ptr(header);
     if (header)
         while (true) {
-            if (Glitter__ParseFile__ReverseSignatureEndianess(header) != 'ENRS') {
-                Glitter__Animation__ParseFile(a1, header, &particle->curve);
+            if (glitter_parse_file_reverse_signature_endianess(header) != 'ENRS') {
+                glitter_animation_parse_file(a1, header, &particle->curve);
                 break;
             }
 
-            header = Glitter__ParseFile__CheckForEOFC(header);
+            header = glitter_parse_file_check_for_end_of_container(header);
             if (!header)
                 break;
         }
@@ -57,7 +51,7 @@ bool FASTCALL Glitter__Particle__ParseFile(glitter_file_reader* a1,
     return true;
 }
 
-bool FASTCALL Glitter__Particle__UnpackFile(glitter_file_reader* a1,
+bool FASTCALL glitter_particle_unpack_file(glitter_file_reader* a1,
     int64_t data, glitter_particle* a3, uint32_t ptcl_version, glitter_effect* a5) {
     uint8_t r;
     uint8_t b;
@@ -198,4 +192,10 @@ bool FASTCALL Glitter__Particle__UnpackFile(glitter_file_reader* a1,
         }
     }
     return true;
+}
+
+void FASTCALL glitter_particle_dispose(glitter_particle* p) {
+    vector_ptr_glitter_curve_clear(&p->curve, (void*)&glitter_curve_dispose);
+    vector_ptr_glitter_curve_dispose(&p->curve);
+    free(p);
 }

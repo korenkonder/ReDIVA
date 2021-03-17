@@ -3,10 +3,9 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "effect_val.h"
-#include "particle_manager.h"
+#include "random.h"
 
-static const int32_t Glitter__FullFloatTable[] = {
+static const uint32_t glitter_full_float_table[] = {
     0x3F098F3F, 0x3F7CB89D, 0x3E1D76AB, 0x3F194ED3, 0x3EA58B61, 0x3F0FEC89, 0x3F19017E, 0x3EBDE1A0,
     0x3E81F538, 0x3ED508F6, 0x3E764D7F, 0x3F37DF7F, 0x3E8D872F, 0x3F0E6491, 0x3EDACD3A, 0x3E9F3882,
     0x3F662D41, 0x3F2DF3A5, 0x3EB15DD5, 0x3F665B85, 0x3F3EFF6D, 0x3EB08228, 0x3F4E9EB2, 0x3E02A455,
@@ -521,7 +520,7 @@ static const int32_t Glitter__FullFloatTable[] = {
     0x3F69A283, 0x3F3B1F47, 0x3F6D4D72, 0x3F320EE9, 0x3C5388A9, 0x3F4A0F80, 0x3ECA92C5, 0x3F5B861A,
 };
 
-static const uint16_t Glitter__FullIntTable[] = {
+static const uint16_t glitter_full_int_table[] = {
     0xFC31, 0xD627, 0xD31F, 0x59F9, 0x1EB2, 0x6FD7, 0xFBC8, 0x661E,
     0x793C, 0xAC9F, 0x83B2, 0xA775, 0x1920, 0x6CD4, 0xF7A2, 0xE045,
     0x0345, 0x07BA, 0x7724, 0x6712, 0xD4A5, 0xD29D, 0xCD44, 0xC1A4,
@@ -1036,7 +1035,7 @@ static const uint16_t Glitter__FullIntTable[] = {
     0xF555, 0x4969, 0xA742, 0x382E, 0x0BB6, 0xE91F, 0xA09C, 0xDE47,
 };
 
-static const int32_t Glitter__ShortFloatTable[] = {
+static const uint32_t glitter_short_float_table[] = {
     0x3F500475, 0x3E926BF6, 0x3EE0BF36, 0x3F40FEFC, 0x3F55F300, 0x3ECB2568, 0x3EA0579F, 0x3EA4AFED,
     0x3EC565D5, 0x3DE69722, 0x3EED0E37, 0x3E20B773, 0x3D36808B, 0x3E99C2C7, 0x3D0B0CE6, 0x3F4AACA1,
     0x3F18123E, 0x3F3820BB, 0x3E3CF12F, 0x3C8D9BF9, 0x3F3BC999, 0x3E97FD33, 0x3F4BDCAF, 0x3F534037,
@@ -1071,7 +1070,7 @@ static const int32_t Glitter__ShortFloatTable[] = {
     0x3E944E22, 0x3DBE25C5, 0x3F067BA0, 0x3F18EF67, 0x3831352A, 0x3F06F9CE, 0x3EB52F07, 0x3F785EF2,
 };
 
-static const uint16_t Glitter__ShortIntTable[] = {
+static const uint16_t glitter_short_int_table[] = {
     0x35F5, 0xCF15, 0x7376, 0x5AA4, 0xA0A7, 0x366D, 0xDFA6, 0xFF8D,
     0x3EC2, 0xCAA8, 0xEAC1, 0xC9FA, 0x759B, 0xD614, 0x4424, 0x7F6F,
     0x3B92, 0x0652, 0x1632, 0xBCB5, 0xAFBB, 0xB9AF, 0x98A8, 0xE34C,
@@ -1108,65 +1107,65 @@ static const uint16_t Glitter__ShortIntTable[] = {
 
 extern glitter_particle_manager* gpm;
 
-float_t FASTCALL Glitter__EffectVal__GetFloatClamp(float_t value) {
-    return Glitter__EffectVal__GetFloat(-value, value);
-}
-
-int32_t FASTCALL Glitter__EffectVal__GetMax() {
+int32_t FASTCALL glitter_random_get() {
     if (gpm->f2)
-        return 0x100;
+        return gpm->random & 0xFF;
     else
-        return 0x1000;
+        return gpm->random & 0xFFF;
 }
 
-int32_t FASTCALL Glitter__EffectVal__GetInt(int32_t value) {
-    int32_t val;
-    if (gpm->f2)
-        val = Glitter__ShortIntTable[gpm->effect_val++ & 0xFF];
-    else
-        val = Glitter__FullIntTable[gpm->effect_val++ & 0xFFF];
-    return val % value;
-}
-
-int32_t FASTCALL Glitter__EffectVal__Get() {
-    if (gpm->f2)
-        return gpm->effect_val & 0xFF;
-    else
-        return gpm->effect_val & 0xFFF;
-}
-
-float_t FASTCALL Glitter__EffectVal__GetFloat(float_t min, float_t max) {
+float_t FASTCALL glitter_random_get_float_clamp(float_t min, float_t max) {
     float_t value;
 
     if (gpm->f2)
-        value = *(float_t*)&Glitter__ShortFloatTable[gpm->effect_val++ & 0xFF];
+        value = *(float_t*)&glitter_short_float_table[gpm->random++ & 0xFF];
     else
-        value = *(float_t*)&Glitter__FullFloatTable[gpm->effect_val++ & 0xFFF];
+        value = *(float_t*)&glitter_full_float_table[gpm->random++ & 0xFFF];
     return value * (max - min) + min;
 }
 
-int32_t FASTCALL Glitter__EffectVal__Clamp(int32_t min, int32_t max) {
+float_t FASTCALL glitter_random_get_float_clamp_min_max(float_t value) {
+    return glitter_random_get_float_clamp(-value, value);
+}
+
+void FASTCALL glitter_random_get_float_vec3_clamp(vec3* src, vec3* dst) {
+    dst->x = glitter_random_get_float_clamp_min_max(src->x);
+    dst->y = glitter_random_get_float_clamp_min_max(src->y);
+    dst->z = glitter_random_get_float_clamp_min_max(src->z);
+}
+
+int32_t FASTCALL glitter_random_get_int(int32_t value) {
+    int32_t val;
+    if (gpm->f2)
+        val = glitter_short_int_table[gpm->random++ & 0xFF];
+    else
+        val = glitter_full_int_table[gpm->random++ & 0xFFF];
+    return val % value;
+}
+
+int32_t FASTCALL glitter_random_get_int_clamp(int32_t min, int32_t max) {
     int32_t value;
 
     if (max == min)
         return min;
 
     if (gpm->f2)
-        value = Glitter__ShortIntTable[gpm->effect_val++ & 0xFF];
+        value = glitter_short_int_table[gpm->random++ & 0xFF];
     else
-        value = Glitter__FullIntTable[gpm->effect_val++ & 0xFFF];
+        value = glitter_full_int_table[gpm->random++ & 0xFFF];
     return value % (max - min) + min;
 }
 
-void FASTCALL Glitter__EffectVal__GetFloatVec3Clamp(vec3* src, vec3* dst) {
-    dst->x = Glitter__EffectVal__GetFloatClamp(src->x);
-    dst->y = Glitter__EffectVal__GetFloatClamp(src->y);
-    dst->z = Glitter__EffectVal__GetFloatClamp(src->z);
+int32_t FASTCALL glitter_random_get_max() {
+    if (gpm->f2)
+        return 0x100;
+    else
+        return 0x1000;
 }
 
-void FASTCALL Glitter__EffectVal__Set(int32_t value) {
+void FASTCALL glitter_random_set(int32_t value) {
     if (gpm->f2)
-        gpm->effect_val = value & 0xFF;
+        gpm->random = value & 0xFF;
     else
-        gpm->effect_val = value & 0xFFF;
+        gpm->random = value & 0xFFF;
 }

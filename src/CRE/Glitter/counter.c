@@ -7,10 +7,16 @@
 
 extern glitter_particle_manager* gpm;
 
-int32_t FASTCALL Glitter__Counter__Get() {
-    return gpm->counter;
+int32_t FASTCALL glitter_counter_get() {
+    if (gpm->f2)
+        return gpm->counter & 0xFF;
+    else
+        return gpm->counter & 0xFFF;
 }
 
-void FASTCALL Glitter__Counter__Increment() {
-    gpm->counter = (gpm->counter + 1) % 0x1000;
+void FASTCALL glitter_counter_increment() {
+    if (gpm->f2)
+        gpm->counter = (gpm->counter + 1) & 0xFF;
+    else
+        gpm->counter = (gpm->counter + 1) & 0xFFF;
 }

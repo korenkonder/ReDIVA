@@ -167,11 +167,7 @@ double_t camera_get_pitch(camera* c) {
 }
 
 void camera_set_pitch(camera* c, double_t value) {
-    if (value < -89.99999)
-        value = -89.99999;
-    else if (value > 89.99999)
-        value = 89.99999;
-    c->pitch = value;
+    c->pitch = clamp(value, -89.5, 89.5);
 }
 
 double_t camera_get_yaw(camera* c) {
@@ -191,10 +187,10 @@ double_t camera_get_roll(camera* c) {
 }
 
 void camera_set_roll(camera* c, double_t value) {
-    while (value > 180)
-        value -= 360.0f;
-    while (value < -180)
-        value += 360.0f;
+    while (value > 180.0)
+        value -= 360.0;
+    while (value < -180.0)
+        value += 360.0;
     c->roll = value;
 }
 

@@ -7,15 +7,15 @@
 #include "parse_file.h"
 #include "texture.h"
 
-bool FASTCALL Glitter__DivaResource__ParseFile(glitter_effect_group* a1, f2_header* header) {
-    if (!header || Glitter__ParseFile__ReverseSignatureEndianess(header) != 'DVRS')
+bool FASTCALL glitter_diva_resource_parse_file(glitter_effect_group* a1, f2_header* header) {
+    if (!header || glitter_parse_file_reverse_signature_endianess(header) != 'DVRS')
         return false;
 
-    header = Glitter__ParseFile__GetSubStructPointer(header);
+    header = glitter_parse_file_get_sub_struct_ptr(header);
     if (!header)
         return false;
 
-    if (Glitter__ParseFile__ReverseSignatureEndianess(header) == 'TXPC')
-        Glitter__Texture__Resource__UnpackFile(a1, (uint64_t)Glitter__ParseFile__GetDataPointer(header));
+    if (glitter_parse_file_reverse_signature_endianess(header) == 'TXPC')
+        glitter_texture_resource_unpack_file(a1, (uint64_t)glitter_parse_file_get_data_ptr(header));
     return true;
 }

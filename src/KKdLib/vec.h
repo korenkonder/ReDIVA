@@ -67,6 +67,14 @@ extern const __m128 vec2_negate;
 extern const __m128 vec3_negate;
 extern const __m128 vec4_negate;
 
+extern const vec2 vec2_identity;
+extern const vec3 vec3_identity;
+extern const vec4 vec4_identity;
+
+extern const vec2 vec2_null;
+extern const vec3 vec3_null;
+extern const vec4 vec4_null;
+
 #define vec2_add(x, y, z) \
 { \
     __m128 xt; \

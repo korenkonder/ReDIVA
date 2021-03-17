@@ -7,5 +7,5 @@
 
 #include "glitter.h"
 
-extern int32_t FASTCALL Glitter__Counter__Get();
-extern void FASTCALL Glitter__Counter__Increment();
+extern int32_t FASTCALL glitter_counter_get();
+extern void FASTCALL glitter_counter_increment();

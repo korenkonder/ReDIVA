@@ -196,6 +196,7 @@ void gl_object_draw_c(gl_object* obj) {
 
     shader_model_c_use(&obj->shader);
     gl_object_draw(obj);
+    shader_model_c_use(0);
 }
 
 void gl_object_draw_g(gl_object* obj) {
@@ -204,6 +205,7 @@ void gl_object_draw_g(gl_object* obj) {
 
     shader_model_g_use(&obj->shader);
     gl_object_draw(obj);
+    shader_model_c_use(0);
 }
 
 static void gl_object_draw(gl_object* obj) {
@@ -220,7 +222,6 @@ static void gl_object_draw(gl_object* obj) {
             GL_UNSIGNED_INT, 0, (GLsizei)obj->instances.count);
         break;
     }
-    glUseProgram(0);
     texture_set_reset(&obj->texture);
     glBindVertexArray(0);
 }

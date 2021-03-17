@@ -6,102 +6,40 @@
 #include "post_process.h"
 #include "static_var.h"
 
-void radius_calculate(radius* rad);
-void radius_calculate_gaussian_kernel(float_t* gaussian_kernel, float_t radius, int32_t spacing, int32_t offset);
-void intensity_calculate(intensity* inten);
-void tone_map_sat_gamma_calculate(tone_map_sat_gamma* tmsg);
-void tone_map_data_calculate(tone_map_data* tmd);
+static void radius_calculate(radius* rad);
+static void radius_calculate_gaussian_kernel(float_t* gaussian_kernel, float_t radius, int32_t spacing, int32_t offset);
+static void intensity_calculate(intensity* inten);
+static void tone_map_sat_gamma_calculate(tone_map_sat_gamma* tmsg);
+static void tone_map_data_calculate(tone_map_data* tmd);
 
 radius* radius_init() {
     radius* rad = force_malloc(sizeof(radius));
     return rad;
 }
 
-void radius_initialize_value(radius* rad, float_t y) {
-    rad->separate = false;
-    rad->independent_alpha = false;
-    rad->y = y;
-    rad->update = false;
+void radius_initialize(radius* rad, vec3* rgb) {
+    rad->rgb = *rgb;
     radius_calculate(rad);
 }
 
-void radius_initialize_vec4(radius* rad, vec4* rgba) {
-    rad->separate = true;
-    rad->independent_alpha = true;
-    rad->rgba = *rgba;
-    rad->update = false;
-    radius_calculate(rad);
+vec3* radius_get(radius* rad) {
+    return &rad->rgb;
 }
 
-void radius_initialize_vec3(radius* rad, vec3* rgb) {
-    rad->separate = true;
-    rad->independent_alpha = false;
-    rad->rgba = (vec4){ rgb->x, rgb->y, rgb->z, 0.0f };
-    vec3_dot(*rgb, *(vec3*)&sv_rgb_to_luma, rad->rgba.w);
-    rad->update = false;
-    radius_calculate(rad);
-}
-
-bool radius_get_independent_alpha(radius* rad) {
-    return rad->independent_alpha;
-}
-
-void radius_set_independent_alpha(radius* rad, bool value) {
-    if (value != rad->independent_alpha) {
-        rad->independent_alpha = value;
-        radius_calculate(rad);
-    }
-}
-
-bool radius_get_separate(radius* rad) {
-    return rad->separate;
-}
-
-void radius_set_separate(radius* rad, bool value) {
-    if (value != rad->separate) {
-        rad->separate = value;
-        radius_calculate(rad);
-    }
-}
-
-float_t radius_get_y(radius* rad) {
-    return rad->y;
-}
-
-void radius_set_y(radius* rad, float_t value) {
-    value = clamp(value, 0.0f, 3.0f);
-    if (value != rad->y) {
-        rad->y = value;
-        radius_calculate(rad);
-    }
-}
-
-vec4* radius_get_rgba(radius* rad) {
-    return &rad->rgba;
-}
-
-void radius_set_rgba(radius* rad, vec4* value) {
-    vec4 temp;
+void radius_set(radius* rad, vec3* value) {
+    vec3 temp;
     temp.x = clamp(value->x, 0.0f, 3.0f);
     temp.y = clamp(value->y, 0.0f, 3.0f);
     temp.z = clamp(value->z, 0.0f, 3.0f);
-    temp.w = clamp(value->w, 0.0f, 3.0f);
-    if (value->x != rad->rgba.x || value->y != rad->rgba.y
-        || value->z != rad->rgba.z || value->w != rad->rgba.w) {
+    if (temp.x != rad->rgb.x || temp.y != rad->rgb.y || temp.z != rad->rgb.z) {
+        rad->rgb = temp;
         radius_calculate(rad);
     }
 }
 
-void radius_calculate(radius* rad) {
-    vec4 radius;
-    if (rad->separate && rad->independent_alpha)
-        radius = rad->rgba;
-    else if (rad->separate) {
-        radius = (vec4){ rad->rgba.x, rad->rgba.y, rad->rgba.z, 0.0f };
-        vec3_dot(*(vec3*)&rad->rgba, sv_rgb_to_luma, radius.w);
-    }
-    else
-        radius = (vec4){ rad->y, rad->y, rad->y, rad->y };
+static void radius_calculate(radius* rad) {
+    vec4 radius = (vec4){ rad->rgb.x, rad->rgb.y, rad->rgb.z, 0.0f };
+    vec3_dot(rad->rgb, sv_rgb_to_luma, radius.w);
     rad->update = true;
     radius_calculate_gaussian_kernel(rad->val, radius.x, 4, 0);
     radius_calculate_gaussian_kernel(rad->val, radius.y, 4, 1);
@@ -109,7 +47,7 @@ void radius_calculate(radius* rad) {
     radius_calculate_gaussian_kernel(rad->val, radius.w, 4, 3);
 }
 
-void radius_calculate_gaussian_kernel(float_t* gaussian_kernel, float_t radius, int32_t spacing, int32_t offset) {
+static void radius_calculate_gaussian_kernel(float_t* gaussian_kernel, float_t radius, int32_t spacing, int32_t offset) {
     gaussian_kernel[0 * spacing + offset] = 1.0f;
     for (int32_t i = 1; i < GAUSSIAN_KERNEL_SIZE; i++)
         gaussian_kernel[i * spacing + offset] = 0.0f;
@@ -135,14 +73,7 @@ intensity* intensity_init() {
     return inten;
 }
 
-void intensity_initialize_value(intensity* inten, float_t y) {
-    inten->separate = false;
-    inten->y = clamp(y, 0.0f, 2.0f);
-    inten->update = false;
-    intensity_calculate(inten);
-}
-void intensity_initialize_vec3(intensity* inten, vec3* rgb) {
-    inten->separate = true;
+void intensity_initialize(intensity* inten, vec3* rgb) {
     inten->rgb.x = clamp(rgb->x, 0.0f, 2.0f);
     inten->rgb.y = clamp(rgb->y, 0.0f, 2.0f);
     inten->rgb.z = clamp(rgb->z, 0.0f, 2.0f);
@@ -150,34 +81,11 @@ void intensity_initialize_vec3(intensity* inten, vec3* rgb) {
     intensity_calculate(inten);
 }
 
-bool intensity_get_separate(intensity* inten) {
-    return inten->separate;
-}
-
-void intensity_set_separate(intensity* inten, bool value) {
-    if (value != inten->separate) {
-        inten->separate = value;
-        intensity_calculate(inten);
-    }
-}
-
-float_t intensity_get_y(intensity* inten) {
-    return inten->y;
-}
-
-void intensity_set_y(intensity* inten, float_t value) {
-    value = clamp(value, 0.0f, 2.0f);
-    if (value != inten->y) {
-        inten->y = value;
-        intensity_calculate(inten);
-    }
-}
-
-vec3* intensity_get_rgb(intensity* inten) {
+vec3* intensity_get(intensity* inten) {
     return &inten->rgb;
 }
 
-void intensity_set_rgb(intensity* inten, vec3* value) {
+void intensity_set(intensity* inten, vec3* value) {
     vec3 temp;
     temp.x = clamp(value->x, 0.0f, 2.0f);
     temp.y = clamp(value->y, 0.0f, 2.0f);
@@ -188,11 +96,8 @@ void intensity_set_rgb(intensity* inten, vec3* value) {
     }
 }
 
-void intensity_calculate(intensity* inten) {
-    if (inten->separate)
-        inten->val = inten->rgb;
-    else
-        inten->val = (vec3){ inten->y, inten->y, inten->y };
+static void intensity_calculate(intensity* inten) {
+    inten->val = inten->rgb;
     inten->update = true;
 }
 
@@ -206,7 +111,7 @@ tone_map_sat_gamma* tone_map_sat_gamma_init() {
 }
 
 void tone_map_sat_gamma_initialize_rate(tone_map_sat_gamma* tmsg,
-    float_t gamma, float_t gamma_rate, int saturate1, float_t saturate2) {
+    float_t gamma, float_t gamma_rate, int32_t saturate1, float_t saturate2) {
     tmsg->gamma = clamp(gamma, 0.2f, 2.2f);
     tmsg->gamma_rate = clamp(gamma_rate, 0.5f, 2.0f);
     tmsg->saturate1 = clamp(saturate1, 1, 6);
@@ -216,7 +121,7 @@ void tone_map_sat_gamma_initialize_rate(tone_map_sat_gamma* tmsg,
 }
 
 void tone_map_sat_gamma_initialize(tone_map_sat_gamma* tmsg,
-    float_t gamma, int saturate1, float_t saturate2) {
+    float_t gamma, int32_t saturate1, float_t saturate2) {
     tmsg->gamma = clamp(gamma, 0.2f, 2.2f);
     tmsg->gamma_rate = clamp(1.0f, 0.5f, 2.0f);
     tmsg->saturate1 = clamp(saturate1, 1, 6);
@@ -273,26 +178,28 @@ void tone_map_sat_gamma_set_saturate2(tone_map_sat_gamma* tmsg, float_t value) {
     }
 }
 
-void tone_map_sat_gamma_calculate(tone_map_sat_gamma* tmsg) {
+static void tone_map_sat_gamma_calculate(tone_map_sat_gamma* tmsg) {
     const float_t tone_map_sat_gamma_scale = 1.0f / TONE_MAP_SAT_GAMMA_SAMPLES;
     const int32_t tone_map_sat_gamma_size = 16 * TONE_MAP_SAT_GAMMA_SAMPLES;
 
     int32_t i, j;
+    int32_t saturate1;
+    float_t saturate2;
 
     tmsg->update = true;
     vec2* v = tmsg->val;
     float_t gamma, v10, v11;
     gamma = tmsg->gamma * tmsg->gamma_rate * 1.5f;
+    saturate1 = tmsg->saturate1;
+    saturate2 = tmsg->saturate2;
 
     v[0].x = 0.0f;
     v[0].y = 0.0f;
-    for (i = 1; i < tone_map_sat_gamma_size; i++)
-    {
+    for (i = 1; i < tone_map_sat_gamma_size; i++) {
         v11 = expf(-i * tone_map_sat_gamma_scale);
         v10 = powf(1.0f - v11, gamma);
         v11 = v10 * 2.0f - 1.0f;
-        for (j = 0; j < tmsg->saturate1; j++)
-        {
+        for (j = 0; j < saturate1; j++) {
             v11 *= v11;
             v11 *= v11;
             v11 *= v11;
@@ -300,7 +207,7 @@ void tone_map_sat_gamma_calculate(tone_map_sat_gamma* tmsg) {
         }
 
         v[i].x = v10;
-        v[i].y = v10 * tmsg->saturate2 * ((float_t)TONE_MAP_SAT_GAMMA_SAMPLES / (float_t)i) * (1.0f - v11);
+        v[i].y = v10 * saturate2 * ((float_t)TONE_MAP_SAT_GAMMA_SAMPLES / (float_t)i) * (1.0f - v11);
     }
 }
 
@@ -421,9 +328,9 @@ vec3* tone_map_data_get_tone_trans_end(tone_map_data* tmd) {
 
 void tone_map_data_set_tone_trans_end(tone_map_data* tmd, vec3* value) {
     vec3 temp;
-    temp.x = clamp(value->x, 0.0f, 1.0f);
-    temp.y = clamp(value->y, 0.0f, 1.0f);
-    temp.z = clamp(value->z, 0.0f, 1.0f);
+    temp.x = clamp(value->x, 0.009999999776f, 1.0f);
+    temp.y = clamp(value->y, 0.009999999776f, 1.0f);
+    temp.z = clamp(value->z, 0.009999999776f, 1.0f);
     if (temp.x != tmd->tone_trans_end.x
         || temp.y != tmd->tone_trans_end.y
         || temp.z != tmd->tone_trans_end.z) {
@@ -444,18 +351,14 @@ void tone_map_data_set_tone_map_method(tone_map_data* tmd, int32_t value) {
     }
 }
 
-void tone_map_data_calculate(tone_map_data* tmd) {
+static void tone_map_data_calculate(tone_map_data* tmd) {
     tmd->update = true;
 
     vec3 tone_trans, tone_trans_scale, tone_trans_offset;
     vec3_sub(tmd->tone_trans_end, tmd->tone_trans_start, tone_trans);
-    tone_trans_scale.x = 1.0f / tone_trans.x;
-    tone_trans_scale.y = 1.0f / tone_trans.y;
-    tone_trans_scale.z = 1.0f / tone_trans.z;
+    vec3_div(vec3_identity, tone_trans, tone_trans_scale);
     vec3_mult(tone_trans_scale, tmd->tone_trans_start, tone_trans_offset);
-    tone_trans_offset.x = -tone_trans_offset.x;
-    tone_trans_offset.y = -tone_trans_offset.y;
-    tone_trans_offset.z = -tone_trans_offset.z;
+    vec3_negate(tone_trans_offset, tone_trans_offset);
 
     float_t* v = tmd->val;
     v[0] = tmd->exposure;
@@ -469,10 +372,10 @@ void tone_map_data_calculate(tone_map_data* tmd) {
     v[8] = tone_trans_scale.x;
     v[9] = tone_trans_scale.y;
     v[10] = tone_trans_scale.z;
-    v[11] = tone_trans_offset.x;
-    v[12] = tone_trans_offset.y;
-    v[13] = tone_trans_offset.z;
-    v[14] = (float_t)tmd->scene_fade_blend_func;
+    v[12] = tone_trans_offset.x;
+    v[13] = tone_trans_offset.y;
+    v[14] = tone_trans_offset.z;
+    v[15] = (float_t)tmd->scene_fade_blend_func;
 }
 
 void tone_map_data_dispose(tone_map_data* tmd) {
