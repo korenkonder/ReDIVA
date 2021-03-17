@@ -1,0 +1,17 @@
+/*
+    by korenkonder
+    GitHub/GitLab: korenkonder
+*/
+
+#pragma once
+
+#include "../KKdLib/default.h"
+#include "../KKdLib/vec.h"
+
+extern int32_t input_main(void* arg);
+extern bool input_keyboard_is_down(uint8_t keycode);
+extern bool input_keyboard_is_up(uint8_t keycode);
+extern bool input_keyboard_is_tapped(uint8_t keycode);
+extern bool input_keyboard_is_released(uint8_t keycode);
+extern bool input_keyboard_was_down(uint8_t keycode);
+extern bool input_keyboard_was_up(uint8_t keycode);

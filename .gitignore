@@ -1,0 +1,11 @@
+.vs
+bin
+lib
+libdebug
+obj
+objdebug
+*.rc
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
