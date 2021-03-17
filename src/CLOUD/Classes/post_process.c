@@ -215,39 +215,26 @@ extern void post_process_mui() {
 
     if (mu_begin_treenode_ex(muctx, "Glare", MU_OPT_EXPANDED)) {
         int32_t tw0 = mu_misc_get_max_text_width(muctx, (char* []) {
-            "Radius:", "Inten "
-        }, 2);
-        int32_t tw1 = mu_misc_get_max_text_width(muctx, (char* []) {
-            "R:"
-        }, 1);
-        int32_t tw2 = mu_misc_get_max_text_width(muctx, (char* []) {
-            "G:"
-        }, 1);
-        int32_t tw3 = mu_misc_get_max_text_width(muctx, (char* []) {
-            "B:"
-        }, 1);
-        mu_Rect body = muctx->layout_stack.items[muctx->layout_stack.idx - 1].body;
-        int32_t sw = (int)((body.w - (tw0 + 4) - (tw1 + 2) - (tw2 + 2) - (tw3 + 2) - (muctx->style->spacing + 2) * 7) / 3.0f);
+            "Radius R:", "Radius G:", "Radius B:", "Inten  R:", "Inten  G:", "Inten  B:"
+        }, 6);
 
-        mu_layout_row(muctx, 7, (int[]) { tw0, tw1, sw, tw2, sw, tw3, sw }, 0);
+        mu_layout_row(muctx, 2, (int[]) { tw0, -1 }, 0);
 
         vec3 radius = *radius_get(rad);
-        mu_label(muctx, "Radius");
-        mu_label(muctx, "R:");
+        mu_label(muctx, "Radius R:");
         mu_slider_step(muctx, &radius.x, 1.0f, 3.0f, 0.01f);
-        mu_label(muctx, "G:");
+        mu_label(muctx, "Radius G:");
         mu_slider_step(muctx, &radius.y, 1.0f, 3.0f, 0.01f);
-        mu_label(muctx, "B:");
+        mu_label(muctx, "Radius B:");
         mu_slider_step(muctx, &radius.z, 1.0f, 3.0f, 0.01f);
         radius_set(rad, &radius);
 
         vec3 intensity = *intensity_get(inten);
-        mu_label(muctx, "Inten ");
-        mu_label(muctx, "R:");
+        mu_label(muctx, "Inten  R:");
         mu_slider_step(muctx, &intensity.x, 0.0f, 2.0f, 0.01f);
-        mu_label(muctx, "G:");
+        mu_label(muctx, "Inten  G:");
         mu_slider_step(muctx, &intensity.y, 0.0f, 2.0f, 0.01f);
-        mu_label(muctx, "B:");
+        mu_label(muctx, "Inten  B:");
         mu_slider_step(muctx, &intensity.z, 0.0f, 2.0f, 0.01f);
         intensity_set(inten, &intensity);
         mu_end_treenode(muctx);

@@ -142,10 +142,10 @@ void glitter_editor_mui() {
         if (mu_button(muctx, "Stop"))
             glitter_editor.input_stop = true;
 
-        mu_label(muctx, "Emission: ");
+        mu_label(muctx, "Emission:");
         mu_slider_step(muctx, &gpm->emission, 1.0f, 2.0f, 0.01f);
 
-        mu_label(muctx, "Frame Speed: ");
+        mu_label(muctx, "Frame Speed:");
         mu_slider_step(muctx, &frame_speed, 0.0f, 3.0f, 0.01f);
 
         float_t frame_counter = (float_t)(int32_t)glitter_editor.frame_counter;
