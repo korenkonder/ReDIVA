@@ -51,7 +51,7 @@ void FASTCALL glitter_particle_inst_copy(glitter_particle_inst* a1, glitter_part
     if (a1->sub.render_group && a2->sub.render_group)
         glitter_render_group_copy(a1->sub.render_group, a2->sub.render_group);
 
-    vector_ptr_glitter_particle_inst_clear(&a2->sub.particle_insts, (void*)&glitter_particle_inst_dispose);
+    vector_ptr_glitter_particle_inst_clear(&a2->sub.particle_insts, (void*)glitter_particle_inst_dispose);
     for (i = a1->sub.particle_insts.begin; i != a1->sub.particle_insts.end; i++) {
         particle = glitter_particle_inst_init_child(a3, a1);
         vector_ptr_glitter_particle_inst_append_element(&a2->sub.particle_insts, &particle);
@@ -257,7 +257,7 @@ void FASTCALL glitter_particle_inst_dispose(glitter_particle_inst* pi) {
         pi->sub.render_group = 0;
     }
 
-    vector_ptr_glitter_particle_inst_clear(&pi->sub.particle_insts, (void*)&glitter_particle_inst_dispose);
+    vector_ptr_glitter_particle_inst_clear(&pi->sub.particle_insts, (void*)glitter_particle_inst_dispose);
     vector_ptr_glitter_particle_inst_dispose(&pi->sub.particle_insts);
     free(pi);
 }

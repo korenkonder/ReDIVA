@@ -36,23 +36,22 @@ FORCE_INLINE size_t pof_read_offsets_count(stream* s) {
     return j;
 }
 
-void pof_read(stream* s, len_array_size_t* pof, bool shift_x) {
-    memset(pof, 0, sizeof(len_array_size_t));
-
-    len_array_size_t p;
+void pof_read(stream* s, vector_size_t* pof, bool shift_x) {
+    vector_size_t p;
     size_t i, j, l, length, offset, v;
     uint8_t bit_shift;
     pof_value value;
+
+    vector_size_t_clear(pof);
+    vector_size_t_dispose(pof);
 
     length = pof_read_offsets_count(s);
 
     bit_shift = (uint8_t)(shift_x ? 3 : 2);
     l = io_read_uint32_t(s) - 4LL;
 
-    p.data = force_malloc_s(sizeof(size_t), length);
-    p.length = p.fulllength = length;
-
-    memset(p.data, 0, sizeof(size_t) * length);
+    p = (vector_size_t){ 0, 0, 0 };
+    vector_size_t_append(&p, length);
 
     i = 0;
     j = 0;
@@ -75,16 +74,17 @@ void pof_read(stream* s, len_array_size_t* pof, bool shift_x) {
             break;
 
         offset += v;
-        p.data[j] = offset << bit_shift;
+        *p.end++ = offset << bit_shift;
         i++;
         j++;
     }
     *pof = p;
 }
 
-void pof_write(stream* s, len_array_size_t* pof, bool shift_x) {
-    len_array_size_t p;
-    size_t i, j, k, l, o, v;
+void pof_write(stream* s, vector_size_t* pof, bool shift_x) {
+    vector_size_t p;
+    size_t* i;
+    size_t j, k, l, o, v;
     uint8_t bit_shift;
 
     p = *pof;
@@ -96,15 +96,15 @@ void pof_write(stream* s, len_array_size_t* pof, bool shift_x) {
     l = pof_length(pof, shift_x);
     io_write_uint32_t(s, (uint32_t)l);
 
-    for (i = 0; i < p.length; i++) {
-        o = p.data[i];
+    for (i = p.begin; i != p.end; i++) {
+        o = *i;
         if (o & v) {
             pof_write_packed_value(s, 0x7FFFFFFF);
             break;
         }
 
         k = o - j;
-        if ((i > 0) & !k)
+        if (i != p.begin && !k)
             continue;
         j = o;
         o = k;
@@ -142,23 +142,25 @@ FORCE_INLINE bool pof_length_get_size(uint32_t* length, size_t val) {
     return val >= 0x40000000;
 }
 
-uint32_t pof_length(len_array_size_t* pof, bool shift_x) {
-    len_array_size_t p;
-    size_t i, j, k, o, v;
+uint32_t pof_length(vector_size_t* pof, bool shift_x) {
+    vector_size_t p;
+    size_t* i;
+    size_t j, k, o, v;
     uint32_t l;
     uint8_t bit_shift;
 
     l = 4;
+    j = 0;
     o = 0;
     bit_shift = (uint8_t)(shift_x ? 3 : 2);
     v = ((size_t)1 << bit_shift) - 1;
     p = *pof;
 
-    for (i = 0; i < p.length; i++) {
-        o = p.data[i];
+    for (i = p.begin; i != p.end; i++) {
+        o = *i;
         if (o & v)
             break;
-        else if (i > 0) {
+        else if (i != p.begin) {
             k = o - j;
             if (!k)
                 continue;

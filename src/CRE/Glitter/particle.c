@@ -195,7 +195,7 @@ bool FASTCALL glitter_particle_unpack_file(glitter_file_reader* a1,
 }
 
 void FASTCALL glitter_particle_dispose(glitter_particle* p) {
-    vector_ptr_glitter_curve_clear(&p->curve, (void*)&glitter_curve_dispose);
+    vector_ptr_glitter_curve_clear(&p->curve, (void*)glitter_curve_dispose);
     vector_ptr_glitter_curve_dispose(&p->curve);
     free(p);
 }

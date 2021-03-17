@@ -48,11 +48,15 @@ typedef enum glitter_curve_type {
 typedef enum glitter_direction {
     GLITTER_DIRECTION_BILLBOARD         = 0,
     GLITTER_DIRECTION_EMITTER_DIRECTION = 1,
+    GLITTER_DIRECTION_TYPE_2_DIR_ANGLE  = 2,
+    GLITTER_DIRECTION_TYPE_3_DIR_ANGLE  = 3,
     GLITTER_DIRECTION_Y_AXIS            = 4,
     GLITTER_DIRECTION_X_AXIS            = 5,
     GLITTER_DIRECTION_Z_AXIS            = 6,
     GLITTER_DIRECTION_BILLBOARD_Y_ONLY  = 7,
+    GLITTER_DIRECTION_TYPE_8_DIR_ANGLE  = 8,
     GLITTER_DIRECTION_EMITTER_ROTATION  = 9,
+    GLITTER_DIRECTION_EFFECT_ROTATION   = 10,
     GLITTER_DIRECTION_PARTICLE_ROTATION = 11,
 } glitter_direction;
 
@@ -234,7 +238,7 @@ struct glitter_buffer {
 
 struct glitter_curve_key {
     glitter_key_type type;
-    float_t frame;
+    int32_t frame;
     float_t value;
     float_t tangent1;
     float_t tangent2;

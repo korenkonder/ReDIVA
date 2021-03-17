@@ -7,7 +7,7 @@
 
 #include "default.h"
 #include "io_stream.h"
-#include "len_array.h"
+#include "vector.h"
 
 typedef enum pof_value {
     POF_VALUE_INVALID = 0b00,
@@ -16,6 +16,6 @@ typedef enum pof_value {
     POF_VALUE_INT32   = 0b11,
 } pof_value;
 
-extern void pof_read(stream* s, len_array_size_t* pof, bool shift_x);
-extern void pof_write(stream* s, len_array_size_t* pof, bool shift_x);
-extern uint32_t pof_length(len_array_size_t* pof, bool shift_x);
+extern void pof_read(stream* s, vector_size_t* pof, bool shift_x);
+extern void pof_write(stream* s, vector_size_t* pof, bool shift_x);
+extern uint32_t pof_length(vector_size_t* pof, bool shift_x);

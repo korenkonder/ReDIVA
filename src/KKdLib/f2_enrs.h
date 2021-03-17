@@ -7,7 +7,7 @@
 
 #include "default.h"
 #include "io_stream.h"
-#include "len_array.h"
+#include "vector.h"
 
 typedef enum enrs_type {
     ENRS_TYPE_WORD    = 0b00,
@@ -29,19 +29,19 @@ typedef struct enrs_sub_entry {
     enrs_type type;
 } enrs_sub_entry;
 
-len_array(enrs_sub_entry)
+vector(enrs_sub_entry)
 
 typedef struct enrs_entry {
     uint32_t offset;
     uint32_t count;
     uint32_t size;
     uint32_t repeat_count;
-    len_array_enrs_sub_entry sub;
+    vector_enrs_sub_entry sub;
 } enrs_entry;
 
-len_array(enrs_entry)
+vector(enrs_entry)
 
-void enrs_dispose(len_array_enrs_entry* e);
-extern void enrs_read(stream* s, len_array_enrs_entry* enrs);
-extern void enrs_write(stream* s, len_array_enrs_entry* enrs);
-extern uint32_t enrs_length(len_array_enrs_entry* enrs);
+void enrs_dispose(vector_enrs_entry* e);
+extern void enrs_read(stream* s, vector_enrs_entry* enrs);
+extern void enrs_write(stream* s, vector_enrs_entry* enrs);
+extern uint32_t enrs_length(vector_enrs_entry* enrs);

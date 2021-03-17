@@ -16,12 +16,14 @@
 #include <fileapi.h>
 
 #define free(ptr) \
-if (ptr) { \
-    free(ptr); \
-    (ptr) = 0; \
-} \
-else \
-    (ptr) = 0
+{ \
+    if (ptr) { \
+        free(ptr); \
+        (ptr) = 0; \
+    } \
+    else \
+        (ptr) = 0; \
+}
 
 #define null(t) \
 typedef struct null_##t { \

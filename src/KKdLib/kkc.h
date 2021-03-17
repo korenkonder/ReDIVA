@@ -6,7 +6,7 @@
 #pragma once
 
 #include "default.h"
-#include "len_array.h"
+#include "vector.h"
 
 typedef enum kkc_key_mode {
     KKC_KEY_MODE_SIMPLE = 1,
@@ -56,7 +56,7 @@ typedef struct kkc {
 extern kkc* kkc_init();
 extern void kkc_dispose(kkc* c);
 extern void FASTCALL kkc_get_key(kkc_key* key, uint32_t seed, kkc_key_mode mode, kkc_key_type type);
-extern void FASTCALL kkc_init_from_key_mode(kkc* c, len_array_char key, kkc_key_mode mode);
+extern void FASTCALL kkc_init_from_key_mode(kkc* c, vector_uint8_t* key, kkc_key_mode mode);
 extern void FASTCALL kkc_init_from_type_mode(kkc* c, kkc_key_type type, kkc_key_mode mode);
 extern void FASTCALL kkc_init_from_seed_type_mode(kkc* c, uint32_t seed, kkc_key_type type, kkc_key_mode mode);
 extern void FASTCALL kkc_init_from_key(kkc* c, kkc_key* key);

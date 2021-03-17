@@ -94,15 +94,15 @@ typedef struct thread {
     DWORD id;
 } thread;
 
-wchar_t* glitter_file;
+wchar_t* glitter_test_file;
 
 int wmain(int argc, wchar_t** argv) {
     if (argc <= 1)
         //return;
-        glitter_file = 0;
+        glitter_test_file = 0;
         //glitter_file = L"eff_pv249_kirakira";
     else
-        glitter_file = argv[1];
+        glitter_test_file = argv[1];
 
     //ShowWindow(GetConsoleWindow(), SW_HIDE);
     QueryPerformanceFrequency(&performance_frequency);

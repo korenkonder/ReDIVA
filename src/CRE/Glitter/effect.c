@@ -157,9 +157,9 @@ int32_t FASTCALL glitter_effect_unpack_file_get_index(int32_t a1) {
 
 void FASTCALL glitter_effect_dispose(glitter_effect* e) {
     free(e->data.a3da);
-    vector_ptr_glitter_curve_clear(&e->curve, (void*)&glitter_curve_dispose);
+    vector_ptr_glitter_curve_clear(&e->curve, (void*)glitter_curve_dispose);
     vector_ptr_glitter_curve_dispose(&e->curve);
-    vector_ptr_glitter_emitter_clear(&e->emitters, (void*)&glitter_emitter_dispose);
+    vector_ptr_glitter_emitter_clear(&e->emitters, (void*)glitter_emitter_dispose);
     vector_ptr_glitter_emitter_dispose(&e->emitters);
     free(e);
 }

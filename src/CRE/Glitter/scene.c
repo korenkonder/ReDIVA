@@ -107,9 +107,9 @@ void FASTCALL glitter_scene_update_value_frame(glitter_scene* a1, float_t delta_
 }
 
 void FASTCALL glitter_scene_dispose(glitter_scene* s) {
-    vector_ptr_glitter_effect_inst_clear(&s->effects, (void*)&glitter_effect_inst_dispose);
+    vector_ptr_glitter_effect_inst_clear(&s->effects, (void*)glitter_effect_inst_dispose);
     vector_ptr_glitter_effect_inst_dispose(&s->effects);
-    vector_ptr_glitter_render_group_clear(&s->sub.render_groups, (void*)&glitter_render_group_dispose);
+    vector_ptr_glitter_render_group_clear(&s->sub.render_groups, (void*)glitter_render_group_dispose);
     vector_ptr_glitter_render_group_dispose(&s->sub.render_groups);
     free(s);
 }

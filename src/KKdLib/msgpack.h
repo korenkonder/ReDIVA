@@ -46,9 +46,9 @@ typedef struct msgpack_array {
 } msgpack_array;
 
 typedef struct msgpack_map {
+    msgpack* data;
     size_t length;
     size_t fulllength;
-    msgpack* data;
 } msgpack_map;
 
 extern msgpack* msgpack_init_map(wchar_t* name);

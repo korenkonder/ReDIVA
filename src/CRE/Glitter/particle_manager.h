@@ -30,6 +30,10 @@ extern bool FASTCALL glitter_particle_manager_load_effect(glitter_particle_manag
 extern bool FASTCALL glitter_particle_manager_load_scene(glitter_particle_manager* gpm,
     uint64_t effect_group_hash);
 extern void FASTCALL glitter_particle_manager_reset_scene_disp_counter(glitter_particle_manager* gpm);
+extern bool FASTCALL glitter_particle_manager_test_load_effect(glitter_particle_manager* gpm,
+    uint64_t effect_group_hash, uint64_t effect_hash);
+extern bool FASTCALL glitter_particle_manager_test_load_scene(glitter_particle_manager* gpm,
+    uint64_t effect_group_hash);
 extern void FASTCALL glitter_particle_manager_update_file_reader(glitter_particle_manager* gpm);
 extern void FASTCALL glitter_particle_manager_update_scene(glitter_particle_manager* gpm);
 extern void FASTCALL glitter_particle_manager_dispose(glitter_particle_manager* gpm);

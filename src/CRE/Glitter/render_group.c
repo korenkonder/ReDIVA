@@ -727,9 +727,9 @@ void FASTCALL glitter_render_group_draw_quad(glitter_scene_sub* a1, glitter_rend
     case GLITTER_DIRECTION_EMITTER_DIRECTION:
         mat2 = a2->mat_no_scale;
         break;
-    case 2:
-    case 3:
-    case 8:
+    case GLITTER_DIRECTION_TYPE_2_DIR_ANGLE:
+    case GLITTER_DIRECTION_TYPE_3_DIR_ANGLE:
+    case GLITTER_DIRECTION_TYPE_8_DIR_ANGLE:
         if (a2->flags & GLITTER_PARTICLE_FLAG_USE_MODEL_MAT) {
             mat2 = a2->mat_no_scale;
             mat2.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
@@ -755,12 +755,12 @@ void FASTCALL glitter_render_group_draw_quad(glitter_scene_sub* a1, glitter_rend
     }
 
     switch (a2->draw_type) {
-    case 2:
-    case 8:
-        glitter_render_group_draw_quad_sub2(a1, a2, &mat1, &mat2, &glitter_render_group_draw_quad_rotate_to_axis1);
+    case GLITTER_DIRECTION_TYPE_2_DIR_ANGLE:
+    case GLITTER_DIRECTION_TYPE_8_DIR_ANGLE:
+        glitter_render_group_draw_quad_sub2(a1, a2, &mat1, &mat2, glitter_render_group_draw_quad_rotate_to_prev_position);
         break;
-    case 3:
-        glitter_render_group_draw_quad_sub2(a1, a2, &mat1, &mat2, &glitter_render_group_draw_quad_rotate_to_axis2);
+    case GLITTER_DIRECTION_TYPE_3_DIR_ANGLE:
+        glitter_render_group_draw_quad_sub2(a1, a2, &mat1, &mat2, glitter_render_group_draw_quad_rotate_to_position);
         break;
     default:
         glitter_render_group_draw_quad_sub1(a1, a2, &mat1, &mat2);
@@ -781,7 +781,7 @@ void FASTCALL glitter_render_group_draw_quads(glitter_scene_sub* a1, int32_t cou
     glDisable(GL_ALPHA_TEST);
 }
 
-void FASTCALL glitter_render_group_draw_quad_rotate_to_axis1(mat4* mat,
+void FASTCALL glitter_render_group_draw_quad_rotate_to_prev_position(mat4* mat,
     glitter_render_group* a2, glitter_render_group_sub* a3) {
     vec3 vec1;
     vec3 vec2;
@@ -804,7 +804,7 @@ void FASTCALL glitter_render_group_draw_quad_rotate_to_axis1(mat4* mat,
     }
 }
 
-void FASTCALL glitter_render_group_draw_quad_rotate_to_axis2(mat4* mat,
+void FASTCALL glitter_render_group_draw_quad_rotate_to_position(mat4* mat,
     glitter_render_group* a2, glitter_render_group_sub* a3) {
     vec3 vec;
     vec3 vec1;

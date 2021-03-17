@@ -18,9 +18,9 @@ extern void FASTCALL glitter_render_group_draw(glitter_scene_sub* a1, glitter_re
 extern void FASTCALL glitter_render_group_draw_line(glitter_scene_sub* a1, glitter_render_group* a2);
 extern void FASTCALL glitter_render_group_draw_locus(glitter_scene_sub* a1, glitter_render_group* a2);
 extern void FASTCALL glitter_render_group_draw_quad(glitter_scene_sub* a1, glitter_render_group* a2);
-extern void FASTCALL glitter_render_group_draw_quad_rotate_to_axis1(mat4* mat,
+extern void FASTCALL glitter_render_group_draw_quad_rotate_to_prev_position(mat4* mat,
     glitter_render_group* a2, glitter_render_group_sub* a3);
-extern void FASTCALL glitter_render_group_draw_quad_rotate_to_axis2(mat4* mat,
+extern void FASTCALL glitter_render_group_draw_quad_rotate_to_position(mat4* mat,
     glitter_render_group* a2, glitter_render_group_sub* a3);
 extern void FASTCALL glitter_render_group_draw_quad_sub1(glitter_scene_sub* a1,
     glitter_render_group* a2, mat4* a3, mat4* a4);

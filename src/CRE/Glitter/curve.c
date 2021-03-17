@@ -154,7 +154,7 @@ bool FASTCALL glitter_curve_get_value(glitter_curve* curv, float_t frame, float_
 
 float_t FASTCALL glitter_curve_interpolate(glitter_curve* a1, float_t frame,
     glitter_curve_key* a3, glitter_curve_key* a4, glitter_key_type type) {
-    float_t v7;
+    float_t df;
     float_t v9;
     float_t v10;
     float_t t;
@@ -164,13 +164,13 @@ float_t FASTCALL glitter_curve_interpolate(glitter_curve* a1, float_t frame,
     if (type == GLITTER_KEY_CONSTANT)
         return glitter_curve_randomize(a1, a3);
 
-    v7 = a4->frame - a3->frame;
-    t = (frame - a3->frame) / v7;
+    df = (float_t)(a4->frame - a3->frame);
+    t = (frame - a3->frame) / df;
     if (type == GLITTER_KEY_HERMITE) {
         t_2 = (1.0f - t) * (1.0f - t);
         v9 = glitter_curve_randomize(a1, a4);
         v10 = glitter_curve_randomize(a1, a3);
-        v15 = t_2 * (v9 - v10) * (1.0f + 2.0f * t) + ((t_2 * a3->tangent2 + t * (t - 1.0f) * a4->tangent1) * v7) * t;
+        v15 = t_2 * (v9 - v10) * (1.0f + 2.0f * t) + ((t_2 * a3->tangent2 + t * (t - 1.0f) * a4->tangent1) * df) * t;
         return glitter_curve_randomize(a1, a3) + v15;
     }
     else {
@@ -254,7 +254,7 @@ void FASTCALL glitter_curve_unpack_file(glitter_file_reader* fr, float_t* data,
 
     data = data;
     key.type = GLITTER_KEY_CONSTANT;
-    key.frame = 0.0f;
+    key.frame = 0;
     key.value = 0.0f;
     key.tangent1 = 0.0f;
     key.tangent2 = 0.0f;
@@ -268,8 +268,8 @@ void FASTCALL glitter_curve_unpack_file(glitter_file_reader* fr, float_t* data,
 
     if (curve->flags & GLITTER_CURVE_FLAG_RANDOM_RANGE)
         for (v11 = count; v11; v11--) {
-            key.type = *(uint16_t*)data;
-            key.frame = (float_t)((int16_t*)data)[1];
+            key.type = ((uint16_t*)data)[0];
+            key.frame = ((int16_t*)data)[1];
             if (key.type == GLITTER_KEY_HERMITE) {
                 key.tangent1 = data[1] * scale;
                 key.tangent2 = data[2] * scale;
@@ -287,8 +287,8 @@ void FASTCALL glitter_curve_unpack_file(glitter_file_reader* fr, float_t* data,
         }
     else
         for (v11 = count; v11; v11--) {
-            key.type = *(uint16_t*)data;
-            key.frame = (float_t)((int16_t*)data)[1];
+            key.type = ((uint16_t*)data)[0];
+            key.frame = ((int16_t*)data)[1];
             if (key.type == GLITTER_KEY_HERMITE) {
                 key.tangent1 = data[1] * scale;
                 key.tangent2 = data[2] * scale;

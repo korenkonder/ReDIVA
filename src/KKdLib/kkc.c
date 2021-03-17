@@ -81,17 +81,17 @@ void FASTCALL kkc_get_key(kkc_key* key, uint32_t seed, kkc_key_mode mode, kkc_ke
     key->type = type;
 }
 
-void FASTCALL kkc_init_from_key_mode(kkc* c, len_array_char key, kkc_key_mode mode) {
+void FASTCALL kkc_init_from_key_mode(kkc* c, vector_uint8_t* key, kkc_key_mode mode) {
     c->state = 1;
     c->error = KKC_ERROR_NONE;
 
-    if (!key.data || !key.length || !key.fulllength) {
+    if (!key || !key->begin || !(key->end - key->begin)) {
         c->error = KKC_ERROR_INVALID_KEY;
         return;
     }
 
     kkc_key_type type = 0;
-    size_t kl = key.length;
+    size_t kl = key->end - key->begin;
 
     switch (kl) {
     case 16:
@@ -126,7 +126,7 @@ void FASTCALL kkc_init_from_key_mode(kkc* c, len_array_char key, kkc_key_mode mo
         return;
     }
 
-    c->key.data = (uint8_t*)key.data;
+    c->key.data = (uint8_t*)key->begin;
     c->key.mode = mode;
     c->key.type = type;
 }

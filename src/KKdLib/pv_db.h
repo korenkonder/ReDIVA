@@ -6,8 +6,7 @@
 #pragma once
 
 #include "default.h"
-#include "len_array.h"
-#include "len_array_pointer.h"
+#include "vector.h"
 
 typedef enum chara {
     CHARA_MIK = 0,
@@ -175,10 +174,10 @@ typedef struct chreff_data {
     char* Name;
 } chreff_data;
 
-len_array(chreff_data)
+vector(chreff_data)
 
 typedef struct chreff {
-    len_array_chreff_data data;
+    vector_chreff_data data;
 
     null_int32_t id;
     char* name;
@@ -250,10 +249,10 @@ typedef struct ex_song_aft101 {
     char* name;
 } ex_song_aft101;
 
-len_array(ex_auth)
+vector(ex_auth)
 
 typedef struct ex_song_aft300 {
-    len_array_ex_auth ex_auth;                                  // AFT701/FT
+    vector_ex_auth ex_auth;                                     // AFT701/FT
 
     null_chara chara;
     null_chara chara2P;
@@ -277,9 +276,9 @@ typedef struct field_ac101 {
 } field_ac101;
 
 typedef struct field_ac200 {
-    len_array_pointer_char auth_3d_list;                        // not AC200/AC210/AC211
-    len_array_int32_t auth_3d_frame_list;                       // AC520/AC521/AC600
-    len_array_pointer_char ex_auth_3d_list;                     // AC510/AC511/AC520/AC521/AC600
+    vector_ptr_char auth_3d_list;                               // not AC200/AC210/AC211
+    vector_int32_t auth_3d_frame_list;                          // AC520/AC521/AC600
+    vector_ptr_char ex_auth_3d_list;                            // AC510/AC511/AC520/AC521/AC600
 
     char* aet_back;
     char* aet_back_low;                                         // not AC200
@@ -298,7 +297,7 @@ typedef struct field_ac200 {
 } field_ac200;
 
 typedef struct field_ac500 {
-    len_array_pointer_char auth_3d_list;
+    vector_ptr_char auth_3d_list;
 
     char* aet_back;
     char* aet_back_low;
@@ -317,9 +316,9 @@ typedef struct field_ac500 {
 } field_ac500;
 
 typedef struct field_aft101 {
-    len_array_pointer_char auth_3d_list;
-    len_array_int32_t auth_3d_frame_list;
-    len_array_pointer_char ex_auth_3d_list;
+    vector_ptr_char auth_3d_list;
+    vector_int32_t auth_3d_frame_list;
+    vector_ptr_char ex_auth_3d_list;
 
     char* aet_back;
     char* aet_back_low;
@@ -343,21 +342,21 @@ typedef struct field_aft101 {
 } field_aft101;
 
 typedef struct field_aft300 {
-    len_array_int32_t aet_back_frame_list;
-    len_array_pointer_char aet_back_list;
-    len_array_int32_t aet_front_frame_list;
-    len_array_pointer_char aet_front_list;
-    len_array_int32_t aet_front_low_frame_list;
-    len_array_pointer_char aet_front_low_list;
-    len_array_pointer_char aet_id_back_list;
-    len_array_pointer_char aet_id_front_list;
-    len_array_pointer_char aet_id_front_low_list;
-    len_array_int32_t auth_3d_frame_list;
-    len_array_pointer_char auth_3d_list;
-    len_array_pointer_char ex_auth_3d_list;
-    len_array_pointer_char effect_rs_list;                      // AFT410
-    len_array_pointer_char play_eff_list;                       // AFT410
-    len_array_pointer_char stop_eff_list;                       // AFT410
+    vector_int32_t aet_back_frame_list;
+    vector_ptr_char aet_back_list;
+    vector_int32_t aet_front_frame_list;
+    vector_ptr_char aet_front_list;
+    vector_int32_t aet_front_low_frame_list;
+    vector_ptr_char aet_front_low_list;
+    vector_ptr_char aet_id_back_list;
+    vector_ptr_char aet_id_front_list;
+    vector_ptr_char aet_id_front_low_list;
+    vector_int32_t auth_3d_frame_list;
+    vector_ptr_char auth_3d_list;
+    vector_ptr_char ex_auth_3d_list;
+    vector_ptr_char effect_rs_list;                             // AFT410
+    vector_ptr_char play_eff_list;                              // AFT410
+    vector_ptr_char stop_eff_list;                              // AFT410
 
     char* aet_back;
     int32_t aet_back_frame;
@@ -384,25 +383,25 @@ typedef struct field_aft300 {
 } field_aft300;
 
 typedef struct field_aft500 {
-    len_array_int32_t aet_back_frame_list;
-    len_array_pointer_char aet_back_list;
-    len_array_int32_t aet_front_frame_list;
-    len_array_pointer_char aet_front_list;
-    len_array_int32_t aet_front_3d_surf_frame_list;
-    len_array_pointer_char aet_front_3d_surf_list;
-    len_array_int32_t aet_front_low_frame_list;
-    len_array_pointer_char aet_front_low_list;
-    len_array_pointer_char aet_id_back_list;
-    len_array_pointer_char aet_id_front_list;
-    len_array_pointer_char aet_id_front_3d_surf_list;
-    len_array_pointer_char aet_id_front_low_list;
-    len_array_int32_t auth_3d_frame_list;
-    len_array_pointer_char auth_3d_list;
-    len_array_pointer_char ex_auth_3d_list;
-    len_array_pointer_char effect_emision_rs_list;
-    len_array_pointer_char effect_rs_list;
-    len_array_pointer_char play_eff_list;
-    len_array_pointer_char stop_eff_list;
+    vector_int32_t aet_back_frame_list;
+    vector_ptr_char aet_back_list;
+    vector_int32_t aet_front_frame_list;
+    vector_ptr_char aet_front_list;
+    vector_int32_t aet_front_3d_surf_frame_list;
+    vector_ptr_char aet_front_3d_surf_list;
+    vector_int32_t aet_front_low_frame_list;
+    vector_ptr_char aet_front_low_list;
+    vector_ptr_char aet_id_back_list;
+    vector_ptr_char aet_id_front_list;
+    vector_ptr_char aet_id_front_3d_surf_list;
+    vector_ptr_char aet_id_front_low_list;
+    vector_int32_t auth_3d_frame_list;
+    vector_ptr_char auth_3d_list;
+    vector_ptr_char ex_auth_3d_list;
+    vector_ptr_char effect_emision_rs_list;
+    vector_ptr_char effect_rs_list;
+    vector_ptr_char play_eff_list;
+    vector_ptr_char stop_eff_list;
 
     char* aet_back;
     int32_t aet_back_frame;
@@ -544,8 +543,8 @@ typedef struct stage_param_aft300 {
 } stage_param_aft300;
 
 typedef struct title_image_ac101 {
-    len_array_pointer_char file;                                // AC101
-    len_array_pointer_char file_name;                           // AC101
+    vector_ptr_char file;                                       // AC101
+    vector_ptr_char file_name;                                  // AC101
 
     char* aet_name;
     null_float_t time;
@@ -557,12 +556,12 @@ typedef struct title_image_ac200 {
     null_float_t time;
 } title_image_ac200;
 
-len_array(field_ac101)
+vector(field_ac101)
 
 typedef struct diff_ac101 {
-    len_array_field_ac101 field;
+    vector_field_ac101 field;
 
-    len_array_pointer_char motion;
+    vector_ptr_char motion;
 
     sel_2d sel_2d;                                              // AC101
     song_info_ac101 song_info;
@@ -575,16 +574,16 @@ typedef struct diff_ac101 {
     null_int32_t version;
 } diff_ac101;
 
-len_array(field_ac200)
+vector(field_ac200)
 
 typedef struct diff_ac200 {
-    len_array_field_ac200 field;
+    vector_field_ac200 field;
 
-    len_array_pointer_char edit_effect;
-    len_array_pointer_char hand_item;
-    len_array_pointer_char motion;
-    len_array_pointer_char motion2P;
-    len_array_pointer_char pv_item;                             // not AC200/AC210/AC211
+    vector_ptr_char edit_effect;
+    vector_ptr_char hand_item;
+    vector_ptr_char motion;
+    vector_ptr_char motion2P;
+    vector_ptr_char pv_item;                                    // not AC200/AC210/AC211
 
     song_info_ac200 song_info;
     title_image_ac200 title_image;
@@ -599,18 +598,18 @@ typedef struct diff_ac200 {
 
 null(movie_surface)
 
-len_array(field_aft101)
+vector(field_aft101)
 
 typedef struct diff_aft101 {
-    len_array_field_aft101 field;
+    vector_field_aft101 field;
 
-    len_array_pointer_char edit_effect;
-    len_array_pointer_char hand_item;
-    len_array_pointer_char motion;
-    len_array_pointer_char motion2P;
-    len_array_pointer_char motion3P;
-    len_array_pointer_char motion4P;
-    len_array_pointer_char pv_item;
+    vector_ptr_char edit_effect;
+    vector_ptr_char hand_item;
+    vector_ptr_char motion;
+    vector_ptr_char motion2P;
+    vector_ptr_char motion3P;
+    vector_ptr_char motion4P;
+    vector_ptr_char pv_item;
 
     pv_level level;
     null_movie_surface movie_surface;
@@ -640,25 +639,25 @@ typedef struct diff_attr {
     null_int32_t slide;
 } diff_attr;
 
-len_array(field_aft300)
-len_array(performer_aft101)
+vector(field_aft300)
+vector(performer_aft101)
 
 typedef struct diff_aft300 {
-    len_array_field_aft300 field;
-    len_array_performer_aft101 performer;
+    vector_field_aft300 field;
+    vector_performer_aft101 performer;
 
-    len_array_pointer_char edit_effect;
-    len_array_pointer_char edit_effect_low_field;
-    len_array_pointer_char effect_se_name_list;
-    len_array_pointer_char hand_item;
-    len_array_pointer_char motion;
-    len_array_pointer_char motion2P;
-    len_array_pointer_char motion3P;
-    len_array_pointer_char motion4P;
-    len_array_pointer_char motion5P;                            // AFT410
-    len_array_pointer_char motion6P;                            // AFT410
-    len_array_pointer_char movie_list;
-    len_array_pointer_char pv_item;
+    vector_ptr_char edit_effect;
+    vector_ptr_char edit_effect_low_field;
+    vector_ptr_char effect_se_name_list;
+    vector_ptr_char hand_item;
+    vector_ptr_char motion;
+    vector_ptr_char motion2P;
+    vector_ptr_char motion3P;
+    vector_ptr_char motion4P;
+    vector_ptr_char motion5P;                                   // AFT410
+    vector_ptr_char motion6P;                                   // AFT410
+    vector_ptr_char movie_list;
+    vector_ptr_char pv_item;
 
     diff_attr attribute;
     pv_level level;
@@ -687,32 +686,32 @@ typedef struct diff_aft300 {
     null_int32_t version;
 } diff_aft300;
 
-len_array(diff_aft300)
+vector(diff_aft300)
 
 typedef struct difficulty_aft300 {
-    len_array_diff_aft300 diff[5];
+    vector_diff_aft300 diff[5];
     diff_attr attribute;
 } difficulty_aft300;
 
-len_array(field_aft500)
-len_array(performer_aft500)
+vector(field_aft500)
+vector(performer_aft500)
 
 typedef struct diff_aft500 {
-    len_array_field_aft500 field;
-    len_array_performer_aft500 performer;
+    vector_field_aft500 field;
+    vector_performer_aft500 performer;
 
-    len_array_pointer_char edit_effect;
-    len_array_pointer_char edit_effect_low_field;
-    len_array_pointer_char effect_se_name_list;
-    len_array_pointer_char hand_item;
-    len_array_pointer_char motion;
-    len_array_pointer_char motion2P;
-    len_array_pointer_char motion3P;
-    len_array_pointer_char motion4P;
-    len_array_pointer_char motion5P;
-    len_array_pointer_char motion6P;
-    len_array_pointer_char movie_list;
-    len_array_pointer_char pv_item;
+    vector_ptr_char edit_effect;
+    vector_ptr_char edit_effect_low_field;
+    vector_ptr_char effect_se_name_list;
+    vector_ptr_char hand_item;
+    vector_ptr_char motion;
+    vector_ptr_char motion2P;
+    vector_ptr_char motion3P;
+    vector_ptr_char motion4P;
+    vector_ptr_char motion5P;
+    vector_ptr_char motion6P;
+    vector_ptr_char movie_list;
+    vector_ptr_char pv_item;
 
     diff_attr attribute;
     pv_level level;
@@ -743,23 +742,23 @@ typedef struct diff_aft500 {
     null_int32_t version;
 } diff_aft500;
 
-len_array(diff_aft500)
+vector(diff_aft500)
 
 typedef struct difficulty_aft500 {
-    len_array_diff_aft500 diff[5];
+    vector_diff_aft500 diff[5];
     diff_attr attribute;
 } difficulty_aft500;
 
-len_array(ex_song_ac101)
-len_array(osage_init)
+vector(ex_song_ac101)
+vector(osage_init)
 
 typedef struct pv_ac101 {
-    len_array_ex_song_ac101 ex_song;
-    len_array_field_ac200 field;
-    len_array_osage_init osage_init;                            // AC120/AC130
+    vector_ex_song_ac101 ex_song;
+    vector_field_ac200 field;
+    vector_osage_init osage_init;                               // AC120/AC130
 
-    len_array_pointer_char lyric;
-    len_array_pointer_char motion;
+    vector_ptr_char lyric;
+    vector_ptr_char motion;
 
     diff_ac101 difficulty[5];
     mdata_ac110 mdata;                                          // AC110/AC120/AC130
@@ -780,20 +779,20 @@ typedef struct pv_ac101 {
     char* song_name_reading;
 } pv_ac101;
 
-len_array(stage_param_ac200)
+vector(stage_param_ac200)
 
 typedef struct pv_ac200 {
-    len_array_ex_song_ac101 ex_song;
-    len_array_field_ac200 field;
-    len_array_osage_init osage_init;
-    len_array_stage_param_ac200 stage_param;
+    vector_ex_song_ac101 ex_song;
+    vector_field_ac200 field;
+    vector_osage_init osage_init;
+    vector_stage_param_ac200 stage_param;
 
-    len_array_pointer_char edit_effect;
-    len_array_pointer_char hand_item;
-    len_array_pointer_char lyric;
-    len_array_pointer_char motion;
-    len_array_pointer_char motion2P;
-    len_array_pointer_char pv_item;                             // not AC200/AC210/AC211
+    vector_ptr_char edit_effect;
+    vector_ptr_char hand_item;
+    vector_ptr_char lyric;
+    vector_ptr_char motion;
+    vector_ptr_char motion2P;
+    vector_ptr_char pv_item;                                    // not AC200/AC210/AC211
 
     diff_ac200 difficulty[5];
     disp2d_ac200 disp2d;
@@ -820,28 +819,28 @@ typedef struct pv_ac200 {
 
 null(eyes_base_adjust_type)
 
-len_array(chreff)
-len_array(ex_song_aft101)
-len_array(eyes_rot_rate)
+vector(chreff)
+vector(ex_song_aft101)
+vector(eyes_rot_rate)
 
 typedef struct pv_aft101 {
-    len_array_chreff chreff;
-    len_array_ex_song_aft101 ex_song;
-    len_array_eyes_rot_rate eyes_rot_rate;                      // AFT200
-    len_array_field_aft101 field;
-    len_array_osage_init osage_init;
-    len_array_performer_aft101 performer;
-    len_array_stage_param_ac200 stage_param;
+    vector_chreff chreff;
+    vector_ex_song_aft101 ex_song;
+    vector_eyes_rot_rate eyes_rot_rate;                         // AFT200
+    vector_field_aft101 field;
+    vector_osage_init osage_init;
+    vector_performer_aft101 performer;
+    vector_stage_param_ac200 stage_param;
 
-    len_array_pointer_char edit_effect;
-    len_array_pointer_char effect_se_name_list;
-    len_array_pointer_char hand_item;
-    len_array_pointer_char lyric;
-    len_array_pointer_char motion;
-    len_array_pointer_char motion2P;
-    len_array_pointer_char motion3P;
-    len_array_pointer_char motion4P;
-    len_array_pointer_char pv_item;
+    vector_ptr_char edit_effect;
+    vector_ptr_char effect_se_name_list;
+    vector_ptr_char hand_item;
+    vector_ptr_char lyric;
+    vector_ptr_char motion;
+    vector_ptr_char motion2P;
+    vector_ptr_char motion3P;
+    vector_ptr_char motion4P;
+    vector_ptr_char pv_item;
 
     diff_aft101 difficulty[5];
     disp2d_ac200 disp2d;
@@ -877,34 +876,34 @@ typedef struct pv_aft101 {
     null_bool use_osage_play_data;
 } pv_aft101;
 
-len_array(another_song_aft310)
-len_array(chrcam)
-len_array(ex_song_aft300)
-len_array(stage_param_aft300)
+vector(another_song_aft310)
+vector(chrcam)
+vector(ex_song_aft300)
+vector(stage_param_aft300)
 
 typedef struct pv_aft300 {
-    len_array_another_song_aft310 another_song;                 // not AFT300
-    len_array_chrcam chrcam;                                    // not AFT300
-    len_array_chreff chreff;
-    len_array_ex_song_aft300 ex_song;
-    len_array_eyes_rot_rate eyes_rot_rate;
-    len_array_field_aft300 field;
-    len_array_osage_init osage_init;
-    len_array_performer_aft101 performer;
-    len_array_stage_param_aft300 stage_param;
+    vector_another_song_aft310 another_song;                    // not AFT300
+    vector_chrcam chrcam;                                       // not AFT300
+    vector_chreff chreff;
+    vector_ex_song_aft300 ex_song;
+    vector_eyes_rot_rate eyes_rot_rate;
+    vector_field_aft300 field;
+    vector_osage_init osage_init;
+    vector_performer_aft101 performer;
+    vector_stage_param_aft300 stage_param;
 
-    len_array_pointer_char edit_effect;
-    len_array_pointer_char edit_effect_low_field;               // not AFT300
-    len_array_pointer_char effect_se_name_list;
-    len_array_pointer_char hand_item;
-    len_array_pointer_char lyric;
-    len_array_pointer_char motion;
-    len_array_pointer_char motion2P;
-    len_array_pointer_char motion3P;
-    len_array_pointer_char motion4P;
-    len_array_pointer_char motion5P;                            // AFT410
-    len_array_pointer_char motion6P;                            // AFT410
-    len_array_pointer_char pv_item;
+    vector_ptr_char edit_effect;
+    vector_ptr_char edit_effect_low_field;                      // not AFT300
+    vector_ptr_char effect_se_name_list;
+    vector_ptr_char hand_item;
+    vector_ptr_char lyric;
+    vector_ptr_char motion;
+    vector_ptr_char motion2P;
+    vector_ptr_char motion3P;
+    vector_ptr_char motion4P;
+    vector_ptr_char motion5P;                                   // AFT410
+    vector_ptr_char motion6P;                                   // AFT410
+    vector_ptr_char pv_item;
 
     difficulty_aft300 difficulty;
     disp2d_aft300 disp2d;
@@ -946,37 +945,37 @@ typedef struct pv_aft300 {
 
 null(frame_texture_type)
 
-len_array(another_song_aft500)
-len_array(auth_replace_by_module)
-len_array(chrmot)
+vector(another_song_aft500)
+vector(auth_replace_by_module)
+vector(chrmot)
 
 typedef struct pv_aft500 {
-    len_array_another_song_aft500 another_song;
-    len_array_auth_replace_by_module auth_replace_by_module;    // AFT600/AFT701/FT
-    len_array_chrcam chrcam;
-    len_array_chreff chreff;
-    len_array_chrmot chrmot;                                    // AFT701/FT
-    len_array_ex_song_aft300 ex_song;
-    len_array_eyes_rot_rate eyes_rot_rate;
-    len_array_field_aft500 field;
-    len_array_osage_init osage_init;
-    len_array_performer_aft500 performer;
-    len_array_stage_param_aft300 stage_param;
+    vector_another_song_aft500 another_song;
+    vector_auth_replace_by_module auth_replace_by_module;       // AFT600/AFT701/FT
+    vector_chrcam chrcam;
+    vector_chreff chreff;
+    vector_chrmot chrmot;                                       // AFT701/FT
+    vector_ex_song_aft300 ex_song;
+    vector_eyes_rot_rate eyes_rot_rate;
+    vector_field_aft500 field;
+    vector_osage_init osage_init;
+    vector_performer_aft500 performer;
+    vector_stage_param_aft300 stage_param;
 
-    len_array_pointer_char edit_effect;
-    len_array_pointer_char edit_effect_low_field;
-    len_array_pointer_char effect_se_name_list;
-    len_array_pointer_char hand_item;
-    len_array_pointer_char lyric;
-    len_array_pointer_char lyric_en;                            // FT
-    len_array_pointer_char motion;
-    len_array_pointer_char motion2P;
-    len_array_pointer_char motion3P;
-    len_array_pointer_char motion4P;
-    len_array_pointer_char motion5P;
-    len_array_pointer_char motion6P;
-    len_array_pointer_char movie_list;
-    len_array_pointer_char pv_item;
+    vector_ptr_char edit_effect;
+    vector_ptr_char edit_effect_low_field;
+    vector_ptr_char effect_se_name_list;
+    vector_ptr_char hand_item;
+    vector_ptr_char lyric;
+    vector_ptr_char lyric_en;                                   // FT
+    vector_ptr_char motion;
+    vector_ptr_char motion2P;
+    vector_ptr_char motion3P;
+    vector_ptr_char motion4P;
+    vector_ptr_char motion5P;
+    vector_ptr_char motion6P;
+    vector_ptr_char movie_list;
+    vector_ptr_char pv_item;
 
     difficulty_aft300 difficulty;
     disp2d_aft300 disp2d;

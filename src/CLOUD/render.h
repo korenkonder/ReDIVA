@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
+#include "shared.h"
 #include "../KKdLib/vec.h"
 #include "../KKdLib/vector.h"
 #include "../CRE/gl_object.h"

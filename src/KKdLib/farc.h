@@ -6,8 +6,8 @@
 #pragma once
 
 #include "default.h"
-#include "len_array.h"
 #include "io_stream.h"
+#include "vector.h"
 
 typedef enum farc_signature {
     FARC_FArc = 0x63724146,
@@ -38,12 +38,12 @@ typedef struct farc_file {
     farc_type type;
 } farc_file;
 
-len_array(farc_file)
+vector(farc_file)
 
 typedef struct farc {
     wchar_t* file_path;
     wchar_t* directory_path;
-    len_array_farc_file files;
+    vector_farc_file files;
     farc_signature signature;
     farc_type type;
     int32_t compression_level;

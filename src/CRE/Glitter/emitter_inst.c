@@ -515,7 +515,7 @@ void FASTCALL glitter_emitter_inst_update_value_init(glitter_emitter_inst* a1, f
 }
 
 void FASTCALL glitter_emitter_inst_dispose(glitter_emitter_inst* ei) {
-    vector_ptr_glitter_particle_inst_clear(&ei->particles, (void*)&glitter_particle_inst_dispose);
+    vector_ptr_glitter_particle_inst_clear(&ei->particles, (void*)glitter_particle_inst_dispose);
     vector_ptr_glitter_particle_inst_dispose(&ei->particles);
     free(ei);
 }

@@ -14,7 +14,7 @@ typedef struct vector_##t { \
     t* capacity_end; \
 } vector_##t; \
 \
-extern void FASTCALL vector_##t##_append_element(vector_##t* a1, t* a2); \
+extern void FASTCALL vector_##t##_append_element(vector_##t* vec, t* element); \
 extern void FASTCALL vector_##t##_append(vector_##t* vec, uint64_t size); \
 extern void FASTCALL vector_##t##_expand(vector_##t* vec, uint64_t size); \
 extern void FASTCALL vector_##t##_remove(vector_##t* vec, uint64_t index); \
@@ -28,7 +28,7 @@ typedef struct vector_ptr_##t { \
     t** capacity_end; \
 } vector_ptr_##t; \
 \
-extern void FASTCALL vector_ptr_##t##_append_element(vector_ptr_##t* a1, t** a2); \
+extern void FASTCALL vector_ptr_##t##_append_element(vector_ptr_##t* vec, t** element); \
 extern void FASTCALL vector_ptr_##t##_append(vector_ptr_##t* vec, uint64_t size); \
 extern void FASTCALL vector_ptr_##t##_expand(vector_ptr_##t* vec, uint64_t size); \
 extern void FASTCALL vector_ptr_##t##_remove(vector_ptr_##t* vec, uint64_t index); \
@@ -37,25 +37,25 @@ extern void FASTCALL vector_ptr_##t##_clear(vector_ptr_##t* vec, \
 extern void FASTCALL vector_ptr_##t##_dispose(vector_ptr_##t* vec);
 
 #define vector_func(t) \
-void FASTCALL vector_##t##_append_element(vector_##t* a1, t* a2) { \
+void FASTCALL vector_##t##_append_element(vector_##t* vec, t* element) { \
     int64_t old_length; \
 \
-    if (a2 >= a1->end || a1->begin > a2) { \
-        if (a1->end == a1->capacity_end) \
-            vector_##t##_append(a1, 1); \
+    if (element >= vec->end || vec->begin > element) { \
+        if (vec->end == vec->capacity_end) \
+            vector_##t##_append(vec, 1); \
 \
-        if (a1->end) \
-            *a1->end = *a2; \
+        if (vec->end) \
+            *vec->end = *element; \
     } \
     else { \
-        old_length = a2 - a1->begin; \
-        if (a1->end == a1->capacity_end) \
-            vector_##t##_append(a1, 1); \
+        old_length = element - vec->begin; \
+        if (vec->end == vec->capacity_end) \
+            vector_##t##_append(vec, 1); \
 \
-        if (a1->end) \
-            *a1->end = a1->begin[old_length]; \
+        if (vec->end) \
+            *vec->end = vec->begin[old_length]; \
     } \
-    a1->end++; \
+    vec->end++; \
 } \
 \
 void FASTCALL vector_##t##_append(vector_##t* vec, uint64_t size) { \
@@ -113,25 +113,25 @@ void FASTCALL vector_##t##_dispose(vector_##t* vec) { \
 }
 
 #define vector_ptr_func(t) \
-void FASTCALL vector_ptr_##t##_append_element(vector_ptr_##t* a1, t** a2) { \
+void FASTCALL vector_ptr_##t##_append_element(vector_ptr_##t* vec, t** element) { \
     int64_t old_length; \
 \
-    if (a2 >= a1->end || a1->begin > a2) { \
-        if (a1->end == a1->capacity_end) \
-            vector_ptr_##t##_append(a1, 1); \
+    if (element >= vec->end || vec->begin > element) { \
+        if (vec->end == vec->capacity_end) \
+            vector_ptr_##t##_append(vec, 1); \
 \
-        if (a1->end) \
-            *a1->end = *a2; \
+        if (vec->end) \
+            *vec->end = *element; \
     } \
     else { \
-        old_length = a2 - a1->begin; \
-        if (a1->end == a1->capacity_end) \
-            vector_ptr_##t##_append(a1, 1); \
+        old_length = element - vec->begin; \
+        if (vec->end == vec->capacity_end) \
+            vector_ptr_##t##_append(vec, 1); \
 \
-        if (a1->end) \
-            *a1->end = a1->begin[old_length]; \
+        if (vec->end) \
+            *vec->end = vec->begin[old_length]; \
     } \
-    a1->end++; \
+    vec->end++; \
 } \
 \
 void FASTCALL vector_ptr_##t##_append(vector_ptr_##t* vec, uint64_t size) { \
@@ -181,12 +181,15 @@ void FASTCALL vector_ptr_##t##_clear(vector_ptr_##t* vec, \
     void* FASTCALL dispose_func(void* data)) { \
     t** i; \
 \
-    for (i = vec->begin; i != vec->end; i++) \
-        if (*i) { \
-            if (dispose_func) \
+    if (dispose_func) \
+        for (i = vec->begin; i != vec->end; i++) \
+            if (*i) { \
                 dispose_func(*i); \
-            *i = 0; \
-        } \
+                *i = 0; \
+            } \
+    else \
+        for (i = vec->begin; i != vec->end; i++) \
+            free(*i); \
     vec->end = vec->begin; \
 } \
 \

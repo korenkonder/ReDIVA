@@ -51,7 +51,7 @@ bool FASTCALL glitter_effect_group_parse_file(glitter_file_reader* a1,
 void FASTCALL glitter_effect_group_dispose(glitter_effect_group* eg) {
     if (eg->scene)
         glitter_scene_dispose(eg->scene);
-    vector_ptr_glitter_effect_clear(&eg->effects, (void*)&glitter_effect_dispose);
+    vector_ptr_glitter_effect_clear(&eg->effects, (void*)glitter_effect_dispose);
     vector_ptr_glitter_effect_dispose(&eg->effects);
     free(eg->resource_hashes);
     if (eg->resources)

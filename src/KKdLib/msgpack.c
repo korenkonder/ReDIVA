@@ -202,10 +202,10 @@ void msgpack_dispose(msgpack* msg) {
     } break;
     }
 
-    if (msg->type == MSGPACK_ARRAY || msg->type == MSGPACK_MAP || msg->type == MSGPACK_NONE)
-        free(msg);
-    else
+    if (msg->type != MSGPACK_ARRAY && msg->type != MSGPACK_MAP && msg->type == MSGPACK_NONE)
         memset(msg, 0, sizeof(msgpack));
+    else
+        free(msg);
 }
 
 static void msgpack_dispose_inner(msgpack* msg) {

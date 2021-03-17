@@ -478,7 +478,7 @@ void FASTCALL glitter_effect_inst_dispose(glitter_effect_inst* ei) {
         free(ei->a3da);
     }
 
-    vector_ptr_glitter_emitter_inst_clear(&ei->emitters, (void*)&glitter_emitter_inst_dispose);
+    vector_ptr_glitter_emitter_inst_clear(&ei->emitters, (void*)glitter_emitter_inst_dispose);
     vector_ptr_glitter_emitter_inst_dispose(&ei->emitters);
     free(ei);
 }

@@ -6,8 +6,7 @@
 #pragma once
 
 #include "default.h"
-#include "len_array.h"
-#include "len_array_pointer.h"
+#include "vector.h"
 #include "kf.h"
 #include "vec.h"
 
@@ -241,14 +240,14 @@ typedef struct auth_3d_obj_node {
     auth_3d_model_transform mt;
 } auth_3d_obj_node;
 
-len_array(auth_3d_obj_instance)
-len_array(auth_3d_obj_node)
+vector(auth_3d_obj_instance)
+vector(auth_3d_obj_node)
 
 typedef struct auth_3d_m_object_hrc {
     char* name;
-    len_array_auth_3d_obj_node node;
+    vector_auth_3d_obj_node node;
     vec3 joint_orient;
-    len_array_auth_3d_obj_instance instance;
+    vector_auth_3d_obj_instance instance;
     auth_3d_model_transform mt;
 } auth_3d_m_object_hrc;
 
@@ -274,8 +273,8 @@ typedef struct auth_3d_object_tex_transform {
     auth_3d_key translate_frame_v;
 } auth_3d_object_tex_transform;
 
-len_array(auth_3d_object_tex_pat)
-len_array(auth_3d_object_tex_transform)
+vector(auth_3d_object_tex_pat)
+vector(auth_3d_object_tex_transform)
 
 typedef struct auth_3d_object {
     float_t morph_offset;
@@ -287,8 +286,8 @@ typedef struct auth_3d_object {
 
     auth_3d_model_transform mt;
 
-    len_array_auth_3d_object_tex_pat tex_pat;
-    len_array_auth_3d_object_tex_transform tex_transform;
+    vector_auth_3d_object_tex_pat tex_pat;
+    vector_auth_3d_object_tex_transform tex_transform;
 } auth_3d_object;
 
 typedef struct auth_3d_object_hrc {
@@ -299,7 +298,7 @@ typedef struct auth_3d_object_hrc {
 
     vec3 joint_orient;
 
-    len_array_auth_3d_obj_node node;
+    vector_auth_3d_obj_node node;
 } auth_3d_object_hrc;
 
 typedef struct auth_3d_play_control {
@@ -322,25 +321,25 @@ typedef struct auth_3d_post_process {
     vec4_auth_3d_key scene_fade;   // Specular
 } auth_3d_post_process;
 
-len_array(auth_3d_fog)
-len_array(auth_3d_curve)
-len_array(auth_3d_event)
-len_array(auth_3d_light)
-len_array(auth_3d_object)
-len_array(auth_3d_ambient)
-len_array(auth_3d_object_hrc)
-len_array(auth_3d_camera_root)
-len_array(auth_3d_m_object_hrc)
-len_array(auth_3d_material_list)
-len_array(auth_3d_model_transform)
+vector(auth_3d_fog)
+vector(auth_3d_curve)
+vector(auth_3d_event)
+vector(auth_3d_light)
+vector(auth_3d_object)
+vector(auth_3d_ambient)
+vector(auth_3d_object_hrc)
+vector(auth_3d_camera_root)
+vector(auth_3d_m_object_hrc)
+vector(auth_3d_material_list)
+vector(auth_3d_model_transform)
 
 typedef struct auth_3d_data {
     bool ready;
 
-    len_array_pointer_char motion;
-    len_array_pointer_char object_list;
-    len_array_pointer_char object_hrc_list;
-    len_array_pointer_char m_object_hrc_list;
+    vector_ptr_char motion;
+    vector_ptr_char object_list;
+    vector_ptr_char object_hrc_list;
+    vector_ptr_char m_object_hrc_list;
 
     auth_3d__ _;
     auth_3d_camera_auxiliary camera_auxiliary;
@@ -348,16 +347,16 @@ typedef struct auth_3d_data {
     auth_3d_play_control play_control;
     auth_3d_post_process post_process;
 
-    len_array_auth_3d_fog fog;
-    len_array_auth_3d_curve curve;
-    len_array_auth_3d_event event;
-    len_array_auth_3d_light light;
-    len_array_auth_3d_object object;
-    len_array_auth_3d_ambient ambient;
-    len_array_auth_3d_object_hrc object_hrc;
-    len_array_auth_3d_camera_root camera_root;
-    len_array_auth_3d_m_object_hrc m_object_hrc;
-    len_array_auth_3d_material_list material_list;
-    len_array_auth_3d_model_transform chara;
-    len_array_auth_3d_model_transform point;
+    vector_auth_3d_fog fog;
+    vector_auth_3d_curve curve;
+    vector_auth_3d_event event;
+    vector_auth_3d_light light;
+    vector_auth_3d_object object;
+    vector_auth_3d_ambient ambient;
+    vector_auth_3d_object_hrc object_hrc;
+    vector_auth_3d_camera_root camera_root;
+    vector_auth_3d_m_object_hrc m_object_hrc;
+    vector_auth_3d_material_list material_list;
+    vector_auth_3d_model_transform chara;
+    vector_auth_3d_model_transform point;
 } auth_3d_data;

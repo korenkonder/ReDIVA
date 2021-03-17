@@ -402,11 +402,11 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
     wchar_t temp[MAX_PATH];
     size_t count = 0;
     wchar_t* temp_path = path_wget_without_extension(path);
-    len_array_bool loop;
+    vector_bool loop;
     bool n, l;
     bool add_loop = false;
-    loop.data = force_malloc(0);
-    loop.length = loop.fulllength = 0;
+
+    loop = (vector_bool){ 0, 0, 0 };
     while (true) {
         swprintf_s(temp, MAX_PATH, L"%ls.%llu.wav", temp_path, count);
         n = path_wcheck_file_exists(temp);
@@ -420,11 +420,16 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
         add_loop = !n;
 
-        len_array_bool_append_data(&loop, &l, 1);
+        vector_bool_append_element(&loop, &l);
         count++;
     }
-    if (!count)
+
+    if (!count) {
+        vector_bool_clear(&loop);
+        vector_bool_dispose(&loop);
+        free(temp_path);
         return;
+    }
 
     count += add_loop;
     float_t** wav_data = force_malloc_s(sizeof(float_t*), count);
@@ -435,7 +440,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
         if (add_loop && i + 1 == count)
             continue;
 
-        swprintf_s(temp, MAX_PATH, loop.data[i] ? L"%ls.%llu.loop.wav" : L"%ls.%llu.wav", temp_path, i);
+        swprintf_s(temp, MAX_PATH, loop.begin[i] ? L"%ls.%llu.loop.wav" : L"%ls.%llu.wav", temp_path, i);
         wav_wread(w, temp, &wav_data[i], &wav_samples[i]);
         if (i == 0) {
             v->channels = w->channels;
@@ -449,7 +454,8 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
             free(wav_samples);
             free(wav_data);
-            len_array_bool_free(&loop);
+            vector_bool_clear(&loop);
+            vector_bool_dispose(&loop);
             free(temp_path);
             return;
         }
@@ -492,7 +498,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
             num_blocks = 1;
         else
             num_blocks = align_val_divide(wav_samples[i], BLOCK_SIZE, BLOCK_SIZE);
-        if (loop.data[i]) {
+        if (loop.begin[i]) {
             *f++ = 6;
             for (size_t i1 = 1; i1 < num_blocks; i1++)
                 *f++ = 2;
@@ -523,7 +529,8 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
     free(wav_samples);
     free(wav_data);
-    len_array_bool_free(&loop);
+    vector_bool_clear(&loop);
+    vector_bool_dispose(&loop);
     free(temp_path);
 }
 

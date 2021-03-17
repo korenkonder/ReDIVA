@@ -5,6 +5,6 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
+#include "shared.h"
 
 extern int32_t control_main(void* arg);

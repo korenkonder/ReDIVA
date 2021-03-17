@@ -10,8 +10,7 @@ LARGE_INTEGER performance_frequency;
 double_t timer_get_msec(LARGE_INTEGER t) {
     LARGE_INTEGER curr_time;
     QueryPerformanceCounter(&curr_time);
-    curr_time.QuadPart -= t.QuadPart;
-    return curr_time.QuadPart * 1000.0 / performance_frequency.QuadPart;
+    return (curr_time.QuadPart - t.QuadPart) * 1000.0 / performance_frequency.QuadPart;
 }
 
 void msleep(double_t msec) {

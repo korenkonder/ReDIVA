@@ -9,20 +9,20 @@
 #include "f2_enrs.h"
 #include "f2_header.h"
 #include "f2_pof.h"
-#include "len_array.h"
+#include "vector.h"
 
 typedef struct f2_struct f2_struct;
 
-len_array(f2_struct)
+vector(f2_struct)
 
 struct f2_struct {
     f2_header header;
     void* data;
     size_t length;
-    len_array_f2_struct sub_structs;
+    vector_f2_struct sub_structs;
 
-    len_array_enrs_entry enrs;
-    len_array_size_t pof;
+    vector_enrs_entry enrs;
+    vector_size_t pof;
 };
 
 extern f2_struct* f2_struct_init();

@@ -83,9 +83,9 @@ bool path_wcheck_ends_with(wchar_t* str, wchar_t* mask) {
     return false;
 }
 
-void path_get_files(len_array_pointer_char* files, char* dir_path) {
-    free(files->data);
-    files->length = files->fulllength = 0;
+void path_get_files(vector_ptr_char* files, char* dir_path) {
+    vector_ptr_char_clear(files, 0);
+    vector_ptr_char_dispose(files);
 
     size_t dir_len = strlen(dir_path);
     char* temp = force_malloc(dir_len + 2 + MAX_PATH);
@@ -136,15 +136,14 @@ void path_get_files(len_array_pointer_char* files, char* dir_path) {
         return;
     }
 
-    files->data = force_malloc_s(sizeof(char*), t_count);
-    files->length = files->fulllength = t_count;
-
+    vector_ptr_char_append(files, t_count);
     hFind = FindFirstFileA(dir, &fdata);
     for (size_t i = 0, j = 0; i < count; i++) {
         if (found[i]) {
             size_t len = strlen(fdata.cFileName);
-            files->data[j] = force_malloc_s(sizeof(char*), len + 1);
-            memcpy(files->data[j], fdata.cFileName, (len + 1));
+            char* file = force_malloc_s(sizeof(char*), len + 1);
+            memcpy(file, fdata.cFileName, (len + 1));
+            vector_ptr_char_append_element(files, &file);
             j++;
         }
 
@@ -156,9 +155,9 @@ void path_get_files(len_array_pointer_char* files, char* dir_path) {
     free(temp);
 }
 
-void path_wget_files(len_array_pointer_wchar_t* files, wchar_t* dir_path) {
-    files->data = 0;
-    files->length = files->fulllength = 0;
+void path_wget_files(vector_ptr_wchar_t* files, wchar_t* dir_path) {
+    vector_ptr_wchar_t_clear(files, 0);
+    vector_ptr_wchar_t_dispose(files);
 
     size_t dir_len = wcslen(dir_path);
     wchar_t* dir = force_malloc_s(sizeof(wchar_t), dir_len + 3);
@@ -207,15 +206,14 @@ void path_wget_files(len_array_pointer_wchar_t* files, wchar_t* dir_path) {
         return;
     }
 
-    files->data = force_malloc_s(sizeof(wchar_t*), t_count);
-    files->length = files->fulllength = t_count;
-
+    vector_ptr_wchar_t_append(files, t_count);
     hFind = FindFirstFileW(dir, &fdata);
     for (size_t i = 0, j = 0; i < count; i++) {
         if (found[i]) {
             size_t len = wcslen(fdata.cFileName);
-            files->data[j] = force_malloc_s(sizeof(wchar_t*), len + 1);
-            memcpy(files->data[j], fdata.cFileName, sizeof(wchar_t) * (len + 1));
+            wchar_t* file = force_malloc_s(sizeof(wchar_t*), len + 1);
+            memcpy(file, fdata.cFileName, sizeof(wchar_t) * (len + 1));
+            vector_ptr_wchar_t_append_element(files, &file);
             j++;
         }
 

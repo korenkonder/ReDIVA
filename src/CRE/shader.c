@@ -6,7 +6,6 @@
 #include "shader.h"
 #include "../CRE/hash.h"
 #include "../KKdLib/io_path.h"
-#include "../KKdLib/len_array.h"
 
 static int32_t program = 0;
 

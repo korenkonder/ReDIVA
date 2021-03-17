@@ -15,6 +15,9 @@ int32_t sound_main(void* arg) {
     timer_init(sound, "Sound");
     while (!close) {
         timer_calc_pre(sound);
+        for (size_t i = 0; i < classes_count; i++)
+            if (classes[i].sound)
+                classes[i].sound();
         double_t cycle_time = timer_calc_post(sound);
         msleep(1000.0 / FREQ - cycle_time);
     }
