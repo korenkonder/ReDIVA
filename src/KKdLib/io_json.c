@@ -29,7 +29,7 @@ static void io_json_write_double_t(stream* s, double_t val);
 static void io_json_write_string(stream* s, wchar_t_buffer* val);
 
 msgpack* io_json_read(stream* s) {
-    if (!s->io)
+    if (!s->io.stream)
         return 0;
 
     int32_t c = io_read_char(s);
@@ -194,7 +194,8 @@ static wchar_t* io_json_read_string_inner(stream* s, msgpack* msg, int32_t* c) {
             case '/':
             case 'b':
             case 'f':
-            case 'n':             case 'r':
+            case 'n':
+            case 'r':
             case 't':
                 len++;
                 break;
@@ -480,7 +481,7 @@ static void io_json_read_null(stream* s, wchar_t* name, msgpack* msg, int32_t* c
 }
 
 void io_json_write(stream* s, msgpack* msg) {
-    if (!s->io || !msg)
+    if (!s->io.stream || !msg)
         return;
 
     io_json_write_inner(s, msg, 0);

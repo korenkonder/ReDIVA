@@ -37,7 +37,7 @@ bool input_reset_mouse_position;
 extern bool close;
 HANDLE input_lock = 0;
 extern HANDLE window_handle;
-extern HANDLE mu_input_lock = 0;
+extern HANDLE mu_input_lock;
 
 void input_poll();
 
@@ -57,7 +57,7 @@ int32_t input_main(void* arg) {
         input_poll();
         ReleaseMutex(input_lock);
         double_t cycle_time = timer_calc_post(input);
-        msleep(1000.0 / FREQ - cycle_time);
+        msleep(input_timer, 1000.0 / FREQ - cycle_time);
     }
     CloseHandle(input_lock);
 

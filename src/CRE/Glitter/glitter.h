@@ -115,7 +115,6 @@ typedef enum glitter_emitter_emission_direction {
 typedef enum glitter_emitter_flag {
     GLITTER_EMITTER_FLAG_NONE = 0x00,
     GLITTER_EMITTER_FLAG_LOOP = 0x01,
-    GLITTER_EMITTER_FLAG_FREE = 0x02,
 } glitter_emitter_flag;
 
 typedef enum glitter_emitter_type {
@@ -132,11 +131,20 @@ typedef enum glitter_key_type {
     GLITTER_KEY_HERMITE  = 2,
 } glitter_key_type;
 
+typedef enum glitter_particle_blend {
+    GLITTER_PARTICLE_BLEND_ZERO          = 0,
+    GLITTER_PARTICLE_BLEND_TYPICAL       = 1,
+    GLITTER_PARTICLE_BLEND_ADD           = 2,
+    GLITTER_PARTICLE_BLEND_SUBTRACT      = 3,
+    GLITTER_PARTICLE_BLEND_MULTIPLY      = 4,
+    GLITTER_PARTICLE_BLEND_PUNCH_THROUGH = 5,
+} glitter_particle_blend;
+
 typedef enum glitter_particle_flag {
     GLITTER_PARTICLE_FLAG_NONE                 = 0x00000,
     GLITTER_PARTICLE_FLAG_LOOP                 = 0x00001,
     GLITTER_PARTICLE_FLAG_USE_MODEL_MAT        = 0x00004,
-    GLITTER_PARTICLE_FLAG_POSITION_OFFSET_SAME = 0x00010,
+    GLITTER_PARTICLE_FLAG_SCALE_Y_BY_X         = 0x00010,
     GLITTER_PARTICLE_FLAG_REBOUND_PLANE        = 0x00020,
     GLITTER_PARTICLE_FLAG_TRANSLATE_BY_EMITTER = 0x00040,
     GLITTER_PARTICLE_FLAG_SCALE                = 0x00080,
@@ -153,7 +161,7 @@ typedef enum glitter_particle_inst_flag {
 
 typedef enum glitter_particle_sub_flag {
     GLITTER_PARTICLE_SUB_FLAG_NONE      = 0x00000000,
-    GLITTER_PARTICLE_SUB_FLAG_GET_VALUE = 0x40000000,
+    GLITTER_PARTICLE_SUB_FLAG_USE_CURVE = 0x40000000,
 } glitter_particle_sub_flag;
 
 typedef enum glitter_particle_type {
@@ -183,6 +191,7 @@ typedef enum glitter_uv_index_type {
     GLITTER_UV_INDEX_REVERSE                = 4,
     GLITTER_UV_INDEX_INITIAL_RANDOM_FORWARD = 5,
     GLITTER_UV_INDEX_INITIAL_RANDOM_REVERSE = 6,
+    GLITTER_UV_INDEX_USER                   = 7,
 } glitter_uv_index_type;
 
 typedef struct glitter_buffer glitter_buffer;
@@ -194,6 +203,13 @@ typedef struct glitter_effect glitter_effect;
 typedef struct glitter_effect_group glitter_effect_group;
 typedef struct glitter_effect_inst_a3da glitter_effect_inst_a3da;
 typedef struct glitter_effect_inst glitter_effect_inst;
+typedef struct glitter_emitter_box glitter_emitter_box;
+typedef struct glitter_emitter_cylinder glitter_emitter_cylinder;
+typedef struct glitter_emitter_polygon glitter_emitter_polygon;
+typedef struct glitter_emitter_sphere glitter_emitter_sphere;
+typedef struct glitter_emitter_data glitter_emitter_data;
+typedef struct glitter_emitter glitter_emitter;
+typedef struct glitter_emitter_inst glitter_emitter_inst;
 typedef struct glitter_file_reader glitter_file_reader;
 typedef struct glitter_particle_manager glitter_particle_manager;
 typedef struct glitter_locus_history glitter_locus_history;
@@ -207,14 +223,6 @@ typedef struct glitter_render_group_sub glitter_render_group_sub;
 typedef struct glitter_render_group glitter_render_group;
 typedef struct glitter_scene_sub glitter_scene_sub;
 typedef struct glitter_scene glitter_scene;
-typedef struct glitter_emitter_box glitter_emitter_box;
-typedef struct glitter_emitter_cylinder glitter_emitter_cylinder;
-typedef struct glitter_emitter_polygon glitter_emitter_polygon;
-typedef struct glitter_emitter_sphere glitter_emitter_sphere;
-typedef union glitter_emitter_union glitter_emitter_union;
-typedef struct glitter_emitter_data glitter_emitter_data;
-typedef struct glitter_emitter glitter_emitter;
-typedef struct glitter_emitter_inst glitter_emitter_inst;
 
 vector(glitter_curve_key)
 vector_ptr(glitter_curve)
@@ -253,9 +261,12 @@ struct glitter_curve {
     glitter_curve_flag flags;
     float_t max_rand;
     vector_glitter_curve_key keys;
+    uint32_t version;
+    uint32_t keys_version;
 };
 
 struct glitter_effect_a3da {
+    uint64_t object_hash;
     int32_t object_index;
     glitter_effect_a3da_flag flags;
     int32_t index;
@@ -267,39 +278,38 @@ struct glitter_effect_data {
     float_t appear_time;
     float_t life_time;
     float_t start_time;
-    uint32_t color;
     glitter_effect_a3da* a3da;
     glitter_effect_flag flags;
     float_t emission;
 };
 
 struct glitter_effect {
-    char* name;
+    char name[0x80];
     vector_ptr_glitter_curve curve;
     vec3 translation;
     vec3 rotation;
-    vec4 scale;
+    vec3 scale;
     glitter_effect_data data;
     vector_ptr_glitter_emitter emitters;
+    uint32_t version;
 };
 
 struct glitter_effect_group {
     vector_ptr_glitter_effect effects;
     uint64_t hash;
-    int64_t* resource_hashes;
-    uint32_t resources_count;
-    int32_t* resources;
-    glitter_scene* scene;
     float_t emission;
+    uint32_t resources_count;
+    int64_t* resource_hashes;
+    int32_t* resources;
+    txp* resources_tex;
     bool scene_init;
     bool buffer_init;
+    uint32_t version;
 };
 
 struct glitter_effect_inst_a3da {
     int32_t dword00;
-    int32_t dword04;
     int64_t dword08;
-    int32_t dword10;
     int32_t object_index;
     int32_t index;
     mat4 mat;
@@ -311,8 +321,7 @@ struct glitter_effect_inst_a3da {
 struct glitter_effect_inst {
     glitter_effect* effect;
     glitter_effect_data data;
-    float_t frame0;
-    float_t frame1;
+    float_t frame;
     vec4 color;
     vec3 translation;
     vec3 rotation;
@@ -322,7 +331,7 @@ struct glitter_effect_inst {
     vector_ptr_glitter_emitter_inst emitters;
     int32_t random;
     glitter_effect_inst_flag flags;
-    int32_t id;
+    size_t id;
     glitter_effect_inst_a3da* a3da;
     vec4 min_color;
     vec3 a3da_scale;
@@ -354,18 +363,12 @@ struct glitter_emitter_sphere {
     glitter_emitter_emission_direction direction;
 };
 
-union glitter_emitter_union {
-    glitter_emitter_box box;
-    glitter_emitter_cylinder cylinder;
-    glitter_emitter_sphere sphere;
-    glitter_emitter_polygon polygon;
-};
 
 struct glitter_emitter_data {
     float_t start_time;
     float_t life_time;
     float_t loop_start_time;
-    float_t loop_life_time;
+    float_t loop_end_time;
     glitter_emitter_flag flags;
     vec3 rotation_add;
     vec3 rotation_add_random;
@@ -375,18 +378,21 @@ struct glitter_emitter_data {
     float_t particles_per_emission;
     glitter_direction direction;
     glitter_emitter_type type;
-    glitter_emitter_union data;
+    glitter_emitter_box box;
+    glitter_emitter_cylinder cylinder;
+    glitter_emitter_sphere sphere;
+    glitter_emitter_polygon polygon;
 };
 
 
 struct glitter_emitter {
-    char* name;
     vector_ptr_glitter_curve curve;
     vec3 translation;
     vec3 rotation;
-    vec4 scale;
+    vec3 scale;
     glitter_emitter_data data;
     vector_ptr_glitter_particle particles;
+    uint32_t version;
 };
 
 struct glitter_emitter_inst {
@@ -411,10 +417,10 @@ struct glitter_emitter_inst {
 
 struct glitter_file_reader {
     glitter_effect_group* effect_group;
-    int32_t version;
     wchar_t* path;
     wchar_t* file;
     uint64_t hash;
+    float_t emission;
 };
 
 struct glitter_particle_manager {
@@ -422,8 +428,9 @@ struct glitter_particle_manager {
     vector_ptr_glitter_file_reader file_readers;
     vector_ptr_glitter_effect_group effect_groups;
     float_t delta_frame;
-    int32_t random;
-    int32_t counter;
+    float_t emission;
+    uint32_t random;
+    uint32_t counter;
     bool f2;
 };
 
@@ -448,8 +455,8 @@ struct glitter_particle_data {
     vec3 rotation_random;
     vec3 rotation_add;
     vec3 rotation_add_random;
-    vec3 position_offset;
-    vec3 position_offset_random;
+    vec3 scale;
+    vec3 scale_random;
     vec3 direction;
     vec3 direction_random;
     float_t speed;
@@ -462,7 +469,6 @@ struct glitter_particle_data {
     float_t reflection_coeff;
     float_t reflection_coeff_random;
     float_t rebound_plane_y;
-    uint32_t color_int;
     vec4 color;
     glitter_uv_index_type uv_index_type;
     int32_t uv_index;
@@ -475,19 +481,19 @@ struct glitter_particle_data {
     vec2 split_uv;
     uint8_t split_u;
     uint8_t split_v;
-    int32_t blend_mode0;
-    int32_t blend_mode1;
+    glitter_particle_blend blend_mode0;
+    glitter_particle_blend blend_mode1;
     glitter_particle_sub_flag sub_flags;
     int32_t count;
     int32_t locus_history_size;
     int32_t locus_history_size_random;
-    int32_t dword118;
+    //int32_t dword118;
     float_t emission;
     uint64_t tex_hash0;
     uint64_t tex_hash1;
     int32_t texture0;
     int32_t texture1;
-    char dword138[0x20];
+    //char dword138[0x20];
 };
 
 struct glitter_particle_sub {
@@ -496,9 +502,9 @@ struct glitter_particle_sub {
 };
 
 struct glitter_particle {
-    char* name;
     vector_ptr_glitter_curve curve;
     glitter_particle_sub data;
+    int32_t version;
 };
 
 struct glitter_particle_inst_data {
@@ -535,7 +541,7 @@ struct glitter_render_group_sub {
     vec3 translation_prev;
     vec3 direction;
     vec3 acceleration;
-    vec2 position_offset;
+    vec2 scale_particle;
     vec3 scale;
     vec3 rotation;
     vec3 rotation_add;
@@ -551,8 +557,8 @@ struct glitter_render_group {
     glitter_particle_flag flags;
     glitter_particle_type type;
     glitter_direction draw_type;
-    int32_t blend_mode0;
-    int32_t blend_mode1;
+    glitter_particle_blend blend_mode0;
+    glitter_particle_blend blend_mode1;
     glitter_pivot pivot;
     int32_t split_u;
     int32_t split_v;
@@ -562,7 +568,7 @@ struct glitter_render_group {
     int32_t ctrl;
     int32_t texture0;
     int32_t texture1;
-    char dword48[32];
+    //char dword48[32];
     float_t frame;
     mat4 mat;
     mat4 mat_no_scale;

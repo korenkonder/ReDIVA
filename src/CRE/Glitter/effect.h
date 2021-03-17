@@ -8,7 +8,8 @@
 #include "glitter.h"
 
 extern glitter_effect* FASTCALL glitter_effect_init();
-extern bool FASTCALL glitter_effect_parse_file(glitter_file_reader* a1, f2_header* header, glitter_effect* a3);
-extern bool FASTCALL glitter_effect_unpack_file(int32_t* data, glitter_effect* a3, uint32_t efct_version);
-extern int32_t FASTCALL glitter_effect_unpack_file_get_index(int32_t a1);
+extern bool FASTCALL glitter_effect_parse_file(glitter_effect_group* a1,
+    f2_struct* st, vector_ptr_glitter_effect* vec);
+extern bool FASTCALL glitter_effect_unparse_file(glitter_effect_group* a1,
+    f2_struct* st, glitter_effect* a3, bool use_big_endian);
 extern void FASTCALL glitter_effect_dispose(glitter_effect* e);

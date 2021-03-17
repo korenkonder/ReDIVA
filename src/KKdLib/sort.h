@@ -2,7 +2,7 @@
     by korenkonder
     GitHub/GitLab: korenkonder
 
-	Code is from web. I don't really remember wnere I got it
+    Code is from web. I don't really remember wnere I got it
 */
 
 #pragma once

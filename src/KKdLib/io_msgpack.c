@@ -189,7 +189,7 @@ static void io_msgpack_read_map(stream* s, wchar_t* name, msgpack* msg, size_t l
 }
 
 void io_msgpack_write(stream* s, msgpack* msg) {
-    if (!s->io || !msg)
+    if (!s->io.stream || !msg)
         return;
 
     io_msgpack_write_inner(s, msg);

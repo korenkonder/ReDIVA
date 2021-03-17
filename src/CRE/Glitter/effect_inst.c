@@ -9,8 +9,10 @@
 #include "random.h"
 #include "scene.h"
 
+static int32_t FASTCALL glitter_effect_inst_get_a3da_index(int32_t index);
+
 glitter_effect_inst* FASTCALL glitter_effect_inst_init(glitter_effect* a1,
-    glitter_scene* a2, int32_t id, bool appear_now) {
+    glitter_scene* a2, size_t id, bool appear_now) {
     glitter_emitter** i;
     glitter_effect_inst_a3da* inst_a3da;
     glitter_effect_a3da* a3da;
@@ -19,26 +21,25 @@ glitter_effect_inst* FASTCALL glitter_effect_inst_init(glitter_effect* a1,
     glitter_effect_inst* ei = force_malloc(sizeof(glitter_effect_inst));
     ei->effect = a1;
     ei->data = a1->data;
-    ei->color = (vec4){ 1.0f, 1.0f, 1.0f, 1.0f };
+    ei->color = vec4_identity;
     ei->scale_all = 1.0f;
     ei->id = id;
     glitter_random_set(ei->data.name_hash % glitter_random_get_max());
     ei->translation = a1->translation;
     ei->rotation = a1->rotation;
-    ei->scale = *(vec3*)&a1->scale;
+    ei->scale = a1->scale;
 
     if (appear_now)
         ei->data.appear_time = 0.0f;
     else
-        ei->frame0 = -ei->data.appear_time;
+        ei->frame = -ei->data.appear_time;
 
     if (ei->data.a3da) {
         inst_a3da = force_malloc(sizeof(glitter_effect_inst_a3da));
         inst_a3da->dword00 = -1;
-        inst_a3da->dword10 = -1;
         inst_a3da->object_index = -1;
         inst_a3da->index = -1;
-        mat4_identity(&inst_a3da->mat);
+        inst_a3da->mat = mat4_identity;
 
         if (inst_a3da) {
             a3da = ei->data.a3da;
@@ -47,12 +48,11 @@ glitter_effect_inst* FASTCALL glitter_effect_inst_init(glitter_effect* a1,
             if (a3da->flags & GLITTER_EFFECT_A3DA_FLAG_SET_A3DA_TRANS_ONLY)
                 ei->flags |= GLITTER_EFFECT_INST_FLAG_SET_A3DA_TRANS_ONLY;
             if (a3da->flags & GLITTER_EFFECT_A3DA_FLAG_SET_A3DA_BY_OBJECT_INDEX) {
-                inst_a3da->object_index = a3da->object_index;
-                inst_a3da->index = a3da->index;
+                inst_a3da->index = glitter_effect_inst_get_a3da_index(a3da->index);
                 ei->flags |= GLITTER_EFFECT_INST_FLAG_SET_A3DA_BY_OBJECT_INDEX;
             }
-            else
-                inst_a3da->dword10 = a3da->object_index;
+            
+            inst_a3da->object_index = a3da->object_index;
 
             size_t mesh_name_len = strlen(a3da->mesh_name);
             if (mesh_name_len) {
@@ -68,15 +68,15 @@ glitter_effect_inst* FASTCALL glitter_effect_inst_init(glitter_effect* a1,
         ei->flags |= GLITTER_EFFECT_INST_FLAG_SET_A3DA_BY_OBJECT_NAME;
     }
 
-    mat4_identity(&ei->mat);
+    ei->mat = mat4_identity;
     ei->random = glitter_random_get();
-    vector_ptr_glitter_emitter_inst_expand(&ei->emitters, a1->emitters.end - a1->emitters.begin);
+    vector_ptr_glitter_emitter_inst_resize(&ei->emitters, a1->emitters.end - a1->emitters.begin);
     for (i = a1->emitters.begin; i != a1->emitters.end; i++) {
         if (!*i)
             continue;
 
         emitter = glitter_emitter_inst_init(*i, a2, ei);
-        vector_ptr_glitter_emitter_inst_append_element(&ei->emitters, &emitter);
+        vector_ptr_glitter_emitter_inst_push_back(&ei->emitters, &emitter);
     }
     glitter_effect_inst_reset_sub(ei, a2);
     return ei;
@@ -87,8 +87,7 @@ void FASTCALL glitter_effect_inst_copy(glitter_effect_inst* a1,
     int64_t emitters_count; // rbp
     int64_t i; // rbx
 
-    a2->frame0 = a1->frame0;
-    a2->frame1 = a1->frame1;
+    a2->frame = a1->frame;
     a2->color = a1->color;
     a2->translation = a1->translation;
     a2->rotation = a1->rotation;
@@ -107,34 +106,34 @@ void FASTCALL glitter_effect_inst_copy(glitter_effect_inst* a1,
 void FASTCALL glitter_effect_inst_emit(glitter_effect_inst* a1, glitter_scene* a2, float_t delta_frame) {
     glitter_emitter_inst** i; // rbx
 
-    if (a1->frame0 >= 0.0f) {
-        if (a1->frame0 < a1->data.life_time)
+    if (a1->frame >= 0.0f) {
+        if (a1->frame < a1->data.life_time)
             for (i = a1->emitters.begin; i != a1->emitters.end; ++i)
                 glitter_emitter_inst_emit_step(*i, a2, a1, delta_frame);
         else if (a1->data.flags & GLITTER_EFFECT_FLAG_LOOP)
-            a1->frame0 -= a1->data.life_time;
+            a1->frame -= a1->data.life_time;
         else
             glitter_effect_inst_free(a1, a2, false);
     }
-    a1->frame0 += delta_frame;
+    a1->frame += delta_frame;
 }
 
 void FASTCALL glitter_effect_inst_emit_init(glitter_effect_inst* a1, glitter_scene* a2, float_t delta_frame) {
     glitter_emitter_inst** i;
 
-    if (a1->frame0 >= 0.0f) {
-        if (a1->frame0 < a1->data.life_time)
+    if (a1->frame >= 0.0f) {
+        if (a1->frame < a1->data.life_time)
             for (i = a1->emitters.begin; i != a1->emitters.end; i++)
                 glitter_emitter_inst_emit_init(*i, a2, a1, delta_frame);
         else if (a1->data.flags & GLITTER_EFFECT_FLAG_LOOP)
-            a1->frame0 -= a1->data.life_time;
+            a1->frame -= a1->data.life_time;
         else
             glitter_effect_inst_free(a1, a2, 0);
 
         for (i = a1->emitters.begin; i != a1->emitters.end; i++)
             glitter_emitter_inst_render_group_init(*i, delta_frame);
     }
-    a1->frame0 += delta_frame;
+    a1->frame += delta_frame;
 }
 
 void FASTCALL glitter_effect_inst_free(glitter_effect_inst* a1, glitter_scene* a2, bool free) {
@@ -193,7 +192,7 @@ void FASTCALL glitter_effect_inst_get_a3da(glitter_effect_inst* a1) {
             mat0 = *sub_140516750(v6);
             vec4_length(mat0.row0, a2.x);
             vec4_length(mat0.row1, a2.y);
-            vec2_sub(*(vec2*)&a2, ((vec2) { 1.0f, 1.0f }), *(vec2*)&a2);
+            vec2_sub(*(vec2*)&a2, vec2_identity, *(vec2*)&a2);
             a2.z = 0.0f;
             a1->a3da_scale = a2;
             a1->flags |= GLITTER_EFFECT_INST_FLAG_HAS_A3DA_SCALE;
@@ -203,7 +202,7 @@ void FASTCALL glitter_effect_inst_get_a3da(glitter_effect_inst* a1) {
                     mat1 = *v15;
                     mat4_mult(&mat0, &mat1, &mat0);
                     if (a1->flags & GLITTER_EFFECT_INST_FLAG_SET_A3DA_TRANS_ONLY) {
-                        mat4_identity(&v3->mat);
+                        v3->mat = mat4_identity;
                         v3->translation = *(vec3*)&mat0.row3;
                     }
                     else
@@ -213,7 +212,7 @@ void FASTCALL glitter_effect_inst_get_a3da(glitter_effect_inst* a1) {
             }
             else {
                 if (a1->flags & GLITTER_EFFECT_INST_FLAG_SET_A3DA_TRANS_ONLY) {
-                    mat4_identity(&v3->mat);
+                    v3->mat = mat4_identity;
                     v3->translation = *(vec3*)&mat0.row3;
                 }
                 else
@@ -227,11 +226,11 @@ void FASTCALL glitter_effect_inst_get_a3da(glitter_effect_inst* a1) {
             if (!v3->mesh_name)
                 return;
 
-            v3->index = sub_140459DE0(v3->dword10, v3->mesh_name);
+            v3->index = sub_140459DE0(v3->object_index, v3->mesh_name);
         }
 
         if (v3->index >= 0) {
-            v43 = sub_140459D40(v3->dword10, v3->index);
+            v43 = sub_140459D40(v3->object_index, v3->index);
             if (v43) {
                 v3->translation = *(vec3*)(v43 + 4);
                 goto SetFlags;
@@ -240,7 +239,7 @@ void FASTCALL glitter_effect_inst_get_a3da(glitter_effect_inst* a1) {
     }
     else {
         if (v3->dword00 == -1 || !(v24 = sub_1401D5BC0(v3->dword00, v3->dword08, v3->object_is_hrc))) {
-            v3->dword00 = sub_1401D6090(v3->dword10, &v3->dword08, &v3->object_is_hrc);
+            v3->dword00 = sub_1401D6090(v3->object_index, &v3->dword08, &v3->object_is_hrc);
             if (v3->dword00 == -1)
                 return;
 
@@ -250,7 +249,7 @@ void FASTCALL glitter_effect_inst_get_a3da(glitter_effect_inst* a1) {
                 return;
         }
 
-        mat4_identity(&mat0);
+        mat0 = mat4_identity;
         v26 = sub_1401D5010(v3->dword00);
         if (v26 >= 0 && v26 <= 5) {
             v27 = sub_1405320E0();
@@ -258,7 +257,7 @@ void FASTCALL glitter_effect_inst_get_a3da(glitter_effect_inst* a1) {
                 mat0 = *sub_140516750(sub_140532030(v27, v26));
                 vec4_length(mat0.row0, a2.x);
                 vec4_length(mat0.row1, a2.y);
-                vec2_sub(*(vec2*)&a2, ((vec2) { 1.0f, 1.0f }), *(vec2*)&a2);
+                vec2_sub(*(vec2*)&a2, vec2_identity, *(vec2*)&a2);
                 a2.z = 0.0f;
                 a1->a3da_scale = a2;
                 a1->flags |= GLITTER_EFFECT_INST_FLAG_HAS_A3DA_SCALE;
@@ -268,11 +267,11 @@ void FASTCALL glitter_effect_inst_get_a3da(glitter_effect_inst* a1) {
         mat1 = *(mat4*)v24;
         if (v3->mesh_name) {
             if (v3->index < 0) {
-                v3->index = sub_140459DE0(v3->dword10, v3->mesh_name);
+                v3->index = sub_140459DE0(v3->object_index, v3->mesh_name);
             }
 
             if (v3->index >= 0) {
-                v43 = sub_140459D40(v3->dword10, v3->index);
+                v43 = sub_140459D40(v3->object_index, v3->index);
                 if (v43) {
                     mat4_mult(&mat0, &mat1, &v3->mat);
                     v3->translation = *(vec3*)(v43 + 4);
@@ -283,7 +282,7 @@ void FASTCALL glitter_effect_inst_get_a3da(glitter_effect_inst* a1) {
         else {
             mat4_mult(&mat0, &mat1, &mat0);
             if (a1->flags & GLITTER_EFFECT_INST_FLAG_SET_A3DA_TRANS_ONLY) {
-                mat4_identity(&v3->mat);
+                v3->mat = mat4_identity;
                 v3->translation = *(vec3*)&mat0.row3;
             }
             else
@@ -391,37 +390,29 @@ bool FASTCALL glitter_effect_inst_has_ended(glitter_effect_inst* effect, bool a2
 void FASTCALL glitter_effect_inst_reset(glitter_effect_inst* a1, glitter_scene* a2) {
     glitter_emitter_inst** i;
 
-    a1->frame0 = -a1->data.appear_time;
+    a1->frame = -a1->data.appear_time;
     a1->flags = 0;
     for (i = a1->emitters.begin; i != a1->emitters.end; i++)
         glitter_emitter_inst_reset(*i);
-    a1->frame1 = 0.0f;
     glitter_effect_inst_reset_sub(a1, a2);
 }
 
 void FASTCALL glitter_effect_inst_reset_sub(glitter_effect_inst* a1, glitter_scene* a2) {
     float_t delta_frame;
-    float_t v11;
+    float_t start_time;
 
     if (a1->data.start_time <= 0.0f)
         return;
 
-    if (a2->effect_group && a2->effect_group->scene
-        && glitter_scene_copy(a2->effect_group->scene, a1, a2))
-        a1->frame1 = a1->data.start_time;
-    else {
-        delta_frame = 2.0f;
-        v11 = a1->data.start_time - a1->frame1;
-        for (; v11 > 0.0f; v11 -= delta_frame) {
-            a1->flags |= GLITTER_EFFECT_INST_FLAG_JUST_INIT;
-            if (v11 < delta_frame)
-                delta_frame -= v11;
-            glitter_effect_inst_update_value_init(a1, delta_frame);
-            glitter_effect_inst_emit_init(a1, a2, delta_frame);
-            a1->frame1 += delta_frame;
-        }
-        glitter_effect_inst_update_mat(a1);
+    delta_frame = 2.0f;
+    for (start_time = a1->data.start_time; start_time > 0.0f; start_time -= delta_frame) {
+        a1->flags |= GLITTER_EFFECT_INST_FLAG_JUST_INIT;
+        if (start_time < delta_frame)
+            delta_frame -= start_time;
+        glitter_effect_inst_update_value_init(a1, delta_frame);
+        glitter_effect_inst_emit_init(a1, a2, delta_frame);
     }
+    glitter_effect_inst_update_mat(a1);
 }
 
 void FASTCALL glitter_effect_inst_update_mat(glitter_effect_inst* a1) {
@@ -445,7 +436,7 @@ void FASTCALL glitter_effect_inst_update_value_frame(glitter_effect_inst* effect
     mat4 mat;
     vec3 translation;
 
-    glitter_effect_inst_get_value(effect, effect->frame0, effect->random);
+    glitter_effect_inst_get_value(effect, effect->frame, effect->random);
     vec3_mult_scalar(effect->scale, effect->scale_all, scale);
     glitter_effect_inst_get_a3da(effect);
     if (~effect->flags & GLITTER_EFFECT_INST_FLAG_HAS_A3DA_TRANS || !effect->a3da)
@@ -464,12 +455,12 @@ void FASTCALL glitter_effect_inst_update_value_frame(glitter_effect_inst* effect
 void FASTCALL glitter_effect_inst_update_value_init(glitter_effect_inst* a1, float_t delta_frame) {
     glitter_emitter_inst** i;
 
-    if (a1->frame0 < 0.0f)
+    if (a1->frame < 0.0f)
         return;
 
-    glitter_effect_inst_get_value(a1, a1->frame0, a1->random);
+    glitter_effect_inst_get_value(a1, a1->frame, a1->random);
     for (i = a1->emitters.begin; i != a1->emitters.end; ++i)
-        glitter_emitter_inst_update_value_init(*i, a1->frame0, delta_frame);
+        glitter_emitter_inst_update_value_init(*i, a1->frame, delta_frame);
 }
 
 void FASTCALL glitter_effect_inst_dispose(glitter_effect_inst* ei) {
@@ -478,7 +469,49 @@ void FASTCALL glitter_effect_inst_dispose(glitter_effect_inst* ei) {
         free(ei->a3da);
     }
 
-    vector_ptr_glitter_emitter_inst_clear(&ei->emitters, (void*)glitter_emitter_inst_dispose);
-    vector_ptr_glitter_emitter_inst_dispose(&ei->emitters);
+    vector_ptr_glitter_emitter_inst_free(&ei->emitters, (void*)glitter_emitter_inst_dispose);
     free(ei);
+}
+
+static int32_t FASTCALL glitter_effect_inst_get_a3da_index(int32_t index) {
+    switch (index) {
+    case 0:
+        return 15;
+    case 1:
+        return 54;
+    case 2:
+        return 0;
+    case 3:
+        return 7;
+    case 4:
+        return 106;
+    case 5:
+        return 108;
+    case 6:
+        return 109;
+    case 7:
+        return 123;
+    case 8:
+        return 142;
+    case 9:
+        return 144;
+    case 10:
+        return 145;
+    case 11:
+        return 159;
+    case 12:
+        return 194;
+    case 13:
+        return 184;
+    case 14:
+        return 183;
+    case 15:
+        return 197;
+    case 16:
+        return 191;
+    case 17:
+        return 190;
+    default:
+        return 201;
+    }
 }

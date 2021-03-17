@@ -125,94 +125,15 @@ extern void char_append_data(char** buf, size_t * buf_len,
     size_t * act_buf_len, char* data, size_t length);
 extern void char_append_data_s(size_t s, char** buf, size_t* buf_len,
     size_t* act_buf_len, char* data, size_t length);
-
-#define reverse_endianess_int16_t(value) \
-{ \
-    uint16_t v = (uint16_t)value; \
-    v = ((v & 0xFF) << 8) | (((v >> 8) & 0xFF) << 0); \
-    (value) = v; \
-}
-
-#define reverse_endianess_uint16_t(value) \
-{ \
-    uint16_t v = (value); \
-    v = ((v & 0xFF) << 8) | (((v >> 8) & 0xFF) << 0); \
-    (value) = v; \
-}
-
-#define reverse_endianess_int32_t(value) \
-{ \
-    uint32_t v = (uint32_t)(value); \
-    v = ((v & 0xFF) << 24) | (((v >> 8) & 0xFF) << 16) \
-        | (((v >> 16) & 0xFF) << 8) | ((v >> 24) & 0xFF); \
-    (value) = (int32_t)v; \
-}
-
-#define reverse_endianess_uint32_t(value) \
-{ \
-    uint32_t v = (value); \
-    v = ((v & 0xFF) << 24) | (((v >> 8) & 0xFF) << 16) \
-        | (((v >> 16) & 0xFF) << 8) | ((v >> 24) & 0xFF); \
-    (value) = v; \
-}
-
-#define reverse_endianess_int64_t(value) \
-{ \
-    uint64_t v = (uint64_t)value; \
-    v = ((v & 0xFF) << 56) | (((v >> 8) & 0xFF) << 48) \
-        | (((v >> 16) & 0xFF) << 40) | (((v >> 24) & 0xFF) << 32) \
-        | (((v >> 32) & 0xFF) << 24) | (((v >> 40) & 0xFF) << 16) \
-        | (((v >> 48) & 0xFF) << 8) | ((v >> 56) & 0xFF); \
-    (value) = (int64_t)v; \
-}
-
-#define reverse_endianess_uint64_t(value) \
-{ \
-    uint64_t v = value; \
-    v = ((v & 0xFF) << 56) | (((v >> 8) & 0xFF) << 48) \
-        | (((v >> 16) & 0xFF) << 40) | (((v >> 24) & 0xFF) << 32) \
-        | (((v >> 32) & 0xFF) << 24) | (((v >> 40) & 0xFF) << 16) \
-        | (((v >> 48) & 0xFF) << 8) | ((v >> 56) & 0xFF); \
-    (value) = v; \
-}
-
-#define reverse_endianess_size_t(value) \
-{ \
-    uint64_t v = *(uint64_t*)&(value); \
-    v = ((v & 0xFF) << 56) | (((v >> 8) & 0xFF) << 48) \
-        | (((v >> 16) & 0xFF) << 40) | (((v >> 24) & 0xFF) << 32) \
-        | (((v >> 32) & 0xFF) << 24) | (((v >> 40) & 0xFF) << 16) \
-        | (((v >> 48) & 0xFF) << 8) | ((v >> 56) & 0xFF); \
-    (value) = *(size_t*)&v; \
-}
-
-#define reverse_endianess_ssize_t(value) \
-{ \
-    uint64_t v = *(uint64_t*)&(value); \
-    v = ((v & 0xFF) << 56) | (((v >> 8) & 0xFF) << 48) \
-        | (((v >> 16) & 0xFF) << 40) | (((v >> 24) & 0xFF) << 32) \
-        | (((v >> 32) & 0xFF) << 24) | (((v >> 40) & 0xFF) << 16) \
-        | (((v >> 48) & 0xFF) << 8) | ((v >> 56) & 0xFF); \
-    (value) = *(ssize_t*)&v; \
-}
-
-#define reverse_endianess_float_t(value) \
-{ \
-    uint32_t v = *(uint32_t*)&value; \
-    v = ((v & 0xFF) << 24) | (((v >> 8) & 0xFF) << 16) \
-        | (((v >> 16) & 0xFF) << 8) | ((v >> 24) & 0xFF); \
-    (value) = *(float_t*)&v; \
-}
-
-#define reverse_endianess_double_t(value) \
-{ \
-    uint64_t v = *(uint64_t*)&(value); \
-    v = ((v & 0xFF) << 56) | (((v >> 8) & 0xFF) << 48) \
-        | (((v >> 16) & 0xFF) << 40) | (((v >> 24) & 0xFF) << 32) \
-        | (((v >> 32) & 0xFF) << 24) | (((v >> 40) & 0xFF) << 16) \
-        | (((v >> 48) & 0xFF) << 8) | ((v >> 56) & 0xFF); \
-    (value) = *(double_t*)&v; \
-}
-
+extern int16_t reverse_endianess_int16_t(int16_t value);
+extern uint16_t reverse_endianess_uint16_t(uint16_t value);
+extern int32_t reverse_endianess_int32_t(int32_t value);
+extern uint32_t reverse_endianess_uint32_t(uint32_t value);
+extern int64_t reverse_endianess_int64_t(int64_t value);
+extern uint64_t reverse_endianess_uint64_t(uint64_t value);
+extern ssize_t reverse_endianess_ssize_t(ssize_t value);
+extern size_t reverse_endianess_size_t(size_t value);
+extern float_t reverse_endianess_float_t(float_t value);
+extern double_t reverse_endianess_double_t(double_t value);
 extern char* wchar_t_string_to_char_string(wchar_t* s);
 extern wchar_t* char_string_to_wchar_t_string(char* s);

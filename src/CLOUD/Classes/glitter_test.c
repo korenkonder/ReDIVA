@@ -9,6 +9,7 @@
 #include "../../CRE/Glitter/file_reader.h"
 #include "../../CRE/Glitter/particle_manager.h"
 #include "../../CRE/Glitter/scene.h"
+#include "../../CRE/microui.h"
 #include "../input.h"
 
 extern mu_Context* muctx;
@@ -28,13 +29,12 @@ void glitter_test_dispose() {
     vector_ptr_glitter_scene_clear(&gpm->scenes, (void*)glitter_scene_dispose);
     vector_ptr_glitter_effect_group_clear(&gpm->effect_groups, (void*)glitter_effect_group_dispose);
 
-    vector_ptr_wchar_t_clear(&glitter_test.files, 0);
-    vector_ptr_wchar_t_dispose(&glitter_test.files);
+    vector_ptr_wchar_t_free(&glitter_test.files, 0);
     glitter_test.file = 0;
-    glitter_test.input_play = 0;
-    glitter_test.input_stop = 0;
-    glitter_test.input_auto = 0;
-    glitter_test.input_pause = 0;
+    glitter_test.input_play = false;
+    glitter_test.input_stop = false;
+    glitter_test.input_auto = false;
+    glitter_test.input_pause = false;
     glitter_test.frame_counter = 0.0f;
     glitter_test.enabled = false;
     glitter_test.dispose = false;
@@ -42,9 +42,7 @@ void glitter_test_dispose() {
 }
 
 void glitter_test_init() {
-    vector_ptr_wchar_t_clear(&glitter_test.files, 0);
-    vector_ptr_wchar_t_dispose(&glitter_test.files);
-
+    vector_ptr_wchar_t_free(&glitter_test.files, 0);
     path_wget_files(&glitter_test.files, L"rom\\particle");
     for (wchar_t** i = glitter_test.files.begin; i != glitter_test.files.end; i++) {
         wchar_t* temp = 0;
@@ -60,6 +58,7 @@ void glitter_test_init() {
             glitter_test.files.begin[glitter_test_files_count++] = *i;
     glitter_test.files.end = &glitter_test.files.begin[glitter_test_files_count];
     glitter_test.enabled = true;
+    gpm->emission = 1.0f;
 }
 
 void glitter_test_control() {
@@ -96,11 +95,8 @@ void glitter_test_mui() {
         glitter_test.disposed = false;
     }
 
-    int32_t title_w = min(width / 3, 360);
-    int32_t title_h = 300;
-
-    int32_t w = title_w;
-    int32_t h = title_h;
+    int32_t w = min(width / 3, 360);
+    int32_t h = 340;
 
     if (!mu_begin_window_ex(muctx, glitter_test_window_title,
         mu_rect(0, 0, w, h),
@@ -154,7 +150,7 @@ void glitter_test_mui() {
     char buf[0x40];
 
     mu_layout_row(muctx, 1, (int[]) { -1 }, 0);
-    glitter_particle_manager_get_time(gpm, &frame, &life_time);
+    glitter_particle_manager_get_frame(gpm, &frame, &life_time);
     sprintf_s(buf, sizeof(buf), "%.0f - %.0f/%.0f", glitter_test.frame_counter, frame, life_time);
     mu_label(muctx, buf);
 
@@ -178,8 +174,11 @@ void glitter_test_mui() {
     mu_label(muctx, buf);
 
     mu_layout_row(muctx, 2, (int[]) { 80, -1 }, 0);
+    mu_label(muctx, "Emission: ");
+    mu_slider_step(muctx, &gpm->emission, 1.0f, 2.0f, 0.01f);
+
     mu_label(muctx, "Frame Speed: ");
-    mu_slider_step(muctx, &frame_speed, 0.0f, 2.0f, 0.01f);
+    mu_slider_step(muctx, &frame_speed, 0.0f, 3.0f, 0.01f);
     mu_end_window(muctx);
 }
 
@@ -218,8 +217,8 @@ void glitter_test_render() {
             vector_ptr_glitter_scene_clear(&gpm->scenes, (void*)glitter_scene_dispose);
             vector_ptr_glitter_effect_group_clear(&gpm->effect_groups, (void*)glitter_effect_group_dispose);
 
-            glitter_file_reader* fr = glitter_file_reader_init(0, glitter_test.file, gpm->f2);
-            vector_ptr_glitter_file_reader_append_element(&gpm->file_readers, &fr);
+            glitter_file_reader* fr = glitter_file_reader_init(0, glitter_test.file, gpm->f2, -1.0f);
+            vector_ptr_glitter_file_reader_push_back(&gpm->file_readers, &fr);
             glitter_particle_manager_update_file_reader(gpm);
         load:
             glitter_test.frame_counter = 0.0f;

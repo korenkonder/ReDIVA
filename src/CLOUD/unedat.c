@@ -141,8 +141,7 @@ void get_block_key(int block, NPD_HEADER* npd, uint8_t* dest_key) {
     memset(empty_key, 0, 0x10);
     uint8_t* src_key = (npd->version <= 1) ? empty_key : npd->dev_hash;
     memcpy(dest_key, src_key, 0xC);
-    reverse_endianess_int32_t(block);
-    *(int32_t*)&dest_key[0xC] = block;
+    *(int32_t*)&dest_key[0xC] = reverse_endianess_int32_t(block);
 }
 
 // for out data, allocate a buffer the size of 'edat->block_size'
@@ -179,9 +178,9 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
         // If the data is compressed, decrypt the metadata.
         // NOTE: For NPD version 1 the metadata is not encrypted.
         if (npd->version <= 1) {
-            offset = *(uint64_t*)&metadata[0x10];
-            length = *(int32_t*)&metadata[0x18];
-            compression_end = *(int32_t*)&metadata[0x1C];
+            offset = reverse_endianess_uint64_t(*(uint64_t*)&metadata[0x10]);
+            length = reverse_endianess_int32_t(*(int32_t*)&metadata[0x18]);
+            compression_end = reverse_endianess_int32_t(*(int32_t*)&metadata[0x1C]);
         }
         else {
             uint8_t dec[0x10];
@@ -202,14 +201,10 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
             dec[0x0E] = metadata[0x6] ^ metadata[0x2] ^ metadata[0x1E];
             dec[0x0F] = metadata[0x7] ^ metadata[0x3] ^ metadata[0x1F];
 
-            offset = *(uint64_t*)&dec[0x00];
-            length = *(int32_t*)&dec[0x08];
-            compression_end = *(int32_t*)&dec[0x0C];
+            offset = reverse_endianess_uint64_t(*(uint64_t*)&dec[0x00]);
+            length = reverse_endianess_int32_t(*(int32_t*)&dec[0x08]);
+            compression_end = reverse_endianess_int32_t(*(int32_t*)&dec[0x0C]);
         }
-
-        reverse_endianess_uint64_t(offset);
-        reverse_endianess_int32_t(length);
-        reverse_endianess_int32_t(compression_end);
     }
     else if (edat->flags & EDAT_FLAG_0x20) {
         // If FLAG 0x20, the metadata precedes each data block.
@@ -319,27 +314,19 @@ void read_npd_edat_header(stream* input, NPD_HEADER* NPD, EDAT_HEADER* EDAT) {
     io_read(input, edat_header, sizeof(edat_header));
 
     memcpy(&NPD->magic, npd_header, 0x04);
-    NPD->version = *(int32_t*)(&npd_header[0x04]);
-    NPD->license = *(int32_t*)(&npd_header[0x08]);
-    NPD->type = *(int32_t*)(&npd_header[0x0C]);
+    NPD->version = reverse_endianess_int32_t(*(int32_t*)&npd_header[0x04]);
+    NPD->license = reverse_endianess_int32_t(*(int32_t*)&npd_header[0x08]);
+    NPD->type = reverse_endianess_int32_t(*(int32_t*)&npd_header[0x0C]);
     memcpy(&NPD->content_id, &npd_header[0x10], 0x30);
     memcpy(&NPD->digest, &npd_header[0x40], 0x10);
     memcpy(&NPD->title_hash, &npd_header[0x50], 0x10);
     memcpy(&NPD->dev_hash, &npd_header[0x60], 0x10);
-    NPD->unk1 = *(int64_t*)(&npd_header[0x70]);
-    NPD->unk2 = *(int64_t*)(&npd_header[0x78]);
-    reverse_endianess_int32_t(NPD->version);
-    reverse_endianess_int32_t(NPD->license);
-    reverse_endianess_int32_t(NPD->type);
-    reverse_endianess_int64_t(NPD->unk1);
-    reverse_endianess_int64_t(NPD->unk2);
+    NPD->unk1 = reverse_endianess_int64_t(*(int64_t*)&npd_header[0x70]);
+    NPD->unk2 = reverse_endianess_int64_t(*(int64_t*)&npd_header[0x78]);
 
-    EDAT->flags = *(int32_t*)(&edat_header[0x00]);
-    EDAT->block_size = *(int32_t*)(&edat_header[0x04]);
-    EDAT->file_size = *(int64_t*)(&edat_header[0x08]);
-    reverse_endianess_int32_t(EDAT->flags);
-    reverse_endianess_int32_t(EDAT->block_size);
-    reverse_endianess_int64_t(EDAT->file_size);
+    EDAT->flags = reverse_endianess_int32_t(*(int32_t*)&edat_header[0x00]);
+    EDAT->block_size = reverse_endianess_int32_t(*(int32_t*)&edat_header[0x04]);
+    EDAT->file_size = reverse_endianess_int64_t(*(int64_t*)&edat_header[0x08]);
 }
 
 bool extract_all_data(stream* input, stream* output, uint8_t* devKlic, uint8_t* rifKey) {

@@ -45,7 +45,7 @@ int32_t control_main(void* arg) {
     memset(&tasks_render, 0, sizeof(vector_task_render));
 
     while (!render_lock)
-        msleep(0.0625);
+        msleep(control_timer, 0.0625);
 
     while (!close) {
         timer_calc_pre(control);
@@ -53,8 +53,6 @@ int32_t control_main(void* arg) {
             WaitForSingleObject(input_lock, INFINITE);
             if (window_handle == GetForegroundWindow()) {
                 if (input_is_down(VK_CONTROL) && input_is_tapped('C'))
-                    break;
-                else if (input_is_down(VK_ESCAPE))
                     break;
             }
             ReleaseMutex(input_lock);
@@ -105,7 +103,7 @@ int32_t control_main(void* arg) {
         }
 
         double_t cycle_time = timer_calc_post(control);
-        msleep(1000.0 / FREQ - cycle_time);
+        msleep(control_timer, 1000.0 / FREQ - cycle_time);
     }
     timer_dispose(control);
     close = true;
@@ -121,47 +119,6 @@ static void write_log(const char* text) {
     strcat_s(logbuf, 64000, text);
     logbuf_updated = 1;
 }
-
-/*typedef enum mui_title1_enum {
-    MUI_TITLE1_AAAAA,
-    MUI_TITLE1_BBBBB,
-    MUI_TITLE1_CCCCC,
-    MUI_TITLE1_DDDDD,
-    MUI_TITLE1_MAX,
-} mui_title1_enum;
-
-static mui_title1_enum title1_selector;
-
-static void mui_control(mu_Context* muctx) {
-    char* title1_temp[] = { "AAAAA", "BBBBB", "CCCCC", "DDDDD", "EEEEE", "FFFFF", "GGGGG", "HHHHH" };
-    int32_t title1_c = sizeof(title1_temp) / sizeof(char*);
-    int title1_temp_w[sizeof(title1_temp) / sizeof(char*)];
-
-    int32_t title_w = min(width / 3, 360);
-    int32_t title_h = muctx->style->title_height + muctx->style->spacing + 2;
-    
-    mu_tabs_get_title_size(muctx, MUI_TITLE1_AAAAA, MUI_TITLE1_MAX,
-        &title_w, &title_h, title1_temp, title1_temp_w);
-
-    int32_t w = title_w;
-    int32_t h = title_h;
-
-    mu_tabs_set(muctx, MUI_TITLE1_AAAAA, MUI_TITLE1_MAX,
-        title1_temp, title1_temp_w, title1_c, (int32_t*)&title1_selector, "title1",
-        mu_rect(width - w, 0, w, h));
-
-    w = title_w;
-    h = min(height - title_h, 520);
-
-    if (!mu_begin_window_ex(muctx, title1_temp[title1_selector],
-        mu_rect(width - w, title_h, w, h),
-        MU_OPT_NOINTERACT | MU_OPT_NOCLOSE | MU_OPT_NOTITLE, false, true, false))
-        return;
-
-    switch (title1_selector) {
-    }
-    mu_end_window(muctx);
-}*/
 
 static void mui_process() {
     if (mu_input_lock && window_handle == GetForegroundWindow()) {
@@ -211,6 +168,9 @@ static void mui_process() {
             mu_input_keydown(muctx, MU_KEY_BACKSPACE);
         else if (input_is_released(VK_BACK))
             mu_input_keyup(muctx, MU_KEY_BACKSPACE);
+        
+        if (input_is_tapped(VK_ESCAPE))
+            muctx->focus = 0;
 
         WaitForSingleObject(mu_input_lock, INFINITE);
         mu_input_text(muctx, mu_input_ansi.begin);
@@ -232,7 +192,7 @@ static void mui_process() {
         mu_open_popup(muctx, "context menu");
 
     if (mu_begin_window_ex(muctx, "context menu",
-        mu_rect(0, 0, 180, 240),
+        mu_rect(0, 0, 180, 120),
         MU_OPT_NOTITLE | MU_OPT_POPUP | MU_OPT_CLOSED, false, true, false)) {
         mu_Rect body = muctx->layout_stack.items[muctx->layout_stack.idx - 1].body;
         mu_layout_row(muctx, 1, (int[]) { body.w }, 0);

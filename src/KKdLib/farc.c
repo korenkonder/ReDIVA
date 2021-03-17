@@ -25,7 +25,7 @@ static errno_t farc_read_header(farc* f, stream* s);
 static void farc_unpack_files(farc* f, stream* s, bool save);
 static void farc_unpack_file(farc* f, stream* s, farc_file* ff);
 static errno_t farc_get_files(farc* f);
-static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode);
+static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode, bool get_files);
 
 farc* farc_init() {
     farc* f = force_malloc(sizeof(farc));
@@ -41,8 +41,7 @@ void farc_dispose(farc* f) {
         free(i->data);
     }
 
-    vector_farc_file_clear(&f->files);
-    vector_farc_file_dispose(&f->files);
+    vector_farc_file_free(&f->files);
     free(f->file_path);
     free(f->directory_path);
     free(f);
@@ -81,7 +80,7 @@ void farc_wread(farc* f, wchar_t* path, bool unpack, bool save) {
     f->directory_path = path_wget_without_extension(f->file_path);
 
     stream* s = io_wopen(f->file_path, L"rb");
-    if (s->io && !farc_read_header(f, s) && unpack)
+    if (s->io.stream && !farc_read_header(f, s) && unpack)
         farc_unpack_files(f, s, save);
     io_dispose(s);
 }
@@ -105,8 +104,11 @@ static errno_t farc_read_header(farc* f, stream* s) {
         f->ft = (f->type & FARC_DATA_AES) && (farc_mode & (farc_mode - 1));
     }
 
-    vector_farc_file_clear(&f->files);
-    vector_farc_file_dispose(&f->files);
+    for (farc_file* i = f->files.begin; i != f->files.end; i++) {
+        free(i->data);
+        free(i->name);
+    }
+    vector_farc_file_free(&f->files);
     if (f->ft) {
         io_set_position(s, 0x10, IO_SEEK_SET);
 
@@ -120,12 +122,11 @@ static errno_t farc_read_header(farc* f, stream* s) {
 
         uint8_t* dt = d_t;
         dt += 0x10 + sizeof(int32_t);
-        int32_t length = *(int32_t*)dt;
-        reverse_endianess_int32_t(length);
+        int32_t length;
+        length = reverse_endianess_int32_t(*(int32_t*)dt);
         if (length == 1) {
             dt += sizeof(int32_t);
-            length = *(int32_t*)dt;
-            reverse_endianess_int32_t(length);
+            length = reverse_endianess_int32_t(*(int32_t*)dt);
         }
         else
             length = 0;
@@ -160,18 +161,11 @@ static errno_t farc_read_header(farc* f, stream* s) {
             file[f_len] = 0;
 
             i->name = utf8_decode(file);
-            i->offset = *(int32_t*)dt;
-            dt += sizeof(int32_t);
-            i->size_compressed = *(int32_t*)dt;
-            dt += sizeof(int32_t);
-            i->size_uncompressed = *(int32_t*)dt;
-            dt += sizeof(int32_t);
-            i->type = (farc_type)*(int32_t*)dt;
-            dt += sizeof(int32_t);
-            reverse_endianess_int32_t(i->offset);
-            reverse_endianess_int32_t(i->size_compressed);
-            reverse_endianess_int32_t(i->size_uncompressed);
-            reverse_endianess_int32_t(i->type);
+            i->offset = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[0]);
+            i->size_compressed = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[1]);
+            i->size_uncompressed = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[2]);
+            i->type = reverse_endianess_int32_t(((int32_t*)dt)[3]);
+            dt += sizeof(int32_t) * 4;
         }
         free(file);
         free(d_t);
@@ -212,10 +206,10 @@ static errno_t farc_read_header(farc* f, stream* s) {
             file[f_len] = 0;
 
             i->name = utf8_decode(file);
-            i->offset = io_read_int32_t_reverse_endianess(s, true);
+            i->offset = (size_t)io_read_int32_t_reverse_endianess(s, true);
             if (f->signature != FARC_FArc)
-                i->size_compressed = io_read_int32_t_reverse_endianess(s, true);
-            i->size_uncompressed = io_read_int32_t_reverse_endianess(s, true);
+                i->size_compressed = (size_t)io_read_int32_t_reverse_endianess(s, true);
+            i->size_uncompressed = (size_t)io_read_int32_t_reverse_endianess(s, true);
         }
         free(file);
     }
@@ -254,7 +248,7 @@ static void farc_unpack_files(farc* f, stream* s, bool save) {
 
         if (i->data) {
             stream* temp_s = io_wopen(temp_path, L"wb");
-            if (temp_s->io)
+            if (temp_s->io.stream)
                 io_write(temp_s, i->data, i->size_uncompressed);
             io_dispose(temp_s);
             free(i->data);
@@ -345,27 +339,28 @@ farc_file* farc_wread_file(farc* f, wchar_t* name) {
     return 0;
 }
 
-void farc_write(farc* f, char* path, farc_compress_mode mode) {
+void farc_write(farc* f, char* path, farc_compress_mode mode, bool get_files) {
     if (!f || !path)
         return;
 
     wchar_t* path_buf = char_string_to_wchar_t_string(path);
-    farc_wwrite(f, path_buf, mode);
+    farc_wwrite(f, path_buf, mode, get_files);
     free(path_buf);
 }
 
-void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode) {
+void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode, bool get_files) {
     if (!f || !path)
         return;
 
-    memset(f, 0, sizeof(farc));
+    if (get_files)
+        memset(f, 0, sizeof(farc));
 
     wchar_t* full_path_buf = force_malloc_s(sizeof(wchar_t), MAX_PATH);
     full_path_buf = _wfullpath(full_path_buf, path, MAX_PATH);
 
     if (!full_path_buf)
         return;
-    else if (!path_wcheck_directory_exists(full_path_buf)) {
+    else if (get_files && !path_wcheck_directory_exists(full_path_buf)) {
         free(full_path_buf);
         return;
     }
@@ -377,52 +372,52 @@ void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode) {
 
     f->file_path = path_wadd_extension(f->directory_path, L".farc");
 
-    if (!farc_get_files(f)) {
+    if (!get_files || (get_files && !farc_get_files(f))) {
         stream* s = io_wopen(f->file_path, L"wb");
-        if (s->io)
-            farc_pack_files(f, s, mode);
+        if (s->io.stream)
+            farc_pack_files(f, s, mode, get_files);
         io_dispose(s);
     }
 }
 
 static errno_t farc_get_files(farc* f) {
-    vector_farc_file_clear(&f->files);
-    vector_farc_file_dispose(&f->files);
+    for (farc_file* i = f->files.begin; i != f->files.end; i++) {
+        free(i->data);
+        free(i->name);
+    }
 
-    vector_ptr_wchar_t files;
+    vector_farc_file_free(&f->files);
+
+    vector_ptr_wchar_t files = (vector_ptr_wchar_t){ 0, 0, 0 };
     path_wget_files(&files, f->directory_path);
     if (!(files.end - files.begin)) {
-        vector_ptr_wchar_t_clear(&files, 0);
-        vector_ptr_wchar_t_dispose(&files);
+        vector_ptr_wchar_t_free(&files, 0);
         return -1;
     }
 
     vector_farc_file_append(&f->files, files.end - files.begin);
     f->files.end = &f->files.begin[files.end - files.begin];
      for (farc_file* i = f->files.begin; i != f->files.end; i++) {
-        memset(i, 0, sizeof(farc_file));
-        size_t len = wcslen(files.begin[i - f->files.begin]);
-        i->name = force_malloc_s(sizeof(wchar_t), len + 1);
-        memcpy(i->name, files.begin[i - f->files.begin], sizeof(wchar_t) * (len + 1));
+         memset(i, 0, sizeof(farc_file));
+         size_t len = wcslen(files.begin[i - f->files.begin]);
+         i->name = force_malloc_s(sizeof(wchar_t), len + 1);
+         memcpy(i->name, files.begin[i - f->files.begin], sizeof(wchar_t) * (len + 1));
     }
-    vector_ptr_wchar_t_clear(&files, 0);
-    vector_ptr_wchar_t_dispose(&files);
+    vector_ptr_wchar_t_free(&files, 0);
     return 0;
 }
 
-static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode) {
+static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode, bool get_files) {
     bool plain = false;
     for (farc_file* i = f->files.begin; i != f->files.end; i++) {
         wchar_t* ext = path_wget_extension(i->name);
         bool is_a3da = wcscmp(ext, L".a3da") == 0;
         bool is_diva = wcscmp(ext, L".diva") == 0;
-        bool is_drs = wcscmp(ext, L".drs") == 0;
-        bool is_dve = wcscmp(ext, L".dve") == 0;
-        bool is_lst = wcscmp(ext, L".lst") == 0;
         bool is_farc = wcscmp(ext, L".farc") == 0;
+        bool is_vag = wcscmp(ext, L".vag") == 0;
         free(ext);
 
-        if (is_a3da | is_diva | is_drs | is_dve | is_lst | is_farc) {
+        if (is_a3da || is_diva || is_farc || is_vag) {
             plain = true;
             break;
         }
@@ -476,25 +471,30 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode) {
     size_t align = header_length + 8;
     io_set_position(s, align_val(align, 0x10), IO_SEEK_SET);
     size_t dir_len = wcslen(f->directory_path);
-    wchar_t* temp = force_malloc_s(sizeof(wchar_t), dir_len + 2 + MAX_PATH);
-    memcpy(temp, f->directory_path, sizeof(wchar_t) * dir_len);
-    temp[dir_len] = L'\\';
 
     struct aes_ctx ctx;
     if (mode == FARC_COMPRESS_FARC_AES || mode == FARC_COMPRESS_FARC_GZIP_AES)
         aes_init_ctx(&ctx, key);
 
-    for (farc_file* i = f->files.begin; i != f->files.end; i++) {
-        memcpy(temp + dir_len + 1, i->name, sizeof(wchar_t) * (wcslen(i->name) + 1));
-        i->offset = io_get_position(s);
+    if (get_files) {
+        wchar_t* temp = force_malloc_s(sizeof(wchar_t), dir_len + 2 + MAX_PATH);
+        memcpy(temp, f->directory_path, sizeof(wchar_t) * dir_len);
+        temp[dir_len] = L'\\';
+        for (farc_file* i = f->files.begin; i != f->files.end; i++) {
+            memcpy(temp + dir_len + 1, i->name, sizeof(wchar_t) * (wcslen(i->name) + 1));
+            i->offset = io_get_position(s);
 
-        stream* s_t = io_wopen(temp, L"rb");
-        if (s_t->io) {
+            stream* s_t = io_wopen(temp, L"rb");
+            if (!s_t->io.stream) {
+                io_dispose(s_t);
+                continue;
+            }
+
             io_set_position(s_t, 0, IO_SEEK_END);
             size_t file_len = io_get_position(s_t);
             io_set_position(s_t, 0, IO_SEEK_SET);
 
-            i->size_uncompressed = (int32_t)file_len;
+            i->size_uncompressed = file_len;
 
             void* t = force_malloc(file_len);
             io_read(s_t, t, file_len);
@@ -523,7 +523,7 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode) {
                 aes_ecb_encrypt_buffer(&ctx, t2, t2_len);
 
                 io_write(s, t2, t2_len);
-                i->size_compressed = (int32_t)t1_len;
+                i->size_compressed = t1_len;
                 t = t2;
             }
             else if (mode == FARC_COMPRESS_FArC || mode == FARC_COMPRESS_FARC_GZIP) {
@@ -535,7 +535,7 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode) {
                 size_t a = align_val(t1_len, 0x10) - t1_len;
                 for (size_t j = 0; j < a; j++)
                     io_write_uint8_t(s, 0x78);
-                i->size_compressed = (int32_t)t1_len;
+                i->size_compressed = t1_len;
                 t = t1;
             }
             else {
@@ -545,11 +545,63 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode) {
                     io_write_uint8_t(s, 0x00);
             }
             free(t);
+            io_dispose(s_t);
         }
-        io_dispose(s_t);
+        free(temp);
     }
+    else
+        for (farc_file* i = f->files.begin; i != f->files.end; i++) {
+            i->offset = io_get_position(s);
+            size_t file_len = i->size_uncompressed;
 
-    free(temp);
+            void* t = i->data;
+            if (mode == FARC_COMPRESS_FARC_AES || mode == FARC_COMPRESS_FARC_GZIP_AES) {
+                void* t1;
+                size_t t1_len;
+                if (mode == FARC_COMPRESS_FARC_GZIP_AES) {
+                    deflate_compress(t, file_len, &t1, &t1_len, 9, DEFLATE_MODE_GZIP);
+                    free(t);
+                }
+                else {
+                    t1 = t;
+                    t1_len = file_len;
+                }
+
+                size_t t2_len = align_val(t1_len, 0x10);
+                size_t a = t2_len - t1_len;
+                void* t2 = force_malloc(t2_len);
+                memcpy(t2, t1, t1_len);
+                free(t1);
+
+                for (size_t j = 0; j < a; j++)
+                    ((uint8_t*)t2)[t1_len + j] = 0x78;
+
+                aes_ecb_encrypt_buffer(&ctx, t2, t2_len);
+
+                io_write(s, t2, t2_len);
+                i->size_compressed = t1_len;
+                t = t2;
+            }
+            else if (mode == FARC_COMPRESS_FArC || mode == FARC_COMPRESS_FARC_GZIP) {
+                void* t1;
+                size_t t1_len;
+                deflate_compress(t, file_len, &t1, &t1_len, 12, DEFLATE_MODE_GZIP);
+                free(t);
+                io_write(s, t1, t1_len);
+                size_t a = align_val(t1_len, 0x10) - t1_len;
+                for (size_t j = 0; j < a; j++)
+                    io_write_uint8_t(s, 0x78);
+                i->size_compressed = t1_len;
+                t = t1;
+            }
+            else {
+                io_write(s, t, file_len);
+                size_t a = align_val(file_len, 0x10) - file_len;
+                for (size_t j = 0; j < a; j++)
+                    io_write_uint8_t(s, 0x00);
+            }
+            i->data = t;
+        }
 
     io_set_position(s, 0, IO_SEEK_SET);
     switch (mode) {

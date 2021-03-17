@@ -6,21 +6,31 @@
 
 #include "mat.h"
 
-void FASTCALL mat3_identity(mat3* x) {
-    *x = (mat3){
-        { 1.0f, 0.0f, 0.0f },
-        { 0.0f, 1.0f, 0.0f },
-        { 0.0f, 0.0f, 1.0f },
-    };
-}
+const mat3 mat3_identity = {
+    { 1.0f, 0.0f, 0.0f },
+    { 0.0f, 1.0f, 0.0f },
+    { 0.0f, 0.0f, 1.0f },
+};
 
-void FASTCALL mat3_null(mat3* x) {
-    *x = (mat3){
-        { 0.0f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 0.0f },
-    };
-}
+const mat3 mat3_null = {
+    { 0.0f, 0.0f, 0.0f },
+    { 0.0f, 0.0f, 0.0f },
+    { 0.0f, 0.0f, 0.0f },
+};
+
+const mat4 mat4_identity = {
+    { 1.0f, 0.0f, 0.0f, 0.0f },
+    { 0.0f, 1.0f, 0.0f, 0.0f },
+    { 0.0f, 0.0f, 1.0f, 0.0f },
+    { 0.0f, 0.0f, 0.0f, 1.0f },
+};
+
+const mat4 mat4_null = {
+    { 0.0f, 0.0f, 0.0f, 0.0f },
+    { 0.0f, 0.0f, 0.0f, 0.0f },
+    { 0.0f, 0.0f, 0.0f, 0.0f },
+    { 0.0f, 0.0f, 0.0f, 0.0f },
+};
 
 void FASTCALL mat3_add(mat3* x, mat3* y, mat3* z) {
     __m128 xt;
@@ -62,30 +72,30 @@ void FASTCALL mat3_mult(mat3* x, mat3* y, mat3* z) {
     __m128 t0;
     __m128 t1;
     __m128 t2;
-    __m128 xt;
+    __m128 yt;
     __m128 zt;
-    __m128 yt0;
-    __m128 yt1;
-    __m128 yt2;
-    *(vec3*)&yt0 = y->row0;
-    *(vec3*)&yt1 = y->row1;
-    *(vec3*)&yt2 = y->row2;
-    *(vec3*)&xt = x->row0;
-    t0 = _mm_mul_ps(yt0, _mm_shuffle_ps(xt, xt, 0b00000000));
-    t1 = _mm_mul_ps(yt1, _mm_shuffle_ps(xt, xt, 0b01010101));
-    t2 = _mm_mul_ps(yt2, _mm_shuffle_ps(xt, xt, 0b10101010));
+    __m128 xt0;
+    __m128 xt1;
+    __m128 xt2;
+    *(vec3*)&xt0 = x->row0;
+    *(vec3*)&xt1 = x->row1;
+    *(vec3*)&xt2 = x->row2;
+    *(vec3*)&yt = y->row0;
+    t0 = _mm_mul_ps(xt0, _mm_shuffle_ps(yt, yt, 0b00000000));
+    t1 = _mm_mul_ps(xt1, _mm_shuffle_ps(yt, yt, 0b01010101));
+    t2 = _mm_mul_ps(xt2, _mm_shuffle_ps(yt, yt, 0b10101010));
     zt = _mm_add_ps(_mm_add_ps(t0, t1), t2);
     z->row0 = *(vec3*)&zt;
-    *(vec3*)&xt = x->row1;
-    t0 = _mm_mul_ps(yt0, _mm_shuffle_ps(xt, xt, 0b00000000));
-    t1 = _mm_mul_ps(yt1, _mm_shuffle_ps(xt, xt, 0b01010101));
-    t2 = _mm_mul_ps(yt2, _mm_shuffle_ps(xt, xt, 0b10101010));
+    *(vec3*)&yt = y->row1;
+    t0 = _mm_mul_ps(xt0, _mm_shuffle_ps(yt, yt, 0b00000000));
+    t1 = _mm_mul_ps(xt1, _mm_shuffle_ps(yt, yt, 0b01010101));
+    t2 = _mm_mul_ps(xt2, _mm_shuffle_ps(yt, yt, 0b10101010));
     zt = _mm_add_ps(_mm_add_ps(t0, t1), t2);
     z->row1 = *(vec3*)&zt;
-    *(vec3*)&xt = x->row2;
-    t0 = _mm_mul_ps(yt0, _mm_shuffle_ps(xt, xt, 0b00000000));
-    t1 = _mm_mul_ps(yt1, _mm_shuffle_ps(xt, xt, 0b01010101));
-    t2 = _mm_mul_ps(yt2, _mm_shuffle_ps(xt, xt, 0b10101010));
+    *(vec3*)&yt = y->row2;
+    t0 = _mm_mul_ps(xt0, _mm_shuffle_ps(yt, yt, 0b00000000));
+    t1 = _mm_mul_ps(xt1, _mm_shuffle_ps(yt, yt, 0b01010101));
+    t2 = _mm_mul_ps(xt2, _mm_shuffle_ps(yt, yt, 0b10101010));
     zt = _mm_add_ps(_mm_add_ps(t0, t1), t2);
     z->row2 = *(vec3*)&zt;
 }
@@ -284,13 +294,13 @@ float_t FASTCALL mat3_determinant(mat3* x) {
 
 void FASTCALL mat3_rotate(float_t x, float_t y, float_t z, mat3* d) {
     mat3 dt;
-    mat3_identity(&dt);
-    if (x != 0.0f)
-        mat3_rotate_x_mult(&dt, x, &dt);
-    if (y != 0.0f)
-        mat3_rotate_y_mult(&dt, y, &dt);
+    dt = mat3_identity;
     if (z != 0.0f)
         mat3_rotate_z_mult(&dt, z, &dt);
+    if (y != 0.0f)
+        mat3_rotate_y_mult(&dt, y, &dt);
+    if (x != 0.0f)
+        mat3_rotate_x_mult(&dt, x, &dt);
     *d = dt;
 }
 
@@ -298,7 +308,7 @@ void FASTCALL mat3_rotate_x(float_t x, mat3* y) {
     mat3 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row1.y = x_cos;
     yt.row1.z = x_sin;
     yt.row2.y = -x_sin;
@@ -310,7 +320,7 @@ void FASTCALL mat3_rotate_y(float_t x, mat3* y) {
     mat3 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row0.x = x_cos;
     yt.row0.z = -x_sin;
     yt.row2.x = x_sin;
@@ -322,7 +332,7 @@ void FASTCALL mat3_rotate_z(float_t x, mat3* y) {
     mat3 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row0.x = x_cos;
     yt.row0.y = x_sin;
     yt.row1.x = -x_sin;
@@ -333,12 +343,12 @@ void FASTCALL mat3_rotate_z(float_t x, mat3* y) {
 void FASTCALL mat3_rotate_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d) {
     mat3 dt;
     dt = *s;
-    if (x != 0.0f)
-        mat3_rotate_x_mult(&dt, x, &dt);
-    if (y != 0.0f)
-        mat3_rotate_y_mult(&dt, y, &dt);
     if (z != 0.0f)
         mat3_rotate_z_mult(&dt, z, &dt);
+    if (y != 0.0f)
+        mat3_rotate_y_mult(&dt, y, &dt);
+    if (x != 0.0f)
+        mat3_rotate_x_mult(&dt, x, &dt);
     *d = dt;
 }
 
@@ -346,7 +356,7 @@ void FASTCALL mat3_rotate_x_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row1.y = y_cos;
     yt.row1.z = y_sin;
     yt.row2.y = -y_sin;
@@ -358,7 +368,7 @@ void FASTCALL mat3_rotate_y_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row0.x = y_cos;
     yt.row0.z = -y_sin;
     yt.row2.x = y_sin;
@@ -370,7 +380,7 @@ void FASTCALL mat3_rotate_z_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row0.x = y_cos;
     yt.row0.y = y_sin;
     yt.row1.x = -y_sin;
@@ -380,7 +390,7 @@ void FASTCALL mat3_rotate_z_mult(mat3* x, float_t y, mat3* z) {
 
 void FASTCALL mat3_scale(float_t x, float_t y, float_t z, mat3* d) {
     mat3 dt;
-    mat3_identity(&dt);
+    dt = mat3_identity;
     if (x != 1.0f)
         dt.row0.x = x;
     if (y != 1.0f)
@@ -392,21 +402,21 @@ void FASTCALL mat3_scale(float_t x, float_t y, float_t z, mat3* d) {
 
 void FASTCALL mat3_scale_x(float_t x, mat3* y) {
     mat3 yt;
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row0.x = x;
     *y = yt;
 }
 
 void FASTCALL mat3_scale_y(float_t x, mat3* y) {
     mat3 yt;
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row1.y = x;
     *y = yt;
 }
 
 void FASTCALL mat3_scale_z(float_t x, mat3* y) {
     mat3 yt;
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row2.z = x;
     *y = yt;
 }
@@ -416,7 +426,7 @@ void FASTCALL mat3_scale_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d)
     mat3 dt;
     if (x != 1.0f || y != 1.0f || z != 1.0f) {
         st = *s;
-        mat3_identity(&dt);
+        dt = mat3_identity;
         dt.row0.x = x;
         dt.row1.y = y;
         dt.row2.z = z;
@@ -429,21 +439,21 @@ void FASTCALL mat3_scale_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d)
 
 void FASTCALL mat3_scale_x_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row0.x = y;
     mat3_mult(x, &yt, z);
 }
 
 void FASTCALL mat3_scale_y_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row1.y = y;
     mat3_mult(x, &yt, z);
 }
 
 void FASTCALL mat3_scale_z_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row2.z = y;
     mat3_mult(x, &yt, z);
 }
@@ -488,24 +498,6 @@ void FASTCALL mat3_from_quat(quat* quat, mat3* mat) {
     mat->row2.x = xz + wy;
     mat->row2.y = yz - wx;
     mat->row2.z = 1.0f - yy - xx;
-}
-
-void FASTCALL mat4_identity(mat4* x) {
-    *x = (mat4){
-        { 1.0f, 0.0f, 0.0f, 0.0f },
-        { 0.0f, 1.0f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 1.0f, 0.0f },
-        { 0.0f, 0.0f, 0.0f, 1.0f },
-    };
-}
-
-void FASTCALL mat4_null(mat4* x) {
-    *x = (mat4){
-        { 0.0f, 0.0f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 0.0f, 0.0f },
-    };
 }
 
 void FASTCALL mat4_add(mat4* x, mat4* y, mat4* z) {
@@ -756,13 +748,13 @@ float_t FASTCALL mat4_determinant(mat4* x) {
 
 void FASTCALL mat4_rotate(float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
-    mat4_identity(&dt);
-    if (x != 0.0f)
-        mat4_rotate_x_mult(&dt, x, &dt);
-    if (y != 0.0f)
-        mat4_rotate_y_mult(&dt, y, &dt);
+    dt = mat4_identity;
     if (z != 0.0f)
         mat4_rotate_z_mult(&dt, z, &dt);
+    if (y != 0.0f)
+        mat4_rotate_y_mult(&dt, y, &dt);
+    if (x != 0.0f)
+        mat4_rotate_x_mult(&dt, x, &dt);
     *d = dt;
 }
 
@@ -770,7 +762,7 @@ void FASTCALL mat4_rotate_x(float_t x, mat4* y) {
     mat4 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row1.y = x_cos;
     yt.row1.z = x_sin;
     yt.row2.y = -x_sin;
@@ -782,7 +774,7 @@ void FASTCALL mat4_rotate_y(float_t x, mat4* y) {
     mat4 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row0.x = x_cos;
     yt.row0.z = -x_sin;
     yt.row2.x = x_sin;
@@ -794,7 +786,7 @@ void FASTCALL mat4_rotate_z(float_t x, mat4* y) {
     mat4 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row0.x = x_cos;
     yt.row0.y = x_sin;
     yt.row1.x = -x_sin;
@@ -805,12 +797,12 @@ void FASTCALL mat4_rotate_z(float_t x, mat4* y) {
 void FASTCALL mat4_rotate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = *s;
-    if (x != 0.0f)
-        mat4_rotate_x_mult(&dt, x, &dt);
-    if (y != 0.0f)
-        mat4_rotate_y_mult(&dt, y, &dt);
     if (z != 0.0f)
         mat4_rotate_z_mult(&dt, z, &dt);
+    if (y != 0.0f)
+        mat4_rotate_y_mult(&dt, y, &dt);
+    if (x != 0.0f)
+        mat4_rotate_x_mult(&dt, x, &dt);
     *d = dt;
 }
 
@@ -818,7 +810,7 @@ void FASTCALL mat4_rotate_x_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row1.y = y_cos;
     yt.row1.z = y_sin;
     yt.row2.y = -y_sin;
@@ -830,7 +822,7 @@ void FASTCALL mat4_rotate_y_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row0.x = y_cos;
     yt.row0.z = -y_sin;
     yt.row2.x = y_sin;
@@ -842,7 +834,7 @@ void FASTCALL mat4_rotate_z_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row0.x = y_cos;
     yt.row0.y = y_sin;
     yt.row1.x = -y_sin;
@@ -853,12 +845,12 @@ void FASTCALL mat4_rotate_z_mult(mat4* x, float_t y, mat4* z) {
 void FASTCALL mat4_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = *s;
-    if (x != 0.0f)
-        mat4_rot_x(&dt, x, &dt);
-    if (y != 0.0f)
-        mat4_rot_y(&dt, y, &dt);
     if (z != 0.0f)
         mat4_rot_z(&dt, z, &dt);
+    if (y != 0.0f)
+        mat4_rot_y(&dt, y, &dt);
+    if (x != 0.0f)
+        mat4_rot_x(&dt, x, &dt);
     *d = dt;
 }
 
@@ -871,7 +863,7 @@ void FASTCALL mat4_rot_x(mat4* x, float_t y, mat4* z) {
     xt.row2 = *(vec3*)&x->row2;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row1.y = y_cos;
     yt.row1.z = y_sin;
     yt.row2.y = -y_sin;
@@ -895,7 +887,7 @@ void FASTCALL mat4_rot_y(mat4* x, float_t y, mat4* z) {
     xt.row2 = *(vec3*)&x->row2;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row0.x = y_cos;
     yt.row0.z = -y_sin;
     yt.row2.x = y_sin;
@@ -919,7 +911,7 @@ void FASTCALL mat4_rot_z(mat4* x, float_t y, mat4* z) {
     xt.row2 = *(vec3*)&x->row2;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row0.x = y_cos;
     yt.row0.y = y_sin;
     yt.row1.x = -y_sin;
@@ -936,7 +928,7 @@ void FASTCALL mat4_rot_z(mat4* x, float_t y, mat4* z) {
 
 void FASTCALL mat4_scale(float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
-    mat4_identity(&dt);
+    dt = mat4_identity;
     if (x != 1.0f)
         dt.row0.x = x;
     if (y != 1.0f)
@@ -948,58 +940,55 @@ void FASTCALL mat4_scale(float_t x, float_t y, float_t z, mat4* d) {
 
 void FASTCALL mat4_scale_x(float_t x, mat4* y) {
     mat4 yt;
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row0.x = x;
     *y = yt;
 }
 
 void FASTCALL mat4_scale_y(float_t x, mat4* y) {
     mat4 yt;
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row1.y = x;
     *y = yt;
 }
 
 void FASTCALL mat4_scale_z(float_t x, mat4* y) {
     mat4 yt;
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row2.z = x;
     *y = yt;
 }
 
 void FASTCALL mat4_scale_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
-    mat4 st;
     mat4 dt;
     if (x != 1.0f || y != 1.0f || z != 1.0f) {
-        st = *s;
-        mat4_identity(&dt);
+        dt = mat4_identity;
         dt.row0.x = x;
         dt.row1.y = y;
         dt.row2.z = z;
-        mat4_mult(&st, &dt, &dt);
-        *d = dt;
+        mat4_mult(s, &dt, d);
     }
-    else
+    else if (s != d)
         *d = *s;
 }
 
 void FASTCALL mat4_scale_x_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row0.x = y;
     mat4_mult(x, &yt, z);
 }
 
 void FASTCALL mat4_scale_y_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row1.y = y;
     mat4_mult(x, &yt, z);
 }
 
 void FASTCALL mat4_scale_z_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row2.z = y;
     mat4_mult(x, &yt, z);
 }
@@ -1011,7 +1000,7 @@ void FASTCALL mat4_scale_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) 
         st.row0 = *(vec3*)&s->row0;
         st.row1 = *(vec3*)&s->row1;
         st.row2 = *(vec3*)&s->row2;
-        mat3_identity(&dt);
+        dt = mat3_identity;
         dt.row0.x = x;
         dt.row1.y = y;
         dt.row2.z = z;
@@ -1035,7 +1024,7 @@ void FASTCALL mat4_scale_x_rot(mat4* x, float_t y, mat4* z) {
     xt.row0 = *(vec3*)&x->row0;
     xt.row1 = *(vec3*)&x->row1;
     xt.row2 = *(vec3*)&x->row2;
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row0.x = y;
     mat3_mult(&xt, &yt, &zt);
     *(vec3*)&z->row0 = zt.row0;
@@ -1054,7 +1043,7 @@ void FASTCALL mat4_scale_y_rot(mat4* x, float_t y, mat4* z) {
     xt.row0 = *(vec3*)&x->row0;
     xt.row1 = *(vec3*)&x->row1;
     xt.row2 = *(vec3*)&x->row2;
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row1.y = y;
     mat3_mult(&xt, &yt, &zt);
     *(vec3*)&z->row0 = zt.row0;
@@ -1073,7 +1062,7 @@ void FASTCALL mat4_scale_z_rot(mat4* x, float_t y, mat4* z) {
     xt.row0 = *(vec3*)&x->row0;
     xt.row1 = *(vec3*)&x->row1;
     xt.row2 = *(vec3*)&x->row2;
-    mat3_identity(&yt);
+    yt = mat3_identity;
     yt.row2.z = y;
     mat3_mult(&xt, &yt, &zt);
     *(vec3*)&z->row0 = zt.row0;
@@ -1087,7 +1076,7 @@ void FASTCALL mat4_scale_z_rot(mat4* x, float_t y, mat4* z) {
 
 void FASTCALL mat4_translate(float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
-    mat4_identity(&dt);
+    dt = mat4_identity;
     dt.row3.x = x;
     dt.row3.y = y;
     dt.row3.z = z;
@@ -1096,60 +1085,100 @@ void FASTCALL mat4_translate(float_t x, float_t y, float_t z, mat4* d) {
 
 void FASTCALL mat4_translate_x(float_t x, mat4* y) {
     mat4 yt;
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row3.x = x;
     *y = yt;
 }
 
 void FASTCALL mat4_translate_y(float_t x, mat4* y) {
     mat4 yt;
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row3.y = x;
     *y = yt;
 }
 
 void FASTCALL mat4_translate_z(float_t x, mat4* y) {
     mat4 yt;
-    mat4_identity(&yt);
+    yt = mat4_identity;
     yt.row3.z = x;
     *y = yt;
 }
 
 void FASTCALL mat4_translate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
-    mat4 st;
-    mat4 dt;
+    __m128 yt0;
+    __m128 yt1;
+    __m128 yt2;
+    __m128 yt3;
+    __m128 yt4;
     if (x != 0.0f || y != 0.0f || z != 0.0f) {
-        st = *s;
-        mat4_identity(&dt);
-        dt.row3.x = x;
-        dt.row3.y = y;
-        dt.row3.z = z;
-        mat4_mult(&dt, &st, &dt);
-        *d = dt;
+        if (s != d)
+            *d = *s;
+        *(vec3*)&yt0 = *(vec3*)&s->row0;
+        *(vec3*)&yt1 = *(vec3*)&s->row1;
+        *(vec3*)&yt2 = *(vec3*)&s->row2;
+        *(vec3*)&yt3 = *(vec3*)&s->row3;
+        yt4 = _mm_set_ss(x);
+        yt0 = _mm_mul_ps(yt0, _mm_shuffle_ps(yt4, yt4, 0));
+        yt4 = _mm_set_ss(y);
+        yt1 = _mm_mul_ps(yt1, _mm_shuffle_ps(yt4, yt4, 0));
+        yt4 = _mm_set_ss(z);
+        yt2 = _mm_mul_ps(yt2, _mm_shuffle_ps(yt4, yt4, 0));
+        yt4 = _mm_add_ps(_mm_add_ps(yt0, yt1), _mm_add_ps(yt2, yt3));
+        *(vec3*)&d->row3 = *(vec3*)&yt4;
     }
-    else
+    else if (s != d)
         *d = *s;
 }
 
 void FASTCALL mat4_translate_x_mult(mat4* x, float_t y, mat4* z) {
-    mat4 yt;
-    mat4_identity(&yt);
-    yt.row3.x = y;
-    mat4_mult(x, &yt, z);
+    __m128 yt0;
+    __m128 yt1;
+    __m128 yt2;
+    if (y != 0.0f) {
+        if (x != z)
+            *z = *x;
+        *(vec3*)&yt0 = *(vec3*)&x->row0;
+        *(vec3*)&yt1 = *(vec3*)&x->row3;
+        yt2 = _mm_set_ss(y);
+        yt0 = _mm_add_ps(_mm_mul_ps(yt0, _mm_shuffle_ps(yt2, yt2, 0)), yt1);
+        *(vec3*)&z->row3 = *(vec3*)&yt0;
+    }
+    else if (x != z)
+        *z = *x;
 }
 
 void FASTCALL mat4_translate_y_mult(mat4* x, float_t y, mat4* z) {
-    mat4 yt;
-    mat4_identity(&yt);
-    yt.row3.y = y;
-    mat4_mult(x, &yt, z);
+    __m128 yt0;
+    __m128 yt1;
+    __m128 yt2;
+    if (y != 0.0f) {
+        if (x != z)
+            *z = *x;
+        *(vec3*)&yt0 = *(vec3*)&x->row1;
+        *(vec3*)&yt1 = *(vec3*)&x->row3;
+        yt2 = _mm_set_ss(y);
+        yt0 = _mm_add_ps(_mm_mul_ps(yt0, _mm_shuffle_ps(yt2, yt2, 0)), yt1);
+        *(vec3*)&z->row3 = *(vec3*)&yt0;
+    }
+    else if (x != z)
+        *z = *x;
 }
 
 void FASTCALL mat4_translate_z_mult(mat4* x, float_t y, mat4* z) {
-    mat4 yt;
-    mat4_identity(&yt);
-    yt.row3.z = y;
-    mat4_mult(x, &yt, z);
+    __m128 yt0;
+    __m128 yt1;
+    __m128 yt2;
+    if (y != 0.0f) {
+        if (x != z)
+            *z = *x;
+        *(vec3*)&yt0 = *(vec3*)&x->row2;
+        *(vec3*)&yt1 = *(vec3*)&x->row3;
+        yt2 = _mm_set_ss(y);
+        yt0 = _mm_add_ps(_mm_mul_ps(yt0, _mm_shuffle_ps(yt2, yt2, 0)), yt1);
+        *(vec3*)&z->row3 = *(vec3*)&yt0;
+    }
+    else if (x != z)
+        *z = *x;
 }
 
 void FASTCALL mat4_from_quat(quat* quat, mat4* mat) {

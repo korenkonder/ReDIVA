@@ -15,8 +15,8 @@ glitter_particle_inst* FASTCALL glitter_particle_inst_init(glitter_particle* a1,
 
     glitter_particle_inst* pi = force_malloc(sizeof(glitter_particle_inst));
     pi->particle = a1;
-    mat4_identity(&pi->mat);
-    mat4_identity(&pi->mat_no_scale);
+    pi->mat = mat4_identity;
+    pi->mat_no_scale = mat4_identity;
     pi->sub.effect_inst = a3;
     pi->sub.particle = a1;
     pi->sub.data = a1->data.data;
@@ -25,7 +25,7 @@ glitter_particle_inst* FASTCALL glitter_particle_inst_init(glitter_particle* a1,
         render_group = glitter_particle_inst_init_render_group(&a2->sub, pi);
         render_group->alpha = glitter_effect_inst_get_alpha(a3);
         render_group->fog = glitter_effect_inst_get_fog(a3);
-        if (pi->sub.data.blend_mode0 == 5 && pi->sub.data.type == GLITTER_PARTICLE_QUAD)
+        if (pi->sub.data.blend_mode0 == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH && pi->sub.data.type == GLITTER_PARTICLE_QUAD)
             render_group->alpha = 0;
 
         if (pi->sub.data.emission >= 0.0099999998f)
@@ -54,7 +54,7 @@ void FASTCALL glitter_particle_inst_copy(glitter_particle_inst* a1, glitter_part
     vector_ptr_glitter_particle_inst_clear(&a2->sub.particle_insts, (void*)glitter_particle_inst_dispose);
     for (i = a1->sub.particle_insts.begin; i != a1->sub.particle_insts.end; i++) {
         particle = glitter_particle_inst_init_child(a3, a1);
-        vector_ptr_glitter_particle_inst_append_element(&a2->sub.particle_insts, &particle);
+        vector_ptr_glitter_particle_inst_push_back(&a2->sub.particle_insts, &particle);
 
         particle->mat = a1->mat;
         particle->mat_no_scale = a1->mat_no_scale;
@@ -71,7 +71,7 @@ void FASTCALL glitter_particle_inst_emit(glitter_particle_inst* a1,
 
     while (!a1->sub.parent && a1->sub.flags & GLITTER_PARTICLE_INST_FLAG_NO_CHILD) {
         particle_inst = glitter_particle_inst_init_child(a2, a1);
-        vector_ptr_glitter_particle_inst_append_element(&a1->sub.particle_insts, &particle_inst);
+        vector_ptr_glitter_particle_inst_push_back(&a1->sub.particle_insts, &particle_inst);
         particle_inst->mat = a1->mat;
         particle_inst->mat_no_scale = a1->mat_no_scale;
         a1 = particle_inst;
@@ -106,7 +106,7 @@ bool FASTCALL glitter_particle_inst_get_value(glitter_particle_inst* a1,
     visible = true;
     value = 0.0f;
     v4 = false;
-    translation = (vec3){ 0.0f, 0.0f, 0.0f };
+    translation = vec3_null;
     length = a1->particle->curve.end - a1->particle->curve.begin;
     if (length) {
         for (int32_t i = 0; i < length; i++) {
@@ -209,10 +209,10 @@ glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(glitter_scene* 
 
     glitter_particle_inst* pi = force_malloc(sizeof(glitter_particle_inst));
     pi->particle = a2->particle;
-    mat4_identity(&pi->mat);
-    mat4_identity(&pi->mat_no_scale);
+    pi->mat = mat4_identity;
+    pi->mat_no_scale = mat4_identity;
     pi->sub.parent = a2;
-    vector_ptr_glitter_particle_inst_expand(&pi->sub.particle_insts, 0x200);
+    vector_ptr_glitter_particle_inst_resize(&pi->sub.particle_insts, 0x200);
 
     pi->sub.data = a2->sub.data;
 
@@ -221,7 +221,7 @@ glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(glitter_scene* 
     effect = a2->sub.effect_inst;
     render_group->alpha = glitter_effect_inst_get_alpha(effect);
     render_group->fog = glitter_effect_inst_get_fog(effect);
-    if (pi->sub.data.blend_mode0 == 5 && pi->sub.data.type == GLITTER_PARTICLE_QUAD)
+    if (pi->sub.data.blend_mode0 == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH && pi->sub.data.type == GLITTER_PARTICLE_QUAD)
         render_group->alpha = 0;
     if (effect->data.emission >= 0.0099999998f)
         render_group->emission = effect->data.emission;
@@ -247,7 +247,7 @@ glitter_render_group* FASTCALL glitter_particle_inst_init_render_group(glitter_s
     }
 
     render_group = glitter_render_group_init(count, a2);
-    vector_ptr_glitter_render_group_append_element(&a1->render_groups, &render_group);
+    vector_ptr_glitter_render_group_push_back(&a1->render_groups, &render_group);
     return render_group;
 }
 
@@ -257,8 +257,7 @@ void FASTCALL glitter_particle_inst_dispose(glitter_particle_inst* pi) {
         pi->sub.render_group = 0;
     }
 
-    vector_ptr_glitter_particle_inst_clear(&pi->sub.particle_insts, (void*)glitter_particle_inst_dispose);
-    vector_ptr_glitter_particle_inst_dispose(&pi->sub.particle_insts);
+    vector_ptr_glitter_particle_inst_free(&pi->sub.particle_insts, (void*)glitter_particle_inst_dispose);
     free(pi);
 }
 

@@ -50,17 +50,48 @@ void char_append_data_s(size_t s, char** buf, size_t* buf_len, size_t* act_buf_l
     memcpy(*buf + *buf_len * s, data, length * s);
     *buf_len += length;
 }
-/*
-extern int16_t reverse_endianess_int16_t(int16_t value);
-extern uint16_t reverse_endianess_uint16_t(uint16_t value);
-extern int32_t reverse_endianess_int32_t(int32_t value);
-extern uint32_t reverse_endianess_uint32_t(uint32_t value);
-extern int64_t reverse_endianess_int64_t(int64_t value);
-extern uint64_t reverse_endianess_uint64_t(uint64_t value);
-extern ssize_t reverse_endianess_ssize_t(ssize_t value);
-extern size_t reverse_endianess_size_t(size_t value);
-extern float_t reverse_endianess_float_t(float_t value);
-extern double_t reverse_endianess_double_t(double_t value);*/
+
+inline int16_t reverse_endianess_int16_t(int16_t value) {
+    return (int16_t)_byteswap_ushort((uint16_t)value);
+}
+
+inline uint16_t reverse_endianess_uint16_t(uint16_t value) {
+    return (uint16_t)_byteswap_ushort(value);
+}
+
+inline int32_t reverse_endianess_int32_t(int32_t value) {
+    return (int32_t)_byteswap_ulong((uint32_t)value);
+}
+
+inline uint32_t reverse_endianess_uint32_t(uint32_t value) {
+    return (uint32_t)_byteswap_ulong(value);
+}
+
+inline int64_t reverse_endianess_int64_t(int64_t value) {
+    return (int64_t)_byteswap_uint64((uint64_t)value);
+}
+
+inline uint64_t reverse_endianess_uint64_t(uint64_t value) {
+    return (uint64_t)_byteswap_uint64(value);
+}
+
+inline ssize_t reverse_endianess_ssize_t(ssize_t value) {
+    return (ssize_t)_byteswap_uint64((uint64_t)value);
+}
+
+inline size_t reverse_endianess_size_t(size_t value) {
+    return (size_t)_byteswap_uint64((uint64_t)value);
+}
+
+inline float_t reverse_endianess_float_t(float_t value) {
+    uint32_t v = (uint32_t)_byteswap_ulong(*(uint32_t*)&value);
+    return *(float_t*)&v;
+}
+
+inline double_t reverse_endianess_double_t(double_t value) {
+    uint64_t v = (uint64_t)_byteswap_uint64(*(uint64_t*)&value);
+    return *(double_t*)&v;
+}
 
 char* wchar_t_string_to_char_string(wchar_t* s) {
     if (!s)

@@ -50,7 +50,7 @@ void diva_read(diva* d, char* path) {
 void diva_wread(diva* d, wchar_t* path) {
     wchar_t* path_diva = path_wadd_extension(path, L".diva");
     stream* s = io_wopen(path_diva, L"rb");
-    if (s->io) {
+    if (s->io.stream) {
         uint32_t signature = io_read_uint32_t(s);
         if (signature != 0x41564944)
             goto End;
@@ -112,7 +112,7 @@ void diva_wwrite(diva* d, wchar_t* path) {
 
     wchar_t* path_diva = path_wadd_extension(path, L".diva");
     stream* s = io_wopen(path_diva, L"wb");
-    if (s->io) {
+    if (s->io.stream) {
         io_write_uint32_t(s, 0x41564944);
         io_write_uint32_t(s, 0);
         io_write_uint32_t(s, align_val_divide(d->samples_count * d->channels, 2, 2));

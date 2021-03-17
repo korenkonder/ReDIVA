@@ -12,10 +12,10 @@ glitter_scene* FASTCALL glitter_scene_init(glitter_effect_group* eg) {
     s->emission = 1.0f;
     s->effect_group = eg;
     s->hash = eg->hash;
-    vector_ptr_glitter_render_group_expand(&s->sub.render_groups, 0x40);
+    vector_ptr_glitter_render_group_resize(&s->sub.render_groups, 0x40);
     if (eg) {
-        vector_ptr_glitter_effect_inst_expand(&s->effects, eg->effects.end - eg->effects.begin);
-        s->emission = s->effect_group->emission;
+        vector_ptr_glitter_effect_inst_resize(&s->effects, eg->effects.end - eg->effects.begin);
+        s->emission = eg->emission;
     }
     return s;
 }
@@ -52,7 +52,7 @@ bool FASTCALL glitter_scene_has_ended(glitter_scene* scene, bool a2) {
 }
 
 void FASTCALL glitter_scene_init_effect(glitter_scene* a1,
-    glitter_effect* a2, int32_t id, bool appear_now) {
+    glitter_effect* a2, size_t id, bool appear_now) {
     glitter_effect_inst** i;
     glitter_effect_inst* effect;
 
@@ -66,7 +66,7 @@ void FASTCALL glitter_scene_init_effect(glitter_scene* a1,
         }
 
     effect = glitter_effect_inst_init(a2, a1, id, appear_now);
-    vector_ptr_glitter_effect_inst_append_element(&a1->effects, &effect);
+    vector_ptr_glitter_effect_inst_push_back(&a1->effects, &effect);
 }
 
 void FASTCALL glitter_scene_update_scene(glitter_scene* a1, float_t delta_frame) {
@@ -107,9 +107,7 @@ void FASTCALL glitter_scene_update_value_frame(glitter_scene* a1, float_t delta_
 }
 
 void FASTCALL glitter_scene_dispose(glitter_scene* s) {
-    vector_ptr_glitter_effect_inst_clear(&s->effects, (void*)glitter_effect_inst_dispose);
-    vector_ptr_glitter_effect_inst_dispose(&s->effects);
-    vector_ptr_glitter_render_group_clear(&s->sub.render_groups, (void*)glitter_render_group_dispose);
-    vector_ptr_glitter_render_group_dispose(&s->sub.render_groups);
+    vector_ptr_glitter_effect_inst_free(&s->effects, (void*)glitter_effect_inst_dispose);
+    vector_ptr_glitter_render_group_free(&s->sub.render_groups, (void*)glitter_render_group_dispose);
     free(s);
 }

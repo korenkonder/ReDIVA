@@ -41,13 +41,18 @@ static void radius_calculate(radius* rad) {
     vec4 radius = (vec4){ rad->rgb.x, rad->rgb.y, rad->rgb.z, 0.0f };
     vec3_dot(rad->rgb, sv_rgb_to_luma, radius.w);
     rad->update = true;
-    radius_calculate_gaussian_kernel(rad->val, radius.x, 4, 0);
-    radius_calculate_gaussian_kernel(rad->val, radius.y, 4, 1);
-    radius_calculate_gaussian_kernel(rad->val, radius.z, 4, 2);
-    radius_calculate_gaussian_kernel(rad->val, radius.w, 4, 3);
+    radius_calculate_gaussian_kernel((float_t*)rad->val, radius.x, 4, 0);
+    radius_calculate_gaussian_kernel((float_t*)rad->val, radius.y, 4, 1);
+    radius_calculate_gaussian_kernel((float_t*)rad->val, radius.z, 4, 2);
+    radius_calculate_gaussian_kernel((float_t*)rad->val, radius.w, 4, 3);
 }
 
 static void radius_calculate_gaussian_kernel(float_t* gaussian_kernel, float_t radius, int32_t spacing, int32_t offset) {
+    if (spacing < 1)
+        spacing = 1;
+    if (offset < 0)
+        offset = 0;
+
     gaussian_kernel[0 * spacing + offset] = 1.0f;
     for (int32_t i = 1; i < GAUSSIAN_KERNEL_SIZE; i++)
         gaussian_kernel[i * spacing + offset] = 0.0f;

@@ -40,7 +40,7 @@ void add_param_wread_adp(add_param* a, wchar_t* path) {
     memset(a, 0, sizeof(add_param));
     wchar_t* path_adp = path_wadd_extension(path, L".adp");
     stream* s = io_wopen(path_adp, L"rb");
-    if (s->io) {
+    if (s->io.stream) {
         size_t count = io_read_uint64_t(s);
         size_t data_length = io_read_uint64_t(s);
         size_t data_offset = io_read_uint64_t(s);
@@ -68,7 +68,7 @@ void add_param_wwrite_adp(add_param* a, wchar_t* path) {
 
     wchar_t* path_adp = path_wadd_extension(path, L".adp");
     stream* s = io_wopen(path_adp, L"wb");
-    if (s->io) {
+    if (s->io.stream) {
         size_t count = a->length;
         io_write_uint64_t(s, count);
         io_write_uint64_t(s, count * 0x20);
@@ -141,7 +141,7 @@ void add_param_wwrite_mp(add_param* a, wchar_t* path, bool json) {
 
     wchar_t* path_mp = path_wadd_extension(path, json ? L".json" : L".mp");
     stream* s = io_wopen(path_mp, L"wb");
-    if (s->io) {
+    if (s->io.stream) {
         msgpack* msg = msgpack_init_map(0);
         msgpack* add_param = msgpack_init_array(L"AddParam", a->length);
         msgpack_array* ptr = SELECT_MSGPACK(msgpack_array, add_param);

@@ -19,11 +19,11 @@ void camera_initialize(camera* c, double_t aspect, double_t fov) {
     c->aspect = aspect;
     c->fov = fov;
     c->up = (vec3){ 0.0f, 1.0f, 0.0f };
-    c->position = (vec3){ 0.0f, 0.0f, 0.0f };
+    c->position = vec3_null;
     c->target = (vec3){ 0.0f, 0.0f, -1.0f };
-    mat4_identity(&c->view);
-    mat4_identity(&c->projection);
-    mat4_identity(&c->view_projection);
+    c->view = mat4_identity;
+    c->projection = mat4_identity;
+    c->view_projection = mat4_identity;
     c->min_distance = 0.05;
     c->max_distance = 6000.0;
     camera_set_pitch(c, 0.0);
@@ -198,7 +198,7 @@ void camera_reset(camera* c) {
     camera_set_pitch(c, 0.0);
     camera_set_yaw(c, 0.0);
     camera_set_roll(c, 0.0);
-    c->position = (vec3){ 0.0f, 0.0f, 0.0f };
+    c->position = vec3_null;
     camera_calculate_rotation(c);
     camera_calculate(c);
 }
@@ -218,8 +218,7 @@ void camera_set_point(camera* c, vec3* view_point, vec3* interest_point,
     c->up.y = (float_t)cos(c->roll * 180.0 / M_PI);
     c->up.z = 0;
 
-    mat4 trans_rot;
-    mat4_identity(&trans_rot);
+    mat4 trans_rot = mat4_identity;
     mat4_rotate_x_mult(&trans_rot, (float_t)rot->x, &trans_rot);
     mat4_rotate_y_mult(&trans_rot, (float_t)rot->y, &trans_rot);
     mat4_rotate_z_mult(&trans_rot, (float_t)rot->z, &trans_rot);

@@ -4,81 +4,111 @@
 */
 
 #include "texture.h"
-#include "parse_file.h"
 
-typedef enum glitter_texture_format {
-    GLITTER_TEXTURE_A8     = 0,
-    GLITTER_TEXTURE_RGB8   = 1,
-    GLITTER_TEXTURE_RGBA8  = 2,
-    GLITTER_TEXTURE_RGB5   = 3,
-    GLITTER_TEXTURE_RGB5A1 = 4,
-    GLITTER_TEXTURE_RGBA4  = 5,
-    GLITTER_TEXTURE_DXT1   = 6,
-    GLITTER_TEXTURE_DXT1a  = 7,
-    GLITTER_TEXTURE_DXT3   = 8,
-    GLITTER_TEXTURE_DXT5   = 9,
-    GLITTER_TEXTURE_ATI1   = 10,
-    GLITTER_TEXTURE_ATI2   = 11,
-    GLITTER_TEXTURE_L8     = 12,
-    GLITTER_TEXTURE_L8A8   = 13,
-} glitter_texture_format;
+static void load_texture_data(txp_sub_data* data, int32_t mipmap);
 
-typedef struct glitter_texture_sub_data {
-    uint32_t width;
-    uint32_t height;
-    glitter_texture_format format;
-    uint32_t size;
-    void* data;
-} glitter_texture_sub_data;
+bool FASTCALL glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st, bool use_big_endian) {
+    char* data;
+    size_t count;
+    uint64_t* resource_hashes;
+    size_t i;
 
-typedef struct glitter_texture_data {
-    uint32_t array_size;
-    uint32_t mipmaps_count;
-    glitter_texture_sub_data** data;
-} glitter_texture_data;
+    if (!a1->effects.begin)
+        return false;
 
-typedef struct glitter_texture {
-    uint32_t count;
-    glitter_texture_data* data;
-} glitter_texture;
+    memset(st, 0, sizeof(f2_struct));
+    count = a1->resources_count;
+    data = force_malloc(align_val(0x08 + 0x08 * count, 0x10));
+    st->data = data;
+    st->length = align_val(0x08 + 0x08 * count, 0x10);
 
-static void load_texture_data(glitter_texture_sub_data* data, int32_t mipmap);
+    if (use_big_endian)
+        *(int32_t*)data = reverse_endianess_int32_t((int32_t)count);
+    else
+        *(int32_t*)data = (int32_t)count;
+    data += 0x04;
+    *(int32_t*)data = 0;
+    data += 0x04;
 
-bool FASTCALL glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_header* header) {
+    if (count) {
+        resource_hashes = a1->resource_hashes;
+        if (!resource_hashes)
+            return false;
+
+        if (use_big_endian)
+            for (i = 0; i < count; i++, data += sizeof(uint64_t))
+                *(uint64_t*)data = reverse_endianess_uint64_t(resource_hashes[i]);
+        else
+            memcpy(data, resource_hashes, sizeof(uint64_t) * count);
+    }
+
+    st->header.signature = 0x53525644;
+    st->header.length = 0x20;
+    st->header.use_big_endian = use_big_endian ? true : false;
+    st->header.use_section_size = true;
+    return true;
+}
+
+bool FASTCALL glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st) {
     uint64_t data;
     uint32_t count;
     uint64_t* resource_hashes;
+    size_t i;
 
-    data = (uint64_t)glitter_parse_file_get_data_ptr(header);
+    if (a1->resource_hashes)
+        return true;
+
+    if (!st || !st->header.data_size)
+        return false;
+
+    data = (uint64_t)st->data;
     if (!data)
         return false;
 
-    count = *(int32_t*)data;
+    if (st->header.use_big_endian)
+        count = reverse_endianess_uint32_t(*(int32_t*)data);
+    else
+        count = *(int32_t*)data;
+    data += 8;
+
     a1->resources_count = count;
-    if (count && !a1->resource_hashes) {
+    if (count) {
         resource_hashes = force_malloc_s(sizeof(uint64_t), count);
         a1->resource_hashes = resource_hashes;
         if (!resource_hashes)
             return false;
 
-        memcpy(resource_hashes, (void*)(data + 8), sizeof(uint64_t) * count);
+        if (st->header.use_big_endian)
+            for (i = 0; i < count; i++, data += sizeof(uint64_t))
+                resource_hashes[i] = reverse_endianess_uint64_t(*(uint64_t*)data);
+        else
+            memcpy(resource_hashes, (void*)data, sizeof(uint64_t) * count);
     }
     return true;
 }
 
-bool FASTCALL glitter_texture_resource_unpack_file(glitter_effect_group* a1, uint64_t data) {
-    int64_t i;
-    int64_t j;
-    int64_t k;
-    glitter_texture tex;
-    uint32_t tex_count;
-    glitter_texture_data* tex_data;
-    glitter_texture_sub_data** tex_sub_data;
-    uint64_t sub_data;
-    uint32_t sub_tex_count;
-    uint32_t info;
-    uint64_t sub_sub_data;
-    glitter_texture_sub_data* tex_sub_sub_data;
+bool FASTCALL glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st, bool use_big_endian) {
+    if (!a1->resources_tex)
+        return false;
+
+    memset(st, 0, sizeof(f2_struct));
+
+    txp_pack_file(a1->resources_tex, &st->data, &st->length, use_big_endian);
+
+    st->header.signature = 0x43505854;
+    st->header.length = 0x20;
+    st->header.use_big_endian = use_big_endian ? true : false;
+    st->header.use_section_size = true;
+    return true;
+}
+
+bool FASTCALL glitter_texture_resource_unpack_file(glitter_effect_group* a1, f2_struct* st) {
+    size_t i;
+    size_t j;
+    size_t k;
+    txp_data* tex_data;
+    txp_sub_data** tex_sub_data;
+    txp_sub_data* tex_sub_sub_data;
     glitter_effect** l;
     glitter_effect* effect;
     glitter_emitter** m;
@@ -86,54 +116,19 @@ bool FASTCALL glitter_texture_resource_unpack_file(glitter_effect_group* a1, uin
     glitter_particle** n;
     glitter_particle* particle;
 
-    if (*(uint32_t*)data != 0x03505854 || a1->resources_count != (tex_count = *(uint32_t*)(data + 4)))
+    if (!st || !st->header.data_size)
         return false;
-    
-    tex.count = tex_count;
-    tex_data = force_malloc_s(sizeof(glitter_texture_data), tex_count);
-    tex.data = tex_data;
-    for (i = 0; i < tex_count; i++, tex_data++) {
-        sub_data = data + (uint64_t)((uint32_t*)(data + 12))[i];
-        if (*(uint32_t*)sub_data != 0x04505854 && *(uint32_t*)sub_data != 0x05505854)
-            continue;
 
-        sub_tex_count = *(uint32_t*)(sub_data + 4);
-        info = *(uint32_t*)(sub_data + 8);
-
-        tex_data->mipmaps_count = info & 0xFF;
-        tex_data->array_size = (info >> 8) & 0xFF;
-
-        if (tex_data->array_size == 1 && tex_data->mipmaps_count != sub_tex_count)
-            tex_data->mipmaps_count = sub_tex_count & 0xFF;
-
-        tex_sub_data = force_malloc_s(sizeof(glitter_texture_sub_data*), tex_data->array_size);
-        tex_data->data = tex_sub_data;
-        for (j = 0; j < tex_data->array_size; j++, tex_sub_data++) {
-            tex_sub_sub_data = force_malloc_s(sizeof(glitter_texture_sub_data), tex_data->mipmaps_count);
-            *tex_sub_data = tex_sub_sub_data;
-            for (k = 0; k < tex_data->mipmaps_count; k++, tex_sub_sub_data++) {
-                sub_sub_data = sub_data + (uint64_t)((uint32_t*)(sub_data + 12))[j * tex_data->mipmaps_count + k];
-                if (*(uint32_t*)sub_sub_data != 0x02505854)
-                    continue;
-
-                tex_sub_sub_data->width = *(uint32_t*)(sub_sub_data + 4);
-                tex_sub_sub_data->height = *(uint32_t*)(sub_sub_data + 8);
-                tex_sub_sub_data->format = *(uint32_t*)(sub_sub_data + 12);
-                tex_sub_sub_data->size = *(uint32_t*)(sub_sub_data + 20);
-                tex_sub_sub_data->data = (void*)(sub_sub_data + 24);
-            }
-        }
-    }
-
-    if (!a1->resources_count)
+    txp* t = txp_init();
+    if (!txp_unpack_file(t, st->data, st->header.use_big_endian) || !a1->resources_count || a1->resources_count != t->count)
         goto End;
     
     if (!a1->resources) {
         a1->resources = force_malloc_s(sizeof(int32_t), a1->resources_count);
         glGenTextures(a1->resources_count, a1->resources);
 
-        tex_data = tex.data;
-        for (i = 0; i < tex.count; i++, tex_data++) {
+        tex_data = t->data;
+        for (i = 0; i < t->count; i++, tex_data++) {
             glBindTexture(GL_TEXTURE_2D, a1->resources[i]);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -179,72 +174,65 @@ bool FASTCALL glitter_texture_resource_unpack_file(glitter_effect_group* a1, uin
             }
         }
 End:
-    tex_data = tex.data;
-    for (i = 0; i < tex.count; i++, tex_data++) {
-        tex_sub_data = tex_data->data;
-        for (j = 0; j < tex_data->array_size; j++, tex_sub_data++)
-            free(*tex_sub_data);
-        free(tex_data->data);
-    }
-    free(tex.data);
+    a1->resources_tex = t;
     return true;
 }
 
-void load_texture_data(glitter_texture_sub_data* data, int32_t mipmap) {
+static void load_texture_data(txp_sub_data* data, int32_t mipmap) {
     switch (data->format) {
-    case GLITTER_TEXTURE_A8:
+    case TXP_A8:
         glTexImage2D(GL_TEXTURE_2D, mipmap, GL_ALPHA8, data->width, data->height,
             0, GL_ALPHA, GL_UNSIGNED_BYTE, data->data);
         break;
-    case GLITTER_TEXTURE_RGB8:
+    case TXP_RGB8:
         glTexImage2D(GL_TEXTURE_2D, mipmap, GL_RGB8, data->width, data->height,
             0, GL_RGB, GL_UNSIGNED_BYTE, data->data);
         break;
-    case GLITTER_TEXTURE_RGBA8:
+    case TXP_RGBA8:
         glTexImage2D(GL_TEXTURE_2D, mipmap, GL_RGBA8, data->width, data->height,
             0, GL_RGBA, GL_UNSIGNED_BYTE, data->data);
         break;
-    case GLITTER_TEXTURE_RGB5:
+    case TXP_RGB5:
         glTexImage2D(GL_TEXTURE_2D, mipmap, GL_RGB5, data->width, data->height,
             0, GL_RGB, GL_UNSIGNED_SHORT_5_5_5_1, data->data);
         break;
-    case GLITTER_TEXTURE_RGB5A1:
+    case TXP_RGB5A1:
         glTexImage2D(GL_TEXTURE_2D, mipmap, GL_RGB5_A1, data->width, data->height,
             0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, data->data);
         break;
-    case GLITTER_TEXTURE_RGBA4:
+    case TXP_RGBA4:
         glTexImage2D(GL_TEXTURE_2D, mipmap, GL_RGBA4, data->width, data->height,
             0, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, data->data);
         break;
-    case GLITTER_TEXTURE_DXT1:
+    case TXP_DXT1:
         glCompressedTexImage2D(GL_TEXTURE_2D, mipmap, GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
             data->width, data->height, 0, data->size, data->data);
         break;
-    case GLITTER_TEXTURE_DXT1a:
+    case TXP_DXT1a:
         glCompressedTexImage2D(GL_TEXTURE_2D, mipmap, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
             data->width, data->height, 0, data->size, data->data);
         break;
-    case GLITTER_TEXTURE_DXT3:
+    case TXP_DXT3:
         glCompressedTexImage2D(GL_TEXTURE_2D, mipmap, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
             data->width, data->height, 0, data->size, data->data);
         break;
-    case GLITTER_TEXTURE_DXT5:
+    case TXP_DXT5:
         glCompressedTexImage2D(GL_TEXTURE_2D, mipmap, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
             data->width, data->height, 0, data->size, data->data);
         break;
-    case GLITTER_TEXTURE_ATI1:
+    case TXP_ATI1:
         glCompressedTexImage2D(GL_TEXTURE_2D, mipmap, GL_COMPRESSED_RED_RGTC1_EXT,
             data->width, data->height, 0, data->size, data->data);
         break;
-    case GLITTER_TEXTURE_ATI2:
+    case TXP_ATI2:
         glCompressedTexImage2D(GL_TEXTURE_2D, mipmap, GL_COMPRESSED_RED_GREEN_RGTC2_EXT,
             data->width, data->height, 0, data->size, data->data);
         break;
-    case GLITTER_TEXTURE_L8:
+    case TXP_L8:
         glTexImage2D(GL_TEXTURE_2D, mipmap, GL_LUMINANCE8, data->width, data->height,
             0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data->data);
         break;
-    case GLITTER_TEXTURE_L8A8:
+    case TXP_L8A8:
         glTexImage2D(GL_TEXTURE_2D, mipmap, GL_LUMINANCE8_ALPHA8, data->width, data->height,
             0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, data->data);
         break;

@@ -7,11 +7,13 @@
 
 #include "../../KKdLib/default.h"
 #include "../../KKdLib/f2_header.h"
+#include "../../KKdLib/f2_struct.h"
 #include "../../KKdLib/farc.h"
 #include "../../KKdLib/hash.h"
 #include "../../KKdLib/io_path.h"
 #include "../../KKdLib/mat.h"
 #include "../../KKdLib/quat.h"
+#include "../../KKdLib/txp.h"
 #include "../../KKdLib/utf8.h"
 #include "../../KKdLib/vec.h"
 #include "../../KKdLib/vector.h"

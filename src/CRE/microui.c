@@ -170,10 +170,15 @@ void mu_end(mu_Context *ctx) {
     expect(ctx->layout_stack.idx    == 0);
 
     /* handle scroll input */
-    if (ctx->scroll_target) {
-        ctx->scroll_target->scroll.x += ctx->scroll_delta.x;
-        ctx->scroll_target->scroll.y += ctx->scroll_delta.y;
-    }
+    if (ctx->scroll_target)
+        if (ctx->scroll_target->swap_scroll) {
+            ctx->scroll_target->scroll.x += ctx->scroll_delta.y;
+            ctx->scroll_target->scroll.y += ctx->scroll_delta.x;
+        }
+        else {
+            ctx->scroll_target->scroll.x += ctx->scroll_delta.x;
+            ctx->scroll_target->scroll.y += ctx->scroll_delta.y;
+        }
 
     /* unset focus if focus id was not touched this frame */
     if (!ctx->updated_focus)
@@ -628,13 +633,19 @@ void mu_draw_control_text(mu_Context *ctx, const char *str, mu_Rect rect, int co
     mu_Font font = ctx->style->font;
     int tw = ctx->text_width(font, str, 0);
     mu_push_clip_rect(ctx, rect);
-    pos.y = rect.y + (rect.h - ctx->text_height(font)) / 2;
     if (opt & MU_OPT_ALIGNCENTER)
         pos.x = rect.x + (rect.w - tw) / 2;
     else if (opt & MU_OPT_ALIGNRIGHT)
         pos.x = rect.x + rect.w - tw - ctx->style->padding;
     else
         pos.x = rect.x + ctx->style->padding;
+
+    if (opt & MU_OPT_ALIGNTOP)
+        pos.y = rect.y + ctx->style->padding;
+    else if (opt & MU_OPT_ALIGNBOTTOM)
+        pos.y = rect.y + rect.h - ctx->text_height(font) - ctx->style->padding;
+    else
+        pos.y = rect.y + (rect.h - ctx->text_height(font)) / 2;
 
     mu_draw_text(ctx, font, str, 0, pos, ctx->style->colors[colorid]);
     mu_pop_clip_rect(ctx);
@@ -982,6 +993,7 @@ void mu_end_treenode(mu_Context *ctx) {
 
 static void push_container_body(mu_Context *ctx, mu_Container *cnt, mu_Rect body, mu_opt_enum opt, bool swap_scroll) {
     if (~opt & MU_OPT_NOSCROLL) {
+        cnt->swap_scroll = swap_scroll;
         int sz = ctx->style->scrollbar_size;
         mu_Vec2 cs = cnt->content_size;
         cs.x += ctx->style->padding * 2;
@@ -1168,10 +1180,14 @@ void mu_tabs_get_title_size(mu_Context* muctx, int32_t min, int32_t max,
 }
 
 bool mu_tabs_set(mu_Context* muctx, int32_t min, int32_t max, char** temp,
-    int32_t* temp_w, int32_t temp_c, int32_t* selector, char* name, mu_Rect rect) {
+    int32_t* temp_w, int32_t temp_c, int32_t* selector, char* name, mu_Rect rect, bool focus_reset) {
     if (!mu_begin_window_ex(muctx, name, rect,
         MU_OPT_NOINTERACT | MU_OPT_NOCLOSE | MU_OPT_NOTITLE, true, true, true))
         return false;
+
+    bool has_focus = !muctx->updated_focus;
+    if (!has_focus && muctx->focus == mu_get_id(muctx, name, strlen(name)))
+        has_focus = true;
 
     mu_layout_row(muctx, temp_c, temp_w, 0);
     for (int32_t i = min; i < max; i++) {
@@ -1180,9 +1196,15 @@ bool mu_tabs_set(mu_Context* muctx, int32_t min, int32_t max, char** temp,
             mu_draw_control_text(muctx, temp[i], mu_layout_next(muctx), MU_COLOR_TEXT, MU_OPT_ALIGNCENTER);
         else if (mu_button(muctx, temp[i]))
             *selector = i;
+
+        if (!has_focus && muctx->focus == mu_get_id(muctx, temp[i], strlen(temp[i])))
+            has_focus = true;
         mu_pop_id(muctx);
     }
     mu_end_window(muctx);
+
+    if (!has_focus && focus_reset)
+        *selector = -1;
     return true;
 }
 

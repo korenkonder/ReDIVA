@@ -71,7 +71,7 @@ void vertex_load(vertex* v, vertex_update* upd) {
                 v->color.w = *data++;
             }
             else
-                v->color = (vec4){ 1.0f, 1.0f, 1.0f, 1.0f };
+                v->color = vec4_identity;
 
             if (normal) {
                 v->normal.x = *data++;
@@ -110,7 +110,7 @@ void vertex_load(vertex* v, vertex_update* upd) {
                 v->color.w = *data++;
             }
             else
-                v->color = (vec4){ 1.0f, 1.0f, 1.0f, 1.0f };
+                v->color = vec4_identity;
 
             if (normal) {
                 v->normal.x = *data++;
@@ -136,7 +136,7 @@ void vertex_load(vertex* v, vertex_update* upd) {
             }
 
         if (!found)
-            vector_vertex_data_append_element(&vert_list, &verts[i]);
+            vector_vertex_data_push_back(&vert_list, &verts[i]);
         v->ind[i] = (uint32_t)j;
     }
 
@@ -153,7 +153,7 @@ void vertex_load(vertex* v, vertex_update* upd) {
             normal = verts[j].normal;
             if (p.x == pos.x && p.y == pos.y && p.z == pos.z
                 && n.x == normal.x && n.y == normal.y && n.z == normal.z)
-                vector_size_t_append_element(&r, &j);
+                vector_size_t_push_back(&r, &j);
         }
 
         if (r.end - r.begin < 1) {
@@ -161,7 +161,7 @@ void vertex_load(vertex* v, vertex_update* upd) {
             continue;
         }
 
-        t = (vec3){ 0.0f, 0.0f, 0.0f };
+        t = vec3_null;
         for (size_t* j = r.begin; j != r.end; j++) {
             vec3 t0, t1;
             vertex_data* v1 = &verts[*j / 3 * 3 + 0];

@@ -121,7 +121,7 @@ void vag_read(vag* v, char* path) {
 void vag_wread(vag* v, wchar_t* path) {
     wchar_t* path_vag = path_wadd_extension(path, L".vag");
     stream* s = io_wopen(path_vag, L"rb");
-    if (s->io) {
+    if (s->io.stream) {
         uint32_t signature = io_read_uint32_t(s);
         if (signature != 0x70474156)
             goto End;
@@ -229,7 +229,7 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
     wchar_t* temp_path = path_wget_without_extension(path);
     wchar_t* path_vag = path_wadd_extension(temp_path, L".vag");
     stream* s = io_wopen(path_vag, L"wb");
-    if (s->io) {
+    if (s->io.stream) {
         int32_t coef_index_count;
         switch (option) {
         case VAG_OPTION_HEVAG_FAST:
@@ -420,13 +420,12 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
         add_loop = !n;
 
-        vector_bool_append_element(&loop, &l);
+        vector_bool_push_back(&loop, &l);
         count++;
     }
 
     if (!count) {
-        vector_bool_clear(&loop);
-        vector_bool_dispose(&loop);
+        vector_bool_free(&loop);
         free(temp_path);
         return;
     }
@@ -454,8 +453,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
             free(wav_samples);
             free(wav_data);
-            vector_bool_clear(&loop);
-            vector_bool_dispose(&loop);
+            vector_bool_free(&loop);
             free(temp_path);
             return;
         }
@@ -529,8 +527,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
     free(wav_samples);
     free(wav_data);
-    vector_bool_clear(&loop);
-    vector_bool_dispose(&loop);
+    vector_bool_free(&loop);
     free(temp_path);
 }
 

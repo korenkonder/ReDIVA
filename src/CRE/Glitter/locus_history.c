@@ -7,7 +7,7 @@
 
 glitter_locus_history* FASTCALL glitter_locus_history_init(size_t size) {
     glitter_locus_history* lh = force_malloc(sizeof(glitter_locus_history));
-    vector_glitter_locus_history_data_expand(&lh->data, size);
+    vector_glitter_locus_history_data_resize(&lh->data, size);
     return lh;
 }
 
@@ -29,13 +29,13 @@ void FASTCALL glitter_locus_history_append(glitter_locus_history* a1,
 
     locus_history.translation = temp;
     locus_history.color = a2->color;
-    locus_history.scale = a2->position_offset.x * a2->scale.x * a2->scale_all;
+    locus_history.scale = a2->scale_particle.x * a2->scale.x * a2->scale_all;
     if (size < 1)
-        vector_glitter_locus_history_data_append_element(&a1->data, &locus_history);
+        vector_glitter_locus_history_data_push_back(&a1->data, &locus_history);
     else if (size == 1) {
         locus_history.translation = v5->translation;
         if (a1->data.capacity_end - a1->data.begin > 1)
-            vector_glitter_locus_history_data_append_element(&a1->data, &locus_history);
+            vector_glitter_locus_history_data_push_back(&a1->data, &locus_history);
         v5->translation = temp;
     }
     else {
@@ -46,14 +46,13 @@ void FASTCALL glitter_locus_history_append(glitter_locus_history* a1,
 
         if (size < a1->data.capacity_end - a1->data.begin) {
             locus_history.translation = temp1;
-            vector_glitter_locus_history_data_append_element(&a1->data, &locus_history);
+            vector_glitter_locus_history_data_push_back(&a1->data, &locus_history);
         }
         v5->translation = temp;
     }
 }
 
 void FASTCALL glitter_locus_history_dispose(glitter_locus_history* lh) {
-    vector_glitter_locus_history_data_clear(&lh->data);
-    vector_glitter_locus_history_data_dispose(&lh->data);
+    vector_glitter_locus_history_data_free(&lh->data);
     free(lh);
 }

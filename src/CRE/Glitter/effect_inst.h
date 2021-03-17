@@ -8,7 +8,7 @@
 #include "glitter.h"
 
 extern glitter_effect_inst* FASTCALL glitter_effect_inst_init(glitter_effect* a1,
-    glitter_scene* a2, int32_t id, bool appear_now);
+    glitter_scene* a2, size_t id, bool appear_now);
 extern void FASTCALL glitter_effect_inst_copy(glitter_effect_inst* a1,
     glitter_effect_inst* a2, glitter_scene* a3);
 extern void FASTCALL glitter_effect_inst_emit(glitter_effect_inst* a1,

@@ -18,16 +18,16 @@ glitter_render_group* FASTCALL glitter_render_group_init(int32_t count, glitter_
     glitter_render_group* rg = force_malloc(sizeof(glitter_render_group));
     rg->split_u = 1;
     rg->split_v = 1;
-    rg->split_uv = (vec2){ 1.0f, 1.0f };
+    rg->split_uv = vec2_identity;
     rg->count = count;
-    mat4_identity(&rg->mat);
-    mat4_identity(&rg->mat_no_scale);
+    rg->mat = mat4_identity;
+    rg->mat_no_scale = mat4_identity;
     rg->max_count = 6 * count;
     rg->particle_inst = a2;
     rg->alpha = 1;
     rg->emission = 1.0f;
-    rg->blend_mode0 = 1;
-    rg->blend_mode1 = 1;
+    rg->blend_mode0 = GLITTER_PARTICLE_BLEND_TYPICAL;
+    rg->blend_mode1 = GLITTER_PARTICLE_BLEND_TYPICAL;
 
     rg->sub = force_malloc_s(sizeof(glitter_render_group_sub), count);
     if (rg->particle_inst && rg->sub && rg->max_count > 0) {
@@ -134,7 +134,7 @@ void FASTCALL glitter_render_group_copy_from_particle(glitter_render_group* rend
     render_group->pivot = sub->data.pivot;
     render_group->flags = sub->data.flags;
 
-    memcpy(render_group->dword48, sub->data.dword138, 32);
+    //memcpy(render_group->dword48, sub->data.dword138, 32);
     if (copy_mats) {
         render_group->mat = particle_inst->mat;
         render_group->mat_no_scale = particle_inst->mat_no_scale;
@@ -238,22 +238,19 @@ void FASTCALL glitter_render_group_draw_line(glitter_scene_sub* a1, glitter_rend
 
     glEnablei(GL_BLEND, 0);
     switch (a2->blend_mode0) {
-    case 2:
+    case GLITTER_PARTICLE_BLEND_ADD:
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE);
         break;
-    case 3:
+    case GLITTER_PARTICLE_BLEND_MULTIPLY:
+        glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
+        break;
     default:
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        break;
-    case 4:
-        glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
         break;
     }
     glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(false);
-    if (a2->flags & GLITTER_PARTICLE_FLAG_EMISSION || a2->blend_mode0 == 1)
+    if (a2->flags & GLITTER_PARTICLE_FLAG_EMISSION || a2->blend_mode0 == GLITTER_PARTICLE_BLEND_TYPICAL)
         emission = a2->emission;
     else
         emission = 1.0f;
@@ -266,13 +263,17 @@ void FASTCALL glitter_render_group_draw_line(glitter_scene_sub* a1, glitter_rend
     glitter_shader_flags[1] = 0;
     glitter_shader_flags[2] = 0;
     glitter_shader_flags[3] = 2;
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(false);
+
     shader_fbo_use(&particle_shader);
     shader_fbo_set_int_array(&particle_shader, "mode", 4, glitter_shader_flags);
     shader_fbo_set_float(&particle_shader, "emission", emission);;
     glEnable(GL_CULL_FACE);
 
-    mat4_identity(&mat);
-    v14 = (vec3){ 0.0f, 0.0f, 0.0f };
+    mat = mat4_identity;
+    v14 = vec3_null;
     v17 = false;
     v18 = false;
     v19 = false;
@@ -294,8 +295,8 @@ void FASTCALL glitter_render_group_draw_line(glitter_scene_sub* a1, glitter_rend
 
     vec_key.begin = vec_key.end = vec_key.capacity_end = 0;
     vec_val.begin = vec_val.end = vec_val.capacity_end = 0;
-    vector_int32_t_expand(&vec_key, 0x80);
-    vector_int32_t_expand(&vec_val, 0x80);
+    vector_int32_t_resize(&vec_key, 0x80);
+    vector_int32_t_resize(&vec_val, 0x80);
     if (a2->ctrl > 0) {
         v24 = 0;
         v42 = 0;
@@ -327,13 +328,13 @@ void FASTCALL glitter_render_group_draw_line(glitter_scene_sub* a1, glitter_rend
                     vec3_add(v15, v16, v15);
                 }
                 v23->position = v15;
-                v23->uv = (vec2){ 0.0f, 0.0f };
+                v23->uv = vec2_null;
                 v23->color = v32->color;
             }
 
-            vector_int32_t_append_element(&vec_key, &v42);
+            vector_int32_t_push_back(&vec_key, &v42);
             v42 = v24 - v42;
-            vector_int32_t_append_element(&vec_val, &v42);
+            vector_int32_t_push_back(&vec_val, &v42);
             v42 = v24;
 
             v25--;
@@ -412,22 +413,19 @@ void FASTCALL glitter_render_group_draw_locus(glitter_scene_sub* a1, glitter_ren
 
     glEnablei(GL_BLEND, 0);
     switch (a2->blend_mode0) {
-    case 2:
+    case GLITTER_PARTICLE_BLEND_ADD:
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE);
         break;
-    case 3:
+    case GLITTER_PARTICLE_BLEND_MULTIPLY:
+        glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
+        break;
     default:
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        break;
-    case 4:
-        glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
         break;
     }
     glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(false);
-    if (a2->flags & GLITTER_PARTICLE_FLAG_EMISSION || a2->blend_mode0 == 1)
+    if (a2->flags & GLITTER_PARTICLE_FLAG_EMISSION || a2->blend_mode0 == GLITTER_PARTICLE_BLEND_TYPICAL)
         emission = a2->emission;
     else
         emission = 1.0f;
@@ -471,10 +469,14 @@ void FASTCALL glitter_render_group_draw_locus(glitter_scene_sub* a1, glitter_ren
 
     glitter_shader_flags[2] = 0;
     glitter_shader_flags[3] = 2;
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(false);
+
     shader_fbo_use(&particle_shader);
     shader_fbo_set_int_array(&particle_shader, "mode", 4, glitter_shader_flags);
     shader_fbo_set_float(&particle_shader, "emission", emission);;
-    v16 = (vec3){ 0.0f, 0.0f, 0.0f };
+    v16 = vec3_null;
     scale = (vec3){ 1.0f, 0.0f, 0.0f };
     mat1 = cam->view;
     if (a2->flags & GLITTER_PARTICLE_FLAG_LOCAL) {
@@ -486,8 +488,8 @@ void FASTCALL glitter_render_group_draw_locus(glitter_scene_sub* a1, glitter_ren
     mat4_mult(&mat1, &mat2, &mat2);
     shader_fbo_set_mat4(&particle_shader, "model", false, &mat2);
 
-    mat4_identity(&mat2);
-    v73 = (vec3){ 0.0f, 0.0f, 0.0f };
+    mat2 = mat4_identity;
+    v73 = vec3_null;
     v22 = false;
     v23 = false;
     v24 = false;
@@ -504,7 +506,7 @@ void FASTCALL glitter_render_group_draw_locus(glitter_scene_sub* a1, glitter_ren
         v24 = fabsf(v16.z) > 0.000001f ? true : false;
         mat4_normalize_rotation(&a2->mat, &mat2);
     }
-    mat4_identity(&mat3);
+    mat3 = mat4_identity;
     mat3.row3 = mat2.row3;
     v25 = v22 | v23 | v24;
 
@@ -520,8 +522,8 @@ void FASTCALL glitter_render_group_draw_locus(glitter_scene_sub* a1, glitter_ren
 
     vec_key.begin = vec_key.end = vec_key.capacity_end = 0;
     vec_val.begin = vec_val.end = vec_val.capacity_end = 0;
-    vector_int32_t_expand(&vec_key, 0x80);
-    vector_int32_t_expand(&vec_val, 0x80);
+    vector_int32_t_resize(&vec_key, 0x80);
+    vector_int32_t_resize(&vec_val, 0x80);
     v78 = 0;
     v00 = 0.0f;
     v01 = 0.0f;
@@ -558,7 +560,7 @@ void FASTCALL glitter_render_group_draw_locus(glitter_scene_sub* a1, glitter_ren
 
             glitter_render_group_draw_set_pivot(a2->pivot,
                 v95->scale * v32->scale.x * v32->scale_all,
-                v32->scale.y * v32->position_offset.y * v32->scale_all,
+                v32->scale.y * v32->scale_particle.y * v32->scale_all,
                 &v00, &v01, &v10, &v11);
 
             vec3_mult_scalar(scale, v00, v41[0].position);
@@ -576,9 +578,9 @@ void FASTCALL glitter_render_group_draw_locus(glitter_scene_sub* a1, glitter_ren
 
         if (v28 > 0) {
             a1->disp_locus += v28;
-            vector_int32_t_append_element(&vec_key, &v78);
+            vector_int32_t_push_back(&vec_key, &v78);
             v78 = 2 * v28;
-            vector_int32_t_append_element(&vec_val, &v78);
+            vector_int32_t_push_back(&vec_val, &v78);
         }
     }
     glUnmapBuffer(GL_ARRAY_BUFFER);
@@ -606,19 +608,19 @@ void FASTCALL glitter_render_group_draw_quad(glitter_scene_sub* a1, glitter_rend
 
     glEnablei(GL_BLEND, 0);
     switch (a2->blend_mode0) {
-    case 2:
+    case GLITTER_PARTICLE_BLEND_ADD:
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE);
         break;
-    case 3:
+    case GLITTER_PARTICLE_BLEND_MULTIPLY:
+        glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
+        break;
     default:
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         break;
-    case 4:
-        glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
-        break;
     }
+    glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
 
-    if (a2->flags & GLITTER_PARTICLE_FLAG_EMISSION || a2->blend_mode0 == 1)
+    if (a2->flags & GLITTER_PARTICLE_FLAG_EMISSION || a2->blend_mode0 == GLITTER_PARTICLE_BLEND_TYPICAL)
         emission = a2->emission;
     else
         emission = 1.0f;
@@ -672,20 +674,20 @@ void FASTCALL glitter_render_group_draw_quad(glitter_scene_sub* a1, glitter_rend
         break;
     }
 
-    if (a2->blend_mode0 == 5) {
+    if (a2->blend_mode0 == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH) {
+        glitter_shader_flags[3] = 1;
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_ALWAYS, 0.0f);
         glEnable(GL_DEPTH_TEST);
         glDepthMask(true);
-        glitter_shader_flags[3] = 1;
     }
     else {
+        glitter_shader_flags[3] = a2->alpha ? 2 : 0;
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_ALWAYS, 0.0f);
         glDisable(GL_DEPTH_TEST);
         glDepthMask(false);
         glEnablei(GL_BLEND, 0);
-        glitter_shader_flags[3] = a2->alpha ? 2 : 0;
     }
 
     shader_fbo_use(&particle_shader);
@@ -698,7 +700,7 @@ void FASTCALL glitter_render_group_draw_quad(glitter_scene_sub* a1, glitter_rend
         mat4_mult(&mat2, &cam->view, &mat2);
     }
     else {
-        mat4_identity(&mat1);
+        mat1 = mat4_identity;
         mat2 = cam->view;
     }
 
@@ -735,7 +737,7 @@ void FASTCALL glitter_render_group_draw_quad(glitter_scene_sub* a1, glitter_rend
             mat2.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
         }
         else
-            mat4_identity(&mat2);
+            mat2 = mat4_identity;
         break;
     case GLITTER_DIRECTION_Y_AXIS:
         mat4_rotate_y((float_t)-M_PI_2, &mat2);
@@ -750,7 +752,7 @@ void FASTCALL glitter_render_group_draw_quad(glitter_scene_sub* a1, glitter_rend
         mat4_rotate_y(cam->rotation.y, &mat2);
         break;
     default:
-        mat4_identity(&mat2);
+        mat2 = mat4_identity;
         break;
     }
 
@@ -819,7 +821,7 @@ void FASTCALL glitter_render_group_draw_quad_rotate_to_position(mat4* mat,
 
     if (fabsf(vec.y) >= 0.000001f) {
         vec1 = (vec3){ 0.0f, 0.0f, 1.0f };
-        mat4_identity(mat);
+        *mat = mat4_identity;
         vec3_normalize(vec, vec2);
         axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
         mat4_mult_axis_angle(mat, mat, &axis, angle);
@@ -844,7 +846,7 @@ void FASTCALL glitter_render_group_draw_quad_sub1(glitter_scene_sub* a1,
     vec3 v49; // xmm11_4
     int64_t v65; // er15
     vec2* v66; // r14
-    bool v118; // [rsp+45h] [rbp-BBh]
+    bool use_z_offset; // [rsp+45h] [rbp-BBh]
     vec3 v119; // [rsp+48h] [rbp-B8h]
     vec3 scale; // [rsp+5Ch] [rbp-A4h]
     vec3 v124; // [rsp+68h] [rbp-98h] BYREF
@@ -868,15 +870,15 @@ void FASTCALL glitter_render_group_draw_quad_sub1(glitter_scene_sub* a1,
     memset(buf, 0, sizeof(glitter_buffer) * 4);
     mat4_inverse(a3, &a1a);
     a1a.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
-    v35 = (vec3){ 0.0f, 0.0f, 0.0f };
+    v35 = vec3_null;
     v124 = (vec3){ 1.0f, 0.0f, 0.0f };
     v125 = (vec3){ 0.0f, 1.0f, 0.0f };
-    v118 = false;
-    scale = (vec3){ 0.0f, 0.0f, 0.0f };
-    v129 = (vec3){ 0.0f, 0.0f, 0.0f };
-    mat4_identity(&mat);
+    use_z_offset = false;
+    scale = vec3_null;
+    v129 = vec3_null;
+    mat = mat4_identity;
     if (fabsf(a2->z_offset) > 0.000001f) {
-        v118 = true;
+        use_z_offset = true;
         vec3_sub(cam->position, *(vec3*)&a3->row3, v129);
         if (a2->flags & GLITTER_PARTICLE_FLAG_USE_MODEL_MAT) {
             mat4_normalize_rotation(a3, &mat);
@@ -896,7 +898,7 @@ void FASTCALL glitter_render_group_draw_quad_sub1(glitter_scene_sub* a1,
         mat4_mult_vec3(&a2->mat_no_scale, &v145, &scale);
     }
 
-    v119 = (vec3){ 0.0f, 0.0f, 0.0f };
+    v119 = vec3_null;
     if (glitter_render_group_get_a3da_scale(a2, &v119)) {
         v124.x *= v119.x + 1.0f;
         v125.y *= v119.y + 1.0f;
@@ -950,8 +952,8 @@ void FASTCALL glitter_render_group_draw_quad_sub1(glitter_scene_sub* a1,
                     vec3_add(v49, v119, v49);
                 }
                 glitter_render_group_draw_set_pivot(a2->pivot,
-                    v9->scale.x * v9->position_offset.x * v9->scale_all,
-                    v9->scale.y * v9->position_offset.y * v9->scale_all,
+                    v9->scale.x * v9->scale_particle.x * v9->scale_all,
+                    v9->scale.y * v9->scale_particle.y * v9->scale_all,
                     &v00, &v01, &v10, &v11);
 
                 v144[0].x = v00;
@@ -970,7 +972,7 @@ void FASTCALL glitter_render_group_draw_quad_sub1(glitter_scene_sub* a1,
                 v144[6].y = v11;
                 v144[7].x = v9->uv.x + a2->split_uv.x;
                 v144[7].y = v9->uv.y;
-                if (v118) {
+                if (use_z_offset) {
                     vec3_sub(v129, v49, v35);
                     vec3_normalize(v35, v35);
 
@@ -1030,8 +1032,8 @@ void FASTCALL glitter_render_group_draw_quad_sub1(glitter_scene_sub* a1,
                     vec3_add(v49, v119, v49);
                 }
                 glitter_render_group_draw_set_pivot(a2->pivot,
-                    v9->scale.x * v9->position_offset.x * v9->scale_all,
-                    v9->scale.y * v9->position_offset.y * v9->scale_all,
+                    v9->scale.x * v9->scale_particle.x * v9->scale_all,
+                    v9->scale.y * v9->scale_particle.y * v9->scale_all,
                     &v00, &v01, &v10, &v11);
 
                 v144[0].x = v00;
@@ -1050,7 +1052,7 @@ void FASTCALL glitter_render_group_draw_quad_sub1(glitter_scene_sub* a1,
                 v144[6].y = v11;
                 v144[7].x = v9->uv.x + a2->split_uv.x;
                 v144[7].y = v9->uv.y;
-                if (v118) {
+                if (use_z_offset) {
                     vec3_sub(v129, v49, v35);
                     vec3_normalize(v35, v35);
 
@@ -1139,8 +1141,8 @@ void FASTCALL glitter_render_group_draw_quad_sub2(glitter_scene_sub* a1, glitter
             count++;
 
             glitter_render_group_draw_set_pivot(a2->pivot,
-                v9->scale.x * v9->position_offset.x * v9->scale_all,
-                v9->scale.y * v9->position_offset.y * v9->scale_all,
+                v9->scale.x * v9->scale_particle.x * v9->scale_all,
+                v9->scale.y * v9->scale_particle.y * v9->scale_all,
                 &v00, &v01, &v10, &v11);
 
             v63[0].x = v00;
@@ -1410,7 +1412,7 @@ void FASTCALL glitter_render_group_sub_emit(glitter_particle_inst* a1, glitter_r
     a2->random = glitter_random_get_int(glitter_random_get_max());
     a2->frame = 0.0f;
     a2->rebound_time = 0.0f;
-    a2->uv = (vec2){ 0.0f, 0.0f };
+    a2->uv = vec2_null;
     a2->life_time = a4->data.life_time;
     a2->color = a4->data.color;
     if (a4->data.draw_type == GLITTER_DIRECTION_PARTICLE_ROTATION) {
@@ -1435,18 +1437,18 @@ void FASTCALL glitter_render_group_sub_emit(glitter_particle_inst* a1, glitter_r
         + a4->data.rotation.z;
     a2->rotation_add.z = glitter_random_get_float_clamp_min_max(a4->data.rotation_add_random.z)
         + a4->data.rotation_add.z;
-    a2->uv_scroll = (vec2){ 0.0f, 0.0f };
-    a2->scale = (vec3){ 1.0f, 1.0f, 1.0f };
+    a2->uv_scroll = vec2_null;
+    a2->scale = vec3_identity;
     a2->scale_all = 1.0f;
     a2->frame_step_uv = a4->data.frame_step_uv;
 
-    a2->position_offset.x = glitter_random_get_float_clamp_min_max(a4->data.position_offset_random.x)
-        + a4->data.position_offset.x;
-    if (a4->data.flags & GLITTER_PARTICLE_FLAG_POSITION_OFFSET_SAME)
-        a2->position_offset.y = a2->position_offset.x;
+    a2->scale_particle.x = glitter_random_get_float_clamp_min_max(a4->data.scale_random.x)
+        + a4->data.scale.x;
+    if (a4->data.flags & GLITTER_PARTICLE_FLAG_SCALE_Y_BY_X)
+        a2->scale_particle.y = a2->scale_particle.x;
     else
-        a2->position_offset.y = glitter_random_get_float_clamp_min_max(a4->data.position_offset_random.y)
-        + a4->data.position_offset.y;
+        a2->scale_particle.y = glitter_random_get_float_clamp_min_max(a4->data.scale_random.y)
+        + a4->data.scale.y;
 
     max_uv = a4->data.split_u * a4->data.split_v;
     if (max_uv && max_uv - 1 > 1) {
@@ -1459,14 +1461,14 @@ void FASTCALL glitter_render_group_sub_emit(glitter_particle_inst* a1, glitter_r
     }
 
     if (a4->data.flags & GLITTER_PARTICLE_FLAG_USE_MODEL_MAT || a4->data.flags & GLITTER_PARTICLE_FLAG_TRANSLATE_BY_EMITTER)
-        a2->base_translation = (vec3){ 0.0f, 0.0f, 0.0f };
+        a2->base_translation = vec3_null;
     else
         a2->base_translation = *(vec3*)&a3->mat.row3;
 
     direction = a4->data.direction;
-    base_translation = (vec3){ 0.0f, 0.0f, 0.0f };
+    base_translation = vec3_null;
     if (a4->data.flags & GLITTER_PARTICLE_FLAG_USE_MODEL_MAT) {
-        scale = (vec3){ 1.0f, 1.0f, 1.0f };
+        scale = vec3_identity;
         glitter_emitter_inst_get_mesh_by_type(a3, index, &scale, &base_translation, &direction);
     }
     else {
@@ -1485,11 +1487,11 @@ void FASTCALL glitter_render_group_sub_emit(glitter_particle_inst* a1, glitter_r
     if (~a4->data.flags & GLITTER_PARTICLE_FLAG_USE_MODEL_MAT)
         mat4_mult_vec3(&a3->mat_no_scale, &direction, &direction);
 
-    speed = (glitter_random_get_float_clamp_min_max(a4->data.speed_random) + a4->data.speed) * 60.0f;
-    deceleration = (glitter_random_get_float_clamp_min_max(a4->data.deceleration_random) + a4->data.deceleration) * 60.0f;
+    speed = glitter_random_get_float_clamp_min_max(a4->data.speed_random) + a4->data.speed;
+    deceleration = glitter_random_get_float_clamp_min_max(a4->data.deceleration_random) + a4->data.deceleration;
     a2->direction = direction;
-    a2->speed = speed;
-    a2->deceleration = max(deceleration, 0.0f);
+    a2->speed = speed * 60.0f;
+    a2->deceleration = max(deceleration * 60.0f, 0.0f);
 
     glitter_random_get_float_vec3_clamp(&a4->data.external_acceleration_random, &external_acceleration);
     vec3_add(external_acceleration, a4->data.external_acceleration, external_acceleration);
@@ -1499,7 +1501,7 @@ void FASTCALL glitter_render_group_sub_emit(glitter_particle_inst* a1, glitter_r
         || a4->data.draw_type == GLITTER_DIRECTION_EMITTER_ROTATION) {
         switch (a3->data.type) {
         case GLITTER_EMITTER_CYLINDER:
-            v19 = a3->data.data.cylinder.direction == GLITTER_EMITTER_EMISSION_DIRECTION_PARTICLE_VELOCITY;
+            v19 = a3->data.cylinder.direction == GLITTER_EMITTER_EMISSION_DIRECTION_PARTICLE_VELOCITY;
             if (!v19) {
                 float_t length;
                 vec3_length(a2->direction, length);
@@ -1507,7 +1509,7 @@ void FASTCALL glitter_render_group_sub_emit(glitter_particle_inst* a1, glitter_r
             }
             break;
         case GLITTER_EMITTER_SPHERE:
-            v19 = a3->data.data.sphere.direction == GLITTER_EMITTER_EMISSION_DIRECTION_PARTICLE_VELOCITY;
+            v19 = a3->data.sphere.direction == GLITTER_EMITTER_EMISSION_DIRECTION_PARTICLE_VELOCITY;
             if (!v19) {
                 float_t length;
                 vec3_length(a2->direction, length);
@@ -1525,10 +1527,10 @@ void FASTCALL glitter_render_group_sub_emit(glitter_particle_inst* a1, glitter_r
                 a2->mat.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
         }
         else
-            mat4_identity(&a2->mat);
+            a2->mat = mat4_identity;
     }
     else
-        mat4_identity(&a2->mat);
+        a2->mat = mat4_identity;
 
     if (a1->sub.data.type == GLITTER_PARTICLE_LOCUS) {
         locus_history_size = glitter_random_get_int_clamp(-a1->sub.data.locus_history_size_random,
@@ -1565,7 +1567,7 @@ void FASTCALL glitter_render_group_sub_get_color(glitter_particle_inst* a1, glit
 
 void FASTCALL glitter_render_group_sub_get_value(glitter_render_group* a1,
     glitter_render_group_sub* a2, float_t delta_frame) {
-    glitter_particle_inst* v4; // rcx
+    glitter_particle_inst* v4;
     vec2 uv_scroll;
     bool visible;
 
@@ -1584,7 +1586,7 @@ void FASTCALL glitter_render_group_sub_get_value(glitter_render_group* a1,
         a2->color = (vec4){ -1.0f, -1.0f, -1.0f, -1.0f };
 
         visible = true;
-        if (v4->sub.data.sub_flags & GLITTER_PARTICLE_SUB_FLAG_GET_VALUE)
+        if (v4->sub.data.sub_flags & GLITTER_PARTICLE_SUB_FLAG_USE_CURVE)
             visible = glitter_particle_inst_get_value(v4, a2, a2->frame) != 0;
 
         if (v4->sub.data.draw_type == GLITTER_DIRECTION_PARTICLE_ROTATION

@@ -8,6 +8,7 @@
 #include "../KKdLib/default.h"
 #include "../CRE/microui.h"
 #include "Classes/background_color.h"
+#include "Classes/glitter_editor.h"
 #include "Classes/glitter_test.h"
 #include "Classes/post_process.h"
 

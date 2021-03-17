@@ -295,7 +295,7 @@ int32_t render_main(void* arg) {
         glfwSwapBuffers(window);
         close |= glfwWindowShouldClose(window);
         double_t cycle_time = timer_calc_post(render);
-        msleep(1000.0 / FREQ - cycle_time);
+        msleep(render_timer, 1000.0 / FREQ - cycle_time);
     }
     CloseHandle(mu_lock);
     CloseHandle(mu_input_lock);
@@ -583,9 +583,7 @@ static void render_load() {
     shader_fbo_set_int(&particle_shader, "Texture1", 1);
     shader_fbo_set_uniform_block_binding(&particle_shader, "GlobalMatrices", 0);
 
-    shader_fbo_set_int(&sprite_shader, "Texture0", 0);
-    shader_fbo_set_int(&sprite_shader, "Texture1", 1);
-    shader_fbo_set_int(&sprite_shader, "Texture2", 1);
+    shader_fbo_set_int_array(&sprite_shader, "Texture", 3, ((int32_t[]){ 0, 1, 2 }));
     shader_fbo_set_uniform_block_binding(&sprite_shader, "Common", 0);
 
     shader_fbo_set_int(&mu_shader, "Texture", 0);
@@ -735,7 +733,7 @@ static void render_update() {
                     hash_ptr_gl_object hash_gl_obj;
                     hash_gl_obj.hash = update.hash;
                     hash_gl_obj.data = gl_obj;
-                    vector_hash_ptr_gl_object_append_element(&vec_gl_obj, &hash_gl_obj);
+                    vector_hash_ptr_gl_object_push_back(&vec_gl_obj, &hash_gl_obj);
                 }
             } break;
             case TASK_RENDER_UPDATE_SHADER: {
@@ -754,7 +752,7 @@ static void render_update() {
                     hash_shader_model hash_shad;
                     hash_shad.hash = update.hash;
                     hash_shad.data = shad;
-                    vector_hash_shader_model_append_element(&vec_shad, &hash_shad);
+                    vector_hash_shader_model_push_back(&vec_shad, &hash_shad);
                 }
                 free(update.shad.frag_c);
                 free(update.shad.frag_g);
@@ -780,7 +778,7 @@ static void render_update() {
                     hash_texture hash_tex;
                     hash_tex.hash = update.hash;
                     hash_tex.data = tex;
-                    vector_hash_texture_append_element(&vec_tex, &hash_tex);
+                    vector_hash_texture_push_back(&vec_tex, &hash_tex);
                 }
             } break;
             case TASK_RENDER_UPDATE_TEXTURE_SET: {
@@ -802,7 +800,7 @@ static void render_update() {
                     hash_texture_set hash_tex_set;
                     hash_tex_set.hash = update.hash;
                     hash_tex_set.data = tex_set;
-                    vector_hash_texture_set_append_element(&vec_tex_set, &hash_tex_set);
+                    vector_hash_texture_set_push_back(&vec_tex_set, &hash_tex_set);
                 }
             } break;
             case TASK_RENDER_UPDATE_VERT: {
@@ -824,7 +822,7 @@ static void render_update() {
                     hash_ptr_vertex hash_vert;
                     hash_vert.hash = update.hash;
                     hash_vert.data = vert;
-                    vector_hash_ptr_vertex_append_element(&vec_vert, &hash_vert);
+                    vector_hash_ptr_vertex_push_back(&vec_vert, &hash_vert);
                 }
             } break;
             }
@@ -837,7 +835,7 @@ static void render_update() {
                 for (hash_ptr_gl_object* j = vec_gl_obj.begin; j != vec_gl_obj.end; j++)
                     if (j->hash == free_data.hash) {
                         gl_object_dispose(j->data);
-                        vector_hash_ptr_gl_object_remove(&vec_gl_obj, j - vec_gl_obj.begin);
+                        vector_hash_ptr_gl_object_erase(&vec_gl_obj, j - vec_gl_obj.begin);
                         break;
                     }
                 break;
@@ -845,7 +843,7 @@ static void render_update() {
                 for (hash_shader_model* j = vec_shad.begin; j != vec_shad.end; j++)
                     if (j->hash == free_data.hash) {
                         shader_model_free(&j->data);
-                        vector_hash_shader_model_remove(&vec_shad, j - vec_shad.begin);
+                        vector_hash_shader_model_erase(&vec_shad, j - vec_shad.begin);
                         break;
                     }
                 break;
@@ -853,7 +851,7 @@ static void render_update() {
                 for (hash_texture* j = vec_tex.begin; j != vec_tex.end; j++)
                     if (j->hash == free_data.hash) {
                         texture_free(&j->data);
-                        vector_hash_texture_remove(&vec_tex, j - vec_tex.begin);
+                        vector_hash_texture_erase(&vec_tex, j - vec_tex.begin);
                         break;
                     }
                 break;
@@ -861,7 +859,7 @@ static void render_update() {
                 for (hash_texture_set* j = vec_tex_set.begin; j != vec_tex_set.end; j++)
                     if (j->hash == free_data.hash) {
                         texture_set_free(&j->data);
-                        vector_hash_texture_set_remove(&vec_tex_set, j - vec_tex_set.begin);
+                        vector_hash_texture_set_erase(&vec_tex_set, j - vec_tex_set.begin);
                         break;
                     }
                 break;
@@ -869,7 +867,7 @@ static void render_update() {
                 for (hash_ptr_vertex* j = vec_vert.begin; j != vec_vert.end; j++)
                     if (j->hash == free_data.hash) {
                         vertex_dispose(j->data);
-                        vector_hash_ptr_vertex_remove(&vec_vert, j - vec_vert.begin);
+                        vector_hash_ptr_vertex_erase(&vec_vert, j - vec_vert.begin);
                         break;
                     }
                 break;
@@ -994,7 +992,7 @@ static void render_update() {
         vector_task_render_draw2d_append(&tasks_render_draw2d_int,
             tasks_render_draw2d.end - tasks_render_draw2d.begin);
         for (task_render_draw2d* i = tasks_render_draw2d.begin; i != tasks_render_draw2d.end; i++)
-            vector_task_render_draw2d_append_element(&tasks_render_draw2d_int, i);
+            vector_task_render_draw2d_push_back(&tasks_render_draw2d_int, i);
         vector_task_render_draw2d_clear(&tasks_render_draw2d);
     }
 
@@ -1003,7 +1001,7 @@ static void render_update() {
         vector_task_render_draw3d_append(&tasks_render_draw3d_int,
             tasks_render_draw3d.end - tasks_render_draw3d.begin);
         for (task_render_draw3d* i = tasks_render_draw3d.begin; i != tasks_render_draw3d.end; i++)
-            vector_task_render_draw3d_append_element(&tasks_render_draw3d_int, i);
+            vector_task_render_draw3d_push_back(&tasks_render_draw3d_int, i);
         vector_task_render_draw3d_clear(&tasks_render_draw3d);
     }
 
@@ -1011,16 +1009,14 @@ static void render_update() {
         rad->update = false;
         inten->update = false;
 
-        float_t r = inten->val.x;
-        float_t g = inten->val.y;
-        float_t b = inten->val.z;
-        float_t a;
-        vec3_dot(inten->val, sv_rgb_to_luma, a);
-        vec4* radius = (vec4*)rad->val;
+        vec4 rgba;
+        *(vec3*)&rgba = inten->val;
+        vec3_dot(inten->val, sv_rgb_to_luma, rgba.w);
+        vec4* radius = rad->val;
 
         vec4 v[GAUSSIAN_KERNEL_SIZE];
         for (int32_t i = 0; i < GAUSSIAN_KERNEL_SIZE; i++)
-            v[i] = (vec4){ radius[i].x * r, radius[i].y * g, radius[i].z * b, radius[i].w * a };
+            vec4_mult(radius[i], rgba, v[i]);
 
         for (int32_t i = 6; i < 12; i++)
             shader_fbo_set_vec4_array(&bfbs[i], "gaussianKernel", GAUSSIAN_KERNEL_SIZE, v);
@@ -1191,31 +1187,31 @@ static void render_dispose() {
             char_buffer_dispose(&uniform.name);
         }
     }
-    vector_task_render_dispose(&tasks_render);
-    vector_task_render_draw2d_dispose(&tasks_render_draw2d);
-    vector_task_render_draw2d_dispose(&tasks_render_draw2d_int);
-    vector_task_render_draw3d_dispose(&tasks_render_draw3d);
-    vector_task_render_draw3d_dispose(&tasks_render_draw3d_int);
+    vector_task_render_free(&tasks_render);
+    vector_task_render_draw2d_free(&tasks_render_draw2d);
+    vector_task_render_draw2d_free(&tasks_render_draw2d_int);
+    vector_task_render_draw3d_free(&tasks_render_draw3d);
+    vector_task_render_draw3d_free(&tasks_render_draw3d_int);
 
     for (hash_ptr_gl_object* j = vec_gl_obj.begin; j != vec_gl_obj.end; j++)
         gl_object_dispose(j->data);
-    vector_hash_ptr_gl_object_dispose(&vec_gl_obj);
+    vector_hash_ptr_gl_object_free(&vec_gl_obj);
 
     for (hash_shader_model* j = vec_shad.begin; j != vec_shad.end; j++)
         shader_model_free(&j->data);
-    vector_hash_shader_model_dispose(&vec_shad);
+    vector_hash_shader_model_free(&vec_shad);
 
     for (hash_texture* j = vec_tex.begin; j != vec_tex.end; j++)
         texture_free(&j->data);
-    vector_hash_texture_dispose(&vec_tex);
+    vector_hash_texture_free(&vec_tex);
 
     for (hash_texture_set* j = vec_tex_set.begin; j != vec_tex_set.end; j++)
         texture_set_free(&j->data);
-    vector_hash_texture_set_dispose(&vec_tex_set);
+    vector_hash_texture_set_free(&vec_tex_set);
 
     for (hash_ptr_vertex* j = vec_vert.begin; j != vec_vert.end; j++)
         vertex_dispose(j->data);
-    vector_hash_ptr_vertex_dispose(&vec_vert);
+    vector_hash_ptr_vertex_free(&vec_vert);
 
     for (size_t i = 0; i < classes_count; i++)
         if (classes[i].dispose)
@@ -1283,7 +1279,7 @@ static void render_micro_ui() {
     size_t count;
     mat4 mat;
 
-    mat4_identity(&mat);
+    mat = mat4_identity;
     mat.row0.x = 2.0f / width;
     mat.row1.y = -2.0f / height;
     mat.row2.z = -1.0f;

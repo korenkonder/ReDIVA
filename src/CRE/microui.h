@@ -21,7 +21,7 @@
 #define MU_TREENODEPOOL_SIZE    48
 #define MU_MAX_WIDTHS           16
 #define MU_REAL                 float
-#define MU_REAL_FMT             "%.3g"
+#define MU_REAL_FMT             "%g"
 #define MU_SLIDER_FMT           "%.2f"
 #define MU_MAX_FMT              127
 
@@ -77,7 +77,7 @@ typedef enum mu_icon_enum {
 typedef enum mu_res_enum {
     MU_RES_ACTIVE       = (1 << 0),
     MU_RES_SUBMIT       = (1 << 1),
-    MU_RES_CHANGE       = (1 << 2)
+    MU_RES_CHANGE       = (1 << 2),
 } mu_res_enum;
 
 typedef enum mu_opt_enum {
@@ -92,13 +92,15 @@ typedef enum mu_opt_enum {
     MU_OPT_AUTOSIZE     = (1 << 8),
     MU_OPT_POPUP        = (1 << 9),
     MU_OPT_CLOSED       = (1 << 10),
-    MU_OPT_EXPANDED     = (1 << 11)
+    MU_OPT_EXPANDED     = (1 << 11),
+    MU_OPT_ALIGNTOP     = (1 << 12),
+    MU_OPT_ALIGNBOTTOM  = (1 << 13),
 } mu_opt_enum;
 
 typedef enum mu_mouse_enum {
     MU_MOUSE_LEFT       = (1 << 0),
     MU_MOUSE_RIGHT      = (1 << 1),
-    MU_MOUSE_MIDDLE     = (1 << 2)
+    MU_MOUSE_MIDDLE     = (1 << 2),
 } mu_mouse_enum;
 
 typedef enum mu_key_enum {
@@ -106,7 +108,7 @@ typedef enum mu_key_enum {
     MU_KEY_CTRL         = (1 << 1),
     MU_KEY_ALT          = (1 << 2),
     MU_KEY_BACKSPACE    = (1 << 3),
-    MU_KEY_RETURN       = (1 << 4)
+    MU_KEY_RETURN       = (1 << 4),
 } mu_key_enum;
 
 typedef enum mu_layout_enum {
@@ -220,6 +222,7 @@ typedef struct mu_Container {
     mu_Vec2 scroll;
     int zindex;
     bool open;
+    bool swap_scroll;
 } mu_Container;
 
 typedef struct mu_Style {
@@ -343,6 +346,10 @@ void mu_update_control(mu_Context *ctx, mu_Id id, mu_Rect rect, mu_opt_enum opt)
 
 #define mu_slider_step(ctx, value, low, high, step) \
 mu_slider_ex(ctx, value, low, high, step, MU_SLIDER_FMT, MU_OPT_ALIGNCENTER);
+#define mu_slider_fmt(ctx, value, low, high, step, fmt) \
+mu_slider_ex(ctx, value, low, high, step, fmt, MU_OPT_ALIGNCENTER);
+#define mu_number_fmt(ctx, value, step, fmt) \
+mu_number_ex(ctx, value, step, fmt, MU_OPT_ALIGNCENTER)
 
 void mu_text(mu_Context *ctx, const char *text);
 void mu_label(mu_Context *ctx, const char *text);
@@ -366,7 +373,7 @@ void mu_end_panel(mu_Context *ctx);
 void mu_tabs_get_title_size(mu_Context* muctx, int32_t min, int32_t max,
     int32_t* w, int32_t* h, char** temp, int32_t* temp_w);
 bool mu_tabs_set(mu_Context* muctx, int32_t min, int32_t max, char** temp,
-    int32_t* temp_w, int32_t temp_c, int32_t* selector, char* name, mu_Rect rect);
+    int32_t* temp_w, int32_t temp_c, int32_t* selector, char* name, mu_Rect rect, bool focus_reset);
 mu_res_enum mu_slider_uint8_t(mu_Context* ctx, uint8_t* value, int32_t low, int32_t high);
 mu_res_enum mu_slider_uint8_t_label(mu_Context* ctx, uint8_t* value, int32_t low, int32_t high, const char* label);
 int32_t mu_misc_get_max_text_width(mu_Context* muctx, char** temp, size_t temp_c);

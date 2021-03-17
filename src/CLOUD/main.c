@@ -4,6 +4,7 @@
 */
 
 #include "../KKdLib/kkfs.h"
+#include "../KKdLib/f2_struct.h"
 #include "../KKdLib/mat.h"
 #include "../KKdLib/vec.h"
 #include "elf.h"
@@ -94,15 +95,66 @@ typedef struct thread {
     DWORD id;
 } thread;
 
-wchar_t* glitter_test_file;
-
 int wmain(int argc, wchar_t** argv) {
-    if (argc <= 1)
-        //return;
-        glitter_test_file = 0;
-        //glitter_file = L"eff_pv249_kirakira";
-    else
-        glitter_test_file = argv[1];
+    /*stream* s;
+    void* data;
+    size_t length;
+    f2_struct* st;
+    s = io_wopen(L"eff_stgpv832_main!\\eff_stgpv832_main.drs", L"rb");
+    length = s->length;
+    data = force_malloc(length);
+    io_read(s, data, length);
+    io_dispose(s);
+
+    st = f2_struct_init();
+    f2_struct_read_memory(st, data, length);
+    free(data);
+    f2_struct_write_memory(st, &data, &length, true, false);
+    f2_struct_dispose(st);
+
+    s = io_wopen(L"eff_stgpv832_main\\eff_stgpv832_main.drs", L"wb");
+    io_write(s, data, length);
+    io_dispose(s);
+    free(data);
+
+    s = io_wopen(L"eff_stgpv832_main!\\eff_stgpv832_main.dve", L"rb");
+    length = s->length;
+    data = force_malloc(length);
+    io_read(s, data, length);
+    io_dispose(s);
+
+    st = f2_struct_init();
+    f2_struct_read_memory(st, data, length);
+    free(data);
+    f2_struct_write_memory(st, &data, &length, true, false);
+    f2_struct_dispose(st);
+
+    s = io_wopen(L"eff_stgpv832_main\\eff_stgpv832_main.dve", L"wb");
+    io_write(s, data, length);
+    io_dispose(s);
+    free(data);
+
+    s = io_wopen(L"eff_stgpv832_main!\\eff_stgpv832_main.lst", L"rb");
+    length = s->length;
+    data = force_malloc(length);
+    io_read(s, data, length);
+    io_dispose(s);
+
+    st = f2_struct_init();
+    f2_struct_read_memory(st, data, length);
+    free(data);
+    f2_struct_write_memory(st, &data, &length, true, false);
+    f2_struct_dispose(st);
+
+    s = io_wopen(L"eff_stgpv832_main\\eff_stgpv832_main.lst", L"wb");
+    io_write(s, data, length);
+    io_dispose(s);
+    free(data);
+
+    farc* f = farc_init();
+    farc_wwrite(f, argv[1], FARC_COMPRESS_FARC_GZIP_AES);
+    farc_dispose(f);
+    return;*/
 
     //ShowWindow(GetConsoleWindow(), SW_HIDE);
     QueryPerformanceFrequency(&performance_frequency);

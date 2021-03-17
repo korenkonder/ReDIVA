@@ -5,6 +5,7 @@
 
 #include "particle_manager.h"
 #include "effect_group.h"
+#include "effect_inst.h"
 #include "file_reader.h"
 #include "render_group.h"
 #include "scene.h"
@@ -12,9 +13,10 @@
 glitter_particle_manager* FASTCALL glitter_particle_manager_init() {
     glitter_particle_manager* gpm = force_malloc(sizeof(glitter_particle_manager));
     gpm->delta_frame = 2.0f;
-    vector_ptr_glitter_scene_expand(&gpm->scenes, 0x100);
-    vector_ptr_glitter_file_reader_expand(&gpm->file_readers, 0x100);
-    vector_ptr_glitter_effect_group_expand(&gpm->effect_groups, 0x100);
+    gpm->emission = 1.0f;
+    vector_ptr_glitter_scene_resize(&gpm->scenes, 0x100);
+    vector_ptr_glitter_file_reader_resize(&gpm->file_readers, 0x100);
+    vector_ptr_glitter_effect_group_resize(&gpm->effect_groups, 0x100);
     return gpm;
 }
 
@@ -71,10 +73,12 @@ bool FASTCALL glitter_particle_manager_free_effect_group(glitter_particle_manage
     glitter_effect_group** i;
     glitter_effect_group* effect_group;
 
-    for (i = gpm->effect_groups.begin; i != gpm->effect_groups.end; i++) {
+    for (i = gpm->effect_groups.begin; i != gpm->effect_groups.end;) {
         effect_group = *i;
-        if (effect_group && effect_group->hash != effect_group_hash)
+        if (!effect_group || effect_group->hash != effect_group_hash) {
+            i++;
             continue;
+        }
 
         if (effect_group)
             glitter_effect_group_dispose(effect_group);
@@ -92,13 +96,12 @@ bool FASTCALL glitter_particle_manager_free_scene(glitter_particle_manager* gpm,
 
     for (i = gpm->scenes.begin; i != gpm->scenes.end;) {
         scene = *i;
-        if (scene && scene->hash != effect_group_hash) {
+        if (!scene || scene->hash != effect_group_hash) {
             i++;
             continue;
         }
 
-        if (scene)
-            glitter_scene_dispose(scene);
+        glitter_scene_dispose(scene);
         memmove(i, i + 1, sizeof(glitter_scene**) * (gpm->scenes.end - (i + 1)));
         gpm->scenes.end--;
         break;
@@ -152,7 +155,7 @@ size_t FASTCALL glitter_particle_manager_get_disp_count(glitter_particle_manager
     return disp;
 }
 
-void glitter_particle_manager_get_time(glitter_particle_manager* gpm, float_t* frame, float_t* life_time) {
+void glitter_particle_manager_get_frame(glitter_particle_manager* gpm, float_t* frame, float_t* life_time) {
     glitter_scene* scene;
     glitter_effect_inst** i;
     glitter_effect_inst* effect;
@@ -170,10 +173,56 @@ void glitter_particle_manager_get_time(glitter_particle_manager* gpm, float_t* f
     for (i = scene->effects.begin; i != scene->effects.end; i++) {
         effect = *i;
         if (effect && frame && life_time && effect->data.life_time > *life_time) {
-            if (*frame < effect->frame0)
-                *frame = effect->frame0;
+            if (*frame < effect->frame)
+                *frame = effect->frame;
             *life_time = effect->data.life_time;
         }
+    }
+}
+
+void glitter_particle_manager_get_start_end_frame(glitter_particle_manager* gpm, float_t* start_frame, float_t* end_frame) {
+    glitter_scene* scene;
+    glitter_effect_inst** i;
+    glitter_effect_inst* effect;
+    glitter_emitter_inst** j;
+    glitter_emitter_inst* emitter;
+    float_t life_time;
+
+    if (start_frame)
+        *start_frame = 0.0f;
+
+    if (end_frame)
+        *end_frame = 0.0f;
+
+    if (gpm->scenes.begin == gpm->scenes.end || !*gpm->scenes.begin)
+        return;
+
+    if (start_frame)
+        *start_frame = 32767.0f;
+
+    scene = *gpm->scenes.begin;
+    for (i = scene->effects.begin; i != scene->effects.end; i++) {
+        if (!*i)
+            continue;
+
+        effect = *i;
+        life_time = effect->data.life_time;
+        if (start_frame && effect->data.appear_time < *start_frame)
+            *start_frame = effect->data.appear_time;
+
+        for (j = effect->emitters.begin; j != effect->emitters.end; j++) {
+            if (!*j)
+                continue;
+
+            emitter = *j;
+            if (life_time < emitter->data.life_time)
+                life_time = emitter->data.life_time;
+        }
+
+        life_time += effect->data.appear_time;
+
+        if (end_frame && life_time > *end_frame)
+            *end_frame = life_time;
     }
 }
 
@@ -185,7 +234,7 @@ bool FASTCALL glitter_particle_manager_load_effect(glitter_particle_manager* gpm
     glitter_scene* scene;
     glitter_effect** k;
     glitter_effect* effect;
-    int32_t id;
+    size_t id;
 
     for (i = gpm->effect_groups.begin; i != gpm->effect_groups.end; i++) {
         effect_group = *i;
@@ -200,7 +249,7 @@ bool FASTCALL glitter_particle_manager_load_effect(glitter_particle_manager* gpm
 
         if (j == gpm->scenes.end) {
             scene = glitter_scene_init(effect_group);
-            vector_ptr_glitter_scene_append_element(&gpm->scenes, &scene);
+            vector_ptr_glitter_scene_push_back(&gpm->scenes, &scene);
         }
 
         for (k = effect_group->effects.begin, id = 1; k != effect_group->effects.end; k++, id++) {
@@ -220,7 +269,7 @@ bool FASTCALL glitter_particle_manager_load_scene(glitter_particle_manager* gpm,
     glitter_scene** j;
     glitter_scene* scene;
     glitter_effect** k;
-    int32_t id;
+    size_t id;
 
     for (i = gpm->effect_groups.begin; i != gpm->effect_groups.end; i++) {
         effect_group = *i;
@@ -235,7 +284,7 @@ bool FASTCALL glitter_particle_manager_load_scene(glitter_particle_manager* gpm,
 
         if (j == gpm->scenes.end) {
             scene = glitter_scene_init(effect_group);
-            vector_ptr_glitter_scene_append_element(&gpm->scenes, &scene);
+            vector_ptr_glitter_scene_push_back(&gpm->scenes, &scene);
         }
 
         for (k = effect_group->effects.begin, id = 1; k != effect_group->effects.end; k++, id++)
@@ -257,6 +306,42 @@ void FASTCALL glitter_particle_manager_reset_scene_disp_counter(glitter_particle
     }
 }
 
+void FASTCALL glitter_particle_manager_set_frame(glitter_particle_manager* gpm, glitter_effect_group* effect_group,
+    glitter_scene** scene, float_t curr_frame, float_t prev_frame, uint32_t random, uint32_t counter, bool reset) {
+    if (curr_frame < prev_frame || reset) {
+        for (glitter_scene** i = gpm->scenes.begin; i != gpm->scenes.end; )
+            if (!*i)
+                vector_ptr_glitter_scene_erase(&gpm->scenes, i - gpm->scenes.begin);
+            else
+                i++;
+
+        gpm->random = random;
+        gpm->counter = counter;
+
+        glitter_effect_group* eg = effect_group;
+        glitter_effect** i;
+        size_t id = 1;
+        for (i = eg->effects.begin, id = 1; i != eg->effects.end; i++, id++)
+            if (*i)
+                glitter_scene_init_effect(*scene, *i, id, false);
+        prev_frame = 0.0f;
+    }
+
+    float_t delta = curr_frame - prev_frame;
+    float_t delta_frame = 2.0f;
+    for (; delta > 0.0f; delta -= delta_frame) {
+        if (delta_frame > delta)
+            delta_frame = delta;
+
+        glitter_scene* s = *scene;
+        if (s && !glitter_scene_has_ended(s, true)) {
+            glitter_scene_update_value_frame(s, delta_frame);
+            glitter_scene_emit(s, delta_frame);
+            glitter_scene_update_scene(s, delta_frame);
+        }
+    }
+}
+
 bool FASTCALL glitter_particle_manager_test_load_effect(glitter_particle_manager* gpm,
     uint64_t effect_group_hash, uint64_t effect_hash) {
     glitter_effect_group** i;
@@ -265,7 +350,7 @@ bool FASTCALL glitter_particle_manager_test_load_effect(glitter_particle_manager
     glitter_scene* scene;
     glitter_effect** k;
     glitter_effect* effect;
-    int32_t id;
+    size_t id;
 
     for (i = gpm->effect_groups.begin; i != gpm->effect_groups.end; i++) {
         effect_group = *i;
@@ -280,7 +365,7 @@ bool FASTCALL glitter_particle_manager_test_load_effect(glitter_particle_manager
 
         if (j == gpm->scenes.end) {
             scene = glitter_scene_init(effect_group);
-            vector_ptr_glitter_scene_append_element(&gpm->scenes, &scene);
+            vector_ptr_glitter_scene_push_back(&gpm->scenes, &scene);
         }
 
         for (k = effect_group->effects.begin, id = 1; k != effect_group->effects.end; k++, id++) {
@@ -300,7 +385,7 @@ bool FASTCALL glitter_particle_manager_test_load_scene(glitter_particle_manager*
     glitter_scene** j;
     glitter_scene* scene;
     glitter_effect** k;
-    int32_t id;
+    size_t id;
 
     for (i = gpm->effect_groups.begin; i != gpm->effect_groups.end; i++) {
         effect_group = *i;
@@ -315,7 +400,7 @@ bool FASTCALL glitter_particle_manager_test_load_scene(glitter_particle_manager*
 
         if (j == gpm->scenes.end) {
             scene = glitter_scene_init(effect_group);
-            vector_ptr_glitter_scene_append_element(&gpm->scenes, &scene);
+            vector_ptr_glitter_scene_push_back(&gpm->scenes, &scene);
         }
 
         for (k = effect_group->effects.begin, id = 1; k != effect_group->effects.end; k++, id++)
@@ -329,13 +414,17 @@ void FASTCALL glitter_particle_manager_update_file_reader(glitter_particle_manag
     for (glitter_file_reader** i = gpm->file_readers.begin; i != gpm->file_readers.end;) {
         if (*i) {
             glitter_file_reader* file_reader = *i;
-            if (glitter_file_reader_read(file_reader))
-                vector_ptr_glitter_effect_group_append_element(&gpm->effect_groups, &file_reader->effect_group);
+            if (glitter_file_reader_read(file_reader)) {
+                file_reader->effect_group->emission = file_reader->emission;
+                if (file_reader->emission <= 0.0)
+                    file_reader->effect_group->emission = gpm->emission;
+                vector_ptr_glitter_effect_group_push_back(&gpm->effect_groups, &file_reader->effect_group);
+            }
             else if (file_reader->effect_group)
                 glitter_effect_group_dispose(file_reader->effect_group);
             glitter_file_reader_dispose(file_reader);
         }
-        vector_ptr_glitter_file_reader_remove(&gpm->file_readers, i - gpm->file_readers.begin);
+        vector_ptr_glitter_file_reader_erase(&gpm->file_readers, i - gpm->file_readers.begin);
     }
 }
 
@@ -347,11 +436,10 @@ void FASTCALL glitter_particle_manager_update_scene(glitter_particle_manager* gp
             goto copy_scenes;
 
         if (glitter_scene_has_ended(scene, true)) {
-            if (scene)
-                glitter_scene_dispose(scene);
+            glitter_scene_dispose(scene);
 
         copy_scenes:
-            vector_ptr_glitter_scene_remove(&gpm->scenes, i - gpm->scenes.begin);
+            vector_ptr_glitter_scene_erase(&gpm->scenes, i - gpm->scenes.begin);
         }
         else {
             glitter_scene_update_value_frame(scene, gpm->delta_frame);
@@ -363,11 +451,8 @@ void FASTCALL glitter_particle_manager_update_scene(glitter_particle_manager* gp
 }
 
 void FASTCALL glitter_particle_manager_dispose(glitter_particle_manager* gpm) {
-    vector_ptr_glitter_scene_clear(&gpm->scenes, (void*)glitter_scene_dispose);
-    vector_ptr_glitter_scene_dispose(&gpm->scenes);
-    vector_ptr_glitter_file_reader_clear(&gpm->file_readers, (void*)glitter_file_reader_dispose);
-    vector_ptr_glitter_file_reader_dispose(&gpm->file_readers);
-    vector_ptr_glitter_effect_group_clear(&gpm->effect_groups, (void*)glitter_effect_group_dispose);
-    vector_ptr_glitter_effect_group_dispose(&gpm->effect_groups);
+    vector_ptr_glitter_scene_free(&gpm->scenes, (void*)glitter_scene_dispose);
+    vector_ptr_glitter_file_reader_free(&gpm->file_readers, (void*)glitter_file_reader_dispose);
+    vector_ptr_glitter_effect_group_free(&gpm->effect_groups, (void*)glitter_effect_group_dispose);
     free(gpm);
 }

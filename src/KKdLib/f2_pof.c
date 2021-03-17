@@ -42,8 +42,7 @@ void pof_read(stream* s, vector_size_t* pof, bool shift_x) {
     uint8_t bit_shift;
     pof_value value;
 
-    vector_size_t_clear(pof);
-    vector_size_t_dispose(pof);
+    vector_size_t_free(pof);
 
     length = pof_read_offsets_count(s);
 

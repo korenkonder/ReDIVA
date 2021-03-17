@@ -16,7 +16,7 @@ int32_t FASTCALL glitter_counter_get() {
 
 void FASTCALL glitter_counter_increment() {
     if (gpm->f2)
-        gpm->counter = (gpm->counter + 1) & 0xFF;
+        gpm->counter++;
     else
-        gpm->counter = (gpm->counter + 1) & 0xFFF;
+        gpm->counter++;
 }

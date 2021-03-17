@@ -5,6 +5,10 @@
 
 #include "half_t.h"
 
+inline half_t reverse_endianess_half_t(half_t value) {
+    return (half_t)_byteswap_ushort((uint16_t)value);
+}
+
 float_t half_to_float(half_t h) {
     int32_t si32;
     uint16_t sign = (h >> 15) & 0x001;

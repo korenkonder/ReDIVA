@@ -14,12 +14,12 @@ typedef struct vector_##t { \
     t* capacity_end; \
 } vector_##t; \
 \
-extern void FASTCALL vector_##t##_append_element(vector_##t* vec, t* element); \
+extern void FASTCALL vector_##t##_push_back(vector_##t* vec, t* element); \
 extern void FASTCALL vector_##t##_append(vector_##t* vec, uint64_t size); \
-extern void FASTCALL vector_##t##_expand(vector_##t* vec, uint64_t size); \
-extern void FASTCALL vector_##t##_remove(vector_##t* vec, uint64_t index); \
+extern void FASTCALL vector_##t##_resize(vector_##t* vec, uint64_t size); \
+extern void FASTCALL vector_##t##_erase(vector_##t* vec, uint64_t index); \
 extern void FASTCALL vector_##t##_clear(vector_##t* vec); \
-extern void FASTCALL vector_##t##_dispose(vector_##t* vec);
+extern void FASTCALL vector_##t##_free(vector_##t* vec);
 
 #define vector_ptr(t) \
 typedef struct vector_ptr_##t { \
@@ -28,16 +28,17 @@ typedef struct vector_ptr_##t { \
     t** capacity_end; \
 } vector_ptr_##t; \
 \
-extern void FASTCALL vector_ptr_##t##_append_element(vector_ptr_##t* vec, t** element); \
+extern void FASTCALL vector_ptr_##t##_push_back(vector_ptr_##t* vec, t** element); \
 extern void FASTCALL vector_ptr_##t##_append(vector_ptr_##t* vec, uint64_t size); \
-extern void FASTCALL vector_ptr_##t##_expand(vector_ptr_##t* vec, uint64_t size); \
-extern void FASTCALL vector_ptr_##t##_remove(vector_ptr_##t* vec, uint64_t index); \
+extern void FASTCALL vector_ptr_##t##_resize(vector_ptr_##t* vec, uint64_t size); \
+extern void FASTCALL vector_ptr_##t##_erase(vector_ptr_##t* vec, uint64_t index); \
 extern void FASTCALL vector_ptr_##t##_clear(vector_ptr_##t* vec, \
     void* FASTCALL dispose_func(void* data)); \
-extern void FASTCALL vector_ptr_##t##_dispose(vector_ptr_##t* vec);
+extern void FASTCALL vector_ptr_##t##_free(vector_ptr_##t* vec, \
+    void* FASTCALL dispose_func(void* data));
 
 #define vector_func(t) \
-void FASTCALL vector_##t##_append_element(vector_##t* vec, t* element) { \
+void FASTCALL vector_##t##_push_back(vector_##t* vec, t* element) { \
     int64_t old_length; \
 \
     if (element >= vec->end || vec->begin > element) { \
@@ -73,11 +74,11 @@ void FASTCALL vector_##t##_append(vector_##t* vec, uint64_t size) { \
 \
         if (temp_length < length + size) \
             temp_length = length + size; \
-        vector_##t##_expand(vec, temp_length); \
+        vector_##t##_resize(vec, temp_length); \
     } \
 } \
 \
-void FASTCALL vector_##t##_expand(vector_##t* vec, uint64_t size) { \
+void FASTCALL vector_##t##_resize(vector_##t* vec, uint64_t size) { \
     t* temp; \
     int64_t length; \
 \
@@ -96,7 +97,7 @@ void FASTCALL vector_##t##_expand(vector_##t* vec, uint64_t size) { \
     vec->begin = temp; \
 } \
 \
-void FASTCALL vector_##t##_remove(vector_##t* vec, uint64_t index) { \
+void FASTCALL vector_##t##_erase(vector_##t* vec, uint64_t index) { \
     memmove(&vec->begin[index], &vec->begin[index + 1], sizeof(t*) * (vec->end - &vec->begin[index + 1])); \
     vec->end--; \
 } \
@@ -105,7 +106,7 @@ void FASTCALL vector_##t##_clear(vector_##t* vec) { \
     vec->end = vec->begin; \
 } \
 \
-void FASTCALL vector_##t##_dispose(vector_##t* vec) { \
+void FASTCALL vector_##t##_free(vector_##t* vec) { \
     free(vec->begin); \
     vec->begin = 0; \
     vec->end = 0; \
@@ -113,7 +114,7 @@ void FASTCALL vector_##t##_dispose(vector_##t* vec) { \
 }
 
 #define vector_ptr_func(t) \
-void FASTCALL vector_ptr_##t##_append_element(vector_ptr_##t* vec, t** element) { \
+void FASTCALL vector_ptr_##t##_push_back(vector_ptr_##t* vec, t** element) { \
     int64_t old_length; \
 \
     if (element >= vec->end || vec->begin > element) { \
@@ -149,11 +150,11 @@ void FASTCALL vector_ptr_##t##_append(vector_ptr_##t* vec, uint64_t size) { \
 \
         if (temp_length < length + size) \
             temp_length = length + size; \
-        vector_ptr_##t##_expand(vec, temp_length); \
+        vector_ptr_##t##_resize(vec, temp_length); \
     } \
 } \
 \
-void FASTCALL vector_ptr_##t##_expand(vector_ptr_##t* vec, uint64_t size) { \
+void FASTCALL vector_ptr_##t##_resize(vector_ptr_##t* vec, uint64_t size) { \
     t** temp; \
     int64_t length; \
 \
@@ -172,7 +173,7 @@ void FASTCALL vector_ptr_##t##_expand(vector_ptr_##t* vec, uint64_t size) { \
     vec->begin = temp; \
 } \
 \
-void FASTCALL vector_ptr_##t##_remove(vector_ptr_##t* vec, uint64_t index) { \
+void FASTCALL vector_ptr_##t##_erase(vector_ptr_##t* vec, uint64_t index) { \
     memmove(&vec->begin[index], &vec->begin[index + 1], sizeof(t**) * (vec->end - &vec->begin[index + 1])); \
     vec->end--; \
 } \
@@ -193,7 +194,20 @@ void FASTCALL vector_ptr_##t##_clear(vector_ptr_##t* vec, \
     vec->end = vec->begin; \
 } \
 \
-void FASTCALL vector_ptr_##t##_dispose(vector_ptr_##t* vec) { \
+void FASTCALL vector_ptr_##t##_free(vector_ptr_##t* vec, \
+    void* FASTCALL dispose_func(void* data)) { \
+    t** i; \
+\
+    if (dispose_func) \
+        for (i = vec->begin; i != vec->end; i++) \
+            if (*i) { \
+                dispose_func(*i); \
+                *i = 0; \
+            } \
+    else \
+        for (i = vec->begin; i != vec->end; i++) \
+            free(*i); \
+\
     free(vec->begin); \
     vec->begin = 0; \
     vec->end = 0; \

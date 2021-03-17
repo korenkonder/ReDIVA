@@ -20,9 +20,10 @@ const classes_struct classes[] = {
         .render  = (void*)background_color_render,
         .sound   = (void*)background_color_sound,
     },
-    {
+    /*{
         .name    = "GLITTER TEST",
-        .flags   = CLASSES_INIT_AT_STARTUP | CLASSES_IN_CONTEXT_MENU,
+        //.flags   = CLASSES_INIT_AT_STARTUP | CLASSES_IN_CONTEXT_MENU,
+        .flags   = 0,
         .enabled = &glitter_test.enabled,
         .dispose = (void*)glitter_test_dispose,
         .init    = (void*)glitter_test_init,
@@ -31,7 +32,7 @@ const classes_struct classes[] = {
         .mui     = (void*)glitter_test_mui,
         .render  = (void*)glitter_test_render,
         .sound   = (void*)glitter_test_sound,
-    },
+    },*/
     {
         .name    = "POST PROCESS",
         .flags   = CLASSES_IN_CONTEXT_MENU,
@@ -43,6 +44,18 @@ const classes_struct classes[] = {
         .mui     = (void*)post_process_mui,
         .render  = (void*)post_process_render,
         .sound   = (void*)post_process_sound,
+    },
+    {
+        .name    = "GLITTER EDITOR",
+        .flags   = CLASSES_INIT_AT_STARTUP,
+        .enabled = &glitter_editor.enabled,
+        .dispose = (void*)glitter_editor_dispose,
+        .init    = (void*)glitter_editor_init,
+        .control = (void*)glitter_editor_control,
+        .input   = (void*)glitter_editor_input,
+        .mui     = (void*)glitter_editor_mui,
+        .render  = (void*)glitter_editor_render,
+        .sound   = (void*)glitter_editor_sound,
     },
 };
 

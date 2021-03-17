@@ -7,6 +7,7 @@
 
 #include "default.h"
 #include "half_t.h"
+#include "vector.h"
 
 #define IO_SEEK_SET 0
 #define IO_SEEK_CUR 1
@@ -14,12 +15,19 @@
 #define IO_EOF -1
 
 typedef enum stream_type {
-    STREAM_FILE = 0,
+    STREAM_FILE   = 0,
+    STREAM_MEMORY = 1,
 } stream_type;
 
 typedef struct stream {
     uint8_t buf[0x100];
-    void* io;
+    union io {
+        void* stream;
+        struct data {
+            uint8_t* data;
+            vector_uint8_t vec;
+        } data;
+    } io;
     size_t length;
     stream_type type;
     bool is_big_endian;
@@ -27,10 +35,11 @@ typedef struct stream {
 
 extern stream* io_open(char* path, char* mode);
 extern stream* io_wopen(wchar_t* path, wchar_t* mode);
+extern stream* io_open_memory(void* data, size_t length);
 extern void io_dispose(stream* s);
 extern void io_align(stream* s, size_t align);
 extern ssize_t io_get_position(stream* s);
-extern int32_t io_set_position(stream* s, size_t pos, int32_t seek);
+extern int32_t io_set_position(stream* s, ssize_t pos, int32_t seek);
 extern size_t io_read(stream* s, void* buf, size_t count);
 extern size_t io_write(stream* s, void* buf, size_t count);
 extern int32_t io_read_char(stream* s);

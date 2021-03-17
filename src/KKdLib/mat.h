@@ -22,8 +22,11 @@ typedef struct mat4 {
     vec4 row3;
 } mat4;
 
-extern void FASTCALL mat3_identity(mat3* x);
-extern void FASTCALL mat3_null(mat3* x);
+extern const mat3 mat3_identity;
+extern const mat3 mat3_null;
+extern const mat4 mat4_identity;
+extern const mat4 mat4_null;
+
 extern void FASTCALL mat3_add(mat3* x, mat3* y, mat3* z);
 extern void FASTCALL mat3_sub(mat3* x, mat3* y, mat3* z);
 extern void FASTCALL mat3_mult(mat3* x, mat3* y, mat3* z);
@@ -53,8 +56,6 @@ extern void FASTCALL mat3_scale_y_mult(mat3* x, float_t y, mat3* z);
 extern void FASTCALL mat3_scale_z_mult(mat3* x, float_t y, mat3* z);
 extern void FASTCALL mat3_from_quat(quat* quat, mat3* mat);
 
-extern void FASTCALL mat4_identity(mat4* x);
-extern void FASTCALL mat4_null(mat4* x);
 extern void FASTCALL mat4_add(mat4* x, mat4* y, mat4* z);
 extern void FASTCALL mat4_sub(mat4* x, mat4* y, mat4* z);
 extern void FASTCALL mat4_mult(mat4* x, mat4* y, mat4* z);

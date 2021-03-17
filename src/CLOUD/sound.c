@@ -19,7 +19,7 @@ int32_t sound_main(void* arg) {
             if (classes[i].sound)
                 classes[i].sound();
         double_t cycle_time = timer_calc_post(sound);
-        msleep(1000.0 / FREQ - cycle_time);
+        msleep(sound_timer, 1000.0 / FREQ - cycle_time);
     }
     timer_dispose(sound);
     return 0;

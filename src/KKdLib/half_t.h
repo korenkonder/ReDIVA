@@ -17,13 +17,7 @@
 
 typedef unsigned short half_t;
 
-#define reverse_endianess_half_t(value) \
-{ \
-    uint16_t v = (uint16_t)(value); \
-    v = ((v & 0xFF) << 8) | (((v >> 8) & 0xFF) << 0); \
-    (value) = (half_t)v; \
-}
-
+extern half_t reverse_endianess_half_t(half_t value);
 extern float_t half_to_float(half_t h);
 extern half_t float_to_half(float_t val);
 extern double_t half_to_double(half_t h);

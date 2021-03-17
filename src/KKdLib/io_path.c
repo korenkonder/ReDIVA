@@ -84,8 +84,7 @@ bool path_wcheck_ends_with(wchar_t* str, wchar_t* mask) {
 }
 
 void path_get_files(vector_ptr_char* files, char* dir_path) {
-    vector_ptr_char_clear(files, 0);
-    vector_ptr_char_dispose(files);
+    vector_ptr_char_free(files, 0);
 
     size_t dir_len = strlen(dir_path);
     char* temp = force_malloc(dir_len + 2 + MAX_PATH);
@@ -143,7 +142,7 @@ void path_get_files(vector_ptr_char* files, char* dir_path) {
             size_t len = strlen(fdata.cFileName);
             char* file = force_malloc_s(sizeof(char*), len + 1);
             memcpy(file, fdata.cFileName, (len + 1));
-            vector_ptr_char_append_element(files, &file);
+            vector_ptr_char_push_back(files, &file);
             j++;
         }
 
@@ -156,8 +155,7 @@ void path_get_files(vector_ptr_char* files, char* dir_path) {
 }
 
 void path_wget_files(vector_ptr_wchar_t* files, wchar_t* dir_path) {
-    vector_ptr_wchar_t_clear(files, 0);
-    vector_ptr_wchar_t_dispose(files);
+    vector_ptr_wchar_t_free(files, 0);
 
     size_t dir_len = wcslen(dir_path);
     wchar_t* dir = force_malloc_s(sizeof(wchar_t), dir_len + 3);
@@ -213,7 +211,7 @@ void path_wget_files(vector_ptr_wchar_t* files, wchar_t* dir_path) {
             size_t len = wcslen(fdata.cFileName);
             wchar_t* file = force_malloc_s(sizeof(wchar_t*), len + 1);
             memcpy(file, fdata.cFileName, sizeof(wchar_t) * (len + 1));
-            vector_ptr_wchar_t_append_element(files, &file);
+            vector_ptr_wchar_t_push_back(files, &file);
             j++;
         }
 

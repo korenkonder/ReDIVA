@@ -11,30 +11,29 @@
 #define GAUSSIAN_KERNEL_SIZE 7
 
 typedef struct radius {
-    bool update;
-    float_t val[4 * GAUSSIAN_KERNEL_SIZE];
+    vec4 val[GAUSSIAN_KERNEL_SIZE];
     vec3 rgb;
+    bool update;
 } radius;
 
 typedef struct intensity {
-    bool update;
     vec3 val;
     vec3 rgb;
+    bool update;
 } intensity;
 
 #define TONE_MAP_SAT_GAMMA_SAMPLES 32
 
 typedef struct tone_map_sat_gamma {
-    bool update;
     vec2 val[16 * TONE_MAP_SAT_GAMMA_SAMPLES];
     float_t gamma;
     float_t gamma_rate;
     int32_t saturate1;
     float_t saturate2;
+    bool update;
 } tone_map_sat_gamma;
 
 typedef struct tone_map_data {
-    bool update;
     float_t val[16];
     float_t exposure;
     bool auto_exposure;
@@ -44,6 +43,7 @@ typedef struct tone_map_data {
     vec3 tone_trans_start;
     vec3 tone_trans_end;
     int32_t tone_map_method;
+    bool update;
 } tone_map_data;
 
 extern radius* radius_init();

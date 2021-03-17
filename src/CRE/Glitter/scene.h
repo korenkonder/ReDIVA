@@ -12,7 +12,7 @@ extern bool FASTCALL glitter_scene_copy(glitter_scene* a1, glitter_effect_inst* 
 extern void FASTCALL glitter_scene_emit(glitter_scene* a1, float_t frame_speed);
 extern bool FASTCALL glitter_scene_has_ended(glitter_scene* scene, bool a2);
 extern void FASTCALL glitter_scene_init_effect(glitter_scene* a1,
-    glitter_effect* a2, int32_t id, bool appear_now);
+    glitter_effect* a2, size_t id, bool appear_now);
 extern void FASTCALL glitter_scene_update_scene(glitter_scene* a1, float_t delta_frame);
 extern void FASTCALL glitter_scene_update_value_frame(glitter_scene* a1, float_t delta_frame);
 extern void FASTCALL glitter_scene_dispose(glitter_scene* s);

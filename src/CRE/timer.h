@@ -9,14 +9,15 @@
 
 extern LARGE_INTEGER performance_frequency;
 
-#define HISTORY_COUNT 0x10
+#define HISTORY_COUNT 0x20
 
 #define timer_val(name) \
 double_t name##_history[HISTORY_COUNT]; \
 uint8_t name##_history_counter; \
 LARGE_INTEGER name##_curr_time, name##_prev_time; \
 double_t name##_freq = 0.0; \
-HANDLE name##_freq_lock = 0
+HANDLE name##_freq_lock = 0; \
+HANDLE name##_timer
 
 #define timer_init(name, mutex_name) \
 memset(name##_history, 0, sizeof(double_t) * HISTORY_COUNT); \
@@ -24,7 +25,8 @@ name##_history_counter = 0; \
 name##_curr_time.QuadPart = 0; \
 name##_prev_time.QuadPart = 0; \
 name##_freq = 0; \
-name##_freq_lock = CreateMutexW(0, false, L##mutex_name##L" Freq")
+name##_freq_lock = CreateMutexW(0, false, L##mutex_name##L" Freq"); \
+name##_timer = create_timer()
 
 #define timer_calc_pre(name) \
 if (name##_freq_lock) { \
@@ -50,7 +52,10 @@ timer_get_msec(name##_prev_time)
 #define timer_dispose(name) \
 if (name##_freq_lock) \
     CloseHandle(name##_freq_lock); \
+dispose_timer(name##_timer); \
 name##_freq_lock = 0
 
 extern double_t timer_get_msec(LARGE_INTEGER t);
-extern void msleep(double_t msec);
+extern HANDLE create_timer();
+extern void dispose_timer(HANDLE timer);
+extern void msleep(HANDLE timer, double_t msec);

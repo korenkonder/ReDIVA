@@ -29,12 +29,9 @@ void enrs_read(stream* s, vector_enrs_entry* enrs) {
     enrs_sub_entry sub_entry;
     vector_enrs_entry e;
     vector_enrs_sub_entry sub;
-    enrs_entry* i;
-    enrs_sub_entry* j;
-    size_t l;
+    size_t i, j, l;
 
-    vector_enrs_entry_clear(enrs);
-    vector_enrs_entry_dispose(enrs);
+    vector_enrs_entry_free(enrs);
 
     io_read_uint32_t(s);
     l = io_read_uint32_t(s);
@@ -43,8 +40,7 @@ void enrs_read(stream* s, vector_enrs_entry* enrs) {
 
     e = (vector_enrs_entry){ 0, 0, 0 };
     vector_enrs_entry_append(&e, l);
-    e.end = &e.begin[l];
-    for (i = e.begin; i != e.end; i++) {
+    for (i = 0; i < l; i++) {
         memset(&entry, 0, sizeof(enrs_entry));
         if (enrs_read_packed_value(s, &entry.offset)
             || enrs_read_packed_value(s, &entry.count)
@@ -53,22 +49,21 @@ void enrs_read(stream* s, vector_enrs_entry* enrs) {
             goto End;
 
         if (!entry.count || !entry.repeat_count) {
-            vector_enrs_entry_append_element(&e, &entry);
+            vector_enrs_entry_push_back(&e, &entry);
             continue;
         }
 
         sub = (vector_enrs_sub_entry){ 0, 0, 0 };
         vector_enrs_sub_entry_append(&sub, entry.count);
-        sub.end = &sub.begin[entry.count];
-        for (j = entry.sub.begin; j != entry.sub.end; j++) {
+        for (j = 0; j < entry.count; j++) {
             memset(&sub_entry, 0, sizeof(sub_entry));
             if (enrs_read_packed_value_type(s, &sub_entry.skip_bytes, &sub_entry.type)
                 || enrs_read_packed_value(s, &sub_entry.repeat_count))
                 goto End;
-            vector_enrs_sub_entry_append_element(&sub, &sub_entry);
+            vector_enrs_sub_entry_push_back(&sub, &sub_entry);
         }
         entry.sub = sub;
-        vector_enrs_entry_append_element(&e, &entry);
+        vector_enrs_entry_push_back(&e, &entry);
     }
 End:
     *enrs = e;

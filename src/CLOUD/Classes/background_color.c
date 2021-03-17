@@ -47,11 +47,8 @@ void background_color_mui() {
         background_color.disposed = false;
     }
 
-    int32_t title_w = min(width / 3, 360);
-    int32_t title_h = 132;
-
-    int32_t w = title_w;
-    int32_t h = title_h;
+    int32_t w = min(width / 3, 360);
+    int32_t h = muctx->style->title_height + 104;
 
     if (!mu_begin_window_ex(muctx, background_color_window_title,
         mu_rect(0, 0, w, h),

@@ -31,8 +31,8 @@ typedef enum farc_compress_mode {
 
 typedef struct farc_file {
     size_t offset;
-    int32_t size_compressed;
-    int32_t size_uncompressed;
+    size_t size_compressed;
+    size_t size_uncompressed;
     wchar_t* name;
     uint8_t* data;
     farc_type type;
@@ -56,5 +56,5 @@ extern void farc_read(farc* f, char* path, bool unpack, bool save);
 extern void farc_wread(farc* f, wchar_t* path, bool unpack, bool save);
 extern farc_file* farc_read_file(farc* f, char* name);
 extern farc_file* farc_wread_file(farc* f, wchar_t* name);
-extern void farc_write(farc* f, char* path, farc_compress_mode mode);
-extern void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode);
+extern void farc_write(farc* f, char* path, farc_compress_mode mode, bool get_files);
+extern void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode, bool get_files);
