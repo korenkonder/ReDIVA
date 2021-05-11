@@ -7,6 +7,9 @@
 
 #include "default.h"
 
+extern const uint64_t hash_fnv1a64_empty;
+extern const uint32_t hash_murmurhash_empty;
+
 extern uint64_t hash_fnv1a64(uint8_t* data, size_t length);
 extern uint64_t hash_char_fnv1a64(char* data);
 extern uint64_t hash_wchar_t_fnv1a64(wchar_t* data);

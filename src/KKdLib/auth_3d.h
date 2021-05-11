@@ -11,16 +11,16 @@
 #include "vec.h"
 
 typedef enum auth_3d_ambient_flags {
-    AUTH_3D_AMBIENT_LIGHT     = 0b01,
-    AUTH_3D_AMBIENT_RIM_LIGHT = 0b10,
+    AUTH_3D_AMBIENT_LIGHT     = 0x1,
+    AUTH_3D_AMBIENT_RIM_LIGHT = 0x2,
 } auth_3d_ambient_flags;
 
 typedef enum auth_3d_camera_auxiliary_flags {
-    AUTH_3D_CAMERA_EXPOSURE      = 0b00001,
-    AUTH_3D_CAMERA_GAMMA         = 0b00010,
-    AUTH_3D_CAMERA_SATURATE      = 0b00100,
-    AUTH_3D_CAMERA_AUTO_EXPOSURE = 0b01000,
-    AUTH_3D_CAMERA_GAMMA_RATE    = 0b10000,
+    AUTH_3D_CAMERA_EXPOSURE      = 0x01,
+    AUTH_3D_CAMERA_GAMMA         = 0x02,
+    AUTH_3D_CAMERA_SATURATE      = 0x04,
+    AUTH_3D_CAMERA_AUTO_EXPOSURE = 0x08,
+    AUTH_3D_CAMERA_GAMMA_RATE    = 0x10,
 } auth_3d_camera_auxiliary_flags;
 
 typedef enum auth_3d_compress_f16 {
@@ -37,10 +37,10 @@ typedef enum auth_3d_ep_type {
 } auth_3d_ep_type; // Pre/Post Infinity
 
 typedef enum auth_3d_fog_flags {
-    AUTH_3D_FOG_DENSITY = 0b0001,
-    AUTH_3D_FOG_START   = 0b0010,
-    AUTH_3D_FOG_END     = 0b0100,
-    AUTH_3D_FOG_DIFFUSE = 0b1000,
+    AUTH_3D_FOG_DENSITY = 0x1,
+    AUTH_3D_FOG_START   = 0x2,
+    AUTH_3D_FOG_END     = 0x4,
+    AUTH_3D_FOG_DIFFUSE = 0x8,
 } auth_3d_fog_flags;
 
 typedef enum auth_3d_key_type {
@@ -52,10 +52,10 @@ typedef enum auth_3d_key_type {
 } auth_3d_key_type;
 
 typedef enum auth_3d_light_flags {
-    AUTH_3D_LIGHT_AMBIENT       = 0b0001,
-    AUTH_3D_LIGHT_DIFFUSE       = 0b0010,
-    AUTH_3D_LIGHT_SPECULAR      = 0b0100,
-    AUTH_3D_LIGHT_INCANDESCENCE = 0b1000,
+    AUTH_3D_LIGHT_AMBIENT       = 0x1,
+    AUTH_3D_LIGHT_DIFFUSE       = 0x2,
+    AUTH_3D_LIGHT_SPECULAR      = 0x4,
+    AUTH_3D_LIGHT_INCANDESCENCE = 0x8,
 } auth_3d_light_flags;
 
 typedef enum auth_3d_material_list_flags {
@@ -64,25 +64,25 @@ typedef enum auth_3d_material_list_flags {
 } auth_3d_material_list_flags;
 
 typedef enum auth_3d_object_tex_transform_flags {
-    AUTH_3D_OBJECT_TEX_TRANSFORM_COVERAGE_U        = 0b0000000001,
-    AUTH_3D_OBJECT_TEX_TRANSFORM_COVERAGE_V        = 0b0000000010,
-    AUTH_3D_OBJECT_TEX_TRANSFORM_REPEAT_U          = 0b0000000100,
-    AUTH_3D_OBJECT_TEX_TRANSFORM_REPEAT_V          = 0b0000001000,
-    AUTH_3D_OBJECT_TEX_TRANSFORM_TRANSLATE_FRAME_U = 0b0000010000,
-    AUTH_3D_OBJECT_TEX_TRANSFORM_TRANSLATE_FRAME_V = 0b0000100000,
-    AUTH_3D_OBJECT_TEX_TRANSFORM_OFFSET_U          = 0b0001000000,
-    AUTH_3D_OBJECT_TEX_TRANSFORM_OFFSET_V          = 0b0010000000,
-    AUTH_3D_OBJECT_TEX_TRANSFORM_ROTATE_FRAME      = 0b0100000000,
-    AUTH_3D_OBJECT_TEX_TRANSFORM_ROTATE            = 0b1000000000,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_COVERAGE_U        = 0x001,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_COVERAGE_V        = 0x002,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_REPEAT_U          = 0x004,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_REPEAT_V          = 0x008,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_TRANSLATE_FRAME_U = 0x010,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_TRANSLATE_FRAME_V = 0x020,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_OFFSET_U          = 0x040,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_OFFSET_V          = 0x080,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_ROTATE_FRAME      = 0x100,
+    AUTH_3D_OBJECT_TEX_TRANSFORM_ROTATE            = 0x200,
 } auth_3d_object_tex_transform_flags;
 
 typedef enum auth_3d_post_process_flags {
-    AUTH_3D_POST_PROCESS_LENS_FLARE = 0b000001,
-    AUTH_3D_POST_PROCESS_LENS_SHAFT = 0b000010,
-    AUTH_3D_POST_PROCESS_LENS_GHOST = 0b000100,
-    AUTH_3D_POST_PROCESS_RADIUS     = 0b001000,
-    AUTH_3D_POST_PROCESS_INTENSITY  = 0b010000,
-    AUTH_3D_POST_PROCESS_SCENE_FADE = 0b100000,
+    AUTH_3D_POST_PROCESS_LENS_FLARE = 0x01,
+    AUTH_3D_POST_PROCESS_LENS_SHAFT = 0x02,
+    AUTH_3D_POST_PROCESS_LENS_GHOST = 0x04,
+    AUTH_3D_POST_PROCESS_RADIUS     = 0x08,
+    AUTH_3D_POST_PROCESS_INTENSITY  = 0x10,
+    AUTH_3D_POST_PROCESS_SCENE_FADE = 0x20,
 } auth_3d_post_process_flags;
 
 typedef struct auth_3d_key_raw_data {
@@ -115,6 +115,7 @@ typedef struct auth_3d_key {
 } auth_3d_key;
 
 v3(auth_3d_key)
+v4(auth_3d_key)
 
 typedef struct auth_3d_model_transform {
     bool written;
@@ -124,8 +125,6 @@ typedef struct auth_3d_model_transform {
     vec3_auth_3d_key trans;
     auth_3d_key visibility;
 } auth_3d_model_transform;
-
-v4(auth_3d_key)
 
 typedef struct auth_3d__ {
     auth_3d_compress_f16 compress_f16;

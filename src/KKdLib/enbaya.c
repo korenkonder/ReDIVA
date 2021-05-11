@@ -100,7 +100,7 @@ int32_t enb_initialize(uint8_t* data, enb_play_head** play_head) {
     ph->data_header = head;
     enb_init(ph, head);
 
-    ph->track_data = force_malloc_s(sizeof(enb_track), head->track_count);
+    ph->track_data = force_malloc_s(enb_track, head->track_count);
 
     if (!ph->track_data) {
         free(ph);

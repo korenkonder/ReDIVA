@@ -8,7 +8,7 @@
 
 const GLenum fbo_hdr_c_attachments[] = {
     GL_COLOR_ATTACHMENT0,
-    GL_COLOR_ATTACHMENT1,
+    GL_DEPTH_ATTACHMENT,
 };
 
 const GLenum fbo_hdr_f_attachments[] = {
@@ -49,17 +49,18 @@ static void fbo_hdr_bind_fbo(fbo_hdr* hfbo, vec2i* res, vec2i* res_2d) {
     hfbo->res_2d.x = res_2d->x > 1 ? res_2d->x : 1;
     hfbo->res_2d.y = res_2d->y > 1 ? res_2d->y : 1;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, hfbo->fbo[0]);
+    bind_framebuffer(hfbo->fbo[0]);
     fbo_helper_gen_texture_image_ms(hfbo->tcb[0], hfbo->res.x, hfbo->res.y, 1, GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT, 0);
-    fbo_helper_gen_texture_image_ms(hfbo->tcb[1], hfbo->res.x, hfbo->res.y, 1, GL_R16F, GL_RED, GL_HALF_FLOAT, 1);
+    fbo_helper_gen_texture_image_ms(hfbo->tcb[1], hfbo->res.x, hfbo->res.y, 1,
+        GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 16);
     glDrawBuffers(2, fbo_hdr_c_attachments);
     fbo_helper_get_error_code();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, hfbo->fbo[1]);
+    bind_framebuffer(hfbo->fbo[1]);
     fbo_helper_gen_texture_image_ms(hfbo->tcb[2], hfbo->res_2d.x, hfbo->res_2d.y, 1, GL_RGBA8, GL_RGBA, GL_BYTE, 0);
     glDrawBuffers(1, fbo_hdr_f_attachments);
     fbo_helper_get_error_code();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    bind_framebuffer(0);
 }
 
 void fbo_hdr_draw_aa(fbo_hdr* hfbo) {
@@ -67,11 +68,10 @@ void fbo_hdr_draw_aa(fbo_hdr* hfbo) {
         return;
 
     glViewport(0, 0, hfbo->res_2d.x, hfbo->res_2d.y);
-    glBindFramebuffer(GL_FRAMEBUFFER, hfbo->fbo[1]);
+    bind_framebuffer(hfbo->fbo[1]);
     shader_fbo_use(&hfbo->h_shader[hfbo->fxaa ? 1 : 0]);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, hfbo->tcb[0]);
-    glBindVertexArray(hfbo->vao);
+    bind_index_tex2d(0, hfbo->tcb[0]);
+    bind_vertex_array(hfbo->vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
@@ -80,9 +80,8 @@ void fbo_hdr_draw(fbo_hdr* hfbo) {
         return;
 
     shader_fbo_use(&hfbo->f_shader);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, hfbo->tcb[2]);
-    glBindVertexArray(hfbo->vao);
+    bind_index_tex2d(0, hfbo->tcb[2]);
+    bind_vertex_array(hfbo->vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 

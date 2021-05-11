@@ -7,22 +7,13 @@
 
 vector_func(f2_struct)
 
-static void f2_struct_dispose_sub(f2_struct* s);
 static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h);
 static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool use_depth, bool shift_x);
 static void f2_struct_get_length(f2_struct* s, bool shift_x);
 static void f2_struct_write_pof(stream* s, vector_size_t* pof, uint32_t depth, bool shift_x);
 static void f2_struct_write_enrs(stream* s, vector_enrs_entry* enrs, uint32_t depth);
 
-f2_struct* f2_struct_init() {
-    f2_struct* st = force_malloc(sizeof(f2_struct));
-    return st;
-}
-
-void f2_struct_dispose(f2_struct* st) {
-    if (!st)
-        return;
-
+void f2_struct_free(f2_struct* st) {
     if (st->data)
         free(st->data);
     if (st->pof.begin)
@@ -31,23 +22,8 @@ void f2_struct_dispose(f2_struct* st) {
         enrs_dispose(&st->enrs);
     if (st->sub_structs.begin) {
         for (f2_struct* i = st->sub_structs.begin; i != st->sub_structs.end; i++)
-            f2_struct_dispose_sub(i);
-        free(st->sub_structs.begin);
-    }
-    free(st);
-}
-
-static void f2_struct_dispose_sub(f2_struct* st) {
-    if (st->data)
-        free(st->data);
-    if (st->pof.begin)
-        vector_size_t_free(&st->pof);
-    if (st->enrs.begin)
-        enrs_dispose(&st->enrs);
-    if (st->sub_structs.begin) {
-        for (f2_struct* i = st->sub_structs.begin; i != st->sub_structs.end; i++)
-            f2_struct_dispose_sub(i);
-        free(st->sub_structs.begin);
+            f2_struct_free(i);
+        vector_f2_struct_free(&st->sub_structs);
     }
 }
 
@@ -109,6 +85,45 @@ void f2_struct_write_memory(f2_struct* st, void** data, size_t* length, bool use
     io_dispose(s);
 }
 
+static void f2_struct_get_length(f2_struct* s, bool shift_x) {
+    bool has_enrs, has_pof, has_sub_structs;
+    f2_struct* i;
+    uint32_t l;
+    vector_f2_struct ls;
+
+    has_pof = s->pof.end - s->pof.begin > 0 ? true : false;
+    has_enrs = s->enrs.end - s->enrs.begin > 0 ? true : false;
+    has_sub_structs = s->sub_structs.end - s->sub_structs.begin > 0 ? true : false;
+
+    s->header.section_size = s->data ? (uint32_t)s->length : 0;
+
+    l = s->header.section_size;
+    if (has_enrs) {
+        uint32_t len = enrs_length(&s->enrs);
+        l += 0x20 + align_val(len, 0x10);
+    }
+
+    if (has_pof) {
+        uint32_t len = pof_length(&s->pof, shift_x);
+        l += 0x20 + align_val(len, 0x10);
+    }
+
+    if (has_sub_structs) {
+        ls = s->sub_structs;
+        for (i = ls.begin; i != ls.end; i++) {
+            f2_struct_get_length(i, shift_x);
+            l += i->header.data_size;
+            l += i->header.length;
+        }
+        s->sub_structs = ls;
+    }
+
+    if (has_pof || has_sub_structs)
+        l += 0x20;
+
+    s->header.data_size = l;
+}
+
 static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h) {
     uint32_t l = h->use_section_size ? h->section_size : h->data_size;
     uint32_t depth = h->depth;
@@ -146,8 +161,8 @@ static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h) {
         lastSig = sig;
     }
 
-    if (!(st->sub_structs.end - st->sub_structs.begin))
-        free(st->sub_structs.begin);
+    if (st->sub_structs.end - st->sub_structs.begin < 1)
+        vector_f2_struct_free(&st->sub_structs);
 }
 
 static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool use_depth, bool shift_x) {
@@ -166,45 +181,6 @@ static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool
         f2_header_write_end_of_container(s, use_depth ? depth + 1 : 0);
     if (!depth)
         f2_header_write_end_of_container(s, 0);
-}
-
-static void f2_struct_get_length(f2_struct* s, bool shift_x) {
-    bool has_enrs, has_pof, has_sub_structs;
-    f2_struct* i;
-    uint32_t l;
-    vector_f2_struct ls;
-
-    has_pof = (s->pof.end - s->pof.begin) > 0 ? true : false;
-    has_enrs = (s->enrs.end - s->enrs.begin) > 0 ? true : false;
-    has_sub_structs = (s->sub_structs.end - s->sub_structs.begin) > 0 ? true : false;
-
-    s->header.section_size = s->data ? (uint32_t)s->length : 0;
-
-    l = s->header.section_size;
-    if (has_enrs) {
-        uint32_t len = enrs_length(&s->enrs);
-        l += 0x20 + align_val(len, 0x10);
-    }
-
-    if (has_pof) {
-        uint32_t len = pof_length(&s->pof, shift_x);
-        l += 0x20 + align_val(len, 0x10);
-    }
-
-    if (has_sub_structs) {
-        ls = s->sub_structs;
-        for (i = ls.begin; i != ls.end; i++) {
-            f2_struct_get_length(i, shift_x);
-            l += i->header.data_size;
-            l += i->header.length;
-        }
-        s->sub_structs = ls;
-    }
-
-    if (has_pof || has_sub_structs)
-        l += 0x20;
-
-    s->header.data_size = l;
 }
 
 static void f2_struct_write_pof(stream* s, vector_size_t* pof, uint32_t depth, bool shift_x) {

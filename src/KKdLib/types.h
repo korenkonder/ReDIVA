@@ -5,18 +5,12 @@
 
 #pragma once
 
+#include <float.h>
+#include <stdbool.h>
 #include <stdint.h>
 
-#define FORCE_INLINE __forceinline
 #define FASTCALL __fastcall
-
-#ifdef bool
-#undef bool
-#endif
-
-typedef char bool;
-#define true (1)
-#define false (0)
+#define ALIGN(n) __declspec(align(n))
 
 #ifdef ssize_t
 #undef ssize_t;

@@ -7,8 +7,10 @@
 
 #include "sort.h"
 
-FORCE_INLINE int32_t digit(int32_t n, size_t k, size_t m) {
-    return (n >> (RADIX * k) & (m - 1));
+#define RADIX 8
+
+inline int32_t digit(int32_t n, size_t k, size_t m) {
+    return (int32_t)(((ssize_t)n >> (RADIX * k) & (m - 1)));
 }
 
 void radix_sort(int32_t* array, size_t length) {

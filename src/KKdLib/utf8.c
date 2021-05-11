@@ -71,7 +71,7 @@ wchar_t* utf8_decode(char* s) {
             length++;
     }
 
-    wchar_t* str = force_malloc_s(sizeof(wchar_t), length + 1);
+    wchar_t* str = force_malloc_s(wchar_t, length + 1);
     for (size_t i = 0, j = 0; i < len; i++) {
         char t = s[i];
         if (~t & 0x80) {

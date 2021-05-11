@@ -53,36 +53,6 @@ bool path_wcheck_directory_exists(wchar_t* dir_path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? true : false;
 }
 
-bool path_check_ends_with(char* str, char* mask) {
-    size_t mask_len = strlen(mask);
-    size_t len = strlen(str);
-    char* t = str;
-    while (t) {
-        t = strstr(t, mask);
-        if (t) {
-            t += mask_len;
-            if (t == str + len)
-                return true;
-        }
-    }
-    return false;
-}
-
-bool path_wcheck_ends_with(wchar_t* str, wchar_t* mask) {
-    size_t mask_len = wcslen(mask);
-    size_t len = wcslen(str);
-    wchar_t* t = str;
-    while (t) {
-        t = wcsstr(t, mask);
-        if (t) {
-            t += mask_len;
-            if (t == str + len)
-                return true;
-        }
-    }
-    return false;
-}
-
 void path_get_files(vector_ptr_char* files, char* dir_path) {
     vector_ptr_char_free(files, 0);
 
@@ -111,7 +81,7 @@ void path_get_files(vector_ptr_char* files, char* dir_path) {
         count++;
     while (FindNextFileA(hFind, &fdata));
 
-    bool* found = force_malloc_s(sizeof(bool*), count);
+    bool* found = force_malloc_s(bool*, count);
 
     hFind = FindFirstFileA(dir, &fdata);
     size_t t_count = 0;
@@ -140,7 +110,7 @@ void path_get_files(vector_ptr_char* files, char* dir_path) {
     for (size_t i = 0, j = 0; i < count; i++) {
         if (found[i]) {
             size_t len = strlen(fdata.cFileName);
-            char* file = force_malloc_s(sizeof(char*), len + 1);
+            char* file = force_malloc_s(char*, len + 1);
             memcpy(file, fdata.cFileName, (len + 1));
             vector_ptr_char_push_back(files, &file);
             j++;
@@ -158,7 +128,7 @@ void path_wget_files(vector_ptr_wchar_t* files, wchar_t* dir_path) {
     vector_ptr_wchar_t_free(files, 0);
 
     size_t dir_len = wcslen(dir_path);
-    wchar_t* dir = force_malloc_s(sizeof(wchar_t), dir_len + 3);
+    wchar_t* dir = force_malloc_s(wchar_t, dir_len + 3);
     memcpy(dir, dir_path, sizeof(wchar_t) * dir_len);
     dir[dir_len] = L'\\';
     dir[dir_len + 1] = L'*';
@@ -177,9 +147,9 @@ void path_wget_files(vector_ptr_wchar_t* files, wchar_t* dir_path) {
         count++;
     while (FindNextFileW(hFind, &fdata));
 
-    bool* found = force_malloc_s(sizeof(bool), count);
+    bool* found = force_malloc_s(bool, count);
 
-    wchar_t* temp = force_malloc_s(sizeof(wchar_t), dir_len + 2 + MAX_PATH);
+    wchar_t* temp = force_malloc_s(wchar_t, dir_len + 2 + MAX_PATH);
     memcpy(temp, dir_path, sizeof(wchar_t) * dir_len);
     temp[dir_len] = L'\\';
     hFind = FindFirstFileW(dir, &fdata);
@@ -209,7 +179,7 @@ void path_wget_files(vector_ptr_wchar_t* files, wchar_t* dir_path) {
     for (size_t i = 0, j = 0; i < count; i++) {
         if (found[i]) {
             size_t len = wcslen(fdata.cFileName);
-            wchar_t* file = force_malloc_s(sizeof(wchar_t*), len + 1);
+            wchar_t* file = force_malloc_s(wchar_t*, len + 1);
             memcpy(file, fdata.cFileName, sizeof(wchar_t) * (len + 1));
             vector_ptr_wchar_t_push_back(files, &file);
             j++;
@@ -220,68 +190,4 @@ void path_wget_files(vector_ptr_wchar_t* files, wchar_t* dir_path) {
     }
     free(found);
     free(dir);
-}
-
-char* path_get_extension(char* path) {
-    char* t = strrchr(path, '\\');
-    t = strrchr(t ? t : path, '.');
-    size_t len = t ? t - path : 0;
-    char* ext = force_malloc(len + 1);
-    memcpy(ext, t ? t : path, len + 1);
-    return ext;
-}
-
-wchar_t* path_wget_extension(wchar_t* path) {
-    wchar_t* t = wcsrchr(path, L'\\');
-    t = wcsrchr(t ? t : path, L'.');
-    size_t len = t ? t - path : 0;
-    wchar_t* ext = force_malloc_s(sizeof(wchar_t), len + 1);
-    memcpy(ext, t ? t : path, sizeof(wchar_t) * (len + 1));
-    return ext;
-}
-
-char* path_get_without_extension(char* path) {
-    char* t = strrchr(path, '\\');
-    t = strrchr(t ? t : path, '.');
-    size_t len = t ? t - path : strlen(path);
-    char* p = force_malloc(len + 1);
-    memcpy(p, path, len);
-    p[len] = '\0';
-    return p;
-}
-
-wchar_t* path_wget_without_extension(wchar_t* path) {
-    wchar_t* t = wcsrchr(path, L'\\');
-    t = wcsrchr(t ? t : path, L'.');
-    size_t len = t ? t - path : wcslen(path);
-    wchar_t* p = force_malloc_s(sizeof(wchar_t), len + 1);
-    memcpy(p, path, sizeof(wchar_t) * len);
-    p[len] = L'\0';
-    return p;
-}
-
-char* path_add_extension(char* path, char* ext) {
-    if (!path)
-        return 0;
-
-    size_t len = strlen(path);
-    size_t ext_len = ext ? strlen(ext) : 0;
-    char* p = force_malloc(len + ext_len + 1);
-    memcpy(p, path, len);
-    memcpy(p + len, ext, ext_len);
-    p[len + ext_len] = '\0';
-    return p;
-}
-
-wchar_t* path_wadd_extension(wchar_t* path, wchar_t* ext) {
-    if (!path)
-        return 0;
-
-    size_t len = wcslen(path);
-    size_t ext_len = ext ? wcslen(ext) : 0;
-    wchar_t* p = force_malloc_s(sizeof(wchar_t), len + ext_len + 1);
-    memcpy(p, path, sizeof(wchar_t) * len);
-    memcpy(p + len, ext, sizeof(wchar_t) * ext_len);
-    p[len + ext_len] = L'\0';
-    return p;
 }

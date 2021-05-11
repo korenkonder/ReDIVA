@@ -7,9 +7,10 @@
 
 #include "render.h"
 #include "../CRE/camera.h"
-#include "../CRE/microui_atlas.inl"
+#include "../CRE/dof.h"
 #include "../CRE/post_process.h"
 #include "../CRE/random.h"
+#include "../CRE/shared.h"
 #include "../CRE/static_var.h"
 #include "../KKdLib/farc.h"
 #define GLEW_STATIC
@@ -17,11 +18,16 @@
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#include <cimgui_impl.h>
 #include "../CRE/fbo_dof.h"
 #include "../CRE/fbo_hdr.h"
 #include "../CRE/fbo_pp.h"
 #include "../CRE/fbo_render.h"
+#include "../CRE/lock.h"
 #include "../CRE/Glitter/particle_manager.h"
+
+vector(gl_object)
+vector_func(gl_object)
 
 vector_task_render tasks_render = { 0, 0, 0 };
 vector_task_render_draw2d tasks_render_draw2d = { 0, 0, 0 };
@@ -29,22 +35,21 @@ vector_task_render_draw3d tasks_render_draw3d = { 0, 0, 0 };
 static vector_task_render_draw2d tasks_render_draw2d_int = { 0, 0, 0 };
 static vector_task_render_draw3d tasks_render_draw3d_int = { 0, 0, 0 };
 
-vector_func(hash_ptr_gl_object)
-vector_func(hash_shader_model)
-vector_func(hash_texture)
-vector_func(hash_texture_set)
-vector_func(hash_ptr_vertex)
+static vector_task_render_draw3d temp_draw3d_tasks = { 0, 0, 0 };
+static vector_gl_object temp_draw3d_objects = { 0, 0, 0 };
 
 static vector_hash_ptr_gl_object vec_gl_obj = { 0, 0, 0 };
+static vector_hash_light_dir vec_light_dir = { 0, 0, 0 };
+static vector_hash_light_point vec_light_point = { 0, 0, 0 };
+static vector_hash_material vec_mat = { 0, 0, 0 };
 static vector_hash_shader_model vec_shad = { 0, 0, 0 };
 static vector_hash_texture vec_tex = { 0, 0, 0 };
 static vector_hash_texture_set vec_tex_set = { 0, 0, 0 };
+static vector_hash_texture_bone_mat vec_tex_bone_mat = { 0, 0, 0 };
 static vector_hash_ptr_vertex vec_vert = { 0, 0, 0 };
 
-static texture dir_lights;
-static int32_t dir_lights_count;
-static texture point_lights;
-static int32_t point_lights_count;
+static texture light_dir_tex;
+static texture light_point_tex;
 
 static fbo_render* rfbo;
 static fbo_hdr* hfbo;
@@ -60,26 +65,49 @@ static shader_fbo hfbs[2];
 static shader_fbo tfbs;
 shader_fbo particle_shader;
 shader_fbo sprite_shader;
-shader_fbo mu_shader;
+shader_fbo grid_shader;
+
+shader_model default_shader;
+material default_material;
+texture_set default_texture;
+texture_bone_mat default_bone_mat;
+vertex* default_vertex;
+
+#define grid_size 50.0f
+#define grid_spacing 0.5f
+#define grid_vertex_count ((size_t)((grid_size * 2.0f) / grid_spacing) + 1) * 4
 
 static int32_t fb_vao, fb_vbo;
+static int32_t grid_vao, grid_vbo;
 static int32_t common_ubo = 0;
 static int32_t dof_common_ubo = 0;
 static int32_t dof_texcoords_ubo = 0;
 static int32_t tone_map_ubo = 0;
 static int32_t global_matrices_ubo = 0;
 
-bool   micro_ui = true;
+bool      imgui = true;
 bool         ui = true;
 bool   front_2d = true;
 bool g_front_3d = true;
+bool    grid_3d = false;
 bool c_front_3d = true;
 bool    back_2d = true;
-bool    back_3d = true;
+bool  g_back_3d = true;
+bool  c_back_3d = true;
+bool glitter_3d = true;
 
-bool enable_dof          = false;
-bool enable_dof_f2       = false;
 bool enable_post_process = true;
+
+static const float_t light_dir_data_default[6] = {
+    0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f,
+};
+
+static const float_t light_point_data_default[12] = {
+    0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f,
+};
 
 static const double_t const_scale[] = {
      1.0 / 8.0, //  12.5%
@@ -110,73 +138,46 @@ vec2i internal_res;
 int32_t width;
 int32_t height;
 
-render_state state;
-
 static const double_t aspect = 16.0 / 9.0;
 camera* cam;
+dof_struct* dof;
 radius* rad;
 intensity* inten;
 tone_map_sat_gamma* tmsg;
 tone_map_data* tmd;
 glitter_particle_manager* gpm;
-
-texture mu_font;
-HANDLE mu_lock = 0;
-HANDLE mu_input_lock = 0;
-vector_wchar_t mu_input;
-vector_char mu_input_ansi;
-
-#define MU_BUFFER_SIZE 16384
-static GLfloat* mu_vert_buf;
-static GLfloat* mu_uv_buf;
-static GLfloat* mu_color_buf;
-static GLfloat* mu_depth_buf;
-static GLuint* mu_index_buf;
-static size_t mu_buf_idx;
-static int32_t mu_vao, mu_vert_vbo, mu_uv_vbo, mu_color_vbo, mu_depth_vbo;
-
-/*
-Camera.Struct camStruct = new Camera.Struct();
-Camera.DOF dof = new Camera.DOF();*/
-
-static mat4* dir_light_data;
-static mat4* point_light_trans;
-static mat4* point_light_data;
+glitter_type glt_type;
+vec3 back3d_color;
 
 static void render_load();
 static void render_update();
 static void render_draw();
 static void render_dispose();
 
-static void render_micro_ui();
-static void render_ui();
-static void render_front_2d();
-static void render_c_front_3d();
-static void render_g_front_3d();
-static void render_back_3d();
-static void render_back_2d();
+static void render_imgui();
+static void render_2d(task_render_draw2d_type type);
+static void render_c_3d(task_render_draw3d_type type);
+static void render_c_3d_translucent(task_render_draw3d_type type);
+static void render_g_3d(task_render_draw3d_type type);
+static void render_grid_3d();
+static void render_glitter_3d(int32_t alpha);
 
+static void render_drop_glfw(GLFWwindow* window, int count, char** paths);
 static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h);
 static void render_resize_fb(bool change_fb);
-static void render_input_text_glfw(GLFWwindow* window, uint32_t codepoint);
-static void render_input_mouse_scroll_glfw(GLFWwindow* window, double_t xoffset, double_t yoffset);
 
-static void render_dof_get_texcoords(float_t* a1, float_t a2);
-
-static void render_mui_flush();
-static void render_mui_push_quad(mu_Rect dst, mu_Rect src, mu_Color color);
-static inline void render_mui_draw_rect(mu_Rect rect, mu_Color color);
-static inline void render_mui_draw_text(const char* text, mu_Vec2 pos, mu_Color color);
-static inline void render_mui_draw_icon(int id, mu_Rect rect, mu_Color color);
-static inline void render_mui_set_clip_rect(mu_Rect rect);
-static inline void render_mui_draw_texture();
-static int render_mui_get_text_width(mu_Font font, const char* text, size_t len);
-static int render_mui_get_text_height(mu_Font font);
+static void render_dof_get_texcoords(vec2* data, float_t a2);
+static void render_imgui_context_menu(classes_struct* classes, const size_t classes_count);
+static bool render_glitter_mesh_add_list(glitter_particle_mesh* mesh, vec4* color, mat4* model, mat4* uv_mat);
+static void render_update_uniform_c(task_render_uniform* uniform, shader_model* s);
+static void render_update_uniform_g(task_render_uniform* uniform, shader_model* s);
 
 extern bool close;
-HANDLE render_lock = 0;
+lock_val(render_lock);
 HWND window_handle;
 GLFWwindow* window;
+ImGuiContext* ig;
+bool global_context_menu;
 
 #define FREQ 60
 #include "../CRE/timer.h"
@@ -186,30 +187,17 @@ int32_t render_main(void* arg) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
     timer_init(render, "Render");
 
-    render_lock = CreateMutexW(0, 0, L"Render");
-    if (!render_lock)
+    lock_init(render_lock);
+    if (!lock_check_init(render_lock))
         goto End;
-
-    mu_lock = CreateMutexW(0, 0, L"microui");
-    if (!mu_lock)
-        goto End;
-
-    mu_input_lock = CreateMutexW(0, 0, L"microui Input");
-    if (!mu_input_lock)
-        goto End;
-
-    vector_wchar_t_append(&mu_input, 1);
-    mu_input.end++;
-    mu_input.end[-1] = 0;
-    vector_char_append(&mu_input_ansi, 1);
-    mu_input_ansi.end++;
-    mu_input_ansi.end[-1] = 0;
 
     render_init_struct* ris = (render_init_struct*)arg;
     window_handle = 0;
     state = RENDER_UNINITIALIZED;
+
+#pragma region GLFW GLEW Init
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -229,7 +217,14 @@ int32_t render_main(void* arg) {
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, FREQ);
 
-    window = glfwCreateWindow(width, height, "CLOUD",
+    const char* glfw_titlelabel;
+#ifdef CLOUD_DEV
+    glfw_titlelabel = "CLOUDDev";
+#else
+    glfw_titlelabel = "CLOUD";
+#endif
+
+    window = glfwCreateWindow(width, height, glfw_titlelabel,
         mode->width == width && mode->height == height ? monitor : 0, 0);
     if (!window) {
         glfwTerminate();
@@ -239,10 +234,9 @@ int32_t render_main(void* arg) {
     window_handle = glfwGetWin32Window(window);
     glfwMakeContextCurrent(window);
     glfwFocusWindow(window);
+    glfwSetDropCallback(window, (void*)render_drop_glfw);
     glfwSetWindowSizeCallback(window, (void*)render_resize_fb_glfw);
-    glfwSetCharCallback(window, (void*)render_input_text_glfw);
-    glfwSetScrollCallback(window, (void*)render_input_mouse_scroll_glfw);
-    glfwSetWindowSizeLimits(window, 640, 360, GLFW_DONT_CARE, GLFW_DONT_CARE);
+    glfwSetWindowSizeLimits(window, 960, 540, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
     RECT window_rect;
     GetClientRect(window_handle, &window_rect);
@@ -264,15 +258,15 @@ int32_t render_main(void* arg) {
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &sv_max_texture_max_anisotropy);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+#pragma endregion
 
     state = RENDER_INITIALIZING;
-    WaitForSingleObject(render_lock, INFINITE);
-    WaitForSingleObject(mu_lock, INFINITE);
+    lock_lock(render_lock);
     render_load();
-    ReleaseMutex(mu_lock);
-    ReleaseMutex(render_lock);
+    lock_unlock(render_lock);
     state = RENDER_INITIALIZED;
 
+#pragma region GL Init
     glfwGetFramebufferSize(window, &width, &height);
     glViewport(0, 0, width, height);
     glfwSwapInterval(0);
@@ -282,34 +276,37 @@ int32_t render_main(void* arg) {
     glDisable(GL_DEPTH_TEST);
     glDepthMask(false);
     glDisable(GL_CULL_FACE);
+#pragma endregion
 
     while (!close) {
         timer_calc_pre(render);
         glfwPollEvents();
-        WaitForSingleObject(render_lock, INFINITE);
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        igNewFrame();
+        lock_lock(render_lock);
         render_update();
-        ReleaseMutex(render_lock);
-        WaitForSingleObject(mu_lock, INFINITE);
+        lock_unlock(render_lock);
         render_draw();
-        ReleaseMutex(mu_lock);
         glfwSwapBuffers(window);
         close |= glfwWindowShouldClose(window);
         double_t cycle_time = timer_calc_post(render);
         msleep(render_timer, 1000.0 / FREQ - cycle_time);
     }
-    CloseHandle(mu_lock);
-    CloseHandle(mu_input_lock);
-    mu_lock = 0;
-    mu_input_lock = 0;
 
-    WaitForSingleObject(render_lock, INFINITE);
+    state = RENDER_DISPOSING;
+
+    lock_lock(render_lock);
     render_dispose();
-    ReleaseMutex(render_lock);
+    lock_unlock(render_lock);
 
+    state = RENDER_DISPOSED;
+
+#pragma region GLFW Dispose
     glfwDestroyWindow(window);
     glfwTerminate();
-    CloseHandle(render_lock);
-    render_lock = 0;
+#pragma endregion
+    lock_dispose(render_lock);
 
 End:
     timer_dispose(render);
@@ -317,58 +314,76 @@ End:
 }
 
 static void render_load() {
+    tasks_render = (vector_task_render){ 0, 0, 0 };
+    tasks_render_draw2d = (vector_task_render_draw2d){ 0, 0, 0 };
+    tasks_render_draw3d = (vector_task_render_draw3d){ 0, 0, 0 };
+    tasks_render_draw2d_int = (vector_task_render_draw2d){ 0, 0, 0 };
+    tasks_render_draw3d_int = (vector_task_render_draw3d){ 0, 0, 0 };
+
+    temp_draw3d_tasks = (vector_task_render_draw3d){ 0, 0, 0 };
+    temp_draw3d_objects = (vector_gl_object){ 0, 0, 0 };
+
+    vec_gl_obj = (vector_hash_ptr_gl_object){ 0, 0, 0 };
+    vec_light_dir = (vector_hash_light_dir){ 0, 0, 0 };
+    vec_light_point = (vector_hash_light_point){ 0, 0, 0 };
+    vec_mat =  (vector_hash_material){ 0, 0, 0 };
+    vec_shad = (vector_hash_shader_model){ 0, 0, 0 };
+    vec_tex = (vector_hash_texture){ 0, 0, 0 };
+    vec_tex_set = (vector_hash_texture_set){ 0, 0, 0 };
+    vec_tex_bone_mat = (vector_hash_texture_bone_mat){ 0, 0, 0 };
+    vec_vert = (vector_hash_ptr_vertex){ 0, 0, 0 };
+
     cam = camera_init();
+    dof = dof_init();
     rad = radius_init();
     inten = intensity_init();
     tmsg = tone_map_sat_gamma_init();
     tmd = tone_map_data_init();
     gpm = glitter_particle_manager_init();
-    muctx = force_malloc(sizeof(mu_Context));
 
+    dof_initialize(dof, 0, 0);
     radius_initialize(rad, (vec3[]) { 2.0f, 2.0f, 2.0f });
     intensity_initialize(inten, (vec3[]) { 1.0f, 1.0f, 1.0f });
     tone_map_sat_gamma_initialize(tmsg, 1.0f, 1, 1.0f);
     tone_map_data_initialize(tmd, 2.0f, true, (vec3[]) { 0.0f, 0.0f, 0.0f}, 0.0f, 0,
         (vec3[]) { 0.0f, 0.0f, 0.0f }, (vec3[]) { 1.0f, 1.0f, 1.0f }, 0);
 
-    mu_init(muctx);
-    muctx->text_width = render_mui_get_text_width;
-    muctx->text_height = render_mui_get_text_height;
-
     camera_initialize(cam, aspect, 70.0);
     camera_reset(cam);
-    //camera_move_vec3(cam, &(vec3){ 1.35542f, 1.41634f, 1.27852f });
-    //camera_rotate_vec2(cam, &(vec2){ -45.0f, -32.5f });
-    //camera_move_vec3(cam, &(vec3){ -6.67555f, 4.68882f, -3.67537f });
-    //camera_rotate_vec2(cam, &(vec2){ 136.5f, -20.5f });
-    camera_move_vec3(cam, &(vec3){ 0.0f, 1.0f, 3.45f });
+    //camera_set_position(cam, &(vec3){ 1.35542f, 1.41634f, 1.27852f });
+    //camera_rotate(cam, &(vec2d){ -45.0, -32.5 });
+    //camera_set_position(cam, &(vec3){ -6.67555f, 4.68882f, -3.67537f });
+    //camera_rotate(cam, &(vec2d){ 136.5, -20.5 });
+    camera_set_position(cam, &(vec3){ 0.0f, 1.0f, 3.45f });
 
     glGenBuffers(1, &global_matrices_ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, global_matrices_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(mat4) * 4, 0, GL_STREAM_DRAW);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, global_matrices_ubo, 0, sizeof(mat4) * 4);
-
     glGenBuffers(1, &dof_common_ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, dof_common_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, 16 * 4, 0, GL_STREAM_DRAW);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, dof_common_ubo, 0, 16 * 4);
-
     glGenBuffers(1, &common_ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, common_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, 4 * 4, 0, GL_STREAM_DRAW);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, common_ubo, 0, 4 * 4);
-
     glGenBuffers(1, &tone_map_ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, tone_map_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, 16 * 4, 0, GL_STREAM_DRAW);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, tone_map_ubo, 0, 16 * 4);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
     glGenBuffers(1, &dof_texcoords_ubo);
 
-#pragma region LoadShaders
+    bind_uniform_buffer(global_matrices_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(mat4) * 4, 0, GL_STREAM_DRAW);
+
+    bind_uniform_buffer(dof_common_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, 16 * 4, 0, GL_STREAM_DRAW);
+
+    bind_uniform_buffer(common_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, 4 * 4, 0, GL_STREAM_DRAW);
+
+    bind_uniform_buffer(tone_map_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, 16 * 4, 0, GL_STREAM_DRAW);
+    bind_uniform_buffer(0);
+
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, global_matrices_ubo, 0, sizeof(mat4) * 4);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, dof_common_ubo, 0, 16 * 4);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, common_ubo, 0, 4 * 4);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, tone_map_ubo, 0, 16 * 4);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, dof_texcoords_ubo, 0, align_val(7 * 7, 2) * sizeof(vec2));
+
+#pragma region Load Shaders
     char temp[0x80];
-    memset(temp, 0, 0x80);
+    memset(temp, 0, sizeof(temp));
 
     hfbo = fbo_hdr_init();
     rfbo = fbo_render_init();
@@ -376,31 +391,31 @@ static void render_load() {
     pfbo = fbo_pp_init();
 
     float_t verts_quad[] = {
-        -1, -1, -1, 1, 1, -1, 1, 1
+        -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f, 1.0f
     };
 
     glGenBuffers(1, &fb_vbo);
     glGenVertexArrays(1, &fb_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, fb_vbo);
+    bind_array_buffer(fb_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(verts_quad), verts_quad, GL_STATIC_DRAW);
 
-    glBindVertexArray(fb_vao);
+    bind_vertex_array(fb_vao);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, false, 8, 0); // Pos
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8, 0); // Pos
+    bind_vertex_array(0);
+    bind_array_buffer(0);
 
     farc* f = farc_init();
     farc_read(f, "rom\\core_shaders.farc", true, false);
 
     shader_param param;
 
-    for (int32_t i = 0; i < 5; i++) {
+    for (size_t i = 0; i < 5; i++) {
         memset(&param, 0, sizeof(shader_param));
         param.name = L"Color FB";
         param.vert = L"rfb";
         param.frag = L"cfb";
-        sprintf_s(temp, 0x80, "SAMPLES%d", 1 << i);
+        sprintf_s(temp, sizeof(temp), "SAMPLES%d", 1 << i);
         param.param[0] = temp;
         shader_fbo_load(&cfbs[i], f, &param);
 
@@ -408,7 +423,7 @@ static void render_load() {
         param.name = L"Color FB";
         param.vert = L"rfb";
         param.frag = L"cfb";
-        sprintf_s(temp, 0x80, "SAMPLES%d", 1 << i);
+        sprintf_s(temp, sizeof(temp), "SAMPLES%d", 1 << i);
         param.param[0] = temp;
         param.param[1] = "DEPTH";
         shader_fbo_load(&cfbs[i + 5], f, &param);
@@ -417,7 +432,7 @@ static void render_load() {
         param.name = L"G-Buffer FB";
         param.vert = L"rfb";
         param.frag = L"gfb";
-        sprintf_s(temp, 0x80, "SAMPLES%d", 1 << i);
+        sprintf_s(temp, sizeof(temp), "SAMPLES%d", 1 << i);
         param.param[0] = temp;
         shader_fbo_load(&gfbs[i], f, &param);
     }
@@ -449,13 +464,13 @@ static void render_load() {
         L"dof5",
     };
 
-    for (int32_t i = 0; i < 2; i++)
+    for (size_t i = 0; i < 2; i++)
         for (int32_t j = 0; j < 5; j++) {
             memset(&param, 0, sizeof(shader_param));
             param.name = L"DOF FB";
             param.vert = L"rfb";
             param.frag = dof_shaders[j];
-            sprintf_s(temp, 0x80, "USE_F2_COC (%d)", i);
+            sprintf_s(temp, sizeof(temp), "USE_F2_COC (%lld)", i);
             param.param[0] = temp;
             shader_fbo_load(&dfbs[i * 5 + j], f, &param);
         }
@@ -479,14 +494,15 @@ static void render_load() {
         L"exposure3",
     };
 
-    for (int32_t i = 0; i < 16; i++) {
+    for (size_t i = 0; i < 16; i++) {
         memset(&param, 0, sizeof(shader_param));
+        param.param[0] = temp;
         param.name = L"Post Process FB";
         param.vert = post_process_shaders[i];
         param.frag = post_process_shaders[i];
         shader_fbo_load(&bfbs[i], f, &param);
     }
-    
+
     memset(&param, 0, sizeof(shader_param));
     param.name = L"Tone Map FB";
     param.vert = L"tone_map";
@@ -506,32 +522,258 @@ static void render_load() {
     shader_fbo_load(&sprite_shader, f, &param);
 
     memset(&param, 0, sizeof(shader_param));
-    param.name = L"microui";
-    param.vert = L"microui";
-    param.frag = L"microui";
-    shader_fbo_load(&mu_shader, f, &param);
+    param.name = L"Grid";
+    param.vert = L"grid";
+    param.frag = L"grid";
+    shader_fbo_load(&grid_shader, f, &param);
+    farc_dispose(f);
 
-    for (int32_t i = 0; i < 10; i++) {
+    {
+        uint8_t tex_dat_diffuse[] = {
+            0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00,
+            0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+            0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00,
+            0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+            0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00,
+            0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+            0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00,
+            0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+            0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF,
+        };
+
+        texture_data tex_data_diffuse = {
+            .type = TEXTURE_2D,
+            .width = 8,
+            .height = 8,
+            .depth = 0,
+            .data = tex_dat_diffuse,
+            .pixel_type = GL_UNSIGNED_BYTE,
+            .pixel_format = GL_RGB,
+            .pixel_internal_format = GL_RGB8,
+            .generate_mipmap = false,
+            .wrap_mode_s = GL_REPEAT,
+            .wrap_mode_t = GL_REPEAT,
+            .wrap_mode_r = GL_REPEAT,
+            .min_filter = GL_NEAREST,
+            .mag_filter = GL_NEAREST,
+        };
+
+        uint8_t tex_dat_other[] = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        };
+
+        texture_data tex_data_other = {
+            .type = TEXTURE_2D,
+            .width = 8,
+            .height = 8,
+            .depth = 0,
+            .data = tex_dat_other,
+            .pixel_type = GL_UNSIGNED_BYTE,
+            .pixel_format = GL_RGB,
+            .pixel_internal_format = GL_RGB8,
+            .generate_mipmap = false,
+            .wrap_mode_s = GL_REPEAT,
+            .wrap_mode_t = GL_REPEAT,
+            .wrap_mode_r = GL_REPEAT,
+            .min_filter = GL_NEAREST,
+            .mag_filter = GL_NEAREST,
+        };
+
+        texture_set_data tex_set;
+        memset(&tex_set, 0, sizeof(texture_set_data));
+        tex_set.diffuse = &tex_data_diffuse;
+        tex_set.specular = &tex_data_other;
+        tex_set.displacement = &tex_data_other;
+        tex_set.normal = &tex_data_other;
+        tex_set.albedo = &tex_data_other;
+        tex_set.ao = &tex_data_other;
+        tex_set.metallic = &tex_data_other;
+        tex_set.roughness = &tex_data_other;
+        texture_set_load(&default_texture, &tex_set);
+
+        default_material.texture = default_texture;
+        default_material.blend = material_blend_default;
+        default_material.translucent = false;
+
+        shader_model_update param_model;
+        memset(&param_model, 0, sizeof(shader_model_update));
+
+        stream* s;
+        size_t l;
+
+        s = io_wopen(L"rom\\shaders\\0000.vert", L"r");
+        l = s->length;
+        param_model.vert = force_malloc(l + 1);
+        io_read(s, param_model.vert, l);
+        param_model.vert[l] = 0;
+        io_dispose(s);
+
+        s = io_wopen(L"rom\\shaders\\0000_c.frag", L"r");
+        l = s->length;
+        param_model.frag_c = force_malloc(l + 1);
+        io_read(s, param_model.frag_c, l);
+        param_model.frag_c[l] = 0;
+        io_dispose(s);
+
+        s = io_wopen(L"rom\\shaders\\0000_g.frag", L"r");
+        l = s->length;
+        param_model.frag_g = force_malloc(l+ 1);
+        io_read(s, param_model.frag_g, l);
+        param_model.frag_g[l] = 0;
+        io_dispose(s);
+
+        memset(&param, 0, sizeof(shader_param));
+        param.name = L"Default";
+        param_model.param = param;
+        shader_model_load(&default_shader, &param_model);
+        free(param_model.vert);
+        free(param_model.frag_c);
+        free(param_model.frag_g);
+
+        float_t verts_cube[] = {
+            -1.0f, -1.0f, -1.0f, 1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+             1.0f,  1.0f, -1.0f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+             1.0f, -1.0f, -1.0f, 0.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+             1.0f,  1.0f, -1.0f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f, 1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f, 1.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,
+             1.0f, -1.0f,  1.0f, 1.0f, 1.0f,  0.0f,  0.0f,  1.0f,
+             1.0f,  1.0f,  1.0f, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f,
+             1.0f,  1.0f,  1.0f, 0.0f, 1.0f,  0.0f,  0.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f, 0.0f, 0.0f,  0.0f,  0.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f, 1.0f, 0.0f,  0.0f,  0.0f,  1.0f,
+
+            -1.0f,  1.0f,  1.0f, 0.0f, 1.0f, -1.0f,  0.0f,  0.0f,
+            -1.0f,  1.0f, -1.0f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f,
+            -1.0f, -1.0f, -1.0f, 1.0f, 0.0f, -1.0f,  0.0f,  0.0f,
+            -1.0f, -1.0f, -1.0f, 1.0f, 0.0f, -1.0f,  0.0f,  0.0f,
+            -1.0f, -1.0f,  1.0f, 1.0f, 1.0f, -1.0f,  0.0f,  0.0f,
+            -1.0f,  1.0f,  1.0f, 0.0f, 1.0f, -1.0f,  0.0f,  0.0f,
+
+             1.0f,  1.0f, -1.0f, 0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+             1.0f,  1.0f,  1.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+             1.0f, -1.0f, -1.0f, 1.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+             1.0f, -1.0f,  1.0f, 1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+             1.0f, -1.0f, -1.0f, 1.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+             1.0f,  1.0f,  1.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+
+            -1.0f, -1.0f, -1.0f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+             1.0f, -1.0f, -1.0f, 1.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+             1.0f, -1.0f,  1.0f, 1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+             1.0f, -1.0f,  1.0f, 1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+            -1.0f, -1.0f,  1.0f, 0.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+            -1.0f, -1.0f, -1.0f, 0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+
+            -1.0f,  1.0f, -1.0f, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+             1.0f,  1.0f,  1.0f, 1.0f, 1.0f,  0.0f,  1.0f,  0.0f,
+             1.0f,  1.0f, -1.0f, 1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+             1.0f,  1.0f,  1.0f, 1.0f, 1.0f,  0.0f,  1.0f,  0.0f,
+            -1.0f,  1.0f, -1.0f, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+            -1.0f,  1.0f,  1.0f, 0.0f, 1.0f,  0.0f,  1.0f,  0.0f,
+        };
+
+        vertex_update vert_upd;
+        memset(&vert_upd, 0, sizeof(vertex_update));
+        vert_upd.data = verts_cube;
+        vert_upd.length = sizeof(verts_cube) / sizeof(float_t);
+        vert_upd.uv = true;
+        vert_upd.normal = true;
+
+        default_vertex = vertex_init();
+        vertex_load(default_vertex, &vert_upd);
+
+        texture_bone_mat_data tex_bone_mat;
+        memset(&tex_bone_mat, 0, sizeof(texture_bone_mat_data));
+        tex_bone_mat.count = 1;
+        tex_bone_mat.data = (mat4*)&mat4_identity;
+        texture_bone_mat_load(&default_bone_mat, &tex_bone_mat);
+
+        texture_data light_dir_tex_data = {
+            .type = TEXTURE_2D,
+            .width = 2,
+            .height = 1,
+            .depth = 0,
+            .data = (void*)light_dir_data_default,
+            .pixel_type = GL_FLOAT,
+            .pixel_format = GL_RGB,
+            .pixel_internal_format = GL_RGB32F,
+            .generate_mipmap = false,
+            .wrap_mode_s = GL_REPEAT,
+            .wrap_mode_t = GL_REPEAT,
+            .wrap_mode_r = GL_REPEAT,
+            .min_filter = GL_NEAREST,
+            .mag_filter = GL_NEAREST,
+        };
+
+        memset(&light_dir_tex, 0, sizeof(texture));
+        texture_load(&light_dir_tex, &light_dir_tex_data);
+
+        texture_data light_point_tex_data = {
+            .type = TEXTURE_2D,
+            .width = 3,
+            .height = 1,
+            .depth = 0,
+            .data = (void*)light_point_data_default,
+            .pixel_type = GL_FLOAT,
+            .pixel_format = GL_RGBA,
+            .pixel_internal_format = GL_RGBA32F,
+            .generate_mipmap = false,
+            .wrap_mode_s = GL_REPEAT,
+            .wrap_mode_t = GL_REPEAT,
+            .wrap_mode_r = GL_REPEAT,
+            .min_filter = GL_NEAREST,
+            .mag_filter = GL_NEAREST,
+        };
+
+        memset(&light_point_tex, 0, sizeof(texture));
+        texture_load(&light_point_tex, &light_point_tex_data);
+    }
+
+    for (size_t i = 0; i < 10; i++) {
         shader_fbo_set_int(&cfbs[i], "ColorTexture", 0);
         if (i >= 5)
             shader_fbo_set_int(&cfbs[i], "DepthTexture", 1);
     }
 
-    for (int32_t i = 0; i < 5; i++) {
+    for (size_t i = 0; i < 5; i++) {
         shader_fbo_set_int(&gfbs[i], "gPos", 0);
-        shader_fbo_set_int(&gfbs[i], "gNormal", 1);
-        shader_fbo_set_int(&gfbs[i], "gAlbedo", 2);
-        shader_fbo_set_int(&gfbs[i], "gSpec", 3);
-        shader_fbo_set_int(&gfbs[i], "dirLights", 4);
-        shader_fbo_set_int(&gfbs[i], "pointLights", 5);
+        shader_fbo_set_int(&gfbs[i], "gAlbedo", 1);
+        shader_fbo_set_int(&gfbs[i], "gSpec", 2);
+        shader_fbo_set_int(&gfbs[i], "gNormal", 3);
+        shader_fbo_set_int(&gfbs[i], "lightDir", 4);
+        shader_fbo_set_int(&gfbs[i], "lightPoint", 5);
     }
 
     shader_fbo_set_int(&ffbs, "Texture", 0);
 
-    for (int32_t i = 0; i < 2; i++)
+    for (size_t i = 0; i < 2; i++)
         shader_fbo_set_int(&hfbs[i], "Color", 0);
 
-    for (int32_t i = 0; i < 10; i += 5) {
+    for (size_t i = 0; i < 10; i += 5) {
         shader_fbo_set_int(&dfbs[i], "Depth", 0);
         shader_fbo_set_int(&dfbs[i + 1], "Tile", 0);
         shader_fbo_set_int(&dfbs[i + 2], "Depth", 0);
@@ -547,22 +789,24 @@ static void render_load() {
         shader_fbo_set_int(&dfbs[i + 4], "Depth", 4);
 
         shader_fbo_set_uniform_block_binding(&dfbs[i], "DOFCommon", 1);
-        shader_fbo_set_uniform_block_binding(&dfbs[i + 1], "DOFCommon", 1);
+        shader_fbo_set_uniform_block_binding(&dfbs[i + 2], "Common", 0);
         shader_fbo_set_uniform_block_binding(&dfbs[i + 2], "DOFCommon", 1);
+        shader_fbo_set_uniform_block_binding(&dfbs[i + 3], "Common", 0);
         shader_fbo_set_uniform_block_binding(&dfbs[i + 3], "DOFCommon", 1);
         shader_fbo_set_uniform_block_binding(&dfbs[i + 3], "DOFTexcoords", 2);
+        shader_fbo_set_uniform_block_binding(&dfbs[i + 4], "Common", 0);
         shader_fbo_set_uniform_block_binding(&dfbs[i + 4], "DOFCommon", 1);
     }
 
-    for (int32_t i = 0; i < 2; i++)
+    for (size_t i = 0; i < 2; i++)
         shader_fbo_set_int(&bfbs[i], "Texture", 0);
 
-    for (int32_t i = 2; i < 5; i++) {
+    for (size_t i = 2; i < 5; i++) {
         shader_fbo_set_int(&bfbs[i], "Texture", 0);
         shader_fbo_set_int(&bfbs[i], "TexLuma", 1);
     }
 
-    for (int32_t i = 5; i < 13; i++)
+    for (size_t i = 5; i < 13; i++)
         shader_fbo_set_int(&bfbs[i], "Texture", 0);
 
     shader_fbo_set_int(&bfbs[13], "Texture0", 0);
@@ -570,9 +814,9 @@ static void render_load() {
     shader_fbo_set_int(&bfbs[13], "Texture2", 2);
     shader_fbo_set_int(&bfbs[13], "Texture3", 3);
 
-    for (int32_t i = 14; i < 16; i++)
+    for (size_t i = 14; i < 16; i++)
         shader_fbo_set_int(&bfbs[i], "Texture", 0);
-    
+
     shader_fbo_set_int(&tfbs, "Texture0", 0);
     shader_fbo_set_int(&tfbs, "Texture1", 1);
     shader_fbo_set_int(&tfbs, "Texture2", 2);
@@ -586,8 +830,7 @@ static void render_load() {
     shader_fbo_set_int_array(&sprite_shader, "Texture", 3, ((int32_t[]){ 0, 1, 2 }));
     shader_fbo_set_uniform_block_binding(&sprite_shader, "Common", 0);
 
-    shader_fbo_set_int(&mu_shader, "Texture", 0);
-    shader_fbo_set_uniform_block_binding(&mu_shader, "Common", 0);
+    shader_fbo_set_uniform_block_binding(&grid_shader, "GlobalMatrices", 0);
 
     render_resize_fb(false);
 
@@ -597,103 +840,163 @@ static void render_load() {
     fbo_pp_initialize(pfbo, &internal_3d_res, fb_vao, bfbs, &tfbs, tone_map_ubo);
 
     render_resize_fb(true);
-
-    static const int32_t len = 7 * 7 * 2;
-    float_t dof_texcoords[7 * 7 * 2];
-    render_dof_get_texcoords(dof_texcoords, 3.0f);
-    glBindBuffer(GL_UNIFORM_BUFFER, dof_texcoords_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, len * sizeof(float_t), 0, GL_STATIC_DRAW);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, dof_texcoords_ubo, 0, len * sizeof(float_t));
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, len * sizeof(float_t), dof_texcoords);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    farc_dispose(f);
 #pragma endregion
 
-    memset(&dir_lights, 0, sizeof(texture));
-    dir_lights_count = 0;
-    memset(&point_lights, 0, sizeof(texture));
-    point_lights_count = 0;
+    const int32_t dof_tex_len = align_val(7 * 7, 2);
+    vec2 dof_texcoords[align_val(7 * 7, 2)];
+    memset(dof_texcoords, 0, dof_tex_len * sizeof(vec2));
+    render_dof_get_texcoords(dof_texcoords, 3.0f);
+    bind_uniform_buffer(dof_texcoords_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, dof_tex_len * sizeof(vec2), 0, GL_STATIC_DRAW);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, dof_tex_len * sizeof(vec2), dof_texcoords);
+    bind_uniform_buffer(0);
 
-    memset(&mu_font, 0, sizeof(texture));
-    texture_data muctx_font_data = {
-        .type = TEXTURE_2D,
-        .width = ATLAS_WIDTH,
-        .height = ATLAS_HEIGHT,
-        .depth = 0,
-        .data = atlas_texture,
-        .pixel_format = GL_RED,
-        .pixel_type = GL_UNSIGNED_BYTE,
-        .pixel_internal_format = GL_RED,
-        .generate_mipmap = false,
-        .wrap_mode_s = GL_CLAMP,
-        .wrap_mode_t = GL_CLAMP,
-        .wrap_mode_r = GL_CLAMP,
-        .min_filter = GL_NEAREST,
-        .mag_filter = GL_NEAREST,
-    };
-    texture_load(&mu_font, &muctx_font_data);
+    float_t* grid_verts = force_malloc_s(float_t, grid_vertex_count * 7);
 
-    glGenBuffers(1, &mu_vert_vbo);
-    glGenBuffers(1, &mu_uv_vbo);
-    glGenBuffers(1, &mu_color_vbo);
-    glGenBuffers(1, &mu_depth_vbo);
-    glGenVertexArrays(1, &mu_vao);
+    size_t v = 0;
+    for (float_t x = -grid_size; x <= grid_size; x += grid_spacing) {
+        vec4 x_color;
+        vec4 z_color;
+        if (x == 0) {
+            x_color = (vec4){ 1.0f, 0.0f, 0.0f, 1.0f };
+            z_color = (vec4){ 0.0f, 1.0f, 0.0f, 1.0f };
+        }
+        else if (abs((int32_t)(x / grid_spacing)) % 2 == 0) {
+            x_color = (vec4){ 0.2f, 0.2f, 0.2f, 0.6f };
+            z_color = (vec4){ 0.2f, 0.2f, 0.2f, 0.6f };
+        }
+        else {
+            x_color = (vec4){ 0.5f, 0.5f, 0.5f, 0.6f };
+            z_color = (vec4){ 0.5f, 0.5f, 0.5f, 0.6f };
+        }
 
-    mu_vert_buf = force_malloc_s(sizeof(GLfloat), MU_BUFFER_SIZE * 2 * 4);
-    mu_uv_buf = force_malloc_s(sizeof(GLfloat), MU_BUFFER_SIZE * 2 * 4);
-    mu_color_buf = force_malloc_s(sizeof(GLfloat), MU_BUFFER_SIZE * 4 * 4);
-    mu_depth_buf = force_malloc_s(sizeof(GLfloat), MU_BUFFER_SIZE * 1 * 4);
-    mu_index_buf = force_malloc_s(sizeof(GLuint), MU_BUFFER_SIZE * 6);
+        grid_verts[v++] = x;
+        grid_verts[v++] = 0.0f;
+        grid_verts[v++] = -grid_size;
+        grid_verts[v++] = x_color.x;
+        grid_verts[v++] = x_color.y;
+        grid_verts[v++] = x_color.z;
+        grid_verts[v++] = x_color.w;
 
-    glBindVertexArray(mu_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, mu_vert_vbo);
-    glBufferData(GL_ARRAY_BUFFER, MU_BUFFER_SIZE * 2 * 4 * sizeof(GLfloat), mu_vert_buf, GL_DYNAMIC_DRAW);
+        grid_verts[v++] = x;
+        grid_verts[v++] = 0.0f;
+        grid_verts[v++] = grid_size;
+        grid_verts[v++] = x_color.x;
+        grid_verts[v++] = x_color.y;
+        grid_verts[v++] = x_color.z;
+        grid_verts[v++] = x_color.w;
+
+        grid_verts[v++] = -grid_size;
+        grid_verts[v++] = 0.0f;
+        grid_verts[v++] = x;
+        grid_verts[v++] = z_color.x;
+        grid_verts[v++] = z_color.y;
+        grid_verts[v++] = z_color.z;
+        grid_verts[v++] = z_color.w;
+
+        grid_verts[v++] = grid_size;
+        grid_verts[v++] = 0.0f;
+        grid_verts[v++] = x;
+        grid_verts[v++] = z_color.x;
+        grid_verts[v++] = z_color.y;
+        grid_verts[v++] = z_color.z;
+        grid_verts[v++] = z_color.w;
+    }
+
+    glGenBuffers(1, &grid_vbo);
+    glGenVertexArrays(1, &grid_vao);
+    bind_array_buffer(grid_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * grid_vertex_count * 7, grid_verts, GL_STATIC_DRAW);
+
+    bind_vertex_array(grid_vao);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, false, 8, 0); // Pos
-    glBindBuffer(GL_ARRAY_BUFFER, mu_uv_vbo);
-    glBufferData(GL_ARRAY_BUFFER, MU_BUFFER_SIZE * 2 * 4 * sizeof(GLfloat), mu_uv_buf, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float_t) * 7, (void*)0); // Pos
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, false, 8, 0); // UV
-    glBindBuffer(GL_ARRAY_BUFFER, mu_color_vbo);
-    glBufferData(GL_ARRAY_BUFFER, MU_BUFFER_SIZE * 4 * 4 * sizeof(GLfloat), mu_color_buf, GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 4, GL_FLOAT, false, 16, 0); // Color
-    glBindBuffer(GL_ARRAY_BUFFER, mu_depth_vbo);
-    glBufferData(GL_ARRAY_BUFFER, MU_BUFFER_SIZE * 1 * 4 * sizeof(GLfloat), mu_depth_buf, GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 1, GL_FLOAT, false, 4, 0); // Depth
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 7, (void*)(sizeof(float_t) * 3)); // Color
+    bind_vertex_array(0);
+    bind_array_buffer(0);
 
-    background_color.color = (vec3){ 0.74117647f, 0.74117647f, 0.74117647f };
+    free(grid_verts);
 
-    for (size_t i = 0; i < classes_count; i++)
-        if (classes[i].init && classes[i].flags & CLASSES_INIT_AT_STARTUP)
-            classes[i].init();
+    ig = igCreateContext(0);
+    ImGuiIO* io = igGetIO();
+    io->IniFilename = 0;
+    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    igStyleColorsDark(0);
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 430");
+
+    back3d_color = (vec3){ 0.74117647f, 0.74117647f, 0.74117647f };
+
+    classes_process_init(classes, classes_count);
 }
 
-extern vec2 input_move;
-extern vec2 input_rotate;
+extern vec2d input_move;
+extern vec2d input_rotate;
+extern double_t input_roll;
 extern bool input_reset;
 
 static void render_update() {
+    global_context_menu = true;
+    classes_process_imgui(classes, classes_count);
+
+    if (global_context_menu && igIsMouseReleased(ImGuiMouseButton_Right)
+        && !igIsItemHovered(0) && ig->OpenPopupStack.Size <= 0)
+        igOpenPopup("Classes init context menu", 0);
+
+    if (igBeginPopupContextItem("Classes init context menu", 0)) {
+        render_imgui_context_menu(classes, classes_count);
+        igEndPopup();
+    }
+
+    igRender();
+
     if (window_handle == GetForegroundWindow()) {
         if (input_reset) {
             input_reset = false;
             camera_reset(cam);
-            //camera_move_vec3(cam, &(vec3){ 1.35542f, 1.41634f, 1.27852f });
-            //camera_rotate_vec2(cam, &(vec2){ -45.0f, -32.5f });
-            //camera_move_vec3(cam, &(vec3){ -6.67555f, 4.68882f, -3.67537f });
-            //camera_rotate_vec2(cam, &(vec2){ 136.5f, -20.5f });
-            camera_move_vec3(cam, &(vec3){ 0.0f, 1.0f, 3.45f });
+            //camera_set_position(cam, &(vec3){ 1.35542f, 1.41634f, 1.27852f });
+            //camera_rotate(cam, &(vec2d){ -45.0, -32.5 });
+            //camera_set_position(cam, &(vec3){ -6.67555f, 4.68882f, -3.67537f });
+            //camera_rotate(cam, &(vec2d){ 136.5, -20.5 });
+            camera_set_position(cam, &(vec3){ 0.0f, 1.0f, 3.45f });
         }
         else {
-            camera_move_vec2(cam, &input_move);
-            camera_rotate_vec2(cam, &input_rotate);
+            camera_rotate(cam, &input_rotate);
+            camera_move(cam, &input_move);
+            camera_roll(cam, input_roll);
         }
     }
+    camera_update(cam);
 
-    for (task_render* i = tasks_render.begin; i != tasks_render.end; i++) {
+    shader_model_c_set_int_array(&default_shader, "material", 8, ((int32_t[]){ 0, 1, 2, 3, 4, 5, 6, 7 }));
+    shader_model_c_set_int_array(&default_shader, "tex_mode", 8, ((int32_t[]){ 0, 0, 0, 0, 0, 0, 0, 0 }));
+    shader_model_c_set_bool(&default_shader, "use_bones", false);
+    shader_model_c_set_bool(&default_shader, "write_only_depth", false);
+    shader_model_c_set_mat4(&default_shader, "model", false, &mat4_identity);
+    shader_model_c_set_mat4(&default_shader, "model_normal", false, &mat3_identity);
+    shader_model_c_set_mat4(&default_shader, "uv_mat", false, &mat4_identity);
+    shader_model_c_set_vec4(&default_shader, "color", 1.0f, 1.0f, 1.0f, 1.0f);
+    shader_model_c_set_int(&default_shader, "BoneMatrix", 8);
+
+    shader_model_g_set_int_array(&default_shader, "material", 8, ((int32_t[]){ 0, 1, 2, 3, 4, 5, 6, 7 }));
+    shader_model_g_set_int_array(&default_shader, "tex_mode", 8, ((int32_t[]){ 0, 0, 0, 0, 0, 0, 0, 0 }));
+    shader_model_g_set_bool(&default_shader, "use_bones", false);
+    shader_model_g_set_mat4(&default_shader, "model", false, &mat4_identity);
+    shader_model_g_set_mat4(&default_shader, "model_normal", false, &mat3_identity);
+    shader_model_g_set_mat4(&default_shader, "uv_mat", false, &mat4_identity);
+    shader_model_g_set_vec4(&default_shader, "color", 1.0f, 1.0f, 1.0f, 1.0f);
+    shader_model_g_set_int(&default_shader, "BoneMatrix", 8);
+
+    shader_model_set_uniform_block_binding(&default_shader, "GlobalMatrices", 0);
+
+    classes_process_render(classes, classes_count);
+
+    glitter_particle_manager_calc_draw(gpm, glt_type, render_glitter_mesh_add_list);
+
+    bool light_dir_tex_update = false;
+    bool light_point_tex_update = false;
+    for (task_render* i = tasks_render.begin; i != tasks_render.end; ) {
         if (i->type == TASK_RENDER_UPDATE) {
             task_render_update update = i->update;
             switch (update.type) {
@@ -701,7 +1004,7 @@ static void render_update() {
                 bool found = false;
                 gl_object* gl_obj = 0;
                 for (hash_ptr_gl_object* j = vec_gl_obj.begin; j != vec_gl_obj.end; j++)
-                    if (j->hash == update.hash) {
+                    if (HASH_COMPARE(j->hash, update.hash)) {
                         found = true;
                         gl_obj = j->data;
                         break;
@@ -710,49 +1013,190 @@ static void render_update() {
                 if (!found)
                     gl_obj = gl_object_init();
 
-                for (hash_texture_set* j = vec_tex_set.begin; j != vec_tex_set.end; j++)
-                    if (j->hash == update.gl_obj.texture) {
-                        gl_object_update_texture(gl_obj, &j->data);
-                        break;
-                    }
-
-                for (hash_shader_model* j = vec_shad.begin; j != vec_shad.end; j++)
-                    if (j->hash == update.gl_obj.shader) {
-                        gl_object_update_shader(gl_obj, &j->data);
-                        break;
-                    }
-
+                bool found_vert = false;
                 for (hash_ptr_vertex* j = vec_vert.begin; j != vec_vert.end; j++)
-                    if (j->hash == update.gl_obj.texture) {
+                    if (HASH_COMPARE(j->hash, update.gl_obj.vert)) {
+                        found_vert = true;
                         gl_object_update_vert(gl_obj, j->data);
                         break;
                     }
 
-                gl_object_update_instances(gl_obj, &update.gl_obj.instances);
+                if (!found_vert)
+                    gl_object_update_vert(gl_obj, default_vertex);
+
+                bool found_material = false;
+                for (hash_material* j = vec_mat.begin; j != vec_mat.end; j++)
+                    if (HASH_COMPARE(j->hash, update.gl_obj.material)) {
+                        found_material = true;
+                        gl_object_update_material(gl_obj, &j->data);
+                        break;
+                    }
+
+                if (!found_material)
+                    gl_object_update_material(gl_obj, &default_material);
+
+                bool found_shader = false;
+                for (hash_shader_model* j = vec_shad.begin; j != vec_shad.end; j++)
+                    if (HASH_COMPARE(j->hash, update.gl_obj.shader)) {
+                        found_shader = true;
+                        gl_object_update_shader(gl_obj, &j->data);
+                        break;
+                    }
+
+                if (!found_shader)
+                    gl_object_update_shader(gl_obj, &default_shader);
+
+                bool found_bone_mat = false;
+                for (hash_texture_bone_mat* j = vec_tex_bone_mat.begin; j != vec_tex_bone_mat.end; j++)
+                    if (HASH_COMPARE(j->hash, update.gl_obj.bone_mat)) {
+                        found_bone_mat = true;
+                        gl_object_update_bone_mat(gl_obj, &j->data);
+                        break;
+                    }
+
+                if (!found_bone_mat)
+                    gl_object_update_bone_mat(gl_obj, &default_bone_mat);
+
                 if (!found) {
                     hash_ptr_gl_object hash_gl_obj;
                     hash_gl_obj.hash = update.hash;
                     hash_gl_obj.data = gl_obj;
                     vector_hash_ptr_gl_object_push_back(&vec_gl_obj, &hash_gl_obj);
                 }
+
+                gl_object_update_cull_face(gl_obj, update.gl_obj.cull_face);
             } break;
-            case TASK_RENDER_UPDATE_SHADER: {
+            case TASK_RENDER_UPDATE_MATERIAL: {
                 bool found = false;
-                for (hash_shader_model* j = vec_shad.begin; j != vec_shad.end; j++)
-                    if (j->hash == update.hash) {
+                material* mat;
+                for (hash_material* j = vec_mat.begin; j != vec_mat.end; j++)
+                    if (HASH_COMPARE(j->hash, update.hash)) {
                         found = true;
+                        mat = &j->data;
                         break;
                     }
 
                 if (!found) {
-                    shader_model shad;
-                    memset(&shad, 0, sizeof(shad));
-                    shader_model_load(&shad, &update.shad);
+                    material m;
+                    memset(&m, 0, sizeof(material));
+                    mat = &m;
+                }
+
+                mat->blend = update.mat.blend;
+                mat->translucent = update.mat.translucent;
+
+                bool found_texture = false;
+                for (hash_texture_set* j = vec_tex_set.begin; j != vec_tex_set.end; j++)
+                    if (HASH_COMPARE(j->hash, update.mat.texture)) {
+                        found_texture = true;
+                        mat->texture = j->data;
+                        break;
+                    }
+
+                if (!found_texture)
+                    mat->texture = default_texture;
+
+                if (!found) {
+                    hash_material hash_mat;
+                    hash_mat.hash = update.hash;
+                    hash_mat.data = *mat;
+                    vector_hash_material_push_back(&vec_mat, &hash_mat);
+                }
+            } break;
+            case TASK_RENDER_UPDATE_LIGHT_DIR: {
+                bool found = false;
+                light_dir* light;
+                for (hash_light_dir* j = vec_light_dir.begin; j != vec_light_dir.end; j++)
+                    if (HASH_COMPARE(j->hash, update.hash)) {
+                        found = true;
+                        light = &j->data;
+                        break;
+                    }
+
+                light_dir_update* l = &update.light_dir;
+
+                vec3 color;
+                vec3 dir;
+                color = *(vec3*)&l->color;
+                vec3_mult_scalar(color, l->color.w, color);
+                vec3_normalize(l->dir, dir);
+
+                if (!found) {
+                    hash_light_dir hash_light_dir;
+                    hash_light_dir.hash = update.hash;
+                    hash_light_dir.data.dir = dir;
+                    hash_light_dir.data.color = color;
+                    vector_hash_light_dir_push_back(&vec_light_dir, &hash_light_dir);
+                }
+                else {
+                    light->dir = dir;
+                    light->color = color;
+                }
+                light_dir_tex_update = true;
+            } break;
+            case TASK_RENDER_UPDATE_LIGHT_POINT: {
+                bool found = false;
+                light_point* light;
+                for (hash_light_point* j = vec_light_point.begin; j != vec_light_point.end; j++)
+                    if (HASH_COMPARE(j->hash, update.hash)) {
+                        found = true;
+                        light = &j->data;
+                        break;
+                    }
+
+                light_point_update* l = &update.light_point;
+
+                vec3 color;
+                color = *(vec3*)&l->color;
+                vec3_mult_scalar(color, l->color.w, color);
+
+                float_t radius = light_point_calculate_radius(&color,
+                    l->constant, l->linear, l->quadratic);
+
+                if (!found) {
+                    hash_light_point hash_light_point;
+                    hash_light_point.hash = update.hash;
+                    hash_light_point.data.position = l->position;
+                    hash_light_point.data.color = color;
+                    hash_light_point.data.constant = l->constant;
+                    hash_light_point.data.linear = l->linear;
+                    hash_light_point.data.quadratic = l->quadratic;
+                    hash_light_point.data.radius = radius;
+                    vector_hash_light_point_push_back(&vec_light_point, &hash_light_point);
+                }
+                else {
+                    light->position = l->position;
+                    light->color = color;
+                    light->constant = l->constant;
+                    light->linear = l->linear;
+                    light->quadratic = l->quadratic;
+                    light->radius = radius;
+                }
+                light_point_tex_update = true;
+            } break;
+            case TASK_RENDER_UPDATE_SHADER: {
+                bool found = false;
+                shader_model* shad;
+                for (hash_shader_model* j = vec_shad.begin; j != vec_shad.end; j++)
+                    if (HASH_COMPARE(j->hash, update.hash)) {
+                        found = true;
+                        shad = &j->data;
+                        break;
+                    }
+
+                if (!found) {
+                    shader_model s;
+                    memset(&s, 0, sizeof(s));
+                    shader_model_load(&s, &update.shad);
 
                     hash_shader_model hash_shad;
                     hash_shad.hash = update.hash;
-                    hash_shad.data = shad;
+                    hash_shad.data = s;
                     vector_hash_shader_model_push_back(&vec_shad, &hash_shad);
+                }
+                else {
+                    shader_model_free(shad);
+                    shader_model_load(shad, &update.shad);
                 }
                 free(update.shad.frag_c);
                 free(update.shad.frag_g);
@@ -761,249 +1205,340 @@ static void render_update() {
             } break;
             case TASK_RENDER_UPDATE_TEXTURE: {
                 bool found = false;
-                texture tex ;
+                texture* tex;
                 for (hash_texture* j = vec_tex.begin; j != vec_tex.end; j++)
-                    if (j->hash == update.hash) {
+                    if (HASH_COMPARE(j->hash, update.hash)) {
                         found = true;
-                        tex = j->data;
+                        tex = &j->data;
                         break;
                     }
 
-                if (!found)
-                    memset(&tex, 0, sizeof(texture));
-
-                texture_load(&tex, &update.tex);
-
                 if (!found) {
+                    texture t;
+                    memset(&t, 0, sizeof(texture));
+                    texture_load(&t, &update.tex);
                     hash_texture hash_tex;
                     hash_tex.hash = update.hash;
-                    hash_tex.data = tex;
+                    hash_tex.data = t;
                     vector_hash_texture_push_back(&vec_tex, &hash_tex);
                 }
+                else
+                    texture_load(tex, &update.tex);
             } break;
             case TASK_RENDER_UPDATE_TEXTURE_SET: {
                 bool found = false;
-                texture_set tex_set;
+                texture_set* tex_set;
                 for (hash_texture_set* j = vec_tex_set.begin; j != vec_tex_set.end; j++)
-                    if (j->hash == update.hash) {
+                    if (HASH_COMPARE(j->hash, update.hash)) {
                         found = true;
-                        tex_set = j->data;
+                        tex_set = &j->data;
                         break;
                     }
 
-                if (!found)
-                    memset(&tex_set, 0, sizeof(texture_set));
-
-                texture_set_load(&tex_set, &update.tex_set);
-
                 if (!found) {
+                    texture_set t;
+                    memset(&t, 0, sizeof(texture_set));
+                    texture_set_load(&t, &update.tex_set);
+
                     hash_texture_set hash_tex_set;
                     hash_tex_set.hash = update.hash;
-                    hash_tex_set.data = tex_set;
+                    hash_tex_set.data = t;
                     vector_hash_texture_set_push_back(&vec_tex_set, &hash_tex_set);
                 }
+                else
+                    texture_set_load(tex_set, &update.tex_set);
             } break;
             case TASK_RENDER_UPDATE_VERT: {
                 bool found = false;
                 vertex* vert = 0;
                 for (hash_ptr_vertex* j = vec_vert.begin; j != vec_vert.end; j++)
-                    if (j->hash == update.hash) {
+                    if (HASH_COMPARE(j->hash, update.hash)) {
                         found = true;
                         vert = j->data;
                         break;
                     }
 
-                if (!found)
-                    vert = vertex_init();
-
-                vertex_load(vert, &update.vert);
-
                 if (!found) {
+                    vert = vertex_init();
+                    vertex_load(vert, &update.vert);
+
                     hash_ptr_vertex hash_vert;
                     hash_vert.hash = update.hash;
                     hash_vert.data = vert;
                     vector_hash_ptr_vertex_push_back(&vec_vert, &hash_vert);
                 }
+                else
+                    vertex_load(vert, &update.vert);
             } break;
             }
-            memset(i, 0, sizeof(task_render));
         }
         else if (i->type == TASK_RENDER_FREE) {
             task_render_free free_data = i->free;
             switch (free_data.type) {
-            case TASK_RENDER_UPDATE_GL_OBJECT:
+            case TASK_RENDER_FREE_GL_OBJECT:
                 for (hash_ptr_gl_object* j = vec_gl_obj.begin; j != vec_gl_obj.end; j++)
-                    if (j->hash == free_data.hash) {
+                    if (HASH_COMPARE(j->hash, free_data.hash)) {
                         gl_object_dispose(j->data);
                         vector_hash_ptr_gl_object_erase(&vec_gl_obj, j - vec_gl_obj.begin);
                         break;
                     }
                 break;
-            case TASK_RENDER_UPDATE_SHADER:
+            case TASK_RENDER_FREE_LIGHT_DIR: {
+                bool found = false;
+                for (hash_light_dir* j = vec_light_dir.begin; j != vec_light_dir.end; j++)
+                    if (HASH_COMPARE(j->hash, free_data.hash)) {
+                        found = true;
+                        vector_hash_light_dir_erase(&vec_light_dir, j - vec_light_dir.begin);
+                        break;
+                    }
+            } break;
+            case TASK_RENDER_FREE_LIGHT_POINT: {
+                for (hash_light_point* j = vec_light_point.begin; j != vec_light_point.end; j++)
+                    if (HASH_COMPARE(j->hash, free_data.hash)) {
+                        vector_hash_light_point_erase(&vec_light_point, j - vec_light_point.begin);
+                        break;
+                    }
+            } break;
+            case TASK_RENDER_FREE_MATERIAL:
+                for (hash_material* j = vec_mat.begin; j != vec_mat.end; j++)
+                    if (HASH_COMPARE(j->hash, free_data.hash)) {
+                        vector_hash_material_erase(&vec_mat, j - vec_mat.begin);
+                        break;
+                    }
+                break;
+            case TASK_RENDER_FREE_SHADER:
                 for (hash_shader_model* j = vec_shad.begin; j != vec_shad.end; j++)
-                    if (j->hash == free_data.hash) {
+                    if (HASH_COMPARE(j->hash, free_data.hash)) {
                         shader_model_free(&j->data);
                         vector_hash_shader_model_erase(&vec_shad, j - vec_shad.begin);
                         break;
                     }
                 break;
-            case TASK_RENDER_UPDATE_TEXTURE:
+            case TASK_RENDER_FREE_TEXTURE:
                 for (hash_texture* j = vec_tex.begin; j != vec_tex.end; j++)
-                    if (j->hash == free_data.hash) {
+                    if (HASH_COMPARE(j->hash, free_data.hash)) {
                         texture_free(&j->data);
                         vector_hash_texture_erase(&vec_tex, j - vec_tex.begin);
                         break;
                     }
                 break;
-            case TASK_RENDER_UPDATE_TEXTURE_SET:
+            case TASK_RENDER_FREE_TEXTURE_SET:
                 for (hash_texture_set* j = vec_tex_set.begin; j != vec_tex_set.end; j++)
-                    if (j->hash == free_data.hash) {
+                    if (HASH_COMPARE(j->hash, free_data.hash)) {
                         texture_set_free(&j->data);
                         vector_hash_texture_set_erase(&vec_tex_set, j - vec_tex_set.begin);
                         break;
                     }
                 break;
-            case TASK_RENDER_UPDATE_VERT:
+            case TASK_RENDER_FREE_VERT:
                 for (hash_ptr_vertex* j = vec_vert.begin; j != vec_vert.end; j++)
-                    if (j->hash == free_data.hash) {
+                    if (HASH_COMPARE(j->hash, free_data.hash)) {
                         vertex_dispose(j->data);
                         vector_hash_ptr_vertex_erase(&vec_vert, j - vec_vert.begin);
                         break;
                     }
                 break;
             }
-            memset(i, 0, sizeof(task_render));
         }
         else if (i->type == TASK_RENDER_UNIFORM) {
-            task_render_uniform uniform = i->uniform;
+            task_render_uniform uni = i->uniform;
+            shader_model* s = 0;
             for (hash_shader_model* j = vec_shad.begin; j != vec_shad.end; j++)
-                if (j->hash == uniform.shader_hash) {
-                    shader_model* s = &j->data;
-                    char* name = char_buffer_select(&uniform.name);
-                    switch (uniform.type) {
-                    case TASK_RENDER_UNIFORM_BOOL: {
-                        task_render_uniform_bool uni_data = uniform.bool;
-                        shader_model_set_bool(s, name, uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_INT32: {
-                        task_render_uniform_int32 uni_data = uniform.int32;
-                        shader_model_set_int(s, name, uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_FLOAT32: {
-                        task_render_uniform_float32 uni_data = uniform.float32;
-                        shader_model_set_float(s, name, uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC2: {
-                        task_render_uniform_vec2 uni_data = uniform.vec2;
-                        shader_model_set_vec2(s, name, uni_data.value.x, uni_data.value.y);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC2I: {
-                        task_render_uniform_vec2i uni_data = uniform.vec2i;
-                        shader_model_set_vec2i(s, name, uni_data.value.x, uni_data.value.y);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC3: {
-                        task_render_uniform_vec3 uni_data = uniform.vec3;
-                        shader_model_set_vec3(s, name, uni_data.value.x, uni_data.value.y, uni_data.value.z);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC3I: {
-                        task_render_uniform_vec3i uni_data = uniform.vec3i;
-                        shader_model_set_vec3i(s, name, uni_data.value.x, uni_data.value.y, uni_data.value.z);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC4: {
-                        task_render_uniform_vec4 uni_data = uniform.vec4;
-                        shader_model_set_vec4(s, name, uni_data.value.x,
-                            uni_data.value.y, uni_data.value.z, uni_data.value.w);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC4I: {
-                        task_render_uniform_vec4i uni_data = uniform.vec4i;
-                        shader_model_set_vec4i(s, name, uni_data.value.x,
-                            uni_data.value.y, uni_data.value.z, uni_data.value.w);
-                    } break;
-                    case TASK_RENDER_UNIFORM_MAT3: {
-                        task_render_uniform_mat3 uni_data = uniform.mat3;
-                        shader_model_set_mat3(s, name, uni_data.transpose, &uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_MAT4: {
-                        task_render_uniform_mat4 uni_data = uniform.mat4;
-                        shader_model_set_mat4(s, name, uni_data.transpose, &uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_INT32_ARRAY: {
-                        task_render_uniform_int32_array uni_data = uniform.int32_array;
-                        shader_model_set_int_array(s, name, (GLsizei)uni_data.count, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_FLOAT32_ARRAY: {
-                        task_render_uniform_float32_array uni_data = uniform.float32_array;
-                        shader_model_set_float_array(s, name, (GLsizei)uni_data.count, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC2_ARRAY: {
-                        task_render_uniform_vec2_array uni_data = uniform.vec2_array;
-                        shader_model_set_vec2_array(s, name, (GLsizei)uni_data.count, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC2I_ARRAY: {
-                        task_render_uniform_vec2i_array uni_data = uniform.vec2i_array;
-                        shader_model_set_vec2i_array(s, name, (GLsizei)uni_data.count, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC3_ARRAY: {
-                        task_render_uniform_vec3_array uni_data = uniform.vec3_array;
-                        shader_model_set_vec3_array(s, name, (GLsizei)uni_data.count, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC3I_ARRAY: {
-                        task_render_uniform_vec3i_array uni_data = uniform.vec3i_array;
-                        shader_model_set_vec3i_array(s, name, (GLsizei)uni_data.count, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC4_ARRAY: {
-                        task_render_uniform_vec4_array uni_data = uniform.vec4_array;
-                        shader_model_set_vec4_array(s, name, (GLsizei)uni_data.count, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_VEC4I_ARRAY: {
-                        task_render_uniform_vec4i_array uni_data = uniform.vec4i_array;
-                        shader_model_set_vec4i_array(s, name, (GLsizei)uni_data.count, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_MAT3_ARRAY: {
-                        task_render_uniform_mat3_array uni_data = uniform.mat3_array;
-                        shader_model_set_mat3_array(s, name, (GLsizei)uni_data.count,
-                            uni_data.transpose, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    case TASK_RENDER_UNIFORM_MAT4_ARRAY: {
-                        task_render_uniform_mat4_array uni_data = uniform.mat4_array;
-                        shader_model_set_mat4_array(s, name, (GLsizei)uni_data.count,
-                            uni_data.transpose, uni_data.value);
-                        free(uni_data.value);
-                    } break;
-                    }
+                if (HASH_COMPARE(j->hash, uni.shader_hash)) {
+                    s = &j->data;
                     break;
                 }
-            char_buffer_dispose(&uniform.name);
-            memset(i, 0, sizeof(task_render));
+
+            if (!s)
+                s = &default_shader;
+
+            render_update_uniform_c(&uni, s);
+            render_update_uniform_g(&uni, s);
+            char_buffer_dispose(&uni.name);
+        }
+        memset(i, 0, sizeof(task_render));
+        vector_task_render_erase(&tasks_render, 0);
+    }
+
+    if (light_dir_tex_update) {
+        size_t light_dir_count = vec_light_dir.end - vec_light_dir.begin;
+        if (light_dir_count) {
+            const size_t light_dir_size = 6;
+            float_t* light_dir_data = force_malloc_s(sizeof(float_t), light_dir_size * light_dir_count);
+
+            for (size_t i = 0; i < light_dir_count; i++) {
+                light_dir* light = &vec_light_dir.begin[i].data;
+                light_dir_data[i * light_dir_size] = light->dir.x;
+                light_dir_data[i * light_dir_size + 1] = light->dir.y;
+                light_dir_data[i * light_dir_size + 2] = light->dir.z;
+                light_dir_data[i * light_dir_size + 3] = light->color.x;
+                light_dir_data[i * light_dir_size + 4] = light->color.y;
+                light_dir_data[i * light_dir_size + 5] = light->color.z;
+            }
+
+            texture_data light_dir_tex_data = {
+                .type = TEXTURE_2D,
+                .width = 2,
+                .height = (int32_t)light_dir_count,
+                .depth = 0,
+                .data = light_dir_data,
+                .pixel_type = GL_FLOAT,
+                .pixel_format = GL_RGB,
+                .pixel_internal_format = GL_RGB32F,
+                .generate_mipmap = false,
+                .wrap_mode_s = GL_REPEAT,
+                .wrap_mode_t = GL_REPEAT,
+                .wrap_mode_r = GL_REPEAT,
+                .min_filter = GL_NEAREST,
+                .mag_filter = GL_NEAREST,
+            };
+
+            texture_load(&light_dir_tex, &light_dir_tex_data);
+            free(light_dir_data);
+        }
+        else {
+            texture_data light_dir_tex_data = {
+                .type = TEXTURE_2D,
+                .width = 2,
+                .height = 1,
+                .depth = 0,
+                .data = (void*)light_dir_data_default,
+                .pixel_type = GL_FLOAT,
+                .pixel_format = GL_RGBA,
+                .pixel_internal_format = GL_RGBA32F,
+                .generate_mipmap = false,
+                .wrap_mode_s = GL_REPEAT,
+                .wrap_mode_t = GL_REPEAT,
+                .wrap_mode_r = GL_REPEAT,
+                .min_filter = GL_NEAREST,
+                .mag_filter = GL_NEAREST,
+            };
+
+            texture_load(&light_dir_tex, &light_dir_tex_data);
         }
     }
 
+    if (light_point_tex_update) {
+        size_t light_point_count = vec_light_point.end - vec_light_point.begin;
+
+        if (light_point_count) {
+            const size_t light_point_size = 12;
+            float_t* light_point_data = force_malloc_s(sizeof(float_t), light_point_size * light_point_count);
+
+            for (size_t i = 0; i < light_point_count; i++) {
+                light_point* light = &vec_light_point.begin[i].data;
+                light_point_data[i * light_point_size] = light->position.x;
+                light_point_data[i * light_point_size + 1] = light->position.y;
+                light_point_data[i * light_point_size + 2] = light->position.z;
+                light_point_data[i * light_point_size + 3] = 0.0f;
+                light_point_data[i * light_point_size + 4] = light->color.x;
+                light_point_data[i * light_point_size + 5] = light->color.y;
+                light_point_data[i * light_point_size + 6] = light->color.z;
+                light_point_data[i * light_point_size + 7] = 0.0f;
+                light_point_data[i * light_point_size + 8] = light->constant;
+                light_point_data[i * light_point_size + 9] = light->linear;
+                light_point_data[i * light_point_size + 10] = light->quadratic;
+                light_point_data[i * light_point_size + 11] = light->radius;
+            }
+
+            texture_data light_point_tex_data = {
+                .type = TEXTURE_2D,
+                .width = 3,
+                .height = (int32_t)light_point_count,
+                .depth = 0,
+                .data = light_point_data,
+                .pixel_type = GL_FLOAT,
+                .pixel_format = GL_RGBA,
+                .pixel_internal_format = GL_RGBA32F,
+                .generate_mipmap = false,
+                .wrap_mode_s = GL_REPEAT,
+                .wrap_mode_t = GL_REPEAT,
+                .wrap_mode_r = GL_REPEAT,
+                .min_filter = GL_NEAREST,
+                .mag_filter = GL_NEAREST,
+            };
+
+            texture_load(&light_point_tex, &light_point_tex_data);
+            free(light_point_data);
+        }
+        else {
+            texture_data light_point_tex_data = {
+                .type = TEXTURE_2D,
+                .width = 3,
+                .height = 1,
+                .depth = 0,
+                .data = (void*)light_point_data_default,
+                .pixel_type = GL_FLOAT,
+                .pixel_format = GL_RGBA,
+                .pixel_internal_format = GL_RGBA32F,
+                .generate_mipmap = false,
+                .wrap_mode_s = GL_REPEAT,
+                .wrap_mode_t = GL_REPEAT,
+                .wrap_mode_r = GL_REPEAT,
+                .min_filter = GL_NEAREST,
+                .mag_filter = GL_NEAREST,
+            };
+
+            texture_load(&light_point_tex, &light_point_tex_data);
+        }
+    }
+
+    for (task_render_draw2d* i = tasks_render_draw2d_int.begin; i != tasks_render_draw2d_int.end; i++) {
+        for (task_render_uniform* j = i->uniforms.begin; j != i->uniforms.end; j++)
+            char_buffer_dispose(&j->name);
+        vector_task_render_uniform_free(&i->uniforms);
+    }
+    vector_task_render_draw2d_clear(&tasks_render_draw2d_int);
+
     if (tasks_render_draw2d.end - tasks_render_draw2d.begin > 0) {
-        vector_task_render_draw2d_clear(&tasks_render_draw2d_int);
         vector_task_render_draw2d_append(&tasks_render_draw2d_int,
             tasks_render_draw2d.end - tasks_render_draw2d.begin);
         for (task_render_draw2d* i = tasks_render_draw2d.begin; i != tasks_render_draw2d.end; i++)
             vector_task_render_draw2d_push_back(&tasks_render_draw2d_int, i);
-        vector_task_render_draw2d_clear(&tasks_render_draw2d);
     }
+    vector_task_render_draw2d_clear(&tasks_render_draw2d);
+
+    for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++) {
+        for (task_render_uniform* j = i->uniforms.begin; j != i->uniforms.end; j++)
+            char_buffer_dispose(&j->name);
+        vector_task_render_uniform_free(&i->uniforms);
+    }
+    vector_task_render_draw3d_clear(&tasks_render_draw3d_int);
 
     if (tasks_render_draw3d.end - tasks_render_draw3d.begin > 0) {
-        vector_task_render_draw3d_clear(&tasks_render_draw3d_int);
         vector_task_render_draw3d_append(&tasks_render_draw3d_int,
             tasks_render_draw3d.end - tasks_render_draw3d.begin);
         for (task_render_draw3d* i = tasks_render_draw3d.begin; i != tasks_render_draw3d.end; i++)
             vector_task_render_draw3d_push_back(&tasks_render_draw3d_int, i);
-        vector_task_render_draw3d_clear(&tasks_render_draw3d);
     }
+    vector_task_render_draw3d_clear(&tasks_render_draw3d);
+
+    /*cam.Set(camStruct);
+
+    if (camStruct.DOF.HasValue)
+    {
+        ModelTrans dofMT = camStruct.DOF.Value;
+
+        dof.Debug.Flags = 0;
+        dof.PV.DistanceToFocus = (dofMT.Trans - cam.Pos).Length;
+        dof.PV.FocusRange = dofMT.Scale.X;
+        dof.PV.FuzzingRange = dofMT.Rot.X;
+        dof.PV.Ratio = dofMT.Rot.Y;
+        dof.PV.Enable = camStruct.DOF.Value.Rot.Z > 0.000001f;
+
+        if (dof.PV.Ratio > 0.0f && dof.PV.Enable)
+        {
+            double fov = cam.FOVIsHorizontal ? 2 * Math.Atan(1 / cam.Aspect * Math.Tan(cam.FOV / 2)) : cam.FOV;
+            float[] data = GetDOFData(ref dof, (float)fov);
+
+            GL.BindBuffer(BufferTarget.UniformBuffer, dofCommonUBO);
+            GL.BufferSubData(BufferTarget.UniformBuffer, (IntPtr)0, data.Length * 4, data);
+            GL.BindBuffer(BufferTarget.UniformBuffer, 0);
+        }
+    }*/
+
+    //static bool show_demo_window;
+    //igShowDemoWindow(&show_demo_window);
 
     if (rad->update || inten->update) {
         rad->update = false;
@@ -1015,10 +1550,10 @@ static void render_update() {
         vec4* radius = rad->val;
 
         vec4 v[GAUSSIAN_KERNEL_SIZE];
-        for (int32_t i = 0; i < GAUSSIAN_KERNEL_SIZE; i++)
+        for (size_t i = 0; i < GAUSSIAN_KERNEL_SIZE; i++)
             vec4_mult(radius[i], rgba, v[i]);
 
-        for (int32_t i = 6; i < 12; i++)
+        for (size_t i = 6; i < 12; i++)
             shader_fbo_set_vec4_array(&bfbs[i], "gaussianKernel", GAUSSIAN_KERNEL_SIZE, v);
     }
 
@@ -1032,124 +1567,192 @@ static void render_update() {
         pfbo->tone_map_method = tmd->tone_map_method;
         pfbo->scene_fade = tmd->scene_fade_alpha > 0.009999999f;
 
-        glBindBuffer(GL_UNIFORM_BUFFER, tone_map_ubo);
+        bind_uniform_buffer(tone_map_ubo);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, 16 * sizeof(float_t), tmd->val);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        bind_uniform_buffer(0);
     }
 
-    for (size_t i = 0; i < classes_count; i++)
-        if (classes[i].render)
-            classes[i].render();
+    bool use_dof_f2 = false;
+    if (dof->debug.flags & DOF_DEBUG_USE_UI_PARAMS) {
+        if (dof->debug.flags & DOF_DEBUG_ENABLE_DOF) {
+            if (dof->debug.flags & DOF_DEBUG_ENABLE_PHYS_DOF) {
+                float_t dist_to_focus = dof->debug.distance_to_focus;
+                if (dof->debug.flags & DOF_DEBUG_AUTO_FOCUS && false) {
+                    mat4 view_transpose;
+                    mat4_transpose(&cam->view, &view_transpose);
+                    vec3 chara_trans = vec3_null;
+                    vec3_dot(cam->view_point, chara_trans, dist_to_focus);
+                    dist_to_focus = -dist_to_focus - 0.1f;
+                }
 
-    /*cam.Set(camStruct);
-
-    if (camStruct.DOF.HasValue)
-    {
-        ModelTrans dofMT = camStruct.DOF.Value;
-
-        dof.Debug.Flags = 0;
-        dof.PV.DistanceToFocus = (dofMT.Trans - cam.Pos).Length;
-        dof.PV.FocusRange      = dofMT.Scale.X;
-        dof.PV.FuzzingRange    = dofMT.Rot.X;
-        dof.PV.Ratio           = dofMT.Rot.Y;
-        dof.PV.Flags           = camStruct.DOF.Value.Rot.Z > 0.0f ? Camera.DOFPVFlags.Enable : 0;
-
-        if ((dof.PV.Flags & Camera.DOFPVFlags.Enable) != 0)
-        {
-            double_t fov = cam.FOVIsHorizontal ? 2 * Math.Atan(1 / cam.Aspect * Math.Tan(cam.FOV / 2)) : cam.FOV;
-            float_t[] data = GetDOFData(ref dof, (float_t)fov);
-
-            glBindBuffer(BufferTarget.UniformBuffer, dofCommonUBO);
-            glBufferSubData(BufferTarget.UniformBuffer, (IntPtr)0, data.Length * 4, data);
-            glBindBuffer(BufferTarget.UniformBuffer, 0);
+                dist_to_focus = max(dist_to_focus, (float_t)cam->min_distance);
+                dof_calculate_physical(dof, internal_3d_res.y,
+                    cam->min_distance, cam->max_distance, cam->fov, dist_to_focus,
+                    dof->debug.focal_length, dof->debug.f_number);
+            }
+            else {
+                float_t fuzzing_range = max(dof->debug.f2.fuzzing_range, 0.01f);
+                dof_calculate_f2(dof, internal_3d_res.y,
+                    cam->min_distance, cam->max_distance, cam->fov, dof->debug.f2.distance_to_focus,
+                    dof->debug.f2.focus_range, fuzzing_range, dof->debug.f2.ratio);
+                use_dof_f2 = true;
+            }
         }
-    }*/
+    }
+    else if (dof->pv.enable && dof->pv.f2.ratio > 0.0f) {
+        float_t fuzzing_range = max(dof->pv.f2.fuzzing_range, 0.01f);
+        dof_calculate_f2(dof, internal_3d_res.y,
+            cam->min_distance, cam->max_distance, cam->fov, dof->pv.f2.distance_to_focus,
+            dof->pv.f2.focus_range, fuzzing_range, dof->pv.f2.ratio);
+        dof->debug.flags |= DOF_DEBUG_ENABLE_DOF;
+        dof->debug.f2.distance_to_focus = dof->pv.f2.distance_to_focus;
+        dof->debug.f2.focus_range = dof->pv.f2.focus_range;
+        dof->debug.f2.fuzzing_range = dof->pv.f2.fuzzing_range;
+        dof->debug.f2.ratio = dof->pv.f2.ratio;
+        use_dof_f2 = true;
+    }
+    else
+        dof->debug.flags &= ~DOF_DEBUG_ENABLE_DOF;
 
-    shader_fbo* c_shader = rfbo->samples > 1 ? rfbo->samples > 2 ? rfbo->samples > 4 ? rfbo->samples > 8 ?
-        &rfbo->c_shader[9] : &rfbo->c_shader[8] : &rfbo->c_shader[7] : &rfbo->c_shader[6] : &rfbo->c_shader[5];
-    shader_fbo_set_float(c_shader, "f", (float_t)cam->max_distance);
+    mat4 inv_vp;
+    mat4_inverse(&cam->view_projection, &inv_vp);
+
+    shader_fbo* g_shader = rfbo->samples > 1 ? rfbo->samples > 2 ? rfbo->samples > 4 ? rfbo->samples > 8 ?
+        &rfbo->g_shader[4] : &rfbo->g_shader[3] : &rfbo->g_shader[2] : &rfbo->g_shader[1] : &rfbo->g_shader[0];
+    shader_fbo_set_vec3(g_shader, "viewPos", cam->view_point.x, cam->view_point.y, cam->view_point.z);
+    shader_fbo_set_mat4(g_shader, "inv_vp", false, &inv_vp);
 
     uint8_t global_matrices[sizeof(mat4) * 4];
     ((mat4*)global_matrices)[0] = cam->view_projection;
     ((mat4*)global_matrices)[1] = cam->view;
     ((mat4*)global_matrices)[2] = cam->projection;
-    ((vec3*)(global_matrices + sizeof(mat4) * 3))[0] = cam->position;
-    glBindBuffer(GL_UNIFORM_BUFFER, global_matrices_ubo);
+    ((vec3*)(global_matrices + sizeof(mat4) * 3))[0] = cam->view_point;
+    bind_uniform_buffer(global_matrices_ubo);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4) * 4, global_matrices);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    bind_uniform_buffer(dof_common_ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(dof->data), dof->data);
+    bind_uniform_buffer(0);
 }
 
 static void render_draw() {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    static const GLfloat color_clear[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    static const GLfloat depth_clear = 1.0f;
+    static const GLint stencil_clear = 0;
+
+    bind_framebuffer(0);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClearStencil(0);
-    glClearDepthf(1.0f);
     glDepthMask(true);
-    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glStencilMask(0xFF);
+    glClearBufferfv(GL_COLOR, 0, color_clear);
+    glClearBufferfi(GL_DEPTH_STENCIL, 0, depth_clear, stencil_clear);
+    glStencilMask(0);
     glDepthMask(false);
 
-    if (back_2d || back_3d || g_front_3d || c_front_3d) {
+    for (int32_t i = 0; i < 32; i++) {
+        active_texture(i);
+        bind_tex1d(0);
+        bind_tex2d(0);
+        bind_tex2dms(0);
+        bind_tex3d(0);
+        bind_texcube(0);
+    }
+
+    if (back_2d || g_back_3d || c_back_3d || g_front_3d || c_front_3d || glitter_3d) {
         glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo);
 
         if (back_2d) {
-            glBindFramebuffer(GL_FRAMEBUFFER, rfbo->fbo);
-            glDrawBuffers(2, fbo_render_c_attachments);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            render_back_2d();
+            bind_framebuffer(rfbo->fbo);
+            glDrawBuffers(1, fbo_render_c_attachments);
+            glClearBufferfv(GL_COLOR, 0, color_clear);
+            render_2d(TASK_RENDER_DRAW2D_BACK);
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo);
-            glBindFramebuffer(GL_FRAMEBUFFER, hfbo->fbo[0]);
+            bind_framebuffer(hfbo->fbo[0]);
             fbo_render_draw_c(rfbo, false);
         }
 
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo);
-        if (back_3d || g_front_3d || c_front_3d) {
-            glBindFramebuffer(GL_FRAMEBUFFER, rfbo->fbo);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClearStencil(0);
-            glClearDepthf(1.0f);
+        if (g_back_3d || c_back_3d || g_front_3d || c_front_3d || glitter_3d) {
+            bind_framebuffer(rfbo->fbo);
             glDepthMask(true);
-            glDrawBuffers(4, fbo_render_g_attachments);
-            glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glDrawBuffers(1, fbo_render_f_attachments);
-            glClearColor(background_color.color.x, background_color.color.y, background_color.color.z, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
+            glStencilMask(0xFF);
+            glClearBufferfi(GL_DEPTH_STENCIL, 0, depth_clear, stencil_clear);
+            glStencilMask(0);
             glDepthMask(false);
-            if (back_3d)
-                render_back_3d();
-            if (g_front_3d)
-                render_g_front_3d();
-            if (c_front_3d)
-                render_c_front_3d();
 
-            glDrawBuffers(1, fbo_render_f_attachments);
+            vec4 color;
+            *(vec3*)&color = back3d_color;
+            color.w = 1.0f;
+            glDrawBuffers(1, fbo_render_c_attachments);
+            glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
+
+            if (c_back_3d) {
+                render_c_3d(TASK_RENDER_DRAW3D_BACK);
+                render_c_3d_translucent(TASK_RENDER_DRAW3D_BACK);
+
+                glDepthMask(true);
+                glStencilMask(0xFF);
+                glClearBufferfi(GL_DEPTH_STENCIL, 0, depth_clear, stencil_clear);
+                glStencilMask(0);
+                glDepthMask(false);
+            }
+
+            if (g_front_3d)
+                render_g_3d(TASK_RENDER_DRAW3D_G_FRONT);
+
+            if (grid_3d)
+                render_grid_3d();
+
+            if (c_front_3d)
+                render_c_3d(TASK_RENDER_DRAW3D_C_FRONT);
+
+            if (glitter_3d)
+                render_glitter_3d(0);
+
+            if (glitter_3d)
+                render_glitter_3d(2);
+
+            if (glitter_3d)
+                render_glitter_3d(1);
+
+            if (c_front_3d)
+                render_c_3d_translucent(TASK_RENDER_DRAW3D_C_FRONT);
+
+            glDrawBuffers(1, fbo_render_c_attachments);
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, global_matrices_ubo);
-            glitter_particle_manager_reset_scene_disp_counter(gpm);
-            glitter_particle_manager_draw(gpm, 0);
-            glitter_particle_manager_draw(gpm, 2);
-            glitter_particle_manager_draw(gpm, 1);
 
             glBindBufferBase(GL_UNIFORM_BUFFER, 0, common_ubo);
-            glBindFramebuffer(GL_FRAMEBUFFER, hfbo->fbo[0]);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClearStencil(0);
-            glClearDepthf(1.0f);
+            bind_framebuffer(hfbo->fbo[0]);
             glDepthMask(true);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glClearBufferfv(GL_COLOR, 0, color_clear);
+            glClearBufferfv(GL_DEPTH, 0, &depth_clear);
             glDepthMask(false);
-            fbo_render_draw_c(rfbo, enable_dof);
 
-            if (enable_dof)
-                fbo_dof_draw(dfbo, hfbo->tcb[0], hfbo->tcb[1], hfbo->fbo[0], enable_dof_f2);
+            if (dof->debug.flags & DOF_DEBUG_USE_UI_PARAMS ? true : false) {
+                if (dof->debug.flags & DOF_DEBUG_ENABLE_DOF) {
+                    fbo_render_draw_c(rfbo, true);
+                    if (dof->debug.flags & DOF_DEBUG_ENABLE_PHYS_DOF)
+                        fbo_dof_draw(dfbo, hfbo->tcb[0], hfbo->tcb[1], hfbo->fbo[0], false);
+                    else
+                        fbo_dof_draw(dfbo, hfbo->tcb[0], hfbo->tcb[1], hfbo->fbo[0], true);
+                }
+                else
+                    fbo_render_draw_c(rfbo, false);
+            }
+            else if (dof->pv.enable && dof->pv.f2.ratio > 0.0f) {
+                fbo_render_draw_c(rfbo, true);
+                fbo_dof_draw(dfbo, hfbo->tcb[0], hfbo->tcb[1], hfbo->fbo[0], true);
+            }
+            else
+                fbo_render_draw_c(rfbo, false);
         }
 
         if (enable_post_process)
             fbo_pp_draw(pfbo, hfbo->tcb[0], hfbo->fbo[0], 1, fbo_hdr_f_attachments);
         fbo_hdr_draw_aa(hfbo);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        bind_framebuffer(0);
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
         glViewport(0, 0, width, height);
         fbo_hdr_draw(hfbo);
@@ -1160,13 +1763,14 @@ static void render_draw() {
         glViewport((width - internal_2d_res.x) / 2, (height - internal_2d_res.y) / 2,
             internal_2d_res.x, internal_2d_res.y);
         if (front_2d)
-            render_front_2d();
+            render_2d(TASK_RENDER_DRAW2D_FRONT);
         if (ui)
-            render_ui();
+            render_2d(TASK_RENDER_DRAW2D_UI);
         glViewport(0, 0, width, height);
-        if (micro_ui)
-            render_micro_ui();
     }
+
+    if (imgui)
+        render_imgui();
 }
 
 static void render_dispose() {
@@ -1187,58 +1791,85 @@ static void render_dispose() {
             char_buffer_dispose(&uniform.name);
         }
     }
+
     vector_task_render_free(&tasks_render);
+
+    for (task_render_draw2d* i = tasks_render_draw2d.begin; i != tasks_render_draw2d.end; i++) {
+        for (task_render_uniform* j = i->uniforms.begin; j != i->uniforms.end; j++)
+            char_buffer_dispose(&j->name);
+        vector_task_render_uniform_free(&i->uniforms);
+    }
     vector_task_render_draw2d_free(&tasks_render_draw2d);
+
+    for (task_render_draw2d* i = tasks_render_draw2d_int.begin; i != tasks_render_draw2d_int.end; i++) {
+        for (task_render_uniform* j = i->uniforms.begin; j != i->uniforms.end; j++)
+            char_buffer_dispose(&j->name);
+        vector_task_render_uniform_free(&i->uniforms);
+    }
     vector_task_render_draw2d_free(&tasks_render_draw2d_int);
+
+    for (task_render_draw3d* i = tasks_render_draw3d.begin; i != tasks_render_draw3d.end; i++) {
+        for (task_render_uniform* j = i->uniforms.begin; j != i->uniforms.end; j++)
+            char_buffer_dispose(&j->name);
+        vector_task_render_uniform_free(&i->uniforms);
+    }
     vector_task_render_draw3d_free(&tasks_render_draw3d);
+
+    for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++) {
+        for (task_render_uniform* j = i->uniforms.begin; j != i->uniforms.end; j++)
+            char_buffer_dispose(&j->name);
+        vector_task_render_uniform_free(&i->uniforms);
+    }
     vector_task_render_draw3d_free(&tasks_render_draw3d_int);
+
+    vector_task_render_draw3d_free(&temp_draw3d_tasks);
+    vector_gl_object_free(&temp_draw3d_objects);
 
     for (hash_ptr_gl_object* j = vec_gl_obj.begin; j != vec_gl_obj.end; j++)
         gl_object_dispose(j->data);
     vector_hash_ptr_gl_object_free(&vec_gl_obj);
 
+    vector_hash_light_dir_free(&vec_light_dir);
+
+    vector_hash_light_point_free(&vec_light_point);
+
+    vector_hash_material_free(&vec_mat);
+
     for (hash_shader_model* j = vec_shad.begin; j != vec_shad.end; j++)
         shader_model_free(&j->data);
     vector_hash_shader_model_free(&vec_shad);
-
-    for (hash_texture* j = vec_tex.begin; j != vec_tex.end; j++)
-        texture_free(&j->data);
-    vector_hash_texture_free(&vec_tex);
 
     for (hash_texture_set* j = vec_tex_set.begin; j != vec_tex_set.end; j++)
         texture_set_free(&j->data);
     vector_hash_texture_set_free(&vec_tex_set);
 
+    for (hash_texture* j = vec_tex.begin; j != vec_tex.end; j++)
+        texture_free(&j->data);
+    vector_hash_texture_free(&vec_tex);
+
     for (hash_ptr_vertex* j = vec_vert.begin; j != vec_vert.end; j++)
         vertex_dispose(j->data);
     vector_hash_ptr_vertex_free(&vec_vert);
 
-    for (size_t i = 0; i < classes_count; i++)
-        if (classes[i].dispose)
-            classes[i].dispose();
+    classes_process_dispose(classes, classes_count);
 
     camera_dispose(cam);
+    dof_dispose(dof);
     radius_dispose(rad);
     intensity_dispose(inten);
     tone_map_sat_gamma_dispose(tmsg);
     tone_map_data_dispose(tmd);
     glitter_particle_manager_dispose(gpm);
-    free(muctx);
 
-    texture_free(&dir_lights);
-    texture_free(&point_lights);
-    texture_free(&mu_font);
-
-    free(dir_light_data);
-    free(point_light_trans);
-    free(point_light_data);
+    texture_free(&light_dir_tex);
+    texture_free(&light_point_tex);
 
     fbo_render_dispose(rfbo);
     fbo_hdr_dispose(hfbo);
     fbo_dof_dispose(dfbo);
     fbo_pp_dispose(pfbo);
 
-    for (int32_t i = 0; i < 5; i++) {
+    for (size_t i = 0; i < 5; i++) {
         shader_fbo_free(&cfbs[i * 2]);
         shader_fbo_free(&cfbs[i * 2 + 1]);
         shader_fbo_free(&gfbs[i]);
@@ -1248,197 +1879,225 @@ static void render_dispose() {
     shader_fbo_free(&hfbs[0]);
     shader_fbo_free(&hfbs[1]);
 
-    for (int32_t i = 0; i < 2; i++)
+    for (size_t i = 0; i < 2; i++)
         for (int32_t j = 0; j < 5; j++)
             shader_fbo_free(&dfbs[i * 5 + j]);
 
-    for (int32_t i = 0; i < 16; i++)
+    for (size_t i = 0; i < 16; i++)
         shader_fbo_free(&bfbs[i]);
-    
+
     shader_fbo_free(&tfbs);
     shader_fbo_free(&particle_shader);
     shader_fbo_free(&sprite_shader);
-    shader_fbo_free(&mu_shader);
+    shader_fbo_free(&grid_shader);
 
-    glDeleteBuffers(1, &mu_vert_vbo);
-    glDeleteBuffers(1, &mu_uv_vbo);
-    glDeleteBuffers(1, &mu_color_vbo);
-    glDeleteBuffers(1, &mu_depth_vbo);
-    glDeleteVertexArrays(1, &mu_vao);
+    vertex_dispose(default_vertex);
+    texture_bone_mat_free(&default_bone_mat);
+    texture_set_free(&default_texture);
+    memset(&default_material, 0, sizeof(material));
+    shader_model_free(&default_shader);
 
     glDeleteBuffers(1, &global_matrices_ubo);
     glDeleteBuffers(1, &dof_common_ubo);
     glDeleteBuffers(1, &common_ubo);
     glDeleteBuffers(1, &tone_map_ubo);
+    glDeleteBuffers(1, &grid_vbo);
+    glDeleteVertexArrays(1, &grid_vao);
     glDeleteBuffers(1, &fb_vbo);
     glDeleteVertexArrays(1, &fb_vao);
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    igDestroyContext(ig);
 }
 
-static void render_micro_ui() {
-    mu_Command* cmd;
-    size_t count;
-    mat4 mat;
-
-    mat = mat4_identity;
-    mat.row0.x = 2.0f / width;
-    mat.row1.y = -2.0f / height;
-    mat.row2.z = -1.0f;
-    mat.row3 = (vec4){ -1.0f, 1.0f, 0.0f, 1.0f };
-
-    shader_fbo_set_mat4(&mu_shader, "mat", false, &mat);
-    glEnablei(GL_BLEND, 0);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(0, 0, width, height);
-    cmd = 0;
-    count = 0;
-    while (mu_next_command(muctx, &cmd)) {
-        count++;
-        switch (cmd->type) {
-        case MU_COMMAND_TEXT:
-            render_mui_draw_text(cmd->text.str, cmd->text.pos, cmd->text.color);
-            break;
-        case MU_COMMAND_RECT:
-            render_mui_draw_rect(cmd->rect.rect, cmd->rect.color);
-            break;
-        case MU_COMMAND_ICON:
-            render_mui_draw_icon(cmd->icon.id, cmd->icon.rect, cmd->icon.color);
-            break;
-        case MU_COMMAND_CLIP:
-            render_mui_set_clip_rect(cmd->clip.rect);
-            break;
-        case MU_COMMAND_TEX:
-            render_mui_draw_texture();
-            break;
-        }
-
-        if (!cmd->type)
-            break;
-    }
-    render_mui_flush();
-    glScissor(0, 0, width, height);
-    glDisablei(GL_BLEND, 0);
-    glDisable(GL_SCISSOR_TEST);
+static void render_imgui() {
+    ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
 }
 
-static void render_ui() {
+static void render_2d(task_render_draw2d_type type) {
     size_t count = 0;
     for (task_render_draw2d* i = tasks_render_draw2d_int.begin; i != tasks_render_draw2d_int.end; i++)
-        if (i->type == TASK_RENDER_DRAW2D_UI)
+        if (i->type == type)
             count++;
 
     if (!count)
         return;
 
     glDisable(GL_DEPTH_TEST);
+    glDepthMask(false);
     glDisable(GL_CULL_FACE);
 
     for (task_render_draw2d* i = tasks_render_draw2d_int.begin; i != tasks_render_draw2d_int.end; i++) {
-        if (i->type != TASK_RENDER_DRAW2D_UI)
+        if (i->type != type)
             continue;
 
-        if (i->blend) {
-            glEnablei(GL_BLEND, 0);
-            glBlendFuncSeparate(i->blend_src_factor_rgb, i->blend_dst_factor_rgb,
-                i->blend_src_factor_alpha, i->blend_dst_factor_alpha);
-            glBlendEquationSeparate(i->blend_mode_rgb, i->blend_mode_alpha);
-        }
-        else
-            glDisable(GL_BLEND);
     }
     glDisable(GL_BLEND);
 }
 
-static void render_front_2d() {
-    size_t count = 0;
-    for (task_render_draw2d* i = tasks_render_draw2d_int.begin; i != tasks_render_draw2d_int.end; i++)
-        if (i->type == TASK_RENDER_DRAW2D_FRONT)
-            count++;
-
-    if (!count)
-        return;
-
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-
-    for (task_render_draw2d* i = tasks_render_draw2d_int.begin; i != tasks_render_draw2d_int.end; i++) {
-        if (i->type != TASK_RENDER_DRAW2D_FRONT)
-            continue;
-
-        if (i->blend) {
-            glEnablei(GL_BLEND, 0);
-            glBlendFuncSeparate(i->blend_src_factor_rgb, i->blend_dst_factor_rgb,
-                i->blend_src_factor_alpha, i->blend_dst_factor_alpha);
-            glBlendEquationSeparate(i->blend_mode_rgb, i->blend_mode_alpha);
-        }
-        else
-            glDisable(GL_BLEND);
-    }
-    glDisable(GL_BLEND);
-}
-
-static void render_c_front_3d() {
+static void render_c_3d(task_render_draw3d_type type) {
     size_t count = 0;
     for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++)
-        if (i->type == TASK_RENDER_DRAW3D_C_FRONT)
+        if (i->type == type && !i->translucent)
             count++;
 
     if (!count)
         return;
 
-    glDrawBuffers(2, fbo_render_c_attachments);
+    glDrawBuffers(1, fbo_render_c_attachments);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, global_matrices_ubo);
 
     for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++) {
-        if (i->type != TASK_RENDER_DRAW3D_C_FRONT)
+        if (i->type != type || i->translucent)
             continue;
 
-        uint64_t hash = i->hash;
+        hash h = i->hash;
         for (hash_ptr_gl_object* j = vec_gl_obj.begin; j != vec_gl_obj.end; j++)
-            if (j->hash == hash) {
-                if (i->blend) {
-                    glEnablei(GL_BLEND, 0);
-                    glBlendFuncSeparate(i->blend_src_factor_rgb, i->blend_dst_factor_rgb,
-                        i->blend_src_factor_alpha, i->blend_dst_factor_alpha);
-                    glBlendEquationSeparate(i->blend_mode_rgb, i->blend_mode_alpha);
-                }
-                else
-                    glDisable(GL_BLEND);
+            if (HASH_COMPARE(j->hash, h)) {
+                shader_model* shad = &j->data->shader;
+                for (task_render_uniform* k = i->uniforms.begin; k != i->uniforms.end; k++)
+                    render_update_uniform_c(k, shad);
 
-                if (i->depth) {
-                    glEnable(GL_DEPTH_TEST);
-                    glDepthFunc(i->depth_func);
-                    glDepthMask(i->depth_mask);
-                }
-                else
-                    glDisable(GL_DEPTH_TEST);
-
-                if (i->cull_face) {
-                    glEnable(GL_CULL_FACE);
-                    glCullFace(i->cull_face_mode);
-                }
-                else
-                    glDisable(GL_CULL_FACE);
+                shader_model_c_set_mat4(shad, "model", GL_FALSE, &i->model);
+                shader_model_c_set_mat3(shad, "model_normal", GL_FALSE, &i->model_normal);
+                shader_model_c_set_mat4(shad, "uv_mat", GL_FALSE, &i->uv_mat);
+                shader_model_c_set_vec4(shad, "color", i->color.x, i->color.y, i->color.z, i->color.w);
                 gl_object_draw_c(j->data);
                 break;
             }
     }
+    bind_vertex_array(0);
+    shader_model_c_use(0);
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(false);
     glDisable(GL_CULL_FACE);
 }
 
-static void render_g_front_3d() {
+static void render_c_3d_translucent(task_render_draw3d_type type) {
     size_t count = 0;
     for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++)
-        if (i->type != TASK_RENDER_DRAW3D_G_FRONT)
+        if (i->type == type && i->translucent)
             count++;
 
     if (!count)
         return;
 
-    glDrawBuffers(4, fbo_render_g_attachments);
+    vector_task_render_draw3d_append(&temp_draw3d_tasks, count);
+    vector_gl_object_append(&temp_draw3d_objects, count);
+
+    for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++) {
+        if (i->type != type || !i->translucent)
+            continue;
+
+        hash h = i->hash;
+        for (hash_ptr_gl_object* j = vec_gl_obj.begin; j != vec_gl_obj.end; j++)
+            if (HASH_COMPARE(j->hash, h)) {
+                vector_task_render_draw3d_push_back(&temp_draw3d_tasks, i);
+                vector_gl_object_push_back(&temp_draw3d_objects, j->data);
+                break;
+            }
+    }
+
+    ssize_t draw_count = temp_draw3d_tasks.end - temp_draw3d_tasks.begin;
+    if (draw_count < 1) {
+        vector_task_render_draw3d_clear(&temp_draw3d_tasks);
+        vector_gl_object_clear(&temp_draw3d_objects);
+        return;
+    }
+
+    glDrawBuffers(1, fbo_render_c_attachments);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, global_matrices_ubo);
+
+    glDisable(GL_BLEND);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(true);
+
+    for (ssize_t i = 0; i < draw_count; i++) {
+        task_render_draw3d* task = &temp_draw3d_tasks.begin[i];
+        gl_object* obj = &temp_draw3d_objects.begin[i];
+        shader_model* shad = &obj->shader;
+        for (task_render_uniform* k = task->uniforms.begin; k != task->uniforms.end; k++)
+            render_update_uniform_c(k, shad);
+
+        shader_model_c_set_mat4(shad, "model", GL_FALSE, &task->model);
+        shader_model_c_set_mat3(shad, "model_normal", GL_FALSE, &task->model_normal);
+        shader_model_c_set_mat4(shad, "uv_mat", GL_FALSE, &task->uv_mat);
+        shader_model_c_set_vec4(shad, "color", task->color.x, task->color.y, task->color.z, task->color.w);
+        gl_object_draw_c_translucent_first_part(obj);
+    }
+
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glEnablei(GL_BLEND, 0);
+
+    for (ssize_t i = 0; i < draw_count; i++) {
+        task_render_draw3d* task = &temp_draw3d_tasks.begin[i];
+        gl_object* obj = &temp_draw3d_objects.begin[i];
+        shader_model* shad = &obj->shader;
+        for (task_render_uniform* k = task->uniforms.begin; k != task->uniforms.end; k++)
+            render_update_uniform_c(k, shad);
+
+        shader_model_c_set_mat4(shad, "model", GL_FALSE, &task->model);
+        shader_model_c_set_mat3(shad, "model_normal", GL_FALSE, &task->model_normal);
+        shader_model_c_set_mat4(shad, "uv_mat", GL_FALSE, &task->uv_mat);
+        shader_model_c_set_vec4(shad, "color", task->color.x, task->color.y, task->color.z, task->color.w);
+        gl_object_draw_c_translucent_second_part(obj);
+    }
+    bind_vertex_array(0);
+    shader_model_c_use(0);
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(false);
+    glDisable(GL_CULL_FACE);
+
+    vector_task_render_draw3d_clear(&temp_draw3d_tasks);
+    vector_gl_object_clear(&temp_draw3d_objects);
+}
+
+static void render_grid_3d() {
+    glDrawBuffers(1, fbo_render_c_attachments);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, global_matrices_ubo);
+
+    glEnablei(GL_BLEND, 0);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(true);
+
+    shader_fbo_use(&grid_shader);
+    bind_vertex_array(grid_vao);
+    glDrawArrays(GL_LINES, 0, grid_vertex_count);
+    shader_fbo_use(0);
+
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(false);
+    glDisable(GL_BLEND);
+}
+
+static void render_g_3d(task_render_draw3d_type type) {
+    static const GLfloat color_clear[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    static const GLfloat specular_clear[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    static const GLfloat normal_clear[] = { 0.5f, 0.5f, 0.5f, 0.0f };
+
+    glDrawBuffers(3, fbo_render_g_attachments);
+    glClearBufferfv(GL_COLOR, 0, color_clear);
+    glClearBufferfv(GL_COLOR, 1, specular_clear);
+    glClearBufferfv(GL_COLOR, 2, normal_clear);
+
+    size_t count = 0;
+    for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++)
+        if (i->type == type)
+            count++;
+
+    if (!count)
+        return;
+
+    glDrawBuffers(3, fbo_render_g_attachments);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, global_matrices_ubo);
 
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -1448,30 +2107,26 @@ static void render_g_front_3d() {
     glDisable(GL_BLEND);
 
     for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++) {
-        if (i->type != TASK_RENDER_DRAW3D_G_FRONT)
+        if (i->type != type)
             continue;
 
-        uint64_t hash = i->hash;
+        hash h = i->hash;
         for (hash_ptr_gl_object* j = vec_gl_obj.begin; j != vec_gl_obj.end; j++)
-            if (j->hash == hash) {
-                if (i->depth) {
-                    glEnable(GL_DEPTH_TEST);
-                    glDepthFunc(i->depth_func);
-                    glDepthMask(i->depth_mask);
-                }
-                else
-                    glDisable(GL_DEPTH_TEST);
+            if (HASH_COMPARE(j->hash, h)) {
+                shader_model* shad = &j->data->shader;
+                for (task_render_uniform* k = i->uniforms.begin; k != i->uniforms.end; k++)
+                    render_update_uniform_g(k, shad);
 
-                if (i->cull_face) {
-                    glEnable(GL_CULL_FACE);
-                    glCullFace(i->cull_face_mode);
-                }
-                else
-                    glDisable(GL_CULL_FACE);
+                shader_model_g_set_mat4(shad, "model", GL_FALSE, &i->model);
+                shader_model_g_set_mat3(shad, "model_normal", GL_FALSE, &i->model_normal);
+                shader_model_g_set_mat4(shad, "uv_mat", GL_FALSE, &i->uv_mat);
+                shader_model_g_set_vec4(shad, "color", i->color.x, i->color.y, i->color.z, i->color.w);
                 gl_object_draw_g(j->data);
                 break;
             }
     }
+    bind_vertex_array(0);
+    shader_model_g_use(0);
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(false);
@@ -1479,88 +2134,16 @@ static void render_g_front_3d() {
 
     glStencilFunc(GL_EQUAL, 0xFF, 0xFF);
     glStencilMask(0x00);
-    fbo_render_draw_g(rfbo, dir_lights.id, dir_lights_count, point_lights.id, point_lights_count);
+    fbo_render_draw_g(rfbo,
+        light_dir_tex.id, (int32_t)(vec_light_dir.end - vec_light_dir.begin),
+        light_point_tex.id, (int32_t)(vec_light_point.end - vec_light_point.begin));
     glDisable(GL_STENCIL_TEST);
 }
 
-static void render_back_3d() {
-    size_t count = 0;
-    for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++)
-        if (i->type == TASK_RENDER_DRAW3D_BACK)
-            count++;
-
-    if (!count)
-        return;
-
-    glDrawBuffers(2, fbo_render_c_attachments);
+void render_glitter_3d(int32_t alpha) {
+    glDrawBuffers(1, fbo_render_c_attachments);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, global_matrices_ubo);
-
-    for (task_render_draw3d* i = tasks_render_draw3d_int.begin; i != tasks_render_draw3d_int.end; i++) {
-        if (i->type != TASK_RENDER_DRAW3D_BACK)
-            continue;
-
-        uint64_t hash = i->hash;
-        for (hash_ptr_gl_object* j = vec_gl_obj.begin; j != vec_gl_obj.end; j++)
-            if (j->hash == hash) {
-                if (i->blend) {
-                    glEnablei(GL_BLEND, 0);
-                    glBlendFuncSeparate(i->blend_src_factor_rgb, i->blend_dst_factor_rgb,
-                        i->blend_src_factor_alpha, i->blend_dst_factor_alpha);
-                    glBlendEquationSeparate(i->blend_mode_rgb, i->blend_mode_alpha);
-                }
-                else
-                    glDisable(GL_BLEND);
-
-                if (i->depth) {
-                    glEnable(GL_DEPTH_TEST);
-                    glDepthFunc(i->depth_func);
-                    glDepthMask(i->depth_mask);
-                }
-                else
-                    glDisable(GL_DEPTH_TEST);
-
-                if (i->cull_face) {
-                    glEnable(GL_CULL_FACE);
-                    glCullFace(i->cull_face_mode);
-                }
-                else
-                    glDisable(GL_CULL_FACE);
-                gl_object_draw_c(j->data);
-                break;
-            }
-    }
-    glDisable(GL_BLEND);
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(false);
-    glDisable(GL_CULL_FACE);
-}
-
-static void render_back_2d() {
-    size_t count = 0;
-    for (task_render_draw2d* i = tasks_render_draw2d_int.begin; i != tasks_render_draw2d_int.end; i++)
-        if (i->type == TASK_RENDER_DRAW2D_BACK)
-            count++;
-
-    if (!count)
-        return;
-
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-
-    for (task_render_draw2d* i = tasks_render_draw2d_int.begin; i != tasks_render_draw2d_int.end; i++) {
-        if (i->type != TASK_RENDER_DRAW2D_BACK)
-            continue;
-
-        if (i->blend) {
-            glEnablei(GL_BLEND, 0);
-            glBlendFuncSeparate(i->blend_src_factor_rgb, i->blend_dst_factor_rgb,
-                i->blend_src_factor_alpha, i->blend_dst_factor_alpha);
-            glBlendEquationSeparate(i->blend_mode_rgb, i->blend_mode_alpha);
-        }
-        else
-            glDisable(GL_BLEND);
-    }
-    glDisable(GL_BLEND);
+    glitter_particle_manager_draw(GPM_VAL, alpha);
 }
 
 void render_set_scale(double_t value) {
@@ -1582,15 +2165,37 @@ void render_set_scale(double_t value) {
 }
 
 static void render_get_aspect_correct_res(vec2i* res) {
-    int32_t width = res->x;
-    int32_t height = res->y;
-    double_t viewAspect = (double_t)width / (double_t)height;
-    res->x = (int32_t)round(height * aspect);
-    res->y = (int32_t)round(width / aspect);
-    if (viewAspect < aspect)
-        res->x = (int32_t)round(res->y * aspect);
-    else if (viewAspect > aspect)
-        res->y = (int32_t)round(res->x / aspect);
+    double_t width = (double_t)res->x;
+    double_t height = (double_t)res->y;
+    double_t view_aspect = width / height;
+    width = round(height * aspect);
+    height = round(width / aspect);
+    if (view_aspect < aspect)
+        width = round(height * aspect);
+    else if (view_aspect > aspect)
+        height = round(width / aspect);
+    res->x = (int32_t)width;
+    res->y = (int32_t)height;
+}
+
+static void render_drop_glfw(GLFWwindow* window, int count, char** paths) {
+    if (!count || !paths)
+        return;
+
+    size_t c = count;
+    wchar_t** wpaths = force_malloc_s(wchar_t*, count);
+    for (size_t i = 0, j = 0; i < count; i++)
+        if (paths[i])
+            wpaths[j++] = char_string_to_wchar_t_string(paths[i]);
+        else
+            c--;
+    if (c) {
+        classes_process_drop(classes, classes_count, c, wpaths);
+        glfwFocusWindow(window);
+    }
+    for (size_t i = 0; i < c; i++)
+        free(wpaths[i]);
+    free(wpaths);
 }
 
 static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h) {
@@ -1604,14 +2209,14 @@ static void render_resize_fb(bool change_fb) {
     if (internal_3d_res.x < 20) internal_3d_res.x = 20;
     if (internal_3d_res.y < 20) internal_3d_res.y = 20;
 
-    internal_2d_res.x = (int32_t)round((double_t)width * scale);
-    internal_2d_res.y = (int32_t)round((double_t)height * scale);
+    internal_2d_res.x = (int32_t)roundf((float_t)width * scale);
+    internal_2d_res.y = (int32_t)roundf((float_t)height * scale);
     render_get_aspect_correct_res(&internal_2d_res);
     internal_2d_res.x = clamp(internal_2d_res.x, 1, sv_max_texture_size);
     internal_2d_res.y = clamp(internal_2d_res.y, 1, sv_max_texture_size);
 
-    internal_3d_res.x = (int32_t)round((double_t)internal_res.x * scale);
-    internal_3d_res.y = (int32_t)round((double_t)internal_res.y * scale);
+    internal_3d_res.x = (int32_t)roundf((float_t)internal_res.x * scale);
+    internal_3d_res.y = (int32_t)roundf((float_t)internal_res.y * scale);
     render_get_aspect_correct_res(&internal_3d_res);
     internal_3d_res.x = clamp(internal_3d_res.x, 1, sv_max_texture_size);
     internal_3d_res.y = clamp(internal_3d_res.y, 1, sv_max_texture_size);
@@ -1649,220 +2254,351 @@ static void render_resize_fb(bool change_fb) {
             1.0f / (float_t)internal_3d_res.x,
             1.0f / (float_t)internal_3d_res.y,
         };
-        glBindBuffer(GL_UNIFORM_BUFFER, common_ubo);
+        bind_uniform_buffer(common_ubo);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float_t) * 4, data);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        bind_uniform_buffer(0);
 
-        float_t aspect = (float_t)width / (float_t)height;
+        float_t aspect;
+        aspect = (float_t)width / (float_t)height;
         aspect /= (float_t)internal_3d_res.x / (float_t)internal_3d_res.y;
 
-        shader_fbo_set_vec2(&ffbs, "scale",
-            aspect > 1.0f ? 1.0f / aspect : 1.0f, aspect < 1.0f ? aspect : 1.0f);
+        if (aspect > 1.0f)
+            shader_fbo_set_vec2(&ffbs, "scale", 1.0f / aspect, 1.0f);
+        else if (aspect < 1.0f)
+            shader_fbo_set_vec2(&ffbs, "scale", 1.0f, aspect);
+        else
+            shader_fbo_set_vec2(&ffbs, "scale", 1.0f, 1.0f);
     }
 }
 
-static void render_input_text_glfw(GLFWwindow* window, uint32_t codepoint) {
-    WaitForSingleObject(mu_input_lock, INFINITE);
-    if (codepoint >= 0x80 && codepoint < 0x10000) {
-        vector_wchar_t_append(&mu_input, 1);
-        mu_input.end++;
-        mu_input.end[-2] = (wchar_t)codepoint;
-        mu_input.end[-1] = 0;
-    }
-    else if (codepoint < 0x80) {
-        vector_wchar_t_append(&mu_input, 1);
-        mu_input.end++;
-        mu_input.end[-2] = (wchar_t)codepoint;
-        mu_input.end[-1] = 0;
-        vector_char_append(&mu_input_ansi, 1);
-        mu_input_ansi.end++;
-        mu_input_ansi.end[-2] = (char)codepoint;
-        mu_input_ansi.end[-1] = 0;
-    }
-    ReleaseMutex(mu_input_lock);
-}
+static void render_dof_get_texcoords(vec2* data, float_t a2) {
+    size_t i;
+    size_t j;
+    float_t v6;
+    float_t v7;
+    float_t v8;
+    float_t v9;
+    double_t v11;
+    float_t v12;
 
-static void render_input_mouse_scroll_glfw(GLFWwindow* window, double_t xoffset, double_t yoffset) {
-    extern void input_mouse_add_scroll_x(double_t value);
-    extern void input_mouse_add_scroll_y(double_t value);
-
-    WaitForSingleObject(mu_input_lock, INFINITE);
-    input_mouse_add_scroll_x(xoffset);
-    input_mouse_add_scroll_y(yoffset);
-    ReleaseMutex(mu_input_lock);
-}
-
-static void render_dof_get_texcoords(float_t* a1, float_t a2) {
-    int32_t v2, v3, v4;
-    float_t v5, v6, v7, v8;
-    double_t v9;
-
-    v4 = 0;
-    v8 = a2 * 3.0f;
-    for (v2 = 0; v2 < 7; v2++) {
-        v5 = v2 / 3.0f - 1.0f;
-        for (v3 = 0; v3 < 7; v3++) {
-            v6 = v3 / 3.0f - 1.0f;
-            if (-v5 >= v6) {
-                if (v5 > v6) {
-                    v7 = 4.0f + v5 / v6;
-                    v6 = -v6;
+    const float_t t = (float_t)(1.0 / 3.0);
+    v12 = a2 * 3.0f;
+    for (i = 0; i < 7; i++) {
+        v6 = (float_t)i * t - 1.0f;
+        for (j = 0; j < 7; j++) {
+            v7 = (float_t)j * t - 1.0f;
+            if (-v6 >= v7) {
+                if (v7 < v6) {
+                    v8 = -v7;
+                    v9 = (v6 / v7) + 4.0f;
                 }
-                else if (v5 == 0.0) {
-                    v7 = 0.0f;
-                    v6 = 0.0f; }
+                else if (v6 == 0.0f) {
+                    v8 = 0.0f;
+                    v9 = 0.0f;
+                }
                 else {
-                    v7 = 6.0f - v6 / v5; v6 = -v5;
+                    v8 = -v6;
+                    v9 = 6.0f - (v7 / v6);
                 }
+            }
+            else if (v6 < v7) {
+                v8 = (float_t)j * t - 1.0f;
+                v9 = v6 / v7;
             }
             else {
-                if (v5 < v6) {
-                    v7 = v5 / v6;
-                    v6 = v3 / 3.0f - 1.0f;
-                }
-                else {
-                    v7 = 2.0f - v6 / v5;
-                    v6 = v2 / 3.0f - 1.0f;
-                }
+                v8 = (float_t)i * t - 1.0f;
+                v9 = 2.0f - (v7 / v6);
             }
-            v9 = v7 * 0.25 * M_PI;
-            a1[v4++] = (float_t)(cos(v9) * v6 * v8);
-            a1[v4++] = (float_t)(sin(v9) * v6 * v8);
+            v8 *= v12;
+            v11 = (double_t)v9 * (M_PI * 0.25);
+            vec2_mult_scalar(((vec2) { (float_t)cos(v11), (float_t)sin(v11) }), v8, *data++);
         }
     }
 }
 
-static void render_mui_flush() {
-    if (mu_buf_idx == 0)
-        return;
-
-    glBindBuffer(GL_ARRAY_BUFFER, mu_vert_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 2 * 4 * sizeof(GLfloat) * mu_buf_idx, mu_vert_buf, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, mu_uv_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 2 * 4 * sizeof(GLfloat) * mu_buf_idx, mu_uv_buf, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, mu_color_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 4 * 4 * sizeof(GLfloat) * mu_buf_idx, mu_color_buf, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, mu_depth_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 1 * 4 * sizeof(GLfloat) * mu_buf_idx, mu_depth_buf, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    shader_fbo_use(&mu_shader);
-    texture_bind(&mu_font, 0);
-    glBindVertexArray(mu_vao);
-    glDrawElements(GL_TRIANGLES, (GLsizei)(mu_buf_idx * 6), GL_UNSIGNED_INT, mu_index_buf);
-    shader_fbo_use(0);
-    texture_reset(&mu_font, 0);
-    glBindVertexArray(0);
-    mu_buf_idx = 0;
-}
-
-static void render_mui_push_quad(mu_Rect dst, mu_Rect src, mu_Color color) {
-    if (mu_buf_idx >= MU_BUFFER_SIZE) {
-        render_mui_flush();
-        mu_buf_idx = 0;
-    }
-
-    size_t      uv_idx = mu_buf_idx * 8;
-    size_t    vert_idx = mu_buf_idx * 8;
-    size_t   color_idx = mu_buf_idx * 16;
-    size_t   depth_idx = mu_buf_idx * 4;
-    size_t element_idx = mu_buf_idx * 4;
-    size_t   index_idx = mu_buf_idx * 6;
-    mu_buf_idx++;
-
-    GLfloat x = (GLfloat)src.x * (GLfloat)(1.0f / ATLAS_WIDTH);
-    GLfloat y = (GLfloat)src.y * (GLfloat)(1.0f / ATLAS_HEIGHT);
-    GLfloat w = (GLfloat)src.w * (GLfloat)(1.0f / ATLAS_WIDTH);
-    GLfloat h = (GLfloat)src.h * (GLfloat)(1.0f / ATLAS_HEIGHT);
-    mu_uv_buf[uv_idx + 0] = x;
-    mu_uv_buf[uv_idx + 1] = y;
-    mu_uv_buf[uv_idx + 2] = x + w;
-    mu_uv_buf[uv_idx + 3] = y;
-    mu_uv_buf[uv_idx + 4] = x;
-    mu_uv_buf[uv_idx + 5] = y + h;
-    mu_uv_buf[uv_idx + 6] = x + w;
-    mu_uv_buf[uv_idx + 7] = y + h;
-
-    mu_vert_buf[vert_idx + 0] = (GLfloat)dst.x;
-    mu_vert_buf[vert_idx + 1] = (GLfloat)dst.y;
-    mu_vert_buf[vert_idx + 2] = (GLfloat)dst.x + dst.w;
-    mu_vert_buf[vert_idx + 3] = (GLfloat)dst.y;
-    mu_vert_buf[vert_idx + 4] = (GLfloat)dst.x;
-    mu_vert_buf[vert_idx + 5] = (GLfloat)dst.y + dst.h;
-    mu_vert_buf[vert_idx + 6] = (GLfloat)dst.x + dst.w;
-    mu_vert_buf[vert_idx + 7] = (GLfloat)dst.y + dst.h;
-
-    mu_color_buf[color_idx + 0] = (GLfloat)color.r * (1.0f / 255.0f);
-    mu_color_buf[color_idx + 1] = (GLfloat)color.g * (1.0f / 255.0f);
-    mu_color_buf[color_idx + 2] = (GLfloat)color.b * (1.0f / 255.0f);
-    mu_color_buf[color_idx + 3] = (GLfloat)color.a * (1.0f / 255.0f);
-    memcpy(&mu_color_buf[color_idx + 4], &mu_color_buf[color_idx + 0], sizeof(GLfloat) * 4);
-    memcpy(&mu_color_buf[color_idx + 8], &mu_color_buf[color_idx + 0], sizeof(GLfloat) * 4);
-    memcpy(&mu_color_buf[color_idx + 12], &mu_color_buf[color_idx + 0], sizeof(GLfloat) * 4);
-
-    mu_depth_buf[depth_idx + 0] = (GLfloat)(MU_BUFFER_SIZE - 1 - mu_buf_idx) * (1.0f / (MU_BUFFER_SIZE - 1));
-    memcpy(&mu_depth_buf[depth_idx + 1], &mu_depth_buf[depth_idx + 0], sizeof(GLfloat));
-    memcpy(&mu_depth_buf[depth_idx + 2], &mu_depth_buf[depth_idx + 0], sizeof(GLfloat));
-    memcpy(&mu_depth_buf[depth_idx + 3], &mu_depth_buf[depth_idx + 0], sizeof(GLfloat));
-
-    mu_index_buf[index_idx + 0] = (GLuint)(element_idx + 0);
-    mu_index_buf[index_idx + 1] = (GLuint)(element_idx + 1);
-    mu_index_buf[index_idx + 2] = (GLuint)(element_idx + 2);
-    mu_index_buf[index_idx + 3] = (GLuint)(element_idx + 2);
-    mu_index_buf[index_idx + 4] = (GLuint)(element_idx + 3);
-    mu_index_buf[index_idx + 5] = (GLuint)(element_idx + 1);
-}
-
-static inline void render_mui_draw_rect(mu_Rect rect, mu_Color color) {
-    render_mui_push_quad(rect, atlas[ATLAS_WHITE], color);
-}
-
-static inline void render_mui_draw_text(const char* text, mu_Vec2 pos, mu_Color color) {
-    mu_Rect dst = { pos.x, pos.y, 0, 0 };
-    for (const char* p = text; *p; p++) {
-        if ((*p & 0xc0) == 0x80)
+static void render_imgui_context_menu(classes_struct* classes, const size_t classes_count) {
+    for (size_t i = 0; i < classes_count; i++) {
+        if (!classes[i].enabled || !classes[i].name || ~classes[i].flags & CLASSES_IN_CONTEXT_MENU)
             continue;
 
-        mu_Rect src = atlas[ATLAS_FONT + mu_min(*p, 127)];
-        dst.w = src.w;
-        dst.h = src.h;
-        render_mui_push_quad(dst, src, color);
-        dst.x += dst.w;
+        if (classes[i].sub_classes && classes[i].sub_classes_count) {
+            if (igBeginMenu(classes[i].name, *classes[i].enabled)) {
+                render_imgui_context_menu(classes[i].sub_classes, classes[i].sub_classes_count);
+                igEndMenu();
+            }
+        }
+        else if (*classes[i].enabled)
+            igMenuItem_Bool(classes[i].name, 0, false, false);
+        else if (igMenuItem_Bool(classes[i].name, 0, false, true))
+            if (classes[i].init)
+                classes[i].init();
     }
 }
 
-static inline void render_mui_draw_icon(int id, mu_Rect rect, mu_Color color) {
-    mu_Rect src = atlas[id];
-    int x = rect.x + (rect.w - src.w) / 2;
-    int y = rect.y + (rect.h - src.h) / 2;
-    render_mui_push_quad(mu_rect(x, y, src.w, src.h), src, color);
-}
+static bool render_glitter_mesh_add_list(glitter_particle_mesh* mesh, vec4* color, mat4* model, mat4* uv_mat) {
+    bool found = false;
+    hash h;
+    gl_object* obj;
 
-static inline void render_mui_set_clip_rect(mu_Rect rect) {
-    render_mui_flush();
-    if (rect.w == 0x1000000 || rect.h == 0x1000000)
-        glScissor(0, 0, width, height);
+    hash object_mesh_hash = (hash){ .f = mesh->object_name_hash, .m = (uint32_t)mesh->object_name_hash };
+    for (hash_ptr_gl_object* i = vec_gl_obj.begin; i != vec_gl_obj.end; i++)
+        if (HASH_COMPARE(i->hash, object_mesh_hash)) {
+            found = true;
+            h = i->hash;
+            obj = i->data;
+            break;
+        }
+
+    if (!found) {
+        if (!gpm->draw_all || !gpm->draw_all_mesh)
+            return false;
+
+        found = false;
+        hash dummy_hash = hash_char("Glitter Editor Dummy");
+        for (hash_ptr_gl_object* i = vec_gl_obj.begin; i != vec_gl_obj.end; i++)
+            if (HASH_COMPARE(i->hash, dummy_hash)) {
+                found = true;
+                h = i->hash;
+                obj = i->data;
+                break;
+            }
+
+        if (!found)
+            return false;
+
+        found = false;
+    }
+
+    mat4 m;
+    mat4 temp;
+    mat3 mn;
+    if (found)
+        m = *model;
     else
-        glScissor(rect.x, height - (rect.y + rect.h), rect.w, rect.h);
+        mat4_scale_rot(model, 0.05f, 0.05f, 0.05f, &m);
+    mat4_invtrans(&m, &temp);
+    mat3_from_mat4(&temp, &mn);
+
+    task_render_draw3d task_draw;
+    memset(&task_draw, 0, sizeof(task_draw));
+    task_draw.hash = h;
+    task_draw.type = TASK_RENDER_DRAW3D_C_FRONT;
+    task_draw.translucent = color->w < 1.0f || obj->vertex.translucent || obj->material.translucent;
+    task_draw.model = m;
+    task_draw.model_normal = mn;
+    task_draw.uv_mat = *uv_mat;
+    task_draw.color = *color;
+    task_draw.uniforms = (vector_task_render_uniform){ 0, 0, 0 };
+    vector_task_render_draw3d_push_back(&tasks_render_draw3d, &task_draw);
+    return true;
 }
 
-static inline void render_mui_draw_texture() {
-}
-
-static int render_mui_get_text_width(mu_Font font, const char* text, size_t len) {
-    if (!len)
-        len = strlen(text);
-
-    int res = 0;
-    for (const char* p = text; *p && len--; p++) {
-        if ((*p & 0xc0) == 0x80)
-            continue;
-
-        res += atlas[ATLAS_FONT + mu_min(*p, 127)].w;
+static void render_update_uniform_c(task_render_uniform* uniform, shader_model* s) {
+    task_render_uniform uni = *uniform;
+    char* name = char_buffer_select(&uni.name);
+    switch (uni.type) {
+    case TASK_RENDER_UNIFORM_BOOL: {
+        task_render_uniform_bool uni_data = uni.boolean;
+        shader_model_c_set_bool(s, name, uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_INT32: {
+        task_render_uniform_int32 uni_data = uni.int32;
+        shader_model_c_set_int(s, name, uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_FLOAT32: {
+        task_render_uniform_float32 uni_data = uni.float32;
+        shader_model_c_set_float(s, name, uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC2: {
+        task_render_uniform_vec2 uni_data = uni.vec2;
+        shader_model_c_set_vec2(s, name, uni_data.value.x, uni_data.value.y);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC2I: {
+        task_render_uniform_vec2i uni_data = uni.vec2i;
+        shader_model_c_set_vec2i(s, name, uni_data.value.x, uni_data.value.y);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC3: {
+        task_render_uniform_vec3 uni_data = uni.vec3;
+        shader_model_c_set_vec3(s, name, uni_data.value.x, uni_data.value.y, uni_data.value.z);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC3I: {
+        task_render_uniform_vec3i uni_data = uni.vec3i;
+        shader_model_c_set_vec3i(s, name, uni_data.value.x, uni_data.value.y, uni_data.value.z);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC4: {
+        task_render_uniform_vec4 uni_data = uni.vec4;
+        shader_model_c_set_vec4(s, name, uni_data.value.x,
+            uni_data.value.y, uni_data.value.z, uni_data.value.w);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC4I: {
+        task_render_uniform_vec4i uni_data = uni.vec4i;
+        shader_model_c_set_vec4i(s, name, uni_data.value.x,
+            uni_data.value.y, uni_data.value.z, uni_data.value.w);
+    } break;
+    case TASK_RENDER_UNIFORM_MAT3: {
+        task_render_uniform_mat3 uni_data = uni.mat3;
+        shader_model_c_set_mat3(s, name, uni_data.transpose, &uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_MAT4: {
+        task_render_uniform_mat4 uni_data = uni.mat4;
+        shader_model_c_set_mat4(s, name, uni_data.transpose, &uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_INT32_ARRAY: {
+        task_render_uniform_int32_array uni_data = uni.int32_array;
+        shader_model_c_set_int_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_FLOAT32_ARRAY: {
+        task_render_uniform_float32_array uni_data = uni.float32_array;
+        shader_model_c_set_float_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC2_ARRAY: {
+        task_render_uniform_vec2_array uni_data = uni.vec2_array;
+        shader_model_c_set_vec2_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC2I_ARRAY: {
+        task_render_uniform_vec2i_array uni_data = uni.vec2i_array;
+        shader_model_c_set_vec2i_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC3_ARRAY: {
+        task_render_uniform_vec3_array uni_data = uni.vec3_array;
+        shader_model_c_set_vec3_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC3I_ARRAY: {
+        task_render_uniform_vec3i_array uni_data = uni.vec3i_array;
+        shader_model_c_set_vec3i_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC4_ARRAY: {
+        task_render_uniform_vec4_array uni_data = uni.vec4_array;
+        shader_model_c_set_vec4_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC4I_ARRAY: {
+        task_render_uniform_vec4i_array uni_data = uni.vec4i_array;
+        shader_model_c_set_vec4i_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_MAT3_ARRAY: {
+        task_render_uniform_mat3_array uni_data = uni.mat3_array;
+        shader_model_c_set_mat3_array(s, name, (GLsizei)uni_data.count,
+            uni_data.transpose, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_MAT4_ARRAY: {
+        task_render_uniform_mat4_array uni_data = uni.mat4_array;
+        shader_model_c_set_mat4_array(s, name, (GLsizei)uni_data.count,
+            uni_data.transpose, uni_data.value);
+        free(uni_data.value);
+    } break;
     }
-    return res;
 }
 
-static int render_mui_get_text_height(mu_Font font) {
-    return 18;
+static void render_update_uniform_g(task_render_uniform* uniform, shader_model* s) {
+    task_render_uniform uni = *uniform;
+    char* name = char_buffer_select(&uni.name);
+    switch (uni.type) {
+    case TASK_RENDER_UNIFORM_BOOL: {
+        task_render_uniform_bool uni_data = uni.boolean;
+        shader_model_g_set_bool(s, name, uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_INT32: {
+        task_render_uniform_int32 uni_data = uni.int32;
+        shader_model_g_set_int(s, name, uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_FLOAT32: {
+        task_render_uniform_float32 uni_data = uni.float32;
+        shader_model_g_set_float(s, name, uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC2: {
+        task_render_uniform_vec2 uni_data = uni.vec2;
+        shader_model_g_set_vec2(s, name, uni_data.value.x, uni_data.value.y);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC2I: {
+        task_render_uniform_vec2i uni_data = uni.vec2i;
+        shader_model_g_set_vec2i(s, name, uni_data.value.x, uni_data.value.y);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC3: {
+        task_render_uniform_vec3 uni_data = uni.vec3;
+        shader_model_g_set_vec3(s, name, uni_data.value.x, uni_data.value.y, uni_data.value.z);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC3I: {
+        task_render_uniform_vec3i uni_data = uni.vec3i;
+        shader_model_g_set_vec3i(s, name, uni_data.value.x, uni_data.value.y, uni_data.value.z);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC4: {
+        task_render_uniform_vec4 uni_data = uni.vec4;
+        shader_model_g_set_vec4(s, name, uni_data.value.x,
+            uni_data.value.y, uni_data.value.z, uni_data.value.w);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC4I: {
+        task_render_uniform_vec4i uni_data = uni.vec4i;
+        shader_model_g_set_vec4i(s, name, uni_data.value.x,
+            uni_data.value.y, uni_data.value.z, uni_data.value.w);
+    } break;
+    case TASK_RENDER_UNIFORM_MAT3: {
+        task_render_uniform_mat3 uni_data = uni.mat3;
+        shader_model_g_set_mat3(s, name, uni_data.transpose, &uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_MAT4: {
+        task_render_uniform_mat4 uni_data = uni.mat4;
+        shader_model_g_set_mat4(s, name, uni_data.transpose, &uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_INT32_ARRAY: {
+        task_render_uniform_int32_array uni_data = uni.int32_array;
+        shader_model_g_set_int_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_FLOAT32_ARRAY: {
+        task_render_uniform_float32_array uni_data = uni.float32_array;
+        shader_model_g_set_float_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC2_ARRAY: {
+        task_render_uniform_vec2_array uni_data = uni.vec2_array;
+        shader_model_g_set_vec2_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC2I_ARRAY: {
+        task_render_uniform_vec2i_array uni_data = uni.vec2i_array;
+        shader_model_g_set_vec2i_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC3_ARRAY: {
+        task_render_uniform_vec3_array uni_data = uni.vec3_array;
+        shader_model_g_set_vec3_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC3I_ARRAY: {
+        task_render_uniform_vec3i_array uni_data = uni.vec3i_array;
+        shader_model_g_set_vec3i_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC4_ARRAY: {
+        task_render_uniform_vec4_array uni_data = uni.vec4_array;
+        shader_model_g_set_vec4_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_VEC4I_ARRAY: {
+        task_render_uniform_vec4i_array uni_data = uni.vec4i_array;
+        shader_model_g_set_vec4i_array(s, name, (GLsizei)uni_data.count, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_MAT3_ARRAY: {
+        task_render_uniform_mat3_array uni_data = uni.mat3_array;
+        shader_model_g_set_mat3_array(s, name, (GLsizei)uni_data.count,
+            uni_data.transpose, uni_data.value);
+        free(uni_data.value);
+    } break;
+    case TASK_RENDER_UNIFORM_MAT4_ARRAY: {
+        task_render_uniform_mat4_array uni_data = uni.mat4_array;
+        shader_model_g_set_mat4_array(s, name, (GLsizei)uni_data.count,
+            uni_data.transpose, uni_data.value);
+        free(uni_data.value);
+    } break;
+    }
 }

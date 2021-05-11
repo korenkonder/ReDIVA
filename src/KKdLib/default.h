@@ -17,12 +17,9 @@
 
 #define free(ptr) \
 { \
-    if (ptr) { \
+    if (ptr) \
         free(ptr); \
-        (ptr) = 0; \
-    } \
-    else \
-        (ptr) = 0; \
+    (ptr) = 0; \
 }
 
 #define null(t) \
@@ -113,14 +110,40 @@ pointer_ptr(char)
 
 #define clamp(a, b, c) (min(max(a, b), c))
 
-#define align_val(a, b) (((a) % (b) == 0) ? (a) : ((a) + (b) - (a) % (b)))
+#define align_val(a, b) ((((a) + (b) - 1) / (b)) * (b))
 
-#define align_val_divide(a, b, c) ((((a) % (b) == 0) ? (a) : ((a) + (b) - (a) % (b))) / (c))
+#define align_val_divide(a, b, c) (((a) + (b) - 1) / (c))
 
 #define BUF_SIZE 4096
 
+#define RAD_TO_DEG (180.0 / M_PI)
+
+#define DEG_TO_RAD (M_PI / 180.0)
+
+#define RAD_TO_DEG_FLOAT ((float_t)(180.0 / M_PI))
+
+#define DEG_TO_RAD_FLOAT ((float_t)(M_PI / 180.0))
+
+#define ctgf(x) (1.0f / tanf(x))
+
+#define ctghf(x) (1.0f / tanhf(x))
+
+#define actgf(x) (1.0f / atanf(x))
+
+#define actghf(x) (1.0f / atanhf(x))
+
+#define ctg(x) (1.0 / tan(x))
+
+#define ctgh(x) (1.0 / tanh(x))
+
+#define actg(x) (1.0 / atan(x))
+
+#define actgh(x) (1.0 / atanh(x))
+
+#define lerp(x, y, blend) ((x) + (blend) * ((y) - (x)))
+
 extern void* force_malloc(size_t size);
-extern void* force_malloc_s(size_t s, size_t size);
+#define force_malloc_s(s, size) force_malloc(sizeof(s) * (size))
 extern void char_append_data(char** buf, size_t * buf_len,
     size_t * act_buf_len, char* data, size_t length);
 extern void char_append_data_s(size_t s, char** buf, size_t* buf_len,

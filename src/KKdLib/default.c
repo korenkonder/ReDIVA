@@ -13,14 +13,6 @@ void* force_malloc(size_t size) {
     return buf;
 }
 
-void* force_malloc_s(size_t s, size_t size) {
-    void* buf = 0;
-    while (!buf)
-        buf = malloc(size * s);
-    memset(buf, 0, size * s);
-    return buf;
-}
-
 void char_append_data(char** buf, size_t* buf_len, size_t* act_buf_len, char* data, size_t length) {
     if (length < 1)
         return;
@@ -109,7 +101,7 @@ wchar_t* char_string_to_wchar_t_string(char* s) {
         return 0;
 
     size_t len = strlen(s);
-    wchar_t* t = force_malloc_s(sizeof(wchar_t), len + 1);
+    wchar_t* t = force_malloc_s(wchar_t, len + 1);
     for (size_t i = 0; i < len; i++)
         t[i] = (wchar_t)s[i];
     return t;

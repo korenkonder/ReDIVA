@@ -25,8 +25,7 @@ struct f2_struct {
     vector_size_t pof;
 };
 
-extern f2_struct* f2_struct_init();
-extern void f2_struct_dispose(f2_struct* st);
+extern void f2_struct_free(f2_struct* s);
 extern void f2_struct_read(f2_struct* st, char* path);
 extern void f2_struct_wread(f2_struct* st, wchar_t* path);
 extern void f2_struct_read_memory(f2_struct* st, void* data, size_t length);

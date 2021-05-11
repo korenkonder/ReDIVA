@@ -6,40 +6,33 @@
 #include "msgpack.h"
 
 #define ALLOCATE_MSGPACK(a, b) \
-{ \
-    if (CHECK_MSGPACK(a)) \
-        ((a*)##b.ptr) = force_malloc(sizeof(a)); \
-}
-#define ALLOCATE_MSGPACK_PTR(a, b) \
-{ \
-    if (CHECK_MSGPACK(a)) \
-        ((a*)##b->ptr) = force_malloc(sizeof(a)); \
-}
+if (CHECK_MSGPACK(a)) \
+    ((a*)##b->ptr) = force_malloc(sizeof(a));
 
 static void msgpack_dispose_inner(msgpack* msg);
 
 msgpack* msgpack_init_map(wchar_t* name) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_MAP;
-    ALLOCATE_MSGPACK_PTR(msgpack_map, msg);
+    ALLOCATE_MSGPACK(msgpack_map, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     msgpack_map* ptr = SELECT_MSGPACK(msgpack_map, msg);
     ptr->length = 0;
     ptr->fulllength = 1;
-    ptr->data = force_malloc_s(sizeof(msgpack), 1);
+    ptr->data = force_malloc_s(msgpack, 1);
     return msg;
 }
 
 msgpack* msgpack_init_array(wchar_t* name, size_t length) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_ARRAY;
-    ALLOCATE_MSGPACK_PTR(msgpack_array, msg);
+    ALLOCATE_MSGPACK(msgpack_array, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     msgpack_array* ptr = SELECT_MSGPACK(msgpack_array, msg);
     ptr->length = ptr->fulllength = length;
-    ptr->data = force_malloc_s(sizeof(msgpack), length);
+    ptr->data = force_malloc_s(msgpack, length);
     return msg;
 }
 
@@ -53,7 +46,7 @@ msgpack* msgpack_init_null(wchar_t* name) {
 msgpack* msgpack_init_bool(wchar_t* name, bool val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_BOOL;
-    ALLOCATE_MSGPACK_PTR(bool, msg);
+    ALLOCATE_MSGPACK(bool, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     bool* ptr = SELECT_MSGPACK(bool, msg);
@@ -64,7 +57,7 @@ msgpack* msgpack_init_bool(wchar_t* name, bool val) {
 msgpack* msgpack_init_int8_t(wchar_t* name, int8_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_INT8;
-    ALLOCATE_MSGPACK_PTR(int8_t, msg);
+    ALLOCATE_MSGPACK(int8_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     int8_t* ptr = SELECT_MSGPACK(int8_t, msg);
@@ -75,7 +68,7 @@ msgpack* msgpack_init_int8_t(wchar_t* name, int8_t val) {
 msgpack* msgpack_init_uint8_t(wchar_t* name, uint8_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_UINT8;
-    ALLOCATE_MSGPACK_PTR(uint8_t, msg);
+    ALLOCATE_MSGPACK(uint8_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     uint8_t* ptr = SELECT_MSGPACK(uint8_t, msg);
@@ -86,7 +79,7 @@ msgpack* msgpack_init_uint8_t(wchar_t* name, uint8_t val) {
 msgpack* msgpack_init_int16_t(wchar_t* name, int16_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_INT16;
-    ALLOCATE_MSGPACK_PTR(int16_t, msg);
+    ALLOCATE_MSGPACK(int16_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     int16_t* ptr = SELECT_MSGPACK(int16_t, msg);
@@ -97,7 +90,7 @@ msgpack* msgpack_init_int16_t(wchar_t* name, int16_t val) {
 msgpack* msgpack_init_uint16_t(wchar_t* name, uint16_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_UINT16;
-    ALLOCATE_MSGPACK_PTR(uint16_t, msg);
+    ALLOCATE_MSGPACK(uint16_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     uint16_t* ptr = SELECT_MSGPACK(uint16_t, msg);
@@ -108,7 +101,7 @@ msgpack* msgpack_init_uint16_t(wchar_t* name, uint16_t val) {
 msgpack* msgpack_init_int32_t(wchar_t* name, int32_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_INT32;
-    ALLOCATE_MSGPACK_PTR(int32_t, msg);
+    ALLOCATE_MSGPACK(int32_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     int32_t* ptr = SELECT_MSGPACK(int32_t, msg);
@@ -119,7 +112,7 @@ msgpack* msgpack_init_int32_t(wchar_t* name, int32_t val) {
 msgpack* msgpack_init_uint32_t(wchar_t* name, uint32_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_UINT32;
-    ALLOCATE_MSGPACK_PTR(uint32_t, msg);
+    ALLOCATE_MSGPACK(uint32_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     uint32_t* ptr = SELECT_MSGPACK(uint32_t, msg);
@@ -130,7 +123,7 @@ msgpack* msgpack_init_uint32_t(wchar_t* name, uint32_t val) {
 msgpack* msgpack_init_int64_t(wchar_t* name, int64_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_INT64;
-    ALLOCATE_MSGPACK_PTR(int64_t, msg);
+    ALLOCATE_MSGPACK(int64_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     int64_t* ptr = SELECT_MSGPACK(int64_t, msg);
@@ -141,7 +134,7 @@ msgpack* msgpack_init_int64_t(wchar_t* name, int64_t val) {
 msgpack* msgpack_init_uint64_t(wchar_t* name, uint64_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_UINT64;
-    ALLOCATE_MSGPACK_PTR(uint64_t, msg);
+    ALLOCATE_MSGPACK(uint64_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     uint64_t* ptr = SELECT_MSGPACK(uint64_t, msg);
@@ -152,7 +145,7 @@ msgpack* msgpack_init_uint64_t(wchar_t* name, uint64_t val) {
 msgpack* msgpack_init_float_t(wchar_t* name, float_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_FLOAT;
-    ALLOCATE_MSGPACK_PTR(float_t, msg);
+    ALLOCATE_MSGPACK(float_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     float_t* ptr = SELECT_MSGPACK(float_t, msg);
@@ -163,7 +156,7 @@ msgpack* msgpack_init_float_t(wchar_t* name, float_t val) {
 msgpack* msgpack_init_double_t(wchar_t* name, double_t val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_DOUBLE;
-    ALLOCATE_MSGPACK_PTR(double_t, msg);
+    ALLOCATE_MSGPACK(double_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     double_t* ptr = SELECT_MSGPACK(double_t, msg);
@@ -174,64 +167,10 @@ msgpack* msgpack_init_double_t(wchar_t* name, double_t val) {
 msgpack* msgpack_init_string(wchar_t* name, wchar_t* val) {
     msgpack* msg = force_malloc(sizeof(msgpack));
     msg->type = MSGPACK_STRING;
-    ALLOCATE_MSGPACK_PTR(wchar_t_buffer, msg);
+    ALLOCATE_MSGPACK(wchar_t_buffer, msg);
     wchar_t_buffer_init(&msg->name, name);
     wchar_t_buffer_init(SELECT_MSGPACK(wchar_t_buffer, msg), val);
     return msg;
-}
-
-void msgpack_dispose(msgpack* msg) {
-    if (!msg)
-        return;
-
-    switch (msg->type) {
-    case MSGPACK_STRING:
-        wchar_t_buffer_dispose(SELECT_MSGPACK(wchar_t_buffer, msg));
-        break;
-    case MSGPACK_ARRAY: {
-        msgpack_array* ptr = SELECT_MSGPACK(msgpack_array, msg);
-        for (size_t i = 0; i < ptr->length; i++)
-            msgpack_dispose_inner(&ptr->data[i]);
-        free(ptr->data);
-    } break;
-    case MSGPACK_MAP: {
-        msgpack_map* ptr = SELECT_MSGPACK(msgpack_map, msg);
-        for (size_t i = 0; i < ptr->length; i++)
-            msgpack_dispose_inner(&ptr->data[i]);
-        free(ptr->data);
-    } break;
-    }
-
-    if (msg->type != MSGPACK_ARRAY && msg->type != MSGPACK_MAP && msg->type == MSGPACK_NONE)
-        memset(msg, 0, sizeof(msgpack));
-    else
-        free(msg);
-}
-
-static void msgpack_dispose_inner(msgpack* msg) {
-    if (!msg)
-        return;
-    
-    wchar_t_buffer_dispose(&msg->name);
-
-    switch (msg->type) {
-    case MSGPACK_STRING:
-        wchar_t_buffer_dispose(SELECT_MSGPACK(wchar_t_buffer, msg));
-        break;
-    case MSGPACK_ARRAY: {
-        msgpack_array* ptr = SELECT_MSGPACK(msgpack_array, msg);
-        for (size_t i = 0; i < ptr->length; i++)
-            msgpack_dispose_inner(&ptr->data[i]);
-        free(ptr->data);
-    } break;
-    case MSGPACK_MAP: {
-        msgpack_map* ptr = SELECT_MSGPACK(msgpack_map, msg);
-        for (size_t i = 0; i < ptr->length; i++)
-            msgpack_dispose_inner(&ptr->data[i]);
-        free(ptr->data);
-    } break;
-    }
-    memset(msg, 0, sizeof(msgpack));
 }
 
 bool msgpack_check_null(msgpack* msg) {
@@ -406,7 +345,7 @@ void msgpack_set_array(msgpack* msg, wchar_t* name, msgpack_array* val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_ARRAY;
-    ALLOCATE_MSGPACK_PTR(msgpack_array, msg);
+    ALLOCATE_MSGPACK(msgpack_array, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     msgpack_array* ptr = SELECT_MSGPACK(msgpack_array, msg);
@@ -419,7 +358,7 @@ void msgpack_set_map(msgpack* msg, wchar_t* name, msgpack_map* val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_MAP;
-    ALLOCATE_MSGPACK_PTR(msgpack_map, msg);
+    ALLOCATE_MSGPACK(msgpack_map, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     msgpack_map* ptr = SELECT_MSGPACK(msgpack_map, msg);
@@ -432,13 +371,13 @@ void msgpack_set_map_empty(msgpack* msg, wchar_t* name) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_MAP;
-    ALLOCATE_MSGPACK_PTR(msgpack_map, msg);
+    ALLOCATE_MSGPACK(msgpack_map, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     msgpack_map* ptr = SELECT_MSGPACK(msgpack_map, msg);
     ptr->length = 0;
     ptr->fulllength = 1;
-    ptr->data = force_malloc_s(sizeof(msgpack), 1);
+    ptr->data = force_malloc_s(msgpack, 1);
 }
 
 void msgpack_set_bool(msgpack* msg, wchar_t* name, bool val) {
@@ -447,7 +386,7 @@ void msgpack_set_bool(msgpack* msg, wchar_t* name, bool val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_BOOL;
-    ALLOCATE_MSGPACK_PTR(bool, msg);
+    ALLOCATE_MSGPACK(bool, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     bool* ptr = SELECT_MSGPACK(bool, msg);
@@ -460,7 +399,7 @@ void msgpack_set_int8_t(msgpack* msg, wchar_t* name, int8_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_INT8;
-    ALLOCATE_MSGPACK_PTR(int8_t, msg);
+    ALLOCATE_MSGPACK(int8_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     int8_t* ptr = SELECT_MSGPACK(int8_t, msg);
@@ -473,7 +412,7 @@ void msgpack_set_uint8_t(msgpack* msg, wchar_t* name, uint8_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_UINT8;
-    ALLOCATE_MSGPACK_PTR(uint8_t, msg);
+    ALLOCATE_MSGPACK(uint8_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     uint8_t* ptr = SELECT_MSGPACK(uint8_t, msg);
@@ -486,7 +425,7 @@ void msgpack_set_int16_t(msgpack* msg, wchar_t* name, int16_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_INT16;
-    ALLOCATE_MSGPACK_PTR(int16_t, msg);
+    ALLOCATE_MSGPACK(int16_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     int16_t* ptr = SELECT_MSGPACK(int16_t, msg);
@@ -499,7 +438,7 @@ void msgpack_set_uint16_t(msgpack* msg, wchar_t* name, uint16_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_UINT16;
-    ALLOCATE_MSGPACK_PTR(uint16_t, msg);
+    ALLOCATE_MSGPACK(uint16_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     uint16_t* ptr = SELECT_MSGPACK(uint16_t, msg);
@@ -512,7 +451,7 @@ void msgpack_set_int32_t(msgpack* msg, wchar_t* name, int32_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_INT32;
-    ALLOCATE_MSGPACK_PTR(int32_t, msg);
+    ALLOCATE_MSGPACK(int32_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     int32_t* ptr = SELECT_MSGPACK(int32_t, msg);
@@ -525,7 +464,7 @@ void msgpack_set_uint32_t(msgpack* msg, wchar_t* name, uint32_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_UINT32;
-    ALLOCATE_MSGPACK_PTR(uint32_t, msg);
+    ALLOCATE_MSGPACK(uint32_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     uint32_t* ptr = SELECT_MSGPACK(uint32_t, msg);
@@ -538,7 +477,7 @@ void msgpack_set_int64_t(msgpack* msg, wchar_t* name, int64_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_INT64;
-    ALLOCATE_MSGPACK_PTR(int64_t, msg);
+    ALLOCATE_MSGPACK(int64_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     int64_t* ptr = SELECT_MSGPACK(int64_t, msg);
@@ -551,7 +490,7 @@ void msgpack_set_uint64_t(msgpack* msg, wchar_t* name, uint64_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_UINT64;
-    ALLOCATE_MSGPACK_PTR(uint64_t, msg);
+    ALLOCATE_MSGPACK(uint64_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     uint64_t* ptr = SELECT_MSGPACK(uint64_t, msg);
@@ -564,7 +503,7 @@ void msgpack_set_float_t(msgpack* msg, wchar_t* name, float_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_FLOAT;
-    ALLOCATE_MSGPACK_PTR(float_t, msg);
+    ALLOCATE_MSGPACK(float_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     float_t* ptr = SELECT_MSGPACK(float_t, msg);
@@ -577,7 +516,7 @@ void msgpack_set_double_t(msgpack* msg, wchar_t* name, double_t val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_DOUBLE;
-    ALLOCATE_MSGPACK_PTR(double_t, msg);
+    ALLOCATE_MSGPACK(double_t, msg);
     wchar_t_buffer_init(&msg->name, name);
 
     double_t* ptr = SELECT_MSGPACK(double_t, msg);
@@ -590,7 +529,7 @@ void msgpack_set_string(msgpack* msg, wchar_t* name, wchar_t* val) {
 
     msgpack_dispose_inner(msg);
     msg->type = MSGPACK_STRING;
-    ALLOCATE_MSGPACK_PTR(wchar_t_buffer, msg);
+    ALLOCATE_MSGPACK(wchar_t_buffer, msg);
     wchar_t_buffer_init(&msg->name, name);
     wchar_t_buffer_init(SELECT_MSGPACK(wchar_t_buffer, msg), val);
 }
@@ -850,9 +789,63 @@ wchar_t* msgpack_read_string(msgpack* msg, wchar_t* name) {
 
     if (m && m->type == MSGPACK_STRING) {
         wchar_t_buffer* ptr = SELECT_MSGPACK(wchar_t_buffer, m);
-        wchar_t* val = force_malloc_s(sizeof(wchar_t), ptr->length + 1);
+        wchar_t* val = force_malloc_s(wchar_t, ptr->length + 1);
         memcpy(val, wchar_t_buffer_select(ptr), sizeof(wchar_t) * (ptr->length + 1));
         return val;
     }
     return 0;
+}
+
+void msgpack_dispose(msgpack* msg) {
+    if (!msg)
+        return;
+
+    switch (msg->type) {
+    case MSGPACK_STRING:
+        wchar_t_buffer_dispose(SELECT_MSGPACK(wchar_t_buffer, msg));
+        break;
+    case MSGPACK_ARRAY: {
+        msgpack_array* ptr = SELECT_MSGPACK(msgpack_array, msg);
+        for (size_t i = 0; i < ptr->length; i++)
+            msgpack_dispose_inner(&ptr->data[i]);
+        free(ptr->data);
+    } break;
+    case MSGPACK_MAP: {
+        msgpack_map* ptr = SELECT_MSGPACK(msgpack_map, msg);
+        for (size_t i = 0; i < ptr->length; i++)
+            msgpack_dispose_inner(&ptr->data[i]);
+        free(ptr->data);
+    } break;
+    }
+
+    if (msg->type != MSGPACK_ARRAY && msg->type != MSGPACK_MAP && msg->type == MSGPACK_NONE)
+        memset(msg, 0, sizeof(msgpack));
+    else
+        free(msg);
+}
+
+static void msgpack_dispose_inner(msgpack* msg) {
+    if (!msg)
+        return;
+
+    wchar_t_buffer_dispose(&msg->name);
+
+    switch (msg->type) {
+    case MSGPACK_STRING:
+        wchar_t_buffer_dispose(SELECT_MSGPACK(wchar_t_buffer, msg));
+        break;
+    case MSGPACK_ARRAY: {
+        msgpack_array* ptr = SELECT_MSGPACK(msgpack_array, msg);
+        for (size_t i = 0; i < ptr->length; i++)
+            msgpack_dispose_inner(&ptr->data[i]);
+        free(ptr->data);
+    } break;
+    case MSGPACK_MAP: {
+        msgpack_map* ptr = SELECT_MSGPACK(msgpack_map, msg);
+        for (size_t i = 0; i < ptr->length; i++)
+            msgpack_dispose_inner(&ptr->data[i]);
+        free(ptr->data);
+    } break;
+    }
+    memset(msg, 0, sizeof(msgpack));
 }

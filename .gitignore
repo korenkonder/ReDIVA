@@ -4,6 +4,7 @@ lib
 libdebug
 obj
 objdebug
+*.aps
 *.cs
 *.rc
 *.sln

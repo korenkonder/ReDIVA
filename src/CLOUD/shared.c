@@ -5,58 +5,61 @@
 
 #include "shared.h"
 
-mu_Context* muctx;
-
-const classes_struct classes[] = {
+classes_struct classes[] = {
+#ifndef CLOUD_DEV
     {
-        .name    = "BACKGROUND COLOR",
+        .name    = "Data Test",
         .flags   = CLASSES_IN_CONTEXT_MENU,
-        .enabled = &background_color.enabled,
-        .dispose = (void*)background_color_dispose,
-        .init    = (void*)background_color_init,
-        .control = (void*)background_color_control,
-        .input   = (void*)background_color_input,
-        .mui     = (void*)background_color_mui,
-        .render  = (void*)background_color_render,
-        .sound   = (void*)background_color_sound,
+        .enabled = &data_test_enabled,
+        .dispose = (void*)0,
+        .init    = (void*)0,
+        .control = (void*)0,
+        .drop    = (void*)0,
+        .imgui   = (void*)0,
+        .input   = (void*)0,
+        .render  = (void*)0,
+        .sound   = (void*)0,
+        .lock = 0,
+        .sub_classes = data_test_classes,
+        .sub_classes_count = 1,
     },
-    /*{
-        .name    = "GLITTER TEST",
-        //.flags   = CLASSES_INIT_AT_STARTUP | CLASSES_IN_CONTEXT_MENU,
-        .flags   = 0,
-        .enabled = &glitter_test.enabled,
-        .dispose = (void*)glitter_test_dispose,
-        .init    = (void*)glitter_test_init,
-        .control = (void*)glitter_test_control,
-        .input   = (void*)glitter_test_input,
-        .mui     = (void*)glitter_test_mui,
-        .render  = (void*)glitter_test_render,
-        .sound   = (void*)glitter_test_sound,
-    },*/
+#endif
     {
-        .name    = "POST PROCESS",
+        .name    = "Graphics",
         .flags   = CLASSES_IN_CONTEXT_MENU,
-        .enabled = &post_process.enabled,
-        .dispose = (void*)post_process_dispose,
-        .init    = (void*)post_process_init,
-        .control = (void*)post_process_control,
-        .input   = (void*)post_process_input,
-        .mui     = (void*)post_process_mui,
-        .render  = (void*)post_process_render,
-        .sound   = (void*)post_process_sound,
+        .enabled = &graphics_enabled,
+        .dispose = (void*)0,
+        .init    = (void*)0,
+        .control = (void*)0,
+        .drop    = (void*)0,
+        .imgui   = (void*)0,
+        .input   = (void*)0,
+        .render  = (void*)0,
+        .sound   = (void*)0,
+        .lock = 0,
+        .sub_classes = graphics_classes,
+        .sub_classes_count = 3,
     },
+#ifdef CLOUD_DEV
     {
-        .name    = "GLITTER EDITOR",
+        .name    = "Glitter Editor",
         .flags   = CLASSES_INIT_AT_STARTUP,
-        .enabled = &glitter_editor.enabled,
+        .enabled = &glitter_editor_enabled,
         .dispose = (void*)glitter_editor_dispose,
         .init    = (void*)glitter_editor_init,
-        .control = (void*)glitter_editor_control,
+        .control = (void*)0,
+        .drop    = (void*)glitter_editor_drop,
+        .imgui   = (void*)glitter_editor_imgui,
         .input   = (void*)glitter_editor_input,
-        .mui     = (void*)glitter_editor_mui,
         .render  = (void*)glitter_editor_render,
-        .sound   = (void*)glitter_editor_sound,
+        .sound   = (void*)0,
+        .lock = 0,
+        .sub_classes = 0,
+        .sub_classes_count = 0,
     },
+#endif
 };
 
 const size_t classes_count = sizeof(classes) / sizeof(classes_struct);
+
+render_state state;

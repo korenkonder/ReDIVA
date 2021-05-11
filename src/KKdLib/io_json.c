@@ -311,7 +311,7 @@ static void io_json_read_string(stream* s, wchar_t* name, msgpack* msg, int32_t*
     free(temp);
 }
 
-FORCE_INLINE void io_json_read_skip_whitespace(stream* s, int32_t* c) {
+static inline void io_json_read_skip_whitespace(stream* s, int32_t* c) {
     while ((*c = io_read_char(s)) != IO_EOF) {
         if (CHECK_WHITESPACE(*c))
             continue;
@@ -327,7 +327,7 @@ static void io_json_read_map(stream* s, wchar_t* name, msgpack* msg, int32_t* c)
     if (*c != '}') {
         map.length = 0;
         map.fulllength = 1;
-        map.data = force_malloc_s(sizeof(msgpack), 1);
+        map.data = force_malloc_s(msgpack, 1);
         while (true) {
             io_json_read_skip_whitespace(s, c);
 
@@ -360,7 +360,7 @@ static void io_json_read_map(stream* s, wchar_t* name, msgpack* msg, int32_t* c)
             if (i == map.fulllength) {
                 map.fulllength *= 2;
                 map.fulllength++;
-                msgpack* t_m = force_malloc_s(sizeof(msgpack), map.fulllength);
+                msgpack* t_m = force_malloc_s(msgpack, map.fulllength);
                 memcpy(t_m, map.data, sizeof(msgpack) * i);
                 free(map.data);
                 map.data = t_m;
@@ -369,7 +369,7 @@ static void io_json_read_map(stream* s, wchar_t* name, msgpack* msg, int32_t* c)
         }
 
         if (i < map.fulllength) {
-            msgpack* t_m = force_malloc_s(sizeof(msgpack), i);
+            msgpack* t_m = force_malloc_s(msgpack, i);
             memcpy(t_m, map.data, sizeof(msgpack) * i);
             free(map.data);
             map.data = t_m;
@@ -396,7 +396,7 @@ static void io_json_read_array(stream* s, wchar_t* name, msgpack* msg, int32_t* 
     if (*c != ']') {
         array.length = 0;
         array.fulllength = 1;
-        array.data = force_malloc_s(sizeof(msgpack), 1);
+        array.data = force_malloc_s(msgpack, 1);
         while (true) {
             io_json_read_skip_whitespace(s, c);
 
@@ -417,7 +417,7 @@ static void io_json_read_array(stream* s, wchar_t* name, msgpack* msg, int32_t* 
             if (i == array.fulllength) {
                 array.fulllength *= 2;
                 array.fulllength++;
-                msgpack* t_m = force_malloc_s(sizeof(msgpack), array.fulllength);
+                msgpack* t_m = force_malloc_s(msgpack, array.fulllength);
                 memcpy(t_m, array.data, sizeof(msgpack) * i);
                 free(array.data);
                 array.data = t_m;
@@ -426,7 +426,7 @@ static void io_json_read_array(stream* s, wchar_t* name, msgpack* msg, int32_t* 
         }
 
         if (i < array.fulllength) {
-            msgpack* t_m = force_malloc_s(sizeof(msgpack), i);
+            msgpack* t_m = force_malloc_s(msgpack, i);
             memcpy(t_m, array.data, sizeof(msgpack) * i);
             free(array.data);
             array.data = t_m;

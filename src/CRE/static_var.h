@@ -8,6 +8,8 @@
 #include "../KKdLib/default.h"
 #include "../KKdLib/vec.h"
 #include "../KKdLib/mat.h"
+#define GLEW_STATIC
+#include <GLEW/glew.h>
 
 extern int32_t sv_max_samples;
 extern int32_t sv_max_texture_buffer_size;
@@ -31,3 +33,20 @@ extern bool sv_can_use_msaa();
 extern void sv_anisotropy_set(int32_t value);
 extern void sv_samples_set(int32_t value);
 extern void sv_fxaa_set(bool value);
+
+extern void bind_index_tex1d(int32_t index, int32_t id);
+extern void bind_index_tex2d(int32_t index, int32_t id);
+extern void bind_index_tex2dms(int32_t index, int32_t id);
+extern void bind_index_tex3d(int32_t index, int32_t id);
+extern void bind_index_texcube(int32_t index, int32_t id);
+extern void active_texture(int32_t index);
+extern void bind_framebuffer(int32_t fbo);
+extern void bind_vertex_array(int32_t vao);
+extern void bind_array_buffer(int32_t vbo);
+extern void bind_element_array_buffer(int32_t ebo);
+extern void bind_uniform_buffer(int32_t ubo);
+extern void bind_tex1d(int32_t id);
+extern void bind_tex2d(int32_t id);
+extern void bind_tex2dms(int32_t id);
+extern void bind_tex3d(int32_t id);
+extern void bind_texcube(int32_t id);

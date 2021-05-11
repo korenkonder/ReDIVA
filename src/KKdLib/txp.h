@@ -6,6 +6,8 @@
 #pragma once
 
 #include "default.h"
+#include "f2_enrs.h"
+#include "vector.h"
 
 typedef enum txp_format {
     TXP_A8     = 0,
@@ -24,26 +26,29 @@ typedef enum txp_format {
     TXP_L8A8   = 13,
 } txp_format;
 
-typedef struct txp_sub_data {
+typedef struct txp_mipmap {
     uint32_t width;
     uint32_t height;
     txp_format format;
     uint32_t size;
     void* data;
-} txp_sub_data;
+} txp_mipmap;
 
-typedef struct txp_data {
-    uint32_t array_size;
-    uint32_t mipmaps_count;
-    txp_sub_data** data;
-} txp_data;
+vector(txp_mipmap)
 
 typedef struct txp {
-    uint32_t count;
-    txp_data* data;
+    bool has_cubemap;
+    uint32_t array_size;
+    uint32_t mipmaps_count;
+    vector_txp_mipmap data;
 } txp;
 
-extern txp* txp_init();
-extern void txp_pack_file(txp* t, void** data, size_t* length, bool use_big_endian);
-extern bool txp_unpack_file(txp* t, void* data, bool use_big_endian);
-extern void txp_dispose(txp* t);
+vector(txp)
+
+extern void txp_copy(txp* src, txp* dst);
+extern uint32_t txp_get_size(txp_format format, uint32_t width, uint32_t height);
+extern void txp_free(txp* t);
+extern bool tex_set_pack_file(vector_txp* t, void** data, size_t* length, bool use_big_endian);
+extern bool tex_set_produce_enrs(vector_txp* t, vector_enrs_entry* enrs);
+extern bool tex_set_unpack_file(vector_txp* t, void* data, bool use_big_endian);
+extern void tex_set_free(vector_txp* t);

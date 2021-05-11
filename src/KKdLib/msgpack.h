@@ -37,7 +37,7 @@ typedef struct msgpack {
 } msgpack;
 
 #define CHECK_MSGPACK(a) sizeof(a) > 0x20
-#define SELECT_MSGPACK(a, b) (CHECK_MSGPACK(a) ? (##a##*)##b->ptr : (##a##*)##b->data)
+#define SELECT_MSGPACK(a, b) (CHECK_MSGPACK(a) ? (a*)(b)->ptr : (##a##*)(b)->data)
 
 typedef struct msgpack_array {
     msgpack* data;
@@ -66,7 +66,6 @@ extern msgpack* msgpack_init_uint64_t(wchar_t* name, uint64_t val);
 extern msgpack* msgpack_init_float_t(wchar_t* name, float_t val);
 extern msgpack* msgpack_init_double_t(wchar_t* name, double_t val);
 extern msgpack* msgpack_init_string(wchar_t* name, wchar_t* val);
-extern void msgpack_dispose(msgpack* msg);
 extern bool msgpack_check_null(msgpack* msg);
 extern bool msgpack_check_not_null(msgpack* msg);
 extern msgpack* msgpack_get_by_index(msgpack* msg, size_t index);
@@ -115,3 +114,4 @@ extern uint64_t msgpack_read_uint64_t(msgpack* msg, wchar_t* name);
 extern float_t msgpack_read_float_t(msgpack* msg, wchar_t* name);
 extern double_t msgpack_read_double_t(msgpack* msg, wchar_t* name);
 extern wchar_t* msgpack_read_string(msgpack* msg, wchar_t* name);
+extern void msgpack_dispose(msgpack* msg);

@@ -36,14 +36,15 @@ typedef struct stream {
 extern stream* io_open(char* path, char* mode);
 extern stream* io_wopen(wchar_t* path, wchar_t* mode);
 extern stream* io_open_memory(void* data, size_t length);
-extern void io_dispose(stream* s);
 extern void io_align(stream* s, size_t align);
+extern int io_flush(stream* s);
 extern ssize_t io_get_position(stream* s);
 extern int32_t io_set_position(stream* s, ssize_t pos, int32_t seek);
 extern size_t io_read(stream* s, void* buf, size_t count);
 extern size_t io_write(stream* s, void* buf, size_t count);
 extern int32_t io_read_char(stream* s);
 extern int32_t io_write_char(stream* s, char c);
+extern void io_dispose(stream* s);
 
 int8_t io_read_int8_t(stream* s);
 uint8_t io_read_uint8_t(stream* s);

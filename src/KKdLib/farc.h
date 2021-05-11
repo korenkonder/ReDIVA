@@ -16,8 +16,8 @@ typedef enum farc_signature {
 } farc_signature;
 
 typedef enum farc_type {
-    FARC_DATA_GZIP = 0b010,
-    FARC_DATA_AES  = 0b100,
+    FARC_DATA_GZIP = 0x2,
+    FARC_DATA_AES  = 0x4,
 } farc_type;
 
 typedef enum farc_compress_mode {
@@ -31,8 +31,8 @@ typedef enum farc_compress_mode {
 
 typedef struct farc_file {
     size_t offset;
+    size_t size;
     size_t size_compressed;
-    size_t size_uncompressed;
     wchar_t* name;
     uint8_t* data;
     farc_type type;
@@ -41,8 +41,8 @@ typedef struct farc_file {
 vector(farc_file)
 
 typedef struct farc {
-    wchar_t* file_path;
-    wchar_t* directory_path;
+    wchar_t file_path[MAX_PATH];
+    wchar_t directory_path[MAX_PATH];
     vector_farc_file files;
     farc_signature signature;
     farc_type type;
@@ -51,10 +51,10 @@ typedef struct farc {
 } farc;
 
 extern farc* farc_init();
-extern void farc_dispose(farc* f);
 extern void farc_read(farc* f, char* path, bool unpack, bool save);
 extern void farc_wread(farc* f, wchar_t* path, bool unpack, bool save);
 extern farc_file* farc_read_file(farc* f, char* name);
 extern farc_file* farc_wread_file(farc* f, wchar_t* name);
 extern void farc_write(farc* f, char* path, farc_compress_mode mode, bool get_files);
 extern void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode, bool get_files);
+extern void farc_dispose(farc* f);

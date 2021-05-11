@@ -8,32 +8,11 @@
 
 #define XOR32(val) ((val & 0xFF) ^ (((val) >> 8) & 0xFF) ^ (((val) >> 16) & 0xFF) ^ (((val) >> 24) & 0xFF))
 
+static inline void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state);
+
 kkc* kkc_init() {
     kkc* k = force_malloc(sizeof(kkc));
     return k;
-}
-
-void kkc_dispose(kkc* c) {
-    if (!c)
-        return;
-
-    free(c->key.data);
-    free(c->k);
-    free(c);
-}
-
-FORCE_INLINE void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
-    if (!arr || length < 1)
-        return;
-
-    for (size_t i = 0; i < length; i++) {
-        uint32_t x = *state;
-        x ^= x << 13;
-        x ^= x >> 17;
-        x ^= x << 5;
-        *state = x;
-        arr[i] = (uint8_t)x;
-    }
 }
 
 void FASTCALL kkc_get_key(kkc_key* key, uint32_t seed, kkc_key_mode mode, kkc_key_type type) {
@@ -85,7 +64,7 @@ void FASTCALL kkc_init_from_key_mode(kkc* c, vector_uint8_t* key, kkc_key_mode m
     c->state = 1;
     c->error = KKC_ERROR_NONE;
 
-    if (!key || !key->begin || !(key->end - key->begin)) {
+    if (!key || !key->begin || key->end - key->begin < 1) {
         c->error = KKC_ERROR_INVALID_KEY;
         return;
     }
@@ -254,7 +233,7 @@ void FASTCALL kkc_prepare_cursing_table(kkc* c) {
     if (c->k)
         free(c->k);
 
-    c->k = force_malloc_s(sizeof(uint32_t), kl);
+    c->k = force_malloc_s(uint32_t, kl);
     if (!c->k)
         return;
 
@@ -556,4 +535,27 @@ void FASTCALL kkc_decurse(kkc* c, uint8_t* src, uint8_t* dst, size_t length) {
         }
     }
     *c = e;
+}
+
+void kkc_dispose(kkc* c) {
+    if (!c)
+        return;
+
+    free(c->key.data);
+    free(c->k);
+    free(c);
+}
+
+static inline void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
+    if (!arr || length < 1)
+        return;
+
+    for (size_t i = 0; i < length; i++) {
+        uint32_t x = *state;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        *state = x;
+        arr[i] = (uint8_t)x;
+    }
 }

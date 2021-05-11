@@ -7,11 +7,19 @@
 
 #include "glitter.h"
 
-extern int32_t FASTCALL glitter_random_get();
-extern float_t FASTCALL glitter_random_get_float_clamp(float_t min, float_t max);
-extern float_t FASTCALL glitter_random_get_float_clamp_min_max(float_t value);
-extern void FASTCALL glitter_random_get_float_vec3_clamp(vec3* src, vec3* dst);
-extern int32_t FASTCALL glitter_random_get_int(int32_t value);
-extern int32_t FASTCALL glitter_random_get_int_clamp(int32_t min, int32_t max);
-extern int32_t FASTCALL glitter_random_get_max();
-extern void FASTCALL glitter_random_set(int32_t value);
+extern int32_t FASTCALL glitter_random_get_value(glitter_random* random);
+extern float_t FASTCALL glitter_random_get_float(GPM,
+    glitter_random* random, float_t value);
+extern float_t FASTCALL glitter_random_get_float_min_max(GPM,
+    glitter_random* random, float_t min, float_t max);
+extern void FASTCALL glitter_random_get_vec3(GPM,
+    glitter_random* random, vec3* src, vec3* dst);
+extern int32_t FASTCALL glitter_random_get_int(GPM,
+    glitter_random* random, int32_t value);
+extern int32_t FASTCALL glitter_random_get_int_min_max(GPM,
+    glitter_random* random, int32_t min, int32_t max);
+extern int32_t FASTCALL glitter_random_get_max(GPM);
+extern void FASTCALL glitter_random_reset(glitter_random* random);
+extern void FASTCALL glitter_random_set_step(glitter_random* random, uint8_t step);
+extern void FASTCALL glitter_random_set_value(glitter_random* random, int32_t value);
+extern void FASTCALL glitter_random_step_value(glitter_random* random);

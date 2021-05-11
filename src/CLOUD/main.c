@@ -4,15 +4,13 @@
 */
 
 #include "../KKdLib/kkfs.h"
-#include "../KKdLib/f2_struct.h"
-#include "../KKdLib/mat.h"
-#include "../KKdLib/vec.h"
 #include "elf.h"
 #include "main.h"
 #include "unedat.h"
 #include <processthreadsapi.h>
+#include <timeapi.h>
 
-FORCE_INLINE void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
+static inline void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
     if (!arr || length < 1)
         return;
 
@@ -96,68 +94,10 @@ typedef struct thread {
 } thread;
 
 int wmain(int argc, wchar_t** argv) {
-    /*stream* s;
-    void* data;
-    size_t length;
-    f2_struct* st;
-    s = io_wopen(L"eff_stgpv832_main!\\eff_stgpv832_main.drs", L"rb");
-    length = s->length;
-    data = force_malloc(length);
-    io_read(s, data, length);
-    io_dispose(s);
-
-    st = f2_struct_init();
-    f2_struct_read_memory(st, data, length);
-    free(data);
-    f2_struct_write_memory(st, &data, &length, true, false);
-    f2_struct_dispose(st);
-
-    s = io_wopen(L"eff_stgpv832_main\\eff_stgpv832_main.drs", L"wb");
-    io_write(s, data, length);
-    io_dispose(s);
-    free(data);
-
-    s = io_wopen(L"eff_stgpv832_main!\\eff_stgpv832_main.dve", L"rb");
-    length = s->length;
-    data = force_malloc(length);
-    io_read(s, data, length);
-    io_dispose(s);
-
-    st = f2_struct_init();
-    f2_struct_read_memory(st, data, length);
-    free(data);
-    f2_struct_write_memory(st, &data, &length, true, false);
-    f2_struct_dispose(st);
-
-    s = io_wopen(L"eff_stgpv832_main\\eff_stgpv832_main.dve", L"wb");
-    io_write(s, data, length);
-    io_dispose(s);
-    free(data);
-
-    s = io_wopen(L"eff_stgpv832_main!\\eff_stgpv832_main.lst", L"rb");
-    length = s->length;
-    data = force_malloc(length);
-    io_read(s, data, length);
-    io_dispose(s);
-
-    st = f2_struct_init();
-    f2_struct_read_memory(st, data, length);
-    free(data);
-    f2_struct_write_memory(st, &data, &length, true, false);
-    f2_struct_dispose(st);
-
-    s = io_wopen(L"eff_stgpv832_main\\eff_stgpv832_main.lst", L"wb");
-    io_write(s, data, length);
-    io_dispose(s);
-    free(data);
-
-    farc* f = farc_init();
-    farc_wwrite(f, argv[1], FARC_COMPRESS_FARC_GZIP_AES);
-    farc_dispose(f);
-    return;*/
-
     //ShowWindow(GetConsoleWindow(), SW_HIDE);
+    timeBeginPeriod(1);
     QueryPerformanceFrequency(&performance_frequency);
+    SetProcessDPIAware();
 
     render_init_struct ris;
     ris.res.x = 0;
@@ -184,6 +124,7 @@ int wmain(int argc, wchar_t** argv) {
         CloseHandle(render.handle);
     if (sound.handle)
         CloseHandle(sound.handle);
+    timeEndPeriod(1);
     return 0;
 }
 

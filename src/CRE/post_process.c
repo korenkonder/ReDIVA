@@ -361,7 +361,7 @@ static void tone_map_data_calculate(tone_map_data* tmd) {
 
     vec3 tone_trans, tone_trans_scale, tone_trans_offset;
     vec3_sub(tmd->tone_trans_end, tmd->tone_trans_start, tone_trans);
-    vec3_div(vec3_identity, tone_trans, tone_trans_scale);
+    vec3_rcp(tone_trans, tone_trans_scale);
     vec3_mult(tone_trans_scale, tmd->tone_trans_start, tone_trans_offset);
     vec3_negate(tone_trans_offset, tone_trans_offset);
 

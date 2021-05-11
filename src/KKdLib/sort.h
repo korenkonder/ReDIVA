@@ -9,6 +9,4 @@
 
 #include "default.h"
 
-#define RADIX 8
-
 extern void radix_sort(int32_t* array, size_t length);

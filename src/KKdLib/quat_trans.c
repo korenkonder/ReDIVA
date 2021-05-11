@@ -13,6 +13,6 @@ void lerp_quat_trans(quat_trans* x, quat_trans* y, quat_trans* z, float_t blend)
         blend = 0.0f;
 
     quat_slerp(&x->quat, &y->quat, &z->quat, blend);
-    vec3_lerp(x->trans, y->trans, z->trans, blend);
-    z->time = lerpf(x->time, y->time, blend);
+    vec3_lerp_scalar(x->trans, y->trans, z->trans, blend);
+    z->time = lerp(x->time, y->time, blend);
 }

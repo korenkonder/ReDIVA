@@ -9,20 +9,6 @@
 #include <sysinfoapi.h>
 #include <share.h>
 
-FORCE_INLINE void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
-    if (!arr || length < 1)
-        return;
-
-    for (size_t i = 0; i < length; i++) {
-        uint32_t x = *state;
-        x ^= x << 13;
-        x ^= x >> 17;
-        x ^= x << 5;
-        *state = x;
-        arr[i] = (uint8_t)x;
-    }
-}
-
 static const uint8_t boot_code[] = {
     0x33, 0xC9, 0x8E, 0xD1, 0xBC, 0xF4, 0x7B, 0x8E, 0xC1, 0x8E, 0xD9, 0xBD, 0x00, 0x7C, 0x88, 0x56,
     0x40, 0x88, 0x4E, 0x02, 0x8A, 0x56, 0x40, 0xB4, 0x41, 0xBB, 0xAA, 0x55, 0xCD, 0x13, 0x72, 0x10,
@@ -53,265 +39,24 @@ static const uint8_t boot_code[] = {
     0xB9, 0x01, 0x00, 0x00
 };
 
-kkfs_storage fs_storage;
+static uint32_t kkfs_allocate_sectors(kkfs* fs, uint32_t sectors);
+static uint32_t kkfs_allocate_sector(kkfs* fs);
+static uint32_t kkfs_append_sector(kkfs* fs, uint32_t sector);
+static uint32_t kkfs_calculate_key_hash(kkc* curse);
+static bool kkfs_find(kkfs* fs, kkfs_data* data, wchar_t* path);
+static bool kkfs_free(kkfs* fs, wchar_t* path);
+static void kkfs_free_sector(kkfs* fs, uint32_t sector);
+static uint64_t kkfs_get_current_time_ticks();
+static uint32_t kkfs_get_free_sector(kkfs* fs, uint32_t sector);
+static void kkfs_write_changes(kkfs* fs);
+static void kkfs_write_first_sector(kkfs* fs);
+static bool kkfs_write_kkfs_data(kkfs* fs, kkfs_data* data);
+static void kkfs_write_sector_info(kkfs* fs);
+static inline void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state);
 
 kkfs* kkfs_init() {
     kkfs* fs = force_malloc(sizeof(kkfs));
     return fs;
-}
-
-void kkfs_dispose(kkfs* fs) {
-    if (!fs)
-        return;
-
-    free(fs->current_directory);
-    free(fs->sector_info);
-    free(fs);
-}
-
-static uint64_t kkfs_get_current_time_ticks() {
-    FILETIME time;
-    GetSystemTimeAsFileTime(&time);
-    return *(uint64_t*)&time + 504911232000000000;
-}
-
-static uint32_t kkfs_calculate_key_hash(kkc* curse) {
-    if (!curse)
-        return 0;
-
-    size_t kl = (size_t)curse->key.type * 8;
-    return hash_murmurhash((uint8_t*)curse->key.data, kl, 0, false, false);
-}
-
-static void kkfs_write_first_sector(kkfs* fs) {
-    _fseeki64(fs->io, 0x00, SEEK_SET);
-    fwrite(&fs->data, sizeof(kkfs_struct), 1, fs->io);
-}
-
-static void kkfs_write_sector_info(kkfs* fs) {
-    _fseeki64(fs->io, fs->data.header.sector_size, SEEK_SET);
-    size_t length = fs->data.header.sectors_count;
-    size_t temp = length * sizeof(kkfs_sector_info);
-    size_t temp_aligned = align_val(temp, fs->data.header.sector_size);
-
-    uint8_t* td = force_malloc(fs->data.header.sector_size);
-    fwrite(fs->sector_info, sizeof(kkfs_sector_info), length, fs->io);
-    if (temp_aligned - temp)
-        fwrite(td, 1, temp_aligned - temp, fs->io);
-    free(td);
-}
-
-static void kkfs_write_changes(kkfs* fs) {
-    if (fs->data.header.flags & KKFS_DIRECTORY_READ_ONLY)
-        return;
-
-    if (fs->data_changed) {
-        kkfs_write_first_sector(fs);
-        fs->data_changed = false;
-    }
-
-    if (fs->sector_info_changed) {
-        kkfs_write_sector_info(fs);
-        fs->sector_info_changed = false;
-    }
-}
-
-static uint32_t kkfs_get_free_sector(kkfs* fs, uint32_t sector) {
-    if (sector) {
-        for (size_t i = sector + 1LL; i < fs->data.header.sectors_count; i++)
-            if (fs->sector_info[i] == KKFS_SECTOR_FREE)
-                return (uint32_t)i;
-
-        for (size_t i = 0; i < sector; i++)
-            if (fs->sector_info[i] == KKFS_SECTOR_FREE)
-                return (uint32_t)i;
-    }
-    else
-        for (size_t i = 0; i < fs->data.header.sectors_count; i++)
-            if (fs->sector_info[i] == KKFS_SECTOR_FREE)
-                return (uint32_t)i;
-    return 0;
-}
-
-static uint32_t kkfs_allocate_sector(kkfs* fs) {
-    fs->free_sector = kkfs_get_free_sector(fs, fs->free_sector);
-    if (fs->free_sector) {
-        fs->sector_info_changed = true;
-        fs->sector_info[fs->free_sector] = KKFS_SECTOR_END_OF_CHAIN;
-    }
-    return fs->free_sector;
-}
-
-static uint32_t kkfs_append_sector(kkfs* fs, uint32_t sector) {
-    uint32_t prev_sector = sector ? sector : fs->free_sector;
-    fs->free_sector = kkfs_get_free_sector(fs, prev_sector);
-    if (fs->free_sector) {
-        fs->sector_info_changed = true;
-        fs->sector_info[prev_sector] = fs->free_sector;
-    }
-    fs->sector_info[fs->free_sector] = KKFS_SECTOR_END_OF_CHAIN;
-    return fs->free_sector;
-}
-
-static void kkfs_free_sector(kkfs* fs, uint32_t sector) {
-    uint32_t info;
-    do {
-        info = (uint32_t)fs->sector_info[sector];
-        fs->sector_info[sector] = KKFS_SECTOR_FREE;
-        sector = info;
-    } while (info > KKFS_SECTOR_RESERVED && info != KKFS_SECTOR_END_OF_CHAIN);
-}
-
-static uint32_t kkfs_allocate_sectors(kkfs* fs, uint32_t sectors) {
-    if (!sectors)
-        return 0;
-
-    fs->free_sector = kkfs_get_free_sector(fs, fs->free_sector);
-    if (!fs->free_sector)
-        return 0;
-
-    fs->sector_info_changed = true;
-    fs->sector_info[fs->free_sector] = KKFS_SECTOR_END_OF_CHAIN;
-    uint32_t first_sector = fs->free_sector;
-    for (size_t i = 1; i < sectors; i++) {
-        kkfs_append_sector(fs, 0);
-        if (!fs->free_sector) {
-            kkfs_free_sector(fs, first_sector);
-            return 0;
-        }
-    }
-    return first_sector;
-}
-
-static bool kkfs_write_kkfs_data(kkfs* fs, kkfs_data* data) {
-    size_t pos;
-    size_t sector;
-    kkfs_data dat;
-    uint32_t info;
-    uint64_t time_ticks;
-
-    kkfs_directory* curr_dir = &fs->current_directory[fs->current_directory_index];
-    size_t data_sector = curr_dir->data_sector;
-
-    _fseeki64(fs->io, data_sector * fs->data.header.sector_size, SEEK_SET);
-    do {
-        fread(&dat, sizeof(kkfs_data), 1, fs->io);
-        pos = _ftelli64(fs->io);
-
-        if ((dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE)
-            && (data->type == KKFS_DIRECTORY || data->type == KKFS_FILE)) {
-            wchar_t* name0 = dat.type == KKFS_DIRECTORY ? dat.dir.name : dat.file.name;
-            wchar_t* name1 = data->type == KKFS_DIRECTORY ? data->dir.name : data->file.name;
-            if (!memcmp(name0, name1, sizeof(wchar_t) * KKFS_NAME_LENGTH))
-                return false;
-        }
-
-
-        sector = pos / fs->data.header.sector_size;
-        if (!(pos % fs->data.header.sector_size)) {
-            info = (uint32_t)fs->sector_info[sector - 1];
-            if (info > KKFS_SECTOR_RESERVED && info != KKFS_SECTOR_END_OF_CHAIN) {
-                sector = info;
-                pos = sector * fs->data.header.sector_size;
-
-                if (dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE)
-                    _fseeki64(fs->io, pos, SEEK_SET);
-            }
-        }
-    } while (dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE);
-
-    time_ticks = kkfs_get_current_time_ticks();
-    if (!(pos % fs->data.header.sector_size))
-        kkfs_append_sector(fs, (uint32_t)(sector - 1));
-
-    if (dat.type == KKFS_EMPTY || dat.type == KKFS_DELETED)
-        pos -= sizeof(kkfs_data);
-
-    _fseeki64(fs->io, pos, SEEK_SET);
-    fwrite(data, sizeof(kkfs_data), 1, fs->io);
-    return true;
-}
-
-static bool kkfs_find(kkfs* fs, kkfs_data* data, wchar_t* path) {
-    size_t pos;
-    size_t sector;
-    kkfs_data dat;
-    uint32_t info;
-
-    size_t path_length = min(KKFS_NAME_LENGTH, wcslen(path) + 1);
-    kkfs_directory* curr_dir = &fs->current_directory[fs->current_directory_index];
-    size_t data_sector = curr_dir->data_sector;
-
-    _fseeki64(fs->io, data_sector * fs->data.header.sector_size, SEEK_SET);
-    do {
-        fread(&dat, sizeof(kkfs_data), 1, fs->io);
-        pos = _ftelli64(fs->io);
-
-        if (dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE) {
-            wchar_t* name = dat.type == KKFS_DIRECTORY ? dat.dir.name : dat.file.name;
-            if (!memcmp(name, path, sizeof(wchar_t) * path_length)) {
-                *data = dat;
-                return true;
-            }
-        }
-
-        sector = pos / fs->data.header.sector_size;
-        if (!(pos % fs->data.header.sector_size)) {
-            info = (uint32_t)fs->sector_info[sector - 1];
-            if (info > KKFS_SECTOR_RESERVED && info != KKFS_SECTOR_END_OF_CHAIN) {
-                sector = info;
-                pos = sector * fs->data.header.sector_size;
-
-                if (dat.type)
-                    _fseeki64(fs->io, pos, SEEK_SET);
-            }
-        }
-    } while (dat.type);
-    return false;
-}
-
-static bool kkfs_free(kkfs* fs, wchar_t* path) {
-    size_t pos;
-    size_t sector;
-    kkfs_data dat;
-    uint32_t info;
-    uint64_t time_ticks;
-
-    size_t path_length = min(KKFS_NAME_LENGTH, wcslen(path) + 1);
-    kkfs_directory* curr_dir = &fs->current_directory[fs->current_directory_index];
-    size_t data_sector = curr_dir->data_sector;
-
-    _fseeki64(fs->io, data_sector * fs->data.header.sector_size, SEEK_SET);
-    do {
-        fread(&dat, sizeof(kkfs_data), 1, fs->io);
-        pos = _ftelli64(fs->io);
-
-        if (dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE) {
-            wchar_t* name = dat.type == KKFS_DIRECTORY ? dat.dir.name : dat.file.name;
-            if (!memcmp(name, path, sizeof(wchar_t) * path_length)) {
-                time_ticks = kkfs_get_current_time_ticks();
-
-                memset(&dat, 0, sizeof(kkfs_data));
-                dat.type = KKFS_DELETED;
-                _fseeki64(fs->io, pos - sizeof(kkfs_data), SEEK_SET);
-                fwrite(&dat, sizeof(kkfs_data), 1, fs->io);
-                return true;
-            }
-        }
-
-        sector = pos / fs->data.header.sector_size;
-        if (!(pos % fs->data.header.sector_size)) {
-            info = (uint32_t)fs->sector_info[sector - 1];
-            if (info > KKFS_SECTOR_RESERVED && info != KKFS_SECTOR_END_OF_CHAIN) {
-                sector = info;
-                pos = sector * fs->data.header.sector_size;
-
-                if (dat.type)
-                    _fseeki64(fs->io, pos, SEEK_SET);
-            }
-        }
-    } while (dat.type);
-    return false;
 }
 
 void kkfs_initialize(kkfs* fs, char* path, uint32_t sector_size, size_t length,
@@ -347,7 +92,7 @@ void kkfs_winitialize(kkfs* fs, wchar_t* path, uint32_t sector_size, size_t leng
 
     size_t t = sectors_count * sizeof(kkfs_sector_info);
     t = align_val_divide(t, sector_size, sector_size);
-    fs->sector_info = force_malloc_s(sizeof(kkfs_sector_info), sectors_count);
+    fs->sector_info = force_malloc_s(kkfs_sector_info, sectors_count);
     fs->sector_info[0] = KKFS_SECTOR_RESERVED;
     for (size_t i = 0; i < t; i++)
         fs->sector_info[1 + i] = KKFS_SECTOR_RESERVED;
@@ -374,7 +119,7 @@ void kkfs_winitialize(kkfs* fs, wchar_t* path, uint32_t sector_size, size_t leng
     size_t root_directory_sector = (align_val(sizeof(kkfs_struct), sector_size)
         + align_val(sectors_count * sizeof(kkfs_sector_info), sector_size)) / sector_size;
     fs->current_directory_index = 0;
-    fs->current_directory = force_malloc_s(sizeof(kkfs_directory), KKFS_DIRECTORY_RECURSION);
+    fs->current_directory = force_malloc_s(kkfs_directory, KKFS_DIRECTORY_RECURSION);
     fs->current_directory[0].type = KKFS_DIRECTORY;
     fs->current_directory[0].data_sector = (uint32_t)root_directory_sector;
     fs->current_directory[0].flags = fs->data.header.flags;
@@ -431,11 +176,11 @@ void kkfs_wopen(kkfs* fs, wchar_t* path, kkc* curse, uint64_t parent_hash, kkc* 
             size_t root_directory_sector = (align_val(sizeof(kkfs_struct), sector_size)
                 + align_val(sectors_count * sizeof(kkfs_sector_info), sector_size)) / sector_size;
             fs->current_directory_index = 0;
-            fs->current_directory = force_malloc_s(sizeof(kkfs_directory), KKFS_DIRECTORY_RECURSION);
+            fs->current_directory = force_malloc_s(kkfs_directory, KKFS_DIRECTORY_RECURSION);
             fs->current_directory[0].data_sector = (uint32_t)root_directory_sector;
             fs->current_directory[0].flags = fs->data.header.flags;
 
-            fs->sector_info = force_malloc_s(sizeof(kkfs_sector_info), sectors_count);
+            fs->sector_info = force_malloc_s(kkfs_sector_info, sectors_count);
             _fseeki64(fs->io, KKFS_SECTOR_SIZE, SEEK_SET);
             fread(fs->sector_info, sizeof(kkfs_sector_info), sectors_count, fs->io);
         }
@@ -715,54 +460,270 @@ void kkfs_close(kkfs* fs) {
     fs->io = 0;
 }
 
-void kkfs_storage_init() {
-    memset(&fs_storage, 0, sizeof(kkfs_storage));
-
-    size_t size = BUF_SIZE / sizeof(kkfs*);
-    fs_storage.begin = force_malloc_s(sizeof(kkfs*), size);
-    fs_storage.end = fs_storage.begin;
-    fs_storage.capacity_end = fs_storage.begin + size;
-}
-
-void kkfs_storage_dispose() {
-    size_t size = fs_storage.end - fs_storage.begin;
-    for (size_t i = 0; i < size; i++)
-        kkfs_dispose(fs_storage.begin[i]);
-    free(fs_storage.begin);
-    memset(&fs_storage, 0, sizeof(kkfs_storage));
-}
-
-void kkfs_storage_append(kkfs* fs) {
+void kkfs_dispose(kkfs* fs) {
     if (!fs)
         return;
 
-    size_t size = fs_storage.end - fs_storage.begin;
-    size_t capacity = fs_storage.capacity_end - fs_storage.begin;
-    while (size >= capacity) {
-        kkfs** temp = force_malloc_s(sizeof(kkfs*), capacity * 2 + 1);
-        memcpy(temp, fs_storage.begin, sizeof(kkfs*) * size);
-        free(fs_storage.begin);
-        fs_storage.begin = temp;
-        fs_storage.end = temp + size;
-        fs_storage.capacity_end = temp + capacity * 2 + 1;
+    free(fs->current_directory);
+    free(fs->sector_info);
+    free(fs);
+}
+
+static uint32_t kkfs_allocate_sectors(kkfs* fs, uint32_t sectors) {
+    if (!sectors)
+        return 0;
+
+    fs->free_sector = kkfs_get_free_sector(fs, fs->free_sector);
+    if (!fs->free_sector)
+        return 0;
+
+    fs->sector_info_changed = true;
+    fs->sector_info[fs->free_sector] = KKFS_SECTOR_END_OF_CHAIN;
+    uint32_t first_sector = fs->free_sector;
+    for (size_t i = 1; i < sectors; i++) {
+        kkfs_append_sector(fs, 0);
+        if (!fs->free_sector) {
+            kkfs_free_sector(fs, first_sector);
+            return 0;
+        }
+    }
+    return first_sector;
+}
+
+static uint32_t kkfs_allocate_sector(kkfs* fs) {
+    fs->free_sector = kkfs_get_free_sector(fs, fs->free_sector);
+    if (fs->free_sector) {
+        fs->sector_info_changed = true;
+        fs->sector_info[fs->free_sector] = KKFS_SECTOR_END_OF_CHAIN;
+    }
+    return fs->free_sector;
+}
+
+static uint32_t kkfs_append_sector(kkfs* fs, uint32_t sector) {
+    uint32_t prev_sector = sector ? sector : fs->free_sector;
+    fs->free_sector = kkfs_get_free_sector(fs, prev_sector);
+    if (fs->free_sector) {
+        fs->sector_info_changed = true;
+        fs->sector_info[prev_sector] = fs->free_sector;
+    }
+    fs->sector_info[fs->free_sector] = KKFS_SECTOR_END_OF_CHAIN;
+    return fs->free_sector;
+}
+
+static uint32_t kkfs_calculate_key_hash(kkc* curse) {
+    if (!curse)
+        return 0;
+
+    size_t kl = (size_t)curse->key.type * 8;
+    return hash_murmurhash((uint8_t*)curse->key.data, kl, 0, false, false);
+}
+
+static bool kkfs_find(kkfs* fs, kkfs_data* data, wchar_t* path) {
+    size_t pos;
+    size_t sector;
+    kkfs_data dat;
+    uint32_t info;
+
+    size_t path_length = min(KKFS_NAME_LENGTH, wcslen(path) + 1);
+    kkfs_directory* curr_dir = &fs->current_directory[fs->current_directory_index];
+    size_t data_sector = curr_dir->data_sector;
+
+    _fseeki64(fs->io, data_sector * fs->data.header.sector_size, SEEK_SET);
+    do {
+        fread(&dat, sizeof(kkfs_data), 1, fs->io);
+        pos = _ftelli64(fs->io);
+
+        if (dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE) {
+            wchar_t* name = dat.type == KKFS_DIRECTORY ? dat.dir.name : dat.file.name;
+            if (!memcmp(name, path, sizeof(wchar_t) * path_length)) {
+                *data = dat;
+                return true;
+            }
+        }
+
+        sector = pos / fs->data.header.sector_size;
+        if (!(pos % fs->data.header.sector_size)) {
+            info = (uint32_t)fs->sector_info[sector - 1];
+            if (info > KKFS_SECTOR_RESERVED && info != KKFS_SECTOR_END_OF_CHAIN) {
+                sector = info;
+                pos = sector * fs->data.header.sector_size;
+
+                if (dat.type)
+                    _fseeki64(fs->io, pos, SEEK_SET);
+            }
+        }
+    } while (dat.type);
+    return false;
+}
+
+static bool kkfs_free(kkfs* fs, wchar_t* path) {
+    size_t pos;
+    size_t sector;
+    kkfs_data dat;
+    uint32_t info;
+    uint64_t time_ticks;
+
+    size_t path_length = min(KKFS_NAME_LENGTH, wcslen(path) + 1);
+    kkfs_directory* curr_dir = &fs->current_directory[fs->current_directory_index];
+    size_t data_sector = curr_dir->data_sector;
+
+    _fseeki64(fs->io, data_sector * fs->data.header.sector_size, SEEK_SET);
+    do {
+        fread(&dat, sizeof(kkfs_data), 1, fs->io);
+        pos = _ftelli64(fs->io);
+
+        if (dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE) {
+            wchar_t* name = dat.type == KKFS_DIRECTORY ? dat.dir.name : dat.file.name;
+            if (!memcmp(name, path, sizeof(wchar_t) * path_length)) {
+                time_ticks = kkfs_get_current_time_ticks();
+
+                memset(&dat, 0, sizeof(kkfs_data));
+                dat.type = KKFS_DELETED;
+                _fseeki64(fs->io, pos - sizeof(kkfs_data), SEEK_SET);
+                fwrite(&dat, sizeof(kkfs_data), 1, fs->io);
+                return true;
+            }
+        }
+
+        sector = pos / fs->data.header.sector_size;
+        if (!(pos % fs->data.header.sector_size)) {
+            info = (uint32_t)fs->sector_info[sector - 1];
+            if (info > KKFS_SECTOR_RESERVED && info != KKFS_SECTOR_END_OF_CHAIN) {
+                sector = info;
+                pos = sector * fs->data.header.sector_size;
+
+                if (dat.type)
+                    _fseeki64(fs->io, pos, SEEK_SET);
+            }
+        }
+    } while (dat.type);
+    return false;
+}
+
+static void kkfs_free_sector(kkfs* fs, uint32_t sector) {
+    uint32_t info;
+    do {
+        info = (uint32_t)fs->sector_info[sector];
+        fs->sector_info[sector] = KKFS_SECTOR_FREE;
+        sector = info;
+    } while (info > KKFS_SECTOR_RESERVED && info != KKFS_SECTOR_END_OF_CHAIN);
+}
+
+static uint64_t kkfs_get_current_time_ticks() {
+    FILETIME time;
+    GetSystemTimeAsFileTime(&time);
+    return *(uint64_t*)&time + 504911232000000000;
+}
+
+static uint32_t kkfs_get_free_sector(kkfs* fs, uint32_t sector) {
+    if (sector) {
+        for (size_t i = sector + 1LL; i < fs->data.header.sectors_count; i++)
+            if (fs->sector_info[i] == KKFS_SECTOR_FREE)
+                return (uint32_t)i;
+
+        for (size_t i = 0; i < sector; i++)
+            if (fs->sector_info[i] == KKFS_SECTOR_FREE)
+                return (uint32_t)i;
+    }
+    else
+        for (size_t i = 0; i < fs->data.header.sectors_count; i++)
+            if (fs->sector_info[i] == KKFS_SECTOR_FREE)
+                return (uint32_t)i;
+    return 0;
+}
+
+static void kkfs_write_changes(kkfs* fs) {
+    if (fs->data.header.flags & KKFS_DIRECTORY_READ_ONLY)
+        return;
+
+    if (fs->data_changed) {
+        kkfs_write_first_sector(fs);
+        fs->data_changed = false;
     }
 
-    *fs_storage.end++ = fs;
+    if (fs->sector_info_changed) {
+        kkfs_write_sector_info(fs);
+        fs->sector_info_changed = false;
+    }
 }
 
-void kkfs_storage_delete(kkfs* fs) {
-    if (!fs)
+static void kkfs_write_first_sector(kkfs* fs) {
+    _fseeki64(fs->io, 0x00, SEEK_SET);
+    fwrite(&fs->data, sizeof(kkfs_struct), 1, fs->io);
+}
+
+static bool kkfs_write_kkfs_data(kkfs* fs, kkfs_data* data) {
+    size_t pos;
+    size_t sector;
+    kkfs_data dat;
+    uint32_t info;
+    uint64_t time_ticks;
+
+    kkfs_directory* curr_dir = &fs->current_directory[fs->current_directory_index];
+    size_t data_sector = curr_dir->data_sector;
+
+    _fseeki64(fs->io, data_sector * fs->data.header.sector_size, SEEK_SET);
+    do {
+        fread(&dat, sizeof(kkfs_data), 1, fs->io);
+        pos = _ftelli64(fs->io);
+
+        if ((dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE)
+            && (data->type == KKFS_DIRECTORY || data->type == KKFS_FILE)) {
+            wchar_t* name0 = dat.type == KKFS_DIRECTORY ? dat.dir.name : dat.file.name;
+            wchar_t* name1 = data->type == KKFS_DIRECTORY ? data->dir.name : data->file.name;
+            if (!memcmp(name0, name1, sizeof(wchar_t) * KKFS_NAME_LENGTH))
+                return false;
+        }
+
+
+        sector = pos / fs->data.header.sector_size;
+        if (!(pos % fs->data.header.sector_size)) {
+            info = (uint32_t)fs->sector_info[sector - 1];
+            if (info > KKFS_SECTOR_RESERVED && info != KKFS_SECTOR_END_OF_CHAIN) {
+                sector = info;
+                pos = sector * fs->data.header.sector_size;
+
+                if (dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE)
+                    _fseeki64(fs->io, pos, SEEK_SET);
+            }
+        }
+    } while (dat.type == KKFS_DIRECTORY || dat.type == KKFS_FILE);
+
+    time_ticks = kkfs_get_current_time_ticks();
+    if (!(pos % fs->data.header.sector_size))
+        kkfs_append_sector(fs, (uint32_t)(sector - 1));
+
+    if (dat.type == KKFS_EMPTY || dat.type == KKFS_DELETED)
+        pos -= sizeof(kkfs_data);
+
+    _fseeki64(fs->io, pos, SEEK_SET);
+    fwrite(data, sizeof(kkfs_data), 1, fs->io);
+    return true;
+}
+
+static void kkfs_write_sector_info(kkfs* fs) {
+    _fseeki64(fs->io, fs->data.header.sector_size, SEEK_SET);
+    size_t length = fs->data.header.sectors_count;
+    size_t temp = length * sizeof(kkfs_sector_info);
+    size_t temp_aligned = align_val(temp, fs->data.header.sector_size);
+
+    uint8_t* td = force_malloc(fs->data.header.sector_size);
+    fwrite(fs->sector_info, sizeof(kkfs_sector_info), length, fs->io);
+    if (temp_aligned - temp)
+        fwrite(td, 1, temp_aligned - temp, fs->io);
+    free(td);
+}
+
+static inline void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
+    if (!arr || length < 1)
         return;
 
-    size_t size = fs_storage.end - fs_storage.begin;
-    for (size_t i = 0; i < size; i++) {
-        if (fs_storage.begin[i] != fs)
-            continue;
-
-        kkfs_dispose(fs);
-        memmove(&fs_storage.begin[i], &fs_storage.begin[i + 1], fs_storage.end - &fs_storage.begin[i]);
-        memset(&fs_storage.begin[size - 1], 0, sizeof(kkfs*));
-        fs_storage.end--;
-        break;
+    for (size_t i = 0; i < length; i++) {
+        uint32_t x = *state;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        *state = x;
+        arr[i] = (uint8_t)x;
     }
 }

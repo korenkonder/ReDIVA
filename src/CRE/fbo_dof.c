@@ -53,19 +53,19 @@ static void fbo_dof_bind_fbo(fbo_dof* dfbo, vec2i* res) {
     dfbo->res_20.x = res->x > 20 ? res->x / 20 : 1;
     dfbo->res_20.y = res->y > 20 ? res->y / 20 : 1;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, dfbo->fbo[0]);
+    bind_framebuffer(dfbo->fbo[0]);
     glDrawBuffers(1, fbo_dof_s_attachments);
     fbo_helper_gen_texture_image_ms(dfbo->tcb[0], dfbo->res_20.x, dfbo->res_20.y,
         1, GL_RG16F, GL_RG, GL_HALF_FLOAT, 0);
     fbo_helper_get_error_code();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, dfbo->fbo[1]);
+    bind_framebuffer(dfbo->fbo[1]);
     glDrawBuffers(1, fbo_dof_s_attachments);
     fbo_helper_gen_texture_image_ms(dfbo->tcb[1], dfbo->res_20.x, dfbo->res_20.y,
         1, GL_RG16F, GL_RG, GL_HALF_FLOAT, 0);
     fbo_helper_get_error_code();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, dfbo->fbo[2]);
+    bind_framebuffer(dfbo->fbo[2]);
     glDrawBuffers(2, fbo_dof_d_attachments);
     fbo_helper_gen_texture_image_ms(dfbo->tcb[2], dfbo->res_2.x, dfbo->res_2.y,
         1, GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT, 0);
@@ -73,17 +73,18 @@ static void fbo_dof_bind_fbo(fbo_dof* dfbo, vec2i* res) {
         1, GL_R11F_G11F_B10F, GL_RGB, GL_UNSIGNED_INT_10F_11F_11F_REV, 1);
     fbo_helper_get_error_code();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, dfbo->fbo[3]);
+    bind_framebuffer(dfbo->fbo[3]);
     glDrawBuffers(2, fbo_dof_d_attachments);
     fbo_helper_gen_texture_image_ms(dfbo->tcb[4], dfbo->res_2.x, dfbo->res_2.y,
         1, GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT, 0);
     fbo_helper_gen_texture_image_ms(dfbo->tcb[5], dfbo->res_2.x, dfbo->res_2.y,
         1, GL_R16F, GL_RED, GL_HALF_FLOAT, 1);
     fbo_helper_get_error_code();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    bind_framebuffer(0);
 }
 
-void fbo_dof_draw(fbo_dof* dfbo, int32_t color_tcb, int32_t depth_tcb, int32_t out_fbo, bool dof_f2) {
+void fbo_dof_draw(fbo_dof* dfbo, int32_t color_tcb, int32_t depth_tcb,
+    int32_t out_fbo, bool dof_f2) {
     if (!dfbo)
         return;
 
@@ -93,52 +94,39 @@ void fbo_dof_draw(fbo_dof* dfbo, int32_t color_tcb, int32_t depth_tcb, int32_t o
     glBindBufferBase(GL_UNIFORM_BUFFER, 2, dfbo->texcoords_ubo);
 
     glViewport(0, 0, dfbo->res_20.x, dfbo->res_20.y);
-    glBindFramebuffer(GL_FRAMEBUFFER, dfbo->fbo[0]);
+    bind_framebuffer(dfbo->fbo[0]);
     shader_fbo_use(&dfbo->d_shader[o]);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, depth_tcb);
+    bind_index_tex2d(0, depth_tcb);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, dfbo->fbo[1]);
+    bind_framebuffer(dfbo->fbo[1]);
     shader_fbo_use(&dfbo->d_shader[o + 1]);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, dfbo->tcb[0]);
+    bind_index_tex2d(0, dfbo->tcb[0]);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     glViewport(0, 0, dfbo->res_2.x, dfbo->res_2.y);
-    glBindFramebuffer(GL_FRAMEBUFFER, dfbo->fbo[2]);
+    bind_framebuffer(dfbo->fbo[2]);
     shader_fbo_use(&dfbo->d_shader[o + 2]);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, depth_tcb);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, color_tcb);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, dfbo->tcb[1]);
+    bind_index_tex2d(0, depth_tcb);
+    bind_index_tex2d(1, color_tcb);
+    bind_index_tex2d(2, dfbo->tcb[1]);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, dfbo->fbo[3]);
+    bind_framebuffer(dfbo->fbo[3]);
     shader_fbo_use(&dfbo->d_shader[o + 3]);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, dfbo->tcb[3]);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, dfbo->tcb[2]);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, dfbo->tcb[1]);
+    bind_index_tex2d(0, dfbo->tcb[3]);
+    bind_index_tex2d(1, dfbo->tcb[2]);
+    bind_index_tex2d(2, dfbo->tcb[1]);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     glViewport(0, 0, dfbo->res.x, dfbo->res.y);
-    glBindFramebuffer(GL_FRAMEBUFFER, out_fbo);
+    bind_framebuffer(out_fbo);
     shader_fbo_use(&dfbo->d_shader[o + 4]);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, dfbo->tcb[4]);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, dfbo->tcb[5]);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, dfbo->tcb[1]);
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, color_tcb);
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, depth_tcb);
+    bind_index_tex2d(0, dfbo->tcb[4]);
+    bind_index_tex2d(1, dfbo->tcb[5]);
+    bind_index_tex2d(2, dfbo->tcb[1]);
+    bind_index_tex2d(3, color_tcb);
+    bind_index_tex2d(4, depth_tcb);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 

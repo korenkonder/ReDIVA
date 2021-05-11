@@ -8,7 +8,7 @@
 void fbo_helper_gen_texture_image_ms(int32_t tcb, int32_t width, int32_t height, int32_t samples,
     GLenum internal_format, GLenum format, GLenum type, int32_t attachment) {
     if (samples > 1) {
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, tcb);
+        bind_tex2dms(tcb);
         glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internal_format, width, height, true);
 
         glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -18,7 +18,7 @@ void fbo_helper_gen_texture_image_ms(int32_t tcb, int32_t width, int32_t height,
         glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
     else {
-        glBindTexture(GL_TEXTURE_2D, tcb);
+        bind_tex2d(tcb);
         glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, 0);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -28,17 +28,10 @@ void fbo_helper_gen_texture_image_ms(int32_t tcb, int32_t width, int32_t height,
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
 
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, tcb, 0);
-}
-
-void fbo_helper_gen_renderbuffer(int32_t rbo, int32_t width, int32_t height, int32_t samples, GLenum internal_format) {
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    if (samples > 1)
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, internal_format, width, height);
-    else
-        glRenderbufferStorage(GL_RENDERBUFFER, internal_format, width, height);
-
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+    if (attachment >= 0 && attachment <= 15)
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment, tcb, 0);
+    else if (attachment == 16)
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, tcb, 0);
 }
 
 void fbo_helper_get_error_code() {

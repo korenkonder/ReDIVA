@@ -7,6 +7,74 @@
 #include <libdeflate.h>
 
 static size_t compress_static(struct libdeflate_compressor* c, void* src, size_t src_length,
+    void** dst, size_t* dst_length, int32_t compression_level, deflate_mode mode);
+static size_t decompress_static(struct libdeflate_decompressor* d, void* src, size_t src_length,
+    void** dst, size_t* dst_length, size_t* dst_act_length, deflate_mode mode);
+
+size_t deflate_compress(void* src, size_t src_length, void** dst,
+    size_t* dst_length, int32_t compression_level, deflate_mode mode) {
+    if (!src_length)
+        return -1;
+    else if (!src)
+        return -2;
+    else if (!dst)
+        return -3;
+    else if (!dst_length)
+        return -4;
+    else if (mode < DEFLATE_MODE_DEFLATE || mode > DEFLATE_MODE_ZLIB)
+        return -5;
+
+    struct libdeflate_compressor* c = libdeflate_alloc_compressor(compression_level);
+    if (!c)
+        return -5;
+
+    size_t result = compress_static(c, src, src_length, dst, dst_length, compression_level, mode);
+    libdeflate_free_compressor(c);
+    return result >= 0 ? result : result - 0x10;
+}
+
+size_t deflate_decompress(void* src, size_t src_length, void** dst,
+    size_t dst_length, deflate_mode mode) {
+    if (!src_length)
+        return -1;
+    else if (!src)
+        return -2;
+    else if (!dst)
+        return -3;
+    else if (!dst_length)
+        return -4;
+    else if (mode < DEFLATE_MODE_DEFLATE || mode > DEFLATE_MODE_ZLIB)
+        return -5;
+
+    size_t dst_act_length = 0;
+    struct libdeflate_decompressor* d = libdeflate_alloc_decompressor();
+    size_t result = decompress_static(d, src, src_length, dst, &dst_length, &dst_act_length, mode);
+    libdeflate_free_decompressor(d);
+    return result >= 0 ? result : result - 0x10;
+}
+
+size_t deflate_decompress_unknown(void* src, size_t src_length, void** dst,
+    size_t* dst_length, deflate_mode mode) {
+    if (!src_length)
+        return -1;
+    else if (!src)
+        return -2;
+    else if (!dst)
+        return -3;
+    else if (!dst_length)
+        return -4;
+    else if (mode < DEFLATE_MODE_DEFLATE || mode > DEFLATE_MODE_ZLIB)
+        return -5;
+
+    *dst_length = 1;
+    size_t dst_act_length = 1;
+    struct libdeflate_decompressor* d = libdeflate_alloc_decompressor();
+    size_t result = decompress_static(d, src, src_length, dst, dst_length, &dst_act_length, mode);
+    libdeflate_free_decompressor(d);
+    return result >= 0 ? result : result - 0x10;
+}
+
+static size_t compress_static(struct libdeflate_compressor* c, void* src, size_t src_length,
     void** dst, size_t* dst_length, int32_t compression_level, deflate_mode mode) {
     size_t dst_max_length;
     switch (mode) {
@@ -102,67 +170,4 @@ static size_t decompress_static(struct libdeflate_decompressor* d, void* src, si
         break;
     }
     return 0;
-}
-
-size_t deflate_compress(void* src, size_t src_length, void** dst,
-    size_t* dst_length, int32_t compression_level, deflate_mode mode) {
-    if (!src_length)
-        return -1;
-    else if (!src)
-        return -2;
-    else if (!dst)
-        return -3;
-    else if (!dst_length)
-        return -4;
-    else if (mode < DEFLATE_MODE_DEFLATE || mode > DEFLATE_MODE_ZLIB)
-        return -5;
-
-    struct libdeflate_compressor* c = libdeflate_alloc_compressor(compression_level);
-    if (!c)
-        return -5;
-
-    size_t result = compress_static(c, src, src_length, dst, dst_length, compression_level, mode);
-    libdeflate_free_compressor(c);
-    return result >= 0 ? result : result - 0x10;
-}
-
-size_t deflate_decompress(void* src, size_t src_length, void** dst,
-    size_t dst_length, deflate_mode mode) {
-    if (!src_length)
-        return -1;
-    else if (!src)
-        return -2;
-    else if (!dst)
-        return -3;
-    else if (!dst_length)
-        return -4;
-    else if (mode < DEFLATE_MODE_DEFLATE || mode > DEFLATE_MODE_ZLIB)
-        return -5;
-
-    size_t dst_act_length = 0;
-    struct libdeflate_decompressor* d = libdeflate_alloc_decompressor();
-    size_t result = decompress_static(d, src, src_length, dst, &dst_length, &dst_act_length, mode);
-    libdeflate_free_decompressor(d);
-    return result >= 0 ? result : result - 0x10;
-}
-
-size_t deflate_decompress_unknown(void* src, size_t src_length, void** dst,
-    size_t* dst_length, deflate_mode mode) {
-    if (!src_length)
-        return -1;
-    else if (!src)
-        return -2;
-    else if (!dst)
-        return -3;
-    else if (!dst_length)
-        return -4;
-    else if (mode < DEFLATE_MODE_DEFLATE || mode > DEFLATE_MODE_ZLIB)
-        return -5;
-
-    *dst_length = 1;
-    size_t dst_act_length = 1;
-    struct libdeflate_decompressor* d = libdeflate_alloc_decompressor();
-    size_t result = decompress_static(d, src, src_length, dst, dst_length, &dst_act_length, mode);
-    libdeflate_free_decompressor(d);
-    return result >= 0 ? result : result - 0x10;
 }

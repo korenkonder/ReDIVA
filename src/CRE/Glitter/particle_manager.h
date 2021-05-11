@@ -8,37 +8,28 @@
 #include "glitter.h"
 
 extern glitter_particle_manager* FASTCALL glitter_particle_manager_init();
-extern bool FASTCALL glitter_particle_manager_check_effect_group(glitter_particle_manager* gpm,
-    uint64_t effect_group_hash);
-extern bool FASTCALL glitter_particle_manager_check_file_reader(glitter_particle_manager* gpm,
-    uint64_t effect_group_hash);
-extern bool FASTCALL glitter_particle_manager_check_scene(glitter_particle_manager* gpm,
-    uint64_t effect_group_hash);
-extern void FASTCALL glitter_particle_manager_draw(glitter_particle_manager* gpm, int32_t alpha);
-extern bool FASTCALL glitter_particle_manager_free_scene(glitter_particle_manager* gpm,
-    uint64_t effect_group_hash);
-extern bool FASTCALL glitter_particle_manager_free_effect_group(glitter_particle_manager* gpm,
-    uint64_t effect_group_hash);
-extern size_t FASTCALL glitter_particle_manager_get_ctrl_count(glitter_particle_manager* gpm,
-    glitter_particle_type type);
-extern size_t FASTCALL glitter_particle_manager_get_disp_count(glitter_particle_manager* gpm,
-    glitter_particle_type type);
-extern void glitter_particle_manager_get_frame(glitter_particle_manager* gpm,
-    float_t* frame, float_t* life_time);
-extern void glitter_particle_manager_get_start_end_frame(glitter_particle_manager* gpm,
-    float_t* start_frame, float_t* end_frame);
-extern bool FASTCALL glitter_particle_manager_load_effect(glitter_particle_manager* gpm,
-    uint64_t effect_group_hash, uint64_t effect_hash);
-extern bool FASTCALL glitter_particle_manager_load_scene(glitter_particle_manager* gpm,
-    uint64_t effect_group_hash);
-extern void FASTCALL glitter_particle_manager_reset_scene_disp_counter(glitter_particle_manager* gpm);
-extern void FASTCALL glitter_particle_manager_set_frame(glitter_particle_manager* gpm,
+extern void FASTCALL glitter_particle_manager_calc_draw(GPM,
+    bool(FASTCALL* render_add_list_func)(glitter_particle_mesh*, vec4*, mat4*, mat4*));
+extern bool FASTCALL glitter_particle_manager_check_effect_group(GPM, uint64_t effect_group_hash);
+extern bool FASTCALL glitter_particle_manager_check_file_reader(GPM, uint64_t effect_group_hash);
+extern bool FASTCALL glitter_particle_manager_check_scene(GPM, uint64_t effect_group_hash);
+extern void FASTCALL glitter_particle_manager_draw(GPM, int32_t alpha);
+extern bool FASTCALL glitter_particle_manager_free_effect_group(GPM, uint64_t effect_group_hash);
+extern void FASTCALL glitter_particle_manager_free_effect_groups(GPM);
+extern bool FASTCALL glitter_particle_manager_free_scene(GPM, uint64_t effect_group_hash);
+extern void FASTCALL glitter_particle_manager_free_scenes(GPM);
+extern size_t FASTCALL glitter_particle_manager_get_ctrl_count(GPM, glitter_particle_type ptcl_type);
+extern size_t FASTCALL glitter_particle_manager_get_disp_count(GPM, glitter_particle_type ptcl_type);
+extern void glitter_particle_manager_get_frame(GPM, float_t* frame, float_t* life_time);
+extern void glitter_particle_manager_get_start_end_frame(GPM, float_t* start_frame, float_t* end_frame);
+extern bool FASTCALL glitter_particle_manager_load_effect(GPM, uint64_t effect_group_hash, uint64_t effect_hash);
+extern bool FASTCALL glitter_particle_manager_load_scene(GPM, uint64_t effect_group_hash);
+extern void FASTCALL glitter_particle_manager_set_frame(GPM,
     glitter_effect_group* effect_group, glitter_scene** scene, float_t curr_frame,
-    float_t prev_frame, uint32_t random, uint32_t counter, bool reset);
-extern bool FASTCALL glitter_particle_manager_test_load_effect(glitter_particle_manager* gpm,
+    float_t prev_frame, uint32_t counter, bool reset);
+extern bool FASTCALL glitter_particle_manager_test_load_effect(GPM,
     uint64_t effect_group_hash, uint64_t effect_hash);
-extern bool FASTCALL glitter_particle_manager_test_load_scene(glitter_particle_manager* gpm,
-    uint64_t effect_group_hash);
-extern void FASTCALL glitter_particle_manager_update_file_reader(glitter_particle_manager* gpm);
-extern void FASTCALL glitter_particle_manager_update_scene(glitter_particle_manager* gpm);
+extern bool FASTCALL glitter_particle_manager_test_load_scene(GPM, uint64_t effect_group_hash, bool appear_now);
+extern void FASTCALL glitter_particle_manager_update_file_reader(GPM);
+extern void FASTCALL glitter_particle_manager_update_scene(GPM);
 extern void FASTCALL glitter_particle_manager_dispose(glitter_particle_manager* gpm);

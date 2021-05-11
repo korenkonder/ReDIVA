@@ -25,17 +25,17 @@ bool FASTCALL glitter_diva_resource_parse_file(glitter_effect_group* a1, f2_stru
     return true;
 }
 
-bool FASTCALL glitter_diva_resource_unparse_file(glitter_effect_group* a1, f2_struct* st, bool use_big_endian) {
+bool FASTCALL glitter_diva_resource_unparse_file(glitter_effect_group* a1, f2_struct* st) {
     memset(st, 0, sizeof(f2_struct));
 
-    f2_struct* s = f2_struct_init();
-    if (!glitter_texture_resource_pack_file(a1, s, use_big_endian)) {
-        f2_struct_dispose(s);
+    f2_struct s;
+    memset(&s, 0, sizeof(f2_struct));
+    if (!glitter_texture_resource_pack_file(a1, &s)) {
+        f2_struct_free(&s);
         return false;
     }
 
-    vector_f2_struct_push_back(&st->sub_structs, s);
-    free(s);
+    vector_f2_struct_push_back(&st->sub_structs, &s);
 
     st->header.signature = 0x53525644;
     st->header.length = 0x20;

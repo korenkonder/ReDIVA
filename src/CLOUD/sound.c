@@ -13,11 +13,12 @@ timer_val(sound);
 
 int32_t sound_main(void* arg) {
     timer_init(sound, "Sound");
+    while (state != RENDER_INITIALIZED)
+        msleep(sound_timer, 0.0625);
+
     while (!close) {
         timer_calc_pre(sound);
-        for (size_t i = 0; i < classes_count; i++)
-            if (classes[i].sound)
-                classes[i].sound();
+        classes_process_sound(classes, classes_count);
         double_t cycle_time = timer_calc_post(sound);
         msleep(sound_timer, 1000.0 / FREQ - cycle_time);
     }

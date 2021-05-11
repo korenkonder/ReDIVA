@@ -7,6 +7,7 @@
 #include "sound_wav.h"
 #include "io_path.h"
 #include "io_stream.h"
+#include "str_utils.h"
 
 static const int8_t shift_factor_table[] = {
     0, 1, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -1
@@ -108,10 +109,6 @@ vag* vag_init() {
     return v;
 }
 
-void vag_dispose(vag* v) {
-    free(v);
-}
-
 void vag_read(vag* v, char* path) {
     wchar_t* path_buf = char_string_to_wchar_t_string(path);
     vag_wread(v, path_buf);
@@ -119,7 +116,7 @@ void vag_read(vag* v, char* path) {
 }
 
 void vag_wread(vag* v, wchar_t* path) {
-    wchar_t* path_vag = path_wadd_extension(path, L".vag");
+    wchar_t* path_vag = str_utils_wadd(path, L".vag");
     stream* s = io_wopen(path_vag, L"rb");
     if (s->io.stream) {
         uint32_t signature = io_read_uint32_t(s);
@@ -147,8 +144,8 @@ void vag_wread(vag* v, wchar_t* path) {
         size_t vag_block_size = BLOCK_SIZE * ch;
 
         size_t num_blocks = (v->size / v->channels) >> 4;
-        int32_t* samp = force_malloc_s(sizeof(int32_t), ch * 4);
-        float_t* data = force_malloc_s(sizeof(float_t), num_blocks * vag_block_size);
+        int32_t* samp = force_malloc_s(int32_t, ch * 4);
+        float_t* data = force_malloc_s(float_t, num_blocks * vag_block_size);
         uint8_t* flags = force_malloc(num_blocks);
 
         uint8_t nibble[BLOCK_SIZE];
@@ -226,8 +223,8 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
 
     v->size = align_val_divide(num_samples, BLOCK_SIZE, BLOCK_SIZE);
 
-    wchar_t* temp_path = path_wget_without_extension(path);
-    wchar_t* path_vag = path_wadd_extension(temp_path, L".vag");
+    wchar_t* temp_path = str_utils_wget_without_extension(path);
+    wchar_t* path_vag = str_utils_wadd(temp_path, L".vag");
     stream* s = io_wopen(path_vag, L"wb");
     if (s->io.stream) {
         int32_t coef_index_count;
@@ -267,7 +264,7 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
 
         size_t c, i, i1, i2;
         int32_t ch = v->channels;
-        int32_t* samp = force_malloc_s(sizeof(int32_t), hevag ? v->channels * 8LL : 4LL);
+        int32_t* samp = force_malloc_s(int32_t, hevag ? v->channels * 8LL : 4LL);
         if (hevag && coef_index_count > 29) {
             uint8_t flag, sample;
             int32_t temp_data[BLOCK_SIZE];
@@ -378,10 +375,14 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
     free(data);
 }
 
+void vag_dispose(vag* v) {
+    free(v);
+}
+
 static void vag_read_wav_straight(vag* v, wchar_t* path, float_t** data, size_t* samples) {
     *data = 0;
     *samples = 0;
-    wchar_t* path_wav = path_wadd_extension(path, L".wav");
+    wchar_t* path_wav = str_utils_wadd(path, L".wav");
     wav* w = wav_init();
     wav_wread(w, path_wav, data, samples);
     v->channels = w->channels;
@@ -394,14 +395,14 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
     *data = 0;
     *samples = 0;
     *flags = 0;
-    if (!path_wcheck_ends_with(path, L".0")) {
+    if (!str_utils_wcheck_ends_with(path, L".0")) {
         vag_read_wav_straight(v, path, data, samples);
         return;
     }
 
     wchar_t temp[MAX_PATH];
     size_t count = 0;
-    wchar_t* temp_path = path_wget_without_extension(path);
+    wchar_t* temp_path = str_utils_wget_without_extension(path);
     vector_bool loop;
     bool n, l;
     bool add_loop = false;
@@ -431,8 +432,8 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
     }
 
     count += add_loop;
-    float_t** wav_data = force_malloc_s(sizeof(float_t*), count);
-    size_t* wav_samples = force_malloc_s(sizeof(size_t), count);
+    float_t** wav_data = force_malloc_s(float_t*, count);
+    size_t* wav_samples = force_malloc_s(size_t, count);
 
     wav* w = wav_init();
     for (size_t i = 0; i < count; i++) {
@@ -469,7 +470,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
     l = false;
     size_t ch = v->channels;
-    *data = force_malloc_s(sizeof(float_t), *samples * ch);
+    *data = force_malloc_s(float_t, *samples * ch);
     float_t* data_temp = *data;
     for (size_t i = 0; i < count; i++) {
         size_t i3;
@@ -543,7 +544,7 @@ static void vag_write_wav_straight(vag* v, wchar_t* path, float_t* data, size_t 
             break;
     }
 
-    wchar_t* path_wav = path_wadd_extension(path, L".wav");
+    wchar_t* path_wav = str_utils_wadd(path, L".wav");
     wav* w = wav_init();
     w->bytes = 4;
     w->channels = v->channels;

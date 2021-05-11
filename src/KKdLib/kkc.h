@@ -54,15 +54,15 @@ typedef struct kkc {
 } kkc;
 
 extern kkc* kkc_init();
+extern void kkc_get_key(kkc_key* key, uint32_t seed, kkc_key_mode mode, kkc_key_type type);
+extern void kkc_init_from_key_mode(kkc* c, vector_uint8_t* key, kkc_key_mode mode);
+extern void kkc_init_from_type_mode(kkc* c, kkc_key_type type, kkc_key_mode mode);
+extern void kkc_init_from_seed_type_mode(kkc* c, uint32_t seed, kkc_key_type type, kkc_key_mode mode);
+extern void kkc_init_from_key(kkc* c, kkc_key* key);
+extern void kkc_prepare_cursing_table(kkc* c);
+extern void kkc_reset(kkc* c);
+extern void kkc_reset_iv(kkc* c, uint32_t iv);
+extern void kkc_reset_iv4(kkc* c, uint32_t iv0, uint32_t iv1, uint32_t iv2, uint32_t iv3);
+extern void kkc_curse(kkc* c, uint8_t* src, uint8_t* dst, size_t length);
+extern void kkc_decurse(kkc* c, uint8_t* src, uint8_t* dst, size_t length);
 extern void kkc_dispose(kkc* c);
-extern void FASTCALL kkc_get_key(kkc_key* key, uint32_t seed, kkc_key_mode mode, kkc_key_type type);
-extern void FASTCALL kkc_init_from_key_mode(kkc* c, vector_uint8_t* key, kkc_key_mode mode);
-extern void FASTCALL kkc_init_from_type_mode(kkc* c, kkc_key_type type, kkc_key_mode mode);
-extern void FASTCALL kkc_init_from_seed_type_mode(kkc* c, uint32_t seed, kkc_key_type type, kkc_key_mode mode);
-extern void FASTCALL kkc_init_from_key(kkc* c, kkc_key* key);
-extern void FASTCALL kkc_prepare_cursing_table(kkc* c);
-extern void FASTCALL kkc_reset(kkc* c);
-extern void FASTCALL kkc_reset_iv(kkc* c, uint32_t iv);
-extern void FASTCALL kkc_reset_iv4(kkc* c, uint32_t iv0, uint32_t iv1, uint32_t iv2, uint32_t iv3);
-extern void FASTCALL kkc_curse(kkc* c, uint8_t* src, uint8_t* dst, size_t length);
-extern void FASTCALL kkc_decurse(kkc* c, uint8_t* src, uint8_t* dst, size_t length);

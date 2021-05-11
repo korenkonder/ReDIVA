@@ -5,8 +5,8 @@
 
 #include "sound_diva.h"
 #include "sound_wav.h"
-#include "io_path.h"
 #include "io_stream.h"
+#include "str_utils.h"
 
 static const int8_t ima_index_table[] = {
     -1, -1, -1, -1, 2, 4, 6, 8,
@@ -37,10 +37,6 @@ diva* diva_init() {
     return d;
 }
 
-void diva_dispose(diva* d) {
-    free(d);
-}
-
 void diva_read(diva* d, char* path) {
     wchar_t* path_buf = char_string_to_wchar_t_string(path);
     diva_wread(d, path_buf);
@@ -48,7 +44,7 @@ void diva_read(diva* d, char* path) {
 }
 
 void diva_wread(diva* d, wchar_t* path) {
-    wchar_t* path_diva = path_wadd_extension(path, L".diva");
+    wchar_t* path_diva = str_utils_wadd(path, L".diva");
     stream* s = io_wopen(path_diva, L"rb");
     if (s->io.stream) {
         uint32_t signature = io_read_uint32_t(s);
@@ -70,9 +66,9 @@ void diva_wread(diva* d, wchar_t* path) {
         size_t ch = d->channels;
         size_t samples_count = d->samples_count;
 
-        float_t* data = force_malloc_s(sizeof(float_t), samples_count * ch);
-        int32_t* current = force_malloc_s(sizeof(int32_t), ch);
-        int32_t* current_clamp = force_malloc_s(sizeof(int32_t), ch);
+        float_t* data = force_malloc_s(float_t, samples_count * ch);
+        int32_t* current = force_malloc_s(int32_t, ch);
+        int32_t* current_clamp = force_malloc_s(int32_t, ch);
         int8_t* step_index = force_malloc(ch);
 
         float_t* temp_data = data;
@@ -110,7 +106,7 @@ void diva_wwrite(diva* d, wchar_t* path) {
     if (!data)
         return;
 
-    wchar_t* path_diva = path_wadd_extension(path, L".diva");
+    wchar_t* path_diva = str_utils_wadd(path, L".diva");
     stream* s = io_wopen(path_diva, L"wb");
     if (s->io.stream) {
         io_write_uint32_t(s, 0x41564944);
@@ -132,8 +128,8 @@ void diva_wwrite(diva* d, wchar_t* path) {
         size_t ch = d->channels;
         size_t samples_count = d->samples_count;
 
-        int32_t* current = force_malloc_s(sizeof(int32_t), ch);
-        int32_t* current_clamp = force_malloc_s(sizeof(int32_t), ch);
+        int32_t* current = force_malloc_s(int32_t, ch);
+        int32_t* current_clamp = force_malloc_s(int32_t, ch);
         int8_t* step_index = force_malloc(ch);
 
         float_t* temp_data = data;
@@ -159,10 +155,14 @@ void diva_wwrite(diva* d, wchar_t* path) {
     free(data);
 }
 
+void diva_dispose(diva* d) {
+    free(d);
+}
+
 static void diva_read_wav(diva* d, wchar_t* path, float_t** data) {
     *data = 0;
     size_t samples = 0;
-    wchar_t* path_wav = path_wadd_extension(path, L".wav");
+    wchar_t* path_wav = str_utils_wadd(path, L".wav");
     wav* w = wav_init();
     wav_wread(w, path_wav, data, &samples);
     d->channels = w->channels;
@@ -173,7 +173,7 @@ static void diva_read_wav(diva* d, wchar_t* path, float_t** data) {
 }
 
 static void diva_write_wav(diva* d, wchar_t* path, float_t* data) {
-    wchar_t* path_wav = path_wadd_extension(path, L".wav");
+    wchar_t* path_wav = str_utils_wadd(path, L".wav");
     wav* w = wav_init();
     w->bytes = 4;
     w->channels = d->channels;

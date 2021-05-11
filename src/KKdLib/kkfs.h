@@ -7,6 +7,7 @@
 
 #include "default.h"
 #include "kkc.h"
+#include "vector.h"
 
 #define KKFS_SECTOR_SIZE            0x200
 #define KKFS_DIRECTORY_RECURSION    0x100
@@ -20,12 +21,12 @@ typedef enum kkfs_sector_info {
 } kkfs_sector_info;
 
 typedef enum kkfs_directory_flags {
-    KKFS_DIRECTORY_READ_ONLY    = 0b01,
+    KKFS_DIRECTORY_READ_ONLY    = 0x1,
 } kkfs_directory_flags;
 
 typedef enum kkfs_file_flags {
-    KKFS_FILE_READ_ONLY         = 0b01,
-    KKFS_FILE_CURSED            = 0b10,
+    KKFS_FILE_READ_ONLY         = 0x1,
+    KKFS_FILE_CURSED            = 0x2,
 } kkfs_file_flags;
 
 typedef enum kkfs_type {
@@ -99,16 +100,7 @@ typedef struct kkfs {
     bool sector_info_changed;
 } kkfs;
 
-typedef struct kkfs_storage {
-    kkfs** begin;
-    kkfs** end;
-    kkfs** capacity_end;
-} kkfs_storage;
-
-extern kkfs_storage fs_storage;
-
 extern kkfs* kkfs_init();
-extern void kkfs_dispose(kkfs* fs);
 extern void kkfs_initialize(kkfs* fs, char* path, uint32_t sector_size, size_t length,
     kkfs_directory_flags flags, kkc* curse, uint32_t parent_hash, kkc* parent_curse);
 extern void kkfs_winitialize(kkfs* fs, wchar_t* path, uint32_t sector_size, size_t length,
@@ -131,7 +123,4 @@ extern bool kkfs_wwrite_file(kkfs* fs, wchar_t* path, void* data, size_t data_le
 extern bool kkfs_delete_file(kkfs* fs, char* path);
 extern bool kkfs_wdelete_file(kkfs* fs, wchar_t* path);
 extern void kkfs_close(kkfs* fs);
-extern void kkfs_storage_init();
-extern void kkfs_storage_dispose();
-extern void kkfs_storage_append(kkfs* fs);
-extern void kkfs_storage_delete(kkfs* fs);
+extern void kkfs_dispose(kkfs* fs);

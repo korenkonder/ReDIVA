@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../KKdLib/default.h"
+#include "../KKdLib/txp.h"
 #define GLEW_STATIC
 #include <GLEW/glew.h>
 
@@ -16,6 +17,16 @@ typedef enum texture_type {
     TEXTURE_3D,
     TEXTURE_CUBE,
 } texture_type;
+
+typedef enum texture_mode {
+    TEXTURE_MODE_DEFAULT     = 0,
+    TEXTURE_MODE_YCBCR_BC4   = 1,
+    TEXTURE_MODE_YCBCR_BC5   = 2,
+    TEXTURE_MODE_NORMAL_BC5U = 3,
+    TEXTURE_MODE_NORMAL_BC5S = 4,
+    TEXTURE_MODE_NORMAL_U    = 5,
+    TEXTURE_MODE_NORMAL_S    = 6,
+} texture_mode;
 
 typedef struct texture_data {
     texture_type type;
@@ -60,6 +71,7 @@ typedef struct texture_cube_data {
 
 typedef struct texture {
     int32_t id;
+    texture_mode mode;
     texture_type type;
 } texture;
 
@@ -91,6 +103,15 @@ typedef union texture_set {
     texture tex[8];
 } texture_set;
 
+typedef struct texture_bone_mat_data {
+    int32_t count;
+    void* data;
+} texture_bone_mat_data;
+
+typedef struct texture_bone_mat {
+    int32_t id;
+} texture_bone_mat;
+
 extern void texture_load(texture* tex, texture_data* data);
 extern void texture_bind(texture* tex, int32_t index);
 extern void texture_reset(texture* tex, int32_t index);
@@ -101,3 +122,9 @@ extern void texture_set_bind(texture_set* tex);
 extern void texture_set_reset(texture_set* tex);
 extern void texture_set_update(texture_set* tex);
 extern void texture_set_free(texture_set* tex);
+extern void texture_bone_mat_load(texture_bone_mat* tex, texture_bone_mat_data* data);
+extern void texture_bone_mat_bind(texture_bone_mat* tex, int32_t index);
+extern void texture_bone_mat_reset(texture_bone_mat* tex, int32_t index);
+extern void texture_bone_mat_free(texture_bone_mat* tex);
+extern bool texture_txp_load(vector_txp* tex, vector_int32_t* textures);
+extern void texture_txp_unload(vector_int32_t* textures);

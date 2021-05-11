@@ -5,9 +5,17 @@
 
 #include "f2_pof.h"
 
+typedef enum pof_value {
+    POF_VALUE_INVALID = 0x0,
+    POF_VALUE_INT8    = 0x1,
+    POF_VALUE_INT16   = 0x2,
+    POF_VALUE_INT32   = 0x3,
+} pof_value;
+
+static inline bool pof_length_get_size(uint32_t* length, size_t val);
 static bool pof_write_packed_value(stream* s, size_t val);
 
-FORCE_INLINE size_t pof_read_offsets_count(stream* s) {
+inline size_t pof_read_offsets_count(stream* s) {
     size_t pos = io_get_position(s);
     size_t i, j, l;
     pof_value val;
@@ -116,31 +124,6 @@ void pof_write(stream* s, vector_size_t* pof, bool shift_x) {
         io_write_uint8_t(s, 0);
 }
 
-static bool pof_write_packed_value(stream* s, size_t val) {
-    if (val < 0x40)
-        io_write_uint8_t(s, (uint8_t)((POF_VALUE_INT8 << 6) | (val & 0x3F)));
-    else if (val < 0x4000) {
-        io_write_uint8_t(s, (uint8_t)((POF_VALUE_INT16 << 6) | ((val >> 8) & 0x3F)));
-        io_write_uint8_t(s, (uint8_t)val);
-    }
-    else if (val < 0x40000000) {
-        io_write_uint8_t(s, (uint8_t)((POF_VALUE_INT32 << 6) | ((val >> 24) & 0x3F)));
-        io_write_uint8_t(s, (uint8_t)(val >> 16));
-        io_write_uint8_t(s, (uint8_t)(val >> 8));
-        io_write_uint8_t(s, (uint8_t)val);
-    }
-    else {
-        io_write_uint8_t(s, POF_VALUE_INVALID << 6);
-        return true;
-    }
-    return false;
-}
-
-FORCE_INLINE bool pof_length_get_size(uint32_t* length, size_t val) {
-    *length += val < 0x40 ? 1 : val < 0x4000 ? 2 : val < 0x40000000 ? 4 : 1;
-    return val >= 0x40000000;
-}
-
 uint32_t pof_length(vector_size_t* pof, bool shift_x) {
     vector_size_t p;
     size_t* i;
@@ -173,4 +156,29 @@ uint32_t pof_length(vector_size_t* pof, bool shift_x) {
             break;
     }
     return l;
+}
+
+static inline bool pof_length_get_size(uint32_t* length, size_t val) {
+    *length += val < 0x40 ? 1 : val < 0x4000 ? 2 : val < 0x40000000 ? 4 : 1;
+    return val >= 0x40000000;
+}
+
+static bool pof_write_packed_value(stream* s, size_t val) {
+    if (val < 0x40)
+        io_write_uint8_t(s, (uint8_t)((POF_VALUE_INT8 << 6) | (val & 0x3F)));
+    else if (val < 0x4000) {
+        io_write_uint8_t(s, (uint8_t)((POF_VALUE_INT16 << 6) | ((val >> 8) & 0x3F)));
+        io_write_uint8_t(s, (uint8_t)val);
+    }
+    else if (val < 0x40000000) {
+        io_write_uint8_t(s, (uint8_t)((POF_VALUE_INT32 << 6) | ((val >> 24) & 0x3F)));
+        io_write_uint8_t(s, (uint8_t)(val >> 16));
+        io_write_uint8_t(s, (uint8_t)(val >> 8));
+        io_write_uint8_t(s, (uint8_t)val);
+    }
+    else {
+        io_write_uint8_t(s, POF_VALUE_INVALID << 6);
+        return true;
+    }
+    return false;
 }

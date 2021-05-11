@@ -5,19 +5,40 @@
 
 #include "emitter_inst.h"
 #include "curve.h"
-#include "effect_inst.h"
 #include "particle_inst.h"
 #include "random.h"
+#include "../camera.h"
 
-glitter_emitter_inst* FASTCALL glitter_emitter_inst_init(glitter_emitter* a1,
-    glitter_scene* a2, glitter_effect_inst* a3) {
+extern camera* cam;
+
+static void FASTCALL glitter_emitter_inst_emit_particle(GPM,
+    glitter_emitter_inst* a1, float_t emission);
+static void FASTCALL glitter_emitter_inst_get_value(GPM,
+    glitter_emitter_inst* a1, float_t frame);
+static void FASTCALL glitter_emitter_inst_update_mat(GPM,
+    glitter_emitter_inst* a1, glitter_effect_inst* a2);
+
+glitter_emitter_inst* FASTCALL glitter_emitter_inst_init(GPM,
+    glitter_emitter* a1, glitter_effect_inst* a2, float_t emission) {
     glitter_particle** i;
     glitter_particle_inst* particle;
+
+    switch (a1->data.type) {
+    case GLITTER_EMITTER_BOX:
+    case GLITTER_EMITTER_CYLINDER:
+    case GLITTER_EMITTER_SPHERE:
+    case GLITTER_EMITTER_POLYGON:
+        break;
+    default:
+        return 0;
+    }
 
     glitter_emitter_inst* ei = force_malloc(sizeof(glitter_emitter_inst));
     ei->emitter = a1;
 
     ei->data = a1->data;
+    ei->random_ptr = &a2->random_shared;
+    ei->random.step = 1;
     ei->translation = a1->translation;
     ei->rotation = a1->rotation;
     ei->scale = a1->scale;
@@ -26,56 +47,239 @@ glitter_emitter_inst* FASTCALL glitter_emitter_inst_init(glitter_emitter* a1,
     ei->scale_all = 1.0f;
     ei->emission_interval = ei->data.emission_interval;
     ei->particles_per_emission = ei->data.particles_per_emission;
-    ei->frame = -ei->data.start_time;
+    ei->frame = (float_t)-ei->data.start_time;
     if (ei->data.emission_interval >= -0.000001f)
         ei->emission = fabs(ei->data.emission_interval) <= 0.000001f
         ? GLITTER_EMITTER_EMISSION_ON_START : GLITTER_EMITTER_EMISSION_ON_TIMER;
     else
         ei->emission = GLITTER_EMITTER_EMISSION_ON_END;
-    ei->loop = ei->data.flags & GLITTER_EMITTER_FLAG_LOOP ? true : false;
+    ei->loop = ei->data.flags & GLITTER_EMITTER_LOOP ? true : false;
 
-    vector_ptr_glitter_particle_inst_resize(&ei->particles, a1->particles.end - a1->particles.begin);
+    vector_ptr_glitter_particle_inst_append(&ei->particles, a1->particles.end - a1->particles.begin);
     for (i = a1->particles.begin; i != a1->particles.end; i++) {
         if (!*i)
             continue;
 
-        particle = glitter_particle_inst_init(*i, a2, a3);
+        particle = glitter_particle_inst_init(GPM_VAL, *i, a2, ei, ei->random_ptr, emission);
         vector_ptr_glitter_particle_inst_push_back(&ei->particles, &particle);
     }
 
-    ei->random = glitter_random_get();
-    glitter_random_set(glitter_random_get() + 1);
+    ei->random.value = glitter_random_get_value(ei->random_ptr);
+    glitter_random_step_value(ei->random_ptr);
     return ei;
 }
 
-void FASTCALL glitter_emitter_inst_copy(glitter_emitter_inst* a1, glitter_emitter_inst* a2, glitter_scene* a3) {
-    int64_t particles_count; // rbp
-    int64_t i; // rbx
+void FASTCALL glitter_emitter_inst_free(GPM, glitter_emitter_inst* a1, float_t emission) {
+    glitter_particle_inst** i;
 
-    a2->translation = a1->translation;
-    a2->rotation = a1->rotation;
-    a2->scale = a1->scale;
-    a2->mat = a1->mat;
-    a2->mat_no_scale = a1->mat_no_scale;
-    a2->scale_all = a1->scale_all;
-    a2->emission_timer = a1->emission_timer;
-    a2->emission_interval = a1->emission_interval;
-    a2->particles_per_emission = a1->particles_per_emission;
-    a2->random = a1->random;
-    a2->loop = a1->loop;
-    a2->emission = a1->emission;
-    a2->frame = a1->frame;
-    a2->ended = a1->ended;
-
-    particles_count = a1->particles.end - a1->particles.begin;
-    if (particles_count != a2->particles.end - a2->particles.begin)
+    if (a1->ended)
         return;
 
-    for (i = 0; i < particles_count; ++i)
-        glitter_particle_inst_copy(a1->particles.begin[i], a2->particles.begin[i], a3);
+    if (a1->emission == GLITTER_EMITTER_EMISSION_ON_END) {
+        glitter_emitter_inst_emit_particle(GPM_VAL, a1, emission);
+        a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
+    }
+
+    if (a1->loop && a1->data.loop_end_time >= 0.0f)
+        a1->loop = false;
+
+    a1->ended = true;
+    if (a1->data.flags & GLITTER_EMITTER_KILL_ON_END)
+        for (i = a1->particles.begin; i != a1->particles.end; ++i)
+            glitter_particle_inst_free(*i, true);
+    else
+        for (i = a1->particles.begin; i != a1->particles.end; ++i)
+            glitter_particle_inst_free(*i, false);
 }
 
-void FASTCALL glitter_emitter_inst_emit(glitter_emitter_inst* a1, glitter_scene* a2) {
+void FASTCALL glitter_emitter_inst_emit(GPM,
+    glitter_emitter_inst* a1, float_t delta_frame, float_t emission) {
+    if (a1->frame < 0.0f) {
+        a1->frame += delta_frame;
+        return;
+    }
+
+    if (!a1->ended) {
+        if (a1->emission == GLITTER_EMITTER_EMISSION_ON_TIMER) {
+            if (a1->emission_timer >= 0.0f || a1->emission_interval >= 0.0f) {
+                a1->emission_timer -= delta_frame;
+                while (a1->emission_timer <= 0.0) {
+                    glitter_emitter_inst_emit_particle(GPM_VAL, a1, emission);
+                    if (a1->emission_interval > 0.0f)
+                        a1->emission_timer += a1->emission_interval;
+                    else
+                        a1->emission_timer = -1.0;
+                }
+            }
+        }
+        else if (a1->emission == GLITTER_EMITTER_EMISSION_ON_START && a1->data.timer == GLITTER_EMITTER_TIMER_BY_TIME) {
+            a1->emission_timer -= delta_frame;
+            if (a1->emission_timer < 0.0) {
+                glitter_emitter_inst_emit_particle(GPM_VAL, a1, emission);
+                a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
+            }
+        }
+    }
+
+    if (!a1->loop && a1->frame >= a1->data.life_time)
+        glitter_emitter_inst_free(GPM_VAL, a1, emission);
+    a1->frame += delta_frame;
+}
+
+void FASTCALL glitter_emitter_inst_get_mesh_by_type(GPM, glitter_emitter_inst* a1,
+    int32_t index, vec3* scale, vec3* base_translation, vec3* direction, glitter_random* random) {
+    float_t radius;
+    float_t angle;
+    float_t longitude;
+    float_t latitude;
+    vec3 dir;
+
+    switch (a1->data.type) {
+    case GLITTER_EMITTER_BOX:
+        vec3_mult(a1->data.box.size, *scale, dir);
+        vec3_mult_scalar(dir, 0.5f, dir);
+        glitter_random_get_vec3(GPM_VAL, random, &dir, base_translation);
+        break;
+    case GLITTER_EMITTER_CYLINDER:
+        radius = a1->data.cylinder.radius * scale->x;
+        if (!a1->data.cylinder.on_edge)
+            radius = glitter_random_get_float_min_max(GPM_VAL, random, 0.0f, radius);
+        angle = glitter_random_get_float_min_max(GPM_VAL, random,
+            a1->data.cylinder.start_angle, a1->data.cylinder.end_angle);
+        dir.x = cosf(angle);
+        dir.y = 0.0f;
+        dir.z = sinf(angle);
+        base_translation->x = dir.x * radius;
+        base_translation->y = glitter_random_get_float(GPM_VAL, random,
+            a1->data.cylinder.height * scale->y * 0.5f);
+        base_translation->z = dir.z * radius;
+        if (a1->data.cylinder.direction == GLITTER_EMITTER_EMISSION_DIRECTION_OUTWARD)
+            *direction = dir;
+        else if (a1->data.cylinder.direction == GLITTER_EMITTER_EMISSION_DIRECTION_INWARD)
+            vec3_xor(dir, ((vec3){ -0.0f, 0.0f, -0.0f }), *direction);
+        break;
+    case GLITTER_EMITTER_SPHERE:
+        radius = a1->data.sphere.radius * scale->x;
+        if (!a1->data.sphere.on_edge)
+            radius = glitter_random_get_float_min_max(GPM_VAL, random, 0.0f, radius);
+        longitude = glitter_random_get_float_min_max(GPM_VAL, random,
+            a1->data.sphere.longitude * -0.5f, a1->data.sphere.longitude * 0.5f);
+        latitude = (float_t)M_PI_2 - glitter_random_get_float_min_max(GPM_VAL, random,
+            0.0f, a1->data.sphere.latitude);
+        dir.x = sinf(longitude) * cosf(latitude);
+        dir.y = sinf(latitude);
+        dir.z = cosf(longitude) * cosf(latitude);
+        vec3_mult_scalar(dir, radius, *base_translation);
+        if (a1->data.sphere.direction == GLITTER_EMITTER_EMISSION_DIRECTION_OUTWARD)
+            *direction = dir;
+        else if (a1->data.sphere.direction == GLITTER_EMITTER_EMISSION_DIRECTION_INWARD)
+            vec3_negate(dir, *direction);
+        break;
+    case GLITTER_EMITTER_POLYGON:
+        base_translation->x = sinf((float_t)index / (float_t)a1->data.polygon.count * 2.0f
+            * (float_t)M_PI + (float_t)M_PI_2) * a1->data.polygon.size * scale->x;
+        base_translation->y = 0.0f;
+        break;
+    }
+}
+
+bool FASTCALL glitter_emitter_inst_has_ended(glitter_emitter_inst* emitter, bool a2) {
+    glitter_particle_inst** i;
+
+    if (!emitter->ended)
+        return false;
+    else if (!a2)
+        return true;
+
+    for (i = emitter->particles.begin; i != emitter->particles.end; i++)
+        if (!glitter_particle_inst_has_ended(*i, a2))
+            return false;
+    return true;
+}
+
+uint8_t FASTCALL glitter_emitter_inst_random_get_step(glitter_emitter_inst* emitter) {
+    emitter->random.step++;
+    emitter->random.step++;
+    return (uint8_t)(emitter->random.step % 60);
+}
+
+void FASTCALL glitter_emitter_inst_reset(glitter_emitter_inst* a1) {
+    glitter_particle_inst** i;
+
+    a1->loop = a1->data.flags & GLITTER_EMITTER_LOOP ? true : false;
+    a1->frame = (float_t)-a1->data.start_time;
+    a1->ended = false;
+    a1->emission_timer = 0.0f;
+    if (a1->emission_interval >= -0.000001f)
+        a1->emission = fabsf(a1->emission_interval) <= 0.000001f
+        ? GLITTER_EMITTER_EMISSION_ON_START : GLITTER_EMITTER_EMISSION_ON_TIMER;
+    else
+        a1->emission = GLITTER_EMITTER_EMISSION_ON_END;
+
+    for (i = a1->particles.begin; i != a1->particles.end; ++i)
+        glitter_particle_inst_reset(*i);
+}
+
+void FASTCALL glitter_emitter_inst_update_value_frame(GPM,
+    glitter_emitter_inst* a1, glitter_effect_inst* a2, float_t delta_frame) {
+    vec3 rotation_add;
+
+    if (a1->frame < 0.0f)
+        return;
+
+    if (a1->loop) {
+        if (a1->data.loop_end_time < 0.0f || a1->frame < a1->data.loop_end_time) {
+            if (a1->frame >= a1->data.life_time) {
+                a1->frame -= a1->data.life_time;
+                if (a1->emission == GLITTER_EMITTER_EMISSION_EMITTED && a1->emission_interval > 0.0f)
+                    a1->emission = GLITTER_EMITTER_EMISSION_ON_TIMER;
+            }
+        }
+        else
+            while (a1->frame > a1->data.loop_end_time)
+                a1->frame -= a1->data.loop_end_time - a1->data.loop_start_time;
+    }
+
+    glitter_emitter_inst_get_value(GPM_VAL, a1, a1->frame);
+    vec3_mult_scalar(a1->data.rotation_add, delta_frame, rotation_add);
+    vec3_add(a1->rotation, rotation_add, a1->rotation);
+    glitter_emitter_inst_update_mat(GPM_VAL, a1, a2);
+}
+
+void FASTCALL glitter_emitter_inst_update_value_init(GPM,
+    glitter_emitter_inst* a1, glitter_effect_inst* a2, float_t delta_frame) {
+    vec3 rotation_add;
+
+    a1->has_distance = false;
+    if (a1->frame < 0.0f)
+        return;
+
+    if (a1->loop) {
+        if (a1->data.loop_end_time < 0.0f || a1->frame < a1->data.loop_end_time) {
+            if (a1->frame >= a1->data.life_time)
+                a1->frame -= a1->data.life_time;
+        }
+        else
+            while (a1->frame > a1->data.loop_end_time)
+                a1->frame -= a1->data.loop_end_time - a1->data.loop_start_time;
+    }
+
+    if (a1->frame < 0.0f)
+        return;
+
+    glitter_emitter_inst_get_value(GPM_VAL, a1, a1->frame);
+    vec3_mult_scalar(a1->data.rotation_add, delta_frame, rotation_add);
+    vec3_add(a1->rotation, rotation_add, a1->rotation);
+    glitter_emitter_inst_update_mat(GPM_VAL, a1, a2);
+}
+
+void FASTCALL glitter_emitter_inst_dispose(glitter_emitter_inst* ei) {
+    vector_ptr_glitter_particle_inst_free(&ei->particles, glitter_particle_inst_dispose);
+    free(ei);
+}
+
+static void FASTCALL glitter_emitter_inst_emit_particle(GPM,
+    glitter_emitter_inst* a1, float_t emission) {
     int32_t count;
     glitter_particle_inst** i;
 
@@ -85,173 +289,11 @@ void FASTCALL glitter_emitter_inst_emit(glitter_emitter_inst* a1, glitter_scene*
         count = 1;
 
     for (i = a1->particles.begin; i != a1->particles.end; ++i)
-        glitter_particle_inst_emit(*i, a2, a1, (int32_t)a1->particles_per_emission, count);
+        glitter_particle_inst_emit(GPM_VAL, *i, (int32_t)roundf(a1->particles_per_emission), count, emission);
 }
 
-void FASTCALL glitter_emitter_inst_emit_init(glitter_emitter_inst* a1,
-    glitter_scene* a2, glitter_effect_inst* a3, float_t delta_frame) {
-    if (a1->frame < 0.0f) {
-        a1->frame += delta_frame;
-        return;
-    }
-
-    if (!a1->ended) {
-        if (a1->emission == GLITTER_EMITTER_EMISSION_ON_TIMER) {
-            if (a1->emission_timer >= 0.0f || a1->emission_interval >= 0.0f) {
-                a1->emission_timer -= delta_frame;
-                if (a1->emission_timer <= 0.0f) {
-                    glitter_effect_inst_update_mat(a3);
-                    glitter_emitter_inst_emit(a1, a2);
-                    if (a1->emission_interval > 0.0f)
-                        a1->emission_timer += a1->emission_interval;
-                    else
-                        a1->emission_timer = -1.0f;
-                }
-            }
-        }
-        else if (a1->emission == GLITTER_EMITTER_EMISSION_ON_START) {
-            glitter_effect_inst_update_mat(a3);
-            glitter_emitter_inst_emit(a1, a2);
-            a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
-        }
-    }
-
-    if (!a1->loop && a1->data.life_time <= a1->frame)
-        glitter_emitter_inst_free(a1, a2, 0);
-
-    a1->frame += delta_frame;
-}
-
-void FASTCALL glitter_emitter_inst_emit_step(glitter_emitter_inst* a1,
-    glitter_scene* a2, glitter_effect_inst* a3, float_t delta_frame) {
-    if (a1->frame < 0.0f) {
-        a1->frame += delta_frame;
-        return;
-    }
-
-    if (!a1->ended) {
-        if (a1->emission == GLITTER_EMITTER_EMISSION_ON_TIMER) {
-            if (a1->emission_timer >= 0.0f || a1->emission_interval >= 0.0f) {
-                a1->emission_timer -= delta_frame;
-                if (a1->emission_timer <= 0.0f) {
-                    glitter_emitter_inst_emit(a1, a2);
-                    if (a1->emission_interval > 0.0f)
-                        a1->emission_timer += a1->emission_interval;
-                    else
-                        a1->emission_timer = -1.0f;
-                }
-            }
-        }
-        else if (a1->emission == GLITTER_EMITTER_EMISSION_ON_START) {
-            a1->emission_timer -= delta_frame;
-            if (a1->emission_timer <= 0.0f) {
-                glitter_emitter_inst_emit(a1, a2);
-                a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
-            }
-        }
-    }
-
-    if (!a1->loop && a1->data.life_time <= a1->frame)
-        glitter_emitter_inst_free(a1, a2, 0);
-
-    a1->frame += delta_frame;
-}
-
-void FASTCALL glitter_emitter_inst_free(glitter_emitter_inst* a1, glitter_scene* a2, bool free) {
-    glitter_particle_inst** i;
-
-    if (a1->ended) {
-        if (free)
-            for (i = a1->particles.begin; i != a1->particles.end; ++i)
-                glitter_particle_inst_free(*i, true);
-    }
-    else {
-        if (a1->emission == GLITTER_EMITTER_EMISSION_ON_END) {
-            glitter_emitter_inst_emit(a1, a2);
-            a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
-        }
-
-        if (a1->loop && a1->data.loop_end_time >= 0.0f)
-            a1->loop = false;
-
-        a1->ended = true;
-        for (i = a1->particles.begin; i != a1->particles.end; ++i)
-            glitter_particle_inst_free(*i, false);
-    }
-}
-
-void FASTCALL glitter_emitter_inst_get_mesh_by_type(glitter_emitter_inst* a1,
-    int32_t index, vec3* scale, vec3* base_translation, vec3* direction) {
-    float_t radius; // xmm8_4
-    float_t angle; // xmm6_4
-    float_t v15; // xmm7_4
-    float_t v16; // xmm0_4
-    float_t v17; // xmm2_4
-    float_t v18; // xmm7_4
-    float_t v19; // xmm6_4
-    float_t longitude; // xmm8_4
-    float_t latitude; // xmm6_4
-    float_t v26; // xmm7_4
-    vec3 v27;
-
-    switch (a1->data.type) {
-    case GLITTER_EMITTER_BOX:
-        base_translation->x = glitter_random_get_float_clamp_min_max(a1->data.box.size.x * scale->x * 0.5f);
-        base_translation->y = glitter_random_get_float_clamp_min_max(a1->data.box.size.y * scale->y * 0.5f);
-        base_translation->z = glitter_random_get_float_clamp_min_max(a1->data.box.size.z * scale->z * 0.5f);
-        break;
-    case GLITTER_EMITTER_CYLINDER:
-        radius = a1->data.cylinder.radius * scale->x;
-        if (!a1->data.cylinder.plain)
-            radius = glitter_random_get_float_clamp(0.0f, radius);
-        angle = glitter_random_get_float_clamp(a1->data.cylinder.start_angle, a1->data.cylinder.end_angle);
-        v15 = cosf(angle);
-        v16 = sinf(angle);
-        v17 = 1.0f / sqrtf(v16 * v16 + v15 * v15);
-        v18 = v15 * v17;
-        v19 = v16 * v17;
-        base_translation->x = v18 * radius;
-        base_translation->y = glitter_random_get_float_clamp_min_max(a1->data.cylinder.height * scale->y * 0.5f);
-        base_translation->z = v19 * radius;
-        if (a1->data.cylinder.direction == GLITTER_EMITTER_EMISSION_DIRECTION_INWARD) {
-            direction->x = v18;
-            direction->y = 0.0f;
-            direction->z = v19;
-        }
-        else if(a1->data.cylinder.direction == GLITTER_EMITTER_EMISSION_DIRECTION_OUTWARD) {
-            direction->x = -v18;
-            direction->y = 0.0f;
-            direction->z = -v19;
-        }
-        break;
-    case GLITTER_EMITTER_SPHERE:
-        radius = a1->data.sphere.radius * scale->x;
-        if (!a1->data.sphere.plain)
-            radius = glitter_random_get_float_clamp(0.0f, radius);
-        longitude = glitter_random_get_float_clamp(a1->data.sphere.longitude * -0.5f,
-            a1->data.sphere.longitude * 0.5f);
-        latitude = (float_t)M_PI_2 - glitter_random_get_float_clamp(0.0f, a1->data.sphere.latitude);
-        v26 = cosf(latitude);
-        v27.x = sinf(longitude) * v26;
-        v27.y = sinf(latitude);
-        v27.z = cosf(longitude) * v26;
-        vec3_mult_scalar(v27, radius, *base_translation);
-        if (a1->data.sphere.direction == GLITTER_EMITTER_EMISSION_DIRECTION_INWARD)
-            *direction = v27;
-        else if (a1->data.sphere.direction == GLITTER_EMITTER_EMISSION_DIRECTION_OUTWARD)
-            vec3_negate(v27, *direction);
-        break;
-    case GLITTER_EMITTER_MESH:
-        break;
-    case GLITTER_EMITTER_POLYGON:
-        base_translation->x = sinf(((float_t)index / (float_t)a1->data.polygon.count * 2.0f)
-            / (float_t)M_PI + (float_t)M_PI_2) * a1->data.polygon.scale * scale->x;
-        base_translation->y = 0.0f;
-        break;
-    }
-}
-
-void FASTCALL glitter_emitter_inst_get_value(glitter_emitter_inst* a1, float_t frame, int32_t random) {
+static void FASTCALL glitter_emitter_inst_get_value(GPM,
+    glitter_emitter_inst* a1, float_t frame) {
     int64_t length;
     glitter_curve* curve;
     float_t value;
@@ -262,7 +304,7 @@ void FASTCALL glitter_emitter_inst_get_value(glitter_emitter_inst* a1, float_t f
 
     for (int32_t i = 0; i < length; i++) {
         curve = a1->emitter->curve.begin[i];
-        if (!glitter_curve_get_value(curve, frame, &value, random + i))
+        if (!glitter_curve_get_value(GPM_VAL, curve, frame, &value, a1->random.value + i, a1->random_ptr))
             continue;
 
         switch (curve->type) {
@@ -306,208 +348,49 @@ void FASTCALL glitter_emitter_inst_get_value(glitter_emitter_inst* a1, float_t f
     }
 }
 
-bool FASTCALL glitter_emitter_inst_has_ended(glitter_emitter_inst* emitter, bool a2) {
-    glitter_particle_inst** i;
-
-    if (!emitter->ended)
-        return false;
-    else if (!a2)
-        return true;
-
-    for (i = emitter->particles.begin; i != emitter->particles.end; i++)
-        if (!glitter_particle_inst_has_ended(*i, a2))
-            return false;
-    return true;
-}
-
-void FASTCALL glitter_emitter_inst_render_group_init(glitter_emitter_inst* emitter, float_t delta_frame) {
-    glitter_particle_inst** i;
-
-    for (i = emitter->particles.begin; i != emitter->particles.end; ++i)
-        glitter_particle_inst_render_group_init(*i, delta_frame);
-}
-
-void FASTCALL glitter_emitter_inst_reset(glitter_emitter_inst* a1) {
-    glitter_particle_inst** i; // rbx
-
-    a1->loop = a1->data.flags & GLITTER_EMITTER_FLAG_LOOP ? true : false;
-    a1->frame = 0.0f;
-    a1->ended = false;
-    if (a1->emission_interval >= -0.000001f)
-        a1->emission = fabsf(a1->emission_interval) <= 0.000001f
-        ? GLITTER_EMITTER_EMISSION_ON_START : GLITTER_EMITTER_EMISSION_ON_TIMER;
-    else
-        a1->emission = GLITTER_EMITTER_EMISSION_ON_END;
-
-    for (i = a1->particles.begin; i != a1->particles.end; ++i)
-        glitter_particle_inst_reset(*i);
-}
-
-void FASTCALL glitter_emitter_inst_update_mat(glitter_emitter_inst* a1, glitter_effect_inst* a2) {
+static void FASTCALL glitter_emitter_inst_update_mat(GPM,
+    glitter_emitter_inst* a1, glitter_effect_inst* a2) {
+    bool mult;
+    vec3 trans;
+    vec3 rot;
     vec3 scale;
-    bool v12; // bl
-    int64_t v14; // rax
-    int64_t v15; // r14
-    glitter_particle_inst* v17; // rbx
-    mat4 mat1;
-    mat4 mat2;
+    mat4 mat;
+    mat4 direction_mat;
 
+    trans = a1->translation;
+    rot = a1->rotation;
     vec3_mult_scalar(a1->scale, a1->scale_all, scale);
-    mat1 = a2->mat;
 
-    v12 = true;
+    mult = true;
     switch (a1->data.direction) {
-    case GLITTER_DIRECTION_BILLBOARD:
-        mat2 = cam->view;
-        mat2.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
-        mat4_inverse(&mat2, &mat2);
-        mat4_mult(&mat1, &mat2, &mat2);
-        mat2.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
-        break;
+    case GLITTER_DIRECTION_BILLBOARD: {
+        mat4_invrot(&cam->view, &direction_mat);
+        direction_mat.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+        mat4_mult(&a2->mat, &direction_mat, &direction_mat);
+        direction_mat.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    } break;
     case GLITTER_DIRECTION_Y_AXIS:
-        mat4_rotate_y((float_t)-M_PI_2, &mat2);
+        mat4_rotate_y((float_t)-M_PI_2, &direction_mat);
         break;
     case GLITTER_DIRECTION_X_AXIS:
-        mat4_rotate_x((float_t)-M_PI_2, &mat2);
+        mat4_rotate_x((float_t)-M_PI_2, &direction_mat);
         break;
     case GLITTER_DIRECTION_Z_AXIS:
-        mat4_rotate_z((float_t)-M_PI_2, &mat2);
+        mat4_rotate_z((float_t)-M_PI_2, &direction_mat);
         break;
     case GLITTER_DIRECTION_BILLBOARD_Y_ONLY:
-        mat4_rotate_y(cam->rotation.y, &mat2);
+        mat4_rotate_y(cam->rotation.y, &direction_mat);
         break;
     default:
-        v12 = false;
+        mult = false;
         break;
     }
 
-    mat4_translate_mult(&mat1, a1->translation.x, a1->translation.y, a1->translation.z, &mat1);
-    mat4_normalize_rotation(&mat1, &mat1);
-    if (v12)
-        mat4_mult(&mat2, &mat1, &mat1);
-    mat4_rot(&mat1, a1->rotation.x, a1->rotation.y, a1->rotation.z, &mat1);
-    a1->mat_no_scale = mat1;
-    mat4_scale_rot(&mat1, scale.x, scale.y, scale.z, &a1->mat);
-
-    v14 = a1->particles.end - a1->particles.begin;
-    for (v15 = 0; v14 > 0; v15++, v14--) {
-        if (!a1->particles.begin[v15])
-            continue;
-
-        v17 = a1->particles.begin[v15];
-        v17->mat = a1->mat;
-        v17->mat_no_scale = a1->mat_no_scale;
-        v17->mat_no_scale.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
-        glitter_particle_inst_set_mat(v17);
-    }
-}
-
-void FASTCALL glitter_emitter_inst_update_value_frame(glitter_emitter_inst* a1,
-    glitter_effect_inst* a2, float_t delta_frame) {
-    int64_t v7; // r14
-    vec3 rotation_add;
-    vec3 scale;
-    bool v22; // si
-    int64_t v24; // rbp
-    glitter_particle_inst* v26; // rsi
-    mat4 mat1;
-    mat4 mat2;
-
-    if (a1->frame < 0.0f)
-        return;
-
-    if (a1->loop) {
-        if (a1->data.loop_end_time < 0.0f || a1->frame < a1->data.loop_end_time) {
-            if (a1->frame >= a1->data.life_time) {
-                a1->frame -= a1->data.life_time;
-                if (a1->emission == GLITTER_EMITTER_EMISSION_EMITTED && a1->emission_interval > 0.0f)
-                    a1->emission = GLITTER_EMITTER_EMISSION_ON_TIMER;
-            }
-        }
-        else
-            while (a1->frame > a1->data.loop_end_time)
-                a1->frame -= a1->data.loop_end_time - a1->data.loop_start_time;
-    }
-
-    glitter_emitter_inst_get_value(a1, a1->frame, a1->random);
-    vec3_mult_scalar(a1->data.rotation_add, delta_frame, rotation_add);
-    vec3_add(a1->rotation, rotation_add, a1->rotation);
-
-    vec3_mult_scalar(a1->scale, a1->scale_all, scale);
-    mat1 = a2->mat;
-
-    v22 = true;
-    switch (a1->data.direction) {
-    case GLITTER_DIRECTION_BILLBOARD:
-        mat2 = cam->view;
-        mat2.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
-        mat4_inverse(&mat2, &mat2);
-        mat4_mult(&mat1, &mat2, &mat2);
-        mat2.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
-        break;
-    case GLITTER_DIRECTION_Y_AXIS:
-        mat4_rotate_y((float_t)-M_PI_2, &mat2);
-        break;
-    case GLITTER_DIRECTION_X_AXIS:
-        mat4_rotate_x((float_t)-M_PI_2, &mat2);
-        break;
-    case GLITTER_DIRECTION_Z_AXIS:
-        mat4_rotate_z((float_t)-M_PI_2, &mat2);
-        break;
-    case GLITTER_DIRECTION_BILLBOARD_Y_ONLY:
-        mat4_rotate_y(cam->rotation.y, &mat2);
-        break;
-    default:
-        v22 = false;
-        break;
-    }
-
-    mat4_translate_mult(&mat1, a1->translation.x, a1->translation.y, a1->translation.z, &mat1);
-    mat4_normalize_rotation(&mat1, &mat1);
-    if (v22)
-        mat4_mult(&mat2, &mat1, &mat1);
-    mat4_rot(&mat1, a1->rotation.x, a1->rotation.y, a1->rotation.z, &mat1);
-    a1->mat_no_scale = mat1;
-    mat4_scale_rot(&mat1, scale.x, scale.y, scale.z, &a1->mat);
-
-    v24 = a1->particles.end - a1->particles.begin;
-    for (v7 = 0; v24 > 0; v7++, v24--) {
-        if (!a1->particles.begin[v7])
-            continue;
-
-        v26 = a1->particles.begin[v7];
-        v26->mat = a1->mat;
-        v26->mat_no_scale = a1->mat_no_scale;
-        v26->mat_no_scale.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
-        glitter_particle_inst_set_mat(v26);
-    }
-}
-
-void FASTCALL glitter_emitter_inst_update_value_init(glitter_emitter_inst* a1, float_t frame, float_t delta_frame) {
-    vec3 rotation_add;
-
-    if (a1->frame < 0.0f)
-        return;
-
-    if (a1->loop) {
-        if (a1->data.loop_end_time < 0.0f || a1->frame < a1->data.loop_end_time) {
-            if (a1->frame >= a1->data.life_time)
-                a1->frame = a1->frame - a1->data.life_time;
-        }
-        else
-            while (a1->frame > a1->data.loop_end_time)
-                a1->frame -= a1->data.loop_end_time - a1->data.loop_start_time;
-    }
-
-    if (a1->frame < 0.0f)
-        return;
-
-    glitter_emitter_inst_get_value(a1, a1->frame, a1->random);
-    vec3_mult_scalar(a1->data.rotation_add, delta_frame, rotation_add);
-    vec3_add(a1->rotation, rotation_add, a1->rotation);
-}
-
-void FASTCALL glitter_emitter_inst_dispose(glitter_emitter_inst* ei) {
-    vector_ptr_glitter_particle_inst_free(&ei->particles, (void*)glitter_particle_inst_dispose);
-    free(ei);
+    mat4_translate_mult(&a2->mat, trans.x, trans.y, trans.z, &mat);
+    mat4_normalize_rotation(&mat, &mat);
+    if (mult)
+        mat4_mult(&direction_mat, &mat, &mat);
+    mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+    mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &a1->mat);
+    a1->mat_no_scale = mat;
 }

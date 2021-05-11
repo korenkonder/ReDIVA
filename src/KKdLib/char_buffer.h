@@ -27,14 +27,8 @@ typedef struct wchar_t_buffer {
 } wchar_t_buffer;
 
 extern void char_buffer_init(char_buffer* c, char* str);
+extern char* char_buffer_select(char_buffer* c);
 extern void char_buffer_dispose(char_buffer* c);
 extern void wchar_t_buffer_init(wchar_t_buffer* c, wchar_t* str);
+extern wchar_t* wchar_t_buffer_select(wchar_t_buffer* c);
 extern void wchar_t_buffer_dispose(wchar_t_buffer* c);
-
-static inline char* char_buffer_select(char_buffer* c) {
-    return c->length > CHAR_BUFFER_LENGTH - 1 ? c->ptr : c->data;
-}
-
-static inline wchar_t* wchar_t_buffer_select(wchar_t_buffer* c) {
-    return c->length > WCHAR_T_BUFFER_LENGTH - 1 ? c->ptr : c->data;
-}

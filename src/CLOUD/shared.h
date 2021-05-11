@@ -5,32 +5,21 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
-#include "../CRE/microui.h"
-#include "Classes/background_color.h"
-#include "Classes/glitter_editor.h"
-#include "Classes/glitter_test.h"
-#include "Classes/post_process.h"
+#include "classes.h"
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include <cimgui.h>
+#include "classes/data_test.h"
+#include "classes/glitter_editor.h"
+#include "classes/graphics.h"
 
-typedef enum classes_enum {
-    CLASSES_INIT_AT_STARTUP = 0x01,
-    CLASSES_IN_CONTEXT_MENU = 0x02,
-} classes_enum;
+typedef enum render_state {
+    RENDER_UNINITIALIZED =  0,
+    RENDER_INITIALIZING  =  1,
+    RENDER_INITIALIZED   =  2,
+    RENDER_DISPOSING     =  3,
+    RENDER_DISPOSED      =  4,
+} render_state;
 
-typedef struct classes_struct {
-    char* name;
-    classes_enum flags;
-    bool* enabled;
-    void(FASTCALL* dispose)();
-    void(FASTCALL* init)();
-    void(FASTCALL* control)();
-    void(FASTCALL* input)();
-    void(FASTCALL* mui)();
-    void(FASTCALL* render)();
-    void(FASTCALL* sound)();
-} classes_struct;
-
-extern mu_Context* muctx;
-
-extern const classes_struct classes[];
+extern classes_struct classes[];
 extern const size_t classes_count;
+extern render_state state;

@@ -5,18 +5,6 @@
 
 #include "f2_header.h"
 
-f2_header* f2_header_init() {
-    f2_header* h = force_malloc(sizeof(f2_header));
-    return h;
-}
-
-void f2_header_dispose(f2_header* h) {
-    if (!h)
-        return;
-
-    free(h);
-}
-
 void f2_header_read(stream* s, f2_header* h) {
     memset(h, 0, sizeof(f2_header));
 

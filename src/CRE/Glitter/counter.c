@@ -5,18 +5,6 @@
 
 #include "counter.h"
 
-extern glitter_particle_manager* gpm;
-
-int32_t FASTCALL glitter_counter_get() {
-    if (gpm->f2)
-        return gpm->counter & 0xFF;
-    else
-        return gpm->counter & 0xFFF;
-}
-
-void FASTCALL glitter_counter_increment() {
-    if (gpm->f2)
-        gpm->counter++;
-    else
-        gpm->counter++;
+int32_t FASTCALL glitter_counter_get(GPM) {
+    return ++gpm->counter;
 }

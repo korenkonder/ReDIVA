@@ -11,10 +11,6 @@ wav* wav_init() {
     return w;
 }
 
-void wav_dispose(wav* f) {
-    free(f);
-}
-
 void wav_read(wav* w, char* path, float_t** data, size_t* samples) {
     wchar_t* path_buf = char_string_to_wchar_t_string(path);
     wav_wread(w, path_buf, data, samples);
@@ -69,7 +65,7 @@ void wav_wread(wav* w, wchar_t* path, float_t** data, size_t* samples) {
         *w = w_t;
 
         *samples = w->size / w->channels / w->bytes;
-        *data = force_malloc_s(sizeof(float_t), w->size / w->bytes);
+        *data = force_malloc_s(float_t, w->size / w->bytes);
 
         size_t t_s = *samples;
         float_t* t_d = *data;
@@ -208,4 +204,8 @@ void wav_wwrite(wav* w, wchar_t* path, float_t* data, size_t samples) {
                 }
     }
     io_dispose(s);
+}
+
+void wav_dispose(wav* f) {
+    free(f);
 }

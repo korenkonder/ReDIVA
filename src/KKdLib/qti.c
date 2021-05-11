@@ -29,21 +29,21 @@ qti* quat_trans_array_to_qti(quat_trans* array, size_t length,
     return interp;
 }
 
-FORCE_INLINE void qti_set_interpolation_framerate(qti* interp, float_t interpolation_framerate) {
+inline void qti_set_interpolation_framerate(qti* interp, float_t interpolation_framerate) {
     interp->interpolation_framerate = interpolation_framerate;
     interp->delta_frame = interp->interpolation_framerate / interp->requested_framerate;
 }
 
-FORCE_INLINE void qti_set_requested_framerate(qti* interp, float_t requested_framerate) {
+inline void qti_set_requested_framerate(qti* interp, float_t requested_framerate) {
     interp->requested_framerate = requested_framerate;
     interp->delta_frame = interp->interpolation_framerate / interp->requested_framerate;
 }
 
-FORCE_INLINE void qti_update(qti* interp) {
+inline void qti_update(qti* interp) {
     interp->delta_frame = interp->interpolation_framerate / interp->requested_framerate;
 }
 
-FORCE_INLINE void qti_reset(qti* interp) {
+inline void qti_reset(qti* interp) {
     interp->delta_frame = interp->interpolation_framerate / interp->requested_framerate;
     interp->frame = -interp->delta_frame; interp->time = interp->frame / interp->requested_framerate;
 }

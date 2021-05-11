@@ -281,11 +281,9 @@ typedef struct field_ac200 {
     vector_ptr_char ex_auth_3d_list;                            // AC510/AC511/AC520/AC521/AC600
 
     char* aet_back;
-    char* aet_back_low;                                         // not AC200
     char* aet_front;
     char* aet_front_low;                                        // not AC200
     char* aet_id_back;
-    char* aet_id_back_low;                                      // not AC200
     char* aet_id_front;
     char* aet_id_front_low;                                     // not AC200
     char* auth_3d;
@@ -300,11 +298,9 @@ typedef struct field_ac500 {
     vector_ptr_char auth_3d_list;
 
     char* aet_back;
-    char* aet_back_low;
     char* aet_front;
     char* aet_front_low;
     char* aet_id_back;
-    char* aet_id_back_low;
     char* aet_id_front;
     char* aet_id_front_low;
     char* auth_3d;
@@ -321,11 +317,9 @@ typedef struct field_aft101 {
     vector_ptr_char ex_auth_3d_list;
 
     char* aet_back;
-    char* aet_back_low;
     char* aet_front;
     char* aet_front_low;
     char* aet_id_back;
-    char* aet_id_back_low;
     char* aet_id_front;
     char* aet_id_front_low;
     char* auth_3d;
@@ -360,13 +354,11 @@ typedef struct field_aft300 {
 
     char* aet_back;
     int32_t aet_back_frame;
-    char* aet_back_low;
     char* aet_front;
     int32_t aet_front_frame;
     char* aet_front_low;
     int32_t aet_front_low_frame;
     char* aet_id_back;
-    char* aet_id_back_low;
     char* aet_id_front;
     char* aet_id_front_low;
     char* auth_3d;
@@ -405,7 +397,6 @@ typedef struct field_aft500 {
 
     char* aet_back;
     int32_t aet_back_frame;
-    char* aet_back_low;
     char* aet_front;
     char* aet_front_3d_surf;
     int32_t aet_front_3d_surf_frame;
@@ -413,7 +404,6 @@ typedef struct field_aft500 {
     char* aet_front_low;
     int32_t aet_front_low_frame;
     char* aet_id_back;
-    char* aet_id_back_low;
     char* aet_id_front;
     char* aet_id_front_3d_surf;
     char* aet_id_front_low;

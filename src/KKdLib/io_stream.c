@@ -44,24 +44,6 @@ stream* io_open_memory(void* data, size_t length) {
     return s;
 }
 
-void io_dispose(stream* s) {
-    if (!s)
-        return;
-
-    switch (s->type) {
-    case STREAM_FILE:
-        if (s->io.stream) {
-            fflush(s->io.stream);
-            fclose(s->io.stream);
-        }
-        break;
-    case STREAM_MEMORY:
-        vector_uint8_t_free(&s->io.data.vec);
-        break;
-    }
-    free(s);
-}
-
 void io_align(stream* s, size_t align) {
     size_t position;
     switch (s->type) {
@@ -93,6 +75,17 @@ void io_align(stream* s, size_t align) {
                 s->io.data.vec.end = s->io.data.data;
             break;
         }
+}
+
+int io_flush(stream* s) {
+    switch (s->type) {
+    case STREAM_FILE:
+        return fflush(s->io.stream);
+    case STREAM_MEMORY:
+        return 0;
+    default:
+        return 0;
+    }
 }
 
 ssize_t io_get_position(stream* s) {
@@ -260,6 +253,24 @@ void io_write_int8_t(stream* s, int8_t val) {
 
 void io_write_uint8_t(stream* s, uint8_t val) {
     io_write_char(s, (char)val);
+}
+
+void io_dispose(stream* s) {
+    if (!s)
+        return;
+
+    switch (s->type) {
+    case STREAM_FILE:
+        if (s->io.stream) {
+            fflush(s->io.stream);
+            fclose(s->io.stream);
+        }
+        break;
+    case STREAM_MEMORY:
+        vector_uint8_t_free(&s->io.data.vec);
+        break;
+    }
+    free(s);
 }
 
 #define io_read_write(t) \

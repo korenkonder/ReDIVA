@@ -7,49 +7,53 @@
 
 #include "../KKdLib/default.h"
 #include "../KKdLib/mat.h"
+#include "hash.h"
+#include "material.h"
 #include "shader.h"
 #include "texture.h"
 #include "vertex.h"
+
+typedef struct gl_object_cull_face {
+    bool enable;
+    int16_t mode;
+} gl_object_cull_face;
 
 typedef enum gl_object_type {
     GL_OBJECT_NONE = 0,
     GL_OBJECT_SIMPLE,
     GL_OBJECT_BONED,
-    GL_OBJECT_INSTANCED_SIMPLE,
-    GL_OBJECT_INSTANCED_BONED,
 } gl_object_type;
-
-typedef struct gl_object_instances {
-    size_t count;
-    mat4* trans;
-    mat4* data;
-} gl_object_instances;
 
 typedef struct gl_object {
     gl_object_type type;
     int32_t vao;
     int32_t vbo;
     int32_t ebo;
-    texture_set texture;
-    shader_model shader;
     vertex vertex;
-    int32_t instances_trans_vbo;
-    int32_t instances_data_vbo;
-    gl_object_instances instances;
+    material material;
+    shader_model shader;
+    texture_bone_mat bone_mat_tex;
+    gl_object_cull_face cull_face;
 } gl_object;
 
 typedef struct gl_object_update {
-    uint64_t texture;
-    uint64_t shader;
-    uint64_t vert;
-    gl_object_instances instances;
+    hash vert;
+    hash material;
+    hash shader;
+    hash bone_mat;
+    gl_object_cull_face cull_face;
 } gl_object_update;
+
+extern const gl_object_cull_face gl_object_cull_face_default;
 
 extern gl_object* gl_object_init();
 extern void gl_object_update_vert(gl_object* obj, vertex* vert);
-extern void gl_object_update_texture(gl_object* obj, texture_set* texture);
+extern void gl_object_update_material(gl_object* obj, material* material);
 extern void gl_object_update_shader(gl_object* obj, shader_model* shader);
-extern void gl_object_update_instances(gl_object* obj, gl_object_instances* instances);
+extern void gl_object_update_bone_mat(gl_object* obj, texture_bone_mat* bone_mat_tex);
+extern void gl_object_update_cull_face(gl_object* obj, gl_object_cull_face cull_face);
 extern void gl_object_draw_c(gl_object* obj);
+extern void gl_object_draw_c_translucent_first_part(gl_object* obj);
+extern void gl_object_draw_c_translucent_second_part(gl_object* obj);
 extern void gl_object_draw_g(gl_object* obj);
 extern void gl_object_dispose(gl_object* obj);

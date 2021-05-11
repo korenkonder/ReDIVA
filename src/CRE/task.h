@@ -11,14 +11,31 @@
 #include "../KKdLib/vec.h"
 #include "../KKdLib/vector.h"
 #include "../CRE/gl_object.h"
+#include "../CRE/light.h"
 #include "../CRE/shader.h"
-#include "../CRE/texture.h"
+#include "../CRE/material.h"
 #include "../CRE/vertex.h"
+#include <xmmintrin.h>
+
+typedef enum task_render_free_type {
+    TASK_RENDER_FREE_NONE = 0,
+    TASK_RENDER_FREE_GL_OBJECT,
+    TASK_RENDER_FREE_LIGHT_DIR,
+    TASK_RENDER_FREE_LIGHT_POINT,
+    TASK_RENDER_FREE_SHADER,
+    TASK_RENDER_FREE_MATERIAL,
+    TASK_RENDER_FREE_TEXTURE,
+    TASK_RENDER_FREE_TEXTURE_SET,
+    TASK_RENDER_FREE_VERT,
+} task_render_free_type;
 
 typedef enum task_render_update_type {
     TASK_RENDER_UPDATE_NONE = 0,
     TASK_RENDER_UPDATE_GL_OBJECT,
+    TASK_RENDER_UPDATE_LIGHT_DIR,
+    TASK_RENDER_UPDATE_LIGHT_POINT,
     TASK_RENDER_UPDATE_SHADER,
+    TASK_RENDER_UPDATE_MATERIAL,
     TASK_RENDER_UPDATE_TEXTURE,
     TASK_RENDER_UPDATE_TEXTURE_SET,
     TASK_RENDER_UPDATE_VERT,
@@ -71,11 +88,14 @@ typedef enum task_render_draw3d_type {
 } task_render_draw3d_type;
 
 typedef struct task_render_update {
+    hash hash;
     task_render_update_type type;
-    uint64_t hash;
     union {
         gl_object_update gl_obj;
+        light_dir_update light_dir;
+        light_point_update light_point;
         shader_model_update shad;
+        material_update mat;
         texture_data tex;
         texture_set_data tex_set;
         vertex_update vert;
@@ -83,8 +103,8 @@ typedef struct task_render_update {
 } task_render_update;
 
 typedef struct task_render_free {
-    task_render_update_type type;
-    uint64_t hash;
+    hash hash;
+    task_render_free_type type;
 } task_render_free;
 
 typedef struct task_render_uniform_bool {
@@ -186,11 +206,11 @@ typedef struct task_render_uniform_mat4_array {
 } task_render_uniform_mat4_array;
 
 typedef struct task_render_uniform {
-    uint64_t shader_hash;
+    hash shader_hash;
     char_buffer name;
     task_render_uniform_type type;
     union {
-        task_render_uniform_bool bool;
+        task_render_uniform_bool boolean;
         task_render_uniform_int32 int32;
         task_render_uniform_float32 float32;
         task_render_uniform_vec2 vec2;
@@ -223,33 +243,23 @@ typedef struct task_render {
     };
 } task_render;
 
+vector(task_render_uniform)
+
 typedef struct task_render_draw2d {
+    hash hash;
     task_render_draw2d_type type;
-    uint64_t hash;
-    bool blend;
-    int16_t blend_src_factor_rgb;
-    int16_t blend_dst_factor_rgb;
-    int16_t blend_src_factor_alpha;
-    int16_t blend_dst_factor_alpha;
-    int16_t blend_mode_rgb;
-    int16_t blend_mode_alpha;
+    vector_task_render_uniform uniforms;
 } task_render_draw2d;
 
 typedef struct task_render_draw3d {
+    hash hash;
     task_render_draw3d_type type;
-    uint64_t hash;
-    bool blend;
-    int16_t blend_src_factor_rgb;
-    int16_t blend_dst_factor_rgb;
-    int16_t blend_src_factor_alpha;
-    int16_t blend_dst_factor_alpha;
-    int16_t blend_mode_rgb;
-    int16_t blend_mode_alpha;
-    bool depth;
-    int16_t depth_func;
-    bool depth_mask;
-    bool cull_face;
-    int16_t cull_face_mode;
+    bool translucent;
+    mat4 model;
+    mat3 model_normal;
+    mat4 uv_mat;
+    vec4 color;
+    vector_task_render_uniform uniforms;
 } task_render_draw3d;
 
 vector(task_render)

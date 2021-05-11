@@ -3,13 +3,14 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "pdi.h"
+#include "moti.h"
+#include "interpolation.h"
 
-pdi* kft2_array_to_pdi(kft2* array, size_t length, float_t interpolation_framerate, float_t requested_framerate) {
+moti* kft2_array_to_moti(kft2* array, size_t length, float_t interpolation_framerate, float_t requested_framerate) {
     if (!array || !length)
         return 0;
 
-    pdi* interp = force_malloc(sizeof(pdi));
+    moti* interp = force_malloc(sizeof(moti));
     interp->time = 0.0f;
     interp->array = array;
     interp->length = length;
@@ -19,7 +20,7 @@ pdi* kft2_array_to_pdi(kft2* array, size_t length, float_t interpolation_framera
     interp->requested_framerate = requested_framerate;
     interp->value = 0.0f;
     interp->first_key = interp->last_key = 0;
-    pdi_reset(interp);
+    moti_reset(interp);
 
     if (array && length) {
         interp->first_key = array;
@@ -28,26 +29,26 @@ pdi* kft2_array_to_pdi(kft2* array, size_t length, float_t interpolation_framera
     return interp;
 }
 
-FORCE_INLINE void pdi_set_interpolation_framerate(pdi* interp, float_t interpolation_framerate) {
+inline void moti_set_interpolation_framerate(moti* interp, float_t interpolation_framerate) {
     interp->interpolation_framerate = interpolation_framerate;
     interp->delta_frame = interp->interpolation_framerate / interp->requested_framerate;
 }
 
-FORCE_INLINE void pdi_set_requested_framerate(pdi* interp, float_t requested_framerate) {
+inline void moti_set_requested_framerate(moti* interp, float_t requested_framerate) {
     interp->requested_framerate = requested_framerate;
     interp->delta_frame = interp->interpolation_framerate / interp->requested_framerate;
 }
 
-FORCE_INLINE void pdi_update(pdi* interp) {
+inline void moti_update(moti* interp) {
     interp->delta_frame = interp->interpolation_framerate / interp->requested_framerate;
 }
 
-FORCE_INLINE void pdi_reset(pdi* interp) {
+inline void moti_reset(moti* interp) {
     interp->delta_frame = interp->interpolation_framerate / interp->requested_framerate;
     interp->frame = -interp->delta_frame; interp->time = interp->frame / interp->requested_framerate;
 }
 
-static void pdi_interpolate(pdi* interp) {
+static void moti_interpolate(moti* interp) {
     float_t frame = interp->frame;
 
     kft2* keys = interp->array;
@@ -68,58 +69,51 @@ static void pdi_interpolate(pdi* interp) {
 
     if (frame <= c.frame || frame >= n.frame)
         interp->value = frame > c.frame ? n.value : c.value;
-    else if (n.tangent == c.tangent && n.tangent == 0.0f) {
-        float_t t = (frame - c.frame) / (n.frame - c.frame);
-        interp->value = (1.0f - t) * c.value + t * n.value;
-    }
-    else {
-        float_t t = (frame - c.frame) / (n.frame - c.frame);
-        float_t t_1 = t - 1.0f;
-        interp->value = (t_1 * 2.0f - 1.0f) * (c.value - n.value) * t * t +
-            (t_1 * c.tangent + t * n.tangent) * t_1 * (frame - c.frame) + c.value;
-    }
+    else
+        interp->value = interpolate_chs_value(c.value, n.value,
+            c.tangent, n.tangent, c.frame, n.frame, frame);
 }
 
-float_t pdi_set_time(pdi* interp, float_t time) {
+float_t moti_set_time(moti* interp, float_t time) {
     if (!interp || !interp->array || !interp->length)
         return 0.0f;
 
     interp->frame = time * interp->interpolation_framerate;
     interp->time = time;
 
-    pdi_interpolate(interp);
+    moti_interpolate(interp);
     return interp->value;
 }
 
-float_t pdi_set_frame(pdi* interp, float_t frame) {
+float_t moti_set_frame(moti* interp, float_t frame) {
     if (!interp || !interp->array || !interp->length)
         return 0.0f;
 
     interp->frame = frame * interp->delta_frame;
     interp->time = frame / interp->requested_framerate;
 
-    pdi_interpolate(interp);
+    moti_interpolate(interp);
     return interp->value;
 }
 
-float_t pdi_add_time(pdi* interp, float_t time) {
+float_t moti_add_time(moti* interp, float_t time) {
     if (!interp || !interp->array || !interp->length)
         return 0.0f;
 
     interp->frame = time * interp->interpolation_framerate;
     interp->time += time;
 
-    pdi_interpolate(interp);
+    moti_interpolate(interp);
     return interp->value;
 }
 
-float_t pdi_next_frame(pdi* interp) {
+float_t moti_next_frame(moti* interp) {
     if (!interp || !interp->array || !interp->length)
         return 0.0f;
 
     interp->frame += interp->delta_frame;
     interp->time = interp->frame / interp->interpolation_framerate;
 
-    pdi_interpolate(interp);
+    moti_interpolate(interp);
     return interp->value;
 }

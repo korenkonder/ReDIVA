@@ -5,8 +5,8 @@
 
 #include "divafile.h"
 #include "aes.h"
-#include "io_path.h"
 #include "io_stream.h"
+#include "str_utils.h"
 
 static const uint8_t key[] = {
     0x66, 0x69, 0x6C, 0x65, 0x20, 0x61, 0x63, 0x63,
@@ -20,7 +20,7 @@ void divafile_decrypt(char* file) {
 }
 
 void divafile_wdecrypt(wchar_t* file) {
-    wchar_t* file_temp = path_wadd_extension(file, L"_dec");
+    wchar_t* file_temp = str_utils_wadd(file, L"_dec");
     stream* s_enc = io_wopen(file, L"rb");
     uint64_t signature = io_read_uint64_t(s_enc);
     if (signature == 0x454C494641564944) {
@@ -49,7 +49,7 @@ void divafile_encrypt(char* file) {
 }
 
 void divafile_wencrypt(wchar_t* file) {
-    wchar_t* file_temp = path_wadd_extension(file, L"_enc");
+    wchar_t* file_temp = str_utils_wadd(file, L"_enc");
     stream* s_dec = io_wopen(file, L"rb");
     size_t len = s_dec->length;
     size_t len_align = align_val(len, 0x10);

@@ -15,6 +15,9 @@
 #define FLOAT16_POSITIVE_INF  ((half_t)0x7C00)
 #define FLOAT16_NEGATIVE_INF  ((half_t)0xFC00)
 
+#define HALF_MAX 65504
+#define HALF_MIN 0.00006103515625
+
 typedef unsigned short half_t;
 
 extern half_t reverse_endianess_half_t(half_t value);
