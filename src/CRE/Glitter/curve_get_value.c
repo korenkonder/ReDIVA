@@ -61,7 +61,7 @@ bool FASTCALL glitter_curve_get_value(GLT, glitter_curve* c,
             key_index = keys_count - 1;
         else if (frame > start_time) {
             key_index = (size_t)frame - c->start_time;
-            if (glt_type == GLITTER_F2)
+            if (GLT_VAL == GLITTER_F2)
                 key_index /= 2;
 
             if (key_index >= keys_count)
@@ -178,7 +178,7 @@ static float_t FASTCALL glitter_curve_randomize(GLT,
         c->flags & GLITTER_CURVE_RANDOM_RANGE_NEGATE ? -c->random_range : 0.0f, c->random_range);
 
     if (c->flags & GLITTER_CURVE_RANDOM_RANGE_MULT)
-        if (glt_type != GLITTER_AFT)
+        if (GLT_VAL != GLITTER_AFT)
             rand *= value * 0.01f;
         else
             rand *= value;
@@ -196,7 +196,7 @@ static float_t FASTCALL glitter_curve_randomize_key(GLT,
         c->flags & GLITTER_CURVE_RANDOM_RANGE_NEGATE ? -key->random_range : 0.0f, key->random_range);
 
     if (c->flags & GLITTER_CURVE_RANDOM_RANGE_MULT)
-        if (glt_type != GLITTER_AFT)
+        if (GLT_VAL != GLITTER_AFT)
             rand *= key->value * 0.01f;
         else
             rand *= key->value;

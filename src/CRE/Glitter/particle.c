@@ -706,7 +706,7 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
                 blend_mode1 = *(int32_t*)(d + 8);
             }
         else {
-            tex_hash1 = glt_type != GLITTER_AFT
+            tex_hash1 = GLT_VAL != GLITTER_AFT
                 ? hash_murmurhash_empty : hash_fnv1a64_empty;
             blend_mode1 = GLITTER_PARTICLE_BLEND_TYPICAL;
         }

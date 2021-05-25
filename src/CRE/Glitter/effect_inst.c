@@ -44,7 +44,7 @@ glitter_effect_inst* FASTCALL glitter_effect_inst_init(GPM, GLT, glitter_effect*
     if (~a1->data.flags & GLITTER_EFFECT_LOCAL && ei->data.ext_anim) {
         inst_ext_anim = force_malloc(sizeof(glitter_effect_inst_ext_anim));
         inst_ext_anim->a3da_id = -1;
-        inst_ext_anim->object_hash = glt_type != GLITTER_AFT
+        inst_ext_anim->object_hash = GLT_VAL != GLITTER_AFT
             ? hash_murmurhash_empty : hash_fnv1a64_empty;
         inst_ext_anim->chara_index = -1;
         inst_ext_anim->index.data = -1;
@@ -60,7 +60,7 @@ glitter_effect_inst* FASTCALL glitter_effect_inst_init(GPM, GLT, glitter_effect*
 
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
                 inst_ext_anim->chara_index = ext_anim->index;
-                if (glt_type == GLITTER_AFT)
+                if (GLT_VAL == GLITTER_AFT)
                     inst_ext_anim->index.ft
                     = glitter_aft_effect_inst_get_ext_anim_bone_index(ext_anim->node_index);
                 else
@@ -251,7 +251,7 @@ static void FASTCALL glitter_effect_inst_get_ext_anim(GLT, glitter_effect_inst* 
         a1->ext_anim_scale.z = 0.0f;
         a1->flags |= GLITTER_EFFECT_INST_HAS_EXT_ANIM_SCALE;
 
-        if (glt_type == GLITTER_AFT
+        if (GLT_VAL == GLITTER_AFT
             ? (inst_ext_anim->index.ft < MOT_BONE_FT_MAX)
             : (inst_ext_anim->index.ft < MOT_BONE_F_MAX))
             mat4_mult(&temp, (mat4*)&mat4_identity/*chara node mat*/, &temp);
@@ -303,7 +303,7 @@ static void FASTCALL glitter_effect_inst_get_ext_anim(GLT, glitter_effect_inst* 
             }
         }
     }
-    else if (inst_ext_anim->object_hash != (glt_type != GLITTER_AFT
+    else if (inst_ext_anim->object_hash != (GLT_VAL != GLITTER_AFT
         ? hash_murmurhash_empty : hash_fnv1a64_empty)) {
         if (inst_ext_anim->index.data < 0) {
             if (!inst_ext_anim->mesh_name)
