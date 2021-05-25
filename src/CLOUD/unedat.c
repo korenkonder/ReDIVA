@@ -1,5 +1,6 @@
 ﻿#include "unedat.h"
 #include "../KKdLib/aes.h"
+#include "lz.h"
 #include <math.h>
 
 void aescbc128_decrypt(uint8_t* key, uint8_t* iv, uint8_t* in, uint8_t* out, int len) {

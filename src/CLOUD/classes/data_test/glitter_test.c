@@ -34,8 +34,7 @@ extern bool input_locked;
 extern float_t frame_speed;
 extern bool grid_3d;
 
-extern glitter_particle_manager* gpm;
-extern glitter_type glt_type;
+extern GPM;
 
 const char* glitter_test_window_title = "Glitter";
 
@@ -47,8 +46,8 @@ bool glitter_test_enabled = true;
 static glitter_test_struct glitter_test;
 
 void glitter_test_dispose() {
-    vector_ptr_glitter_scene_free(&gpm->scenes, glitter_scene_dispose);
-    vector_ptr_glitter_effect_group_free(&gpm->effect_groups, glitter_effect_group_dispose);
+    vector_ptr_glitter_scene_free(&GPM_VAL->scenes, glitter_scene_dispose);
+    vector_ptr_glitter_effect_group_free(&GPM_VAL->effect_groups, glitter_effect_group_dispose);
 
     vector_ptr_char_free(&glitter_test.files, 0);
     glitter_test_enabled = false;
@@ -83,12 +82,11 @@ void glitter_test_init() {
 
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
-    gpm->counter = (uint32_t)(time.LowPart * 0x0CAD3078LL);
+    GPM_VAL->counter = (uint32_t)(time.LowPart * 0x0CAD3078LL);
     glitter_test_enabled = true;
-    gpm->emission = 1.0f;
-    gpm->draw_all = false;
-    gpm->draw_all_mesh = false;
-    glt_type = GLITTER_AFT;
+    GPM_VAL->emission = 1.0f;
+    GPM_VAL->draw_all = false;
+    GPM_VAL->draw_all_mesh = false;
     grid_3d = false;
 }
 
@@ -183,7 +181,7 @@ void glitter_test_imgui() {
 
     igSeparator();
 
-    imguiColumnSliderFloat("Emission", &gpm->emission, 1.0f, 2.0f, "%.2f", 0);
+    imguiColumnSliderFloat("Emission", &GPM_VAL->emission, 1.0f, 2.0f, "%.2f", 0);
     imguiColumnSliderFloat("Frame Speed", &frame_speed, 0.0f, 3.0f, "%.2f", 0);
 
     igSeparator();
@@ -210,7 +208,7 @@ void glitter_test_render() {
         return;
 
     if (!glitter_test.input_pause) {
-        if (gpm->scenes.end != gpm->scenes.begin)
+        if (GPM_VAL->scenes.end != GPM_VAL->scenes.begin)
             glitter_test.frame_counter += get_frame_speed();
 
         glitter_particle_manager_update_scene(GPM_VAL);
@@ -222,9 +220,7 @@ void glitter_test_render() {
             glitter_test.frame_counter = 0.0f;
         }
 
-        uint64_t hash = glt_type != GLITTER_AFT
-            ? hash_char_murmurhash(glitter_test.file, 0, false)
-            : hash_char_fnv1a64(glitter_test.file);
+        uint64_t hash = hash_char_fnv1a64(glitter_test.file);
         if (glitter_test.input_auto && !glitter_particle_manager_check_scene(GPM_VAL, hash)) {
             if (glitter_particle_manager_check_effect_group(GPM_VAL, hash))
                 goto load;
@@ -236,8 +232,8 @@ void glitter_test_render() {
             glitter_particle_manager_free_scenes(GPM_VAL);
             glitter_particle_manager_free_effect_groups(GPM_VAL);
 
-            glitter_file_reader* fr = glitter_file_reader_init(GPM_VAL, 0, glitter_test.file, -1.0f);
-            vector_ptr_glitter_file_reader_push_back(&gpm->file_readers, &fr);
+            glitter_file_reader* fr = glitter_file_reader_init(GLITTER_AFT, 0, glitter_test.file, -1.0f);
+            vector_ptr_glitter_file_reader_push_back(&GPM_VAL->file_readers, &fr);
             glitter_particle_manager_update_file_reader(GPM_VAL);
         load:
             glitter_test.frame_counter = 0.0f;

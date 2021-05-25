@@ -54,7 +54,7 @@ void FASTCALL vector_##t##_push_back(vector_##t* vec, t* val) { \
         return; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_##t##_append(vec, 1); \
+        vector_##t##_append(vec, vec->end - vec->capacity_end + 1); \
 \
     *vec->end = *val; \
     vec->end++; \
@@ -73,7 +73,7 @@ void FASTCALL vector_##t##_insert(vector_##t* vec, ssize_t position, t* val) { \
         return; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_##t##_append(vec, 1); \
+        vector_##t##_append(vec, vec->end - vec->capacity_end + 1); \
 \
     t* t0 = vec->begin + position; \
     t* t1 = vec->begin + position + 1; \
@@ -91,7 +91,7 @@ void FASTCALL vector_##t##_insert_range(vector_##t* vec, ssize_t position, t* fi
         return; \
 \
     if (vec->capacity_end - vec->end < s) \
-        vector_##t##_append(vec, s); \
+        vector_##t##_append(vec, vec->end - vec->capacity_end + s); \
     \
     t* t0 = vec->begin + position; \
     t* t1 = vec->begin + position + s; \
@@ -178,7 +178,7 @@ void FASTCALL vector_ptr_##t##_push_back(vector_ptr_##t* vec, t** val) { \
         return; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_ptr_##t##_append(vec, 1); \
+        vector_ptr_##t##_append(vec, vec->end - vec->capacity_end + 1); \
 \
     *vec->end++ = *val; \
 } \
@@ -201,7 +201,7 @@ void FASTCALL vector_ptr_##t##_insert(vector_ptr_##t* vec, ssize_t position, t**
         return; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_ptr_##t##_append(vec, 1); \
+        vector_ptr_##t##_append(vec, vec->end - vec->capacity_end + 1); \
 \
     t** t0 = vec->begin + position; \
     t** t1 = vec->begin + position + 1; \
@@ -219,7 +219,7 @@ void FASTCALL vector_ptr_##t##_insert_range(vector_ptr_##t* vec, ssize_t positio
         return; \
 \
     if (vec->capacity_end - vec->end < s) \
-        vector_ptr_##t##_append(vec, s); \
+        vector_ptr_##t##_append(vec, vec->end - vec->capacity_end + s); \
     \
     t** t0 = vec->begin + position; \
     t** t1 = vec->begin + position + s; \

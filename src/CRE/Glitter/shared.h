@@ -11,6 +11,7 @@
 #include "../../KKdLib/farc.h"
 #include "../../KKdLib/hash.h"
 #include "../../KKdLib/mat.h"
+#include "../../KKdLib/mot.h"
 #include "../../KKdLib/quat.h"
 #include "../../KKdLib/str_utils.h"
 #include "../../KKdLib/txp.h"

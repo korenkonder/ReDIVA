@@ -5,25 +5,24 @@
 
 #include "effect.h"
 #include "animation.h"
-#include "curve.h"
 #include "emitter.h"
 
-static bool FASTCALL glitter_effect_pack_file(GPM, f2_struct* st, glitter_effect* a3);
-static bool FASTCALL glitter_effect_unpack_file(GPM,
+static bool FASTCALL glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a3);
+static bool FASTCALL glitter_effect_unpack_file(GLT,
     void* data, glitter_effect* a3, bool use_big_endian);
 
-glitter_effect* FASTCALL glitter_effect_init(GPM) {
+glitter_effect* FASTCALL glitter_effect_init(GLT) {
     glitter_effect* e = force_malloc(sizeof(glitter_effect));
     e->scale = vec3_identity;
     e->data.start_time = 0;
     e->data.ext_anim = 0;
     e->data.flags = 0;
-    e->data.name_hash = glt_type != GLITTER_AFT ? hash_murmurhash_empty : hash_fnv1a64_empty;
+    e->data.name_hash = GLT_VAL != GLITTER_AFT ? hash_murmurhash_empty : hash_fnv1a64_empty;
     e->data.seed = 0;
     return e;
 }
 
-glitter_effect* FASTCALL glitter_effect_copy(GPM, glitter_effect* e) {
+glitter_effect* FASTCALL glitter_effect_copy(GLT, glitter_effect* e) {
     if (!e)
         return 0;
 
@@ -39,27 +38,27 @@ glitter_effect* FASTCALL glitter_effect_copy(GPM, glitter_effect* e) {
     vector_ptr_glitter_emitter_append(&ec->emitters, e->emitters.end - e->emitters.begin);
     for (glitter_emitter** i = e->emitters.begin; i != e->emitters.end; i++)
         if (*i) {
-            glitter_emitter* e = glitter_emitter_copy(GPM_VAL, *i);
+            glitter_emitter* e = glitter_emitter_copy(GLT_VAL, *i);
             if (e)
                 vector_ptr_glitter_emitter_push_back(&ec->emitters, &e);
         }
 
-    ec->curve = (vector_ptr_glitter_curve){ 0, 0, 0 };
-    glitter_animation_copy(GPM_VAL, &e->curve, &ec->curve);
+    ec->animation = (glitter_animation){ 0, 0, 0 };
+    glitter_animation_copy(GLT_VAL, &e->animation, &ec->animation);
     return ec;
 }
 
-bool FASTCALL glitter_effect_parse_file(GPM,
-    glitter_effect_group* a1, f2_struct* st, vector_ptr_glitter_effect* vec) {
+bool FASTCALL glitter_effect_parse_file(glitter_effect_group* a1,
+    f2_struct* st, vector_ptr_glitter_effect* vec) {
     f2_struct* i;
     glitter_effect* effect;
 
     if (!st || !st->header.data_size)
         return false;
 
-    effect = glitter_effect_init(GPM_VAL);
+    effect = glitter_effect_init(a1->type);
     effect->version = st->header.version;
-    if (!glitter_effect_unpack_file(GPM_VAL, st->data, effect, st->header.use_big_endian)) {
+    if (!glitter_effect_unpack_file(a1->type, st->data, effect, st->header.use_big_endian)) {
         glitter_effect_dispose(effect);
         return false;
     }
@@ -69,21 +68,21 @@ bool FASTCALL glitter_effect_parse_file(GPM,
             continue;
 
         if (i->header.signature == reverse_endianess_uint32_t('ANIM'))
-            glitter_animation_parse_file(GPM_VAL, i, &effect->curve, glitter_effect_curve_flags);
+            glitter_animation_parse_file(a1->type, i, &effect->animation, glitter_effect_curve_flags);
         else if (i->header.signature == reverse_endianess_uint32_t('EMIT'))
-            glitter_emitter_parse_file(GPM_VAL, a1, i, &effect->emitters, effect);
+            glitter_emitter_parse_file(a1, i, &effect->emitters, effect);
     }
     vector_ptr_glitter_effect_push_back(vec, &effect);
     return true;
 }
 
-bool FASTCALL glitter_effect_unparse_file(GPM,
+bool FASTCALL glitter_effect_unparse_file(GLT,
     glitter_effect_group* a1, f2_struct* st, glitter_effect* a3) {
-    if (!glitter_effect_pack_file(GPM_VAL, st, a3))
+    if (!glitter_effect_pack_file(GLT_VAL, st, a3))
         return false;
 
     f2_struct s;
-    if (glitter_animation_unparse_file(GPM_VAL, &s, &a3->curve, glitter_effect_curve_flags))
+    if (glitter_animation_unparse_file(GLT_VAL, &s, &a3->animation, glitter_effect_curve_flags))
         vector_f2_struct_push_back(&st->sub_structs, &s);
 
     for (glitter_emitter** i = a3->emitters.begin; i != a3->emitters.end; i++) {
@@ -91,7 +90,7 @@ bool FASTCALL glitter_effect_unparse_file(GPM,
             continue;
 
         f2_struct s;
-        if (glitter_emitter_unparse_file(GPM_VAL, a1, &s, *i, a3))
+        if (glitter_emitter_unparse_file(GLT_VAL, a1, &s, *i, a3))
             vector_f2_struct_push_back(&st->sub_structs, &s);
     }
     return true;
@@ -99,12 +98,12 @@ bool FASTCALL glitter_effect_unparse_file(GPM,
 
 void FASTCALL glitter_effect_dispose(glitter_effect* e) {
     free(e->data.ext_anim);
-    vector_ptr_glitter_curve_free(&e->curve, glitter_curve_dispose);
+    glitter_animation_free(&e->animation);
     vector_ptr_glitter_emitter_free(&e->emitters, glitter_emitter_dispose);
     free(e);
 }
 
-static bool FASTCALL glitter_effect_pack_file(GPM, f2_struct* st, glitter_effect* a2) {
+static bool FASTCALL glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
     size_t l;
     size_t d;
     glitter_effect_ext_anim* ext_anim;
@@ -172,7 +171,7 @@ static bool FASTCALL glitter_effect_pack_file(GPM, f2_struct* st, glitter_effect
     if (a2->data.flags & GLITTER_EFFECT_EMISSION)
         flags |= GLITTER_EFFECT_FILE_EMISSION;
 
-    *(uint64_t*)d = glt_type != GLITTER_AFT
+    *(uint64_t*)d = GLT_VAL != GLITTER_AFT
         ? hash_char_murmurhash(a2->name, 0, false) : hash_char_fnv1a64(a2->name);;
     *(int32_t*)(d + 8) = a2->data.appear_time;
     *(int32_t*)(d + 12) = a2->data.life_time;
@@ -222,13 +221,13 @@ static bool FASTCALL glitter_effect_pack_file(GPM, f2_struct* st, glitter_effect
     return true;
 }
 
-static bool FASTCALL glitter_effect_unpack_file(GPM,
+static bool FASTCALL glitter_effect_unpack_file(GLT,
     void* data, glitter_effect* a2, bool use_big_endian) {
     size_t d;
     glitter_effect_ext_anim* ext_anim;
     glitter_effect_file_flag flags;
 
-    if (glt_type == GLITTER_X) {
+    if (GLT_VAL == GLITTER_X) {
         a2->scale = vec3_identity;
         a2->data.start_time = 0;
         a2->data.ext_anim = 0;
@@ -332,7 +331,7 @@ static bool FASTCALL glitter_effect_unpack_file(GPM,
                         ext_anim->flags = *(int32_t*)(d + 8);
                     }
                     ext_anim->instance_id = 0;
-                    ext_anim->some_hash = 0xCAD3078;
+                    ext_anim->file_name_hash = hash_murmurhash_empty;
                     ext_anim->index = -1;
                     ext_anim->node_index = 18;
                     if (*(char*)(d + 12)) {
@@ -356,7 +355,7 @@ static bool FASTCALL glitter_effect_unpack_file(GPM,
                         ext_anim->flags = *(int32_t*)(d + 8);
                     }
                     ext_anim->instance_id = 0;
-                    ext_anim->some_hash = 0xCAD3078;
+                    ext_anim->file_name_hash = hash_murmurhash_empty;
                     ext_anim->index = -1;
                     ext_anim->node_index = 18;
                     if (*(char*)(d + 16)) {
@@ -375,13 +374,13 @@ static bool FASTCALL glitter_effect_unpack_file(GPM,
                         ext_anim->object_hash = reverse_endianess_uint64_t(*(uint64_t*)d);
                         ext_anim->flags = reverse_endianess_int32_t(*(int32_t*)(d + 8));
                         ext_anim->instance_id = reverse_endianess_int32_t(*(int32_t*)(d + 12));
-                        ext_anim->some_hash = reverse_endianess_uint64_t(*(uint64_t*)(d + 16));
+                        ext_anim->file_name_hash = reverse_endianess_uint64_t(*(uint64_t*)(d + 16));
                     }
                     else {
                         ext_anim->object_hash = *(uint64_t*)d;
                         ext_anim->flags = *(int32_t*)(d + 8);
                         ext_anim->instance_id = *(int32_t*)(d + 12);
-                        ext_anim->some_hash = *(uint64_t*)(d + 16);
+                        ext_anim->file_name_hash = *(uint64_t*)(d + 16);
                     }
                     ext_anim->index = -1;
                     ext_anim->node_index = 18;
@@ -400,7 +399,7 @@ static bool FASTCALL glitter_effect_unpack_file(GPM,
         a2->data.start_time = 0;
         a2->data.ext_anim = 0;
         a2->data.flags = 0;
-        a2->data.name_hash = glt_type != GLITTER_AFT ? hash_murmurhash_empty : hash_fnv1a64_empty;
+        a2->data.name_hash = GLT_VAL != GLITTER_AFT ? hash_murmurhash_empty : hash_fnv1a64_empty;
         a2->data.seed = 0;
 
         if (a2->version != 6 && a2->version != 7)

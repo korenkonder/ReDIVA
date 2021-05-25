@@ -6,8 +6,8 @@
 #include "animation.h"
 #include "curve.h"
 
-void FASTCALL glitter_animation_copy(GPM,
-    vector_ptr_glitter_curve* src, vector_ptr_glitter_curve* dst) {
+void FASTCALL glitter_animation_copy(GLT,
+    glitter_animation* src, glitter_animation* dst) {
     if (!dst)
         return;
 
@@ -19,14 +19,18 @@ void FASTCALL glitter_animation_copy(GPM,
     vector_ptr_glitter_curve_append(dst, src->end - src->begin);
     for (glitter_curve** i = src->begin; i != src->end; i++)
         if (*i) {
-            glitter_curve* c = glitter_curve_copy(GPM_VAL, *i);
+            glitter_curve* c = glitter_curve_copy(GLT_VAL, *i);
             if (c)
                 vector_ptr_glitter_curve_push_back(dst, &c);
         }
 }
 
-bool FASTCALL glitter_animation_parse_file(GPM, f2_struct* st,
-    vector_ptr_glitter_curve* vec, glitter_curve_type_flags flags) {
+void FASTCALL glitter_animation_free(glitter_animation* anim) {
+    vector_ptr_glitter_curve_free(anim, glitter_curve_dispose);
+}
+
+bool FASTCALL glitter_animation_parse_file(GLT, f2_struct* st,
+    glitter_animation* anim, glitter_curve_type_flags flags) {
     glitter_curve* c;
 
     if (!st || !st->header.data_size)
@@ -37,20 +41,20 @@ bool FASTCALL glitter_animation_parse_file(GPM, f2_struct* st,
             continue;
 
         if (i->header.signature == reverse_endianess_uint32_t('CURV')
-            && glitter_curve_parse_file(GPM_VAL, i, st->header.version, &c))
+            && glitter_curve_parse_file(GLT_VAL, i, st->header.version, &c))
             if (flags & 1 << (size_t)(int32_t)c->type)
-                vector_ptr_glitter_curve_push_back(vec, &c);
+                vector_ptr_glitter_curve_push_back(anim, &c);
             else
                 glitter_curve_dispose(c);
     }
     return true;
 }
 
-bool FASTCALL glitter_animation_unparse_file(GPM, f2_struct* st,
-    vector_ptr_glitter_curve* vec, glitter_curve_type_flags flags) {
+bool FASTCALL glitter_animation_unparse_file(GLT, f2_struct* st,
+    glitter_animation* anim, glitter_curve_type_flags flags) {
     memset(st, 0, sizeof(f2_struct));
 
-    if (vec->end - vec->begin <= 0)
+    if (anim->end - anim->begin <= 0)
         return false;
 
     static const glitter_curve_type order[] = {
@@ -90,13 +94,13 @@ bool FASTCALL glitter_animation_unparse_file(GPM, f2_struct* st,
         if (!(flags & 1 << (size_t)order[i]))
             continue;
 
-        for (glitter_curve** j = vec->begin; j != vec->end; j++) {
+        for (glitter_curve** j = anim->begin; j != anim->end; j++) {
             glitter_curve* c = *j;
             if (!c || c->type != order[i])
                 continue;
 
             f2_struct s;
-            if (glitter_curve_unparse_file(GPM_VAL, &s, c)) {
+            if (glitter_curve_unparse_file(GLT_VAL, &s, c)) {
                 vector_f2_struct_push_back(&st->sub_structs, &s);
                 break;
             }

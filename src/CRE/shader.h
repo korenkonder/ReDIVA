@@ -82,11 +82,11 @@ glUniform4i(shader_fbo_get_uniform_location(s, name), x, y, z, w)
 #define shader_fbo_set_vec4(s, name, x, y, z, w) \
 glUniform4f(shader_fbo_get_uniform_location(s, name), x, y, z, w)
 
-#define shader_fbo_set_mat3(s, name, transpose, mat) \
-glUniformMatrix3fv(shader_fbo_get_uniform_location(s, name), 1, transpose, (GLfloat*)mat)
+#define shader_fbo_set_mat3(s, name, transpose, value) \
+glUniformMatrix3fv(shader_fbo_get_uniform_location(s, name), 1, transpose, (GLfloat*)value)
 
-#define shader_fbo_set_mat4(s, name, transpose, mat) \
-glUniformMatrix4fv(shader_fbo_get_uniform_location(s, name), 1, transpose, (GLfloat*)mat)
+#define shader_fbo_set_mat4(s, name, transpose, value) \
+glUniformMatrix4fv(shader_fbo_get_uniform_location(s, name), 1, transpose, (GLfloat*)value)
 
 #define shader_fbo_set_int_array(s, name, count, value) \
 glUniform1iv(shader_fbo_get_uniform_location(s, name), count, value)
@@ -112,11 +112,11 @@ glUniform4iv(shader_fbo_get_uniform_location(s, name), count, (GLint*)value)
 #define shader_fbo_set_vec4_array(s, name, count, value) \
 glUniform4fv(shader_fbo_get_uniform_location(s, name), count, (GLfloat*)value)
 
-#define shader_fbo_set_mat3_array(s, name, count, transpose, mat) \
-glUniformMatrix3fv(shader_fbo_get_uniform_location(s, name), count, transpose, (GLfloat*)mat)
+#define shader_fbo_set_mat3_array(s, name, count, transpose, value) \
+glUniformMatrix3fv(shader_fbo_get_uniform_location(s, name), count, transpose, (GLfloat*)value)
 
-#define shader_fbo_set_mat4_array(s, name, count, transpose, mat) \
-glUniformMatrix4fv(shader_fbo_get_uniform_location(s, name), count, transpose, (GLfloat*)mat)
+#define shader_fbo_set_mat4_array(s, name, count, transpose, value) \
+glUniformMatrix4fv(shader_fbo_get_uniform_location(s, name), count, transpose, (GLfloat*)value)
 
 #define shader_model_c_set_bool(s, name, value) \
 glUniform1i(shader_model_c_get_uniform_location(s, name), value ? 1 : 0)
@@ -145,11 +145,11 @@ glUniform4i(shader_model_c_get_uniform_location(s, name), x, y, z, w)
 #define shader_model_c_set_vec4(s, name, x, y, z, w) \
 glUniform4f(shader_model_c_get_uniform_location(s, name), x, y, z, w)
 
-#define shader_model_c_set_mat3(s, name, transpose, mat) \
-glUniformMatrix3fv(shader_model_c_get_uniform_location(s, name), 1, transpose, (GLfloat*)mat)
+#define shader_model_c_set_mat3(s, name, transpose, value) \
+glUniformMatrix3fv(shader_model_c_get_uniform_location(s, name), 1, transpose, (GLfloat*)value)
 
-#define shader_model_c_set_mat4(s, name, transpose, mat) \
-glUniformMatrix4fv(shader_model_c_get_uniform_location(s, name), 1, transpose, (GLfloat*)mat)
+#define shader_model_c_set_mat4(s, name, transpose, value) \
+glUniformMatrix4fv(shader_model_c_get_uniform_location(s, name), 1, transpose, (GLfloat*)value)
 
 #define shader_model_c_set_int_array(s, name, count, value) \
 glUniform1iv(shader_model_c_get_uniform_location(s, name), count, value)
@@ -175,11 +175,11 @@ glUniform4iv(shader_model_c_get_uniform_location(s, name), count, (GLint*)value)
 #define shader_model_c_set_vec4_array(s, name, count, value) \
 glUniform4fv(shader_model_c_get_uniform_location(s, name), count, (GLfloat*)value)
 
-#define shader_model_c_set_mat3_array(s, name, count, transpose, mat) \
-glUniformMatrix3fv(shader_model_c_get_uniform_location(s, name), count, transpose, (GLfloat*)mat)
+#define shader_model_c_set_mat3_array(s, name, count, transpose, value) \
+glUniformMatrix3fv(shader_model_c_get_uniform_location(s, name), count, transpose, (GLfloat*)value)
 
-#define shader_model_c_set_mat4_array(s, name, count, transpose, mat) \
-glUniformMatrix4fv(shader_model_c_get_uniform_location(s, name), count, transpose, (GLfloat*)mat)
+#define shader_model_c_set_mat4_array(s, name, count, transpose, value) \
+glUniformMatrix4fv(shader_model_c_get_uniform_location(s, name), count, transpose, (GLfloat*)value)
 
 #define shader_model_g_set_bool(s, name, value) \
 glUniform1i(shader_model_g_get_uniform_location(s, name), value ? 1 : 0)
@@ -208,11 +208,11 @@ glUniform4i(shader_model_g_get_uniform_location(s, name), x, y, z, w)
 #define shader_model_g_set_vec4(s, name, x, y, z, w) \
 glUniform4f(shader_model_g_get_uniform_location(s, name), x, y, z, w)
 
-#define shader_model_g_set_mat3(s, name, transpose, mat) \
-glUniformMatrix3fv(shader_model_g_get_uniform_location(s, name), 1, transpose, (GLfloat*)mat)
+#define shader_model_g_set_mat3(s, name, transpose, value) \
+glUniformMatrix3fv(shader_model_g_get_uniform_location(s, name), 1, transpose, (GLfloat*)value)
 
-#define shader_model_g_set_mat4(s, name, transpose, mat) \
-glUniformMatrix4fv(shader_model_g_get_uniform_location(s, name), 1, transpose, (GLfloat*)mat)
+#define shader_model_g_set_mat4(s, name, transpose, value) \
+glUniformMatrix4fv(shader_model_g_get_uniform_location(s, name), 1, transpose, (GLfloat*)value)
 
 #define shader_model_g_set_int_array(s, name, count, value) \
 glUniform1iv(shader_model_g_get_uniform_location(s, name), count, value)
@@ -238,8 +238,8 @@ glUniform4iv(shader_model_g_get_uniform_location(s, name), count, (GLint*)value)
 #define shader_model_g_set_vec4_array(s, name, count, value) \
 glUniform4fv(shader_model_g_get_uniform_location(s, name), count, (GLfloat*)value)
 
-#define shader_model_g_set_mat3_array(s, name, count, transpose, mat) \
-glUniformMatrix3fv(shader_model_g_get_uniform_location(s, name), count, transpose, (GLfloat*)mat)
+#define shader_model_g_set_mat3_array(s, name, count, transpose, value) \
+glUniformMatrix3fv(shader_model_g_get_uniform_location(s, name), count, transpose, (GLfloat*)value)
 
-#define shader_model_g_set_mat4_array(s, name, count, transpose, mat) \
-glUniformMatrix4fv(shader_model_g_get_uniform_location(s, name), count, transpose, (GLfloat*)mat)
+#define shader_model_g_set_mat4_array(s, name, count, transpose, value) \
+glUniformMatrix4fv(shader_model_g_get_uniform_location(s, name), count, transpose, (GLfloat*)value)

@@ -219,7 +219,7 @@ void camera_set(camera* c, vec3* view_point, vec3* interest,
 
     mat4 cam;
     mat4_translate(trans->x, trans->y, trans->z, &cam);
-    mat4_rotate_mult(&cam, rot->x, rot->y, rot->z, &cam);
+    mat4_rot(&cam, rot->x, rot->y, rot->z, &cam);
     mat4_scale_rot(&cam, scale->x, scale->y, scale->z, &cam);
     mat4_mult_vec3_trans(&cam, &_vp, &_vp);
     mat4_mult_vec3_trans(&cam, &_int, &_int);

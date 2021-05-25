@@ -23,6 +23,7 @@
 #include "../CRE/fbo_hdr.h"
 #include "../CRE/fbo_pp.h"
 #include "../CRE/fbo_render.h"
+#include "../CRE/fbo_helper.h"
 #include "../CRE/lock.h"
 #include "../CRE/Glitter/particle_manager.h"
 
@@ -146,7 +147,6 @@ intensity* inten;
 tone_map_sat_gamma* tmsg;
 tone_map_data* tmd;
 glitter_particle_manager* gpm;
-glitter_type glt_type;
 vec3 back3d_color;
 
 static void render_load();
@@ -218,10 +218,18 @@ int32_t render_main(void* arg) {
     glfwWindowHint(GLFW_REFRESH_RATE, FREQ);
 
     const char* glfw_titlelabel;
+#ifdef DEBUG
+#ifdef CLOUD_DEV
+    glfw_titlelabel = "CLOUDDev Debug";
+#else
+    glfw_titlelabel = "CLOUD Debug";
+#endif
+#else
 #ifdef CLOUD_DEV
     glfw_titlelabel = "CLOUDDev";
 #else
     glfw_titlelabel = "CLOUD";
+#endif
 #endif
 
     window = glfwCreateWindow(width, height, glfw_titlelabel,
@@ -252,13 +260,14 @@ int32_t render_main(void* arg) {
         glfwTerminate();
         return -2;
     }
+#pragma endregion
 
+    glEnable(GL_MULTISAMPLE);
     glGetIntegerv(GL_MAX_SAMPLES, &sv_max_samples);
     glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE, &sv_max_texture_buffer_size);
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &sv_max_texture_max_anisotropy);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-#pragma endregion
 
     state = RENDER_INITIALIZING;
     lock_lock(render_lock);
@@ -969,13 +978,24 @@ static void render_update() {
     }
     camera_update(cam);
 
+    mat4 default_uv_mat[8] = {
+        mat4_identity,
+        mat4_identity,
+        mat4_identity,
+        mat4_identity,
+        mat4_identity,
+        mat4_identity,
+        mat4_identity,
+        mat4_identity,
+    };
+
     shader_model_c_set_int_array(&default_shader, "material", 8, ((int32_t[]){ 0, 1, 2, 3, 4, 5, 6, 7 }));
     shader_model_c_set_int_array(&default_shader, "tex_mode", 8, ((int32_t[]){ 0, 0, 0, 0, 0, 0, 0, 0 }));
     shader_model_c_set_bool(&default_shader, "use_bones", false);
     shader_model_c_set_bool(&default_shader, "write_only_depth", false);
     shader_model_c_set_mat4(&default_shader, "model", false, &mat4_identity);
     shader_model_c_set_mat4(&default_shader, "model_normal", false, &mat3_identity);
-    shader_model_c_set_mat4(&default_shader, "uv_mat", false, &mat4_identity);
+    shader_model_c_set_mat4_array(&default_shader, "uv_mat", 8, false, default_uv_mat);
     shader_model_c_set_vec4(&default_shader, "color", 1.0f, 1.0f, 1.0f, 1.0f);
     shader_model_c_set_int(&default_shader, "BoneMatrix", 8);
 
@@ -984,7 +1004,7 @@ static void render_update() {
     shader_model_g_set_bool(&default_shader, "use_bones", false);
     shader_model_g_set_mat4(&default_shader, "model", false, &mat4_identity);
     shader_model_g_set_mat4(&default_shader, "model_normal", false, &mat3_identity);
-    shader_model_g_set_mat4(&default_shader, "uv_mat", false, &mat4_identity);
+    shader_model_g_set_mat4_array(&default_shader, "uv_mat", 8, false, default_uv_mat);
     shader_model_g_set_vec4(&default_shader, "color", 1.0f, 1.0f, 1.0f, 1.0f);
     shader_model_g_set_int(&default_shader, "BoneMatrix", 8);
 
@@ -992,7 +1012,34 @@ static void render_update() {
 
     classes_process_render(classes, classes_count);
 
-    glitter_particle_manager_calc_draw(gpm, glt_type, render_glitter_mesh_add_list);
+    GPM_VAL->updated = false;
+
+    if (memcmp(&GPM_VAL->cam_view, &cam->view, sizeof(GPM_VAL->cam_view))) {
+        GPM_VAL->cam_view = cam->view;
+        GPM_VAL->updated = true;
+    }
+
+    if (memcmp(&GPM_VAL->cam_inv_view, &cam->inv_view, sizeof(GPM_VAL->cam_inv_view))) {
+        GPM_VAL->cam_inv_view = cam->inv_view;
+        GPM_VAL->updated = true;
+    }
+
+    if (memcmp(&GPM_VAL->cam_inv_view_mat3, &cam->inv_view_mat3, sizeof(GPM_VAL->cam_inv_view_mat3))) {
+        GPM_VAL->cam_inv_view_mat3 = cam->inv_view_mat3;
+        GPM_VAL->updated = true;
+    }
+
+    if (memcmp(&GPM_VAL->cam_view_point, &cam->view_point, sizeof(GPM_VAL->cam_view_point))) {
+        GPM_VAL->cam_view_point = cam->view_point;
+        GPM_VAL->updated = true;
+    }
+
+    if (memcmp(&GPM_VAL->cam_rotation_y, &cam->rotation.y, sizeof(GPM_VAL->cam_rotation_y))) {
+        GPM_VAL->cam_rotation_y = cam->rotation.y;
+        GPM_VAL->updated = true;
+    }
+
+    glitter_particle_manager_calc_draw(GPM_VAL, render_glitter_mesh_add_list);
 
     bool light_dir_tex_update = false;
     bool light_point_tex_update = false;
@@ -1736,6 +1783,9 @@ static void render_draw() {
                         fbo_dof_draw(dfbo, hfbo->tcb[0], hfbo->tcb[1], hfbo->fbo[0], false);
                     else
                         fbo_dof_draw(dfbo, hfbo->tcb[0], hfbo->tcb[1], hfbo->fbo[0], true);
+
+                    fbo_helper_blit_same(hfbo->fbo[0], GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT0,
+                        0, 0, hfbo->res.x, hfbo->res.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
                 }
                 else
                     fbo_render_draw_c(rfbo, false);
@@ -1743,13 +1793,20 @@ static void render_draw() {
             else if (dof->pv.enable && dof->pv.f2.ratio > 0.0f) {
                 fbo_render_draw_c(rfbo, true);
                 fbo_dof_draw(dfbo, hfbo->tcb[0], hfbo->tcb[1], hfbo->fbo[0], true);
+
+                fbo_helper_blit_same(hfbo->fbo[0], GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT0,
+                    0, 0, hfbo->res.x, hfbo->res.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
             }
             else
                 fbo_render_draw_c(rfbo, false);
         }
 
-        if (enable_post_process)
-            fbo_pp_draw(pfbo, hfbo->tcb[0], hfbo->fbo[0], 1, fbo_hdr_f_attachments);
+        if (enable_post_process) {
+            fbo_pp_draw(pfbo, hfbo->tcb[0], hfbo->fbo[0], 1, fbo_hdr_d_attachments);
+
+            fbo_helper_blit_same(hfbo->fbo[0], GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT0,
+                0, 0, hfbo->res.x, hfbo->res.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        }
         fbo_hdr_draw_aa(hfbo);
 
         bind_framebuffer(0);
@@ -1961,7 +2018,7 @@ static void render_c_3d(task_render_draw3d_type type) {
 
                 shader_model_c_set_mat4(shad, "model", GL_FALSE, &i->model);
                 shader_model_c_set_mat3(shad, "model_normal", GL_FALSE, &i->model_normal);
-                shader_model_c_set_mat4(shad, "uv_mat", GL_FALSE, &i->uv_mat);
+                shader_model_c_set_mat4_array(shad, "uv_mat", 8, GL_FALSE, i->uv_mat);
                 shader_model_c_set_vec4(shad, "color", i->color.x, i->color.y, i->color.z, i->color.w);
                 gl_object_draw_c(j->data);
                 break;
@@ -2026,7 +2083,7 @@ static void render_c_3d_translucent(task_render_draw3d_type type) {
 
         shader_model_c_set_mat4(shad, "model", GL_FALSE, &task->model);
         shader_model_c_set_mat3(shad, "model_normal", GL_FALSE, &task->model_normal);
-        shader_model_c_set_mat4(shad, "uv_mat", GL_FALSE, &task->uv_mat);
+        shader_model_c_set_mat4_array(shad, "uv_mat", 8, GL_FALSE, task->uv_mat);
         shader_model_c_set_vec4(shad, "color", task->color.x, task->color.y, task->color.z, task->color.w);
         gl_object_draw_c_translucent_first_part(obj);
     }
@@ -2043,7 +2100,7 @@ static void render_c_3d_translucent(task_render_draw3d_type type) {
 
         shader_model_c_set_mat4(shad, "model", GL_FALSE, &task->model);
         shader_model_c_set_mat3(shad, "model_normal", GL_FALSE, &task->model_normal);
-        shader_model_c_set_mat4(shad, "uv_mat", GL_FALSE, &task->uv_mat);
+        shader_model_c_set_mat4_array(shad, "uv_mat", 8, GL_FALSE, task->uv_mat);
         shader_model_c_set_vec4(shad, "color", task->color.x, task->color.y, task->color.z, task->color.w);
         gl_object_draw_c_translucent_second_part(obj);
     }
@@ -2119,7 +2176,7 @@ static void render_g_3d(task_render_draw3d_type type) {
 
                 shader_model_g_set_mat4(shad, "model", GL_FALSE, &i->model);
                 shader_model_g_set_mat3(shad, "model_normal", GL_FALSE, &i->model_normal);
-                shader_model_g_set_mat4(shad, "uv_mat", GL_FALSE, &i->uv_mat);
+                shader_model_c_set_mat4_array(shad, "uv_mat", 8, GL_FALSE, i->uv_mat);
                 shader_model_g_set_vec4(shad, "color", i->color.x, i->color.y, i->color.z, i->color.w);
                 gl_object_draw_g(j->data);
                 break;
@@ -2350,7 +2407,7 @@ static bool render_glitter_mesh_add_list(glitter_particle_mesh* mesh, vec4* colo
         }
 
     if (!found) {
-        if (!gpm->draw_all || !gpm->draw_all_mesh)
+        if (!GPM_VAL->draw_all || !GPM_VAL->draw_all_mesh)
             return false;
 
         found = false;
@@ -2386,7 +2443,10 @@ static bool render_glitter_mesh_add_list(glitter_particle_mesh* mesh, vec4* colo
     task_draw.translucent = color->w < 1.0f || obj->vertex.translucent || obj->material.translucent;
     task_draw.model = m;
     task_draw.model_normal = mn;
-    task_draw.uv_mat = *uv_mat;
+    for (int32_t i = 0; i < 2; i++)
+        task_draw.uv_mat[i] = uv_mat[i];
+    for (int32_t i = 2; i < 8; i++)
+        task_draw.uv_mat[i] = mat4_identity;
     task_draw.color = *color;
     task_draw.uniforms = (vector_task_render_uniform){ 0, 0, 0 };
     vector_task_render_draw3d_push_back(&tasks_render_draw3d, &task_draw);

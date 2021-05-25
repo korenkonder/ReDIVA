@@ -8,16 +8,16 @@
 #include "curve.h"
 #include "particle.h"
 
-static bool FASTCALL glitter_emitter_pack_file(GPM, f2_struct* st, glitter_emitter* a2);
-static bool FASTCALL glitter_emitter_unpack_file(GPM, int32_t* data, glitter_emitter* a2, bool use_big_endian);
+static bool FASTCALL glitter_emitter_pack_file(GLT, f2_struct* st, glitter_emitter* a2);
+static bool FASTCALL glitter_emitter_unpack_file(GLT, int32_t* data, glitter_emitter* a2, bool use_big_endian);
 
-glitter_emitter* FASTCALL glitter_emitter_init(GPM) {
+glitter_emitter* FASTCALL glitter_emitter_init(GLT) {
     glitter_emitter* e = force_malloc(sizeof(glitter_emitter));
-    e->version = glt_type == GLITTER_X ? 0x04 : 0x02;
+    e->version = GLT_VAL == GLITTER_X ? 0x04 : 0x02;
     return e;
 }
 
-glitter_emitter* FASTCALL glitter_emitter_copy(GPM, glitter_emitter* e) {
+glitter_emitter* FASTCALL glitter_emitter_copy(GLT, glitter_emitter* e) {
     if (!e)
         return 0;
 
@@ -28,17 +28,17 @@ glitter_emitter* FASTCALL glitter_emitter_copy(GPM, glitter_emitter* e) {
     vector_ptr_glitter_particle_append(&ec->particles, e->particles.end - e->particles.begin);
     for (glitter_particle** i = e->particles.begin; i != e->particles.end; i++)
         if (*i) {
-            glitter_particle* p = glitter_particle_copy(GPM_VAL, *i);
+            glitter_particle* p = glitter_particle_copy(GLT_VAL, *i);
             if (p)
                 vector_ptr_glitter_particle_push_back(&ec->particles, &p);
         }
 
-    ec->curve = (vector_ptr_glitter_curve){ 0, 0, 0 };
-    glitter_animation_copy(GPM_VAL, &e->curve, &ec->curve);
+    ec->animation = (glitter_animation){ 0, 0, 0 };
+    glitter_animation_copy(GLT_VAL, &e->animation, &ec->animation);
     return ec;
 }
 
-bool FASTCALL glitter_emitter_parse_file(GPM, glitter_effect_group* a1,
+bool FASTCALL glitter_emitter_parse_file(glitter_effect_group* a1,
     f2_struct* st, vector_ptr_glitter_emitter* vec, glitter_effect* effect) {
     f2_struct* i;
     glitter_emitter* emitter;
@@ -46,9 +46,9 @@ bool FASTCALL glitter_emitter_parse_file(GPM, glitter_effect_group* a1,
     if (!st || !st->header.data_size)
         return false;
 
-    emitter = glitter_emitter_init(GPM_VAL);
+    emitter = glitter_emitter_init(a1->type);
     emitter->version = st->header.version;
-    if (!glitter_emitter_unpack_file(GPM_VAL, st->data, emitter, st->header.use_big_endian)) {
+    if (!glitter_emitter_unpack_file(a1->type, st->data, emitter, st->header.use_big_endian)) {
         glitter_emitter_dispose(emitter);
         return false;
     }
@@ -58,21 +58,21 @@ bool FASTCALL glitter_emitter_parse_file(GPM, glitter_effect_group* a1,
             continue;
 
         if (i->header.signature == reverse_endianess_uint32_t('ANIM'))
-            glitter_animation_parse_file(GPM_VAL, i, &emitter->curve, glitter_emitter_curve_flags);
+            glitter_animation_parse_file(a1->type, i, &emitter->animation, glitter_emitter_curve_flags);
         else if (i->header.signature == reverse_endianess_uint32_t('PTCL'))
-            glitter_particle_parse_file(GPM_VAL, a1, i, &emitter->particles, effect);
+            glitter_particle_parse_file(a1, i, &emitter->particles, effect);
     }
     vector_ptr_glitter_emitter_push_back(vec, &emitter);
     return true;
 }
 
-bool FASTCALL glitter_emitter_unparse_file(GPM, glitter_effect_group* a1,
+bool FASTCALL glitter_emitter_unparse_file(GLT, glitter_effect_group* a1,
     f2_struct* st, glitter_emitter* a3, glitter_effect* effect) {
-    if (!glitter_emitter_pack_file(GPM_VAL, st, a3))
+    if (!glitter_emitter_pack_file(GLT_VAL, st, a3))
         return false;
 
     f2_struct s;
-    if (glitter_animation_unparse_file(GPM_VAL, &s, &a3->curve, glitter_emitter_curve_flags))
+    if (glitter_animation_unparse_file(GLT_VAL, &s, &a3->animation, glitter_emitter_curve_flags))
         vector_f2_struct_push_back(&st->sub_structs, &s);
 
     for (glitter_particle** i = a3->particles.begin; i != a3->particles.end; i++) {
@@ -80,19 +80,19 @@ bool FASTCALL glitter_emitter_unparse_file(GPM, glitter_effect_group* a1,
             continue;
 
         f2_struct s;
-        if (glitter_particle_unparse_file(GPM_VAL, a1, &s, *i, effect))
+        if (glitter_particle_unparse_file(GLT_VAL, a1, &s, *i, effect))
             vector_f2_struct_push_back(&st->sub_structs, &s);
     }
     return true;
 }
 
 void FASTCALL glitter_emitter_dispose(glitter_emitter* e) {
-    vector_ptr_glitter_curve_free(&e->curve, glitter_curve_dispose);
+    glitter_animation_free(&e->animation);
     vector_ptr_glitter_particle_free(&e->particles, glitter_particle_dispose);
     free(e);
 }
 
-static bool FASTCALL glitter_emitter_pack_file(GPM, f2_struct* st, glitter_emitter* a2) {
+static bool FASTCALL glitter_emitter_pack_file(GLT, f2_struct* st, glitter_emitter* a2) {
     size_t l;
     size_t d;
 
@@ -210,9 +210,9 @@ static bool FASTCALL glitter_emitter_pack_file(GPM, f2_struct* st, glitter_emitt
     return true;
 }
 
-static bool FASTCALL glitter_emitter_unpack_file(GPM,
+static bool FASTCALL glitter_emitter_unpack_file(GLT,
     int32_t* data, glitter_emitter* a2, bool use_big_endian) {
-    if (glt_type == GLITTER_X) {
+    if (GLT_VAL == GLITTER_X) {
         if (use_big_endian) {
             a2->data.start_time = reverse_endianess_int32_t(data[0]);
             a2->data.life_time = reverse_endianess_int32_t(data[1]);

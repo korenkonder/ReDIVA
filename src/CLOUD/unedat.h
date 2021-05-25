@@ -2,7 +2,6 @@
 
 #include "../KKdLib/default.h"
 #include "../KKdLib/io_stream.h"
-#include "lz.h"
 
 #define SDAT_FLAG 0x01000000
 #define EDAT_COMPRESSED_FLAG 0x00000001

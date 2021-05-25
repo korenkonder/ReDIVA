@@ -257,7 +257,7 @@ typedef struct task_render_draw3d {
     bool translucent;
     mat4 model;
     mat3 model_normal;
-    mat4 uv_mat;
+    mat4 uv_mat[8];
     vec4 color;
     vector_task_render_uniform uniforms;
 } task_render_draw3d;

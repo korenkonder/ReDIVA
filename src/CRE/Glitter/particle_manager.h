@@ -26,10 +26,10 @@ extern bool FASTCALL glitter_particle_manager_load_effect(GPM, uint64_t effect_g
 extern bool FASTCALL glitter_particle_manager_load_scene(GPM, uint64_t effect_group_hash);
 extern void FASTCALL glitter_particle_manager_set_frame(GPM,
     glitter_effect_group* effect_group, glitter_scene** scene, float_t curr_frame,
-    float_t prev_frame, uint32_t counter, bool reset);
+    float_t prev_frame, uint32_t counter, glitter_random* random, bool reset);
 extern bool FASTCALL glitter_particle_manager_test_load_effect(GPM,
     uint64_t effect_group_hash, uint64_t effect_hash);
 extern bool FASTCALL glitter_particle_manager_test_load_scene(GPM, uint64_t effect_group_hash, bool appear_now);
 extern void FASTCALL glitter_particle_manager_update_file_reader(GPM);
 extern void FASTCALL glitter_particle_manager_update_scene(GPM);
-extern void FASTCALL glitter_particle_manager_dispose(glitter_particle_manager* gpm);
+extern void FASTCALL glitter_particle_manager_dispose(GPM);

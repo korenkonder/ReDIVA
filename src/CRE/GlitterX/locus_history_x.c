@@ -11,7 +11,7 @@ glitter_locus_history* FASTCALL glitter_x_locus_history_init(size_t size) {
     return lh;
 }
 
-void FASTCALL glitter_x_locus_history_append(GPM, glitter_locus_history* a1,
+void FASTCALL glitter_x_locus_history_append(glitter_locus_history* a1,
     glitter_render_element* a2, glitter_particle_inst* a3) {
     glitter_locus_history_data* data;
     glitter_locus_history_data locus_history;
@@ -28,8 +28,7 @@ void FASTCALL glitter_x_locus_history_append(GPM, glitter_locus_history* a1,
         vec3 emit_trans;
         mat4_get_translation(&emitter->mat, &emit_trans);
         vec3_add(temp, emit_trans, temp);
-        if (glt_type == GLITTER_X && a3->data.emitter
-            && a3->data.data.flags & GLITTER_PARTICLE_ROTATE_LOCUS)
+        if (a3->data.data.flags & GLITTER_PARTICLE_ROTATE_LOCUS)
             mat4_mult_vec3(&a3->data.emitter->mat_no_scale, &temp, &temp);
     }
 

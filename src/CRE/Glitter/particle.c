@@ -7,30 +7,30 @@
 #include "animation.h"
 #include "curve.h"
 
-static bool FASTCALL glitter_particle_pack_file(GPM, glitter_effect_group* a1,
+static bool FASTCALL glitter_particle_pack_file(GLT, glitter_effect_group* a1,
     f2_struct* st, glitter_particle* a3, glitter_effect* effect);
-static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
+static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
     void* data, glitter_particle* a3, glitter_effect* effect, bool use_big_endian);
 
-glitter_particle* FASTCALL glitter_particle_init(GPM) {
+glitter_particle* FASTCALL glitter_particle_init(GLT) {
     glitter_particle* p = force_malloc(sizeof(glitter_particle));
-    p->version = glt_type == GLITTER_X ? 0x05 : 0x03;
+    p->version = GLT_VAL == GLITTER_X ? 0x05 : 0x03;
     return p;
 }
 
-glitter_particle* FASTCALL glitter_particle_copy(GPM, glitter_particle* p) {
+glitter_particle* FASTCALL glitter_particle_copy(GLT, glitter_particle* p) {
     if (!p)
         return 0;
 
     glitter_particle* pc = force_malloc(sizeof(glitter_particle));
     *pc = *p;
 
-    pc->curve = (vector_ptr_glitter_curve){ 0, 0, 0 };
-    glitter_animation_copy(GPM_VAL, &p->curve, &pc->curve);
+    pc->animation = (glitter_animation){ 0, 0, 0 };
+    glitter_animation_copy(GLT_VAL, &p->animation, &pc->animation);
     return pc;
 }
 
-bool FASTCALL glitter_particle_parse_file(GPM, glitter_effect_group* a1,
+bool FASTCALL glitter_particle_parse_file(glitter_effect_group* a1,
     f2_struct* st, vector_ptr_glitter_particle* vec, glitter_effect* effect) {
     f2_struct* i;
     glitter_particle* particle;
@@ -38,9 +38,9 @@ bool FASTCALL glitter_particle_parse_file(GPM, glitter_effect_group* a1,
     if (!st || !st->header.data_size)
         return false;
 
-    particle = glitter_particle_init(GPM_VAL);
+    particle = glitter_particle_init(a1->type);
     particle->version = st->header.version;
-    if (!glitter_particle_unpack_file(GPM_VAL, a1, st->data, particle, effect, st->header.use_big_endian)) {
+    if (!glitter_particle_unpack_file(a1->type, a1, st->data, particle, effect, st->header.use_big_endian)) {
         glitter_particle_dispose(particle);
         return false;
     }
@@ -51,7 +51,7 @@ bool FASTCALL glitter_particle_parse_file(GPM, glitter_effect_group* a1,
 
         if (i->header.signature == reverse_endianess_uint32_t('ANIM')) {
             glitter_curve_type_flags flags = 0;
-            if (glt_type == GLITTER_X)
+            if (a1->type == GLITTER_X)
                 flags = glitter_particle_x_curve_flags;
             else
                 flags = glitter_particle_curve_flags;
@@ -61,7 +61,7 @@ bool FASTCALL glitter_particle_parse_file(GPM, glitter_effect_group* a1,
                 if (particle->data.draw_type != GLITTER_DIRECTION_PARTICLE_ROTATION)
                     flags &= ~(GLITTER_CURVE_TYPE_ROTATION_X | GLITTER_CURVE_TYPE_ROTATION_Y);
             }
-            glitter_animation_parse_file(GPM_VAL, i, &particle->curve, flags);
+            glitter_animation_parse_file(a1->type, i, &particle->animation, flags);
         }
     }
 
@@ -69,13 +69,13 @@ bool FASTCALL glitter_particle_parse_file(GPM, glitter_effect_group* a1,
     return true;
 }
 
-bool FASTCALL glitter_particle_unparse_file(GPM, glitter_effect_group* a1,
+bool FASTCALL glitter_particle_unparse_file(GLT, glitter_effect_group* a1,
     f2_struct* st, glitter_particle* a3, glitter_effect* effect) {
-    if (!glitter_particle_pack_file(GPM_VAL, a1, st, a3, effect))
+    if (!glitter_particle_pack_file(GLT_VAL, a1, st, a3, effect))
         return false;
 
     glitter_curve_type_flags flags = 0;
-    if (glt_type == GLITTER_X)
+    if (a1->type == GLITTER_X)
         flags = glitter_particle_x_curve_flags;
     else
         flags = glitter_particle_curve_flags;
@@ -87,17 +87,17 @@ bool FASTCALL glitter_particle_unparse_file(GPM, glitter_effect_group* a1,
     }
 
     f2_struct s;
-    if (glitter_animation_unparse_file(GPM_VAL, &s, &a3->curve, flags))
+    if (glitter_animation_unparse_file(GLT_VAL, &s, &a3->animation, flags))
         vector_f2_struct_push_back(&st->sub_structs, &s);
     return true;
 }
 
 void FASTCALL glitter_particle_dispose(glitter_particle* p) {
-    vector_ptr_glitter_curve_free(&p->curve, glitter_curve_dispose);
+    glitter_animation_free(&p->animation);
     free(p);
 }
 
-static bool FASTCALL glitter_particle_pack_file(GPM,
+static bool FASTCALL glitter_particle_pack_file(GLT,
     glitter_effect_group* a1, f2_struct* st, glitter_particle* a3, glitter_effect* effect) {
     size_t l;
     size_t d;
@@ -215,7 +215,7 @@ static bool FASTCALL glitter_particle_pack_file(GPM,
     *(uint8_t*)(d + 10) = (uint8_t)roundf(clamp(a3->data.color.z, 0.0f, 1.0f) * 255.0f);
     *(uint8_t*)(d + 11) = (uint8_t)roundf(clamp(a3->data.color.w, 0.0f, 1.0f) * 255.0f);
     *(int32_t*)(d + 12) = a3->data.blend_mode0;
-    *(int32_t*)(d + 16) = 0;
+    *(int32_t*)(d + 16) = a3->data.unk0;
     *(int32_t*)(d + 20) = a3->data.split_u;
     *(int32_t*)(d + 24) = a3->data.split_v;
     *(int32_t*)(d + 28) = a3->data.uv_index_type;
@@ -224,7 +224,7 @@ static bool FASTCALL glitter_particle_pack_file(GPM,
     *(int32_t*)(d + 36) = a3->data.uv_index_start;
     *(int32_t*)(d + 40) = a3->data.uv_index_end;
     if (a1->version >= 7) {
-        *(int32_t*)(d + 44) = 0;
+        *(int32_t*)(d + 44) = a3->data.unk1;
         d += 48;
     }
     else
@@ -249,7 +249,7 @@ static bool FASTCALL glitter_particle_pack_file(GPM,
     return true;
 }
 
-static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
+static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
     void* data, glitter_particle* a3, glitter_effect* effect, bool use_big_endian) {
     uint8_t r;
     uint8_t b;
@@ -267,10 +267,17 @@ static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
     int32_t uv_max_count;
     uint8_t split_u;
     uint8_t split_v;
+    int32_t unk0;
+    int32_t unk1;
     size_t d;
     bool has_tex;
 
-    if (glt_type == GLITTER_X) {
+    if (GLT_VAL == GLITTER_X) {
+        a3->data.mesh.object_name_hash = hash_murmurhash_empty;
+        a3->data.mesh.object_file_hash = hash_murmurhash_empty;
+        a3->data.mesh.object_mesh_name[0] = 0;
+        a3->data.mesh.some_hash = hash_murmurhash_empty;
+
         d = (size_t)data;
         if (use_big_endian) {
             a3->data.life_time = reverse_endianess_int32_t(*(int32_t*)d);
@@ -443,6 +450,8 @@ static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
 
         tex_hash0 = hash_murmurhash_empty;
         tex_hash1 = hash_murmurhash_empty;
+        unk0 = 0;
+        unk1 = 0;
 
         if (use_big_endian) {
             if (has_tex)
@@ -459,6 +468,7 @@ static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
             frame_step_uv = reverse_endianess_int16_t(*(int16_t*)(d + 34));
             uv_index_start = reverse_endianess_int32_t(*(int32_t*)(d + 36));
             uv_index_end = reverse_endianess_int32_t(*(int32_t*)(d + 40));
+            unk1 = reverse_endianess_int32_t(*(int32_t*)(d + 44));
         }
         else {
             if (has_tex)
@@ -475,6 +485,7 @@ static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
             frame_step_uv = *(int16_t*)(d + 34);
             uv_index_start = *(int32_t*)(d + 36);
             uv_index_end = *(int32_t*)(d + 40);
+            unk1 = *(int32_t*)(d + 44);
         }
         d += 48;
 
@@ -628,6 +639,9 @@ static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
         a3->data.texture0 = 0;
         a3->data.texture1 = 0;
 
+        unk0 = 0;
+        unk1 = 0;
+
         if (use_big_endian) {
             tex_hash0 = reverse_endianess_uint64_t(*(uint64_t*)d);
             r = *(uint8_t*)(d + 8);
@@ -635,6 +649,7 @@ static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
             blend_mode0 = reverse_endianess_int32_t(*(int32_t*)(d + 12));
+            unk0 = reverse_endianess_int32_t(*(int32_t*)(d + 16));
             split_u = (uint8_t)reverse_endianess_int32_t(*(int32_t*)(d + 20));
             split_v = (uint8_t)reverse_endianess_int32_t(*(int32_t*)(d + 24));
             uv_index_type = reverse_endianess_int32_t(*(int32_t*)(d + 28));
@@ -650,6 +665,7 @@ static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
             blend_mode0 = *(int32_t*)(d + 12);
+            unk0 = *(int32_t*)(d + 16);
             split_u = (uint8_t) * (int32_t*)(d + 20);
             split_v = (uint8_t) * (int32_t*)(d + 24);
             uv_index_type = *(int32_t*)(d + 28);
@@ -659,10 +675,26 @@ static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
             uv_index_end = *(int32_t*)(d + 40);
         }
 
-        if (a1->version >= 7)
+        if (a1->version >= 7) {
+            unk1 = *(int32_t*)(d + 44);
+            if (use_big_endian)
+                unk1 = reverse_endianess_int32_t(unk1);
             d += 48;
+        }
         else
             d += 44;
+
+        if (unk0) {
+            char buf[0x40];
+            sprintf_s(buf, 0x40, "A %X %016llX\n", unk0, effect->data.name_hash);
+            OutputDebugStringA(buf);
+        }
+
+        if (unk1) {
+            char buf[0x40];
+            sprintf_s(buf, 0x40, "B %X %016llX\n", unk1, effect->data.name_hash);
+            OutputDebugStringA(buf);
+        }
 
         if (a3->data.flags & GLITTER_PARTICLE_SECOND_TEXTURE)
             if (use_big_endian) {
@@ -697,6 +729,8 @@ static bool FASTCALL glitter_particle_unpack_file(GPM, glitter_effect_group* a1,
     a3->data.uv_index_end = uv_index_end;
     a3->data.split_uv.x = (float_t)split_u;
     a3->data.split_uv.y = (float_t)split_v;
+    a3->data.unk0 = unk0;
+    a3->data.unk1 = unk1;
 
     vec2_rcp(a3->data.split_uv, a3->data.split_uv);
     vec4_mult_scalar(a3->data.color, (float_t)(1.0 / 255.0), a3->data.color);

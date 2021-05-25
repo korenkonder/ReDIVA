@@ -7,8 +7,12 @@
 #include "fbo_helper.h"
 
 const GLenum fbo_hdr_c_attachments[] = {
-    GL_COLOR_ATTACHMENT0,
+    GL_COLOR_ATTACHMENT1,
     GL_DEPTH_ATTACHMENT,
+};
+
+const GLenum fbo_hdr_d_attachments[] = {
+    GL_COLOR_ATTACHMENT1,
 };
 
 const GLenum fbo_hdr_f_attachments[] = {
@@ -20,7 +24,7 @@ static void fbo_hdr_bind_fbo(fbo_hdr* hfbo, vec2i* res, vec2i* res_2d);
 fbo_hdr* fbo_hdr_init() {
     fbo_hdr* hfbo = force_malloc(sizeof(fbo_hdr));
     glGenFramebuffers(2, hfbo->fbo);
-    glGenTextures(3, hfbo->tcb);
+    glGenTextures(4, hfbo->tcb);
     return hfbo;
 }
 
@@ -53,11 +57,12 @@ static void fbo_hdr_bind_fbo(fbo_hdr* hfbo, vec2i* res, vec2i* res_2d) {
     fbo_helper_gen_texture_image_ms(hfbo->tcb[0], hfbo->res.x, hfbo->res.y, 1, GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT, 0);
     fbo_helper_gen_texture_image_ms(hfbo->tcb[1], hfbo->res.x, hfbo->res.y, 1,
         GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 16);
+    fbo_helper_gen_texture_image_ms(hfbo->tcb[2], hfbo->res.x, hfbo->res.y, 1, GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT, 1);
     glDrawBuffers(2, fbo_hdr_c_attachments);
     fbo_helper_get_error_code();
 
     bind_framebuffer(hfbo->fbo[1]);
-    fbo_helper_gen_texture_image_ms(hfbo->tcb[2], hfbo->res_2d.x, hfbo->res_2d.y, 1, GL_RGBA8, GL_RGBA, GL_BYTE, 0);
+    fbo_helper_gen_texture_image_ms(hfbo->tcb[3], hfbo->res_2d.x, hfbo->res_2d.y, 1, GL_RGBA8, GL_RGBA, GL_BYTE, 0);
     glDrawBuffers(1, fbo_hdr_f_attachments);
     fbo_helper_get_error_code();
     bind_framebuffer(0);
@@ -80,7 +85,7 @@ void fbo_hdr_draw(fbo_hdr* hfbo) {
         return;
 
     shader_fbo_use(&hfbo->f_shader);
-    bind_index_tex2d(0, hfbo->tcb[2]);
+    bind_index_tex2d(0, hfbo->tcb[3]);
     bind_vertex_array(hfbo->vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
@@ -90,6 +95,6 @@ void fbo_hdr_dispose(fbo_hdr* hfbo) {
         return;
 
     glDeleteFramebuffers(2, hfbo->fbo);
-    glDeleteTextures(3, hfbo->tcb);
+    glDeleteTextures(4, hfbo->tcb);
     free(hfbo);
 }

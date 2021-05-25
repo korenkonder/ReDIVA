@@ -173,7 +173,7 @@ inline void bind_tex2d(int32_t id) {
 
 inline void bind_tex2dms(int32_t id) {
     if (current_tex2dms[active_tex] != id) {
-        glBindTexture(GL_TEXTURE_2D, id);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, id);
         current_tex2dms[active_tex] = id;
     }
 }

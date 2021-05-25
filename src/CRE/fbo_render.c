@@ -80,8 +80,14 @@ void fbo_render_draw_c(fbo_render* rfbo, bool depth) {
         shader_fbo* c_shader = rfbo->samples > 1 ? rfbo->samples > 2 ? rfbo->samples > 4 ? rfbo->samples > 8 ?
             &rfbo->c_shader[9] : &rfbo->c_shader[8] : &rfbo->c_shader[7] : &rfbo->c_shader[6] : &rfbo->c_shader[5];
         shader_fbo_use(c_shader);
-        bind_index_tex2d(0, rfbo->tcb[4]);
-        bind_index_tex2d(1, rfbo->tcb[0]);
+        if (rfbo->samples > 1) {
+            bind_index_tex2dms(0, rfbo->tcb[4]);
+            bind_index_tex2dms(1, rfbo->tcb[0]);
+        }
+        else {
+            bind_index_tex2d(0, rfbo->tcb[4]);
+            bind_index_tex2d(1, rfbo->tcb[0]);
+        }
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_ALWAYS);
         glDepthMask(true);
@@ -90,7 +96,10 @@ void fbo_render_draw_c(fbo_render* rfbo, bool depth) {
         shader_fbo* c_shader = rfbo->samples > 1 ? rfbo->samples > 2 ? rfbo->samples > 4 ? rfbo->samples > 8 ?
             &rfbo->c_shader[4] : &rfbo->c_shader[3] : &rfbo->c_shader[2] : &rfbo->c_shader[1] : &rfbo->c_shader[0];
         shader_fbo_use(c_shader);
-        bind_index_tex2d(0, rfbo->tcb[4]);
+        if (rfbo->samples > 1)
+            bind_index_tex2dms(0, rfbo->tcb[4]);
+        else
+            bind_index_tex2d(0, rfbo->tcb[4]);
         glDisable(GL_DEPTH_TEST);
         glDepthMask(false);
     }

@@ -8,14 +8,14 @@
 
 static void FASTCALL glitter_curve_get_key_indexes(vector_glitter_curve_key* keys,
     float_t frame, size_t* curr, size_t* next);
-static float_t FASTCALL glitter_curve_interpolate(GPM, glitter_curve* c, float_t frame,
+static float_t FASTCALL glitter_curve_interpolate(GLT, glitter_curve* c, float_t frame,
     glitter_curve_key* curr, glitter_curve_key* next, glitter_key_type key_type, glitter_random* random);
-static float_t FASTCALL glitter_curve_randomize(GPM,
+static float_t FASTCALL glitter_curve_randomize(GLT,
     glitter_curve* c, float_t value, glitter_random* random);
-static float_t FASTCALL glitter_curve_randomize_key(GPM,
+static float_t FASTCALL glitter_curve_randomize_key(GLT,
     glitter_curve* c, glitter_curve_key* key, glitter_random* random);
 
-bool FASTCALL glitter_curve_get_value(GPM, glitter_curve* c,
+bool FASTCALL glitter_curve_get_value(GLT, glitter_curve* c,
     float_t frame, float_t* value, int32_t random_value, glitter_random* random) {
     size_t keys_count;
     int32_t random_val;
@@ -29,13 +29,13 @@ bool FASTCALL glitter_curve_get_value(GPM, glitter_curve* c,
     random_val = glitter_random_get_value(random);
     glitter_random_set_value(random, random_value);
     negate = c->flags & GLITTER_CURVE_NEGATE
-        && glitter_random_get_int_min_max(GPM_VAL, random, 0, 0xFFFF) > 0x7FFF;
+        && glitter_random_get_int_min_max(GLT_VAL, random, 0, 0xFFFF) > 0x7FFF;
     if (c->flags & GLITTER_CURVE_STEP)
         glitter_random_set_value(random, random_val + 1);
 
     if (keys_count == 1) {
         glitter_curve_key* key = &c->keys.begin[keys_count - 1];
-        _value = glitter_curve_randomize_key(GPM_VAL, c, key, random);
+        _value = glitter_curve_randomize_key(GLT_VAL, c, key, random);
         goto End;
     }
 
@@ -49,11 +49,11 @@ bool FASTCALL glitter_curve_get_value(GPM, glitter_curve* c,
 
     if (end_time <= frame) {
         glitter_curve_key* key = &c->keys.begin[keys_count - 1];
-        _value = glitter_curve_randomize_key(GPM_VAL, c, key, random);
+        _value = glitter_curve_randomize_key(GLT_VAL, c, key, random);
     }
     else if (start_time > frame) {
         glitter_curve_key* key = &c->keys.begin[0];
-        _value = glitter_curve_randomize_key(GPM_VAL, c, key, random);
+        _value = glitter_curve_randomize_key(GLT_VAL, c, key, random);
     }
     else if (c->flags & GLITTER_CURVE_BAKED) {
         size_t key_index;
@@ -71,7 +71,7 @@ bool FASTCALL glitter_curve_get_value(GPM, glitter_curve* c,
             key_index = 0;
 
         glitter_curve_key* key = &c->keys.begin[key_index];
-        _value = glitter_curve_randomize_key(GPM_VAL, c, key, random);
+        _value = glitter_curve_randomize_key(GLT_VAL, c, key, random);
     }
     else {
         size_t curr_key_index = 0;
@@ -88,11 +88,11 @@ bool FASTCALL glitter_curve_get_value(GPM, glitter_curve* c,
         }
         glitter_curve_key* curr_key = &c->keys.begin[curr_key_index];
         glitter_curve_key* next_key = &c->keys.begin[next_key_index];
-        _value = glitter_curve_interpolate(GPM_VAL, c, frame, curr_key, next_key, curr_key->type, random);
+        _value = glitter_curve_interpolate(GLT_VAL, c, frame, curr_key, next_key, curr_key->type, random);
     }
 
 End:
-    _value = glitter_curve_randomize(GPM_VAL, c, _value, random);
+    _value = glitter_curve_randomize(GLT_VAL, c, _value, random);
     *value = negate ? -_value : _value;
     glitter_random_set_value(random, random_val + 1);
     return true;
@@ -140,59 +140,65 @@ static void FASTCALL glitter_curve_get_key_indexes(vector_glitter_curve_key* key
     *next %= count;
 }
 
-static float_t FASTCALL glitter_curve_interpolate(GPM, glitter_curve* c, float_t frame,
+static float_t FASTCALL glitter_curve_interpolate(GLT, glitter_curve* c, float_t frame,
     glitter_curve_key* curr, glitter_curve_key* next, glitter_key_type key_type, glitter_random* random) {
     float_t next_val;
     float_t curr_val;
     float_t val;
 
     if (key_type == GLITTER_KEY_CONSTANT)
-        return glitter_curve_randomize_key(GPM_VAL, c, curr, random);
+        return glitter_curve_randomize_key(GLT_VAL, c, curr, random);
 
     float_t df = frame - (float_t)curr->frame;
     float_t t = df / (float_t)(next->frame - curr->frame);
     if (key_type == GLITTER_KEY_HERMITE) {
         float_t t_1 = t - 1.0f;
-        next_val = glitter_curve_randomize_key(GPM_VAL, c, next, random);
-        curr_val = glitter_curve_randomize_key(GPM_VAL, c, curr, random);
-        val = glitter_curve_randomize_key(GPM_VAL, c, curr, random);
+        next_val = glitter_curve_randomize_key(GLT_VAL, c, next, random);
+        curr_val = glitter_curve_randomize_key(GLT_VAL, c, curr, random);
+        val = glitter_curve_randomize_key(GLT_VAL, c, curr, random);
         val += t * t * (3.0f - 2.0f * t) * (next_val - curr_val)
             + (t_1 * curr->tangent2 + t * next->tangent1) * df * t_1;
     }
     else {
-        curr_val = glitter_curve_randomize_key(GPM_VAL, c, curr, random);
-        next_val = glitter_curve_randomize_key(GPM_VAL, c, next, random);
+        curr_val = glitter_curve_randomize_key(GLT_VAL, c, curr, random);
+        next_val = glitter_curve_randomize_key(GLT_VAL, c, next, random);
         val = curr_val + (next_val - curr_val) * t;
     }
     return val;
 }
 
-static float_t FASTCALL glitter_curve_randomize(GPM,
+static float_t FASTCALL glitter_curve_randomize(GLT,
     glitter_curve* c, float_t value, glitter_random* random) {
     float_t rand;
 
     if (~c->flags & GLITTER_CURVE_RANDOM_RANGE)
         return value;
 
-    rand = glitter_random_get_float_min_max(GPM_VAL, random,
+    rand = glitter_random_get_float_min_max(GLT_VAL, random,
         c->flags & GLITTER_CURVE_RANDOM_RANGE_NEGATE ? -c->random_range : 0.0f, c->random_range);
 
     if (c->flags & GLITTER_CURVE_RANDOM_RANGE_MULT)
-        rand *= value * 0.01f;
+        if (glt_type != GLITTER_AFT)
+            rand *= value * 0.01f;
+        else
+            rand *= value;
     return rand + value;
 }
 
-static float_t FASTCALL glitter_curve_randomize_key(GPM,
+static float_t FASTCALL glitter_curve_randomize_key(GLT,
     glitter_curve* c, glitter_curve_key* key, glitter_random* random) {
     float_t rand;
 
     if (~c->flags & GLITTER_CURVE_KEY_RANDOM_RANGE)
         return key->value;
 
-    rand = glitter_random_get_float_min_max(GPM_VAL, random,
+    rand = glitter_random_get_float_min_max(GLT_VAL, random,
         c->flags & GLITTER_CURVE_RANDOM_RANGE_NEGATE ? -key->random_range : 0.0f, key->random_range);
 
     if (c->flags & GLITTER_CURVE_RANDOM_RANGE_MULT)
-        rand *= key->value * 0.01f;
+        if (glt_type != GLITTER_AFT)
+            rand *= key->value * 0.01f;
+        else
+            rand *= key->value;
     return rand + key->value;
 }

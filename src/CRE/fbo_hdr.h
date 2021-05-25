@@ -12,7 +12,7 @@
 typedef struct fbo_hdr {
     int32_t vao;
     int32_t fbo[2];
-    int32_t tcb[3];
+    int32_t tcb[4];
     shader_fbo f_shader;
     shader_fbo h_shader[2];
     vec2i res;
@@ -21,6 +21,7 @@ typedef struct fbo_hdr {
 } fbo_hdr;
 
 extern const GLenum fbo_hdr_c_attachments[];
+extern const GLenum fbo_hdr_d_attachments[];
 extern const GLenum fbo_hdr_f_attachments[];
 
 extern fbo_hdr* fbo_hdr_init();

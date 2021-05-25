@@ -11,7 +11,7 @@ glitter_locus_history* FASTCALL glitter_locus_history_init(size_t size) {
     return lh;
 }
 
-void FASTCALL glitter_locus_history_append(GPM, glitter_locus_history* a1,
+void FASTCALL glitter_locus_history_append(glitter_locus_history* a1,
     glitter_render_element* a2, glitter_particle_inst* a3) {
     glitter_locus_history_data* data;
     glitter_locus_history_data locus_history;

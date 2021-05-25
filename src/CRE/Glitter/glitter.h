@@ -110,8 +110,8 @@ typedef enum glitter_direction {
 } glitter_direction;
 
 typedef enum glitter_effect_ext_anim_flag {
-    GLITTER_EFFECT_EXT_ANIM_SET_EXT_ANIM_ONCE   = 0x00001,
-    GLITTER_EFFECT_EXT_ANIM_EXT_ANIM_TRANS_ONLY = 0x00002,
+    GLITTER_EFFECT_EXT_ANIM_SET_ONCE            = 0x00001,
+    GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY          = 0x00002,
     GLITTER_EFFECT_EXT_ANIM_NO_TRANS_X          = 0x00004,
     GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Y          = 0x00008,
     GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Z          = 0x00010,
@@ -119,6 +119,29 @@ typedef enum glitter_effect_ext_anim_flag {
     GLITTER_EFFECT_EXT_ANIM_GET_THEN_UPDATE     = 0x00040,
     GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM          = 0x10000,
 } glitter_effect_ext_anim_flag;
+
+typedef enum glitter_effect_ext_anim_chara_node {
+    GLITTER_EFFECT_EXT_ANIM_CHARA_NONE            = -1,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD            = 0,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_MOUTH           = 1,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_BELLY           = 2,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_CHEST           = 3,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_SHOULDER   = 4,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_ELBOW      = 5,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_ELBOW_DUP  = 6,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_HAND       = 7,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_SHOULDER  = 8,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_ELBOW     = 9,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_ELBOW_DUP = 10,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_HAND      = 11,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_THIGH      = 12,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_KNEE       = 13,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_TOE        = 14,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_THIGH     = 15,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_KNEE      = 16,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE       = 17,
+    GLITTER_EFFECT_EXT_ANIM_CHARA_MAX             = 18,
+} glitter_effect_ext_anim_chara_node;
 
 typedef enum glitter_effect_flag {
     GLITTER_EFFECT_NONE       = 0x00,
@@ -140,22 +163,24 @@ typedef enum glitter_effect_file_flag {
 } glitter_effect_file_flag;
 
 typedef enum glitter_effect_inst_flag {
-    GLITTER_EFFECT_INST_NONE                        = 0x0000,
-    GLITTER_EFFECT_INST_FREE                        = 0x0001,
-    GLITTER_EFFECT_INST_JUST_INIT                   = 0x0002,
-    GLITTER_EFFECT_INST_HAS_EXT_ANIM                = 0x0004,
-    GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS          = 0x0008,
-    GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT       = 0x0010,
-    GLITTER_EFFECT_INST_CHARA_ANIM                  = 0x0020,
-    GLITTER_EFFECT_INST_SET_EXT_ANIM_BY_OBJECT_NAME = 0x0040,
-    GLITTER_EFFECT_INST_SET_EXT_ANIM_ONCE           = 0x0080,
-    GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY         = 0x0100,
-    GLITTER_EFFECT_INST_HAS_EXT_ANIM_SCALE          = 0x0200,
-    GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_X         = 0x0400,
-    GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Y         = 0x0800,
-    GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Z         = 0x1000,
-    GLITTER_EFFECT_INST_NO_EXT_ANIM_MAT             = 0x2000,
-    GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE    = 0x4000,
+    GLITTER_EFFECT_INST_NONE                        = 0x00000,
+    GLITTER_EFFECT_INST_FREE                        = 0x00001,
+    GLITTER_EFFECT_INST_JUST_INIT                   = 0x00002,
+    GLITTER_EFFECT_INST_HAS_EXT_ANIM                = 0x00004,
+    GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS          = 0x00008,
+    GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT       = 0x00010,
+    GLITTER_EFFECT_INST_CHARA_ANIM                  = 0x00020,
+    GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT       = 0x00040,
+    GLITTER_EFFECT_INST_SET_EXT_ANIM_ONCE           = 0x00080,
+    GLITTER_EFFECT_INST_MIN_COLOR_MULT              = 0x00100,
+    GLITTER_EFFECT_INST_SET_MIN_COLOR               = 0x00200,
+    GLITTER_EFFECT_INST_SET_ADD_MIN_COLOR           = 0x00400,
+    GLITTER_EFFECT_INST_HAS_EXT_ANIM_SCALE          = 0x00800,
+    GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_X         = 0x01000,
+    GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Y         = 0x02000,
+    GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Z         = 0x04000,
+    GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY         = 0x08000,
+    GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE    = 0x20000,
 } glitter_effect_inst_flag;
 
 typedef enum glitter_emitter_emission {
@@ -177,6 +202,12 @@ typedef enum glitter_emitter_flag {
     GLITTER_EMITTER_KILL_ON_END = 0x02,
     GLITTER_EMITTER_USE_SEED    = 0x04,
 } glitter_emitter_flag;
+
+typedef enum glitter_emitter_inst_flag {
+    GLITTER_EMITTER_INST_NONE         = 0x00,
+    GLITTER_EMITTER_INST_ENDED        = 0x01,
+    GLITTER_EMITTER_INST_HAS_DISTANCE = 0x02,
+} glitter_emitter_inst_flag;
 
 typedef enum glitter_emitter_timer_type {
     GLITTER_EMITTER_TIMER_BY_TIME     = 0,
@@ -206,10 +237,10 @@ typedef enum glitter_particle_blend {
     GLITTER_PARTICLE_BLEND_PUNCH_THROUGH = 5,
 } glitter_particle_blend;
 
-typedef enum glitter_particle_draw_flags {
+typedef enum glitter_particle_draw_flag {
     GLITTER_PARTICLE_DRAW_NONE              = 0x0,
     GLITTER_PARTICLE_DRAW_NO_BILLBOARD_CULL = 0x1,
-} glitter_particle_draw_flags;
+} glitter_particle_draw_flag;
 
 typedef enum glitter_particle_flag {
     GLITTER_PARTICLE_NONE              = 0x00000,
@@ -302,16 +333,19 @@ typedef struct glitter_particle_inst glitter_particle_inst;
 typedef struct glitter_random glitter_random;
 typedef struct glitter_render_element glitter_render_element;
 typedef struct glitter_render_group glitter_render_group;
+typedef struct glitter_scene_effect glitter_scene_effect;
 typedef struct glitter_scene glitter_scene;
 
-#define GPM glitter_particle_manager* gpm, glitter_type glt_type
-#define GPM_VAL gpm, glt_type
+#define GPM glitter_particle_manager* gpm
+#define GPM_VAL (gpm)
+
+#define GLT glitter_type glt_type
+#define GLT_VAL (glt_type)
 
 vector(glitter_curve_key)
 vector_ptr(glitter_curve)
 vector_ptr(glitter_effect)
 vector_ptr(glitter_effect_group)
-vector_ptr(glitter_effect_inst)
 vector_ptr(glitter_emitter)
 vector_ptr(glitter_emitter_inst)
 vector_ptr(glitter_file_reader)
@@ -319,7 +353,11 @@ vector(glitter_locus_history_data)
 vector_ptr(glitter_particle)
 vector_ptr(glitter_particle_inst)
 vector_ptr(glitter_render_group)
+vector(glitter_scene_effect)
 vector_ptr(glitter_scene)
+
+typedef vector_ptr_glitter_curve glitter_animation;
+typedef vector_ptr_glitter_render_group glitter_render_scene;
 
 extern const float_t glitter_min_emission;
 extern const glitter_curve_type_flags glitter_effect_curve_flags;
@@ -378,7 +416,7 @@ struct glitter_effect_ext_anim {
     uint64_t object_hash;
     glitter_effect_ext_anim_flag flags;
     int32_t instance_id;
-    uint64_t some_hash;
+    uint64_t file_name_hash;
     int32_t index;
     int32_t node_index;
     char mesh_name[128];
@@ -386,7 +424,7 @@ struct glitter_effect_ext_anim {
 
 struct glitter_effect {
     char name[0x80];
-    vector_ptr_glitter_curve curve;
+    glitter_animation animation;
     vec3 translation;
     vec3 rotation;
     vec3 scale;
@@ -406,26 +444,32 @@ struct glitter_effect_group {
     bool scene_init;
     bool buffer_init;
     uint32_t version;
+    glitter_type type;
 };
 
 struct glitter_effect_inst_ext_anim {
-    int32_t dword00;
-    int64_t dword08;
+    int32_t a3da_id;
+    size_t a3da_index;
     int32_t instance_id;
-    uint64_t some_hash;
+    uint64_t file_name_hash;
     uint64_t object_hash;
     int32_t chara_index;
-    int32_t node_index;
+    union {
+        int32_t data;
+        mot_bone_index_f f;
+        mot_bone_index_ft ft;
+    } index;
     mat4 mat;
     vec3 translation;
-    char* name;
+    char* mesh_name;
     bool object_is_hrc;
 };
 
 struct glitter_effect_inst {
     glitter_effect* effect;
     glitter_effect_data data;
-    float_t frame;
+    float_t frame0;
+    float_t frame1;
     vec4 color;
     vec3 translation;
     vec3 rotation;
@@ -433,14 +477,18 @@ struct glitter_effect_inst {
     float_t scale_all;
     mat4 mat;
     mat4 mat_ext_anim;
+    mat4 mat_ext_anim_eff_rot;
     vector_ptr_glitter_emitter_inst emitters;
-    glitter_random random_shared;
+    union {
+        glitter_random* random_ptr;
+        glitter_random random_shared;
+    };
     glitter_effect_inst_flag flags;
     size_t id;
     glitter_effect_inst_ext_anim* ext_anim;
     vec3 ext_anim_scale;
-    vector_ptr_glitter_render_group render_groups;
-    glitter_random random;
+    glitter_render_scene render_scene;
+    uint32_t random;
 };
 
 struct glitter_emitter_box {
@@ -493,7 +541,7 @@ struct glitter_emitter_data {
 
 
 struct glitter_emitter {
-    vector_ptr_glitter_curve curve;
+    glitter_animation animation;
     vec3 translation;
     vec3 rotation;
     vec3 scale;
@@ -508,7 +556,10 @@ struct glitter_emitter_inst {
     vec3 rotation;
     vec3 scale;
     mat4 mat;
-    mat4 mat_no_scale;
+    union {
+        mat4 mat_ext_anim;
+        mat4 mat_no_scale;
+    };
     float_t scale_all;
     float_t emission_timer;
     vector_ptr_glitter_particle_inst particles;
@@ -519,10 +570,10 @@ struct glitter_emitter_inst {
     bool loop;
     glitter_emitter_emission emission;
     float_t frame;
-    bool ended;
-    bool has_distance;
+    glitter_emitter_inst_flag flags;
     uint32_t counter;
-    glitter_random random;
+    uint32_t random;
+    uint8_t step;
 };
 
 struct glitter_file_reader {
@@ -531,6 +582,7 @@ struct glitter_file_reader {
     wchar_t* file;
     uint64_t hash;
     float_t emission;
+    glitter_type type;
 };
 
 struct glitter_particle_manager {
@@ -540,8 +592,15 @@ struct glitter_particle_manager {
     float_t delta_frame;
     float_t emission;
     uint32_t counter;
+    mat4 cam_view;
+    mat4 cam_inv_view;
+    mat3 cam_inv_view_mat3;
+    vec3 cam_view_point;
+    float_t cam_rotation_y;
+    glitter_random random;
     bool draw_all;
     bool draw_all_mesh;
+    bool updated;
 };
 
 struct glitter_locus_history {
@@ -611,17 +670,19 @@ struct glitter_particle_data {
     int32_t count;
     int32_t locus_history_size;
     int32_t locus_history_size_random;
-    glitter_particle_draw_flags draw_flags;
+    glitter_particle_draw_flag draw_flags;
     float_t emission;
     uint64_t tex_hash0;
     uint64_t tex_hash1;
     int32_t texture0;
     int32_t texture1;
+    int32_t unk0;
+    int32_t unk1;
     glitter_particle_mesh mesh;
 };
 
 struct glitter_particle {
-    vector_ptr_glitter_curve curve;
+    glitter_animation animation;
     glitter_particle_data data;
     int32_t version;
 };
@@ -649,8 +710,12 @@ struct glitter_render_element {
     bool draw;
     float_t frame;
     float_t life_time;
-    float_t rebound_frame;
+    union {
+        float_t rebound_frame;
+        float_t rebound_time;
+    };
     float_t frame_step_uv;
+    float_t base_speed;
     float_t speed;
     float_t deceleration;
     vec2 uv;
@@ -672,7 +737,8 @@ struct glitter_render_element {
     float_t fade_in_frames;
     mat4 mat;
     glitter_locus_history* locus_history;
-    glitter_random random;
+    uint32_t random;
+    uint8_t step;
 };
 
 struct glitter_render_group {
@@ -691,9 +757,13 @@ struct glitter_render_group {
     size_t disp;
     int32_t texture0;
     int32_t texture1;
+    uint64_t object_name_hash;
     float_t frame;
     mat4 mat;
-    mat4 mat_no_scale;
+    union {
+        mat4 mat_ext_anim;
+        mat4 mat_no_scale;
+    };
     mat4 mat_draw;
     glitter_render_element* elements;
     glitter_buffer* buffer;
@@ -712,9 +782,17 @@ struct glitter_render_group {
     bool update_data;
 };
 
+struct glitter_scene_effect {
+    glitter_effect_inst* ptr;
+    bool draw;
+};
+
 struct glitter_scene {
-    vector_ptr_glitter_effect_inst effects;
+    vector_glitter_scene_effect effects;
     uint64_t hash;
     float_t emission;
+    glitter_type type;
     glitter_effect_group* effect_group;
+    float_t delta_frame_history;
+    bool skip;
 };

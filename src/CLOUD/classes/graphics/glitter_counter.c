@@ -18,8 +18,7 @@ extern int32_t width;
 extern int32_t height;
 extern bool input_locked;
 
-extern glitter_particle_manager* gpm;
-glitter_type glt_type;
+extern GPM;
 
 const char* glitter_counter_window_title = "Glitter##Counter";
 
@@ -71,29 +70,29 @@ void glitter_counter_imgui() {
     size_t total_ctrl = 0;
     size_t total_disp = 0;
 
-    ctrl = glitter_particle_manager_get_ctrl_count(gpm, glt_type, GLITTER_PARTICLE_QUAD);
-    disp = glitter_particle_manager_get_disp_count(gpm, glt_type, GLITTER_PARTICLE_QUAD);
+    ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_QUAD);
+    disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_QUAD);
     igText("QUAD  (ctrl):%6lld", ctrl);
     igText("      (disp):%6lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
-    ctrl = glitter_particle_manager_get_ctrl_count(gpm, glt_type, GLITTER_PARTICLE_LOCUS);
-    disp = glitter_particle_manager_get_disp_count(gpm, glt_type, GLITTER_PARTICLE_LOCUS);
+    ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_LOCUS);
+    disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_LOCUS);
     igText("LOCUS (ctrl):%6lld", ctrl);
     igText("      (disp):%6lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
-    ctrl = glitter_particle_manager_get_ctrl_count(gpm, glt_type, GLITTER_PARTICLE_LINE);
-    disp = glitter_particle_manager_get_disp_count(gpm, glt_type, GLITTER_PARTICLE_LINE);
+    ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_LINE);
+    disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_LINE);
     igText("LINE  (ctrl):%6lld", ctrl);
     igText("      (disp):%6lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
-    ctrl = glitter_particle_manager_get_ctrl_count(gpm, glt_type, GLITTER_PARTICLE_MESH);
-    disp = glitter_particle_manager_get_disp_count(gpm, glt_type, GLITTER_PARTICLE_MESH);
+    ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_MESH);
+    disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_MESH);
     igText("MESH  (ctrl):%6lld", ctrl);
     igText("      (disp):%6lld", disp);
     total_ctrl += ctrl;

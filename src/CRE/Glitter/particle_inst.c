@@ -6,13 +6,14 @@
 #include "particle_inst.h"
 #include "effect_inst.h"
 #include "render_group.h"
+#include "render_scene.h"
 
-static glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(GPM,
-    glitter_particle_inst* a1, float_t emission);
+static glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(glitter_particle_inst* a1,
+    float_t emission);
 
-glitter_particle_inst* FASTCALL glitter_particle_inst_init(GPM, glitter_particle* a1,
+glitter_particle_inst* FASTCALL glitter_particle_inst_init(glitter_particle* a1,
     glitter_effect_inst* a2, glitter_emitter_inst* a3, glitter_random* random, float_t emission) {
-    glitter_render_group* render_group;
+    glitter_render_group* rg;
 
     glitter_particle_inst* pi = force_malloc(sizeof(glitter_particle_inst));
     pi->particle = a1;
@@ -23,49 +24,56 @@ glitter_particle_inst* FASTCALL glitter_particle_inst_init(GPM, glitter_particle
     pi->data.random_ptr = random;
 
     if (pi->data.data.type != GLITTER_PARTICLE_LOCUS) {
-        render_group = glitter_render_group_init(GPM_VAL, pi);
-        render_group->alpha = glitter_effect_inst_get_alpha(a2);
-        render_group->fog = glitter_effect_inst_get_fog(a2);
-        if (pi->data.data.blend_mode0 == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH
-            && pi->data.data.type == GLITTER_PARTICLE_QUAD)
-            render_group->alpha = 0;
+        rg = glitter_render_group_init(pi);
+        if (rg) {
+            rg->alpha = glitter_effect_inst_get_alpha(a2);
+            rg->fog = glitter_effect_inst_get_fog(a2);
+            if (pi->data.data.type == GLITTER_PARTICLE_QUAD
+                && pi->data.data.blend_mode0 == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH)
+                rg->alpha = 0;
 
-        if (pi->data.data.draw_flags & GLITTER_PARTICLE_DRAW_NO_BILLBOARD_CULL)
-            render_group->use_culling = false;
-        else
-            render_group->use_culling = true;
+            if (pi->data.data.draw_flags & GLITTER_PARTICLE_DRAW_NO_BILLBOARD_CULL)
+                rg->use_culling = false;
+            else
+                rg->use_culling = true;
 
-        if (pi->data.data.emission >= glitter_min_emission)
-            render_group->emission = pi->data.data.emission;
-        else if (a2->data.emission >= glitter_min_emission)
-            render_group->emission = a2->data.emission;
-        else
-            render_group->emission = emission;
-        pi->data.render_group = render_group;
-        vector_ptr_glitter_render_group_push_back(&a2->render_groups, &render_group);
+            if (pi->data.data.emission >= glitter_min_emission)
+                rg->emission = pi->data.data.emission;
+            else if (a2->data.emission >= glitter_min_emission)
+                rg->emission = a2->data.emission;
+            else
+                rg->emission = emission;
+            pi->data.render_group = rg;
+            glitter_render_scene_append(&a2->render_scene, rg);
+        }
     }
     else
         pi->data.flags |= GLITTER_PARTICLE_INST_NO_CHILD;
     return pi;
 }
 
-void FASTCALL glitter_particle_inst_emit(GPM,
-    glitter_particle_inst* a2, int32_t a3, int32_t count, float_t emission) {
+void FASTCALL glitter_particle_inst_emit(GPM, GLT,
+    glitter_particle_inst* a1, int32_t dup_count, int32_t count, float_t emission) {
     glitter_particle_inst* particle;
 
-    if (a2->data.flags & GLITTER_PARTICLE_INST_ENDED)
+    if (a1->data.flags & GLITTER_PARTICLE_INST_ENDED)
         return;
 
-    while (!a2->data.parent && a2->data.flags & GLITTER_PARTICLE_INST_NO_CHILD) {
-        particle = glitter_particle_inst_init_child(GPM_VAL, a2, emission);
-        vector_ptr_glitter_particle_inst_push_back(&a2->data.children, &particle);
-        a2 = particle;
+    while (!a1->data.parent && a1->data.flags & GLITTER_PARTICLE_INST_NO_CHILD) {
+        particle = glitter_particle_inst_init_child(a1, emission);
+        if (particle)
+            vector_ptr_glitter_particle_inst_push_back(&a1->data.children, &particle);
+        else
+            return;
+
+        a1 = particle;
         if (particle->data.flags & GLITTER_PARTICLE_INST_ENDED)
             return;
     }
 
-    if (a2->data.render_group)
-        glitter_render_group_emit(GPM_VAL, a2->data.render_group, &a2->data, a2->data.emitter, a3, count);
+    if (a1->data.render_group)
+        glitter_render_group_emit(GPM_VAL, GLT_VAL,
+            a1->data.render_group, &a1->data, a1->data.emitter, dup_count, count);
 }
 
 void FASTCALL glitter_particle_inst_free(glitter_particle_inst* a1, bool free) {
@@ -120,9 +128,9 @@ void FASTCALL glitter_particle_inst_reset(glitter_particle_inst* a1) {
         glitter_particle_inst_reset(*i);
 }
 
-glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(GPM,
-    glitter_particle_inst* a1, float_t emission) {
-    glitter_render_group* render_group;
+static glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(glitter_particle_inst* a1,
+    float_t emission) {
+    glitter_render_group* rg;
     glitter_effect_inst* effect;
 
     glitter_particle_inst* pi = force_malloc(sizeof(glitter_particle_inst));
@@ -130,25 +138,26 @@ glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(GPM,
     pi->data.effect = a1->data.effect;
     pi->data.emitter = a1->data.emitter;
     pi->data.parent = a1;
-    vector_ptr_glitter_particle_inst_append(&pi->data.children, 0x200);
 
     pi->data.random_ptr = a1->data.random_ptr;
     pi->data.data = a1->data.data;
 
     pi->data.particle = a1->data.particle;
-    render_group = glitter_render_group_init(GPM_VAL, pi);
-    effect = a1->data.effect;
-    render_group->alpha = glitter_effect_inst_get_alpha(effect);
-    render_group->fog = glitter_effect_inst_get_fog(effect);
-    if (pi->data.data.blend_mode0 == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH
-        && pi->data.data.type == GLITTER_PARTICLE_QUAD)
-        render_group->alpha = 0;
-    if (effect->data.emission >= glitter_min_emission)
-        render_group->emission = effect->data.emission;
-    else
-        render_group->emission = emission;
-    pi->data.render_group = render_group;
-    vector_ptr_glitter_render_group_push_back(&a1->data.effect->render_groups, &render_group);
+    rg = glitter_render_group_init(pi);
+    if (rg) {
+        effect = a1->data.effect;
+        rg->alpha = glitter_effect_inst_get_alpha(effect);
+        rg->fog = glitter_effect_inst_get_fog(effect);
+        if (pi->data.data.blend_mode0 == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH
+            && pi->data.data.type == GLITTER_PARTICLE_QUAD)
+            rg->alpha = 0;
+        if (effect->data.emission >= glitter_min_emission)
+            rg->emission = effect->data.emission;
+        else
+            rg->emission = emission;
+        pi->data.render_group = rg;
+        glitter_render_scene_append(&a1->data.effect->render_scene, rg);
+    }
 
     if (pi->data.data.type == GLITTER_PARTICLE_LOCUS)
         pi->data.flags |= GLITTER_PARTICLE_INST_NO_CHILD;

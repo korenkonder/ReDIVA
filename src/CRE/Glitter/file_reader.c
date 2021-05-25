@@ -11,31 +11,33 @@
 #include "particle_manager.h"
 #include "scene.h"
 
-glitter_file_reader* FASTCALL glitter_file_reader_init(GPM,
+glitter_file_reader* FASTCALL glitter_file_reader_init(GLT,
     char* path, char* file, float_t emission) {
     glitter_file_reader* fr = force_malloc(sizeof(glitter_file_reader));
     fr->path = char_string_to_wchar_t_string(path ? path : "rom\\particle\\");
     fr->file = char_string_to_wchar_t_string(file ? file : 0);
     fr->emission = emission;
-    fr->hash = glt_type != GLITTER_AFT
+    fr->type = GLT_VAL;
+    fr->hash = GLT_VAL != GLITTER_AFT
         ? hash_wchar_t_murmurhash(fr->file, 0, false)
         : hash_wchar_t_fnv1a64(fr->file);
     return fr;
 }
 
-glitter_file_reader* FASTCALL glitter_file_reader_winit(GPM,
+glitter_file_reader* FASTCALL glitter_file_reader_winit(GLT,
     wchar_t* path, wchar_t* file, float_t emission) {
     glitter_file_reader* fr = force_malloc(sizeof(glitter_file_reader));
     fr->path = str_utils_wcopy(path ? path : L"rom\\particle\\");
     fr->file = str_utils_wcopy(file);
     fr->emission = emission;
-    fr->hash = glt_type != GLITTER_AFT
+    fr->type = GLT_VAL;
+    fr->hash = GLT_VAL != GLITTER_AFT
         ? hash_wchar_t_murmurhash(fr->file, 0, false)
         : hash_wchar_t_fnv1a64(fr->file);
     return fr;
 }
 
-bool FASTCALL glitter_file_reader_read(GPM, glitter_file_reader* fr) {
+bool FASTCALL glitter_file_reader_read(glitter_file_reader* fr, float_t emission) {
     farc* f = farc_init();
     wchar_t* file_temp;
     wchar_t* path_temp;
@@ -56,7 +58,7 @@ bool FASTCALL glitter_file_reader_read(GPM, glitter_file_reader* fr) {
     f2_struct st;
     f2_struct_read_memory(&st, ff->data, ff->size);
     if (st.header.signature == 0x46455644)
-        ret = glitter_diva_effect_parse_file(GPM_VAL, fr, &st);
+        ret = glitter_diva_effect_parse_file(fr, &st, emission);
     else
         ret = false;
     f2_struct_free(&st);

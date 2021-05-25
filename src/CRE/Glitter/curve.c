@@ -20,26 +20,26 @@ static const float_t glitter_curve_baked_half_reverse_bias[] = {
 };
 
 #ifdef CRE_DEV
-static float_t FASTCALL glitter_curve_key_add_key(GPM, bool has_error,
+static float_t FASTCALL glitter_curve_key_add_key(bool has_error,
     bool has_error_lerp, bool has_error_hermite, float_t* a, float_t* b, int32_t frame,
     const uint8_t step, size_t i, float_t t1, float_t t2, float_t t2_old,
     vector_glitter_curve_key* keys_rev);
 #endif
-static void FASTCALL glitter_curve_key_pack_file(GPM, f2_struct* st,
+static void FASTCALL glitter_curve_key_pack_file(GLT, f2_struct* st,
     glitter_curve* c, vector_glitter_curve_key* keys);
-static void FASTCALL glitter_curve_key_unpack_file(GPM, f2_struct* st, glitter_curve* c, uint32_t count);
-static void FASTCALL glitter_curve_pack_file(GPM, f2_struct* st, glitter_curve* c, size_t keys_count);
-static void FASTCALL glitter_curve_unpack_file(GPM, void* data,
+static void FASTCALL glitter_curve_key_unpack_file(GLT, f2_struct* st, glitter_curve* c, uint32_t count);
+static void FASTCALL glitter_curve_pack_file(GLT, f2_struct* st, glitter_curve* c, size_t keys_count);
+static void FASTCALL glitter_curve_unpack_file(GLT, void* data,
     glitter_curve* c, uint32_t version, bool use_big_endian, uint32_t* keys_count);
 
-glitter_curve* FASTCALL glitter_curve_init(GPM) {
+glitter_curve* FASTCALL glitter_curve_init(GLT) {
     glitter_curve* c = force_malloc(sizeof(glitter_curve));
-    c->version = glt_type == GLITTER_X ? 0x02 : 0x01;
-    c->keys_version = glt_type == GLITTER_X ? 0x03 : 0x02;
+    c->version = GLT_VAL == GLITTER_X ? 0x02 : 0x01;
+    c->keys_version = GLT_VAL == GLITTER_X ? 0x03 : 0x02;
     return c;
 }
 
-glitter_curve* FASTCALL glitter_curve_copy(GPM, glitter_curve* c) {
+glitter_curve* FASTCALL glitter_curve_copy(GLT, glitter_curve* c) {
     if (!c)
         return 0;
 
@@ -57,23 +57,23 @@ glitter_curve* FASTCALL glitter_curve_copy(GPM, glitter_curve* c) {
     return cc;
 }
 
-bool FASTCALL glitter_curve_parse_file(GPM, f2_struct* st, uint32_t version, glitter_curve** c) {
+bool FASTCALL glitter_curve_parse_file(GLT, f2_struct* st, uint32_t version, glitter_curve** c) {
     f2_struct* i;
     uint32_t keys_count;
 
     if (!st || !st->header.data_size)
         return false;
 
-    *c = glitter_curve_init(GPM_VAL);
+    *c = glitter_curve_init(GLT_VAL);
     (*c)->version = st->header.version;
-    glitter_curve_unpack_file(GPM_VAL, st->data, *c, version, st->header.use_big_endian, &keys_count);
+    glitter_curve_unpack_file(GLT_VAL, st->data, *c, version, st->header.use_big_endian, &keys_count);
     if (keys_count)
         for (i = st->sub_structs.begin; i != st->sub_structs.end; i++) {
             if (!i->header.data_size)
                 continue;
 
             if (i->header.signature == reverse_endianess_uint32_t('KEYS')) {
-                glitter_curve_key_unpack_file(GPM_VAL, i, *c, keys_count);
+                glitter_curve_key_unpack_file(GLT_VAL, i, *c, keys_count);
                 break;
             }
         }
@@ -81,28 +81,28 @@ bool FASTCALL glitter_curve_parse_file(GPM, f2_struct* st, uint32_t version, gli
 }
 
 #ifdef CRE_DEV
-void FASTCALL glitter_curve_recalculate(GPM,
-    glitter_curve* curve, vector_glitter_curve_key* dest) {
+void FASTCALL glitter_curve_recalculate(GLT, glitter_curve* curve) {
     int32_t start_time = curve->start_time;
     int32_t end_time = curve->end_time;
     bool curve_baked = curve->flags & GLITTER_CURVE_BAKED ? true : false;
 
-    vector_glitter_curve_key keys = curve->keys_rev;
-    vector_glitter_curve_key_clear(dest);
-    if (keys.end - keys.begin == 1)
-        vector_glitter_curve_key_push_back(dest, &keys.begin[0]);
-    else if (keys.end - keys.begin > 1) {
+    vector_glitter_curve_key keys_rev = curve->keys_rev;
+    vector_glitter_curve_key* keys = &curve->keys;
+    vector_glitter_curve_key_clear(keys);
+    if (keys_rev.end - keys_rev.begin == 1)
+        vector_glitter_curve_key_push_back(keys, &keys_rev.begin[0]);
+    else if (keys_rev.end - keys_rev.begin > 1) {
         if (!curve_baked) {
-            vector_glitter_curve_key_insert_range(dest, 0, keys.begin, keys.end);
+            vector_glitter_curve_key_insert_range(keys, 0, keys_rev.begin, keys_rev.end);
             return;
         }
 
         bool curve_baked_half = false;
-        if (curve_baked && (glt_type == GLITTER_F2
-            || (glt_type == GLITTER_X && ~curve->flags & GLITTER_CURVE_BAKED_FULL)))
+        if (curve_baked && (GLT_VAL == GLITTER_F2
+            || (GLT_VAL == GLITTER_X && ~curve->flags & GLITTER_CURVE_BAKED_FULL)))
             curve_baked_half = true;
 
-        ssize_t keys_count = keys.end - keys.begin;
+        ssize_t keys_count = keys_rev.end - keys_rev.begin;
         size_t count = (size_t)end_time - start_time;
         if (curve_baked_half)
             count /= 2;
@@ -110,11 +110,12 @@ void FASTCALL glitter_curve_recalculate(GPM,
 
         const uint8_t step = curve_baked_half ? 2 : 1;
 
-        glitter_curve_key first_key = keys.begin[0];
-        glitter_curve_key last_key = keys.begin[keys_count - 1];
+        glitter_curve_key first_key = keys_rev.begin[0];
+        glitter_curve_key last_key = keys_rev.begin[keys_count - 1];
 
         glitter_curve_key key;
         memset(&key, 0, sizeof(glitter_curve_key));
+        vector_glitter_curve_key_append(keys, count);
         for (size_t i = 0; i < count; i++) {
             int32_t frame = start_time + (int32_t)(i * step);
 
@@ -123,7 +124,7 @@ void FASTCALL glitter_curve_recalculate(GPM,
                 key.frame = frame;
                 key.value = first_key.value;
                 key.random_range = first_key.random_range;
-                vector_glitter_curve_key_push_back(dest, &key);
+                vector_glitter_curve_key_push_back(keys, &key);
                 continue;
             }
             else if (frame >= last_key.frame) {
@@ -131,7 +132,7 @@ void FASTCALL glitter_curve_recalculate(GPM,
                 key.frame = frame;
                 key.value = last_key.value;
                 key.random_range = last_key.random_range;
-                vector_glitter_curve_key_push_back(dest, &key);
+                vector_glitter_curve_key_push_back(keys, &key);
                 continue;
             }
 
@@ -139,15 +140,15 @@ void FASTCALL glitter_curve_recalculate(GPM,
             size_t length = keys_count;
             size_t temp;
             while (length > 0)
-                if (frame > keys.begin[key_idx + (temp = length >> 1)].frame) {
+                if (frame > keys_rev.begin[key_idx + (temp = length >> 1)].frame) {
                     key_idx += temp + 1;
                     length -= temp + 1;
                 }
                 else
                     length = temp;
 
-            glitter_curve_key* curr_key = &keys.begin[key_idx - 1];
-            glitter_curve_key* next_key = &keys.begin[key_idx];
+            glitter_curve_key* curr_key = &keys_rev.begin[key_idx - 1];
+            glitter_curve_key* next_key = &keys_rev.begin[key_idx];
 
             float_t val;
             float_t rand_range;
@@ -177,34 +178,38 @@ void FASTCALL glitter_curve_recalculate(GPM,
             key.frame = frame;
             key.value = val;
             key.random_range = rand_range;
-            vector_glitter_curve_key_push_back(dest, &key);
+            vector_glitter_curve_key_push_back(keys, &key);
         }
     }
 }
 #endif
 
-bool FASTCALL glitter_curve_unparse_file(GPM, f2_struct* st, glitter_curve* c) {
+bool FASTCALL glitter_curve_unparse_file(GLT, f2_struct* st, glitter_curve* c) {
 #ifndef CRE_DEV
     vector_glitter_curve_key keys = c->keys;
     if (keys.end - keys.begin < 1)
         return false;
 #else
-    vector_glitter_curve_key keys = { 0, 0, 0 };
+    vector_glitter_curve_key keys = c->keys;
     if (c->keys_rev.end - c->keys_rev.begin < 1)
         return false;
 
-    glitter_curve_recalculate(GPM_VAL, c, &keys);
-    if (!keys.begin)
+    c->keys = (vector_glitter_curve_key){ 0, 0, 0 };
+    glitter_curve_recalculate(GLT_VAL, c);
+    if (!c->keys.begin) {
+        c->keys = keys;
         return false;
+    }
 #endif
-    glitter_curve_pack_file(GPM_VAL, st, c, keys.end - keys.begin);
+    glitter_curve_pack_file(GLT_VAL, st, c, c->keys.end - c->keys.begin);
 
     f2_struct s;
-    glitter_curve_key_pack_file(GPM_VAL, &s, c, &keys);
+    glitter_curve_key_pack_file(GLT_VAL, &s, c, &c->keys);
     vector_f2_struct_push_back(&st->sub_structs, &s);
 #ifdef CRE_DEV
-    vector_glitter_curve_key_free(&keys);
+    vector_glitter_curve_key_free(&c->keys);
 #endif
+    c->keys = keys;
     return true;
 }
 
@@ -216,7 +221,7 @@ void FASTCALL glitter_curve_dispose(glitter_curve* c) {
     free(c);
 }
 
-static void FASTCALL glitter_curve_key_pack_file(GPM, f2_struct* st,
+static void FASTCALL glitter_curve_key_pack_file(GLT, f2_struct* st,
     glitter_curve* c, vector_glitter_curve_key* keys) {
     size_t l;
     size_t d;
@@ -423,7 +428,7 @@ static void FASTCALL glitter_curve_key_pack_file(GPM, f2_struct* st,
     st->header.version = c->keys_version;
 }
 
-static void FASTCALL glitter_curve_key_unpack_file(GPM,
+static void FASTCALL glitter_curve_key_unpack_file(GLT,
     f2_struct* st, glitter_curve* c, uint32_t count) {
     size_t i;
     glitter_curve_key key;
@@ -445,7 +450,7 @@ static void FASTCALL glitter_curve_key_unpack_file(GPM,
 
     vector_glitter_curve_key keys = { 0, 0, 0 };
     vector_glitter_curve_key_append(&keys, count);
-    if (glt_type == GLITTER_X && c->keys_version != 2) {
+    if (GLT_VAL == GLITTER_X && c->keys_version != 2) {
         if (st->header.use_big_endian)
             if (c->flags & GLITTER_CURVE_KEY_RANDOM_RANGE)
                 for (i = count; i; i--) {
@@ -693,7 +698,7 @@ static void FASTCALL glitter_curve_key_unpack_file(GPM,
 
     if (c->flags & GLITTER_CURVE_KEY_RANDOM_RANGE && keys.begin) {
         bool has_key_random_range = false;
-        if (glt_type == GLITTER_F2) {
+        if (GLT_VAL == GLITTER_F2) {
             if (count > 1 && keys.begin[0].random_range != 0.0f
                 && keys.begin[1].random_range != 0.0f)
                 has_key_random_range = true;
@@ -738,8 +743,8 @@ static void FASTCALL glitter_curve_key_unpack_file(GPM,
     }
 
     bool curve_baked_half = false;
-    if (curve_baked && (glt_type == GLITTER_F2
-        || (glt_type == GLITTER_X && ~c->flags & GLITTER_CURVE_BAKED_FULL)))
+    if (curve_baked && (GLT_VAL == GLITTER_F2
+        || (GLT_VAL == GLITTER_X && ~c->flags & GLITTER_CURVE_BAKED_FULL)))
         curve_baked_half = true;
 
     const uint8_t step = curve_baked_half ? 2 : 1;
@@ -796,8 +801,7 @@ static void FASTCALL glitter_curve_key_unpack_file(GPM,
                     }
                 }
 
-                t2_old = glitter_curve_key_add_key(GPM_VAL,
-                    has_error, has_error_lerp, true,
+                t2_old = glitter_curve_key_add_key(has_error, has_error_lerp, true,
                     a, b, frame, step, left_count, 0.0f, 0.0f, t2_old, &keys_rev);
             }
             break;
@@ -881,8 +885,7 @@ static void FASTCALL glitter_curve_key_unpack_file(GPM,
             if (has_error_hermite)
                 c = 1;
 
-            t2_old = glitter_curve_key_add_key(GPM_VAL,
-                has_error, has_error_lerp, has_error_hermite,
+            t2_old = glitter_curve_key_add_key(has_error, has_error_lerp, has_error_hermite,
                 a, b, frame, step, c, t1, t2, t2_old, &keys_rev);
             prev_constant = false;
             has_prev_succeded = false;
@@ -890,8 +893,7 @@ static void FASTCALL glitter_curve_key_unpack_file(GPM,
         }
 
         if (has_prev_succeded) {
-            t2_old = glitter_curve_key_add_key(GPM_VAL,
-                has_prev_error, has_prev_error_lerp, has_prev_error_hermite,
+            t2_old = glitter_curve_key_add_key(has_prev_error, has_prev_error_lerp, has_prev_error_hermite,
                 a, b, frame, step, i, t1_prev, t2_prev, t2_old, &keys_rev);
             c = (int32_t)i;
         }
@@ -915,12 +917,12 @@ static void FASTCALL glitter_curve_key_unpack_file(GPM,
     free(arr_b);
     c->keys_rev = keys_rev;
 
-    glitter_curve_recalculate(GPM_VAL, c, &c->keys);
+    glitter_curve_recalculate(GLT_VAL, c);
 #endif
 }
 
 #ifdef CRE_DEV
-static float_t FASTCALL glitter_curve_key_add_key(GPM, bool has_error,
+static float_t FASTCALL glitter_curve_key_add_key(bool has_error,
     bool has_error_lerp, bool has_error_hermite, float_t* a, float_t* b, int32_t frame,
     const uint8_t step, size_t i, float_t t1, float_t t2, float_t t2_old,
     vector_glitter_curve_key* keys_rev) {
@@ -971,7 +973,7 @@ static float_t FASTCALL glitter_curve_key_add_key(GPM, bool has_error,
 }
 #endif
 
-static void FASTCALL glitter_curve_pack_file(GPM,
+static void FASTCALL glitter_curve_pack_file(GLT,
     f2_struct* st, glitter_curve* c, size_t keys_count) {
     size_t l;
     size_t d;
@@ -1019,12 +1021,12 @@ static void FASTCALL glitter_curve_pack_file(GPM,
     st->header.version = c->version;
 }
 
-static void FASTCALL glitter_curve_unpack_file(GPM, void* data,
+static void FASTCALL glitter_curve_unpack_file(GLT, void* data,
     glitter_curve* c, uint32_t version, bool use_big_endian, uint32_t* keys_count) {
     size_t d;
 
     d = (size_t)data;
-    if (glt_type == GLITTER_X) {
+    if (GLT_VAL == GLITTER_X) {
         if (version == 1) {
             if (use_big_endian) {
                 c->type = reverse_endianess_uint32_t(*(uint32_t*)d);

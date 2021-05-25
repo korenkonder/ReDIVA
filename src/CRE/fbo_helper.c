@@ -5,11 +5,31 @@
 
 #include "fbo_helper.h"
 
+void fbo_helper_blit(int32_t src_fbo, GLenum src_mode, int32_t dst_fbo, GLenum dst_mode,
+    int32_t src_x0, int32_t src_y0, int32_t src_x1, int32_t src_y1,
+    int32_t dst_x0, int32_t dst_y0, int32_t dst_x1, int32_t dst_y1, GLbitfield mask, GLenum filter) {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, src_fbo);
+    glReadBuffer(src_mode);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst_fbo);
+    glDrawBuffer(dst_mode);
+    glBlitFramebuffer(src_x0, src_y0, src_x1, src_y1,
+        dst_x0, dst_y0, dst_x1, dst_y1, mask, filter);
+}
+
+void fbo_helper_blit_same(int32_t fbo, GLenum src_mode, GLenum dst_mode,
+    int32_t x0, int32_t y0, int32_t x1, int32_t y1, GLbitfield mask, GLenum filter) {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+    glReadBuffer(src_mode);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+    glDrawBuffer(dst_mode);
+    glBlitFramebuffer(x0, y0, x1, y1, x0, y0, x1, y1, mask, filter);
+}
+
 void fbo_helper_gen_texture_image_ms(int32_t tcb, int32_t width, int32_t height, int32_t samples,
     GLenum internal_format, GLenum format, GLenum type, int32_t attachment) {
     if (samples > 1) {
         bind_tex2dms(tcb);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internal_format, width, height, true);
+        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internal_format, width, height, GL_TRUE);
 
         glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

@@ -326,7 +326,7 @@ typedef struct field_aft101 {
     null_int32_t cam_blur;                                      // AFT110/AFT120/AFT200
     char* ex_auth_3d;
     char* ex_stage;
-    char* light;                                                // AFT200
+    char* light;                                                // AFT100
     null_int32_t light_frame;                                   // AFT200
     null_int32_t npr_type;                                      // AFT110/AFT120/AFT200
     null_int32_t sdw_off;                                       // AFT110/AFT120/AFT200

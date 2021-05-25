@@ -33,6 +33,7 @@ inline uint64_t hash_wchar_t_fnv1a64(wchar_t* data) {
 
 uint32_t hash_murmurhash(uint8_t* data, size_t length,
     uint32_t seed, bool already_upper, bool big_endian) { // 0x814D7A9C in PCSB00554; MurmurHash
+                                                          // 0x8134C304 in PCSB01007
                                                           // 0x0069CEA4 in NPEB02013
     uint32_t a, b, hash;
     size_t i;
