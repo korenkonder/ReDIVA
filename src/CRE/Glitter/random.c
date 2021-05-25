@@ -1115,8 +1115,8 @@ float_t FASTCALL glitter_random_get_float(GLT, glitter_random* random, float_t v
     switch (GLT_VAL) {
     default:
     case GLITTER_AFT:
-        /*val = *(float_t*)&glitter_full_float_table[random->value % 0x1000];
-        break;*/
+        val = *(float_t*)&glitter_full_float_table[random->value % 0x1000];
+        break;
     case GLITTER_F2:
         val = *(float_t*)&glitter_short_float_table[random->value % 0x100];
         break;
@@ -1131,8 +1131,8 @@ float_t FASTCALL glitter_random_get_float_min_max(GLT, glitter_random* random, f
     switch (GLT_VAL) {
     default:
     case GLITTER_AFT:
-        /*value = *(float_t*)&glitter_full_float_table[random->value % 0x1000];
-        break;*/
+        value = *(float_t*)&glitter_full_float_table[random->value % 0x1000];
+        break;
     case GLITTER_F2:
         value = *(float_t*)&glitter_short_float_table[random->value % 0x100];
         break;
@@ -1148,13 +1148,13 @@ void FASTCALL glitter_random_get_vec3(GLT, glitter_random* random, vec3* src, ve
     switch (GLT_VAL) {
     default:
     case GLITTER_AFT:
-        /*val.x = *(float_t*)&glitter_full_float_table[random->value % 0x1000];
+        val.x = *(float_t*)&glitter_full_float_table[random->value % 0x1000];
         random->value++;
         val.y = *(float_t*)&glitter_full_float_table[random->value % 0x1000];
         random->value++;
         val.z = *(float_t*)&glitter_full_float_table[random->value % 0x1000];
         random->value++;
-        break;*/
+        break;
     case GLITTER_F2:
         val.x = *(float_t*)&glitter_short_float_table[random->value % 0x100];
         random->value++;
@@ -1175,8 +1175,8 @@ int32_t FASTCALL glitter_random_get_int(GLT, glitter_random* random, int32_t val
     switch (GLT_VAL) {
     default:
     case GLITTER_AFT:
-        /*val = glitter_full_int_table[random->value % 0x1000];
-        break;*/
+        val = glitter_full_int_table[random->value % 0x1000];
+        break;
     case GLITTER_F2:
         val = glitter_short_int_table[random->value % 0x100];
         break;
@@ -1194,8 +1194,8 @@ int32_t FASTCALL glitter_random_get_int_min_max(GLT, glitter_random* random, int
     switch (GLT_VAL) {
     default:
     case GLITTER_AFT:
-        /*value = glitter_full_int_table[random->value % 0x1000];
-        break;*/
+        value = glitter_full_int_table[random->value % 0x1000];
+        break;
     case GLITTER_F2:
         value = glitter_short_int_table[random->value % 0x100];
         break;
@@ -1208,7 +1208,7 @@ int32_t FASTCALL glitter_random_get_max(GLT) {
     switch (GLT_VAL) {
     default:
     case GLITTER_AFT:
-        /*return 0x1000;*/
+        return 0x1000;
     case GLITTER_F2:
         return 0x100;
     }
