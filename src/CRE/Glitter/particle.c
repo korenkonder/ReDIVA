@@ -15,10 +15,29 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
 glitter_particle* FASTCALL glitter_particle_init(GLT) {
     glitter_particle* p = force_malloc(sizeof(glitter_particle));
     p->version = GLT_VAL == GLITTER_X ? 0x05 : 0x03;
+    p->data.pivot = GLITTER_PIVOT_MIDDLE_CENTER;
+    p->data.scale = vec3_identity;
+    p->data.reflection_coeff = 1.0f;
+    p->data.color = vec4_identity;
+    p->data.uv_index = 0;
+    p->data.uv_index_start = 0;
+    p->data.uv_index_end = 1;
+    p->data.uv_scroll_add_scale = 1.0f;
+    p->data.uv_scroll_2nd_add_scale = 1.0f;
+    p->data.split_uv = vec2_identity;
+    p->data.split_u = 1;
+    p->data.split_v = 1;
+    p->data.sub_flags = GLITTER_PARTICLE_SUB_USE_CURVE;
+    p->data.blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
+    p->data.mask_blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
+    p->data.tex_hash = GLT_VAL != GLITTER_AFT
+        ? hash_murmurhash_empty : hash_fnv1a64_empty;
+    p->data.mask_tex_hash = GLT_VAL != GLITTER_AFT
+        ? hash_murmurhash_empty : hash_fnv1a64_empty;
     return p;
 }
 
-glitter_particle* FASTCALL glitter_particle_copy(GLT, glitter_particle* p) {
+glitter_particle* FASTCALL glitter_particle_copy(glitter_particle* p) {
     if (!p)
         return 0;
 
@@ -26,7 +45,7 @@ glitter_particle* FASTCALL glitter_particle_copy(GLT, glitter_particle* p) {
     *pc = *p;
 
     pc->animation = (glitter_animation){ 0, 0, 0 };
-    glitter_animation_copy(GLT_VAL, &p->animation, &pc->animation);
+    glitter_animation_copy(&p->animation, &pc->animation);
     return pc;
 }
 
@@ -49,7 +68,7 @@ bool FASTCALL glitter_particle_parse_file(glitter_effect_group* a1,
         if (!i->header.data_size)
             continue;
 
-        if (i->header.signature == reverse_endianess_uint32_t('ANIM')) {
+        if (i->header.signature == reverse_endianness_uint32_t('ANIM')) {
             glitter_curve_type_flags flags = 0;
             if (a1->type == GLITTER_X)
                 flags = glitter_particle_x_curve_flags;
@@ -209,12 +228,12 @@ static bool FASTCALL glitter_particle_pack_file(GLT,
         d += 4;
     }
 
-    *(uint64_t*)d = a3->data.tex_hash0;
+    *(uint64_t*)d = a3->data.tex_hash;
     *(uint8_t*)(d + 8) = (uint8_t)roundf(clamp(a3->data.color.x, 0.0f, 1.0f) * 255.0f);
     *(uint8_t*)(d + 9) = (uint8_t)roundf(clamp(a3->data.color.y, 0.0f, 1.0f) * 255.0f);
     *(uint8_t*)(d + 10) = (uint8_t)roundf(clamp(a3->data.color.z, 0.0f, 1.0f) * 255.0f);
     *(uint8_t*)(d + 11) = (uint8_t)roundf(clamp(a3->data.color.w, 0.0f, 1.0f) * 255.0f);
-    *(int32_t*)(d + 12) = a3->data.blend_mode0;
+    *(int32_t*)(d + 12) = a3->data.blend_mode;
     *(int32_t*)(d + 16) = a3->data.unk0;
     *(int32_t*)(d + 20) = a3->data.split_u;
     *(int32_t*)(d + 24) = a3->data.split_v;
@@ -230,9 +249,9 @@ static bool FASTCALL glitter_particle_pack_file(GLT,
     else
         d += 44;
 
-    if (a3->data.flags & GLITTER_PARTICLE_SECOND_TEXTURE) {
-        *(uint64_t*)d = a3->data.tex_hash1;
-        *(int32_t*)(d + 8) = a3->data.blend_mode1;
+    if (a3->data.flags & GLITTER_PARTICLE_TEXTURE_MASK) {
+        *(uint64_t*)d = a3->data.mask_tex_hash;
+        *(int32_t*)(d + 8) = a3->data.mask_blend_mode;
         d += 12;
     }
     else {
@@ -241,7 +260,7 @@ static bool FASTCALL glitter_particle_pack_file(GLT,
         d += 12;
     }
 
-    st->header.signature = reverse_endianess_uint32_t('PTCL');
+    st->header.signature = reverse_endianness_uint32_t('PTCL');
     st->header.length = 0x20;
     st->header.use_big_endian = false;
     st->header.use_section_size = true;
@@ -255,10 +274,10 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
     uint8_t b;
     uint8_t g;
     uint8_t a;
-    glitter_particle_blend blend_mode0;
-    glitter_particle_blend blend_mode1;
-    uint64_t tex_hash0;
-    uint64_t tex_hash1;
+    glitter_particle_blend blend_mode;
+    glitter_particle_blend mask_blend_mode;
+    uint64_t tex_hash;
+    uint64_t mask_tex_hash;
     int32_t frame_step_uv;
     int32_t uv_index_start;
     int32_t uv_index;
@@ -280,14 +299,14 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
 
         d = (size_t)data;
         if (use_big_endian) {
-            a3->data.life_time = reverse_endianess_int32_t(*(int32_t*)d);
-            a3->data.life_time_random = reverse_endianess_int32_t(*(int32_t*)(d + 4));
-            a3->data.fade_in = reverse_endianess_int32_t(*(int32_t*)(d + 8));
-            a3->data.fade_in_random = reverse_endianess_int32_t(*(int32_t*)(d + 12));
-            a3->data.fade_out = reverse_endianess_int32_t(*(int32_t*)(d + 16));
-            a3->data.fade_out_random = reverse_endianess_int32_t(*(int32_t*)(d + 20));
-            a3->data.type = reverse_endianess_int32_t(*(int32_t*)(d + 24));
-            a3->data.draw_type = reverse_endianess_int32_t(*(int32_t*)(d + 28));
+            a3->data.life_time = load_reverse_endianness_int32_t((void*)d);
+            a3->data.life_time_random = load_reverse_endianness_int32_t((void*)(d + 4));
+            a3->data.fade_in = load_reverse_endianness_int32_t((void*)(d + 8));
+            a3->data.fade_in_random = load_reverse_endianness_int32_t((void*)(d + 12));
+            a3->data.fade_out = load_reverse_endianness_int32_t((void*)(d + 16));
+            a3->data.fade_out_random = load_reverse_endianness_int32_t((void*)(d + 20));
+            a3->data.type = load_reverse_endianness_int32_t((void*)(d + 24));
+            a3->data.draw_type = load_reverse_endianness_int32_t((void*)(d + 28));
         }
         else {
             a3->data.life_time = *(int32_t*)d;
@@ -304,27 +323,27 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             return false;
 
         if (use_big_endian) {
-            a3->data.rotation.x = reverse_endianess_float_t(*(float_t*)(d + 32));
-            a3->data.rotation.y = reverse_endianess_float_t(*(float_t*)(d + 36));
-            a3->data.rotation.z = reverse_endianess_float_t(*(float_t*)(d + 40));
-            a3->data.rotation_random.x = reverse_endianess_float_t(*(float_t*)(d + 44));
-            a3->data.rotation_random.y = reverse_endianess_float_t(*(float_t*)(d + 48));
-            a3->data.rotation_random.z = reverse_endianess_float_t(*(float_t*)(d + 52));
-            a3->data.rotation_add.x = reverse_endianess_float_t(*(float_t*)(d + 56));
-            a3->data.rotation_add.y = reverse_endianess_float_t(*(float_t*)(d + 60));
-            a3->data.rotation_add.z = reverse_endianess_float_t(*(float_t*)(d + 64));
-            a3->data.rotation_add_random.x = reverse_endianess_float_t(*(float_t*)(d + 68));
-            a3->data.rotation_add_random.y = reverse_endianess_float_t(*(float_t*)(d + 72));
-            a3->data.rotation_add_random.z = reverse_endianess_float_t(*(float_t*)(d + 76));
-            a3->data.scale.x = reverse_endianess_float_t(*(float_t*)(d + 80));
-            a3->data.scale.y = reverse_endianess_float_t(*(float_t*)(d + 84));
-            a3->data.scale.z = reverse_endianess_float_t(*(float_t*)(d + 88));
-            a3->data.scale_random.x = reverse_endianess_float_t(*(float_t*)(d + 92));
-            a3->data.scale_random.y = reverse_endianess_float_t(*(float_t*)(d + 96));
-            a3->data.scale_random.z = reverse_endianess_float_t(*(float_t*)(d + 100));
-            a3->data.z_offset = reverse_endianess_float_t(*(float_t*)(d + 104));
-            a3->data.pivot = reverse_endianess_int32_t(*(int32_t*)(d + 108));
-            a3->data.flags = reverse_endianess_int32_t(*(int32_t*)(d + 112));
+            a3->data.rotation.x = load_reverse_endianness_float_t((void*)(d + 32));
+            a3->data.rotation.y = load_reverse_endianness_float_t((void*)(d + 36));
+            a3->data.rotation.z = load_reverse_endianness_float_t((void*)(d + 40));
+            a3->data.rotation_random.x = load_reverse_endianness_float_t((void*)(d + 44));
+            a3->data.rotation_random.y = load_reverse_endianness_float_t((void*)(d + 48));
+            a3->data.rotation_random.z = load_reverse_endianness_float_t((void*)(d + 52));
+            a3->data.rotation_add.x = load_reverse_endianness_float_t((void*)(d + 56));
+            a3->data.rotation_add.y = load_reverse_endianness_float_t((void*)(d + 60));
+            a3->data.rotation_add.z = load_reverse_endianness_float_t((void*)(d + 64));
+            a3->data.rotation_add_random.x = load_reverse_endianness_float_t((void*)(d + 68));
+            a3->data.rotation_add_random.y = load_reverse_endianness_float_t((void*)(d + 72));
+            a3->data.rotation_add_random.z = load_reverse_endianness_float_t((void*)(d + 76));
+            a3->data.scale.x = load_reverse_endianness_float_t((void*)(d + 80));
+            a3->data.scale.y = load_reverse_endianness_float_t((void*)(d + 84));
+            a3->data.scale.z = load_reverse_endianness_float_t((void*)(d + 88));
+            a3->data.scale_random.x = load_reverse_endianness_float_t((void*)(d + 92));
+            a3->data.scale_random.y = load_reverse_endianness_float_t((void*)(d + 96));
+            a3->data.scale_random.z = load_reverse_endianness_float_t((void*)(d + 100));
+            a3->data.z_offset = load_reverse_endianness_float_t((void*)(d + 104));
+            a3->data.pivot = load_reverse_endianness_int32_t((void*)(d + 108));
+            a3->data.flags = load_reverse_endianness_int32_t((void*)(d + 112));
         }
         else {
             a3->data.rotation = *(vec3*)(d + 32);
@@ -344,38 +363,38 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.flags |= GLITTER_PARTICLE_EMISSION;
 
         if (use_big_endian) {
-            a3->data.uv_scroll_2nd_add.x = reverse_endianess_float_t(*(float_t*)(d + 120));
-            a3->data.uv_scroll_2nd_add.y = reverse_endianess_float_t(*(float_t*)(d + 124));
-            a3->data.uv_scroll_2nd_add_scale = reverse_endianess_float_t(*(float_t*)(d + 128));
-            a3->data.speed = reverse_endianess_float_t(*(float_t*)(d + 136));
-            a3->data.speed_random = reverse_endianess_float_t(*(float_t*)(d + 140));
-            a3->data.deceleration = reverse_endianess_float_t(*(float_t*)(d + 144));
-            a3->data.deceleration_random = reverse_endianess_float_t(*(float_t*)(d + 148));
-            a3->data.direction.x = reverse_endianess_float_t(*(float_t*)(d + 152));
-            a3->data.direction.y = reverse_endianess_float_t(*(float_t*)(d + 156));
-            a3->data.direction.z = reverse_endianess_float_t(*(float_t*)(d + 160));
-            a3->data.direction_random.x = reverse_endianess_float_t(*(float_t*)(d + 164));
-            a3->data.direction_random.y = reverse_endianess_float_t(*(float_t*)(d + 168));
-            a3->data.direction_random.z = reverse_endianess_float_t(*(float_t*)(d + 172));
-            a3->data.gravity.x = reverse_endianess_float_t(*(float_t*)(d + 176));
-            a3->data.gravity.y = reverse_endianess_float_t(*(float_t*)(d + 180));
-            a3->data.gravity.z = reverse_endianess_float_t(*(float_t*)(d + 184));
-            a3->data.acceleration.x = reverse_endianess_float_t(*(float_t*)(d + 188));
-            a3->data.acceleration.y = reverse_endianess_float_t(*(float_t*)(d + 192));
-            a3->data.acceleration.z = reverse_endianess_float_t(*(float_t*)(d + 196));
-            a3->data.acceleration_random.x = reverse_endianess_float_t(*(float_t*)(d + 200));
-            a3->data.acceleration_random.y = reverse_endianess_float_t(*(float_t*)(d + 204));
-            a3->data.acceleration_random.z = reverse_endianess_float_t(*(float_t*)(d + 208));
-            a3->data.reflection_coeff = reverse_endianess_float_t(*(float_t*)(d + 212));
-            a3->data.reflection_coeff_random = reverse_endianess_float_t(*(float_t*)(d + 216));
-            a3->data.rebound_plane_y = reverse_endianess_float_t(*(float_t*)(d + 220));
-            a3->data.uv_scroll_add.x = reverse_endianess_float_t(*(float_t*)(d + 224));
-            a3->data.uv_scroll_add.y = reverse_endianess_float_t(*(float_t*)(d + 228));
-            a3->data.uv_scroll_add_scale = reverse_endianess_float_t(*(float_t*)(d + 232));
-            a3->data.sub_flags = reverse_endianess_int32_t(*(int32_t*)(d + 236));
-            a3->data.count = reverse_endianess_int32_t(*(int32_t*)(d + 240));
-            a3->data.draw_flags = reverse_endianess_int32_t(*(int32_t*)(d + 244));
-            a3->data.emission = reverse_endianess_float_t(*(float_t*)(d + 252));
+            a3->data.uv_scroll_2nd_add.x = load_reverse_endianness_float_t((void*)(d + 120));
+            a3->data.uv_scroll_2nd_add.y = load_reverse_endianness_float_t((void*)(d + 124));
+            a3->data.uv_scroll_2nd_add_scale = load_reverse_endianness_float_t((void*)(d + 128));
+            a3->data.speed = load_reverse_endianness_float_t((void*)(d + 136));
+            a3->data.speed_random = load_reverse_endianness_float_t((void*)(d + 140));
+            a3->data.deceleration = load_reverse_endianness_float_t((void*)(d + 144));
+            a3->data.deceleration_random = load_reverse_endianness_float_t((void*)(d + 148));
+            a3->data.direction.x = load_reverse_endianness_float_t((void*)(d + 152));
+            a3->data.direction.y = load_reverse_endianness_float_t((void*)(d + 156));
+            a3->data.direction.z = load_reverse_endianness_float_t((void*)(d + 160));
+            a3->data.direction_random.x = load_reverse_endianness_float_t((void*)(d + 164));
+            a3->data.direction_random.y = load_reverse_endianness_float_t((void*)(d + 168));
+            a3->data.direction_random.z = load_reverse_endianness_float_t((void*)(d + 172));
+            a3->data.gravity.x = load_reverse_endianness_float_t((void*)(d + 176));
+            a3->data.gravity.y = load_reverse_endianness_float_t((void*)(d + 180));
+            a3->data.gravity.z = load_reverse_endianness_float_t((void*)(d + 184));
+            a3->data.acceleration.x = load_reverse_endianness_float_t((void*)(d + 188));
+            a3->data.acceleration.y = load_reverse_endianness_float_t((void*)(d + 192));
+            a3->data.acceleration.z = load_reverse_endianness_float_t((void*)(d + 196));
+            a3->data.acceleration_random.x = load_reverse_endianness_float_t((void*)(d + 200));
+            a3->data.acceleration_random.y = load_reverse_endianness_float_t((void*)(d + 204));
+            a3->data.acceleration_random.z = load_reverse_endianness_float_t((void*)(d + 208));
+            a3->data.reflection_coeff = load_reverse_endianness_float_t((void*)(d + 212));
+            a3->data.reflection_coeff_random = load_reverse_endianness_float_t((void*)(d + 216));
+            a3->data.rebound_plane_y = load_reverse_endianness_float_t((void*)(d + 220));
+            a3->data.uv_scroll_add.x = load_reverse_endianness_float_t((void*)(d + 224));
+            a3->data.uv_scroll_add.y = load_reverse_endianness_float_t((void*)(d + 228));
+            a3->data.uv_scroll_add_scale = load_reverse_endianness_float_t((void*)(d + 232));
+            a3->data.sub_flags = load_reverse_endianness_int32_t((void*)(d + 236));
+            a3->data.count = load_reverse_endianness_int32_t((void*)(d + 240));
+            a3->data.draw_flags = load_reverse_endianness_int32_t((void*)(d + 244));
+            a3->data.emission = load_reverse_endianness_float_t((void*)(d + 252));
         }
         else {
             a3->data.uv_scroll_2nd_add.x = *(float_t*)(d + 120);
@@ -424,8 +443,8 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             has_tex = false;
         else if (a3->data.type == GLITTER_PARTICLE_LOCUS) {
             if (use_big_endian) {
-                a3->data.locus_history_size = reverse_endianess_uint16_t(*(uint16_t*)(d + 0));
-                a3->data.locus_history_size_random = reverse_endianess_uint16_t(*(uint16_t*)(d + 2));
+                a3->data.locus_history_size = load_reverse_endianness_uint16_t((void*)(d + 0));
+                a3->data.locus_history_size_random = load_reverse_endianness_uint16_t((void*)(d + 2));
             }
             else {
                 a3->data.locus_history_size = *(uint16_t*)(d + 0);
@@ -435,49 +454,58 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             has_tex = true;
         }
         else if (a3->data.type == GLITTER_PARTICLE_MESH) {
-            a3->data.mesh.object_name_hash = *(uint64_t*)d;
-            a3->data.mesh.object_file_hash = *(uint64_t*)(d + 8);
+            if (use_big_endian) {
+                a3->data.mesh.object_name_hash = load_reverse_endianness_uint64_t((void*)d);
+                a3->data.mesh.object_file_hash = load_reverse_endianness_uint64_t((void*)(d + 8));
+            }
+            else {
+                a3->data.mesh.object_name_hash = *(uint64_t*)d;
+                a3->data.mesh.object_file_hash = *(uint64_t*)(d + 8);
+            }
             memcpy(a3->data.mesh.object_mesh_name, (void*)(d + 16), 0x40);
-            a3->data.mesh.some_hash = *(uint64_t*)(d + 80);
+            if (use_big_endian)
+                a3->data.mesh.some_hash = load_reverse_endianness_uint64_t((void*)(d + 80));
+            else
+                a3->data.mesh.some_hash = *(uint64_t*)(d + 80);
             d += 88;
             has_tex = false;
         }
         else
             return false;
 
-        a3->data.texture0 = 0;
-        a3->data.texture1 = 0;
+        a3->data.texture = 0;
+        a3->data.mask_texture = 0;
 
-        tex_hash0 = hash_murmurhash_empty;
-        tex_hash1 = hash_murmurhash_empty;
+        tex_hash = hash_murmurhash_empty;
+        mask_tex_hash = hash_murmurhash_empty;
         unk0 = 0;
         unk1 = 0;
 
         if (use_big_endian) {
             if (has_tex)
-                tex_hash0 = reverse_endianess_uint64_t(*(uint64_t*)d);
+                tex_hash = load_reverse_endianness_uint64_t((void*)d);
             r = *(uint8_t*)(d + 8);
             g = *(uint8_t*)(d + 9);
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
-            blend_mode0 = reverse_endianess_int32_t(*(int32_t*)(d + 12));
-            split_u = (uint8_t)reverse_endianess_int32_t(*(int32_t*)(d + 20));
-            split_v = (uint8_t)reverse_endianess_int32_t(*(int32_t*)(d + 24));
-            uv_index_type = reverse_endianess_int32_t(*(int32_t*)(d + 28));
-            uv_index = reverse_endianess_int16_t(*(int16_t*)(d + 32));
-            frame_step_uv = reverse_endianess_int16_t(*(int16_t*)(d + 34));
-            uv_index_start = reverse_endianess_int32_t(*(int32_t*)(d + 36));
-            uv_index_end = reverse_endianess_int32_t(*(int32_t*)(d + 40));
-            unk1 = reverse_endianess_int32_t(*(int32_t*)(d + 44));
+            blend_mode = load_reverse_endianness_int32_t((void*)(d + 12));
+            split_u = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 20));
+            split_v = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 24));
+            uv_index_type = load_reverse_endianness_int32_t((void*)(d + 28));
+            uv_index = load_reverse_endianness_int16_t((void*)(d + 32));
+            frame_step_uv = load_reverse_endianness_int16_t((void*)(d + 34));
+            uv_index_start = load_reverse_endianness_int32_t((void*)(d + 36));
+            uv_index_end = load_reverse_endianness_int32_t((void*)(d + 40));
+            unk1 = load_reverse_endianness_int32_t((void*)(d + 44));
         }
         else {
             if (has_tex)
-                tex_hash0 = *(uint64_t*)d;
+                tex_hash = *(uint64_t*)d;
             r = *(uint8_t*)(d + 8);
             g = *(uint8_t*)(d + 9);
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
-            blend_mode0 = *(int32_t*)(d + 12);
+            blend_mode = *(int32_t*)(d + 12);
             split_u = (uint8_t) * (int32_t*)(d + 20);
             split_v = (uint8_t) * (int32_t*)(d + 24);
             uv_index_type = *(int32_t*)(d + 28);
@@ -489,26 +517,26 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
         }
         d += 48;
 
-        if (a3->data.flags & GLITTER_PARTICLE_SECOND_TEXTURE)
+        if (a3->data.flags & GLITTER_PARTICLE_TEXTURE_MASK)
             if (use_big_endian) {
                 if (has_tex)
-                    tex_hash1 = reverse_endianess_uint64_t(*(uint64_t*)d);
-                blend_mode1 = reverse_endianess_int32_t(*(int32_t*)(d + 8));
+                    mask_tex_hash = load_reverse_endianness_uint64_t((void*)d);
+                mask_blend_mode = load_reverse_endianness_int32_t((void*)(d + 8));
             }
             else {
                 if (has_tex)
-                    tex_hash1 = *(uint64_t*)d;
-                blend_mode1 = *(int32_t*)(d + 8);
+                    mask_tex_hash = *(uint64_t*)d;
+                mask_blend_mode = *(int32_t*)(d + 8);
             }
         else
-            blend_mode1 = GLITTER_PARTICLE_BLEND_TYPICAL;
+            mask_blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
     }
     else {
         d = (size_t)data;
         if (use_big_endian) {
-            a3->data.life_time = reverse_endianess_int32_t(*(int32_t*)d);
-            a3->data.type = reverse_endianess_int32_t(*(int32_t*)(d + 4));
-            a3->data.draw_type = reverse_endianess_int32_t(*(int32_t*)(d + 8));
+            a3->data.life_time = load_reverse_endianness_int32_t((void*)d);
+            a3->data.type = load_reverse_endianness_int32_t((void*)(d + 4));
+            a3->data.draw_type = load_reverse_endianness_int32_t((void*)(d + 8));
         }
         else {
             a3->data.life_time =  *(int32_t*)d;
@@ -520,27 +548,27 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             return false;
 
         if (use_big_endian) {
-            a3->data.rotation.x = reverse_endianess_float_t(*(float_t*)(d + 12));
-            a3->data.rotation.y = reverse_endianess_float_t(*(float_t*)(d + 16));
-            a3->data.rotation.z = reverse_endianess_float_t(*(float_t*)(d + 20));
-            a3->data.rotation_random.x = reverse_endianess_float_t(*(float_t*)(d + 24));
-            a3->data.rotation_random.y = reverse_endianess_float_t(*(float_t*)(d + 28));
-            a3->data.rotation_random.z = reverse_endianess_float_t(*(float_t*)(d + 32));
-            a3->data.rotation_add.x = reverse_endianess_float_t(*(float_t*)(d + 36));
-            a3->data.rotation_add.y = reverse_endianess_float_t(*(float_t*)(d + 40));
-            a3->data.rotation_add.z = reverse_endianess_float_t(*(float_t*)(d + 44));
-            a3->data.rotation_add_random.x = reverse_endianess_float_t(*(float_t*)(d + 48));
-            a3->data.rotation_add_random.y = reverse_endianess_float_t(*(float_t*)(d + 52));
-            a3->data.rotation_add_random.z = reverse_endianess_float_t(*(float_t*)(d + 56));
-            a3->data.scale.x = reverse_endianess_float_t(*(float_t*)(d + 60));
-            a3->data.scale.y = reverse_endianess_float_t(*(float_t*)(d + 64));
-            a3->data.scale.z = reverse_endianess_float_t(*(float_t*)(d + 68));
-            a3->data.scale_random.x = reverse_endianess_float_t(*(float_t*)(d + 72));
-            a3->data.scale_random.y = reverse_endianess_float_t(*(float_t*)(d + 76));
-            a3->data.scale_random.z = reverse_endianess_float_t(*(float_t*)(d + 80));
-            a3->data.z_offset = reverse_endianess_float_t(*(float_t*)(d + 84));
-            a3->data.pivot = reverse_endianess_int32_t(*(int32_t*)(d + 88));
-            a3->data.flags = reverse_endianess_int32_t(*(int32_t*)(d + 92));
+            a3->data.rotation.x = load_reverse_endianness_float_t((void*)(d + 12));
+            a3->data.rotation.y = load_reverse_endianness_float_t((void*)(d + 16));
+            a3->data.rotation.z = load_reverse_endianness_float_t((void*)(d + 20));
+            a3->data.rotation_random.x = load_reverse_endianness_float_t((void*)(d + 24));
+            a3->data.rotation_random.y = load_reverse_endianness_float_t((void*)(d + 28));
+            a3->data.rotation_random.z = load_reverse_endianness_float_t((void*)(d + 32));
+            a3->data.rotation_add.x = load_reverse_endianness_float_t((void*)(d + 36));
+            a3->data.rotation_add.y = load_reverse_endianness_float_t((void*)(d + 40));
+            a3->data.rotation_add.z = load_reverse_endianness_float_t((void*)(d + 44));
+            a3->data.rotation_add_random.x = load_reverse_endianness_float_t((void*)(d + 48));
+            a3->data.rotation_add_random.y = load_reverse_endianness_float_t((void*)(d + 52));
+            a3->data.rotation_add_random.z = load_reverse_endianness_float_t((void*)(d + 56));
+            a3->data.scale.x = load_reverse_endianness_float_t((void*)(d + 60));
+            a3->data.scale.y = load_reverse_endianness_float_t((void*)(d + 64));
+            a3->data.scale.z = load_reverse_endianness_float_t((void*)(d + 68));
+            a3->data.scale_random.x = load_reverse_endianness_float_t((void*)(d + 72));
+            a3->data.scale_random.y = load_reverse_endianness_float_t((void*)(d + 76));
+            a3->data.scale_random.z = load_reverse_endianness_float_t((void*)(d + 80));
+            a3->data.z_offset = load_reverse_endianness_float_t((void*)(d + 84));
+            a3->data.pivot = load_reverse_endianness_int32_t((void*)(d + 88));
+            a3->data.flags = load_reverse_endianness_int32_t((void*)(d + 92));
         }
         else {
             a3->data.rotation = *(vec3*)(d + 12);
@@ -560,33 +588,33 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.flags |= GLITTER_PARTICLE_EMISSION;
 
         if (use_big_endian) {
-            a3->data.speed = reverse_endianess_float_t(*(float_t*)(d + 96));
-            a3->data.speed_random = reverse_endianess_float_t(*(float_t*)(d + 100));
-            a3->data.deceleration = reverse_endianess_float_t(*(float_t*)(d + 104));
-            a3->data.deceleration_random = reverse_endianess_float_t(*(float_t*)(d + 108));
-            a3->data.direction.x = reverse_endianess_float_t(*(float_t*)(d + 112));
-            a3->data.direction.y = reverse_endianess_float_t(*(float_t*)(d + 116));
-            a3->data.direction.z = reverse_endianess_float_t(*(float_t*)(d + 120));
-            a3->data.direction_random.x = reverse_endianess_float_t(*(float_t*)(d + 124));
-            a3->data.direction_random.y = reverse_endianess_float_t(*(float_t*)(d + 128));
-            a3->data.direction_random.z = reverse_endianess_float_t(*(float_t*)(d + 132));
-            a3->data.gravity.x = reverse_endianess_float_t(*(float_t*)(d + 136));
-            a3->data.gravity.y = reverse_endianess_float_t(*(float_t*)(d + 140));
-            a3->data.gravity.z = reverse_endianess_float_t(*(float_t*)(d + 144));
-            a3->data.acceleration.x = reverse_endianess_float_t(*(float_t*)(d + 148));
-            a3->data.acceleration.y = reverse_endianess_float_t(*(float_t*)(d + 152));
-            a3->data.acceleration.z = reverse_endianess_float_t(*(float_t*)(d + 156));
-            a3->data.acceleration_random.x = reverse_endianess_float_t(*(float_t*)(d + 160));
-            a3->data.acceleration_random.y = reverse_endianess_float_t(*(float_t*)(d + 164));
-            a3->data.acceleration_random.z = reverse_endianess_float_t(*(float_t*)(d + 168));
-            a3->data.reflection_coeff = reverse_endianess_float_t(*(float_t*)(d + 172));
-            a3->data.reflection_coeff_random = reverse_endianess_float_t(*(float_t*)(d + 176));
-            a3->data.rebound_plane_y = reverse_endianess_float_t(*(float_t*)(d + 180));
-            a3->data.uv_scroll_add.x = reverse_endianess_float_t(*(float_t*)(d + 184));
-            a3->data.uv_scroll_add.y = reverse_endianess_float_t(*(float_t*)(d + 188));
-            a3->data.uv_scroll_add_scale = reverse_endianess_float_t(*(float_t*)(d + 192));
-            a3->data.sub_flags = reverse_endianess_int32_t(*(int32_t*)(d + 196));
-            a3->data.count = reverse_endianess_int32_t(*(int32_t*)(d + 200));
+            a3->data.speed = load_reverse_endianness_float_t((void*)(d + 96));
+            a3->data.speed_random = load_reverse_endianness_float_t((void*)(d + 100));
+            a3->data.deceleration = load_reverse_endianness_float_t((void*)(d + 104));
+            a3->data.deceleration_random = load_reverse_endianness_float_t((void*)(d + 108));
+            a3->data.direction.x = load_reverse_endianness_float_t((void*)(d + 112));
+            a3->data.direction.y = load_reverse_endianness_float_t((void*)(d + 116));
+            a3->data.direction.z = load_reverse_endianness_float_t((void*)(d + 120));
+            a3->data.direction_random.x = load_reverse_endianness_float_t((void*)(d + 124));
+            a3->data.direction_random.y = load_reverse_endianness_float_t((void*)(d + 128));
+            a3->data.direction_random.z = load_reverse_endianness_float_t((void*)(d + 132));
+            a3->data.gravity.x = load_reverse_endianness_float_t((void*)(d + 136));
+            a3->data.gravity.y = load_reverse_endianness_float_t((void*)(d + 140));
+            a3->data.gravity.z = load_reverse_endianness_float_t((void*)(d + 144));
+            a3->data.acceleration.x = load_reverse_endianness_float_t((void*)(d + 148));
+            a3->data.acceleration.y = load_reverse_endianness_float_t((void*)(d + 152));
+            a3->data.acceleration.z = load_reverse_endianness_float_t((void*)(d + 156));
+            a3->data.acceleration_random.x = load_reverse_endianness_float_t((void*)(d + 160));
+            a3->data.acceleration_random.y = load_reverse_endianness_float_t((void*)(d + 164));
+            a3->data.acceleration_random.z = load_reverse_endianness_float_t((void*)(d + 168));
+            a3->data.reflection_coeff = load_reverse_endianness_float_t((void*)(d + 172));
+            a3->data.reflection_coeff_random = load_reverse_endianness_float_t((void*)(d + 176));
+            a3->data.rebound_plane_y = load_reverse_endianness_float_t((void*)(d + 180));
+            a3->data.uv_scroll_add.x = load_reverse_endianness_float_t((void*)(d + 184));
+            a3->data.uv_scroll_add.y = load_reverse_endianness_float_t((void*)(d + 188));
+            a3->data.uv_scroll_add_scale = load_reverse_endianness_float_t((void*)(d + 192));
+            a3->data.sub_flags = load_reverse_endianness_int32_t((void*)(d + 196));
+            a3->data.count = load_reverse_endianness_int32_t((void*)(d + 200));
         }
         else {
             a3->data.speed = *(float_t*)(d + 96);
@@ -615,7 +643,7 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
 
         if (a3->version == 3) {
             if (use_big_endian)
-                a3->data.emission = reverse_endianess_float_t(*(float_t*)(d + 4));
+                a3->data.emission = load_reverse_endianness_float_t((void*)(d + 4));
             else
                 a3->data.emission = *(float_t*)(d + 4);
 
@@ -626,8 +654,8 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
 
         if (a3->data.type == GLITTER_PARTICLE_LOCUS || a3->data.type == GLITTER_PARTICLE_MESH) {
             if (use_big_endian) {
-                a3->data.locus_history_size = reverse_endianess_uint16_t(*(uint16_t*)d);
-                a3->data.locus_history_size_random = reverse_endianess_uint16_t(*(uint16_t*)(d + 2));
+                a3->data.locus_history_size = load_reverse_endianness_uint16_t((void*)d);
+                a3->data.locus_history_size_random = load_reverse_endianness_uint16_t((void*)(d + 2));
             }
             else {
                 a3->data.locus_history_size = *(uint16_t*)d;
@@ -636,35 +664,35 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             d += 4;
         }
 
-        a3->data.texture0 = 0;
-        a3->data.texture1 = 0;
+        a3->data.texture = 0;
+        a3->data.mask_texture = 0;
 
         unk0 = 0;
         unk1 = 0;
 
         if (use_big_endian) {
-            tex_hash0 = reverse_endianess_uint64_t(*(uint64_t*)d);
+            tex_hash = load_reverse_endianness_uint64_t((void*)d);
             r = *(uint8_t*)(d + 8);
             g = *(uint8_t*)(d + 9);
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
-            blend_mode0 = reverse_endianess_int32_t(*(int32_t*)(d + 12));
-            unk0 = reverse_endianess_int32_t(*(int32_t*)(d + 16));
-            split_u = (uint8_t)reverse_endianess_int32_t(*(int32_t*)(d + 20));
-            split_v = (uint8_t)reverse_endianess_int32_t(*(int32_t*)(d + 24));
-            uv_index_type = reverse_endianess_int32_t(*(int32_t*)(d + 28));
-            uv_index = reverse_endianess_int16_t(*(int16_t*)(d + 32));
-            frame_step_uv = reverse_endianess_int16_t(*(int16_t*)(d + 34));
-            uv_index_start = reverse_endianess_int32_t(*(int32_t*)(d + 36));
-            uv_index_end = reverse_endianess_int32_t(*(int32_t*)(d + 40));
+            blend_mode = load_reverse_endianness_int32_t((void*)(d + 12));
+            unk0 = load_reverse_endianness_int32_t((void*)(d + 16));
+            split_u = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 20));
+            split_v = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 24));
+            uv_index_type = load_reverse_endianness_int32_t((void*)(d + 28));
+            uv_index = load_reverse_endianness_int16_t((void*)(d + 32));
+            frame_step_uv = load_reverse_endianness_int16_t((void*)(d + 34));
+            uv_index_start = load_reverse_endianness_int32_t((void*)(d + 36));
+            uv_index_end = load_reverse_endianness_int32_t((void*)(d + 40));
         }
         else {
-            tex_hash0 = *(uint64_t*)d;
+            tex_hash = *(uint64_t*)d;
             r = *(uint8_t*)(d + 8);
             g = *(uint8_t*)(d + 9);
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
-            blend_mode0 = *(int32_t*)(d + 12);
+            blend_mode = *(int32_t*)(d + 12);
             unk0 = *(int32_t*)(d + 16);
             split_u = (uint8_t) * (int32_t*)(d + 20);
             split_v = (uint8_t) * (int32_t*)(d + 24);
@@ -674,52 +702,40 @@ static bool FASTCALL glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             uv_index_start = *(int32_t*)(d + 36);
             uv_index_end = *(int32_t*)(d + 40);
         }
+        d += 44;
 
         if (a1->version >= 7) {
-            unk1 = *(int32_t*)(d + 44);
             if (use_big_endian)
-                unk1 = reverse_endianess_int32_t(unk1);
-            d += 48;
-        }
-        else
-            d += 44;
-
-        if (unk0) {
-            char buf[0x40];
-            sprintf_s(buf, 0x40, "A %X %016llX\n", unk0, effect->data.name_hash);
-            OutputDebugStringA(buf);
+                unk1 = load_reverse_endianness_int32_t((void*)d);
+            else
+                unk1 = *(int32_t*)d;
+            d += 4;
         }
 
-        if (unk1) {
-            char buf[0x40];
-            sprintf_s(buf, 0x40, "B %X %016llX\n", unk1, effect->data.name_hash);
-            OutputDebugStringA(buf);
-        }
-
-        if (a3->data.flags & GLITTER_PARTICLE_SECOND_TEXTURE)
+        if (a3->data.flags & GLITTER_PARTICLE_TEXTURE_MASK)
             if (use_big_endian) {
-                tex_hash1 = reverse_endianess_uint64_t(*(uint64_t*)d);
-                blend_mode1 = reverse_endianess_int32_t(*(int32_t*)(d + 8));
+                mask_tex_hash = load_reverse_endianness_uint64_t((void*)d);
+                mask_blend_mode = load_reverse_endianness_int32_t((void*)(d + 8));
             }
             else {
-                tex_hash1 = *(uint64_t*)d;
-                blend_mode1 = *(int32_t*)(d + 8);
+                mask_tex_hash = *(uint64_t*)d;
+                mask_blend_mode = *(int32_t*)(d + 8);
             }
         else {
-            tex_hash1 = GLT_VAL != GLITTER_AFT
+            mask_tex_hash = GLT_VAL != GLITTER_AFT
                 ? hash_murmurhash_empty : hash_fnv1a64_empty;
-            blend_mode1 = GLITTER_PARTICLE_BLEND_TYPICAL;
+            mask_blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
         }
     }
 
-    a3->data.tex_hash0 = tex_hash0;
-    a3->data.tex_hash1 = tex_hash1;
+    a3->data.tex_hash = tex_hash;
+    a3->data.mask_tex_hash = mask_tex_hash;
     a3->data.color.x = (float_t)r;
     a3->data.color.y = (float_t)g;
     a3->data.color.z = (float_t)b;
     a3->data.color.w = (float_t)a;
-    a3->data.blend_mode0 = blend_mode0;
-    a3->data.blend_mode1 = blend_mode1;
+    a3->data.blend_mode = blend_mode;
+    a3->data.mask_blend_mode = mask_blend_mode;
     a3->data.split_u = split_u;
     a3->data.split_v = split_v;
     a3->data.uv_index_type = uv_index_type;

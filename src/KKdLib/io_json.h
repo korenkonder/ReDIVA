@@ -9,5 +9,5 @@
 #include "io_stream.h"
 #include "msgpack.h"
 
-msgpack* io_json_read(stream* s);
+extern void io_json_read(stream* s, msgpack* msg);
 extern void io_json_write(stream* s, msgpack* msg);

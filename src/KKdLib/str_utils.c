@@ -223,7 +223,7 @@ char* str_utils_split_right_get_right_include(char* str, char split) {
     if (!t)
         return str_utils_copy(str);
 
-    size_t len = t - str + 1;
+    size_t len = strlen(t);
     char* p = force_malloc(len + 1);
     memcpy(p, t, len);
     p[len] = 0;
@@ -238,7 +238,7 @@ wchar_t* str_utils_wsplit_right_get_right_include(wchar_t* str, wchar_t split) {
     if (!t)
         return str_utils_wcopy(str);
 
-    size_t len = t - str + 1;
+    size_t len = wcslen(t);
     wchar_t* p = force_malloc_s(wchar_t, len + 1);
     memcpy(p, t, sizeof(wchar_t) * len);
     p[len] = 0;
@@ -309,11 +309,11 @@ wchar_t* str_utils_wget_without_extension(wchar_t* str) {
 
 char* str_utils_add(char* str0, char* str1) {
     if (str0 && str1) {
-        size_t str0_len = strlen(str0) + 1;
-        size_t str1_len = strlen(str1) + 1;
-        char* p = force_malloc(str0_len - 1 + str1_len);
-        memcpy(p, str0, str0_len);
-        memcpy(p + str0_len - 1, str1, str1_len);
+        size_t str0_len = strlen(str0);
+        size_t str1_len = strlen(str1);
+        char* p = force_malloc(str0_len + str1_len + 1);
+        memcpy(p, str0, str0_len + 1);
+        memcpy(p + str0_len, str1, str1_len + 1);
         return p;
     }
     else if (str0)
@@ -326,11 +326,11 @@ char* str_utils_add(char* str0, char* str1) {
 
 wchar_t* str_utils_wadd(wchar_t* str0, wchar_t* str1) {
     if (str0 && str1) {
-        size_t str0_len = wcslen(str0) + 1;
-        size_t str1_len = wcslen(str1) + 1;
-        wchar_t* p = force_malloc_s(wchar_t, str0_len - 1 + str1_len);
-        memcpy(p, str0, sizeof(wchar_t) * str0_len);
-        memcpy(p + str0_len - 1, str1, sizeof(wchar_t) * str1_len);
+        size_t str0_len = wcslen(str0);
+        size_t str1_len = wcslen(str1);
+        wchar_t* p = force_malloc_s(wchar_t, str0_len + str1_len + 1);
+        memcpy(p, str0, sizeof(wchar_t) * (str0_len + 1));
+        memcpy(p + str0_len, str1, sizeof(wchar_t) * (str1_len + 1));
         return p;
     }
     else if (str0)

@@ -10,6 +10,9 @@
 #define GLEW_STATIC
 #include <GLEW/glew.h>
 
+#define TEXTURE_SET_COUNT 6
+#define TEXTURE_BONE_MAT_INDEX 6
+
 typedef enum texture_type {
     TEXTURE_NONE = 0,
     TEXTURE_1D,
@@ -51,16 +54,17 @@ typedef struct texture_cube_sub_data {
     void* data;
     GLenum pixel_type;
     GLenum pixel_format;
+    GLenum pixel_internal_format;
 } texture_cube_sub_data;
 
 typedef struct texture_cube_data {
+    texture_type type;
     texture_cube_sub_data px;
     texture_cube_sub_data nx;
     texture_cube_sub_data py;
     texture_cube_sub_data ny;
     texture_cube_sub_data pz;
     texture_cube_sub_data nz;
-    GLenum pixel_internal_format;
     bool generate_mipmap;
     GLenum wrap_mode_s;
     GLenum wrap_mode_t;
@@ -77,40 +81,27 @@ typedef struct texture {
 
 typedef union texture_set_data {
     struct {
-        texture_data* diffuse;
-        texture_data* specular;
-        texture_data* displacement;
-        texture_data* normal;
-        texture_data* albedo;
-        texture_data* ao;
-        texture_data* metallic;
-        texture_data* roughness;
+        texture_data color;
+        texture_data color_mask;
+        texture_data normal;
+        texture_data specular;
+        texture_data transparency;
+        texture_cube_data env_map;
     };
-    texture_data* tex[8];
+    texture_data tex[TEXTURE_SET_COUNT];
 } texture_set_data;
 
 typedef union texture_set {
     struct {
-        texture diffuse;
-        texture specular;
-        texture displacement;
+        texture color;
+        texture color_mask;
         texture normal;
-        texture albedo;
-        texture ao;
-        texture metallic;
-        texture roughness;
+        texture specular;
+        texture transparency;
+        texture env_map;
     };
-    texture tex[8];
+    texture tex[TEXTURE_SET_COUNT];
 } texture_set;
-
-typedef struct texture_bone_mat_data {
-    int32_t count;
-    void* data;
-} texture_bone_mat_data;
-
-typedef struct texture_bone_mat {
-    int32_t id;
-} texture_bone_mat;
 
 extern void texture_load(texture* tex, texture_data* data);
 extern void texture_bind(texture* tex, int32_t index);
@@ -122,9 +113,5 @@ extern void texture_set_bind(texture_set* tex);
 extern void texture_set_reset(texture_set* tex);
 extern void texture_set_update(texture_set* tex);
 extern void texture_set_free(texture_set* tex);
-extern void texture_bone_mat_load(texture_bone_mat* tex, texture_bone_mat_data* data);
-extern void texture_bone_mat_bind(texture_bone_mat* tex, int32_t index);
-extern void texture_bone_mat_reset(texture_bone_mat* tex, int32_t index);
-extern void texture_bone_mat_free(texture_bone_mat* tex);
 extern bool texture_txp_load(vector_txp* tex, vector_int32_t* textures);
 extern void texture_txp_unload(vector_int32_t* textures);

@@ -22,6 +22,7 @@ struct classes_struct {
     const void(FASTCALL* dispose)();
     const void(FASTCALL* init)();
     const void(FASTCALL* control)();
+    const void(FASTCALL* draw)();
     const void(FASTCALL* drop)(size_t count, wchar_t** paths);
     const void(FASTCALL* imgui)();
     const void(FASTCALL* input)();
@@ -35,6 +36,7 @@ struct classes_struct {
 extern void classes_process_dispose(classes_struct* classes, size_t classes_count);
 extern void classes_process_init   (classes_struct* classes, size_t classes_count);
 extern void classes_process_control(classes_struct* classes, size_t classes_count);
+extern void classes_process_draw   (classes_struct* classes, size_t classes_count);
 extern void classes_process_drop   (classes_struct* classes, size_t classes_count, size_t count, wchar_t** paths);
 extern void classes_process_imgui  (classes_struct* classes, size_t classes_count);
 extern void classes_process_input  (classes_struct* classes, size_t classes_count);

@@ -7,6 +7,7 @@
 
 #include "input.h"
 #include "../KKdLib/vec.h"
+#include "../CRE/timer.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
 
@@ -19,6 +20,8 @@ typedef struct key_state {
 typedef struct mouse_state {
     POINT position;
 } mouse_state;
+
+timer input_timer;
 
 key_state input_key_current_state;
 key_state input_key_last_state;
@@ -40,37 +43,43 @@ lock_val(input_lock);
 extern HANDLE render_lock;
 extern HANDLE window_handle;
 
-void input_poll();
-
-#define FREQ 60
-#include "../CRE/timer.h"
-timer_val(input);
+static void input_poll();
 
 int32_t input_main(void* arg) {
-    timer_init(input, "Input");
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+    timer_init(&input_timer, 60.0);
     lock_init(input_lock);
     if (!input_lock_init)
         goto End;
 
-    while (state != RENDER_INITIALIZED)
-        msleep(input_timer, 0.0625);
+    bool state_wait = false;
+    do {
+        lock_lock(state_lock);
+        state_wait = state != RENDER_INITIALIZED;
+        lock_unlock(state_lock);
+        msleep(input_timer.timer, 0.0625);
+    } while (state_wait);
 
-    while (!close) {
-        timer_calc_pre(input);
+    bool local_close = false;
+    while (!close && !local_close) {
+        timer_start_of_cycle(&input_timer);
+        lock_lock(state_lock);
+        local_close = state == RENDER_DISPOSING || state == RENDER_DISPOSED;
+        lock_unlock(state_lock);
+
         lock_lock(input_lock);
         input_poll();
         lock_unlock(input_lock);
-        double_t cycle_time = timer_calc_post(input);
-        msleep(input_timer, 1000.0 / FREQ - cycle_time);
+        timer_end_of_cycle(&input_timer);
     }
     lock_dispose(input_lock);
 
 End:
-    timer_dispose(input);
+    timer_dispose(&input_timer);
     return 0;
 }
 
-void input_poll() {
+static void input_poll() {
     input_mouse_last_state = input_mouse_current_state;
     input_key_last_state = input_key_current_state;
 

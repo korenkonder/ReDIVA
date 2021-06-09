@@ -6,8 +6,24 @@
 #include "animation.h"
 #include "curve.h"
 
-void FASTCALL glitter_animation_copy(GLT,
-    glitter_animation* src, glitter_animation* dst) {
+#if CRE_DEV
+void FASTCALL glitter_animation_add_value(GLT, glitter_animation* anim,
+    float_t val, glitter_curve_type_flags flags) {
+    for (glitter_curve_type i = GLITTER_CURVE_TRANSLATION_X;
+        i <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND; i++) {
+        if (!(flags & 1 << (size_t)i))
+            continue;
+
+        for (glitter_curve** j = anim->begin; j != anim->end; j++) {
+            glitter_curve* c = *j;
+            if (c && c->type == i)
+                glitter_curve_add_value(GLT_VAL, c, val);
+        }
+    }
+}
+#endif
+
+void FASTCALL glitter_animation_copy(glitter_animation* src, glitter_animation* dst) {
     if (!dst)
         return;
 
@@ -19,7 +35,7 @@ void FASTCALL glitter_animation_copy(GLT,
     vector_ptr_glitter_curve_append(dst, src->end - src->begin);
     for (glitter_curve** i = src->begin; i != src->end; i++)
         if (*i) {
-            glitter_curve* c = glitter_curve_copy(GLT_VAL, *i);
+            glitter_curve* c = glitter_curve_copy(*i);
             if (c)
                 vector_ptr_glitter_curve_push_back(dst, &c);
         }
@@ -40,7 +56,7 @@ bool FASTCALL glitter_animation_parse_file(GLT, f2_struct* st,
         if (!i->header.data_size)
             continue;
 
-        if (i->header.signature == reverse_endianess_uint32_t('CURV')
+        if (i->header.signature == reverse_endianness_uint32_t('CURV')
             && glitter_curve_parse_file(GLT_VAL, i, st->header.version, &c))
             if (flags & 1 << (size_t)(int32_t)c->type)
                 vector_ptr_glitter_curve_push_back(anim, &c);
@@ -110,7 +126,7 @@ bool FASTCALL glitter_animation_unparse_file(GLT, f2_struct* st,
     if (st->sub_structs.end - st->sub_structs.begin < 1)
         return false;
 
-    st->header.signature = reverse_endianess_uint32_t('ANIM');
+    st->header.signature = reverse_endianness_uint32_t('ANIM');
     st->header.length = 0x20;
     st->header.use_big_endian = false;
     st->header.use_section_size = true;

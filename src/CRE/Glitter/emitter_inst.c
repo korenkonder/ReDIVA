@@ -38,7 +38,7 @@ glitter_emitter_inst* FASTCALL glitter_emitter_inst_init(glitter_emitter* a1,
     ei->rotation = a1->rotation;
     ei->scale = a1->scale;
     ei->mat = mat4_identity;
-    ei->mat_no_scale = mat4_identity;
+    ei->mat_rot = mat4_identity;
     ei->scale_all = 1.0f;
     ei->emission_interval = ei->data.emission_interval;
     ei->particles_per_emission = ei->data.particles_per_emission;
@@ -99,7 +99,7 @@ void FASTCALL glitter_emitter_inst_emit(GPM, GLT,
         if (a1->emission == GLITTER_EMITTER_EMISSION_ON_TIMER) {
             if (a1->emission_timer >= 0.0f || a1->emission_interval >= 0.0f) {
                 a1->emission_timer -= delta_frame;
-                while (a1->emission_timer <= 0.0) {
+                if (a1->emission_timer <= 0.0) {
                     glitter_emitter_inst_emit_particle(GPM_VAL, GLT_VAL, a1, emission);
                     if (a1->emission_interval > 0.0f)
                         a1->emission_timer += a1->emission_interval;
@@ -218,8 +218,9 @@ static void FASTCALL glitter_emitter_inst_emit_particle(GPM, GLT,
         count = 1;
 
     for (i = a1->particles.begin; i != a1->particles.end; ++i)
-        glitter_particle_inst_emit(GPM_VAL, GLT_VAL,
-            *i, (int32_t)roundf(a1->particles_per_emission), count, emission);
+        if (*i)
+            glitter_particle_inst_emit(GPM_VAL, GLT_VAL, *i,
+                (int32_t)roundf(a1->particles_per_emission), count, emission);
 }
 
 static void FASTCALL glitter_emitter_inst_get_value(GLT, glitter_emitter_inst* a1) {
@@ -296,7 +297,7 @@ static void FASTCALL glitter_emitter_inst_update_mat(GPM, GLT,
     case GLITTER_DIRECTION_BILLBOARD:
         mat4_from_mat3(&GPM_VAL->cam_inv_view_mat3, &dir_mat);
         mat4_mult(&a2->mat, &dir_mat, &dir_mat);
-        dir_mat.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+        mat4_clear_trans(&dir_mat, &dir_mat);
         break;
     case GLITTER_DIRECTION_Y_AXIS:
         mat4_rotate_y((float_t)-M_PI_2, &dir_mat);
@@ -320,6 +321,6 @@ static void FASTCALL glitter_emitter_inst_update_mat(GPM, GLT,
     if (mult)
         mat4_mult(&dir_mat, &mat, &mat);
     mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+    mat4_clear_trans(&mat, &a1->mat_rot);
     mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &a1->mat);
-    a1->mat_no_scale = mat;
 }

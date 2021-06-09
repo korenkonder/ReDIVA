@@ -20,67 +20,42 @@ typedef struct vertex_bounding_box {
 }vertex_bounding_box;
 
 #pragma pack(push, 1)
-typedef struct vertex_data {
+typedef struct vertex_struct {
     vec3 pos;
-    struct {
-        half_t x;
-        half_t y;
-    } uv;
-    struct {
-        half_t x;
-        half_t y;
-    } uv2;
-    struct {
-        half_t r;
-        half_t g;
-        half_t b;
-        half_t a;
-    } color;
-    struct {
-        half_t x;
-        half_t y;
-        half_t z;
-    } normal;
-    struct {
-        half_t x;
-        half_t y;
-        half_t z;
-    } tangent;
-    struct {
-        half_t x;
-        half_t y;
-        half_t z;
-        half_t w;
-    } bone_index;
-    struct {
-        half_t x;
-        half_t y;
-        half_t z;
-        half_t w;
-    } bone_weight;
-} vertex_data;
+    vec2h texcoord[4];
+    vec4h color;
+    vec3i16 normal;
+    vec3i16 tangent;
+    vec4u16 bone_index;
+    vec4u8 bone_weight;
+} vertex_struct;
 #pragma pack(pop)
 
 typedef struct vertex {
     vertex_type type;
     bool translucent;
-    vertex_data* vert;
+    vertex_struct* vert;
     size_t vert_count;
     uint32_t* ind;
     size_t ind_count;
     vertex_bounding_box bound_box;
+    uint32_t vbo;
+    uint32_t ebo;
 } vertex;
 
-typedef struct vertex_update {
-    float_t* data;
+typedef struct vertex_data {
     size_t length;
-    bool uv;
-    bool uv2;
-    bool color;
-    bool normal;
-    bool bones;
-} vertex_update;
+    vec3* position;
+    vec2* texcoord0;
+    vec2* texcoord1;
+    vec2* texcoord2;
+    vec2* texcoord3;
+    vec4* color;
+    vec3* normal;
+    vec4i* bone_index;
+    vec4* bone_weight;
+} vertex_data;
 
-extern vertex* vertex_init();
-extern void vertex_load(vertex* v, vertex_update* upd);
-extern void vertex_dispose(vertex* v);
+extern void vertex_init(vertex* v);
+extern void vertex_load(vertex* v, vertex_data* upd);
+extern void vertex_free(vertex* v);

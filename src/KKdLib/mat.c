@@ -1361,24 +1361,19 @@ inline void FASTCALL mat4_from_mat3_inverse(mat3* x, mat4* z) {
 }
 
 inline void FASTCALL mat4_clear_rot(mat4* x, mat4* z) {
-    mat4 yt;
-
-    yt = *x;
-    *z = mat4_identity;
-    z->row0.w = yt.row0.w;
-    z->row1.w = yt.row1.w;
-    z->row2.w = yt.row2.w;
-    z->row3 = yt.row3;
+    z->row0 = mat4_identity.row0;
+    z->row1 = mat4_identity.row1;
+    z->row2 = mat4_identity.row2;
+    z->row3 = x->row3;
 }
 
 inline void FASTCALL mat4_clear_trans(mat4* x, mat4* z) {
-    mat4 yt;
-
-    yt = *x;
-    *z = mat4_identity;
-    *(vec3*)&z->row0 = *(vec3*)&yt.row0;
-    *(vec3*)&z->row1 = *(vec3*)&yt.row1;
-    *(vec3*)&z->row2 = *(vec3*)&yt.row2;
+    if (x != z) {
+        z->row0 = x->row0;
+        z->row1 = x->row1;
+        z->row2 = x->row2;
+    }
+    z->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 inline void FASTCALL mat4_get_scale(mat4* x, vec3* z) {

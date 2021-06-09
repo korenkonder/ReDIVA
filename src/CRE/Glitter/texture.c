@@ -49,7 +49,7 @@ bool FASTCALL glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_stru
 }
 
 bool FASTCALL glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st) {
-    uint64_t data;
+    size_t d;
     uint32_t count;
     uint64_t* resource_hashes;
     size_t i;
@@ -60,15 +60,15 @@ bool FASTCALL glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_st
     if (!st || !st->header.data_size)
         return false;
 
-    data = (uint64_t)st->data;
-    if (!data)
+    d = (uint64_t)st->data;
+    if (!d)
         return false;
 
     if (st->header.use_big_endian)
-        count = reverse_endianess_uint32_t(*(int32_t*)data);
+        count = load_reverse_endianness_uint32_t((void*)d);
     else
-        count = *(int32_t*)data;
-    data += 8;
+        count = *(int32_t*)d;
+    d += 8;
 
     a1->resources_count = count;
     if (count) {
@@ -80,10 +80,10 @@ bool FASTCALL glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_st
             return false;
 
         if (st->header.use_big_endian)
-            for (i = 0; i < count; i++, data += sizeof(uint64_t))
-                resource_hashes[i] = reverse_endianess_uint64_t(*(uint64_t*)data);
+            for (i = 0; i < count; i++, d += sizeof(uint64_t))
+                resource_hashes[i] = load_reverse_endianness_uint64_t((void*)d);
         else
-            memcpy(resource_hashes, (void*)data, sizeof(uint64_t) * count);
+            memcpy(resource_hashes, (void*)d, sizeof(uint64_t) * count);
     }
     return true;
 }
@@ -141,8 +141,8 @@ bool FASTCALL glitter_texture_load(glitter_effect_group* a1) {
                     continue;
 
                 glitter_particle* particle = *n;
-                particle->data.texture0 = 0;
-                particle->data.texture1 = 0;
+                particle->data.texture = 0;
+                particle->data.mask_texture = 0;
             }
         }
     }
@@ -167,10 +167,10 @@ bool FASTCALL glitter_texture_load(glitter_effect_group* a1) {
                         || particle->data.type == GLITTER_PARTICLE_MESH)
                         continue;
 
-                    if (particle->data.tex_hash0 == a1->resource_hashes.begin[i])
-                        particle->data.texture0 = a1->resources.begin[i];
-                    if (particle->data.tex_hash1 == a1->resource_hashes.begin[i])
-                        particle->data.texture1 = a1->resources.begin[i];
+                    if (particle->data.tex_hash == a1->resource_hashes.begin[i])
+                        particle->data.texture = a1->resources.begin[i];
+                    if (particle->data.mask_tex_hash == a1->resource_hashes.begin[i])
+                        particle->data.mask_texture = a1->resources.begin[i];
                 }
             }
         }

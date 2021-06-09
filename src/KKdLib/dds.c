@@ -171,7 +171,7 @@ void dds_wread(dds* d, wchar_t* path) {
     wchar_t* path_dds = str_utils_wadd(path, L".dds");
     stream* s = io_wopen(path_dds, L"rb");
     if (s->io.stream) {
-        if (io_read_uint32_t_reverse_endianess(s, true) != DDS_MAGIC)
+        if (io_read_uint32_t_reverse_endianness(s, true) != DDS_MAGIC)
             goto End;
 
         DDS_HEADER dds_h;
@@ -353,7 +353,7 @@ void dds_wwrite(dds* d, wchar_t* path) {
             break;
         }
 
-        io_write_uint32_t_reverse_endianess(s, DDS_MAGIC, true);
+        io_write_uint32_t_reverse_endianness(s, DDS_MAGIC, true);
         io_write(s, &dds_h, sizeof(DDS_HEADER));
 
         uint32_t index = 0;

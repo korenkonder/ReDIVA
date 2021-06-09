@@ -98,7 +98,7 @@ typedef enum glitter_direction {
     GLITTER_DIRECTION_BILLBOARD         = 0,
     GLITTER_DIRECTION_EMITTER_DIRECTION = 1,
     GLITTER_DIRECTION_PREV_POSITION     = 2,
-    GLITTER_DIRECTION_POSITION          = 3,
+    GLITTER_DIRECTION_EMIT_POSITION     = 3,
     GLITTER_DIRECTION_Y_AXIS            = 4,
     GLITTER_DIRECTION_X_AXIS            = 5,
     GLITTER_DIRECTION_Z_AXIS            = 6,
@@ -183,6 +183,15 @@ typedef enum glitter_effect_inst_flag {
     GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE    = 0x20000,
 } glitter_effect_inst_flag;
 
+typedef enum glitter_emitter_direction {
+    GLITTER_EMITTER_DIRECTION_BILLBOARD        = 0,
+    GLITTER_EMITTER_DIRECTION_BILLBOARD_Y_ONLY = 1,
+    GLITTER_EMITTER_DIRECTION_Y_AXIS           = 2,
+    GLITTER_EMITTER_DIRECTION_X_AXIS           = 3,
+    GLITTER_EMITTER_DIRECTION_Z_AXIS           = 4,
+    GLITTER_EMITTER_DIRECTION_EFFECT_ROTATION  = 5,
+} glitter_emitter_direction;
+
 typedef enum glitter_emitter_emission {
     GLITTER_EMITTER_EMISSION_ON_TIMER = 0,
     GLITTER_EMITTER_EMISSION_ON_START = 1,
@@ -237,10 +246,36 @@ typedef enum glitter_particle_blend {
     GLITTER_PARTICLE_BLEND_PUNCH_THROUGH = 5,
 } glitter_particle_blend;
 
+typedef enum glitter_particle_blend_draw {
+    GLITTER_PARTICLE_BLEND_DRAW_TYPICAL  = 0,
+    GLITTER_PARTICLE_BLEND_DRAW_ADD      = 1,
+    GLITTER_PARTICLE_BLEND_DRAW_MULTIPLY = 2,
+} glitter_particle_blend_draw;
+
+typedef enum glitter_particle_blend_mask {
+    GLITTER_PARTICLE_BLEND_MASK_TYPICAL  = 0,
+    GLITTER_PARTICLE_BLEND_MASK_ADD      = 1,
+    GLITTER_PARTICLE_BLEND_MASK_MULTIPLY = 2,
+} glitter_particle_blend_mask;
+
 typedef enum glitter_particle_draw_flag {
     GLITTER_PARTICLE_DRAW_NONE              = 0x0,
     GLITTER_PARTICLE_DRAW_NO_BILLBOARD_CULL = 0x1,
 } glitter_particle_draw_flag;
+
+typedef enum glitter_particle_draw_type {
+    GLITTER_PARTICLE_DRAW_TYPE_BILLBOARD         = 0,
+    GLITTER_PARTICLE_DRAW_TYPE_BILLBOARD_Y_ONLY  = 1,
+    GLITTER_PARTICLE_DRAW_TYPE_X_AXIS            = 2,
+    GLITTER_PARTICLE_DRAW_TYPE_Y_AXIS            = 3,
+    GLITTER_PARTICLE_DRAW_TYPE_Z_AXIS            = 4,
+    GLITTER_PARTICLE_DRAW_TYPE_EMITTER_DIRECTION = 5,
+    GLITTER_PARTICLE_DRAW_TYPE_EMITTER_ROTATION  = 6,
+    GLITTER_PARTICLE_DRAW_TYPE_PARTICLE_ROTATION = 7,
+    GLITTER_PARTICLE_DRAW_TYPE_PREV_POSITION     = 8,
+    GLITTER_PARTICLE_DRAW_TYPE_PREV_POSITION_DUP = 9,
+    GLITTER_PARTICLE_DRAW_TYPE_EMIT_POSITION     = 10,
+} glitter_particle_draw_type;
 
 typedef enum glitter_particle_flag {
     GLITTER_PARTICLE_NONE              = 0x00000,
@@ -250,7 +285,7 @@ typedef enum glitter_particle_flag {
     GLITTER_PARTICLE_REBOUND_PLANE     = 0x00020,
     GLITTER_PARTICLE_ROTATE_BY_EMITTER = 0x00040,
     GLITTER_PARTICLE_SCALE             = 0x00080,
-    GLITTER_PARTICLE_SECOND_TEXTURE    = 0x00100,
+    GLITTER_PARTICLE_TEXTURE_MASK      = 0x00100,
     GLITTER_PARTICLE_DEPTH_TEST        = 0x00200,
     GLITTER_PARTICLE_ROTATE_LOCUS      = 0x00800,
     GLITTER_PARTICLE_LOCAL             = 0x10000,
@@ -264,9 +299,9 @@ typedef enum glitter_particle_inst_flag {
 } glitter_particle_inst_flag;
 
 typedef enum glitter_particle_sub_flag {
-    GLITTER_PARTICLE_SUB_NONE             = 0x00000000,
-    GLITTER_PARTICLE_SUB_USE_SECONDARY_UV = 0x00400000,
-    GLITTER_PARTICLE_SUB_USE_CURVE        = 0x40000000,
+    GLITTER_PARTICLE_SUB_NONE       = 0x00000000,
+    GLITTER_PARTICLE_SUB_UV_2ND_ADD = 0x00400000,
+    GLITTER_PARTICLE_SUB_USE_CURVE  = 0x40000000,
 } glitter_particle_sub_flag;
 
 typedef enum glitter_particle_type {
@@ -364,6 +399,23 @@ extern const glitter_curve_type_flags glitter_effect_curve_flags;
 extern const glitter_curve_type_flags glitter_emitter_curve_flags;
 extern const glitter_curve_type_flags glitter_particle_curve_flags;
 extern const glitter_curve_type_flags glitter_particle_x_curve_flags;
+extern const glitter_direction glitter_emitter_direction_types[];
+extern const size_t glitter_emitter_direction_types_count;
+extern const glitter_direction glitter_emitter_direction_default_direction;
+extern const glitter_emitter_direction glitter_emitter_direction_default;
+extern const glitter_direction glitter_particle_draw_types[];
+extern const size_t glitter_particle_draw_types_count;
+extern const glitter_direction glitter_particle_draw_type_default_direction;
+extern const glitter_particle_draw_type glitter_particle_draw_type_default;
+extern const glitter_particle_blend glitter_particle_blend_draw_types[];
+extern const size_t glitter_particle_blend_draw_types_count;
+extern const glitter_particle_blend glitter_particle_blend_draw_default_blend;
+extern const glitter_particle_blend_draw glitter_particle_blend_draw_default;
+extern const glitter_particle_blend glitter_particle_blend_mask_types[];
+extern const size_t glitter_particle_blend_mask_types_count;
+extern const glitter_particle_blend glitter_particle_blend_mask_default_blend;
+extern const glitter_particle_blend_mask glitter_particle_blend_mask_default;
+extern const glitter_pivot glitter_pivot_reverse[];
 
 struct glitter_random {
     uint32_t value;
@@ -476,8 +528,8 @@ struct glitter_effect_inst {
     vec3 scale;
     float_t scale_all;
     mat4 mat;
-    mat4 mat_ext_anim;
-    mat4 mat_ext_anim_eff_rot;
+    mat4 mat_rot;
+    mat4 mat_rot_eff_rot;
     vector_ptr_glitter_emitter_inst emitters;
     union {
         glitter_random* random_ptr;
@@ -556,10 +608,7 @@ struct glitter_emitter_inst {
     vec3 rotation;
     vec3 scale;
     mat4 mat;
-    union {
-        mat4 mat_ext_anim;
-        mat4 mat_no_scale;
-    };
+    mat4 mat_rot;
     float_t scale_all;
     float_t emission_timer;
     vector_ptr_glitter_particle_inst particles;
@@ -589,6 +638,10 @@ struct glitter_particle_manager {
     vector_ptr_glitter_scene scenes;
     vector_ptr_glitter_file_reader file_readers;
     vector_ptr_glitter_effect_group effect_groups;
+    glitter_scene* scene;
+    glitter_effect_inst* effect;
+    glitter_emitter_inst* emitter;
+    glitter_particle_inst* particle;
     float_t delta_frame;
     float_t emission;
     uint32_t counter;
@@ -601,6 +654,7 @@ struct glitter_particle_manager {
     bool draw_all;
     bool draw_all_mesh;
     bool updated;
+    bool draw_selected;
 };
 
 struct glitter_locus_history {
@@ -664,18 +718,18 @@ struct glitter_particle_data {
     vec2 split_uv;
     uint8_t split_u;
     uint8_t split_v;
-    glitter_particle_blend blend_mode0;
-    glitter_particle_blend blend_mode1;
+    glitter_particle_blend blend_mode;
+    glitter_particle_blend mask_blend_mode;
     glitter_particle_sub_flag sub_flags;
     int32_t count;
     int32_t locus_history_size;
     int32_t locus_history_size_random;
     glitter_particle_draw_flag draw_flags;
     float_t emission;
-    uint64_t tex_hash0;
-    uint64_t tex_hash1;
-    int32_t texture0;
-    int32_t texture1;
+    uint64_t tex_hash;
+    uint64_t mask_tex_hash;
+    int32_t texture;
+    int32_t mask_texture;
     int32_t unk0;
     int32_t unk1;
     glitter_particle_mesh mesh;
@@ -745,8 +799,8 @@ struct glitter_render_group {
     glitter_particle_flag flags;
     glitter_particle_type type;
     glitter_direction draw_type;
-    glitter_particle_blend blend_mode0;
-    glitter_particle_blend blend_mode1;
+    glitter_particle_blend blend_mode;
+    glitter_particle_blend mask_blend_mode;
     glitter_pivot pivot;
     int32_t split_u;
     int32_t split_v;
@@ -755,15 +809,12 @@ struct glitter_render_group {
     size_t count;
     size_t ctrl;
     size_t disp;
-    int32_t texture0;
-    int32_t texture1;
+    int32_t texture;
+    int32_t mask_texture;
     uint64_t object_name_hash;
     float_t frame;
     mat4 mat;
-    union {
-        mat4 mat_ext_anim;
-        mat4 mat_no_scale;
-    };
+    mat4 mat_rot;
     mat4 mat_draw;
     glitter_render_element* elements;
     glitter_buffer* buffer;

@@ -14,6 +14,7 @@ classes_struct classes[] = {
         .dispose = (void*)0,
         .init    = (void*)0,
         .control = (void*)0,
+        .draw    = (void*)0,
         .drop    = (void*)0,
         .imgui   = (void*)0,
         .input   = (void*)0,
@@ -31,6 +32,7 @@ classes_struct classes[] = {
         .dispose = (void*)0,
         .init    = (void*)0,
         .control = (void*)0,
+        .draw    = (void*)0,
         .drop    = (void*)0,
         .imgui   = (void*)0,
         .input   = (void*)0,
@@ -38,7 +40,7 @@ classes_struct classes[] = {
         .sound   = (void*)0,
         .lock = 0,
         .sub_classes = graphics_classes,
-        .sub_classes_count = 3,
+        .sub_classes_count = 4,
     },
 #ifdef CLOUD_DEV
     {
@@ -48,6 +50,7 @@ classes_struct classes[] = {
         .dispose = (void*)glitter_editor_dispose,
         .init    = (void*)glitter_editor_init,
         .control = (void*)0,
+        .draw    = (void*)glitter_editor_draw,
         .drop    = (void*)glitter_editor_drop,
         .imgui   = (void*)glitter_editor_imgui,
         .input   = (void*)glitter_editor_input,
@@ -63,3 +66,4 @@ classes_struct classes[] = {
 const size_t classes_count = sizeof(classes) / sizeof(classes_struct);
 
 render_state state;
+lock_val(state_lock);

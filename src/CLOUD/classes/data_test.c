@@ -15,6 +15,7 @@ classes_struct data_test_classes[1] = {
         .dispose = (void*)glitter_test_dispose,
         .init    = (void*)glitter_test_init,
         .control = (void*)0,
+        .draw    = (void*)0,
         .drop    = (void*)0,
         .input   = (void*)glitter_test_input,
         .imgui   = (void*)glitter_test_imgui,

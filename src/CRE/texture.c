@@ -113,17 +113,17 @@ static void texture_cube_load(texture* tex, texture_cube_data* data) {
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY, sv_anisotropy);
 
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, data->pixel_internal_format, px_width,
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, data->px.pixel_internal_format, px_width,
         px_height, 0, data->px.pixel_format, data->px.pixel_type, data->px.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, data->pixel_internal_format, nx_width,
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, data->px.pixel_internal_format, nx_width,
         nx_height, 0, data->nx.pixel_format, data->nx.pixel_type, data->nx.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, data->pixel_internal_format, py_width,
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, data->px.pixel_internal_format, py_width,
         py_height, 0, data->py.pixel_format, data->py.pixel_type, data->py.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, data->pixel_internal_format, ny_width,
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, data->px.pixel_internal_format, ny_width,
         ny_height, 0, data->ny.pixel_format, data->ny.pixel_type, data->ny.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, data->pixel_internal_format, pz_width,
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, data->px.pixel_internal_format, pz_width,
         pz_height, 0, data->pz.pixel_format, data->pz.pixel_type, data->pz.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, data->pixel_internal_format, nz_width,
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, data->px.pixel_internal_format, nz_width,
         nz_height, 0, data->nz.pixel_format, data->nz.pixel_type, data->nz.data);
     if (data->generate_mipmap)
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
@@ -234,22 +234,18 @@ void texture_free(texture* tex) {
 }
 
 void texture_set_load(texture_set* tex, texture_set_data* data) {
-    if (!tex)
+    if (!tex || !data)
         return;
 
-    if (data)
-        for (int32_t i = 0; i < 8; i++)
-            texture_load(&tex->tex[i], data->tex[i]);
-    else
-        for (int32_t i = 0; i < 8; i++)
-            texture_load(&tex->tex[i], 0);
+    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
+        texture_load(&tex->tex[i], &data->tex[i]);
 }
 
 void texture_set_bind(texture_set* tex) {
     if (!tex)
         return;
 
-    for (int32_t i = 0; i < 8; i++)
+    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
         texture_bind(&tex->tex[i], i);
 }
 
@@ -257,7 +253,7 @@ void texture_set_reset(texture_set* tex) {
     if (!tex)
         return;
 
-    for (int32_t i = 0; i < 8; i++)
+    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
         texture_reset(&tex->tex[i], i);
 }
 
@@ -265,7 +261,7 @@ void texture_set_update(texture_set* tex) {
     if (!tex)
         return;
 
-    for (int32_t i = 0; i < 8; i++)
+    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
         texture_update(&tex->tex[i]);
 }
 
@@ -273,62 +269,8 @@ void texture_set_free(texture_set* tex) {
     if (!tex)
         return;
 
-    for (int32_t i = 0; i < 8; i++)
+    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
         texture_free(&tex->tex[i]);
-}
-
-void texture_bone_mat_load(texture_bone_mat* tex, texture_bone_mat_data* data) {
-    if (!tex)
-        return;
-
-    if (tex->id == 0)
-        glGenTextures(1, &tex->id);
-
-    if (!data || !data->data || data->count < 1)
-        return;
-
-    mat4* mat = data->data;
-    void* temp_data = force_malloc_s(mat4, data->count * 2LL);
-    mat4* d = temp_data;
-    for (int32_t i = 0; i < data->count; i++, mat++, d += 2) {
-        d[0] = *mat;
-        mat4_invtrans(mat, &d[1]);
-    }
-
-    bind_tex2d(tex->id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sizeof(mat4) / sizeof(vec4) * 2,
-        data->count, 0, GL_RGBA, GL_FLOAT, temp_data);
-    bind_tex2d(0);
-    free(temp_data);
-}
-
-void texture_bone_mat_bind(texture_bone_mat* tex, int32_t index) {
-    if (!tex)
-        return;
-
-    bind_index_tex2d(index, tex->id);
-}
-
-void texture_bone_mat_reset(texture_bone_mat* tex, int32_t index) {
-    if (!tex)
-        return;
-
-    bind_index_tex2d(index, tex->id);
-}
-
-void texture_bone_mat_free(texture_bone_mat* tex) {
-    if (!tex)
-        return;
-
-    if (tex->id)
-        glDeleteTextures(1, &tex->id);
-    tex->id = 0;
 }
 
 bool texture_txp_load(vector_txp* tex, vector_int32_t* textures) {

@@ -16,6 +16,7 @@ extern int32_t width;
 extern int32_t height;
 extern bool input_locked;
 extern vec3 back3d_color;
+extern bool set_clear_color;
 
 const char* background_color_window_title = "Background Color";
 
@@ -46,7 +47,7 @@ void background_color_imgui() {
         background_color_enabled = true;
 
     float_t w = min((float_t)width / 4.0f, 360.0f);
-    float_t h = min((float_t)height, 80.0f);
+    float_t h = min((float_t)height, 100.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
     igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Appearing);
@@ -72,9 +73,12 @@ void background_color_imgui() {
 
     igSetNextItemWidth(temp.x);
     igColorEdit3("##Background Color", (float_t*)&back3d_color, color_edit_flags);
+    igCheckbox("Set Clear Color", &set_clear_color);
 
-    if (imguiButton("Reset Color", ImVec2_Empty))
+    if (imguiButton("Reset Color", ImVec2_Empty)) {
         back3d_color = (vec3){ 0.74117647f, 0.74117647f, 0.74117647f };
+        set_clear_color = true;
+    }
 
     background_color.imgui_focus |= igIsWindowFocused(0);
     igEnd();

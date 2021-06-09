@@ -7,28 +7,31 @@
 #include "../KKdLib/half_t.h"
 #include "../KKdLib/hash.h"
 #include "../KKdLib/vector.h"
+#include "../CRE/static_var.h"
+#define GLEW_STATIC
+#include <GLEW/glew.h>
 
-#pragma pack(push, 1)
 typedef struct vertex_pre_data {
     vec3 pos;
-    vec2 uv;
-    vec2 uv2;
+    vec2 texcoord0;
+    vec2 texcoord1;
+    vec2 texcoord2;
+    vec2 texcoord3;
     vec4 color;
     vec3 normal;
     vec3 tangent;
-    vec4i bone_index;
+    vec4u16 bone_index;
     vec4 bone_weight;
 } vertex_pre_data;
-#pragma pack(pop)
 
 vector(vertex_pre_data)
 
-vertex* vertex_init() {
-    vertex* v = force_malloc(sizeof(vertex));
-    return v;
+void vertex_init(vertex* v) {
+    glGenBuffers(1, &v->vbo);
+    glGenBuffers(1, &v->ebo);
 }
 
-void vertex_load(vertex* v, vertex_update* upd) {
+void vertex_load(vertex* v, vertex_data* upd) {
     if (!v || !upd)
         return;
 
@@ -38,132 +41,129 @@ void vertex_load(vertex* v, vertex_update* upd) {
     v->ind_count = 0;
     v->type = VERTEX_NONE;
 
-    if (!upd->data || !upd->length)
+    if (!upd->position || !upd->length)
         return;
 
     bool use_bone_data = false;
     bool translucent = false;
-    float_t* data = upd->data;
     size_t length = upd->length;
-    bool uv = upd->uv;
-    bool uv2 = upd->uv2;
-    bool color = upd->color;
-    bool normal = upd->normal;
-    bool bones = upd->bones;
-    size_t len = 3LL + (uv ? (2LL + (uv2 ? 2 : 0)) : 0) + (color ? 4 : 0) + (normal ? 3 : 0) + (bones ? 8 : 0);
-    length /= len;
+    vec3* position = upd->position;
+    vec2* texcoord0 = upd->texcoord0;
+    vec2* texcoord1 = upd->texcoord1;
+    vec2* texcoord2 = upd->texcoord2;
+    vec2* texcoord3 = upd->texcoord3;
+    vec4* color = upd->color;
+    vec3* normal = upd->normal;
+    vec4i* bone_index = upd->bone_index;
+    vec4* bone_weight = upd->bone_weight;
+
     vertex_pre_data* verts = force_malloc_s(vertex_pre_data, length);
-    if (bones) {
+    for (size_t i = 0; i < length; i++) {
+        vertex_pre_data* v = &verts[i];
+        v->pos = *position++;
+    }
+
+    if (texcoord0)
         for (size_t i = 0; i < length; i++) {
             vertex_pre_data* v = &verts[i];
-            v->pos.x = *data++;
-            v->pos.y = *data++;
-            v->pos.z = *data++;
-            if (uv) {
-                v->uv.x = *data++;
-                v->uv.y = *data++;
+            v->texcoord0 = *texcoord0++;
+        }
+    else
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->texcoord0 = vec2_null;
+        }
 
-                if (uv2) {
-                    v->uv2.x = *data++;
-                    v->uv2.y = *data++;
-                }
-                else
-                    v->uv2 = vec2_null;
-            }
-            else {
-                v->uv = vec2_null;
-                v->uv2 = vec2_null;
-            }
+    if (texcoord1)
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->texcoord1 = *texcoord1++;
+        }
+    else
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->texcoord1 = vec2_null;
+        }
 
-            if (color) {
-                v->color.x = *data++;
-                v->color.y = *data++;
-                v->color.z = *data++;
-                v->color.w = *data++;
-                if (v->color.w < 1.0f)
-                    translucent = true;
-            }
+    if (texcoord2)
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->texcoord2 = *texcoord2++;
+        }
+    else
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->texcoord2 = vec2_null;
+        }
+
+    if (texcoord3)
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->texcoord3 = *texcoord3++;
+        }
+    else
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->texcoord3 = vec2_null;
+        }
+
+    if (color)
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->color = *color++;
+        }
+    else
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->color = vec4_identity;
+        }
+
+    if (normal)
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->normal = *normal++;
+        }
+    else
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            v->normal = vec3_null;
+        }
+
+    if (bone_index && bone_weight)
+        for (size_t i = 0; i < length; i++) {
+            vertex_pre_data* v = &verts[i];
+            if (bone_index->x < 0x0000 || bone_index->x > 0xFFFF)
+                v->bone_index.x = 0xFFFF;
             else
-                v->color = vec4_identity;
+                v->bone_index.x = bone_index->x;
 
-            if (normal) {
-                v->normal.x = *data++;
-                v->normal.y = *data++;
-                v->normal.z = *data++;
-                vec3_normalize(v->normal, v->normal);
-            }
+            if (bone_index->y < 0x0000 || bone_index->y > 0xFFFF)
+                v->bone_index.y = 0xFFFF;
             else
-                v->normal = vec3_null;
+                v->bone_index.y = bone_index->y;
 
-            v->tangent = vec3_null;
+            if (bone_index->z < 0x0000 || bone_index->z > 0xFFFF)
+                v->bone_index.z = 0xFFFF;
+            else
+                v->bone_index.z = bone_index->z;
 
-            v->bone_index.x = (int32_t)*data++;
-            v->bone_index.y = (int32_t)*data++;
-            v->bone_index.z = (int32_t)*data++;
-            v->bone_index.w = (int32_t)*data++;
-
-            vec4 bone_weight;
-            bone_weight.x = *data++;
-            bone_weight.y = *data++;
-            bone_weight.z = *data++;
-            bone_weight.w = *data++;
-            vec4_normalize(bone_weight, bone_weight);
+            if (bone_index->w < 0x0000 || bone_index->w > 0xFFFF)
+                v->bone_index.w = 0xFFFF;
+            else
+                v->bone_index.w = bone_index->w;
 
             float_t bone_weight_length;
-            vec4_length_squared(bone_weight, bone_weight_length);
+            vec4_normalize(*bone_weight++, v->bone_weight);
+            vec4_length_squared(v->bone_weight, bone_weight_length);
             if (bone_weight_length != 0.0f)
                 use_bone_data = true;
-
-            v->bone_weight = bone_weight;
         }
-    }
-    else {
+    else
         for (size_t i = 0; i < length; i++) {
             vertex_pre_data* v = &verts[i];
-            v->pos.x = *data++;
-            v->pos.y = *data++;
-            v->pos.z = *data++;
-            if (uv) {
-                v->uv.x = *data++;
-                v->uv.y = *data++;
-
-                if (uv2) {
-                    v->uv2.x = *data++;
-                    v->uv2.y = *data++;
-                }
-                else
-                    v->uv2 = vec2_null;
-            }
-            else {
-                v->uv = vec2_null;
-                v->uv2 = vec2_null;
-            }
-
-            if (color) {
-                v->color.x = *data++;
-                v->color.y = *data++;
-                v->color.z = *data++;
-                v->color.w = *data++;
-                if (v->color.w < 1.0f)
-                    translucent = true;
-            }
-            else
-                v->color = vec4_identity;
-
-            if (normal) {
-                v->normal.x = *data++;
-                v->normal.y = *data++;
-                v->normal.z = *data++;
-                vec3_normalize(v->normal, v->normal);
-            }
-            else
-                v->normal = vec3_null;
-
-            v->tangent = vec3_null;
-            v->bone_index = vec4i_null;
+            v->bone_index = (vec4u16){ 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
             v->bone_weight = vec4_null;
         }
-    }
 
     v->translucent = translucent;
     v->ind_count = length;
@@ -215,8 +215,8 @@ void vertex_load(vertex* v, vertex_update* upd) {
                 vertex_pre_data* v1 = &verts[*j / 3 * 3 + 0];
                 vertex_pre_data* v2 = &verts[*j / 3 * 3 + 1];
                 vertex_pre_data* v3 = &verts[*j / 3 * 3 + 2];
-                vec2_sub(v2->uv, v1->uv, uv0);
-                vec2_sub(v3->uv, v1->uv, uv1);
+                vec2_sub(v2->texcoord0, v1->texcoord0, uv0);
+                vec2_sub(v3->texcoord0, v1->texcoord0, uv1);
                 if (uv0.x * uv1.y - uv1.x * uv0.y != 0) {
                     vec3_sub(v2->pos, v1->pos, edge0);
                     vec3_sub(v3->pos, v1->pos, edge1);
@@ -242,7 +242,7 @@ void vertex_load(vertex* v, vertex_update* upd) {
     else
         v->type = VERTEX_SIMPLE;
 
-    v->vert = force_malloc_s(vertex_data, v->vert_count);
+    v->vert = force_malloc_s(vertex_struct, v->vert_count);
     if (!v->vert) {
         vector_vertex_pre_data_free(&vert_list);
         vertex_bounding_box bound_box;
@@ -255,20 +255,24 @@ void vertex_load(vertex* v, vertex_update* upd) {
     vec3 bound_box_min = (vec3){ FLT_MAX, FLT_MAX, FLT_MAX };
     vec3 bound_box_max = (vec3){ -FLT_MAX, -FLT_MAX, -FLT_MAX };
 
-    vertex_data* vert_ptr = v->vert;
+    vertex_struct* vert_ptr = v->vert;
     for (vertex_pre_data* i = vert_list.begin; i != vert_list.end; i++) {
         vec3 pos;
-        vec2 uv;
-        vec2 uv2;
+        vec2 texcoord0;
+        vec2 texcoord1;
+        vec2 texcoord2;
+        vec2 texcoord3;
         vec4 color;
         vec3 normal;
         vec3 tangent;
-        vec4i bone_index;
+        vec4u16 bone_index;
         vec4 bone_weight;
 
         pos = i->pos;
-        uv = i->uv;
-        uv2 = i->uv2;
+        texcoord0 = i->texcoord0;
+        texcoord1 = i->texcoord1;
+        texcoord2 = i->texcoord2;
+        texcoord3 = i->texcoord3;
         color = i->color;
         normal = i->normal;
         tangent = i->tangent;
@@ -278,47 +282,51 @@ void vertex_load(vertex* v, vertex_update* upd) {
         vec3_min(bound_box_min, pos, bound_box_min);
         vec3_max(bound_box_max, pos, bound_box_max);
 
-        vec3_mult_min_max_scalar(normal, -32768.0f, 32767.0f, normal);
-        vec3_mult_min_max_scalar(tangent, -32768.0f, 32767.0f, tangent);
+        vec3_mult_min_max_scalar(normal, -32767.0f, 32767.0f, normal);
+        vec3_mult_min_max_scalar(tangent, -32767.0f, 32767.0f, tangent);
         vec4_mult_scalar(bone_weight, 255.0f, bone_weight);
 
         vert_ptr->pos = pos;
-        vert_ptr->uv.x = float_to_half(uv.x);
-        vert_ptr->uv.y = float_to_half(uv.y);
-        vert_ptr->uv2.x = float_to_half(uv2.x);
-        vert_ptr->uv2.y = float_to_half(uv2.y);
-        vert_ptr->color.r = float_to_half(color.x);
-        vert_ptr->color.g = float_to_half(color.y);
-        vert_ptr->color.b = float_to_half(color.z);
-        vert_ptr->color.a = float_to_half(color.w);
-        vert_ptr->normal.x = (int16_t)normal.x;
-        vert_ptr->normal.y = (int16_t)normal.y;
-        vert_ptr->normal.z = (int16_t)normal.z;
-        vert_ptr->tangent.x = (int16_t)tangent.x;
-        vert_ptr->tangent.y = (int16_t)tangent.y;
-        vert_ptr->tangent.z = (int16_t)tangent.z;
-        vert_ptr->bone_index.x = (uint16_t)bone_index.x;
-        vert_ptr->bone_index.y = (uint16_t)bone_index.y;
-        vert_ptr->bone_index.z = (uint16_t)bone_index.z;
-        vert_ptr->bone_index.w = (uint16_t)bone_index.w;
-        vert_ptr->bone_weight.x = (uint8_t)bone_weight.x;
-        vert_ptr->bone_weight.y = (uint8_t)bone_weight.y;
-        vert_ptr->bone_weight.z = (uint8_t)bone_weight.z;
-        vert_ptr->bone_weight.w = (uint8_t)bone_weight.w;
+        vec2_to_vec2h(texcoord0, vert_ptr->texcoord[0]);
+        vec2_to_vec2h(texcoord1, vert_ptr->texcoord[1]);
+        vec2_to_vec2h(texcoord2, vert_ptr->texcoord[2]);
+        vec2_to_vec2h(texcoord3, vert_ptr->texcoord[3]);
+        vec4_to_vec4h(color, vert_ptr->color);
+        vec3_to_vec3i16(normal, vert_ptr->normal);
+        vec3_to_vec3i16(tangent, vert_ptr->tangent);
+        vert_ptr->bone_index = bone_index;
+        vec4_to_vec4u8(bone_weight, vert_ptr->bone_weight);
         vert_ptr++;
     }
     vector_vertex_pre_data_free(&vert_list);
     v->bound_box.min = bound_box_min;
     v->bound_box.max = bound_box_max;
+
+    bind_array_buffer(v->vbo);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(vertex_data) * v->vert_count),
+        (void*)v->vert, GL_DYNAMIC_DRAW);
+    bind_array_buffer(0);
+
+    bind_element_array_buffer(v->ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(sizeof(uint32_t) * v->ind_count),
+        v->ind, GL_DYNAMIC_DRAW);
+    bind_element_array_buffer(0);
 }
 
-void vertex_dispose(vertex* v) {
+void vertex_free(vertex* v) {
     if (!v)
         return;
 
+    if (v->vbo)
+        glDeleteBuffers(1, &v->vbo);
+    if (v->ebo)
+        glDeleteBuffers(1, &v->ebo);
+
     free(v->vert);
     free(v->ind);
-    free(v);
+    v->vert_count = 0;
+    v->ind_count = 0;
+    v->type = VERTEX_NONE;
 }
 
 vector_func(vertex_pre_data)

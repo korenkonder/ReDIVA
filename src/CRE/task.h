@@ -6,12 +6,12 @@
 #pragma once
 
 #include "../KKdLib/default.h"
-#include "../KKdLib/char_buffer.h"
+#include "../KKdLib/string.h"
 #include "../KKdLib/mat.h"
 #include "../KKdLib/vec.h"
 #include "../KKdLib/vector.h"
+#include "../CRE/bone_matrix.h"
 #include "../CRE/gl_object.h"
-#include "../CRE/light.h"
 #include "../CRE/shader.h"
 #include "../CRE/material.h"
 #include "../CRE/vertex.h"
@@ -19,26 +19,24 @@
 
 typedef enum task_render_free_type {
     TASK_RENDER_FREE_NONE = 0,
+    TASK_RENDER_FREE_BONE_MATRIX,
     TASK_RENDER_FREE_GL_OBJECT,
-    TASK_RENDER_FREE_LIGHT_DIR,
-    TASK_RENDER_FREE_LIGHT_POINT,
     TASK_RENDER_FREE_SHADER,
     TASK_RENDER_FREE_MATERIAL,
     TASK_RENDER_FREE_TEXTURE,
     TASK_RENDER_FREE_TEXTURE_SET,
-    TASK_RENDER_FREE_VERT,
+    TASK_RENDER_FREE_VERTEX,
 } task_render_free_type;
 
 typedef enum task_render_update_type {
     TASK_RENDER_UPDATE_NONE = 0,
+    TASK_RENDER_UPDATE_BONE_MATRIX,
     TASK_RENDER_UPDATE_GL_OBJECT,
-    TASK_RENDER_UPDATE_LIGHT_DIR,
-    TASK_RENDER_UPDATE_LIGHT_POINT,
     TASK_RENDER_UPDATE_SHADER,
     TASK_RENDER_UPDATE_MATERIAL,
     TASK_RENDER_UPDATE_TEXTURE,
     TASK_RENDER_UPDATE_TEXTURE_SET,
-    TASK_RENDER_UPDATE_VERT,
+    TASK_RENDER_UPDATE_VERTEX,
 } task_render_update_type;
 
 typedef enum task_render_uniform_type {
@@ -82,23 +80,20 @@ typedef enum task_render_draw2d_type {
 
 typedef enum task_render_draw3d_type {
     TASK_RENDER_DRAW3D_NONE = 0,
-    TASK_RENDER_DRAW3D_G_FRONT,
-    TASK_RENDER_DRAW3D_C_FRONT,
-    TASK_RENDER_DRAW3D_BACK,
+    TASK_RENDER_DRAW3D_FRONT,
 } task_render_draw3d_type;
 
 typedef struct task_render_update {
     hash hash;
     task_render_update_type type;
     union {
-        gl_object_update gl_obj;
-        light_dir_update light_dir;
-        light_point_update light_point;
-        shader_model_update shad;
-        material_update mat;
+        bone_matrix_data bone_mat;
+        gl_object_data gl_obj;
+        shader_model_data shad;
+        material_data mat;
         texture_data tex;
         texture_set_data tex_set;
-        vertex_update vert;
+        vertex_data vert;
     };
 } task_render_update;
 
@@ -207,7 +202,7 @@ typedef struct task_render_uniform_mat4_array {
 
 typedef struct task_render_uniform {
     hash shader_hash;
-    char_buffer name;
+    string name;
     task_render_uniform_type type;
     union {
         task_render_uniform_bool boolean;
@@ -257,7 +252,7 @@ typedef struct task_render_draw3d {
     bool translucent;
     mat4 model;
     mat3 model_normal;
-    mat4 uv_mat[8];
+    mat4 uv_mat[4];
     vec4 color;
     vector_task_render_uniform uniforms;
 } task_render_draw3d;

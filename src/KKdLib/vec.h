@@ -31,6 +31,96 @@ typedef struct vec4_##t { \
     t w; \
 } vec4_##t;
 
+typedef struct vec2i8 {
+    int8_t x;
+    int8_t y;
+} vec2i8;
+
+typedef struct vec3i8 {
+    int8_t x;
+    int8_t y;
+    int8_t z;
+} vec3i8;
+
+typedef struct vec4i8 {
+    int8_t x;
+    int8_t y;
+    int8_t z;
+    int8_t w;
+} vec4i8;
+
+typedef struct vec2u8 {
+    uint8_t x;
+    uint8_t y;
+} vec2u8;
+
+typedef struct vec3u8 {
+    uint8_t x;
+    uint8_t y;
+    uint8_t z;
+} vec3u8;
+
+typedef struct vec4u8 {
+    uint8_t x;
+    uint8_t y;
+    uint8_t z;
+    uint8_t w;
+} vec4u8;
+
+typedef struct vec2i16 {
+    int16_t x;
+    int16_t y;
+} vec2i16;
+
+typedef struct vec3i16 {
+    int16_t x;
+    int16_t y;
+    int16_t z;
+} vec3i16;
+
+typedef struct vec4i16 {
+    int16_t x;
+    int16_t y;
+    int16_t z;
+    int16_t w;
+} vec4i16;
+
+typedef struct vec2u16 {
+    uint16_t x;
+    uint16_t y;
+} vec2u16;
+
+typedef struct vec3u16 {
+    uint16_t x;
+    uint16_t y;
+    uint16_t z;
+} vec3u16;
+
+typedef struct vec4u16 {
+    uint16_t x;
+    uint16_t y;
+    uint16_t z;
+    uint16_t w;
+} vec4u16;
+
+typedef struct vec2h {
+    half_t x;
+    half_t y;
+} vec2h;
+
+typedef struct vec3h {
+    half_t x;
+    half_t y;
+    half_t z;
+} vec3h;
+
+typedef struct vec4h {
+    half_t x;
+    half_t y;
+    half_t z;
+    half_t w;
+} vec4h;
+
 typedef struct vec2 {
     float_t x;
     float_t y;
@@ -102,6 +192,156 @@ extern const vec4i vec4i_null;
 extern const vec2d vec2d_identity;
 
 extern const vec2d vec2d_null;
+
+#define vec2i8_to_vec2(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y;
+
+#define vec3i8_to_vec3(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y; \
+(dst).z = (float_t)(src).z;
+
+#define vec4i8_to_vec4(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y; \
+(dst).z = (float_t)(src).z; \
+(dst).w = (float_t)(src).w;
+
+#define vec2_to_vec2i8(src, dst) \
+(dst).x = (int8_t)(src).x; \
+(dst).y = (int8_t)(src).y;
+
+#define vec3_to_vec3i8(src, dst) \
+(dst).x = (int8_t)(src).x; \
+(dst).y = (int8_t)(src).y; \
+(dst).z = (int8_t)(src).z;
+
+#define vec4_to_vec4i8(src, dst) \
+(dst).x = (int8_t)(src).x; \
+(dst).y = (int8_t)(src).y; \
+(dst).z = (int8_t)(src).z; \
+(dst).w = (int8_t)(src).w;
+
+#define vec2u8_to_vec2(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y;
+
+#define vec3u8_to_vec3(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y; \
+(dst).z = (float_t)(src).z;
+
+#define vec4u8_to_vec4(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y; \
+(dst).z = (float_t)(src).z; \
+(dst).w = (float_t)(src).w;
+
+#define vec2_to_vec2u8(src, dst) \
+(dst).x = (uint8_t)(src).x; \
+(dst).y = (uint8_t)(src).y;
+
+#define vec3_to_vec3u8(src, dst) \
+(dst).x = (uint8_t)(src).x; \
+(dst).y = (uint8_t)(src).y; \
+(dst).z = (uint8_t)(src).z;
+
+#define vec4_to_vec4u8(src, dst) \
+(dst).x = (uint8_t)(src).x; \
+(dst).y = (uint8_t)(src).y; \
+(dst).z = (uint8_t)(src).z; \
+(dst).w = (uint8_t)(src).w;
+
+#define vec2i16_to_vec2(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y;
+
+#define vec3i16_to_vec3(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y; \
+(dst).z = (float_t)(src).z;
+
+#define vec4i16_to_vec4(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y; \
+(dst).z = (float_t)(src).z; \
+(dst).w = (float_t)(src).w;
+
+#define vec2_to_vec2i16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y;
+
+#define vec3_to_vec3i16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y; \
+(dst).z = (uint16_t)(src).z;
+
+#define vec4_to_vec4i16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y; \
+(dst).z = (uint16_t)(src).z; \
+(dst).w = (uint16_t)(src).w;
+
+#define vec2u16_to_vec2(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y;
+
+#define vec3u16_to_vec3(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y; \
+(dst).z = (float_t)(src).z;
+
+#define vec4u16_to_vec4(src, dst) \
+(dst).x = (float_t)(src).x; \
+(dst).y = (float_t)(src).y; \
+(dst).z = (float_t)(src).z; \
+(dst).w = (float_t)(src).w;
+
+#define vec2_to_vec2u16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y;
+
+#define vec3_to_vec3u16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y; \
+(dst).z = (uint16_t)(src).z;
+
+#define vec4_to_vec4u16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y; \
+(dst).z = (uint16_t)(src).z; \
+(dst).w = (uint16_t)(src).w;
+
+#define vec2h_to_vec2(src, dst) \
+(dst).x = half_to_float((src).x); \
+(dst).y = half_to_float((src).y);
+
+#define vec3h_to_vec3(src, dst) \
+(dst).x = half_to_float((src).x); \
+(dst).y = half_to_float((src).y); \
+(dst).z = half_to_float((src).z);
+
+#define vec4h_to_vec4(src, dst) \
+(dst).x = half_to_float((src).x); \
+(dst).y = half_to_float((src).y); \
+(dst).z = half_to_float((src).z); \
+(dst).w = half_to_float((src).w);
+
+#define vec2_to_vec2h(src, dst) \
+(dst).x = float_to_half((src).x); \
+(dst).y = float_to_half((src).y);
+
+#define vec3_to_vec3h(src, dst) \
+(dst).x = float_to_half((src).x); \
+(dst).y = float_to_half((src).y); \
+(dst).z = float_to_half((src).z);
+
+#define vec4_to_vec4h(src, dst) \
+(dst).x = float_to_half((src).x); \
+(dst).y = float_to_half((src).y); \
+(dst).z = float_to_half((src).z); \
+(dst).w = float_to_half((src).w);
 
 #define vec2_add(x, y, z) \
 { \

@@ -49,18 +49,18 @@ bool FASTCALL glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
 }
 
 bool FASTCALL glitter_list_unpack_file(glitter_effect_group* a1, f2_struct* st) {
-    char* data;
+    size_t d;
     glitter_effect** i;
     uint32_t length;
 
     if (!st || !st->header.data_size)
         return false;
 
-    data = st->data;
+    d = (size_t)st->data;
     if (st->header.use_big_endian)
-        length = reverse_endianess_uint32_t(*(uint32_t*)data);
+        length = load_reverse_endianness_uint32_t((void*)d);
     else
-        length = *(uint32_t*)data;
+        length = *(uint32_t*)d;
 
     if (length != a1->effects.end - a1->effects.begin) {
         for (i = a1->effects.begin; i != a1->effects.end; i++)
@@ -70,10 +70,10 @@ bool FASTCALL glitter_list_unpack_file(glitter_effect_group* a1, f2_struct* st) 
     }
 
     if (length) {
-        data += 0x04;
-        for (i = a1->effects.begin; i != a1->effects.end; i++, data += 0x80)
+        d += 0x04;
+        for (i = a1->effects.begin; i != a1->effects.end; i++, d += 0x80)
             if (*i)
-                memcpy((*i)->name, data, 0x80);
+                memcpy((*i)->name, (void*)d, 0x80);
     }
     return true;
 }

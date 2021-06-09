@@ -50,7 +50,7 @@ glitter_particle_inst* FASTCALL glitter_x_particle_inst_init(glitter_particle* a
 }
 
 void FASTCALL glitter_x_particle_inst_emit(glitter_particle_inst* a1,
-    int32_t dup_count, int32_t count, float_t emission, float_t frame) {
+    int32_t dup_count, int32_t count, float_t emission) {
     glitter_particle_inst* particle;
 
     if (a1->data.flags & GLITTER_PARTICLE_INST_ENDED)
@@ -69,7 +69,7 @@ void FASTCALL glitter_x_particle_inst_emit(glitter_particle_inst* a1,
     }
 
     if (a1->data.render_group)
-        glitter_x_render_group_emit(a1->data.render_group, &a1->data, a1->data.emitter, dup_count, count, frame);
+        glitter_x_render_group_emit(a1->data.render_group, &a1->data, a1->data.emitter, dup_count, count);
 }
 
 void FASTCALL glitter_x_particle_inst_free(glitter_particle_inst* a1, bool free) {

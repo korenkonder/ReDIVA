@@ -113,7 +113,7 @@ void FASTCALL glitter_render_element_emit(GPM, GLT, glitter_render_element* a1,
     if (copy_mat) {
         a1->mat = a3->mat;
         if (a2->data.flags & GLITTER_PARTICLE_EMITTER_LOCAL)
-            a1->mat.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+            mat4_clear_trans(&a1->mat, &a1->mat);
     }
     else
         a1->mat = mat4_identity;
@@ -135,7 +135,7 @@ void FASTCALL glitter_render_element_free(glitter_render_element* a1) {
     }
 }
 
-void FASTCALL glitter_render_element_rotate_to_position(mat4* mat,
+void FASTCALL glitter_render_element_rotate_to_emit_position(mat4* mat,
     glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
     vec3 vec1;
     vec3 vec2;
@@ -193,10 +193,10 @@ void FASTCALL glitter_render_element_update(GLT,
     size_t length;
     glitter_curve* curve;
     float_t value;
-    
+
     particle = a1->particle;
-    if (!particle || !((particle->data.data.flags & GLITTER_PARTICLE_LOOP
-        && !glitter_particle_inst_has_ended(particle, false)) || a2->frame <= a2->life_time)) {
+    if (!particle || (particle->data.data.flags & GLITTER_PARTICLE_LOOP
+        && glitter_particle_inst_has_ended(particle, false)) || a2->frame >= a2->life_time) {
         a1->ctrl--;
         a2->alive = false;
         if (a2->locus_history) {
@@ -427,7 +427,7 @@ static void FASTCALL glitter_render_element_init_mesh_by_type(GLT, glitter_rende
     }
 
     if (~a2->data.flags & GLITTER_PARTICLE_EMITTER_LOCAL)
-        mat4_mult_vec3(&a3->mat_no_scale, &base_translation, &base_translation);
+        mat4_mult_vec3(&a3->mat_rot, &base_translation, &base_translation);
 
     vec3_add(a1->base_translation, base_translation, a1->base_translation);
     a1->translation = a1->base_translation;
@@ -437,7 +437,7 @@ static void FASTCALL glitter_render_element_init_mesh_by_type(GLT, glitter_rende
     vec3_normalize(direction, direction);
 
     if (~a2->data.flags & GLITTER_PARTICLE_EMITTER_LOCAL)
-        mat4_mult_vec3(&a3->mat_no_scale, &direction, &direction);
+        mat4_mult_vec3(&a3->mat_rot, &direction, &direction);
     a1->base_direction = direction;
     a1->direction = direction;
 

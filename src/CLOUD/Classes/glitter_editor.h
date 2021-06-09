@@ -14,6 +14,7 @@ extern bool glitter_editor_enabled;
 
 extern void glitter_editor_dispose();
 extern void glitter_editor_init();
+extern void glitter_editor_draw();
 extern void glitter_editor_drop(size_t count, wchar_t** paths);
 extern void glitter_editor_imgui();
 extern void glitter_editor_input();

@@ -22,8 +22,12 @@ void FASTCALL glitter_x_render_element_emit(glitter_render_element* a1,
     glitter_particle_inst_data* a2, glitter_emitter_inst* a3,
     int32_t index, uint8_t step, glitter_random* random) {
     a1->random = glitter_x_random_get_value(random);
+    a1->frame = 0.0f;
+    a1->rebound_frame = 0.0f;
+    a1->uv = vec2_null;
+    a1->uv_index = a2->data.uv_index;
+
     a1->step = step;
-    a1->draw = true;
     a1->fade_in_frames = glitter_x_random_get_float(random, (float_t)a2->data.fade_in_random)
         + (float_t)a2->data.fade_in;
     if (a1->fade_in_frames < 0.0f)
@@ -40,7 +44,6 @@ void FASTCALL glitter_x_render_element_emit(glitter_render_element* a1,
         a1->life_time = 0.0f;
 
     a1->life_time += a1->fade_in_frames + a1->fade_out_frames;
-
 
     a1->color = a2->data.color;
     if (a2->data.draw_type == GLITTER_DIRECTION_PARTICLE_ROTATION) {
@@ -126,7 +129,7 @@ void FASTCALL glitter_x_render_element_emit(glitter_render_element* a1,
     if (copy_mat) {
         a1->mat = a3->mat;
         if (a2->data.flags & GLITTER_PARTICLE_EMITTER_LOCAL)
-            a1->mat.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+            mat4_clear_trans(&a1->mat, &a1->mat);
     }
     else
         a1->mat = mat4_identity;
@@ -148,18 +151,16 @@ void FASTCALL glitter_x_render_element_free(glitter_render_element* a1) {
     }
 }
 
-void FASTCALL glitter_x_render_element_rotate_mesh_to_position(mat4* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
-    vec3 trans;
+void FASTCALL glitter_x_render_element_rotate_mesh_to_emit_position(mat4* mat,
+    glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
     vec3 vec1;
     vec3 vec2;
     float_t angle;
     vec3 axis;
     float_t length;
 
-    mat4_get_translation(mat, &trans);
     mat4_get_translation(&a2->mat, &vec2);
-    vec3_sub(trans, vec2, vec2);
+    vec3_sub(*trans, vec2, vec2);
     vec3_length_squared(vec2, length);
     if (length < 0.000001f)
         vec2 = (vec3){ 0.0f, 1.0f, 0.0f };
@@ -171,7 +172,7 @@ void FASTCALL glitter_x_render_element_rotate_mesh_to_position(mat4* mat,
 }
 
 void FASTCALL glitter_x_render_element_rotate_mesh_to_prev_position(mat4* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
+    glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
     vec3 vec1;
     vec3 vec2;
     float_t angle;
@@ -189,7 +190,7 @@ void FASTCALL glitter_x_render_element_rotate_mesh_to_prev_position(mat4* mat,
     mat4_mult_axis_angle((mat4*)&mat4_identity, mat, &axis, angle);
 }
 
-void FASTCALL glitter_x_render_element_rotate_to_position(mat3* mat,
+void FASTCALL glitter_x_render_element_rotate_to_emit_position(mat3* mat,
     glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
     vec3 trans;
     vec3 vec1;
@@ -243,8 +244,8 @@ void FASTCALL glitter_x_render_element_update(glitter_render_group* a1,
 
     glitter_x_random_set_step(a1->random_ptr, a2->step);
     particle = a1->particle;
-    if (!particle || !((particle->data.data.flags & GLITTER_PARTICLE_LOOP
-        && !glitter_x_particle_inst_has_ended(particle, false)) || a2->frame <= a2->life_time)) {
+    if (!particle || (particle->data.data.flags & GLITTER_PARTICLE_LOOP
+        && glitter_x_particle_inst_has_ended(particle, false)) || a2->frame >= a2->life_time) {
         a1->ctrl--;
         a2->alive = false;
         if (a2->locus_history) {
@@ -271,7 +272,7 @@ void FASTCALL glitter_x_render_element_update(glitter_render_group* a1,
     if (uv_scroll.y != 0.0f)
         a2->uv_scroll.y = fmodf(a2->uv_scroll.y + uv_scroll.y, 1.0f);
 
-    if (particle->data.data.sub_flags & GLITTER_PARTICLE_SUB_USE_SECONDARY_UV) {
+    if (particle->data.data.sub_flags & GLITTER_PARTICLE_SUB_UV_2ND_ADD) {
         vec2 uv_scroll_2nd;
         vec2_mult_scalar(particle->data.data.uv_scroll_2nd_add,
             particle->data.data.uv_scroll_2nd_add_scale * delta_frame, uv_scroll_2nd);
@@ -523,7 +524,7 @@ static void FASTCALL glitter_render_element_init_mesh_by_type(glitter_render_ele
     }
 
     if (~a2->data.flags & GLITTER_PARTICLE_EMITTER_LOCAL)
-        mat4_mult_vec3(&a3->mat_ext_anim, &base_translation, &base_translation);
+        mat4_mult_vec3(&a3->mat_rot, &base_translation, &base_translation);
 
     vec3_add(a1->base_translation, base_translation, a1->base_translation);
     a1->translation = a1->base_translation;
@@ -533,7 +534,7 @@ static void FASTCALL glitter_render_element_init_mesh_by_type(glitter_render_ele
     vec3_normalize(direction, direction);
 
     if (~a2->data.flags & GLITTER_PARTICLE_EMITTER_LOCAL)
-        mat4_mult_vec3(&a3->mat_ext_anim, &direction, &direction);
+        mat4_mult_vec3(&a3->mat_rot, &direction, &direction);
     a1->base_direction = direction;
     a1->direction = direction;
 

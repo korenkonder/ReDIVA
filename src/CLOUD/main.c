@@ -4,8 +4,10 @@
 */
 
 #include "../KKdLib/kkfs.h"
+#include "../KKdLib/mot.h"
 #include "elf.h"
 #include "main.h"
+#include "shared.h"
 #include "unedat.h"
 #include <processthreadsapi.h>
 #include <timeapi.h>
@@ -102,8 +104,6 @@ int wmain(int argc, wchar_t** argv) {
     render_init_struct ris;
     ris.res.x = 0;
     ris.res.y = 0;
-    ris.internal_res.x = 0;
-    ris.internal_res.y = 0;
     ris.scale = 0.0f;
 
     thread control, input, render, sound;
@@ -113,8 +113,11 @@ int wmain(int argc, wchar_t** argv) {
     h[2] = render.handle = CreateThread(0, 0, &render_main, &ris, 0, &render.id);
     h[3] = input.handle = CreateThread(0, 0, &input_main, 0, 0, &input.id);
 
+    lock_init(state_lock);
+    state = RENDER_UNINITIALIZED;
     if (control.handle && input.handle && render.handle && sound.handle)
         WaitForMultipleObjects(4, h, true, INFINITE);
+    lock_dispose(state_lock);
 
     if (control.handle)
         CloseHandle(control.handle);

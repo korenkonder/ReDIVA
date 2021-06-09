@@ -162,7 +162,7 @@ static float_t FASTCALL glitter_x_curve_interpolate(glitter_curve* c, float_t fr
     else {
         curr_val = glitter_x_curve_randomize_key(c, curr, random);
         next_val = glitter_x_curve_randomize_key(c, next, random);
-        val = curr_val + (next_val - curr_val) * t;
+        val = (1.0f - t) * curr_val + next_val;
     }
     return val;
 }
@@ -191,8 +191,5 @@ static float_t FASTCALL glitter_x_curve_randomize_key(glitter_curve* c,
 
     rand = glitter_x_random_get_float_min_max(random,
         c->flags & GLITTER_CURVE_RANDOM_RANGE_NEGATE ? -key->random_range : 0.0f, key->random_range);
-
-    if (c->flags & GLITTER_CURVE_RANDOM_RANGE_MULT)
-        rand *= key->value * 0.01f;
     return rand + key->value;
 }

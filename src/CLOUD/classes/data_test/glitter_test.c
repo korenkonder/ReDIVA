@@ -156,12 +156,12 @@ void glitter_test_imgui() {
     size_t ctrl;
     size_t disp;
     float_t frame;
-    float_t life_time;
+    int32_t life_time;
 
     frame = 0.0f;
-    life_time = 0.0f;
+    life_time = 0;
     glitter_particle_manager_get_frame(GPM_VAL, &frame, &life_time);
-    igText("%.0f - %.0f/%.0f", glitter_test.frame_counter, frame, life_time);
+    igText("%.0f - %.0f/%d", glitter_test.frame_counter, frame, life_time);
 
     ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_QUAD);
     disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_QUAD);

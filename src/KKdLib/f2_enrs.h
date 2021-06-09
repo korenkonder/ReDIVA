@@ -34,6 +34,7 @@ typedef struct enrs_entry {
 
 vector(enrs_entry)
 
+extern void enrs_apply(vector_enrs_entry* enrs, void* data);
 extern uint32_t enrs_length(vector_enrs_entry* enrs);
 extern void enrs_read(stream* s, vector_enrs_entry* enrs);
 extern void enrs_write(stream* s, vector_enrs_entry* enrs);

@@ -13,9 +13,9 @@ typedef enum pof_value {
 } pof_value;
 
 static inline bool pof_length_get_size(uint32_t* length, size_t val);
-static bool pof_write_packed_value(stream* s, size_t val);
+static inline bool pof_write_packed_value(stream* s, size_t val);
 
-inline size_t pof_read_offsets_count(stream* s) {
+static size_t pof_read_offsets_count(stream* s) {
     size_t pos = io_get_position(s);
     size_t i, j, l;
     pof_value val;
@@ -42,6 +42,12 @@ inline size_t pof_read_offsets_count(stream* s) {
     }
     io_set_position(s, pos, IO_SEEK_SET);
     return j;
+}
+
+void pof_add(stream* s, vector_size_t* pof, size_t offset) {
+    size_t position = io_get_position(s);
+    position += offset;
+    vector_size_t_push_back(pof, &position);
 }
 
 void pof_read(stream* s, vector_size_t* pof, bool shift_x) {
@@ -101,7 +107,10 @@ void pof_write(stream* s, vector_size_t* pof, bool shift_x) {
     bit_shift = (uint8_t)(shift_x ? 3 : 2);
     v = ((size_t)1 << bit_shift) - 1;
     l = pof_length(pof, shift_x);
-    io_write_uint32_t(s, (uint32_t)l);
+    if (shift_x)
+        io_write_uint32_t(s, (uint32_t)l);
+    else
+        io_write_uint32_t(s, (uint32_t)align_val(l, 4));
 
     for (i = p.begin; i != p.end; i++) {
         o = *i;

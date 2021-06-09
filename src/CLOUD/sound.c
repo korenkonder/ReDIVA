@@ -4,24 +4,33 @@
 */
 
 #include "sound.h"
+#include "../CRE/timer.h"
+
+timer sound_timer;
 
 extern bool close;
 
-#define FREQ 60
-#include "../CRE/timer.h"
-timer_val(sound);
-
 int32_t sound_main(void* arg) {
-    timer_init(sound, "Sound");
-    while (state != RENDER_INITIALIZED)
-        msleep(sound_timer, 0.0625);
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+    timer_init(&sound_timer, 60.0);
+    bool state_wait = false;
+    do {
+        lock_lock(state_lock);
+        state_wait = state != RENDER_INITIALIZED;
+        lock_unlock(state_lock);
+        msleep(sound_timer.timer, 0.0625);
+    } while (state_wait);
 
-    while (!close) {
-        timer_calc_pre(sound);
+    bool local_close = false;
+    while (!close && !local_close) {
+        timer_start_of_cycle(&sound_timer);
+        lock_lock(state_lock);
+        local_close = state == RENDER_DISPOSING || state == RENDER_DISPOSED;
+        lock_unlock(state_lock);
+
         classes_process_sound(classes, classes_count);
-        double_t cycle_time = timer_calc_post(sound);
-        msleep(sound_timer, 1000.0 / FREQ - cycle_time);
+        timer_end_of_cycle(&sound_timer);
     }
-    timer_dispose(sound);
+    timer_dispose(&sound_timer);
     return 0;
 }

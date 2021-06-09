@@ -8,8 +8,7 @@
 #include "particle_inst_x.h"
 #include "random_x.h"
 
-static void FASTCALL glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* a1,
-    float_t emission, float_t frame);
+static void FASTCALL glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* a1, float_t emission);
 static void FASTCALL glitter_x_emitter_inst_get_value(glitter_emitter_inst* a1);
 
 glitter_emitter_inst* FASTCALL glitter_x_emitter_inst_init(glitter_emitter* a1,
@@ -45,7 +44,7 @@ glitter_emitter_inst* FASTCALL glitter_x_emitter_inst_init(glitter_emitter* a1,
     ei->rotation = a1->rotation;
     ei->scale = a1->scale;
     ei->mat = mat4_identity;
-    ei->mat_ext_anim = mat4_identity;
+    ei->mat_rot = mat4_identity;
     ei->scale_all = 1.0f;
     ei->emission_interval = ei->data.emission_interval;
     ei->particles_per_emission = ei->data.particles_per_emission;
@@ -84,7 +83,7 @@ void FASTCALL glitter_x_emitter_inst_emit(glitter_emitter_inst* a1,
             if (a1->data.timer == GLITTER_EMITTER_TIMER_BY_DISTANCE) {
                 if (a1->emission_timer <= 0.0f || a1->emission_interval >= 0.0f)
                     while (a1->emission_timer <= 0.0f) {
-                        glitter_x_emitter_inst_emit_particle(a1, emission, -a1->emission_timer);
+                        glitter_x_emitter_inst_emit_particle(a1, emission);
                         a1->emission_timer += a1->emission_interval;
                         if (a1->emission_timer < -1000000.0f)
                             a1->emission_timer = -1000000.0f;
@@ -96,15 +95,12 @@ void FASTCALL glitter_x_emitter_inst_emit(glitter_emitter_inst* a1,
             else if (a1->data.timer == GLITTER_EMITTER_TIMER_BY_TIME)
                 if (a1->emission_timer >= 0.0f || a1->emission_interval >= 0.0f) {
                     a1->emission_timer -= delta_frame;
-                    while (a1->emission_timer <= 0.0f) {
-                        glitter_x_emitter_inst_emit_particle(a1, emission, -a1->emission_timer);
+                    if (a1->emission_timer <= 0.0f) {
+                        glitter_x_emitter_inst_emit_particle(a1, emission);
                         if (a1->emission_interval > 0.0)
                             a1->emission_timer += a1->emission_interval;
                         else
                             a1->emission_timer = -1.0f;
-
-                        if (a1->emission_interval <= 0.0f)
-                            break;
                     }
                 }
         }
@@ -112,7 +108,7 @@ void FASTCALL glitter_x_emitter_inst_emit(glitter_emitter_inst* a1,
             && a1->data.timer == GLITTER_EMITTER_TIMER_BY_TIME) {
             a1->emission_timer -= delta_frame;
             if (a1->emission_timer <= 0.0) {
-                glitter_x_emitter_inst_emit_particle(a1, emission, -a1->emission_timer);
+                glitter_x_emitter_inst_emit_particle(a1, emission);
                 a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
             }
         }
@@ -130,7 +126,7 @@ void FASTCALL glitter_x_emitter_inst_free(glitter_emitter_inst* a1, float_t emis
         return;
 
     if (a1->emission == GLITTER_EMITTER_EMISSION_ON_END) {
-        glitter_x_emitter_inst_emit_particle(a1, emission, 0.0f);
+        glitter_x_emitter_inst_emit_particle(a1, emission);
         a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
     }
 
@@ -198,7 +194,7 @@ void FASTCALL glitter_x_emitter_inst_update(GPM,
     vec3 trans_prev;
     bool has_dist;
     mat4 mat;
-    mat4 mat_ext_anim;
+    mat4 mat_rot;
     mat4 mat1;
     mat4 dir_mat;
 
@@ -245,26 +241,25 @@ void FASTCALL glitter_x_emitter_inst_update(GPM,
     mat4_normalize_rotation(&mat, &mat);
 
     if (a1->data.direction == GLITTER_DIRECTION_EFFECT_ROTATION)
-        mat_ext_anim = a2->mat_ext_anim_eff_rot;
+        mat_rot = a2->mat_rot_eff_rot;
     else {
         mat4_clear_rot(&mat, &mat);
-        mat_ext_anim = a2->mat_ext_anim;
+        mat_rot = a2->mat_rot;
     }
 
     mult = true;
     switch (a1->data.direction) {
     case GLITTER_DIRECTION_BILLBOARD:
         if (a2->data.flags & GLITTER_EFFECT_LOCAL) {
-            mat1 = GPM_VAL->cam_view;
-            mat1.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+            mat4_clear_trans(&GPM_VAL->cam_view, &mat1);
             mat4_mult(&mat1, &mat, &mat1);
         }
         else
             mat1 = mat;
-        
+
         mat4_from_mat3(&GPM_VAL->cam_inv_view_mat3, &dir_mat);
         mat4_mult(&mat1, &dir_mat, &dir_mat);
-        dir_mat.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+        mat4_clear_trans(&dir_mat, &dir_mat);
         break;
     case GLITTER_DIRECTION_Y_AXIS:
         mat4_rotate_y((float_t)M_PI_2, &dir_mat);
@@ -281,14 +276,14 @@ void FASTCALL glitter_x_emitter_inst_update(GPM,
     }
 
     if (mult) {
-        mat4_mult(&mat, &dir_mat, &mat);
-        mat4_mult(&mat_ext_anim, &dir_mat, &mat_ext_anim);
+        mat4_mult(&dir_mat, &mat, &mat);
+        mat4_mult(&dir_mat, &mat_rot, &mat_rot);
     }
     mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
-    mat4_rot(&mat_ext_anim, rot.x, rot.y, rot.z, &mat_ext_anim);
+    mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
     mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
     a1->mat = mat;
-    a1->mat_ext_anim = mat_ext_anim;
+    a1->mat_rot = mat_rot;
 
     if (has_dist) {
         mat4_get_translation(&mat, &trans);
@@ -343,9 +338,9 @@ void FASTCALL glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
         mat4 mat_ext_anim;
 
         if (a1->data.direction == GLITTER_DIRECTION_EFFECT_ROTATION)
-            mat_ext_anim = a2->mat_ext_anim_eff_rot;
+            mat_ext_anim = a2->mat_rot_eff_rot;
         else
-            mat_ext_anim = a2->mat_ext_anim;
+            mat_ext_anim = a2->mat_rot;
 
         mat4_get_translation(&a1->mat, &trans_prev);
         mat = a2->mat;
@@ -355,7 +350,7 @@ void FASTCALL glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
         mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
         mat4_rot(&mat_ext_anim, rot.x, rot.y, rot.z, &mat_ext_anim);
         a1->mat = mat;
-        a1->mat_no_scale = mat_ext_anim;
+        a1->mat_rot = mat_ext_anim;
 
         vec3 trans_diff;
         mat4_get_translation(&mat, &trans);
@@ -373,8 +368,7 @@ void FASTCALL glitter_x_emitter_inst_dispose(glitter_emitter_inst* ei) {
     free(ei);
 }
 
-static void FASTCALL glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* a1,
-    float_t emission, float_t frame) {
+static void FASTCALL glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* a1, float_t emission) {
     int32_t count;
     glitter_particle_inst** i;
 
@@ -384,7 +378,9 @@ static void FASTCALL glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* 
         count = 1;
 
     for (i = a1->particles.begin; i != a1->particles.end; i++)
-        glitter_x_particle_inst_emit(*i, (int32_t)roundf(a1->particles_per_emission), count, emission, frame);
+        if (*i)
+            glitter_x_particle_inst_emit(*i,
+                (int32_t)roundf(a1->particles_per_emission), count, emission);
 }
 
 static void FASTCALL glitter_x_emitter_inst_get_value(glitter_emitter_inst* a1) {

@@ -16,13 +16,47 @@ void FASTCALL glitter_x_render_scene_calc_draw(GPM, glitter_render_scene* rs,
     glitter_render_group** i;
     glitter_render_group* rg;
 
+    glitter_effect_inst* eff = GPM_VAL->effect;
+    glitter_emitter_inst* emit = GPM_VAL->emitter;
+    glitter_particle_inst* ptcl = GPM_VAL->particle;
     for (i = rs->begin; i != rs->end; i++) {
         if (!*i)
             continue;
 
         rg = *i;
-        if (rg && (!glitter_x_render_group_cannot_draw(rg) || GPM_VAL->draw_all))
+        if (glitter_x_render_group_cannot_draw(rg) && !GPM_VAL->draw_all)
+            continue;
+
+#ifndef CRE_DEV
+        glitter_x_render_group_calc_draw(GPM_VAL, rg, render_add_list_func);
+#else
+        if (!GPM_VAL->draw_selected || !eff) {
             glitter_x_render_group_calc_draw(GPM_VAL, rg, render_add_list_func);
+        }
+        else if ((eff && ptcl) || (eff && !emit)) {
+            if (!ptcl || rg->particle == ptcl)
+                glitter_x_render_group_calc_draw(GPM_VAL, rg, render_add_list_func);
+        }
+        else if (emit)
+            for (glitter_particle_inst** i = emit->particles.begin; i != emit->particles.end; i++) {
+                if (!*i)
+                    continue;
+
+                glitter_particle_inst* particle = *i;
+                if (rg->particle == particle)
+                    glitter_x_render_group_calc_draw(GPM_VAL, rg, render_add_list_func);
+
+                if (particle->data.children.begin) {
+                    vector_ptr_glitter_particle_inst* children = &particle->data.children;
+                    for (glitter_particle_inst** j = children->begin; j != children->end; j++) {
+                        if (!*j || rg->particle != *j)
+                            continue;
+
+                        glitter_x_render_group_calc_draw(GPM_VAL, rg, render_add_list_func);
+                    }
+                }
+            }
+#endif
     }
 }
 
@@ -30,14 +64,50 @@ void FASTCALL glitter_x_render_scene_draw(GPM, glitter_render_scene* rs, int32_t
     glitter_render_group** i;
     glitter_render_group* rg;
 
+    glitter_effect_inst* eff = GPM_VAL->effect;
+    glitter_emitter_inst* emit = GPM_VAL->emitter;
+    glitter_particle_inst* ptcl = GPM_VAL->particle;
     for (i = rs->begin; i != rs->end; i++) {
         if (!*i)
             continue;
 
         rg = *i;
-        if (rg && (rg)->alpha == alpha
-            && (!glitter_x_render_group_cannot_draw(rg) || GPM_VAL->draw_all))
+
+        rg = *i;
+        if ((rg)->alpha != alpha
+            || (glitter_x_render_group_cannot_draw(rg) && !GPM_VAL->draw_all))
+            continue;
+
+#ifndef CRE_DEV
+        glitter_x_render_group_draw(rg);
+#else
+        if (!GPM_VAL->draw_selected || !eff) {
             glitter_x_render_group_draw(rg);
+        }
+        else if ((eff && ptcl) || (eff && !emit)) {
+            if (!ptcl || rg->particle == ptcl)
+                glitter_x_render_group_draw(rg);
+        }
+        else if (emit)
+            for (glitter_particle_inst** i = emit->particles.begin; i != emit->particles.end; i++) {
+                if (!*i)
+                    continue;
+
+                glitter_particle_inst* particle = *i;
+                if (rg->particle == particle)
+                    glitter_x_render_group_draw(rg);
+
+                if (particle->data.children.begin) {
+                    vector_ptr_glitter_particle_inst* children = &particle->data.children;
+                    for (glitter_particle_inst** j = children->begin; j != children->end; j++) {
+                        if (!*j || rg->particle != *j)
+                            continue;
+
+                        glitter_x_render_group_draw(rg);
+                    }
+                }
+            }
+#endif
     }
 }
 

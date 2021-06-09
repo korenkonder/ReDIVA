@@ -152,7 +152,7 @@ float_t FASTCALL glitter_x_random_get_float_min_max(glitter_random* random, floa
 void FASTCALL glitter_x_random_get_vec3(glitter_random* random, vec3* src, vec3* dst) {
     vec3 val;
     vec3 t;
-    
+
     val.x = *(float_t*)&glitter_x_float_table[random->value % 0x169];
     random->value += random->step;
     val.y = *(float_t*)&glitter_x_float_table[random->value % 0x169];

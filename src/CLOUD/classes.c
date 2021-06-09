@@ -55,6 +55,19 @@ void classes_process_control(classes_struct* classes, const size_t classes_count
     }
 }
 
+extern void classes_process_draw(classes_struct* classes, size_t classes_count) {
+    for (size_t i = 0; i < classes_count; i++) {
+        if (classes[i].lock_init && classes[i].draw) {
+            lock_lock(classes[i].lock);
+            classes[i].draw();
+            lock_unlock(classes[i].lock);
+        }
+
+        if (classes[i].sub_classes && classes[i].sub_classes_count)
+            classes_process_draw(classes[i].sub_classes, classes[i].sub_classes_count);
+    }
+}
+
 void classes_process_drop(classes_struct* classes, size_t classes_count, size_t count, wchar_t** paths) {
     for (size_t i = 0; i < classes_count; i++) {
         if (classes[i].lock_init && classes[i].drop) {

@@ -46,7 +46,7 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
         if (already_upper) {
             if (big_endian)
                 for (i = 0; length > 3; length -= 4, i += 4) {
-                    b = reverse_endianess_uint32_t(*(uint32_t*)&data[i]);
+                    b = load_reverse_endianness_uint32_t(&data[i]);
                     hash += b;
                     hash *= m;
                     hash ^= hash >> r;
@@ -73,7 +73,7 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
         else {
             if (big_endian)
                 for (i = 0; length > 3; length -= 4, i += 4) {
-                    b = reverse_endianess_uint32_t(*(uint32_t*)&data[i]);
+                    b = load_reverse_endianness_uint32_t(&data[i]);
 
                     a = b & 0xFF;
                     if (a > 0x60 && a < 0x7B)

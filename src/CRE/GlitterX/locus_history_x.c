@@ -29,7 +29,7 @@ void FASTCALL glitter_x_locus_history_append(glitter_locus_history* a1,
         mat4_get_translation(&emitter->mat, &emit_trans);
         vec3_add(temp, emit_trans, temp);
         if (a3->data.data.flags & GLITTER_PARTICLE_ROTATE_LOCUS)
-            mat4_mult_vec3(&a3->data.emitter->mat_no_scale, &temp, &temp);
+            mat4_mult_vec3(&emitter->mat_rot, &temp, &temp);
     }
 
     locus_history.color = a2->color;

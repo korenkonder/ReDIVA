@@ -4,6 +4,8 @@
 */
 
 #include "f2_struct.h"
+#include "io_path.h"
+#include "io_stream.h"
 
 vector_func(f2_struct)
 

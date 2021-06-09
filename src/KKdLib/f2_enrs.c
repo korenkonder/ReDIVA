@@ -22,6 +22,44 @@ static bool enrs_read_packed_value(stream* s, uint32_t* val);
 static bool enrs_write_packed_value_type(stream* s, uint32_t val, enrs_type type);
 static bool enrs_write_packed_value(stream* s, uint32_t val);
 
+void enrs_apply(vector_enrs_entry* enrs, void* data) {
+    if (!enrs || !data)
+        return;
+
+    uint8_t* d = data;
+    uint8_t* temp;
+    for (enrs_entry* i = enrs->begin; i != enrs->end; i++) {
+        d += i->offset;
+        for (size_t j = 0; j < i->repeat_count; j++) {
+            temp = d + i->size * j;
+            for (enrs_sub_entry* k = i->sub.begin; k != i->sub.end; k++) {
+                temp += k->skip_bytes;
+                switch (k->type) {
+                case ENRS_TYPE_WORD:
+                    for (size_t l = 0; l < k->repeat_count; l++) {
+                        *(uint16_t*)temp = reverse_endianness_uint16_t(*(uint16_t*)temp);
+                        temp += 2;
+                    }
+                    break;
+                case ENRS_TYPE_DWORD:
+                    for (size_t l = 0; l < k->repeat_count; l++) {
+                        *(uint32_t*)temp = reverse_endianness_uint32_t(*(uint32_t*)temp);
+                        temp += 4;
+                    }
+                    break;
+                case ENRS_TYPE_QWORD:
+                    for (size_t l = 0; l < k->repeat_count; l++) {
+                        *(uint64_t*)temp = reverse_endianness_uint64_t(*(uint64_t*)temp);
+                        temp += 8;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
+
+
 uint32_t enrs_length(vector_enrs_entry* enrs) {
     enrs_entry* i;
     enrs_sub_entry* j;

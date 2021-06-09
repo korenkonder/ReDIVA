@@ -13,6 +13,7 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
 
 glitter_effect* FASTCALL glitter_effect_init(GLT) {
     glitter_effect* e = force_malloc(sizeof(glitter_effect));
+    e->version = GLT_VAL == GLITTER_X ? 0x0C : 0x07;
     e->scale = vec3_identity;
     e->data.start_time = 0;
     e->data.ext_anim = 0;
@@ -22,7 +23,7 @@ glitter_effect* FASTCALL glitter_effect_init(GLT) {
     return e;
 }
 
-glitter_effect* FASTCALL glitter_effect_copy(GLT, glitter_effect* e) {
+glitter_effect* FASTCALL glitter_effect_copy(glitter_effect* e) {
     if (!e)
         return 0;
 
@@ -31,20 +32,20 @@ glitter_effect* FASTCALL glitter_effect_copy(GLT, glitter_effect* e) {
 
     if (e->data.ext_anim) {
         ec->data.ext_anim = force_malloc(sizeof(glitter_effect_ext_anim));
-        memcpy(ec->data.ext_anim, e->data.ext_anim, sizeof(glitter_effect_ext_anim));
+        *ec->data.ext_anim = *e->data.ext_anim;
     }
 
     ec->emitters = (vector_ptr_glitter_emitter){ 0, 0, 0 };
     vector_ptr_glitter_emitter_append(&ec->emitters, e->emitters.end - e->emitters.begin);
     for (glitter_emitter** i = e->emitters.begin; i != e->emitters.end; i++)
         if (*i) {
-            glitter_emitter* e = glitter_emitter_copy(GLT_VAL, *i);
+            glitter_emitter* e = glitter_emitter_copy(*i);
             if (e)
                 vector_ptr_glitter_emitter_push_back(&ec->emitters, &e);
         }
 
     ec->animation = (glitter_animation){ 0, 0, 0 };
-    glitter_animation_copy(GLT_VAL, &e->animation, &ec->animation);
+    glitter_animation_copy(&e->animation, &ec->animation);
     return ec;
 }
 
@@ -67,9 +68,9 @@ bool FASTCALL glitter_effect_parse_file(glitter_effect_group* a1,
         if (!i->header.data_size)
             continue;
 
-        if (i->header.signature == reverse_endianess_uint32_t('ANIM'))
+        if (i->header.signature == reverse_endianness_uint32_t('ANIM'))
             glitter_animation_parse_file(a1->type, i, &effect->animation, glitter_effect_curve_flags);
-        else if (i->header.signature == reverse_endianess_uint32_t('EMIT'))
+        else if (i->header.signature == reverse_endianness_uint32_t('EMIT'))
             glitter_emitter_parse_file(a1, i, &effect->emitters, effect);
     }
     vector_ptr_glitter_effect_push_back(vec, &effect);
@@ -213,7 +214,7 @@ static bool FASTCALL glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect
         d += 4;
     }
 
-    st->header.signature = reverse_endianess_uint32_t('EFCT');
+    st->header.signature = reverse_endianness_uint32_t('EFCT');
     st->header.length = 0x20;
     st->header.use_big_endian = false;
     st->header.use_section_size = true;
@@ -240,19 +241,19 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
 
         d = (size_t)data;
         if (use_big_endian) {
-            a2->data.name_hash = reverse_endianess_uint64_t(*(uint64_t*)d);
-            a2->data.appear_time = reverse_endianess_int32_t(*(int32_t*)(d + 8));
-            a2->data.life_time = reverse_endianess_int32_t(*(int32_t*)(d + 12));
-            a2->data.start_time = reverse_endianess_int32_t(*(int32_t*)(d + 16));
-            if (reverse_endianess_int32_t(*(int32_t*)(d + 24)))
+            a2->data.name_hash = load_reverse_endianness_uint64_t((void*)d);
+            a2->data.appear_time = load_reverse_endianness_int32_t((void*)(d + 8));
+            a2->data.life_time = load_reverse_endianness_int32_t((void*)(d + 12));
+            a2->data.start_time = load_reverse_endianness_int32_t((void*)(d + 16));
+            if (load_reverse_endianness_int32_t((void*)(d + 24)))
                 a2->data.flags |= GLITTER_EFFECT_LOOP;
-            a2->translation.x = reverse_endianess_float_t(*(float_t*)(d + 28));
-            a2->translation.y = reverse_endianess_float_t(*(float_t*)(d + 32));
-            a2->translation.z = reverse_endianess_float_t(*(float_t*)(d + 36));
-            a2->rotation.x = reverse_endianess_float_t(*(float_t*)(d + 40));
-            a2->rotation.y = reverse_endianess_float_t(*(float_t*)(d + 44));
-            a2->rotation.z = reverse_endianess_float_t(*(float_t*)(d + 48));
-            flags = reverse_endianess_int32_t(*(int32_t*)(d + 52));
+            a2->translation.x = load_reverse_endianness_float_t((void*)(d + 28));
+            a2->translation.y = load_reverse_endianness_float_t((void*)(d + 32));
+            a2->translation.z = load_reverse_endianness_float_t((void*)(d + 36));
+            a2->rotation.x = load_reverse_endianness_float_t((void*)(d + 40));
+            a2->rotation.y = load_reverse_endianness_float_t((void*)(d + 44));
+            a2->rotation.z = load_reverse_endianness_float_t((void*)(d + 48));
+            flags = load_reverse_endianness_int32_t((void*)(d + 52));
         }
         else {
             a2->data.name_hash = *(uint64_t*)data;
@@ -284,17 +285,19 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
             a2->data.flags |= 0x80;
 
         if (use_big_endian) {
-            a2->data.emission = reverse_endianess_float_t(*(float_t*)(d + 56));
-            a2->data.seed = reverse_endianess_int32_t(*(int32_t*)(d + 60));
+            a2->data.emission = load_reverse_endianness_float_t((void*)(d + 56));
+            a2->data.seed = load_reverse_endianness_int32_t((void*)(d + 60));
         }
         else {
             a2->data.emission = *(float_t*)(d + 56);
             a2->data.seed = *(int32_t*)(d + 60);
         }
 
-        int32_t type = a2->version != 8 ? *(int32_t*)(d + 76) : *(int32_t*)(d + 80);
+        int32_t type;
         if (use_big_endian)
-            type = reverse_endianess_int32_t(type);
+            type = load_reverse_endianness_int32_t((void*)(d + (a2->version != 8 ? 76 : 80)));
+        else
+            type = *(int32_t*)(d + (a2->version != 8 ? 76 : 80));
         d += a2->version != 8 ? 80 : 88;
 
         if (type == 1)
@@ -304,9 +307,9 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
             a2->data.ext_anim = ext_anim;
             if (ext_anim) {
                 if (use_big_endian) {
-                    ext_anim->index = reverse_endianess_int32_t(*(int32_t*)d);
-                    ext_anim->flags = reverse_endianess_int32_t(*(int32_t*)(d + 4));
-                    ext_anim->node_index = reverse_endianess_int32_t(*(int32_t*)(d + 8));
+                    ext_anim->index = load_reverse_endianness_int32_t((void*)d);
+                    ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 4));
+                    ext_anim->node_index = load_reverse_endianness_int32_t((void*)(d + 8));
                 }
                 else {
                     ext_anim->index = *(int32_t*)d;
@@ -323,8 +326,8 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
                 a2->data.ext_anim = ext_anim;
                 if (ext_anim) {
                     if (use_big_endian) {
-                        ext_anim->object_hash = reverse_endianess_uint64_t(*(uint64_t*)d);
-                        ext_anim->flags = reverse_endianess_int32_t(*(int32_t*)(d + 8));
+                        ext_anim->object_hash = load_reverse_endianness_uint64_t((void*)d);
+                        ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 8));
                     }
                     else {
                         ext_anim->object_hash = *(uint64_t*)d;
@@ -347,8 +350,8 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
                 a2->data.ext_anim = ext_anim;
                 if (ext_anim) {
                     if (use_big_endian) {
-                        ext_anim->object_hash = reverse_endianess_uint64_t(*(uint64_t*)d);
-                        ext_anim->flags = reverse_endianess_int32_t(*(int32_t*)(d + 8));
+                        ext_anim->object_hash = load_reverse_endianness_uint64_t((void*)d);
+                        ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 8));
                     }
                     else {
                         ext_anim->object_hash = *(uint64_t*)d;
@@ -371,10 +374,10 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
                 a2->data.ext_anim = ext_anim;
                 if (ext_anim) {
                     if (use_big_endian) {
-                        ext_anim->object_hash = reverse_endianess_uint64_t(*(uint64_t*)d);
-                        ext_anim->flags = reverse_endianess_int32_t(*(int32_t*)(d + 8));
-                        ext_anim->instance_id = reverse_endianess_int32_t(*(int32_t*)(d + 12));
-                        ext_anim->file_name_hash = reverse_endianess_uint64_t(*(uint64_t*)(d + 16));
+                        ext_anim->object_hash = load_reverse_endianness_uint64_t((void*)d);
+                        ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 8));
+                        ext_anim->instance_id = load_reverse_endianness_int32_t((void*)(d + 12));
+                        ext_anim->file_name_hash = load_reverse_endianness_uint64_t((void*)(d + 16));
                     }
                     else {
                         ext_anim->object_hash = *(uint64_t*)d;
@@ -407,19 +410,19 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
 
         d = (size_t)data;
         if (use_big_endian) {
-            a2->data.name_hash = reverse_endianess_uint64_t(*(uint64_t*)d);
-            a2->data.appear_time = reverse_endianess_int32_t(*(int32_t*)(d + 8));
-            a2->data.life_time = reverse_endianess_int32_t(*(int32_t*)(d + 12));
-            a2->data.start_time = reverse_endianess_int32_t(*(int32_t*)(d + 16));
-            if (reverse_endianess_int32_t(*(int32_t*)(d + 24)))
+            a2->data.name_hash = load_reverse_endianness_uint64_t((void*)d);
+            a2->data.appear_time = load_reverse_endianness_int32_t((void*)(d + 8));
+            a2->data.life_time = load_reverse_endianness_int32_t((void*)(d + 12));
+            a2->data.start_time = load_reverse_endianness_int32_t((void*)(d + 16));
+            if (load_reverse_endianness_int32_t((void*)(d + 24)))
                 a2->data.flags |= GLITTER_EFFECT_LOOP;
-            a2->translation.x = reverse_endianess_float_t(*(float_t*)(d + 28));
-            a2->translation.y = reverse_endianess_float_t(*(float_t*)(d + 32));
-            a2->translation.z = reverse_endianess_float_t(*(float_t*)(d + 36));
-            a2->rotation.x = reverse_endianess_float_t(*(float_t*)(d + 40));
-            a2->rotation.y = reverse_endianess_float_t(*(float_t*)(d + 44));
-            a2->rotation.z = reverse_endianess_float_t(*(float_t*)(d + 48));
-            flags = reverse_endianess_int32_t(*(int32_t*)(d + 52));
+            a2->translation.x = load_reverse_endianness_float_t((void*)(d + 28));
+            a2->translation.y = load_reverse_endianness_float_t((void*)(d + 32));
+            a2->translation.z = load_reverse_endianness_float_t((void*)(d + 36));
+            a2->rotation.x = load_reverse_endianness_float_t((void*)(d + 40));
+            a2->rotation.y = load_reverse_endianness_float_t((void*)(d + 44));
+            a2->rotation.z = load_reverse_endianness_float_t((void*)(d + 48));
+            flags = load_reverse_endianness_int32_t((void*)(d + 52));
         }
         else {
             a2->data.name_hash = *(uint64_t*)data;
@@ -447,15 +450,17 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
 
         if (a2->version == 7) {
             if (use_big_endian)
-                a2->data.emission = reverse_endianess_float_t(*(float_t*)d);
+                a2->data.emission = load_reverse_endianness_float_t((void*)d);
             else
                 a2->data.emission = *(float_t*)d;
             d += 4;
         }
 
-        int32_t type = *(int32_t*)d;
+        int32_t type;
         if (use_big_endian)
-            type = reverse_endianess_int32_t(type);
+            type = load_reverse_endianness_int32_t((void*)d);
+        else
+            type = *(int32_t*)d;
         d += 4;
 
         if (type == 1)
@@ -465,9 +470,9 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
             a2->data.ext_anim = ext_anim;
             if (ext_anim) {
                 if (use_big_endian) {
-                    ext_anim->index = reverse_endianess_int32_t(*(int32_t*)d);
-                    ext_anim->flags = reverse_endianess_int32_t(*(int32_t*)(d + 4));
-                    ext_anim->node_index = reverse_endianess_int32_t(*(int32_t*)(d + 8));
+                    ext_anim->index = load_reverse_endianness_int32_t((void*)d);
+                    ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 4));
+                    ext_anim->node_index = load_reverse_endianness_int32_t((void*)(d + 8));
                 }
                 else {
                     ext_anim->index = *(int32_t*)d;
@@ -484,8 +489,8 @@ static bool FASTCALL glitter_effect_unpack_file(GLT,
             if (ext_anim) {
                 ext_anim->index = -1;
                 if (use_big_endian) {
-                    ext_anim->object_hash = reverse_endianess_uint64_t(*(uint64_t*)d);
-                    ext_anim->flags = reverse_endianess_int32_t(*(int32_t*)(d + 8));
+                    ext_anim->object_hash = load_reverse_endianness_uint64_t((void*)d);
+                    ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 8));
                 }
                 else {
                     ext_anim->object_hash = *(uint64_t*)d;

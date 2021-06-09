@@ -20,7 +20,9 @@
 
 typedef unsigned short half_t;
 
-extern half_t reverse_endianess_half_t(half_t value);
+extern half_t load_reverse_endianness_half_t(void* ptr);
+extern void store_reverse_endianness_half_t(half_t value, void* ptr);
+extern half_t reverse_endianness_half_t(half_t value);
 extern float_t half_to_float(half_t h);
 extern half_t float_to_half(float_t val);
 extern double_t half_to_double(half_t h);

@@ -18,17 +18,21 @@ static void io_get_length(stream* s) {
 
 stream* io_open(char* path, char* mode) {
     stream* s = force_malloc(sizeof(stream));
-    errno_t err = fopen_s((FILE**)&s->io.stream, path, mode);
-    s->type = STREAM_FILE;
-    io_get_length(s);
+    if (path && mode) {
+        errno_t err = fopen_s(&s->io.stream, path, mode);
+        s->type = STREAM_FILE;
+        io_get_length(s);
+    }
     return s;
 }
 
 stream* io_wopen(wchar_t* path, wchar_t* mode) {
     stream* s = force_malloc(sizeof(stream));
-    errno_t err = _wfopen_s((FILE**)&s->io.stream, path, mode);
-    s->type = STREAM_FILE;
-    io_get_length(s);
+    if (path && mode) {
+        errno_t err = _wfopen_s(&s->io.stream, path, mode);
+        s->type = STREAM_FILE;
+        io_get_length(s);
+    }
     return s;
 }
 
@@ -44,7 +48,7 @@ stream* io_open_memory(void* data, size_t length) {
     return s;
 }
 
-void io_align(stream* s, size_t align) {
+void io_align_read(stream* s, size_t align) {
     size_t position;
     switch (s->type) {
     case STREAM_FILE:
@@ -64,6 +68,47 @@ void io_align(stream* s, size_t align) {
         case STREAM_FILE:
             _fseeki64(s->io.stream, position + temp_align, 0);
             break;
+        case STREAM_MEMORY:
+            capacity = s->io.data.vec.end - s->io.data.data;
+            if (capacity < temp_align) {
+                vector_uint8_t_append(&s->io.data.vec, temp_align);
+                memset(s->io.data.vec.begin + position, 0, temp_align);
+            }
+            s->io.data.data = s->io.data.vec.begin + position + temp_align;
+            if (s->io.data.vec.end < s->io.data.data)
+                s->io.data.vec.end = s->io.data.data;
+            break;
+        }
+}
+
+void io_align_write(stream* s, size_t align) {
+    size_t position;
+    switch (s->type) {
+    case STREAM_FILE:
+        position = _ftelli64(s->io.stream);
+        break;
+    case STREAM_MEMORY:
+        position = s->io.data.data - s->io.data.vec.begin;
+        break;
+    default:
+        return;
+    }
+
+    size_t capacity;
+    size_t temp_align = align - position % align;
+    if (align != temp_align)
+        switch (s->type) {
+        case STREAM_FILE: {
+            memset(s->buf, 0, min(sizeof(s->buf), temp_align));
+            ssize_t i = temp_align;
+            while (i >= sizeof(s->buf)) {
+                fwrite(s->buf, 1, sizeof(s->buf), s->io.stream);
+                i -= sizeof(s->buf);
+            }
+
+            if (i > 0)
+                fwrite(s->buf, 1, i, s->io.stream);
+        } break;
         case STREAM_MEMORY:
             capacity = s->io.data.vec.end - s->io.data.data;
             if (capacity < temp_align) {
@@ -225,7 +270,7 @@ int32_t io_write_char(stream* s, char c) {
             s->io.data.data = s->io.data.vec.begin + pos;
         }
         *s->io.data.data++ = c;
-        if (s->io.data.vec.end != s->io.data.data)
+        if (s->io.data.vec.end < s->io.data.data)
             s->io.data.vec.end = s->io.data.data;
         return 0;
     default:
@@ -234,14 +279,14 @@ int32_t io_write_char(stream* s, char c) {
 }
 
 int8_t io_read_int8_t(stream* s) {
-    char c = io_read_char(s);
+    int32_t c = io_read_char(s);
     if (c != IO_EOF)
         return (int8_t)c;
     return 0;
 }
 
 uint8_t io_read_uint8_t(stream* s) {
-    char c = io_read_char(s);
+    int32_t c = io_read_char(s);
     if (c != IO_EOF)
         return (uint8_t)c;
     return 0;
@@ -253,6 +298,111 @@ void io_write_int8_t(stream* s, int8_t val) {
 
 void io_write_uint8_t(stream* s, uint8_t val) {
     io_write_char(s, (char)val);
+}
+
+void io_read_char_buffer_string_null_terminated(stream* s, string* c) {
+    ssize_t offset = io_get_position(s);
+    char* temp = io_read_char_string_null_terminated_offset(s, offset, false);
+    string_init(c, temp);
+    free(temp);
+}
+
+void io_read_wchar_t_buffer_string_null_terminated(stream* s, wstring* c) {
+    ssize_t offset = io_get_position(s);
+    wchar_t* temp = io_read_wchar_t_string_null_terminated_offset(s, offset, false);
+    wstring_init(c, temp);
+    free(temp);
+}
+
+void io_read_char_buffer_string_null_terminated_offset(stream* s,
+    ssize_t offset, bool ret, string* c) {
+    char* temp = io_read_char_string_null_terminated_offset(s, offset, ret);
+    string_init(c, temp);
+    free(temp);
+}
+
+void io_read_wchar_t_buffer_string_null_terminated_offset(stream* s,
+    ssize_t offset, bool ret, wstring* c) {
+    wchar_t* temp = io_read_wchar_t_string_null_terminated_offset(s, offset, ret);
+    wstring_init(c, temp);
+    free(temp);
+}
+
+char* io_read_char_string_null_terminated(stream* s) {
+    ssize_t offset = io_get_position(s);
+    return io_read_char_string_null_terminated_offset(s, offset, false);
+}
+
+wchar_t* io_read_wchar_t_string_null_terminated(stream* s) {
+    ssize_t offset = io_get_position(s);
+    return io_read_wchar_t_string_null_terminated_offset(s, offset, false);
+}
+
+char* io_read_char_string_null_terminated_offset(stream* s, ssize_t offset, bool ret) {
+    ssize_t prev_offset = io_get_position(s);
+    if (prev_offset != offset)
+        io_set_position(s, offset, SEEK_SET);
+    size_t name_length = 0;
+    int32_t c;
+    while ((c = io_read_char(s)) != IO_EOF && c != 0)
+        name_length++;
+
+    if (name_length == 0) {
+        if (ret)
+            io_set_position(s, prev_offset, SEEK_SET);
+        return 0;
+    }
+
+    char* str = force_malloc(name_length + 1);
+    io_set_position(s, offset, SEEK_SET);
+    io_read(s, str, name_length);
+    str[name_length] = 0;
+
+    if (ret)
+        io_set_position(s, prev_offset, SEEK_SET);
+    return str;
+}
+
+wchar_t* io_read_wchar_t_string_null_terminated_offset(stream* s, ssize_t offset, bool ret) {
+    ssize_t prev_offset = io_get_position(s);
+    if (prev_offset != offset)
+        io_set_position(s, offset, SEEK_SET);
+    size_t name_length = 0;
+    int32_t c0, c1;
+    while ((c0 = io_read_char(s)) != IO_EOF
+        && (c1 = io_read_char(s)) != IO_EOF
+        && (((c0 & 0xFF) | ((c1 & 0xFF) << 8)) != 0))
+        name_length++;
+
+    if (name_length == 0)
+        return 0;
+
+    wchar_t* str = force_malloc_s(wchar_t, name_length + 1);
+    io_set_position(s, offset, SEEK_SET);
+    io_read(s, str, sizeof(wchar_t) * name_length);
+    str[name_length] = 0;
+
+    if (ret)
+        io_set_position(s, prev_offset, SEEK_SET);
+    return str;
+}
+
+void io_write_char_string(stream* s, char* str) {
+    io_write(s, str, strlen(str));
+}
+
+void io_write_wchar_t_string(stream* s, wchar_t* str) {
+    io_write(s, str, sizeof(wchar_t) * wcslen(str));
+}
+
+void io_write_char_string_null_terminated(stream* s, char* str) {
+    io_write(s, str, strlen(str));
+    io_write_uint8_t(s, 0);
+}
+
+void io_write_wchar_t_string_null_terminated(stream* s, wchar_t* str) {
+    io_write(s, str, sizeof(wchar_t) * wcslen(str));
+    io_write_uint16_t(s, 0);
 }
 
 void io_dispose(stream* s) {
@@ -279,19 +429,23 @@ t io_read_##t(stream* s) { \
     return *(t*)s->buf; \
 } \
 \
-t io_read_##t##_stream_reverse_endianess(stream* s) { \
+t io_read_##t##_stream_reverse_endianness(stream* s) { \
     io_read(s, s->buf, sizeof(t)); \
-    t val = *(t*)s->buf; \
+    t val; \
     if (s->is_big_endian) \
-        val = reverse_endianess_##t(val); \
+        val = load_reverse_endianness_##t(s->buf); \
+    else \
+        val = *(t*)s->buf; \
     return val; \
 }\
 \
-t io_read_##t##_reverse_endianess(stream* s, bool big_endian) { \
+t io_read_##t##_reverse_endianness(stream* s, bool big_endian) { \
     io_read(s, s->buf, sizeof(t)); \
-    t val = *(t*)s->buf; \
+    t val; \
     if (big_endian) \
-        val = reverse_endianess_##t(val); \
+        val = load_reverse_endianness_##t(s->buf); \
+    else \
+        val = *(t*)s->buf; \
     return val; \
 }\
 \
@@ -300,17 +454,19 @@ void io_write_##t(stream* s, t val) { \
     io_write(s, s->buf, sizeof(t)); \
 } \
 \
-void io_write_##t##_stream_reverse_endianess(stream* s, t val) { \
+void io_write_##t##_stream_reverse_endianness(stream* s, t val) { \
     if (s->is_big_endian) \
-        val = reverse_endianess_##t(val); \
-    *(t*)s->buf = val; \
+        store_reverse_endianness_##t(val, s->buf); \
+    else \
+        *(t*)s->buf = val; \
     io_write(s, s->buf, sizeof(t)); \
 } \
 \
-void io_write_##t##_reverse_endianess(stream* s, t val, bool big_endian) { \
+void io_write_##t##_reverse_endianness(stream* s, t val, bool big_endian) { \
     if (big_endian) \
-        val = reverse_endianess_##t(val); \
-    *(t*)s->buf = val; \
+        store_reverse_endianness_##t(val, s->buf); \
+    else \
+        *(t*)s->buf = val; \
     io_write(s, s->buf, sizeof(t)); \
 }
 

@@ -150,7 +150,6 @@ static void key_expansion(uint8_t* RoundKey, const uint8_t* Key) {
             tempa[1] = RoundKey[k + 1];
             tempa[2] = RoundKey[k + 2];
             tempa[3] = RoundKey[k + 3];
-
         }
 
         if (i % Nk == 0) {

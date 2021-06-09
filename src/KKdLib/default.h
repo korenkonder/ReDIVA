@@ -140,23 +140,42 @@ pointer_ptr(char)
 
 #define actgh(x) (1.0 / atanh(x))
 
-#define lerp(x, y, blend) ((x) + (blend) * ((y) - (x)))
+#define lerp(x, y, blend) ((1.0f - (blend)) * (x) + (blend) * (y))
 
 extern void* force_malloc(size_t size);
 #define force_malloc_s(s, size) force_malloc(sizeof(s) * (size))
-extern void char_append_data(char** buf, size_t * buf_len,
-    size_t * act_buf_len, char* data, size_t length);
-extern void char_append_data_s(size_t s, char** buf, size_t* buf_len,
-    size_t* act_buf_len, char* data, size_t length);
-extern int16_t reverse_endianess_int16_t(int16_t value);
-extern uint16_t reverse_endianess_uint16_t(uint16_t value);
-extern int32_t reverse_endianess_int32_t(int32_t value);
-extern uint32_t reverse_endianess_uint32_t(uint32_t value);
-extern int64_t reverse_endianess_int64_t(int64_t value);
-extern uint64_t reverse_endianess_uint64_t(uint64_t value);
-extern ssize_t reverse_endianess_ssize_t(ssize_t value);
-extern size_t reverse_endianess_size_t(size_t value);
-extern float_t reverse_endianess_float_t(float_t value);
-extern double_t reverse_endianess_double_t(double_t value);
+extern void* memcpy_malloc(void* src, size_t size);
+#define memcpy_malloc_s(src, s, size) memcpy_malloc((src), sizeof(s) * (size))
+
+extern int16_t load_reverse_endianness_int16_t(void* ptr);
+extern uint16_t load_reverse_endianness_uint16_t(void* ptr);
+extern int32_t load_reverse_endianness_int32_t(void* ptr);
+extern uint32_t load_reverse_endianness_uint32_t(void* ptr);
+extern int64_t load_reverse_endianness_int64_t(void* ptr);
+extern uint64_t load_reverse_endianness_uint64_t(void* ptr);
+extern ssize_t load_reverse_endianness_ssize_t(void* ptr);
+extern size_t load_reverse_endianness_size_t(void* ptr);
+extern float_t load_reverse_endianness_float_t(void* ptr);
+extern double_t load_reverse_endianness_double_t(void* ptr);
+extern void store_reverse_endianness_int16_t(int16_t value, void* ptr);
+extern void store_reverse_endianness_uint16_t(uint16_t value, void* ptr);
+extern void store_reverse_endianness_int32_t(int32_t value, void* ptr);
+extern void store_reverse_endianness_uint32_t(uint32_t value, void* ptr);
+extern void store_reverse_endianness_int64_t(int64_t value, void* ptr);
+extern void store_reverse_endianness_uint64_t(uint64_t value, void* ptr);
+extern void store_reverse_endianness_ssize_t(ssize_t value, void* ptr);
+extern void store_reverse_endianness_size_t(size_t value, void* ptr);
+extern void store_reverse_endianness_float_t(float_t value, void* ptr);
+extern void store_reverse_endianness_double_t(double_t value, void* ptr);
+extern int16_t reverse_endianness_int16_t(int16_t value);
+extern uint16_t reverse_endianness_uint16_t(uint16_t value);
+extern int32_t reverse_endianness_int32_t(int32_t value);
+extern uint32_t reverse_endianness_uint32_t(uint32_t value);
+extern int64_t reverse_endianness_int64_t(int64_t value);
+extern uint64_t reverse_endianness_uint64_t(uint64_t value);
+extern ssize_t reverse_endianness_ssize_t(ssize_t value);
+extern size_t reverse_endianness_size_t(size_t value);
+extern float_t reverse_endianness_float_t(float_t value);
+extern double_t reverse_endianness_double_t(double_t value);
 extern char* wchar_t_string_to_char_string(wchar_t* s);
 extern wchar_t* char_string_to_wchar_t_string(char* s);

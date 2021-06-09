@@ -4,13 +4,16 @@
 */
 
 #include "shared.h"
+#include "../timer.h"
 
 float_t frame_speed = 1.0f;
-float_t target_fps = 60.0f;
-extern double_t render_freq;
+
+extern timer render_timer;
 
 float_t get_frame_speed() {
-    return (float_t)(clamp(target_fps / render_freq, 0.0, 1.0) * frame_speed);
+    double_t freq = timer_get_freq(&render_timer);
+    double_t freq_hist = timer_get_freq_hist(&render_timer);
+    return (float_t)(freq / freq_hist * frame_speed);
 }
 
 void FASTCALL axis_angle_from_vectors(vec3* axis, float_t* angle, vec3* vec1, vec3* vec2) {

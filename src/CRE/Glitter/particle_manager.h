@@ -20,8 +20,8 @@ extern bool FASTCALL glitter_particle_manager_free_scene(GPM, uint64_t effect_gr
 extern void FASTCALL glitter_particle_manager_free_scenes(GPM);
 extern size_t FASTCALL glitter_particle_manager_get_ctrl_count(GPM, glitter_particle_type ptcl_type);
 extern size_t FASTCALL glitter_particle_manager_get_disp_count(GPM, glitter_particle_type ptcl_type);
-extern void glitter_particle_manager_get_frame(GPM, float_t* frame, float_t* life_time);
-extern void glitter_particle_manager_get_start_end_frame(GPM, float_t* start_frame, float_t* end_frame);
+extern void glitter_particle_manager_get_frame(GPM, float_t* frame, int32_t* life_time);
+extern void glitter_particle_manager_get_start_end_frame(GPM, int32_t* start_frame, int32_t* end_frame);
 extern bool FASTCALL glitter_particle_manager_load_effect(GPM, uint64_t effect_group_hash, uint64_t effect_hash);
 extern bool FASTCALL glitter_particle_manager_load_scene(GPM, uint64_t effect_group_hash);
 extern void FASTCALL glitter_particle_manager_set_frame(GPM,

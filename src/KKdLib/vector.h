@@ -7,6 +7,7 @@
 
 #include "default.h"
 #include "half_t.h"
+#include "string.h"
 
 #define vector_dispose_func(t) void(FASTCALL* dispose_func)(t* data)
 
@@ -17,7 +18,7 @@ typedef struct vector_##t { \
     t* capacity_end; \
 } vector_##t; \
 \
-extern void FASTCALL vector_##t##_append(vector_##t* vec, ssize_t count); \
+extern void FASTCALL vector_##t##_append(vector_##t* vec, ssize_t size); \
 extern void FASTCALL vector_##t##_push_back(vector_##t* vec, t* val); \
 extern void FASTCALL vector_##t##_pop_back(vector_##t* vec); \
 extern void FASTCALL vector_##t##_insert(vector_##t* vec, ssize_t position, t* val); \
@@ -35,7 +36,7 @@ typedef struct vector_ptr_##t { \
     t** capacity_end; \
 } vector_ptr_##t; \
 \
-extern void FASTCALL vector_ptr_##t##_append(vector_ptr_##t* vec, ssize_t count); \
+extern void FASTCALL vector_ptr_##t##_append(vector_ptr_##t* vec, ssize_t size); \
 extern void FASTCALL vector_ptr_##t##_push_back(vector_ptr_##t* vec, t** val); \
 extern void FASTCALL vector_ptr_##t##_pop_back(vector_ptr_##t* vec, vector_dispose_func(t)); \
 extern void FASTCALL vector_ptr_##t##_insert(vector_ptr_##t* vec, ssize_t position, t** val); \
@@ -90,7 +91,9 @@ void FASTCALL vector_##t##_insert_range(vector_##t* vec, ssize_t position, t* fi
     if (s < 1) \
         return; \
 \
-    if (vec->capacity_end - vec->end < s) \
+    if (vec->end - vec->begin == 0) \
+        vector_##t##_append(vec, s); \
+    else if (vec->capacity_end - vec->end < s) \
         vector_##t##_append(vec, vec->end - vec->capacity_end + s); \
     \
     t* t0 = vec->begin + position; \
@@ -144,18 +147,24 @@ void FASTCALL vector_##t##_free(vector_##t* vec) { \
     vec->capacity_end = 0; \
 } \
 \
-void FASTCALL vector_##t##_append(vector_##t* vec, ssize_t count) { \
-    if (vec->capacity_end - vec->end >= count) \
+void FASTCALL vector_##t##_append(vector_##t* vec, ssize_t size) { \
+    if (vec->capacity_end - vec->end >= size) \
         return; \
 \
-    ssize_t length = vec->end - vec->begin; \
+    ssize_t count = vec->end - vec->begin + size; \
     ssize_t capacity = vec->capacity_end - vec->begin; \
-    ssize_t _count; \
-    if ((ssize_t)(INT64_MAX / sizeof(t) - (capacity >> 1)) >= capacity) \
-        _count = (capacity >> 1) + capacity; \
-    else \
-        _count = 0; \
-    count = max(_count, length + count); \
+    if ((ssize_t)(INT64_MAX / sizeof(t) - (capacity >> 1)) >= capacity) { \
+        ssize_t _count = (capacity >> 1) + capacity; \
+        if (_count < count) \
+            _count = vec->end - vec->begin + size; \
+        count = _count; \
+    } \
+    else { \
+        ssize_t _count = 0; \
+        if (count) \
+            _count = vec->end - vec->begin + size; \
+        count = _count; \
+    } \
 \
     t* temp = 0; \
     if (count) \
@@ -165,7 +174,7 @@ void FASTCALL vector_##t##_append(vector_##t* vec, ssize_t count) { \
         return; \
 \
     memmove(temp, vec->begin, sizeof(t) * (vec->end - vec->begin)); \
-    length = vec->end - vec->begin; \
+    ssize_t length = vec->end - vec->begin; \
     free(vec->begin); \
     vec->capacity_end = &temp[count]; \
     vec->end = &temp[length]; \
@@ -218,7 +227,9 @@ void FASTCALL vector_ptr_##t##_insert_range(vector_ptr_##t* vec, ssize_t positio
     if (s < 1) \
         return; \
 \
-    if (vec->capacity_end - vec->end < s) \
+    if (vec->end - vec->begin == 0) \
+        vector_ptr_##t##_append(vec, s); \
+    else if (vec->capacity_end - vec->end < s) \
         vector_ptr_##t##_append(vec, vec->end - vec->capacity_end + s); \
     \
     t** t0 = vec->begin + position; \
@@ -315,18 +326,24 @@ void FASTCALL vector_ptr_##t##_free(vector_ptr_##t* vec, vector_dispose_func(t))
     vec->capacity_end = 0; \
 } \
 \
-void FASTCALL vector_ptr_##t##_append(vector_ptr_##t* vec, ssize_t count) { \
-    if (vec->capacity_end - vec->end >= count) \
+void FASTCALL vector_ptr_##t##_append(vector_ptr_##t* vec, ssize_t size) { \
+    if (vec->capacity_end - vec->end >= size) \
         return; \
 \
-    ssize_t length = vec->end - vec->begin; \
+    ssize_t count = vec->end - vec->begin + size; \
     ssize_t capacity = vec->capacity_end - vec->begin; \
-    ssize_t _count; \
-    if ((ssize_t)(INT64_MAX / sizeof(t*) - (capacity >> 1)) >= capacity) \
-        _count = (capacity >> 1) + capacity; \
-    else \
-        _count = 0; \
-    count = max(_count, length + count); \
+    if ((ssize_t)(INT64_MAX / sizeof(t*) - (capacity >> 1)) >= capacity) { \
+        ssize_t _count = (capacity >> 1) + capacity; \
+        if (_count < count) \
+            _count = vec->end - vec->begin + size; \
+        count = _count; \
+    } \
+    else { \
+        ssize_t _count = 0; \
+        if (count) \
+            _count = vec->end - vec->begin + size; \
+        count = _count; \
+    } \
 \
     t** temp = 0; \
     if (count) \
@@ -336,7 +353,7 @@ void FASTCALL vector_ptr_##t##_append(vector_ptr_##t* vec, ssize_t count) { \
         return; \
 \
     memmove(temp, vec->begin, sizeof(t*) * (vec->end - vec->begin)); \
-    length = vec->end - vec->begin; \
+    ssize_t length = vec->end - vec->begin; \
     free(vec->begin); \
     vec->capacity_end = &temp[count]; \
     vec->end = &temp[length]; \
@@ -359,6 +376,8 @@ vector(ssize_t)
 vector(half_t)
 vector(float_t)
 vector(double_t)
+vector(string)
+vector(wstring)
 vector_ptr(char)
 vector_ptr(wchar_t)
 vector_ptr(bool)
@@ -376,3 +395,5 @@ vector_ptr(half_t)
 vector_ptr(float_t)
 vector_ptr(double_t)
 vector_ptr(void)
+vector_ptr(string)
+vector_ptr(wstring)

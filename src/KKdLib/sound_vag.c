@@ -123,10 +123,10 @@ void vag_wread(vag* v, wchar_t* path) {
         if (signature != 0x70474156)
             goto End;
 
-        v->version = io_read_uint32_t_reverse_endianess(s, true);
+        v->version = io_read_uint32_t_reverse_endianness(s, true);
         io_read_uint32_t(s);
-        v->size = io_read_uint32_t_reverse_endianess(s, true);
-        v->sample_rate = io_read_uint32_t_reverse_endianess(s, true);
+        v->size = io_read_uint32_t_reverse_endianness(s, true);
+        v->sample_rate = io_read_uint32_t_reverse_endianness(s, true);
         io_read_uint32_t(s);
         io_read_uint32_t(s);
         io_read_uint16_t(s);
@@ -251,10 +251,10 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
 
         bool hevag = option != VAG_OPTION_VAG;
         io_write_uint32_t(s, 0x70474156);
-        io_write_uint32_t_reverse_endianess(s, hevag ? 0x00020001 : 0x00000020, true);
+        io_write_uint32_t_reverse_endianness(s, hevag ? 0x00020001 : 0x00000020, true);
         io_write_uint32_t(s, 0);
-        io_write_uint32_t_reverse_endianess(s, (uint32_t)(((v->size + 1) * (hevag ? v->channels : 1)) << 4), true);
-        io_write_uint32_t_reverse_endianess(s, v->sample_rate, true);
+        io_write_uint32_t_reverse_endianness(s, (uint32_t)(((v->size + 1) * (hevag ? v->channels : 1)) << 4), true);
+        io_write_uint32_t_reverse_endianness(s, v->sample_rate, true);
         io_write_uint32_t(s, 0);
         io_write_uint32_t(s, 0);
         io_write_uint16_t(s, 0);

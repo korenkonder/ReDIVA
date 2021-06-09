@@ -46,6 +46,12 @@ void farc_wread(farc* f, wchar_t* path, bool unpack, bool save) {
     if (!f || !path)
         return;
 
+    for (farc_file* i = f->files.begin; i != f->files.end; i++) {
+        free(i->name);
+        free(i->data);
+    }
+
+    vector_farc_file_free(&f->files);
     memset(f, 0, sizeof(farc));
 
     wchar_t full_path_buf[MAX_PATH];
@@ -61,7 +67,7 @@ void farc_wread(farc* f, wchar_t* path, bool unpack, bool save) {
     wcsncpy_s(f->directory_path, MAX_PATH, full_path_buf, full_path_buf_len + 1);
     wchar_t* dot = wcsrchr(f->directory_path, L'.');
     if (dot)
-        *dot = 0;
+        memset(dot, 0, wcslen(dot) * 2 + 2);
 
     stream* s = io_wopen(f->file_path, L"rb");
     if (s->io.stream && !farc_read_header(f, s) && unpack)
@@ -102,8 +108,15 @@ void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode, bool get_files
     if (!f || !path)
         return;
 
-    if (get_files)
+    if (get_files) {
+        for (farc_file* i = f->files.begin; i != f->files.end; i++) {
+            free(i->name);
+            free(i->data);
+        }
+
+        vector_farc_file_free(&f->files);
         memset(f, 0, sizeof(farc));
+    }
 
     wchar_t full_path_buf[MAX_PATH];
     wchar_t* full_path = _wfullpath(full_path_buf, path, MAX_PATH);
@@ -369,22 +382,22 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode, bool ge
     case FARC_COMPRESS_FARC_AES:
     case FARC_COMPRESS_FARC_GZIP_AES:
         io_write_int32_t(s, FARC_FARC);
-        io_write_int32_t_reverse_endianess(s, (int32_t)header_length, true);
-        io_write_int32_t_reverse_endianess(s, f->type, true);
-        io_write_int32_t_reverse_endianess(s, 0x00, true);
-        io_write_int32_t_reverse_endianess(s, 0x40, true);
-        io_write_int32_t_reverse_endianess(s, 0x00, true);
-        io_write_int32_t_reverse_endianess(s, 0x00, true);
+        io_write_int32_t_reverse_endianness(s, (int32_t)header_length, true);
+        io_write_int32_t_reverse_endianness(s, f->type, true);
+        io_write_int32_t_reverse_endianness(s, 0x00, true);
+        io_write_int32_t_reverse_endianness(s, 0x40, true);
+        io_write_int32_t_reverse_endianness(s, 0x00, true);
+        io_write_int32_t_reverse_endianness(s, 0x00, true);
         break;
     case FARC_COMPRESS_FArC:
         io_write_int32_t(s, FARC_FArC);
-        io_write_int32_t_reverse_endianess(s, (int32_t)header_length, true);
-        io_write_int32_t_reverse_endianess(s, 0x01, true);
+        io_write_int32_t_reverse_endianness(s, (int32_t)header_length, true);
+        io_write_int32_t_reverse_endianness(s, 0x01, true);
         break;
     default:
         io_write_int32_t(s, FARC_FArc);
-        io_write_int32_t_reverse_endianess(s, (int32_t)header_length, true);
-        io_write_int32_t_reverse_endianess(s, 0x01, true);
+        io_write_int32_t_reverse_endianness(s, (int32_t)header_length, true);
+        io_write_int32_t_reverse_endianness(s, 0x01, true);
         break;
     }
 
@@ -392,16 +405,16 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode, bool ge
         for (farc_file* i = f->files.begin; i != f->files.end; i++) {
             io_write(s, files_utf8[i - f->files.begin], strlen(files_utf8[i - f->files.begin]));
             io_write_uint8_t(s, 0x00);
-            io_write_int32_t_reverse_endianess(s, (int32_t)i->offset, true);
-            io_write_int32_t_reverse_endianess(s, (int32_t)i->size, true);
+            io_write_int32_t_reverse_endianness(s, (int32_t)i->offset, true);
+            io_write_int32_t_reverse_endianness(s, (int32_t)i->size, true);
         }
     else
         for (farc_file* i = f->files.begin; i != f->files.end; i++) {
             io_write(s, files_utf8[i - f->files.begin], strlen(files_utf8[i - f->files.begin]));
             io_write_uint8_t(s, 0x00);
-            io_write_int32_t_reverse_endianess(s, (int32_t)i->offset, true);
-            io_write_int32_t_reverse_endianess(s, (int32_t)i->size_compressed, true);
-            io_write_int32_t_reverse_endianess(s, (int32_t)i->size, true);
+            io_write_int32_t_reverse_endianness(s, (int32_t)i->offset, true);
+            io_write_int32_t_reverse_endianness(s, (int32_t)i->size_compressed, true);
+            io_write_int32_t_reverse_endianness(s, (int32_t)i->size, true);
         }
 
     align = align_val(align, 0x10) - align;
@@ -428,11 +441,11 @@ static errno_t farc_read_header(farc* f, stream* s) {
 
     f->ft = false;
 
-    int32_t header_length = io_read_int32_t_reverse_endianess(s, true);
+    int32_t header_length = io_read_int32_t_reverse_endianness(s, true);
     if (f->signature == FARC_FARC) {
-        f->type = (farc_type)io_read_int32_t_reverse_endianess(s, true);
+        f->type = (farc_type)io_read_int32_t_reverse_endianness(s, true);
         io_read_int32_t(s);
-        int32_t farc_mode = io_read_int32_t_reverse_endianess(s, true);
+        int32_t farc_mode = io_read_int32_t_reverse_endianness(s, true);
 
         f->ft = (f->type & FARC_DATA_AES) && (farc_mode & (farc_mode - 1));
         if (f->ft)
@@ -464,9 +477,9 @@ static errno_t farc_read_header(farc* f, stream* s) {
 
     bool has_per_file_flags = false;
     if (f->signature == FARC_FARC) {
-        if (reverse_endianess_int32_t(*(int32_t*)dt) == 1) {
+        if (load_reverse_endianness_int32_t((void*)dt) == 1) {
             dt += sizeof(int32_t);
-            length = reverse_endianess_int32_t(*(int32_t*)dt);
+            length = load_reverse_endianness_int32_t((void*)dt);
             has_per_file_flags = true;
         }
         dt += sizeof(int32_t);
@@ -508,10 +521,10 @@ static errno_t farc_read_header(farc* f, stream* s) {
             file[f_len] = 0;
 
             i->name = utf8_decode(file);
-            i->offset = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[0]);
-            i->size_compressed = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[1]);
-            i->size = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[2]);
-            i->type = reverse_endianess_int32_t(((int32_t*)dt)[3]);
+            i->offset = (size_t)load_reverse_endianness_int32_t((void*)dt);
+            i->size_compressed = (size_t)load_reverse_endianness_int32_t((void*)(dt + 4));
+            i->size = (size_t)load_reverse_endianness_int32_t((void*)(dt + 8));
+            i->type = load_reverse_endianness_int32_t((void*)(dt + 12));
             dt += sizeof(int32_t) * 4;
         }
     else if (f->signature != FARC_FArc)
@@ -523,9 +536,9 @@ static errno_t farc_read_header(farc* f, stream* s) {
             file[f_len] = 0;
 
             i->name = utf8_decode(file);
-            i->offset = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[0]);
-            i->size_compressed = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[1]);
-            i->size = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[2]);
+            i->offset = (size_t)load_reverse_endianness_int32_t((void*)dt);
+            i->size_compressed = (size_t)load_reverse_endianness_int32_t((void*)(dt + 4));
+            i->size = (size_t)load_reverse_endianness_int32_t((void*)(dt + 8));
             dt += sizeof(int32_t) * 3;
         }
     else
@@ -537,8 +550,8 @@ static errno_t farc_read_header(farc* f, stream* s) {
             file[f_len] = 0;
 
             i->name = utf8_decode(file);
-            i->offset = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[0]);
-            i->size = (size_t)reverse_endianess_int32_t(((int32_t*)dt)[1]);
+            i->offset = (size_t)load_reverse_endianness_int32_t((void*)dt);
+            i->size = (size_t)load_reverse_endianness_int32_t((void*)(dt + 4));
             dt += sizeof(int32_t) * 2;
         }
     free(file);

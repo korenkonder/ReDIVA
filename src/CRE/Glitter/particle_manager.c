@@ -34,15 +34,29 @@ void FASTCALL glitter_particle_manager_calc_draw(GPM,
             continue;
 
         scene = *i;
+#ifdef CRE_DEV
+        if (GPM_VAL->draw_selected && GPM_VAL->scene && GPM_VAL->scene != scene)
+            continue;
+#endif
         if (scene->type == GLITTER_X) {
             for (j = scene->effects.begin; j != scene->effects.end; j++)
-                if (j->ptr && j->draw)
+                if (j->ptr && j->draw) {
+#ifdef CRE_DEV
+                    if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != j->ptr)
+                        continue;
+#endif
                     glitter_x_effect_inst_calc_draw(GPM_VAL, j->ptr, render_add_list_func);
+                }
         }
         else {
             for (j = scene->effects.begin; j != scene->effects.end; j++)
-                if (j->ptr && j->draw)
+                if (j->ptr && j->draw) {
+#ifdef CRE_DEV
+                    if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != j->ptr)
+                        continue;
+#endif
                     glitter_effect_inst_calc_draw(GPM_VAL, j->ptr);
+                }
         }
     }
 }
@@ -90,15 +104,29 @@ void FASTCALL glitter_particle_manager_draw(GPM, int32_t alpha) {
             continue;
 
         scene = *i;
+#ifdef CRE_DEV
+        if (GPM_VAL->draw_selected && GPM_VAL->scene && GPM_VAL->scene != scene)
+            continue;
+#endif
         if (scene->type == GLITTER_X) {
             for (j = scene->effects.begin; j != scene->effects.end; j++)
-                if (j->ptr && j->draw)
+                if (j->ptr && j->draw) {
+#ifdef CRE_DEV
+                    if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != j->ptr)
+                        continue;
+#endif
                     glitter_x_effect_inst_draw(GPM_VAL, j->ptr, alpha);
+                }
         }
         else {
             for (j = scene->effects.begin; j != scene->effects.end; j++)
-                if (j->ptr && j->draw)
+                if (j->ptr && j->draw) {
+#ifdef CRE_DEV
+                    if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != j->ptr)
+                        continue;
+#endif
                     glitter_effect_inst_draw(GPM_VAL, j->ptr, alpha);
+                }
         }
     }
 }
@@ -168,12 +196,12 @@ size_t FASTCALL glitter_particle_manager_get_disp_count(GPM, glitter_particle_ty
     return disp;
 }
 
-void glitter_particle_manager_get_frame(GPM, float_t* frame, float_t* life_time) {
+void glitter_particle_manager_get_frame(GPM, float_t* frame, int32_t* life_time) {
     if (frame)
         *frame = 0.0f;
 
     if (life_time)
-        *life_time = 0.0f;
+        *life_time = 0;
 
     if (GPM_VAL->scenes.begin == GPM_VAL->scenes.end)
         return;
@@ -181,18 +209,18 @@ void glitter_particle_manager_get_frame(GPM, float_t* frame, float_t* life_time)
     glitter_scene_get_frame(*GPM_VAL->scenes.begin, frame, life_time);
 }
 
-void glitter_particle_manager_get_start_end_frame(GPM, float_t* start_frame, float_t* end_frame) {
+void glitter_particle_manager_get_start_end_frame(GPM, int32_t* start_frame, int32_t* end_frame) {
     if (start_frame)
-        *start_frame = 0.0f;
+        *start_frame = 0;
 
     if (end_frame)
-        *end_frame = 0.0f;
+        *end_frame = 0;
 
     if (GPM_VAL->scenes.begin == GPM_VAL->scenes.end || !*GPM_VAL->scenes.begin)
         return;
 
     if (start_frame)
-        *start_frame = 32767.0f;
+        *start_frame = INT16_MAX;
 
     glitter_scene_get_start_end_frame(*GPM_VAL->scenes.begin, start_frame, end_frame);
 }

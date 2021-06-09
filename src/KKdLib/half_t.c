@@ -5,7 +5,15 @@
 
 #include "half_t.h"
 
-inline half_t reverse_endianess_half_t(half_t value) {
+inline half_t load_reverse_endianness_half_t(void* ptr) {
+    return (half_t)_byteswap_ushort(*(uint16_t*)ptr);
+}
+
+inline void store_reverse_endianness_half_t(half_t value, void* ptr) {
+    *(half_t*)ptr = (half_t)_byteswap_ushort((uint16_t)value);
+}
+
+inline half_t reverse_endianness_half_t(half_t value) {
     return (half_t)_byteswap_ushort((uint16_t)value);
 }
 

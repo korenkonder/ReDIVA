@@ -167,6 +167,7 @@ void FASTCALL glitter_x_effect_inst_update(GPM, glitter_effect_inst* a1,
     glitter_effect_inst_ext_anim* ext_anim;
     glitter_emitter_inst** i;
     mat4 mat;
+    mat4 mat_rot;
     vec3 trans;
     vec3 rot;
     vec3 scale;
@@ -180,30 +181,28 @@ void FASTCALL glitter_x_effect_inst_update(GPM, glitter_effect_inst* a1,
     rot = a1->rotation;
     vec3_mult_scalar(a1->scale, a1->scale_all, scale);
 
-    a1->mat = mat4_identity;
-    a1->mat_ext_anim = mat4_identity;
-    a1->mat_ext_anim_eff_rot = mat4_identity;
     if (a1->flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS && a1->ext_anim) {
-        vec3 trans;
+        vec3 ext_trans;
         ext_anim = a1->ext_anim;
-        trans = ext_anim->translation;
-        mat4_translate_mult(&ext_anim->mat, trans.x, trans.y, trans.z, &mat);
-        a1->mat = mat;
-        mat4_normalize_rotation(&mat, &mat);
-        mat.row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
-        a1->mat_ext_anim = mat;
-        a1->mat_ext_anim_eff_rot = mat;
+        ext_trans = ext_anim->translation;
+        mat4_translate_mult(&ext_anim->mat, ext_trans.x, ext_trans.y, ext_trans.z, &mat);
+        mat4_normalize_rotation(&mat, &mat_rot);
+        mat4_clear_trans(&mat_rot, &mat_rot);
+        a1->mat_rot = mat_rot;
+        mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &a1->mat_rot_eff_rot);
+        mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
+    }
+    else {
+        a1->mat_rot = mat4_identity;
+        mat4_rotate(rot.x, rot.y, rot.z, &a1->mat_rot_eff_rot);
+        mat4_translate(trans.x, trans.y, trans.z, &mat);
     }
 
-    mat4_rot(&a1->mat_ext_anim_eff_rot, rot.x, rot.y, rot.z, &a1->mat_ext_anim_eff_rot);
-    mat4_translate_mult(&a1->mat, trans.x, trans.y, trans.z, &a1->mat);
-    mat4_rot(&a1->mat, rot.x, rot.y, rot.z, &a1->mat);
-    mat4_scale_rot(&a1->mat, scale.x, scale.y, scale.z, &a1->mat);
+    mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+    mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &a1->mat);
     for (i = a1->emitters.begin; i != a1->emitters.end; i++)
         if (*i)
             glitter_x_emitter_inst_update(GPM_VAL, *i, a1, delta_frame);
-
-    glitter_x_render_scene_update(&a1->render_scene, delta_frame, true);
 
     if (a1->frame0 >= 0.0f)
         if (a1->frame0 < (float_t)a1->data.life_time) {
@@ -219,6 +218,8 @@ void FASTCALL glitter_x_effect_inst_update(GPM, glitter_effect_inst* a1,
                 if (*i)
                     glitter_x_emitter_inst_free(*i, emission);
         }
+
+    glitter_x_render_scene_update(&a1->render_scene, delta_frame, true);
     a1->frame0 += delta_frame;
 }
 
@@ -322,7 +323,7 @@ static void FASTCALL glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1)
 
         if (inst_ext_anim->index.f < MOT_BONE_F_MAX)
             mat4_mult(&temp, (mat4*)&mat4_identity/*chara node mat*/, &temp);
-        
+
         mat = &temp;
         goto SetMat;
     }
@@ -333,7 +334,7 @@ static void FASTCALL glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1)
             //    &inst_ext_anim->a3da_index, &inst_ext_anim->object_is_hrc)
             inst_ext_anim->index.data = -1;
 
-            if (inst_ext_anim->a3da_id > -1) 
+            if (inst_ext_anim->a3da_id > -1)
                 mat = (mat4*)&mat4_identity/*try get obj a3da mat*/;
         }
         else {
@@ -513,8 +514,6 @@ static void FASTCALL glitter_x_effect_inst_update_init(glitter_effect_inst* a1, 
                 if (*i)
                     glitter_x_emitter_inst_update_init(*i, a1, delta_frame);
 
-            glitter_x_render_scene_update(&a1->render_scene, delta_frame, false);
-
             if (a1->frame0 < (float_t)a1->data.life_time) {
                 for (i = a1->emitters.begin; i != a1->emitters.end; i++)
                     if (*i)
@@ -528,6 +527,8 @@ static void FASTCALL glitter_x_effect_inst_update_init(glitter_effect_inst* a1, 
                     if (*i)
                         glitter_x_emitter_inst_free(*i, emission);
             }
+
+            glitter_x_render_scene_update(&a1->render_scene, delta_frame, false);
         }
 
         a1->frame0 += delta_frame;

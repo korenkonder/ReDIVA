@@ -63,7 +63,7 @@ const char* imguiStartPropertyColumn(const char* label) {
     igBeginTable("table", 2, 0, ImVec2_Empty, 0.0f);
     igTableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, t.x * column_space, 0);
 
-    char* label_temp = str_utils_add((char*)label, "");
+    char* label_temp = str_utils_copy((char*)label);
     char* temp;
     if (temp = strstr(label_temp, "##"))
         *temp = 0;
@@ -152,7 +152,7 @@ static bool igSliderFloatDisable(const char* label, float_t* val,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags, bool enable) {
     igPushID_Str(label);
     imguiDisableElementPush(enable);
-    bool res = igSliderFloat(label, val, min, max, enable ? format : "...", flags);
+    bool res = igSliderFloat("", val, min, max, enable ? format : "...", flags);
     imguiDisableElementPop(enable);
     igPopID();
     igPopItemWidth();
@@ -163,14 +163,14 @@ static bool igSliderIntDisable(const char* label, int32_t* val,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, bool enable) {
     igPushID_Str(label);
     imguiDisableElementPush(enable);
-    bool res = igSliderInt(label, val, min, max, enable ? format : "...", flags);
+    bool res = igSliderInt("", val, min, max, enable ? format : "...", flags);
     imguiDisableElementPop(enable);
     igPopID();
     igPopItemWidth();
     return res;
 }
 
-static const char* startPropertyColumnDisable(const char* label, bool enable) {
+static const char* imguiStartPropertyColumnDisable(const char* label, bool enable) {
     igPushID_Str(label);
 
     ImVec2 t;
@@ -178,7 +178,7 @@ static const char* startPropertyColumnDisable(const char* label, bool enable) {
     igBeginTable("table", 2, 0, ImVec2_Empty, 0.0f);
     igTableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, t.x * column_space, 0);
 
-    char* label_temp = str_utils_add((char*)label, "");
+    char* label_temp = str_utils_copy((char*)label);
     char* temp;
     if (temp = strstr(label_temp, "##"))
         *temp = 0;
@@ -589,6 +589,169 @@ bool imguiColumnSliderVec4I(const char* label, vec4i* val,
     return true;
 }
 
+bool imguiColumnSliderLogInt(const char* label, int32_t* val,
+    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+    char buf[0x1000];
+    int32_t v[1];
+    min = max(min, 1);
+    max = max(min, max);
+    flags |= ImGuiSliderFlags_NoInput;
+
+    v[0] = (int32_t)roundf(log2f((float_t)*val));
+    const char* temp_label = imguiStartPropertyColumn(label);
+    bool res = false;
+    ImGuiStyle* style = igGetStyle();
+    igBeginGroup();
+    igPushID_Str(label);
+    igPushMultiItemsWidths(1, igCalcItemWidth());
+    min = (int32_t)roundf(log2f((float_t)min));
+    max = (int32_t)roundf(log2f((float_t)max));
+    snprintf(buf, sizeof(buf), format, 1 << v[0]);
+    res |= igSliderIntDisable("##X", &v[0], min, max, buf, flags, true);
+    igPopID();
+    igEndGroup();
+    imguiEndPropertyColumn(temp_label);
+    if (!res)
+        return false;
+
+    v[0] = 1 << clamp(v[0], min, max);
+    if (v[0] == *val)
+        return false;
+
+    *val = v[0];
+    return true;
+}
+
+bool imguiColumnSliderLogVec2I(const char* label, vec2i* val,
+    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+    char buf[0x1000];
+    int32_t v[2];
+    min = max(min, 1);
+    max = max(min, max);
+    flags |= ImGuiSliderFlags_NoInput;
+
+    v[0] = (int32_t)roundf(log2f((float_t)val->x));
+    v[1] = (int32_t)roundf(log2f((float_t)val->y));
+    const char* temp_label = imguiStartPropertyColumn(label);
+    bool res = false;
+    ImGuiStyle* style = igGetStyle();
+    igBeginGroup();
+    igPushID_Str(label);
+    igPushMultiItemsWidths(2, igCalcItemWidth());
+    min = (int32_t)roundf(log2f((float_t)min));
+    max = (int32_t)roundf(log2f((float_t)max));
+    snprintf(buf, sizeof(buf), format, 1 << v[0]);
+    res |= igSliderIntDisable("##X", &v[0], min, max, buf, flags, true);
+    igSameLine(0.0f, style->ItemInnerSpacing.x);
+    snprintf(buf, sizeof(buf), format, 1 << v[1]);
+    res |= igSliderIntDisable("##Y", &v[1], min, max, buf, flags, true);
+    igPopID();
+    igEndGroup();
+    imguiEndPropertyColumn(temp_label);
+    if (!res)
+        return false;
+
+    v[0] = 1 << clamp(v[0], min, max);
+    v[1] = 1 << clamp(v[1], min, max);
+    if (v[0] == val->x && v[1] == val->y)
+        return false;
+
+    *val = *(vec2i*)v;
+    return true;
+}
+
+bool imguiColumnSliderLogVec3I(const char* label, vec3i* val,
+    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+    char buf[0x1000];
+    int32_t v[3];
+    min = max(min, 1);
+    max = max(min, max);
+    flags |= ImGuiSliderFlags_NoInput;
+
+    v[0] = (int32_t)roundf(log2f((float_t)val->x));
+    v[1] = (int32_t)roundf(log2f((float_t)val->y));
+    v[2] = (int32_t)roundf(log2f((float_t)val->z));
+    const char* temp_label = imguiStartPropertyColumn(label);
+    bool res = false;
+    ImGuiStyle* style = igGetStyle();
+    igBeginGroup();
+    igPushID_Str(label);
+    igPushMultiItemsWidths(3, igCalcItemWidth());
+    min = (int32_t)roundf(log2f((float_t)min));
+    max = (int32_t)roundf(log2f((float_t)max));
+    snprintf(buf, sizeof(buf), format, 1 << v[0]);
+    res |= igSliderIntDisable("##X", &v[0], min, max, buf, flags, true);
+    igSameLine(0.0f, style->ItemInnerSpacing.x);
+    snprintf(buf, sizeof(buf), format, 1 << v[1]);
+    res |= igSliderIntDisable("##Y", &v[1], min, max, buf, flags, true);
+    igSameLine(0.0f, style->ItemInnerSpacing.x);
+    snprintf(buf, sizeof(buf), format, 1 << v[2]);
+    res |= igSliderIntDisable("##Z", &v[2], min, max, buf, flags, true);
+    igPopID();
+    igEndGroup();
+    imguiEndPropertyColumn(temp_label);
+    if (!res)
+        return false;
+
+    v[0] = 1 << clamp(v[0], min, max);
+    v[1] = 1 << clamp(v[1], min, max);
+    v[2] = 1 << clamp(v[2], min, max);
+    if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
+        return false;
+
+    *val = *(vec3i*)v;
+    return true;
+}
+
+bool imguiColumnSliderLogVec4I(const char* label, vec4i* val,
+    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+    char buf[0x1000];
+    int32_t v[4];
+
+    min = max(min, 1);
+    max = max(min, max);
+    flags |= ImGuiSliderFlags_NoInput;
+
+    v[0] = (int32_t)roundf(log2f((float_t)val->x));
+    v[1] = (int32_t)roundf(log2f((float_t)val->y));
+    v[2] = (int32_t)roundf(log2f((float_t)val->z));
+    v[3] = (int32_t)roundf(log2f((float_t)val->w));
+    const char* temp_label = imguiStartPropertyColumn(label);
+    bool res = false;
+    ImGuiStyle* style = igGetStyle();
+    igBeginGroup();
+    igPushID_Str(label);
+    igPushMultiItemsWidths(4, igCalcItemWidth());
+    min = (int32_t)roundf(log2f((float_t)min));
+    max = (int32_t)roundf(log2f((float_t)max));
+    snprintf(buf, sizeof(buf), format, 1 << v[0]);
+    res |= igSliderIntDisable("##X", &v[0], min, max, buf, flags, true);
+    igSameLine(0.0f, style->ItemInnerSpacing.x);
+    snprintf(buf, sizeof(buf), format, 1 << v[1]);
+    res |= igSliderIntDisable("##Y", &v[1], min, max, buf, flags, true);
+    igSameLine(0.0f, style->ItemInnerSpacing.x);
+    snprintf(buf, sizeof(buf), format, 1 << v[2]);
+    res |= igSliderIntDisable("##Z", &v[2], min, max, buf, flags, true);
+    igSameLine(0.0f, style->ItemInnerSpacing.x);
+    snprintf(buf, sizeof(buf), format, 1 << v[3]);
+    res |= igSliderIntDisable("##W", &v[3], min, max, buf, flags, true);
+    igPopID();
+    igEndGroup();
+    imguiEndPropertyColumn(temp_label);
+    if (!res)
+        return false;
+
+    v[0] = 1 << clamp(v[0], min, max);
+    v[1] = 1 << clamp(v[1], min, max);
+    v[2] = 1 << clamp(v[2], min, max);
+    v[3] = 1 << clamp(v[3], min, max);
+    if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
+        return false;
+
+    *val = *(vec4i*)v;
+    return true;
+}
+
 bool imguiColumnInputFloat(const char* label, float_t* val,
     float_t step, float_t step_fast, const char* format, ImGuiInputTextFlags flags) {
     float_t v[1];
@@ -625,7 +788,7 @@ bool imguiColumnDragFloatFlag(const char* label, float_t* val, float_t speed,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     float_t v[1];
     *v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -650,7 +813,7 @@ bool imguiColumnDragVec2Flag(const char* label, vec2* val, float_t speed,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     float_t v[2];
     *(vec2*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -678,7 +841,7 @@ bool imguiColumnDragVec3Flag(const char* label, vec3* val, float_t speed,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     float_t v[3];
     *(vec3*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -709,7 +872,7 @@ bool imguiColumnDragVec4Flag(const char* label, vec4* val, float_t speed,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     float_t v[4];
     *(vec4*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -743,7 +906,7 @@ bool imguiColumnDragIntFlag(const char* label, int32_t* val, float_t speed,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     int32_t v[1];
     *v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -768,7 +931,7 @@ bool imguiColumnDragVec2IFlag(const char* label, vec2i* val, float_t speed,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     int32_t v[2];
     *(vec2i*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -796,7 +959,7 @@ bool imguiColumnDragVec3IFlag(const char* label, vec3i* val, float_t speed,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     int32_t v[3];
     *(vec3i*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -827,7 +990,7 @@ bool imguiColumnDragVec4IFlag(const char* label, vec4i* val, float_t speed,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     int32_t v[4];
     *(vec4i*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -861,7 +1024,7 @@ bool imguiColumnSliderFloatFlag(const char* label, float_t* val,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     float_t v[1];
     *v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -886,7 +1049,7 @@ bool imguiColumnSliderVec2Flag(const char* label, vec2* val,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     float_t v[2];
     *(vec2*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -914,7 +1077,7 @@ bool imguiColumnSliderVec3Flag(const char* label, vec3* val,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     float_t v[3];
     *(vec3*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -945,7 +1108,7 @@ bool imguiColumnSliderVec4Flag(const char* label, vec4* val,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     float_t v[4];
     *(vec4*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -979,7 +1142,7 @@ bool imguiColumnSliderIntFlag(const char* label, int32_t* val,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     int32_t v[1];
     *v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -1004,7 +1167,7 @@ bool imguiColumnSliderVec2IFlag(const char* label, vec2i* val,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     int32_t v[2];
     *(vec2i*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -1032,7 +1195,7 @@ bool imguiColumnSliderVec3IFlag(const char* label, vec3i* val,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     int32_t v[3];
     *(vec3i*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();
@@ -1063,7 +1226,7 @@ bool imguiColumnSliderVec4IFlag(const char* label, vec4i* val,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
     int32_t v[4];
     *(vec4i*)v = *val;
-    const char* temp_label = startPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
+    const char* temp_label = imguiStartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
     bool res = false;
     ImGuiStyle* style = igGetStyle();
     igBeginGroup();

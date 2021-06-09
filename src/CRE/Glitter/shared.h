@@ -18,8 +18,6 @@
 #include "../../KKdLib/utf8.h"
 #include "../../KKdLib/vec.h"
 #include "../../KKdLib/vector.h"
-#define GLEW_STATIC
-#include <GLEW/glew.h>
 
 extern float_t frame_speed;
 extern float_t target_fps;

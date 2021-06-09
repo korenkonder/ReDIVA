@@ -8,6 +8,10 @@
 #include "../KKdLib/io_path.h"
 #include "../CRE/lock.h"
 #include "../CRE/task.h"
+#include "../CRE/timer.h"
+
+timer control_timer;
+
 extern vector_task_render tasks_render;
 extern vector_task_render_draw2d tasks_render_draw2d;
 extern vector_task_render_draw3d tasks_render_draw3d;
@@ -22,58 +26,24 @@ extern int32_t height;
 extern bool input_reset;
 extern float_t frame_speed;
 
-extern double_t render_freq;
-extern double_t sound_freq;
-extern double_t input_freq;
-lock_extern_val(render_freq_lock);
-lock_extern_val(sound_freq_lock);
-lock_extern_val(input_freq_lock);
-
-#define FREQ 60
-#include "../CRE/timer.h"
-timer_val(control);
-
 int32_t control_main(void* arg) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-    timer_init(control, "Control");
+    timer_init(&control_timer, 60.0);
 
     while (!lock_check_init(render_lock))
-        msleep(control_timer, 0.0625);
+        msleep(control_timer.timer, 0.0625);
 
-    while (!close) {
-        timer_calc_pre(control);
-        lock_lock(render_lock);
-        lock_unlock(render_lock);
-
+    bool local_close = false;
+    while (!close && !local_close) {
+        timer_start_of_cycle(&control_timer);
+        lock_lock(state_lock);
+        local_close = state == RENDER_DISPOSING || state == RENDER_DISPOSED;
+        lock_unlock(state_lock);
+        
         classes_process_control(classes, classes_count);
-
-        if (lock_check_init(control_freq_lock) || lock_check_init(render_freq_lock)
-            || lock_check_init(sound_freq_lock) || lock_check_init(input_freq_lock)) {
-            char buf[0x1000];
-            int32_t len = 0;
-            lock_lock(control_freq_lock);
-            len += snprintf(buf + len, sizeof(buf) - len, "Control: %04d ", (int32_t)round(control_freq));
-            lock_unlock(control_freq_lock);
-
-            lock_lock(render_freq_lock);
-            len += snprintf(buf + len, sizeof(buf) - len, "Render: %04d ", (int32_t)round(render_freq));
-            lock_unlock(render_freq_lock);
-
-            lock_lock(render_freq_lock);
-            len += snprintf(buf + len, sizeof(buf) - len, "Sound: %04d ", (int32_t)round(sound_freq));
-            lock_unlock(render_freq_lock);
-
-            lock_lock(input_freq_lock);
-            len += snprintf(buf + len, sizeof(buf) - len, "Input: %04d ", (int32_t)round(input_freq));
-            lock_unlock(input_freq_lock);
-            len += snprintf(buf + len, sizeof(buf) - len, "\n");
-            printf(buf);
-        }
-
-        double_t cycle_time = timer_calc_post(control);
-        msleep(control_timer, 1000.0 / FREQ - cycle_time);
+        timer_end_of_cycle(&control_timer);
     }
-    timer_dispose(control);
+    timer_dispose(&control_timer);
     close = true;
     return 0;
 }

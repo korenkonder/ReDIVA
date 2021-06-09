@@ -42,36 +42,36 @@ size_t FASTCALL glitter_scene_get_disp_count(glitter_scene* scene, glitter_parti
     return disp;
 }
 
-void glitter_scene_get_frame(glitter_scene* scene, float_t* frame, float_t* life_time) {
+void glitter_scene_get_frame(glitter_scene* scene, float_t* frame, int32_t* life_time) {
     glitter_scene_effect* j;
     glitter_effect_inst* effect;
 
     for (j = scene->effects.begin; j != scene->effects.end; j++)
         if (j->ptr && j->draw) {
             effect = j->ptr;
-            if (effect && frame && life_time && (float_t)effect->data.life_time > *life_time) {
+            if (effect && frame && life_time && effect->data.life_time > *life_time) {
                 if (*frame < effect->frame0)
                     *frame = effect->frame0;
-                *life_time = (float_t)effect->data.life_time;
+                *life_time = effect->data.life_time;
             }
         }
 }
 
-void glitter_scene_get_start_end_frame(glitter_scene* scene, float_t* start_frame, float_t* end_frame) {
+void glitter_scene_get_start_end_frame(glitter_scene* scene, int32_t* start_frame, int32_t* end_frame) {
     glitter_scene_effect* i;
     glitter_effect_inst* effect;
     glitter_emitter_inst** j;
     glitter_emitter_inst* emitter;
-    float_t life_time;
+    int32_t life_time;
 
     for (i = scene->effects.begin; i != scene->effects.end; i++) {
         if (!i->ptr || !i->draw)
             continue;
 
         effect = i->ptr;
-        life_time = (float_t)effect->data.life_time;
-        if (start_frame && (float_t)effect->data.appear_time < *start_frame)
-            *start_frame = (float_t)effect->data.appear_time;
+        life_time = effect->data.life_time;
+        if (start_frame && effect->data.appear_time < *start_frame)
+            *start_frame = effect->data.appear_time;
 
         for (j = effect->emitters.begin; j != effect->emitters.end; j++) {
             if (!*j)
@@ -79,10 +79,10 @@ void glitter_scene_get_start_end_frame(glitter_scene* scene, float_t* start_fram
 
             emitter = *j;
             if (life_time < emitter->data.life_time)
-                life_time = (float_t)emitter->data.life_time;
+                life_time = emitter->data.life_time;
         }
 
-        life_time += (float_t)effect->data.appear_time;
+        life_time += effect->data.appear_time;
 
         if (end_frame && life_time > *end_frame)
             *end_frame = life_time;

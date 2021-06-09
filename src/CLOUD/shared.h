@@ -23,3 +23,4 @@ typedef enum render_state {
 extern classes_struct classes[];
 extern const size_t classes_count;
 extern render_state state;
+lock_extern_val(state_lock);

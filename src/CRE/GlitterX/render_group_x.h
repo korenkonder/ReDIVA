@@ -14,8 +14,7 @@ extern bool FASTCALL glitter_x_render_group_cannot_draw(glitter_render_group* a1
 extern void FASTCALL glitter_x_render_group_draw(glitter_render_group* a1);
 extern void FASTCALL glitter_x_render_group_delete_buffers(glitter_render_group* a1, bool a2);
 extern void FASTCALL glitter_x_render_group_emit(glitter_render_group* a1,
-    glitter_particle_inst_data* a2, glitter_emitter_inst* a3,
-    int32_t dup_count, int32_t count, float_t frame);
+    glitter_particle_inst_data* a2, glitter_emitter_inst* a3, int32_t dup_count, int32_t count);
 extern void FASTCALL glitter_x_render_group_free(glitter_render_group* a1);
 extern void FASTCALL glitter_x_render_group_update(glitter_render_group* rg,
     float_t delta_frame, bool copy_mats);

@@ -29,7 +29,7 @@ glitter_particle_inst* FASTCALL glitter_particle_inst_init(glitter_particle* a1,
             rg->alpha = glitter_effect_inst_get_alpha(a2);
             rg->fog = glitter_effect_inst_get_fog(a2);
             if (pi->data.data.type == GLITTER_PARTICLE_QUAD
-                && pi->data.data.blend_mode0 == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH)
+                && pi->data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH)
                 rg->alpha = 0;
 
             if (pi->data.data.draw_flags & GLITTER_PARTICLE_DRAW_NO_BILLBOARD_CULL)
@@ -148,7 +148,7 @@ static glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(glitter_
         effect = a1->data.effect;
         rg->alpha = glitter_effect_inst_get_alpha(effect);
         rg->fog = glitter_effect_inst_get_fog(effect);
-        if (pi->data.data.blend_mode0 == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH
+        if (pi->data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH
             && pi->data.data.type == GLITTER_PARTICLE_QUAD)
             rg->alpha = 0;
         if (effect->data.emission >= glitter_min_emission)

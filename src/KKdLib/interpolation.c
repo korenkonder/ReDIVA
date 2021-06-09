@@ -7,7 +7,7 @@
 
 inline float_t interpolate_linear_value(float_t p1, float_t p2, float_t f1, float_t f2, float_t f) {
     float_t t = (f - f1) / (f2 - f1);
-    return p1 + t * (p2 - p1);
+    return (1.0f - t) * p1 + t * p2;
 }
 
 inline void interpolate_linear_value_vec2(vec2* p1, vec2* p2, vec2* f1, vec2* f2, vec2* f, vec2* value) {
@@ -22,9 +22,12 @@ inline void interpolate_linear_value_vec2(vec2* p1, vec2* p2, vec2* f1, vec2* f2
     *(vec2*)&_f2 = *f2;
     *(vec2*)&_f = *f;
 
+    const __m128 _1 = _mm_set_ps1(1.0f);
+
     __m128 df = _mm_sub_ps(_f2, _f1);
     __m128 t = _mm_div_ps(_mm_sub_ps(_f, _f1), df);
-    __m128 val = _mm_add_ps(_p1, _mm_mul_ps(_mm_sub_ps(_p2, _p1), t));
+    __m128 t1 = _mm_sub_ps(_1, t);
+    __m128 val = _mm_add_ps(_mm_mul_ps(_p1, t1), _mm_mul_ps(_p2, t));
     *value = *(vec2*)&val;
 }
 
@@ -40,9 +43,12 @@ inline void interpolate_linear_value_vec3(vec3* p1, vec3* p2, vec3* f1, vec3* f2
     *(vec3*)&_f2 = *f2;
     *(vec3*)&_f = *f;
 
+    const __m128 _1 = _mm_set_ps1(1.0f);
+
     __m128 df = _mm_sub_ps(_f2, _f1);
     __m128 t = _mm_div_ps(_mm_sub_ps(_f, _f1), df);
-    __m128 val = _mm_add_ps(_p1, _mm_mul_ps(t, _mm_sub_ps(_p2, _p1)));
+    __m128 t1 = _mm_sub_ps(_1, t);
+    __m128 val = _mm_add_ps(_mm_mul_ps(_p1, t1), _mm_mul_ps(_p2, t));
     *value = *(vec3*)&val;
 }
 
@@ -58,9 +64,12 @@ inline void interpolate_linear_value_vec4(vec4* p1, vec4* p2, vec4* f1, vec4* f2
     _f2 = f2->data;
     _f = f->data;
 
+    const __m128 _1 = _mm_set_ps1(1.0f);
+
     __m128 df = _mm_sub_ps(_f2, _f1);
     __m128 t = _mm_div_ps(_mm_sub_ps(_f, _f1), df);
-    value->data = _mm_add_ps(_p1, _mm_mul_ps(t, _mm_sub_ps(_p2, _p1)));
+    __m128 t1 = _mm_sub_ps(_1, t);
+    value->data = _mm_add_ps(_mm_mul_ps(_p1, t1), _mm_mul_ps(_p2, t));
 }
 
 inline void interpolate_linear(float_t p1, float_t p2,
@@ -83,7 +92,8 @@ inline float_t interpolate_chs_value(float_t p1, float_t p2,
     return p1 + t * t * (3.0f - 2.0f * t) * (p2 - p1) + (t_1 * t1 + t * t2) * df * t_1;
 }
 
-inline void interpolate_chs_value_vec2(vec2* p1, vec2* p2, vec2* t1, vec2* t2, vec2* f1, vec2* f2, vec2* f, vec2* value) {
+inline void interpolate_chs_value_vec2(vec2* p1, vec2* p2,
+    vec2* t1, vec2* t2, vec2* f1, vec2* f2, vec2* f, vec2* value) {
     __m128 _p1;
     __m128 _p2;
     __m128 _t1;
@@ -113,7 +123,8 @@ inline void interpolate_chs_value_vec2(vec2* p1, vec2* p2, vec2* t1, vec2* t2, v
     *value = *(vec2*)&val;
 }
 
-inline void interpolate_chs_value_vec3(vec3* p1, vec3* p2, vec3* t1, vec3* t2, vec3* f1, vec3* f2, vec3* f, vec3* value) {
+inline void interpolate_chs_value_vec3(vec3* p1, vec3* p2, vec3* t1,
+    vec3* t2, vec3* f1, vec3* f2, vec3* f, vec3* value) {
     __m128 _p1;
     __m128 _p2;
     __m128 _t1;
@@ -143,7 +154,8 @@ inline void interpolate_chs_value_vec3(vec3* p1, vec3* p2, vec3* t1, vec3* t2, v
     *value = *(vec3*)&val;
 }
 
-inline void interpolate_chs_value_vec4(vec4* p1, vec4* p2, vec4* t1, vec4* t2, vec4* f1, vec4* f2, vec4* f, vec4* value) {
+inline void interpolate_chs_value_vec4(vec4* p1, vec4* p2,
+    vec4* t1, vec4* t2, vec4* f1, vec4* f2, vec4* f, vec4* value) {
     __m128 _p1;
     __m128 _p2;
     __m128 _t1;

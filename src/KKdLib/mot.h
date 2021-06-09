@@ -6,6 +6,9 @@
 #pragma once
 
 #include "default.h"
+#include "string.h"
+#include "kf.h"
+#include "vector.h"
 
 typedef enum mot_bone_index_ac {
     MOT_BONE_AC_INVALID = -1,
@@ -597,34 +600,69 @@ typedef enum mot_bone_index_ft {
     MOT_BONE_FT_MAX = 201,
 } mot_bone_index_ft;
 
-typedef struct mot_struct {
-    float_t time;
-    int32_t flags;
-    int32_t frame;
-    int32_t padding_0C;
-    int32_t pv_branch;
-    int32_t id;
-    int32_t value;
-    int32_t padding_1C;
-} mot_struct;
+typedef union mot_bone_info {
+    string name;
+    uint16_t index;
+} mot_bone_info;
+
+typedef enum mot_key_set_type {
+    MOT_KEY_SET_NONE            = 0x00,
+    MOT_KEY_SET_STATIC          = 0x01,
+    MOT_KEY_SET_HERMITE         = 0x02,
+    MOT_KEY_SET_HERMITE_TANGENT = 0x03,
+} mot_key_set_type;
+
+typedef enum mot_key_set_data_type {
+    MOT_KEY_SET_DATA_F32 = 0x00,
+    MOT_KEY_SET_DATA_F16 = 0x01,
+} mot_key_set_data_type;
+
+typedef struct mot_key_set {
+    mot_key_set_type type;
+    kft2* keys;
+    uint32_t keys_count;
+    mot_key_set_data_type data_type;
+} mot_key_set;
 
 typedef struct mot {
-    bool ready;
-    size_t length;
-    mot_struct* data;
+    union {
+        struct {
+            uint16_t key_set_count : 14;
+            uint16_t high_bits : 2;
+        };
+        uint16_t info;
+    };
+    uint16_t frame_count;
+    int32_t bone_info_count;
+
+    uint32_t murmurhash;
+    uint16_t div_frames;
+    uint8_t div_count;
+    string name;
+    mot_bone_info* bone_info;
+    mot_key_set* key_set;
 } mot;
+
+vector(mot)
+
+typedef struct mot_set {
+    bool ready;
+    bool modern;
+    bool is_x;
+    vector_mot vec;
+} mot_set;
 
 extern const char* mot_bone_name_ac[MOT_BONE_AC_MAX];
 extern const char* mot_bone_name_f[MOT_BONE_F_MAX];
 extern const char* mot_bone_name_ft[MOT_BONE_FT_MAX];
 
-extern mot* mot_init();
-extern void mot_read_mot(mot* m, char* path);
-extern void mot_wread_mot(mot* m, wchar_t* path);
-extern void mot_write_mot(mot* m, char* path);
-extern void mot_wwrite_mot(mot* m, wchar_t* path);
-extern void mot_read_mp(mot* m, char* path, bool json);
-extern void mot_wread_mp(mot* m, wchar_t* path, bool json);
-extern void mot_write_mp(mot* m, char* path, bool json);
-extern void mot_wwrite_mp(mot* m, wchar_t* path, bool json);
-extern void mot_dispose(mot* m);
+extern mot_set* mot_init();
+extern void mot_read_mot(mot_set* ms, char* path);
+extern void mot_wread_mot(mot_set* ms, wchar_t* path);
+extern void mot_write_mot(mot_set* ms, char* path);
+extern void mot_wwrite_mot(mot_set* ms, wchar_t* path);
+extern void mot_read_mp(mot_set* ms, char* path, bool json);
+extern void mot_wread_mp(mot_set* ms, wchar_t* path, bool json);
+extern void mot_write_mp(mot_set* ms, char* path, bool json);
+extern void mot_wwrite_mp(mot_set* ms, wchar_t* path, bool json);
+extern void mot_dispose(mot_set* ms);
