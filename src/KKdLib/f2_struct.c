@@ -18,73 +18,106 @@ static void f2_struct_write_enrs(stream* s, vector_enrs_entry* enrs, uint32_t de
 void f2_struct_free(f2_struct* st) {
     if (st->data)
         free(st->data);
+    st->length = 0;
     if (st->pof.begin)
         vector_size_t_free(&st->pof);
     if (st->enrs.begin)
-        enrs_dispose(&st->enrs);
+        enrs_free(&st->enrs);
     if (st->sub_structs.begin) {
         for (f2_struct* i = st->sub_structs.begin; i != st->sub_structs.end; i++)
             f2_struct_free(i);
         vector_f2_struct_free(&st->sub_structs);
     }
+    memset(st, 0, sizeof(f2_struct));
 }
 
 void f2_struct_read(f2_struct* st, char* path) {
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
-    f2_struct_wread(st, path_buf);
-    free(path_buf);
+    memset(st, 0, sizeof(f2_struct));
+
+    stream s;
+    io_open(&s, path, "rb");
+    if (&s.io.stream) {
+        f2_header h;
+        f2_header_read(&s, &h);
+        f2_struct_read_data(&s, st, &h);
+    }
+    io_free(&s);
 }
 
 void f2_struct_wread(f2_struct* st, wchar_t* path) {
     memset(st, 0, sizeof(f2_struct));
 
-    stream* s = io_wopen(path, L"rb");
-    if (s->io.stream) {
+    stream s;
+    io_wopen(&s, path, L"rb");
+    if (&s.io.stream) {
         f2_header h;
-        f2_header_read(s, &h);
-        f2_struct_read_data(s, st, &h);
+        f2_header_read(&s, &h);
+        f2_struct_read_data(&s, st, &h);
     }
-    io_dispose(s);
+    io_free(&s);
 }
 
-void f2_struct_read_memory(f2_struct* st, void* data, size_t length) {
+void f2_struct_mread(f2_struct* st, void* data, size_t length) {
     memset(st, 0, sizeof(f2_struct));
 
-    stream* s = io_open_memory(data, length);
-    if (s->io.stream) {
+    stream s;
+    io_mopen(&s, data, length);
+    if (&s.io.data.data) {
+        f2_header h;
+        f2_header_read(&s, &h);
+        f2_struct_read_data(&s, st, &h);
+    }
+    io_free(&s);
+}
+
+void f2_struct_sread(f2_struct* st, stream* s) {
+    memset(st, 0, sizeof(f2_struct));
+
+    if (s->io.stream || s->io.data.data) {
         f2_header h;
         f2_header_read(s, &h);
         f2_struct_read_data(s, st, &h);
     }
-    io_dispose(s);
 }
 
 void f2_struct_write(f2_struct* st, char* path, bool use_depth, bool shift_x) {
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
-    f2_struct_wwrite(st, path_buf, use_depth, shift_x);
-    free(path_buf);
+    stream s;
+    io_open(&s, path, "wb");
+    if (s.io.stream) {
+        f2_struct_get_length(st, shift_x);
+        f2_struct_write_inner(&s, st, 0, use_depth, shift_x);
+    }
+    io_free(&s);
 }
 
 void f2_struct_wwrite(f2_struct* st, wchar_t* path, bool use_depth, bool shift_x) {
-    stream* s = io_wopen(path, L"wb");
-    if (s->io.stream) {
+    stream s;
+    io_wopen(&s, path, L"wb");
+    if (s.io.stream) {
         f2_struct_get_length(st, shift_x);
-        f2_struct_write_inner(s, st, 0, use_depth, shift_x);
+        f2_struct_write_inner(&s, st, 0, use_depth, shift_x);
     }
-    io_dispose(s);
+    io_free(&s);
 }
 
-void f2_struct_write_memory(f2_struct* st, void** data, size_t* length, bool use_depth, bool shift_x) {
-    if (!st || !data || !length)
+void f2_struct_mwrite(f2_struct* st, void** data, size_t* length, bool use_depth, bool shift_x) {
+    if (!st || !data)
         return;
 
     f2_struct_get_length(st, shift_x);
-    stream* s = io_open_memory(0, st->header.data_size + 0x40ULL);
-    f2_struct_write_inner(s, st, 0, use_depth, shift_x);
-    *length = s->io.data.data - s->io.data.vec.begin;
-    *data = force_malloc(*length);
-    memcpy(*data, s->io.data.vec.begin, *length);
-    io_dispose(s);
+    stream s;
+    io_mopen(&s, 0, st->header.data_size + 0x40ULL);
+    f2_struct_write_inner(&s, st, 0, use_depth, shift_x);
+
+    io_mcopy(&s, data, length);
+    io_free(&s);
+}
+
+void f2_struct_swrite(f2_struct* st, stream* s, bool use_depth, bool shift_x) {
+    if (s->io.stream || s->type == STREAM_MEMORY) {
+        f2_struct_get_length(st, shift_x);
+        f2_struct_write_inner(s, st, 0, use_depth, shift_x);
+    }
 }
 
 static void f2_struct_get_length(f2_struct* s, bool shift_x) {
@@ -120,7 +153,7 @@ static void f2_struct_get_length(f2_struct* s, bool shift_x) {
         s->sub_structs = ls;
     }
 
-    if (has_pof || has_sub_structs)
+    if (has_enrs || has_pof || has_sub_structs)
         l += 0x20;
 
     s->header.data_size = l;
@@ -137,30 +170,31 @@ static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h) {
         st->length = l;
     }
 
-    uint32_t lastSig = 0, sig;
+    uint32_t sig;
     size_t length = (size_t)h->data_size - l;
     size_t position = 0;
     while (length > position) {
         f2_header_read(s, h);
-        sig = h->signature;
+        sig = reverse_endianness_uint32_t(h->signature);
         l = h->use_section_size ? h->section_size : h->data_size;
         position += (size_t)h->length + l;
-        if (sig == 0x43464F45)
+        if (sig == 'EOFC')
             break;
-        else if (sig == 0x53524E45 || (sig & 0xF0FFFFFF) == 0x30464F50) {
+        else if (sig == 'ENRS') {
             size_t pos = io_get_position(s);
-            if (sig == 0x53524E45)
-                enrs_read(s, &st->enrs);
-            else
-                pof_read(s, &st->pof, sig == 0x31464F50);
-            io_set_position(s, pos + l, IO_SEEK_SET);
+            enrs_read(s, &st->enrs);
+            io_set_position(s, pos + l, SEEK_SET);
+        }
+        else if ((sig & 0xF0FFFFFF) == 'POF0') {
+            size_t pos = io_get_position(s);
+            pof_read(s, &st->pof, sig == 'POF1');
+            io_set_position(s, pos + l, SEEK_SET);
         }
         else {
             f2_struct str;
             f2_struct_read_data(s, &str, h);
             vector_f2_struct_push_back(&st->sub_structs, &str);
         }
-        lastSig = sig;
     }
 
     if (st->sub_structs.end - st->sub_structs.begin < 1)
@@ -172,14 +206,14 @@ static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool
     f2_header_write(s, &st->header, st->header.length == 0x40);
     if (st->data)
         io_write(s, st->data, st->length);
+    if (st->enrs.begin)
+        f2_struct_write_enrs(s, &st->enrs, use_depth ? depth + 1 : 0);
     if (st->pof.begin)
         f2_struct_write_pof(s, &st->pof, use_depth ? depth + 1 : 0, shift_x);
-    if (st->enrs.begin)
-        f2_struct_write_enrs(s, &st->enrs, 0);
     if (st->sub_structs.begin)
         for (f2_struct* i = st->sub_structs.begin; i != st->sub_structs.end; i++)
             f2_struct_write_inner(s, i, depth + 1, use_depth, shift_x);
-    if (st->pof.begin || st->sub_structs.begin)
+    if (st->enrs.begin || st->pof.begin || st->sub_structs.begin)
         f2_header_write_end_of_container(s, use_depth ? depth + 1 : 0);
     if (!depth)
         f2_header_write_end_of_container(s, 0);
@@ -189,7 +223,7 @@ static void f2_struct_write_pof(stream* s, vector_size_t* pof, uint32_t depth, b
     size_t len = pof_length(pof, shift_x);
     f2_header h;
     memset(&h, 0, sizeof(f2_header));
-    h.signature = shift_x ? 0x31464F50 : 0x30464F50;
+    h.signature = shift_x ? reverse_endianness_uint32_t('POF1') : reverse_endianness_uint32_t('POF0');
     h.length = 0x20;
     h.depth = depth;
     h.use_section_size = true;
@@ -202,7 +236,7 @@ static void f2_struct_write_enrs(stream* s, vector_enrs_entry* enrs, uint32_t de
     size_t len = enrs_length(enrs);
     f2_header h;
     memset(&h, 0, sizeof(f2_header));
-    h.signature = 0x53524E45;
+    h.signature = reverse_endianness_uint32_t('ENRS');
     h.length = 0x20;
     h.depth = depth;
     h.use_section_size = true;

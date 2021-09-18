@@ -5,7 +5,7 @@
     Curve Editor code based on Animation Timeline code from https://github.com/crash5band/Glitter
 */
 
-#ifdef CLOUD_DEV
+#if defined(CLOUD_DEV)
 #include "glitter_editor.h"
 #include "../../KKdLib/dds.h"
 #include "../../KKdLib/interpolation.h"
@@ -13,6 +13,7 @@
 #include "../../KKdLib/io_stream.h"
 #include "../../KKdLib/str_utils.h"
 #include "../../KKdLib/txp.h"
+#include "../../KKdLib/str_utils.h"
 #include "../../CRE/Glitter/animation.h"
 #include "../../CRE/Glitter/curve.h"
 #include "../../CRE/Glitter/diva_effect.h"
@@ -27,16 +28,15 @@
 #include "../../CRE/Glitter/scene.h"
 #include "../../CRE/Glitter/texture.h"
 #include "../../CRE/camera.h"
-#include "../../CRE/shared.h"
+#include "../../CRE/gl_state.h"
+#include "../../CRE/shader_glsl.h"
 #include "../../CRE/static_var.h"
-#include "../../CRE/task.h"
 #include "../input.h"
 #include <windows.h>
 #include <commdlg.h>
 #include <shobjidl.h>
 #include "imgui_helper.h"
-#define GLEW_STATIC
-#include <GLEW/glew.h>
+#include <glad/glad.h>
 
 typedef enum glitter_editor_selected_enum {
     GLITTER_EDITOR_SELECTED_NONE = 0,
@@ -94,7 +94,7 @@ typedef struct glitter_editor_struct {
     int32_t counter;
     glitter_effect_group* effect_group;
     glitter_scene* scene;
-    wchar_t file[MAX_PATH];
+    char file[MAX_PATH * 2];
 } glitter_editor_struct;
 
 typedef struct glitter_curve_editor {
@@ -123,10 +123,11 @@ typedef struct glitter_curve_editor {
     bool del_key;
     bool add_curve;
     bool del_curve;
+    bool key_edit;
 } glitter_curve_editor;
 
 typedef struct glitter_editor_gl_wireframe {
-    shader_fbo shader;
+    shader_glsl shader;
 } glitter_editor_gl_wireframe;
 
 typedef struct glitter_editor_gl {
@@ -313,9 +314,6 @@ static const float_t curve_editor_timeline_base_pos = 50.0f;
 static ImVec4 tint_col = { 1.0f, 1.0f, 1.0f, 1.0f };
 static ImVec4 border_col = { 1.0f, 1.0f, 1.0f, 0.5f };
 
-extern vector_task_render tasks_render;
-extern vector_task_render_draw3d tasks_render_draw3d;
-
 extern int32_t width;
 extern int32_t height;
 extern vec2i internal_2d_res;
@@ -355,8 +353,8 @@ static void glitter_editor_save();
 static void glitter_editor_open_window();
 static void glitter_editor_save_window();
 static void glitter_editor_save_as_window();
-static void glitter_editor_load_file(wchar_t* path, wchar_t* file);
-static void glitter_editor_save_file(wchar_t* path, wchar_t* file);
+static void glitter_editor_load_file(char* path, char* file);
+static void glitter_editor_save_file(char* path, char* file);
 static bool glitter_editor_list_open_window(glitter_effect_group* eg);
 static bool glitter_editor_list_parse(uint8_t* data, size_t length, char** buf, char*** lines, size_t* count);
 static bool glitter_editor_resource_import();
@@ -395,10 +393,8 @@ static void glitter_editor_curve_editor_curve_reset(glitter_curve* curve);
 static void glitter_editor_curve_editor_curve_set(glitter_curve* curve, glitter_curve_type type);
 static void glitter_editor_curve_editor_curves_reset();
 static glitter_curve_key* glitter_editor_curve_editor_get_selected_key(glitter_curve* curve);
-static void glitter_editor_curve_editor_get_scroll_bar(float_t max_pos, float_t canvas_size,
-    float_t frame_width, ImVec2 scrollbar_size, ImVec2 scrollbar_pos,
-    ImVec2 bar_offset, ImVec2* bar_size, ImVec2* bar_pos, ImVec2* bar_max);
-static void glitter_editor_curve_editor_key_manager(vector_glitter_curve_key* keys, bool* add_key, bool* del_key);
+static void glitter_editor_curve_editor_key_manager(vector_glitter_curve_key* keys,
+    bool* add_key, bool* del_key);
 static void glitter_editor_curve_editor_property_window();
 static void glitter_editor_curve_editor_reset_state(glitter_curve_type type);
 static void glitter_editor_curve_editor_selector();
@@ -419,11 +415,6 @@ static void glitter_editor_gl_select_particle();
 static bool glitter_editor_hash_input(const char* label, uint64_t* hash);
 
 void glitter_editor_dispose() {
-    task_render task;
-    memset(&task, 0, sizeof(task_render));
-    task.free.type = TASK_RENDER_FREE_GL_OBJECT;
-    task.free.hash = hash_char("Glitter Editor Dummy");
-    vector_task_render_push_back(&tasks_render, &task);
     glitter_editor_gl_free();
 
     vector_ptr_glitter_scene_free(&GPM_VAL->scenes, glitter_scene_dispose);
@@ -484,45 +475,110 @@ void glitter_editor_init() {
     GPM_VAL->draw_all_mesh = true;
     grid_3d = true;
 
-    gl_object_data gl_obj;
-    memset(&gl_obj, 0, sizeof(gl_object_data));
-    gl_obj.cull_face = gl_object_cull_face_default;
-
-    task_render task;
-    memset(&task, 0, sizeof(task_render));
-    task.type = TASK_RENDER_UPDATE;
-    task.update.type = TASK_RENDER_UPDATE_GL_OBJECT;
-    task.update.hash = hash_char("Glitter Editor Dummy");
-    task.update.gl_obj = gl_obj;
-    vector_task_render_push_back(&tasks_render, &task);
     glitter_editor_reset();
     glitter_editor_gl_load();
-    /*return;
 
-    wchar_t* path_x = L"X\\";
-    vector_ptr_wchar_t files_x = { 0, 0, 0 };
-    path_wget_files(&files_x, path_x);
-    for (wchar_t** i = files_x.begin; i != files_x.end;)
-        if (str_utils_wcheck_ends_with(*i, L".farc"))
+    /*char* path_x = "VRFL\\";
+    vector_string files_x = vector_empty(string);
+    path_get_files(&files_x, path_x);
+    for (string* i = files_x.begin; i != files_x.end;)
+        if (str_utils_check_ends_with(string_data(i), ".farc"))
             i++;
-        else
-            vector_ptr_wchar_t_erase(&files_x, i - files_x.begin, 0);
+        else {
+            string_free(i);
+            vector_string_erase(&files_x, i - files_x.begin);
+        }
+
+    ssize_t c = files_x.end - files_x.begin;
+    glitter_file_reader* fr = 0;
+    if (files_x.begin) {
+        stream s;
+        io_wopen(&s, L"name_VRFL.glitter.txt", L"rb");
+        size_t length = s.length;
+        uint8_t* data = force_malloc(length);
+        io_read(&s, data, length);
+        io_free(&s);
+
+        char* buf;
+        char** lines;
+        size_t count;
+        if (glitter_editor_list_parse(data, length, &buf, &lines, &count)) {
+            uint64_t* hashes = force_malloc_s(uint64_t, count);
+            for (size_t i = 0; i < count; i++)
+                hashes[i] = hash_murmurhash(lines[i], min(utf8_length(lines[i]), 0x7F), 0, false, false);
+
+            for (ssize_t i = 0; i < c; i++) {
+                char* file_x = str_utils_get_without_extension(string_data(&files_x.begin[i]));
+
+                char buf[0x100];
+                sprintf_s(buf, 0x100, "%hs\n", file_x);
+                OutputDebugStringA(buf);
+
+                glitter_editor.load_glt_type = GLITTER_X;
+                fr = glitter_file_reader_init(GLITTER_X, path_x, file_x, 1.0f);
+                glitter_file_reader_read(fr, GPM_VAL->emission);
+
+                if (fr && fr->effect_group) {
+                    glitter_effect_group* eg = fr->effect_group;
+                    for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
+                        if (!*i)
+                            continue;
+
+                        glitter_effect* e = *i;
+                        if (e->data.name_hash == hash_murmurhash_empty)
+                            continue;
+
+                        size_t j;
+                        for (j = 0; j < count; j++)
+                            if (e->data.name_hash == hashes[j])
+                                break;
+
+                        if (j == count) {
+                            char buf[0x100];
+                            sprintf_s(buf, 0x100, "%08llX\n", e->data.name_hash);
+                            OutputDebugStringA(buf);
+                        }
+                    }
+
+                    glitter_effect_group_dispose(fr->effect_group);
+                }
+                free(file_x);
+            }
+            free(lines);
+            free(hashes);
+        }
+        free(data);
+    }
+    for (string* i = files_x.begin; i != files_x.end; i++)
+        string_free(i);
+    vector_string_free(&files_x);
+    glitter_file_reader_dispose(fr);
+    glitter_editor.effect_group = 0;
+    return;*/
+
+    /*char* path_x = "X\\";
+    vector_string files_x = vector_empty(string);
+    path_get_files(&files_x, path_x);
+    for (string* i = files_x.begin; i != files_x.end;)
+        if (str_utils_check_ends_with(string_data(i), ".farc"))
+            i++;
+        else {
+            string_free(i);
+            vector_string_erase(&files_x, i - files_x.begin);
+        }
 
     ssize_t c = files_x.end - files_x.begin;
     glitter_file_reader* fr = 0;
     if (files_x.begin)
         for (ssize_t i = 0; i < c; i++) {
-            if (!files_x.begin[i])
-                continue;
+            char* file_x = str_utils_get_without_extension(string_data(&files_x.begin[i]));
 
-            wchar_t* file_x = str_utils_wget_without_extension(files_x.begin[i]);
-
-            wchar_t buf[0x100];
-            swprintf_s(buf, 0x100, L"%ls\n", file_x);
-            OutputDebugStringW(buf);
+            char buf[0x100];
+            sprintf_s(buf, 0x100, "%hs\n", file_x);
+            OutputDebugStringA(buf);
 
             glitter_editor.load_glt_type = GLITTER_X;
-            fr = glitter_file_reader_winit(GLITTER_X, path_x, file_x, 1.0f);
+            fr = glitter_file_reader_init(GLITTER_X, path_x, file_x, 1.0f);
             glitter_file_reader_read(fr, GPM_VAL->emission);
 
             if (fr && fr->effect_group) {
@@ -537,9 +593,9 @@ void glitter_editor_init() {
 
                     glitter_effect_ext_anim* ea = e->data.ext_anim;
                     if (ea->instance_id != 0) {
-                        wchar_t buf[0x100];
-                        swprintf_s(buf, 0x100, L"%08llX %d\n", e->data.name_hash, ea->instance_id);
-                        OutputDebugStringW(buf);
+                        char buf[0x100];
+                        sprintf_s(buf, 0x100, "%08llX %d\n", e->data.name_hash, ea->instance_id);
+                        OutputDebugStringA(buf);
                     }
                 }
 
@@ -547,33 +603,41 @@ void glitter_editor_init() {
             }
             free(file_x);
         }
+    for (string* i = files_x.begin; i != files_x.end; i++)
+        string_free(i);
+    vector_string_free(&files_x);
     glitter_file_reader_dispose(fr);
-    glitter_editor.effect_group = 0;*/
-    return;
+    glitter_editor.effect_group = 0;
+    return;*/
 
-    wchar_t* path_f2 = L"F2\\";
-    wchar_t* path_aft = L"AFT\\";
-    vector_ptr_wchar_t files_f2 = { 0, 0, 0 };
-    vector_ptr_wchar_t files_aft = { 0, 0, 0 };
-    path_wget_files(&files_f2, path_f2);
-    path_wget_files(&files_aft, path_aft);
-    for (wchar_t** i = files_f2.begin; i != files_f2.end;)
-        if (str_utils_wcheck_ends_with(*i, L".farc"))
+    /*char* path_f2 = "F2\\";
+    char* path_aft = "AFT\\";
+    vector_string files_f2 = vector_empty(string);
+    vector_string files_aft = vector_empty(string);
+    path_get_files(&files_f2, path_f2);
+    path_get_files(&files_aft, path_aft);
+    for (string* i = files_f2.begin; i != files_f2.end;)
+        if (str_utils_check_ends_with(string_data(i), ".farc"))
             i++;
-        else
-            vector_ptr_wchar_t_erase(&files_f2, i - files_f2.begin, 0);
+        else {
+            string_free(i);
+            vector_string_erase(&files_f2, i - files_f2.begin);
+        }
 
-    for (wchar_t** i = files_aft.begin; i != files_aft.end;)
-        if (str_utils_wcheck_ends_with(*i, L".farc"))
+    for (string* i = files_aft.begin; i != files_aft.end;)
+        if (str_utils_check_ends_with(string_data(i), ".farc"))
             i++;
-        else
-            vector_ptr_wchar_t_erase(&files_aft, i - files_aft.begin, 0);
+        else {
+            string_free(i);
+            vector_string_erase(&files_aft, i - files_aft.begin);
+        }
 
-    stream* s = io_wopen(L"name_F2nd.glitter.txt", L"rb");
-    size_t length = s->length;
+    stream s;
+    io_wopen(&s, L"name_F2nd.glitter.txt", L"rb");
+    size_t length = s.length;
     uint8_t* data = force_malloc(length);
-    io_read(s, data, length);
-    io_dispose(s);
+    io_read(&s, data, length);
+    io_free(&s);
 
     char* buf;
     char** lines;
@@ -581,19 +645,16 @@ void glitter_editor_init() {
     if (glitter_editor_list_parse(data, length, &buf, &lines, &count)) {
         uint64_t* hashes = force_malloc_s(uint64_t, count);
         for (size_t i = 0; i < count; i++)
-            hashes[i] = hash_murmurhash(lines[i], min(strlen(lines[i]), 0x7F), 0, false, false);
+            hashes[i] = hash_murmurhash(lines[i], min(utf8_length(lines[i]), 0x7F), 0, false, false);
 
         ssize_t c = files_f2.end - files_f2.begin;
         glitter_file_reader* fr = 0;
         if (files_f2.begin && files_aft.begin)
             for (ssize_t i = 0; i < c; i++) {
-                if (!files_f2.begin[i])
-                    continue;
-
-                wchar_t* file_f2 = str_utils_wget_without_extension(files_f2.begin[i]);
-                wchar_t* file_aft = str_utils_wget_without_extension(files_aft.begin[i]);
+                char* file_f2 = str_utils_get_without_extension(string_data(&files_f2.begin[i]));
+                char* file_aft = str_utils_get_without_extension(string_data(&files_aft.begin[i]));
                 glitter_editor.load_glt_type = GLITTER_F2;
-                fr = glitter_file_reader_winit(GLITTER_F2, path_f2, file_f2, 1.0f);
+                fr = glitter_file_reader_init(GLITTER_F2, path_f2, file_f2, 1.0f);
                 glitter_file_reader_read(fr, GPM_VAL->emission);
 
                 if (fr && fr->effect_group) {
@@ -614,31 +675,7 @@ void glitter_editor_init() {
 
                         if (j == count)
                             break;
-                        memcpy(e->name, lines[j], min(strlen(lines[j]), 0x7F));
-
-                        for (glitter_emitter** j = e->emitters.begin;
-                            j != e->emitters.end; j++) {
-                            if (!*j)
-                                continue;
-
-                            glitter_emitter* emitter = *j;
-                            for (glitter_particle** k = emitter->particles.begin;
-                                k != emitter->particles.end; k++) {
-                                if (!*k)
-                                    continue;
-
-                                glitter_particle* particle = *k;
-                                if (particle->data.deceleration != 0.0f
-                                    || particle->data.deceleration_random != 0.0f) {
-                                    char buf[0x100];
-                                    snprintf(buf, 0x100, particle->data.deceleration_random != 0.0f
-                                        ? "DR %s %lld %lld %g %g\n" : "D  %s %lld %lld %g\n", e->name,
-                                        j - e->emitters.begin, k - emitter->particles.begin,
-                                        particle->data.deceleration, particle->data.deceleration_random);
-                                    OutputDebugStringA(buf);
-                                }
-                            }
-                        }
+                        memcpy(e->name, lines[j], min(utf8_length(lines[j]), 0x7F));
                     }
 
                     glitter_editor.effect_group = fr->effect_group;
@@ -655,23 +692,31 @@ void glitter_editor_init() {
         free(lines);
         free(hashes);
     }
+    for (string* i = files_f2.begin; i != files_f2.end; i++)
+        string_free(i);
+    vector_string_free(&files_f2);
+
+    for (string* i = files_aft.begin; i != files_aft.end; i++)
+        string_free(i);
+    vector_string_free(&files_aft);
     free(data);
-    glitter_editor.effect_group = 0;
+    glitter_editor.effect_group = 0;*/
 }
 
 void glitter_editor_draw() {
     glitter_editor_gl_draw();
 }
 
-void glitter_editor_drop(size_t count, wchar_t** paths) {
+void glitter_editor_drop(size_t count, char** paths) {
     if (!glitter_editor_enabled)
         return;
 
     if (count < 1 || !paths[0])
         return;
 
-    memcpy(glitter_editor.file, paths[0],
-        min((wcslen(paths[0]) + 1) * sizeof(wchar_t), sizeof(glitter_editor.file)));
+    size_t c = min(utf8_length(paths[0]), sizeof(glitter_editor.file) - 1);
+    memcpy(glitter_editor.file, paths[0], c);
+    glitter_editor.file[c] = 0;
     glitter_editor.load_popup = true;
 }
 
@@ -701,8 +746,11 @@ void glitter_editor_input() {
 
     input_locked |= glitter_editor.imgui_focus;
 
-    ImGuiIO* io = igGetIO();
-    if (io->WantTextInput)
+    bool ret = false;
+    if (igGetIO()->WantTextInput)
+        ret = true;
+
+    if (ret)
         return;
 
     if (input_is_down(VK_CONTROL) && input_is_tapped('O'))
@@ -785,7 +833,8 @@ void glitter_editor_render() {
                             continue;
 
                         glitter_emitter* emitter = *j;
-                        for (glitter_particle** k = emitter->particles.begin; k != emitter->particles.end; k++) {
+                        for (glitter_particle** k = emitter->particles.begin;
+                            k != emitter->particles.end; k++) {
                             if (!*k)
                                 continue;
 
@@ -1065,8 +1114,8 @@ void glitter_editor_render() {
     glitter_editor.particle_flags = 0;
 
     if (glitter_editor.load || glitter_editor.save) {
-        wchar_t* file = str_utils_wget_without_extension(glitter_editor.file);
-        wchar_t* path = str_utils_wsplit_right_get_left_include(glitter_editor.file, L'\\');
+        char* file = str_utils_get_without_extension(glitter_editor.file);
+        char* path = str_utils_split_right_get_left_include(glitter_editor.file, '\\');
 
         if (glitter_editor.load)
             glitter_editor_load_file(path, file);
@@ -1334,33 +1383,6 @@ static void glitter_editor_windows() {
     win_x = min((float_t)width / 4.0f, 400.0f);
     win_y = min((float_t)height / 3.0f, 320.0f);
 
-    x = win_x;
-    y = (float_t)height - win_y;
-    w = (float_t)width - win_x * 2.0f;
-    h = win_y;
-
-    window_flags = 0;
-    window_flags |= ImGuiWindowFlags_NoResize;
-    window_flags |= ImGuiWindowFlags_NoMove;
-    window_flags |= ImGuiWindowFlags_NoCollapse;
-    window_flags |= ImGuiWindowFlags_NoFocusOnAppearing;
-    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-    igSetNextWindowPos((ImVec2) { x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
-
-    igPushID_Str("Glitter Editor Curve Editor Window");
-    if (igBegin("Curve Editor", 0, window_flags)) {
-        if (glitter_editor.effect_group && selected)
-            glitter_editor_curve_editor();
-        glitter_editor.imgui_focus |= igIsWindowFocused(0);
-    }
-    igEnd();
-    igPopID();
-
-    win_x = min((float_t)width / 4.0f, 400.0f);
-    win_y = min((float_t)height / 3.0f, 320.0f);
-
     x = (float_t)width - win_x;
     y = (float_t)height - win_y;
     w = win_x;
@@ -1384,6 +1406,33 @@ static void glitter_editor_windows() {
     }
     igEnd();
     igPopID();
+
+    win_x = min((float_t)width / 4.0f, 400.0f);
+    win_y = min((float_t)height / 3.0f, 320.0f);
+
+    x = win_x;
+    y = (float_t)height - win_y;
+    w = (float_t)width - win_x * 2.0f;
+    h = win_y;
+
+    window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoResize;
+    window_flags |= ImGuiWindowFlags_NoMove;
+    window_flags |= ImGuiWindowFlags_NoCollapse;
+    window_flags |= ImGuiWindowFlags_NoFocusOnAppearing;
+    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+    igSetNextWindowPos((ImVec2) { x, y }, ImGuiCond_Always, ImVec2_Empty);
+    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
+
+    igPushID_Str("Glitter Editor Curve Editor Window");
+    if (igBegin("Curve Editor", 0, window_flags)) {
+        if (glitter_editor.effect_group && selected)
+            glitter_editor_curve_editor();
+        glitter_editor.imgui_focus |= igIsWindowFocused(0);
+    }
+    igEnd();
+    igPopID();
 }
 
 static void glitter_editor_reload() {
@@ -1398,9 +1447,11 @@ static void glitter_editor_reload() {
 
         glitter_effect* effect = *i;
         if (eg->type != GLITTER_AFT)
-            effect->data.name_hash = hash_murmurhash(effect->name, min(strlen(effect->name), 0x7F), 0, false, false);
+            effect->data.name_hash = hash_murmurhash(effect->name,
+                min(utf8_length(effect->name), 0x7F), 0, false, false);
         else
-            effect->data.name_hash = hash_fnv1a64(effect->name, min(strlen(effect->name), 0x7F));
+            effect->data.name_hash = hash_fnv1a64(effect->name,
+                min(utf8_length(effect->name), 0x7F));
 
         for (glitter_curve** c = effect->animation.begin; c != effect->animation.end; c++)
             if (*c)
@@ -1468,7 +1519,9 @@ static void glitter_editor_open_window() {
     ofn.nMaxFile = MAX_PATH;
     ofn.lpstrTitle = L"File to Open";
     if (GetOpenFileNameW(&ofn)) {
-        memcpy(glitter_editor.file, file, sizeof(file));
+        char* file_temp = utf16_to_utf8(file);
+        memcpy(glitter_editor.file, file_temp, utf8_length(file_temp) + 1);
+        free(file_temp);
         glitter_editor.load_popup = true;
     }
     CoUninitialize();
@@ -1508,7 +1561,9 @@ static void glitter_editor_save_as_window() {
     ofn.lpstrTitle = L"File to Save";
     ofn.Flags = OFN_NONETWORKBUTTON;
     if (GetSaveFileNameW(&ofn)) {
-        memcpy(glitter_editor.file, file, sizeof(file));
+        char* file_temp = utf16_to_utf8(file);
+        memcpy(glitter_editor.file, file_temp, utf8_length(file_temp) + 1);
+        free(file_temp);
         glitter_editor_save();
     }
     else
@@ -1516,7 +1571,7 @@ static void glitter_editor_save_as_window() {
     CoUninitialize();
 }
 
-static void glitter_editor_load_file(wchar_t* path, wchar_t* file) {
+static void glitter_editor_load_file(char* path, char* file) {
     vector_ptr_glitter_scene_clear(&GPM_VAL->scenes, glitter_scene_dispose);
     vector_ptr_glitter_effect_group_clear(&GPM_VAL->effect_groups, glitter_effect_group_dispose);
 
@@ -1524,7 +1579,7 @@ static void glitter_editor_load_file(wchar_t* path, wchar_t* file) {
     glitter_editor.effect_group = 0;
     glitter_editor.scene = 0;
 
-    glitter_file_reader* fr = glitter_file_reader_winit(glitter_editor.load_glt_type, path, file, -1.0f);
+    glitter_file_reader* fr = glitter_file_reader_init(glitter_editor.load_glt_type, path, file, -1.0f);
     if (glitter_file_reader_read(fr, GPM_VAL->emission)) {
         if (fr->type == GLITTER_AFT) {
             bool lst_valid = true;
@@ -1534,7 +1589,7 @@ static void glitter_editor_load_file(wchar_t* path, wchar_t* file) {
                     continue;
 
                 glitter_effect* e = *i;
-                if (e->data.name_hash != hash_fnv1a64(e->name, min(strlen(e->name), 0x80))) {
+                if (e->data.name_hash != hash_fnv1a64(e->name, min(utf8_length(e->name), 0x80))) {
                     lst_valid = false;
                     break;
                 }
@@ -1565,11 +1620,13 @@ static void glitter_editor_load_file(wchar_t* path, wchar_t* file) {
                 if (!*i)
                     continue;
 
-                glitter_scene_init_effect(GPM_VAL, glitter_editor.scene, *i, &GPM_VAL->random, id, false);
+                glitter_scene_init_effect(GPM_VAL, glitter_editor.scene, *i, id, false);
             }
 
             vector_ptr_glitter_effect_group_push_back(&GPM_VAL->effect_groups, &glitter_editor.effect_group);
             vector_ptr_glitter_scene_push_back(&GPM_VAL->scenes, &glitter_editor.scene);
+            glitter_particle_manager_get_start_end_frame(GPM_VAL,
+                &glitter_editor.start_frame, &glitter_editor.end_frame);
             glitter_editor.frame_counter = 0;
             glitter_editor.old_frame_counter = 0;
             glitter_editor.input_pause = true;
@@ -1582,7 +1639,7 @@ static void glitter_editor_load_file(wchar_t* path, wchar_t* file) {
     glitter_editor_reset();
 }
 
-static void glitter_editor_save_file(wchar_t* path, wchar_t* file) {
+static void glitter_editor_save_file(char* path, char* file) {
     glitter_type glt_type = glitter_editor.save_glt_type;
 
     f2_struct st;
@@ -1596,32 +1653,34 @@ static void glitter_editor_save_file(wchar_t* path, wchar_t* file) {
 
     farc* f = farc_init();
     if (glitter_diva_effect_unparse_file(glt_type, glitter_editor.effect_group, &st)) {
-        f2_struct_write_memory(&st, &ff_dve.data, &ff_dve.size, true, false);
-        ff_dve.name = str_utils_wadd(file, L".dve");
+        f2_struct_mwrite(&st, &ff_dve.data, &ff_dve.size, true, false);
+        string_init(&ff_dve.name, file);
+        string_add(&ff_dve.name, ".dve");
         f2_struct_free(&st);
     }
     else
         goto End;
 
     if (glitter_diva_resource_unparse_file(glitter_editor.effect_group, &st)) {
-        f2_struct_write_memory(&st, &ff_drs.data, &ff_drs.size, true, false);
-        ff_drs.name = str_utils_wadd(file, L".drs");
+        f2_struct_mwrite(&st, &ff_drs.data, &ff_drs.size, true, false);
+        string_init(&ff_drs.name, file);
+        string_add(&ff_drs.name, ".drs");
     }
     f2_struct_free(&st);
 
-    if (glt_type == GLITTER_AFT) {
+    if (glt_type == GLITTER_AFT)
         if (glitter_diva_list_unparse_file(glitter_editor.effect_group, &st)) {
-            f2_struct_write_memory(&st, &ff_lst.data, &ff_lst.size, true, false);
-            ff_lst.name = str_utils_wadd(file, L".lst");
+            f2_struct_mwrite(&st, &ff_lst.data, &ff_lst.size, true, false);
+            string_init(&ff_lst.name, file);
+            string_add(&ff_lst.name, ".lst");
         }
         else {
             free(ff_dve.data);
-            free(ff_dve.name);
+            string_free(&ff_dve.name);
             free(ff_drs.data);
-            free(ff_drs.name);
+            string_free(&ff_drs.name);
             goto End;
         }
-    }
 
     if (ff_drs.data)
         vector_farc_file_push_back(&f->files, &ff_drs);
@@ -1635,22 +1694,23 @@ static void glitter_editor_save_file(wchar_t* path, wchar_t* file) {
     else
         mode = FARC_COMPRESS_FArc;
 
-    wchar_t* temp = str_utils_wadd(path, file);
+    char* temp = str_utils_add(path, file);
     if (glt_type != GLITTER_AFT) {
-        wchar_t* list_temp = str_utils_wadd(temp, L".glitter.txt");
-        stream* s = io_wopen(list_temp, L"wb");
-        if (s->io.stream) {
+        char* list_temp = str_utils_add(temp, ".glitter.txt");
+        stream s;
+        io_open(&s, list_temp, "wb");
+        if (s.io.stream) {
             glitter_effect_group* eg = glitter_editor.effect_group;
             for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++)
                 if (*i) {
-                    io_write(s, (*i)->name, strlen((*i)->name));
-                    io_write_char(s, '\n');
+                    io_write(&s, (*i)->name, utf8_length((*i)->name));
+                    io_write_char(&s, '\n');
                 }
         }
-        io_dispose(s);
+        io_free(&s);
         free(list_temp);
     }
-    farc_wwrite(f, temp, mode, false);
+    farc_write(f, temp, mode, false);
     free(temp);
 
 End:
@@ -1674,11 +1734,12 @@ static bool glitter_editor_list_open_window(glitter_effect_group* eg) {
     ofn.nMaxFile = MAX_PATH;
     ofn.lpstrTitle = L"File to Open";
     if (GetOpenFileNameW(&ofn)) {
-        stream* s = io_wopen(file, L"rb");
-        size_t length = s->length;
+        stream s;
+        io_wopen(&s, file, L"rb");
+        size_t length = s.length;
         uint8_t* data = force_malloc(length);
-        io_read(s, data, length);
-        io_dispose(s);
+        io_read(&s, data, length);
+        io_free(&s);
 
         char* buf;
         char** lines;
@@ -1689,10 +1750,10 @@ static bool glitter_editor_list_open_window(glitter_effect_group* eg) {
             uint64_t* hashes = force_malloc_s(uint64_t, count);
             if (eg->type != GLITTER_AFT)
                 for (size_t i = 0; i < count; i++)
-                    hashes[i] = hash_murmurhash(lines[i], min(strlen(lines[i]), 0x7F), 0, false, false);
+                    hashes[i] = hash_murmurhash(lines[i], min(utf8_length(lines[i]), 0x7F), 0, false, false);
             else
                 for (size_t i = 0; i < count; i++)
-                    hashes[i] = hash_fnv1a64(lines[i], min(strlen(lines[i]), 0x7F));
+                    hashes[i] = hash_fnv1a64(lines[i], min(utf8_length(lines[i]), 0x7F));
 
             ret = true;
             for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
@@ -1714,7 +1775,7 @@ static bool glitter_editor_list_open_window(glitter_effect_group* eg) {
                     continue;
                 }
 
-                memcpy(e->name, lines[j], min(strlen(lines[j]), 0x7F));
+                memcpy(e->name, lines[j], min(utf8_length(lines[j]), 0x7F));
             }
 
             free(buf);
@@ -1744,8 +1805,8 @@ static bool glitter_editor_list_parse(uint8_t* data, size_t length, char** buf, 
             return false;
 
         wchar_t* w_d = (wchar_t*)data + 1;
-        d = utf8_encode(w_d);
-        length = strlen(d);
+        d = utf16_to_utf8(w_d);
+        length = utf8_length(d);
         del = true;
         goto decode_utf8_ansi;
     }
@@ -1758,8 +1819,8 @@ static bool glitter_editor_list_parse(uint8_t* data, size_t length, char** buf, 
         w_d = str_utils_wcopy(w_d);
         for (size_t i = 0; i < length; i++)
             w_d[i] = (wchar_t)reverse_endianness_uint16_t((uint16_t)w_d[i]);
-        d = utf8_encode(w_d);
-        length = strlen(d);
+        d = utf16_to_utf8(w_d);
+        length = utf8_length(d);
         del = true;
         free(w_d);
         goto decode_utf8_ansi;
@@ -1871,8 +1932,8 @@ static bool glitter_editor_resource_import() {
         wchar_t* p = str_utils_wsplit_right_get_left(file, L'.');
         dds* d = dds_init();
 
-        uint64_t hash_aft = hash_wchar_t_fnv1a64(f);
-        uint64_t hash_f2 = hash_wchar_t_murmurhash(f, 0, false);
+        uint64_t hash_aft = hash_utf16_fnv1a64(f);
+        uint64_t hash_f2 = hash_utf16_murmurhash(f, 0, false);
 
         glitter_effect_group* eg = glitter_editor.effect_group;
         int32_t rc = eg->resources_count;
@@ -1887,11 +1948,11 @@ static bool glitter_editor_resource_import() {
 
         txp tex;
         memset(&tex, 0, sizeof(txp));
-        tex.array_size = d->has_cubemap ? 6 : 1;
-        tex.has_cubemap = d->has_cubemap;
+        tex.array_size = d->has_cube_map ? 6 : 1;
+        tex.has_cube_map = d->has_cube_map;
         tex.mipmaps_count = d->mipmaps_count;
 
-        vector_txp_mipmap_append(&tex.data, (tex.has_cubemap ? 6LL : 1LL) * tex.mipmaps_count);
+        vector_txp_mipmap_reserve(&tex.data, (tex.has_cube_map ? 6LL : 1LL) * tex.mipmaps_count);
         uint32_t index = 0;
         do
             for (uint32_t i = 0; i < tex.mipmaps_count; i++) {
@@ -1959,10 +2020,10 @@ static bool glitter_editor_resource_export() {
         d->width = width;
         d->height = height;
         d->mipmaps_count = tex.mipmaps_count;
-        d->has_cubemap = tex.has_cubemap;
-        d->data = (vector_ptr_void){ 0, 0, 0 };
+        d->has_cube_map = tex.has_cube_map;
+        d->data = vector_ptr_empty(void);
 
-        vector_ptr_void_append(&d->data, (tex.has_cubemap ? 6LL : 1LL) * tex.mipmaps_count);
+        vector_ptr_void_reserve(&d->data, (tex.has_cube_map ? 6LL : 1LL) * tex.mipmaps_count);
         uint32_t index = 0;
         do
             for (uint32_t i = 0; i < tex.mipmaps_count; i++) {
@@ -2056,7 +2117,7 @@ static void glitter_editor_test_window() {
     frame = 0.0f;
     life_time = 0;
     glitter_particle_manager_get_frame(GPM_VAL, &frame, &life_time);
-    igText("%d - %.0f/%d", glitter_editor.frame_counter - glitter_editor.start_frame, frame, life_time);
+    igText("%d - %.0f/%d", max(glitter_editor.frame_counter - glitter_editor.start_frame, 0), frame, life_time);
 
     ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_QUAD);
     disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_QUAD);
@@ -2496,7 +2557,7 @@ static void glitter_editor_resources() {
     tree_node_base_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
     glitter_effect_group* eg = glitter_editor.effect_group;
-    int32_t* r = eg->resources.begin;
+    texture** r = eg->resources.begin;
     int32_t rc = eg->resources_count;
     uint64_t* rh = eg->resource_hashes.begin;
     txp* rt = eg->resources_tex.begin;
@@ -2507,9 +2568,18 @@ static void glitter_editor_resources() {
         igPushID_Int(i);
         igSelectable_Bool(buf, i == selected_resource, 0, (ImVec2) { 0.0f, 0.0f });
         if (igIsItemHovered(0)) {
+            txp_mipmap* rtm = rt[i].data.begin;
+            float_t aspect = (float_t)rtm->width / (float_t)rtm->height;
+
+            ImVec2 size = (ImVec2){ 192.0f, 192.0f };
+            if (aspect > 1.0f)
+                size.y /= aspect;
+            else if (aspect < 1.0f)
+                size.x *= aspect;
+
             igBeginTooltip();
-            igText("Tex Size: %dx%d", rt[i].data.begin[0].width, rt[i].data.begin[0].height);
-            igImage((void*)(size_t)r[i], (ImVec2) { 192.0f, 192.0f },
+            igText("Tex Size: %dx%d", rtm->width, rtm->height);\
+            igImage((void*)(size_t)r[i]->texture, size,
                 ImVec2_Empty, ImVec2_Identity, tint_col, border_col);
             igEndTooltip();
         }
@@ -2603,7 +2673,7 @@ End:
 static void glitter_editor_play_manager() {
     glitter_effect_group* eg = glitter_editor.effect_group;
 
-    if (imguiButton("Reset Camera", ImVec2_Empty))
+    if (imguiButton("Reset Camera (R)", ImVec2_Empty))
         input_reset = true;
 
     ImVec2 t;
@@ -2655,7 +2725,7 @@ static void glitter_editor_play_manager() {
     frame = 0.0f;
     life_time = 0;
     glitter_particle_manager_get_frame(GPM_VAL, &frame, &life_time);
-    igText("%d - %.0f/%d", glitter_editor.frame_counter - glitter_editor.start_frame, frame, life_time);
+    igText("%d - %.0f/%d", max(glitter_editor.frame_counter - glitter_editor.start_frame, 0), frame, life_time);
 
     ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_QUAD);
     disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_QUAD);
@@ -2721,7 +2791,7 @@ static void glitter_editor_property_effect() {
     memcpy(name, effect.name, name_size);
     if (imguiColumnInputText("Name", name, name_size, 0, 0, 0)) {
         effect.data.name_hash = eg->type != GLITTER_AFT
-            ? hash_char_murmurhash(name, 0, false) : hash_char_fnv1a64(name);
+            ? hash_utf8_murmurhash(name, 0, false) : hash_utf8_fnv1a64(name);
         memcpy(effect.name, name, name_size - 1);
         changed = true;
     }
@@ -2769,7 +2839,7 @@ static void glitter_editor_property_effect() {
         GLITTER_EFFECT_LOOP))
         changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Alpha",
+    if (imguiCheckboxFlags_UintPtr("Draw as Transparent",
         (uint32_t*)&effect.data.flags,
         GLITTER_EFFECT_ALPHA))
         changed = true;
@@ -2869,7 +2939,7 @@ static void glitter_editor_property_effect() {
             if (ext_anim.flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
                 const int32_t max_chara = 4;
                 if (imguiColumnComboBox("Chara Index", glitter_effect_ext_anim_index_name,
-                    max_chara, &ext_anim.index, 0, false, &glitter_editor.imgui_focus))
+                    max_chara, &ext_anim.chara_index, 0, false, &glitter_editor.imgui_focus))
                     ext_anim_changed = true;
 
                 int32_t node_index = ext_anim.node_index;
@@ -2946,7 +3016,7 @@ static void glitter_editor_property_effect() {
             if (ext_anim.flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
                 const int32_t max_chara = eg->type == GLITTER_AFT ? 6 : 3;
                 if (imguiColumnComboBox("Chara Index", glitter_effect_ext_anim_index_name,
-                    max_chara, &ext_anim.index, 0, false, &glitter_editor.imgui_focus))
+                    max_chara, &ext_anim.chara_index, 0, false, &glitter_editor.imgui_focus))
                     ext_anim_changed = true;
 
                 int32_t node_index = ext_anim.node_index;
@@ -3179,7 +3249,7 @@ static void glitter_editor_property_emitter() {
             ? GLITTER_EMITTER_EMISSION_ON_START : GLITTER_EMITTER_EMISSION_ON_TIMER;
         else
             emission = GLITTER_EMITTER_EMISSION_ON_END;
-        
+
         if (imguiColumnComboBox("Emission Type", glitter_emitter_emission_name,
             GLITTER_EMITTER_EMISSION_ON_END,
             (int32_t*)&emission, 0, true, &glitter_editor.imgui_focus)) {
@@ -3202,7 +3272,7 @@ static void glitter_editor_property_emitter() {
                 changed = true;
             }
         }
-        
+
         if (emission == GLITTER_EMITTER_EMISSION_ON_TIMER
             && imguiColumnDragFloatFlag("Emit Interval",
                 &emitter.data.emission_interval, 1.0f, 1.0f, FLT_MAX, "%g",
@@ -3216,7 +3286,7 @@ static void glitter_editor_property_emitter() {
         ImGuiSliderFlags_NoRoundToFormat,
         (flags & GLITTER_CURVE_TYPE_PARTICLES_PER_EMISSION) >> 21))
         changed = true;
-    
+
     glitter_emitter_direction direction = glitter_emitter_direction_default;
     glitter_emitter_direction prev_direction;
     for (int32_t i = 0; i < glitter_emitter_direction_types_count; i++)
@@ -3225,7 +3295,7 @@ static void glitter_editor_property_emitter() {
             break;
         }
     prev_direction = direction;
-    
+
     if (imguiColumnComboBox("Direction", glitter_emitter_direction_name,
         GLITTER_EMITTER_DIRECTION_EFFECT_ROTATION,
         (int32_t*)&direction, 0, true, &glitter_editor.imgui_focus))
@@ -3946,21 +4016,21 @@ static void glitter_editor_property_particle() {
         igSeparator();
 
         glitter_particle_mesh* mesh = &particle.data.mesh;
+        if (glitter_editor_hash_input("Object Set Name Hash", &mesh->object_set_name_hash))
+            changed = true;
+
         if (glitter_editor_hash_input("Object Name Hash", &mesh->object_name_hash))
             changed = true;
 
-        if (glitter_editor_hash_input("Object File Hash", &mesh->object_file_hash))
-            changed = true;
-
-        const size_t object_mesh_name_size = sizeof(mesh->object_mesh_name);
-        char object_mesh_name[sizeof(mesh->object_mesh_name)];
-        memcpy(object_mesh_name, mesh->object_mesh_name, object_mesh_name_size);
-        if (imguiColumnInputText("Object Mesh Name", object_mesh_name, object_mesh_name_size, 0, 0, 0)) {
-            memcpy(mesh->object_mesh_name, object_mesh_name, object_mesh_name_size);
+        const size_t mesh_name_size = sizeof(mesh->mesh_name);
+        char mesh_name[sizeof(mesh->mesh_name)];
+        memcpy(mesh_name, mesh->mesh_name, mesh_name_size);
+        if (imguiColumnInputText("Mesh Name", mesh_name, mesh_name_size, 0, 0, 0)) {
+            memcpy(mesh->mesh_name, mesh_name, mesh_name_size);
             changed = true;
         }
 
-        if (glitter_editor_hash_input("Some Hash", &mesh->some_hash))
+        if (glitter_editor_hash_input("Sub Mesh Hash", &mesh->sub_mesh_hash))
             changed = true;
     }
 
@@ -3975,11 +4045,11 @@ static void glitter_editor_property_particle() {
 }
 
 static bool glitter_editor_property_particle_texture(char* label, char** items,
-    glitter_particle* particle, int32_t* tex, uint64_t* tex_hash, int32_t texture,
+    glitter_particle* particle, int32_t* tex, uint64_t* tex_hash, int32_t tex_idx,
     bool* tex_anim, int32_t* tex_frame, int32_t* tex_index, int32_t* tex_tex) {
     glitter_effect_group* eg = glitter_editor.effect_group;
     size_t rc = eg->resources_count;
-    int32_t* r = eg->resources.begin;
+    texture** r = eg->resources.begin;
     uint64_t* rh = eg->resource_hashes.begin;
     txp* rt = eg->resources_tex.begin;
 
@@ -3990,13 +4060,13 @@ static bool glitter_editor_property_particle_texture(char* label, char** items,
     ImVec2 uv_max;
 
     const char* temp_label = imguiStartPropertyColumn(label);
-    int32_t prev_texture = texture;
-    if (igBeginCombo(temp_label, items[texture], 0)) {
+    int32_t prev_tex_idx = tex_idx;
+    if (igBeginCombo(temp_label, items[tex_idx], 0)) {
         int32_t uv_index = *tex_index;
         if (!*tex_anim) {
             *tex_anim = true;
             *tex_frame = 0;
-            *tex_tex = texture;
+            *tex_tex = tex_idx;
 
             uv_index = particle->data.uv_index;
             int32_t max_uv = particle->data.split_u * particle->data.split_v;
@@ -4057,9 +4127,9 @@ static bool glitter_editor_property_particle_texture(char* label, char** items,
 
         for (int32_t n = 0; n <= rc; n++) {
             igPushID_Int(n);
-            if (igSelectable_Bool(items[n], texture == n, 0, ImVec2_Empty)
+            if (igSelectable_Bool(items[n], tex_idx == n, 0, ImVec2_Empty)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true))
-                texture = n;
+                tex_idx = n;
 
             if (igIsItemHovered(0) && n) {
                 if (*tex_tex != n) {
@@ -4091,8 +4161,6 @@ static bool glitter_editor_property_particle_texture(char* label, char** items,
                     uv_max.y = uv.y + particle->data.split_uv.y;
                 }
 
-                ImVec2 size1 = (ImVec2){ 192.0f, 192.0f };
-                ImVec2 size2 = (ImVec2){ 192.0f, 192.0f };
 
                 txp_mipmap* rtm = rt[n - 1].data.begin;
                 float_t aspect1 = (float_t)rtm->width / (float_t)rtm->height;
@@ -4101,11 +4169,13 @@ static bool glitter_editor_property_particle_texture(char* label, char** items,
                     aspect2 /= (float_t)particle->data.split_u
                         / (float_t)particle->data.split_v;
 
+                ImVec2 size1 = (ImVec2){ 192.0f, 192.0f };
                 if (aspect1 > 1.0f)
                     size1.y /= aspect1;
                 else if (aspect1 < 1.0f)
                     size1.x *= aspect1;
 
+                ImVec2 size2 = (ImVec2){ 192.0f, 192.0f };
                 if (aspect2 > 1.0f)
                     size2.y /= aspect2;
                 else if (aspect2 < 1.0f)
@@ -4114,7 +4184,7 @@ static bool glitter_editor_property_particle_texture(char* label, char** items,
                 igBeginTooltip();
                 igText("Frame: %d\nUV Index %d", *tex_frame, *tex_index);
                 igText("Tex Size: %dx%d", rtm->width, rtm->height);
-                igImage((void*)(size_t)r[n - 1], size1, ImVec2_Empty, ImVec2_Identity, tint_col, border_col);
+                igImage((void*)(size_t)r[n - 1]->texture, size1, ImVec2_Empty, ImVec2_Identity, tint_col, border_col);
                 igText("Preview Tex Size: %gx%g",
                     particle->data.split_u > 1
                     ? (float_t)rtm->width / (float_t)particle->data.split_u
@@ -4122,11 +4192,11 @@ static bool glitter_editor_property_particle_texture(char* label, char** items,
                     particle->data.split_u > 1
                     ? (float_t)rtm->height / (float_t)particle->data.split_v
                     : (float_t)rtm->height);
-                igImage((void*)(size_t)r[n - 1], size2, uv_min, uv_max, tint_col, border_col);
+                igImage((void*)(size_t)r[n - 1]->texture, size2, uv_min, uv_max, tint_col, border_col);
                 igEndTooltip();
             }
 
-            if (texture == n)
+            if (tex_idx == n)
                 igSetItemDefaultFocus();
             igPopID();
         }
@@ -4141,13 +4211,13 @@ static bool glitter_editor_property_particle_texture(char* label, char** items,
         *tex_index = 0;
         *tex_tex = 0;
     }
-    bool res = prev_texture != texture;
+    bool res = prev_tex_idx != tex_idx;
     imguiEndPropertyColumn(temp_label);
 
     if (res)
-        if (texture) {
-            *tex = r[texture - 1];
-            *tex_hash = rh[texture - 1];
+        if (tex_idx) {
+            *tex = r[tex_idx - 1]->texture;
+            *tex_hash = rh[tex_idx - 1];
         }
         else {
             *tex = 0;
@@ -4200,8 +4270,8 @@ static void glitter_editor_file_create_popup(ImGuiIO* io,
 
     const float_t button_width = 60.0f;
 
-    win_x = button_width * 3.0f + style->ItemSpacing.x * 2.0f;
-    win_y = title_bar_size + font->FontSize + style->ItemSpacing.y * 2.0f + style->FramePadding.y * 3.0f;
+    win_x = button_width * 2.0f + style->ItemSpacing.x * 1.0f;
+    win_y = title_bar_size + font->FontSize + style->ItemSpacing.y * 1.0f + style->FramePadding.y * 2.0f;
 
     x = (float_t)width * 0.5f - win_x * 0.5f;
     y = (float_t)height * 0.5f - win_y * 0.5f;
@@ -4225,7 +4295,7 @@ static void glitter_editor_file_create_popup(ImGuiIO* io,
 
         igSetCursorPos((ImVec2) { x, y });
         igGetContentRegionAvail(&t);
-        if (igBeginTable("buttons", 3, 0, ImVec2_Empty, 0.0f)) {
+        if (igBeginTable("buttons", 2, 0, ImVec2_Empty, 0.0f)) {
             bool close = false;
 
             igTableNextColumn();;
@@ -4242,12 +4312,12 @@ static void glitter_editor_file_create_popup(ImGuiIO* io,
                 close = true;
             }
 
-            igTableNextColumn();
+            /*igTableNextColumn();
             igGetContentRegionAvail(&t);
             if (imguiButton("X", t)) {
                 glitter_editor.load_glt_type = GLITTER_X;
                 close = true;
-            }
+            }*/
 
             if (close) {
                 glitter_editor.effect_group_add = true;
@@ -4770,7 +4840,6 @@ static void glitter_editor_curve_editor() {
     canvas_pos_min.y = canvas_pos.y;
     canvas_pos_max.x = canvas_pos.x + canvas_size.x;
     canvas_pos_max.y = canvas_pos.y + canvas_size.y;
-    canvas_size.y -= style->ScrollbarSize;
 
     ImRect boundaries;
     boundaries.Min = canvas_pos;
@@ -4800,32 +4869,6 @@ static void glitter_editor_curve_editor() {
 
     float_t timeline_max_offset = (end_time - start_time) * frame_width;
     timeline_max_offset = max(timeline_max_offset, 0.0f) - curve_editor_timeline_base_pos;
-
-    ImVec2 scrollbar_size, scrollbar_pos;
-    scrollbar_size.x = canvas_size.x;
-    scrollbar_size.y = style->ScrollbarSize;
-    scrollbar_pos.x = boundaries.Min.x;
-    scrollbar_pos.y = boundaries.Max.y;
-    ImRect scroll_boundaries;
-    scroll_boundaries.Min = scrollbar_pos;
-    scroll_boundaries.Max.x = scrollbar_pos.x + scrollbar_size.x;
-    scroll_boundaries.Max.y = scrollbar_pos.y + scrollbar_size.y;
-
-    igRenderFrame(scroll_boundaries.Min, scroll_boundaries.Max,
-        igGetColorU32_Col(ImGuiCol_ScrollbarBg, 1.0f), false, 0.0f);
-
-    static const ImVec2 bar_offset = { 5.0f, 2.5f };
-    ImVec2 bar_size, bar_pos, bar_max;
-    glitter_editor_curve_editor_get_scroll_bar(timeline_max_offset,
-        canvas_size.x, frame_width, scrollbar_size, scrollbar_pos,
-        bar_offset, &bar_size, &bar_pos, &bar_max);
-
-    igSetCursorScreenPos(bar_pos);
-    igInvisibleButton("scroll_handle", bar_size, 0);
-    bool scroolbar_move = igIsItemActive();
-
-    ImDrawList_AddRectFilled(curve_editor.draw_list, bar_pos, bar_max,
-        igGetColorU32_Col(ImGuiCol_ScrollbarGrab, 1.0f), style->ScrollbarRounding, 0);
 
     ImDrawList_PushClipRect(curve_editor.draw_list, boundaries.Min, boundaries.Max, true);
 
@@ -5392,7 +5435,7 @@ static void glitter_editor_curve_editor() {
         igPopID();
     }
 
-    if (can_drag && !scroolbar_move && io->MouseDown[0] && (!holding_tan || dragged)) {
+    if (!curve_editor.key_edit && can_drag && io->MouseDown[0] && (!holding_tan || dragged)) {
         int32_t frame = (int32_t)roundf((io->MousePos.x - canvas_pos.x) / frame_width);
         curve_editor.frame = clamp(frame + start_time, start_time, end_time);
         curve_editor.key = glitter_editor_curve_editor_get_selected_key(curve);
@@ -5421,9 +5464,6 @@ static void glitter_editor_curve_editor() {
             curve_editor.timeline_pos -= io->MouseWheel * 25.0f * 4.0f;
         else
             curve_editor.timeline_pos -= io->MouseWheel * 25.0f;
-
-    if (scroolbar_move && io->MouseDelta.x != 0.0f)
-        curve_editor.timeline_pos += io->MouseDelta.x * curve_editor.zoom_time;
 
     curve_editor.timeline_pos = clamp(curve_editor.timeline_pos,
         -curve_editor_timeline_base_pos, timeline_max_offset);
@@ -5470,27 +5510,6 @@ static glitter_curve_key* glitter_editor_curve_editor_get_selected_key(glitter_c
     return 0;
 }
 
-static void glitter_editor_curve_editor_get_scroll_bar(float_t max_pos, float_t canvas_size,
-    float_t frame_width, ImVec2 scrollbar_size, ImVec2 scrollbar_pos,
-    ImVec2 bar_offset, ImVec2* bar_size, ImVec2* bar_pos, ImVec2* bar_max) {
-    scrollbar_size.x -= bar_offset.x * 2.0f;
-    scrollbar_size.y -= bar_offset.y * 2.0f;
-
-    float_t cur_pos = curve_editor.timeline_pos + curve_editor_timeline_base_pos;
-    float_t visible_frames = canvas_size / frame_width;
-    float_t max_frames = ((max_pos <= 0.0f ? 0.0f : max_pos) + canvas_size) / frame_width;
-    float_t size_x = scrollbar_size.x * (floorf(visible_frames) / floorf(max_frames));
-    float_t size_y = scrollbar_size.y;
-
-    bar_size->x = size_x;
-    bar_size->y = size_y;
-    bar_pos->x = scrollbar_pos.x + bar_offset.x + (max_pos <= 0.0f ? 1.0f
-        : min(cur_pos / max_pos, 1.0f)) * (scrollbar_size.x - size_x);
-    bar_pos->y = scrollbar_pos.y + bar_offset.y;
-    bar_max->x = bar_pos->x + bar_size->x;
-    bar_max->y = bar_pos->y + bar_size->y;
-}
-
 static void glitter_editor_curve_editor_key_manager(vector_glitter_curve_key* keys, bool* add_key, bool* del_key) {
     glitter_curve* curve = &curve_editor.curve;
     *add_key = true;
@@ -5506,6 +5525,7 @@ static void glitter_editor_curve_editor_key_manager(vector_glitter_curve_key* ke
 }
 
 static void glitter_editor_curve_editor_property_window() {
+    curve_editor.key_edit = false;
     if (curve_editor.type < GLITTER_CURVE_TRANSLATION_X
         || curve_editor.type > GLITTER_CURVE_V_SCROLL_ALPHA_2ND)
         return;
@@ -5571,6 +5591,7 @@ static void glitter_editor_curve_editor_property_window() {
     bool key_random_range = curve->flags & GLITTER_CURVE_KEY_RANDOM_RANGE ? true : false;
 
     bool changed = false;
+    bool key_edit = false;
 
     igText("Frame: %d", curve_editor.frame);
 
@@ -5581,6 +5602,7 @@ static void glitter_editor_curve_editor_property_window() {
             GLITTER_KEY_HERMITE,
             (int32_t*)&c->type, 0, true, &glitter_editor.imgui_focus))
             changed = true;
+        key_edit |= igIsItemFocused();
 
         float_t value = c->value;
         if (fix_rot_z)
@@ -5595,6 +5617,7 @@ static void glitter_editor_curve_editor_property_window() {
             c->value = value;
             changed = true;
         }
+        key_edit |= igIsItemFocused();
 
         imguiDisableElementPush(key_random_range);
         float_t random = c->random_range * scale;
@@ -5607,6 +5630,7 @@ static void glitter_editor_curve_editor_property_window() {
                 changed = true;
             }
         }
+        key_edit |= igIsItemFocused();
         imguiDisableElementPop(key_random_range);
 
         if (n && c->type == GLITTER_KEY_HERMITE) {
@@ -5617,6 +5641,7 @@ static void glitter_editor_curve_editor_property_window() {
                 c->tangent2 = tangent2 * inv_scale;
                 changed = true;
             }
+            key_edit |= igIsItemFocused();
 
             float_t tangent1 = n->tangent1 * scale;
             if (imguiColumnDragFloat("Tangent 2",
@@ -5625,9 +5650,11 @@ static void glitter_editor_curve_editor_property_window() {
                 n->tangent1 = tangent1 * inv_scale;
                 changed = true;
             }
+            key_edit |= igIsItemFocused();
         }
         igTreePop();
     }
+    curve_editor.key_edit = key_edit;
 
     if (igTreeNodeEx_Str("Curve", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (imguiCheckbox("Repeat", &curve->repeat))
@@ -6056,13 +6083,13 @@ static bool glitter_editor_hash_input(const char* label, uint64_t* hash) {
 }
 
 static void glitter_editor_gl_load() {
-    shader_param param;
+    shader_glsl_param param;
 
-    memset(&param, 0, sizeof(shader_param));
-    param.name = L"Glitter Editor Wireframe";
-    shader_fbo_wload_file(&gl_data.wireframe.shader,
-        L"rom\\shaders\\glt_edt_wrfrm.vert",
-        L"rom\\shaders\\glt_edt_wrfrm.frag",
+    memset(&param, 0, sizeof(shader_glsl_param));
+    param.name = "Glitter Editor Wireframe";
+    shader_glsl_load_file(&gl_data.wireframe.shader,
+        "rom\\shaders\\glt_edt_wrfrm.vert",
+        "rom\\shaders\\glt_edt_wrfrm.frag",
         0, &param);
 }
 
@@ -6084,7 +6111,7 @@ static void glitter_editor_gl_process() {
 }
 
 static void glitter_editor_gl_free() {
-    shader_fbo_free(&gl_data.wireframe.shader);
+    shader_glsl_free(&gl_data.wireframe.shader);
 }
 
 static void glitter_editor_gl_draw_wireframe() {
@@ -6168,14 +6195,14 @@ static size_t glitter_editor_gl_draw_wireframe_calc(glitter_effect_inst* eff,
 
 static void glitter_editor_gl_draw_wireframe_draw(glitter_effect_inst* eff,
     glitter_particle_inst* ptcl) {
-    glDisable(GL_BLEND);
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(false);
-    glDisable(GL_CULL_FACE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    gl_state_disable_blend();
+    gl_state_disable_depth_test();
+    gl_state_set_depth_mask(GL_FALSE);
+    gl_state_disable_cull_face();
+    gl_state_set_polygon_mode(GL_FRONT_AND_BACK, GL_LINE);
 
-    shader_fbo_use(&gl_data.wireframe.shader);
-    shader_fbo_set_vec4(&gl_data.wireframe.shader, "color", ((vec4) { 1.0f, 1.0f, 0.0f, 1.0f }));
+    shader_glsl_use(&gl_data.wireframe.shader);
+    shader_glsl_set_vec4_value(&gl_data.wireframe.shader, "color", 1.0f, 1.0f, 0.0f, 1.0f);
     for (glitter_render_group** i = eff->render_scene.begin; i != eff->render_scene.end; i++) {
         if (!*i)
             continue;
@@ -6186,9 +6213,9 @@ static void glitter_editor_gl_draw_wireframe_draw(glitter_effect_inst* eff,
         else if (rg->disp < 1)
             continue;
 
-        shader_fbo_set_mat4(&gl_data.wireframe.shader, "model", false, rg->mat_draw);
+        shader_glsl_set_mat4(&gl_data.wireframe.shader, "model", false, rg->mat_draw);
 
-        bind_vertex_array(rg->vao);
+        gl_state_bind_vertex_array(rg->vao);
         switch (rg->type) {
         case GLITTER_PARTICLE_QUAD:
             glDrawElements(GL_TRIANGLES, (GLsizei)(6 * rg->disp), GL_UNSIGNED_INT, 0);
@@ -6202,9 +6229,9 @@ static void glitter_editor_gl_draw_wireframe_draw(glitter_effect_inst* eff,
         } break;
         }
     }
-    bind_vertex_array(0);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    shader_fbo_use(0);
+    gl_state_bind_vertex_array(0);
+    gl_state_set_polygon_mode(GL_FRONT_AND_BACK, GL_FILL);
+    shader_glsl_use(0);
 }
 
 static void glitter_editor_gl_select_particle() {

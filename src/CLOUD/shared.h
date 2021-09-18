@@ -8,6 +8,7 @@
 #include "classes.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
+#include "classes/data_player.h"
 #include "classes/data_test.h"
 #include "classes/glitter_editor.h"
 #include "classes/graphics.h"
@@ -23,4 +24,4 @@ typedef enum render_state {
 extern classes_struct classes[];
 extern const size_t classes_count;
 extern render_state state;
-lock_extern_val(state_lock);
+extern lock state_lock;

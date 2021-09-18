@@ -10,3 +10,4 @@
 #include "input.h"
 #include "render.h"
 #include "sound.h"
+#include "video.h"

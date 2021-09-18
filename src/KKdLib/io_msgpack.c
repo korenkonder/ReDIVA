@@ -4,12 +4,11 @@
 */
 
 #include "io_msgpack.h"
-#include "utf8.h"
 
-static void io_msgpack_read_inner(stream* s, wchar_t* name, msgpack* msg);
-static void io_msgpack_read_string(stream* s, wchar_t* name, msgpack* msg, size_t length);
-static void io_msgpack_read_array(stream* s, wchar_t* name, msgpack* msg, size_t length);
-static void io_msgpack_read_map(stream* s, wchar_t* name, msgpack* msg, size_t length);
+static void io_msgpack_read_inner(stream* s, char* name, msgpack* msg);
+static void io_msgpack_read_string(stream* s, char* name, msgpack* msg, size_t length);
+static void io_msgpack_read_array(stream* s, char* name, msgpack* msg, size_t length);
+static void io_msgpack_read_map(stream* s, char* name, msgpack* msg, size_t length);
 static void io_msgpack_write_inner(stream* s, msgpack* msg);
 static void io_msgpack_write_null(stream* s);
 static void io_msgpack_write_bool(stream* s, bool val);
@@ -23,7 +22,7 @@ static void io_msgpack_write_int64_t(stream* s, int64_t val);
 static void io_msgpack_write_uint64_t(stream* s, uint64_t val);
 static void io_msgpack_write_float_t(stream* s, float_t val);
 static void io_msgpack_write_double_t(stream* s, double_t val);
-static void io_msgpack_write_string(stream* s, wstring* val);
+static void io_msgpack_write_string(stream* s, string* val);
 static void io_msgpack_write_array(stream* s, size_t val);
 static void io_msgpack_write_map(stream* s, size_t val);
 
@@ -31,7 +30,7 @@ void io_msgpack_read(stream* s, msgpack* msg) {
     io_msgpack_read_inner(s, 0, msg);
 }
 
-static void io_msgpack_read_inner(stream* s, wchar_t* name, msgpack* msg) {
+static void io_msgpack_read_inner(stream* s, char* name, msgpack* msg) {
     uint8_t type = io_read_uint8_t(s);
 
     msgpack_init_null(msg, name);
@@ -60,22 +59,22 @@ static void io_msgpack_read_inner(stream* s, wchar_t* name, msgpack* msg) {
         msgpack_set_bool(msg, name, true);
         break;
     case 0xC4:
-        io_set_position(s, io_read_uint8_t(s), IO_SEEK_CUR);
+        io_set_position(s, io_read_uint8_t(s), SEEK_CUR);
         break;
     case 0xC5:
-        io_set_position(s, io_read_uint16_t_reverse_endianness(s, true), IO_SEEK_CUR);
+        io_set_position(s, io_read_uint16_t_reverse_endianness(s, true), SEEK_CUR);
         break;
     case 0xC6:
-        io_set_position(s, io_read_uint32_t_reverse_endianness(s, true), IO_SEEK_CUR);
+        io_set_position(s, io_read_uint32_t_reverse_endianness(s, true), SEEK_CUR);
         break;
     case 0xC7:
-        io_set_position(s, io_read_uint8_t(s) + 1LL, IO_SEEK_CUR);
+        io_set_position(s, io_read_uint8_t(s) + 1LL, SEEK_CUR);
         break;
     case 0xC8:
-        io_set_position(s, io_read_uint16_t_reverse_endianness(s, true) + 1LL, IO_SEEK_CUR);
+        io_set_position(s, io_read_uint16_t_reverse_endianness(s, true) + 1LL, SEEK_CUR);
         break;
     case 0xC9:
-        io_set_position(s, io_read_uint32_t_reverse_endianness(s, true) + 1LL, IO_SEEK_CUR);
+        io_set_position(s, io_read_uint32_t_reverse_endianness(s, true) + 1LL, SEEK_CUR);
         break;
     case 0xCA:
         msgpack_set_float_t(msg, name, io_read_float_t_reverse_endianness(s, true));
@@ -108,19 +107,19 @@ static void io_msgpack_read_inner(stream* s, wchar_t* name, msgpack* msg) {
         msgpack_set_int64_t(msg, name, io_read_int64_t_reverse_endianness(s, true));
         break;
     case 0xD4:
-        io_set_position(s, 2, IO_SEEK_CUR);
+        io_set_position(s, 2, SEEK_CUR);
         break;
     case 0xD5:
-        io_set_position(s, 3, IO_SEEK_CUR);
+        io_set_position(s, 3, SEEK_CUR);
         break;
     case 0xD6:
-        io_set_position(s, 5, IO_SEEK_CUR);
+        io_set_position(s, 5, SEEK_CUR);
         break;
     case 0xD7:
-        io_set_position(s, 9, IO_SEEK_CUR);
+        io_set_position(s, 9, SEEK_CUR);
         break;
     case 0xD8:
-        io_set_position(s, 17, IO_SEEK_CUR);
+        io_set_position(s, 17, SEEK_CUR);
         break;
     case 0xD9:
         io_msgpack_read_string(s, name, msg, io_read_uint8_t(s));
@@ -146,40 +145,39 @@ static void io_msgpack_read_inner(stream* s, wchar_t* name, msgpack* msg) {
     }
 }
 
-static void io_msgpack_read_string(stream* s, wchar_t* name, msgpack* msg, size_t length) {
-    char* temp_utf8 = force_malloc(length + 1);
-    io_read(s, temp_utf8, length);
-    temp_utf8[length] = 0;
+static void io_msgpack_read_string(stream* s, char* name, msgpack* msg, size_t length) {
+    char* temp = force_malloc(length + 1);
+    io_read(s, temp, length);
+    temp[length] = 0;
 
-    wchar_t* temp = utf8_decode(temp_utf8);
-    msgpack_set_string(msg, name, temp);
+    msgpack_set_utf8_string(msg, name, temp);
     free(temp);
-    free(temp_utf8);
 }
 
-static void io_msgpack_read_array(stream* s, wchar_t* name, msgpack* msg, size_t length) {
+static void io_msgpack_read_array(stream* s, char* name, msgpack* msg, size_t length) {
     msgpack m;
     msgpack_init_array(&m, 0, length);
-    msgpack_array* ptr = SELECT_MSGPACK(msgpack_array, m);
+    msgpack_array* ptr = MSGPACK_SELECT(msgpack_array, m);
     for (size_t i = 0; i < length; i++)
         io_msgpack_read_inner(s, 0, &ptr->begin[i]);
     msgpack_set_array(msg, name, ptr);
     msgpack_free(&m);
 }
 
-static void io_msgpack_read_map(stream* s, wchar_t* name, msgpack* msg, size_t length) {
+static void io_msgpack_read_map(stream* s, char* name, msgpack* msg, size_t length) {
     msgpack m;
     msgpack_init_map(&m, 0);
-    msgpack_map* ptr = SELECT_MSGPACK(msgpack_map, m);
-    vector_msgpack_append(ptr, length);
+    msgpack_map* ptr = MSGPACK_SELECT(msgpack_map, m);
+    *ptr = vector_empty(msgpack);
+    vector_msgpack_reserve(ptr, length);
     for (size_t i = 0; i < length; i++) {
         msgpack t_m;
         msgpack_init_null(&t_m, 0);
         io_msgpack_read_inner(s, 0, &t_m);
 
-        wchar_t* n = 0;
+        char* n = 0;
         if (t_m.type == MSGPACK_STRING)
-            n = wstring_access(SELECT_MSGPACK(wstring, t_m));
+            n = string_data(MSGPACK_SELECT(string, t_m));
 
         msgpack m;
         io_msgpack_read_inner(s, n, &m);
@@ -198,7 +196,7 @@ void io_msgpack_write(stream* s, msgpack* msg) {
 }
 
 static void io_msgpack_write_inner(stream* s, msgpack* msg) {
-    if (msg->name.length)
+    if (string_length(&msg->name))
         io_msgpack_write_string(s, &msg->name);
 
     switch (msg->type) {
@@ -206,49 +204,49 @@ static void io_msgpack_write_inner(stream* s, msgpack* msg) {
         io_msgpack_write_null(s);
         break;
     case MSGPACK_BOOL:
-        io_msgpack_write_bool(s, *SELECT_MSGPACK_PTR(bool, msg));
+        io_msgpack_write_bool(s, *MSGPACK_SELECT_PTR(bool, msg));
         break;
     case MSGPACK_INT8: {
-        io_msgpack_write_int8_t(s, *SELECT_MSGPACK_PTR(int8_t, msg));
+        io_msgpack_write_int8_t(s, *MSGPACK_SELECT_PTR(int8_t, msg));
     } break;
     case MSGPACK_UINT8:
-        io_msgpack_write_uint8_t(s, *SELECT_MSGPACK_PTR(uint8_t, msg));
+        io_msgpack_write_uint8_t(s, *MSGPACK_SELECT_PTR(uint8_t, msg));
         break;
     case MSGPACK_INT16:
-        io_msgpack_write_int16_t(s, *SELECT_MSGPACK_PTR(int16_t, msg));
+        io_msgpack_write_int16_t(s, *MSGPACK_SELECT_PTR(int16_t, msg));
         break;
     case MSGPACK_UINT16:
-        io_msgpack_write_uint16_t(s, *SELECT_MSGPACK_PTR(uint16_t, msg));
+        io_msgpack_write_uint16_t(s, *MSGPACK_SELECT_PTR(uint16_t, msg));
         break;
     case MSGPACK_INT32:
-        io_msgpack_write_int32_t(s, *SELECT_MSGPACK_PTR(int32_t, msg));
+        io_msgpack_write_int32_t(s, *MSGPACK_SELECT_PTR(int32_t, msg));
         break;
     case MSGPACK_UINT32:
-        io_msgpack_write_uint32_t(s, *SELECT_MSGPACK_PTR(uint32_t, msg));
+        io_msgpack_write_uint32_t(s, *MSGPACK_SELECT_PTR(uint32_t, msg));
         break;
     case MSGPACK_INT64:
-        io_msgpack_write_int64_t(s, *SELECT_MSGPACK_PTR(int64_t, msg));
+        io_msgpack_write_int64_t(s, *MSGPACK_SELECT_PTR(int64_t, msg));
         break;
     case MSGPACK_UINT64:
-        io_msgpack_write_uint64_t(s, *SELECT_MSGPACK_PTR(uint64_t, msg));
+        io_msgpack_write_uint64_t(s, *MSGPACK_SELECT_PTR(uint64_t, msg));
         break;
     case MSGPACK_FLOAT:
-        io_msgpack_write_float_t(s, *SELECT_MSGPACK_PTR(float_t, msg));
+        io_msgpack_write_float_t(s, *MSGPACK_SELECT_PTR(float_t, msg));
         break;
     case MSGPACK_DOUBLE:
-        io_msgpack_write_double_t(s, *SELECT_MSGPACK_PTR(double_t, msg));
+        io_msgpack_write_double_t(s, *MSGPACK_SELECT_PTR(double_t, msg));
         break;
     case MSGPACK_STRING:
-        io_msgpack_write_string(s, SELECT_MSGPACK_PTR(wstring, msg));
+        io_msgpack_write_string(s, MSGPACK_SELECT_PTR(string, msg));
         break;
     case MSGPACK_ARRAY: {
-        msgpack_array* ptr = SELECT_MSGPACK_PTR(msgpack_array, msg);
+        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
         io_msgpack_write_array(s, ptr->end - ptr->begin);
         for (msgpack* i = ptr->begin; i != ptr->end; i++)
             io_msgpack_write_inner(s, i);
     } break;
     case MSGPACK_MAP: {
-        msgpack_map* ptr = SELECT_MSGPACK_PTR(msgpack_map, msg);
+        msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
         io_msgpack_write_map(s, ptr->end - ptr->begin);
         for (msgpack* i = ptr->begin; i != ptr->end; i++)
             io_msgpack_write_inner(s, i);
@@ -364,15 +362,13 @@ static void io_msgpack_write_double_t(stream* s, double_t val) {
     }
 }
 
-static void io_msgpack_write_string(stream* s, wstring* val) {
-
-    char* temp = utf8_encode(wstring_access(val));
-    if (!temp) {
+static void io_msgpack_write_string(stream* s, string* val) {
+    if (!val) {
         io_msgpack_write_null(s);
         return;
     }
 
-    size_t len = strlen(temp);
+    size_t len = string_length(val);
     if (len < 0x20)
         io_write_uint8_t(s, 0xA0 | (len & 0x1F));
     else if (len < 0x100) {
@@ -387,8 +383,7 @@ static void io_msgpack_write_string(stream* s, wstring* val) {
         io_write_uint8_t(s, 0xDB);
         io_write_uint32_t_reverse_endianness(s, (uint32_t)len, true);
     }
-    io_write(s, temp, len);
-    free(temp);
+    io_write(s, string_data(val), len);
 }
 
 static void io_msgpack_write_array(stream* s, size_t val) {

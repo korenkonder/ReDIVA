@@ -16,6 +16,4 @@ typedef enum deflate_mode {
 extern size_t deflate_compress(void* src, size_t src_length, void** dst,
     size_t* dst_length, int32_t compression_level, deflate_mode mode);
 extern size_t deflate_decompress(void* src, size_t src_length, void** dst,
-    size_t dst_length, deflate_mode mode);
-extern size_t deflate_decompress_unknown(void* src, size_t src_length, void** dst,
     size_t* dst_length, deflate_mode mode);

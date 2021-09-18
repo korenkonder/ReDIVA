@@ -360,11 +360,11 @@ typedef struct glitter_file_reader glitter_file_reader;
 typedef struct glitter_particle_manager glitter_particle_manager;
 typedef struct glitter_locus_history glitter_locus_history;
 typedef struct glitter_locus_history_data glitter_locus_history_data;
-typedef struct glitter_particle_mesh glitter_particle_mesh;
-typedef struct glitter_particle_data glitter_particle_data;
 typedef struct glitter_particle glitter_particle;
-typedef struct glitter_particle_inst_data glitter_particle_inst_data;
+typedef struct glitter_particle_data glitter_particle_data;
 typedef struct glitter_particle_inst glitter_particle_inst;
+typedef struct glitter_particle_inst_data glitter_particle_inst_data;
+typedef struct glitter_particle_mesh glitter_particle_mesh;
 typedef struct glitter_random glitter_random;
 typedef struct glitter_render_element glitter_render_element;
 typedef struct glitter_render_group glitter_render_group;
@@ -393,6 +393,9 @@ vector_ptr(glitter_scene)
 
 typedef vector_ptr_glitter_curve glitter_animation;
 typedef vector_ptr_glitter_render_group glitter_render_scene;
+
+extern bool(* glitter_render_mesh_update_func)(glitter_render_element*,
+    glitter_particle_mesh*, vec4*, mat4*, mat4*);
 
 extern const float_t glitter_min_emission;
 extern const glitter_curve_type_flags glitter_effect_curve_flags;
@@ -469,7 +472,10 @@ struct glitter_effect_ext_anim {
     glitter_effect_ext_anim_flag flags;
     int32_t instance_id;
     uint64_t file_name_hash;
-    int32_t index;
+    union {
+        object_info object;
+        int32_t chara_index;
+    };
     int32_t node_index;
     char mesh_name[128];
 };
@@ -492,7 +498,7 @@ struct glitter_effect_group {
     uint32_t resources_count;
     vector_uint64_t resource_hashes;
     vector_txp resources_tex;
-    vector_int32_t resources;
+    vector_ptr_texture resources;
     bool scene_init;
     bool buffer_init;
     uint32_t version;
@@ -505,12 +511,14 @@ struct glitter_effect_inst_ext_anim {
     int32_t instance_id;
     uint64_t file_name_hash;
     uint64_t object_hash;
-    int32_t chara_index;
     union {
-        int32_t data;
-        mot_bone_index_f f;
-        mot_bone_index_ft ft;
-    } index;
+        object_info object;
+        int32_t chara_index;
+    };
+    union {
+        int32_t mesh_index;
+        int32_t bone_index;
+    };
     mat4 mat;
     vec3 translation;
     char* mesh_name;
@@ -627,8 +635,8 @@ struct glitter_emitter_inst {
 
 struct glitter_file_reader {
     glitter_effect_group* effect_group;
-    wchar_t* path;
-    wchar_t* file;
+    char* path;
+    char* file;
     uint64_t hash;
     float_t emission;
     glitter_type type;
@@ -645,6 +653,7 @@ struct glitter_particle_manager {
     float_t delta_frame;
     float_t emission;
     uint32_t counter;
+    mat4 cam_projection;
     mat4 cam_view;
     mat4 cam_inv_view;
     mat3 cam_inv_view_mat3;
@@ -669,9 +678,9 @@ struct glitter_locus_history_data {
 
 struct glitter_particle_mesh {
     uint64_t object_name_hash;
-    uint64_t object_file_hash;
-    char object_mesh_name[64];
-    uint64_t some_hash;
+    uint64_t object_set_name_hash;
+    char mesh_name[64];
+    uint64_t sub_mesh_hash;
 };
 
 struct glitter_particle_data {
@@ -821,8 +830,8 @@ struct glitter_render_group {
     size_t max_count;
     glitter_particle_inst* particle;
     glitter_random* random_ptr;
-    int32_t alpha;
-    int32_t fog;
+    alpha_pass_type alpha;
+    fog_type fog;
     int32_t vao;
     int32_t vbo;
     int32_t ebo;

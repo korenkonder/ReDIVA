@@ -7,7 +7,7 @@
 #include "curve.h"
 
 #if CRE_DEV
-void FASTCALL glitter_animation_add_value(GLT, glitter_animation* anim,
+void glitter_animation_add_value(GLT, glitter_animation* anim,
     float_t val, glitter_curve_type_flags flags) {
     for (glitter_curve_type i = GLITTER_CURVE_TRANSLATION_X;
         i <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND; i++) {
@@ -23,7 +23,7 @@ void FASTCALL glitter_animation_add_value(GLT, glitter_animation* anim,
 }
 #endif
 
-void FASTCALL glitter_animation_copy(glitter_animation* src, glitter_animation* dst) {
+void glitter_animation_copy(glitter_animation* src, glitter_animation* dst) {
     if (!dst)
         return;
 
@@ -32,7 +32,7 @@ void FASTCALL glitter_animation_copy(glitter_animation* src, glitter_animation* 
     if (!src)
         return;
 
-    vector_ptr_glitter_curve_append(dst, src->end - src->begin);
+    vector_ptr_glitter_curve_reserve(dst, src->end - src->begin);
     for (glitter_curve** i = src->begin; i != src->end; i++)
         if (*i) {
             glitter_curve* c = glitter_curve_copy(*i);
@@ -41,11 +41,11 @@ void FASTCALL glitter_animation_copy(glitter_animation* src, glitter_animation* 
         }
 }
 
-void FASTCALL glitter_animation_free(glitter_animation* anim) {
+void glitter_animation_free(glitter_animation* anim) {
     vector_ptr_glitter_curve_free(anim, glitter_curve_dispose);
 }
 
-bool FASTCALL glitter_animation_parse_file(GLT, f2_struct* st,
+bool glitter_animation_parse_file(GLT, f2_struct* st,
     glitter_animation* anim, glitter_curve_type_flags flags) {
     glitter_curve* c;
 
@@ -66,7 +66,7 @@ bool FASTCALL glitter_animation_parse_file(GLT, f2_struct* st,
     return true;
 }
 
-bool FASTCALL glitter_animation_unparse_file(GLT, f2_struct* st,
+bool glitter_animation_unparse_file(GLT, f2_struct* st,
     glitter_animation* anim, glitter_curve_type_flags flags) {
     memset(st, 0, sizeof(f2_struct));
 

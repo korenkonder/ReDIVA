@@ -5,46 +5,50 @@
 
 #include "f2_pof.h"
 
-typedef enum pof_value {
+typedef enum pof_value_type {
     POF_VALUE_INVALID = 0x0,
     POF_VALUE_INT8    = 0x1,
     POF_VALUE_INT16   = 0x2,
     POF_VALUE_INT32   = 0x3,
-} pof_value;
+} pof_value_type;
 
-static inline bool pof_length_get_size(uint32_t* length, size_t val);
-static inline bool pof_write_packed_value(stream* s, size_t val);
+inline static bool pof_length_get_size(uint32_t* length, size_t val);
+static size_t pof_read_offsets_count(stream* s);
+inline static bool pof_write_packed_value(stream* s, size_t val);
 
-static size_t pof_read_offsets_count(stream* s) {
-    size_t pos = io_get_position(s);
-    size_t i, j, l;
-    pof_value val;
-
-    l = io_read_uint32_t(s) - 4LL;
-    i = 0;
-    j = 0;
-    while (i < l) {
-        val = (pof_value)((io_read_uint8_t(s) >> 6) & 0x03);
-        if (val == POF_VALUE_INT32) {
-            io_read_uint8_t(s);
-            io_read_uint8_t(s);
-            io_read_uint8_t(s);
-            i += 3;
-        }
-        else if (val == POF_VALUE_INT16) {
-            io_read_uint8_t(s);
-            i++;
-        }
-        else if (val != POF_VALUE_INT8)
-            break;
-        i++;
-        j++;
+inline void io_write_offset_pof_add(stream* s, int64_t val,
+    int32_t offset, bool is_x, vector_size_t* pof) {
+    if (!is_x) {
+        if (val)
+            val += offset;
+        pof_add(s, pof, offset);
+        io_write_int32_t_stream_reverse_endianness(s, (int32_t)val);
     }
-    io_set_position(s, pos, IO_SEEK_SET);
-    return j;
+    else {
+        io_align_write(s, 0x08);
+        pof_add(s, pof, 0);
+        io_write_int64_t_stream_reverse_endianness(s, val);
+    }
 }
 
-void pof_add(stream* s, vector_size_t* pof, size_t offset) {
+inline void io_write_offset_f2_pof_add(stream* s, int64_t val,
+    int32_t offset, vector_size_t* pof) {
+    if (val)
+        val += offset;
+    pof_add(s, pof, offset);
+    io_write_int32_t_stream_reverse_endianness(s, (int32_t)val);
+}
+
+inline void io_write_offset_x_pof_add(stream* s, int64_t val, vector_size_t* pof) {
+    io_align_write(s, 0x08);
+    pof_add(s, pof, 0);
+    io_write_int64_t_stream_reverse_endianness(s, val);
+}
+
+inline void pof_add(stream* s, vector_size_t* pof, size_t offset) {
+    if (!s || !pof)
+        return;
+
     size_t position = io_get_position(s);
     position += offset;
     vector_size_t_push_back(pof, &position);
@@ -54,7 +58,7 @@ void pof_read(stream* s, vector_size_t* pof, bool shift_x) {
     vector_size_t p;
     size_t i, j, l, length, offset, v;
     uint8_t bit_shift;
-    pof_value value;
+    pof_value_type value;
 
     vector_size_t_free(pof);
 
@@ -63,8 +67,8 @@ void pof_read(stream* s, vector_size_t* pof, bool shift_x) {
     bit_shift = (uint8_t)(shift_x ? 3 : 2);
     l = io_read_uint32_t(s) - 4LL;
 
-    p = (vector_size_t){ 0, 0, 0 };
-    vector_size_t_append(&p, length);
+    p = vector_empty(size_t);
+    vector_size_t_reserve(&p, length);
 
     i = 0;
     j = 0;
@@ -72,7 +76,7 @@ void pof_read(stream* s, vector_size_t* pof, bool shift_x) {
     while (i < l) {
 
         v = io_read_uint8_t(s);
-        value = (pof_value)((v >> 6) & 0x3);
+        value = (pof_value_type)((v >> 6) & 0x3);
         v &= 0x3F;
 
         if (value == POF_VALUE_INT32) {
@@ -167,9 +171,38 @@ uint32_t pof_length(vector_size_t* pof, bool shift_x) {
     return l;
 }
 
-static inline bool pof_length_get_size(uint32_t* length, size_t val) {
+inline static bool pof_length_get_size(uint32_t* length, size_t val) {
     *length += val < 0x40 ? 1 : val < 0x4000 ? 2 : val < 0x40000000 ? 4 : 1;
     return val >= 0x40000000;
+}
+
+static size_t pof_read_offsets_count(stream* s) {
+    size_t pos = io_get_position(s);
+    size_t i, j, l;
+    pof_value_type val;
+
+    l = io_read_uint32_t(s) - 4LL;
+    i = 0;
+    j = 0;
+    while (i < l) {
+        val = (pof_value_type)((io_read_uint8_t(s) >> 6) & 0x03);
+        if (val == POF_VALUE_INT32) {
+            io_read_uint8_t(s);
+            io_read_uint8_t(s);
+            io_read_uint8_t(s);
+            i += 3;
+        }
+        else if (val == POF_VALUE_INT16) {
+            io_read_uint8_t(s);
+            i++;
+        }
+        else if (val != POF_VALUE_INT8)
+            break;
+        i++;
+        j++;
+    }
+    io_set_position(s, pos, SEEK_SET);
+    return j;
 }
 
 static bool pof_write_packed_value(stream* s, size_t val) {

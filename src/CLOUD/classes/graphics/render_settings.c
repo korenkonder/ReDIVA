@@ -34,7 +34,7 @@ const char* render_settings_window_title = "Render Settings";
 bool render_settings_enabled = false;
 static render_settings_struct render_settings;
 
-static inline void render_settings_freq_to_string(double_t freq, char* freq_str, char* ms_str) {
+inline static void render_settings_freq_to_string(double_t freq, char* freq_str, char* ms_str) {
     int32_t freq_int = (int32_t)freq;
     int32_t freq_frac = (int32_t)(fmod(freq, 1.0) * 1000.0);
     double_t ms = 1000.0 / freq;
@@ -72,7 +72,7 @@ void render_settings_imgui() {
     ImFont* font = igGetFont();
 
     float_t w = min((float_t)width / 4.0f, 360.0f);
-#ifdef CLOUD_DEV
+#if defined(CLOUD_DEV)
     float_t h = min((float_t)height, 248.0f);
 #else
     float_t h = min((float_t)height, 164.0f);
@@ -107,7 +107,7 @@ void render_settings_imgui() {
     if (igCheckbox("FXAA", &fxaa))
         sv_fxaa_set(fxaa);
 
-#ifdef CLOUD_DEV
+#if defined(CLOUD_DEV)
     igSeparator();
 
     double_t control_freq = timer_get_freq(&control_timer);

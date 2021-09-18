@@ -48,26 +48,6 @@ typedef struct pair_##t0##_##t1 { \
     t1 val; \
 } pair_##t0##_##t1;
 
-#define pair_pointer0(t0, t1) \
-typedef struct pair_pointer0_##t0##_##t1 { \
-    t0* key; \
-    t1 val; \
-} pair_pointer0_##t0##_##t1;
-
-#define pair_pointer1(t0, t1) \
-typedef struct pair_pointer1_##t0##_##t1 { \
-    t0 key; \
-    t1* val; \
-} pair_pointer1_##t0##_##t1;
-
-#define pair_pointer(t0, t1) \
-typedef struct pair_pointer_##t0##_##t1 { \
-    t0* key; \
-    t1* val; \
-} pair_pointer_##t0##_##t1;
-
-pair_pointer(char, char)
-
 #define pointer_ptr(t) \
 typedef struct pointer_ptr_##t { \
     int32_t offset; \
@@ -87,19 +67,6 @@ typedef struct count_pointer_##t { \
     t value; \
 } count_pointer_##t;
 
-typedef union sstring_union {
-    char* ptr;
-    char data[16];
-} sstring_union;
-
-typedef struct sstring {
-    sstring_union data;
-    uint64_t length;
-    uint64_t max_length;
-} sstring;
-
-pointer_ptr(char)
-
 #ifndef max
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #endif
@@ -107,6 +74,10 @@ pointer_ptr(char)
 #ifndef min
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #endif
+
+#define mult_min_max(a, b, c) (((a) >= 0) ? ((a) * (b)) : ((a) * (c)))
+
+#define div_min_max(a, b, c) (((a) >= 0) ? ((a) / (b)) : ((a) / (c)))
 
 #define clamp(a, b, c) (min(max(a, b), c))
 
@@ -144,8 +115,6 @@ pointer_ptr(char)
 
 extern void* force_malloc(size_t size);
 #define force_malloc_s(s, size) force_malloc(sizeof(s) * (size))
-extern void* memcpy_malloc(void* src, size_t size);
-#define memcpy_malloc_s(src, s, size) memcpy_malloc((src), sizeof(s) * (size))
 
 extern int16_t load_reverse_endianness_int16_t(void* ptr);
 extern uint16_t load_reverse_endianness_uint16_t(void* ptr);
@@ -177,5 +146,11 @@ extern ssize_t reverse_endianness_ssize_t(ssize_t value);
 extern size_t reverse_endianness_size_t(size_t value);
 extern float_t reverse_endianness_float_t(float_t value);
 extern double_t reverse_endianness_double_t(double_t value);
-extern char* wchar_t_string_to_char_string(wchar_t* s);
-extern wchar_t* char_string_to_wchar_t_string(char* s);
+
+extern size_t utf8_length(char* s);
+extern size_t utf16_length(wchar_t* s);
+extern wchar_t* utf8_to_utf16(char* s);
+extern char* utf16_to_utf8(wchar_t* s);
+extern bool utf8_check_for_ascii_only(char* s);
+extern size_t utf8_to_utf16_length(char* s);
+extern size_t utf16_to_utf8_length(wchar_t* s);

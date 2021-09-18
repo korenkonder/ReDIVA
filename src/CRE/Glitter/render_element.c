@@ -11,14 +11,14 @@
 #include "particle_inst.h"
 #include "random.h"
 
-static void FASTCALL glitter_render_element_accelerate(GLT, glitter_particle_inst* a1,
+static void glitter_render_element_accelerate(GLT, glitter_particle_inst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random);
-static void FASTCALL glitter_render_element_init_mesh_by_type(GLT, glitter_render_element* a1,
+static void glitter_render_element_init_mesh_by_type(GLT, glitter_render_element* a1,
     glitter_particle_inst_data* a2, glitter_emitter_inst* a3, int32_t index, glitter_random* random);
-static void FASTCALL glitter_render_element_step_uv(GLT, glitter_particle_inst* a1,
+static void glitter_render_element_step_uv(GLT, glitter_particle_inst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random);
 
-void FASTCALL glitter_render_element_emit(GPM, GLT, glitter_render_element* a1,
+void glitter_render_element_emit(GPM, GLT, glitter_render_element* a1,
     glitter_particle_inst_data* a2, glitter_emitter_inst* a3, int32_t index, glitter_random* random) {
     glitter_random_set_value(random, glitter_counter_get(GPM_VAL));
     a1->random = glitter_random_get_int(GLT_VAL, random, glitter_random_get_max(GLT_VAL));
@@ -127,7 +127,7 @@ void FASTCALL glitter_render_element_emit(GPM, GLT, glitter_render_element* a1,
     glitter_random_set_value(random, glitter_random_get_value(random) + 1);
 }
 
-void FASTCALL glitter_render_element_free(glitter_render_element* a1) {
+void glitter_render_element_free(glitter_render_element* a1) {
     a1->alive = false;
     if (a1->locus_history) {
         glitter_locus_history_dispose(a1->locus_history);
@@ -135,7 +135,7 @@ void FASTCALL glitter_render_element_free(glitter_render_element* a1) {
     }
 }
 
-void FASTCALL glitter_render_element_rotate_to_emit_position(mat4* mat,
+void glitter_render_element_rotate_to_emit_position(mat4* mat,
     glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
     vec3 vec1;
     vec3 vec2;
@@ -160,7 +160,7 @@ void FASTCALL glitter_render_element_rotate_to_emit_position(mat4* mat,
         mat4_rotate_z((float_t)M_PI, mat);
 }
 
-void FASTCALL glitter_render_element_rotate_to_prev_position(mat4* mat,
+void glitter_render_element_rotate_to_prev_position(mat4* mat,
     glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
     vec3 vec1;
     vec3 vec2;
@@ -184,7 +184,7 @@ void FASTCALL glitter_render_element_rotate_to_prev_position(mat4* mat,
         mat4_rotate_z((float_t)M_PI, mat);
 }
 
-void FASTCALL glitter_render_element_update(GLT,
+void glitter_render_element_update(GLT,
     glitter_render_group* a1, glitter_render_element* a2, float_t delta_frame) {
     glitter_particle_inst* particle;
     vec2 uv_scroll;
@@ -319,7 +319,7 @@ void FASTCALL glitter_render_element_update(GLT,
         a2->frame -= a2->life_time;
 }
 
-static void FASTCALL glitter_render_element_accelerate(GLT, glitter_particle_inst* a1,
+static void glitter_render_element_accelerate(GLT, glitter_particle_inst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random) {
     vec3 acceleration;
     vec3 direction;
@@ -352,7 +352,7 @@ static void FASTCALL glitter_render_element_accelerate(GLT, glitter_particle_ins
     }
 }
 
-static void FASTCALL glitter_render_element_init_mesh_by_type(GLT, glitter_render_element* a1,
+static void glitter_render_element_init_mesh_by_type(GLT, glitter_render_element* a1,
     glitter_particle_inst_data* a2, glitter_emitter_inst* a3, int32_t index, glitter_random* random) {
     float_t radius;
     float_t angle;
@@ -451,7 +451,7 @@ static void FASTCALL glitter_render_element_init_mesh_by_type(GLT, glitter_rende
     vec3_add(acceleration, a2->data.gravity, a1->acceleration);
 }
 
-static void FASTCALL glitter_render_element_step_uv(GLT, glitter_particle_inst* a1,
+static void glitter_render_element_step_uv(GLT, glitter_particle_inst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random) {
     if (a1->data.data.frame_step_uv <= 0.0f)
         return;

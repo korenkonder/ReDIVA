@@ -11,7 +11,7 @@
 #define GAUSSIAN_KERNEL_SIZE 7
 
 typedef struct radius {
-    vec4 val[GAUSSIAN_KERNEL_SIZE];
+    vec3 val[GAUSSIAN_KERNEL_SIZE];
     vec3 rgb;
     bool update;
 } radius;
@@ -41,8 +41,8 @@ typedef struct tone_map {
     bool auto_exposure;
     float_t gamma;
     float_t gamma_rate;
-    int32_t saturate1;
-    float_t saturate2;
+    int32_t saturate_power;
+    float_t saturate_coeff;
     vec3 scene_fade_color;
     float_t scene_fade_alpha;
     int32_t scene_fade_blend_func;
@@ -50,7 +50,6 @@ typedef struct tone_map {
     vec3 tone_trans_end;
     int32_t tone_map_method;
     bool update_tex;
-    bool update_data;
 } tone_map;
 
 extern radius* radius_init();
@@ -67,11 +66,11 @@ extern void intensity_dispose(intensity* inten);
 
 extern tone_map* tone_map_init();
 extern void tone_map_initialize(tone_map* tm, float_t exposure, bool auto_exposure,
-    float_t gamma, int32_t saturate1, float_t saturate2,
+    float_t gamma, int32_t saturate_power, float_t saturate_coeff,
     vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
     vec3* tone_trans_start, vec3* tone_trans_end, int32_t tone_map_method);
 extern void tone_map_initialize_rate(tone_map* tm, float_t exposure, bool auto_exposure,
-    float_t gamma, float_t gamma_rate, int32_t saturate1, float_t saturate2,
+    float_t gamma, float_t gamma_rate, int32_t saturate_power, float_t saturate_coeff,
     vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
     vec3* tone_trans_start, vec3* tone_trans_end, int32_t tone_map_method);
 extern float_t tone_map_get_exposure(tone_map* tm);
@@ -82,10 +81,10 @@ extern float_t tone_map_get_gamma(tone_map* tmsg);
 extern void tone_map_set_gamma(tone_map* tmsg, float_t value);
 extern float_t tone_map_get_gamma_rate(tone_map* tmsg);
 extern void tone_map_set_gamma_rate(tone_map* tmsg, float_t value);
-extern int32_t tone_map_get_saturate1(tone_map* tmsg);
-extern void tone_map_set_saturate1(tone_map* tmsg, int32_t value);
-extern float_t tone_map_get_saturate2(tone_map* tmsg);
-extern void tone_map_set_saturate2(tone_map* tmsg, float_t value);
+extern int32_t tone_map_get_saturate_power(tone_map* tmsg);
+extern void tone_map_set_saturate_power(tone_map* tmsg, int32_t value);
+extern float_t tone_map_get_saturate_coeff(tone_map* tmsg);
+extern void tone_map_set_saturate_coeff(tone_map* tmsg, float_t value);
 extern vec3* tone_map_get_scene_fade_color(tone_map* tm);
 extern void tone_map_set_scene_fade_color(tone_map* tm, vec3* value);
 extern float_t tone_map_get_scene_fade_alpha(tone_map* tm);

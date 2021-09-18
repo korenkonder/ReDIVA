@@ -7,4 +7,4 @@
 
 #include "../Glitter/glitter.h"
 
-extern int32_t FASTCALL glitter_x_counter_get(GPM);
+extern int32_t glitter_x_counter_get(GPM);

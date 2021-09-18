@@ -5,7 +5,7 @@
 
 #include "texture.h"
 
-bool FASTCALL glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
     size_t data;
     glitter_effect** i;
     size_t length;
@@ -15,11 +15,11 @@ bool FASTCALL glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
 
     memset(st, 0, sizeof(f2_struct));
 
-    vector_enrs_entry e = { 0, 0, 0 };
+    vector_enrs_entry e = vector_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = (enrs_entry){ 0, 1, 4, 1, { 0, 0, 0 } };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_TYPE_DWORD });
+    ee = (enrs_entry){ 0, 1, 4, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
     vector_enrs_entry_push_back(&e, &ee);
 
     length = 0;
@@ -41,14 +41,14 @@ bool FASTCALL glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
             data += 0x80;
         }
 
-    st->header.signature = 0x46464547;
+    st->header.signature = reverse_endianness_uint32_t('GEFF');
     st->header.length = 0x20;
     st->header.use_big_endian = false;
     st->header.use_section_size = true;
     return true;
 }
 
-bool FASTCALL glitter_list_unpack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_list_unpack_file(glitter_effect_group* a1, f2_struct* st) {
     size_t d;
     glitter_effect** i;
     uint32_t length;

@@ -16,6 +16,11 @@ static void enb_calc_params_backward(enb_play_head* play_head);
 static void enb_calc_track_init(enb_play_head* play_head);
 static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward);
 
+static const uint8_t shift_table_1[] = { 6, 4, 2, 0 }; // 0x08BF1CE8, 0x08BF2160, 0x08BF210
+static const uint8_t shift_table_2[] = { 4, 0 };       // 0x08BF1CF8
+static const int8_t value_table_1[] = { 0, 1, 0, -1 }; // 0x08BB3FC0
+static const int8_t value_table_2[] = { 0, 8, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -9 }; // 0x08BB3FD0
+
 int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
     size_t* data_out_len, float_t* duration, float_t* fps, size_t* frames) {
     enb_play_head* play_head;
@@ -677,7 +682,7 @@ static void enb_calc_track_init(enb_play_head* play_head) { // 0x08A086CC in ULJ
         C110.y = C020.y * S030;
         C110.z = C020.z * S030;
 
-        quat_normalize(&C100, &C100);
+        vec4_normalize(C100, C100);
 
         track_data->qt[0].quat = C100;
         track_data->qt[0].trans = C110;
@@ -730,7 +735,7 @@ static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward)
         C110.y = C020.y * S030 + C130.y;
         C110.z = C020.z * S030 + C130.z;
 
-        quat_normalize(&C100, &C100);
+        vec4_normalize(C100, C100);
 
         track_data->qt[s1].quat = C100;
         track_data->qt[s1].trans = C110;

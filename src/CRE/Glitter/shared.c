@@ -4,19 +4,8 @@
 */
 
 #include "shared.h"
-#include "../timer.h"
 
-float_t frame_speed = 1.0f;
-
-extern timer render_timer;
-
-float_t get_frame_speed() {
-    double_t freq = timer_get_freq(&render_timer);
-    double_t freq_hist = timer_get_freq_hist(&render_timer);
-    return (float_t)(freq / freq_hist * frame_speed);
-}
-
-void FASTCALL axis_angle_from_vectors(vec3* axis, float_t* angle, vec3* vec1, vec3* vec2) {
+void axis_angle_from_vectors(vec3* axis, float_t* angle, vec3* vec1, vec3* vec2) {
     float_t t;
 
     vec3_cross(*vec1, *vec2, *axis);
@@ -41,7 +30,7 @@ void FASTCALL axis_angle_from_vectors(vec3* axis, float_t* angle, vec3* vec1, ve
         *angle = (float_t)M_PI - *angle;
 }
 
-void FASTCALL mat3_mult_axis_angle(mat3* src, mat3* dst, vec3* axis, float_t angle) {
+void mat3_mult_axis_angle(mat3* src, mat3* dst, vec3* axis, float_t angle) {
     quat q1;
     quat q2;
     quat q3;
@@ -56,7 +45,7 @@ void FASTCALL mat3_mult_axis_angle(mat3* src, mat3* dst, vec3* axis, float_t ang
     mat3_from_quat(&q3, dst);
 }
 
-void FASTCALL mat4_mult_axis_angle(mat4* src, mat4* dst, vec3* axis, float_t angle) {
+void mat4_mult_axis_angle(mat4* src, mat4* dst, vec3* axis, float_t angle) {
     quat q1;
     quat q2;
     quat q3;

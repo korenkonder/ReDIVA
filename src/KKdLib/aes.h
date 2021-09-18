@@ -5,7 +5,8 @@
 #ifndef _AES_H_
 #define _AES_H_
 
-#include <stdint.h>
+#include "default.h"
+#include <immintrin.h>
 
 // #define the macros below to 1/0 to enable/disable the mode of operation.
 //
@@ -45,7 +46,10 @@
 #endif
 
 struct aes_ctx {
-    uint8_t RoundKey[AES_keyExpSize];
+    union {
+        uint8_t RoundKey[AES_keyExpSize];
+        __m128i RoundKeyNI[AES_keyExpSize / sizeof(__m128i) + 9];
+    };
 #if (defined(CBC) && (CBC == 1)) || (defined(CTR) && (CTR == 1))
     uint8_t Iv[AES_BLOCKLEN];
 #endif
@@ -61,10 +65,10 @@ void aes_ctx_set_iv(struct aes_ctx* ctx, const uint8_t* iv);
 // buffer size is exactly AES_BLOCKLEN bytes;
 // you need only AES_init_ctx as IV is not used in ECB
 // NB: ECB is considered insecure for most uses
-void aes_ecb_encrypt(const struct aes_ctx* ctx, uint8_t* buf);
-void aes_ecb_decrypt(const struct aes_ctx* ctx, uint8_t* buf);
-void aes_ecb_encrypt_buffer(const struct aes_ctx* ctx, uint8_t* buf, size_t length);
-void aes_ecb_decrypt_buffer(const struct aes_ctx* ctx, uint8_t* buf, size_t length);
+void aes_ecb_encrypt(struct aes_ctx* ctx, uint8_t* buf);
+void aes_ecb_decrypt(struct aes_ctx* ctx, uint8_t* buf);
+void aes_ecb_encrypt_buffer(struct aes_ctx* ctx, uint8_t* buf, size_t length);
+void aes_ecb_decrypt_buffer(struct aes_ctx* ctx, uint8_t* buf, size_t length);
 
 #endif // #if defined(ECB) && (ECB == !)
 

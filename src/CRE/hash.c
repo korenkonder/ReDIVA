@@ -7,11 +7,11 @@
 #include "../KKdLib/hash.h"
 
 inline hash hash_char(char* data) {
-    return hash_data(data, strlen(data));
+    return hash_data(data, utf8_length(data));
 }
 
-inline hash hash_wchar_t(wchar_t* data) {
-    return hash_data(data, wcslen(data));
+inline hash hash_utf16(wchar_t* data) {
+    return hash_data(data, utf16_length(data));
 }
 
 inline hash hash_data(void* data, size_t length) {

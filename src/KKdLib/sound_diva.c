@@ -38,27 +38,28 @@ diva* diva_init() {
 }
 
 void diva_read(diva* d, char* path) {
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     diva_wread(d, path_buf);
     free(path_buf);
 }
 
 void diva_wread(diva* d, wchar_t* path) {
     wchar_t* path_diva = str_utils_wadd(path, L".diva");
-    stream* s = io_wopen(path_diva, L"rb");
-    if (s->io.stream) {
-        uint32_t signature = io_read_uint32_t(s);
-        if (signature != 0x41564944)
+    stream s;
+    io_wopen(&s, path_diva, L"rb");
+    if (s.io.stream) {
+        uint32_t signature = io_read_uint32_t_reverse_endianness(&s, true);
+        if (signature != 'DIVA')
             goto End;
 
-        io_read_uint32_t(s);
-        d->size = io_read_uint32_t(s);
-        d->sample_rate = io_read_uint32_t(s);
-        d->samples_count = io_read_uint32_t(s);
-        d->loop_start = io_read_uint32_t(s);
-        d->loop_end = io_read_uint32_t(s);
-        d->channels = io_read_uint32_t(s);
-        io_set_position(s, io_get_position(s) + 0x20, IO_SEEK_SET);
+        io_read_uint32_t(&s);
+        d->size = io_read_uint32_t(&s);
+        d->sample_rate = io_read_uint32_t(&s);
+        d->samples_count = io_read_uint32_t(&s);
+        d->loop_start = io_read_uint32_t(&s);
+        d->loop_end = io_read_uint32_t(&s);
+        d->channels = io_read_uint32_t(&s);
+        io_set_position(&s, io_get_position(&s) + 0x20, SEEK_SET);
 
         uint8_t nibble = 0;
         uint8_t value = 0;
@@ -75,7 +76,7 @@ void diva_wread(diva* d, wchar_t* path) {
         for (size_t i = 0; i < samples_count; i++)
             for (size_t c = 0; c < ch; c++, current_sample++) {
                 if (!(current_sample & 1))
-                    value = io_read_uint8_t(s);
+                    value = io_read_uint8_t(&s);
 
                 nibble = (current_sample & 1 ? value : value >> 4) & 0x0F;
                 ima_decode(nibble, current + c, current_clamp + c, step_index + c);
@@ -89,12 +90,12 @@ void diva_wread(diva* d, wchar_t* path) {
         free(data);
     }
 End:
-    io_dispose(s);
+    io_free(&s);
     free(path_diva);
 }
 
 void diva_write(diva* d, char* path) {
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     diva_wwrite(d, path_buf);
     free(path_buf);
 }
@@ -107,20 +108,21 @@ void diva_wwrite(diva* d, wchar_t* path) {
         return;
 
     wchar_t* path_diva = str_utils_wadd(path, L".diva");
-    stream* s = io_wopen(path_diva, L"wb");
-    if (s->io.stream) {
-        io_write_uint32_t(s, 0x41564944);
-        io_write_uint32_t(s, 0);
-        io_write_uint32_t(s, align_val_divide(d->samples_count * d->channels, 2, 2));
-        io_write_uint32_t(s, d->sample_rate);
-        io_write_uint32_t(s, d->samples_count);
-        io_write_uint32_t(s, 0);
-        io_write_uint32_t(s, 0);
-        io_write_uint32_t(s, d->channels);
-        io_write_uint64_t(s, 0);
-        io_write_uint64_t(s, 0);
-        io_write_uint64_t(s, 0);
-        io_write_uint64_t(s, 0);
+    stream s;
+    io_wopen(&s, path_diva, L"wb");
+    if (s.io.stream) {
+        io_write_uint32_t_reverse_endianness(&s, 'DIVA', true);
+        io_write_uint32_t(&s, 0);
+        io_write_uint32_t(&s, align_val_divide(d->samples_count * d->channels, 2, 2));
+        io_write_uint32_t(&s, d->sample_rate);
+        io_write_uint32_t(&s, d->samples_count);
+        io_write_uint32_t(&s, 0);
+        io_write_uint32_t(&s, 0);
+        io_write_uint32_t(&s, d->channels);
+        io_write_uint64_t(&s, 0);
+        io_write_uint64_t(&s, 0);
+        io_write_uint64_t(&s, 0);
+        io_write_uint64_t(&s, 0);
 
         uint8_t nibble = 0;
         uint8_t value = 0;
@@ -139,18 +141,18 @@ void diva_wwrite(diva* d, wchar_t* path) {
                     current + c, current_clamp + c, step_index + c);
                 value |= current_sample & 1 ? nibble : nibble << 4;
                 if (current_sample & 1) {
-                    io_write_uint8_t(s, value);
+                    io_write_uint8_t(&s, value);
                     value = 0;
                 }
             }
 
         if (current_sample & 1)
-            io_write_uint8_t(s, value);
+            io_write_uint8_t(&s, value);
         free(step_index);
         free(current_clamp);
         free(current);
     }
-    io_dispose(s);
+    io_free(&s);
     free(path_diva);
     free(data);
 }

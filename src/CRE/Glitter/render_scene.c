@@ -6,12 +6,12 @@
 #include "render_scene.h"
 #include "render_group.h"
 
-void FASTCALL glitter_render_scene_append(glitter_render_scene* rs,
+void glitter_render_scene_append(glitter_render_scene* rs,
     glitter_render_group* rg) {
     vector_ptr_glitter_render_group_push_back(rs, &rg);
 }
 
-void FASTCALL glitter_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
+void glitter_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
     glitter_render_group** i;
     glitter_render_group* rg;
 
@@ -26,7 +26,7 @@ void FASTCALL glitter_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
         if (glitter_render_group_cannot_draw(rg) && !GPM_VAL->draw_all)
             continue;
 
-#ifndef CRE_DEV
+#if !defined(CRE_DEV)
         glitter_render_group_calc_draw(GPM_VAL, rg);
 #else
         if (!GPM_VAL->draw_selected || !eff) {
@@ -59,7 +59,7 @@ void FASTCALL glitter_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
     }
 }
 
-void FASTCALL glitter_render_scene_draw(GPM, glitter_render_scene* rs, int32_t alpha) {
+void glitter_render_scene_draw(GPM, glitter_render_scene* rs, alpha_pass_type alpha) {
     glitter_render_group** i;
     glitter_render_group* rg;
 
@@ -75,15 +75,15 @@ void FASTCALL glitter_render_scene_draw(GPM, glitter_render_scene* rs, int32_t a
             || (glitter_render_group_cannot_draw(rg) && !GPM_VAL->draw_all))
             continue;
 
-#ifndef CRE_DEV
-        glitter_render_group_draw(rg);
+#if !defined(CRE_DEV)
+        glitter_render_group_draw(GPM_VAL, rg);
 #else
         if (!GPM_VAL->draw_selected || !eff) {
-            glitter_render_group_draw(rg);
+            glitter_render_group_draw(GPM_VAL, rg);
         }
         else if ((eff && ptcl) || (eff && !emit)) {
             if (!ptcl || rg->particle == ptcl)
-                glitter_render_group_draw(rg);
+                glitter_render_group_draw(GPM_VAL, rg);
         }
         else if (emit)
             for (glitter_particle_inst** i = emit->particles.begin; i != emit->particles.end; i++) {
@@ -92,7 +92,7 @@ void FASTCALL glitter_render_scene_draw(GPM, glitter_render_scene* rs, int32_t a
 
                 glitter_particle_inst* particle = *i;
                 if (rg->particle == particle)
-                    glitter_render_group_draw(rg);
+                    glitter_render_group_draw(GPM_VAL, rg);
 
                 if (particle->data.children.begin) {
                     vector_ptr_glitter_particle_inst* children = &particle->data.children;
@@ -100,7 +100,7 @@ void FASTCALL glitter_render_scene_draw(GPM, glitter_render_scene* rs, int32_t a
                         if (!*j || rg->particle != *j)
                             continue;
 
-                        glitter_render_group_draw(rg);
+                        glitter_render_group_draw(GPM_VAL, rg);
                     }
                 }
             }
@@ -108,7 +108,7 @@ void FASTCALL glitter_render_scene_draw(GPM, glitter_render_scene* rs, int32_t a
     }
 }
 
-size_t FASTCALL glitter_render_scene_get_ctrl_count(glitter_render_scene* rs,
+size_t glitter_render_scene_get_ctrl_count(glitter_render_scene* rs,
     glitter_particle_type type) {
     glitter_render_group** i;
     glitter_render_group* rg;
@@ -126,7 +126,7 @@ size_t FASTCALL glitter_render_scene_get_ctrl_count(glitter_render_scene* rs,
     return ctrl;
 }
 
-size_t FASTCALL glitter_render_scene_get_disp_count(glitter_render_scene* rs,
+size_t glitter_render_scene_get_disp_count(glitter_render_scene* rs,
     glitter_particle_type type) {
     glitter_render_group** i;
     glitter_render_group* rg;
@@ -144,11 +144,11 @@ size_t FASTCALL glitter_render_scene_get_disp_count(glitter_render_scene* rs,
     return disp;
 }
 
-void FASTCALL glitter_render_scene_free(glitter_render_scene* rs) {
+void glitter_render_scene_free(glitter_render_scene* rs) {
     vector_ptr_glitter_render_group_free(rs, glitter_render_group_dispose);
 }
 
-void FASTCALL glitter_render_scene_update(GLT, glitter_render_scene* rs,
+void glitter_render_scene_update(GLT, glitter_render_scene* rs,
     float_t delta_frame) {
     for (glitter_render_group** i = rs->begin; i != rs->end; i++)
         if (*i)

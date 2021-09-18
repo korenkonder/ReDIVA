@@ -10,10 +10,10 @@
 #include "vector.h"
 
 typedef enum enrs_type {
-    ENRS_TYPE_WORD    = 0x0,
-    ENRS_TYPE_DWORD   = 0x1,
-    ENRS_TYPE_QWORD   = 0x2,
-    ENRS_TYPE_INVALID = 0x3,
+    ENRS_WORD    = 0x0,
+    ENRS_DWORD   = 0x1,
+    ENRS_QWORD   = 0x2,
+    ENRS_INVALID = 0x3,
 } enrs_type;
 
 typedef struct enrs_sub_entry {
@@ -38,4 +38,4 @@ extern void enrs_apply(vector_enrs_entry* enrs, void* data);
 extern uint32_t enrs_length(vector_enrs_entry* enrs);
 extern void enrs_read(stream* s, vector_enrs_entry* enrs);
 extern void enrs_write(stream* s, vector_enrs_entry* enrs);
-void enrs_dispose(vector_enrs_entry* e);
+void enrs_free(vector_enrs_entry* e);

@@ -5,6 +5,8 @@
 
 #include "qti.h"
 
+static void qti_interpolate(qti* interp);
+
 qti* quat_trans_array_to_qti(quat_trans* array, size_t length,
     float_t interpolation_framerate, float_t requested_framerate) {
     if (!array || !length)
@@ -14,8 +16,8 @@ qti* quat_trans_array_to_qti(quat_trans* array, size_t length,
     interp->time = 0.0f;
     interp->array = array;
     interp->length = length;
-    interp->frame = -1.0f;
-    interp->delta_frame = 0.0f;
+    interp->frame = 0.0f;
+    interp->delta_frame = interpolation_framerate / requested_framerate;
     interp->interpolation_framerate = interpolation_framerate;
     interp->requested_framerate = requested_framerate;
     interp->value = quat_trans_identity;
@@ -23,6 +25,7 @@ qti* quat_trans_array_to_qti(quat_trans* array, size_t length,
     qti_reset(interp);
 
     if (array && length) {
+        interp->value = array[0];
         interp->first_key = array;
         interp->last_key = array + length - 1;
     }
@@ -45,32 +48,8 @@ inline void qti_update(qti* interp) {
 
 inline void qti_reset(qti* interp) {
     interp->delta_frame = interp->interpolation_framerate / interp->requested_framerate;
-    interp->frame = -interp->delta_frame; interp->time = interp->frame / interp->requested_framerate;
-}
-
-static void qti_interpolate(qti* interp) {
-    float_t time = interp->frame / interp->interpolation_framerate;
-
-    quat_trans* keys = interp->array;
-    size_t key = 0;
-    size_t length = interp->length;
-    size_t temp;
-    while (length > 0)
-        if (time > keys[key + (temp = length >> 1)].time) {
-            key += temp + 1;
-            length -= temp + 1;
-        }
-        else
-            length = temp;
-
-    quat_trans* c, * n;
-    c = keys + key - 1;
-    n = keys + key;
-
-    if (time > c->time && time < n->time)
-        lerp_quat_trans(c, n, &interp->value, (time - c->time) / (n->time - c->time));
-    else
-        interp->value = time > c->time ? *n : *c;
+    interp->frame = 0.0f;
+    interp->time = interp->frame / interp->requested_framerate;
 }
 
 void qti_set_time(qti* interp, quat_trans* result, float_t time) {
@@ -123,4 +102,40 @@ void qti_next_frame(qti* interp, quat_trans* result) {
 
     qti_interpolate(interp);
     *result = interp->value;
+}
+
+static void qti_interpolate(qti* interp) {
+    float_t time = interp->frame / interp->interpolation_framerate;
+
+    quat_trans* keys = interp->array;
+    size_t key = 0;
+    size_t length = interp->length;
+    size_t temp;
+    while (length > 0)
+        if (time > keys[key + (temp = length >> 1)].time) {
+            key += temp + 1;
+            length -= temp + 1;
+        }
+        else
+            length = temp;
+
+    if (key == 0) {
+        interp->value = *interp->first_key;
+        return;
+    }
+    else if (key == interp->length) {
+        interp->value = *interp->last_key;
+        return;
+    }
+
+    quat_trans* c, * n;
+    c = &keys[key - 1];
+    n = &keys[key];
+
+    quat_trans value;
+    if (c->time < n->time)
+        lerp_quat_trans(c, n, &value, (time - c->time) / (n->time - c->time));
+    else
+        value = *c;
+    interp->value = value;
 }

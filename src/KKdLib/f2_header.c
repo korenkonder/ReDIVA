@@ -56,7 +56,7 @@ void f2_header_write_end_of_container(stream* s, uint32_t depth) {
 
     f2_header h;
     memset(&h, 0, sizeof(f2_header));
-    h.signature = 0x43464F45;
+    h.signature = reverse_endianness_uint32_t('EOFC');
     h.length = 0x20;
     h.depth = depth;
     h.use_section_size = true;

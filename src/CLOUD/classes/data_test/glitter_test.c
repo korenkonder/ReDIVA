@@ -24,7 +24,8 @@ typedef struct glitter_test_struct {
     bool input_pause;
     float_t frame_counter;
     char* file;
-    vector_ptr_char files;
+    vector_string files;
+    lock lock;
 } glitter_test_struct;
 
 extern int32_t width;
@@ -38,7 +39,7 @@ extern GPM;
 
 const char* glitter_test_window_title = "Glitter";
 
-#ifdef CLOUD_DEV
+#if defined(CLOUD_DEV)
 bool glitter_test_enabled = false;
 #else
 bool glitter_test_enabled = true;
@@ -46,10 +47,11 @@ bool glitter_test_enabled = true;
 static glitter_test_struct glitter_test;
 
 void glitter_test_dispose() {
+    lock_lock(&glitter_test.lock);
     vector_ptr_glitter_scene_free(&GPM_VAL->scenes, glitter_scene_dispose);
     vector_ptr_glitter_effect_group_free(&GPM_VAL->effect_groups, glitter_effect_group_dispose);
 
-    vector_ptr_char_free(&glitter_test.files, 0);
+    vector_string_free(&glitter_test.files);
     glitter_test_enabled = false;
     glitter_test.file = 0;
     glitter_test.imgui_focus = false;
@@ -60,25 +62,41 @@ void glitter_test_dispose() {
     glitter_test.frame_counter = 0.0f;
     glitter_test.dispose = false;
     glitter_test.disposed = true;
+    lock_unlock(&glitter_test.lock);
+    lock_free(&glitter_test.lock);
 }
 
 void glitter_test_init() {
-    if (glitter_test_enabled || glitter_test.dispose)
+    bool dispose = false;
+    lock_lock(&glitter_test.lock);
+    dispose = glitter_test_enabled || glitter_test.dispose;
+    lock_unlock(&glitter_test.lock);
+
+    if (dispose)
         glitter_test_dispose();
 
-    vector_ptr_char_free(&glitter_test.files, 0);
+    lock_init(&glitter_test.lock);
+    lock_lock(&glitter_test.lock);
+    vector_string_free(&glitter_test.files);
     path_get_files(&glitter_test.files, "rom\\particle");
-    for (char** i = glitter_test.files.begin; i != glitter_test.files.end;)
-        if (str_utils_check_ends_with(*i, ".farc")) {
-            char* temp = str_utils_get_without_extension(*i);
-            vector_ptr_char_erase(&glitter_test.files, i - glitter_test.files.begin, 0);
-            vector_ptr_char_insert(&glitter_test.files, i - glitter_test.files.begin, &temp);
+    for (string* i = glitter_test.files.begin; i != glitter_test.files.end;)
+        if (str_utils_check_ends_with(string_data(i), ".farc")) {
+            string s;
+            char* temp = str_utils_get_without_extension(string_data(i));
+            string_init(&s, temp);
+            string_free(i);
+            vector_string_erase(&glitter_test.files, i - glitter_test.files.begin);
+            vector_string_insert(&glitter_test.files, i - glitter_test.files.begin, &s);
+            free(temp);
             i++;
         }
-        else
-            vector_ptr_char_erase(&glitter_test.files, i - glitter_test.files.begin, 0);
+        else {
+            string_free(i);
+            vector_string_erase(&glitter_test.files, i - glitter_test.files.begin);
+        }
 
-    glitter_test.file = glitter_test.files.end - glitter_test.files.begin > 0 ? glitter_test.files.begin[0] : 0;
+    glitter_test.file = glitter_test.files.end - glitter_test.files.begin > 0
+        ? string_data(&glitter_test.files.begin[0]) : 0;
 
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
@@ -88,17 +106,25 @@ void glitter_test_init() {
     GPM_VAL->draw_all = false;
     GPM_VAL->draw_all_mesh = false;
     grid_3d = false;
+    lock_unlock(&glitter_test.lock);
 }
 
 void glitter_test_imgui() {
+    bool ret = false;
+    lock_lock(&glitter_test.lock);
     if (!glitter_test_enabled) {
         if (!glitter_test.disposed)
             glitter_test.dispose = true;
-        return;
+        ret = true;
     }
     else if (glitter_test.disposed)
         glitter_test.disposed = false;
+    lock_unlock(&glitter_test.lock);
 
+    if (ret)
+        return;
+
+    lock_lock(&glitter_test.lock);
     float_t w = min((float_t)width / 4.0f, 360.0f);
     float_t h = min((float_t)height, 348.0f);
 
@@ -112,25 +138,24 @@ void glitter_test_imgui() {
     glitter_test.imgui_focus = false;
     if (!igBegin(glitter_test_window_title, &glitter_test_enabled, window_flags)) {
         glitter_test.dispose = true;
-        igEnd();
-        return;
+        goto End;
     }
 
     int32_t file_index = -1;
     if (glitter_test.file)
-        for (char** i = glitter_test.files.begin; i != glitter_test.files.end; i++)
-            if (!strcmp(*i, glitter_test.file)) {
+        for (string* i = glitter_test.files.begin; i != glitter_test.files.end; i++)
+            if (!strcmp(string_data(i), glitter_test.file)) {
                 file_index = (int32_t)(i - glitter_test.files.begin);
                 break;
             }
 
     int32_t file_index_old = file_index;
-    imguiColumnComboBox("File", glitter_test.files.begin,
+    imguiColumnComboBoxString("File", glitter_test.files.begin,
         glitter_test.files.end - glitter_test.files.begin,
         &file_index, 0, false, &glitter_test.imgui_focus);
 
     if (file_index != file_index_old) {
-        glitter_test.file = glitter_test.files.begin[file_index];
+        glitter_test.file = string_data(&glitter_test.files.begin[file_index]);
         glitter_test.input_stop = true;
     }
 
@@ -189,24 +214,44 @@ void glitter_test_imgui() {
     imguiCheckbox("Grid", &grid_3d);
 
     glitter_test.imgui_focus |= igIsWindowFocused(0);
+
+End:
     igEnd();
+    lock_unlock(&glitter_test.lock);
 }
 
 void glitter_test_input() {
+    bool ret = false;
+    lock_lock(&glitter_test.lock);
     if (!glitter_test_enabled)
+        ret = true;
+    lock_unlock(&glitter_test.lock);
+
+    if (ret)
         return;
 
     input_locked |= glitter_test.imgui_focus;
 }
 
 void glitter_test_render() {
+    bool dispose = false;
+    bool ret = false;
+    lock_lock(&glitter_test.lock);
     if (glitter_test.dispose) {
-        glitter_test_dispose();
-        return;
+        dispose = true;
+        ret = true;
     }
     else if (!glitter_test_enabled)
+        ret = true;
+    lock_unlock(&glitter_test.lock);
+
+    if (dispose)
+        glitter_test_dispose();
+
+    if (ret)
         return;
 
+    lock_lock(&glitter_test.lock);
     if (!glitter_test.input_pause) {
         if (GPM_VAL->scenes.end != GPM_VAL->scenes.begin)
             glitter_test.frame_counter += get_frame_speed();
@@ -220,7 +265,7 @@ void glitter_test_render() {
             glitter_test.frame_counter = 0.0f;
         }
 
-        uint64_t hash = hash_char_fnv1a64(glitter_test.file);
+        uint64_t hash = hash_utf8_fnv1a64(glitter_test.file);
         if (glitter_test.input_auto && !glitter_particle_manager_check_scene(GPM_VAL, hash)) {
             if (glitter_particle_manager_check_effect_group(GPM_VAL, hash))
                 goto load;
@@ -242,4 +287,5 @@ void glitter_test_render() {
         glitter_test.input_play = false;
         glitter_test.input_stop = false;
     }
+    lock_unlock(&glitter_test.lock);
 }

@@ -4,170 +4,185 @@
 */
 
 #include "msgpack.h"
-#include "utf8.h"
 
-#define ALLOCATE_MSGPACK(a, b) \
-if (CHECK_MSGPACK(a)) \
+#define MSGPACK_ALLOCATE(a, b) \
+if (MSGPACK_CHECK(a)) \
     (b).ptr = force_malloc(sizeof(a));
-#define ALLOCATE_MSGPACK_PTR(a, b) \
-if (CHECK_MSGPACK(a)) \
+#define MSGPACK_ALLOCATE_PTR(a, b) \
+if (MSGPACK_CHECK(a)) \
     (b)->ptr = force_malloc(sizeof(a));
 
 vector_func(msgpack);
 
-void msgpack_init_map(msgpack* msg, wchar_t* name) {
+void msgpack_init_map(msgpack* msg, char* name) {
     msg->type = MSGPACK_MAP;
-    ALLOCATE_MSGPACK_PTR(msgpack_map, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(msgpack_map, msg);
+    string_init(&msg->name, name);
 
-    msgpack_map* ptr = SELECT_MSGPACK_PTR(msgpack_map, msg);
+    msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
     ptr->capacity_end = ptr->end = ptr->begin = 0;
 }
 
-void msgpack_init_array(msgpack* msg, wchar_t* name, size_t length) {
+void msgpack_init_array(msgpack* msg, char* name, size_t length) {
     msg->type = MSGPACK_ARRAY;
-    ALLOCATE_MSGPACK_PTR(msgpack_array, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(msgpack_array, msg);
+    string_init(&msg->name, name);
 
-    msgpack_array* ptr = SELECT_MSGPACK_PTR(msgpack_array, msg);
+    msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
     ptr->capacity_end = ptr->end = ptr->begin = 0;
-    vector_msgpack_append(ptr, length);
+    vector_msgpack_reserve(ptr, length);
     ptr->end = ptr->begin + length;
 }
 
-void msgpack_init_null(msgpack* msg, wchar_t* name) {
+void msgpack_init_null(msgpack* msg, char* name) {
     msg->type = MSGPACK_NULL;
-    wstring_init(&msg->name, name);
+    string_init(&msg->name, name);
 }
 
-void msgpack_init_bool(msgpack* msg, wchar_t* name, bool val) {
+void msgpack_init_bool(msgpack* msg, char* name, bool val) {
     msg->type = MSGPACK_BOOL;
-    ALLOCATE_MSGPACK_PTR(bool, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(bool, msg);
+    string_init(&msg->name, name);
 
-    bool* ptr = SELECT_MSGPACK_PTR(bool, msg);
+    bool* ptr = MSGPACK_SELECT_PTR(bool, msg);
     *ptr = val;
 }
 
-void msgpack_init_int8_t(msgpack* msg, wchar_t* name, int8_t val) {
+void msgpack_init_int8_t(msgpack* msg, char* name, int8_t val) {
     msg->type = MSGPACK_INT8;
-    ALLOCATE_MSGPACK_PTR(int8_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(int8_t, msg);
+    string_init(&msg->name, name);
 
-    int8_t* ptr = SELECT_MSGPACK_PTR(int8_t, msg);
+    int8_t* ptr = MSGPACK_SELECT_PTR(int8_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_uint8_t(msgpack* msg, wchar_t* name, uint8_t val) {
+void msgpack_init_uint8_t(msgpack* msg, char* name, uint8_t val) {
     msg->type = MSGPACK_UINT8;
-    ALLOCATE_MSGPACK_PTR(uint8_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(uint8_t, msg);
+    string_init(&msg->name, name);
 
-    uint8_t* ptr = SELECT_MSGPACK_PTR(uint8_t, msg);
+    uint8_t* ptr = MSGPACK_SELECT_PTR(uint8_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_int16_t(msgpack* msg, wchar_t* name, int16_t val) {
+void msgpack_init_int16_t(msgpack* msg, char* name, int16_t val) {
     msg->type = MSGPACK_INT16;
-    ALLOCATE_MSGPACK_PTR(int16_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(int16_t, msg);
+    string_init(&msg->name, name);
 
-    int16_t* ptr = SELECT_MSGPACK_PTR(int16_t, msg);
+    int16_t* ptr = MSGPACK_SELECT_PTR(int16_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_uint16_t(msgpack* msg, wchar_t* name, uint16_t val) {
+void msgpack_init_uint16_t(msgpack* msg, char* name, uint16_t val) {
     msg->type = MSGPACK_UINT16;
-    ALLOCATE_MSGPACK_PTR(uint16_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(uint16_t, msg);
+    string_init(&msg->name, name);
 
-    uint16_t* ptr = SELECT_MSGPACK_PTR(uint16_t, msg);
+    uint16_t* ptr = MSGPACK_SELECT_PTR(uint16_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_int32_t(msgpack* msg, wchar_t* name, int32_t val) {
+void msgpack_init_int32_t(msgpack* msg, char* name, int32_t val) {
     msg->type = MSGPACK_INT32;
-    ALLOCATE_MSGPACK_PTR(int32_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(int32_t, msg);
+    string_init(&msg->name, name);
 
-    int32_t* ptr = SELECT_MSGPACK_PTR(int32_t, msg);
+    int32_t* ptr = MSGPACK_SELECT_PTR(int32_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_uint32_t(msgpack* msg, wchar_t* name, uint32_t val) {
+void msgpack_init_uint32_t(msgpack* msg, char* name, uint32_t val) {
     msg->type = MSGPACK_UINT32;
-    ALLOCATE_MSGPACK_PTR(uint32_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(uint32_t, msg);
+    string_init(&msg->name, name);
 
-    uint32_t* ptr = SELECT_MSGPACK_PTR(uint32_t, msg);
+    uint32_t* ptr = MSGPACK_SELECT_PTR(uint32_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_int64_t(msgpack* msg, wchar_t* name, int64_t val) {
+void msgpack_init_int64_t(msgpack* msg, char* name, int64_t val) {
     msg->type = MSGPACK_INT64;
-    ALLOCATE_MSGPACK_PTR(int64_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(int64_t, msg);
+    string_init(&msg->name, name);
 
-    int64_t* ptr = SELECT_MSGPACK_PTR(int64_t, msg);
+    int64_t* ptr = MSGPACK_SELECT_PTR(int64_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_uint64_t(msgpack* msg, wchar_t* name, uint64_t val) {
+void msgpack_init_uint64_t(msgpack* msg, char* name, uint64_t val) {
     msg->type = MSGPACK_UINT64;
-    ALLOCATE_MSGPACK_PTR(uint64_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(uint64_t, msg);
+    string_init(&msg->name, name);
 
-    uint64_t* ptr = SELECT_MSGPACK_PTR(uint64_t, msg);
+    uint64_t* ptr = MSGPACK_SELECT_PTR(uint64_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_float_t(msgpack* msg, wchar_t* name, float_t val) {
+void msgpack_init_float_t(msgpack* msg, char* name, float_t val) {
     msg->type = MSGPACK_FLOAT;
-    ALLOCATE_MSGPACK_PTR(float_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(float_t, msg);
+    string_init(&msg->name, name);
 
-    float_t* ptr = SELECT_MSGPACK_PTR(float_t, msg);
+    float_t* ptr = MSGPACK_SELECT_PTR(float_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_double_t(msgpack* msg, wchar_t* name, double_t val) {
+void msgpack_init_double_t(msgpack* msg, char* name, double_t val) {
     msg->type = MSGPACK_DOUBLE;
-    ALLOCATE_MSGPACK_PTR(double_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(double_t, msg);
+    string_init(&msg->name, name);
 
-    double_t* ptr = SELECT_MSGPACK_PTR(double_t, msg);
+    double_t* ptr = MSGPACK_SELECT_PTR(double_t, msg);
     *ptr = val;
 }
 
-void msgpack_init_char_string(msgpack* msg, wchar_t* name, char* val) {
-    wchar_t* temp = utf8_decode(val);
+void msgpack_init_utf8_string(msgpack* msg, char* name, char* val) {
     msg->type = MSGPACK_STRING;
-    ALLOCATE_MSGPACK_PTR(wstring, msg);
-    wstring_init(&msg->name, name);
-    wstring_init(SELECT_MSGPACK_PTR(wstring, msg), temp);
+    MSGPACK_ALLOCATE_PTR(string, msg);
+    string_init(&msg->name, name);
+    string_init(MSGPACK_SELECT_PTR(string, msg), val);
+}
+
+void msgpack_init_utf16_string(msgpack* msg, char* name, wchar_t* val) {
+    char* temp = utf16_to_utf8(val);
+    msg->type = MSGPACK_STRING;
+    MSGPACK_ALLOCATE_PTR(string, msg);
+    string_init(&msg->name, name);
+    string_init(MSGPACK_SELECT_PTR(string, msg), temp);
     free(temp);
 }
 
-void msgpack_init_string(msgpack* msg, wchar_t* name, wchar_t* val) {
+void msgpack_init_string(msgpack* msg, char* name, string* val) {
     msg->type = MSGPACK_STRING;
-    ALLOCATE_MSGPACK_PTR(wstring, msg);
-    wstring_init(&msg->name, name);
-    wstring_init(SELECT_MSGPACK_PTR(wstring, msg), val);
+    MSGPACK_ALLOCATE_PTR(string, msg);
+    string_init(&msg->name, name);
+    string_init(MSGPACK_SELECT_PTR(string, msg), string_data(val));
+}
+
+void msgpack_init_wstring(msgpack* msg, char* name, wstring* val) {
+    char* temp = utf16_to_utf8(wstring_access(val));
+    msg->type = MSGPACK_STRING;
+    MSGPACK_ALLOCATE_PTR(string, msg);
+    string_init(&msg->name, name);
+    string_init(MSGPACK_SELECT_PTR(string, msg), temp);
+    free(temp);
 }
 
 bool msgpack_check_null(msgpack* msg) {
     if (msg->type == MSGPACK_ARRAY)
-        return SELECT_MSGPACK_PTR(msgpack_array, msg)->begin == 0;
+        return MSGPACK_SELECT_PTR(msgpack_array, msg)->begin == 0;
     else if (msg->type == MSGPACK_MAP)
-        return SELECT_MSGPACK_PTR(msgpack_map, msg)->begin == 0;
+        return MSGPACK_SELECT_PTR(msgpack_map, msg)->begin == 0;
     return msg->type == MSGPACK_NONE;
 }
 
 bool msgpack_check_not_null(msgpack* msg) {
     if (msg->type == MSGPACK_ARRAY)
-        return SELECT_MSGPACK_PTR(msgpack_array, msg)->begin != 0;
+        return MSGPACK_SELECT_PTR(msgpack_array, msg)->begin != 0;
     else if (msg->type == MSGPACK_MAP)
-        return SELECT_MSGPACK_PTR(msgpack_map, msg)->begin != 0;
+        return MSGPACK_SELECT_PTR(msgpack_map, msg)->begin != 0;
     return msg->type != MSGPACK_NONE;
 }
 
@@ -175,7 +190,7 @@ msgpack* msgpack_get_by_index(msgpack* msg, size_t index) {
     if (msg->type != MSGPACK_ARRAY)
         return 0;
 
-    msgpack_array* ptr = SELECT_MSGPACK_PTR(msgpack_array, msg);
+    msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
     if ((ssize_t)index < ptr->end - ptr->begin)
         return &ptr->begin[index];
     return 0;
@@ -185,20 +200,20 @@ void msgpack_set_by_index(msgpack* msg, msgpack* m, size_t index) {
     if (msg->type != MSGPACK_ARRAY)
         return;
 
-    msgpack_array* ptr = SELECT_MSGPACK_PTR(msgpack_array, msg);
+    msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
     if ((ssize_t)index < ptr->end - ptr->begin) {
         msgpack_free(&ptr->begin[index]);
         ptr->begin[index] = *m;
     }
 }
 
-msgpack* msgpack_get_by_name(msgpack* msg, wchar_t* name) {
+msgpack* msgpack_get_by_name(msgpack* msg, char* name) {
     if (msg->type != MSGPACK_MAP)
         return 0;
 
-    msgpack_map* ptr = SELECT_MSGPACK_PTR(msgpack_map, msg);
+    msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
     for (msgpack* i = ptr->begin; i != ptr->end; i++)
-        if (!wcscmp(wstring_access(&i->name), name))
+        if (!strcmp(string_data(&i->name), name))
             return i;
 
     return 0;
@@ -208,9 +223,9 @@ void msgpack_set_by_name(msgpack* msg, msgpack* m) {
     if (msg->type != MSGPACK_MAP)
         return;
 
-    msgpack_map* ptr = SELECT_MSGPACK_PTR(msgpack_map, msg);
+    msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
     for (msgpack* i = ptr->begin; i != ptr->end; i++)
-        if (!wcscmp(wstring_access(&i->name), wstring_access(&m->name))) {
+        if (!strcmp(string_data(&i->name), string_data(&m->name))) {
             msgpack_free(i);
             *i = *m;
             return;
@@ -223,400 +238,444 @@ void msgpack_append(msgpack* msg, msgpack* m) {
     if (msg->type != MSGPACK_MAP)
         return;
 
-    msgpack_map* ptr = SELECT_MSGPACK_PTR(msgpack_map, msg);
+    msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
     vector_msgpack_push_back(ptr, m);
     memset(m->data, 0, sizeof(m->data));
 }
 
-void msgpack_append_bool(msgpack* msg, wchar_t* name, bool val) {
+void msgpack_append_bool(msgpack* msg, char* name, bool val) {
     msgpack m;
     m.type = MSGPACK_BOOL;
-    ALLOCATE_MSGPACK(bool, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(bool, m);
+    string_init(&m.name, name);
 
-    bool* ptr = SELECT_MSGPACK(bool, m);
+    bool* ptr = MSGPACK_SELECT(bool, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_int8_t(msgpack* msg, wchar_t* name, int8_t val) {
+void msgpack_append_int8_t(msgpack* msg, char* name, int8_t val) {
     msgpack m;
     m.type = MSGPACK_INT8;
-    ALLOCATE_MSGPACK(int8_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(int8_t, m);
+    string_init(&m.name, name);
 
-    int8_t* ptr = SELECT_MSGPACK(int8_t, m);
+    int8_t* ptr = MSGPACK_SELECT(int8_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_uint8_t(msgpack* msg, wchar_t* name, uint8_t val) {
+void msgpack_append_uint8_t(msgpack* msg, char* name, uint8_t val) {
     msgpack m;
     m.type = MSGPACK_UINT8;
-    ALLOCATE_MSGPACK(uint8_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(uint8_t, m);
+    string_init(&m.name, name);
 
-    uint8_t* ptr = SELECT_MSGPACK(uint8_t, m);
+    uint8_t* ptr = MSGPACK_SELECT(uint8_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_int16_t(msgpack* msg, wchar_t* name, int16_t val) {
+void msgpack_append_int16_t(msgpack* msg, char* name, int16_t val) {
     msgpack m;
     m.type = MSGPACK_INT16;
-    ALLOCATE_MSGPACK(int16_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(int16_t, m);
+    string_init(&m.name, name);
 
-    int16_t* ptr = SELECT_MSGPACK(int16_t, m);
+    int16_t* ptr = MSGPACK_SELECT(int16_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_uint16_t(msgpack* msg, wchar_t* name, uint16_t val) {
+void msgpack_append_uint16_t(msgpack* msg, char* name, uint16_t val) {
     msgpack m;
     m.type = MSGPACK_UINT16;
-    ALLOCATE_MSGPACK(uint16_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(uint16_t, m);
+    string_init(&m.name, name);
 
-    uint16_t* ptr = SELECT_MSGPACK(uint16_t, m);
+    uint16_t* ptr = MSGPACK_SELECT(uint16_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_int32_t(msgpack* msg, wchar_t* name, int32_t val) {
+void msgpack_append_int32_t(msgpack* msg, char* name, int32_t val) {
     msgpack m;
     m.type = MSGPACK_INT32;
-    ALLOCATE_MSGPACK(int32_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(int32_t, m);
+    string_init(&m.name, name);
 
-    int32_t* ptr = SELECT_MSGPACK(int32_t, m);
+    int32_t* ptr = MSGPACK_SELECT(int32_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_uint32_t(msgpack* msg, wchar_t* name, uint32_t val) {
+void msgpack_append_uint32_t(msgpack* msg, char* name, uint32_t val) {
     msgpack m;
     m.type = MSGPACK_UINT32;
-    ALLOCATE_MSGPACK(uint32_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(uint32_t, m);
+    string_init(&m.name, name);
 
-    uint32_t* ptr = SELECT_MSGPACK(uint32_t, m);
+    uint32_t* ptr = MSGPACK_SELECT(uint32_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_int64_t(msgpack* msg, wchar_t* name, int64_t val) {
+void msgpack_append_int64_t(msgpack* msg, char* name, int64_t val) {
     msgpack m;
     m.type = MSGPACK_INT64;
-    ALLOCATE_MSGPACK(int64_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(int64_t, m);
+    string_init(&m.name, name);
 
-    int64_t* ptr = SELECT_MSGPACK(int64_t, m);
+    int64_t* ptr = MSGPACK_SELECT(int64_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_uint64_t(msgpack* msg, wchar_t* name, uint64_t val) {
+void msgpack_append_uint64_t(msgpack* msg, char* name, uint64_t val) {
     msgpack m;
     m.type = MSGPACK_UINT64;
-    ALLOCATE_MSGPACK(uint64_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(uint64_t, m);
+    string_init(&m.name, name);
 
-    uint64_t* ptr = SELECT_MSGPACK(uint64_t, m);
+    uint64_t* ptr = MSGPACK_SELECT(uint64_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_float_t(msgpack* msg, wchar_t* name, float_t val) {
+void msgpack_append_float_t(msgpack* msg, char* name, float_t val) {
     msgpack m;
     m.type = MSGPACK_FLOAT;
-    ALLOCATE_MSGPACK(float_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(float_t, m);
+    string_init(&m.name, name);
 
-    float_t* ptr = SELECT_MSGPACK(float_t, m);
+    float_t* ptr = MSGPACK_SELECT(float_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_double_t(msgpack* msg, wchar_t* name, double_t val) {
+void msgpack_append_double_t(msgpack* msg, char* name, double_t val) {
     msgpack m;
     m.type = MSGPACK_DOUBLE;
-    ALLOCATE_MSGPACK(double_t, m);
-    wstring_init(&m.name, name);
+    MSGPACK_ALLOCATE(double_t, m);
+    string_init(&m.name, name);
 
-    double_t* ptr = SELECT_MSGPACK(double_t, m);
+    double_t* ptr = MSGPACK_SELECT(double_t, m);
     *ptr = val;
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_char_string(msgpack* msg, wchar_t* name, char* val) {
+void msgpack_append_utf8_string(msgpack* msg, char* name, char* val) {
     msgpack m;
-    wchar_t* temp = utf8_decode(val);
     m.type = MSGPACK_STRING;
-    ALLOCATE_MSGPACK(wstring, m);
-    wstring_init(&m.name, name);
-    wstring_init(SELECT_MSGPACK(wstring, m), temp);
+    MSGPACK_ALLOCATE(string, m);
+    string_init(&m.name, name);
+    string_init(MSGPACK_SELECT(string, m), val);
+    msgpack_append(msg, &m);
+}
+
+void msgpack_append_utf16_string(msgpack* msg, char* name, wchar_t* val) {
+    msgpack m;
+    char* temp = utf16_to_utf8(val);
+    m.type = MSGPACK_STRING;
+    MSGPACK_ALLOCATE(string, m);
+    string_init(&m.name, name);
+    string_init(MSGPACK_SELECT(string, m), temp);
     free(temp);
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_string(msgpack* msg, wchar_t* name, wchar_t* val) {
+void msgpack_append_string(msgpack* msg, char* name, string* val) {
     msgpack m;
     m.type = MSGPACK_STRING;
-    ALLOCATE_MSGPACK(wstring, m);
-    wstring_init(&m.name, name);
-    wstring_init(SELECT_MSGPACK(wstring, m), val);
+    MSGPACK_ALLOCATE(string, m);
+    string_init(&m.name, name);
+    string_init(MSGPACK_SELECT(string, m), string_data(val));
     msgpack_append(msg, &m);
 }
 
-void msgpack_set_null(msgpack* msg, wchar_t* name) {
+void msgpack_append_wstring(msgpack* msg, char* name, wstring* val) {
+    msgpack m;
+    char* temp = utf16_to_utf8(wstring_access(val));
+    m.type = MSGPACK_STRING;
+    MSGPACK_ALLOCATE(string, m);
+    string_init(&m.name, name);
+    string_init(MSGPACK_SELECT(string, m), temp);
+    free(temp);
+    msgpack_append(msg, &m);
+}
+
+void msgpack_set_null(msgpack* msg, char* name) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_NULL;
-    wstring_init(&msg->name, name);
+    string_init(&msg->name, name);
 }
 
-void msgpack_set_array(msgpack* msg, wchar_t* name, msgpack_array* val) {
+void msgpack_set_array(msgpack* msg, char* name, msgpack_array* val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_ARRAY;
-    ALLOCATE_MSGPACK_PTR(msgpack_array, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(msgpack_array, msg);
+    string_init(&msg->name, name);
 
-    msgpack_array* ptr = SELECT_MSGPACK_PTR(msgpack_array, msg);
+    msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
     *ptr = *val;
     val->capacity_end = val->end = val->begin = 0;
 }
 
-void msgpack_set_array_empty(msgpack* msg, wchar_t* name) {
+void msgpack_set_array_empty(msgpack* msg, char* name) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_ARRAY;
-    ALLOCATE_MSGPACK_PTR(msgpack_array, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(msgpack_array, msg);
+    string_init(&msg->name, name);
 
-    msgpack_array* ptr = SELECT_MSGPACK_PTR(msgpack_array, msg);
+    msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
     ptr->capacity_end = ptr->end = ptr->begin = 0;
 }
 
-void msgpack_set_map(msgpack* msg, wchar_t* name, msgpack_map* val) {
+void msgpack_set_map(msgpack* msg, char* name, msgpack_map* val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_MAP;
-    ALLOCATE_MSGPACK_PTR(msgpack_map, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(msgpack_map, msg);
+    string_init(&msg->name, name);
 
-    msgpack_map* ptr = SELECT_MSGPACK_PTR(msgpack_map, msg);
+    msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
     *ptr = *val;
     val->capacity_end = val->end = val->begin = 0;
 }
 
-void msgpack_set_map_empty(msgpack* msg, wchar_t* name) {
+void msgpack_set_map_empty(msgpack* msg, char* name) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_MAP;
-    ALLOCATE_MSGPACK_PTR(msgpack_map, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(msgpack_map, msg);
+    string_init(&msg->name, name);
 
-    msgpack_map* ptr = SELECT_MSGPACK_PTR(msgpack_map, msg);
+    msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
     ptr->capacity_end = ptr->end = ptr->begin = 0;
 }
 
-void msgpack_set_bool(msgpack* msg, wchar_t* name, bool val) {
+void msgpack_set_bool(msgpack* msg, char* name, bool val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_BOOL;
-    ALLOCATE_MSGPACK_PTR(bool, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(bool, msg);
+    string_init(&msg->name, name);
 
-    bool* ptr = SELECT_MSGPACK_PTR(bool, msg);
+    bool* ptr = MSGPACK_SELECT_PTR(bool, msg);
     *ptr = val;
 }
 
-void msgpack_set_int8_t(msgpack* msg, wchar_t* name, int8_t val) {
+void msgpack_set_int8_t(msgpack* msg, char* name, int8_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_INT8;
-    ALLOCATE_MSGPACK_PTR(int8_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(int8_t, msg);
+    string_init(&msg->name, name);
 
-    int8_t* ptr = SELECT_MSGPACK_PTR(int8_t, msg);
+    int8_t* ptr = MSGPACK_SELECT_PTR(int8_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_uint8_t(msgpack* msg, wchar_t* name, uint8_t val) {
+void msgpack_set_uint8_t(msgpack* msg, char* name, uint8_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_UINT8;
-    ALLOCATE_MSGPACK_PTR(uint8_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(uint8_t, msg);
+    string_init(&msg->name, name);
 
-    uint8_t* ptr = SELECT_MSGPACK_PTR(uint8_t, msg);
+    uint8_t* ptr = MSGPACK_SELECT_PTR(uint8_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_int16_t(msgpack* msg, wchar_t* name, int16_t val) {
+void msgpack_set_int16_t(msgpack* msg, char* name, int16_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_INT16;
-    ALLOCATE_MSGPACK_PTR(int16_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(int16_t, msg);
+    string_init(&msg->name, name);
 
-    int16_t* ptr = SELECT_MSGPACK_PTR(int16_t, msg);
+    int16_t* ptr = MSGPACK_SELECT_PTR(int16_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_uint16_t(msgpack* msg, wchar_t* name, uint16_t val) {
+void msgpack_set_uint16_t(msgpack* msg, char* name, uint16_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_UINT16;
-    ALLOCATE_MSGPACK_PTR(uint16_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(uint16_t, msg);
+    string_init(&msg->name, name);
 
-    uint16_t* ptr = SELECT_MSGPACK_PTR(uint16_t, msg);
+    uint16_t* ptr = MSGPACK_SELECT_PTR(uint16_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_int32_t(msgpack* msg, wchar_t* name, int32_t val) {
+void msgpack_set_int32_t(msgpack* msg, char* name, int32_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_INT32;
-    ALLOCATE_MSGPACK_PTR(int32_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(int32_t, msg);
+    string_init(&msg->name, name);
 
-    int32_t* ptr = SELECT_MSGPACK_PTR(int32_t, msg);
+    int32_t* ptr = MSGPACK_SELECT_PTR(int32_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_uint32_t(msgpack* msg, wchar_t* name, uint32_t val) {
+void msgpack_set_uint32_t(msgpack* msg, char* name, uint32_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_UINT32;
-    ALLOCATE_MSGPACK_PTR(uint32_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(uint32_t, msg);
+    string_init(&msg->name, name);
 
-    uint32_t* ptr = SELECT_MSGPACK_PTR(uint32_t, msg);
+    uint32_t* ptr = MSGPACK_SELECT_PTR(uint32_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_int64_t(msgpack* msg, wchar_t* name, int64_t val) {
+void msgpack_set_int64_t(msgpack* msg, char* name, int64_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_INT64;
-    ALLOCATE_MSGPACK_PTR(int64_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(int64_t, msg);
+    string_init(&msg->name, name);
 
-    int64_t* ptr = SELECT_MSGPACK_PTR(int64_t, msg);
+    int64_t* ptr = MSGPACK_SELECT_PTR(int64_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_uint64_t(msgpack* msg, wchar_t* name, uint64_t val) {
+void msgpack_set_uint64_t(msgpack* msg, char* name, uint64_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_UINT64;
-    ALLOCATE_MSGPACK_PTR(uint64_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(uint64_t, msg);
+    string_init(&msg->name, name);
 
-    uint64_t* ptr = SELECT_MSGPACK_PTR(uint64_t, msg);
+    uint64_t* ptr = MSGPACK_SELECT_PTR(uint64_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_float_t(msgpack* msg, wchar_t* name, float_t val) {
+void msgpack_set_float_t(msgpack* msg, char* name, float_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_FLOAT;
-    ALLOCATE_MSGPACK_PTR(float_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(float_t, msg);
+    string_init(&msg->name, name);
 
-    float_t* ptr = SELECT_MSGPACK_PTR(float_t, msg);
+    float_t* ptr = MSGPACK_SELECT_PTR(float_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_double_t(msgpack* msg, wchar_t* name, double_t val) {
+void msgpack_set_double_t(msgpack* msg, char* name, double_t val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_DOUBLE;
-    ALLOCATE_MSGPACK_PTR(double_t, msg);
-    wstring_init(&msg->name, name);
+    MSGPACK_ALLOCATE_PTR(double_t, msg);
+    string_init(&msg->name, name);
 
-    double_t* ptr = SELECT_MSGPACK_PTR(double_t, msg);
+    double_t* ptr = MSGPACK_SELECT_PTR(double_t, msg);
     *ptr = val;
 }
 
-void msgpack_set_char_string(msgpack* msg, wchar_t* name, char* val) {
+void msgpack_set_utf8_string(msgpack* msg, char* name, char* val) {
     if (!msg)
         return;
 
-    wchar_t* temp = utf8_decode(val);
     msgpack_free(msg);
     msg->type = MSGPACK_STRING;
-    ALLOCATE_MSGPACK_PTR(wstring, msg);
-    wstring_init(&msg->name, name);
-    wstring_init(SELECT_MSGPACK_PTR(wstring, msg), temp);
+    MSGPACK_ALLOCATE_PTR(string, msg);
+    string_init(&msg->name, name);
+    string_init(MSGPACK_SELECT_PTR(string, msg), val);
+}
+
+void msgpack_set_utf16_string(msgpack* msg, char* name, wchar_t* val) {
+    if (!msg)
+        return;
+
+    char* temp = utf16_to_utf8(val);
+    msgpack_free(msg);
+    msg->type = MSGPACK_STRING;
+    MSGPACK_ALLOCATE_PTR(string, msg);
+    string_init(&msg->name, name);
+    string_init(MSGPACK_SELECT_PTR(string, msg), temp);
     free(temp);
 }
 
-void msgpack_set_string(msgpack* msg, wchar_t* name, wchar_t* val) {
+void msgpack_set_string(msgpack* msg, char* name, string* val) {
     if (!msg)
         return;
 
     msgpack_free(msg);
     msg->type = MSGPACK_STRING;
-    ALLOCATE_MSGPACK_PTR(wstring, msg);
-    wstring_init(&msg->name, name);
-    wstring_init(SELECT_MSGPACK_PTR(wstring, msg), val);
+    MSGPACK_ALLOCATE_PTR(string, msg);
+    string_init(&msg->name, name);
+    string_init(MSGPACK_SELECT_PTR(string, msg), string_data(val));
 }
 
-msgpack* msgpack_read(msgpack* msg, wchar_t* name) {
+void msgpack_set_wstring(msgpack* msg, char* name, wstring* val) {
+    if (!msg)
+        return;
+
+    char* temp = utf16_to_utf8(wstring_access(val));
+    msgpack_free(msg);
+    msg->type = MSGPACK_STRING;
+    MSGPACK_ALLOCATE_PTR(string, msg);
+    string_init(&msg->name, name);
+    string_init(MSGPACK_SELECT_PTR(string, msg), temp);
+    free(temp);
+}
+
+msgpack* msgpack_read(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
     return name ? msgpack_get_by_name(msg, name) : msg;
 }
 
-bool msgpack_read_bool(msgpack* msg, wchar_t* name) {
+bool msgpack_read_bool(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
     msgpack* m = name ? msgpack_get_by_name(msg, name) : msg;
     if (m && m->type == MSGPACK_BOOL)
-        return *SELECT_MSGPACK_PTR(bool, m);
+        return *MSGPACK_SELECT_PTR(bool, m);
     return 0;
 }
 
-int8_t msgpack_read_int8_t(msgpack* msg, wchar_t* name) {
+int8_t msgpack_read_int8_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -625,13 +684,13 @@ int8_t msgpack_read_int8_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return *SELECT_MSGPACK_PTR(int8_t, m);
+        return *MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return (int8_t)*SELECT_MSGPACK_PTR(uint8_t, m);
+        return (int8_t)*MSGPACK_SELECT_PTR(uint8_t, m);
     return 0;
 }
 
-uint8_t msgpack_read_uint8_t(msgpack* msg, wchar_t* name) {
+uint8_t msgpack_read_uint8_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -640,13 +699,13 @@ uint8_t msgpack_read_uint8_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return (uint8_t)*SELECT_MSGPACK_PTR(int8_t, m);
+        return (uint8_t)*MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return *SELECT_MSGPACK_PTR(uint8_t, m);
+        return *MSGPACK_SELECT_PTR(uint8_t, m);
     return 0;
 }
 
-int16_t msgpack_read_int16_t(msgpack* msg, wchar_t* name) {
+int16_t msgpack_read_int16_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -655,17 +714,17 @@ int16_t msgpack_read_int16_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return *SELECT_MSGPACK_PTR(int8_t, m);
+        return *MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return *SELECT_MSGPACK_PTR(uint8_t, m);
+        return *MSGPACK_SELECT_PTR(uint8_t, m);
     else if (m->type == MSGPACK_INT16)
-        return *SELECT_MSGPACK_PTR(int16_t, m);
+        return *MSGPACK_SELECT_PTR(int16_t, m);
     else if (m->type == MSGPACK_UINT16)
-        return (int16_t)*SELECT_MSGPACK_PTR(uint16_t, m);
+        return (int16_t)*MSGPACK_SELECT_PTR(uint16_t, m);
     return 0;
 }
 
-uint16_t msgpack_read_uint16_t(msgpack* msg, wchar_t* name) {
+uint16_t msgpack_read_uint16_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -674,17 +733,17 @@ uint16_t msgpack_read_uint16_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return (uint16_t)(int16_t)*SELECT_MSGPACK_PTR(int8_t, m);
+        return (uint16_t)(int16_t)*MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return *SELECT_MSGPACK_PTR(uint8_t, m);
+        return *MSGPACK_SELECT_PTR(uint8_t, m);
     else if (m->type == MSGPACK_INT16)
-        return (uint16_t)(int16_t)*SELECT_MSGPACK_PTR(int16_t, m);
+        return (uint16_t)(int16_t)*MSGPACK_SELECT_PTR(int16_t, m);
     else if (m->type == MSGPACK_UINT16)
-        return *SELECT_MSGPACK_PTR(uint16_t, m);
+        return *MSGPACK_SELECT_PTR(uint16_t, m);
     return 0;
 }
 
-int32_t msgpack_read_int32_t(msgpack* msg, wchar_t* name) {
+int32_t msgpack_read_int32_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -693,21 +752,21 @@ int32_t msgpack_read_int32_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return *SELECT_MSGPACK_PTR(int8_t, m);
+        return *MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return *SELECT_MSGPACK_PTR(uint8_t, m);
+        return *MSGPACK_SELECT_PTR(uint8_t, m);
     else if (m->type == MSGPACK_INT16)
-        return *SELECT_MSGPACK_PTR(int16_t, m);
+        return *MSGPACK_SELECT_PTR(int16_t, m);
     else if (m->type == MSGPACK_UINT16)
-        return *SELECT_MSGPACK_PTR(uint16_t, m);
+        return *MSGPACK_SELECT_PTR(uint16_t, m);
     else if (m->type == MSGPACK_INT32)
-        return *SELECT_MSGPACK_PTR(int32_t, m);
+        return *MSGPACK_SELECT_PTR(int32_t, m);
     else if (m->type == MSGPACK_UINT32)
-        return (int32_t)*SELECT_MSGPACK_PTR(uint32_t, m);
+        return (int32_t)*MSGPACK_SELECT_PTR(uint32_t, m);
     return 0;
 }
 
-uint32_t msgpack_read_uint32_t(msgpack* msg, wchar_t* name) {
+uint32_t msgpack_read_uint32_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -716,21 +775,21 @@ uint32_t msgpack_read_uint32_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return (uint32_t)(int32_t)*SELECT_MSGPACK_PTR(int8_t, m);
+        return (uint32_t)(int32_t)*MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return *SELECT_MSGPACK_PTR(uint8_t, m);
+        return *MSGPACK_SELECT_PTR(uint8_t, m);
     else if (m->type == MSGPACK_INT16)
-        return (uint32_t)(int32_t)*SELECT_MSGPACK_PTR(int16_t, m);
+        return (uint32_t)(int32_t)*MSGPACK_SELECT_PTR(int16_t, m);
     else if (m->type == MSGPACK_UINT16)
-        return *SELECT_MSGPACK_PTR(uint16_t, m);
+        return *MSGPACK_SELECT_PTR(uint16_t, m);
     else if (m->type == MSGPACK_INT32)
-        return (uint32_t)(int32_t)*SELECT_MSGPACK_PTR(int32_t, m);
+        return (uint32_t)(int32_t)*MSGPACK_SELECT_PTR(int32_t, m);
     else if (m->type == MSGPACK_UINT32)
-        return *SELECT_MSGPACK_PTR(uint32_t, m);
+        return *MSGPACK_SELECT_PTR(uint32_t, m);
     return 0;
 }
 
-int64_t msgpack_read_int64_t(msgpack* msg, wchar_t* name) {
+int64_t msgpack_read_int64_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -739,25 +798,25 @@ int64_t msgpack_read_int64_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return *SELECT_MSGPACK_PTR(int8_t, m);
+        return *MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return *SELECT_MSGPACK_PTR(uint8_t, m);
+        return *MSGPACK_SELECT_PTR(uint8_t, m);
     else if (m->type == MSGPACK_INT16)
-        return *SELECT_MSGPACK_PTR(int16_t, m);
+        return *MSGPACK_SELECT_PTR(int16_t, m);
     else if (m->type == MSGPACK_UINT16)
-        return *SELECT_MSGPACK_PTR(uint16_t, m);
+        return *MSGPACK_SELECT_PTR(uint16_t, m);
     else if (m->type == MSGPACK_INT32)
-        return *SELECT_MSGPACK_PTR(int32_t, m);
+        return *MSGPACK_SELECT_PTR(int32_t, m);
     else if (m->type == MSGPACK_UINT32)
-        return *SELECT_MSGPACK_PTR(uint32_t, m);
+        return *MSGPACK_SELECT_PTR(uint32_t, m);
     else if (m->type == MSGPACK_INT64)
-        return *SELECT_MSGPACK_PTR(int64_t, m);
+        return *MSGPACK_SELECT_PTR(int64_t, m);
     else if (m->type == MSGPACK_UINT64)
-        return (int64_t)*SELECT_MSGPACK_PTR(uint64_t, m);
+        return (int64_t)*MSGPACK_SELECT_PTR(uint64_t, m);
     return 0;
 }
 
-uint64_t msgpack_read_uint64_t(msgpack* msg, wchar_t* name) {
+uint64_t msgpack_read_uint64_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -766,25 +825,25 @@ uint64_t msgpack_read_uint64_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return (uint64_t)(int64_t)*SELECT_MSGPACK_PTR(int8_t, m);
+        return (uint64_t)(int64_t)*MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return *SELECT_MSGPACK_PTR(uint8_t, m);
+        return *MSGPACK_SELECT_PTR(uint8_t, m);
     else if (m->type == MSGPACK_INT16)
-        return (uint64_t)(int64_t)*SELECT_MSGPACK_PTR(int16_t, m);
+        return (uint64_t)(int64_t)*MSGPACK_SELECT_PTR(int16_t, m);
     else if (m->type == MSGPACK_UINT16)
-        return *SELECT_MSGPACK_PTR(uint16_t, m);
+        return *MSGPACK_SELECT_PTR(uint16_t, m);
     else if (m->type == MSGPACK_INT32)
-        return (uint64_t)(int64_t)*SELECT_MSGPACK_PTR(int32_t, m);
+        return (uint64_t)(int64_t)*MSGPACK_SELECT_PTR(int32_t, m);
     else if (m->type == MSGPACK_UINT32)
-        return *SELECT_MSGPACK_PTR(uint32_t, m);
+        return *MSGPACK_SELECT_PTR(uint32_t, m);
     else if (m->type == MSGPACK_INT32)
-        return (uint64_t)*SELECT_MSGPACK_PTR(int64_t, m);
+        return (uint64_t)*MSGPACK_SELECT_PTR(int64_t, m);
     else if (m->type == MSGPACK_UINT32)
-        return *SELECT_MSGPACK_PTR(uint64_t, m);
+        return *MSGPACK_SELECT_PTR(uint64_t, m);
     return 0;
 }
 
-float_t msgpack_read_float_t(msgpack* msg, wchar_t* name) {
+float_t msgpack_read_float_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -793,29 +852,29 @@ float_t msgpack_read_float_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return *SELECT_MSGPACK_PTR(int8_t, m);
+        return *MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return *SELECT_MSGPACK_PTR(uint8_t, m);
+        return *MSGPACK_SELECT_PTR(uint8_t, m);
     else if (m->type == MSGPACK_INT16)
-        return *SELECT_MSGPACK_PTR(int16_t, m);
+        return *MSGPACK_SELECT_PTR(int16_t, m);
     else if (m->type == MSGPACK_UINT16)
-        return *SELECT_MSGPACK_PTR(uint16_t, m);
+        return *MSGPACK_SELECT_PTR(uint16_t, m);
     else if (m->type == MSGPACK_INT32)
-        return (float_t)*SELECT_MSGPACK_PTR(int32_t, m);
+        return (float_t)*MSGPACK_SELECT_PTR(int32_t, m);
     else if (m->type == MSGPACK_UINT32)
-        return (float_t)*SELECT_MSGPACK_PTR(uint32_t, m);
+        return (float_t)*MSGPACK_SELECT_PTR(uint32_t, m);
     else if (m->type == MSGPACK_INT64)
-        return (float_t)*SELECT_MSGPACK_PTR(int64_t, m);
+        return (float_t)*MSGPACK_SELECT_PTR(int64_t, m);
     else if (m->type == MSGPACK_UINT64)
-        return (float_t)*SELECT_MSGPACK_PTR(uint64_t, m);
+        return (float_t)*MSGPACK_SELECT_PTR(uint64_t, m);
     else if (m->type == MSGPACK_FLOAT)
-        return *SELECT_MSGPACK_PTR(float_t, m);
+        return *MSGPACK_SELECT_PTR(float_t, m);
     else if (m->type == MSGPACK_DOUBLE)
-        return (float_t)*SELECT_MSGPACK_PTR(double_t, m);
+        return (float_t)*MSGPACK_SELECT_PTR(double_t, m);
     return 0;
 }
 
-double_t msgpack_read_double_t(msgpack* msg, wchar_t* name) {
+double_t msgpack_read_double_t(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
@@ -824,108 +883,114 @@ double_t msgpack_read_double_t(msgpack* msg, wchar_t* name) {
         return 0;
 
     if (m->type == MSGPACK_INT8)
-        return *SELECT_MSGPACK_PTR(int8_t, m);
+        return *MSGPACK_SELECT_PTR(int8_t, m);
     else if (m->type == MSGPACK_UINT8)
-        return *SELECT_MSGPACK_PTR(uint8_t, m);
+        return *MSGPACK_SELECT_PTR(uint8_t, m);
     else if (m->type == MSGPACK_INT16)
-        return *SELECT_MSGPACK_PTR(int16_t, m);
+        return *MSGPACK_SELECT_PTR(int16_t, m);
     else if (m->type == MSGPACK_UINT16)
-        return *SELECT_MSGPACK_PTR(uint16_t, m);
+        return *MSGPACK_SELECT_PTR(uint16_t, m);
     else if (m->type == MSGPACK_INT32)
-        return *SELECT_MSGPACK_PTR(int32_t, m);
+        return *MSGPACK_SELECT_PTR(int32_t, m);
     else if (m->type == MSGPACK_UINT32)
-        return *SELECT_MSGPACK_PTR(uint32_t, m);
+        return *MSGPACK_SELECT_PTR(uint32_t, m);
     else if (m->type == MSGPACK_INT64)
-        return (double_t)*SELECT_MSGPACK_PTR(int64_t, m);
+        return (double_t)*MSGPACK_SELECT_PTR(int64_t, m);
     else if (m->type == MSGPACK_UINT64)
-        return (double_t)*SELECT_MSGPACK_PTR(uint64_t, m);
+        return (double_t)*MSGPACK_SELECT_PTR(uint64_t, m);
     else if (m->type == MSGPACK_FLOAT)
-        return *SELECT_MSGPACK_PTR(float_t, m);
+        return *MSGPACK_SELECT_PTR(float_t, m);
     else if (m->type == MSGPACK_DOUBLE)
-        return *SELECT_MSGPACK_PTR(double_t, m);
+        return *MSGPACK_SELECT_PTR(double_t, m);
     return 0;
 }
 
-void msgpack_read_char_buffer_string(msgpack* msg, wchar_t* name, string* c) {
-    if (!msg) {
-        string_init(c, 0);
-        return;
-    }
-
-    msgpack* m = name ? msgpack_get_by_name(msg, name) : msg;
-
-    if (m && m->type == MSGPACK_STRING) {
-        wstring* ptr = SELECT_MSGPACK_PTR(wstring, m);
-        char* temp = utf8_encode(wstring_access(ptr));
-        string_init(c, temp);
-        free(temp);
-    }
-    else
-        string_init(c, 0);
-}
-
-void msgpack_read_buffer_string(msgpack* msg, wchar_t* name, wstring* c) {
-    if (!msg) {
-        wstring_init(c, 0);
-        return;
-    }
-
-    msgpack* m = name ? msgpack_get_by_name(msg, name) : msg;
-
-    if (m && m->type == MSGPACK_STRING) {
-        wstring* ptr = SELECT_MSGPACK_PTR(wstring, m);
-        wstring_init(c, wstring_access(ptr));
-    }
-    else
-        wstring_init(c, 0);
-}
-
-char* msgpack_read_char_string(msgpack* msg, wchar_t* name) {
+char* msgpack_read_utf8_string(msgpack* msg, char* name) {
     if (!msg)
         return 0;
 
     msgpack* m = name ? msgpack_get_by_name(msg, name) : msg;
 
     if (m && m->type == MSGPACK_STRING) {
-        wstring* ptr = SELECT_MSGPACK_PTR(wstring, m);
-        return utf8_encode(wstring_access(ptr));
-    }
-    return 0;
-}
-
-wchar_t* msgpack_read_string(msgpack* msg, wchar_t* name) {
-    if (!msg)
-        return 0;
-
-    msgpack* m = name ? msgpack_get_by_name(msg, name) : msg;
-
-    if (m && m->type == MSGPACK_STRING) {
-        wstring* ptr = SELECT_MSGPACK_PTR(wstring, m);
-        wchar_t* val = force_malloc_s(wchar_t, ptr->length + 1);
-        memcpy(val, wstring_access(ptr), sizeof(wchar_t) * (ptr->length + 1));
+        string* ptr = MSGPACK_SELECT_PTR(string, m);
+        size_t length = string_length(ptr) + 1;
+        char* val = force_malloc(length);
+        memcpy(val, string_data(ptr), length);
         return val;
     }
     return 0;
+}
+
+wchar_t* msgpack_read_utf16_string(msgpack* msg, char* name) {
+    if (!msg)
+        return 0;
+
+    msgpack* m = name ? msgpack_get_by_name(msg, name) : msg;
+
+    if (m && m->type == MSGPACK_STRING) {
+        string* ptr = MSGPACK_SELECT_PTR(string, m);
+        wchar_t* temp = utf8_to_utf16(string_data(ptr));
+        size_t length = utf16_length(temp) + 1;
+        wchar_t* val = force_malloc_s(wchar_t, length);
+        memcpy(val, temp, sizeof(wchar_t) * length);
+        free(temp);
+        return val;
+    }
+    return 0;
+}
+
+void msgpack_read_string(msgpack* msg, char* name, string* str) {
+    if (!msg) {
+        string_init(str, 0);
+        return;
+    }
+
+    msgpack* m = name ? msgpack_get_by_name(msg, name) : msg;
+
+    if (m && m->type == MSGPACK_STRING) {
+        string* ptr = MSGPACK_SELECT_PTR(string, m);
+        string_init(str, string_data(ptr));
+    }
+    else
+        string_init(str, 0);
+}
+
+void msgpack_read_wstring(msgpack* msg, char* name, wstring* str) {
+    if (!msg) {
+        wstring_init(str, 0);
+        return;
+    }
+
+    msgpack* m = name ? msgpack_get_by_name(msg, name) : msg;
+
+    if (m && m->type == MSGPACK_STRING) {
+        string* ptr = MSGPACK_SELECT_PTR(string, m);
+        wchar_t* temp = utf8_to_utf16(string_data(ptr));
+        wstring_init(str, temp);
+        free(temp);
+    }
+    else
+        wstring_init(str, 0);
 }
 
 void msgpack_free(msgpack* msg) {
     if (!msg)
         return;
 
-    wstring_dispose(&msg->name);
+    string_free(&msg->name);
 
     switch (msg->type) {
     case MSGPACK_STRING:
-        wstring_dispose(SELECT_MSGPACK_PTR(wstring, msg));
+        string_free(MSGPACK_SELECT_PTR(string, msg));
         break;
     case MSGPACK_ARRAY: {
-        msgpack_array* ptr = SELECT_MSGPACK_PTR(msgpack_array, msg);
+        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
         for (msgpack* i = ptr->begin; i != ptr->end; i++)
             msgpack_free(i);
         vector_msgpack_free(ptr);
     } break;
     case MSGPACK_MAP: {
-        msgpack_map* ptr = SELECT_MSGPACK_PTR(msgpack_map, msg);
+        msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
         for (msgpack* i = ptr->begin; i != ptr->end; i++)
             msgpack_free(i);
         vector_msgpack_free(ptr);

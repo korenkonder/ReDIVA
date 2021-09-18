@@ -1,0 +1,77 @@
+/*
+    by korenkonder
+    GitHub/GitLab: korenkonder
+*/
+
+#pragma once
+
+#include "../KKdLib/default.h"
+#include "shader.h"
+
+typedef enum shader_aft_enum {
+    SHADER_AFT_FFP        = 0x00,
+    SHADER_AFT_BLINN      = 0x01,
+    SHADER_AFT_ITEM       = 0x02,
+    SHADER_AFT_STAGE      = 0x03,
+    SHADER_AFT_SKIN       = 0x04,
+    SHADER_AFT_SSS_SKIN   = 0x05,
+    SHADER_AFT_SSS_FILT   = 0x06,
+    SHADER_AFT_HAIR       = 0x07,
+    SHADER_AFT_CLOTH      = 0x08,
+    SHADER_AFT_TIGHTS     = 0x09,
+    SHADER_AFT_SKY        = 0x0A,
+    SHADER_AFT_EYEBALL    = 0x0B,
+    SHADER_AFT_EYELENS    = 0x0C,
+    SHADER_AFT_GLASEYE    = 0x0D,
+    SHADER_AFT_MEMBRAN    = 0x0E,
+    SHADER_AFT_SHDMAP     = 0x0F,
+    SHADER_AFT_ESM        = 0x10,
+    SHADER_AFT_ESMGAUSS   = 0x11,
+    SHADER_AFT_ESMFILT    = 0x12,
+    SHADER_AFT_LITPROJ    = 0x13,
+    SHADER_AFT_SIMPLE     = 0x14,
+    SHADER_AFT_SIL        = 0x15,
+    SHADER_AFT_LAMBERT    = 0x16,
+    SHADER_AFT_CONSTANT   = 0x17,
+    SHADER_AFT_PEEL       = 0x18,
+    SHADER_AFT_TONEMAP    = 0x19,
+    SHADER_AFT_REDUCE     = 0x1A,
+    SHADER_AFT_MAGNIFY    = 0x1B,
+    SHADER_AFT_MLAA       = 0x1C,
+    SHADER_AFT_CONTOUR    = 0x1D,
+    SHADER_AFT_EXPOSURE   = 0x1E,
+    SHADER_AFT_GAUSS      = 0x1F,
+    SHADER_AFT_SUN        = 0x20,
+    SHADER_AFT_FADE       = 0x21,
+    SHADER_AFT_WATER01    = 0x22,
+    SHADER_AFT_WATER02    = 0x23,
+    SHADER_AFT_WATRING    = 0x24,
+    SHADER_AFT_W_PTCL     = 0x25,
+    SHADER_AFT_SNOW_PT    = 0x26,
+    SHADER_AFT_LEAF_PT    = 0x27,
+    SHADER_AFT_STAR       = 0x28,
+    SHADER_AFT_SNORING    = 0x29,
+    SHADER_AFT_SN_FOOT    = 0x2A,
+    SHADER_AFT_SN_TSL     = 0x2B,
+    SHADER_AFT_SN_NRM     = 0x2C,
+    SHADER_AFT_FLOOR      = 0x2D,
+    SHADER_AFT_PUDDLE     = 0x2E,
+    SHADER_AFT_S_REFL     = 0x2F,
+    SHADER_AFT_S_REFR     = 0x30,
+    SHADER_AFT_RIPEMIT    = 0x31,
+    SHADER_AFT_RAIN       = 0x32,
+    SHADER_AFT_VOLLIT     = 0x33,
+    SHADER_AFT_FENCE      = 0x34,
+    SHADER_AFT_RIPPLE     = 0x35,
+    SHADER_AFT_FOGPTCL    = 0x36,
+    SHADER_AFT_PARTICL    = 0x37,
+    SHADER_AFT_GLITTER_PT = 0x38,
+    SHADER_AFT_SHOWVEC    = 0x39,
+    SHADER_AFT_FONT       = 0x3A,
+    SHADER_AFT_MOVIE      = 0x3B,
+    SHADER_AFT_IMGFILT    = 0x3C,
+    SHADER_AFT_SPRITE     = 0x3D,
+    SHADER_AFT_END        = 0x3E,
+} shader_aft_enum;
+
+extern void shader_aft_load(shader_set_data* set, farc* f, bool ignore_cache);

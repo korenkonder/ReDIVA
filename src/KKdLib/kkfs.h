@@ -26,7 +26,7 @@ typedef enum kkfs_directory_flags {
 
 typedef enum kkfs_file_flags {
     KKFS_FILE_READ_ONLY         = 0x1,
-    KKFS_FILE_CURSED            = 0x2,
+    KKFS_FILE_CIPHER            = 0x2,
 } kkfs_file_flags;
 
 typedef enum kkfs_type {
@@ -38,16 +38,16 @@ typedef enum kkfs_type {
 
 typedef struct kkfs_deleted {
     kkfs_type type : 2;
-    char data[0x40 - sizeof(kkfs_type)];
+    uint8_t data[0x40 - sizeof(kkfs_type)];
 } kkfs_deleted;
 
 typedef struct kkfs_directory {
     kkfs_type type : 2;
     uint32_t data_sector : 30;
     wchar_t name[KKFS_NAME_LENGTH];
-    char padding0[0x08];
+    uint8_t padding0[0x08];
     kkfs_directory_flags flags;
-    char padding1[0x04];
+    uint8_t padding1[0x04];
 } kkfs_directory;
 
 typedef struct kkfs_file {
@@ -72,7 +72,7 @@ typedef struct kkfs_header {
     uint32_t parent_hash;
     uint32_t parent_key_hash;
     kkfs_directory_flags flags;
-    char padding[0x4];
+    uint8_t padding[0x4];
     uint32_t sector_size;
     uint32_t sectors_count;
     wchar_t name[0x10];
@@ -81,9 +81,9 @@ typedef struct kkfs_header {
 typedef struct kkfs_struct {
     uint8_t jmp_code[3];
     char signature[0x08];
-    char padding0[0x05];
+    uint8_t padding0[0x05];
     kkfs_header header;
-    char padding1[0x0A];
+    uint8_t padding1[0x0A];
     uint8_t code[0x1A4];
     uint16_t end_signature;
 } kkfs_struct;
@@ -92,7 +92,7 @@ typedef struct kkfs {
     kkfs_struct data;
     kkfs_sector_info* sector_info;
     FILE* io;
-    kkc* curse;
+    kkc* cipher;
     uint32_t current_directory_index;
     kkfs_directory* current_directory;
     uint32_t free_sector;

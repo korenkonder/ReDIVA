@@ -32,7 +32,7 @@ const mat4 mat4_null = {
     { 0.0f, 0.0f, 0.0f, 0.0f },
 };
 
-inline void FASTCALL mat3_add(mat3* x, mat3* y, mat3* z) {
+inline void mat3_add(mat3* x, mat3* y, mat3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -50,7 +50,7 @@ inline void FASTCALL mat3_add(mat3* x, mat3* y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
-inline void FASTCALL mat3_sub(mat3* x, mat3* y, mat3* z) {
+inline void mat3_sub(mat3* x, mat3* y, mat3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -68,7 +68,7 @@ inline void FASTCALL mat3_sub(mat3* x, mat3* y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
-inline void FASTCALL mat3_mult(mat3* x, mat3* y, mat3* z) {
+inline void mat3_mult(mat3* x, mat3* y, mat3* z) {
     __m128 t0;
     __m128 t1;
     __m128 t2;
@@ -100,7 +100,7 @@ inline void FASTCALL mat3_mult(mat3* x, mat3* y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
-inline void FASTCALL mat3_mult_vec(mat3* x, vec3* y, vec3* z) {
+inline void mat3_mult_vec(mat3* x, vec3* y, vec3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -118,7 +118,7 @@ inline void FASTCALL mat3_mult_vec(mat3* x, vec3* y, vec3* z) {
     *z = *(vec3*)&zt;
 }
 
-inline void FASTCALL mat3_mult_scalar(mat3* x, float_t y, mat3* z) {
+inline void mat3_mult_scalar(mat3* x, float_t y, mat3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -135,7 +135,7 @@ inline void FASTCALL mat3_mult_scalar(mat3* x, float_t y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
-inline void FASTCALL mat3_transpose(mat3* x, mat3* z) {
+inline void mat3_transpose(mat3* x, mat3* z) {
     __m128 xt0;
     __m128 xt1;
     __m128 xt2;
@@ -163,7 +163,7 @@ inline void FASTCALL mat3_transpose(mat3* x, mat3* z) {
     z->row2 = *(vec3*)&zt2;
 }
 
-void FASTCALL mat3_inverse(mat3* x, mat3* z) {
+void mat3_inverse(mat3* x, mat3* z) {
     vec3 xt0;
     vec3 xt1;
     vec3 xt2;
@@ -223,14 +223,14 @@ void FASTCALL mat3_inverse(mat3* x, mat3* z) {
     z->row2 = *(vec3*)&yt;
 }
 
-inline void FASTCALL mat3_invtrans(mat3* x, mat3* z) {
+inline void mat3_invtrans(mat3* x, mat3* z) {
     mat3 t = *x;
     mat3_inverse(&t, &t);
     mat3_transpose(&t, &t);
     *z = t;
 }
 
-inline void FASTCALL mat3_normalize(mat3* x, mat3* z) {
+inline void mat3_normalize(mat3* x, mat3* z) {
     __m128 det;
     __m128 xt0;
     __m128 xt1;
@@ -250,7 +250,7 @@ inline void FASTCALL mat3_normalize(mat3* x, mat3* z) {
     z->row2 = *(vec3*)&xt2;
 }
 
-void FASTCALL mat3_normalize_rotation(mat3* x, mat3* z) {
+void mat3_normalize_rotation(mat3* x, mat3* z) {
     __m128 xt;
     __m128 yt;
     *(vec3*)&xt = x->row0;
@@ -282,7 +282,7 @@ void FASTCALL mat3_normalize_rotation(mat3* x, mat3* z) {
     z->row2 = *(vec3*)&xt;
 }
 
-inline float_t FASTCALL mat3_determinant(mat3* x) {
+inline float_t mat3_determinant(mat3* x) {
     vec3 xt0;
     vec3 xt1;
     vec3 xt2;
@@ -298,7 +298,7 @@ inline float_t FASTCALL mat3_determinant(mat3* x) {
     return b00 + b01 + b02 - b03 - b04 - b05;
 }
 
-inline void FASTCALL mat3_rotate(float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate(float_t x, float_t y, float_t z, mat3* d) {
     mat3 dt;
     dt = mat3_identity;
     if (z != 0.0f)
@@ -310,7 +310,7 @@ inline void FASTCALL mat3_rotate(float_t x, float_t y, float_t z, mat3* d) {
     *d = dt;
 }
 
-inline void FASTCALL mat3_rotate_x(float_t x, mat3* y) {
+inline void mat3_rotate_x(float_t x, mat3* y) {
     mat3 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
@@ -322,7 +322,7 @@ inline void FASTCALL mat3_rotate_x(float_t x, mat3* y) {
     *y = yt;
 }
 
-inline void FASTCALL mat3_rotate_y(float_t x, mat3* y) {
+inline void mat3_rotate_y(float_t x, mat3* y) {
     mat3 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
@@ -334,7 +334,7 @@ inline void FASTCALL mat3_rotate_y(float_t x, mat3* y) {
     *y = yt;
 }
 
-inline void FASTCALL mat3_rotate_z(float_t x, mat3* y) {
+inline void mat3_rotate_z(float_t x, mat3* y) {
     mat3 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
@@ -346,7 +346,7 @@ inline void FASTCALL mat3_rotate_z(float_t x, mat3* y) {
     *y = yt;
 }
 
-inline void FASTCALL mat3_rotate_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d) {
     mat3 dt;
     dt = *s;
     if (z != 0.0f)
@@ -358,7 +358,7 @@ inline void FASTCALL mat3_rotate_mult(mat3* s, float_t x, float_t y, float_t z, 
     *d = dt;
 }
 
-inline void FASTCALL mat3_rotate_x_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_rotate_x_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
@@ -370,7 +370,7 @@ inline void FASTCALL mat3_rotate_x_mult(mat3* x, float_t y, mat3* z) {
     mat3_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat3_rotate_y_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_rotate_y_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
@@ -382,7 +382,7 @@ inline void FASTCALL mat3_rotate_y_mult(mat3* x, float_t y, mat3* z) {
     mat3_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat3_rotate_z_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_rotate_z_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
@@ -394,7 +394,7 @@ inline void FASTCALL mat3_rotate_z_mult(mat3* x, float_t y, mat3* z) {
     mat3_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat3_scale(float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_scale(float_t x, float_t y, float_t z, mat3* d) {
     mat3 dt;
     dt = mat3_identity;
     if (x != 1.0f)
@@ -406,28 +406,28 @@ inline void FASTCALL mat3_scale(float_t x, float_t y, float_t z, mat3* d) {
     *d = dt;
 }
 
-inline void FASTCALL mat3_scale_x(float_t x, mat3* y) {
+inline void mat3_scale_x(float_t x, mat3* y) {
     mat3 yt;
     yt = mat3_identity;
     yt.row0.x = x;
     *y = yt;
 }
 
-inline void FASTCALL mat3_scale_y(float_t x, mat3* y) {
+inline void mat3_scale_y(float_t x, mat3* y) {
     mat3 yt;
     yt = mat3_identity;
     yt.row1.y = x;
     *y = yt;
 }
 
-inline void FASTCALL mat3_scale_z(float_t x, mat3* y) {
+inline void mat3_scale_z(float_t x, mat3* y) {
     mat3 yt;
     yt = mat3_identity;
     yt.row2.z = x;
     *y = yt;
 }
 
-inline void FASTCALL mat3_scale_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_scale_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d) {
     mat3 st;
     mat3 dt;
     if (x != 1.0f || y != 1.0f || z != 1.0f) {
@@ -443,28 +443,28 @@ inline void FASTCALL mat3_scale_mult(mat3* s, float_t x, float_t y, float_t z, m
         *d = *s;
 }
 
-inline void FASTCALL mat3_scale_x_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_scale_x_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
     yt = mat3_identity;
     yt.row0.x = y;
     mat3_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat3_scale_y_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_scale_y_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
     yt = mat3_identity;
     yt.row1.y = y;
     mat3_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat3_scale_z_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_scale_z_mult(mat3* x, float_t y, mat3* z) {
     mat3 yt;
     yt = mat3_identity;
     yt.row2.z = y;
     mat3_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat3_from_quat(quat* quat, mat3* mat) {
+inline void mat3_from_quat(quat* quat, mat3* mat) {
     float_t y;
     float_t x;
     float_t z;
@@ -484,7 +484,7 @@ inline void FASTCALL mat3_from_quat(quat* quat, mat3* mat) {
     y = quat->y;
     z = quat->z;
     w = quat->w;
-    len = quat_length_squared(quat);;
+    vec4_length_squared(*quat, len);
     len = len > 0.0f ? 2.0f / len : 0.0f;
     xx = x * x * len;
     xy = x * y * len;
@@ -506,13 +506,13 @@ inline void FASTCALL mat3_from_quat(quat* quat, mat3* mat) {
     mat->row2.z = 1.0f - yy - xx;
 }
 
-inline void FASTCALL mat3_from_mat4(mat4* x, mat3* z) {
+inline void mat3_from_mat4(mat4* x, mat3* z) {
     z->row0 = *(vec3*)&x->row0;
     z->row1 = *(vec3*)&x->row1;
     z->row2 = *(vec3*)&x->row2;
 }
 
-inline void FASTCALL mat3_from_mat4_inverse(mat4* x, mat3* z) {
+inline void mat3_from_mat4_inverse(mat4* x, mat3* z) {
     mat4 yt;
 
     mat4_inverse(x, &yt);
@@ -521,27 +521,46 @@ inline void FASTCALL mat3_from_mat4_inverse(mat4* x, mat3* z) {
     z->row2 = *(vec3*)&yt.row2;
 }
 
-inline void FASTCALL mat3_get_scale(mat3* x, vec3* z) {
+inline void mat3_get_rotation(mat3* x, vec3* z) {
+    if (-x->row0.z >= 1.0)
+        z->y = (float_t)M_PI_2;
+    else if (-x->row0.z <= -1.0)
+        z->y = (float_t)-M_PI_2;
+    else
+        z->y = asinf(-x->row0.z);
+    if (fabs(x->row0.z) < 0.99999899f) {
+        z->x = atan2f(x->row1.z, x->row2.z);
+        z->z = atan2f(x->row0.y, x->row0.x);
+    }
+    else {
+        z->x = 0.0f;
+        z->z = atan2f(x->row2.y, x->row1.y);
+        if (-x->row0.z < 0.0f)
+            z->z = -z->z;
+    }
+}
+
+inline void mat3_get_scale(mat3* x, vec3* z) {
     vec3_length(x->row0, z->x);
     vec3_length(x->row1, z->y);
     vec3_length(x->row2, z->z);
 }
 
-inline void FASTCALL mat4_add(mat4* x, mat4* y, mat4* z) {
+inline void mat4_add(mat4* x, mat4* y, mat4* z) {
     z->row0.data = _mm_add_ps(x->row0.data, y->row0.data);
     z->row1.data = _mm_add_ps(x->row1.data, y->row1.data);
     z->row2.data = _mm_add_ps(x->row2.data, y->row2.data);
     z->row3.data = _mm_add_ps(x->row3.data, y->row3.data);
 }
 
-inline void FASTCALL mat4_sub(mat4* x, mat4* y, mat4* z) {
+inline void mat4_sub(mat4* x, mat4* y, mat4* z) {
     z->row0.data = _mm_sub_ps(x->row0.data, y->row0.data);
     z->row1.data = _mm_sub_ps(x->row1.data, y->row1.data);
     z->row2.data = _mm_sub_ps(x->row2.data, y->row2.data);
     z->row3.data = _mm_sub_ps(x->row3.data, y->row3.data);
 }
 
-inline void FASTCALL mat4_mult(mat4* x, mat4* y, mat4* z) {
+inline void mat4_mult(mat4* x, mat4* y, mat4* z) {
     __m128 t0;
     __m128 t1;
     __m128 t2;
@@ -581,7 +600,7 @@ inline void FASTCALL mat4_mult(mat4* x, mat4* y, mat4* z) {
     z->row3.data = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
 }
 
-inline void FASTCALL mat4_mult_vec3(mat4* x, vec3* y, vec3* z) {
+inline void mat4_mult_vec3(mat4* x, vec3* y, vec3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -599,7 +618,7 @@ inline void FASTCALL mat4_mult_vec3(mat4* x, vec3* y, vec3* z) {
     *z = *(vec3*)&zt;
 }
 
-inline void FASTCALL mat4_mult_vec3_trans(mat4* x, vec3* y, vec3* z) {
+inline void mat4_mult_vec3_trans(mat4* x, vec3* y, vec3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -619,7 +638,7 @@ inline void FASTCALL mat4_mult_vec3_trans(mat4* x, vec3* y, vec3* z) {
     *z = *(vec3*)&zt;
 }
 
-inline void FASTCALL mat4_mult_vec(mat4* x, vec4* y, vec4* z) {
+inline void mat4_mult_vec(mat4* x, vec4* y, vec4* z) {
     __m128 yt;
     __m128 zt0;
     __m128 zt1;
@@ -633,7 +652,7 @@ inline void FASTCALL mat4_mult_vec(mat4* x, vec4* y, vec4* z) {
     z->data = _mm_add_ps(_mm_add_ps(zt0, zt1), _mm_add_ps(zt2, zt3));
 }
 
-inline void FASTCALL mat4_mult_scalar(mat4* x, float_t y, mat4* z) {
+inline void mat4_mult_scalar(mat4* x, float_t y, mat4* z) {
     __m128 yt;
     yt = _mm_set_ss(y);
     yt = _mm_shuffle_ps(yt, yt, 0);
@@ -643,7 +662,7 @@ inline void FASTCALL mat4_mult_scalar(mat4* x, float_t y, mat4* z) {
     z->row3.data = _mm_mul_ps(x->row3.data, yt);
 }
 
-inline void FASTCALL mat4_transpose(mat4* x, mat4* z) {
+inline void mat4_transpose(mat4* x, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -658,32 +677,52 @@ inline void FASTCALL mat4_transpose(mat4* x, mat4* z) {
     z->row3.data = _mm_movehl_ps(yt3, yt1);
 }
 
-void FASTCALL mat4_inverse(mat4* x, mat4* z) {
+void mat4_inverse(mat4* x, mat4* z) {
     static const __m128 xor0 = { .m128_f32 = { -0.0f,  0.0f, -0.0f,  0.0f } };
     static const __m128 xor1 = { .m128_f32 = {  0.0f, -0.0f,  0.0f, -0.0f } };
 
-    vec4 xt0, xt1, xt2, xt3;
+    __m128 xt0, xt1, xt2, xt3;
+    __m128 xt0x, xt1x, xt2x, xt3x;
+    __m128 xt0y, xt1y, xt2y, xt3y;
+    __m128 xt0z, xt1z, xt2z, xt3z;
+    __m128 xt0w, xt1w, xt2w, xt3w;
     __m128 yt00, yt01, yt02, yt03, yt04, yt05, yt06, yt07, yt08, yt09, yt10, yt11;
     __m128 zt0, zt1, zt2, zt3;
     __m128 wt;
     __m128 wt0, wt1, wt2;
     __m128 t0, t1, t2, t3, t4, t5;
-    xt0 = x->row0;
-    xt1 = x->row1;
-    xt2 = x->row2;
-    xt3 = x->row3;
-    yt00 = _mm_set_ps(xt0.y, xt0.y, xt0.y, xt1.y);
-    yt01 = _mm_set_ps(xt1.y, xt1.y, xt2.y, xt2.y);
-    yt02 = _mm_set_ps(xt2.y, xt3.y, xt3.y, xt3.y);
-    yt03 = _mm_set_ps(xt1.z, xt1.z, xt2.z, xt2.z);
-    yt04 = _mm_set_ps(xt2.w, xt3.w, xt3.w, xt3.w);
-    yt05 = _mm_set_ps(xt1.w, xt1.w, xt2.w, xt2.w);
-    yt06 = _mm_set_ps(xt2.z, xt3.z, xt3.z, xt3.z);
-    yt07 = _mm_set_ps(xt0.z, xt0.z, xt0.z, xt1.z);
-    yt08 = _mm_set_ps(xt0.w, xt0.w, xt0.w, xt1.w);
-    yt09 = _mm_set_ps(xt0.x, xt0.x, xt0.x, xt1.x);
-    yt10 = _mm_set_ps(xt1.x, xt1.x, xt2.x, xt2.x);
-    yt11 = _mm_set_ps(xt2.x, xt3.x, xt3.x, xt3.x);
+    xt0 = x->row0.data;
+    xt1 = x->row1.data;
+    xt2 = x->row2.data;
+    xt3 = x->row3.data;
+    xt0x = _mm_shuffle_ps(xt0, xt0, 0x00);
+    xt0y = _mm_shuffle_ps(xt0, xt0, 0x55);
+    xt0z = _mm_shuffle_ps(xt0, xt0, 0xAA);
+    xt0w = _mm_shuffle_ps(xt0, xt0, 0xFF);
+    xt1x = _mm_shuffle_ps(xt1, xt1, 0x00);
+    xt1y = _mm_shuffle_ps(xt1, xt1, 0x55);
+    xt1z = _mm_shuffle_ps(xt1, xt1, 0xAA);
+    xt1w = _mm_shuffle_ps(xt1, xt1, 0xFF);
+    xt2x = _mm_shuffle_ps(xt2, xt2, 0x00);
+    xt2y = _mm_shuffle_ps(xt2, xt2, 0x55);
+    xt2z = _mm_shuffle_ps(xt2, xt2, 0xAA);
+    xt2w = _mm_shuffle_ps(xt2, xt2, 0xFF);
+    xt3x = _mm_shuffle_ps(xt3, xt3, 0x00);
+    xt3y = _mm_shuffle_ps(xt3, xt3, 0x55);
+    xt3z = _mm_shuffle_ps(xt3, xt3, 0xAA);
+    xt3w = _mm_shuffle_ps(xt3, xt3, 0xFF);
+    yt00 = _mm_movelh_ps(_mm_unpacklo_ps(xt1y, xt0y), xt0y);
+    yt01 = _mm_movelh_ps(xt2y, xt1y);
+    yt02 = _mm_movelh_ps(xt3y, _mm_unpacklo_ps(xt3y, xt2y));
+    yt03 = _mm_movelh_ps(xt2z, xt1z);
+    yt04 = _mm_movelh_ps(xt3w, _mm_unpacklo_ps(xt3w, xt2w));
+    yt05 = _mm_movelh_ps(xt2w, xt1w);
+    yt06 = _mm_movelh_ps(_mm_unpacklo_ps(xt3z, xt3z), _mm_unpacklo_ps(xt3z, xt2z));
+    yt07 = _mm_movelh_ps(_mm_unpacklo_ps(xt1z, xt0z), xt0z);
+    yt08 = _mm_movelh_ps(_mm_unpacklo_ps(xt1w, xt0w), xt0w);
+    yt09 = _mm_movelh_ps(_mm_unpacklo_ps(xt1x, xt0x), xt0x);
+    yt10 = _mm_movelh_ps(xt2x, xt1x);
+    yt11 = _mm_movelh_ps(xt3x, _mm_unpacklo_ps(xt3x, xt2x));
 
     t0 = _mm_sub_ps(_mm_mul_ps(yt03, yt04), _mm_mul_ps(yt05, yt06));
     t1 = _mm_sub_ps(_mm_mul_ps(yt07, yt04), _mm_mul_ps(yt08, yt06));
@@ -714,7 +753,7 @@ void FASTCALL mat4_inverse(mat4* x, mat4* z) {
     zt3 = _mm_add_ps(_mm_add_ps(wt0, wt1), wt2);
 
     wt = _mm_movelh_ps(_mm_unpacklo_ps(zt0, zt1), _mm_unpacklo_ps(zt2, zt3));
-    wt = _mm_mul_ps(xt0.data, wt);
+    wt = _mm_mul_ps(xt0, wt);
     wt = _mm_hadd_ps(wt, wt);
     wt = _mm_hadd_ps(wt, wt);
     if (wt.m128_f32[0] != 0.0f)
@@ -726,14 +765,14 @@ void FASTCALL mat4_inverse(mat4* x, mat4* z) {
     z->row3.data = _mm_mul_ps(zt3, wt);
 }
 
-inline void FASTCALL mat4_invtrans(mat4* x, mat4* z) {
+inline void mat4_invtrans(mat4* x, mat4* z) {
     mat4 t = *x;
     mat4_inverse(&t, &t);
     mat4_transpose(&t, &t);
     *z = t;
 }
 
-inline void FASTCALL mat4_invrot(mat4* x, mat4* z) {
+inline void mat4_invrot(mat4* x, mat4* z) {
     mat3 yt;
     mat3_from_mat4(x, &yt);
     mat3_inverse(&yt, &yt);
@@ -744,7 +783,7 @@ inline void FASTCALL mat4_invrot(mat4* x, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void FASTCALL mat4_normalize(mat4* x, mat4* z) {
+inline void mat4_normalize(mat4* x, mat4* z) {
     __m128 det;
     det = _mm_set_ss(mat4_determinant(x));
     if (det.m128_f32[0] != 0.0f)
@@ -756,7 +795,7 @@ inline void FASTCALL mat4_normalize(mat4* x, mat4* z) {
     z->row3.data = _mm_mul_ps(x->row3.data, det);
 }
 
-void FASTCALL mat4_normalize_rotation(mat4* x, mat4* z) {
+void mat4_normalize_rotation(mat4* x, mat4* z) {
     __m128 xt;
     __m128 yt;
     *(vec3*)&xt = *(vec3*)&x->row0;
@@ -792,7 +831,7 @@ void FASTCALL mat4_normalize_rotation(mat4* x, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline float_t FASTCALL mat4_determinant(mat4* x) {
+inline float_t mat4_determinant(mat4* x) {
     vec4 xt0;
     vec4 xt1;
     vec4 xt2;
@@ -816,7 +855,7 @@ inline float_t FASTCALL mat4_determinant(mat4* x) {
     return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 }
 
-inline void FASTCALL mat4_rotate(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate(float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = mat4_identity;
     if (z != 0.0f)
@@ -828,7 +867,7 @@ inline void FASTCALL mat4_rotate(float_t x, float_t y, float_t z, mat4* d) {
     *d = dt;
 }
 
-inline void FASTCALL mat4_rotate_x(float_t x, mat4* y) {
+inline void mat4_rotate_x(float_t x, mat4* y) {
     mat4 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
@@ -840,7 +879,7 @@ inline void FASTCALL mat4_rotate_x(float_t x, mat4* y) {
     *y = yt;
 }
 
-inline void FASTCALL mat4_rotate_y(float_t x, mat4* y) {
+inline void mat4_rotate_y(float_t x, mat4* y) {
     mat4 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
@@ -852,7 +891,7 @@ inline void FASTCALL mat4_rotate_y(float_t x, mat4* y) {
     *y = yt;
 }
 
-inline void FASTCALL mat4_rotate_z(float_t x, mat4* y) {
+inline void mat4_rotate_z(float_t x, mat4* y) {
     mat4 yt;
     float_t x_sin = sinf(x);
     float_t x_cos = cosf(x);
@@ -864,7 +903,7 @@ inline void FASTCALL mat4_rotate_z(float_t x, mat4* y) {
     *y = yt;
 }
 
-inline void FASTCALL mat4_rotate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = *s;
     if (z != 0.0f)
@@ -876,7 +915,7 @@ inline void FASTCALL mat4_rotate_mult(mat4* s, float_t x, float_t y, float_t z, 
     *d = dt;
 }
 
-inline void FASTCALL mat4_rotate_x_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_rotate_x_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
@@ -888,7 +927,7 @@ inline void FASTCALL mat4_rotate_x_mult(mat4* x, float_t y, mat4* z) {
     mat4_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat4_rotate_y_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_rotate_y_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
@@ -900,7 +939,7 @@ inline void FASTCALL mat4_rotate_y_mult(mat4* x, float_t y, mat4* z) {
     mat4_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat4_rotate_z_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_rotate_z_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
@@ -912,7 +951,7 @@ inline void FASTCALL mat4_rotate_z_mult(mat4* x, float_t y, mat4* z) {
     mat4_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat4_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = *s;
     if (z != 0.0f)
@@ -924,7 +963,7 @@ inline void FASTCALL mat4_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d)
     *d = dt;
 }
 
-inline void FASTCALL mat4_rot_x(mat4* x, float_t y, mat4* z) {
+inline void mat4_rot_x(mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -948,7 +987,7 @@ inline void FASTCALL mat4_rot_x(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void FASTCALL mat4_rot_y(mat4* x, float_t y, mat4* z) {
+inline void mat4_rot_y(mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -972,7 +1011,7 @@ inline void FASTCALL mat4_rot_y(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void FASTCALL mat4_rot_z(mat4* x, float_t y, mat4* z) {
+inline void mat4_rot_z(mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -996,7 +1035,7 @@ inline void FASTCALL mat4_rot_z(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void FASTCALL mat4_scale(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_scale(float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = mat4_identity;
     if (x != 1.0f)
@@ -1008,28 +1047,28 @@ inline void FASTCALL mat4_scale(float_t x, float_t y, float_t z, mat4* d) {
     *d = dt;
 }
 
-inline void FASTCALL mat4_scale_x(float_t x, mat4* y) {
+inline void mat4_scale_x(float_t x, mat4* y) {
     mat4 yt;
     yt = mat4_identity;
     yt.row0.x = x;
     *y = yt;
 }
 
-inline void FASTCALL mat4_scale_y(float_t x, mat4* y) {
+inline void mat4_scale_y(float_t x, mat4* y) {
     mat4 yt;
     yt = mat4_identity;
     yt.row1.y = x;
     *y = yt;
 }
 
-inline void FASTCALL mat4_scale_z(float_t x, mat4* y) {
+inline void mat4_scale_z(float_t x, mat4* y) {
     mat4 yt;
     yt = mat4_identity;
     yt.row2.z = x;
     *y = yt;
 }
 
-inline void FASTCALL mat4_scale_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_scale_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     if (x != 1.0f || y != 1.0f || z != 1.0f) {
         dt = mat4_identity;
@@ -1042,28 +1081,28 @@ inline void FASTCALL mat4_scale_mult(mat4* s, float_t x, float_t y, float_t z, m
         *d = *s;
 }
 
-inline void FASTCALL mat4_scale_x_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_x_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
     yt.row0.x = y;
     mat4_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat4_scale_y_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_y_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
     yt.row1.y = y;
     mat4_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat4_scale_z_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_z_mult(mat4* x, float_t y, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
     yt.row2.z = y;
     mat4_mult(x, &yt, z);
 }
 
-inline void FASTCALL mat4_scale_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_scale_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat3 st;
     mat3 dt;
     if (x != 1.0f || y != 1.0f || z != 1.0f) {
@@ -1087,7 +1126,7 @@ inline void FASTCALL mat4_scale_rot(mat4* s, float_t x, float_t y, float_t z, ma
         *d = *s;
 }
 
-inline void FASTCALL mat4_scale_x_rot(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_x_rot(mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1106,7 +1145,7 @@ inline void FASTCALL mat4_scale_x_rot(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void FASTCALL mat4_scale_y_rot(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_y_rot(mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1125,7 +1164,7 @@ inline void FASTCALL mat4_scale_y_rot(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void FASTCALL mat4_scale_z_rot(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_z_rot(mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1144,7 +1183,7 @@ inline void FASTCALL mat4_scale_z_rot(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void FASTCALL mat4_translate(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_translate(float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = mat4_identity;
     dt.row3.x = x;
@@ -1153,28 +1192,28 @@ inline void FASTCALL mat4_translate(float_t x, float_t y, float_t z, mat4* d) {
     *d = dt;
 }
 
-inline void FASTCALL mat4_translate_x(float_t x, mat4* y) {
+inline void mat4_translate_x(float_t x, mat4* y) {
     mat4 yt;
     yt = mat4_identity;
     yt.row3.x = x;
     *y = yt;
 }
 
-inline void FASTCALL mat4_translate_y(float_t x, mat4* y) {
+inline void mat4_translate_y(float_t x, mat4* y) {
     mat4 yt;
     yt = mat4_identity;
     yt.row3.y = x;
     *y = yt;
 }
 
-inline void FASTCALL mat4_translate_z(float_t x, mat4* y) {
+inline void mat4_translate_z(float_t x, mat4* y) {
     mat4 yt;
     yt = mat4_identity;
     yt.row3.z = x;
     *y = yt;
 }
 
-inline void FASTCALL mat4_translate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_translate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -1200,7 +1239,7 @@ inline void FASTCALL mat4_translate_mult(mat4* s, float_t x, float_t y, float_t 
         *d = *s;
 }
 
-inline void FASTCALL mat4_translate_x_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_x_mult(mat4* x, float_t y, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -1217,7 +1256,7 @@ inline void FASTCALL mat4_translate_x_mult(mat4* x, float_t y, mat4* z) {
         *z = *x;
 }
 
-inline void FASTCALL mat4_translate_y_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_y_mult(mat4* x, float_t y, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -1234,7 +1273,7 @@ inline void FASTCALL mat4_translate_y_mult(mat4* x, float_t y, mat4* z) {
         *z = *x;
 }
 
-inline void FASTCALL mat4_translate_z_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_z_mult(mat4* x, float_t y, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -1251,7 +1290,7 @@ inline void FASTCALL mat4_translate_z_mult(mat4* x, float_t y, mat4* z) {
         *z = *x;
 }
 
-inline void FASTCALL mat4_translate_add(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_translate_add(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     if (x != 0.0f || y != 0.0f || z != 0.0f) {
         if (s != d)
             *d = *s;
@@ -1261,7 +1300,7 @@ inline void FASTCALL mat4_translate_add(mat4* s, float_t x, float_t y, float_t z
         *d = *s;
 }
 
-inline void FASTCALL mat4_translate_x_add(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_x_add(mat4* x, float_t y, mat4* z) {
     if (y != 0.0f) {
         if (x != z)
             *z = *x;
@@ -1271,7 +1310,7 @@ inline void FASTCALL mat4_translate_x_add(mat4* x, float_t y, mat4* z) {
         *z = *x;
 }
 
-inline void FASTCALL mat4_translate_y_add(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_y_add(mat4* x, float_t y, mat4* z) {
     if (y != 0.0f) {
         if (x != z)
             *z = *x;
@@ -1281,7 +1320,7 @@ inline void FASTCALL mat4_translate_y_add(mat4* x, float_t y, mat4* z) {
         *z = *x;
 }
 
-inline void FASTCALL mat4_translate_z_add(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_z_add(mat4* x, float_t y, mat4* z) {
     if (y != 0.0f) {
         if (x != z)
             *z = *x;
@@ -1291,7 +1330,7 @@ inline void FASTCALL mat4_translate_z_add(mat4* x, float_t y, mat4* z) {
         *z = *x;
 }
 
-inline void FASTCALL mat4_from_quat(quat* quat, mat4* mat) {
+inline void mat4_from_quat(quat* quat, mat4* mat) {
     float_t y;
     float_t x;
     float_t z;
@@ -1311,7 +1350,7 @@ inline void FASTCALL mat4_from_quat(quat* quat, mat4* mat) {
     y = quat->y;
     z = quat->z;
     w = quat->w;
-    len = quat_length_squared(quat);;
+    vec4_length_squared(*quat, len);
     len = len > 0.0f ? 2.0f / len : 0.0f;
     xx = x * x * len;
     xy = x * y * len;
@@ -1337,7 +1376,7 @@ inline void FASTCALL mat4_from_quat(quat* quat, mat4* mat) {
     mat->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-inline void FASTCALL mat4_from_mat3(mat3* x, mat4* z) {
+inline void mat4_from_mat3(mat3* x, mat4* z) {
     *(vec3*)&z->row0 = x->row0;
     z->row0.w = 0.0f;
     *(vec3*)&z->row1 = x->row1;
@@ -1347,7 +1386,7 @@ inline void FASTCALL mat4_from_mat3(mat3* x, mat4* z) {
     z->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-inline void FASTCALL mat4_from_mat3_inverse(mat3* x, mat4* z) {
+inline void mat4_from_mat3_inverse(mat3* x, mat4* z) {
     mat3 yt;
 
     mat3_inverse(x, &yt);
@@ -1360,14 +1399,14 @@ inline void FASTCALL mat4_from_mat3_inverse(mat3* x, mat4* z) {
     z->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-inline void FASTCALL mat4_clear_rot(mat4* x, mat4* z) {
+inline void mat4_clear_rot(mat4* x, mat4* z) {
     z->row0 = mat4_identity.row0;
     z->row1 = mat4_identity.row1;
     z->row2 = mat4_identity.row2;
     z->row3 = x->row3;
 }
 
-inline void FASTCALL mat4_clear_trans(mat4* x, mat4* z) {
+inline void mat4_clear_trans(mat4* x, mat4* z) {
     if (x != z) {
         z->row0 = x->row0;
         z->row1 = x->row1;
@@ -1376,16 +1415,35 @@ inline void FASTCALL mat4_clear_trans(mat4* x, mat4* z) {
     z->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-inline void FASTCALL mat4_get_scale(mat4* x, vec3* z) {
+inline void mat4_get_rotation(mat4* x, vec3* z) {
+    if (-x->row0.z >= 1.0)
+        z->y = (float_t)M_PI_2;
+    else if (-x->row0.z <= -1.0)
+        z->y = (float_t)-M_PI_2;
+    else
+        z->y = asinf(-x->row0.z);
+    if (fabs(x->row0.z) < 0.99999899f) {
+        z->x = atan2f(x->row1.z, x->row2.z);
+        z->z = atan2f(x->row0.y, x->row0.x);
+    }
+    else {
+        z->x = 0.0f;
+        z->z = atan2f(x->row2.y, x->row1.y);
+        if (-x->row0.z < 0.0f)
+            z->z = -z->z;
+    }
+}
+
+inline void mat4_get_scale(mat4* x, vec3* z) {
     vec4_length(x->row0, z->x);
     vec4_length(x->row1, z->y);
     vec4_length(x->row2, z->z);
 }
 
-inline void FASTCALL mat4_get_translation(mat4* x, vec3* z) {
+inline void mat4_get_translation(mat4* x, vec3* z) {
     *z = *(vec3*)&x->row3;
 }
 
-inline void FASTCALL mat4_set_translation(mat4* x, vec3* z) {
+inline void mat4_set_translation(mat4* x, vec3* z) {
     *(vec3*)&x->row3 = *z;
 }

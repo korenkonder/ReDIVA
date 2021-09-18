@@ -19,22 +19,22 @@ void quat_mult(quat* x, quat* y, quat* z) {
 }
 
 void quat_slerp(quat* x, quat* y, quat* z, float_t blend) {
-    quat xt;
-    quat yt;
-    quat zt;
-    quat_normalize(x, &xt);
-    quat_normalize(y, &yt);
+    quat x_t;
+    quat y_t;
+    quat z_t;
+    quat zt0;
+    quat zt1;
+    vec4_normalize(*x, x_t);
+    vec4_normalize(*y, y_t);
 
-    float_t dot = quat_dot(&xt, &yt);
+    float_t dot;
+    vec4_dot(x_t, y_t, dot);
     if (dot < 0.0f) {
-        zt.x = -yt.x;
-        zt.y = -yt.y;
-        zt.z = -yt.z;
-        zt.w = -yt.w;
+        vec4_negate(y_t, z_t);
         dot = -dot;
     }
     else
-        zt = yt;
+        z_t = y_t;
 
     const float_t DOT_THRESHOLD = 0.9995f;
     float_t s0, s1;
@@ -51,15 +51,13 @@ void quat_slerp(quat* x, quat* y, quat* z, float_t blend) {
         s0 = (1.0f - blend);
         s1 = blend;
     }
-    zt.x = s0 * x->x + s1 * zt.x;
-    zt.y = s0 * x->y + s1 * zt.y;
-    zt.z = s0 * x->z + s1 * zt.z;
-    zt.w = s0 * x->w + s1 * zt.w;
-    quat_normalize(&zt, &zt);
-    *z = zt;
+    vec4_mult_scalar(*x, s0, zt0);
+    vec4_mult_scalar(z_t, s0, zt1);
+    vec4_add(zt0, zt1, z_t);
+    vec4_normalize(z_t, *z);
 }
 
-void FASTCALL quat_from_mat3(float_t m00, float_t m01, float_t m02, float_t m10,
+void quat_from_mat3(float_t m00, float_t m01, float_t m02, float_t m10,
     float_t m11, float_t m12, float_t m20, float_t m21, float_t m22, quat* quat) {
     float_t sq;
 
@@ -97,7 +95,7 @@ void FASTCALL quat_from_mat3(float_t m00, float_t m01, float_t m02, float_t m10,
     }
 }
 
-void FASTCALL quat_from_axis_angle(vec3* axis, float_t angle, quat* quat) {
+void quat_from_axis_angle(vec3* axis, float_t angle, quat* quat) {
     float_t angle_sin;
     float_t angle_cos;
     vec3 _axis;

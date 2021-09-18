@@ -10,15 +10,15 @@
 #include "vector.h"
 
 typedef enum farc_signature {
-    FARC_FArc = 0x63724146,
-    FARC_FArC = 0x43724146,
-    FARC_FARC = 0x43524146,
+    FARC_FArc = 'FArc',
+    FARC_FArC = 'FArC',
+    FARC_FARC = 'FARC',
 } farc_signature;
 
-typedef enum farc_type {
-    FARC_DATA_GZIP = 0x2,
-    FARC_DATA_AES  = 0x4,
-} farc_type;
+typedef enum farc_data_type {
+    FARC_DATA_TYPE_GZIP = 0x2,
+    FARC_DATA_TYPE_AES  = 0x4,
+} farc_data_type;
 
 typedef enum farc_compress_mode {
     FARC_COMPRESS_FArc          = 0,
@@ -33,9 +33,11 @@ typedef struct farc_file {
     size_t offset;
     size_t size;
     size_t size_compressed;
-    wchar_t* name;
-    uint8_t* data;
-    farc_type type;
+    string name;
+    void* data;
+    void* data_compressed;
+    farc_data_type type;
+    bool data_changed;
 } farc_file;
 
 vector(farc_file)
@@ -45,7 +47,7 @@ typedef struct farc {
     wchar_t directory_path[MAX_PATH];
     vector_farc_file files;
     farc_signature signature;
-    farc_type type;
+    farc_data_type type;
     int32_t compression_level;
     bool ft;
 } farc;

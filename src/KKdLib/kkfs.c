@@ -52,7 +52,7 @@ static void kkfs_write_changes(kkfs* fs);
 static void kkfs_write_first_sector(kkfs* fs);
 static bool kkfs_write_kkfs_data(kkfs* fs, kkfs_data* data);
 static void kkfs_write_sector_info(kkfs* fs);
-static inline void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state);
+inline static void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state);
 
 kkfs* kkfs_init() {
     kkfs* fs = force_malloc(sizeof(kkfs));
@@ -64,7 +64,7 @@ void kkfs_initialize(kkfs* fs, char* path, uint32_t sector_size, size_t length,
     if (!fs || !path)
         return;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     kkfs_winitialize(fs, path_buf, sector_size, length, flags, curse, parent_hash, parent_curse);
     free(path_buf);
 }
@@ -104,7 +104,7 @@ void kkfs_winitialize(kkfs* fs, wchar_t* path, uint32_t sector_size, size_t leng
     fs->data.jmp_code[1] = 0x58;
     fs->data.jmp_code[2] = 0x90;
     memcpy(fs->data.signature, "KKFS    ", 0x08);
-    memcpy(fs->data.header.name, path, min(wcslen(path), 0x14));
+    memcpy(fs->data.header.name, path, min(utf16_length(path), 0x14));
     next_rand_uint8_t_pointer((uint8_t*)&fs->data.header.hash, 0x04, &state);
     fs->data.header.key_hash = kkfs_calculate_key_hash(curse);
     fs->data.header.flags = flags;
@@ -123,7 +123,7 @@ void kkfs_winitialize(kkfs* fs, wchar_t* path, uint32_t sector_size, size_t leng
     fs->current_directory[0].type = KKFS_DIRECTORY;
     fs->current_directory[0].data_sector = (uint32_t)root_directory_sector;
     fs->current_directory[0].flags = fs->data.header.flags;
-    fs->curse = curse;
+    fs->cipher = curse;
     fs->io = _wfsopen(path, L"w+b", _SH_DENYNO);
     if (fs->io) {
         size_t length = fs->data.header.sectors_count;
@@ -142,7 +142,7 @@ void kkfs_open(kkfs* fs, char* path, kkc* curse, uint64_t parent_hash, kkc* pare
     if (!fs || !path)
         return;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     kkfs_wopen(fs, path_buf, curse, parent_hash, parent_curse);
     free(path_buf);
 }
@@ -157,17 +157,17 @@ void kkfs_wopen(kkfs* fs, wchar_t* path, kkc* curse, uint64_t parent_hash, kkc* 
     if (!path_wcheck_file_exists(path))
         return;
 
-    fs->curse = curse;
+    fs->cipher = curse;
 
     fs->io = _wfsopen(path, L"r+b", _SH_DENYNO);
     if (fs->io) {
         fread(&fs->data, sizeof(kkfs_struct), 1, fs->io);
         if (memcmp(fs->data.signature, "KKFS    ", 0x08)
-            || fs->data.header.key_hash != kkfs_calculate_key_hash(fs->curse)
+            || fs->data.header.key_hash != kkfs_calculate_key_hash(fs->cipher)
             || fs->data.header.parent_hash != parent_hash
             || fs->data.header.parent_key_hash != kkfs_calculate_key_hash(parent_curse)) {
             fclose(fs->io);
-            fs->curse = 0;
+            fs->cipher = 0;
             fs->io = 0;
         }
         else {
@@ -191,7 +191,7 @@ bool kkfs_create_directory(kkfs* fs, char* path, kkfs_directory_flags flags) {
     if (!fs || !path || fs->data.header.flags & KKFS_DIRECTORY_READ_ONLY)
         return false;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     bool result = kkfs_wcreate_directory(fs, path_buf, flags);
     free(path_buf);
     return result;
@@ -212,7 +212,7 @@ bool kkfs_wcreate_directory(kkfs* fs, wchar_t* path, kkfs_directory_flags flags)
     memset(&data, 0, sizeof(kkfs_data));
     data.type = KKFS_DIRECTORY;
     data.dir.data_sector = free_sector;
-    memcpy(data.dir.name, path, sizeof(wchar_t) * min(wcslen(path) + 1, KKFS_NAME_LENGTH));
+    memcpy(data.dir.name, path, sizeof(wchar_t) * min(utf16_length(path) + 1, KKFS_NAME_LENGTH));
     data.dir.flags = flags;
 
     bool result = kkfs_write_kkfs_data(fs, &data);
@@ -226,7 +226,7 @@ bool kkfs_enter_directory(kkfs* fs, char* path) {
     if (!fs || !path || fs->current_directory_index >= KKFS_DIRECTORY_RECURSION)
         return false;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     bool result = kkfs_wenter_directory(fs, path_buf);
     free(path_buf);
     return result;
@@ -259,7 +259,7 @@ bool kkfs_delete_directory(kkfs* fs, char* path) {
     if (!fs || !path || fs->data.header.flags & KKFS_DIRECTORY_READ_ONLY)
         return false;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     bool result = kkfs_wdelete_directory(fs, path_buf);
     free(path_buf);
     return result;
@@ -281,7 +281,7 @@ bool kkfs_create_file(kkfs* fs, char* path, uint64_t size, kkfs_file_flags flags
     if (!fs || !path || fs->data.header.flags & KKFS_DIRECTORY_READ_ONLY)
         return false;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     bool result = kkfs_wcreate_file(fs, path_buf, size, flags);
     free(path_buf);
     return result;
@@ -304,10 +304,10 @@ bool kkfs_wcreate_file(kkfs* fs, wchar_t* path, uint64_t size, kkfs_file_flags f
     memset(&data, 0, sizeof(kkfs_data));
     data.type = KKFS_FILE;
     data.file.data_sector = free_sector;
-    memcpy(data.file.name, path, sizeof(wchar_t) * min(wcslen(path) + 1, KKFS_NAME_LENGTH));
+    memcpy(data.file.name, path, sizeof(wchar_t) * min(utf16_length(path) + 1, KKFS_NAME_LENGTH));
     data.file.size = size;
     data.file.flags = flags;
-    if (flags & KKFS_FILE_CURSED)
+    if (flags & KKFS_FILE_CIPHER)
         next_rand_uint8_t_pointer((uint8_t*)&data.file.iv, 0x4, &state);
     else
         data.file.iv = 0;
@@ -322,7 +322,7 @@ bool kkfs_read_file(kkfs* fs, char* path, void** data, size_t* data_length) {
     if (!fs || !path || !data || !data_length)
         return false;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     bool result = kkfs_wread_file(fs, path_buf, data, data_length);
     free(path_buf);
     return result;
@@ -350,9 +350,9 @@ bool kkfs_wread_file(kkfs* fs, wchar_t* path, void** data, size_t* data_length) 
     for (size_t i = 0; i < dat.file.size; i += sector_size) {
         fread(buf, 1, sector_size, fs->io);
 
-        if (fs->curse && dat.file.flags & KKFS_FILE_CURSED) {
-            kkc_reset_iv(fs->curse, dat.file.iv + (uint32_t)(i / sector_size));
-            kkc_decurse(fs->curse, buf, buf, sector_size);
+        if (fs->cipher && dat.file.flags & KKFS_FILE_CIPHER) {
+            kkc_reset_iv(fs->cipher, dat.file.iv + (uint32_t)(i / sector_size));
+            kkc_decipher(fs->cipher, KKC_MODE_PAST, buf, buf, sector_size);
         }
 
         memcpy(((uint8_t*)*data + i), buf, min(dat.file.size - i, sector_size));
@@ -372,7 +372,7 @@ bool kkfs_write_file(kkfs* fs, char* path, void* data, size_t data_length) {
     if (!fs || !path || !data || fs->data.header.flags & KKFS_DIRECTORY_READ_ONLY)
         return false;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     bool result = kkfs_wwrite_file(fs, path_buf, data, data_length);
     free(path_buf);
     return result;
@@ -406,9 +406,9 @@ bool kkfs_wwrite_file(kkfs* fs, wchar_t* path, void* data, size_t data_length) {
         else
             memcpy(buf, ((uint8_t*)data + i), sector_size);
 
-        if (fs->curse && dat.file.flags & KKFS_FILE_CURSED) {
-            kkc_reset_iv(fs->curse, dat.file.iv + (uint32_t)(i / sector_size));
-            kkc_curse(fs->curse, buf, buf, sector_size);
+        if (fs->cipher && dat.file.flags & KKFS_FILE_CIPHER) {
+            kkc_reset_iv(fs->cipher, dat.file.iv + (uint32_t)(i / sector_size));
+            kkc_cipher(fs->cipher, KKC_MODE_PAST, buf, buf, sector_size);
         }
 
         fwrite(buf, 1, sector_size, fs->io);
@@ -429,7 +429,7 @@ bool kkfs_delete_file(kkfs* fs, char* path) {
     if (!fs || !path || fs->data.header.flags & KKFS_DIRECTORY_READ_ONLY)
         return false;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     bool result = kkfs_wdelete_file(fs, path_buf);
     free(path_buf);
     return result;
@@ -524,7 +524,7 @@ static bool kkfs_find(kkfs* fs, kkfs_data* data, wchar_t* path) {
     kkfs_data dat;
     uint32_t info;
 
-    size_t path_length = min(KKFS_NAME_LENGTH, wcslen(path) + 1);
+    size_t path_length = min(KKFS_NAME_LENGTH, utf16_length(path) + 1);
     kkfs_directory* curr_dir = &fs->current_directory[fs->current_directory_index];
     size_t data_sector = curr_dir->data_sector;
 
@@ -563,7 +563,7 @@ static bool kkfs_free(kkfs* fs, wchar_t* path) {
     uint32_t info;
     uint64_t time_ticks;
 
-    size_t path_length = min(KKFS_NAME_LENGTH, wcslen(path) + 1);
+    size_t path_length = min(KKFS_NAME_LENGTH, utf16_length(path) + 1);
     kkfs_directory* curr_dir = &fs->current_directory[fs->current_directory_index];
     size_t data_sector = curr_dir->data_sector;
 
@@ -714,7 +714,7 @@ static void kkfs_write_sector_info(kkfs* fs) {
     free(td);
 }
 
-static inline void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
+inline static void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
     if (!arr || length < 1)
         return;
 

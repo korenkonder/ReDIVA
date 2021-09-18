@@ -10,54 +10,56 @@
 #include "effect_group.h"
 #include "particle_manager.h"
 #include "scene.h"
+#include "../../KKdLib/farc.h"
+#include "../../KKdLib/str_utils.h"
 
-glitter_file_reader* FASTCALL glitter_file_reader_init(GLT,
+glitter_file_reader* glitter_file_reader_init(GLT,
     char* path, char* file, float_t emission) {
     glitter_file_reader* fr = force_malloc(sizeof(glitter_file_reader));
-    fr->path = char_string_to_wchar_t_string(path ? path : "rom\\particle\\");
-    fr->file = char_string_to_wchar_t_string(file ? file : 0);
+    fr->path = str_utils_copy(path ? path : "rom\\particle\\");
+    fr->file = str_utils_copy(file);
     fr->emission = emission;
     fr->type = GLT_VAL;
     fr->hash = GLT_VAL != GLITTER_AFT
-        ? hash_wchar_t_murmurhash(fr->file, 0, false)
-        : hash_wchar_t_fnv1a64(fr->file);
+        ? hash_utf8_murmurhash(fr->file, 0, false)
+        : hash_utf8_fnv1a64(fr->file);
     return fr;
 }
 
-glitter_file_reader* FASTCALL glitter_file_reader_winit(GLT,
+glitter_file_reader* glitter_file_reader_winit(GLT,
     wchar_t* path, wchar_t* file, float_t emission) {
     glitter_file_reader* fr = force_malloc(sizeof(glitter_file_reader));
-    fr->path = str_utils_wcopy(path ? path : L"rom\\particle\\");
-    fr->file = str_utils_wcopy(file);
+    fr->path = utf16_to_utf8(path ? path : L"rom\\particle\\");
+    fr->file = utf16_to_utf8(file);
     fr->emission = emission;
     fr->type = GLT_VAL;
     fr->hash = GLT_VAL != GLITTER_AFT
-        ? hash_wchar_t_murmurhash(fr->file, 0, false)
-        : hash_wchar_t_fnv1a64(fr->file);
+        ? hash_utf8_murmurhash(fr->file, 0, false)
+        : hash_utf8_fnv1a64(fr->file);
     return fr;
 }
 
-bool FASTCALL glitter_file_reader_read(glitter_file_reader* fr, float_t emission) {
+bool glitter_file_reader_read(glitter_file_reader* fr, float_t emission) {
     farc* f = farc_init();
-    wchar_t* file_temp;
-    wchar_t* path_temp;
-    file_temp = str_utils_wadd(fr->file, L".farc");
-    path_temp = str_utils_wadd(fr->path, file_temp);
+    char* file_temp;
+    char* path_temp;
+    file_temp = str_utils_add(fr->file, ".farc");
+    path_temp = str_utils_add(fr->path, file_temp);
     free(file_temp);
-    farc_wread(f, path_temp, true, false);
+    farc_read(f, path_temp, true, false);
     free(path_temp);
 
     farc_file* ff;
     bool ret = false;
-    file_temp = str_utils_wadd(fr->file, L".dve");
-    ff = farc_wread_file(f, file_temp);
+    file_temp = str_utils_add(fr->file, ".dve");
+    ff = farc_read_file(f, file_temp);
     free(file_temp);
     if (!ff)
         goto End;
 
     f2_struct st;
-    f2_struct_read_memory(&st, ff->data, ff->size);
-    if (st.header.signature == 0x46455644)
+    f2_struct_mread(&st, ff->data, ff->size);
+    if (st.header.signature == reverse_endianness_uint32_t('DVEF'))
         ret = glitter_diva_effect_parse_file(fr, &st, emission);
     else
         ret = false;
@@ -66,26 +68,26 @@ bool FASTCALL glitter_file_reader_read(glitter_file_reader* fr, float_t emission
     if (!ret)
         goto End;
 
-    file_temp = str_utils_wadd(fr->file, L".drs");
-    ff = farc_wread_file(f, file_temp);
+    file_temp = str_utils_add(fr->file, ".drs");
+    ff = farc_read_file(f, file_temp);
     free(file_temp);
 
     if (ff) {
         f2_struct st;
-        f2_struct_read_memory(&st, ff->data, ff->size);
-        if (st.header.signature == 0x53525644)
+        f2_struct_mread(&st, ff->data, ff->size);
+        if (st.header.signature == reverse_endianness_uint32_t('DVRS'))
             glitter_diva_resource_parse_file(fr->effect_group, &st);
         f2_struct_free(&st);
     }
 
-    file_temp = str_utils_wadd(fr->file, L".lst");
-    ff = farc_wread_file(f, file_temp);
+    file_temp = str_utils_add(fr->file, ".lst");
+    ff = farc_read_file(f, file_temp);
     free(file_temp);
 
     if (ff) {
         f2_struct st;
-        f2_struct_read_memory(&st, ff->data, ff->size);
-        if (st.header.signature == 0x5453494C)
+        f2_struct_mread(&st, ff->data, ff->size);
+        if (st.header.signature == reverse_endianness_uint32_t('LIST'))
             glitter_diva_list_parse_file(fr->effect_group, &st);
         f2_struct_free(&st);
     }
@@ -95,7 +97,7 @@ End:
     return ret;
 }
 
-void FASTCALL glitter_file_reader_dispose(glitter_file_reader* fr) {
+void glitter_file_reader_dispose(glitter_file_reader* fr) {
     free(fr->path);
     free(fr->file);
     free(fr);

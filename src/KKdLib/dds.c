@@ -53,13 +53,13 @@ typedef struct DDS_PIXELFORMAT {
 
 #define DDS_SURFACE_FLAGS_TEXTURE 0x00001000 // DDSCAPS_TEXTURE
 #define DDS_SURFACE_FLAGS_MIPMAP  0x00400008 // DDSCAPS_COMPLEX | DDSCAPS_MIPMAP
-#define DDS_SURFACE_FLAGS_CUBEMAP 0x00000008 // DDSCAPS_COMPLEX
+#define DDS_SURFACE_FLAGS_cube_map 0x00000008 // DDSCAPS_COMPLEX
 
-#define DDS_CUBEMAP_ALLFACES ( 0x00000400 | 0x00000800 |\
+#define DDS_cube_map_ALLFACES ( 0x00000400 | 0x00000800 |\
                                0x00001000 | 0x00002000 |\
                                0x00004000 | 0x00008000 | 0x00000200 )
 
-#define DDS_CUBEMAP 0x00000200 // DDSCAPS2_CUBEMAP
+#define DDS_cube_map 0x00000200 // DDSCAPS2_cube_map
 
 #define DDS_FLAGS_VOLUME 0x00200000 // DDSCAPS2_VOLUME
 
@@ -157,7 +157,7 @@ void dds_read(dds* d, char* path) {
     if (!d || !path)
         return;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     dds_wread(d, path_buf);
     free(path_buf);
 }
@@ -169,14 +169,15 @@ void dds_wread(dds* d, wchar_t* path) {
     vector_ptr_void_free(&d->data, 0);
     memset(d, 0, sizeof(dds));
     wchar_t* path_dds = str_utils_wadd(path, L".dds");
-    stream* s = io_wopen(path_dds, L"rb");
-    if (s->io.stream) {
-        if (io_read_uint32_t_reverse_endianness(s, true) != DDS_MAGIC)
+    stream s;
+    io_wopen(&s, path_dds, L"rb");
+    if (s.io.stream) {
+        if (io_read_uint32_t_reverse_endianness(&s, true) != DDS_MAGIC)
             goto End;
 
         DDS_HEADER dds_h;
         memset(&dds_h, 0, sizeof(DDS_HEADER));
-        if (io_read(s, &dds_h, sizeof(DDS_HEADER)) != sizeof(DDS_HEADER))
+        if (io_read(&s, &dds_h, sizeof(DDS_HEADER)) != sizeof(DDS_HEADER))
             goto End;
 
         if (!((dds_h.flags & DDSD_CAPS) && (dds_h.flags & DDSD_HEIGHT)
@@ -186,7 +187,7 @@ void dds_wread(dds* d, wchar_t* path) {
             goto End;
         else if (!(dds_h.caps & DDS_SURFACE_FLAGS_TEXTURE))
             goto End;
-        else if ((dds_h.caps2 & DDS_CUBEMAP) && (~dds_h.caps2 & DDS_CUBEMAP_ALLFACES) || (dds_h.flags & DDS_FLAGS_VOLUME))
+        else if ((dds_h.caps2 & DDS_cube_map) && (~dds_h.caps2 & DDS_cube_map_ALLFACES) || (dds_h.flags & DDS_FLAGS_VOLUME))
             goto End;
 
         bool reverse = false;
@@ -250,8 +251,9 @@ void dds_wread(dds* d, wchar_t* path) {
         d->width = dds_h.width;
         d->height = dds_h.height;
         d->mipmaps_count = dds_h.flags & DDSD_MIPMAPCOUNT ? dds_h.mipMapCount : 1;
-        d->has_cubemap = dds_h.caps2 & DDS_CUBEMAP ? true : false;
-        vector_ptr_void_append(&d->data, d->has_cubemap ? d->mipmaps_count * 6LL : d->mipmaps_count);
+        d->has_cube_map = dds_h.caps2 & DDS_cube_map ? true : false;
+        d->data = vector_ptr_empty(void);
+        vector_ptr_void_reserve(&d->data, d->has_cube_map ? d->mipmaps_count * 6LL : d->mipmaps_count);
 
         do
             for (uint32_t i = 0; i < d->mipmaps_count; i++) {
@@ -260,17 +262,17 @@ void dds_wread(dds* d, wchar_t* path) {
                 uint32_t size = txp_get_size(d->format,
                     max(d->width >> i, 1), max(d->height >> i, 1));
                 void* data = force_malloc(size);
-                io_read(s, data, size);
+                io_read(&s, data, size);
                 if (reverse)
                     dds_reverse_rgb(d->format, size, data);
                 else if (d->format == TXP_DXT1 && dds_check_is_dxt1a(size, data))
                     d->format = TXP_DXT1a;
                 vector_ptr_void_push_back(&d->data, &data);
             }
-        while (d->has_cubemap && (d->data.end - d->data.begin) / d->mipmaps_count < 6);
+        while (d->has_cube_map && (d->data.end - d->data.begin) / d->mipmaps_count < 6);
     }
 End:
-    io_dispose(s);
+    io_free(&s);
     free(path_dds);
 }
 
@@ -278,7 +280,7 @@ void dds_write(dds* d, char* path) {
     if (!d || !path || d->data.end - d->data.begin < 1)
         return;
 
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     dds_wwrite(d, path_buf);
     free(path_buf);
 }
@@ -288,8 +290,9 @@ void dds_wwrite(dds* d, wchar_t* path) {
         return;
 
     wchar_t* path_dds = str_utils_wadd(path, L".dds");
-    stream* s = io_wopen(path_dds, L"wb");
-    if (s->io.stream) {
+    stream s;
+    io_wopen(&s, path_dds, L"wb");
+    if (s.io.stream) {
         DDS_HEADER dds_h;
         memset(&dds_h, 0, sizeof(DDS_HEADER));
         dds_h.size = sizeof(DDS_HEADER);
@@ -301,14 +304,14 @@ void dds_wwrite(dds* d, wchar_t* path) {
         dds_h.pitchOrLinearSize = txp_get_size(d->format, d->width, d->height);
         dds_h.mipMapCount = d->mipmaps_count;
         dds_h.caps |= DDS_SURFACE_FLAGS_TEXTURE;
-        if (d->has_cubemap)
-            dds_h.caps |= DDS_SURFACE_FLAGS_CUBEMAP;
+        if (d->has_cube_map)
+            dds_h.caps |= DDS_SURFACE_FLAGS_cube_map;
 
         if (d->mipmaps_count > 1)
             dds_h.caps |= DDS_SURFACE_FLAGS_MIPMAP;
 
-        if (d->has_cubemap)
-            dds_h.caps2 |= DDS_CUBEMAP_ALLFACES;
+        if (d->has_cube_map)
+            dds_h.caps2 |= DDS_cube_map_ALLFACES;
 
         switch (d->format) {
         case TXP_A8:
@@ -353,8 +356,8 @@ void dds_wwrite(dds* d, wchar_t* path) {
             break;
         }
 
-        io_write_uint32_t_reverse_endianness(s, DDS_MAGIC, true);
-        io_write(s, &dds_h, sizeof(DDS_HEADER));
+        io_write_uint32_t_reverse_endianness(&s, DDS_MAGIC, true);
+        io_write(&s, &dds_h, sizeof(DDS_HEADER));
 
         uint32_t index = 0;
         do
@@ -364,13 +367,13 @@ void dds_wwrite(dds* d, wchar_t* path) {
                 void* data = force_malloc(size);
                 memcpy(data, d->data.begin[index], size);
                 dds_reverse_rgb(d->format, size, data);
-                io_write(s, data, size);
+                io_write(&s, data, size);
                 free(data);
                 index++;
             }
-        while (d->has_cubemap && index / d->mipmaps_count < 6);
+        while (d->has_cube_map && index / d->mipmaps_count < 6);
     }
-    io_dispose(s);
+    io_free(&s);
     free(path_dds);
 }
 

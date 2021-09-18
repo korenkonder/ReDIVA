@@ -21,6 +21,7 @@ classes_struct data_test_classes[1] = {
         .imgui   = (void*)glitter_test_imgui,
         .render  = (void*)glitter_test_render,
         .sound   = (void*)0,
+        .video   = (void*)0,
         .lock = 0,
         .sub_classes = 0,
         .sub_classes_count = 0,

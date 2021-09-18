@@ -6,38 +6,29 @@
 #include "kkc.h"
 #include <time.h>
 
-#define XOR32(val) ((val & 0xFF) ^ (((val) >> 8) & 0xFF) ^ (((val) >> 16) & 0xFF) ^ (((val) >> 24) & 0xFF))
+#define XOR32(val) (((val) ^ ((val) >> 8) ^ ((val) >> 16) ^ ((val) >> 24)) & 0xFF)
 
-static inline void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state);
+inline static void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state);
 
 kkc* kkc_init() {
     kkc* k = force_malloc(sizeof(kkc));
     return k;
 }
 
-void FASTCALL kkc_get_key(kkc_key* key, uint32_t seed, kkc_key_mode mode, kkc_key_type type) {
+void kkc_get_key(kkc_key* key, uint32_t seed, kkc_key_type type) {
     key->data = 0;
-    key->mode = 0;
-    key->type = KKC_KEY_TYPE_NONE;
-
-    switch (mode) {
-    case KKC_KEY_MODE_SIMPLE:
-    case KKC_KEY_MODE_PAST:
-        break;
-    default:
-        return;
-    }
+    key->type = KKC_KEY_NONE;
 
     switch (type) {
-    case KKC_KEY_TYPE_128:
-    case KKC_KEY_TYPE_192:
-    case KKC_KEY_TYPE_256:
-    case KKC_KEY_TYPE_384:
-    case KKC_KEY_TYPE_512:
-    case KKC_KEY_TYPE_768:
-    case KKC_KEY_TYPE_1024:
-    case KKC_KEY_TYPE_1536:
-    case KKC_KEY_TYPE_2048:
+    case KKC_KEY_128:
+    case KKC_KEY_192:
+    case KKC_KEY_256:
+    case KKC_KEY_384:
+    case KKC_KEY_512:
+    case KKC_KEY_768:
+    case KKC_KEY_1024:
+    case KKC_KEY_1536:
+    case KKC_KEY_2048:
         break;
     default:
         return;
@@ -56,11 +47,10 @@ void FASTCALL kkc_get_key(kkc_key* key, uint32_t seed, kkc_key_mode mode, kkc_ke
     next_rand_uint8_t_pointer(k, l, &state);
 
     key->data = k;
-    key->mode = mode;
     key->type = type;
 }
 
-void FASTCALL kkc_init_from_key_mode(kkc* c, vector_uint8_t* key, kkc_key_mode mode) {
+void kkc_init_from_key(kkc* c, vector_uint8_t* key) {
     c->state = 1;
     c->error = KKC_ERROR_NONE;
 
@@ -74,31 +64,31 @@ void FASTCALL kkc_init_from_key_mode(kkc* c, vector_uint8_t* key, kkc_key_mode m
 
     switch (kl) {
     case 16:
-        type = KKC_KEY_TYPE_128;
+        type = KKC_KEY_128;
         break;
     case 24:
-        type = KKC_KEY_TYPE_192;
+        type = KKC_KEY_192;
         break;
     case 32:
-        type = KKC_KEY_TYPE_256;
+        type = KKC_KEY_256;
         break;
     case 48:
-        type = KKC_KEY_TYPE_384;
+        type = KKC_KEY_384;
         break;
     case 64:
-        type = KKC_KEY_TYPE_512;
+        type = KKC_KEY_512;
         break;
     case 96:
-        type = KKC_KEY_TYPE_768;
+        type = KKC_KEY_768;
         break;
     case 128:
-        type = KKC_KEY_TYPE_1024;
+        type = KKC_KEY_1024;
         break;
     case 196:
-        type = KKC_KEY_TYPE_1536;
+        type = KKC_KEY_1536;
         break;
     case 256:
-        type = KKC_KEY_TYPE_2048;
+        type = KKC_KEY_2048;
         break;
     default:
         c->error = KKC_ERROR_INVALID_KEY_LENGTH;
@@ -106,78 +96,33 @@ void FASTCALL kkc_init_from_key_mode(kkc* c, vector_uint8_t* key, kkc_key_mode m
     }
 
     c->key.data = (uint8_t*)key->begin;
-    c->key.mode = mode;
     c->key.type = type;
 }
 
-void FASTCALL kkc_init_from_type_mode(kkc* c, kkc_key_type type, kkc_key_mode mode) {
+void kkc_init_from_seed(kkc* c, uint32_t seed, kkc_key_type type) {
     c->state = 1;
     c->error = KKC_ERROR_NONE;
 
     switch (type) {
-    case KKC_KEY_TYPE_128:
-    case KKC_KEY_TYPE_192:
-    case KKC_KEY_TYPE_256:
-    case KKC_KEY_TYPE_384:
-    case KKC_KEY_TYPE_512:
-    case KKC_KEY_TYPE_768:
-    case KKC_KEY_TYPE_1024:
-    case KKC_KEY_TYPE_1536:
-    case KKC_KEY_TYPE_2048:
+    case KKC_KEY_128:
+    case KKC_KEY_192:
+    case KKC_KEY_256:
+    case KKC_KEY_384:
+    case KKC_KEY_512:
+    case KKC_KEY_768:
+    case KKC_KEY_1024:
+    case KKC_KEY_1536:
+    case KKC_KEY_2048:
         break;
     default:
         c->error = KKC_ERROR_INVALID_KEY_LENGTH;
         return;
     }
 
-    switch (mode) {
-    case KKC_KEY_MODE_SIMPLE:
-    case KKC_KEY_MODE_PAST:
-        break;
-    default:
-        c->error = KKC_ERROR_INVALID_KEY;
-        return;
-    }
-
-    struct tm t;
-    time_t time = 0;
-    localtime_s(&t, &time);
-    kkc_get_key(&c->key, (uint32_t)time, mode, type);
+    kkc_get_key(&c->key, seed, type);
 }
 
-void FASTCALL kkc_init_from_seed_type_mode(kkc* c, uint32_t seed, kkc_key_type type, kkc_key_mode mode) {
-    c->state = 1;
-    c->error = KKC_ERROR_NONE;
-
-    switch (type) {
-    case KKC_KEY_TYPE_128:
-    case KKC_KEY_TYPE_192:
-    case KKC_KEY_TYPE_256:
-    case KKC_KEY_TYPE_384:
-    case KKC_KEY_TYPE_512:
-    case KKC_KEY_TYPE_768:
-    case KKC_KEY_TYPE_1024:
-    case KKC_KEY_TYPE_1536:
-    case KKC_KEY_TYPE_2048:
-        break;
-    default:
-        c->error = KKC_ERROR_INVALID_KEY_LENGTH;
-        return;
-    }
-
-    switch (mode) {
-    case KKC_KEY_MODE_SIMPLE:
-    case KKC_KEY_MODE_PAST:
-        break;
-    default:
-        c->error = KKC_ERROR_INVALID_KEY;
-        return;
-    }
-
-    kkc_get_key(&c->key, seed, mode, type);
-}
-
-void FASTCALL kkc_init_from_key(kkc* c, kkc_key* key) {
+void kkc_init_from_kkc_key(kkc* c, kkc_key* key) {
     c->state = 1;
     c->error = KKC_ERROR_NONE;
 
@@ -187,34 +132,25 @@ void FASTCALL kkc_init_from_key(kkc* c, kkc_key* key) {
     }
 
     switch (key->type) {
-    case KKC_KEY_TYPE_128:
-    case KKC_KEY_TYPE_192:
-    case KKC_KEY_TYPE_256:
-    case KKC_KEY_TYPE_384:
-    case KKC_KEY_TYPE_512:
-    case KKC_KEY_TYPE_768:
-    case KKC_KEY_TYPE_1024:
-    case KKC_KEY_TYPE_1536:
-    case KKC_KEY_TYPE_2048:
+    case KKC_KEY_128:
+    case KKC_KEY_192:
+    case KKC_KEY_256:
+    case KKC_KEY_384:
+    case KKC_KEY_512:
+    case KKC_KEY_768:
+    case KKC_KEY_1024:
+    case KKC_KEY_1536:
+    case KKC_KEY_2048:
         break;
     default:
         c->error = KKC_ERROR_INVALID_KEY_LENGTH;
         return;
     }
 
-    switch (key->mode) {
-    case KKC_KEY_MODE_SIMPLE:
-    case KKC_KEY_MODE_PAST:
-        break;
-    default:
-        c->error = KKC_ERROR_INVALID_KEY;
-        return;
-    }
-
     c->key = *key;
 }
 
-void FASTCALL kkc_prepare_cursing_table(kkc* c) {
+void kkc_prepare_cipher_table(kkc* c) {
     if (!c)
         return;
 
@@ -294,7 +230,7 @@ void FASTCALL kkc_prepare_cursing_table(kkc* c) {
     kkc_reset(c);
 }
 
-void FASTCALL kkc_reset(kkc* c) {
+void kkc_reset(kkc* c) {
     if (!c)
         return;
 
@@ -303,7 +239,7 @@ void FASTCALL kkc_reset(kkc* c) {
     c->f = c->f0;
 }
 
-void FASTCALL kkc_reset_iv(kkc* c, uint32_t iv) {
+void kkc_reset_iv(kkc* c, uint32_t iv) {
     if (!c)
         return;
 
@@ -312,7 +248,7 @@ void FASTCALL kkc_reset_iv(kkc* c, uint32_t iv) {
     c->f = c->f0;
 }
 
-void FASTCALL kkc_reset_iv4(kkc* c, uint32_t iv0, uint32_t iv1, uint32_t iv2, uint32_t iv3) {
+void kkc_reset_iv4(kkc* c, uint32_t iv0, uint32_t iv1, uint32_t iv2, uint32_t iv3) {
     if (!c)
         return;
 
@@ -325,7 +261,7 @@ void FASTCALL kkc_reset_iv4(kkc* c, uint32_t iv0, uint32_t iv1, uint32_t iv2, ui
     c->f = (c->f0 ^ XOR32(iv1 ^ iv3)) % kl;
 }
 
-void FASTCALL kkc_curse(kkc* c, uint8_t* src, uint8_t* dst, size_t length) {
+void kkc_cipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t length) {
     if (!c)
         return;
 
@@ -354,7 +290,7 @@ void FASTCALL kkc_curse(kkc* c, uint8_t* src, uint8_t* dst, size_t length) {
     size_t n = length / 0x10;
     size_t i;
     uint32_t b, c0, c1, c2, c3, t;
-    if (e.key.mode == KKC_KEY_MODE_SIMPLE)
+    if (mode == KKC_MODE_SIMPLE)
         for (i = 0; i < n; i++) {
             e.e = e.e0;
             e.f = e.f0;
@@ -391,7 +327,7 @@ void FASTCALL kkc_curse(kkc* c, uint8_t* src, uint8_t* dst, size_t length) {
             b = *s++;
             *d++ = b ^ c3;
         }
-    else if (e.key.mode == KKC_KEY_MODE_PAST) {
+    else if (mode == KKC_MODE_PAST) {
         for (i = 0; i < n; i++) {
             e.p = e.f;
             e.f = e.e;
@@ -429,7 +365,7 @@ void FASTCALL kkc_curse(kkc* c, uint8_t* src, uint8_t* dst, size_t length) {
     *c = e;
 }
 
-void FASTCALL kkc_decurse(kkc* c, uint8_t* src, uint8_t* dst, size_t length) {
+void kkc_decipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t length) {
     if (!c)
         return;
 
@@ -458,7 +394,7 @@ void FASTCALL kkc_decurse(kkc* c, uint8_t* src, uint8_t* dst, size_t length) {
     size_t n = length / 0x10;
     size_t i;
     uint32_t b, c0, c1, c2, c3, t;
-    if (e.key.mode == KKC_KEY_MODE_SIMPLE)
+    if (mode == KKC_MODE_SIMPLE)
         for (i = 0; i < n; i++) {
             e.e = e.e0;
             e.f = e.f0;
@@ -495,7 +431,7 @@ void FASTCALL kkc_decurse(kkc* c, uint8_t* src, uint8_t* dst, size_t length) {
             b = *s++;
             *d++ = b ^ c3;
         }
-    else if (e.key.mode == KKC_KEY_MODE_PAST) {
+    else if (mode == KKC_MODE_PAST) {
         for (i = 0; i < n; i++) {
             e.p = e.f;
             e.f = e.e;
@@ -546,7 +482,7 @@ void kkc_dispose(kkc* c) {
     free(c);
 }
 
-static inline void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
+inline static void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
     if (!arr || length < 1)
         return;
 

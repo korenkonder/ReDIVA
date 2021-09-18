@@ -7,29 +7,19 @@
 
 #include "../KKdLib/default.h"
 
-#define lock_val(name) \
-CRITICAL_SECTION name; \
-BOOL name##_init
-
-#define lock_extern_val(name) \
-extern CRITICAL_SECTION name; \
-extern BOOL name##_init
-
-#define lock_init(val) \
-(val##_init) = InitializeCriticalSectionAndSpinCount(&(val), 0);
-
-#define lock_check_init(val) \
-(val##_init)
+typedef struct lock {
+    CRITICAL_SECTION cs;
+    BOOL init;
+} lock;
 
 #define lock_lock(val) \
-if (val##_init) { \
-EnterCriticalSection(&(val));
+if ((val)->init) { \
+EnterCriticalSection(&(val)->cs)
 
 #define lock_unlock(val) \
-LeaveCriticalSection(&(val)); \
+LeaveCriticalSection(&(val)->cs); \
 }
 
-#define lock_dispose(val) \
-if (val##_init) \
-    DeleteCriticalSection(&(val)); \
-(val##_init) = FALSE
+extern void lock_init(lock* l);
+extern bool lock_check_init(lock* l);
+extern void lock_free(lock* l);

@@ -11,14 +11,14 @@
 #include "particle_inst_x.h"
 #include "random_x.h"
 
-static void FASTCALL glitter_x_render_element_accelerate(glitter_particle_inst* a1,
+static void glitter_x_render_element_accelerate(glitter_particle_inst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random);
-static void FASTCALL glitter_render_element_init_mesh_by_type(glitter_render_element* a1,
+static void glitter_x_render_element_init_mesh_by_type(glitter_render_element* a1,
     glitter_particle_inst_data* a2, glitter_emitter_inst* a3, int32_t index, glitter_random* random);
-static void FASTCALL glitter_x_render_element_step_uv(glitter_particle_inst* a1,
+static void glitter_x_render_element_step_uv(glitter_particle_inst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random);
 
-void FASTCALL glitter_x_render_element_emit(glitter_render_element* a1,
+void glitter_x_render_element_emit(glitter_render_element* a1,
     glitter_particle_inst_data* a2, glitter_emitter_inst* a3,
     int32_t index, uint8_t step, glitter_random* random) {
     a1->random = glitter_x_random_get_value(random);
@@ -96,7 +96,7 @@ void FASTCALL glitter_x_render_element_emit(glitter_render_element* a1,
         a1->uv.y = (float_t)(a1->uv_index / a2->data.split_u) * a2->data.split_uv.y;
     }
 
-    glitter_render_element_init_mesh_by_type(a1, a2, a3, index, random);
+    glitter_x_render_element_init_mesh_by_type(a1, a2, a3, index, random);
 
     bool copy_mat = false;
     if (a2->data.flags & GLITTER_PARTICLE_ROTATE_BY_EMITTER
@@ -143,7 +143,7 @@ void FASTCALL glitter_x_render_element_emit(glitter_render_element* a1,
     glitter_x_random_step_value(random);
 }
 
-void FASTCALL glitter_x_render_element_free(glitter_render_element* a1) {
+void glitter_x_render_element_free(glitter_render_element* a1) {
     a1->alive = false;
     if (a1->locus_history) {
         glitter_x_locus_history_dispose(a1->locus_history);
@@ -151,7 +151,7 @@ void FASTCALL glitter_x_render_element_free(glitter_render_element* a1) {
     }
 }
 
-void FASTCALL glitter_x_render_element_rotate_mesh_to_emit_position(mat4* mat,
+void glitter_x_render_element_rotate_mesh_to_emit_position(mat4* mat,
     glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
     vec3 vec1;
     vec3 vec2;
@@ -171,7 +171,7 @@ void FASTCALL glitter_x_render_element_rotate_mesh_to_emit_position(mat4* mat,
     mat4_mult_axis_angle((mat4*)&mat4_identity, mat, &axis, angle);
 }
 
-void FASTCALL glitter_x_render_element_rotate_mesh_to_prev_position(mat4* mat,
+void glitter_x_render_element_rotate_mesh_to_prev_position(mat4* mat,
     glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
     vec3 vec1;
     vec3 vec2;
@@ -190,7 +190,7 @@ void FASTCALL glitter_x_render_element_rotate_mesh_to_prev_position(mat4* mat,
     mat4_mult_axis_angle((mat4*)&mat4_identity, mat, &axis, angle);
 }
 
-void FASTCALL glitter_x_render_element_rotate_to_emit_position(mat3* mat,
+void glitter_x_render_element_rotate_to_emit_position(mat3* mat,
     glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
     vec3 trans;
     vec3 vec1;
@@ -212,7 +212,7 @@ void FASTCALL glitter_x_render_element_rotate_to_emit_position(mat3* mat,
     mat3_mult_axis_angle((mat3*)&mat3_identity, mat, &axis, angle);
 }
 
-void FASTCALL glitter_x_render_element_rotate_to_prev_position(mat3* mat,
+void glitter_x_render_element_rotate_to_prev_position(mat3* mat,
     glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
     vec3 vec1;
     vec3 vec2;
@@ -231,9 +231,8 @@ void FASTCALL glitter_x_render_element_rotate_to_prev_position(mat3* mat,
     mat3_mult_axis_angle((mat3*)&mat3_identity, mat, &axis, angle);
 }
 
-void FASTCALL glitter_x_render_element_update(glitter_render_group* a1,
+void glitter_x_render_element_update(glitter_render_group* a1,
     glitter_render_element* a2, float_t delta_frame) {
-
     glitter_particle_inst* particle;
     vec3 translation;
     bool has_translation;
@@ -247,11 +246,7 @@ void FASTCALL glitter_x_render_element_update(glitter_render_group* a1,
     if (!particle || (particle->data.data.flags & GLITTER_PARTICLE_LOOP
         && glitter_x_particle_inst_has_ended(particle, false)) || a2->frame >= a2->life_time) {
         a1->ctrl--;
-        a2->alive = false;
-        if (a2->locus_history) {
-            glitter_x_locus_history_dispose(a2->locus_history);
-            a2->locus_history = 0;
-        }
+        glitter_x_render_element_free(a2);
         return;
     }
 
@@ -403,7 +398,7 @@ void FASTCALL glitter_x_render_element_update(glitter_render_group* a1,
         a2->frame -= a2->life_time;
 }
 
-static void FASTCALL glitter_x_render_element_accelerate(glitter_particle_inst* a1,
+static void glitter_x_render_element_accelerate(glitter_particle_inst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random) {
     vec3 acceleration;
     vec3 direction;
@@ -441,7 +436,7 @@ static void FASTCALL glitter_x_render_element_accelerate(glitter_particle_inst* 
     a2->speed = max(speed, 0.0f);
 }
 
-static void FASTCALL glitter_render_element_init_mesh_by_type(glitter_render_element* a1,
+static void glitter_x_render_element_init_mesh_by_type(glitter_render_element* a1,
     glitter_particle_inst_data* a2, glitter_emitter_inst* a3, int32_t index, glitter_random* random) {
     float_t radius;
     float_t angle;
@@ -549,7 +544,7 @@ static void FASTCALL glitter_render_element_init_mesh_by_type(glitter_render_ele
     vec3_add(acceleration, a2->data.gravity, a1->acceleration);
 }
 
-static void FASTCALL glitter_x_render_element_step_uv(glitter_particle_inst* a1,
+static void glitter_x_render_element_step_uv(glitter_particle_inst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random) {
     if (a1->data.data.frame_step_uv <= 0.0f)
         return;

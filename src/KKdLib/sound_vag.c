@@ -110,31 +110,32 @@ vag* vag_init() {
 }
 
 void vag_read(vag* v, char* path) {
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     vag_wread(v, path_buf);
     free(path_buf);
 }
 
 void vag_wread(vag* v, wchar_t* path) {
     wchar_t* path_vag = str_utils_wadd(path, L".vag");
-    stream* s = io_wopen(path_vag, L"rb");
-    if (s->io.stream) {
-        uint32_t signature = io_read_uint32_t(s);
-        if (signature != 0x70474156)
+    stream s;
+    io_wopen(&s, path_vag, L"rb");
+    if (s.io.stream) {
+        uint32_t signature = io_read_uint32_t_reverse_endianness(&s, true);
+        if (signature != 'VAGp')
             goto End;
 
-        v->version = io_read_uint32_t_reverse_endianness(s, true);
-        io_read_uint32_t(s);
-        v->size = io_read_uint32_t_reverse_endianness(s, true);
-        v->sample_rate = io_read_uint32_t_reverse_endianness(s, true);
-        io_read_uint32_t(s);
-        io_read_uint32_t(s);
-        io_read_uint16_t(s);
-        v->channels = io_read_uint16_t(s);
+        v->version = io_read_uint32_t_reverse_endianness(&s, true);
+        io_read_uint32_t(&s);
+        v->size = io_read_uint32_t_reverse_endianness(&s, true);
+        v->sample_rate = io_read_uint32_t_reverse_endianness(&s, true);
+        io_read_uint32_t(&s);
+        io_read_uint32_t(&s);
+        io_read_uint16_t(&s);
+        v->channels = io_read_uint16_t(&s);
         if (v->channels < 2)
             v->channels = 1;
-        io_read_uint64_t(s);
-        io_read_uint64_t(s);
+        io_read_uint64_t(&s);
+        io_read_uint64_t(&s);
 
         bool hevag = v->version == 0x00020001 || v->version == 0x00030000;
         if (!hevag)
@@ -156,10 +157,10 @@ void vag_wread(vag* v, wchar_t* path) {
         uint8_t coef_index, d, shift_factor;
         for (i1 = 0; i1 < num_blocks; i1++, temp_data += vag_block_size)
             for (c = 0; c < ch; c++) {
-                d = io_read_uint8_t(s);
+                d = io_read_uint8_t(&s);
                 coef_index = (d & 0xF0) >> 4;
                 shift_factor = d & 0x0F;
-                d = io_read_uint8_t(s);
+                d = io_read_uint8_t(&s);
                 coef_index = (d & 0xF0) | coef_index;
                 flags[i1] = d & 0x0F;
 
@@ -167,7 +168,7 @@ void vag_wread(vag* v, wchar_t* path) {
                     coef_index = 0;
 
                 for (i = 0, i2 = 1; i < BLOCK_SIZE; i += 2, i2 += 2) {
-                    d = io_read_uint8_t(s);
+                    d = io_read_uint8_t(&s);
                     nibble[i] = d & 0x0F;
                     nibble[i2] = (d & 0xF0) >> 4;
                 }
@@ -202,12 +203,12 @@ void vag_wread(vag* v, wchar_t* path) {
         free(data);
     }
 End:
-    io_dispose(s);
+    io_free(&s);
     free(path_vag);
 }
 
 void vag_write(vag* v, char* path, vag_option option) {
-    wchar_t* path_buf = char_string_to_wchar_t_string(path);
+    wchar_t* path_buf = utf8_to_utf16(path);
     vag_wwrite(v, path_buf, option);
     free(path_buf);
 }
@@ -225,8 +226,9 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
 
     wchar_t* temp_path = str_utils_wget_without_extension(path);
     wchar_t* path_vag = str_utils_wadd(temp_path, L".vag");
-    stream* s = io_wopen(path_vag, L"wb");
-    if (s->io.stream) {
+    stream s;
+    io_wopen(&s, path_vag, L"wb");
+    if (s.io.stream) {
         int32_t coef_index_count;
         switch (option) {
         case VAG_OPTION_HEVAG_FAST:
@@ -250,17 +252,17 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
         }
 
         bool hevag = option != VAG_OPTION_VAG;
-        io_write_uint32_t(s, 0x70474156);
-        io_write_uint32_t_reverse_endianness(s, hevag ? 0x00020001 : 0x00000020, true);
-        io_write_uint32_t(s, 0);
-        io_write_uint32_t_reverse_endianness(s, (uint32_t)(((v->size + 1) * (hevag ? v->channels : 1)) << 4), true);
-        io_write_uint32_t_reverse_endianness(s, v->sample_rate, true);
-        io_write_uint32_t(s, 0);
-        io_write_uint32_t(s, 0);
-        io_write_uint16_t(s, 0);
-        io_write_uint16_t(s, hevag ? v->channels : 1);
-        io_write_uint64_t(s, 0);
-        io_write_uint64_t(s, 0);
+        io_write_uint32_t_reverse_endianness(&s, 'VAGp', true);
+        io_write_uint32_t_reverse_endianness(&s, hevag ? 0x00020001 : 0x00000020, true);
+        io_write_uint32_t(&s, 0);
+        io_write_uint32_t_reverse_endianness(&s, (uint32_t)(((v->size + 1) * (hevag ? v->channels : 1)) << 4), true);
+        io_write_uint32_t_reverse_endianness(&s, v->sample_rate, true);
+        io_write_uint32_t(&s, 0);
+        io_write_uint32_t(&s, 0);
+        io_write_uint16_t(&s, 0);
+        io_write_uint16_t(&s, hevag ? v->channels : 1);
+        io_write_uint64_t(&s, 0);
+        io_write_uint64_t(&s, 0);
 
         size_t c, i, i1, i2;
         int32_t ch = v->channels;
@@ -283,17 +285,17 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
 
                     flag = flags ? (flags[i1] & 0x0F) : (i1 + 1 == size) ? 0x01 : 0;
                     sample = ((coef_index & 0x0F) << 4) | (shift_factor & 0x0F);
-                    io_write_char(s, sample);
+                    io_write_char(&s, sample);
                     sample = (coef_index & 0xF0) | flag;
-                    io_write_char(s, sample);
+                    io_write_char(&s, sample);
                     for (i = 0, i2 = 1; i < BLOCK_SIZE; i += 2, i2 += 2) {
                         sample = ((four_bit[i2] & 0x0F) << 4) | (four_bit[i] & 0x0F);
-                        io_write_char(s, sample);
+                        io_write_char(&s, sample);
                     }
                 }
             for (c = 0; c < ch; c++) {
-                io_write_uint64_t(s, 0x7777777777770700);
-                io_write_uint64_t(s, 0x7777777777777777);
+                io_write_uint64_t(&s, 0x7777777777770700);
+                io_write_uint64_t(&s, 0x7777777777777777);
             }
         }
         else if (hevag) {
@@ -314,18 +316,18 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
 
                     flag = flags ? (flags[i1] & 0x0F) : (i1 + 1 == size) ? 0x01 : 0;
                     sample = ((coef_index & 0x0F) << 4) | (shift_factor & 0x0F);
-                    io_write_char(s, sample);
+                    io_write_char(&s, sample);
                     sample = (coef_index & 0xF0) | flag;
-                    io_write_char(s, sample);
+                    io_write_char(&s, sample);
                     for (i = 0, i2 = 1; i < BLOCK_SIZE; i += 2, i2 += 2) {
                         sample = ((four_bit[i2] & 0x0F) << 4) | (four_bit[i] & 0x0F);
-                        io_write_char(s, sample);
+                        io_write_char(&s, sample);
                     }
                 }
 
             for (c = 0; c < ch; c++) {
-                io_write_uint64_t(s, 0x7777777777770700);
-                io_write_uint64_t(s, 0x7777777777777777);
+                io_write_uint64_t(&s, 0x7777777777770700);
+                io_write_uint64_t(&s, 0x7777777777777777);
             }
         }
         else {
@@ -353,22 +355,22 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
 
                 flag = flags ? (flags[i1] & 0x0F) : (i1 + 1 == size) ? 0x01 : 0;
                 sample = ((coef_index & 0x0F) << 4) | (shift_factor & 0x0F);
-                io_write_char(s, sample);
+                io_write_char(&s, sample);
                 sample = (coef_index & 0xF0) | flag;
-                io_write_char(s, sample);
+                io_write_char(&s, sample);
                 for (i = 0, i2 = 1; i < BLOCK_SIZE; i += 2, i2 += 2) {
                     sample = ((four_bit[i2] & 0x0F) << 4) | (four_bit[i] & 0x0F);
-                    io_write_char(s, sample);
+                    io_write_char(&s, sample);
                 }
             }
-            io_write_uint64_t(s, 0x7777777777770700);
-            io_write_uint64_t(s, 0x7777777777777777);
+            io_write_uint64_t(&s, 0x7777777777770700);
+            io_write_uint64_t(&s, 0x7777777777777777);
         }
-        io_write_uint64_t(s, 0x1010101010101010);
-        io_write_uint64_t(s, 0x1010101010101010);
+        io_write_uint64_t(&s, 0x1010101010101010);
+        io_write_uint64_t(&s, 0x1010101010101010);
         free(samp);
     }
-    io_dispose(s);
+    io_free(&s);
     free(path_vag);
     free(temp_path);
     free(flags);
@@ -407,7 +409,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
     bool n, l;
     bool add_loop = false;
 
-    loop = (vector_bool){ 0, 0, 0 };
+    loop = vector_empty(bool);
     while (true) {
         swprintf_s(temp, MAX_PATH, L"%ls.%llu.wav", temp_path, count);
         n = path_wcheck_file_exists(temp);

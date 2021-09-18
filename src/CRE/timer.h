@@ -17,8 +17,8 @@ typedef struct timer {
     LARGE_INTEGER prev_time;
     double_t freq;
     double_t freq_hist;
-    lock_val(freq_lock);
-    lock_val(freq_hist_lock);
+    lock freq_lock;
+    lock freq_hist_lock;
     HANDLE timer;
 } timer;
 

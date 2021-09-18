@@ -7,7 +7,7 @@
 #include "effect_group.h"
 #include "texture.h"
 
-bool FASTCALL glitter_diva_resource_parse_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_diva_resource_parse_file(glitter_effect_group* a1, f2_struct* st) {
     f2_struct* i;
 
     if (!st || !st->header.data_size)
@@ -17,7 +17,7 @@ bool FASTCALL glitter_diva_resource_parse_file(glitter_effect_group* a1, f2_stru
         if (!i->header.data_size)
             continue;
 
-        if (i->header.signature == 0x43505854) {
+        if (i->header.signature == reverse_endianness_uint32_t('TXPC')) {
             glitter_texture_resource_unpack_file(a1, i);
             break;
         }
@@ -25,7 +25,7 @@ bool FASTCALL glitter_diva_resource_parse_file(glitter_effect_group* a1, f2_stru
     return true;
 }
 
-bool FASTCALL glitter_diva_resource_unparse_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_diva_resource_unparse_file(glitter_effect_group* a1, f2_struct* st) {
     memset(st, 0, sizeof(f2_struct));
 
     f2_struct s;
@@ -37,7 +37,7 @@ bool FASTCALL glitter_diva_resource_unparse_file(glitter_effect_group* a1, f2_st
 
     vector_f2_struct_push_back(&st->sub_structs, &s);
 
-    st->header.signature = 0x53525644;
+    st->header.signature = reverse_endianness_uint32_t('DVRS');
     st->header.length = 0x20;
     st->header.use_big_endian = false;
     st->header.use_section_size = true;

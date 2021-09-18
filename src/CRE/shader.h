@@ -11,435 +11,515 @@
 #include "../KKdLib/mat.h"
 #include "../KKdLib/vec.h"
 #include "../KKdLib/vector.h"
-#define GLEW_STATIC
-#include <GLEW/glew.h>
+#include "static_var.h"
 
-#define SHADER_PARAM_NUM_PARAMS 12
+#define shader_MAX_CLIP_PLANES 8
+#define shader_MAX_LIGHTS 8
+#define shader_MAX_PALETTE_MATRICES 32
+#define shader_MAX_PROGRAM_ENV_PARAMETERS 256
+#define shader_MAX_PROGRAM_LOCAL_PARAMETERS 256
+#define shader_MAX_PROGRAM_PARAMETER_BUFFER_SIZE 16384
+#define shader_MAX_PROGRAM_MATRICES 8
+#define shader_MAX_TEXTURE_COORDS 8
+#define shader_MAX_TEXTURE_IMAGE_UNITS 32
+#define shader_MAX_TEXTURE_UNITS 4
+#define shader_MAX_UNIFORM_BLOCK_SIZE 65536
+#define shader_MAX_VERTEX_UNITS 4
 
-typedef struct shader_param {
-    wchar_t* name;
-    wchar_t* frag;
-    wchar_t* geom;
-    wchar_t* vert;
-    char* param[SHADER_PARAM_NUM_PARAMS];
-} shader_param;
+typedef struct shader_state_clip {
+    vec4 plane;
+} shader_state_clip;
 
-typedef struct shader_model {
-    wstring name;
-    GLuint program;
-    vector_uint64_t uniform_name_buf;
-    vector_int32_t uniform_location_buf;
-    vector_uint64_t uniform_block_name_buf;
-    vector_int32_t uniform_block_index_buf;
-} shader_model;
+typedef struct shader_state_depth {
+    vec4 range;
+} shader_state_depth;
 
-typedef struct shader_fbo {
-    wstring name;
-    GLuint program;
-    vector_uint64_t uniform_name_buf;
-    vector_int32_t uniform_location_buf;
-    vector_uint64_t uniform_block_name_buf;
-    vector_int32_t uniform_block_index_buf;
-} shader_fbo;
+typedef struct shader_state_fog {
+    vec4 color;
+    vec4 params;
+} shader_state_fog;
 
-typedef struct shader_model_data {
-    char* frag;
-    char* geom;
-    char* vert;
-    shader_param param;
-} shader_model_data;
+typedef struct shader_state_light {
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
+    vec4 position;
+    vec4 attenuation;
+    vec4 spot_direction;
+    vec4 half;
+} shader_state_light;
 
-extern void shader_fbo_load(shader_fbo* s, farc* f, shader_param* param);
-extern void shader_fbo_load_file(shader_fbo* s, char* vert_path,
-    char* frag_path, char* geom_path, shader_param* param);
-extern void shader_fbo_wload_file(shader_fbo* s, wchar_t* vert_path,
-    wchar_t* frag_path, wchar_t* geom_path, shader_param* param);
-extern void shader_fbo_load_string(shader_fbo* s, char* vert_data,
-    char* frag_data, char* geom_data, shader_param* param);
-extern void shader_fbo_use(shader_fbo* s);
-extern GLint shader_fbo_get_uniform_location(shader_fbo* s, GLchar* name);
-extern void shader_fbo_set_uniform_block_binding(shader_fbo* s, GLchar* name, GLint binding);
-extern void shader_fbo_free(shader_fbo* s);
-extern void shader_model_load(shader_model* s, shader_model_data* upd);
-extern void shader_model_use(shader_model* s);
-extern GLint shader_model_get_uniform_location(shader_model* s, GLchar* name);
-extern void shader_model_set_uniform_block_binding(shader_model* s, GLchar* name, GLint binding);
-extern void shader_model_free(shader_model* s);
+typedef struct shader_state_lightmodel {
+    vec4 ambient;
+    vec4 scene_color;
+} shader_state_lightmodel;
 
-#define shader_fbo_set_bool(s, name, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform1i(location, value ? 1 : 0); \
-    } \
-}
+typedef struct shader_state_lightprod {
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
+} shader_state_lightprod;
 
-#define shader_fbo_set_int(s, name, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform1i(location, value); \
-    } \
-}
+typedef struct shader_state_material {
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
+    vec4 emission;
+    vec4 shininess;
+} shader_state_material;
 
-#define shader_fbo_set_float(s, name, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform1f(location, value); \
-    } \
-}
+typedef struct shader_state_matrix_data {
+    mat4 mat;
+    mat4 inv;
+    mat4 trans;
+    mat4 invtrans;
+} shader_state_matrix_data;
 
-#define shader_fbo_set_vec2i(s, name, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform2i(location, (value).x, (value).y); \
-    } \
-}
+typedef struct shader_state_matrix {
+    shader_state_matrix_data modelview[shader_MAX_VERTEX_UNITS];
+    shader_state_matrix_data projection;
+    shader_state_matrix_data mvp;
+    shader_state_matrix_data texture[shader_MAX_TEXTURE_COORDS];
+    shader_state_matrix_data palette[shader_MAX_PALETTE_MATRICES];
+    shader_state_matrix_data program[shader_MAX_PROGRAM_MATRICES];
+} shader_state_matrix;
 
-#define shader_fbo_set_vec2(s, name, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform2f(location, (value).x, (value).y); \
-    } \
-}
+typedef struct shader_state_point {
+    vec4 size;
+    vec4 attenuation;
+} shader_state_point;
 
-#define shader_fbo_set_vec3i(s, name, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform3i(location, (value).x, (value).y, (value).z); \
-    } \
-}
+typedef struct shader_state_texgen {
+    union {
+        vec4 eye[4];
+        struct {
+            vec4 eye_s;
+            vec4 eye_t;
+            vec4 eye_r;
+            vec4 eye_q;
+        };
+    };
 
-#define shader_fbo_set_vec3(s, name, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform3f(location, (value).x, (value).y, (value).z); \
-    } \
-}
+    union {
+        vec4 object[4];
+        struct {
+            vec4 object_s;
+            vec4 object_t;
+            vec4 object_r;
+            vec4 object_q;
+        };
+    };
+} shader_state_texgen;
 
-#define shader_fbo_set_vec4i(s, name, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform4i(location, (value).x, (value).y, (value).z, (value).w); \
-    } \
-}
+typedef struct shader_state_texenv {
+    vec4 color;
+} shader_state_texenv;
 
-#define shader_fbo_set_vec4(s, name, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform4f(location, (value).x, (value).y, (value).z, (value).w); \
-    } \
-}
+typedef struct shader_buffer {
+    vec4 buffer[shader_MAX_PROGRAM_PARAMETER_BUFFER_SIZE / sizeof(vec4)];
+} shader_buffer;
 
-#define shader_fbo_set_mat3(s, name, transpose, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniformMatrix3fv(location, 1, transpose, (GLfloat*)&(value)); \
-    } \
-}
+typedef struct shader_env {
+    vec4 frag[shader_MAX_PROGRAM_ENV_PARAMETERS];
+    vec4 vert[shader_MAX_PROGRAM_ENV_PARAMETERS];
+} shader_env;
 
-#define shader_fbo_set_mat4(s, name, transpose, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniformMatrix4fv(location, 1, transpose, (GLfloat*)&(value)); \
-    } \
-}
+typedef struct shader_state_clip_update {
+    bool plane;
+} shader_state_clip_update;
 
-#define shader_fbo_set_int_array(s, name, count, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform1iv(location, count, value); \
-    } \
-}
+typedef struct shader_state_depth_update {
+    bool range;
+} shader_state_depth_update;
 
-#define shader_fbo_set_float_array(s, name, count, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform1fv(location, count, value); \
-    } \
-}
+typedef struct shader_state_fog_update {
+    bool color;
+    bool params;
+} shader_state_fog_update;
 
-#define shader_fbo_set_vec2i_array(s, name, count, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform2iv(location, count, (GLint*)value); \
-    } \
-}
+typedef struct shader_state_light_update {
+    bool ambient;
+    bool diffuse;
+    bool specular;
+    bool position;
+    bool attenuation;
+    bool spot_direction;
+    bool half;
+} shader_state_light_update;
 
-#define shader_fbo_set_vec2_array(s, name, count, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform2fv(location, count, (GLfloat*)value); \
-    } \
-}
+typedef struct shader_state_lightmodel_update {
+    bool ambient;
+    bool scene_color;
+} shader_state_lightmodel_update;
 
-#define shader_fbo_set_vec3i_array(s, name, count, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform3iv(location, count, (GLint*)value); \
-    } \
-}
+typedef struct shader_state_lightprod_update {
+    bool ambient;
+    bool diffuse;
+    bool specular;
+} shader_state_lightprod_update;
 
-#define shader_fbo_set_vec3_array(s, name, count, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform3fv(location, count, (GLfloat*)value); \
-    } \
-}
+typedef struct shader_state_material_update {
+    bool ambient;
+    bool diffuse;
+    bool specular;
+    bool emission;
+    bool shininess;
+} shader_state_material_update;
 
-#define shader_fbo_set_vec4i_array(s, name, count, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform4iv(location, count, (GLint*)value); \
-    } \
-}
+typedef struct shader_state_matrix_update {
+    bool modelview[shader_MAX_VERTEX_UNITS];
+    bool projection;
+    bool mvp;
+    bool texture[shader_MAX_TEXTURE_COORDS];
+    bool palette[shader_MAX_PALETTE_MATRICES];
+    bool program[shader_MAX_PROGRAM_MATRICES];
+} shader_state_matrix_update;
 
-    #define shader_fbo_set_vec4_array(s, name, count, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniform4fv(location, count, (GLfloat*)value); \
-    } \
-}
+typedef struct shader_state_point_update {
+    bool size;
+    bool attenuation;
+} shader_state_point_update;
 
-#define shader_fbo_set_mat3_array(s, name, count, transpose, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniformMatrix3fv(location, count, transpose, (GLfloat*)value); \
-    } \
-}
+typedef struct shader_state_texgen_update {
+    union {
+        bool eye[4];
+        struct {
+            bool eye_s;
+            bool eye_t;
+            bool eye_r;
+            bool eye_q;
+        };
+    };
 
-#define shader_fbo_set_mat4_array(s, name, count, transpose, value) \
-{ \
-    int32_t location = shader_fbo_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_fbo_use(s); \
-        glUniformMatrix4fv(location, count, transpose, (GLfloat*)value); \
-    } \
-}
+    union {
+        bool object[4];
+        struct {
+            bool object_s;
+            bool object_t;
+            bool object_r;
+            bool object_q;
+        };
+    };
+} shader_state_texgen_update;
 
-#define shader_model_set_bool(s, name, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform1i(location, value ? 1 : 0); \
-    } \
-}
+typedef struct shader_state_texenv_update {
+    bool color;
+} shader_state_texenv_update;
 
-#define shader_model_set_int(s, name, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform1i(location, value); \
-    } \
-}
+typedef struct shader_buffer_update {
+    bool buffer[shader_MAX_PROGRAM_PARAMETER_BUFFER_SIZE / sizeof(vec4)];
+} shader_buffer_update;
 
-#define shader_model_set_float(s, name, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform1f(location, value); \
-    } \
-}
+typedef struct shader_env_update {
+    bool frag[shader_MAX_PROGRAM_ENV_PARAMETERS];
+    bool vert[shader_MAX_PROGRAM_ENV_PARAMETERS];
+} shader_env_update;
 
-#define shader_model_set_vec2i(s, name, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform2i(location, (value).x, (value).y); \
-    } \
-}
+typedef struct shader_state {
+    shader_state_material material[2];
+    shader_state_light light[shader_MAX_LIGHTS];
+    shader_state_lightmodel lightmodel[2];
+    shader_state_lightprod lightprod[2][shader_MAX_LIGHTS];
+    shader_state_texgen texgen[shader_MAX_TEXTURE_UNITS];
+    shader_state_texenv texenv[shader_MAX_TEXTURE_UNITS];
+    shader_state_fog fog;
+    shader_state_clip clip[shader_MAX_CLIP_PLANES];
+    shader_state_point point;
+    shader_state_depth depth;
+} shader_state;
 
-#define shader_model_set_vec2(s, name, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform2f(location, (value).x, (value).y); \
-    } \
-}
+typedef struct shader_state_update {
+    shader_state_material_update material[2];
+    shader_state_light_update light[shader_MAX_LIGHTS];
+    shader_state_lightmodel_update lightmodel[2];
+    shader_state_lightprod_update lightprod[2][shader_MAX_LIGHTS];
+    shader_state_texgen_update texgen[shader_MAX_TEXTURE_UNITS];
+    shader_state_texenv_update texenv[shader_MAX_TEXTURE_UNITS];
+    shader_state_fog_update fog;
+    shader_state_clip_update clip[shader_MAX_CLIP_PLANES];
+    shader_state_point_update point;
+    shader_state_depth_update depth;
+} shader_state_update;
 
-#define shader_model_set_vec3i(s, name, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform3i(location, (value).x, (value).y, (value).z); \
-    } \
-}
+typedef struct shader_data {
+    shader_state state;
+    shader_state_matrix state_matrix;
+    shader_env env;
+    shader_buffer buffer;
+    shader_state_update state_update;
+    shader_state_matrix_update state_matrix_update;
+    shader_env_update env_update;
+    shader_buffer_update buffer_update;
+    bool state_update_data;
+    bool state_matrix_update_data;
+    bool env_frag_update_data;
+    bool env_vert_update_data;
+    bool buffer_update_data;
+    GLuint state_ubo;
+    GLuint state_matrix_ubo;
+    GLuint env_ubo;
+    GLuint buffer_ubo;
+} shader_data;
 
-#define shader_model_set_vec3(s, name, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform3f(location, (value).x, (value).y, (value).z); \
-    } \
-}
+typedef struct shader shader;
 
-#define shader_model_set_vec4i(s, name, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform4i(location, (value).x, (value).y, (value).z, (value).w); \
-    } \
-}
+typedef struct shader_set_data {
+    shader* shaders;
+    size_t size;
+    shader_data data;
+} shader_set_data;
 
-#define shader_model_set_vec4(s, name, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform4f(location, (value).x, (value).y, (value).z, (value).w); \
-    } \
-}
+typedef void (* PFNSHADERPERMUTBINDFUNCPROC)(shader_set_data* set, shader* shader);
 
-#define shader_model_set_mat3(s, name, transpose, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniformMatrix3fv(location, 1, transpose, (GLfloat*)&(value)); \
-    } \
-}
+typedef struct shader_bind_func {
+    uint32_t index;
+    PFNSHADERPERMUTBINDFUNCPROC bind_func;
+} shader_bind_func;
 
-#define shader_model_set_mat4(s, name, transpose, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniformMatrix4fv(location, 1, transpose, (GLfloat*)&(value)); \
-    } \
-}
+typedef struct shader_sub {
+    uint32_t sub_index;
+    const int32_t* vp_unival_max;
+    const int32_t* fp_unival_max;
+    GLuint* program;
+} shader_sub;
 
-#define shader_model_set_int_array(s, name, count, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform1iv(location, count, value); \
-    } \
-}
+typedef struct shader_sub_table {
+    uint32_t sub_index;
+    const int32_t* vp_unival_max;
+    const int32_t* fp_unival_max;
+    const char* vp;
+    const char* fp;
+} shader_sub_table;
 
-#define shader_model_set_float_array(s, name, count, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform1fv(location, count, value); \
-    } \
-}
+typedef struct shader_table {
+    const char* name;
+    uint32_t index;
+    int32_t num_sub;
+    const shader_sub_table* sub;
+    int32_t num_uniform;
+    const uniform_name* use_uniform;
+    const bool* use_permut;
+} shader_table;
 
-#define shader_model_set_vec2i_array(s, name, count, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform2iv(location, count, (GLint*)value); \
-    } \
-}
+struct shader {
+    const char* name;
+    uint32_t index;
+    int32_t num_sub;
+    shader_sub* sub;
+    int32_t num_uniform;
+    const uniform_name* use_uniform;
+    const bool* use_permut;
+    PFNSHADERPERMUTBINDFUNCPROC bind_func;
+};
 
-#define shader_model_set_vec2_array(s, name, count, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform2fv(location, count, (GLfloat*)value); \
-    } \
-}
+extern int32_t shader_bind(shader* shader, uint32_t sub_index);
+extern void shader_draw_arrays(shader_set_data* set,
+    GLenum mode, GLint first, GLsizei count);
+extern void shader_draw_elements(shader_set_data* set,
+    GLenum mode, GLsizei count, GLenum type, const void* indices);
+extern void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load_cache,
+    char* name, const shader_table** shaders_table, const size_t size,
+    const shader_bind_func* bind_func_table, const size_t bind_func_table_size);
+extern void shader_free(shader_set_data* set);
+extern void shader_set(shader_set_data* set, uint32_t index);
+extern void shader_unbind();
 
-#define shader_model_set_vec3i_array(s, name, count, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform3iv(location, count, (GLint*)value); \
-    } \
-}
+extern void shader_local_frag_get(shader_set_data* set,
+    size_t index, float_t* x, float_t* y, float_t* z, float_t* w);
+extern void shader_local_frag_get_ptr(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_local_vert_get(shader_set_data* set,
+    size_t index, float_t* x, float_t* y, float_t* z, float_t* w);
+extern void shader_local_vert_get_ptr(shader_set_data* set,
+    size_t index, vec4* data);
+extern void  shader_env_frag_get(shader_set_data* set,
+    size_t index, float_t* x, float_t* y, float_t* z, float_t* w);
+extern void  shader_env_frag_get_ptr(shader_set_data* set,
+    size_t index, vec4* data);
+extern void  shader_env_frag_get_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data);
+extern void  shader_env_vert_get(shader_set_data* set,
+    size_t index, float_t* x, float_t* y, float_t* z, float_t* w);
+extern void  shader_env_vert_get_ptr(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_env_vert_get_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data);
+extern void shader_state_clip_get_plane(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_depth_get_range(shader_set_data* set,
+    vec4* data);
+extern void shader_state_fog_get_color(shader_set_data* set,
+    vec4* data);
+extern void shader_state_fog_get_params(shader_set_data* set,
+    vec4* data);
+extern void shader_state_light_get_ambient(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_get_diffuse(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_get_specular(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_get_position(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_get_attenuation(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_get_spot_direction(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_get_half(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_lightmodel_get_ambient(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_lightmodel_get_scene_color(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_lightprod_get_ambient(shader_set_data* set,
+    bool back, size_t index, vec4* data);
+extern void shader_state_lightprod_get_diffuse(shader_set_data* set,
+    bool back, size_t index, vec4* data);
+extern void shader_state_lightprod_get_specular(shader_set_data* set,
+    bool back, size_t index, vec4* data);
+extern void shader_state_material_get_ambient(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_material_get_diffuse(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_material_get_specular(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_material_get_emission(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_material_get_shininess(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_matrix_get_modelview(shader_set_data* set,
+    size_t index, mat4* data);
+extern void shader_state_matrix_get_projection(shader_set_data* set,
+    mat4* data);
+extern void shader_state_matrix_get_mvp(shader_set_data* set,
+    mat4* data);
+extern void shader_state_matrix_get_texture(shader_set_data* set,
+    size_t index, mat4* data);
+extern void shader_state_matrix_get_palette(shader_set_data* set,
+    size_t index, mat4* data);
+extern void shader_state_matrix_get_program(shader_set_data* set,
+    size_t index, mat4* data);
+extern void shader_state_point_get_size(shader_set_data* set,
+    vec4* data);
+extern void shader_state_point_get_attenuation(shader_set_data* set,
+    vec4* data);
+extern void shader_state_texgen_get_eye_s(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_get_eye_t(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_get_eye_r(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_get_eye_q(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_get_object_s(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_get_object_t(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_get_object_r(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_get_object_q(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texenv_get_color(shader_set_data* set,
+    size_t index, vec4* data);
 
-#define shader_model_set_vec3_array(s, name, count, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform3fv(location, count, (GLfloat*)value); \
-    } \
-}
-
-#define shader_model_set_vec4i_array(s, name, count, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform4iv(location, count, (GLint*)value); \
-    } \
-}
-
-#define shader_model_set_vec4_array(s, name, count, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniform4fv(location, count, (GLfloat*)value); \
-    } \
-}
-
-#define shader_model_set_mat3_array(s, name, count, transpose, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniformMatrix3fv(location, count, transpose, (GLfloat*)value); \
-    } \
-}
-
-#define shader_model_set_mat4_array(s, name, count, transpose, value) \
-{ \
-    int32_t location = shader_model_get_uniform_location(s, name); \
-    if (location != GL_INVALID_INDEX) { \
-        shader_model_use(s); \
-        glUniformMatrix4fv(location, count, transpose, (GLfloat*)value); \
-    } \
-}
+extern void shader_local_frag_set(shader_set_data* set,
+    size_t index, float_t x, float_t y, float_t z, float_t w);
+extern void shader_local_frag_set_ptr(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_local_frag_set_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data);
+extern void shader_local_vert_set(shader_set_data* set,
+    size_t index, float_t x, float_t y, float_t z, float_t w);
+extern void shader_local_vert_set_ptr(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_local_vert_set_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data);
+extern void shader_env_frag_set(shader_set_data* set,
+    size_t index, float_t x, float_t y, float_t z, float_t w);
+extern void shader_env_frag_set_ptr(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_env_frag_set_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data);
+extern void shader_env_vert_set(shader_set_data* set,
+    size_t index, float_t x, float_t y, float_t z, float_t w);
+extern void shader_env_vert_set_ptr(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_env_vert_set_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data);
+extern void shader_state_clip_set_plane(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_depth_set_range(shader_set_data* set,
+    vec4* data);
+extern void shader_state_fog_set_color(shader_set_data* set,
+    vec4* data);
+extern void shader_state_fog_set_params(shader_set_data* set,
+    vec4* data);
+extern void shader_state_light_set_ambient(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_set_diffuse(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_set_specular(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_set_position(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_set_attenuation(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_set_spot_direction(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_light_set_half(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_lightmodel_set_ambient(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_lightmodel_set_scene_color(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_lightprod_set_ambient(shader_set_data* set,
+    bool back, size_t index, vec4* data);
+extern void shader_state_lightprod_set_diffuse(shader_set_data* set,
+    bool back, size_t index, vec4* data);
+extern void shader_state_lightprod_set_specular(shader_set_data* set,
+    bool back, size_t index, vec4* data);
+extern void shader_state_material_set_ambient(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_material_set_diffuse(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_material_set_specular(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_material_set_emission(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_material_set_shininess(shader_set_data* set,
+    bool back, vec4* data);
+extern void shader_state_matrix_set_modelview(shader_set_data* set,
+    size_t index, mat4* data, bool mult);
+extern void shader_state_matrix_set_projection(shader_set_data* set,
+    mat4* data, bool mult);
+extern void shader_state_matrix_set_mvp(shader_set_data* set,
+    mat4* data);
+extern void shader_state_matrix_set_mvp_separate(shader_set_data* set,
+    mat4* model, mat4* view, mat4* projection);
+extern void shader_state_matrix_set_texture(shader_set_data* set,
+    size_t index, mat4* data);
+extern void shader_state_matrix_set_palette(shader_set_data* set,
+    size_t index, mat4* data);
+extern void shader_state_matrix_set_program(shader_set_data* set,
+    size_t index, mat4* data);
+extern void shader_state_point_set_size(shader_set_data* set,
+    vec4* data);
+extern void shader_state_point_set_attenuation(shader_set_data* set,
+    vec4* data);
+extern void shader_state_texgen_set_eye_s(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_set_eye_t(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_set_eye_r(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_set_eye_q(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_set_object_s(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_set_object_t(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_set_object_r(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texgen_set_object_q(shader_set_data* set,
+    size_t index, vec4* data);
+extern void shader_state_texenv_set_color(shader_set_data* set,
+    size_t index, vec4* data);

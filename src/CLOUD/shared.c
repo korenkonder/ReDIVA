@@ -6,7 +6,7 @@
 #include "shared.h"
 
 classes_struct classes[] = {
-#ifndef CLOUD_DEV
+#if !defined(CLOUD_DEV)
     {
         .name    = "Data Test",
         .flags   = CLASSES_IN_CONTEXT_MENU,
@@ -20,6 +20,7 @@ classes_struct classes[] = {
         .input   = (void*)0,
         .render  = (void*)0,
         .sound   = (void*)0,
+        .video   = (void*)0,
         .lock = 0,
         .sub_classes = data_test_classes,
         .sub_classes_count = 1,
@@ -38,11 +39,12 @@ classes_struct classes[] = {
         .input   = (void*)0,
         .render  = (void*)0,
         .sound   = (void*)0,
+        .video   = (void*)0,
         .lock = 0,
         .sub_classes = graphics_classes,
         .sub_classes_count = 4,
     },
-#ifdef CLOUD_DEV
+#if defined(CLOUD_DEV)
     {
         .name    = "Glitter Editor",
         .flags   = CLASSES_INIT_AT_STARTUP,
@@ -56,6 +58,27 @@ classes_struct classes[] = {
         .input   = (void*)glitter_editor_input,
         .render  = (void*)glitter_editor_render,
         .sound   = (void*)0,
+        .video   = (void*)0,
+        .lock = 0,
+        .sub_classes = 0,
+        .sub_classes_count = 0,
+    },
+#endif
+#if defined(VIDEO)
+    {
+        .name    = "Data Player",
+        .flags   = 0,
+        .enabled = &data_player_enabled,
+        .dispose = (void*)data_player_dispose,
+        .init    = (void*)data_player_init,
+        .control = (void*)0,
+        .draw    = (void*)data_player_draw,
+        .drop    = (void*)0,
+        .imgui   = (void*)data_player_imgui,
+        .input   = (void*)data_player_input,
+        .render  = (void*)data_player_render,
+        .sound   = (void*)0,
+        .video   = (void*)data_player_video,
         .lock = 0,
         .sub_classes = 0,
         .sub_classes_count = 0,
@@ -66,4 +89,4 @@ classes_struct classes[] = {
 const size_t classes_count = sizeof(classes) / sizeof(classes_struct);
 
 render_state state;
-lock_val(state_lock);
+lock state_lock;

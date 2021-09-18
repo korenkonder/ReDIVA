@@ -10,13 +10,13 @@
 #include "random_x.h"
 #include "render_scene_x.h"
 
-static mot_bone_index_f FASTCALL glitter_x_effect_inst_get_ext_anim_bone_index(
+static int32_t glitter_x_effect_inst_get_ext_anim_bone_index(
     glitter_effect_ext_anim_chara_node node);
-static void FASTCALL glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1);
-static void FASTCALL glitter_x_effect_inst_get_value(glitter_effect_inst* a1);
-static void FASTCALL glitter_x_effect_inst_update_init(glitter_effect_inst* a1, float_t emission);
+static void glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1);
+static void glitter_x_effect_inst_get_value(glitter_effect_inst* a1);
+static void glitter_x_effect_inst_update_init(glitter_effect_inst* a1, float_t emission);
 
-glitter_effect_inst* FASTCALL glitter_x_effect_inst_init(GPM, glitter_effect* a1,
+glitter_effect_inst* glitter_x_effect_inst_init(GPM, glitter_effect* a1,
     size_t id, float_t emission, bool appear_now) {
     glitter_effect_inst_ext_anim* inst_ext_anim;
     glitter_effect_ext_anim* ext_anim;
@@ -35,9 +35,9 @@ glitter_effect_inst* FASTCALL glitter_x_effect_inst_init(GPM, glitter_effect* a1
     glitter_x_random_reset(&ei->random_shared);
 
     if (ei->data.flags & GLITTER_EFFECT_USE_SEED)
-        ei->random = glitter_x_counter_get(GPM_VAL);
-    else
         ei->random = ei->data.seed;
+    else
+        ei->random = glitter_x_counter_get(GPM_VAL);
     ei->random_shared.value = ei->random;
 
     ext_anim = ei->data.ext_anim;
@@ -52,7 +52,7 @@ glitter_effect_inst* FASTCALL glitter_x_effect_inst_init(GPM, glitter_effect* a1
         inst_ext_anim->a3da_id = -1;
         inst_ext_anim->object_hash = hash_murmurhash_empty;
         inst_ext_anim->chara_index = -1;
-        inst_ext_anim->index.data = -1;
+        inst_ext_anim->mesh_index = -1;
         inst_ext_anim->mat = mat4_identity;
         inst_ext_anim = ei->ext_anim;
         if (inst_ext_anim != (glitter_effect_inst_ext_anim*)0x0) {
@@ -77,8 +77,8 @@ glitter_effect_inst* FASTCALL glitter_x_effect_inst_init(GPM, glitter_effect* a1
 
 
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
-                inst_ext_anim->chara_index = ext_anim->index;
-                inst_ext_anim->index.f =
+                inst_ext_anim->object = ext_anim->object;
+                inst_ext_anim->bone_index =
                     glitter_x_effect_inst_get_ext_anim_bone_index(ext_anim->node_index);
                 ei->flags |= GLITTER_EFFECT_INST_CHARA_ANIM;
             }
@@ -88,7 +88,7 @@ glitter_effect_inst* FASTCALL glitter_x_effect_inst_init(GPM, glitter_effect* a1
                 inst_ext_anim->instance_id = ext_anim->instance_id;
             }
 
-            size_t mesh_name_len = strlen(ext_anim->mesh_name);
+            size_t mesh_name_len = utf8_length(ext_anim->mesh_name);
             if (mesh_name_len) {
                 inst_ext_anim->mesh_name = force_malloc(mesh_name_len + 1);
                 memcpy(inst_ext_anim->mesh_name, ext_anim->mesh_name, mesh_name_len);
@@ -102,7 +102,7 @@ glitter_effect_inst* FASTCALL glitter_x_effect_inst_init(GPM, glitter_effect* a1
         ei->flags |= GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT;
     }
 
-    vector_ptr_glitter_emitter_inst_append(&ei->emitters, a1->emitters.end - a1->emitters.begin);
+    vector_ptr_glitter_emitter_inst_reserve(&ei->emitters, a1->emitters.end - a1->emitters.begin);
     for (i = a1->emitters.begin; i != a1->emitters.end; i++) {
         if (!*i)
             continue;
@@ -114,29 +114,28 @@ glitter_effect_inst* FASTCALL glitter_x_effect_inst_init(GPM, glitter_effect* a1
     return ei;
 }
 
-void FASTCALL glitter_x_effect_inst_calc_draw(GPM, glitter_effect_inst* a1,
-    bool(FASTCALL* render_add_list_func)(glitter_particle_mesh*, vec4*, mat4*, mat4*)) {
-    glitter_x_render_scene_calc_draw(GPM_VAL, &a1->render_scene, render_add_list_func);
+void glitter_x_effect_inst_calc_draw(GPM, glitter_effect_inst* a1) {
+    glitter_x_render_scene_calc_draw(GPM_VAL, &a1->render_scene);
 }
 
-void FASTCALL glitter_x_effect_inst_draw(GPM, glitter_effect_inst* a1, int32_t alpha) {
+void glitter_x_effect_inst_draw(GPM, glitter_effect_inst* a1, alpha_pass_type alpha) {
     glitter_x_render_scene_draw(GPM_VAL, &a1->render_scene, alpha);
 }
 
-int32_t FASTCALL glitter_x_effect_inst_get_alpha(glitter_effect_inst* a1) {
-    return a1->data.flags & GLITTER_EFFECT_ALPHA ? 2 : 1;
+alpha_pass_type glitter_x_effect_inst_get_alpha(glitter_effect_inst* a1) {
+    return a1->data.flags & GLITTER_EFFECT_ALPHA ? ALPHA_PASS_TRANSPARENT : ALPHA_PASS_TRANSLUCENT;
 }
 
-int32_t FASTCALL glitter_x_effect_inst_get_fog(glitter_effect_inst* a1) {
+fog_type glitter_x_effect_inst_get_fog(glitter_effect_inst* a1) {
     if (a1->data.flags & GLITTER_EFFECT_FOG)
-        return 1;
+        return FOG_NORMAL;
     else if (a1->data.flags & GLITTER_EFFECT_FOG_HEIGHT)
-        return 2;
+        return FOG_HEIGHT;
     else
-        return 0;
+        return FOG_NONE;
 }
 
-bool FASTCALL glitter_x_effect_inst_has_ended(glitter_effect_inst* effect, bool a2) {
+bool glitter_x_effect_inst_has_ended(glitter_effect_inst* effect, bool a2) {
     glitter_emitter_inst** i;
 
     if (~effect->flags & GLITTER_EFFECT_INST_FREE)
@@ -151,7 +150,7 @@ bool FASTCALL glitter_x_effect_inst_has_ended(glitter_effect_inst* effect, bool 
     return true;
 }
 
-void FASTCALL glitter_x_effect_inst_reset(glitter_effect_inst* a1, float_t emission) {
+void glitter_x_effect_inst_reset(glitter_effect_inst* a1, float_t emission) {
     glitter_emitter_inst** i;
 
     a1->frame0 = (float_t)-a1->data.appear_time;
@@ -162,7 +161,7 @@ void FASTCALL glitter_x_effect_inst_reset(glitter_effect_inst* a1, float_t emiss
     glitter_x_effect_inst_update_init(a1, emission);
 }
 
-void FASTCALL glitter_x_effect_inst_update(GPM, glitter_effect_inst* a1,
+void glitter_x_effect_inst_update(GPM, glitter_effect_inst* a1,
     float_t delta_frame, float_t emission) {
     glitter_effect_inst_ext_anim* ext_anim;
     glitter_emitter_inst** i;
@@ -173,7 +172,7 @@ void FASTCALL glitter_x_effect_inst_update(GPM, glitter_effect_inst* a1,
     vec3 scale;
 
     glitter_x_effect_inst_get_ext_anim(a1);
-    if (~a1->flags & GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE && !GPM_VAL->draw_all)
+    if (a1->flags & GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE && !GPM_VAL->draw_all)
         return;
 
     glitter_x_effect_inst_get_value(a1);
@@ -223,7 +222,7 @@ void FASTCALL glitter_x_effect_inst_update(GPM, glitter_effect_inst* a1,
     a1->frame0 += delta_frame;
 }
 
-void FASTCALL glitter_x_effect_inst_dispose(glitter_effect_inst* ei) {
+void glitter_x_effect_inst_dispose(glitter_effect_inst* ei) {
     if (ei->ext_anim) {
         free(ei->ext_anim->mesh_name);
         free(ei->ext_anim);
@@ -234,51 +233,37 @@ void FASTCALL glitter_x_effect_inst_dispose(glitter_effect_inst* ei) {
     free(ei);
 }
 
-static mot_bone_index_f FASTCALL glitter_x_effect_inst_get_ext_anim_bone_index(
+static int32_t glitter_x_effect_inst_get_ext_anim_bone_index(
     glitter_effect_ext_anim_chara_node node) {
-    switch (node) {
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD:
-        return MOT_BONE_F_FACE_ROOT;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_MOUTH:
-        return MOT_BONE_F_N_KUTI_U;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_BELLY:
-        return MOT_BONE_F_N_HARA_CP;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_CHEST:
-        return MOT_BONE_F_E_MUNE_CP;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_SHOULDER:
-        return MOT_BONE_F_C_KATA_L;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_ELBOW:
-        return MOT_BONE_F_J_UDE_L_WJ;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_ELBOW_DUP:
-        return MOT_BONE_F_E_UDE_L_CP;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_HAND:
-        return MOT_BONE_F_N_NAKA_L_EX;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_SHOULDER:
-        return MOT_BONE_F_C_KATA_R;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_ELBOW:
-        return MOT_BONE_F_J_UDE_R_WJ;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_ELBOW_DUP:
-        return MOT_BONE_F_E_UDE_R_CP;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_HAND:
-        return MOT_BONE_F_N_NAKA_R_EX;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_THIGH:
-        return MOT_BONE_F_N_MOMO_C_L_WJ_EX;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_KNEE:
-        return MOT_BONE_F_N_HIZA_L_WJ_EX;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_TOE:
-        return MOT_BONE_F_KL_TOE_L_WJ;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_THIGH:
-        return MOT_BONE_F_N_MOMO_C_R_WJ_EX;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_KNEE:
-        return MOT_BONE_F_N_HIZA_R_WJ_EX;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE:
-        return MOT_BONE_F_KL_TOE_R_WJ;
-    default:
-        return MOT_BONE_F_MAX;
-    }
+    if (node < GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD || node > GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
+        return -1;
+
+    const char* bone_names[] = {
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD]            = "face_root",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_MOUTH]           = "n_kuti_u",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_BELLY]           = "n_hara_cp",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_CHEST]           = "e_mune_cp",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_SHOULDER]   = "c_kata_l",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_ELBOW]      = "j_ude_l_wj",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_ELBOW_DUP]  = "e_ude_l_cp",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_HAND]       = "n_naka_l_ex",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_SHOULDER]  = "c_kata_r",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_ELBOW]     = "j_ude_r_wj",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_ELBOW_DUP] = "e_ude_r_cp",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_HAND]      = "n_naka_r_ex",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_THIGH]      = "n_momo_c_l_wj_ex",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_KNEE]       = "n_hiza_l_wj_ex",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_TOE]        = "kl_toe_l_wj",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_THIGH]     = "n_momo_c_r_wj_ex",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_KNEE]      = "n_hiza_r_wj_ex",
+        [GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE]       = "kl_toe_r_wj"
+    };
+
+    // find bone index
+    return -1;
 }
 
-static void FASTCALL glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
+static void glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
     glitter_effect_ext_anim* ext_anim;
     glitter_effect_inst_ext_anim* inst_ext_anim;
     vec3 scale;
@@ -321,7 +306,7 @@ static void FASTCALL glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1)
         else
             set_flags = false;
 
-        if (inst_ext_anim->index.f < MOT_BONE_F_MAX)
+        if (inst_ext_anim->bone_index > -1)
             mat4_mult(&temp, (mat4*)&mat4_identity/*chara node mat*/, &temp);
 
         mat = &temp;
@@ -332,7 +317,7 @@ static void FASTCALL glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1)
             inst_ext_anim->a3da_id = -1;/*try get a3da id*/
             //fun(inst_ext_anim->file_name_hash, inst_ext_anim->object_hash,
             //    &inst_ext_anim->a3da_index, &inst_ext_anim->object_is_hrc)
-            inst_ext_anim->index.data = -1;
+            inst_ext_anim->mesh_index = -1;
 
             if (inst_ext_anim->a3da_id > -1)
                 mat = (mat4*)&mat4_identity/*try get obj a3da mat*/;
@@ -359,25 +344,25 @@ static void FASTCALL glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1)
         if (!inst_ext_anim->mesh_name)
             goto SetMat;
 
-        if (inst_ext_anim->index.data < 0)
-            inst_ext_anim->index.data = -1/*try get mesh index*/;
+        if (inst_ext_anim->mesh_index < 0)
+            inst_ext_anim->mesh_index = -1/*try get mesh index*/;
 
-        if (inst_ext_anim->index.data > -1) {
-            trans = (vec3*)&vec3_null/*try get mesh trans*/;
+        if (inst_ext_anim->mesh_index > -1) {
+            trans = (vec3*)&vec3_null/*try get mesh bounding sphere center*/;
             if (trans)
                 goto SetMat;
         }
     }
     else if (inst_ext_anim->object_hash != hash_murmurhash_empty) {
-        if (inst_ext_anim->index.data < 0) {
+        if (inst_ext_anim->mesh_index < 0) {
             if (!inst_ext_anim->mesh_name)
                 return;
 
-            inst_ext_anim->index.data = -1/*try get mesh index*/;
+            inst_ext_anim->mesh_index = -1/*try get mesh index*/;
         }
 
-        if (inst_ext_anim->index.data >= 0) {
-            trans = (vec3*)&vec3_null/*try get mesh trans*/;
+        if (inst_ext_anim->mesh_index >= 0) {
+            trans = (vec3*)&vec3_null/*try get mesh bounding sphere center*/;
             if (trans)
                 goto SetMat;
         }
@@ -420,7 +405,7 @@ SetMat:
     a1->flags |= GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS;
 }
 
-static void FASTCALL glitter_x_effect_inst_get_value(glitter_effect_inst* a1) {
+static void glitter_x_effect_inst_get_value(glitter_effect_inst* a1) {
     int64_t length;
     glitter_curve* curve;
     float_t value;
@@ -482,7 +467,7 @@ static void FASTCALL glitter_x_effect_inst_get_value(glitter_effect_inst* a1) {
     }
 }
 
-static void FASTCALL glitter_x_effect_inst_update_init(glitter_effect_inst* a1, float_t emission) {
+static void glitter_x_effect_inst_update_init(glitter_effect_inst* a1, float_t emission) {
     glitter_emitter_inst** i;
     vec3 trans;
     vec3 rot;

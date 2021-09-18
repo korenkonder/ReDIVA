@@ -5,6 +5,6 @@
 
 #include "counter_x.h"
 
-int32_t FASTCALL glitter_x_counter_get(GPM) {
+int32_t glitter_x_counter_get(GPM) {
     return ++GPM_VAL->counter;
 }

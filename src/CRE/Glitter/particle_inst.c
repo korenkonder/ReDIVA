@@ -8,10 +8,10 @@
 #include "render_group.h"
 #include "render_scene.h"
 
-static glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(glitter_particle_inst* a1,
+static glitter_particle_inst* glitter_particle_inst_init_child(glitter_particle_inst* a1,
     float_t emission);
 
-glitter_particle_inst* FASTCALL glitter_particle_inst_init(glitter_particle* a1,
+glitter_particle_inst* glitter_particle_inst_init(glitter_particle* a1,
     glitter_effect_inst* a2, glitter_emitter_inst* a3, glitter_random* random, float_t emission) {
     glitter_render_group* rg;
 
@@ -30,7 +30,7 @@ glitter_particle_inst* FASTCALL glitter_particle_inst_init(glitter_particle* a1,
             rg->fog = glitter_effect_inst_get_fog(a2);
             if (pi->data.data.type == GLITTER_PARTICLE_QUAD
                 && pi->data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH)
-                rg->alpha = 0;
+                rg->alpha = ALPHA_PASS_OPAQUE;
 
             if (pi->data.data.draw_flags & GLITTER_PARTICLE_DRAW_NO_BILLBOARD_CULL)
                 rg->use_culling = false;
@@ -52,7 +52,7 @@ glitter_particle_inst* FASTCALL glitter_particle_inst_init(glitter_particle* a1,
     return pi;
 }
 
-void FASTCALL glitter_particle_inst_emit(GPM, GLT,
+void glitter_particle_inst_emit(GPM, GLT,
     glitter_particle_inst* a1, int32_t dup_count, int32_t count, float_t emission) {
     glitter_particle_inst* particle;
 
@@ -76,7 +76,7 @@ void FASTCALL glitter_particle_inst_emit(GPM, GLT,
             a1->data.render_group, &a1->data, a1->data.emitter, dup_count, count);
 }
 
-void FASTCALL glitter_particle_inst_free(glitter_particle_inst* a1, bool free) {
+void glitter_particle_inst_free(glitter_particle_inst* a1, bool free) {
     glitter_particle_inst** i;
 
     a1->data.flags |= GLITTER_PARTICLE_INST_ENDED;
@@ -87,7 +87,7 @@ void FASTCALL glitter_particle_inst_free(glitter_particle_inst* a1, bool free) {
         glitter_particle_inst_free(*i, free);
 }
 
-bool FASTCALL glitter_particle_inst_has_ended(glitter_particle_inst* particle, bool a2) {
+bool glitter_particle_inst_has_ended(glitter_particle_inst* particle, bool a2) {
     glitter_particle_inst** i;
 
     if (~particle->data.flags & GLITTER_PARTICLE_INST_ENDED)
@@ -107,7 +107,7 @@ bool FASTCALL glitter_particle_inst_has_ended(glitter_particle_inst* particle, b
     return true;
 }
 
-void FASTCALL glitter_particle_inst_dispose(glitter_particle_inst* pi) {
+void glitter_particle_inst_dispose(glitter_particle_inst* pi) {
     if (pi->data.render_group) {
         glitter_render_group_delete_buffers(pi->data.render_group, true);
         pi->data.render_group = 0;
@@ -117,7 +117,7 @@ void FASTCALL glitter_particle_inst_dispose(glitter_particle_inst* pi) {
     free(pi);
 }
 
-void FASTCALL glitter_particle_inst_reset(glitter_particle_inst* a1) {
+void glitter_particle_inst_reset(glitter_particle_inst* a1) {
     glitter_particle_inst** i;
 
     a1->data.flags = 0;
@@ -128,7 +128,7 @@ void FASTCALL glitter_particle_inst_reset(glitter_particle_inst* a1) {
         glitter_particle_inst_reset(*i);
 }
 
-static glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(glitter_particle_inst* a1,
+static glitter_particle_inst* glitter_particle_inst_init_child(glitter_particle_inst* a1,
     float_t emission) {
     glitter_render_group* rg;
     glitter_effect_inst* effect;
@@ -150,7 +150,7 @@ static glitter_particle_inst* FASTCALL glitter_particle_inst_init_child(glitter_
         rg->fog = glitter_effect_inst_get_fog(effect);
         if (pi->data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH
             && pi->data.data.type == GLITTER_PARTICLE_QUAD)
-            rg->alpha = 0;
+            rg->alpha = ALPHA_PASS_OPAQUE;
         if (effect->data.emission >= glitter_min_emission)
             rg->emission = effect->data.emission;
         else

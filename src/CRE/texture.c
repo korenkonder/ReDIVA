@@ -6,461 +6,437 @@
 #include "texture.h"
 #include "../KKdLib/mat.h"
 #include "../KKdLib/txp.h"
+#include "gl_state.h"
 #include "static_var.h"
 
-static void load_texture_data(GLenum target, txp_format format,
-    uint32_t width, uint32_t height, uint32_t level, void* data);
+static const GLenum target_cube_map_array[] = {
+    GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+};
 
-static void texture_1d_load(texture* tex, texture_data* data) {
-    uint32_t width = max(data->width, 0);
+static void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type);
+static int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height);
+static int32_t texture_load(GLenum target, GLenum internal_format,
+    int32_t width, int32_t height, int32_t level, void* data);
+static texture* texture_load_tex(GLenum target,
+    GLenum internal_format, int32_t width, int32_t height,
+    int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy);
+static void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy);
+static GLenum texture_txp_get_internal_format(txp* t);
 
-    bind_tex1d(tex->id);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, data->wrap_mode_s);
+vector_ptr_func(texture)
 
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, data->min_filter);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, data->mag_filter);
-
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAX_ANISOTROPY, sv_anisotropy);
-
-    glTexImage1D(GL_TEXTURE_1D, 0, data->pixel_internal_format, width,
-        0, data->pixel_format, data->pixel_type, data->data);
-    if (data->generate_mipmap)
-        glGenerateMipmap(GL_TEXTURE_1D);
-    bind_tex1d(0);
+texture* texture_load_tex_2d(GLenum internal_format, int32_t width, int32_t height,
+    int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy) {
+    return texture_load_tex(GL_TEXTURE_2D, internal_format,
+        width, height, max_mipmap_level, data_ptr, use_high_anisotropy);
 }
 
-static void texture_1d_update(texture* tex) {
-    bind_tex1d(tex->id);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAX_ANISOTROPY, sv_anisotropy);
-    bind_tex1d(0);
+texture* texture_load_tex_cube_map(GLenum internal_format, int32_t width, int32_t height,
+    int32_t max_mipmap_level, void** data_ptr) {
+    return texture_load_tex(GL_TEXTURE_CUBE_MAP, internal_format,
+        width, height, max_mipmap_level, data_ptr, false);
 }
 
-static void texture_2d_load(texture* tex, texture_data* data) {
-    uint32_t width = max(data->width, 0);
-    uint32_t height = max(data->height, 0);
+texture* texture_txp_load(txp* t) {
+    if (!t || !t->data.begin)
+        return 0;
 
-    bind_tex2d(tex->id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, data->wrap_mode_s);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, data->wrap_mode_t);
+    int32_t count = t->array_size * t->mipmaps_count;
+    void** data_ptr = force_malloc_s(void*, count);
+    for (uint32_t i = 0, k = 0; i < t->array_size; i++)
+        for (uint32_t j = 0; j < t->mipmaps_count; j++, k++)
+            data_ptr[k] = t->data.begin[k].data;
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, data->min_filter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, data->mag_filter);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, sv_anisotropy);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, data->pixel_internal_format, width, height,
-        0, data->pixel_format, data->pixel_type, data->data);
-    if (data->generate_mipmap)
-        glGenerateMipmap(GL_TEXTURE_2D);
-    bind_tex2d(0);
+    GLenum internal_format = texture_txp_get_internal_format(t);
+    int32_t width = t->data.begin->width;
+    int32_t height = t->data.begin->height;
+    int32_t max_mipmap_level = t->mipmaps_count - 1;
+    texture* tex;
+    if (t->has_cube_map)
+        tex = texture_load_tex_cube_map(internal_format, width, height, max_mipmap_level, data_ptr);
+    else
+        tex = texture_load_tex_2d(internal_format, width, height, max_mipmap_level, data_ptr, true);
+    free(data_ptr);
+    return tex;
 }
 
-static void texture_2d_update(texture* tex) {
-    bind_tex2d(tex->id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, sv_anisotropy);
-    bind_tex2d(0);
+void texture_dispose(texture* tex) {
+    glDeleteTextures(1, &tex->texture);
+    free(tex);
 }
 
-static void texture_3d_load(texture* tex, texture_data* data) {
-    uint32_t width = max(data->width, 0);
-    uint32_t height = max(data->height, 0);
-    uint32_t depth = max(data->depth, 0);
-
-    bind_tex3d(tex->id);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, data->wrap_mode_s);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, data->wrap_mode_t);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, data->wrap_mode_r);
-
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, data->min_filter);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, data->mag_filter);
-
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY, sv_anisotropy);
-
-    glTexImage3D(GL_TEXTURE_3D, 0, data->pixel_internal_format, width, height,
-        depth, 0, data->pixel_format, data->pixel_type, data->data);
-    if (data->generate_mipmap)
-        glGenerateMipmap(GL_TEXTURE_3D);
-    bind_tex3d(0);
-}
-
-static void texture_3d_update(texture* tex) {
-    bind_tex3d(tex->id);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_ANISOTROPY, sv_anisotropy);
-    bind_tex3d(0);
-}
-
-static void texture_cube_load(texture* tex, texture_cube_data* data) {
-    uint32_t px_width = max(data->px.width, 0);
-    uint32_t px_height = max(data->px.height, 0);
-    uint32_t nx_width = max(data->nx.width, 0);
-    uint32_t nx_height = max(data->nx.height, 0);
-    uint32_t py_width = max(data->py.width, 0);
-    uint32_t py_height = max(data->py.height, 0);
-    uint32_t ny_width = max(data->ny.width, 0);
-    uint32_t ny_height = max(data->ny.height, 0);
-    uint32_t pz_width = max(data->pz.width, 0);
-    uint32_t pz_height = max(data->pz.height, 0);
-    uint32_t nz_width = max(data->nz.width, 0);
-    uint32_t nz_height = max(data->nz.height, 0);
-
-    bind_texcube(tex->id);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, data->wrap_mode_s);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, data->wrap_mode_t);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, data->wrap_mode_r);
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, data->min_filter);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, data->mag_filter);
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY, sv_anisotropy);
-
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, data->px.pixel_internal_format, px_width,
-        px_height, 0, data->px.pixel_format, data->px.pixel_type, data->px.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, data->px.pixel_internal_format, nx_width,
-        nx_height, 0, data->nx.pixel_format, data->nx.pixel_type, data->nx.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, data->px.pixel_internal_format, py_width,
-        py_height, 0, data->py.pixel_format, data->py.pixel_type, data->py.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, data->px.pixel_internal_format, ny_width,
-        ny_height, 0, data->ny.pixel_format, data->ny.pixel_type, data->ny.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, data->px.pixel_internal_format, pz_width,
-        pz_height, 0, data->pz.pixel_format, data->pz.pixel_type, data->pz.data);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, data->px.pixel_internal_format, nz_width,
-        nz_height, 0, data->nz.pixel_format, data->nz.pixel_type, data->nz.data);
-    if (data->generate_mipmap)
-        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-    bind_texcube(0);
-}
-
-static void texture_cube_update(texture* tex) {
-    bind_texcube(tex->id);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_ANISOTROPY, sv_anisotropy);
-    bind_texcube(0);
-}
-
-void texture_load(texture* tex, texture_data* data) {
-    if (!tex)
-        return;
-
-    if (tex->id == 0)
-        glGenTextures(1, &tex->id);
-
-    if (!data)
-        return;
-
-    tex->mode = TEXTURE_MODE_DEFAULT;
-    tex->type = data->type;
-    switch (tex->type) {
-    case TEXTURE_1D:
-        texture_1d_load(tex, data);
-        break;
-    case TEXTURE_2D:
-        texture_2d_load(tex, data);
-        break;
-    case TEXTURE_3D:
-        texture_3d_load(tex, data);
-        break;
-    case TEXTURE_CUBE:
-        texture_cube_load(tex, (texture_cube_data*)data);
-        break;
-    }
-}
-
-void texture_bind(texture* tex, int32_t index) {
-    if (!tex)
-        return;
-
-    switch (tex->type) {
-    case TEXTURE_1D:
-        bind_index_tex1d(index, tex->id);
-        break;
-    case TEXTURE_2D:
-        bind_index_tex2d(index, tex->id);
-        break;
-    case TEXTURE_3D:
-        bind_index_tex3d(index, tex->id);
-        break;
-    case TEXTURE_CUBE:
-        bind_index_texcube(index, tex->id);
-        break;
-    }
-}
-
-void texture_reset(texture* tex, int32_t index) {
-    if (!tex)
-        return;
-
-    switch (tex->type) {
-    case TEXTURE_1D:
-        bind_index_tex1d(index, 0);
-        break;
-    case TEXTURE_2D:
-        bind_index_tex2d(index, 0);
-        break;
-    case TEXTURE_3D:
-        bind_index_tex3d(index, 0);
-        break;
-    case TEXTURE_CUBE:
-        bind_index_texcube(index, 0);
-        break;
-    }
-}
-
-void texture_update(texture* tex) {
-    if (!tex)
-        return;
-
-    switch (tex->type) {
-    case TEXTURE_1D:
-        texture_1d_update(tex);
-        break;
-    case TEXTURE_2D:
-        texture_2d_update(tex);
-        break;
-    case TEXTURE_3D:
-        texture_3d_update(tex);
-        break;
-    case TEXTURE_CUBE:
-        texture_cube_update(tex);
-        break;
-    }
-}
-
-void texture_free(texture* tex) {
-    if (!tex)
-        return;
-
-    if (tex->id)
-        glDeleteTextures(1, &tex->id);
-    tex->id = 0;
-}
-
-void texture_set_load(texture_set* tex, texture_set_data* data) {
-    if (!tex || !data)
-        return;
-
-    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
-        texture_load(&tex->tex[i], &data->tex[i]);
-}
-
-void texture_set_bind(texture_set* tex) {
-    if (!tex)
-        return;
-
-    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
-        texture_bind(&tex->tex[i], i);
-}
-
-void texture_set_reset(texture_set* tex) {
-    if (!tex)
-        return;
-
-    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
-        texture_reset(&tex->tex[i], i);
-}
-
-void texture_set_update(texture_set* tex) {
-    if (!tex)
-        return;
-
-    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
-        texture_update(&tex->tex[i]);
-}
-
-void texture_set_free(texture_set* tex) {
-    if (!tex)
-        return;
-
-    for (int32_t i = 0; i < TEXTURE_SET_COUNT; i++)
-        texture_free(&tex->tex[i]);
-}
-
-bool texture_txp_load(vector_txp* tex, vector_int32_t* textures) {
-    static const GLenum target_cubemap_array[] = {
-        GL_TEXTURE_CUBE_MAP_POSITIVE_X,
-        GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-        GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
-        GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-        GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-        GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
-    };
-
-    if (!tex || !textures)
+bool texture_txp_set_load(vector_txp* t, vector_ptr_texture* tex) {
+    if (!t || !tex)
         return false;
 
-    size_t count = tex->end - tex->begin;
-    if (count < 1)
-        return false;
+    vector_ptr_texture_reserve(tex, t->end - t->begin);
+    for (txp* i = t->begin; i != t->end; i++) {
+        texture* temp = texture_txp_load(i);
+        vector_ptr_texture_push_back(tex, &temp);
+    }
+    return tex->end - tex->begin > 0 ? true : false;
+}
 
-    if (textures->end - textures->begin != 0)
-        texture_txp_unload(textures);
+static void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type) {
+    GLenum _format;
+    GLenum _type;
+    switch (internal_format) {
+    case GL_ALPHA8:
+        _format = GL_ALPHA;
+        _type = GL_UNSIGNED_BYTE;
+        break;
+    case GL_LUMINANCE8:
+        _format = GL_LUMINANCE;
+        _type = GL_UNSIGNED_BYTE;
+        break;
+    case GL_LUMINANCE8_ALPHA8:
+        _format = GL_LUMINANCE_ALPHA;
+        _type = GL_UNSIGNED_BYTE;
+        break;
+    case GL_INTENSITY8:
+        _format = GL_INTENSITY;
+        _type = GL_UNSIGNED_BYTE;
+        break;
+    case GL_RGB5:
+        _format = GL_RGB;
+        _type = GL_UNSIGNED_SHORT_5_6_5_REV;
+        break;
+    case GL_RGB8:
+        _format = GL_RGB;
+        _type = GL_UNSIGNED_BYTE;
+        break;
+    case GL_RGBA4:
+        _format = GL_RGBA;
+        _type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
+        break;
+    case GL_RGB5_A1:
+        _format = GL_RGBA;
+        _type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+        break;
+    case GL_RGBA8:
+        _format = GL_RGBA;
+        _type = GL_UNSIGNED_BYTE;
+        break;
+    case GL_DEPTH_COMPONENT24:
+    case GL_DEPTH_COMPONENT32:
+        _format = GL_DEPTH_COMPONENT;
+        _type = GL_FLOAT;
+        break;
+    case GL_RG8:
+        _format = GL_RG;
+        _type = GL_UNSIGNED_BYTE;
+        break;
+    case GL_R32F:
+        _format = GL_RED;
+        _type = GL_FLOAT;
+        break;
+    case GL_RG32F:
+        _format = GL_RG;
+        _type = GL_FLOAT;
+        break;
+    case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+        _format = GL_RGB;
+        _type = GL_ZERO;
+        break;
+    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+        _format = GL_RGBA;
+        _type = GL_ZERO;
+        break;
+    case GL_RGBA32F:
+        _format = GL_RGBA;
+        _type = GL_FLOAT;
+        break;
+    case GL_RGBA16F:
+        _format = GL_RGBA;
+        _type = GL_HALF_FLOAT;
+        break;
+    case GL_DEPTH24_STENCIL8:
+        _format = GL_DEPTH_STENCIL;
+        _type = GL_UNSIGNED_INT_24_8;
+        break;
+    case GL_R11F_G11F_B10F:
+        _format = GL_RGB;
+        _type = GL_UNSIGNED_INT_10F_11F_11F_REV;
+        break;
+    case GL_RGB9_E5:
+        _format = GL_RGB;
+        _type = GL_UNSIGNED_INT_5_9_9_9_REV;
+        break;
+    case GL_DEPTH_COMPONENT32F:
+        _format = GL_DEPTH_COMPONENT;
+        _type = GL_FLOAT;
+        break;
+    case GL_COMPRESSED_RED_RGTC1:
+        _format = GL_RED;
+        _type = GL_ZERO;
+        break;
+    case GL_COMPRESSED_RG_RGTC2:
+        _format = GL_RG;
+        _type = GL_ZERO;
+        break;
+    default:
+        _format = GL_ZERO;
+        _type = GL_ZERO;
+        break;
+    }
 
-    vector_int32_t_append(textures, count);
-    for (uint32_t i = 0; i < count; i++)
-        vector_int32_t_push_back(textures, &i);
-    glGenTextures((GLsizei)count, textures->begin);
+    if (format)
+        *format = _format;
+    if (type)
+        *type = _type;
+}
 
-    txp* tex_data = tex->begin;
-    for (size_t i = 0; i < count; i++, tex_data++)
-        if ((tex_data->has_cubemap && tex_data->array_size == 6) || tex_data->array_size == 1) {
-            GLenum target = tex_data->has_cubemap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
-            uint32_t mipmaps_count = tex_data->mipmaps_count;
-            if (tex_data->has_cubemap)
-                bind_texcube(textures->begin[i]);
-            else
-                bind_tex2d(textures->begin[i]);
-            glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-            glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, (float_t*)&vec4_null);
-            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(target, GL_TEXTURE_MIN_FILTER,
-                mipmaps_count > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-            glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0);
-            glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, mipmaps_count - 1);
-            glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY, tex_data->has_cubemap ? 1.0f : 16.0f);
-            txp_mipmap* tex_mipmap = tex_data->data.begin;
-            if (tex_data->has_cubemap)
-                for (uint32_t j = 0; j < 6; j++, tex_data++) {
-                    uint32_t width = tex_mipmap->width;
-                    uint32_t height = tex_mipmap->height;
-                    txp_format format = tex_mipmap->format;
-                    for (uint32_t k = 0; k < mipmaps_count; k++, tex_mipmap++)
-                        load_texture_data(target_cubemap_array[j], format,
-                            max(width >> k, 1), max(height >> k, 1), k, tex_mipmap->data);
-                }
-            else {
-                uint32_t width = tex_mipmap->width;
-                uint32_t height = tex_mipmap->height;
-                txp_format format = tex_mipmap->format;
-                for (uint32_t k = 0; k < mipmaps_count; k++, tex_mipmap++)
-                    load_texture_data(target, format,
-                        max(width >> k, 1), max(height >> k, 1), k, tex_mipmap->data);
+static int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height) {
+    int32_t size = width * height;
+    switch (internal_format) {
+    case GL_ALPHA8:
+    case GL_LUMINANCE8:
+    case GL_INTENSITY8:
+    case GL_R8:
+        return size;
+    case GL_LUMINANCE8_ALPHA8:
+    case GL_RGB5:
+    case GL_RGBA4:
+    case GL_RGB5_A1:
+    case GL_DEPTH_COMPONENT16:
+    case GL_RG8:
+        return size * 2;
+    case GL_RGB8:
+    case GL_RGBA8:
+    case GL_DEPTH_COMPONENT24:
+    case GL_DEPTH_COMPONENT32:
+    case GL_R32F:
+    case GL_RGBA16F:
+    case GL_DEPTH24_STENCIL8:
+    case GL_DEPTH_COMPONENT32F:
+    case GL_R11F_G11F_B10F:
+    case GL_RGB9_E5:
+        return size * 4;
+    case GL_RG32F:
+        return size * 8;
+    case GL_RGBA32F:
+        return size * 16;
+    case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+    case GL_COMPRESSED_RED_RGTC1:
+        width = align_val(width, 4);
+        height = align_val(height, 4);
+        return width * height / 2;
+    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+    case GL_COMPRESSED_RG_RGTC2:
+        width = align_val(width, 4);
+        height = align_val(height, 4);
+        return width * height;
+    default:
+        return 0;
+    }
+}
+
+static int32_t texture_load(GLenum target, GLenum internal_format,
+    int32_t width, int32_t height, int32_t level, void* data) {
+    gl_state_get_all_gl_errors();
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    switch (internal_format) {
+    case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+    case GL_COMPRESSED_RED_RGTC1_EXT:
+    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT: {
+        int32_t size = texture_get_size(internal_format, width, height);
+        glCompressedTexImage2D(target, level, internal_format, width, height, 0, size, data);
+    } break;
+    default: {
+        GLenum format;
+        GLenum type;
+        texture_get_format_type_by_internal_format(internal_format, &format, &type);
+        glTexImage2D(target, level, internal_format, width, height, 0, format, type, data);
+    } break;
+    }
+    return -(glGetError() != GL_ZERO);
+}
+
+static texture* texture_load_tex(GLenum target,
+    GLenum internal_format, int32_t width, int32_t height,
+    int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy) {
+    texture* tex = force_malloc(sizeof(texture));
+    glGenTextures(1, &tex->texture);
+    switch (target) {
+    case GL_TEXTURE_2D:
+        gl_state_bind_texture_2d(tex->texture);
+        break;
+    case GL_TEXTURE_CUBE_MAP:
+        gl_state_bind_texture_cube_map(tex->texture);
+        break;
+    }
+    texture_set_params(target, max_mipmap_level, use_high_anisotropy);
+
+    switch (internal_format) {
+    case GL_ALPHA8:
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
+            (GLint[]){ GL_ZERO , GL_ZERO , GL_ZERO, GL_RED   });
+        internal_format = GL_R8;
+        break;
+    case GL_COMPRESSED_RED_RGTC1_EXT:
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
+            (GLint[]) { GL_RED , GL_RED  , GL_RED , GL_ONE   });
+        break;
+    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
+            (GLint[]) { GL_RED , GL_GREEN, GL_ZERO, GL_RED   });
+        break;
+    case GL_LUMINANCE8:
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
+            (GLint[]) { GL_RED , GL_RED  , GL_RED , GL_ONE   });
+        internal_format = GL_R8;
+        break;
+    case GL_LUMINANCE8_ALPHA8:
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
+            (GLint[]) { GL_RED , GL_RED  , GL_RED , GL_GREEN });
+        internal_format = GL_RG8;
+        break;
+    }
+
+    int32_t size = 0;
+    if (target == GL_TEXTURE_CUBE_MAP)
+        for (int32_t i = 0; i < 6; i++) {
+            for (int32_t j = 0; j <= max_mipmap_level; j++) {
+                int32_t mip_width = max(width >> i, 1);
+                int32_t mip_height = max(height >> i, 1);
+                void* data;
+                if (data_ptr)
+                    data = data_ptr[i * (max_mipmap_level + 1) + j];
+                else
+                    data = 0;
+
+                if (texture_load(target_cube_map_array[i],
+                    internal_format, mip_width, mip_height, i, data) < 0)
+                    goto fail;
+                size += texture_get_size(internal_format, mip_width, mip_height);
             }
-            glBindTexture(target, 0);
         }
-    bind_tex2d(0);
-    bind_texcube(0);
-    return true;
+    else
+        for (int32_t i = 0; i <= max_mipmap_level; i++) {
+            int32_t mip_width = max(width >> i, 1);
+            int32_t mip_height = max(height >> i, 1);
+            void* data;
+            if (data_ptr)
+                data = data_ptr[i];
+            else
+                data = 0;
+
+            if (texture_load(target, internal_format,
+                mip_width, mip_height, i, data) < 0)
+                goto fail;
+            size += texture_get_size(internal_format, mip_width, mip_height);
+        }
+
+    switch (target) {
+    case GL_TEXTURE_2D:
+        gl_state_bind_texture_2d(0);
+        break;
+    case GL_TEXTURE_CUBE_MAP:
+        gl_state_bind_texture_cube_map(0);
+        break;
+    }
+
+    tex->target = target;
+    tex->width = (int16_t)width;
+    tex->height = (int16_t)height;
+    tex->size = size;
+    tex->internal_format = internal_format;
+    tex->max_mipmap_level = max_mipmap_level;
+
+    switch (internal_format) {
+    case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+    case GL_COMPRESSED_RED_RGTC1_EXT:
+    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
+        tex->flags |= TEXTURE_BLOCK_COMPRESSION;
+        break;
+    default:
+        tex->flags &= ~TEXTURE_BLOCK_COMPRESSION;
+        break;
+    }
+    return tex;
+
+fail:
+    switch (target) {
+    case GL_TEXTURE_2D:
+        gl_state_bind_texture_2d(0);
+        break;
+
+    case GL_TEXTURE_CUBE_MAP:
+        gl_state_bind_texture_cube_map(0);
+        break;
+    }
+    glDeleteTextures(1, &tex->texture);
+    free(tex);
+    return 0;
 }
 
-void texture_txp_unload(vector_int32_t* textures) {
-    if (!textures)
-        return;
+static void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy) {
+    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, (float_t*)&vec4_null);
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GLenum min_filter = GL_LINEAR;
+    if (max_mipmap_level > 0)
+        min_filter = GL_LINEAR_MIPMAP_LINEAR;
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, min_filter);
+    glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, max_mipmap_level);
 
-    if (textures->end - textures->begin != 0)
-        glDeleteTextures((GLsizei)(textures->end - textures->begin), textures->begin);
-    vector_int32_t_free(textures);
+    float_t max_anisotropy;
+    if (use_high_anisotropy)
+        max_anisotropy = 16.0;
+    else
+        max_anisotropy = 1.0;
+    glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
 }
 
-static void load_texture_data(GLenum target, txp_format format,
-    uint32_t width, uint32_t height, uint32_t level, void* data) {
-    static const GLint textureswizzles_a8  [] = { GL_ZERO, GL_ZERO , GL_ZERO, GL_RED   };
-    static const GLint textureswizzles_ati1[] = { GL_RED , GL_RED  , GL_RED , GL_ONE   };
-    static const GLint textureswizzles_ati2[] = { GL_RED , GL_GREEN, GL_ZERO, GL_RED   };
-    static const GLint textureswizzles_l8  [] = { GL_RED , GL_RED  , GL_RED , GL_ONE   };
-    static const GLint textureswizzles_l8a8[] = { GL_RED , GL_RED  , GL_RED , GL_GREEN };
+static GLenum texture_txp_get_internal_format(txp* t) {
+    if (!t || !t->data.begin)
+        return GL_ZERO;
 
-    static const GLint* textureswizzles[] = {
-        [TXP_A8]     = textureswizzles_a8,
-        [TXP_RGB8]   = 0,
-        [TXP_RGBA8]  = 0,
-        [TXP_RGB5]   = 0,
-        [TXP_RGB5A1] = 0,
-        [TXP_RGBA4]  = 0,
-        [TXP_DXT1]   = 0,
-        [TXP_DXT1a]  = 0,
-        [TXP_DXT3]   = 0,
-        [TXP_DXT5]   = 0,
-        [TXP_ATI1]   = textureswizzles_ati1,
-        [TXP_ATI2]   = textureswizzles_ati2,
-        [TXP_L8]     = textureswizzles_l8,
-        [TXP_L8A8]   = textureswizzles_l8a8,
-    };
-
-    static const GLenum types[] = {
-        [TXP_A8]     = GL_UNSIGNED_BYTE,
-        [TXP_RGB8]   = GL_UNSIGNED_BYTE,
-        [TXP_RGBA8]  = GL_UNSIGNED_BYTE,
-        [TXP_RGB5]   = GL_UNSIGNED_SHORT_5_6_5_REV,
-        [TXP_RGB5A1] = GL_UNSIGNED_SHORT_1_5_5_5_REV,
-        [TXP_RGBA4]  = GL_UNSIGNED_SHORT_4_4_4_4_REV,
-        [TXP_DXT1]   = 0,
-        [TXP_DXT1a]  = 0,
-        [TXP_DXT3]   = 0,
-        [TXP_DXT5]   = 0,
-        [TXP_ATI1]   = 0,
-        [TXP_ATI2]   = 0,
-        [TXP_L8]     = GL_UNSIGNED_BYTE,
-        [TXP_L8A8]   = GL_UNSIGNED_BYTE,
-    };
-
-    static const GLenum formats[] = {
-        [TXP_A8]     = GL_RED,
-        [TXP_RGB8]   = GL_RGB,
-        [TXP_RGBA8]  = GL_RGBA,
-        [TXP_RGB5]   = GL_RGB,
-        [TXP_RGB5A1] = GL_RGBA,
-        [TXP_RGBA4]  = GL_RGBA,
-        [TXP_DXT1]   = 0,
-        [TXP_DXT1a]  = 0,
-        [TXP_DXT3]   = 0,
-        [TXP_DXT5]   = 0,
-        [TXP_ATI1]   = 0,
-        [TXP_ATI2]   = 0,
-        [TXP_L8]     = GL_RED,
-        [TXP_L8A8]   = GL_RG,
-    };
-
-    static const GLenum internalformats[] = {
-        [TXP_A8]     = GL_R8,
-        [TXP_RGB8]   = GL_RGB8,
-        [TXP_RGBA8]  = GL_RGBA8,
-        [TXP_RGB5]   = GL_RGB5,
-        [TXP_RGB5A1] = GL_RGB5_A1,
-        [TXP_RGBA4]  = GL_RGBA4,
-        [TXP_DXT1]   = GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
-        [TXP_DXT1a]  = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-        [TXP_DXT3]   = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
-        [TXP_DXT5]   = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
-        [TXP_ATI1]   = GL_COMPRESSED_RED_RGTC1_EXT,
-        [TXP_ATI2]   = GL_COMPRESSED_RED_GREEN_RGTC2_EXT,
-        [TXP_L8]     = GL_R8,
-        [TXP_L8A8]   = GL_RG8,
-    };
-
-    switch (format) {
+    switch (t->data.begin->format) {
     case TXP_A8:
-    case TXP_L8:
-    case TXP_L8A8:
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, textureswizzles[format]);
-        glTexImage2D(target, level, internalformats[format],
-            width, height, 0, formats[format], types[format], data);
-        break;
+        return GL_ALPHA8;
     case TXP_RGB8:
+        return GL_RGB8;
     case TXP_RGBA8:
+        return GL_RGBA8;
     case TXP_RGB5:
+        return GL_RGB5;
     case TXP_RGB5A1:
+        return GL_RGB5_A1;
     case TXP_RGBA4:
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(target, level, internalformats[format],
-            width, height, 0, formats[format], types[format], data);
-        break;
+        return GL_RGBA4;
     case TXP_DXT1:
+        return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
     case TXP_DXT1a:
+        return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
     case TXP_DXT3:
-    case TXP_DXT5: {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        uint32_t size = txp_get_size(format, width, height);
-        glCompressedTexImage2D(target, level, internalformats[format],
-            width, height, 0, size, data);
-    } break;
+        return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+    case TXP_DXT5:
+        return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
     case TXP_ATI1:
-    case TXP_ATI2: {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, textureswizzles[format]);
-        uint32_t size = txp_get_size(format, width, height);
-        glCompressedTexImage2D(target, level, internalformats[format],
-            width, height, 0, size, data);
-    } break;
+        return GL_COMPRESSED_RED_RGTC1_EXT;
+    case TXP_ATI2:
+        return GL_COMPRESSED_RED_GREEN_RGTC2_EXT;
+    case TXP_L8:
+        return GL_LUMINANCE8;
+    case TXP_L8A8:
+        return GL_LUMINANCE8_ALPHA8;
+    default:
+        return GL_ZERO;
     }
 }

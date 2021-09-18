@@ -133,23 +133,23 @@ static const uint32_t glitter_x_int_table[] = {
     0x000001,
 };
 
-int32_t FASTCALL glitter_x_random_get_value(glitter_random* random) {
+int32_t glitter_x_random_get_value(glitter_random* random) {
     return random->value;
 }
 
-float_t FASTCALL glitter_x_random_get_float(glitter_random* random, float_t value) {
+float_t glitter_x_random_get_float(glitter_random* random, float_t value) {
     float_t val = *(float_t*)&glitter_x_float_table[random->value % 0x169];
     random->value += random->step;
     return val * (value * 2.0f) - value;
 }
 
-float_t FASTCALL glitter_x_random_get_float_min_max(glitter_random* random, float_t min, float_t max) {
+float_t glitter_x_random_get_float_min_max(glitter_random* random, float_t min, float_t max) {
     float_t value = *(float_t*)&glitter_x_float_table[random->value % 0x169];
     random->value += random->step;
     return value * (max - min) + min;
 }
 
-void FASTCALL glitter_x_random_get_vec3(glitter_random* random, vec3* src, vec3* dst) {
+void glitter_x_random_get_vec3(glitter_random* random, vec3* src, vec3* dst) {
     vec3 val;
     vec3 t;
 
@@ -166,12 +166,12 @@ void FASTCALL glitter_x_random_get_vec3(glitter_random* random, vec3* src, vec3*
     vec3_sub(t, *src, *dst);
 }
 
-int32_t FASTCALL glitter_x_random_get_int(glitter_random* random, int32_t value) {
+int32_t glitter_x_random_get_int(glitter_random* random, int32_t value) {
     int32_t val = glitter_x_int_table[random->value % 0x169];
     return val % value;
 }
 
-int32_t FASTCALL glitter_x_random_get_int_min_max(glitter_random* random, int32_t min, int32_t max) {
+int32_t glitter_x_random_get_int_min_max(glitter_random* random, int32_t min, int32_t max) {
     int32_t value;
 
     if (max == min)
@@ -182,23 +182,23 @@ int32_t FASTCALL glitter_x_random_get_int_min_max(glitter_random* random, int32_
     return value % (max - min) + min;
 }
 
-int32_t FASTCALL glitter_x_random_get_max() {
+int32_t glitter_x_random_get_max() {
     return 0x169;
 }
 
-void FASTCALL glitter_x_random_reset(glitter_random* random) {
+void glitter_x_random_reset(glitter_random* random) {
     random->value = 0;
     random->step = 1;
 }
 
-void FASTCALL glitter_x_random_set_step(glitter_random* random, uint8_t step) {
+void glitter_x_random_set_step(glitter_random* random, uint8_t step) {
     random->step = step;
 }
 
-void FASTCALL glitter_x_random_set_value(glitter_random* random, int32_t value) {
+void glitter_x_random_set_value(glitter_random* random, int32_t value) {
     random->value = value;
 }
 
-void FASTCALL glitter_x_random_step_value(glitter_random* random) {
+void glitter_x_random_step_value(glitter_random* random) {
     random->value += random->step;
 }

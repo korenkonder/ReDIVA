@@ -6,9 +6,11 @@
 #pragma once
 
 #include "../../KKdLib/default.h"
+#include "../../KKdLib/string.h"
 #include "../../KKdLib/vec.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 extern const ImVec1 ImVec1_Empty;
@@ -38,9 +40,13 @@ extern bool imguiCheckboxFlags_IntPtr(const char* label, int* flags, int flags_v
 extern bool imguiCheckboxFlags_UintPtr(const char* label, unsigned int* flags, unsigned int flags_value);
 extern bool imguiComboBox(const char* label, const char** items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiComboBoxString(const char* label, string* items, const size_t size,
+    int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnColorEdit3(const char* label, vec3* val, ImGuiColorEditFlags flags);
 extern bool imguiColumnColorEdit4(const char* label, vec4* val, ImGuiColorEditFlags flags);
 extern bool imguiColumnComboBox(const char* label, const char** items, const size_t size,
+    int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiColumnComboBoxString(const char* label, string* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnDragFloat(const char* label, float_t* val, float_t speed,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags);

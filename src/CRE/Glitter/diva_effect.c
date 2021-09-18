@@ -6,7 +6,7 @@
 #include "diva_effect.h"
 #include "effect_group.h"
 
-bool FASTCALL glitter_diva_effect_parse_file(glitter_file_reader* fr, f2_struct* st, float_t emission) {
+bool glitter_diva_effect_parse_file(glitter_file_reader* fr, f2_struct* st, float_t emission) {
     glitter_effect_group* effect_group;
 
     if (!st || !st->header.data_size)
@@ -27,7 +27,7 @@ bool FASTCALL glitter_diva_effect_parse_file(glitter_file_reader* fr, f2_struct*
     return true;
 }
 
-bool FASTCALL glitter_diva_effect_unparse_file(GLT, glitter_effect_group* a1, f2_struct* st) {
+bool glitter_diva_effect_unparse_file(GLT, glitter_effect_group* a1, f2_struct* st) {
     return glitter_effect_group_unparse_file(GLT_VAL, a1, st);
 }
 

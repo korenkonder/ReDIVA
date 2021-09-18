@@ -1105,11 +1105,11 @@ static const uint16_t glitter_short_int_table[] = {
     0x31EB, 0x3F4F, 0x08A1, 0x5EC1, 0xD52D, 0xDAE8, 0x2363, 0x7A22,
 };
 
-int32_t FASTCALL glitter_random_get_value(glitter_random* random) {
+int32_t glitter_random_get_value(glitter_random* random) {
     return random->value;
 }
 
-float_t FASTCALL glitter_random_get_float(GLT, glitter_random* random, float_t value) {
+float_t glitter_random_get_float(GLT, glitter_random* random, float_t value) {
     float_t val;
 
     switch (GLT_VAL) {
@@ -1125,7 +1125,7 @@ float_t FASTCALL glitter_random_get_float(GLT, glitter_random* random, float_t v
     return val * (value * 2.0f) - value;
 }
 
-float_t FASTCALL glitter_random_get_float_min_max(GLT, glitter_random* random, float_t min, float_t max) {
+float_t glitter_random_get_float_min_max(GLT, glitter_random* random, float_t min, float_t max) {
     float_t value;
 
     switch (GLT_VAL) {
@@ -1141,7 +1141,7 @@ float_t FASTCALL glitter_random_get_float_min_max(GLT, glitter_random* random, f
     return value * (max - min) + min;
 }
 
-void FASTCALL glitter_random_get_vec3(GLT, glitter_random* random, vec3* src, vec3* dst) {
+void glitter_random_get_vec3(GLT, glitter_random* random, vec3* src, vec3* dst) {
     vec3 val;
     vec3 t;
 
@@ -1170,7 +1170,7 @@ void FASTCALL glitter_random_get_vec3(GLT, glitter_random* random, vec3* src, ve
     vec3_sub(t, *src, *dst);
 }
 
-int32_t FASTCALL glitter_random_get_int(GLT, glitter_random* random, int32_t value) {
+int32_t glitter_random_get_int(GLT, glitter_random* random, int32_t value) {
     int32_t val;
     switch (GLT_VAL) {
     default:
@@ -1185,7 +1185,7 @@ int32_t FASTCALL glitter_random_get_int(GLT, glitter_random* random, int32_t val
     return val % value;
 }
 
-int32_t FASTCALL glitter_random_get_int_min_max(GLT, glitter_random* random, int32_t min, int32_t max) {
+int32_t glitter_random_get_int_min_max(GLT, glitter_random* random, int32_t min, int32_t max) {
     int32_t value;
 
     if (max == min)
@@ -1204,7 +1204,7 @@ int32_t FASTCALL glitter_random_get_int_min_max(GLT, glitter_random* random, int
     return value % (max - min) + min;
 }
 
-int32_t FASTCALL glitter_random_get_max(GLT) {
+int32_t glitter_random_get_max(GLT) {
     switch (GLT_VAL) {
     default:
     case GLITTER_AFT:
@@ -1214,6 +1214,6 @@ int32_t FASTCALL glitter_random_get_max(GLT) {
     }
 }
 
-void FASTCALL glitter_random_set_value(glitter_random* random, int32_t value) {
+void glitter_random_set_value(glitter_random* random, int32_t value) {
     random->value = value;
 }

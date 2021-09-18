@@ -39,40 +39,48 @@ bool input_reset_mouse_position;
 bool input_locked;
 
 extern bool close;
-lock_val(input_lock);
-extern HANDLE render_lock;
+lock input_lock;
+extern lock render_lock;
 extern HANDLE window_handle;
+extern ImGuiContext* imgui_context;
+lock imgui_context_lock;
 
 static void input_poll();
 
 int32_t input_main(void* arg) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
     timer_init(&input_timer, 60.0);
-    lock_init(input_lock);
-    if (!input_lock_init)
+    lock_init(&input_lock);
+    if (!lock_check_init(&input_lock))
         goto End;
 
     bool state_wait = false;
+    bool state_disposed = false;
     do {
-        lock_lock(state_lock);
+        lock_lock(&state_lock);
         state_wait = state != RENDER_INITIALIZED;
-        lock_unlock(state_lock);
+        state_disposed =  state == RENDER_DISPOSING || state == RENDER_DISPOSED;
+        lock_unlock(&state_lock);
+        if (state_disposed) {
+            lock_free(&input_lock);
+            goto End;
+        }
         msleep(input_timer.timer, 0.0625);
     } while (state_wait);
 
     bool local_close = false;
     while (!close && !local_close) {
         timer_start_of_cycle(&input_timer);
-        lock_lock(state_lock);
+        lock_lock(&state_lock);
         local_close = state == RENDER_DISPOSING || state == RENDER_DISPOSED;
-        lock_unlock(state_lock);
+        lock_unlock(&state_lock);
 
-        lock_lock(input_lock);
+        lock_lock(&input_lock);
         input_poll();
-        lock_unlock(input_lock);
+        lock_unlock(&input_lock);
         timer_end_of_cycle(&input_timer);
     }
-    lock_dispose(input_lock);
+    lock_free(&input_lock);
 
 End:
     timer_dispose(&input_timer);
@@ -83,7 +91,6 @@ static void input_poll() {
     input_mouse_last_state = input_mouse_current_state;
     input_key_last_state = input_key_current_state;
 
-    ImGuiIO* io = igGetIO();
     for (uint8_t i = 0; i < KEYBOARD_KEYS; i++)
         input_key_current_state.key_states[i] = GetAsyncKeyState(i) < 0;
 
@@ -149,7 +156,9 @@ static void input_poll() {
             input_reset = true;
     }
 
-    if (!io->WantCaptureMouse && input_is_down(VK_MBUTTON)) {
+    lock_lock(&imgui_context_lock);
+    igSetCurrentContext(imgui_context);
+    if (!igGetIO()->WantCaptureMouse && input_is_down(VK_MBUTTON)) {
         if (!input_reset_mouse_position) {
             POINT last = input_mouse_last_state.position;
             POINT curr = input_mouse_current_state.position;
@@ -160,6 +169,7 @@ static void input_poll() {
     }
     else
         input_reset_mouse_position = true;
+    lock_unlock(&imgui_context_lock);
 }
 
 inline bool input_is_down(uint8_t keycode) {

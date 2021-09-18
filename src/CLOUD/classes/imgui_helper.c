@@ -17,38 +17,38 @@ const float_t imgui_alpha_disabled_scale = 0.5f;
 static float_t column_space = (float_t)(1.0 / 3.0);
 static float_t cell_padding;
 
-inline bool imguiItemKeyDown(int32_t key) {
+bool imguiItemKeyDown(int32_t key) {
     return igIsItemFocused() && igIsKeyDown(key);
 }
 
-inline bool imguiItemKeyPressed(int32_t key, bool repeat) {
+bool imguiItemKeyPressed(int32_t key, bool repeat) {
     return igIsItemFocused() && igIsKeyPressed(key, repeat);
 }
 
-inline bool imguiItemKeyReleased(int32_t key) {
+bool imguiItemKeyReleased(int32_t key) {
     return igIsItemFocused() && igIsKeyReleased(key);
 }
 
-inline float_t imguiGetColumnSpace() {
+float_t imguiGetColumnSpace() {
     return column_space;
 }
 
-inline void imguiSetColumnSpace(float_t val) {
+void imguiSetColumnSpace(float_t val) {
     column_space = val;
 }
 
-inline void imguiSetDefaultColumnSpace() {
+void imguiSetDefaultColumnSpace() {
     column_space = (float_t)(1.0 / 3.0);
 }
 
-inline void imguiDisableElementPush(bool enable) {
+void imguiDisableElementPush(bool enable) {
     if (!enable) {
         igPushItemFlag(ImGuiItemFlags_Disabled, true);
         igPushStyleVar_Float(ImGuiStyleVar_Alpha, igGetStyle()->Alpha * imgui_alpha_disabled_scale);
     }
 }
 
-inline void imguiDisableElementPop(bool enable) {
+void imguiDisableElementPop(bool enable) {
     if (!enable) {
         igPopItemFlag();
         igPopStyleVar(1);
@@ -239,6 +239,51 @@ bool imguiComboBox(const char* label, const char** items, const size_t size,
     return prev_selected_idx != *selected_idx;
 }
 
+bool imguiComboBoxString(const char* label, string* items, const size_t size,
+    int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus) {
+    int32_t prev_selected_idx = *selected_idx;
+
+    if (!include_last && size < 1) {
+        imguiDisableElementPush(false);
+        if (igBeginCombo(label, "None", flags))
+            igEndCombo();
+        imguiDisableElementPop(false);
+        return false;
+    }
+
+    if (igBeginCombo(label, string_data(&items[*selected_idx]), flags)) {
+        if (include_last)
+            for (size_t n = 0; n <= size; n++) {
+                igPushID_Int((int32_t)n);
+                if (igSelectable_Bool((const char*)string_data(&items[n]),
+                    *selected_idx == n, 0, ImVec2_Empty)
+                    || imguiItemKeyPressed(GLFW_KEY_ENTER, true))
+                    *selected_idx = (int32_t)n;
+                igPopID();
+
+                if (*selected_idx == n)
+                    igSetItemDefaultFocus();
+            }
+        else
+            for (size_t n = 0; n < size; n++) {
+                igPushID_Int((int32_t)n);
+                if (igSelectable_Bool((const char*)string_data(&items[n]),
+                    *selected_idx == n, 0, ImVec2_Empty)
+                    || imguiItemKeyPressed(GLFW_KEY_ENTER, true))
+                    *selected_idx = (int32_t)n;
+                igPopID();
+
+                if (*selected_idx == n)
+                    igSetItemDefaultFocus();
+            }
+
+        if (focus)
+            *focus |= igIsWindowFocused(0);
+        igEndCombo();
+    }
+    return prev_selected_idx != *selected_idx;
+}
+
 bool imguiColumnColorEdit3(const char* label, vec3* val, ImGuiColorEditFlags flags) {
     float_t v[3];
     *(vec3*)v = *val;
@@ -265,6 +310,14 @@ bool imguiColumnComboBox(const char* label, const char** items, const size_t siz
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus) {
     const char* temp_label = imguiStartPropertyColumn(label);
     bool res = imguiComboBox(temp_label, items, size, selected_idx, flags, include_last, focus);
+    imguiEndPropertyColumn(temp_label);
+    return res;
+}
+
+bool imguiColumnComboBoxString(const char* label, string* items, const size_t size,
+    int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus) {
+    const char* temp_label = imguiStartPropertyColumn(label);
+    bool res = imguiComboBoxString(temp_label, items, size, selected_idx, flags, include_last, focus);
     imguiEndPropertyColumn(temp_label);
     return res;
 }

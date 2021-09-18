@@ -6,16 +6,16 @@
 #include "curve.h"
 #include "random.h"
 
-static void FASTCALL glitter_curve_get_key_indexes(vector_glitter_curve_key* keys,
+static void glitter_curve_get_key_indexes(vector_glitter_curve_key* keys,
     float_t frame, size_t* curr, size_t* next);
-static float_t FASTCALL glitter_curve_interpolate(GLT, glitter_curve* c, float_t frame,
+static float_t glitter_curve_interpolate(GLT, glitter_curve* c, float_t frame,
     glitter_curve_key* curr, glitter_curve_key* next, glitter_key_type key_type, glitter_random* random);
-static float_t FASTCALL glitter_curve_randomize(GLT,
+static float_t glitter_curve_randomize(GLT,
     glitter_curve* c, float_t value, glitter_random* random);
-static float_t FASTCALL glitter_curve_randomize_key(GLT,
+static float_t glitter_curve_randomize_key(GLT,
     glitter_curve* c, glitter_curve_key* key, glitter_random* random);
 
-bool FASTCALL glitter_curve_get_value(GLT, glitter_curve* c,
+bool glitter_curve_get_value(GLT, glitter_curve* c,
     float_t frame, float_t* value, int32_t random_value, glitter_random* random) {
     size_t keys_count;
     int32_t random_val;
@@ -98,7 +98,7 @@ End:
     return true;
 }
 
-static void FASTCALL glitter_curve_get_key_indexes(vector_glitter_curve_key* keys,
+static void glitter_curve_get_key_indexes(vector_glitter_curve_key* keys,
     float_t frame, size_t* curr, size_t* next) {
     size_t v4;
     glitter_curve_key* v6;
@@ -140,7 +140,7 @@ static void FASTCALL glitter_curve_get_key_indexes(vector_glitter_curve_key* key
     *next %= count;
 }
 
-static float_t FASTCALL glitter_curve_interpolate(GLT, glitter_curve* c, float_t frame,
+static float_t glitter_curve_interpolate(GLT, glitter_curve* c, float_t frame,
     glitter_curve_key* curr, glitter_curve_key* next, glitter_key_type key_type, glitter_random* random) {
     float_t next_val;
     float_t curr_val;
@@ -167,7 +167,7 @@ static float_t FASTCALL glitter_curve_interpolate(GLT, glitter_curve* c, float_t
     return val;
 }
 
-static float_t FASTCALL glitter_curve_randomize(GLT,
+static float_t glitter_curve_randomize(GLT,
     glitter_curve* c, float_t value, glitter_random* random) {
     float_t rand;
 
@@ -185,7 +185,7 @@ static float_t FASTCALL glitter_curve_randomize(GLT,
     return rand + value;
 }
 
-static float_t FASTCALL glitter_curve_randomize_key(GLT,
+static float_t glitter_curve_randomize_key(GLT,
     glitter_curve* c, glitter_curve_key* key, glitter_random* random) {
     float_t rand;
 

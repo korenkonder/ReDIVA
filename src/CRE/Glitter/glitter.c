@@ -19,6 +19,9 @@ vector_ptr_func(glitter_render_group)
 vector_func(glitter_scene_effect)
 vector_ptr_func(glitter_scene)
 
+bool(* glitter_render_mesh_update_func)(glitter_render_element*,
+    glitter_particle_mesh*, vec4*, mat4*, mat4*);
+
 const float_t glitter_min_emission = 0.01f;
 
 const glitter_curve_type_flags glitter_effect_curve_flags = 0

@@ -130,13 +130,13 @@ extern void post_process_imgui() {
         imguiColumnSliderFloat("Gamma", &gamma, 0.2f, 2.2f, "%.2f", 0);
         tone_map_set_gamma(tm, gamma);
 
-        int32_t saturate1 = tone_map_get_saturate1(tm);
+        int32_t saturate1 = tone_map_get_saturate_power(tm);
         imguiColumnSliderInt("Saturate 1", &saturate1, 1, 6, "%d", 0);
-        tone_map_set_saturate1(tm, saturate1);
+        tone_map_set_saturate_power(tm, saturate1);
 
-        float_t saturate2 = tone_map_get_saturate2(tm);
+        float_t saturate2 = tone_map_get_saturate_coeff(tm);
         imguiColumnSliderFloat("Saturate 2", &saturate2, 0.0f, 1.0f, "%.2f", 0);
-        tone_map_set_saturate2(tm, saturate2);
+        tone_map_set_saturate_coeff(tm, saturate2);
         igTreePop();
     }
 

@@ -4,7 +4,6 @@
 */
 
 #include "hash.h"
-#include "utf8.h"
 
 const uint64_t hash_fnv1a64_empty = 0xCBF29CE44FD0BFC1;
 const uint32_t hash_murmurhash_empty = 0x0CAD3078;
@@ -19,14 +18,14 @@ uint64_t hash_fnv1a64(uint8_t* data, size_t length) { // 0x1403B04D0 in SBZV_7.1
     return (hash >> 32) ^ hash;
 }
 
-inline uint64_t hash_char_fnv1a64(char* data) {
-    uint64_t hash = hash_fnv1a64((uint8_t*)data, strlen(data));
+inline uint64_t hash_utf8_fnv1a64(char* data) {
+    uint64_t hash = hash_fnv1a64((uint8_t*)data, utf8_length(data));
     return hash;
 }
 
-inline uint64_t hash_wchar_t_fnv1a64(wchar_t* data) {
-    char* temp = utf8_encode(data);
-    uint64_t hash = hash_fnv1a64((uint8_t*)temp, strlen(temp));
+inline uint64_t hash_utf16_fnv1a64(wchar_t* data) {
+    char* temp = utf16_to_utf8(data);
+    uint64_t hash = hash_fnv1a64((uint8_t*)temp, utf8_length(temp));
     free(temp);
     return hash;
 }
@@ -160,14 +159,14 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
     return hash;
 }
 
-inline uint32_t hash_char_murmurhash(char* data, uint32_t seed, bool already_upper) {
-    uint32_t hash = hash_murmurhash((uint8_t*)data, strlen(data), seed, already_upper, false);
+inline uint32_t hash_utf8_murmurhash(char* data, uint32_t seed, bool already_upper) {
+    uint32_t hash = hash_murmurhash((uint8_t*)data, utf8_length(data), seed, already_upper, false);
     return hash;
 }
 
-inline uint32_t hash_wchar_t_murmurhash(wchar_t* data, uint32_t seed, bool already_upper) {
-    char* temp = utf8_encode(data);
-    uint32_t hash = hash_murmurhash((uint8_t*)temp, strlen(temp), seed, already_upper, false);
+inline uint32_t hash_utf16_murmurhash(wchar_t* data, uint32_t seed, bool already_upper) {
+    char* temp = utf16_to_utf8(data);
+    uint32_t hash = hash_murmurhash((uint8_t*)temp, utf8_length(temp), seed, already_upper, false);
     free(temp);
     return hash;
 }

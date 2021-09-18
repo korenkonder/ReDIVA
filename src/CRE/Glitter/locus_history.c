@@ -5,13 +5,13 @@
 
 #include "locus_history.h"
 
-glitter_locus_history* FASTCALL glitter_locus_history_init(size_t size) {
+glitter_locus_history* glitter_locus_history_init(size_t size) {
     glitter_locus_history* lh = force_malloc(sizeof(glitter_locus_history));
-    vector_glitter_locus_history_data_append(&lh->data, size);
+    vector_glitter_locus_history_data_reserve(&lh->data, size);
     return lh;
 }
 
-void FASTCALL glitter_locus_history_append(glitter_locus_history* a1,
+void glitter_locus_history_append(glitter_locus_history* a1,
     glitter_render_element* a2, glitter_particle_inst* a3) {
     glitter_locus_history_data* data;
     glitter_locus_history_data locus_history;
@@ -55,7 +55,7 @@ void FASTCALL glitter_locus_history_append(glitter_locus_history* a1,
     }
 }
 
-void FASTCALL glitter_locus_history_dispose(glitter_locus_history* lh) {
+void glitter_locus_history_dispose(glitter_locus_history* lh) {
     vector_glitter_locus_history_data_free(&lh->data);
     free(lh);
 }

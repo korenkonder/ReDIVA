@@ -10,27 +10,6 @@
 #include <pmmintrin.h>
 #include <xmmintrin.h>
 
-#define v2(t) \
-typedef struct vec2_##t { \
-    t x; \
-    t y; \
-} vec2_##t;
-
-#define v3(t) \
-typedef struct vec3_##t { \
-    t x; \
-    t y; \
-    t z; \
-} vec3_##t;
-
-#define v4(t) \
-typedef struct vec4_##t { \
-    t x; \
-    t y; \
-    t z; \
-    t w; \
-} vec4_##t;
-
 typedef struct vec2i8 {
     int8_t x;
     int8_t y;
@@ -343,6 +322,126 @@ extern const vec2d vec2d_null;
 (dst).z = float_to_half((src).z); \
 (dst).w = float_to_half((src).w);
 
+#define vec2i8_to_vec2i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y;
+
+#define vec3i8_to_vec3i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y; \
+(dst).z = (int32_t)(src).z;
+
+#define vec4i8_to_vec4i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y; \
+(dst).z = (int32_t)(src).z; \
+(dst).w = (int32_t)(src).w;
+
+#define vec2i_to_vec2i8(src, dst) \
+(dst).x = (int8_t)(src).x; \
+(dst).y = (int8_t)(src).y;
+
+#define vec3i_to_vec3i8(src, dst) \
+(dst).x = (int8_t)(src).x; \
+(dst).y = (int8_t)(src).y; \
+(dst).z = (int8_t)(src).z;
+
+#define vec4i_to_vec4i8(src, dst) \
+(dst).x = (int8_t)(src).x; \
+(dst).y = (int8_t)(src).y; \
+(dst).z = (int8_t)(src).z; \
+(dst).w = (int8_t)(src).w;
+
+#define vec2u8_to_vec2i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y;
+
+#define vec3u8_to_vec3i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y; \
+(dst).z = (int32_t)(src).z;
+
+#define vec4u8_to_vec4i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y; \
+(dst).z = (int32_t)(src).z; \
+(dst).w = (int32_t)(src).w;
+
+#define vec2i_to_vec2u8(src, dst) \
+(dst).x = (uint8_t)(src).x; \
+(dst).y = (uint8_t)(src).y;
+
+#define vec3i_to_vec3u8(src, dst) \
+(dst).x = (uint8_t)(src).x; \
+(dst).y = (uint8_t)(src).y; \
+(dst).z = (uint8_t)(src).z;
+
+#define vec4i_to_vec4u8(src, dst) \
+(dst).x = (uint8_t)(src).x; \
+(dst).y = (uint8_t)(src).y; \
+(dst).z = (uint8_t)(src).z; \
+(dst).w = (uint8_t)(src).w;
+
+#define vec2i16_to_vec2i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y;
+
+#define vec3i16_to_vec3i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y; \
+(dst).z = (int32_t)(src).z;
+
+#define vec4i16_to_vec4i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y; \
+(dst).z = (int32_t)(src).z; \
+(dst).w = (int32_t)(src).w;
+
+#define vec2i_to_vec2i16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y;
+
+#define vec3i_to_vec3i16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y; \
+(dst).z = (uint16_t)(src).z;
+
+#define vec4i_to_vec4i16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y; \
+(dst).z = (uint16_t)(src).z; \
+(dst).w = (uint16_t)(src).w;
+
+#define vec2u16_to_vec2i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y;
+
+#define vec3u16_to_vec3i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y; \
+(dst).z = (int32_t)(src).z;
+
+#define vec4u16_to_vec4i(src, dst) \
+(dst).x = (int32_t)(src).x; \
+(dst).y = (int32_t)(src).y; \
+(dst).z = (int32_t)(src).z; \
+(dst).w = (int32_t)(src).w;
+
+#define vec2i_to_vec2u16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y;
+
+#define vec3i_to_vec3u16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y; \
+(dst).z = (uint16_t)(src).z;
+
+#define vec4i_to_vec4u16(src, dst) \
+(dst).x = (uint16_t)(src).x; \
+(dst).y = (uint16_t)(src).y; \
+(dst).z = (uint16_t)(src).z; \
+(dst).w = (uint16_t)(src).w;
+
 #define vec2_add(x, y, z) \
 { \
     __m128 xt; \
@@ -647,7 +746,7 @@ extern const vec2d vec2d_null;
     *(vec2*)&zt = (z); \
     yt = _mm_xor_ps(yt, vec2_negate); \
     wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpgt_ps(xt, vec4_null.data))); \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
     wt = _mm_mul_ps(xt, wt); \
     (w) = *(vec2*)&wt; \
 }
@@ -665,8 +764,42 @@ extern const vec2d vec2d_null;
     zt = _mm_shuffle_ps(zt, zt, 0); \
     yt = _mm_xor_ps(yt, vec2_negate); \
     wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpgt_ps(xt, vec4_null.data))); \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
     wt = _mm_mul_ps(xt, wt); \
+    (w) = *(vec2*)&wt; \
+}
+
+#define vec2_div_min_max(x, y, z, w) \
+{ \
+    __m128 xt; \
+    __m128 yt; \
+    __m128 zt; \
+    __m128 wt; \
+    *(vec2*)&xt = (x); \
+    *(vec2*)&yt = (y); \
+    *(vec2*)&zt = (z); \
+    yt = _mm_xor_ps(yt, vec2_negate); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_div_ps(xt, wt); \
+    (w) = *(vec2*)&wt; \
+}
+
+#define vec2_div_min_max_scalar(x, y, z, w) \
+{ \
+    __m128 xt; \
+    __m128 yt; \
+    __m128 zt; \
+    __m128 wt; \
+    *(vec2*)&xt = (x); \
+    yt = _mm_set_ss(y); \
+    yt = _mm_shuffle_ps(yt, yt, 0); \
+    zt = _mm_set_ss(z); \
+    zt = _mm_shuffle_ps(zt, zt, 0); \
+    yt = _mm_xor_ps(yt, vec2_negate); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_div_ps(xt, wt); \
     (w) = *(vec2*)&wt; \
 }
 
@@ -989,7 +1122,7 @@ extern const vec2d vec2d_null;
     *(vec3*)&zt = (z); \
     yt = _mm_xor_ps(yt, vec3_negate); \
     wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpgt_ps(xt, vec4_null.data))); \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
     wt = _mm_mul_ps(xt, wt); \
     (w) = *(vec3*)&wt; \
 }
@@ -1007,8 +1140,42 @@ extern const vec2d vec2d_null;
     zt = _mm_shuffle_ps(zt, zt, 0); \
     yt = _mm_xor_ps(yt, vec3_negate); \
     wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpgt_ps(xt, vec4_null.data))); \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
     wt = _mm_mul_ps(xt, wt); \
+    (w) = *(vec3*)&wt; \
+}
+
+#define vec3_div_min_max(x, y, z, w) \
+{ \
+    __m128 xt; \
+    __m128 yt; \
+    __m128 zt; \
+    __m128 wt; \
+    *(vec3*)&xt = (x); \
+    *(vec3*)&yt = (y); \
+    *(vec3*)&zt = (z); \
+    yt = _mm_xor_ps(yt, vec3_negate); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_div_ps(xt, wt); \
+    (w) = *(vec3*)&wt; \
+}
+
+#define vec3_div_min_max_scalar(x, y, z, w) \
+{ \
+    __m128 xt; \
+    __m128 yt; \
+    __m128 zt; \
+    __m128 wt; \
+    *(vec3*)&xt = (x); \
+    yt = _mm_set_ss(y); \
+    yt = _mm_shuffle_ps(yt, yt, 0); \
+    zt = _mm_set_ss(z); \
+    zt = _mm_shuffle_ps(zt, zt, 0); \
+    yt = _mm_xor_ps(yt, vec3_negate); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_div_ps(xt, wt); \
     (w) = *(vec3*)&wt; \
 }
 
@@ -1211,12 +1378,14 @@ extern const vec2d vec2d_null;
     __m128 wt; \
     yt = _mm_xor_ps((y).data, vec4_negate); \
     wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps((x).data, vec4_null.data)), \
-        _mm_and_ps((z).data, _mm_cmpgt_ps((x).data, vec4_null.data))); \
+        _mm_and_ps((z).data, _mm_cmpge_ps((x).data, vec4_null.data))); \
     (w).data = _mm_mul_ps((x).data, wt); \
 }
 
 #define vec4_mult_min_max_scalar(x, y, z, w) \
 { \
+    __m128 yt; \
+    __m128 zt; \
     __m128 wt; \
     yt = _mm_set_ss(y); \
     yt = _mm_shuffle_ps(yt, yt, 0); \
@@ -1224,8 +1393,34 @@ extern const vec2d vec2d_null;
     zt = _mm_shuffle_ps(zt, zt, 0); \
     yt = _mm_xor_ps(yt, vec4_negate); \
     wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps((x).data, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpgt_ps((x).data, vec4_null.data))); \
+        _mm_and_ps(zt, _mm_cmpge_ps((x).data, vec4_null.data))); \
     (w).data = _mm_mul_ps((x).data, wt); \
+}
+
+#define vec4_div_min_max(x, y, z, w) \
+{ \
+    __m128 yt; \
+    __m128 zt; \
+    __m128 wt; \
+    yt = _mm_xor_ps((y).data, vec4_negate); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps((x).data, vec4_null.data)), \
+        _mm_and_ps((z).data, _mm_cmpge_ps((x).data, vec4_null.data))); \
+    (w).data = _mm_div_ps((x).data, wt); \
+}
+
+#define vec4_div_min_max_scalar(x, y, z, w) \
+{ \
+    __m128 yt; \
+    __m128 zt; \
+    __m128 wt; \
+    yt = _mm_set_ss(y); \
+    yt = _mm_shuffle_ps(yt, yt, 0); \
+    zt = _mm_set_ss(z); \
+    zt = _mm_shuffle_ps(zt, zt, 0); \
+    yt = _mm_xor_ps(yt, vec4_negate); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps((x).data, vec4_null.data)), \
+        _mm_and_ps(zt, _mm_cmpge_ps((x).data, vec4_null.data))); \
+    (w).data = _mm_div_ps((x).data, wt); \
 }
 
 #define vec2i_add(x, y, z) \
@@ -1580,4 +1775,32 @@ extern const vec2d vec2d_null;
     wt = _mm_or_pd(_mm_and_pd(yt, _mm_cmplt_pd((x).data, vec2d_null.data)), \
         _mm_and_pd(zt, _mm_cmpgt_pd((x).data, vec2d_null.data))); \
     (w).data = _mm_mul_pd((x).data, wt); \
+}
+
+#define vec2d_div_min_max(x, y, z, w) \
+{ \
+    __m128d yt; \
+    __m128d zt; \
+    __m128d wt; \
+    yt = (y).data; \
+    zt = (z).data; \
+    yt = _mm_xor_pd(yt, vec2d_negate); \
+    wt = _mm_or_pd(_mm_and_pd(yt, _mm_cmplt_pd((x).data, vec2d_null.data)), \
+        _mm_and_pd(zt, _mm_cmpgt_pd((x).data, vec2d_null.data))); \
+    (w).data = _mm_div_pd((x).data, wt); \
+}
+
+#define vec2d_div_min_max_scalar(x, y, z, w) \
+{ \
+    __m128d yt; \
+    __m128d zt; \
+    __m128d wt; \
+    yt = _mm_set_sd(y); \
+    yt = _mm_shuffle_pd(yt, yt, 0); \
+    zt = _mm_set_sd(z); \
+    zt = _mm_shuffle_pd(zt, zt, 0); \
+    yt = _mm_xor_pd(yt, vec2d_negate); \
+    wt = _mm_or_pd(_mm_and_pd(yt, _mm_cmplt_pd((x).data, vec2d_null.data)), \
+        _mm_and_pd(zt, _mm_cmpgt_pd((x).data, vec2d_null.data))); \
+    (w).data = _mm_div_pd((x).data, wt); \
 }

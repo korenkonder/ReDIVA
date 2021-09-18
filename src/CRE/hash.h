@@ -25,8 +25,8 @@ typedef struct hash_ptr_##t { \
 } hash_ptr_##t;
 
 #define HASH_COMPARE(a, b) \
-(((a).f == (b).f) || ((a).m == (b).m))
+(((a).f == (b).f) && ((a).m == (b).m))
 
 extern hash hash_char(char* data);
-extern hash hash_wchar_t(wchar_t* data);
+extern hash hash_utf16(wchar_t* data);
 extern hash hash_data(void* data, size_t length);

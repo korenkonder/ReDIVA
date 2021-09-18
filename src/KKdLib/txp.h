@@ -37,7 +37,7 @@ typedef struct txp_mipmap {
 vector(txp_mipmap)
 
 typedef struct txp {
-    bool has_cubemap;
+    bool has_cube_map;
     uint32_t array_size;
     uint32_t mipmaps_count;
     vector_txp_mipmap data;

@@ -5,18 +5,18 @@
 
 #include "f2_enrs.h"
 
-typedef enum enrs_value {
+typedef enum enrs_value_type {
     ENRS_VALUE_INT8    = 0x0,
     ENRS_VALUE_INT16   = 0x1,
     ENRS_VALUE_INT32   = 0x2,
     ENRS_VALUE_INVALID = 0x3,
-} enrs_value;
+} enrs_value_type;
 
 vector_func(enrs_sub_entry)
 vector_func(enrs_entry)
 
-static inline bool enrs_length_get_size_type(uint32_t* length, size_t val);
-static inline bool enrs_length_get_size(uint32_t* length, size_t val);
+inline static bool enrs_length_get_size_type(uint32_t* length, size_t val);
+inline static bool enrs_length_get_size(uint32_t* length, size_t val);
 static bool enrs_read_packed_value_type(stream* s, uint32_t* val, enrs_type* type);
 static bool enrs_read_packed_value(stream* s, uint32_t* val);
 static bool enrs_write_packed_value_type(stream* s, uint32_t val, enrs_type type);
@@ -35,19 +35,19 @@ void enrs_apply(vector_enrs_entry* enrs, void* data) {
             for (enrs_sub_entry* k = i->sub.begin; k != i->sub.end; k++) {
                 temp += k->skip_bytes;
                 switch (k->type) {
-                case ENRS_TYPE_WORD:
+                case ENRS_WORD:
                     for (size_t l = 0; l < k->repeat_count; l++) {
                         *(uint16_t*)temp = reverse_endianness_uint16_t(*(uint16_t*)temp);
                         temp += 2;
                     }
                     break;
-                case ENRS_TYPE_DWORD:
+                case ENRS_DWORD:
                     for (size_t l = 0; l < k->repeat_count; l++) {
                         *(uint32_t*)temp = reverse_endianness_uint32_t(*(uint32_t*)temp);
                         temp += 4;
                     }
                     break;
-                case ENRS_TYPE_QWORD:
+                case ENRS_QWORD:
                     for (size_t l = 0; l < k->repeat_count; l++) {
                         *(uint64_t*)temp = reverse_endianness_uint64_t(*(uint64_t*)temp);
                         temp += 8;
@@ -59,16 +59,30 @@ void enrs_apply(vector_enrs_entry* enrs, void* data) {
     }
 }
 
-
 uint32_t enrs_length(vector_enrs_entry* enrs) {
+    enrs_entry entry;
+    enrs_sub_entry sub_entry;
     enrs_entry* i;
     enrs_sub_entry* j;
     uint32_t l;
+    uint32_t o;
 
     l = 0x10;
+    o = 0;
     for (i = enrs->begin; i != enrs->end; i++) {
-        i->count = (uint32_t)(i->sub.end - i->sub.begin);
-        enrs_entry entry = *i;
+        entry = *i;
+        entry.count = (uint32_t)(entry.sub.end - entry.sub.begin);
+        if (i != enrs->begin && i[-1].count < 1) {
+            o += (uint32_t)((size_t)i[-1].size * i[-1].repeat_count);
+            if (i->count > 0) {
+                entry.offset += o;
+                o = 0;
+            }
+        }
+
+        if (entry.count < 1)
+            continue;
+
         if (enrs_length_get_size(&l, entry.offset)
             || enrs_length_get_size(&l, entry.count)
             || enrs_length_get_size(&l, entry.size)
@@ -79,9 +93,9 @@ uint32_t enrs_length(vector_enrs_entry* enrs) {
             continue;
 
         for (j = entry.sub.begin; j != entry.sub.end; j++) {
-            enrs_sub_entry sub = *j;
-            if (enrs_length_get_size_type(&l, sub.skip_bytes)
-                || enrs_length_get_size(&l, sub.repeat_count))
+            sub_entry = *j;
+            if (enrs_length_get_size_type(&l, sub_entry.skip_bytes)
+                || enrs_length_get_size(&l, sub_entry.repeat_count))
                 goto End;
         }
     }
@@ -104,8 +118,8 @@ void enrs_read(stream* s, vector_enrs_entry* enrs) {
     io_read_uint32_t(s);
     io_read_uint32_t(s);
 
-    e = (vector_enrs_entry){ 0, 0, 0 };
-    vector_enrs_entry_append(&e, l);
+    e = vector_empty(enrs_entry);
+    vector_enrs_entry_reserve(&e, l);
     for (i = 0; i < l; i++) {
         memset(&entry, 0, sizeof(enrs_entry));
         if (enrs_read_packed_value(s, &entry.offset)
@@ -119,8 +133,8 @@ void enrs_read(stream* s, vector_enrs_entry* enrs) {
             continue;
         }
 
-        sub = (vector_enrs_sub_entry){ 0, 0, 0 };
-        vector_enrs_sub_entry_append(&sub, entry.count);
+        sub = vector_empty(enrs_sub_entry);
+        vector_enrs_sub_entry_reserve(&sub, entry.count);
         for (j = 0; j < entry.count; j++) {
             memset(&sub_entry, 0, sizeof(sub_entry));
             if (enrs_read_packed_value_type(s, &sub_entry.skip_bytes, &sub_entry.type)
@@ -140,15 +154,28 @@ void enrs_write(stream* s, vector_enrs_entry* enrs) {
     enrs_sub_entry sub_entry;
     enrs_entry* i;
     enrs_sub_entry* j;
+    uint32_t o;
 
+    o = 0;
     size_t length = enrs_length(enrs);
     io_write_uint32_t(s, 0);
     io_write_uint32_t(s, (uint32_t)(enrs->end - enrs->begin));
     io_write_uint32_t(s, 0);
     io_write_uint32_t(s, 0);
     for (i = enrs->begin; i != enrs->end; i++) {
-        i->count = (uint32_t)(i->sub.end - i->sub.begin);
         entry = *i;
+        entry.count = (uint32_t)(entry.sub.end - entry.sub.begin);
+        if (i != enrs->begin && i[-1].count < 1) {
+            o += (uint32_t)((size_t)i[-1].size * i[-1].repeat_count);
+            if (i->count > 0) {
+                entry.offset += o;
+                o = 0;
+            }
+        }
+
+        if (entry.count < 1)
+            continue;
+
         if (enrs_write_packed_value(s, entry.offset)
             || enrs_write_packed_value(s, entry.count)
             || enrs_write_packed_value(s, entry.size)
@@ -168,12 +195,12 @@ void enrs_write(stream* s, vector_enrs_entry* enrs) {
 
 End:
     {}
-    size_t pos = io_get_position(s);
-    for (size_t c = align_val(pos, 0x10) - pos; c > 0; c--)
+    ssize_t pos = io_get_position(s);
+    for (ssize_t c = align_val(pos, 0x10) - pos; c > 0; c--)
         io_write_uint8_t(s, 0);
 }
 
-void enrs_dispose(vector_enrs_entry* e) {
+void enrs_free(vector_enrs_entry* e) {
     if (!e)
         return;
 
@@ -182,12 +209,12 @@ void enrs_dispose(vector_enrs_entry* e) {
     vector_enrs_entry_free(e);
 }
 
-static inline bool enrs_length_get_size_type(uint32_t* length, size_t val) {
+inline static bool enrs_length_get_size_type(uint32_t* length, size_t val) {
     *length += val < 0x10 ? 1 : val < 0x1000 ? 2 : val < 0x10000000 ? 4 : 1;
     return val >= 0x10000000;
 }
 
-static inline bool enrs_length_get_size(uint32_t* length, size_t val) {
+inline static bool enrs_length_get_size(uint32_t* length, size_t val) {
     if (!length)
         return true;
 
@@ -197,7 +224,7 @@ static inline bool enrs_length_get_size(uint32_t* length, size_t val) {
 
 static bool enrs_read_packed_value_type(stream* s, uint32_t* val, enrs_type* type) {
     *val = io_read_char(s);
-    enrs_value value = (enrs_value)((*val >> 6) & 0x3);
+    enrs_value_type value = (enrs_value_type)((*val >> 6) & 0x3);
     *type = (enrs_type)((*val >> 4) & 0x3);
     *val &= 0xF;
 
@@ -214,7 +241,7 @@ static bool enrs_read_packed_value_type(stream* s, uint32_t* val, enrs_type* typ
 
 static bool enrs_read_packed_value(stream* s, uint32_t* val) {
     *val = io_read_uint8_t(s);
-    enrs_value value = (enrs_value)((*val >> 6) & 0x3);
+    enrs_value_type value = (enrs_value_type)((*val >> 6) & 0x3);
     *val &= 0x3F;
 
     if (value == ENRS_VALUE_INT32)

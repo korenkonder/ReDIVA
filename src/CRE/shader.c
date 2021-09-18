@@ -5,772 +5,2132 @@
 
 #include "shader.h"
 #include "../KKdLib/hash.h"
+#include "../KKdLib/io_path.h"
 #include "../KKdLib/str_utils.h"
+#include "gl_state.h"
+#include <shlobj_core.h>
 
-static const char* process_mat_string =
-    "uniform bool use_bones;\n"
-    "\n"
-    "struct bone_mat_struct {\n"
-    "    mat4 mat;\n"
-    "    mat3 mat_normal;\n"
-    "};\n"
-    "\n"
-    "layout(std430, binding = 0) readonly buffer bone_mat_buf {\n"
-    "    bone_mat_struct bone_data[];\n"
-    "};"
-    "\n"
-    "void PROCESSMAT(in vec4 in_position, in vec3 in_normal, in vec3 in_tangent,\n"
-    "    in ivec4 bone_index, in vec4 bone_weight,\n"
-    "    out vec4 out_position, out vec3 out_normal, out vec3 out_tangent) {\n"
-    "    vec4 P;\n"
-    "    vec3 N;\n"
-    "    vec3 T;\n"
-    "    \n"
-    "    if (use_bones && bone_index[0] != 0xFFFF) {\n"
-    "        P = vec4(0.0);\n"
-    "        N = vec3(0.0);\n"
-    "        T = vec3(0.0);\n"
-    "\n"
-    "        int index = bone_index[0];\n"
-    "        float weight = bone_weight[0];\n"
-    "        P += (bone_data[index].mat * in_position) * weight;\n"
-    "        N += (bone_data[index].mat_normal * in_normal) * weight;\n"
-    "        T += (bone_data[index].mat_normal * in_tangent) * weight;\n"
-    "\n"
-    "        if (bone_weight[1] != 0.0 && bone_index[1] != 0xFFFF) {\n"
-    "            index = bone_index[1];\n"
-    "            weight = bone_weight[1];\n"
-    "            P += (bone_data[index].mat * in_position) * weight;\n"
-    "            N += (bone_data[index].mat_normal * in_normal) * weight;\n"
-    "            T += (bone_data[index].mat_normal * in_tangent) * weight;\n"
-    "\n"
-    "            if (bone_weight[2] != 0.0 && bone_index[2] != 0xFFFF) {\n"
-    "                index = bone_index[2];\n"
-    "                weight = bone_weight[2];\n"
-    "                P += (bone_data[index].mat * in_position) * weight;\n"
-    "                N += (bone_data[index].mat_normal * in_normal) * weight;\n"
-    "                T += (bone_data[index].mat_normal * in_tangent) * weight;\n"
-    "\n"
-    "                if (bone_weight[3] != 0.0 && bone_index[3] != 0xFFFF) {\n"
-    "                    index = bone_index[3];\n"
-    "                    weight = bone_weight[3];\n"
-    "                    P += (bone_data[index].mat * in_position) * weight;\n"
-    "                    N += (bone_data[index].mat_normal * in_normal) * weight;\n"
-    "                    T += (bone_data[index].mat_normal * in_tangent) * weight;\n"
-    "                }\n"
-    "            }\n"
-    "        }\n"
-    "\n"
-    "        N = normalize(N);\n"
-    "        T = normalize(T);\n"
-    "        T = normalize(T - dot(N, T) * N);\n"
-    "    }\n"
-    "    else {\n"
-    "        P = in_position;\n"
-    "        N = in_normal;\n"
-    "        T = in_tangent;\n"
-    "    }\n"
-    "\n"
-    "    P = model * P;\n"
-    "    N = model_normal * N;\n"
-    "    T = model_normal * T;\n"
-    "\n"
-    "    N = normalize(N);\n"
-    "    T = normalize(T);\n"
-    "    T = normalize(T - dot(N, T) * N);\n"
-    "\n"
-    "    out_position = P;\n"
-    "    out_normal = N;\n"
-    "    out_tangent = T;\n"
-    "}";
+typedef struct program_binary {
+    GLsizei length;
+    GLenum binary_format;
+    size_t binary;
+} program_binary;
 
-static const char* common_data_string =
-    "layout (binding = 0, std140) uniform common_data {\n"
-    "    vec4 res; //x=width, y=height, z=1/width, w=1/height\n"
-    "    mat4 vp;\n"
-    "    mat4 view;\n"
-    "    mat4 projection;\n"
-    "    vec3 view_pos;\n"
-    "} cmn_data;\n"
-    "\n"
-    "#define COMMON_DATA_RES (cmn_data.res)\n"
-    "#define COMMON_DATA_VP (cmn_data.vp)\n"
-    "#define COMMON_DATA_VIEW (cmn_data.view)\n"
-    "#define COMMON_DATA_PROJ (cmn_data.projection)\n"
-    "#define COMMON_DATA_VIEW_POS (cmn_data.view_pos)";
+static GLuint shader_compile_shader(GLenum type, char* data, char* file);
+static GLuint shader_compile(char* vert, char* frag, char* vp, char* fp);
+static GLuint shader_compile_binary(char* vert, char* frag, char* vp, char* fp,
+    program_binary* bin, GLsizei* buffer_size, void** binary);
+static bool shader_load_binary_shader(program_binary* bin, GLuint* program);
+static bool shader_parse_define(char* data, int32_t num_uniform,
+    const int32_t* vp_unival_max, const int32_t* fp_unival_max,
+    int32_t* uniform_value, char** temp, size_t* temp_size);
+static char* shader_parse_include(char* data, farc* f);
+static void shader_update_buffer(GLint ubo,
+    GLintptr offset, GLsizeiptr size, size_t data);
+static void shader_update_data(shader_set_data* set);
 
-static const char* material_struct_string = 
-    "uniform struct material_param_struct {\n"
-    "    vec4 ambient;\n"
-    "    vec4 diffuse;\n"
-    "    vec4 specular;\n"
-    "    vec4 emission;\n"
-    "    float shininess;\n"
-    "} material_param;\n"
-    "\n"
-    "#define MATERIAL_AMBIENT (material_param.ambient)\n"
-    "#define MATERIAL_DIFFUSE (material_param.diffuse)\n"
-    "#define MATERIAL_SPECULAR (material_param.specular)\n"
-    "#define MATERIAL_EMISSION (material_param.emission)\n"
-    "#define MATERIAL_SHININESS (material_param.shininess)";
+vector(program_binary)
+vector_func(program_binary)
 
-static const char* tex_decode_string =
-    "uniform sampler2D material[5];\n"
-    "uniform samplerCube cube_map;\n"
-    "uniform int tex_mode[6];\n"
-    "\n"
-    "// Tex ID\n"
-    "// 0 - color\n"
-    "// 1 - color mask / translucency\n"
-    "// 2 - normal\n"
-    "// 3 - specular\n"
-    "// 4 - transparency\n"
-    "// 5 - cube map\n"
-    "\n"
-    "// Tex Mode\n"
-    "// 0 - default\n"
-    "// 1 - YCbCr BC4\n"
-    "// 2 - YCbCr BC5\n"
-    "// 3 - Normal Map BC5 Unsigned\n"
-    "// 4 - Normal Map BC5 Signed\n"
-    "// 5 - Normal Map Unsigned\n"
-    "// 6 - Normal Map Signed\n"
-    "\n"
-    "#define TEXDECODE_COLOR(uv) TEXDECODE(0, uv)\n"
-    "#define TEXDECODE_COLOR_MASK(uv) TEXDECODE(1, uv)\n"
-    "#define TEXDECODE_TRANSLUCENCY(uv) TEXDECODE(1, uv)\n"
-    "#define TEXDECODE_NORMAL(uv) TEXDECODE(2, uv)\n"
-    "#define TEXDECODE_SPECULAR(uv) TEXDECODE(3, uv)\n"
-    "#define TEXDECODE_TRANSPARENCY(uv) TEXDECODE(4, uv)\n"
-    "#define TEXDECODE_CUBEMAP(uv) texture(cube_map, uv)\n"
-    "\n"
-    "const vec3 _red_coef_709 = vec3( 1.5748, 1.0,  0.0000);\n"
-    "const vec3 _grn_coef_709 = vec3(-0.4681, 1.0, -0.1873);\n"
-    "const vec3 _blu_coef_709 = vec3( 0.0000, 1.0,  1.8556);\n"
-    "\n"
-    "const float cbcr_mult = 1.003922; // 256.0 / 255.0\n"
-    "const float cbcr_sub = 0.503929; // 128.501895 / 255.0\n"
-    "\n"
-    "vec4 TEXDECODE(int id, vec2 uv) {\n"
-    "    vec4 data = vec4(0.0);\n"
-    "    int mode = tex_mode[id];\n"
-    "    if (mode == 1) {\n"
-    "        vec3 tmp;\n"
-    "        tmp.y = textureLod(material[id], uv, 0.0).x;\n"
-    "        tmp.x = textureLod(material[id], uv, 1.0).x;\n"
-    "        tmp.z = textureLod(material[id], uv, 2.0).x;\n"
-    "        tmp.xz = tmp.xz * cbcr_mult - cbcr_sub;\n"
-    "\n"
-    "        vec4 c;\n"
-    "        c.r = dot(tmp.xyz, _red_coef_709);\n"
-    "        c.g = dot(tmp.xyz, _grn_coef_709);\n"
-    "        c.b = dot(tmp.xyz, _blu_coef_709);\n"
-    "        c.a = 1.0;\n"
-    "        data = c;\n"
-    "    }\n"
-    "    else if (mode == 2) {\n"
-    "        vec4 tmp;\n"
-    "        tmp.yw = textureLod(material[id], uv, 0.0).xy;\n"
-    "        tmp.xz = textureLod(material[id], uv, 1.0).yx;\n"
-    "        tmp.xz = tmp.xz * cbcr_mult - cbcr_sub;\n"
-    "\n"
-    "        vec4 c;\n"
-    "        c.r = dot(tmp.xyz, _red_coef_709);\n"
-    "        c.g = dot(tmp.xyz, _grn_coef_709);\n"
-    "        c.b = dot(tmp.xyz, _blu_coef_709);\n"
-    "        c.a = tmp.a;\n"
-    "        data = c;\n"
-    "    }\n"
-    "    else if (mode == 3) {\n"
-    "        vec3 normal;\n"
-    "        normal.xy = texture(material[id], uv).xy * 2.0 - 1.0;\n"
-    "        normal.z = sqrt(1.0 - normal.x * normal.x - normal.y * normal.y);\n"
-    "        data = vec4(normal, 0.0);\n"
-    "    }\n"
-    "    else if (mode == 4) {\n"
-    "        vec3 normal;\n"
-    "        normal.xy = texture(material[id], uv).xy;\n"
-    "        normal.z = sqrt(1.0 - normal.x * normal.x - normal.y * normal.y);\n"
-    "        data = vec4(normal, 0.0);\n"
-    "    }\n"
-    "    else if (mode == 5) {\n"
-    "        vec3 normal = texture(material[id], uv).xyz * 2.0 - 1.0;\n"
-    "        data = vec4(normal, 0.0);\n"
-    "    }\n"
-    "    else if (mode == 6) {\n"
-    "        vec3 normal = texture(material[id], uv).xyz;\n"
-    "        data = vec4(normal, 0.0);\n"
-    "    }\n"
-    "    else\n"
-    "        data = texture(material[id], uv);\n"
-    "    return data;\n"
-    "}";
+int32_t shader_bind(shader* shader, uint32_t sub_index) {
+    int32_t num_sub = shader->num_sub;
+    int32_t sub_shader_index = 0;
+    if (num_sub <= 0)
+        return -1;
 
-static int32_t program = 0;
+    for (shader_sub* i = shader->sub; i->sub_index != sub_index; i++) {
+        sub_shader_index++;
+        if (sub_shader_index >= num_sub)
+            return -1;
+    }
 
-static char* shader_parse_define(char* data, shader_param* param) {
-    if (!data || !param)
-        return data;
+    shader_sub* sub_shader = &shader->sub[sub_shader_index];
+    if (!sub_shader)
+        return -1;
 
-    const size_t s = SHADER_PARAM_NUM_PARAMS;
+    int32_t num_uniform = shader->num_uniform;
+    int32_t unival_curr = 1;
+    int32_t unival = 0;
+    GLint uniform_val[16];
+    if (num_uniform > 0) {
+        const int32_t* vp_unival_max = sub_shader->vp_unival_max;
+        const int32_t* fp_unival_max = sub_shader->fp_unival_max;
 
-    size_t temp_len[SHADER_PARAM_NUM_PARAMS];
-    char temp[0x100];
-    memset(temp, 0, 0x100);
+        int32_t i = 0;
+        for (i = 0; i < num_uniform && i < 16; i++) {
+            int32_t unival_max = shader->use_permut[i]
+                ? max(vp_unival_max[i], fp_unival_max[i]) : 0;
+            unival += unival_curr * min(uniform_value[shader->use_uniform[i]], unival_max);
+            unival_curr *= unival_max + 1;
 
-    for (size_t i = 0; i < s; i++)
-        if (param->param[i]) {
-            snprintf(temp, sizeof(temp), "#define %s\n", param->param[i]);
-            temp_len[i] = strlen(temp);
+            int32_t unival_max_glsl = max(vp_unival_max[i], fp_unival_max[i]);
+            uniform_val[i] = min(uniform_value[shader->use_uniform[i]], unival_max_glsl);
         }
+
+        for (; i < 16; i++)
+            uniform_val[i] = 0;
+    }
+
+    gl_state_use_program(sub_shader->program[unival]);
+    glUniform1iv(shader_MAX_PROGRAM_LOCAL_PARAMETERS * 2, 16, uniform_val);
+    return 0;
+}
+
+inline void shader_draw_arrays(shader_set_data* set,
+    GLenum mode, GLint first, GLsizei count) {
+    shader_update_data(set);
+    glDrawArrays(mode, first, count);
+}
+
+inline void shader_draw_elements(shader_set_data* set,
+    GLenum mode, GLsizei count, GLenum type, const void* indices) {
+    shader_update_data(set);
+    glDrawElements(mode, count, type, indices);
+}
+
+void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load_cache,
+    char* name, const shader_table** shaders_table, const size_t size,
+    const shader_bind_func* bind_func_table, const size_t bind_func_table_size) {
+    if (!set || !f || !shaders_table || !size)
+        return;
+
+    bool shader_cache_changed = false;
+    farc* shader_cache_farc = 0;
+    wchar_t temp_buf[MAX_PATH];
+    if (!ignore_cache && SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
+        shader_cache_farc = farc_init();
+        wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\CLOUD");
+        CreateDirectoryW(temp_buf, 0);
+
+        wchar_t buf[MAX_PATH];
+        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"\\%hs_shader_cache", name);
+        wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), buf);
+
+        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"%ls.farc", temp_buf);
+        if (path_wcheck_file_exists(buf) && !not_load_cache)
+            farc_wread(shader_cache_farc, buf, true, false);
+    }
+
+    GLsizei buffer_size = 0x20000;
+    void* binary = force_malloc(buffer_size);
+    size_t temp_vert_size = 0x10000;
+    char* temp_vert = force_malloc(temp_vert_size);
+    size_t temp_frag_size = 0x10000;
+    char* temp_frag = force_malloc(temp_frag_size);
+    vector_uint32_t vec_vert = vector_empty(uint32_t);
+    vector_uint32_t vec_frag = vector_empty(uint32_t);
+    vector_program_binary program_data_binary = vector_empty(program_binary);
+    set->shaders = force_malloc_s(shader, size);
+    set->size = size;
+    for (size_t i = 0; i < size; i++) {
+        shader* shader = &set->shaders[i];
+        shader->name = shaders_table[i]->name;
+        shader->index = shaders_table[i]->index;
+        shader->num_sub = shaders_table[i]->num_sub;
+        shader->sub = force_malloc_s(shader_sub, shader->num_sub);
+        shader->num_uniform = shaders_table[i]->num_uniform;
+        shader->use_uniform = shaders_table[i]->use_uniform;
+        shader->use_permut = shaders_table[i]->use_permut;
+
+        int32_t num_sub = shader->num_sub;
+        const shader_sub_table* sub_table = shaders_table[i]->sub;
+        shader_sub* sub = shader->sub;
+        vector_uint32_t_reserve(&vec_vert, shader->num_uniform);
+        vector_uint32_t_reserve(&vec_frag, shader->num_uniform);
+        for (size_t j = 0; j < num_sub; j++, sub++, sub_table++) {
+            sub->sub_index = sub_table->sub_index;
+            sub->vp_unival_max = sub_table->vp_unival_max;
+            sub->fp_unival_max = sub_table->fp_unival_max;
+
+            char vert_file_buf[MAX_PATH];
+            strcpy_s(vert_file_buf, sizeof(vert_file_buf), sub_table->vp);
+            strcat_s(vert_file_buf, sizeof(vert_file_buf), ".vert");
+            farc_file* vert_ff = farc_read_file(f, vert_file_buf);
+
+            char* vert_data = 0;
+            if (vert_ff && vert_ff->data) {
+                vert_data = force_malloc(vert_ff->size + 1);
+                if (vert_data) {
+                    memcpy(vert_data, vert_ff->data, vert_ff->size);
+                    vert_data[vert_ff->size] = 0;
+                }
+            }
+
+            char frag_file_buf[MAX_PATH];
+            strcpy_s(frag_file_buf, sizeof(frag_file_buf), sub_table->fp);
+            strcat_s(frag_file_buf, sizeof(frag_file_buf), ".frag");
+            farc_file* frag_ff = farc_read_file(f, frag_file_buf);
+
+            char* frag_data = 0;
+            if (frag_ff && frag_ff->data) {
+                frag_data = force_malloc(frag_ff->size + 1);
+                if (frag_data) {
+                    memcpy(frag_data, frag_ff->data, frag_ff->size);
+                    frag_data[frag_ff->size] = 0;
+                }
+            }
+
+            if (!vert_data || !frag_data) {
+                free(vert_data);
+                free(frag_data);
+                continue;
+            }
+
+            uint64_t vert_file_name_cache = hash_fnv1a64(vert_file_buf, utf8_length(vert_file_buf));
+            uint64_t frag_file_name_cache = hash_fnv1a64(frag_file_buf, utf8_length(frag_file_buf));
+            for (int32_t i = 0; i < 64; i += 8)
+                if (((vert_file_name_cache >> i) & 0xFF) == 0)
+                    vert_file_name_cache |= 0xFFULL << i;
+
+            for (int32_t i = 0; i < 64; i += 8)
+                if (((frag_file_name_cache >> i) & 0xFF) == 0)
+                    frag_file_name_cache |= 0xFFULL << i;
+
+            char shader_cache_file_name[MAX_PATH];
+            strcpy_s(shader_cache_file_name, sizeof(shader_cache_file_name), sub_table->vp);
+            if (strcmp(sub_table->vp, sub_table->fp)) {
+                strcat_s(shader_cache_file_name, sizeof(shader_cache_file_name), ".");
+                strcat_s(shader_cache_file_name, sizeof(shader_cache_file_name), sub_table->fp);
+            }
+            strcat_s(shader_cache_file_name, sizeof(shader_cache_file_name), ".bin");
+
+            vert_data = shader_parse_include(vert_data, f);
+            frag_data = shader_parse_include(frag_data, f);
+            uint64_t vert_data_hash = hash_fnv1a64(vert_data, utf8_length(vert_data));
+            uint64_t frag_data_hash = hash_fnv1a64(frag_data, utf8_length(frag_data));
+
+            farc_file* shader_cache_file = farc_read_file(shader_cache_farc, shader_cache_file_name);
+            program_binary* bin = 0;
+            if (!ignore_cache) {
+                if (!shader_cache_file || !shader_cache_file->data)
+                    /*printf("data error: %s %s\n", vert_file_buf, frag_file_buf)*/;
+                else if (vert_data_hash != ((uint64_t*)shader_cache_file->data)[0]
+                    && frag_data_hash != ((uint64_t*)shader_cache_file->data)[1])
+                    /*printf("hash error: %s %s\n", vert_file_buf, frag_file_buf)*/;
+                else
+                    bin = (program_binary*)&((uint64_t*)shader_cache_file->data)[2];
+            }
+
+            if (shader->num_uniform > 0) {
+                int32_t num_uniform = shader->num_uniform;
+                size_t unival_curr = 1;
+                size_t unival_count = 1;
+                const int32_t* vp_unival_max = sub_table->vp_unival_max;
+                const int32_t* fp_unival_max = sub_table->fp_unival_max;
+                for (size_t k = 0; k < num_uniform; k++) {
+                    size_t unival_max = shader->use_permut[k]
+                        ? max(vp_unival_max[k], fp_unival_max[k]) : 0;
+                    unival_count += unival_curr * unival_max;
+                    unival_curr *= unival_max + 1;
+                }
+
+                if (!ignore_cache)
+                    vector_program_binary_reserve(&program_data_binary, unival_count);
+                sub->program = force_malloc_s(GLuint, unival_count);
+                if (sub->program) {
+                    char vert_buf[MAX_PATH];
+                    char frag_buf[MAX_PATH];
+
+                    strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
+                    size_t vert_buf_pos = utf8_length(vert_buf);
+                    vert_buf[vert_buf_pos++] = '.';
+                    vert_buf[vert_buf_pos] = 0;
+                    memset(&vert_buf[vert_buf_pos], '0', num_uniform);
+                    vert_buf[vert_buf_pos + num_uniform] = 0;
+                    strcat_s(vert_buf, sizeof(vert_buf), ".vert");
+
+                    strcpy_s(frag_buf, sizeof(frag_buf), sub_table->fp);
+                    size_t frag_buf_pos = utf8_length(frag_buf);
+                    frag_buf[frag_buf_pos++] = '.';
+                    frag_buf[frag_buf_pos] = 0;
+                    memset(&frag_buf[frag_buf_pos], '0', num_uniform);
+                    frag_buf[frag_buf_pos + num_uniform] = 0;
+                    strcat_s(frag_buf, sizeof(frag_buf), ".frag");
+
+                    for (size_t k = 0; k < unival_count; k++) {
+                        for (size_t l = 0, m = k; l < num_uniform; l++) {
+                            size_t unival_max = (size_t)(shader->use_permut[l]
+                                ? max(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
+                            vec_vert.begin[l] = (uint32_t)(min(m % unival_max, vp_unival_max[l]));
+                            m /= unival_max;
+                            vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert.begin[l]);
+                        }
+
+                        for (size_t l = 0, m = k; l < num_uniform; l++) {
+                            size_t unival_max = (size_t)(shader->use_permut[l]
+                                ? max(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
+                            vec_frag.begin[l] = (uint32_t)(min(m % unival_max, fp_unival_max[l]));
+                            m /= unival_max;
+                            frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag.begin[l]);
+                        }
+
+                        if (!bin || !shader_load_binary_shader(bin, &sub->program[k])) {
+                            bool vert_succ = shader_parse_define(vert_data,
+                                num_uniform, vp_unival_max, fp_unival_max,
+                                vec_vert.begin, &temp_vert, &temp_vert_size);
+                            bool frag_succ = shader_parse_define(frag_data,
+                                num_uniform, vp_unival_max, fp_unival_max,
+                                vec_frag.begin, &temp_frag, &temp_frag_size);
+
+                            //printf("%s %s\n", vert_buf, frag_buf);
+                            if (ignore_cache)
+                                sub->program[k] = shader_compile(vert_succ ? temp_vert : 0,
+                                    frag_succ ? temp_frag : 0, vert_buf, frag_buf);
+                            else
+                                sub->program[k] = shader_compile_binary(vert_succ ? temp_vert : 0,
+                                    frag_succ ? temp_frag : 0, vert_buf, frag_buf,
+                                    program_data_binary.end, &buffer_size, &binary);
+                            shader_cache_changed |= sub->program[k] ? true : false;
+                        }
+                        else {
+                            program_binary* b = program_data_binary.end;
+                            b->length = bin->length;
+                            b->binary_format = bin->binary_format;
+                            b->binary = (size_t)force_malloc(bin->length);
+                            memcpy((void*)b->binary, (void*)((size_t)bin + bin->binary), bin->length);
+                        }
+
+                        if (!ignore_cache) {
+                            program_data_binary.end++;
+                            if (bin)
+                                bin++;
+                        }
+                    }
+                }
+            }
+            else {
+                vector_program_binary_reserve(&program_data_binary, 1);
+                sub->program = force_malloc_s(GLuint, 1);
+                if (sub->program) {
+                    char vert_buf[MAX_PATH];
+                    char frag_buf[MAX_PATH];
+                    strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
+                    strcpy_s(frag_buf, sizeof(vert_buf), sub_table->fp);
+                    strcat_s(vert_buf, sizeof(vert_buf), "..vert");
+                    strcat_s(frag_buf, sizeof(vert_buf), "..frag");
+
+                    if (!bin || !shader_load_binary_shader(bin, &sub->program[0])) {
+                        bool vert_succ = shader_parse_define(vert_data,
+                            0, 0, 0, 0, &temp_vert, &temp_vert_size);
+                        bool frag_succ = shader_parse_define(frag_data,
+                            0, 0, 0, 0, &temp_frag, &temp_frag_size);
+
+                        //printf("%s %s\n", vert_buf, frag_buf);
+                        if (ignore_cache)
+                            sub->program[0] = shader_compile(vert_succ ? temp_vert : 0,
+                                frag_succ ? temp_frag : 0, vert_buf, frag_buf);
+                        else
+                            sub->program[0] = shader_compile_binary(vert_succ ? temp_vert : 0,
+                                frag_succ ? temp_frag : 0, vert_buf, frag_buf,
+                                program_data_binary.end, &buffer_size, &binary);
+                        shader_cache_changed |= sub->program[0] ? true : false;
+                    }
+                    else {
+                        program_binary* b = program_data_binary.end;
+                        b->length = bin->length;
+                        b->binary_format = bin->binary_format;
+                        b->binary = (size_t)force_malloc(bin->length);
+                        memcpy((void*)b->binary, (void*)((size_t)bin + bin->binary), bin->length);
+                    }
+
+                    if (!ignore_cache) {
+                        program_data_binary.end++;
+                        if (bin)
+                            bin++;
+                    }
+                }
+            }
+
+            if (!ignore_cache) {
+                if (!shader_cache_file) {
+                    farc_file temp;
+                    memset(&temp, 0, sizeof(farc_file));
+                    vector_farc_file_push_back(&shader_cache_farc->files, &temp);
+                    shader_cache_file = &shader_cache_farc->files.end[-1];
+                    string_init(&shader_cache_file->name, shader_cache_file_name);
+                }
+                else
+                    free(shader_cache_file->data);
+
+                size_t bin_count = program_data_binary.end - program_data_binary.begin;
+                size_t bin_size = sizeof(uint64_t) * 2 + bin_count * sizeof(program_binary);
+                for (program_binary* j = program_data_binary.begin; j != program_data_binary.end; j++)
+                    bin_size += j->length;
+                shader_cache_file->data = force_malloc(bin_size);
+                shader_cache_file->size = bin_size;
+                shader_cache_file->data_changed = true;
+
+                ((uint64_t*)shader_cache_file->data)[0] = vert_data_hash;
+                ((uint64_t*)shader_cache_file->data)[1] = frag_data_hash;
+                bin = (program_binary*)&((uint64_t*)shader_cache_file->data)[2];
+                size_t bin_data_base = (size_t)shader_cache_file->data + sizeof(uint64_t) * 2;
+                size_t bin_data = bin_data_base + bin_count * sizeof(program_binary);
+                for (program_binary* j = program_data_binary.begin; j != program_data_binary.end; bin++, j++) {
+                    bin->length = j->length;
+                    bin->binary_format = j->binary_format;
+                    bin->binary = bin_data - bin_data_base;
+                    memcpy((void*)bin_data, (void*)j->binary, j->length);
+                    bin_data_base += sizeof(program_binary);
+                    bin_data += j->length;
+                    free((void*)j->binary);
+                }
+                vector_program_binary_clear(&program_data_binary);
+            }
+
+            free(vert_data);
+            free(frag_data);
+        }
+        vector_uint32_t_clear(&vec_vert);
+        vector_uint32_t_clear(&vec_frag);
+
+        for (size_t j = 0; j < bind_func_table_size; j++)
+            if (shader->index == bind_func_table[j].index) {
+                shader->bind_func = bind_func_table[j].bind_func;
+                break;
+            }
+    }
+    vector_uint32_t_free(&vec_vert);
+    vector_uint32_t_free(&vec_frag);
+    vector_program_binary_free(&program_data_binary);
+    free(binary);
+    free(temp_vert);
+    free(temp_frag);
+
+    if (shader_cache_farc) {
+        if (shader_cache_changed)
+            farc_wwrite(shader_cache_farc, temp_buf, FARC_COMPRESS_FArC, false);
+        farc_dispose(shader_cache_farc);
+    }
+
+    memset(&set->data, 0, sizeof(set->data));
+    glGenBuffers(1, &set->data.state_ubo);
+    gl_state_bind_uniform_buffer(set->data.state_ubo);
+    glBufferData(GL_UNIFORM_BUFFER,
+        sizeof(set->data.state), (void*)&set->data.state, GL_DYNAMIC_DRAW);
+    gl_state_bind_uniform_buffer(0);
+
+    glGenBuffers(1, &set->data.state_matrix_ubo);
+    gl_state_bind_uniform_buffer(set->data.state_matrix_ubo);
+    glBufferData(GL_UNIFORM_BUFFER,
+        sizeof(set->data.state_matrix), (void*)&set->data.state_matrix, GL_DYNAMIC_DRAW);
+    gl_state_bind_uniform_buffer(0);
+
+    glGenBuffers(1, &set->data.env_ubo);
+    gl_state_bind_uniform_buffer(set->data.env_ubo);
+    glBufferData(GL_UNIFORM_BUFFER,
+        sizeof(set->data.env), (void*)&set->data.env, GL_DYNAMIC_DRAW);
+    gl_state_bind_uniform_buffer(0);
+
+    glGenBuffers(1, &set->data.buffer_ubo);
+    gl_state_bind_uniform_buffer(set->data.buffer_ubo);
+    glBufferData(GL_UNIFORM_BUFFER,
+        sizeof(set->data.buffer), (void*)&set->data.buffer, GL_DYNAMIC_DRAW);
+    gl_state_bind_uniform_buffer(0);
+}
+
+void shader_free(shader_set_data* set) {
+    glDeleteBuffers(1, &set->data.state_ubo);
+    glDeleteBuffers(1, &set->data.state_matrix_ubo);
+    glDeleteBuffers(1, &set->data.env_ubo);
+    glDeleteBuffers(1, &set->data.buffer_ubo);
+    memset(&set->data, 0, sizeof(set->data));
+
+    size_t size = set->size;
+    for (size_t i = 0; i < size; i++) {
+        shader* shader = &set->shaders[i];
+        int32_t num_sub = shader->num_sub;
+        shader_sub* sub = shader->sub;
+        for (size_t j = 0; j < num_sub; j++, sub++) {
+            if (shader->num_uniform > 0) {
+                int32_t num_uniform = shader->num_uniform;
+                size_t unival_curr = 1;
+                size_t unival_count = 1;
+                const int32_t* vp_unival_max = sub->vp_unival_max;
+                const int32_t* fp_unival_max = sub->fp_unival_max;
+                for (size_t k = 0; k < num_uniform; k++) {
+                    size_t unival_max = shader->use_permut[k]
+                        ? max(vp_unival_max[k], fp_unival_max[k]) : 0;
+                    unival_count += unival_curr * unival_max;
+                    unival_curr *= unival_max + 1;
+                }
+
+                if (sub->program)
+                    for (size_t k = 0; k < unival_count; k++)
+                        glDeleteProgram(sub->program[k]);
+                free(sub->program);
+            }
+            else {
+                if (sub->program)
+                    glDeleteProgram(sub->program[0]);
+                free(sub->program);
+            }
+        }
+        free(shader->sub);
+    }
+    free(set->shaders);
+}
+
+void shader_set(shader_set_data* set, uint32_t index) {
+    if (set && index && set->shaders) {
+        shader_env_frag_set(set, 0x18,
+            (float_t)uniform_value[U_TEXTURE_BLEND], 0.0, 0.0, 0.0);
+        shader* shader = &set->shaders[index];
+        if (shader->bind_func)
+            shader->bind_func(set, shader);
         else
-            temp_len[i] = 0;
+            shader_bind(shader, shader->sub[0].sub_index);
+        gl_state_bind_uniform_buffer_base(0, set->data.state_ubo);
+        gl_state_bind_uniform_buffer_base(1, set->data.state_matrix_ubo);
+        gl_state_bind_uniform_buffer_base(2, set->data.env_ubo);
+        gl_state_bind_uniform_buffer_base(3, set->data.buffer_ubo);
+    }
+    else
+        shader_unbind();
+}
+
+inline void shader_unbind() {
+    gl_state_use_program(0);
+    gl_state_bind_uniform_buffer_base(0, 0);
+    gl_state_bind_uniform_buffer_base(1, 0);
+    gl_state_bind_uniform_buffer_base(2, 0);
+    gl_state_bind_uniform_buffer_base(3, 0);
+}
+
+inline void shader_local_frag_get(shader_set_data* set,
+    size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS || !x || !y || !z || !w)
+        return;
+
+    GLfloat temp[4];
+    glGetUniformfv(gl_state_get_program(), (GLint)(index + shader_MAX_PROGRAM_LOCAL_PARAMETERS), temp);
+    *x = temp[0];
+    *y = temp[1];
+    *z = temp[2];
+    *w = temp[3];
+}
+
+inline void shader_local_frag_get_ptr(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+        return;
+
+    GLfloat temp[4];
+    glGetUniformfv(gl_state_get_program(), (GLint)(index + shader_MAX_PROGRAM_LOCAL_PARAMETERS), temp);
+    data->x = temp[0];
+    data->y = temp[1];
+    data->z = temp[2];
+    data->w = temp[3];
+}
+
+inline void shader_local_vert_get(shader_set_data* set,
+    size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS || !x || !y || !z || !w)
+        return;
+
+    GLfloat temp[4];
+    glGetUniformfv(gl_state_get_program(), (GLint)index, temp);
+    *x = temp[0];
+    *y = temp[1];
+    *z = temp[2];
+    *w = temp[3];
+}
+
+inline void shader_local_vert_get_ptr(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+        return;
+
+    GLfloat temp[4];
+    glGetUniformfv(gl_state_get_program(), (GLint)index, temp);
+    data->x = temp[0];
+    data->y = temp[1];
+    data->z = temp[2];
+    data->w = temp[3];
+}
+
+inline void shader_env_frag_get(shader_set_data* set,
+    size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS || !x || !y || !z || !w)
+        return;
+
+    vec4 data = set->data.env.frag[index];
+    *x = data.x;
+    *y = data.y;
+    *z = data.z;
+    *w = data.w;
+}
+
+inline void shader_env_frag_get_ptr(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS || !data)
+        return;
+
+    *data = set->data.env.frag[index];
+}
+
+inline void shader_env_frag_get_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS || !data)
+        return;
+
+    memcpy(data, &set->data.env.frag[index], sizeof(vec4) * count);
+}
+
+inline void shader_env_vert_get(shader_set_data* set,
+    size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS || !x || !y || !z || !w)
+        return;
+
+    vec4 data = set->data.env.vert[index];
+    *x = data.x;
+    *y = data.y;
+    *z = data.z;
+    *w = data.w;
+}
+
+inline void shader_env_vert_get_ptr(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS || !data)
+        return;
+
+    *data = set->data.env.vert[index];
+}
+
+inline void shader_env_vert_get_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS || !data)
+        return;
+
+    memcpy(data, &set->data.env.vert[index], sizeof(vec4) * count);
+}
+
+inline void shader_state_clip_get_plane(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_CLIP_PLANES || !data)
+        return;
+
+    *data = set->data.state.clip[index].plane;
+}
+
+inline void shader_state_depth_get_range(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.depth.range;
+}
+
+inline void shader_state_fog_get_color(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.fog.color;
+}
+
+inline void shader_state_fog_get_params(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.fog.params;
+}
+
+inline void shader_state_light_get_ambient(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.light[index].ambient;
+}
+
+inline void shader_state_light_get_diffuse(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.light[index].ambient;
+}
+
+inline void shader_state_light_get_specular(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.light[index].ambient;
+}
+
+inline void shader_state_light_get_position(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.light[index].ambient;
+}
+
+inline void shader_state_light_get_attenuation(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.light[index].ambient;
+}
+
+inline void shader_state_light_get_spot_direction(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.light[index].ambient;
+}
+
+inline void shader_state_light_get_half(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.light[index].ambient;
+}
+
+inline void shader_state_lightmodel_get_ambient(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.lightmodel[back ? 1 : 0].ambient;
+}
+
+inline void shader_state_lightmodel_get_scene_color(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.lightmodel[back ? 1 : 0].scene_color;
+}
+
+inline void shader_state_lightprod_get_ambient(shader_set_data* set,
+    bool back, size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.lightprod[back ? 1 : 0][index].specular;
+}
+
+inline void shader_state_lightprod_get_diffuse(shader_set_data* set,
+    bool back, size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.lightprod[back ? 1 : 0][index].specular;
+}
+
+inline void shader_state_lightprod_get_specular(shader_set_data* set,
+    bool back, size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    *data = set->data.state.lightprod[back ? 1 : 0][index].specular;
+}
+
+inline void shader_state_material_get_ambient(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.material[back ? 1 : 0].ambient;
+}
+
+inline void shader_state_material_get_diffuse(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.material[back ? 1 : 0].diffuse;
+}
+
+inline void shader_state_material_get_specular(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.material[back ? 1 : 0].specular;
+}
+
+inline void shader_state_material_get_emission(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.material[back ? 1 : 0].emission;
+}
+
+inline void shader_state_material_get_shininess(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.material[back ? 1 : 0].shininess;
+}
+
+inline void shader_state_matrix_get_modelview(shader_set_data* set,
+    size_t index, mat4* data) {
+    if (!set || index >= shader_MAX_VERTEX_UNITS || !data)
+        return;
+
+    *data = set->data.state_matrix.modelview[index].mat;
+}
+
+inline void shader_state_matrix_get_projection(shader_set_data* set,
+    mat4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state_matrix.projection.mat;
+}
+
+inline void shader_state_matrix_get_mvp(shader_set_data* set,
+    mat4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state_matrix.mvp.mat;
+}
+
+inline void shader_state_matrix_get_texture(shader_set_data* set,
+    size_t index, mat4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_COORDS || !data)
+        return;
+
+    *data = set->data.state_matrix.texture[index].mat;
+}
+
+inline void shader_state_matrix_get_palette(shader_set_data* set,
+    size_t index, mat4* data) {
+    if (!set || index >= shader_MAX_PALETTE_MATRICES || !data)
+        return;
+
+    *data = set->data.state_matrix.palette[index].mat;
+}
+
+inline void shader_state_matrix_get_program(shader_set_data* set,
+    size_t index, mat4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_MATRICES || !data)
+        return;
+
+    *data = set->data.state_matrix.program[index].mat;
+}
+
+inline void shader_state_point_get_size(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.point.size;
+}
+
+inline void shader_state_point_get_attenuation(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    *data = set->data.state.point.attenuation;
+}
+
+inline void shader_state_texgen_get_eye_s(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    *data = set->data.state.texgen[index].eye_s;
+}
+
+inline void shader_state_texgen_get_eye_t(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    *data = set->data.state.texgen[index].eye_t;
+}
+
+inline void shader_state_texgen_get_eye_r(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    *data = set->data.state.texgen[index].eye_r;
+}
+
+inline void shader_state_texgen_get_eye_q(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    *data = set->data.state.texgen[index].eye_q;
+}
+
+inline void shader_state_texgen_get_object_s(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    *data = set->data.state.texgen[index].object_s;
+}
+
+inline void shader_state_texgen_get_object_t(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    *data = set->data.state.texgen[index].object_t;
+}
+
+inline void shader_state_texgen_get_object_r(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    *data = set->data.state.texgen[index].object_r;
+}
+
+inline void shader_state_texgen_get_object_q(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    *data = set->data.state.texgen[index].object_q;
+}
+
+inline void shader_state_texenv_get_color(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    *data = set->data.state.texenv[index].color;
+}
+
+inline void shader_local_frag_set(shader_set_data* set,
+    size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS)
+        return;
+
+    glUniform4f((GLint)(index + shader_MAX_PROGRAM_LOCAL_PARAMETERS), x, y, z, w);
+}
+
+inline void shader_local_frag_set_ptr(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+        return;
+
+    glUniform4f((GLint)(index + shader_MAX_PROGRAM_LOCAL_PARAMETERS), data->x, data->y, data->z, data->w);
+}
+
+inline void shader_local_frag_set_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS
+        || index + count > shader_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+        return;
+
+    glUniform4fv((GLint)(index + shader_MAX_PROGRAM_LOCAL_PARAMETERS),
+        (GLsizei)count, (const GLfloat*)data);
+}
+
+inline void shader_local_vert_set(shader_set_data* set,
+    size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS)
+        return;
+
+    glUniform4f((GLint)index, x, y, z, w);
+}
+
+inline void shader_local_vert_set_ptr(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+        return;
+
+    glUniform4f((GLint)index, data->x, data->y, data->z, data->w);
+}
+
+inline void shader_local_vert_set_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_LOCAL_PARAMETERS
+        || index + count > shader_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+        return;
+
+    glUniform4fv((GLint)index, (GLsizei)count, (const GLfloat*)data);
+}
+
+inline void shader_env_frag_set(shader_set_data* set,
+    size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS)
+        return;
+
+    vec4 data;
+    data.x = x;
+    data.y = y;
+    data.z = z;
+    data.w = w;
+    if (!memcmp(&set->data.env.frag[index], &data, sizeof(vec4)))
+        return;
+
+    set->data.env.frag[index] = data;
+    set->data.env_update.frag[index] = true;
+    set->data.env_frag_update_data = true;
+}
+
+inline void shader_env_frag_set_ptr(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS || !data)
+        return;
+
+    if (!memcmp(&set->data.env.frag[index], data, sizeof(vec4)))
+        return;
+
+    set->data.env.frag[index] = *data;
+    set->data.env_update.frag[index] = true;
+    set->data.env_frag_update_data = true;
+}
+
+inline void shader_env_frag_set_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS
+        || index + count > shader_MAX_PROGRAM_ENV_PARAMETERS || !data)
+        return;
+
+    if (!memcmp(&set->data.env.frag[index], data, sizeof(vec4) * count))
+        return;
+
+    memcpy(&set->data.env.frag[index], data, sizeof(vec4) * count);
+    memset(&set->data.env_update.frag[index], true, sizeof(bool) * count);
+    set->data.env_frag_update_data = true;
+}
+
+inline void shader_env_vert_set(shader_set_data* set,
+    size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS)
+        return;
+
+    vec4 data;
+    data.x = x;
+    data.y = y;
+    data.z = z;
+    data.w = w;
+    if (!memcmp(&set->data.env.vert[index], &data, sizeof(vec4)))
+        return;
+
+    set->data.env.vert[index] = data;
+    set->data.env_update.frag[index] = true;
+    set->data.env_vert_update_data = true;
+}
+
+inline void shader_env_vert_set_ptr(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS || !data)
+        return;
+
+    if (!memcmp(&set->data.env.vert[index], data, sizeof(vec4)))
+        return;
+
+    set->data.env.vert[index] = *data;
+    set->data.env_update.vert[index] = true;
+    set->data.env_vert_update_data = true;
+}
+
+inline void shader_env_vert_set_ptr_array(shader_set_data* set,
+    size_t index, size_t count, vec4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_ENV_PARAMETERS
+        || index + count > shader_MAX_PROGRAM_ENV_PARAMETERS || !data)
+        return;
+
+    if (!memcmp(&set->data.env.vert[index], data, sizeof(vec4) * count))
+        return;
+
+    memcpy(&set->data.env.vert[index], data, sizeof(vec4) * count);
+    memset(&set->data.env_update.vert[index], true, sizeof(bool) * count);
+    set->data.env_vert_update_data = true;
+}
+
+inline void shader_state_clip_set_plane(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_CLIP_PLANES || !data)
+        return;
+
+    if (!memcmp(&set->data.state.clip[index].plane, data, sizeof(vec4)))
+        return;
+
+    set->data.state.clip[index].plane = *data;
+    set->data.state_update.clip[index].plane = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_depth_set_range(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.depth.range, data, sizeof(vec4)))
+        return;
+
+    set->data.state.depth.range = *data;
+    set->data.state_update.depth.range = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_fog_set_color(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.fog.color, data, sizeof(vec4)))
+        return;
+
+    set->data.state.fog.color = *data;
+    set->data.state_update.fog.color = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_fog_set_params(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.fog.params, data, sizeof(vec4)))
+        return;
+
+    set->data.state.fog.params = *data;
+    set->data.state_update.fog.params = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_light_set_ambient(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.light[index].ambient, data, sizeof(vec4)))
+        return;
+
+    set->data.state.light[index].ambient = *data;
+    set->data.state_update.light[index].ambient = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_light_set_diffuse(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.light[index].diffuse, data, sizeof(vec4)))
+        return;
+
+    set->data.state.light[index].diffuse = *data;
+    set->data.state_update.light[index].diffuse = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_light_set_specular(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.light[index].specular, data, sizeof(vec4)))
+        return;
+
+    set->data.state.light[index].specular = *data;
+    set->data.state_update.light[index].specular = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_light_set_position(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.light[index].position, data, sizeof(vec4)))
+        return;
+
+    set->data.state.light[index].position = *data;
+    set->data.state_update.light[index].position = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_light_set_attenuation(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.light[index].attenuation, data, sizeof(vec4)))
+        return;
+
+    set->data.state.light[index].attenuation = *data;
+    set->data.state_update.light[index].attenuation = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_light_set_spot_direction(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.light[index].spot_direction, data, sizeof(vec4)))
+        return;
+
+    set->data.state.light[index].spot_direction = *data;
+    set->data.state_update.light[index].spot_direction = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_light_set_half(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.light[index].half, data, sizeof(vec4)))
+        return;
+
+    set->data.state.light[index].half = *data;
+    set->data.state_update.light[index].half = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_lightmodel_set_ambient(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.lightmodel[back ? 1 : 0].ambient, data, sizeof(vec4)))
+        return;
+
+    set->data.state.lightmodel[back ? 1 : 0].ambient = *data;
+    set->data.state_update.lightmodel[back ? 1 : 0].ambient = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_lightmodel_set_scene_color(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.lightmodel[back ? 1 : 0].scene_color, data, sizeof(vec4)))
+        return;
+
+    set->data.state.lightmodel[back ? 1 : 0].scene_color = *data;
+    set->data.state_update.lightmodel[back ? 1 : 0].scene_color = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_lightprod_set_ambient(shader_set_data* set,
+    bool back, size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.lightprod[back ? 1 : 0][index].ambient, data, sizeof(vec4)))
+        return;
+
+    set->data.state.lightprod[back ? 1 : 0][index].ambient = *data;
+    set->data.state_update.lightprod[back ? 1 : 0][index].ambient = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_lightprod_set_diffuse(shader_set_data* set,
+    bool back, size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.lightprod[back ? 1 : 0][index].specular, data, sizeof(vec4)))
+        return;
+
+    set->data.state.lightprod[back ? 1 : 0][index].specular = *data;
+    set->data.state_update.lightprod[back ? 1 : 0][index].specular = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_lightprod_set_specular(shader_set_data* set,
+    bool back, size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_LIGHTS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.lightprod[back ? 1 : 0][index].specular, data, sizeof(vec4)))
+        return;
+
+    set->data.state.lightprod[back ? 1 : 0][index].specular = *data;
+    set->data.state_update.lightprod[back ? 1 : 0][index].specular = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_material_set_ambient(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.material[back ? 1 : 0].ambient, data, sizeof(vec4)))
+        return;
+
+    set->data.state.material[back ? 1 : 0].ambient = *data;
+    set->data.state_update.material[back ? 1 : 0].ambient = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_material_set_diffuse(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state. material[back ? 1 : 0].diffuse, data, sizeof(vec4)))
+        return;
+
+    set->data.state. material[back ? 1 : 0].diffuse = *data;
+    set->data.state_update. material[back ? 1 : 0].diffuse = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_material_set_specular(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.material[back ? 1 : 0].specular, data, sizeof(vec4)))
+        return;
+
+    set->data.state.material[back ? 1 : 0].specular = *data;
+    set->data.state_update.material[back ? 1 : 0].specular = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_material_set_emission(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.material[back ? 1 : 0].emission, data, sizeof(vec4)))
+        return;
+
+    set->data.state.material[back ? 1 : 0].emission = *data;
+    set->data.state_update.material[back ? 1 : 0].emission = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_material_set_shininess(shader_set_data* set,
+    bool back, vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.material[back ? 1 : 0].shininess, data, sizeof(vec4)))
+        return;
+
+    set->data.state.material[back ? 1 : 0].shininess = *data;
+    set->data.state_update.material[back ? 1 : 0].shininess = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_matrix_set_modelview(shader_set_data* set,
+    size_t index, mat4* data, bool mult) {
+    if (!set || index >= shader_MAX_VERTEX_UNITS || !data)
+        return;
+
+    if (memcmp(&set->data.state_matrix.modelview[index].mat, data, sizeof(mat4))) {
+
+        mat4 mat;
+        mat4 mat_inv;
+        mat4 mat_trans;
+        mat4 mat_invtrans;
+
+        mat = *data;
+        mat4_inverse(&mat, &mat_inv);
+        mat4_transpose(&mat, &mat_trans);
+        mat4_transpose(&mat_inv, &mat_invtrans);
+        set->data.state_matrix.modelview[index].mat = mat;
+        set->data.state_matrix.modelview[index].inv = mat_inv;
+        set->data.state_matrix.modelview[index].trans = mat_trans;
+        set->data.state_matrix.modelview[index].invtrans = mat_invtrans;
+        set->data.state_matrix_update.modelview[index] = true;
+        set->data.state_matrix_update_data = true;
+    }
+
+    if (mult) {
+        mat4 mat;
+        mat4_mult(&set->data.state_matrix.modelview[0].mat,
+            &set->data.state_matrix.projection.mat, &mat);
+        shader_state_matrix_set_mvp(set, &mat);
+    }
+}
+
+inline void shader_state_matrix_set_projection(shader_set_data* set,
+    mat4* data, bool mult) {
+    if (!set || !data)
+        return;
+
+    if (memcmp(&set->data.state_matrix.projection.mat, data, sizeof(mat4))) {
+
+        mat4 mat;
+        mat4 mat_inv;
+        mat4 mat_trans;
+        mat4 mat_invtrans;
+
+        mat = *data;
+        mat4_inverse(&mat, &mat_inv);
+        mat4_transpose(&mat, &mat_trans);
+        mat4_transpose(&mat_inv, &mat_invtrans);
+        set->data.state_matrix.projection.mat = mat;
+        set->data.state_matrix.projection.inv = mat_inv;
+        set->data.state_matrix.projection.trans = mat_trans;
+        set->data.state_matrix.projection.invtrans = mat_invtrans;
+        set->data.state_matrix_update.projection = true;
+        set->data.state_matrix_update_data = true;
+    }
+
+    if (mult) {
+        mat4 mat;
+        mat4_mult(&set->data.state_matrix.modelview[0].mat,
+            &set->data.state_matrix.projection.mat, &mat);
+        shader_state_matrix_set_mvp(set, &mat);
+    }
+}
+
+inline void shader_state_matrix_set_mvp(shader_set_data* set,
+    mat4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state_matrix.mvp.mat, data, sizeof(mat4)))
+        return;
+
+    mat4 mat;
+    mat4 mat_inv;
+    mat4 mat_trans;
+    mat4 mat_invtrans;
+
+    mat = *data;
+    mat4_inverse(&mat, &mat_inv);
+    mat4_transpose(&mat, &mat_trans);
+    mat4_transpose(&mat_inv, &mat_invtrans);
+    set->data.state_matrix.mvp.mat = mat;
+    set->data.state_matrix.mvp.inv = mat_inv;
+    set->data.state_matrix.mvp.trans = mat_trans;
+    set->data.state_matrix.mvp.invtrans = mat_invtrans;
+    set->data.state_matrix_update.mvp = true;
+    set->data.state_matrix_update_data = true;
+}
+
+inline void shader_state_matrix_set_mvp_separate(shader_set_data* set,
+    mat4* model, mat4* view, mat4* projection) {
+    mat4 mv;
+    mat4_mult(model, view, &mv);
+    shader_state_matrix_set_modelview(set, 0, &mv, false);
+    shader_state_matrix_set_projection(set, projection, true);
+}
+
+inline void shader_state_matrix_set_texture(shader_set_data* set,
+    size_t index, mat4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_COORDS || !data)
+        return;
+
+    if (!memcmp(&set->data.state_matrix.texture[index].mat, data, sizeof(mat4)))
+        return;
+
+    mat4 mat;
+    mat4 mat_inv;
+    mat4 mat_trans;
+    mat4 mat_invtrans;
+
+    mat = *data;
+    mat4_inverse(&mat, &mat_inv);
+    mat4_transpose(&mat, &mat_trans);
+    mat4_transpose(&mat_inv, &mat_invtrans);
+    set->data.state_matrix.texture[index].mat = mat;
+    set->data.state_matrix.texture[index].inv = mat_inv;
+    set->data.state_matrix.texture[index].trans = mat_trans;
+    set->data.state_matrix.texture[index].invtrans = mat_invtrans;
+    set->data.state_matrix_update.texture[index] = true;
+    set->data.state_matrix_update_data = true;
+}
+
+inline void shader_state_matrix_set_palette(shader_set_data* set,
+    size_t index, mat4* data) {
+    if (!set || index >= shader_MAX_PALETTE_MATRICES || !data)
+        return;
+
+    if (!memcmp(&set->data.state_matrix.palette[index].mat, data, sizeof(mat4)))
+        return;
+
+    mat4 mat;
+    mat4 mat_inv;
+    mat4 mat_trans;
+    mat4 mat_invtrans;
+
+    mat = *data;
+    mat4_inverse(&mat, &mat_inv);
+    mat4_transpose(&mat, &mat_trans);
+    mat4_transpose(&mat_inv, &mat_invtrans);
+    set->data.state_matrix.palette[index].mat = mat;
+    set->data.state_matrix.palette[index].inv = mat_inv;
+    set->data.state_matrix.palette[index].trans = mat_trans;
+    set->data.state_matrix.palette[index].invtrans = mat_invtrans;
+    set->data.state_matrix_update.palette[index] = true;
+    set->data.state_matrix_update_data = true;
+}
+
+inline void shader_state_matrix_set_program(shader_set_data* set,
+    size_t index, mat4* data) {
+    if (!set || index >= shader_MAX_PROGRAM_MATRICES || !data)
+        return;
+
+    if (!memcmp(&set->data.state_matrix.program[index].mat, data, sizeof(mat4)))
+        return;
+
+    mat4 mat;
+    mat4 mat_inv;
+    mat4 mat_trans;
+    mat4 mat_invtrans;
+
+    mat = *data;
+    mat4_inverse(&mat, &mat_inv);
+    mat4_transpose(&mat, &mat_trans);
+    mat4_transpose(&mat_inv, &mat_invtrans);
+    set->data.state_matrix.program[index].mat = mat;
+    set->data.state_matrix.program[index].inv = mat_inv;
+    set->data.state_matrix.program[index].trans = mat_trans;
+    set->data.state_matrix.program[index].invtrans = mat_invtrans;
+    set->data.state_matrix_update.program[index] = true;
+    set->data.state_matrix_update_data = true;
+}
+
+inline void shader_state_point_set_size(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.point.size, data, sizeof(vec4)))
+        return;
+
+    set->data.state.point.size = *data;
+    set->data.state_update.point.size = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_point_set_attenuation(shader_set_data* set,
+    vec4* data) {
+    if (!set || !data)
+        return;
+
+    if (!memcmp(&set->data.state.point.attenuation, data, sizeof(vec4)))
+        return;
+
+    set->data.state.point.attenuation = *data;
+    set->data.state_update.point.attenuation = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_texgen_set_eye_s(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.texgen[index].eye_s, data, sizeof(vec4)))
+        return;
+
+    set->data.state.texgen[index].eye_s = *data;
+    set->data.state_update.texgen[index].eye_s = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_texgen_set_eye_t(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.texgen[index].eye_t, data, sizeof(vec4)))
+        return;
+
+    set->data.state.texgen[index].eye_t = *data;
+    set->data.state_update.texgen[index].eye_t = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_texgen_set_eye_r(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.texgen[index].eye_r, data, sizeof(vec4)))
+        return;
+
+    set->data.state.texgen[index].eye_r = *data;
+    set->data.state_update.texgen[index].eye_r = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_texgen_set_eye_q(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.texgen[index].eye_q, data, sizeof(vec4)))
+        return;
+
+    set->data.state.texgen[index].eye_q = *data;
+    set->data.state_update.texgen[index].eye_q = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_texgen_set_object_s(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.texgen[index].object_s, data, sizeof(vec4)))
+        return;
+
+    set->data.state.texgen[index].object_s = *data;
+    set->data.state_update.texgen[index].object_s = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_texgen_set_object_t(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.texgen[index].object_t, data, sizeof(vec4)))
+        return;
+
+    set->data.state.texgen[index].object_t = *data;
+    set->data.state_update.texgen[index].object_t = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_texgen_set_object_r(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.texgen[index].object_r, data, sizeof(vec4)))
+        return;
+
+    set->data.state.texgen[index].object_r = *data;
+    set->data.state_update.texgen[index].object_r = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_texgen_set_object_q(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.texgen[index].object_q, data, sizeof(vec4)))
+        return;
+
+    set->data.state.texgen[index].object_q = *data;
+    set->data.state_update.texgen[index].object_q = true;
+    set->data.state_update_data = true;
+}
+
+inline void shader_state_texenv_set_color(shader_set_data* set,
+    size_t index, vec4* data) {
+    if (!set || index >= shader_MAX_TEXTURE_UNITS || !data)
+        return;
+
+    if (!memcmp(&set->data.state.texenv[index].color, data, sizeof(vec4)))
+        return;
+
+    set->data.state.texenv[index].color = *data;
+    set->data.state_update.texenv[index].color = true;
+    set->data.state_update_data = true;
+}
+
+static GLuint shader_compile_shader(GLenum type, char* data, char* file) {
+    if (!data)
+        return 0;
+
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, (void*)&data, 0);
+    glCompileShader(shader);
+
+    GLint success = 0;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        GLchar* info_log = force_malloc(0x10000);
+        glGetShaderInfoLog(shader, 0x10000, 0, info_log);
+        printf("Shader compile error:\n");
+        printf("file: %s\n", file);
+        printf(info_log);
+        putchar('\n');
+        free(info_log);
+        glDeleteShader(shader);
+
+#if defined(CRE_DEV)
+        wchar_t temp_buf[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
+            wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\CLOUD");
+            temp_buf[sizeof(temp_buf) / sizeof(wchar_t) - 1] = 0;
+            CreateDirectoryW(temp_buf, 0);
+
+            wchar_t buf[MAX_PATH];
+            swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
+                L"%ls\\shader_error", temp_buf);
+            buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
+            CreateDirectoryW(buf, 0);
+
+            swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
+                L"%ls\\shader_error\\%hs", temp_buf, file);
+            buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
+
+            stream s;
+            io_wopen(&s, buf, L"wb");
+            io_write(&s, data, utf8_length(data));
+            io_free(&s);
+        }
+#endif
+        return 0;
+    }
+    return shader;
+}
+
+static GLuint shader_compile(char* vert, char* frag, char* vp, char* fp) {
+    GLuint vert_shad = shader_compile_shader(GL_VERTEX_SHADER, vert, vp);
+    GLuint frag_shad = shader_compile_shader(GL_FRAGMENT_SHADER, frag, fp);
+
+    GLuint program = glCreateProgram();
+    if (vert_shad)
+        glAttachShader(program, vert_shad);
+    if (frag_shad)
+        glAttachShader(program, frag_shad);
+    glLinkProgram(program);
+
+    if (vert_shad)
+        glDeleteShader(vert_shad);
+    if (frag_shad)
+        glDeleteShader(frag_shad);
+
+    GLint success = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        GLchar* info_log = force_malloc(0x10000);
+        glGetProgramInfoLog(program, 0x10000, 0, info_log);
+        printf("Program Shader Permut linking error:\n");
+        printf("vp: %s; fp: %s\n", vp, fp);
+        printf(info_log);
+        putchar('\n');
+        free(info_log);
+        glDeleteProgram(program);
+        return 0;
+    }
+    else {
+        gl_state_get_all_gl_errors();
+        return program;
+    }
+}
+
+static GLuint shader_compile_binary(char* vert, char* frag, char* vp, char* fp,
+    program_binary* bin, GLsizei* buffer_size, void** binary) {
+    memset(bin, 0, sizeof(*bin));
+
+    GLuint vert_shad = shader_compile_shader(GL_VERTEX_SHADER, vert, vp);
+    GLuint frag_shad = shader_compile_shader(GL_FRAGMENT_SHADER, frag, fp);
+
+    GLuint program = glCreateProgram();
+    if (vert_shad)
+        glAttachShader(program, vert_shad);
+    if (frag_shad)
+        glAttachShader(program, frag_shad);
+    glLinkProgram(program);
+
+    if (vert_shad)
+        glDeleteShader(vert_shad);
+    if (frag_shad)
+        glDeleteShader(frag_shad);
+
+    GLint success = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        GLchar* info_log = force_malloc(0x10000);
+        glGetProgramInfoLog(program, 0x10000, 0, info_log);
+        printf("Program Shader Permut linking error:\n");
+        printf("vp: %s; fp: %s\n", vp, fp);
+        printf(info_log);
+        putchar('\n');
+        free(info_log);
+        glDeleteProgram(program);
+        return 0;
+    }
+    else {
+        gl_state_get_all_gl_errors();
+
+        GLenum binary_format = 0x0;
+        GLsizei length = 0;
+        while (*buffer_size < 0x7FFFFFF) {
+            glGetProgramBinary(program, *buffer_size, &length, &binary_format, *binary);
+            if (!glGetError())
+                break;
+
+            free(*binary);
+            *buffer_size <<= 1;
+            *binary = force_malloc(*buffer_size);
+        }
+
+        bin->length = length;
+        bin->binary_format = binary_format;
+        bin->binary = (size_t)force_malloc(length);
+        if (*binary)
+            memcpy((void*)bin->binary, *binary, length);
+        return program;
+    }
+}
+
+static bool shader_load_binary_shader(program_binary* bin, GLuint* program) {
+    *program = glCreateProgram();
+    glProgramBinary(*program, bin->binary_format, (void*)((size_t)bin + bin->binary), bin->length);
+    GLint success = 0;
+    glGetProgramiv(*program, GL_LINK_STATUS, &success);
+    if (!success) {
+        glDeleteProgram(*program);
+        *program = 0;
+        //printf("load error: ");
+        return false;
+    }
+    return true;
+}
+
+static bool shader_parse_define(char* data, int32_t num_uniform,
+    const int32_t* vp_unival_max, const int32_t* fp_unival_max,
+    int32_t* uniform_value, char** temp, size_t* temp_size) {
+    if (!data)
+        return false;
 
     char* def = strstr(data, "//DEF\n");
     if (!def)
-        return data;
+        return str_utils_copy(data);
+
+    if (!num_uniform || !vp_unival_max || !fp_unival_max || !uniform_value) {
+        size_t len_a = def - data;
+        def += 5;
+        if (*def == '\n')
+            def++;
+
+        size_t len_b = utf8_length(def);
+        size_t len = 0;
+        len += len_a + len_b;
+
+        if (len + 1 > *temp_size) {
+            free(*temp);
+            *temp_size = len + 1;
+            *temp = force_malloc(*temp_size);
+        }
+
+        size_t pos = 0;
+        memcpy(*temp + pos, data, len_a);
+        pos += len_a;
+        memcpy(*temp + pos, def, len_b);
+        pos += len_b;
+        (*temp)[pos] = 0;
+        return true;
+    }
+
+    const int32_t s = min(0x100, num_uniform);
+
+    size_t t_len[0x100];
+    char t[0x100];
+    memset(t, 0, 0x100);
+
+    for (int32_t i = 0; i < s; i++) {
+        snprintf(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
+        t_len[i] = utf8_length(t);
+    }
 
     size_t len_a = def - data;
     def += 5;
-    size_t len_b = strlen(def);
+    size_t len_b = utf8_length(def);
     size_t len = 0;
-    for (size_t i = 0; i < s; i++)
-        len += temp_len[i];
+    for (int32_t i = 0; i < s; i++)
+        len += t_len[i];
     if (!len)
         def++;
     len += len_a + len_b;
 
-    char* temp_data = force_malloc(len + 1);
-    size_t pos = 0;
-    memcpy(temp_data + pos, data, len_a);
-    pos += len_a;
-    for (size_t i = 0; i < s; i++) {
-        if (param->param[i]) {
-            snprintf(temp, sizeof(temp), "#define %s\n", param->param[i]);
-            memcpy(temp_data + pos, temp, len_a);
-        }
-        pos += temp_len[i];
+    if (len + 1 > *temp_size) {
+        free(*temp);
+        *temp_size = len + 1;
+        *temp = force_malloc(*temp_size);
     }
-    memcpy(temp_data + pos, def, len_b);
-    free(data);
-    return temp_data;
-}
 
-static char* shader_parse(char* data, char* parse_string, const char* replace_string) {
-    if (!data)
-        return data;
-
-    char* def = strstr(data, parse_string);
-    if (!def)
-        return data;
-
-    size_t len_a = def - data;
-    def += strlen(parse_string);
-    size_t len_b = strlen(replace_string);
-    size_t len_c = strlen(def);
-    size_t len = len_a + len_b + len_c;
-
-    char* temp_data = force_malloc(len + 1);
     size_t pos = 0;
-    memcpy(temp_data + pos, data, len_a);
+    memcpy(*temp + pos, data, len_a);
     pos += len_a;
-    memcpy(temp_data + pos, replace_string, len_b);
+    for (int32_t i = 0; i < s; i++) {
+        snprintf(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
+        memcpy(*temp + pos, t, t_len[i]);
+        pos += t_len[i];
+    }
+    memcpy(*temp + pos, def, len_b);
     pos += len_b;
-    memcpy(temp_data + pos, def, len_c);
+    (*temp)[pos] = 0;
+    return true;
+}
+
+static char* shader_parse_include(char* data, farc* f) {
+    if (!data || !f)
+        return data;
+
+    char* data_end = data + utf8_length(data);
+    char* i0 = strstr(data, "#include \"");
+    char* i1 = i0 ? strstr(i0, "\"\n") : 0;
+    if (!i0 || !i1)
+        return data;
+
+    size_t count = 1;
+    while (i1 && (i0 = strstr(i1, "#include \""))) {
+        i0 += 10;
+        i1 = strstr(i0, "\"\n");
+        if (i1)
+            i1 += 1;
+        count++;
+    }
+
+    char** temp = force_malloc_s(char*, count);
+    size_t* temp_len = force_malloc_s(size_t, count);
+    char** temp_ptr0 = force_malloc_s(char*, count);
+    char** temp_ptr1 = force_malloc_s(char*, count);
+    if (!temp || !temp_len || !temp_ptr0 || !temp_ptr1) {
+        free(temp);
+        free(temp_len);
+        free(temp_ptr0);
+        free(temp_ptr1);
+        return data;
+    }
+
+    i1 = data;
+    for (size_t i = 0; i < count; i++) {
+        temp[i] = 0;
+        i0 = i1 ? strstr(i1, "#include \"") : 0;
+        i1 = i0 ? strstr(i0, "\"\n") : 0;
+        if (!i0 || !i1)
+            continue;
+
+        temp_ptr0[i] = i0;
+        temp_ptr1[i] = i1 + 1;
+        i0 += 10;
+        size_t s = i1 - i0;
+        i1 += 2;
+        char* t = force_malloc(s + 1);
+        if (!t)
+            continue;
+
+        memcpy(t, i0, s);
+        t[s] = 0;
+
+        farc_file* ff = farc_read_file(f, t);
+        free(t);
+        if (!ff)
+            continue;
+
+        t = force_malloc(ff->size + 1);
+        if (t) {
+            memcpy(t, ff->data, ff->size);
+            t[ff->size] = 0;
+        }
+        temp[i] = t;
+        temp_len[i] = ff->size;
+    }
+
+    size_t len = data_end - data;
+    i1 = data;
+    for (size_t i = 0; i < count; i++) {
+        i0 = temp_ptr0[i];
+        i1 = temp_ptr1[i];
+        if (!i0 || !i1)
+            continue;
+
+        len -= i1 - i0;
+        len += temp_len[i];
+    }
+
+    char* temp_data = force_malloc(len + 1);
+    size_t pos = 0;
+    memcpy(temp_data + pos, data, temp_ptr0[0] - data);
+    pos += temp_ptr0[0] - data;
+    for (int32_t i = 0; i < count; i++) {
+        if (temp[i]) {
+            size_t s = temp_len[i];
+            memcpy(temp_data + pos, temp[i], s);
+            pos += s;
+        }
+
+        if (i < count - 1 && temp_ptr1[i]) {
+            size_t s = temp_ptr0[i + 1] - temp_ptr1[i];
+            memcpy(temp_data + pos, temp_ptr1[i], s);
+            pos += s;
+        }
+        else if (temp_ptr1[i]) {
+            size_t s = data_end - temp_ptr1[i];
+            memcpy(temp_data + pos, temp_ptr1[i], s);
+            pos += s;
+        }
+    }
+    temp_data[pos] = 0;
+
     free(data);
+    for (size_t i = 0; i < count; i++)
+        free(temp[i]);
+    free(temp);
+    free(temp_len);
+    free(temp_ptr0);
+    free(temp_ptr1);
     return temp_data;
 }
 
-static GLuint shader_compile(GLenum type, const char* data) {
-    if (!data)
-        return 0;
-
-    GLint success;
-    GLchar* info_log = force_malloc(0x10000);
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &data, 0);
-    glCompileShader(shader);
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(shader, 0x10000, 0, info_log);
-        printf("Shader compile error: ");
-        printf(info_log);
-        putchar('\n');
-    }
-    free(info_log);
-    return shader;
-}
-
-static GLint shader_get_uniform_location(GLint program, GLchar* name,
-    vector_uint64_t* uniform_name_buf, vector_int32_t* uniform_location_buf) {
-    uint64_t hash = hash_char_fnv1a64(name);
-    for (uint64_t* i = uniform_name_buf->begin; i != uniform_name_buf->end; i++)
-        if (*i == hash)
-            return uniform_location_buf->begin[i - uniform_name_buf->begin];
-
-    GLint location = glGetUniformLocation(program, name);
-    if (location == GL_INVALID_INDEX)
-        printf("Location \"%s\" in program %d isn't found\n", name, program);
-    vector_uint64_t_push_back(uniform_name_buf, &hash);
-    vector_int32_t_push_back(uniform_location_buf, &location);
-    return location;
-
-}
-
-static GLint shader_get_uniform_block_index(GLint program, GLchar* name,
-    vector_uint64_t* uniform_block_name_buf, vector_int32_t* uniform_block_index_buf) {
-    uint64_t hash = hash_char_fnv1a64(name);
-    for (uint64_t* i = uniform_block_name_buf->begin; i != uniform_block_name_buf->end; i++)
-        if (*i == hash)
-            return uniform_block_index_buf->begin[i - uniform_block_name_buf->begin];
-
-    GLint index = glGetUniformBlockIndex(program, name);
-    if (index == GL_INVALID_INDEX)
-        printf("Block Index \"%s\" in program %d isn't found\n", name, program);
-    vector_uint64_t_push_back(uniform_block_name_buf, &hash);
-    vector_int32_t_push_back(uniform_block_index_buf, &index);
-    return index;
-}
-
-void shader_fbo_load(shader_fbo* s, farc* f, shader_param* param) {
-    if (!s || !f || !param)
+inline static void shader_update_buffer(GLint ubo,
+    GLintptr offset, GLsizeiptr size, size_t data) {
+    if (!offset || !size || !data)
         return;
 
-    if (s->program)
-        glDeleteProgram(s->program);
+    gl_state_bind_uniform_buffer(ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, offset, size, (const void*)data);
+}
 
-    vector_uint64_t_clear(&s->uniform_name_buf);
-    vector_int32_t_clear(&s->uniform_location_buf);
-    vector_uint64_t_clear(&s->uniform_block_name_buf);
-    vector_int32_t_clear(&s->uniform_block_index_buf);
+#define shader_update_state_data_buffer(d) \
+if (data->state_update.d) { \
+    *(vec4*)(buf_data + offsetof(shader_state, d)) = data->state.d; \
+    data->state_update.d = false; \
+}
 
-    wchar_t temp[0x1000];
-    temp[0] = 0;
-    wcscat_s(temp, sizeof(temp) / sizeof(wchar_t), param->name);
-    for (size_t i = 0; i < SHADER_PARAM_NUM_PARAMS; i++)
-        if (param->param[i]) {
-            wchar_t* t = char_string_to_wchar_t_string(param->param[i]);
-            wcscat_s(temp, sizeof(temp) / sizeof(wchar_t), L"#");
-            wcscat_s(temp, sizeof(temp) / sizeof(wchar_t), t);
-            free(t);
+#define shader_update_state_matrix_data_buffer(d) \
+if (data->state_matrix_update.d) { \
+    *(shader_state_matrix_data*)(buf_data \
+        + offsetof(shader_state_matrix, d)) = data->state_matrix.d; \
+    data->state_matrix_update.d = false; \
+}
+
+#define shader_update_env_vert_data_buffer(d) \
+if (data->env_update.vert[d]) { \
+    *(vec4*)(buf_data + sizeof(vec4) * d + sizeof(vec4) \
+        * shader_MAX_PROGRAM_ENV_PARAMETERS) = data->env.vert[d]; \
+    data->env_update.vert[d] = false; \
+}
+
+#define shader_update_env_frag_data_buffer(d) \
+if (data->env_update.frag[d]) { \
+    *(vec4*)(buf_data + sizeof(vec4) * d) = data->env.frag[d]; \
+    data->env_update.frag[d] = false; \
+}
+
+#define shader_update_buffer_data_buffer(d) \
+if (data->buffer_update.buffer[d]) { \
+    *(vec4*)(buf_data + sizeof(vec4) * d) = data->buffer.buffer[d]; \
+    data->buffer_update.buffer[d] = false; \
+}
+
+static void shader_update_data(shader_set_data* set) {
+    if (!set)
+        return;
+
+    size_t buf_data;
+    shader_data* data = &set->data;
+    if (data->state_update_data) {
+        gl_state_bind_uniform_buffer(data->state_ubo);
+        buf_data = (size_t)glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+        for (int32_t i = 0; i < 2; i++) {
+            shader_update_state_data_buffer(material[i].ambient);
+            shader_update_state_data_buffer(material[i].diffuse);
+            shader_update_state_data_buffer(material[i].specular);
+            shader_update_state_data_buffer(material[i].emission);
+            shader_update_state_data_buffer(material[i].shininess);
         }
-        else
-            break;
-    wstring_init(&s->name, temp);
 
-    wchar_t* temp_frag = str_utils_wadd(param->frag, L".frag");
-    wchar_t* temp_vert = str_utils_wadd(param->vert, L".vert");
-    wchar_t* temp_geom = str_utils_wadd(param->geom, L".geom");
-    farc_file* frag = farc_wread_file(f, temp_frag);
-    farc_file* vert = farc_wread_file(f, temp_vert);
-    farc_file* geom = farc_wread_file(f, temp_geom);
-    size_t frag_length = !frag ? 0 : frag->size;
-    size_t vert_length = !vert ? 0 : vert->size;
-    size_t geom_length = !geom ? 0 : geom->size;
-    char* frag_data = !frag ? 0 : force_malloc(frag_length + 1);
-    char* vert_data = !vert ? 0 : force_malloc(vert_length + 1);
-    char* geom_data = !geom ? 0 : force_malloc(geom_length + 1);
-
-    if (frag) {
-        memcpy(frag_data, frag->data, frag_length);
-        frag_data[frag_length] = 0;
-    }
-
-    if (vert) {
-        memcpy(vert_data, vert->data, vert_length);
-        vert_data[vert_length] = 0;
-    }
-
-    if (geom) {
-        memcpy(geom_data, geom->data, geom_length);
-        geom_data[geom_length] = 0;
-    }
-
-    free(temp_frag);
-    free(temp_vert);
-    free(temp_geom);
-
-    frag_data = shader_parse_define(frag_data, param);
-    vert_data = shader_parse_define(vert_data, param);
-    geom_data = shader_parse_define(geom_data, param);
-
-    vert_data = shader_parse(vert_data, "//COMMONDATA", common_data_string);
-    frag_data = shader_parse(frag_data, "//COMMONDATA", common_data_string);
-    geom_data = shader_parse(geom_data, "//COMMONDATA", common_data_string);
-
-    GLuint frag_shad = shader_compile(GL_FRAGMENT_SHADER, frag_data);
-    GLuint vert_shad = shader_compile(GL_VERTEX_SHADER, vert_data);
-    GLuint geom_shad = shader_compile(GL_GEOMETRY_SHADER, geom_data);
-
-    GLint success;
-    GLchar* info_log = force_malloc(0x10000);
-    s->program = glCreateProgram();
-    if (frag_shad)
-        glAttachShader(s->program, frag_shad);
-    if (vert_shad)
-        glAttachShader(s->program, vert_shad);
-    if (geom_shad)
-        glAttachShader(s->program, geom_shad);
-    glLinkProgram(s->program);
-
-    glGetProgramiv(s->program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(s->program, 0x10000, 0, info_log);
-        printf("Program FBO Shader linking error: ");
-        wprintf(param->name);
-        putchar('\n');
-        printf(info_log);
-        putchar('\n');
-    }
-    free(info_log);
-
-    free(frag_data);
-    free(vert_data);
-    free(geom_data);
-
-    if (frag_shad)
-        glDeleteShader(frag_shad);
-    if (vert_shad)
-        glDeleteShader(vert_shad);
-    if (geom_shad)
-        glDeleteShader(geom_shad);
-}
-
-void shader_fbo_load_file(shader_fbo* s, char* vert_path,
-    char* frag_path, char* geom_path, shader_param* param) {
-    if (!s || (!vert_path && !frag_path && !geom_path) || !param)
-        return;
-
-    vector_uint64_t_clear(&s->uniform_name_buf);
-    vector_int32_t_clear(&s->uniform_location_buf);
-    vector_uint64_t_clear(&s->uniform_block_name_buf);
-    vector_int32_t_clear(&s->uniform_block_index_buf);
-
-    stream* st;
-    size_t l;
-
-    char* vert = 0;
-    char* frag = 0;
-    char* geom = 0;
-
-    st = io_open(vert_path, "r");
-    if (st->io.stream) {
-        l = st->length;
-        vert = force_malloc(l + 1);
-        io_read(st, vert, l);
-        vert[l] = 0;
-    }
-    io_dispose(st);
-
-    st = io_open(frag_path, "r");
-    if (st->io.stream) {
-        l = st->length;
-        frag = force_malloc(l + 1);
-        io_read(st, frag, l);
-        frag[l] = 0;
-    }
-    io_dispose(st);
-
-    st = io_open(geom_path, "r");
-    if (st->io.stream) {
-        l = st->length;
-        geom = force_malloc(l + 1);
-        io_read(st, geom, l);
-        geom[l] = 0;
-    }
-    io_dispose(st);
-
-    shader_fbo_load_string(s, vert, frag, geom, param);
-    free(vert);
-    free(frag);
-}
-
-void shader_fbo_wload_file(shader_fbo* s, wchar_t* vert_path,
-    wchar_t* frag_path, wchar_t* geom_path, shader_param* param) {
-    if (!s || (!vert_path && !frag_path && !geom_path) || !param)
-        return;
-
-    vector_uint64_t_clear(&s->uniform_name_buf);
-    vector_int32_t_clear(&s->uniform_location_buf);
-    vector_uint64_t_clear(&s->uniform_block_name_buf);
-    vector_int32_t_clear(&s->uniform_block_index_buf);
-
-    stream* st;
-    size_t l;
-
-    char* vert = 0;
-    char* frag = 0;
-    char* geom = 0;
-
-    st = io_wopen(vert_path, L"r");
-    if (st->io.stream) {
-        l = st->length;
-        vert = force_malloc(l + 1);
-        io_read(st, vert, l);
-        vert[l] = 0;
-    }
-    io_dispose(st);
-
-    st = io_wopen(frag_path, L"r");
-    if (st->io.stream) {
-        l = st->length;
-        frag = force_malloc(l + 1);
-        io_read(st, frag, l);
-        frag[l] = 0;
-    }
-    io_dispose(st);
-
-    st = io_wopen(geom_path, L"r");
-    if (st->io.stream) {
-        l = st->length;
-        geom = force_malloc(l + 1);
-        io_read(st, geom, l);
-        geom[l] = 0;
-    }
-    io_dispose(st);
-
-    shader_fbo_load_string(s, vert, frag, geom, param);
-    free(vert);
-    free(frag);
-}
-
-void shader_fbo_load_string(shader_fbo* s, char* vert,
-    char* frag, char* geom, shader_param* param) {
-    if (!s || (!frag && !vert && !geom) || !param)
-        return;
-
-    vector_uint64_t_clear(&s->uniform_name_buf);
-    vector_int32_t_clear(&s->uniform_location_buf);
-    vector_uint64_t_clear(&s->uniform_block_name_buf);
-    vector_int32_t_clear(&s->uniform_block_index_buf);
-
-    char* frag_data = str_utils_copy(frag);
-    char* vert_data = str_utils_copy(vert);
-    char* geom_data = str_utils_copy(geom);
-
-    frag_data = shader_parse_define(frag_data, param);
-    vert_data = shader_parse_define(vert_data, param);
-    geom_data = shader_parse_define(geom_data, param);
-
-    vert_data = shader_parse(vert_data, "//COMMONDATA", common_data_string);
-    frag_data = shader_parse(frag_data, "//COMMONDATA", common_data_string);
-    geom_data = shader_parse(geom_data, "//COMMONDATA", common_data_string);
-
-    GLuint frag_shad = shader_compile(GL_FRAGMENT_SHADER, frag_data);
-    GLuint vert_shad = shader_compile(GL_VERTEX_SHADER, vert_data);
-    GLuint geom_shad = shader_compile(GL_GEOMETRY_SHADER, geom_data);
-
-    free(frag_data);
-    free(vert_data);
-    free(geom_data);
-
-    GLint success;
-    GLchar* info_log = force_malloc(0x10000);
-    s->program = glCreateProgram();
-    if (frag_shad)
-        glAttachShader(s->program, frag_shad);
-    if (vert_shad)
-        glAttachShader(s->program, vert_shad);
-    if (geom_shad)
-        glAttachShader(s->program, geom_shad);
-    glLinkProgram(s->program);
-
-    glGetProgramiv(s->program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(s->program, 0x10000, 0, info_log);
-        printf("Program FBO Shader linking error: ");
-        wprintf(param->name);
-        putchar('\n');
-        printf(info_log);
-        putchar('\n');
-    }
-    free(info_log);
-
-    if (frag_shad)
-        glDeleteShader(frag_shad);
-    if (vert_shad)
-        glDeleteShader(vert_shad);
-    if (geom_shad)
-        glDeleteShader(geom_shad);
-}
-
-inline void shader_fbo_use(shader_fbo* s) {
-    if (s) {
-        if (program == s->program)
-            return;
-
-        glUseProgram(s->program);
-        program = s->program;
-    }
-    else if (program) {
-        glUseProgram(0);
-        program = 0;
-    }
-}
-
-GLint shader_fbo_get_uniform_location(shader_fbo* s, GLchar* name) {
-    if (s->program < 1)
-        return GL_INVALID_INDEX;
-
-    return shader_get_uniform_location(s->program, name,
-        &s->uniform_name_buf, &s->uniform_location_buf);
-}
-
-void shader_fbo_set_uniform_block_binding(shader_fbo* s, GLchar* name, GLint binding) {
-    GLint index = shader_get_uniform_block_index(s->program, name,
-        &s->uniform_block_name_buf, &s->uniform_block_index_buf);
-    if (index != GL_INVALID_INDEX)
-        glUniformBlockBinding(s->program, index, binding);
-}
-
-void shader_fbo_free(shader_fbo* s) {
-    if (s->program) {
-        glDeleteProgram(s->program);
-        s->program = 0;
-    }
-    wstring_dispose(&s->name);
-    vector_uint64_t_free(&s->uniform_name_buf);
-    vector_int32_t_free(&s->uniform_location_buf);
-    vector_uint64_t_free(&s->uniform_block_name_buf);
-    vector_int32_t_free(&s->uniform_block_index_buf);
-}
-
-void shader_model_load(shader_model* s, shader_model_data* upd) {
-    if (!s || !upd)
-        return;
-
-    if (s->program)
-        glDeleteProgram(s->program);
-
-    vector_uint64_t_clear(&s->uniform_name_buf);
-    vector_int32_t_clear(&s->uniform_location_buf);
-    vector_uint64_t_clear(&s->uniform_block_name_buf);
-    vector_int32_t_clear(&s->uniform_block_index_buf);
-
-    wchar_t temp[0x1000];
-    temp[0] = 0;
-    wcscat_s(temp, sizeof(temp) / sizeof(wchar_t), upd->param.name);
-    for (size_t i = 0; i < SHADER_PARAM_NUM_PARAMS; i++)
-        if (upd->param.param[i]) {
-            wchar_t* t = char_string_to_wchar_t_string(upd->param.param[i]);
-            wcscat_s(temp, sizeof(temp) / sizeof(wchar_t), L"#");
-            wcscat_s(temp, sizeof(temp) / sizeof(wchar_t), t);
-            free(t);
+        for (int32_t i = 0; i < shader_MAX_LIGHTS; i++) {
+            shader_update_state_data_buffer(light[i].ambient);
+            shader_update_state_data_buffer(light[i].diffuse);
+            shader_update_state_data_buffer(light[i].specular);
+            shader_update_state_data_buffer(light[i].position);
+            shader_update_state_data_buffer(light[i].attenuation);
+            shader_update_state_data_buffer(light[i].spot_direction);
+            shader_update_state_data_buffer(light[i].half);
         }
-        else
-            break;
-    wstring_init(&s->name, temp);
 
-    size_t frag_length = !upd->frag ? 0 : strlen(upd->frag);
-    size_t vert_length = !upd->vert ? 0 : strlen(upd->vert);
-    size_t geom_length = !upd->geom ? 0 : strlen(upd->geom);
-    char* frag_data = !upd->frag ? 0 : force_malloc(frag_length + 1);
-    char* vert_data = !upd->vert ? 0 : force_malloc(vert_length + 1);
-    char* geom_data = !upd->geom ? 0 : force_malloc(geom_length + 1);
+        for (int32_t i = 0; i < 2; i++) {
+            shader_update_state_data_buffer(lightmodel[i].ambient);
+            shader_update_state_data_buffer(lightmodel[i].scene_color);
+        }
 
-    if (upd->frag) {
-        memcpy(frag_data, upd->frag, frag_length);
-        frag_data[frag_length] = 0;
+        for (int32_t i = 0; i < 2; i++)
+            for (int32_t j = 0; j < shader_MAX_LIGHTS; j++) {
+                shader_update_state_data_buffer(lightprod[i][j].ambient);
+                shader_update_state_data_buffer(lightprod[i][j].diffuse);
+                shader_update_state_data_buffer(lightprod[i][j].specular);
+            }
+
+        for (int32_t i = 0; i < shader_MAX_TEXTURE_UNITS; i++) {
+            for (int32_t j = 0; j < 4; j++)
+                shader_update_state_data_buffer(texgen[i].eye[j]);
+
+            for (int32_t j = 0; j < 4; j++)
+                shader_update_state_data_buffer(texgen[i].object[j]);
+        }
+
+        for (int32_t i = 0; i < shader_MAX_TEXTURE_UNITS; i++)
+            shader_update_state_data_buffer(texenv[i].color);
+
+        shader_update_state_data_buffer(fog.color);
+        shader_update_state_data_buffer(fog.params);
+
+        for (int32_t i = 0; i < shader_MAX_CLIP_PLANES; i++)
+            shader_update_state_data_buffer(clip[i].plane);
+
+        shader_update_state_data_buffer(point.size);
+        shader_update_state_data_buffer(point.attenuation);
+        shader_update_state_data_buffer(depth.range);
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+        data->state_update_data = false;
     }
 
-    if (upd->vert) {
-        memcpy(vert_data, upd->vert, vert_length);
-        vert_data[vert_length] = 0;
+    if (data->state_matrix_update_data) {
+        gl_state_bind_uniform_buffer(data->state_matrix_ubo);
+        buf_data = (size_t)glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+        for (int32_t i = 0; i < shader_MAX_VERTEX_UNITS; i++)
+            shader_update_state_matrix_data_buffer(modelview[i]);
+
+        shader_update_state_matrix_data_buffer(projection);
+        shader_update_state_matrix_data_buffer(mvp);
+
+        for (int32_t i = 0; i < shader_MAX_TEXTURE_COORDS; i++)
+            shader_update_state_matrix_data_buffer(texture[i]);
+
+        for (int32_t i = 0; i < shader_MAX_PALETTE_MATRICES; i++)
+            shader_update_state_matrix_data_buffer(palette[i]);
+
+        for (int32_t i = 0; i < shader_MAX_PROGRAM_MATRICES; i++)
+            shader_update_state_matrix_data_buffer(program[i]);
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+        data->state_matrix_update_data = false;
     }
 
-    if (upd->geom) {
-        memcpy(geom_data, upd->geom, geom_length);
-        geom_data[geom_length] = 0;
+    if (data->env_frag_update_data || data->env_vert_update_data) {
+        gl_state_bind_uniform_buffer(data->env_ubo);
+        buf_data = (size_t)glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+        if (data->env_frag_update_data) {
+            for (int32_t i = 0; i < shader_MAX_PROGRAM_ENV_PARAMETERS; i++)
+                shader_update_env_frag_data_buffer(i);
+            data->env_frag_update_data = false;
+        }
+
+        if (data->env_vert_update_data) {
+            for (int32_t i = 0; i < shader_MAX_PROGRAM_ENV_PARAMETERS; i++)
+                shader_update_env_vert_data_buffer(i);
+            data->env_vert_update_data = false;
+        }
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
     }
 
-    frag_data = shader_parse_define(frag_data, &upd->param);
-    vert_data = shader_parse_define(vert_data, &upd->param);
-    geom_data = shader_parse_define(geom_data, &upd->param);
-
-    vert_data = shader_parse(vert_data, "//COMMONDATA", common_data_string);
-    frag_data = shader_parse(frag_data, "//COMMONDATA", common_data_string);
-    geom_data = shader_parse(geom_data, "//COMMONDATA", common_data_string);
-
-    vert_data = shader_parse(vert_data, "//PROCESSMAT", process_mat_string);
-
-    frag_data = shader_parse(frag_data, "//MATERIAL", material_struct_string);
-    frag_data = shader_parse(frag_data, "//TEXDECODE", tex_decode_string);
-
-    GLuint frag_shad = shader_compile(GL_FRAGMENT_SHADER, frag_data);
-    GLuint vert_shad = shader_compile(GL_VERTEX_SHADER, vert_data);
-    GLuint geom_shad = shader_compile(GL_GEOMETRY_SHADER, geom_data);
-
-    free(frag_data);
-    free(vert_data);
-    free(geom_data);
-
-    GLint success;
-    GLchar* info_log = force_malloc(0x10000);
-    s->program = glCreateProgram();
-    if (frag_shad)
-        glAttachShader(s->program, frag_shad);
-    if (vert_shad)
-        glAttachShader(s->program, vert_shad);
-    if (geom_shad)
-        glAttachShader(s->program, geom_shad);
-    glLinkProgram(s->program);
-
-    glGetProgramiv(s->program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(s->program, 0x10000, 0, info_log);
-        printf("Program Shader linking error: ");
-        wprintf(upd->param.name);
-        putchar('\n');
-        printf(info_log);
-        putchar('\n');
+    if (data->buffer_update_data) {
+        gl_state_bind_uniform_buffer(data->buffer_ubo);
+        buf_data = (size_t)glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
+        for (int32_t i = 0; i < shader_MAX_PROGRAM_PARAMETER_BUFFER_SIZE / sizeof(vec4); i++)
+            shader_update_buffer_data_buffer(i);
+        glUnmapBuffer(GL_UNIFORM_BUFFER);
+        data->buffer_update_data = false;
     }
-    free(info_log);
-
-    if (frag_shad)
-        glDeleteShader(frag_shad);
-    if (vert_shad)
-        glDeleteShader(vert_shad);
-    if (geom_shad)
-        glDeleteShader(geom_shad);
+    gl_state_bind_uniform_buffer(0);
 }
-
-inline void shader_model_use(shader_model* s) {
-    if (s) {
-        if (program == s->program)
-            return;
-
-        glUseProgram(s->program);
-        program = s->program;
-    }
-    else if (program) {
-        glUseProgram(0);
-        program = 0;
-    }
-}
-
-GLint shader_model_get_uniform_location(shader_model* s, GLchar* name) {
-    if (s->program < 1)
-        return GL_INVALID_INDEX;
-
-    return shader_get_uniform_location(s->program, name,
-        &s->uniform_name_buf, &s->uniform_location_buf);
-}
-
-void shader_model_set_uniform_block_binding(shader_model* s, GLchar* name, GLint binding) {
-    GLint index = shader_get_uniform_block_index(s->program, name,
-        &s->uniform_block_name_buf, &s->uniform_block_index_buf);
-    if (index != GL_INVALID_INDEX)
-        glUniformBlockBinding(s->program, index, binding);
-}
-
-void shader_model_free(shader_model* s) {
-    if (s->program) {
-        glDeleteProgram(s->program);
-        s->program = 0;
-    }
-    wstring_dispose(&s->name);
-    vector_uint64_t_free(&s->uniform_name_buf);
-    vector_int32_t_free(&s->uniform_location_buf);
-    vector_uint64_t_free(&s->uniform_block_name_buf);
-    vector_int32_t_free(&s->uniform_block_index_buf);
-}
+#undef shader_update_state_data_buffer
+#undef shader_update_state_matrix_data_buffer
+#undef shader_update_env_vert_data_buffer
+#undef shader_update_env_frag_data_buffer
+#undef shader_update_buffer_data_buffer

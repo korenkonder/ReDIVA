@@ -98,8 +98,3 @@ extern int32_t enb_initialize(uint8_t* data, enb_play_head** play_head);
 extern void enb_free(enb_play_head** play_head);
 extern void enb_get_track_data(enb_play_head* play_head, size_t track, quat_trans* data);
 extern void enb_set_time(enb_play_head* play_head, float_t time);
-
-static const uint8_t shift_table_1[] = { 6, 4, 2, 0 }; // 0x08BF1CE8, 0x08BF2160, 0x08BF210
-static const uint8_t shift_table_2[] = { 4, 0 };       // 0x08BF1CF8
-static const int8_t value_table_1[] = { 0, 1, 0, -1 }; // 0x08BB3FC0
-static const int8_t value_table_2[] = { 0, 8, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -9 }; // 0x08BB3FD0

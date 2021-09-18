@@ -8,10 +8,10 @@
 #include "particle_inst_x.h"
 #include "random_x.h"
 
-static void FASTCALL glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* a1, float_t emission);
-static void FASTCALL glitter_x_emitter_inst_get_value(glitter_emitter_inst* a1);
+static void glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* a1, float_t emission);
+static void glitter_x_emitter_inst_get_value(glitter_emitter_inst* a1);
 
-glitter_emitter_inst* FASTCALL glitter_x_emitter_inst_init(glitter_emitter* a1,
+glitter_emitter_inst* glitter_x_emitter_inst_init(glitter_emitter* a1,
     glitter_effect_inst* a2, float_t emission) {
     glitter_particle** i;
     glitter_particle_inst* particle;
@@ -59,7 +59,7 @@ glitter_emitter_inst* FASTCALL glitter_x_emitter_inst_init(glitter_emitter* a1,
         ei->emission = GLITTER_EMITTER_EMISSION_ON_TIMER;
     ei->loop = ei->data.flags & GLITTER_EMITTER_LOOP ? true : false;
 
-    vector_ptr_glitter_particle_inst_append(&ei->particles, a1->particles.end - a1->particles.begin);
+    vector_ptr_glitter_particle_inst_reserve(&ei->particles, a1->particles.end - a1->particles.begin);
     for (i = a1->particles.begin; i != a1->particles.end; i++) {
         if (!*i)
             continue;
@@ -71,7 +71,7 @@ glitter_emitter_inst* FASTCALL glitter_x_emitter_inst_init(glitter_emitter* a1,
     return ei;
 }
 
-void FASTCALL glitter_x_emitter_inst_emit(glitter_emitter_inst* a1,
+void glitter_x_emitter_inst_emit(glitter_emitter_inst* a1,
     float_t delta_frame, float_t emission) {
     if (a1->frame < 0.0f) {
         a1->frame += delta_frame;
@@ -119,7 +119,7 @@ void FASTCALL glitter_x_emitter_inst_emit(glitter_emitter_inst* a1,
     a1->frame += delta_frame;
 }
 
-void FASTCALL glitter_x_emitter_inst_free(glitter_emitter_inst* a1, float_t emission) {
+void glitter_x_emitter_inst_free(glitter_emitter_inst* a1, float_t emission) {
     glitter_particle_inst** i;
 
     if (a1->flags & GLITTER_EMITTER_INST_ENDED)
@@ -142,7 +142,7 @@ void FASTCALL glitter_x_emitter_inst_free(glitter_emitter_inst* a1, float_t emis
             glitter_x_particle_inst_free(*i, false);
 }
 
-bool FASTCALL glitter_x_emitter_inst_has_ended(glitter_emitter_inst* emitter, bool a2) {
+bool glitter_x_emitter_inst_has_ended(glitter_emitter_inst* emitter, bool a2) {
     glitter_particle_inst** i;
 
     if (~emitter->flags & GLITTER_EMITTER_INST_ENDED)
@@ -156,18 +156,18 @@ bool FASTCALL glitter_x_emitter_inst_has_ended(glitter_emitter_inst* emitter, bo
     return true;
 }
 
-uint8_t FASTCALL glitter_x_emitter_inst_random_get_step(glitter_emitter_inst* a1) {
+uint8_t glitter_x_emitter_inst_random_get_step(glitter_emitter_inst* a1) {
     a1->step = (a1->step + 2) % 60;
     return a1->step;
 }
 
-void FASTCALL glitter_x_emitter_inst_random_set_value(glitter_emitter_inst* a1) {
+void glitter_x_emitter_inst_random_set_value(glitter_emitter_inst* a1) {
     a1->counter += 11;
     a1->counter %= 30000;
     glitter_x_random_set_value(a1->random_ptr, a1->random + a1->counter);
 }
 
-void FASTCALL glitter_x_emitter_inst_reset(glitter_emitter_inst* a1) {
+void glitter_x_emitter_inst_reset(glitter_emitter_inst* a1) {
     glitter_particle_inst** i;
 
     a1->loop = a1->data.flags & GLITTER_EMITTER_LOOP ? true : false;
@@ -184,7 +184,7 @@ void FASTCALL glitter_x_emitter_inst_reset(glitter_emitter_inst* a1) {
         glitter_x_particle_inst_reset(*i);
 }
 
-void FASTCALL glitter_x_emitter_inst_update(GPM,
+void glitter_x_emitter_inst_update(GPM,
     glitter_emitter_inst* a1, glitter_effect_inst* a2, float_t delta_frame) {
     bool mult;
     vec3 trans;
@@ -299,7 +299,7 @@ void FASTCALL glitter_x_emitter_inst_update(GPM,
     a1->flags |= GLITTER_EMITTER_INST_HAS_DISTANCE;
 }
 
-void FASTCALL glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
+void glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
     glitter_effect_inst* a2, float_t delta_frame) {
     vec3 trans;
     vec3 rot;
@@ -363,12 +363,12 @@ void FASTCALL glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
     a1->flags |= GLITTER_EMITTER_INST_HAS_DISTANCE;
 }
 
-void FASTCALL glitter_x_emitter_inst_dispose(glitter_emitter_inst* ei) {
+void glitter_x_emitter_inst_dispose(glitter_emitter_inst* ei) {
     vector_ptr_glitter_particle_inst_free(&ei->particles, glitter_x_particle_inst_dispose);
     free(ei);
 }
 
-static void FASTCALL glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* a1, float_t emission) {
+static void glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* a1, float_t emission) {
     int32_t count;
     glitter_particle_inst** i;
 
@@ -383,7 +383,7 @@ static void FASTCALL glitter_x_emitter_inst_emit_particle(glitter_emitter_inst* 
                 (int32_t)roundf(a1->particles_per_emission), count, emission);
 }
 
-static void FASTCALL glitter_x_emitter_inst_get_value(glitter_emitter_inst* a1) {
+static void glitter_x_emitter_inst_get_value(glitter_emitter_inst* a1) {
     int64_t length;
     glitter_curve* curve;
     float_t value;

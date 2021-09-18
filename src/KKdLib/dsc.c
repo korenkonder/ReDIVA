@@ -142,7 +142,7 @@ static const dsc_func_ac dsc_ac_func[] = {
     { 90, 2, 2, L"SHADOW_CAST" },           // AFT300
     { 91, 6, 6, L"EDIT_MOTION_F" },         // AFT310
     { 92, 3, 3, L"FOG" },                   // AFT410
-    { 93, 2, 2, L"f2_header" },
+    { 93, 2, 2, L"BLOOM" },
     { 94, 3, 3, L"COLOR_COLLE" },
     { 95, 3, 3, L"DOF" },
     { 96, 4, 4, L"CHARA_ALPHA" },
@@ -339,7 +339,7 @@ static const dsc_func dsc_f2_func[] = {
     { 90, 3, L"PV_STAGE_LIGHT" },
     { 91, 11, L"TARGET_EFFECT" },
     { 92, 3, L"FOG" },
-    { 93, 2, L"f2_header" },
+    { 93, 2, L"BLOOM" },
     { 94, 3, L"COLOR_CORRECTION" },
     { 95, 3, L"DOF" },
     { 96, 4, L"CHARA_ALPHA" },
@@ -453,7 +453,7 @@ static const dsc_func dsc_x_func[] = {
     { 90, 3, L"PV_STAGE_LIGHT" },
     { 91, 11, L"TARGET_EFFECT" },
     { 92, 3, L"FOG" },
-    { 93, 2, L"f2_header" },
+    { 93, 2, L"BLOOM" },
     { 94, 3, L"COLOR_CORRECTION" },
     { 95, 3, L"DOF" },
     { 96, 4, L"CHARA_ALPHA" },
@@ -619,7 +619,7 @@ static const dsc_func dsc_vrfl_func[] = {
     { 90, 3, L"PV_STAGE_LIGHT" },
     { 91, 11, L"TARGET_EFFECT" },
     { 92, 3, L"FOG" },
-    { 93, 2, L"f2_header" },
+    { 93, 2, L"BLOOM" },
     { 94, 3, L"COLOR_CORRECTION" },
     { 95, 3, L"DOF" },
     { 96, 4, L"CHARA_ALPHA" },

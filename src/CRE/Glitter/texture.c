@@ -6,7 +6,7 @@
 #include "texture.h"
 #include "../texture.h"
 
-bool FASTCALL glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st) {
     size_t l;
     size_t d;
     size_t count;
@@ -20,12 +20,12 @@ bool FASTCALL glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_stru
     memset(st, 0, sizeof(f2_struct));
     l = 0;
 
-    vector_enrs_entry e = { 0, 0, 0 };
+    vector_enrs_entry e = vector_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = (enrs_entry){ 0, 2, (uint32_t)(8 + count * 8), 1, { 0, 0, 0 } };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_TYPE_DWORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, (uint32_t)count, ENRS_TYPE_QWORD });
+    ee = (enrs_entry){ 0, 2, (uint32_t)(8 + count * 8), 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, (uint32_t)count, ENRS_QWORD });
     vector_enrs_entry_push_back(&e, &ee);
     l += 8 + count * 8;
 
@@ -41,14 +41,14 @@ bool FASTCALL glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_stru
 
     memcpy((void*)d, a1->resource_hashes.begin, sizeof(uint64_t) * count);
 
-    st->header.signature = 0x53525644;
+    st->header.signature = reverse_endianness_uint32_t('DVRS');
     st->header.length = 0x20;
     st->header.use_big_endian = false;
     st->header.use_section_size = true;
     return true;
 }
 
-bool FASTCALL glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st) {
     size_t d;
     uint32_t count;
     uint64_t* resource_hashes;
@@ -88,7 +88,7 @@ bool FASTCALL glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_st
     return true;
 }
 
-bool FASTCALL glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st) {
     if (a1->resources_tex.end - a1->resources_tex.begin < 1)
         return false;
 
@@ -99,14 +99,14 @@ bool FASTCALL glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_st
 
     tex_set_pack_file(&a1->resources_tex, &st->data, &st->length, false);
 
-    st->header.signature = 0x43505854;
+    st->header.signature = reverse_endianness_uint32_t('TXPC');
     st->header.length = 0x20;
     st->header.use_big_endian = false;
     st->header.use_section_size = true;
     return true;
 }
 
-bool FASTCALL glitter_texture_resource_unpack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_texture_resource_unpack_file(glitter_effect_group* a1, f2_struct* st) {
     if (!st || !st->header.data_size)
         return false;
 
@@ -114,7 +114,7 @@ bool FASTCALL glitter_texture_resource_unpack_file(glitter_effect_group* a1, f2_
     return glitter_texture_load(a1);
 }
 
-bool FASTCALL glitter_texture_load(glitter_effect_group* a1) {
+bool glitter_texture_load(glitter_effect_group* a1) {
     if (!a1->resources_count)
         return false;
 
@@ -123,7 +123,7 @@ bool FASTCALL glitter_texture_load(glitter_effect_group* a1) {
     if (!count || !a1->resources_count || a1->resources_count != count)
         return false;
 
-    if (!texture_txp_load(&a1->resources_tex, &a1->resources))
+    if (!texture_txp_set_load(&a1->resources_tex, &a1->resources))
         return false;
 
     for (glitter_effect** l = a1->effects.begin; l != a1->effects.end; l++) {
@@ -168,15 +168,15 @@ bool FASTCALL glitter_texture_load(glitter_effect_group* a1) {
                         continue;
 
                     if (particle->data.tex_hash == a1->resource_hashes.begin[i])
-                        particle->data.texture = a1->resources.begin[i];
+                        particle->data.texture = a1->resources.begin[i]->texture;
                     if (particle->data.mask_tex_hash == a1->resource_hashes.begin[i])
-                        particle->data.mask_texture = a1->resources.begin[i];
+                        particle->data.mask_texture = a1->resources.begin[i]->texture;
                 }
             }
         }
     return true;
 }
 
-void FASTCALL glitter_texture_unload(glitter_effect_group* a1) {
-    texture_txp_unload(&a1->resources);
+void glitter_texture_unload(glitter_effect_group* a1) {
+    vector_ptr_texture_free(&a1->resources, texture_dispose);
 }

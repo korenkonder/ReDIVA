@@ -8,10 +8,10 @@
 #include "render_group_x.h"
 #include "render_scene_x.h"
 
-static glitter_particle_inst* FASTCALL glitter_x_particle_inst_init_child(glitter_particle_inst* a1,
+static glitter_particle_inst* glitter_x_particle_inst_init_child(glitter_particle_inst* a1,
     float_t emission);
 
-glitter_particle_inst* FASTCALL glitter_x_particle_inst_init(glitter_particle* a1,
+glitter_particle_inst* glitter_x_particle_inst_init(glitter_particle* a1,
     glitter_effect_inst* a2, glitter_emitter_inst* a3, glitter_random* random, float_t emission) {
     glitter_render_group* rg;
 
@@ -49,7 +49,7 @@ glitter_particle_inst* FASTCALL glitter_x_particle_inst_init(glitter_particle* a
     return pi;
 }
 
-void FASTCALL glitter_x_particle_inst_emit(glitter_particle_inst* a1,
+void glitter_x_particle_inst_emit(glitter_particle_inst* a1,
     int32_t dup_count, int32_t count, float_t emission) {
     glitter_particle_inst* particle;
 
@@ -72,7 +72,7 @@ void FASTCALL glitter_x_particle_inst_emit(glitter_particle_inst* a1,
         glitter_x_render_group_emit(a1->data.render_group, &a1->data, a1->data.emitter, dup_count, count);
 }
 
-void FASTCALL glitter_x_particle_inst_free(glitter_particle_inst* a1, bool free) {
+void glitter_x_particle_inst_free(glitter_particle_inst* a1, bool free) {
     glitter_particle_inst** i;
 
     a1->data.flags |= GLITTER_PARTICLE_INST_ENDED;
@@ -83,7 +83,7 @@ void FASTCALL glitter_x_particle_inst_free(glitter_particle_inst* a1, bool free)
         glitter_x_particle_inst_free(*i, free);
 }
 
-bool FASTCALL glitter_x_particle_inst_has_ended(glitter_particle_inst* particle, bool a2) {
+bool glitter_x_particle_inst_has_ended(glitter_particle_inst* particle, bool a2) {
     glitter_particle_inst** i;
 
     if (~particle->data.flags & GLITTER_PARTICLE_INST_ENDED)
@@ -103,7 +103,7 @@ bool FASTCALL glitter_x_particle_inst_has_ended(glitter_particle_inst* particle,
     return true;
 }
 
-void FASTCALL glitter_x_particle_inst_reset(glitter_particle_inst* a1) {
+void glitter_x_particle_inst_reset(glitter_particle_inst* a1) {
     glitter_particle_inst** i;
 
     a1->data.flags = 0;
@@ -114,7 +114,7 @@ void FASTCALL glitter_x_particle_inst_reset(glitter_particle_inst* a1) {
         glitter_x_particle_inst_reset(*i);
 }
 
-void FASTCALL glitter_x_particle_inst_dispose(glitter_particle_inst* pi) {
+void glitter_x_particle_inst_dispose(glitter_particle_inst* pi) {
     if (pi->data.render_group) {
         glitter_x_render_group_delete_buffers(pi->data.render_group, true);
         pi->data.render_group = 0;
@@ -124,7 +124,7 @@ void FASTCALL glitter_x_particle_inst_dispose(glitter_particle_inst* pi) {
     free(pi);
 }
 
-static glitter_particle_inst* FASTCALL glitter_x_particle_inst_init_child(glitter_particle_inst* a1,
+static glitter_particle_inst* glitter_x_particle_inst_init_child(glitter_particle_inst* a1,
     float_t emission) {
     glitter_render_group* rg;
     glitter_effect_inst* effect;

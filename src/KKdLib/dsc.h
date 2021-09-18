@@ -15,23 +15,12 @@ typedef enum dsc_diff {
     DSC_DIFF_ENCORE  = 4,
 } dsc_diff;
 
-typedef struct dsc_type {
-    dsc_diff difficulty : 3;
-    uint32_t extra : 1;
-} dsc_type;
-
 typedef enum dsc_f2_mode {
     DSC_MODE_SYSTEM = 0,
     DSC_MODE_MOUTH  = 1,
     DSC_MODE_SCENE  = 2,
     DSC_MODE_DAYO   = 3,
 } dsc_f2_mode;
-
-typedef struct dsc_f2_type {
-    dsc_diff difficulty : 3;
-    dsc_f2_mode type : 2;
-    uint32_t success : 1;
-} dsc_f2_type;
 
 #pragma region dsc_note
 typedef struct dsc_note7 {

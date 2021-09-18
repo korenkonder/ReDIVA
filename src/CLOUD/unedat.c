@@ -170,7 +170,7 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
     if (edat->flags & EDAT_COMPRESSED_FLAG) {
         metadata_sec_offset = metadata_offset + block_num * metadata_section_size;
 
-        io_set_position(in, file_offset + metadata_sec_offset, IO_SEEK_SET);
+        io_set_position(in, file_offset + metadata_sec_offset, SEEK_SET);
 
         uint8_t metadata[0x20];
         memset(metadata, 0, 0x20);
@@ -211,7 +211,7 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
         // If FLAG 0x20, the metadata precedes each data block.
         metadata_sec_offset = metadata_offset + block_num * (metadata_section_size + edat->block_size);
 
-        io_set_position(in, file_offset + metadata_sec_offset, IO_SEEK_SET);
+        io_set_position(in, file_offset + metadata_sec_offset, SEEK_SET);
 
         uint8_t metadata[0x20];
         memset(metadata, 0, 0x20);
@@ -225,7 +225,7 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
     }
     else {
         metadata_sec_offset = metadata_offset + (uint64_t)block_num * metadata_section_size;
-        io_set_position(in, file_offset + metadata_sec_offset, IO_SEEK_SET);
+        io_set_position(in, file_offset + metadata_sec_offset, SEEK_SET);
         offset = metadata_offset + (uint64_t)block_num * edat->block_size + total_blocks * metadata_section_size;
         length = edat->block_size;
 
@@ -415,12 +415,11 @@ void DecryptEDAT(stream* input, stream* output, int mode, char* rap_file_name, u
 
     // Read the RAP file, if provided.
     if (*rap_file_name) {
-        stream* rap = io_open(rap_file_name, "rb");
-        if (!rap)
-            return;
-
-        GetEdatRifKeyFromRapFile(rap, rifKey);
-        io_dispose(rap);
+        stream rap;
+        io_open(&rap, rap_file_name, "rb");
+        if (rap.io.stream)
+            GetEdatRifKeyFromRapFile(&rap, rifKey);
+        io_free(&rap);
     }
 
     extract_all_data(input, output, devklic, rifKey);
