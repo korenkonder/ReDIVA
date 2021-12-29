@@ -84,7 +84,7 @@ static char* shader_parse(char* data, char* parse_string, const char* replace_st
 
     size_t len_a = def - data;
     def += utf8_length(parse_string);
-    size_t len_b = strlen(replace_string);
+    size_t len_b = utf8_length((char*)replace_string);
     size_t len_c = utf8_length(def);
     size_t len = len_a + len_b + len_c;
 
@@ -122,7 +122,7 @@ static GLuint shader_compile(GLenum type, const char* data) {
 
 static GLint shader_get_uniform_location(GLint program, GLchar* name,
     vector_uint64_t* uniform_name_buf, vector_int32_t* uniform_location_buf) {
-    uint64_t hash = hash_utf8_fnv1a64(name);
+    uint64_t hash = hash_utf8_fnv1a64m(name);
     for (uint64_t* i = uniform_name_buf->begin; i != uniform_name_buf->end; i++)
         if (*i == hash)
             return uniform_location_buf->begin[i - uniform_name_buf->begin];
@@ -143,7 +143,7 @@ static GLint shader_get_uniform_location(GLint program, GLchar* name,
 
 static GLint shader_get_uniform_block_index(GLint program, GLchar* name,
     vector_uint64_t* uniform_block_name_buf, vector_int32_t* uniform_block_index_buf) {
-    uint64_t hash = hash_utf8_fnv1a64(name);
+    uint64_t hash = hash_utf8_fnv1a64m(name);
     for (uint64_t* i = uniform_block_name_buf->begin; i != uniform_block_name_buf->end; i++)
         if (*i == hash)
             return uniform_block_index_buf->begin[i - uniform_block_name_buf->begin];
@@ -168,10 +168,10 @@ void shader_glsl_load(shader_glsl* s, farc* f, shader_glsl_param* param) {
     if (s->program)
         glDeleteProgram(s->program);
 
-    vector_uint64_t_clear(&s->uniform_name_buf);
-    vector_int32_t_clear(&s->uniform_location_buf);
-    vector_uint64_t_clear(&s->uniform_block_name_buf);
-    vector_int32_t_clear(&s->uniform_block_index_buf);
+    vector_uint64_t_clear(&s->uniform_name_buf, 0);
+    vector_int32_t_clear(&s->uniform_location_buf, 0);
+    vector_uint64_t_clear(&s->uniform_block_name_buf, 0);
+    vector_int32_t_clear(&s->uniform_block_index_buf, 0);
 
     char temp[0x1000];
     temp[0] = 0;
@@ -248,10 +248,10 @@ void shader_glsl_load_file(shader_glsl* s, char* vert_path,
     if (!s || (!vert_path && !frag_path && !geom_path) || !param)
         return;
 
-    vector_uint64_t_clear(&s->uniform_name_buf);
-    vector_int32_t_clear(&s->uniform_location_buf);
-    vector_uint64_t_clear(&s->uniform_block_name_buf);
-    vector_int32_t_clear(&s->uniform_block_index_buf);
+    vector_uint64_t_clear(&s->uniform_name_buf, 0);
+    vector_int32_t_clear(&s->uniform_location_buf, 0);
+    vector_uint64_t_clear(&s->uniform_block_name_buf, 0);
+    vector_int32_t_clear(&s->uniform_block_index_buf, 0);
 
     stream st;
     size_t l;
@@ -297,10 +297,10 @@ void shader_glsl_wload_file(shader_glsl* s, wchar_t* vert_path,
     if (!s || (!vert_path && !frag_path && !geom_path) || !param)
         return;
 
-    vector_uint64_t_clear(&s->uniform_name_buf);
-    vector_int32_t_clear(&s->uniform_location_buf);
-    vector_uint64_t_clear(&s->uniform_block_name_buf);
-    vector_int32_t_clear(&s->uniform_block_index_buf);
+    vector_uint64_t_clear(&s->uniform_name_buf, 0);
+    vector_int32_t_clear(&s->uniform_location_buf, 0);
+    vector_uint64_t_clear(&s->uniform_block_name_buf, 0);
+    vector_int32_t_clear(&s->uniform_block_index_buf, 0);
 
     stream st;
     size_t l;
@@ -346,10 +346,10 @@ void shader_glsl_load_string(shader_glsl* s, char* vert,
     if (!s || (!frag && !vert && !geom) || !param)
         return;
 
-    vector_uint64_t_clear(&s->uniform_name_buf);
-    vector_int32_t_clear(&s->uniform_location_buf);
-    vector_uint64_t_clear(&s->uniform_block_name_buf);
-    vector_int32_t_clear(&s->uniform_block_index_buf);
+    vector_uint64_t_clear(&s->uniform_name_buf, 0);
+    vector_int32_t_clear(&s->uniform_location_buf, 0);
+    vector_uint64_t_clear(&s->uniform_block_name_buf, 0);
+    vector_int32_t_clear(&s->uniform_block_index_buf, 0);
 
     char* frag_data = str_utils_copy(frag);
     char* vert_data = str_utils_copy(vert);
@@ -424,8 +424,8 @@ void shader_glsl_free(shader_glsl* s) {
         s->program = 0;
     }
     string_free(&s->name);
-    vector_uint64_t_free(&s->uniform_name_buf);
-    vector_int32_t_free(&s->uniform_location_buf);
-    vector_uint64_t_free(&s->uniform_block_name_buf);
-    vector_int32_t_free(&s->uniform_block_index_buf);
+    vector_uint64_t_free(&s->uniform_name_buf, 0);
+    vector_int32_t_free(&s->uniform_location_buf, 0);
+    vector_uint64_t_free(&s->uniform_block_name_buf, 0);
+    vector_int32_t_free(&s->uniform_block_index_buf, 0);
 }

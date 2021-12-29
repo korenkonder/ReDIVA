@@ -6,12 +6,10 @@
 #pragma once
 
 #include "../../../KKdLib/default.h"
-#include "../../../KKdLib/vec.h"
+#include "../../classes.h"
 
-extern bool background_color_enabled;
-
-extern void background_color_dispose();
-extern void background_color_init();
-extern void background_color_imgui();
-extern void background_color_input();
-extern void background_color_render();
+extern bool graphics_background_color_init(class_data* data, render_context* rctx);
+extern void graphics_background_color_imgui(class_data* data);
+extern void graphics_background_color_input(class_data* data);
+extern void graphics_background_color_render(class_data* data);
+extern bool graphics_background_color_dispose(class_data* data);

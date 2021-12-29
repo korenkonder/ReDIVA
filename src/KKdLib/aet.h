@@ -9,6 +9,7 @@
 
 #include "default.h"
 #include "kf.h"
+#include "string.h"
 #include "vec.h"
 
 typedef enum aet_layer_quality {
@@ -113,17 +114,16 @@ typedef struct aet_audio {
 } aet_audio;
 
 typedef struct aet_video_source {
-    pointer_ptr_char name;
+    string name;
+    int32_t name_offset;
     uint32_t id;
 } aet_video_source;
 
-count_pointer(kft2)
-
 typedef struct aet_layer_audio {
-    count_pointer_kft2 volume_left;
-    count_pointer_kft2 volume_right;
-    count_pointer_kft2 pan_left;
-    count_pointer_kft2 pan_right;
+    vector_kft2 volume_left;
+    vector_kft2 volume_right;
+    vector_kft2 pan_left;
+    vector_kft2 pan_right;
 } aet_layer_audio;
 
 typedef struct aet_layer_transfer_mode {
@@ -133,43 +133,43 @@ typedef struct aet_layer_transfer_mode {
 } aet_layer_transfer_mode;
 
 typedef struct aet_layer_video_3d {
-    count_pointer_kft2 anchor_z;
-    count_pointer_kft2 position_z;
-    count_pointer_kft2 direction_x;
-    count_pointer_kft2 direction_y;
-    count_pointer_kft2 direction_z;
-    count_pointer_kft2 rotation_x;
-    count_pointer_kft2 rotation_y;
-    count_pointer_kft2 scale_z;
+    vector_kft2 anchor_z;
+    vector_kft2 position_z;
+    vector_kft2 direction_x;
+    vector_kft2 direction_y;
+    vector_kft2 direction_z;
+    vector_kft2 rotation_x;
+    vector_kft2 rotation_y;
+    vector_kft2 scale_z;
 } aet_layer_video_3d;
-
-pointer(aet_layer_video_3d);
 
 typedef struct aet_layer_video {
     aet_layer_transfer_mode transfer_mode;
     uint8_t padding;
-    count_pointer_kft2 anchor_x;
-    count_pointer_kft2 anchor_y;
-    count_pointer_kft2 positionx;
-    count_pointer_kft2 position_y;
-    count_pointer_kft2 rotation;
-    count_pointer_kft2 scale_x;
-    count_pointer_kft2 scale_y;
-    count_pointer_kft2 opacit_y;
-    pointer_aet_layer_video_3d video_3d;
+    vector_kft2 anchor_x;
+    vector_kft2 anchor_y;
+    vector_kft2 positionx;
+    vector_kft2 position_y;
+    vector_kft2 rotation;
+    vector_kft2 scale_x;
+    vector_kft2 scale_y;
+    vector_kft2 opacit_y;
+    aet_layer_video_3d* video_3d;
 } aet_layer_video;
 
 typedef struct aet_marker {
     float_t frame;
-    pointer_ptr_char name;
+    string name;
+    int32_t name_offset;
 } aet_marker;
 
-count_pointer(aet_marker)
-count_pointer(aet_layer_video)
-count_pointer(aet_layer_audio)
+vector(aet_marker)
+vector(aet_layer_video)
+vector(aet_layer_audio)
 
 typedef struct aet_layer {
-    pointer_ptr_char name;
+    string name;
+    int32_t name_offset;
     float_t start_frame;
     float_t end_frame;
     float_t offset_frame;
@@ -179,9 +179,9 @@ typedef struct aet_layer {
     aet_item_type type;
     int32_t video_item_offset;
     int32_t parent_layer_offset;
-    count_pointer_aet_marker marker;
-    count_pointer_aet_layer_video video;
-    count_pointer_aet_layer_audio audio;
+    vector_aet_marker marker;
+    vector_aet_layer_video video;
+    vector_aet_layer_audio audio;
 
     int32_t DataID;
 } aet_layer;
@@ -192,7 +192,7 @@ typedef struct aet_composition {
     aet_layer* elements;
 } aet_composition;
 
-count_pointer(aet_video_source);
+vector(aet_video_source);
 
 typedef struct aet_video {
     int32_t offset;
@@ -200,40 +200,45 @@ typedef struct aet_video {
     uint16_t width;
     uint16_t height;
     float_t frames;
-    count_pointer_aet_video_source video_source;
+    vector_aet_video_source video_source;
 } aet_video;
 
-v3(count_pointer_kft2)
-
 typedef struct aet_camera {
-    vec3_count_pointer_kft2 eye;
-    vec3_count_pointer_kft2 position;
-    vec3_count_pointer_kft2 direction;
-    vec3_count_pointer_kft2 rotation;
-    count_pointer_kft2 zoom;
+    vector_kft2 eye_x;
+    vector_kft2 eye_y;
+    vector_kft2 eye_z;
+    vector_kft2 position_x;
+    vector_kft2 position_y;
+    vector_kft2 position_z;
+    vector_kft2 direction_x;
+    vector_kft2 direction_y;
+    vector_kft2 direction_z;
+    vector_kft2 rotation_x;
+    vector_kft2 rotation_y;
+    vector_kft2 rotation_z;
+    vector_kft2 zoom;
 } aet_camera;
 
-count_pointer(aet_composition)
-count_pointer(aet_video)
-count_pointer(aet_audio)
-count_pointer(aet_camera)
+vector(aet_camera)
+vector(aet_composition)
+vector(aet_video)
+vector(aet_audio)
 
 typedef struct aet_scene {
-    pointer_ptr_char name;
+    string name;
+    int32_t name_offset;
     float_t start_frame;
     float_t end_frame;
     float_t frame_rate;
     uint32_t back_color;
     uint32_t width;
     uint32_t height;
-    count_pointer_aet_camera camera;
-    count_pointer_aet_composition composition;
-    count_pointer_aet_video video;
-    count_pointer_aet_audio audio;
+    vector_aet_camera camera;
+    vector_aet_composition composition;
+    vector_aet_video video;
+    vector_aet_audio audio;
 } aet_scene;
 
-pointer(aet_scene)
-
 typedef struct aet_header {
-    pointer_aet_scene scene;
+    aet_scene scene;
 } aet_header;

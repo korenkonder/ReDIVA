@@ -216,7 +216,7 @@ void glitter_render_element_update(GLT,
         particle->data.data.uv_scroll_add_scale * delta_frame, uv_scroll);
     vec2_add(a2->uv_scroll, uv_scroll, a2->uv_scroll);
     glitter_render_element_step_uv(GLT_VAL, particle, a2, delta_frame, a1->random_ptr);
-    a2->color = (vec4){ -1.0f, -1.0f, -1.0f, -1.0f };
+    a2->color = (vec4u){ -1.0f, -1.0f, -1.0f, -1.0f };
     a2->draw = true;
 
     if (particle->data.data.sub_flags & GLITTER_PARTICLE_SUB_USE_CURVE) {

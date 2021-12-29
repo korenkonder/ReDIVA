@@ -6,11 +6,10 @@
 #pragma once
 
 #include "../../../KKdLib/default.h"
+#include "../../classes.h"
 
-extern bool post_process_enabled;
-
-extern void post_process_dispose();
-extern void post_process_init();
-extern void post_process_imgui();
-extern void post_process_input();
-extern void post_process_render();
+extern bool graphics_post_process_init(class_data* data, render_context* rctx);
+extern void graphics_post_process_imgui(class_data* data);
+extern void graphics_post_process_input(class_data* data);
+extern void graphics_post_process_render(class_data* data);
+extern bool graphics_post_process_dispose(class_data* data);

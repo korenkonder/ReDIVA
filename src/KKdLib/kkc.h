@@ -49,7 +49,7 @@ typedef struct kkc {
 
     uint32_t state;
 
-    uint32_t* k;
+    uint32_t* i;
 } kkc;
 
 extern kkc* kkc_init();

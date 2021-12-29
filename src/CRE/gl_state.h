@@ -8,11 +8,55 @@
 #include "../KKdLib/default.h"
 #include <glad/glad.h>
 
+typedef struct gl_state_struct {
+    GLuint program;
+    GLenum active_texture;
+    GLuint active_texture_index;
+    GLuint texture_binding_2d[32];
+    GLuint texture_binding_cube_map[32];
+    GLuint sampler_binding[32];
+    GLboolean blend;
+    GLenum blend_src_rgb;
+    GLenum blend_src_alpha;
+    GLenum blend_dst_rgb;
+    GLenum blend_dst_alpha;
+    GLenum blend_mode_rgb;
+    GLenum blend_mode_alpha;
+    GLuint framebuffer_binding;
+    GLuint vertex_array_binding;
+    GLuint array_buffer_binding;
+    GLuint element_array_buffer_binding;
+    GLuint uniform_buffer_index;
+    GLuint uniform_buffer_binding[14];
+    GLintptr uniform_buffer_offset[14];
+    GLsizeiptr uniform_buffer_size[14];
+    GLuint shader_storage_buffer_index;
+    GLuint shader_storage_buffer_binding[14];
+    GLintptr shader_storage_buffer_offset[14];
+    GLsizeiptr shader_storage_buffer_size[14];
+    GLboolean color_mask[4];
+    GLboolean cull_face;
+    GLenum cull_face_mode;
+    GLboolean depth_test;
+    GLenum depth_func;
+    GLboolean depth_mask;
+    GLenum polygon_front_face_mode;
+    GLenum polygon_back_face_mode;
+    GLboolean primitive_restart;
+    GLboolean scissor_test;
+    GLboolean stencil_test;
+    GLuint stencil_mask;
+} gl_state_struct;
+
+extern gl_state_struct gl_state;
+
 extern void gl_state_active_bind_texture_2d(int32_t index, GLuint texture);
 extern void gl_state_active_bind_texture_cube_map(int32_t index, GLuint texture);
 extern void gl_state_active_texture(size_t index);
 extern void gl_state_bind_framebuffer(GLuint framebuffer);
 extern void gl_state_bind_vertex_array(GLuint array);
+extern void gl_state_bind_array_buffer(GLuint buffer);
+extern void gl_state_bind_element_array_buffer(GLuint buffer);
 extern void gl_state_bind_uniform_buffer(GLuint buffer);
 extern void gl_state_bind_uniform_buffer_base(GLuint index, GLuint buffer);
 extern void gl_state_bind_uniform_buffer_range(GLuint index,
@@ -34,10 +78,14 @@ extern bool gl_state_check_sampler_binding(int32_t index, GLuint sampler);
 extern void gl_state_disable_blend();
 extern void gl_state_disable_cull_face();
 extern void gl_state_disable_depth_test();
+extern void gl_state_disable_primitive_restart();
+extern void gl_state_disable_scissor_test();
 extern void gl_state_disable_stencil_test();
 extern void gl_state_enable_blend();
 extern void gl_state_enable_cull_face();
 extern void gl_state_enable_depth_test();
+extern void gl_state_enable_primitive_restart();
+extern void gl_state_enable_scissor_test();
 extern void gl_state_enable_stencil_test();
 extern void gl_state_get();
 extern void gl_state_get_all_gl_errors();

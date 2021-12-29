@@ -12,7 +12,7 @@
 typedef enum msgpack_type {
     MSGPACK_NONE = 0,
     MSGPACK_NULL,
-    MSGPACK_BOOL,
+    MSGPACK_bool,
     MSGPACK_INT8,
     MSGPACK_UINT8,
     MSGPACK_INT16,

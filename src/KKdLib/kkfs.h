@@ -21,19 +21,19 @@ typedef enum kkfs_sector_info {
 } kkfs_sector_info;
 
 typedef enum kkfs_directory_flags {
-    KKFS_DIRECTORY_READ_ONLY    = 0x1,
+    KKFS_DIRECTORY_READ_ONLY = 0x1,
 } kkfs_directory_flags;
 
 typedef enum kkfs_file_flags {
-    KKFS_FILE_READ_ONLY         = 0x1,
-    KKFS_FILE_CIPHER            = 0x2,
+    KKFS_FILE_READ_ONLY = 0x1,
+    KKFS_FILE_CIPHER    = 0x2,
 } kkfs_file_flags;
 
 typedef enum kkfs_type {
-    KKFS_EMPTY                  = 0x00000000,
-    KKFS_DELETED                = 0x00000001,
-    KKFS_DIRECTORY              = 0xFFFFFFFE,
-    KKFS_FILE                   = 0xFFFFFFFF,
+    KKFS_EMPTY     = 0x00000000,
+    KKFS_DELETED   = 0x00000001,
+    KKFS_DIRECTORY = 0xFFFFFFFE,
+    KKFS_FILE      = 0xFFFFFFFF,
 } kkfs_type;
 
 typedef struct kkfs_deleted {

@@ -30,7 +30,7 @@ glitter_particle_inst* glitter_particle_inst_init(glitter_particle* a1,
             rg->fog = glitter_effect_inst_get_fog(a2);
             if (pi->data.data.type == GLITTER_PARTICLE_QUAD
                 && pi->data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH)
-                rg->alpha = ALPHA_PASS_OPAQUE;
+                rg->alpha = DRAW_PASS_3D_OPAQUE;
 
             if (pi->data.data.draw_flags & GLITTER_PARTICLE_DRAW_NO_BILLBOARD_CULL)
                 rg->use_culling = false;
@@ -150,7 +150,7 @@ static glitter_particle_inst* glitter_particle_inst_init_child(glitter_particle_
         rg->fog = glitter_effect_inst_get_fog(effect);
         if (pi->data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH
             && pi->data.data.type == GLITTER_PARTICLE_QUAD)
-            rg->alpha = ALPHA_PASS_OPAQUE;
+            rg->alpha = DRAW_PASS_3D_OPAQUE;
         if (effect->data.emission >= glitter_min_emission)
             rg->emission = effect->data.emission;
         else

@@ -9,7 +9,9 @@
 
 typedef struct time_struct {
     LARGE_INTEGER timestamp;
-} time_struct;
+    double_t inv_freq;
+}time_struct;
 
+extern void time_struct_init(time_struct* t);
 extern double_t time_struct_calc_time(time_struct* t);
 extern void time_struct_get_timestamp(time_struct* t);

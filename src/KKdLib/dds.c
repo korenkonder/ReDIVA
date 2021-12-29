@@ -4,7 +4,7 @@
 */
 
 #include "dds.h"
-#include "io_stream.h"
+#include "io/stream.h"
 #include "str_utils.h"
 
 #pragma pack(push, 1)
@@ -253,7 +253,7 @@ void dds_wread(dds* d, wchar_t* path) {
         d->mipmaps_count = dds_h.flags & DDSD_MIPMAPCOUNT ? dds_h.mipMapCount : 1;
         d->has_cube_map = dds_h.caps2 & DDS_cube_map ? true : false;
         d->data = vector_ptr_empty(void);
-        vector_ptr_void_reserve(&d->data, d->has_cube_map ? d->mipmaps_count * 6LL : d->mipmaps_count);
+        vector_ptr_void_reserve(&d->data, d->has_cube_map ? d->mipmaps_count * 6ULL : d->mipmaps_count);
 
         do
             for (uint32_t i = 0; i < d->mipmaps_count; i++) {

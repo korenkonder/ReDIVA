@@ -308,7 +308,7 @@ static void glitter_emitter_inst_update_mat(GPM, GLT,
     case GLITTER_DIRECTION_Z_AXIS:
         mat4_rotate_z((float_t)-M_PI_2, &dir_mat);
         break;
-    case GLITTER_DIRECTION_BILLBOARD_Y_ONLY:
+    case GLITTER_DIRECTION_BILLBOARD_Y_AXIS:
         mat4_rotate_y(GPM_VAL->cam_rotation_y, &dir_mat);
         break;
     default:

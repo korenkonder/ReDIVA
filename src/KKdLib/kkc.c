@@ -166,15 +166,15 @@ void kkc_prepare_cipher_table(kkc* c) {
         return;
     memcpy(arr, c->key.data, kl);
 
-    if (c->k)
-        free(c->k);
+    if (c->i)
+        free(c->i);
 
-    c->k = force_malloc_s(uint32_t, kl);
-    if (!c->k)
+    c->i = force_malloc_s(uint32_t, kl);
+    if (!c->i)
         return;
 
     size_t n = kl / 2;
-    uint32_t* k = c->k;
+    uint32_t* k = c->i;
     size_t i;
     uint32_t a, b, q, seed;
     while (true) {
@@ -268,7 +268,7 @@ void kkc_cipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t length
     bool ret = true;
     if (c->error)
         return;
-    else if (!c->k)
+    else if (!c->i)
         c->error = KKC_ERROR_UNINITIALIZED_TABLE;
     else if (!c->key.data)
         c->error = KKC_ERROR_INVALID_KEY;
@@ -285,7 +285,7 @@ void kkc_cipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t length
     kkc e = *c;
     uint32_t* s = (uint32_t*)src;
     uint32_t* d = (uint32_t*)dst;
-    uint32_t* k = e.k;
+    uint32_t* k = e.i;
     size_t kl = (size_t)e.key.type * 8;
     size_t n = length / 0x10;
     size_t i;
@@ -297,22 +297,22 @@ void kkc_cipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t length
 
             e.p = e.f;
             e.f = e.e;
-            t = c0 = e.k[e.p];
+            t = c0 = e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c1 = e.k[e.p];
+            t = c1 = e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c2 = e.k[e.p];
+            t = c2 = e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c3 = e.k[e.p];
+            t = c3 = e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             b = *s++;
@@ -331,22 +331,22 @@ void kkc_cipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t length
         for (i = 0; i < n; i++) {
             e.p = e.f;
             e.f = e.e;
-            t = c0 = e.o2 ^ e.k[e.p];
+            t = c0 = e.o2 ^ e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c1 = e.o0 ^ e.k[e.p];
+            t = c1 = e.o0 ^ e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c2 = e.o3 ^ e.k[e.p];
+            t = c2 = e.o3 ^ e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c3 = e.o1 ^ e.k[e.p];
+            t = c3 = e.o1 ^ e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             b = *s++;
@@ -372,7 +372,7 @@ void kkc_decipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t leng
     bool ret = true;
     if (c->error)
         return;
-    else if (!c->k)
+    else if (!c->i)
         c->error = KKC_ERROR_UNINITIALIZED_TABLE;
     else if (!c->key.data)
         c->error = KKC_ERROR_INVALID_KEY;
@@ -389,7 +389,7 @@ void kkc_decipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t leng
     kkc e = *c;
     uint32_t* s = (uint32_t*)src;
     uint32_t* d = (uint32_t*)dst;
-    uint32_t* k = e.k;
+    uint32_t* k = e.i;
     size_t kl = (size_t)e.key.type * 8;
     size_t n = length / 0x10;
     size_t i;
@@ -401,22 +401,22 @@ void kkc_decipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t leng
 
             e.p = e.f;
             e.f = e.e;
-            t = c0 = e.k[e.p];
+            t = c0 = e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c1 = e.k[e.p];
+            t = c1 = e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c2 = e.k[e.p];
+            t = c2 = e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c3 = e.k[e.p];
+            t = c3 = e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             b = *s++;
@@ -435,22 +435,22 @@ void kkc_decipher(kkc* c, kkc_mode mode, uint8_t* src, uint8_t* dst, size_t leng
         for (i = 0; i < n; i++) {
             e.p = e.f;
             e.f = e.e;
-            t = c0 = e.o2 ^ e.k[e.p];
+            t = c0 = e.o2 ^ e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c1 = e.o0 ^ e.k[e.p];
+            t = c1 = e.o0 ^ e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c2 = e.o3 ^ e.k[e.p];
+            t = c2 = e.o3 ^ e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             e.p = e.f;
             e.f = e.e;
-            t = c3 = e.o1 ^ e.k[e.p];
+            t = c3 = e.o1 ^ e.i[e.p];
             e.e ^= e.f ^= e.p = XOR32(t) % kl;
 
             b = *s++;
@@ -478,7 +478,7 @@ void kkc_dispose(kkc* c) {
         return;
 
     free(c->key.data);
-    free(c->k);
+    free(c->i);
     free(c);
 }
 

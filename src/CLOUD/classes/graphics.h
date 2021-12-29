@@ -7,9 +7,8 @@
 
 #include "../classes.h"
 #include "graphics/background_color.h"
-#include "graphics/glitter_counter.h"
+#include "graphics/glitter.h"
 #include "graphics/post_process.h"
 #include "graphics/render_settings.h"
 
-extern bool graphics_enabled;
 extern classes_struct graphics_classes[];

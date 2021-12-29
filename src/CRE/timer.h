@@ -7,14 +7,15 @@
 
 #include "../KKdLib/default.h"
 #include "lock.h"
+#include "time.h"
 
 #define HISTORY_COUNT 0x08
 
 typedef struct timer {
     double_t history[HISTORY_COUNT];
     uint8_t history_counter;
-    LARGE_INTEGER curr_time;
-    LARGE_INTEGER prev_time;
+    time_struct curr_time;
+    time_struct prev_time;
     double_t freq;
     double_t freq_hist;
     lock freq_lock;
@@ -30,9 +31,11 @@ extern void timer_end_of_cycle(timer* t);
 extern double_t timer_get_freq(timer* t);
 extern void timer_set_freq(timer* t, double_t freq);
 extern double_t timer_get_freq_hist(timer* t);
+extern double_t timer_get_freq_ratio(timer* t);
+extern void timer_reset(timer* t);
+extern void timer_sleep(timer* t, double_t msec);
 extern void timer_dispose(timer* t);
 
-extern double_t timer_get_msec(LARGE_INTEGER t);
-extern HANDLE create_timer();
-extern void dispose_timer(HANDLE timer);
-extern void msleep(HANDLE timer, double_t msec);
+extern HANDLE timer_handle_init();
+extern void timer_handle_sleep(HANDLE timer, double_t msec);
+extern void timer_handle_dispose(HANDLE timer);

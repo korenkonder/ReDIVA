@@ -4,17 +4,36 @@
 */
 
 #include "quat.h"
+#include <pmmintrin.h>
+#include <xmmintrin.h>
 
-void quat_mult(quat* x, quat* y, quat* z) {
-    quat xt;
-    quat yt;
+inline void quat_mult(quat* x, quat* y, quat* z) {
+    __m128 xt;
+    __m128 yt;
     quat zt;
-    xt = *x;
-    yt = *y;
-    zt.x = xt.x * yt.w + xt.y * yt.z - xt.z * yt.y + xt.w * yt.x;
-    zt.y = -xt.x * yt.z + xt.y * yt.w + xt.z * yt.x + xt.w * yt.y;
-    zt.z = xt.x * yt.y - xt.y * yt.x + xt.z * yt.w + xt.w * yt.z;
-    zt.w = -xt.x * yt.x - xt.y * yt.y - xt.z * yt.z + xt.w * yt.w;
+    __m128 zt0;
+    __m128 zt1;
+    __m128 zt2;
+    __m128 zt3;
+
+    xt = x->data;
+    yt = y->data;
+    zt0 = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0x1B));
+    zt1 = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0x4E));
+    zt2 = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0xB1));
+    zt3 = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0xE4));
+    zt0 = _mm_xor_ps(zt0, (__m128) { .m128_f32 = { 0.0f, 0.0f, -0.0f, 0.0f } });
+    zt1 = _mm_xor_ps(zt1, (__m128) { .m128_f32 = { -0.0f, 0.0f, 0.0f, 0.0f } });
+    zt2 = _mm_xor_ps(zt2, (__m128) { .m128_f32 = { 0.0f, -0.0f, 0.0f, 0.0f } });
+    zt3 = _mm_xor_ps(zt3, (__m128) { .m128_f32 = { -0.0f, -0.0f, -0.0f, 0.0f } });
+    zt0 = _mm_hadd_ps(zt0, zt0);
+    zt1 = _mm_hadd_ps(zt1, zt1);
+    zt2 = _mm_hadd_ps(zt2, zt2);
+    zt3 = _mm_hadd_ps(zt3, zt3);
+    zt.x = _mm_cvtss_f32(_mm_hadd_ps(zt0, zt0));
+    zt.y = _mm_cvtss_f32(_mm_hadd_ps(zt1, zt1));
+    zt.z = _mm_cvtss_f32(_mm_hadd_ps(zt2, zt2));
+    zt.w = _mm_cvtss_f32(_mm_hadd_ps(zt3, zt3));
     *z = zt;
 }
 

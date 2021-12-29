@@ -7,9 +7,12 @@
 #include "animation.h"
 #include "emitter.h"
 
+static object_info glitter_effect_ext_anim_get_object_info(uint64_t hash);
 static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a3);
 static bool glitter_effect_unpack_file(GLT,
     void* data, glitter_effect* a3, bool use_big_endian);
+
+extern object_database* obj_db_ptr;
 
 glitter_effect* glitter_effect_init(GLT) {
     glitter_effect* e = force_malloc(sizeof(glitter_effect));
@@ -18,7 +21,7 @@ glitter_effect* glitter_effect_init(GLT) {
     e->data.start_time = 0;
     e->data.ext_anim = 0;
     e->data.flags = 0;
-    e->data.name_hash = GLT_VAL != GLITTER_AFT ? hash_murmurhash_empty : hash_fnv1a64_empty;
+    e->data.name_hash = GLT_VAL != GLITTER_FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
     e->data.seed = 0;
     return e;
 }
@@ -104,6 +107,16 @@ void glitter_effect_dispose(glitter_effect* e) {
     free(e);
 }
 
+static object_info glitter_effect_ext_anim_get_object_info(uint64_t hash) {
+    vector_object_set_info* object_set = &obj_db_ptr->object_set;
+    for (object_set_info* i = object_set->begin; i != object_set->end; i++) {
+        for (object_info_data* j = i->object.begin; j != i->object.end; j++)
+            if (hash == j->name_hash_murmurhash || hash == j->name_hash_fnv1a64m_upper)
+                return (object_info) { j->id, i->id };
+    }
+    return object_info_null;
+}
+
 static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
     size_t l;
     size_t d;
@@ -172,8 +185,8 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
     if (a2->data.flags & GLITTER_EFFECT_EMISSION)
         flags |= GLITTER_EFFECT_FILE_EMISSION;
 
-    *(uint64_t*)d = GLT_VAL != GLITTER_AFT
-        ? hash_utf8_murmurhash(a2->name, 0, false) : hash_utf8_fnv1a64(a2->name);;
+    *(uint64_t*)d = GLT_VAL != GLITTER_FT
+        ? hash_utf8_murmurhash(a2->name, 0, false) : hash_utf8_fnv1a64m(a2->name);;
     *(int32_t*)(d + 8) = a2->data.appear_time;
     *(int32_t*)(d + 12) = a2->data.life_time;
     *(int32_t*)(d + 16) = a2->data.start_time;
@@ -337,7 +350,7 @@ static bool glitter_effect_unpack_file(GLT,
 
                     ext_anim->instance_id = 0;
                     ext_anim->file_name_hash = hash_murmurhash_empty;
-                    ext_anim->object = (object_info){ 0xFFFF, 0xFFFF };
+                    ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
                     ext_anim->node_index = 18;
                     if (*(uint8_t*)(d + 12)) {
                         strncpy_s(ext_anim->mesh_name, 0x80, (uint8_t*)(d + 20), 0x80);
@@ -362,7 +375,7 @@ static bool glitter_effect_unpack_file(GLT,
 
                     ext_anim->instance_id = 0;
                     ext_anim->file_name_hash = hash_murmurhash_empty;
-                    ext_anim->object = (object_info){ 0xFFFF, 0xFFFF };
+                    ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
                     ext_anim->node_index = 18;
                     if (*(uint8_t*)(d + 16)) {
                         strncpy_s(ext_anim->mesh_name, 0x80, (uint8_t*)(d + 16), 0x80);
@@ -389,7 +402,7 @@ static bool glitter_effect_unpack_file(GLT,
                         ext_anim->file_name_hash = *(uint64_t*)(d + 16);
                     }
 
-                    ext_anim->object = (object_info){ 0xFFFF, 0xFFFF };
+                    ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
                     ext_anim->node_index = 18;
                     if (*(uint8_t*)(d + 32)) {
                         strncpy_s(ext_anim->mesh_name, 0x80, (uint8_t*)(d + 32), 0x80);
@@ -406,7 +419,7 @@ static bool glitter_effect_unpack_file(GLT,
         a2->data.start_time = 0;
         a2->data.ext_anim = 0;
         a2->data.flags = 0;
-        a2->data.name_hash = GLT_VAL != GLITTER_AFT ? hash_murmurhash_empty : hash_fnv1a64_empty;
+        a2->data.name_hash = GLT_VAL != GLITTER_FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
         a2->data.seed = 0;
 
         if (a2->version != 6 && a2->version != 7)
@@ -492,7 +505,6 @@ static bool glitter_effect_unpack_file(GLT,
             ext_anim = force_malloc(sizeof(glitter_effect_ext_anim));
             a2->data.ext_anim = ext_anim;
             if (ext_anim) {
-                ext_anim->object = (object_info){ 0xFFFF, 0xFFFF };
                 if (use_big_endian) {
                     ext_anim->object_hash = load_reverse_endianness_uint64_t((void*)d);
                     ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 8));
@@ -502,6 +514,7 @@ static bool glitter_effect_unpack_file(GLT,
                     ext_anim->flags = *(int32_t*)(d + 8);
                 }
 
+                ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
                 ext_anim->node_index = 18;
                 if (*(uint8_t*)(d + 12)) {
                     strncpy_s(ext_anim->mesh_name, 0x80, (uint8_t*)(d + 12), 0x80);
@@ -512,5 +525,7 @@ static bool glitter_effect_unpack_file(GLT,
             }
         }
     }
+
+    snprintf(a2->name, sizeof(a2->name), "eff_%08x", (uint32_t)a2->data.name_hash);
     return true;
 }

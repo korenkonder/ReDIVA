@@ -4,6 +4,7 @@
 */
 
 #include "msgpack.h"
+#include "str_utils.h"
 
 #define MSGPACK_ALLOCATE(a, b) \
 if (MSGPACK_CHECK(a)) \
@@ -40,7 +41,7 @@ void msgpack_init_null(msgpack* msg, char* name) {
 }
 
 void msgpack_init_bool(msgpack* msg, char* name, bool val) {
-    msg->type = MSGPACK_BOOL;
+    msg->type = MSGPACK_bool;
     MSGPACK_ALLOCATE_PTR(bool, msg);
     string_init(&msg->name, name);
 
@@ -158,16 +159,14 @@ void msgpack_init_string(msgpack* msg, char* name, string* val) {
     msg->type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(string, msg);
     string_init(&msg->name, name);
-    string_init(MSGPACK_SELECT_PTR(string, msg), string_data(val));
+    string_copy(val, MSGPACK_SELECT_PTR(string, msg));
 }
 
 void msgpack_init_wstring(msgpack* msg, char* name, wstring* val) {
-    char* temp = utf16_to_utf8(wstring_access(val));
     msg->type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(string, msg);
     string_init(&msg->name, name);
-    string_init(MSGPACK_SELECT_PTR(string, msg), temp);
-    free(temp);
+    string_copy_wstring(val, MSGPACK_SELECT_PTR(string, msg));
 }
 
 bool msgpack_check_null(msgpack* msg) {
@@ -213,7 +212,7 @@ msgpack* msgpack_get_by_name(msgpack* msg, char* name) {
 
     msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
     for (msgpack* i = ptr->begin; i != ptr->end; i++)
-        if (!strcmp(string_data(&i->name), name))
+        if (!str_utils_compare(string_data(&i->name), name))
             return i;
 
     return 0;
@@ -225,7 +224,7 @@ void msgpack_set_by_name(msgpack* msg, msgpack* m) {
 
     msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
     for (msgpack* i = ptr->begin; i != ptr->end; i++)
-        if (!strcmp(string_data(&i->name), string_data(&m->name))) {
+        if (!str_utils_compare(string_data(&i->name), string_data(&m->name))) {
             msgpack_free(i);
             *i = *m;
             return;
@@ -245,7 +244,7 @@ void msgpack_append(msgpack* msg, msgpack* m) {
 
 void msgpack_append_bool(msgpack* msg, char* name, bool val) {
     msgpack m;
-    m.type = MSGPACK_BOOL;
+    m.type = MSGPACK_bool;
     MSGPACK_ALLOCATE(bool, m);
     string_init(&m.name, name);
 
@@ -389,18 +388,16 @@ void msgpack_append_string(msgpack* msg, char* name, string* val) {
     m.type = MSGPACK_STRING;
     MSGPACK_ALLOCATE(string, m);
     string_init(&m.name, name);
-    string_init(MSGPACK_SELECT(string, m), string_data(val));
+    string_copy(val, MSGPACK_SELECT(string, m));
     msgpack_append(msg, &m);
 }
 
 void msgpack_append_wstring(msgpack* msg, char* name, wstring* val) {
     msgpack m;
-    char* temp = utf16_to_utf8(wstring_access(val));
     m.type = MSGPACK_STRING;
     MSGPACK_ALLOCATE(string, m);
     string_init(&m.name, name);
-    string_init(MSGPACK_SELECT(string, m), temp);
-    free(temp);
+    string_copy_wstring(val, MSGPACK_SELECT(string, m));
     msgpack_append(msg, &m);
 }
 
@@ -472,7 +469,7 @@ void msgpack_set_bool(msgpack* msg, char* name, bool val) {
         return;
 
     msgpack_free(msg);
-    msg->type = MSGPACK_BOOL;
+    msg->type = MSGPACK_bool;
     MSGPACK_ALLOCATE_PTR(bool, msg);
     string_init(&msg->name, name);
 
@@ -642,20 +639,18 @@ void msgpack_set_string(msgpack* msg, char* name, string* val) {
     msg->type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(string, msg);
     string_init(&msg->name, name);
-    string_init(MSGPACK_SELECT_PTR(string, msg), string_data(val));
+    string_copy(val, MSGPACK_SELECT_PTR(string, msg));
 }
 
 void msgpack_set_wstring(msgpack* msg, char* name, wstring* val) {
     if (!msg)
         return;
 
-    char* temp = utf16_to_utf8(wstring_access(val));
     msgpack_free(msg);
     msg->type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(string, msg);
     string_init(&msg->name, name);
-    string_init(MSGPACK_SELECT_PTR(string, msg), temp);
-    free(temp);
+    string_copy_wstring(val, MSGPACK_SELECT_PTR(string, msg));
 }
 
 msgpack* msgpack_read(msgpack* msg, char* name) {
@@ -670,7 +665,7 @@ bool msgpack_read_bool(msgpack* msg, char* name) {
         return 0;
 
     msgpack* m = name ? msgpack_get_by_name(msg, name) : msg;
-    if (m && m->type == MSGPACK_BOOL)
+    if (m && m->type == MSGPACK_bool)
         return *MSGPACK_SELECT_PTR(bool, m);
     return 0;
 }
@@ -913,9 +908,10 @@ char* msgpack_read_utf8_string(msgpack* msg, char* name) {
 
     if (m && m->type == MSGPACK_STRING) {
         string* ptr = MSGPACK_SELECT_PTR(string, m);
-        size_t length = string_length(ptr) + 1;
-        char* val = force_malloc(length);
+        size_t length = ptr->length;
+        char* val = force_malloc(length + 1);
         memcpy(val, string_data(ptr), length);
+        val[length] = 0;
         return val;
     }
     return 0;
@@ -930,9 +926,10 @@ wchar_t* msgpack_read_utf16_string(msgpack* msg, char* name) {
     if (m && m->type == MSGPACK_STRING) {
         string* ptr = MSGPACK_SELECT_PTR(string, m);
         wchar_t* temp = utf8_to_utf16(string_data(ptr));
-        size_t length = utf16_length(temp) + 1;
-        wchar_t* val = force_malloc_s(wchar_t, length);
+        size_t length = utf16_length(temp);
+        wchar_t* val = force_malloc_s(wchar_t, length + 1);
         memcpy(val, temp, sizeof(wchar_t) * length);
+        val[length] = 0;
         free(temp);
         return val;
     }
@@ -941,7 +938,7 @@ wchar_t* msgpack_read_utf16_string(msgpack* msg, char* name) {
 
 void msgpack_read_string(msgpack* msg, char* name, string* str) {
     if (!msg) {
-        string_init(str, 0);
+        *str = string_empty;
         return;
     }
 
@@ -949,15 +946,15 @@ void msgpack_read_string(msgpack* msg, char* name, string* str) {
 
     if (m && m->type == MSGPACK_STRING) {
         string* ptr = MSGPACK_SELECT_PTR(string, m);
-        string_init(str, string_data(ptr));
+        string_init_length(str, string_data(ptr), ptr->length);
     }
     else
-        string_init(str, 0);
+        *str = string_empty;
 }
 
 void msgpack_read_wstring(msgpack* msg, char* name, wstring* str) {
     if (!msg) {
-        wstring_init(str, 0);
+        *str = wstring_empty;
         return;
     }
 
@@ -970,7 +967,7 @@ void msgpack_read_wstring(msgpack* msg, char* name, wstring* str) {
         free(temp);
     }
     else
-        wstring_init(str, 0);
+        *str = wstring_empty;
 }
 
 void msgpack_free(msgpack* msg) {
@@ -985,15 +982,11 @@ void msgpack_free(msgpack* msg) {
         break;
     case MSGPACK_ARRAY: {
         msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-        for (msgpack* i = ptr->begin; i != ptr->end; i++)
-            msgpack_free(i);
-        vector_msgpack_free(ptr);
+        vector_msgpack_free(ptr, msgpack_free);
     } break;
     case MSGPACK_MAP: {
         msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
-        for (msgpack* i = ptr->begin; i != ptr->end; i++)
-            msgpack_free(i);
-        vector_msgpack_free(ptr);
+        vector_msgpack_free(ptr, msgpack_free);
     } break;
     }
     memset(msg, 0, sizeof(msgpack));

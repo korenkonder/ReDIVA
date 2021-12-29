@@ -7,7 +7,7 @@
 #include "effect_group.h"
 #include "texture.h"
 
-bool glitter_diva_resource_parse_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_diva_resource_parse_file(GPM, glitter_effect_group* a1, f2_struct* st) {
     f2_struct* i;
 
     if (!st || !st->header.data_size)
@@ -18,7 +18,7 @@ bool glitter_diva_resource_parse_file(glitter_effect_group* a1, f2_struct* st) {
             continue;
 
         if (i->header.signature == reverse_endianness_uint32_t('TXPC')) {
-            glitter_texture_resource_unpack_file(a1, i);
+            glitter_texture_resource_unpack_file(GPM_VAL, a1, i);
             break;
         }
     }

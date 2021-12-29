@@ -6,6 +6,7 @@
 #pragma once
 
 #include "default.h"
+#include "vector.h"
 
 #define FLOAT16_NAN           ((half_t)0x7FFF)
 #define FLOAT16_POSITIVE_NAN  ((half_t)0x7FFF)
@@ -19,6 +20,9 @@
 #define HALF_MIN 0.00006103515625
 
 typedef unsigned short half_t;
+
+vector(half_t)
+vector_ptr(half_t)
 
 extern half_t load_reverse_endianness_half_t(void* ptr);
 extern void store_reverse_endianness_half_t(half_t value, void* ptr);

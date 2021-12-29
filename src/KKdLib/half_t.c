@@ -5,6 +5,11 @@
 
 #include "half_t.h"
 
+vector_func(half_t)
+vector_ptr_func(half_t)
+
+// Crutch for vector_func definition
+
 inline half_t load_reverse_endianness_half_t(void* ptr) {
     return (half_t)_byteswap_ushort(*(uint16_t*)ptr);
 }

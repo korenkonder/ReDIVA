@@ -7,38 +7,280 @@
 
 #include "sort.h"
 
-#define RADIX 8
+#define RADIX_BASE 8
+#define RADIX (1 << RADIX_BASE)
 
-inline int32_t digit(int32_t n, size_t k, size_t m) {
-    return (int32_t)(((ssize_t)n >> (RADIX * k) & (m - 1)));
+void radix_sort_int8_t(int8_t* arr, size_t n) {
+    if (n <= 1)
+        return;
+
+    uint8_t* a = (uint8_t*)arr;
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x80)
+            a[i] |= 0x80;
+        else
+            a[i] = (uint8_t)(-(int8_t)a[i]);
+    radix_sort_uint8_t(a, n);
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x80)
+            a[i] &= ~0x80;
+        else
+            a[i] = (uint8_t)(-(int8_t)a[i]);
 }
 
-void radix_sort(int32_t* array, size_t length) {
-    const size_t k = (32 + RADIX - 1) / RADIX;
-    const size_t m = (size_t)1 << RADIX;
-    const size_t s = sizeof(int32_t);
-    int32_t* l = array;
-    int32_t* r = l + length;
-    int32_t* b = force_malloc_s(s, length);
-    int32_t* c = force_malloc_s(s, m);
-    int32_t t;
-    for (size_t i = 0; i < k; i++) {
-        memset(c, 0, m * s);
+void radix_sort_uint8_t(uint8_t* arr, size_t n) {
+    if (n <= 1)
+        return;
 
-        for (int32_t* j = l; j < r; j++)
-            c[digit(*j, i, m)]++;
+    uint8_t* o = force_malloc_s(uint8_t, n);
+    size_t* c = force_malloc_s(size_t, RADIX);
+    uint8_t* org_arr = arr;
 
-        t = c[0];
-        for (size_t j = 1; j < m; j++)
-            t = c[j] += t;
+    for (size_t shift = 0, s = 0; shift < sizeof(uint8_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
+        memset(c, 0, sizeof(size_t) * RADIX);
 
-        for (int32_t* j = r - 1; j >= l; j--)
-            b[--c[digit(*j, i, m)]] = *j;
+        for (size_t i = 0; i < n; i++)
+            c[(arr[i] >> s) & (RADIX - 1)]++;
 
-        size_t cur = 0;
-        for (int32_t* j = l; j < r; j++)
-            *j = b[cur++];
+        for (size_t i = 1; i < RADIX; i++)
+            c[i] += c[i - 1];
+
+        for (ssize_t i = n - 1; i >= 0; i--)
+            o[--c[(arr[i] >> s) & (RADIX - 1)]] = arr[i];
+
+        uint8_t* t = arr;
+        arr = o;
+        o = t;
     }
-    free(b);
+
+    if (org_arr == o) {
+        uint8_t* t = arr;
+        arr = o;
+        o = t;
+
+        memmove(arr, o, sizeof(uint8_t) * n);
+    }
+
+    free(o);
+    free(c);
+}
+
+void radix_sort_int16_t(int16_t* arr, size_t n) {
+    if (n <= 1)
+        return;
+
+    uint16_t* a = (uint16_t*)arr;
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x8000)
+            a[i] |= 0x8000;
+        else
+            a[i] = (uint16_t)(-(int16_t)a[i]);
+    radix_sort_uint16_t(a, n);
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x8000)
+            a[i] &= ~0x8000;
+        else
+            a[i] = (uint16_t)(-(int16_t)a[i]);
+}
+
+void radix_sort_uint16_t(uint16_t* arr, size_t n) {
+    if (n <= 1)
+        return;
+
+    uint16_t* o = force_malloc_s(uint16_t, n);
+    size_t* c = force_malloc_s(size_t, RADIX);
+    uint16_t* org_arr = arr;
+
+    for (size_t shift = 0, s = 0; shift < sizeof(uint16_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
+        memset(c, 0, sizeof(size_t) * RADIX);
+
+        for (size_t i = 0; i < n; i++)
+            c[(arr[i] >> s) & (RADIX - 1)]++;
+
+        for (size_t i = 1; i < RADIX; i++)
+            c[i] += c[i - 1];
+
+        for (ssize_t i = n - 1; i >= 0; i--)
+            o[--c[(arr[i] >> s) & (RADIX - 1)]] = arr[i];
+
+        uint16_t* t = arr;
+        arr = o;
+        o = t;
+    }
+
+    if (org_arr == o) {
+        uint16_t* t = arr;
+        arr = o;
+        o = t;
+
+        memmove(arr, o, sizeof(uint16_t) * n);
+    }
+
+    free(o);
+    free(c);
+}
+
+void radix_sort_int32_t(int32_t* arr, size_t n) {
+    if (n <= 1)
+        return;
+
+    uint32_t* a = (uint32_t*)arr;
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x80000000)
+            a[i] |= 0x80000000;
+        else
+            a[i] = (uint32_t)(-(int32_t)a[i]);
+    radix_sort_uint32_t(a, n);
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x80000000)
+            a[i] &= ~0x80000000;
+        else
+            a[i] = (uint32_t)(-(int32_t)a[i]);
+}
+
+void radix_sort_uint32_t(uint32_t* arr, size_t n) {
+    if (n <= 1)
+        return;
+
+    uint32_t* o = force_malloc_s(uint32_t, n);
+    size_t* c = force_malloc_s(size_t, RADIX);
+    uint32_t* org_arr = arr;
+
+    for (size_t shift = 0, s = 0; shift < sizeof(uint32_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
+        memset(c, 0, sizeof(size_t) * RADIX);
+
+        for (size_t i = 0; i < n; i++)
+            c[(arr[i] >> s) & (RADIX - 1)]++;
+
+        for (size_t i = 1; i < RADIX; i++)
+            c[i] += c[i - 1];
+
+        for (ssize_t i = n - 1; i >= 0; i--)
+            o[--c[(arr[i] >> s) & (RADIX - 1)]] = arr[i];
+
+        uint32_t* t = arr;
+        arr = o;
+        o = t;
+    }
+
+    if (org_arr == o) {
+        uint32_t* t = arr;
+        arr = o;
+        o = t;
+
+        memmove(arr, o, sizeof(uint32_t) * n);
+    }
+
+    free(o);
+    free(c);
+}
+
+void radix_sort_int64_t(int64_t* arr, size_t n) {
+    if (n <= 1)
+        return;
+
+    uint64_t* a = (uint64_t*)arr;
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x8000000000000000)
+            a[i] |= 0x8000000000000000;
+        else
+            a[i] = (uint64_t)(-(int64_t)a[i]);
+    radix_sort_uint64_t(a, n);
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x8000000000000000)
+            a[i] &= ~0x8000000000000000;
+        else
+            a[i] = (uint64_t)(-(int64_t)a[i]);
+}
+
+void radix_sort_uint64_t(uint64_t* arr, size_t n) {
+    if (n <= 1)
+        return;
+
+    uint64_t* o = force_malloc_s(uint64_t, n);
+    size_t* c = force_malloc_s(size_t, RADIX);
+    uint64_t* org_arr = arr;
+
+    for (size_t shift = 0, s = 0; shift < sizeof(uint64_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
+        memset(c, 0, sizeof(size_t) * RADIX);
+
+        for (size_t i = 0; i < n; i++)
+            c[(arr[i] >> s) & (RADIX - 1)]++;
+
+        for (size_t i = 1; i < RADIX; i++)
+            c[i] += c[i - 1];
+
+        for (ssize_t i = n - 1; i >= 0; i--)
+            o[--c[(arr[i] >> s) & (RADIX - 1)]] = arr[i];
+
+        uint64_t* t = arr;
+        arr = o;
+        o = t;
+    }
+
+    if (org_arr == o) {
+        uint64_t* t = arr;
+        arr = o;
+        o = t;
+
+        memmove(arr, o, sizeof(uint64_t) * n);
+    }
+
+    free(o);
+    free(c);
+}
+
+void radix_sort_ssize_t(ssize_t* arr, size_t n) {
+    if (n <= 1)
+        return;
+
+    size_t* a = (size_t*)arr;
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x8000000000000000)
+            a[i] |= 0x8000000000000000;
+        else
+            a[i] = (size_t)(-(ssize_t)a[i]);
+    radix_sort_size_t(a, n);
+    for (size_t i = 0; i < n; i++)
+        if (a[i] & 0x8000000000000000)
+            a[i] &= ~0x8000000000000000;
+        else
+            a[i] = (size_t)(-(ssize_t)a[i]);
+}
+
+void radix_sort_size_t(size_t* arr, size_t n) {
+    if (n <= 1)
+        return;
+
+    size_t* o = force_malloc_s(size_t, n);
+    size_t* c = force_malloc_s(size_t, RADIX);
+    size_t* org_arr = arr;
+
+    for (size_t shift = 0, s = 0; shift < sizeof(size_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
+        memset(c, 0, sizeof(size_t) * RADIX);
+
+        for (size_t i = 0; i < n; i++)
+            c[(arr[i] >> s) & (RADIX - 1)]++;
+
+        for (size_t i = 1; i < RADIX; i++)
+            c[i] += c[i - 1];
+
+        for (ssize_t i = n - 1; i >= 0; i--)
+            o[--c[(arr[i] >> s) & (RADIX - 1)]] = arr[i];
+
+        size_t* t = arr;
+        arr = o;
+        o = t;
+    }
+
+    if (org_arr == o) {
+        size_t* t = arr;
+        arr = o;
+        o = t;
+
+        memmove(arr, o, sizeof(size_t) * n);
+    }
+
+    free(o);
     free(c);
 }

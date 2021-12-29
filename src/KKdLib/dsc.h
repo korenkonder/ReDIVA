@@ -6,6 +6,7 @@
 #pragma once
 
 #include "default.h"
+#include "vector.h"
 
 typedef enum dsc_diff {
     DSC_DIFF_EASY    = 0,
@@ -21,6 +22,31 @@ typedef enum dsc_f2_mode {
     DSC_MODE_SCENE  = 2,
     DSC_MODE_DAYO   = 3,
 } dsc_f2_mode;
+
+typedef enum dsc_type {
+    DSC_NONE = 0,
+    DSC_AC101,
+    DSC_AC110,
+    DSC_AC120,
+    DSC_AC200,
+    DSC_AC210,
+    DSC_AC500,
+    DSC_AC510,
+    DSC_AFT101,
+    DSC_AFT200,
+    DSC_AFT300,
+    DSC_AFT310,
+    DSC_AFT410,
+    DSC_AFT701,
+    DSC_FT,
+    DSC_PSP,
+    DSC_2ND,
+    DSC_F,
+    DSC_F2,
+    DSC_MGF,
+    DSC_X,
+    DSC_VRFL,
+} dsc_type;
 
 #pragma region dsc_note
 typedef struct dsc_note7 {
@@ -67,14 +93,14 @@ typedef struct dsc_note12 {
 typedef struct dsc_func {
     int32_t id;
     int32_t length;
-    wchar_t* name;
+    char* name;
 } dsc_func;
 
 typedef struct dsc_func_ac {
     int32_t id;
     int32_t length_old;
     int32_t length;
-    wchar_t* name;
+    char* name;
 } dsc_func_ac;
 #pragma endregion
 
@@ -235,6 +261,25 @@ typedef enum dsc_target_id_x {
 } dsc_target_id_x;
 #pragma endregion
 
+typedef struct dsc_data {
+    int32_t func;
+    uint32_t data_offset;
+} dsc_data;
+
+vector(dsc_data)
+
+typedef struct dsc {
+    dsc_type type;
+    union {
+        uint32_t signature;
+        uint32_t id;
+    };
+    vector_dsc_data data;
+    vector_uint32_t data_buffer;
+} dsc;
+
+typedef int32_t(*dsc_get_func_length)(int32_t id);
+
 extern int32_t dsc_ac101_get_func_length(int32_t id);
 extern int32_t dsc_ac110_get_func_length(int32_t id);
 extern int32_t dsc_ac120_get_func_length(int32_t id);
@@ -269,3 +314,13 @@ extern int32_t dsc_aft410_get_func_length_old(int32_t id);
 extern int32_t dsc_aft701_get_func_length_old(int32_t id);
 extern int32_t dsc_ft_get_func_length_old(int32_t id);
 extern int32_t dsc_f_get_func_length_old(int32_t id);
+
+extern const dsc_get_func_length dsc_get_func_length_array[];
+extern const dsc_get_func_length dsc_get_func_length_old_array[];
+
+extern void dsc_init(dsc* d);
+extern void dsc_data_buffer_rebuild(dsc* d);
+extern void* dsc_data_get_func_data(dsc* d, dsc_data* data);
+extern void dsc_parse(dsc* d, void* data, size_t length, dsc_type type);
+extern void dsc_unparse(dsc* d, void** data, size_t* length);
+extern void dsc_free(dsc* d);

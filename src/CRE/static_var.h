@@ -6,26 +6,18 @@
 #pragma once
 
 #include "../KKdLib/default.h"
-#include "../KKdLib/vec.h"
+#include "../KKdLib/light_param/fog.h"
+#include "../KKdLib/light_param/light.h"
 #include "../KKdLib/mat.h"
+#include "../KKdLib/vec.h"
 #include <glad/glad.h>
 
-typedef enum alpha_pass_type {
-    ALPHA_PASS_OPAQUE      = 0,
-    ALPHA_PASS_TRANSLUCENT = 1,
-    ALPHA_PASS_TRANSPARENT = 2,
-} alpha_pass_type;
-
-typedef enum fog_type {
-    FOG_NONE   = 0,
-    FOG_NORMAL = 1,
-    FOG_HEIGHT = 2,
-} fog_type;
-
-typedef struct object_info {
-    uint16_t id;
-    uint16_t set_id;
-} object_info;
+typedef enum draw_pass_3d_type {
+    DRAW_PASS_3D_OPAQUE      = 0,
+    DRAW_PASS_3D_TRANSLUCENT = 1,
+    DRAW_PASS_3D_TRANSPARENT = 2,
+    DRAW_PASS_3D_MAX         = 3,
+} draw_pass_3d_type;
 
 typedef enum uniform_name {
     U_NONE          = 0x00,
@@ -70,7 +62,7 @@ typedef enum uniform_name {
     U_NPR           = 0x27,
     U_LIGHT_1       = 0x28,
     U_REFLECT       = 0x29,
-    U2A             = 0x2A,
+    U_REDUCE        = 0x2A,
     U_SELF_SHADOW   = 0x2B,
     U_SHADOW        = 0x2C,
     U2D             = 0x2D,
@@ -109,24 +101,13 @@ extern int32_t sv_max_texture_max_anisotropy;
 extern bool sv_anisotropy_changed;
 extern int32_t sv_anisotropy;
 
-extern bool sv_fxaa_changed;
-extern bool sv_fxaa;
-
-extern bool sv_fxaa_preset_changed;
-extern int32_t sv_fxaa_preset;
-
 extern int32_t uniform_value[];
-
-extern float_t frame_speed;
-extern float_t target_fps;
-extern float_t current_fps;
 
 extern const vec3 sv_rgb_to_luma;
 extern const mat3 sv_rgb_to_ypbpr;
 extern const mat3 sv_ypbpr_to_rgb;
 
 extern void sv_anisotropy_set(int32_t value);
-extern void sv_fxaa_set(bool value);
-extern void sv_fxaa_preset_set(int32_t value);
-
-extern float_t get_frame_speed();
+extern float_t get_delta_frame();
+extern uint32_t get_frame_counter();
+extern void uniform_value_reset();

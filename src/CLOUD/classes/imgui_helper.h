@@ -29,9 +29,17 @@ extern void imguiSetColumnSpace(float_t val);
 extern void imguiSetDefaultColumnSpace();
 extern void imguiDisableElementPush(bool enable);
 extern void imguiDisableElementPop(bool enable);
+extern float_t imguiGetContentRegionAvailWidth();
+extern float_t imguiGetContentRegionAvailHeight();
+extern void imguiGetContentRegionAvailSetNextItemWidth();
 
-extern const char* imguiStartPropertyColumn(const char* label);
-extern void imguiEndPropertyColumn(const char* temp);
+extern void imguiStartPropertyColumn(const char* label);
+extern void imguiEndPropertyColumn();
+
+bool igSliderFloatButton(const char* label, float_t* val, float_t step,
+    float_t min, float_t max, const char* format, ImGuiSliderFlags flags);
+bool igSliderIntButton(const char* label, int32_t* val,
+    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags);
 
 extern bool imguiButton(const char* label, const ImVec2 size);
 extern bool imguiButtonEx(const char* label, const ImVec2 size, ImGuiButtonFlags flags);
@@ -42,11 +50,15 @@ extern bool imguiComboBox(const char* label, const char** items, const size_t si
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiComboBoxString(const char* label, string* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiComboBoxConfigFile(const char* label, void* items, const size_t size,
+    int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnColorEdit3(const char* label, vec3* val, ImGuiColorEditFlags flags);
 extern bool imguiColumnColorEdit4(const char* label, vec4* val, ImGuiColorEditFlags flags);
 extern bool imguiColumnComboBox(const char* label, const char** items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnComboBoxString(const char* label, string* items, const size_t size,
+    int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiColumnComboBoxConfigFile(const char* label, void* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnDragFloat(const char* label, float_t* val, float_t speed,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags);
@@ -66,22 +78,22 @@ extern bool imguiColumnDragVec4I(const char* label, vec4i* val, float_t speed,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags);
 extern bool imguiColumnInputText(const char* label, char* buf, size_t buf_size,
     ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void* user_data);
-extern bool imguiColumnSliderFloat(const char* label, float_t* val,
-    float_t min, float_t max, const char* format, ImGuiSliderFlags flags);
-extern bool imguiColumnSliderVec2(const char* label, vec2* val,
-    float_t min, float_t max, const char* format, ImGuiSliderFlags flags);
-extern bool imguiColumnSliderVec3(const char* label, vec3* val,
-    float_t min, float_t max, const char* format, ImGuiSliderFlags flags);
-extern bool imguiColumnSliderVec4(const char* label, vec4* val,
-    float_t min, float_t max, const char* format, ImGuiSliderFlags flags);
+extern bool imguiColumnSliderFloat(const char* label, float_t* val, float_t step,
+    float_t min, float_t max, const char* format, ImGuiSliderFlags flags, bool button);
+extern bool imguiColumnSliderVec2(const char* label, vec2* val, float_t step,
+    float_t min, float_t max, const char* format, ImGuiSliderFlags flags, bool button);
+extern bool imguiColumnSliderVec3(const char* label, vec3* val, float_t step,
+    float_t min, float_t max, const char* format, ImGuiSliderFlags flags, bool button);
+extern bool imguiColumnSliderVec4(const char* label, vec4* val, float_t step,
+    float_t min, float_t max, const char* format, ImGuiSliderFlags flags, bool button);
 extern bool imguiColumnSliderInt(const char* label, int32_t* val,
-    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags);
+    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, bool button);
 extern bool imguiColumnSliderVec2I(const char* label, vec2i* val,
-    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags);
+    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, bool button);
 extern bool imguiColumnSliderVec3I(const char* label, vec3i* val,
-    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags);
+    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, bool button);
 extern bool imguiColumnSliderVec4I(const char* label, vec4i* val,
-    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags);
+    int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, bool button);
 extern bool imguiColumnSliderLogInt(const char* label, int32_t* val,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags);
 extern bool imguiColumnSliderLogVec2I(const char* label, vec2i* val,

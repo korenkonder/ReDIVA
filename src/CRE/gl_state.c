@@ -5,47 +5,15 @@
 
 #include "gl_state.h"
 
-struct gl_state_struct {
-    GLuint program;
-    GLenum active_texture;
-    GLuint active_texture_index;
-    GLuint texture_binding_2d[32];
-    GLuint texture_binding_cube_map[32];
-    GLuint sampler_binding[32];
-    GLboolean blend;
-    GLenum blend_src_rgb;
-    GLenum blend_src_alpha;
-    GLenum blend_dst_rgb;
-    GLenum blend_dst_alpha;
-    GLenum blend_mode_rgb;
-    GLenum blend_mode_alpha;
-    GLuint framebuffer_binding;
-    GLuint vertex_array_binding;
-    GLuint array_buffer_binding;
-    GLuint element_array_buffer_binding;
-    GLuint uniform_buffer_index;
-    GLuint uniform_buffer_binding[14];
-    GLintptr uniform_buffer_offset[14];
-    GLsizeiptr uniform_buffer_size[14];
-    GLuint shader_storage_buffer_index;
-    GLuint shader_storage_buffer_binding[14];
-    GLintptr shader_storage_buffer_offset[14];
-    GLsizeiptr shader_storage_buffer_size[14];
-    GLboolean color_mask[4];
-    GLboolean cull_face;
-    GLenum cull_face_mode;
-    GLboolean depth_test;
-    GLenum depth_func;
-    GLboolean depth_mask;
-    GLenum polygon_front_face_mode;
-    GLenum polygon_back_face_mode;
-    GLboolean stencil_test;
-    GLuint stencil_mask;
-} gl_state;
+gl_state_struct gl_state;
 
 inline void gl_state_active_bind_texture_2d(int32_t index, GLuint texture) {
     if (gl_state.texture_binding_2d[index] != texture) {
-        gl_state_active_texture(index);
+        if (gl_state.active_texture_index != index) {
+            glActiveTexture((GLenum)(GL_TEXTURE0 + index));
+            gl_state.active_texture = (GLenum)(GL_TEXTURE0 + index);
+            gl_state.active_texture_index = (GLuint)index;
+        }
         glBindTexture(GL_TEXTURE_2D, texture);
         gl_state.texture_binding_2d[index] = texture;
     }
@@ -53,7 +21,11 @@ inline void gl_state_active_bind_texture_2d(int32_t index, GLuint texture) {
 
 inline void gl_state_active_bind_texture_cube_map(int32_t index, GLuint texture) {
     if (gl_state.texture_binding_cube_map[index] != texture) {
-        gl_state_active_texture(index);
+        if (gl_state.active_texture_index != index) {
+            glActiveTexture((GLenum)(GL_TEXTURE0 + index));
+            gl_state.active_texture = (GLenum)(GL_TEXTURE0 + index);
+            gl_state.active_texture_index = (GLuint)index;
+        }
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
         gl_state.texture_binding_cube_map[index] = texture;
     }
@@ -81,6 +53,20 @@ inline void gl_state_bind_vertex_array(GLuint array) {
     }
 }
 
+inline void gl_state_bind_array_buffer(GLuint buffer) {
+    if (gl_state.array_buffer_binding != buffer) {
+        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+        gl_state.array_buffer_binding = buffer;
+    }
+}
+
+inline void gl_state_bind_element_array_buffer(GLuint buffer) {
+    if (gl_state.element_array_buffer_binding != buffer) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
+        gl_state.element_array_buffer_binding = buffer;
+    }
+}
+
 inline void gl_state_bind_uniform_buffer(GLuint buffer) {
     if (gl_state.uniform_buffer_binding[gl_state.uniform_buffer_index] != buffer) {
         glBindBuffer(GL_UNIFORM_BUFFER, buffer);
@@ -94,6 +80,7 @@ inline void gl_state_bind_uniform_buffer_base(GLuint index, GLuint buffer) {
         gl_state.uniform_buffer_binding[index] = buffer;
         gl_state.uniform_buffer_offset[index] = 0;
         gl_state.uniform_buffer_size[index] = -1;
+        gl_state.uniform_buffer_index = index;
     }
 }
 
@@ -136,6 +123,7 @@ inline void gl_state_bind_shader_storage_buffer_range(GLuint index,
         gl_state.shader_storage_buffer_binding[index] = buffer;
         gl_state.shader_storage_buffer_offset[index] = offset;
         gl_state.shader_storage_buffer_size[index] = size;
+        gl_state.shader_storage_buffer_index = index;
     }
 }
 
@@ -209,8 +197,22 @@ inline void gl_state_disable_depth_test() {
     }
 }
 
+inline void gl_state_disable_primitive_restart() {
+    if (!gl_state.primitive_restart) {
+        glDisable(GL_PRIMITIVE_RESTART);
+        gl_state.primitive_restart = GL_FALSE;
+    }
+}
+
+inline void gl_state_disable_scissor_test() {
+    if (gl_state.scissor_test) {
+        glDisable(GL_SCISSOR_TEST);
+        gl_state.scissor_test = GL_FALSE;
+    }
+}
+
 inline void gl_state_disable_stencil_test() {
-    if (gl_state.cull_face) {
+    if (gl_state.stencil_test) {
         glDisable(GL_STENCIL_TEST);
         gl_state.stencil_test = GL_FALSE;
     }
@@ -237,8 +239,22 @@ inline void gl_state_enable_depth_test() {
     }
 }
 
+inline void gl_state_enable_primitive_restart() {
+    if (!gl_state.primitive_restart) {
+        glEnable(GL_PRIMITIVE_RESTART);
+        gl_state.primitive_restart = GL_TRUE;
+    }
+}
+
+inline void gl_state_enable_scissor_test() {
+    if (!gl_state.scissor_test) {
+        glEnable(GL_SCISSOR_TEST);
+        gl_state.scissor_test = GL_TRUE;
+    }
+}
+
 inline void gl_state_enable_stencil_test() {
-    if (!gl_state.cull_face) {
+    if (!gl_state.stencil_test) {
         glEnable(GL_STENCIL_TEST);
         gl_state.stencil_test = GL_TRUE;
     }
@@ -294,12 +310,11 @@ void gl_state_get() {
     glGetIntegerv(GL_CULL_FACE_MODE, (GLint*)&gl_state.cull_face_mode);
     glGetBooleanv(GL_DEPTH_TEST, &gl_state.depth_test);
     glGetIntegerv(GL_DEPTH_FUNC, (GLint*)&gl_state.depth_func);
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &gl_state.cull_face);
-    glGetBooleanv(GL_CULL_FACE, &gl_state.depth_mask);
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &gl_state.depth_mask);
+    glGetBooleanv(GL_PRIMITIVE_RESTART, &gl_state.primitive_restart);
+    glGetBooleanv(GL_SCISSOR_TEST, &gl_state.scissor_test);
     glGetBooleanv(GL_STENCIL_TEST, &gl_state.stencil_test);
     glGetIntegerv(GL_STENCIL_WRITEMASK, (GLint*)&gl_state.stencil_mask);
-    glGetBooleanv(GL_CULL_FACE, &gl_state.cull_face);
-    glGetBooleanv(GL_CULL_FACE, &gl_state.cull_face);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     gl_state.polygon_front_face_mode = GL_FILL;
@@ -318,12 +333,12 @@ inline GLuint gl_state_get_program() {
 
 inline void gl_state_set_blend_func(GLenum src, GLenum dst) {
     if (gl_state.blend_src_rgb != src || gl_state.blend_dst_rgb != dst
-        || gl_state.blend_src_alpha != GL_SRC_ALPHA || gl_state.blend_dst_alpha != GL_ONE_MINUS_SRC_ALPHA) {
-        glBlendFuncSeparate(src, dst, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        || gl_state.blend_src_alpha != GL_ONE_MINUS_DST_ALPHA || gl_state.blend_dst_alpha != GL_ONE) {
+        glBlendFuncSeparate(src, dst, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
         gl_state.blend_src_rgb = src;
         gl_state.blend_dst_rgb = dst;
-        gl_state.blend_src_alpha = GL_SRC_ALPHA;
-        gl_state.blend_dst_alpha = GL_ONE_MINUS_SRC_ALPHA;
+        gl_state.blend_src_alpha = GL_ONE_MINUS_DST_ALPHA;
+        gl_state.blend_dst_alpha = GL_ONE;
     }
 }
 
@@ -419,7 +434,7 @@ inline void gl_state_set_polygon_mode(GLenum face, GLenum mode) {
     }
 }
 
-extern void gl_state_set_stencil_mask(GLuint mask) {
+inline void gl_state_set_stencil_mask(GLuint mask) {
     if (gl_state.stencil_mask != mask) {
         glStencilMask(mask);
         gl_state.stencil_mask = mask;

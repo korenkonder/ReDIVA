@@ -6,73 +6,58 @@
 */
 
 #include "render.h"
-#include "../CRE/camera.h"
-#include "../CRE/dof.h"
-#include "../CRE/gl_state.h"
-#include "../CRE/post_process.h"
-#include "../CRE/random.h"
-#include "../CRE/shader.h"
-#include "../CRE/shader_aft.h"
-#include "../CRE/static_var.h"
-#include "../KKdLib/farc.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #include <cimgui_impl.h>
-#include "../CRE/fbo_hdr.h"
-#include "../CRE/fbo_pp.h"
-#include "../CRE/fbo_render.h"
-#include "../CRE/fbo_helper.h"
-#include "../CRE/lock.h"
-#include "../CRE/shader_glsl.h"
-#include "../CRE/timer.h"
 #include "../CRE/Glitter/particle_manager.h"
-#include "../CRE/post_process/dof.h"
-#include "../CRE/fbo_hdr.h"
+#include "../CRE/camera.h"
+#include "../CRE/data.h"
+#include "../CRE/draw_pass.h"
+#include "../CRE/fbo.h"
+#include "../CRE/gl_state.h"
+#include "../CRE/light_param.h"
+#include "../CRE/lock.h"
+#include "../CRE/object.h"
+#include "../CRE/random.h"
+#include "../CRE/rob.h"
+#include "../CRE/shader.h"
+#include "../CRE/shader_ft.h"
+#include "../CRE/shader_glsl.h"
+#include "../CRE/stage.h"
+#include "../CRE/static_var.h"
+#include "../CRE/texture.h"
+#include "../CRE/timer.h"
+#include "../CRE/post_process.h"
+#include "../KKdLib/io/path.h"
+#include "../KKdLib/farc.h"
+#include"classes/imgui_helper.h"
+#include <timeapi.h>
 
 #if defined(DEBUG)
 #define OPENGL_DEBUG 0
 #endif
 
-fbo_render* rfbo;
-fbo_hdr* hfbo;
-fbo_pp* pfbo;
-
-post_process_dof pp_dof;
-
-shader_set_data shaders_aft;
-
-static shader_glsl bfbs[14];
-static shader_glsl cfbs[2];
-static shader_glsl dfbs[9];
-static shader_glsl fxaas[3];
-static shader_glsl ffbs;
 shader_glsl grid_shader;
 
 timer render_timer;
 
 #define grid_size 50.0f
-#define grid_spacing 0.5f
-#define grid_vertex_count ((size_t)((grid_size * 2.0f) / grid_spacing) + 1) * 4
+#define grid_spacing 1.0f
+const size_t grid_vertex_count = ((size_t)(grid_size / grid_spacing) * 2 + 1) * 4;
 
-static int32_t fb_vao, fb_vbo;
-static int32_t grid_vao, grid_vbo;
-static int32_t common_data_ubo = 0;
+GLuint grid_vbo;
+static GLuint common_data_ubo = 0;
+stage stage_stgtst;
+stage stage_test_data;
 
 #define COMMON_DATA_SIZE (int32_t)(sizeof(vec4) + sizeof(mat4) * 3 + sizeof(vec4))
 
-bool      imgui = true;
-bool         ui = true;
-bool   front_2d = true;
-bool    grid_3d = false;
-bool   front_3d = true;
-bool    back_2d = true;
-bool glitter_3d = true;
+bool draw_imgui   = true;
+bool draw_grid_3d = false;
 
-bool enable_post_process = true;
-
-extern const double_t render_scale_table[] = {
+const double_t render_scale_table[] = {
      1.0 / 4.0, //  25%
      2.0 / 4.0, //  50%
      3.0 / 4.0, //  75%
@@ -89,41 +74,34 @@ static vec2i old_internal_2d_res;
 static vec2i old_internal_3d_res;
 vec2i internal_2d_res;
 vec2i internal_3d_res;
+static int32_t old_width;
+static int32_t old_height;
 int32_t width;
 int32_t height;
 
 static const double_t aspect = 16.0 / 9.0;
-camera* cam;
-dof_struct* dof;
-radius* rad;
-intensity* inten;
-tone_map* tm;
-glitter_particle_manager* gpm;
 vec3 back3d_color;
 bool set_clear_color;
 
-static void render_load();
-static void render_update();
-static void render_draw();
-static void render_dispose();
+bool light_chara_ambient;
+vec4 npr_spec_color;
 
-static void render_imgui();
-static void render_2d();
-static void render_3d();
-static void render_3d_translucent();
-static void render_grid_3d();
-static void render_glitter_3d(alpha_pass_type alpha);
+static render_context* render_load();
+static bool render_load_shaders(void* data, char* path, char* file, uint32_t hash);
+static void render_update(render_context* rctx);
+static void render_draw(render_context* rctx);
+static void render_dispose(render_context* rctx);
 
-static void render_get_aspect_correct_2d_res(vec2i* res);
-static void render_get_aspect_correct_3d_res(vec2i* res);
+static void render_imgui(render_context* rctx);
 
 static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths);
 static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h);
-static void render_resize_fb(bool change_fb);
+static void render_resize_fb(render_context* rctx, bool change_fb);
 
-static void render_imgui_context_menu(classes_struct* classes, const size_t classes_count);
-static bool render_glitter_mesh_update(glitter_render_element* element,
-    glitter_particle_mesh* mesh_data, vec4* color, mat4* mat, mat4* uv_mat);
+static void render_imgui_context_menu(classes_struct* classes,
+    const size_t classes_count, render_context* rctx);
+static void render_shaders_load();
+static void render_shaders_free();
 
 #if defined (DEBUG) && OPENGL_DEBUG
 static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id,
@@ -131,15 +109,20 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
 #endif
 
 extern bool close;
+bool reload_render;
 lock render_lock;
 HWND window_handle;
 GLFWwindow* window;
 ImGuiContext* imgui_context;
 lock imgui_context_lock;
 bool global_context_menu;
+extern size_t frame_counter;
+wind* wind_ptr;
+object_database* obj_db_ptr;
 
 int32_t render_main(void* arg) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+    timeBeginPeriod(1);
     timer_init(&render_timer, 60.0);
 
     state = RENDER_UNINITIALIZED;
@@ -202,7 +185,7 @@ int32_t render_main(void* arg) {
     glfwFocusWindow(window);
     glfwSetDropCallback(window, (void*)render_drop_glfw);
     glfwSetWindowSizeCallback(window, (void*)render_resize_fb_glfw);
-    glfwSetWindowSizeLimits(window, 960, 540, GLFW_DONT_CARE, GLFW_DONT_CARE);
+    glfwSetWindowSizeLimits(window, 896, 504, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
     RECT window_rect;
     GetClientRect(window_handle, &window_rect);
@@ -230,56 +213,69 @@ int32_t render_main(void* arg) {
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 
+    lock_init(&pv_lock);
+
     lock_lock(&state_lock);
     state = RENDER_INITIALIZING;
     lock_unlock(&state_lock);
 
-    lock_lock(&render_lock);
-    render_load();
-    lock_unlock(&render_lock);
+    do {
+        close = false;
+        reload_render = false;
 
-    lock_lock(&state_lock);
-    state = RENDER_INITIALIZED;
-    lock_unlock(&state_lock);
+        render_context* rctx = 0;
+        lock_lock(&render_lock);
+        rctx = render_load();
+        lock_unlock(&render_lock);
+
+        lock_lock(&state_lock);
+        frame_counter = 0;
+        state = RENDER_INITIALIZED;
+        lock_unlock(&state_lock);
 
 #pragma region GL Init
-    glfwGetFramebufferSize(window, &width, &height);
-    glViewport(0, 0, width, height);
-    glfwSwapInterval(0);
+        glfwGetFramebufferSize(window, &width, &height);
+        glViewport(0, 0, width, height);
+        glfwSwapInterval(0);
 
-    gl_state_disable_blend();
-    gl_state_disable_depth_test();
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_disable_cull_face();
-    gl_state_disable_stencil_test();
+        gl_state_disable_blend();
+        gl_state_disable_depth_test();
+        gl_state_set_depth_mask(GL_FALSE);
+        gl_state_disable_cull_face();
+        gl_state_disable_stencil_test();
 #pragma endregion
 
-    while (!close) {
-        timer_start_of_cycle(&render_timer);
-        glfwPollEvents();
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        igNewFrame();
+        timer_reset(&render_timer);
+        while (!close && !reload_render) {
+            timer_start_of_cycle(&render_timer);
+            glfwPollEvents();
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            igNewFrame();
+            lock_lock(&render_lock);
+            render_update(rctx);
+            lock_unlock(&render_lock);
+            render_draw(rctx);
+            glfwSwapBuffers(window);
+            close |= glfwWindowShouldClose(window);
+            frame_counter++;
+            timer_end_of_cycle(&render_timer);
+        }
+
+        lock_lock(&state_lock);
+        state = RENDER_DISPOSING;
+        lock_unlock(&state_lock);
+
         lock_lock(&render_lock);
-        render_update();
+        render_dispose(rctx);
         lock_unlock(&render_lock);
-        render_draw();
-        glfwSwapBuffers(window);
-        close |= glfwWindowShouldClose(window);
-        timer_end_of_cycle(&render_timer);
-    }
-
-    lock_lock(&state_lock);
-    state = RENDER_DISPOSING;
-    lock_unlock(&state_lock);
-
-    lock_lock(&render_lock);
-    render_dispose();
-    lock_unlock(&render_lock);
+    } while (reload_render);
 
     lock_lock(&state_lock);
     state = RENDER_DISPOSED;
     lock_unlock(&state_lock);
+
+    lock_free(&pv_lock);
 
 #pragma region GLFW Dispose
     glfwDestroyWindow(window);
@@ -337,273 +333,219 @@ void render_set_scale_index(int32_t index) {
     scale = (float_t)value;
 }
 
-static void render_load() {
+static render_context* render_load() {
+    object_storage_init();
+    texture_storage_init();
+
+    render_context* rctx = render_context_init();
+
     gl_state_get();
+    render_texture_data_init();
 
-    cam = camera_init();
-    dof = dof_init();
-    rad = radius_init();
-    inten = intensity_init();
-    tm = tone_map_init();
-    gpm = glitter_particle_manager_init();
+    auth_3d_data_init();
+    light_param_storage_init();
+    motion_storage_init();
 
-    dof_initialize(dof, 0, 0);
-    radius_initialize(rad, (vec3[]) { 2.0f, 2.0f, 2.0f });
-    intensity_initialize(inten, (vec3[]) { 1.0f, 1.0f, 1.0f });
-    tone_map_initialize(tm, 2.0f, true, 1.0f, 1, 1.0f, (vec3[]) { 0.0f, 0.0f, 0.0f},
-        0.0f, 0, (vec3[]) { 0.0f, 0.0f, 0.0f }, (vec3[]) { 1.0f, 1.0f, 1.0f }, 0);
+    GPM_VAL = glitter_particle_manager_init();
+    GPM_VAL->rctx = rctx;
 
-    camera_initialize(cam, aspect, 70.0);
-    camera_reset(cam);
-    //camera_set_position(cam, &(vec3){ 1.35542f, 1.41634f, 1.27852f });
-    //camera_rotate(cam, &(vec2d){ -45.0, -32.5 });
-    //camera_set_position(cam, &(vec3){ -6.67555f, 4.68882f, -3.67537f });
-    //camera_rotate(cam, &(vec2d){ 136.5, -20.5 });
-    camera_set_position(cam, &(vec3){ 0.0f, 1.0f, 3.45f });
+    data_struct_init();
+    data_struct_load("CLOUD_data.txt");
 
     glGenBuffers(1, &common_data_ubo);
 
     gl_state_bind_uniform_buffer(common_data_ubo);
     glBufferData(GL_UNIFORM_BUFFER, COMMON_DATA_SIZE, 0, GL_STREAM_DRAW);
-
     glBindBufferRange(GL_UNIFORM_BUFFER, 0, common_data_ubo, 0, COMMON_DATA_SIZE);
+    gl_state_bind_uniform_buffer(0);
 
-#pragma region Load Shaders
-    char temp[0x80];
-    memset(temp, 0, sizeof(temp));
+    uniform_value[U16] = 1;
 
-    hfbo = fbo_hdr_init();
-    rfbo = fbo_render_init();
-    pfbo = fbo_pp_init();
+    render_shaders_load();
 
-    post_process_dof_init(&pp_dof);
+    const char* grid_vert_shader =
+        "#version 430 core\n"
+        "layout(location = 0) in vec4 a_position;\n"
+        "layout(location = 1) in int a_color_index;\n"
+        "\n"
+        "out VertexData {\n"
+        "    vec4 color;\n"
+        "} result;\n"
+        "\n"
+        "layout(location = 0) uniform mat4 vp;\n"
+        "\n"
+        "vec4 colors[] = {\n"
+        "    vec4(1.0, 0.0, 0.0, 1.0),\n"
+        "    vec4(0.0, 1.0, 0.0, 1.0),\n"
+        "    vec4(0.2, 0.2, 0.2, 1.0),\n"
+        "};\n"
+        "\n"
+        "void main() {\n"
+        "    gl_Position = vp * a_position.xzyw;\n"
+        "    result.color = colors[a_color_index];\n"
+        "}\n";
 
-    const float_t verts_quad[] = {
-        -1.0f,  1.0f,  0.0f,  1.0f,
-        -1.0f, -3.0f,  0.0f, -1.0f,
-         3.0f,  1.0f,  2.0f,  1.0f,
-    };
+    const char* grid_frag_shader =
+        "#version 430 core\n"
+        "layout(location = 0) out vec4 result;\n"
+        "\n"
+        "in VertexData {\n"
+        "    vec4 color;\n"
+        "} frg;\n"
+        "\n"
+        "void main() {\n"
+        "    result = frg.color;\n"
+        "}\n";
 
-    glGenBuffers(1, &fb_vbo);
-    glGenVertexArrays(1, &fb_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, fb_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts_quad), verts_quad, GL_STATIC_DRAW);
+    const char* fbo_render_vert_shader = "#version 430 core\n"
+        "void main() {\n"
+        "    gl_Position.x = -1.0 + float(gl_VertexID / 2) * 4.0;\n"
+        "    gl_Position.y = 1.0 - float(gl_VertexID % 2) * 4.0;\n"
+        "    gl_Position.z = 0.0;\n"
+        "    gl_Position.w = 1.0;\n"
+        "}\n";
 
-    gl_state_bind_vertex_array(fb_vao);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 16, (void*)0);  // Pos
-    glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color0
-    glVertexAttrib4f(4, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color1
-    glEnableVertexAttribArray(8);
-    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);  // TexCoord0
-    glEnableVertexAttribArray(9);
-    glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);  // TexCoord1
-    glEnableVertexAttribArray(10);
-    glVertexAttribPointer(10, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord2
-    glEnableVertexAttribArray(11);
-    glVertexAttribPointer(11, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord3
-    glEnableVertexAttribArray(12);
-    glVertexAttribPointer(12, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord4
-    glEnableVertexAttribArray(13);
-    glVertexAttribPointer(13, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord5
-    glEnableVertexAttribArray(14);
-    glVertexAttribPointer(14, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord6
-    glEnableVertexAttribArray(15);
-    glVertexAttribPointer(15, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord7
-    gl_state_bind_vertex_array(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    const char* fbo_render_color_frag_shader =
+        "#version 430 core\n"
+        "layout(location = 0) out vec4 result;\n"
+        "\n"
+        "layout(binding = 0) uniform sampler2D g_color;\n"
+        "\n"
+        "void main() {\n"
+        "    result = texelFetch(g_color, ivec2(gl_FragCoord.xy), 0);\n"
+        "}\n";
 
-    farc* f = farc_init();
-    farc_read(f, "rom\\aft_shaders.farc", true, false);
-    shader_aft_load(&shaders_aft, f, false);
-    farc_dispose(f);
-
-    f = farc_init();
-    farc_read(f, "rom\\core_shaders.farc", true, false);
+    const char* fbo_render_depth_frag_shader = "#version 430 core\n"
+        "layout(location = 0) out vec4 result;\n"
+        "\n"
+        "layout(binding = 0) uniform sampler2D g_color;\n"
+        "layout(binding = 1) uniform sampler2D g_depth;\n"
+        "\n"
+        "void main() {\n"
+        "    result = texelFetch(g_color, ivec2(gl_FragCoord.xy), 0);\n"
+        "    gl_FragDepth = texelFetch(g_depth, ivec2(gl_FragCoord.xy), 0).r;\n"
+        "}\n";
 
     shader_glsl_param param;
-
-    memset(&param, 0, sizeof(shader_glsl_param));
-    param.name = "Color FB Color";
-    param.vert = "rfb";
-    param.frag = "cfbc";
-    shader_glsl_load(&cfbs[0], f, &param);
-
-    memset(&param, 0, sizeof(shader_glsl_param));
-    param.name = "Color FB Depth";
-    param.vert = "rfb";
-    param.frag = "cfbd";
-    shader_glsl_load(&cfbs[1], f, &param);
-
-    for (int32_t i = 3; i < 6; i++) {
-        memset(&param, 0, sizeof(shader_glsl_param));
-        param.name = "FXAA";
-        param.vert = "rfb";
-        param.frag = "fxaa";
-        snprintf(temp, sizeof(temp), "FXAA_PRESET %d", i);
-        param.param[0] = temp;
-        shader_glsl_load(&fxaas[i - 3], f, &param);
-    }
-
-    memset(&param, 0, sizeof(shader_glsl_param));
-    param.name = "Final FB";
-    param.vert = "rfb";
-    param.frag = "rfb";
-    shader_glsl_load(&ffbs, f, &param);
-
-    char* post_process_vert_shaders[] = {
-        "rfb",
-        "rfb",
-        "rfb",
-        "exposure1",
-        "rfb",
-        "rfb",
-        "rfb",
-        "rfb",
-        "rfb",
-        "rfb",
-        "blur5",
-        "rfb",
-        "exposure2",
-        "exposure3",
-    };
-
-    char* post_process_frag_shaders[] = {
-        "blur1",
-        "blur2",
-        "blur3",
-        "exposure1",
-        "blur4",
-        "blur4",
-        "blur4",
-        "blur4",
-        "blur4",
-        "blur4",
-        "blur5",
-        "blur6",
-        "exposure2",
-        "exposure3",
-    };
-
-    for (int32_t i = 0; i < 14; i++) {
-        memset(&param, 0, sizeof(shader_glsl_param));
-        param.param[0] = temp;
-        param.name = "Post Process FB";
-        param.vert = post_process_vert_shaders[i];
-        param.frag = post_process_frag_shaders[i];
-        shader_glsl_load(&bfbs[i], f, &param);
-    }
-
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Grid";
-    param.vert = "grid";
-    param.frag = "grid";
-    shader_glsl_load(&grid_shader, f, &param);
-    farc_dispose(f);
+    shader_glsl_load_string(&grid_shader,
+        (char*)grid_vert_shader, (char*)grid_frag_shader, 0, &param);
 
-    shader_glsl_set_int(&cfbs[0], "g_color", 0);
-    shader_glsl_set_int(&cfbs[1], "g_color", 0);
-    shader_glsl_set_int(&cfbs[1], "g_depth", 1);
+    render_resize_fb(rctx, false);
 
-    for (int32_t i = 0; i < 3; i++)
-        shader_glsl_set_int(&fxaas[i], "g_color", 0);
+    post_process_init_fbo(&rctx->post_process, internal_3d_res.x, internal_3d_res.y,
+        internal_2d_res.x, internal_2d_res.y, width, height);
 
-   shader_glsl_set_int(&ffbs, "g_color", 0);
+    render_resize_fb(rctx, true);
 
-    for (int32_t i = 0; i < 2; i++)
-        shader_glsl_set_int(&bfbs[i], "g_color", 0);
+    rob_chara_data_array_init();
 
-    shader_glsl_set_int(&bfbs[2], "g_color", 0);
+    data_struct* aft_data = &data_list[DATA_AFT];
+    auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+    texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+    stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
-    shader_glsl_set_int(&bfbs[3], "g_color", 0);
+    rctx->data = aft_data;
 
-    for (int32_t i = 4; i < 11; i++)
-        shader_glsl_set_int(&bfbs[i], "g_color", 0);
+    stage_init(&stage_stgtst);
+    stage_load(&stage_stgtst, aft_data, aft_auth_3d_db,
+        aft_obj_db, aft_tex_db, aft_stage_data, "STGTST", rctx);
+    stage_set(&stage_stgtst, rctx);
 
-    shader_glsl_set_int(&bfbs[11], "g_bloom_full", 0);
-    shader_glsl_set_int(&bfbs[11], "g_bloom_half", 1);
-    shader_glsl_set_int(&bfbs[11], "g_bloom_quat", 2);
-    shader_glsl_set_int(&bfbs[11], "g_bloom_eight", 3);
-    shader_glsl_set_int(&bfbs[12], "g_luma", 0);
-    shader_glsl_set_int(&bfbs[13], "g_exp_hist", 0);
+    object_set_info* set_info;
+    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM000");
+    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM001");
+    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM301");
+    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM500");
+    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM181");
+    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM481");
+    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM681");
+    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM981");
 
+    motion_set_load_motion(216, 0, aft_mot_db);
 
-    render_resize_fb(false);
+    rob_chara_pv_data pv_data;
+    rob_chara_pv_data_init(&pv_data);
+    item_sub_data sub_data;
+    memset(&sub_data, 0, sizeof(item_sub_data));
+    sub_data.kami = 500;
+    sub_data.outer = 1;
+    sub_data.kata = 301;
+    //sub_data.kami = 681;
+    //sub_data.outer = 181;
+    //sub_data.kata = 481;
+    //sub_data.head = 981;
+    rob_chara_data_set(&rob_chara_data_array[0], 0, CHARA_MIKU, 0, &pv_data);
+    rob_chara_data_reset(&rob_chara_data_array[0],
+        &rob_chara_data_array[0].pv_data, aft_bone_data, aft_mot_db);
+    rob_chara_data_reload_items(&rob_chara_data_array[0], &sub_data, aft_bone_data);
+    rob_chara_data_load_motion(&rob_chara_data_array[0], 1294, 2, aft_bone_data, aft_mot_db);
 
-    fbo_render_initialize(rfbo, &internal_3d_res, fb_vao, &cfbs[0], &cfbs[1]);
-    fbo_hdr_initialize(hfbo, &internal_3d_res, fb_vao, fxaas);
-    fbo_pp_initialize(pfbo, &internal_3d_res, fb_vao, bfbs);
-
-    post_process_dof_init_fbo(&pp_dof, internal_3d_res.x, internal_3d_res.y);
-
-    render_resize_fb(true);
-#pragma endregion
-
-    float_t* grid_verts = force_malloc_s(float_t, grid_vertex_count * 4);
-
-    vec4h r_color, g_color, b_color, m_color;
-    vec4_to_vec4h(((vec4) { 1.0f, 0.0f, 0.0f, 1.0f }), r_color);
-    vec4_to_vec4h(((vec4) { 0.0f, 1.0f, 0.0f, 1.0f }), g_color);
-    vec4_to_vec4h(((vec4) { 0.2f, 0.2f, 0.2f, 0.6f }), b_color);
-    vec4_to_vec4h(((vec4) { 0.5f, 0.5f, 0.5f, 0.6f }), m_color);
+    float_t* grid_verts = force_malloc(sizeof(float_t) * 3 * grid_vertex_count);
 
     size_t v = 0;
     for (float_t x = -grid_size; x <= grid_size; x += grid_spacing) {
-        vec4h x_color;
-        vec4h z_color;
+        int32_t x_color_index;
+        int32_t z_color_index;
         if (x == 0) {
-            x_color = r_color;
-            z_color = g_color;
-        }
-        else if (abs((int32_t)(x / grid_spacing)) % 2 == 0) {
-            x_color = b_color;
-            z_color = b_color;
+            x_color_index = 0;
+            z_color_index = 1;
         }
         else {
-            x_color = m_color;
-            z_color = m_color;
+            x_color_index = 2;
+            z_color_index = 2;
         }
 
         grid_verts[v++] = x;
         grid_verts[v++] = -grid_size;
-        *(vec2h*)&grid_verts[v++] = *(vec2h*)&x_color.x;
-        *(vec2h*)&grid_verts[v++] = *(vec2h*)&x_color.z;
+        *(int32_t*)&grid_verts[v++] = x_color_index;
 
         grid_verts[v++] = x;
         grid_verts[v++] = grid_size;
-        *(vec2h*)&grid_verts[v++] = *(vec2h*)&x_color.x;
-        *(vec2h*)&grid_verts[v++] = *(vec2h*)&x_color.z;
+        *(int32_t*)&grid_verts[v++] = x_color_index;
 
         grid_verts[v++] = -grid_size;
         grid_verts[v++] = x;
-        *(vec2h*)&grid_verts[v++] = *(vec2h*)&z_color.x;
-        *(vec2h*)&grid_verts[v++] = *(vec2h*)&z_color.z;
+        *(int32_t*)&grid_verts[v++] = z_color_index;
 
         grid_verts[v++] = grid_size;
         grid_verts[v++] = x;
-        *(vec2h*)&grid_verts[v++] = *(vec2h*)&z_color.x;
-        *(vec2h*)&grid_verts[v++] = *(vec2h*)&z_color.z;
+        *(int32_t*)&grid_verts[v++] = z_color_index;
     }
 
     glGenBuffers(1, &grid_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, grid_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float_t)
-        * grid_vertex_count * 4, grid_verts, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glGenVertexArrays(1, &grid_vao);
-    gl_state_bind_vertex_array(grid_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, grid_vbo);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
-        sizeof(float_t) * 4, (void*)0); // Pos
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_HALF_FLOAT, GL_FALSE,
-        sizeof(float_t) * 4, (void*)(sizeof(float_t) * 2)); // Color
-    gl_state_bind_vertex_array(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    gl_state_bind_array_buffer(grid_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 3
+        * grid_vertex_count, grid_verts, GL_STATIC_DRAW);
+    gl_state_bind_array_buffer(0);
 
     free(grid_verts);
+
+    camera* cam = rctx->camera;
+
+    camera_initialize(cam, aspect, internal_3d_res.x, internal_3d_res.y);
+    camera_reset(cam);
+    //camera_set_position(cam, &((vec3){ 1.35542f, 1.41634f, 1.27852f }));
+    //camera_rotate(cam, &((vec2d){ -45.0, -32.5 }));
+    //camera_set_position(cam, &((vec3){ -6.67555f, 4.68882f, -3.67537f }));
+    //camera_rotate(cam, &((vec2d){ 136.5, -20.5 }));
+    camera_set_position(cam, &((vec3) { 0.0f, 1.0f, 3.45f }));
+    camera_set_fov(cam, 70.0);
+
+    typedef struct struc_403 {
+        int32_t field_0;
+        int32_t field_4;
+        int32_t field_8;
+    } struc_403;
+
+    typedef struct struc_404 {
+        int32_t field_0;
+        int32_t field_4;
+    } struc_404;
 
     imgui_context = igCreateContext(0);
     lock_init(&imgui_context_lock);
@@ -619,59 +561,90 @@ static void render_load() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
 
-    back3d_color = (vec3){ 0.74117647f, 0.74117647f, 0.74117647f };
+    back3d_color = (vec3){ (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
     set_clear_color = true;
 
-    shader_env_vert_set_ptr(&shaders_aft, 3, (vec4*)&vec4_identity);
-    shader_env_vert_set_ptr(&shaders_aft, 4, (vec4*)&vec4_null);
-    classes_process_init(classes, classes_count);
+    shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
+    shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
+    classes_process_init(classes, classes_count, rctx);
+    return rctx;
+}
+
+static bool render_load_shaders(void* data, char* path, char* file, uint32_t hash) {
+    string s;
+    string_init(&s, path);
+    string_add(&s, file);
+
+    farc f;
+    farc_init(&f);
+    farc_read(&f, string_data(&s), true, false);
+    shader_ft_load(data, &f, false);
+    farc_free(&f);
+
+    string_free(&s);
+    return true;
 }
 
 extern vec2d input_move;
 extern vec2d input_rotate;
 extern double_t input_roll;
 extern bool input_reset;
+extern bool input_shaders_reload;
 
-static void render_update() {
+static void render_update(render_context* rctx) {
+    camera* cam = rctx->camera;
+
+    for (int32_t i = 0; i < 32; i++) {
+        if (!gl_state_check_texture_binding_2d(i) && !gl_state_check_texture_binding_cube_map(i))
+            continue;
+
+        gl_state_active_bind_texture_2d(i, 0);
+        gl_state_active_bind_texture_cube_map(i, 0);
+        gl_state_bind_sampler(i, 0);
+    }
+
     global_context_menu = true;
     lock_lock(&imgui_context_lock);
     igSetCurrentContext(imgui_context);
     classes_process_imgui(classes, classes_count);
     lock_unlock(&imgui_context_lock);
 
-    if (sv_fxaa_changed)
-        sv_fxaa_changed = false;
-
-    if (sv_fxaa_preset_changed)
-        sv_fxaa_preset_changed = false;
-
-    if (old_scale != scale)
-        render_resize_fb(true);
+    if (old_width != width || old_height != height || old_scale != scale) {
+        render_resize_fb(rctx, true);
+        camera_set_res(cam, internal_3d_res.x, internal_3d_res.y);
+    }
+    old_width = width;
+    old_height = height;
     old_scale = scale;
 
     lock_lock(&imgui_context_lock);
     igSetCurrentContext(imgui_context);
     if (global_context_menu && igIsMouseReleased(ImGuiMouseButton_Right)
         && !igIsItemHovered(0) && imgui_context->OpenPopupStack.Size <= 0)
-        igOpenPopup("Classes init context menu", 0);
+        igOpenPopup_Str("Classes init context menu", 0);
 
     if (igBeginPopupContextItem("Classes init context menu", 0)) {
-        render_imgui_context_menu(classes, classes_count);
+        render_imgui_context_menu(classes, classes_count, rctx);
         igEndPopup();
     }
     lock_unlock(&imgui_context_lock);
 
-    igRender();
+    if (input_shaders_reload) {
+        input_shaders_reload = false;
+        render_shaders_free();
+        render_shaders_load();
+    }
 
     if (window_handle == GetForegroundWindow()) {
         if (input_reset) {
             input_reset = false;
             camera_reset(cam);
-            //camera_set_position(cam, &(vec3){ 1.35542f, 1.41634f, 1.27852f });
-            //camera_rotate(cam, &(vec2d){ -45.0, -32.5 });
-            //camera_set_position(cam, &(vec3){ -6.67555f, 4.68882f, -3.67537f });
-            //camera_rotate(cam, &(vec2d){ 136.5, -20.5 });
-            camera_set_position(cam, &(vec3){ 0.0f, 1.0f, 3.45f });
+            //camera_set_position(cam, &((vec3){ 1.35542f, 1.41634f, 1.27852f }));
+            //camera_rotate(cam, &((vec2d){ -45.0, -32.5 }));
+            //camera_set_position(cam, &((vec3){ -6.67555f, 4.68882f, -3.67537f }));
+            //camera_rotate(cam, &((vec2d){ 136.5, -20.5 }));
+            camera_set_position(cam, &((vec3){ 0.0f, 1.0f, 3.45f }));
+            camera_set_fov(cam, 70.0);
         }
         else {
             camera_rotate(cam, &input_rotate);
@@ -681,93 +654,29 @@ static void render_update() {
     }
     camera_update(cam);
 
-    glitter_render_mesh_update_func = render_glitter_mesh_update;
+    float_t frame = rob_chara_data_get_frame(&rob_chara_data_array[0]);
+    float_t frame_count = rob_chara_data_get_frame_count(&rob_chara_data_array[0]);
+    frame += get_delta_frame();
+    if (frame >= frame_count)
+        frame -= frame_count;
+    rob_chara_data_set_frame(&rob_chara_data_array[0], frame);
+    rob_chara_data_array[0].item_equip->shadow_type = SHADOW_CHARA;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    obj_db_ptr = &aft_data->data_ft.obj_db;
+    render_context_update(rctx);
+
     classes_process_render(classes, classes_count);
 
-    GPM_VAL->updated = false;
+    wind_ptr = rctx->wind;
+    rob_chara_data_calc(&rob_chara_data_array[0]);
+    rob_chara_data_draw(&rob_chara_data_array[0], rctx);
 
-    if (memcmp(&GPM_VAL->cam_projection, &cam->projection, sizeof(GPM_VAL->cam_projection)))
-        GPM_VAL->cam_projection = cam->projection;
+    stage_update(rctx->stage, rctx);
 
-    if (memcmp(&GPM_VAL->cam_view, &cam->view, sizeof(GPM_VAL->cam_view))) {
-        GPM_VAL->cam_view = cam->view;
-        GPM_VAL->updated = true;
-    }
+    shadow_update(rctx->draw_pass.shadow_ptr, rctx);
 
-    if (memcmp(&GPM_VAL->cam_inv_view, &cam->inv_view, sizeof(GPM_VAL->cam_inv_view))) {
-        GPM_VAL->cam_inv_view = cam->inv_view;
-        GPM_VAL->updated = true;
-    }
-
-    if (memcmp(&GPM_VAL->cam_inv_view_mat3, &cam->inv_view_mat3,
-        sizeof(GPM_VAL->cam_inv_view_mat3))) {
-        GPM_VAL->cam_inv_view_mat3 = cam->inv_view_mat3;
-        GPM_VAL->updated = true;
-    }
-
-    if (memcmp(&GPM_VAL->cam_view_point, &cam->view_point, sizeof(GPM_VAL->cam_view_point))) {
-        GPM_VAL->cam_view_point = cam->view_point;
-        GPM_VAL->updated = true;
-    }
-
-    if (memcmp(&GPM_VAL->cam_rotation_y, &cam->rotation.y, sizeof(GPM_VAL->cam_rotation_y))) {
-        GPM_VAL->cam_rotation_y = cam->rotation.y;
-        GPM_VAL->updated = true;
-    }
-
-    glitter_render_mesh_update_func = render_glitter_mesh_update;
-    glitter_particle_manager_calc_draw(GPM_VAL);
-
-    /*cam.Set(camStruct);
-
-    if (camStruct.DOF.HasValue)
-    {
-        ModelTrans dofMT = camStruct.DOF.Value;
-
-        dof.Debug.Flags = 0;
-        dof.PV.DistanceToFocus = (dofMT.Trans - cam.Pos).Length;
-        dof.PV.FocusRange = dofMT.Scale.X;
-        dof.PV.FuzzingRange = dofMT.Rot.X;
-        dof.PV.Ratio = dofMT.Rot.Y;
-        dof.PV.Enable = camStruct.DOF.Value.Rot.Z > 0.000001f;
-
-        if (dof.PV.Ratio > 0.0f && dof.PV.Enable)
-        {
-            double fov = cam.FOVIsHorizontal ? 2
-              * Math.Atan(1 / cam.Aspect * Math.Tan(cam.FOV / 2)) : cam.FOV;
-            float[] data = GetDOFData(ref dof, (float)fov);
-
-            GL.BindBuffer(BufferTarget.UniformBuffer, dofCommonUBO);
-            GL.BufferSubData(BufferTarget.UniformBuffer, (IntPtr)0, data.Length * 4, data);
-            GL.BindBuffer(BufferTarget.UniformBuffer, 0);
-        }
-    }*/
-
-    //static bool show_demo_window;
-    //igShowDemoWindow(&show_demo_window);
-
-    if (rad->update || inten->update) {
-        rad->update = false;
-        inten->update = false;
-
-        vec3 rgb = inten->val;
-        vec3* radius = rad->val;
-
-        float_t intensity_scale = 1.0f;
-        vec3_mult_scalar(rgb, intensity_scale, rgb);
-
-        vec3 v[GAUSSIAN_KERNEL_SIZE];
-        for (int32_t i = 0; i < GAUSSIAN_KERNEL_SIZE; i++)
-            vec3_mult(radius[i], rgb, v[i]);
-
-        for (int32_t i = 4; i < 10; i++)
-            shader_glsl_set_vec3_array(&bfbs[i], "gaussian_kernel", GAUSSIAN_KERNEL_SIZE, v);
-    }
-
-    if (tm->update_tex) {
-        tm->update_tex = false;
-        fbo_pp_tone_map_set(pfbo, tm->tex, 16 * TONE_MAP_SAT_GAMMA_SAMPLES);
-    }
+    igRender();
 
     struct common_data_struct {
         vec4 res; //x=width, y=height, z=1/width, w=1/height
@@ -791,10 +700,19 @@ static void render_update() {
     gl_state_bind_uniform_buffer(0);
 }
 
-static void render_draw() {
+static void render_draw(render_context* rctx) {
     static const GLfloat color_clear[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     static const GLfloat depth_clear = 1.0f;
     static const GLint stencil_clear = 0;
+
+    for (int32_t i = 0; i < 32; i++) {
+        if (!gl_state_check_texture_binding_2d(i) && !gl_state_check_texture_binding_cube_map(i))
+            continue;
+
+        gl_state_active_bind_texture_2d(i, 0);
+        gl_state_active_bind_texture_cube_map(i, 0);
+        gl_state_bind_sampler(i, 0);
+    }
 
     gl_state_bind_framebuffer(0);
     gl_state_set_depth_mask(GL_TRUE);
@@ -805,227 +723,80 @@ static void render_draw() {
     gl_state_set_depth_mask(GL_FALSE);
     gl_state_bind_uniform_buffer_base(0, common_data_ubo);
 
-    for (int32_t i = 0; i < 32; i++) {
-        if (!gl_state_check_texture_binding_2d(i) && !gl_state_check_texture_binding_cube_map(i))
-            continue;
+    glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
 
-        gl_state_active_texture(i);
-        gl_state_bind_texture_2d(0);
-        gl_state_bind_texture_cube_map(0);
-        gl_state_bind_sampler(i, 0);
+    render_texture_bind(&rctx->post_process.render_texture, 0);
+    gl_state_set_depth_mask(GL_TRUE);
+    glClearBufferfv(GL_COLOR, 0, color_clear);
+    glClearBufferfv(GL_DEPTH, 0, &depth_clear);
+    gl_state_set_depth_mask(GL_FALSE);
+
+    if (set_clear_color) {
+        vec4 color;
+        *(vec3*)&color = back3d_color;
+        color.w = 1.0f;
+        glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
     }
 
-    if (back_2d || front_3d || glitter_3d) {
-        glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
+    draw_pass_main(rctx);
 
-        if (back_2d) {
-            gl_state_bind_framebuffer(hfbo->back_2d.fbos[0]);
-            glClearBufferfv(GL_COLOR, 0, color_clear);
-            render_2d();
-        }
+    int32_t screen_x_offset = (width - internal_2d_res.x) / 2 + (width - internal_2d_res.x) % 2;
+    int32_t screen_y_offset = (height - internal_2d_res.y) / 2 + (width - internal_2d_res.x) % 2;
+    glViewport(screen_x_offset, screen_y_offset, internal_2d_res.x, internal_2d_res.y);
+    render_texture_bind(&rctx->post_process.screen_texture, 0);
+    gl_state_bind_uniform_buffer_base(0, common_data_ubo);
+    classes_process_draw(classes, classes_count);
 
-        if (front_3d || glitter_3d) {
-            gl_state_bind_framebuffer(rfbo->tex.fbos[0]);
-            glDrawBuffers(1, fbo_render_attachments);
-            gl_state_set_depth_mask(GL_TRUE);
-            gl_state_set_stencil_mask(0xFF);
-            glClearBufferfi(GL_DEPTH_STENCIL, 0, depth_clear, stencil_clear);
-            gl_state_set_stencil_mask(0x00);
-            gl_state_set_depth_mask(GL_FALSE);
+    gl_state_bind_framebuffer(0);
+    render_texture_shader_set_glsl(0);
+    glViewport(0, 0, width, height);
+    if (rctx->draw_pass.enable[DRAW_PASS_POST_PROCESS])
+        render_texture_draw(&rctx->post_process.screen_texture, false);
 
-            if (set_clear_color) {
-                vec4 color;
-                *(vec3*)&color = back3d_color;
-                color.w = 1.0f;
-                glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
-            }
-
-            if (grid_3d)
-                render_grid_3d();
-
-            if (front_3d)
-                render_3d();
-
-            if (glitter_3d)
-                render_glitter_3d(ALPHA_PASS_OPAQUE);
-
-            if (glitter_3d) {
-                gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-                render_glitter_3d(ALPHA_PASS_TRANSPARENT);
-                gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-            }
-
-            if (glitter_3d) {
-                gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-                render_glitter_3d(ALPHA_PASS_TRANSLUCENT);
-                gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-            }
-
-            if (front_3d)
-                render_3d_translucent();
-
-            gl_state_bind_framebuffer(hfbo->color.fbos[0]);
-            gl_state_set_depth_mask(GL_TRUE);
-            glClearBufferfv(GL_COLOR, 0, color_clear);
-            glClearBufferfv(GL_DEPTH, 0, &depth_clear);
-            gl_state_set_depth_mask(GL_FALSE);
-
-            fbo_render_draw(rfbo, true);
-            post_process_apply_dof(&pp_dof, &hfbo->color, dof);
-        }
-
-        if (enable_post_process)
-            fbo_pp_draw(pfbo, tm, hfbo->color.color_texture, 0, hfbo->back_2d.color_texture,
-                hfbo, fbo_hdr_set_fbo_begin, fbo_hdr_set_fbo_end);
-
-        if (sv_fxaa)
-            fbo_hdr_draw_fxaa(hfbo, sv_fxaa_preset);
-
-        gl_state_bind_framebuffer(hfbo->color.fbos[0]);
-        gl_state_bind_uniform_buffer_base(0, common_data_ubo);
-        classes_process_draw(classes, classes_count);
-
-        vec2i bb_offset;
-        bb_offset.x = (width - internal_2d_res.x) / 2;
-        bb_offset.y = (height - internal_2d_res.y) / 2;
-
-        glViewport(bb_offset.x, bb_offset.y, internal_2d_res.x, internal_2d_res.y);
-        gl_state_bind_framebuffer(0);
-        shader_glsl_use(&ffbs);
-        gl_state_active_bind_texture_2d(0, hfbo->color.color_texture->texture);
-        gl_state_bind_vertex_array(fb_vao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
-    }
-
-    if (front_2d || ui) {
-        glViewport((width - internal_2d_res.x) / 2, (height - internal_2d_res.y) / 2,
-            internal_2d_res.x, internal_2d_res.y);
-        if (front_2d)
-            render_2d();
-        if (ui)
-            render_2d();
-        glViewport(0, 0, width, height);
-    }
-
-    if (imgui)
-        render_imgui();
+    if (draw_imgui)
+        render_imgui(rctx);
 }
 
-static void render_dispose() {
+static void render_dispose(render_context* rctx) {
     classes_process_dispose(classes, classes_count);
-
-    camera_dispose(cam);
-    dof_dispose(dof);
-    radius_dispose(rad);
-    intensity_dispose(inten);
-    tone_map_dispose(tm);
-    glitter_particle_manager_dispose(gpm);
-
-    fbo_render_dispose(rfbo);
-    fbo_hdr_dispose(hfbo);
-    fbo_pp_dispose(pfbo);
-
-    post_process_dof_free(&pp_dof);
-
-    shader_free(&shaders_aft);
-
-    shader_glsl_free(&cfbs[0]);
-    shader_glsl_free(&cfbs[1]);
-
-    for (int32_t i = 0; i < 3; i++)
-        shader_glsl_free(&fxaas[i]);
-
-    shader_glsl_free(&ffbs);
-
-    shader_glsl_free(&dfbs[0]);
-
-    for (int32_t i = 0; i < 2; i++)
-        for (int32_t j = 0; j < 4; j++)
-            shader_glsl_free(&dfbs[1 + i * 4 + j]);
-
-    for (int32_t i = 0; i < 14; i++)
-        shader_glsl_free(&bfbs[i]);
-
-    shader_glsl_free(&grid_shader);
-
-    glDeleteBuffers(1, &common_data_ubo);
-    glDeleteBuffers(1, &grid_vbo);
-    glDeleteVertexArrays(1, &grid_vao);
-    glDeleteBuffers(1, &fb_vbo);
-    glDeleteVertexArrays(1, &fb_vao);
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     igDestroyContext(imgui_context);
     lock_free(&imgui_context_lock);
+
+    glitter_particle_manager_dispose(GPM_VAL);
+
+    stage_free(&stage_test_data, rctx);
+    stage_free(&stage_stgtst, rctx);
+
+    data_struct_free();
+
+    render_shaders_free();
+
+    shader_glsl_free(&grid_shader);
+
+    glDeleteBuffers(1, &common_data_ubo);
+    glDeleteBuffers(1, &grid_vbo);
+
+    rob_chara_data_array_free();
+
+    auth_3d_data_free(rctx);
+    light_param_storage_free();
+    motion_storage_free();
+
+    render_texture_data_free();
+    render_context_free(rctx);
+
+    object_storage_free();
+    texture_storage_free();
 }
 
-static void render_imgui() {
+static void render_imgui(render_context* rctx) {
     lock_lock(&imgui_context_lock);
     igSetCurrentContext(imgui_context);
     ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
     lock_unlock(&imgui_context_lock);
-}
-
-static void render_2d() {
-}
-
-static void render_3d() {
-}
-
-static void render_3d_translucent() {
-}
-
-static void render_grid_3d() {
-    glDrawBuffers(1, fbo_render_attachments);
-
-    gl_state_enable_blend();
-    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    gl_state_set_blend_equation(GL_FUNC_ADD);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_func(GL_LESS);
-    gl_state_set_depth_mask(GL_TRUE);
-
-    shader_glsl_use(&grid_shader);
-    gl_state_bind_vertex_array(grid_vao);
-    glDrawArrays(GL_LINES, 0, grid_vertex_count);
-    shader_glsl_use(0);
-
-    gl_state_disable_depth_test();
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_disable_blend();
-}
-
-static void render_glitter_3d(alpha_pass_type alpha) {
-    glitter_particle_manager_draw(GPM_VAL, alpha);
-}
-
-inline static void render_get_aspect_correct_2d_res(vec2i* res) {
-    double_t width = (double_t)res->x;
-    double_t height = (double_t)res->y;
-    double_t view_aspect = width / height;
-    width = round(height * aspect);
-    height = round(width / aspect);
-    if (view_aspect < aspect)
-        width = round(height * aspect);
-    else if (view_aspect > aspect)
-        height = round(width / aspect);
-    res->x = (int32_t)width;
-    res->y = (int32_t)height;
-}
-
-inline static void render_get_aspect_correct_3d_res(vec2i* res) {
-    double_t width = (double_t)res->x;
-    double_t height = (double_t)res->y;
-    double_t view_aspect = width / height;
-    width = round(height * aspect);
-    height = round(width / aspect);
-    if (view_aspect < aspect)
-        width = round(height * aspect);
-    else if (view_aspect > aspect)
-        height = round(width / aspect);
-    res->x = (int32_t)width;
-    res->y = (int32_t)height;
 }
 
 static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
@@ -1037,34 +808,46 @@ static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
 }
 
 static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h) {
-    bool change_fb = width != w || height != h;
     width = w;
     height = h;
-    render_resize_fb(change_fb);
 }
 
-static void render_resize_fb(bool change_fb) {
+static void render_resize_fb(render_context* rctx, bool change_fb) {
     if (internal_3d_res.x < 20) internal_3d_res.x = 20;
     if (internal_3d_res.y < 20) internal_3d_res.y = 20;
 
-    internal_2d_res.x = width;
-    internal_2d_res.y = height;
-    render_get_aspect_correct_2d_res(&internal_2d_res);
-    internal_2d_res.x = clamp(internal_2d_res.x, 1, sv_max_texture_size);
-    internal_2d_res.y = clamp(internal_2d_res.y, 1, sv_max_texture_size);
+    double_t res_width = (double_t)width;
+    double_t res_height = (double_t)height;
+    double_t view_aspect = res_width / res_height;
+    res_width = round(res_height * aspect);
+    res_height = round(res_width / aspect);
+    if (view_aspect < aspect) {
+        res_width = (double_t)width;
+        res_height = round(res_width / aspect);
+    }
+    else {
+        res_width = round(res_height * aspect);
+        res_height = round(res_width / aspect);
+        if (view_aspect > aspect)
+            res_height = round(res_width / aspect);
+    }
 
-    internal_3d_res.x = width;
-    internal_3d_res.y = height;
-    render_get_aspect_correct_3d_res(&internal_3d_res);
-    internal_3d_res.x = (int32_t)roundf((float_t)internal_3d_res.x * scale);
-    internal_3d_res.y = (int32_t)roundf((float_t)internal_3d_res.y * scale);
+    vec2i internal_res;
+    internal_res.x = (int32_t)res_width;
+    internal_res.y = (int32_t)res_height;
+
+    internal_2d_res.x = clamp(internal_res.x, 1, sv_max_texture_size);
+    internal_2d_res.y = clamp(internal_res.y, 1, sv_max_texture_size);
+    internal_3d_res.x = (int32_t)roundf((float_t)internal_res.x * scale);
+    internal_3d_res.y = (int32_t)roundf((float_t)internal_res.y * scale);
     internal_3d_res.x = clamp(internal_3d_res.x, 1, sv_max_texture_size);
     internal_3d_res.y = clamp(internal_3d_res.y, 1, sv_max_texture_size);
 
     bool fb_changed = old_internal_2d_res.x != internal_2d_res.x
         || old_internal_2d_res.y != internal_2d_res.y
         || old_internal_3d_res.x != internal_3d_res.x
-        || old_internal_3d_res.y != internal_3d_res.y;
+        || old_internal_3d_res.y != internal_3d_res.y
+        || old_width != width || old_height != height;
     old_internal_2d_res = internal_2d_res;
     old_internal_3d_res = internal_3d_res;
 
@@ -1073,42 +856,59 @@ static void render_resize_fb(bool change_fb) {
     st = state == RENDER_INITIALIZED;
     lock_unlock(&state_lock);
 
-    if (st && change_fb) {
-        fbo_render_resize(rfbo, &internal_3d_res);
-        fbo_hdr_resize(hfbo, &internal_3d_res);
-        fbo_pp_resize(pfbo, &internal_3d_res);
-
-        post_process_dof_init_fbo(&pp_dof, internal_3d_res.x, internal_3d_res.y);
+    if (st && fb_changed && change_fb) {
+        post_process_init_fbo(&rctx->post_process, internal_3d_res.x, internal_3d_res.y,
+            internal_2d_res.x, internal_2d_res.y, width, height);
+        light_proj_resize(rctx->litproj, internal_3d_res.x, internal_3d_res.y);
     }
-
-    st = false;
-    lock_lock(&state_lock);
-    st = state == RENDER_INITIALIZING || state == RENDER_INITIALIZED;
-    lock_unlock(&state_lock);
 }
 
-static void render_imgui_context_menu(classes_struct* classes, const size_t classes_count) {
+static void render_imgui_context_menu(classes_struct* classes,
+    const size_t classes_count, render_context* rctx) {
     for (size_t i = 0; i < classes_count; i++) {
-        if (!classes[i].enabled || !classes[i].name || ~classes[i].flags & CLASSES_IN_CONTEXT_MENU)
+        classes_struct* c = &classes[i];
+        if (!c->name || ~c->flags & CLASSES_IN_CONTEXT_MENU)
             continue;
 
-        if (classes[i].sub_classes && classes[i].sub_classes_count) {
-            if (igBeginMenu(classes[i].name, *classes[i].enabled)) {
-                render_imgui_context_menu(classes[i].sub_classes, classes[i].sub_classes_count);
+        if (c->sub_classes && c->sub_classes_count) {
+            if (igBeginMenu(c->name, ~c->data.flags & CLASS_HIDDEN)) {
+                render_imgui_context_menu(c->sub_classes,
+                    c->sub_classes_count, rctx);
                 igEndMenu();
             }
         }
-        else if (*classes[i].enabled)
-            igMenuItem_Bool(classes[i].name, 0, false, false);
-        else if (igMenuItem_Bool(classes[i].name, 0, false, true))
-            if (classes[i].init)
-                classes[i].init();
+        else if (~c->data.flags & CLASS_HIDDEN)
+            igMenuItem_Bool(c->name, 0, false, false);
+        else if (igMenuItem_Bool(c->name, 0, false, true)) {
+            if (~c->data.flags & CLASS_INIT) {
+                lock_init(&c->data.lock);
+                if (lock_check_init(&c->data.lock) && c->init) {
+                    lock_lock(&c->data.lock);
+                    if (c->init(&c->data, rctx))
+                        c->data.flags = CLASS_INIT;
+                    else
+                        c->data.flags = CLASS_DISPOSED | CLASS_HIDDEN;
+                    lock_unlock(&c->data.lock);
+                }
+            }
+
+            if (lock_check_init(&c->data.lock)) {
+                lock_lock(&c->data.lock);
+                if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show))
+                    c->data.flags &= ~(CLASS_HIDE | CLASS_HIDDEN);
+                lock_unlock(&c->data.lock);
+            }
+        }
     }
 }
 
-static bool render_glitter_mesh_update(glitter_render_element* element,
-    glitter_particle_mesh* mesh_data, vec4* color, mat4* model, mat4* uv_mat) {
-    return true;
+inline static void render_shaders_load() {
+    data_struct_load_file(&data_list[DATA_AFT], &shaders_ft,
+        "rom\\", "ft_shaders.farc", render_load_shaders);
+}
+
+inline static void render_shaders_free() {
+    shader_free(&shaders_ft);
 }
 
 #if defined (DEBUG) && OPENGL_DEBUG
@@ -1118,73 +918,73 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
         return;
 
     printf("########################################\n");
-    printf("Debug message (%d): %s\n", id, message);
-
-    switch (source) {
-    case GL_DEBUG_SOURCE_API:
-        printf("Source: API");
-        break;
-    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-        printf("Source: Window System");
-        break;
-    case GL_DEBUG_SOURCE_SHADER_COMPILER:
-        printf("Source: Shader Compiler");
-        break;
-    case GL_DEBUG_SOURCE_THIRD_PARTY:
-        printf("Source: Third Party");
-        break;
-    case GL_DEBUG_SOURCE_APPLICATION:
-        printf("Source: Application");
-        break;
-    case GL_DEBUG_SOURCE_OTHER:
-        printf("Source: Other");
-        break;
-    }
-
     switch (type) {
     case GL_DEBUG_TYPE_ERROR:
-        printf("Type: Error\n");
+        printf("Type: Error;                ");
         break;
     case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-        printf("Type: Deprecated Behaviour\n");
+        printf("Type: Deprecated Behaviour; ");
         break;
     case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-        printf("Type: Undefined Behaviour\n");
+        printf("Type: Undefined Behaviour;  ");
         break;
     case GL_DEBUG_TYPE_PORTABILITY:
-        printf("Type: Portability\n");
+        printf("Type: Portability;          ");
         break;
     case GL_DEBUG_TYPE_PERFORMANCE:
-        printf("Type: Performance\n");
+        printf("Type: Performance;          ");
         break;
     case GL_DEBUG_TYPE_MARKER:
-        printf("Type: Marker\n");
+        printf("Type: Marker;               ");
         break;
     case GL_DEBUG_TYPE_PUSH_GROUP:
-        printf("Type: Push Group\n");
+        printf("Type: Push Group;           ");
         break;
     case GL_DEBUG_TYPE_POP_GROUP:
-        printf("Type: Pop Group\n");
+        printf("Type: Pop Group;            ");
         break;
     case GL_DEBUG_TYPE_OTHER:
-        printf("Type: Other\n");
+        printf("Type: Other;                ");
         break;
     }
 
     switch (severity) {
     case GL_DEBUG_SEVERITY_HIGH:
-        printf("Severity: high\n");
+        printf("Severity: high;   ");
         break;
     case GL_DEBUG_SEVERITY_MEDIUM:
-        printf("Severity: medium\n");
+        printf("Severity: medium; ");
         break;
     case GL_DEBUG_SEVERITY_LOW:
-        printf("Severity: low\n");
+        printf("Severity: low;    ");
         break;
     case GL_DEBUG_SEVERITY_NOTIFICATION:
-        printf("Severity: notification\n");
+        printf("Severity: notif;  ");
         break;
     }
+
+    switch (source) {
+    case GL_DEBUG_SOURCE_API:
+        printf("Source: API\n");
+        break;
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        printf("Source: Window System\n");
+        break;
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        printf("Source: Shader Compiler\n");
+        break;
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        printf("Source: Third Party\n");
+        break;
+    case GL_DEBUG_SOURCE_APPLICATION:
+        printf("Source: Application\n");
+        break;
+    case GL_DEBUG_SOURCE_OTHER:
+        printf("Source: Other\n");
+        break;
+    }
+
+    printf("Debug message (%d): %s\n", id, message);
     printf("########################################\n\n");
 }
 #endif

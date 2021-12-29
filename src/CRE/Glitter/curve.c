@@ -4,8 +4,8 @@
 */
 
 #include "curve.h"
-#include "random.h"
 #include "../../KKdLib/interpolation.h"
+#include "random.h"
 
 static const float_t glitter_curve_baked_reverse_bias[] = {
     0.00001f,
@@ -96,7 +96,7 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
 
     vector_glitter_curve_key keys_rev = curve->keys_rev;
     vector_glitter_curve_key* keys = &curve->keys;
-    vector_glitter_curve_key_clear(keys);
+    vector_glitter_curve_key_clear(keys, 0);
     if (keys_rev.end - keys_rev.begin == 1)
         vector_glitter_curve_key_push_back(keys, &keys_rev.begin[0]);
     else if (keys_rev.end - keys_rev.begin > 1) {
@@ -215,16 +215,16 @@ bool glitter_curve_unparse_file(GLT, f2_struct* st, glitter_curve* c) {
     glitter_curve_key_pack_file(GLT_VAL, &s, c, &c->keys);
     vector_f2_struct_push_back(&st->sub_structs, &s);
 #if defined(CRE_DEV)
-    vector_glitter_curve_key_free(&c->keys);
+    vector_glitter_curve_key_free(&c->keys, 0);
 #endif
     c->keys = keys;
     return true;
 }
 
 void glitter_curve_dispose(glitter_curve* c) {
-    vector_glitter_curve_key_free(&c->keys);
+    vector_glitter_curve_key_free(&c->keys, 0);
 #if defined(CRE_DEV)
-    vector_glitter_curve_key_free(&c->keys_rev);
+    vector_glitter_curve_key_free(&c->keys_rev, 0);
 #endif
     free(c);
 }

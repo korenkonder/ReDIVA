@@ -18,7 +18,7 @@ glitter_particle* glitter_particle_init(GLT) {
     p->data.pivot = GLITTER_PIVOT_MIDDLE_CENTER;
     p->data.scale = vec3_identity;
     p->data.reflection_coeff = 1.0f;
-    p->data.color = vec4_identity;
+    p->data.color = vec4u_identity;
     p->data.uv_index = 0;
     p->data.uv_index_start = 0;
     p->data.uv_index_end = 1;
@@ -30,10 +30,17 @@ glitter_particle* glitter_particle_init(GLT) {
     p->data.sub_flags = GLITTER_PARTICLE_SUB_USE_CURVE;
     p->data.blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
     p->data.mask_blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
-    p->data.tex_hash = GLT_VAL != GLITTER_AFT
-        ? hash_murmurhash_empty : hash_fnv1a64_empty;
-    p->data.mask_tex_hash = GLT_VAL != GLITTER_AFT
-        ? hash_murmurhash_empty : hash_fnv1a64_empty;
+    p->data.tex_hash = GLT_VAL != GLITTER_FT
+        ? hash_murmurhash_empty : hash_fnv1a64m_empty;
+    p->data.mask_tex_hash = GLT_VAL != GLITTER_FT
+        ? hash_murmurhash_empty : hash_fnv1a64m_empty;
+
+    if (GLT_VAL == GLITTER_X) {
+        p->data.mesh.object_set_name_hash = hash_murmurhash_empty;
+        p->data.mesh.object_name_hash = hash_murmurhash_empty;
+        //p->data.mesh.mesh_name[0] = 0;
+        //p->data.mesh.sub_mesh_hash = hash_murmurhash_empty;
+    }
     return p;
 }
 
@@ -294,8 +301,8 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
     if (GLT_VAL == GLITTER_X) {
         a3->data.mesh.object_set_name_hash = hash_murmurhash_empty;
         a3->data.mesh.object_name_hash = hash_murmurhash_empty;
-        a3->data.mesh.mesh_name[0] = 0;
-        a3->data.mesh.sub_mesh_hash = hash_murmurhash_empty;
+        //a3->data.mesh.mesh_name[0] = 0;
+        //a3->data.mesh.sub_mesh_hash = hash_murmurhash_empty;
 
         d = (size_t)data;
         if (use_big_endian) {
@@ -462,11 +469,11 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
                 a3->data.mesh.object_name_hash = *(uint64_t*)d;
                 a3->data.mesh.object_set_name_hash = *(uint64_t*)(d + 8);
             }
-            memcpy(a3->data.mesh.mesh_name, (void*)(d + 16), 0x40);
-            if (use_big_endian)
+            //memcpy(a3->data.mesh.mesh_name, (void*)(d + 16), 0x40);
+            /*if (use_big_endian)
                 a3->data.mesh.sub_mesh_hash = load_reverse_endianness_uint64_t((void*)(d + 80));
             else
-                a3->data.mesh.sub_mesh_hash = *(uint64_t*)(d + 80);
+                a3->data.mesh.sub_mesh_hash = *(uint64_t*)(d + 80);*/
             d += 88;
             has_tex = false;
         }
@@ -722,8 +729,8 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
                 mask_blend_mode = *(int32_t*)(d + 8);
             }
         else {
-            mask_tex_hash = GLT_VAL != GLITTER_AFT
-                ? hash_murmurhash_empty : hash_fnv1a64_empty;
+            mask_tex_hash = GLT_VAL != GLITTER_FT
+                ? hash_murmurhash_empty : hash_fnv1a64m_empty;
             mask_blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
         }
     }
@@ -749,7 +756,11 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
     a3->data.unk1 = unk1;
 
     vec2_rcp(a3->data.split_uv, a3->data.split_uv);
-    vec4_mult_scalar(a3->data.color, (float_t)(1.0 / 255.0), a3->data.color);
+    
+    vec4 color;
+    vec4u_to_vec4(a3->data.color, color);
+    vec4_mult_scalar(color, (float_t)(1.0 / 255.0), color);
+    vec4_to_vec4u(color, a3->data.color);
 
     uv_max_count = (int32_t)(split_u * split_v);
     if (uv_max_count)

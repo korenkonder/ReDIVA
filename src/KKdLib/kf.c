@@ -5,6 +5,17 @@
 
 #include "kf.h"
 
+vector_func(kft0)
+vector_func(kft1)
+vector_func(kft2)
+vector_func(kft3)
+vector_ptr_func(kft0)
+vector_ptr_func(kft1)
+vector_ptr_func(kft2)
+vector_ptr_func(kft3)
+
+#define KFT_NULL
+
 void kft_check(void* src_key, kf_type src_type, void* dst_key, kf_type* dst_type) {
     switch (src_type) {
     case KEY_FRAME_TYPE_0: {
@@ -56,7 +67,7 @@ void kft_check(void* src_key, kf_type src_type, void* dst_key, kf_type* dst_type
             dk->value = sk->value;
             dk->tangent1 = sk->tangent1;
             dk->tangent2 = sk->tangent2;
-            *dst_type = KEY_FRAME_TYPE_2;
+            *dst_type = KEY_FRAME_TYPE_3;
         }
         else if (*(uint32_t*)&sk->tangent1 != 0) {
             kft2* dk = dst_key;

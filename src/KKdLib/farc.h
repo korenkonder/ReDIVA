@@ -6,7 +6,7 @@
 #pragma once
 
 #include "default.h"
-#include "io_stream.h"
+#include "io/stream.h"
 #include "vector.h"
 
 typedef enum farc_signature {
@@ -15,10 +15,10 @@ typedef enum farc_signature {
     FARC_FARC = 'FARC',
 } farc_signature;
 
-typedef enum farc_data_type {
-    FARC_DATA_TYPE_GZIP = 0x2,
-    FARC_DATA_TYPE_AES  = 0x4,
-} farc_data_type;
+typedef enum farc_flags {
+    FARC_GZIP = 0x02,
+    FARC_AES  = 0x04,
+} farc_flags;
 
 typedef enum farc_compress_mode {
     FARC_COMPRESS_FArc          = 0,
@@ -36,7 +36,7 @@ typedef struct farc_file {
     string name;
     void* data;
     void* data_compressed;
-    farc_data_type type;
+    farc_flags type;
     bool data_changed;
 } farc_file;
 
@@ -47,16 +47,21 @@ typedef struct farc {
     wchar_t directory_path[MAX_PATH];
     vector_farc_file files;
     farc_signature signature;
-    farc_data_type type;
+    farc_flags flags;
     int32_t compression_level;
     bool ft;
 } farc;
 
-extern farc* farc_init();
+extern void farc_init(farc* f);
 extern void farc_read(farc* f, char* path, bool unpack, bool save);
 extern void farc_wread(farc* f, wchar_t* path, bool unpack, bool save);
+extern void farc_mread(farc* f, void* data, size_t length, bool unpack);
 extern farc_file* farc_read_file(farc* f, char* name);
 extern farc_file* farc_wread_file(farc* f, wchar_t* name);
 extern void farc_write(farc* f, char* path, farc_compress_mode mode, bool get_files);
 extern void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode, bool get_files);
-extern void farc_dispose(farc* f);
+extern void farc_mwrite(farc* f, void** data, size_t* length, farc_compress_mode mode);
+extern bool farc_load_file(void* data, char* path, char* file, uint32_t hash);
+extern void farc_free(farc* f);
+
+extern void farc_file_free(farc_file* ff);

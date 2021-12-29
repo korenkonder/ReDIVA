@@ -19,9 +19,6 @@ vector_ptr_func(glitter_render_group)
 vector_func(glitter_scene_effect)
 vector_ptr_func(glitter_scene)
 
-bool(* glitter_render_mesh_update_func)(glitter_render_element*,
-    glitter_particle_mesh*, vec4*, mat4*, mat4*);
-
 const float_t glitter_min_emission = 0.01f;
 
 const glitter_curve_type_flags glitter_effect_curve_flags = 0
@@ -58,7 +55,7 @@ const glitter_curve_type_flags glitter_particle_x_curve_flags = 0
 
 const glitter_direction glitter_emitter_direction_types[] = {
     [GLITTER_EMITTER_DIRECTION_BILLBOARD]        = GLITTER_DIRECTION_BILLBOARD,
-    [GLITTER_EMITTER_DIRECTION_BILLBOARD_Y_ONLY] = GLITTER_DIRECTION_BILLBOARD_Y_ONLY,
+    [GLITTER_EMITTER_DIRECTION_BILLBOARD_Y_AXIS] = GLITTER_DIRECTION_BILLBOARD_Y_AXIS,
     [GLITTER_EMITTER_DIRECTION_X_AXIS]           = GLITTER_DIRECTION_X_AXIS,
     [GLITTER_EMITTER_DIRECTION_Y_AXIS]           = GLITTER_DIRECTION_Y_AXIS,
     [GLITTER_EMITTER_DIRECTION_Z_AXIS]           = GLITTER_DIRECTION_Z_AXIS,
@@ -75,7 +72,7 @@ const glitter_emitter_direction glitter_emitter_direction_default =
 
 const glitter_direction glitter_particle_draw_types[] = {
     [GLITTER_PARTICLE_DRAW_TYPE_BILLBOARD]         = GLITTER_DIRECTION_BILLBOARD,
-    [GLITTER_PARTICLE_DRAW_TYPE_BILLBOARD_Y_ONLY]  = GLITTER_DIRECTION_BILLBOARD_Y_ONLY,
+    [GLITTER_PARTICLE_DRAW_TYPE_BILLBOARD_Y_AXIS]  = GLITTER_DIRECTION_BILLBOARD_Y_AXIS,
     [GLITTER_PARTICLE_DRAW_TYPE_X_AXIS]            = GLITTER_DIRECTION_X_AXIS,
     [GLITTER_PARTICLE_DRAW_TYPE_Y_AXIS]            = GLITTER_DIRECTION_Y_AXIS,
     [GLITTER_PARTICLE_DRAW_TYPE_Z_AXIS]            = GLITTER_DIRECTION_Z_AXIS,
@@ -134,3 +131,5 @@ const glitter_pivot glitter_pivot_reverse[] = {
     [GLITTER_PIVOT_BOTTOM_CENTER] = GLITTER_PIVOT_TOP_CENTER,
     [GLITTER_PIVOT_BOTTOM_RIGHT]  = GLITTER_PIVOT_TOP_LEFT,
 };
+
+GPM;

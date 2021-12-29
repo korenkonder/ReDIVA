@@ -1,0 +1,340 @@
+/*
+    by korenkonder
+    GitHub/GitLab: korenkonder
+*/
+
+#include "glow.h"
+#include "../io/path.h"
+#include "../io/stream.h"
+#include "../str_utils.h"
+
+static void light_param_glow_read_inner(light_param_glow* glow, stream* s);
+static void light_param_glow_write_inner(light_param_glow* glow, stream* s);
+static char* light_param_glow_read_line(char* buf, int32_t size, char* src);
+static void light_param_glow_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
+static void light_param_glow_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
+
+void light_param_glow_init(light_param_glow* glow) {
+    memset(glow, 0, sizeof(light_param_glow));
+}
+
+void light_param_glow_read(light_param_glow* glow, char* path) {
+    char* path_txt = str_utils_add(path, ".txt");
+    if (path_check_file_exists(path_txt)) {
+        stream s;
+        io_open(&s, path_txt, "rb");
+        if (s.io.stream)
+            light_param_glow_read_inner(glow, &s);
+        io_free(&s);
+    }
+    free(path_txt);
+}
+
+void light_param_glow_wread(light_param_glow* glow, wchar_t* path) {
+    wchar_t* path_txt = str_utils_wadd(path, L".txt");
+    if (path_wcheck_file_exists(path_txt)) {
+        stream s;
+        io_wopen(&s, path_txt, L"rb");
+        if (s.io.stream)
+            light_param_glow_read_inner(glow, &s);
+        io_free(&s);
+    }
+    free(path_txt);
+}
+
+void light_param_glow_mread(light_param_glow* glow, void* data, size_t length) {
+    stream s;
+    io_mopen(&s, data, length);
+    light_param_glow_read_inner(glow, &s);
+    io_free(&s);
+}
+
+void light_param_glow_write(light_param_glow* glow, char* path) {
+    if (!glow || !path || !glow->ready)
+        return;
+
+    char* path_txt = str_utils_add(path, ".txt");
+    stream s;
+    io_open(&s, path_txt, "wb");
+    if (s.io.stream)
+        light_param_glow_write_inner(glow, &s);
+    io_free(&s);
+    free(path_txt);
+}
+
+void light_param_glow_wwrite(light_param_glow* glow, wchar_t* path) {
+    if (!glow || !path || !glow->ready)
+        return;
+
+    wchar_t* path_txt = str_utils_wadd(path, L".txt");
+    stream s;
+    io_wopen(&s, path_txt, L"wb");
+    if (s.io.stream)
+        light_param_glow_write_inner(glow, &s);
+    io_free(&s);
+    free(path_txt);
+}
+
+void light_param_glow_mwrite(light_param_glow* glow, void** data, size_t* length) {
+    if (!glow || !data || !glow->ready)
+        return;
+
+    stream s;
+    io_mopen(&s, 0, 0);
+    light_param_glow_write_inner(glow, &s);
+    io_mcopy(&s, data, length);
+    io_free(&s);
+}
+
+bool light_param_glow_load_file(void* data, char* path, char* file, uint32_t hash) {
+    size_t file_len = utf8_length(file);
+
+    char* t = strrchr(file, '.');
+    if (t)
+        file_len = t - file;
+
+    string s;
+    string_init(&s, path);
+    string_add_length(&s, file, file_len);
+
+    light_param_glow* glow = data;
+    light_param_glow_read(glow, string_data(&s));
+
+    string_free(&s);
+    return glow->ready;
+}
+
+void light_param_glow_free(light_param_glow* glow) {
+
+}
+
+static void light_param_glow_read_inner(light_param_glow* glow, stream* s) {
+    char* data = force_malloc(s->length + 1);
+    io_read(s, data, s->length);
+    data[s->length] = 0;
+
+    char buf[0x100];
+    char* d = data;
+
+    while (d = light_param_glow_read_line(buf, sizeof(buf), d)) {
+        if (!str_utils_compare_length(buf, sizeof(buf), "exposure", 8)) {
+            if (buf[8] != ' ' || sscanf_s(buf + 9, "%f", &glow->exposure) != 1)
+                goto End;
+
+            glow->has_exposure = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "gamma", 5)) {
+            if (buf[5] != ' ' || sscanf_s(buf + 6, "%f", &glow->gamma) != 1)
+                goto End;
+
+            glow->has_gamma = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "saturate_power", 14)) {
+            if (buf[14] != ' ' || sscanf_s(buf + 15, "%d", &glow->saturate_power) != 1)
+                goto End;
+
+            glow->has_saturate_power = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "saturate_coef", 13)) {
+            if (buf[13] != ' ' || sscanf_s(buf + 14, "%f", &glow->saturate_coef) != 1)
+                goto End;
+
+            glow->has_saturate_coef = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "flare", 5)) {
+            vec3* flare = &glow->flare;
+            if (buf[5] != ' ' || sscanf_s(buf + 6, "%f %f %f",
+                &flare->x, &flare->y, &flare->z) != 3)
+                goto End;
+
+            glow->has_flare = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "sigma", 5)) {
+            vec3* sigma = &glow->sigma;
+            if (buf[5] != ' ' || sscanf_s(buf + 6, "%f %f %f",
+                &sigma->x, &sigma->y, &sigma->z) != 3)
+                goto End;
+
+            glow->has_sigma = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "intensity", 9)) {
+            vec3* intensity = &glow->intensity;
+            if (buf[9] != ' ' || sscanf_s(buf + 10, "%f %f %f",
+                &intensity->x, &intensity->y, &intensity->z) != 3)
+                goto End;
+
+            glow->has_intensity = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "auto_exposure", 13)) {
+            int32_t auto_exposure = 0;
+            if (buf[13] != ' ' || sscanf_s(buf + 14, "%d", &auto_exposure) != 1)
+                goto End;
+
+            glow->auto_exposure = auto_exposure ? true : false;
+            glow->has_auto_exposure = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "tone_map_method", 15)) {
+            if (buf[15] != ' ' || sscanf_s(buf + 16, "%d", (int32_t*)&glow->tone_map_method) != 1)
+                goto End;
+
+            glow->has_tone_map_method = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "fade_color", 10)) {
+            vec4u* fade_color = &glow->fade_color;
+            int32_t* blend_func = &glow->fade_color_blend_func;
+            if (buf[10] != ' ' || sscanf_s(buf + 11, "%f %f %f %f %d",
+                &fade_color->x, &fade_color->y, &fade_color->z, &fade_color->w, blend_func) != 5)
+                goto End;
+
+            glow->has_fade_color = true;
+        }
+        else if (!str_utils_compare_length(buf, sizeof(buf), "tone_transform", 14)) {
+            vec3* start = &glow->tone_transform_start;
+            vec3* end = &glow->tone_transform_end;
+            if (buf[14] != ' ' || sscanf_s(buf + 15, "%f %f %f %f %f %f",
+                &start->x, &start->y, &start->z, &end->x, &end->y, &end->z) != 6)
+                goto End;
+
+            glow->has_tone_transform = true;
+        }
+    }
+
+    free(data);
+    glow->ready = true;
+    return;
+
+End:
+    free(data);
+}
+
+static void light_param_glow_write_inner(light_param_glow* glow, stream* s) {
+    char buf[0x100];
+
+    if (glow->has_exposure) {
+        io_write(s, "exposure", 8);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), glow->exposure);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_gamma) {
+        io_write(s, "gamma", 5);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), glow->gamma);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_saturate_power) {
+        io_write(s, "saturate_power", 14);
+        light_param_glow_write_int32_t(s, buf, sizeof(buf), glow->saturate_power);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_saturate_coef) {
+        io_write(s, "saturate_coef", 13);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), glow->saturate_coef);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_flare) {
+        vec3* flare = &glow->flare;
+        io_write(s, "flare", 5);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), flare->x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), flare->y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), flare->z);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_sigma) {
+        vec3* sigma = &glow->sigma;
+        io_write(s, "sigma", 5);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma->x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma->y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma->z);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_intensity) {
+        vec3* intensity = &glow->intensity;
+        io_write(s, "intensity", 9);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity->x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity->y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity->z);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_auto_exposure) {
+        io_write(s, "exposure", 8);
+        light_param_glow_write_int32_t(s, buf, sizeof(buf), glow->auto_exposure ? 1 : 0);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_tone_map_method) {
+        io_write(s, "tone_map_method", 15);
+        light_param_glow_write_int32_t(s, buf, sizeof(buf), (int32_t)glow->tone_map_method);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_fade_color) {
+        vec4u* fade_color = &glow->fade_color;
+        int32_t blend_func = glow->fade_color_blend_func;
+        io_write(s, "fade_color", 10);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color->x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color->y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color->z);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color->w);
+        light_param_glow_write_int32_t(s, buf, sizeof(buf), blend_func);
+        io_write_char(s, '\n');
+    }
+
+    if (glow->has_tone_transform) {
+        vec3* start = &glow->tone_transform_start;
+        vec3* end = &glow->tone_transform_end;
+        io_write(s, "tone_transform", 14);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), start->x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), start->y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), start->z);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), end->x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), end->y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), end->z);
+        io_write_char(s, '\n');
+    }
+
+    io_write(s, "EOF", 3);
+    io_write_char(s, '\n');
+}
+
+static char* light_param_glow_read_line(char* buf, int32_t size, char* src) {
+    char* b = buf;
+    if (!src || !*src)
+        return 0;
+
+    for (int32_t i = 0; i < size - 1; i++, b++) {
+        char c = b[0] = *src++;
+        if (!c) {
+            b++;
+            break;
+        }
+        else if (c == '\n') {
+            *b++ = 0;
+            break;
+        }
+        else if (c == '\r' && *src == '\n') {
+            *b++ = 0;
+            src++;
+            break;
+        }
+    }
+
+    if (!str_utils_compare(buf, "EOF"))
+        return 0;
+    return src;
+}
+
+inline static void light_param_glow_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value) {
+    sprintf_s(buf, buf_size, " %d", value);
+    io_write_utf8_string(s, buf);
+}
+
+inline static void light_param_glow_write_float_t(stream* s, char* buf, size_t buf_size, float_t value) {
+    sprintf_s(buf, buf_size, " %#.6g", value);
+    io_write_utf8_string(s, buf);
+}

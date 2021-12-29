@@ -35,13 +35,10 @@ void mat3_mult_axis_angle(mat3* src, mat3* dst, vec3* axis, float_t angle) {
     quat q2;
     quat q3;
 
-    quat_from_mat3(src->row0.x, src->row0.y, src->row0.z, src->row1.x,
-        src->row1.y, src->row1.z, src->row2.x, src->row2.y, src->row2.z, &q1);
+    quat_from_mat3(src->row0.x, src->row1.x, src->row2.x, src->row0.y,
+        src->row1.y, src->row2.y, src->row0.z, src->row1.z, src->row2.z, &q1);
     quat_from_axis_angle(axis, angle, &q2);
-    q3.x = q1.x * q2.w - q1.y * q2.z + q1.z * q2.y + q1.w * q2.x;
-    q3.y = q1.x * q2.z + q1.y * q2.w - q1.z * q2.x + q1.w * q2.y;
-    q3.z = -q1.x * q2.y + q1.y * q2.x + q1.z * q2.w + q1.w * q2.z;
-    q3.w = -q1.x * q2.x - q1.y * q2.y - q1.z * q2.z + q1.w * q2.w;
+    quat_mult(&q2, &q1, &q3);
     mat3_from_quat(&q3, dst);
 }
 
@@ -49,21 +46,22 @@ void mat4_mult_axis_angle(mat4* src, mat4* dst, vec3* axis, float_t angle) {
     quat q1;
     quat q2;
     quat q3;
-    mat3 yt;
+    float_t t0;
+    float_t t1;
+    float_t t2;
+    vec4 t3;
 
-    quat_from_mat3(src->row0.x, src->row0.y, src->row0.z, src->row1.x,
-        src->row1.y, src->row1.z, src->row2.x, src->row2.y, src->row2.z, &q1);
+    t0 = src->row0.w;
+    t1 = src->row1.w;
+    t2 = src->row2.w;
+    t3 = src->row3;
+    quat_from_mat3(src->row0.x, src->row1.x, src->row2.x, src->row0.y,
+        src->row1.y, src->row2.y, src->row0.z, src->row1.z, src->row2.z, &q1);
     quat_from_axis_angle(axis, angle, &q2);
-    q3.x = q1.x * q2.w - q1.y * q2.z + q1.z * q2.y + q1.w * q2.x;
-    q3.y = q1.x * q2.z + q1.y * q2.w - q1.z * q2.x + q1.w * q2.y;
-    q3.z = -q1.x * q2.y + q1.y * q2.x + q1.z * q2.w + q1.w * q2.z;
-    q3.w = -q1.x * q2.x - q1.y * q2.y - q1.z * q2.z + q1.w * q2.w;
-    mat3_from_quat(&q3, &yt);
-    *(vec3*)&dst->row0 = yt.row0;
-    *(vec3*)&dst->row1 = yt.row1;
-    *(vec3*)&dst->row2 = yt.row2;
-    dst->row0.w = src->row0.w;
-    dst->row1.w = src->row2.w;
-    dst->row2.w = src->row3.w;
-    dst->row3 = src->row3;
+    quat_mult(&q2, &q1, &q3);
+    mat4_from_quat(&q3, dst);
+    dst->row0.w = t0;
+    dst->row1.w = t1;
+    dst->row2.w = t2;
+    dst->row3 = t3;
 }

@@ -7,6 +7,7 @@
 
 #include "../KKdLib/default.h"
 #include "../KKdLib/txp.h"
+#include "../KKdLib/vector.h"
 #include <glad/glad.h>
 
 typedef enum texture_flags {
@@ -14,8 +15,8 @@ typedef enum texture_flags {
 } texture_flags;
 
 typedef struct texture {
-    int32_t field_0;
-    int32_t field_4;
+    int32_t init_count;
+    int32_t id;
     texture_flags flags;
     int16_t width;
     int16_t height;
@@ -26,13 +27,23 @@ typedef struct texture {
     int32_t size;
 } texture;
 
+vector(texture)
 vector_ptr(texture)
 
-extern texture* texture_load_tex_2d(GLenum internal_format, int32_t width, int32_t height,
-    int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy);
-extern texture* texture_load_tex_cube_map(GLenum internal_format, int32_t width, int32_t height,
-    int32_t max_mipmap_level, void** data_ptr);
-extern texture* texture_txp_load(txp* t);
-extern void texture_dispose(texture* tex);
+#define texture_make_id(id, index) ((uint32_t)((id << 24) | (index & 0xFFFFFF)))
 
-extern bool texture_txp_set_load(vector_txp* t, vector_ptr_texture* tex);
+extern texture* texture_init(uint32_t id);
+extern texture* texture_load_tex_2d(uint32_t id, GLenum internal_format, int32_t width, int32_t height,
+    int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy);
+extern texture* texture_load_tex_cube_map(uint32_t id, GLenum internal_format, int32_t width, int32_t height,
+    int32_t max_mipmap_level, void** data_ptr);
+extern texture* texture_txp_load(txp* t, uint32_t id);
+extern void texture_free(texture* tex);
+
+extern bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids);
+
+extern void texture_storage_init();
+extern texture* texture_storage_create_texture(uint32_t id);
+extern texture* texture_storage_get_texture(uint32_t id);
+extern void texture_storage_delete_texture(uint32_t id);
+extern void texture_storage_free();

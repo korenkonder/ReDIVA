@@ -3,7 +3,7 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "texture.h"
+#include "list.h"
 
 bool glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
     size_t data;

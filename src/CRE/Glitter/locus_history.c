@@ -56,6 +56,6 @@ void glitter_locus_history_append(glitter_locus_history* a1,
 }
 
 void glitter_locus_history_dispose(glitter_locus_history* lh) {
-    vector_glitter_locus_history_data_free(&lh->data);
+    vector_glitter_locus_history_data_free(&lh->data, 0);
     free(lh);
 }

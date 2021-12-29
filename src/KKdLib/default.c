@@ -6,6 +6,9 @@
 #include "default.h"
 
 void* force_malloc(size_t size) {
+    if (!size)
+        return 0;
+
     void* buf = 0;
     while (!buf)
         buf = malloc(size);

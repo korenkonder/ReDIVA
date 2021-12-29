@@ -42,30 +42,14 @@ null(double_t)
 null(size_t)
 null(ssize_t)
 
+#define ptr_t(t) \
+typedef t* ptr_##t;
+
 #define pair(t0, t1) \
 typedef struct pair_##t0##_##t1 { \
     t0 key; \
     t1 val; \
 } pair_##t0##_##t1;
-
-#define pointer_ptr(t) \
-typedef struct pointer_ptr_##t { \
-    int32_t offset; \
-    t* value; \
-} pointer_ptr_##t;
-
-#define pointer(t) \
-typedef struct pointer_##t { \
-    int32_t offset; \
-    t value; \
-} pointer_##t;
-
-#define count_pointer(t) \
-typedef struct count_pointer_##t { \
-    int32_t count; \
-    int32_t offset; \
-    t value; \
-} count_pointer_##t;
 
 #ifndef max
 #define max(a, b) (((a) > (b)) ? (a) : (b))
@@ -79,7 +63,7 @@ typedef struct count_pointer_##t { \
 
 #define div_min_max(a, b, c) (((a) >= 0) ? ((a) / (b)) : ((a) / (c)))
 
-#define clamp(a, b, c) (min(max(a, b), c))
+#define clamp(a, b, c) (((((a) > (b)) ? (a) : (b)) < (c)) ? (((a) > (b)) ? (a) : (b)) : (c))
 
 #define align_val(a, b) ((((a) + (b) - 1) / (b)) * (b))
 

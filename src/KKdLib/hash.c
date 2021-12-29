@@ -5,35 +5,60 @@
 
 #include "hash.h"
 
-const uint64_t hash_fnv1a64_empty = 0xCBF29CE44FD0BFC1;
+const uint64_t hash_fnv1a64m_empty = 0xCBF29CE44FD0BFC1;
 const uint32_t hash_murmurhash_empty = 0x0CAD3078;
 
-uint64_t hash_fnv1a64(uint8_t* data, size_t length) { // 0x1403B04D0 in SBZV_7.10; FNV 1a 64-bit
+inline uint64_t hash_fnv1a64m(uint8_t* data, size_t length) { // 0x1403B04D0 in SBZV_7.10; FNV 1a 64-bit Modified
     uint64_t hash = 0xCBF29CE484222325;
     if (data)
         for (size_t i = 0; i < length; i++) {
             hash ^= data[i];
             hash *= 0x100000001B3;
         }
-    return (hash >> 32) ^ hash;
+    return (hash >> 32) ^ hash; // Actual Modification
 }
 
-inline uint64_t hash_utf8_fnv1a64(char* data) {
-    uint64_t hash = hash_fnv1a64((uint8_t*)data, utf8_length(data));
+inline uint64_t hash_utf8_fnv1a64m(char* data) {
+    uint64_t hash = hash_fnv1a64m((uint8_t*)data, utf8_length(data));
     return hash;
 }
 
-inline uint64_t hash_utf16_fnv1a64(wchar_t* data) {
+inline uint64_t hash_utf16_fnv1a64m(wchar_t* data) {
     char* temp = utf16_to_utf8(data);
-    uint64_t hash = hash_fnv1a64((uint8_t*)temp, utf8_length(temp));
+    uint64_t hash = hash_fnv1a64m((uint8_t*)temp, utf8_length(temp));
+    free(temp);
+    return hash;
+}
+
+inline uint64_t hash_fnv1a64m_upper(uint8_t* data, size_t length) { // FNV 1a 64-bit Modified; Always Upper
+    uint64_t hash = 0xCBF29CE484222325;
+    if (data)
+        for (size_t i = 0; i < length; i++) {
+            uint8_t a = data[i];
+            if (a > 0x60 && a < 0x7B)
+                a -= 0x20;
+            hash ^= a;
+            hash *= 0x100000001B3;
+        }
+    return (hash >> 32) ^ hash; // Actual Modification
+}
+
+inline uint64_t hash_utf8_fnv1a64m_upper(char* data) {
+    uint64_t hash = hash_fnv1a64m_upper((uint8_t*)data, utf8_length(data));
+    return hash;
+}
+
+inline uint64_t hash_utf16_fnv1a64m_upper(wchar_t* data) {
+    char* temp = utf16_to_utf8(data);
+    uint64_t hash = hash_fnv1a64m_upper((uint8_t*)temp, utf8_length(temp));
     free(temp);
     return hash;
 }
 
 uint32_t hash_murmurhash(uint8_t* data, size_t length,
-    uint32_t seed, bool already_upper, bool big_endian) { // 0x814D7A9C in PCSB00554; MurmurHash
-                                                          // 0x8134C304 in PCSB01007
-                                                          // 0x0069CEA4 in NPEB02013
+    uint32_t seed, bool upper, bool big_endian) { // 0x814D7A9C in PCSB00554; MurmurHash
+                                                  // 0x8134C304 in PCSB01007
+                                                  // 0x0069CEA4 in NPEB02013
     uint32_t a, b, hash;
     size_t i;
 
@@ -42,7 +67,7 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
 
     hash = seed + 0xDEADBEEF;
     if (data)
-        if (already_upper) {
+        if (upper) {
             if (big_endian)
                 for (i = 0; length > 3; length -= 4, i += 4) {
                     b = load_reverse_endianness_uint32_t(&data[i]);
@@ -159,14 +184,14 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
     return hash;
 }
 
-inline uint32_t hash_utf8_murmurhash(char* data, uint32_t seed, bool already_upper) {
-    uint32_t hash = hash_murmurhash((uint8_t*)data, utf8_length(data), seed, already_upper, false);
+inline uint32_t hash_utf8_murmurhash(char* data, uint32_t seed, bool upper) {
+    uint32_t hash = hash_murmurhash((uint8_t*)data, utf8_length(data), seed, upper, false);
     return hash;
 }
 
-inline uint32_t hash_utf16_murmurhash(wchar_t* data, uint32_t seed, bool already_upper) {
+inline uint32_t hash_utf16_murmurhash(wchar_t* data, uint32_t seed, bool upper) {
     char* temp = utf16_to_utf8(data);
-    uint32_t hash = hash_murmurhash((uint8_t*)temp, utf8_length(temp), seed, already_upper, false);
+    uint32_t hash = hash_murmurhash((uint8_t*)temp, utf8_length(temp), seed, upper, false);
     free(temp);
     return hash;
 }

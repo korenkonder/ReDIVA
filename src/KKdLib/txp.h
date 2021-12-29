@@ -6,7 +6,7 @@
 #pragma once
 
 #include "default.h"
-#include "f2_enrs.h"
+#include "f2/enrs.h"
 #include "vector.h"
 
 typedef enum txp_format {
@@ -45,10 +45,16 @@ typedef struct txp {
 
 vector(txp)
 
+typedef vector_txp txp_set;
+
+extern void txp_init(txp* t);
 extern void txp_copy(txp* src, txp* dst);
 extern uint32_t txp_get_size(txp_format format, uint32_t width, uint32_t height);
 extern void txp_free(txp* t);
-extern bool tex_set_pack_file(vector_txp* t, void** data, size_t* length, bool use_big_endian);
-extern bool tex_set_produce_enrs(vector_txp* t, vector_enrs_entry* enrs);
-extern bool tex_set_unpack_file(vector_txp* t, void* data, bool use_big_endian);
-extern void tex_set_free(vector_txp* t);
+extern void txp_set_init(txp_set* ts);
+extern bool txp_set_pack_file(txp_set* ts, void** data, size_t* length, bool big_endian);
+extern bool txp_set_pack_file_modern(txp_set* ts, void** data, size_t* length, bool big_endian);
+extern bool txp_set_produce_enrs(txp_set* ts, vector_enrs_entry* enrs);
+extern bool txp_set_unpack_file(txp_set* ts, void* data, bool big_endian);
+extern bool txp_set_unpack_file_modern(txp_set* ts, void* data, size_t length);
+extern void txp_set_free(txp_set* ts);

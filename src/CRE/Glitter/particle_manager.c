@@ -4,12 +4,12 @@
 */
 
 #include "particle_manager.h"
+#include "../GlitterX/effect_inst_x.h"
 #include "effect_group.h"
 #include "effect_inst.h"
 #include "file_reader.h"
 #include "render_group.h"
 #include "scene.h"
-#include "../GlitterX/effect_inst_x.h"
 
 glitter_particle_manager* glitter_particle_manager_init() {
     glitter_particle_manager* gpm = force_malloc(sizeof(glitter_particle_manager));
@@ -93,7 +93,10 @@ bool glitter_particle_manager_check_scene(GPM, uint64_t effect_group_hash) {
     return i != GPM_VAL->scenes.end;
 }
 
-void glitter_particle_manager_draw(GPM, alpha_pass_type alpha) {
+void glitter_particle_manager_draw(GPM, draw_pass_3d_type alpha) {
+    if (GPM_VAL->no_draw)
+        return;
+
     glitter_scene** i;
     glitter_scene* scene;
     glitter_scene_effect* j;
@@ -294,14 +297,11 @@ void glitter_particle_manager_set_frame(GPM,
     glitter_effect_group* effect_group, glitter_scene** scene, float_t curr_frame,
     float_t prev_frame, uint32_t counter, glitter_random* random, bool reset) {
     if (curr_frame < prev_frame || reset) {
-        for (glitter_scene** i = GPM_VAL->scenes.begin; i != GPM_VAL->scenes.end; ) {
-            if (*i != *scene) {
-                i++;
-                continue;
+        for (glitter_scene** i = GPM_VAL->scenes.begin; i != GPM_VAL->scenes.end; i++)
+            if (*i == *scene) {
+                vector_ptr_glitter_scene_erase(&GPM_VAL->scenes, i - GPM_VAL->scenes.begin, glitter_scene_dispose);
+                break;
             }
-
-            vector_ptr_glitter_scene_erase(&GPM_VAL->scenes, i - GPM_VAL->scenes.begin, glitter_scene_dispose);
-        }
         GPM_VAL->counter = counter;
         GPM_VAL->random = *random;
 
@@ -411,7 +411,7 @@ void glitter_particle_manager_update_file_reader(GPM) {
     for (glitter_file_reader** i = GPM_VAL->file_readers.begin; i != GPM_VAL->file_readers.end;) {
         if (*i) {
             glitter_file_reader* file_reader = *i;
-            if (glitter_file_reader_read(file_reader, GPM_VAL->emission)) {
+            if (glitter_file_reader_read(GPM_VAL, file_reader, GPM_VAL->emission)) {
                 file_reader->effect_group->emission = file_reader->emission;
                 if (file_reader->emission <= 0.0)
                     file_reader->effect_group->emission = GPM_VAL->emission;
@@ -425,8 +425,8 @@ void glitter_particle_manager_update_file_reader(GPM) {
     }
 }
 
-void glitter_particle_manager_update_scene(GPM) {
-    GPM_VAL->delta_frame = get_frame_speed();
+void glitter_particle_manager_update_scene(GPM, float_t delta_frame) {
+    GPM_VAL->delta_frame = delta_frame;
     for (glitter_scene** i = GPM_VAL->scenes.begin; i != GPM_VAL->scenes.end;) {
         glitter_scene* scene = *i;
         if (scene && !glitter_scene_has_ended(scene, true)) {

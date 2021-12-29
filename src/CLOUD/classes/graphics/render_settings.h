@@ -6,11 +6,10 @@
 #pragma once
 
 #include "../../../KKdLib/default.h"
+#include "../../classes.h"
 
-extern bool render_settings_enabled;
-
-extern void render_settings_dispose();
-extern void render_settings_init();
-extern void render_settings_imgui();
-extern void render_settings_input();
-extern void render_settings_render();
+extern bool graphics_render_settings_init(class_data* data, render_context* rctx);
+extern void graphics_render_settings_imgui(class_data* data);
+extern void graphics_render_settings_input(class_data* data);
+extern void graphics_render_settings_render(class_data* data);
+extern bool graphics_render_settings_dispose(class_data* data);

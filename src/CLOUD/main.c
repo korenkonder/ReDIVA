@@ -4,6 +4,9 @@
 */
 
 #include "../KKdLib/kkfs.h"
+#include "../KKdLib/a3da.h"
+#include "../KKdLib/f2/struct.h"
+#include "../CRE/auth_3d.h"
 #include "elf.h"
 #include "main.h"
 #include "shared.h"
@@ -89,11 +92,151 @@ static void decrypt_edat() {
     io_free(&f1);
 }
 
-bool close;
+static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
+    a3da cam_a3da_file;
+    a3da_init(&cam_a3da_file);
+    a3da_load_file(&cam_a3da_file, "", a3da_path, 0);
 
-extern LARGE_INTEGER performance_frequency;
-extern double_t inv_performance_frequency_msec;
-extern double_t inv_performance_frequency_sec;
+    if (!cam_a3da_file.dof.has_dof) {
+        a3da_free(&cam_a3da_file);
+        return;
+    }
+
+    typedef struct dof_data {
+        int32_t flags;
+        float_t focus;
+        float_t focus_range;
+        float_t fuzzing_range;
+        float_t ratio;
+        float_t quality;
+    } dof_data;
+
+    auth_3d cam_a3da;
+    auth_3d_init(&cam_a3da);
+    auth_3d_load(&cam_a3da, &cam_a3da_file, 0, 0);
+    a3da_free(&cam_a3da_file);
+
+    int32_t frames = (int32_t)cam_a3da.play_control.size;
+
+    dof_data* dof = force_malloc_s(dof_data, frames + 1ULL);
+    int32_t* dof_index = force_malloc_s(int32_t, frames);
+    size_t count = 0;
+
+    *dof++ = (dof_data){ 0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+
+    auth_3d_camera_root* cr = &cam_a3da.camera_root.begin[0];
+
+    for (int32_t i = 0; i < frames; i++) {
+        auth_3d_get_value(&cam_a3da, (mat4*)&mat4_identity, (float_t)1.0f);
+        bool enable = fabs(cam_a3da.dof.model_transform.rotation_value.z) > 0.000001f;
+        if (!enable) {
+            dof_index[i] = 0;
+            continue;
+        }
+
+        vec3 diff;
+        float_t focus;
+        vec3_sub(cam_a3da.dof.model_transform.translation_value, cr->view_point_value, diff);
+        vec3_length(diff, focus);
+
+        dof_data d;
+        d.flags = 0x1F;
+        d.focus = focus;
+        d.focus_range = cam_a3da.dof.model_transform.scale_value.y;
+        d.fuzzing_range = cam_a3da.dof.model_transform.rotation_value.y;
+        d.ratio = cam_a3da.dof.model_transform.rotation_value.z;
+        d.quality = 1.0f;
+
+        bool found = false;
+        for (size_t j = 0; j < count; j++)
+            if (!memcmp(&d, &dof[j], sizeof(dof_data))) {
+                dof_index[i] = (int32_t)j;
+                found = true;
+                break;
+            }
+
+        if (found)
+            continue;
+
+        dof[count] = d;
+        dof_index[i] = (int32_t)count;
+        count++;
+    }
+
+    dof--;
+
+    auth_3d_free(&cam_a3da);
+
+    char buf[0x100];
+    sprintf_s(buf, sizeof(buf), "pv_%03d_dof.dsc", pv_id);
+
+    stream s_dsc;
+    io_open(&s_dsc, buf, "wb");
+    io_write_uint32_t(&s_dsc, 0x15122517);
+    int32_t last_dof_index = -1;
+    for (int32_t i = 0; i < frames; i++) {
+        if (last_dof_index == dof_index[i])
+            continue;
+
+        io_write_int32_t(&s_dsc, 0x01);
+        io_write_int32_t(&s_dsc, (int32_t)((double_t)i * (100000.0 / 60.0))); // 00000
+        io_write_int32_t(&s_dsc, 0x5F);
+        io_write_int32_t(&s_dsc, dof_index[i] ? 0x01 : 0x00);
+        io_write_int32_t(&s_dsc, dof_index[i]);
+        io_write_int32_t(&s_dsc, 0x00);
+        last_dof_index = dof_index[i];
+    }
+    io_free(&s_dsc);
+
+    stream s_dft;
+    io_mopen(&s_dft, 0, 0);
+    uint32_t off;
+    vector_enrs_entry e = vector_empty(enrs_entry);
+    enrs_entry ee;
+    vector_size_t pof = vector_empty(size_t);
+
+    ee = (enrs_entry){ 0, 1, 8, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_DWORD });
+    vector_enrs_entry_push_back(&e, &ee);
+    off = 8;
+    off = align_val(off, 0x10);
+
+    ee = (enrs_entry){ off, 1, 24, (int32_t)count, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 6, ENRS_DWORD });
+    vector_enrs_entry_push_back(&e, &ee);
+    off = (uint32_t)(count * 24ULL);
+    off = align_val(off, 0x10);
+
+    io_write_uint32_t(&s_dft, (int32_t)count);
+    io_write_offset_f2_pof_add(&s_dft, 0x10, 0x40, &pof);
+    io_align_write(&s_dft, 0x10);
+    io_write(&s_dft, dof, sizeof(dof_data) * count);
+
+    f2_struct st;
+    memset(&st, 0, sizeof(f2_struct));
+
+    io_align_write(&s_dft, 0x10);
+    io_mcopy(&s_dft, &st.data, &st.length);
+    io_free(&s_dft);
+
+    st.enrs = e;
+    st.pof = pof;
+
+    st.header.signature = reverse_endianness_uint32_t('DOFT');
+    st.header.length = 0x40;
+    st.header.use_big_endian = false;
+    st.header.use_section_size = true;
+    st.header.inner_signature = 0x03;
+
+    sprintf_s(buf, sizeof(buf), "pv%03d.dft", pv_id);
+    f2_struct_write(&st, buf, true, false);
+    f2_struct_free(&st);
+
+    free(dof);
+    free(dof_index);
+}
+
+bool close;
 
 typedef struct thread {
     HANDLE handle;
@@ -103,11 +246,7 @@ typedef struct thread {
 int32_t wmain(int32_t argc, wchar_t** argv) {
     //ShowWindow(GetConsoleWindow(), SW_HIDE);
     timeBeginPeriod(1);
-    QueryPerformanceFrequency(&performance_frequency);
     SetProcessDPIAware();
-
-    inv_performance_frequency_msec = 1000.0 / (double_t)performance_frequency.QuadPart;
-    inv_performance_frequency_sec = 1000000.0 / (double_t)performance_frequency.QuadPart;
 
     int32_t cpuid_data[4];
     __cpuid(cpuid_data, 1);
@@ -118,58 +257,14 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     ris.res.y = 0;
     ris.scale = 0.0f;
 
-#if defined(VIDEO)
-#if defined(DEBUG) || defined(DEBUG_DEV)
-#pragma comment(lib, "libx264d.lib")
-#else
-#pragma comment(lib, "libx264.lib")
-#endif
+    //a3da_to_dft_dsc("CAMPV269_BASE.a3da", 269);
 
-    thread control, input, render, sound, video;
-    HANDLE h[5];
-    h[0] = control.handle = CreateThread(0, 0, &control_main, 0, 0, &control.id);
-    h[1] = input.handle = CreateThread(0, 0, &input_main, 0, 0, &input.id);
-    h[2] = render.handle = CreateThread(0, 0, &render_main, &ris, 0, &render.id);
-    h[3] = sound.handle = CreateThread(0, 0, &sound_main, 0, 0, &sound.id);
-    h[4] = video.handle = CreateThread(0, 0, &video_main, 0, 0, &video.id);
+    thread input, render, sound;
+    HANDLE h[3];
+    h[0] = input.handle = CreateThread(0, 0, &input_main, 0, 0, &input.id);
+    h[1] = render.handle = CreateThread(0, 0, &render_main, &ris, 0, &render.id);
+    h[2] = sound.handle = CreateThread(0, 0, &sound_main, 0, 0, &sound.id);
 
-    if (control.handle)
-        SetThreadDescription(control.handle, L"Control Thread");
-    if (input.handle)
-        SetThreadDescription(input.handle, L"Input Thread");
-    if (render.handle)
-        SetThreadDescription(render.handle, L"Render Thread");
-    if (sound.handle)
-        SetThreadDescription(sound.handle, L"Sound Thread");
-    if (video.handle)
-        SetThreadDescription(sound.handle, L"Video Thread");
-
-    lock_init(&state_lock);
-    state = RENDER_UNINITIALIZED;
-    if (control.handle && input.handle && render.handle && sound.handle && video.handle)
-        WaitForMultipleObjects(5, h, true, INFINITE);
-    lock_free(&state_lock);
-
-    if (control.handle)
-        CloseHandle(control.handle);
-    if (input.handle)
-        CloseHandle(input.handle);
-    if (render.handle)
-        CloseHandle(render.handle);
-    if (sound.handle)
-        CloseHandle(sound.handle);
-    if (video.handle)
-        CloseHandle(video.handle);
-#else
-    thread control, input, render, sound;
-    HANDLE h[4];
-    h[0] = control.handle = CreateThread(0, 0, &control_main, 0, 0, &control.id);
-    h[1] = input.handle = CreateThread(0, 0, &input_main, 0, 0, &input.id);
-    h[2] = render.handle = CreateThread(0, 0, &render_main, &ris, 0, &render.id);
-    h[3] = sound.handle = CreateThread(0, 0, &sound_main, 0, 0, &sound.id);
-    
-    if (control.handle)
-        SetThreadDescription(control.handle, L"Control Thread");
     if (input.handle)
         SetThreadDescription(input.handle, L"Input Thread");
     if (render.handle)
@@ -179,19 +274,16 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     lock_init(&state_lock);
     state = RENDER_UNINITIALIZED;
-    if (control.handle && input.handle && render.handle && sound.handle)
-        WaitForMultipleObjects(4, h, true, INFINITE);
+    if (input.handle && render.handle && sound.handle)
+        WaitForMultipleObjects(3, h, true, INFINITE);
     lock_free(&state_lock);
 
-    if (control.handle)
-        CloseHandle(control.handle);
     if (input.handle)
         CloseHandle(input.handle);
     if (render.handle)
         CloseHandle(render.handle);
     if (sound.handle)
         CloseHandle(sound.handle);
-#endif
     timeEndPeriod(1);
     return 0;
 }

@@ -4,10 +4,15 @@
 */
 
 #include "txp.h"
-#include "io_stream.h"
+#include "f2/struct.h"
+#include "io/stream.h"
 
 vector_func(txp_mipmap)
 vector_func(txp)
+
+void txp_init(txp* t) {
+    memset(t, 0, sizeof(txp));
+}
 
 void txp_copy(txp* src, txp* dst) {
     memset(dst, 0, sizeof(txp));
@@ -88,33 +93,37 @@ void txp_free(txp* t) {
 
     for (txp_mipmap* i = t->data.begin; i != t->data.end; i++)
         free(i->data);
-    vector_txp_mipmap_free(&t->data);
+    vector_txp_mipmap_free(&t->data, 0);
 }
 
-bool tex_set_pack_file(vector_txp* t, void** data, size_t* length, bool use_big_endian) {
+void txp_set_init(txp_set* ts) {
+    *ts = vector_empty(txp);
+}
+
+bool txp_set_pack_file(txp_set* ts, void** data, size_t* length, bool big_endian) {
     size_t l;
     txp* tex;
     txp_mipmap* tex_mipmap;
 
-    if (!t || !data)
+    if (!ts || !data)
         return false;
 
     *data = 0;
     *length = 0;
 
-    size_t count = t->end - t->begin;
+    size_t count = ts->end - ts->begin;
     if (count < 1)
         return false;
 
     size_t* txp4_offset = force_malloc_s(size_t, count);
     size_t** txp2_offset = force_malloc_s(size_t*, count);
-    tex = t->begin;
+    tex = ts->begin;
     for (size_t i = 0; i < count; i++, tex++)
         txp2_offset[i] = force_malloc_s(size_t, (size_t)tex->mipmaps_count * tex->array_size);
 
     l = 12 + count * 4;
 
-    tex = t->begin;
+    tex = ts->begin;
     for (size_t i = 0; i < count; i++, tex++) {
         txp4_offset[i] = l;
         l += 12 + (size_t)tex->array_size * tex->mipmaps_count * 4;
@@ -131,14 +140,14 @@ bool tex_set_pack_file(vector_txp* t, void** data, size_t* length, bool use_big_
 
     stream s;
     io_mopen(&s, 0, l);
-    s.is_big_endian = use_big_endian;
+    s.is_big_endian = big_endian;
     io_write_uint32_t_stream_reverse_endianness(&s, 0x03505854);
     io_write_uint32_t_stream_reverse_endianness(&s, (uint32_t)count);
     io_write_uint32_t_stream_reverse_endianness(&s, (uint8_t)count | 0x01010100);
     for (size_t i = 0; i < count; i++)
         io_write_uint32_t_stream_reverse_endianness(&s, (uint32_t)txp4_offset[i]);
 
-    tex = t->begin;
+    tex = ts->begin;
     for (size_t i = 0; i < count; i++, tex++) {
         io_set_position(&s, txp4_offset[i], SEEK_SET);
         io_write_uint32_t_stream_reverse_endianness(&s, tex->array_size > 1 ? 0x05505854 : 0x04505854);
@@ -177,18 +186,39 @@ bool tex_set_pack_file(vector_txp* t, void** data, size_t* length, bool use_big_
     return true;
 }
 
-bool tex_set_produce_enrs(vector_txp* t, vector_enrs_entry* enrs) {
+bool txp_set_pack_file_modern(txp_set* ts, void** data, size_t* length, bool big_endian) {
+    f2_struct st;
+    memset(&st, 0, sizeof(f2_struct));
+
+    if (!txp_set_pack_file(ts, &st.data, &st.length, big_endian)) {
+        *data = 0;
+        *length = 0;
+        return false;
+    }
+
+    txp_set_produce_enrs(ts, &st.enrs);
+
+    st.header.signature = reverse_endianness_uint32_t('MTXD');
+    st.header.length = 0x20;
+    st.header.use_big_endian = big_endian;
+    st.header.use_section_size = true;
+    f2_struct_mwrite(&st, data, length, true, false);
+    f2_struct_free(&st);
+    return true;
+}
+
+bool txp_set_produce_enrs(txp_set* ts, vector_enrs_entry* enrs) {
     size_t l;
     txp* tex;
     txp_mipmap* tex_mipmap;
 
-    if (!t || !enrs)
+    if (!ts || !enrs)
         return false;
 
     *enrs = vector_empty(enrs_entry);
     l = 0;
 
-    size_t count = t->end - t->begin;
+    size_t count = ts->end - ts->begin;
     if (count < 1)
         return false;
 
@@ -204,9 +234,9 @@ bool tex_set_produce_enrs(vector_txp* t, vector_enrs_entry* enrs) {
     ee = (enrs_entry){ o, 1, (uint32_t)(count * 4), 1, vector_empty(enrs_sub_entry) };
     vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, (uint32_t)count, ENRS_DWORD });
     vector_enrs_entry_push_back(&e, &ee);
-    l += (size_t)(o = (uint32_t)(count * 4LL));
+    l += (size_t)(o = (uint32_t)(count * 4ULL));
 
-    tex = t->begin;
+    tex = ts->begin;
     for (size_t i = 0; i < count; i++, tex++) {
         ee = (enrs_entry){ o, 1, 12, 1, vector_empty(enrs_sub_entry) };
         vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
@@ -233,21 +263,21 @@ bool tex_set_produce_enrs(vector_txp* t, vector_enrs_entry* enrs) {
     return true;
 }
 
-bool tex_set_unpack_file(vector_txp* t, void* data, bool use_big_endian) {
+bool txp_set_unpack_file(txp_set* ts, void* data, bool big_endian) {
     uint32_t sign;
     uint32_t tex_count;
-    txp tex;
-    txp_mipmap tex_mipmap;
+    txp* tex;
+    txp_mipmap* tex_mipmap;
     size_t set_d;
     size_t d;
     size_t mipmap_d;
     uint32_t sub_tex_count;
     uint32_t info;
 
-    if (!t || !data)
+    if (!ts || !data)
         return false;
 
-    if (use_big_endian)
+    if (big_endian)
         sign = load_reverse_endianness_uint32_t((void*)data);
     else
         sign = *(uint32_t*)data;
@@ -255,17 +285,16 @@ bool tex_set_unpack_file(vector_txp* t, void* data, bool use_big_endian) {
     if (sign != 0x03505854)
         return false;
 
-    tex_set_free(t);
     set_d = (size_t)data;
-    if (use_big_endian)
+    if (big_endian)
         tex_count = load_reverse_endianness_uint32_t((void*)(set_d + 4));
     else
         tex_count = *(uint32_t*)(set_d + 4);
 
-    *t = vector_empty(txp);
-    vector_txp_reserve(t, tex_count);
+    *ts = vector_empty(txp);
+    vector_txp_reserve(ts, tex_count);
     for (size_t i = 0; i < tex_count; i++) {
-        if (use_big_endian) {
+        if (big_endian) {
             d = set_d + (size_t)load_reverse_endianness_uint32_t((uint32_t*)(set_d + 12) + i);
             sign = load_reverse_endianness_uint32_t((void*)d);
         }
@@ -277,7 +306,7 @@ bool tex_set_unpack_file(vector_txp* t, void* data, bool use_big_endian) {
         if (sign != 0x04505854 && sign != 0x05505854)
             continue;
 
-        if (use_big_endian) {
+        if (big_endian) {
             sub_tex_count = load_reverse_endianness_uint32_t((void*)(d + 4));
             info = load_reverse_endianness_uint32_t((void*)(d + 8));
         }
@@ -286,20 +315,20 @@ bool tex_set_unpack_file(vector_txp* t, void* data, bool use_big_endian) {
             info = *(uint32_t*)(d + 8);
         }
 
-        memset(&tex, 0, sizeof(txp));
-        tex.has_cube_map = sign == 0x05505854;
-        tex.mipmaps_count = info & 0xFF;
-        tex.array_size = (info >> 8) & 0xFF;
+        tex = vector_txp_reserve_back(ts);
+        tex->has_cube_map = sign == 0x05505854;
+        tex->mipmaps_count = info & 0xFF;
+        tex->array_size = (info >> 8) & 0xFF;
 
-        if (tex.array_size == 1 && tex.mipmaps_count != sub_tex_count)
-            tex.mipmaps_count = sub_tex_count & 0xFF;
+        if (tex->array_size == 1 && tex->mipmaps_count != sub_tex_count)
+            tex->mipmaps_count = sub_tex_count & 0xFF;
 
-        uint32_t mipmaps_count = tex.mipmaps_count;
-        tex.data = vector_empty(txp_mipmap);
-        vector_txp_mipmap_reserve(&tex.data, (size_t)tex.array_size * tex.mipmaps_count);
-        for (size_t j = 0; j < tex.array_size; j++)
-            for (size_t k = 0; k < tex.mipmaps_count; k++) {
-                if (use_big_endian) {
+        uint32_t mipmaps_count = tex->mipmaps_count;
+        tex->data = vector_empty(txp_mipmap);
+        vector_txp_mipmap_reserve(&tex->data, (size_t)tex->array_size * tex->mipmaps_count);
+        for (size_t j = 0; j < tex->array_size; j++)
+            for (size_t k = 0; k < tex->mipmaps_count; k++) {
+                if (big_endian) {
                     mipmap_d = d + (size_t)load_reverse_endianness_uint32_t((uint32_t*)(d + 12) + j * mipmaps_count + k);
                     sign = load_reverse_endianness_uint32_t((void*)mipmap_d);
                 }
@@ -308,42 +337,50 @@ bool tex_set_unpack_file(vector_txp* t, void* data, bool use_big_endian) {
                     sign = *(uint32_t*)mipmap_d;
                 }
 
-                memset(&tex_mipmap, 0, sizeof(txp_mipmap));
+                tex_mipmap = vector_txp_mipmap_reserve_back(&tex->data);
 
-                if (use_big_endian) {
-                    tex_mipmap.width = load_reverse_endianness_uint32_t((void*)(mipmap_d + 4));
-                    tex_mipmap.height = load_reverse_endianness_uint32_t((void*)(mipmap_d + 8));
-                    tex_mipmap.format = load_reverse_endianness_uint32_t((void*)(mipmap_d + 12));
-                    tex_mipmap.size = load_reverse_endianness_uint32_t((void*)(mipmap_d + 20));
+                if (big_endian) {
+                    tex_mipmap->width = load_reverse_endianness_uint32_t((void*)(mipmap_d + 4));
+                    tex_mipmap->height = load_reverse_endianness_uint32_t((void*)(mipmap_d + 8));
+                    tex_mipmap->format = load_reverse_endianness_uint32_t((void*)(mipmap_d + 12));
+                    tex_mipmap->size = load_reverse_endianness_uint32_t((void*)(mipmap_d + 20));
                 }
                 else {
-                    tex_mipmap.width = *(uint32_t*)(mipmap_d + 4);
-                    tex_mipmap.height = *(uint32_t*)(mipmap_d + 8);
-                    tex_mipmap.format = *(uint32_t*)(mipmap_d + 12);
-                    tex_mipmap.size = *(uint32_t*)(mipmap_d + 20);
+                    tex_mipmap->width = *(uint32_t*)(mipmap_d + 4);
+                    tex_mipmap->height = *(uint32_t*)(mipmap_d + 8);
+                    tex_mipmap->format = *(uint32_t*)(mipmap_d + 12);
+                    tex_mipmap->size = *(uint32_t*)(mipmap_d + 20);
                 }
 
-                ssize_t size = txp_get_size(tex_mipmap.format, tex_mipmap.width, tex_mipmap.height);
-                tex_mipmap.data = force_malloc(max(size, tex_mipmap.size));
-                memcpy(tex_mipmap.data, (void*)(mipmap_d + 24), tex_mipmap.size);
-                size -= tex_mipmap.size;
+                ssize_t size = txp_get_size(tex_mipmap->format, tex_mipmap->width, tex_mipmap->height);
+                tex_mipmap->data = force_malloc(max(size, tex_mipmap->size));
+                memcpy(tex_mipmap->data, (void*)(mipmap_d + 24), tex_mipmap->size);
+                size -= tex_mipmap->size;
                 if (size > 0)
-                    memset((void*)((size_t)tex_mipmap.data + tex_mipmap.size), 0, size);
-                vector_txp_mipmap_push_back(&tex.data, &tex_mipmap);
+                    memset((void*)((size_t)tex_mipmap->data + tex_mipmap->size), 0, size);
             }
-        vector_txp_push_back(t, &tex);
     }
     return true;
 }
 
-void tex_set_free(vector_txp* t) {
+bool txp_set_unpack_file_modern(txp_set* ts, void* data, size_t length) {
+    bool ret = false;
+    f2_struct st;
+    f2_struct_mread(&st, data, length);
+    if (st.header.signature == reverse_endianness_uint32_t('MTXD'))
+        ret = txp_set_unpack_file(ts, st.data, st.header.use_big_endian);
+    f2_struct_free(&st);
+    return ret;
+}
+
+void txp_set_free(txp_set* t) {
     if (!t)
         return;
 
     for (txp* i = t->begin; i != t->end; i++) {
         for (txp_mipmap* j = i->data.begin; j != i->data.end; j++)
             free(j->data);
-        vector_txp_mipmap_free(&i->data);
+        vector_txp_mipmap_free(&i->data, 0);
     }
-    vector_txp_free(t);
+    vector_txp_free(t, 0);
 }

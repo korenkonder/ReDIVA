@@ -4,526 +4,307 @@
 */
 
 #include "post_process.h"
+#include "fbo.h"
+#include "gl_state.h"
+#include "render_texture.h"
+#include "shader_ft.h"
 #include "static_var.h"
+#include "texture.h"
 
-static void radius_calculate(radius* rad);
-static void radius_calculate_gaussian_kernel(float_t* gaussian_kernel,
-    float_t radius, int32_t stride, int32_t offset);
-static void tone_map_calculate_data(tone_map* tm);
-static void tone_map_calculate_tex(tone_map* tm);
+void post_process_init(post_process_struct* pp) {
+    static const char* alpha_layer_vert_shader =
+        "#version 430 core\n"
+        "out VertexData {\n"
+        "    vec2 texcoord;\n"
+        "} result;\n"
+        "\n"
+        "void main() {\n"
+        "    gl_Position.x = -1.0 + float(gl_VertexID / 2) * 4.0;\n"
+        "    gl_Position.y = 1.0 - float(gl_VertexID % 2) * 4.0;\n"
+        "    gl_Position.z = 0.0;\n"
+        "    gl_Position.w = 1.0;\n"
+        "    result.texcoord = gl_Position.xy * 0.5 + 0.5;\n"
+        "}\n";
 
-radius* radius_init() {
-    radius* rad = force_malloc(sizeof(radius));
-    return rad;
+    static const char* alpha_layer_frag_shader =
+        "#version 430\n"
+        "layout(binding = 0) uniform sampler2D g_layerd_color;\n"
+        "layout(binding = 1) uniform sampler2D g_base_color;\n"
+        "\n"
+        "layout(location = 0) uniform float g_opacity;\n"
+        "\n"
+        "in VertexData{\n"
+        "    vec2 texcoord;\n"
+        "}frg;\n"
+        "\n"
+        "layout(location = 0) out vec4 result;\n"
+        "\n"
+        "void main(){\n"
+        "    vec4 cl = textureLod(g_layerd_color, frg.texcoord, 0.f);\n"
+        "    vec4 cb = textureLod(g_base_color, frg.texcoord, 0.f);\n"
+        "    result = mix(cb, cl, g_opacity.x);\n"
+        "}\n";
+
+    memset(pp, 0, sizeof(post_process_struct));
+    pp->aa = post_process_aa_init();
+    pp->blur = post_process_blur_init();
+    pp->dof = post_process_dof_init();
+    pp->exposure = post_process_exposure_init();
+    pp->tone_map = post_process_tone_map_init();
+
+    glGenSamplers(2, pp->samplers);
+    glSamplerParameteri(pp->samplers[0], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(pp->samplers[0], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(pp->samplers[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(pp->samplers[0], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(pp->samplers[1], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glSamplerParameteri(pp->samplers[1], GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glSamplerParameteri(pp->samplers[1], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(pp->samplers[1], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+    shader_glsl_param param;
+    memset(&param, 0, sizeof(shader_glsl_param));
+    param.name = "Alpha Layer";
+    shader_glsl_load_string(&pp->alpha_layer_shader,
+        (char*)alpha_layer_vert_shader, (char*)alpha_layer_frag_shader, 0, &param);
+    post_process_reset(pp);
 }
 
-void radius_initialize(radius* rad, vec3* rgb) {
-    rad->rgb = *rgb;
-    radius_calculate(rad);
-}
+void post_process_apply(post_process_struct* pp, camera* cam, texture* light_proj_tex, int32_t npr_param) {
+    fbo_blit(pp->render_texture.fbos[0],
+        pp->pre_texture.fbos[0],
+        0, 0, pp->render_width, pp->render_height,
+        0, 0, pp->render_width, pp->render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-vec3* radius_get(radius* rad) {
-    return &rad->rgb;
-}
+    for (int32_t i = 0; i < 8; i++)
+        gl_state_bind_sampler(i, 0);
 
-void radius_set(radius* rad, vec3* value) {
-    vec3 temp;
-    temp.x = clamp(value->x, 0.0f, 3.0f);
-    temp.y = clamp(value->y, 0.0f, 3.0f);
-    temp.z = clamp(value->z, 0.0f, 3.0f);
-    if (temp.x != rad->rgb.x || temp.y != rad->rgb.y || temp.z != rad->rgb.z) {
-        rad->rgb = temp;
-        radius_calculate(rad);
+    post_process_apply_dof(pp->dof, &pp->render_texture, pp->samplers, cam);
+
+    shader_state_matrix_set_mvp_separate(&shaders_ft,
+        (mat4*)&mat4_identity, (mat4*)&mat4_identity, (mat4*)&mat4_identity);
+
+    post_process_get_blur(pp->blur, &pp->render_texture);
+    post_process_get_exposure(pp->exposure,
+        pp->blur->tex[4].color_texture->texture, pp->blur->tex[2].color_texture->texture);
+    post_process_apply_tone_map(pp->tone_map, &pp->render_texture, light_proj_tex, 0,
+        &pp->render_texture, &pp->buf_texture, &pp->sss_contour_texture,
+        pp->blur->tex[0].color_texture->texture,
+        pp->exposure->exposure.color_texture->texture, npr_param);
+    if (pp->mlaa)
+        post_process_apply_mlaa(pp->aa, &pp->render_texture,
+            &pp->buf_texture, pp->samplers, pp->parent_bone_node);
+
+    for (int32_t i = 0; i < 16; i++) {
+        if (!pp->render_textures_data[i])
+            continue;
+
+        render_texture_bind(&pp->render_textures[i], 0);
+
+        texture* t = pp->render_textures_data[i];
+        if (pp->render_width > t->width * 2ULL || pp->render_height > t->height * 2ULL)
+            uniform_value[U_REDUCE] = 1;
+        else
+            uniform_value[U_REDUCE] = 0;
+
+        glViewport(0, 0, t->width, t->height);
+        gl_state_active_bind_texture_2d(0, pp->render_texture.color_texture->texture);
+        gl_state_bind_sampler(0, pp->samplers[0]);
+        shader_set(&shaders_ft, SHADER_FT_REDUCE);
+        render_texture_draw_params(&shaders_ft, pp->render_width,
+            pp->render_height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     }
-}
 
-void radius_dispose(radius* rad) {
-    free(rad);
-}
-
-intensity* intensity_init() {
-    intensity* inten = force_malloc(sizeof(radius));
-    return inten;
-}
-
-void intensity_initialize(intensity* inten, vec3* rgb) {
-    inten->rgb.x = clamp(rgb->x, 0.0f, 2.0f);
-    inten->rgb.y = clamp(rgb->y, 0.0f, 2.0f);
-    inten->rgb.z = clamp(rgb->z, 0.0f, 2.0f);
-    inten->val = inten->rgb;
-    inten->update = true;
-}
-
-vec3* intensity_get(intensity* inten) {
-    return &inten->rgb;
-}
-
-void intensity_set(intensity* inten, vec3* value) {
-    vec3 temp;
-    temp.x = clamp(value->x, 0.0f, 2.0f);
-    temp.y = clamp(value->y, 0.0f, 2.0f);
-    temp.z = clamp(value->z, 0.0f, 2.0f);
-    if (temp.x != inten->rgb.x || temp.y != inten->rgb.y || temp.z != inten->rgb.z) {
-        inten->rgb = temp;
-        inten->val = inten->rgb;
-        inten->update = true;
+    render_texture_bind(&pp->screen_texture, 0);
+    glViewport(pp->screen_x_offset, pp->screen_y_offset, pp->sprite_width, pp->sprite_height);
+    if (pp->ssaa) {
+        gl_state_active_bind_texture_2d(0, pp->render_texture.color_texture->texture);
+        gl_state_bind_sampler(0, pp->samplers[0]);
+        uniform_value[U01] = pp->parent_bone_node ? 1 : 0;
+        uniform_value[U_REDUCE] = 0;
+        shader_set(&shaders_ft, SHADER_FT_REDUCE);
+        render_texture_draw_params(&shaders_ft, pp->render_width,
+            pp->render_height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+        uniform_value[U01] = 0;
     }
-}
+    else {
+        gl_state_active_bind_texture_2d(0, pp->render_texture.color_texture->texture);
+        if (pp->mag_filter == POST_PROCESS_MAG_FILTER_NEAREST)
+            gl_state_bind_sampler(0, pp->samplers[1]);
+        else
+            gl_state_bind_sampler(0, pp->samplers[0]);
 
-void intensity_dispose(intensity* inten) {
-    free(inten);
-}
-
-tone_map* tone_map_init() {
-    tone_map* tm = force_malloc(sizeof(tone_map));
-    return tm;
-}
-
-void tone_map_initialize(tone_map* tm, float_t exposure, bool auto_exposure,
-    float_t gamma, int32_t saturate_power, float_t saturate_coeff,
-    vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    vec3* tone_trans_start, vec3* tone_trans_end, int32_t tone_map_method) {
-    tone_map_initialize_rate(tm, exposure, auto_exposure, 1.0f,
-        gamma, saturate_power, saturate_coeff, scene_fade_color, scene_fade_alpha, scene_fade_blend_func,
-        tone_trans_start, tone_trans_end, tone_map_method);
-}
-
-void tone_map_initialize_rate(tone_map* tm, float_t exposure, bool auto_exposure,
-    float_t gamma, float_t gamma_rate, int32_t saturate_power, float_t saturate_coeff,
-    vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    vec3* tone_trans_start, vec3* tone_trans_end, int32_t tone_map_method) {
-    tm->exposure = clamp(exposure, 0.0f, 4.0f);
-    tm->auto_exposure = auto_exposure;
-    tm->gamma = clamp(gamma, 0.2f, 2.2f);
-    tm->gamma_rate = clamp(gamma_rate, 0.5f, 2.0f);
-    tm->saturate_power = clamp(saturate_power, 1, 6);
-    tm->saturate_coeff = clamp(saturate_coeff, 0.0f, 1.0f);
-    tm->scene_fade_color.x = clamp(scene_fade_color->x, 0.0f, 1.0f);
-    tm->scene_fade_color.y = clamp(scene_fade_color->y, 0.0f, 1.0f);
-    tm->scene_fade_color.z = clamp(scene_fade_color->z, 0.0f, 1.0f);
-    tm->scene_fade_alpha = clamp(scene_fade_alpha, 0.0f, 1.0f);
-    tm->scene_fade_blend_func = clamp(scene_fade_blend_func, 0, 2);
-    tm->tone_trans_start.x = clamp(tone_trans_start->x, 0.0f, 1.0f);
-    tm->tone_trans_start.y = clamp(tone_trans_start->y, 0.0f, 1.0f);
-    tm->tone_trans_start.z = clamp(tone_trans_start->z, 0.0f, 1.0f);
-    tm->tone_trans_end.x = clamp(tone_trans_end->x, 0.0f, 1.0f);
-    tm->tone_trans_end.y = clamp(tone_trans_end->y, 0.0f, 1.0f);
-    tm->tone_trans_end.z = clamp(tone_trans_end->z, 0.0f, 1.0f);
-    tm->tone_map_method = clamp(tone_map_method, 0, 2);
-    tm->update_tex = false;
-    tone_map_calculate_data(tm);
-    tone_map_calculate_tex(tm);
-}
-
-float_t tone_map_get_exposure(tone_map* tm) {
-    return tm->exposure;
-}
-
-void tone_map_set_exposure(tone_map* tm, float_t value) {
-    value = clamp(value, 0.0f, 4.0f);
-    if (value != tm->exposure) {
-        tm->exposure = value;
-        tone_map_calculate_data(tm);
-    }
-}
-
-bool tone_map_get_auto_exposure(tone_map* tm) {
-    return tm->auto_exposure;
-}
-
-void tone_map_set_auto_exposure(tone_map* tm, bool value) {
-    if (value != tm->auto_exposure) {
-        tm->auto_exposure = value;
-        tone_map_calculate_data(tm);
-    }
-}
-
-float_t tone_map_get_gamma(tone_map* tm) {
-    return tm->gamma;
-}
-
-void tone_map_set_gamma(tone_map* tm, float_t value) {
-    value = clamp(value, 0.2f, 2.2f);
-    if (value != tm->gamma) {
-        tm->gamma = value;
-        tone_map_calculate_data(tm);
-        tone_map_calculate_tex(tm);
-    }
-}
-
-float_t tone_map_get_gamma_rate(tone_map* tm) {
-    return tm->gamma_rate;
-}
-
-void tone_map_set_gamma_rate(tone_map* tm, float_t value) {
-    value = clamp(value, 0.5f, 2.0f);
-    if (value != tm->gamma_rate) {
-        tm->gamma_rate = value;
-        tone_map_calculate_tex(tm);
-    }
-}
-
-int32_t tone_map_get_saturate_power(tone_map* tm) {
-    return tm->saturate_power;
-}
-
-void tone_map_set_saturate_power(tone_map* tm, int32_t value) {
-    value = clamp(value, 1, 6);
-    if (value != tm->saturate_power) {
-        tm->saturate_power = value;
-        tone_map_calculate_tex(tm);
-    }
-}
-
-float_t tone_map_get_saturate_coeff(tone_map* tm) {
-    return tm->saturate_coeff;
-}
-
-void tone_map_set_saturate_coeff(tone_map* tm, float_t value) {
-    value = clamp(value, 0.0f, 1.0f);
-    if (value != tm->saturate_coeff) {
-        tm->saturate_coeff = value;
-        tone_map_calculate_tex(tm);
-    }
-}
-
-vec3* tone_map_get_scene_fade_color(tone_map* tm) {
-    return &tm->scene_fade_color;
-}
-
-void tone_map_set_scene_fade_color(tone_map* tm, vec3* value) {
-    vec3 temp;
-    temp.x = clamp(value->x, 0.0f, 1.0f);
-    temp.y = clamp(value->y, 0.0f, 1.0f);
-    temp.z = clamp(value->z, 0.0f, 1.0f);
-    if (temp.x != tm->scene_fade_color.x
-        || temp.y != tm->scene_fade_color.y
-        || temp.z != tm->scene_fade_color.z) {
-        tm->scene_fade_color = temp;
-        tone_map_calculate_data(tm);
-    }
-}
-
-float_t tone_map_get_scene_fade_alpha(tone_map* tm) {
-    return tm->scene_fade_alpha;
-}
-
-void tone_map_set_scene_fade_alpha(tone_map* tm, float_t value) {
-    value = clamp(value, 0.0f, 1.0f);
-    if (value != tm->scene_fade_alpha) {
-        tm->scene_fade_alpha = value;
-        tone_map_calculate_data(tm);
-    }
-}
-
-int32_t tone_map_get_scene_fade_blend_func(tone_map* tm) {
-    return tm->scene_fade_blend_func;
-}
-
-void tone_map_set_scene_fade_blend_func(tone_map* tm, int32_t value) {
-    value = clamp(value, 0, 2);
-    if (value != tm->scene_fade_blend_func) {
-        tm->scene_fade_blend_func = value;
-        tone_map_calculate_data(tm);
-    }
-}
-
-vec3* tone_map_get_tone_trans_start(tone_map* tm) {
-    return &tm->tone_trans_start;
-}
-
-void tone_map_set_tone_trans_start(tone_map* tm, vec3* value) {
-    vec3 temp;
-    temp.x = clamp(value->x, 0.0f, 1.0f);
-    temp.y = clamp(value->y, 0.0f, 1.0f);
-    temp.z = clamp(value->z, 0.0f, 1.0f);
-    if (temp.x != tm->tone_trans_start.x
-        || temp.y != tm->tone_trans_start.y
-        || temp.z != tm->tone_trans_start.z) {
-        tm->tone_trans_start = temp;
-        tone_map_calculate_data(tm);
-    }
-}
-
-vec3* tone_map_get_tone_trans_end(tone_map* tm) {
-    return &tm->tone_trans_end;
-}
-
-void tone_map_set_tone_trans_end(tone_map* tm, vec3* value) {
-    vec3 temp;
-    temp.x = clamp(value->x, 0.009999999776f, 1.0f);
-    temp.y = clamp(value->y, 0.009999999776f, 1.0f);
-    temp.z = clamp(value->z, 0.009999999776f, 1.0f);
-    if (temp.x != tm->tone_trans_end.x
-        || temp.y != tm->tone_trans_end.y
-        || temp.z != tm->tone_trans_end.z) {
-        tm->tone_trans_end = temp;
-        tone_map_calculate_data(tm);
-    }
-}
-
-int32_t tone_map_get_tone_map_method(tone_map* tm) {
-    return tm->tone_map_method;
-}
-
-void tone_map_set_tone_map_method(tone_map* tm, int32_t value) {
-    value = clamp(value, 0, 2);
-    if (value != tm->tone_map_method) {
-        tm->tone_map_method = value;
-        tone_map_calculate_data(tm);
-    }
-}
-
-void tone_map_dispose(tone_map* tm) {
-    free(tm);
-}
-
-static void radius_calculate(radius* rad) {
-    float_t radius_scale = 0.8f;
-    vec3 radius = rad->rgb;
-    rad->update = true;
-    radius_calculate_gaussian_kernel((float_t*)rad->val, radius.x * radius_scale, 3, 0);
-    radius_calculate_gaussian_kernel((float_t*)rad->val, radius.y * radius_scale, 3, 1);
-    radius_calculate_gaussian_kernel((float_t*)rad->val, radius.z * radius_scale, 3, 2);
-}
-
-static void radius_calculate_gaussian_kernel(float_t* gaussian_kernel,
-    float_t radius, int32_t stride, int32_t offset) {
-    if (stride < 1)
-        stride = 1;
-    if (offset < 0)
-        offset = 0;
-
-    gaussian_kernel[0 * stride + offset] = 1.0f;
-    for (int32_t i = 1; i < GAUSSIAN_KERNEL_SIZE; i++)
-        gaussian_kernel[i * stride + offset] = 0.0f;
-    double_t temp_gaussian_kernel[GAUSSIAN_KERNEL_SIZE];
-    double_t s = radius ;
-    s = -1.0 / (2.0 * s * s);
-    double_t sum = 0.5;
-    temp_gaussian_kernel[0] = 1.0;
-    for (size_t i = 1; i < GAUSSIAN_KERNEL_SIZE; i++)
-        sum += temp_gaussian_kernel[i] = exp(i * i * s);
-
-    sum = 0.5 / sum;
-    for (size_t i = 0; i < GAUSSIAN_KERNEL_SIZE; i++)
-        gaussian_kernel[i * stride + offset] = (float_t)(temp_gaussian_kernel[i] * sum);
-}
-
-static void tone_map_calculate_data(tone_map* tm) {
-    vec3 tone_trans, tone_trans_scale, tone_trans_offset;
-    vec3_sub(tm->tone_trans_end, tm->tone_trans_start, tone_trans);
-    vec3_rcp(tone_trans, tone_trans_scale);
-    vec3_mult(tone_trans_scale, tm->tone_trans_start, tone_trans_offset);
-    vec3_negate(tone_trans_offset, tone_trans_offset);
-
-    tone_map_data* v = &tm->data;
-    v->p_exposure.x = tm->exposure;
-    v->p_exposure.y = 0.0625f;
-    v->p_exposure.z = tm->exposure * 0.5f;
-    v->p_exposure.w = tm->auto_exposure ? 1.0f : 0.0f;
-    v->p_fade_color.x = tm->scene_fade_color.x;
-    v->p_fade_color.y = tm->scene_fade_color.y;
-    v->p_fade_color.z = tm->scene_fade_color.z;
-    v->p_fade_color.w = tm->scene_fade_alpha;
-    if (tm->scene_fade_blend_func == 1 || tm->scene_fade_blend_func == 2)
-        vec3_mult_scalar(*(vec3*)&v->p_fade_color, v->p_fade_color.w, *(vec3*)&v->p_fade_color);
-    v->p_tone_scale.x = tone_trans_scale.x;
-    v->p_tone_scale.y = tone_trans_scale.y;
-    v->p_tone_scale.z = tone_trans_scale.z;
-    v->p_tone_offset.x = tone_trans_offset.x;
-    v->p_tone_offset.y = tone_trans_offset.y;
-    v->p_tone_offset.z = tone_trans_offset.z;
-    v->p_fade_func.x = (float_t)tm->scene_fade_blend_func;
-    v->p_inv_tone.x = tm->gamma > 0.0f ? 2.0f / (tm->gamma * 3.0f) : 0.0f;
-}
-
-static void tone_map_calculate_tex(tone_map* tm) {
-    const float_t tone_map_scale = 1.0f / TONE_MAP_SAT_GAMMA_SAMPLES;
-    const int32_t tone_map_size = 16 * TONE_MAP_SAT_GAMMA_SAMPLES;
-
-    int32_t i, j;
-    int32_t saturate_power;
-    float_t saturate_coeff;
-
-    tm->update_tex = true;
-    vec2* tex = tm->tex;
-    float_t gamma_power, gamma, saturation;
-    gamma_power = tm->gamma * tm->gamma_rate * 1.5f;
-    saturate_power = tm->saturate_power;
-    saturate_coeff = tm->saturate_coeff;
-
-    tex[0].x = 0.0f;
-    tex[0].y = 0.0f;
-    for (i = 1; i < tone_map_size; i++) {
-        gamma = powf(1.0f - expf(-i * tone_map_scale), gamma_power);
-        saturation = gamma * 2.0f - 1.0f;
-        for (j = 0; j < saturate_power; j++) {
-            saturation *= saturation;
-            saturation *= saturation;
-            saturation *= saturation;
-            saturation *= saturation;
+        switch (pp->mag_filter) {
+        case POST_PROCESS_MAG_FILTER_NEAREST:
+        case POST_PROCESS_MAG_FILTER_BILINEAR:
+        case POST_PROCESS_MAG_FILTER_SHARPEN_5_TAP:
+        case POST_PROCESS_MAG_FILTER_SHARPEN_4_TAP:
+        case POST_PROCESS_MAG_FILTER_CONE_4_TAP:
+        case POST_PROCESS_MAG_FILTER_CONE_2_TAP:
+            uniform_value[U_MAGNIFY] = pp->mag_filter;
+            break;
+        default:
+            uniform_value[U_MAGNIFY] = 0;
+            break;
         }
 
-        tex[i].x = gamma;
-        tex[i].y = gamma * saturate_coeff
-            * ((float_t)TONE_MAP_SAT_GAMMA_SAMPLES / (float_t)i) * (1.0f - saturation);
+        shader_set(&shaders_ft, SHADER_FT_MAGNIFY);
+        render_texture_draw_params(&shaders_ft, pp->render_width,
+            pp->render_height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    }
+    shader_unbind();
+
+    for (int32_t i = 0; i < 8; i++)
+        gl_state_bind_sampler(i, 0);
+
+    fbo_blit(pp->screen_texture.fbos[0], pp->post_texture.fbos[0],
+        pp->screen_x_offset, pp->screen_y_offset, pp->sprite_width, pp->sprite_height,
+        0, 0, pp->render_width, pp->render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+}
+
+void post_process_init_fbo(post_process_struct* pp, int32_t render_width, int32_t render_height,
+    int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height) {
+    if (pp->render_width == render_width && pp->render_height == render_height
+        && pp->screen_width == screen_width && pp->screen_height == screen_height)
+        return;
+
+    if (pp->render_width != render_width || pp->render_height != render_height) {
+        post_process_aa_init_fbo(pp->aa, render_width, render_height);
+        post_process_blur_init_fbo(pp->blur, render_width, render_height);
+        post_process_dof_init_fbo(pp->dof, render_width, render_height);
+        post_process_exposure_init_fbo(pp->exposure);
+        post_process_tone_map_init_fbo(pp->tone_map);
+        render_texture_init(&pp->render_texture, render_width,
+            render_height, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
+        render_texture_init(&pp->buf_texture, render_width,
+            render_height, 0, GL_RGBA16F, 0);
+        render_texture_init(&pp->sss_contour_texture, render_width,
+            render_height, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
+        render_texture_init(&pp->pre_texture, render_width,
+            render_height, 0, GL_RGBA16F, 0);
+        render_texture_init(&pp->post_texture, render_width,
+            render_height, 0, GL_RGBA16F, 0);
+        render_texture_init(&pp->fbo_texture, render_width,
+            render_height, 0, GL_RGBA16F, 0);
+        render_texture_init(&pp->alpha_layer_texture, render_width,
+            render_height, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
+        gl_state_bind_texture_2d(pp->render_texture.depth_texture->texture);
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA,
+            (GLint[]) { GL_RED, GL_RED, GL_RED, GL_ONE });
+        gl_state_bind_texture_2d(pp->sss_contour_texture.depth_texture->texture);
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA,
+            (GLint[]) { GL_RED, GL_RED, GL_RED, GL_ONE });
+        gl_state_bind_texture_2d(0);
+        pp->render_width = render_width;
+        pp->render_height = render_height;
+    }
+
+    pp->sprite_width = sprite_width;
+    pp->sprite_height = sprite_height;
+
+    pp->screen_x_offset = (screen_width - sprite_width) / 2 + (screen_width - sprite_width) % 2;
+    pp->screen_y_offset = (screen_height - sprite_height) / 2 + (screen_height - sprite_height) % 2;
+
+    if (pp->screen_width != screen_width || pp->screen_height != screen_height) {
+        render_texture_init(&pp->screen_texture, screen_width,
+            screen_height, 0, GL_R11F_G11F_B10F, 0);
+        pp->screen_width = screen_width;
+        pp->screen_height = screen_height;
     }
 }
 
-#include "render_texture.h"
-#include "texture.h"
-#include "post_process/dof.h"
+int32_t post_process_movie_texture_set(post_process_struct* pp, texture* movie_texture) {
+    if (!movie_texture)
+        return -1;
 
-typedef struct struc_187 {
-    texture* field_0;
-    render_texture field_8;
-    int field_38;
-} struc_187;
+    int32_t index = 0;
+    while (pp->movie_textures_data[index])
+        if (++index >= 1)
+            return -1;
 
-typedef struct struc_186 {
-    struc_187 field_0[4];
-    char field_100;
-} struc_186;
+    pp->movie_textures_data[index] = movie_texture;
+    render_texture_set_color_depth_textures(&pp->movie_textures[index],
+        movie_texture->texture, 0, 0, false);
+    return index;
+}
 
-typedef struct struc_188 {
-    vec4 field_0[8];
-    float_t field_80;
-    GLuint field_84[3];
-    GLuint field_90[3];
-} struc_188;
+void post_process_movie_texture_free(post_process_struct* pp, texture* movie_texture) {
+    if (!movie_texture)
+        return;
 
-typedef struct struc_198 {
-    fbo_struct fbo;
-    GLuint program;
-    GLuint sampler;
-    GLuint vao;
-} struc_198;
+    int32_t index = 0;
+    while (pp->movie_textures_data[index] != movie_texture)
+        if (++index >= 1)
+            return;
 
-typedef struct post_process_struct {
-    int field_0;
-    int field_4;
-    int ssaa;
-    int taa;
-    int mlaa;
-    int field_14;
-    int field_18;
-    int field_1C;
-    int field_20;
-    int field_24;
-    render_texture field_28[5];
-    render_texture field_118[3];
-    texture* field_1A8[3];
-    render_texture field_1C0;
-    int* field_1F0;
-    render_texture field_1F8;
-    render_texture field_228[5];
-    texture* field_318[5];
-    render_texture field_340;
-    int field_370;
-    int field_374;
-    render_texture field_378;
-    GLuint field_3A8;
-    int field_3AC;
-    texture* exposure_history;
-    render_texture field_3B8;
-    render_texture field_3E8;
-    GLuint tonemap_lut_texture;
-    int field_41C;
-    render_texture field_420[2];
-    GLuint field_480;
-    int field_484;
-    render_texture* field_488;
-    int field_490;
-    GLuint field_494[3];
-    GLuint field_4A0[3];
-    int field_4AC[3];
-    int field_4B8[3];
-    int field_4C4;
-    GLuint lens_flare_texture;
-    GLuint lens_shaft_texture;
-    int lens_ghost_texture;
-    int lens_flare_count;
-    int width;
-    int height;
-    int render_width;
-    int render_height;
-    int field_4E8[5];
-    int field_4FC[5];
-    int field_510[5];
-    int field_524[5];
-    float_t field_538;
-    float_t field_53C;
-    int32_t reduce_width[5];
-    int32_t reduce_height[5];
-    int taa_texture_selector;
-    int taa_texture;
-    float taa_blend;
-    vec3 view_point;
-    vec3 interest;
-    vec3 view_point_prev;
-    vec3 interest_prev;
-    mat4 field_5A4;
-    mat4 field_5E4;
-    int field_624;
-    int field_628;
-    char fast_change_happened;
-    char field_62D;
-    char field_62E;
-    char field_62F;
-    int screen_x_offset;
-    int screen_y_offset;
-    int screen_width;
-    int screen_height;
-    int update_lut;
-    int field_644;
-    struc_188 field_648[6];
-    int exposure_history_counter;
-    int field_9F4;
-    vec3 lens_flare_pos;
-    float lens_shaft_scale;
-    float_t lens_shaft_inv_scale;
-    float field_A0C;
-    float field_A10;
-    float field_A14;
-    int16_t* field_A18[15];
-    int field_A90;
-    int field_A94;
-    render_texture field_A98[16];
-    __int64 field_D98;
-    render_texture field_DA0[1];
-    int field_DD0;
-    int field_DD4;
-    post_process_dof* dof;
-    texture* field_DE0;
-    struc_198* field_DE8;
-    int32_t saturate_select;
-    int32_t scene_fade_select;
-    int32_t tone_trans_select;
-    float saturate_coeff[2];
-    float scene_fade_color[6];
-    float scene_fade_alpha[2];
-    int32_t scene_fade_blend_func[2];
-    float tone_trans_scale[6];
-    float tone_trans_offset[6];
-    float tone_trans_start[6];
-    float tone_trans_end[6];
-    int tone_map;
-    float_t exposure;
-    float_t exposure_rate;
-    int32_t auto_exposure;
-    float_t gamma;
-    float_t gamma_rate;
-    int32_t saturate_power;
-    int32_t mag_filter;
-    float_t fade_alpha;
-    int field_EB0;
-    float_t lens_flare;
-    float_t lens_shaft;
-    float_t lens_ghost;
-    vec3 radius;
-    vec3 intensity;
-    int field_ED8;
-    int field_EDC;
-    struc_186 field_EE0[6];
-} post_process_struct;
+    pp->movie_textures_data[index] = 0;
+    render_texture_free(&pp->movie_textures[index]);
+}
+
+int32_t post_process_render_texture_set(post_process_struct* pp, texture* render_texture, bool task_photo) {
+    if (!render_texture)
+        return -1;
+
+    int32_t index = 0;
+    if (task_photo)
+        index = 15;
+    else
+        while (pp->render_textures_data[index])
+            if (++index >= 15)
+                return -1;
+
+    pp->render_textures_data[index] = render_texture;
+    render_texture_set_color_depth_textures(&pp->render_textures[index],
+        render_texture->texture, 0, 0, false);
+    return index;
+}
+
+void post_process_render_texture_free(post_process_struct* pp, texture* render_texture, bool task_photo) {
+    if (!render_texture)
+        return;
+
+    int32_t index = 0;
+    if (task_photo)
+        index = 15;
+    else
+        while (pp->render_textures_data[index] != render_texture)
+            if (++index >= 15)
+                return;
+
+    pp->render_textures_data[index] = 0;
+    render_texture_free(&pp->render_textures[index]);
+}
+
+void post_process_reset(post_process_struct* pp) {
+    pp->mlaa = true;
+    pp->mag_filter = POST_PROCESS_MAG_FILTER_BILINEAR;
+    post_process_dof_initialize_data(pp->dof, 0, 0);
+    post_process_blur_initialize_data(pp->blur,
+        &((vec3) { 2.0f, 2.0f, 2.0f }), &((vec3) { 1.0f, 1.0f, 1.0f }));
+    post_process_tone_map_initialize_data(pp->tone_map, 2.0f, true,
+        1.0f, 1, 1.0f, &((vec3) { 0.0f, 0.0f, 0.0f }), 0.0f, 0,
+        &((vec3) { 0.0f, 0.0f, 0.0f }), &((vec3) { 1.0f, 1.0f, 1.0f }),
+        TONE_MAP_YCC_EXPONENT);
+}
+
+void post_process_free(post_process_struct* pp) {
+    post_process_aa_dispose(pp->aa);
+    post_process_blur_dispose(pp->blur);
+    post_process_dof_dispose(pp->dof);
+    post_process_exposure_dispose(pp->exposure);
+    post_process_tone_map_dispose(pp->tone_map);
+    render_texture_free(&pp->render_texture);
+    render_texture_free(&pp->buf_texture);
+    render_texture_free(&pp->sss_contour_texture);
+    render_texture_free(&pp->pre_texture);
+    render_texture_free(&pp->post_texture);
+    render_texture_free(&pp->fbo_texture);
+    render_texture_free(&pp->alpha_layer_texture);
+    render_texture_free(&pp->screen_texture);
+    shader_glsl_free(&pp->alpha_layer_shader);
+
+    if (pp->samplers[0]) {
+        glDeleteSamplers(2, pp->samplers);
+        pp->samplers[0] = 0;
+    }
+}

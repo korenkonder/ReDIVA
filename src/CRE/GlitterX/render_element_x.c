@@ -46,7 +46,7 @@ void glitter_x_render_element_emit(glitter_render_element* a1,
     a1->life_time += a1->fade_in_frames + a1->fade_out_frames;
 
     a1->color = a2->data.color;
-    if (a2->data.draw_type == GLITTER_DIRECTION_PARTICLE_ROTATION) {
+    if (a2->data.draw_type == GLITTER_DIRECTION_PARTICLE_ROTATION || a2->data.type == GLITTER_PARTICLE_MESH) {
         a1->rotation.x = glitter_x_random_get_float(random, a2->data.rotation_random.x)
             + a2->data.rotation.x;
         a1->rotation_add.x = glitter_x_random_get_float(random, a2->data.rotation_add_random.x)
@@ -277,7 +277,7 @@ void glitter_x_render_element_update(glitter_render_group* a1,
             a2->uv_scroll_2nd.y = fmodf(a2->uv_scroll_2nd.y + uv_scroll_2nd.y, 1.0f);
     }
     glitter_x_render_element_step_uv(particle, a2, delta_frame, a1->random_ptr);
-    a2->color = (vec4){ -1.0f, -1.0f, -1.0f, -1.0f };
+    a2->color = (vec4u){ -1.0f, -1.0f, -1.0f, -1.0f };
     color_scale = -1.0f;
     a2->draw = true;
 

@@ -10,6 +10,7 @@
 #include "../CRE/timer.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <cimgui.h>
+#include <timeapi.h>
 
 #define KEYBOARD_KEYS 0xFF
 
@@ -36,11 +37,13 @@ vec2d input_rotate;
 double_t input_roll;
 bool input_reset;
 bool input_reset_mouse_position;
+bool input_shaders_reload;
 bool input_locked;
 
 extern bool close;
 lock input_lock;
 extern lock render_lock;
+extern timer render_timer;
 extern HANDLE window_handle;
 extern ImGuiContext* imgui_context;
 lock imgui_context_lock;
@@ -49,6 +52,7 @@ static void input_poll();
 
 int32_t input_main(void* arg) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+    timeBeginPeriod(1);
     timer_init(&input_timer, 60.0);
     lock_init(&input_lock);
     if (!lock_check_init(&input_lock))
@@ -59,20 +63,21 @@ int32_t input_main(void* arg) {
     do {
         lock_lock(&state_lock);
         state_wait = state != RENDER_INITIALIZED;
-        state_disposed =  state == RENDER_DISPOSING || state == RENDER_DISPOSED;
+        state_disposed = state == RENDER_DISPOSED;
         lock_unlock(&state_lock);
         if (state_disposed) {
             lock_free(&input_lock);
             goto End;
         }
-        msleep(input_timer.timer, 0.0625);
+        timer_sleep(&input_timer, 0.0625);
     } while (state_wait);
 
     bool local_close = false;
+    timer_reset(&input_timer);
     while (!close && !local_close) {
         timer_start_of_cycle(&input_timer);
         lock_lock(&state_lock);
-        local_close = state == RENDER_DISPOSING || state == RENDER_DISPOSED;
+        local_close = state == RENDER_DISPOSED;
         lock_unlock(&state_lock);
 
         lock_lock(&input_lock);
@@ -108,6 +113,10 @@ static void input_poll() {
     if (!window_handle || window_handle != GetForegroundWindow())
         return;
 
+    double_t freq = timer_get_freq(&render_timer);
+    double_t freq_hist = timer_get_freq_hist(&render_timer);
+    double_t frame_speed = freq / freq_hist;
+
     input_locked = false;
     classes_process_input(classes, classes_count);
 
@@ -119,6 +128,7 @@ static void input_poll() {
             speed = input_movement_speed / 10.0;
         else
             speed = input_movement_speed;
+        speed *= freq / freq_hist;
 
         if (input_is_down('W'))
             input_move.x += speed;
@@ -130,12 +140,7 @@ static void input_poll() {
         if (input_is_down('D'))
             input_move.y += speed;
 
-        if (input_is_down(VK_SHIFT))
-            speed = input_movement_speed * 100.0;
-        else if (input_is_down(VK_CONTROL))
-            speed = input_movement_speed;
-        else
-            speed = input_movement_speed * 10.0;
+        speed *= 10.0;
 
         if (input_is_down(VK_UP))
             input_rotate.y += speed;
@@ -153,7 +158,10 @@ static void input_poll() {
             input_roll += speed;
 
         if (input_is_tapped('R'))
-            input_reset = true;
+            if (input_is_down(VK_CONTROL))
+                input_shaders_reload = true;
+            else
+                input_reset = true;
     }
 
     lock_lock(&imgui_context_lock);

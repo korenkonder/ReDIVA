@@ -4,8 +4,8 @@
 */
 
 #include "scene.h"
-#include "effect_inst.h"
 #include "../GlitterX/effect_inst_x.h"
+#include "effect_inst.h"
 
 glitter_scene* glitter_scene_init(glitter_effect_group* eg) {
     glitter_scene* s = force_malloc(sizeof(glitter_scene));
@@ -162,6 +162,6 @@ void glitter_scene_dispose(glitter_scene* s) {
             if (i->ptr)
                 glitter_effect_inst_dispose(i->ptr);
     }
-    vector_glitter_scene_effect_free(&s->effects);
+    vector_glitter_scene_effect_free(&s->effects, 0);
     free(s);
 }

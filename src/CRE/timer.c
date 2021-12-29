@@ -5,25 +5,22 @@
 
 #include "timer.h"
 
-LARGE_INTEGER performance_frequency;
-double_t inv_performance_frequency_msec;
-double_t inv_performance_frequency_sec;
-
 inline void timer_init(timer* t, double_t freq) {
-    memset(t->history, 0, sizeof(double_t) * HISTORY_COUNT);
+    for (size_t i = 0; i < HISTORY_COUNT; i++)
+        t->history[i] = freq;
     t->history_counter = 0;
-    t->curr_time.QuadPart = 0;
-    t->prev_time.QuadPart = 0;
+    time_struct_init(&t->curr_time);
+    time_struct_init(&t->prev_time);
     t->freq = freq;
-    t->freq_hist = 0.0;
+    t->freq_hist = freq;
     lock_init(&t->freq_lock);
     lock_init(&t->freq_hist_lock);
-    t->timer = create_timer();
+    t->timer = timer_handle_init();
 }
 
 inline void timer_start_of_cycle(timer* t) {
-    double_t time = timer_get_msec(t->prev_time);
-    QueryPerformanceCounter(&t->prev_time);
+    double_t time = time_struct_calc_time(&t->prev_time);
+    time_struct_get_timestamp(&t->prev_time);
     double_t freq = 0;
     for (uint8_t i = 0; i < t->history_counter; i++)
         freq += t->history[i];
@@ -39,8 +36,8 @@ inline void timer_start_of_cycle(timer* t) {
 }
 
 inline void timer_end_of_cycle(timer* t) {
-    double_t msec = 1000.0 / timer_get_freq(t) - timer_get_msec(t->prev_time);
-    msleep(t->timer, msec);
+    double_t msec = 1000.0 / timer_get_freq(t) - time_struct_calc_time(&t->prev_time);
+    timer_handle_sleep(t->timer, msec);
 }
 
 inline double_t timer_get_freq(timer* t) {
@@ -65,28 +62,37 @@ inline double_t timer_get_freq_hist(timer* t) {
     return freq;
 }
 
+inline double_t timer_get_freq_ratio(timer* t) {
+    double_t freq = 0.0;
+    lock_lock(&t->freq_lock);
+    freq = t->freq;
+    lock_unlock(&t->freq_lock);
+    lock_lock(&t->freq_hist_lock);
+    freq /= t->freq_hist;
+    lock_unlock(&t->freq_hist_lock);
+    return freq;
+}
+
+inline void timer_reset(timer* t) {
+    time_struct_get_timestamp(&t->curr_time);
+    time_struct_get_timestamp(&t->prev_time);
+}
+
+inline void timer_sleep(timer* t, double_t msec) {
+    timer_handle_sleep(t->timer, msec);
+}
+
 inline void timer_dispose(timer* t) {
     lock_free(&t->freq_lock);
     lock_free(&t->freq_hist_lock);
-    dispose_timer(t->timer);
+    timer_handle_dispose(t->timer);
 }
 
-inline double_t timer_get_msec(LARGE_INTEGER t) {
-    LARGE_INTEGER curr_time;
-    QueryPerformanceCounter(&curr_time);
-    return (curr_time.QuadPart - t.QuadPart) * inv_performance_frequency_msec;
-}
-
-inline HANDLE create_timer() {
+inline HANDLE timer_handle_init() {
     return CreateWaitableTimerW(0, 0, 0);
 }
 
-inline void dispose_timer(HANDLE timer) {
-    if (timer)
-        CloseHandle(timer);
-}
-
-inline void msleep(HANDLE timer, double_t msec) {
+inline void timer_handle_sleep(HANDLE timer, double_t msec) {
     if (msec <= 0.0)
         return;
 
@@ -101,4 +107,9 @@ inline void msleep(HANDLE timer, double_t msec) {
         if (msec_dw)
             Sleep(msec_dw);
     }
+}
+
+inline void timer_handle_dispose(HANDLE timer) {
+    if (timer)
+        CloseHandle(timer);
 }

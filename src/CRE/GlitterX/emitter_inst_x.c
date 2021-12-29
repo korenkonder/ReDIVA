@@ -267,7 +267,7 @@ void glitter_x_emitter_inst_update(GPM,
     case GLITTER_DIRECTION_X_AXIS:
         mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
         break;
-    case GLITTER_DIRECTION_BILLBOARD_Y_ONLY:
+    case GLITTER_DIRECTION_BILLBOARD_Y_AXIS:
         mat4_rotate_y(GPM_VAL->cam_rotation_y, &dir_mat);
         break;
     default:
@@ -280,10 +280,9 @@ void glitter_x_emitter_inst_update(GPM,
         mat4_mult(&dir_mat, &mat_rot, &mat_rot);
     }
     mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
-    mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
+    mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &a1->mat_rot);
     mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
     a1->mat = mat;
-    a1->mat_rot = mat_rot;
 
     if (has_dist) {
         mat4_get_translation(&mat, &trans);
@@ -301,10 +300,6 @@ void glitter_x_emitter_inst_update(GPM,
 
 void glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
     glitter_effect_inst* a2, float_t delta_frame) {
-    vec3 trans;
-    vec3 rot;
-    vec3 rotation_add;
-
     if (a1->frame < 0.0f)
         return;
 
@@ -330,6 +325,8 @@ void glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
     }
 
     glitter_x_emitter_inst_get_value(a1);
+
+    vec3 rotation_add;
     vec3_mult_scalar(a1->data.rotation_add, delta_frame, rotation_add);
     vec3_add(a1->rotation, rotation_add, a1->rotation);
     if (a1->data.timer == GLITTER_EMITTER_TIMER_BY_DISTANCE && a1->flags & GLITTER_EMITTER_INST_HAS_DISTANCE) {
@@ -343,14 +340,12 @@ void glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
             mat_ext_anim = a2->mat_rot;
 
         mat4_get_translation(&a1->mat, &trans_prev);
-        mat = a2->mat;
-        trans = a1->translation;
-        rot = a1->rotation;
-        mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
+        vec3 trans = a1->translation;
+        vec3 rot = a1->rotation;
+        mat4_translate_mult(&a2->mat, trans.x, trans.y, trans.z, &mat);
         mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_rot(&mat_ext_anim, rot.x, rot.y, rot.z, &mat_ext_anim);
+        mat4_rot(&mat_ext_anim, rot.x, rot.y, rot.z, &a1->mat_rot);
         a1->mat = mat;
-        a1->mat_rot = mat_ext_anim;
 
         vec3 trans_diff;
         mat4_get_translation(&mat, &trans);

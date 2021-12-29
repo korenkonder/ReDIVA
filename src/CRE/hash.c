@@ -16,7 +16,7 @@ inline hash hash_utf16(wchar_t* data) {
 
 inline hash hash_data(void* data, size_t length) {
     hash hash;
-    hash.f = hash_fnv1a64(data, length);
+    hash.f = hash_fnv1a64m(data, length);
     hash.m = hash_murmurhash(data, length, 0, false, false);
     return hash;
 }

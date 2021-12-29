@@ -58,7 +58,7 @@ void glitter_x_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
     }
 }
 
-void glitter_x_render_scene_draw(GPM, glitter_render_scene* rs, alpha_pass_type alpha) {
+void glitter_x_render_scene_draw(GPM, glitter_render_scene* rs, draw_pass_3d_type alpha) {
     glitter_render_group** i;
     glitter_render_group* rg;
 

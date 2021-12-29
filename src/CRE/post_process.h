@@ -7,94 +7,64 @@
 
 #include "../KKdLib/default.h"
 #include "../KKdLib/vec.h"
+#include "post_process/aa.h"
+#include "post_process/blur.h"
+#include "post_process/dof.h"
+#include "post_process/exposure.h"
+#include "post_process/tone_map.h"
+#include "camera.h"
 
-#define GAUSSIAN_KERNEL_SIZE 7
+typedef enum post_process_mag_filter_type {
+    POST_PROCESS_MAG_FILTER_NEAREST       = 0,
+    POST_PROCESS_MAG_FILTER_BILINEAR      = 1,
+    POST_PROCESS_MAG_FILTER_SHARPEN_5_TAP = 2,
+    POST_PROCESS_MAG_FILTER_SHARPEN_4_TAP = 3,
+    POST_PROCESS_MAG_FILTER_CONE_4_TAP    = 4,
+    POST_PROCESS_MAG_FILTER_CONE_2_TAP    = 5,
+    POST_PROCESS_MAG_FILTER_MAX           = 6,
+} post_process_mag_filter_type;
 
-typedef struct radius {
-    vec3 val[GAUSSIAN_KERNEL_SIZE];
-    vec3 rgb;
-    bool update;
-} radius;
+typedef struct post_process_struct {
+    bool ssaa;
+    bool mlaa;
+    int32_t parent_bone_node;
+    render_texture render_texture;
+    render_texture buf_texture;
+    render_texture sss_contour_texture;
+    render_texture pre_texture;
+    render_texture post_texture;
+    render_texture fbo_texture;
+    render_texture alpha_layer_texture;
+    render_texture screen_texture;
+    texture* render_textures_data[16];
+    render_texture render_textures[16];
+    texture* movie_textures_data[1];
+    render_texture movie_textures[1];
+    post_process_aa* aa;
+    post_process_blur* blur;
+    post_process_dof* dof;
+    post_process_exposure* exposure;
+    post_process_tone_map* tone_map;
+    GLuint samplers[2];
+    shader_glsl alpha_layer_shader;
+    int32_t render_width;
+    int32_t render_height;
+    int32_t sprite_width;
+    int32_t sprite_height;
+    int32_t screen_x_offset;
+    int32_t screen_y_offset;
+    int32_t screen_width;
+    int32_t screen_height;
+    post_process_mag_filter_type mag_filter;
+} post_process_struct;
 
-typedef struct intensity {
-    vec3 val;
-    vec3 rgb;
-    bool update;
-} intensity;
-
-#define TONE_MAP_SAT_GAMMA_SAMPLES 32
-
-typedef struct tone_map_data {
-    vec4 p_exposure;
-    vec4 p_flare_coef;
-    vec4 p_fade_color;
-    vec4 p_tone_scale;
-    vec4 p_tone_offset;
-    vec4 p_fade_func;
-    vec4 p_inv_tone;
-} tone_map_data;
-
-typedef struct tone_map {
-    vec2 tex[16 * TONE_MAP_SAT_GAMMA_SAMPLES];
-    tone_map_data data;
-    float_t exposure;
-    bool auto_exposure;
-    float_t gamma;
-    float_t gamma_rate;
-    int32_t saturate_power;
-    float_t saturate_coeff;
-    vec3 scene_fade_color;
-    float_t scene_fade_alpha;
-    int32_t scene_fade_blend_func;
-    vec3 tone_trans_start;
-    vec3 tone_trans_end;
-    int32_t tone_map_method;
-    bool update_tex;
-} tone_map;
-
-extern radius* radius_init();
-extern void radius_initialize(radius* rad, vec3* rgb);
-extern vec3* radius_get(radius* rad);
-extern void radius_set(radius* rad, vec3* value);
-extern void radius_dispose(radius* rad);
-
-extern intensity* intensity_init();
-extern void intensity_initialize(intensity* inten, vec3* rgb);
-extern vec3* intensity_get(intensity* inten);
-extern void intensity_set(intensity* inten, vec3* value);
-extern void intensity_dispose(intensity* inten);
-
-extern tone_map* tone_map_init();
-extern void tone_map_initialize(tone_map* tm, float_t exposure, bool auto_exposure,
-    float_t gamma, int32_t saturate_power, float_t saturate_coeff,
-    vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    vec3* tone_trans_start, vec3* tone_trans_end, int32_t tone_map_method);
-extern void tone_map_initialize_rate(tone_map* tm, float_t exposure, bool auto_exposure,
-    float_t gamma, float_t gamma_rate, int32_t saturate_power, float_t saturate_coeff,
-    vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    vec3* tone_trans_start, vec3* tone_trans_end, int32_t tone_map_method);
-extern float_t tone_map_get_exposure(tone_map* tm);
-extern void tone_map_set_exposure(tone_map* tm, float_t value);
-extern bool tone_map_get_auto_exposure(tone_map* tm);
-extern void tone_map_set_auto_exposure(tone_map* tm, bool value);
-extern float_t tone_map_get_gamma(tone_map* tmsg);
-extern void tone_map_set_gamma(tone_map* tmsg, float_t value);
-extern float_t tone_map_get_gamma_rate(tone_map* tmsg);
-extern void tone_map_set_gamma_rate(tone_map* tmsg, float_t value);
-extern int32_t tone_map_get_saturate_power(tone_map* tmsg);
-extern void tone_map_set_saturate_power(tone_map* tmsg, int32_t value);
-extern float_t tone_map_get_saturate_coeff(tone_map* tmsg);
-extern void tone_map_set_saturate_coeff(tone_map* tmsg, float_t value);
-extern vec3* tone_map_get_scene_fade_color(tone_map* tm);
-extern void tone_map_set_scene_fade_color(tone_map* tm, vec3* value);
-extern float_t tone_map_get_scene_fade_alpha(tone_map* tm);
-extern void tone_map_set_scene_fade_alpha(tone_map* tm, float_t value);
-extern int32_t tone_map_get_scene_fade_blend_func(tone_map* tm);
-extern void tone_map_set_scene_fade_blend_func(tone_map* tm, int32_t value);
-extern vec3* tone_map_get_tone_trans_start(tone_map* tm);
-extern void tone_map_set_tone_trans_start(tone_map* tm, vec3* value);
-extern vec3* tone_map_get_tone_trans_end(tone_map* tm);
-extern void tone_map_set_tone_trans_end(tone_map* tm, vec3* value);
-extern int32_t tone_map_get_tone_map_method(tone_map* tm);
-extern void tone_map_set_tone_map_method(tone_map* tm, int32_t value);
-extern void tone_map_dispose(tone_map* tm);
+extern void post_process_init(post_process_struct* pp);
+extern void post_process_apply(post_process_struct* pp, camera* cam, texture* light_proj_tex, int32_t npr_param);
+extern void post_process_init_fbo(post_process_struct* pp, int32_t render_width, int32_t render_height,
+    int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height);
+extern void post_process_reset(post_process_struct* pp);
+extern int32_t post_process_movie_texture_set(post_process_struct* pp, texture* movie_texture);
+extern void post_process_movie_texture_free(post_process_struct* pp, texture* movie_texture);
+extern int32_t post_process_render_texture_set(post_process_struct* pp, texture* render_texture, bool task_photo);
+extern void post_process_render_texture_free(post_process_struct* pp, texture* render_texture, bool task_photo);
+extern void post_process_free(post_process_struct* pp);

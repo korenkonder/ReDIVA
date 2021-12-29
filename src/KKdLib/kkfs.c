@@ -4,7 +4,7 @@
 */
 
 #include "kkfs.h"
-#include "io_path.h"
+#include "io/path.h"
 #include "hash.h"
 #include <sysinfoapi.h>
 #include <share.h>
@@ -104,7 +104,9 @@ void kkfs_winitialize(kkfs* fs, wchar_t* path, uint32_t sector_size, size_t leng
     fs->data.jmp_code[1] = 0x58;
     fs->data.jmp_code[2] = 0x90;
     memcpy(fs->data.signature, "KKFS    ", 0x08);
-    memcpy(fs->data.header.name, path, min(utf16_length(path), 0x14));
+    size_t path_length = utf16_length(path);
+    memcpy(fs->data.header.name, path, sizeof(wchar_t) * (min(path_length, 0x0F) + 1));
+    fs->data.header.name[0x0F] = 0;
     next_rand_uint8_t_pointer((uint8_t*)&fs->data.header.hash, 0x04, &state);
     fs->data.header.key_hash = kkfs_calculate_key_hash(curse);
     fs->data.header.flags = flags;
@@ -212,7 +214,8 @@ bool kkfs_wcreate_directory(kkfs* fs, wchar_t* path, kkfs_directory_flags flags)
     memset(&data, 0, sizeof(kkfs_data));
     data.type = KKFS_DIRECTORY;
     data.dir.data_sector = free_sector;
-    memcpy(data.dir.name, path, sizeof(wchar_t) * min(utf16_length(path) + 1, KKFS_NAME_LENGTH));
+    size_t path_length = utf16_length(path) + 1;
+    memcpy(data.dir.name, path, sizeof(wchar_t) * min(path_length, KKFS_NAME_LENGTH));
     data.dir.flags = flags;
 
     bool result = kkfs_write_kkfs_data(fs, &data);
@@ -304,7 +307,8 @@ bool kkfs_wcreate_file(kkfs* fs, wchar_t* path, uint64_t size, kkfs_file_flags f
     memset(&data, 0, sizeof(kkfs_data));
     data.type = KKFS_FILE;
     data.file.data_sector = free_sector;
-    memcpy(data.file.name, path, sizeof(wchar_t) * min(utf16_length(path) + 1, KKFS_NAME_LENGTH));
+    size_t path_length = utf16_length(path) + 1;
+    memcpy(data.file.name, path, sizeof(wchar_t) * min(path_length, KKFS_NAME_LENGTH));
     data.file.size = size;
     data.file.flags = flags;
     if (flags & KKFS_FILE_CIPHER)
@@ -617,7 +621,7 @@ static uint64_t kkfs_get_current_time_ticks() {
 
 static uint32_t kkfs_get_free_sector(kkfs* fs, uint32_t sector) {
     if (sector) {
-        for (size_t i = sector + 1LL; i < fs->data.header.sectors_count; i++)
+        for (size_t i = sector + 1ULL; i < fs->data.header.sectors_count; i++)
             if (fs->sector_info[i] == KKFS_SECTOR_FREE)
                 return (uint32_t)i;
 

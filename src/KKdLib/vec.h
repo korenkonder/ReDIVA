@@ -7,6 +7,7 @@
 
 #include "default.h"
 #include "half_t.h"
+#include "vector.h"
 #include <pmmintrin.h>
 #include <xmmintrin.h>
 
@@ -150,9 +151,26 @@ typedef struct vec2d {
     __m128d data;
 } vec2d;
 
+typedef struct vec4u {
+    float_t x;
+    float_t y;
+    float_t z;
+    float_t w;
+} vec4u;
+
+typedef struct vec4iu {
+    int32_t x;
+    int32_t y;
+    int32_t z;
+    int32_t w;
+} vec4iu;
+
 extern const __m128 vec2_negate;
 extern const __m128 vec3_negate;
 extern const __m128 vec4_negate;
+
+extern const __m128 vec4_mask_vec2;
+extern const __m128 vec4_mask_vec3;
 
 extern const __m128 vec4_negate;
 
@@ -171,6 +189,25 @@ extern const vec4i vec4i_null;
 extern const vec2d vec2d_identity;
 
 extern const vec2d vec2d_null;
+
+extern const vec4u vec4u_identity;
+
+extern const vec4u vec4u_null;
+
+extern const vec4iu vec4iu_null;
+
+vector(vec2)
+vector(vec2i)
+vector(vec3)
+vector(vec3i)
+vector(vec4)
+vector(vec4i)
+vector_ptr(vec2)
+vector_ptr(vec2i)
+vector_ptr(vec3)
+vector_ptr(vec3i)
+vector_ptr(vec4)
+vector_ptr(vec4i)
 
 #define vec2i8_to_vec2(src, dst) \
 (dst).x = (float_t)(src).x; \
@@ -441,6 +478,30 @@ extern const vec2d vec2d_null;
 (dst).y = (uint16_t)(src).y; \
 (dst).z = (uint16_t)(src).z; \
 (dst).w = (uint16_t)(src).w;
+
+#define vec4_to_vec4u(src, dst) \
+(dst).x = (src).x; \
+(dst).y = (src).y; \
+(dst).z = (src).z; \
+(dst).w = (src).w;
+
+#define vec4u_to_vec4(src, dst) \
+(dst).x = (src).x; \
+(dst).y = (src).y; \
+(dst).z = (src).z; \
+(dst).w = (src).w;
+
+#define vec4i_to_vec4iu(src, dst) \
+(dst).x = (src).x; \
+(dst).y = (src).y; \
+(dst).z = (src).z; \
+(dst).w = (src).w;
+
+#define vec4iu_to_vec4i(src, dst) \
+(dst).x = (src).x; \
+(dst).y = (src).y; \
+(dst).z = (src).z; \
+(dst).w = (src).w;
 
 #define vec2_add(x, y, z) \
 { \
@@ -1187,9 +1248,10 @@ extern const vec2d vec2d_null;
     *(vec3*)&xt = (x); \
     *(vec3*)&yt = (y); \
     zt = _mm_sub_ps( \
-        _mm_mul_ps(_mm_shuffle_ps(xt, xt, 0x09), _mm_shuffle_ps(yt, yt, 0x12)), \
-        _mm_mul_ps(_mm_shuffle_ps(xt, xt, 0x12), _mm_shuffle_ps(yt, yt, 0x09)) \
+        _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0x09)), \
+        _mm_mul_ps(yt, _mm_shuffle_ps(xt, xt, 0x09)) \
     ); \
+    zt = _mm_shuffle_ps(zt, zt, 0x09); \
     (z) = *(vec3*)&zt; \
 }
 

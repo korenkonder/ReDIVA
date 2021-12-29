@@ -178,7 +178,7 @@ static float_t glitter_curve_randomize(GLT,
         c->flags & GLITTER_CURVE_RANDOM_RANGE_NEGATE ? -c->random_range : 0.0f, c->random_range);
 
     if (c->flags & GLITTER_CURVE_RANDOM_RANGE_MULT)
-        if (GLT_VAL != GLITTER_AFT)
+        if (GLT_VAL != GLITTER_FT)
             rand *= value * 0.01f;
         else
             rand *= value;

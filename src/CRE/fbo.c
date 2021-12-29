@@ -4,6 +4,7 @@
 */
 
 #include "fbo.h"
+#include "gl_state.h"
 
 void fbo_init(fbo_struct* fbo, int32_t width, int32_t height,
     GLuint* color_textures, int32_t count, GLuint depth_texture) {
@@ -48,4 +49,14 @@ void fbo_free(fbo_struct* fbo) {
     if (fbo->fbo)
         glDeleteFramebuffers(1, &fbo->fbo);
     free(fbo->textures);
+}
+
+inline void fbo_blit(GLuint src_fbo, GLuint dst_fbo,
+    GLint src_x0, GLint src_y0, GLint src_x1, GLint src_y1,
+    GLint dst_x0, GLint dst_y0, GLint dst_x1, GLint dst_y1, GLbitfield mask, GLenum filter) {
+    gl_state_bind_framebuffer(dst_fbo);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, src_fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst_fbo);
+    glBlitFramebuffer(src_x0, src_y0, src_x1, src_y1,
+        dst_x0, dst_y0, dst_x1, dst_y1, mask, filter);
 }

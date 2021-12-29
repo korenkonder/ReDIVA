@@ -94,10 +94,10 @@ bool glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st)
 
     memset(st, 0, sizeof(f2_struct));
 
-    if (!tex_set_produce_enrs(&a1->resources_tex, &st->enrs))
+    if (!txp_set_produce_enrs(&a1->resources_tex, &st->enrs))
         return false;
 
-    tex_set_pack_file(&a1->resources_tex, &st->data, &st->length, false);
+    txp_set_pack_file(&a1->resources_tex, &st->data, &st->length, false);
 
     st->header.signature = reverse_endianness_uint32_t('TXPC');
     st->header.length = 0x20;
@@ -106,15 +106,15 @@ bool glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st)
     return true;
 }
 
-bool glitter_texture_resource_unpack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_texture_resource_unpack_file(GPM, glitter_effect_group* a1, f2_struct* st) {
     if (!st || !st->header.data_size)
         return false;
 
-    tex_set_unpack_file(&a1->resources_tex, st->data, st->header.use_big_endian);
-    return glitter_texture_load(a1);
+    txp_set_unpack_file(&a1->resources_tex, st->data, st->header.use_big_endian);
+    return glitter_texture_load(GPM_VAL, a1);
 }
 
-bool glitter_texture_load(glitter_effect_group* a1) {
+bool glitter_texture_load(GPM, glitter_effect_group* a1) {
     if (!a1->resources_count)
         return false;
 
@@ -123,24 +123,33 @@ bool glitter_texture_load(glitter_effect_group* a1) {
     if (!count || !a1->resources_count || a1->resources_count != count)
         return false;
 
-    if (!texture_txp_set_load(&a1->resources_tex, &a1->resources))
-        return false;
+    uint32_t* ids = force_malloc_s(uint32_t, count);
+    for (size_t i = 0; i < count; i++) {
+        ids[i] = texture_make_id(0x2A, GPM_VAL->texture_counter);
+        GPM_VAL->texture_counter++;
+    }
 
-    for (glitter_effect** l = a1->effects.begin; l != a1->effects.end; l++) {
-        if (!*l)
+    if (!texture_txp_set_load(&a1->resources_tex, &a1->resources, ids)) {
+        free(ids);
+        return false;
+    }
+    free(ids);
+
+    for (glitter_effect** i = a1->effects.begin; i != a1->effects.end; i++) {
+        if (!*i)
             continue;
 
-        glitter_effect* effect = *l;
-        for (glitter_emitter** m = effect->emitters.begin; m != effect->emitters.end; m++) {
-            if (!*m)
+        glitter_effect* effect = *i;
+        for (glitter_emitter** j = effect->emitters.begin; j != effect->emitters.end; j++) {
+            if (!*j)
                 continue;
 
-            glitter_emitter* emitter = *m;
-            for (glitter_particle** n = emitter->particles.begin; n != emitter->particles.end; n++) {
-                if (!*n)
+            glitter_emitter* emitter = *j;
+            for (glitter_particle** k = emitter->particles.begin; k != emitter->particles.end; k++) {
+                if (!*k)
                     continue;
 
-                glitter_particle* particle = *n;
+                glitter_particle* particle = *k;
                 particle->data.texture = 0;
                 particle->data.mask_texture = 0;
             }
@@ -148,29 +157,29 @@ bool glitter_texture_load(glitter_effect_group* a1) {
     }
 
     for (size_t i = 0; i < a1->resources_count; i++)
-        for (glitter_effect** l = a1->effects.begin; l != a1->effects.end; l++) {
-            if (!*l)
+        for (glitter_effect** j = a1->effects.begin; j != a1->effects.end; j++) {
+            if (!*j)
                 continue;
 
-            glitter_effect* effect = *l;
-            for (glitter_emitter** m = effect->emitters.begin; m != effect->emitters.end; m++) {
-                if (!*m)
+            glitter_effect* effect = *j;
+            for (glitter_emitter** k = effect->emitters.begin; k != effect->emitters.end; k++) {
+                if (!*k)
                     continue;
 
-                glitter_emitter* emitter = *m;
-                for (glitter_particle** n = emitter->particles.begin; n != emitter->particles.end; n++) {
-                    if (!*n)
+                glitter_emitter* emitter = *k;
+                for (glitter_particle** l = emitter->particles.begin; l != emitter->particles.end; l++) {
+                    if (!*l)
                         continue;
 
-                    glitter_particle* particle = *n;
+                    glitter_particle* particle = *l;
                     if (particle->data.type == GLITTER_PARTICLE_LINE
                         || particle->data.type == GLITTER_PARTICLE_MESH)
                         continue;
 
                     if (particle->data.tex_hash == a1->resource_hashes.begin[i])
-                        particle->data.texture = a1->resources.begin[i]->texture;
+                        particle->data.texture = a1->resources[i]->texture;
                     if (particle->data.mask_tex_hash == a1->resource_hashes.begin[i])
-                        particle->data.mask_texture = a1->resources.begin[i]->texture;
+                        particle->data.mask_texture = a1->resources[i]->texture;
                 }
             }
         }
@@ -178,5 +187,9 @@ bool glitter_texture_load(glitter_effect_group* a1) {
 }
 
 void glitter_texture_unload(glitter_effect_group* a1) {
-    vector_ptr_texture_free(&a1->resources, texture_dispose);
+    if (a1->resources) {
+        for (texture** i = a1->resources; *i; i++)
+            texture_free(*i);
+        free(a1->resources);
+    }
 }

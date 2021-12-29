@@ -12,7 +12,7 @@ extern void glitter_particle_manager_calc_draw(GPM);
 extern bool glitter_particle_manager_check_effect_group(GPM, uint64_t effect_group_hash);
 extern bool glitter_particle_manager_check_file_reader(GPM, uint64_t effect_group_hash);
 extern bool glitter_particle_manager_check_scene(GPM, uint64_t effect_group_hash);
-extern void glitter_particle_manager_draw(GPM, alpha_pass_type alpha);
+extern void glitter_particle_manager_draw(GPM, draw_pass_3d_type alpha);
 extern bool glitter_particle_manager_free_effect_group(GPM, uint64_t effect_group_hash);
 extern void glitter_particle_manager_free_effect_groups(GPM);
 extern bool glitter_particle_manager_free_scene(GPM, uint64_t effect_group_hash);
@@ -30,5 +30,5 @@ extern bool glitter_particle_manager_test_load_effect(GPM,
     uint64_t effect_group_hash, uint64_t effect_hash);
 extern bool glitter_particle_manager_test_load_scene(GPM, uint64_t effect_group_hash, bool appear_now);
 extern void glitter_particle_manager_update_file_reader(GPM);
-extern void glitter_particle_manager_update_scene(GPM);
+extern void glitter_particle_manager_update_scene(GPM, float_t delta_frame);
 extern void glitter_particle_manager_dispose(GPM);

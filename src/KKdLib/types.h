@@ -8,6 +8,7 @@
 #include <float.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <wchar.h>
 
 #define FASTCALL __fastcall
 #define ALIGN(n) __declspec(align(n))
