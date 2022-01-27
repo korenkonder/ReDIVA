@@ -699,28 +699,34 @@ vector_ptr(vec4i)
 
 #define vec2_lerp(x, y, z, blend) \
 { \
-    __m128 b; \
+    __m128 b1; \
+    __m128 b2; \
     __m128 xt; \
     __m128 yt; \
     __m128 zt; \
     *(vec2*)&xt = (x); \
     *(vec2*)&yt = (y); \
-    *(vec2*)&b = (blend); \
-    zt = _mm_add_ps(xt, _mm_mul_ps(_mm_sub_ps(yt, xt), b)); \
+    *(vec3*)&b1 = (blend); \
+    *(vec3*)&b2 = vec3_identity; \
+    b2 = _mm_sub_ps(b2, b1); \
+    zt = _mm_add_ps(_mm_mul_ps(xt, b2), _mm_mul_ps(yt, b1)); \
     (z) = *(vec2*)&zt; \
 }
 
 #define vec2_lerp_scalar(x, y, z, blend) \
 { \
-    __m128 b; \
+    __m128 b1; \
+    __m128 b2; \
     __m128 xt; \
     __m128 yt; \
     __m128 zt; \
     *(vec2*)&xt = (x); \
     *(vec2*)&yt = (y); \
-    b = _mm_set_ss(blend); \
-    b = _mm_shuffle_ps(b, b, 0); \
-    zt = _mm_add_ps(xt, _mm_mul_ps(_mm_sub_ps(yt, xt), b)); \
+    b1 = _mm_set_ss(blend); \
+    b1 = _mm_shuffle_ps(b1, b1, 0); \
+    *(vec2*)&b2 = vec2_identity; \
+    b2 = _mm_sub_ps(b2, b1); \
+    zt = _mm_add_ps(_mm_mul_ps(xt, b2), _mm_mul_ps(yt, b1)); \
     (z) = *(vec2*)&zt; \
 }
 
@@ -1011,9 +1017,9 @@ vector_ptr(vec4i)
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt.m128_f32[3] = 0.0f; \
+    xt = _mm_and_ps(xt, vec4_mask_vec3); \
     *(vec3*)&yt = (y); \
-    yt.m128_f32[3] = 0.0f; \
+    yt = _mm_and_ps(yt, vec4_mask_vec3); \
     zt = _mm_mul_ps(xt, yt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_hadd_ps(zt, zt)); \
@@ -1024,7 +1030,7 @@ vector_ptr(vec4i)
     __m128 xt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt.m128_f32[3] = 0.0f; \
+    xt = _mm_and_ps(xt, vec4_mask_vec3); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_sqrt_ss(_mm_hadd_ps(zt, zt))); \
@@ -1035,7 +1041,7 @@ vector_ptr(vec4i)
     __m128 xt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt.m128_f32[3] = 0.0f; \
+    xt = _mm_and_ps(xt, vec4_mask_vec3); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_hadd_ps(zt, zt)); \
@@ -1047,9 +1053,9 @@ vector_ptr(vec4i)
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt.m128_f32[3] = 0.0f; \
+    xt = _mm_and_ps(xt, vec4_mask_vec3); \
     *(vec3*)&yt = (y); \
-    yt.m128_f32[3] = 0.0f; \
+    yt = _mm_and_ps(yt, vec4_mask_vec3); \
     zt = _mm_sub_ps(xt, yt); \
     zt = _mm_mul_ps(zt, zt); \
     zt = _mm_hadd_ps(zt, zt); \
@@ -1062,9 +1068,9 @@ vector_ptr(vec4i)
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt.m128_f32[3] = 0.0f; \
+    xt = _mm_and_ps(xt, vec4_mask_vec3); \
     *(vec3*)&yt = (y); \
-    yt.m128_f32[3] = 0.0f; \
+    yt = _mm_and_ps(yt, vec4_mask_vec3); \
     zt = _mm_sub_ps(xt, yt); \
     zt = _mm_mul_ps(zt, zt); \
     zt = _mm_hadd_ps(zt, zt); \
@@ -1073,28 +1079,34 @@ vector_ptr(vec4i)
 
 #define vec3_lerp(x, y, z, blend) \
 { \
-    __m128 b; \
+    __m128 b1; \
+    __m128 b2; \
     __m128 xt; \
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
     *(vec3*)&yt = (y); \
-    *(vec3*)&b = (blend); \
-    zt = _mm_add_ps(xt, _mm_mul_ps(_mm_sub_ps(yt, xt), b)); \
+    *(vec3*)&b1 = (blend); \
+    *(vec3*)&b2 = vec3_identity; \
+    b2 = _mm_sub_ps(b2, b1); \
+    zt = _mm_add_ps(_mm_mul_ps(xt, b2), _mm_mul_ps(yt, b1)); \
     (z) = *(vec3*)&zt; \
 }
 
 #define vec3_lerp_scalar(x, y, z, blend) \
 { \
-    __m128 b; \
+    __m128 b1; \
+    __m128 b2; \
     __m128 xt; \
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
     *(vec3*)&yt = (y); \
-    b = _mm_set_ss(blend); \
-    b = _mm_shuffle_ps(b, b, 0); \
-    zt = _mm_add_ps(xt, _mm_mul_ps(_mm_sub_ps(yt, xt), b)); \
+    b1 = _mm_set_ss(blend); \
+    b1 = _mm_shuffle_ps(b1, b1, 0); \
+    *(vec3*)&b2 = vec3_identity; \
+    b2 = _mm_sub_ps(b2, b1); \
+    zt = _mm_add_ps(_mm_mul_ps(xt, b2), _mm_mul_ps(yt, b1)); \
     (z) = *(vec3*)&zt; \
 }
 
@@ -1103,7 +1115,7 @@ vector_ptr(vec4i)
     __m128 xt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt.m128_f32[3] = 0.0f; \
+    xt = _mm_and_ps(xt, vec4_mask_vec3); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt)); \
@@ -1380,15 +1392,21 @@ vector_ptr(vec4i)
 
 #define vec4_lerp(x, y, z, blend) \
 { \
-    (z).data = _mm_add_ps((x).data, _mm_mul_ps(_mm_sub_ps((y).data, (x).data), (blend).data)); \
+    __m128 b1; \
+    __m128 b2; \
+    b1 = (blend).data; \
+    b2 = _mm_sub_ps(vec4_identity.data, b1); \
+    (z).data = _mm_add_ps(_mm_mul_ps((x).data, b2), _mm_mul_ps((y).data, b1)); \
 }
 
 #define vec4_lerp_scalar(x, y, z, blend) \
 { \
-    __m128 b; \
-    b = _mm_set_ss(blend); \
-    b = _mm_shuffle_ps(b, b, 0); \
-    (z).data = _mm_add_ps((x).data, _mm_mul_ps(_mm_sub_ps((y).data, (x).data), b)); \
+    __m128 b1; \
+    __m128 b2; \
+    b1 = _mm_set_ss(blend); \
+    b1 = _mm_shuffle_ps(b1, b1, 0); \
+    b2 = _mm_sub_ps(vec4_identity.data, b1); \
+    (z).data = _mm_add_ps(_mm_mul_ps((x).data, b2), _mm_mul_ps((y).data, b1)); \
 }
 
 #define vec4_normalize(x, z) \
@@ -1759,15 +1777,21 @@ vector_ptr(vec4i)
 
 #define vec2d_lerp(x, y, z, blend) \
 { \
-    (z).data = _mm_add_pd((x).data, _mm_mul_pd(_mm_sub_pd((y).data, (z).data), (blend).data)); \
+    __m128d b1; \
+    __m128d b2; \
+    b1 = (blend).data; \
+    b2 = _mm_sub_pd(vec2d_identity.data, b1); \
+    (z).data = _mm_add_pd(_mm_mul_pd((x).data, b2), _mm_mul_pd((y).data, b1)); \
 }
 
 #define vec2d_lerp_scalar(x, y, z, blend) \
 { \
-    __m128d b; \
-    b = _mm_set_sd(blend); \
-    b = _mm_shuffle_pd(b, b, 0); \
-    (z).data = _mm_add_pd((x).data, _mm_mul_pd(_mm_sub_pd((y).data, (z).data), b)); \
+    __m128d b1; \
+    __m128d b2; \
+    b1 = _mm_set_sd(blend); \
+    b1 = _mm_shuffle_pd(b1, b1, 0); \
+    b2 = _mm_sub_pd(vec2d_identity.data, b1); \
+    (z).data = _mm_add_pd(_mm_mul_pd((x).data, b2), _mm_mul_pd((y).data, b1)); \
 }
 
 #define vec2d_normalize(x, z) \

@@ -53,7 +53,7 @@ classes_struct classes[] = {
             .data = CLASS_DATA_NO_DATA,
         },
         .sub_classes = data_view_classes,
-        .sub_classes_count = 2,
+        .sub_classes_count = 4,
     },
     {
         .name    = "Graphics",

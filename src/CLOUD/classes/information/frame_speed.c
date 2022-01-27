@@ -24,8 +24,8 @@ void information_frame_speed_imgui(class_data* data) {
     ImGuiStyle* style = igGetStyle();
     ImFont* font = igGetFont();
 
-    float_t w = min((float_t)width, 204.0f);
-    float_t h = min((float_t)height, 60.0f);
+    float_t w = min((float_t)width, 240.0f);
+    float_t h = min((float_t)height, 58.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
     igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);

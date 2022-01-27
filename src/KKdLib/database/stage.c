@@ -216,7 +216,7 @@ void stage_database_merge_mdata(stage_database* stage_data,
     vector_stage_info* base_stage = &base_stage_data->stage;
     vector_stage_info* mdata_stage = &mdata_stage_data->stage;
 
-    int32_t count = (int32_t)(base_stage->end - base_stage->begin);
+    int32_t count = (int32_t)vector_length(*base_stage);
     vector_stage_info_reserve(stage, count);
     stage->end += count;
 
@@ -239,7 +239,7 @@ void stage_database_merge_mdata(stage_database* stage_data,
         }
     }
 
-    int32_t mdata_count = (int32_t)(mdata_stage->end - mdata_stage->begin);
+    int32_t mdata_count = (int32_t)vector_length(*mdata_stage);
     mdata_count -= count;
     if (mdata_count > 0)
         vector_stage_info_reserve(stage, mdata_count);

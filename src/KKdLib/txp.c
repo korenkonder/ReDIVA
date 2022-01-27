@@ -20,7 +20,7 @@ void txp_copy(txp* src, txp* dst) {
     dst->array_size = src->array_size;
     dst->mipmaps_count = src->mipmaps_count;
     dst->data = vector_empty(txp_mipmap);
-    vector_txp_mipmap_reserve(&dst->data, src->data.end - src->data.begin);
+    vector_txp_mipmap_reserve(&dst->data, vector_length(src->data));
     txp_mipmap* tex_mipmap = src->data.begin;
     for (size_t j = 0; j < src->array_size; j++) {
         for (size_t k = 0; k < src->mipmaps_count; k++, tex_mipmap++) {
@@ -111,7 +111,7 @@ bool txp_set_pack_file(txp_set* ts, void** data, size_t* length, bool big_endian
     *data = 0;
     *length = 0;
 
-    size_t count = ts->end - ts->begin;
+    size_t count = vector_length(*ts);
     if (count < 1)
         return false;
 
@@ -218,7 +218,7 @@ bool txp_set_produce_enrs(txp_set* ts, vector_enrs_entry* enrs) {
     *enrs = vector_empty(enrs_entry);
     l = 0;
 
-    size_t count = ts->end - ts->begin;
+    size_t count = vector_length(*ts);
     if (count < 1)
         return false;
 

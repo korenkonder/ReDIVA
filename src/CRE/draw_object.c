@@ -311,7 +311,7 @@ inline void draw_object_model_mat_load(render_context* rctx, mat4* mat) {
 
 inline void model_mat_face_camera_position(mat4* view, mat4* src, mat4* dst) {
     vec3 trans;
-    mat4_mult_vec3_inv(view, (vec3*)&view->row3, &trans);
+    mat4_mult_vec3_inv_trans(view, (vec3*)&view->row3, &trans);
     vec3_negate(trans, trans);
 
     vec3 dir;
@@ -1298,8 +1298,8 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         offset += 8;
 
         enable_vertex_attrib_array(15);
-        glVertexAttribPointer(15, 4, GL_UNSIGNED_BYTE, GL_FALSE, vertex_size, (void*)offset);
-        offset += 4;
+        glVertexAttribPointer(15, 4, GL_UNSIGNED_SHORT, GL_FALSE, vertex_size, (void*)offset);
+        offset += 8;
     }
     else {
         glVertexAttrib4f(1, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -1368,7 +1368,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
             glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
 
         if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
-            offset += 12;
+            offset += 16;
 
         shader_env_vert_set(&shaders_ft, 13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
     }
@@ -1642,8 +1642,8 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
         offset += 8;
 
         enable_vertex_attrib_array(15);
-        glVertexAttribPointer(15, 4, GL_UNSIGNED_BYTE, GL_FALSE, vertex_size, (void*)offset);
-        offset += 4;
+        glVertexAttribPointer(15, 4, GL_UNSIGNED_SHORT, GL_FALSE, vertex_size, (void*)offset);
+        offset += 8;
     }
     else {
         glVertexAttrib4f(1, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -1712,7 +1712,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
             glVertexAttrib4f(5, 0.0f, 0.0f, 0.0f, 1.0f);
 
         if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
-            offset += 12;
+            offset += 16;
 
         shader_env_vert_set(&shaders_ft, 13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
     }

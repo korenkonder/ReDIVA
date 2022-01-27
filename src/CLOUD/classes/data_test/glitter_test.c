@@ -56,7 +56,7 @@ bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
 
     data_test_glitter_test_struct* glt_test = data->data;
     if (glt_test) {
-        data_struct_get_directory_files(&data_list[DATA_AFT], "rom\\particle\\", &glt_test->files);
+        data_struct_get_directory_files(&data_list[DATA_AFT], "rom/particle/", &glt_test->files);
         for (data_struct_file* i = glt_test->files.begin; i != glt_test->files.end;)
             if (str_utils_check_ends_with(string_data(&i->name), ".farc")) {
                 char* temp = str_utils_get_without_extension(string_data(&i->name));
@@ -69,9 +69,9 @@ bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
                 vector_data_struct_file_erase(&glt_test->files,
                     i - glt_test->files.begin, data_struct_file_free);
 
-        glt_test->path = glt_test->files.end - glt_test->files.begin > 0
+        glt_test->path = vector_length(glt_test->files) > 0
             ? string_data(&glt_test->files.begin[0].path) : 0;
-        glt_test->file = glt_test->files.end - glt_test->files.begin > 0
+        glt_test->file = vector_length(glt_test->files) > 0
             ? string_data(&glt_test->files.begin[0].name) : 0;
         glt_test->stage_test = false;
         glt_test->rctx = rctx;
@@ -122,8 +122,7 @@ void data_test_glitter_test_imgui(class_data* data) {
 
     int32_t file_index_old = file_index;
     imguiColumnComboBoxConfigFile("File", glt_test->files.begin,
-        glt_test->files.end - glt_test->files.begin,
-        &file_index, 0, false, &data->imgui_focus);
+        vector_length(glt_test->files), &file_index, 0, false, &data->imgui_focus);
 
     if (file_index != file_index_old) {
         glt_test->path = string_data(&glt_test->files.begin[file_index].path);
@@ -252,7 +251,7 @@ void data_test_glitter_test_render(class_data* data) {
             glt_test->frame_counter = 0;
         }
 
-        uint64_t hash = hash_utf8_fnv1a64m(glt_test->file);
+        uint64_t hash = hash_utf8_fnv1a64m(glt_test->file, false);
         if (glt_test->input_auto && !glitter_particle_manager_check_scene(GPM_VAL, hash)) {
             if (glitter_particle_manager_check_effect_group(GPM_VAL, hash))
                 goto load;

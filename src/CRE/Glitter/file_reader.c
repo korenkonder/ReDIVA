@@ -23,7 +23,7 @@ glitter_file_reader* glitter_file_reader_init(GLT,
     fr->type = GLT_VAL;
     fr->hash = GLT_VAL != GLITTER_FT
         ? hash_utf8_murmurhash(fr->file, 0, false)
-        : hash_utf8_fnv1a64m(fr->file);
+        : hash_utf8_fnv1a64m(fr->file, false);
     return fr;
 }
 
@@ -36,7 +36,7 @@ glitter_file_reader* glitter_file_reader_winit(GLT,
     fr->type = GLT_VAL;
     fr->hash = GLT_VAL != GLITTER_FT
         ? hash_utf8_murmurhash(fr->file, 0, false)
-        : hash_utf8_fnv1a64m(fr->file);
+        : hash_utf8_fnv1a64m(fr->file, false);
     return fr;
 }
 

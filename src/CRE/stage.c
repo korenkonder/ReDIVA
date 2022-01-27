@@ -88,10 +88,10 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
 
             farc f;
             farc_init(&f);
-            data_struct_load_file(data, &f, "rom\\auth_3d\\", string_data(&auth_3d_farc), farc_load_file);
+            data_struct_load_file(data, &f, "rom/auth_3d/", string_data(&auth_3d_farc), farc_load_file);
             string_free(&auth_3d_farc);
 
-            if (!(f.files.end - f.files.begin)) {
+            if (vector_length(f.files) < 1) {
                 farc_free(&f);
                 continue;
             }

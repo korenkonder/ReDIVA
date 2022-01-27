@@ -74,9 +74,24 @@ static patch_struct patch_data[] = {
     //{ (void*)0x000000014041CF50, (uint64_t)&rob_chara_data_bone_data_motion_load, },
     //{ (void*)0x0000000140418870, (uint64_t)&rob_chara_data_bone_data_interpolate, },
     //{ (void*)0x0000000140418A60, (uint64_t)&rob_chara_data_bone_data_update, },
+    { (void*)0x00000001405EEAE0, (uint64_t)&ex_osage_block_dispose, },
+    { (void*)0x00000001405F3640, (uint64_t)&ex_osage_block_field_8, },
+    { (void*)0x00000001405F39E0, (uint64_t)&ex_node_block_field_10, },
+    { (void*)0x00000001405F49F0, (uint64_t)&ex_osage_block_field_18, },
+    { (void*)0x00000001405F2140, (uint64_t)&ex_osage_block_update, },
+    { (void*)0x00000001405F2470, (uint64_t)&ex_osage_block_field_28, },
+    { (void*)0x00000001405F26F0, (uint64_t)&ex_osage_block_draw, },
+    { (void*)0x00000001405F2640, (uint64_t)&ex_osage_block_reset, },
+    { (void*)0x00000001405F2860, (uint64_t)&ex_osage_block_field_40, },
+    { (void*)0x00000001405F4640, (uint64_t)&ex_osage_block_field_48, },
+    { (void*)0x00000001405F4730, (uint64_t)&ex_osage_block_field_50, },
+    { (void*)0x00000001405F48F0, (uint64_t)&ex_osage_block_field_58, },
 };
 
 static uint64_t shader_bind_func_orig_data[6];
+
+extern bool toggle1[10];
+extern bool toggle2[10];
 
 void inject_patches() {
     char buf[12];

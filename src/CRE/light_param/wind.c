@@ -73,7 +73,7 @@ void wind_update(wind* w) {
     mat4 mat = mat4_identity;
     mat4_rotate_y_mult(&mat, w->rot_y * DEG_TO_RAD_FLOAT, &mat);
     mat4_rotate_z_mult(&mat, w->rot_z * DEG_TO_RAD_FLOAT, &mat);
-    vec3 wind_direction = vec3_identity;
+    vec3 wind_direction = vec3_null;
     wind_direction.x = value;
     mat4_mult_vec3(&mat, &wind_direction, &wind_direction);
     vec3_mult_scalar(wind_direction, w->strength, w->wind_direction);

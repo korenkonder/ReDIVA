@@ -71,7 +71,7 @@ uint32_t enrs_length(vector_enrs_entry* enrs) {
     o = 0;
     for (i = enrs->begin; i != enrs->end; i++) {
         entry = *i;
-        entry.count = (uint32_t)(entry.sub.end - entry.sub.begin);
+        entry.count = (uint32_t)vector_length(entry.sub);
         if (i != enrs->begin && i[-1].count < 1) {
             o += (uint32_t)((size_t)i[-1].size * i[-1].repeat_count);
             if (i->count > 0) {
@@ -159,12 +159,12 @@ void enrs_write(stream* s, vector_enrs_entry* enrs) {
     o = 0;
     size_t length = enrs_length(enrs);
     io_write_uint32_t(s, 0);
-    io_write_uint32_t(s, (uint32_t)(enrs->end - enrs->begin));
+    io_write_uint32_t(s, (uint32_t)vector_length(*enrs));
     io_write_uint32_t(s, 0);
     io_write_uint32_t(s, 0);
     for (i = enrs->begin; i != enrs->end; i++) {
         entry = *i;
-        entry.count = (uint32_t)(entry.sub.end - entry.sub.begin);
+        entry.count = (uint32_t)vector_length(entry.sub);
         if (i != enrs->begin && i[-1].count < 1) {
             o += (uint32_t)((size_t)i[-1].size * i[-1].repeat_count);
             if (i->count > 0) {

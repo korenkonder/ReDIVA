@@ -33,7 +33,7 @@ vector_func(program_binary)
 int32_t shader_bind(shader* shader, uint32_t sub_index) {
     int32_t num_sub = shader->num_sub;
     int32_t sub_shader_index = 0;
-    if (num_sub <= 0)
+    if (num_sub < 1)
         return -1;
 
     for (shader_sub* i = shader->sub; i->sub_index != sub_index; i++) {
@@ -190,8 +190,8 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                 continue;
             }
 
-            uint64_t vert_file_name_cache = hash_fnv1a64m(vert_file_buf, utf8_length(vert_file_buf));
-            uint64_t frag_file_name_cache = hash_fnv1a64m(frag_file_buf, utf8_length(frag_file_buf));
+            uint64_t vert_file_name_cache = hash_fnv1a64m(vert_file_buf, utf8_length(vert_file_buf), false);
+            uint64_t frag_file_name_cache = hash_fnv1a64m(frag_file_buf, utf8_length(frag_file_buf), false);
             for (int32_t i = 0; i < 64; i += 8)
                 if (((vert_file_name_cache >> i) & 0xFF) == 0)
                     vert_file_name_cache |= 0xFFULL << i;
@@ -210,8 +210,8 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
 
             vert_data = shader_parse_include(vert_data, f);
             frag_data = shader_parse_include(frag_data, f);
-            uint64_t vert_data_hash = hash_fnv1a64m(vert_data, utf8_length(vert_data));
-            uint64_t frag_data_hash = hash_fnv1a64m(frag_data, utf8_length(frag_data));
+            uint64_t vert_data_hash = hash_fnv1a64m(vert_data, utf8_length(vert_data), false);
+            uint64_t frag_data_hash = hash_fnv1a64m(frag_data, utf8_length(frag_data), false);
 
             farc_file* shader_cache_file = farc_read_file(&shader_cache_farc, shader_cache_file_name);
             program_binary* bin = 0;
@@ -363,7 +363,7 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                 else
                     free(shader_cache_file->data);
 
-                size_t bin_count = program_data_binary.end - program_data_binary.begin;
+                size_t bin_count = vector_length(program_data_binary);
                 size_t bin_size = sizeof(uint64_t) * 2 + bin_count * sizeof(program_binary);
                 for (program_binary* j = program_data_binary.begin; j != program_data_binary.end; j++)
                     bin_size += j->length;

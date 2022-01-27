@@ -150,7 +150,7 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
                     *j = temp;
                 }
 
-        if (stage_pv->end - stage_pv->begin > 0)
+        if (vector_length(*stage_pv) > 0)
             stage_test->pv_id = stage_pv->begin[0].pv_id;
 
         stage* stg = rctx->stage;
@@ -161,7 +161,7 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
             }
 
             stage_info* info = stg->stage;
-            if (info - stg_info->begin >= 0 && info - stg_info->begin < stg_info->end - stg_info->begin) {
+            if (info - stg_info->begin >= 0 && info - stg_info->begin < vector_length(*stg_info)) {
                 stage_test->stage_index = (int32_t)(info - stg_info->begin);
                 stage_test->stage_name = string_data(&info->name);
             }

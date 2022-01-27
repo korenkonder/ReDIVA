@@ -118,7 +118,7 @@ void data_view_draw_task_imgui(class_data* data) {
 
         igPushID_Int(i);
         vector_ptr_draw_task* draw_tasks = &draw_task_array[i];
-        size_t count = draw_tasks->end - draw_tasks->begin;
+        size_t count = vector_length(*draw_tasks);
         bool enable = count > 0;
         imguiDisableElementPush(enable);
         if (!igTreeNodeEx_StrStr("", tree_node_flags,
@@ -223,10 +223,6 @@ End:
 
 void data_view_draw_task_input(class_data* data) {
     input_locked |= data->imgui_focus;
-}
-
-void data_view_draw_task_render(class_data* data) {
-
 }
 
 bool data_view_draw_task_dispose(class_data* data) {

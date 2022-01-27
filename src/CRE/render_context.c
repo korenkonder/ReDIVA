@@ -823,9 +823,9 @@ static void shadow_update_inner(shadow* shad, render_context* rctx) {
     int32_t count = 0;
     shad->field_2EC = 0;
     for (int32_t i = 0; i < 2; i++)
-        if (shad->field_2F0[i] && shad->field_1D0[i].end - shad->field_1D0[i].begin > 0) {
+        if (shad->field_2F0[i] && vector_length(shad->field_1D0[i]) > 0) {
             shad->field_2EC++;
-            count += (int32_t)(shad->field_1D0[i].end - shad->field_1D0[i].begin);
+            count += (int32_t)vector_length(shad->field_1D0[i]);
         }
         else
             shad->field_2F0[i] = false;
@@ -835,14 +835,14 @@ static void shadow_update_inner(shadow* shad, render_context* rctx) {
             vector_vec3* v5 = &shad->field_1D0[i];
             shad->field_1A8[i] = vec3_null;
             shad->field_1C8[i] = 0.0f;
-            if (!shad->field_2F0[i] || !(v5->end - v5->begin))
+            if (!shad->field_2F0[i] || vector_length(*v5) < 1)
                 continue;
 
             vec3 v7 = vec3_null;
             for (vec3* j = v5->begin; j != v5->end; j++)
                 vec3_add(v7, *j, v7);
 
-            float_t v14 = (float_t)(int32_t)(v5->end - v5->begin);
+            float_t v14 = (float_t)(int32_t)vector_length(*v5);
             if (v14 < 0.0f)
                 v14 += 1.8446744e19f;
             vec3_mult_scalar(v7, 1.0f / v14, v7);
@@ -856,9 +856,8 @@ static void shadow_update_inner(shadow* shad, render_context* rctx) {
                 vec3_dot(v22, direction, v23);
                 vec3 v25;
                 vec3_mult_scalar(direction, v23, v25);
-                vec3_sub(v25, v22, v25);
                 float_t v24;
-                vec3_length(v25, v24);
+                vec3_distance(v25, v22, v24);
                 v24 -= 0.25f;
                 if (v24 < 0.0f)
                     v24 = 0.0f;
@@ -879,15 +878,11 @@ static void shadow_update_inner(shadow* shad, render_context* rctx) {
                 vec3 v11;
                 vec3_mult_scalar(shad->direction, shad->field_208, v11);
                 vec3_sub(shad->field_1A8[i], v11, v11);
-                vec3 v14;
-                vec3_sub(shad->view_point[i], v11, v14);
                 float_t v9;
-                vec3_length(v14, v9);
+                vec3_distance(shad->view_point[i], v11, v9);
 
-                vec3 v20;
-                vec3_sub(shad->interest[i], shad->field_1A8[i], v20);
                 float_t v12;
-                vec3_length(v20, v12);
+                vec3_distance(shad->interest[i], shad->field_1A8[i], v12);
                 if (v9 > 0.1f || v12 > 0.1f) {
                     shad->view_point[i] = v11;
                     shad->interest[i] = shad->field_1A8[i];
@@ -961,14 +956,14 @@ static void shadow_update_inner(shadow* shad, render_context* rctx) {
             vector_vec3* v18 = &shad->field_1D0[i];
             shad->field_1A8[i] = vec3_null;
             shad->field_1C8[i] = 0.0;
-            if (!shad->field_2F0[i] || !(v18->end - v18->begin))
+            if (!shad->field_2F0[i] || vector_length(*v18) < 1)
                 continue;
 
             vec3 v22 = vec3_null;
             for (vec3* j = v18->begin; j != v18->end; j++)
                 vec3_add(v22, *j, v22);
 
-            int32_t v27 = (int32_t)(v18->end - v18->begin);
+            int32_t v27 = (int32_t)vector_length(*v18);
             float_t v29 = (float_t)v27;
             if (v27 < 0)
                 v29 += 1.8446744e19f;
@@ -1001,16 +996,12 @@ static void shadow_update_inner(shadow* shad, render_context* rctx) {
                     continue;
 
                 float_t v51;
-                vec3 v52;
                 vec3 v53;
                 float_t v54;
-                vec3 v55;
                 vec3_mult_scalar(shad->direction, shad->field_208, v53);
                 vec3_sub(shad->field_1A8[i], v53, v53);
-                vec3_sub(shad->view_point[i], v53, v52);
-                vec3_length(v52, v51);
-                vec3_sub(shad->interest[i], shad->field_1A8[i], v55);
-                vec3_length(v55, v54);
+                vec3_distance(shad->view_point[i], v53, v51);
+                vec3_distance(shad->interest[i], shad->field_1A8[i], v54);
                 if (v51 > 0.1f || v54 > 0.1f) {
                     shad->view_point[i] = v53;
                     shad->interest[i] = shad->field_1A8[i];
@@ -1021,7 +1012,7 @@ static void shadow_update_inner(shadow* shad, render_context* rctx) {
             vec3 interest = vec3_null;
             int32_t count = 0;;
             for (int32_t i = 0; i < 2; i++) {
-                int32_t c = (int32_t)(shad->field_1D0[i].end - shad->field_1D0[i].begin);
+                int32_t c = (int32_t)vector_length(shad->field_1D0[i]);
                 vec3 view_point_temp;
                 vec3 interest_temp;
                 vec3_mult_scalar(shad->view_point[i], (float_t)c, view_point_temp);

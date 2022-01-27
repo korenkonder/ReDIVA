@@ -72,7 +72,7 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
     if (!t || !texs || !ids)
         return false;
 
-    size_t count = t->end - t->begin;
+    size_t count = vector_length(*t);
     *texs = force_malloc_s(texture*, count + 1);
     texture** tex = *texs;
     for (size_t i = 0; i < count; i++)
@@ -103,6 +103,16 @@ inline texture* texture_storage_get_texture(uint32_t id) {
     for (texture** i = texture_storage_data.begin; i != texture_storage_data.end; i++)
         if (*i && (*i)->id == id)
             return *i;
+    return 0;
+}
+
+inline size_t texture_storage_get_texture_count() {
+    return vector_length(texture_storage_data);
+}
+
+inline texture* texture_storage_get_texture_by_index(ssize_t index) {
+    if (index >= 0 && index < vector_length(texture_storage_data))
+        return texture_storage_data.begin[index];
     return 0;
 }
 

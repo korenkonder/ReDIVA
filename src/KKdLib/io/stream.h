@@ -61,8 +61,12 @@ extern void io_read_string_null_terminated_offset(stream* s, ssize_t offset, str
 extern void io_read_wstring_null_terminated_offset(stream* s, ssize_t offset, wstring* str);
 extern char* io_read_utf8_string_null_terminated(stream* s);
 extern wchar_t* io_read_utf16_string_null_terminated(stream* s);
+extern char* io_read_utf8_string_null_terminated_length(stream* s, ssize_t* length);
+extern wchar_t* io_read_utf16_string_null_terminated_length(stream* s, ssize_t* length);
 extern char* io_read_utf8_string_null_terminated_offset(stream* s, ssize_t offset);
 extern wchar_t* io_read_utf16_string_null_terminated_offset(stream* s, ssize_t offset);
+extern char* io_read_utf8_string_null_terminated_offset_length(stream* s, ssize_t offset, ssize_t* length);
+extern wchar_t* io_read_utf16_string_null_terminated_offset_length(stream* s, ssize_t offset, ssize_t* length);
 extern void io_write_string(stream* s, string* str);
 extern void io_write_wstring(stream* s, wstring* str);
 extern void io_write_string_null_terminated(stream* s, string* str);

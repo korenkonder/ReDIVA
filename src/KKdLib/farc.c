@@ -209,7 +209,7 @@ bool farc_load_file(void* data, char* path, char* file, uint32_t hash) {
 
     farc* f = data;
     farc_read(f, buf, true, false);
-    bool ret = f->files.end - f->files.begin ? true : false;
+    bool ret = vector_length(f->files) ? true : false;
     if (!ret)
         farc_free(f);
     return ret;
@@ -233,14 +233,14 @@ static errno_t farc_get_files(farc* f) {
 
     vector_wstring files = vector_empty(wstring);
     path_wget_files(&files, f->directory_path);
-    if (files.end - files.begin < 1) {
+    if (vector_length(files) < 1) {
         vector_wstring_free(&files, wstring_free);
         return -1;
     }
 
     f->files = vector_empty(farc_file);
-    vector_farc_file_reserve(&f->files, files.end - files.begin);
-    f->files.end = &f->files.begin[files.end - files.begin];
+    vector_farc_file_reserve(&f->files, vector_length(files));
+    f->files.end = &f->files.begin[vector_length(files)];
     for (farc_file* i = f->files.begin; i != f->files.end; i++) {
         memset(i, 0, sizeof(farc_file));
         string_copy_wstring(&files.begin[i - f->files.begin], &i->name);

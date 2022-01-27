@@ -22,7 +22,7 @@ bool glitter_curve_get_value(GLT, glitter_curve* c,
     bool negate;
     float_t _value;
 
-    keys_count = c->keys.end - c->keys.begin;
+    keys_count = vector_length(c->keys);
     if (!keys_count)
         return false;
 
@@ -106,7 +106,7 @@ static void glitter_curve_get_key_indexes(vector_glitter_curve_key* keys,
     size_t v9;
     size_t v10;
 
-    count = keys->end - keys->begin;
+    count = vector_length(*keys);
     if (count <= 1) {
         *curr = 0;
         *next = 0;

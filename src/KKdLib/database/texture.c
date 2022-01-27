@@ -219,7 +219,7 @@ void texture_database_merge_mdata(texture_database* tex_db,
     vector_texture_info* base_texture = &base_tex_db->texture;
     vector_texture_info* mdata_texture = &mdata_tex_db->texture;
 
-    int32_t count = (int32_t)(base_texture->end - base_texture->begin);
+    int32_t count = (int32_t)vector_length(*base_texture);
     vector_texture_info_reserve(texture, count);
     texture->end += count;
 
@@ -229,10 +229,10 @@ void texture_database_merge_mdata(texture_database* tex_db,
 
         info->id = b_info->id;
         string_copy(&b_info->name, &info->name);
-        info->name_hash = hash_fnv1a64m(string_data(&info->name), info->name.length);
+        info->name_hash = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
     }
 
-    int32_t mdata_count = (int32_t)(mdata_texture->end - mdata_texture->begin);
+    int32_t mdata_count = (int32_t)vector_length(*mdata_texture);
     for (int32_t i = 0; i < mdata_count; i++) {
         texture_info* m_info = &mdata_texture->begin[i];
 
@@ -248,7 +248,7 @@ void texture_database_merge_mdata(texture_database* tex_db,
 
         info->id = m_info->id;
         string_replace(&m_info->name, &info->name);
-        info->name_hash = hash_fnv1a64m(string_data(&info->name), info->name.length);
+        info->name_hash = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
     }
 
     tex_db->ready = true;
@@ -266,7 +266,7 @@ uint32_t texture_database_get_texture_id(texture_database* tex_db, char* name) {
     if (!tex_db || !name)
         return -1;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name));
+    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
 
     for (texture_info* i = tex_db->texture.begin; i != tex_db->texture.end; i++)
         if (name_hash == i->name_hash)
@@ -323,7 +323,7 @@ static void texture_database_classic_write_inner(texture_database* tex_db, strea
     io_write_uint32_t(s, 0x90669066);
     io_align_write(s, 0x20);
 
-    uint32_t texture_count = (uint32_t)(tex_db->texture.end - tex_db->texture.begin);
+    uint32_t texture_count = (uint32_t)vector_length(tex_db->texture);
 
     vector_ssize_t string_offsets = vector_empty(ssize_t);
     vector_ssize_t_reserve(&string_offsets, texture_count);
@@ -395,7 +395,7 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
 
     bool is_x = tex_db->is_x;
 
-    uint32_t texture_count = (uint32_t)(tex_db->texture.end - tex_db->texture.begin);
+    uint32_t texture_count = (uint32_t)vector_length(tex_db->texture);
 
     if (!is_x) {
         ee = (enrs_entry){ 0, 2, 8, texture_count, vector_empty(enrs_sub_entry) };
@@ -446,7 +446,7 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
             }
     }
 
-    vector_ssize_t_reserve(&string_offsets, strings.end - strings.begin);
+    vector_ssize_t_reserve(&string_offsets, vector_length(strings));
 
     for (string* i = strings.begin; i != strings.end; i++) {
         *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_mtxi);

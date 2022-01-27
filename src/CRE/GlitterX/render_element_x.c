@@ -286,10 +286,10 @@ void glitter_x_render_element_update(glitter_render_group* a1,
         has_translation = false;
         translation = vec3_null;
 
-        glitter_animation curv = particle->particle->animation;
-        length = curv.end - curv.begin;
+        glitter_animation* curv = &particle->particle->animation;
+        length = vector_length(*curv);
         for (int32_t i = 0; i < length; i++) {
-            curve = curv.begin[i];
+            curve = curv->begin[i];
             if (!glitter_x_curve_get_value(curve, a2->frame,
                 &value, a2->random + i, a1->random_ptr))
                 continue;

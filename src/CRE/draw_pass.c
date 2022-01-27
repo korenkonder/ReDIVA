@@ -622,15 +622,12 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
         v24 = v46[0];
 
     float_t length;
-    vec3 dist;
-    vec3_sub(interest, v24, dist);
-    vec3_length(dist, length);
+    vec3_distance(interest, v24, length);
     if (length > 1.25)
         interest = v46[0];
 
     float_t v29;
-    vec3_sub(view_point, interest, interest);
-    vec3_length(interest, v29);
+    vec3_distance(view_point, interest, v29);
     if (v29 < 0.25f)
         v29 = 0.25f;
     float_t v31 = tanf((float_t)(rctx->camera->fov_rad * 0.5)) * 5.0f;

@@ -103,7 +103,7 @@ glitter_effect_inst* glitter_x_effect_inst_init(GPM, glitter_effect* a1,
         ei->flags |= GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT;
     }
 
-    vector_ptr_glitter_emitter_inst_reserve(&ei->emitters, a1->emitters.end - a1->emitters.begin);
+    vector_ptr_glitter_emitter_inst_reserve(&ei->emitters, vector_length(a1->emitters));
     for (i = a1->emitters.begin; i != a1->emitters.end; i++) {
         if (!*i)
             continue;
@@ -411,7 +411,7 @@ static void glitter_x_effect_inst_get_value(glitter_effect_inst* a1) {
     glitter_curve* curve;
     float_t value;
 
-    length = a1->effect->animation.end - a1->effect->animation.begin;
+    length = vector_length(a1->effect->animation);
     if (!length)
         return;
 
@@ -477,7 +477,7 @@ static void glitter_x_effect_inst_update_init(glitter_effect_inst* a1, float_t e
     float_t delta_frame;
     float_t start_time;
 
-    if (a1->data.start_time <= 0)
+    if (a1->data.start_time < 1)
         return;
 
     delta_frame = 2.0f;

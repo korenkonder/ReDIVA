@@ -55,7 +55,7 @@ void io_mcopy(stream* s, void** data, size_t* length) {
     if (!s || !data || !length || s->type != STREAM_MEMORY)
         return;
 
-    *length = s->io.data.vec.end - s->io.data.vec.begin;
+    *length = vector_length(s->io.data.vec);
     *data = force_malloc(*length);
     memcpy(*data, s->io.data.vec.begin, *length);
 }
@@ -158,7 +158,7 @@ inline ssize_t io_get_length(stream* s) {
             s->length = 0;
         break;
     case STREAM_MEMORY:
-        s->length = s->io.data.vec.end - s->io.data.vec.begin;
+        s->length = vector_length(s->io.data.vec);
         break;
     default:
         s->length = 0;
@@ -189,7 +189,7 @@ int32_t io_set_position(stream* s, ssize_t pos, int32_t seek) {
             if (pos < 0)
                 return EOF;
 
-            capacity = s->io.data.vec.capacity_end - s->io.data.vec.begin;
+            capacity = vector_capacity(s->io.data.vec);
             if (capacity < pos)
                 vector_uint8_t_reserve(&s->io.data.vec, pos - capacity);
 
@@ -223,7 +223,7 @@ int32_t io_set_position(stream* s, ssize_t pos, int32_t seek) {
             if (pos < 0)
                 return EOF;
 
-            capacity = s->io.data.vec.end - s->io.data.vec.begin;
+            capacity = vector_length(s->io.data.vec);
             if (capacity < pos)
                 return EOF;
 
@@ -242,7 +242,7 @@ inline int32_t io_position_push(stream* s, ssize_t pos, int32_t seek) {
 }
 
 inline void io_position_pop(stream* s) {
-    if (!(s->position_stack.end - s->position_stack.begin))
+    if (vector_length(s->position_stack) < 1)
         return;
 
     ssize_t position = s->position_stack.end[-1];
@@ -373,40 +373,41 @@ inline void io_write_uint8_t(stream* s, uint8_t val) {
 }
 
 inline void io_read_string(stream* s, string* str, size_t length) {
-    char* temp = force_malloc(length + 1);
+    string_init_length(str, 0, length);
+    char* temp = string_data(str);
     io_read(s, temp, length);
     temp[length] = 0;
-    string_init_length(str, temp, length);
-    free(temp);
 }
 
 inline void io_read_wstring(stream* s, wstring* str, size_t length) {
-    wchar_t* temp = force_malloc_s(wchar_t, length + 1);
+    wstring_init_length(str, 0, length);
+    wchar_t* temp = wstring_data(str);
     io_read(s, temp, sizeof(wchar_t) * length);
     temp[length] = 0;
-    wstring_init_length(str, temp, length);
-    free(temp);
 }
 
 inline void io_read_string_null_terminated(stream* s, string* str) {
     ssize_t offset = io_get_position(s);
-    char* temp = io_read_utf8_string_null_terminated_offset(s, offset);
-    string_init(str, temp);
+    size_t length = 0;
+    char* temp = io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
+    string_init_length(str, temp, length);
     free(temp);
 }
 
 inline void io_read_wstring_null_terminated(stream* s, wstring* str) {
     ssize_t offset = io_get_position(s);
-    wchar_t* temp = io_read_utf16_string_null_terminated_offset(s, offset);
-    wstring_init(str, temp);
+    size_t length = 0;
+    wchar_t* temp = io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
+    wstring_init_length(str, temp, length);
     free(temp);
 }
 
 inline void io_read_string_null_terminated_offset(stream* s,
     ssize_t offset, string* str) {
     if (offset) {
-        char* temp = io_read_utf8_string_null_terminated_offset(s, offset);
-        string_init(str, temp);
+        size_t length = 0;
+        char* temp = io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
+        string_init_length(str, temp, length);
         free(temp);
     }
     else
@@ -416,8 +417,9 @@ inline void io_read_string_null_terminated_offset(stream* s,
 inline void io_read_wstring_null_terminated_offset(stream* s,
     ssize_t offset, wstring* str) {
     if (offset) {
-        wchar_t* temp = io_read_utf16_string_null_terminated_offset(s, offset);
-        wstring_init(str, temp);
+        size_t length = 0;
+        wchar_t* temp = io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
+        wstring_init_length(str, temp, length);
         free(temp);
     }
     else
@@ -426,15 +428,37 @@ inline void io_read_wstring_null_terminated_offset(stream* s,
 
 inline char* io_read_utf8_string_null_terminated(stream* s) {
     ssize_t offset = io_get_position(s);
-    return io_read_utf8_string_null_terminated_offset(s, offset);
+    size_t length = 0;
+    return io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
 }
 
 inline wchar_t* io_read_utf16_string_null_terminated(stream* s) {
     ssize_t offset = io_get_position(s);
-    return io_read_utf16_string_null_terminated_offset(s, offset);
+    size_t length = 0;
+    return io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
 }
 
-char* io_read_utf8_string_null_terminated_offset(stream* s, ssize_t offset) {
+inline char* io_read_utf8_string_null_terminated_length(stream* s, ssize_t* length) {
+    ssize_t offset = io_get_position(s);
+    return io_read_utf8_string_null_terminated_offset_length(s, offset, length);
+}
+
+inline wchar_t* io_read_utf16_string_null_terminated_length(stream* s, ssize_t* length) {
+    ssize_t offset = io_get_position(s);
+    return io_read_utf16_string_null_terminated_offset_length(s, offset, length);
+}
+
+inline char* io_read_utf8_string_null_terminated_offset(stream* s, ssize_t offset) {
+    size_t length = 0;
+    return io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
+}
+
+inline wchar_t* io_read_utf16_string_null_terminated_offset(stream* s, ssize_t offset) {
+    size_t length = 0;
+    return io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
+}
+
+char* io_read_utf8_string_null_terminated_offset_length(stream* s, ssize_t offset, ssize_t* length) {
     io_position_push(s, offset, SEEK_SET);
 
     size_t name_length = 0;
@@ -444,6 +468,7 @@ char* io_read_utf8_string_null_terminated_offset(stream* s, ssize_t offset) {
 
     if (name_length == 0) {
         io_position_pop(s);
+        *length = 0;
         return 0;
     }
 
@@ -453,10 +478,11 @@ char* io_read_utf8_string_null_terminated_offset(stream* s, ssize_t offset) {
     str[name_length] = 0;
 
     io_position_pop(s);
+    *length = name_length;
     return str;
 }
 
-wchar_t* io_read_utf16_string_null_terminated_offset(stream* s, ssize_t offset) {
+wchar_t* io_read_utf16_string_null_terminated_offset_length(stream* s, ssize_t offset, ssize_t* length) {
     io_position_push(s, offset, SEEK_SET);
 
     size_t name_length = 0;
@@ -466,8 +492,11 @@ wchar_t* io_read_utf16_string_null_terminated_offset(stream* s, ssize_t offset) 
         && (((c0 & 0xFF) | ((c1 & 0xFF) << 8)) != 0))
         name_length++;
 
-    if (name_length == 0)
+    if (name_length == 0) {
+        io_position_pop(s);
+        *length = 0;
         return 0;
+    }
 
     wchar_t* str = force_malloc_s(wchar_t, name_length + 1);
     io_set_position(s, offset, SEEK_SET);
@@ -475,6 +504,7 @@ wchar_t* io_read_utf16_string_null_terminated_offset(stream* s, ssize_t offset) 
     str[name_length] = 0;
 
     io_position_pop(s);
+    *length = name_length;
     return str;
 }
 

@@ -38,6 +38,8 @@ typedef struct data_test_auth_3d_test {
     bool auth_3d_uid_load;
     bool stage_load;
 
+    vec2 a3d_stage_window_pos;
+
     render_context* rctx;
 
     auth_3d_farc farc;
@@ -77,7 +79,7 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
 
         auth_3d_test->category = vector_empty(data_test_auth_3d_test_category);
         vector_data_test_auth_3d_test_category_reserve(&auth_3d_test->category,
-            auth_3d_db_cat->end - auth_3d_db_cat->begin);
+            vector_length(*auth_3d_db_cat));
         for (auth_3d_database_category* i = auth_3d_db_cat->begin;
             i != auth_3d_db_cat->end; i++) {
             data_test_auth_3d_test_category* cat
@@ -86,7 +88,7 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
             cat->index = -1;
             cat->uid = vector_empty(int32_t);
 
-            vector_int32_t_reserve(&cat->uid, i->uid.end - i->uid.begin);
+            vector_int32_t_reserve(&cat->uid, vector_length(i->uid));
             for (int32_t* j = i->uid.begin; j != i->uid.end; j++) {
                 if (!uids[*j].enabled)
                     continue;
@@ -94,7 +96,7 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
                 vector_int32_t_push_back(&cat->uid, &uids[*j].org_uid);
             }
 
-            if (cat->uid.end - cat->uid.begin > 0)
+            if (vector_length(cat->uid) > 0)
                 cat->index = 0;
         }
 
@@ -121,10 +123,10 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
         auth_3d_test->auth_3d_load = false;
         auth_3d_test->auth_3d_uid_load = false;
 
-        if (auth_3d_test->category.end - auth_3d_test->category.begin > 0) {
+        if (vector_length(auth_3d_test->category) > 0) {
             data_test_auth_3d_test_category* cat = &auth_3d_test->category.begin[0];
 
-            if (cat->uid.end - cat->uid.begin > 0) {
+            if (vector_length(cat->uid) > 0) {
                 auth_3d_test->auth_3d_load = true;
                 auth_3d_test->auth_3d_uid_load = true;
                 auth_3d_test->auth_3d_uid = cat->uid.begin[0];
@@ -137,10 +139,11 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
         stage_database* stage_data = &rctx->data->data_ft.stage_data;
 
         auth_3d_test->stage = vector_ptr_empty(char);
-        vector_ptr_char_reserve(&auth_3d_test->stage,
-            stage_data->stage.end - stage_data->stage.begin);
+        vector_ptr_char_reserve(&auth_3d_test->stage, vector_length(stage_data->stage));
         for (stage_info* i = stage_data->stage.begin; i != stage_data->stage.end; i++)
             *vector_ptr_char_reserve_back(&auth_3d_test->stage) = string_data(&i->name);
+
+        auth_3d_test->a3d_stage_window_pos = (vec2){ 200.0f, 100.0f };
 
         auth_3d_test->trans_x = 0.0f;
         auth_3d_test->trans_z = 0.0f;
@@ -241,7 +244,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     if (auth_3d_category_index != auth_3d_test->auth_3d_category_index) {
         data_test_auth_3d_test_category* cat = &auth_3d_db_cat->begin[auth_3d_category_index];
 
-        if (cat->uid.end - cat->uid.begin > 0) {
+        if (vector_length(cat->uid) > 0) {
             auth_3d_test->auth_3d_load = true;
             auth_3d_test->auth_3d_uid_load = true;
             auth_3d_test->auth_3d_uid = cat->uid.begin[cat->index];
@@ -379,8 +382,8 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     float_t x = w;
     float_t y = 0.0f;
 
-    w = min((float_t)width, 200.0f);
-    h = min((float_t)height, 100.0f);
+    w = min((float_t)width, auth_3d_test->a3d_stage_window_pos.x);
+    h = min((float_t)height, auth_3d_test->a3d_stage_window_pos.y);
 
     igSetNextWindowPos((ImVec2) { x, y }, ImGuiCond_Appearing, ImVec2_Empty);
     igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
@@ -547,8 +550,7 @@ End:
 bool data_test_auth_3d_test_dispose(class_data* data) {
     data_test_auth_3d_test* auth_3d_test = data->data;
     if (auth_3d_test) {
-        memset(auth_3d_test->stage.begin, 0,
-            sizeof(char*) * (auth_3d_test->stage.end - auth_3d_test->stage.begin));
+        memset(auth_3d_test->stage.begin, 0, sizeof(char*) * vector_length(auth_3d_test->stage));
 
         vector_data_test_auth_3d_test_category_free(&auth_3d_test->category,
             data_test_auth_3d_test_category_free);

@@ -21,6 +21,8 @@ typedef struct key_val {
 } key_val;
 
 extern void key_val_init(key_val* kv, uint8_t* data, size_t length);
+extern void key_val_file_read(key_val* kv, char* path);
+extern void key_val_wfile_read(key_val* kv, wchar_t* path);
 extern bool key_val_get_local_key_val(key_val* kv, char* str, key_val* lkv);
 extern bool key_val_has_key(key_val* kv, char* str);
 extern bool key_val_read_bool(key_val* kv, char* buf,

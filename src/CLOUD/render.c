@@ -32,6 +32,7 @@
 #include "../CRE/post_process.h"
 #include "../KKdLib/io/path.h"
 #include "../KKdLib/farc.h"
+#include "../KKdLib/pvpp.h"
 #include"classes/imgui_helper.h"
 #include <timeapi.h>
 
@@ -352,6 +353,11 @@ static render_context* render_load() {
     data_struct_init();
     data_struct_load("CLOUD_data.txt");
 
+    pvpp pp;
+    pvpp_init(&pp);
+    data_struct_load_file(&data_list[DATA_X], &pp, "rom/pv/", "pv824.pvpp", pvpp_load_file);
+    pvpp_free(&pp);
+
     glGenBuffers(1, &common_data_ubo);
 
     gl_state_bind_uniform_buffer(common_data_ubo);
@@ -439,7 +445,7 @@ static render_context* render_load() {
 
     render_resize_fb(rctx, true);
 
-    rob_chara_data_array_init();
+    rob_chara_array_init();
 
     data_struct* aft_data = &data_list[DATA_AFT];
     auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
@@ -456,6 +462,10 @@ static render_context* render_load() {
         aft_obj_db, aft_tex_db, aft_stage_data, "STGTST", rctx);
     stage_set(&stage_stgtst, rctx);
 
+    stage_init(&stage_test_data);
+    stage_test_data.set_id = -1;
+    stage_test_data.stage_set_id = -1;
+
     object_set_info* set_info;
     object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM000");
     object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM001");
@@ -466,24 +476,16 @@ static render_context* render_load() {
     object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM681");
     object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM981");
 
-    motion_set_load_motion(216, 0, aft_mot_db);
+    motion_set_load_motion(2, 0, aft_mot_db);
+    motion_set_load_motion(946, 0, aft_mot_db);
 
     rob_chara_pv_data pv_data;
     rob_chara_pv_data_init(&pv_data);
-    item_sub_data sub_data;
-    memset(&sub_data, 0, sizeof(item_sub_data));
-    sub_data.kami = 500;
-    sub_data.outer = 1;
-    sub_data.kata = 301;
-    //sub_data.kami = 681;
-    //sub_data.outer = 181;
-    //sub_data.kata = 481;
-    //sub_data.head = 981;
-    rob_chara_data_set(&rob_chara_data_array[0], 0, CHARA_MIKU, 0, &pv_data);
-    rob_chara_data_reset(&rob_chara_data_array[0],
-        &rob_chara_data_array[0].pv_data, aft_bone_data, aft_mot_db);
-    rob_chara_data_reload_items(&rob_chara_data_array[0], &sub_data, aft_bone_data);
-    rob_chara_data_load_motion(&rob_chara_data_array[0], 1294, 2, aft_bone_data, aft_mot_db);
+    rob_chara_set(&rob_chara_array[0], 0, CHARA_MIKU, 0, &pv_data);
+    rob_chara_reset_data(&rob_chara_array[0], &rob_chara_array[0].pv_data, aft_bone_data, aft_mot_db);
+    rob_chara_reset(&rob_chara_array[0], aft_bone_data, aft_data, aft_obj_db);
+    rob_chara_load_motion(&rob_chara_array[0], 9996, 2, aft_bone_data, aft_mot_db);
+    //rob_chara_set_frame(&rob_chara_array[0], 1000.0f);
 
     float_t* grid_verts = force_malloc(sizeof(float_t) * 3 * grid_vertex_count);
 
@@ -528,24 +530,12 @@ static render_context* render_load() {
     camera* cam = rctx->camera;
 
     camera_initialize(cam, aspect, internal_3d_res.x, internal_3d_res.y);
-    camera_reset(cam);
     //camera_set_position(cam, &((vec3){ 1.35542f, 1.41634f, 1.27852f }));
     //camera_rotate(cam, &((vec2d){ -45.0, -32.5 }));
     //camera_set_position(cam, &((vec3){ -6.67555f, 4.68882f, -3.67537f }));
     //camera_rotate(cam, &((vec2d){ 136.5, -20.5 }));
     camera_set_position(cam, &((vec3) { 0.0f, 1.0f, 3.45f }));
     camera_set_fov(cam, 70.0);
-
-    typedef struct struc_403 {
-        int32_t field_0;
-        int32_t field_4;
-        int32_t field_8;
-    } struc_403;
-
-    typedef struct struc_404 {
-        int32_t field_0;
-        int32_t field_4;
-    } struc_404;
 
     imgui_context = igCreateContext(0);
     lock_init(&imgui_context_lock);
@@ -620,7 +610,7 @@ static void render_update(render_context* rctx) {
     lock_lock(&imgui_context_lock);
     igSetCurrentContext(imgui_context);
     if (global_context_menu && igIsMouseReleased(ImGuiMouseButton_Right)
-        && !igIsItemHovered(0) && imgui_context->OpenPopupStack.Size <= 0)
+        && !igIsItemHovered(0) && imgui_context->OpenPopupStack.Size < 1)
         igOpenPopup_Str("Classes init context menu", 0);
 
     if (igBeginPopupContextItem("Classes init context menu", 0)) {
@@ -654,13 +644,13 @@ static void render_update(render_context* rctx) {
     }
     camera_update(cam);
 
-    float_t frame = rob_chara_data_get_frame(&rob_chara_data_array[0]);
-    float_t frame_count = rob_chara_data_get_frame_count(&rob_chara_data_array[0]);
+    float_t frame = rob_chara_get_frame(&rob_chara_array[0]);
+    float_t frame_count = rob_chara_get_frame_count(&rob_chara_array[0]);
     frame += get_delta_frame();
     if (frame >= frame_count)
         frame -= frame_count;
-    rob_chara_data_set_frame(&rob_chara_data_array[0], frame);
-    rob_chara_data_array[0].item_equip->shadow_type = SHADOW_CHARA;
+    rob_chara_set_frame(&rob_chara_array[0], frame);
+    rob_chara_array[0].item_equip->shadow_type = SHADOW_CHARA;
 
     data_struct* aft_data = &data_list[DATA_AFT];
     obj_db_ptr = &aft_data->data_ft.obj_db;
@@ -669,8 +659,8 @@ static void render_update(render_context* rctx) {
     classes_process_render(classes, classes_count);
 
     wind_ptr = rctx->wind;
-    rob_chara_data_calc(&rob_chara_data_array[0]);
-    rob_chara_data_draw(&rob_chara_data_array[0], rctx);
+    rob_chara_calc(&rob_chara_array[0]);
+    rob_chara_draw(&rob_chara_array[0], rctx);
 
     stage_update(rctx->stage, rctx);
 
@@ -779,7 +769,7 @@ static void render_dispose(render_context* rctx) {
     glDeleteBuffers(1, &common_data_ubo);
     glDeleteBuffers(1, &grid_vbo);
 
-    rob_chara_data_array_free();
+    rob_chara_array_free();
 
     auth_3d_data_free(rctx);
     light_param_storage_free();
@@ -904,7 +894,7 @@ static void render_imgui_context_menu(classes_struct* classes,
 
 inline static void render_shaders_load() {
     data_struct_load_file(&data_list[DATA_AFT], &shaders_ft,
-        "rom\\", "ft_shaders.farc", render_load_shaders);
+        "rom/", "ft_shaders.farc", render_load_shaders);
 }
 
 inline static void render_shaders_free() {

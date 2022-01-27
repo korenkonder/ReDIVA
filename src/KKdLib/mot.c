@@ -51,7 +51,7 @@ void mot_read(mot_set_farc* msf, char* path, bool modern) {
         farc_init(&f);
         farc_read(&f, path_farc, true, false);
 
-        vector_mot_set_reserve(&msf->vec, f.files.end - f.files.begin);
+        vector_mot_set_reserve(&msf->vec, vector_length(f.files));
         if (!modern)
             for (farc_file* i = f.files.begin; i != f.files.end; i++) {
                 if (!i->data || !i->size
@@ -116,7 +116,7 @@ void mot_wread(mot_set_farc* msf, wchar_t* path, bool modern) {
         farc_init(&f);
         farc_wread(&f, path_farc, true, false);
 
-        vector_mot_set_reserve(&msf->vec, f.files.end - f.files.begin);
+        vector_mot_set_reserve(&msf->vec, vector_length(f.files));
         if (!modern)
             for (farc_file* i = f.files.begin; i != f.files.end; i++) {
                 if (!i->data || !i->size
@@ -178,7 +178,7 @@ void mot_mread(mot_set_farc* msf, void* data, size_t length, bool modern) {
     farc_init(&f);
     farc_mread(&f, data, length, true);
 
-    vector_mot_set_reserve(&msf->vec, f.files.end - f.files.begin);
+    vector_mot_set_reserve(&msf->vec, vector_length(f.files));
     if (!modern)
         for (farc_file* i = f.files.begin; i != f.files.end; i++) {
             if (!i->data || !i->size
@@ -514,7 +514,7 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
 }
 
 static void mot_classic_write_inner(mot_set* ms, stream* s) {
-    size_t count = ms->vec.end - ms->vec.begin;
+    size_t count = vector_length(ms->vec);
     io_set_position(s, count * 0x10 + 0x10, SEEK_SET);
     mot_header_classic* mh = force_malloc_s(mot_header_classic, count);
     for (size_t i = 0; i < count; i++) {
@@ -727,7 +727,7 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
     enrs_entry ee;
     vector_size_t pof = vector_empty(size_t);
     uint32_t murmurhash = 0;
-    if (ms->vec.end - ms->vec.begin > 0) {
+    if (vector_length(ms->vec) > 0) {
         mot_header_modern mh;
         memset(&mh, 0, sizeof(mot_header_modern));
         mot_data* m = ms->vec.begin;

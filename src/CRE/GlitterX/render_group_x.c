@@ -333,7 +333,7 @@ void glitter_x_render_group_draw(GPM, glitter_render_group* a1) {
         gl_state_bind_array_buffer(0);
 
         const GLenum mode = a1->type == GLITTER_PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
-        const size_t count = a1->vec_key.end - a1->vec_key.begin;
+        const size_t count = vector_length(a1->vec_key);
         for (size_t i = 0; i < count; i++)
             shader_draw_arrays(&shaders_ft,
                 mode, a1->vec_key.begin[i], a1->vec_val.begin[i]);
@@ -463,7 +463,7 @@ static glitter_render_element* glitter_x_render_group_add_render_element(glitter
 
     v3 = a1->count - (a2 - a1->elements);
     v4 = 0;
-    if (v3 <= 0)
+    if (v3 < 1)
         return 0;
 
     while (a2->alive) {
@@ -493,7 +493,7 @@ static void glitter_x_render_group_calc_draw_line(glitter_render_group* a1) {
     glitter_locus_history_data* hist_data;
     size_t index;
 
-    if (!a1->elements || !a1->vbo || a1->ctrl <= 0)
+    if (!a1->elements || !a1->vbo || a1->ctrl < 1)
         return;
 
     for (count = 0, i = a1->ctrl, elem = a1->elements; i > 0; i--, elem++) {
@@ -501,7 +501,7 @@ static void glitter_x_render_group_calc_draw_line(glitter_render_group* a1) {
             continue;
 
         if (elem->locus_history) {
-            size_t length = elem->locus_history->data.end - elem->locus_history->data.begin;
+            size_t length = vector_length(elem->locus_history->data);
             if (length > 1)
                 count += length;
         }
@@ -537,7 +537,7 @@ static void glitter_x_render_group_calc_draw_line(glitter_render_group* a1) {
 
         i--;
         hist = elem->locus_history;
-        if (!elem->draw || !hist || hist->data.end - hist->data.begin < 2)
+        if (!elem->draw || !hist || vector_length(hist->data) < 2)
             continue;
 
         if (has_scale)
@@ -592,7 +592,7 @@ static void glitter_x_render_group_calc_draw_locus(GPM, glitter_render_group* a1
     mat4 mat;
     mat3 model_mat;
 
-    if (!a1->elements || !a1->vbo || a1->ctrl <= 0)
+    if (!a1->elements || !a1->vbo || a1->ctrl < 1)
         return;
 
     for (count = 0, i = a1->ctrl, elem = a1->elements; i > 0; i--, elem++) {
@@ -600,7 +600,7 @@ static void glitter_x_render_group_calc_draw_locus(GPM, glitter_render_group* a1
             continue;
 
         if (elem->locus_history) {
-            size_t length = elem->locus_history->data.end - elem->locus_history->data.begin;
+            size_t length = vector_length(elem->locus_history->data);
             if (length > 1)
                 count += 2 * length;
         }
@@ -651,13 +651,13 @@ static void glitter_x_render_group_calc_draw_locus(GPM, glitter_render_group* a1
 
         i--;
         hist = elem->locus_history;
-        if (!elem->draw || !hist || hist->data.end - hist->data.begin < 2)
+        if (!elem->draw || !hist || vector_length(hist->data) < 2)
             continue;
 
         uv_u = elem->uv.x + elem->uv_scroll.x;
         uv_u_2nd = elem->uv.x + elem->uv_scroll.x + a1->split_uv.x;
         uv_v_2nd = elem->uv.y + elem->uv_scroll.y + a1->split_uv.y;
-        uv_v_scale = a1->split_uv.y / (float_t)(hist->data.end - hist->data.begin - 1);
+        uv_v_scale = a1->split_uv.y / (float_t)(vector_length(hist->data) - 1);
 
         uv_v_2nd = 1.0f - uv_v_2nd;
 
@@ -910,7 +910,7 @@ static void glitter_x_render_group_calc_draw_quad(GPM, glitter_render_group* a1)
     mat4 view_mat;
     mat4 inv_view_mat;
 
-    if (!a1->elements || !a1->vbo || a1->ctrl <= 0)
+    if (!a1->elements || !a1->vbo || a1->ctrl < 1)
         return;
 
     if (a1->flags & GLITTER_PARTICLE_EMITTER_LOCAL) {

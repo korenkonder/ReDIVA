@@ -626,7 +626,7 @@ typedef struct list_ptr_##t { \
     size_t size; \
 } list_ptr_##t;
 
-#define tree_def(t1, t2) \
+#define tree_def(t) \
 typedef struct tree_##t##_node tree_##t##_node; \
 \
 struct tree_##t##_node { \
@@ -643,7 +643,7 @@ typedef struct tree_##t { \
     size_t size; \
 } tree_##t;
 
-#define tree_ptr(t1, t2) \
+#define tree_ptr(t) \
 typedef struct tree_ptr_##t##_node tree_ptr_##t##_node; \
 \
 struct tree_ptr_##t##_node { \
@@ -729,7 +729,7 @@ typedef struct aft_bone_database_skeleton {
     int32_t field_34;
     char** motion_bone_names;
     uint16_t* parent_indices;
-    int32_t ex_data_mat;
+    int32_t field_48;
     int32_t field_4C;
     int32_t field_50;
     int32_t field_54;
@@ -744,16 +744,16 @@ typedef struct aft_bone_database_struct {
     char** skeleton_names;
 } aft_bone_database_struct;
 
-typedef struct rob_chara_data rob_chara_data;
-typedef struct rob_chara_data_bone_data rob_chara_data_bone_data;
-typedef struct rob_chara_data_item_equip rob_chara_data_item_equip;
+typedef struct rob_chara rob_chara;
+typedef struct rob_chara_bone_data rob_chara_bone_data;
+typedef struct rob_chara_item_equip rob_chara_item_equip;
 typedef struct bone_node bone_node;
 
 typedef struct bone_node_expression_data {
     vec3 position;
     vec3 rotation;
     vec3 scale;
-    vec3 data_scale;
+    vec3 parent_scale;
 } bone_node_expression_data;
 
 typedef struct bone_node {
@@ -849,7 +849,7 @@ tree_pair(int32_t, int32_t)
 
 list_ptr(void)
 
-typedef struct struc_288 {
+typedef struct rob_chara_item_sub_data {
     chara_index chara_index;
     int32_t field_4;
     request_data_object_data field_8;
@@ -860,34 +860,64 @@ typedef struct struc_288 {
     list_ptr_void field_100;
     struc_298 field_110[31];
     tree_pair_int32_t_int32_t field_3F8;
-} struc_288;
+} rob_chara_item_sub_data;
 
-typedef struct struc_264 {
-    uint8_t field_0;
+typedef struct struc_525 {
+    int32_t field_0;
     int32_t field_4;
-    int32_t field_8;
+} struc_525;
+
+typedef struct struc_524 {
+    int32_t field_0;
+    struc_525 field_4;
+    int32_t field_C;
+    uint8_t field_10;
+} struc_524;
+
+typedef struct struc_523 {
+    uint8_t field_0;
+    uint8_t field_1;
+    int32_t field_4;
+    uint8_t field_8;
+    uint8_t field_9;
     int32_t field_C;
     int32_t field_10;
-    uint8_t field_14;
+    int32_t field_14;
     int32_t field_18;
     int32_t field_1C;
     int32_t field_20;
     int32_t field_24;
-    uint8_t field_28;
+    int32_t field_28;
     int32_t field_2C;
     int32_t field_30;
     int32_t field_34;
     int32_t field_38;
-    uint8_t field_3C;
+    int32_t field_3C;
     int32_t field_40;
     int32_t field_44;
-    int32_t ex_data_mat;
+    int32_t field_48;
     int32_t field_4C;
     uint8_t field_50;
     int32_t field_54;
-    int64_t field_58;
-    int32_t field_60;
-    uint8_t field_64;
+    list_ptr_void field_58;
+    int64_t field_68;
+    int64_t field_70;
+    int64_t field_78;
+    int32_t field_80;
+} struc_523;
+
+typedef struct struc_526 {
+    int32_t field_0;
+    int32_t field_4;
+} struc_526;
+
+typedef struct struc_264 {
+    uint8_t field_0;
+    struc_524 field_4;
+    struc_524 field_18;
+    struc_524 field_2C;
+    struc_524 field_40;
+    struc_524 field_54;
     int32_t field_68;
     int32_t field_6C;
     int32_t field_70;
@@ -909,34 +939,7 @@ typedef struct struc_264 {
     int32_t field_AC;
     int32_t field_B0;
     uint8_t eyes_adjust;
-    int32_t field_B8;
-    int32_t field_BC;
-    int16_t field_C0;
-    int32_t field_C4;
-    float_t field_C8;
-    float_t field_CC;
-    float_t field_D0;
-    int64_t field_D8;
-    int64_t field_E0;
-    int32_t field_E8;
-    int32_t field_EC;
-    int32_t field_F0;
-    int32_t field_F4;
-    int32_t field_F8;
-    int32_t field_FC;
-    int32_t field_100;
-    int32_t field_104;
-    int32_t field_108;
-    int32_t field_10C;
-    list_ptr_void field_110;
-    int32_t field_120;
-    int32_t field_124;
-    int32_t field_128;
-    int32_t field_12C;
-    int32_t field_130;
-    float_t field_134;
-    int32_t field_138;
-    int32_t field_13C;
+    struc_523 field_B8;
     int32_t field_140;
     uint8_t field_144;
     uint8_t field_145;
@@ -972,8 +975,7 @@ typedef struct struc_264 {
     int32_t field_1B4;
     int32_t field_1B8;
     int32_t field_1BC;
-    int32_t field_1C0;
-    int32_t field_1C4;
+    struc_526 field_1C0;
     uint8_t field_1C8;
     uint8_t field_1C9;
     uint8_t field_1CA;
@@ -982,18 +984,24 @@ typedef struct struc_264 {
     int32_t field_1D4;
 } struc_264;
 
+typedef struct rob_sub_action rob_sub_action;
+
+typedef struct rob_sub_action_vtbl {
+    void(*dispose)(rob_sub_action*, bool);
+} rob_sub_action_vtbl;
+
 typedef struct rob_sub_action_execute rob_sub_action_execute;
 
 typedef struct rob_sub_action_execute_vftable {
     void(*dispose)(rob_sub_action_execute*);
     void(*field_8)(rob_sub_action_execute*);
     void(*field_10)(rob_sub_action_execute*);
-    void(*field_18)(rob_sub_action_execute*, rob_chara_data*);
-    void(*field_20)(rob_sub_action_execute*, rob_chara_data*);
+    void(*field_18)(rob_sub_action_execute*, rob_chara*);
+    void(*field_20)(rob_sub_action_execute*, rob_chara*);
 } rob_sub_action_execute_vftable;
 
 struct rob_sub_action_execute {
-    rob_sub_action_execute_vftable* vftable;
+    rob_sub_action_execute_vftable* __vftable;
     rob_sub_action_execute_type type;
     int32_t field_C;
 };
@@ -1031,30 +1039,40 @@ typedef struct rob_sub_action_param {
     rob_sub_action_param_type type;
 } rob_sub_action_param;
 
-typedef struct rob_sub_action {
-    void** dispose;
+typedef struct rob_sub_action_data {
+    rob_sub_action_execute* field_0;
     rob_sub_action_execute* field_8;
-    rob_sub_action_execute* field_10;
-    rob_sub_action_param* field_18;
-    rob_sub_action_execute* field_20;
+    rob_sub_action_param* field_10;
+    rob_sub_action_execute* field_18;
     rob_sub_action_execute_cry cry;
     rob_sub_action_execute_shake_hand shake_hand;
     rob_sub_action_execute_embarrassed embarrassed;
     rob_sub_action_execute_angry angry;
     rob_sub_action_execute_laugh laugh;
     rob_sub_action_execute_count_num count_num;
-} rob_sub_action;
+} rob_sub_action_data;
+
+struct rob_sub_action {
+    rob_sub_action_vtbl* __vftable;
+    rob_sub_action_data data;
+};
 
 typedef struct struc_389 {
-    float_t field_0;
+    float_t frame;
+    float_t prev_frame;
+    float_t last_frame;
+} struc_389;
+
+typedef struct struc_406 {
+    float_t frame;
     float_t field_4;
     float_t field_8;
-} struc_389;
+} struc_406;
 
 typedef struct rob_partial_motion rob_partial_motion;
 
 typedef struct rob_partial_motion_vtbl {
-    void(*dispose)(rob_partial_motion*);
+    void(*dispose)(rob_partial_motion*, bool);
     void(*field_8)(void*);
 } rob_partial_motion_vtbl;
 
@@ -1101,7 +1119,7 @@ typedef struct struc_269 {
     float_t field_4;
     float_t field_8;
     vec3 field_C;
-    float_t field_18;
+    float_t force;
     float_t field_1C;
     int32_t field_20;
     int32_t field_24;
@@ -1154,87 +1172,51 @@ typedef struct aft_object_info {
     uint16_t set_id;
 } aft_object_info;
 
+typedef struct struc_405 {
+    rob_face_motion field_0;
+    rob_hand_motion field_48;
+    rob_hand_motion field_90;
+    rob_mouth_motion field_D8;
+    rob_eyes_motion field_120;
+    rob_eyelid_motion field_168;
+    aft_object_info field_1B0;
+    aft_object_info field_1B4;
+    aft_object_info field_1B8;
+    aft_object_info field_1BC;
+    int32_t field_1C0;
+    float_t field_1C4;
+} struc_405;
+
 typedef struct struc_268 {
-    int32_t field_0;
-    int32_t field_4;
+    int32_t motion_id;
+    int32_t prev_motion_id;
     struc_389 field_8;
-    struc_389 step;
-    float_t osage_phys_step;
+    struc_406 field_14;
+    float_t step;
     int32_t field_24;
     uint8_t field_28;
     uint8_t field_29;
     uint8_t field_2A;
     int32_t field_2C;
     int32_t field_30;
-    int64_t field_38;
-    int64_t field_40;
-    int64_t ex_data_mat;
-    int64_t field_50;
-    int64_t field_58;
-    int64_t field_60;
-    int64_t field_68;
-    int64_t field_70;
-    int64_t field_78;
-    int64_t field_80;
-    int64_t field_88;
-    int64_t field_90;
-    int64_t field_98;
-    int64_t field_A0;
-    int64_t field_A8;
-    int64_t field_B0;
-    int64_t field_B8;
-    int64_t field_C0;
-    int64_t field_C8;
-    int64_t field_D0;
-    int64_t field_D8;
-    int64_t field_E0;
-    int64_t field_E8;
-    int64_t field_F0;
-    int64_t field_F8;
-    int64_t field_100;
-    int64_t field_108;
-    int64_t field_110;
-    int64_t field_118;
-    int64_t field_120;
-    int64_t field_128;
-    int64_t field_130;
+    int32_t field_34;
+    int32_t field_38[32];
+    int32_t field_B8[32];
     float_t field_138;
     float_t field_13C;
     int32_t field_140;
     int32_t field_144;
     int32_t field_148;
     int32_t field_14C;
-    rob_face_motion field_150;
-    rob_hand_motion field_198;
-    rob_hand_motion field_1E0;
-    rob_mouth_motion field_228;
-    rob_eyes_motion field_270;
-    rob_eyelid_motion field_2B8;
-    aft_object_info field_300;
-    aft_object_info field_304;
-    aft_object_info field_308;
-    aft_object_info field_30C;
-    int32_t field_310;
-    float_t field_314;
+    struc_405 field_150;
     rob_hand_motion field_318;
     rob_hand_motion field_360;
     aft_object_info field_3A8;
     aft_object_info field_3AC;
-    rob_face_motion field_3B0;
-    rob_hand_motion field_3F8;
-    rob_hand_motion field_440;
-    rob_mouth_motion field_488;
-    rob_eyes_motion field_4D0;
-    rob_eyelid_motion field_518;
-    aft_object_info field_560;
-    aft_object_info field_564;
-    aft_object_info field_568;
-    aft_object_info field_56C;
-    float_t field_570;
+    struc_405 field_3B0;
     struc_269 field_578[13];
     struc_269 field_B28[13];
-    struc_269 field_10D8;
-    struc_269 field_1148;
+    struc_269 field_10D8[2];
     struc_229 field_11B8[2];
     struc_229 field_1240[2];
     struc_222 field_12C8[2];
@@ -1290,7 +1272,7 @@ typedef struct struc_306 {
     int32_t field_3C;
     int32_t field_40;
     int32_t field_44;
-    int32_t ex_data_mat;
+    int32_t field_48;
 } struc_306;
 
 typedef struct struc_223 {
@@ -1439,7 +1421,7 @@ typedef struct struc_399 {
     int32_t field_3C;
     int32_t field_40;
     int32_t field_44;
-    vec3 ex_data_mat;
+    vec3 field_48;
     vec3 field_54;
     int32_t field_60;
     int32_t field_64;
@@ -1448,10 +1430,10 @@ typedef struct struc_399 {
 } struc_399;
 
 typedef struct struc_220 {
-    float_t scale;
-    uint8_t field_4;
+    float_t size;
+    bool height_adjust;
     float_t field_8;
-    vec3 field_C;
+    vec3 pos_adjust;
     float_t field_18;
     float_t field_1C;
     float_t field_20;
@@ -1511,7 +1493,7 @@ typedef struct struc_209 {
     int32_t field_3C;
     int32_t field_40;
     int32_t field_44;
-    int32_t ex_data_mat;
+    int32_t field_48;
     int32_t field_4C;
     int32_t field_50;
     int32_t field_54;
@@ -1614,7 +1596,7 @@ typedef struct struc_209 {
     uint8_t field_1F26;
 } struc_209;
 
-typedef struct struc_263 {
+typedef struct rob_chara_data {
     bool field_0;
     uint8_t field_1;
     uint8_t field_2;
@@ -1648,7 +1630,7 @@ typedef struct struc_263 {
     int32_t field_3DD8;
     float_t field_3DDC;
     uint8_t field_3DE0;
-} struc_263;
+} rob_chara_data;
 
 typedef struct struc_242 {
     int32_t field_0;
@@ -1693,7 +1675,7 @@ typedef struct rob_chara_pv_data {
     int32_t field_94;
     int32_t field_98;
     int32_t field_9C;
-    uint8_t field_A0;
+    bool height_adjust;
     int32_t field_A4[4];
     eyes_adjust eyes_adjust;
 } rob_chara_pv_data;
@@ -1747,7 +1729,7 @@ typedef struct struc_307 {
     int16_t field_1C;
     int16_t field_1E;
     int64_t field_20;
-    rob_chara_data_bone_data* field_28;
+    rob_chara_bone_data* field_28;
 } struc_307;
 
 typedef struct struc_218 {
@@ -1783,7 +1765,7 @@ typedef struct chara_init_data {
     int32_t field_3C;
     int32_t field_40;
     int32_t field_44;
-    int32_t ex_data_mat;
+    int32_t field_48;
     int32_t field_4C;
     int32_t field_50;
     int32_t field_54;
@@ -2301,11 +2283,11 @@ typedef struct chara_init_data {
 } chara_init_data;
 
 typedef struct rob_detail {
-    rob_chara_data* field_8;
-    struc_263* field_10;
+    rob_chara* field_8;
+    rob_chara_data* field_10;
 } rob_detail;
 
-struct rob_chara_data {
+struct rob_chara {
     uint8_t chara_id;
     uint8_t field_1;
     uint8_t field_2;
@@ -2320,11 +2302,11 @@ struct rob_chara_data {
     int32_t field_18;
     float_t field_1C;
     struc_307* field_20;
-    rob_chara_data_bone_data* bone_data;
-    rob_chara_data_item_equip* item_equip;
-    struc_288 field_38;
-    struc_263 field_440;
-    struc_263 field_4228;
+    rob_chara_bone_data* bone_data;
+    rob_chara_item_equip* item_equip;
+    rob_chara_item_sub_data item_sub_data;
+    rob_chara_data data;
+    rob_chara_data data_prev;
     chara_init_data* chara_init_data;
     rob_detail* rob_detail;
     rob_chara_pv_data pv_data;
@@ -2538,7 +2520,7 @@ typedef struct struc_243 {
 typedef struct struc_258 {
     vector_bone_data* field_0;
     mat4u field_8;
-    struc_241 ex_data_mat;
+    struc_241 field_48;
     uint8_t field_8C;
     uint8_t field_8D;
     uint8_t field_8E;
@@ -2610,7 +2592,7 @@ typedef struct struc_312 {
 } struc_312;
 
 typedef struct bone_data_parent {
-    rob_chara_data_bone_data* rob_bone_data;
+    rob_chara_bone_data* rob_bone_data;
     bool field_8;
     bool field_9;
     size_t motion_bone_count;
@@ -2632,7 +2614,7 @@ typedef struct struc_370 {
     bool field_34;
     float_t field_38;
     float_t* field_40;
-    float_t* ex_data_mat;
+    float_t* field_48;
 } struc_370;
 
 typedef struct struc_308 {
@@ -2671,14 +2653,14 @@ vector_ptr(motion_blend_mot)
 list_ptr(motion_blend_mot)
 list(size_t)
 
-typedef struct rob_chara_data_bone_data_ik_scale {
+typedef struct rob_chara_bone_data_ik_scale {
     float_t ratio0;
     float_t ratio1;
     float_t ratio2;
     float_t ratio3;
-} rob_chara_data_bone_data_ik_scale;
+} rob_chara_bone_data_ik_scale;
 
-struct rob_chara_data_bone_data {
+struct rob_chara_bone_data {
     uint8_t field_0;
     uint8_t field_1;
     size_t object_bone_count;
@@ -2702,7 +2684,7 @@ struct rob_chara_data_bone_data {
     mot_blend eye;
     mot_blend eyelid;
     uint8_t field_758;
-    rob_chara_data_bone_data_ik_scale ik_scale;
+    rob_chara_bone_data_ik_scale ik_scale;
     vec3 field_76C;
     vec3 field_778;
     int32_t field_784;
@@ -2741,7 +2723,7 @@ typedef struct aft_obj_skin_block_osage {
     int32_t external_name_index;
     int32_t name_index;
     aft_obj_skin_block_osage_node* nodes;
-    int32_t ex_data_mat;
+    int32_t field_48;
     int32_t field_4C;
     int32_t field_50;
     int32_t field_54;
@@ -2798,7 +2780,7 @@ typedef struct aft_obj_skin_block_cloth {
     struc_251* field_20;
     uint16_t* field_24;
     uint16_t* field_28;
-    int64_t ex_data_mat;
+    int64_t field_48;
     uint32_t field_30;
     uint32_t field_54;
 } aft_obj_skin_block_cloth;
@@ -2865,7 +2847,7 @@ typedef struct aft_obj_skin_block {
     };
 } aft_obj_skin_block;
 
-typedef struct rob_chara_data_item_equip_object rob_chara_data_item_equip_object;
+typedef struct rob_chara_item_equip_object rob_chara_item_equip_object;
 typedef struct ex_node_block ex_node_block;
 
 typedef struct ex_node_block_vtbl {
@@ -2873,10 +2855,10 @@ typedef struct ex_node_block_vtbl {
     void(*field_8)(ex_node_block*);
     void(*field_10)(ex_node_block*);
     void(*field_18)(ex_node_block*, int64_t, int64_t);
-    void(*field_20)(ex_node_block*);
+    void(*update)(ex_node_block*);
     void(*field_28)(ex_node_block*);
-    void* (*field_30)(ex_node_block*);
-    void(*field_38)(ex_node_block*);
+    void(*draw)(ex_node_block*);
+    void(*reset)(ex_node_block*);
     void(*field_40)(ex_node_block*);
     void(*field_48)(ex_node_block*);
     void(*field_50)(ex_node_block*);
@@ -2887,12 +2869,11 @@ struct ex_node_block {
     ex_node_block_vtbl* __vftable;
     bone_node* bone_node;
     ex_node_type type;
-    int32_t field_14;
     char* name;
     bone_node* parent_bone_node;
     string parent_name;
     ex_node_block* parent_node;
-    rob_chara_data_item_equip_object* field_50;
+    rob_chara_item_equip_object* item_equip_object;
     bool field_58;
     bool field_59;
     bool field_5A;
@@ -2905,16 +2886,15 @@ typedef struct ex_null_block {
 
 typedef struct rob_osage_node rob_osage_node;
 
-typedef struct struc_419 {
+typedef struct rob_osage_node_data_normal_ref {
     bool field_0;
-    int32_t field_4;
-    rob_osage_node* field_8;
-    rob_osage_node* field_10;
-    rob_osage_node* field_18;
-    rob_osage_node* field_20;
-    rob_osage_node* field_28;
-    mat4u field_30;
-} struc_419;
+    rob_osage_node* n;
+    rob_osage_node* u;
+    rob_osage_node* d;
+    rob_osage_node* l;
+    rob_osage_node* r;
+    mat4u mat;
+} rob_osage_node_data_normal_ref;
 
 typedef struct skin_param_hinge {
     float_t ymin;
@@ -2930,12 +2910,12 @@ typedef struct skin_param_osage_node {
     skin_param_hinge hinge;
 } skin_param_osage_node;
 
+vector_ptr(rob_osage_node)
+
 typedef struct rob_osage_node_data {
     float_t force;
-    int64_t field_8;
-    int64_t field_10;
-    int64_t field_18;
-    struc_419 field_20;
+    vector_ptr_rob_osage_node boc;
+    rob_osage_node_data_normal_ref normal_ref;
     skin_param_osage_node skp_osg_node;
 } rob_osage_node_data;
 
@@ -2947,63 +2927,75 @@ typedef struct struc_331 {
 
 vector(struc_331)
 
+typedef struct struc_477 {
+    float_t length;
+    vec3 angle;
+} struc_477;
+
+typedef struct struc_476 {
+    struc_477 field_0;
+    struc_477 field_10;
+} struc_476;
+
+typedef struct struc_479 {
+    vec3 trans;
+    vec3 trans_diff;
+    vec3 rotation;
+    float_t field_24;
+} struc_479;
+
 struct rob_osage_node {
     float_t length;
-    vec3 field_4;
-    vec3 field_10;
-    vec3 field_1C;
-    int32_t field_28;
-    int32_t field_2C;
-    int32_t field_30;
-    float_t field_34;
-    bone_node* field_38;
-    mat4u* field_40;
-    mat4u ex_data_mat;
-    float_t field_88;
-    float_t field_8C;
-    float_t field_90;
+    vec3 trans;
+    vec3 trans_orig;
+    vec3 trans_diff;
+    vec3 field_28;
+    float_t child_length;
+    bone_node* bone_node;
+    mat4* bone_node_mat;
+    mat4u mat;
+    rob_osage_node* sibling_node;
+    float_t distance;
     vec3 field_94;
-    int64_t field_A0;
-    int64_t field_A8;
-    int64_t field_B0;
-    int64_t field_B8;
-    int64_t field_C0;
-    int32_t field_C8;
+    struc_479 field_A0;
+    float_t field_C8;
     float_t field_CC;
     vec3 field_D0;
-    int32_t field_DC;
-    rob_osage_node_data* field_E0;
-    rob_osage_node_data field_E8;
-    int32_t field_194;
+    float_t force;
+    rob_osage_node_data* data_ptr;
+    rob_osage_node_data data;
     vector_struc_331 field_198;
-    int32_t field_1B0;
-    int32_t field_1B4;
-    int32_t field_1B8;
-    int32_t field_1BC;
-    int32_t field_1C0;
-    int32_t field_1C4;
-    int32_t field_1C8;
-    int32_t field_1CC;
+    struc_476 field_1B0;
 };
 
 vector(rob_osage_node)
 
+typedef struct skin_param_osage_root_coli {
+    int32_t type;
+    int32_t bone0_index;
+    int32_t bone1_index;
+    float_t radius;
+    vec3 bone0_pos;
+    vec3 bone1_pos;
+} skin_param_osage_root_coli;
+
+vector(skin_param_osage_root_coli)
+
 typedef struct skin_param {
-    int64_t field_0;
-    int64_t field_8;
-    int64_t field_10;
-    int64_t field_18;
-    int64_t field_20;
-    int64_t field_28;
-    int64_t field_30;
-    int64_t field_38;
-    int64_t field_40;
-    int32_t ex_data_mat;
-    vec4u field_4C;
-    int32_t field_5C;
-    int32_t field_60;
-    int32_t field_64;
-    int64_t field_68;
+    vector_skin_param_osage_root_coli coli;
+    float_t friction;
+    float_t wind_afc;
+    float_t air_res;
+    vec3 rot;
+    vec3 init_rot;
+    int32_t coli_type;
+    float_t stiffness;
+    float_t move_cancel;
+    float_t coli_r;
+    skin_param_hinge hinge;
+    float_t force;
+    float_t force_gain;
+    vector_rob_osage_node* colli_tgt_osg;
 } skin_param;
 
 typedef struct osage_coli {
@@ -3017,16 +3009,52 @@ typedef struct osage_coli {
     float_t field_34;
 } osage_coli;
 
+vector(osage_coli)
+
+typedef struct osage_ring_data {
+    float_t ring_rectangle_x;
+    float_t ring_rectangle_y;
+    float_t ring_rectangle_width;
+    float_t ring_rectangle_height;
+    float_t ring_height;
+    float_t ring_out_height;
+    bool field_18;
+    vector_osage_coli coli;
+    vector_skin_param_osage_root_coli skp_root_coli;
+} osage_ring_data;
+
+typedef struct struc_478 {
+    int32_t field_0;
+    int32_t field_4;
+    int64_t field_8;
+    int64_t field_10;
+} struc_478;
+
+tree_def(struc_478)
+
+typedef struct list_struc_479_node list_struc_479_node;
+
+struct list_struc_479_node {
+    list_struc_479_node* next;
+    list_struc_479_node* prev;
+    struc_479 value;
+};
+
+typedef struct list_struc_479 {
+    list_struc_479_node* head;
+    size_t size;
+} list_struc_479;
+
 typedef struct rob_osage {
-    skin_param* field_0;
-    bone_node_expression_data field_8;
-    vector_rob_osage_node field_38;
-    rob_osage_node field_50;
-    skin_param field_220;
+    skin_param* skin_param_ptr;
+    bone_node_expression_data exp_data;
+    vector_rob_osage_node nodes;
+    rob_osage_node node;
+    skin_param skin_param;
     int32_t field_290;
     int64_t field_298;
-    uint8_t field_2A0;
-    uint8_t field_2A1;
+    bool field_2A0;
+    bool field_2A1;
     float_t field_2A4;
     osage_coli coli[64];
     osage_coli coli_ring[64];
@@ -3034,40 +3062,27 @@ typedef struct rob_osage {
     float_t field_1EB4;
     int32_t field_1EB8;
     int32_t field_1EBC;
-    mat4* field_1EC0;
-    mat4u field_1EC8;
-    float_t field_1F08;
+    mat4* parent_mat_ptr;
+    mat4u parent_mat;
+    float_t move_cancel;
     bool field_1F0C;
-    bool field_1F0D;
+    bool wind_reset;
     bool field_1F0E;
     bool field_1F0F;
-    float_t field_1F10;
-    float_t field_1F14;
-    float_t field_1F18;
-    float_t field_1F1C;
-    float_t field_1F20;
-    float_t field_1F24;
-    bool field_1F28;
-    int64_t field_1F30;
-    int64_t field_1F38;
-    int64_t field_1F40;
-    int64_t field_1F48;
-    int64_t field_1F50;
-    int64_t field_1F58;
-    int64_t field_1F60;
-    int64_t field_1F68;
-    int64_t field_1F70;
-    uint8_t field_1F78;
+    osage_ring_data ring;
+    tree_struc_478 field_1F60;
+    list_struc_479* field_1F70;
+    bool field_1F78;
     vec3 field_1F7C;
 } rob_osage;
 
 typedef struct ex_osage_block {
     ex_node_block base;
-    int64_t field_60;
+    size_t index;
     rob_osage rob;
     mat4* mat;
     int32_t field_1FF8;
-    float_t field_1FFC;
+    float_t step;
 } ex_osage_block;
 
 typedef struct ex_constraint_block {
@@ -3156,7 +3171,7 @@ typedef struct cloth_vftable {
     void(*field_30)(void*);
     void(*field_38)(void*);
     void(*field_40)(void*);
-    void(*ex_data_mat)(void*);
+    void(*field_48)(void*);
     void(*field_50)(void*);
     void(*field_58)(void*);
 } cloth_vftable;
@@ -3211,7 +3226,7 @@ struct cloth {
     int64_t field_30;
     vec3 field_38;
     float_t field_44;
-    uint8_t ex_data_mat;
+    uint8_t field_48;
     vec3 field_4C;
     vector_struc_341 field_58;
     skin_param* field_70;
@@ -3379,7 +3394,7 @@ typedef struct aft_obj {
     uint32_t field_3C;
     uint32_t field_40;
     uint32_t field_44;
-    uint32_t ex_data_mat;
+    uint32_t field_48;
     uint32_t field_4C;
     uint32_t field_50;
     uint32_t field_54;
@@ -3433,7 +3448,7 @@ typedef struct aft_obj_skin_ex_data {
     int64_t osage_sibling_infos;
     int32_t field_40;
     int32_t field_44;
-    int32_t ex_data_mat;
+    int32_t field_48;
     int32_t field_4C;
     int32_t field_50;
     int32_t field_54;
@@ -3572,10 +3587,10 @@ typedef struct rob_cloth {
     int64_t field_1D40;
     int64_t field_1D48;
     int64_t field_1D50;
-    rob_chara_data_item_equip_object* field_1D58;
+    rob_chara_item_equip_object* field_1D58;
     struc_230* field_1D60;
-    aft_obj_skin_block_cloth* cloth_block;
-    float_t field_1D70;
+    aft_obj_skin_block_cloth* cls_data;
+    float_t move_cancel;
     uint8_t field_1D74;
     aft_obj_mesh field_1D78[2];
     struc_332 field_1FD8[2];
@@ -3590,7 +3605,7 @@ typedef struct rob_cloth {
 typedef struct ex_cloth_block {
     ex_node_block base;
     rob_cloth rob;
-    aft_obj_skin_block_cloth* cloth_block;
+    aft_obj_skin_block_cloth* cls_data;
     mat4* field_2428;
     int64_t field_2430;
 } ex_cloth_block;
@@ -3617,7 +3632,7 @@ typedef struct texture_data_struct {
     vec3 field_28;
 } texture_data_struct;
 
-struct rob_chara_data_item_equip_object {
+struct rob_chara_item_equip_object {
     size_t index;
     mat4* mat;
     aft_object_info object_info;
@@ -3649,13 +3664,13 @@ struct rob_chara_data_item_equip_object {
     char field_1C8;
     aft_obj_skin_ex_data* skin_ex_data;
     aft_obj_skin* skin;
-    rob_chara_data_item_equip* item_equip;
+    rob_chara_item_equip* item_equip;
 };
 
-struct rob_chara_data_item_equip {
+struct rob_chara_item_equip {
     bone_node* bone_nodes;
     mat4* matrices;
-    rob_chara_data_item_equip_object* item_equip_object;
+    rob_chara_item_equip_object* item_equip_object;
     int32_t field_18[31];
     bool item_equip_range;
     int32_t first_item_equip_object;
@@ -3671,9 +3686,9 @@ struct rob_chara_data_item_equip {
     int32_t field_DC;
     vec4u texture_color_coeff;
     float_t wet;
-    float_t field_F4;
-    uint8_t chara_color;
-    uint8_t field_F9;
+    float_t wind_strength;
+    bool chara_color;
+    bool npr_flag;
     mat4u mat;
     mat4u field_13C[30];
     int32_t field_8BC;
@@ -3700,7 +3715,7 @@ struct rob_chara_data_item_equip {
     int64_t field_920;
     int64_t field_928;
     int64_t field_930;
-    float_t osage_phys_step;
+    float_t step;
     uint8_t field_93C;
     vector_struc_373 field_940;
     uint8_t field_958;
@@ -3710,8 +3725,22 @@ struct rob_chara_data_item_equip {
 
 extern void bone_data_mult_ik(bone_data* a1, int32_t a2);
 extern void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool solve_ik);
-extern void bone_data_mult_2(rob_chara_data_bone_data* a1, mat4* a2);
-extern void rob_chara_data_bone_data_motion_load(rob_chara_data_bone_data* a1, int32_t motion_id, int32_t a3);
-extern void rob_chara_data_bone_data_interpolate(rob_chara_data_bone_data* a1);
-extern void rob_chara_data_bone_data_update(rob_chara_data_bone_data* a1, mat4* a2);
-extern void rob_chara_data_reset(rob_chara_data* a1, rob_chara_pv_data* a2);
+extern void bone_data_mult_2(rob_chara_bone_data* a1, mat4* a2);
+extern void rob_chara_bone_data_motion_load(rob_chara_bone_data* a1, int32_t motion_id, int32_t a3);
+extern void rob_chara_bone_data_interpolate(rob_chara_bone_data* a1);
+extern void rob_chara_bone_data_update(rob_chara_bone_data* a1, mat4* a2);
+extern void rob_chara_reset(rob_chara* a1, rob_chara_pv_data* a2);
+
+extern void ex_node_block_field_10(ex_node_block* node);
+
+extern void* ex_osage_block_dispose(ex_osage_block* osg, bool dispose);
+extern void ex_osage_block_field_8(ex_osage_block* osg);
+extern void ex_osage_block_field_18(ex_osage_block* osg, int32_t a2, bool a3);
+extern void ex_osage_block_update(ex_osage_block* osg);
+extern void ex_osage_block_field_28(ex_osage_block* osg);
+extern void ex_osage_block_draw(ex_osage_block* osg);
+extern void ex_osage_block_reset(ex_osage_block* osg);
+extern void ex_osage_block_field_40(ex_osage_block* osg);
+extern void ex_osage_block_field_48(ex_osage_block* osg);
+extern void ex_osage_block_field_50(ex_osage_block* osg);
+extern void ex_osage_block_field_58(ex_osage_block* osg);

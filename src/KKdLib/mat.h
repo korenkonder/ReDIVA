@@ -151,12 +151,14 @@ extern void mat4_get_scale(mat4* x, vec3* z);
 extern void mat4_get_rotation(mat4* x, vec3* z);
 extern void mat4_get_translation(mat4* x, vec3* z);
 extern void mat4_set_translation(mat4* x, vec3* z);
+extern void mat4_blend(mat4* x, mat4* y, mat4* z, float_t blend);
 extern void mat4_blend_rotation(mat4* x, mat4* y, mat4* z, float_t blend);
+extern void mat4_lerp_rotation(mat4* dst, mat4* src0, mat4* src1, float_t blend);
+extern float_t mat4_get_max_scale(mat4* x);
 extern void mat4_ortho(double_t left, double_t right,
     double_t bottom, double_t top, double_t z_near, double_t z_far, mat4* mat);
 extern void mat4_persp(double_t fov_y, double_t aspect, double_t z_near, double_t z_far, mat4* mat);
 extern void mat4_look_at(vec3* eye, vec3* target, vec3* up, mat4* mat);
-extern float_t mat4_get_max_scale(mat4* x);
 
 extern void mat4_to_mat4u(mat4* x, mat4u* z);
 extern void mat4u_to_mat4(mat4u* x, mat4* z);

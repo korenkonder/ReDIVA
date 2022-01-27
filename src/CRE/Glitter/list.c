@@ -62,7 +62,7 @@ bool glitter_list_unpack_file(glitter_effect_group* a1, f2_struct* st) {
     else
         length = *(uint32_t*)d;
 
-    if (length != a1->effects.end - a1->effects.begin) {
+    if (length != vector_length(a1->effects)) {
         for (i = a1->effects.begin; i != a1->effects.end; i++)
             if (*i)
                 memset((*i)->name, 0, 0x80);

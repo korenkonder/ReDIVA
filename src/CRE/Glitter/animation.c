@@ -32,7 +32,7 @@ void glitter_animation_copy(glitter_animation* src, glitter_animation* dst) {
     if (!src)
         return;
 
-    vector_ptr_glitter_curve_reserve(dst, src->end - src->begin);
+    vector_ptr_glitter_curve_reserve(dst, vector_length(*src));
     for (glitter_curve** i = src->begin; i != src->end; i++)
         if (*i) {
             glitter_curve* c = glitter_curve_copy(*i);
@@ -70,7 +70,7 @@ bool glitter_animation_unparse_file(GLT, f2_struct* st,
     glitter_animation* anim, glitter_curve_type_flags flags) {
     memset(st, 0, sizeof(f2_struct));
 
-    if (anim->end - anim->begin <= 0)
+    if (vector_length(*anim) < 1)
         return false;
 
     static const glitter_curve_type order[] = {
@@ -123,7 +123,7 @@ bool glitter_animation_unparse_file(GLT, f2_struct* st,
         }
     }
 
-    if (st->sub_structs.end - st->sub_structs.begin < 1)
+    if (vector_length(st->sub_structs) < 1)
         return false;
 
     st->header.signature = reverse_endianness_uint32_t('ANIM');

@@ -30,7 +30,7 @@ glitter_emitter* glitter_emitter_copy(glitter_emitter* e) {
     *ec = *e;
 
     ec->particles = vector_ptr_empty(glitter_particle);
-    vector_ptr_glitter_particle_reserve(&ec->particles, e->particles.end - e->particles.begin);
+    vector_ptr_glitter_particle_reserve(&ec->particles, vector_length(e->particles));
     for (glitter_particle** i = e->particles.begin; i != e->particles.end; i++)
         if (*i) {
             glitter_particle* p = glitter_particle_copy(*i);

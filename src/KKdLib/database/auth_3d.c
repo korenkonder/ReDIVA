@@ -186,7 +186,7 @@ static void auth_3d_database_load_categories(auth_3d_database* auth_3d_db,
     auth_3d_database_file* auth_3d_db_file, bool mdata) {
     vector_auth_3d_database_category* category = &auth_3d_db->category;
     vector_string* category_file = &auth_3d_db_file->category;
-    int32_t count_file = (int32_t)(category_file->end - category_file->begin);
+    int32_t count_file = (int32_t)vector_length(*category_file);
 
     if (!mdata)
         vector_auth_3d_database_category_reserve(category, count_file);
@@ -214,8 +214,8 @@ static void auth_3d_database_load_categories(auth_3d_database* auth_3d_db,
 
 static void auth_3d_database_load_uids(auth_3d_database* auth_3d_db,
     auth_3d_database_file* auth_3d_db_file, bool mdata) {
-    size_t uid_file_count = auth_3d_db_file->uid.end - auth_3d_db_file->uid.begin;
-    size_t uid_count = auth_3d_db->uid.end - auth_3d_db->uid.begin;
+    size_t uid_file_count = vector_length(auth_3d_db_file->uid);
+    size_t uid_count = vector_length(auth_3d_db->uid);
 
     bool reserve = true;
     size_t uid_reserve = 0;
@@ -404,13 +404,13 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
     io_write(&s, "# date time was eliminated.\n", 28);
 
     vector_int32_t sort_index = vector_empty(int32_t);
-    if (auth_3d_db_file->category.end - auth_3d_db_file->category.begin) {
+    if (vector_length(auth_3d_db_file->category) > 0) {
         len = 8;
         memcpy(buf, "category", 8);
         off = len;
 
         vector_string* vc = &auth_3d_db_file->category;
-        count = (int32_t)(vc->end - vc->begin);
+        count = (int32_t)vector_length(*vc);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             string* c = &vc->begin[sort_index.begin[i]];
@@ -425,14 +425,14 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (auth_3d_db_file->uid.end - auth_3d_db_file->uid.begin) {
+    if (vector_length(auth_3d_db_file->uid) > 0) {
         len = 3;
         memcpy(buf, "uid", 3);
         off = len;
 
         int32_t uid_max = -1;
         vector_auth_3d_database_uid_file* vu = &auth_3d_db_file->uid;
-        count = (int32_t)(vu->end - vu->begin);
+        count = (int32_t)vector_length(*vu);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             auth_3d_database_uid_file* u = &vu->begin[sort_index.begin[i]];

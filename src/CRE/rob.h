@@ -118,6 +118,14 @@ typedef enum item_sub_id {
     ITEM_SUB_MAX         = 0x19,
 } item_sub_id;
 
+typedef enum motion_blend_type {
+    MOTION_BLEND_NONE    = -1,
+    MOTION_BLEND         = 0x00,
+    MOTION_BLEND_FREEZE  = 0x01,
+    MOTION_BLEND_CROSS   = 0x02,
+    MOTION_BLEND_COMBINE = 0x03,
+} motion_blend_type;
+
 typedef enum motion_bone_index {
     MOTION_BONE_NONE                    = -1,
     MOTION_BONE_N_HARA_CP               = 0x00,
@@ -308,14 +316,35 @@ typedef enum motion_bone_index {
     MOTION_BONE_MAX                     = 0xB9,
 } motion_bone_index;
 
+typedef enum rob_sub_action_execute_type {
+    ROB_SUB_ACTION_EXECUTE_NONE        = 0,
+    ROB_SUB_ACTION_EXECUTE_CRY         = 1,
+    ROB_SUB_ACTION_EXECUTE_SHAKE_HAND  = 2,
+    ROB_SUB_ACTION_EXECUTE_EMBARRASSED = 3,
+    ROB_SUB_ACTION_EXECUTE_ANGRY       = 4,
+    ROB_SUB_ACTION_EXECUTE_LAUGH       = 5,
+    ROB_SUB_ACTION_EXECUTE_COUNT_NUM   = 6,
+} rob_sub_action_execute_type;
+
+typedef enum rob_sub_action_param_type  {
+    ROB_SUB_ACTION_PARAM_NONE        = 0x0,
+    ROB_SUB_ACTION_PARAM_CRY         = 0x1,
+    ROB_SUB_ACTION_PARAM_SHAKE_HAND  = 0x2,
+    ROB_SUB_ACTION_PARAM_EMBARRASSED = 0x3,
+    ROB_SUB_ACTION_PARAM_ANGRY       = 0x4,
+    ROB_SUB_ACTION_PARAM_LAUGH       = 0x5,
+    ROB_SUB_ACTION_PARAM_COUNT_NUM   = 0x6,
+} rob_sub_action_param_type;
+
 typedef struct bone_node bone_node;
-typedef struct rob_chara_data_bone_data rob_chara_data_bone_data;
+typedef struct rob_chara rob_chara;
+typedef struct rob_chara_bone_data rob_chara_bone_data;
 
 typedef struct bone_node_expression_data {
     vec3 position;
     vec3 rotation;
     vec3 scale;
-    vec3 data_scale;
+    vec3 parent_scale;
 } bone_node_expression_data;
 
 struct bone_node {
@@ -443,7 +472,7 @@ typedef struct bone_data {
 vector(bone_data)
 
 typedef struct bone_data_parent {
-    rob_chara_data_bone_data* rob_bone_data;
+    rob_chara_bone_data* rob_bone_data;
     size_t motion_bone_count;
     size_t ik_bone_count;
     size_t chain_pos;
@@ -508,14 +537,14 @@ typedef struct motion_blend_mot {
 
 vector_ptr(motion_blend_mot)
 
-typedef struct rob_chara_data_bone_data_ik_scale {
+typedef struct rob_chara_bone_data_ik_scale {
     float_t ratio0;
     float_t ratio1;
     float_t ratio2;
     float_t ratio3;
-} rob_chara_data_bone_data_ik_scale;
+} rob_chara_bone_data_ik_scale;
 
-struct rob_chara_data_bone_data {
+struct rob_chara_bone_data {
     size_t object_bone_count;
     size_t total_bone_count;
     size_t motion_bone_count;
@@ -530,7 +559,7 @@ struct rob_chara_data_bone_data {
     vector_size_t motion_indices;
     vector_size_t motion_loaded_indices;
     vector_ptr_motion_blend_mot motion_loaded;
-    rob_chara_data_bone_data_ik_scale ik_scale;
+    rob_chara_bone_data_ik_scale ik_scale;
 };
 
 typedef struct struc_242 {
@@ -623,21 +652,21 @@ typedef struct struc_241 {
 } struc_241;
 
 typedef struct ex_node_block ex_node_block;
-typedef struct rob_chara_data_item_equip_object rob_chara_data_item_equip_object;
+typedef struct rob_chara_item_equip_object rob_chara_item_equip_object;
 
 typedef struct ex_node_block_vtbl {
     void(*dispose)(ex_node_block*);
-    //void(*field_8)(ex_node_block*);
-    void(*set_default_data)(ex_node_block*);
-    //void(*field_18)(ex_node_block*, int32_t, int32_t);
+    void(*field_8)(ex_node_block*);
+    void(*field_10)(ex_node_block*);
+    void(*field_18)(ex_node_block*, int32_t, bool);
     void(*update)(ex_node_block*);
-    //void(*field_28)(ex_node_block*);
+    void(*field_28)(ex_node_block*);
     void(*draw)(ex_node_block*);
     void(*reset)(ex_node_block*);
-    //void(*field_40)(ex_node_block*);
-    //void(*field_48)(ex_node_block*);
-    //void(*field_50)(ex_node_block*);
-    //void(*field_58)(ex_node_block*);
+    void(*field_40)(ex_node_block*);
+    void(*field_48)(ex_node_block*);
+    void(*field_50)(ex_node_block*);
+    void(*field_58)(ex_node_block*);
 } ex_node_block_vtbl;
 
 struct ex_node_block {
@@ -648,16 +677,16 @@ struct ex_node_block {
     bone_node* parent_bone_node;
     string parent_name;
     ex_node_block* parent_node;
-    rob_chara_data_item_equip_object* item_equip_object;
+    rob_chara_item_equip_object* item_equip_object;
     bool field_58;
-    bool set_data;
+    bool field_59;
     bool field_5A;
 };
 
 typedef struct ex_cloth_block {
     ex_node_block base;
     //rob_cloth rob;
-    object_skin_block_cloth* cloth_block;
+    object_skin_block_cloth* cls_data;
     mat4* field_2428;
     size_t index;
 } ex_cloth_block;
@@ -696,6 +725,8 @@ typedef struct skin_param_osage_node {
     skin_param_hinge hinge;
 } skin_param_osage_node;
 
+vector(skin_param_osage_node)
+
 vector_ptr(rob_osage_node)
 
 typedef struct rob_osage_node_data {
@@ -705,11 +736,18 @@ typedef struct rob_osage_node_data {
     skin_param_osage_node skp_osg_node;
 } rob_osage_node_data;
 
+typedef struct struc_479 {
+    vec3 trans;
+    vec3 trans_diff;
+    vec3 rotation;
+    float_t field_24;
+} struc_479;
+
 struct rob_osage_node {
     float_t length;
     vec3 trans;
-    vec3 field_10;
-    vec3 field_1C;
+    vec3 trans_orig;
+    vec3 trans_diff;
     vec3 field_28;
     float_t child_length;
     bone_node* bone_node;
@@ -718,19 +756,15 @@ struct rob_osage_node {
     rob_osage_node* sibling_node;
     float_t distance;
     vec3 field_94;
-    vec3 field_A0;
-    vec3 field_AC;
-    vec3 field_B8;
-    float_t field_C4;
+    struc_479 field_A0;
     float_t field_C8;
     float_t field_CC;
     vec3 field_D0;
-    float_t field_DC;
+    float_t force;
     rob_osage_node_data* data_ptr;
     rob_osage_node_data data;
-    int32_t field_194;
     vector_struc_331 field_198;
-    int32_t field_1B0;
+    float_t field_1B0;
     vec3 field_1B4;
     vec3 field_1C0;
     float_t field_1CC;
@@ -738,12 +772,12 @@ struct rob_osage_node {
 
 vector(rob_osage_node)
 
-typedef struct pair_int32_t_ptr_rob_osage_node {
-    int32_t key;
+typedef struct pair_uint32_t_ptr_rob_osage_node {
+    uint32_t key;
     rob_osage_node* value;
-} pair_int32_t_ptr_rob_osage_node;
+} pair_uint32_t_ptr_rob_osage_node;
 
-vector(pair_int32_t_ptr_rob_osage_node)
+vector(pair_uint32_t_ptr_rob_osage_node)
 
 typedef struct skin_param_osage_root_coli {
     int32_t type;
@@ -755,6 +789,47 @@ typedef struct skin_param_osage_root_coli {
 } skin_param_osage_root_coli;
 
 vector(skin_param_osage_root_coli)
+
+typedef struct skin_param_osage_root_normal_ref {
+    string n;
+    string u;
+    string d;
+    string l;
+    string r;
+} skin_param_osage_root_normal_ref;
+
+typedef struct skin_param_osage_root_boc {
+    int32_t ed_node;
+    string ed_root;
+    int32_t st_node;
+} skin_param_osage_root_boc;
+
+vector(skin_param_osage_root_boc)
+vector(skin_param_osage_root_normal_ref)
+
+typedef struct skin_param_osage_root {
+    int32_t field_0;
+    float_t force;
+    float_t force_gain;
+    float_t air_res;
+    float_t rot_y;
+    float_t rot_z;
+    float_t init_rot_y;
+    float_t init_rot_z;
+    float_t hinge_y;
+    float_t hinge_z;
+    char* name;
+    vector_skin_param_osage_root_coli coli;
+    float_t coli_r;
+    float_t friction;
+    float_t wind_afc;
+    vector_skin_param_osage_root_boc boc;
+    int32_t coli_type;
+    float_t stiffness;
+    float_t move_cancel;
+    string colli_tgt_osg;
+    vector_skin_param_osage_root_normal_ref normal_ref;
+} skin_param_osage_root;
 
 typedef struct skin_param {
     vector_skin_param_osage_root_coli coli;
@@ -815,11 +890,11 @@ typedef struct rob_osage {
     float_t field_1EB4;
     int32_t field_1EB8;
     int32_t field_1EBC;
-    mat4* mats;
-    mat4u mat;
-    float_t field_1F08;
+    mat4* parent_mat_ptr;
+    mat4u parent_mat;
+    float_t move_cancel;
     bool field_1F0C;
-    bool field_1F0D;
+    bool wind_reset;
     bool field_1F0E;
     bool field_1F0F;
     osage_ring_data ring;
@@ -835,7 +910,7 @@ typedef struct ex_osage_block {
     rob_osage rob;
     mat4* mat;
     int32_t field_1FF8;
-    float_t osage_phys_step;
+    float_t step;
 } ex_osage_block;
 
 typedef struct pair_name_ex_osage_block {
@@ -908,7 +983,7 @@ typedef struct ex_expression_block {
     bool field_3D20;
     void(*field_3D28)(bone_node_expression_data*);
     float_t frame;
-    bool osage_phys_step;
+    bool step;
 } ex_expression_block;
 
 vector_ptr(ex_constraint_block)
@@ -924,12 +999,12 @@ typedef struct ex_data_name_bone_index {
 
 vector(ex_data_name_bone_index)
 
-typedef struct rob_chara_data_item_equip rob_chara_data_item_equip;
+typedef struct rob_chara_item_equip rob_chara_item_equip;
 
-struct rob_chara_data_item_equip_object {
+struct rob_chara_item_equip_object {
     size_t index;
     mat4* mat;
-    object_info object_info;
+    object_info obj_info;
     int32_t field_14;
     vector_texture_pattern_struct texture_pattern;
     texture_data_struct texture_data;
@@ -957,17 +1032,28 @@ struct rob_chara_data_item_equip_object {
     bool field_1C8;
     object_skin_ex_data* skin_ex_data;
     object_skin* skin;
-    rob_chara_data_item_equip* item_equip;
+    rob_chara_item_equip* item_equip;
 };
 
-struct rob_chara_data_item_equip {
+typedef struct struc_373 {
+    int32_t motion_id;
+    float_t frame;
+    float_t frame_count;
+    bool field_C;
+    motion_blend_type type;
+    float_t blend;
+} struc_373;
+
+vector(struc_373)
+
+struct rob_chara_item_equip {
     bone_node* bone_nodes;
     mat4* matrices;
-    rob_chara_data_item_equip_object* item_equip_object;
+    rob_chara_item_equip_object* item_equip_object;
     int32_t field_18[31];
     bool item_equip_range;
-    int32_t first_item_equip_object;
-    int32_t max_item_equip_object;
+    item_id first_item_equip_object;
+    item_id max_item_equip_object;
     int32_t field_A0;
     shadow_type_enum shadow_type;
     vec3 position;
@@ -981,7 +1067,7 @@ struct rob_chara_data_item_equip {
     float_t wet;
     float_t wind_strength;
     bool chara_color;
-    bool field_F9;
+    bool npr_flag;
     mat4u mat;
     mat4u field_13C[30];
     int32_t field_8BC;
@@ -1008,9 +1094,9 @@ struct rob_chara_data_item_equip {
     int64_t field_920;
     int64_t field_928;
     int64_t field_930;
-    float_t osage_phys_step;
+    float_t step;
     bool field_93C;
-    //vector_struc_373 field_940;
+    vector_struc_373 field_940;
     bool field_958;
     bool field_959;
     bool field_95A;
@@ -1047,15 +1133,886 @@ typedef union item_sub_data {
     int32_t data[25];
 } item_sub_data;
 
+typedef struct pair_object_info_item_id {
+    object_info key;
+    item_id value;
+} pair_object_info_item_id;
+
+vector(pair_object_info_item_id)
+
+typedef struct item_sub_data_texture_change_tex {
+    texture* org;
+    texture* chg;
+    bool changed;
+} item_sub_data_texture_change_tex;
+
+vector(item_sub_data_texture_change_tex)
+
+typedef struct item_sub_data_texture_change {
+    uint32_t item_no;
+    vector_item_sub_data_texture_change_tex tex;
+} item_sub_data_texture_change;
+
+vector(item_sub_data_texture_change)
+
+typedef struct item_sub_data_item_change {
+    item_id id;
+    vector_uint32_t item_ids;
+} item_sub_data_item_change;
+
+vector(item_sub_data_item_change)
+
+typedef struct struc_294 {
+    int32_t key;
+    int32_t value;
+} struc_294;
+
+vector(struc_294)
+
+typedef struct pair_int32_t_object_info {
+    int32_t key;
+    object_info value;
+} pair_int32_t_object_info;
+
+vector(pair_int32_t_object_info)
+
+typedef struct rob_chara_item_sub_data {
+    chara_index chara_index;
+    chara_index chara_index_2nd;
+    item_sub_data item;
+    item_sub_data item_2nd;
+    vector_item_sub_data_texture_change texture_change;
+    vector_item_sub_data_item_change item_change;
+    vector_pair_object_info_item_id field_F0;
+    vector_struc_294 field_100;
+    vector_texture_pattern_struct texture_pattern[31];
+    vector_pair_int32_t_object_info field_3F8;
+} rob_chara_item_sub_data;
+
+typedef struct struc_264 {
+    int8_t field_0;
+    int32_t field_4;
+    int32_t field_8;
+    int32_t field_C;
+    int32_t field_10;
+    int8_t field_14;
+    int32_t field_18;
+    int32_t field_1C;
+    int32_t field_20;
+    int32_t field_24;
+    int8_t field_28;
+    int32_t field_2C;
+    int32_t field_30;
+    int32_t field_34;
+    int32_t field_38;
+    int8_t field_3C;
+    int32_t field_40;
+    int32_t field_44;
+    int32_t field_48;
+    int32_t field_4C;
+    int8_t field_50;
+    int32_t field_54;
+    int64_t field_58;
+    int32_t field_60;
+    int8_t field_64;
+    int32_t field_68;
+    int32_t field_6C;
+    int32_t field_70;
+    float_t field_74;
+    int16_t field_78;
+    int32_t field_7C;
+    int32_t field_80;
+    int32_t field_84;
+    int32_t field_88;
+    int32_t field_8C;
+    int32_t field_90;
+    int32_t field_94;
+    int8_t field_98;
+    int32_t field_9C;
+    int32_t field_A0;
+    int8_t field_A4;
+    int8_t field_A5;
+    int32_t field_A8;
+    int32_t field_AC;
+    int32_t field_B0;
+    int8_t field_B4;
+    int32_t field_B8;
+    int32_t field_BC;
+    int16_t field_C0;
+    int32_t field_C4;
+    vec3 field_C8;
+    int64_t field_D8;
+    int64_t field_E0;
+    int32_t field_E8;
+    int32_t field_EC;
+    int32_t field_F0;
+    int32_t field_F4;
+    int32_t field_F8;
+    int32_t field_FC;
+    int32_t field_100;
+    int32_t field_104;
+    int32_t field_108;
+    int32_t field_10C;
+    vector_ptr_void field_110;
+    int32_t field_120;
+    int32_t field_124;
+    int32_t field_128;
+    int32_t field_12C;
+    int32_t field_130;
+    float_t field_134;
+    float_t field_138;
+    int32_t field_13C;
+    int32_t field_140;
+    int8_t field_144;
+    int8_t field_145;
+    int8_t field_146;
+    int8_t field_147;
+    int32_t field_148;
+    int32_t field_14C;
+    int8_t field_150;
+    int16_t field_152;
+    int32_t field_154;
+    int32_t field_158;
+    int32_t field_15C;
+    int32_t field_160;
+    int32_t field_164;
+    int32_t field_168;
+    int32_t field_16C;
+    int32_t field_170;
+    int32_t field_174;
+    int32_t field_178;
+    int32_t field_17C;
+    int8_t field_180;
+    int32_t field_184;
+    int32_t field_188;
+    float_t field_18C;
+    int8_t field_190;
+    int32_t field_194;
+    int32_t field_198;
+    int32_t field_19C;
+    int32_t field_1A0;
+    uint8_t field_1A4;
+    char** field_1A8;
+    int32_t field_1B0;
+    int32_t field_1B4;
+    int32_t field_1B8;
+    int32_t field_1BC;
+    int32_t field_1C0;
+    int32_t field_1C4;
+    int8_t field_1C8;
+    int8_t field_1C9;
+    int8_t field_1CA;
+    int32_t field_1CC;
+    int32_t field_1D0;
+    int32_t field_1D4;
+} struc_264;
+
+typedef struct rob_sub_action_execute rob_sub_action_execute;
+
+typedef struct rob_sub_action_execute_vtbl {
+    void(*dispose)(rob_sub_action_execute*);
+    void(*field_8)(rob_sub_action_execute*);
+    void(*field_10)(rob_sub_action_execute*);
+    void(*field_18)(rob_sub_action_execute*, rob_chara*);
+    void(*field_20)(rob_sub_action_execute*, rob_chara*);
+} rob_sub_action_execute_vtbl;
+
+struct rob_sub_action_execute {
+    rob_sub_action_execute_vtbl* vftable;
+    rob_sub_action_execute_type type;
+    int32_t field_C;
+};
+
+typedef struct rob_sub_action_execute_cry {
+    rob_sub_action_execute base;
+} rob_sub_action_execute_cry;
+
+typedef struct rob_sub_action_execute_shake_hand {
+    rob_sub_action_execute base;
+    int64_t field_10;
+    int8_t field_18;
+} rob_sub_action_execute_shake_hand;
+
+typedef struct rob_sub_action_execute_embarrassed {
+    rob_sub_action_execute base;
+    int8_t field_10;
+} rob_sub_action_execute_embarrassed;
+
+typedef struct rob_sub_action_execute_angry {
+    rob_sub_action_execute base;
+} rob_sub_action_execute_angry;
+
+typedef struct rob_sub_action_execute_laugh {
+    rob_sub_action_execute base;
+} rob_sub_action_execute_laugh;
+
+typedef struct rob_sub_action_execute_count_num {
+    rob_sub_action_execute base;
+    int64_t field_10;
+    int32_t field_18;
+} rob_sub_action_execute_count_num;
+
+typedef struct rob_sub_action_param {
+    rob_sub_action_param_type type;
+} rob_sub_action_param;
+
+typedef struct rob_sub_action_param_count_num {
+    rob_sub_action_param base;
+    int32_t field_10;
+} rob_sub_action_param_count_num;
+
+typedef struct rob_sub_action_param_laugh {
+    rob_sub_action_param base;
+} rob_sub_action_param_laugh;
+
+typedef struct rob_sub_action_param_angry {
+    rob_sub_action_param base;
+} rob_sub_action_param_angry;
+
+typedef struct rob_sub_action_param_embarrassed {
+    rob_sub_action_param base;
+} rob_sub_action_param_embarrassed;
+
+typedef struct rob_sub_action_param_shake_hand {
+    rob_sub_action_param base;
+    int32_t field_10;
+} rob_sub_action_param_shake_hand;
+
+typedef struct rob_sub_action_param_cry {
+    rob_sub_action_param base;
+} rob_sub_action_param_cry;
+
+typedef struct rob_sub_action_data {
+    rob_sub_action_execute* field_0;
+    rob_sub_action_execute* field_8;
+    rob_sub_action_param* field_10;
+    rob_sub_action_execute* field_18;
+    rob_sub_action_execute_cry cry;
+    rob_sub_action_execute_shake_hand shake_hand;
+    rob_sub_action_execute_embarrassed embarrassed;
+    rob_sub_action_execute_angry angry;
+    rob_sub_action_execute_laugh laugh;
+    rob_sub_action_execute_count_num count_num;
+} rob_sub_action_data;
+
+typedef struct rob_sub_action {
+    rob_sub_action_data data;
+} rob_sub_action;
+
+typedef struct struc_389 {
+    float_t frame;
+    float_t prev_frame;
+    float_t last_frame;
+} struc_389;
+
+typedef struct struc_406 {
+    float_t frame;
+    float_t field_4;
+    float_t field_8;
+} struc_406;
+
+typedef struct rob_partial_motion rob_partial_motion;
+
+typedef struct rob_partial_motion_vtbl {
+    void(*dispose)(rob_partial_motion*);
+    void(*field_8)(rob_partial_motion*);
+} rob_partial_motion_vtbl;
+
+typedef struct rob_partial_motion_data {
+    int32_t motion_id;
+    int32_t mottbl_index;
+    int32_t field_8;
+    float_t frame;
+    float_t field_10;
+    float_t frame_count;
+    float_t field_18;
+    float_t field_1C;
+    float_t field_20;
+    float_t field_24;
+    struc_389* field_28;
+    struc_406* field_30;
+    int32_t field_38;
+} rob_partial_motion_data;
+
+struct rob_partial_motion {
+    rob_partial_motion_vtbl* __vftable;
+    rob_partial_motion_data data;
+};
+
+typedef struct rob_face_motion {
+    rob_partial_motion base;
+} rob_face_motion;
+
+typedef struct rob_hand_motion {
+    rob_partial_motion base;
+} rob_hand_motion;
+
+typedef struct rob_mouth_motion {
+    rob_partial_motion base;
+} rob_mouth_motion;
+
+typedef struct rob_eyes_motion {
+    rob_partial_motion base;
+} rob_eyes_motion;
+
+typedef struct rob_eyelid_motion {
+    rob_partial_motion base;
+} rob_eyelid_motion;
+
+typedef struct struc_405 {
+    rob_face_motion field_0;
+    rob_hand_motion field_48;
+    rob_hand_motion field_90;
+    rob_mouth_motion field_D8;
+    rob_eyes_motion field_120;
+    rob_eyelid_motion field_168;
+    object_info field_1B0;
+    object_info field_1B4;
+    object_info field_1B8;
+    object_info field_1BC;
+    int32_t field_1C0;
+} struc_405;
+
+typedef struct struc_269 {
+    int8_t field_0;
+    float_t field_4;
+    float_t field_8;
+    vec3 field_C;
+    float_t field_18;
+    float_t field_1C;
+    int32_t field_20;
+    int32_t field_24;
+    float_t field_28;
+    int32_t field_2C;
+    int32_t field_30;
+    int8_t field_34;
+    vec3 field_38;
+    vec3 field_44;
+    vec3 field_50;
+    float_t field_5C;
+    float_t field_60;
+    float_t field_64;
+    float_t field_68;
+    float_t field_6C;
+} struc_269;
+
+typedef struct struc_229 {
+    int8_t field_0;
+    int8_t field_1;
+    int16_t field_2;
+    int16_t field_4;
+    float_t field_8;
+    float_t field_C;
+    float_t field_10;
+    float_t field_14;
+    float_t field_18;
+    float_t field_1C;
+    int8_t field_20;
+    int8_t field_21;
+    int8_t field_22;
+    int8_t field_23;
+    vec3 field_24;
+    vec3 field_30;
+    int32_t field_3C;
+    int32_t field_40;
+} struc_229;
+
+typedef struct struc_222 {
+    int8_t field_0;
+    float_t field_4;
+    float_t field_8;
+    float_t field_C;
+    float_t field_10;
+    float_t field_14;
+} struc_222;
+
+typedef struct struc_268 {
+    int32_t motion_id;
+    int32_t prev_motion_id;
+    struc_389 field_8;
+    struc_406 field_14;
+    float_t step;
+    int32_t field_24;
+    int8_t field_28;
+    int8_t field_29;
+    int8_t field_2A;
+    int32_t field_2C;
+    int32_t field_30;
+    int32_t field_34;
+    int64_t field_38;
+    int64_t field_40;
+    int64_t field_48;
+    int64_t field_50;
+    int64_t field_58;
+    int64_t field_60;
+    int64_t field_68;
+    int64_t field_70;
+    int64_t field_78;
+    int64_t field_80;
+    int64_t field_88;
+    int64_t field_90;
+    int64_t field_98;
+    int64_t field_A0;
+    int64_t field_A8;
+    int64_t field_B0;
+    int64_t field_B8;
+    int64_t field_C0;
+    int64_t field_C8;
+    int64_t field_D0;
+    int64_t field_D8;
+    int64_t field_E0;
+    int64_t field_E8;
+    int64_t field_F0;
+    int64_t field_F8;
+    int64_t field_100;
+    int64_t field_108;
+    int64_t field_110;
+    int64_t field_118;
+    int64_t field_120;
+    int64_t field_128;
+    int64_t field_130;
+    float_t field_138;
+    float_t field_13C;
+    int32_t field_140;
+    int32_t field_144;
+    int32_t field_148;
+    int32_t field_14C;
+    struc_405 field_150;
+    float_t field_314;
+    rob_hand_motion field_318;
+    rob_hand_motion field_360;
+    object_info field_3A8;
+    object_info field_3AC;
+    struc_405 field_3B0;
+    struc_269 field_578[13];
+    struc_269 field_B28[13];
+    struc_269 field_10D8;
+    struc_269 field_1148;
+    struc_229 field_11B8[2];
+    struc_229 field_1240[2];
+    struc_222 field_12C8[2];
+} struc_268;
+
+typedef struct struc_228 {
+    int32_t field_0;
+    int32_t field_4;
+    uint32_t field_8;
+    int32_t field_C;
+} struc_228;
+
+typedef struct struc_227 {
+    int32_t field_0;
+    float_t field_4;
+    float_t field_8;
+} struc_227;
+
+typedef struct struc_377 {
+    void/*mothead_data*/* field_0;
+    void/*mothead_data*/* field_8;
+} struc_377;
+
+typedef struct struc_226 {
+    int8_t field_0[27];
+} struc_226;
+
+typedef struct struc_225 {
+    float field_0[27];
+} struc_225;
+
+typedef struct struc_224
+{
+    int32_t field_0[27];
+} struc_224;
+
+typedef struct struc_306 {
+    int16_t field_0;
+    float_t field_4;
+    float_t field_8;
+    int16_t field_C;
+    int16_t field_E;
+    vec3 field_10;
+    vec3 field_1C;
+    vec3 field_28;
+    int32_t field_34;
+    int32_t field_38;
+    int32_t field_3C;
+    int32_t field_40;
+    int32_t field_44;
+    int32_t field_48;
+} struc_306;
+
+typedef struct struc_223 {
+    int32_t field_0;
+    float_t frame_count;
+    float_t field_8;
+    int16_t field_C;
+    struc_228 field_10;
+    struc_228 field_20;
+    struc_228 field_30;
+    struc_228 field_40;
+    int16_t field_50;
+    int16_t field_52;
+    int16_t field_54;
+    int32_t field_58;
+    int32_t field_5C;
+    int32_t field_60;
+    int32_t field_64;
+    int32_t field_68;
+    int32_t field_6C;
+    float_t field_70;
+    float_t field_74;
+    float_t field_78;
+    float_t field_7C;
+    float_t field_80;
+    int8_t field_84;
+    int32_t field_88;
+    int32_t field_8C;
+    int32_t field_90;
+    int16_t field_94;
+    int16_t field_96;
+    int16_t field_98;
+    int32_t field_9C;
+    int16_t field_A0;
+    int32_t field_A4;
+    int64_t field_A8;
+    struc_227 field_B0[26];
+    int32_t field_1E8;
+    float_t field_1EC;
+    float_t field_1F0;
+    float_t field_1F4;
+    float_t field_1F8;
+    float_t field_1FC;
+    float_t field_200;
+    int32_t field_204;
+    int32_t field_208;
+    int32_t field_20C;
+    int64_t field_210;
+    float_t field_218;
+    float_t field_21C;
+    int16_t field_220;
+    vector_ptr_void field_228;
+    int16_t field_238;
+    int32_t field_23C;
+    int32_t field_240;
+    int16_t field_244;
+    int64_t field_248;
+    int64_t field_250;
+    float_t field_258;
+    int32_t field_25C;
+    int64_t field_260;
+    int64_t field_268;
+    int32_t field_270;
+    int16_t field_274;
+    int16_t field_276;
+    int32_t field_278;
+    int32_t field_27C;
+    int32_t field_280;
+    int16_t field_284;
+    int64_t field_288;
+    int32_t field_290;
+    int32_t field_294;
+    int32_t field_298;
+    float_t field_29C;
+    int8_t field_2A0;
+    float_t field_2A4;
+    float_t field_2A8;
+    float_t field_2AC;
+    int64_t field_2B0;
+    int16_t field_2B8;
+    int32_t field_2BC;
+    float_t field_2C0;
+    float_t field_2C4;
+    int32_t field_2C8;
+    int32_t field_2CC;
+    int64_t field_2D0;
+    int64_t field_2D8;
+    int64_t field_2E0;
+    int16_t field_2E8;
+    int32_t field_2EC;
+    int32_t field_2F0;
+    int32_t field_2F4;
+    int32_t field_2F8;
+    int32_t field_2FC;
+    int8_t field_300;
+    int32_t field_304;
+    int32_t field_308;
+    float_t field_30C;
+    int32_t field_310;
+    int16_t field_314;
+    float_t field_318;
+    float_t field_31C;
+    float_t field_320;
+    float_t field_324;
+    float_t field_328;
+    int32_t field_32C;
+    struc_377 field_330;
+    int32_t field_340;
+    int32_t field_344;
+    int32_t field_348;
+    float_t field_34C;
+    vec3 field_350;
+    struc_226 field_35C[3];
+    struc_225 field_3B0[3];
+    struc_224 field_4F4[3];
+    int64_t field_638;
+    float_t field_640;
+    float_t field_644;
+    int8_t field_648;
+    int32_t field_64C;
+    float_t field_650;
+    float_t field_654;
+    float_t field_658;
+    int32_t field_65C;
+    float_t field_660;
+    float_t field_664;
+    int8_t field_668;
+    struc_306 field_66C[4];
+    int64_t* field_7A0;
+    int32_t field_7A8;
+} struc_223;
+
+typedef struct struc_399 {
+    int16_t field_0;
+    int16_t field_2;
+    int16_t field_4;
+    int16_t field_6;
+    int32_t field_8;
+    int32_t field_C;
+    float_t field_10;
+    int32_t field_14;
+    vec3 field_18;
+    vec3 field_24;
+    float_t field_30;
+    float_t field_34;
+    float_t field_38;
+    vec3 field_3C;
+    vec3 field_48;
+    vec3 field_54;
+    int32_t field_60;
+    int32_t field_64;
+    int32_t field_68;
+    mat4u field_6C;
+} struc_399;
+
+typedef struct struc_220 {
+    float_t size;
+    bool height_adjust;
+    float_t field_8;
+    vec3 pos_adjust;
+    float_t field_18;
+    float_t field_1C;
+    float_t field_20;
+    int8_t field_24;
+    int8_t field_25;
+    int8_t field_26;
+    int8_t field_27;
+    vec3 trans;
+    mat4u mat;
+    vec4u field_74;
+} struc_220;
+
+typedef struct struc_195 {
+    vec3 rotation;
+    vec3 trans;
+    float_t scale;
+    float_t field_1C;
+    float_t field_20;
+    float_t field_24;
+} struc_195;
+
+typedef struct struc_210 {
+    vec2 field_0;
+    float_t scale;
+} struc_210;
+
+typedef struct struc_215 {
+    int64_t field_0;
+    float_t field_8;
+} struc_215;
+
+vector(struc_215)
+
+typedef struct struc_267 {
+    float_t field_0;
+    int16_t field_4;
+    int16_t field_6;
+    float_t field_8;
+    int16_t field_C;
+    int16_t field_E;
+} struc_267;
+
+typedef struct struc_209 {
+    int16_t field_0;
+    int32_t field_4;
+    int32_t field_8;
+    int32_t field_C;
+    int32_t field_10;
+    int32_t field_14;
+    int32_t field_18;
+    int32_t field_1C;
+    int32_t field_20;
+    int32_t field_24;
+    int32_t field_28;
+    int32_t field_2C;
+    int32_t field_30;
+    int32_t field_34;
+    int32_t field_38;
+    int32_t field_3C;
+    int32_t field_40;
+    int32_t field_44;
+    int32_t field_48;
+    int32_t field_4C;
+    int32_t field_50;
+    int32_t field_54;
+    int32_t field_58;
+    int32_t field_5C;
+    int32_t field_60;
+    float_t field_64;
+    int32_t field_68;
+    int32_t field_6C;
+    int32_t field_70;
+    int32_t field_74;
+    mat4u field_78[27];
+    mat4u field_738[27];
+    struc_195 field_DF8[27];
+    struc_195 field_1230[27];
+    struc_195 field_1668[27];
+    struc_210 field_1AA0[27];
+    float field_1BE4[27];
+    vector_struc_215 field_1C50;
+    int64_t field_1C68;
+    int64_t field_1C70;
+    int32_t field_1C78[4];
+    int32_t field_1C88[27];
+    int32_t field_1CF4[27];
+    int32_t field_1D60[27];
+    int32_t field_1DCC;
+    int32_t field_1DD0;
+    int32_t field_1DD4;
+    int32_t field_1DD8;
+    int32_t field_1DDC;
+    float_t field_1DE0;
+    float_t field_1DE4;
+    int32_t field_1DE8;
+    int32_t field_1DEC;
+    float_t field_1DF0;
+    float_t field_1DF4;
+    int32_t field_1DF8;
+    int32_t field_1DFC;
+    int32_t field_1E00;
+    int32_t field_1E04;
+    int32_t field_1E08;
+    int32_t field_1E0C;
+    int32_t field_1E10;
+    int32_t field_1E14;
+    int32_t field_1E18;
+    int32_t field_1E1C;
+    int32_t field_1E20;
+    int32_t field_1E24;
+    int32_t field_1E28;
+    int32_t field_1E2C;
+    int32_t field_1E30;
+    int32_t field_1E34;
+    int32_t field_1E38;
+    int32_t field_1E3C;
+    int32_t field_1E40;
+    int32_t field_1E44;
+    int32_t field_1E48;
+    int32_t field_1E4C;
+    int32_t field_1E50;
+    int32_t field_1E54;
+    int32_t field_1E58;
+    int32_t field_1E5C;
+    int32_t field_1E60;
+    int32_t field_1E64;
+    int32_t field_1E68;
+    int32_t field_1E6C;
+    int32_t field_1E70;
+    int32_t field_1E74;
+    int32_t field_1E78;
+    int32_t field_1E7C;
+    int32_t field_1E80;
+    int32_t field_1E84;
+    int32_t field_1E88;
+    int32_t field_1E8C;
+    int32_t field_1E90;
+    int32_t field_1E94;
+    int32_t field_1E98;
+    int32_t field_1E9C;
+    int32_t field_1EA0;
+    int32_t field_1EA4;
+    int32_t field_1EA8;
+    int32_t field_1EAC;
+    int32_t field_1EB0;
+    struc_267 field_1EB4[4];
+    int32_t field_1EF4;
+    int32_t field_1EF8;
+    int32_t field_1EFC;
+    int32_t field_1F00;
+    int8_t field_1F04;
+    int32_t field_1F08;
+    int32_t field_1F0C;
+    int32_t field_1F10;
+    int32_t field_1F14;
+    int32_t field_1F18;
+    int32_t field_1F1C;
+    int8_t field_1F20;
+    int8_t field_1F21;
+    int8_t field_1F22;
+    int8_t field_1F23;
+    int8_t field_1F24;
+    int8_t field_1F25;
+    int8_t field_1F26;
+} struc_209;
+
 typedef struct rob_chara_data {
+    bool field_0;
+    uint8_t field_1;
+    uint8_t field_2;
+    uint8_t field_3;
+    int32_t field_4;
+    struc_264 field_8;
+    rob_sub_action rob_sub_action;
+    struc_268 field_290;
+    struc_223 field_1588;
+    struc_399 field_1D38;
+    struc_220 field_1DE4;
+    struc_209 field_1E68;
+    float_t field_3D90;
+    int32_t field_3D94;
+    int16_t field_3D98;
+    int16_t field_3D9A;
+    uint8_t field_3D9C;
+    uint8_t field_3D9D;
+    int32_t field_3DA0;
+    uint8_t field_3DA4;
+    int64_t field_3DA8;
+    int64_t field_3DB0;
+    int32_t field_3DB8;
+    int32_t field_3DBC;
+    int32_t field_3DC0;
+    int32_t field_3DC4;
+    int32_t field_3DC8;
+    int32_t field_3DCC;
+    int32_t field_3DD0;
+    float_t field_3DD4;
+    int32_t field_3DD8;
+    float_t field_3DDC;
+    uint8_t field_3DE0;
+} rob_chara_data;
+
+struct rob_chara {
     int8_t chara_id;
     chara_index chara_index;
     int32_t module_index;
-    rob_chara_data_bone_data* bone_data;
-    rob_chara_data_item_equip* item_equip;
+    rob_chara_bone_data* bone_data;
+    rob_chara_item_equip* item_equip;
+    rob_chara_item_sub_data item_sub_data;
+    rob_chara_data data;
+    rob_chara_data data_prev;
     chara_init_data* chara_init_data;
     rob_chara_pv_data pv_data;
-} rob_chara_data;
+};
 
 typedef struct skeleton_rotation_offset {
     bool x;
@@ -1064,33 +2021,35 @@ typedef struct skeleton_rotation_offset {
     vec3 rotation;
 } skeleton_rotation_offset;
 
-extern rob_chara_data rob_chara_data_array[];
+extern rob_chara rob_chara_array[];
 
 extern chara_init_data* chara_init_data_get(chara_index chara_index);
 
 extern void motion_set_load_motion(uint32_t set, string* motion_name, motion_database* mot_db);
 extern void motion_set_unload(uint32_t set);
 
-extern void rob_chara_data_init(rob_chara_data* rob_chr_data);
-extern void rob_chara_data_calc(rob_chara_data* rob_chr_data);
-extern void rob_chara_data_draw(rob_chara_data* rob_chr_data, render_context* rctx);
-extern mat4* rob_chara_data_get_bone_data_mat(rob_chara_data* chara, size_t index);
-extern float_t rob_chara_data_get_frame(rob_chara_data* rob_chr_data);
-extern float_t rob_chara_data_get_frame_count(rob_chara_data* rob_chr_data);
-extern void rob_chara_data_load_motion(rob_chara_data* rob_chr_data, int32_t motion_id,
+extern void rob_chara_init(rob_chara* rob_chr);
+extern void rob_chara_calc(rob_chara* rob_chr);
+extern void rob_chara_draw(rob_chara* rob_chr, render_context* rctx);
+extern mat4* rob_chara_get_bone_data_mat(rob_chara* chara, size_t index);
+extern float_t rob_chara_get_frame(rob_chara* rob_chr);
+extern float_t rob_chara_get_frame_count(rob_chara* rob_chr);
+extern void rob_chara_load_motion(rob_chara* rob_chr, int32_t motion_id,
     int32_t index, bone_database* bone_data, motion_database* mot_db);
-extern void rob_chara_data_reload_items(rob_chara_data* rob_chr_data,
-    item_sub_data* sub_data, bone_database* bone_data);
-extern void rob_chara_data_reset(rob_chara_data* a1, rob_chara_pv_data* pv_data,
+extern void rob_chara_reload_items(rob_chara* rob_chr, item_sub_data* sub_data,
+    bone_database* bone_data, void* data, object_database* obj_db);
+extern void rob_chara_reset(rob_chara* rob_chr, bone_database* bone_data,
+    void* data, object_database* obj_db);
+extern void rob_chara_reset_data(rob_chara* rob_chr, rob_chara_pv_data* pv_data,
     bone_database* bone_data, motion_database* mot_db);
-extern void rob_chara_data_set(rob_chara_data* rob_chr_data, int8_t chara_id,
+extern void rob_chara_set(rob_chara* rob_chr, int8_t chara_id,
     chara_index chara_index, uint32_t module_index, rob_chara_pv_data* pv_data);
-extern void rob_chara_data_set_frame(rob_chara_data* rob_chr_data, float_t frame);
-extern void rob_chara_data_free(rob_chara_data* rob_chr_data);
+extern void rob_chara_set_frame(rob_chara* rob_chr, float_t frame);
+extern void rob_chara_free(rob_chara* rob_chr);
 
-extern void rob_chara_data_array_init();
-extern rob_chara_data* rob_chara_data_array_get(int32_t chara_id);
-extern void rob_chara_data_array_free();
+extern void rob_chara_array_init();
+extern rob_chara* rob_chara_array_get(int32_t chara_id);
+extern void rob_chara_array_free();
 
 extern void rob_chara_pv_data_init(rob_chara_pv_data* pv_data);
 

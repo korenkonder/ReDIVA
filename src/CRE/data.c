@@ -23,10 +23,9 @@ static void data_load_glitter_list(data_struct* ds, char* path);
 #endif
 
 void data_struct_init() {
-    for (data_type i = DATA_AFT; i < DATA_MAX; i++) {
-        memset(&data_list[i], 0, sizeof(data_struct));
+    memset(data_list, 0, sizeof(data_struct) * DATA_MAX);
+    for (data_type i = DATA_AFT; i < DATA_MAX; i++)
         data_list[i].type = i;
-    }
 }
 
 void data_struct_load(char* path) {
@@ -59,16 +58,20 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, vector_data_str
     vector_data_struct_file_clear(data_files, data_struct_file_free);
 
     size_t dir_len = utf8_length(dir);
+    if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
+        dir += 2;
+        dir_len -= 2;
+    }
+
     if (dir_len < 3 || memcmp(dir, "rom", 3))
         return;
 
-    if (dir_len != 3) {
-        dir += 4;
-        dir_len -= 4;
-    }
-    else {
-        dir += 3;
-        dir_len = 0;
+    dir += 3;
+    dir_len -= 3;
+
+    while (*dir == '/' || *dir == '\\') {
+        dir++;
+        dir_len--;
     }
 
     size_t max_len = 0;
@@ -76,6 +79,13 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, vector_data_str
         for (data_struct_directory* j = i->data.begin; j != i->data.end; j++)
             if (max_len < j->path.length)
                 max_len = j->path.length;
+
+    char* dir_temp = force_malloc(dir_len + 1);
+    memcpy(dir_temp, dir, dir_len + 1);
+
+    char* t = dir_temp;
+    while (t = strchr(t, '/'))
+        *t = '\\';
 
     char* temp = force_malloc(max_len + dir_len + 2);
     for (data_struct_path* i = ds->data_paths.begin; i != ds->data_paths.end; i++)
@@ -86,7 +96,7 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, vector_data_str
             memcpy(temp, path, path_len);
             memcpy(&temp[path_len], "\\", 2);
             if (dir_len)
-                memcpy(&temp[path_len + 1], dir, dir_len + 1);
+                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
 
             vector_string files = vector_empty(string);
             path_get_files(&files, temp);
@@ -112,22 +122,27 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, vector_data_str
             vector_string_free(&files, string_free);
         }
 
+    free(dir_temp);
     free(temp);
 }
 
 bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
     bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
     size_t dir_len = utf8_length(dir);
+    if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
+        dir += 2;
+        dir_len -= 2;
+    }
+
     if (dir_len < 3 || memcmp(dir, "rom", 3))
         return false;
 
-    if (dir_len != 3) {
-        dir += 4;
-        dir_len -= 4;
-    }
-    else {
-        dir += 3;
-        dir_len = 0;
+    dir += 3;
+    dir_len -= 3;
+
+    while (*dir == '/' || *dir == '\\') {
+        dir++;
+        dir_len--;
     }
 
     size_t max_len = 0;
@@ -135,6 +150,13 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
         for (data_struct_directory* j = i->data.begin; j != i->data.end; j++)
             if (max_len < j->path.length)
                 max_len = j->path.length;
+
+    char* dir_temp = force_malloc(dir_len + 1);
+    memcpy(dir_temp, dir, dir_len + 1);
+
+    char* t = dir_temp;
+    while(t = strchr(t, '/'))
+        *t = '\\';
 
     char* temp = force_malloc(max_len + dir_len + 2);
     for (data_struct_path* i = ds->data_paths.begin; i != ds->data_paths.end; i++)
@@ -145,7 +167,7 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
             memcpy(temp, path, path_len);
             memcpy(&temp[path_len], "\\", 2);
             if (dir_len)
-                memcpy(&temp[path_len + 1], dir, dir_len + 1);
+                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
 
             vector_string files = vector_empty(string);
             path_get_files(&files, temp);
@@ -168,11 +190,13 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
             vector_string_free(&files, string_free);
 
             if (ret) {
+                free(dir_temp);
                 free(temp);
                 return true;
             }
         }
 
+    free(dir_temp);
     free(temp);
     return false;
 }
@@ -180,16 +204,20 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
 bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint32_t hash,
     bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
     size_t dir_len = utf8_length(dir);
+    if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
+        dir += 2;
+        dir_len -= 2;
+    }
+
     if (dir_len < 3 || memcmp(dir, "rom", 3))
         return false;
 
-    if (dir_len != 3) {
-        dir += 4;
-        dir_len -= 4;
-    }
-    else {
-        dir += 3;
-        dir_len = 0;
+    dir += 3;
+    dir_len -= 3;
+
+    while (*dir == '/' || *dir == '\\') {
+        dir++;
+        dir_len--;
     }
 
     size_t max_len = 0;
@@ -197,6 +225,13 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
         for (data_struct_directory* j = i->data.begin; j != i->data.end; j++)
             if (max_len < j->path.length)
                 max_len = j->path.length;
+
+    char* dir_temp = force_malloc(dir_len + 1);
+    memcpy(dir_temp, dir, dir_len + 1);
+
+    char* t = dir_temp;
+    while (t = strchr(t, '/'))
+        *t = '\\';
 
     char* temp = force_malloc(max_len + dir_len + 2);
     for (data_struct_path* i = ds->data_paths.begin; i != ds->data_paths.end; i++)
@@ -207,13 +242,13 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
             memcpy(temp, path, path_len);
             memcpy(&temp[path_len], "\\", 2);
             if (dir_len)
-                memcpy(&temp[path_len + 1], dir, dir_len + 1);
+                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
 
             vector_string files = vector_empty(string);
             path_get_files(&files, temp);
 
             vector_uint32_t files_murmurhash = vector_empty(uint32_t);
-            vector_uint32_t_reserve(&files_murmurhash, files.end - files.begin);
+            vector_uint32_t_reserve(&files_murmurhash, vector_length(files));
             for (string* l = files.begin; l != files.end; l++) {
                 char* t = strrchr(string_data(l), '.');
                 size_t t_len = l->length;
@@ -236,11 +271,13 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
             vector_uint32_t_free(&files_murmurhash, 0);
 
             if (ret) {
+                free(dir_temp);
                 free(temp);
                 return true;
             }
         }
 
+    free(dir_temp);
     free(temp);
     return false;
 }
@@ -364,8 +401,7 @@ static void data_load_inner(stream* s) {
 
     for (size_t i = 0; i < count; i++) {
         char* s = lines[i];
-        data_struct* ds
-            = 0;
+        data_struct* ds = 0;
         char* main_rom = "rom";
         char* add_data_rom = "rom";
         char* add_data = "";
@@ -535,8 +571,7 @@ static void data_load_inner(stream* s) {
 
             char* data_dir_path_temp = force_malloc(add_data_rom_path_len + max_len + add_data_rom_len + 3);
             if (data_dir_path_temp) {
-                vector_data_struct_directory_reserve(&j->data,
-                    data_directories.end - data_directories.begin + 1);
+                vector_data_struct_directory_reserve(&j->data, vector_length(data_directories) + 1);
                 memcpy(data_dir_path_temp, add_data_rom_path, add_data_rom_path_len);
                 data_dir_path_temp[add_data_rom_path_len] = '\\';
                 for (string* k = data_directories.end - 1; k != data_directories.begin - 1; k--) {
@@ -579,12 +614,12 @@ static void data_load_inner(stream* s) {
 
         auth_3d_database_file* base_auth_3d_db = &d->base_auth_3d_db;
         auth_3d_database_file_init(base_auth_3d_db);
-        data_struct_load_file(ds, base_auth_3d_db, "rom\\auth_3d\\",
+        data_struct_load_file(ds, base_auth_3d_db, "rom/auth_3d/",
             "auth_3d_db.bin", auth_3d_database_file_load_file);
 
         auth_3d_database_file mdata_auth_3d_db;
         auth_3d_database_file_init(&mdata_auth_3d_db);
-        data_struct_load_file(ds, &mdata_auth_3d_db, "rom\\auth_3d\\",
+        data_struct_load_file(ds, &mdata_auth_3d_db, "rom/auth_3d/",
             "mdata_auth_3d_db.bin", auth_3d_database_file_load_file);
 
         auth_3d_database* auth_3d_db = &d->auth_3d_db;
@@ -595,17 +630,17 @@ static void data_load_inner(stream* s) {
         bone_database* bone_data = &d->bone_data;
         bone_database_init(bone_data);
         bone_data->modern = false;
-        data_struct_load_file(ds, bone_data, "rom\\",
+        data_struct_load_file(ds, bone_data, "rom/",
             "bone_data.bin", bone_database_load_file);
 
         motion_database* base_mot_db = &d->base_mot_db;
         motion_database_init(base_mot_db);
-        data_struct_load_file(ds, base_mot_db, "rom\\rob\\",
+        data_struct_load_file(ds, base_mot_db, "rom/rob/",
             "mot_db.farc", motion_database_load_file);
 
         motion_database mdata_mot_db;
         motion_database_init(&mdata_mot_db);
-        data_struct_load_file(ds, &mdata_mot_db, "rom\\rob\\",
+        data_struct_load_file(ds, &mdata_mot_db, "rom/rob/",
             "mdata_mot_db.farc", motion_database_load_file);
 
         motion_database* mot_db = &d->mot_db;
@@ -616,13 +651,13 @@ static void data_load_inner(stream* s) {
         object_database* base_obj_db = &d->base_obj_db;
         object_database_init(base_obj_db);
         base_obj_db->modern = false;
-        data_struct_load_file(ds, base_obj_db, "rom\\objset\\",
+        data_struct_load_file(ds, base_obj_db, "rom/objset/",
             "obj_db.bin", object_database_load_file);
 
         object_database mdata_obj_db;
         object_database_init(&mdata_obj_db);
         mdata_obj_db.modern = false;
-        data_struct_load_file(ds, &mdata_obj_db, "rom\\objset\\",
+        data_struct_load_file(ds, &mdata_obj_db, "rom/objset/",
             "mdata_obj_db.bin", object_database_load_file);
 
         object_database* obj_db = &d->obj_db;
@@ -633,13 +668,13 @@ static void data_load_inner(stream* s) {
         stage_database* base_stage_data = &d->base_stage_data;
         stage_database_init(base_stage_data);
         base_stage_data->modern = false;
-        data_struct_load_file(ds, base_stage_data, "rom\\",
+        data_struct_load_file(ds, base_stage_data, "rom/",
             "stage_data.bin", stage_database_load_file);
 
         stage_database mdata_stage_data;
         stage_database_init(&mdata_stage_data);
         mdata_stage_data.modern = false;
-        data_struct_load_file(ds, &mdata_stage_data, "rom\\",
+        data_struct_load_file(ds, &mdata_stage_data, "rom/",
             "mdata_stage_data.bin", stage_database_load_file);
 
         stage_database* stage_data = &d->stage_data;
@@ -650,13 +685,13 @@ static void data_load_inner(stream* s) {
         texture_database* base_tex_db = &d->base_tex_db;
         texture_database_init(base_tex_db);
         base_tex_db->modern = false;
-        data_struct_load_file(ds, base_tex_db, "rom\\objset\\",
+        data_struct_load_file(ds, base_tex_db, "rom/objset/",
             "tex_db.bin", texture_database_load_file);
 
         texture_database mdata_tex_db;
         texture_database_init(&mdata_tex_db);
         mdata_tex_db.modern = false;
-        data_struct_load_file(ds, &mdata_tex_db, "rom\\objset\\",
+        data_struct_load_file(ds, &mdata_tex_db, "rom/objset/",
             "mdata_tex_db.bin", texture_database_load_file);
 
         texture_database* tex_db = &d->tex_db;
@@ -689,7 +724,7 @@ static void data_load_inner(stream* s) {
         bone_database* bone_data = &d->bone_data;
         bone_database_init(bone_data);
         bone_data->modern = true;
-        data_struct_load_file(ds, bone_data, "rom\\",
+        data_struct_load_file(ds, bone_data, "rom/",
             "bone_data.bon", bone_database_load_file);
     }
 
@@ -700,7 +735,7 @@ static void data_load_inner(stream* s) {
         bone_database* bone_data = &d->bone_data;
         bone_database_init(bone_data);
         bone_data->modern = true;
-        data_struct_load_file(ds, bone_data, "rom\\",
+        data_struct_load_file(ds, bone_data, "rom/",
             "bone_data.bon", bone_database_load_file);
     }
 
@@ -711,7 +746,7 @@ static void data_load_inner(stream* s) {
         bone_database* bone_data = &d->bone_data;
         bone_database_init(bone_data);
         bone_data->modern = true;
-        data_struct_load_file(ds, bone_data, "rom\\",
+        data_struct_load_file(ds, bone_data, "rom/",
             "bone_data.bon", bone_database_load_file);
     }
 #endif
@@ -763,7 +798,7 @@ static void data_load_glitter_list(data_struct* ds, char* path) {
             vector_uint64_t_reserve(&ds->glitter_list_fnv1a64m, count);
             for (size_t i = 0; i < count; i++) {
                 size_t len = ds->glitter_list_names.begin[i].length;
-                uint64_t hash = hash_fnv1a64m(lines[i], len);
+                uint64_t hash = hash_fnv1a64m(lines[i], len, false);
                 vector_uint64_t_push_back(&ds->glitter_list_fnv1a64m, &hash);
             }
             break;

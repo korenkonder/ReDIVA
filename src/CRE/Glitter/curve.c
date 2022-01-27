@@ -56,11 +56,11 @@ glitter_curve* glitter_curve_copy(glitter_curve* c) {
     *cc = *c;
 
     cc->keys = vector_empty(glitter_curve_key);
-    vector_glitter_curve_key_reserve(&cc->keys, c->keys.end - c->keys.begin);
+    vector_glitter_curve_key_reserve(&cc->keys, vector_length(c->keys));
     vector_glitter_curve_key_insert_range(&cc->keys, 0, c->keys.begin, c->keys.end);
 #if defined(CRE_DEV)
     cc->keys_rev = vector_empty(glitter_curve_key);
-    vector_glitter_curve_key_reserve(&cc->keys_rev, c->keys_rev.end - c->keys_rev.begin);
+    vector_glitter_curve_key_reserve(&cc->keys_rev, vector_length(c->keys_rev));
     vector_glitter_curve_key_insert_range(&cc->keys_rev, 0, c->keys_rev.begin, c->keys_rev.end);
 #endif
     return cc;
@@ -97,9 +97,9 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
     vector_glitter_curve_key keys_rev = curve->keys_rev;
     vector_glitter_curve_key* keys = &curve->keys;
     vector_glitter_curve_key_clear(keys, 0);
-    if (keys_rev.end - keys_rev.begin == 1)
+    if (vector_length(keys_rev) == 1)
         vector_glitter_curve_key_push_back(keys, &keys_rev.begin[0]);
-    else if (keys_rev.end - keys_rev.begin > 1) {
+    else if (vector_length(keys_rev) > 1) {
         if (~curve->flags & GLITTER_CURVE_BAKED) {
             vector_glitter_curve_key_insert_range(keys, 0, keys_rev.begin, keys_rev.end);
             return;
@@ -109,7 +109,7 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
         if (GLT_VAL == GLITTER_F2 || (GLT_VAL == GLITTER_X && ~curve->flags & GLITTER_CURVE_BAKED_FULL))
             curve_baked_half = true;
 
-        ssize_t keys_count = keys_rev.end - keys_rev.begin;
+        ssize_t keys_count = vector_length(keys_rev);
         size_t count = (size_t)end_time - start_time;
         if (curve_baked_half)
             count /= 2;
@@ -195,11 +195,11 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
 bool glitter_curve_unparse_file(GLT, f2_struct* st, glitter_curve* c) {
 #if !defined(CRE_DEV)
     vector_glitter_curve_key keys = c->keys;
-    if (keys.end - keys.begin < 1)
+    if (vector_length(keys) < 1)
         return false;
 #else
     vector_glitter_curve_key keys = c->keys;
-    if (c->keys_rev.end - c->keys_rev.begin < 1)
+    if (vector_length(c->keys_rev) < 1)
         return false;
 
     c->keys = vector_empty(glitter_curve_key);
@@ -209,7 +209,7 @@ bool glitter_curve_unparse_file(GLT, f2_struct* st, glitter_curve* c) {
         return false;
     }
 #endif
-    glitter_curve_pack_file(GLT_VAL, st, c, c->keys.end - c->keys.begin);
+    glitter_curve_pack_file(GLT_VAL, st, c, vector_length(c->keys));
 
     f2_struct s;
     glitter_curve_key_pack_file(GLT_VAL, &s, c, &c->keys);

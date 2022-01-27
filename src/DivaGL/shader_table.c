@@ -95,7 +95,7 @@ void FASTCALL aft_shader_bind_tone_map(aft_shader* shader) {
 int32_t FASTCALL aft_shader_bind(aft_shader* shader, aft_shader_sub_enum name) {
     int32_t num_sub = shader->num_sub;
     int32_t subshader_index = 0;
-    if (num_sub <= 0)
+    if (num_sub < 1)
         return -1;
 
     for (aft_shader_sub* i = shader->subs; i->sub_name != name; i++) {

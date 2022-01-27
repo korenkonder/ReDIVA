@@ -269,7 +269,7 @@ void dds_wread(dds* d, wchar_t* path) {
                     d->format = TXP_DXT1a;
                 vector_ptr_void_push_back(&d->data, &data);
             }
-        while (d->has_cube_map && (d->data.end - d->data.begin) / d->mipmaps_count < 6);
+        while (d->has_cube_map && vector_length(d->data) / d->mipmaps_count < 6);
     }
 End:
     io_free(&s);
@@ -277,7 +277,7 @@ End:
 }
 
 void dds_write(dds* d, char* path) {
-    if (!d || !path || d->data.end - d->data.begin < 1)
+    if (!d || !path || vector_length(d->data) < 1)
         return;
 
     wchar_t* path_buf = utf8_to_utf16(path);
@@ -286,7 +286,7 @@ void dds_write(dds* d, char* path) {
 }
 
 void dds_wwrite(dds* d, wchar_t* path) {
-    if (!d || !path || d->data.end - d->data.begin < 1)
+    if (!d || !path || vector_length(d->data) < 1)
         return;
 
     wchar_t* path_dds = str_utils_wadd(path, L".dds");

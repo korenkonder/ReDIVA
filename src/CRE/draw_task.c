@@ -24,7 +24,7 @@ static void draw_task_translucent_sort_has_objects(render_context* rctx, bool* a
 
 void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
     int32_t a2, int32_t show_vector, bool a4, int32_t alpha) {
-    if (draw_task_get_count(rctx, type) <= 0)
+    if (draw_task_get_count(rctx, type) < 1)
         return;
 
     int32_t alpha_test = 0;
@@ -225,11 +225,11 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
 void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaque_enable,
     bool transparent_enable, bool translucent_enable, draw_object_type opaque,
     draw_object_type transparent, draw_object_type translucent) {
-    if (draw_task_get_count(rctx, opaque) <= 0)
+    if (draw_task_get_count(rctx, opaque) < 1)
         return;
-    else if (draw_task_get_count(rctx, transparent) <= 0)
+    else if (draw_task_get_count(rctx, transparent) < 1)
         return;
-    else if (draw_task_get_count(rctx, translucent) <= 0)
+    else if (draw_task_get_count(rctx, translucent) < 1)
         return;
 
     int32_t alpha_array[256];
@@ -680,7 +680,7 @@ void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, 
         object_data_set_texture_specular_offset(object_data, &value);
     }
 
-    size_t texture_pattern_count = texture_pattern ? texture_pattern->end - texture_pattern->begin : 0;
+    size_t texture_pattern_count = texture_pattern ? vector_length(*texture_pattern) : 0;
     if (texture_pattern && texture_pattern_count)
         object_data_set_texture_pattern(object_data, (int32_t)texture_pattern_count, texture_pattern->begin);
 
@@ -708,7 +708,7 @@ inline bool draw_task_add_draw_object_by_object_info_opaque(render_context* rctx
 
 void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare_func) {
     vector_ptr_draw_task* vec = &rctx->object_data.draw_task_array[type];
-    if (vec->end - vec->begin < 1)
+    if (vector_length(*vec) < 1)
         return;
 
     mat4 mat;
@@ -726,7 +726,7 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
                 model_mat_face_camera_position(&rctx->camera->view, &mat, &mat);
             else {
                 object_sub_mesh* sub_mesh = task->data.object.sub_mesh;
-                if (task->data.object.mat_count <= 0 || !sub_mesh->bone_indices_count)
+                if (task->data.object.mat_count < 1 || !sub_mesh->bone_indices_count)
                     mat4_mult_vec3_trans(&mat, &sub_mesh->bounding_sphere.center, &center);
                 else {
                     vec3 center_sum = vec3_null;

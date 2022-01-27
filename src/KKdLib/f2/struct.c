@@ -132,9 +132,9 @@ static void f2_struct_get_length(f2_struct* s, bool shift_x) {
     uint32_t l;
     vector_f2_struct ls;
 
-    has_pof = s->pof.end - s->pof.begin > 0 ? true : false;
-    has_enrs = s->enrs.end - s->enrs.begin > 0 ? true : false;
-    has_sub_structs = s->sub_structs.end - s->sub_structs.begin > 0 ? true : false;
+    has_pof = vector_length(s->pof) > 0 ? true : false;
+    has_enrs = vector_length(s->enrs) > 0 ? true : false;
+    has_sub_structs = vector_length(s->sub_structs) > 0 ? true : false;
 
     s->header.section_size = s->data ? (uint32_t)s->length : 0;
 
@@ -202,7 +202,7 @@ static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h) {
         }
     }
 
-    if (st->sub_structs.end - st->sub_structs.begin < 1)
+    if (vector_length(st->sub_structs) < 1)
         vector_f2_struct_free(&st->sub_structs, f2_struct_free);
 }
 

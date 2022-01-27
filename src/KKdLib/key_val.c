@@ -4,6 +4,7 @@
 */
 
 #include "key_val.h"
+#include "io/path.h"
 #include "hash.h"
 #include "str_utils.h"
 
@@ -50,7 +51,7 @@ void key_val_init(key_val* kv, uint8_t* data, size_t length) {
         size_t key_length = c - s;
         size_t val_length = len - (key_length + 1);
 
-        uint64_t key_hash = hash_fnv1a64m(key_str_data, key_length);
+        uint64_t key_hash = hash_fnv1a64m(key_str_data, key_length, false);
 
         vector_ptr_char_push_back(&kv->key, &key_str_data);
         vector_size_t_push_back(&kv->key_len, &key_length);
@@ -60,6 +61,46 @@ void key_val_init(key_val* kv, uint8_t* data, size_t length) {
     }
     key_val_sort(kv);
     free(lines)
+}
+
+void key_val_file_read(key_val* kv, char* path) {
+    if (!kv)
+        return;
+
+    if (!path || !path_check_file_exists(path)) {
+        key_val_init(kv, 0, 0);
+        return;
+    }
+
+    stream s;
+    io_open(&s, path, "rb");
+    if (s.io.stream) {
+        char* d = force_malloc(s.length);
+        io_read(&s, d, s.length);
+        key_val_init(kv, d, s.length);
+        free(d);
+    }
+    io_free(&s);
+}
+
+void key_val_wfile_read(key_val* kv, wchar_t* path) {
+    if (!kv)
+        return;
+
+    if (!path || !path_wcheck_file_exists(path)) {
+        key_val_init(kv, 0, 0);
+        return;
+    }
+
+    stream s;
+    io_wopen(&s, path, L"rb");
+    if (s.io.stream) {
+        char* d = force_malloc(s.length);
+        io_read(&s, d, s.length);
+        key_val_init(kv, d, s.length);
+        free(d);
+    }
+    io_free(&s);
 }
 
 bool key_val_get_local_key_val(key_val* kv, char* str, key_val* lkv) {
@@ -79,7 +120,7 @@ bool key_val_get_local_key_val(key_val* kv, char* str, key_val* lkv) {
 
     char** i = kv->key.begin;
     size_t* i_len = kv->key_len.begin;
-    size_t j = kv->key.end - kv->key.begin;
+    size_t j = vector_length(kv->key);
     for (; j; i++, i_len++, j--)
         if (str_length <= *i_len && !memcmp(str, (char*)*i, str_length)) {
             if (!first)
@@ -109,7 +150,7 @@ bool key_val_has_key(key_val* kv, char* str) {
 
     char** i = kv->key.begin;
     size_t* i_len = kv->key_len.begin;
-    size_t j = kv->key.end - kv->key.begin;
+    size_t j = vector_length(kv->key);
     for (; j; i++, i_len++, j--) {
         size_t len = min(str_length, *i_len);
         if (len && str_length <= *i_len && !memcmp(str, *i, len))
@@ -320,7 +361,7 @@ void key_val_write_vec3(stream* s, char* buf,
 
 void key_val_free(key_val* kv) {
     if (kv->buf) {
-        size_t count = kv->key.end - kv->key.begin;
+        size_t count = vector_length(kv->key);
         memset(kv->key.begin, 0, sizeof(char*) * count);
         memset(kv->val.begin, 0, sizeof(char*) * count);
 
@@ -339,7 +380,7 @@ void key_val_get_lexicographic_order(vector_int32_t* vec, int32_t length) {
 
     int32_t i, j, m;
 
-    if (length <= 0)
+    if (length < 1)
         return;
 
     vector_int32_t_reserve(vec, length);
@@ -391,13 +432,13 @@ void key_val_get_lexicographic_order(vector_int32_t* vec, int32_t length) {
 }
 
 static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
-    if (!(kv->key_hash.end - kv->key_hash.begin))
+    if (vector_length(kv->key_hash) < 1)
         return -1;
 
-    uint64_t hash = hash_fnv1a64m(str, length);
+    uint64_t hash = hash_fnv1a64m(str, length, false);
 
     uint64_t* key = kv->key_hash.begin;
-    size_t len = kv->key.end - kv->key.begin;
+    size_t len = vector_length(kv->key);
     size_t temp;
     while (len > 0) {
         if (hash < key[temp = len / 2])
@@ -424,7 +465,7 @@ static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
 #define RADIX (1 << RADIX_BASE)
 
 static void key_val_sort(key_val* kv) {
-    size_t count = kv->key.end - kv->key.begin;
+    size_t count = vector_length(kv->key);
 
     kv->key_hash = vector_empty(uint64_t);
     kv->key_index = vector_empty(size_t);
@@ -439,7 +480,7 @@ static void key_val_sort(key_val* kv) {
     size_t* key_index = kv->key_index.begin;
     for (size_t i = 0; i < count; i++) {
         *key_index++ = i;
-        *key_hash++ = hash_fnv1a64m(*key++, *key_len++);
+        *key_hash++ = hash_fnv1a64m(*key++, *key_len++, false);
     }
 
     if (count < 2)

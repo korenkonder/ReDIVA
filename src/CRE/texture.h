@@ -30,7 +30,9 @@ typedef struct texture {
 vector(texture)
 vector_ptr(texture)
 
-#define texture_make_id(id, index) ((uint32_t)((id << 24) | (index & 0xFFFFFF)))
+#define texture_make_id(id, index) ((uint32_t)(((id) << 24) | ((index) & 0xFFFFFF)))
+#define texture_get_id(id) (((id) >> 24) & 0xFF)
+#define texture_get_index(id) ((id) & 0xFFFFFF)
 
 extern texture* texture_init(uint32_t id);
 extern texture* texture_load_tex_2d(uint32_t id, GLenum internal_format, int32_t width, int32_t height,
@@ -45,5 +47,7 @@ extern bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids);
 extern void texture_storage_init();
 extern texture* texture_storage_create_texture(uint32_t id);
 extern texture* texture_storage_get_texture(uint32_t id);
+extern size_t texture_storage_get_texture_count();
+extern texture* texture_storage_get_texture_by_index(ssize_t index);
 extern void texture_storage_delete_texture(uint32_t id);
 extern void texture_storage_free();

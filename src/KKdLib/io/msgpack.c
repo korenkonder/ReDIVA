@@ -238,13 +238,13 @@ static void io_msgpack_write_inner(stream* s, msgpack* msg) {
         break;
     case MSGPACK_ARRAY: {
         msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-        io_msgpack_write_array(s, ptr->end - ptr->begin);
+        io_msgpack_write_array(s, vector_length(*ptr));
         for (msgpack* i = ptr->begin; i != ptr->end; i++)
             io_msgpack_write_inner(s, i);
     } break;
     case MSGPACK_MAP: {
         msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
-        io_msgpack_write_map(s, ptr->end - ptr->begin);
+        io_msgpack_write_map(s, vector_length(*ptr));
         for (msgpack* i = ptr->begin; i != ptr->end; i++)
             io_msgpack_write_inner(s, i);
     } break;

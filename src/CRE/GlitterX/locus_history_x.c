@@ -22,7 +22,7 @@ void glitter_x_locus_history_append(glitter_locus_history* a1,
     vec3 temp1;
 
     data = a1->data.begin;
-    size = a1->data.end - a1->data.begin;
+    size = vector_length(a1->data);
     temp = a2->translation;
     if (a3->data.data.flags & GLITTER_PARTICLE_EMITTER_LOCAL && (emitter = a3->data.emitter)) {
         vec3 emit_trans;
@@ -39,7 +39,7 @@ void glitter_x_locus_history_append(glitter_locus_history* a1,
         vector_glitter_locus_history_data_push_back(&a1->data, &locus_history);
     else if (size == 1) {
         locus_history.translation = data->translation;
-        if (a1->data.capacity_end - a1->data.begin > 1)
+        if (vector_capacity(a1->data) > 1)
             vector_glitter_locus_history_data_push_back(&a1->data, &locus_history);
         data->translation = temp;
     }
@@ -49,7 +49,7 @@ void glitter_x_locus_history_append(glitter_locus_history* a1,
         for (i = size - 1; i > 0; i--)
             data[i].translation = data[i - 1].translation;
 
-        if (size < a1->data.capacity_end - a1->data.begin) {
+        if (size < vector_capacity(a1->data)) {
             locus_history.translation = temp1;
             vector_glitter_locus_history_data_push_back(&a1->data, &locus_history);
         }

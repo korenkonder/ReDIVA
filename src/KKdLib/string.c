@@ -44,7 +44,10 @@ inline void string_init_length(string* s, char* str, size_t length) {
         return;
 
     string_reserve(s, length);
-    memmove(string_data(s), str, length);
+    if (str)
+        memmove(string_data(s), str, length);
+    else
+        memset(string_data(s), 0, length);
     s->length = length;
     string_data(s)[s->length] = 0;
 }
@@ -68,11 +71,14 @@ inline void string_add(string* s, char* str) {
 }
 
 inline void string_add_length(string* s, char* str, size_t length) {
-    if (!s || !str || !length)
+    if (!s || !length)
         return;
 
     string_reserve(s, length);
-    memmove(string_data(s) + s->length, str, length);
+    if (str)
+        memmove(string_data(s) + s->length, str, length);
+    else
+        memset(string_data(s) + s->length, 0, length);
     s->length += length;
     string_data(s)[s->length] = 0;
 }
@@ -98,12 +104,14 @@ inline void string_copy_wstring(wstring* src, string* dst) {
 
 inline void string_replace(string* src, string* dst) {
     string_free(dst);
-    string_copy(src, dst);
+    string_init_length(dst, string_data(src), src->length);
 }
 
 inline void string_replace_wstring(wstring* src, string* dst) {
+    char* temp = utf16_to_utf8(wstring_data(src));
     string_free(dst);
-    string_copy_wstring(src, dst);
+    string_init(dst, temp);
+    free(temp);
 }
 
 inline bool string_compare(string* str0, string* str1) {
@@ -137,11 +145,14 @@ inline void wstring_init(wstring* s, wchar_t* str) {
 
 inline void wstring_init_length(wstring* s, wchar_t* str, size_t length) {
     *s = wstring_empty;
-    if (!str || !length)
+    if (!length)
         return;
 
     wstring_reserve(s, length);
-    memmove(wstring_data(s), str, sizeof(wchar_t) * length);
+    if (str)
+        memmove(wstring_data(s), str, sizeof(wchar_t) * length);
+    else
+        memset(wstring_data(s), 0, sizeof(wchar_t) * length);
     s->length = length;
     wstring_data(s)[s->length] = 0;
 }
@@ -161,11 +172,14 @@ inline void wstring_add(wstring* s, wchar_t* str) {
 }
 
 inline void wstring_add_length(wstring* s, wchar_t* str, size_t length) {
-    if (!s || !str || !length)
+    if (!s || !length)
         return;
 
     wstring_reserve(s, length);
-    memmove(wstring_data(s) + s->length, str, sizeof(wchar_t) * length);
+    if (str)
+        memmove(wstring_data(s) + s->length, str, sizeof(wchar_t) * length);
+    else
+        memset(wstring_data(s) + s->length, 0, sizeof(wchar_t) * length);
     s->length += length;
     wstring_data(s)[s->length] = 0;
 }
@@ -191,12 +205,14 @@ inline void wstring_copy_string(string* src, wstring* dst) {
 
 inline void wstring_replace(wstring* src, wstring* dst) {
     wstring_free(dst);
-    wstring_copy(src, dst);
+    wstring_init_length(dst, wstring_data(src), src->length);
 }
 
 inline void wstring_replace_string(string* src, wstring* dst) {
+    wchar_t* temp = utf8_to_utf16(string_data(src));
     wstring_free(dst);
-    wstring_copy_string(src, dst);
+    wstring_init(dst, temp);
+    free(temp);
 }
 
 inline bool wstring_compare(wstring* str0, wstring* str1) {

@@ -278,7 +278,7 @@ inline void mat3_normalize(mat3* x, mat3* z) {
     z->row2 = *(vec3*)&xt2;
 }
 
-void mat3_normalize_rotation(mat3* x, mat3* z) {
+inline void mat3_normalize_rotation(mat3* x, mat3* z) {
     __m128 xt;
     __m128 yt;
     *(vec3*)&xt = x->row0;
@@ -681,7 +681,6 @@ inline void mat4_mult_vec3_inv(mat4* x, vec3* y, vec3* z) {
 
     *(vec3*)&yt = *y;
     yt = _mm_and_ps(yt, vec4_mask_vec3);
-    yt = _mm_sub_ps(yt, x->row3.data);
     zt = _mm_mul_ps(yt, x->row0.data);
     zt = _mm_hadd_ps(zt, zt);
     z->x = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
@@ -911,7 +910,7 @@ inline void mat4_normalize(mat4* x, mat4* z) {
     z->row3.data = _mm_mul_ps(x->row3.data, det);
 }
 
-void mat4_normalize_rotation(mat4* x, mat4* z) {
+inline void mat4_normalize_rotation(mat4* x, mat4* z) {
     __m128 xt;
     __m128 yt;
     xt = _mm_and_ps(x->row0.data, vec4_mask_vec3);
@@ -937,7 +936,7 @@ void mat4_normalize_rotation(mat4* x, mat4* z) {
     if (yt.m128_f32[0] != 0.0f)
         yt.m128_f32[0] = 1.0f / yt.m128_f32[0];
     xt = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0));
-    *(vec3*)&z->row2.data = *(vec3*)&xt;
+    *(vec3*)&z->row2 = *(vec3*)&xt;
     z->row0.w = x->row0.w;
     z->row1.w = x->row1.w;
     z->row2.w = x->row2.w;
@@ -1707,6 +1706,38 @@ inline void mat4_from_quat(quat* quat, mat4* mat) {
     mat->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
+float_t vec3_angle_between_two_vectors(vec3* x, vec3* y) {
+    vec3 z_t;
+    vec3_cross(*x, *y, z_t);
+    float_t v2;
+    vec3_length(z_t, v2);
+    float_t v3;
+    vec3_dot(*x, *y, v3);
+    return fabsf(atan2f(v2, v3));
+}
+
+void mat4_from_two_vectors(vec3* x, vec3* y, mat4* mat) {
+    *mat = mat4_identity;
+    if (x->x == y->x && y->y == x->y && y->z == x->z)
+        return;
+
+    float_t v5;
+    vec3_dot(*x, *y, v5);
+    if (fabsf(1.0f - v5) <= 0.000001f)
+        return;
+
+    vec3 axis;
+    vec3_cross(*x, *y, axis);
+    float_t axis_length;
+    vec3_length(axis, axis_length);
+    if (axis_length > 0.000001f) {
+        float_t angle = vec3_angle_between_two_vectors(x, y);
+        if (axis_length != 0.0)
+            vec3_mult_scalar(axis, 1.0f / axis_length, axis);
+        mat4_from_axis_angle(&axis, angle, mat);
+    }
+}
+
 inline void mat4_from_axis_angle(vec3* axis, float_t angle, mat4* mat) {
     float_t angle_sin;
     float_t angle_cos;
@@ -1811,6 +1842,29 @@ inline void mat4_set_translation(mat4* x, vec3* z) {
     *(vec3*)&x->row3 = *z;
 }
 
+inline void mat4_blend(mat4* x, mat4* y, mat4* z, float_t blend) {
+    quat q1;
+    quat q2;
+    quat q3;
+
+    quat_from_mat3(x->row0.x, x->row1.x, x->row2.x, x->row0.y,
+        x->row1.y, x->row2.y, x->row0.z, x->row1.z, x->row2.z, &q1);
+    quat_from_mat3(y->row0.x, y->row1.x, y->row2.x, y->row0.y,
+        y->row1.y, y->row2.y, y->row0.z, y->row1.z, y->row2.z, &q1);
+
+    vec3 t1;
+    vec3 t2;
+    vec3 t3;
+    mat4_get_translation(x, &t1);
+    mat4_get_translation(y, &t2);
+
+    quat_slerp(&q3, &q1, &q2, blend);
+    vec3_lerp_scalar(t1, t2, t3, blend);
+
+    mat4_from_quat(&q3, z);
+    mat4_set_translation(z, &t3);
+}
+
 inline void mat4_blend_rotation(mat4* x, mat4* y, mat4* z, float_t blend) {
     quat q0;
     quat q1;
@@ -1822,6 +1876,52 @@ inline void mat4_blend_rotation(mat4* x, mat4* y, mat4* z, float_t blend) {
         y->row1.y, y->row2.y, y->row0.z, y->row1.z, y->row2.z, &q1);
     quat_slerp(&q0, &q1, &q2, blend);
     mat4_from_quat(&q2, z);
+}
+
+void mat4_lerp_rotation(mat4* dst, mat4* src0, mat4* src1, float_t blend) {
+    vec3 m0;
+    vec3 m1;
+    vec3_lerp_scalar(*(vec3*)&src0->row0, *(vec3*)&src1->row0, m0, blend);
+    vec3_lerp_scalar(*(vec3*)&src0->row1, *(vec3*)&src1->row1, m1, blend);
+
+    float_t m0_len_sq;
+    float_t m1_len_sq;
+    vec3_length_squared(m0, m0_len_sq);
+    vec3_length_squared(m1, m1_len_sq);
+
+    if (m0_len_sq <= 0.000001f || m1_len_sq <= 0.000001f) {
+        *dst = *src1;
+        return;
+    }
+
+    vec3 m2;
+    vec3_cross(m0, m1, m2);
+    vec3_cross(m2, m0, m1);
+
+    float_t m2_len_sq;
+    vec3_length_squared(m1, m1_len_sq);
+    vec3_length_squared(m2, m2_len_sq);
+    if (m2_len_sq <= 0.000001f || m1_len_sq <= 0.000001) {
+        *dst = *src1;
+        return;
+    }
+
+    float_t m0_len = sqrtf(m0_len_sq);
+    if (m0_len != 0.0f)
+        vec3_div_scalar(m0, 1.0f / m0_len, m0);
+
+    float_t m1_len = sqrtf(m1_len_sq);
+    if (m1_len != 0.0f)
+        vec3_div_scalar(m1, 1.0f / m1_len, m1);
+
+    float_t m2_len = sqrtf(m2_len_sq);
+    if (m2_len != 0.0f)
+        vec3_div_scalar(m2, 1.0f / m2_len, m2);
+
+    *dst = mat4_identity;
+    *(vec3*)&dst->row0 = m0;
+    *(vec3*)&dst->row1 = m1;
+    *(vec3*)&dst->row2 = m2;
 }
 
 inline float_t mat4_get_max_scale(mat4* x) {

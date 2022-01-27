@@ -122,10 +122,10 @@ typedef enum obj_primitive_type {
 
 typedef enum obj_skin_block_constraint_type {
     OBJ_SKIN_BLOCK_CONSTRAINT_NONE = 0,
-    OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION,
-    OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE,
     OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION,
+    OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION,
     OBJ_SKIN_BLOCK_CONSTRAINT_POSITION,
+    OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE,
 } obj_skin_block_constraint_type;
 
 typedef enum obj_skin_block_constraint_coupling {
@@ -337,10 +337,7 @@ typedef struct obj_skin_block_cloth_field_1C {
     uint32_t field_1C;
     uint32_t field_20;
     uint32_t field_24;
-    obj_skin_block_cloth_field_1C_sub sub_data_0;
-    obj_skin_block_cloth_field_1C_sub sub_data_1;
-    obj_skin_block_cloth_field_1C_sub sub_data_2;
-    obj_skin_block_cloth_field_1C_sub sub_data_3;
+    obj_skin_block_cloth_field_1C_sub sub_data[4];
 } obj_skin_block_cloth_field_1C;
 
 typedef struct obj_skin_block_cloth_field_20_sub {
@@ -358,16 +355,7 @@ typedef struct obj_skin_block_cloth_field_20_sub {
 } obj_skin_block_cloth_field_20_sub;
 
 typedef struct obj_skin_block_cloth_field_20 {
-    obj_skin_block_cloth_field_20_sub sub_data_0;
-    obj_skin_block_cloth_field_20_sub sub_data_1;
-    obj_skin_block_cloth_field_20_sub sub_data_2;
-    obj_skin_block_cloth_field_20_sub sub_data_3;
-    obj_skin_block_cloth_field_20_sub sub_data_4;
-    obj_skin_block_cloth_field_20_sub sub_data_5;
-    obj_skin_block_cloth_field_20_sub sub_data_6;
-    obj_skin_block_cloth_field_20_sub sub_data_7;
-    obj_skin_block_cloth_field_20_sub sub_data_8;
-    obj_skin_block_cloth_field_20_sub sub_data_9;
+    obj_skin_block_cloth_field_20_sub sub_data[10];
 } obj_skin_block_cloth_field_20;
 
 typedef struct obj_skin_block_node {
@@ -488,6 +476,7 @@ typedef struct obj_skin_block_osage {
 typedef struct obj_skin_block {
     obj_skin_block_type type;
     union {
+        obj_skin_block_node base;
         obj_skin_block_cloth cloth;
         obj_skin_block_constraint constraint;
         obj_skin_block_expression expression;

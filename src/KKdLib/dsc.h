@@ -41,6 +41,8 @@ typedef enum dsc_type {
     DSC_FT,
     DSC_PSP,
     DSC_2ND,
+    DSC_DT,
+    DSC_DT2,
     DSC_F,
     DSC_F2,
     DSC_MGF,
@@ -69,8 +71,8 @@ typedef struct dsc_note11 {
     int32_t wave_count;
     int32_t distance;
     int32_t amplitude;
-    int32_t timing;
-    int32_t bar_time;
+    int32_t target_flying_time;
+    int32_t time_signature;
 } dsc_note11;
 
 typedef struct dsc_note12 {
@@ -83,8 +85,8 @@ typedef struct dsc_note12 {
     int32_t wave_count;
     int32_t distance;
     int32_t amplitude;
-    int32_t timing;
-    int32_t bar_time;
+    int32_t target_flying_time;
+    int32_t time_signature;
     int32_t target_effect;
 } dsc_note12;
 #pragma endregion
@@ -262,6 +264,7 @@ typedef enum dsc_target_id_x {
 #pragma endregion
 
 typedef struct dsc_data {
+    const char* name;
     int32_t func;
     uint32_t data_offset;
 } dsc_data;
@@ -270,15 +273,64 @@ vector(dsc_data)
 
 typedef struct dsc {
     dsc_type type;
-    union {
-        uint32_t signature;
-        uint32_t id;
-    };
+    uint32_t signature;
+    uint32_t id;
     vector_dsc_data data;
     vector_uint32_t data_buffer;
 } dsc;
 
+typedef struct dsc_replace dsc_replace;
+typedef struct dsc_replace_data dsc_replace_data;
+
 typedef int32_t(*dsc_get_func_length)(int32_t id);
+typedef const char*(*dsc_get_func_name)(int32_t id);
+typedef const void(*dsc_func_convert)(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
+
+struct dsc_replace_data {
+    const char* name;
+    int32_t func_id;
+    int32_t length;
+    dsc_func_convert func;
+};
+
+struct dsc_replace {
+    dsc_type src_type;
+    dsc_type dst_type;
+    dsc_replace_data* replace_data;
+    dsc dsc;
+    bool dst_has_perf_id;
+
+    int32_t bpm;
+    int32_t time_signature;
+    int32_t target_flying_time;
+
+    int32_t bar_time_set_func_id;
+    int32_t target_flying_time_func_id;
+};
+
+extern const int32_t dsc_ac101_func_count;
+extern const int32_t dsc_ac110_func_count;
+extern const int32_t dsc_ac120_func_count;
+extern const int32_t dsc_ac200_func_count;
+extern const int32_t dsc_ac210_func_count;
+extern const int32_t dsc_ac500_func_count;
+extern const int32_t dsc_ac510_func_count;
+extern const int32_t dsc_aft101_func_count;
+extern const int32_t dsc_aft200_func_count;
+extern const int32_t dsc_aft300_func_count;
+extern const int32_t dsc_aft310_func_count;
+extern const int32_t dsc_aft410_func_count;
+extern const int32_t dsc_aft701_func_count;
+extern const int32_t dsc_ft_func_count;
+extern const int32_t dsc_psp_func_count;
+extern const int32_t dsc_2nd_func_count;
+extern const int32_t dsc_dt_func_count;
+extern const int32_t dsc_dt2_func_count;
+extern const int32_t dsc_f_func_count;
+extern const int32_t dsc_f2_func_count;
+extern const int32_t dsc_mgf_func_count;
+extern const int32_t dsc_x_func_count;
+extern const int32_t dsc_vrfl_func_count;
 
 extern int32_t dsc_ac101_get_func_length(int32_t id);
 extern int32_t dsc_ac110_get_func_length(int32_t id);
@@ -296,6 +348,8 @@ extern int32_t dsc_aft701_get_func_length(int32_t id);
 extern int32_t dsc_ft_get_func_length(int32_t id);
 extern int32_t dsc_psp_get_func_length(int32_t id);
 extern int32_t dsc_2nd_get_func_length(int32_t id);
+extern int32_t dsc_dt_get_func_length(int32_t id);
+extern int32_t dsc_dt2_get_func_length(int32_t id);
 extern int32_t dsc_f_get_func_length(int32_t id);
 extern int32_t dsc_f2_get_func_length(int32_t id);
 extern int32_t dsc_mgf_get_func_length(int32_t id);
@@ -313,14 +367,49 @@ extern int32_t dsc_aft310_get_func_length_old(int32_t id);
 extern int32_t dsc_aft410_get_func_length_old(int32_t id);
 extern int32_t dsc_aft701_get_func_length_old(int32_t id);
 extern int32_t dsc_ft_get_func_length_old(int32_t id);
+extern int32_t dsc_dt2_get_func_length_old(int32_t id);
 extern int32_t dsc_f_get_func_length_old(int32_t id);
 
+extern const char* dsc_ac101_get_func_name(int32_t id);
+extern const char* dsc_ac110_get_func_name(int32_t id);
+extern const char* dsc_ac120_get_func_name(int32_t id);
+extern const char* dsc_ac200_get_func_name(int32_t id);
+extern const char* dsc_ac210_get_func_name(int32_t id);
+extern const char* dsc_ac500_get_func_name(int32_t id);
+extern const char* dsc_ac510_get_func_name(int32_t id);
+extern const char* dsc_aft101_get_func_name(int32_t id);
+extern const char* dsc_aft200_get_func_name(int32_t id);
+extern const char* dsc_aft300_get_func_name(int32_t id);
+extern const char* dsc_aft310_get_func_name(int32_t id);
+extern const char* dsc_aft410_get_func_name(int32_t id);
+extern const char* dsc_aft701_get_func_name(int32_t id);
+extern const char* dsc_ft_get_func_name(int32_t id);
+extern const char* dsc_psp_get_func_name(int32_t id);
+extern const char* dsc_2nd_get_func_name(int32_t id);
+extern const char* dsc_dt_get_func_name(int32_t id);
+extern const char* dsc_dt2_get_func_name(int32_t id);
+extern const char* dsc_f_get_func_name(int32_t id);
+extern const char* dsc_f2_get_func_name(int32_t id);
+extern const char* dsc_mgf_get_func_name(int32_t id);
+extern const char* dsc_x_get_func_name(int32_t id);
+extern const char* dsc_vrfl_get_func_name(int32_t id);
+
+extern const int32_t dsc_func_count_array[];
 extern const dsc_get_func_length dsc_get_func_length_array[];
 extern const dsc_get_func_length dsc_get_func_length_old_array[];
+extern const dsc_get_func_name dsc_get_func_name_array[];
 
 extern void dsc_init(dsc* d);
+extern void dsc_convert(dsc* d, dsc_type dst_type);
 extern void dsc_data_buffer_rebuild(dsc* d);
 extern void* dsc_data_get_func_data(dsc* d, dsc_data* data);
-extern void dsc_parse(dsc* d, void* data, size_t length, dsc_type type);
+extern bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type);
 extern void dsc_unparse(dsc* d, void** data, size_t* length);
+extern bool dsc_load_file(void* data, char* path, char* file, uint32_t hash);
 extern void dsc_free(dsc* d);
+
+extern void dsc_replace_init(dsc_replace* dr, dsc_type src_type,
+    dsc_type dst_type, bool dst_has_perf_id);
+extern void dsc_replace_free(dsc_replace* dr);
+
+extern int32_t dsc_calculate_target_flying_time(int32_t bpm, int32_t time_signature);

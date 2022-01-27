@@ -222,7 +222,7 @@ void object_database_merge_mdata(object_database* obj_db,
     vector_string* bone_name = &obj_db->bone_name;
     vector_string* base_bone_name = &base_obj_db->bone_name;
 
-    int32_t bone_count = (int32_t)(base_bone_name->end - base_bone_name->begin);
+    int32_t bone_count = (int32_t)vector_length(*base_bone_name);
     vector_string_reserve(bone_name, bone_count);
     bone_name->end += bone_count;
 
@@ -233,7 +233,7 @@ void object_database_merge_mdata(object_database* obj_db,
     vector_object_set_info* base_object_set = &base_obj_db->object_set;
     vector_object_set_info* mdata_object_set = &mdata_obj_db->object_set;
 
-    int32_t count = (int32_t)(base_object_set->end - base_object_set->begin);
+    int32_t count = (int32_t)vector_length(*base_object_set);
     vector_object_set_info_reserve(object_set, count);
     object_set->end += count;
 
@@ -242,13 +242,13 @@ void object_database_merge_mdata(object_database* obj_db,
         object_set_info* set_info = &object_set->begin[i];
 
         string_copy(&b_set_info->name, &set_info->name);
-        set_info->name_hash = hash_fnv1a64m(string_data(&set_info->name), set_info->name.length);
+        set_info->name_hash = hash_fnv1a64m(string_data(&set_info->name), set_info->name.length, false);
         set_info->id = b_set_info->id;
         string_copy(&b_set_info->object_file_name, &set_info->object_file_name);
         string_copy(&b_set_info->texture_file_name, &set_info->texture_file_name);
         string_copy(&b_set_info->archive_file_name, &set_info->archive_file_name);
 
-        int32_t info_count = (int32_t)(b_set_info->object.end - b_set_info->object.begin);
+        int32_t info_count = (int32_t)vector_length(b_set_info->object);
         vector_object_info_data_reserve(&set_info->object, info_count);
         set_info->object.end += info_count;
 
@@ -258,14 +258,14 @@ void object_database_merge_mdata(object_database* obj_db,
 
             info->id = b_info->id;
             string_copy(&b_info->name, &info->name);
-            info->name_hash_fnv1a64m = hash_fnv1a64m(string_data(&info->name), info->name.length);
-            info->name_hash_fnv1a64m_upper = hash_fnv1a64m_upper(string_data(&info->name), info->name.length);
+            info->name_hash_fnv1a64m = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
+            info->name_hash_fnv1a64m_upper = hash_fnv1a64m(string_data(&info->name), info->name.length, true);
             info->name_hash_murmurhash = hash_murmurhash(string_data(&info->name),
                 info->name.length, 0, false, false);
         }
     }
 
-    int32_t mdata_count = (int32_t)(mdata_object_set->end - mdata_object_set->begin);
+    int32_t mdata_count = (int32_t)vector_length(*mdata_object_set);
     for (int32_t i = 0; i < mdata_count; i++) {
         object_set_info* m_set_info = &mdata_object_set->begin[i];
 
@@ -281,14 +281,14 @@ void object_database_merge_mdata(object_database* obj_db,
             set_info = vector_object_set_info_reserve_back(object_set);
 
         string_replace(&m_set_info->name, &set_info->name);
-        set_info->name_hash = hash_fnv1a64m(string_data(&set_info->name), set_info->name.length);
+        set_info->name_hash = hash_fnv1a64m(string_data(&set_info->name), set_info->name.length, false);
         set_info->id = m_set_info->id;
         string_replace(&m_set_info->object_file_name, &set_info->object_file_name);
         string_replace(&m_set_info->texture_file_name, &set_info->texture_file_name);
         string_replace(&m_set_info->archive_file_name, &set_info->archive_file_name);
 
         vector_object_info_data_clear(&set_info->object, object_info_data_free);
-        int32_t info_count = (int32_t)(m_set_info->object.end - m_set_info->object.begin);
+        int32_t info_count = (int32_t)vector_length(m_set_info->object);
         vector_object_info_data_reserve(&set_info->object, info_count);
         set_info->object.end += info_count;
 
@@ -298,8 +298,8 @@ void object_database_merge_mdata(object_database* obj_db,
 
             info->id = m_info->id;
             string_copy(&m_info->name, &info->name);
-            info->name_hash_fnv1a64m = hash_fnv1a64m(string_data(&info->name), info->name.length);
-            info->name_hash_fnv1a64m_upper = hash_fnv1a64m_upper(string_data(&info->name), info->name.length);
+            info->name_hash_fnv1a64m = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
+            info->name_hash_fnv1a64m_upper = hash_fnv1a64m(string_data(&info->name), info->name.length, true);
             info->name_hash_murmurhash = hash_murmurhash(string_data(&info->name),
                 info->name.length, 0, false, false);
         }
@@ -324,7 +324,7 @@ bool object_database_get_object_set_info(object_database* obj_db,
     if (!obj_db || !name)
         return false;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name));
+    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
 
     for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
         if (name_hash == i->name_hash) {
@@ -360,7 +360,7 @@ bool object_database_get_object_info_data(object_database* obj_db,
     if (!obj_db || !name)
         return false;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name));
+    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
 
     for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
         for (object_info_data* j = i->object.begin; j != i->object.end; j++)
@@ -429,17 +429,29 @@ object_info object_database_get_object_info(object_database* obj_db, char* name)
         return object_info_null;
 
     size_t name_len = utf8_length(name);
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name));
+    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
     if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return object_info_null;
 
-    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++) {
+    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
         for (object_info_data* j = i->object.begin; j != i->object.end; j++)
             if (name_hash == j->name_hash_fnv1a64m)
                 return (object_info) { j->id, i->id };
-    }
 
     return object_info_null;
+}
+
+char* object_database_get_object_name(object_database* obj_db, object_info obj_info) {
+    if (!obj_db || (obj_info.id == -1 && obj_info.set_id == -1))
+        return 0;
+
+    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
+        if (obj_info.set_id == i->id)
+            for (object_info_data* j = i->object.begin; j != i->object.end; j++)
+                if (obj_info.id == j->id)
+                    return string_data(&j->name);
+
+    return 0;
 }
 
 void object_database_free(object_database* obj_db) {
@@ -528,7 +540,7 @@ static void object_database_classic_write_inner(object_database* obj_db, stream*
     io_write_uint32_t(s, 0x90669066);
     io_align_write(s, 0x20);
 
-    uint32_t object_set_count = (uint32_t)(obj_db->object_set.end - obj_db->object_set.begin);
+    uint32_t object_set_count = (uint32_t)vector_length(obj_db->object_set);
 
     vector_ssize_t string_offsets = vector_empty(ssize_t);
     vector_ssize_t_reserve(&string_offsets, object_set_count * 4ULL);
@@ -558,7 +570,7 @@ static void object_database_classic_write_inner(object_database* obj_db, stream*
         io_write(s, 0, 0x10);
         if (max_object_set_id < i->id)
             max_object_set_id = i->id;
-        object_count += (uint32_t)(i->object.end - i->object.begin);
+        object_count += (uint32_t)vector_length(i->object);
     }
 
     vector_ssize_t_clear(&string_offsets, 0);
@@ -706,11 +718,11 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
 
     bool is_x = obj_db->is_x;
 
-    uint32_t object_set_count = (uint32_t)(obj_db->object_set.end - obj_db->object_set.begin);
+    uint32_t object_set_count = (uint32_t)vector_length(obj_db->object_set);
 
     uint32_t object_count = 0;
     for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
-        object_count += (uint32_t)(i->object.end - i->object.begin);
+        object_count += (uint32_t)vector_length(i->object);
 
     if (!is_x) {
         ee = (enrs_entry){ 0, 1, 1, 1, vector_empty(enrs_sub_entry) };
@@ -796,7 +808,7 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
             }
     }
 
-    vector_ssize_t_reserve(&string_offsets, strings.end - strings.begin);
+    vector_ssize_t_reserve(&string_offsets, vector_length(strings));
 
     for (string* i = strings.begin; i != strings.end; i++) {
         ssize_t off = io_get_position(&s_mosi);

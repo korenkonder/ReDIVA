@@ -11,8 +11,8 @@ bool glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st) {
     size_t d;
     size_t count;
 
-    if (a1->effects.end - a1->effects.begin < 1 || !a1->resources_count
-        || a1->resource_hashes.end - a1->resource_hashes.begin < 1)
+    if (vector_length(a1->effects) < 1 || !a1->resources_count
+        || vector_length(a1->resource_hashes) < 1)
         return false;
 
     count = a1->resources_count;
@@ -54,7 +54,7 @@ bool glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st)
     uint64_t* resource_hashes;
     size_t i;
 
-    if (a1->resources_count && a1->resource_hashes.end - a1->resource_hashes.begin > 0)
+    if (a1->resources_count && vector_length(a1->resource_hashes) > 0)
         return true;
 
     if (!st || !st->header.data_size)
@@ -89,7 +89,7 @@ bool glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st)
 }
 
 bool glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st) {
-    if (a1->resources_tex.end - a1->resources_tex.begin < 1)
+    if (vector_length(a1->resources_tex) < 1)
         return false;
 
     memset(st, 0, sizeof(f2_struct));
@@ -118,9 +118,9 @@ bool glitter_texture_load(GPM, glitter_effect_group* a1) {
     if (!a1->resources_count)
         return false;
 
-    size_t count = a1->resources_tex.end - a1->resources_tex.begin;
+    size_t count = vector_length(a1->resources_tex);
 
-    if (!count || !a1->resources_count || a1->resources_count != count)
+    if (count < 1 || a1->resources_count < 1 || a1->resources_count != count)
         return false;
 
     uint32_t* ids = force_malloc_s(uint32_t, count);

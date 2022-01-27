@@ -390,7 +390,7 @@ void path_get_directories_recursive(vector_string* directories, char* path,
 
         vector_string_push_back(directories, i);
 
-        if (!(temp.end - temp.begin)) {
+        if (vector_length(temp) < 1) {
             vector_string_free(&temp, string_free);
             continue;
         }
@@ -511,7 +511,7 @@ void path_wget_directories_recursive(vector_wstring* directories, wchar_t* path,
 
         vector_wstring_push_back(directories, i);
 
-        if (!(temp.end - temp.begin)) {
+        if (vector_length(temp) < 1) {
             vector_wstring_free(&temp, wstring_free);
             continue;
         }

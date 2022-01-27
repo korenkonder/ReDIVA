@@ -10,6 +10,8 @@
 #define vector_dispose_func(t) void(* dispose_func)(t* data)
 #define vector_empty(t) (vector_##t){ 0, 0, 0 }
 #define vector_ptr_empty(t) (vector_ptr_##t){ 0, 0, 0 }
+#define vector_length(vec) ((vec).end - (vec).begin)
+#define vector_capacity(vec) ((vec).capacity_end - (vec).begin)
 
 #define vector(t) \
 typedef struct vector_##t { \
@@ -21,6 +23,7 @@ typedef struct vector_##t { \
 extern void vector_##t##_reserve(vector_##t* vec, ssize_t size); \
 extern void vector_##t##_push_back(vector_##t* vec, t* val); \
 extern t* vector_##t##_reserve_back(vector_##t* vec); \
+extern t* vector_##t##_reserve_back_range(vector_##t* vec, ssize_t count); \
 extern void vector_##t##_pop_back(vector_##t* vec, vector_dispose_func(t)); \
 extern void vector_##t##_insert(vector_##t* vec, ssize_t position, t* val); \
 extern void vector_##t##_insert_range(vector_##t* vec, ssize_t position, t* first, t* last); \
@@ -42,6 +45,7 @@ typedef struct vector_ptr_##t { \
 extern void vector_ptr_##t##_reserve(vector_ptr_##t* vec, ssize_t size); \
 extern void vector_ptr_##t##_push_back(vector_ptr_##t* vec, t** val); \
 extern t** vector_ptr_##t##_reserve_back(vector_ptr_##t* vec); \
+extern t** vector_ptr_##t##_reserve_back_range(vector_ptr_##t* vec, ssize_t count); \
 extern void vector_ptr_##t##_pop_back(vector_ptr_##t* vec, vector_dispose_func(t)); \
 extern void vector_ptr_##t##_insert(vector_ptr_##t* vec, ssize_t position, t** val); \
 extern void vector_ptr_##t##_insert_range(vector_ptr_##t* vec, ssize_t position, t** first, t** last); \
@@ -85,7 +89,7 @@ void vector_##t##_push_back(vector_##t* vec, t* val) { \
         return; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_##t##_reserve(vec, vec->end - vec->capacity_end + 1); \
+        vector_##t##_reserve(vec, 1); \
 \
     *vec->end = *val; \
     vec->end++; \
@@ -96,10 +100,23 @@ t* vector_##t##_reserve_back(vector_##t* vec) { \
         return 0; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_##t##_reserve(vec, vec->end - vec->capacity_end + 1); \
+        vector_##t##_reserve(vec, 1); \
 \
     t* val = vec->end++; \
     memset(val, 0, sizeof(t)); \
+    return val; \
+} \
+\
+t* vector_##t##_reserve_back_range(vector_##t* vec, ssize_t count) { \
+    if (!vec) \
+        return 0; \
+\
+    if (vec->capacity_end - vec->end < count) \
+        vector_##t##_reserve(vec, count); \
+\
+    t* val = vec->end; \
+    vec->end += count; \
+    memset(val, 0, sizeof(t) * count); \
     return val; \
 } \
 \
@@ -119,7 +136,7 @@ void vector_##t##_insert(vector_##t* vec, ssize_t position, t* val) { \
         return; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_##t##_reserve(vec, vec->end - vec->capacity_end + 1); \
+        vector_##t##_reserve(vec, 1); \
 \
     t* t0 = vec->begin + position; \
     t* t1 = vec->begin + position + 1; \
@@ -139,7 +156,7 @@ void vector_##t##_insert_range(vector_##t* vec, ssize_t position, t* first, t* l
     if (vec->end - vec->begin == 0) \
         vector_##t##_reserve(vec, s); \
     else if (vec->capacity_end - vec->end < s) \
-        vector_##t##_reserve(vec, vec->end - vec->capacity_end + s); \
+        vector_##t##_reserve(vec, s); \
     \
     t* t0 = vec->begin + position; \
     t* t1 = vec->begin + position + s; \
@@ -246,7 +263,7 @@ void vector_ptr_##t##_push_back(vector_ptr_##t* vec, t** val) { \
         return; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_ptr_##t##_reserve(vec, vec->end - vec->capacity_end + 1); \
+        vector_ptr_##t##_reserve(vec, 1); \
 \
     *vec->end++ = *val; \
 } \
@@ -256,10 +273,23 @@ t** vector_ptr_##t##_reserve_back(vector_ptr_##t* vec) { \
         return 0; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_ptr_##t##_reserve(vec, vec->end - vec->capacity_end + 1); \
+        vector_ptr_##t##_reserve(vec, 1); \
 \
     t** val = vec->end++; \
     memset(val, 0, sizeof(t*)); \
+    return val; \
+} \
+\
+t** vector_ptr_##t##_reserve_back_range(vector_ptr_##t* vec, ssize_t count) { \
+    if (!vec) \
+        return 0; \
+\
+    if (vec->capacity_end - vec->end < count) \
+        vector_ptr_##t##_reserve(vec, count); \
+\
+    t** val = vec->end; \
+    vec->end += count; \
+    memset(val, 0, sizeof(t*) * count); \
     return val; \
 } \
 \
@@ -281,7 +311,7 @@ void vector_ptr_##t##_insert(vector_ptr_##t* vec, ssize_t position, t** val) { \
         return; \
 \
     if (vec->capacity_end - vec->end < 1) \
-        vector_ptr_##t##_reserve(vec, vec->end - vec->capacity_end + 1); \
+        vector_ptr_##t##_reserve(vec, 1); \
 \
     t** t0 = vec->begin + position; \
     t** t1 = vec->begin + position + 1; \
@@ -301,7 +331,7 @@ void vector_ptr_##t##_insert_range(vector_ptr_##t* vec, ssize_t position, t** fi
     if (vec->end - vec->begin == 0) \
         vector_ptr_##t##_reserve(vec, s); \
     else if (vec->capacity_end - vec->end < s) \
-        vector_ptr_##t##_reserve(vec, vec->end - vec->capacity_end + s); \
+        vector_ptr_##t##_reserve(vec, s); \
     \
     t** t0 = vec->begin + position; \
     t** t1 = vec->begin + position + s; \

@@ -89,7 +89,7 @@ glitter_effect_inst* glitter_effect_inst_init(GPM, GLT,
     ei->random = glitter_random_get_value(ei->random_ptr);
 
     ei->mat = mat4_identity;
-    vector_ptr_glitter_emitter_inst_reserve(&ei->emitters, a1->emitters.end - a1->emitters.begin);
+    vector_ptr_glitter_emitter_inst_reserve(&ei->emitters, vector_length(a1->emitters));
     for (i = a1->emitters.begin; i != a1->emitters.end; i++) {
         if (!*i)
             continue;
@@ -226,8 +226,8 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
     glitter_effect_inst_ext_anim* inst_ext_anim = a1->ext_anim;
 
     if (a1->flags & GLITTER_EFFECT_INST_CHARA_ANIM) {
-        rob_chara_data* rob_chr_data = rob_chara_data_array_get(inst_ext_anim->chara_index);
-        if (!rob_chr_data)
+        rob_chara* rob_chr = rob_chara_array_get(inst_ext_anim->chara_index);
+        if (!rob_chr)
             return;
 
         mat4 mat = mat4_identity/*chara root mat*/;
@@ -248,7 +248,7 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
                 inst_ext_anim->mat = mat;
         }
         else {
-            mat4* bone_mat = rob_chara_data_get_bone_data_mat(rob_chr_data, bone_index);
+            mat4* bone_mat = rob_chara_get_bone_data_mat(rob_chr, bone_index);
             if (!bone_mat)
                 return;
 
@@ -306,8 +306,8 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
     mat4 mat = mat4_identity;
     int32_t chara_id = -1;// auth_3d_data_get_chara_id(inst_ext_anim->a3da_id);
     if (chara_id >= 0 && chara_id <= 5) {
-        rob_chara_data* rob_chr_data = rob_chara_data_array_get(chara_id);
-        if (rob_chr_data) {
+        rob_chara* rob_chr = rob_chara_array_get(chara_id);
+        if (rob_chr) {
             mat = mat4_identity/*chara root mat*/;
 
             vec3 scale;
@@ -428,7 +428,7 @@ static void glitter_effect_inst_get_value(GLT, glitter_effect_inst* a1) {
     glitter_curve* curve;
     float_t value;
 
-    length = a1->effect->animation.end - a1->effect->animation.begin;
+    length = vector_length(a1->effect->animation);
     if (!length)
         return;
 
@@ -495,7 +495,7 @@ static void glitter_effect_inst_update_init(GPM, GLT,
     float_t delta_frame;
     float_t start_time;
 
-    if (a1->data.start_time <= 0)
+    if (a1->data.start_time < 1)
         return;
 
     delta_frame = 2.0f;

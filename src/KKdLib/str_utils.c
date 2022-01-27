@@ -589,13 +589,13 @@ bool str_utils_text_file_parse(void* data, size_t length,
         ch = 0;
 
         size_t buf_len = length;
-        for (size_t i = 0, l = 0; i < length; i++) {
+        for (size_t i = 0, l = 0, m = 0; i < length; i++) {
             ch = *t++;
             if (ch == '\r') {
                 if (i + 1 < length && *t == '\n') {
                     i++;
                     t++;
-                    buf_len--;
+                    l++;
                 }
                 lf = true;
             }
@@ -607,10 +607,13 @@ bool str_utils_text_file_parse(void* data, size_t length,
                     buf_len--;
                 c++;
                 l = 0;
+                m = 0;
                 lf = false;
             }
-            else
+            else {
                 l++;
+                m++;
+            }
         }
 
         if (ch != '\r' && ch != '\n')
@@ -622,12 +625,13 @@ bool str_utils_text_file_parse(void* data, size_t length,
         char** temp_lines = force_malloc_s(char*, c);
 
         char* b = temp_buf;
-        for (size_t i = 0, j = 0, l = 0; j < c; i++) {
+        for (size_t i = 0, j = 0, l = 0, m = 0; j < c; i++) {
             ch = *t++;
             if (ch == '\r') {
                 if (i + 1 < length && *t == '\n') {
                     i++;
                     t++;
+                    l++;
                 }
                 lf = true;
             }
@@ -637,7 +641,7 @@ bool str_utils_text_file_parse(void* data, size_t length,
             if (i >= length || lf) {
                 temp_lines[j] = b;
                 if (l) {
-                    memcpy(b, d + i - l, l);
+                    memcpy(b, d + i - l, m);
                     b[l] = 0;
                     b += l + 1;
                 }
@@ -651,10 +655,13 @@ bool str_utils_text_file_parse(void* data, size_t length,
                     break;
 
                 l = 0;
+                m = 0;
                 lf = false;
             }
-            else
+            else {
                 l++;
+                m++;
+            }
         }
 
         *buf = temp_buf;

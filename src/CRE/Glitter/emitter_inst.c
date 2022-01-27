@@ -50,7 +50,7 @@ glitter_emitter_inst* glitter_emitter_inst_init(glitter_emitter* a1,
         ei->emission = GLITTER_EMITTER_EMISSION_ON_END;
     ei->loop = ei->data.flags & GLITTER_EMITTER_LOOP ? true : false;
 
-    vector_ptr_glitter_particle_inst_reserve(&ei->particles, a1->particles.end - a1->particles.begin);
+    vector_ptr_glitter_particle_inst_reserve(&ei->particles, vector_length(a1->particles));
     for (i = a1->particles.begin; i != a1->particles.end; i++) {
         if (!*i)
             continue;
@@ -228,7 +228,7 @@ static void glitter_emitter_inst_get_value(GLT, glitter_emitter_inst* a1) {
     glitter_curve* curve;
     float_t value;
 
-    length = a1->emitter->animation.end - a1->emitter->animation.begin;
+    length = vector_length(a1->emitter->animation);
     if (!length)
         return;
 

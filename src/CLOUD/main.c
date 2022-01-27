@@ -134,10 +134,8 @@ static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
             continue;
         }
 
-        vec3 diff;
         float_t focus;
-        vec3_sub(cam_a3da.dof.model_transform.translation_value, cr->view_point_value, diff);
-        vec3_length(diff, focus);
+        vec3_distance(cam_a3da.dof.model_transform.translation_value, cr->view_point_value, focus);
 
         dof_data d;
         d.flags = 0x1F;
@@ -252,12 +250,12 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     __cpuid(cpuid_data, 1);
     aes_ni = cpuid_data[2] & 0x2000000 ? true : false;
 
+    //a3da_to_dft_dsc("CAMPV269_BASE.a3da", 269);
+
     render_init_struct ris;
     ris.res.x = 0;
     ris.res.y = 0;
     ris.scale = 0.0f;
-
-    //a3da_to_dft_dsc("CAMPV269_BASE.a3da", 269);
 
     thread input, render, sound;
     HANDLE h[3];

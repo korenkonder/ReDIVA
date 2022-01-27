@@ -357,8 +357,8 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
 
                             vec4i bone_index;
                             vec4iu_to_vec4i(vertex_file[i].bone_index, bone_index);
-                            vec4i_to_vec4u8(bone_index, *(vec4u8*)d);
-                            d += 4;
+                            vec4i_to_vec4u16(bone_index, *(vec4u16*)d);
+                            d += 8;
                         }
                     }
                 }
@@ -541,6 +541,8 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
             object_skin_block* block = &ex_data->blocks[j];
             object_skin_block_file* block_file = &ex_data_file->blocks[j];
 
+            object_skin_block_node_load(&block->base, &block_file->base);
+
             switch (block_file->type) {
             case OBJ_SKIN_BLOCK_CLOTH: {
                 block->type = OBJECT_SKIN_BLOCK_CLOTH;
@@ -555,13 +557,21 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                 object_skin_block_constraint* constraint = &block->constraint;
                 object_skin_block_constraint_file* constraint_file = &block_file->constraint;
 
-                switch (constraint_file->type) {
-                case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
-                    object_skin_block_node_load(&constraint->base, &constraint_file->base);
-                    constraint->coupling = constraint_file->coupling;
-                    constraint->name_index = constraint_file->name_index;
-                    string_copy(&constraint_file->source_node_name, &constraint->source_node_name);
+                constraint->coupling = constraint_file->coupling;
+                constraint->name_index = constraint_file->name_index;
+                string_copy(&constraint_file->source_node_name, &constraint->source_node_name);
 
+                switch (constraint_file->type) {
+                case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION:
+                    constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_ORIENTATION;
+
+                    object_skin_block_constraint_orientation* orientation = &constraint->orientation;
+                    object_skin_block_constraint_orientation_file* orientation_file
+                        = &constraint_file->orientation;
+
+                    orientation->offset = orientation_file->offset;
+                    break;
+                case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
                     constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_DIRECTION;
 
                     object_skin_block_constraint_direction* direction = &constraint->direction;
@@ -573,46 +583,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                     direction->align_axis = direction_file->align_axis;
                     direction->target_offset = direction_file->target_offset;
                     break;
-                case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
-                    object_skin_block_node_load(&constraint->base, &constraint_file->base);
-                    constraint->coupling = constraint_file->coupling;
-                    constraint->name_index = constraint_file->name_index;
-                    string_copy(&constraint_file->source_node_name, &constraint->source_node_name);
-
-                    constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_DISTANCE;
-
-                    object_skin_block_constraint_distance* distance = &constraint->distance;
-                    object_skin_block_constraint_distance_file* distance_file
-                        = &constraint_file->distance;
-
-                    object_skin_block_constraint_up_vector_load(
-                        &distance->up_vector, &distance_file->up_vector);
-                    distance->distance = distance_file->distance;
-                    object_skin_block_constraint_attach_point_load(
-                        &distance->constrained_object, &distance_file->constrained_object);
-                    object_skin_block_constraint_attach_point_load(
-                        &distance->constraining_object, &distance_file->constraining_object);
-                    break;
-                case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION:
-                    object_skin_block_node_load(&constraint->base, &constraint_file->base);
-                    constraint->coupling = constraint_file->coupling;
-                    constraint->name_index = constraint_file->name_index;
-                    string_copy(&constraint_file->source_node_name, &constraint->source_node_name);
-
-                    constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_ORIENTATION;
-
-                    object_skin_block_constraint_orientation* orientation = &constraint->orientation;
-                    object_skin_block_constraint_orientation_file* orientation_file
-                        = &constraint_file->orientation;
-
-                    orientation->offset = orientation_file->offset;
-                    break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
-                    object_skin_block_node_load(&constraint->base, &constraint_file->base);
-                    constraint->coupling = constraint_file->coupling;
-                    constraint->name_index = constraint_file->name_index;
-                    string_copy(&constraint_file->source_node_name, &constraint->source_node_name);
-
                     constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_POSITION;
 
                     object_skin_block_constraint_position* position = &constraint->position;
@@ -627,8 +598,20 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                     object_skin_block_constraint_attach_point_load(
                         &position->constraining_object, &position_file->constraining_object);
                     break;
-                default:
-                    memset(block, 0, sizeof(object_skin_block));
+                case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
+                    constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_DISTANCE;
+
+                    object_skin_block_constraint_distance* distance = &constraint->distance;
+                    object_skin_block_constraint_distance_file* distance_file
+                        = &constraint_file->distance;
+
+                    object_skin_block_constraint_up_vector_load(
+                        &distance->up_vector, &distance_file->up_vector);
+                    distance->distance = distance_file->distance;
+                    object_skin_block_constraint_attach_point_load(
+                        &distance->constrained_object, &distance_file->constrained_object);
+                    object_skin_block_constraint_attach_point_load(
+                        &distance->constraining_object, &distance_file->constraining_object);
                     break;
                 }
 
@@ -638,8 +621,6 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
 
                 object_skin_block_expression* expression = &block->expression;
                 object_skin_block_expression_file* expression_file = &block_file->expression;
-
-                object_skin_block_node_load(&expression->base, &expression_file->base);
 
                 expression->name_index = expression_file->name_index;
                 int32_t expressions_count = min(expression_file->expressions_count, 9);
@@ -656,8 +637,6 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
 
                 object_skin_block_motion* motion = &block->motion;
                 object_skin_block_motion_file* motion_file = &block_file->motion;
-
-                object_skin_block_node_load(&motion->base, &motion_file->base);
 
                 int32_t nodes_count = motion_file->nodes_count;
                 if (!is_x)
@@ -681,7 +660,6 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                 object_skin_block_osage* osage = &block->osage;
                 object_skin_block_osage_file* osage_file = &block_file->osage;
 
-                object_skin_block_node_load(&osage->base, &osage_file->base);
                 osage->start_index = osage_file->start_index;
                 osage->count = osage_file->count;
 
@@ -698,12 +676,9 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                 }
 
                 osage->external_name_index = osage_file->external_name_index;
-                osage->name_index = osage->name_index;
+                osage->name_index = osage_file->name_index;
                 string_copy(&osage_file->motion_node_name, &osage->motion_node_name);
             } break;
-            default:
-                memset(block, 0, sizeof(object_skin_block));
-                break;
             }
         }
 
@@ -722,7 +697,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
         skin->ex_data_init = true;
     }
 
-    int32_t textures_count = (int32_t)(txp_set_file->end - txp_set_file->begin);
+    int32_t textures_count = (int32_t)vector_length(*txp_set_file);
     set->textures_count = textures_count;
     set->textures = force_malloc_s(GLuint, textures_count);
     texture_txp_set_load(txp_set_file, &set->texture_data, set->texture_ids);
@@ -745,7 +720,7 @@ bool object_set_load_db_entry(object_set_info** set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)*set_info;
-    return data_struct_load_file(data, temp, "rom\\objset\\",
+    return data_struct_load_file(data, temp, "rom/objset/",
         string_data(&(*set_info)->archive_file_name), object_set_load_file);
 }
 
@@ -754,7 +729,7 @@ bool object_set_load_by_db_entry(object_set_info* set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)set_info;
-    return data_struct_load_file(data, temp, "rom\\objset\\",
+    return data_struct_load_file(data, temp, "rom/objset/",
         string_data(&set_info->archive_file_name), object_set_load_file);
 }
 
@@ -766,7 +741,7 @@ bool object_set_load_by_db_index(object_set_info** set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)*set_info;
-    return data_struct_load_file(data, temp, "rom\\objset\\",
+    return data_struct_load_file(data, temp, "rom/objset/",
         string_data(&(*set_info)->archive_file_name), object_set_load_file);
 }
 
@@ -775,7 +750,7 @@ bool object_set_load_by_hash(void* data,
     size_t temp[2];
     temp[0] = (size_t)obj_db;
     temp[1] = (size_t)tex_db;
-    return data_struct_load_file_by_hash(data, temp, "rom\\objset\\",
+    return data_struct_load_file_by_hash(data, temp, "rom/objset/",
         hash, object_set_load_file_modern);
 }
 
@@ -1114,11 +1089,11 @@ inline object_set* object_storage_get_object_set(uint32_t set_id) {
 }
 
 inline ssize_t object_storage_get_object_set_count() {
-    return object_storage_data.end - object_storage_data.begin;
+    return vector_length(object_storage_data);
 }
 
 inline object_set* object_storage_get_object_set_by_index(ssize_t index) {
-    if (index >= 0 && index < object_storage_data.end - object_storage_data.begin)
+    if (index >= 0 && index < vector_length(object_storage_data))
         return &object_storage_data.begin[index].set;
     return 0;
 }
@@ -1426,7 +1401,7 @@ inline static size_t object_vertex_flags_get_vertex_size_comp(object_vertex_flag
     if (flags & OBJECT_VERTEX_COLOR0)
         size += 8;
     if (flags & OBJECT_VERTEX_BONE_DATA)
-        size += 12;
+        size += 16;
     return size;
 }
 

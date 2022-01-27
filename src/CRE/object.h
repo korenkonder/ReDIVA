@@ -132,10 +132,10 @@ typedef enum object_primitive_type {
 
 typedef enum object_skin_block_constraint_type {
     OBJECT_SKIN_BLOCK_CONSTRAINT_NONE = 0,
-    OBJECT_SKIN_BLOCK_CONSTRAINT_DIRECTION,
-    OBJECT_SKIN_BLOCK_CONSTRAINT_DISTANCE,
     OBJECT_SKIN_BLOCK_CONSTRAINT_ORIENTATION,
+    OBJECT_SKIN_BLOCK_CONSTRAINT_DIRECTION,
     OBJECT_SKIN_BLOCK_CONSTRAINT_POSITION,
+    OBJECT_SKIN_BLOCK_CONSTRAINT_DISTANCE,
 } object_skin_block_constraint_type;
 
 typedef enum object_skin_block_constraint_coupling {

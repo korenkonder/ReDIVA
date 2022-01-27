@@ -45,22 +45,22 @@ void light_param_data_load(light_param_data* light_param, data_struct* data, cha
     light_param->id = 0;
 
     sprintf_s(buf, sizeof(buf), "light_%s.txt", name);
-    data_struct_load_file(data, &light_param->light, "rom\\light_param\\", buf, light_param_light_load_file);
+    data_struct_load_file(data, &light_param->light, "rom/light_param/", buf, light_param_light_load_file);
 
     sprintf_s(buf, sizeof(buf), "fog_%s.txt", name);
-    data_struct_load_file(data, &light_param->fog, "rom\\light_param\\", buf, light_param_fog_load_file);
+    data_struct_load_file(data, &light_param->fog, "rom/light_param/", buf, light_param_fog_load_file);
 
     sprintf_s(buf, sizeof(buf), "glow_%s.txt", name);
-    data_struct_load_file(data, &light_param->glow, "rom\\light_param\\", buf, light_param_glow_load_file);
+    data_struct_load_file(data, &light_param->glow, "rom/light_param/", buf, light_param_glow_load_file);
 
     sprintf_s(buf, sizeof(buf), "%s.ibl", name);
-    data_struct_load_file(data, &light_param->ibl, "rom\\ibl\\", buf, light_param_ibl_load_file);
+    data_struct_load_file(data, &light_param->ibl, "rom/ibl/", buf, light_param_ibl_load_file);
 
     sprintf_s(buf, sizeof(buf), "wind_%s.txt", name);
-    data_struct_load_file(data, &light_param->wind, "rom\\light_param\\", buf, light_param_wind_load_file);
+    data_struct_load_file(data, &light_param->wind, "rom/light_param/", buf, light_param_wind_load_file);
 
     sprintf_s(buf, sizeof(buf), "face_%s.txt", name);
-    data_struct_load_file(data, &light_param->face, "rom\\light_param\\", buf, light_param_face_load_file);
+    data_struct_load_file(data, &light_param->face, "rom/light_param/", buf, light_param_face_load_file);
 }
 
 void light_param_data_free(light_param_data* light_param) {
@@ -82,7 +82,7 @@ void light_param_set_load(light_param_set* set, data_struct* data, int32_t pv_id
 
     farc f;
     farc_init(&f);
-    if (!data_struct_load_file(data, &f, "rom\\light_param\\", buf, farc_load_file))
+    if (!data_struct_load_file(data, &f, "rom/light_param/", buf, farc_load_file))
         return;
 
     for (farc_file* i = f.files.begin; i != f.files.end; i++)
@@ -118,7 +118,7 @@ inline void light_param_storage_init() {
 }
 
 inline void light_param_storage_append_light_param_data(char* name) {
-    uint64_t hash = hash_fnv1a64m(name, utf8_length(name));
+    uint64_t hash = hash_fnv1a64m(name, utf8_length(name), false);
     for (light_param_storage* i = light_param_storage_data.begin;
         i != light_param_storage_data.end; i++)
         if (!i->pv && i->hash == hash) {
@@ -151,7 +151,7 @@ inline void light_param_storage_load_light_param_set(data_struct* data, int32_t 
 }
 
 inline void light_param_storage_insert_light_param_data(light_param_data* data, char* name) {
-    uint64_t hash = hash_fnv1a64m(name, utf8_length(name));
+    uint64_t hash = hash_fnv1a64m(name, utf8_length(name), false);
     for (light_param_storage* i = light_param_storage_data.begin;
         i != light_param_storage_data.end; i++)
         if (!i->pv && i->hash == hash) {
@@ -187,7 +187,7 @@ inline void light_param_storage_insert_light_param_set(light_param_set* set, int
 }
 
 inline light_param_data* light_param_storage_get_light_param_data(char* name) {
-    uint64_t hash = hash_fnv1a64m(name, utf8_length(name));
+    uint64_t hash = hash_fnv1a64m(name, utf8_length(name), false);
     for (light_param_storage* i = light_param_storage_data.begin;
         i != light_param_storage_data.end; i++)
         if (!i->pv && i->hash == hash)
@@ -204,7 +204,7 @@ inline light_param_set* light_param_storage_get_light_param_set(int32_t pv_id) {
 }
 
 inline void light_param_storage_delete_light_param_data(char* name) {
-    uint64_t hash = hash_fnv1a64m(name, utf8_length(name));
+    uint64_t hash = hash_fnv1a64m(name, utf8_length(name), false);
     for (light_param_storage* i = light_param_storage_data.begin;
         i != light_param_storage_data.end; i++)
         if (!i->pv && i->hash == hash) {

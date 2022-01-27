@@ -54,13 +54,13 @@ void kkc_init_from_key(kkc* c, vector_uint8_t* key) {
     c->state = 1;
     c->error = KKC_ERROR_NONE;
 
-    if (!key || !key->begin || key->end - key->begin < 1) {
+    if (!key || !key->begin || vector_length(*key) < 1) {
         c->error = KKC_ERROR_INVALID_KEY;
         return;
     }
 
     kkc_key_type type = 0;
-    size_t kl = key->end - key->begin;
+    size_t kl = vector_length(*key);
 
     switch (kl) {
     case 16:

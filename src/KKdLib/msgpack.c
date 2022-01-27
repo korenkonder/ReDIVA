@@ -190,7 +190,7 @@ msgpack* msgpack_get_by_index(msgpack* msg, size_t index) {
         return 0;
 
     msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-    if ((ssize_t)index < ptr->end - ptr->begin)
+    if ((ssize_t)index < vector_length(*ptr))
         return &ptr->begin[index];
     return 0;
 }
@@ -200,7 +200,7 @@ void msgpack_set_by_index(msgpack* msg, msgpack* m, size_t index) {
         return;
 
     msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-    if ((ssize_t)index < ptr->end - ptr->begin) {
+    if ((ssize_t)index < vector_length(*ptr)) {
         msgpack_free(&ptr->begin[index]);
         ptr->begin[index] = *m;
     }

@@ -39,7 +39,7 @@ glitter_effect* glitter_effect_copy(glitter_effect* e) {
     }
 
     ec->emitters = vector_ptr_empty(glitter_emitter);
-    vector_ptr_glitter_emitter_reserve(&ec->emitters, e->emitters.end - e->emitters.begin);
+    vector_ptr_glitter_emitter_reserve(&ec->emitters, vector_length(e->emitters));
     for (glitter_emitter** i = e->emitters.begin; i != e->emitters.end; i++)
         if (*i) {
             glitter_emitter* e = glitter_emitter_copy(*i);
@@ -186,7 +186,8 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
         flags |= GLITTER_EFFECT_FILE_EMISSION;
 
     *(uint64_t*)d = GLT_VAL != GLITTER_FT
-        ? hash_utf8_murmurhash(a2->name, 0, false) : hash_utf8_fnv1a64m(a2->name);;
+        ? hash_utf8_murmurhash(a2->name, 0, false)
+        : hash_utf8_fnv1a64m(a2->name, false);;
     *(int32_t*)(d + 8) = a2->data.appear_time;
     *(int32_t*)(d + 12) = a2->data.life_time;
     *(int32_t*)(d + 16) = a2->data.start_time;

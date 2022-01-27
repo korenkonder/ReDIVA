@@ -604,7 +604,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
     io_write_int32_t(s, 0);
     io_write_int32_t(s, 0);
 
-    uint32_t skeleton_count = (uint32_t)(bone_data->skeleton.end - bone_data->skeleton.begin);
+    uint32_t skeleton_count = (uint32_t)vector_length(bone_data->skeleton);
     ssize_t skeleton_offsets_offset = io_get_position(s);
     io_write(s, 0, skeleton_count * 0x04ULL);
     
@@ -626,10 +626,10 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
     for (uint32_t i = 0; i < skeleton_count; i++) {
         bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-        uint32_t bone_count = (uint32_t)(skel->bone.end - skel->bone.begin);
-        uint32_t position_count = (uint32_t)(skel->position.end - skel->position.begin);
-        uint32_t object_bone_count = (uint32_t)(skel->object_bone.end - skel->object_bone.begin);
-        uint32_t motion_bone_count = (uint32_t)(skel->motion_bone.end - skel->motion_bone.begin);
+        uint32_t bone_count = (uint32_t)vector_length(skel->bone);
+        uint32_t position_count = (uint32_t)vector_length(skel->position);
+        uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
+        uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
 
         vector_string_reserve(&strings, bone_count);
         vector_ssize_t_reserve(&string_offsets, bone_count);
@@ -932,7 +932,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
 
     bool is_x = bone_data->is_x;
 
-    uint32_t skeleton_count = (uint32_t)(bone_data->skeleton.end - bone_data->skeleton.begin);
+    uint32_t skeleton_count = (uint32_t)vector_length(bone_data->skeleton);
 
     if (!is_x) {
         uint32_t pos;
@@ -951,10 +951,10 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
         for (uint32_t i = 0; i < skeleton_count; i++) {
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-            uint32_t bone_count = (uint32_t)(skel->bone.end - skel->bone.begin);
-            uint32_t position_count = (uint32_t)(skel->position.end - skel->position.begin);
-            uint32_t object_bone_count = (uint32_t)(skel->object_bone.end - skel->object_bone.begin);
-            uint32_t motion_bone_count = (uint32_t)(skel->motion_bone.end - skel->motion_bone.begin);
+            uint32_t bone_count = (uint32_t)vector_length(skel->bone);
+            uint32_t position_count = (uint32_t)vector_length(skel->position);
+            uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
+            uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
 
             ee = (enrs_entry){ off, 1, 56, 1, vector_empty(enrs_sub_entry) };
             vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 14, ENRS_DWORD });
@@ -1044,10 +1044,10 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
         for (uint32_t i = 0; i < skeleton_count; i++) {
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-            uint32_t bone_count = (uint32_t)(skel->bone.end - skel->bone.begin);
-            uint32_t position_count = (uint32_t)(skel->position.end - skel->position.begin);
-            uint32_t object_bone_count = (uint32_t)(skel->object_bone.end - skel->object_bone.begin);
-            uint32_t motion_bone_count = (uint32_t)(skel->motion_bone.end - skel->motion_bone.begin);
+            uint32_t bone_count = (uint32_t)vector_length(skel->bone);
+            uint32_t position_count = (uint32_t)vector_length(skel->position);
+            uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
+            uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
 
             bone_count++;
             off += 8;
@@ -1140,10 +1140,10 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
         for (uint32_t i = 0; i < skeleton_count; i++) {
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-            uint32_t bone_count = (uint32_t)(skel->bone.end - skel->bone.begin);
-            uint32_t position_count = (uint32_t)(skel->position.end - skel->position.begin);
-            uint32_t object_bone_count = (uint32_t)(skel->object_bone.end - skel->object_bone.begin);
-            uint32_t motion_bone_count = (uint32_t)(skel->motion_bone.end - skel->motion_bone.begin);
+            uint32_t bone_count = (uint32_t)vector_length(skel->bone);
+            uint32_t position_count = (uint32_t)vector_length(skel->position);
+            uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
+            uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
 
             skh[i].offset = io_get_position(&s_bone);
             io_write_offset_f2_pof_add(&s_bone, 0, 0x40, &pof);
@@ -1205,10 +1205,10 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
         for (uint32_t i = 0; i < skeleton_count; i++) {
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-            uint32_t bone_count = (uint32_t)(skel->bone.end - skel->bone.begin);
-            uint32_t position_count = (uint32_t)(skel->position.end - skel->position.begin);
-            uint32_t object_bone_count = (uint32_t)(skel->object_bone.end - skel->object_bone.begin);
-            uint32_t motion_bone_count = (uint32_t)(skel->motion_bone.end - skel->motion_bone.begin);
+            uint32_t bone_count = (uint32_t)vector_length(skel->bone);
+            uint32_t position_count = (uint32_t)vector_length(skel->position);
+            uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
+            uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
 
 
             skh[i].bones_offset = io_get_position(&s_bone);
@@ -1299,10 +1299,10 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
     for (uint32_t i = 0; i < skeleton_count; i++) {
         bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-        uint32_t bone_count = (uint32_t)(skel->bone.end - skel->bone.begin);
-        uint32_t position_count = (uint32_t)(skel->position.end - skel->position.begin);
-        uint32_t object_bone_count = (uint32_t)(skel->object_bone.end - skel->object_bone.begin);
-        uint32_t motion_bone_count = (uint32_t)(skel->motion_bone.end - skel->motion_bone.begin);
+        uint32_t bone_count = (uint32_t)vector_length(skel->bone);
+        uint32_t position_count = (uint32_t)vector_length(skel->position);
+        uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
+        uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
 
         io_position_push(&s_bone, skh[i].offset, SEEK_SET);
         if (!is_x) {

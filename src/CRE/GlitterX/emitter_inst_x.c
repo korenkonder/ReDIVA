@@ -59,7 +59,7 @@ glitter_emitter_inst* glitter_x_emitter_inst_init(glitter_emitter* a1,
         ei->emission = GLITTER_EMITTER_EMISSION_ON_TIMER;
     ei->loop = ei->data.flags & GLITTER_EMITTER_LOOP ? true : false;
 
-    vector_ptr_glitter_particle_inst_reserve(&ei->particles, a1->particles.end - a1->particles.begin);
+    vector_ptr_glitter_particle_inst_reserve(&ei->particles, vector_length(a1->particles));
     for (i = a1->particles.begin; i != a1->particles.end; i++) {
         if (!*i)
             continue;
@@ -287,11 +287,8 @@ void glitter_x_emitter_inst_update(GPM,
     if (has_dist) {
         mat4_get_translation(&mat, &trans);
 
-        vec3 trans_diff;
-        vec3_sub(trans, trans_prev, trans_diff);
-
         float_t trans_dist;
-        vec3_length(trans_diff, trans_dist);
+        vec3_distance(trans, trans_prev, trans_dist);
         a1->emission_timer -= trans_dist;
     }
 
@@ -347,12 +344,9 @@ void glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
         mat4_rot(&mat_ext_anim, rot.x, rot.y, rot.z, &a1->mat_rot);
         a1->mat = mat;
 
-        vec3 trans_diff;
-        mat4_get_translation(&mat, &trans);
-        vec3_sub(trans, trans_prev, trans_diff);
-
         float_t trans_dist;
-        vec3_length(trans_diff, trans_dist);
+        mat4_get_translation(&mat, &trans);
+        vec3_distance(trans, trans_prev, trans_dist);
         a1->emission_timer -= trans_dist;
     }
     a1->flags |= GLITTER_EMITTER_INST_HAS_DISTANCE;
@@ -383,7 +377,7 @@ static void glitter_x_emitter_inst_get_value(glitter_emitter_inst* a1) {
     glitter_curve* curve;
     float_t value;
 
-    length = a1->emitter->animation.end - a1->emitter->animation.begin;
+    length = vector_length(a1->emitter->animation);
     if (!length)
         return;
 

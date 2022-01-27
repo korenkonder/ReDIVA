@@ -74,6 +74,7 @@ extern bool object_database_get_object_info_data_by_fnv1a64m_hash_upper(object_d
 extern bool object_database_get_object_info_data_by_murmurhash(object_database* obj_db,
     uint32_t hash, object_info_data** info);
 extern object_info object_database_get_object_info(object_database* obj_db, char* name);
+extern char* object_database_get_object_name(object_database* obj_db, object_info obj_info);
 extern void object_database_free(object_database* obj_db);
 
 extern void object_info_data_free(object_info_data* info);

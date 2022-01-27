@@ -16,7 +16,7 @@ static void camera_calculate_forward(camera* c);
 
 void camera_initialize(camera* c, double_t aspect, int32_t width, int32_t height) {
     c->aspect = aspect;
-    c->fov = 32.2673416137695;
+    c->fov = 0.0;
     c->forward = (vec3){ 0.0f, 0.0f, -1.0f };
     c->rotation = (vec3){ 0.0f, 0.0f, 0.0f };
     c->view_point = (vec3){ 0.0, 0.0f, 0.0f };
@@ -35,7 +35,9 @@ void camera_initialize(camera* c, double_t aspect, int32_t width, int32_t height
     camera_set_pitch(c, 0.0);
     camera_set_yaw(c, 0.0);
     camera_set_roll(c, 0.0);
+    camera_set_fov(c, 32.2673416137695);
     camera_calculate_forward(c);
+    camera_set_position(c, &((vec3){ 0.0, 0.0f, 0.0f}));
     camera_update(c);
 }
 

@@ -116,7 +116,7 @@ void glitter_effect_group_load_model(glitter_effect_group* eg, void* ds) {
         return;
 
     vector_uint32_t* object_set_ids = &eg->object_set_ids;
-    if (!(object_set_ids->end - object_set_ids->begin))
+    if (vector_length(*object_set_ids) < 1)
         return;
 
     for (uint32_t* i = object_set_ids->begin; i != object_set_ids->end; i++) {

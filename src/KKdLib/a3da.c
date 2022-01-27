@@ -1514,13 +1514,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
 
     vector_int32_t sort_index = vector_empty(int32_t);
     vector_int32_t sort_index1 = vector_empty(int32_t);
-    if (a->ambient.end - a->ambient.begin && a->format == A3DA_FORMAT_MGF) {
+    if (vector_length(a->ambient) && a->format == A3DA_FORMAT_MGF) {
         len = 7;
         memcpy(buf, "ambient", 7);
         off = len;
 
         vector_a3da_ambient* va = &a->ambient;
-        count = (int32_t)(va->end - va->begin);
+        count = (int32_t)vector_length(*va);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_ambient* a = &va->begin[sort_index.begin[i]];
@@ -1541,13 +1541,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->auth_2d.end - a->auth_2d.begin) {
+    if (vector_length(a->auth_2d)) {
         len = 7;
         memcpy(buf, "auth_2d", 7);
         off = len;
 
         vector_string* va2 = &a->auth_2d;
-        count = (int32_t)(va2->end - va2->begin);
+        count = (int32_t)vector_length(*va2);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             string* a2 = &va2->begin[sort_index.begin[i]];
@@ -1588,13 +1588,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         }
     }
 
-    if (a->camera_root.end - a->camera_root.begin) {
+    if (vector_length(a->camera_root) > 0) {
         len = 11;
         memcpy(buf, "camera_root", 11);
         off = len;
 
         vector_a3da_camera_root* vcr = &a->camera_root;
-        count = (int32_t)(vcr->end - vcr->begin);
+        count = (int32_t)vector_length(*vcr);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_camera_root* cr = &vcr->begin[sort_index.begin[i]];
@@ -1646,13 +1646,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->chara.end - a->chara.begin) {
+    if (vector_length(a->chara) > 0) {
         len = 5;
         memcpy(buf, "chara", 5);
         off = len;
 
         vector_a3da_chara* vc = &a->chara;
-        count = (int32_t)(vc->end - vc->begin);
+        count = (int32_t)vector_length(*vc);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_chara* c = &vc->begin[sort_index.begin[i]];
@@ -1669,13 +1669,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->curve.end - a->curve.begin) {
+    if (vector_length(a->curve) > 0) {
         len = 5;
         memcpy(buf, "curve", 5);
         off = len;
 
         vector_a3da_curve* vc = &a->curve;
-        count = (int32_t)(vc->end - vc->begin);
+        count = (int32_t)vector_length(*vc);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_curve* c = &vc->begin[sort_index.begin[i]];
@@ -1703,13 +1703,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
             buf, off, "", 1, &d->model_transform, 0x1F);
     }
 
-    if (a->event.end - a->event.begin) {
+    if (vector_length(a->event) > 0) {
         len = 5;
         memcpy(buf, "event", 5);
         off = len;
 
         vector_a3da_event* ve = &a->event;
-        count = (int32_t)(ve->end - ve->begin);
+        count = (int32_t)vector_length(*ve);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_event* e = &ve->begin[sort_index.begin[i]];
@@ -1732,13 +1732,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->fog.end - a->fog.begin) {
+    if (vector_length(a->fog) > 0) {
         len = 3;
         memcpy(buf, "fog", 3);
         off = len;
 
         vector_a3da_fog* vf = &a->fog;
-        count = (int32_t)(vf->end - vf->begin);
+        count = (int32_t)vector_length(*vf);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_fog* f = &vf->begin[sort_index.begin[i]];
@@ -1761,7 +1761,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->light.end - a->light.begin) {
+    if (vector_length(a->light) > 0) {
         len = 5;
         memcpy(buf, "light", 5);
         off = len;
@@ -1769,7 +1769,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         bool xhd = a->format == A3DA_FORMAT_XHD;
 
         vector_a3da_light* vl = &a->light;
-        count = (int32_t)(vl->end - vl->begin);
+        count = (int32_t)vector_length(*vl);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_light* l = &vl->begin[sort_index.begin[i]];
@@ -1849,13 +1849,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->m_object_hrc.end - a->m_object_hrc.begin) {
+    if (vector_length(a->m_object_hrc) > 0) {
         len = 8;
         memcpy(buf, "m_objhrc", 8);
         off = len;
 
         vector_a3da_m_object_hrc* vmoh = &a->m_object_hrc;
-        count = (int32_t)(vmoh->end - vmoh->begin);
+        count = (int32_t)vector_length(*vmoh);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_m_object_hrc* moh = &vmoh->begin[sort_index.begin[i]];
@@ -1868,7 +1868,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
             off = len + len1 + len2;
 
             vector_a3da_object_instance* voi = &moh->instance;
-            count1 = (int32_t)(voi->end - voi->begin);
+            count1 = (int32_t)vector_length(*voi);
             key_val_get_lexicographic_order(&sort_index1, count1);
             for (int32_t j = 0; j < count; j++) {
                 a3da_object_instance* oi = &voi->begin[sort_index1.begin[i]];
@@ -1907,7 +1907,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
             off = len + len1 + len2;
 
             vector_a3da_object_node* vmohn = &moh->node;
-            count1 = (int32_t)(vmohn->end - vmohn->begin);
+            count1 = (int32_t)vector_length(*vmohn);
             key_val_get_lexicographic_order(&sort_index1, count1);
             for (int32_t j = 0; j < count; j++) {
                 a3da_object_node* mohn = &vmohn->begin[sort_index1.begin[i]];
@@ -1941,13 +1941,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->m_object_hrc_list.end - a->m_object_hrc_list.begin) {
+    if (vector_length(a->m_object_hrc_list) > 0) {
         len = 13;
         memcpy(buf, "m_objhrc_list", 13);
         off = len;
 
         vector_string* vmohl = &a->m_object_hrc_list;
-        count = (int32_t)(vmohl->end - vmohl->begin);
+        count = (int32_t)vector_length(*vmohl);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             string* mohl = &vmohl->begin[sort_index.begin[i]];
@@ -1962,14 +1962,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->material_list.end - a->material_list.begin
-        && (a->format == A3DA_FORMAT_X || a->format == A3DA_FORMAT_XHD)) {
+    if (vector_length(a->material_list) > 0 && (a->format == A3DA_FORMAT_X || a->format == A3DA_FORMAT_XHD)) {
         len = 13;
         memcpy(buf, "material_list", 13);
         off = len;
 
         vector_a3da_material_list* vml = &a->material_list;
-        count = (int32_t)(vml->end - vml->begin);
+        count = (int32_t)vector_length(*vml);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_material_list* ml = &vml->begin[sort_index.begin[i]];
@@ -1992,13 +1991,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->motion.end - a->motion.begin) {
+    if (vector_length(a->motion) > 0) {
         len = 6;
         memcpy(buf, "motion", 6);
         off = len;
 
         vector_string* vm = &a->motion;
-        count = (int32_t)(vm->end - vm->begin);
+        count = (int32_t)vector_length(*vm);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             string* m = &vm->begin[sort_index.begin[i]];
@@ -2013,13 +2012,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->object.end - a->object.begin) {
+    if (vector_length(a->object) > 0) {
         len = 6;
         memcpy(buf, "object", 6);
         off = len;
 
         vector_a3da_object* vo = &a->object;
-        count = (int32_t)(vo->end - vo->begin);
+        count = (int32_t)vector_length(*vo);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_object* o = &vo->begin[sort_index.begin[i]];
@@ -2055,7 +2054,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
             off = len + len1 + len2;
 
             vector_a3da_object_texture_pattern* votp = &o->texture_pattern;
-            count1 = (int32_t)(votp->end - votp->begin);
+            count1 = (int32_t)vector_length(*votp);
             key_val_get_lexicographic_order(&sort_index1, count1);
             for (int32_t j = 0; j < count; j++) {
                 a3da_object_texture_pattern* otp = &votp->begin[sort_index1.begin[i]];
@@ -2082,7 +2081,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
             off = len + len1 + len2;
 
             vector_a3da_object_texture_transform* vott = &o->texture_transform;
-            count1 = (int32_t)(vott->end - vott->begin);
+            count1 = (int32_t)vector_length(*vott);
             key_val_get_lexicographic_order(&sort_index1, count1);
             for (int32_t j = 0; j < count; j++) {
                 a3da_object_texture_transform* ott = &vott->begin[sort_index1.begin[i]];
@@ -2141,13 +2140,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->object_list.end - a->object_list.begin) {
+    if (vector_length(a->object_list) > 0) {
         len = 11;
         memcpy(buf, "object_list", 11);
         off = len;
 
         vector_string* vol = &a->object_list;
-        count = (int32_t)(vol->end - vol->begin);
+        count = (int32_t)vector_length(*vol);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             string* ol = &vol->begin[sort_index.begin[i]];
@@ -2162,13 +2161,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->object_hrc.end - a->object_hrc.begin) {
+    if (vector_length(a->object_hrc) > 0) {
         len = 6;
         memcpy(buf, "objhrc", 6);
         off = len;
 
         vector_a3da_object_hrc* voh = &a->object_hrc;
-        count = (int32_t)(voh->end - voh->begin);
+        count = (int32_t)vector_length(*voh);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_object_hrc* oh = &voh->begin[sort_index.begin[i]];
@@ -2184,7 +2183,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
             off = len + len1 + len2;
 
             vector_a3da_object_node* vohn = &oh->node;
-            count1 = (int32_t)(vohn->end - vohn->begin);
+            count1 = (int32_t)vector_length(*vohn);
             key_val_get_lexicographic_order(&sort_index1, count1);
             for (int32_t j = 0; j < count; j++) {
                 a3da_object_node* ohn = &vohn->begin[sort_index1.begin[i]];
@@ -2224,13 +2223,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
-    if (a->object_hrc_list.end - a->object_hrc_list.begin) {
+    if (vector_length(a->object_hrc_list) > 0) {
         len = 11;
         memcpy(buf, "objhrc_list", 11);
         off = len;
 
         vector_string* vohl = &a->object_hrc_list;
-        count = (int32_t)(vohl->end - vohl->begin);
+        count = (int32_t)vector_length(*vohl);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             string* ohl = &vohl->begin[sort_index.begin[i]];
@@ -2295,13 +2294,13 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
             key_val_write_a3da_key(&s, buf, off, ".lens_shaft", 12, &pp->lens_shaft);
     }
 
-    if (a->point.end - a->point.begin) {
+    if (vector_length(a->point) > 0) {
         len = 5;
         memcpy(buf, "point", 5);
         off = len;
 
         vector_a3da_point* vp = &a->point;
-        count = (int32_t)(vp->end - vp->begin);
+        count = (int32_t)vector_length(*vp);
         key_val_get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
             a3da_point* p = &vp->begin[sort_index.begin[i]];
@@ -2918,7 +2917,7 @@ static void key_val_write_a3da_key(stream* s, char* buf,
     memcpy(buf + offset, ".key", 5);
     offset += 4;
 
-    int32_t length = (int32_t)(value->keys.end - value->keys.begin);
+    int32_t length = (int32_t)vector_length(value->keys);
 
     vector_int32_t sort_index = vector_empty(int32_t);
     key_val_get_lexicographic_order(&sort_index, length);
@@ -3073,7 +3072,7 @@ static void key_val_write_a3da_key_raw_data(stream* s, char* buf,
     size_t offset, a3da_key* value) {
     key_val_write_float_t(s, buf, offset, ".max", 5, value->max);
 
-    int32_t length = (int32_t)(value->keys.end - value->keys.begin);
+    int32_t length = (int32_t)vector_length(value->keys);
     if (value->raw_data_binary) {
         key_val_write_int32_t(s, buf, offset, ".raw_data.value_list_offset", 6,
             value->raw_data_value_list_offset);
@@ -3365,13 +3364,13 @@ static void a3dc_read_a3da_key_f16(void* data, size_t length, a3da_key* value, a
 
 static void a3dc_write_a3da_key_f16(stream* s, a3da_key* value, a3da_compress_f16 f16) {
     if (value->raw_data) {
-        if ((int32_t)(value->keys.end - value->keys.begin) < 1) {
+        if (vector_length(value->keys) < 1) {
             value->raw_data = false;
             value->raw_data_binary = false;
             value->type = A3DA_KEY_NONE;
             vector_kft3_free(&value->keys, 0);
         }
-        else if ((int32_t)(value->keys.end - value->keys.begin) == 1) {
+        else if (vector_length(value->keys) == 1) {
             value->raw_data = false;
             value->raw_data_binary = false;
             value->type = A3DA_KEY_STATIC;
@@ -3386,7 +3385,7 @@ static void a3dc_write_a3da_key_f16(stream* s, a3da_key* value, a3da_compress_f1
 
         value->raw_data_value_list_offset = (int32_t)io_get_position(s);
 
-        int32_t len = (int32_t)(value->keys.end - value->keys.begin);
+        int32_t len = (int32_t)vector_length(value->keys);
         value->raw_data_value_list_size = len * 4;
         for (int32_t i = 0; i < len; i++) {
             kft3* k = &value->keys.begin[i];
@@ -3412,7 +3411,7 @@ static void a3dc_write_a3da_key_f16(stream* s, a3da_key* value, a3da_compress_f1
         return;
     }
 
-    uint32_t len = (uint32_t)(value->keys.end - value->keys.begin);
+    uint32_t len = (uint32_t)vector_length(value->keys);
 
     a3dc_key_header head;
     memset(&head, 0, sizeof(a3dc_key_header));

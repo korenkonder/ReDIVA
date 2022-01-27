@@ -115,7 +115,7 @@ void data_view_auth_3d_imgui(class_data* data) {
         tree_node_flags = tree_node_base_flags;
         tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-        if (auth->ambient.end - auth->ambient.begin
+        if (vector_length(auth->ambient) > 1
             && igTreeNodeEx_Str("Ambient", tree_node_flags)) {
             for (auth_3d_ambient* l = auth->ambient.begin;
                 l != auth->ambient.end; l++)
@@ -123,7 +123,7 @@ void data_view_auth_3d_imgui(class_data* data) {
             igTreePop();
         }
 
-        if (auth->auth_2d.end - auth->auth_2d.begin
+        if (vector_length(auth->auth_2d) > 1
             && igTreeNodeEx_Str("Auth 2D", tree_node_flags)) {
             for (string* l = auth->auth_2d.begin;
                 l != auth->auth_2d.end; l++)
@@ -133,17 +133,17 @@ void data_view_auth_3d_imgui(class_data* data) {
 
         data_view_auth_3d_imgui_auth_3d_camera_auxiliary(&auth->camera_auxiliary);
 
-        if (auth->camera_root.end - auth->camera_root.begin > 1
+        if (vector_length(auth->camera_root) > 1
             && igTreeNodeEx_Str("Camera Root", tree_node_flags)) {
             for (auth_3d_camera_root* l = auth->camera_root.begin;
                 l != auth->camera_root.end; l++)
                 data_view_auth_3d_imgui_auth_3d_camera_root(l, l - auth->camera_root.begin);
             igTreePop();
         }
-        else if (auth->camera_root.end - auth->camera_root.begin == 1)
+        else if (vector_length(auth->camera_root) == 1)
             data_view_auth_3d_imgui_auth_3d_camera_root(&auth->camera_root.begin[0], -1);
 
-        if (auth->chara.end - auth->chara.begin
+        if (vector_length(auth->chara) > 0
             && igTreeNodeEx_Str("Chara", tree_node_flags)) {
             for (auth_3d_chara* l = auth->chara.begin;
                 l != auth->chara.end; l++)
@@ -153,7 +153,7 @@ void data_view_auth_3d_imgui(class_data* data) {
 
         data_view_auth_3d_imgui_auth_3d_dof(&auth->dof);
 
-        if (auth->fog.end - auth->fog.begin
+        if (vector_length(auth->fog) > 0
             && igTreeNodeEx_Str("Fog", tree_node_flags)) {
             for (auth_3d_fog* l = auth->fog.begin;
                 l != auth->fog.end; l++)
@@ -161,7 +161,7 @@ void data_view_auth_3d_imgui(class_data* data) {
             igTreePop();
         }
 
-        if (auth->light.end - auth->light.begin
+        if (vector_length(auth->light) > 0
             && igTreeNodeEx_Str("Light", tree_node_flags)) {
             for (auth_3d_light* l = auth->light.begin;
                 l != auth->light.end; l++)
@@ -169,7 +169,7 @@ void data_view_auth_3d_imgui(class_data* data) {
             igTreePop();
         }
 
-        if (auth->m_object_hrc_list.end - auth->m_object_hrc_list.begin
+        if (vector_length(auth->m_object_hrc_list) > 0
             && igTreeNodeEx_Str("M Object HRC", tree_node_flags)) {
             for (auth_3d_m_object_hrc** l = auth->m_object_hrc_list.begin;
                 l != auth->m_object_hrc_list.end; l++)
@@ -177,7 +177,7 @@ void data_view_auth_3d_imgui(class_data* data) {
             igTreePop();
         }
 
-        if (auth->material_list.end - auth->material_list.begin
+        if (vector_length(auth->material_list) > 0
             && igTreeNodeEx_Str("Material List", tree_node_flags)) {
             for (auth_3d_material_list* l = auth->material_list.begin;
                 l != auth->material_list.end; l++)
@@ -185,7 +185,7 @@ void data_view_auth_3d_imgui(class_data* data) {
             igTreePop();
         }
 
-        if (auth->motion.end - auth->motion.begin
+        if (vector_length(auth->motion) > 0
             && igTreeNodeEx_Str("Motion", tree_node_flags)) {
             for (string* l = auth->motion.begin;
                 l != auth->motion.end; l++)
@@ -193,7 +193,7 @@ void data_view_auth_3d_imgui(class_data* data) {
             igTreePop();
         }
 
-        if (auth->object_list.end - auth->object_list.begin
+        if (vector_length(auth->object_list) > 0
             && igTreeNodeEx_Str("Object", tree_node_flags)) {
             for (auth_3d_object** l = auth->object_list.begin;
                 l != auth->object_list.end; l++)
@@ -201,7 +201,7 @@ void data_view_auth_3d_imgui(class_data* data) {
             igTreePop();
         }
 
-        if (auth->object_hrc_list.end - auth->object_hrc_list.begin
+        if (vector_length(auth->object_hrc_list) > 0
             && igTreeNodeEx_Str("Object HRC", tree_node_flags)) {
             for (auth_3d_object_hrc** l = auth->object_hrc_list.begin;
                 l != auth->object_hrc_list.end; l++)
@@ -209,7 +209,7 @@ void data_view_auth_3d_imgui(class_data* data) {
             igTreePop();
         }
 
-        if (auth->point.end - auth->point.begin
+        if (vector_length(auth->point) > 0
             && igTreeNodeEx_Str("Point", tree_node_flags)) {
             for (auth_3d_point* l = auth->point.begin;
                 l != auth->point.end; l++)
@@ -231,10 +231,6 @@ End:
 
 void data_view_auth_3d_input(class_data* data) {
     input_locked |= data->imgui_focus;
-}
-
-void data_view_auth_3d_render(class_data* data) {
-
 }
 
 bool data_view_auth_3d_dispose(class_data* data) {
@@ -613,7 +609,7 @@ static void data_view_auth_3d_imgui_auth_3d_m_object_hrc(auth_3d_m_object_hrc* m
         return;
     }
 
-    if (moh->instance.end - moh->instance.begin
+    if (vector_length(moh->instance) > 0
         && igTreeNodeEx_Str("Instance", tree_node_flags)) {
         for (auth_3d_object_instance* i = moh->instance.begin; i != moh->instance.end; i++)
             data_view_auth_3d_imgui_auth_3d_object_instance(i);
@@ -622,7 +618,7 @@ static void data_view_auth_3d_imgui_auth_3d_m_object_hrc(auth_3d_m_object_hrc* m
 
     data_view_auth_3d_imgui_auth_3d_object_model_transform(&moh->model_transform);
 
-    if (moh->node.end - moh->node.begin
+    if (vector_length(moh->node) > 0
         && igTreeNodeEx_Str("Node", tree_node_flags)) {
         for (auth_3d_object_node* i = moh->node.begin; i != moh->node.end; i++)
             data_view_auth_3d_imgui_auth_3d_object_node(i);
@@ -694,7 +690,7 @@ static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
 
     tree_node_flags = tree_node_base_flags;
 
-    if (o->texture_pattern.end - o->texture_pattern.begin
+    if (vector_length(o->texture_pattern) > 0
         && igTreeNodeEx_Str("Texture Pattern", tree_node_flags)) {
         for (auth_3d_object_texture_pattern* i = o->texture_pattern.begin;
             i != o->texture_pattern.end; i++)
@@ -704,7 +700,7 @@ static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
 
     tree_node_flags = tree_node_base_flags;
 
-    if (o->texture_transform.end - o->texture_transform.begin
+    if (vector_length(o->texture_transform) > 0
         && igTreeNodeEx_Str("Texture Transform", tree_node_flags)) {
         for (auth_3d_object_texture_transform* i = o->texture_transform.begin;
             i != o->texture_transform.end; i++)
@@ -716,7 +712,7 @@ static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
     tree_node_flags = tree_node_base_flags;
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-    if (o->children_object.end - o->children_object.begin
+    if (vector_length(o->children_object) > 0
         && igTreeNodeEx_Str("Children Object", tree_node_flags)) {
         for (auth_3d_object** i = o->children_object.begin;
             i != o->children_object.end; i++)
@@ -727,7 +723,7 @@ static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
     tree_node_flags = tree_node_base_flags;
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-    if (o->children_object_hrc.end - o->children_object_hrc.begin
+    if (vector_length(o->children_object_hrc) > 0
         && igTreeNodeEx_Str("Children Object HRC", tree_node_flags)) {
         for (auth_3d_object_hrc** i = o->children_object_hrc.begin;
             i != o->children_object_hrc.end; i++)
@@ -787,7 +783,7 @@ static void data_view_auth_3d_imgui_auth_3d_object_hrc(auth_3d_object_hrc* oh) {
 
     tree_node_flags = tree_node_base_flags;
 
-    if (oh->node.end - oh->node.begin
+    if (vector_length(oh->node) > 0
         && igTreeNodeEx_Str("Node", tree_node_flags)) {
         for (auth_3d_object_node* i = oh->node.begin; i != oh->node.end; i++)
             data_view_auth_3d_imgui_auth_3d_object_node(i);
@@ -797,7 +793,7 @@ static void data_view_auth_3d_imgui_auth_3d_object_hrc(auth_3d_object_hrc* oh) {
     tree_node_flags = tree_node_base_flags;
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-    if (oh->children_object.end - oh->children_object.begin
+    if (vector_length(oh->children_object) > 0
         && igTreeNodeEx_Str("Children Object", tree_node_flags)) {
         for (auth_3d_object** i = oh->children_object.begin;
             i != oh->children_object.end; i++)
@@ -808,7 +804,7 @@ static void data_view_auth_3d_imgui_auth_3d_object_hrc(auth_3d_object_hrc* oh) {
     tree_node_flags = tree_node_base_flags;
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-    if (oh->children_object_hrc.end - oh->children_object_hrc.begin
+    if (vector_length(oh->children_object_hrc) > 0
         && igTreeNodeEx_Str("Children Object HRC", tree_node_flags)) {
         for (auth_3d_object_hrc** i = oh->children_object_hrc.begin;
             i != oh->children_object_hrc.end; i++)

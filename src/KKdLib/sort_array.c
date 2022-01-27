@@ -8,7 +8,7 @@
 void sort_array(size_t* array, size_t length) {
     size_t i, j, l, m;
 
-    if (length <= 0)
+    if (length < 1)
         return;
     else if (length == 1) {
         *array = 0;
