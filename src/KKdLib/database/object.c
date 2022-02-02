@@ -8,6 +8,7 @@
 #include "../io/path.h"
 #include "../io/stream.h"
 #include "../hash.h"
+#include "../sort.h"
 #include "../str_utils.h"
 
 vector_func(object_info)
@@ -797,19 +798,8 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
             object_database_strings_push_back_check(&strings, string_data(&j->name));
     }
 
-    for (string* i = strings.begin; i != &strings.end[-1]; i++) {
-        char* i_str = string_data(i);
-        for (string* j = i + 1; j != strings.end; j++)
-            if (str_utils_compare(i_str, string_data(j)) > 0) {
-                string temp = *i;
-                *i = *j;
-                *j = temp;
-                i_str = string_data(i);
-            }
-    }
-
+    quicksort_string(strings.begin, vector_length(strings));
     vector_ssize_t_reserve(&string_offsets, vector_length(strings));
-
     for (string* i = strings.begin; i != strings.end; i++) {
         ssize_t off = io_get_position(&s_mosi);
         io_write_string_null_terminated(&s_mosi, i);

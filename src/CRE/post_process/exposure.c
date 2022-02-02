@@ -16,14 +16,18 @@ post_process_exposure* post_process_exposure_init() {
     return exp;
 }
 
-void post_process_get_exposure(post_process_exposure* exp, GLuint in_tex_0, GLuint in_tex_1) {
+void post_process_get_exposure(post_process_exposure* exp,
+    bool reset_exposure, GLuint in_tex_0, GLuint in_tex_1) {
     if (!exp)
         return;
 
     uniform_value[U_EXPOSURE] = 1;
     render_texture_shader_set(&shaders_ft, SHADER_FT_EXPOSURE);
 
-    glViewport(exp->exposure_history_counter, 0, 1, 1); // 14
+    if (reset_exposure)
+        glViewport(0, 0, 32, 1);
+    else
+        glViewport(exp->exposure_history_counter, 0, 1, 1);
     render_texture_bind(&exp->exposure_history, 0);
     gl_state_active_bind_texture_2d(0, in_tex_0);
     gl_state_active_bind_texture_2d(1, in_tex_1);

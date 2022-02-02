@@ -4,6 +4,7 @@
 */
 
 #include "draw_task.h"
+#include "../KKdLib/sort.h"
 #include "camera.h"
 #include "fbo.h"
 #include "post_process.h"
@@ -17,6 +18,9 @@ static void draw_task_object_init(draw_task* task, object_data* object_data, mat
     int32_t instances_count, mat4* instances_mat, void(*draw_object_func)(draw_object*));
 static void draw_task_object_translucent_init(draw_task* task, mat4* mat,
     draw_task_object_translucent* object);
+static int draw_task_sort_quicksort_compare0(void const* src1, void const* src2);
+static int draw_task_sort_quicksort_compare1(void const* src1, void const* src2);
+static int draw_task_sort_quicksort_compare2(void const* src1, void const* src2);
 static int32_t draw_task_translucent_sort_count_layers(render_context* rctx,
     int32_t* alpha_array, draw_object_type opaque,
     draw_object_type transparent, draw_object_type translucent);
@@ -742,38 +746,22 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
             task->bounding_radius = task->data.object.mesh->bounding_sphere.radius;
         }
 
-        //mat4_mult_vec3_trans(&rctx->camera->view, &center, &center);
-        //task->depth = center.z;
-        task->depth = rctx->camera->view_point.z - center.z;
+        mat4_mult_vec3_trans(&rctx->camera->view, &center, &center);
+        task->depth = center.z;
     }
 
     switch (compare_func) {
     case 0:
-        for (draw_task** i = vec->begin; i != &vec->end[-1]; i++)
-            for (draw_task** j = i + 1; j != vec->end; j++)
-                if ((*i)->depth > (*j)->depth) {
-                    draw_task* temp = *i;
-                    *i = *j;
-                    *j = temp;
-                }
+        quicksort_custom(vec->begin, vector_length(*vec),
+            sizeof(draw_task*), draw_task_sort_quicksort_compare0);
         break;
     case 1:
-        for (draw_task** i = vec->begin; i != &vec->end[-1]; i++)
-            for (draw_task** j = i + 1; j != vec->end; j++)
-                if ((*i)->depth < (*j)->depth) {
-                    draw_task* temp = *i;
-                    *i = *j;
-                    *j = temp;
-                }
+        quicksort_custom(vec->begin, vector_length(*vec),
+            sizeof(draw_task*), draw_task_sort_quicksort_compare1);
         break;
     case 2:
-        for (draw_task** i = vec->begin; i != &vec->end[-1]; i++)
-            for (draw_task** j = i + 1; j != vec->end; j++)
-                if ((*i)->bounding_radius < (*j)->bounding_radius) {
-                    draw_task* temp = *i;
-                    *i = *j;
-                    *j = temp;
-                }
+        quicksort_custom(vec->begin, vector_length(*vec),
+            sizeof(draw_task*), draw_task_sort_quicksort_compare2);
         break;
     }
 }
@@ -932,6 +920,24 @@ inline static void draw_task_object_translucent_init(draw_task* task, mat4* mat,
     task->type = DRAW_TASK_TYPE_OBJECT_TRANSLUCENT;
     mat4_to_mat4u(mat, &task->mat);
     task->data.object_translucent = *object;
+}
+
+static int draw_task_sort_quicksort_compare0(void const* src1, void const* src2) {
+    float_t d1 = (*(draw_task**)src1)->depth;
+    float_t d2 = (*(draw_task**)src2)->depth;
+    return d1 > d2 ? -1 : (d1 < d2 ? 1 : 0);
+}
+
+static int draw_task_sort_quicksort_compare1(void const* src1, void const* src2) {
+    float_t d1 = (*(draw_task**)src1)->depth;
+    float_t d2 = (*(draw_task**)src2)->depth;
+    return d1 < d2 ? -1 : (d1 > d2 ? 1 : 0);
+}
+
+static int draw_task_sort_quicksort_compare2(void const* src1, void const* src2) {
+    float_t r1 = (*(draw_task**)src1)->bounding_radius;
+    float_t r2 = (*(draw_task**)src2)->bounding_radius;
+    return r1 < r2 ? 1 : (r1 > r2 ? -1 : 0);
 }
 
 inline static int32_t draw_task_translucent_sort_count_layers(render_context* rctx,

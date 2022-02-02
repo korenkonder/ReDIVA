@@ -423,6 +423,8 @@ typedef struct a3da {
     bool compressed;
     a3da_format format;
 
+    uint32_t hash;
+
     a3da_compress_f16 _compress_f16;
     string _file_name;
     string _property_version;

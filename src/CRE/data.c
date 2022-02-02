@@ -128,6 +128,20 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, vector_data_str
 
 bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
     bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
+    if (path_check_directory_exists(dir)) {
+        char* t = strrchr(file, '.');
+        size_t t_len;
+        if (t)
+            t_len = t - file;
+        else
+            t_len = utf8_length(file);
+
+        uint32_t h = hash_murmurhash(file, t_len, 0, false, false);
+        bool ret = load_func(data, dir, file, h);
+        if (ret)
+            return true;
+    }
+
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
         dir += 2;
@@ -181,7 +195,7 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
                 char* t = strrchr(l_str, '.');
                 size_t l_len = l->length;
                 if (t)
-                    l_len = t - l_str - 1;
+                    l_len = t - l_str;
 
                 uint32_t h = hash_murmurhash(l_str, l_len, 0, false, false);
                 ret = load_func(data, temp, l_str, h);

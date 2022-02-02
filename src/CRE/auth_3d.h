@@ -296,6 +296,8 @@ struct auth_3d_camera_root {
     vec3 interest_value;
     float_t roll_value;
     vec3 view_point_value;
+    bool fast_change;
+    bool fast_change_hist0;
 };
 
 struct auth_3d_chara {
@@ -435,6 +437,7 @@ struct auth_3d_object {
     auth_3d_model_transform model_transform;
     auth_3d_object_curve morph;
     object_info object_info;
+    uint32_t object_hash;
     string name;
     string parent_name;
     string parent_node;
@@ -455,6 +458,7 @@ struct auth_3d_object_hrc {
     string name;
     vector_auth_3d_object_node node;
     object_info object_info;
+    uint32_t object_hash;
     string parent_name;
     string parent_node;
     bool reflect;
@@ -469,6 +473,7 @@ struct auth_3d_object_instance {
     string name;
     vector_int32_t object_bone_indices;
     object_info object_info;
+    uint32_t object_hash;
     bool shadow;
     string uid_name;
 };
@@ -548,12 +553,15 @@ typedef struct auth_3d {
     int32_t id;
     bool enable;
     bool camera_root_update;
+    bool visible;
     bool repeat;
     bool ended;
     bool left_right_reverse;
     bool once;
 
     float_t alpha;
+    int32_t chara_id;
+    frame_rate_control* frame_rate;
     float_t frame;
     float_t set_frame;
     float_t max_frame;
@@ -586,6 +594,7 @@ typedef struct auth_3d {
 
     string file_name;
     int32_t frame_int;
+    uint32_t hash;
 } auth_3d;
 
 #define AUTH_3D_DATA_COUNT 0x100
@@ -604,12 +613,12 @@ extern auth_3d_data_struct auth_3d_data;
 
 extern void auth_3d_init(auth_3d* auth);
 extern void auth_3d_data_set(auth_3d* auth, mat4* mat, render_context* rctx);
-extern void auth_3d_get_value(auth_3d* auth, mat4* mat, float_t frame);
-extern void auth_3d_unload(auth_3d* auth, render_context* rctx);
+extern void auth_3d_time_step(auth_3d* auth, mat4* mat);
 extern void auth_3d_load(auth_3d* auth, a3da* auth_file,
     object_database* obj_db, texture_database* tex_db);
 extern void auth_3d_load_from_farc(auth_3d* auth, farc* f, char* file,
     object_database* obj_db, texture_database* tex_db);
+extern void auth_3d_unload(auth_3d* auth, render_context* rctx);
 extern void auth_3d_free(auth_3d* auth);
 
 extern void auth_3d_farc_init(auth_3d_farc* f);
@@ -647,7 +656,11 @@ extern void auth_3d_post_process_free(auth_3d_post_process* pp);
 extern void auth_3d_data_init();
 extern int32_t auth_3d_data_load_uid(int32_t uid, auth_3d_database* auth_3d_db);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t id);
-extern int32_t auth_3d_data_get_auth_3d_id_by_object_info(object_info obj_info, uint64_t* mesh_index, bool* hrc);
+extern int32_t auth_3d_data_get_chara_id(int32_t id);
+extern int32_t auth_3d_data_get_auth_3d_id_by_object_info(object_info obj_info,
+    int32_t* object_index, bool* hrc, int32_t instance);
+extern int32_t auth_3d_data_get_auth_3d_id_by_hash(uint32_t file_name_hash, uint32_t object_hash,
+    int32_t* object_index, bool* hrc, int32_t instance);
 extern mat4* auth_3d_data_struct_get_auth_3d_object_mat(int32_t id, size_t index, bool hrc, mat4* mat);
 extern void auth_3d_data_unload_id(int32_t id, render_context* rctx);
 extern void auth_3d_data_free();

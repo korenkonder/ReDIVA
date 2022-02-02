@@ -56,6 +56,7 @@ vector_func(ptr_auth_3d_m_object_hrc)
 vector_func(ptr_auth_3d_object)
 vector_func(ptr_auth_3d_object_hrc)
 
+static bool auth_3d_key_detect_fast_change(auth_3d_key* data, float_t frame, float_t threshold);
 static kft3* auth_3d_key_find_keyframe(auth_3d_key* data, float_t frame);
 static float_t auth_3d_key_get_value(auth_3d_key* data, float_t frame);
 static float_t auth_3d_key_interpolate(auth_3d_key* data, float_t frame);
@@ -70,9 +71,15 @@ static void auth_3d_model_transform_get_value(auth_3d_model_transform* mt, float
 static void auth_3d_model_transform_load(auth_3d* auth, auth_3d_model_transform* mt, auth_3d_model_transform_file* mtf);
 static void auth_3d_model_transform_set_mat(auth_3d_model_transform* mt, mat4* parent_mat);
 
-static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth, object_info obj_info);
+static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth,
+    object_info obj_info, int32_t instance);
+static int32_t auth_3d_get_auth_3d_object_index_by_hash(auth_3d* auth,
+    uint32_t object_hash, int32_t instance);
 static mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t index);
-static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth, object_info obj_info);
+static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth,
+    object_info obj_info, int32_t instance);
+static int32_t auth_3d_get_auth_3d_object_hrc_index_by_hash(auth_3d* auth,
+    uint32_t object_hash, int32_t instance);
 
 static void auth_3d_ambient_data_set(auth_3d_ambient* a, render_context* rctx);
 static void auth_3d_ambient_get_value(auth_3d_ambient* a, float_t frame);
@@ -202,7 +209,7 @@ void auth_3d_data_set(auth_3d* auth, mat4* mat, render_context* rctx) {
     auth_3d_post_process_data_set(&auth->post_process, rctx);
 }
 
-void auth_3d_get_value(auth_3d* auth, mat4* mat, float_t delta_frame) {
+void auth_3d_time_step(auth_3d* auth, mat4* mat) {
     if (!auth || !auth->enable)
         return;
 
@@ -216,7 +223,7 @@ void auth_3d_get_value(auth_3d* auth, mat4* mat, float_t delta_frame) {
                 auth->max_frame = -1.0f;
         }
         else if (!auth->paused) {
-            auth->frame += delta_frame;
+            auth->frame += frame_rate_control_get_delta_frame(auth->frame_rate);
             if (auth->max_frame >= 0.0f && auth->frame > auth->max_frame)
                 auth->frame = auth->max_frame;
         }
@@ -292,25 +299,12 @@ void auth_3d_get_value(auth_3d* auth, mat4* mat, float_t delta_frame) {
     auth->ended = ended;
 }
 
-void auth_3d_unload(auth_3d* auth, render_context* rctx) {
-    if (!auth)
-        return;
-
-    auth_3d_camera_auxiliary_restore_prev_value(&auth->camera_auxiliary, rctx);
-    for (auth_3d_light* i = auth->light.begin; i != auth->light.end; i++)
-        auth_3d_light_restore_prev_value(i, rctx);
-    for (auth_3d_fog* i = auth->fog.begin; i != auth->fog.end; i++)
-        auth_3d_fog_restore_prev_value(i, rctx);
-    auth_3d_dof_restore_prev_value(&auth->dof, rctx);
-    auth_3d_post_process_restore_prev_value(&auth->post_process, rctx);
-    auth_3d_free(auth);
-}
-
 void auth_3d_load(auth_3d* auth, a3da* auth_file,
     object_database* obj_db, texture_database* tex_db) {
     if (!auth || !auth_file)
         return;
 
+    auth->hash = auth_file->hash;
     auth_3d_camera_auxiliary_load(auth, &auth_file->camera_auxiliary);
     auth_3d_dof_load(auth, &auth_file->dof);
     auth_3d_play_control_load(auth, &auth_file->play_control);
@@ -326,6 +320,7 @@ void auth_3d_load(auth_3d* auth, a3da* auth_file,
     auth->left_right_reverse = false;
     auth->once = false;
 
+    auth->frame_rate = &sys_frame_rate;
     auth->frame = 0.0f;
     auth->set_frame = 0.0f;
     auth->max_frame = auth->play_control.size;
@@ -566,11 +561,100 @@ void auth_3d_load_from_farc(auth_3d* auth, farc* f, char* file,
     if (!ff)
         return;
 
+    char* l_str = string_data(&ff->name);
+    char* t = strrchr(l_str, '.');
+    size_t l_len = ff->name.length;
+    if (t)
+        l_len = t - l_str;
+
+    uint32_t h = hash_murmurhash(l_str, l_len, 0, false, false);
+
     a3da a;
     a3da_init(&a);
     a3da_mread(&a, ff->data, ff->size);
+    a.hash = h;
     auth_3d_load(auth, &a, obj_db, tex_db);
     a3da_free(&a);
+}
+
+void auth_3d_set_enable(int32_t* id, bool value) {
+    if (*id >= 0 && (*id & 0x7FFF) < AUTH_3D_DATA_COUNT) {
+        auth_3d* auth = &auth_3d_data.data[*id & 0x7FFF];
+        if (auth->id == *id)
+            auth->enable = value;
+    }
+}
+
+void auth_3d_set_frame_rate(int32_t* id, frame_rate_control* value) {
+    if (*id >= 0 && (*id & 0x7FFF) < AUTH_3D_DATA_COUNT) {
+        auth_3d* auth = &auth_3d_data.data[*id & 0x7FFF];
+        if (auth->id == *id)
+            auth->frame_rate = value ? value : &sys_frame_rate;
+    }
+}
+
+void auth_3d_set_last_frame(int32_t* id, float_t value) {
+    if (*id >= 0 && (*id & 0x7FFF) < AUTH_3D_DATA_COUNT) {
+        auth_3d* auth = &auth_3d_data.data[*id & 0x7FFF];
+        if (auth->id == *id)
+            auth->last_frame = value;
+    }
+}
+
+void auth_3d_set_max_frame(int32_t* id, float_t value) {
+    if (*id >= 0 && (*id & 0x7FFF) < AUTH_3D_DATA_COUNT) {
+        auth_3d* auth = &auth_3d_data.data[*id & 0x7FFF];
+        if (auth->id == *id)
+            auth->max_frame = value;
+    }
+}
+
+void auth_3d_set_paused(int32_t* id, bool value) {
+    if (*id >= 0 && (*id & 0x7FFF) < AUTH_3D_DATA_COUNT) {
+        auth_3d* auth = &auth_3d_data.data[*id & 0x7FFF];
+        if (auth->id == *id)
+            auth->paused = value;
+    }
+}
+
+void auth_3d_set_repeat(int32_t* id, bool value) {
+    if (*id >= 0 && (*id & 0x7FFF) < AUTH_3D_DATA_COUNT) {
+        auth_3d* auth = &auth_3d_data.data[*id & 0x7FFF];
+        if (auth->id == *id)
+            auth->repeat = value;
+    }
+}
+
+void auth_3d_set_set_frame(int32_t* id, float_t value) {
+    if (*id >= 0 && (*id & 0x7FFF) < AUTH_3D_DATA_COUNT) {
+        auth_3d* auth = &auth_3d_data.data[*id & 0x7FFF];
+        if (auth->id == *id) {
+            auth->set_frame = value;
+            auth->frame_changed = 1;
+        }
+    }
+}
+
+void auth_3d_set_visibility(int32_t* id, bool value) {
+    if (*id >= 0 && (*id & 0x7FFF) < AUTH_3D_DATA_COUNT) {
+        auth_3d* auth = &auth_3d_data.data[*id & 0x7FFF];
+        if (auth->id == *id)
+            auth->visible = value;
+    }
+}
+
+void auth_3d_unload(auth_3d* auth, render_context* rctx) {
+    if (!auth)
+        return;
+
+    auth_3d_camera_auxiliary_restore_prev_value(&auth->camera_auxiliary, rctx);
+    for (auth_3d_light* i = auth->light.begin; i != auth->light.end; i++)
+        auth_3d_light_restore_prev_value(i, rctx);
+    for (auth_3d_fog* i = auth->fog.begin; i != auth->fog.end; i++)
+        auth_3d_fog_restore_prev_value(i, rctx);
+    auth_3d_dof_restore_prev_value(&auth->dof, rctx);
+    auth_3d_post_process_restore_prev_value(&auth->post_process, rctx);
+    auth_3d_free(auth);
 }
 
 void auth_3d_free(auth_3d* auth) {
@@ -579,7 +663,9 @@ void auth_3d_free(auth_3d* auth) {
 
     auth->uid = -1;
     auth->id = -1;
+    auth->visible = true;
     auth->alpha = 1.0f;
+    auth->chara_id = -1;
 
     auth_3d_camera_auxiliary_free(&auth->camera_auxiliary);
     auth_3d_dof_free(&auth->dof);
@@ -729,6 +815,8 @@ void auth_3d_farc_load(auth_3d_farc* f, void* data, char* name, object_database*
 
 void auth_3d_farc_free(auth_3d_farc* f) {
     farc_free(&f->auth_3d_farc);
+    for (uint32_t* i = f->obj_set_id.begin; i != f->obj_set_id.end; i++)
+        object_storage_delete_object_set(*i);
     vector_uint32_t_free(&f->obj_set_id, 0);
 }
 
@@ -979,19 +1067,18 @@ void auth_3d_post_process_free(auth_3d_post_process* pp) {
         auth_3d_rgba_free(&pp->scene_fade);
 }
 /*
-void __fastcall sub_140248480(string *a1, list_int32_t *a2)
-{
-    list_int32_t_node *v4; // rcx
-    list_int32_t_node *v5; // rbx
+void __fastcall sub_140248480(string *a1, list_int32_t *a2) {
+    list_int32_t_node *index; // rcx
+    list_int32_t_node *obj_instance; // rbx
     char *v6; // rcx
-    int32_t *i; // rbx
+    int32_t *next_key; // rbx
     char *v8; // rax
     size_t v9; // r8
     size_t v10; // rsi
     char *v11; // rdi
-    _BYTE *v12; // rax
-    _BYTE *v13; // r9
-    int v14; // ecx
+    _BYTE *key; // rax
+    _BYTE *next_key; // r9
+    int prev_key; // ecx
     char *v15; // rax
     ssize_t v16; // r9
     char *v17; // rcx
@@ -999,7 +1086,7 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
     list_int32_t_node *v19; // rax
     size_t v20; // rdx
     int32_t v21; // eax
-    pv_db_pv *v22; // rax
+    pv_db_pv *next_key; // rax
     pv_db_pv_difficulty *v23; // rcx
     string_union v24; // kr00_16
     pv_item *__shifted(pv_item,8) v25; // rbx
@@ -1033,19 +1120,17 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
     vector_int32_t uids; // [rsp+70h] [rbp+7h] BYREF
 
     v49 = -2i64;
-    v4 = a2->head->next;
+    index = a2->head->next;
     a2->head->next = a2->head;
     a2->head->prev = a2->head;
     a2->size = 0i64;
-    if ( v4 != a2->head )
-    {
-        do
-        {
-            v5 = v4->next;
-            j_free_2(v4);
-            v4 = v5;
+    if ( index != a2->head ) {
+        do {
+            obj_instance = index->next;
+            j_free_2(index);
+            index = obj_instance;
         }
-        while ( v5 != a2->head );
+        while ( obj_instance != a2->head );
     }
     uids.begin = 0i64;
     uids.end = 0i64;
@@ -1055,55 +1140,47 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
     else
         v6 = a1->data.ptr;
     sub_1401CBC70(v6, &uids);
-    for ( i = uids.begin; i != uids.end; ++i )
-    {
-        v8 = sub_1401E7E90(*i);
+    for ( next_key = uids.begin; next_key != uids.end; ++next_key ) {
+        v8 = sub_1401E7E90(*next_key);
         Dst.capacity = 15i64;
         Dst.length = 0i64;
         Dst.data.data[0] = 0;
-        if ( *v8 )
-        {
+        if ( *v8 ) {
             v9 = -1i64;
             do
                 ++v9;
             while ( v8[v9] );
         }
-        else
-        {
+        else {
             v9 = 0i64;
         }
         string_append_char_str(&Dst, v8, v9);
         v10 = Dst.length;
-        if ( Dst.length )
-        {
+        if ( Dst.length ) {
             v11 = (char *)&Dst;
             if ( Dst.capacity >= 0x10 )
                 v11 = Dst.data.ptr;
-            while ( v10 )
-            {
-                v12 = memchr(v11, '_', v10);
-                v13 = v12;
-                if ( !v12 )
+            while ( v10 ) {
+                key = memchr(v11, '_', v10);
+                next_key = key;
+                if ( !key )
                     break;
-                if ( *v12 == asc_14096CDF0[0] )
-                    v14 = 0;
+                if ( *key == asc_14096CDF0[0] )
+                    prev_key = 0;
                 else
-                    v14 = *v12 < asc_14096CDF0[0] ? -1 : 1;
-                if ( !v14 )
-                {
+                    prev_key = *key < asc_14096CDF0[0] ? -1 : 1;
+                if ( !prev_key ) {
                     v15 = (char *)&Dst;
                     if ( Dst.capacity >= 0x10 )
                         v15 = Dst.data.ptr;
-                    v16 = v13 - v15;
-                    if ( v16 != -1 )
-                    {
+                    v16 = next_key - v15;
+                    if ( v16 != -1 ) {
                         sub_1400215A0(&Dst, &Memory, 0i64, v16);
                         v17 = (char *)&Memory;
                         if ( Memory.capacity >= 0x10 )
                             v17 = Memory.data.ptr;
                         a4 = obj_database_get_object_set(v17);
-                        if ( a4 != -1 )
-                        {
+                        if ( a4 != -1 ) {
                             v18 = a2->head;
                             v19 = list_int32_t_buy_node(a2, a2->head, a2->head->prev, &a4);
                             v20 = a2->size;
@@ -1118,38 +1195,31 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
                     }
                     break;
                 }
-                v10 += v11 - v12 - 1;
-                v11 = v12 + 1;
+                v10 += v11 - key - 1;
+                v11 = key + 1;
             }
         }
         if ( Dst.capacity >= 0x10 )
             j_free_2(Dst.data.ptr);
     }
-    if ( !string_compare_ptr_char(a1, "ITMPV", 0i64, 5ui64) )
-    {
+    if ( !string_compare_ptr_char(a1, "ITMPV", 0i64, 5ui64) ) {
         sub_1400215A0(a1, &Memory, 5i64, -1i64);
         v21 = sub_1400D29A0(&Memory, 0xAu);
-        v22 = task_pv_db_get_pv(v21);
-        if ( v22 )
-        {
-            v23 = v22->difficulty[2].begin;
-            if ( v22->difficulty[2].end - v23 )
-            {
+        next_key = task_pv_db_get_pv(v21);
+        if ( next_key ) {
+            v23 = next_key->difficulty[2].begin;
+            if ( next_key->difficulty[2].end - v23 ) {
                 v51.data = 0ui64;
                 v51.length = 0i64;
                 sub_14023FDE0((vector_pv_db_pv_pv_item *)&v51, &v23->pv_item);
                 v24 = v51.data;
-                if ( v51.data.ptr != *(char **)&v51.data.data[8] )
-                {
+                if ( v51.data.ptr != *(char **)&v51.data.data[8] ) {
                     v25 = (pv_item *__shifted(pv_item,8))(v51.data.ptr + 8);
-                    do
-                    {
-                        if ( ADJ(v25)->index > 0 )
-                        {
+                    do {
+                        if ( ADJ(v25)->index > 0 ) {
                             v26 = (char *)(ADJ(v25)->name.capacity < 0x10 ? v25 : ADJ(v25)->name.data.ptr);
                             v27 = obj_database_get_object_info(v26);
-                            if ( v27 != -1 )
-                            {
+                            if ( v27 != -1 ) {
                                 a4 = HIWORD(*(unsigned int *)&v27);
                                 v28 = a2->head;
                                 v29 = sub_14023B3E0(&a2->head, a2->head, a2->head->prev, &a4);
@@ -1165,13 +1235,10 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
                     }
                     while ( ADJ(v25) != *(pv_item *__shifted(pv_item,8) *)&v24.data[8] );
                 }
-                if ( v24.ptr )
-                {
-                    if ( v24.ptr != *(char **)&v24.data[8] )
-                    {
+                if ( v24.ptr ) {
+                    if ( v24.ptr != *(char **)&v24.data[8] ) {
                         v31 = (pv_item *__shifted(pv_item,0x20))(v24.ptr + 32);
-                        do
-                        {
+                        do {
                             if ( ADJ(v31)->name.capacity >= 0x10 )
                                 j_free_2(ADJ(v31)->name.data.ptr);
                             ADJ(v31)->name.capacity = 15i64;
@@ -1187,12 +1254,10 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
         if ( Memory.capacity >= 0x10 )
             j_free_2(Memory.data.ptr);
     }
-    if ( !string_compare_ptr_char(a1, "EFFCHRPV", 0i64, 8ui64) )
-    {
+    if ( !string_compare_ptr_char(a1, "EFFCHRPV", 0i64, 8ui64) ) {
         v32 = (char *)(a1->capacity < 0x10 ? a1 : a1->data.ptr);
         a4 = obj_database_get_object_set(v32);
-        if ( a4 != -1 )
-        {
+        if ( a4 != -1 ) {
             v33 = a2->head;
             v34 = list_int32_t_buy_node(a2, a2->head, a2->head->prev, &a4);
             v35 = a2->size;
@@ -1210,23 +1275,19 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
     v51.data.data[0] = 0;
     string_append_char_str(&v51, null_string, 0i64);
     v36 = string_compare_ptr_char(a1, "STGPV", 0i64, 5ui64);
-    if ( v36 != -1 )
-    {
+    if ( v36 != -1 ) {
         v37 = sub_1400215A0(a1, &Memory, v36, 8i64);
-        if ( &v51 != v37 )
-        {
+        if ( &v51 != v37 ) {
             if ( v51.capacity >= 0x10 )
                 j_free_2(v51.data.ptr);
             v51.capacity = 15i64;
             v51.length = 0i64;
             v51.data.data[0] = 0;
-            if ( v37->capacity >= 0x10 )
-            {
+            if ( v37->capacity >= 0x10 ) {
                 v51.data.ptr = v37->data.ptr;
                 v37->data.ptr = 0i64;
             }
-            else if ( v37->length != -1i64 )
-            {
+            else if ( v37->length != -1i64 ) {
                 memmove(&v51, v37, v37->length + 1);
             }
             v51.length = v37->length;
@@ -1239,23 +1300,19 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
             j_free_2(Memory.data.ptr);
     }
     v38 = string_compare_ptr_char(a1, "STGD2PV", 0i64, 7ui64);
-    if ( v38 != -1 )
-    {
+    if ( v38 != -1 ) {
         v39 = sub_1400215A0(a1, &Memory, v38, 10i64);
-        if ( &v51 != v39 )
-        {
+        if ( &v51 != v39 ) {
             if ( v51.capacity >= 0x10 )
                 j_free_2(v51.data.ptr);
             v51.capacity = 15i64;
             v51.length = 0i64;
             v51.data.data[0] = 0;
-            if ( v39->capacity >= 0x10 )
-            {
+            if ( v39->capacity >= 0x10 ) {
                 v51.data.ptr = v39->data.ptr;
                 v39->data.ptr = 0i64;
             }
-            else if ( v39->length != -1i64 )
-            {
+            else if ( v39->length != -1i64 ) {
                 memmove(&v51, v39, v39->length + 1);
             }
             v51.length = v39->length;
@@ -1267,14 +1324,12 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
         if ( Memory.capacity >= 0x10 )
             j_free_2(Memory.data.ptr);
     }
-    if ( v51.length )
-    {
+    if ( v51.length ) {
         v40 = (char *)&v51;
         if ( v51.capacity >= 0x10 )
             v40 = v51.data.ptr;
         a4 = obj_database_get_object_set(v40);
-        if ( a4 != -1 )
-        {
+        if ( a4 != -1 ) {
             v41 = a2->head->next;
             v42 = list_int32_t_buy_node(a2, v41, v41->prev, &a4);
             v43 = a2->size;
@@ -1290,8 +1345,7 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
     if ( Memory.capacity >= 0x10 )
         v44 = Memory.data.ptr;
     a4 = obj_database_get_object_set(v44);
-    if ( a4 != -1 )
-    {
+    if ( a4 != -1 ) {
         v45 = a2->head;
         v46 = list_int32_t_buy_node(a2, a2->head, a2->head->prev, &a4);
         v47 = a2->size;
@@ -1311,14 +1365,14 @@ void __fastcall sub_140248480(string *a1, list_int32_t *a2)
 
 void sub_140248480(string* a1, vector_uint32_t* a2) {
     char* v6; // rcx
-    int32_t* i; // rbx
+    int32_t* next_key; // rbx
     char* v8; // rax
     size_t v9; // r8
     size_t v10; // rsi
     char* v11; // rdi
-    char* v12; // rax
-    char* v13; // r9
-    int v14; // ecx
+    char* key; // rax
+    char* next_key; // r9
+    int prev_key; // ecx
     char* v15; // rax
     ssize_t v16; // r9
     char* v17; // rcx
@@ -1326,7 +1380,7 @@ void sub_140248480(string* a1, vector_uint32_t* a2) {
     list_int32_t_node* v19; // rax
     size_t v20; // rdx
     int v21; // eax
-    ssize_t* v22; // rax
+    ssize_t* next_key; // rax
     __int64 v23; // rcx
     string_union v24; // kr00_16
     string* v25; // rbx
@@ -1365,29 +1419,25 @@ void sub_140248480(string* a1, vector_uint32_t* a2) {
     uids.capacity_end = 0;
     v6 = string_data(a1);
     sub_1401CBC70(v6, &uids);
-    for (i = uids.begin; i != uids.end; i++) {
-        v8 = sub_1401E7E90(*i);
+    for (next_key = uids.begin; next_key != uids.end; next_key++) {
+        v8 = sub_1401E7E90(*next_key);
         string_init(&Dst, v8);
         v10 = Dst.length;
-        if (Dst.length)
-        {
+        if (Dst.length) {
             v11 = string_data(&Dst);
-            while (v10)
-            {
-                v12 = memchr(v11, '_', v10);
-                v13 = v12;
-                if (!v12)
+            while (v10) {
+                key = memchr(v11, '_', v10);
+                next_key = key;
+                if (!key)
                     break;
-                if (*v12 == "_"[0])
-                    v14 = 0;
+                if (*key == "_"[0])
+                    prev_key = 0;
                 else
-                    v14 = *v12 < "_"[0] ? -1 : 1;
-                if (!v14)
-                {
+                    prev_key = *key < "_"[0] ? -1 : 1;
+                if (!prev_key) {
                     v15 = string_data(&Dst);
-                    v16 = v13 - v15;
-                    if (v16 != -1)
-                    {
+                    v16 = next_key - v15;
+                    if (v16 != -1) {
                         sub_1400215A0(&Dst, &Memory, 0, v16);
                         v17 = string_data(&Memory);
                         a4 = obj_database_get_object_set(v17);
@@ -1397,8 +1447,8 @@ void sub_140248480(string* a1, vector_uint32_t* a2) {
                     }
                     break;
                 }
-                v10 += v11 - v12 - 1;
-                v11 = v12 + 1;
+                v10 += v11 - key - 1;
+                v11 = key + 1;
             }
         }
         string_free(&Dst);
@@ -1407,10 +1457,10 @@ void sub_140248480(string* a1, vector_uint32_t* a2) {
     if (!str_utils_get_substring_offset(string_data(a1), a1->length, 0, "ITMPV", 5)) {
         string_init_length(&Dst, string_data(a1), 8);
         sscanf_s(string_data(a1) + 5, "%03d", &v21);
-        v22 = sub_1404E6220(v21);
-        if (v22) {
-            v23 = v22[28];
-            if ((v22[29] - v23) / 1248) {
+        next_key = sub_1404E6220(v21);
+        if (next_key) {
+            v23 = next_key[28];
+            if ((next_key[29] - v23) / 1248) {
                 Dst.data = 0;
                 Dst.length = 0;
                 sub_14023FDE0(&Dst, (_QWORD*)(v23 + 504));
@@ -1514,6 +1564,13 @@ inline auth_3d* auth_3d_data_get_auth_3d(int32_t id) {
     return &auth_3d_data.data[index];
 }
 
+inline int32_t auth_3d_data_get_chara_id(int32_t id) {
+    auth_3d* auth = auth_3d_data_get_auth_3d(id);
+    if (auth)
+        return auth->chara_id;
+    return -1;
+}
+
 mat4* auth_3d_data_struct_get_auth_3d_object_mat(int32_t id, size_t index, bool hrc, mat4* mat) {
     if (id < 0 || (id & 0x7FFF) >= AUTH_3D_DATA_COUNT)
         return 0;
@@ -1533,7 +1590,8 @@ mat4* auth_3d_data_struct_get_auth_3d_object_mat(int32_t id, size_t index, bool 
 }
 
 
-int32_t auth_3d_data_get_auth_3d_id_by_object_info(object_info obj_info, uint64_t* mesh_index, bool* hrc) {
+int32_t auth_3d_data_get_auth_3d_id_by_object_info(object_info obj_info,
+    int32_t* object_index, bool* hrc, int32_t instance) {
     for (int32_t* i = auth_3d_data.loaded_ids.begin;
         i != auth_3d_data.loaded_ids.end; i++) {
         if (*i < 0 || (*i & 0x7FFF) >= AUTH_3D_DATA_COUNT)
@@ -1543,20 +1601,56 @@ int32_t auth_3d_data_get_auth_3d_id_by_object_info(object_info obj_info, uint64_
         if (auth->id != *i || !auth->enable)
             continue;
 
-        int32_t obj_hrc_mesh_index = auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth, obj_info);
-        if (obj_hrc_mesh_index >= 0) {
-            if (mesh_index)
-                *mesh_index = obj_hrc_mesh_index;
+        int32_t obj_hrc_index = auth_3d_get_auth_3d_object_hrc_index_by_object_info(
+            auth, obj_info, instance);
+        if (obj_hrc_index >= 0) {
+            if (object_index)
+                *object_index = obj_hrc_index;
             if (hrc)
                 *hrc = true;
             return *i;
         }
 
-        int32_t obj_mesh_index = auth_3d_get_auth_3d_object_index_by_object_info(auth, obj_info);
-        if (obj_mesh_index >= 0)
-        {
-            if (mesh_index)
-                *mesh_index = obj_mesh_index;
+        int32_t obj_index = auth_3d_get_auth_3d_object_index_by_object_info(
+            auth, obj_info, instance);
+        if (obj_index >= 0) {
+            if (object_index)
+                *object_index = obj_index;
+            if (hrc)
+                *hrc = false;
+            return *i;
+        }
+    }
+    return -1;
+}
+
+int32_t auth_3d_data_get_auth_3d_id_by_hash(uint32_t file_name_hash, uint32_t object_hash,
+    int32_t* object_index, bool* hrc, int32_t instance) {
+    for (int32_t* i = auth_3d_data.loaded_ids.begin;
+        i != auth_3d_data.loaded_ids.end; i++) {
+        if (*i < 0 || (*i & 0x7FFF) >= AUTH_3D_DATA_COUNT)
+            continue;
+
+        auth_3d* auth = &auth_3d_data.data[*i & 0x7FFF];
+        if (auth->id != *i || !auth->enable
+            || (file_name_hash != hash_murmurhash_empty && auth->hash != file_name_hash))
+            continue;
+
+        int32_t obj_hrc_index = auth_3d_get_auth_3d_object_hrc_index_by_hash(
+            auth, object_hash, instance);
+        if (obj_hrc_index >= 0) {
+            if (object_index)
+                *object_index = obj_hrc_index;
+            if (hrc)
+                *hrc = true;
+            return *i;
+        }
+
+        int32_t obj_index = auth_3d_get_auth_3d_object_index_by_hash(
+            auth, object_hash, instance);
+        if (obj_index >= 0) {
+            if (object_index)
+                *object_index = obj_index;
             if (hrc)
                 *hrc = false;
             return *i;
@@ -1599,6 +1693,85 @@ void auth_3d_data_free() {
         else
             auth_3d_free(&auth_3d_data.data[index]);
     vector_int32_t_free(&auth_3d_data.loaded_ids, 0);
+}
+
+static bool auth_3d_key_detect_fast_change(auth_3d_key* data, float_t frame, float_t threshold) {
+    if (data->type < AUTH_3D_KEY_LINEAR || data->type > AUTH_3D_KEY_HOLD)
+        return false;
+
+    frame = clamp(frame, 0.0f, data->max_frame);
+    size_t length = data->length;
+    if (!length)
+        return false;
+
+    kft3* keys = data->keys;
+    kft3* key = auth_3d_key_find_keyframe(data, frame);
+    if (key == keys || key == &keys[1] || key == &keys[length])
+        return false;
+
+    kft3* next_key = &key[1];
+    if (next_key == &keys[length])
+        return false;
+
+    kft3* prev_key = &key[-1];
+    float_t v18 = key->frame - prev_key->frame;
+    if (v18 >= 2.0f || v18 <= 0.0f)
+        return 0;
+
+    if (fabsf(key->value - prev_key->value) <= threshold)
+        return 0;
+
+    kft3* v21 = &prev_key[-1];
+    if (prev_key->frame <= v21->frame) {
+        while (v21 != keys) {
+            if (prev_key->frame > v21->frame)
+                break;
+            v21++;
+        }
+        if (v21 == keys)
+            return 0;
+    }
+
+    float_t v23 = key->value - (prev_key->value / v18);
+    float_t v25;
+    float_t v30;
+    if (data->type != AUTH_3D_KEY_HERMITE) {
+        v25 = (prev_key->value - v21->value) / (prev_key->frame - v21->frame);
+        v30 = (next_key->value - key->value) / (next_key->frame - key->frame);
+    }
+    else {
+        if (prev_key->frame - v21->frame >= 2.0f) {
+            float_t v26;
+            if (v21->frame < prev_key->frame)
+                v26 = interpolate_chs_value(key->value, next_key->value,
+                    key->tangent2, next_key->tangent1, prev_key->frame, v21->frame, prev_key->frame - 1.0f);
+            else
+                v26 = v21->value;
+            v25 = prev_key->value - v26;
+        }
+        else
+            v25 = (prev_key->value - v21->value) / (prev_key->frame - v21->frame);
+
+        if (next_key->frame - key->frame >= 2.0f) {
+            float_t v29;
+            if (key->frame < next_key->frame)
+                v29 = interpolate_chs_value(key->value, next_key->value,
+                    key->tangent2, next_key->tangent1, key->frame, next_key->frame, 1.0f);
+            else
+                v29 = key->value;
+            v30 = v29 - key->value;
+        }
+        else
+            v30 = (next_key->value - key->value) / (next_key->frame - key->frame);
+    }
+
+    float_t v32 = fabsf(v25);
+    float_t v33 = v25 * v23;
+    float_t v34 = v30 * v23;
+    float_t v35 = fabsf(v23);
+    float_t v36 = fabsf(v30);
+    return (v33 <= 0.0f || (v32 < v35 && v32 <= threshold))
+        && (v34 <= 0.0f || (v36 < v35 && v36 <= threshold));
 }
 
 static kft3* auth_3d_key_find_keyframe(auth_3d_key* data, float_t frame) {
@@ -1645,7 +1818,7 @@ static float_t auth_3d_key_get_value(auth_3d_key* data, float_t frame) {
             frame = last_frame - fmodf(delta_frame, frame_delta);
             break;
         case A3DA_EP_CYCLE_OFFSET:
-            offset = -(float_t)((int32_t)(delta_frame / frame_delta + 1.0)) * data->value_delta;
+            offset = -(float_t)((int32_t)(delta_frame / frame_delta) + 1) * data->value_delta;
             frame = last_frame - fmodf(delta_frame, frame_delta);
             break;
         }
@@ -1666,7 +1839,7 @@ static float_t auth_3d_key_get_value(auth_3d_key* data, float_t frame) {
             frame = first_frame + fmodf(delta_frame, frame_delta);
             break;
         case A3DA_EP_CYCLE_OFFSET:
-            offset = (float_t)((int32_t)(delta_frame / frame_delta + 1.0)) * data->value_delta;
+            offset = (float_t)((int32_t)(delta_frame / frame_delta) + 1) * data->value_delta;
             frame = first_frame + fmodf(delta_frame, frame_delta);
             break;
         }
@@ -1845,21 +2018,31 @@ static void auth_3d_model_transform_set_mat(auth_3d_model_transform* mt, mat4* p
     mat4_to_mat4u(&mat, &mt->mat);
 }
 
-static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth, object_info obj_info) {
-    auth_3d_object* v2 = auth->object.begin;
-    auth_3d_object* v3 = auth->object.end;
-    int32_t v4 = 0;
-    if (v2 == v3)
-        return -1;
+static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth,
+    object_info obj_info, int32_t instance) {
+    int32_t index = 0;
+    int32_t obj_instance = 0;
+    for (auth_3d_object* i = auth->object.begin; i != auth->object.end; i++, index++)
+        if (obj_info.id == i->object_info.id
+            && obj_info.set_id == i->object_info.set_id) {
+            if (obj_instance == instance)
+                return index;
+            obj_instance++;
+        }
+    return -1;
+}
 
-    while (obj_info.id != v2->object_info.id
-        || obj_info.set_id != v2->object_info.set_id) {
-        v2++;
-        v4++;
-        if (v2 == v3)
-            return -1;
-    }
-    return v4;
+static int32_t auth_3d_get_auth_3d_object_index_by_hash(auth_3d* auth,
+    uint32_t object_hash, int32_t instance) {
+    int32_t index = 0;
+    int32_t obj_instance = 0;
+    for (auth_3d_object* i = auth->object.begin; i != auth->object.end; i++, index++)
+        if (object_hash == i->object_hash) {
+            if (obj_instance == instance)
+                return index;
+            obj_instance++;
+        }
+    return -1;
 }
 
 static mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t index) {
@@ -1869,21 +2052,31 @@ static mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t inde
     return voh->begin[index].mats.begin;
 }
 
-static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth, object_info obj_info) {
-    auth_3d_object_hrc* v2 = auth->object_hrc.begin;
-    auth_3d_object_hrc* v3 = auth->object_hrc.end;
-    int32_t v4 = 0;
-    if (v2 == v3)
-        return -1;
+static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth,
+    object_info obj_info, int32_t instance) {
+    int32_t index = 0;
+    int32_t obj_instance = 0;
+    for (auth_3d_object_hrc* i = auth->object_hrc.begin; i != auth->object_hrc.end; i++, index++)
+        if (obj_info.id == i->object_info.id
+            && obj_info.set_id == i->object_info.set_id) {
+            if (obj_instance == instance)
+                return index;
+            obj_instance++;
+        }
+    return -1;
+}
 
-    while (obj_info.id != v2->object_info.id
-        || obj_info.set_id != v2->object_info.set_id) {
-        v2++;
-        v4++;
-        if (v2 == v3)
-            return -1;
-    }
-    return v4;
+static int32_t auth_3d_get_auth_3d_object_hrc_index_by_hash(auth_3d* auth,
+    uint32_t object_hash, int32_t instance) {
+    int32_t index = 0;
+    int32_t obj_instance = 0;
+    for (auth_3d_object_hrc* i = auth->object_hrc.begin; i != auth->object_hrc.end; i++, index++)
+        if (object_hash == i->object_hash) {
+            if (obj_instance == instance)
+                return index;
+            obj_instance++;
+        }
+    return -1;
 }
 
 static void auth_3d_ambient_data_set(auth_3d_ambient* a, render_context* rctx) {
@@ -2015,9 +2208,36 @@ static void auth_3d_camera_root_data_set(auth_3d_camera_root* cr,
     camera_set_view_point(cam, &view_point);
     camera_set_fov(cam, fov * RAD_TO_DEG);
     camera_set_roll(cam, roll * RAD_TO_DEG);
+    camera_set_fast_change(cam, cr->fast_change);
+    camera_set_fast_change_hist0(cam, cr->fast_change_hist0);
 }
 
 static void auth_3d_camera_root_get_value(auth_3d_camera_root* cr, float_t frame, mat4* mat) {
+    cr->fast_change = false;
+    cr->fast_change_hist0 = false;
+    if (auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.x, frame, 0.3f)
+        || auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.y, frame, 0.3f)
+        || auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.z, frame, 0.3f)
+        || auth_3d_key_detect_fast_change(&cr->interest.translation.x, frame, 0.3f)
+        || auth_3d_key_detect_fast_change(&cr->interest.translation.y, frame, 0.3f)
+        || auth_3d_key_detect_fast_change(&cr->interest.translation.z, frame, 0.3f)) {
+        frame = (float_t)(int32_t)frame;
+        cr->fast_change = true;
+    }
+    else {
+        float_t frame_prev = frame - get_delta_frame();
+        if (frame_prev > 0.0f && (int32_t)frame - (int32_t)frame_prev == 2) {
+            frame_prev = (float_t)((int32_t)frame_prev + 1);
+            if (auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.x, frame_prev, 0.3f)
+                || auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.y, frame_prev, 0.3f)
+                || auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.z, frame_prev, 0.3f)
+                || auth_3d_key_detect_fast_change(&cr->interest.translation.x, frame_prev, 0.3f)
+                || auth_3d_key_detect_fast_change(&cr->interest.translation.y, frame_prev, 0.3f)
+                || auth_3d_key_detect_fast_change(&cr->interest.translation.z, frame_prev, 0.3f))
+                cr->fast_change_hist0 = false;
+        }
+    }
+
     auth_3d_model_transform_get_value(&cr->model_transform, frame);
     auth_3d_model_transform_set_mat(&cr->model_transform, mat);
 
@@ -2523,7 +2743,7 @@ static void auth_3d_m_object_hrc_load(auth_3d* auth,
 }
 
 static void auth_3d_m_object_hrc_data_set(auth_3d_m_object_hrc* moh, auth_3d* auth, render_context* rctx) {
-    if (!moh->model_transform.visible)
+    if (!auth->visible || !moh->model_transform.visible)
         return;
 
     object_data* object_data = &rctx->object_data;
@@ -2680,6 +2900,7 @@ static void auth_3d_object_load(auth_3d* auth, auth_3d_object_file* of,
     o->refract = strstr(string_data(&o->uid_name), "_REFRACT");
 
     o->object_info = object_database_get_object_info(obj_db, string_data(&o->uid_name));
+    o->object_hash = hash_murmurhash(string_data(&o->uid_name), o->uid_name.length, 0, false, false);
 }
 
 static void auth_3d_object_curve_get_value(auth_3d_object_curve* oc, float_t frame) {
@@ -2711,7 +2932,7 @@ static void auth_3d_object_curve_load(auth_3d* auth, auth_3d_object_curve* oc,
 }
 
 static void auth_3d_object_data_set(auth_3d_object* o, auth_3d* auth, render_context* rctx) {
-    if (!o->model_transform.visible)
+    if (!auth->visible || !o->model_transform.visible)
         return;
 
     mat4 mat;
@@ -2873,6 +3094,7 @@ static void auth_3d_object_hrc_load(auth_3d* auth,
     oh->refract = strstr(string_data(&oh->uid_name), "_REFRACT");
 
     oh->object_info = object_database_get_object_info(obj_db, string_data(&oh->uid_name));
+    oh->object_hash = hash_murmurhash(string_data(&oh->uid_name), oh->uid_name.length, 0, false, false);
 
     object* obj = object_storage_get_object(oh->object_info);
     if (!obj || !obj->skin_init)
@@ -2899,7 +3121,7 @@ static void auth_3d_object_hrc_load(auth_3d* auth,
 }
 
 static void auth_3d_object_hrc_data_set(auth_3d_object_hrc* oh, auth_3d* auth, render_context* rctx) {
-    if (!oh->node.begin[0].model_transform.visible)
+    if (!auth->visible || !oh->node.begin[0].model_transform.visible)
         return;
 
     object_data* object_data = &rctx->object_data;
@@ -3005,6 +3227,7 @@ static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_m_object_hrc* mo
     string_copy(&oif->uid_name, &oi->uid_name);
 
     oi->object_info = object_database_get_object_info(obj_db, string_data(&oi->uid_name));
+    oi->object_hash = hash_murmurhash(string_data(&oi->uid_name), oi->uid_name.length, 0, false, false);
 
     object* obj = object_storage_get_object(oi->object_info);
     if (!obj || !obj->skin_init)

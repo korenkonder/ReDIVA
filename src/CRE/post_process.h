@@ -49,6 +49,13 @@ typedef struct post_process_struct {
     shader_glsl alpha_layer_shader;
     int32_t render_width;
     int32_t render_height;
+    vec3 view_point;
+    vec3 interest;
+    vec3 view_point_prev;
+    vec3 interest_prev;
+    int32_t stage_index;
+    int32_t stage_index_prev;
+    bool reset_exposure;
     int32_t sprite_width;
     int32_t sprite_height;
     int32_t screen_x_offset;
@@ -67,4 +74,5 @@ extern int32_t post_process_movie_texture_set(post_process_struct* pp, texture* 
 extern void post_process_movie_texture_free(post_process_struct* pp, texture* movie_texture);
 extern int32_t post_process_render_texture_set(post_process_struct* pp, texture* render_texture, bool task_photo);
 extern void post_process_render_texture_free(post_process_struct* pp, texture* render_texture, bool task_photo);
+extern void post_process_update(post_process_struct* pp, camera* cam);
 extern void post_process_free(post_process_struct* pp);

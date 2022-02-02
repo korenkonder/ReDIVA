@@ -8,6 +8,7 @@
 #include "../io/path.h"
 #include "../io/stream.h"
 #include "../hash.h"
+#include "../sort.h"
 #include "../str_utils.h"
 
 vector_func(texture_info)
@@ -435,19 +436,8 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     for (texture_info* i = tex_db->texture.begin; i != tex_db->texture.end; i++)
         texture_database_strings_push_back_check(&strings, string_data(&i->name));
 
-    for (string* i = strings.begin; i != &strings.end[-1]; i++) {
-        char* i_str = string_data(i);
-        for (string* j = i + 1; j != strings.end; j++)
-            if (str_utils_compare(i_str, string_data(j)) > 0) {
-                string temp = *i;
-                *i = *j;
-                *j = temp;
-                i_str = string_data(i);
-            }
-    }
-
+    quicksort_string(strings.begin, vector_length(strings));
     vector_ssize_t_reserve(&string_offsets, vector_length(strings));
-
     for (string* i = strings.begin; i != strings.end; i++) {
         *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_mtxi);
         io_write_string_null_terminated(&s_mtxi, i);

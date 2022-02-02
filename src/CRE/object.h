@@ -539,6 +539,7 @@ typedef struct object {
     bool skin_init;
     string name;
     uint32_t id;
+    uint32_t hash;
 } object;
 
 typedef GLint object_mesh_index_buffer;
@@ -562,6 +563,7 @@ typedef struct object_vertex_buffer {
 typedef struct object_set {
     string name;
     uint32_t id;
+    uint32_t hash;
     object* objects;
     int32_t objects_count;
     uint32_t* texture_ids;
@@ -609,11 +611,16 @@ extern void object_storage_insert_object_set(object_set* set, uint32_t set_id);
 extern object* object_storage_get_object(object_info obj_info);
 extern object_mesh* object_storage_get_object_mesh(object_info obj_info, char* mesh_name);
 extern object_mesh* object_storage_get_object_mesh_by_index(object_info obj_info, int32_t index);
+extern object_mesh* object_storage_get_object_mesh_by_object_hash(uint32_t hash, char* mesh_name);
+extern object_mesh* object_storage_get_object_mesh_by_object_hash_index(uint32_t hash, int32_t index);
 extern int32_t object_storage_get_object_mesh_index(object_info obj_info, char* mesh_name);
+extern int32_t object_storage_get_object_mesh_index_by_hash(uint32_t hash, char* mesh_name);
 extern object_set* object_storage_get_object_set(uint32_t set_id);
 extern ssize_t object_storage_get_object_set_count();
+extern int32_t object_storage_get_object_set_load_count(uint32_t set_id);
 extern object_set* object_storage_get_object_set_by_index(ssize_t index);
 extern ssize_t object_storage_get_object_set_index(uint32_t set_id);
+extern int32_t object_storage_get_object_set_load_count_by_index(ssize_t index);
 extern object_skin* object_storage_get_object_skin(object_info obj_info);
 extern object_index_buffer* object_storage_get_object_index_buffers(uint32_t set_id);
 extern object_mesh_index_buffer* object_storage_get_object_mesh_index_buffer(object_info obj_info);

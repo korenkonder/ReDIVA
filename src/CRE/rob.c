@@ -389,7 +389,8 @@ static void skin_param_osage_root_free(skin_param_osage_root* root);
 vector_func(motion_storage)
 
 vector_motion_storage motion_storage_data;
-rob_chara rob_chara_array[6];
+rob_chara rob_chara_array[ROB_CHARA_COUNT];
+rob_chara_pv_data rob_chara_pv_data_array[ROB_CHARA_COUNT];
 extern wind* wind_ptr;
 
 static const exp_func_op1 exp_func_op1_array[] = {
@@ -1314,7 +1315,7 @@ static void sub_1405F9640(rob_chara_item_equip_object* itm_eq_obj) {
         i != rob_itm_equip->field_940.end; i++, index++) {
         /*size_t rob_chr = 0;
         int32_t child_osg_node = 0;
-        sub_140489480(itm_eq_obj->obj_info, v3->motion_id, &rob_chr, &child_osg_node);
+        sub_140489480(itm_eq_obj->obj_info, chr_data->motion_id, &rob_chr, &child_osg_node);
         if (!rob_chr)
             break;
 
@@ -1362,6 +1363,76 @@ static void rob_chara_item_equip_calc(rob_chara_item_equip* rob_item_equip) {
             rob_chara_item_equip_object_calc(&rob_item_equip->item_equip_object[i]);
 }
 
+static float_t rob_chara_get_trans_scale(rob_chara* rob_chr, int32_t bone, vec3* trans) {
+    if (bone > 26)
+        return 0.0f;
+    *trans = rob_chr->data.field_1E68.field_DF8[bone].trans;
+    return rob_chr->data.field_1E68.field_DF8[bone].scale;
+}
+
+mat4* rob_chara_bone_data_get_mats_mat(rob_chara_bone_data* rob_bone_data, ssize_t index) {
+    if (index < vector_length(rob_bone_data->mats))
+        return &rob_bone_data->mats.begin[index];
+    return 0;
+}
+
+static void sub_140509D30(rob_chara* rob_chr) {
+    struc_195* v39 = rob_chr->data.field_1E68.field_DF8;
+    struc_195* v40 = rob_chr->data.field_1E68.field_1230;
+    struc_195* v41 = rob_chr->data.field_1E68.field_1668;
+    mat4u* v42 = rob_chr->data.field_1E68.field_78;
+    mat4u* v43 = rob_chr->data.field_1E68.field_738;
+
+    const struc_218* v3 = rob_chr->chara_init_data->field_828;
+    const struc_218* v6 = rob_chr->chara_init_data->field_830;
+    mat4 mat;
+    for (int32_t i = 0; i < 27; i++)  {
+        mat = *rob_chara_bone_data_get_mats_mat(rob_chr->bone_data, v3->bone_index);
+        mat4_translate_mult(&mat, v3->bone_offset.x, v3->bone_offset.y, v3->bone_offset.z, &mat);
+        mat4_to_mat4u(&mat, v42);
+
+        mat = *rob_chara_bone_data_get_mats_mat(rob_chr->bone_data, v6->bone_index);
+        mat4_translate_mult(&mat, v3->bone_offset.x, v3->bone_offset.y, v3->bone_offset.z, &mat);
+        mat4_to_mat4u(&mat, v43);
+        float_t v14 = rob_chr->data.adjust_data.scale;
+
+        vec3 v23;
+        vec3_mult_scalar(*(vec3*)&v42->row3, v14, v23);
+        vec3_add(v23, rob_chr->data.adjust_data.trans, v23);
+        *(vec3*)&v42->row3 = v23;
+
+        vec3 v29;
+        vec3_mult_scalar(*(vec3*)&v43->row3, v14, v23);
+        vec3_add(v23, rob_chr->data.adjust_data.trans, v29);
+        *(vec3*)&v43->row3 = v29;
+
+        float_t v20 = v3->scale * v14;
+        v39->scale = v20;
+        v39->field_24 = v20;
+        v39->prev_trans = v39->trans;
+        v39->trans = v23;
+
+        float_t v19 = v6->scale * v14;
+        v40->scale = v19;
+        v40->field_24 = v19;
+        v40->prev_trans = v40->trans;
+        v40->trans = v29;
+
+        v41->scale = v19;
+        v41->field_24 = v19;
+        v41->prev_trans = v41->trans;
+        v41->trans = v29;
+
+        v39++;
+        v40++;
+        v41++;
+        v42++;
+        v43++;
+        v3++;
+        v6++;
+    }
+}
+
 void rob_chara_calc(rob_chara* rob_chr) {
     if (rob_chara_bone_data_get_frame(rob_chr->bone_data) < 0.0)
         rob_chara_bone_data_set_frame(rob_chr->bone_data, 0.0);
@@ -1371,9 +1442,7 @@ void rob_chara_calc(rob_chara* rob_chr) {
     if (frame > frame_count)
         rob_chara_bone_data_set_frame(rob_chr->bone_data, frame_count);
 
-    mat4_get_translation(&rob_chr->bone_data->mats.begin[MOTION_BONE_KL_KOSI_ETC_WJ],
-        &rob_chr->item_equip->position);
-    //rob_chara_get_trans_scale(rob_chr, 0, &rob_chr->item_equip->position);
+    rob_chara_get_trans_scale(rob_chr, 0, &rob_chr->item_equip->position);
 
     rob_chara_item_equip_calc(rob_chr->item_equip);
 
@@ -1561,6 +1630,28 @@ void rob_chara_reset(rob_chara* rob_chr, bone_database* bone_data, void* data, o
     }*/
 }
 
+static float_t chara_size_table_get_value(uint32_t a1) {
+    static const float_t chara_size_table[] = {
+        1.07f, 1.0f, 0.96f, 0.987f, 1.025f
+    };
+
+    if (a1 > 4)
+        return 1.0f;
+    else
+        return chara_size_table[a1];
+}
+
+static float_t chara_pos_adjust_y_table_get_value(uint32_t a1) {
+    static const float_t chara_pos_adjust_y_table[] = {
+        0.071732f, 0.0f, -0.03859f, 0.0f, 0.0f
+    };
+
+    if (a1 > 4)
+        return 0.0f;
+    else
+        return chara_pos_adjust_y_table[a1];
+}
+
 void rob_chara_reset_data(rob_chara* rob_chr, rob_chara_pv_data* pv_data,
     bone_database* bone_data, motion_database* mot_db) {
     rob_chara_bone_data_reset(rob_chr->bone_data);
@@ -1568,6 +1659,12 @@ void rob_chara_reset_data(rob_chara* rob_chr, rob_chara_pv_data* pv_data,
         BONE_DATABASE_SKELETON_COMMON, rob_chr->chara_init_data->skeleton_type, bone_data);
     rob_chara_item_equip_get_parent_bone_nodes(rob_chr->item_equip,
         rob_chara_bone_data_get_node(rob_chr->bone_data, 0), bone_data);
+    rob_chara_data* chr_data = &rob_chr->data;
+    chr_data->field_1D38.field_0 = pv_data->field_14;
+    chr_data->field_1D38.field_6 = pv_data->field_14;
+    chr_data->adjust_data.scale = chara_size_table_get_value(rob_chr->pv_data.chara_size_index);
+    chr_data->adjust_data.height_adjust = rob_chr->pv_data.height_adjust;
+    chr_data->adjust_data.pos_adjust_y = chara_pos_adjust_y_table_get_value(rob_chr->pv_data.chara_size_index);
     rob_chara_bone_data_eyes_xrot_adjust(rob_chr->bone_data, chara_some_data_array, &pv_data->eyes_adjust);
     rob_chara_bone_data_get_ik_scale(rob_chr->bone_data, bone_data);
     rob_chara_load_default_motion(rob_chr, bone_data, mot_db);
@@ -1576,7 +1673,14 @@ void rob_chara_reset_data(rob_chara* rob_chr, rob_chara_pv_data* pv_data,
     rob_chara_set_draw(rob_chr, ITEM_MAX, true);
 }
 
-void rob_chara_set(rob_chara* rob_chr, int8_t chara_id,
+void rob_chara_set_frame(rob_chara* rob_chr, float_t frame) {
+    rob_chara_bone_data_set_frame(rob_chr->bone_data, frame);
+    rob_chara_bone_data_interpolate(rob_chr->bone_data);
+    rob_chara_bone_data_update(rob_chr->bone_data, 0);
+    sub_140509D30(rob_chr);
+}
+
+void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
     chara_index chara_index, uint32_t module_index, rob_chara_pv_data* pv_data) {
     rob_chr->chara_id = chara_id;
     rob_chr->chara_index = chara_index;
@@ -1585,10 +1689,15 @@ void rob_chara_set(rob_chara* rob_chr, int8_t chara_id,
     rob_chr->chara_init_data = chara_init_data_get(chara_index);
 }
 
-void rob_chara_set_frame(rob_chara* rob_chr, float_t frame) {
-    rob_chara_bone_data_set_frame(rob_chr->bone_data, frame);
-    rob_chara_bone_data_interpolate(rob_chr->bone_data);
-    rob_chara_bone_data_update(rob_chr->bone_data, 0);
+void rob_chara_set_visibility(rob_chara* rob_chr, bool value) {
+    rob_chr->data.field_0 &= ~0x01;
+    rob_chr->data.field_3 &= ~0x01;
+    rob_chr->data.field_0 |= value & 0x01;
+    rob_chr->data.field_3 |= value & 0x01;
+    /*if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
+        sub_140543780(rob_chr->chara_id, 1, value);
+        sub_140543780(rob_chr->chara_id, 2, value);
+    }*/
 }
 
 void rob_chara_free(rob_chara* rob_chr) {
@@ -2111,11 +2220,6 @@ static void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select) {
             rot_sin = -rot_sin;
         else
             rot_2nd_sin = -rot_2nd_sin;
-
-        float_t arot_sin = asinf(rot_sin) * RAD_TO_DEG_FLOAT;
-        float_t arot_cos = acosf(rot_cos) * RAD_TO_DEG_FLOAT;
-        float_t arot_2nd_sin = asinf(rot_2nd_sin) * RAD_TO_DEG_FLOAT;
-        float_t arot_2nd_cos = acosf(rot_2nd_cos) * RAD_TO_DEG_FLOAT;
     }
     else {
         rot_sin = 0.0f;
@@ -2206,27 +2310,27 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
     size_t total_bone_count = 0;
     size_t ik_bone_count = 0;
 
-    bone_data* v16 = bone->bones.begin;
-    for (bone_database_bone* i = bones->begin; i != bones->end; i++, v16++) {
-        v16->motion_bone_index = (motion_bone_index)(i - bones->begin);
-        v16->type = i->type;
-        v16->mirror = i->mirror;
-        v16->parent = i->parent;
-        v16->flags = i->flags;
+    bone_data* bone_node = bone->bones.begin;
+    for (bone_database_bone* i = bones->begin; i != bones->end; i++, bone_node++) {
+        bone_node->motion_bone_index = (motion_bone_index)(i - bones->begin);
+        bone_node->type = i->type;
+        bone_node->mirror = i->mirror;
+        bone_node->parent = i->parent;
+        bone_node->flags = i->flags;
         if (i->type >= BONE_DATABASE_BONE_POSITION_ROTATION)
-            v16->key_set_count = 6;
+            bone_node->key_set_count = 6;
         else
-            v16->key_set_count = 3;
-        v16->base_translation[0] = *common_translation++;
-        v16->base_translation[1] = *translation++;
-        v16->node = &rob_bone_data->nodes.begin[total_bone_count];
-        v16->has_parent = i->has_parent;
+            bone_node->key_set_count = 3;
+        bone_node->base_translation[0] = *common_translation++;
+        bone_node->base_translation[1] = *translation++;
+        bone_node->node = &rob_bone_data->nodes.begin[total_bone_count];
+        bone_node->has_parent = i->has_parent;
         if (i->has_parent)
-            v16->parent_mat = &rob_bone_data->mats.begin[i->parent];
+            bone_node->parent_mat = &rob_bone_data->mats.begin[i->parent];
         else
-            v16->parent_mat = 0;
+            bone_node->parent_mat = 0;
 
-        v16->pole_target_mat = 0;
+        bone_node->pole_target_mat = 0;
         switch (i->type) {
         case BONE_DATABASE_BONE_ROTATION:
         case BONE_DATABASE_BONE_TYPE_1:
@@ -2240,8 +2344,8 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
             total_bone_count++;
             break;
         case BONE_DATABASE_BONE_HEAD_IK_ROTATION:
-            v16->ik_segment_length[0] = (common_translation++)->x;
-            v16->ik_segment_length[1] = (translation++)->x;
+            bone_node->ik_segment_length[0] = (common_translation++)->x;
+            bone_node->ik_segment_length[1] = (translation++)->x;
 
             chain_pos += 2;
             ik_bone_count++;
@@ -2249,15 +2353,15 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
             break;
         case BONE_DATABASE_BONE_ARM_IK_ROTATION:
         case BONE_DATABASE_BONE_LEGS_IK_ROTATION:
-            v16->ik_segment_length[0] = (common_translation++)->x;
-            v16->ik_segment_length[1] = (translation++)->x;
-            v16->ik_2nd_segment_length[0] = (common_translation++)->x;
-            v16->ik_2nd_segment_length[1] = (translation++)->x;
+            bone_node->ik_segment_length[0] = (common_translation++)->x;
+            bone_node->ik_segment_length[1] = (translation++)->x;
+            bone_node->ik_2nd_segment_length[0] = (common_translation++)->x;
+            bone_node->ik_2nd_segment_length[1] = (translation++)->x;
 
             mat4* pole_target = 0;
             if (i->pole_target)
                 pole_target = &rob_bone_data->mats.begin[i->pole_target];
-            v16->pole_target_mat = pole_target;
+            bone_node->pole_target_mat = pole_target;
 
             chain_pos += 3;
             ik_bone_count++;
@@ -2295,10 +2399,10 @@ static void bone_data_parent_load_bone_indices_from_mot(bone_data_parent* a1,
         }
         *vector_uint16_t_reserve_back(bone_indices) = (uint16_t)bone_index;
 
-        bone_data* v15 = &a1->bones.begin[bone_index];
-        v15->key_set_offset = (int32_t)key_set_offset;
-        v15->frame = -1.0f;
-        if (v15->type >= BONE_DATABASE_BONE_POSITION_ROTATION)
+        bone_data* bone_node = &a1->bones.begin[bone_index];
+        bone_node->key_set_offset = (int32_t)key_set_offset;
+        bone_node->frame = -1.0f;
+        if (bone_node->type >= BONE_DATABASE_BONE_POSITION_ROTATION)
             key_set_offset+= 6;
         else
             key_set_offset+= 3;
@@ -4242,11 +4346,11 @@ static void sub_14053CE30(rob_osage_node_data_normal_ref* normal_ref, mat4* a2) 
     }
 }
 
-static void sub_14047E1C0(rob_osage* a1, vec3* a2) {
-    for (rob_osage_node* i = a1->nodes.begin + 1; i != a1->nodes.end; i++)
+static void sub_14047E1C0(rob_osage* rob_osg, vec3* scale) {
+    for (rob_osage_node* i = rob_osg->nodes.begin + 1; i != rob_osg->nodes.end; i++)
         if (i->data_ptr->normal_ref.field_0) {
             sub_14053CE30(&i->data_ptr->normal_ref, i->bone_node_mat);
-            mat4_scale_rot(i->bone_node_mat, a2->x, a2->y, a2->z, i->bone_node_mat);
+            mat4_scale_rot(i->bone_node_mat, scale->x, scale->y, scale->z, i->bone_node_mat);
         }
 }
 
@@ -4445,10 +4549,10 @@ static void ex_osage_block_field_18(ex_osage_block* osg, int32_t a2, bool a3) {
 }
 
 static void ex_osage_block_field_28(ex_osage_block* osg) {
-    rob_chara_item_equip* rob_itm_equip = osg->base.item_equip_object->item_equip;
+    /*rob_chara_item_equip* rob_itm_equip = osg->base.item_equip_object->item_equip;
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
-    //sub_14047E240(&osg->rob, parent_node->ex_data_mat, &parent_scale, &rob_itm_equip->field_940);
+    //sub_14047E240(&osg->rob, parent_node->ex_data_mat, &parent_scale, &rob_itm_equip->field_940);*/
 }
 
 static void ex_osage_block_field_40(ex_osage_block* osg) {
@@ -4588,7 +4692,7 @@ static float_t exp_abs(float_t v1) {
 }
 
 static float_t exp_acos(float_t v1) {
-    return acosf(v1);
+    return acosf(v1) * RAD_TO_DEG_FLOAT;
 }
 
 static float_t exp_add(float_t v1, float_t v2) {
@@ -4600,11 +4704,11 @@ static float_t exp_and(float_t v1, float_t v2) {
 }
 
 static float_t exp_asin(float_t v1) {
-    return asinf(v1);
+    return asinf(v1) * RAD_TO_DEG_FLOAT;
 }
 
 static float_t exp_atan(float_t v1) {
-    return atanf(v1);
+    return atanf(v1) * RAD_TO_DEG_FLOAT;
 }
 
 static float_t exp_av(float_t v1) {
@@ -4620,7 +4724,7 @@ static float_t exp_cond(float_t v1, float_t v2, float_t v3) {
 }
 
 static float_t exp_cos(float_t v1) {
-    return cosf(v1);
+    return cosf(fmodf(v1, 360.0f) * DEG_TO_RAD_FLOAT);
 }
 
 static float_t exp_div(float_t v1, float_t v2) {
@@ -4734,7 +4838,7 @@ static float_t exp_round(float_t v1) {
 }
 
 static float_t exp_sin(float_t v1) {
-    return sinf(v1);
+    return sinf(fmodf(v1, 360.0f) * DEG_TO_RAD_FLOAT);
 }
 
 static float_t exp_sqrt(float_t v1) {
@@ -4746,7 +4850,7 @@ static float_t exp_sub(float_t v1, float_t v2) {
 }
 
 static float_t exp_tan(float_t v1) {
-    return tanf(v1);
+    return tanf(fmodf(v1, 360.0f) * DEG_TO_RAD_FLOAT);
 }
 
 static const float_t get_osage_gravity_const() {
@@ -6474,7 +6578,7 @@ static void rob_chara_item_sub_data_reload_items(rob_chara_item_sub_data* itm_su
     //sub_data.outer = 181;
     //sub_data.kata = 481;
     //sub_data.head = 981;
-    rob_chara_reload_items(&rob_chara_array[0],
+    rob_chara_reload_items(&rob_chara_array[chara_id],
         &sub_data, bone_data, data, obj_db);
 
     /*rob_chara_item_equip* rob_item_equip = rob_chara_array[chara_id].item_equip;
@@ -6643,6 +6747,7 @@ static void rob_chara_load_default_motion_sub(rob_chara* rob_chr, int32_t skelet
     //sub_14041D310(rob_chr->bone_data);
     rob_chara_bone_data_interpolate(rob_chr->bone_data);
     rob_chara_bone_data_update(rob_chr->bone_data, 0);
+    sub_140509D30(rob_chr);
     //sub_140419820(rob_chr->bone_data, skeleton_select);
 }
 
@@ -7315,7 +7420,7 @@ static void skin_param_osage_root_free(skin_param_osage_root* root) {
 }
 
 void rob_chara_array_init() {
-    for (int32_t i = 0; i < 6; i++)
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         rob_chara_init(&rob_chara_array[i]);
 }
 
@@ -7325,38 +7430,66 @@ rob_chara* rob_chara_array_get(int32_t chara_id) {
     return 0;
 }
 
+int32_t rob_chara_array_set_pv_data(chara_index chara_index,
+    rob_chara_pv_data* pv_data, uint32_t module_index, bool a4) {
+    if (pv_data->field_0 > 3)
+        return -1;
+
+    rob_chara_pv_data* v9 = rob_chara_pv_data_array;
+    int32_t chara_id = 0;
+    while (v9->field_0 != -1) {
+        chara_id++;
+        v9++;
+        if (chara_id >= ROB_CHARA_COUNT)
+            return -1;
+    }
+
+    if (a4 && module_index > 498)
+        module_index = 0;
+    rob_chara_pv_data_array[chara_id] = *pv_data;
+    rob_chara_set_pv_data(&rob_chara_array[chara_id], chara_id, chara_index, module_index, pv_data);
+    return chara_id;
+}
+
 void rob_chara_array_free() {
-    for (int32_t i = 0; i < 6; i++)
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         rob_chara_free(&rob_chara_array[i]);
 }
 
 void rob_chara_pv_data_init(rob_chara_pv_data* pv_data) {
     memset(pv_data, 0, sizeof(rob_chara_pv_data));
-    pv_data->index = 2;
+    pv_data->field_0 = 2;
     pv_data->field_4 = 1;
     pv_data->field_5 = 0;
     pv_data->field_6 = 0;
     pv_data->field_14 = 0x00;
     pv_data->field_16 = 0xC9;
-    pv_data->field_74 = -1;
-    pv_data->field_78 = -1;
-    pv_data->field_7C = -1;
-    pv_data->field_80 = -1;
-    pv_data->field_84 = -1;
-    pv_data->field_88 = -1;
-    pv_data->field_8C = -1;
-    pv_data->field_90 = -1;
-    pv_data->field_94 = -1;
-    pv_data->field_98 = -1;
-    pv_data->field_9C = 1;
+    pv_data->field_74[0] = -1;
+    pv_data->field_74[1] = -1;
+    pv_data->field_74[2] = -1;
+    pv_data->field_74[3] = -1;
+    pv_data->field_74[4] = -1;
+    pv_data->field_74[5] = -1;
+    pv_data->field_74[6] = -1;
+    pv_data->field_74[7] = -1;
+    pv_data->field_74[8] = -1;
+    pv_data->field_74[9] = -1;
+    pv_data->chara_size_index = 1;
+    pv_data->height_adjust = false;
     pv_data->eyes_adjust.base_adjust = EYES_BASE_ADJUST_DIRECTION;
     pv_data->eyes_adjust.neg = -1.0f;
     pv_data->eyes_adjust.pos = -1.0f;
 }
 
 inline bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id) {
-    //return rob_chara_pv_data_array[chara_id].index != -1;
-    return rob_chara_array[chara_id].chara_id != -1;
+    return rob_chara_pv_data_array[chara_id].field_0 != -1;
+}
+
+void rob_chara_pv_data_array_init() {
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        rob_chara_pv_data_init(&rob_chara_pv_data_array[i]);
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        rob_chara_pv_data_array[i].field_0 = -1;
 }
 
 inline void motion_storage_init() {

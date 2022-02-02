@@ -328,6 +328,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
     for (int32_t i = 0; i < count; i++) {
         stage_info* stage = &stage_data->stage.begin[i];
 
+        stage->id = i;
         io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &stage->name);
         io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &stage->auth_3d_name);
         stage->object_set_id = io_read_uint32_t(s);

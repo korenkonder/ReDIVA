@@ -11,6 +11,8 @@
 #include "static_var.h"
 #include "texture.h"
 
+extern int32_t stage_index;
+
 void post_process_init(post_process_struct* pp) {
     static const char* alpha_layer_vert_shader =
         "#version 430 core\n"
@@ -51,6 +53,8 @@ void post_process_init(post_process_struct* pp) {
     pp->dof = post_process_dof_init();
     pp->exposure = post_process_exposure_init();
     pp->tone_map = post_process_tone_map_init();
+    pp->stage_index = -1;
+    pp->stage_index_prev = -1;
 
     glGenSamplers(2, pp->samplers);
     glSamplerParameteri(pp->samplers[0], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -85,7 +89,7 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
         (mat4*)&mat4_identity, (mat4*)&mat4_identity, (mat4*)&mat4_identity);
 
     post_process_get_blur(pp->blur, &pp->render_texture);
-    post_process_get_exposure(pp->exposure,
+    post_process_get_exposure(pp->exposure, pp->reset_exposure,
         pp->blur->tex[4].color_texture->texture, pp->blur->tex[2].color_texture->texture);
     post_process_apply_tone_map(pp->tone_map, &pp->render_texture, light_proj_tex, 0,
         &pp->render_texture, &pp->buf_texture, &pp->sss_contour_texture,
@@ -285,6 +289,40 @@ void post_process_reset(post_process_struct* pp) {
         1.0f, 1, 1.0f, &((vec3) { 0.0f, 0.0f, 0.0f }), 0.0f, 0,
         &((vec3) { 0.0f, 0.0f, 0.0f }), &((vec3) { 1.0f, 1.0f, 1.0f }),
         TONE_MAP_YCC_EXPONENT);
+}
+
+void post_process_update(post_process_struct* pp, camera* cam) {
+    pp->view_point_prev = pp->view_point;
+    pp->interest_prev = pp->interest;
+    camera_get_view_point(cam, &pp->view_point);
+    camera_get_interest(cam, &pp->interest);
+
+    pp->stage_index_prev = pp->stage_index;
+    pp->stage_index = stage_index;
+
+    bool reset_exposure = cam->fast_change_hist1 && !cam->fast_change_hist0;
+    pp->reset_exposure = reset_exposure;
+    if (reset_exposure) {
+        float_t view_point_dist;
+        vec3_distance(pp->view_point, pp->view_point_prev, view_point_dist);
+
+        vec3 dir;
+        vec3_sub(pp->interest, pp->view_point, dir);
+        vec3_normalize(dir, dir);
+
+        vec3 dir_prev;
+        vec3_sub(pp->interest_prev, pp->view_point_prev, dir_prev);
+        vec3_normalize(dir_prev, dir_prev);
+
+        float_t dir_diff_angle;
+        vec3_dot(dir, dir_prev, dir_diff_angle);
+        if (dir_diff_angle < 0.5f)
+            dir_diff_angle = 0.0f;
+        if (view_point_dist < dir_diff_angle * 0.4f)
+            pp->reset_exposure = false;
+    }
+    else if (pp->stage_index != pp->stage_index_prev)
+        pp->reset_exposure = true;
 }
 
 void post_process_free(post_process_struct* pp) {

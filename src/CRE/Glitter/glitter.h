@@ -345,9 +345,11 @@ typedef struct glitter_curve_key glitter_curve_key;
 typedef struct glitter_curve glitter_curve;
 typedef struct glitter_effect_data glitter_effect_data;
 typedef struct glitter_effect_ext_anim glitter_effect_ext_anim;
+typedef struct glitter_effect_ext_anim_x glitter_effect_ext_anim_x;
 typedef struct glitter_effect glitter_effect;
 typedef struct glitter_effect_group glitter_effect_group;
 typedef struct glitter_effect_inst_ext_anim glitter_effect_inst_ext_anim;
+typedef struct glitter_effect_inst_ext_anim_x glitter_effect_inst_ext_anim_x;
 typedef struct glitter_effect_inst glitter_effect_inst;
 typedef struct glitter_emitter_box glitter_emitter_box;
 typedef struct glitter_emitter_cylinder glitter_emitter_cylinder;
@@ -457,23 +459,44 @@ struct glitter_effect_data {
     int32_t appear_time;
     int32_t life_time;
     int32_t start_time;
-    glitter_effect_ext_anim* ext_anim;
+    union {
+        glitter_effect_ext_anim* ext_anim;
+        glitter_effect_ext_anim_x* ext_anim_x;
+    };
     glitter_effect_flag flags;
     float_t emission;
     int32_t seed;
 };
 
 struct glitter_effect_ext_anim {
-    uint64_t object_hash;
     glitter_effect_ext_anim_flag flags;
-    int32_t instance_id;
-    uint64_t file_name_hash;
     union {
-        object_info object;
-        int32_t chara_index;
+        struct {
+            uint64_t object_hash;
+            object_info object;
+            char mesh_name[128];
+        };
+        struct {
+            int32_t chara_index;
+            glitter_effect_ext_anim_chara_node node_index;
+        };
     };
-    int32_t node_index;
-    char mesh_name[128];
+};
+
+struct glitter_effect_ext_anim_x {
+    glitter_effect_ext_anim_flag flags;
+    union {
+        struct {
+            uint32_t file_name_hash;
+            uint32_t object_hash;
+            int32_t instance_id;
+            char mesh_name[128];
+        };
+        struct {
+            int32_t chara_index;
+            glitter_effect_ext_anim_chara_node node_index;
+        };
+    };
 };
 
 struct glitter_effect {
@@ -505,23 +528,43 @@ struct glitter_effect_group {
 };
 
 struct glitter_effect_inst_ext_anim {
-    int32_t a3da_id;
-    size_t a3da_index;
-    int32_t instance_id;
-    uint64_t file_name_hash;
-    uint64_t object_hash;
     union {
-        object_info object;
-        int32_t chara_index;
-    };
-    union {
-        int32_t mesh_index;
-        int32_t bone_index;
+        struct {
+            int32_t object_index;
+            int32_t mesh_index;
+            int32_t a3da_id;
+            bool object_is_hrc;
+            object_info object;
+            char* mesh_name;
+        };
+        struct {
+            int32_t chara_index;
+            int32_t bone_index;
+        };
     };
     mat4 mat;
     vec3 translation;
-    char* mesh_name;
-    bool object_is_hrc;
+};
+
+struct glitter_effect_inst_ext_anim_x {
+    union {
+        struct {
+            int32_t object_index;
+            int32_t mesh_index;
+            int32_t a3da_id;
+            bool object_is_hrc;
+            uint32_t file_name_hash;
+            uint32_t object_hash;
+            int32_t instance_id;
+            char* mesh_name;
+        };
+        struct {
+            int32_t chara_index;
+            int32_t bone_index;
+        };
+    };
+    mat4 mat;
+    vec3 translation;
 };
 
 struct glitter_effect_inst {
@@ -544,7 +587,10 @@ struct glitter_effect_inst {
     };
     glitter_effect_inst_flag flags;
     size_t id;
-    glitter_effect_inst_ext_anim* ext_anim;
+    union {
+        glitter_effect_inst_ext_anim* ext_anim;
+        glitter_effect_inst_ext_anim_x* ext_anim_x;
+    };
     vec3 ext_anim_scale;
     glitter_render_scene render_scene;
     uint32_t random;
@@ -650,6 +696,8 @@ struct glitter_particle_manager {
     glitter_emitter_inst* emitter;
     glitter_particle_inst* particle;
     void* rctx;
+    void* data;
+    void* bone_data;
     float_t emission;
     float_t delta_frame;
     uint32_t texture_counter;

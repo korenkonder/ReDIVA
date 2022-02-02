@@ -7,7 +7,6 @@
 #include "animation.h"
 #include "emitter.h"
 
-static object_info glitter_effect_ext_anim_get_object_info(uint64_t hash);
 static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a3);
 static bool glitter_effect_unpack_file(GLT,
     void* data, glitter_effect* a3, bool use_big_endian);
@@ -107,7 +106,7 @@ void glitter_effect_dispose(glitter_effect* e) {
     free(e);
 }
 
-static object_info glitter_effect_ext_anim_get_object_info(uint64_t hash) {
+object_info glitter_effect_ext_anim_get_object_info(uint64_t hash) {
     vector_object_set_info* object_set = &obj_db_ptr->object_set;
     for (object_set_info* i = object_set->begin; i != object_set->end; i++) {
         for (object_info_data* j = i->object.begin; j != i->object.end; j++)
@@ -240,6 +239,7 @@ static bool glitter_effect_unpack_file(GLT,
     void* data, glitter_effect* a2, bool use_big_endian) {
     size_t d;
     glitter_effect_ext_anim* ext_anim;
+    glitter_effect_ext_anim_x* ext_anim_x;
     glitter_effect_file_flag flags;
 
     if (GLT_VAL == GLITTER_X) {
@@ -317,100 +317,94 @@ static bool glitter_effect_unpack_file(GLT,
         if (type == 1)
             a2->data.flags |= GLITTER_EFFECT_LOCAL;
         else if (type == 2) {
-            ext_anim = force_malloc(sizeof(glitter_effect_ext_anim));
-            a2->data.ext_anim = ext_anim;
-            if (ext_anim) {
+            ext_anim_x = force_malloc(sizeof(glitter_effect_ext_anim_x));
+            a2->data.ext_anim_x = ext_anim_x;
+            if (ext_anim_x) {
                 if (use_big_endian) {
-                    ext_anim->chara_index = load_reverse_endianness_int32_t((void*)d);
-                    ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 4));
-                    ext_anim->node_index = load_reverse_endianness_int32_t((void*)(d + 8));
+                    ext_anim_x->chara_index = load_reverse_endianness_int32_t((void*)d);
+                    ext_anim_x->flags = load_reverse_endianness_int32_t((void*)(d + 4));
+                    ext_anim_x->node_index = load_reverse_endianness_int32_t((void*)(d + 8));
                 }
                 else {
-                    ext_anim->chara_index = *(int32_t*)d;
-                    ext_anim->flags = *(int32_t*)(d + 4);
-                    ext_anim->node_index = *(int32_t*)(d + 8);
+                    ext_anim_x->chara_index = *(int32_t*)d;
+                    ext_anim_x->flags = *(int32_t*)(d + 4);
+                    ext_anim_x->node_index = *(int32_t*)(d + 8);
                 }
 
-                ext_anim->flags |= GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM;
-                ext_anim->mesh_name[0] = 0;
+                ext_anim_x->flags |= GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM;
+                ext_anim_x->mesh_name[0] = 0;
             }
         }
         else if (type == 3) {
             if (a2->version == 8) {
-                ext_anim = force_malloc(sizeof(glitter_effect_ext_anim));
-                a2->data.ext_anim = ext_anim;
-                if (ext_anim) {
+                ext_anim_x = force_malloc(sizeof(glitter_effect_ext_anim_x));
+                a2->data.ext_anim_x = ext_anim_x;
+                if (ext_anim_x) {
                     if (use_big_endian) {
-                        ext_anim->object_hash = load_reverse_endianness_uint64_t((void*)d);
-                        ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 8));
+                        ext_anim_x->object_hash = (uint32_t)load_reverse_endianness_uint64_t((void*)d);
+                        ext_anim_x->flags = load_reverse_endianness_int32_t((void*)(d + 8));
                     }
                     else {
-                        ext_anim->object_hash = *(uint64_t*)d;
-                        ext_anim->flags = *(int32_t*)(d + 8);
+                        ext_anim_x->object_hash = (uint32_t) * (uint64_t*)d;
+                        ext_anim_x->flags = *(int32_t*)(d + 8);
                     }
 
-                    ext_anim->instance_id = 0;
-                    ext_anim->file_name_hash = hash_murmurhash_empty;
-                    ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
-                    ext_anim->node_index = 18;
+                    ext_anim_x->instance_id = 0;
+                    ext_anim_x->file_name_hash = hash_murmurhash_empty;
                     if (*(uint8_t*)(d + 12)) {
-                        strncpy_s(ext_anim->mesh_name, 0x80, (uint8_t*)(d + 20), 0x80);
-                        ext_anim->mesh_name[0x7F] = '\0';
+                        strncpy_s(ext_anim_x->mesh_name, 0x80, (uint8_t*)(d + 20), 0x80);
+                        ext_anim_x->mesh_name[0x7F] = '\0';
                     }
                     else
-                        ext_anim->mesh_name[0] = 0;
+                        ext_anim_x->mesh_name[0] = 0;
                 }
             }
             else if (a2->version == 10) {
-                ext_anim = force_malloc(sizeof(glitter_effect_ext_anim));
-                a2->data.ext_anim = ext_anim;
-                if (ext_anim) {
+                ext_anim_x = force_malloc(sizeof(glitter_effect_ext_anim_x));
+                a2->data.ext_anim_x = ext_anim_x;
+                if (ext_anim_x) {
                     if (use_big_endian) {
-                        ext_anim->object_hash = load_reverse_endianness_uint64_t((void*)d);
-                        ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 8));
+                        ext_anim_x->object_hash = (uint32_t)load_reverse_endianness_uint64_t((void*)d);
+                        ext_anim_x->flags = load_reverse_endianness_int32_t((void*)(d + 8));
                     }
                     else {
-                        ext_anim->object_hash = *(uint64_t*)d;
-                        ext_anim->flags = *(int32_t*)(d + 8);
+                        ext_anim_x->object_hash = (uint32_t) * (uint64_t*)d;
+                        ext_anim_x->flags = *(int32_t*)(d + 8);
                     }
 
-                    ext_anim->instance_id = 0;
-                    ext_anim->file_name_hash = hash_murmurhash_empty;
-                    ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
-                    ext_anim->node_index = 18;
+                    ext_anim_x->instance_id = 0;
+                    ext_anim_x->file_name_hash = hash_murmurhash_empty;
                     if (*(uint8_t*)(d + 16)) {
-                        strncpy_s(ext_anim->mesh_name, 0x80, (uint8_t*)(d + 16), 0x80);
-                        ext_anim->mesh_name[0x7F] = '\0';
+                        strncpy_s(ext_anim_x->mesh_name, 0x80, (uint8_t*)(d + 16), 0x80);
+                        ext_anim_x->mesh_name[0x7F] = '\0';
                     }
                     else
-                        ext_anim->mesh_name[0] = 0;
+                        ext_anim_x->mesh_name[0] = 0;
                 }
             }
             else {
-                ext_anim = force_malloc(sizeof(glitter_effect_ext_anim));
-                a2->data.ext_anim = ext_anim;
-                if (ext_anim) {
+                ext_anim_x = force_malloc(sizeof(glitter_effect_ext_anim_x));
+                a2->data.ext_anim_x = ext_anim_x;
+                if (ext_anim_x) {
                     if (use_big_endian) {
-                        ext_anim->object_hash = load_reverse_endianness_uint64_t((void*)d);
-                        ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 8));
-                        ext_anim->instance_id = load_reverse_endianness_int32_t((void*)(d + 12));
-                        ext_anim->file_name_hash = load_reverse_endianness_uint64_t((void*)(d + 16));
+                        ext_anim_x->object_hash = (uint32_t)load_reverse_endianness_uint64_t((void*)d);
+                        ext_anim_x->flags = load_reverse_endianness_int32_t((void*)(d + 8));
+                        ext_anim_x->instance_id = load_reverse_endianness_int32_t((void*)(d + 12));
+                        ext_anim_x->file_name_hash = (uint32_t)load_reverse_endianness_uint64_t((void*)(d + 16));
                     }
                     else {
-                        ext_anim->object_hash = *(uint64_t*)d;
-                        ext_anim->flags = *(int32_t*)(d + 8);
-                        ext_anim->instance_id = *(int32_t*)(d + 12);
-                        ext_anim->file_name_hash = *(uint64_t*)(d + 16);
+                        ext_anim_x->object_hash = (uint32_t) * (uint64_t*)d;
+                        ext_anim_x->flags = *(int32_t*)(d + 8);
+                        ext_anim_x->instance_id = *(int32_t*)(d + 12);
+                        ext_anim_x->file_name_hash = (uint32_t) * (uint64_t*)(d + 16);
                     }
 
-                    ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
-                    ext_anim->node_index = 18;
                     if (*(uint8_t*)(d + 32)) {
-                        strncpy_s(ext_anim->mesh_name, 0x80, (uint8_t*)(d + 32), 0x80);
-                        ext_anim->mesh_name[0x7F] = '\0';
+                        strncpy_s(ext_anim_x->mesh_name, 0x80, (uint8_t*)(d + 32), 0x80);
+                        ext_anim_x->mesh_name[0x7F] = '\0';
                     }
                     else
-                        ext_anim->mesh_name[0] = 0;
+                        ext_anim_x->mesh_name[0] = 0;
                 }
             }
         }
@@ -516,7 +510,7 @@ static bool glitter_effect_unpack_file(GLT,
                 }
 
                 ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
-                ext_anim->node_index = 18;
+                ext_anim->node_index = GLITTER_EFFECT_EXT_ANIM_CHARA_MAX;
                 if (*(uint8_t*)(d + 12)) {
                     strncpy_s(ext_anim->mesh_name, 0x80, (uint8_t*)(d + 12), 0x80);
                     ext_anim->mesh_name[0x7F] = 0;

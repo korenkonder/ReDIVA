@@ -18,7 +18,7 @@ int32_t sv_anisotropy = 1;
 
 size_t frame_counter = 0;
 
-bool select_frame_speed = true;
+bool select_frame_speed = false;
 float_t frame_speed = 1.0f;
 float_t target_fps = 60.0f;
 float_t current_fps = 60.0f;

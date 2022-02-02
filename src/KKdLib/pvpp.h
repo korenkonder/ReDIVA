@@ -77,8 +77,8 @@ typedef struct pvpp_effect {
 } pvpp_effect;
 
 vector(pvpp_chara_effect)
-vector(pvpp_motion)
 vector(pvpp_chara_item)
+vector(pvpp_motion)
 
 typedef struct pvpp_chara {
     vector_pvpp_a3da a3da;
@@ -103,3 +103,20 @@ extern void pvpp_read(pvpp* pp, char* path);
 extern void pvpp_wread(pvpp* pp, wchar_t* path);
 extern bool pvpp_load_file(void* data, char* path, char* file, uint32_t hash);
 extern void pvpp_free(pvpp* pp);
+
+extern void pvpp_a3da_init(pvpp_a3da* a3d);
+extern void pvpp_a3da_free(pvpp_a3da* a3d);
+extern void pvpp_chara_init(pvpp_chara* chr);
+extern void pvpp_chara_free(pvpp_chara* chr);
+extern void pvpp_chara_effect_init(pvpp_chara_effect* chr_eff);
+extern void pvpp_chara_effect_free(pvpp_chara_effect* chr_eff);
+extern void pvpp_chara_effect_a3da_init(pvpp_chara_effect_a3da* chr_pv_eff);
+extern void pvpp_chara_effect_a3da_free(pvpp_chara_effect_a3da* chr_pv_eff);
+extern void pvpp_chara_item_init(pvpp_chara_item* chr_itm);
+extern void pvpp_chara_item_free(pvpp_chara_item* chr_itm);
+extern void pvpp_effect_init(pvpp_effect* eff);
+extern void pvpp_effect_free(pvpp_effect* eff);
+extern void pvpp_glitter_init(pvpp_glitter* glt);
+extern void pvpp_glitter_free(pvpp_glitter* glt);
+extern void pvpp_motion_init(pvpp_motion* mot);
+extern void pvpp_motion_free(pvpp_motion* mot);

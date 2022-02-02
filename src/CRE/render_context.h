@@ -357,6 +357,10 @@ typedef struct draw_task {
     draw_task_union data;
 } draw_task;
 
+typedef struct frame_rate_control {
+    float_t frame_speed;
+} frame_rate_control;
+
 typedef struct light_proj {
     bool enable;
     render_texture shadow_texture[2];
@@ -477,7 +481,13 @@ struct shadow {
     bool field_2F5;
 };
 
+extern frame_rate_control sys_frame_rate;
+extern frame_rate_control diva_pv_frame_rate;
+extern frame_rate_control diva_stage_frame_rate;
 extern const texture_pattern_struct texture_pattern_struct_null;
+
+extern float_t frame_rate_control_get_delta_frame(frame_rate_control* control);
+extern void frame_rate_control_set_frame_speed(frame_rate_control* control, float_t value);
 
 extern light_proj* light_proj_init(int32_t width, int32_t height);
 extern void light_proj_get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat4* mat);
@@ -485,6 +495,7 @@ extern void light_proj_resize(light_proj* litproj, int32_t width, int32_t height
 extern bool light_proj_set(light_proj* litproj, render_context* rctx);
 extern bool light_proj_set_mat(render_context* rctx, bool set_mat);
 extern void light_proj_free(light_proj* litproj);
+
 extern draw_task* object_data_buffer_add_draw_task(object_data_buffer* buffer, draw_task_type type);
 extern mat4u* object_data_buffer_add_mat4(object_data_buffer* buffer, int32_t count);
 extern void object_data_buffer_reset(object_data_buffer* buffer);
@@ -514,6 +525,7 @@ extern void object_data_set_texture_specular_offset(object_data* object_data, ve
 extern void object_data_set_texture_transform(object_data* object_data,
     int32_t count, texture_transform_struct* value);
 extern void object_data_set_wet_param(object_data* object_data, float_t value);
+
 extern render_context* render_context_init();
 extern void render_context_light_param_data_light_set(render_context* rctx, light_param_light* light);
 extern void render_context_light_param_data_fog_set(render_context* rctx, light_param_fog* f);
@@ -522,6 +534,8 @@ extern void render_context_light_param_data_ibl_set(render_context* rctx, light_
 extern void render_context_light_param_data_wind_set(render_context* rctx, light_param_wind* w);
 extern void render_context_light_param_data_face_set(render_context* rctx, light_param_face* face);
 extern void render_context_set_light_param(render_context* rctx, light_param_data* light_param);
+extern void render_context_unset_light_param(render_context* rctx, light_param_data* light_param);
 extern void render_context_update(render_context* rctx);
 extern void render_context_free(render_context* rctx);
+
 extern void shadow_update(shadow* shad, render_context* rctx);

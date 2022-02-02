@@ -5,6 +5,7 @@
 
 #include "dsc.h"
 #include "f2/struct.h"
+#include "sort.h"
 #include "str_utils.h"
 
 vector_func(dsc_data)
@@ -857,6 +858,167 @@ const int32_t dsc_mgf_func_count = DSC_MGF_FUNC_COUNT;
 const int32_t dsc_x_func_count = DSC_X_FUNC_COUNT;
 const int32_t dsc_vrfl_func_count = DSC_VRFL_FUNC_COUNT;
 
+inline int32_t dsc_ac101_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AC101_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_ac101_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_ac110_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AC110_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_ac110_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_ac120_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AC120_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_ac120_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_ac200_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AC200_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_ac200_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_ac210_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AC210_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_ac210_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_ac500_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AC500_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_ac500_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_ac510_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AC510_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_ac510_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_aft101_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AFT101_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_aft101_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_aft200_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AFT200_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_aft200_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_aft300_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AFT300_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_aft300_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_aft310_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AFT310_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_aft310_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_aft410_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AFT410_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_aft410_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_aft701_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_AFT701_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_aft701_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_ft_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_FT_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_ft_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_psp_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_PSP_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_psp_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_2nd_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_2ND_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_2nd_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_dt_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_DT_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_dt_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_dt2_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_DT2_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_dt2_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_f_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_F_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_f_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_f2_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_F2_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_f2_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_mgf_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_MGF_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_mgf_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_x_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_X_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_x_get_func_name(i)))
+            return i;
+    return -1;
+}
+
+inline int32_t dsc_vrfl_get_func_id(const char* name) {
+    for (int32_t i = 0; i < DSC_VRFL_FUNC_COUNT; i++)
+        if (!str_utils_compare((char*)name, (char*)dsc_vrfl_get_func_name(i)))
+            return i;
+    return -1;
+}
+
 inline int32_t dsc_ac101_get_func_length(int32_t id) {
     return id > -1 && id < DSC_AC101_FUNC_COUNT ? dsc_ac101_func[id].length : -1;
 }
@@ -946,7 +1108,7 @@ inline int32_t dsc_x_get_func_length(int32_t id) {
 }
 
 inline int32_t dsc_vrfl_get_func_length(int32_t id) {
-    return id > -1 && id < DSC_VRFL_FUNC_COUNT ? dsc_x_func[id].length : -1;
+    return id > -1 && id < DSC_VRFL_FUNC_COUNT ? dsc_vrfl_func[id].length : -1;
 }
 
 inline int32_t dsc_ac200_get_func_length_old(int32_t id) {
@@ -1090,7 +1252,7 @@ inline const char* dsc_x_get_func_name(int32_t id) {
 }
 
 inline const char* dsc_vrfl_get_func_name(int32_t id) {
-    return id > -1 && id < DSC_VRFL_FUNC_COUNT ? dsc_x_func[id].name : 0;
+    return id > -1 && id < DSC_VRFL_FUNC_COUNT ? dsc_vrfl_func[id].name : 0;
 }
 
 const int32_t dsc_func_count_array[] = {
@@ -1117,6 +1279,32 @@ const int32_t dsc_func_count_array[] = {
     [DSC_MGF]    = DSC_MGF_FUNC_COUNT,
     [DSC_X]      = DSC_X_FUNC_COUNT,
     [DSC_VRFL]   = DSC_VRFL_FUNC_COUNT,
+};
+
+const dsc_get_func_id dsc_get_func_id_array[] = {
+    [DSC_AC101]  = dsc_ac101_get_func_id,
+    [DSC_AC110]  = dsc_ac110_get_func_id,
+    [DSC_AC120]  = dsc_ac120_get_func_id,
+    [DSC_AC200]  = dsc_ac200_get_func_id,
+    [DSC_AC210]  = dsc_ac210_get_func_id,
+    [DSC_AC500]  = dsc_ac500_get_func_id,
+    [DSC_AC510]  = dsc_ac510_get_func_id,
+    [DSC_AFT101] = dsc_aft101_get_func_id,
+    [DSC_AFT200] = dsc_aft200_get_func_id,
+    [DSC_AFT300] = dsc_aft300_get_func_id,
+    [DSC_AFT310] = dsc_aft310_get_func_id,
+    [DSC_AFT410] = dsc_aft410_get_func_id,
+    [DSC_AFT701] = dsc_aft701_get_func_id,
+    [DSC_FT]     = dsc_ft_get_func_id,
+    [DSC_PSP]    = dsc_psp_get_func_id,
+    [DSC_2ND]    = dsc_2nd_get_func_id,
+    [DSC_DT]     = dsc_dt_get_func_id,
+    [DSC_DT2]    = dsc_dt2_get_func_id,
+    [DSC_F]      = dsc_f_get_func_id,
+    [DSC_F2]     = dsc_f2_get_func_id,
+    [DSC_MGF]    = dsc_mgf_get_func_id,
+    [DSC_X]      = dsc_x_get_func_id,
+    [DSC_VRFL]   = dsc_vrfl_get_func_id,
 };
 
 const dsc_get_func_length dsc_get_func_length_array[] = {
@@ -1196,6 +1384,17 @@ const dsc_get_func_name dsc_get_func_name_array[] = {
     [DSC_X]      = dsc_x_get_func_name,
     [DSC_VRFL]   = dsc_vrfl_get_func_name,
 };
+
+typedef struct dsc_data_time {
+    int32_t time;
+    int32_t pv_branch_mode;
+    const char* name;
+    int32_t func;
+    uint32_t data_offset;
+} dsc_data_time;
+
+vector(dsc_data_time)
+vector_func(dsc_data_time)
 
 static void dsc_convert_from_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
 static void dsc_convert_from_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
@@ -1596,15 +1795,208 @@ void dsc_data_buffer_rebuild(dsc* d) {
         uint32_t* func_data = dsc_data_get_func_data(d, i);
         i->data_offset = (uint32_t)vector_length(data_buffer);
 
-        for (int32_t j = get_func_length(i->func); j; j--)
-            vector_uint32_t_push_back(&data_buffer, func_data++);
+        int32_t func_length = get_func_length(i->func);
+        memmove(vector_uint32_t_reserve_back_range(&data_buffer, func_length),
+            func_data, sizeof(uint32_t) * func_length);
+        func_data += func_length;
     }
     vector_uint32_t_free(&d->data_buffer, 0);
     d->data_buffer = data_buffer;
 }
 
-inline void* dsc_data_get_func_data(dsc* d, dsc_data* data) {
-    return d->data_buffer.begin + data->data_offset;
+inline uint32_t* dsc_data_get_func_data(dsc* d, dsc_data* data) {
+    return (uint32_t*)(d->data_buffer.begin + data->data_offset);
+}
+
+static size_t dsc_data_time_radix_index_func_pv_branch_mode(dsc_data_time* data, size_t index);
+static size_t dsc_data_time_radix_index_func_time(dsc_data_time* data, size_t index);
+
+static size_t dsc_data_time_radix_index_func_pv_branch_mode(dsc_data_time* data, size_t index) {
+    return (size_t)(ssize_t)data[index].pv_branch_mode;
+}
+
+static size_t dsc_data_time_radix_index_func_time(dsc_data_time* data, size_t index) {
+    return (size_t)(ssize_t)data[index].time;
+}
+
+void dsc_merge(dsc* d, int32_t count, ...) {
+    if (!d)
+        return;
+
+    dsc_init(d);
+
+    va_list args;
+    va_start(args, count);
+    dsc* s0 = va_arg(args, dsc*);
+    if (!s0) {
+        va_end(args);
+        return;
+    }
+
+    for (int32_t i = 1; i < count; i++) {
+        dsc* d1 = va_arg(args, dsc*);
+        if (!d1 || s0->type != d1->type || s0->signature != d1->signature) {
+            va_end(args);
+            return;
+        }
+    }
+    va_end(args);
+
+    d->type = s0->type;
+    d->signature = s0->signature;
+    d->id = s0->id;
+
+    dsc_get_func_id get_func_id = dsc_get_func_id_array[s0->type];
+    dsc_get_func_length get_func_length = dsc_get_dsc_get_func_length(s0);
+    dsc_get_func_name get_func_name = dsc_get_func_name_array[s0->type];
+
+    int32_t time_func_id = get_func_id("TIME");
+    int32_t pv_branch_mode_func_id = get_func_id("PV_BRANCH_MODE");
+
+    size_t func_count = 0;
+    size_t size = 0;
+    va_start(args, count);
+    for (int32_t i = 0; i < count; i++) {
+        dsc* s = va_arg(args, dsc*);
+        func_count += vector_length(s->data);
+        for (dsc_data* j = s->data.begin; j != s->data.end; j++)
+            if (j->func == time_func_id || j->func == pv_branch_mode_func_id)
+                func_count--;
+            else
+                size += get_func_length(j->func);
+    }
+    va_end(args);
+
+    vector_dsc_data_time data_time = vector_empty(dsc_data_time);
+    vector_uint32_t data_time_buffer = vector_empty(uint32_t);
+    vector_dsc_data_time_reserve(&data_time, func_count);
+    vector_uint32_t_reserve(&data_time_buffer, size);
+    va_start(args, count);
+    for (int32_t i = 0; i < count; i++) {
+        dsc* s = va_arg(args, dsc*);
+        func_count += vector_length(s->data);
+
+        int32_t time = -1;
+        int32_t pv_branch_mode = 0;
+        for (dsc_data* j = s->data.begin; j != s->data.end; j++) {
+            if (j->func == time_func_id) {
+                time = (int32_t)dsc_data_get_func_data(s, j)[0];
+                continue;
+            }
+            else if (j->func == pv_branch_mode_func_id) {
+                pv_branch_mode = (int32_t)dsc_data_get_func_data(s, j)[0];
+                continue;
+            }
+
+            dsc_data_time* dsc_d = vector_dsc_data_time_reserve_back(&data_time);
+            dsc_d->time = time;
+            dsc_d->pv_branch_mode = pv_branch_mode;
+            dsc_d->name = j->name;
+            dsc_d->func = j->func;
+            dsc_d->data_offset = (uint32_t)vector_length(data_time_buffer);
+
+            uint32_t* func_data = dsc_data_get_func_data(s, j);
+            int32_t func_length = get_func_length(j->func);
+            memmove(vector_uint32_t_reserve_back_range(&data_time_buffer, func_length),
+                func_data, sizeof(uint32_t) * func_length);
+            func_data += func_length;
+        }
+    }
+    va_end(args);
+
+    if (vector_length(data_time)) {
+        for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
+            i->time = radix_preprocess_int32_t(i->time);
+        radix_sort_custom(data_time.begin, vector_length(data_time), sizeof(dsc_data_time),
+            sizeof(int32_t), dsc_data_time_radix_index_func_time);
+        for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
+            i->time = radix_postprocess_int32_t(i->time);
+    }
+
+    func_count = vector_length(data_time);
+    size = 0;
+
+    int32_t time = -1;
+    int32_t time_count = 0;
+    for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
+        if (time != i->time) {
+            if (time_count > 1)
+                radix_sort_custom(i - time_count, time_count, sizeof(dsc_data_time),
+                    sizeof(int32_t), dsc_data_time_radix_index_func_pv_branch_mode);
+            time = i->time;
+            time_count = 1;
+            func_count++;
+            size++;
+        }
+        else
+            time_count++;
+
+    if (time_count > 1)
+        radix_sort_custom(data_time.end - time_count, time_count, sizeof(dsc_data_time),
+            sizeof(int32_t), dsc_data_time_radix_index_func_pv_branch_mode);
+
+    int32_t pv_branch_mode = -1;
+    int32_t pv_branch_mode_count = 0;
+    for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
+        if (pv_branch_mode != i->pv_branch_mode) {
+            pv_branch_mode = i->pv_branch_mode;
+            pv_branch_mode_count = 1;
+            func_count++;
+            size++;
+        }
+        else
+            pv_branch_mode_count++;
+
+    for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
+        size += get_func_length(i->func);
+
+    vector_dsc_data data = vector_empty(dsc_data);
+    vector_uint32_t data_buffer = vector_empty(uint32_t);
+    vector_dsc_data_reserve(&data, func_count);
+    vector_uint32_t_reserve(&data_buffer, size);
+
+    time = -1;
+    pv_branch_mode = -1;
+    for (dsc_data_time* i = data_time.begin; i != data_time.end; i++) {
+        if (time_func_id != -1 && time != i->time) {
+            time = i->time;
+
+            dsc_data* dsc_d = vector_dsc_data_reserve_back(&data);
+            dsc_d->name = get_func_name(time_func_id);
+            dsc_d->func = time_func_id;
+            dsc_d->data_offset = (uint32_t)vector_length(data_buffer);
+
+            *(int32_t*)vector_uint32_t_reserve_back(&data_buffer) = time;
+        }
+
+        if (pv_branch_mode_func_id != -1 && pv_branch_mode != i->pv_branch_mode) {
+            pv_branch_mode = i->pv_branch_mode;
+
+            dsc_data* dsc_d = vector_dsc_data_reserve_back(&data);
+            dsc_d->name = get_func_name(pv_branch_mode_func_id);
+            dsc_d->func = pv_branch_mode_func_id;
+            dsc_d->data_offset = (uint32_t)vector_length(data_buffer);
+
+            *(int32_t*)vector_uint32_t_reserve_back(&data_buffer) = pv_branch_mode;
+        }
+
+        uint32_t* func_data = (uint32_t*)(data_time_buffer.begin + i->data_offset);
+        dsc_data* dsc_d = vector_dsc_data_reserve_back(&data);
+        dsc_d->name = get_func_name(i->func);
+        dsc_d->func = i->func;
+        dsc_d->data_offset = (uint32_t)vector_length(data_buffer);
+
+        int32_t func_length = get_func_length(i->func);
+        memmove(vector_uint32_t_reserve_back_range(&data_buffer, func_length),
+            func_data, sizeof(uint32_t) * func_length);
+        func_data += func_length;
+    }
+
+    vector_dsc_data_time_free(&data_time, 0);
+    vector_uint32_t_free(&data_time_buffer, 0);
+
+    d->data = data;
+    d->data_buffer = data_buffer;
 }
 
 bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type) {
@@ -1795,11 +2187,11 @@ bool dsc_load_file(void* data, char* path, char* file, uint32_t hash) {
     stream dsc_s;
     io_open(&dsc_s, string_data(&s), "rb");
     void* dsc_data = force_malloc(dsc_s.length);
-    size_t dsc_replace_data = dsc_s.length;
-    io_read(&dsc_s, dsc_data, dsc_replace_data);
+    size_t dsc_length = dsc_s.length;
+    io_read(&dsc_s, dsc_data, dsc_length);
 
     dsc* d = data;
-    bool ret = dsc_parse(d, dsc_data, dsc_replace_data, d->type);
+    bool ret = dsc_parse(d, dsc_data, dsc_length, d->type);
 
     io_free(&dsc_s);
     string_free(&s);

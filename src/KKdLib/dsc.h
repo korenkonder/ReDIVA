@@ -282,6 +282,7 @@ typedef struct dsc {
 typedef struct dsc_replace dsc_replace;
 typedef struct dsc_replace_data dsc_replace_data;
 
+typedef int32_t(*dsc_get_func_id)(const char* name);
 typedef int32_t(*dsc_get_func_length)(int32_t id);
 typedef const char*(*dsc_get_func_name)(int32_t id);
 typedef const void(*dsc_func_convert)(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
@@ -331,6 +332,30 @@ extern const int32_t dsc_f2_func_count;
 extern const int32_t dsc_mgf_func_count;
 extern const int32_t dsc_x_func_count;
 extern const int32_t dsc_vrfl_func_count;
+
+extern int32_t dsc_ac101_get_func_id(const char* name);
+extern int32_t dsc_ac110_get_func_id(const char* name);
+extern int32_t dsc_ac120_get_func_id(const char* name);
+extern int32_t dsc_ac200_get_func_id(const char* name);
+extern int32_t dsc_ac210_get_func_id(const char* name);
+extern int32_t dsc_ac500_get_func_id(const char* name);
+extern int32_t dsc_ac510_get_func_id(const char* name);
+extern int32_t dsc_aft101_get_func_id(const char* name);
+extern int32_t dsc_aft200_get_func_id(const char* name);
+extern int32_t dsc_aft300_get_func_id(const char* name);
+extern int32_t dsc_aft310_get_func_id(const char* name);
+extern int32_t dsc_aft410_get_func_id(const char* name);
+extern int32_t dsc_aft701_get_func_id(const char* name);
+extern int32_t dsc_ft_get_func_id(const char* name);
+extern int32_t dsc_psp_get_func_id(const char* name);
+extern int32_t dsc_2nd_get_func_id(const char* name);
+extern int32_t dsc_dt_get_func_id(const char* name);
+extern int32_t dsc_dt2_get_func_id(const char* name);
+extern int32_t dsc_f_get_func_id(const char* name);
+extern int32_t dsc_f2_get_func_id(const char* name);
+extern int32_t dsc_mgf_get_func_id(const char* name);
+extern int32_t dsc_x_get_func_id(const char* name);
+extern int32_t dsc_vrfl_get_func_id(const char* name);
 
 extern int32_t dsc_ac101_get_func_length(int32_t id);
 extern int32_t dsc_ac110_get_func_length(int32_t id);
@@ -402,7 +427,8 @@ extern const dsc_get_func_name dsc_get_func_name_array[];
 extern void dsc_init(dsc* d);
 extern void dsc_convert(dsc* d, dsc_type dst_type);
 extern void dsc_data_buffer_rebuild(dsc* d);
-extern void* dsc_data_get_func_data(dsc* d, dsc_data* data);
+extern uint32_t* dsc_data_get_func_data(dsc* d, dsc_data* data);
+extern void dsc_merge(dsc* d, int32_t count, ...);
 extern bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type);
 extern void dsc_unparse(dsc* d, void** data, size_t* length);
 extern bool dsc_load_file(void* data, char* path, char* file, uint32_t hash);

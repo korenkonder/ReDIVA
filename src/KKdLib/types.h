@@ -16,7 +16,11 @@
 #ifdef ssize_t
 #undef ssize_t
 #endif
+#ifdef _WIN64
 typedef __int64 ssize_t;
+#else
+typedef int size_t;
+#endif
 
 #ifdef float_t
 #undef float_t

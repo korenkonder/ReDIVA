@@ -203,6 +203,7 @@ bool a3da_load_file(void* data, char* path, char* file, uint32_t hash) {
 
     a3da* a = data;
     a3da_read(a, string_data(&s));
+    a->hash = hash;
 
     string_free(&s);
     return a->ready;

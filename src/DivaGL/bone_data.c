@@ -2080,7 +2080,7 @@ static void sub_140539750(struc_223* a1) {
 
 static void sub_140505EA0(rob_chara_data* a1) {
     void(*sub_140506A20)(struc_399 * a1) = (void*)0x0000000140506A20;
-    void(*sub_140506AE0)(struc_220 * a1) = (void*)0x0000000140506AE0;
+    void(*sub_140506AE0)(rob_chara_adjust_data * a1) = (void*)0x0000000140506AE0;
     void(*sub_140505FB0)(struc_209 * a1) = (void*)0x0000000140505FB0;
 
     a1->field_0 = 0;
@@ -2089,7 +2089,7 @@ static void sub_140505EA0(rob_chara_data* a1) {
     sub_140506440(&a1->field_290);
     sub_140539750(&a1->field_1588);
     sub_140506A20(&a1->field_1D38);
-    sub_140506AE0(&a1->field_1DE4);
+    sub_140506AE0(&a1->adjust_data);
     sub_140505FB0(&a1->field_1E68);
     a1->field_3D90 = 0.0f;
     a1->field_3D94 = 0;
@@ -3470,14 +3470,14 @@ static float_t chara_size_table_get_value(uint32_t a1) {
 }
 
 static float_t chara_pos_adjust_y_table_get_value(uint32_t a1) {
-    static const float_t flt_1411ADAD0[] = {
+    static const float_t chara_pos_adjust_y_table[] = {
         0.071732f, 0.0f, -0.03859f, 0.0f, 0.0f
     };
 
     if (a1 > 4)
         return 0.0f;
     else
-        return flt_1411ADAD0[a1];
+        return chara_pos_adjust_y_table[a1];
 }
 
 static void sub_14041C5C0(rob_chara_bone_data* a1, struc_243* a2) {
@@ -3637,9 +3637,9 @@ void rob_chara_reset_data(rob_chara* a1, rob_chara_pv_data* a2) {
     v3->field_1D38.field_18 = v8;
     v3->field_1D38.field_24 = v8;
     v3->field_1D38.field_48 = v8;
-    v3->field_1DE4.size = chara_size_table_get_value(a1->pv_data.field_9C);
-    v3->field_1DE4.height_adjust = a1->pv_data.height_adjust;
-    v3->field_1DE4.field_8 = chara_pos_adjust_y_table_get_value(a1->pv_data.field_9C);
+    v3->adjust_data.scale = chara_size_table_get_value(a1->pv_data.chara_size_index);
+    v3->adjust_data.height_adjust = a1->pv_data.height_adjust;
+    v3->adjust_data.pos_adjust_y = chara_pos_adjust_y_table_get_value(a1->pv_data.chara_size_index);
     v3->field_8.field_1A8 = a1->chara_init_data->field_838[v3->field_8.field_1A4];
     sub_14041C5C0(a1->bone_data, sub_140510550(a1->chara_index));
     rob_chara_bone_data_eyes_xrot_adjust(a1->bone_data,

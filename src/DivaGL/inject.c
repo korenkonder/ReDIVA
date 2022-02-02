@@ -67,7 +67,7 @@ static patch_struct patch_data[] = {
     { (void*)0x00000001405E4FC0, (uint64_t)&aft_shader_load_all_shaders, },
     { (void*)0x00000001405E4B50, (uint64_t)&aft_shader_bind, },
     { (void*)0x00000001401D3860, (uint64_t)&printf_proxy, },
-    //{ (void*)0x0000000140507210, (uint64_t)&rob_chara_data_reset, },
+    //{ (void*)0x0000000140507210, (uint64_t)&rob_chara_reset_data, },
     //{ (void*)0x00000001401EBD30, (uint64_t)&bone_data_mult_ik, },
     //{ (void*)0x00000001401EB6D0, (uint64_t)&bone_data_mult_1, },
     //{ (void*)0x000000014041DA50, (uint64_t)&bone_data_mult_2, },

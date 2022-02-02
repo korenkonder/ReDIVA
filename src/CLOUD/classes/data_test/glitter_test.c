@@ -25,7 +25,6 @@ typedef struct data_test_glitter_test_struct {
     bool input_pause;
     int32_t frame_counter;
     double_t delta_frame;
-    char* path;
     char* file;
     vector_data_struct_file files;
 
@@ -69,8 +68,6 @@ bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
                 vector_data_struct_file_erase(&glt_test->files,
                     i - glt_test->files.begin, data_struct_file_free);
 
-        glt_test->path = vector_length(glt_test->files) > 0
-            ? string_data(&glt_test->files.begin[0].path) : 0;
         glt_test->file = vector_length(glt_test->files) > 0
             ? string_data(&glt_test->files.begin[0].name) : 0;
         glt_test->stage_test = false;
@@ -125,7 +122,6 @@ void data_test_glitter_test_imgui(class_data* data) {
         vector_length(glt_test->files), &file_index, 0, false, &data->imgui_focus);
 
     if (file_index != file_index_old) {
-        glt_test->path = string_data(&glt_test->files.begin[file_index].path);
         glt_test->file = string_data(&glt_test->files.begin[file_index].name);
         glt_test->input_stop = true;
     }
@@ -258,18 +254,18 @@ void data_test_glitter_test_render(class_data* data) {
             else
                 goto reset;
         }
-        else if (glt_test->input_play && !glitter_particle_manager_test_load_scene(GPM_VAL, hash, true)) {
+        else if (glt_test->input_play && !glitter_particle_manager_load_scene(GPM_VAL, hash)) {
         reset:
             glitter_particle_manager_free_scenes(GPM_VAL);
             glitter_particle_manager_free_effect_groups(GPM_VAL);
 
-            glitter_file_reader* fr = glitter_file_reader_init(GLITTER_FT,
-                glt_test->path, glt_test->file, -1.0f);
+            GPM_VAL->data = &data_list[DATA_AFT];
+            glitter_file_reader* fr = glitter_file_reader_init(GLITTER_FT, 0, glt_test->file, -1.0f);
             vector_ptr_glitter_file_reader_push_back(&GPM_VAL->file_readers, &fr);
             glitter_particle_manager_update_file_reader(GPM_VAL);
         load:
             glt_test->frame_counter = 0;
-            glitter_particle_manager_test_load_scene(GPM_VAL, hash, true);
+            glitter_particle_manager_load_scene(GPM_VAL, hash);
         }
         glt_test->input_play = false;
         glt_test->input_stop = false;
@@ -307,7 +303,6 @@ bool data_test_glitter_test_dispose(class_data* data) {
     draw_grid_3d = false;
     if (glt_test) {
         vector_data_struct_file_free(&glt_test->files, data_struct_file_free);
-        glt_test->path = 0;
         glt_test->file = 0;
         glt_test->input_play = false;
         glt_test->input_stop = false;

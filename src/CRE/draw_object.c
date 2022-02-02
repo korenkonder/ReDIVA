@@ -54,7 +54,7 @@ void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
 
     mat4 mat;
     if (draw->mesh->flags & OBJECT_MESH_BILLBOARD)
-        model_mat_face_camera_view(&rctx->camera->view, model, &mat);
+        model_mat_face_camera_view(&rctx->camera->inv_view_rot, model, &mat);
     else if (draw->mesh->flags & OBJECT_MESH_BILLBOARD_Y_AXIS)
         model_mat_face_camera_position(&rctx->camera->view, model, &mat);
     else
@@ -118,43 +118,41 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
 void draw_object_draw_sss(render_context* rctx, draw_object* draw) {
     object_material_blend_flags blend_flags = draw->material->material.blend_flags;
     uniform_value[U_ALPHA_TEST] = (!blend_flags.flag_28 && (draw->blend_color.w < 1.0f
-            || (blend_flags.alpha_texture || blend_flags.alpha_material) && !blend_flags.punch_through
-            || draw->sub_mesh->flags & OBJECT_SUB_MESH_TRANSPARENT)
-            || blend_flags.punch_through) ? 1 : 0;
+        || (blend_flags.alpha_texture || blend_flags.alpha_material) && !blend_flags.punch_through
+        || draw->sub_mesh->flags & OBJECT_SUB_MESH_TRANSPARENT)
+        || blend_flags.punch_through) ? 1 : 0;
 
+    uniform_value[U26] = 1;
     bool aniso = false;
     object_material_data* material = draw->material;
     switch (material->material.shader_index) {
-    case SHADER_FT_SKIN:
-        uniform_value[U26] = 1;
-        break;
     case SHADER_FT_CLOTH:
-        uniform_value[U26] = 1;
-        if (rctx->draw_pass.npr_param || material->material.ambient.w >= 1.0f
-            || (material->material.shader_flags.aniso_direction & 0x03) != OBJECT_MATERIAL_ANISO_DIRECTION_NORMAL)
+        if (!rctx->draw_pass.npr_param && material->material.ambient.w < 1.0f
+            && (material->material.shader_flags.aniso_direction & 0x03) == OBJECT_MATERIAL_ANISO_DIRECTION_NORMAL)
             aniso = true;
         break;
     case SHADER_FT_TIGHTS:
-        uniform_value[U26] = 1;
-        if (rctx->draw_pass.npr_param)
+        if (!rctx->draw_pass.npr_param)
             aniso = true;
         break;
     case SHADER_FT_EYEBALL:
         uniform_value[U26] = 0;
-        return;
+        aniso = true;
+        break;
+    case SHADER_FT_SKIN:
+        aniso = true;
+        break;
     }
 
-    vec3 sss_param;
-    if (!aniso) {
+    if (aniso) {
+        shader_env_frag_set(&shaders_ft, 25, 0.0f, 0.0f, 0.0f, 0.5f);
         uniform_value[U37] = 1;
-        sss_param = *(vec3*)&rctx->draw_pass.sss_data.param;
     }
     else {
+        vec4 sss_param = rctx->draw_pass.sss_data.param;
+        shader_env_frag_set(&shaders_ft, 25, sss_param.x, sss_param.y, sss_param.z, 0.5f);
         uniform_value[U37] = 0;
-        sss_param = vec3_null;
     }
-
-    shader_env_frag_set(&shaders_ft, 25, sss_param.x, sss_param.y, sss_param.z, 0.5f);
     draw_object_draw_default(rctx, draw);
 }
 
@@ -337,12 +335,8 @@ inline void model_mat_face_camera_position(mat4* view, mat4* src, mat4* dst) {
     dst->row3.w = 1.0f;
 }
 
-inline void model_mat_face_camera_view(mat4* view, mat4* src, mat4* dst) {
-    mat3 mat;
-    mat3_from_mat4(view, &mat);
-    mat3_inverse(&mat, &mat);
-    mat4_from_mat3(&mat, dst);
-    mat4_mult(dst, src, dst);
+inline void model_mat_face_camera_view(mat4* inv_view_rot, mat4* src, mat4* dst) {
+    mat4_mult(inv_view_rot, src, dst);
 }
 
 void object_sub_mesh_draw(render_context* rctx, object_primitive_type primitive_type,

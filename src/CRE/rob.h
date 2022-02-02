@@ -563,21 +563,21 @@ struct rob_chara_bone_data {
 };
 
 typedef struct struc_242 {
-    int32_t field_0;
-    int32_t field_4;
-    int32_t field_8;
-    int32_t field_C;
-    int32_t field_10;
-    int32_t field_14;
-    int32_t field_18;
+    float_t field_0;
+    float_t field_4;
+    float_t field_8;
+    float_t field_C;
+    float_t field_10;
+    float_t field_14;
+    float_t field_18;
     int32_t field_1C;
-    int32_t field_20;
-    int32_t field_24;
-    int32_t field_28;
+    float_t field_20;
+    float_t field_24;
+    float_t field_28;
 } struc_242;
 
 typedef struct rob_chara_pv_data {
-    int32_t index;
+    int32_t field_0;
     bool field_4;
     bool field_5;
     bool field_6;
@@ -587,19 +587,10 @@ typedef struct rob_chara_pv_data {
     struc_242 field_18;
     struc_242 field_44;
     int32_t field_70;
-    int32_t field_74;
-    int32_t field_78;
-    int32_t field_7C;
-    int32_t field_80;
-    int32_t field_84;
-    int32_t field_88;
-    int32_t field_8C;
-    int32_t field_90;
-    int32_t field_94;
-    int32_t field_98;
-    int32_t field_9C;
-    bool field_A0;
-    int32_t shadow_type[4];
+    int32_t field_74[10];
+    int32_t chara_size_index;
+    bool height_adjust;
+    int32_t item_no[4];
     eyes_adjust eyes_adjust;
 } rob_chara_pv_data;
 
@@ -1794,25 +1785,26 @@ typedef struct struc_399 {
     mat4u field_6C;
 } struc_399;
 
-typedef struct struc_220 {
-    float_t size;
+typedef struct rob_chara_adjust_data {
+    float_t scale;
     bool height_adjust;
-    float_t field_8;
+    float_t pos_adjust_y;
     vec3 pos_adjust;
-    float_t field_18;
-    float_t field_1C;
-    float_t field_20;
-    int8_t field_24;
-    int8_t field_25;
-    int8_t field_26;
-    int8_t field_27;
+    vec3 offset;
+    bool offset_x;
+    bool offset_y;
+    bool offset_z;
+    bool get_global_trans;
     vec3 trans;
     mat4u mat;
-    vec4u field_74;
-} struc_220;
+    float_t left_hand_scale;
+    float_t right_hand_scale;
+    float_t left_hand_scale_default;
+    float_t right_hand_scale_default;
+} rob_chara_adjust_data;
 
 typedef struct struc_195 {
-    vec3 rotation;
+    vec3 prev_trans;
     vec3 trans;
     float_t scale;
     float_t field_1C;
@@ -1966,7 +1958,7 @@ typedef struct struc_209 {
 } struc_209;
 
 typedef struct rob_chara_data {
-    bool field_0;
+    uint8_t field_0;
     uint8_t field_1;
     uint8_t field_2;
     uint8_t field_3;
@@ -1976,7 +1968,7 @@ typedef struct rob_chara_data {
     struc_268 field_290;
     struc_223 field_1588;
     struc_399 field_1D38;
-    struc_220 field_1DE4;
+    rob_chara_adjust_data adjust_data;
     struc_209 field_1E68;
     float_t field_3D90;
     int32_t field_3D94;
@@ -2021,7 +2013,10 @@ typedef struct skeleton_rotation_offset {
     vec3 rotation;
 } skeleton_rotation_offset;
 
+#define ROB_CHARA_COUNT 6
+
 extern rob_chara rob_chara_array[];
+extern rob_chara_pv_data rob_chara_pv_data_array[];
 
 extern chara_init_data* chara_init_data_get(chara_index chara_index);
 
@@ -2029,6 +2024,7 @@ extern void motion_set_load_motion(uint32_t set, string* motion_name, motion_dat
 extern void motion_set_unload(uint32_t set);
 
 extern void rob_chara_init(rob_chara* rob_chr);
+extern mat4* rob_chara_bone_data_get_mats_mat(rob_chara_bone_data* rob_bone_data, ssize_t index);
 extern void rob_chara_calc(rob_chara* rob_chr);
 extern void rob_chara_draw(rob_chara* rob_chr, render_context* rctx);
 extern mat4* rob_chara_get_bone_data_mat(rob_chara* chara, size_t index);
@@ -2042,18 +2038,22 @@ extern void rob_chara_reset(rob_chara* rob_chr, bone_database* bone_data,
     void* data, object_database* obj_db);
 extern void rob_chara_reset_data(rob_chara* rob_chr, rob_chara_pv_data* pv_data,
     bone_database* bone_data, motion_database* mot_db);
-extern void rob_chara_set(rob_chara* rob_chr, int8_t chara_id,
-    chara_index chara_index, uint32_t module_index, rob_chara_pv_data* pv_data);
 extern void rob_chara_set_frame(rob_chara* rob_chr, float_t frame);
+extern void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
+    chara_index chara_index, uint32_t module_index, rob_chara_pv_data* pv_data);
+extern void rob_chara_set_visibility(rob_chara* rob_chr, bool value);
 extern void rob_chara_free(rob_chara* rob_chr);
 
 extern void rob_chara_array_init();
 extern rob_chara* rob_chara_array_get(int32_t chara_id);
+extern int32_t rob_chara_array_set_pv_data(chara_index chara_index,
+    rob_chara_pv_data* pv_data, uint32_t module_index, bool a4);
 extern void rob_chara_array_free();
 
 extern void rob_chara_pv_data_init(rob_chara_pv_data* pv_data);
-
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
+
+extern void rob_chara_pv_data_array_init();
 
 extern void motion_storage_init();
 extern void motion_storage_append_mot_set(uint32_t set_id);

@@ -53,6 +53,7 @@ typedef struct stage_effects {
 } stage_effects;
 
 typedef struct stage_info {
+    int32_t id;
     string name;
     string auth_3d_name;
     uint32_t object_set_id;

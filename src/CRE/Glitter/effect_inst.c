@@ -9,6 +9,7 @@
 #include "emitter_inst.h"
 #include "random.h"
 #include "render_scene.h"
+#include "../../KKdLib/str_utils.h"
 #include "../auth_3d.h"
 #include "../rob.h"
 
@@ -43,11 +44,13 @@ glitter_effect_inst* glitter_effect_inst_init(GPM, GLT,
 
     if (~a1->data.flags & GLITTER_EFFECT_LOCAL && ei->data.ext_anim) {
         inst_ext_anim = force_malloc(sizeof(glitter_effect_inst_ext_anim));
-        inst_ext_anim->a3da_id = -1;
-        inst_ext_anim->object_hash = GLT_VAL != GLITTER_FT
-            ? hash_murmurhash_empty : hash_fnv1a64m_empty;
-        inst_ext_anim->chara_index = -1;
+        inst_ext_anim->object_index = -1;
         inst_ext_anim->mesh_index = -1;
+        inst_ext_anim->a3da_id = -1;
+        inst_ext_anim->object_is_hrc = false;
+        inst_ext_anim->object = object_info_null;
+        inst_ext_anim->mesh_name = 0;
+
         inst_ext_anim->mat = mat4_identity;
         inst_ext_anim->translation = vec3_null;
 
@@ -59,22 +62,16 @@ glitter_effect_inst* glitter_effect_inst_init(GPM, GLT,
                 ei->flags |= GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY;
 
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
+                inst_ext_anim->chara_index = ext_anim->chara_index;
                 inst_ext_anim->bone_index
                     = glitter_effect_inst_get_ext_anim_bone_index(ext_anim->node_index);
                 ei->flags |= GLITTER_EFFECT_INST_CHARA_ANIM;
             }
-            else {
+            else
                 inst_ext_anim->object = ext_anim->object;
-                inst_ext_anim->object_hash = ext_anim->object_hash;
-                inst_ext_anim->file_name_hash = ext_anim->file_name_hash;
-                inst_ext_anim->instance_id = ext_anim->instance_id;
-            }
 
-            size_t mesh_name_len = utf8_length(ext_anim->mesh_name);
-            if (mesh_name_len) {
-                inst_ext_anim->mesh_name = force_malloc(mesh_name_len + 1);
-                memcpy(inst_ext_anim->mesh_name, ext_anim->mesh_name, mesh_name_len);
-            }
+            if (ext_anim->mesh_name[0])
+                inst_ext_anim->mesh_name = ext_anim->mesh_name;
             else
                 inst_ext_anim->mesh_name = 0;
         }
@@ -204,10 +201,8 @@ void glitter_effect_inst_update(GPM, GLT,
 }
 
 void glitter_effect_inst_dispose(glitter_effect_inst* ei) {
-    if (ei->ext_anim) {
-        free(ei->ext_anim->mesh_name);
+    if (ei->ext_anim)
         free(ei->ext_anim);
-    }
 
     glitter_render_scene_free(&ei->render_scene);
     vector_ptr_glitter_emitter_inst_free(&ei->emitters, glitter_emitter_inst_dispose);
@@ -265,7 +260,7 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
     }
 
     if (~a1->flags & GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT) {
-        if (inst_ext_anim->mesh_index < 0) {
+        if (inst_ext_anim->mesh_index == -1) {
             if (!inst_ext_anim->mesh_name)
                 return;
 
@@ -273,9 +268,9 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
                 inst_ext_anim->object, inst_ext_anim->mesh_name);
         }
 
-        int32_t v46 = inst_ext_anim->mesh_index;
-        if (v46 >= 0) {
-            object_mesh* mesh = object_storage_get_object_mesh_by_index(inst_ext_anim->object, v46);
+        if (inst_ext_anim->mesh_index != -1) {
+            object_mesh* mesh = object_storage_get_object_mesh_by_index(inst_ext_anim->object,
+                inst_ext_anim->mesh_index);
             if (mesh) {
                 inst_ext_anim->translation = mesh->bounding_sphere.center;
                 goto SetFlags;
@@ -288,24 +283,24 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
     mat4 temp;
     if (inst_ext_anim->a3da_id != -1)
         obj_mat = auth_3d_data_struct_get_auth_3d_object_mat(inst_ext_anim->a3da_id,
-            inst_ext_anim->a3da_index, inst_ext_anim->object_is_hrc, &temp);
+            inst_ext_anim->object_index, inst_ext_anim->object_is_hrc, &temp);
 
     if (!obj_mat) {
         inst_ext_anim->a3da_id = auth_3d_data_get_auth_3d_id_by_object_info(inst_ext_anim->object,
-            &inst_ext_anim->a3da_index, &inst_ext_anim->object_is_hrc);
+            &inst_ext_anim->object_index, &inst_ext_anim->object_is_hrc, 0);
         if (inst_ext_anim->a3da_id == -1)
             return;
 
         inst_ext_anim->mesh_index = -1;
         obj_mat = auth_3d_data_struct_get_auth_3d_object_mat(inst_ext_anim->a3da_id,
-            inst_ext_anim->a3da_index, inst_ext_anim->object_is_hrc, &temp);
+            inst_ext_anim->object_index, inst_ext_anim->object_is_hrc, &temp);
         if (!obj_mat)
             return;
     }
 
     mat4 mat = mat4_identity;
-    int32_t chara_id = -1;// auth_3d_data_get_chara_id(inst_ext_anim->a3da_id);
-    if (chara_id >= 0 && chara_id <= 5) {
+    int32_t chara_id = auth_3d_data_get_chara_id(inst_ext_anim->a3da_id);
+    if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
         rob_chara* rob_chr = rob_chara_array_get(chara_id);
         if (rob_chr) {
             mat = mat4_identity/*chara root mat*/;
@@ -319,11 +314,11 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
     }
 
     if (inst_ext_anim->mesh_name) {
-        if (inst_ext_anim->mesh_index < 0)
+        if (inst_ext_anim->mesh_index == -1)
             inst_ext_anim->mesh_index = object_storage_get_object_mesh_index(
                 inst_ext_anim->object, inst_ext_anim->mesh_name);
 
-        if (inst_ext_anim->mesh_index >= 0) {
+        if (inst_ext_anim->mesh_index != -1) {
             object_mesh* mesh = object_storage_get_object_mesh_by_index(
                 inst_ext_anim->object, inst_ext_anim->mesh_index);
             if (mesh) {
@@ -355,10 +350,17 @@ SetFlags:
 
 static int32_t glitter_effect_inst_get_ext_anim_bone_index(
     glitter_effect_ext_anim_chara_node node) {
-    /*if (node < GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD || node > GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
+    if (node < GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD || node > GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
         return -1;
 
-    const char* bone_names[] = {
+    bone_database* bone_data = GPM_VAL->bone_data;
+    vector_string* motion_bone_names = 0;
+    if (!bone_data || vector_length(bone_data->skeleton) < 1
+        || !bone_database_get_skeleton_motion_bones(bone_data,
+            bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), &motion_bone_names))
+        return -1;
+
+    static const char* bone_names[] = {
         [GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD]            = "face_root",
         [GLITTER_EFFECT_EXT_ANIM_CHARA_MOUTH]           = "n_kuti_u",
         [GLITTER_EFFECT_EXT_ANIM_CHARA_BELLY]           = "n_hara_cp",
@@ -379,48 +381,11 @@ static int32_t glitter_effect_inst_get_ext_anim_bone_index(
         [GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE]       = "kl_toe_r_wj"
     };
 
-    return -1;*/
-
-    switch (node) {
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD:
-        return 0x0F;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_MOUTH:
-        return 0x36;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_BELLY:
-        return 0x00;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_CHEST:
-        return 0x07;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_SHOULDER:
-        return 0x6A;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_ELBOW:
-        return 0x6C;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_ELBOW_DUP:
-        return 0x6D;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_HAND:
-        return 0x7B;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_SHOULDER:
-        return 0x8E;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_ELBOW:
-        return 0x90;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_ELBOW_DUP:
-        return 0x91;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_HAND:
-        return 0x9F;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_THIGH:
-        return 0xC2;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_KNEE:
-        return 0xB8;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_LEFT_TOE:
-        return 0xB7;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_THIGH:
-        return 0xC5;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_KNEE:
-        return 0xBF;
-    case GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE:
-        return 0xBE;
-    default:
-        return -1;
-    }
+    char* bone_name = (char*)bone_names[node];
+    for (string* i = motion_bone_names->begin; i != motion_bone_names->end; i++)
+        if (!str_utils_compare(bone_name, string_data(i)))
+            return (int32_t)(i - motion_bone_names->begin);
+    return -1;
 }
 
 static void glitter_effect_inst_get_value(GLT, glitter_effect_inst* a1) {

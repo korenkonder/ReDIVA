@@ -111,7 +111,15 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
                         string_free(&auth_3d_file);
                         continue;
                     }
-                    
+
+                    char* l_str = string_data(&ff->name);
+                    char* t = strrchr(l_str, '.');
+                    size_t l_len = ff->name.length;
+                    if (t)
+                        l_len = t - l_str;
+
+                    uint32_t h = hash_murmurhash(l_str, l_len, 0, false, false);
+
                     a3da a3da_file;
                     a3da_init(&a3da_file);
                     a3da_mread(&a3da_file, ff->data, ff->size);
@@ -120,6 +128,7 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
                         string_free(&auth_3d_file);
                         continue;
                     }
+                    a3da_file.hash = h;
 
                     int32_t id = auth_3d_data_load_uid(uids[*j].org_uid, auth_3d_db);
                     auth_3d* auth = auth_3d_data_get_auth_3d(id);
@@ -172,11 +181,14 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
             texture_storage_get_texture(movie_texture));
 }
 
+extern int32_t stage_index;
+
 void stage_set(stage* s, render_context* rctx) {
     if (!s || !rctx || s == rctx->stage)
         return;
     
     rctx->stage = s;
+    stage_index = (uint32_t)(s->modern ? s->stage_modern->id : s->stage->id);
     render_context_set_light_param(rctx,
         light_param_storage_get_light_param_data(s->light_param_name));
 }
@@ -191,7 +203,7 @@ void stage_update(stage* s, render_context* rctx) {
         for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
             auth_3d* auth = auth_3d_data_get_auth_3d(*i);
             if (auth)
-                auth_3d_get_value(auth, (mat4*)&mat4_identity, get_delta_frame());
+                auth_3d_time_step(auth, (mat4*)&mat4_identity);
         }
     }
 
@@ -225,7 +237,7 @@ void stage_update_modern(stage* s, render_context* rctx) {
         for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
             auth_3d* auth = auth_3d_data_get_auth_3d(*i);
             if (auth)
-                auth_3d_get_value(auth, (mat4*)&mat4_identity, get_delta_frame());
+                auth_3d_time_step(auth, (mat4*)&mat4_identity);
         }
     }
 

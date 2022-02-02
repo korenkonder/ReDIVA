@@ -14,3 +14,5 @@ extern bool glitter_effect_parse_file(glitter_effect_group* a1,
 extern bool glitter_effect_unparse_file(GLT, glitter_effect_group* a1,
     f2_struct* st, glitter_effect* a3);
 extern void glitter_effect_dispose(glitter_effect* e);
+
+extern object_info glitter_effect_ext_anim_get_object_info(uint64_t hash);

@@ -4,555 +4,439 @@
 */
 
 #include "pvsr.h"
+#include "f2/struct.h"
+#include "io/path.h"
+#include "io/stream.h"
+#include "str_utils.h"
 
-/*
-private struct PVSR
-{
-    public StageEffect[] StageEffects;
-    public Effect[] EffectList;
-    public string[] EMCSList;
-    public StageEffect?[] StageChangeEffects;
-    public AET[] AETs;
+vector_func(pvsr_a3da)
+vector_func(pvsr_aet)
+vector_func(pvsr_aet_entry)
+vector_func(pvsr_effect)
+vector_func(pvsr_glitter)
+vector_func(pvsr_stage_effect)
 
-    public struct AET
-    {
-        public ushort U48;
-        public ushort U4A;
-        public ushort U4C;
-        public ushort U4E;
-        public ushort U50;
-        public ushort U52;
-        public ushort U54;
-        public ushort U56;
-        public ushort U58;
-        public ushort U5A;
-        public ushort U5C;
-        public ushort U5E;
-        public ushort U60;
+static void pvsr_a3da_read(pvsr_a3da* a3d, stream* s);
+static void pvsr_aet_read(pvsr_aet* aet, stream* s, int32_t x00);
+static void pvsr_aet_entry_read(pvsr_aet_entry* aet_entry, stream* s);
+static bool pvsr_aet_sub1_read(pvsr_aet_sub1* aet_sub1, stream* s, ssize_t offset);
+static bool pvsr_aet_sub2_read(pvsr_aet_sub2* aet_sub2, stream* s, ssize_t offset);
+static void pvsr_effect_read(pvsr_effect* eff, stream* s);
+static void pvsr_glitter_read(pvsr_glitter* glt, stream* s);
+static void pvsr_read_inner(pvsr* sr, stream* s);
+static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream* s);
 
-        public string SetName;
-        public AETEntry[]    FrontList;
-        public AETEntry[] FrontLowList;
-        public AETEntry[]     BackList;
-        public Sub1? Sub1Data;
-        public Sub2? Sub2AData;
-        public Sub2? Sub2BData;
-        public Sub2? Sub2CData;
-        public Sub2? Sub2DData;
-        public AETEntry[]    Unk03List;
-        public AETEntry[]    Unk04List;
+void pvsr_init(pvsr* sr) {
+    memset(sr, 0, sizeof(pvsr));
+}
 
-        public override string ToString() =>
-            $"(Set Name: {SetName}; Front List Count: {(FrontList != null ? FrontList.Length : 0)}"
-            + $"; Front Low List Count: {(FrontLowList != null ? FrontLowList.Length : 0)}"
-            + $"; Back List Count: {(BackList != null ? BackList.Length : 0)}"
-            + $"; U48: {U48}; U4A: {U4A}; U4C: {U4C}; U4E: {U4E}; U4C: {U4C}; U50: {U50}; U52: {U52}"
-            + $"; U54: {U54}; U56: {U56}; U58: {U58}; U5A: {U5A}; U5E: {U5E}; U60: {U60}"
-            + $"; Unk 3 List Count: {(Unk03List != null ? Unk03List.Length : 0)}"
-            + $"; Unk 4 List Count: {(Unk04List != null ? Unk04List.Length : 0)}";
+void pvsr_read(pvsr* sr, char* path) {
+    if (!sr || !path)
+        return;
 
-        public struct Sub1
-        {
-            public string Name;
-            public uint Hash;
-            public ushort Unk2;
+    char* path_pvsr = str_utils_add(path, ".pvsr");
+    if (path_check_file_exists(path_pvsr)) {
+        stream s;
+        io_open(&s, path_pvsr, "rb");
+        if (s.io.stream)
+            pvsr_read_inner(sr, &s);
+        io_free(&s);
+    }
+    free(path_pvsr);
+}
 
-            public override string ToString() =>
-                $"(Name: {Name}; Hash: {Hash:X08}; Unk 2: {Unk2})";
-        }
+void pvsr_wread(pvsr* sr, wchar_t* path) {
+    if (!sr || !path)
+        return;
 
-        public struct Sub2
-        {
-            public ushort U00;
-            public ushort U02;
-            public ushort U04;
-            public ushort U06;
-            public ushort U08;
-            public ushort U0A;
-            public ushort U0C;
+    wchar_t* path_pvsr = str_utils_wadd(path, L".pvsr");
+    if (path_wcheck_file_exists(path_pvsr)) {
+        stream s;
+        io_wopen(&s, path_pvsr, L"rb");
+        if (s.io.stream)
+            pvsr_read_inner(sr, &s);
+        io_free(&s);
+    }
+    free(path_pvsr);
+}
 
-            public override string ToString() =>
-                $"(U00: {U00}; U02: {U02}; U04: {U04}; U06: {U06}; U08: {U08}; U0A: {U0A})";
-        }
+bool pvsr_load_file(void* data, char* path, char* file, uint32_t hash) {
+    size_t file_len = utf8_length(file);
+
+    char* t = strrchr(file, '.');
+    if (t)
+        file_len = t - file;
+
+    string s;
+    string_init(&s, path);
+    string_add_length(&s, file, file_len);
+
+    pvsr* sr = data;
+    pvsr_read(sr, string_data(&s));
+
+    string_free(&s);
+    return sr->ready;
+}
+
+void pvsr_free(pvsr* sr) {
+    vector_pvsr_aet_free(&sr->aet, pvsr_aet_free);
+    vector_pvsr_effect_free(&sr->effect, pvsr_effect_free);
+    vector_string_free(&sr->emcs, string_free);
+    for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
+        for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++)
+            if (sr->stage_change_effect_init[i][j])
+                pvsr_stage_effect_free(&sr->stage_change_effect[i][j]);
+    vector_pvsr_stage_effect_free(&sr->stage_effect, pvsr_stage_effect_free);
+}
+
+void pvsr_a3da_init(pvsr_a3da* a3d) {
+    memset(a3d, 0, sizeof(pvsr_a3da));
+}
+
+void pvsr_a3da_free(pvsr_a3da* a3d) {
+    string_free(&a3d->name);
+}
+
+void pvsr_aet_init(pvsr_aet* aet) {
+    memset(aet, 0, sizeof(pvsr_aet));
+}
+
+void pvsr_aet_free(pvsr_aet* aet) {
+    string_free(&aet->set_name);
+    vector_pvsr_aet_entry_free(&aet->front, pvsr_aet_entry_free);
+    vector_pvsr_aet_entry_free(&aet->front_low, pvsr_aet_entry_free);
+    vector_pvsr_aet_entry_free(&aet->back, pvsr_aet_entry_free);
+    pvsr_aet_sub1_free(&aet->sub1_data);
+    pvsr_aet_sub2_free(&aet->sub2a_data);
+    pvsr_aet_sub2_free(&aet->sub2b_data);
+    pvsr_aet_sub2_free(&aet->sub2c_data);
+    pvsr_aet_sub2_free(&aet->sub2d_data);
+    vector_pvsr_aet_entry_free(&aet->unk03, pvsr_aet_entry_free);
+    vector_pvsr_aet_entry_free(&aet->unk04, pvsr_aet_entry_free);
+}
+
+void pvsr_aet_entry_init(pvsr_aet_entry* aet_entry) {
+    memset(aet_entry, 0, sizeof(pvsr_aet_entry));
+}
+
+void pvsr_aet_entry_free(pvsr_aet_entry* aet_entry) {
+    string_free(&aet_entry->name);
+}
+
+void pvsr_aet_sub1_init(pvsr_aet_sub1* aet_sub1) {
+    memset(aet_sub1, 0, sizeof(pvsr_aet_sub1));
+}
+
+void pvsr_aet_sub1_free(pvsr_aet_sub1* aet_sub1) {
+    string_free(&aet_sub1->name);
+}
+
+void pvsr_aet_sub2_init(pvsr_aet_sub2* aet_sub2) {
+    memset(aet_sub2, 0, sizeof(pvsr_aet_sub2));
+}
+
+void pvsr_aet_sub2_free(pvsr_aet_sub2* aet_sub2) {
+
+}
+
+void pvsr_effect_init(pvsr_effect* eff) {
+    memset(eff, 0, sizeof(pvsr_effect));
+}
+
+void pvsr_effect_free(pvsr_effect* eff) {
+    string_free(&eff->name);
+}
+
+void pvsr_glitter_init(pvsr_glitter* glt) {
+    memset(glt, 0, sizeof(pvsr_glitter));
+}
+
+void pvsr_glitter_free(pvsr_glitter* glt) {
+    string_free(&glt->name);
+}
+
+void pvsr_stage_effect_init(pvsr_stage_effect* stg_eff) {
+    memset(stg_eff, 0, sizeof(pvsr_stage_effect));
+}
+
+void pvsr_stage_effect_free(pvsr_stage_effect* stg_eff) {
+    vector_pvsr_a3da_free(&stg_eff->a3da, pvsr_a3da_free);
+    vector_pvsr_glitter_free(&stg_eff->glitter, pvsr_glitter_free);
+}
+
+static void pvsr_a3da_read(pvsr_a3da* a3d, stream* s) {
+    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &a3d->name);
+    a3d->hash = io_read_uint32_t_stream_reverse_endianness(s);
+    io_align_read(s, 0x08);
+}
+
+static void pvsr_aet_read(pvsr_aet* aet, stream* s, int32_t x00) {
+    ssize_t set_name_offset = io_read_offset_x(s);
+    ssize_t front_offset = io_read_offset_x(s);
+    ssize_t front_low_offset = io_read_offset_x(s);
+    ssize_t back_offset = io_read_offset_x(s);
+    ssize_t sub1_offset = io_read_offset_x(s);
+    ssize_t sub2a_offset = io_read_offset_x(s);
+    ssize_t sub2b_offset = io_read_offset_x(s);
+    ssize_t sub2c_offset = io_read_offset_x(s);
+    ssize_t sub2d_offset = io_read_offset_x(s);
+    aet->u48 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u4a = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u4c = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u4e = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u50 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u52 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u54 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u56 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u58 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u5a = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u5c = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u5e = io_read_uint16_t_stream_reverse_endianness(s);
+    aet->u60 = io_read_uint16_t_stream_reverse_endianness(s);
+    uint8_t front_count = io_read_uint8_t(s);
+    uint8_t front_low_count = io_read_uint8_t(s);
+    uint8_t back_count = io_read_uint8_t(s);
+    io_align_read(s, 0x08);
+    ssize_t o68 = 0;
+    ssize_t o70 = 0;
+    uint8_t u78 = 0;
+    uint8_t u79 = 0;
+    if (x00 & 0x100) {
+        o68 = io_read_offset_x(s);
+        o70 = io_read_offset_x(s);
+        u78 = io_read_uint8_t(s);
+        u79 = io_read_uint8_t(s);
+        io_align_read(s, 0x08);
     }
 
-    public struct AETEntry
-    {
-        public string Name;
-        public uint Hash;
-        public float BrightScale;
+    io_read_string_null_terminated_offset(s, set_name_offset, &aet->set_name);
 
-        public override string ToString() =>
-            $"(Name: {Name}; Hash: {Hash:X08}; Bright Scale: {BrightScale})";
-    }
+    vector_pvsr_aet_entry_reserve(&aet->front, front_count);
+    aet->front.end += front_count;
 
-    public struct A3DAEntry
-    {
-        public string Name;
-        public uint Hash;
+    io_position_push(s, front_offset, SEEK_SET);
+    for (int32_t i = 0; i < front_count; i++)
+        pvsr_aet_entry_read(&aet->front.begin[i], s);
+    io_position_pop(s);
 
-        public override string ToString() =>
-            $"(Name: {Name}; Hash: {Hash:X08})";
-    }
+    vector_pvsr_aet_entry_reserve(&aet->front_low, front_low_count);
+    aet->front_low.end += front_low_count;
 
-    public struct Effect
-    {
-        public string Name;
-        public float Emission;
+    io_position_push(s, front_low_offset, SEEK_SET);
+    for (int32_t i = 0; i < front_low_count; i++)
+        pvsr_aet_entry_read(&aet->front_low.begin[i], s);
+    io_position_pop(s);
 
-        public override string ToString() =>
-            $"(Name: {Name}; Emission: {Emission})";
-    }
+    vector_pvsr_aet_entry_reserve(&aet->back, back_count);
+    aet->back.end += back_count;
 
-    public struct Glitter
-    {
-        public string Name;
-        public byte Unk1;
+    io_position_push(s, back_offset, SEEK_SET);
+    for (int32_t i = 0; i < back_count; i++)
+        pvsr_aet_entry_read(&aet->back.begin[i], s);
+    io_position_pop(s);
 
-        public override string ToString() =>
-            $"(Name: {Name}; Unk 1: {Unk1})";
-    }
+    aet->sub1_data_init = pvsr_aet_sub1_read(&aet->sub1_data, s, sub1_offset);
+    aet->sub2a_data_init = pvsr_aet_sub2_read(&aet->sub2a_data, s, sub2a_offset);
+    aet->sub2b_data_init = pvsr_aet_sub2_read(&aet->sub2b_data, s, sub2b_offset);
+    aet->sub2c_data_init = pvsr_aet_sub2_read(&aet->sub2c_data, s, sub2c_offset);
+    aet->sub2d_data_init = pvsr_aet_sub2_read(&aet->sub2d_data, s, sub2d_offset);
 
-    public struct StageEffect
-    {
-        public A3DAEntry[] A3DAs;
-        public Glitter[] Glitters;
+    if (x00 & 0x100) {
+        vector_pvsr_aet_entry_reserve(&aet->unk03, u78);
+        aet->unk03.end += u78;
 
-        public override string ToString() =>
-            $"A3DAs Count: {(A3DAs != null ? A3DAs.Length : 0)}"
-            + $"; Effects Count: {(Glitters != null ? Glitters.Length : 0)})";
+        io_position_push(s, o68, SEEK_SET);
+        for (int32_t i = 0; i < u78; i++)
+            pvsr_aet_entry_read(&aet->unk03.begin[i], s);
+        io_position_pop(s);
+
+        vector_pvsr_aet_entry_reserve(&aet->unk04, u79);
+        aet->unk04.end += u79;
+
+        io_position_push(s, o70, SEEK_SET);
+        for (int32_t i = 0; i < u79; i++)
+            pvsr_aet_entry_read(&aet->unk04.begin[i], s);
+        io_position_pop(s);
     }
 }
 
-private static PVSR PVSRReader(string file)
-{
-    int i, j;
-    KKdBaseLib.F2.Struct st = File.ReadAllBytes(file + ".pvsr").RSt();
+static void pvsr_aet_entry_read(pvsr_aet_entry* aet_entry, stream* s) {
+    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &aet_entry->name);
+    aet_entry->hash = io_read_uint32_t_stream_reverse_endianness(s);
+    aet_entry->bright_scale = io_read_float_t_stream_reverse_endianness(s);
+}
 
-    PVSR pvsr = default;
-    Stream s = File.OpenReader(st.Data);
-    s.IsBE = st.Header.UseBigEndian;
-    s.IsX = true;
+static bool pvsr_aet_sub1_read(pvsr_aet_sub1* aet_sub1, stream* s, ssize_t offset) {
+    if (offset <= 0)
+        return false;
 
-    int x00 = s.RI32E();
-    byte x04 = s.RU8();
-    byte x05 = s.RU8();
-    byte x06 = s.RU8();
-    byte x07 = s.RU8();
-    byte stageEffectsCount = s.RU8();
-    byte         aetsCount = s.RU8();
-    byte x0A = s.RU8();
-    byte x0B = s.RU8();
-    byte x0C = s.RU8();
-    byte x0D = s.RU8();
-    byte x0E = s.RU8();
-    byte x0F = s.RU8();
-    long                    x10 = s.RI64E();
-    long     stageEffectsOffset = s.RI64E();
-    long stageEffectsListOffset = s.RI64E();
-    long             aetsOffset = s.RI64E();
+    io_position_push(s, offset, SEEK_SET);
+    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &aet_sub1->name);
+    aet_sub1->hash = io_read_uint32_t_stream_reverse_endianness(s);
+    aet_sub1->unk2 = io_read_uint16_t_stream_reverse_endianness(s);
+    io_align_read(s, 0x08);
+    io_position_pop(s);
+    return true;
+}
 
-    s.PI64 = x10;
-    byte UnknownsCount = s.RU8();
-    byte  EffectsCount = s.RU8();
-    byte    EMCSsCount = s.RU8();
-    s.A(0x08);
-    long UnknownOffset = s.RI64E();
-    long EffectsOffset = s.RI64E();
-    long   EMCSsOffset = s.RI64E();
+static bool pvsr_aet_sub2_read(pvsr_aet_sub2* aet_sub2, stream* s, ssize_t offset) {
+    if (offset <= 0)
+        return false;
 
-    s.PI64 = EffectsOffset;
-    pvsr.EffectList = new PVSR.Effect[EffectsCount];
-    for (i = 0; i < EffectsCount; i++)
-    {
-        ref PVSR.Effect effect = ref pvsr.EffectList[i];
-        effect.Name = s.RSaO();
-        effect.Emission = s.RF32E();
-        s.A(0x08);
-    }
+    io_position_push(s, offset, SEEK_SET);
+    aet_sub2->u00 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet_sub2->u02 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet_sub2->u04 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet_sub2->u06 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet_sub2->u08 = io_read_uint16_t_stream_reverse_endianness(s);
+    aet_sub2->u0a = io_read_uint16_t_stream_reverse_endianness(s);
+    aet_sub2->u0c = io_read_uint16_t_stream_reverse_endianness(s);
+    io_align_read(s, 0x08);
+    io_position_pop(s);
+    return true;
+}
 
-    s.PI64 = EMCSsOffset;
-    pvsr.EMCSList = new string[EMCSsCount];
-    for (i = 0; i < EMCSsCount; i++)
-        pvsr.EMCSList[i] = s.RSaO();
+static void pvsr_effect_read(pvsr_effect* eff, stream* s) {
+    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &eff->name);
+    eff->emission = io_read_float_t_stream_reverse_endianness(s);
+    io_align_read(s, 0x08);
+}
 
-    s.PI64 = stageEffectsOffset;
-    pvsr.StageEffects = new PVSR.StageEffect[stageEffectsCount];
-    for (i = 0; i < stageEffectsCount; i++)
-        pvsr.StageEffects[i] = readStageEffect();
+static void pvsr_glitter_read(pvsr_glitter* glt, stream* s) {
+    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &glt->name);
+    glt->unk1 = io_read_uint8_t(s);
+    io_align_read(s, 0x08);
+}
 
-    s.PI64 = stageEffectsListOffset;
-    pvsr.StageChangeEffects = new PVSR.StageEffect?[0x100];
-    for (i = 0; i < 0x100; i++)
-    {
-        long o = s.RI64E();
-        if (o > 0)
-            pvsr.StageChangeEffects[i] = readStageEffect(o);
+static void pvsr_read_inner(pvsr* sr, stream* s) {
+    f2_struct st;
+    f2_struct_sread(&st, s);
+    if (st.header.signature == reverse_endianness_uint32_t('PVSR') && st.data) {
+        stream s_pvsr;
+        io_mopen(&s_pvsr, st.data, st.length);
+        s_pvsr.is_big_endian = st.header.use_big_endian;
 
-    }
+        int32_t x00 = io_read_int32_t_stream_reverse_endianness(&s_pvsr);
+        uint8_t x04 = io_read_uint8_t(&s_pvsr);
+        uint8_t x05 = io_read_uint8_t(&s_pvsr);
+        uint8_t x06 = io_read_uint8_t(&s_pvsr);
+        uint8_t x07 = io_read_uint8_t(&s_pvsr);
+        uint8_t stage_effect_count = io_read_uint8_t(&s_pvsr);
+        uint8_t aets_count = io_read_uint8_t(&s_pvsr);
+        uint8_t x0a = io_read_uint8_t(&s_pvsr);
+        uint8_t x0b = io_read_uint8_t(&s_pvsr);
+        uint8_t x0c = io_read_uint8_t(&s_pvsr);
+        uint8_t x0d = io_read_uint8_t(&s_pvsr);
+        uint8_t x0e = io_read_uint8_t(&s_pvsr);
+        uint8_t x0f = io_read_uint8_t(&s_pvsr);
+        ssize_t x10 = io_read_offset_x(&s_pvsr);
+        ssize_t stage_effect_offset = io_read_offset_x(&s_pvsr);
+        ssize_t stage_change_effect_offset = io_read_offset_x(&s_pvsr);
+        ssize_t aet_offset = io_read_offset_x(&s_pvsr);
 
-    s.PI64 = aetsOffset;
-    pvsr.AETs = new PVSR.AET[aetsCount];
-    for (i = 0; i < aetsCount; i++)
-    {
-        long offset = s.PI64;
-        ref PVSR.AET aet = ref pvsr.AETs[i];
+        io_position_push(&s_pvsr, x10, SEEK_SET);
+        uint8_t unknown_count = io_read_uint8_t(&s_pvsr);
+        uint8_t effect_count = io_read_uint8_t(&s_pvsr);
+        uint8_t emcs_count = io_read_uint8_t(&s_pvsr);
+        ssize_t unknown_offset = io_read_offset_x(&s_pvsr);
+        ssize_t effect_offset = io_read_offset_x(&s_pvsr);
+        ssize_t emcs_offset = io_read_offset_x(&s_pvsr);
+        io_position_pop(&s_pvsr);
 
-        long  setNameOffset = s.RI64E();
-        long    frontOffset = s.RI64E();
-        long frontLowOffset = s.RI64E();
-        long     backOffset = s.RI64E();
-        long     sub1Offset = s.RI64E();
-        long    sub2AOffset = s.RI64E();
-        long    sub2BOffset = s.RI64E();
-        long    sub2COffset = s.RI64E();
-        long    sub2DOffset = s.RI64E();
-        aet.U48 = s.RU16E();
-        aet.U4A = s.RU16E();
-        aet.U4C = s.RU16E();
-        aet.U4E = s.RU16E();
-        aet.U50 = s.RU16E();
-        aet.U52 = s.RU16E();
-        aet.U54 = s.RU16E();
-        aet.U56 = s.RU16E();
-        aet.U58 = s.RU16E();
-        aet.U5A = s.RU16E();
-        aet.U5C = s.RU16E();
-        aet.U5E = s.RU16E();
-        aet.U60 = s.RU16E();
-        byte    frontCount = s.RU8();
-        byte frontLowCount = s.RU8();
-        byte     backCount = s.RU8();
-        s.A(0x08);
-        long O68 = 0;
-        long O70 = 0;
-        byte U78 = 0;
-        byte U79 = 0;
-        if ((x00 & 0x100) != 0)
-        {
-            O68 = s.RI64E();
-            O70 = s.RI64E();
-            U78 = s.RU8();
-            U79 = s.RU8();
-            s.A(0x08);
-        }
+        vector_pvsr_effect_reserve(&sr->effect, effect_count);
+        sr->effect.end += effect_count;
 
-        aet.SetName = s.RSaO(setNameOffset);
+        io_position_push(&s_pvsr, effect_offset, SEEK_SET);
+        for (int32_t i = 0; i < effect_count; i++)
+            pvsr_effect_read(&sr->effect.begin[i], &s_pvsr);
+        io_position_pop(&s_pvsr);
 
-        s.PI64 = frontOffset;
-        aet.FrontList = new PVSR.AETEntry[frontCount];
-        for (j = 0; j < frontCount; j++)
-            aet.FrontList[j] = readAETEntry();
+        vector_string_reserve(&sr->emcs, emcs_count);
+        sr->emcs.end += emcs_count;
 
-        s.PI64 = frontLowOffset;
-        aet.FrontLowList = new PVSR.AETEntry[frontLowCount];
-        for (j = 0; j < frontLowCount; j++)
-            aet.FrontLowList[j] = readAETEntry();
+        io_position_push(&s_pvsr, emcs_offset, SEEK_SET);
+        for (int32_t i = 0; i < emcs_count; i++)
+            io_read_string_null_terminated_offset(&s_pvsr,
+                io_read_offset_x(&s_pvsr), &sr->emcs.begin[i]);
+        io_position_pop(&s_pvsr);
 
-        s.PI64 = backOffset;
-        aet.BackList = new PVSR.AETEntry[backCount];
-        for (j = 0; j < backCount; j++)
-            aet.BackList[j] = readAETEntry();
+        vector_pvsr_stage_effect_reserve(&sr->stage_effect, stage_effect_count);
+        sr->stage_effect.end += stage_effect_count;
 
-        aet.Sub1Data = readAETSub1(sub1Offset);
-        aet.Sub2AData = readAETSub2(sub2AOffset);
-        aet.Sub2BData = readAETSub2(sub2BOffset);
-        aet.Sub2CData = readAETSub2(sub2COffset);
-        aet.Sub2DData = readAETSub2(sub2DOffset);
+        io_position_push(&s_pvsr, stage_effect_offset, SEEK_SET);
+        for (int32_t i = 0; i < stage_effect_count; i++)
+            pvsr_stage_effect_read(&sr->stage_effect.begin[i], &s_pvsr);
+        io_position_pop(&s_pvsr);
 
-        if (O68 > 0)
-        {
-            s.PI64 = O68;
-            aet.Unk03List = new PVSR.AETEntry[U78];
-            for (j = 0; j < U78; j++)
-                aet.Unk03List[j] = readAETEntry();
-        }
-
-        if (O70 > 0)
-        {
-            s.PI64 = O70;
-            aet.Unk04List = new PVSR.AETEntry[U79];
-            for (j = 0; j < U79; j++)
-                aet.Unk04List[j] = readAETEntry();
-        }
-        s.PI64 = offset + ((x00 & 0x100) != 0 ? 0x80 : 0x68);
-    }
-    s.C();
-    return pvsr;
-
-    PVSR.StageEffect readStageEffect(long o = 0)
-    {
-        long offset = s.PI64;
-        if (o > 0)
-            s.PI64 = o;
-        PVSR.StageEffect eff = default;
-        byte U00 = s.RU8();
-        byte U01 = s.RU8();
-        byte U02 = s.RU8();
-        byte U03 = s.RU8();
-        byte U04 = s.RU8();
-        s.A(0x08);
-        long    A3DAsOffset = s.RI64E();
-        long GlittersOffset = s.RI64E();
-
-        int    a3dasCount;
-        int glittersCount;
-        if (U04 != 0xFF)
-        {
-               a3dasCount = U00;
-            glittersCount = U01;
-        }
-        else
-        {
-               a3dasCount = U01;
-            glittersCount = U02;
-        }
-
-        if (A3DAsOffset > 0)
-        {
-            s.PI64 = A3DAsOffset;
-            eff.A3DAs = new PVSR.A3DAEntry[a3dasCount];
-            for (int i = 0; i < a3dasCount; i++)
-            {
-                PVSR.A3DAEntry entry = default;
-                entry.Name = s.RSaO();
-                entry.Hash = s.RU32E();
-                s.A(0x08);
-                eff.A3DAs[i] = entry;
+        for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
+            for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++) {
+                pvsr_stage_effect_init(&sr->stage_change_effect[i][j]);
+                sr->stage_change_effect_init[i][j] = false;
             }
-        }
 
-        if (GlittersOffset > 0)
-        {
-            s.PI64 = GlittersOffset;
-            eff.Glitters = new PVSR.Glitter[glittersCount];
-            for (int i = 0; i < glittersCount; i++)
-                eff.Glitters[i] = readGlitter();
-        }
+        io_position_push(&s_pvsr, stage_change_effect_offset, SEEK_SET);
+        for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
+            for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++) {
+                ssize_t offset = io_read_offset_x(&s_pvsr);
+                if (offset <= 0)
+                    continue;
 
-        if (o > 0)
-            s.PI64 = offset;
-        else
-            s.PI64 = offset + 0x20;
-        return eff;
+                io_position_push(&s_pvsr, offset, SEEK_SET);
+                pvsr_stage_effect_read(&sr->stage_change_effect[i][j], &s_pvsr);
+                sr->stage_change_effect_init[i][j] = true;
+                io_position_pop(&s_pvsr);
+            }
+        io_position_pop(&s_pvsr);
+
+        vector_pvsr_aet_reserve(&sr->aet, aets_count);
+        sr->aet.end += aets_count;
+
+        io_position_push(&s_pvsr, aet_offset, SEEK_SET);
+        for (int32_t i = 0; i < aets_count; i++)
+            pvsr_aet_read(&sr->aet.begin[i], &s_pvsr, x00);
+        io_position_pop(&s_pvsr);
+
+        io_free(&s_pvsr);
+
+        sr->ready = true;
     }
-
-    PVSR.AETEntry readAETEntry()
-    {
-        PVSR.AETEntry entry = default;
-        entry.Name = s.RSaO();
-        entry.Hash = s.RU32E();
-        entry.BrightScale = s.RF32E();
-        return entry;
-    }
-
-    PVSR.AET.Sub1? readAETSub1(long offset)
-    {
-        if (offset <= 0)
-            return default;
-
-        s.PI64 = offset;
-        PVSR.AET.Sub1 sub = default;
-        sub.Name = s.RSaO();
-        sub.Hash = s.RU32E();
-        sub.Unk2 = s.RU16E();
-        s.A(0x08);
-        return sub;
-    }
-
-    PVSR.AET.Sub2? readAETSub2(long offset)
-    {
-        if (offset <= 0)
-            return default;
-
-        s.PI64 = offset;
-        PVSR.AET.Sub2 sub = default;
-        sub.U00 = s.RU16E();
-        sub.U02 = s.RU16E();
-        sub.U04 = s.RU16E();
-        sub.U06 = s.RU16E();
-        sub.U08 = s.RU16E();
-        sub.U0A = s.RU16E();
-        sub.U0C = s.RU16E();
-        s.A(0x08);
-        return sub;
-    }
-
-    PVSR.Glitter readGlitter()
-    {
-        PVSR.Glitter eff = default;
-        eff.Name = s.RSaO();
-        eff.Unk1 = s.RU8();
-        s.A(0x08);
-        return eff;
-    }
+    f2_struct_free(&st);
 }
 
-private static void PVSRMsgPackWriter(string file, PVSR pvsr)
-{
-    int i, j;
-    MsgPack _PVSR = new MsgPack("PVSR");
+static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream* s) {
+    uint8_t u00 = io_read_uint8_t(s);
+    uint8_t u01 = io_read_uint8_t(s);
+    uint8_t u02 = io_read_uint8_t(s);
+    uint8_t u03 = io_read_uint8_t(s);
+    uint8_t u04 = io_read_uint8_t(s);
+    ssize_t a3da_offset = io_read_offset_x(s);
+    ssize_t glitter_offset = io_read_offset_x(s);
+    io_read_offset_x(s);
 
-    int stageEffectsCount = pvsr.StageEffects != null ? pvsr.StageEffects.Length : 0;
-    MsgPack stgEffs = new MsgPack(stageEffectsCount, "StageEffects");
-    for (i = 0; i < stageEffectsCount; i++)
-        stgEffs[i] = writeStageEffect(pvsr.StageEffects[i]);
-    if (stageEffectsCount > 0)
-        _PVSR.Add(stgEffs);
-
-    int effectsCount = pvsr.EffectList != null ? pvsr.EffectList.Length : 0;
-    MsgPack effectList = new MsgPack(effectsCount, "EffectList");
-    for (i = 0; i < effectsCount; i++)
-    {
-        ref PVSR.Effect effect = ref pvsr.EffectList[i];
-        effectList[i] = MsgPack.New.Add("Name", effect.Name).Add("Emission", effect.Emission);
+    uint8_t a3da_count;
+    uint8_t glitter_count;
+    if (u04 != 0xFF) {
+        a3da_count = u00;
+        glitter_count = u01;
     }
-    if (effectsCount > 0)
-        _PVSR.Add(effectList);
-
-    int emcssCount = pvsr.EMCSList != null ? pvsr.EMCSList.Length : 0;
-    MsgPack emcsList = new MsgPack(emcssCount, "EMCSList");
-    for (i = 0; i < emcssCount; i++)
-        emcsList[i] = pvsr.EMCSList[i];
-    if (emcssCount > 0)
-        _PVSR.Add(emcsList);
-
-    MsgPack stgChgEffs = new MsgPack(0x10, "StageChangeEffects");
-    for (i = 0; i < 0x10; i++)
-    {
-        MsgPack stgChgEff = new MsgPack(0x10);
-        for (j = 0; j < 0x10; j++)
-        {
-            if (pvsr.StageChangeEffects[i * 0x10 + j].HasValue)
-                stgChgEff[j] = writeStageEffect(pvsr.StageChangeEffects[i * 0x10 + j].Value);
-            else
-                stgChgEff[j] = default;
-        }
-        stgChgEffs[i] = stgChgEff;
-    }
-    _PVSR.Add(stgChgEffs);
-
-    int aetsCount = pvsr.AETs != null ? pvsr.AETs.Length : 0;
-    MsgPack aets = new MsgPack(aetsCount, "AETs");
-    for (i = 0; i < aetsCount; i++)
-    {
-        ref PVSR.AET aet = ref pvsr.AETs[i];
-
-        MsgPack a = MsgPack.New.Add("SetName", aet.SetName);
-        int frontCount = aet.FrontList != null ? aet.FrontList.Length : 0;
-        MsgPack frontList = new MsgPack(frontCount, "FrontList");
-        for (j = 0; j < frontCount; j++)
-            frontList[j] = writeAETEntry(aet.FrontList[j]);
-        if (frontCount > 0)
-            a.Add(frontList);
-
-        int frontLowCount = aet.FrontLowList != null ? aet.FrontLowList.Length : 0;
-        MsgPack frontLowList = new MsgPack(frontLowCount, "FrontLowList");
-        for (j = 0; j < frontLowCount; j++)
-            frontLowList[j] = writeAETEntry(aet.FrontLowList[j]);
-        if (frontLowCount > 0)
-            a.Add(frontLowList);
-
-        int backCount = aet.BackList != null ? aet.BackList.Length : 0;
-        MsgPack backList = new MsgPack(backCount, "BackList");
-        for (j = 0; j < backCount; j++)
-            backList[j] = writeAETEntry(aet.BackList[j]);
-        if (backCount > 0)
-            a.Add(backList);
-
-        a.Add("U48", aet.U48);
-        a.Add("U4A", aet.U4A);
-        a.Add("U4C", aet.U4C);
-        a.Add("U4E", aet.U4E);
-        a.Add("U50", aet.U50);
-        a.Add("U52", aet.U52);
-        a.Add("U54", aet.U54);
-        a.Add("U56", aet.U56);
-        a.Add("U58", aet.U58);
-        a.Add("U5A", aet.U5A);
-        a.Add("U5C", aet.U5C);
-        a.Add("U5E", aet.U5E);
-        a.Add("U60", aet.U60);
-
-        MsgPack temp;
-        if ((temp = writeAETSub1(aet.Sub1Data, "Sub1")).NotNull)
-            a.Add(temp);
-        if ((temp = writeAETSub2(aet.Sub2AData, "Sub2A")).NotNull)
-            a.Add(temp);
-        if ((temp = writeAETSub2(aet.Sub2BData, "Sub2B")).NotNull)
-            a.Add(temp);
-        if ((temp = writeAETSub2(aet.Sub2CData, "Sub2C")).NotNull)
-            a.Add(temp);
-        if ((temp = writeAETSub2(aet.Sub2DData, "Sub2D")).NotNull)
-            a.Add(temp);
-
-        int unk03Count = aet.FrontList != null ? aet.FrontList.Length : 0;
-        MsgPack unk03List = new MsgPack(unk03Count, "Unk04List");
-        for (j = 0; j < unk03Count; j++)
-            unk03List[j] = writeAETEntry(aet.Unk03List[j]);
-        if (unk03Count > 0)
-            _PVSR.Add(unk03List);
-
-        int unk04Count = aet.Unk04List != null ? aet.Unk04List.Length : 0;
-        MsgPack unk04List = new MsgPack(unk04Count, "Unk04List");
-        for (j = 0; j < unk04Count; j++)
-            unk04List[j] = writeAETEntry(aet.Unk04List[j]);
-        if (unk04Count > 0)
-            a.Add(unk04List);
-        aets[i] = a;
-    }
-    if (aetsCount > 0)
-        _PVSR.Add(aets);
-
-    _PVSR.Write(false, true, file, json);
-
-    MsgPack writeStageEffect(PVSR.StageEffect eff, string name = null)
-    {
-        MsgPack effect = new MsgPack(name);
-        int a3dasCount = eff.A3DAs != null ? eff.A3DAs.Length : 0;
-        MsgPack a3das = new MsgPack(a3dasCount, "A3DAs");
-        for (int i = 0; i < a3dasCount; i++)
-            a3das[i] = eff.A3DAs[i].Name;
-        if (a3dasCount > 0)
-            effect.Add(a3das);
-
-        int glittersCount = eff.Glitters != null ? eff.Glitters.Length : 0;
-        MsgPack glitters = new MsgPack(glittersCount, "Glitters");
-        for (int i = 0; i < glittersCount; i++)
-            glitters[i] = writeGlitter(eff.Glitters[i]);
-        if (glittersCount > 0)
-            effect.Add(glitters);
-
-        if (a3dasCount > 0 || glittersCount > 0)
-            return effect;
-        else
-            return default;
+    else {
+        a3da_count = u01;
+        glitter_count = u02;
     }
 
-    MsgPack writeAETEntry(PVSR.AETEntry entry, string name = null) =>
-        new MsgPack(name).Add("Name", entry.Name).Add("BrightScale", entry.BrightScale);
+    vector_pvsr_a3da_reserve(&stg_eff->a3da, a3da_count);
+    stg_eff->a3da.end += a3da_count;
 
-    MsgPack writeAETSub1(PVSR.AET.Sub1? sub, string name = null)
-    {
-        if (!sub.HasValue)
-            return default;
+    io_position_push(s, a3da_offset, SEEK_SET);
+    for (int32_t i = 0; i < a3da_count; i++)
+        pvsr_a3da_read(&stg_eff->a3da.begin[i], s);
+    io_position_pop(s);
 
-        PVSR.AET.Sub1 s = sub.Value;
-        return new MsgPack(name).Add("Name", s.Name).Add("Unk2", s.Unk2);
-    }
+    vector_pvsr_glitter_reserve(&stg_eff->glitter, glitter_count);
+    stg_eff->glitter.end += glitter_count;
 
-    MsgPack writeAETSub2(PVSR.AET.Sub2? sub, string name = null)
-    {
-        if (!sub.HasValue)
-            return default;
-
-        PVSR.AET.Sub2 s = sub.Value;
-        return new MsgPack(name)
-            .Add("U00", s.U00).Add("U02", s.U02).Add("U04", s.U04).Add("U06", s.U06)
-            .Add("U08", s.U08).Add("U0A", s.U0A).Add("U0C", s.U0C);
-    }
-
-    MsgPack writeGlitter(PVSR.Glitter eff, string name = null) =>
-        new MsgPack(name).Add("Name", eff.Name).Add("Unk1", eff.Unk1);
+    io_position_push(s, glitter_offset, SEEK_SET);
+    for (int32_t i = 0; i < glitter_count; i++)
+        pvsr_glitter_read(&stg_eff->glitter.begin[i], s);
+    io_position_pop(s);
 }
-*/

@@ -31,7 +31,7 @@ void data_view_texture_imgui(class_data* data) {
     ImGuiStyle* style = igGetStyle();
     ImFont* font = igGetFont();
 
-    float_t w = min((float_t)width, 480.0f);
+    float_t w = min((float_t)width, 560.0f);
     float_t h = min((float_t)height, 480.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
@@ -59,10 +59,10 @@ void data_view_texture_imgui(class_data* data) {
         if (texture_get_id(tex->id))
             continue;
 
-        igPushID_Int((int32_t)i);
+        igPushID_Int(tex->id);
         char buf[0x1000];
-        sprintf_s(buf, sizeof(buf), "ID: 0x%06X; Width: %5d; Height: %5d; Mipmap Count: %2d",
-            texture_get_index(tex->id), tex->width, tex->height, tex->max_mipmap_level + 1);
+        sprintf_s(buf, sizeof(buf), "ID: 0x%06X; Init Count: %3d; Width: %5d; Height: %5d; Mipmap Count: %2d",
+            texture_get_index(tex->id), tex->init_count, tex->width, tex->height, tex->max_mipmap_level + 1);
         igSelectable_Bool(buf, false, 0, ImVec2_Empty);
         igPopID();
     }

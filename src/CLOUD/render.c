@@ -11,6 +11,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #include <cimgui_impl.h>
+#include "../CRE/Glitter/file_reader.h"
 #include "../CRE/Glitter/particle_manager.h"
 #include "../CRE/camera.h"
 #include "../CRE/data.h"
@@ -31,8 +32,10 @@
 #include "../CRE/timer.h"
 #include "../CRE/post_process.h"
 #include "../KKdLib/io/path.h"
+#include "../KKdLib/dsc.h"
 #include "../KKdLib/farc.h"
 #include "../KKdLib/pvpp.h"
+#include "../KKdLib/pvsr.h"
 #include"classes/imgui_helper.h"
 #include <timeapi.h>
 
@@ -40,6 +43,8 @@
 #define OPENGL_DEBUG 0
 #endif
 
+shader_glsl cube_line_shader;
+shader_glsl cube_line_point_shader;
 shader_glsl grid_shader;
 
 timer render_timer;
@@ -48,6 +53,8 @@ timer render_timer;
 #define grid_spacing 1.0f
 const size_t grid_vertex_count = ((size_t)(grid_size / grid_spacing) * 2 + 1) * 4;
 
+GLuint cube_line_vao;
+GLuint cube_line_vbo;
 GLuint grid_vbo;
 static GLuint common_data_ubo = 0;
 stage stage_stgtst;
@@ -109,6 +116,11 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
     GLenum severity, GLsizei length, const char* message, const void* userParam);
 #endif
 
+static void x_pv_player_init();
+static void x_pv_player_load(int32_t pv_id, int32_t stage_id);
+static void x_pv_player_update();
+static void x_pv_player_free();
+
 extern bool close;
 bool reload_render;
 lock render_lock;
@@ -120,6 +132,7 @@ bool global_context_menu;
 extern size_t frame_counter;
 wind* wind_ptr;
 object_database* obj_db_ptr;
+int32_t stage_index = -1;
 
 int32_t render_main(void* arg) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
@@ -192,6 +205,8 @@ int32_t render_main(void* arg) {
     GetClientRect(window_handle, &window_rect);
     width = window_rect.right;
     height = window_rect.bottom;
+    width = 1280;
+    height = 720;
 
     old_scale = scale = ris->scale > 0 ? ris->scale : 1.0f;
 
@@ -334,6 +349,8 @@ void render_set_scale_index(int32_t index) {
     scale = (float_t)value;
 }
 
+float_t rob_frame = 0.0f;
+
 static render_context* render_load() {
     object_storage_init();
     texture_storage_init();
@@ -353,10 +370,7 @@ static render_context* render_load() {
     data_struct_init();
     data_struct_load("CLOUD_data.txt");
 
-    pvpp pp;
-    pvpp_init(&pp);
-    data_struct_load_file(&data_list[DATA_X], &pp, "rom/pv/", "pv824.pvpp", pvpp_load_file);
-    pvpp_free(&pp);
+    GPM_VAL->bone_data = &data_list[DATA_AFT].data_ft.bone_data;
 
     glGenBuffers(1, &common_data_ubo);
 
@@ -369,6 +383,69 @@ static render_context* render_load() {
 
     render_shaders_load();
 
+    const char* cube_line_vert_shader =
+        "#version 430 core\n"
+        "layout(location = 0) in vec4 a_position;\n"
+        "\n"
+        "out VertexData {\n"
+        "    vec4 color;\n"
+        "} result;\n"
+        "\n"
+        "uniform mat4 vp;\n"
+        "uniform vec3 trans[4];\n"
+        "uniform float scale;\n"
+        "uniform vec4 color;\n"
+        "\n"
+        "void main() {\n"
+        "    vec4 pos;\n"
+        "    pos.xyz = trans[gl_VertexID];\n"
+        "    pos.w = 1.0;\n"
+        "    gl_Position = vp * pos;\n"
+        "    result.color = color;\n"
+        "}\n";
+
+    const char* cube_line_frag_shader =
+        "#version 430 core\n"
+        "layout(location = 0) out vec4 result;\n"
+        "\n"
+        "in VertexData {\n"
+        "    vec4 color;\n"
+        "} frg;\n"
+        "\n"
+        "void main() {\n"
+        "    result = frg.color;\n"
+        "}\n";
+    
+    const char* cube_line_point_vert_shader =
+        "#version 430 core\n"
+        "layout(location = 0) in vec4 a_position;\n"
+        "\n"
+        "out VertexData {\n"
+        "    vec4 color;\n"
+        "} result;\n"
+        "\n"
+        "uniform mat4 vp;\n"
+        "uniform mat4 mat;\n"
+        "uniform vec4 color;\n"
+        "\n"
+        "void main() {\n"
+        "    vec4 pos = mat * a_position;\n"
+        "    gl_Position = vp * pos;\n"
+        "    result.color = color;\n"
+        "}\n";
+
+    const char* cube_line_point_frag_shader =
+        "#version 430 core\n"
+        "layout(location = 0) out vec4 result;\n"
+        "\n"
+        "in VertexData {\n"
+        "    vec4 color;\n"
+        "} frg;\n"
+        "\n"
+        "void main() {\n"
+        "    result = frg.color;\n"
+        "}\n";
+
     const char* grid_vert_shader =
         "#version 430 core\n"
         "layout(location = 0) in vec4 a_position;\n"
@@ -378,7 +455,7 @@ static render_context* render_load() {
         "    vec4 color;\n"
         "} result;\n"
         "\n"
-        "layout(location = 0) uniform mat4 vp;\n"
+        "uniform mat4 vp;\n"
         "\n"
         "vec4 colors[] = {\n"
         "    vec4(1.0, 0.0, 0.0, 1.0),\n"
@@ -403,7 +480,8 @@ static render_context* render_load() {
         "    result = frg.color;\n"
         "}\n";
 
-    const char* fbo_render_vert_shader = "#version 430 core\n"
+    const char* fbo_render_vert_shader =
+        "#version 430 core\n"
         "void main() {\n"
         "    gl_Position.x = -1.0 + float(gl_VertexID / 2) * 4.0;\n"
         "    gl_Position.y = 1.0 - float(gl_VertexID % 2) * 4.0;\n"
@@ -421,7 +499,8 @@ static render_context* render_load() {
         "    result = texelFetch(g_color, ivec2(gl_FragCoord.xy), 0);\n"
         "}\n";
 
-    const char* fbo_render_depth_frag_shader = "#version 430 core\n"
+    const char* fbo_render_depth_frag_shader =
+        "#version 430 core\n"
         "layout(location = 0) out vec4 result;\n"
         "\n"
         "layout(binding = 0) uniform sampler2D g_color;\n"
@@ -433,6 +512,16 @@ static render_context* render_load() {
         "}\n";
 
     shader_glsl_param param;
+    memset(&param, 0, sizeof(shader_glsl_param));
+    param.name = "Cube Line";
+    shader_glsl_load_string(&cube_line_shader,
+        (char*)cube_line_vert_shader, (char*)cube_line_frag_shader, 0, &param);
+
+    memset(&param, 0, sizeof(shader_glsl_param));
+    param.name = "Cube Line Point";
+    shader_glsl_load_string(&cube_line_point_shader,
+        (char*)cube_line_point_vert_shader, (char*)cube_line_point_frag_shader, 0, &param);
+
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Grid";
     shader_glsl_load_string(&grid_shader,
@@ -446,6 +535,7 @@ static render_context* render_load() {
     render_resize_fb(rctx, true);
 
     rob_chara_array_init();
+    rob_chara_pv_data_array_init();
 
     data_struct* aft_data = &data_list[DATA_AFT];
     auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
@@ -476,16 +566,38 @@ static render_context* render_load() {
     object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM681");
     object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM981");
 
-    motion_set_load_motion(2, 0, aft_mot_db);
-    motion_set_load_motion(946, 0, aft_mot_db);
+    motion_set_load_motion(motion_database_get_motion_set_id(aft_mot_db, "CMN"), 0, aft_mot_db);
+    motion_set_load_motion(motion_database_get_motion_set_id(aft_mot_db, "PV824"), 0, aft_mot_db);
 
     rob_chara_pv_data pv_data;
     rob_chara_pv_data_init(&pv_data);
-    rob_chara_set(&rob_chara_array[0], 0, CHARA_MIKU, 0, &pv_data);
-    rob_chara_reset_data(&rob_chara_array[0], &rob_chara_array[0].pv_data, aft_bone_data, aft_mot_db);
-    rob_chara_reset(&rob_chara_array[0], aft_bone_data, aft_data, aft_obj_db);
-    rob_chara_load_motion(&rob_chara_array[0], 9996, 2, aft_bone_data, aft_mot_db);
-    //rob_chara_set_frame(&rob_chara_array[0], 1000.0f);
+    pv_data.field_0 = 2;
+    int32_t chara_id = rob_chara_array_set_pv_data(CHARA_MIKU, &pv_data, 0, false);
+    if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
+        rob_chara_reset_data(&rob_chara_array[chara_id], &rob_chara_array[chara_id].pv_data, aft_bone_data, aft_mot_db);
+        rob_chara_reset(&rob_chara_array[chara_id], aft_bone_data, aft_data, aft_obj_db);
+        rob_chara_load_motion(&rob_chara_array[chara_id],
+            motion_database_get_motion_id(aft_mot_db, "PV824_STF_P1_00"), 2, aft_bone_data, aft_mot_db);
+        rob_chara_set_visibility(&rob_chara_array[chara_id], true);
+        //rob_chara_set_frame(&rob_chara_array[chara_id], 1000.0f);
+    }
+
+    float_t cube_line_verts[] = {
+        -1.0,  1.0,
+         1.0,  1.0,
+        -1.0, -1.0,
+         1.0, -1.0,
+    };
+
+    glGenVertexArrays(1, &cube_line_vao);
+    glGenBuffers(1, &cube_line_vbo);
+    gl_state_bind_vertex_array(cube_line_vao);
+    gl_state_bind_array_buffer(cube_line_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_line_verts), (void*)cube_line_verts, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float_t) * 2, 0);
+    gl_state_bind_array_buffer(0);
+    gl_state_bind_vertex_array(0);
 
     float_t* grid_verts = force_malloc(sizeof(float_t) * 3 * grid_vertex_count);
 
@@ -527,6 +639,9 @@ static render_context* render_load() {
 
     free(grid_verts);
 
+    x_pv_player_init();
+    x_pv_player_load(826, 26);
+
     camera* cam = rctx->camera;
 
     camera_initialize(cam, aspect, internal_3d_res.x, internal_3d_res.y);
@@ -534,7 +649,8 @@ static render_context* render_load() {
     //camera_rotate(cam, &((vec2d){ -45.0, -32.5 }));
     //camera_set_position(cam, &((vec3){ -6.67555f, 4.68882f, -3.67537f }));
     //camera_rotate(cam, &((vec2d){ 136.5, -20.5 }));
-    camera_set_position(cam, &((vec3) { 0.0f, 1.0f, 3.45f }));
+    camera_set_view_point(cam, &((vec3) { 0.0f, 1.0f, 3.45f }));
+    camera_set_interest(cam, &((vec3) { 0.0f, 1.0f, 0.0f }));
     camera_set_fov(cam, 70.0);
 
     imgui_context = igCreateContext(0);
@@ -633,7 +749,8 @@ static void render_update(render_context* rctx) {
             //camera_rotate(cam, &((vec2d){ -45.0, -32.5 }));
             //camera_set_position(cam, &((vec3){ -6.67555f, 4.68882f, -3.67537f }));
             //camera_rotate(cam, &((vec2d){ 136.5, -20.5 }));
-            camera_set_position(cam, &((vec3){ 0.0f, 1.0f, 3.45f }));
+            camera_set_view_point(cam, &((vec3) { 0.0f, 1.0f, 3.45f }));
+            camera_set_interest(cam, &((vec3) { 0.0f, 1.0f, 0.0f }));
             camera_set_fov(cam, 70.0);
         }
         else {
@@ -644,13 +761,19 @@ static void render_update(render_context* rctx) {
     }
     camera_update(cam);
 
-    float_t frame = rob_chara_get_frame(&rob_chara_array[0]);
-    float_t frame_count = rob_chara_get_frame_count(&rob_chara_array[0]);
-    frame += get_delta_frame();
-    if (frame >= frame_count)
-        frame -= frame_count;
-    rob_chara_set_frame(&rob_chara_array[0], frame);
-    rob_chara_array[0].item_equip->shadow_type = SHADOW_CHARA;
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        if (rob_chara_pv_data_array[i].field_0 == -1)
+            continue;
+
+        float_t frame = rob_chara_get_frame(&rob_chara_array[i]);
+        float_t frame_count = rob_chara_get_frame_count(&rob_chara_array[i]);
+        frame += get_delta_frame();
+        if (frame >= frame_count)
+            frame -= frame_count;
+        //rob_chara_set_frame(&rob_chara_array[j], frame);
+        rob_chara_set_frame(&rob_chara_array[i], rob_frame);
+        rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
+    }
 
     data_struct* aft_data = &data_list[DATA_AFT];
     obj_db_ptr = &aft_data->data_ft.obj_db;
@@ -659,8 +782,13 @@ static void render_update(render_context* rctx) {
     classes_process_render(classes, classes_count);
 
     wind_ptr = rctx->wind;
-    rob_chara_calc(&rob_chara_array[0]);
-    rob_chara_draw(&rob_chara_array[0], rctx);
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        if (rob_chara_pv_data_array[i].field_0 == -1)
+            continue;
+
+        rob_chara_calc(&rob_chara_array[i]);
+        rob_chara_draw(&rob_chara_array[i], rctx);
+    }
 
     stage_update(rctx->stage, rctx);
 
@@ -688,12 +816,66 @@ static void render_update(render_context* rctx) {
     gl_state_bind_uniform_buffer(common_data_ubo);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, COMMON_DATA_SIZE, &common_data);
     gl_state_bind_uniform_buffer(0);
+
+    shader_glsl_set_mat4(&cube_line_shader, "vp", false, cam->view_projection);
+    shader_glsl_set_mat4(&cube_line_point_shader, "vp", false, cam->view_projection);
+}
+
+static void cube_line_draw(shader_glsl* shader, camera* cam, vec3* trans, float_t line_size, vec4* color) {
+    mat4 mat[2];
+    mat4_translate(trans[0].x, trans[0].y, trans[0].z, &mat[0]);
+    mat4_translate(trans[1].x, trans[1].y, trans[1].z, &mat[1]);
+    mat4_mult(&cam->inv_view_rot, &mat[0], &mat[0]);
+    mat4_mult(&cam->inv_view_rot, &mat[1], &mat[1]);
+    mat4_get_translation(&mat[0], &trans[0]);
+    mat4_get_translation(&mat[1], &trans[1]);
+
+    float_t dx = trans[1].x - trans[0].x;
+    float_t dy = trans[1].y - trans[0].y;
+    vec3 norm[2];
+    norm[0] = (vec3){ -dy, dx, 0.0f };
+    norm[1] = (vec3){ dy, -dx, 0.0f };
+    vec3_normalize(norm[0], norm[0]);
+    vec3_normalize(norm[1], norm[1]);
+    vec3_mult_scalar(norm[0], line_size, norm[0]);
+    vec3_mult_scalar(norm[1], line_size, norm[1]);
+    mat4_mult_vec3(&cam->inv_view_rot, &norm[0], &norm[0]);
+    mat4_mult_vec3(&cam->inv_view_rot, &norm[1], &norm[1]);
+
+    vec3 vert_trans[4];
+    vec3_add(trans[0], norm[0], vert_trans[0]);
+    vec3_add(trans[0], norm[1], vert_trans[1]);
+    vec3_add(trans[1], norm[0], vert_trans[2]);
+    vec3_add(trans[1], norm[1], vert_trans[3]);
+    shader_glsl_set_vec3_array(shader, "trans", 4, vert_trans);
+    shader_glsl_set_vec4(shader, "color", *color);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+static void cube_line_point_draw(shader_glsl* shader, camera* cam, vec3* trans,
+    float_t size, float_t dark_size, vec4* color, vec4* dark_color) {
+    mat4 mat;
+    mat4_scale(dark_size, dark_size, dark_size, &mat);
+    mat4_set_translation(&mat, trans);
+    mat4_mult(&cam->inv_view_rot, &mat, &mat);
+    shader_glsl_set_mat4(&cube_line_point_shader, "mat", false, mat);
+    shader_glsl_set_vec4(&cube_line_point_shader, "color", *dark_color);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    mat4_scale(size, size, size, &mat);
+    mat4_set_translation(&mat, trans);
+    mat4_mult(&cam->inv_view_rot, &mat, &mat);
+    shader_glsl_set_mat4(&cube_line_point_shader, "mat", false, mat);
+    shader_glsl_set_vec4(&cube_line_point_shader, "color", *color);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
 static void render_draw(render_context* rctx) {
     static const GLfloat color_clear[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     static const GLfloat depth_clear = 1.0f;
     static const GLint stencil_clear = 0;
+
+    camera* cam = rctx->camera;
 
     for (int32_t i = 0; i < 32; i++) {
         if (!gl_state_check_texture_binding_2d(i) && !gl_state_check_texture_binding_cube_map(i))
@@ -737,6 +919,207 @@ static void render_draw(render_context* rctx) {
     gl_state_bind_uniform_buffer_base(0, common_data_ubo);
     classes_process_draw(classes, classes_count);
 
+    static bool rob_draw = false;
+
+    gl_state_disable_cull_face();
+    gl_state_bind_vertex_array(cube_line_vao);
+    const float_t line_size = 0.0025f;
+    const float_t line_point_size = line_size * 1.125f;
+    const float_t line_point_dark_size = line_size * 1.5f;
+    vec4 bone_color = (vec4){ 1.0f, 0.0f, 0.0f, 1.0f };
+    vec4 cns_color = (vec4){ 1.0f, 1.0f, 0.0f, 1.0f };
+    vec4 exp_color = (vec4){ 0.0f, 1.0f, 0.0f, 1.0f };
+    vec4 osg_color = (vec4){ 0.0f, 0.0f, 1.0f, 1.0f };
+    vec4 osg_node_color = (vec4){ 1.0f, 0.0f, 1.0f, 1.0f };
+    vec4 point_color = (vec4){ 1.0f, 1.0f, 1.0f, 1.0f };
+    vec4 point_dark_color = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    for (int32_t i = 0; i < ROB_CHARA_COUNT && rob_draw; i++) {
+        if (rob_chara_pv_data_array[i].field_0 == -1)
+            continue;
+
+        rob_chara* rob_chr = &rob_chara_array[i];
+        rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
+        size_t object_bone_count = rob_bone_data->object_bone_count;
+        size_t total_bone_count = rob_bone_data->total_bone_count;
+        size_t ik_bone_count = rob_bone_data->ik_bone_count;
+        vector_bone_node* nodes = &rob_bone_data->nodes;
+        shader_glsl_use(&cube_line_shader);
+        for (bone_node* j = nodes->begin; j != nodes->end; j++) {
+            if (!j->parent)
+                continue;
+
+            vec3 trans[2];
+            mat4_get_translation(j->parent->mat, &trans[0]);
+            mat4_get_translation(j->mat, &trans[1]);
+
+            if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                continue;
+
+            cube_line_draw(&cube_line_shader, cam, trans, line_size, &bone_color);
+        }
+
+        rob_chara_item_equip* rob_item_equip = rob_chr->item_equip;
+        for (int32_t j = rob_item_equip->first_item_equip_object;
+            j < rob_item_equip->max_item_equip_object; j++) {
+            rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
+
+            vector_ptr_ex_expression_block* expression_blocks = &itm_eq_obj->expression_blocks;
+            for (ex_expression_block** k = expression_blocks->begin; k != expression_blocks->end; k++) {
+                if (!*k)
+                    continue;
+
+                ex_expression_block* exp = *k;
+
+                if (!exp->base.bone_node || !exp->base.parent_bone_node)
+                    continue;
+
+                vec3 trans[2];
+                mat4_get_translation(exp->base.parent_bone_node->mat, &trans[0]);
+                mat4_get_translation(exp->base.bone_node->mat, &trans[1]);
+
+                if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                    continue;
+
+                cube_line_draw(&cube_line_shader, cam, trans, line_size, &cns_color);
+            }
+
+            vector_ptr_ex_constraint_block* constraint_blocks = &itm_eq_obj->constraint_blocks;
+            for (ex_constraint_block** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
+                if (!*k)
+                    continue;
+
+                ex_constraint_block* cns = *k;
+
+                if (!cns->base.bone_node || !cns->base.parent_bone_node)
+                    continue;
+
+                vec3 trans[2];
+                mat4_get_translation(cns->base.parent_bone_node->mat, &trans[0]);
+                mat4_get_translation(cns->base.bone_node->mat, &trans[1]);
+
+                if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                    continue;
+
+                cube_line_draw(&cube_line_shader, cam, trans, line_size, &exp_color);
+            }
+
+            vector_ptr_ex_osage_block* osage_blocks = &itm_eq_obj->osage_blocks;
+            for (ex_osage_block** k = osage_blocks->begin; k != osage_blocks->end; k++) {
+                if (!*k)
+                    continue;
+
+                ex_osage_block* osg = *k;
+
+                if (!osg->base.bone_node || !osg->base.parent_bone_node)
+                    continue;
+
+                vec3 trans[2];
+                mat4_get_translation(osg->base.parent_bone_node->mat, &trans[0]);
+                mat4_get_translation(osg->base.bone_node->mat, &trans[1]);
+
+                if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                    continue;
+
+                cube_line_draw(&cube_line_shader, cam, trans, line_size, &osg_color);
+
+                rob_osage* rob_osg = &osg->rob;
+                vector_rob_osage_node* nodes = &osg->rob.nodes;
+                rob_osage_node* parent_node = &osg->rob.node;
+                for (rob_osage_node* l = nodes->begin; l != nodes->end; parent_node = l++) {
+                    if (!l->bone_node || !parent_node->bone_node)
+                        continue;
+
+                    vec3 trans[2];
+                    mat4_get_translation(parent_node->bone_node->mat, &trans[0]);
+                    mat4_get_translation(l->bone_node->mat, &trans[1]);
+
+                    if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                        continue;
+
+                    cube_line_draw(&cube_line_shader, cam, trans, line_size, &osg_node_color);
+                }
+            }
+        }
+
+        shader_glsl_use(&cube_line_point_shader);
+        for (bone_node* j = nodes->begin; j != nodes->end; j++) {
+            vec3 trans;
+            mat4_get_translation(j->mat, &trans);
+            cube_line_point_draw(&cube_line_point_shader, cam, &trans,
+                line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+        }
+
+        for (int32_t j = rob_item_equip->first_item_equip_object;
+            j < rob_item_equip->max_item_equip_object; j++) {
+            rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
+
+            vector_ptr_ex_expression_block* expression_blocks = &itm_eq_obj->expression_blocks;
+            for (ex_expression_block** k = expression_blocks->begin; k != expression_blocks->end; k++) {
+                if (!*k)
+                    continue;
+
+                ex_expression_block* exp = *k;
+
+                if (!exp->base.bone_node)
+                    continue;
+
+                vec3 trans;
+                mat4_get_translation(exp->base.bone_node->mat, &trans);
+                cube_line_point_draw(&cube_line_point_shader, cam, &trans,
+                    line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+            }
+
+            vector_ptr_ex_constraint_block* constraint_blocks = &itm_eq_obj->constraint_blocks;
+            for (ex_constraint_block** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
+                if (!*k)
+                    continue;
+
+                ex_constraint_block* cns = *k;
+
+                if (!cns->base.bone_node)
+                    continue;
+
+                vec3 trans;
+                mat4_get_translation(cns->base.bone_node->mat, &trans);
+                cube_line_point_draw(&cube_line_point_shader, cam, &trans,
+                    line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+            }
+
+            vector_ptr_ex_osage_block* osage_blocks = &itm_eq_obj->osage_blocks;
+            for (ex_osage_block** k = osage_blocks->begin; k != osage_blocks->end; k++) {
+                if (!*k)
+                    continue;
+
+                ex_osage_block* osg = *k;
+
+                if (!osg->base.bone_node)
+                    continue;
+
+                vec3 trans;
+                mat4_get_translation(osg->base.bone_node->mat, &trans);
+                cube_line_point_draw(&cube_line_point_shader, cam, &trans,
+                    line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+
+                rob_osage* rob_osg = &osg->rob;
+                vector_rob_osage_node* nodes = &osg->rob.nodes;
+                for (rob_osage_node* l = nodes->begin; l != nodes->end; l++) {
+                    if (!l->bone_node)
+                        continue;
+
+                    vec3 trans;
+                    mat4_get_translation(l->bone_node->mat, &trans);
+                    cube_line_point_draw(&cube_line_point_shader, cam, &trans,
+                        line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+                }
+            }
+        }
+
+        //rob_chara_calc(&rob_chara_array[j]);
+        //rob_chara_draw(&rob_chara_array[j], rctx);
+    }
+    gl_state_bind_vertex_array(0);
+    gl_state_enable_cull_face();
+
     gl_state_bind_framebuffer(0);
     render_texture_shader_set_glsl(0);
     glViewport(0, 0, width, height);
@@ -765,9 +1148,15 @@ static void render_dispose(render_context* rctx) {
     render_shaders_free();
 
     shader_glsl_free(&grid_shader);
+    shader_glsl_free(&cube_line_point_shader);
+    shader_glsl_free(&cube_line_shader);
+
+    x_pv_player_free();
 
     glDeleteBuffers(1, &common_data_ubo);
     glDeleteBuffers(1, &grid_vbo);
+    glDeleteBuffers(1, &cube_line_vbo);
+    glDeleteVertexArrays(1, &cube_line_vao);
 
     rob_chara_array_free();
 
@@ -978,3 +1367,175 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
     printf("########################################\n\n");
 }
 #endif
+
+typedef struct x_pv_player_glitter {
+    string name;
+    uint32_t hash;
+    glitter_effect_group* effect_group;
+} x_pv_player_glitter;
+
+typedef struct x_pv_player_stage_anim_speed {
+    int32_t frame;
+    int32_t bpm;
+} x_pv_player_stage_anim_speed;
+
+vector(x_pv_player_stage_anim_speed)
+
+typedef struct x_pv_player {
+    int32_t pv_id;
+    int32_t stage_id;
+    pvpp pp;
+    pvsr sr;
+    dsc dsc;
+
+    x_pv_player_glitter pv_glitter;
+    x_pv_player_glitter stage_glitter;
+    vector_x_pv_player_stage_anim_speed anim_speed;
+} x_pv_player;
+
+vector_func(x_pv_player_stage_anim_speed)
+
+static void x_pv_player_glitter_load(x_pv_player_glitter* pv_glt, char* name);
+static void x_pv_player_glitter_free(x_pv_player_glitter* pv_glt);
+
+static x_pv_player x_pv_player_data;
+
+static void x_pv_player_init() {
+    memset(&x_pv_player_data, 0, sizeof(x_pv_player));
+}
+
+static void x_pv_player_load(int32_t pv_id, int32_t stage_id) {
+    x_pv_player* x_pv = &x_pv_player_data;
+    x_pv->pv_id = pv_id;
+    x_pv->stage_id = stage_id;
+
+    char path_buf[0x200];
+    char file_buf[0x200];
+
+    data_struct* x_data = &data_list[DATA_X];
+
+    sprintf_s(file_buf, sizeof(file_buf), "pv%03d.pvpp", pv_id);
+    pvpp_init(&x_pv->pp);
+    data_struct_load_file(x_data, &x_pv->pp, "rom/pv/", file_buf, pvpp_load_file);
+
+    sprintf_s(file_buf, sizeof(file_buf), "stgpv%03d_param.pvsr", stage_id);
+    pvsr_init(&x_pv->sr);
+    data_struct_load_file(x_data, &x_pv->sr, "rom/pv_stage_rsrc/", file_buf, pvsr_load_file);
+
+    GPM_VAL->data = x_data;
+    sprintf_s(file_buf, sizeof(file_buf), "eff_pv%03d_main", pv_id);
+    x_pv_player_glitter_load(&x_pv->pv_glitter, file_buf);
+
+    sprintf_s(file_buf, sizeof(file_buf), "eff_stgpv%03d_main", stage_id);
+    x_pv_player_glitter_load(&x_pv->stage_glitter, file_buf);
+
+    dsc dsc_scene;
+    dsc dsc_system;
+    dsc dsc_easy;
+    dsc_init(&dsc_scene);
+    dsc_init(&dsc_system);
+    dsc_init(&dsc_easy);
+
+    farc dsc_common_farc;
+    sprintf_s(path_buf, sizeof(path_buf), "rom/pv_script/pv%03d/", pv_id);
+    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_common.farc", pv_id);
+    farc_init(&dsc_common_farc);
+    data_struct_load_file(x_data, &dsc_common_farc, path_buf, file_buf, farc_load_file);
+
+    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_scene.dsc", pv_id);
+    farc_file* dsc_scene_ff = farc_read_file(&dsc_common_farc, file_buf);
+    if (dsc_scene_ff)
+        dsc_parse(&dsc_scene, dsc_scene_ff->data, dsc_scene_ff->size, DSC_X);
+
+    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_system.dsc", pv_id);
+    farc_file* dsc_system_ff = farc_read_file(&dsc_common_farc, file_buf);
+    if (dsc_system_ff)
+        dsc_parse(&dsc_system, dsc_system_ff->data, dsc_system_ff->size, DSC_X);
+    farc_free(&dsc_common_farc);
+
+    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_easy.dsc", pv_id);
+    dsc_easy.type = DSC_X;
+    data_struct_load_file(x_data, &dsc_easy, path_buf, file_buf, dsc_load_file);
+
+    dsc_merge(&x_pv->dsc, 3, &dsc_scene, &dsc_system, &dsc_easy);
+
+    dsc_free(&dsc_scene);
+    dsc_free(&dsc_system);
+    dsc_free(&dsc_easy);
+
+    int32_t end_func_id = dsc_x_get_func_id("END");
+    int32_t time_func_id = dsc_x_get_func_id("TIME");
+    int32_t bar_time_set_func_id = dsc_x_get_func_id("BAR_TIME_SET");
+    int32_t pv_end_func_id = dsc_x_get_func_id("PV_END");
+    int32_t bar_point_func_id = dsc_x_get_func_id("BAR_POINT");
+
+    dsc* d = &x_pv->dsc;
+    int32_t time = -1;
+    int32_t frame = -1;
+    bool bar_set = false;
+    int32_t prev_bar_point_time = -1;
+    int32_t prev_bpm = -1;
+    for (dsc_data* i = d->data.begin; i != d->data.end; i++)
+        if (i->func == end_func_id || i->func == pv_end_func_id)
+            break;
+        else if (i->func == time_func_id) {
+            time = (int32_t)dsc_data_get_func_data(d, i)[0];
+            frame = (int32_t)roundf((float_t)time * (float_t)(60.0f / 100000.0f));
+        }
+        else if (i->func == bar_time_set_func_id) {
+            if (prev_bar_point_time != -1)
+                continue;
+
+            uint32_t* data = dsc_data_get_func_data(d, i);
+            int32_t bpm = (int32_t)data[0];
+            int32_t time_signature = (int32_t)(data[1] + 1);
+
+            if (bpm != prev_bpm) {
+                x_pv_player_stage_anim_speed anim_speed;
+                printf("Frame: %5d; BPM: %3d; Speed: %.9f\n", frame, bpm, (double_t)bpm * (1.0 / 120.0));
+                vector_x_pv_player_stage_anim_speed_push_back(&x_pv->anim_speed, &anim_speed);
+            }
+            prev_bpm = bpm;
+        }
+        else if (i->func == bar_point_func_id) {
+            if (prev_bar_point_time != -1) {
+                float_t frame_speed = 200000.0f / (float_t)(time - prev_bar_point_time);
+                int32_t bpm = (int32_t)roundf(frame_speed * 120.0f);
+                if (bpm != prev_bpm) {
+                    x_pv_player_stage_anim_speed anim_speed;
+                    anim_speed.frame = frame;
+                    anim_speed.bpm = bpm;
+                    printf("Frame: %5d; BPM: %3d; Speed: %.9f\n", frame, bpm, (double_t)bpm * (1.0 / 120.0));
+                    vector_x_pv_player_stage_anim_speed_push_back(&x_pv->anim_speed, &anim_speed);
+                }
+                prev_bpm = bpm;
+            }
+            prev_bar_point_time = time;
+        }
+}
+
+static void x_pv_player_update() {
+
+}
+
+static void x_pv_player_free() {
+    x_pv_player* x_pv = &x_pv_player_data;
+    pvpp_free(&x_pv->pp);
+    pvsr_free(&x_pv->sr);
+    dsc_free(&x_pv->dsc);
+    vector_x_pv_player_stage_anim_speed_free(&x_pv->anim_speed, 0);
+}
+
+static void x_pv_player_glitter_load(x_pv_player_glitter* pv_glt, char* name) {
+    string_init(&pv_glt->name, name);
+    pv_glt->hash = hash_murmurhash(string_data(&pv_glt->name), pv_glt->name.length, 0, false, false);
+    glitter_file_reader* fr = glitter_file_reader_init(GLITTER_X, 0, string_data(&pv_glt->name), -1.0f);
+    vector_ptr_glitter_file_reader_push_back(&GPM_VAL->file_readers, &fr);
+    glitter_particle_manager_update_file_reader(GPM_VAL);
+    pv_glt->effect_group = glitter_particle_manager_get_effect_group(GPM_VAL, pv_glt->hash);
+}
+
+static void x_pv_player_glitter_free(x_pv_player_glitter* pv_glt) {
+    glitter_particle_manager_free_scene(GPM_VAL, pv_glt->hash);
+    glitter_particle_manager_free_effect_group(GPM_VAL, pv_glt->hash);
+}

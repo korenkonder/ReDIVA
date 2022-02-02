@@ -5,6 +5,7 @@
 
 #include "stage_test.h"
 #include "../../../KKdLib/io/path.h"
+#include "../../../KKdLib/sort.h"
 #include "../../../KKdLib/str_utils.h"
 #include "../../../KKdLib/vector.h"
 #include "../../../CRE/Glitter/glitter.h"
@@ -52,6 +53,7 @@ extern stage stage_test_data;
 
 static const char* data_test_stage_test_window_title = "Stage Test##Data Test";
 
+static int data_test_stage_test_stage_pv_quicksort_compare_func(void const* src1, void const* src2);
 static void data_test_stage_test_stage_pv_free(data_test_stage_test_stage_pv* pv);
 
 bool data_test_stage_test_init(class_data* data, render_context* rctx) {
@@ -142,15 +144,12 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
             }
         }
 
-        for (data_test_stage_test_stage_pv* i = stage_pv->begin; i != &stage_pv->end[-1]; i++)
-            for (data_test_stage_test_stage_pv* j = i + 1; j != stage_pv->end; j++)
-                if (i->pv_id > j->pv_id) {
-                    data_test_stage_test_stage_pv temp = *i;
-                    *i = *j;
-                    *j = temp;
-                }
+        if (vector_length(*stage_pv))
+            quicksort_custom(stage_pv->begin, vector_length(*stage_pv),
+                sizeof(data_test_stage_test_stage_pv),
+                data_test_stage_test_stage_pv_quicksort_compare_func);
 
-        if (vector_length(*stage_pv) > 0)
+        if (vector_length(*stage_pv)) 
             stage_test->pv_id = stage_pv->begin[0].pv_id;
 
         stage* stg = rctx->stage;
@@ -424,6 +423,8 @@ void data_test_stage_test_render(class_data* data) {
         texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
         stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
+        stage_set(&stage_stgtst, rctx);
+
         stage_init(&stage_test_data);
         stage_load(&stage_test_data, aft_data, aft_auth_3d_db,
             aft_obj_db, aft_tex_db, aft_stage_data, stage_test->stage_name, rctx);
@@ -464,6 +465,12 @@ bool data_test_stage_test_dispose(class_data* data) {
     data->flags = CLASS_HIDDEN | CLASS_DISPOSED;
     data->imgui_focus = false;
     return true;
+}
+
+static int data_test_stage_test_stage_pv_quicksort_compare_func(void const* src1, void const* src2) {
+    int32_t pv1 = ((data_test_stage_test_stage_pv*)src1)->pv_id;
+    int32_t pv2 = ((data_test_stage_test_stage_pv*)src2)->pv_id;
+    return pv1 > pv2 ? 1 : (pv1 < pv2 ? -1 : 0);
 }
 
 static void data_test_stage_test_stage_pv_free(data_test_stage_test_stage_pv* pv) {

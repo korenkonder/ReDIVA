@@ -10,6 +10,7 @@
 #include "light_param/light.h"
 #include "gl_state.h"
 #include "post_process.h"
+#include "rob.h"
 #include "render_texture.h"
 #include "shader_ft.h"
 #include "shader_glsl.h"
@@ -78,10 +79,13 @@ void draw_pass_main(render_context* rctx) {
         9, 10, 11, 12, 13
     };
 
+    camera* cam = rctx->camera;
+
+    post_process_update(&rctx->post_process, cam);
+
     for (int32_t i = 0; i < 5; i++)
         gl_state_active_bind_texture_cube_map(ibl_texture_index[i], rctx->ibl_tex[i]);
 
-    camera* cam = rctx->camera;
 
     GPM_VAL->cam_projection = cam->projection;
     GPM_VAL->cam_view = cam->view;
@@ -574,23 +578,58 @@ static void draw_pass_sss_contour(render_context* rctx, post_process_struct* pp)
     render_texture_draw_params(&shaders_ft, pp->render_width, pp->render_height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 }
 
+static void draw_pass_sss_filter_calc_coef(double_t a1, size_t a2, double_t a3, size_t a4,
+    double_t* a5, double_t* a6, double_t* a7, double_t* a8) {
+    if (a2 > 8)
+        return;
+
+    vec4 params[64];
+    memset(params, 0, sizeof(vec4) * 64);
+
+    for (size_t i = a4; i; i--) {
+        float_t* v20 = (float_t*)params;
+        double_t v56[3];
+        v56[0] = *a6;
+        v56[1] = *a7;
+        v56[2] = *a8;
+
+        for (size_t j = 0; j < 3; j++) {
+            double_t v22 = 0.0;
+            double_t v23 = 0.0;
+            double_t v54[8];
+            double_t v24 = 1.0 / (a3 * v56[j]);
+            v24 *= v24;
+            for (size_t k = 0; k < a2; k++) {
+                double_t v25 = exp(-0.5 * (v23 * v23) * v24);
+                v54[k] = v25;
+                v23 += a1;
+                v22 += v25;
+            }
+
+            double_t v27 = 1.0 / v22;
+            for (size_t k = 0; k < a2; k++)
+                v54[k] *= v27;
+
+            float_t* v35 = v20;
+            for (size_t k = 0; k < a2; k++) {
+                double_t v37 = v54[k] * *a5;
+                for (size_t v36 = 0; v36 < a2; v36++) {
+                    *v35 += (float_t)(v37 * v54[v36]);
+                    v35 += 4;
+                }
+            }
+            v20++;
+        }
+        a5++;
+        a6++;
+        a7++;
+        a8++;
+    }
+    shader_local_frag_set_ptr_array(&shaders_ft, 4, a2 * a2, params);
+}
+
 static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
-    double_t a5[3];
-    double_t a6[3];
-    double_t a7[3];
-    double_t a8[3];
-    a5[0] = 0.4;
-    a5[1] = 0.3;
-    a5[2] = 0.3;
-    a6[0] = 1.0;
-    a6[1] = 2.0;
-    a6[2] = 5.0;
-    a7[0] = 0.2;
-    a7[1] = 0.4;
-    a7[2] = 1.2;
-    a8[0] = 0.3;
-    a8[1] = 0.7;
-    a8[2] = 2.0;
+    const int32_t sss_count = 6;
     vec3 interest = rctx->camera->interest;
     vec3 view_point = rctx->camera->view_point;
 
@@ -600,17 +639,15 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
     float_t v14[2];
     for (int32_t i = 0; i < 2; i++) {
         v46[i] = interest;
-        v14[i] = 999999.0;
-        /*rob_chara_data_struct_bone_data* v16 = sub_1405320F0(i);
-        if (chara_check_index(v13) && sub_140531F50(v13) && v16) {
-            mat4* v17 = rob_chara_data_struct_bone_data_get_mats_mat(v16, 0);
+        v14[i] = 999999.0f;
+        rob_chara_bone_data* v16 = rob_chara_array[i].bone_data;
+        if (rob_chara_pv_data_array[i].field_0 != -1 && rob_chara_array[i].data.field_0 & 1) {
+            mat4* v17 = rob_chara_bone_data_get_mats_mat(v16, MOTION_BONE_N_HARA_CP);
             if (v17) {
-                v46[i] = *(vec3*)&v17->row3;
-                vec3 dist;
-                vec3_sub(view_point, *(vec3*)&v17->row3, dist);
-                vec3_length(dist, v14[i]);
+                mat4_get_translation(v17, &v46[i]);
+                vec3_distance(view_point, v46[i], v14[i]);
             }
-        }*/
+        }
     }
 
     vec3 v24;
@@ -623,7 +660,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
 
     float_t length;
     vec3_distance(interest, v24, length);
-    if (length > 1.25)
+    if (length > 1.25f)
         interest = v46[0];
 
     float_t v29;
@@ -670,44 +707,26 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
     uniform_value[U_SSS_FILTER] = 3;
     shader_set(&shaders_ft, SHADER_FT_SSS_FILT);
     shader_local_frag_set(&shaders_ft, 1, 5.0f, 0.0f, 0.0f, 0.0f);
-    float_t params[144];
-    for (int32_t i = 0; i < 144; i += 4)
-        *(vec4u*)&params[i] = vec4u_null;
 
-    for (int32_t i = 0; i < 3; i++) {
-        float_t* v20 = params;
-        double_t v56[3];
-        v56[0] = *a6;
-        v56[1] = a7[i];
-        v56[2] = *a8;
-        double_t v38 = *a5;
-        for (int32_t j = 0; j < 3; j++, v20++) {
-            double_t v54[6];
-            double_t v22 = 0.0;
-            double_t v23 = 0.0;
-            double_t v24 = 1.0 / (v34 * v56[j]);
-            for (int32_t k = 0; k < 6; k++) {
-                v54[k] = exp((v24 * v24) * (v23 * v23) * -0.5);
-                v22 += v54[k];
-                v23 += 1.0;
-            }
+    double_t a5[3];
+    double_t a6[3];
+    double_t a7[3];
+    double_t a8[3];
+    a5[0] = 0.4;
+    a5[1] = 0.3;
+    a5[2] = 0.3;
+    a6[0] = 1.0;
+    a6[1] = 2.0;
+    a6[2] = 5.0;
+    a7[0] = 0.2;
+    a7[1] = 0.4;
+    a7[2] = 1.2;
+    a8[0] = 0.3;
+    a8[1] = 0.7;
+    a8[2] = 2.0;
+    draw_pass_sss_filter_calc_coef(1.0, sss_count, v34, 3, a5, a6, a7, a8);
 
-            size_t v26 = 0;
-            double_t v27 = 1.0 / v22;
-            for (int32_t k = 0; k < 6; k++)
-                v54[k] *= v27;
-
-            float_t* v35 = v20;
-            for (int32_t v33 = 0, v34 = 0; v33 < 6; v33++, v34 += 6, v35 += 24) {
-                double_t v37 = v54[v33] * v38;
-                float_t* v39 = v35;
-                float_t* v50 = &params[4 * v34 + j];
-                for (int32_t v36 = 0; v36 < 6; v36++)
-                    v50[v36 * 4] += (float_t)(v37 * v54[v36]);
-            }
-        }
-    }
-    shader_local_frag_set_ptr_array(&shaders_ft, 4, 36, (vec4*)params);
+    shader_local_frag_set(&shaders_ft, 1, (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f);
     glViewport(0, 0, 320, 180);
     gl_state_bind_texture_2d(a1->textures[2].color_texture->texture);
     render_texture_draw_params(&shaders_ft, 320, 180, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);

@@ -9,6 +9,7 @@
 #include "io/stream.h"
 #include "half_t.h"
 #include "hash.h"
+#include "sort.h"
 #include "str_utils.h"
 #include "vector.h"
 
@@ -1716,19 +1717,8 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
     }
 
     if (sk->bones || sk->ex_data_init) {
-        for (string* i = strings.begin; i != &strings.end[-1]; i++) {
-            char* i_str = string_data(i);
-            for (string* j = i + 1; j != strings.end; j++)
-                if (str_utils_compare(i_str, string_data(j)) > 0) {
-                    string temp = *i;
-                    *i = *j;
-                    *j = temp;
-                    i_str = string_data(i);
-                }
-        }
-
+        quicksort_string(strings.begin, vector_length(strings));
         vector_ssize_t_reserve(&string_offsets, vector_length(strings));
-
         for (string* i = strings.begin; i != strings.end; i++) {
             *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
             io_write_string_null_terminated(s, i);
@@ -5426,19 +5416,8 @@ static void obj_modern_write_skin(obj* obj, stream* s,
     }
 
     if (sk->bones || sk->ex_data_init) {
-        for (string* i = strings.begin; i != &strings.end[-1]; i++) {
-            char* i_str = string_data(i);
-            for (string* j = i + 1; j != strings.end; j++)
-                if (str_utils_compare(i_str, string_data(j)) > 0) {
-                    string temp = *i;
-                    *i = *j;
-                    *j = temp;
-                    i_str = string_data(i);
-                }
-        }
-
+        quicksort_string(strings.begin, vector_length(strings));
         vector_ssize_t_reserve(&string_offsets, vector_length(strings));
-
         for (string* i = strings.begin; i != strings.end; i++) {
             ssize_t off = io_get_position(s);
             io_write_string_null_terminated(s, i);
@@ -6748,7 +6727,7 @@ inline static ssize_t obj_skin_strings_get_string_offset_by_index(vector_string*
     if (!(index & 0x8000))
         return 0;
 
-    char* str = strings[index];
+    char* str = strings[index & 0x7FFF];
     size_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))

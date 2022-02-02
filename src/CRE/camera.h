@@ -18,6 +18,8 @@ typedef struct camera {
     mat4 inv_view_projection;
     mat3 view_mat3;
     mat3 inv_view_mat3;
+    mat4 view_rot;
+    mat4 inv_view_rot;
     vec3 forward;
     vec3 rotation;
     vec3 view_point;
@@ -38,6 +40,9 @@ typedef struct camera {
     double_t min_distance;
     bool changed_view;
     bool changed_proj;
+    bool fast_change;
+    bool fast_change_hist0;
+    bool fast_change_hist1;
 } camera;
 
 extern camera* camera_init();
@@ -62,6 +67,8 @@ extern void camera_get_interest(camera* c, vec3* value);
 extern void camera_set_interest(camera* c, vec3* value);
 extern void camera_get_res(camera* c, int32_t* width, int32_t* height);
 extern void camera_set_res(camera* c, int32_t width, int32_t height);
+extern void camera_set_fast_change(camera* c, bool value);
+extern void camera_set_fast_change_hist0(camera* c, bool value);
 extern void camera_reset(camera* c);
 extern void camera_move(camera* c, vec2d* move);
 extern void camera_rotate(camera* c, vec2d* rotate);

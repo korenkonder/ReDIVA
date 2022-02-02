@@ -18,30 +18,14 @@ vector_func(pvpp_effect)
 vector_func(pvpp_glitter)
 vector_func(pvpp_motion)
 
-static void pvpp_a3da_init(pvpp_a3da* a3d);
 static void pvpp_a3da_read(pvpp_a3da* a3d, stream* s);
-static void pvpp_a3da_free(pvpp_a3da* a3d);
-static void pvpp_chara_init(pvpp_chara* chr);
 static void pvpp_chara_read(pvpp_chara* chr, stream* s);
-static void pvpp_chara_free(pvpp_chara* chr);
-static void pvpp_chara_effect_init(pvpp_chara_effect* chr_eff);
 static void pvpp_chara_effect_read(pvpp_chara_effect* chr_eff, stream* s);
-static void pvpp_chara_effect_free(pvpp_chara_effect* chr_eff);
-static void pvpp_chara_effect_a3da_init(pvpp_chara_effect_a3da* chr_pv_eff);
 static void pvpp_chara_effect_a3da_read(pvpp_chara_effect_a3da* chr_pv_eff, stream* s);
-static void pvpp_chara_effect_a3da_free(pvpp_chara_effect_a3da* chr_pv_eff);
-static void pvpp_chara_item_init(pvpp_chara_item* chr_itm);
 static void pvpp_chara_item_read(pvpp_chara_item* chr_itm, stream* s);
-static void pvpp_chara_item_free(pvpp_chara_item* chr_itm);
-static void pvpp_effect_init(pvpp_effect* eff);
 static void pvpp_effect_read(pvpp_effect* eff, stream* s);
-static void pvpp_effect_free(pvpp_effect* eff);
-static void pvpp_glitter_init(pvpp_glitter* glt);
 static void pvpp_glitter_read(pvpp_glitter* glt, stream* s);
-static void pvpp_glitter_free(pvpp_glitter* glt);
-static void pvpp_motion_init(pvpp_motion* mot);
 static void pvpp_motion_read(pvpp_motion* mot, stream* s);
-static void pvpp_motion_free(pvpp_motion* mot);
 static void pvpp_read_inner(pvpp* pp, stream* s);
 
 void pvpp_init(pvpp* pp) {
@@ -101,22 +85,81 @@ void pvpp_free(pvpp* pp) {
     vector_pvpp_effect_free(&pp->effect, pvpp_effect_free);
 }
 
-static void pvpp_a3da_init(pvpp_a3da* a3d) {
+void pvpp_a3da_init(pvpp_a3da* a3d) {
     memset(a3d, 0, sizeof(pvpp_a3da));
+}
+
+void pvpp_a3da_free(pvpp_a3da* a3d) {
+    string_free(&a3d->name);
+}
+
+void pvpp_chara_init(pvpp_chara* chr) {
+    memset(chr, 0, sizeof(pvpp_chara));
+}
+
+void pvpp_chara_free(pvpp_chara* chr) {
+    vector_pvpp_a3da_free(&chr->a3da, pvpp_a3da_free);
+    vector_pvpp_chara_effect_free(&chr->chara_effect, pvpp_chara_effect_free);
+    vector_pvpp_chara_item_free(&chr->item, pvpp_chara_item_free);
+    vector_pvpp_glitter_free(&chr->glitter, pvpp_glitter_free);
+    vector_pvpp_motion_free(&chr->motion, pvpp_motion_free);
+}
+
+void pvpp_chara_effect_init(pvpp_chara_effect* chr_eff) {
+    memset(chr_eff, 0, sizeof(pvpp_chara_effect));
+}
+
+void pvpp_chara_effect_free(pvpp_chara_effect* chr_eff) {
+    vector_pvpp_chara_effect_a3da_free(&chr_eff->effect_a3da, pvpp_chara_effect_a3da_free);
+}
+
+void pvpp_chara_effect_a3da_init(pvpp_chara_effect_a3da* chr_eff_a3da) {
+    memset(chr_eff_a3da, 0, sizeof(pvpp_chara_effect_a3da));
+}
+
+void pvpp_chara_effect_a3da_free(pvpp_chara_effect_a3da* chr_eff_a3da) {
+    pvpp_a3da_free(&chr_eff_a3da->a3da);
+}
+
+void pvpp_chara_item_init(pvpp_chara_item* chr_itm) {
+    memset(chr_itm, 0, sizeof(pvpp_chara_item));
+}
+
+void pvpp_chara_item_free(pvpp_chara_item* chr_itm) {
+    vector_pvpp_a3da_free(&chr_itm->a3da, pvpp_a3da_free);
+    string_free(&chr_itm->bone);
+}
+
+void pvpp_effect_init(pvpp_effect* eff) {
+    memset(eff, 0, sizeof(pvpp_effect));
+}
+
+void pvpp_effect_free(pvpp_effect* eff) {
+    vector_pvpp_a3da_free(&eff->a3da, pvpp_a3da_free);
+    vector_pvpp_glitter_free(&eff->glitter, pvpp_glitter_free);
+}
+
+void pvpp_glitter_init(pvpp_glitter* glt) {
+    memset(glt, 0, sizeof(pvpp_glitter));
+}
+
+void pvpp_glitter_free(pvpp_glitter* glt) {
+    string_free(&glt->name);
+    string_free(&glt->unk1);
+}
+
+void pvpp_motion_init(pvpp_motion* mot) {
+    memset(mot, 0, sizeof(pvpp_motion));
+}
+
+void pvpp_motion_free(pvpp_motion* mot) {
+    string_free(&mot->name);
 }
 
 static void pvpp_a3da_read(pvpp_a3da* a3d, stream* s) {
     io_read_string_null_terminated_offset(s, io_read_offset_x(s), &a3d->name);
     a3d->hash = io_read_uint32_t_stream_reverse_endianness(s);
     io_align_read(s, 0x08);
-}
-
-static void pvpp_a3da_free(pvpp_a3da* a3d) {
-    memset(a3d, 0, sizeof(pvpp_a3da));
-}
-
-static void pvpp_chara_init(pvpp_chara* chr) {
-    memset(chr, 0, sizeof(pvpp_chara));
 }
 
 static void pvpp_chara_read(pvpp_chara* chr, stream* s) {
@@ -139,17 +182,17 @@ static void pvpp_chara_read(pvpp_chara* chr, stream* s) {
     chr->chara_effect.end += chr_eff_count;
 
     io_position_push(s, chr_eff_offset, SEEK_SET);
-    for (int32_t j = 0; j < chr_eff_count; j++)
-        pvpp_chara_effect_read(&chr->chara_effect.begin[j], s);
+    for (int32_t i = 0; i < chr_eff_count; i++)
+        pvpp_chara_effect_read(&chr->chara_effect.begin[i], s);
     io_position_pop(s);
 
     vector_pvpp_motion_reserve(&chr->motion, motion_count);
     chr->motion.end += motion_count;
 
     io_position_push(s, motion_offset, SEEK_SET);
-    for (int32_t j = 0; j < motion_count; j++) {
+    for (int32_t i = 0; i < motion_count; i++) {
         io_position_push(s, io_read_offset_x(s), SEEK_SET);
-        pvpp_motion_read(&chr->motion.begin[j], s);
+        pvpp_motion_read(&chr->motion.begin[i], s);
         io_position_pop(s);
     }
     io_position_pop(s);
@@ -158,37 +201,25 @@ static void pvpp_chara_read(pvpp_chara* chr, stream* s) {
     chr->a3da.end += a3da_count;
 
     io_position_push(s, a3da_offset, SEEK_SET);
-    for (int32_t j = 0; j < a3da_count; j++)
-        pvpp_a3da_read(&chr->a3da.begin[j], s);
+    for (int32_t i = 0; i < a3da_count; i++)
+        pvpp_a3da_read(&chr->a3da.begin[i], s);
     io_position_pop(s);
 
     vector_pvpp_chara_item_reserve(&chr->item, item_count);
     chr->item.end += item_count;
 
     io_position_push(s, item_offset, SEEK_SET);
-    for (int32_t j = 0; j < item_count; j++)
-        pvpp_chara_item_read(&chr->item.begin[j], s);
+    for (int32_t i = 0; i < item_count; i++)
+        pvpp_chara_item_read(&chr->item.begin[i], s);
     io_position_pop(s);
 
     vector_pvpp_glitter_reserve(&chr->glitter, glitter_count);
     chr->glitter.end += glitter_count;
 
     io_position_push(s, glitter_offset, SEEK_SET);
-    for (int32_t j = 0; j < glitter_count; j++)
-        pvpp_glitter_read(&chr->glitter.begin[j], s);
+    for (int32_t i = 0; i < glitter_count; i++)
+        pvpp_glitter_read(&chr->glitter.begin[i], s);
     io_position_pop(s);
-}
-
-static void pvpp_chara_free(pvpp_chara* chr) {
-    vector_pvpp_a3da_free(&chr->a3da, pvpp_a3da_free);
-    vector_pvpp_chara_effect_free(&chr->chara_effect, pvpp_chara_effect_free);
-    vector_pvpp_chara_item_free(&chr->item, pvpp_chara_item_free);
-    vector_pvpp_glitter_free(&chr->glitter, pvpp_glitter_free);
-    vector_pvpp_motion_free(&chr->motion, pvpp_motion_free);
-}
-
-static void pvpp_chara_effect_init(pvpp_chara_effect* chr_eff) {
-    memset(chr_eff, 0, sizeof(pvpp_chara_effect));
 }
 
 static void pvpp_chara_effect_read(pvpp_chara_effect* chr_eff, stream* s) {
@@ -200,17 +231,9 @@ static void pvpp_chara_effect_read(pvpp_chara_effect* chr_eff, stream* s) {
     chr_eff->effect_a3da.end += pv_effects_count;
 
     io_position_push(s, pv_effects_offstet, SEEK_SET);
-    for (int32_t k = 0; k < pv_effects_count; k++)
-        pvpp_chara_effect_a3da_read(&chr_eff->effect_a3da.begin[k], s);
+    for (int32_t i = 0; i < pv_effects_count; i++)
+        pvpp_chara_effect_a3da_read(&chr_eff->effect_a3da.begin[i], s);
     io_position_pop(s);
-}
-
-static void pvpp_chara_effect_free(pvpp_chara_effect* chr_eff) {
-    vector_pvpp_chara_effect_a3da_free(&chr_eff->effect_a3da, pvpp_chara_effect_a3da_free);
-}
-
-static void pvpp_chara_effect_a3da_init(pvpp_chara_effect_a3da* chr_eff_a3da) {
-    memset(chr_eff_a3da, 0, sizeof(pvpp_chara_effect_a3da));
 }
 
 static void pvpp_chara_effect_a3da_read(pvpp_chara_effect_a3da* chr_eff_a3da, stream* s) {
@@ -228,14 +251,6 @@ static void pvpp_chara_effect_a3da_read(pvpp_chara_effect_a3da* chr_eff_a3da, st
     io_position_push(s, a3da_offset, SEEK_SET);
     pvpp_a3da_read(&chr_eff_a3da->a3da, s);
     io_position_pop(s);
-}
-
-static void pvpp_chara_effect_a3da_free(pvpp_chara_effect_a3da* chr_eff_a3da) {
-    pvpp_a3da_free(&chr_eff_a3da->a3da);
-}
-
-static void pvpp_chara_item_init(pvpp_chara_item* chr_itm) {
-    memset(chr_itm, 0, sizeof(pvpp_chara_item));
 }
 
 static void pvpp_chara_item_read(pvpp_chara_item* chr_itm, stream* s) {
@@ -258,15 +273,6 @@ static void pvpp_chara_item_read(pvpp_chara_item* chr_itm, stream* s) {
     io_read_string_null_terminated_offset(s, bone_offset, &chr_itm->bone);
 }
 
-static void pvpp_chara_item_free(pvpp_chara_item* chr_itm) {
-    vector_pvpp_a3da_free(&chr_itm->a3da, pvpp_a3da_free);
-    string_free(&chr_itm->bone);
-}
-
-static void pvpp_effect_init(pvpp_effect* eff) {
-    memset(eff, 0, sizeof(pvpp_effect));
-}
-
 static void pvpp_effect_read(pvpp_effect* eff, stream* s) {
     uint8_t a3da_count = io_read_uint8_t(s);
     uint8_t effect_count = io_read_uint8_t(s);
@@ -278,26 +284,17 @@ static void pvpp_effect_read(pvpp_effect* eff, stream* s) {
     eff->a3da.end += a3da_count;
 
     io_position_push(s, a3da_offset, SEEK_SET);
-    for (int32_t j = 0; j < a3da_count; j++)
-        pvpp_a3da_read(&eff->a3da.begin[j], s);
+    for (int32_t i = 0; i < a3da_count; i++)
+        pvpp_a3da_read(&eff->a3da.begin[i], s);
     io_position_pop(s);
 
     vector_pvpp_glitter_reserve(&eff->glitter, effect_count);
     eff->glitter.end += effect_count;
 
     io_position_push(s, effect_offset, SEEK_SET);
-    for (int32_t j = 0; j < effect_count; j++)
-        pvpp_glitter_read(&eff->glitter.begin[j], s);
+    for (int32_t i = 0; i < effect_count; i++)
+        pvpp_glitter_read(&eff->glitter.begin[i], s);
     io_position_pop(s);
-}
-
-static void pvpp_effect_free(pvpp_effect* eff) {
-    vector_pvpp_a3da_free(&eff->a3da, pvpp_a3da_free);
-    vector_pvpp_glitter_free(&eff->glitter, pvpp_glitter_free);
-}
-
-static void pvpp_glitter_init(pvpp_glitter* glt) {
-    memset(glt, 0, sizeof(pvpp_glitter));
 }
 
 static void pvpp_glitter_read(pvpp_glitter* glt, stream* s) {
@@ -307,23 +304,10 @@ static void pvpp_glitter_read(pvpp_glitter* glt, stream* s) {
     io_align_read(s, 0x08);
 }
 
-static void pvpp_glitter_free(pvpp_glitter* glt) {
-    string_free(&glt->name);
-    string_free(&glt->unk1);
-}
-
-static void pvpp_motion_init(pvpp_motion* mot) {
-    memset(mot, 0, sizeof(pvpp_motion));
-}
-
 static void pvpp_motion_read(pvpp_motion* mot, stream* s) {
     io_read_string_null_terminated_offset(s, io_read_offset_x(s), &mot->name);
     mot->hash = io_read_uint32_t_stream_reverse_endianness(s);
     io_align_read(s, 0x08);
-}
-
-static void pvpp_motion_free(pvpp_motion* mot) {
-    string_free(&mot->name);
 }
 
 static void pvpp_read_inner(pvpp* pp, stream* s) {

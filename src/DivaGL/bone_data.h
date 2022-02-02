@@ -1429,22 +1429,23 @@ typedef struct struc_399 {
     mat4u field_6C;
 } struc_399;
 
-typedef struct struc_220 {
-    float_t size;
+typedef struct rob_chara_adjust_data {
+    float_t scale;
     bool height_adjust;
-    float_t field_8;
+    float_t pos_adjust_y;
     vec3 pos_adjust;
-    float_t field_18;
-    float_t field_1C;
-    float_t field_20;
-    uint8_t field_24;
-    uint8_t field_25;
-    uint8_t field_26;
-    uint8_t field_27;
+    vec3 offset;
+    bool offset_x;
+    bool offset_y;
+    bool offset_z;
+    bool get_global_trans;
     vec3 trans;
     mat4u mat;
-    vec4u field_74;
-} struc_220;
+    float_t left_hand_scale;
+    float_t right_hand_scale;
+    float_t left_hand_scale_default;
+    float_t right_hand_scale_default;
+} rob_chara_adjust_data;
 
 typedef struct struc_195 {
     vec3 rotation;
@@ -1597,7 +1598,7 @@ typedef struct struc_209 {
 } struc_209;
 
 typedef struct rob_chara_data {
-    bool field_0;
+    uint8_t field_0;
     uint8_t field_1;
     uint8_t field_2;
     uint8_t field_3;
@@ -1607,7 +1608,7 @@ typedef struct rob_chara_data {
     struc_268 field_290;
     struc_223 field_1588;
     struc_399 field_1D38;
-    struc_220 field_1DE4;
+    rob_chara_adjust_data adjust_data;
     struc_209 field_1E68;
     float_t field_3D90;
     int32_t field_3D94;
@@ -1674,9 +1675,9 @@ typedef struct rob_chara_pv_data {
     int32_t field_90;
     int32_t field_94;
     int32_t field_98;
-    int32_t field_9C;
+    int32_t chara_size_index;
     bool height_adjust;
-    int32_t field_A4[4];
+    int32_t item_no[4];
     eyes_adjust eyes_adjust;
 } rob_chara_pv_data;
 
@@ -3729,7 +3730,7 @@ extern void bone_data_mult_2(rob_chara_bone_data* a1, mat4* a2);
 extern void rob_chara_bone_data_motion_load(rob_chara_bone_data* a1, int32_t motion_id, int32_t a3);
 extern void rob_chara_bone_data_interpolate(rob_chara_bone_data* a1);
 extern void rob_chara_bone_data_update(rob_chara_bone_data* a1, mat4* a2);
-extern void rob_chara_reset(rob_chara* a1, rob_chara_pv_data* a2);
+extern void rob_chara_reset_data(rob_chara* a1, rob_chara_pv_data* a2);
 
 extern void ex_node_block_field_10(ex_node_block* node);
 

@@ -123,6 +123,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
 
     string_copy(name, &set->name);
     set->id = id;
+    set->hash = hash_murmurhash(string_data(&set->name), set->name.length, 0, false, false);
 
     int32_t objects_count = obj_set_file->objects_count;
     set->objects_count = objects_count;
@@ -466,6 +467,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
         obj->flags = obj_file->flags;
         string_copy(&obj_file->name, &obj->name);
         obj->id = obj_file->id;
+        obj->hash = hash_murmurhash(string_data(&obj->name), obj->name.length, 0, false, false);
 
         if (!obj_file->skin_init) {
             memset(&obj->skin, 0, sizeof(object_skin));
@@ -716,6 +718,10 @@ bool object_set_load_db_entry(object_set_info** set_info,
     void* data, object_database* obj_db, char* name) {
     if (!object_database_get_object_set_info(obj_db, name, set_info))
         return false;
+    else if (object_storage_get_object_set((*set_info)->id)) {
+        object_storage_append_object_set((*set_info)->id);
+        return true;
+    }
 
     size_t temp[2];
     temp[0] = (size_t)data;
@@ -726,6 +732,11 @@ bool object_set_load_db_entry(object_set_info** set_info,
 
 bool object_set_load_by_db_entry(object_set_info* set_info,
     void* data, object_database* obj_db) {
+    if (object_storage_get_object_set(set_info->id)) {
+        object_storage_append_object_set(set_info->id);
+        return true;
+    }
+
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)set_info;
@@ -737,6 +748,10 @@ bool object_set_load_by_db_index(object_set_info** set_info,
     void* data, object_database* obj_db, uint32_t set_id) {
     if (!object_database_get_object_set_info_by_set_id(obj_db, set_id, set_info))
         return false;
+    else if (object_storage_get_object_set(set_id)) {
+        object_storage_append_object_set(set_id);
+        return true;
+    }
 
     size_t temp[2];
     temp[0] = (size_t)data;
@@ -1064,6 +1079,36 @@ inline object_mesh* object_storage_get_object_mesh_by_index(object_info obj_info
     return 0;
 }
 
+inline object_mesh* object_storage_get_object_mesh_by_object_hash(uint32_t hash, char* mesh_name) {
+    for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++) {
+            object_set* set = &i->set;
+            for (int32_t j = 0; j < set->objects_count; j++)
+                if (set->objects[j].hash == hash) {
+                    object* obj = &set->objects[j];
+                    for (int32_t k = 0; k < obj->meshes_count; k++)
+                        if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                            return &obj->meshes[k];
+                    return 0;
+                }
+            return 0;
+        }
+    return 0;
+}
+
+inline object_mesh* object_storage_get_object_mesh_by_object_hash_index(uint32_t hash, int32_t index) {
+    for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++) {
+        object_set* set = &i->set;
+        for (int32_t j = 0; j < set->objects_count; j++)
+            if (set->objects[j].hash == hash) {
+                object* obj = &set->objects[j];
+                if (index > -1 && index < obj->meshes_count)
+                    return &obj->meshes[index];
+                return 0;
+            }
+    }
+    return 0;
+}
+
 inline int32_t object_storage_get_object_mesh_index(object_info obj_info, char* mesh_name) {
     for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++)
         if (i->set_id == obj_info.set_id) {
@@ -1081,6 +1126,21 @@ inline int32_t object_storage_get_object_mesh_index(object_info obj_info, char* 
     return -1;
 }
 
+inline int32_t object_storage_get_object_mesh_index_by_hash(uint32_t hash, char* mesh_name) {
+    for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++) {
+        object_set* set = &i->set;
+        for (int32_t j = 0; j < set->objects_count; j++)
+            if (set->objects[j].hash == hash) {
+                object* obj = &set->objects[j];
+                for (int32_t k = 0; k < obj->meshes_count; k++)
+                    if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                        return k;
+                return -1;
+            }
+    }
+    return -1;
+}
+
 inline object_set* object_storage_get_object_set(uint32_t set_id) {
     for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++)
         if (i->set_id == set_id)
@@ -1092,9 +1152,22 @@ inline ssize_t object_storage_get_object_set_count() {
     return vector_length(object_storage_data);
 }
 
+inline int32_t object_storage_get_object_set_load_count(uint32_t set_id) {
+    for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++)
+        if (i->set_id == set_id)
+            return i->count;
+    return 0;
+}
+
 inline object_set* object_storage_get_object_set_by_index(ssize_t index) {
     if (index >= 0 && index < vector_length(object_storage_data))
         return &object_storage_data.begin[index].set;
+    return 0;
+}
+
+inline int32_t object_storage_get_object_set_load_count_by_index(ssize_t index) {
+    if (index >= 0 && index < vector_length(object_storage_data))
+        return object_storage_data.begin[index].count;
     return 0;
 }
 
@@ -1493,12 +1566,15 @@ static bool object_set_load_file_modern(void* data, char* path, char* file, uint
                     break;
                 }
 
-        if (name && obj_set.ready) {
-            object_set object_set;
-            object_set_init(&object_set);
-            object_set_load(&object_set, &obj_set, &txp_set, tex_db, name, hash, true);
-            object_storage_insert_object_set(&object_set, hash);
-        }
+        if (name && obj_set.ready) 
+            if (!object_storage_get_object_set(hash)) {
+                object_set object_set;
+                object_set_init(&object_set);
+                object_set_load(&object_set, &obj_set, &txp_set, tex_db, name, hash, true);
+                object_storage_insert_object_set(&object_set, hash);
+            }
+            else
+                object_storage_append_object_set(hash);
 
         obj_free(&obj_set);
         txp_set_free(&txp_set);

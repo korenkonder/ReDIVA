@@ -163,6 +163,14 @@ void camera_set_res(camera* c, int32_t width, int32_t height) {
     }
 }
 
+void camera_set_fast_change(camera* c, bool value) {
+    c->fast_change = value;
+}
+
+void camera_set_fast_change_hist0(camera* c, bool value) {
+    c->fast_change_hist0 = value;
+}
+
 void camera_reset(camera* c) {
     camera_set_pitch(c, 0.0);
     camera_set_yaw(c, 0.0);
@@ -256,7 +264,11 @@ void camera_update(camera* c) {
         mat4_inverse(&c->view_projection, &c->inv_view_projection);
         c->changed_proj = false;
         //c->changed_view = false;
-    }
+    } 
+
+    c->fast_change_hist1 = c->fast_change_hist0;
+    c->fast_change_hist0 = c->fast_change;
+    c->fast_change = false;
 }
 
 void camera_dispose(camera* c) {
@@ -319,6 +331,8 @@ static void camera_calculate_view(camera* c) {
     mat4_inverse(&c->view, &c->inv_view);
     mat3_from_mat4(&c->view, &c->view_mat3);
     mat3_inverse(&c->view_mat3, &c->inv_view_mat3);
+    mat4_from_mat3(&c->view_mat3, &c->view_rot);
+    mat4_from_mat3(&c->inv_view_mat3, &c->inv_view_rot);
 
     if (fabs(c->rotation.x * RAD_TO_DEG - c->pitch) > 0.01
         || fabs(-c->rotation.y * RAD_TO_DEG - c->yaw) > 0.01) {

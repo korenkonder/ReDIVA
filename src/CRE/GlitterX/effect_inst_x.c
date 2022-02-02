@@ -9,8 +9,11 @@
 #include "emitter_inst_x.h"
 #include "random_x.h"
 #include "render_scene_x.h"
+#include "../../KKdLib/str_utils.h"
+#include "../auth_3d.h"
+#include "../rob.h"
 
-static int32_t glitter_x_effect_inst_get_ext_anim_bone_index(
+static int32_t glitter_x_effect_inst_get_ext_anim_bone_index(GPM,
     glitter_effect_ext_anim_chara_node node);
 static void glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1);
 static void glitter_x_effect_inst_get_value(glitter_effect_inst* a1);
@@ -18,8 +21,8 @@ static void glitter_x_effect_inst_update_init(glitter_effect_inst* a1, float_t e
 
 glitter_effect_inst* glitter_x_effect_inst_init(GPM, glitter_effect* a1,
     size_t id, float_t emission, bool appear_now) {
-    glitter_effect_inst_ext_anim* inst_ext_anim;
-    glitter_effect_ext_anim* ext_anim;
+    glitter_effect_inst_ext_anim_x* inst_ext_anim;
+    glitter_effect_ext_anim_x* ext_anim;
     glitter_emitter** i;
     glitter_emitter_inst* emitter_inst;
 
@@ -40,24 +43,28 @@ glitter_effect_inst* glitter_x_effect_inst_init(GPM, glitter_effect* a1,
         ei->random = glitter_x_counter_get(GPM_VAL);
     ei->random_shared.value = ei->random;
 
-    ext_anim = ei->data.ext_anim;
+    ext_anim = ei->data.ext_anim_x;
 
     if (appear_now)
         ei->data.appear_time = 0;
     else
         ei->frame0 = (float_t)-ei->data.appear_time;
 
-    if (~a1->data.flags & GLITTER_EFFECT_LOCAL && ei->data.ext_anim) {
-        inst_ext_anim = force_malloc(sizeof(glitter_effect_inst_ext_anim));
-        inst_ext_anim->a3da_id = -1;
-        inst_ext_anim->object_hash = hash_murmurhash_empty;
-        inst_ext_anim->chara_index = -1;
+    if (~a1->data.flags & GLITTER_EFFECT_LOCAL && ei->data.ext_anim_x) {
+        inst_ext_anim = force_malloc(sizeof(glitter_effect_inst_ext_anim_x));
+        inst_ext_anim->object_index = -1;
         inst_ext_anim->mesh_index = -1;
+        inst_ext_anim->a3da_id = -1;
+        inst_ext_anim->object_is_hrc = false;
+        inst_ext_anim->file_name_hash = hash_murmurhash_empty;
+        inst_ext_anim->object_hash = hash_murmurhash_empty;
+        inst_ext_anim->instance_id = 0;
+        inst_ext_anim->mesh_name = 0;
         inst_ext_anim->mat = mat4_identity;
         inst_ext_anim->translation = vec3_null;
 
-        if (inst_ext_anim != (glitter_effect_inst_ext_anim*)0x0) {
-            ext_anim = ei->data.ext_anim;
+        if (inst_ext_anim) {
+            ext_anim = ei->data.ext_anim_x;
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_SET_ONCE)
                 ei->flags |= GLITTER_EFFECT_INST_SET_EXT_ANIM_ONCE;
 
@@ -78,26 +85,23 @@ glitter_effect_inst* glitter_x_effect_inst_init(GPM, glitter_effect* a1,
 
 
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
-                inst_ext_anim->object = ext_anim->object;
+                inst_ext_anim->chara_index = ext_anim->chara_index;
                 inst_ext_anim->bone_index =
-                    glitter_x_effect_inst_get_ext_anim_bone_index(ext_anim->node_index);
+                    glitter_x_effect_inst_get_ext_anim_bone_index(GPM_VAL, ext_anim->node_index);
                 ei->flags |= GLITTER_EFFECT_INST_CHARA_ANIM;
             }
             else {
-                inst_ext_anim->object_hash = ext_anim->object_hash;
-                inst_ext_anim->file_name_hash = ext_anim->file_name_hash;
+                inst_ext_anim->object_hash = (uint32_t)ext_anim->object_hash;
+                inst_ext_anim->file_name_hash = (uint32_t)ext_anim->file_name_hash;
                 inst_ext_anim->instance_id = ext_anim->instance_id;
             }
 
-            size_t mesh_name_len = utf8_length(ext_anim->mesh_name);
-            if (mesh_name_len) {
-                inst_ext_anim->mesh_name = force_malloc(mesh_name_len + 1);
-                memcpy(inst_ext_anim->mesh_name, ext_anim->mesh_name, mesh_name_len);
-            }
+            if (ext_anim->mesh_name[0])
+                inst_ext_anim->mesh_name = ext_anim->mesh_name;
             else
                 inst_ext_anim->mesh_name = 0;
         }
-        ei->ext_anim = inst_ext_anim;
+        ei->ext_anim_x = inst_ext_anim;
         ei->flags |= GLITTER_EFFECT_INST_HAS_EXT_ANIM;
         ei->flags |= GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT;
         ei->flags |= GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT;
@@ -164,7 +168,7 @@ void glitter_x_effect_inst_reset(glitter_effect_inst* a1, float_t emission) {
 
 void glitter_x_effect_inst_update(GPM, glitter_effect_inst* effect,
     float_t delta_frame, float_t emission) {
-    glitter_effect_inst_ext_anim* ext_anim;
+    glitter_effect_inst_ext_anim_x* ext_anim;
     glitter_emitter_inst** i;
     mat4 mat;
     mat4 mat_rot;
@@ -181,9 +185,9 @@ void glitter_x_effect_inst_update(GPM, glitter_effect_inst* effect,
     rot = effect->rotation;
     vec3_mult_scalar(effect->scale, effect->scale_all, scale);
 
-    if (effect->flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS && effect->ext_anim) {
+    if (effect->flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS && effect->ext_anim_x) {
         vec3 ext_trans;
-        ext_anim = effect->ext_anim;
+        ext_anim = effect->ext_anim_x;
         ext_trans = ext_anim->translation;
         mat4_translate_mult(&ext_anim->mat, ext_trans.x, ext_trans.y, ext_trans.z, &mat);
         mat4_normalize_rotation(&mat, &mat_rot);
@@ -224,22 +228,27 @@ void glitter_x_effect_inst_update(GPM, glitter_effect_inst* effect,
 }
 
 void glitter_x_effect_inst_dispose(glitter_effect_inst* ei) {
-    if (ei->ext_anim) {
-        free(ei->ext_anim->mesh_name);
-        free(ei->ext_anim);
-    }
+    if (ei->ext_anim_x)
+        free(ei->ext_anim_x);
 
     glitter_x_render_scene_free(&ei->render_scene);
     vector_ptr_glitter_emitter_inst_free(&ei->emitters, glitter_x_emitter_inst_dispose);
     free(ei);
 }
 
-static int32_t glitter_x_effect_inst_get_ext_anim_bone_index(
+static int32_t glitter_x_effect_inst_get_ext_anim_bone_index(GPM,
     glitter_effect_ext_anim_chara_node node) {
     if (node < GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD || node > GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
         return -1;
 
-    const char* bone_names[] = {
+    bone_database* bone_data = GPM_VAL->bone_data;
+    vector_string* motion_bone_names = 0;
+    if (!bone_data || vector_length(bone_data->skeleton) < 1
+        || !bone_database_get_skeleton_motion_bones(bone_data,
+            bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), &motion_bone_names))
+        return -1;
+
+    static const char* bone_names[] = {
         [GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD]            = "face_root",
         [GLITTER_EFFECT_EXT_ANIM_CHARA_MOUTH]           = "n_kuti_u",
         [GLITTER_EFFECT_EXT_ANIM_CHARA_BELLY]           = "n_hara_cp",
@@ -260,20 +269,23 @@ static int32_t glitter_x_effect_inst_get_ext_anim_bone_index(
         [GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE]       = "kl_toe_r_wj"
     };
 
-    // find bone index
+    char* bone_name = (char*)bone_names[node];
+    for (string* i = motion_bone_names->begin; i != motion_bone_names->end; i++)
+        if (!str_utils_compare(bone_name, string_data(i)))
+            return (int32_t)(i - motion_bone_names->begin);
     return -1;
 }
 
 static void glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
-    glitter_effect_ext_anim* ext_anim;
-    glitter_effect_inst_ext_anim* inst_ext_anim;
+    glitter_effect_ext_anim_x* ext_anim;
+    glitter_effect_inst_ext_anim_x* inst_ext_anim;
     vec3 scale;
     mat4 temp;
     mat4* mat;
     vec3* trans;
     bool set_flags;
 
-    if (!a1->ext_anim || !a1->data.ext_anim)
+    if (!a1->ext_anim_x || !a1->data.ext_anim_x)
         return;
 
     if (~a1->flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM
@@ -281,8 +293,8 @@ static void glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
             && a1->flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS))
         return;
 
-    ext_anim = a1->data.ext_anim;
-    inst_ext_anim = a1->ext_anim;
+    ext_anim = a1->data.ext_anim_x;
+    inst_ext_anim = a1->ext_anim_x;
 
     mat = 0;
     trans = 0;
@@ -292,50 +304,48 @@ static void glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
         a1->flags |= GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT;
 
     if (a1->flags & GLITTER_EFFECT_INST_CHARA_ANIM) {
-        if (inst_ext_anim->chara_index < 0 || inst_ext_anim->chara_index > 3)
+        rob_chara* rob_chr = rob_chara_array_get(inst_ext_anim->chara_index);
+        if (!rob_chr)
             return;
 
         temp = mat4_identity/*chara root mat*/;
-        mat4_get_scale((mat4*)&mat4_identity/*chara root mat*/, &scale);
+        mat4_get_scale(&temp, &scale);
         vec3_sub_scalar(scale, 1.0f, a1->ext_anim_scale);
         a1->ext_anim_scale.z = 0.0f;
         a1->flags |= GLITTER_EFFECT_INST_HAS_EXT_ANIM_SCALE;
 
-        if (false/*check chara is visible*/
-            || ~ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA)
+        if (rob_chr->data.field_0 & 0x01 || ~ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA)
             set_flags = true;
         else
             set_flags = false;
 
-        if (inst_ext_anim->bone_index > -1)
-            mat4_mult(&temp, (mat4*)&mat4_identity/*chara node mat*/, &temp);
+        int32_t bone_index = inst_ext_anim->bone_index;
+        if (bone_index != -1) {
+            mat4* bone_mat = rob_chara_get_bone_data_mat(rob_chr, bone_index);
+            mat4_mult(bone_mat, &temp, &temp);
+        }
 
         mat = &temp;
         goto SetMat;
     }
     else if (a1->flags & GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT) {
-        if (inst_ext_anim->a3da_id == -1) {
-            inst_ext_anim->a3da_id = -1;/*try get a3da id*/
-            //fun(inst_ext_anim->file_name_hash, inst_ext_anim->object_hash,
-            //    &inst_ext_anim->a3da_index, &inst_ext_anim->object_is_hrc)
+        if (inst_ext_anim->a3da_id != -1)
+            mat = auth_3d_data_struct_get_auth_3d_object_mat(inst_ext_anim->a3da_id,
+                inst_ext_anim->object_index, inst_ext_anim->object_is_hrc, &temp);
+        
+        if (!mat) {
+            inst_ext_anim->a3da_id = auth_3d_data_get_auth_3d_id_by_hash(
+                inst_ext_anim->file_name_hash, inst_ext_anim->object_hash,
+                &inst_ext_anim->object_index, &inst_ext_anim->object_is_hrc, inst_ext_anim->instance_id);
+            if (inst_ext_anim->a3da_id == -1)
+                return;
+
             inst_ext_anim->mesh_index = -1;
-
-            if (inst_ext_anim->a3da_id > -1)
-                mat = (mat4*)&mat4_identity/*try get obj a3da mat*/;
+            mat = auth_3d_data_struct_get_auth_3d_object_mat(inst_ext_anim->a3da_id,
+                inst_ext_anim->object_index, inst_ext_anim->object_is_hrc, &temp);
+            if (!mat)
+                return;
         }
-        else {
-            mat = (mat4*)&mat4_identity/*try get obj a3da mat*/;
-            if (!mat) {
-                inst_ext_anim->a3da_id = -1;/*try get a3da id*/
-                //fun(inst_ext_anim->file_name_hash, inst_ext_anim->object_hash,
-                //    &inst_ext_anim->a3da_index, &inst_ext_anim->object_is_hrc)
-                if (inst_ext_anim->a3da_id != -1)
-                    mat = (mat4*)&mat4_identity/*try get obj a3da mat*/;
-            }
-        }
-
-        if (!mat)
-            return;
 
         mat4_get_scale(mat, &scale);
         vec3_sub_scalar(scale, 1.0f, a1->ext_anim_scale);
@@ -345,27 +355,35 @@ static void glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
         if (!inst_ext_anim->mesh_name)
             goto SetMat;
 
-        if (inst_ext_anim->mesh_index < 0)
-            inst_ext_anim->mesh_index = -1/*try get mesh index*/;
+        if (inst_ext_anim->mesh_index == -1)
+            inst_ext_anim->mesh_index = object_storage_get_object_mesh_index_by_hash(
+                inst_ext_anim->object_hash, inst_ext_anim->mesh_name);
 
-        if (inst_ext_anim->mesh_index > -1) {
-            trans = (vec3*)&vec3_null/*try get mesh bounding sphere center*/;
-            if (trans)
+        if (inst_ext_anim->mesh_index != -1) {
+            object_mesh* mesh = object_storage_get_object_mesh_by_object_hash_index(
+                inst_ext_anim->object_hash, inst_ext_anim->mesh_index);
+            if (mesh) {
+                trans = &mesh->bounding_sphere.center;
                 goto SetMat;
+            }
         }
     }
     else if (inst_ext_anim->object_hash != hash_murmurhash_empty) {
-        if (inst_ext_anim->mesh_index < 0) {
+        if (inst_ext_anim->mesh_index == -1) {
             if (!inst_ext_anim->mesh_name)
                 return;
 
-            inst_ext_anim->mesh_index = -1/*try get mesh index*/;
+            inst_ext_anim->mesh_index = object_storage_get_object_mesh_index_by_hash(
+                inst_ext_anim->object_hash, inst_ext_anim->mesh_name);
         }
 
-        if (inst_ext_anim->mesh_index >= 0) {
-            trans = (vec3*)&vec3_null/*try get mesh bounding sphere center*/;
-            if (trans)
+        if (inst_ext_anim->mesh_index != -1) {
+            object_mesh* mesh = object_storage_get_object_mesh_by_object_hash_index(
+                inst_ext_anim->object_hash, inst_ext_anim->mesh_index);
+            if (mesh) {
+                trans = &mesh->bounding_sphere.center;
                 goto SetMat;
+            }
         }
     }
     return;

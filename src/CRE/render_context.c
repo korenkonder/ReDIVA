@@ -33,7 +33,19 @@ static void sss_data_free(sss_data_struct* sss);
 
 const texture_pattern_struct texture_pattern_struct_null = { -1, -1 };
 
+frame_rate_control sys_frame_rate = { 1.0f };
+frame_rate_control diva_pv_frame_rate = { 1.0f };
+frame_rate_control diva_stage_frame_rate = { 1.0f };
+
 static const GLfloat depth_clear = 1.0f;
+
+inline float_t frame_rate_control_get_delta_frame(frame_rate_control* control) {
+    return get_delta_frame() * control->frame_speed;
+}
+
+inline void frame_rate_control_set_frame_speed(frame_rate_control* control, float_t value) {
+    control->frame_speed = value;
+}
 
 light_proj* light_proj_init(int32_t width, int32_t height) {
     light_proj* litproj = force_malloc(sizeof(light_proj));
@@ -557,6 +569,20 @@ void render_context_light_param_data_face_set(render_context* rctx, light_param_
 }
 
 void render_context_set_light_param(render_context* rctx, light_param_data* light_param) {
+    if (light_param->light.ready)
+        render_context_light_param_data_light_set(rctx, &light_param->light);
+    if (light_param->fog.ready)
+        render_context_light_param_data_fog_set(rctx, &light_param->fog);
+    if (light_param->glow.ready)
+        render_context_light_param_data_glow_set(rctx, &light_param->glow);
+    if (light_param->ibl.ready)
+        render_context_light_param_data_ibl_set(rctx, &light_param->ibl);
+    render_context_light_param_data_wind_set(rctx, &light_param->wind);
+    if (light_param->face.ready)
+        render_context_light_param_data_face_set(rctx, &light_param->face);
+}
+
+void render_context_unset_light_param(render_context* rctx, light_param_data* light_param) {
     if (light_param->light.ready)
         render_context_light_param_data_light_set(rctx, &light_param->light);
     if (light_param->fog.ready)

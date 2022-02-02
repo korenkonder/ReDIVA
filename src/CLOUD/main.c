@@ -127,7 +127,7 @@ static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
     auth_3d_camera_root* cr = &cam_a3da.camera_root.begin[0];
 
     for (int32_t i = 0; i < frames; i++) {
-        auth_3d_get_value(&cam_a3da, (mat4*)&mat4_identity, (float_t)1.0f);
+        auth_3d_time_step(&cam_a3da, (mat4*)&mat4_identity);
         bool enable = fabs(cam_a3da.dof.model_transform.rotation_value.z) > 0.000001f;
         if (!enable) {
             dof_index[i] = 0;

@@ -31,7 +31,7 @@ void data_view_object_imgui(class_data* data) {
     ImGuiStyle* style = igGetStyle();
     ImFont* font = igGetFont();
 
-    float_t w = min((float_t)width, 360.0f);
+    float_t w = min((float_t)width, 420.0f);
     float_t h = min((float_t)height, 480.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
@@ -56,10 +56,12 @@ void data_view_object_imgui(class_data* data) {
     size_t count = object_storage_get_object_set_count();
     for (size_t i = 0; i < count; i++) {
         object_set* set = object_storage_get_object_set_by_index(i);
+        int32_t load_count = object_storage_get_object_set_load_count_by_index(i);
 
-        igPushID_Int((int32_t)i);
+        igPushID_Int(set->id);
         char buf[0x1000];
-        sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Name: %s", set->id, string_data(&set->name));
+        sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Load Count: %3d; Name: %s",
+            set->id, load_count, string_data(&set->name));
         igSelectable_Bool(buf, false, 0, ImVec2_Empty);
         igPopID();
     }
