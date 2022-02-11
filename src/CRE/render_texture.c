@@ -8,7 +8,7 @@
 #include "texture.h"
 
 static shader_glsl render_texture_shader;
-static int32_t render_texture_vao, render_texture_vbo;
+static GLuint render_texture_vao, render_texture_vbo;
 static bool render_texture_data_initialized;
 static uint32_t render_texture_counter;
 
@@ -161,7 +161,7 @@ void render_texture_free(render_texture* rt) {
         rt->field_2C = 0;
     }
 
-    if (rt->fbos) {
+    if (rt->fbos[0]) {
         glDeleteFramebuffers(rt->max_level + 1, rt->fbos);
         memset(rt->fbos, 0, sizeof(int32_t) * (rt->max_level + 1ULL));
     }

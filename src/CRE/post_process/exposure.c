@@ -12,7 +12,7 @@
 static void post_process_exposure_free_fbo(post_process_exposure* exp);
 
 post_process_exposure* post_process_exposure_init() {
-    post_process_exposure* exp = force_malloc(sizeof(post_process_exposure));
+    post_process_exposure* exp = force_malloc_s(post_process_exposure, 1);
     return exp;
 }
 

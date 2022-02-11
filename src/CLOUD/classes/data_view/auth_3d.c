@@ -9,20 +9,20 @@
 #include "../imgui_helper.h"
 
 static const char* auth_3d_fog_name[] = {
-    [FOG_DEPTH]  = "Depth",
-    [FOG_HEIGHT] = "Height",
-    [FOG_BUMP]   = "Bump",
+    "Depth",
+    "Height",
+    "Bump",
 };
 
 static const char* auth_3d_light_name[] = {
-    [LIGHT_CHARA]       = "Chara",
-    [LIGHT_STAGE]       = "Stage",
-    [LIGHT_SUN]         = "Sun",
-    [LIGHT_REFLECT]     = "Reflect",
-    [LIGHT_SHADOW]      = "Shadow",
-    [LIGHT_CHARA_COLOR] = "Chara Color",
-    [LIGHT_TONE_CURVE]  = "Tone Curve",
-    [LIGHT_PROJECTION]  = "Projection",
+    "Chara",
+    "Stage",
+    "Sun",
+    "Reflect",
+    "Shadow",
+    "Chara Color",
+    "Tone Curve",
+    "Projection",
 };
 
 extern int32_t width;
@@ -31,9 +31,9 @@ extern bool input_locked;
 
 const char* data_view_auth_3d_window_title = "Auth 3D##Data Viewer";
 
-static void data_view_auth_3d_imgui_auth_3d_key(auth_3d_key* k, char* format, bool offset);
-static void data_view_auth_3d_imgui_auth_3d_rgba(auth_3d_rgba* rgba, char* format);
-static void data_view_auth_3d_imgui_auth_3d_vec3(auth_3d_vec3* vec, char* format);
+static void data_view_auth_3d_imgui_auth_3d_key(auth_3d_key* k, const char* format, bool offset);
+static void data_view_auth_3d_imgui_auth_3d_rgba(auth_3d_rgba* rgba, const char* format);
+static void data_view_auth_3d_imgui_auth_3d_vec3(auth_3d_vec3* vec, const char* format);
 static void data_view_auth_3d_imgui_auth_3d_model_transform(auth_3d_model_transform* mt);
 
 static void data_view_auth_3d_imgui_auth_3d_ambient(auth_3d_ambient* a);
@@ -47,7 +47,7 @@ static void data_view_auth_3d_imgui_auth_3d_light(auth_3d_light* l);
 static void data_view_auth_3d_imgui_auth_3d_m_object_hrc(auth_3d_m_object_hrc* moh);
 static void data_view_auth_3d_imgui_auth_3d_material_list(auth_3d_material_list* ml);
 static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o);
-static void data_view_auth_3d_imgui_auth_3d_object_curve(auth_3d_object_curve* oc, char* format);
+static void data_view_auth_3d_imgui_auth_3d_object_curve(auth_3d_object_curve* oc, const char* format);
 static void data_view_auth_3d_imgui_auth_3d_object_hrc(auth_3d_object_hrc* oh);
 static void data_view_auth_3d_imgui_auth_3d_object_instance(auth_3d_object_instance* oi);
 static void data_view_auth_3d_imgui_auth_3d_object_model_transform(auth_3d_object_model_transform* omt);
@@ -71,17 +71,20 @@ void data_view_auth_3d_imgui(class_data* data) {
     float_t h = min((float_t)height, 540.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Appearing);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(data_view_auth_3d_window_title, &open, 0);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
     ImGuiTreeNodeFlags tree_node_base_flags = 0;
     tree_node_base_flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -224,8 +227,6 @@ void data_view_auth_3d_imgui(class_data* data) {
     }
 
     data->imgui_focus |= igIsWindowFocused(0);
-
-End:
     igEnd();
 }
 
@@ -237,7 +238,7 @@ bool data_view_auth_3d_dispose(class_data* data) {
     return true;
 }
 
-static void data_view_auth_3d_imgui_auth_3d_key(auth_3d_key* k, char* format, bool offset) {
+static void data_view_auth_3d_imgui_auth_3d_key(auth_3d_key* k, const char* format, bool offset) {
     if (!k)
         return;
 
@@ -270,7 +271,7 @@ static void data_view_auth_3d_imgui_auth_3d_key(auth_3d_key* k, char* format, bo
     }
 }
 
-static void data_view_auth_3d_imgui_auth_3d_rgba(auth_3d_rgba* rgba, char* format) {
+static void data_view_auth_3d_imgui_auth_3d_rgba(auth_3d_rgba* rgba, const char* format) {
     if (!rgba || !rgba->flags || !format)
         return;
 
@@ -285,7 +286,7 @@ static void data_view_auth_3d_imgui_auth_3d_rgba(auth_3d_rgba* rgba, char* forma
         data_view_auth_3d_imgui_auth_3d_key(&rgba->a, "A:", true);
 }
 
-static void data_view_auth_3d_imgui_auth_3d_vec3(auth_3d_vec3* vec, char* format) {
+static void data_view_auth_3d_imgui_auth_3d_vec3(auth_3d_vec3* vec, const char* format) {
     if (!vec || !format)
         return;
 
@@ -736,7 +737,7 @@ static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
         igPopStyleColor(1);
 }
 
-static void data_view_auth_3d_imgui_auth_3d_object_curve(auth_3d_object_curve* oc, char* format) {
+static void data_view_auth_3d_imgui_auth_3d_object_curve(auth_3d_object_curve* oc, const char* format) {
     if (!oc || !oc->curve || !format)
         return;
 

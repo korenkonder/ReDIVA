@@ -13,7 +13,7 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
     void* data, glitter_particle* a3, glitter_effect* effect, bool use_big_endian);
 
 glitter_particle* glitter_particle_init(GLT) {
-    glitter_particle* p = force_malloc(sizeof(glitter_particle));
+    glitter_particle* p = force_malloc_s(glitter_particle, 1);
     p->version = GLT_VAL == GLITTER_X ? 0x05 : 0x03;
     p->data.pivot = GLITTER_PIVOT_MIDDLE_CENTER;
     p->data.scale = vec3_identity;
@@ -48,7 +48,7 @@ glitter_particle* glitter_particle_copy(glitter_particle* p) {
     if (!p)
         return 0;
 
-    glitter_particle* pc = force_malloc(sizeof(glitter_particle));
+    glitter_particle* pc = force_malloc_s(glitter_particle, 1);
     *pc = *p;
 
     pc->animation = vector_ptr_empty(glitter_curve);
@@ -76,16 +76,16 @@ bool glitter_particle_parse_file(glitter_effect_group* a1,
             continue;
 
         if (i->header.signature == reverse_endianness_uint32_t('ANIM')) {
-            glitter_curve_type_flags flags = 0;
+            glitter_curve_type_flags flags = (glitter_curve_type_flags)0;
             if (a1->type == GLITTER_X)
                 flags = glitter_particle_x_curve_flags;
             else
                 flags = glitter_particle_curve_flags;
 
             if (particle->data.type != GLITTER_PARTICLE_MESH) {
-                flags &= ~GLITTER_CURVE_TYPE_UV_SCROLL_2ND;
+                enum_and(flags, ~GLITTER_CURVE_TYPE_UV_SCROLL_2ND);
                 if (particle->data.draw_type != GLITTER_DIRECTION_PARTICLE_ROTATION)
-                    flags &= ~(GLITTER_CURVE_TYPE_ROTATION_X | GLITTER_CURVE_TYPE_ROTATION_Y);
+                    enum_and(flags, ~(GLITTER_CURVE_TYPE_ROTATION_X | GLITTER_CURVE_TYPE_ROTATION_Y));
             }
             glitter_animation_parse_file(a1->type, i, &particle->animation, flags);
         }
@@ -100,16 +100,16 @@ bool glitter_particle_unparse_file(GLT, glitter_effect_group* a1,
     if (!glitter_particle_pack_file(GLT_VAL, a1, st, a3, effect))
         return false;
 
-    glitter_curve_type_flags flags = 0;
+    glitter_curve_type_flags flags = (glitter_curve_type_flags)0;
     if (a1->type == GLITTER_X)
         flags = glitter_particle_x_curve_flags;
     else
         flags = glitter_particle_curve_flags;
 
     if (a3->data.type != GLITTER_PARTICLE_MESH) {
-        flags &= ~GLITTER_CURVE_TYPE_UV_SCROLL_2ND;
+        enum_and(flags, ~GLITTER_CURVE_TYPE_UV_SCROLL_2ND);
         if (a3->data.draw_type != GLITTER_DIRECTION_PARTICLE_ROTATION)
-            flags &= ~(GLITTER_CURVE_TYPE_ROTATION_X | GLITTER_CURVE_TYPE_ROTATION_Y);
+            enum_and(flags, ~(GLITTER_CURVE_TYPE_ROTATION_X | GLITTER_CURVE_TYPE_ROTATION_Y));
     }
 
     f2_struct s;
@@ -139,34 +139,34 @@ static bool glitter_particle_pack_file(GLT,
     vector_enrs_entry e = vector_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = (enrs_entry){ 0, 1, 204, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 51, ENRS_DWORD });
+    ee = { 0, 1, 204, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 51, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
     l += o = 204;
 
     if (a3->version == 3) {
-        ee = (enrs_entry){ o, 1, 8, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_DWORD });
+        ee = { o, 1, 8, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += o = 8;
     }
 
     if (a3->data.type == GLITTER_PARTICLE_LOCUS || a3->data.type == GLITTER_PARTICLE_MESH) {
-        ee = (enrs_entry){ o, 1, 4, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_WORD });
+        ee = { o, 1, 4, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += o = 4;
     }
 
-    ee = (enrs_entry){ o, 4, 44, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_QWORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, 5, ENRS_DWORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_WORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_DWORD });
+    ee = { o, 4, 44, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+    vector_enrs_sub_entry_append(&ee.sub, 4, 5, ENRS_DWORD);
+    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
     if (a1->version >= 7) {
         ee.count++;
         ee.size += 4;
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += o = 48;
     }
@@ -175,9 +175,9 @@ static bool glitter_particle_pack_file(GLT,
         l += o = 44;
     }
 
-    ee = (enrs_entry){ o, 2, 12, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_QWORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+    ee = { o, 2, 12, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
     l += o = 12;
 
@@ -189,9 +189,9 @@ static bool glitter_particle_pack_file(GLT,
 
     flags = a3->data.flags;
     if (effect->data.flags & GLITTER_EFFECT_LOCAL)
-        flags &= ~GLITTER_PARTICLE_LOCAL;
+        enum_and(flags, ~GLITTER_PARTICLE_LOCAL);
     if (effect->data.flags & GLITTER_EFFECT_EMISSION)
-        flags &= ~GLITTER_PARTICLE_EMISSION;
+        enum_and(flags, ~GLITTER_PARTICLE_EMISSION);
 
     *(int32_t*)d = a3->data.life_time;
     *(int32_t*)(d + 4) = a3->data.type;
@@ -289,7 +289,7 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
     int32_t uv_index_start;
     int32_t uv_index;
     int32_t uv_index_end;
-    int32_t uv_index_type;
+    glitter_uv_index_type uv_index_type;
     int32_t uv_max_count;
     uint8_t split_u;
     uint8_t split_v;
@@ -312,8 +312,8 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.fade_in_random = load_reverse_endianness_int32_t((void*)(d + 12));
             a3->data.fade_out = load_reverse_endianness_int32_t((void*)(d + 16));
             a3->data.fade_out_random = load_reverse_endianness_int32_t((void*)(d + 20));
-            a3->data.type = load_reverse_endianness_int32_t((void*)(d + 24));
-            a3->data.draw_type = load_reverse_endianness_int32_t((void*)(d + 28));
+            a3->data.type = (glitter_particle_type)load_reverse_endianness_int32_t((void*)(d + 24));
+            a3->data.draw_type = (glitter_direction)load_reverse_endianness_int32_t((void*)(d + 28));
         }
         else {
             a3->data.life_time = *(int32_t*)d;
@@ -322,8 +322,8 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.fade_in_random = *(int32_t*)(d + 12);
             a3->data.fade_out = *(int32_t*)(d + 16);
             a3->data.fade_out_random = *(int32_t*)(d + 20);
-            a3->data.type = *(int32_t*)(d + 24);
-            a3->data.draw_type = *(int32_t*)(d + 28);
+            a3->data.type = (glitter_particle_type) *(int32_t*)(d + 24);
+            a3->data.draw_type = (glitter_direction)*(int32_t*)(d + 28);
         }
 
         if (a3->version != 4 && a3->version != 5)
@@ -349,8 +349,8 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.scale_random.y = load_reverse_endianness_float_t((void*)(d + 96));
             a3->data.scale_random.z = load_reverse_endianness_float_t((void*)(d + 100));
             a3->data.z_offset = load_reverse_endianness_float_t((void*)(d + 104));
-            a3->data.pivot = load_reverse_endianness_int32_t((void*)(d + 108));
-            a3->data.flags = load_reverse_endianness_int32_t((void*)(d + 112));
+            a3->data.pivot = (glitter_pivot)load_reverse_endianness_int32_t((void*)(d + 108));
+            a3->data.flags = (glitter_particle_flag)load_reverse_endianness_int32_t((void*)(d + 112));
         }
         else {
             a3->data.rotation = *(vec3*)(d + 32);
@@ -360,14 +360,14 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.scale = *(vec3*)(d + 80);
             a3->data.scale_random = *(vec3*)(d + 92);
             a3->data.z_offset = *(float_t*)(d + 104);
-            a3->data.pivot = *(int32_t*)(d + 108);
-            a3->data.flags = *(int32_t*)(d + 112);
+            a3->data.pivot = (glitter_pivot) *(int32_t*)(d + 108);
+            a3->data.flags = (glitter_particle_flag) *(int32_t*)(d + 112);
         }
 
         if (effect->data.flags & GLITTER_EFFECT_LOCAL)
-            a3->data.flags |= GLITTER_PARTICLE_LOCAL;
+            enum_or(a3->data.flags, GLITTER_PARTICLE_LOCAL);
         if (effect->data.flags & GLITTER_EFFECT_EMISSION)
-            a3->data.flags |= GLITTER_PARTICLE_EMISSION;
+            enum_or(a3->data.flags, GLITTER_PARTICLE_EMISSION);
 
         if (use_big_endian) {
             a3->data.uv_scroll_2nd_add.x = load_reverse_endianness_float_t((void*)(d + 120));
@@ -398,9 +398,11 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.uv_scroll_add.x = load_reverse_endianness_float_t((void*)(d + 224));
             a3->data.uv_scroll_add.y = load_reverse_endianness_float_t((void*)(d + 228));
             a3->data.uv_scroll_add_scale = load_reverse_endianness_float_t((void*)(d + 232));
-            a3->data.sub_flags = load_reverse_endianness_int32_t((void*)(d + 236));
+            a3->data.sub_flags = (glitter_particle_sub_flag)
+                load_reverse_endianness_int32_t((void*)(d + 236));
             a3->data.count = load_reverse_endianness_int32_t((void*)(d + 240));
-            a3->data.draw_flags = load_reverse_endianness_int32_t((void*)(d + 244));
+            a3->data.draw_flags = (glitter_particle_draw_flag)
+                load_reverse_endianness_int32_t((void*)(d + 244));
             a3->data.emission = load_reverse_endianness_float_t((void*)(d + 252));
         }
         else {
@@ -421,9 +423,9 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.rebound_plane_y = *(float_t*)(d + 220);
             a3->data.uv_scroll_add = *(vec2*)(d + 224);
             a3->data.uv_scroll_add_scale = *(float_t*)(d + 232);
-            a3->data.sub_flags = *(int32_t*)(d + 236);
+            a3->data.sub_flags = (glitter_particle_sub_flag) * (int32_t*)(d + 236);
             a3->data.count = *(int32_t*)(d + 240);
-            a3->data.draw_flags = *(int32_t*)(d + 244);
+            a3->data.draw_flags = (glitter_particle_draw_flag) * (int32_t*)(d + 244);
             a3->data.emission = *(float_t*)(d + 252);
         }
         d += 256;
@@ -434,7 +436,7 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
         }
 
         if (a3->data.emission >= glitter_min_emission)
-            a3->data.flags |= GLITTER_PARTICLE_EMISSION;
+            enum_or(a3->data.flags, GLITTER_PARTICLE_EMISSION);
 
         a3->data.locus_history_size = 0;
         a3->data.locus_history_size_random = 0;
@@ -495,10 +497,10 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             g = *(uint8_t*)(d + 9);
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
-            blend_mode = load_reverse_endianness_int32_t((void*)(d + 12));
+            blend_mode = (glitter_particle_blend)load_reverse_endianness_int32_t((void*)(d + 12));
             split_u = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 20));
             split_v = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 24));
-            uv_index_type = load_reverse_endianness_int32_t((void*)(d + 28));
+            uv_index_type = (glitter_uv_index_type)load_reverse_endianness_int32_t((void*)(d + 28));
             uv_index = load_reverse_endianness_int16_t((void*)(d + 32));
             frame_step_uv = load_reverse_endianness_int16_t((void*)(d + 34));
             uv_index_start = load_reverse_endianness_int32_t((void*)(d + 36));
@@ -512,10 +514,10 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             g = *(uint8_t*)(d + 9);
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
-            blend_mode = *(int32_t*)(d + 12);
+            blend_mode = (glitter_particle_blend) * (int32_t*)(d + 12);
             split_u = (uint8_t) * (int32_t*)(d + 20);
             split_v = (uint8_t) * (int32_t*)(d + 24);
-            uv_index_type = *(int32_t*)(d + 28);
+            uv_index_type = (glitter_uv_index_type) * (int32_t*)(d + 28);
             uv_index = *(int16_t*)(d + 32);
             frame_step_uv = *(int16_t*)(d + 34);
             uv_index_start = *(int32_t*)(d + 36);
@@ -528,12 +530,13 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             if (use_big_endian) {
                 if (has_tex)
                     mask_tex_hash = load_reverse_endianness_uint64_t((void*)d);
-                mask_blend_mode = load_reverse_endianness_int32_t((void*)(d + 8));
+                mask_blend_mode = (glitter_particle_blend)
+                    load_reverse_endianness_int32_t((void*)(d + 8));
             }
             else {
                 if (has_tex)
                     mask_tex_hash = *(uint64_t*)d;
-                mask_blend_mode = *(int32_t*)(d + 8);
+                mask_blend_mode = (glitter_particle_blend) * (int32_t*)(d + 8);
             }
         else
             mask_blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
@@ -542,13 +545,13 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
         d = (size_t)data;
         if (use_big_endian) {
             a3->data.life_time = load_reverse_endianness_int32_t((void*)d);
-            a3->data.type = load_reverse_endianness_int32_t((void*)(d + 4));
-            a3->data.draw_type = load_reverse_endianness_int32_t((void*)(d + 8));
+            a3->data.type = (glitter_particle_type)load_reverse_endianness_int32_t((void*)(d + 4));
+            a3->data.draw_type = (glitter_direction)load_reverse_endianness_int32_t((void*)(d + 8));
         }
         else {
             a3->data.life_time =  *(int32_t*)d;
-            a3->data.type = *(int32_t*)(d + 4);
-            a3->data.draw_type = *(int32_t*)(d + 8);
+            a3->data.type = (glitter_particle_type) * (int32_t*)(d + 4);
+            a3->data.draw_type = (glitter_direction) * (int32_t*)(d + 8);
         }
 
         if (a3->version != 2 && a3->version != 3)
@@ -574,8 +577,8 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.scale_random.y = load_reverse_endianness_float_t((void*)(d + 76));
             a3->data.scale_random.z = load_reverse_endianness_float_t((void*)(d + 80));
             a3->data.z_offset = load_reverse_endianness_float_t((void*)(d + 84));
-            a3->data.pivot = load_reverse_endianness_int32_t((void*)(d + 88));
-            a3->data.flags = load_reverse_endianness_int32_t((void*)(d + 92));
+            a3->data.pivot = (glitter_pivot)load_reverse_endianness_int32_t((void*)(d + 88));
+            a3->data.flags = (glitter_particle_flag)load_reverse_endianness_int32_t((void*)(d + 92));
         }
         else {
             a3->data.rotation = *(vec3*)(d + 12);
@@ -585,14 +588,14 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.scale = *(vec3*)(d + 60);
             a3->data.scale_random = *(vec3*)(d + 72);
             a3->data.z_offset = *(float_t*)(d + 84);
-            a3->data.pivot = *(int32_t*)(d + 88);
-            a3->data.flags = *(int32_t*)(d + 92);
+            a3->data.pivot = (glitter_pivot) * (int32_t*)(d + 88);
+            a3->data.flags = (glitter_particle_flag) * (int32_t*)(d + 92);
         }
 
         if (effect->data.flags & GLITTER_EFFECT_LOCAL)
-            a3->data.flags |= GLITTER_PARTICLE_LOCAL;
+            enum_or(a3->data.flags, GLITTER_PARTICLE_LOCAL);
         if (effect->data.flags & GLITTER_EFFECT_EMISSION)
-            a3->data.flags |= GLITTER_PARTICLE_EMISSION;
+            enum_or(a3->data.flags, GLITTER_EFFECT_EMISSION);
 
         if (use_big_endian) {
             a3->data.speed = load_reverse_endianness_float_t((void*)(d + 96));
@@ -620,7 +623,8 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.uv_scroll_add.x = load_reverse_endianness_float_t((void*)(d + 184));
             a3->data.uv_scroll_add.y = load_reverse_endianness_float_t((void*)(d + 188));
             a3->data.uv_scroll_add_scale = load_reverse_endianness_float_t((void*)(d + 192));
-            a3->data.sub_flags = load_reverse_endianness_int32_t((void*)(d + 196));
+            a3->data.sub_flags = (glitter_particle_sub_flag)
+                load_reverse_endianness_int32_t((void*)(d + 196));
             a3->data.count = load_reverse_endianness_int32_t((void*)(d + 200));
         }
         else {
@@ -638,15 +642,15 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             a3->data.rebound_plane_y = *(float_t*)(d + 180);
             a3->data.uv_scroll_add = *(vec2*)(d + 184);
             a3->data.uv_scroll_add_scale = *(float_t*)(d + 192);
-            a3->data.sub_flags = *(int32_t*)(d + 196);
+            a3->data.sub_flags = (glitter_particle_sub_flag) * (int32_t*)(d + 196);
             a3->data.count = *(int32_t*)(d + 200);
         }
         d += 204;
 
         a3->data.locus_history_size = 0;
         a3->data.locus_history_size_random = 0;
-        a3->data.draw_flags = 0;
-        a3->data.emission = 0;
+        a3->data.draw_flags = (glitter_particle_draw_flag)0;
+        a3->data.emission = 0.0f;
 
         if (a3->version == 3) {
             if (use_big_endian)
@@ -655,7 +659,7 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
                 a3->data.emission = *(float_t*)(d + 4);
 
             if (a3->data.emission >= glitter_min_emission)
-                a3->data.flags |= GLITTER_PARTICLE_EMISSION;
+                enum_or(a3->data.flags, GLITTER_PARTICLE_EMISSION);
             d += 8;
         }
 
@@ -683,11 +687,11 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             g = *(uint8_t*)(d + 9);
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
-            blend_mode = load_reverse_endianness_int32_t((void*)(d + 12));
+            blend_mode = (glitter_particle_blend)load_reverse_endianness_int32_t((void*)(d + 12));
             unk0 = load_reverse_endianness_int32_t((void*)(d + 16));
             split_u = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 20));
             split_v = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 24));
-            uv_index_type = load_reverse_endianness_int32_t((void*)(d + 28));
+            uv_index_type = (glitter_uv_index_type)load_reverse_endianness_int32_t((void*)(d + 28));
             uv_index = load_reverse_endianness_int16_t((void*)(d + 32));
             frame_step_uv = load_reverse_endianness_int16_t((void*)(d + 34));
             uv_index_start = load_reverse_endianness_int32_t((void*)(d + 36));
@@ -699,11 +703,11 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
             g = *(uint8_t*)(d + 9);
             b = *(uint8_t*)(d + 10);
             a = *(uint8_t*)(d + 11);
-            blend_mode = *(int32_t*)(d + 12);
+            blend_mode = (glitter_particle_blend) * (int32_t*)(d + 12);
             unk0 = *(int32_t*)(d + 16);
             split_u = (uint8_t) * (int32_t*)(d + 20);
             split_v = (uint8_t) * (int32_t*)(d + 24);
-            uv_index_type = *(int32_t*)(d + 28);
+            uv_index_type = (glitter_uv_index_type) * (int32_t*)(d + 28);
             uv_index = *(int16_t*)(d + 32);
             frame_step_uv = *(int16_t*)(d + 34);
             uv_index_start = *(int32_t*)(d + 36);
@@ -722,11 +726,12 @@ static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
         if (a3->data.flags & GLITTER_PARTICLE_TEXTURE_MASK)
             if (use_big_endian) {
                 mask_tex_hash = load_reverse_endianness_uint64_t((void*)d);
-                mask_blend_mode = load_reverse_endianness_int32_t((void*)(d + 8));
+                mask_blend_mode = (glitter_particle_blend)
+                    load_reverse_endianness_int32_t((void*)(d + 8));
             }
             else {
                 mask_tex_hash = *(uint64_t*)d;
-                mask_blend_mode = *(int32_t*)(d + 8);
+                mask_blend_mode = (glitter_particle_blend) * (int32_t*)(d + 8);
             }
         else {
             mask_tex_hash = GLT_VAL != GLITTER_FT

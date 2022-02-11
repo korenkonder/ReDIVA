@@ -17,7 +17,7 @@ static void post_process_aa_calculate_area_texture_data_sub(float_t* a1,
 static float_t post_process_aa_calculate_area_texture_data_sub_sub(int32_t a1, int32_t a2);
 
 post_process_aa* post_process_aa_init() {
-    post_process_aa* aa = force_malloc(sizeof(post_process_aa));
+    post_process_aa* aa = force_malloc_s(post_process_aa, 1);
     post_process_aa_generate_area_texture(aa);
     return aa;
 }
@@ -54,8 +54,8 @@ void post_process_apply_mlaa(post_process_aa* aa, render_texture* rt,
     gl_state_active_bind_texture_2d(1, 0);
 
     fbo_blit(buf_rt->fbos[0], rt->fbos[0],
-        0, 0, rt->color_texture->width, rt->color_texture->height,
-        0, 0, buf_rt->color_texture->width, buf_rt->color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        0, 0, buf_rt->color_texture->width, buf_rt->color_texture->height,
+        0, 0, rt->color_texture->width, rt->color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
 
 void post_process_aa_init_fbo(post_process_aa* aa,

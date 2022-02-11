@@ -33,14 +33,16 @@ bool glitter_x_curve_get_value(glitter_curve* c,
     if (c->flags & GLITTER_CURVE_STEP)
         glitter_x_random_set_value(random, random_val + 1);
 
+    float_t start_time;
+    float_t end_time;
     if (keys_count == 1) {
         glitter_curve_key* curr_key = &c->keys.begin[keys_count - 1];
         _value = glitter_x_curve_randomize_key(c, curr_key, random);
         goto End;
     }
 
-    float_t start_time = (float_t)c->start_time;
-    float_t end_time = (float_t)c->end_time;
+    start_time = (float_t)c->start_time;
+    end_time = (float_t)c->end_time;
     if (c->repeat && (start_time > frame || frame >= end_time)) {
         float_t t = (frame - start_time) / (end_time - start_time);
         t = t <= 0.0f ? (float_t)(int32_t)t - 1.0f : (float_t)(int32_t)t;

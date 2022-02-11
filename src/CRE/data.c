@@ -24,8 +24,8 @@ static void data_load_glitter_list(data_struct* ds, char* path);
 
 void data_struct_init() {
     memset(data_list, 0, sizeof(data_struct) * DATA_MAX);
-    for (data_type i = DATA_AFT; i < DATA_MAX; i++)
-        data_list[i].type = i;
+    for (int32_t i = DATA_AFT; i < DATA_MAX; i++)
+        data_list[i].type = (data_type)i;
 }
 
 void data_struct_load(char* path) {
@@ -41,6 +41,10 @@ void data_struct_load(char* path) {
     io_free(&s);
 }
 
+inline void data_struct_load(const char* path) {
+    data_struct_load((char*)path);
+}
+
 void data_struct_wload(wchar_t* path) {
     stream s;
     io_wopen(&s, path, L"rb");
@@ -52,6 +56,10 @@ void data_struct_wload(wchar_t* path) {
         data_load_inner(&s);
     }
     io_free(&s);
+}
+
+inline void data_struct_wload(const wchar_t* path) {
+    data_struct_wload((wchar_t*)path);
 }
 
 void data_struct_get_directory_files(data_struct* ds, char* dir, vector_data_struct_file* data_files) {
@@ -74,20 +82,20 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, vector_data_str
         dir_len--;
     }
 
-    size_t max_len = 0;
+    ssize_t max_len = 0;
     for (data_struct_path* i = ds->data_paths.begin; i != ds->data_paths.end; i++)
         for (data_struct_directory* j = i->data.begin; j != i->data.end; j++)
             if (max_len < j->path.length)
                 max_len = j->path.length;
 
-    char* dir_temp = force_malloc(dir_len + 1);
+    char* dir_temp = force_malloc_s(char, dir_len + 1);
     memcpy(dir_temp, dir, dir_len + 1);
 
     char* t = dir_temp;
     while (t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc(max_len + dir_len + 2);
+    char* temp = force_malloc_s(char, max_len + dir_len + 2);
     for (data_struct_path* i = ds->data_paths.begin; i != ds->data_paths.end; i++)
         for (data_struct_directory* j = i->data.begin; j != i->data.end; j++) {
             char* path = string_data(&j->path);
@@ -102,7 +110,7 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, vector_data_str
             path_get_files(&files, temp);
             for (string* l = files.begin; l != files.end; l++) {
                 char* l_str = string_data(l);
-                size_t len = l->length;
+                ssize_t len = l->length;
                 bool found = false;
                 for (data_struct_file* i = data_files->begin; i != data_files->end; i++)
                     if (!memcmp(l_str, string_data(&i->name), min(len, i->name.length) + 1)) {
@@ -126,6 +134,10 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, vector_data_str
     free(temp);
 }
 
+inline void data_struct_get_directory_files(data_struct* ds, const char* dir, vector_data_struct_file* data_files) {
+    data_struct_get_directory_files(ds, (char*)dir, data_files);
+}
+
 bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
     bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
     if (path_check_directory_exists(dir)) {
@@ -136,7 +148,7 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
         else
             t_len = utf8_length(file);
 
-        uint32_t h = hash_murmurhash(file, t_len, 0, false, false);
+        uint32_t h = hash_murmurhash((uint8_t*)file, t_len, 0, false, false);
         bool ret = load_func(data, dir, file, h);
         if (ret)
             return true;
@@ -159,20 +171,20 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
         dir_len--;
     }
 
-    size_t max_len = 0;
+    ssize_t max_len = 0;
     for (data_struct_path* i = ds->data_paths.begin; i != ds->data_paths.end; i++)
         for (data_struct_directory* j = i->data.begin; j != i->data.end; j++)
             if (max_len < j->path.length)
                 max_len = j->path.length;
 
-    char* dir_temp = force_malloc(dir_len + 1);
+    char* dir_temp = force_malloc_s(char, dir_len + 1);
     memcpy(dir_temp, dir, dir_len + 1);
 
     char* t = dir_temp;
     while(t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc(max_len + dir_len + 2);
+    char* temp = force_malloc_s(char, max_len + dir_len + 2);
     for (data_struct_path* i = ds->data_paths.begin; i != ds->data_paths.end; i++)
         for (data_struct_directory* j = i->data.begin; j != i->data.end; j++) {
             char* path = string_data(&j->path);
@@ -197,7 +209,7 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
                 if (t)
                     l_len = t - l_str;
 
-                uint32_t h = hash_murmurhash(l_str, l_len, 0, false, false);
+                uint32_t h = hash_murmurhash((uint8_t*)l_str, l_len, 0, false, false);
                 ret = load_func(data, temp, l_str, h);
                 break;
             }
@@ -213,6 +225,21 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
     free(dir_temp);
     free(temp);
     return false;
+}
+
+inline bool data_struct_load_file(data_struct* c, void* data, char* dir, const char* file,
+    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
+    return data_struct_load_file(c, data, dir, (char*)file, load_func);
+}
+
+inline bool data_struct_load_file(data_struct* c, void* data, const char* dir, char* file,
+    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
+    return data_struct_load_file(c, data, (char*)dir, file, load_func);
+}
+
+inline bool data_struct_load_file(data_struct* c, void* data, const char* dir, const char* file,
+    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
+    return data_struct_load_file(c, data, (char*)dir, (char*)file, load_func);
 }
 
 bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint32_t hash,
@@ -234,20 +261,20 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
         dir_len--;
     }
 
-    size_t max_len = 0;
+    ssize_t max_len = 0;
     for (data_struct_path* i = ds->data_paths.begin; i != ds->data_paths.end; i++)
         for (data_struct_directory* j = i->data.begin; j != i->data.end; j++)
             if (max_len < j->path.length)
                 max_len = j->path.length;
 
-    char* dir_temp = force_malloc(dir_len + 1);
+    char* dir_temp = force_malloc_s(char, dir_len + 1);
     memcpy(dir_temp, dir, dir_len + 1);
 
     char* t = dir_temp;
     while (t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc(max_len + dir_len + 2);
+    char* temp = force_malloc_s(char, max_len + dir_len + 2);
     for (data_struct_path* i = ds->data_paths.begin; i != ds->data_paths.end; i++)
         for (data_struct_directory* j = i->data.begin; j != i->data.end; j++) {
             char* path = string_data(&j->path);
@@ -270,7 +297,7 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
                     t_len = t - string_data(l);
                 t = string_data(l);
 
-                uint32_t h = hash_murmurhash(t, t_len, 0, false, false);
+                uint32_t h = hash_murmurhash((uint8_t*)t, t_len, 0, false, false);
                 vector_uint32_t_push_back(&files_murmurhash, &h);
             }
 
@@ -294,6 +321,11 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
     free(dir_temp);
     free(temp);
     return false;
+}
+
+inline bool data_struct_load_file_by_hash(data_struct* c, void* data, const char* dir, uint32_t hash,
+    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
+    return data_struct_load_file_by_hash(c, data, (char*)dir, hash, load_func);
 }
 
 void data_struct_free() {
@@ -357,7 +389,7 @@ void data_struct_free() {
     }
 #endif
 
-    for (data_type i = DATA_AFT; i < DATA_MAX; i++)
+    for (int32_t i = DATA_AFT; i < DATA_MAX; i++)
         data_free_inner(&data_list[i]);
 }
 
@@ -416,9 +448,9 @@ static void data_load_inner(stream* s) {
     for (size_t i = 0; i < count; i++) {
         char* s = lines[i];
         data_struct* ds = 0;
-        char* main_rom = "rom";
-        char* add_data_rom = "rom";
-        char* add_data = "";
+        const char* main_rom = "rom";
+        const char* add_data_rom = "rom";
+        const char* add_data = "";
         if (!str_utils_compare(s, "#AFT")) {
             ds = &data_list[DATA_AFT];
             add_data = "mdata";
@@ -504,13 +536,13 @@ static void data_load_inner(stream* s) {
         size_t add_data_len = utf8_length(add_data);
         size_t add_data_rom_len = utf8_length(add_data_rom);
 
-        char* main_rom_path = force_malloc(max_len + main_rom_len + 3);
+        char* main_rom_path = force_malloc_s(char, max_len + main_rom_len + 3);
         if (!main_rom_path) {
             data_free_inner(ds);
             continue;
         }
 
-        char* add_data_rom_path = force_malloc(max_len + add_data_len + 3);
+        char* add_data_rom_path = force_malloc_s(char, max_len + add_data_len + 3);
         if (!add_data_rom_path) {
             free(main_rom_path);
             data_free_inner(ds);
@@ -583,7 +615,7 @@ static void data_load_inner(stream* s) {
                     max_len = len;
             }
 
-            char* data_dir_path_temp = force_malloc(add_data_rom_path_len + max_len + add_data_rom_len + 3);
+            char* data_dir_path_temp = force_malloc_s(char, add_data_rom_path_len + max_len + add_data_rom_len + 3);
             if (data_dir_path_temp) {
                 vector_data_struct_directory_reserve(&j->data, vector_length(data_directories) + 1);
                 memcpy(data_dir_path_temp, add_data_rom_path, add_data_rom_path_len);
@@ -771,7 +803,7 @@ static void data_load_glitter_list(data_struct* ds, char* path) {
     stream s;
     io_open(&s, path, "rb");
     size_t length = s.length;
-    uint8_t* data = force_malloc(length);
+    uint8_t* data = force_malloc_s(uint8_t, length);
     io_read(&s, data, length);
     io_free(&s);
 
@@ -802,7 +834,7 @@ static void data_load_glitter_list(data_struct* ds, char* path) {
             vector_uint32_t_reserve(&ds->glitter_list_murmurhash, count);
             for (size_t i = 0; i < count; i++) {
                 size_t len = ds->glitter_list_names.begin[i].length;
-                uint32_t hash = hash_murmurhash(lines[i], len, 0, false, false);
+                uint32_t hash = hash_murmurhash((uint8_t*)lines[i], len, 0, false, false);
                 vector_uint32_t_push_back(&ds->glitter_list_murmurhash, &hash);
             }
             break;
@@ -812,7 +844,7 @@ static void data_load_glitter_list(data_struct* ds, char* path) {
             vector_uint64_t_reserve(&ds->glitter_list_fnv1a64m, count);
             for (size_t i = 0; i < count; i++) {
                 size_t len = ds->glitter_list_names.begin[i].length;
-                uint64_t hash = hash_fnv1a64m(lines[i], len, false);
+                uint64_t hash = hash_fnv1a64m((uint8_t*)lines[i], len, false);
                 vector_uint64_t_push_back(&ds->glitter_list_fnv1a64m, &hash);
             }
             break;

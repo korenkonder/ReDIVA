@@ -18,11 +18,11 @@ void classes_process_init(classes_struct* classes, const size_t classes_count, r
             if (c->init(&c->data, rctx))
                 c->data.flags = CLASS_INIT;
             else
-                c->data.flags = CLASS_DISPOSED | CLASS_HIDDEN;
+                c->data.flags = (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN);
             c->data.imgui_focus = false;
 
             if (~c->flags & CLASSES_SHOW_AT_STARTUP)
-                c->data.flags |= CLASS_HIDDEN;
+                enum_or(c->data.flags, CLASS_HIDDEN);
             lock_unlock(&c->data.lock);
         }
 
@@ -30,7 +30,7 @@ void classes_process_init(classes_struct* classes, const size_t classes_count, r
             && c->flags & CLASSES_SHOW_AT_STARTUP) {
             lock_lock(&c->data.lock);
             if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show))
-                c->data.flags &= ~(CLASS_HIDE | CLASS_HIDDEN);
+                enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN));
             lock_unlock(&c->data.lock);
         }
 
@@ -42,10 +42,10 @@ void classes_process_init(classes_struct* classes, const size_t classes_count, r
 void classes_process_draw(classes_struct* classes, size_t classes_count) {
     for (size_t i = 0; i < classes_count; i++) {
         classes_struct* c = &classes[i];
-        if (lock_check_init(&c->data.lock) && c->draw) {
+        if (lock_check_init(&c->data.lock) && c->disp) {
             lock_lock(&c->data.lock);
             if (c->data.flags & CLASS_INIT)
-                c->draw(&c->data);
+                c->disp(&c->data);
             lock_unlock(&c->data.lock);
         }
 
@@ -116,8 +116,8 @@ void classes_process_render(classes_struct* classes, const size_t classes_count)
             if (c->data.flags & CLASS_HIDE) {
                 lock_lock(&c->data.lock);
                 if (~c->data.flags & CLASS_HIDDEN && ((c->hide && c->hide(&c->data)) || !c->hide)) {
-                    c->data.flags &= ~CLASS_HIDE;
-                    c->data.flags |= CLASS_HIDDEN;
+                    enum_and(c->data.flags, ~CLASS_HIDE);
+                    enum_or(c->data.flags, CLASS_HIDDEN);
                 }
                 lock_unlock(&c->data.lock);
             }
@@ -126,13 +126,13 @@ void classes_process_render(classes_struct* classes, const size_t classes_count)
                 && c->flags & CLASSES_DISPOSE_AT_HIDE))) {
                 lock_lock(&c->data.lock);
                 if (~c->data.flags & CLASS_HIDDEN && ((c->hide && c->hide(&c->data)) || !c->hide)) {
-                    c->data.flags &= ~CLASS_HIDE;
-                    c->data.flags |= CLASS_HIDDEN;
+                    enum_and(c->data.flags, ~CLASS_HIDE);
+                    enum_or(c->data.flags, CLASS_HIDDEN);
                 }
 
                 if (~c->data.flags & CLASS_DISPOSED && ((c->dispose && c->dispose(&c->data)) || !c->dispose)) {
-                    c->data.flags &= ~CLASS_DISPOSE;
-                    c->data.flags |= CLASS_DISPOSED;
+                    enum_and(c->data.flags, ~CLASS_DISPOSE);
+                    enum_or(c->data.flags, CLASS_DISPOSED);
                     c->data.imgui_focus = false;
                 }
                 lock_unlock(&c->data.lock);
@@ -176,13 +176,13 @@ void classes_process_dispose(classes_struct* classes, const size_t classes_count
         if (lock_check_init(&c->data.lock)) {
             lock_lock(&c->data.lock);
             if (~c->data.flags & CLASS_HIDDEN && ((c->hide && c->hide(&c->data)) || !c->hide)) {
-                c->data.flags &= ~CLASS_HIDE;
-                c->data.flags |= CLASS_HIDDEN;
+                enum_and(c->data.flags, ~CLASS_HIDE);
+                enum_or(c->data.flags, CLASS_HIDDEN);
             }
 
             if (~c->data.flags & CLASS_DISPOSED && ((c->dispose && c->dispose(&c->data)) || !c->dispose)) {
-                c->data.flags &= ~CLASS_DISPOSE;
-                c->data.flags |= CLASS_DISPOSED;
+                enum_and(c->data.flags, ~CLASS_DISPOSE);
+                enum_or(c->data.flags, CLASS_DISPOSED);
                 c->data.imgui_focus = false;
             }
             lock_unlock(&c->data.lock);

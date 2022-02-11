@@ -134,7 +134,7 @@ bool motion_database_load_file(void* data, char* path, char* file, uint32_t hash
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    motion_database* mot_db = data;
+    motion_database* mot_db = (motion_database*)data;
     motion_database_read(mot_db, string_data(&s));
 
     string_free(&s);
@@ -171,7 +171,7 @@ void motion_database_merge_mdata(motion_database* mot_db,
 
         set_info->id = b_set_info->id;
         string_copy(&b_set_info->name, &set_info->name);
-        set_info->name_hash = hash_fnv1a64m(string_data(&set_info->name), set_info->name.length, false);
+        set_info->name_hash = hash_string_fnv1a64m(&set_info->name, false);
 
         int32_t info_count = (int32_t)vector_length(b_set_info->motion);
         vector_motion_info_reserve(&set_info->motion, info_count);
@@ -183,7 +183,7 @@ void motion_database_merge_mdata(motion_database* mot_db,
 
             info->id = b_info->id;
             string_copy(&b_info->name, &info->name);
-            info->name_hash = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
+            info->name_hash = hash_string_fnv1a64m(&info->name, false);
         }
     }
 
@@ -192,7 +192,7 @@ void motion_database_merge_mdata(motion_database* mot_db,
         motion_set_info* m_set_info = &mdata_motion_set->begin[i];
 
         char* name_str = string_data(&m_set_info->name);
-        size_t name_len = m_set_info->name.length;
+        ssize_t name_len = m_set_info->name.length;
 
         motion_set_info* set_info = 0;
         for (set_info = motion_set->begin; set_info != motion_set->end; set_info++)
@@ -204,7 +204,7 @@ void motion_database_merge_mdata(motion_database* mot_db,
 
         set_info->id = m_set_info->id;
         string_replace(&m_set_info->name, &set_info->name);
-        set_info->name_hash = hash_fnv1a64m(string_data(&set_info->name), set_info->name.length, false);
+        set_info->name_hash = hash_string_fnv1a64m(&set_info->name, false);
 
         vector_motion_info_clear(&set_info->motion, motion_info_free);
         int32_t info_count = (int32_t)vector_length(m_set_info->motion);
@@ -217,7 +217,7 @@ void motion_database_merge_mdata(motion_database* mot_db,
 
             info->id = m_info->id;
             string_copy(&m_info->name, &info->name);
-            info->name_hash = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
+            info->name_hash = hash_string_fnv1a64m(&info->name, false);
         }
     }
 
@@ -233,7 +233,7 @@ void motion_database_split_mdata(motion_database* mot_db,
 }
 
 motion_set_info* motion_database_get_motion_set_by_id(motion_database* mot_db, uint32_t id) {
-    if (!mot_db || !id == -1)
+    if (!mot_db || id == -1)
         return 0;
 
     for (motion_set_info* i = mot_db->motion_set.begin; i != mot_db->motion_set.end; i++)
@@ -246,7 +246,19 @@ motion_set_info* motion_database_get_motion_set_by_name(motion_database* mot_db,
     if (!mot_db || !name)
         return 0;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+
+    for (motion_set_info* i = mot_db->motion_set.begin; i != mot_db->motion_set.end; i++)
+        if (name_hash == i->name_hash)
+            return i;
+    return 0;
+}
+
+motion_set_info* motion_database_get_motion_set_by_name(motion_database* mot_db, const char* name) {
+    if (!mot_db || !name)
+        return 0;
+
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
 
     for (motion_set_info* i = mot_db->motion_set.begin; i != mot_db->motion_set.end; i++)
         if (name_hash == i->name_hash)
@@ -258,7 +270,19 @@ uint32_t motion_database_get_motion_set_id(motion_database* mot_db, char* name) 
     if (!mot_db || !name)
         return -1;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+
+    for (motion_set_info* i = mot_db->motion_set.begin; i != mot_db->motion_set.end; i++)
+        if (name_hash == i->name_hash)
+            return i->id;
+    return -1;
+}
+
+uint32_t motion_database_get_motion_set_id(motion_database* mot_db, const char* name) {
+    if (!mot_db || !name)
+        return -1;
+
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
 
     for (motion_set_info* i = mot_db->motion_set.begin; i != mot_db->motion_set.end; i++)
         if (name_hash == i->name_hash)
@@ -291,7 +315,20 @@ motion_info* motion_database_get_motion_by_name(motion_database* mot_db, char* n
     if (!mot_db || !name)
         return 0;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+
+    for (motion_set_info* i = mot_db->motion_set.begin; i != mot_db->motion_set.end; i++)
+        for (motion_info* j = i->motion.begin; j != i->motion.end; j++)
+            if (name_hash == j->name_hash)
+                return j;
+    return 0;
+}
+
+motion_info* motion_database_get_motion_by_name(motion_database* mot_db, const char* name) {
+    if (!mot_db || !name)
+        return 0;
+
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
 
     for (motion_set_info* i = mot_db->motion_set.begin; i != mot_db->motion_set.end; i++)
         for (motion_info* j = i->motion.begin; j != i->motion.end; j++)
@@ -304,7 +341,20 @@ uint32_t motion_database_get_motion_id(motion_database* mot_db, char* name) {
     if (!mot_db || !name)
         return -1;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+
+    for (motion_set_info* i = mot_db->motion_set.begin; i != mot_db->motion_set.end; i++)
+        for (motion_info* j = i->motion.begin; j != i->motion.end; j++)
+            if (name_hash == j->name_hash)
+                return j->id;
+    return -1;
+}
+
+uint32_t motion_database_get_motion_id(motion_database* mot_db, const char* name) {
+    if (!mot_db || !name)
+        return -1;
+
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
 
     for (motion_set_info* i = mot_db->motion_set.begin; i != mot_db->motion_set.end; i++)
         for (motion_info* j = i->motion.begin; j != i->motion.end; j++)
@@ -417,7 +467,7 @@ static void motion_database_write_inner(motion_database* mot_db, stream* s) {
     ssize_t motion_set_count = vector_length(*motion_set);
 
     ssize_t motion_sets_offset = io_get_position(s);
-    io_write(s, 0, 0x10 * motion_set_count + 0x10);
+    io_write(s, 0x10 * motion_set_count + 0x10);
     io_align_write(s, 0x20);
 
     size_t size = 0;
@@ -425,7 +475,7 @@ static void motion_database_write_inner(motion_database* mot_db, stream* s) {
         size += i->name.length + 1;
 
     ssize_t motion_set_name_offset = io_get_position(s);
-    io_write(s, 0, size);
+    io_write(s, size);
 
     size = 0;
     for (motion_set_info* i = motion_set->begin; i != motion_set->end; i++)
@@ -433,14 +483,14 @@ static void motion_database_write_inner(motion_database* mot_db, stream* s) {
             size += j->name.length + 1;
 
     ssize_t motion_name_offset = io_get_position(s);
-    io_write(s, 0, size);
+    io_write(s, size);
     io_align_write(s, 0x20);
 
     ssize_t motion_names_offset = io_get_position(s);
     size = 0;
     for (motion_set_info* i = motion_set->begin; i != motion_set->end; i++)
         size += 0x04 * vector_length(i->motion);
-    io_write(s, 0, size);
+    io_write(s, size);
     io_align_write(s, 0x20);
 
     ssize_t motion_ids_offset = io_get_position(s);
@@ -457,7 +507,7 @@ static void motion_database_write_inner(motion_database* mot_db, stream* s) {
     size = 0;
     for (string* i = bone_name->begin; i != bone_name->end; i++)
         size += i->length + 1;
-    io_write(s, 0, size);
+    io_write(s, size);
     io_align_write(s, 0x20);
 
     io_position_push(s, motion_set_name_offset, SEEK_SET);
@@ -477,7 +527,7 @@ static void motion_database_write_inner(motion_database* mot_db, stream* s) {
     io_position_pop(s);
 
     ssize_t bone_name_offsets_offset = io_get_position(s);
-    io_write(s, 0, 0x04 * bone_name_count);
+    io_write(s, 0x04 * bone_name_count);
     io_align_write(s, 0x20);
 
     io_position_push(s, motion_names_offset, SEEK_SET);
@@ -498,7 +548,7 @@ static void motion_database_write_inner(motion_database* mot_db, stream* s) {
         motion_names_offset += 0x04 * vector_length(i->motion);
         motion_ids_offset += 0x04 * vector_length(i->motion);
     }
-    io_write(s, 0, 0x10);
+    io_write(s, 0x10);
     io_position_pop(s);
 
     io_position_push(s, bone_name_offsets_offset, SEEK_SET);

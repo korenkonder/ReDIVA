@@ -33,7 +33,7 @@ static void ima_decode(uint8_t value, int32_t* current, int32_t* current_clamp, 
 static uint8_t ima_encode(int32_t sample, int32_t* current, int32_t* current_clamp, int8_t* step_index);
 
 diva* diva_init() {
-    diva* d = force_malloc(sizeof(diva));
+    diva* d = force_malloc_s(diva, 1);
     return d;
 }
 
@@ -70,7 +70,7 @@ void diva_wread(diva* d, wchar_t* path) {
         float_t* data = force_malloc_s(float_t, samples_count * ch);
         int32_t* current = force_malloc_s(int32_t, ch);
         int32_t* current_clamp = force_malloc_s(int32_t, ch);
-        int8_t* step_index = force_malloc(ch);
+        int8_t* step_index = force_malloc_s(int8_t, ch);
 
         float_t* temp_data = data;
         for (size_t i = 0; i < samples_count; i++)
@@ -132,7 +132,7 @@ void diva_wwrite(diva* d, wchar_t* path) {
 
         int32_t* current = force_malloc_s(int32_t, ch);
         int32_t* current_clamp = force_malloc_s(int32_t, ch);
-        int8_t* step_index = force_malloc(ch);
+        int8_t* step_index = force_malloc_s(int8_t, ch);
 
         float_t* temp_data = data;
         for (size_t i = 0; i < samples_count; i++)

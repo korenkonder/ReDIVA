@@ -1255,136 +1255,6 @@ inline const char* dsc_vrfl_get_func_name(int32_t id) {
     return id > -1 && id < DSC_VRFL_FUNC_COUNT ? dsc_vrfl_func[id].name : 0;
 }
 
-const int32_t dsc_func_count_array[] = {
-    [DSC_AC101]  = DSC_AC101_FUNC_COUNT,
-    [DSC_AC110]  = DSC_AC110_FUNC_COUNT,
-    [DSC_AC120]  = DSC_AC120_FUNC_COUNT,
-    [DSC_AC200]  = DSC_AC200_FUNC_COUNT,
-    [DSC_AC210]  = DSC_AC210_FUNC_COUNT,
-    [DSC_AC500]  = DSC_AC500_FUNC_COUNT,
-    [DSC_AC510]  = DSC_AC510_FUNC_COUNT,
-    [DSC_AFT101] = DSC_AFT101_FUNC_COUNT,
-    [DSC_AFT200] = DSC_AFT200_FUNC_COUNT,
-    [DSC_AFT300] = DSC_AFT300_FUNC_COUNT,
-    [DSC_AFT310] = DSC_AFT310_FUNC_COUNT,
-    [DSC_AFT410] = DSC_AFT410_FUNC_COUNT,
-    [DSC_AFT701] = DSC_AFT701_FUNC_COUNT,
-    [DSC_FT]     = DSC_FT_FUNC_COUNT,
-    [DSC_PSP]    = DSC_PSP_FUNC_COUNT,
-    [DSC_2ND]    = DSC_2ND_FUNC_COUNT,
-    [DSC_DT]     = DSC_DT_FUNC_COUNT,
-    [DSC_DT2]    = DSC_DT2_FUNC_COUNT,
-    [DSC_F]      = DSC_F_FUNC_COUNT,
-    [DSC_F2]     = DSC_F2_FUNC_COUNT,
-    [DSC_MGF]    = DSC_MGF_FUNC_COUNT,
-    [DSC_X]      = DSC_X_FUNC_COUNT,
-    [DSC_VRFL]   = DSC_VRFL_FUNC_COUNT,
-};
-
-const dsc_get_func_id dsc_get_func_id_array[] = {
-    [DSC_AC101]  = dsc_ac101_get_func_id,
-    [DSC_AC110]  = dsc_ac110_get_func_id,
-    [DSC_AC120]  = dsc_ac120_get_func_id,
-    [DSC_AC200]  = dsc_ac200_get_func_id,
-    [DSC_AC210]  = dsc_ac210_get_func_id,
-    [DSC_AC500]  = dsc_ac500_get_func_id,
-    [DSC_AC510]  = dsc_ac510_get_func_id,
-    [DSC_AFT101] = dsc_aft101_get_func_id,
-    [DSC_AFT200] = dsc_aft200_get_func_id,
-    [DSC_AFT300] = dsc_aft300_get_func_id,
-    [DSC_AFT310] = dsc_aft310_get_func_id,
-    [DSC_AFT410] = dsc_aft410_get_func_id,
-    [DSC_AFT701] = dsc_aft701_get_func_id,
-    [DSC_FT]     = dsc_ft_get_func_id,
-    [DSC_PSP]    = dsc_psp_get_func_id,
-    [DSC_2ND]    = dsc_2nd_get_func_id,
-    [DSC_DT]     = dsc_dt_get_func_id,
-    [DSC_DT2]    = dsc_dt2_get_func_id,
-    [DSC_F]      = dsc_f_get_func_id,
-    [DSC_F2]     = dsc_f2_get_func_id,
-    [DSC_MGF]    = dsc_mgf_get_func_id,
-    [DSC_X]      = dsc_x_get_func_id,
-    [DSC_VRFL]   = dsc_vrfl_get_func_id,
-};
-
-const dsc_get_func_length dsc_get_func_length_array[] = {
-    [DSC_AC101]  = dsc_ac101_get_func_length,
-    [DSC_AC110]  = dsc_ac110_get_func_length,
-    [DSC_AC120]  = dsc_ac120_get_func_length,
-    [DSC_AC200]  = dsc_ac200_get_func_length,
-    [DSC_AC210]  = dsc_ac210_get_func_length,
-    [DSC_AC500]  = dsc_ac500_get_func_length,
-    [DSC_AC510]  = dsc_ac510_get_func_length,
-    [DSC_AFT101] = dsc_aft101_get_func_length,
-    [DSC_AFT200] = dsc_aft200_get_func_length,
-    [DSC_AFT300] = dsc_aft300_get_func_length,
-    [DSC_AFT310] = dsc_aft310_get_func_length,
-    [DSC_AFT410] = dsc_aft410_get_func_length,
-    [DSC_AFT701] = dsc_aft701_get_func_length,
-    [DSC_FT]     = dsc_ft_get_func_length,
-    [DSC_PSP]    = dsc_psp_get_func_length,
-    [DSC_2ND]    = dsc_2nd_get_func_length,
-    [DSC_DT]     = dsc_dt_get_func_length,
-    [DSC_DT2]    = dsc_dt2_get_func_length,
-    [DSC_F]      = dsc_f_get_func_length,
-    [DSC_F2]     = dsc_f2_get_func_length,
-    [DSC_MGF]    = dsc_mgf_get_func_length,
-    [DSC_X]      = dsc_x_get_func_length,
-    [DSC_VRFL]   = dsc_vrfl_get_func_length,
-};
-
-const dsc_get_func_length dsc_get_func_length_old_array[] = {
-    [DSC_AC101]  = dsc_ac101_get_func_length,
-    [DSC_AC110]  = dsc_ac110_get_func_length,
-    [DSC_AC120]  = dsc_ac120_get_func_length,
-    [DSC_AC200]  = dsc_ac200_get_func_length_old,
-    [DSC_AC210]  = dsc_ac210_get_func_length_old,
-    [DSC_AC500]  = dsc_ac500_get_func_length_old,
-    [DSC_AC510]  = dsc_ac510_get_func_length_old,
-    [DSC_AFT101] = dsc_aft101_get_func_length_old,
-    [DSC_AFT200] = dsc_aft200_get_func_length_old,
-    [DSC_AFT300] = dsc_aft300_get_func_length_old,
-    [DSC_AFT310] = dsc_aft310_get_func_length_old,
-    [DSC_AFT410] = dsc_aft410_get_func_length_old,
-    [DSC_AFT701] = dsc_aft701_get_func_length_old,
-    [DSC_FT]     = dsc_ft_get_func_length,
-    [DSC_PSP]    = dsc_psp_get_func_length,
-    [DSC_2ND]    = dsc_2nd_get_func_length,
-    [DSC_DT]     = dsc_dt_get_func_length,
-    [DSC_DT2]    = dsc_dt2_get_func_length,
-    [DSC_F]      = dsc_f_get_func_length_old,
-    [DSC_F2]     = dsc_f2_get_func_length,
-    [DSC_MGF]    = dsc_mgf_get_func_length,
-    [DSC_X]      = dsc_x_get_func_length,
-    [DSC_VRFL]   = dsc_vrfl_get_func_length,
-};
-
-const dsc_get_func_name dsc_get_func_name_array[] = {
-    [DSC_AC101]  = dsc_ac101_get_func_name,
-    [DSC_AC110]  = dsc_ac110_get_func_name,
-    [DSC_AC120]  = dsc_ac120_get_func_name,
-    [DSC_AC200]  = dsc_ac200_get_func_name,
-    [DSC_AC210]  = dsc_ac210_get_func_name,
-    [DSC_AC500]  = dsc_ac500_get_func_name,
-    [DSC_AC510]  = dsc_ac510_get_func_name,
-    [DSC_AFT101] = dsc_aft101_get_func_name,
-    [DSC_AFT200] = dsc_aft200_get_func_name,
-    [DSC_AFT300] = dsc_aft300_get_func_name,
-    [DSC_AFT310] = dsc_aft310_get_func_name,
-    [DSC_AFT410] = dsc_aft410_get_func_name,
-    [DSC_AFT701] = dsc_aft701_get_func_name,
-    [DSC_FT]     = dsc_ft_get_func_name,
-    [DSC_PSP]    = dsc_psp_get_func_name,
-    [DSC_2ND]    = dsc_2nd_get_func_name,
-    [DSC_DT]     = dsc_dt_get_func_name,
-    [DSC_DT2]    = dsc_dt2_get_func_name,
-    [DSC_F]      = dsc_f_get_func_name,
-    [DSC_F2]     = dsc_f2_get_func_name,
-    [DSC_MGF]    = dsc_mgf_get_func_name,
-    [DSC_X]      = dsc_x_get_func_name,
-    [DSC_VRFL]   = dsc_vrfl_get_func_name,
-};
-
 typedef struct dsc_data_time {
     int32_t time;
     int32_t pv_branch_mode;
@@ -1464,124 +1334,124 @@ void dsc_convert(dsc* d, dsc_type dst_type) {
 
     static const dsc_func_convert dsc_convert_ac100[3][21] = {
         {
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
-            (void*)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
         },
         {
-            dsc_convert_to_ac100_miku_move,
-            dsc_convert_to_ac100_miku_rot,
-            dsc_convert_to_ac100_miku_disp,
-            dsc_convert_to_ac100_miku_shadow,
-            dsc_convert_to_ac100_set_motion,
-            dsc_convert_to_ac100_set_playdata,
-            dsc_convert_to_ac100_effect,
-            dsc_convert_to_ac100_eye_anim,
-            dsc_convert_to_ac100_mouth_anim,
-            dsc_convert_to_ac100_hand_anim,
-            dsc_convert_to_ac100_look_anim,
-            dsc_convert_to_ac100_expression,
-            dsc_convert_to_ac100_look_camera,
-            dsc_convert_to_ac100_lyric,
-            dsc_convert_to_ac100_mode_select,
-            dsc_convert_to_ac100_edit_motion,
-            dsc_convert_to_ac100_shadowheight,
-            dsc_convert_to_ac100_edit_face,
-            dsc_convert_to_ac100_move_camera,
-            dsc_convert_to_ac100_shadowpos,
-            dsc_convert_to_ac100_cloth_wet,
+            (dsc_func_convert)dsc_convert_to_ac100_miku_move,
+            (dsc_func_convert)dsc_convert_to_ac100_miku_rot,
+            (dsc_func_convert)dsc_convert_to_ac100_miku_disp,
+            (dsc_func_convert)dsc_convert_to_ac100_miku_shadow,
+            (dsc_func_convert)dsc_convert_to_ac100_set_motion,
+            (dsc_func_convert)dsc_convert_to_ac100_set_playdata,
+            (dsc_func_convert)dsc_convert_to_ac100_effect,
+            (dsc_func_convert)dsc_convert_to_ac100_eye_anim,
+            (dsc_func_convert)dsc_convert_to_ac100_mouth_anim,
+            (dsc_func_convert)dsc_convert_to_ac100_hand_anim,
+            (dsc_func_convert)dsc_convert_to_ac100_look_anim,
+            (dsc_func_convert)dsc_convert_to_ac100_expression,
+            (dsc_func_convert)dsc_convert_to_ac100_look_camera,
+            (dsc_func_convert)dsc_convert_to_ac100_lyric,
+            (dsc_func_convert)dsc_convert_to_ac100_mode_select,
+            (dsc_func_convert)dsc_convert_to_ac100_edit_motion,
+            (dsc_func_convert)dsc_convert_to_ac100_shadowheight,
+            (dsc_func_convert)dsc_convert_to_ac100_edit_face,
+            (dsc_func_convert)dsc_convert_to_ac100_move_camera,
+            (dsc_func_convert)dsc_convert_to_ac100_shadowpos,
+            (dsc_func_convert)dsc_convert_to_ac100_cloth_wet,
         },
         {
-            dsc_convert_from_ac100_miku_move,
-            dsc_convert_from_ac100_miku_rot,
-            dsc_convert_from_ac100_miku_disp,
-            dsc_convert_from_ac100_miku_shadow,
-            dsc_convert_from_ac100_set_motion,
-            dsc_convert_from_ac100_set_playdata,
-            dsc_convert_from_ac100_effect,
-            dsc_convert_from_ac100_eye_anim,
-            dsc_convert_from_ac100_mouth_anim,
-            dsc_convert_from_ac100_hand_anim,
-            dsc_convert_from_ac100_look_anim,
-            dsc_convert_from_ac100_expression,
-            dsc_convert_from_ac100_look_camera,
-            dsc_convert_from_ac100_lyric,
-            dsc_convert_from_ac100_mode_select,
-            dsc_convert_from_ac100_edit_motion,
-            dsc_convert_from_ac100_shadowheight,
-            dsc_convert_from_ac100_move_camera,
-            dsc_convert_from_ac100_edit_face,
-            dsc_convert_from_ac100_shadowpos,
-            dsc_convert_from_ac100_cloth_wet,
+            (dsc_func_convert)dsc_convert_from_ac100_miku_move,
+            (dsc_func_convert)dsc_convert_from_ac100_miku_rot,
+            (dsc_func_convert)dsc_convert_from_ac100_miku_disp,
+            (dsc_func_convert)dsc_convert_from_ac100_miku_shadow,
+            (dsc_func_convert)dsc_convert_from_ac100_set_motion,
+            (dsc_func_convert)dsc_convert_from_ac100_set_playdata,
+            (dsc_func_convert)dsc_convert_from_ac100_effect,
+            (dsc_func_convert)dsc_convert_from_ac100_eye_anim,
+            (dsc_func_convert)dsc_convert_from_ac100_mouth_anim,
+            (dsc_func_convert)dsc_convert_from_ac100_hand_anim,
+            (dsc_func_convert)dsc_convert_from_ac100_look_anim,
+            (dsc_func_convert)dsc_convert_from_ac100_expression,
+            (dsc_func_convert)dsc_convert_from_ac100_look_camera,
+            (dsc_func_convert)dsc_convert_from_ac100_lyric,
+            (dsc_func_convert)dsc_convert_from_ac100_mode_select,
+            (dsc_func_convert)dsc_convert_from_ac100_edit_motion,
+            (dsc_func_convert)dsc_convert_from_ac100_shadowheight,
+            (dsc_func_convert)dsc_convert_from_ac100_move_camera,
+            (dsc_func_convert)dsc_convert_from_ac100_edit_face,
+            (dsc_func_convert)dsc_convert_from_ac100_shadowpos,
+            (dsc_func_convert)dsc_convert_from_ac100_cloth_wet,
         },
     };
 
     static const dsc_func_convert change_field_convert_func_array[2][2] = {
         {
-            0,
-            dsc_convert_change_field1_to_change_field2,
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_change_field1_to_change_field2,
         },
         {
-            dsc_convert_change_field2_to_change_field1,
-            0,
+            (dsc_func_convert)dsc_convert_change_field2_to_change_field1,
+            (dsc_func_convert)0,
         },
     };
 
     static const dsc_func_convert edit_camera_convert_func_array[2][2] = {
         {
-            0,
-            dsc_convert_dummy,
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_dummy,
         },
         {
-            dsc_convert_dummy,
-            0,
+            (dsc_func_convert)dsc_convert_dummy,
+            (dsc_func_convert)0,
         },
     };
 
     static const dsc_func_convert note_convert_func_array[3][3] = {
         {
-            0,
-            dsc_convert_note7_to_note11,
-            dsc_convert_note7_to_note12,
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_note7_to_note11,
+            (dsc_func_convert)dsc_convert_note7_to_note12,
         },
         {
-            dsc_convert_note11_to_note7,
-            0,
-            dsc_convert_note11_to_note12,
+            (dsc_func_convert)dsc_convert_note11_to_note7,
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_note11_to_note12,
         },
         {
-            dsc_convert_note12_to_note7,
-            dsc_convert_note12_to_note11,
-            0,
+            (dsc_func_convert)dsc_convert_note12_to_note7,
+            (dsc_func_convert)dsc_convert_note12_to_note11,
+            (dsc_func_convert)0,
         },
     };
 
     static const dsc_func_convert vr_live_transform_convert_func_array[2][2] = {
         {
-            0,
-            dsc_convert_dummy,
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_dummy,
         },
         {
-            dsc_convert_dummy,
-            0,
+            (dsc_func_convert)dsc_convert_dummy,
+            (dsc_func_convert)0,
         },
     };
 
@@ -1658,8 +1528,8 @@ void dsc_convert(dsc* d, dsc_type dst_type) {
     dsc_replace dr;
     dsc_replace_init(&dr, d->type, dst_type, dst_has_perf_id);
 
-    int32_t src_func_count = dsc_func_count_array[d->type];
-    dsc_get_func_name src_get_func_name = dsc_get_func_name_array[d->type];
+    int32_t src_func_count = dsc_type_get_dsc_func_count(d->type);
+    dsc_get_func_name src_get_func_name = dsc_type_get_dsc_get_func_name(d->type);
 
     for (int32_t i = 0; i < src_func_count; i++) {
         dsc_replace_data* repl_data = &dr.replace_data[i];
@@ -1846,9 +1716,9 @@ void dsc_merge(dsc* d, int32_t count, ...) {
     d->signature = s0->signature;
     d->id = s0->id;
 
-    dsc_get_func_id get_func_id = dsc_get_func_id_array[s0->type];
+    dsc_get_func_id get_func_id = dsc_type_get_dsc_get_func_id(s0->type);
     dsc_get_func_length get_func_length = dsc_get_dsc_get_func_length(s0);
-    dsc_get_func_name get_func_name = dsc_get_func_name_array[s0->type];
+    dsc_get_func_name get_func_name = dsc_type_get_dsc_get_func_name(s0->type);
 
     int32_t time_func_id = get_func_id("TIME");
     int32_t pv_branch_mode_func_id = get_func_id("PV_BRANCH_MODE");
@@ -1908,7 +1778,7 @@ void dsc_merge(dsc* d, int32_t count, ...) {
         for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
             i->time = radix_preprocess_int32_t(i->time);
         radix_sort_custom(data_time.begin, vector_length(data_time), sizeof(dsc_data_time),
-            sizeof(int32_t), dsc_data_time_radix_index_func_time);
+            sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_time);
         for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
             i->time = radix_postprocess_int32_t(i->time);
     }
@@ -1922,7 +1792,7 @@ void dsc_merge(dsc* d, int32_t count, ...) {
         if (time != i->time) {
             if (time_count > 1)
                 radix_sort_custom(i - time_count, time_count, sizeof(dsc_data_time),
-                    sizeof(int32_t), dsc_data_time_radix_index_func_pv_branch_mode);
+                    sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_pv_branch_mode);
             time = i->time;
             time_count = 1;
             func_count++;
@@ -1933,7 +1803,7 @@ void dsc_merge(dsc* d, int32_t count, ...) {
 
     if (time_count > 1)
         radix_sort_custom(data_time.end - time_count, time_count, sizeof(dsc_data_time),
-            sizeof(int32_t), dsc_data_time_radix_index_func_pv_branch_mode);
+            sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_pv_branch_mode);
 
     int32_t pv_branch_mode = -1;
     int32_t pv_branch_mode_count = 0;
@@ -2003,7 +1873,7 @@ bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type) {
     if (!d || !data || !(length / 4) || type < DSC_AC101 || type > DSC_VRFL)
         return false;
 
-    uint32_t* data_dsc = data;
+    uint32_t* data_dsc = (uint32_t*)data;
 
     f2_struct st;
     memset(&st, 0, sizeof(f2_struct));
@@ -2029,12 +1899,12 @@ bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type) {
     case DSC_X:
     case DSC_VRFL:
         f2_struct_mread(&st, data, length);
-        data_dsc = st.data;
+        data_dsc = (uint32_t*)st.data;
         if (st.header.use_big_endian)
             for (size_t i = length / 4; i; i--, data_dsc++)
                 *data_dsc = load_reverse_endianness_uint32_t(data_dsc);
 
-        data_dsc = st.data;
+        data_dsc = (uint32_t*)st.data;
         if (*data_dsc++ != 0x13120420) {
             f2_struct_free(&st);
             return false;
@@ -2049,7 +1919,7 @@ bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type) {
 
     d->type = type;
 
-    dsc_get_func_name get_func_name = dsc_get_func_name_array[type];
+    dsc_get_func_name get_func_name = dsc_type_get_dsc_get_func_name(type);
     dsc_get_func_length get_func_length = dsc_get_dsc_get_func_length(d);
 
     size_t func_count = 0;
@@ -2156,8 +2026,8 @@ void dsc_unparse(dsc* d, void** data, size_t* length) {
         vector_enrs_entry e = vector_empty(enrs_entry);
         enrs_entry ee;
 
-        ee = (enrs_entry){ 0, 1, 4, (uint32_t)size, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+        ee = { 0, 1, 4, (uint32_t)size, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
 
         f2_struct st;
@@ -2190,7 +2060,7 @@ bool dsc_load_file(void* data, char* path, char* file, uint32_t hash) {
     size_t dsc_length = dsc_s.length;
     io_read(&dsc_s, dsc_data, dsc_length);
 
-    dsc* d = data;
+    dsc* d = (dsc*)data;
     bool ret = dsc_parse(d, dsc_data, dsc_length, d->type);
 
     io_free(&dsc_s);
@@ -2230,10 +2100,10 @@ void dsc_replace_init(dsc_replace* dr, dsc_type src_type,
     dr->replace_data = 0;
     dsc_init(&dr->dsc);
 
-    int32_t src_func_count = dsc_func_count_array[src_type];
-    int32_t dst_func_count = dsc_func_count_array[dst_type];
-    dsc_get_func_name src_get_func_name = dsc_get_func_name_array[src_type];
-    dsc_get_func_name dst_get_func_name = dsc_get_func_name_array[dst_type];
+    int32_t src_func_count = dsc_type_get_dsc_func_count(src_type);
+    int32_t dst_func_count = dsc_type_get_dsc_func_count(dst_type);
+    dsc_get_func_name src_get_func_name = dsc_type_get_dsc_get_func_name(src_type);
+    dsc_get_func_name dst_get_func_name = dsc_type_get_dsc_get_func_name(dst_type);
     dsc_get_func_length dst_get_func_length = dsc_type_get_dsc_get_func_length(dst_type, dst_has_perf_id);
     dsc_replace_data* replace_data = force_malloc_s(dsc_replace_data, src_func_count);
     dr->replace_data = replace_data;
@@ -2267,6 +2137,275 @@ void dsc_replace_free(dsc_replace* dr) {
 
 inline int32_t dsc_calculate_target_flying_time(int32_t bpm, int32_t time_signature) {
     return (int32_t)((float_t)time_signature * (60.0f / (float_t)bpm) * 1000.0f);
+}
+
+inline int32_t dsc_type_get_dsc_func_count(dsc_type type) {
+    switch (type) {
+    case DSC_NONE:
+    default:
+        return DSC_FT_FUNC_COUNT;
+    case DSC_AC101:
+        return DSC_AC101_FUNC_COUNT;
+    case DSC_AC110:
+        return DSC_AC110_FUNC_COUNT;
+    case DSC_AC120:
+        return DSC_AC120_FUNC_COUNT;
+    case DSC_AC200:
+        return DSC_AC200_FUNC_COUNT;
+    case DSC_AC210:
+        return DSC_AC210_FUNC_COUNT;
+    case DSC_AC500:
+        return DSC_AC500_FUNC_COUNT;
+    case DSC_AC510:
+        return DSC_AC510_FUNC_COUNT;
+    case DSC_AFT101:
+        return DSC_AFT101_FUNC_COUNT;
+    case DSC_AFT200:
+        return DSC_AFT200_FUNC_COUNT;
+    case DSC_AFT300:
+        return DSC_AFT300_FUNC_COUNT;
+    case DSC_AFT310:
+        return DSC_AFT310_FUNC_COUNT;
+    case DSC_AFT410:
+        return DSC_AFT410_FUNC_COUNT;
+    case DSC_AFT701:
+        return DSC_AFT701_FUNC_COUNT;
+    case DSC_FT:
+        return DSC_FT_FUNC_COUNT;
+    case DSC_PSP:
+        return DSC_PSP_FUNC_COUNT;
+    case DSC_2ND:
+        return DSC_2ND_FUNC_COUNT;
+    case DSC_DT:
+        return DSC_DT_FUNC_COUNT;
+    case DSC_DT2:
+        return DSC_DT2_FUNC_COUNT;
+    case DSC_F:
+        return DSC_F_FUNC_COUNT;
+    case DSC_F2:
+        return DSC_F2_FUNC_COUNT;
+    case DSC_MGF:
+        return DSC_MGF_FUNC_COUNT;
+    case DSC_X:
+        return DSC_X_FUNC_COUNT;
+    case DSC_VRFL:
+        return DSC_VRFL_FUNC_COUNT;
+    }
+}
+
+inline dsc_get_func_id dsc_type_get_dsc_get_func_id(dsc_type type) {
+    switch (type) {
+    case DSC_NONE:
+    default:
+        return dsc_ft_get_func_id;
+    case DSC_AC101:
+        return dsc_ac101_get_func_id;
+    case DSC_AC110:
+        return dsc_ac110_get_func_id;
+    case DSC_AC120:
+        return dsc_ac120_get_func_id;
+    case DSC_AC200:
+        return dsc_ac200_get_func_id;
+    case DSC_AC210:
+        return dsc_ac210_get_func_id;
+    case DSC_AC500:
+        return dsc_ac500_get_func_id;
+    case DSC_AC510:
+        return dsc_ac510_get_func_id;
+    case DSC_AFT101:
+        return dsc_aft101_get_func_id;
+    case DSC_AFT200:
+        return dsc_aft200_get_func_id;
+    case DSC_AFT300:
+        return dsc_aft300_get_func_id;
+    case DSC_AFT310:
+        return dsc_aft310_get_func_id;
+    case DSC_AFT410:
+        return dsc_aft410_get_func_id;
+    case DSC_AFT701:
+        return dsc_aft701_get_func_id;
+    case DSC_FT:
+        return dsc_ft_get_func_id;
+    case DSC_PSP:
+        return dsc_psp_get_func_id;
+    case DSC_2ND:
+        return dsc_2nd_get_func_id;
+    case DSC_DT:
+        return dsc_dt_get_func_id;
+    case DSC_DT2:
+        return dsc_dt2_get_func_id;
+    case DSC_F:
+        return dsc_f_get_func_id;
+    case DSC_F2:
+        return dsc_f2_get_func_id;
+    case DSC_MGF:
+        return dsc_mgf_get_func_id;
+    case DSC_X:
+        return dsc_x_get_func_id;
+    case DSC_VRFL:
+        return dsc_vrfl_get_func_id;
+    }
+}
+
+inline dsc_get_func_length dsc_type_get_dsc_get_func_length(dsc_type type, bool has_perf_id) {
+    if (has_perf_id)
+        switch (type) {
+        case DSC_NONE:
+        default:
+            return dsc_ft_get_func_length;
+        case DSC_AC101:
+            return dsc_ac101_get_func_length;
+        case DSC_AC110:
+            return dsc_ac110_get_func_length;
+        case DSC_AC120:
+            return dsc_ac120_get_func_length;
+        case DSC_AC200:
+            return dsc_ac200_get_func_length;
+        case DSC_AC210:
+            return dsc_ac210_get_func_length;
+        case DSC_AC500:
+            return dsc_ac500_get_func_length;
+        case DSC_AC510:
+            return dsc_ac510_get_func_length;
+        case DSC_AFT101:
+            return dsc_aft101_get_func_length;
+        case DSC_AFT200:
+            return dsc_aft200_get_func_length;
+        case DSC_AFT300:
+            return dsc_aft300_get_func_length;
+        case DSC_AFT310:
+            return dsc_aft310_get_func_length;
+        case DSC_AFT410:
+            return dsc_aft410_get_func_length;
+        case DSC_AFT701:
+            return dsc_aft701_get_func_length;
+        case DSC_FT:
+            return dsc_ft_get_func_length;
+        case DSC_PSP:
+            return dsc_psp_get_func_length;
+        case DSC_2ND:
+            return dsc_2nd_get_func_length;
+        case DSC_DT:
+            return dsc_dt_get_func_length;
+        case DSC_DT2:
+            return dsc_dt2_get_func_length;
+        case DSC_F:
+            return dsc_f_get_func_length;
+        case DSC_F2:
+            return dsc_f2_get_func_length;
+        case DSC_MGF:
+            return dsc_mgf_get_func_length;
+        case DSC_X:
+            return dsc_x_get_func_length;
+        case DSC_VRFL:
+            return dsc_vrfl_get_func_length;
+        }
+    else
+        switch (type) {
+        case DSC_NONE:
+        default:
+            return dsc_ft_get_func_length;
+        case DSC_AC101:
+            return dsc_ac101_get_func_length;
+        case DSC_AC110:
+            return dsc_ac110_get_func_length;
+        case DSC_AC120:
+            return dsc_ac120_get_func_length;
+        case DSC_AC200:
+            return dsc_ac200_get_func_length_old;
+        case DSC_AC210:
+            return dsc_ac210_get_func_length_old;
+        case DSC_AC500:
+            return dsc_ac500_get_func_length_old;
+        case DSC_AC510:
+            return dsc_ac510_get_func_length_old;
+        case DSC_AFT101:
+            return dsc_aft101_get_func_length_old;
+        case DSC_AFT200:
+            return dsc_aft200_get_func_length_old;
+        case DSC_AFT300:
+            return dsc_aft300_get_func_length_old;
+        case DSC_AFT310:
+            return dsc_aft310_get_func_length_old;
+        case DSC_AFT410:
+            return dsc_aft410_get_func_length_old;
+        case DSC_AFT701:
+            return dsc_aft701_get_func_length_old;
+        case DSC_FT:
+            return dsc_ft_get_func_length;
+        case DSC_PSP:
+            return dsc_psp_get_func_length;
+        case DSC_2ND:
+            return dsc_2nd_get_func_length;
+        case DSC_DT:
+            return dsc_dt_get_func_length;
+        case DSC_DT2:
+            return dsc_dt2_get_func_length;
+        case DSC_F:
+            return dsc_f_get_func_length_old;
+        case DSC_F2:
+            return dsc_f2_get_func_length;
+        case DSC_MGF:
+            return dsc_mgf_get_func_length;
+        case DSC_X:
+            return dsc_x_get_func_length;
+        case DSC_VRFL:
+            return dsc_vrfl_get_func_length;
+        }
+}
+
+inline dsc_get_func_name dsc_type_get_dsc_get_func_name(dsc_type type) {
+    switch (type) {
+    case DSC_NONE:
+    default:
+        return dsc_ft_get_func_name;
+    case DSC_AC101:
+        return dsc_ac101_get_func_name;
+    case DSC_AC110:
+        return dsc_ac110_get_func_name;
+    case DSC_AC120:
+        return dsc_ac120_get_func_name;
+    case DSC_AC200:
+        return dsc_ac200_get_func_name;
+    case DSC_AC210:
+        return dsc_ac210_get_func_name;
+    case DSC_AC500:
+        return dsc_ac500_get_func_name;
+    case DSC_AC510:
+        return dsc_ac510_get_func_name;
+    case DSC_AFT101:
+        return dsc_aft101_get_func_name;
+    case DSC_AFT200:
+        return dsc_aft200_get_func_name;
+    case DSC_AFT300:
+        return dsc_aft300_get_func_name;
+    case DSC_AFT310:
+        return dsc_aft310_get_func_name;
+    case DSC_AFT410:
+        return dsc_aft410_get_func_name;
+    case DSC_AFT701:
+        return dsc_aft701_get_func_name;
+    case DSC_FT:
+        return dsc_ft_get_func_name;
+    case DSC_PSP:
+        return dsc_psp_get_func_name;
+    case DSC_2ND:
+        return dsc_2nd_get_func_name;
+    case DSC_DT:
+        return dsc_dt_get_func_name;
+    case DSC_DT2:
+        return dsc_dt2_get_func_name;
+    case DSC_F:
+        return dsc_f_get_func_name;
+    case DSC_F2:
+        return dsc_f2_get_func_name;
+    case DSC_MGF:
+        return dsc_mgf_get_func_name;
+    case DSC_X:
+        return dsc_x_get_func_name;
+    case DSC_VRFL:
+        return dsc_vrfl_get_func_name;
+    }
 }
 
 static void dsc_convert_from_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
@@ -2738,9 +2877,7 @@ static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd,
 }
 
 inline static dsc_get_func_length dsc_get_dsc_get_func_length(dsc* d) {
-    return d->signature >= 0x10101514
-        ? dsc_get_func_length_array[d->type]
-        : dsc_get_func_length_old_array[d->type];
+    return dsc_type_get_dsc_get_func_length(d->type, d->signature >= 0x10101514);
 }
 
 static uint32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd) {
@@ -2749,10 +2886,4 @@ static uint32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd) {
     data->func = drd->func_id;
     data->data_offset = (uint32_t)vector_length(dr->dsc.data_buffer);
     return vector_uint32_t_reserve_back_range(&dr->dsc.data_buffer, drd->length);
-}
-
-inline static dsc_get_func_length dsc_type_get_dsc_get_func_length(dsc_type type, bool has_perf_id) {
-    return has_perf_id
-        ? dsc_get_func_length_array[type]
-        : dsc_get_func_length_old_array[type];
 }

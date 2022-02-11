@@ -310,7 +310,7 @@ static char* io_json_read_string_inner(stream* s, io_json_read_buffer* buf, msgp
     ssize_t pos_end = io_get_position(s) - buf->length;
 
     io_json_seek(s, buf, pos_end - pos);
-    char* temp = force_malloc(len + 1);
+    char* temp = force_malloc_s(char, len + 1);
     for (size_t i = 0; i < len;) {
         *c = io_json_read_char(s, buf);
 

@@ -1,4 +1,5 @@
 /*
+/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -28,7 +29,7 @@ void graphics_post_process_imgui(class_data* data) {
     float_t h = min((float_t)height, 790.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Appearing);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
@@ -37,13 +38,16 @@ void graphics_post_process_imgui(class_data* data) {
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(graphics_post_process_window_title, &open, window_flags);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
-    render_context* rctx = data->data;
+    render_context* rctx = (render_context*)data->data;
     post_process_struct* pp = &rctx->post_process;
 
     post_process_blur* blur = pp->blur;
@@ -108,10 +112,10 @@ void graphics_post_process_imgui(class_data* data) {
             "RGB LINEAR2",
         };
 
-        int32_t tone_map_method = post_process_tone_map_get_tone_map_method(tone_map);
+        int32_t _tone_map_method = post_process_tone_map_get_tone_map_method(tone_map);
         imguiColumnComboBox("Tone Map", tone_map_method_labels, 3,
-            &tone_map_method, 0, false, &data->imgui_focus);
-        post_process_tone_map_set_tone_map_method(tone_map, tone_map_method);
+            &_tone_map_method, 0, false, &data->imgui_focus);
+        post_process_tone_map_set_tone_map_method(tone_map, (tone_map_method)_tone_map_method);
 
         float_t exposure = post_process_tone_map_get_exposure(tone_map);
         imguiColumnSliderFloat("Exposure", &exposure, 0.02f, 0.0f, 4.0f, "%.2f", 0, true);
@@ -225,16 +229,14 @@ void graphics_post_process_imgui(class_data* data) {
     }
 
     if (imguiButton("Reset Post Process", ImVec2_Empty) && rctx->stage) {
-        stage* stage = rctx->stage;
-        light_param_data* light_param = light_param_storage_get_light_param_data(stage->light_param_name);
+        stage* stg = (stage*)rctx->stage;
+        light_param_data* light_param = light_param_storage_get_light_param_data(stg->light_param_name);
         post_process_reset(pp);
         if (light_param->glow.ready)
             render_context_light_param_data_glow_set(rctx, &light_param->glow);
     }
 
     data->imgui_focus |= igIsWindowFocused(0);
-
-End:
     igEnd();
 }
 

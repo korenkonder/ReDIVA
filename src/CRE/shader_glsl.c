@@ -58,7 +58,7 @@ static char* shader_parse_define(char* data, shader_glsl_param* param) {
         def++;
     len += len_a + len_b;
 
-    char* temp_data = force_malloc(len + 1);
+    char* temp_data = force_malloc_s(char, len + 1);
     size_t pos = 0;
     memcpy(temp_data + pos, data, len_a);
     pos += len_a;
@@ -88,7 +88,7 @@ static char* shader_parse(char* data, char* parse_string, const char* replace_st
     size_t len_c = utf8_length(def);
     size_t len = len_a + len_b + len_c;
 
-    char* temp_data = force_malloc(len + 1);
+    char* temp_data = force_malloc_s(char, len + 1);
     size_t pos = 0;
     memcpy(temp_data + pos, data, len_a);
     pos += len_a;
@@ -97,6 +97,10 @@ static char* shader_parse(char* data, char* parse_string, const char* replace_st
     memcpy(temp_data + pos, def, len_c);
     free(data);
     return temp_data;
+}
+
+inline static char* shader_parse(char* data, const char* parse_string, const char* replace_string) {
+    return shader_parse(data, (char*)parse_string, replace_string);
 }
 
 static GLuint shader_compile(GLenum type, const char* data) {
@@ -110,7 +114,7 @@ static GLuint shader_compile(GLenum type, const char* data) {
     GLint success = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc(0x10000);
+        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetShaderInfoLog(shader, 0x10000, 0, info_log);
         printf("Shader compile error: ");
         printf(info_log);
@@ -191,8 +195,8 @@ void shader_glsl_load(shader_glsl* s, farc* f, shader_glsl_param* param) {
     farc_file* vert = farc_read_file(f, temp_vert);
     size_t frag_length = !frag ? 0 : frag->size;
     size_t vert_length = !vert ? 0 : vert->size;
-    char* frag_data = !frag ? 0 : force_malloc(frag_length + 1);
-    char* vert_data = !vert ? 0 : force_malloc(vert_length + 1);
+    char* frag_data = !frag ? 0 : force_malloc_s(char, frag_length + 1);
+    char* vert_data = !vert ? 0 : force_malloc_s(char, vert_length + 1);
 
     if (frag) {
         memcpy(frag_data, frag->data, frag_length);
@@ -226,7 +230,7 @@ void shader_glsl_load(shader_glsl* s, farc* f, shader_glsl_param* param) {
     GLint success = 0;
     glGetProgramiv(s->program, GL_LINK_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc(0x10000);
+        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(s->program, 0x10000, 0, info_log);
         printf("Program FBO Shader linking error: %s\n", param->name);
         printf(info_log);
@@ -260,28 +264,28 @@ void shader_glsl_load_file(shader_glsl* s, char* vert_path,
     char* frag = 0;
     char* geom = 0;
 
-    io_open(&st, vert_path, "r");
+    io_open(&st, vert_path, "rb");
     if (st.io.stream) {
         l = st.length;
-        vert = force_malloc(l + 1);
+        vert = force_malloc_s(char, l + 1);
         io_read(&st, vert, l);
         vert[l] = 0;
     }
     io_free(&st);
 
-    io_open(&st, frag_path, "r");
+    io_open(&st, frag_path, "rb");
     if (st.io.stream) {
         l = st.length;
-        frag = force_malloc(l + 1);
+        frag = force_malloc_s(char, l + 1);
         io_read(&st, frag, l);
         frag[l] = 0;
     }
     io_free(&st);
 
-    io_open(&st, geom_path, "r");
+    io_open(&st, geom_path, "rb");
     if (st.io.stream) {
         l = st.length;
-        geom = force_malloc(l + 1);
+        geom = force_malloc_s(char, l + 1);
         io_read(&st, geom, l);
         geom[l] = 0;
     }
@@ -309,28 +313,28 @@ void shader_glsl_wload_file(shader_glsl* s, wchar_t* vert_path,
     char* frag = 0;
     char* geom = 0;
 
-    io_wopen(&st, vert_path, L"r");
+    io_wopen(&st, vert_path, L"rb");
     if (st.io.stream) {
         l = st.length;
-        vert = force_malloc(l + 1);
+        vert = force_malloc_s(char, l + 1);
         io_read(&st, vert, l);
         vert[l] = 0;
     }
     io_free(&st);
 
-    io_wopen(&st, frag_path, L"r");
+    io_wopen(&st, frag_path, L"rb");
     if (st.io.stream) {
         l = st.length;
-        frag = force_malloc(l + 1);
+        frag = force_malloc_s(char, l + 1);
         io_read(&st, frag, l);
         frag[l] = 0;
     }
     io_free(&st);
 
-    io_wopen(&st, geom_path, L"r");
+    io_wopen(&st, geom_path, L"rb");
     if (st.io.stream) {
         l = st.length;
-        geom = force_malloc(l + 1);
+        geom = force_malloc_s(char, l + 1);
         io_read(&st, geom, l);
         geom[l] = 0;
     }
@@ -383,7 +387,7 @@ void shader_glsl_load_string(shader_glsl* s, char* vert,
     GLint success = 0;
     glGetProgramiv(s->program, GL_LINK_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc(0x10000);
+        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(s->program, 0x10000, 0, info_log);
         printf("Program FBO Shader linking error: %s\n", param->name);
         printf(info_log);

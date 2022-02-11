@@ -6,7 +6,7 @@
 #include "camera.h"
 
 camera* camera_init() {
-    camera* c = force_malloc(sizeof(camera));
+    camera* c = force_malloc_s(camera, 1);
     return c;
 }
 
@@ -17,17 +17,20 @@ static void camera_calculate_forward(camera* c);
 void camera_initialize(camera* c, double_t aspect, int32_t width, int32_t height) {
     c->aspect = aspect;
     c->fov = 0.0;
-    c->forward = (vec3){ 0.0f, 0.0f, -1.0f };
-    c->rotation = (vec3){ 0.0f, 0.0f, 0.0f };
-    c->view_point = (vec3){ 0.0, 0.0f, 0.0f };
-    c->interest = (vec3){ 0.0f, 0.0f, -1.0f };
+    c->forward = { 0.0f, 0.0f, -1.0f };
+    c->rotation = { 0.0f, 0.0f, 0.0f };
+    c->view_point = { 0.0, 0.0f, 0.0f };
+    c->interest = { 0.0f, 0.0f, -1.0f };
     c->width = width;
     c->height = height;
     c->view = mat4_identity;
-    c->projection = mat4_identity;
-    c->view_projection = mat4_identity;
-    c->inv_projection = mat4_identity;
     c->inv_view = mat4_identity;
+    c->projection = mat4_identity;
+    c->inv_projection = mat4_identity;
+    c->view_projection = mat4_identity;
+    c->inv_view_projection = mat4_identity;
+    c->view_projection_prev = mat4_identity;
+    c->inv_view_projection_prev = mat4_identity;
     c->min_distance = 0.05;
     c->max_distance = 6000.0;
     c->changed_proj = true;
@@ -37,7 +40,7 @@ void camera_initialize(camera* c, double_t aspect, int32_t width, int32_t height
     camera_set_roll(c, 0.0);
     camera_set_fov(c, 32.2673416137695);
     camera_calculate_forward(c);
-    camera_set_position(c, &((vec3){ 0.0, 0.0f, 0.0f}));
+    camera_set_position(c, (vec3*)&vec3_null);
     camera_update(c);
 }
 
@@ -177,7 +180,7 @@ void camera_reset(camera* c) {
     camera_set_roll(c, 0.0);
     camera_set_fov(c, 32.2673416137695);
     camera_calculate_forward(c);
-    camera_set_position(c, &((vec3){ 0.0, 0.0f, 0.0f}));
+    camera_set_position(c, (vec3*)&vec3_null);
     camera_update(c);
 }
 
@@ -186,7 +189,8 @@ void camera_move(camera* c, vec2d* move) {
         vec3 temp;
         vec3 view_point;
         vec3 interest;
-        vec3_cross(c->forward, ((vec3) { 0.0f, 1.0f, 0.0f}), temp);
+        vec3 up = { 0.0f, 1.0f, 0.0f };
+        vec3_cross(c->forward, up, temp);
         vec3_normalize(temp, temp);
         vec3_mult_scalar(temp, (float_t)move->y, temp);
         vec3_add(c->view_point, temp, view_point);
@@ -262,9 +266,10 @@ void camera_update(camera* c) {
     if (c->changed_proj || c->changed_view) {
         mat4_mult(&c->view, &c->projection, &c->view_projection);
         mat4_inverse(&c->view_projection, &c->inv_view_projection);
-        c->changed_proj = false;
-        //c->changed_view = false;
-    } 
+    }
+
+    c->changed_proj = false;
+    c->changed_view = false;
 
     c->fast_change_hist1 = c->fast_change_hist0;
     c->fast_change_hist0 = c->fast_change;

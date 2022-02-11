@@ -73,7 +73,7 @@ bool pvpp_load_file(void* data, char* path, char* file, uint32_t hash) {
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    pvpp* pp = data;
+    pvpp* pp = (pvpp*)data;
     pvpp_read(pp, string_data(&s));
 
     string_free(&s);
@@ -223,7 +223,7 @@ static void pvpp_chara_read(pvpp_chara* chr, stream* s) {
 }
 
 static void pvpp_chara_effect_read(pvpp_chara_effect* chr_eff, stream* s) {
-    chr_eff->base_chara = io_read_uint8_t(s);
+    chr_eff->base_chara = (pvpp_chara_type)io_read_uint8_t(s);
     uint8_t pv_effects_count = io_read_uint8_t(s);
     size_t pv_effects_offstet = io_read_offset_x(s);
 
@@ -276,7 +276,7 @@ static void pvpp_chara_item_read(pvpp_chara_item* chr_itm, stream* s) {
 static void pvpp_effect_read(pvpp_effect* eff, stream* s) {
     uint8_t a3da_count = io_read_uint8_t(s);
     uint8_t effect_count = io_read_uint8_t(s);
-    eff->chara_index = io_read_uint8_t(s);
+    eff->chara_index = (pvpp_chara_type)io_read_uint8_t(s);
     ssize_t a3da_offset = io_read_offset_x(s);
     ssize_t effect_offset = io_read_offset_x(s);
 

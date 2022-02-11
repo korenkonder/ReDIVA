@@ -28,7 +28,7 @@ void information_frame_speed_imgui(class_data* data) {
     float_t h = min((float_t)height, 58.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
@@ -37,11 +37,14 @@ void information_frame_speed_imgui(class_data* data) {
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(information_frame_speed_window_title, &open, window_flags);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
     ImGuiColorEditFlags color_edit_flags = 0;
     color_edit_flags |= ImGuiColorEditFlags_NoLabel;
@@ -52,8 +55,6 @@ void information_frame_speed_imgui(class_data* data) {
     imguiColumnSliderFloat("frame speed", &frame_speed, 0.01f, 0.0f, 3.0f, "%.2f", 0, true);
 
     data->imgui_focus |= igIsWindowFocused(0);
-
-End:
     igEnd();
 }
 

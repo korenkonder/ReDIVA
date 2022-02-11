@@ -15,7 +15,7 @@ static void post_process_blur_radius_calculate_gaussian_kernel(float_t* gaussian
     float_t radius, int32_t stride, int32_t offset);
 
 post_process_blur* post_process_blur_init() {
-    post_process_blur* blur = force_malloc(sizeof(post_process_blur));
+    post_process_blur* blur = force_malloc_s(post_process_blur, 1);
     return blur;
 }
 
@@ -207,7 +207,7 @@ void post_process_blur_init_fbo(post_process_blur* blur,
     if (!tex_down)
         tex_down = force_malloc_s(render_texture, i);
     else if (blur->count_down < i) {
-        void* temp = force_malloc_s(render_texture, i);
+        render_texture* temp = force_malloc_s(render_texture, i);
         memcpy(temp, tex_down, sizeof(render_texture) * blur->count_down);
         free(tex_down);
         tex_down = temp;
@@ -216,7 +216,7 @@ void post_process_blur_init_fbo(post_process_blur* blur,
     if (!width_down)
         width_down = force_malloc_s(int32_t, i);
     else if (blur->count_down < i) {
-        void* temp = force_malloc_s(int32_t, i);
+        int32_t* temp = force_malloc_s(int32_t, i);
         memcpy(temp, width_down, sizeof(int32_t) * blur->count_down);
         free(width_down);
         width_down = temp;
@@ -225,7 +225,7 @@ void post_process_blur_init_fbo(post_process_blur* blur,
     if (!height_down)
         height_down = force_malloc_s(int32_t, i);
     else if (blur->count_down < i) {
-        void* temp = force_malloc_s(int32_t, i);
+        int32_t* temp = force_malloc_s(int32_t, i);
         memcpy(temp, height_down, sizeof(int32_t) * blur->count_down);
         free(height_down);
         height_down = temp;

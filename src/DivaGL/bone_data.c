@@ -33,16 +33,18 @@ typedef struct struc_404 {
     int32_t field_4;
 } struc_404;
 
-ex_node_block_vtbl* ex_osage_block_vftable = (void*)0x0000000140A82F88;
-ex_node_block_vtbl* ex_node_block_vftable = (void*)0x0000000140A82DC8;
+ex_node_block_vtbl* ex_osage_block_vftable = (ex_node_block_vtbl*)0x0000000140A82F88;
+ex_node_block_vtbl* ex_node_block_vftable = (ex_node_block_vtbl*)0x0000000140A82DC8;
 
-static const aft_object_info aft_object_info_null = { -1, -1 };
+static const aft_object_info aft_object_info_null = { (uint16_t)-1, (uint16_t)-1 };
 
-static aft_bone_database_struct** bone_database_ptr = (void*)0x00000000140FBC1C0;
-static struc_403** rob_cmn_mottbl_data_ptr = (void*)0x00000001411E8258;
-static void* (*HeapCMallocAllocate)(HeapCMallocType type, size_t size, char* name) = (void*)0x00000001403F2A00;
-static void(*HeapCMallocFree)(HeapCMallocType type, void* data) = (void*)0x00000001403F2960;
-static void(*j_free_2)(void*) = (void*)0x0000000140845378;
+static aft_bone_database_struct** bone_database_ptr = (aft_bone_database_struct**)0x00000000140FBC1C0;
+static struc_403** rob_cmn_mottbl_data_ptr = (struc_403**)0x00000001411E8258;
+static void* (*HeapCMallocAllocate)(HeapCMallocType type, size_t size, const char* name)
+    = (void* (*)(HeapCMallocType, size_t, const char*))0x00000001403F2A00;
+static void(*HeapCMallocFree)(HeapCMallocType type, void* data)
+    = (void(*)(HeapCMallocType, void*))0x00000001403F2960;
+static void(*j_free_2)(void*) = (void(*)(void*))0x0000000140845378;
 
 static const float_t get_osage_gravity_const() {
     return 0.00299444468691945f;
@@ -74,9 +76,9 @@ static void bone_node_data_reset_position_rotation(bone_node_expression_data* da
 }
 
 static bone_data* bone_data_init(bone_data* bone) {
-    bone->type = 0;
+    bone->type = (aft_bone_database_bone_type)0;
     bone->has_parent = 0;
-    bone->motion_bone_index = 0;
+    bone->motion_bone_index = (motion_bone_index)0;
     bone->mirror = 0;
     bone->parent = 0;
     bone->flags = 0;
@@ -200,7 +202,7 @@ static void rob_chara_bone_data_reserve(rob_chara_bone_data* rob_bone_data) {
         HeapCMallocFree(HeapCMallocSystem, rob_bone_data->mats.begin);
 
     size_t mats_size = rob_bone_data->object_bone_count;
-    rob_bone_data->mats.begin = HeapCMallocAllocate(HeapCMallocSystem,
+    rob_bone_data->mats.begin = (mat4*)HeapCMallocAllocate(HeapCMallocSystem,
         mats_size * sizeof(mat4), "ALLOCsys");
     rob_bone_data->mats.end = rob_bone_data->mats.begin + mats_size;
     rob_bone_data->mats.capacity_end = rob_bone_data->mats.begin + mats_size;
@@ -212,7 +214,7 @@ static void rob_chara_bone_data_reserve(rob_chara_bone_data* rob_bone_data) {
         HeapCMallocFree(HeapCMallocSystem, rob_bone_data->mats2.begin);
 
     size_t mats2_size = rob_bone_data->total_bone_count - rob_bone_data->object_bone_count;
-    rob_bone_data->mats2.begin = HeapCMallocAllocate(HeapCMallocSystem,
+    rob_bone_data->mats2.begin = (mat4*)HeapCMallocAllocate(HeapCMallocSystem,
         mats2_size * sizeof(mat4), "ALLOCsys");
     rob_bone_data->mats2.end = rob_bone_data->mats2.begin + mats2_size;
     rob_bone_data->mats2.capacity_end = rob_bone_data->mats2.begin + mats2_size;
@@ -224,7 +226,7 @@ static void rob_chara_bone_data_reserve(rob_chara_bone_data* rob_bone_data) {
         HeapCMallocFree(HeapCMallocSystem, rob_bone_data->nodes.begin);
 
     size_t nodes_size = rob_bone_data->total_bone_count;
-    rob_bone_data->nodes.begin = HeapCMallocAllocate(HeapCMallocSystem,
+    rob_bone_data->nodes.begin = (bone_node*)HeapCMallocAllocate(HeapCMallocSystem,
         nodes_size * sizeof(bone_node), "ALLOCsys");
     rob_bone_data->nodes.end = rob_bone_data->nodes.begin + nodes_size;
     rob_bone_data->nodes.capacity_end = rob_bone_data->nodes.begin + nodes_size;
@@ -334,7 +336,7 @@ static void bone_data_parent_load_rob_chara(bone_data_parent* a1) {
         HeapCMallocFree(HeapCMallocSystem, a1->bones.begin);
 
     size_t bones_size = rob_bone_data->motion_bone_count;
-    a1->bones.begin = HeapCMallocAllocate(HeapCMallocSystem,
+    a1->bones.begin = (bone_data*)HeapCMallocAllocate(HeapCMallocSystem,
         bones_size * sizeof(bone_data), "ALLOCsys");
     a1->bones.end = a1->bones.begin + bones_size;
     a1->bones.capacity_end = a1->bones.begin + bones_size;
@@ -357,8 +359,8 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
     aft_bone_database_bone* v15 = bones;
     bone_data* v16 = bone->bones.begin;
     for (size_t i = 0; v15->type != AFT_BONE_DATABASE_BONE_END; i++, v15++, v16++) {
-        v16->motion_bone_index = (uint32_t)i;
-        v16->type = v15->type;
+        v16->motion_bone_index = (motion_bone_index)i;
+        v16->type = (aft_bone_database_bone_type)v15->type;
         v16->mirror = v15->mirror;
         v16->parent = v15->parent;
         v16->flags = v15->flags;
@@ -442,13 +444,13 @@ static void mot_parent_reserve_key_sets(mot_parent* a1) {
         HeapCMallocFree(HeapCMallocSystem, a1->key_set.begin);
 
     size_t key_set_count = a1->key_set_count;
-    a1->key_set.begin = HeapCMallocAllocate(HeapCMallocSystem,
+    a1->key_set.begin = (mot_key_set*)HeapCMallocAllocate(HeapCMallocSystem,
         key_set_count * sizeof(mot_key_set), "ALLOCsys");
     a1->key_set.end = a1->key_set.begin + key_set_count;
     a1->key_set.capacity_end = a1->key_set.begin + key_set_count;
 
     for (mot_key_set* i = a1->key_set.begin; i != a1->key_set.end; i++) {
-        i->type = 0;
+        i->type = (mot_key_set_type)0;
         i->keys_count = 0;
         i->current_key = 0;
         i->last_key = 0;
@@ -459,7 +461,7 @@ static void mot_parent_reserve_key_sets(mot_parent* a1) {
     if (a1->key_set_data.begin)
         HeapCMallocFree(HeapCMallocSystem, a1->key_set_data.begin);
 
-    a1->key_set_data.begin = HeapCMallocAllocate(HeapCMallocSystem,
+    a1->key_set_data.begin = (float_t*)HeapCMallocAllocate(HeapCMallocSystem,
         key_set_count * sizeof(float_t), "ALLOCsys");
     a1->key_set_data.end = a1->key_set_data.begin + key_set_count;
     a1->key_set_data.capacity_end = a1->key_set_data.begin + key_set_count;
@@ -622,7 +624,8 @@ static void sub_14040E690(struc_313* a1, uint32_t** a2, uint32_t* a3, size_t a4,
             v12 = 0;
         if (v12 < v10 + a4)
             v12 = v10 + a4;
-        uint32_t* v14 = HeapCMallocAllocate(HeapCMallocSystem, sizeof(uint32_t) * v12, "ALLOCsys");
+        uint32_t* v14 = (uint32_t*)HeapCMallocAllocate(HeapCMallocSystem,
+            sizeof(uint32_t) * v12, "ALLOCsys");
         size_t v15 = a3 - a1->bitfield.begin;
         sub_14040BD00(&v14[v15], a4, a5);
         sub_14040BDB0(a1->bitfield.begin, a3, v14);
@@ -734,7 +737,7 @@ static struc_314* sub_14040E980(struc_313* a1, struc_314* a2, struc_314* a3, siz
     return a2;
 }
 
-static void sub_140414550(struc_313* a1, size_t a2, char a3) {
+static void sub_140414550(struc_313* a1, size_t a2, bool a3) {
     struc_314 a3a;
     struc_314 a4;
     struc_314 a2a;
@@ -763,7 +766,7 @@ static void sub_1404146F0(struc_240* a1) {
     struc_314 v1;
     v1.field_0 = a1->field_8.bitfield.begin;
     v1.field_8 = 0;
-    motion_bone_index v2 = MOTION_BONE_N_HARA_CP;
+    int32_t v2 = MOTION_BONE_N_HARA_CP;
     size_t v5 = a1->field_8.motion_bone_count;
     uint32_t* v6 = a1->field_8.bitfield.begin;
     while (true) {
@@ -773,7 +776,7 @@ static void sub_1404146F0(struc_240* a1) {
         if (v1.field_0 == v7.field_0 && v1.field_8 == v7.field_8)
             break;
 
-        if (a1->bone_check_func(v2++))
+        if (a1->bone_check_func((motion_bone_index)v2++))
             *v1.field_0 |= 1 << v1.field_8;
         else
             *v1.field_0 &= ~(1 << v1.field_8);
@@ -2067,8 +2070,10 @@ static struc_228* sub_14053A660(struc_228* a1) {
 }
 
 static void sub_140539750(struc_223* a1) {
-    void(*sub_140537110)(struc_223 * a1) = (void*)0x0000000140537110;
-    void(*sub_1405335C0)(struc_223 * a1) = (void*)0x00000001405335C0;
+    void(*sub_140537110)(struc_223 * a1)
+        = (void(*)(struc_223*))0x0000000140537110;
+    void(*sub_1405335C0)(struc_223 * a1)
+        = (void(*)(struc_223*))0x00000001405335C0;
 
     sub_14053A660(&a1->field_20);
     sub_14053A660(&a1->field_10);
@@ -2079,9 +2084,12 @@ static void sub_140539750(struc_223* a1) {
 }
 
 static void sub_140505EA0(rob_chara_data* a1) {
-    void(*sub_140506A20)(struc_399 * a1) = (void*)0x0000000140506A20;
-    void(*sub_140506AE0)(rob_chara_adjust_data * a1) = (void*)0x0000000140506AE0;
-    void(*sub_140505FB0)(struc_209 * a1) = (void*)0x0000000140505FB0;
+    void(*sub_140506A20)(struc_399 * a1)
+        = (void(*)(struc_399*))0x0000000140506A20;
+    void(*sub_140506AE0)(rob_chara_adjust_data * a1)
+        = (void(*)(rob_chara_adjust_data*))0x0000000140506AE0;
+    void(*sub_140505FB0)(struc_209 * a1)
+        = (void(*)(struc_209*))0x0000000140505FB0;
 
     a1->field_0 = 0;
     sub_140505C90(&a1->field_8);
@@ -2341,14 +2349,14 @@ static void sub_1403FAEF0(struc_312* a1) {
 }
 
 static void rob_chara_bone_data_reset(rob_chara_bone_data* rob_bone_data) {
-    void(*rob_chara_bone_data_motion_blend_mot_list_free)(rob_chara_bone_data * rob_bone_data,
-        size_t a2) = (void*)0x0000000140418E80;
+    void(*rob_chara_bone_data_motion_blend_mot_list_free)(rob_chara_bone_data * rob_bone_data, size_t a2)
+        = (void(*)(rob_chara_bone_data*, size_t))0x0000000140418E80;
     void(*rob_chara_bone_data_motion_blend_mot_list_init)(rob_chara_bone_data * rob_bone_data)
-        = (void*)0x000000014041A9E0;
+        = (void(*)(rob_chara_bone_data*))0x000000014041A9E0;
     void(*rob_chara_bone_data_motion_blend_mot_free)(rob_chara_bone_data * rob_bone_data)
-        = (void*)0x0000000140419000;
+        = (void(*)(rob_chara_bone_data*))0x0000000140419000;
     void(*rob_chara_bone_data_motion_blend_mot_init)(rob_chara_bone_data * rob_bone_data)
-        = (void*)0x000000014041A1A0;
+        = (void(*)(rob_chara_bone_data*))0x000000014041A1A0;
 
     rob_bone_data->field_0 = 0;
     rob_bone_data->field_1 = 0;
@@ -2392,7 +2400,8 @@ static void rob_chara_bone_data_reset(rob_chara_bone_data* rob_bone_data) {
 }
 
 static skeleton_rotation_offset* skeleton_rotation_offset_array_get(aft_bone_database_skeleton_type type) {
-    skeleton_rotation_offset** skeleton_rotation_offset_array_ptr = (void*)0x0000000140A01560;
+    skeleton_rotation_offset** skeleton_rotation_offset_array_ptr
+        = (skeleton_rotation_offset**)0x0000000140A01560;
     if (type >= AFT_BONE_DATABASE_SKELETON_COMMON && type <= AFT_BONE_DATABASE_SKELETON_TETO)
         return skeleton_rotation_offset_array_ptr[type];
     else
@@ -2661,76 +2670,76 @@ static void sub_1401EB1D0(bone_data* a1, int32_t a2) {
 
 static void sub_14041B4E0(struc_313* a1) {
     uint32_t* bitfield = a1->bitfield.begin;
-    for (motion_bone_index i = MOTION_BONE_FACE_ROOT;
+    for (uint32_t i = MOTION_BONE_FACE_ROOT;
         i <= MOTION_BONE_TL_TOOTH_UPPER_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 }
 
 static void sub_14041B580(struc_313* a1) {
     uint32_t* bitfield = a1->bitfield.begin;
-    for (motion_bone_index i = MOTION_BONE_FACE_ROOT;
+    for (uint32_t i = MOTION_BONE_FACE_ROOT;
         i <= MOTION_BONE_TL_TOOTH_UPPER_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 
-    for (motion_bone_index i = MOTION_BONE_N_EYE_L;
+    for (uint32_t i = MOTION_BONE_N_EYE_L;
         i <= MOTION_BONE_KL_HIGHLIGHT_R_WJ; i++)
         bitfield[i >> 5] |= 1 << (i & 0x1F);
 }
 
 static void sub_14041B800(struc_313* a1) {
     uint32_t* bitfield = a1->bitfield.begin;
-    for (motion_bone_index i = MOTION_BONE_N_KUTI_D;
+    for (uint32_t i = MOTION_BONE_N_KUTI_D;
         i <= MOTION_BONE_TL_KUTI_U_R_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 
-    for (motion_bone_index i = MOTION_BONE_N_AGO;
+    for (uint32_t i = MOTION_BONE_N_AGO;
         i <= MOTION_BONE_TL_TOOTH_UNDER_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 
-    for (motion_bone_index i = MOTION_BONE_N_TOOTH_UPPER;
+    for (uint32_t i = MOTION_BONE_N_TOOTH_UPPER;
         i <= MOTION_BONE_TL_TOOTH_UPPER_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 }
 
 static void sub_14041B440(struc_313* a1) {
     uint32_t* bitfield = a1->bitfield.begin;
-    for (motion_bone_index i = MOTION_BONE_N_EYE_L;
+    for (uint32_t i = MOTION_BONE_N_EYE_L;
         i <= MOTION_BONE_KL_HIGHLIGHT_R_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 }
 
 static void sub_14041B1C0(struc_313* a1) {
     uint32_t* bitfield = a1->bitfield.begin;
-    for (motion_bone_index i = MOTION_BONE_N_MABU_L_D_A;
+    for (uint32_t i = MOTION_BONE_N_MABU_L_D_A;
         i <= MOTION_BONE_TL_MABU_R_U_C_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 
-    for (motion_bone_index i = MOTION_BONE_N_EYELID_L_A;
+    for (uint32_t i = MOTION_BONE_N_EYELID_L_A;
         i <= MOTION_BONE_TL_EYELID_R_B_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 }
 
 static void sub_14041B6B0(struc_313* a1) {
     uint32_t* bitfield = a1->bitfield.begin;
-    for (motion_bone_index i = MOTION_BONE_N_HITO_L_EX;
+    for (uint32_t i = MOTION_BONE_N_HITO_L_EX;
         i <= MOTION_BONE_NL_OYA_C_L_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 }
 
 static void sub_14041B750(struc_313* a1) {
     uint32_t* bitfield = a1->bitfield.begin;
-    for (motion_bone_index i = MOTION_BONE_N_HITO_R_EX;
+    for (uint32_t i = MOTION_BONE_N_HITO_R_EX;
         i <= MOTION_BONE_NL_OYA_C_R_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 }
 
 static void sub_14041B300(struc_313* a1) {
     uint32_t* bitfield = a1->bitfield.begin;
-    for (motion_bone_index i = MOTION_BONE_N_MABU_L_D_A;
+    for (uint32_t i = MOTION_BONE_N_MABU_L_D_A;
         i <= MOTION_BONE_TL_MABU_R_U_C_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 
-    for (motion_bone_index i = MOTION_BONE_N_EYELID_L_A;
+    for (uint32_t i = MOTION_BONE_N_EYELID_L_A;
         i <= MOTION_BONE_TL_EYELID_R_B_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
 }
@@ -2763,8 +2772,10 @@ static void sub_140412F20(mot_blend* a1, vector_bone_data* a2) {
 }
 
 static mot_data* mot_parent_load_file(mot_parent* a1, int32_t motion_id) {
-    mot_data* (*sub_140403C90)(int32_t a1) = (void*)0x0000000140403C90;
-    bool(*mot_load_file)(mot * a1, mot_key_set_file * a2) = (void*)0x000000014036F7B0;
+    mot_data* (*sub_140403C90)(int32_t a1)
+        = (mot_data * (*)(int32_t))0x0000000140403C90;
+    bool(*mot_load_file)(mot * a1, mot_key_set_file * a2)
+        = (bool(*)(mot*, mot_key_set_file*))0x000000014036F7B0;
 
     mot_data* v4;
     if (a1->motion_id == motion_id)
@@ -2889,8 +2900,8 @@ static void sub_140415B30(mot_blend* a1) {
 }
 
 static void sub_14041DAC0(rob_chara_bone_data* a1) {
-    void(*rob_bone_data_motion_blend_mot_list_free)(rob_chara_bone_data * rob_bone_data,
-        size_t a2) = (void*)0x0000000140418E80;
+    void(*rob_bone_data_motion_blend_mot_list_free)(rob_chara_bone_data * rob_bone_data, size_t a2)
+        = (void(*)(rob_chara_bone_data*, size_t))0x0000000140418E80;
 
     size_t v2 = 0;
     bool v3 = 0;
@@ -3022,8 +3033,10 @@ static void sub_1404147F0(motion_blend_mot* a1, motion_blend_type type, float_t 
 }
 
 static int32_t sub_1401F0E70(aft_bone_database_skeleton_type type, char* name) {
-    aft_bone_database_struct* bone_database = *(void**)0x0000000140FBC1C0;
-    int32_t(*sub_1401F0EA0)(char* a1, char* a2) = (void*)0x00000001401F0EA0;
+    aft_bone_database_struct* bone_database
+        = *(aft_bone_database_struct**)0x0000000140FBC1C0;
+    int32_t(*sub_1401F0EA0)(char* a1, char* a2)
+        = (int32_t(*)(char*, char*))0x00000001401F0EA0;
 
     if (!bone_database || type == AFT_BONE_DATABASE_SKELETON_NONE)
         return -1;
@@ -3035,8 +3048,10 @@ static void bone_data_parent_load_bone_indices_from_mot(bone_data_parent* a1, mo
     if (!a2)
         return;
 
-    char** (*sub_140403B00)() = (void*)0x0000000140403B00;
-    void (*sub_14040F210)(vector_uint16_t * a1, size_t a2) = (void*)0x000000014040F210;
+    char** (*sub_140403B00)()
+        = (char** (*)())0x0000000140403B00;
+    void (*sub_14040F210)(vector_uint16_t * a1, size_t a2)
+        = (void (*)(vector_uint16_t*, size_t))0x000000014040F210;
 
     char** v4 = sub_140403B00();
     vector_uint16_t* v5 = &a1->bone_indices;
@@ -3092,7 +3107,8 @@ static void sub_140413C30(struc_308* a1) {
     a1->mat = mat4u_identity;
 }
 
-static void motion_blend_mot_load_file(motion_blend_mot* a1, int32_t motion_id, int32_t a3, float_t blend) {
+static void motion_blend_mot_load_file(motion_blend_mot* a1,
+    int32_t motion_id, motion_blend_type a3, float_t blend) {
     sub_1404147F0(a1, a3, blend);
     mot_data* v5 = mot_parent_load_file(&a1->mot_data, motion_id);
     bone_data_parent* v6 = &a1->bone_data;
@@ -3154,35 +3170,39 @@ static void sub_14041AE40(rob_chara_bone_data* a1) {
         sub_140413EA0(v3, sub_14041B750);
 }
 
-void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data, int32_t motion_id, int32_t index) {
+void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data,
+    int32_t motion_id, motion_blend_type motion_blend_type) {
     void(*rob_bone_data_motion_blend_mot_list_init)(rob_chara_bone_data * rob_bone_data)
-        = (void*)0x000000014041A9E0;
-    void(*rob_bone_data_motion_blend_mot_list_free)(rob_chara_bone_data * rob_bone_data,
-        size_t a2) = (void*)0x0000000140418E80;
+        = (void(*)(rob_chara_bone_data*))0x000000014041A9E0;
+    void(*rob_bone_data_motion_blend_mot_list_free)(rob_chara_bone_data * rob_bone_data, size_t a2)
+        = (void(*)(rob_chara_bone_data*, size_t))0x0000000140418E80;
     list_ptr_motion_blend_mot_node* (*sub_140415D30)(list_ptr_motion_blend_mot * a1,
-        list_ptr_motion_blend_mot_node * a2, list_ptr_motion_blend_mot_node * a3,
-        motion_blend_mot * *a4) = (void*)0x0000000140415D30;
+        list_ptr_motion_blend_mot_node * a2, list_ptr_motion_blend_mot_node * a3, motion_blend_mot * *a4)
+        = (list_ptr_motion_blend_mot_node * (*)(list_ptr_motion_blend_mot*,
+            list_ptr_motion_blend_mot_node*, list_ptr_motion_blend_mot_node*,
+            motion_blend_mot**))0x0000000140415D30;
     list_size_t_node* (*sub_140415DB0)(list_size_t_node * *a1, list_size_t_node * a2,
-        list_size_t_node * a3, size_t * a4) = (void*)0x0000000140415DB0;
-    motion_blend_mot* (*sub_140411A70)(motion_blend_mot * a1,
-        rob_chara_bone_data * rob_bone_data) = (void*)0x0000000140411A70;
+        list_size_t_node * a3, size_t * a4) = (list_size_t_node * (*)(list_size_t_node**,
+            list_size_t_node*, list_size_t_node*, size_t*))0x0000000140415DB0;
+    motion_blend_mot* (*sub_140411A70)(motion_blend_mot * a1, rob_chara_bone_data * rob_bone_data)
+        = (motion_blend_mot * (*)(motion_blend_mot*, rob_chara_bone_data*))0x0000000140411A70;
 
     if (!rob_bone_data->motion_loaded.size)
         return;
-    if (index == 1) {
+    if (motion_blend_type == 1) {
         rob_bone_data_motion_blend_mot_list_free(rob_bone_data, 1);
         sub_14041AE40(rob_bone_data);
         list_ptr_motion_blend_mot_node*v15 = rob_bone_data->motion_loaded.head;
-        motion_blend_mot_load_file(v15->next->value, motion_id, 1, 1.0f);
+        motion_blend_mot_load_file(v15->next->value, motion_id, MOTION_BLEND_FREEZE, 1.0f);
         sub_14041BA60(rob_bone_data);
         return;
     }
 
-    if (index != 2) {
-        if (index == 3)
-            index = 0;
+    if (motion_blend_type != MOTION_BLEND_CROSS) {
+        if (motion_blend_type == MOTION_BLEND_COMBINE)
+            motion_blend_type = MOTION_BLEND;
         rob_bone_data_motion_blend_mot_list_free(rob_bone_data, 1);
-        motion_blend_mot_load_file(rob_bone_data->motion_loaded.head->next->value, motion_id, index, 1.0f);
+        motion_blend_mot_load_file(rob_bone_data->motion_loaded.head->next->value, motion_id, motion_blend_type, 1.0f);
         return;
     }
 
@@ -3191,7 +3211,7 @@ void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data, int32_t
         motion_blend_mot* v6 = rob_bone_data->motion_loaded.head->next->value;
         rob_bone_data_motion_blend_mot_list_init(rob_bone_data);
         sub_140412BB0(rob_bone_data->motion_loaded.head->next->value, &v6->bone_data.bones);
-        motion_blend_mot_load_file(rob_bone_data->motion_loaded.head->next->value, motion_id, 2, 1.0f);
+        motion_blend_mot_load_file(rob_bone_data->motion_loaded.head->next->value, motion_id, MOTION_BLEND_CROSS, 1.0f);
         return;
     }
 
@@ -3201,7 +3221,7 @@ void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data, int32_t
         rob_bone_data_motion_blend_mot_list_free(rob_bone_data, 1);
         sub_14041AE40(rob_bone_data);
         list_ptr_motion_blend_mot_node* v15 = v7->head;
-        motion_blend_mot_load_file(v15->next->value, motion_id, 1, 1.0f);
+        motion_blend_mot_load_file(v15->next->value, motion_id, MOTION_BLEND_FREEZE, 1.0f);
         sub_14041BA60(rob_bone_data);
         return;
     }
@@ -3219,7 +3239,7 @@ void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data, int32_t
     v12->prev = v13;
     v13->prev->next = v13;
     sub_140412BB0(v7->head->next->value, &v9->bone_data.bones);
-    motion_blend_mot_load_file(v7->head->next->value, motion_id, 2, 1.0f);
+    motion_blend_mot_load_file(v7->head->next->value, motion_id, MOTION_BLEND_CROSS, 1.0f);
 }
 
 static void sub_14041BFC0(rob_chara_bone_data* rob_bone_data, int32_t motion_id) {
@@ -3352,7 +3372,7 @@ static void rob_chara_load_default_motion_sub(rob_chara* a1, int32_t a2, int32_t
     sub_14041D200(a1->bone_data, -1);
     sub_14041BDB0(a1->bone_data, -1);
     sub_14041BD20(a1->bone_data, -1);
-    rob_chara_bone_data_motion_load(a1->bone_data, motion_id, 1);
+    rob_chara_bone_data_motion_load(a1->bone_data, motion_id, MOTION_BLEND_FREEZE);
     rob_chara_bone_data_set_frame(a1->bone_data, 0.0f);
     sub_14041C680(a1->bone_data, 0);
     sub_14041C9D0(a1->bone_data, 0);
@@ -3419,8 +3439,8 @@ static bone_node* rob_chara_item_equip_object_get_bone_node(
 
 static bone_node* rob_chara_item_equip_object_get_bone_node_by_name(
     rob_chara_item_equip_object* a1, char* a2) {
-    int32_t(*rob_chara_item_equip_object_get_bone_index)(
-        rob_chara_item_equip_object * a1, char* a2) = (void*)0x00000001405F3400;
+    int32_t(*rob_chara_item_equip_object_get_bone_index)(rob_chara_item_equip_object * a1, char* a2)
+        = (int32_t(*)(rob_chara_item_equip_object * , char* ))0x00000001405F3400;
     return rob_chara_item_equip_object_get_bone_node(a1,
         rob_chara_item_equip_object_get_bone_index(a1, a2));
 }
@@ -3446,7 +3466,8 @@ static bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int3
 }
 
 static void sub_140517060(rob_chara* a1, bool a2) {
-    void(*sub_140543780)(int32_t a1, int32_t a2, char a3) = (void*)0x0000000140543780;
+    void(*sub_140543780)(int32_t a1, int32_t a2, char a3)
+        = (void(*)(int32_t, int32_t, char))0x0000000140543780;
 
     a1->data.field_0 &= ~1;
     a1->data.field_3 &= ~1;
@@ -3565,14 +3586,14 @@ static aft_object_info sub_140525C00(rob_chara_item_sub_data* a1, int32_t a2) {
         v6 = v3;
 
     if (v6 == v2)
-        return (aft_object_info) { -1, -1 };
+        return aft_object_info_null;
     else
         return *(aft_object_info*)&v6->value;
 }
 
 static aft_object_info sub_1405104C0(rob_chara* a1, int32_t a2) {
     if (a2 > 8)
-        return (aft_object_info) { -1, -1 };
+        return aft_object_info_null;
 
     aft_object_info v3 = sub_140525C00(&a1->item_sub_data, a2);
     if (v3.id == -1 && v3.set_id == -1)
@@ -3580,23 +3601,25 @@ static aft_object_info sub_1405104C0(rob_chara* a1, int32_t a2) {
     return v3;
 }
 
-static void sub_1405139E0(rob_chara_item_equip* a1, uint32_t a2, bool draw) {
-    a1->item_equip_object[a2].draw = draw;
+static void sub_1405139E0(rob_chara_item_equip* a1, uint32_t a2, bool disp) {
+    a1->item_equip_object[a2].disp = disp;
 }
 
-static void sub_140517120(rob_chara* a1, uint32_t a2, bool draw) {
+static void sub_140517120(rob_chara* a1, uint32_t a2, bool disp) {
     if (a2 < 31)
-        sub_1405139E0(a1->item_equip, a2, draw);
+        sub_1405139E0(a1->item_equip, a2, disp);
     else if (a2 == 31) {
-        void(*sub_140543780)(int32_t a1, int32_t a2, char a3) = (void*)0x0000000140543780;
-        void(*sub_1405430F0)(int32_t a1, int32_t a2) = (void*)0x00000001405430F0;
+        void(*sub_140543780)(int32_t a1, int32_t a2, char a3)
+            = (void(*)(int32_t, int32_t, char))0x0000000140543780;
+        void(*sub_1405430F0)(int32_t a1, int32_t a2)
+            = (void(*)(int32_t, int32_t))0x00000001405430F0;
 
         for (int32_t i = 1; i < 31; i++) {
-            sub_1405139E0(a1->item_equip, i, draw);
+            sub_1405139E0(a1->item_equip, i, disp);
             if (i == 1 && rob_chara_check_for_ageageagain_module(
                 a1->chara_index, a1->module_index)) {
-                sub_140543780(a1->chara_id, 1, draw);
-                sub_140543780(a1->chara_id, 2, draw);
+                sub_140543780(a1->chara_id, 1, disp);
+                sub_140543780(a1->chara_id, 2, disp);
                 sub_1405430F0(a1->chara_id, 1);
                 sub_1405430F0(a1->chara_id, 2);
             }
@@ -3605,12 +3628,14 @@ static void sub_140517120(rob_chara* a1, uint32_t a2, bool draw) {
 }
 
 void rob_chara_reset_data(rob_chara* a1, rob_chara_pv_data* a2) {
-    float_t(*sub_140228BD0)(vec3 * a1, float_t a2) = (void*)0x0000000140228BD0;
-    void(*sub_140505EA0)(rob_chara_data * a1) = (void*)0x0000000140505EA0;
-    struc_243* (*sub_140510550)(int32_t a1) = (void*)0x0000000140510550;
-    struc_241* (*sub_1405106E0)(int32_t a1) = (void*)0x00000001405106E0;
-    void(*rob_chara_load_motion)(rob_chara * a1, int32_t motion_id,
-        bool a3, float_t a4, int32_t a5) = (void*)0x00000001405552A0;
+    float_t(*sub_140228BD0)(vec3 * a1, float_t a2)
+        = (float_t(*)(vec3*, float_t))0x0000000140228BD0;
+    void(*sub_140505EA0)(rob_chara_data * a1)
+        = (void(*)(rob_chara_data*))0x0000000140505EA0;
+    struc_243* (*sub_140510550)(int32_t a1) = (struc_243 * (*)(int32_t))0x0000000140510550;
+    struc_241* (*sub_1405106E0)(int32_t a1) = (struc_241 * (*)(int32_t))0x00000001405106E0;
+    void(*rob_chara_load_motion)(rob_chara * a1, int32_t motion_id, bool a3, float_t a4, int32_t a5)
+        = (void(*)(rob_chara*, int32_t, bool, float_t, int32_t))0x00000001405552A0;
 
     int32_t v2 = a1->data.field_8.field_1CC;
     rob_chara_bone_data_reset(a1->bone_data);
@@ -3687,7 +3712,7 @@ static void rob_osage_node_data_init(rob_osage_node_data *node_data) {
     node_data->skp_osg_node.coli_r = 0.0f;
     node_data->skp_osg_node.weight = 1.0f;
     node_data->skp_osg_node.inertial_cancel = 0.0f;
-    node_data->skp_osg_node.hinge = (skin_param_hinge){ -90.0f, 90.0f, -90.0f, 90.0f };
+    node_data->skp_osg_node.hinge = { -90.0f, 90.0f, -90.0f, 90.0f };
     skin_param_hinge_limit(&node_data->skp_osg_node.hinge);
     node_data->normal_ref.field_0 = 0;
     node_data->normal_ref.n = 0;
@@ -3699,7 +3724,8 @@ static void rob_osage_node_data_init(rob_osage_node_data *node_data) {
 }
 
 static void rob_osage_node_init(rob_osage_node* node) {
-    void (*sub_14021DCC0)(vector_struc_331 * vec, size_t size) = (void*)0x000000014021DCC0;
+    void (*sub_14021DCC0)(vector_struc_331 * vec, size_t size)
+        = (void (*)(vector_struc_331*, size_t))0x000000014021DCC0;
     node->length = 0.0f;
     node->trans = vec3_null;
     node->trans_orig = vec3_null;
@@ -3737,7 +3763,7 @@ static void skin_param_init(skin_param* skp) {
     skp->stiffness = 0.0f;
     skp->move_cancel = -0.01f;
     skp->coli_r = 0.0;
-    skp->hinge = (skin_param_hinge){ -90.0f, 90.0f, -90.0f, 90.0f };
+    skp->hinge = { -90.0f, 90.0f, -90.0f, 90.0f };
     skin_param_hinge_limit(&skp->hinge);
     skp->force = 0.0f;
     skp->force_gain = 0.0f;
@@ -3745,9 +3771,11 @@ static void skin_param_init(skin_param* skp) {
 }
 
 static void rob_osage_init(rob_osage* rob_osg) {
-    void (*sub_140216750)(tree_struc_478 * a1, tree_struc_478_node * a2) = (void*)0x0000000140216750;
+    void (*sub_140216750)(tree_struc_478 * a1, tree_struc_478_node * a2)
+        = (void (*)(tree_struc_478*, tree_struc_478_node*))0x0000000140216750;
     void (*vector_rob_osage_node_clear)(vector_rob_osage_node * vec,
-        rob_osage_node * begin, rob_osage_node * end) = (void*)0x00000001404817E0;
+        rob_osage_node * begin, rob_osage_node * end)
+        = (void (*)(vector_rob_osage_node*, rob_osage_node*, rob_osage_node*))0x00000001404817E0;
 
     vector_rob_osage_node_clear(&rob_osg->nodes, rob_osg->nodes.begin, rob_osg->nodes.end);
     rob_osg->nodes.end = rob_osg->nodes.begin;
@@ -3806,9 +3834,13 @@ static void rob_osage_node_free(rob_osage_node* node) {
 
 static void rob_osage_free(rob_osage* rob_osg) {
     void (*sub_14021BEF0)(tree_struc_478 * a1, tree_struc_478_node * *a2,
-        tree_struc_478_node * a3, tree_struc_478_node * a4) = (void*)0x000000014021BEF0;
+        tree_struc_478_node * a3, tree_struc_478_node * a4)
+        = (void (*)(tree_struc_478*, tree_struc_478_node**,
+            tree_struc_478_node*, tree_struc_478_node*))0x000000014021BEF0;
     void (*vector_rob_osage_node_clear)(vector_rob_osage_node * vec,
-        rob_osage_node * begin, rob_osage_node * end) = (void*)0x00000001404817E0;
+        rob_osage_node * begin, rob_osage_node * end)
+        = (void (*)(vector_rob_osage_node*,
+            rob_osage_node*, rob_osage_node*))0x00000001404817E0;
 
     rob_osage_init(rob_osg);
 
@@ -4057,7 +4089,7 @@ static void rob_osage_set_wind_direction(rob_osage* osg_block_data, vec3* wind_d
 }
 
 static void ex_osage_block_set_wind_direction(ex_osage_block* osg) {
-    vec3* (*wind_task_struct_get_wind_direction)() = (void*)0x000000014053D560;
+    vec3* (*wind_task_struct_get_wind_direction)() = (vec3 * (*)())0x000000014053D560;
 
     vec3 wind_direction = *wind_task_struct_get_wind_direction();
     rob_chara_item_equip_object* item_equip_object = osg->base.item_equip_object;
@@ -4149,7 +4181,7 @@ static void sub_14047C800(rob_osage* rob_osg, mat4* mat,
     *rob_osg->nodes.begin->bone_node->ex_data_mat = v130;
     mat4_transpose(&v130, &v130);
 
-    v113 = (vec3){ 1.0f, 0.0f, 0.0f };
+    v113 = { 1.0f, 0.0f, 0.0f };
     vec3 v128;
     mat4_mult_vec3(&v130, &v113, &v128);
 
@@ -4992,7 +5024,7 @@ static void sub_140480260(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, flo
 }
 
 void ex_osage_block_field_18(ex_osage_block* osg, int32_t a2, bool a3) {
-    float_t(*get_delta_frame)() = (void*)0x0000000140192D50;
+    float_t(*get_delta_frame)() = (float_t(*)())0x0000000140192D50;
 
     rob_chara_item_equip* rob_item_equip = osg->base.item_equip_object->item_equip;
     float_t step = get_delta_frame() * rob_item_equip->step;
@@ -5046,9 +5078,9 @@ void ex_osage_block_update(ex_osage_block* osg) {
         return;
     }
 
-    float_t(*get_delta_frame) () = (void*)0x0000000140192D50;
-    void (*_sub_14047C750)(rob_osage * rob_osg, mat4 * mat,
-        vec3 * parent_scale, float_t step) = (void*)0x000000014047C770;
+    float_t(*get_delta_frame)() = (float_t(*)())0x0000000140192D50;
+    void (*_sub_14047C750)(rob_osage * rob_osg, mat4 * mat, vec3 * parent_scale, float_t step)
+        = (void (*)(rob_osage*, mat4*, vec3*, float_t))0x000000014047C770;
 
     rob_chara_item_equip* rob_item_equip = osg->base.item_equip_object->item_equip;
     float_t step = get_delta_frame() * rob_item_equip->step;
@@ -5079,7 +5111,8 @@ void ex_osage_block_update(ex_osage_block* osg) {
 }
 
 void ex_osage_block_field_28(ex_osage_block* osg) {
-    void (*sub_14047E240) (rob_osage * a1, mat4 * a2, vec3 * a3, vector_struc_373 * a4) = (void*)0x000000014047E240;
+    void (*sub_14047E240) (rob_osage * a1, mat4 * a2, vec3 * a3, vector_struc_373 * a4)
+        = (void (*) (rob_osage*, mat4*, vec3*, vector_struc_373*))0x000000014047E240;
 
     rob_chara_item_equip* rob_itm_equip = osg->base.item_equip_object->item_equip;
     bone_node* parent_node = osg->base.parent_bone_node;
@@ -5087,7 +5120,7 @@ void ex_osage_block_field_28(ex_osage_block* osg) {
     sub_14047E240(&osg->rob, parent_node->ex_data_mat, &parent_scale, &rob_itm_equip->field_940);
 }
 
-void ex_osage_block_draw(ex_osage_block* osg) {
+void ex_osage_block_disp(ex_osage_block* osg) {
 
 }
 
@@ -5097,7 +5130,7 @@ void ex_osage_block_reset(ex_osage_block* osg) {
     osg->field_1FF8 &= ~3;
     osg->mat = 0;
     osg->step = 1.0f;
-    osg->base.bone_node = 0;
+    osg->base.bone_node_ptr = 0;
 }
 
 void ex_osage_block_field_40(ex_osage_block* osg) {
@@ -5105,7 +5138,8 @@ void ex_osage_block_field_40(ex_osage_block* osg) {
 }
 
 void ex_osage_block_field_48(ex_osage_block* osg) {
-    void (*sub_14047F990) (rob_osage * a1, mat4 * a2, vec3 * a3, bool a4) = (void*)0x000000014047F990;
+    void (*sub_14047F990) (rob_osage * a1, mat4 * a2, vec3 * a3, bool a4)
+        = (void (*) (rob_osage*, mat4*, vec3*, bool))0x000000014047F990;
 
     osg->step = 4.0f;
     ex_osage_block_set_wind_direction(osg);
@@ -5123,7 +5157,8 @@ void ex_osage_block_field_50(ex_osage_block* osg) {
     }
 
     void (*sub_14047C770) (rob_osage * rob_osg, mat4 * mat,
-        vec3 * parent_scale, float_t step, bool a5) = (void*)0x000000014047C770;
+        vec3 * parent_scale, float_t step, bool a5)
+        = (void(*) (rob_osage*, mat4*, vec3*, float_t, bool))0x000000014047C770;
 
     ex_osage_block_set_wind_direction(osg);
 
@@ -5136,7 +5171,8 @@ void ex_osage_block_field_50(ex_osage_block* osg) {
 }
 
 void ex_osage_block_field_58(ex_osage_block* osg) {
-    void (*sub_14047E1C0) (rob_osage * a1, vec3 * a2) = (void*)0x000000014047E1C0;
+    void (*sub_14047E1C0) (rob_osage * a1, vec3 * a2)
+        = (void (*) (rob_osage*, vec3*))0x000000014047E1C0;
 
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;

@@ -149,7 +149,7 @@ static void dds_reverse_rgb(txp_format format, ssize_t size, uint8_t* data);
 static bool dds_check_is_dxt1a(ssize_t size, uint8_t* data);
 
 dds* dds_init() {
-    dds* d = force_malloc(sizeof(dds));
+    dds* d = force_malloc_s(dds, 1);
     return d;
 }
 
@@ -264,8 +264,8 @@ void dds_wread(dds* d, wchar_t* path) {
                 void* data = force_malloc(size);
                 io_read(&s, data, size);
                 if (reverse)
-                    dds_reverse_rgb(d->format, size, data);
-                else if (d->format == TXP_DXT1 && dds_check_is_dxt1a(size, data))
+                    dds_reverse_rgb(d->format, size, (uint8_t*)data);
+                else if (d->format == TXP_DXT1 && dds_check_is_dxt1a(size, (uint8_t*)data))
                     d->format = TXP_DXT1a;
                 vector_ptr_void_push_back(&d->data, &data);
             }
@@ -366,7 +366,7 @@ void dds_wwrite(dds* d, wchar_t* path) {
                     max(d->width >> i, 1), max(d->height >> i, 1));
                 void* data = force_malloc(size);
                 memcpy(data, d->data.begin[index], size);
-                dds_reverse_rgb(d->format, size, data);
+                dds_reverse_rgb(d->format, size, (uint8_t*)data);
                 io_write(&s, data, size);
                 free(data);
                 index++;

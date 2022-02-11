@@ -8,7 +8,7 @@
 const int32_t MSEED = 0x09A4EC86;
 
 random* random_init(int32_t seed) {
-    random* r = force_malloc(sizeof(random));
+    random* r = force_malloc_s(random, 1);
 
     int32_t ii;
     int32_t mj, mk;

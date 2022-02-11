@@ -36,7 +36,7 @@ typedef struct farc_file {
     string name;
     void* data;
     void* data_compressed;
-    farc_flags type;
+    farc_flags flags;
     bool data_changed;
 } farc_file;
 
@@ -57,7 +57,9 @@ extern void farc_read(farc* f, char* path, bool unpack, bool save);
 extern void farc_wread(farc* f, wchar_t* path, bool unpack, bool save);
 extern void farc_mread(farc* f, void* data, size_t length, bool unpack);
 extern farc_file* farc_read_file(farc* f, char* name);
+extern farc_file* farc_read_file(farc* f, const char* name);
 extern farc_file* farc_wread_file(farc* f, wchar_t* name);
+extern farc_file* farc_wread_file(farc* f, const wchar_t* name);
 extern void farc_write(farc* f, char* path, farc_compress_mode mode, bool get_files);
 extern void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode, bool get_files);
 extern void farc_mwrite(farc* f, void** data, size_t* length, farc_compress_mode mode);

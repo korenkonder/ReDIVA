@@ -78,9 +78,9 @@ static int data_test_auth_3d_test_uid_quicksort_compare_func(void const* src1, v
 bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
     bool ret = false;
     lock_trylock(&pv_lock);
-    data->data = force_malloc(sizeof(data_test_auth_3d_test));
+    data->data = force_malloc_s(data_test_auth_3d_test, 1);
 
-    data_test_auth_3d_test* auth_3d_test = data->data;
+    data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
     if (auth_3d_test) {
         auth_3d_database* auth_3d_db = &rctx->data->data_ft.auth_3d_db;
         vector_auth_3d_database_category* auth_3d_db_cat = &auth_3d_db->category;
@@ -122,15 +122,15 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
         auth_3d_test->auth_3d_index = -1;
         auth_3d_test->stage_index = -1;
 
-        stage* stg = rctx->stage;
-        if (stg && !stg->modern && stg->stage) {
-            stage_info* info = stg->stage;
+        stage* stg = (stage*)rctx->stage;
+        if (stg && !stg->modern && stg->stage_classic) {
+            stage_info* info = stg->stage_classic;
             data_struct* aft_data = rctx->data;
             stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
-            for (stage_info* i = aft_stage_data->stage.begin; i != aft_stage_data->stage.end; i++)
+            for (stage_info* i = aft_stage_data->stage_classic.begin; i != aft_stage_data->stage_classic.end; i++)
                 if (info == i) {
-                    auth_3d_test->stage_index = (int32_t)(i - aft_stage_data->stage.begin);
+                    auth_3d_test->stage_index = (int32_t)(i - aft_stage_data->stage_classic.begin);
                     break;
                 }
         }
@@ -155,11 +155,11 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
         stage_database* stage_data = &rctx->data->data_ft.stage_data;
 
         auth_3d_test->stage = vector_ptr_empty(char);
-        vector_ptr_char_reserve(&auth_3d_test->stage, vector_length(stage_data->stage));
-        for (stage_info* i = stage_data->stage.begin; i != stage_data->stage.end; i++)
+        vector_ptr_char_reserve(&auth_3d_test->stage, vector_length(stage_data->stage_classic));
+        for (stage_info* i = stage_data->stage_classic.begin; i != stage_data->stage_classic.end; i++)
             *vector_ptr_char_reserve_back(&auth_3d_test->stage) = string_data(&i->name);
 
-        auth_3d_test->a3d_stage_window_pos = (vec2){ 200.0f, 100.0f };
+        auth_3d_test->a3d_stage_window_pos = { 200.0f, 100.0f };
 
         auth_3d_test->trans_x = 0.0f;
         auth_3d_test->trans_z = 0.0f;
@@ -172,11 +172,11 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
 }
 
 bool data_test_auth_3d_test_hide(class_data* data) {
-    data_test_auth_3d_test* auth_3d_test = data->data;
+    data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
     if (!auth_3d_test)
         return true;
 
-    lock_data_free(&stage_data_lock, data_test_auth_3d_test_hide);
+    lock_data_free(&stage_data_lock, (void(*)(void*))data_test_auth_3d_test_hide);
 
     render_context* rctx = auth_3d_test->rctx;
 
@@ -193,8 +193,8 @@ bool data_test_auth_3d_test_hide(class_data* data) {
     auth_3d_test->auth_3d_index = -1;
     auth_3d_test->auth_3d_uid = -1;
 
-    data->flags &= ~CLASS_HIDE;
-    data->flags |= CLASS_HIDDEN;
+    enum_and(data->flags, ~CLASS_HIDE);
+    enum_or(data->flags, CLASS_HIDDEN);
     return true;
 }
 
@@ -207,7 +207,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     float_t h = min((float_t)height, 316.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
@@ -216,15 +216,20 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(data_test_auth_3d_test_window_title, &open, window_flags);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
-    data_test_auth_3d_test* auth_3d_test = data->data;
-    if (!auth_3d_test)
-        goto End;
+    data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
+    if (!auth_3d_test) {
+        igEnd();
+        return;
+    }
 
     vector_data_test_auth_3d_test_category* auth_3d_db_cat = &auth_3d_test->category;
 
@@ -336,13 +341,13 @@ void data_test_auth_3d_test_imgui(class_data* data) {
         if (igIsItemActivated())
             auth->paused = true;
 
-        if (igButton("|<<", (ImVec2) { 32.0, 0.0f }))
+        if (igButton("|<<", { 32.0, 0.0f }))
             frame = 0.0f;
         igSameLine(0.0f, -1.0f);
-        if (igButton(auth->paused ? " > " : "||", (ImVec2) { 32.0, 0.0f }))
+        if (igButton(auth->paused ? " > " : "||", { 32.0, 0.0f }))
             auth->paused = auth->paused ? false : true;
         igSameLine(0.0f, -1.0f);
-        if (igButton(">>|", (ImVec2) { 32.0, 0.0f }))
+        if (igButton(">>|", { 32.0, 0.0f }))
             frame = last_frame;
         igSameLine(0.0f, -1.0f);
         igCheckbox("repeat", &auth->repeat);
@@ -366,11 +371,11 @@ void data_test_auth_3d_test_imgui(class_data* data) {
             0.0f, 0.0f, "%5.0f", 0);
 
         igPushItemFlag(ImGuiItemFlags_Disabled, true);
-        igButton("|<<", (ImVec2) { 32.0, 0.0f });
+        igButton("|<<", { 32.0, 0.0f });
         igSameLine(0.0f, -1.0f);
-        igButton(" > ", (ImVec2) { 32.0, 0.0f });
+        igButton(" > ", { 32.0, 0.0f });
         igSameLine(0.0f, -1.0f);
-        igButton(">>|", (ImVec2) { 32.0, 0.0f });
+        igButton(">>|", { 32.0, 0.0f });
         igSameLine(0.0f, -1.0f);
         igCheckbox("repeat", &repeat);
         igCheckbox("Left Right Reverse", &left_right_reverse);
@@ -381,13 +386,15 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     imguiColumnSliderFloat("transZ", &auth_3d_test->trans_z, 0.1f, -5.0f, 5.0f, "%.2f", 0, true);
     imguiColumnSliderFloat("rotY", &auth_3d_test->rot_y, 1.0f, -360.0f, 360.0f, "%.0f", 0, true);
 
-    if (igButton("cam reset", (ImVec2) { 72.0f, 0.0f })
+    if (igButton("cam reset", { 72.0f, 0.0f })
         && auth_3d_test->rctx && auth_3d_test->rctx->camera) {
         camera* cam = auth_3d_test->rctx->camera;
         camera_set_fov(cam, 32.2673416137695);
         camera_set_roll(cam, 0.0);
-        camera_set_interest(cam, &((vec3) { 0.0, 1.0f, 0.0f }));
-        camera_set_view_point(cam, &((vec3) { 0.0, 1.0f, 6.0f }));
+        vec3 view_point = { 0.0f, 1.0f, 6.0f };
+        camera_set_view_point(cam, &view_point);
+        vec3 interest = { 0.0f, 1.0f, 0.0f };
+        camera_set_interest(cam, &interest);
     }
 
     igSeparator();
@@ -403,17 +410,17 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     w = min((float_t)width, auth_3d_test->a3d_stage_window_pos.x);
     h = min((float_t)height, auth_3d_test->a3d_stage_window_pos.y);
 
-    igSetNextWindowPos((ImVec2) { x, y }, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
+    igSetNextWindowPos({ x, y }, ImGuiCond_Appearing, ImVec2_Empty);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
     window_flags |= ImGuiWindowFlags_NoCollapse;
 
     if (igBegin("A3D STAGE", 0, window_flags)) {
-        stage* stg = auth_3d_test->rctx->stage;
+        stage* stg = (stage*)auth_3d_test->rctx->stage;
         if (!stg)
-            if (stage_test_data.stage)
+            if (stage_test_data.stage_classic)
                 stg = &stage_test_data;
             else
                 stg = &stage_stgtst;
@@ -455,8 +462,6 @@ void data_test_auth_3d_test_imgui(class_data* data) {
 
         data->imgui_focus |= igIsWindowFocused(0);
     }
-
-End:
     igEnd();
 }
 
@@ -465,7 +470,7 @@ void data_test_auth_3d_test_input(class_data* data) {
 }
 
 void data_test_auth_3d_test_render(class_data* data) {
-    data_test_auth_3d_test* auth_3d_test = data->data;
+    data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
     if (!auth_3d_test)
         return;
 
@@ -485,9 +490,10 @@ void data_test_auth_3d_test_render(class_data* data) {
         else
             string_init(&name, uid_name);
 
-        for (stage_info* i = aft_stage_data->stage.begin; i != aft_stage_data->stage.end; i++)
+        for (stage_info* i = aft_stage_data->stage_classic.begin;
+            i != aft_stage_data->stage_classic.end; i++)
             if (string_compare(&name, &i->name)) {
-                int32_t stage_index = (int32_t)(i - aft_stage_data->stage.begin);
+                int32_t stage_index = (int32_t)(i - aft_stage_data->stage_classic.begin);
                 if (stage_index != auth_3d_test->stage_index)
                     auth_3d_test->stage_load = true;
                 auth_3d_test->stage_index = stage_index;
@@ -542,20 +548,20 @@ void data_test_auth_3d_test_render(class_data* data) {
         mat4 mat;
         mat4_translate(auth_3d_test->trans_x, 0.0f, auth_3d_test->trans_z, &mat);
         mat4_rotate_y_mult(&mat, auth_3d_test->rot_y * DEG_TO_RAD_FLOAT, &mat);
-        auth_3d_time_step(auth, &mat);
+        auth_3d_ctrl(auth, &mat, auth_3d_test->rctx);
 
-        auth_3d_data_set(auth, &mat, auth_3d_test->rctx);
+        auth_3d_disp(auth, &mat, auth_3d_test->rctx);
     }
 }
 
 bool data_test_auth_3d_test_show(class_data* data) {
-    data_test_auth_3d_test* auth_3d_test = data->data;
+    data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
     if (!auth_3d_test)
         return false;
 
     bool ret = false;
     lock_trylock(&pv_lock);
-    if (!lock_data_init(&stage_data_lock, &data->lock, data, data_test_auth_3d_test_hide))
+    if (!lock_data_init(&stage_data_lock, &data->lock, data, (void(*)(void*))data_test_auth_3d_test_hide))
         goto End;
 
     ret = true;
@@ -566,7 +572,7 @@ End:
 }
 
 bool data_test_auth_3d_test_dispose(class_data* data) {
-    data_test_auth_3d_test* auth_3d_test = data->data;
+    data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
     if (auth_3d_test) {
         memset(auth_3d_test->stage.begin, 0, sizeof(char*) * vector_length(auth_3d_test->stage));
 

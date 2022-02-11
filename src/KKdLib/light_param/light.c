@@ -97,7 +97,7 @@ bool light_param_light_load_file(void* data, char* path, char* file, uint32_t ha
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    light_param_light* light = data;
+    light_param_light* light = (light_param_light*)data;
     light_param_light_read(light, string_data(&s));
 
     string_free(&s);
@@ -109,7 +109,7 @@ void light_param_light_free(light_param_light* light) {
 }
 
 static void light_param_light_read_inner(light_param_light* light, stream* s) {
-    char* data = force_malloc(s->length + 1);
+    char* data = force_malloc_s(char, s->length + 1);
     io_read(s, data, s->length);
     data[s->length] = 0;
 
@@ -275,13 +275,13 @@ End:
 static void light_param_light_write_inner(light_param_light* light, stream* s) {
     char buf[0x100];
 
-    for (int32_t i = 0; i < LIGHT_SET_MAX; i++) {
+    for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++) {
         light_param_light_group* group = &light->group[i];
         io_write(s, "group_start", 11);
         light_param_light_write_int32_t(s, buf, sizeof(buf), i);
         io_write_char(s, '\n');
 
-        for (int32_t j = 0; j < LIGHT_MAX; j++) {
+        for (int32_t j = LIGHT_CHARA; j < LIGHT_MAX; j++) {
             light_param_light_data* light = &group->data[j];
             io_write(s, "id_start", 8);
             light_param_light_write_int32_t(s, buf, sizeof(buf), j);

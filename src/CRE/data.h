@@ -107,11 +107,22 @@ extern data_struct data_list[];
 
 extern void data_struct_init();
 extern void data_struct_load(char* path);
+extern void data_struct_load(const char* path);
 extern void data_struct_wload(wchar_t* path);
+extern void data_struct_wload(const wchar_t* path);
 extern void data_struct_get_directory_files(data_struct* c, char* dir, vector_data_struct_file* data_files);
+extern void data_struct_get_directory_files(data_struct* c, const char* dir, vector_data_struct_file* data_files);
 extern bool data_struct_load_file(data_struct* c, void* data, char* dir, char* file,
     bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
+extern bool data_struct_load_file(data_struct* c, void* data, char* dir, const char* file,
+    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
+extern bool data_struct_load_file(data_struct* c, void* data, const char* dir, char* file,
+    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
+extern bool data_struct_load_file(data_struct* c, void* data, const char* dir, const char* file,
+    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
 extern bool data_struct_load_file_by_hash(data_struct* c, void* data, char* dir, uint32_t hash,
+    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
+extern bool data_struct_load_file_by_hash(data_struct* c, void* data, const char* dir, uint32_t hash,
     bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
 extern void data_struct_free();
 

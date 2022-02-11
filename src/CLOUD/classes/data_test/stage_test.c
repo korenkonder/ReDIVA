@@ -57,11 +57,11 @@ static int data_test_stage_test_stage_pv_quicksort_compare_func(void const* src1
 static void data_test_stage_test_stage_pv_free(data_test_stage_test_stage_pv* pv);
 
 bool data_test_stage_test_init(class_data* data, render_context* rctx) {
-    data->data = force_malloc(sizeof(data_test_stage_test));
+    data->data = force_malloc_s(data_test_stage_test, 1);
 
-    data_test_stage_test* stage_test = data->data;
+    data_test_stage_test* stage_test = (data_test_stage_test*)data->data;
     if (stage_test) {
-        vector_stage_info* stg_info = &rctx->data->data_ft.stage_data.stage;
+        vector_stage_info* stg_info = &rctx->data->data_ft.stage_data.stage_classic;
 
         stage_test->pv_id = -1;
         stage_test->pv_index = -1;
@@ -152,14 +152,14 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
         if (vector_length(*stage_pv)) 
             stage_test->pv_id = stage_pv->begin[0].pv_id;
 
-        stage* stg = rctx->stage;
-        if ((stg && !stg->modern && stg->stage) || !stg) {
+        stage* stg = (stage*)rctx->stage;
+        if ((stg && !stg->modern && stg->stage_classic) || !stg) {
             if (!stg) {
                 stg = &stage_stgtst;
                 stage_set(&stage_stgtst, rctx);
             }
 
-            stage_info* info = stg->stage;
+            stage_info* info = stg->stage_classic;
             if (info - stg_info->begin >= 0 && info - stg_info->begin < vector_length(*stg_info)) {
                 stage_test->stage_index = (int32_t)(info - stg_info->begin);
                 stage_test->stage_name = string_data(&info->name);
@@ -170,14 +170,14 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
 }
 
 bool data_test_stage_test_hide(class_data* data) {
-    data_test_stage_test* stage_test = data->data;
+    data_test_stage_test* stage_test = (data_test_stage_test*)data->data;
     if (!stage_test)
         return false;
 
-    lock_data_free(&stage_data_lock, data_test_stage_test_hide);
+    lock_data_free(&stage_data_lock, (void(*)(void*))data_test_stage_test_hide);
 
-    data->flags &= ~CLASS_HIDE;
-    data->flags |= CLASS_HIDDEN;
+    enum_and(data->flags, ~CLASS_HIDE);
+    enum_or(data->flags, CLASS_HIDDEN);
     return true;
 }
 
@@ -190,7 +190,7 @@ void data_test_stage_test_imgui(class_data* data) {
     float_t h = min((float_t)height, 240.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
@@ -199,15 +199,18 @@ void data_test_stage_test_imgui(class_data* data) {
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(data_test_stage_test_window_title, &open, window_flags);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
-    data_test_stage_test* stage_test = data->data;
+    data_test_stage_test* stage_test = (data_test_stage_test*)data->data;
 
-    vector_stage_info* stg_info = &stage_test->rctx->data->data_ft.stage_data.stage;
+    vector_stage_info* stg_info = &stage_test->rctx->data->data_ft.stage_data.stage_classic;
 
     vector_data_test_stage_test_stage_pv* stage_pv = &stage_test->stage_pv;
     vector_string* stage_ns = &stage_test->stage_ns;
@@ -387,9 +390,9 @@ void data_test_stage_test_imgui(class_data* data) {
         stage_test->stage_index = stage_index;
     }
 
-    stage* stg = stage_test->rctx->stage;
+    stage* stg = (stage*)stage_test->rctx->stage;
     if (!stg)
-        if (stage_test_data.stage)
+        if (stage_test_data.stage_classic)
             stg = &stage_test_data;
         else
             stg = &stage_stgtst;
@@ -401,8 +404,6 @@ void data_test_stage_test_imgui(class_data* data) {
     igCheckbox("Effects display", &stg->effects);
 
     data->imgui_focus |= igIsWindowFocused(0);
-
-End:
     igEnd();
 }
 
@@ -411,7 +412,7 @@ void data_test_stage_test_input(class_data* data) {
 }
 
 void data_test_stage_test_render(class_data* data) {
-    data_test_stage_test* stage_test = data->data;
+    data_test_stage_test* stage_test = (data_test_stage_test*)data->data;
 
     if (stage_test->stage_load) {
         render_context* rctx = stage_test->rctx;
@@ -434,13 +435,13 @@ void data_test_stage_test_render(class_data* data) {
 }
 
 bool data_test_stage_test_show(class_data* data) {
-    data_test_stage_test* stage_test = data->data;
+    data_test_stage_test* stage_test = (data_test_stage_test*)data->data;
     if (!stage_test)
         return false;
 
     bool ret = false;
     lock_trylock(&pv_lock);
-    if (!lock_data_init(&stage_data_lock, &data->lock, data, data_test_stage_test_hide))
+    if (!lock_data_init(&stage_data_lock, &data->lock, data, (void(*)(void*))data_test_stage_test_hide))
         goto End;
 
     ret = true;
@@ -451,9 +452,9 @@ End:
 }
 
 bool data_test_stage_test_dispose(class_data* data) {
-    lock_data_free(&stage_data_lock, data_test_stage_test_dispose);
+    lock_data_free(&stage_data_lock, (void(*)(void*))data_test_stage_test_dispose);
 
-    data_test_stage_test* stage_test = data->data;
+    data_test_stage_test* stage_test = (data_test_stage_test*)data->data;
     if (stage_test) {
         vector_data_test_stage_test_stage_pv_free(&stage_test->stage_pv,
             data_test_stage_test_stage_pv_free);
@@ -462,7 +463,7 @@ bool data_test_stage_test_dispose(class_data* data) {
     }
     free(data->data);
 
-    data->flags = CLASS_HIDDEN | CLASS_DISPOSED;
+    data->flags = (class_flags)(CLASS_HIDDEN | CLASS_DISPOSED);
     data->imgui_focus = false;
     return true;
 }

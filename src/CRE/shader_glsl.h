@@ -16,7 +16,7 @@
 #define SHADER_PARAM_NUM_PARAMS 12
 
 typedef struct shader_glsl_param {
-    char* name;
+    const char* name;
     char* frag;
     char* vert;
     char* param[SHADER_PARAM_NUM_PARAMS];
@@ -45,7 +45,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_bool(s, name, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform1i(location, value ? 1 : 0); \
@@ -54,7 +54,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_int(s, name, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform1i(location, value); \
@@ -63,7 +63,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_float(s, name, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform1f(location, value); \
@@ -72,7 +72,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec2i(s, name, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform2i(location, (value).x, (value).y); \
@@ -81,7 +81,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec2i_value(s, name, x, y) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform2i(location, (x), (y)); \
@@ -90,7 +90,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec2(s, name, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform2f(location, (value).x, (value).y); \
@@ -99,7 +99,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec2_value(s, name, x, y) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform2f(location, (x), (y)); \
@@ -108,7 +108,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec3i(s, name, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform3i(location, (value).x, (value).y, (value).z); \
@@ -117,7 +117,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec3i_value(s, name, x, y, z) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform3i(location, (x), (y), (z)); \
@@ -126,7 +126,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec3(s, name, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform3f(location, (value).x, (value).y, (value).z); \
@@ -135,7 +135,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec3_value(s, name, x, y, z) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform3f(location, (x), (y), (z)); \
@@ -144,7 +144,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec4i(s, name, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform4i(location, (value).x, (value).y, (value).z, (value).w); \
@@ -153,7 +153,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec4i_value(s, name, x, y, z, w) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform4i(location, (x), (y), (z), (w)); \
@@ -162,7 +162,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec4(s, name, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform4f(location, (value).x, (value).y, (value).z, (value).w); \
@@ -171,7 +171,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec4_value(s, name, x, y, z, w) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform4f(location, (x), (y), (z), (w)); \
@@ -180,7 +180,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_mat3(s, name, transpose, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniformMatrix3fv(location, 1, transpose, (GLfloat*)&(value)); \
@@ -189,7 +189,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_mat4(s, name, transpose, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniformMatrix4fv(location, 1, transpose, (GLfloat*)&(value)); \
@@ -198,7 +198,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_int_array(s, name, count, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform1iv(location, count, value); \
@@ -207,7 +207,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_float_array(s, name, count, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform1fv(location, count, value); \
@@ -216,7 +216,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec2i_array(s, name, count, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform2iv(location, count, (GLint*)value); \
@@ -225,7 +225,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec2_array(s, name, count, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform2fv(location, count, (GLfloat*)value); \
@@ -234,7 +234,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec3i_array(s, name, count, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform3iv(location, count, (GLint*)value); \
@@ -243,7 +243,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec3_array(s, name, count, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform3fv(location, count, (GLfloat*)value); \
@@ -252,7 +252,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_vec4i_array(s, name, count, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform4iv(location, count, (GLint*)value); \
@@ -261,7 +261,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
     #define shader_glsl_set_vec4_array(s, name, count, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniform4fv(location, count, (GLfloat*)value); \
@@ -270,7 +270,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_mat3_array(s, name, count, transpose, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniformMatrix3fv(location, count, transpose, (GLfloat*)value); \
@@ -279,7 +279,7 @@ extern void shader_glsl_free(shader_glsl* s);
 
 #define shader_glsl_set_mat4_array(s, name, count, transpose, value) \
 { \
-    int32_t location = shader_glsl_get_uniform_location(s, name); \
+    int32_t location = shader_glsl_get_uniform_location(s, (GLchar*)name); \
     if (location != GL_INVALID_INDEX) { \
         shader_glsl_use(s); \
         glUniformMatrix4fv(location, count, transpose, (GLfloat*)value); \

@@ -121,14 +121,14 @@ bool igSliderFloatButton(const char* label, float_t* val, float_t step,
     igPushID_Str(label);
     igBeginGroup();
     igPushButtonRepeat(true);
-    igButtonEx("<", (ImVec2) { button_size, button_size }, ImGuiButtonFlags_Repeat);
+    igButtonEx("<", { button_size, button_size }, ImGuiButtonFlags_Repeat);
     bool l = igIsItemActive() && (igIsKeyPressed(VK_RETURN, true)
         || igIsMouseClicked(ImGuiMouseButton_Left, true));
     igSameLine(0.0f, 0.0f);
     igSetNextItemWidth(w - button_size * 2.0f);
     igSliderScalar(label, ImGuiDataType_Float, &v, &min, &max, format, flags);
     igSameLine(0.0f, 0.0f);
-    igButtonEx(">", (ImVec2) { button_size, button_size }, ImGuiButtonFlags_Repeat);
+    igButtonEx(">", { button_size, button_size }, ImGuiButtonFlags_Repeat);
     bool r = igIsItemActive() && (igIsKeyPressed(VK_RETURN, true)
         || igIsMouseClicked(ImGuiMouseButton_Left, true));
     igPopButtonRepeat();
@@ -171,14 +171,14 @@ bool igSliderIntButton(const char* label, int32_t* val,
     igPushID_Str(label);
     igBeginGroup();
     igPushButtonRepeat(true);
-    igButtonEx("<", (ImVec2) { button_size, button_size }, ImGuiButtonFlags_Repeat);
+    igButtonEx("<", { button_size, button_size }, ImGuiButtonFlags_Repeat);
     bool l = igIsItemActive() && (igIsKeyPressed(VK_RETURN, true)
         || igIsMouseClicked(ImGuiMouseButton_Left, true));
     igSameLine(0.0f, 0.0f);
     igSetNextItemWidth(w - button_size * 2.0f);
     igSliderScalar(label, ImGuiDataType_S32, &v, &min, &max, format, flags);
     igSameLine(0.0f, 0.0f);
-    igButtonEx(">", (ImVec2) { button_size, button_size }, ImGuiButtonFlags_Repeat);
+    igButtonEx(">", { button_size, button_size }, ImGuiButtonFlags_Repeat);
     bool r = igIsItemActive() && (igIsKeyPressed(VK_RETURN, true)
         || igIsMouseClicked(ImGuiMouseButton_Left, true));
     igPopButtonRepeat();
@@ -447,7 +447,7 @@ bool imguiComboBoxConfigFile(const char* label, void* items, const size_t size,
         return false;
     }
 
-    data_struct_file* items_ds = items;
+    data_struct_file* items_ds = (data_struct_file*)items;
     if (igBeginCombo(label, string_data(&items_ds[*selected_idx].name), flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {

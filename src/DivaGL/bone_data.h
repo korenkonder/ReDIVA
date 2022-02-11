@@ -2440,7 +2440,7 @@ typedef struct motion_blend_combine {
 } motion_blend_combine;
 
 typedef struct struc_400 {
-    char field_0;
+    uint8_t field_0;
     char field_1;
     char field_2;
     char field_3;
@@ -2868,7 +2868,7 @@ typedef struct ex_node_block_vtbl {
 
 struct ex_node_block {
     ex_node_block_vtbl* __vftable;
-    bone_node* bone_node;
+    bone_node* bone_node_ptr;
     ex_node_type type;
     char* name;
     bone_node* parent_bone_node;
@@ -3644,7 +3644,7 @@ struct rob_chara_item_equip_object {
     bone_node_expression_data exp_data;
     float_t alpha;
     draw_task_flags draw_task_flags;
-    bool draw;
+    bool disp;
     int32_t field_A4;
     mat4* field_A8;
     int32_t field_B0;
@@ -3727,7 +3727,8 @@ struct rob_chara_item_equip {
 extern void bone_data_mult_ik(bone_data* a1, int32_t a2);
 extern void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool solve_ik);
 extern void bone_data_mult_2(rob_chara_bone_data* a1, mat4* a2);
-extern void rob_chara_bone_data_motion_load(rob_chara_bone_data* a1, int32_t motion_id, int32_t a3);
+extern void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data,
+    int32_t motion_id, motion_blend_type blend_type);
 extern void rob_chara_bone_data_interpolate(rob_chara_bone_data* a1);
 extern void rob_chara_bone_data_update(rob_chara_bone_data* a1, mat4* a2);
 extern void rob_chara_reset_data(rob_chara* a1, rob_chara_pv_data* a2);
@@ -3739,7 +3740,7 @@ extern void ex_osage_block_field_8(ex_osage_block* osg);
 extern void ex_osage_block_field_18(ex_osage_block* osg, int32_t a2, bool a3);
 extern void ex_osage_block_update(ex_osage_block* osg);
 extern void ex_osage_block_field_28(ex_osage_block* osg);
-extern void ex_osage_block_draw(ex_osage_block* osg);
+extern void ex_osage_block_disp(ex_osage_block* osg);
 extern void ex_osage_block_reset(ex_osage_block* osg);
 extern void ex_osage_block_field_40(ex_osage_block* osg);
 extern void ex_osage_block_field_48(ex_osage_block* osg);

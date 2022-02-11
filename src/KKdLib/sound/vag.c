@@ -105,7 +105,7 @@ static void calculate_4_bits_hevag_inner(int32_t* data, int8_t* four_bit, int32_
     int32_t* shift_factor, int32_t* v, int32_t* tv, int32_t* os, int32_t* ots);
 
 vag* vag_init() {
-    vag* v = force_malloc(sizeof(vag));
+    vag* v = force_malloc_s(vag, 1);
     return v;
 }
 
@@ -147,7 +147,7 @@ void vag_wread(vag* v, wchar_t* path) {
         size_t num_blocks = (v->size / v->channels) >> 4;
         int32_t* samp = force_malloc_s(int32_t, ch * 4);
         float_t* data = force_malloc_s(float_t, num_blocks * vag_block_size);
-        uint8_t* flags = force_malloc(num_blocks);
+        uint8_t* flags = force_malloc_s(uint8_t, num_blocks);
 
         uint8_t nibble[BLOCK_SIZE];
         float_t* temp_data = data;
@@ -491,7 +491,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
     }
 
     l = false;
-    *flags = force_malloc(*samples / BLOCK_SIZE);
+    *flags = force_malloc_s(uint8_t, *samples / BLOCK_SIZE);
     uint8_t* f = *flags;
     for (size_t i = 0; i < count; i++) {
         size_t num_blocks;

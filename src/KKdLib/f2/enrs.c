@@ -26,7 +26,7 @@ void enrs_apply(vector_enrs_entry* enrs, void* data) {
     if (!enrs || !data)
         return;
 
-    uint8_t* d = data;
+    uint8_t* d = (uint8_t*)data;
     uint8_t* temp;
     for (enrs_entry* i = enrs->begin; i != enrs->end; i++) {
         d += i->offset;
@@ -204,6 +204,11 @@ void enrs_free(vector_enrs_entry* e) {
     for (enrs_entry* i = e->begin; i != e->end; i++)
         vector_enrs_sub_entry_free(&i->sub, 0);
     vector_enrs_entry_free(e, 0);
+}
+
+inline void vector_enrs_sub_entry_append(vector_enrs_sub_entry* enrs_sub,
+    uint32_t skip_bytes, uint32_t repeat_count, enrs_type type) {
+    *vector_enrs_sub_entry_reserve_back(enrs_sub) = { skip_bytes, repeat_count, type };
 }
 
 inline static bool enrs_length_get_size_type(uint32_t* length, size_t val) {

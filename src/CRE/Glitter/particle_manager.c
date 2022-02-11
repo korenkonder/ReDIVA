@@ -12,7 +12,7 @@
 #include "scene.h"
 
 glitter_particle_manager* glitter_particle_manager_init() {
-    glitter_particle_manager* gpm = force_malloc(sizeof(glitter_particle_manager));
+    glitter_particle_manager* gpm = force_malloc_s(glitter_particle_manager, 1);
     gpm->delta_frame = 2.0f;
     gpm->emission = 1.0f;
     gpm->random.value = 0;
@@ -23,7 +23,7 @@ glitter_particle_manager* glitter_particle_manager_init() {
     return gpm;
 }
 
-void glitter_particle_manager_calc_draw(GPM) {
+void glitter_particle_manager_calc_disp(GPM) {
     glitter_scene** i;
     glitter_scene* scene;
     glitter_scene_effect* j;
@@ -39,22 +39,22 @@ void glitter_particle_manager_calc_draw(GPM) {
 #endif
         if (scene->type == GLITTER_X) {
             for (j = scene->effects.begin; j != scene->effects.end; j++)
-                if (j->ptr && j->draw) {
+                if (j->ptr && j->disp) {
 #if defined(CRE_DEV)
                     if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != j->ptr)
                         continue;
 #endif
-                    glitter_x_effect_inst_calc_draw(GPM_VAL, j->ptr);
+                    glitter_x_effect_inst_calc_disp(GPM_VAL, j->ptr);
                 }
         }
         else {
             for (j = scene->effects.begin; j != scene->effects.end; j++)
-                if (j->ptr && j->draw) {
+                if (j->ptr && j->disp) {
 #if defined(CRE_DEV)
                     if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != j->ptr)
                         continue;
 #endif
-                    glitter_effect_inst_calc_draw(GPM_VAL, j->ptr);
+                    glitter_effect_inst_calc_disp(GPM_VAL, j->ptr);
                 }
         }
     }
@@ -93,7 +93,78 @@ bool glitter_particle_manager_check_scene(GPM, uint64_t effect_group_hash) {
     return i != GPM_VAL->scenes.end;
 }
 
-void glitter_particle_manager_draw(GPM, draw_pass_3d_type alpha) {
+void glitter_particle_manager_ctrl_file_reader(GPM) {
+    for (glitter_file_reader** i = GPM_VAL->file_readers.begin; i != GPM_VAL->file_readers.end;) {
+        if (*i) {
+            glitter_file_reader* file_reader = *i;
+            if (glitter_file_reader_read(GPM_VAL, file_reader, GPM_VAL->emission)) {
+                file_reader->effect_group->emission = file_reader->emission;
+                if (file_reader->emission <= 0.0)
+                    file_reader->effect_group->emission = GPM_VAL->emission;
+                vector_ptr_glitter_effect_group_push_back(&GPM_VAL->effect_groups, &file_reader->effect_group);
+            }
+            else if (file_reader->effect_group)
+                glitter_effect_group_dispose(file_reader->effect_group);
+        }
+        vector_ptr_glitter_file_reader_erase(&GPM_VAL->file_readers,
+            i - GPM_VAL->file_readers.begin, glitter_file_reader_dispose);
+    }
+}
+
+void glitter_particle_manager_ctrl_scene(GPM, float_t delta_frame) {
+    GPM_VAL->delta_frame = delta_frame;
+    for (glitter_scene** i = GPM_VAL->scenes.begin; i != GPM_VAL->scenes.end;) {
+        glitter_scene* scene = *i;
+        if (!scene || glitter_scene_has_ended(scene, true)) {
+            vector_ptr_glitter_scene_erase(&GPM_VAL->scenes, i - GPM_VAL->scenes.begin, glitter_scene_dispose);
+            continue;
+        }
+
+        if (scene->type == GLITTER_F2) {
+            scene->delta_frame_history += GPM_VAL->delta_frame;
+            if (!scene->skip) {
+                glitter_scene_ctrl(GPM_VAL, scene, scene->delta_frame_history);
+                scene->delta_frame_history = 0.0f;
+                scene->skip = true;
+            }
+            else
+                scene->skip = false;
+        }
+        else
+            glitter_scene_ctrl(GPM_VAL, scene, GPM_VAL->delta_frame);
+        i++;
+    }
+}
+
+void glitter_particle_manager_ctrl_scene_by_hash(GPM,
+    uint64_t effect_group_hash, float_t delta_frame) {
+    for (glitter_scene** i = GPM_VAL->scenes.begin; i != GPM_VAL->scenes.end;) {
+        glitter_scene* scene = *i;
+        if (!scene || glitter_scene_has_ended(scene, true)) {
+            vector_ptr_glitter_scene_erase(&GPM_VAL->scenes, i - GPM_VAL->scenes.begin, glitter_scene_dispose);
+            continue;
+        }
+
+        if (scene->hash == effect_group_hash) {
+            if (scene->type == GLITTER_F2) {
+                scene->delta_frame_history += delta_frame;
+                if (!scene->skip) {
+                    glitter_scene_ctrl(GPM_VAL, scene, scene->delta_frame_history);
+                    scene->delta_frame_history = 0.0f;
+                    scene->skip = true;
+                }
+                else
+                    scene->skip = false;
+            }
+            else
+                glitter_scene_ctrl(GPM_VAL, scene, delta_frame);
+            break;
+        }
+        i++;
+    }
+}
+
+void glitter_particle_manager_disp(GPM, draw_pass_3d_type alpha) {
     if (GPM_VAL->no_draw)
         return;
 
@@ -112,22 +183,22 @@ void glitter_particle_manager_draw(GPM, draw_pass_3d_type alpha) {
 #endif
         if (scene->type == GLITTER_X) {
             for (j = scene->effects.begin; j != scene->effects.end; j++)
-                if (j->ptr && j->draw) {
+                if (j->ptr && j->disp) {
 #if defined(CRE_DEV)
                     if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != j->ptr)
                         continue;
 #endif
-                    glitter_x_effect_inst_draw(GPM_VAL, j->ptr, alpha);
+                    glitter_x_effect_inst_disp(GPM_VAL, j->ptr, alpha);
                 }
         }
         else {
             for (j = scene->effects.begin; j != scene->effects.end; j++)
-                if (j->ptr && j->draw) {
+                if (j->ptr && j->disp) {
 #if defined(CRE_DEV)
                     if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != j->ptr)
                         continue;
 #endif
-                    glitter_effect_inst_draw(GPM_VAL, j->ptr, alpha);
+                    glitter_effect_inst_disp(GPM_VAL, j->ptr, alpha);
                 }
         }
     }
@@ -352,7 +423,7 @@ void glitter_particle_manager_set_frame(GPM,
             if (s->type == GLITTER_F2) {
                 s->delta_frame_history += delta_frame;
                 if (!s->skip) {
-                    glitter_scene_update(GPM_VAL, s, s->delta_frame_history);
+                    glitter_scene_ctrl(GPM_VAL, s, s->delta_frame_history);
                     s->delta_frame_history = 0.0f;
                     s->skip = true;
                 }
@@ -360,78 +431,7 @@ void glitter_particle_manager_set_frame(GPM,
                     s->skip = false;
             }
             else
-                glitter_scene_update(GPM_VAL, s, delta_frame);
-    }
-}
-
-void glitter_particle_manager_update_file_reader(GPM) {
-    for (glitter_file_reader** i = GPM_VAL->file_readers.begin; i != GPM_VAL->file_readers.end;) {
-        if (*i) {
-            glitter_file_reader* file_reader = *i;
-            if (glitter_file_reader_read(GPM_VAL, file_reader, GPM_VAL->emission)) {
-                file_reader->effect_group->emission = file_reader->emission;
-                if (file_reader->emission <= 0.0)
-                    file_reader->effect_group->emission = GPM_VAL->emission;
-                vector_ptr_glitter_effect_group_push_back(&GPM_VAL->effect_groups, &file_reader->effect_group);
-            }
-            else if (file_reader->effect_group)
-                glitter_effect_group_dispose(file_reader->effect_group);
-        }
-        vector_ptr_glitter_file_reader_erase(&GPM_VAL->file_readers,
-            i - GPM_VAL->file_readers.begin, glitter_file_reader_dispose);
-    }
-}
-
-void glitter_particle_manager_update_scene(GPM, float_t delta_frame) {
-    GPM_VAL->delta_frame = delta_frame;
-    for (glitter_scene** i = GPM_VAL->scenes.begin; i != GPM_VAL->scenes.end;) {
-        glitter_scene* scene = *i;
-        if (!scene || glitter_scene_has_ended(scene, true)) {
-            vector_ptr_glitter_scene_erase(&GPM_VAL->scenes, i - GPM_VAL->scenes.begin, glitter_scene_dispose);
-            continue;
-        }
-
-        if (scene->type == GLITTER_F2) {
-            scene->delta_frame_history += GPM_VAL->delta_frame;
-            if (!scene->skip) {
-                glitter_scene_update(GPM_VAL, scene, scene->delta_frame_history);
-                scene->delta_frame_history = 0.0f;
-                scene->skip = true;
-            }
-            else
-                scene->skip = false;
-        }
-        else
-            glitter_scene_update(GPM_VAL, scene, GPM_VAL->delta_frame);
-        i++;
-    }
-}
-
-void glitter_particle_manager_update_scene_by_hash(GPM,
-    uint64_t effect_group_hash, float_t delta_frame) {
-    for (glitter_scene** i = GPM_VAL->scenes.begin; i != GPM_VAL->scenes.end;) {
-        glitter_scene* scene = *i;
-        if (!scene || glitter_scene_has_ended(scene, true)) {
-            vector_ptr_glitter_scene_erase(&GPM_VAL->scenes, i - GPM_VAL->scenes.begin, glitter_scene_dispose);
-            continue;
-        }
-
-        if (scene->hash == effect_group_hash) {
-            if (scene->type == GLITTER_F2) {
-                scene->delta_frame_history += delta_frame;
-                if (!scene->skip) {
-                    glitter_scene_update(GPM_VAL, scene, scene->delta_frame_history);
-                    scene->delta_frame_history = 0.0f;
-                    scene->skip = true;
-                }
-                else
-                    scene->skip = false;
-            }
-            else
-                glitter_scene_update(GPM_VAL, scene, delta_frame);
-            break;
-        }
-        i++;
+                glitter_scene_ctrl(GPM_VAL, s, delta_frame);
     }
 }
 

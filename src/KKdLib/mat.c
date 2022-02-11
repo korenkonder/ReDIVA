@@ -171,9 +171,9 @@ inline void mat3_transpose(mat3* x, mat3* z) {
     *(vec3*)&xt0 = x->row0;
     *(vec3*)&xt1 = x->row1;
     *(vec3*)&xt2 = x->row2;
-    xt0 = _mm_and_ps(xt0, vec4_mask_vec3);
-    xt1 = _mm_and_ps(xt1, vec4_mask_vec3);
-    xt2 = _mm_and_ps(xt2, vec4_mask_vec3);
+    xt0 = _mm_and_ps(xt0, vec4_mask_vec3.data);
+    xt1 = _mm_and_ps(xt1, vec4_mask_vec3.data);
+    xt2 = _mm_and_ps(xt2, vec4_mask_vec3.data);
     xt3 = vec4_null.data;
     yt0 = _mm_unpacklo_ps(xt0, xt1);
     yt1 = _mm_unpackhi_ps(xt0, xt1);
@@ -232,7 +232,7 @@ void mat3_inverse(mat3* x, mat3* z) {
 
     wt = _mm_movelh_ps(_mm_unpacklo_ps(zt0, zt1), zt2);
     *(vec3*)&yt = xt0;
-    yt = _mm_and_ps(yt, vec4_mask_vec3);
+    yt = _mm_and_ps(yt, vec4_mask_vec3.data);
     wt = _mm_mul_ps(yt, wt);
     wt = _mm_hadd_ps(wt, wt);
     wt = _mm_hadd_ps(wt, wt);
@@ -282,7 +282,7 @@ inline void mat3_normalize_rotation(mat3* x, mat3* z) {
     __m128 xt;
     __m128 yt;
     *(vec3*)&xt = x->row0;
-    xt = _mm_and_ps(xt, vec4_mask_vec3);
+    xt = _mm_and_ps(xt, vec4_mask_vec3.data);
     yt = _mm_mul_ps(xt, xt);
     yt = _mm_hadd_ps(yt, yt);
     yt = _mm_sqrt_ss(_mm_hadd_ps(yt, yt));
@@ -291,7 +291,7 @@ inline void mat3_normalize_rotation(mat3* x, mat3* z) {
     xt = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0));
     z->row0 = *(vec3*)&xt;
     *(vec3*)&xt = x->row1;
-    xt = _mm_and_ps(xt, vec4_mask_vec3);
+    xt = _mm_and_ps(xt, vec4_mask_vec3.data);
     yt = _mm_mul_ps(xt, xt);
     yt = _mm_hadd_ps(yt, yt);
     yt = _mm_sqrt_ss(_mm_hadd_ps(yt, yt));
@@ -300,7 +300,7 @@ inline void mat3_normalize_rotation(mat3* x, mat3* z) {
     xt = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0));
     z->row1 = *(vec3*)&xt;
     *(vec3*)&xt = x->row2;
-    xt = _mm_and_ps(xt, vec4_mask_vec3);
+    xt = _mm_and_ps(xt, vec4_mask_vec3.data);
     yt = _mm_mul_ps(xt, xt);
     yt = _mm_hadd_ps(yt, yt);
     yt = _mm_sqrt_ss(_mm_hadd_ps(yt, yt));
@@ -680,7 +680,7 @@ inline void mat4_mult_vec3_inv(mat4* x, vec3* y, vec3* z) {
     __m128 zt;
 
     *(vec3*)&yt = *y;
-    yt = _mm_and_ps(yt, vec4_mask_vec3);
+    yt = _mm_and_ps(yt, vec4_mask_vec3.data);
     zt = _mm_mul_ps(yt, x->row0.data);
     zt = _mm_hadd_ps(zt, zt);
     z->x = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
@@ -713,7 +713,7 @@ inline void mat4_mult_vec3_inv_trans(mat4* x, vec3* y, vec3* z) {
     __m128 zt;
 
     *(vec3*)&yt = *y;
-    yt = _mm_and_ps(yt, vec4_mask_vec3);
+    yt = _mm_and_ps(yt, vec4_mask_vec3.data);
     yt = _mm_sub_ps(yt, x->row3.data);
     zt = _mm_mul_ps(yt, x->row0.data);
     zt = _mm_hadd_ps(zt, zt);
@@ -766,8 +766,8 @@ inline void mat4_transpose(mat4* x, mat4* z) {
 }
 
 void mat4_inverse(mat4* x, mat4* z) {
-    static const __m128 xor0 = { .m128_f32 = { -0.0f,  0.0f, -0.0f,  0.0f } };
-    static const __m128 xor1 = { .m128_f32 = {  0.0f, -0.0f,  0.0f, -0.0f } };
+    static const __m128 xor0 = { -0.0f,  0.0f, -0.0f,  0.0f };
+    static const __m128 xor1 = {  0.0f, -0.0f,  0.0f, -0.0f };
 
     __m128 xt0, xt1, xt2, xt3;
     __m128 xt0x, xt1x, xt2x, xt3x;
@@ -913,7 +913,7 @@ inline void mat4_normalize(mat4* x, mat4* z) {
 inline void mat4_normalize_rotation(mat4* x, mat4* z) {
     __m128 xt;
     __m128 yt;
-    xt = _mm_and_ps(x->row0.data, vec4_mask_vec3);
+    xt = _mm_and_ps(x->row0.data, vec4_mask_vec3.data);
     yt = _mm_mul_ps(xt, xt);
     yt = _mm_hadd_ps(yt, yt);
     yt = _mm_sqrt_ss(_mm_hadd_ps(yt, yt));
@@ -921,7 +921,7 @@ inline void mat4_normalize_rotation(mat4* x, mat4* z) {
         yt.m128_f32[0] = 1.0f / yt.m128_f32[0];
     xt = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0));
     *(vec3*)&z->row0 = *(vec3*)&xt;
-    xt = _mm_and_ps(x->row1.data, vec4_mask_vec3);
+    xt = _mm_and_ps(x->row1.data, vec4_mask_vec3.data);
     yt = _mm_mul_ps(xt, xt);
     yt = _mm_hadd_ps(yt, yt);
     yt = _mm_sqrt_ss(_mm_hadd_ps(yt, yt));
@@ -929,7 +929,7 @@ inline void mat4_normalize_rotation(mat4* x, mat4* z) {
         yt.m128_f32[0] = 1.0f / yt.m128_f32[0];
     xt = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0));
     *(vec3*)&z->row1 = *(vec3*)&xt;
-    xt = _mm_and_ps(x->row2.data, vec4_mask_vec3);
+    xt = _mm_and_ps(x->row2.data, vec4_mask_vec3.data);
     yt = _mm_mul_ps(xt, xt);
     yt = _mm_hadd_ps(yt, yt);
     yt = _mm_sqrt_ss(_mm_hadd_ps(yt, yt));
@@ -1703,7 +1703,7 @@ inline void mat4_from_quat(quat* quat, mat4* mat) {
     mat->row2.y = yz - wx;
     mat->row2.z = 1.0f - yy - xx;
     mat->row2.w = 0.0f;
-    mat->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    mat->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 float_t vec3_angle_between_two_vectors(vec3* x, vec3* y) {
@@ -1766,7 +1766,7 @@ inline void mat4_from_axis_angle(vec3* axis, float_t angle, mat4* mat) {
     mat->row0.w = 0.0f;
     mat->row1.w = 0.0f;
     mat->row2.w = 0.0f;
-    mat->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    mat->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 inline void mat4_from_mat3(mat3* x, mat4* z) {
@@ -1776,7 +1776,7 @@ inline void mat4_from_mat3(mat3* x, mat4* z) {
     z->row1.w = 0.0f;
     *(vec3*)&z->row2 = x->row2;
     z->row2.w = 0.0f;
-    z->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    z->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 inline void mat4_from_mat3_inverse(mat3* x, mat4* z) {
@@ -1789,7 +1789,7 @@ inline void mat4_from_mat3_inverse(mat3* x, mat4* z) {
     z->row1.w = 0.0f;
     *(vec3*)&z->row2 = yt.row2;
     z->row2.w = 0.0f;
-    z->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    z->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 inline void mat4_clear_rot(mat4* x, mat4* z) {
@@ -1805,7 +1805,7 @@ inline void mat4_clear_trans(mat4* x, mat4* z) {
         z->row1 = x->row1;
         z->row2 = x->row2;
     }
-    z->row3 = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    z->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 inline void mat4_get_rotation(mat4* x, vec3* z) {
@@ -1981,7 +1981,7 @@ inline void mat4_look_at(vec3* eye, vec3* target, vec3* up, mat4* mat) {
     vec3_normalize(x_axis, x_axis);
     vec3_length(x_axis, t);
     if (t == 0.0f)
-        x_axis = (vec3){ 1.0f, 0.0f, 0.0f };
+        x_axis = { 1.0f, 0.0f, 0.0f };
     vec3_cross(z_axis, x_axis, y_axis);
     vec3_normalize(y_axis, y_axis);
 
@@ -1989,9 +1989,9 @@ inline void mat4_look_at(vec3* eye, vec3* target, vec3* up, mat4* mat) {
     vec3_dot(y_axis, *eye, xyz.y);
     vec3_dot(z_axis, *eye, xyz.z);
 
-    mat->row0 = (vec4){ x_axis.x, y_axis.x, z_axis.x, 0.0f };
-    mat->row1 = (vec4){ x_axis.y, y_axis.y, z_axis.y, 0.0f };
-    mat->row2 = (vec4){ x_axis.z, y_axis.z, z_axis.z, 0.0f };
+    mat->row0 = { x_axis.x, y_axis.x, z_axis.x, 0.0f };
+    mat->row1 = { x_axis.y, y_axis.y, z_axis.y, 0.0f };
+    mat->row2 = { x_axis.z, y_axis.z, z_axis.z, 0.0f };
     vec3_negate(xyz, xyz);
     *(vec3*)&mat->row3 = xyz;
     mat->row3.w = 1.0f;

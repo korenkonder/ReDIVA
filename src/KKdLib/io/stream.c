@@ -6,13 +6,13 @@
 #include "stream.h"
 #include <share.h>
 
-void io_open(stream* s, char* path, char* mode) {
+void io_open(stream* s, char* path, const char* mode) {
     memset(s, 0, sizeof(stream));
     if (!path || !mode)
         return;
 
     wchar_t* temp_path = utf8_to_utf16(path);
-    wchar_t* temp_mode = utf8_to_utf16(mode);
+    wchar_t* temp_mode = utf8_to_utf16((char*)mode);
     s->io.stream = _wfsopen(temp_path, temp_mode, _SH_DENYNO);
     s->type = s->io.stream ? ferror(s->io.stream) ? STREAM_NONE : STREAM_FILE : STREAM_NONE;
     s->position_stack = vector_empty(ssize_t);
@@ -21,7 +21,11 @@ void io_open(stream* s, char* path, char* mode) {
     free(temp_mode);
 }
 
-void io_wopen(stream* s, wchar_t* path, wchar_t* mode) {
+inline void io_open(stream* s, const char* path, const char* mode) {
+    io_open(s, (char*)path, mode);
+}
+
+void io_wopen(stream* s, wchar_t* path, const wchar_t* mode) {
     memset(s, 0, sizeof(stream));
     if (!path || !mode)
         return;
@@ -30,6 +34,10 @@ void io_wopen(stream* s, wchar_t* path, wchar_t* mode) {
     s->type = s->io.stream ? ferror(s->io.stream) ? STREAM_NONE : STREAM_FILE : STREAM_NONE;
     s->position_stack = vector_empty(ssize_t);
     io_get_length(s);
+}
+
+inline void io_wopen(stream* s, const wchar_t* path, const char* mode) {
+    io_wopen(s, (wchar_t*)path, mode);
 }
 
 void io_mopen(stream* s, void* data, size_t length) {
@@ -251,6 +259,10 @@ inline void io_position_pop(stream* s) {
     io_flush(s);
 }
 
+inline ssize_t io_read(stream* s, ssize_t count) {
+    return io_read(s, (void*)0, count);
+}
+
 ssize_t io_read(stream* s, void* buf, ssize_t count) {
     ssize_t capacity;
     switch (s->type) {
@@ -279,6 +291,10 @@ ssize_t io_read(stream* s, void* buf, ssize_t count) {
     default:
         return EOF;
     }
+}
+
+inline ssize_t io_write(stream* s, ssize_t count) {
+    return io_write(s, (void*)0, count);
 }
 
 ssize_t io_write(stream* s, void* buf, ssize_t count) {
@@ -314,6 +330,10 @@ ssize_t io_write(stream* s, void* buf, ssize_t count) {
     default:
         return EOF;
     }
+}
+
+inline ssize_t io_write(stream* s, const void* buf, ssize_t count) {
+    return io_write(s, (void*)buf, count);
 }
 
 int32_t io_read_char(stream* s) {
@@ -373,14 +393,14 @@ inline void io_write_uint8_t(stream* s, uint8_t val) {
 }
 
 inline void io_read_string(stream* s, string* str, size_t length) {
-    string_init_length(str, 0, length);
+    string_init_length(str, length);
     char* temp = string_data(str);
     io_read(s, temp, length);
     temp[length] = 0;
 }
 
 inline void io_read_wstring(stream* s, wstring* str, size_t length) {
-    wstring_init_length(str, 0, length);
+    wstring_init_length(str, length);
     wchar_t* temp = wstring_data(str);
     io_read(s, temp, sizeof(wchar_t) * length);
     temp[length] = 0;
@@ -388,7 +408,7 @@ inline void io_read_wstring(stream* s, wstring* str, size_t length) {
 
 inline void io_read_string_null_terminated(stream* s, string* str) {
     ssize_t offset = io_get_position(s);
-    size_t length = 0;
+    ssize_t length = 0;
     char* temp = io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
     string_init_length(str, temp, length);
     free(temp);
@@ -396,7 +416,7 @@ inline void io_read_string_null_terminated(stream* s, string* str) {
 
 inline void io_read_wstring_null_terminated(stream* s, wstring* str) {
     ssize_t offset = io_get_position(s);
-    size_t length = 0;
+    ssize_t length = 0;
     wchar_t* temp = io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
     wstring_init_length(str, temp, length);
     free(temp);
@@ -405,7 +425,7 @@ inline void io_read_wstring_null_terminated(stream* s, wstring* str) {
 inline void io_read_string_null_terminated_offset(stream* s,
     ssize_t offset, string* str) {
     if (offset) {
-        size_t length = 0;
+        ssize_t length = 0;
         char* temp = io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
         string_init_length(str, temp, length);
         free(temp);
@@ -417,7 +437,7 @@ inline void io_read_string_null_terminated_offset(stream* s,
 inline void io_read_wstring_null_terminated_offset(stream* s,
     ssize_t offset, wstring* str) {
     if (offset) {
-        size_t length = 0;
+        ssize_t length = 0;
         wchar_t* temp = io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
         wstring_init_length(str, temp, length);
         free(temp);
@@ -428,13 +448,13 @@ inline void io_read_wstring_null_terminated_offset(stream* s,
 
 inline char* io_read_utf8_string_null_terminated(stream* s) {
     ssize_t offset = io_get_position(s);
-    size_t length = 0;
+    ssize_t length = 0;
     return io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
 }
 
 inline wchar_t* io_read_utf16_string_null_terminated(stream* s) {
     ssize_t offset = io_get_position(s);
-    size_t length = 0;
+    ssize_t length = 0;
     return io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
 }
 
@@ -449,12 +469,12 @@ inline wchar_t* io_read_utf16_string_null_terminated_length(stream* s, ssize_t* 
 }
 
 inline char* io_read_utf8_string_null_terminated_offset(stream* s, ssize_t offset) {
-    size_t length = 0;
+    ssize_t length = 0;
     return io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
 }
 
 inline wchar_t* io_read_utf16_string_null_terminated_offset(stream* s, ssize_t offset) {
-    size_t length = 0;
+    ssize_t length = 0;
     return io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
 }
 
@@ -472,7 +492,7 @@ char* io_read_utf8_string_null_terminated_offset_length(stream* s, ssize_t offse
         return 0;
     }
 
-    char* str = force_malloc(name_length + 1);
+    char* str = force_malloc_s(char, name_length + 1);
     io_set_position(s, offset, SEEK_SET);
     io_read(s, str, name_length);
     str[name_length] = 0;
@@ -530,7 +550,15 @@ inline void io_write_utf8_string(stream* s, char* str) {
     io_write(s, str, utf8_length(str));
 }
 
+inline void io_write_utf8_string(stream* s, const char* str) {
+    io_write(s, str, utf8_length(str));
+}
+
 inline void io_write_utf16_string(stream* s, wchar_t* str) {
+    io_write(s, str, sizeof(wchar_t) * utf16_length(str));
+}
+
+inline void io_write_utf16_string(stream* s, const wchar_t* str) {
     io_write(s, str, sizeof(wchar_t) * utf16_length(str));
 }
 
@@ -539,7 +567,17 @@ inline void io_write_utf8_string_null_terminated(stream* s, char* str) {
     io_write_uint8_t(s, 0);
 }
 
+inline void io_write_utf8_string_null_terminated(stream* s, const char* str) {
+    io_write(s, str, utf8_length(str));
+    io_write_uint8_t(s, 0);
+}
+
 inline void io_write_utf16_string_null_terminated(stream* s, wchar_t* str) {
+    io_write(s, str, sizeof(wchar_t) * utf16_length(str));
+    io_write_uint16_t(s, 0);
+}
+
+inline void io_write_utf16_string_null_terminated(stream* s, const wchar_t* str) {
     io_write(s, str, sizeof(wchar_t) * utf16_length(str));
     io_write_uint16_t(s, 0);
 }

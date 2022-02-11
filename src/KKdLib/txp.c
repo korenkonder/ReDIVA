@@ -226,33 +226,33 @@ bool txp_set_produce_enrs(txp_set* ts, vector_enrs_entry* enrs) {
     vector_enrs_entry e = vector_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = (enrs_entry){ 0, 1, 12, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
+    ee = { 0, 1, 12, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
     l += o = 12;
 
-    ee = (enrs_entry){ o, 1, (uint32_t)(count * 4), 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, (uint32_t)count, ENRS_DWORD });
+    ee = { o, 1, (uint32_t)(count * 4), 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, (uint32_t)count, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
     l += (size_t)(o = (uint32_t)(count * 4ULL));
 
     tex = ts->begin;
     for (size_t i = 0; i < count; i++, tex++) {
-        ee = (enrs_entry){ o, 1, 12, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
+        ee = { o, 1, 12, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += o = 12;
 
-        ee = (enrs_entry){ o, 1, tex->array_size * 4, tex->mipmaps_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, tex->array_size, ENRS_DWORD });
+        ee = { o, 1, tex->array_size * 4, tex->mipmaps_count, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, tex->array_size, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += (size_t)(o = (uint32_t)((size_t)tex->array_size * tex->mipmaps_count * 4));
 
         tex_mipmap = tex->data.begin;
         for (size_t j = 0; j < tex->array_size; j++) {
             for (size_t k = 0; k < tex->mipmaps_count; k++, tex_mipmap++) {
-                ee = (enrs_entry){ o, 1, 24, 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 6, ENRS_DWORD });
+                ee = { o, 1, 24, 1, vector_empty(enrs_sub_entry) };
+                vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
                 vector_enrs_entry_push_back(&e, &ee);
                 l += (size_t)(o = (uint32_t)(24 + tex_mipmap->size));
             }
@@ -342,13 +342,13 @@ bool txp_set_unpack_file(txp_set* ts, void* data, bool big_endian) {
                 if (big_endian) {
                     tex_mipmap->width = load_reverse_endianness_uint32_t((void*)(mipmap_d + 4));
                     tex_mipmap->height = load_reverse_endianness_uint32_t((void*)(mipmap_d + 8));
-                    tex_mipmap->format = load_reverse_endianness_uint32_t((void*)(mipmap_d + 12));
+                    tex_mipmap->format = (txp_format)load_reverse_endianness_uint32_t((void*)(mipmap_d + 12));
                     tex_mipmap->size = load_reverse_endianness_uint32_t((void*)(mipmap_d + 20));
                 }
                 else {
                     tex_mipmap->width = *(uint32_t*)(mipmap_d + 4);
                     tex_mipmap->height = *(uint32_t*)(mipmap_d + 8);
-                    tex_mipmap->format = *(uint32_t*)(mipmap_d + 12);
+                    tex_mipmap->format = (txp_format)*(uint32_t*)(mipmap_d + 12);
                     tex_mipmap->size = *(uint32_t*)(mipmap_d + 20);
                 }
 

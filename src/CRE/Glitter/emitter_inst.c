@@ -11,7 +11,7 @@
 static void glitter_emitter_inst_emit_particle(GPM, GLT,
     glitter_emitter_inst* a1, float_t emission);
 static void glitter_emitter_inst_get_value(GLT, glitter_emitter_inst* a1);
-static void glitter_emitter_inst_update_mat(GPM, GLT,
+static void glitter_emitter_inst_ctrl_mat(GPM, GLT,
     glitter_emitter_inst* a1, glitter_effect_inst* a2);
 
 glitter_emitter_inst* glitter_emitter_inst_init(glitter_emitter* a1,
@@ -29,7 +29,7 @@ glitter_emitter_inst* glitter_emitter_inst_init(glitter_emitter* a1,
         return 0;
     }
 
-    glitter_emitter_inst* ei = force_malloc(sizeof(glitter_emitter_inst));
+    glitter_emitter_inst* ei = force_malloc_s(glitter_emitter_inst, 1);
     ei->emitter = a1;
 
     ei->random_ptr = a2->random_ptr;
@@ -79,7 +79,7 @@ void glitter_emitter_inst_free(GPM, GLT, glitter_emitter_inst* a1, float_t emiss
     if (a1->loop && a1->data.loop_end_time >= 0.0f)
         a1->loop = false;
 
-    a1->flags |= GLITTER_EMITTER_INST_ENDED;
+    enum_or(a1->flags, GLITTER_EMITTER_INST_ENDED);
     if (a1->data.flags & GLITTER_EMITTER_KILL_ON_END)
         for (i = a1->particles.begin; i != a1->particles.end; ++i)
             glitter_particle_inst_free(*i, true);
@@ -152,7 +152,7 @@ void glitter_emitter_inst_reset(glitter_emitter_inst* a1) {
         glitter_particle_inst_reset(*i);
 }
 
-void glitter_emitter_inst_update(GPM, GLT,
+void glitter_emitter_inst_ctrl(GPM, GLT,
     glitter_emitter_inst* a1, glitter_effect_inst* a2, float_t delta_frame) {
     vec3 rotation_add;
 
@@ -174,10 +174,10 @@ void glitter_emitter_inst_update(GPM, GLT,
     glitter_emitter_inst_get_value(GLT_VAL, a1);
     vec3_mult_scalar(a1->data.rotation_add, delta_frame, rotation_add);
     vec3_add(a1->rotation, rotation_add, a1->rotation);
-    glitter_emitter_inst_update_mat(GPM_VAL, GLT_VAL, a1, a2);
+    glitter_emitter_inst_ctrl_mat(GPM_VAL, GLT_VAL, a1, a2);
 }
 
-void glitter_emitter_inst_update_init(GPM, GLT,
+void glitter_emitter_inst_ctrl_init(GPM, GLT,
     glitter_emitter_inst* a1, glitter_effect_inst* a2, float_t delta_frame) {
     vec3 rotation_add;
 
@@ -199,7 +199,7 @@ void glitter_emitter_inst_update_init(GPM, GLT,
     glitter_emitter_inst_get_value(GLT_VAL, a1);
     vec3_mult_scalar(a1->data.rotation_add, delta_frame, rotation_add);
     vec3_add(a1->rotation, rotation_add, a1->rotation);
-    glitter_emitter_inst_update_mat(GPM_VAL, GLT_VAL, a1, a2);
+    glitter_emitter_inst_ctrl_mat(GPM_VAL, GLT_VAL, a1, a2);
 }
 
 void glitter_emitter_inst_dispose(glitter_emitter_inst* ei) {
@@ -279,7 +279,7 @@ static void glitter_emitter_inst_get_value(GLT, glitter_emitter_inst* a1) {
     }
 }
 
-static void glitter_emitter_inst_update_mat(GPM, GLT,
+static void glitter_emitter_inst_ctrl_mat(GPM, GLT,
     glitter_emitter_inst* a1, glitter_effect_inst* a2) {
     bool mult;
     vec3 trans;

@@ -13,12 +13,12 @@ typedef struct uniform_array {
 
 extern uniform_array* uniform;
 
-aft_shader* shaders = (void*)0x000000014CC57C10;
-aft_shader_table_struct* aft_shader_table = (void*)0x0000000140A41D20;
-aft_shader_bind_func* shader_name_bind_func_table = (void*)0x0000000140A40F50;
-uniform_array* uniform = (void*)0x000000014CC57AF0;
-int32_t* current_vp = (void*)0x000000014CC587B0;
-int32_t* current_fp = (void*)0x000000014CC587B4;
+aft_shader* shaders = (aft_shader*)0x000000014CC57C10;
+aft_shader_table_struct* aft_shader_table = (aft_shader_table_struct*)0x0000000140A41D20;
+aft_shader_bind_func* shader_name_bind_func_table = (aft_shader_bind_func*)0x0000000140A40F50;
+uniform_array* uniform = (uniform_array*)0x000000014CC57AF0;
+int32_t* current_vp = (int32_t*)0x000000014CC587B0;
+int32_t* current_fp = (int32_t*)0x000000014CC587B4;
 
 #define GL_VERTEX_PROGRAM_ARB 0x8620
 #define GL_FRAGMENT_PROGRAM_ARB 0x8804
@@ -28,17 +28,18 @@ typedef void (GLAPIENTRY* PFNGLPROGRAMLOCALPARAMETER4FARBPROC)
 typedef void (GLAPIENTRY* PFNGLGENPROGRAMSARBPROC) (GLsizei n, GLuint* programs);
 
 void FASTCALL aft_shader_set(aft_shader_enum name) {
-    if (!name) {
+    if (name == aft_shader_enum::SHADER_FFP) {
         aft_shader_unbind();
         return;
     }
 
-    PFNGLPROGRAMLOCALPARAMETER4FARBPROC _glProgramEnvParameter4fARB = *(void**)0x00000001411A4A88;
+    PFNGLPROGRAMLOCALPARAMETER4FARBPROC _glProgramEnvParameter4fARB
+        = *(PFNGLPROGRAMLOCALPARAMETER4FARBPROC*)0x00000001411A4A88;
     _glProgramEnvParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 24,
         (float_t)uniform->array[U_TEXTURE_BLEND], 0.0f, 0.0f, 0.0f);
 
-    aft_shader* shad = &shaders[name];
-    void (FASTCALL * bind_func)(aft_shader*) = shad->bind_func;
+    aft_shader* shad = &shaders[(size_t)name];
+    void (FASTCALL * bind_func)(aft_shader*) = (void (*)(aft_shader*))shad->bind_func;
     if (bind_func)
         bind_func(shad);
     else
@@ -46,50 +47,53 @@ void FASTCALL aft_shader_set(aft_shader_enum name) {
 }
 
 void FASTCALL aft_shader_bind_blinn(aft_shader* shad) {
-    aft_shader_bind(shad, uniform->array[U_NORMAL] ? BLINN_FRAG : BLINN_VERT);
+    aft_shader_bind(shad, uniform->array[U_NORMAL]
+        ? aft_shader_sub_enum::BLINN_FRAG : aft_shader_sub_enum::BLINN_VERT);
 }
 
 void FASTCALL aft_shader_bind_cloth(aft_shader* shad) {
-    aft_shader_bind(shad, uniform->array[U_NPR] ? CLOTH_NPR1
-        : (uniform->array[U_ANISO] ? CLOTH_ANISO : CLOTH_DEFAULT));
+    aft_shader_bind(shad, uniform->array[U_NPR] ? aft_shader_sub_enum::CLOTH_NPR1
+        : (uniform->array[U_ANISO] ? aft_shader_sub_enum::CLOTH_ANISO : aft_shader_sub_enum::CLOTH_DEFAULT));
 }
 
 void FASTCALL aft_shader_bind_hair(aft_shader* shad) {
-    aft_shader_bind(shad, uniform->array[U_NPR] ? HAIR_NPR1
-        : (uniform->array[U_ANISO] ? HAIR_ANISO : HAIR_DEFAULT));
+    aft_shader_bind(shad, uniform->array[U_NPR] ? aft_shader_sub_enum::HAIR_NPR1
+        : (uniform->array[U_ANISO] ? aft_shader_sub_enum::HAIR_ANISO : aft_shader_sub_enum::HAIR_DEFAULT));
 }
 
 void FASTCALL aft_shader_bind_membrane(aft_shader* shad) {
     uniform->array[U_MEMBRANE] = 3;
-    if (aft_shader_bind(shad, MEMBRANE) < 0)
+    if (aft_shader_bind(shad, aft_shader_sub_enum::MEMBRANE) < 0)
         return;
 
-    uint32_t(FASTCALL * sub_140192E00)() = (void*)0x0000000140192E00;
+    uint32_t(FASTCALL * sub_140192E00)() = (uint32_t(*)())0x0000000140192E00;
     uint32_t v1 = sub_140192E00();
     mat4 mat = mat4_identity;
     mat4_rotate_x_mult(&mat, (float_t)((v1 & 0x1FF) * (M_PI / 256.0)), &mat);
     mat4_rotate_z_mult(&mat, (float_t)((v1 % 0x168) * (M_PI / 180.0)), &mat);
 
-    vec4 vec = (vec4){ 1.0f, 0.0f, 0.0f, 0.0f };
+    vec4 vec = { 1.0f, 0.0f, 0.0f, 0.0f };
     mat4_mult_vec(&mat, &vec, &vec);
 
-    PFNGLPROGRAMLOCALPARAMETER4FARBPROC _glProgramLocalParameter4fARB = *(void**)0x00000001411A4AA8;
+    PFNGLPROGRAMLOCALPARAMETER4FARBPROC _glProgramLocalParameter4fARB
+        = *(PFNGLPROGRAMLOCALPARAMETER4FARBPROC*)0x00000001411A4AA8;
     _glProgramLocalParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, 10, vec.x, vec.y, vec.z, 0.0);
 }
 
 void FASTCALL aft_shader_bind_eye_ball(aft_shader* shader) {
     uniform->array[U18] = 0;
-    if (aft_shader_bind(&shaders[_GLASEYE], GLASS_EYE) >= 0) {
+    if (aft_shader_bind(&shaders[(size_t)aft_shader_enum::_GLASEYE], aft_shader_sub_enum::GLASS_EYE) >= 0) {
         float_t* glass_eye = (float_t*)0x0000000140CA2D70;
-        void (FASTCALL * glass_eye_calc)(float_t * glass_eye) = (void*)0x00000001405E53D0;
-        void (FASTCALL * glass_eye_set)(float_t * glass_eye) = (void*)0x00000001405E4750;
+        void (FASTCALL * glass_eye_calc)(float_t * glass_eye) = (void (*)(float_t*))0x00000001405E53D0;
+        void (FASTCALL * glass_eye_set)(float_t * glass_eye) = (void (*)(float_t*))0x00000001405E4750;
         glass_eye_calc(glass_eye);
         glass_eye_set(glass_eye);
     }
 }
 
 void FASTCALL aft_shader_bind_tone_map(aft_shader* shader) {
-    aft_shader_bind(shader, uniform->array[U_NPR] == 1 ? TONEMAP_NPR1 : TONEMAP);
+    aft_shader_bind(shader, uniform->array[U_NPR] == 1
+        ? aft_shader_sub_enum::TONEMAP_NPR1 : aft_shader_sub_enum::TONEMAP);
 }
 
 int32_t FASTCALL aft_shader_bind(aft_shader* shader, aft_shader_sub_enum name) {
@@ -128,7 +132,7 @@ int32_t FASTCALL aft_shader_bind(aft_shader* shader, aft_shader_sub_enum name) {
     int32_t vp = subshader->vp[unival_vp];
     int32_t fp = subshader->fp[unival_fp];
 
-    PFNGLBINDPROGRAMARBPROC _glBindProgramARB = *(void**)0x00000001411A4A60;
+    PFNGLBINDPROGRAMARBPROC _glBindProgramARB = *(PFNGLBINDPROGRAMARBPROC*)0x00000001411A4A60;
     if (*current_vp != vp) {
         _glBindProgramARB(GL_VERTEX_PROGRAM_ARB, vp);
         *current_vp = vp;
@@ -154,13 +158,13 @@ void FASTCALL aft_shader_unbind() {
 }
 
 void FASTCALL aft_shader_load_all_shaders() {
-    PFNGLGENPROGRAMSARBPROC _glGenProgramsARB = *(void**)0x00000001411A4A70;
+    PFNGLGENPROGRAMSARBPROC _glGenProgramsARB = *(PFNGLGENPROGRAMSARBPROC*)0x00000001411A4A70;
     void (FASTCALL * shader_load_program_file)(GLuint program, const char* file_name, bool vertex_program)
-        = (void*)0x00000001405E52D0;
+        = (void (*)(GLuint, const char*, bool))0x00000001405E52D0;
 
-    aft_shader_table_struct* shaders_table = &aft_shader_table[_BLINN];
-    aft_shader* shader = &shaders[_BLINN];
-    aft_shader_enum curr_shader = SHADER_END - 1;
+    aft_shader_table_struct* shaders_table = &aft_shader_table[(int32_t)aft_shader_enum::_BLINN];
+    aft_shader* shader = &shaders[(int32_t)aft_shader_enum::_BLINN];
+    int32_t curr_shader = (int32_t)aft_shader_enum::SHADER_END - 1;
     do {
         shader->name = shaders_table->name;
         shader->name_enum = shaders_table->name_enum;
@@ -172,7 +176,7 @@ void FASTCALL aft_shader_load_all_shaders() {
         const aft_shader_sub_table_struct* sub = shaders_table->sub;
         aft_shader_sub* subs = (aft_shader_sub*)((char*)v9 + 8);
         for (int32_t i = 0; i < num_sub; i++)
-            subs[i] = (aft_shader_sub){ 0 };
+            subs[i] = { };
 
         shader->subs = subs;
         shader->num_uniform = shaders_table->num_uniform;
@@ -184,11 +188,11 @@ void FASTCALL aft_shader_load_all_shaders() {
             subs->fp_unival_max = (int32_t*)sub->fp_unival_max;
             subs->num_vp = sub->num_vp;
             subs->num_fp = sub->num_fp;
-            subs->vp = force_malloc(sizeof(int32_t) * sub->num_vp);
-            subs->fp = force_malloc(sizeof(int32_t) * sub->num_fp);
+            subs->vp = force_malloc_s(int32_t, sub->num_vp);
+            subs->fp = force_malloc_s(int32_t, sub->num_fp);
 
-            _glGenProgramsARB(sub->num_vp, subs->vp);
-            _glGenProgramsARB(sub->num_fp, subs->fp);
+            _glGenProgramsARB(sub->num_vp, (GLuint*)subs->vp);
+            _glGenProgramsARB(sub->num_fp, (GLuint*)subs->fp);
 
             for (int32_t j = 0; j < sub->num_vp; j++)
                 shader_load_program_file(subs->vp[j], sub->vp[j], true);
@@ -199,10 +203,10 @@ void FASTCALL aft_shader_load_all_shaders() {
         shader->bind_func = 0;
 
         aft_shader_bind_func* bind_func_table = shader_name_bind_func_table;
-        aft_shader_enum bind_func_name = _BLINN;
+        aft_shader_enum bind_func_name = aft_shader_enum::_BLINN;
         while (shader->name_enum != bind_func_name) {
             bind_func_name = (++bind_func_table)->name;
-            if (bind_func_table->name == SHADER_END)
+            if (bind_func_table->name == aft_shader_enum::SHADER_END)
                 break;
         }
         shader->bind_func = bind_func_table->bind_func;

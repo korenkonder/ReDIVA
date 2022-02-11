@@ -44,9 +44,9 @@ extern bool close;
 lock input_lock;
 extern lock render_lock;
 extern timer render_timer;
-extern HANDLE window_handle;
+extern HWND window_handle;
 extern ImGuiContext* imgui_context;
-lock imgui_context_lock;
+extern lock imgui_context_lock;
 
 static void input_poll();
 
@@ -55,11 +55,13 @@ int32_t input_main(void* arg) {
     timeBeginPeriod(1);
     timer_init(&input_timer, 60.0);
     lock_init(&input_lock);
-    if (!lock_check_init(&input_lock))
-        goto End;
 
     bool state_wait = false;
     bool state_disposed = false;
+    bool local_close = false;
+    if (!lock_check_init(&input_lock))
+        goto End;
+
     do {
         lock_lock(&state_lock);
         state_wait = state != RENDER_INITIALIZED;
@@ -72,7 +74,6 @@ int32_t input_main(void* arg) {
         timer_sleep(&input_timer, 0.0625);
     } while (state_wait);
 
-    bool local_close = false;
     timer_reset(&input_timer);
     while (!close && !local_close) {
         timer_start_of_cycle(&input_timer);

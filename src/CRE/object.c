@@ -65,6 +65,8 @@ static void object_skin_block_constraint_up_vector_load(
 static void object_skin_block_node_load(object_skin_block_node* node,
     object_skin_block_node_file* node_file);
 static void object_skin_block_node_free(object_skin_block_node* node);
+static size_t obj_vertex_flags_get_vertex_size(obj_vertex_flags flags);
+static size_t obj_vertex_flags_get_vertex_size_comp(obj_vertex_flags flags);
 static size_t object_vertex_flags_get_vertex_size(object_vertex_flags flags);
 static size_t object_vertex_flags_get_vertex_size_comp(object_vertex_flags flags);
 static bool object_set_load_file(void* data, char* path, char* file, uint32_t hash);
@@ -123,7 +125,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
 
     string_copy(name, &set->name);
     set->id = id;
-    set->hash = hash_murmurhash(string_data(&set->name), set->name.length, 0, false, false);
+    set->hash = hash_string_murmurhash(&set->name, 0, false);
 
     int32_t objects_count = obj_set_file->objects_count;
     set->objects_count = objects_count;
@@ -162,13 +164,13 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                 memcpy(sub_mesh->bone_indices, sub_mesh_file->bone_indices,
                     sub_mesh_file->bone_indices_count * sizeof(uint16_t));
                 sub_mesh->bones_per_vertex = sub_mesh_file->bones_per_vertex;
-                sub_mesh->primitive_type = sub_mesh_file->primitive_type;
-                sub_mesh->index_format = sub_mesh_file->index_format;
-                sub_mesh->flags = sub_mesh_file->flags;
+                sub_mesh->primitive_type = (object_primitive_type)sub_mesh_file->primitive_type;
+                sub_mesh->index_format = (object_index_format)sub_mesh_file->index_format;
+                sub_mesh->flags = (object_sub_mesh_flags)sub_mesh_file->flags;
 
                 bool u16 = sub_mesh_file->index_format == OBJ_INDEX_U16;
-                vec3 _min = (vec3){ 9999999.0f, 9999999.0f, 9999999.0f };
-                vec3 _max = (vec3){ -100000000.0f, -100000000.0f, -100000000.0f };
+                vec3 _min = { 9999999.0f, 9999999.0f, 9999999.0f };
+                vec3 _max = { -100000000.0f, -100000000.0f, -100000000.0f };
 
                 uint32_t* indices = (uint32_t*)sub_mesh_file->indices;
                 int32_t indices_count = sub_mesh_file->indices_count;
@@ -224,76 +226,76 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
 
             size_t vertex_size;
             if (!compressed)
-                vertex_size = object_vertex_flags_get_vertex_size(mesh_file->vertex_flags);
+                vertex_size = obj_vertex_flags_get_vertex_size(mesh_file->vertex_flags);
             else
-                vertex_size = object_vertex_flags_get_vertex_size_comp(mesh_file->vertex_flags);
+                vertex_size = obj_vertex_flags_get_vertex_size_comp(mesh_file->vertex_flags);
 
             void* vertex = force_malloc(vertex_size * mesh_file->vertex_count);
             if (vertex) {
-                object_vertex_flags flags = mesh_file->vertex_flags;
+                obj_vertex_flags flags = mesh_file->vertex_flags;
                 object_vertex_data_file* vertex_file = mesh_file->vertex;
                 int32_t vertex_count = mesh_file->vertex_count;
                 size_t d = (size_t)vertex;
                 if (!compressed) {
                     for (int32_t i = 0; i < vertex_count; i++) {
-                        if (flags & OBJECT_VERTEX_POSITION) {
+                        if (flags & OBJ_VERTEX_POSITION) {
                             *(vec3*)d = vertex_file[i].position;
                             d += 12;
                         }
 
-                        if (flags & OBJECT_VERTEX_NORMAL) {
+                        if (flags & OBJ_VERTEX_NORMAL) {
                             *(vec3*)d = vertex_file[i].normal;
                             d += 12;
                         }
 
-                        if (flags & OBJECT_VERTEX_TANGENT) {
+                        if (flags & OBJ_VERTEX_TANGENT) {
                             *(vec4u*)d = vertex_file[i].tangent;
                             d += 16;
                         }
 
-                        if (flags & OBJECT_VERTEX_BINORMAL) {
+                        if (flags & OBJ_VERTEX_BINORMAL) {
                             *(vec3*)d = vertex_file[i].binormal;
                             d += 12;
                         }
 
-                        if (flags & OBJECT_VERTEX_TEXCOORD0) {
+                        if (flags & OBJ_VERTEX_TEXCOORD0) {
                             *(vec2*)d = vertex_file[i].texcoord0;
                             d += 8;
                         }
 
-                        if (flags & OBJECT_VERTEX_TEXCOORD1) {
+                        if (flags & OBJ_VERTEX_TEXCOORD1) {
                             *(vec2*)d = vertex_file[i].texcoord1;
                             d += 8;
                         }
 
-                        if (flags & OBJECT_VERTEX_TEXCOORD2) {
+                        if (flags & OBJ_VERTEX_TEXCOORD2) {
                             *(vec2*)d = vertex_file[i].texcoord2;
                             d += 8;
                         }
 
-                        if (flags & OBJECT_VERTEX_TEXCOORD3) {
+                        if (flags & OBJ_VERTEX_TEXCOORD3) {
                             *(vec2*)d = vertex_file[i].texcoord3;
                             d += 8;
                         }
 
-                        if (flags & OBJECT_VERTEX_COLOR0) {
+                        if (flags & OBJ_VERTEX_COLOR0) {
                             *(vec4u*)d = vertex_file[i].color0;
                             d += 16;
                         }
 
-                        if (flags & OBJECT_VERTEX_COLOR1) {
+                        if (flags & OBJ_VERTEX_COLOR1) {
                             *(vec4u*)d = vertex_file[i].color1;
                             d += 16;
                         }
 
-                        if (flags & OBJECT_VERTEX_BONE_DATA) {
+                        if (flags & OBJ_VERTEX_BONE_DATA) {
                             *(vec4u*)d = vertex_file[i].bone_weight;
                             d += 16;
                             *(vec4iu*)d = vertex_file[i].bone_index;
                             d += 16;
                         }
 
-                        if (flags & OBJECT_VERTEX_UNKNOWN) {
+                        if (flags & OBJ_VERTEX_UNKNOWN) {
                             *(vec4u*)d = vertex_file[i].unknown;
                             d += 16;
                         }
@@ -301,12 +303,12 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                 }
                 else {
                     for (int32_t i = 0; i < vertex_count; i++) {
-                        if (flags & OBJECT_VERTEX_POSITION) {
+                        if (flags & OBJ_VERTEX_POSITION) {
                             *(vec3*)d = vertex_file[i].position;
                             d += 12;
                         }
 
-                        if (flags & OBJECT_VERTEX_NORMAL) {
+                        if (flags & OBJ_VERTEX_NORMAL) {
                             vec3 normal;
                             vec3_mult_scalar(vertex_file[i].normal, 32727.0f, normal);
                             vec3_to_vec3i16(normal, *(vec3i16*)d);
@@ -314,7 +316,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                             d += 8;
                         }
 
-                        if (flags & OBJECT_VERTEX_TANGENT) {
+                        if (flags & OBJ_VERTEX_TANGENT) {
                             vec4 tangent;
                             vec4u_to_vec4(vertex_file[i].tangent, tangent);
                             vec4_mult_scalar(tangent, 32727.0f, tangent);
@@ -322,34 +324,34 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                             d += 8;
                         }
 
-                        if (flags & OBJECT_VERTEX_TEXCOORD0) {
+                        if (flags & OBJ_VERTEX_TEXCOORD0) {
                             vec2_to_vec2h(vertex_file[i].texcoord0, *(vec2h*)d);
                             d += 4;
                         }
 
-                        if (flags & OBJECT_VERTEX_TEXCOORD1) {
+                        if (flags & OBJ_VERTEX_TEXCOORD1) {
                             vec2_to_vec2h(vertex_file[i].texcoord1, *(vec2h*)d);
                             d += 4;
                         }
 
-                        if (flags & OBJECT_VERTEX_TEXCOORD2) {
+                        if (flags & OBJ_VERTEX_TEXCOORD2) {
                             vec2_to_vec2h(vertex_file[i].texcoord2, *(vec2h*)d);
                             d += 4;
                         }
 
-                        if (flags & OBJECT_VERTEX_TEXCOORD3) {
+                        if (flags & OBJ_VERTEX_TEXCOORD3) {
                             vec2_to_vec2h(vertex_file[i].texcoord3, *(vec2h*)d);
                             d += 4;
                         }
 
-                        if (flags & OBJECT_VERTEX_COLOR0) {
+                        if (flags & OBJ_VERTEX_COLOR0) {
                             vec4 color0;
                             vec4u_to_vec4(vertex_file[i].color0, color0);
                             vec4_to_vec4h(color0, *(vec4h*)d);
                             d += 8;
                         }
 
-                        if (flags & OBJECT_VERTEX_BONE_DATA) {
+                        if (flags & OBJ_VERTEX_BONE_DATA) {
                             vec4 bone_weight;
                             vec4u_to_vec4(vertex_file[i].bone_weight, bone_weight);
                             vec4_mult_scalar(bone_weight, 65535.0f, bone_weight);
@@ -403,8 +405,8 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                 mesh->indices_count = 0;
             }
 
-            mesh->vertex_flags = mesh_file->vertex_flags;
-            mesh->flags = mesh_file->flags;
+            mesh->vertex_flags = (object_vertex_flags)mesh_file->vertex_flags;
+            mesh->flags = (object_mesh_flags)mesh_file->flags;
             memcpy(mesh->name, mesh_file->name, sizeof(mesh_file->name));
             mesh->name[sizeof(mesh->name) - 1] = 0;
         }
@@ -418,7 +420,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
             object_material* material = &obj->materials[j].material;
             object_material_file* material_file = &obj_file->materials[j].material;
 
-            material->flags = material_file->flags;
+            material->flags = (object_material_flags)material_file->flags;
             material->shader_index = shader_get_index_by_name(&shaders_ft, material_file->shader_name);
             memcpy(&material->shader_flags, &material_file->shader_flags,
                 sizeof(material_file->shader_flags));
@@ -467,7 +469,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
         obj->flags = obj_file->flags;
         string_copy(&obj_file->name, &obj->name);
         obj->id = obj_file->id;
-        obj->hash = hash_murmurhash(string_data(&obj->name), obj->name.length, 0, false, false);
+        obj->hash = hash_string_murmurhash(&obj->name, 0, false);
 
         if (!obj_file->skin_init) {
             memset(&obj->skin, 0, sizeof(object_skin));
@@ -520,7 +522,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
         for (int32_t i = 0; i < bone_names_count; i++)
             buf_size += utf8_length(*bone_names_file_ptr++) + 1;
 
-        ex_data->bone_names_buf = force_malloc(buf_size);
+        ex_data->bone_names_buf = force_malloc_s(char, buf_size);
         ex_data->bone_names = force_malloc_s(char*, buf_size + 1);
         ex_data->bone_names_count = bone_names_count;
 
@@ -559,12 +561,12 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                 object_skin_block_constraint* constraint = &block->constraint;
                 object_skin_block_constraint_file* constraint_file = &block_file->constraint;
 
-                constraint->coupling = constraint_file->coupling;
+                constraint->coupling = (object_skin_block_constraint_coupling)constraint_file->coupling;
                 constraint->name_index = constraint_file->name_index;
                 string_copy(&constraint_file->source_node_name, &constraint->source_node_name);
 
                 switch (constraint_file->type) {
-                case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION:
+                case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION: {
                     constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_ORIENTATION;
 
                     object_skin_block_constraint_orientation* orientation = &constraint->orientation;
@@ -572,8 +574,8 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                         = &constraint_file->orientation;
 
                     orientation->offset = orientation_file->offset;
-                    break;
-                case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
+                } break;
+                case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION: {
                     constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_DIRECTION;
 
                     object_skin_block_constraint_direction* direction = &constraint->direction;
@@ -584,8 +586,8 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                         &direction->up_vector, &direction_file->up_vector);
                     direction->align_axis = direction_file->align_axis;
                     direction->target_offset = direction_file->target_offset;
-                    break;
-                case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
+                } break;
+                case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION: {
                     constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_POSITION;
 
                     object_skin_block_constraint_position* position = &constraint->position;
@@ -599,8 +601,8 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                         &position->constrained_object, &position_file->constrained_object);
                     object_skin_block_constraint_attach_point_load(
                         &position->constraining_object, &position_file->constraining_object);
-                    break;
-                case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
+                } break;
+                case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE: {
                     constraint->type = OBJECT_SKIN_BLOCK_CONSTRAINT_DISTANCE;
 
                     object_skin_block_constraint_distance* distance = &constraint->distance;
@@ -614,7 +616,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                         &distance->constrained_object, &distance_file->constrained_object);
                     object_skin_block_constraint_attach_point_load(
                         &distance->constraining_object, &distance_file->constraining_object);
-                    break;
+                } break;
                 }
 
             } break;
@@ -726,7 +728,23 @@ bool object_set_load_db_entry(object_set_info** set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)*set_info;
-    return data_struct_load_file(data, temp, "rom/objset/",
+    return data_struct_load_file((data_struct*)data, temp, "rom/objset/",
+        string_data(&(*set_info)->archive_file_name), object_set_load_file);
+}
+
+bool object_set_load_db_entry(object_set_info** set_info,
+    void* data, object_database* obj_db, const char* name) {
+    if (!object_database_get_object_set_info(obj_db, name, set_info))
+        return false;
+    else if (object_storage_get_object_set((*set_info)->id)) {
+        object_storage_append_object_set((*set_info)->id);
+        return true;
+    }
+
+    size_t temp[2];
+    temp[0] = (size_t)data;
+    temp[1] = (size_t)*set_info;
+    return data_struct_load_file((data_struct*)data, temp, "rom/objset/",
         string_data(&(*set_info)->archive_file_name), object_set_load_file);
 }
 
@@ -740,7 +758,7 @@ bool object_set_load_by_db_entry(object_set_info* set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)set_info;
-    return data_struct_load_file(data, temp, "rom/objset/",
+    return data_struct_load_file((data_struct*)data, temp, "rom/objset/",
         string_data(&set_info->archive_file_name), object_set_load_file);
 }
 
@@ -756,7 +774,7 @@ bool object_set_load_by_db_index(object_set_info** set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)*set_info;
-    return data_struct_load_file(data, temp, "rom/objset/",
+    return data_struct_load_file((data_struct*)data, temp, "rom/objset/",
         string_data(&(*set_info)->archive_file_name), object_set_load_file);
 }
 
@@ -765,7 +783,7 @@ bool object_set_load_by_hash(void* data,
     size_t temp[2];
     temp[0] = (size_t)obj_db;
     temp[1] = (size_t)tex_db;
-    return data_struct_load_file_by_hash(data, temp, "rom/objset/",
+    return data_struct_load_file_by_hash((data_struct*)data, temp, "rom/objset/",
         hash, object_set_load_file_modern);
 }
 
@@ -1426,6 +1444,58 @@ inline static void object_skin_block_node_free(object_skin_block_node* node) {
     string_free(&node->parent_name);
 }
 
+inline static size_t obj_vertex_flags_get_vertex_size(obj_vertex_flags flags) {
+    size_t size = 0;
+    if (flags & OBJ_VERTEX_POSITION)
+        size += 12;
+    if (flags & OBJ_VERTEX_NORMAL)
+        size += 12;
+    if (flags & OBJ_VERTEX_TANGENT)
+        size += 16;
+    if (flags & OBJ_VERTEX_BINORMAL)
+        size += 12;
+    if (flags & OBJ_VERTEX_TEXCOORD0)
+        size += 8;
+    if (flags & OBJ_VERTEX_TEXCOORD1)
+        size += 8;
+    if (flags & OBJ_VERTEX_TEXCOORD2)
+        size += 8;
+    if (flags & OBJ_VERTEX_TEXCOORD3)
+        size += 8;
+    if (flags & OBJ_VERTEX_COLOR0)
+        size += 16;
+    if (flags & OBJ_VERTEX_COLOR1)
+        size += 16;
+    if (flags & OBJ_VERTEX_BONE_DATA)
+        size += 32;
+    if (flags & OBJ_VERTEX_UNKNOWN)
+        size += 16;
+    return size;
+}
+
+inline static size_t obj_vertex_flags_get_vertex_size_comp(obj_vertex_flags flags) {
+    size_t size = 0;
+    if (flags & OBJ_VERTEX_POSITION)
+        size += 12;
+    if (flags & OBJ_VERTEX_NORMAL)
+        size += 8;
+    if (flags & OBJ_VERTEX_TANGENT)
+        size += 8;
+    if (flags & OBJ_VERTEX_TEXCOORD0)
+        size += 4;
+    if (flags & OBJ_VERTEX_TEXCOORD1)
+        size += 4;
+    if (flags & OBJ_VERTEX_TEXCOORD2)
+        size += 4;
+    if (flags & OBJ_VERTEX_TEXCOORD3)
+        size += 4;
+    if (flags & OBJ_VERTEX_COLOR0)
+        size += 8;
+    if (flags & OBJ_VERTEX_BONE_DATA)
+        size += 16;
+    return size;
+}
+
 inline static size_t object_vertex_flags_get_vertex_size(object_vertex_flags flags) {
     size_t size = 0;
     if (flags & OBJECT_VERTEX_POSITION)
@@ -1479,10 +1549,10 @@ inline static size_t object_vertex_flags_get_vertex_size_comp(object_vertex_flag
 }
 
 static bool object_set_load_file(void* data, char* path, char* file, uint32_t hash) {
-    data_struct* ds = (void*)((size_t*)data)[0];
+    data_struct* ds = (data_struct*)((size_t*)data)[0];
     data_ft* d = &ds->data_ft;
 
-    object_set_info* set_info = (void*)((size_t*)data)[1];
+    object_set_info* set_info = (object_set_info*)((size_t*)data)[1];
 
     farc f;
     farc_init(&f);
@@ -1516,8 +1586,8 @@ static bool object_set_load_file(void* data, char* path, char* file, uint32_t ha
 }
 
 static bool object_set_load_file_modern(void* data, char* path, char* file, uint32_t hash) {
-    object_database* obj_db = (void*)((size_t*)data)[0];
-    texture_database* tex_db = (void*)((size_t*)data)[1];
+    object_database* obj_db = (object_database*)((size_t*)data)[0];
+    texture_database* tex_db = (texture_database*)((size_t*)data)[1];
 
     farc f;
     farc_init(&f);

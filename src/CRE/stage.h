@@ -13,7 +13,7 @@
 
 typedef struct stage {
     union {
-        stage_info* stage;
+        stage_info* stage_classic;
         stage_info_modern* stage_modern;
     };
 
@@ -31,9 +31,13 @@ typedef struct stage {
 } stage;
 
 extern void stage_init(stage* s);
+extern void stage_ctrl(stage* s, render_context* rctx);
+extern void stage_ctrl_modern(stage* s, render_context* rctx);
+extern void stage_disp(stage* s, render_context* rctx);
+extern void stage_disp_modern(stage* s, render_context* rctx);
 extern void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, object_database* obj_db,
     texture_database* tex_db, stage_database* stage_data, char* name, render_context* rctx);
+extern void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, object_database* obj_db,
+    texture_database* tex_db, stage_database* stage_data, const char* name, render_context* rctx);
 extern void stage_set(stage* s, render_context* rctx);
-extern void stage_update(stage* s, render_context* rctx);
-extern void stage_update_modern(stage* s, render_context* rctx);
 extern void stage_free(stage* s, render_context* rctx);

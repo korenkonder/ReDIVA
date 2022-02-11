@@ -571,25 +571,25 @@ static const char* dof_frag_shader_step_5 =
 "}\n";
 
 static const dof_debug dof_debug_default = {
-    .flags = 0,
-    .distance_to_focus = 10.0f,
-    .focal_length = 40.0f,
-    .f_number = 1.4f,
-    .f2 = {
-        .distance_to_focus = 10.0f,
-        .focus_range = 1.0f,
-        .fuzzing_range = 0.5f,
-        .ratio = 1.0f,
+    (dof_debug_flags)0,
+    10.0f,
+    40.0f,
+    1.4f,
+    {
+        10.0f,
+        1.0f,
+        0.5f,
+        1.0f,
     },
 };
 
 static const dof_pv dof_pv_default = {
-    .enable = false,
-    .f2 = {
-        .distance_to_focus = 10.0f,
-        .focus_range = 1.0f,
-        .fuzzing_range = 0.5f,
-        .ratio = 1.0f,
+    false,
+    {
+        10.0f,
+        1.0f,
+        0.5f,
+        1.0f,
     },
 };
 
@@ -618,7 +618,7 @@ static void post_process_dof_update_data(post_process_dof* dof, float_t min_dist
     float_t f_number, float_t focus_range, float_t fuzzing_range, float_t ratio);
 
 post_process_dof* post_process_dof_init() {
-    post_process_dof* dof = force_malloc(sizeof(post_process_dof));
+    post_process_dof* dof = force_malloc_s(post_process_dof, 1);
     post_process_dof_load_shaders(dof);
     return dof;
 }
@@ -665,15 +665,15 @@ void post_process_apply_dof(post_process_dof* dof,
             (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov,
             dof->data.pv.f2.distance_to_focus, dof->data.pv.f2.focus_range,
             fuzzing_range, dof->data.pv.f2.ratio);
-        dof->data.debug.flags |= DOF_DEBUG_ENABLE_DOF;
+        enum_or(dof->data.debug.flags, DOF_DEBUG_ENABLE_DOF);
         dof->data.debug.f2.distance_to_focus = dof->data.pv.f2.distance_to_focus;
         dof->data.debug.f2.focus_range = dof->data.pv.f2.focus_range;
         dof->data.debug.f2.fuzzing_range = dof->data.pv.f2.fuzzing_range;
         dof->data.debug.f2.ratio = dof->data.pv.f2.ratio;
-        use_dof_f2 = true;
+        use_dof_f2 = true; ;
     }
     else
-        dof->data.debug.flags &= ~DOF_DEBUG_ENABLE_DOF;
+        enum_and(dof->data.debug.flags, ~DOF_DEBUG_ENABLE_DOF);
 }
 
 void post_process_dof_init_fbo(post_process_dof* dof, int32_t width, int32_t height) {
@@ -983,7 +983,7 @@ static GLuint post_process_dof_shader_compile(GLenum type, char* data) {
     GLint success = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc(0x10000);
+        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetShaderInfoLog(shader, 0x10000, 0, info_log);
         printf("Shader compile error: ");
         printf(info_log);
@@ -1004,7 +1004,7 @@ static GLuint post_process_dof_program_link(GLuint vert_shad, GLuint frag_shad) 
     GLint success = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc(0x10000);
+        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
         printf("DOF Program Shader linking error:\n");
         printf(info_log);

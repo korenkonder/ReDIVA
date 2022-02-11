@@ -12,7 +12,7 @@ void fog_init(fog* fog) {
     fog->start = 20.0f;
     fog->end = 1000.0f;
     fog->index = 0;
-    fog->color = (vec4){ 1.0f, 1.0f, 1.0f, 0.0f };
+    fog->color = { 1.0f, 1.0f, 1.0f, 0.0f };
 }
 
 inline fog_type fog_get_type(fog* fog) {

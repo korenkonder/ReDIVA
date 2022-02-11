@@ -26,7 +26,7 @@ glitter_emitter_inst* glitter_x_emitter_inst_init(glitter_emitter* a1,
         return 0;
     }
 
-    glitter_emitter_inst* ei = force_malloc(sizeof(glitter_emitter_inst));
+    glitter_emitter_inst* ei = force_malloc_s(glitter_emitter_inst, 1);
     ei->emitter = a1;
 
     ei->random_ptr = &a2->random_shared;
@@ -71,120 +71,7 @@ glitter_emitter_inst* glitter_x_emitter_inst_init(glitter_emitter* a1,
     return ei;
 }
 
-void glitter_x_emitter_inst_emit(glitter_emitter_inst* a1,
-    float_t delta_frame, float_t emission) {
-    if (a1->frame < 0.0f) {
-        a1->frame += delta_frame;
-        return;
-    }
-
-    if (~a1->flags & GLITTER_EMITTER_INST_ENDED)
-        if (a1->emission == GLITTER_EMITTER_EMISSION_ON_TIMER) {
-            if (a1->data.timer == GLITTER_EMITTER_TIMER_BY_DISTANCE) {
-                if (a1->emission_timer <= 0.0f || a1->emission_interval >= 0.0f)
-                    while (a1->emission_timer <= 0.0f) {
-                        glitter_x_emitter_inst_emit_particle(a1, emission);
-                        a1->emission_timer += a1->emission_interval;
-                        if (a1->emission_timer < -1000000.0f)
-                            a1->emission_timer = -1000000.0f;
-
-                        if (a1->emission_interval <= 0.0f)
-                            break;
-                    }
-            }
-            else if (a1->data.timer == GLITTER_EMITTER_TIMER_BY_TIME)
-                if (a1->emission_timer >= 0.0f || a1->emission_interval >= 0.0f) {
-                    a1->emission_timer -= delta_frame;
-                    if (a1->emission_timer <= 0.0f) {
-                        glitter_x_emitter_inst_emit_particle(a1, emission);
-                        if (a1->emission_interval > 0.0)
-                            a1->emission_timer += a1->emission_interval;
-                        else
-                            a1->emission_timer = -1.0f;
-                    }
-                }
-        }
-        else if (a1->emission == GLITTER_EMITTER_EMISSION_ON_START
-            && a1->data.timer == GLITTER_EMITTER_TIMER_BY_TIME) {
-            a1->emission_timer -= delta_frame;
-            if (a1->emission_timer <= 0.0) {
-                glitter_x_emitter_inst_emit_particle(a1, emission);
-                a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
-            }
-        }
-
-    if (!a1->loop && a1->frame >= a1->data.life_time)
-        glitter_x_emitter_inst_free(a1, emission);
-
-    a1->frame += delta_frame;
-}
-
-void glitter_x_emitter_inst_free(glitter_emitter_inst* a1, float_t emission) {
-    glitter_particle_inst** i;
-
-    if (a1->flags & GLITTER_EMITTER_INST_ENDED)
-        return;
-
-    if (a1->emission == GLITTER_EMITTER_EMISSION_ON_END) {
-        glitter_x_emitter_inst_emit_particle(a1, emission);
-        a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
-    }
-
-    if (a1->loop && a1->data.loop_end_time >= 0.0f)
-        a1->loop = false;
-
-    a1->flags |= GLITTER_EMITTER_INST_ENDED;
-    if (a1->data.flags & GLITTER_EMITTER_KILL_ON_END)
-        for (i = a1->particles.begin; i != a1->particles.end; ++i)
-            glitter_x_particle_inst_free(*i, true);
-    else
-        for (i = a1->particles.begin; i != a1->particles.end; ++i)
-            glitter_x_particle_inst_free(*i, false);
-}
-
-bool glitter_x_emitter_inst_has_ended(glitter_emitter_inst* emitter, bool a2) {
-    glitter_particle_inst** i;
-
-    if (~emitter->flags & GLITTER_EMITTER_INST_ENDED)
-        return false;
-    else if (!a2)
-        return true;
-
-    for (i = emitter->particles.begin; i != emitter->particles.end; i++)
-        if (!glitter_x_particle_inst_has_ended(*i, a2))
-            return false;
-    return true;
-}
-
-uint8_t glitter_x_emitter_inst_random_get_step(glitter_emitter_inst* a1) {
-    a1->step = (a1->step + 2) % 60;
-    return a1->step;
-}
-
-void glitter_x_emitter_inst_random_set_value(glitter_emitter_inst* a1) {
-    a1->counter += 11;
-    a1->counter %= 30000;
-    glitter_x_random_set_value(a1->random_ptr, a1->random + a1->counter);
-}
-
-void glitter_x_emitter_inst_reset(glitter_emitter_inst* a1) {
-    glitter_particle_inst** i;
-
-    a1->loop = a1->data.flags & GLITTER_EMITTER_LOOP ? true : false;
-    a1->frame = (float_t)-a1->data.start_time;
-    a1->flags = GLITTER_EMITTER_INST_NONE;
-    a1->emission_timer = 0.0f;
-    if (a1->emission_interval >= -0.000001f)
-        a1->emission = fabsf(a1->emission_interval) <= 0.000001f
-        ? GLITTER_EMITTER_EMISSION_ON_START : GLITTER_EMITTER_EMISSION_ON_TIMER;
-    else
-        a1->emission = GLITTER_EMITTER_EMISSION_ON_END;
-
-    for (i = a1->particles.begin; i != a1->particles.end; ++i)
-        glitter_x_particle_inst_reset(*i);
-}
-
-void glitter_x_emitter_inst_update(GPM,
+void glitter_x_emitter_inst_ctrl(GPM,
     glitter_emitter_inst* a1, glitter_effect_inst* a2, float_t delta_frame) {
     bool mult;
     vec3 trans;
@@ -292,10 +179,10 @@ void glitter_x_emitter_inst_update(GPM,
         a1->emission_timer -= trans_dist;
     }
 
-    a1->flags |= GLITTER_EMITTER_INST_HAS_DISTANCE;
+    enum_or(a1->flags, GLITTER_EMITTER_INST_HAS_DISTANCE);
 }
 
-void glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
+void glitter_x_emitter_inst_ctrl_init(glitter_emitter_inst* a1,
     glitter_effect_inst* a2, float_t delta_frame) {
     if (a1->frame < 0.0f)
         return;
@@ -349,7 +236,120 @@ void glitter_x_emitter_inst_update_init(glitter_emitter_inst* a1,
         vec3_distance(trans, trans_prev, trans_dist);
         a1->emission_timer -= trans_dist;
     }
-    a1->flags |= GLITTER_EMITTER_INST_HAS_DISTANCE;
+    enum_or(a1->flags, GLITTER_EMITTER_INST_HAS_DISTANCE);
+}
+
+void glitter_x_emitter_inst_emit(glitter_emitter_inst* a1,
+    float_t delta_frame, float_t emission) {
+    if (a1->frame < 0.0f) {
+        a1->frame += delta_frame;
+        return;
+    }
+
+    if (~a1->flags & GLITTER_EMITTER_INST_ENDED)
+        if (a1->emission == GLITTER_EMITTER_EMISSION_ON_TIMER) {
+            if (a1->data.timer == GLITTER_EMITTER_TIMER_BY_DISTANCE) {
+                if (a1->emission_timer <= 0.0f || a1->emission_interval >= 0.0f)
+                    while (a1->emission_timer <= 0.0f) {
+                        glitter_x_emitter_inst_emit_particle(a1, emission);
+                        a1->emission_timer += a1->emission_interval;
+                        if (a1->emission_timer < -1000000.0f)
+                            a1->emission_timer = -1000000.0f;
+
+                        if (a1->emission_interval <= 0.0f)
+                            break;
+                    }
+            }
+            else if (a1->data.timer == GLITTER_EMITTER_TIMER_BY_TIME)
+                if (a1->emission_timer >= 0.0f || a1->emission_interval >= 0.0f) {
+                    a1->emission_timer -= delta_frame;
+                    if (a1->emission_timer <= 0.0f) {
+                        glitter_x_emitter_inst_emit_particle(a1, emission);
+                        if (a1->emission_interval > 0.0)
+                            a1->emission_timer += a1->emission_interval;
+                        else
+                            a1->emission_timer = -1.0f;
+                    }
+                }
+        }
+        else if (a1->emission == GLITTER_EMITTER_EMISSION_ON_START
+            && a1->data.timer == GLITTER_EMITTER_TIMER_BY_TIME) {
+            a1->emission_timer -= delta_frame;
+            if (a1->emission_timer <= 0.0) {
+                glitter_x_emitter_inst_emit_particle(a1, emission);
+                a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
+            }
+        }
+
+    if (!a1->loop && a1->frame >= a1->data.life_time)
+        glitter_x_emitter_inst_free(a1, emission);
+
+    a1->frame += delta_frame;
+}
+
+void glitter_x_emitter_inst_free(glitter_emitter_inst* a1, float_t emission) {
+    glitter_particle_inst** i;
+
+    if (a1->flags & GLITTER_EMITTER_INST_ENDED)
+        return;
+
+    if (a1->emission == GLITTER_EMITTER_EMISSION_ON_END) {
+        glitter_x_emitter_inst_emit_particle(a1, emission);
+        a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
+    }
+
+    if (a1->loop && a1->data.loop_end_time >= 0.0f)
+        a1->loop = false;
+
+    enum_or(a1->flags, GLITTER_EMITTER_INST_ENDED);
+    if (a1->data.flags & GLITTER_EMITTER_KILL_ON_END)
+        for (i = a1->particles.begin; i != a1->particles.end; ++i)
+            glitter_x_particle_inst_free(*i, true);
+    else
+        for (i = a1->particles.begin; i != a1->particles.end; ++i)
+            glitter_x_particle_inst_free(*i, false);
+}
+
+bool glitter_x_emitter_inst_has_ended(glitter_emitter_inst* emitter, bool a2) {
+    glitter_particle_inst** i;
+
+    if (~emitter->flags & GLITTER_EMITTER_INST_ENDED)
+        return false;
+    else if (!a2)
+        return true;
+
+    for (i = emitter->particles.begin; i != emitter->particles.end; i++)
+        if (!glitter_x_particle_inst_has_ended(*i, a2))
+            return false;
+    return true;
+}
+
+uint8_t glitter_x_emitter_inst_random_get_step(glitter_emitter_inst* a1) {
+    a1->step = (a1->step + 2) % 60;
+    return a1->step;
+}
+
+void glitter_x_emitter_inst_random_set_value(glitter_emitter_inst* a1) {
+    a1->counter += 11;
+    a1->counter %= 30000;
+    glitter_x_random_set_value(a1->random_ptr, a1->random + a1->counter);
+}
+
+void glitter_x_emitter_inst_reset(glitter_emitter_inst* a1) {
+    glitter_particle_inst** i;
+
+    a1->loop = a1->data.flags & GLITTER_EMITTER_LOOP ? true : false;
+    a1->frame = (float_t)-a1->data.start_time;
+    a1->flags = GLITTER_EMITTER_INST_NONE;
+    a1->emission_timer = 0.0f;
+    if (a1->emission_interval >= -0.000001f)
+        a1->emission = fabsf(a1->emission_interval) <= 0.000001f
+        ? GLITTER_EMITTER_EMISSION_ON_START : GLITTER_EMITTER_EMISSION_ON_TIMER;
+    else
+        a1->emission = GLITTER_EMITTER_EMISSION_ON_END;
+
+    for (i = a1->particles.begin; i != a1->particles.end; ++i)
+        glitter_x_particle_inst_reset(*i);
 }
 
 void glitter_x_emitter_inst_dispose(glitter_emitter_inst* ei) {

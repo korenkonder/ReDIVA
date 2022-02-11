@@ -9,12 +9,12 @@
 #include <glad/glad.h>
 
 typedef struct gl_state_struct {
-    GLuint program;
+    GLint program;
     GLenum active_texture;
     GLuint active_texture_index;
-    GLuint texture_binding_2d[32];
-    GLuint texture_binding_cube_map[32];
-    GLuint sampler_binding[32];
+    GLint texture_binding_2d[32];
+    GLint texture_binding_cube_map[32];
+    GLint sampler_binding[32];
     GLboolean blend;
     GLenum blend_src_rgb;
     GLenum blend_src_alpha;

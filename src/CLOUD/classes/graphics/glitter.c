@@ -27,7 +27,7 @@ void graphics_glitter_imgui(class_data* data) {
     float_t h = min((float_t)height, 204.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Appearing);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
@@ -36,11 +36,14 @@ void graphics_glitter_imgui(class_data* data) {
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(graphics_glitter_window_title, &open, window_flags);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
     size_t ctrl;
     size_t disp;
@@ -79,8 +82,6 @@ void graphics_glitter_imgui(class_data* data) {
     igText("      (disp):%5lld", total_disp);
 
     data->imgui_focus |= igIsWindowFocused(0);
-
-End:
     igEnd();
 }
 

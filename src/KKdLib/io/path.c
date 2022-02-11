@@ -16,12 +16,21 @@ bool path_check_path_exists(char* path) {
         return true;
 }
 
+inline bool path_check_path_exists(const char* path) {
+    return path_check_path_exists((char*)path);
+}
+
 bool path_wcheck_path_exists(wchar_t* path) {
     DWORD ftyp = GetFileAttributesW(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
         return false;
     else
         return true;
+}
+
+inline bool path_wcheck_path_exists(const wchar_t* path) {
+    return path_wcheck_path_exists((wchar_t*)path);
+
 }
 
 bool path_check_file_exists(char* path) {
@@ -34,12 +43,20 @@ bool path_check_file_exists(char* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? false : true;
 }
 
-bool path_wcheck_file_exists(wchar_t* file_path) {
-    DWORD ftyp = GetFileAttributesW(file_path);
+inline bool path_check_file_exists(const char* path) {
+    return path_check_file_exists((char*)path);
+}
+
+bool path_wcheck_file_exists(wchar_t* path) {
+    DWORD ftyp = GetFileAttributesW(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
         return false;
     else
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? false : true;
+}
+
+inline bool path_wcheck_file_exists(const wchar_t* path) {
+    return path_wcheck_file_exists((wchar_t*)path);
 }
 
 bool path_check_directory_exists(char* path) {
@@ -52,12 +69,20 @@ bool path_check_directory_exists(char* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? true : false;
 }
 
+inline bool path_check_directory_exists(const char* path) {
+    return path_check_directory_exists((char*)path);
+}
+
 bool path_wcheck_directory_exists(wchar_t* path) {
     DWORD ftyp = GetFileAttributesW(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
         return false;
     else
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? true : false;
+}
+
+inline bool path_wcheck_directory_exists(const wchar_t* path) {
+    return path_wcheck_directory_exists((wchar_t*)path);
 }
 
 void path_get_files(vector_string* files, char* path) {
@@ -105,6 +130,10 @@ void path_get_files(vector_string* files, char* path) {
     free(dir);
 }
 
+inline void path_get_files(vector_string* files, const char* path) {
+    path_get_files(files, (char*)path);
+}
+
 void path_wget_files(vector_wstring* files, wchar_t* path) {
     vector_wstring_free(files, wstring_free);
 
@@ -142,6 +171,10 @@ void path_wget_files(vector_wstring* files, wchar_t* path) {
     } while (FindNextFileW(h, &fdata));
     FindClose(h);
     free(dir);
+}
+
+inline void path_wget_files(vector_wstring* files, const wchar_t* path) {
+    path_wget_files(files, (wchar_t*)path);
 }
 
 void path_get_directories(vector_string* directories, char* path,
@@ -223,6 +256,11 @@ void path_get_directories(vector_string* directories, char* path,
     free(dir);
 }
 
+inline void path_get_directories(vector_string* directories, const char* path,
+    char** exclude_list, size_t exclude_count) {
+    path_get_directories(directories, (char*)path, exclude_list, exclude_count);
+}
+
 void path_wget_directories(vector_wstring* directories, wchar_t* path,
     wchar_t** exclude_list, size_t exclude_count) {
     vector_wstring_free(directories, wstring_free);
@@ -291,6 +329,11 @@ void path_wget_directories(vector_wstring* directories, wchar_t* path,
     FindClose(h);
     free(temp);
     free(dir);
+}
+
+inline void path_wget_directories(vector_wstring* directories, const wchar_t* path,
+    wchar_t** exclude_list, size_t exclude_count) {
+    path_wget_directories(directories, (wchar_t*)path, exclude_list, exclude_count);
 }
 
 void path_get_directories_recursive(vector_string* directories, char* path,
@@ -379,7 +422,7 @@ void path_get_directories_recursive(vector_string* directories, char* path,
     }
 
     size_t path_length = utf8_length(path);
-    char* path_temp = force_malloc(path_length + max_len + 2);
+    char* path_temp = force_malloc_s(char, path_length + max_len + 2);
     memcpy(path_temp, path, path_length);
     path_temp[path_length] = '\\';
     for (string* i = temp_vec.begin; i != temp_vec.end; i++) {
@@ -403,7 +446,7 @@ void path_get_directories_recursive(vector_string* directories, char* path,
         }
 
         size_t sub_path_length = i->length;
-        char* sub_path_temp = force_malloc(sub_path_length + max_len + 1);
+        char* sub_path_temp = force_malloc_s(char, sub_path_length + max_len + 1);
         if (sub_path_temp) {
             memcpy(sub_path_temp, string_data(i), sub_path_length);
             sub_path_temp[sub_path_length] = '\\';
@@ -420,6 +463,11 @@ void path_get_directories_recursive(vector_string* directories, char* path,
     }
     free(path_temp);
     vector_string_free(&temp_vec, 0);
+}
+
+inline void path_get_directories_recursive(vector_string* directories, const char* path,
+    char** exclude_list, size_t exclude_count) {
+    path_get_directories_recursive(directories, (char*)path, exclude_list, exclude_count);
 }
 
 void path_wget_directories_recursive(vector_wstring* directories, wchar_t* path,
@@ -541,4 +589,9 @@ void path_wget_directories_recursive(vector_wstring* directories, wchar_t* path,
     }
     free(path_temp);
     vector_wstring_free(&temp_vec, 0);
+}
+
+inline void path_wget_directories_recursive(vector_wstring* directories, const wchar_t* path,
+    wchar_t** exclude_list, size_t exclude_count) {
+    path_wget_directories_recursive(directories, (wchar_t*)path, exclude_list, exclude_count);
 }

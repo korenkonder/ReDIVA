@@ -15,7 +15,7 @@ glitter_particle_inst* glitter_particle_inst_init(glitter_particle* a1,
     glitter_effect_inst* a2, glitter_emitter_inst* a3, glitter_random* random, float_t emission) {
     glitter_render_group* rg;
 
-    glitter_particle_inst* pi = force_malloc(sizeof(glitter_particle_inst));
+    glitter_particle_inst* pi = force_malloc_s(glitter_particle_inst, 1);
     pi->particle = a1;
     pi->data.effect = a2;
     pi->data.emitter = a3;
@@ -48,7 +48,7 @@ glitter_particle_inst* glitter_particle_inst_init(glitter_particle* a1,
         }
     }
     else
-        pi->data.flags |= GLITTER_PARTICLE_INST_NO_CHILD;
+        enum_or(pi->data.flags, GLITTER_PARTICLE_INST_NO_CHILD);
     return pi;
 }
 
@@ -79,7 +79,7 @@ void glitter_particle_inst_emit(GPM, GLT,
 void glitter_particle_inst_free(glitter_particle_inst* a1, bool free) {
     glitter_particle_inst** i;
 
-    a1->data.flags |= GLITTER_PARTICLE_INST_ENDED;
+    enum_or(a1->data.flags, GLITTER_PARTICLE_INST_ENDED);
     if (free && a1->data.render_group)
         glitter_render_group_free(a1->data.render_group);
 
@@ -120,7 +120,7 @@ void glitter_particle_inst_dispose(glitter_particle_inst* pi) {
 void glitter_particle_inst_reset(glitter_particle_inst* a1) {
     glitter_particle_inst** i;
 
-    a1->data.flags = 0;
+    a1->data.flags = (glitter_particle_inst_flag)0;
     if (a1->data.render_group)
         glitter_render_group_free(a1->data.render_group);
 
@@ -133,7 +133,7 @@ static glitter_particle_inst* glitter_particle_inst_init_child(glitter_particle_
     glitter_render_group* rg;
     glitter_effect_inst* effect;
 
-    glitter_particle_inst* pi = force_malloc(sizeof(glitter_particle_inst));
+    glitter_particle_inst* pi = force_malloc_s(glitter_particle_inst, 1);
     pi->particle = a1->particle;
     pi->data.effect = a1->data.effect;
     pi->data.emitter = a1->data.emitter;
@@ -160,6 +160,6 @@ static glitter_particle_inst* glitter_particle_inst_init_child(glitter_particle_
     }
 
     if (pi->data.data.type == GLITTER_PARTICLE_LOCUS)
-        pi->data.flags |= GLITTER_PARTICLE_INST_NO_CHILD;
+        enum_or(pi->data.flags, GLITTER_PARTICLE_INST_NO_CHILD);
     return pi;
 }

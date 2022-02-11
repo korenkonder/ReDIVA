@@ -247,9 +247,9 @@ typedef struct object_material_texture_sampler_flags {
 } object_material_texture_sampler_flags;
 
 typedef struct object_material_texture_texture_flags {
-    uint32_t type : 4;
+    object_material_texture_type type : 4;
     uint32_t tex_coord_index : 4;
-    uint32_t tex_coord_trans_type : 3;
+    object_material_texture_coordinate_translation_type tex_coord_trans_type : 3;
 } object_material_texture_texture_flags;
 
 typedef struct object_material_texture {
@@ -542,11 +542,11 @@ typedef struct object {
     uint32_t hash;
 } object;
 
-typedef GLint object_mesh_index_buffer;
+typedef GLuint object_mesh_index_buffer;
 
 typedef struct object_mesh_vertex_buffer {
     int32_t count;
-    GLint buffers[3];
+    GLuint buffers[3];
     int32_t index;
 } object_mesh_vertex_buffer;
 
@@ -585,6 +585,8 @@ extern void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp
     texture_database* tex_db, string* name, uint32_t id, bool compressed);
 extern bool object_set_load_db_entry(object_set_info** set_info,
     void* data, object_database* obj_db, char* name);
+extern bool object_set_load_db_entry(object_set_info** set_info,
+    void* data, object_database* obj_db, const char* name);
 extern bool object_set_load_by_db_entry(object_set_info* set_info,
     void* data, object_database* obj_db);
 extern bool object_set_load_by_db_index(object_set_info** set_info,

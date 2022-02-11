@@ -28,7 +28,10 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
 static void bone_database_modern_write_inner(bone_database* bone_data, stream* s);
 static ssize_t bone_database_strings_get_string_offset(vector_string* vec,
     vector_ssize_t* vec_off, char* str);
+static ssize_t bone_database_strings_get_string_offset(vector_string* vec,
+    vector_ssize_t* vec_off, const char* str);
 static bool bone_database_strings_push_back_check(vector_string* vec, char* str);
+static bool bone_database_strings_push_back_check(vector_string* vec, const char* str);
 
 void bone_database_init(bone_database* bone_data) {
     memset(bone_data, 0, sizeof(bone_database));
@@ -44,7 +47,7 @@ void bone_database_read(bone_database* bone_data, char* path, bool modern) {
             stream s;
             io_open(&s, path_bin, "rb");
             if (s.io.stream) {
-                uint8_t* data = force_malloc(s.length);
+                uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
                 io_mopen(&s_bin, data, s.length);
@@ -61,7 +64,7 @@ void bone_database_read(bone_database* bone_data, char* path, bool modern) {
         if (path_check_file_exists(path_bon)) {
             f2_struct st;
             f2_struct_read(&st, path_bon);
-            if (st.header.signature == reverse_endianness_uint32_t('BONE')); {
+            if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
                 stream s_bone;
                 io_mopen(&s_bone, st.data, st.length);
                 s_bone.is_big_endian = st.header.use_big_endian;
@@ -84,7 +87,7 @@ void bone_database_wread(bone_database* bone_data, wchar_t* path, bool modern) {
             stream s;
             io_wopen(&s, path_bin, L"rb");
             if (s.io.stream) {
-                uint8_t* data = force_malloc(s.length);
+                uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
                 io_mopen(&s_bin, data, s.length);
@@ -101,7 +104,7 @@ void bone_database_wread(bone_database* bone_data, wchar_t* path, bool modern) {
         if (path_wcheck_file_exists(path_bon)) {
             f2_struct st;
             f2_struct_wread(&st, path_bon);
-            if (st.header.signature == reverse_endianness_uint32_t('BONE')); {
+            if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
                 stream s_bone;
                 io_mopen(&s_bone, st.data, st.length);
                 s_bone.is_big_endian = st.header.use_big_endian;
@@ -127,7 +130,7 @@ void bone_database_mread(bone_database* bone_data, void* data, size_t length, bo
     else {
         f2_struct st;
         f2_struct_mread(&st, data, length);
-        if (st.header.signature == reverse_endianness_uint32_t('BONE')); {
+        if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
             stream s_bone;
             io_mopen(&s_bone, st.data, st.length);
             s_bone.is_big_endian = st.header.use_big_endian;
@@ -212,7 +215,7 @@ bool bone_database_load_file(void* data, char* path, char* file, uint32_t hash) 
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    bone_database* bone_data = data;
+    bone_database* bone_data = (bone_database*)data;
     bone_database_read(bone_data, string_data(&s), bone_data->modern);
 
     string_free(&s);
@@ -435,7 +438,7 @@ void bone_database_free(bone_database* bone_data) {
     vector_bone_database_skeleton_free(&bone_data->skeleton, bone_database_skeleton_free);
 }
 
-char* bone_database_skeleton_type_to_string(bone_database_skeleton_type type) {
+const char* bone_database_skeleton_type_to_string(bone_database_skeleton_type type) {
     switch (type) {
     case BONE_DATABASE_SKELETON_COMMON:
         return "CMN";
@@ -485,7 +488,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
     uint32_t skeleton_count = io_read_uint32_t(s);
     uint32_t skeleton_offsets_offset = io_read_uint32_t(s);
     uint32_t skeleton_name_offsets_offset = io_read_uint32_t(s);
-    io_read(s, 0, 0x14);
+    io_read(s, 0x14);
 
     vector_bone_database_skeleton_reserve(&bone_data->skeleton, skeleton_count);
     bone_data->skeleton.end += skeleton_count;
@@ -505,7 +508,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
         uint32_t motion_bone_count = io_read_uint32_t(s);
         uint32_t motion_bone_names_offset = io_read_uint32_t(s);
         uint32_t parent_indices_offset = io_read_uint32_t(s);
-        io_read(s, 0, 0x14);
+        io_read(s, 0x14);
 
         uint32_t bone_count = 0;
         io_position_push(s, bones_offset, SEEK_SET);
@@ -513,7 +516,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
             if (io_read_uint8_t(s) == 0xFF)
                 break;
 
-            io_read(s, 0, 0x0B);
+            io_read(s, 0x0B);
             bone_count++;
         }
         io_position_pop(s);
@@ -524,13 +527,13 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
         io_position_push(s, bones_offset, SEEK_SET);
         for (uint32_t j = 0; j < bone_count; j++) {
             bone_database_bone* bone = &skel->bone.begin[j];
-            bone->type = io_read_uint8_t(s);
+            bone->type = (bone_database_bone_type)io_read_uint8_t(s);
             bone->has_parent = io_read_uint8_t(s) ? true : false;
             bone->parent = io_read_uint8_t(s);
             bone->pole_target = io_read_uint8_t(s);
             bone->mirror = io_read_uint8_t(s);
             bone->flags = io_read_uint8_t(s);
-            io_read(s, 0, 0x02);
+            io_read(s, 0x02);
             io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &bone->name);
         }
         io_position_pop(s);
@@ -606,7 +609,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
 
     uint32_t skeleton_count = (uint32_t)vector_length(bone_data->skeleton);
     ssize_t skeleton_offsets_offset = io_get_position(s);
-    io_write(s, 0, skeleton_count * 0x04ULL);
+    io_write(s, skeleton_count * 0x04ULL);
     
     ssize_t skeleton_name_offset = io_get_position(s);
     for (bone_database_skeleton* i = bone_data->skeleton.begin; i != bone_data->skeleton.end; i++)
@@ -654,7 +657,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
             io_write_uint8_t(s, j->pole_target);
             io_write_uint8_t(s, j->mirror);
             io_write_uint8_t(s, j->flags);
-            io_write(s, 0, 0x02);
+            io_write(s, 0x02);
             io_write_uint32_t(s, (uint32_t)bone_database_strings_get_string_offset(&strings,
                 &string_offsets, string_data(&j->name)));
         }
@@ -708,7 +711,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
         io_write_uint32_t(s, motion_bone_count);
         io_write_uint32_t(s, (uint32_t)motion_bone_names_offset);
         io_write_uint32_t(s, (uint32_t)parent_indices_offset);
-        io_write(s, 0, 0x14);
+        io_write(s, 0x14);
 
         vector_string_clear(&strings, string_free);
         vector_ssize_t_clear(&string_offsets, 0);
@@ -719,7 +722,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
     io_write_uint32_t(s, skeleton_count);
     io_write_uint32_t(s, (uint32_t)skeleton_offsets_offset);
     io_write_uint32_t(s, (uint32_t)skeleton_name_offsets_offset);
-    io_write(s, 0, 0x14);
+    io_write(s, 0x14);
     io_position_pop(s);
 
     io_position_push(s, skeleton_offsets_offset, SEEK_SET);
@@ -776,7 +779,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
             motion_bone_count = io_read_uint32_t_stream_reverse_endianness(s);
             motion_bone_names_offset = io_read_offset_f2(s, header_length);
             parent_indices_offset = io_read_offset_f2(s, header_length);
-            io_read(s, 0, 0x14);
+            io_read(s, 0x14);
         }
         else {
             bones_offset = io_read_offset_x(s);
@@ -788,7 +791,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
             motion_bone_count = io_read_uint32_t_stream_reverse_endianness(s);
             motion_bone_names_offset = io_read_offset_x(s);
             parent_indices_offset = io_read_offset_x(s);
-            io_read(s, 0, 0x28);
+            io_read(s, 0x28);
         }
 
         uint32_t bone_count = 0;
@@ -798,7 +801,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
                 if (io_read_uint8_t(s) == 0xFF)
                     break;
 
-                io_read(s, 0, 0x0B);
+                io_read(s, 0x0B);
                 bone_count++;
             }
         else
@@ -806,7 +809,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
                 if (io_read_uint8_t(s) == 0xFF)
                     break;
 
-                io_read(s, 0, 0x0F);
+                io_read(s, 0x0F);
                 bone_count++;
             }
         io_position_pop(s);
@@ -818,25 +821,25 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
         if (!is_x)
             for (uint32_t j = 0; j < bone_count; j++) {
                 bone_database_bone* bone = &skeleton->bone.begin[j];
-                bone->type = io_read_uint8_t(s);
+                bone->type = (bone_database_bone_type)io_read_uint8_t(s);
                 bone->has_parent = io_read_uint8_t(s) ? true : false;
                 bone->parent = io_read_uint8_t(s);
                 bone->pole_target = io_read_uint8_t(s);
                 bone->mirror = io_read_uint8_t(s);
                 bone->flags = io_read_uint8_t(s);
-                io_read(s, 0, 0x02);
+                io_read(s, 0x02);
                 io_read_string_null_terminated_offset(s, io_read_offset_f2(s, header_length), &bone->name);
             }
         else
             for (uint32_t j = 0; j < bone_count; j++) {
                 bone_database_bone* bone = &skeleton->bone.begin[j];
-                bone->type = io_read_uint8_t(s);
+                bone->type = (bone_database_bone_type)io_read_uint8_t(s);
                 bone->has_parent = io_read_uint8_t(s) ? true : false;
                 bone->parent = io_read_uint8_t(s);
                 bone->pole_target = io_read_uint8_t(s);
                 bone->mirror = io_read_uint8_t(s);
                 bone->flags = io_read_uint8_t(s);
-                io_read(s, 0, 0x02);
+                io_read(s, 0x02);
                 io_read_string_null_terminated_offset(s, io_read_offset_x(s), &bone->name);
             }
         io_position_pop(s);
@@ -936,14 +939,14 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
 
     if (!is_x) {
         uint32_t pos;
-        ee = (enrs_entry){ 0, 1, 16, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 4, ENRS_DWORD });
+        ee = { 0, 1, 16, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         pos = off = 16;
 
         skeleton_count *= 2;
-        ee = (enrs_entry){ off, 1, (uint32_t)(skeleton_count * 4ULL), 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, skeleton_count, ENRS_DWORD });
+        ee = { off, 1, (uint32_t)(skeleton_count * 4ULL), 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         pos += off = (uint32_t)(skeleton_count * 4ULL);
         skeleton_count /= 2;
@@ -956,16 +959,16 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
             uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
 
-            ee = (enrs_entry){ off, 1, 56, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 14, ENRS_DWORD });
+            ee = { off, 1, 56, 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 14, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             pos += off = 56;
 
             bone_count++;
             off += 8;
             pos += 8;
-            ee = (enrs_entry){ off, 1, 12, bone_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+            ee = { off, 1, 12, bone_count, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(bone_count * 12ULL);
             if (pos + off % 0x10)
@@ -973,70 +976,70 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             pos += off = align_val(pos + off, 0x10) - pos;
             bone_count--;
 
-            ee = (enrs_entry){ off, 1, 12, position_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
+            ee = { off, 1, 12, position_count, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(position_count * 12ULL);
             pos += off = align_val(off, 0x10);
 
-            ee = (enrs_entry){ off, 1, 4, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+            ee = { off, 1, 4, 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             pos += off = 4;
 
             object_bone_count += motion_bone_count;
-            ee = (enrs_entry){ off, 1, (uint32_t)(object_bone_count * 4ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, object_bone_count, ENRS_DWORD });
+            ee = { off, 1, (uint32_t)(object_bone_count * 4ULL), 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             pos += off = (uint32_t)(object_bone_count * 4ULL);
             object_bone_count -= motion_bone_count;
 
-            ee = (enrs_entry){ off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, motion_bone_count, ENRS_WORD });
+            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_WORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(motion_bone_count * 2ULL);
             pos += off = align_val(off, 0x04);
         }
     }
     else {
-        ee = (enrs_entry){ 0, 2, 24, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_DWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_QWORD });
+        ee = { 0, 2, 24, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = 24;
         off = align_val(off, 0x10);
 
         if (skeleton_count % 2) {
-            ee = (enrs_entry){ off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, skeleton_count, ENRS_QWORD });
+            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
 
-            ee = (enrs_entry){ off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, skeleton_count, ENRS_QWORD });
+            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
         }
         else {
             skeleton_count *= 2;
-            ee = (enrs_entry){ off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, skeleton_count, ENRS_QWORD });
+            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
             skeleton_count /= 2;
         }
 
-        ee = (enrs_entry){ off, 7, 112, skeleton_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_QWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, 2, ENRS_QWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, 1, ENRS_QWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, 7, ENRS_QWORD });
+        ee = { off, 7, 112, skeleton_count, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 4, 7, ENRS_QWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(skeleton_count * 112ULL);
         off = align_val(off, 0x10);
@@ -1051,57 +1054,57 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
 
             bone_count++;
             off += 8;
-            ee = (enrs_entry){ off, 1, 16, bone_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_QWORD });
+            ee = { off, 1, 16, bone_count, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(bone_count * 16ULL);
             bone_count--;
 
-            ee = (enrs_entry){ off, 1, 12, position_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
+            ee = { off, 1, 12, position_count, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(position_count * 12ULL);
             off = align_val(off, 0x10);
 
-            ee = (enrs_entry){ off, 1, 4, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+            ee = { off, 1, 4, 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = 4;
             off = align_val(off, 0x10);
 
             if (object_bone_count % 1) {
-                ee = (enrs_entry){ off, 1, 12, position_count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
+                ee = { off, 1, 12, position_count, vector_empty(enrs_sub_entry) };
+                vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
                 vector_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(position_count * 12ULL);
                 off = align_val(off, 0x10);
             }
 
             if (skeleton_count % 2) {
-                ee = (enrs_entry){ off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, object_bone_count, ENRS_QWORD });
+                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
+                vector_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_QWORD);
                 vector_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(object_bone_count * 8ULL);
                 off = align_val(off, 0x10);
 
-                ee = (enrs_entry){ off, 1, (uint32_t)(motion_bone_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, motion_bone_count, ENRS_QWORD });
+                ee = { off, 1, (uint32_t)(motion_bone_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
+                vector_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_QWORD);
                 vector_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(motion_bone_count * 8ULL);
                 off = align_val(off, 0x10);
             }
             else {
                 object_bone_count += motion_bone_count;
-                ee = (enrs_entry){ off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, object_bone_count, ENRS_QWORD });
+                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
+                vector_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_QWORD);
                 vector_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(object_bone_count * 8ULL);
                 off = align_val(off, 0x10);
                 object_bone_count -= motion_bone_count;
             }
 
-            ee = (enrs_entry){ off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, motion_bone_count, ENRS_WORD });
+            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_WORD);
             vector_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(motion_bone_count * 2ULL);
             off = align_val(off, 0x10);
@@ -1155,20 +1158,20 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             io_write_uint32_t(&s_bone, 0);
             io_write_offset_f2_pof_add(&s_bone, 0, 0x40, &pof);
             io_write_offset_f2_pof_add(&s_bone, 0, 0x40, &pof);
-            io_write(&s_bone, 0, 0x14);
+            io_write(&s_bone, 0x14);
 
             skh[i].bones_offset = io_get_position(&s_bone);
             for (bone_database_bone* j = skel->bone.begin; j != skel->bone.end; j++) {
-                io_write(&s_bone, 0, 0x08);
+                io_write(&s_bone, 0x08);
                 io_write_offset_f2_pof_add(&s_bone, 0, 0x40, &pof);
             }
 
-            io_write(&s_bone, 0, 0x08);
+            io_write(&s_bone, 0x08);
             io_write_offset_f2_pof_add(&s_bone, 0, 0x40, &pof);
             io_align_write(&s_bone, 0x10);
 
             skh[i].positions_offset = io_get_position(&s_bone);
-            io_write(&s_bone, 0, sizeof(vec3) * position_count);
+            io_write(&s_bone, sizeof(vec3) * position_count);
             io_align_write(&s_bone, 0x10);
 
             skh[i].unknown_value_offset = io_get_position(&s_bone);
@@ -1183,7 +1186,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
                 io_write_offset_f2_pof_add(&s_bone, 0, 0x40, &pof);
 
             skh[i].parent_indices_offset = io_get_position(&s_bone);
-            io_write(&s_bone, 0, sizeof(uint16_t) * motion_bone_count);
+            io_write(&s_bone, sizeof(uint16_t) * motion_bone_count);
             io_align_write(&s_bone, 0x04);
         }
     else {
@@ -1198,7 +1201,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             io_write_uint32_t(&s_bone, 0);
             io_write_offset_x_pof_add(&s_bone, 0, &pof);
             io_write_offset_x_pof_add(&s_bone, 0, &pof);
-            io_write(&s_bone, 0, 0x28);
+            io_write(&s_bone, 0x28);
             io_align_write(&s_bone, 0x10);
         }
 
@@ -1213,16 +1216,16 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
 
             skh[i].bones_offset = io_get_position(&s_bone);
             for (bone_database_bone* j = skel->bone.begin; j != skel->bone.end; j++) {
-                io_write(&s_bone, 0, 0x08);
+                io_write(&s_bone, 0x08);
                 io_write_offset_x_pof_add(&s_bone, 0, &pof);
             }
 
-            io_write(&s_bone, 0, 0x08);
+            io_write(&s_bone, 0x08);
             io_write_offset_x_pof_add(&s_bone, 0, &pof);
             io_align_write(&s_bone, 0x10);
 
             skh[i].positions_offset = io_get_position(&s_bone);
-            io_write(&s_bone, 0, sizeof(vec3) * position_count);
+            io_write(&s_bone, sizeof(vec3) * position_count);
             io_align_write(&s_bone, 0x10);
 
             skh[i].unknown_value_offset = io_get_position(&s_bone);
@@ -1240,7 +1243,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             io_align_write(&s_bone, 0x10);
 
             skh[i].parent_indices_offset = io_get_position(&s_bone);
-            io_write(&s_bone, 0, sizeof(uint16_t) * motion_bone_count);
+            io_write(&s_bone, sizeof(uint16_t) * motion_bone_count);
             io_align_write(&s_bone, 0x10);
         }
     }
@@ -1315,7 +1318,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             io_write_uint32_t(&s_bone, motion_bone_count);
             io_write_offset_f2(&s_bone, skh[i].motion_bone_names_offset, 0x40);
             io_write_offset_f2(&s_bone, skh[i].parent_indices_offset, 0x40);
-            io_write(&s_bone, 0, 0x14);
+            io_write(&s_bone, 0x14);
         }
         else {
             io_write_offset_x(&s_bone, skh[i].bones_offset);
@@ -1327,7 +1330,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             io_write_uint32_t(&s_bone, motion_bone_count);
             io_write_offset_x(&s_bone, skh[i].motion_bone_names_offset);
             io_write_offset_x(&s_bone, skh[i].parent_indices_offset);
-            io_write(&s_bone, 0, 0x28);
+            io_write(&s_bone, 0x28);
         }
         io_position_pop(&s_bone);
 
@@ -1340,7 +1343,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
                 io_write_uint8_t(&s_bone, j->pole_target);
                 io_write_uint8_t(&s_bone, j->mirror);
                 io_write_uint8_t(&s_bone, j->flags);
-                io_write(&s_bone, 0, 0x02);
+                io_write(&s_bone, 0x02);
                 io_write_offset_f2(&s_bone, bone_database_strings_get_string_offset(&strings,
                     &string_offsets, string_data(&j->name)), 0x40);
             }
@@ -1352,7 +1355,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
                 io_write_uint8_t(&s_bone, j->pole_target);
                 io_write_uint8_t(&s_bone, j->mirror);
                 io_write_uint8_t(&s_bone, j->flags);
-                io_write(&s_bone, 0, 0x02);
+                io_write(&s_bone, 0x02);
                 io_write_offset_x(&s_bone, bone_database_strings_get_string_offset(&strings,
                     &string_offsets, string_data(&j->name)));
             }
@@ -1460,7 +1463,16 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
 
 inline static ssize_t bone_database_strings_get_string_offset(vector_string* vec,
     vector_ssize_t* vec_off, char* str) {
-    size_t len = utf8_length(str);
+    ssize_t len = utf8_length(str);
+    for (string* i = vec->begin; i != vec->end; i++)
+        if (!memcmp(str, string_data(i), min(len, i->length) + 1))
+            return vec_off->begin[i - vec->begin];
+    return 0;
+}
+
+inline static ssize_t bone_database_strings_get_string_offset(vector_string* vec,
+    vector_ssize_t* vec_off, const char* str) {
+    ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return vec_off->begin[i - vec->begin];
@@ -1468,7 +1480,18 @@ inline static ssize_t bone_database_strings_get_string_offset(vector_string* vec
 }
 
 inline static bool bone_database_strings_push_back_check(vector_string* vec, char* str) {
-    size_t len = utf8_length(str);
+    ssize_t len = utf8_length(str);
+    for (string* i = vec->begin; i != vec->end; i++)
+        if (!memcmp(str, string_data(i), min(len, i->length) + 1))
+            return false;
+
+    string* s = vector_string_reserve_back(vec);
+    string_init_length(s, str, len);
+    return true;
+}
+
+inline static bool bone_database_strings_push_back_check(vector_string* vec, const char* str) {
+    ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return false;

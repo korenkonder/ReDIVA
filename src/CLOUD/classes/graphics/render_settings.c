@@ -52,7 +52,7 @@ void graphics_render_settings_imgui(class_data* data) {
 #endif
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Appearing);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
@@ -61,11 +61,14 @@ void graphics_render_settings_imgui(class_data* data) {
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(graphics_render_settings_window_title, &open, window_flags);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
     double_t scale = render_get_scale() * 100.0;
     int32_t scale_index = render_get_scale_index();
@@ -121,8 +124,6 @@ void graphics_render_settings_imgui(class_data* data) {
         render_set_scale(1.0);
 
     data->imgui_focus |= igIsWindowFocused(0);
-
-End:
     igEnd();
 }
 

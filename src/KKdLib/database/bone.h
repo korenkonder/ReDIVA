@@ -98,6 +98,6 @@ extern bool bone_database_get_skeleton_heel_height(bone_database* bone_data,
     char* name, float_t** unknown_value);
 extern void bone_database_free(bone_database* bone_data);
 
-extern char* bone_database_skeleton_type_to_string(bone_database_skeleton_type type);
+extern const char* bone_database_skeleton_type_to_string(bone_database_skeleton_type type);
 extern void bone_database_bone_free(bone_database_bone* bone);
 extern void bone_database_skeleton_free(bone_database_skeleton* skel);

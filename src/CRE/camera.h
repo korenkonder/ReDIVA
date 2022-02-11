@@ -16,6 +16,8 @@ typedef struct camera {
     mat4 inv_projection;
     mat4 view_projection;
     mat4 inv_view_projection;
+    mat4 view_projection_prev;
+    mat4 inv_view_projection_prev;
     mat3 view_mat3;
     mat3 inv_view_mat3;
     mat4 view_rot;

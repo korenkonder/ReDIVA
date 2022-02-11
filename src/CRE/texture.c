@@ -93,7 +93,7 @@ inline texture* texture_storage_create_texture(uint32_t id) {
         }
 
     texture** tex = vector_ptr_texture_reserve_back(&texture_storage_data);
-    *tex = force_malloc(sizeof(texture));
+    *tex = force_malloc_s(texture, 1);
     (*tex)->init_count = 1;
     (*tex)->id = id;
     return *tex;
@@ -339,28 +339,44 @@ static texture* texture_load_tex(uint32_t id, GLenum target,
     }
     texture_set_params(target, max_mipmap_level, use_high_anisotropy);
 
+    GLint swizzle[4];
     switch (internal_format) {
     case GL_ALPHA8:
-        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
-            (GLint[]){ GL_ZERO , GL_ZERO , GL_ZERO, GL_RED   });
+        swizzle[0] = GL_ZERO;
+        swizzle[1] = GL_ZERO;
+        swizzle[2] = GL_ZERO;
+        swizzle[3] = GL_RED;
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         internal_format = GL_R8;
         break;
     case GL_COMPRESSED_RED_RGTC1_EXT:
-        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
-            (GLint[]) { GL_RED , GL_RED  , GL_RED , GL_ONE   });
+        swizzle[0] = GL_RED;
+        swizzle[1] = GL_RED;
+        swizzle[2] = GL_RED;
+        swizzle[3] = GL_ONE;
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         break;
     case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
-        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
-            (GLint[]) { GL_RED , GL_GREEN, GL_ZERO, GL_RED   });
+        swizzle[0] = GL_RED;
+        swizzle[1] = GL_GREEN;
+        swizzle[2] = GL_ZERO;
+        swizzle[3] = GL_RED;
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         break;
     case GL_LUMINANCE8:
-        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
-            (GLint[]) { GL_RED , GL_RED  , GL_RED , GL_ONE   });
+        swizzle[0] = GL_RED;
+        swizzle[1] = GL_RED;
+        swizzle[2] = GL_RED;
+        swizzle[3] = GL_ONE;
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         internal_format = GL_R8;
         break;
     case GL_LUMINANCE8_ALPHA8:
-        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA,
-            (GLint[]) { GL_RED , GL_RED  , GL_RED , GL_GREEN });
+        swizzle[0] = GL_RED;
+        swizzle[1] = GL_RED;
+        swizzle[2] = GL_RED;
+        swizzle[3] = GL_GREEN;
+        glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         internal_format = GL_RG8;
         break;
     }
@@ -426,12 +442,16 @@ static texture* texture_load_tex(uint32_t id, GLenum target,
     case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
     case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
     case GL_COMPRESSED_RED_RGTC1_EXT:
-    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
-        tex->flags |= TEXTURE_BLOCK_COMPRESSION;
-        break;
-    default:
-        tex->flags &= ~TEXTURE_BLOCK_COMPRESSION;
-        break;
+    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT: {
+        int32_t flags = (int32_t)tex->flags;
+        flags |= TEXTURE_BLOCK_COMPRESSION;
+        tex->flags = (texture_flags)flags;
+    } break;
+    default: {
+        int32_t flags = (int32_t)tex->flags;
+        flags |= TEXTURE_BLOCK_COMPRESSION;
+        tex->flags = (texture_flags)flags;
+    } break;
     }
     return tex;
 

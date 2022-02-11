@@ -102,7 +102,7 @@ char* light_param_get_string(char* name) {
     name += 3;
     length -= 3;
 
-    char* str = force_malloc(length + 1);
+    char* str = force_malloc_s(char, length + 1);
     for (size_t i = 0; i < length; i++) {
         char c = name[i];
         if (c > 0x40 && c < 0x5B)
@@ -118,7 +118,7 @@ inline void light_param_storage_init() {
 }
 
 inline void light_param_storage_append_light_param_data(char* name) {
-    uint64_t hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t hash = hash_utf8_fnv1a64m(name, false);
     for (light_param_storage* i = light_param_storage_data.begin;
         i != light_param_storage_data.end; i++)
         if (!i->pv && i->hash == hash) {
@@ -151,7 +151,7 @@ inline void light_param_storage_load_light_param_set(data_struct* data, int32_t 
 }
 
 inline void light_param_storage_insert_light_param_data(light_param_data* data, char* name) {
-    uint64_t hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t hash = hash_utf8_fnv1a64m(name, false);
     for (light_param_storage* i = light_param_storage_data.begin;
         i != light_param_storage_data.end; i++)
         if (!i->pv && i->hash == hash) {
@@ -187,7 +187,7 @@ inline void light_param_storage_insert_light_param_set(light_param_set* set, int
 }
 
 inline light_param_data* light_param_storage_get_light_param_data(char* name) {
-    uint64_t hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t hash = hash_utf8_fnv1a64m(name, false);
     for (light_param_storage* i = light_param_storage_data.begin;
         i != light_param_storage_data.end; i++)
         if (!i->pv && i->hash == hash)
@@ -204,7 +204,7 @@ inline light_param_set* light_param_storage_get_light_param_set(int32_t pv_id) {
 }
 
 inline void light_param_storage_delete_light_param_data(char* name) {
-    uint64_t hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t hash = hash_utf8_fnv1a64m(name, false);
     for (light_param_storage* i = light_param_storage_data.begin;
         i != light_param_storage_data.end; i++)
         if (!i->pv && i->hash == hash) {

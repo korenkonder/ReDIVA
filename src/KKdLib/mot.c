@@ -377,7 +377,7 @@ bool mot_load_file(void* data, char* path, char* file, uint32_t hash) {
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    mot_set_farc* msf = data;
+    mot_set_farc* msf = (mot_set_farc*)data;
     mot_read(msf, string_data(&s), msf->modern);
 
     string_free(&s);
@@ -465,7 +465,7 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
             if (j % 8 == 0)
                 b = io_read_uint16_t(s);
 
-            m->key_set[j].type = (b >> (j % 8 * 2)) & 0x03;
+            m->key_set[j].type = (mot_key_set_type)((b >> (j % 8 * 2)) & 0x03);
         }
 
         io_set_position(s, mh[i].key_set_offset, SEEK_SET);
@@ -660,7 +660,7 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
         if (j % 8 == 0)
             b = io_read_uint16_t_stream_reverse_endianness(&s_motc);
 
-        m->key_set[j].type = (b >> (j % 8 * 2)) & 0x03;
+        m->key_set[j].type = (mot_key_set_type)((b >> (j % 8 * 2)) & 0x03);
     }
 
     io_set_position(&s_motc, mh.key_set_offset, SEEK_SET);
@@ -680,7 +680,8 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
         else {
             bool has_tangents = mks->type != MOT_KEY_SET_HERMITE;
             uint16_t keys_count = io_read_uint16_t_stream_reverse_endianness(s);
-            mot_key_set_data_type data_type = io_read_uint16_t_stream_reverse_endianness(&s_motc);
+            mot_key_set_data_type data_type
+                = (mot_key_set_data_type)io_read_uint16_t_stream_reverse_endianness(&s_motc);
             mks->keys_count = keys_count;
             mks->data_type = data_type;
 
@@ -721,7 +722,7 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
 
 static void mot_modern_write_inner(mot_set* ms, stream* s) {
     stream s_motc;
-    io_open(&s_motc, 0, 0);
+    io_mopen(&s_motc, 0, 0);
     uint32_t o;
     vector_enrs_entry e = vector_empty(enrs_entry);
     enrs_entry ee;
@@ -733,30 +734,29 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
         mot_data* m = ms->vec.begin;
 
         if (!ms->is_x) {
-            ee = (enrs_entry){ 0, 3, 48, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_QWORD });
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 7, ENRS_DWORD });
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_WORD });
+            ee = { 0, 3, 48, 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+            vector_enrs_sub_entry_append(&ee.sub, 0, 7, ENRS_DWORD);
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
             vector_enrs_entry_push_back(&e, &ee);
             o = 48;
         }
         else {
-            ee = (enrs_entry){ 0, 3, 64, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 7, ENRS_QWORD });
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_WORD });
+            ee = { 0, 3, 64, 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 7, ENRS_QWORD);
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
             vector_enrs_entry_push_back(&e, &ee);
             o = 64;
         };
 
-        ee = (enrs_entry){ o, 1, 4, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_WORD });
+        ee = { o, 1, 4, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
         vector_enrs_entry_push_back(&e, &ee);
         o = 4;
 
-        ee = (enrs_entry){ o, 1,  (m->key_set_count + 3) / 4, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub,
-            &(enrs_sub_entry){ 0, (m->key_set_count + 7) / 8, ENRS_WORD });
+        ee = { o, 1, (uint32_t)((m->key_set_count + 3ULL) / 4), 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, (uint32_t)((m->key_set_count + 7ULL) / 8), ENRS_WORD);
         vector_enrs_entry_push_back(&e, &ee);
         o = (m->key_set_count + 3) / 4;
         o = align_val(o, 4);
@@ -764,17 +764,17 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
         for (int32_t j = 0; j < m->key_set_count; j++) {
             mot_key_set_data* mks = &m->key_set[j];
             if (mks->type == MOT_KEY_SET_STATIC) {
-                ee = (enrs_entry){ o, 1, 4, 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+                ee = { o, 1, 4, 1, vector_empty(enrs_sub_entry) };
+                vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
                 vector_enrs_entry_push_back(&e, &ee);
                 o = 4;
             }
             else if (mks->type != MOT_KEY_SET_NONE) {
                 bool has_tangents = mks->type != MOT_KEY_SET_HERMITE;
                 if (has_tangents)
-                    ee = (enrs_entry){ o, 1, 4, 1, vector_empty(enrs_sub_entry) };
+                    ee = { o, 1, 4, 1, vector_empty(enrs_sub_entry) };
                 else
-                    ee = (enrs_entry){ o, 1, 3, 1, vector_empty(enrs_sub_entry) };
+                    ee = { o, 1, 3, 1, vector_empty(enrs_sub_entry) };
 
                 uint16_t keys_count = mks->keys_count;
                 mot_key_set_data_type data_type = mks->data_type;
@@ -790,21 +790,16 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
                 o = align_val(o, 4);
                 ee.size = o;
 
-                vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_WORD });
+                vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
                 if (has_tangents)
-                    vector_enrs_sub_entry_push_back(&ee.sub,
-                        &(enrs_sub_entry){ 0, keys_count, ENRS_DWORD });
+                    vector_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_DWORD);
                 if (data_type == MOT_KEY_SET_DATA_F16) {
-                    vector_enrs_sub_entry_push_back(&ee.sub,
-                        &(enrs_sub_entry){ 0, keys_count, ENRS_WORD });
-                    vector_enrs_sub_entry_push_back(&ee.sub,
-                        &(enrs_sub_entry){ keys_count % 2 == 1 ? 2 : 0, keys_count, ENRS_WORD });
+                    vector_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_WORD);
+                    vector_enrs_sub_entry_append(&ee.sub, keys_count % 2 == 1 ? 2 : 0, keys_count, ENRS_WORD);
                 }
                 else {
-                    vector_enrs_sub_entry_push_back(&ee.sub,
-                        &(enrs_sub_entry){ 0, keys_count, ENRS_DWORD });
-                    vector_enrs_sub_entry_push_back(&ee.sub,
-                        &(enrs_sub_entry){ 0, keys_count, ENRS_WORD });
+                    vector_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_DWORD);
+                    vector_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_WORD);
                 }
                 vector_enrs_entry_push_back(&e, &ee);
             }
@@ -812,21 +807,21 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
         o = align_val(o, 16);
 
         if (!ms->is_x) {
-            ee = (enrs_entry){ o, 1, m->bone_info_count * 4, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, m->bone_info_count, ENRS_DWORD });
+            ee = { o, 1, (uint32_t)(m->bone_info_count * 4ULL), 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, m->bone_info_count, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             o = m->bone_info_count * 4;
         }
         else {
-            ee = (enrs_entry){ o, 1, m->bone_info_count * 8, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, m->bone_info_count, ENRS_QWORD });
+            ee = { o, 1, (uint32_t)(m->bone_info_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, m->bone_info_count, ENRS_QWORD);
             vector_enrs_entry_push_back(&e, &ee);
             o = m->bone_info_count * 8;
         }
         o = align_val(o, 16);
 
-        ee = (enrs_entry){ o, 1, m->bone_info_count * 8, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, m->bone_info_count, ENRS_QWORD });
+        ee = { o, 1,(uint32_t)(m->bone_info_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, m->bone_info_count, ENRS_QWORD);
         vector_enrs_entry_push_back(&e, &ee);
         o = m->bone_info_count * 8;
 

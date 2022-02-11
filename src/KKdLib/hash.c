@@ -46,43 +46,67 @@ const uint32_t hash_crc16_ccitt_empty = 0xFFFF;
 
 // FNV 1a 64-bit Modified
 // 0x1403B04D0 in SBZV_7.10
-inline uint64_t hash_fnv1a64m(uint8_t* data, size_t length, bool make_upper) {
+inline uint64_t hash_fnv1a64m(void* data, size_t length, bool make_upper) {
+    uint8_t* d = (uint8_t*)data;
+
     uint64_t hash = 0xCBF29CE484222325;
     if (data)
         if (make_upper) // Modification for only uppercase latin text
-            for (size_t i = 0; i < length; i++) {
-                uint8_t a = data[i];
+            for (size_t i = length; i; i--) {
+                uint8_t a = *d++;
                 if (a > 0x60 && a < 0x7B)
                     a -= 0x20;
                 hash ^= a;
                 hash *= 0x100000001B3;
             }
         else
-            for (size_t i = 0; i < length; i++) {
-                hash ^= data[i];
+            for (size_t i = length; i; i--) {
+                hash ^= *d++;
                 hash *= 0x100000001B3;
             }
     return (hash >> 32) ^ hash; // Actual Modification
 }
 
+inline uint64_t hash_fnv1a64m(const void* data, size_t length, bool make_upper) {
+    return hash_fnv1a64m((void*)data, length, make_upper);
+}
+
 inline uint64_t hash_utf8_fnv1a64m(char* data, bool make_upper) {
-    uint64_t hash = hash_fnv1a64m((uint8_t*)data, utf8_length(data), make_upper);
+    uint64_t hash = hash_fnv1a64m(data, utf8_length(data), make_upper);
+    return hash;
+}
+
+inline uint64_t hash_utf8_fnv1a64m(const char* data, bool make_upper) {
+    uint64_t hash = hash_fnv1a64m(data, utf8_length(data), make_upper);
     return hash;
 }
 
 inline uint64_t hash_utf16_fnv1a64m(wchar_t* data, bool make_upper) {
     char* temp = utf16_to_utf8(data);
-    uint64_t hash = hash_fnv1a64m((uint8_t*)temp, utf8_length(temp), make_upper);
+    uint64_t hash = hash_fnv1a64m(temp, utf8_length(temp), make_upper);
     free(temp);
     return hash;
+}
+
+inline uint64_t hash_utf16_fnv1a64m(const wchar_t* data, bool make_upper) {
+    char* temp = utf16_to_utf8(data);
+    uint64_t hash = hash_fnv1a64m(temp, utf8_length(temp), make_upper);
+    free(temp);
+    return hash;
+}
+
+inline uint64_t hash_string_fnv1a64m(string* data, bool make_upper) {
+    return hash_fnv1a64m(string_data(data), data->length, make_upper);
 }
 
 // MurmurHash
 // 0x814D7A9C in PCSB00554
 // 0x8134C304 in PCSB01007
 // 0x0069CEA4 in NPEB02013
-uint32_t hash_murmurhash(uint8_t* data, size_t length,
+uint32_t hash_murmurhash(void* data, size_t length,
     uint32_t seed, bool upper, bool big_endian) {
+    uint8_t* d = (uint8_t*)data;
+
     uint32_t a, b, hash;
     size_t i;
 
@@ -90,18 +114,18 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
     const int32_t r = 16;
 
     hash = seed + 0xDEADBEEF;
-    if (data)
+    if (d)
         if (upper) {
             if (big_endian)
-                for (i = 0; length > 3; length -= 4, i += 4) {
-                    b = load_reverse_endianness_uint32_t(&data[i]);
+                for (i = 0; length > 3; length -= 4, i += 4, d += 4) {
+                    b = load_reverse_endianness_uint32_t(d);
                     hash += b;
                     hash *= m;
                     hash ^= hash >> r;
                 }
             else
-                for (i = 0; length > 3; length -= 4, i += 4) {
-                    b = *(uint32_t*)&data[i];
+                for (i = 0; length > 3; length -= 4, i += 4, d += 4) {
+                    b = *(uint32_t*)d;
                     hash += b;
                     hash *= m;
                     hash ^= hash >> r;
@@ -110,18 +134,18 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
             if (length > 0) {
                 if (length > 1) {
                     if (length > 2)
-                        hash += (uint32_t)data[i + 2] << 16;
-                    hash += (uint32_t)data[i + 1] << 8;
+                        hash += (uint32_t)d[2] << 16;
+                    hash += (uint32_t)d[1] << 8;
                 }
-                hash += data[i];
+                hash += d[0];
                 hash *= m;
                 hash ^= hash >> r;
             }
         }
         else {
             if (big_endian)
-                for (i = 0; length > 3; length -= 4, i += 4) {
-                    b = load_reverse_endianness_uint32_t(&data[i]);
+                for (i = 0; length > 3; length -= 4, i += 4, d += 4) {
+                    b = load_reverse_endianness_uint32_t(d);
 
                     a = b & 0xFF;
                     if (a > 0x60 && a < 0x7B)
@@ -148,8 +172,8 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
                     hash ^= hash >> r;
                 }
             else
-                for (i = 0; length > 3; length -= 4, i += 4) {
-                    b = *(uint32_t*)&data[i];
+                for (i = 0; length > 3; length -= 4, i += 4, d += 4) {
+                    b = *(uint32_t*)d;
 
                     a = b & 0xFF;
                     if (a > 0x60 && a < 0x7B)
@@ -179,19 +203,19 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
             if (length > 0) {
                 if (length > 1) {
                     if (length > 2) {
-                        b = data[i + 2];
+                        b = d[2];
                         if (b > 0x60 && b < 0x7B)
                             b -= 0x20;
                         hash += b << 16;
                     }
 
-                    b = data[i + 1];
+                    b = d[1];
                     if (b > 0x60 && b < 0x7B)
                         b -= 0x20;
                     hash += b << 8;
                 }
 
-                b = data[i];
+                b = d[0];
                 if (b > 0x60 && b < 0x7B)
                     b -= 0x20;
                 hash += b;
@@ -208,43 +232,85 @@ uint32_t hash_murmurhash(uint8_t* data, size_t length,
     return hash;
 }
 
+inline uint32_t hash_murmurhash(const void* data, size_t length, uint32_t seed, bool upper, bool big_endian) {
+    return hash_murmurhash((void*)data, length, seed, upper, big_endian);
+}
+
 inline uint32_t hash_utf8_murmurhash(char* data, uint32_t seed, bool upper) {
-    uint32_t hash = hash_murmurhash((uint8_t*)data, utf8_length(data), seed, upper, false);
+    uint32_t hash = hash_murmurhash(data, utf8_length(data), seed, upper, false);
+    return hash;
+}
+
+inline uint32_t hash_utf8_murmurhash(const char* data, uint32_t seed, bool upper) {
+    uint32_t hash = hash_murmurhash(data, utf8_length(data), seed, upper, false);
     return hash;
 }
 
 inline uint32_t hash_utf16_murmurhash(wchar_t* data, uint32_t seed, bool upper) {
     char* temp = utf16_to_utf8(data);
-    uint32_t hash = hash_murmurhash((uint8_t*)temp, utf8_length(temp), seed, upper, false);
+    uint32_t hash = hash_murmurhash(temp, utf8_length(temp), seed, upper, false);
     free(temp);
     return hash;
 }
 
+inline uint32_t hash_utf16_murmurhash(const wchar_t* data, uint32_t seed, bool upper) {
+    char* temp = utf16_to_utf8(data);
+    uint32_t hash = hash_murmurhash(temp, utf8_length(temp), seed, upper, false);
+    free(temp);
+    return hash;
+}
+
+inline uint32_t hash_string_murmurhash(string* data, uint32_t seed, bool upper) {
+    return hash_murmurhash(string_data(data), data->length, seed, upper, false);
+}
+
 // CRC16-CCITT
 // 0x140011A90 in SBZV_7.10
-uint16_t hash_crc16_ccitt(uint8_t* data, size_t length, bool make_upper) {
+inline uint16_t hash_crc16_ccitt(void* data, size_t length, bool make_upper) {
+    uint8_t* d = (uint8_t*)data;
+
     uint16_t hash = 0xFFFF;
     if (make_upper) // Modification for only uppercase latin text
-        for (size_t i = 0; i < length; i++) {
-            uint8_t a = data[i];
+        for (size_t i = length; i; i--) {
+            uint8_t a = *d++;
             if (a > 0x60 && a < 0x7B)
                 a -= 0x20;
             hash = (uint16_t)(hash_crc16_ccitt_table[(hash >> 8) ^ a] ^ (hash << 8));
         }
     else
-        for (size_t i = 0; i < length; i++)
-            hash = (uint16_t)(hash_crc16_ccitt_table[(hash >> 8) ^ data[i]] ^ (hash << 8));
+        for (size_t i = length; i; i--)
+            hash = (uint16_t)(hash_crc16_ccitt_table[(hash >> 8) ^ *d++] ^ (hash << 8));
     return hash;
 }
 
-uint16_t hash_utf8_crc16_ccitt(uint8_t* data, bool make_upper) {
-    uint32_t hash = hash_crc16_ccitt((uint8_t*)data, utf8_length(data), make_upper);
+inline uint16_t hash_crc16_ccitt(const void* data, size_t length, bool make_upper) {
+    return hash_crc16_ccitt((void*)data, length, make_upper);
+}
+
+inline uint16_t hash_utf8_crc16_ccitt(char* data, bool make_upper) {
+    uint32_t hash = hash_crc16_ccitt(data, utf8_length(data), make_upper);
     return hash;
 }
 
-uint16_t hash_utf16_crc16_ccitt(wchar_t* data, bool make_upper) {
+inline uint16_t hash_utf8_crc16_ccitt(const char* data, bool make_upper) {
+    uint32_t hash = hash_crc16_ccitt(data, utf8_length(data), make_upper);
+    return hash;
+}
+
+inline uint16_t hash_utf16_crc16_ccitt(wchar_t* data, bool make_upper) {
     char* temp = utf16_to_utf8(data);
-    uint32_t hash = hash_crc16_ccitt((uint8_t*)temp, utf8_length(temp), make_upper);
+    uint32_t hash = hash_crc16_ccitt(temp, utf8_length(temp), make_upper);
     free(temp);
     return hash;
+}
+
+inline uint16_t hash_utf16_crc16_ccitt(const wchar_t* data, bool make_upper) {
+    char* temp = utf16_to_utf8(data);
+    uint32_t hash = hash_crc16_ccitt(temp, utf8_length(temp), make_upper);
+    free(temp);
+    return hash;
+}
+
+inline uint16_t hash_string_crc16_ccitt(string* data, bool make_upper) {
+    return hash_crc16_ccitt(string_data(data), data->length, make_upper);
 }

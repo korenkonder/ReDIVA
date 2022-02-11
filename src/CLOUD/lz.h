@@ -12,4 +12,4 @@ extern void decode_range(unsigned int *range, unsigned int *code, unsigned char 
 extern int decode_bit(unsigned int *range, unsigned int *code, int *index, unsigned char **src, unsigned char *c);
 extern int decode_number(unsigned char *ptr, int index, int *bit_flag, unsigned int *range, unsigned int *code, unsigned char **src);
 extern int decode_word(unsigned char *ptr, int index, int *bit_flag, unsigned int *range, unsigned int *code, unsigned char **src);
-extern decompress(unsigned char *out, unsigned char *in, unsigned int size);
+extern int decompress(unsigned char *out, unsigned char *in, unsigned int size);

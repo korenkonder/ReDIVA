@@ -19,6 +19,7 @@
 #include "object.h"
 #include "post_process.h"
 #include "render_texture.h"
+#include "task.h"
 #include "time.h"
 #include "timer.h"
 #include "static_var.h"
@@ -527,6 +528,8 @@ extern void object_data_set_texture_transform(object_data* object_data,
 extern void object_data_set_wet_param(object_data* object_data, float_t value);
 
 extern render_context* render_context_init();
+extern void render_context_ctrl(render_context* rctx);
+extern void render_context_disp(render_context* rctx);
 extern void render_context_light_param_data_light_set(render_context* rctx, light_param_light* light);
 extern void render_context_light_param_data_fog_set(render_context* rctx, light_param_fog* f);
 extern void render_context_light_param_data_glow_set(render_context* rctx, light_param_glow* glow);
@@ -535,7 +538,6 @@ extern void render_context_light_param_data_wind_set(render_context* rctx, light
 extern void render_context_light_param_data_face_set(render_context* rctx, light_param_face* face);
 extern void render_context_set_light_param(render_context* rctx, light_param_data* light_param);
 extern void render_context_unset_light_param(render_context* rctx, light_param_data* light_param);
-extern void render_context_update(render_context* rctx);
 extern void render_context_free(render_context* rctx);
 
-extern void shadow_update(shadow* shad, render_context* rctx);
+extern void shadow_ctrl(shadow* shad, render_context* rctx);

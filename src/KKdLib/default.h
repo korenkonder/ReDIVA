@@ -15,6 +15,9 @@
 #include <windows.h>
 #include <fileapi.h>
 
+#pragma warning( push )
+#pragma warning( disable: 26812 )
+
 #define free(ptr) \
 { \
     if (ptr) \
@@ -98,7 +101,19 @@ typedef struct pair_##t0##_##t1 { \
 #define lerp(x, y, blend) ((1.0f - (blend)) * (x) + (blend) * (y))
 
 extern void* force_malloc(size_t size);
-#define force_malloc_s(s, size) force_malloc(sizeof(s) * (size))
+#define force_malloc_s(s, size) (s*)force_malloc(sizeof(s) * (size))
+
+#define enum_or(s0, s1) \
+(s0) = (decltype(s0))((int32_t)(s0) | (s1))
+
+#define enum_xor(s0, s1) \
+(s0) = (decltype(s0))((int32_t)(s0) ^ (s1))
+
+#define enum_and(s0, s1) \
+(s0) = (decltype(s0))((int32_t)(s0) & (s1))
+
+#define enum_not(s0, s1) \
+(s0) = (decltype(s0))(~(int32_t)(s0))
 
 extern int16_t load_reverse_endianness_int16_t(void* ptr);
 extern uint16_t load_reverse_endianness_uint16_t(void* ptr);
@@ -111,30 +126,53 @@ extern size_t load_reverse_endianness_size_t(void* ptr);
 extern float_t load_reverse_endianness_float_t(void* ptr);
 extern double_t load_reverse_endianness_double_t(void* ptr);
 extern void store_reverse_endianness_int16_t(int16_t value, void* ptr);
+extern void store_reverse_endianness_int16_t(uint16_t value, void* ptr);
+extern void store_reverse_endianness_uint16_t(int16_t value, void* ptr);
 extern void store_reverse_endianness_uint16_t(uint16_t value, void* ptr);
 extern void store_reverse_endianness_int32_t(int32_t value, void* ptr);
+extern void store_reverse_endianness_int32_t(uint32_t value, void* ptr);
+extern void store_reverse_endianness_uint32_t(int32_t value, void* ptr);
 extern void store_reverse_endianness_uint32_t(uint32_t value, void* ptr);
 extern void store_reverse_endianness_int64_t(int64_t value, void* ptr);
+extern void store_reverse_endianness_int64_t(uint64_t value, void* ptr);
+extern void store_reverse_endianness_uint64_t(int64_t value, void* ptr);
 extern void store_reverse_endianness_uint64_t(uint64_t value, void* ptr);
 extern void store_reverse_endianness_ssize_t(ssize_t value, void* ptr);
+extern void store_reverse_endianness_ssize_t(size_t value, void* ptr);
+extern void store_reverse_endianness_size_t(ssize_t value, void* ptr);
 extern void store_reverse_endianness_size_t(size_t value, void* ptr);
 extern void store_reverse_endianness_float_t(float_t value, void* ptr);
 extern void store_reverse_endianness_double_t(double_t value, void* ptr);
 extern int16_t reverse_endianness_int16_t(int16_t value);
+extern int16_t reverse_endianness_int16_t(uint16_t value);
+extern uint16_t reverse_endianness_uint16_t(int16_t value);
 extern uint16_t reverse_endianness_uint16_t(uint16_t value);
 extern int32_t reverse_endianness_int32_t(int32_t value);
+extern int32_t reverse_endianness_int32_t(uint32_t value);
+extern uint32_t reverse_endianness_uint32_t(int32_t value);
 extern uint32_t reverse_endianness_uint32_t(uint32_t value);
 extern int64_t reverse_endianness_int64_t(int64_t value);
+extern int64_t reverse_endianness_int64_t(uint64_t value);
+extern uint64_t reverse_endianness_uint64_t(int64_t value);
 extern uint64_t reverse_endianness_uint64_t(uint64_t value);
 extern ssize_t reverse_endianness_ssize_t(ssize_t value);
+extern ssize_t reverse_endianness_ssize_t(size_t value);
+extern size_t reverse_endianness_size_t(ssize_t value);
 extern size_t reverse_endianness_size_t(size_t value);
 extern float_t reverse_endianness_float_t(float_t value);
 extern double_t reverse_endianness_double_t(double_t value);
 
-extern size_t utf8_length(char* s);
-extern size_t utf16_length(wchar_t* s);
+extern ssize_t utf8_length(char* s);
+extern ssize_t utf8_length(const char* s);
+extern ssize_t utf16_length(wchar_t* s);
+extern ssize_t utf16_length(const wchar_t* s);
 extern wchar_t* utf8_to_utf16(char* s);
+extern wchar_t* utf8_to_utf16(const char* s);
 extern char* utf16_to_utf8(wchar_t* s);
+extern char* utf16_to_utf8(const wchar_t* s);
 extern bool utf8_check_for_ascii_only(char* s);
-extern size_t utf8_to_utf16_length(char* s);
-extern size_t utf16_to_utf8_length(wchar_t* s);
+extern bool utf8_check_for_ascii_only(const char* s);
+extern ssize_t utf8_to_utf16_length(char* s);
+extern ssize_t utf8_to_utf16_length(const char* s);
+extern ssize_t utf16_to_utf8_length(wchar_t* s);
+extern ssize_t utf16_to_utf8_length(const wchar_t* s);

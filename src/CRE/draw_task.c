@@ -34,7 +34,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
     int32_t alpha_test = 0;
     float_t min_alpha = 1.0f;
     bool reflect = uniform_value[U_REFLECT] == 1;
-    void(*draw_object_func)(render_context* rctx, draw_object* draw) = draw_object_draw_default;
+    void(*draw_object_func)(render_context* rctx, draw_object* disp) = draw_object_draw_default;
 
     for (int32_t i = 0; i < 6; i++)
         gl_state_active_bind_texture_2d(i, 0);
@@ -241,7 +241,7 @@ void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaqu
         alpha_array, opaque, transparent, translucent);
     for (int32_t i = 0; i < count; i++) {
         int32_t alpha = alpha_array[i];
-        fbo_blit(rctx->post_process.render_texture.fbos[0],
+        fbo_blit(rctx->post_process.rend_texture.fbos[0],
             rctx->post_process.alpha_layer_texture.fbos[0],
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
@@ -260,12 +260,12 @@ void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaqu
         render_texture_bind(&rctx->post_process.buf_texture, 0);
         render_texture_shader_set_glsl(&rctx->post_process.alpha_layer_shader);
         gl_state_active_bind_texture_2d(0, rctx->post_process.alpha_layer_texture.color_texture->texture);
-        gl_state_active_bind_texture_2d(1, rctx->post_process.render_texture.color_texture->texture);
+        gl_state_active_bind_texture_2d(1, rctx->post_process.rend_texture.color_texture->texture);
         glUniform1f(0, (float_t)(alpha * (1.0 / 255.0)));
         render_texture_draw_custom_glsl();
 
         fbo_blit(rctx->post_process.buf_texture.fbos[0],
-            rctx->post_process.render_texture.fbos[0],
+            rctx->post_process.rend_texture.fbos[0],
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     }
@@ -420,7 +420,8 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
                 draw_object_func);
 
             if (draw_task_flags & DRAW_TASK_SHADOW_OBJECT) {
-                draw_task_add(rctx, DRAW_OBJECT_SHADOW_OBJECT_CHARA + object_data->shadow_type, task);
+                draw_task_add(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_OBJECT_CHARA
+                    + object_data->shadow_type), task);
                 if (draw_task_flags & DRAW_TASK_RIPPLE)
                     draw_task_add(rctx, DRAW_OBJECT_RIPPLE, task);
                 continue;
@@ -467,7 +468,8 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
                     && (blend_flags.punch_through || !(blend_flags.alpha_texture | blend_flags.alpha_material))
                     && ~sub_mesh->flags & OBJECT_SUB_MESH_TRANSPARENT) {
                     if (draw_task_flags & DRAW_TASK_SHADOW)
-                        draw_task_add(rctx, DRAW_OBJECT_SHADOW_CHARA + object_data->shadow_type, task);
+                        draw_task_add(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_CHARA
+                            + object_data->shadow_type), task);
 
                     if (draw_task_flags & DRAW_TASK_SSS)
                         draw_task_add(rctx, DRAW_OBJECT_SSS, task);
@@ -519,7 +521,8 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
             }
 
             if (draw_task_flags & DRAW_TASK_SHADOW)
-                draw_task_add(rctx, DRAW_OBJECT_SHADOW_CHARA + object_data->shadow_type, task);
+                draw_task_add(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_CHARA
+                    + object_data->shadow_type), task);
             if (draw_task_flags & DRAW_TASK_40)
                 draw_task_add(rctx, DRAW_OBJECT_TYPE_7, task);
             if (draw_task_flags & DRAW_TASK_CHARA_REFLECT)
@@ -723,7 +726,7 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
         mat4u_to_mat4(&task->mat, &mat);
         mat4_get_translation(&mat, &center);
         if (task->type == DRAW_TASK_TYPE_OBJECT) {
-            obj_mesh_flags mesh_flags = task->data.object.mesh->flags;
+            object_mesh_flags mesh_flags = task->data.object.mesh->flags;
             if (mesh_flags & OBJECT_MESH_BILLBOARD) {
                 model_mat_face_camera_view(&rctx->camera->view, &mat, &mat);}
             else if (mesh_flags & OBJECT_MESH_BILLBOARD_Y_AXIS)
@@ -770,21 +773,30 @@ int32_t object_axis_aligned_bounding_box_check_visibility(
     object_axis_aligned_bounding_box* aabb, camera* cam, mat4* mat) {
     vec3 size;
     vec3 points[8];
-    vec3_xor(aabb->size, ((vec3){ 0.0f, 0.0f, 0.0f }), size);
+    vec3 neg;
+    neg = { 0.0f, 0.0f, 0.0f };
+    vec3_xor(aabb->size, neg, size);
     vec3_add(aabb->center, size, points[0]);
-    vec3_xor(aabb->size, ((vec3){ -0.0f, -0.0f, -0.0f }), size);
+    neg = { -0.0f, -0.0f, -0.0f };
+    vec3_xor(aabb->size, neg, size);
     vec3_add(aabb->center, size, points[1]);
-    vec3_xor(aabb->size, ((vec3){ -0.0f, 0.0f, 0.0f }), size);
+    neg = { -0.0f, 0.0f, 0.0f };
+    vec3_xor(aabb->size, neg, size);
     vec3_add(aabb->center, size, points[2]);
-    vec3_xor(aabb->size, ((vec3){ 0.0f, -0.0f, -0.0f }), size);
+    neg = { 0.0f, -0.0f, -0.0f };
+    vec3_xor(aabb->size, neg, size);
     vec3_add(aabb->center, size, points[3]);
-    vec3_xor(aabb->size, ((vec3){ 0.0f, -0.0f, 0.0f }), size);
+    neg = { 0.0f, -0.0f, 0.0f };
+    vec3_xor(aabb->size, neg, size);
     vec3_add(aabb->center, size, points[4]);
-    vec3_xor(aabb->size, ((vec3){ -0.0f, 0.0f, -0.0f }), size);
+    neg = { -0.0f, 0.0f, -0.0f };
+    vec3_xor(aabb->size, neg, size);
     vec3_add(aabb->center, size, points[5]);
-    vec3_xor(aabb->size, ((vec3){ 0.0f, 0.0f, -0.0f }), size);
+    neg = { 0.0f, 0.0f, -0.0f };
+    vec3_xor(aabb->size, neg, size);
     vec3_add(aabb->center, size, points[6]);
-    vec3_xor(aabb->size, ((vec3){ -0.0f, -0.0f, 0.0f }), size);
+    neg = { -0.0f, -0.0f, 0.0f };
+    vec3_xor(aabb->size, neg, size);
     vec3_add(aabb->center, size, points[7]);
 
     mat4 view_mat;
@@ -793,7 +805,7 @@ int32_t object_axis_aligned_bounding_box_check_visibility(
         mat4_mult_vec3_trans(&view_mat, &points[i], &points[i]);
 
     vec4 v2[6];
-    *(vec3*)&v2[0] = (vec3){ 0.0f, 0.0f, -1.0f };
+    *(vec3*)&v2[0] = { 0.0f, 0.0f, -1.0f };
     v2[0].w = (float_t)-cam->min_distance;
     *(vec3*)&v2[1] = cam->field_1E4;
     v2[1].w = 0.0f;
@@ -803,7 +815,7 @@ int32_t object_axis_aligned_bounding_box_check_visibility(
     v2[3].w = 0.0f;
     *(vec3*)&v2[4] = cam->field_208;
     v2[4].w = 0.0f;
-    *(vec3*)&v2[5] = (vec3){ 0.0f, 0.0f, 1.0f };
+    *(vec3*)&v2[5] = { 0.0f, 0.0f, 1.0f };
     v2[5].w = (float_t)cam->max_distance;
 
     for (int32_t i = 0; i < 6; i++)
@@ -884,35 +896,35 @@ inline static void draw_task_object_init(draw_task* task, object_data* object_da
     task->data.object.element_array_buffer = element_array_buffer;
     task->data.object.morph_array_buffer = morph_array_buffer;
 
-    draw_object* draw = &task->data.object;
-    draw->texture_pattern_count = object_data->texture_pattern_count;
+    draw_object* disp = &task->data.object;
+    disp->texture_pattern_count = object_data->texture_pattern_count;
     for (int32_t i = 0; i < object_data->texture_pattern_count && i < TEXTURE_PATTERN_COUNT; i++)
-        draw->texture_pattern_array[i] = object_data->texture_pattern_array[i];
+        disp->texture_pattern_array[i] = object_data->texture_pattern_array[i];
 
-    draw->texture_transform_count = object_data->texture_transform_count;
+    disp->texture_transform_count = object_data->texture_transform_count;
     for (int32_t i = 0; i < object_data->texture_transform_count && i < TEXTURE_TRANSFORM_COUNT; i++)
-        draw->texture_transform_array[i] = object_data->texture_transform_array[i];
+        disp->texture_transform_array[i] = object_data->texture_transform_array[i];
 
     if (blend_color) {
-        draw->set_blend_color = true;
-        vec4_to_vec4u(*blend_color, draw->blend_color);
+        disp->set_blend_color = true;
+        vec4_to_vec4u(*blend_color, disp->blend_color);
     }
     else {
-        draw->set_blend_color = false;
-        draw->blend_color = vec4u_identity;
+        disp->set_blend_color = false;
+        disp->blend_color = vec4u_identity;
     }
 
-    draw->chara_color = object_data->chara_color;
-    draw->self_shadow = object_data->draw_task_flags & (DRAW_TASK_8 | DRAW_TASK_4) ? 1 : 0;
-    draw->shadow = object_data->shadow_type;
-    vec4_to_vec4u(object_data->texture_color_coeff, draw->texture_color_coeff);
-    draw->texture_color_coeff.w = object_data->wet_param;
-    vec4_to_vec4u(object_data->texture_color_offset, draw->texture_color_offset);
-    vec4_to_vec4u(object_data->texture_specular_coeff, draw->texture_specular_coeff);
-    vec4_to_vec4u(object_data->texture_specular_offset, draw->texture_specular_offset);
-    draw->instances_count = instances_count;
-    draw->instances_mat = instances_mat;
-    draw->draw_object_func = draw_object_func;
+    disp->chara_color = object_data->chara_color;
+    disp->self_shadow = object_data->draw_task_flags & (DRAW_TASK_8 | DRAW_TASK_4) ? 1 : 0;
+    disp->shadow = object_data->shadow_type;
+    vec4_to_vec4u(object_data->texture_color_coeff, disp->texture_color_coeff);
+    disp->texture_color_coeff.w = object_data->wet_param;
+    vec4_to_vec4u(object_data->texture_color_offset, disp->texture_color_offset);
+    vec4_to_vec4u(object_data->texture_specular_coeff, disp->texture_specular_coeff);
+    vec4_to_vec4u(object_data->texture_specular_offset, disp->texture_specular_offset);
+    disp->instances_count = instances_count;
+    disp->instances_mat = instances_mat;
+    disp->draw_object_func = draw_object_func;
 }
 
 inline static void draw_task_object_translucent_init(draw_task* task, mat4* mat,

@@ -18,6 +18,10 @@ void divafile_decrypt(char* path) {
     free(file_buf);
 }
 
+inline void divafile_decrypt(const char* path) {
+    divafile_decrypt((char*)path);
+}
+
 void divafile_wdecrypt(wchar_t* path) {
     wchar_t* file_temp = str_utils_wadd(path, L"_dec");
     stream s_enc;
@@ -31,8 +35,8 @@ void divafile_wdecrypt(wchar_t* path) {
             io_read(&s_enc, data, stream_length);
 
             struct aes_ctx ctx;
-            aes_init_ctx(&ctx, (uint8_t*)key);
-            aes_ecb_decrypt_buffer(&ctx, data, stream_length);
+            aes_init_ctx(&ctx, key);
+            aes_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
 
             stream s_dec;
             io_wopen(&s_dec, file_temp, L"wb");
@@ -43,6 +47,10 @@ void divafile_wdecrypt(wchar_t* path) {
     }
     io_free(&s_enc);
     free(file_temp);
+}
+
+inline void divafile_wdecrypt(const wchar_t* path) {
+    divafile_wdecrypt((wchar_t*)path);
 }
 
 void divafile_mdecrypt(void* enc_data, void** dec_data, size_t* dec_size) {
@@ -64,8 +72,8 @@ void divafile_mdecrypt(void* enc_data, void** dec_data, size_t* dec_size) {
     memcpy(data, (void*)(d + 16), stream_length);
 
     struct aes_ctx ctx;
-    aes_init_ctx(&ctx, (uint8_t*)key);
-    aes_ecb_decrypt_buffer(&ctx, data, stream_length);
+    aes_init_ctx(&ctx, key);
+    aes_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
 
     *dec_data = data;
     *dec_size = file_length;
@@ -88,8 +96,8 @@ void divafile_sdecrypt(stream* s) {
     io_read(s, data, stream_length);
 
     struct aes_ctx ctx;
-    aes_init_ctx(&ctx, (uint8_t*)key);
-    aes_ecb_decrypt_buffer(&ctx, data, stream_length);
+    aes_init_ctx(&ctx, key);
+    aes_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
 
     io_free(s);
     io_mopen(s, data, file_length);
@@ -100,6 +108,10 @@ void divafile_encrypt(char* path) {
     wchar_t* file_buf = utf8_to_utf16(path);
     divafile_wencrypt(file_buf);
     free(file_buf);
+}
+
+inline void divafile_encrypt(const char* path) {
+    divafile_encrypt((char*)path);
 }
 
 void divafile_wencrypt(wchar_t* path) {
@@ -114,8 +126,8 @@ void divafile_wencrypt(wchar_t* path) {
         io_read(&s_dec, data, len);
 
         struct aes_ctx ctx;
-        aes_init_ctx(&ctx, (uint8_t*)key);
-        aes_ecb_encrypt_buffer(&ctx, data, len_align);
+        aes_init_ctx(&ctx, key);
+        aes_ecb_encrypt_buffer(&ctx, (uint8_t*)data, len_align);
 
         stream s_enc;
         io_wopen(&s_enc, file_temp, L"wb");
@@ -130,6 +142,10 @@ void divafile_wencrypt(wchar_t* path) {
     free(file_temp);
 }
 
+inline void divafile_wencrypt(const wchar_t* path) {
+    divafile_wencrypt((wchar_t*)path);
+}
+
 void divafile_mencrypt(void* dec_data, size_t dec_size, void** enc_data, size_t* enc_size) {
     if (!dec_data || !dec_size || !enc_data || !enc_size)
         return;
@@ -142,8 +158,8 @@ void divafile_mencrypt(void* dec_data, size_t dec_size, void** enc_data, size_t*
     memcpy((void*)(d + 16), dec_data, len);
 
     struct aes_ctx ctx;
-    aes_init_ctx(&ctx, (uint8_t*)key);
-    aes_ecb_encrypt_buffer(&ctx, (void*)(d + 16), len_align);
+    aes_init_ctx(&ctx, key);
+    aes_ecb_encrypt_buffer(&ctx, (uint8_t*)(d + 16), len_align);
 
     *(uint64_t*)d = 0x454C494641564944;
     *(uint32_t*)(d + 8) = (uint32_t)len_align;

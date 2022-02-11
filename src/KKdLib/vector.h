@@ -8,8 +8,8 @@
 #include "default.h"
 
 #define vector_dispose_func(t) void(* dispose_func)(t* data)
-#define vector_empty(t) (vector_##t){ 0, 0, 0 }
-#define vector_ptr_empty(t) (vector_ptr_##t){ 0, 0, 0 }
+#define vector_empty(t) {}//(vector_##t){ 0, 0, 0 }
+#define vector_ptr_empty(t) {}//(vector_ptr_##t){ 0, 0, 0 }
 #define vector_length(vec) ((vec).end - (vec).begin)
 #define vector_capacity(vec) ((vec).capacity_end - (vec).begin)
 
@@ -71,7 +71,7 @@ void vector_##t##_reserve(vector_##t* vec, ssize_t size) { \
 \
     t* temp = 0; \
     if (capacity) \
-        temp = force_malloc_s(t, capacity); \
+        temp = (t*)force_malloc_s(t, capacity); \
 \
     if (!temp) \
         return; \
@@ -245,7 +245,7 @@ void vector_ptr_##t##_reserve(vector_ptr_##t* vec, ssize_t size) { \
 \
     t** temp = 0; \
     if (capacity) \
-        temp = force_malloc_s(t*, capacity); \
+        temp = (t**)force_malloc_s(t*, capacity); \
 \
     if (!temp) \
         return; \

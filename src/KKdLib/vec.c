@@ -5,12 +5,12 @@
 
 #include "vec.h"
 
-const __m128 vec2_negate = { .m128_f32 = { -0.0, -0.0,  0.0,  0.0 } };
-const __m128 vec3_negate = { .m128_f32 = { -0.0, -0.0, -0.0,  0.0 } };
-const __m128 vec4_negate = { .m128_f32 = { -0.0, -0.0, -0.0, -0.0 } };
+const __m128 vec2_negate = { -0.0f, -0.0f,  0.0f,  0.0f };
+const __m128 vec3_negate = { -0.0f, -0.0f, -0.0f,  0.0f };
+const __m128 vec4_negate = { -0.0f, -0.0f, -0.0f, -0.0f };
 
-const __m128 vec4_mask_vec2 = { .m128_u32 = { 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000 } };
-const __m128 vec4_mask_vec3 = { .m128_u32 = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000 } };
+const vec4i vec4_mask_vec2 = { (int32_t)0xFFFFFFFF, (int32_t)0xFFFFFFFF, (int32_t)0x00000000, (int32_t)0x00000000 };
+const vec4i vec4_mask_vec3 = { (int32_t)0xFFFFFFFF, (int32_t)0xFFFFFFFF, (int32_t)0xFFFFFFFF, (int32_t)0x00000000 };
 
 const __m128d vec2d_negate = { -0.0, -0.0 };
 

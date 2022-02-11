@@ -271,9 +271,9 @@ void radix_sort_custom(void* arr, size_t n, size_t size, size_t idx_len, radix_i
     if (n <= 1)
         return;
 
-    uint8_t* o = force_malloc(size * n);
+    uint8_t* o = force_malloc_s(uint8_t, size * n);
     size_t* c = force_malloc_s(size_t, RADIX);
-    uint8_t* a = arr;
+    uint8_t* a = (uint8_t*)arr;
     void* org_arr = arr;
 
     for (size_t shift = 0, s = 0; shift < idx_len * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {

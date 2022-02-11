@@ -8,11 +8,15 @@
 #include "glitter.h"
 
 extern glitter_particle_manager* glitter_particle_manager_init();
-extern void glitter_particle_manager_calc_draw(GPM);
+extern void glitter_particle_manager_calc_disp(GPM);
 extern bool glitter_particle_manager_check_effect_group(GPM, uint64_t effect_group_hash);
 extern bool glitter_particle_manager_check_file_reader(GPM, uint64_t effect_group_hash);
 extern bool glitter_particle_manager_check_scene(GPM, uint64_t effect_group_hash);
-extern void glitter_particle_manager_draw(GPM, draw_pass_3d_type alpha);
+extern void glitter_particle_manager_ctrl_file_reader(GPM);
+extern void glitter_particle_manager_ctrl_scene(GPM, float_t delta_frame);
+extern void glitter_particle_manager_ctrl_scene_by_hash(GPM,
+    uint64_t effect_group_hash, float_t delta_frame);
+extern void glitter_particle_manager_disp(GPM, draw_pass_3d_type alpha);
 extern bool glitter_particle_manager_free_effect_group(GPM, uint64_t effect_group_hash);
 extern void glitter_particle_manager_free_effect_groups(GPM);
 extern bool glitter_particle_manager_free_scene(GPM, uint64_t effect_group_hash);
@@ -28,10 +32,4 @@ extern bool glitter_particle_manager_load_scene(GPM, uint64_t effect_group_hash)
 extern void glitter_particle_manager_set_frame(GPM,
     glitter_effect_group* effect_group, glitter_scene** scene, float_t curr_frame,
     float_t prev_frame, uint32_t counter, glitter_random* random, bool reset);
-extern bool glitter_particle_manager_test_load_effect(GPM,
-    uint64_t effect_group_hash, uint64_t effect_hash);
-extern void glitter_particle_manager_update_file_reader(GPM);
-extern void glitter_particle_manager_update_scene(GPM, float_t delta_frame);
-extern void glitter_particle_manager_update_scene_by_hash(GPM,
-    uint64_t effect_group_hash, float_t delta_frame);
 extern void glitter_particle_manager_dispose(GPM);

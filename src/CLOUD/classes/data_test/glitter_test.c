@@ -43,17 +43,17 @@ static const char* data_test_glitter_test_window_title = "Glitter Test##Data Tes
 static data_test_glitter_test_struct data_test_glitter_test;
 
 bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
-    if (!lock_data_init(&glitter_data_lock, &data->lock, data, data_test_glitter_test_dispose))
+    if (!lock_data_init(&glitter_data_lock, &data->lock, data, (void(*)(void*))data_test_glitter_test_dispose))
         return false;
 
     lock_trylock(&pv_lock);
-    data->data = force_malloc(sizeof(data_test_glitter_test_struct));
+    data->data = force_malloc_s(data_test_glitter_test_struct, 1);
 
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
     GPM_VAL->counter = (uint32_t)(time.LowPart * 0x0CAD3078ULL);
 
-    data_test_glitter_test_struct* glt_test = data->data;
+    data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
     if (glt_test) {
         data_struct_get_directory_files(&data_list[DATA_AFT], "rom/particle/", &glt_test->files);
         for (data_struct_file* i = glt_test->files.begin; i != glt_test->files.end;)
@@ -90,7 +90,7 @@ void data_test_glitter_test_imgui(class_data* data) {
     float_t h = min((float_t)height, 256.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
@@ -99,15 +99,20 @@ void data_test_glitter_test_imgui(class_data* data) {
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(data_test_glitter_test_window_title, &open, window_flags);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
-    data_test_glitter_test_struct* glt_test = data->data;
-    if (!glt_test)
-        goto End;
+    data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
+    if (!glt_test) {
+        igEnd();
+        return;
+    }
 
     int32_t file_index = -1;
     if (glt_test->file)
@@ -130,11 +135,11 @@ void data_test_glitter_test_imgui(class_data* data) {
         input_reset = true;
 
     w = imguiGetContentRegionAvailWidth();
-    if (imguiButton("Play (F)", (ImVec2) { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_F, true))
+    if (imguiButton("Play (F)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_F, true))
         glt_test->input_play = true;
 
     w = imguiGetContentRegionAvailWidth();
-    if (imguiButton("Stop (V)", (ImVec2) { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_V, true))
+    if (imguiButton("Stop (V)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_V, true))
         glt_test->input_stop = true;
 
     imguiCheckbox("Auto (T)", &glt_test->input_auto);
@@ -154,7 +159,7 @@ void data_test_glitter_test_imgui(class_data* data) {
     imguiCheckbox("Show Grid", &draw_grid_3d);
 
     w = imguiGetContentRegionAvailWidth();
-    if (imguiButton("Stage", (ImVec2) { w, 0.0f }))
+    if (imguiButton("Stage", { w, 0.0f }))
         glt_test->stage_test = true;
 
     data->imgui_focus |= igIsWindowFocused(0);
@@ -168,8 +173,8 @@ void data_test_glitter_test_imgui(class_data* data) {
     w = win_x;
     h = win_y;
 
-    igSetNextWindowPos((ImVec2) { x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
+    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoTitleBar;
@@ -210,13 +215,11 @@ void data_test_glitter_test_imgui(class_data* data) {
         igText(" Mesh: ctrl%lld, disp%lld", ctrl, disp);
     }
     igPopStyleColor(2);
-
-End:
     igEnd();
 }
 
 void data_test_glitter_test_input(class_data* data) {
-    data_test_glitter_test_struct* glt_test = data->data;
+    data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
     if (!glt_test)
         return;
 
@@ -224,7 +227,7 @@ void data_test_glitter_test_input(class_data* data) {
 }
 
 void data_test_glitter_test_render(class_data* data) {
-    data_test_glitter_test_struct* glt_test = data->data;
+    data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
     if (!glt_test)
         return;
 
@@ -238,7 +241,7 @@ void data_test_glitter_test_render(class_data* data) {
         glt_test->frame_counter += delta_frame;
         glt_test->delta_frame -= (double_t)delta_frame;
 
-        glitter_particle_manager_update_scene(GPM_VAL, (float_t)delta_frame);
+        glitter_particle_manager_ctrl_scene(GPM_VAL, (float_t)delta_frame);
     }
 
     if (glt_test->file) {
@@ -247,6 +250,7 @@ void data_test_glitter_test_render(class_data* data) {
             glt_test->frame_counter = 0;
         }
 
+        glitter_file_reader* fr;
         uint64_t hash = hash_utf8_fnv1a64m(glt_test->file, false);
         if (glt_test->input_auto && !glitter_particle_manager_check_scene(GPM_VAL, hash)) {
             if (glitter_particle_manager_check_effect_group(GPM_VAL, hash))
@@ -260,9 +264,9 @@ void data_test_glitter_test_render(class_data* data) {
             glitter_particle_manager_free_effect_groups(GPM_VAL);
 
             GPM_VAL->data = &data_list[DATA_AFT];
-            glitter_file_reader* fr = glitter_file_reader_init(GLITTER_FT, 0, glt_test->file, -1.0f);
+            fr = glitter_file_reader_init(GLITTER_FT, 0, glt_test->file, -1.0f);
             vector_ptr_glitter_file_reader_push_back(&GPM_VAL->file_readers, &fr);
-            glitter_particle_manager_update_file_reader(GPM_VAL);
+            glitter_particle_manager_ctrl_file_reader(GPM_VAL);
         load:
             glt_test->frame_counter = 0;
             glitter_particle_manager_load_scene(GPM_VAL, hash);
@@ -285,7 +289,7 @@ void data_test_glitter_test_render(class_data* data) {
         if (lock_check_init(&c->data.lock)) {
             lock_lock(&c->data.lock);
             if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show))
-                c->data.flags &= ~(CLASS_HIDE | CLASS_HIDDEN);
+                enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN));
             lock_unlock(&c->data.lock);
         }
         glt_test->stage_test = false;
@@ -296,9 +300,9 @@ bool data_test_glitter_test_dispose(class_data* data) {
     vector_ptr_glitter_scene_free(&GPM_VAL->scenes, glitter_scene_dispose);
     vector_ptr_glitter_effect_group_free(&GPM_VAL->effect_groups, glitter_effect_group_dispose);
 
-    lock_data_free(&glitter_data_lock, data_test_glitter_test_dispose);
+    lock_data_free(&glitter_data_lock, (void(*)(void*))data_test_glitter_test_dispose);
 
-    data_test_glitter_test_struct* glt_test = data->data;
+    data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
 
     draw_grid_3d = false;
     if (glt_test) {
@@ -312,7 +316,7 @@ bool data_test_glitter_test_dispose(class_data* data) {
     }
     free(data->data);
 
-    data->flags = CLASS_HIDDEN | CLASS_DISPOSED;
+    data->flags = (class_flags)(CLASS_HIDDEN | CLASS_DISPOSED);
     data->imgui_focus = false;
     return true;
 }

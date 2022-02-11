@@ -11,10 +11,14 @@ inline void timer_init(timer* t, double_t freq) {
     t->history_counter = 0;
     time_struct_init(&t->curr_time);
     time_struct_init(&t->prev_time);
-    t->freq = freq;
-    t->freq_hist = freq;
     lock_init(&t->freq_lock);
     lock_init(&t->freq_hist_lock);
+    lock_lock(&t->freq_lock);
+    t->freq = freq;
+    lock_unlock(&t->freq_lock);
+    lock_lock(&t->freq_hist_lock);
+    t->freq_hist = freq;
+    lock_unlock(&t->freq_hist_lock);
     t->timer = timer_handle_init();
 }
 

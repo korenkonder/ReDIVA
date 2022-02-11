@@ -19,7 +19,7 @@ const char* data_view_texture_window_title = "Texture##Data Viewer";
 
 bool data_view_texture_init(class_data* data, render_context* rctx) {
     data->data = force_malloc(sizeof(data_view_texture));
-    data_view_texture* data_view = data->data;
+    data_view_texture* data_view = (data_view_texture*)data->data;
     if (data_view) {
         data_view->rctx = rctx;
     }
@@ -35,21 +35,26 @@ void data_view_texture_imgui(class_data* data) {
     float_t h = min((float_t)height, 480.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Appearing);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(data_view_texture_window_title, &open, 0);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
-    data_view_texture* data_view = data->data;
-    if (!data_view)
-        goto End;
+    data_view_texture* data_view = (data_view_texture*)data->data;
+    if (!data_view) {
+        igEnd();
+        return;
+    }
 
     render_context* rctx = data_view->rctx;
 
@@ -68,8 +73,6 @@ void data_view_texture_imgui(class_data* data) {
     }
 
     data->imgui_focus |= igIsWindowFocused(0);
-
-End:
     igEnd();
 }
 
@@ -78,7 +81,7 @@ void data_view_texture_input(class_data* data) {
 }
 
 bool data_view_texture_dispose(class_data* data) {
-    data_view_texture* data_view = data->data;
+    data_view_texture* data_view = (data_view_texture*)data->data;
     if (data_view) {
     }
     free(data->data);

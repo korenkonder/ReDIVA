@@ -6,16 +6,16 @@
 #include "string.h"
 #include "str_utils.h"
 
-string string_empty = {
-    .data = "",
-    .length = 0,
-    .capacity = STRING_NULL_LENGTH,
+const string string_empty = {
+    "",
+    0,
+    STRING_NULL_LENGTH,
 };
 
-wstring wstring_empty = {
-    .data = L"",
-    .length = 0,
-    .capacity = WSTRING_NULL_LENGTH,
+const wstring wstring_empty = {
+    L"",
+    0,
+    WSTRING_NULL_LENGTH,
 };
 
 vector_func(string)
@@ -23,22 +23,34 @@ vector_func(wstring)
 vector_ptr_func(string)
 vector_ptr_func(wstring)
 
-static void string_reserve(string* s, size_t size);
-static void wstring_reserve(wstring* s, size_t size);
+static void string_reserve(string* s, ssize_t size);
+static void wstring_reserve(wstring* s, ssize_t size);
+
+inline void string_init(string* s) {
+    string_init(s, (char*)0);
+}
 
 inline void string_init(string* s, char* str) {
     *s = string_empty;
     if (!str)
         return;
 
-    size_t length = utf8_length(str);
+    ssize_t length = utf8_length(str);
     string_reserve(s, length);
     memmove(string_data(s), str, length);
     s->length = length;
     string_data(s)[s->length] = 0;
 }
 
-inline void string_init_length(string* s, char* str, size_t length) {
+inline void string_init(string* s, const char* str) {
+    string_init(s, (char*)str);
+}
+
+inline void string_init_length(string* s, ssize_t length) {
+    string_init_length(s, (char*)0, length);
+}
+
+inline void string_init_length(string* s, char* str, ssize_t length) {
     *s = string_empty;
     if (!str && !length)
         return;
@@ -52,6 +64,10 @@ inline void string_init_length(string* s, char* str, size_t length) {
     string_data(s)[s->length] = 0;
 }
 
+inline void string_init_length(string* s, const char* str, ssize_t length) {
+    string_init_length(s, (char*)str, length);
+}
+
 inline char* string_data(string* s) {
     return s->capacity > STRING_NULL_LENGTH ? s->ptr : s->data;
 }
@@ -60,7 +76,7 @@ inline void string_add(string* s, char* str) {
     if (!s || !str)
         return;
 
-    size_t length = utf8_length(str);
+    ssize_t length = utf8_length(str);
     if (!length)
         return;
 
@@ -70,7 +86,11 @@ inline void string_add(string* s, char* str) {
     string_data(s)[s->length] = 0;
 }
 
-inline void string_add_length(string* s, char* str, size_t length) {
+inline void string_add(string* s, const char* str) {
+    string_add(s, (char*)str);
+}
+
+inline void string_add_length(string* s, char* str, ssize_t length) {
     if (!s || !length)
         return;
 
@@ -81,6 +101,10 @@ inline void string_add_length(string* s, char* str, size_t length) {
         memset(string_data(s) + s->length, 0, length);
     s->length += length;
     string_data(s)[s->length] = 0;
+}
+
+inline void string_add_length(string* s, const char* str, ssize_t length) {
+    string_add_length(s, (char*)str, length);
 }
 
 inline void string_add_char(string* s, char c) {
@@ -131,19 +155,31 @@ inline wchar_t* wstring_data(wstring* s) {
     return s->capacity > WSTRING_NULL_LENGTH ? s->ptr : s->data;
 }
 
+inline void wstring_init(wstring* s) {
+    wstring_init(s, (wchar_t*)0);
+}
+
 inline void wstring_init(wstring* s, wchar_t* str) {
     *s = wstring_empty;
     if (!str)
         return;
 
-    size_t length = utf16_length(str);
+    ssize_t length = utf16_length(str);
     wstring_reserve(s, length);
     memmove(wstring_data(s), str, sizeof(wchar_t) * length);
     s->length = length;
     wstring_data(s)[s->length] = 0;
 }
 
-inline void wstring_init_length(wstring* s, wchar_t* str, size_t length) {
+inline void wstring_init(wstring* s, const wchar_t* str) {
+    wstring_init(s, (wchar_t*)str);
+}
+
+inline void wstring_init_length(wstring* s, ssize_t length) {
+    wstring_init_length(s, (wchar_t*)0, length);
+}
+
+inline void wstring_init_length(wstring* s, wchar_t* str, ssize_t length) {
     *s = wstring_empty;
     if (!length)
         return;
@@ -157,11 +193,15 @@ inline void wstring_init_length(wstring* s, wchar_t* str, size_t length) {
     wstring_data(s)[s->length] = 0;
 }
 
+inline void wstring_init_length(wstring* s, const wchar_t* str, ssize_t length) {
+    wstring_init_length(s, (wchar_t*)str, length);
+}
+
 inline void wstring_add(wstring* s, wchar_t* str) {
     if (!s || !str)
         return;
 
-    size_t length = utf16_length(str);
+    ssize_t length = utf16_length(str);
     if (!length)
         return;
 
@@ -171,7 +211,11 @@ inline void wstring_add(wstring* s, wchar_t* str) {
     wstring_data(s)[s->length] = 0;
 }
 
-inline void wstring_add_length(wstring* s, wchar_t* str, size_t length) {
+inline void wstring_add(wstring* s, const wchar_t* str) {
+    wstring_add(s, (wchar_t*)str);
+}
+
+inline void wstring_add_length(wstring* s, wchar_t* str, ssize_t length) {
     if (!s || !length)
         return;
 
@@ -182,6 +226,10 @@ inline void wstring_add_length(wstring* s, wchar_t* str, size_t length) {
         memset(wstring_data(s) + s->length, 0, sizeof(wchar_t) * length);
     s->length += length;
     wstring_data(s)[s->length] = 0;
+}
+
+inline void wstring_add_length(wstring* s, const wchar_t* str, ssize_t length) {
+    wstring_add_length(s, (wchar_t*)str, length);
 }
 
 inline void wstring_add_char(wstring* s, wchar_t c) {
@@ -228,12 +276,12 @@ inline void wstring_free(wstring* s) {
     *s = wstring_empty;
 }
 
-static void string_reserve(string* s, size_t size) {
+static void string_reserve(string* s, ssize_t size) {
     if (s->capacity - s->length >= size)
         return;
 
-    size_t capacity = s->capacity;
-    if ((size_t)(INT64_MAX / sizeof(char) - (capacity >> 1)) >= capacity)
+    ssize_t capacity = s->capacity;
+    if ((ssize_t)(INT64_MAX / sizeof(char) - (capacity >> 1)) >= capacity)
         capacity = (capacity >> 1) + capacity;
     else
         capacity = 0;
@@ -243,7 +291,7 @@ static void string_reserve(string* s, size_t size) {
     char* src = string_data(s);
     char* dst;
     if (capacity > STRING_NULL_LENGTH)
-        dst = force_malloc(capacity + 1);
+        dst = force_malloc_s(char, capacity + 1);
     else
         dst = s->data;
 
@@ -259,12 +307,12 @@ static void string_reserve(string* s, size_t size) {
     s->capacity = capacity;
 }
 
-static void wstring_reserve(wstring* s, size_t size) {
+static void wstring_reserve(wstring* s, ssize_t size) {
     if (s->capacity - s->length >= size)
         return;
 
-    size_t capacity = s->capacity;
-    if ((size_t)(INT64_MAX / sizeof(char) - (capacity >> 1)) >= capacity)
+    ssize_t capacity = s->capacity;
+    if ((ssize_t)(INT64_MAX / sizeof(char) - (capacity >> 1)) >= capacity)
         capacity = (capacity >> 1) + capacity;
     else
         capacity = 0;

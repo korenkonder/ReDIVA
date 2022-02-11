@@ -240,8 +240,8 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
     // Setup buffers for decryption and read the data.
     memset(key_result, 0, 0x10);
 
-    uint8_t* enc_data = force_malloc(length);
-    uint8_t* dec_data = force_malloc(length);
+    uint8_t* enc_data = force_malloc_s(uint8_t, length);
+    uint8_t* dec_data = force_malloc_s(uint8_t, length);
     io_set_position(in, file_offset + offset, 0);
     io_read(in, enc_data, length);
 
@@ -291,7 +291,7 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
 int decrypt_data(stream* in, stream* out, EDAT_HEADER* edat, NPD_HEADER* npd, unsigned char* crypt_key) {
     const int total_blocks = (int)((edat->file_size + edat->block_size - 1) / edat->block_size);
     int64_t size_left = edat->file_size;
-    uint8_t* data = force_malloc(edat->block_size);
+    uint8_t* data = force_malloc_s(uint8_t, edat->block_size);
 
     for (int i = 0; i < total_blocks; i++) {
         io_set_position(in, 0, 0);

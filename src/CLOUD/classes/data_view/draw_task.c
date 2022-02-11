@@ -8,43 +8,43 @@
 #include "../imgui_helper.h"
 
 static const char* draw_object_type_name[] = {
-    [DRAW_OBJECT_OPAQUE]                    = "Opaque",
-    [DRAW_OBJECT_TRANSLUCENT]               = "Translucent",
-    [DRAW_OBJECT_TRANSLUCENT_NO_SHADOW]     = "Translucent (No Shadow)",
-    [DRAW_OBJECT_TRANSPARENT]               = "Transparent",
-    [DRAW_OBJECT_SHADOW_CHARA]              = "Shadow Chara",
-    [DRAW_OBJECT_SHADOW_STAGE]              = "Shadow Stage",
-    [DRAW_OBJECT_TYPE_6]                    = "Type 6",
-    [DRAW_OBJECT_TYPE_7]                    = "Type 7",
-    [DRAW_OBJECT_SHADOW_OBJECT_CHARA]       = "Shadow Object Chara",
-    [DRAW_OBJECT_SHADOW_OBJECT_STAGE]       = "Shadow Object Stage",
-    [DRAW_OBJECT_REFLECT_CHARA_OPAQUE]      = "Reflect Chara Opaque",
-    [DRAW_OBJECT_REFLECT_CHARA_TRANSLUCENT] = "Reflect Chara Translucent",
-    [DRAW_OBJECT_REFLECT_CHARA_TRANSPARENT] = "Reflect Chara Transparent",
-    [DRAW_OBJECT_REFLECT_OPAQUE]            = "Reflect Opaque",
-    [DRAW_OBJECT_REFLECT_TRANSLUCENT]       = "Reflect Translucent",
-    [DRAW_OBJECT_REFLECT_TRANSPARENT]       = "Reflect Transparent",
-    [DRAW_OBJECT_REFRACT_OPAQUE]            = "Refract Opaque",
-    [DRAW_OBJECT_REFRACT_TRANSLUCENT]       = "Refract Translucent",
-    [DRAW_OBJECT_REFRACT_TRANSPARENT]       = "Refract Transparent",
-    [DRAW_OBJECT_SSS]                       = "SSS",
-    [DRAW_OBJECT_OPAQUE_TYPE_20]            = "Opaque (Type 20)",
-    [DRAW_OBJECT_TRANSPARENT_TYPE_21]       = "Transparent (Type 21)",
-    [DRAW_OBJECT_TRANSLUCENT_TYPE_22]       = "Translucent (Type 22)",
-    [DRAW_OBJECT_OPAQUE_TYPE_23]            = "Opaque (Type 23)",
-    [DRAW_OBJECT_TRANSPARENT_TYPE_24]       = "Transparent (Type 24)",
-    [DRAW_OBJECT_TRANSLUCENT_TYPE_25]       = "Translucent (Type 25)",
-    [DRAW_OBJECT_OPAQUE_TYPE_26]            = "Opaque (Type 26)",
-    [DRAW_OBJECT_TRANSPARENT_TYPE_27]       = "Transparent (Type 27)",
-    [DRAW_OBJECT_TRANSLUCENT_TYPE_28]       = "Translucent (Type 28)",
-    [DRAW_OBJECT_RIPPLE]                    = "Ripple",
+    "Opaque",
+    "Translucent",
+    "Translucent (No Shadow)",
+    "Transparent",
+    "Shadow Chara",
+    "Shadow Stage",
+    "Type 6",
+    "Type 7",
+    "Shadow Object Chara",
+    "Shadow Object Stage",
+    "Reflect Chara Opaque",
+    "Reflect Chara Translucent",
+    "Reflect Chara Transparent",
+    "Reflect Opaque",
+    "Reflect Translucent",
+    "Reflect Transparent",
+    "Refract Opaque",
+    "Refract Translucent",
+    "Refract Transparent",
+    "SSS",
+    "Opaque (Type 20)",
+    "Transparent (Type 21)",
+    "Translucent (Type 22)",
+    "Opaque (Type 23)",
+    "Transparent (Type 24)",
+    "Translucent (Type 25)",
+    "Opaque (Type 26)",
+    "Transparent (Type 27)",
+    "Translucent (Type 28)",
+    "Ripple",
 };
 
 static const char* draw_task_type_name[] = {
-    [DRAW_TASK_TYPE_OBJECT]             = "Object",
-    [DRAW_TASK_TYPE_PRIMITIVE]          = "Primitive",
-    [DRAW_TASK_TYPE_PREPROCESS]         = "Preprocess",
-    [DRAW_TASK_TYPE_OBJECT_TRANSLUCENT] = "Object Translucent",
+    "Object",
+    "Primitive",
+    "Preprocess",
+    "Object Translucent",
 };
 
 typedef struct data_view_draw_task {
@@ -63,8 +63,8 @@ const char* data_view_draw_task_window_title = "Draw Task##Data Viewer";
 static void data_view_draw_task_imgui_draw_object(draw_object* object);
 
 bool data_view_draw_task_init(class_data* data, render_context* rctx) {
-    data->data = force_malloc(sizeof(data_view_draw_task));
-    data_view_draw_task* data_view = data->data;
+    data->data = force_malloc_s(data_view_draw_task, 1);
+    data_view_draw_task* data_view = (data_view_draw_task*)data->data;
     if (data_view) {
         data_view->rctx = rctx;
         data_view->draw_tasks = vector_ptr_empty(draw_task);
@@ -83,21 +83,26 @@ void data_view_draw_task_imgui(class_data* data) {
     float_t h = min((float_t)height, 542.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Appearing);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(data_view_draw_task_window_title, &open, 0);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
-    data_view_draw_task* data_view = data->data;
-    if (!data_view)
-        goto End;
+    data_view_draw_task* data_view = (data_view_draw_task*)data->data;
+    if (!data_view) {
+        igEnd();
+        return;
+    }
 
     render_context* rctx = data_view->rctx;
     vector_ptr_draw_task* draw_task_array = rctx->object_data.draw_task_array;
@@ -112,7 +117,7 @@ void data_view_draw_task_imgui(class_data* data) {
 
     ImGuiTreeNodeFlags tree_node_flags;
 
-    for (draw_object_type i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++) {
+    for (int32_t i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++) {
         bool translucent_no_shadow = i == DRAW_OBJECT_TRANSLUCENT_NO_SHADOW;
         tree_node_flags = tree_node_base_flags;
 
@@ -216,8 +221,6 @@ void data_view_draw_task_imgui(class_data* data) {
     }
 
     data->imgui_focus |= igIsWindowFocused(0);
-
-End:
     igEnd();
 }
 
@@ -226,7 +229,7 @@ void data_view_draw_task_input(class_data* data) {
 }
 
 bool data_view_draw_task_dispose(class_data* data) {
-    data_view_draw_task* data_view = data->data;
+    data_view_draw_task* data_view = (data_view_draw_task*)data->data;
     if (data_view) {
         data_view->draw_tasks.end = data_view->draw_tasks.begin;
         vector_ptr_draw_task_free(&data_view->draw_tasks, 0);

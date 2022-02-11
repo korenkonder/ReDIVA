@@ -62,12 +62,28 @@ inline void store_reverse_endianness_int16_t(int16_t value, void* ptr) {
     *(int16_t*)ptr = (int16_t)_byteswap_ushort((uint16_t)value);
 }
 
+inline void store_reverse_endianness_int16_t(uint16_t value, void* ptr) {
+    *(int16_t*)ptr = (int16_t)_byteswap_ushort(value);
+}
+
+inline void store_reverse_endianness_uint16_t(int16_t value, void* ptr) {
+    *(uint16_t*)ptr = (uint16_t)_byteswap_ushort((uint16_t)value);
+}
+
 inline void store_reverse_endianness_uint16_t(uint16_t value, void* ptr) {
     *(uint16_t*)ptr = (uint16_t)_byteswap_ushort(value);
 }
 
 inline void store_reverse_endianness_int32_t(int32_t value, void* ptr) {
     *(int32_t*)ptr = (int32_t)_byteswap_ulong((uint32_t)value);
+}
+
+inline void store_reverse_endianness_int32_t(uint32_t value, void* ptr) {
+    *(int32_t*)ptr = (int32_t)_byteswap_ulong(value);
+}
+
+inline void store_reverse_endianness_uint32_t(int32_t value, void* ptr) {
+    *(uint32_t*)ptr = (uint32_t)_byteswap_ulong((uint32_t)value);
 }
 
 inline void store_reverse_endianness_uint32_t(uint32_t value, void* ptr) {
@@ -78,12 +94,28 @@ inline void store_reverse_endianness_int64_t(int64_t value, void* ptr) {
     *(int64_t*)ptr = (int64_t)_byteswap_uint64((uint64_t)value);
 }
 
+inline void store_reverse_endianness_int64_t(uint64_t value, void* ptr) {
+    *(int64_t*)ptr = (int64_t)_byteswap_uint64(value);
+}
+
+inline void store_reverse_endianness_uint64_t(int64_t value, void* ptr) {
+    *(uint64_t*)ptr = (uint64_t)_byteswap_uint64((uint64_t)value);
+}
+
 inline void store_reverse_endianness_uint64_t(uint64_t value, void* ptr) {
     *(uint64_t*)ptr = (uint64_t)_byteswap_uint64(value);
 }
 
 inline void store_reverse_endianness_ssize_t(ssize_t value, void* ptr) {
     *(ssize_t*)ptr = (ssize_t)_byteswap_uint64((uint64_t)value);
+}
+
+inline void store_reverse_endianness_ssize_t(size_t value, void* ptr) {
+    *(ssize_t*)ptr = (ssize_t)_byteswap_uint64((uint64_t)value);
+}
+
+inline void store_reverse_endianness_size_t(ssize_t value, void* ptr) {
+    *(size_t*)ptr = (size_t)_byteswap_uint64((uint64_t)value);
 }
 
 inline void store_reverse_endianness_size_t(size_t value, void* ptr) {
@@ -102,12 +134,28 @@ inline int16_t reverse_endianness_int16_t(int16_t value) {
     return (int16_t)_byteswap_ushort((uint16_t)value);
 }
 
+inline int16_t reverse_endianness_int16_t(uint16_t value) {
+    return (int16_t)_byteswap_ushort(value);
+}
+
+inline uint16_t reverse_endianness_uint16_t(int16_t value) {
+    return (uint16_t)_byteswap_ushort((uint16_t)value);
+}
+
 inline uint16_t reverse_endianness_uint16_t(uint16_t value) {
     return (uint16_t)_byteswap_ushort(value);
 }
 
 inline int32_t reverse_endianness_int32_t(int32_t value) {
     return (int32_t)_byteswap_ulong((uint32_t)value);
+}
+
+inline int32_t reverse_endianness_int32_t(uint32_t value) {
+    return (int32_t)_byteswap_ulong(value);
+}
+
+inline uint32_t reverse_endianness_uint32_t(int32_t value) {
+    return (uint32_t)_byteswap_ulong((uint32_t)value);
 }
 
 inline uint32_t reverse_endianness_uint32_t(uint32_t value) {
@@ -118,12 +166,28 @@ inline int64_t reverse_endianness_int64_t(int64_t value) {
     return (int64_t)_byteswap_uint64((uint64_t)value);
 }
 
+inline int64_t reverse_endianness_int64_t(uint64_t value) {
+    return (int64_t)_byteswap_uint64(value);
+}
+
+inline uint64_t reverse_endianness_uint64_t(int64_t value) {
+    return (uint64_t)_byteswap_uint64((uint64_t)value);
+}
+
 inline uint64_t reverse_endianness_uint64_t(uint64_t value) {
     return (uint64_t)_byteswap_uint64(value);
 }
 
 inline ssize_t reverse_endianness_ssize_t(ssize_t value) {
     return (ssize_t)_byteswap_uint64((uint64_t)value);
+}
+
+inline ssize_t reverse_endianness_ssize_t(size_t value) {
+    return (ssize_t)_byteswap_uint64((uint64_t)value);
+}
+
+inline size_t reverse_endianness_size_t(ssize_t value) {
+    return (size_t)_byteswap_uint64((uint64_t)value);
 }
 
 inline size_t reverse_endianness_size_t(size_t value) {
@@ -140,21 +204,41 @@ inline double_t reverse_endianness_double_t(double_t value) {
     return *(double_t*)&v;
 }
 
-inline size_t utf8_length(char* s) {
+inline ssize_t utf8_length(char* s) {
     if (!s)
         return 0;
 
-    size_t len = 0;
+    ssize_t len = 0;
     while (*s++)
         len++;
     return len;
 }
 
-inline size_t utf16_length(wchar_t* s) {
+inline ssize_t utf8_length(const char* s) {
     if (!s)
         return 0;
 
-    size_t len = 0;
+    ssize_t len = 0;
+    while (*s++)
+        len++;
+    return len;
+}
+
+inline ssize_t utf16_length(wchar_t* s) {
+    if (!s)
+        return 0;
+
+    ssize_t len = 0;
+    while (*s++)
+        len++;
+    return len;
+}
+
+inline ssize_t utf16_length(const wchar_t* s) {
+    if (!s)
+        return 0;
+
+    ssize_t len = 0;
     while (*s++)
         len++;
     return len;
@@ -215,6 +299,10 @@ wchar_t* utf8_to_utf16(char* s) {
     return str;
 }
 
+inline wchar_t* utf8_to_utf16(const char* s) {
+    return utf8_to_utf16((char*)s);
+}
+
 char* utf16_to_utf8(wchar_t* s) {
     if (!s)
         return 0;
@@ -222,7 +310,7 @@ char* utf16_to_utf8(wchar_t* s) {
     uint32_t c = 0;
     size_t length = utf16_to_utf8_length(s);
 
-    char* str = force_malloc(length + 1);
+    char* str = force_malloc_s(char, length + 1);
     if (!str)
         return 0;
 
@@ -267,6 +355,10 @@ char* utf16_to_utf8(wchar_t* s) {
     return str;
 }
 
+inline char* utf16_to_utf8(const wchar_t* s) {
+    return utf16_to_utf8((wchar_t*)s);
+}
+
 inline bool utf8_check_for_ascii_only(char* s) {
     char c;
     while (c = *s++)
@@ -275,13 +367,21 @@ inline bool utf8_check_for_ascii_only(char* s) {
     return true;
 }
 
-size_t utf8_to_utf16_length(char* s) {
+inline bool utf8_check_for_ascii_only(const char* s) {
+    char c;
+    while (c = *s++)
+        if (c & 0x80)
+            return false;
+    return true;
+}
+
+ssize_t utf8_to_utf16_length(char* s) {
     if (!s)
         return 0;
 
     uint32_t c = 0;
-    size_t length = 0;
-    size_t l = 0;
+    ssize_t length = 0;
+    ssize_t l = 0;
 
     while (*s) {
         char t = *s++;
@@ -323,9 +423,13 @@ size_t utf8_to_utf16_length(char* s) {
     return length;
 }
 
-size_t utf16_to_utf8_length(wchar_t* s) {
+inline ssize_t utf8_to_utf16_length(const char* s) {
+    return utf8_to_utf16_length((char*)s);
+}
+
+ssize_t utf16_to_utf8_length(wchar_t* s) {
     uint32_t c = 0;
-    size_t length = 0;
+    ssize_t length = 0;
     while (*s) {
         c = *s++;
         if ((c & 0xFC00) == 0xD800) {
@@ -354,4 +458,8 @@ size_t utf16_to_utf8_length(wchar_t* s) {
             length += 4;
     }
     return length;
+}
+
+inline ssize_t utf16_to_utf8_length(const wchar_t* s) {
+    return utf16_to_utf8_length((wchar_t*)s);
 }

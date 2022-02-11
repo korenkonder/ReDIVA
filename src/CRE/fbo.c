@@ -17,7 +17,7 @@ void fbo_init(fbo_struct* fbo, int32_t width, int32_t height,
     fbo->width = width;
     fbo->height = height;
     fbo->count = count;
-    fbo->flags = 0;
+    fbo->flags = (fbo_flags)0;
     if (depth_texture) {
         fbo->flags = FBO_DEPTH_ATTACHMENT;
         fbo->count = count + 1;

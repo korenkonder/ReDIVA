@@ -13,27 +13,41 @@ extern vec4 npr_spec_color;
 static void light_get_direction_from_position(vec4* pos_dir, light_data* light, bool force);
 
 void light_set_init(light_set* set) {
-    for (light_id i = LIGHT_CHARA; i <= LIGHT_PROJECTION; i++) {
+    vec3 tv3;
+    vec4 tv4;
+    for (int32_t i = LIGHT_CHARA; i <= LIGHT_PROJECTION; i++) {
         light_data* light = &set->lights[i];
         light_set_type(light, LIGHT_OFF);
-        light_set_ambient(light, &((vec4) { 0.0f, 0.0, 0.0f, 1.0f }));
-        light_set_diffuse(light, &((vec4) { 1.0f, 1.0, 1.0f, 0.0f }));
-        light_set_specular(light, &((vec4) { 1.0f, 1.0f, 1.0f, 0.0f }));
-        light_set_position(light, &((vec3) { 0.0f, 1.0f, 1.0f }));
-        light_set_spot_direction(light, &((vec3) { 0.0f, 0.0f, -1.0f }));
+        tv4 = { 0.0f, 0.0, 0.0f, 1.0f };
+        light_set_ambient(light, &tv4);
+        tv4 = { 1.0f, 1.0, 1.0f, 0.0f };
+        light_set_diffuse(light, &tv4);
+        tv4 = { 1.0f, 1.0f, 1.0f, 0.0f };
+        light_set_specular(light, &tv4);
+        tv3 = { 0.0f, 1.0f, 1.0f };
+        light_set_position(light, &tv3);
+        tv3 = { 0.0f, 0.0f, -1.0f };
+        light_set_spot_direction(light, &tv3);
         light_set_spot_exponent(light, 0.0f);
         light_set_spot_cutoff(light, 45.0f);
         light_set_constant(light, 1.0f);
         light_set_linear(light, 0.0f);
         light_set_quadratic(light, 0.0f);
-        light_set_ibl_specular(light, &((vec4) { 0.0f, 0.0f, 0.0f, 0.0f }));
-        light_set_ibl_back(light, &((vec4) { 0.0f, 0.0f, 0.0f, 0.0f }));
-        light_set_ibl_direction(light, &((vec4) { 0.0f, 0.0f, 0.0f, 0.0f }));
-        light_set_tone_curve(light, &((vec3) { 0.0f, 0.0f, 0.0f }));
+        tv4 = { 0.0f, 0.0f, 0.0f, 0.0f };
+        light_set_ibl_specular(light, &tv4);
+        tv4 = { 0.0f, 0.0f, 0.0f, 0.0f };
+        light_set_ibl_back(light, &tv4);
+        tv4 = { 0.0f, 0.0f, 0.0f, 0.0f };
+        light_set_ibl_direction(light, &tv4);
+        tv3 = { 0.0f, 0.0f, 0.0f };
+        light_set_tone_curve(light, &tv3);
     }
-    light_set_set_ambient_intensity(set, &((vec4) { 0.2f, 0.2f, 0.2f, 1.0f }));
-    light_set_diffuse(&set->lights[LIGHT_CHARA], &((vec4) { 1.0f, 1.0f, 1.0f, 1.0f }));
-    light_set_specular(&set->lights[LIGHT_CHARA], &((vec4) { 1.0f, 1.0f, 1.0f, 1.0f }));
+    tv4 = { 0.2f, 0.2f, 0.2f, 1.0f };
+    light_set_set_ambient_intensity(set, &tv4);
+    tv4 = { 1.0f, 1.0f, 1.0f, 1.0f };
+    light_set_diffuse(&set->lights[LIGHT_CHARA], &tv4);
+    tv4 = { 1.0f, 1.0f, 1.0f, 1.0f };
+    light_set_specular(&set->lights[LIGHT_CHARA], &tv4);
     light_set_set_irradiance(set, (mat4*)&mat4_identity, (mat4*)&mat4_identity, (mat4*)&mat4_identity);
 }
 
@@ -226,7 +240,7 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     light_set_get_ambient_intensity(set, &ambient_intensity);
     shader_state_lightmodel_set_ambient_ptr(&shaders_ft, false, &ambient_intensity);
 
-    for (light_id i = LIGHT_CHARA; i <= LIGHT_PROJECTION; i++) {
+    for (int32_t i = LIGHT_CHARA; i <= LIGHT_PROJECTION; i++) {
         light_data* light = &set->lights[i];
         if (light_chara_ambient || i != LIGHT_CHARA)
             shader_state_light_set_ambient_ptr(&shaders_ft, i, &light->ambient);
@@ -365,7 +379,7 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
 
     light_get_position_vec4(&set->lights[LIGHT_CHARA], &position);
     if (fabs(position.x) <= 0.000001f && fabs(position.z) <= 0.000001f && fabs(position.z) <= 0.000001f)
-        position = (vec4){ 0.0f, 1.0f, 0.0f, 1.0f };
+        position = { 0.0f, 1.0f, 0.0f, 1.0f };
     else {
         float_t length;
         vec3_length(*(vec3*)&position, length);
@@ -442,7 +456,7 @@ static void light_get_direction_from_position(vec4* pos_dir, light_data* light, 
         float_t length;
         vec3_length(*(vec3*)pos_dir, length);
         if (length <= 0.000001)
-            *(vec3*)pos_dir = (vec3){ 0.0f, 1.0f, 0.0f };
+            *(vec3*)pos_dir = { 0.0f, 1.0f, 0.0f };
         else
             vec3_mult_scalar(*(vec3*)pos_dir, 1.0f / length, *(vec3*)pos_dir);
         pos_dir->w = 0.0f;

@@ -62,7 +62,7 @@ int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
         return -7;
 
     *data_out_len = sizeof(quat_trans) * head->track_count * *frames + 0x10;
-    *data_out = force_malloc(*data_out_len);
+    *data_out = force_malloc_s(uint8_t, *data_out_len);
 
     if (!*data_out)
         return -8;
@@ -96,7 +96,7 @@ int32_t enb_initialize(uint8_t* data, enb_play_head** play_head) {
     if (head->signature != 0x100A9DA4 && head->signature != 0x100AAD74)
         return -3;
 
-    enb_play_head* ph = force_malloc(sizeof(enb_play_head));
+    enb_play_head* ph = force_malloc_s(enb_play_head, 1);
     if (!ph)
         return -4;
 

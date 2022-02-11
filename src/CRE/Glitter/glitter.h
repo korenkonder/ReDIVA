@@ -819,7 +819,7 @@ struct glitter_particle_inst {
 struct glitter_render_element {
     bool alive;
     uint8_t uv_index;
-    bool draw;
+    bool disp;
     float_t frame;
     float_t life_time;
     union {
@@ -880,9 +880,9 @@ struct glitter_render_group {
     glitter_particle_inst* particle;
     glitter_random* random_ptr;
     draw_pass_3d_type alpha;
-    fog_type fog;
-    int32_t vbo;
-    int32_t ebo;
+    fog_id fog;
+    GLuint vbo;
+    GLuint ebo;
     float_t emission;
     vector_int32_t vec_key;
     vector_int32_t vec_val;
@@ -891,7 +891,7 @@ struct glitter_render_group {
 
 struct glitter_scene_effect {
     glitter_effect_inst* ptr;
-    bool draw;
+    bool disp;
 };
 
 struct glitter_scene {

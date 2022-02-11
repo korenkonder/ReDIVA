@@ -95,14 +95,14 @@ typedef struct dsc_note12 {
 typedef struct dsc_func {
     int32_t id;
     int32_t length;
-    char* name;
+    const char* name;
 } dsc_func;
 
 typedef struct dsc_func_ac {
     int32_t id;
     int32_t length_old;
     int32_t length;
-    char* name;
+    const char* name;
 } dsc_func_ac;
 #pragma endregion
 
@@ -439,3 +439,8 @@ extern void dsc_replace_init(dsc_replace* dr, dsc_type src_type,
 extern void dsc_replace_free(dsc_replace* dr);
 
 extern int32_t dsc_calculate_target_flying_time(int32_t bpm, int32_t time_signature);
+
+extern int32_t dsc_type_get_dsc_func_count(dsc_type type);
+extern dsc_get_func_id dsc_type_get_dsc_get_func_id(dsc_type type);
+extern dsc_get_func_length dsc_type_get_dsc_get_func_length(dsc_type type, bool has_perf_id);
+extern dsc_get_func_name dsc_type_get_dsc_get_func_name(dsc_type type);

@@ -23,9 +23,9 @@ bool glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st) {
     vector_enrs_entry e = vector_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = (enrs_entry){ 0, 2, (uint32_t)(8 + count * 8), 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, (uint32_t)count, ENRS_QWORD });
+    ee = { 0, 2, (uint32_t)(8 + count * 8), 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+    vector_enrs_sub_entry_append(&ee.sub, 4, (uint32_t)count, ENRS_QWORD);
     vector_enrs_entry_push_back(&e, &ee);
     l += 8 + count * 8;
 

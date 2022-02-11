@@ -9,7 +9,7 @@
 #if CRE_DEV
 void glitter_animation_add_value(GLT, glitter_animation* anim,
     float_t val, glitter_curve_type_flags flags) {
-    for (glitter_curve_type i = GLITTER_CURVE_TRANSLATION_X;
+    for (int32_t i = GLITTER_CURVE_TRANSLATION_X;
         i <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND; i++) {
         if (!(flags & 1 << (size_t)i))
             continue;

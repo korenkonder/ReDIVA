@@ -612,7 +612,7 @@ typedef struct chara_init_data {
     int32_t object_set;
     bone_database_skeleton_type skeleton_type;
     object_info base_face;
-    int32_t motion_set;
+    uint32_t motion_set;
     const struc_218* field_828;
     const struc_218* field_830;
     int32_t field_840;
@@ -642,45 +642,100 @@ typedef struct struc_241 {
     float_t field_40;
 } struc_241;
 
-typedef struct ex_node_block ex_node_block;
 typedef struct rob_chara_item_equip_object rob_chara_item_equip_object;
 
-typedef struct ex_node_block_vtbl {
-    void(*dispose)(ex_node_block*);
-    void(*field_8)(ex_node_block*);
-    void(*field_10)(ex_node_block*);
-    void(*field_18)(ex_node_block*, int32_t, bool);
-    void(*update)(ex_node_block*);
-    void(*field_28)(ex_node_block*);
-    void(*draw)(ex_node_block*);
-    void(*reset)(ex_node_block*);
-    void(*field_40)(ex_node_block*);
-    void(*field_48)(ex_node_block*);
-    void(*field_50)(ex_node_block*);
-    void(*field_58)(ex_node_block*);
-} ex_node_block_vtbl;
-
-struct ex_node_block {
-    const ex_node_block_vtbl* vftable;
-    bone_node* bone_node;
+class ExNodeBlock {
+public:
+    bone_node* bone_node_ptr;
     ex_node_type type;
     char* name;
     bone_node* parent_bone_node;
     string parent_name;
-    ex_node_block* parent_node;
+    ExNodeBlock* parent_node;
     rob_chara_item_equip_object* item_equip_object;
     bool field_58;
     bool field_59;
     bool field_5A;
+
+    virtual void Dispose(bool free_data);
+    virtual void Init() = 0;
+    virtual void Field_10() = 0;
+    virtual void Field_18(int32_t a2, bool a3) = 0;
+    virtual void Update() = 0;
+    virtual void Field_28() = 0;
+    virtual void Disp() = 0;
+    virtual void Reset();
+    virtual void Field_40() = 0;
+    virtual void Field_48() = 0;
+    virtual void Field_50() = 0;
+    virtual void Field_58();
+
+    static void InitData(ExNodeBlock* node, bone_node* bone_node, ex_node_type type,
+        char* name, rob_chara_item_equip_object* itm_eq_obj);
+
+    ExNodeBlock();
+    ~ExNodeBlock();
+
+private:
+    void InitMembers();
+    void Destroy();
 };
 
-typedef struct ex_cloth_block {
-    ex_node_block base;
+class ExNullBlock : public ExNodeBlock {
+public:
+    object_skin_block_constraint* cns_data;
+
+    virtual void Dispose(bool free_data) override;
+    virtual void Init() override;
+    virtual void Field_10();
+    virtual void Field_18(int32_t a2, bool a3) override;
+    virtual void Update() override;
+    virtual void Field_28() override;
+    virtual void Disp() override;
+    virtual void Reset();
+    virtual void Field_40() override;
+    virtual void Field_48() override;
+    virtual void Field_50() override;
+    virtual void Field_58();
+
+    static void InitData(ExNullBlock* null, rob_chara_item_equip_object* itm_eq_obj,
+        object_skin_block_constraint* cns_data, char* cns_data_name, bone_database* bone_data);
+
+    ExNullBlock();
+    ~ExNullBlock();
+
+private:
+    void InitMembers();
+    void Destroy();
+};
+
+struct ExClothBlock : public ExNodeBlock {
+public:
     //rob_cloth rob;
     object_skin_block_cloth* cls_data;
     mat4* field_2428;
     size_t index;
-} ex_cloth_block;
+
+    virtual void Dispose(bool free_data) override;
+    virtual void Init() override;
+    virtual void Field_10();
+    virtual void Field_18(int32_t a2, bool a3) override;
+    virtual void Update() override;
+    virtual void Field_28() override;
+    virtual void Disp() override;
+    virtual void Reset() override;
+    virtual void Field_40() override;
+    virtual void Field_48() override;
+    virtual void Field_50() override;
+    virtual void Field_58();
+
+    ExClothBlock();
+    ~ExClothBlock();
+
+private:
+    void InitMembers();
+    void Destroy();
+};
 
 typedef struct struc_331 {
     int64_t field_0;
@@ -741,7 +796,7 @@ struct rob_osage_node {
     vec3 trans_diff;
     vec3 field_28;
     float_t child_length;
-    bone_node* bone_node;
+    bone_node* bone_node_ptr;
     mat4* bone_node_mat;
     mat4u mat;
     rob_osage_node* sibling_node;
@@ -895,30 +950,89 @@ typedef struct rob_osage {
     vec3 field_1F7C;
 } rob_osage;
 
-typedef struct ex_osage_block {
-    ex_node_block base;
+typedef struct pair_name_ExOsageBlock pair_name_ExOsageBlock;
+
+vector(pair_name_ExOsageBlock)
+
+class ExOsageBlock : public ExNodeBlock {
+public:
     size_t index;
     rob_osage rob;
     mat4* mat;
     int32_t field_1FF8;
     float_t step;
-} ex_osage_block;
 
-typedef struct pair_name_ex_osage_block {
+    virtual void Dispose(bool free_data) override;
+    virtual void Init() override;
+    virtual void Field_10();
+    virtual void Field_18(int32_t a2, bool a3) override;
+    virtual void Update() override;
+    virtual void Field_28() override;
+    virtual void Disp() override;
+    virtual void Reset() override;
+    virtual void Field_40() override;
+    virtual void Field_48() override;
+    virtual void Field_50() override;
+    virtual void Field_58() override;
+
+    static void InitData(ExOsageBlock* osg,
+        rob_chara_item_equip_object* itm_eq_obj, object_skin_block_osage* osg_data,
+        char* osg_data_name, object_skin_osage_node* osg_nodes, bone_node* bone_nodes,
+        bone_node* ex_data_bone_nodes, object_skin* skin);
+    static void SetWindDirection(ExOsageBlock* osg);
+    static void sub_1405F3E10(ExOsageBlock* osg, object_skin_block_osage* osg_data,
+        object_skin_osage_node* osg_nodes, vector_pair_uint32_t_ptr_rob_osage_node* a4,
+        vector_pair_name_ExOsageBlock* a5);
+    
+    ExOsageBlock();
+    ~ExOsageBlock();
+
+private:
+    void InitMembers();
+    void Destroy();
+};
+
+struct pair_name_ExOsageBlock {
     char* name;
-    ex_osage_block* block;
-} pair_name_ex_osage_block;
+    ExOsageBlock* block;
+};
 
-vector(pair_name_ex_osage_block)
-
-typedef struct ex_constraint_block {
-    ex_node_block base;
-    object_skin_block_constraint_type type;
+class ExConstraintBlock : public ExNodeBlock {
+public:
+    object_skin_block_constraint_type constraint_type;
     bone_node* source_node_bone_node;
     bone_node* direction_up_vector_bone_node;
     object_skin_block_constraint* cns_data;
     int64_t field_80;
-} ex_constraint_block;
+
+    virtual void Dispose(bool free_data) override;
+    virtual void Init() override;
+    virtual void Field_10() override;
+    virtual void Field_18(int32_t a2, bool a3) override;
+    virtual void Update() override;
+    virtual void Field_28() override;
+    virtual void Disp() override;
+    virtual void Reset();
+    virtual void Field_40() override;
+    virtual void Field_48() override;
+    virtual void Field_50() override;
+    virtual void Field_58();
+
+    static void sub_1405F10D0(mat4* mat, vec3* a2, float_t a3, float_t a4);
+    static void sub_1401EB410(mat4* mat, vec3* a2, vec3* target_offset);
+
+    static void Calc(ExConstraintBlock* cns);
+    static void DataSet(ExConstraintBlock* cns);
+    static void InitData(ExConstraintBlock* cns, rob_chara_item_equip_object* itm_eq_obj,
+        object_skin_block_constraint* cns_data, char* cns_data_name, bone_database* bone_data);
+
+    ExConstraintBlock();
+    ~ExConstraintBlock();
+
+private:
+    void InitMembers();
+    void Destroy();
+};
 
 typedef struct ex_expression_block_stack ex_expression_block_stack;
 
@@ -954,7 +1068,7 @@ typedef struct ex_expression_block_stack_op3 {
 
 struct ex_expression_block_stack {
     ex_expression_block_stack_type type;
-    union ex_expression_block_stack_union {
+    union {
         ex_expression_block_stack_number number;
         ex_expression_block_stack_variable var;
         ex_expression_block_stack_variable_radian var_rad;
@@ -964,8 +1078,8 @@ struct ex_expression_block_stack {
     };
 };
 
-typedef struct ex_expression_block {
-    ex_node_block base;
+class ExExpressionBlock : public ExNodeBlock {
+public:
     float_t* values[9];
     ex_expression_block_stack_type types[9];
     ex_expression_block_stack* expressions[9];
@@ -975,13 +1089,33 @@ typedef struct ex_expression_block {
     void(*field_3D28)(bone_node_expression_data*);
     float_t frame;
     bool step;
-} ex_expression_block;
 
-vector_ptr(ex_constraint_block)
-vector_ptr(ex_cloth_block)
-vector_ptr(ex_expression_block)
-vector_ptr(ex_osage_block)
-vector_ptr(ex_node_block)
+    virtual void Dispose(bool free_data) override;
+    virtual void Init() override;
+    virtual void Field_10() override;
+    virtual void Field_18(int32_t a2, bool a3) override;
+    virtual void Update() override;
+    virtual void Field_28() override;
+    virtual void Disp() override;
+    virtual void Reset();
+    virtual void Field_40() override;
+    virtual void Field_48() override;
+    virtual void Field_50() override;
+    virtual void Field_58();
+
+    static void Calc(ExExpressionBlock* exp);
+    static void DataSet(ExExpressionBlock* exp);
+    static void InitData(ExExpressionBlock* exp, rob_chara_item_equip_object* itm_eq_obj,
+        object_skin_block_expression* exp_data, char* exp_data_name, object_info a4,
+        size_t index, bone_database* bone_data);
+
+    ExExpressionBlock();
+    ~ExExpressionBlock();
+
+private:
+    void InitMembers();
+    void Destroy();
+};
 
 typedef struct ex_data_name_bone_index {
     char* name;
@@ -991,6 +1125,13 @@ typedef struct ex_data_name_bone_index {
 vector(ex_data_name_bone_index)
 
 typedef struct rob_chara_item_equip rob_chara_item_equip;
+
+vector_ptr(ExConstraintBlock)
+vector_ptr(ExClothBlock)
+vector_ptr(ExExpressionBlock)
+vector_ptr(ExOsageBlock)
+vector_ptr(ExNodeBlock)
+vector_ptr(ExNullBlock)
 
 struct rob_chara_item_equip_object {
     size_t index;
@@ -1003,21 +1144,22 @@ struct rob_chara_item_equip_object {
     bone_node_expression_data exp_data;
     float_t alpha;
     draw_task_flags draw_task_flags;
-    bool draw;
+    bool disp;
     int32_t field_A4;
     mat4* field_A8;
     int32_t field_B0;
     bone_node* bone_nodes;
-    vector_ptr_ex_node_block node_blocks;
+    vector_ptr_ExNodeBlock node_blocks;
     vector_bone_node ex_data_bone_nodes;
     vector_mat4 field_F0;
     vector_mat4 field_108;
     vector_ex_data_name_bone_index ex_bones;
     int64_t field_138;
-    vector_ptr_ex_osage_block osage_blocks;
-    vector_ptr_ex_constraint_block constraint_blocks;
-    vector_ptr_ex_expression_block expression_blocks;
-    vector_ptr_ex_cloth_block cloth_blocks;
+    vector_ptr_ExNullBlock null_blocks;
+    vector_ptr_ExOsageBlock osage_blocks;
+    vector_ptr_ExConstraintBlock constraint_blocks;
+    vector_ptr_ExExpressionBlock expression_blocks;
+    vector_ptr_ExClothBlock cloth_blocks;
     bool field_1B8;
     int64_t field_1C0;
     bool field_1C8;
@@ -1168,7 +1310,7 @@ typedef struct pair_int32_t_object_info {
 vector(pair_int32_t_object_info)
 
 typedef struct rob_chara_item_sub_data {
-    chara_index chara_index;
+    chara_index chara_index_1st;
     chara_index chara_index_2nd;
     item_sub_data item;
     item_sub_data item_2nd;
@@ -2013,10 +2155,31 @@ typedef struct skeleton_rotation_offset {
     vec3 rotation;
 } skeleton_rotation_offset;
 
+vector_ptr(rob_chara)
+
+class RobImplTask : public Task {
+public:
+    vector_ptr_rob_chara init;
+    vector_ptr_rob_chara ctrl;
+    vector_ptr_rob_chara free;
+};
+
+struct TaskRobManager : public Task {
+public:
+    int32_t field_68;
+    vector_ptr_rob_chara init_chara;
+    vector_ptr_rob_chara load_chara;
+    vector_ptr_rob_chara free_chara;
+    vector_ptr_rob_chara loaded_chara;
+    bone_database* bone_data;
+    motion_database* mot_db;
+};
+
 #define ROB_CHARA_COUNT 6
 
 extern rob_chara rob_chara_array[];
 extern rob_chara_pv_data rob_chara_pv_data_array[];
+extern TaskRobManager task_rob_manager;
 
 extern chara_init_data* chara_init_data_get(chara_index chara_index);
 
@@ -2026,7 +2189,7 @@ extern void motion_set_unload(uint32_t set);
 extern void rob_chara_init(rob_chara* rob_chr);
 extern mat4* rob_chara_bone_data_get_mats_mat(rob_chara_bone_data* rob_bone_data, ssize_t index);
 extern void rob_chara_calc(rob_chara* rob_chr);
-extern void rob_chara_draw(rob_chara* rob_chr, render_context* rctx);
+extern void rob_chara_disp(rob_chara* rob_chr, render_context* rctx);
 extern mat4* rob_chara_get_bone_data_mat(rob_chara* chara, size_t index);
 extern float_t rob_chara_get_frame(rob_chara* rob_chr);
 extern float_t rob_chara_get_frame_count(rob_chara* rob_chr);
@@ -2046,7 +2209,7 @@ extern void rob_chara_free(rob_chara* rob_chr);
 
 extern void rob_chara_array_init();
 extern rob_chara* rob_chara_array_get(int32_t chara_id);
-extern int32_t rob_chara_array_set_pv_data(chara_index chara_index,
+extern int32_t rob_chara_array_init_chara_index(chara_index chara_index,
     rob_chara_pv_data* pv_data, uint32_t module_index, bool a4);
 extern void rob_chara_array_free();
 
@@ -2054,6 +2217,10 @@ extern void rob_chara_pv_data_init(rob_chara_pv_data* pv_data);
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
 
 extern void rob_chara_pv_data_array_init();
+
+extern void task_rob_manager_init();
+extern bool task_rob_manager_struct_ctrl(TaskRobManager* rob_mgr);
+extern void task_rob_manager_free();
 
 extern void motion_storage_init();
 extern void motion_storage_append_mot_set(uint32_t set_id);

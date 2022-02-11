@@ -29,6 +29,7 @@ typedef struct wind {
 } wind;
 
 extern wind* wind_init();
+extern void wind_ctrl(wind* w);
 extern float_t wind_get_scale(wind* w);
 extern void wind_set_scale(wind* w, float_t value);
 extern float_t wind_get_cycle(wind* w);
@@ -42,5 +43,4 @@ extern void wind_set_rot_z(wind* w, float_t value);
 extern float_t wind_get_bias(wind* w);
 extern void wind_set_bias(wind* w, float_t value);
 extern void wind_reset(wind* w);
-extern void wind_update(wind* w);
 extern void wind_free(wind* w);

@@ -19,7 +19,7 @@
 #include "texture.h"
 
 glitter_effect_group* glitter_effect_group_init(GLT) {
-    glitter_effect_group* eg = force_malloc(sizeof(glitter_effect_group));
+    glitter_effect_group* eg = force_malloc_s(glitter_effect_group, 1);
     eg->emission = 1.0f;
     eg->version = GLT_VAL == GLITTER_X ? 0x0C : 0x09;
 #if defined(CRE_DEV)

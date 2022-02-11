@@ -11,6 +11,79 @@ void stage_init(stage* s) {
     memset(s, 0, sizeof(stage));
 }
 
+void stage_ctrl(stage* s, render_context* rctx) {
+    if (!s || s->modern || !s->stage_classic)
+        return;
+
+    if (s->effects) {
+        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
+            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
+            if (auth)
+                auth_3d_ctrl(auth, (mat4*)&mat4_identity, rctx);
+        }
+    }
+
+}
+
+void stage_ctrl_modern(stage* s, render_context* rctx) {
+    if (!s || !s->modern || !s->stage_modern)
+        return;
+
+    if (s->effects) {
+        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
+            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
+            if (auth)
+                auth_3d_ctrl(auth, (mat4*)&mat4_identity, rctx);
+        }
+    }
+}
+
+void stage_disp(stage* s, render_context* rctx) {
+    if (!s || s->modern || !s->stage_classic || !s->display)
+        return;
+
+    stage_info* info = s->stage_classic;
+
+    if (s->ground)
+        draw_task_add_draw_object_by_object_info_opaque(rctx,
+            (mat4*)&mat4_identity, info->object_ground);
+
+    if (s->sky)
+        draw_task_add_draw_object_by_object_info_opaque(rctx,
+            (mat4*)&mat4_identity, info->object_sky);
+
+    if (s->effects) {
+        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
+            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
+            if (auth)
+                auth_3d_disp(auth, (mat4*)&mat4_identity, rctx);
+        }
+    }
+}
+
+void stage_disp_modern(stage* s, render_context* rctx) {
+    if (!s || !s->modern || !s->stage_modern || !s->display)
+        return;
+
+    stage_info_modern* info = s->stage_modern;
+
+    if (s->ground)
+        draw_task_add_draw_object_by_object_info_opaque(rctx,
+            (mat4*)&mat4_identity, info->object_ground);
+
+    if (s->sky)
+        draw_task_add_draw_object_by_object_info_opaque(rctx,
+            (mat4*)&mat4_identity, info->object_sky);
+
+    if (s->effects) {
+        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
+            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
+            if (auth)
+                auth_3d_disp(auth, (mat4*)&mat4_identity, rctx);
+        }
+    }
+}
+
 void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, object_database* obj_db,
     texture_database* tex_db, stage_database* stage_data, char* name, render_context* rctx) {
     if (!s || !stage_data || !name)
@@ -32,13 +105,13 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
     uint32_t movie_texture = -1;
     s->light_param_name = 0;
     if (!s->modern) {
-        s->stage = 0;
-        vector_stage_info* stage = &stage_data->stage;
+        s->stage_classic = 0;
+        vector_stage_info* stage = &stage_data->stage_classic;
         for (stage_info* i = stage->begin; i != stage->end; i++)
             if (!str_utils_compare_length(name, name_len + 1,
                 string_data(&i->name), i->name.length + 1)) {
                 string_copy(&i->auth_3d_name, &auth_3d_category);
-                s->stage = i;
+                s->stage_classic = i;
                 auth_3d_count = i->auth_3d_count;
                 auth_3d_ids = i->auth_3d_ids;
                 render_texture = i->render_texture;
@@ -47,7 +120,7 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
                 break;
             }
 
-        if (!s->stage)
+        if (!s->stage_classic)
             return;
     }
     else {
@@ -118,7 +191,7 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
                     if (t)
                         l_len = t - l_str;
 
-                    uint32_t h = hash_murmurhash(l_str, l_len, 0, false, false);
+                    uint32_t h = hash_murmurhash((uint8_t*)l_str, l_len, 0, false, false);
 
                     a3da a3da_file;
                     a3da_init(&a3da_file);
@@ -181,6 +254,11 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
             texture_storage_get_texture(movie_texture));
 }
 
+inline void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, object_database* obj_db,
+    texture_database* tex_db, stage_database* stage_data, const char* name, render_context* rctx) {
+    stage_load(s, data, auth_3d_db, obj_db, tex_db, stage_data, (char*)name, rctx);
+}
+
 extern int32_t stage_index;
 
 void stage_set(stage* s, render_context* rctx) {
@@ -188,84 +266,16 @@ void stage_set(stage* s, render_context* rctx) {
         return;
     
     rctx->stage = s;
-    stage_index = (uint32_t)(s->modern ? s->stage_modern->id : s->stage->id);
+    stage_index = (uint32_t)(s->modern ? s->stage_modern->id : s->stage_classic->id);
     render_context_set_light_param(rctx,
         light_param_storage_get_light_param_data(s->light_param_name));
-}
-
-void stage_update(stage* s, render_context* rctx) {
-    if (!s || s->modern || !s->stage)
-        return;
-
-    stage_info* info = s->stage;
-    
-    if (s->effects) {
-        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
-            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
-            if (auth)
-                auth_3d_time_step(auth, (mat4*)&mat4_identity);
-        }
-    }
-
-    if (!s->display)
-        return;
-
-    if (s->ground)
-        draw_task_add_draw_object_by_object_info_opaque(rctx,
-            (mat4*)&mat4_identity, info->object_ground);
-
-    if (s->sky)
-        draw_task_add_draw_object_by_object_info_opaque(rctx,
-            (mat4*)&mat4_identity, info->object_sky);
-
-    if (s->effects) {
-        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
-            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
-            if (auth)
-                auth_3d_data_set(auth, (mat4*)&mat4_identity, rctx);
-        }
-    }
-}
-
-void stage_update_modern(stage* s, render_context* rctx) {
-    if (!s || !s->modern || !s->stage_modern)
-        return;
-
-    stage_info_modern* info = s->stage_modern;
-
-    if (s->effects) {
-        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
-            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
-            if (auth)
-                auth_3d_time_step(auth, (mat4*)&mat4_identity);
-        }
-    }
-
-    if (!s->display)
-        return;
-
-    if (s->ground)
-        draw_task_add_draw_object_by_object_info_opaque(rctx,
-            (mat4*)&mat4_identity, info->object_ground);
-
-    if (s->sky)
-        draw_task_add_draw_object_by_object_info_opaque(rctx,
-            (mat4*)&mat4_identity, info->object_sky);
-
-    if (s->effects) {
-        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
-            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
-            if (auth)
-                auth_3d_data_set(auth, (mat4*)&mat4_identity, rctx);
-        }
-    }
 }
 
 void stage_free(stage* s, render_context* rctx) {
     uint32_t render_texture = -1;
     uint32_t movie_texture = -1;
-    if (!s->modern && s->stage) {
-        stage_info* info = s->stage;
+    if (!s->modern && s->stage_classic) {
+        stage_info* info = s->stage_classic;
         render_texture = info->render_texture;
         movie_texture = info->movie_texture;
 

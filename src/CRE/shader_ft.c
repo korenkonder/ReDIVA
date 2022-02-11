@@ -616,653 +616,653 @@ static const int32_t sprite_fpt_unival_max[] = {
 
 static const shader_sub_table BLINN_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_BLINN_VERT,
-        .vp_unival_max = blinn_vert_vpt_unival_max,
-        .fp_unival_max = blinn_vert_fpt_unival_max,
-        .vp = "blinn_per_vert",
-        .fp = "blinn_per_vert",
+        SHADER_FT_SUB_BLINN_VERT,
+        blinn_vert_vpt_unival_max,
+        blinn_vert_fpt_unival_max,
+        "blinn_per_vert",
+        "blinn_per_vert",
     },
     {
-        .sub_index = SHADER_FT_SUB_BLINN_FRAG,
-        .vp_unival_max = blinn_frag_vpt_unival_max,
-        .fp_unival_max = blinn_frag_fpt_unival_max,
-        .vp = "blinn_per_frag",
-        .fp = "blinn_per_frag",
+        SHADER_FT_SUB_BLINN_FRAG,
+        blinn_frag_vpt_unival_max,
+        blinn_frag_fpt_unival_max,
+        "blinn_per_frag",
+        "blinn_per_frag",
     },
 };
 
 static const shader_sub_table ITEM_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_ITEM_BLINN,
-        .vp_unival_max = item_blinn_vpt_unival_max,
-        .fp_unival_max = item_blinn_fpt_unival_max,
-        .vp = "item_blinn",
-        .fp = "item_blinn",
+        SHADER_FT_SUB_ITEM_BLINN,
+        item_blinn_vpt_unival_max,
+        item_blinn_fpt_unival_max,
+        "item_blinn",
+        "item_blinn",
     },
 };
 
 static const shader_sub_table STAGE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_STAGE_BLINN,
-        .vp_unival_max = stage_blinn_vpt_unival_max,
-        .fp_unival_max = stage_blinn_fpt_unival_max,
-        .vp = "stage_blinn",
-        .fp = "stage_blinn",
+        SHADER_FT_SUB_STAGE_BLINN,
+        stage_blinn_vpt_unival_max,
+        stage_blinn_fpt_unival_max,
+        "stage_blinn",
+        "stage_blinn",
     },
 };
 
 static const shader_sub_table SKIN_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SKIN_DEFAULT,
-        .vp_unival_max = skin_default_vpt_unival_max,
-        .fp_unival_max = skin_default_fpt_unival_max,
-        .vp = "skin_default",
-        .fp = "skin_default",
+        SHADER_FT_SUB_SKIN_DEFAULT,
+        skin_default_vpt_unival_max,
+        skin_default_fpt_unival_max,
+        "skin_default",
+        "skin_default",
     },
 };
 
 static const shader_sub_table SSS_SKIN_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SSS_SKIN,
-        .vp_unival_max = sss_skin_vpt_unival_max,
-        .fp_unival_max = sss_skin_fpt_unival_max,
-        .vp = "sss_skin",
-        .fp = "sss_skin",
+        SHADER_FT_SUB_SSS_SKIN,
+        sss_skin_vpt_unival_max,
+        sss_skin_fpt_unival_max,
+        "sss_skin",
+        "sss_skin",
     },
 };
 
 static const shader_sub_table SSS_FILT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SSS_FILTER,
-        .vp_unival_max = sss_filter_vpt_unival_max,
-        .fp_unival_max = sss_filter_fpt_unival_max,
-        .vp = "sss_filter",
-        .fp = "sss_filter",
+        SHADER_FT_SUB_SSS_FILTER,
+        sss_filter_vpt_unival_max,
+        sss_filter_fpt_unival_max,
+        "sss_filter",
+        "sss_filter",
     },
 };
 
 static const shader_sub_table HAIR_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_HAIR_DEFAULT,
-        .vp_unival_max = hair_default_vpt_unival_max,
-        .fp_unival_max = hair_default_fpt_unival_max,
-        .vp = "hair_default",
-        .fp = "hair_default",
+        SHADER_FT_SUB_HAIR_DEFAULT,
+        hair_default_vpt_unival_max,
+        hair_default_fpt_unival_max,
+        "hair_default",
+        "hair_default",
     },
     {
-        .sub_index = SHADER_FT_SUB_HAIR_ANISO,
-        .vp_unival_max = hair_aniso_vpt_unival_max,
-        .fp_unival_max = hair_aniso_fpt_unival_max,
-        .vp = "hair_default",
-        .fp = "hair_aniso",
+        SHADER_FT_SUB_HAIR_ANISO,
+        hair_aniso_vpt_unival_max,
+        hair_aniso_fpt_unival_max,
+        "hair_default",
+        "hair_aniso",
     },
     {
-        .sub_index = SHADER_FT_SUB_HAIR_NPR1,
-        .vp_unival_max = hair_npr1_vpt_unival_max,
-        .fp_unival_max = hair_npr1_fpt_unival_max,
-        .vp = "hair_default",
-        .fp = "hair_npr1",
+        SHADER_FT_SUB_HAIR_NPR1,
+        hair_npr1_vpt_unival_max,
+        hair_npr1_fpt_unival_max,
+        "hair_default",
+        "hair_npr1",
     },
 };
 
 static const shader_sub_table CLOTH_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_CLOTH_DEFAULT,
-        .vp_unival_max = cloth_default_vpt_unival_max,
-        .fp_unival_max = cloth_default_fpt_unival_max,
-        .vp = "cloth_default",
-        .fp = "cloth_default",
+        SHADER_FT_SUB_CLOTH_DEFAULT,
+        cloth_default_vpt_unival_max,
+        cloth_default_fpt_unival_max,
+        "cloth_default",
+        "cloth_default",
     },
     {
-        .sub_index = SHADER_FT_SUB_CLOTH_ANISO,
-        .vp_unival_max = cloth_aniso_vpt_unival_max,
-        .fp_unival_max = cloth_aniso_fpt_unival_max,
-        .vp = "cloth_default",
-        .fp = "cloth_aniso",
+        SHADER_FT_SUB_CLOTH_ANISO,
+        cloth_aniso_vpt_unival_max,
+        cloth_aniso_fpt_unival_max,
+        "cloth_default",
+        "cloth_aniso",
     },
     {
-        .sub_index = SHADER_FT_SUB_CLOTH_NPR1,
-        .vp_unival_max = cloth_npr1_vpt_unival_max,
-        .fp_unival_max = cloth_npr1_fpt_unival_max,
-        .vp = "cloth_default",
-        .fp = "cloth_npr1",
+        SHADER_FT_SUB_CLOTH_NPR1,
+        cloth_npr1_vpt_unival_max,
+        cloth_npr1_fpt_unival_max,
+        "cloth_default",
+        "cloth_npr1",
     },
 };
 
 static const shader_sub_table TIGHTS_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_TIGHTS,
-        .vp_unival_max = tights_vpt_unival_max,
-        .fp_unival_max = tights_fpt_unival_max,
-        .vp = "tights",
-        .fp = "tights",
+        SHADER_FT_SUB_TIGHTS,
+        tights_vpt_unival_max,
+        tights_fpt_unival_max,
+        "tights",
+        "tights",
     },
 };
 
 static const shader_sub_table SKY_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SKY_DEFAULT,
-        .vp_unival_max = sky_default_vpt_unival_max,
-        .fp_unival_max = sky_default_fpt_unival_max,
-        .vp = "sky_default",
-        .fp = "sky_default",
+        SHADER_FT_SUB_SKY_DEFAULT,
+        sky_default_vpt_unival_max,
+        sky_default_fpt_unival_max,
+        "sky_default",
+        "sky_default",
     },
 };
 
 static const shader_sub_table EYEBALL_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_EYE_BALL,
-        .vp_unival_max = eye_ball_vpt_unival_max,
-        .fp_unival_max = eye_ball_fpt_unival_max,
-        .vp = "eye_ball",
-        .fp = "eye_ball",
+        SHADER_FT_SUB_EYE_BALL,
+        eye_ball_vpt_unival_max,
+        eye_ball_fpt_unival_max,
+        "eye_ball",
+        "eye_ball",
     },
 };
 
 static const shader_sub_table EYELENS_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_EYE_LENS,
-        .vp_unival_max = eye_lens_vpt_unival_max,
-        .fp_unival_max = eye_lens_fpt_unival_max,
-        .vp = "eye_lens",
-        .fp = "eye_lens",
+        SHADER_FT_SUB_EYE_LENS,
+        eye_lens_vpt_unival_max,
+        eye_lens_fpt_unival_max,
+        "eye_lens",
+        "eye_lens",
     },
 };
 
 static const shader_sub_table GLASEYE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_GLASS_EYE,
-        .vp_unival_max = glass_eye_vpt_unival_max,
-        .fp_unival_max = glass_eye_fpt_unival_max,
-        .vp = "glass_eye",
-        .fp = "glass_eye",
+        SHADER_FT_SUB_GLASS_EYE,
+        glass_eye_vpt_unival_max,
+        glass_eye_fpt_unival_max,
+        "glass_eye",
+        "glass_eye",
     },
 };
 
 static const shader_sub_table MEMBRAN_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_MEMBRANE,
-        .vp_unival_max = membrane_vpt_unival_max,
-        .fp_unival_max = membrane_fpt_unival_max,
-        .vp = "membrane",
-        .fp = "membrane",
+        SHADER_FT_SUB_MEMBRANE,
+        membrane_vpt_unival_max,
+        membrane_fpt_unival_max,
+        "membrane",
+        "membrane",
     },
 };
 
 static const shader_sub_table SHDMAP_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SHADOWMAP,
-        .vp_unival_max = shadowmap_vpt_unival_max,
-        .fp_unival_max = shadowmap_fpt_unival_max,
-        .vp = "shadowmap",
-        .fp = "shadowmap",
+        SHADER_FT_SUB_SHADOWMAP,
+        shadowmap_vpt_unival_max,
+        shadowmap_fpt_unival_max,
+        "shadowmap",
+        "shadowmap",
     },
 };
 
 static const shader_sub_table ESM_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_ESM,
-        .vp_unival_max = esm_vpt_unival_max,
-        .fp_unival_max = esm_fpt_unival_max,
-        .vp = "esm",
-        .fp = "esm",
+        SHADER_FT_SUB_ESM,
+        esm_vpt_unival_max,
+        esm_fpt_unival_max,
+        "esm",
+        "esm",
     },
 };
 
 static const shader_sub_table ESMGAUSS_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_ESM_GAUSS,
-        .vp_unival_max = esm_gauss_vpt_unival_max,
-        .fp_unival_max = esm_gauss_fpt_unival_max,
-        .vp = "esm_gauss",
-        .fp = "esm_gauss",
+        SHADER_FT_SUB_ESM_GAUSS,
+        esm_gauss_vpt_unival_max,
+        esm_gauss_fpt_unival_max,
+        "esm_gauss",
+        "esm_gauss",
     },
 };
 
 static const shader_sub_table ESMFILT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_ESM_FILTER,
-        .vp_unival_max = esm_filter_vpt_unival_max,
-        .fp_unival_max = esm_filter_fpt_unival_max,
-        .vp = "esm_filter",
-        .fp = "esm_filter",
+        SHADER_FT_SUB_ESM_FILTER,
+        esm_filter_vpt_unival_max,
+        esm_filter_fpt_unival_max,
+        "esm_filter",
+        "esm_filter",
     },
 };
 
 static const shader_sub_table LITPROJ_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_LIT_PROJ,
-        .vp_unival_max = lit_proj_vpt_unival_max,
-        .fp_unival_max = lit_proj_fpt_unival_max,
-        .vp = "lit_proj",
-        .fp = "lit_proj",
+        SHADER_FT_SUB_LIT_PROJ,
+        lit_proj_vpt_unival_max,
+        lit_proj_fpt_unival_max,
+        "lit_proj",
+        "lit_proj",
     },
 };
 
 static const shader_sub_table SIMPLE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SIMPLE,
-        .vp_unival_max = simple_vpt_unival_max,
-        .fp_unival_max = simple_fpt_unival_max,
-        .vp = "simple",
-        .fp = "simple",
+        SHADER_FT_SUB_SIMPLE,
+        simple_vpt_unival_max,
+        simple_fpt_unival_max,
+        "simple",
+        "simple",
     },
 };
 
 static const shader_sub_table SIL_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SILHOUETTE,
-        .vp_unival_max = silhouette_vpt_unival_max,
-        .fp_unival_max = silhouette_fpt_unival_max,
-        .vp = "silhouette",
-        .fp = "silhouette",
+        SHADER_FT_SUB_SILHOUETTE,
+        silhouette_vpt_unival_max,
+        silhouette_fpt_unival_max,
+        "silhouette",
+        "silhouette",
     },
 };
 
 static const shader_sub_table LAMBERT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_LAMBERT,
-        .vp_unival_max = lambert_vpt_unival_max,
-        .fp_unival_max = lambert_fpt_unival_max,
-        .vp = "lambert",
-        .fp = "lambert",
+        SHADER_FT_SUB_LAMBERT,
+        lambert_vpt_unival_max,
+        lambert_fpt_unival_max,
+        "lambert",
+        "lambert",
     },
 };
 
 static const shader_sub_table CONSTANT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_CONSTANT,
-        .vp_unival_max = constant_vpt_unival_max,
-        .fp_unival_max = constant_fpt_unival_max,
-        .vp = "constant",
-        .fp = "constant",
+        SHADER_FT_SUB_CONSTANT,
+        constant_vpt_unival_max,
+        constant_fpt_unival_max,
+        "constant",
+        "constant",
     },
 };
 
 static const shader_sub_table PEEL_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_PEEL,
-        .vp_unival_max = peel_vpt_unival_max,
-        .fp_unival_max = peel_fpt_unival_max,
-        .vp = "depth_peel",
-        .fp = "depth_peel",
+        SHADER_FT_SUB_PEEL,
+        peel_vpt_unival_max,
+        peel_fpt_unival_max,
+        "depth_peel",
+        "depth_peel",
     },
 };
 
 static const shader_sub_table TONEMAP_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_TONE_MAP,
-        .vp_unival_max = tone_map_vpt_unival_max,
-        .fp_unival_max = tone_map_fpt_unival_max,
-        .vp = "tone_map",
-        .fp = "tone_map",
+        SHADER_FT_SUB_TONE_MAP,
+        tone_map_vpt_unival_max,
+        tone_map_fpt_unival_max,
+        "tone_map",
+        "tone_map",
     },
     {
-        .sub_index = SHADER_FT_SUB_TONE_MAP_NPR1,
-        .vp_unival_max = tone_map_npr1_vpt_unival_max,
-        .fp_unival_max = tone_map_npr1_fpt_unival_max,
-        .vp = "tone_map",
-        .fp = "tone_map_npr1",
+        SHADER_FT_SUB_TONE_MAP_NPR1,
+        tone_map_npr1_vpt_unival_max,
+        tone_map_npr1_fpt_unival_max,
+        "tone_map",
+        "tone_map_npr1",
     },
 };
 
 static const shader_sub_table REDUCE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_REDUCE_TEX,
-        .vp_unival_max = reduce_tex_vpt_unival_max,
-        .fp_unival_max = reduce_tex_fpt_unival_max,
-        .vp = "reduce_tex",
-        .fp = "reduce_tex",
+        SHADER_FT_SUB_REDUCE_TEX,
+        reduce_tex_vpt_unival_max,
+        reduce_tex_fpt_unival_max,
+        "reduce_tex",
+        "reduce_tex",
     },
 };
 
 static const shader_sub_table MAGNIFY_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_MAGNIFY,
-        .vp_unival_max = magnify_vpt_unival_max,
-        .fp_unival_max = magnify_fpt_unival_max,
-        .vp = "magnify",
-        .fp = "magnify",
+        SHADER_FT_SUB_MAGNIFY,
+        magnify_vpt_unival_max,
+        magnify_fpt_unival_max,
+        "magnify",
+        "magnify",
     },
 };
 
 static const shader_sub_table MLAA_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_MLAA,
-        .vp_unival_max = mlaa_vpt_unival_max,
-        .fp_unival_max = mlaa_fpt_unival_max,
-        .vp = "mlaa",
-        .fp = "mlaa",
+        SHADER_FT_SUB_MLAA,
+        mlaa_vpt_unival_max,
+        mlaa_fpt_unival_max,
+        "mlaa",
+        "mlaa",
     },
 };
 
 static const shader_sub_table CONTOUR_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_CONTOUR,
-        .vp_unival_max = contour_vpt_unival_max,
-        .fp_unival_max = contour_fpt_unival_max,
-        .vp = "contour",
-        .fp = "contour",
+        SHADER_FT_SUB_CONTOUR,
+        contour_vpt_unival_max,
+        contour_fpt_unival_max,
+        "contour",
+        "contour",
     },
 };
 
 static const shader_sub_table EXPOSURE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_EXPOSURE,
-        .vp_unival_max = exposure_vpt_unival_max,
-        .fp_unival_max = exposure_fpt_unival_max,
-        .vp = "exposure",
-        .fp = "exposure",
+        SHADER_FT_SUB_EXPOSURE,
+        exposure_vpt_unival_max,
+        exposure_fpt_unival_max,
+        "exposure",
+        "exposure",
     },
 };
 
 static const shader_sub_table GAUSS_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_PP_GAUSS,
-        .vp_unival_max = pp_gauss_vpt_unival_max,
-        .fp_unival_max = pp_gauss_fpt_unival_max,
-        .vp = "pp_gauss",
-        .fp = "pp_gauss",
+        SHADER_FT_SUB_PP_GAUSS,
+        pp_gauss_vpt_unival_max,
+        pp_gauss_fpt_unival_max,
+        "pp_gauss",
+        "pp_gauss",
     },
 };
 
 static const shader_sub_table SUN_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SUN,
-        .vp_unival_max = sun_vpt_unival_max,
-        .fp_unival_max = sun_fpt_unival_max,
-        .vp = "sun",
-        .fp = "sun",
+        SHADER_FT_SUB_SUN,
+        sun_vpt_unival_max,
+        sun_fpt_unival_max,
+        "sun",
+        "sun",
     },
 };
 
 static const shader_sub_table FADE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_FADE,
-        .vp_unival_max = fade_vpt_unival_max,
-        .fp_unival_max = fade_fpt_unival_max,
-        .vp = "fade",
-        .fp = "fade",
+        SHADER_FT_SUB_FADE,
+        fade_vpt_unival_max,
+        fade_fpt_unival_max,
+        "fade",
+        "fade",
     },
 };
 
 static const shader_sub_table WATER01_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_WATER01,
-        .vp_unival_max = water01_vpt_unival_max,
-        .fp_unival_max = water01_fpt_unival_max,
-        .vp = "water01",
-        .fp = "water01",
+        SHADER_FT_SUB_WATER01,
+        water01_vpt_unival_max,
+        water01_fpt_unival_max,
+        "water01",
+        "water01",
     },
 };
 
 static const shader_sub_table WATER02_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_WATER02,
-        .vp_unival_max = water02_vpt_unival_max,
-        .fp_unival_max = water02_fpt_unival_max,
-        .vp = "water02",
-        .fp = "water02",
+        SHADER_FT_SUB_WATER02,
+        water02_vpt_unival_max,
+        water02_fpt_unival_max,
+        "water02",
+        "water02",
     },
 };
 
 static const shader_sub_table WATRING_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_WATER_RING,
-        .vp_unival_max = water_ring_vpt_unival_max,
-        .fp_unival_max = water_ring_fpt_unival_max,
-        .vp = "water_ring",
-        .fp = "water_ring",
+        SHADER_FT_SUB_WATER_RING,
+        water_ring_vpt_unival_max,
+        water_ring_fpt_unival_max,
+        "water_ring",
+        "water_ring",
     },
 };
 
 static const shader_sub_table W_PTCL_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_WATER_PARTICLE,
-        .vp_unival_max = water_particle_vpt_unival_max,
-        .fp_unival_max = water_particle_fpt_unival_max,
-        .vp = "water_particle",
-        .fp = "water_particle",
+        SHADER_FT_SUB_WATER_PARTICLE,
+        water_particle_vpt_unival_max,
+        water_particle_fpt_unival_max,
+        "water_particle",
+        "water_particle",
     },
 };
 
 static const shader_sub_table SNOW_PT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SNOW_PARTICLE,
-        .vp_unival_max = snow_particle_vpt_unival_max,
-        .fp_unival_max = snow_particle_fpt_unival_max,
-        .vp = "snow_particle",
-        .fp = "snow_particle",
+        SHADER_FT_SUB_SNOW_PARTICLE,
+        snow_particle_vpt_unival_max,
+        snow_particle_fpt_unival_max,
+        "snow_particle",
+        "snow_particle",
     },
 };
 
 static const shader_sub_table LEAF_PT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_LEAF_PARTICLE,
-        .vp_unival_max = leaf_particle_vpt_unival_max,
-        .fp_unival_max = leaf_particle_fpt_unival_max,
-        .vp = "leaf_particle",
-        .fp = "leaf_particle",
+        SHADER_FT_SUB_LEAF_PARTICLE,
+        leaf_particle_vpt_unival_max,
+        leaf_particle_fpt_unival_max,
+        "leaf_particle",
+        "leaf_particle",
     },
 };
 
 static const shader_sub_table STAR_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_STAR,
-        .vp_unival_max = star_vpt_unival_max,
-        .fp_unival_max = star_fpt_unival_max,
-        .vp = "star",
-        .fp = "star",
+        SHADER_FT_SUB_STAR,
+        star_vpt_unival_max,
+        star_fpt_unival_max,
+        "star",
+        "star",
     },
 };
 
 static const shader_sub_table SNORING_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SNOW_RING,
-        .vp_unival_max = snow_ring_vpt_unival_max,
-        .fp_unival_max = snow_ring_fpt_unival_max,
-        .vp = "snow_ring",
-        .fp = "snow_ring",
+        SHADER_FT_SUB_SNOW_RING,
+        snow_ring_vpt_unival_max,
+        snow_ring_fpt_unival_max,
+        "snow_ring",
+        "snow_ring",
     },
 };
 
 static const shader_sub_table SN_FOOT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SNOW_FOOTPRINT,
-        .vp_unival_max = snow_footprint_vpt_unival_max,
-        .fp_unival_max = snow_footprint_fpt_unival_max,
-        .vp = "snow_footprint",
-        .fp = "snow_footprint",
+        SHADER_FT_SUB_SNOW_FOOTPRINT,
+        snow_footprint_vpt_unival_max,
+        snow_footprint_fpt_unival_max,
+        "snow_footprint",
+        "snow_footprint",
     },
 };
 
 static const shader_sub_table SN_TSL_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SNOW_TEX_SPACE_LIGHT,
-        .vp_unival_max = snow_tex_space_light_vpt_unival_max,
-        .fp_unival_max = snow_tex_space_light_fpt_unival_max,
-        .vp = "snow_tex_space_light",
-        .fp = "snow_tex_space_light",
+        SHADER_FT_SUB_SNOW_TEX_SPACE_LIGHT,
+        snow_tex_space_light_vpt_unival_max,
+        snow_tex_space_light_fpt_unival_max,
+        "snow_tex_space_light",
+        "snow_tex_space_light",
     },
 };
 
 static const shader_sub_table SN_NRM_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SNOW_CALC_NORMAL,
-        .vp_unival_max = snow_calc_normal_vpt_unival_max,
-        .fp_unival_max = snow_calc_normal_fpt_unival_max,
-        .vp = "snow_calc_normal",
-        .fp = "snow_calc_normal",
+        SHADER_FT_SUB_SNOW_CALC_NORMAL,
+        snow_calc_normal_vpt_unival_max,
+        snow_calc_normal_fpt_unival_max,
+        "snow_calc_normal",
+        "snow_calc_normal",
     },
 };
 
 static const shader_sub_table FLOOR_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_FLOOR,
-        .vp_unival_max = floor_vpt_unival_max,
-        .fp_unival_max = floor_fpt_unival_max,
-        .vp = "floor",
-        .fp = "floor",
+        SHADER_FT_SUB_FLOOR,
+        floor_vpt_unival_max,
+        floor_fpt_unival_max,
+        "floor",
+        "floor",
     },
 };
 
 static const shader_sub_table PUDDLE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_PUDDLE,
-        .vp_unival_max = puddle_vpt_unival_max,
-        .fp_unival_max = puddle_fpt_unival_max,
-        .vp = "puddle",
-        .fp = "puddle",
+        SHADER_FT_SUB_PUDDLE,
+        puddle_vpt_unival_max,
+        puddle_fpt_unival_max,
+        "puddle",
+        "puddle",
     },
 };
 
 static const shader_sub_table S_REFL_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SIMPLE_REFLECT,
-        .vp_unival_max = simple_reflect_vpt_unival_max,
-        .fp_unival_max = simple_reflect_fpt_unival_max,
-        .vp = "simple_reflect",
-        .fp = "simple_reflect",
+        SHADER_FT_SUB_SIMPLE_REFLECT,
+        simple_reflect_vpt_unival_max,
+        simple_reflect_fpt_unival_max,
+        "simple_reflect",
+        "simple_reflect",
     },
 };
 
 static const shader_sub_table S_REFR_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SIMPLE_REFRACT,
-        .vp_unival_max = simple_refract_vpt_unival_max,
-        .fp_unival_max = simple_refract_fpt_unival_max,
-        .vp = "simple_refract",
-        .fp = "simple_refract",
+        SHADER_FT_SUB_SIMPLE_REFRACT,
+        simple_refract_vpt_unival_max,
+        simple_refract_fpt_unival_max,
+        "simple_refract",
+        "simple_refract",
     },
 };
 
 static const shader_sub_table RIPEMIT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_RIPPLE_EMIT,
-        .vp_unival_max = ripple_emit_vpt_unival_max,
-        .fp_unival_max = ripple_emit_fpt_unival_max,
-        .vp = "ripple_emit",
-        .fp = "ripple_emit",
+        SHADER_FT_SUB_RIPPLE_EMIT,
+        ripple_emit_vpt_unival_max,
+        ripple_emit_fpt_unival_max,
+        "ripple_emit",
+        "ripple_emit",
     },
 };
 
 static const shader_sub_table RAIN_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_RAIN,
-        .vp_unival_max = rain_vpt_unival_max,
-        .fp_unival_max = rain_fpt_unival_max,
-        .vp = "rain",
-        .fp = "rain",
+        SHADER_FT_SUB_RAIN,
+        rain_vpt_unival_max,
+        rain_fpt_unival_max,
+        "rain",
+        "rain",
     },
 };
 
 static const shader_sub_table VOLLIT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_VOLUME_LIGHT,
-        .vp_unival_max = volume_light_vpt_unival_max,
-        .fp_unival_max = volume_light_fpt_unival_max,
-        .vp = "volume_light",
-        .fp = "volume_light",
+        SHADER_FT_SUB_VOLUME_LIGHT,
+        volume_light_vpt_unival_max,
+        volume_light_fpt_unival_max,
+        "volume_light",
+        "volume_light",
     },
 };
 
 static const shader_sub_table FENCE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_FENCE_ALPHA,
-        .vp_unival_max = fence_alpha_vpt_unival_max,
-        .fp_unival_max = fence_alpha_fpt_unival_max,
-        .vp = "fence_alpha",
-        .fp = "fence_alpha",
+        SHADER_FT_SUB_FENCE_ALPHA,
+        fence_alpha_vpt_unival_max,
+        fence_alpha_fpt_unival_max,
+        "fence_alpha",
+        "fence_alpha",
     },
 };
 
 static const shader_sub_table RIPPLE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_RIPPLE,
-        .vp_unival_max = ripple_vpt_unival_max,
-        .fp_unival_max = ripple_fpt_unival_max,
-        .vp = "ripple",
-        .fp = "ripple",
+        SHADER_FT_SUB_RIPPLE,
+        ripple_vpt_unival_max,
+        ripple_fpt_unival_max,
+        "ripple",
+        "ripple",
     },
 };
 
 static const shader_sub_table FOGPTCL_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_FOG_PTCL,
-        .vp_unival_max = fog_ptcl_vpt_unival_max,
-        .fp_unival_max = fog_ptcl_fpt_unival_max,
-        .vp = "fog_ptcl",
-        .fp = "fog_ptcl",
+        SHADER_FT_SUB_FOG_PTCL,
+        fog_ptcl_vpt_unival_max,
+        fog_ptcl_fpt_unival_max,
+        "fog_ptcl",
+        "fog_ptcl",
     },
 };
 
 static const shader_sub_table PARTICL_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_PARTICLE,
-        .vp_unival_max = particle_vpt_unival_max,
-        .fp_unival_max = particle_fpt_unival_max,
-        .vp = "particle",
-        .fp = "particle",
+        SHADER_FT_SUB_PARTICLE,
+        particle_vpt_unival_max,
+        particle_fpt_unival_max,
+        "particle",
+        "particle",
     },
 };
 
 static const shader_sub_table GLITTER_PT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_GLITTER_PARTICLE,
-        .vp_unival_max = glitter_particle_vpt_unival_max,
-        .fp_unival_max = glitter_particle_fpt_unival_max,
-        .vp = "glitter_particle",
-        .fp = "glitter_particle",
+        SHADER_FT_SUB_GLITTER_PARTICLE,
+        glitter_particle_vpt_unival_max,
+        glitter_particle_fpt_unival_max,
+        "glitter_particle",
+        "glitter_particle",
     },
 };
 
 static const shader_sub_table SHOWVEC_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SHOW_VECTOR,
-        .vp_unival_max = show_vector_vpt_unival_max,
-        .fp_unival_max = show_vector_fpt_unival_max,
-        .vp = "show_vector",
-        .fp = "show_vector",
+        SHADER_FT_SUB_SHOW_VECTOR,
+        show_vector_vpt_unival_max,
+        show_vector_fpt_unival_max,
+        "show_vector",
+        "show_vector",
     },
 };
 
 static const shader_sub_table FONT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_FONT,
-        .vp_unival_max = font_vpt_unival_max,
-        .fp_unival_max = font_fpt_unival_max,
-        .vp = "font",
-        .fp = "font",
+        SHADER_FT_SUB_FONT,
+        font_vpt_unival_max,
+        font_fpt_unival_max,
+        "font",
+        "font",
     },
 };
 
 static const shader_sub_table MOVIE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_MOVIE,
-        .vp_unival_max = movie_vpt_unival_max,
-        .fp_unival_max = movie_fpt_unival_max,
-        .vp = "movie",
-        .fp = "movie",
+        SHADER_FT_SUB_MOVIE,
+        movie_vpt_unival_max,
+        movie_fpt_unival_max,
+        "movie",
+        "movie",
     },
 };
 
 static const shader_sub_table IMGFILT_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_IMGFILTER,
-        .vp_unival_max = imgfilter_vpt_unival_max,
-        .fp_unival_max = imgfilter_fpt_unival_max,
-        .vp = "imgfilter",
-        .fp = "imgfilter",
+        SHADER_FT_SUB_IMGFILTER,
+        imgfilter_vpt_unival_max,
+        imgfilter_fpt_unival_max,
+        "imgfilter",
+        "imgfilter",
     },
 };
 
 static const shader_sub_table SPRITE_table[] = {
     {
-        .sub_index = SHADER_FT_SUB_SPRITE,
-        .vp_unival_max = sprite_vpt_unival_max,
-        .fp_unival_max = sprite_fpt_unival_max,
-        .vp = "sprite",
-        .fp = "sprite",
+        SHADER_FT_SUB_SPRITE,
+        sprite_vpt_unival_max,
+        sprite_fpt_unival_max,
+        "sprite",
+        "sprite",
     },
 };
 
@@ -2160,22 +2160,22 @@ static const bool SPRITE_permut[] = {
 };
 
 static const shader_table SHADER_FFP_shader = {
-    .name = "SHADER_FFP",
-    .num_sub = 0,
-    .sub = 0,
-    .num_uniform = 0,
-    .use_uniform = 0,
+    "SHADER_FFP",
+    0,
+    0,
+    0,
+     0,
 };
 
 #define shader_table_struct(n) \
 static const shader_table n##_shader = { \
-    .name = #n, \
-    .index = SHADER_FT_##n, \
-    .num_sub = sizeof(n##_table) / sizeof(shader_sub_table), \
-    .sub = n##_table, \
-    .num_uniform = sizeof(n##_uniform) / sizeof(uniform_name), \
-    .use_uniform = n##_uniform, \
-    .use_permut = n##_permut, \
+    #n, \
+    SHADER_FT_##n, \
+    sizeof(n##_table) / sizeof(shader_sub_table), \
+    n##_table, \
+    sizeof(n##_uniform) / sizeof(uniform_name), \
+    n##_uniform, \
+    n##_permut, \
 }; \
 
 shader_table_struct(BLINN)
@@ -2271,68 +2271,68 @@ typedef struct glass_eye_struct {
 } glass_eye_struct;
 
 static const shader_table* shader_ft_table[] = {
-    [SHADER_FT_FFP       ] = &SHADER_FFP_shader,
-    [SHADER_FT_BLINN     ] = &BLINN_shader,
-    [SHADER_FT_ITEM      ] = &ITEM_shader,
-    [SHADER_FT_STAGE     ] = &STAGE_shader,
-    [SHADER_FT_SKIN      ] = &SKIN_shader,
-    [SHADER_FT_SSS_SKIN  ] = &SSS_SKIN_shader,
-    [SHADER_FT_SSS_FILT  ] = &SSS_FILT_shader,
-    [SHADER_FT_HAIR      ] = &HAIR_shader,
-    [SHADER_FT_CLOTH     ] = &CLOTH_shader,
-    [SHADER_FT_TIGHTS    ] = &TIGHTS_shader,
-    [SHADER_FT_SKY       ] = &SKY_shader,
-    [SHADER_FT_EYEBALL   ] = &EYEBALL_shader,
-    [SHADER_FT_EYELENS   ] = &EYELENS_shader,
-    [SHADER_FT_GLASEYE   ] = &GLASEYE_shader,
-    [SHADER_FT_MEMBRAN   ] = &MEMBRAN_shader,
-    [SHADER_FT_SHDMAP    ] = &SHDMAP_shader,
-    [SHADER_FT_ESM       ] = &ESM_shader,
-    [SHADER_FT_ESMGAUSS  ] = &ESMGAUSS_shader,
-    [SHADER_FT_ESMFILT   ] = &ESMFILT_shader,
-    [SHADER_FT_LITPROJ   ] = &LITPROJ_shader,
-    [SHADER_FT_SIMPLE    ] = &SIMPLE_shader,
-    [SHADER_FT_SIL       ] = &SIL_shader,
-    [SHADER_FT_LAMBERT   ] = &LAMBERT_shader,
-    [SHADER_FT_CONSTANT  ] = &CONSTANT_shader,
-    [SHADER_FT_PEEL      ] = &PEEL_shader,
-    [SHADER_FT_TONEMAP   ] = &TONEMAP_shader,
-    [SHADER_FT_REDUCE    ] = &REDUCE_shader,
-    [SHADER_FT_MAGNIFY   ] = &MAGNIFY_shader,
-    [SHADER_FT_MLAA      ] = &MLAA_shader,
-    [SHADER_FT_CONTOUR   ] = &CONTOUR_shader,
-    [SHADER_FT_EXPOSURE  ] = &EXPOSURE_shader,
-    [SHADER_FT_GAUSS     ] = &GAUSS_shader,
-    [SHADER_FT_SUN       ] = &SUN_shader,
-    [SHADER_FT_FADE      ] = &FADE_shader,
-    [SHADER_FT_WATER01   ] = &WATER01_shader,
-    [SHADER_FT_WATER02   ] = &WATER02_shader,
-    [SHADER_FT_WATRING   ] = &WATRING_shader,
-    [SHADER_FT_W_PTCL    ] = &W_PTCL_shader,
-    [SHADER_FT_SNOW_PT   ] = &SNOW_PT_shader,
-    [SHADER_FT_LEAF_PT   ] = &LEAF_PT_shader,
-    [SHADER_FT_STAR      ] = &STAR_shader,
-    [SHADER_FT_SNORING   ] = &SNORING_shader,
-    [SHADER_FT_SN_FOOT   ] = &SN_FOOT_shader,
-    [SHADER_FT_SN_TSL    ] = &SN_TSL_shader,
-    [SHADER_FT_SN_NRM    ] = &SN_NRM_shader,
-    [SHADER_FT_FLOOR     ] = &FLOOR_shader,
-    [SHADER_FT_PUDDLE    ] = &PUDDLE_shader,
-    [SHADER_FT_S_REFL    ] = &S_REFL_shader,
-    [SHADER_FT_S_REFR    ] = &S_REFR_shader,
-    [SHADER_FT_RIPEMIT   ] = &RIPEMIT_shader,
-    [SHADER_FT_RAIN      ] = &RAIN_shader,
-    [SHADER_FT_VOLLIT    ] = &VOLLIT_shader,
-    [SHADER_FT_FENCE     ] = &FENCE_shader,
-    [SHADER_FT_RIPPLE    ] = &RIPPLE_shader,
-    [SHADER_FT_FOGPTCL   ] = &FOGPTCL_shader,
-    [SHADER_FT_PARTICL   ] = &PARTICL_shader,
-    [SHADER_FT_GLITTER_PT] = &GLITTER_PT_shader,
-    [SHADER_FT_SHOWVEC   ] = &SHOWVEC_shader,
-    [SHADER_FT_FONT      ] = &FONT_shader,
-    [SHADER_FT_MOVIE     ] = &MOVIE_shader,
-    [SHADER_FT_IMGFILT   ] = &IMGFILT_shader,
-    [SHADER_FT_SPRITE    ] = &SPRITE_shader,
+    &SHADER_FFP_shader,
+    &BLINN_shader,
+    &ITEM_shader,
+    &STAGE_shader,
+    &SKIN_shader,
+    &SSS_SKIN_shader,
+    &SSS_FILT_shader,
+    &HAIR_shader,
+    &CLOTH_shader,
+    &TIGHTS_shader,
+    &SKY_shader,
+    &EYEBALL_shader,
+    &EYELENS_shader,
+    &GLASEYE_shader,
+    &MEMBRAN_shader,
+    &SHDMAP_shader,
+    &ESM_shader,
+    &ESMGAUSS_shader,
+    &ESMFILT_shader,
+    &LITPROJ_shader,
+    &SIMPLE_shader,
+    &SIL_shader,
+    &LAMBERT_shader,
+    &CONSTANT_shader,
+    &PEEL_shader,
+    &TONEMAP_shader,
+    &REDUCE_shader,
+    &MAGNIFY_shader,
+    &MLAA_shader,
+    &CONTOUR_shader,
+    &EXPOSURE_shader,
+    &GAUSS_shader,
+    &SUN_shader,
+    &FADE_shader,
+    &WATER01_shader,
+    &WATER02_shader,
+    &WATRING_shader,
+    &W_PTCL_shader,
+    &SNOW_PT_shader,
+    &LEAF_PT_shader,
+    &STAR_shader,
+    &SNORING_shader,
+    &SN_FOOT_shader,
+    &SN_TSL_shader,
+    &SN_NRM_shader,
+    &FLOOR_shader,
+    &PUDDLE_shader,
+    &S_REFL_shader,
+    &S_REFR_shader,
+    &RIPEMIT_shader,
+    &RAIN_shader,
+    &VOLLIT_shader,
+    &FENCE_shader,
+    &RIPPLE_shader,
+    &FOGPTCL_shader,
+    &PARTICL_shader,
+    &GLITTER_PT_shader,
+    &SHOWVEC_shader,
+    &FONT_shader,
+    &MOVIE_shader,
+    &IMGFILT_shader,
+    &SPRITE_shader,
 };
 
 static const size_t shader_ft_table_size =
@@ -2349,28 +2349,28 @@ static void shader_bind_tone_map(shader_set_data* set, shader* shader);
 
 static const shader_bind_func shader_ft_bind_func_table[] = {
     {
-        .index = SHADER_FT_BLINN,
-        .bind_func = shader_bind_blinn,
+        SHADER_FT_BLINN,
+        shader_bind_blinn,
     },
     {
-        .index = SHADER_FT_CLOTH,
-        .bind_func = shader_bind_cloth,
+        SHADER_FT_CLOTH,
+        shader_bind_cloth,
     },
     {
-        .index = SHADER_FT_HAIR,
-        .bind_func = shader_bind_hair,
+        SHADER_FT_HAIR,
+        shader_bind_hair,
     },
     {
-        .index = SHADER_FT_MEMBRAN,
-        .bind_func = shader_bind_membrane,
+        SHADER_FT_MEMBRAN,
+        shader_bind_membrane,
     },
     {
-        .index = SHADER_FT_EYEBALL,
-        .bind_func = shader_bind_eye_ball,
+        SHADER_FT_EYEBALL,
+        shader_bind_eye_ball,
     },
     {
-        .index = SHADER_FT_TONEMAP,
-        .bind_func = shader_bind_tone_map,
+        SHADER_FT_TONEMAP,
+        shader_bind_tone_map,
     },
 };
 
@@ -2502,7 +2502,7 @@ static void glass_eye_set(glass_eye_struct* glass_eye, shader_set_data* set) {
     shader_local_frag_set_ptr(set, 0x11, &temp);
 
     vec2_mult(*(vec2*)&glass_eye->field_0, *(vec2*)&glass_eye->field_74, *(vec2*)&temp);
-    temp.y = glass_eye->field_64 * 1.442695f;
+    temp.z = glass_eye->field_64 * 1.442695f;
     temp.w = glass_eye->field_8C;
     vec2_div(vec2_identity, *(vec2*)&temp, *(vec2*)&temp);
     shader_local_frag_set_ptr(set, 0x12, &temp);

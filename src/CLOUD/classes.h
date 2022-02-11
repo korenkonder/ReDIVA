@@ -9,8 +9,8 @@
 #include "../CRE/lock.h"
 #include "../CRE/render_context.h"
 
-#define CLASS_DATA_NO_DATA ((void*)0)
-#define CLASSES_STRUCT_NO_FUNC ((void*)0)
+#define CLASS_DATA_NO_DATA (0)
+#define CLASSES_STRUCT_NO_FUNC (0)
 
 typedef enum class_flags {
     CLASS_INIT     = 0x01,
@@ -39,16 +39,16 @@ typedef struct classes_struct classes_struct;
 struct classes_struct {
     const char* name;
     const classes_enum flags;
-    const bool(*    init)(class_data* data, render_context* rctx);
-    const void(*    draw)(class_data* data);
-    const void(*    drop)(class_data* data, size_t count, char** paths);
-    const bool(*    hide)(class_data* data);
-    const void(*   imgui)(class_data* data);
-    const void(*   input)(class_data* data);
-    const void(*  render)(class_data* data);
-    const bool(*    show)(class_data* data);
-    const void(*   sound)(class_data* data);
-    const bool(* dispose)(class_data* data);
+    bool(*    init)(class_data* data, render_context* rctx);
+    void(*    disp)(class_data* data);
+    void(*    drop)(class_data* data, size_t count, char** paths);
+    bool(*    hide)(class_data* data);
+    void(*   imgui)(class_data* data);
+    void(*   input)(class_data* data);
+    void(*  render)(class_data* data);
+    bool(*    show)(class_data* data);
+    void(*   sound)(class_data* data);
+    bool(* dispose)(class_data* data);
     class_data data;
     classes_struct* sub_classes;
     size_t sub_classes_count;

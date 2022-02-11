@@ -80,7 +80,7 @@ static patch_struct patch_data[] = {
     { (void*)0x00000001405F49F0, (uint64_t)&ex_osage_block_field_18, },
     { (void*)0x00000001405F2140, (uint64_t)&ex_osage_block_update, },
     { (void*)0x00000001405F2470, (uint64_t)&ex_osage_block_field_28, },
-    { (void*)0x00000001405F26F0, (uint64_t)&ex_osage_block_draw, },
+    { (void*)0x00000001405F26F0, (uint64_t)&ex_osage_block_disp, },
     { (void*)0x00000001405F2640, (uint64_t)&ex_osage_block_reset, },
     { (void*)0x00000001405F2860, (uint64_t)&ex_osage_block_field_40, },
     { (void*)0x00000001405F4640, (uint64_t)&ex_osage_block_field_48, },
@@ -94,7 +94,7 @@ extern bool toggle1[10];
 extern bool toggle2[10];
 
 void inject_patches() {
-    char buf[12];
+    uint8_t buf[12];
     buf[0] = 0x48;
     buf[1] = 0xB8;
     buf[10] = 0xFF;
@@ -107,7 +107,7 @@ void inject_patches() {
             patch_data[i].orig_data = inject_data(patch_data[i].address, buf, 12);
         }
 
-    glutMainLoop = (void*)inject_uint64_t((void*)0x0000000140966008, (uint64_t)&gl_get_func_pointers);
+    glutMainLoop = (void (*)())inject_uint64_t((void*)0x0000000140966008, (uint64_t)&gl_get_func_pointers);
 
     shader_bind_func_orig_data[0] = inject_uint64_t(
         (void*)&shader_name_bind_func_table[0].bind_func, (uint64_t)&aft_shader_bind_blinn);

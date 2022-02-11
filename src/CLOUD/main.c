@@ -3,7 +3,6 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "../KKdLib/kkfs.h"
 #include "../KKdLib/a3da.h"
 #include "../KKdLib/f2/struct.h"
 #include "../CRE/auth_3d.h"
@@ -31,53 +30,6 @@ inline static void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32
     }
 }
 
-static void kkfs_test() {
-    uint32_t state = 105632;
-    uint8_t data[0x2000];
-    next_rand_uint8_t_pointer(data, 0x2000, &state);
-
-    kkc* c = kkc_init();
-    kkc_init_from_seed(c, state, KKC_KEY_128);
-    kkc_prepare_cipher_table(c);
-    kkfs* fs = kkfs_init();
-    kkfs_winitialize(fs, L"test", 0x200, 0x4000000, 0, c, 0, 0);
-    kkfs_wcreate_directory(fs, L"test_dir_super_duper_long_name1", 0);
-    kkfs_wcreate_directory(fs, L"test_dir2", 0);
-    kkfs_wenter_directory(fs, L"test_dir2");
-    kkfs_wcreate_directory(fs, L"test_dir3", 0);
-    kkfs_exit_directory(fs);
-    kkfs_wenter_directory(fs, L"test_dir2");
-    kkfs_wenter_directory(fs, L"test_dir3");
-    kkfs_wcreate_directory(fs, L"test_dir4", 0);
-    kkfs_wcreate_directory(fs, L"test_dir5", 0);
-    kkfs_wcreate_directory(fs, L"test_dir6", 0);
-    kkfs_wcreate_directory(fs, L"test_dir7", 0);
-    kkfs_wcreate_directory(fs, L"test_dir8", 0);
-    kkfs_wcreate_directory(fs, L"test_dir9", 0);
-    kkfs_wcreate_file(fs, L"test_file1", 0x1000, KKFS_FILE_CIPHER);
-    kkfs_wcreate_file(fs, L"test_file2", 0x1000, KKFS_FILE_CIPHER);
-    kkfs_wwrite_file(fs, L"test_file1", data, 0x2000);
-    kkfs_wwrite_file(fs, L"test_file2", data, 0x1000);
-    kkfs_wdelete_directory(fs, L"test_dir4");
-    kkfs_wdelete_file(fs, L"test_file");
-    kkfs_exit_directory(fs);
-    kkfs_exit_directory(fs);
-    kkfs_close(fs);
-    kkfs_dispose(fs);
-
-    void* read_data;
-    size_t read_size;
-    fs = kkfs_init();
-    kkfs_wopen(fs, L"test", c, 0, 0);
-    kkfs_wenter_directory(fs, L"test_dir2");
-    kkfs_wenter_directory(fs, L"test_dir3");
-    kkfs_wread_file(fs, L"test_file1", &read_data, &read_size);
-    kkfs_close(fs);
-    kkfs_dispose(fs);
-    free(read_data);
-    kkc_dispose(c);
-}
-
 static void decrypt_edat() {
     uint8_t klic[16] = { 0xe2, 0x2d, 0x52, 0x46, 0x10, 0xa4, 0x4b, 0xb1,
                          0xb5, 0x00, 0xf0, 0x66, 0xe7, 0xa0, 0xed, 0x49 };
@@ -87,7 +39,7 @@ static void decrypt_edat() {
     io_open(&f0, "misc\\shader_ps3.edat", "rb");
     io_open(&f1, "misc\\shader_ps3.dat", "wb");
     if (f0.io.stream && f1.io.stream)
-        DecryptEDAT(&f0, &f1, 8, "misc\\EP0177-NPEB02013_00-PJDF2MOMJTNSDAYO.rap", klic);
+        DecryptEDAT(&f0, &f1, 8, (char*)"misc\\EP0177-NPEB02013_00-PJDF2MOMJTNSDAYO.rap", klic);
     io_free(&f0);
     io_free(&f1);
 }
@@ -95,7 +47,7 @@ static void decrypt_edat() {
 static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
     a3da cam_a3da_file;
     a3da_init(&cam_a3da_file);
-    a3da_load_file(&cam_a3da_file, "", a3da_path, 0);
+    a3da_load_file(&cam_a3da_file, (char*)"", a3da_path, 0);
 
     if (!cam_a3da_file.dof.has_dof) {
         a3da_free(&cam_a3da_file);
@@ -122,12 +74,12 @@ static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
     int32_t* dof_index = force_malloc_s(int32_t, frames);
     size_t count = 0;
 
-    *dof++ = (dof_data){ 0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    *dof++ = { 0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
     auth_3d_camera_root* cr = &cam_a3da.camera_root.begin[0];
 
     for (int32_t i = 0; i < frames; i++) {
-        auth_3d_time_step(&cam_a3da, (mat4*)&mat4_identity);
+        //auth_3d_ctrl(&cam_a3da, (mat4*)&mat4_identity, rctx);
         bool enable = fabs(cam_a3da.dof.model_transform.rotation_value.z) > 0.000001f;
         if (!enable) {
             dof_index[i] = 0;
@@ -193,14 +145,14 @@ static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
     enrs_entry ee;
     vector_size_t pof = vector_empty(size_t);
 
-    ee = (enrs_entry){ 0, 1, 8, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_DWORD });
+    ee = { 0, 1, 8, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
     off = 8;
     off = align_val(off, 0x10);
 
-    ee = (enrs_entry){ off, 1, 24, (int32_t)count, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 6, ENRS_DWORD });
+    ee = { off, 1, 24, (uint32_t)count, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
     off = (uint32_t)(count * 24ULL);
     off = align_val(off, 0x10);
@@ -259,9 +211,9 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     thread input, render, sound;
     HANDLE h[3];
-    h[0] = input.handle = CreateThread(0, 0, &input_main, 0, 0, &input.id);
-    h[1] = render.handle = CreateThread(0, 0, &render_main, &ris, 0, &render.id);
-    h[2] = sound.handle = CreateThread(0, 0, &sound_main, 0, 0, &sound.id);
+    h[0] = input.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)input_main, 0, 0, &input.id);
+    h[1] = render.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)render_main, &ris, 0, &render.id);
+    h[2] = sound.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)sound_main, 0, 0, &sound.id);
 
     if (input.handle)
         SetThreadDescription(input.handle, L"Input Thread");

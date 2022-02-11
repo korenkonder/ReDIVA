@@ -143,95 +143,7 @@ void glitter_x_render_element_emit(glitter_render_element* a1,
     glitter_x_random_step_value(random);
 }
 
-void glitter_x_render_element_free(glitter_render_element* a1) {
-    a1->alive = false;
-    if (a1->locus_history) {
-        glitter_x_locus_history_dispose(a1->locus_history);
-        a1->locus_history = 0;
-    }
-}
-
-void glitter_x_render_element_rotate_mesh_to_emit_position(mat4* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
-    vec3 vec1;
-    vec3 vec2;
-    float_t angle;
-    vec3 axis;
-    float_t length;
-
-    mat4_get_translation(&a2->mat, &vec2);
-    vec3_sub(*trans, vec2, vec2);
-    vec3_length_squared(vec2, length);
-    if (length < 0.000001f)
-        vec2 = (vec3){ 0.0f, 1.0f, 0.0f };
-    vec3_normalize(vec2, vec2);
-
-    vec1 = *vec;
-    axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
-    mat4_mult_axis_angle((mat4*)&mat4_identity, mat, &axis, angle);
-}
-
-void glitter_x_render_element_rotate_mesh_to_prev_position(mat4* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
-    vec3 vec1;
-    vec3 vec2;
-    float_t angle;
-    vec3 axis;
-    float_t length;
-
-    vec3_sub(a3->translation, a3->translation_prev, vec2);
-    vec3_length_squared(vec2, length);
-    if (length < 0.000001f)
-        vec2 = a3->base_direction;
-    vec3_normalize(vec2, vec2);
-
-    vec1 = *vec;
-    axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
-    mat4_mult_axis_angle((mat4*)&mat4_identity, mat, &axis, angle);
-}
-
-void glitter_x_render_element_rotate_to_emit_position(mat3* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
-    vec3 trans;
-    vec3 vec1;
-    vec3 vec2;
-    float_t angle;
-    vec3 axis;
-    float_t length;
-
-    trans = a3->translation;
-    mat4_get_translation(&a2->mat, &vec2);
-    vec3_sub(trans, vec2, vec2);
-    vec3_length_squared(vec2, length);
-    if (length < 0.000001f)
-        vec2 = (vec3){ 0.0f, 1.0f, 0.0f };
-    vec3_normalize(vec2, vec2);
-
-    vec1 = *vec;
-    axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
-    mat3_mult_axis_angle((mat3*)&mat3_identity, mat, &axis, angle);
-}
-
-void glitter_x_render_element_rotate_to_prev_position(mat3* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
-    vec3 vec1;
-    vec3 vec2;
-    float_t angle;
-    vec3 axis;
-    float_t length;
-
-    vec3_sub(a3->translation, a3->translation_prev, vec2);
-    vec3_length_squared(vec2, length);
-    if (length < 0.000001f)
-        vec2 = a3->base_direction;
-    vec3_normalize(vec2, vec2);
-
-    vec1 = *vec;
-    axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
-    mat3_mult_axis_angle((mat3*)&mat3_identity, mat, &axis, angle);
-}
-
-void glitter_x_render_element_update(glitter_render_group* a1,
+void glitter_x_render_element_ctrl(glitter_render_group* a1,
     glitter_render_element* a2, float_t delta_frame) {
     glitter_particle_inst* particle;
     vec3 translation;
@@ -277,9 +189,9 @@ void glitter_x_render_element_update(glitter_render_group* a1,
             a2->uv_scroll_2nd.y = fmodf(a2->uv_scroll_2nd.y + uv_scroll_2nd.y, 1.0f);
     }
     glitter_x_render_element_step_uv(particle, a2, delta_frame, a1->random_ptr);
-    a2->color = (vec4u){ -1.0f, -1.0f, -1.0f, -1.0f };
+    a2->color = { -1.0f, -1.0f, -1.0f, -1.0f };
     color_scale = -1.0f;
-    a2->draw = true;
+    a2->disp = true;
 
     if (particle->data.data.sub_flags & GLITTER_PARTICLE_SUB_USE_CURVE) {
         value = 0.0f;
@@ -340,7 +252,7 @@ void glitter_x_render_element_update(glitter_render_group* a1,
             case GLITTER_CURVE_COLOR_A:
                 a2->color.w = value;
                 if (value < 0.01f)
-                    a2->draw = false;
+                    a2->disp = false;
                 break;
             case GLITTER_CURVE_COLOR_RGB_SCALE:
                 color_scale = value;
@@ -368,7 +280,7 @@ void glitter_x_render_element_update(glitter_render_group* a1,
         }
     }
 
-    if (a2->draw) {
+    if (a2->disp) {
         if (a2->color.x < 0.0f)
             a2->color.x = particle->data.data.color.x;
         if (a2->color.y < 0.0f)
@@ -387,7 +299,7 @@ void glitter_x_render_element_update(glitter_render_group* a1,
             a2->color.w *= a2->frame / a2->fade_in_frames;
 
         if (a2->color.w < 0.01f)
-            a2->draw = false;
+            a2->disp = false;
     }
 
     if (particle->data.data.type == GLITTER_PARTICLE_LOCUS)
@@ -396,6 +308,94 @@ void glitter_x_render_element_update(glitter_render_group* a1,
     a2->frame += delta_frame;
     if (particle->data.data.flags & GLITTER_PARTICLE_LOOP && a2->frame >= a2->life_time)
         a2->frame -= a2->life_time;
+}
+
+void glitter_x_render_element_free(glitter_render_element* a1) {
+    a1->alive = false;
+    if (a1->locus_history) {
+        glitter_x_locus_history_dispose(a1->locus_history);
+        a1->locus_history = 0;
+    }
+}
+
+void glitter_x_render_element_rotate_mesh_to_emit_position(mat4* mat,
+    glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
+    vec3 vec1;
+    vec3 vec2;
+    float_t angle;
+    vec3 axis;
+    float_t length;
+
+    mat4_get_translation(&a2->mat, &vec2);
+    vec3_sub(*trans, vec2, vec2);
+    vec3_length_squared(vec2, length);
+    if (length < 0.000001f)
+        vec2 = { 0.0f, 1.0f, 0.0f };
+    vec3_normalize(vec2, vec2);
+
+    vec1 = *vec;
+    axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
+    mat4_mult_axis_angle((mat4*)&mat4_identity, mat, &axis, angle);
+}
+
+void glitter_x_render_element_rotate_mesh_to_prev_position(mat4* mat,
+    glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
+    vec3 vec1;
+    vec3 vec2;
+    float_t angle;
+    vec3 axis;
+    float_t length;
+
+    vec3_sub(a3->translation, a3->translation_prev, vec2);
+    vec3_length_squared(vec2, length);
+    if (length < 0.000001f)
+        vec2 = a3->base_direction;
+    vec3_normalize(vec2, vec2);
+
+    vec1 = *vec;
+    axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
+    mat4_mult_axis_angle((mat4*)&mat4_identity, mat, &axis, angle);
+}
+
+void glitter_x_render_element_rotate_to_emit_position(mat3* mat,
+    glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
+    vec3 trans;
+    vec3 vec1;
+    vec3 vec2;
+    float_t angle;
+    vec3 axis;
+    float_t length;
+
+    trans = a3->translation;
+    mat4_get_translation(&a2->mat, &vec2);
+    vec3_sub(trans, vec2, vec2);
+    vec3_length_squared(vec2, length);
+    if (length < 0.000001f)
+        vec2 = { 0.0f, 1.0f, 0.0f };
+    vec3_normalize(vec2, vec2);
+
+    vec1 = *vec;
+    axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
+    mat3_mult_axis_angle((mat3*)&mat3_identity, mat, &axis, angle);
+}
+
+void glitter_x_render_element_rotate_to_prev_position(mat3* mat,
+    glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
+    vec3 vec1;
+    vec3 vec2;
+    float_t angle;
+    vec3 axis;
+    float_t length;
+
+    vec3_sub(a3->translation, a3->translation_prev, vec2);
+    vec3_length_squared(vec2, length);
+    if (length < 0.000001f)
+        vec2 = a3->base_direction;
+    vec3_normalize(vec2, vec2);
+
+    vec1 = *vec;
+    axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
+    mat3_mult_axis_angle((mat3*)&mat3_identity, mat, &axis, angle);
 }
 
 static void glitter_x_render_element_accelerate(glitter_particle_inst* a1,
@@ -429,7 +429,8 @@ static void glitter_x_render_element_accelerate(glitter_particle_inst* a1,
         if (delta_frame > 0.0f)
             vec3_div_scalar(direction, delta_frame, direction);
         vec3_mult_scalar(direction, reflection_coeff / a2->speed, direction);
-        vec3_xor(direction, ((vec3){ 0.0f, -0.0f, 0.0f }), a2->direction);
+        const vec3 reverse_y_dir = { 0.0f, -0.0f, 0.0f };
+        vec3_xor(direction, reverse_y_dir, a2->direction);
         a2->translation.y = a2->translation_prev.y;
     }
     speed = a2->base_speed + (float_t)(1.0 / 7200.0) * a2->deceleration - diff_time * a2->deceleration;
@@ -484,8 +485,10 @@ static void glitter_x_render_element_init_mesh_by_type(glitter_render_element* a
         base_translation.z = dir.z * radius;
         if (a3->data.cylinder.direction == GLITTER_EMITTER_EMISSION_DIRECTION_OUTWARD)
             direction = dir;
-        else if (a3->data.cylinder.direction == GLITTER_EMITTER_EMISSION_DIRECTION_INWARD)
-            vec3_xor(dir, ((vec3){ -0.0f, 0.0f, -0.0f }), direction);
+        else if (a3->data.cylinder.direction == GLITTER_EMITTER_EMISSION_DIRECTION_INWARD) {
+            const vec3 reverse_xz_dir = { -0.0f, 0.0f, -0.0f };
+            vec3_xor(dir, reverse_xz_dir, direction);
+        }
         break;
     case GLITTER_EMITTER_SPHERE:
         radius = a3->data.sphere.radius * scale.x;

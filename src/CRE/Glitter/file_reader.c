@@ -17,7 +17,7 @@
 
 glitter_file_reader* glitter_file_reader_init(GLT,
     char* path, char* file, float_t emission) {
-    glitter_file_reader* fr = force_malloc(sizeof(glitter_file_reader));
+    glitter_file_reader* fr = force_malloc_s(glitter_file_reader, 1);
     fr->path = str_utils_copy(path ? path : "rom/particle/");
     fr->file = str_utils_copy(file);
     fr->emission = emission;
@@ -30,7 +30,7 @@ glitter_file_reader* glitter_file_reader_init(GLT,
 
 glitter_file_reader* glitter_file_reader_winit(GLT,
     wchar_t* path, wchar_t* file, float_t emission) {
-    glitter_file_reader* fr = force_malloc(sizeof(glitter_file_reader));
+    glitter_file_reader* fr = force_malloc_s(glitter_file_reader, 1);
     fr->path = path ? utf16_to_utf8(path) : str_utils_copy("rom/particle/");
     fr->file = utf16_to_utf8(file);
     fr->emission = emission;
@@ -45,18 +45,22 @@ bool glitter_file_reader_read(GPM, glitter_file_reader* fr, float_t emission) {
     farc f;
     farc_init(&f);
     char* farc_file_temp = str_utils_add(fr->file, ".farc");
-    bool ret = data_struct_load_file(GPM_VAL->data, &f, fr->path, farc_file_temp, farc_load_file);
+    bool ret = data_struct_load_file((data_struct*)GPM_VAL->data, &f, fr->path, farc_file_temp, farc_load_file);
     free(farc_file_temp);
 
-    if (!ret)
-        goto End;
+    if (!ret) {
+        farc_free(&f);
+        return false;
+    }
 
     ret = false;
     char* dve_file_temp = str_utils_add(fr->file, ".dve");
     farc_file* dve_ff = farc_read_file(&f, dve_file_temp);
     free(dve_file_temp);
-    if (!dve_ff)
-        goto End;
+    if (!dve_ff) {
+        farc_free(&f);
+        return false;
+    }
 
     f2_struct st;
     f2_struct_mread(&st, dve_ff->data, dve_ff->size);
@@ -66,8 +70,10 @@ bool glitter_file_reader_read(GPM, glitter_file_reader* fr, float_t emission) {
         ret = false;
     f2_struct_free(&st);
 
-    if (!ret)
-        goto End;
+    if (!ret) {
+        farc_free(&f);
+        return false;
+    }
 
     char* drs_file_temp = str_utils_add(fr->file, ".drs");
     farc_file* drs_ff = farc_read_file(&f, drs_file_temp);
@@ -93,9 +99,8 @@ bool glitter_file_reader_read(GPM, glitter_file_reader* fr, float_t emission) {
         f2_struct_free(&st);
     }
 
-End:
     farc_free(&f);
-    return ret;
+    return true;
 }
 
 void glitter_file_reader_dispose(glitter_file_reader* fr) {

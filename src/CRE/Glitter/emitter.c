@@ -9,10 +9,10 @@
 #include "particle.h"
 
 static bool glitter_emitter_pack_file(GLT, f2_struct* st, glitter_emitter* a2);
-static bool glitter_emitter_unpack_file(GLT, int32_t* data, glitter_emitter* a2, bool use_big_endian);
+static bool glitter_emitter_unpack_file(GLT, void* data, glitter_emitter* a2, bool use_big_endian);
 
 glitter_emitter* glitter_emitter_init(GLT) {
-    glitter_emitter* e = force_malloc(sizeof(glitter_emitter));
+    glitter_emitter* e = force_malloc_s(glitter_emitter, 1);
     e->version = GLT_VAL == GLITTER_X ? 0x04 : 0x02;
     e->scale = vec3_identity;
     e->data.loop_start_time = 0;
@@ -26,7 +26,7 @@ glitter_emitter* glitter_emitter_copy(glitter_emitter* e) {
     if (!e)
         return 0;
 
-    glitter_emitter* ec = force_malloc(sizeof(glitter_emitter));
+    glitter_emitter* ec = force_malloc_s(glitter_emitter, 1);
     *ec = *e;
 
     ec->particles = vector_ptr_empty(glitter_particle);
@@ -121,37 +121,37 @@ static bool glitter_emitter_pack_file(GLT, f2_struct* st, glitter_emitter* a2) {
     vector_enrs_entry e = vector_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = (enrs_entry){ 0, 5, 96, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 5, ENRS_DWORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_WORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_DWORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_WORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 15, ENRS_DWORD });
+    ee = { 0, 5, 96, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 5, ENRS_DWORD);
+    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+    vector_enrs_sub_entry_append(&ee.sub, 0, 15, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
     l += o = 96;
 
     switch (a2->data.type) {
     case GLITTER_EMITTER_BOX:
-        ee = (enrs_entry){ o, 1, 12, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
+        ee = { o, 1, 12, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += o = 12;
         break;
     case GLITTER_EMITTER_CYLINDER:
-        ee = (enrs_entry){ o, 1, 20, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 5, ENRS_DWORD });
+        ee = { o, 1, 20, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 5, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += o = 20;
         break;
     case GLITTER_EMITTER_SPHERE:
-        ee = (enrs_entry){ o, 1, 16, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 4, ENRS_DWORD });
+        ee = { o, 1, 16, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += o = 16;
         break;
     case GLITTER_EMITTER_POLYGON:
-        ee = (enrs_entry){ o, 1, 8, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_DWORD });
+        ee = { o, 1, 8, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += o = 8;
         break;
@@ -216,7 +216,7 @@ static bool glitter_emitter_pack_file(GLT, f2_struct* st, glitter_emitter* a2) {
 }
 
 static bool glitter_emitter_unpack_file(GLT,
-    int32_t* data, glitter_emitter* a2, bool use_big_endian) {
+    void* data, glitter_emitter* a2, bool use_big_endian) {
     size_t d;
 
     d = (size_t)data;
@@ -226,14 +226,15 @@ static bool glitter_emitter_unpack_file(GLT,
             a2->data.life_time = load_reverse_endianness_int32_t((void*)(d + 4));
             a2->data.loop_start_time = load_reverse_endianness_int32_t((void*)(d + 8));
             a2->data.loop_end_time = load_reverse_endianness_int32_t((void*)(d + 12));
-            a2->data.flags = load_reverse_endianness_int32_t((void*)(d + 16));
+            a2->data.flags = (glitter_emitter_flag)
+                load_reverse_endianness_int32_t((void*)(d + 16));
         }
         else {
             a2->data.start_time = *(int32_t*)d;
             a2->data.life_time = *(int32_t*)(d + 4);
             a2->data.loop_start_time = *(int32_t*)(d + 8);
             a2->data.loop_end_time = *(int32_t*)(d + 12);
-            a2->data.flags = *(int32_t*)(d + 16);
+            a2->data.flags = (glitter_emitter_flag) * (int32_t*)(d + 16);
         }
         d += 20;
 
@@ -241,19 +242,22 @@ static bool glitter_emitter_unpack_file(GLT,
             return false;
 
         if (use_big_endian) {
-            a2->data.type = load_reverse_endianness_int16_t((void*)d);
-            a2->data.direction = load_reverse_endianness_int16_t((void*)(d + 2));
+            a2->data.type = (glitter_emitter_type)
+                load_reverse_endianness_int16_t((void*)d);
+            a2->data.direction = (glitter_direction)
+                load_reverse_endianness_int16_t((void*)(d + 2));
             a2->data.emission_interval = load_reverse_endianness_float_t((void*)(d + 4));
             a2->data.particles_per_emission = load_reverse_endianness_float_t((void*)(d + 8));
-            a2->data.timer = load_reverse_endianness_int16_t((void*)(d + 12));
+            a2->data.timer = (glitter_emitter_timer_type)
+                load_reverse_endianness_int16_t((void*)(d + 12));
             a2->data.seed = load_reverse_endianness_int32_t((void*)(d + 16));
         }
         else {
-            a2->data.type = *(int16_t*)d;
-            a2->data.direction = *(int16_t*)(d + 2);
+            a2->data.type = (glitter_emitter_type) * (int16_t*)d;
+            a2->data.direction = (glitter_direction) * (int16_t*)(d + 2);
             a2->data.emission_interval = *(float_t*)(d + 4);
             a2->data.particles_per_emission = *(float_t*)(d + 8);
-            a2->data.timer = *(int16_t*)(d + 12);
+            a2->data.timer = (glitter_emitter_timer_type) * (int16_t*)(d + 12);
             a2->data.seed = *(int32_t*)(d + 16);
         }
         d += a2->version == 3 ? 36 : 32;
@@ -297,19 +301,22 @@ static bool glitter_emitter_unpack_file(GLT,
                 a2->data.cylinder.start_angle = load_reverse_endianness_float_t((void*)(d + 8));
                 a2->data.cylinder.end_angle = load_reverse_endianness_float_t((void*)(d + 12));
                 a2->data.cylinder.on_edge = load_reverse_endianness_int32_t((void*)(d + 16)) & 1 ? true : false;
-                a2->data.cylinder.direction = load_reverse_endianness_int32_t((void*)(d + 16)) >> 1;
+                a2->data.cylinder.direction = (glitter_emitter_emission_direction)
+                    (load_reverse_endianness_int32_t((void*)(d + 16)) >> 1);
                 return true;
             case GLITTER_EMITTER_SPHERE:
                 a2->data.sphere.radius = load_reverse_endianness_float_t((void*)d);
                 a2->data.sphere.latitude = load_reverse_endianness_float_t((void*)(d + 4));
                 a2->data.sphere.longitude = load_reverse_endianness_float_t((void*)(d + 8));
                 a2->data.sphere.on_edge = load_reverse_endianness_int32_t((void*)(d + 12)) & 1 ? true : false;
-                a2->data.sphere.direction = load_reverse_endianness_int32_t((void*)(d + 12)) >> 1;
+                a2->data.sphere.direction = (glitter_emitter_emission_direction)
+                    (load_reverse_endianness_int32_t((void*)(d + 12)) >> 1);
                 return true;
             case GLITTER_EMITTER_POLYGON:
                 a2->data.polygon.size = load_reverse_endianness_float_t((void*)d);
                 a2->data.polygon.count = load_reverse_endianness_int32_t((void*)(d + 4));
-                a2->data.polygon.direction = load_reverse_endianness_int32_t((void*)(d + 8)) >> 1;
+                a2->data.polygon.direction = (glitter_emitter_emission_direction)
+                    (load_reverse_endianness_int32_t((void*)(d + 8)) >> 1);
                 return true;
             default:
                 return false;
@@ -325,19 +332,22 @@ static bool glitter_emitter_unpack_file(GLT,
                 a2->data.cylinder.start_angle = *(float_t*)(d + 8);
                 a2->data.cylinder.end_angle = *(float_t*)(d + 12);
                 a2->data.cylinder.on_edge = *(int32_t*)(d + 16) & 1 ? true : false;
-                a2->data.cylinder.direction = *(int32_t*)(d + 16) >> 1;
+                a2->data.cylinder.direction = (glitter_emitter_emission_direction)
+                    (*(int32_t*)(d + 16) >> 1);
                 return true;
             case GLITTER_EMITTER_SPHERE:
                 a2->data.sphere.radius = *(float_t*)d;
                 a2->data.sphere.latitude = *(float_t*)(d + 4);
                 a2->data.sphere.longitude = *(float_t*)(d + 8);
                 a2->data.sphere.on_edge = *(int32_t*)(d + 12) & 1 ? true : false;
-                a2->data.sphere.direction = *(int32_t*)(d + 12) >> 1;
+                a2->data.sphere.direction = (glitter_emitter_emission_direction)
+                    (*(int32_t*)(d + 12) >> 1);
                 return true;
             case GLITTER_EMITTER_POLYGON:
                 a2->data.polygon.size = *(float_t*)d;
                 a2->data.polygon.count = *(int32_t*)(d + 4);
-                a2->data.polygon.direction = *(int32_t*)(d + 8) >> 1;
+                a2->data.polygon.direction = (glitter_emitter_emission_direction)
+                    (*(int32_t*)(d + 8) >> 1);
                 return true;
             default:
                 return false;
@@ -349,14 +359,15 @@ static bool glitter_emitter_unpack_file(GLT,
             a2->data.life_time = load_reverse_endianness_int32_t((void*)(d + 4));
             a2->data.loop_start_time = load_reverse_endianness_int32_t((void*)(d + 8));
             a2->data.loop_end_time = load_reverse_endianness_int32_t((void*)(d + 12));
-            a2->data.flags = load_reverse_endianness_int32_t((void*)(d + 16));
+            a2->data.flags = (glitter_emitter_flag)
+                load_reverse_endianness_int32_t((void*)(d + 16));
         }
         else {
             a2->data.start_time = *(int32_t*)d;
             a2->data.life_time = *(int32_t*)(d + 4);
             a2->data.loop_start_time = *(int32_t*)(d + 8);
             a2->data.loop_end_time = *(int32_t*)(d + 12);
-            a2->data.flags = *(int32_t*)(d + 16);
+            a2->data.flags = (glitter_emitter_flag) * (int32_t*)(d + 16);
         }
         d += 20;
 
@@ -366,8 +377,10 @@ static bool glitter_emitter_unpack_file(GLT,
             return false;
 
         if (use_big_endian) {
-            a2->data.type = load_reverse_endianness_int16_t((void*)d);
-            a2->data.direction = load_reverse_endianness_int16_t((void*)(d + 2));
+            a2->data.type = (glitter_emitter_type)
+                load_reverse_endianness_int16_t((void*)d);
+            a2->data.direction = (glitter_direction)
+                load_reverse_endianness_int16_t((void*)(d + 2));
             a2->data.emission_interval = load_reverse_endianness_float_t((void*)(d + 4));
             a2->data.particles_per_emission = load_reverse_endianness_float_t((void*)(d + 8));
             a2->translation.x = load_reverse_endianness_float_t((void*)(d + 16));
@@ -387,8 +400,8 @@ static bool glitter_emitter_unpack_file(GLT,
             a2->data.rotation_add_random.z = load_reverse_endianness_float_t((void*)(d + 72));
         }
         else {
-            a2->data.type = *(int16_t*)d;
-            a2->data.direction = *(int16_t*)(d + 2);
+            a2->data.type = (glitter_emitter_type) * (int16_t*)d;
+            a2->data.direction = (glitter_direction) * (int16_t*)(d + 2);
             a2->data.emission_interval = *(float_t*)(d + 4);
             a2->data.particles_per_emission = *(float_t*)(d + 8);
             a2->translation = *(vec3*)(d + 16);
@@ -412,14 +425,16 @@ static bool glitter_emitter_unpack_file(GLT,
                 a2->data.cylinder.start_angle = load_reverse_endianness_float_t((void*)(d + 8));
                 a2->data.cylinder.end_angle = load_reverse_endianness_float_t((void*)(d + 12));
                 a2->data.cylinder.on_edge = load_reverse_endianness_int32_t((void*)(d + 16)) & 1 ? true : false;
-                a2->data.cylinder.direction = load_reverse_endianness_int32_t((void*)(d + 16)) >> 1;
+                a2->data.cylinder.direction = (glitter_emitter_emission_direction)
+                    (load_reverse_endianness_int32_t((void*)(d + 16)) >> 1);
                 return true;
             case GLITTER_EMITTER_SPHERE:
                 a2->data.sphere.radius = load_reverse_endianness_float_t((void*)d);
                 a2->data.sphere.latitude = load_reverse_endianness_float_t((void*)(d + 4));
                 a2->data.sphere.longitude = load_reverse_endianness_float_t((void*)(d + 8));
                 a2->data.sphere.on_edge = load_reverse_endianness_int32_t((void*)(d + 12)) & 1 ? true : false;
-                a2->data.sphere.direction = load_reverse_endianness_int32_t((void*)(d + 12)) >> 1;
+                a2->data.sphere.direction = (glitter_emitter_emission_direction)
+                    (load_reverse_endianness_int32_t((void*)(d + 12)) >> 1);
                 return true;
             case GLITTER_EMITTER_POLYGON:
                 a2->data.polygon.size = load_reverse_endianness_float_t((void*)d);
@@ -439,14 +454,16 @@ static bool glitter_emitter_unpack_file(GLT,
                 a2->data.cylinder.start_angle = *(float_t*)(d + 8);
                 a2->data.cylinder.end_angle = *(float_t*)(d + 12);
                 a2->data.cylinder.on_edge = *(int32_t*)(d + 16) & 1 ? true : false;
-                a2->data.cylinder.direction = *(int32_t*)(d + 16) >> 1;
+                a2->data.cylinder.direction = (glitter_emitter_emission_direction)
+                    (*(int32_t*)(d + 16) >> 1);
                 return true;
             case GLITTER_EMITTER_SPHERE:
                 a2->data.sphere.radius = *(float_t*)d;
                 a2->data.sphere.latitude = *(float_t*)(d + 4);
                 a2->data.sphere.longitude = *(float_t*)(d + 8);
                 a2->data.sphere.on_edge = *(int32_t*)(d + 12) & 1 ? true : false;
-                a2->data.sphere.direction = *(int32_t*)(d + 12) >> 1;
+                a2->data.sphere.direction = (glitter_emitter_emission_direction)
+                    (*(int32_t*)(d + 12) >> 1);
                 return true;
             case GLITTER_EMITTER_POLYGON:
                 a2->data.polygon.size = *(float_t*)d;

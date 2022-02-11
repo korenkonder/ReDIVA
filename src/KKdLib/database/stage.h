@@ -24,11 +24,17 @@ typedef enum stage_data_flags {
     STAGE_DATA_FLAG_8              = 0x8,
 } stage_data_flags;
 
-typedef enum stage_data_reflect_refract_resolution_mode {
-    STAGE_DATA_REFLECT_REFRACT_RESOLUTION_256x256 = 0x00,
-    STAGE_DATA_REFLECT_REFRACT_RESOLUTION_512x256 = 0x01,
-    STAGE_DATA_REFLECT_REFRACT_RESOLUTION_512x512 = 0x02,
-} stage_data_reflect_refract_resolution_mode;
+typedef enum stage_data_reflect_resolution_mode {
+    STAGE_DATA_REFLECT_RESOLUTION_256X256 = 0x00,
+    STAGE_DATA_REFLECT_RESOLUTION_512x256 = 0x01,
+    STAGE_DATA_REFLECT_RESOLUTION_512x512 = 0x02,
+} stage_data_reflect_resolution_mode;
+
+typedef enum stage_data_refract_resolution_mode {
+    STAGE_DATA_REFRACT_RESOLUTION_256X256 = 0x00,
+    STAGE_DATA_REFRACT_RESOLUTION_512X256 = 0x01,
+    STAGE_DATA_REFRACT_RESOLUTION_512X512 = 0x02,
+} stage_data_refract_resolution_mode;
 
 typedef enum stage_data_blur_filter_mode {
     STAGE_DATA_BLUR_FILTER_4  = 0x00,
@@ -38,13 +44,13 @@ typedef enum stage_data_blur_filter_mode {
 } stage_data_blur_filter_mode;
 
 typedef struct stage_data_reflect {
-    stage_data_reflect_refract_resolution_mode mode;
+    stage_data_reflect_resolution_mode mode;
     int32_t blur_num;
     stage_data_blur_filter_mode blur_filter;
 } stage_data_reflect;
 
 typedef struct stage_data_refract {
-    stage_data_reflect_refract_resolution_mode mode;
+    stage_data_refract_resolution_mode mode;
 } stage_data_refract;
 
 typedef struct stage_effects {
@@ -141,7 +147,7 @@ typedef struct stage_database {
     };
 
     union {
-        vector_stage_info stage;
+        vector_stage_info stage_classic;
         vector_stage_info_modern stage_modern;
     };
 } stage_database;

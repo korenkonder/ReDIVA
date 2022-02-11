@@ -47,11 +47,15 @@ extern void motion_database_split_mdata(motion_database* mot_db,
     motion_database* base_mot_db, motion_database* mdata_mot_db);
 extern motion_set_info* motion_database_get_motion_set_by_id(motion_database* mot_db, uint32_t id);
 extern motion_set_info* motion_database_get_motion_set_by_name(motion_database* mot_db, char* name);
+extern motion_set_info* motion_database_get_motion_set_by_name(motion_database* mot_db, const char* name);
 extern uint32_t motion_database_get_motion_set_id(motion_database* mot_db, char* name);
+extern uint32_t motion_database_get_motion_set_id(motion_database* mot_db, const char* name);
 extern char* motion_database_get_motion_set_name(motion_database* mot_db, uint32_t id);
 extern motion_info* motion_database_get_motion_by_id(motion_database* mot_db, uint32_t id);
 extern motion_info* motion_database_get_motion_by_name(motion_database* mot_db, char* name);
+extern motion_info* motion_database_get_motion_by_name(motion_database* mot_db, const char* name);
 extern uint32_t motion_database_get_motion_id(motion_database* mot_db, char* name);
+extern uint32_t motion_database_get_motion_id(motion_database* mot_db, const char* name);
 extern char* motion_database_get_motion_name(motion_database* mot_db, uint32_t id);
 extern void motion_database_free(motion_database* mot_db);
 

@@ -97,7 +97,7 @@ bool light_param_fog_load_file(void* data, char* path, char* file, uint32_t hash
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    light_param_fog* fog = data;
+    light_param_fog* fog = (light_param_fog*)data;
     light_param_fog_read(fog, string_data(&s));
 
     string_free(&s);
@@ -109,7 +109,7 @@ void light_param_fog_free(light_param_fog* fog) {
 }
 
 static void light_param_fog_read_inner(light_param_fog* fog, stream* s) {
-    char* data = force_malloc(s->length + 1);
+    char* data = force_malloc_s(char, s->length + 1);
     io_read(s, data, s->length);
     data[s->length] = 0;
 
@@ -188,7 +188,7 @@ End:
 static void light_param_fog_write_inner(light_param_fog* fog, stream* s) {
     char buf[0x100];
 
-    for (int32_t i = 0; i < FOG_MAX; i++) {
+    for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++) {
         light_param_fog_group* group = &fog->group[i];
         io_write(s, "group_start", 11);
         light_param_fog_write_int32_t(s, buf, sizeof(buf), i);

@@ -58,7 +58,7 @@ int32_t shader_bind(shader* shader, uint32_t sub_index) {
         for (i = 0; i < num_uniform && i < 16; i++) {
             int32_t unival_max = shader->use_permut[i]
                 ? max(vp_unival_max[i], fp_unival_max[i]) : 0;
-            unival += unival_curr * min(uniform_value[shader->use_uniform[i]], unival_max);
+            unival += unival_curr * min(uniform_value[(int32_t)shader->use_uniform[i]], unival_max);
             unival_curr *= unival_max + 1;
 
             int32_t unival_max_glsl = max(vp_unival_max[i], fp_unival_max[i]);
@@ -95,7 +95,15 @@ inline void shader_draw_range_elements(shader_set_data* set,
 int32_t shader_get_index_by_name(shader_set_data* set, char* name) {
     shader* shaders = set->shaders;
     for (size_t i = 0; i < set->size; i++)
-        if (!str_utils_compare((char*)shaders[i].name, name))
+        if (!str_utils_compare(shaders[i].name, name))
+            return (int32_t)shaders[i].index;
+    return -1;
+}
+
+int32_t shader_get_index_by_name(shader_set_data* set, const char* name) {
+    shader* shaders = set->shaders;
+    for (size_t i = 0; i < set->size; i++)
+        if (!str_utils_compare(shaders[i].name, name))
             return (int32_t)shaders[i].index;
     return -1;
 }
@@ -128,11 +136,11 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
     GLsizei buffer_size = 0x20000;
     void* binary = force_malloc(buffer_size);
     size_t temp_vert_size = 0x10000;
-    char* temp_vert = force_malloc(temp_vert_size);
+    char* temp_vert = force_malloc_s(char, temp_vert_size);
     size_t temp_frag_size = 0x10000;
-    char* temp_frag = force_malloc(temp_frag_size);
-    vector_uint32_t vec_vert = vector_empty(uint32_t);
-    vector_uint32_t vec_frag = vector_empty(uint32_t);
+    char* temp_frag = force_malloc_s(char, temp_frag_size);
+    vector_int32_t vec_vert = vector_empty(int32_t);
+    vector_int32_t vec_frag = vector_empty(int32_t);
     vector_program_binary program_data_binary = vector_empty(program_binary);
     set->shaders = force_malloc_s(shader, size);
     set->size = size;
@@ -149,8 +157,8 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
         int32_t num_sub = shader->num_sub;
         const shader_sub_table* sub_table = shaders_table[i]->sub;
         shader_sub* sub = shader->sub;
-        vector_uint32_t_reserve(&vec_vert, shader->num_uniform);
-        vector_uint32_t_reserve(&vec_frag, shader->num_uniform);
+        vector_int32_t_reserve(&vec_vert, shader->num_uniform);
+        vector_int32_t_reserve(&vec_frag, shader->num_uniform);
         for (size_t j = 0; j < num_sub; j++, sub++, sub_table++) {
             sub->sub_index = sub_table->sub_index;
             sub->vp_unival_max = sub_table->vp_unival_max;
@@ -163,7 +171,7 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
 
             char* vert_data = 0;
             if (vert_ff && vert_ff->data) {
-                vert_data = force_malloc(vert_ff->size + 1);
+                vert_data = force_malloc_s(char, vert_ff->size + 1);
                 if (vert_data) {
                     memcpy(vert_data, vert_ff->data, vert_ff->size);
                     vert_data[vert_ff->size] = 0;
@@ -177,7 +185,7 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
 
             char* frag_data = 0;
             if (frag_ff && frag_ff->data) {
-                frag_data = force_malloc(frag_ff->size + 1);
+                frag_data = force_malloc_s(char, frag_ff->size + 1);
                 if (frag_data) {
                     memcpy(frag_data, frag_ff->data, frag_ff->size);
                     frag_data[frag_ff->size] = 0;
@@ -190,8 +198,8 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                 continue;
             }
 
-            uint64_t vert_file_name_cache = hash_fnv1a64m(vert_file_buf, utf8_length(vert_file_buf), false);
-            uint64_t frag_file_name_cache = hash_fnv1a64m(frag_file_buf, utf8_length(frag_file_buf), false);
+            uint64_t vert_file_name_cache = hash_utf8_fnv1a64m(vert_file_buf, false);
+            uint64_t frag_file_name_cache = hash_utf8_fnv1a64m(frag_file_buf, false);
             for (int32_t i = 0; i < 64; i += 8)
                 if (((vert_file_name_cache >> i) & 0xFF) == 0)
                     vert_file_name_cache |= 0xFFULL << i;
@@ -210,8 +218,8 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
 
             vert_data = shader_parse_include(vert_data, f);
             frag_data = shader_parse_include(frag_data, f);
-            uint64_t vert_data_hash = hash_fnv1a64m(vert_data, utf8_length(vert_data), false);
-            uint64_t frag_data_hash = hash_fnv1a64m(frag_data, utf8_length(frag_data), false);
+            uint64_t vert_data_hash = hash_utf8_fnv1a64m(vert_data, false);
+            uint64_t frag_data_hash = hash_utf8_fnv1a64m(frag_data, false);
 
             farc_file* shader_cache_file = farc_read_file(&shader_cache_farc, shader_cache_file_name);
             program_binary* bin = 0;
@@ -383,7 +391,9 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                     memcpy((void*)bin_data, (void*)j->binary, j->length);
                     bin_data_base += sizeof(program_binary);
                     bin_data += j->length;
-                    free((void*)j->binary);
+                    void* binary = (void*)j->binary;
+                    free(binary);
+                    j->binary = 0;
                 }
                 vector_program_binary_clear(&program_data_binary, 0);
             }
@@ -391,8 +401,8 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
             free(vert_data);
             free(frag_data);
         }
-        vector_uint32_t_clear(&vec_vert, 0);
-        vector_uint32_t_clear(&vec_frag, 0);
+        vector_int32_t_clear(&vec_vert, 0);
+        vector_int32_t_clear(&vec_frag, 0);
 
         for (size_t j = 0; j < bind_func_table_size; j++)
             if (shader->index == bind_func_table[j].index) {
@@ -400,8 +410,8 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                 break;
             }
     }
-    vector_uint32_t_free(&vec_vert, 0);
-    vector_uint32_t_free(&vec_frag, 0);
+    vector_int32_t_free(&vec_vert, 0);
+    vector_int32_t_free(&vec_frag, 0);
     vector_program_binary_free(&program_data_binary, 0);
     free(binary);
     free(temp_vert);
@@ -435,6 +445,13 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
     glBufferData(GL_UNIFORM_BUFFER,
         sizeof(set->data.buffer), (void*)&set->data.buffer, GL_DYNAMIC_DRAW);
     gl_state_bind_uniform_buffer(0);
+}
+
+inline void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load_cache,
+    const char* name, const shader_table** shaders_table, const size_t size,
+    const shader_bind_func* bind_func_table, const size_t bind_func_table_size) {
+    shader_load(set, f, ignore_cache, not_load_cache, (char*)name,
+        shaders_table, size, bind_func_table, bind_func_table_size);
 }
 
 void shader_free(shader_set_data* set) {
@@ -2192,13 +2209,13 @@ static GLuint shader_compile_shader(GLenum type, char* data, char* file) {
         return 0;
 
     GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, (void*)&data, 0);
+    glShaderSource(shader, 1, &data, 0);
     glCompileShader(shader);
 
     GLint success = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc(0x10000);
+        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetShaderInfoLog(shader, 0x10000, 0, info_log);
         printf("Shader compile error:\n");
         printf("file: %s\n", file);
@@ -2254,7 +2271,7 @@ static GLuint shader_compile(char* vert, char* frag, char* vp, char* fp) {
     GLint success = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc(0x10000);
+        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
         printf("Program Shader Permut linking error:\n");
         printf("vp: %s; fp: %s\n", vp, fp);
@@ -2292,7 +2309,7 @@ static GLuint shader_compile_binary(char* vert, char* frag, char* vp, char* fp,
     GLint success = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc(0x10000);
+        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
         printf("Program Shader Permut linking error:\n");
         printf("vp: %s; fp: %s\n", vp, fp);
@@ -2363,7 +2380,7 @@ static bool shader_parse_define(char* data, int32_t num_uniform,
         if (len + 1 > *temp_size) {
             free(*temp);
             *temp_size = len + 1;
-            *temp = force_malloc(*temp_size);
+            *temp = force_malloc_s(char, *temp_size);
         }
 
         size_t pos = 0;
@@ -2399,7 +2416,7 @@ static bool shader_parse_define(char* data, int32_t num_uniform,
     if (len + 1 > *temp_size) {
         free(*temp);
         *temp_size = len + 1;
-        *temp = force_malloc(*temp_size);
+        *temp = force_malloc_s(char, *temp_size);
     }
 
     size_t pos = 0;
@@ -2460,7 +2477,7 @@ static char* shader_parse_include(char* data, farc* f) {
         i0 += 10;
         size_t s = i1 - i0;
         i1 += 2;
-        char* t = force_malloc(s + 1);
+        char* t = force_malloc_s(char, s + 1);
         if (!t)
             continue;
 
@@ -2472,7 +2489,7 @@ static char* shader_parse_include(char* data, farc* f) {
         if (!ff)
             continue;
 
-        t = force_malloc(ff->size + 1);
+        t = force_malloc_s(char, ff->size + 1);
         if (t) {
             memcpy(t, ff->data, ff->size);
             t[ff->size] = 0;
@@ -2493,7 +2510,7 @@ static char* shader_parse_include(char* data, farc* f) {
         len += temp_len[i];
     }
 
-    char* temp_data = force_malloc(len + 1);
+    char* temp_data = force_malloc_s(char, len + 1);
     size_t pos = 0;
     memcpy(temp_data + pos, data, temp_ptr0[0] - data);
     pos += temp_ptr0[0] - data;

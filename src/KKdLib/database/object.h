@@ -63,10 +63,14 @@ extern void object_database_split_mdata(object_database* obj_db,
     object_database* base_obj_db, object_database* mdata_obj_db);
 extern bool object_database_get_object_set_info(object_database* obj_db,
     char* name, object_set_info** set_info);
+extern bool object_database_get_object_set_info(object_database* obj_db,
+    const char* name, object_set_info** set_info);
 extern bool object_database_get_object_set_info_by_set_id(object_database* obj_db,
     uint32_t set_id, object_set_info** set_info);
 extern bool object_database_get_object_info_data(object_database* obj_db,
     char* name, object_info_data** info);
+extern bool object_database_get_object_info_data(object_database* obj_db,
+    const char* name, object_info_data** info);
 extern bool object_database_get_object_info_data_by_fnv1a64m_hash(object_database* obj_db,
     uint64_t hash, object_info_data** info);
 extern bool object_database_get_object_info_data_by_fnv1a64m_hash_upper(object_database* obj_db,
@@ -74,6 +78,7 @@ extern bool object_database_get_object_info_data_by_fnv1a64m_hash_upper(object_d
 extern bool object_database_get_object_info_data_by_murmurhash(object_database* obj_db,
     uint32_t hash, object_info_data** info);
 extern object_info object_database_get_object_info(object_database* obj_db, char* name);
+extern object_info object_database_get_object_info(object_database* obj_db, const char* name);
 extern char* object_database_get_object_name(object_database* obj_db, object_info obj_info);
 extern void object_database_free(object_database* obj_db);
 

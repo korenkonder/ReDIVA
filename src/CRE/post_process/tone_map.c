@@ -14,7 +14,7 @@ static void post_process_tone_map_calculate_data(post_process_tone_map* tm);
 static void post_process_tone_map_calculate_tex(post_process_tone_map* tm);
 
 post_process_tone_map* post_process_tone_map_init() {
-    post_process_tone_map* exp = force_malloc(sizeof(post_process_tone_map));
+    post_process_tone_map* exp = force_malloc_s(post_process_tone_map, 1);
     return exp;
 }
 
@@ -38,9 +38,10 @@ void post_process_apply_tone_map(post_process_tone_map* tm,
             16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 0, GL_RG, GL_FLOAT, tm->data.tex);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 
+        GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteriv(GL_TEXTURE_1D, GL_TEXTURE_SWIZZLE_RGBA, (GLint[]) { GL_RED, GL_RED, GL_RED, GL_GREEN });
+        glTexParameteriv(GL_TEXTURE_1D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         glBindTexture(GL_TEXTURE_1D, 0);
         tm->data.update_tex = false;
     }

@@ -39,7 +39,7 @@ void key_val_init(key_val* kv, uint8_t* data, size_t length) {
             continue;
 
         size_t len = utf8_length(s);
-        char* c = memchr(s, '=', len);
+        char* c = (char*)memchr(s, '=', len);
         if (!c)
             continue;
 
@@ -51,7 +51,7 @@ void key_val_init(key_val* kv, uint8_t* data, size_t length) {
         size_t key_length = c - s;
         size_t val_length = len - (key_length + 1);
 
-        uint64_t key_hash = hash_fnv1a64m(key_str_data, key_length, false);
+        uint64_t key_hash = hash_fnv1a64m((uint8_t*)key_str_data, key_length, false);
 
         vector_ptr_char_push_back(&kv->key, &key_str_data);
         vector_size_t_push_back(&kv->key_len, &key_length);
@@ -75,9 +75,9 @@ void key_val_file_read(key_val* kv, char* path) {
     stream s;
     io_open(&s, path, "rb");
     if (s.io.stream) {
-        char* d = force_malloc(s.length);
+        char* d = force_malloc_s(char, s.length);
         io_read(&s, d, s.length);
-        key_val_init(kv, d, s.length);
+        key_val_init(kv, (uint8_t*)d, s.length);
         free(d);
     }
     io_free(&s);
@@ -95,9 +95,9 @@ void key_val_wfile_read(key_val* kv, wchar_t* path) {
     stream s;
     io_wopen(&s, path, L"rb");
     if (s.io.stream) {
-        char* d = force_malloc(s.length);
+        char* d = force_malloc_s(char, s.length);
         io_read(&s, d, s.length);
-        key_val_init(kv, d, s.length);
+        key_val_init(kv, (uint8_t*)d, s.length);
         free(d);
     }
     io_free(&s);
@@ -145,6 +145,10 @@ bool key_val_get_local_key_val(key_val* kv, char* str, key_val* lkv) {
     return true;
 }
 
+inline bool key_val_get_local_key_val(key_val* kv, const char* str, key_val* lkv) {
+    return key_val_get_local_key_val(kv, (char*)str, lkv);
+}
+
 bool key_val_has_key(key_val* kv, char* str) {
     size_t str_length = utf8_length(str);
 
@@ -160,7 +164,7 @@ bool key_val_has_key(key_val* kv, char* str) {
 }
 
 bool key_val_read_bool(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, bool* value) {
+    size_t offset, const char* str_add, size_t str_add_len, bool* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -175,7 +179,7 @@ bool key_val_read_bool(key_val* kv, char* buf,
 }
 
 void key_val_write_bool(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, bool value) {
+    size_t offset, const char* str_add, size_t str_add_len, bool value) {
     if (!value)
         return;
 
@@ -187,7 +191,7 @@ void key_val_write_bool(stream* s, char* buf,
 }
 
 bool key_val_read_float_t(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, float_t* value) {
+    size_t offset, const char* str_add, size_t str_add_len, float_t* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -202,7 +206,7 @@ bool key_val_read_float_t(key_val* kv, char* buf,
 }
 
 void key_val_write_float_t(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, float_t value) {
+    size_t offset, const char* str_add, size_t str_add_len, float_t value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -216,7 +220,7 @@ void key_val_write_float_t(stream* s, char* buf,
 }
 
 bool key_val_read_int32_t(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, int32_t* value) {
+    size_t offset, const char* str_add, size_t str_add_len, int32_t* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -231,7 +235,7 @@ bool key_val_read_int32_t(key_val* kv, char* buf,
 }
 
 void key_val_write_int32_t(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, int32_t value) {
+    size_t offset, const char* str_add, size_t str_add_len, int32_t value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -245,7 +249,7 @@ void key_val_write_int32_t(stream* s, char* buf,
 }
 
 bool key_val_read_uint32_t(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, uint32_t* value) {
+    size_t offset, const char* str_add, size_t str_add_len, uint32_t* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -260,7 +264,7 @@ bool key_val_read_uint32_t(key_val* kv, char* buf,
 }
 
 void key_val_write_uint32_t(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, uint32_t value) {
+    size_t offset, const char* str_add, size_t str_add_len, uint32_t value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -274,7 +278,7 @@ void key_val_write_uint32_t(stream* s, char* buf,
 }
 
 bool key_val_read_string(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, string* value) {
+    size_t offset, const char* str_add, size_t str_add_len, string* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -289,7 +293,7 @@ bool key_val_read_string(key_val* kv, char* buf,
 }
 
 bool key_val_read_string_ptr(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, char** value) {
+    size_t offset, const char* str_add, size_t str_add_len, char** value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -304,7 +308,7 @@ bool key_val_read_string_ptr(key_val* kv, char* buf,
 }
 
 void key_val_write_string(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, string* value) {
+    size_t offset, const char* str_add, size_t str_add_len, string* value) {
     if (!string_data(value))
         return;
 
@@ -318,7 +322,21 @@ void key_val_write_string(stream* s, char* buf,
 }
 
 void key_val_write_string_ptr(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, char* value) {
+    size_t offset, const char* str_add, size_t str_add_len, char* value) {
+    if (!value)
+        return;
+
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    io_write_utf8_string(s, buf);
+    io_write_char(s, '=');
+    io_write_utf8_string(s, value);
+    io_write_char(s, '\n');
+}
+
+void key_val_write_string_ptr(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, const char* value) {
     if (!value)
         return;
 
@@ -332,7 +350,7 @@ void key_val_write_string_ptr(stream* s, char* buf,
 }
 
 bool key_val_read_vec3(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, vec3* value) {
+    size_t offset, const char* str_add, size_t str_add_len, vec3* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -350,7 +368,7 @@ bool key_val_read_vec3(key_val* kv, char* buf,
 }
 
 void key_val_write_vec3(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, vec3* value) {
+    size_t offset, const char* str_add, size_t str_add_len, vec3* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -435,7 +453,7 @@ static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
     if (vector_length(kv->key_hash) < 1)
         return -1;
 
-    uint64_t hash = hash_fnv1a64m(str, length, false);
+    uint64_t hash = hash_fnv1a64m((uint8_t*)str, length, false);
 
     uint64_t* key = kv->key_hash.begin;
     size_t len = vector_length(kv->key);
@@ -480,15 +498,15 @@ static void key_val_sort(key_val* kv) {
     size_t* key_index = kv->key_index.begin;
     for (size_t i = 0; i < count; i++) {
         *key_index++ = i;
-        *key_hash++ = hash_fnv1a64m(*key++, *key_len++, false);
+        *key_hash++ = hash_fnv1a64m((uint8_t*)*key++, *key_len++, false);
     }
 
     if (count < 2)
         return;
 
-    uint64_t* o_key_hash = force_malloc_s(uint64_t, count);
-    size_t* o_key_index = force_malloc_s(size_t, count);
-    size_t* c = force_malloc_s(size_t, (1 << 8));
+    uint64_t* o_key_hash = (uint64_t*)force_malloc_s(uint64_t, count);
+    size_t* o_key_index = (size_t*)force_malloc_s(size_t, count);
+    size_t* c = (size_t*)force_malloc_s(size_t, (1 << 8));
     uint64_t* arr_key_hash = kv->key_hash.begin;
     size_t* arr_key_index = kv->key_index.begin;
     uint64_t* org_arr = arr_key_hash;

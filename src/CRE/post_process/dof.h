@@ -13,10 +13,10 @@
 #include "../shared.h"
 
 typedef enum dof_debug_flags {
-    DOF_DEBUG_USE_UI_PARAMS = 0x1,
-    DOF_DEBUG_ENABLE_DOF = 0x2,
-    DOF_DEBUG_ENABLE_PHYS_DOF = 0x4,
-    DOF_DEBUG_AUTO_FOCUS = 0x8,
+    DOF_DEBUG_USE_UI_PARAMS   = 0x01,
+    DOF_DEBUG_ENABLE_DOF      = 0x02,
+    DOF_DEBUG_ENABLE_PHYS_DOF = 0x04,
+    DOF_DEBUG_AUTO_FOCUS      = 0x08,
 } dof_debug_flags;
 
 typedef struct dof_f2 {

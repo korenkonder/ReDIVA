@@ -296,8 +296,6 @@ struct auth_3d_camera_root {
     vec3 interest_value;
     float_t roll_value;
     vec3 view_point_value;
-    bool fast_change;
-    bool fast_change_hist0;
 };
 
 struct auth_3d_chara {
@@ -612,8 +610,8 @@ typedef struct auth_3d_farc {
 extern auth_3d_data_struct auth_3d_data;
 
 extern void auth_3d_init(auth_3d* auth);
-extern void auth_3d_data_set(auth_3d* auth, mat4* mat, render_context* rctx);
-extern void auth_3d_time_step(auth_3d* auth, mat4* mat);
+extern void auth_3d_ctrl(auth_3d* auth, mat4* mat, render_context* rctx);
+extern void auth_3d_disp(auth_3d* auth, mat4* mat, render_context* rctx);
 extern void auth_3d_load(auth_3d* auth, a3da* auth_file,
     object_database* obj_db, texture_database* tex_db);
 extern void auth_3d_load_from_farc(auth_3d* auth, farc* f, char* file,

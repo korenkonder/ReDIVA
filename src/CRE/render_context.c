@@ -4,8 +4,11 @@
 */
 
 #include "render_context.h"
+#include "draw_pass.h"
 #include "draw_task.h"
+#include "rob.h"
 #include "shader_ft.h"
+#include "stage.h"
 
 vector_func(texture_pattern_struct)
 vector_func(texture_transform_struct)
@@ -24,7 +27,7 @@ static void render_context_light_param_data_ibl_set_diffuse(light_param_ibl_diff
 static void render_context_light_param_data_ibl_set_specular(light_param_ibl_specular* specular);
 
 static shadow* shadow_init();
-static void shadow_update_inner(shadow* shad, render_context* rctx);
+static void shadow_ctrl_inner(shadow* shad, render_context* rctx);
 static int32_t shadow_init_data(shadow* shad);
 static void shadow_free(shadow* shad);
 
@@ -48,7 +51,7 @@ inline void frame_rate_control_set_frame_speed(frame_rate_control* control, floa
 }
 
 light_proj* light_proj_init(int32_t width, int32_t height) {
-    light_proj* litproj = force_malloc(sizeof(light_proj));
+    light_proj* litproj = force_malloc_s(light_proj, 1);
     render_texture_init(&litproj->shadow_texture[0],
         2048, 512, 0, GL_R32F, GL_DEPTH24_STENCIL8);
     render_texture_init(&litproj->shadow_texture[1],
@@ -69,7 +72,8 @@ void light_proj_get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat4
         mat4_mult(&proj, &temp, &proj);
 
         mat4 view;
-        mat4_look_at(view_point, interest, &((vec3) { 0.0f, 1.0f, 0.0f }), &view);
+        vec3 up = { 0.0f, 1.0f, 0.0f };
+        mat4_look_at(view_point, interest, &up, &view);
         mat4_mult(&view, &proj, mat);
     }
     else {
@@ -78,7 +82,8 @@ void light_proj_get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat4
         shader_state_matrix_set_projection(&shaders_ft, &proj, false);
 
         mat4 view;
-        mat4_look_at(view_point, interest, &((vec3) { 0.0f, 1.0f, 0.0f }), &view);
+        vec3 up = { 0.0f, 1.0f, 0.0f };
+        mat4_look_at(view_point, interest, &up, &view);
         shader_state_matrix_set_modelview(&shaders_ft, 0, &view, true);
     }
 }
@@ -325,7 +330,7 @@ void object_data_set_texture_transform(object_data* object_data,
             object_data->texture_transform_array[i] = value[i];
     else
         for (int32_t i = count; i < TEXTURE_TRANSFORM_COUNT; i++)
-            object_data->texture_transform_array[i] = (texture_transform_struct){ -1, mat4u_identity };
+            object_data->texture_transform_array[i] = { -1, mat4u_identity };
 }
 
 inline void object_data_set_wet_param(object_data* object_data, float_t value) {
@@ -333,7 +338,7 @@ inline void object_data_set_wet_param(object_data* object_data, float_t value) {
 }
 
 inline render_context* render_context_init() {
-    render_context* rctx = force_malloc(sizeof(render_context));
+    render_context* rctx = force_malloc_s(render_context, 1);
     rctx->camera = camera_init();
     draw_pass_init(&rctx->draw_pass);
     draw_state_init(&rctx->draw_state);
@@ -342,9 +347,9 @@ inline render_context* render_context_init() {
     glGenTextures(5, rctx->ibl_tex);
 
     face_init(&rctx->face);
-    for (fog_id i = FOG_DEPTH; i < FOG_MAX; i++)
+    for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++)
         fog_init(&rctx->fog_data[i]);
-    for (light_set_id i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
+    for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
         light_set_init(&rctx->light_set_data[i]);
     rctx->wind = wind_init();
 
@@ -352,12 +357,59 @@ inline render_context* render_context_init() {
     return rctx;
 }
 
+extern float_t rob_frame;
+extern wind* wind_ptr;
+
+inline void render_context_ctrl(render_context* rctx) {
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        if (rob_chara_pv_data_array[i].field_0 == -1)
+            continue;
+
+        float_t frame = rob_chara_get_frame(&rob_chara_array[i]);
+        float_t frame_count = rob_chara_get_frame_count(&rob_chara_array[i]);
+        frame += get_delta_frame();
+        if (frame >= frame_count)
+            frame -= frame_count;
+        //rob_chara_set_frame(&rob_chara_array[j], frame);
+        rob_chara_set_frame(&rob_chara_array[i], rob_frame);
+        rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
+    }
+
+    TaskWork_ctrl();
+    wind_ctrl(rctx->wind);
+
+    wind_ptr = rctx->wind;
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        if (rob_chara_pv_data_array[i].field_0 != -1)
+            rob_chara_calc(&rob_chara_array[i]);
+
+    stage_ctrl((stage*)rctx->stage, rctx);
+
+    shadow_ctrl(rctx->draw_pass.shadow_ptr, rctx);
+    draw_state_stats_update(&rctx->draw_state);
+    object_data_reset(&rctx->object_data);
+}
+
+inline void render_context_disp(render_context* rctx) {
+    TaskWork_disp();
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        if (rob_chara_pv_data_array[i].field_0 != -1)
+            rob_chara_disp(&rob_chara_array[i], rctx);
+
+    stage_disp((stage*)rctx->stage, rctx);
+
+    post_process_update(&rctx->post_process, rctx->camera);
+    draw_pass_main(rctx);
+    TaskWork_basic();
+}
+
 void render_context_light_param_data_light_set(render_context* rctx, light_param_light* light) {
-    for (light_set_id i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++) {
+    for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++) {
         light_param_light_group* group = &light->group[i];
         light_set* set = &rctx->light_set_data[i];
 
-        for (light_id j = LIGHT_CHARA; j < LIGHT_MAX; j++) {
+        for (int32_t j = LIGHT_CHARA; j < LIGHT_MAX; j++) {
             light_param_light_data* data = &group->data[j];
             light_data* light = &set->lights[j];
 
@@ -406,7 +458,7 @@ void render_context_light_param_data_light_set(render_context* rctx, light_param
 }
 
 void render_context_light_param_data_fog_set(render_context* rctx, light_param_fog* f) {
-    for (fog_id i = FOG_DEPTH; i < FOG_MAX; i++) {
+    for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++) {
         light_param_fog_group* group = &f->group[i];
         fog* fog = &rctx->fog_data[i];
 
@@ -596,12 +648,6 @@ void render_context_unset_light_param(render_context* rctx, light_param_data* li
         render_context_light_param_data_face_set(rctx, &light_param->face);
 }
 
-inline void render_context_update(render_context* rctx) {
-    wind_update(rctx->wind);
-    draw_state_stats_update(&rctx->draw_state);
-    object_data_reset(&rctx->object_data);
-}
-
 inline void render_context_free(render_context* rctx) {
     camera_dispose(rctx->camera);
     draw_pass_free(&rctx->draw_pass);
@@ -614,19 +660,19 @@ inline void render_context_free(render_context* rctx) {
     free(rctx);
 }
 
-extern void shadow_update(shadow* shad, render_context* rctx) {
-    shadow_update_inner(shad, rctx);
+extern void shadow_ctrl(shadow* shad, render_context* rctx) {
+    shadow_ctrl_inner(shad, rctx);
 }
 
 static void draw_pass_init(draw_pass* draw_pass) {
-    for (draw_pass_type i = DRAW_PASS_SHADOW; i < DRAW_PASS_MAX; i++)
+    for (int32_t i = DRAW_PASS_SHADOW; i < DRAW_PASS_MAX; i++)
         draw_pass->enable[i] = true;
     draw_pass->reflect = true;
     draw_pass->refract = true;
     draw_pass->shadow = true;
     draw_pass->opaque_z_sort = true;
     draw_pass->alpha_z_sort = true;
-    for (draw_pass_type i = DRAW_PASS_3D_OPAQUE; i < DRAW_PASS_3D_MAX; i++)
+    for (int32_t i = DRAW_PASS_3D_OPAQUE; i < DRAW_PASS_3D_MAX; i++)
         draw_pass->draw_pass_3d[i] = true;
     memset(draw_pass->cpu_time, 0, sizeof(draw_pass->cpu_time));
     memset(draw_pass->gpu_time, 0, sizeof(draw_pass->gpu_time));
@@ -668,8 +714,8 @@ static void draw_state_stats_update(draw_state* draw_state) {
 }
 
 static void object_data_init(object_data* data) {
-    data->draw_task_flags = 0;
-    data->shadow_type = 0;
+    data->draw_task_flags = (draw_task_flags)0;
+    data->shadow_type = (shadow_type_enum)0;
     data->field_8 = 0;
     data->field_C = 0;
     data->field_230 = -1;
@@ -701,7 +747,7 @@ static void object_data_init(object_data* data) {
         data->texture_specular_coeff = vec4_identity;
         data->texture_specular_offset = vec4_null;
         data->wet_param = 0.0f;
-        for (draw_object_type i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++)
+        for (int32_t i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++)
             data->draw_task_array[i] = vector_ptr_empty(draw_task);
     }
 }
@@ -709,7 +755,7 @@ static void object_data_init(object_data* data) {
 static void object_data_reset(object_data* data) {
     data->passed_prev = data->passed;
     data->culled_prev = data->culled;
-    data->draw_task_flags = 0;
+    data->draw_task_flags = (draw_task_flags)0;
     data->field_8 = 0;
     data->field_C = 0;
     memset(&data->passed, 0, sizeof(object_data_culling_info));
@@ -724,7 +770,7 @@ static void object_data_reset(object_data* data) {
     data->texture_specular_coeff = vec4_identity;
     data->texture_specular_offset = vec4_null;
 
-    for (draw_object_type i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++) {
+    for (int32_t i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++) {
         data->draw_task_array[i].end = data->draw_task_array[i].begin;
         vector_ptr_draw_task_clear(&data->draw_task_array[i], 0);
     }
@@ -732,7 +778,7 @@ static void object_data_reset(object_data* data) {
 }
 
 static void object_data_free(object_data* data) {
-    for (draw_object_type i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++) {
+    for (int32_t i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++) {
         data->draw_task_array[i].end = data->draw_task_array[i].begin;
         vector_ptr_draw_task_free(&data->draw_task_array[i], 0);
     }
@@ -780,7 +826,7 @@ inline static void render_context_light_param_data_ibl_set_specular(light_param_
 }
 
 static shadow* shadow_init() {
-    shadow* shad = force_malloc(sizeof(shadow));
+    shadow* shad = force_malloc_s(shadow, 1);
     shad->field_170 = 1.2f;
     shad->field_174 = 1.0f;
     for (int32_t i = 0; i < 2; i++) {
@@ -806,7 +852,7 @@ static shadow* shadow_init() {
     shad->field_2E0 = 0.05f;
     shad->ambient = 0.4f;
     shad->field_2EC = 0;
-    shad->direction = (vec3){ 0.0f, -1.0f, -1.0f };
+    shad->direction = { 0.0f, -1.0f, -1.0f };
     vec3_mult_scalar(shad->direction, 1.0f / sqrtf(2.0f), shad->direction);
     shad->field_2E8 = false;
     shad->self_shadow = true;
@@ -817,7 +863,7 @@ static shadow* shadow_init() {
     return shad;
 }
 
-static void shadow_update_inner(shadow* shad, render_context* rctx) {
+static void shadow_ctrl_inner(shadow* shad, render_context* rctx) {
     if (!shad)
         return;
 
@@ -837,12 +883,12 @@ static void shadow_update_inner(shadow* shad, render_context* rctx) {
         vec3_negate(direction, direction);
         vec3_length(direction, length);
         if (length < 0.000001)
-            shad->direction = (vec3){ 0.0f, 1.0f, 0.0f };
+            shad->direction = { 0.0f, 1.0f, 0.0f };
         else
             vec3_mult_scalar(direction, 1.0f / length, shad->direction);
 
         for (int32_t i = 0; i < 2; i++)
-            if (draw_task_get_count(rctx, DRAW_OBJECT_SHADOW_CHARA + i))
+            if (draw_task_get_count(rctx, (draw_object_type)((int32_t)DRAW_OBJECT_SHADOW_CHARA + i)))
                 shad->field_2F0[i] = true;
     }
 
@@ -968,14 +1014,15 @@ static void shadow_update_inner(shadow* shad, render_context* rctx) {
         vec3 v3;
         vec3 v86;
         if (shad->direction.y * shad->direction.y < 0.99f) {
-            vec3_cross(shad->direction, ((vec3){ 0.0f, 1.0f, 0.0f }), v86);
+            vec3 up = { 0.0f, 1.0f, 0.0f };
+            vec3_cross(shad->direction, up, v86);
             vec3_cross(v86, shad->direction, v3);
             vec3_normalize(v3, v3);
             vec3_normalize(v86, v86);
         }
         else {
-            v3 = (vec3){ 0.0f, 0.0f, 1.0f };
-            v86 = (vec3){ 1.0f, 0.0f, 0.0f };
+            v3 = { 0.0f, 0.0f, 1.0f };
+            v86 = { 1.0f, 0.0f, 0.0f };
         }
 
         for (int32_t i = 0; i < 2; i++) {
@@ -1178,7 +1225,7 @@ static void sss_data_init(sss_data_struct* sss) {
     render_texture_init(&sss->textures[1], 320, 180, 0, GL_RGBA16F, GL_ZERO);
     render_texture_init(&sss->textures[2], 320, 180, 0, GL_RGBA16F, GL_ZERO);
     render_texture_init(&sss->textures[3], 320, 180, 0, GL_RGBA16F, GL_ZERO);
-    sss->param = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    sss->param = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 static void sss_data_free(sss_data_struct* sss) {

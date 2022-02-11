@@ -8,9 +8,28 @@
 static float_t wind_apply_spc(wind* wind, float_t frame);
 
 wind* wind_init() {
-    wind* w = force_malloc(sizeof(wind));
+    wind* w = force_malloc_s(wind, 1);
     w->count = 16;
     return w;
+}
+
+void wind_ctrl(wind* w) {
+    float_t value = wind_apply_spc(w, w->cycle * w->frame) * w->scale;
+    mat4 mat = mat4_identity;
+    mat4_rotate_y_mult(&mat, w->rot_y * DEG_TO_RAD_FLOAT, &mat);
+    mat4_rotate_z_mult(&mat, w->rot_z * DEG_TO_RAD_FLOAT, &mat);
+    vec3 wind_direction = vec3_null;
+    wind_direction.x = value;
+    mat4_mult_vec3(&mat, &wind_direction, &wind_direction);
+    vec3_mult_scalar(wind_direction, w->strength, w->wind_direction);
+    if (w->strength >= 1.0f)
+        w->strength = 1.0f;
+    else
+        w->strength = w->strength + (float_t)(1.0 / 60.0);
+
+    w->frame += get_delta_frame();
+    if (w->frame > 65535.0f)
+        w->frame = 0.0f;
 }
 
 float_t wind_get_scale(wind* w) {
@@ -66,25 +85,6 @@ void wind_set_bias(wind* w, float_t value) {
 void wind_reset(wind* w) {
     w->strength = 0.0f;
     w->frame = 0.0f;
-}
-
-void wind_update(wind* w) {
-    float_t value = wind_apply_spc(w, w->cycle * w->frame) * w->scale;
-    mat4 mat = mat4_identity;
-    mat4_rotate_y_mult(&mat, w->rot_y * DEG_TO_RAD_FLOAT, &mat);
-    mat4_rotate_z_mult(&mat, w->rot_z * DEG_TO_RAD_FLOAT, &mat);
-    vec3 wind_direction = vec3_null;
-    wind_direction.x = value;
-    mat4_mult_vec3(&mat, &wind_direction, &wind_direction);
-    vec3_mult_scalar(wind_direction, w->strength, w->wind_direction);
-    if (w->strength >= 1.0f)
-        w->strength = 1.0f;
-    else
-        w->strength = w->strength + (float_t)(1.0 / 60.0);
-
-    w->frame += get_delta_frame();
-    if (w->frame > 65535.0f)
-        w->frame = 0.0f;
 }
 
 void wind_free(wind* w) {

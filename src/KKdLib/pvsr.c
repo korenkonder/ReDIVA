@@ -71,7 +71,7 @@ bool pvsr_load_file(void* data, char* path, char* file, uint32_t hash) {
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    pvsr* sr = data;
+    pvsr* sr = (pvsr*)data;
     pvsr_read(sr, string_data(&s));
 
     string_free(&s);

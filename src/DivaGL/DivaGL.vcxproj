@@ -144,12 +144,13 @@
       <OmitFramePointers>false</OmitFramePointers>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <CallingConvention>FastCall</CallingConvention>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX64</TargetMachine>
@@ -180,12 +181,13 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <OmitFramePointers>false</OmitFramePointers>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <CallingConvention>FastCall</CallingConvention>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX64</TargetMachine>
@@ -220,7 +222,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <CallingConvention>FastCall</CallingConvention>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
@@ -228,6 +230,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX64</TargetMachine>
@@ -261,7 +264,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <CallingConvention>FastCall</CallingConvention>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
@@ -269,6 +272,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX64</TargetMachine>
@@ -305,7 +309,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <CallingConvention>FastCall</CallingConvention>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -314,6 +318,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX64</TargetMachine>
@@ -348,7 +353,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <CallingConvention>FastCall</CallingConvention>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -357,6 +362,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
+      <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX64</TargetMachine>

@@ -15,7 +15,6 @@
 #include "../CRE/Glitter/particle_manager.h"
 #include "../CRE/camera.h"
 #include "../CRE/data.h"
-#include "../CRE/draw_pass.h"
 #include "../CRE/fbo.h"
 #include "../CRE/gl_state.h"
 #include "../CRE/light_param.h"
@@ -28,6 +27,7 @@
 #include "../CRE/shader_glsl.h"
 #include "../CRE/stage.h"
 #include "../CRE/static_var.h"
+#include "../CRE/task.h"
 #include "../CRE/texture.h"
 #include "../CRE/timer.h"
 #include "../CRE/post_process.h"
@@ -51,7 +51,7 @@ timer render_timer;
 
 #define grid_size 50.0f
 #define grid_spacing 1.0f
-const size_t grid_vertex_count = ((size_t)(grid_size / grid_spacing) * 2 + 1) * 4;
+size_t grid_vertex_count = ((size_t)(grid_size / grid_spacing) * 2 + 1) * 4;
 
 GLuint cube_line_vao;
 GLuint cube_line_vbo;
@@ -95,10 +95,11 @@ bool light_chara_ambient;
 vec4 npr_spec_color;
 
 static render_context* render_load();
-static bool render_load_shaders(void* data, char* path, char* file, uint32_t hash);
-static void render_update(render_context* rctx);
+static void render_ctrl(render_context* rctx);
 static void render_draw(render_context* rctx);
 static void render_dispose(render_context* rctx);
+
+static bool render_load_shaders(void* data, char* path, char* file, uint32_t hash);
 
 static void render_imgui(render_context* rctx);
 
@@ -116,10 +117,13 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
     GLenum severity, GLsizei length, const char* message, const void* userParam);
 #endif
 
+#if defined(CLOUD_DEV)
 static void x_pv_player_init();
+static void x_pv_player_ctrl();
+static void x_pv_player_disp();
 static void x_pv_player_load(int32_t pv_id, int32_t stage_id);
-static void x_pv_player_update();
 static void x_pv_player_free();
+#endif
 
 extern bool close;
 bool reload_render;
@@ -142,8 +146,10 @@ int32_t render_main(void* arg) {
     state = RENDER_UNINITIALIZED;
 
     lock_init(&render_lock);
-    if (!lock_check_init(&render_lock))
-        goto End;
+    if (!lock_check_init(&render_lock)) {
+        timer_dispose(&render_timer);
+        return 0;
+    }
 
     render_init_struct* ris = (render_init_struct*)arg;
     window_handle = 0;
@@ -194,26 +200,28 @@ int32_t render_main(void* arg) {
         return -1;
     }
 
-    window_handle = glfwGetWin32Window(window);
     glfwMakeContextCurrent(window);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        glfwTerminate();
+        return -2;
+    }
+    gl_state_get_all_gl_errors();
+    glViewport(0, 0, width, height);
+
+    window_handle = glfwGetWin32Window(window);
     glfwFocusWindow(window);
-    glfwSetDropCallback(window, (void*)render_drop_glfw);
-    glfwSetWindowSizeCallback(window, (void*)render_resize_fb_glfw);
+    glfwSetDropCallback(window, (GLFWdropfun)render_drop_glfw);
+    glfwSetWindowSizeCallback(window, (GLFWwindowsizefun)render_resize_fb_glfw);
+    glfwSetWindowSize(window, width, height);
     glfwSetWindowSizeLimits(window, 896, 504, GLFW_DONT_CARE, GLFW_DONT_CARE);
 
     RECT window_rect;
     GetClientRect(window_handle, &window_rect);
     width = window_rect.right;
     height = window_rect.bottom;
-    width = 1280;
-    height = 720;
-
+    
     old_scale = scale = ris->scale > 0 ? ris->scale : 1.0f;
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        glfwTerminate();
-        return -2;
-    }
 #pragma endregion
 
 #if defined(DEBUG) && OPENGL_DEBUG
@@ -223,7 +231,6 @@ int32_t render_main(void* arg) {
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
 #endif
 
-    glEnable(GL_MULTISAMPLE);
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &sv_max_texture_buffer_size);
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
@@ -269,11 +276,11 @@ int32_t render_main(void* arg) {
             ImGui_ImplGlfw_NewFrame();
             igNewFrame();
             lock_lock(&render_lock);
-            render_update(rctx);
+            render_ctrl(rctx);
             lock_unlock(&render_lock);
             render_draw(rctx);
             glfwSwapBuffers(window);
-            close |= glfwWindowShouldClose(window);
+            close |= !!glfwWindowShouldClose(window);
             frame_counter++;
             timer_end_of_cycle(&render_timer);
         }
@@ -298,8 +305,6 @@ int32_t render_main(void* arg) {
     glfwTerminate();
 #pragma endregion
     lock_free(&render_lock);
-
-End:
     timer_dispose(&render_timer);
     return 0;
 }
@@ -350,8 +355,10 @@ void render_set_scale_index(int32_t index) {
 }
 
 float_t rob_frame = 0.0f;
+int32_t rob_chara_id_array[ROB_CHARA_COUNT];
 
 static render_context* render_load() {
+    TaskWork_init();
     object_storage_init();
     texture_storage_init();
 
@@ -572,7 +579,8 @@ static render_context* render_load() {
     rob_chara_pv_data pv_data;
     rob_chara_pv_data_init(&pv_data);
     pv_data.field_0 = 2;
-    int32_t chara_id = rob_chara_array_set_pv_data(CHARA_MIKU, &pv_data, 0, false);
+    int32_t chara_id = rob_chara_array_init_chara_index(CHARA_MIKU, &pv_data, 0, false);
+    rob_chara_id_array[0] = chara_id;
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
         rob_chara_reset_data(&rob_chara_array[chara_id], &rob_chara_array[chara_id].pv_data, aft_bone_data, aft_mot_db);
         rob_chara_reset(&rob_chara_array[chara_id], aft_bone_data, aft_data, aft_obj_db);
@@ -599,7 +607,7 @@ static render_context* render_load() {
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
 
-    float_t* grid_verts = force_malloc(sizeof(float_t) * 3 * grid_vertex_count);
+    float_t* grid_verts = force_malloc_s(float_t, 3 * grid_vertex_count);
 
     size_t v = 0;
     for (float_t x = -grid_size; x <= grid_size; x += grid_spacing) {
@@ -639,8 +647,13 @@ static render_context* render_load() {
 
     free(grid_verts);
 
-    x_pv_player_init();
-    x_pv_player_load(826, 26);
+#if defined(CLOUD_DEV)
+    for (int32_t i = 1; i <= 32; i++) {
+        x_pv_player_init();
+        x_pv_player_load(800 + i, i);
+        x_pv_player_free();
+    }
+#endif
 
     camera* cam = rctx->camera;
 
@@ -649,9 +662,11 @@ static render_context* render_load() {
     //camera_rotate(cam, &((vec2d){ -45.0, -32.5 }));
     //camera_set_position(cam, &((vec3){ -6.67555f, 4.68882f, -3.67537f }));
     //camera_rotate(cam, &((vec2d){ 136.5, -20.5 }));
-    camera_set_view_point(cam, &((vec3) { 0.0f, 1.0f, 3.45f }));
-    camera_set_interest(cam, &((vec3) { 0.0f, 1.0f, 0.0f }));
-    camera_set_fov(cam, 70.0);
+    vec3 view_point = { 0.0f, 1.0f, 3.45f };
+    camera_set_view_point(cam, &view_point);
+    vec3 interest = { 0.0f, 1.0f, 0.0f };
+    camera_set_interest(cam, &interest);
+    //camera_set_fov(cam, 70.0);
 
     imgui_context = igCreateContext(0);
     lock_init(&imgui_context_lock);
@@ -667,7 +682,7 @@ static render_context* render_load() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
 
-    back3d_color = (vec3){ (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
+    back3d_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
     set_clear_color = true;
 
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
@@ -676,28 +691,13 @@ static render_context* render_load() {
     return rctx;
 }
 
-static bool render_load_shaders(void* data, char* path, char* file, uint32_t hash) {
-    string s;
-    string_init(&s, path);
-    string_add(&s, file);
-
-    farc f;
-    farc_init(&f);
-    farc_read(&f, string_data(&s), true, false);
-    shader_ft_load(data, &f, false);
-    farc_free(&f);
-
-    string_free(&s);
-    return true;
-}
-
 extern vec2d input_move;
 extern vec2d input_rotate;
 extern double_t input_roll;
 extern bool input_reset;
 extern bool input_shaders_reload;
 
-static void render_update(render_context* rctx) {
+static void render_ctrl(render_context* rctx) {
     camera* cam = rctx->camera;
 
     for (int32_t i = 0; i < 32; i++) {
@@ -749,9 +749,11 @@ static void render_update(render_context* rctx) {
             //camera_rotate(cam, &((vec2d){ -45.0, -32.5 }));
             //camera_set_position(cam, &((vec3){ -6.67555f, 4.68882f, -3.67537f }));
             //camera_rotate(cam, &((vec2d){ 136.5, -20.5 }));
-            camera_set_view_point(cam, &((vec3) { 0.0f, 1.0f, 3.45f }));
-            camera_set_interest(cam, &((vec3) { 0.0f, 1.0f, 0.0f }));
-            camera_set_fov(cam, 70.0);
+            vec3 view_point = { 0.0f, 1.0f, 3.45f };
+            camera_set_view_point(cam, &view_point);
+            vec3 interest = { 0.0f, 1.0f, 0.0f };
+            camera_set_interest(cam, &interest);
+            //camera_set_fov(cam, 70.0);
         }
         else {
             camera_rotate(cam, &input_rotate);
@@ -761,38 +763,11 @@ static void render_update(render_context* rctx) {
     }
     camera_update(cam);
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        if (rob_chara_pv_data_array[i].field_0 == -1)
-            continue;
-
-        float_t frame = rob_chara_get_frame(&rob_chara_array[i]);
-        float_t frame_count = rob_chara_get_frame_count(&rob_chara_array[i]);
-        frame += get_delta_frame();
-        if (frame >= frame_count)
-            frame -= frame_count;
-        //rob_chara_set_frame(&rob_chara_array[j], frame);
-        rob_chara_set_frame(&rob_chara_array[i], rob_frame);
-        rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
-    }
-
     data_struct* aft_data = &data_list[DATA_AFT];
     obj_db_ptr = &aft_data->data_ft.obj_db;
-    render_context_update(rctx);
+    render_context_ctrl(rctx);
 
     classes_process_render(classes, classes_count);
-
-    wind_ptr = rctx->wind;
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        if (rob_chara_pv_data_array[i].field_0 == -1)
-            continue;
-
-        rob_chara_calc(&rob_chara_array[i]);
-        rob_chara_draw(&rob_chara_array[i], rctx);
-    }
-
-    stage_update(rctx->stage, rctx);
-
-    shadow_update(rctx->draw_pass.shadow_ptr, rctx);
 
     igRender();
 
@@ -833,8 +808,8 @@ static void cube_line_draw(shader_glsl* shader, camera* cam, vec3* trans, float_
     float_t dx = trans[1].x - trans[0].x;
     float_t dy = trans[1].y - trans[0].y;
     vec3 norm[2];
-    norm[0] = (vec3){ -dy, dx, 0.0f };
-    norm[1] = (vec3){ dy, -dx, 0.0f };
+    norm[0] = { -dy, dx, 0.0f };
+    norm[1] = { dy, -dx, 0.0f };
     vec3_normalize(norm[0], norm[0]);
     vec3_normalize(norm[1], norm[1]);
     vec3_mult_scalar(norm[0], line_size, norm[0]);
@@ -897,7 +872,7 @@ static void render_draw(render_context* rctx) {
 
     glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
 
-    render_texture_bind(&rctx->post_process.render_texture, 0);
+    render_texture_bind(&rctx->post_process.rend_texture, 0);
     gl_state_set_depth_mask(GL_TRUE);
     glClearBufferfv(GL_COLOR, 0, color_clear);
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);
@@ -910,7 +885,7 @@ static void render_draw(render_context* rctx) {
         glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
     }
 
-    draw_pass_main(rctx);
+    render_context_disp(rctx);
 
     int32_t screen_x_offset = (width - internal_2d_res.x) / 2 + (width - internal_2d_res.x) % 2;
     int32_t screen_y_offset = (height - internal_2d_res.y) / 2 + (width - internal_2d_res.x) % 2;
@@ -926,13 +901,13 @@ static void render_draw(render_context* rctx) {
     const float_t line_size = 0.0025f;
     const float_t line_point_size = line_size * 1.125f;
     const float_t line_point_dark_size = line_size * 1.5f;
-    vec4 bone_color = (vec4){ 1.0f, 0.0f, 0.0f, 1.0f };
-    vec4 cns_color = (vec4){ 1.0f, 1.0f, 0.0f, 1.0f };
-    vec4 exp_color = (vec4){ 0.0f, 1.0f, 0.0f, 1.0f };
-    vec4 osg_color = (vec4){ 0.0f, 0.0f, 1.0f, 1.0f };
-    vec4 osg_node_color = (vec4){ 1.0f, 0.0f, 1.0f, 1.0f };
-    vec4 point_color = (vec4){ 1.0f, 1.0f, 1.0f, 1.0f };
-    vec4 point_dark_color = (vec4){ 0.0f, 0.0f, 0.0f, 1.0f };
+    vec4 bone_color = { 1.0f, 0.0f, 0.0f, 1.0f };
+    vec4 cns_color = { 1.0f, 1.0f, 0.0f, 1.0f };
+    vec4 exp_color = { 0.0f, 1.0f, 0.0f, 1.0f };
+    vec4 osg_color = { 0.0f, 0.0f, 1.0f, 1.0f };
+    vec4 osg_node_color = { 1.0f, 0.0f, 1.0f, 1.0f };
+    vec4 point_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    vec4 point_dark_color = { 0.0f, 0.0f, 0.0f, 1.0f };
     for (int32_t i = 0; i < ROB_CHARA_COUNT && rob_draw; i++) {
         if (rob_chara_pv_data_array[i].field_0 == -1)
             continue;
@@ -963,19 +938,19 @@ static void render_draw(render_context* rctx) {
             j < rob_item_equip->max_item_equip_object; j++) {
             rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
 
-            vector_ptr_ex_expression_block* expression_blocks = &itm_eq_obj->expression_blocks;
-            for (ex_expression_block** k = expression_blocks->begin; k != expression_blocks->end; k++) {
+            vector_ptr_ExExpressionBlock* expression_blocks = &itm_eq_obj->expression_blocks;
+            for (ExExpressionBlock** k = expression_blocks->begin; k != expression_blocks->end; k++) {
                 if (!*k)
                     continue;
 
-                ex_expression_block* exp = *k;
+                ExExpressionBlock* exp = *k;
 
-                if (!exp->base.bone_node || !exp->base.parent_bone_node)
+                if (!exp->bone_node_ptr || !exp->parent_bone_node)
                     continue;
 
                 vec3 trans[2];
-                mat4_get_translation(exp->base.parent_bone_node->mat, &trans[0]);
-                mat4_get_translation(exp->base.bone_node->mat, &trans[1]);
+                mat4_get_translation(exp->parent_bone_node->mat, &trans[0]);
+                mat4_get_translation(exp->bone_node_ptr->mat, &trans[1]);
 
                 if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
                     continue;
@@ -983,19 +958,19 @@ static void render_draw(render_context* rctx) {
                 cube_line_draw(&cube_line_shader, cam, trans, line_size, &cns_color);
             }
 
-            vector_ptr_ex_constraint_block* constraint_blocks = &itm_eq_obj->constraint_blocks;
-            for (ex_constraint_block** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
+            vector_ptr_ExConstraintBlock* constraint_blocks = &itm_eq_obj->constraint_blocks;
+            for (ExConstraintBlock** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
                 if (!*k)
                     continue;
 
-                ex_constraint_block* cns = *k;
+                ExConstraintBlock* cns = *k;
 
-                if (!cns->base.bone_node || !cns->base.parent_bone_node)
+                if (!cns->bone_node_ptr || !cns->parent_bone_node)
                     continue;
 
                 vec3 trans[2];
-                mat4_get_translation(cns->base.parent_bone_node->mat, &trans[0]);
-                mat4_get_translation(cns->base.bone_node->mat, &trans[1]);
+                mat4_get_translation(cns->parent_bone_node->mat, &trans[0]);
+                mat4_get_translation(cns->bone_node_ptr->mat, &trans[1]);
 
                 if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
                     continue;
@@ -1003,19 +978,19 @@ static void render_draw(render_context* rctx) {
                 cube_line_draw(&cube_line_shader, cam, trans, line_size, &exp_color);
             }
 
-            vector_ptr_ex_osage_block* osage_blocks = &itm_eq_obj->osage_blocks;
-            for (ex_osage_block** k = osage_blocks->begin; k != osage_blocks->end; k++) {
+            vector_ptr_ExOsageBlock* osage_blocks = &itm_eq_obj->osage_blocks;
+            for (ExOsageBlock** k = osage_blocks->begin; k != osage_blocks->end; k++) {
                 if (!*k)
                     continue;
 
-                ex_osage_block* osg = *k;
+                ExOsageBlock* osg = *k;
 
-                if (!osg->base.bone_node || !osg->base.parent_bone_node)
+                if (!osg->bone_node_ptr || !osg->parent_bone_node)
                     continue;
 
                 vec3 trans[2];
-                mat4_get_translation(osg->base.parent_bone_node->mat, &trans[0]);
-                mat4_get_translation(osg->base.bone_node->mat, &trans[1]);
+                mat4_get_translation(osg->parent_bone_node->mat, &trans[0]);
+                mat4_get_translation(osg->bone_node_ptr->mat, &trans[1]);
 
                 if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
                     continue;
@@ -1026,12 +1001,12 @@ static void render_draw(render_context* rctx) {
                 vector_rob_osage_node* nodes = &osg->rob.nodes;
                 rob_osage_node* parent_node = &osg->rob.node;
                 for (rob_osage_node* l = nodes->begin; l != nodes->end; parent_node = l++) {
-                    if (!l->bone_node || !parent_node->bone_node)
+                    if (!l->bone_node_ptr || !parent_node->bone_node_ptr)
                         continue;
 
                     vec3 trans[2];
-                    mat4_get_translation(parent_node->bone_node->mat, &trans[0]);
-                    mat4_get_translation(l->bone_node->mat, &trans[1]);
+                    mat4_get_translation(parent_node->bone_node_ptr->mat, &trans[0]);
+                    mat4_get_translation(l->bone_node_ptr->mat, &trans[1]);
 
                     if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
                         continue;
@@ -1053,78 +1028,75 @@ static void render_draw(render_context* rctx) {
             j < rob_item_equip->max_item_equip_object; j++) {
             rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
 
-            vector_ptr_ex_expression_block* expression_blocks = &itm_eq_obj->expression_blocks;
-            for (ex_expression_block** k = expression_blocks->begin; k != expression_blocks->end; k++) {
+            vector_ptr_ExExpressionBlock* expression_blocks = &itm_eq_obj->expression_blocks;
+            for (ExExpressionBlock** k = expression_blocks->begin; k != expression_blocks->end; k++) {
                 if (!*k)
                     continue;
 
-                ex_expression_block* exp = *k;
+                ExExpressionBlock* exp = *k;
 
-                if (!exp->base.bone_node)
+                if (!exp->bone_node_ptr)
                     continue;
 
                 vec3 trans;
-                mat4_get_translation(exp->base.bone_node->mat, &trans);
+                mat4_get_translation(exp->bone_node_ptr->mat, &trans);
                 cube_line_point_draw(&cube_line_point_shader, cam, &trans,
                     line_point_size, line_point_dark_size, &point_color, &point_dark_color);
             }
 
-            vector_ptr_ex_constraint_block* constraint_blocks = &itm_eq_obj->constraint_blocks;
-            for (ex_constraint_block** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
+            vector_ptr_ExConstraintBlock* constraint_blocks = &itm_eq_obj->constraint_blocks;
+            for (ExConstraintBlock** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
                 if (!*k)
                     continue;
 
-                ex_constraint_block* cns = *k;
+                ExConstraintBlock* cns = *k;
 
-                if (!cns->base.bone_node)
+                if (!cns->bone_node_ptr)
                     continue;
 
                 vec3 trans;
-                mat4_get_translation(cns->base.bone_node->mat, &trans);
+                mat4_get_translation(cns->bone_node_ptr->mat, &trans);
                 cube_line_point_draw(&cube_line_point_shader, cam, &trans,
                     line_point_size, line_point_dark_size, &point_color, &point_dark_color);
             }
 
-            vector_ptr_ex_osage_block* osage_blocks = &itm_eq_obj->osage_blocks;
-            for (ex_osage_block** k = osage_blocks->begin; k != osage_blocks->end; k++) {
+            vector_ptr_ExOsageBlock* osage_blocks = &itm_eq_obj->osage_blocks;
+            for (ExOsageBlock** k = osage_blocks->begin; k != osage_blocks->end; k++) {
                 if (!*k)
                     continue;
 
-                ex_osage_block* osg = *k;
+                ExOsageBlock* osg = *k;
 
-                if (!osg->base.bone_node)
+                if (!osg->bone_node_ptr)
                     continue;
 
                 vec3 trans;
-                mat4_get_translation(osg->base.bone_node->mat, &trans);
+                mat4_get_translation(osg->bone_node_ptr->mat, &trans);
                 cube_line_point_draw(&cube_line_point_shader, cam, &trans,
                     line_point_size, line_point_dark_size, &point_color, &point_dark_color);
 
                 rob_osage* rob_osg = &osg->rob;
                 vector_rob_osage_node* nodes = &osg->rob.nodes;
                 for (rob_osage_node* l = nodes->begin; l != nodes->end; l++) {
-                    if (!l->bone_node)
+                    if (!l->bone_node_ptr)
                         continue;
 
                     vec3 trans;
-                    mat4_get_translation(l->bone_node->mat, &trans);
+                    mat4_get_translation(l->bone_node_ptr->mat, &trans);
                     cube_line_point_draw(&cube_line_point_shader, cam, &trans,
                         line_point_size, line_point_dark_size, &point_color, &point_dark_color);
                 }
             }
         }
-
-        //rob_chara_calc(&rob_chara_array[j]);
-        //rob_chara_draw(&rob_chara_array[j], rctx);
     }
     gl_state_bind_vertex_array(0);
     gl_state_enable_cull_face();
-
     gl_state_bind_framebuffer(0);
-    render_texture_shader_set_glsl(0);
-    glViewport(0, 0, width, height);
+
     if (rctx->draw_pass.enable[DRAW_PASS_POST_PROCESS])
-        render_texture_draw(&rctx->post_process.screen_texture, false);
+        fbo_blit(rctx->post_process.screen_texture.fbos[0], 0,
+            0, 0, width, height,
+            0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
     if (draw_imgui)
         render_imgui(rctx);
@@ -1151,7 +1123,9 @@ static void render_dispose(render_context* rctx) {
     shader_glsl_free(&cube_line_point_shader);
     shader_glsl_free(&cube_line_shader);
 
+#if defined(CLOUD_DEV)
     x_pv_player_free();
+#endif
 
     glDeleteBuffers(1, &common_data_ubo);
     glDeleteBuffers(1, &grid_vbo);
@@ -1160,7 +1134,7 @@ static void render_dispose(render_context* rctx) {
 
     rob_chara_array_free();
 
-    auth_3d_data_free(rctx);
+    auth_3d_data_free();
     light_param_storage_free();
     motion_storage_free();
 
@@ -1169,6 +1143,7 @@ static void render_dispose(render_context* rctx) {
 
     object_storage_free();
     texture_storage_free();
+    TaskWork_free();
 }
 
 static void render_imgui(render_context* rctx) {
@@ -1176,6 +1151,21 @@ static void render_imgui(render_context* rctx) {
     igSetCurrentContext(imgui_context);
     ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
     lock_unlock(&imgui_context_lock);
+}
+
+static bool render_load_shaders(void* data, char* path, char* file, uint32_t hash) {
+    string s;
+    string_init(&s, path);
+    string_add(&s, file);
+
+    farc f;
+    farc_init(&f);
+    farc_read(&f, string_data(&s), true, false);
+    shader_ft_load((shader_set_data*)data, &f, false);
+    farc_free(&f);
+
+    string_free(&s);
+    return true;
 }
 
 static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
@@ -1266,7 +1256,7 @@ static void render_imgui_context_menu(classes_struct* classes,
                     if (c->init(&c->data, rctx))
                         c->data.flags = CLASS_INIT;
                     else
-                        c->data.flags = CLASS_DISPOSED | CLASS_HIDDEN;
+                        c->data.flags = (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN);
                     lock_unlock(&c->data.lock);
                 }
             }
@@ -1274,7 +1264,7 @@ static void render_imgui_context_menu(classes_struct* classes,
             if (lock_check_init(&c->data.lock)) {
                 lock_lock(&c->data.lock);
                 if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show))
-                    c->data.flags &= ~(CLASS_HIDE | CLASS_HIDDEN);
+                    enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN));
                 lock_unlock(&c->data.lock);
             }
         }
@@ -1368,32 +1358,49 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
 }
 #endif
 
+#if defined(CLOUD_DEV)
+typedef enum x_pv_player_frame_data_type {
+    X_PV_PLAYER_FRAME_DATA_NONE = 0,
+    X_PV_PLAYER_FRAME_DATA_BPM,
+    X_PV_PLAYER_FRAME_DATA_SONG_EFFECT,
+    X_PV_PLAYER_FRAME_DATA_STAGE_EFFECT,
+} x_pv_player_frame_data_type;
+
 typedef struct x_pv_player_glitter {
     string name;
     uint32_t hash;
     glitter_effect_group* effect_group;
 } x_pv_player_glitter;
 
-typedef struct x_pv_player_stage_anim_speed {
-    int32_t frame;
-    int32_t bpm;
-} x_pv_player_stage_anim_speed;
+typedef struct x_pv_player_song_effect {
+    bool enable;
+    int32_t id;
+} x_pv_player_song_effect;
 
-vector(x_pv_player_stage_anim_speed)
+typedef struct x_pv_player_frame_data {
+    int32_t frame;
+    x_pv_player_frame_data_type type;
+    union {
+        int32_t bpm;
+        x_pv_player_song_effect song_effect;
+        int32_t stage_effect;
+    };
+} x_pv_player_frame_data;
+
+vector(x_pv_player_frame_data)
 
 typedef struct x_pv_player {
     int32_t pv_id;
     int32_t stage_id;
     pvpp pp;
     pvsr sr;
-    dsc dsc;
 
     x_pv_player_glitter pv_glitter;
     x_pv_player_glitter stage_glitter;
-    vector_x_pv_player_stage_anim_speed anim_speed;
+    vector_x_pv_player_frame_data frame_data;
 } x_pv_player;
 
-vector_func(x_pv_player_stage_anim_speed)
+vector_func(x_pv_player_frame_data)
 
 static void x_pv_player_glitter_load(x_pv_player_glitter* pv_glt, char* name);
 static void x_pv_player_glitter_free(x_pv_player_glitter* pv_glt);
@@ -1402,6 +1409,14 @@ static x_pv_player x_pv_player_data;
 
 static void x_pv_player_init() {
     memset(&x_pv_player_data, 0, sizeof(x_pv_player));
+}
+
+static void x_pv_player_ctrl() {
+
+}
+
+static void x_pv_player_disp() {
+
 }
 
 static void x_pv_player_load(int32_t pv_id, int32_t stage_id) {
@@ -1457,7 +1472,8 @@ static void x_pv_player_load(int32_t pv_id, int32_t stage_id) {
     dsc_easy.type = DSC_X;
     data_struct_load_file(x_data, &dsc_easy, path_buf, file_buf, dsc_load_file);
 
-    dsc_merge(&x_pv->dsc, 3, &dsc_scene, &dsc_system, &dsc_easy);
+    dsc dsc_m;
+    dsc_merge(&dsc_m, 3, &dsc_scene, &dsc_system, &dsc_easy);
 
     dsc_free(&dsc_scene);
     dsc_free(&dsc_system);
@@ -1468,74 +1484,111 @@ static void x_pv_player_load(int32_t pv_id, int32_t stage_id) {
     int32_t bar_time_set_func_id = dsc_x_get_func_id("BAR_TIME_SET");
     int32_t pv_end_func_id = dsc_x_get_func_id("PV_END");
     int32_t bar_point_func_id = dsc_x_get_func_id("BAR_POINT");
+    int32_t stage_effect_func_id = dsc_x_get_func_id("STAGE_EFFECT");
+    int32_t song_effect_func_id = dsc_x_get_func_id("SONG_EFFECT");
 
-    dsc* d = &x_pv->dsc;
     int32_t time = -1;
     int32_t frame = -1;
     bool bar_set = false;
     int32_t prev_bar_point_time = -1;
     int32_t prev_bpm = -1;
-    for (dsc_data* i = d->data.begin; i != d->data.end; i++)
-        if (i->func == end_func_id || i->func == pv_end_func_id)
+    int32_t end_frame = -1;
+    for (dsc_data* i = dsc_m.data.begin; i != dsc_m.data.end; i++) {
+        uint32_t* data = dsc_data_get_func_data(&dsc_m, i);
+        if (i->func == end_func_id)
             break;
         else if (i->func == time_func_id) {
-            time = (int32_t)dsc_data_get_func_data(d, i)[0];
+            time = (int32_t)data[0];
             frame = (int32_t)roundf((float_t)time * (float_t)(60.0f / 100000.0f));
         }
         else if (i->func == bar_time_set_func_id) {
             if (prev_bar_point_time != -1)
                 continue;
 
-            uint32_t* data = dsc_data_get_func_data(d, i);
             int32_t bpm = (int32_t)data[0];
             int32_t time_signature = (int32_t)(data[1] + 1);
 
             if (bpm != prev_bpm) {
-                x_pv_player_stage_anim_speed anim_speed;
-                printf("Frame: %5d; BPM: %3d; Speed: %.9f\n", frame, bpm, (double_t)bpm * (1.0 / 120.0));
-                vector_x_pv_player_stage_anim_speed_push_back(&x_pv->anim_speed, &anim_speed);
+                x_pv_player_frame_data frame_data = { 0 };
+                frame_data.frame = frame;
+                frame_data.type = X_PV_PLAYER_FRAME_DATA_BPM;
+                frame_data.bpm = bpm;
+                vector_x_pv_player_frame_data_push_back(&x_pv->frame_data, &frame_data);
+                //printf("Frame: %5d; BPM: %3d; Speed: %.9f\n", frame, bpm, (double_t)bpm * (1.0 / 120.0));
+
             }
             prev_bpm = bpm;
+        }
+        else if (i->func == pv_end_func_id) {
+            end_frame = frame;
+            break;
         }
         else if (i->func == bar_point_func_id) {
             if (prev_bar_point_time != -1) {
                 float_t frame_speed = 200000.0f / (float_t)(time - prev_bar_point_time);
                 int32_t bpm = (int32_t)roundf(frame_speed * 120.0f);
                 if (bpm != prev_bpm) {
-                    x_pv_player_stage_anim_speed anim_speed;
-                    anim_speed.frame = frame;
-                    anim_speed.bpm = bpm;
-                    printf("Frame: %5d; BPM: %3d; Speed: %.9f\n", frame, bpm, (double_t)bpm * (1.0 / 120.0));
-                    vector_x_pv_player_stage_anim_speed_push_back(&x_pv->anim_speed, &anim_speed);
+                    x_pv_player_frame_data frame_data = { 0 };
+                    frame_data.frame = frame;
+                    frame_data.type = X_PV_PLAYER_FRAME_DATA_BPM;
+                    frame_data.bpm = bpm;
+                    vector_x_pv_player_frame_data_push_back(&x_pv->frame_data, &frame_data);
+                    //printf("Frame: %5d; BPM: %3d; Speed: %.9f\n", frame, bpm, (double_t)bpm * (1.0 / 120.0));
                 }
                 prev_bpm = bpm;
             }
             prev_bar_point_time = time;
         }
-}
+        else if (i->func == stage_effect_func_id) {
+            x_pv_player_frame_data frame_data = { 0 };
+            frame_data.frame = frame;
+            frame_data.type = X_PV_PLAYER_FRAME_DATA_STAGE_EFFECT;
+            frame_data.stage_effect = (int32_t)data[0];
+            vector_x_pv_player_frame_data_push_back(&x_pv->frame_data, &frame_data);
 
-static void x_pv_player_update() {
+            printf("Frame: %5d; %s(", frame, i->name);
+            for (int32_t j = dsc_x_get_func_length(i->func); j > 0; j--)
+                printf(j > 1 ? "%d, " : "%d", (int32_t)*data++);
+            printf(");\n");
+        }
+        else if (i->func == song_effect_func_id) {
+            x_pv_player_frame_data frame_data = { 0 };
+            frame_data.frame = frame;
+            frame_data.type = X_PV_PLAYER_FRAME_DATA_SONG_EFFECT;
+            frame_data.song_effect.enable = data[0] ? true : false;
+            frame_data.song_effect.id = (int32_t)data[1];
+            vector_x_pv_player_frame_data_push_back(&x_pv->frame_data, &frame_data);
 
+            printf("Frame: %5d; %s(", frame, i->name);
+            for (int32_t j = dsc_x_get_func_length(i->func); j > 0; j--)
+                printf(j > 1 ? "%d, " : "%d", (int32_t)*data++);
+            printf(");\n");
+        }
+    }
+    dsc_free(&dsc_m);
 }
 
 static void x_pv_player_free() {
     x_pv_player* x_pv = &x_pv_player_data;
     pvpp_free(&x_pv->pp);
     pvsr_free(&x_pv->sr);
-    dsc_free(&x_pv->dsc);
-    vector_x_pv_player_stage_anim_speed_free(&x_pv->anim_speed, 0);
+    x_pv_player_glitter_free(&x_pv->pv_glitter);
+    x_pv_player_glitter_free(&x_pv->stage_glitter);
+    vector_x_pv_player_frame_data_free(&x_pv->frame_data, 0);
 }
 
 static void x_pv_player_glitter_load(x_pv_player_glitter* pv_glt, char* name) {
     string_init(&pv_glt->name, name);
-    pv_glt->hash = hash_murmurhash(string_data(&pv_glt->name), pv_glt->name.length, 0, false, false);
+    pv_glt->hash = hash_string_murmurhash(&pv_glt->name, 0, false);
     glitter_file_reader* fr = glitter_file_reader_init(GLITTER_X, 0, string_data(&pv_glt->name), -1.0f);
     vector_ptr_glitter_file_reader_push_back(&GPM_VAL->file_readers, &fr);
-    glitter_particle_manager_update_file_reader(GPM_VAL);
+    glitter_particle_manager_ctrl_file_reader(GPM_VAL);
     pv_glt->effect_group = glitter_particle_manager_get_effect_group(GPM_VAL, pv_glt->hash);
 }
 
 static void x_pv_player_glitter_free(x_pv_player_glitter* pv_glt) {
+    string_free(&pv_glt->name);
     glitter_particle_manager_free_scene(GPM_VAL, pv_glt->hash);
     glitter_particle_manager_free_effect_group(GPM_VAL, pv_glt->hash);
 }
+#endif

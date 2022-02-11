@@ -23,7 +23,7 @@ static ssize_t object_database_strings_get_string_offset(vector_string* vec,
     vector_ssize_t* vec_off, char* str);
 static void object_database_strings_push_back_check(vector_string* vec, char* str);
 
-const object_info object_info_null = { -1, -1 };
+const object_info object_info_null = { (uint32_t)-1, (uint32_t)-1 };
 
 void object_database_init(object_database* obj_db) {
     memset(obj_db, 0, sizeof(object_database));
@@ -39,7 +39,7 @@ void object_database_read(object_database* obj_db, char* path, bool modern) {
             stream s;
             io_open(&s, path_bin, "rb");
             if (s.io.stream) {
-                uint8_t* data = force_malloc(s.length);
+                uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
                 io_mopen(&s_bin, data, s.length);
@@ -56,7 +56,7 @@ void object_database_read(object_database* obj_db, char* path, bool modern) {
         if (path_check_file_exists(path_osi)) {
             f2_struct st;
             f2_struct_read(&st, path_osi);
-            if (st.header.signature == reverse_endianness_uint32_t('MOSI')); {
+            if (st.header.signature == reverse_endianness_uint32_t('MOSI')) {
                 stream s_mosi;
                 io_mopen(&s_mosi, st.data, st.length);
                 s_mosi.is_big_endian = st.header.use_big_endian;
@@ -79,7 +79,7 @@ void object_database_wread(object_database* obj_db, wchar_t* path, bool modern) 
             stream s;
             io_wopen(&s, path_bin, L"rb");
             if (s.io.stream) {
-                uint8_t* data = force_malloc(s.length);
+                uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
                 io_mopen(&s_bin, data, s.length);
@@ -96,7 +96,7 @@ void object_database_wread(object_database* obj_db, wchar_t* path, bool modern) 
         if (path_wcheck_file_exists(path_osi)) {
             f2_struct st;
             f2_struct_wread(&st, path_osi);
-            if (st.header.signature == reverse_endianness_uint32_t('MOSI')); {
+            if (st.header.signature == reverse_endianness_uint32_t('MOSI')) {
                 stream s_mosi;
                 io_mopen(&s_mosi, st.data, st.length);
                 s_mosi.is_big_endian = st.header.use_big_endian;
@@ -122,7 +122,7 @@ void object_database_mread(object_database* obj_db, void* data, size_t length, b
     else {
         f2_struct st;
         f2_struct_mread(&st, data, length);
-        if (st.header.signature == reverse_endianness_uint32_t('MOSI')); {
+        if (st.header.signature == reverse_endianness_uint32_t('MOSI')) {
             stream s_mosi;
             io_mopen(&s_mosi, st.data, st.length);
             s_mosi.is_big_endian = st.header.use_big_endian;
@@ -207,7 +207,7 @@ bool object_database_load_file(void* data, char* path, char* file, uint32_t hash
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    object_database* obj_db = data;
+    object_database* obj_db = (object_database*)data;
     object_database_read(obj_db, string_data(&s), obj_db->modern);
 
     string_free(&s);
@@ -243,7 +243,7 @@ void object_database_merge_mdata(object_database* obj_db,
         object_set_info* set_info = &object_set->begin[i];
 
         string_copy(&b_set_info->name, &set_info->name);
-        set_info->name_hash = hash_fnv1a64m(string_data(&set_info->name), set_info->name.length, false);
+        set_info->name_hash = hash_string_fnv1a64m(&set_info->name, false);
         set_info->id = b_set_info->id;
         string_copy(&b_set_info->object_file_name, &set_info->object_file_name);
         string_copy(&b_set_info->texture_file_name, &set_info->texture_file_name);
@@ -259,10 +259,9 @@ void object_database_merge_mdata(object_database* obj_db,
 
             info->id = b_info->id;
             string_copy(&b_info->name, &info->name);
-            info->name_hash_fnv1a64m = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
-            info->name_hash_fnv1a64m_upper = hash_fnv1a64m(string_data(&info->name), info->name.length, true);
-            info->name_hash_murmurhash = hash_murmurhash(string_data(&info->name),
-                info->name.length, 0, false, false);
+            info->name_hash_fnv1a64m = hash_string_fnv1a64m(&info->name, false);
+            info->name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info->name, true);
+            info->name_hash_murmurhash = hash_string_murmurhash(&info->name, 0, false);
         }
     }
 
@@ -282,7 +281,7 @@ void object_database_merge_mdata(object_database* obj_db,
             set_info = vector_object_set_info_reserve_back(object_set);
 
         string_replace(&m_set_info->name, &set_info->name);
-        set_info->name_hash = hash_fnv1a64m(string_data(&set_info->name), set_info->name.length, false);
+        set_info->name_hash = hash_string_fnv1a64m(&set_info->name, false);
         set_info->id = m_set_info->id;
         string_replace(&m_set_info->object_file_name, &set_info->object_file_name);
         string_replace(&m_set_info->texture_file_name, &set_info->texture_file_name);
@@ -299,10 +298,9 @@ void object_database_merge_mdata(object_database* obj_db,
 
             info->id = m_info->id;
             string_copy(&m_info->name, &info->name);
-            info->name_hash_fnv1a64m = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
-            info->name_hash_fnv1a64m_upper = hash_fnv1a64m(string_data(&info->name), info->name.length, true);
-            info->name_hash_murmurhash = hash_murmurhash(string_data(&info->name),
-                info->name.length, 0, false, false);
+            info->name_hash_fnv1a64m = hash_string_fnv1a64m(&info->name, false);
+            info->name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info->name, true);
+            info->name_hash_murmurhash = hash_string_murmurhash(&info->name, 0, false);
         }
     }
 
@@ -325,7 +323,26 @@ bool object_database_get_object_set_info(object_database* obj_db,
     if (!obj_db || !name)
         return false;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+
+    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
+        if (name_hash == i->name_hash) {
+            *set_info = i;
+            return true;
+        }
+    return false;
+}
+
+bool object_database_get_object_set_info(object_database* obj_db,
+    const char* name, object_set_info** set_info) {
+    if (!set_info)
+        return false;
+    *set_info = 0;
+
+    if (!obj_db || !name)
+        return false;
+
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
 
     for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
         if (name_hash == i->name_hash) {
@@ -361,7 +378,27 @@ bool object_database_get_object_info_data(object_database* obj_db,
     if (!obj_db || !name)
         return false;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+
+    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
+        for (object_info_data* j = i->object.begin; j != i->object.end; j++)
+            if (name_hash == j->name_hash_fnv1a64m) {
+                *info = j;
+                return true;
+            }
+    return false;
+}
+
+bool object_database_get_object_info_data(object_database* obj_db,
+    const char* name, object_info_data** info) {
+    if (!info)
+        return false;
+    *info = 0;
+
+    if (!obj_db || !name)
+        return false;
+
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
 
     for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
         for (object_info_data* j = i->object.begin; j != i->object.end; j++)
@@ -430,14 +467,31 @@ object_info object_database_get_object_info(object_database* obj_db, char* name)
         return object_info_null;
 
     size_t name_len = utf8_length(name);
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
     if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return object_info_null;
 
     for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
         for (object_info_data* j = i->object.begin; j != i->object.end; j++)
             if (name_hash == j->name_hash_fnv1a64m)
-                return (object_info) { j->id, i->id };
+                return { j->id, i->id };
+
+    return object_info_null;
+}
+
+object_info object_database_get_object_info(object_database* obj_db, const char* name) {
+    if (!obj_db || !name)
+        return object_info_null;
+
+    size_t name_len = utf8_length(name);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    if (!str_utils_compare_length(name, name_len, "NULL", 5))
+        return object_info_null;
+
+    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
+        for (object_info_data* j = i->object.begin; j != i->object.end; j++)
+            if (name_hash == j->name_hash_fnv1a64m)
+                return { j->id, i->id };
 
     return object_info_null;
 }
@@ -493,7 +547,7 @@ static void object_database_classic_read_inner(object_database* obj_db, stream* 
             io_read_uint32_t(s), &set_info->texture_file_name);
         io_read_string_null_terminated_offset(s,
             io_read_uint32_t(s), &set_info->archive_file_name);
-        io_read(s, 0, 0x10);
+        io_read(s, 0x10);
     }
     io_position_pop(s);
 
@@ -546,55 +600,59 @@ static void object_database_classic_write_inner(object_database* obj_db, stream*
     vector_ssize_t string_offsets = vector_empty(ssize_t);
     vector_ssize_t_reserve(&string_offsets, object_set_count * 4ULL);
 
-    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++) {
-        *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
-        io_write_string_null_terminated(s, &i->name);
-        *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
-        io_write_string_null_terminated(s, &i->object_file_name);
-        *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
-        io_write_string_null_terminated(s, &i->texture_file_name);
-        *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
-        io_write_string_null_terminated(s, &i->archive_file_name);
-    }
-    io_align_write(s, 0x20);
-
     uint32_t max_object_set_id = 0;
     uint32_t object_count = 0;
-    ssize_t object_sets_offset = io_get_position(s);
+    ssize_t object_sets_offset = 0;
     size_t off_idx = 0;
-    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++) {
-        io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
-        io_write_uint32_t(s, i->id);
-        io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
-        io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
-        io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
-        io_write(s, 0, 0x10);
-        if (max_object_set_id < i->id)
-            max_object_set_id = i->id;
-        object_count += (uint32_t)vector_length(i->object);
-    }
-
-    vector_ssize_t_clear(&string_offsets, 0);
-    vector_ssize_t_reserve(&string_offsets, object_count);
-
-    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
-        for (object_info_data* j = i->object.begin; j != i->object.end; j++) {
+    ssize_t objects_offset = 0;
+    if (string_offsets.begin) {
+        for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++) {
             *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
-            io_write_string_null_terminated(s, &j->name);
+            io_write_string_null_terminated(s, &i->name);
+            *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
+            io_write_string_null_terminated(s, &i->object_file_name);
+            *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
+            io_write_string_null_terminated(s, &i->texture_file_name);
+            *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
+            io_write_string_null_terminated(s, &i->archive_file_name);
         }
-    io_align_write(s, 0x20);
+        io_align_write(s, 0x20);
 
-    ssize_t objects_offset = io_get_position(s);
-    off_idx = 0;
-    for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++) {
-        uint16_t set_id = (uint16_t)i->id;
-        for (object_info_data* j = i->object.begin; j != i->object.end; j++) {
-            io_write_uint16_t(s, (uint16_t)j->id);
-            io_write_uint16_t(s, set_id);
+        object_sets_offset = io_get_position(s);
+        for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++) {
             io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
+            io_write_uint32_t(s, i->id);
+            io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
+            io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
+            io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
+            io_write(s, 0x10);
+            if (max_object_set_id < i->id)
+                max_object_set_id = i->id;
+            object_count += (uint32_t)vector_length(i->object);
         }
+
+        vector_ssize_t_clear(&string_offsets, 0);
+        vector_ssize_t_reserve(&string_offsets, object_count);
+
+        for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++)
+            for (object_info_data* j = i->object.begin; j != i->object.end; j++) {
+                *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
+                io_write_string_null_terminated(s, &j->name);
+            }
+        io_align_write(s, 0x20);
+
+        objects_offset = io_get_position(s);
+        off_idx = 0;
+        for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++) {
+            uint16_t set_id = (uint16_t)i->id;
+            for (object_info_data* j = i->object.begin; j != i->object.end; j++) {
+                io_write_uint16_t(s, (uint16_t)j->id);
+                io_write_uint16_t(s, set_id);
+                io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
+            }
+        }
+        io_align_write(s, 0x20);
     }
-    io_align_write(s, 0x20);
 
     vector_ssize_t_free(&string_offsets, 0);
 
@@ -604,7 +662,7 @@ static void object_database_classic_write_inner(object_database* obj_db, stream*
     io_write_uint32_t(s, (uint32_t)object_sets_offset);
     io_write_uint32_t(s, object_count);
     io_write_uint32_t(s, (uint32_t)objects_offset);
-    io_write(s, 0, 0x08);
+    io_write(s, 0x08);
     io_position_pop(s);
 }
 
@@ -641,7 +699,7 @@ static void object_database_modern_read_inner(object_database* obj_db, stream* s
                 io_read_offset_f2(s, header_length), &set_info->texture_file_name);
             io_read_string_null_terminated_offset(s,
                 io_read_offset_f2(s, header_length), &set_info->archive_file_name);
-            io_read(s, 0, 0x10);
+            io_read(s, 0x10);
         }
     else
         for (uint32_t i = 0; i < object_set_count; i++) {
@@ -655,7 +713,7 @@ static void object_database_modern_read_inner(object_database* obj_db, stream* s
                 io_read_offset_x(s), &set_info->texture_file_name);
             io_read_string_null_terminated_offset(s,
                 io_read_offset_x(s), &set_info->archive_file_name);
-            io_read(s, 0, 0x10);
+            io_read(s, 0x10);
         }
     io_position_pop(s);
 
@@ -726,43 +784,43 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
         object_count += (uint32_t)vector_length(i->object);
 
     if (!is_x) {
-        ee = (enrs_entry){ 0, 1, 1, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 6, ENRS_DWORD });
+        ee = { 0, 1, 1, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = 32;
 
-        ee = (enrs_entry){ off, 1, 36, object_set_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 5, ENRS_DWORD });
+        ee = { off, 1, 36, object_set_count, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 5, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(object_set_count * 36ULL);
         off = align_val(off, 0x10);
 
-        ee = (enrs_entry){ off, 1, 12, object_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
+        ee = { off, 1, 12, object_count, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(object_count * 12ULL);
         off = align_val(off, 0x10);
     }
     else {
-        ee = (enrs_entry){ 0, 4, 48, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, 1, ENRS_QWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, 1, ENRS_QWORD });
+        ee = { 0, 4, 48, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = 48;
 
-        ee = (enrs_entry){ off, 3, 56, object_set_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_QWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, 3, ENRS_QWORD });
+        ee = { off, 3, 56, object_set_count, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 4, 3, ENRS_QWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(object_set_count * 56ULL);
         off = align_val(off, 0x10);
 
-        ee = (enrs_entry){ off, 2, 16, object_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_DWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_QWORD });
+        ee = { off, 2, 16, object_count, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(object_count * 16ULL);
         off = align_val(off, 0x10);
@@ -773,15 +831,15 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
     io_write_offset(&s_mosi, 0, 0, is_x);
     io_write_int32_t(&s_mosi, 0);
     io_write_offset(&s_mosi, 0, 0, is_x);
-    io_write(&s_mosi, 0, 0x08);
+    io_write(&s_mosi, 0x08);
     io_align_write(&s_mosi, 0x10);
 
     ssize_t object_sets_offset = io_get_position(&s_mosi);
-    io_write(&s_mosi, 0, object_set_count * (is_x ? 0x38ULL : 0x24ULL));
+    io_write(&s_mosi, object_set_count * (is_x ? 0x38ULL : 0x24ULL));
     io_align_write(&s_mosi, 0x10);
 
     ssize_t objects_offset = io_get_position(&s_mosi);
-    io_write(&s_mosi, 0, object_count * (is_x ? 0x10ULL : 0x0CULL));
+    io_write(&s_mosi, object_count * (is_x ? 0x10ULL : 0x0CULL));
     io_align_write(&s_mosi, 0x10);
 
     vector_string strings = vector_empty(string);
@@ -814,7 +872,7 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
     io_write_offset_pof_add(&s_mosi, object_sets_offset, 0x20, is_x, &pof);
     io_write_uint32_t(&s_mosi, object_count);
     io_write_offset_pof_add(&s_mosi, objects_offset, 0x20, is_x, &pof);
-    io_write(&s_mosi, 0, 0x08);
+    io_write(&s_mosi, 0x08);
     io_align_write(&s_mosi, 0x10);
 
     if (!is_x)
@@ -828,7 +886,7 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
                 &string_offsets, string_data(&i->texture_file_name)), 0x20, &pof);
             io_write_offset_f2_pof_add(&s_mosi, object_database_strings_get_string_offset(&strings,
                 &string_offsets, string_data(&i->archive_file_name)), 0x20, &pof);
-            io_write(&s_mosi, 0, 0x10);
+            io_write(&s_mosi, 0x10);
         }
     else
         for (object_set_info* i = obj_db->object_set.begin; i != obj_db->object_set.end; i++) {
@@ -841,7 +899,7 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
                 &string_offsets, string_data(&i->texture_file_name)), &pof);
             io_write_offset_x_pof_add(&s_mosi, object_database_strings_get_string_offset(&strings,
                 &string_offsets, string_data(&i->archive_file_name)), &pof);
-            io_write(&s_mosi, 0, 0x10);
+            io_write(&s_mosi, 0x10);
         }
     io_align_write(&s_mosi, 0x10);
 
@@ -890,7 +948,7 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
 
 inline static ssize_t object_database_strings_get_string_offset(vector_string* vec,
     vector_ssize_t* vec_off, char* str) {
-    size_t len = utf8_length(str);
+    ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return vec_off->begin[i - vec->begin];
@@ -898,7 +956,7 @@ inline static ssize_t object_database_strings_get_string_offset(vector_string* v
 }
 
 inline static void object_database_strings_push_back_check(vector_string* vec, char* str) {
-    size_t len = utf8_length(str);
+    ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return;

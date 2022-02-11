@@ -31,8 +31,10 @@ typedef struct stream {
     vector_ssize_t position_stack;
 } stream;
 
-extern void io_open(stream* s, char* path, char* mode);
-extern void io_wopen(stream* s, wchar_t* path, wchar_t* mode);
+extern void io_open(stream* s, char* path, const char* mode);
+extern void io_open(stream* s, const char* path, const char* mode);
+extern void io_wopen(stream* s, wchar_t* path, const wchar_t* mode);
+extern void io_wopen(stream* s, const wchar_t* path, const wchar_t* mode);
 extern void io_mopen(stream* s, void* data, size_t length);
 extern void io_mcopy(stream* s, void** data, size_t* length);
 extern void io_align_read(stream* s, ssize_t align);
@@ -43,8 +45,11 @@ extern ssize_t io_get_position(stream* s);
 extern int32_t io_set_position(stream* s, ssize_t pos, int32_t seek);
 extern int32_t io_position_push(stream* s, ssize_t pos, int32_t seek);
 extern void io_position_pop(stream* s);
+extern ssize_t io_read(stream* s, ssize_t count);
 extern ssize_t io_read(stream* s, void* buf, ssize_t count);
+extern ssize_t io_write(stream* s, ssize_t count);
 extern ssize_t io_write(stream* s, void* buf, ssize_t count);
+extern ssize_t io_write(stream* s, const void* buf, ssize_t count);
 extern int32_t io_read_char(stream* s);
 extern int32_t io_write_char(stream* s, char c);
 
@@ -72,9 +77,13 @@ extern void io_write_wstring(stream* s, wstring* str);
 extern void io_write_string_null_terminated(stream* s, string* str);
 extern void io_write_wstring_null_terminated(stream* s, wstring* str);
 extern void io_write_utf8_string(stream* s, char* str);
+extern void io_write_utf8_string(stream* s, const char* str);
 extern void io_write_utf16_string(stream* s, wchar_t* str);
+extern void io_write_utf16_string(stream* s, const wchar_t* str);
 extern void io_write_utf8_string_null_terminated(stream* s, char* str);
+extern void io_write_utf8_string_null_terminated(stream* s, const char* str);
 extern void io_write_utf16_string_null_terminated(stream* s, wchar_t* str);
+extern void io_write_utf16_string_null_terminated(stream* s, const wchar_t* str);
 extern ssize_t io_read_offset(stream* s, int32_t offset, bool is_x);
 extern ssize_t io_read_offset_f2(stream* s, int32_t offset);
 extern ssize_t io_read_offset_x(stream* s);

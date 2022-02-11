@@ -14,12 +14,12 @@ static bool glitter_effect_unpack_file(GLT,
 extern object_database* obj_db_ptr;
 
 glitter_effect* glitter_effect_init(GLT) {
-    glitter_effect* e = force_malloc(sizeof(glitter_effect));
+    glitter_effect* e = force_malloc_s(glitter_effect, 1);
     e->version = GLT_VAL == GLITTER_X ? 0x0C : 0x07;
     e->scale = vec3_identity;
     e->data.start_time = 0;
     e->data.ext_anim = 0;
-    e->data.flags = 0;
+    e->data.flags = (glitter_effect_flag)0;
     e->data.name_hash = GLT_VAL != GLITTER_FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
     e->data.seed = 0;
     return e;
@@ -29,12 +29,16 @@ glitter_effect* glitter_effect_copy(glitter_effect* e) {
     if (!e)
         return 0;
 
-    glitter_effect* ec = force_malloc(sizeof(glitter_effect));
+    glitter_effect* ec = force_malloc_s(glitter_effect, 1);
     *ec = *e;
 
     if (e->data.ext_anim) {
-        ec->data.ext_anim = force_malloc(sizeof(glitter_effect_ext_anim));
+        ec->data.ext_anim = force_malloc_s(glitter_effect_ext_anim, 1);
         *ec->data.ext_anim = *e->data.ext_anim;
+    }
+    else if (e->data.ext_anim_x) {
+        ec->data.ext_anim_x = force_malloc_s(glitter_effect_ext_anim_x, 1);
+        *ec->data.ext_anim_x = *e->data.ext_anim_x;
     }
 
     ec->emitters = vector_ptr_empty(glitter_emitter);
@@ -111,7 +115,7 @@ object_info glitter_effect_ext_anim_get_object_info(uint64_t hash) {
     for (object_set_info* i = object_set->begin; i != object_set->end; i++) {
         for (object_info_data* j = i->object.begin; j != i->object.end; j++)
             if (hash == j->name_hash_murmurhash || hash == j->name_hash_fnv1a64m_upper)
-                return (object_info) { j->id, i->id };
+                return { j->id, i->id };
     }
     return object_info_null;
 }
@@ -133,35 +137,35 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
     vector_enrs_entry e = vector_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = (enrs_entry){ 0, 2, 56, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_QWORD });
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 12, ENRS_DWORD });
+    ee = { 0, 2, 56, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+    vector_enrs_sub_entry_append(&ee.sub, 0, 12, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
     l += o = 56;
 
     if (a2->version == 7) {
-        ee = (enrs_entry){ 0, 1, 4, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+        ee = { 0, 1, 4, 1, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         l += o = 4;
     }
 
-    ee = (enrs_entry){ 0, 1, 4, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+    ee = { 0, 1, 4, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
     l += o = 4;
 
     if (~a2->data.flags & GLITTER_EFFECT_LOCAL && ext_anim)
         if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
-            ee = (enrs_entry){ 0, 1, 12, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 3, ENRS_DWORD });
+            ee = { 0, 1, 12, 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             l += o = 12;
         }
         else {
-            ee = (enrs_entry){ 0, 2, 140, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_QWORD });
-            vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+            ee = { 0, 2, 140, 1, vector_empty(enrs_sub_entry) };
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
             vector_enrs_entry_push_back(&e, &ee);
             l += o = 140;
         }
@@ -172,17 +176,17 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
     st->data = (void*)d;
     st->enrs = e;
 
-    flags = 0;
+    flags = (glitter_effect_file_flag)0;
     if (a2->data.flags & GLITTER_EFFECT_ALPHA)
-        flags |= GLITTER_EFFECT_FILE_ALPHA;
+        enum_or(flags, GLITTER_EFFECT_FILE_ALPHA);
 
     if (a2->data.flags & GLITTER_EFFECT_FOG)
-        flags |= GLITTER_EFFECT_FILE_FOG;
+        enum_or(flags, GLITTER_EFFECT_FILE_FOG);
     else if (a2->data.flags & GLITTER_EFFECT_FOG_HEIGHT)
-        flags |= GLITTER_EFFECT_FILE_FOG_HEIGHT;
+        enum_or(flags, GLITTER_EFFECT_FILE_FOG_HEIGHT);
 
     if (a2->data.flags & GLITTER_EFFECT_EMISSION)
-        flags |= GLITTER_EFFECT_FILE_EMISSION;
+        enum_or(flags, GLITTER_EFFECT_FILE_EMISSION);
 
     *(uint64_t*)d = GLT_VAL != GLITTER_FT
         ? hash_utf8_murmurhash(a2->name, 0, false)
@@ -210,7 +214,8 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
         if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
             *(int32_t*)d = 2;
             d += 4;
-            glitter_effect_ext_anim_flag ext_anim_flag = ext_anim->flags & ~GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM;
+            glitter_effect_ext_anim_flag ext_anim_flag
+                = (glitter_effect_ext_anim_flag)(ext_anim->flags & ~GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM);
             *(int32_t*)d = ext_anim->chara_index;
             *(int32_t*)(d + 4) = ext_anim_flag;
             *(int32_t*)(d + 8) = ext_anim->node_index;
@@ -246,7 +251,7 @@ static bool glitter_effect_unpack_file(GLT,
         a2->scale = vec3_identity;
         a2->data.start_time = 0;
         a2->data.ext_anim = 0;
-        a2->data.flags = 0;
+        a2->data.flags = (glitter_effect_flag)0;
         a2->data.name_hash = hash_murmurhash_empty;
         a2->data.seed = 0;
 
@@ -260,14 +265,14 @@ static bool glitter_effect_unpack_file(GLT,
             a2->data.life_time = load_reverse_endianness_int32_t((void*)(d + 12));
             a2->data.start_time = load_reverse_endianness_int32_t((void*)(d + 16));
             if (load_reverse_endianness_int32_t((void*)(d + 24)))
-                a2->data.flags |= GLITTER_EFFECT_LOOP;
+                enum_or(a2->data.flags, GLITTER_EFFECT_LOOP);
             a2->translation.x = load_reverse_endianness_float_t((void*)(d + 28));
             a2->translation.y = load_reverse_endianness_float_t((void*)(d + 32));
             a2->translation.z = load_reverse_endianness_float_t((void*)(d + 36));
             a2->rotation.x = load_reverse_endianness_float_t((void*)(d + 40));
             a2->rotation.y = load_reverse_endianness_float_t((void*)(d + 44));
             a2->rotation.z = load_reverse_endianness_float_t((void*)(d + 48));
-            flags = load_reverse_endianness_int32_t((void*)(d + 52));
+            flags = (glitter_effect_file_flag)load_reverse_endianness_int32_t((void*)(d + 52));
         }
         else {
             a2->data.name_hash = *(uint64_t*)data;
@@ -275,28 +280,28 @@ static bool glitter_effect_unpack_file(GLT,
             a2->data.life_time = *(int32_t*)(d + 12);
             a2->data.start_time = *(int32_t*)(d + 16);
             if (*(int32_t*)(d + 24))
-                a2->data.flags |= GLITTER_EFFECT_LOOP;
+                enum_or(a2->data.flags, GLITTER_EFFECT_LOOP);
             a2->translation = *(vec3*)(d + 28);
             a2->rotation = *(vec3*)(d + 40);
-            flags = *(int32_t*)(d + 52);
+            flags = (glitter_effect_file_flag) * (int32_t*)(d + 52);
         }
 
         if (flags & GLITTER_EFFECT_FILE_ALPHA)
-            a2->data.flags |= GLITTER_EFFECT_ALPHA;
+            enum_or(a2->data.flags, GLITTER_EFFECT_ALPHA);
 
         if (flags & GLITTER_EFFECT_FILE_FOG)
-            a2->data.flags |= GLITTER_EFFECT_FOG;
+            enum_or(a2->data.flags, GLITTER_EFFECT_FOG);
         else if (flags & GLITTER_EFFECT_FILE_FOG_HEIGHT)
-            a2->data.flags |= GLITTER_EFFECT_FOG_HEIGHT;
+            enum_or(a2->data.flags, GLITTER_EFFECT_FOG_HEIGHT);
 
         if (flags & GLITTER_EFFECT_FILE_EMISSION)
-            a2->data.flags |= GLITTER_EFFECT_EMISSION;
+            enum_or(a2->data.flags, GLITTER_EFFECT_EMISSION);
 
         if (flags & GLITTER_EFFECT_FILE_USE_SEED)
-            a2->data.flags |= GLITTER_EFFECT_USE_SEED;
+            enum_or(a2->data.flags, GLITTER_EFFECT_USE_SEED);
 
         if (a2->version != 8 && flags & 0x20)
-            a2->data.flags |= 0x80;
+            enum_or(a2->data.flags, 0x80);
 
         if (use_big_endian) {
             a2->data.emission = load_reverse_endianness_float_t((void*)(d + 56));
@@ -315,44 +320,47 @@ static bool glitter_effect_unpack_file(GLT,
         d += a2->version != 8 ? 80 : 88;
 
         if (type == 1)
-            a2->data.flags |= GLITTER_EFFECT_LOCAL;
+            enum_or(a2->data.flags, GLITTER_EFFECT_LOCAL);
         else if (type == 2) {
-            ext_anim_x = force_malloc(sizeof(glitter_effect_ext_anim_x));
+            ext_anim_x = force_malloc_s(glitter_effect_ext_anim_x, 1);
             a2->data.ext_anim_x = ext_anim_x;
             if (ext_anim_x) {
                 if (use_big_endian) {
                     ext_anim_x->chara_index = load_reverse_endianness_int32_t((void*)d);
-                    ext_anim_x->flags = load_reverse_endianness_int32_t((void*)(d + 4));
-                    ext_anim_x->node_index = load_reverse_endianness_int32_t((void*)(d + 8));
+                    ext_anim_x->flags = (glitter_effect_ext_anim_flag)
+                        load_reverse_endianness_int32_t((void*)(d + 4));
+                    ext_anim_x->node_index = (glitter_effect_ext_anim_chara_node)
+                        load_reverse_endianness_int32_t((void*)(d + 8));
                 }
                 else {
                     ext_anim_x->chara_index = *(int32_t*)d;
-                    ext_anim_x->flags = *(int32_t*)(d + 4);
-                    ext_anim_x->node_index = *(int32_t*)(d + 8);
+                    ext_anim_x->flags = (glitter_effect_ext_anim_flag) * (int32_t*)(d + 4);
+                    ext_anim_x->node_index = (glitter_effect_ext_anim_chara_node) * (int32_t*)(d + 8);
                 }
 
-                ext_anim_x->flags |= GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM;
+                enum_or(ext_anim_x->flags, GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM);
                 ext_anim_x->mesh_name[0] = 0;
             }
         }
         else if (type == 3) {
             if (a2->version == 8) {
-                ext_anim_x = force_malloc(sizeof(glitter_effect_ext_anim_x));
+                ext_anim_x = force_malloc_s(glitter_effect_ext_anim_x, 1);
                 a2->data.ext_anim_x = ext_anim_x;
                 if (ext_anim_x) {
                     if (use_big_endian) {
                         ext_anim_x->object_hash = (uint32_t)load_reverse_endianness_uint64_t((void*)d);
-                        ext_anim_x->flags = load_reverse_endianness_int32_t((void*)(d + 8));
+                        ext_anim_x->flags = (glitter_effect_ext_anim_flag)
+                            load_reverse_endianness_int32_t((void*)(d + 8));
                     }
                     else {
                         ext_anim_x->object_hash = (uint32_t) * (uint64_t*)d;
-                        ext_anim_x->flags = *(int32_t*)(d + 8);
+                        ext_anim_x->flags = (glitter_effect_ext_anim_flag) * (int32_t*)(d + 8);
                     }
 
                     ext_anim_x->instance_id = 0;
                     ext_anim_x->file_name_hash = hash_murmurhash_empty;
-                    if (*(uint8_t*)(d + 12)) {
-                        strncpy_s(ext_anim_x->mesh_name, 0x80, (uint8_t*)(d + 20), 0x80);
+                    if (*(char*)(d + 12)) {
+                        strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 20), 0x80);
                         ext_anim_x->mesh_name[0x7F] = '\0';
                     }
                     else
@@ -360,22 +368,23 @@ static bool glitter_effect_unpack_file(GLT,
                 }
             }
             else if (a2->version == 10) {
-                ext_anim_x = force_malloc(sizeof(glitter_effect_ext_anim_x));
+                ext_anim_x = force_malloc_s(glitter_effect_ext_anim_x, 1);
                 a2->data.ext_anim_x = ext_anim_x;
                 if (ext_anim_x) {
                     if (use_big_endian) {
                         ext_anim_x->object_hash = (uint32_t)load_reverse_endianness_uint64_t((void*)d);
-                        ext_anim_x->flags = load_reverse_endianness_int32_t((void*)(d + 8));
+                        ext_anim_x->flags = (glitter_effect_ext_anim_flag)
+                            load_reverse_endianness_int32_t((void*)(d + 8));
                     }
                     else {
                         ext_anim_x->object_hash = (uint32_t) * (uint64_t*)d;
-                        ext_anim_x->flags = *(int32_t*)(d + 8);
+                        ext_anim_x->flags = (glitter_effect_ext_anim_flag) * (int32_t*)(d + 8);
                     }
 
                     ext_anim_x->instance_id = 0;
                     ext_anim_x->file_name_hash = hash_murmurhash_empty;
-                    if (*(uint8_t*)(d + 16)) {
-                        strncpy_s(ext_anim_x->mesh_name, 0x80, (uint8_t*)(d + 16), 0x80);
+                    if (*(char*)(d + 16)) {
+                        strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 16), 0x80);
                         ext_anim_x->mesh_name[0x7F] = '\0';
                     }
                     else
@@ -383,24 +392,25 @@ static bool glitter_effect_unpack_file(GLT,
                 }
             }
             else {
-                ext_anim_x = force_malloc(sizeof(glitter_effect_ext_anim_x));
+                ext_anim_x = force_malloc_s(glitter_effect_ext_anim_x, 1);
                 a2->data.ext_anim_x = ext_anim_x;
                 if (ext_anim_x) {
                     if (use_big_endian) {
                         ext_anim_x->object_hash = (uint32_t)load_reverse_endianness_uint64_t((void*)d);
-                        ext_anim_x->flags = load_reverse_endianness_int32_t((void*)(d + 8));
+                        ext_anim_x->flags = (glitter_effect_ext_anim_flag)
+                            load_reverse_endianness_int32_t((void*)(d + 8));
                         ext_anim_x->instance_id = load_reverse_endianness_int32_t((void*)(d + 12));
                         ext_anim_x->file_name_hash = (uint32_t)load_reverse_endianness_uint64_t((void*)(d + 16));
                     }
                     else {
                         ext_anim_x->object_hash = (uint32_t) * (uint64_t*)d;
-                        ext_anim_x->flags = *(int32_t*)(d + 8);
+                        ext_anim_x->flags = (glitter_effect_ext_anim_flag) * (int32_t*)(d + 8);
                         ext_anim_x->instance_id = *(int32_t*)(d + 12);
                         ext_anim_x->file_name_hash = (uint32_t) * (uint64_t*)(d + 16);
                     }
 
-                    if (*(uint8_t*)(d + 32)) {
-                        strncpy_s(ext_anim_x->mesh_name, 0x80, (uint8_t*)(d + 32), 0x80);
+                    if (*(char*)(d + 32)) {
+                        strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 32), 0x80);
                         ext_anim_x->mesh_name[0x7F] = '\0';
                     }
                     else
@@ -413,7 +423,7 @@ static bool glitter_effect_unpack_file(GLT,
         a2->scale = vec3_identity;
         a2->data.start_time = 0;
         a2->data.ext_anim = 0;
-        a2->data.flags = 0;
+        a2->data.flags = (glitter_effect_flag)0;
         a2->data.name_hash = GLT_VAL != GLITTER_FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
         a2->data.seed = 0;
 
@@ -427,14 +437,14 @@ static bool glitter_effect_unpack_file(GLT,
             a2->data.life_time = load_reverse_endianness_int32_t((void*)(d + 12));
             a2->data.start_time = load_reverse_endianness_int32_t((void*)(d + 16));
             if (load_reverse_endianness_int32_t((void*)(d + 24)))
-                a2->data.flags |= GLITTER_EFFECT_LOOP;
+                enum_or(a2->data.flags, GLITTER_EFFECT_LOOP);
             a2->translation.x = load_reverse_endianness_float_t((void*)(d + 28));
             a2->translation.y = load_reverse_endianness_float_t((void*)(d + 32));
             a2->translation.z = load_reverse_endianness_float_t((void*)(d + 36));
             a2->rotation.x = load_reverse_endianness_float_t((void*)(d + 40));
             a2->rotation.y = load_reverse_endianness_float_t((void*)(d + 44));
             a2->rotation.z = load_reverse_endianness_float_t((void*)(d + 48));
-            flags = load_reverse_endianness_int32_t((void*)(d + 52));
+            flags = (glitter_effect_file_flag)load_reverse_endianness_int32_t((void*)(d + 52));
         }
         else {
             a2->data.name_hash = *(uint64_t*)data;
@@ -442,23 +452,23 @@ static bool glitter_effect_unpack_file(GLT,
             a2->data.life_time = *(int32_t*)(d + 12);
             a2->data.start_time = *(int32_t*)(d + 16);
             if (*(int32_t*)(d + 24))
-                a2->data.flags |= GLITTER_EFFECT_LOOP;
+                enum_or(a2->data.flags, GLITTER_EFFECT_LOOP);
             a2->translation = *(vec3*)(d + 28);
             a2->rotation = *(vec3*)(d + 40);
-            flags = *(int32_t*)(d + 52);
+            flags = (glitter_effect_file_flag) * (int32_t*)(d + 52);
         }
         d += 56;
 
         if (flags & GLITTER_EFFECT_FILE_ALPHA)
-            a2->data.flags |= GLITTER_EFFECT_ALPHA;
+            enum_or(a2->data.flags, GLITTER_EFFECT_ALPHA);
 
         if (flags & GLITTER_EFFECT_FILE_FOG)
-            a2->data.flags |= GLITTER_EFFECT_FOG;
+            enum_or(a2->data.flags, GLITTER_EFFECT_FOG);
         else if (flags & GLITTER_EFFECT_FILE_FOG_HEIGHT)
-            a2->data.flags |= GLITTER_EFFECT_FOG_HEIGHT;
+            enum_or(a2->data.flags, GLITTER_EFFECT_FOG_HEIGHT);
 
         if (flags & GLITTER_EFFECT_FILE_EMISSION)
-            a2->data.flags |= GLITTER_EFFECT_EMISSION;
+            enum_or(a2->data.flags, GLITTER_EFFECT_EMISSION);
 
         if (a2->version == 7) {
             if (use_big_endian)
@@ -476,43 +486,46 @@ static bool glitter_effect_unpack_file(GLT,
         d += 4;
 
         if (type == 1)
-            a2->data.flags |= GLITTER_EFFECT_LOCAL;
+            enum_or(a2->data.flags, GLITTER_EFFECT_LOCAL);
         else if (type == 2) {
-            ext_anim = force_malloc(sizeof(glitter_effect_ext_anim));
+            ext_anim = force_malloc_s(glitter_effect_ext_anim, 1);
             a2->data.ext_anim = ext_anim;
             if (ext_anim) {
                 if (use_big_endian) {
                     ext_anim->chara_index = load_reverse_endianness_int32_t((void*)d);
-                    ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 4));
-                    ext_anim->node_index = load_reverse_endianness_int32_t((void*)(d + 8));
+                    ext_anim->flags = (glitter_effect_ext_anim_flag)
+                        load_reverse_endianness_int32_t((void*)(d + 4));
+                    ext_anim->node_index = (glitter_effect_ext_anim_chara_node)
+                        load_reverse_endianness_int32_t((void*)(d + 8));
                 }
                 else {
                     ext_anim->chara_index = *(int32_t*)d;
-                    ext_anim->flags = *(int32_t*)(d + 4);
-                    ext_anim->node_index = *(int32_t*)(d + 8);
+                    ext_anim->flags = (glitter_effect_ext_anim_flag) * (int32_t*)(d + 4);
+                    ext_anim->node_index = (glitter_effect_ext_anim_chara_node) * (int32_t*)(d + 8);
                 }
 
-                ext_anim->flags |= GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM;
+                enum_or(ext_anim->flags, GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM);
                 ext_anim->mesh_name[0] = 0;
             }
         }
         else if (type == 3) {
-            ext_anim = force_malloc(sizeof(glitter_effect_ext_anim));
+            ext_anim = force_malloc_s(glitter_effect_ext_anim, 1);
             a2->data.ext_anim = ext_anim;
             if (ext_anim) {
                 if (use_big_endian) {
                     ext_anim->object_hash = load_reverse_endianness_uint64_t((void*)d);
-                    ext_anim->flags = load_reverse_endianness_int32_t((void*)(d + 8));
+                    ext_anim->flags = (glitter_effect_ext_anim_flag)
+                        load_reverse_endianness_int32_t((void*)(d + 8));
                 }
                 else {
                     ext_anim->object_hash = *(uint64_t*)d;
-                    ext_anim->flags = *(int32_t*)(d + 8);
+                    ext_anim->flags = (glitter_effect_ext_anim_flag) * (int32_t*)(d + 8);
                 }
 
                 ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
                 ext_anim->node_index = GLITTER_EFFECT_EXT_ANIM_CHARA_MAX;
-                if (*(uint8_t*)(d + 12)) {
-                    strncpy_s(ext_anim->mesh_name, 0x80, (uint8_t*)(d + 12), 0x80);
+                if (*(char*)(d + 12)) {
+                    strncpy_s(ext_anim->mesh_name, 0x80, (char*)(d + 12), 0x80);
                     ext_anim->mesh_name[0x7F] = 0;
                 }
                 else

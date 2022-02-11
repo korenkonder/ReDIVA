@@ -29,7 +29,7 @@ void graphics_background_color_imgui(class_data* data) {
     float_t h = min((float_t)height, 100.0f);
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize((ImVec2) { w, h }, ImGuiCond_Always);
+    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
@@ -38,11 +38,14 @@ void graphics_background_color_imgui(class_data* data) {
     bool open = data->flags & CLASS_HIDDEN ? false : true;
     bool collapsed = !igBegin(graphics_background_color_window_title, &open, window_flags);
     if (!open) {
-        data->flags |= CLASS_HIDE;
-        goto End;
+        enum_or(data->flags, CLASS_HIDE);
+        igEnd();
+        return;
     }
-    else if (collapsed)
-        goto End;
+    else if (collapsed) {
+        igEnd();
+        return;
+    }
 
     ImGuiColorEditFlags color_edit_flags = 0;
     color_edit_flags |= ImGuiColorEditFlags_NoLabel;
@@ -54,13 +57,11 @@ void graphics_background_color_imgui(class_data* data) {
     igCheckbox("Set Clear Color", &set_clear_color);
 
     if (imguiButton("Reset Color", ImVec2_Empty)) {
-        back3d_color = (vec3){ (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
+        back3d_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
         set_clear_color = true;
     }
 
     data->imgui_focus |= igIsWindowFocused(0);
-
-End:
     igEnd();
 }
 

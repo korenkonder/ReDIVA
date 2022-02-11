@@ -97,7 +97,7 @@ bool light_param_glow_load_file(void* data, char* path, char* file, uint32_t has
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    light_param_glow* glow = data;
+    light_param_glow* glow = (light_param_glow*)data;
     light_param_glow_read(glow, string_data(&s));
 
     string_free(&s);
@@ -109,7 +109,7 @@ void light_param_glow_free(light_param_glow* glow) {
 }
 
 static void light_param_glow_read_inner(light_param_glow* glow, stream* s) {
-    char* data = force_malloc(s->length + 1);
+    char* data = force_malloc_s(char, s->length + 1);
     io_read(s, data, s->length);
     data[s->length] = 0;
 

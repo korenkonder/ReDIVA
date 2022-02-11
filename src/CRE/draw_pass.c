@@ -71,7 +71,7 @@ static void texture_params_restore(texture_param* tex_0_param,
 extern bool draw_grid_3d;
 extern shader_glsl grid_shader;
 extern GLuint grid_vbo;
-extern const size_t grid_vertex_count;
+extern size_t grid_vertex_count;
 extern vec3 back3d_color;
 
 void draw_pass_main(render_context* rctx) {
@@ -80,8 +80,6 @@ void draw_pass_main(render_context* rctx) {
     };
 
     camera* cam = rctx->camera;
-
-    post_process_update(&rctx->post_process, cam);
 
     for (int32_t i = 0; i < 5; i++)
         gl_state_active_bind_texture_cube_map(ibl_texture_index[i], rctx->ibl_tex[i]);
@@ -95,7 +93,7 @@ void draw_pass_main(render_context* rctx) {
     GPM_VAL->cam_rotation_y = cam->rotation.y;
     GPM_VAL->rctx = rctx;
 
-    glitter_particle_manager_calc_draw(GPM_VAL);
+    glitter_particle_manager_calc_disp(GPM_VAL);
     shader_env_frag_set(&shaders_ft, 0,
         1.0f / (float_t)rctx->post_process.render_width,
         1.0f / (float_t)rctx->post_process.render_height,
@@ -105,7 +103,7 @@ void draw_pass_main(render_context* rctx) {
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     gl_state_enable_depth_test();
     gl_state_set_depth_mask(GL_TRUE);
-    for (draw_pass_type i = DRAW_PASS_SHADOW; i < DRAW_PASS_MAX; i++) {
+    for (int32_t i = DRAW_PASS_SHADOW; i < DRAW_PASS_MAX; i++) {
         rctx->draw_pass.cpu_time[i] = 0.0;
         rctx->draw_pass.gpu_time[i] = 0.0;
         if (!rctx->draw_pass.enable[i]) {
@@ -131,7 +129,7 @@ void draw_pass_main(render_context* rctx) {
             draw_pass_preprocess(rctx, &rctx->draw_pass);
             break;
         case DRAW_PASS_TYPE_6: {
-            render_texture_bind(&rctx->post_process.render_texture, 0);
+            render_texture_bind(&rctx->post_process.rend_texture, 0);
             vec4 color;
             *(vec3*)&color = back3d_color;
             color.w = 1.0f;
@@ -154,7 +152,7 @@ void draw_pass_main(render_context* rctx) {
             draw_pass_sprite(rctx, &rctx->draw_pass);
             break;
         }
-        draw_pass_end(&rctx->draw_pass, i);
+        draw_pass_end(&rctx->draw_pass, (draw_pass_type)i);
         glGetError();
     }
     gl_state_bind_vertex_array(0);
@@ -180,8 +178,8 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
 
         if (draw_pass_shadow_litproj(rctx, rctx->litproj)) {
             draw_pass_set_camera(rctx->camera);
-            for (light_set_id i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
-                light_set_data_set(&rctx->light_set_data[i], &rctx->face, i);
+            for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
+                light_set_data_set(&rctx->light_set_data[i], &rctx->face, (light_set_id)i);
             gl_state_bind_vertex_array(rctx->vao);
             draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_OPAQUE, 0, 0, true, -1);
             draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TRANSPARENT, 0, 0, true, -1);
@@ -198,7 +196,7 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
     bool v3 = false;
     int32_t v10[2];
     for (int32_t i = 0; i < 2; i++) {
-        v10[i] = draw_task_get_count(rctx, DRAW_OBJECT_SHADOW_CHARA + i);
+        v10[i] = draw_task_get_count(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_CHARA + i));
         if (v10[i])
             v3 = true;
     }
@@ -212,7 +210,7 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
         shad->field_158[1] = &shad->field_8[1];
         shad->field_158[2] = &shad->field_8[2];
 
-        draw_object_type v8 = DRAW_OBJECT_SHADOW_OBJECT_CHARA;
+        int32_t v8 = DRAW_OBJECT_SHADOW_OBJECT_CHARA;
         for (int32_t i = 0, j = 0; i < 2; i++, v8++) {
             if (!v10[i])
                 continue;
@@ -258,7 +256,7 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
             mat4_mult(&proj, &temp, &proj);
             shader_state_matrix_set_projection(&shaders_ft, &proj, false);
 
-            vec3 up = (vec3){ 0.0f, 1.0f, 0.0f };
+            vec3 up = { 0.0f, 1.0f, 0.0f };
             vec3 dir;
             float_t length;
             vec3_sub(*interest, *view_point, dir);
@@ -278,10 +276,10 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
             uniform_value[U0A] = 0;
 
             gl_state_bind_vertex_array(rctx->vao);
-            draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_SHADOW_CHARA + v11[i], 0, 0, 1, -1);
-            if (draw_task_get_count(rctx, DRAW_OBJECT_SHADOW_OBJECT_CHARA + v11[i]) > 0) {
+            draw_task_draw_objects_by_type(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_CHARA + v11[i]), 0, 0, 1, -1);
+            if (draw_task_get_count(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_OBJECT_CHARA + v11[i])) > 0) {
                 glColorMask(a1->field_2F8 != 0 ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-                draw_task_draw_objects_by_type(rctx, v8, 0, 0, true, -1);
+                draw_task_draw_objects_by_type(rctx, (draw_object_type)v8, 0, 0, true, -1);
                 glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
             }
             gl_state_disable_depth_test();
@@ -410,9 +408,14 @@ static void draw_pass_shadow_filter(render_texture* a1, render_texture* a2,
     gl_state_active_bind_texture_2d(0, v11);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, v11);
-    if (a3)
-        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA,
-            (GLint[]) { GL_RED, GL_RED, GL_RED, GL_ONE });
+    if (a3) {
+        GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+    }
+    else {
+        GLint swizzle[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+    }
     gl_state_active_bind_texture_2d(0, v11);
     shader_state_matrix_set_mvp(&shaders_ft, (mat4*)&mat4_identity);
     render_texture_draw_custom(&shaders_ft);
@@ -480,7 +483,7 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
     //    sss->npr_contour = false;
 
     if (sss->npr_contour) {
-        render_texture_bind(&pp->render_texture, 0);
+        render_texture_bind(&pp->rend_texture, 0);
         glViewport(0, 0, pp->render_width, pp->render_height);
     }
     else {
@@ -492,8 +495,8 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     draw_pass_set_camera(rctx->camera);
-    for (light_set_id i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
-        light_set_data_set(&rctx->light_set_data[i], &rctx->face, i);
+    for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
+        light_set_data_set(&rctx->light_set_data[i], &rctx->face, (light_set_id)i);
 
     if (a1->shadow)
         draw_pass_3d_shadow_set(a1->shadow_ptr, rctx);
@@ -517,7 +520,7 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
             draw_pass_sss_contour(rctx, pp);
         }
         else if (a1->npr) {
-            render_texture_bind(&pp->render_texture, 0);
+            render_texture_bind(&pp->rend_texture, 0);
             glViewport(0, 0, pp->render_width, pp->render_height);
             glClear(GL_DEPTH_BUFFER_BIT);
             rctx->draw_state.shader_index = SHADER_FT_SSS_SKIN;
@@ -545,12 +548,12 @@ static void draw_pass_sss_contour(render_context* rctx, post_process_struct* pp)
     gl_state_set_depth_func(GL_ALWAYS);
     gl_state_set_depth_mask(GL_TRUE);
     glViewport(0, 0, pp->render_width, pp->render_height);
-    gl_state_active_bind_texture_2d(0, pp->render_texture.color_texture->texture);
+    gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl_state_active_bind_texture_2d(1, pp->render_texture.depth_texture->texture);
+    gl_state_active_bind_texture_2d(1, pp->rend_texture.depth_texture->texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -690,7 +693,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
         render_texture_bind(a1->textures, 0);
         glViewport(0, 0, 640, 360);
         post_process_struct* pp = &rctx->post_process;
-        gl_state_bind_texture_2d(pp->render_texture.color_texture->texture);
+        gl_state_bind_texture_2d(pp->rend_texture.color_texture->texture);
         uniform_value[U_REDUCE] = 0;
         shader_set(&shaders_ft, SHADER_FT_REDUCE);
 
@@ -745,7 +748,7 @@ static void draw_pass_preprocess(render_context* rctx, draw_pass* a1) {
 
 static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     rctx->view_mat = rctx->camera->view;
-    render_texture_bind(&rctx->post_process.render_texture, 0);
+    render_texture_bind(&rctx->post_process.rend_texture, 0);
     glViewport(0, 0, rctx->post_process.render_width, rctx->post_process.render_height);
     draw_pass_set_camera(rctx->camera);
     if (!a1->sss_data.enable || !a1->sss_data.npr_contour || draw_pass_3d_get_translucent_count(rctx))
@@ -753,10 +756,10 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
 
     gl_state_bind_vertex_array(rctx->vao);
 
-    for (light_set_id i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
-        light_set_data_set(&rctx->light_set_data[i], &rctx->face, i);
-    for (fog_id i = FOG_DEPTH; i < FOG_MAX; i++)
-        fog_data_set(&rctx->fog_data[i], i);
+    for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
+        light_set_data_set(&rctx->light_set_data[i], &rctx->face, (light_set_id)i);
+    for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++)
+        fog_data_set(&rctx->fog_data[i], (fog_id)i);
 
     if (a1->shadow)
         draw_pass_3d_shadow_set(a1->shadow_ptr, rctx);
@@ -795,7 +798,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
         gl_state_disable_depth_test();
     }
 
-    glitter_particle_manager_draw(GPM_VAL, DRAW_PASS_3D_OPAQUE);
+    glitter_particle_manager_disp(GPM_VAL, DRAW_PASS_3D_OPAQUE);
 
     if (draw_grid_3d)
         draw_pass_3d_grid(rctx);
@@ -826,7 +829,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     gl_state_disable_depth_test();
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-    glitter_particle_manager_draw(GPM_VAL, DRAW_PASS_3D_TRANSPARENT);
+    glitter_particle_manager_disp(GPM_VAL, DRAW_PASS_3D_TRANSPARENT);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     if (a1->npr_param == 1) {
@@ -859,7 +862,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     gl_state_disable_depth_test();
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-    glitter_particle_manager_draw(GPM_VAL, DRAW_PASS_3D_TRANSLUCENT);
+    glitter_particle_manager_disp(GPM_VAL, DRAW_PASS_3D_TRANSLUCENT);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     gl_state_enable_depth_test();
@@ -942,7 +945,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
                 view_point = &shad->view_point_shared;
             }
 
-            vec3 up = (vec3){ 0.0f, 1.0f, 0.0f };
+            vec3 up = { 0.0f, 1.0f, 0.0f };
             vec3 dir;
             float_t length;
             vec3_sub(*interest, *view_point, dir);
@@ -1013,7 +1016,7 @@ static void draw_pass_show_vector(render_context* rctx, draw_pass* a1) {
         return;
 
     rctx->view_mat = rctx->camera->view;
-    render_texture_bind(&rctx->post_process.render_texture, 0);
+    render_texture_bind(&rctx->post_process.rend_texture, 0);
     glViewport(0, 0, rctx->post_process.render_width, rctx->post_process.render_height);
     draw_pass_set_camera(rctx->camera);
 

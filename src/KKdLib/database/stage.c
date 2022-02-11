@@ -31,7 +31,7 @@ void stage_database_read(stage_database* stage_data, char* path, bool modern) {
             stream s;
             io_open(&s, path_bin, "rb");
             if (s.io.stream) {
-                uint8_t* data = force_malloc(s.length);
+                uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
                 io_mopen(&s_bin, data, s.length);
@@ -48,7 +48,7 @@ void stage_database_read(stage_database* stage_data, char* path, bool modern) {
         if (path_check_file_exists(path_stg)) {
             f2_struct st;
             f2_struct_read(&st, path_stg);
-            if (st.header.signature == reverse_endianness_uint32_t('STGC')); {
+            if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
                 stream s_stgc;
                 io_mopen(&s_stgc, st.data, st.length);
                 s_stgc.is_big_endian = st.header.use_big_endian;
@@ -71,7 +71,7 @@ void stage_database_wread(stage_database* stage_data, wchar_t* path, bool modern
             stream s;
             io_wopen(&s, path_bin, L"rb");
             if (s.io.stream) {
-                uint8_t* data = force_malloc(s.length);
+                uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
                 io_mopen(&s_bin, data, s.length);
@@ -88,7 +88,7 @@ void stage_database_wread(stage_database* stage_data, wchar_t* path, bool modern
         if (path_wcheck_file_exists(path_stg)) {
             f2_struct st;
             f2_struct_wread(&st, path_stg);
-            if (st.header.signature == reverse_endianness_uint32_t('STGC')); {
+            if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
                 stream s_stgc;
                 io_mopen(&s_stgc, st.data, st.length);
                 s_stgc.is_big_endian = st.header.use_big_endian;
@@ -114,7 +114,7 @@ void stage_database_mread(stage_database* stage_data, void* data, size_t length,
     else {
         f2_struct st;
         f2_struct_mread(&st, data, length);
-        if (st.header.signature == reverse_endianness_uint32_t('STGC')); {
+        if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
             stream s_stgc;
             io_mopen(&s_stgc, st.data, st.length);
             s_stgc.is_big_endian = st.header.use_big_endian;
@@ -199,7 +199,7 @@ bool stage_database_load_file(void* data, char* path, char* file, uint32_t hash)
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    stage_database* stage_data = data;
+    stage_database* stage_data = (stage_database*)data;
     stage_database_read(stage_data, string_data(&s), stage_data->modern);
 
     string_free(&s);
@@ -212,9 +212,9 @@ void stage_database_merge_mdata(stage_database* stage_data,
         || !base_stage_data->ready || !mdata_stage_data->ready)
         return;
 
-    vector_stage_info* stage = &stage_data->stage;
-    vector_stage_info* base_stage = &base_stage_data->stage;
-    vector_stage_info* mdata_stage = &mdata_stage_data->stage;
+    vector_stage_info* stage = &stage_data->stage_classic;
+    vector_stage_info* base_stage = &base_stage_data->stage_classic;
+    vector_stage_info* mdata_stage = &mdata_stage_data->stage_classic;
 
     int32_t count = (int32_t)vector_length(*base_stage);
     vector_stage_info_reserve(stage, count);
@@ -248,7 +248,7 @@ void stage_database_merge_mdata(stage_database* stage_data,
         stage_info* m_info = &mdata_stage->begin[i];
 
         char* name_str = string_data(&m_info->name);
-        size_t name_len = m_info->name.length;
+        ssize_t name_len = m_info->name.length;
 
         stage_info* info = 0;
         for (info = stage->begin; info != stage->end; info++)
@@ -287,7 +287,7 @@ void stage_database_split_mdata(stage_database* stage_data,
 }
 
 void stage_database_free(stage_database* stage_data) {
-    vector_stage_info_free(&stage_data->stage, stage_info_free);
+    vector_stage_info_free(&stage_data->stage_classic, stage_info_free);
 }
 
 void stage_info_free(stage_info* info) {
@@ -320,13 +320,13 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
         return;
     }
 
-    stage_data->stage = vector_empty(stage_info);
-    vector_stage_info_reserve(&stage_data->stage, count);
-    stage_data->stage.end += count;
+    stage_data->stage_classic = vector_empty(stage_info);
+    vector_stage_info_reserve(&stage_data->stage_classic, count);
+    stage_data->stage_classic.end += count;
 
     io_position_push(s, stages_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_info* stage = &stage_data->stage.begin[i];
+        stage_info* stage = &stage_data->stage_classic.begin[i];
 
         stage->id = i;
         io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &stage->name);
@@ -364,9 +364,9 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
         if (reflect_offset) {
             io_position_push(s, reflect_offset, SEEK_SET);
             stage->reflect_data = true;
-            stage->reflect.mode = io_read_uint32_t(s);
+            stage->reflect.mode = (stage_data_reflect_resolution_mode)io_read_uint32_t(s);
             stage->reflect.blur_num = io_read_uint32_t(s);
-            stage->reflect.blur_filter = io_read_uint32_t(s);
+            stage->reflect.blur_filter = (stage_data_blur_filter_mode)io_read_uint32_t(s);
             io_position_pop(s);
         }
         else
@@ -376,14 +376,14 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
         if (refract_offset) {
             io_position_push(s, refract_offset, SEEK_SET);
             stage->refract_data = true;
-            stage->refract.mode = io_read_uint32_t(s);
+            stage->refract.mode = (stage_data_refract_resolution_mode)io_read_uint32_t(s);
             io_position_pop(s);
         }
         else
             stage->refract_data = false;
 
         if (stage_data->format > STAGE_DATA_F)
-            stage->flags = io_read_uint32_t(s);
+            stage->flags = (stage_data_flags)io_read_uint32_t(s);
 
         stage->ring_rectangle_x = io_read_float_t(s);
         stage->ring_rectangle_y = io_read_float_t(s);
@@ -426,7 +426,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
 
     io_position_push(s, stage_effects_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_info* stage = &stage_data->stage.begin[i];
+        stage_info* stage = &stage_data->stage_classic.begin[i];
         stage_effects* effects = &stage->effects;
 
         for (int32_t j = 0; j < 8; j++)
@@ -439,7 +439,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
 
     io_position_push(s, auth3d_id_counts_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_info* stage = &stage_data->stage.begin[i];
+        stage_info* stage = &stage_data->stage_classic.begin[i];
 
         stage->auth_3d_count = io_read_uint32_t(s);
     }
@@ -447,7 +447,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
 
     io_position_push(s, auth3d_ids_offsets_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_info* stage = &stage_data->stage.begin[i];
+        stage_info* stage = &stage_data->stage_classic.begin[i];
 
         uint32_t id = io_read_uint32_t(s);
         uint32_t offset = io_read_uint32_t(s);

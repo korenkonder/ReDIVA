@@ -11,7 +11,7 @@ void glitter_render_scene_append(glitter_render_scene* rs,
     vector_ptr_glitter_render_group_push_back(rs, &rg);
 }
 
-void glitter_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
+void glitter_render_scene_calc_disp(GPM, glitter_render_scene* rs) {
     glitter_render_group** i;
     glitter_render_group* rg;
 
@@ -23,18 +23,18 @@ void glitter_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
             continue;
 
         rg = *i;
-        if (glitter_render_group_cannot_draw(rg) && !GPM_VAL->draw_all)
+        if (glitter_render_group_cannot_disp(rg) && !GPM_VAL->draw_all)
             continue;
 
 #if !defined(CRE_DEV)
-        glitter_render_group_calc_draw(GPM_VAL, rg);
+        glitter_render_group_calc_disp(GPM_VAL, rg);
 #else
         if (!GPM_VAL->draw_selected || !eff) {
-            glitter_render_group_calc_draw(GPM_VAL, rg);
+            glitter_render_group_calc_disp(GPM_VAL, rg);
         }
         else if ((eff && ptcl) || (eff && !emit)) {
             if (!ptcl || rg->particle == ptcl)
-                glitter_render_group_calc_draw(GPM_VAL, rg);
+                glitter_render_group_calc_disp(GPM_VAL, rg);
         }
         else if (emit)
             for (glitter_particle_inst** i = emit->particles.begin; i != emit->particles.end; i++) {
@@ -43,7 +43,7 @@ void glitter_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
 
                 glitter_particle_inst* particle = *i;
                 if (rg->particle == particle)
-                    glitter_render_group_calc_draw(GPM_VAL, rg);
+                    glitter_render_group_calc_disp(GPM_VAL, rg);
 
                 if (particle->data.children.begin) {
                     vector_ptr_glitter_particle_inst* children = &particle->data.children;
@@ -51,7 +51,7 @@ void glitter_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
                         if (!*j || rg->particle != *j)
                             continue;
 
-                        glitter_render_group_calc_draw(GPM_VAL, rg);
+                        glitter_render_group_calc_disp(GPM_VAL, rg);
                     }
                 }
             }
@@ -59,7 +59,14 @@ void glitter_render_scene_calc_draw(GPM, glitter_render_scene* rs) {
     }
 }
 
-void glitter_render_scene_draw(GPM, glitter_render_scene* rs, draw_pass_3d_type alpha) {
+void glitter_render_scene_ctrl(GLT, glitter_render_scene* rs,
+    float_t delta_frame) {
+    for (glitter_render_group** i = rs->begin; i != rs->end; i++)
+        if (*i)
+            glitter_render_group_ctrl(GLT_VAL, *i, delta_frame, true);
+}
+
+void glitter_render_scene_disp(GPM, glitter_render_scene* rs, draw_pass_3d_type alpha) {
     glitter_render_group** i;
     glitter_render_group* rg;
 
@@ -72,7 +79,7 @@ void glitter_render_scene_draw(GPM, glitter_render_scene* rs, draw_pass_3d_type 
 
         rg = *i;
         if ((rg)->alpha != alpha
-            || (glitter_render_group_cannot_draw(rg) && !GPM_VAL->draw_all))
+            || (glitter_render_group_cannot_disp(rg) && !GPM_VAL->draw_all))
             continue;
 
 #if !defined(CRE_DEV)
@@ -146,11 +153,4 @@ size_t glitter_render_scene_get_disp_count(glitter_render_scene* rs,
 
 void glitter_render_scene_free(glitter_render_scene* rs) {
     vector_ptr_glitter_render_group_free(rs, glitter_render_group_dispose);
-}
-
-void glitter_render_scene_update(GLT, glitter_render_scene* rs,
-    float_t delta_frame) {
-    for (glitter_render_group** i = rs->begin; i != rs->end; i++)
-        if (*i)
-            glitter_render_group_update(GLT_VAL, *i, delta_frame, true);
 }

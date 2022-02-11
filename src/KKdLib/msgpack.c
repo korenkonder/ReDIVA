@@ -909,7 +909,7 @@ char* msgpack_read_utf8_string(msgpack* msg, char* name) {
     if (m && m->type == MSGPACK_STRING) {
         string* ptr = MSGPACK_SELECT_PTR(string, m);
         size_t length = ptr->length;
-        char* val = force_malloc(length + 1);
+        char* val = force_malloc_s(char, length + 1);
         memcpy(val, string_data(ptr), length);
         val[length] = 0;
         return val;

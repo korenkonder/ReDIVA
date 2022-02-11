@@ -35,7 +35,7 @@ void texture_database_read(texture_database* tex_db, char* path, bool modern) {
             stream s;
             io_open(&s, path_bin, "rb");
             if (s.io.stream) {
-                uint8_t* data = force_malloc(s.length);
+                uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
                 io_mopen(&s_bin, data, s.length);
@@ -52,7 +52,7 @@ void texture_database_read(texture_database* tex_db, char* path, bool modern) {
         if (path_check_file_exists(path_txi)) {
             f2_struct st;
             f2_struct_read(&st, path_txi);
-            if (st.header.signature == reverse_endianness_uint32_t('MTXI')); {
+            if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
                 stream s_mtxi;
                 io_mopen(&s_mtxi, st.data, st.length);
                 s_mtxi.is_big_endian = st.header.use_big_endian;
@@ -75,7 +75,7 @@ void texture_database_wread(texture_database* tex_db, wchar_t* path, bool modern
             stream s;
             io_wopen(&s, path_bin, L"rb");
             if (s.io.stream) {
-                uint8_t* data = force_malloc(s.length);
+                uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
                 io_mopen(&s_bin, data, s.length);
@@ -92,7 +92,7 @@ void texture_database_wread(texture_database* tex_db, wchar_t* path, bool modern
         if (path_wcheck_file_exists(path_txi)) {
             f2_struct st;
             f2_struct_wread(&st, path_txi);
-            if (st.header.signature == reverse_endianness_uint32_t('MTXI')); {
+            if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
                 stream s_mtxi;
                 io_mopen(&s_mtxi, st.data, st.length);
                 s_mtxi.is_big_endian = st.header.use_big_endian;
@@ -118,7 +118,7 @@ void texture_database_mread(texture_database* tex_db, void* data, size_t length,
     else {
         f2_struct st;
         f2_struct_mread(&st, data, length);
-        if (st.header.signature == reverse_endianness_uint32_t('MTXI')); {
+        if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
             stream s_mtxi;
             io_mopen(&s_mtxi, st.data, st.length);
             s_mtxi.is_big_endian = st.header.use_big_endian;
@@ -203,7 +203,7 @@ bool texture_database_load_file(void* data, char* path, char* file, uint32_t has
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    texture_database* tex_db = data;
+    texture_database* tex_db = (texture_database*)data;
     texture_database_read(tex_db, string_data(&s), tex_db->modern);
 
     string_free(&s);
@@ -230,7 +230,7 @@ void texture_database_merge_mdata(texture_database* tex_db,
 
         info->id = b_info->id;
         string_copy(&b_info->name, &info->name);
-        info->name_hash = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
+        info->name_hash = hash_string_fnv1a64m(&info->name, false);
     }
 
     int32_t mdata_count = (int32_t)vector_length(*mdata_texture);
@@ -249,7 +249,7 @@ void texture_database_merge_mdata(texture_database* tex_db,
 
         info->id = m_info->id;
         string_replace(&m_info->name, &info->name);
-        info->name_hash = hash_fnv1a64m(string_data(&info->name), info->name.length, false);
+        info->name_hash = hash_string_fnv1a64m(&info->name, false);
     }
 
     tex_db->ready = true;
@@ -267,7 +267,7 @@ uint32_t texture_database_get_texture_id(texture_database* tex_db, char* name) {
     if (!tex_db || !name)
         return -1;
 
-    uint64_t name_hash = hash_fnv1a64m(name, utf8_length(name), false);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
 
     for (texture_info* i = tex_db->texture.begin; i != tex_db->texture.end; i++)
         if (name_hash == i->name_hash)
@@ -337,10 +337,12 @@ static void texture_database_classic_write_inner(texture_database* tex_db, strea
     io_align_write(s, 0x20);
 
     ssize_t textures_offset = io_get_position(s);
-    size_t off_idx = 0;
-    for (texture_info* i = tex_db->texture.begin; i != tex_db->texture.end; i++) {
-        io_write_uint32_t(s, i->id);
-        io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
+    if (string_offsets.begin) {
+        size_t off_idx = 0;
+        for (texture_info* i = tex_db->texture.begin; i != tex_db->texture.end; i++) {
+            io_write_uint32_t(s, i->id);
+            io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
+        }
     }
     io_align_write(s, 0x20);
 
@@ -399,22 +401,22 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     uint32_t texture_count = (uint32_t)vector_length(tex_db->texture);
 
     if (!is_x) {
-        ee = (enrs_entry){ 0, 2, 8, texture_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 9, ENRS_DWORD });
+        ee = { 0, 2, 8, texture_count, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = 8;
         off = align_val(off, 0x10);
 
-        ee = (enrs_entry){ off, 2, 8, texture_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 2, ENRS_DWORD });
+        ee = { off, 2, 8, texture_count, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(texture_count * 16ULL);
     }
     else {
         texture_count++;
-        ee = (enrs_entry){ 0, 2, 16, texture_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
-        vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 4, 1, ENRS_QWORD });
+        ee = { 0, 2, 16, texture_count, vector_empty(enrs_sub_entry) };
+        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
         vector_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(texture_count * 16ULL);
         texture_count--;
@@ -425,7 +427,7 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     io_align_write(&s_mtxi, 0x10);
 
     ssize_t textures_offset = io_get_position(&s_mtxi);
-    io_write(&s_mtxi, 0, texture_count * (is_x ? 0x10ULL : 0x08ULL));
+    io_write(&s_mtxi, texture_count * (is_x ? 0x10ULL : 0x08ULL));
     io_align_write(&s_mtxi, 0x10);
 
     vector_string strings = vector_empty(string);
@@ -488,7 +490,7 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
 
 inline static ssize_t texture_database_strings_get_string_offset(vector_string* vec,
     vector_ssize_t* vec_off, char* str) {
-    size_t len = utf8_length(str);
+    ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return vec_off->begin[i - vec->begin];
@@ -496,7 +498,7 @@ inline static ssize_t texture_database_strings_get_string_offset(vector_string* 
 }
 
 inline static void texture_database_strings_push_back_check(vector_string* vec, char* str) {
-    size_t len = utf8_length(str);
+    ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return;

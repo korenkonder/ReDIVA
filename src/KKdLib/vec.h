@@ -140,7 +140,7 @@ typedef union vec4i {
         int32_t z;
         int32_t w;
     };
-    __m128i data;
+    __m128 data;
 } vec4i;
 
 typedef struct vec2d {
@@ -169,8 +169,8 @@ extern const __m128 vec2_negate;
 extern const __m128 vec3_negate;
 extern const __m128 vec4_negate;
 
-extern const __m128 vec4_mask_vec2;
-extern const __m128 vec4_mask_vec3;
+extern const vec4i vec4_mask_vec2;
+extern const vec4i vec4_mask_vec3;
 
 extern const __m128 vec4_negate;
 
@@ -1017,9 +1017,9 @@ vector_ptr(vec4i)
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3); \
+    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
     *(vec3*)&yt = (y); \
-    yt = _mm_and_ps(yt, vec4_mask_vec3); \
+    yt = _mm_and_ps(yt, vec4_mask_vec3.data); \
     zt = _mm_mul_ps(xt, yt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_hadd_ps(zt, zt)); \
@@ -1030,7 +1030,7 @@ vector_ptr(vec4i)
     __m128 xt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3); \
+    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_sqrt_ss(_mm_hadd_ps(zt, zt))); \
@@ -1041,7 +1041,7 @@ vector_ptr(vec4i)
     __m128 xt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3); \
+    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_hadd_ps(zt, zt)); \
@@ -1053,9 +1053,9 @@ vector_ptr(vec4i)
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3); \
+    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
     *(vec3*)&yt = (y); \
-    yt = _mm_and_ps(yt, vec4_mask_vec3); \
+    yt = _mm_and_ps(yt, vec4_mask_vec3.data); \
     zt = _mm_sub_ps(xt, yt); \
     zt = _mm_mul_ps(zt, zt); \
     zt = _mm_hadd_ps(zt, zt); \
@@ -1068,9 +1068,9 @@ vector_ptr(vec4i)
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3); \
+    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
     *(vec3*)&yt = (y); \
-    yt = _mm_and_ps(yt, vec4_mask_vec3); \
+    yt = _mm_and_ps(yt, vec4_mask_vec3.data); \
     zt = _mm_sub_ps(xt, yt); \
     zt = _mm_mul_ps(zt, zt); \
     zt = _mm_hadd_ps(zt, zt); \
@@ -1115,7 +1115,7 @@ vector_ptr(vec4i)
     __m128 xt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3); \
+    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt)); \

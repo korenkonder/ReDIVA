@@ -7,7 +7,7 @@
 #include "../io/stream.h"
 
 wav* wav_init() {
-    wav* w = force_malloc(sizeof(wav));
+    wav* w = force_malloc_s(wav, 1);
     return w;
 }
 

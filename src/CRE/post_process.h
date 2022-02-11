@@ -28,7 +28,7 @@ typedef struct post_process_struct {
     bool ssaa;
     bool mlaa;
     int32_t parent_bone_node;
-    render_texture render_texture;
+    render_texture rend_texture;
     render_texture buf_texture;
     render_texture sss_contour_texture;
     render_texture pre_texture;

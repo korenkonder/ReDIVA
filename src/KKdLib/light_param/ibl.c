@@ -59,7 +59,7 @@ bool light_param_ibl_load_file(void* data, char* path, char* file, uint32_t hash
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    light_param_ibl* ibl = data;
+    light_param_ibl* ibl = (light_param_ibl*)data;
     light_param_ibl_read(ibl, string_data(&s));
 
     string_free(&s);
@@ -80,7 +80,7 @@ void light_param_ibl_free(light_param_ibl* ibl) {
 }
 
 static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s) {
-    char* data = force_malloc(s->length + 1);
+    char* data = force_malloc_s(char, s->length + 1);
     io_read(s, data, s->length);
     data[s->length] = 0;
 

@@ -6,7 +6,7 @@
 #include "locus_history.h"
 
 glitter_locus_history* glitter_locus_history_init(size_t size) {
-    glitter_locus_history* lh = force_malloc(sizeof(glitter_locus_history));
+    glitter_locus_history* lh = force_malloc_s(glitter_locus_history, 1);
     vector_glitter_locus_history_data_reserve(&lh->data, size);
     return lh;
 }

@@ -18,8 +18,8 @@ bool glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
     vector_enrs_entry e = vector_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = (enrs_entry){ 0, 1, 4, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_push_back(&ee.sub, &(enrs_sub_entry){ 0, 1, ENRS_DWORD });
+    ee = { 0, 1, 4, 1, vector_empty(enrs_sub_entry) };
+    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
     vector_enrs_entry_push_back(&e, &ee);
 
     length = 0;

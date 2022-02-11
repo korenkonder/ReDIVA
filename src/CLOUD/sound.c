@@ -23,8 +23,10 @@ int32_t sound_main(void* arg) {
         state_wait = state != RENDER_INITIALIZED;
         state_disposed = state == RENDER_DISPOSED;
         lock_unlock(&state_lock);
-        if (state_disposed)
-            goto End;
+        if (state_disposed) {
+            timer_dispose(&sound_timer);
+            return 0;
+        }
         timer_sleep(&sound_timer, 0.0625);
     } while (state_wait);
 
@@ -39,7 +41,6 @@ int32_t sound_main(void* arg) {
         classes_process_sound(classes, classes_count);
         timer_end_of_cycle(&sound_timer);
     }
-End:
     timer_dispose(&sound_timer);
     return 0;
 }

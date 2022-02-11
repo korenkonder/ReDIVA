@@ -71,25 +71,25 @@ static void a3da_read_data(a3da* a, void* data, size_t length);
 static void a3da_write_data(a3da* a, void** data, size_t* length);
 static void a3da_get_time_stamp(char* buf, size_t buf_size);
 static bool key_val_read_a3da_key(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_key* value);
+    size_t offset, const char* str_add, size_t str_add_len, a3da_key* value);
 static void key_val_write_a3da_key(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_key* value);
+    size_t offset, const char* str_add, size_t str_add_len, a3da_key* value);
 static bool key_val_read_a3da_key_raw_data(key_val* kv, char* buf,
     size_t offset, a3da_key* value);
 static void key_val_write_a3da_key_raw_data(stream* s, char* buf,
     size_t offset, a3da_key* value);
 static bool key_val_read_a3da_model_transform(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_model_transform* value);
+    size_t offset, const char* str_add, size_t str_add_len, a3da_model_transform* value);
 static void key_val_write_a3da_model_transform(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_model_transform* value, int32_t write_mask);
+    size_t offset, const char* str_add, size_t str_add_len, a3da_model_transform* value, int32_t write_mask);
 static bool key_val_read_a3da_rgba(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_rgba* value);
+    size_t offset, const char* str_add, size_t str_add_len, a3da_rgba* value);
 static void key_val_write_a3da_rgba(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_rgba* value);
+    size_t offset, const char* str_add, size_t str_add_len, a3da_rgba* value);
 static bool key_val_read_a3da_vec3(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_vec3* value);
+    size_t offset, const char* str_add, size_t str_add_len, a3da_vec3* value);
 static void key_val_write_a3da_vec3(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_vec3* value);
+    size_t offset, const char* str_add, size_t str_add_len, a3da_vec3* value);
 static void a3dc_read_a3da_key(void* data, size_t length, a3da_key* value);
 static void a3dc_write_a3da_key(stream* s, a3da_key* value);
 static void a3dc_read_a3da_key_f16(void* data, size_t length, a3da_key* value, a3da_compress_f16 f16);
@@ -117,7 +117,7 @@ void a3da_read(a3da* a, char* path) {
     if (!a || !path)
         return;
 
-    char* path_a3da = str_utils_add(path, ".a3da");
+    char* path_a3da = str_utils_add(path, (char*)".a3da");
     if (path_check_file_exists(path_a3da)) {
         stream s;
         io_open(&s, path_a3da, "rb");
@@ -132,7 +132,7 @@ void a3da_wread(a3da* a, wchar_t* path) {
     if (!a || !path)
         return;
 
-    wchar_t* path_a3da = str_utils_wadd(path, L".a3da");
+    wchar_t* path_a3da = str_utils_wadd(path, (wchar_t*)L".a3da");
     if (path_wcheck_file_exists(path_a3da)) {
         stream s;
         io_wopen(&s, path_a3da, L"rb");
@@ -157,7 +157,7 @@ void a3da_write(a3da* a, char* path) {
     if (!a || !path || !a->ready)
         return;
 
-    char* path_a3da = str_utils_add(path, ".a3da");
+    char* path_a3da = str_utils_add(path, (char*)".a3da");
     stream s;
     io_open(&s, path_a3da, "wb");
     if (s.io.stream)
@@ -170,7 +170,7 @@ void a3da_wwrite(a3da* a, wchar_t* path) {
     if (!a || !path || !a->ready)
         return;
 
-    wchar_t* path_a3da = str_utils_wadd(path, L".a3da");
+    wchar_t* path_a3da = str_utils_wadd(path, (wchar_t*)L".a3da");
     stream s;
     io_wopen(&s, path_a3da, L"wb");
     if (s.io.stream)
@@ -201,7 +201,7 @@ bool a3da_load_file(void* data, char* path, char* file, uint32_t hash) {
     string_init(&s, path);
     string_add_length(&s, file, file_len);
 
-    a3da* a = data;
+    a3da* a = (a3da*)data;
     a3da_read(a, string_data(&s));
     a->hash = hash;
 
@@ -491,6 +491,8 @@ static void a3da_read_inner(a3da* a, stream* s) {
         free(data);
     }
 
+    void* a3da_data;
+
     signature = io_read_uint32_t(&_s);
     if (signature != reverse_endianness_int32_t('#A3D'))
         goto End;
@@ -527,7 +529,7 @@ static void a3da_read_inner(a3da* a, stream* s) {
         goto End;
 
     io_set_position(&_s, header.string_offset, SEEK_SET);
-    void* a3da_data = force_malloc(header.string_length);
+    a3da_data = force_malloc(header.string_length);
     io_read(&_s, a3da_data, header.string_length);
     a3da_read_text(a, a3da_data, header.string_length);
     free(a3da_data);
@@ -629,7 +631,7 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
     size_t off;
 
     key_val kv;
-    key_val_init(&kv, data, length);
+    key_val_init(&kv, (uint8_t*)data, length);
     key_val lkv;
     if (key_val_get_local_key_val(&kv, "_", &lkv)) {
         len = 1;
@@ -657,22 +659,22 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
 
         if (key_val_read_a3da_key(&lkv,
             buf, off, ".auto_exposure", 15, &ca->auto_exposure))
-            ca->flags |= A3DA_CAMERA_AUXILIARY_AUTO_EXPOSURE;
+            enum_or(ca->flags, A3DA_CAMERA_AUXILIARY_AUTO_EXPOSURE);
         if (key_val_read_a3da_key(&lkv,
             buf, off, ".exposure", 10, &ca->exposure))
-            ca->flags |= A3DA_CAMERA_AUXILIARY_EXPOSURE;
+            enum_or(ca->flags, A3DA_CAMERA_AUXILIARY_EXPOSURE);
         if (key_val_read_a3da_key(&lkv,
             buf, off, ".exposure_rate", 15, &ca->exposure_rate))
-            ca->flags |= A3DA_CAMERA_AUXILIARY_EXPOSURE_RATE;
+            enum_or(ca->flags, A3DA_CAMERA_AUXILIARY_EXPOSURE_RATE);
         if (key_val_read_a3da_key(&lkv,
             buf, off, ".gamma", 7, &ca->gamma))
-            ca->flags |= A3DA_CAMERA_AUXILIARY_GAMMA;
+            enum_or(ca->flags, A3DA_CAMERA_AUXILIARY_GAMMA);
         if (key_val_read_a3da_key(&lkv,
             buf, off, ".gamma_rate", 12, &ca->gamma_rate))
-            ca->flags |= A3DA_CAMERA_AUXILIARY_GAMMA_RATE;
+            enum_or(ca->flags, A3DA_CAMERA_AUXILIARY_GAMMA_RATE);
         if (key_val_read_a3da_key(&lkv,
             buf, off, ".saturate", 10, &ca->saturate))
-            ca->flags |= A3DA_CAMERA_AUXILIARY_SATURATE;
+            enum_or(ca->flags, A3DA_CAMERA_AUXILIARY_SATURATE);
 
         if (ca->flags & (A3DA_CAMERA_AUXILIARY_EXPOSURE_RATE | A3DA_CAMERA_AUXILIARY_GAMMA_RATE))
             if (a->format < A3DA_FORMAT_F || a->format == A3DA_FORMAT_AFT)
@@ -692,12 +694,12 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
             buf, off, ".begin", 5, &pc->begin);
         if (key_val_read_int32_t(&lkv,
             buf, off, ".div", 5, &pc->div))
-            pc->flags |= A3DA_PLAY_CONTROL_DIV;
+            enum_or(pc->flags, A3DA_PLAY_CONTROL_DIV);
         key_val_read_float_t(&lkv,
             buf, off, ".fps", 5, &pc->fps);
         if (key_val_read_float_t(&lkv,
             buf, off, ".offset", 8, &pc->offset))
-            pc->flags |= A3DA_PLAY_CONTROL_OFFSET;
+            enum_or(pc->flags, A3DA_PLAY_CONTROL_OFFSET);
         key_val_read_float_t(&lkv,
             buf, off, ".size", 6, &pc->size);
         key_val_free(&lkv);
@@ -713,22 +715,22 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
 
         if (key_val_read_a3da_rgba(&lkv,
             buf, off, ".Diffuse", 9, &pp->intensity))
-            pp->flags |= A3DA_POST_PROCESS_INTENSITY;
+            enum_or(pp->flags, A3DA_POST_PROCESS_INTENSITY);
         if (key_val_read_a3da_key(&lkv,
             buf, off, ".lens_flare", 12, &pp->lens_flare))
-            pp->flags |= A3DA_POST_PROCESS_LENS_FLARE;
+            enum_or(pp->flags, A3DA_POST_PROCESS_LENS_FLARE);
         if (key_val_read_a3da_key(&lkv,
             buf, off, ".lens_ghost", 12, &pp->lens_ghost))
-            pp->flags |= A3DA_POST_PROCESS_LENS_GHOST;
+            enum_or(pp->flags, A3DA_POST_PROCESS_LENS_GHOST);
         if (key_val_read_a3da_key(&lkv,
             buf, off, ".lens_shaft", 12, &pp->lens_shaft))
-            pp->flags |= A3DA_POST_PROCESS_LENS_SHAFT;
+            enum_or(pp->flags, A3DA_POST_PROCESS_LENS_SHAFT);
         if (key_val_read_a3da_rgba(&lkv,
             buf, off, ".Ambient", 9, &pp->radius))
-            pp->flags |= A3DA_POST_PROCESS_RADIUS;
+            enum_or(pp->flags, A3DA_POST_PROCESS_RADIUS);
         if (key_val_read_a3da_rgba(&lkv,
             buf, off, ".Specular", 10, &pp->scene_fade))
-            pp->flags |= A3DA_POST_PROCESS_SCENE_FADE;
+            enum_or(pp->flags, A3DA_POST_PROCESS_SCENE_FADE);
         key_val_free(&lkv);
     }
 
@@ -764,12 +766,12 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
 
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".light.Diffuse", 15, &a->light_diffuse))
-                a->flags |= A3DA_AMBIENT_LIGHT_DIFFUSE;
+                enum_or(a->flags, A3DA_AMBIENT_LIGHT_DIFFUSE);
             key_val_read_string(&lkv,
                 buf, off, ".name", 6, &a->name);
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".rim.light.Diffuse", 19, &a->rim_light_diffuse))
-                a->flags |= A3DA_AMBIENT_RIM_LIGHT_DIFFUSE;
+                enum_or(a->flags, A3DA_AMBIENT_RIM_LIGHT_DIFFUSE);
         }
         key_val_free(&lkv);
     }
@@ -834,7 +836,7 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
                     buf, off, ".fov", 5, &vp->fov);
                 key_val_read_bool(&lkv,
                     buf, off, ".fov_is_horizontal", 19, &vp->fov_is_horizontal);
-                vp->flags |= A3DA_CAMERA_ROOT_VIEW_POINT_FOV;
+                enum_or(vp->flags, A3DA_CAMERA_ROOT_VIEW_POINT_FOV);
             }
             else {
                 key_val_read_float_t(&lkv,
@@ -848,7 +850,7 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
                 buf, off, "", 1, &vp->model_transform);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".roll", 6, &vp->roll))
-                vp->flags |= A3DA_CAMERA_ROOT_VIEW_POINT_ROLL;
+                enum_or(vp->flags, A3DA_CAMERA_ROOT_VIEW_POINT_ROLL);
         }
         key_val_free(&lkv);
     }
@@ -960,13 +962,13 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
 
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".Diffuse", 9, &f->color))
-                f->flags |= A3DA_FOG_COLOR;
+                enum_or(f->flags, A3DA_FOG_COLOR);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".density", 9, &f->density))
-                f->flags |= A3DA_FOG_DENSITY;
+                enum_or(f->flags, A3DA_FOG_DENSITY);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".end", 5, &f->end))
-                f->flags |= A3DA_FOG_END;
+                enum_or(f->flags, A3DA_FOG_END);
             key_val_read_int32_t(&lkv,
                 buf, off, ".id", 4, (int32_t*)&f->id);
             string name;
@@ -980,7 +982,7 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
             }
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".start", 7, &f->start))
-                f->flags |= A3DA_FOG_START;
+                enum_or(f->flags, A3DA_FOG_START);
         }
         key_val_free(&lkv);
     }
@@ -1004,45 +1006,45 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
 
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".Ambient", 9, &l->ambient))
-                l->flags |= A3DA_LIGHT_AMBIENT;
+                enum_or(l->flags, A3DA_LIGHT_AMBIENT);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".ConeAngle", 11, &l->cone_angle))
-                l->flags |= A3DA_LIGHT_CONE_ANGLE;
+                enum_or(l->flags, A3DA_LIGHT_CONE_ANGLE);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".CONSTANT", 10, &l->constant))
-                l->flags |= A3DA_LIGHT_CONSTANT;
+                enum_or(l->flags, A3DA_LIGHT_CONSTANT);
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".Diffuse", 9, &l->diffuse))
-                l->flags |= A3DA_LIGHT_DIFFUSE;
+                enum_or(l->flags, A3DA_LIGHT_DIFFUSE);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".DropOff", 9, &l->drop_off))
-                l->flags |= A3DA_LIGHT_DROP_OFF;
+                enum_or(l->flags, A3DA_LIGHT_DROP_OFF);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".FAR", 5, &l->_far))
-                l->flags |= A3DA_LIGHT_FAR;
+                enum_or(l->flags, A3DA_LIGHT_FAR);
             key_val_read_int32_t(&lkv,
                 buf, off, ".id", 4, (int32_t*)&l->id);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".Intensity", 11, &l->intensity))
-                l->flags |= A3DA_LIGHT_INTENSITY;
+                enum_or(l->flags, A3DA_LIGHT_INTENSITY);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".LINEAR", 8, &l->linear))
-                l->flags |= A3DA_LIGHT_LINEAR;
+                enum_or(l->flags, A3DA_LIGHT_LINEAR);
             if (key_val_read_a3da_model_transform(&lkv,
                 buf, off, ".position", 10, &l->position))
-                l->flags |= A3DA_LIGHT_POSITION;
+                enum_or(l->flags, A3DA_LIGHT_POSITION);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".QUADRATIC", 11, &l->quadratic))
-                l->flags |= A3DA_LIGHT_QUADRATIC;
+                enum_or(l->flags, A3DA_LIGHT_QUADRATIC);
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".Specular", 10, &l->specular))
-                l->flags |= A3DA_LIGHT_SPECULAR;
+                enum_or(l->flags, A3DA_LIGHT_SPECULAR);
             if (key_val_read_a3da_model_transform(&lkv,
                 buf, off, ".spot_direction", 16, &l->spot_direction))
-                l->flags |= A3DA_LIGHT_SPOT_DIRECTION;
+                enum_or(l->flags, A3DA_LIGHT_SPOT_DIRECTION);
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".Incandescence", 15, &l->tone_curve))
-                l->flags |= A3DA_LIGHT_TONE_CURVE;
+                enum_or(l->flags, A3DA_LIGHT_TONE_CURVE);
             key_val_read_string(&lkv,
                 buf, off, ".type", 6, &l->type);
         }
@@ -1123,7 +1125,7 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
 
                     if (key_val_read_vec3(&sub_local_key_val,
                         buf, off, ".joint_orient", 14, &mohn->joint_orient))
-                        mohn->flags |= A3DA_OBJECT_NODE_JOINT_ORIENT;
+                        enum_or(mohn->flags, A3DA_OBJECT_NODE_JOINT_ORIENT);
                     key_val_read_a3da_model_transform(&sub_local_key_val,
                         buf, off, "", 1, &mohn->model_transform);
                     key_val_read_string(&sub_local_key_val,
@@ -1179,13 +1181,13 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
 
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".blend_color", 15, &ml->blend_color))
-                ml->flags |= A3DA_MATERIAL_LIST_BLEND_COLOR;
+                enum_or(ml->flags, A3DA_MATERIAL_LIST_BLEND_COLOR);
             if (key_val_read_a3da_key(&lkv,
                 buf, off, ".glow_intensity", 15, &ml->glow_intensity))
-                ml->flags |= A3DA_MATERIAL_LIST_GLOW_INTENSITY;
+                enum_or(ml->flags, A3DA_MATERIAL_LIST_GLOW_INTENSITY);
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".incandescence", 15, &ml->incandescence))
-                ml->flags |= A3DA_MATERIAL_LIST_INCANDESCENCE;
+                enum_or(ml->flags, A3DA_MATERIAL_LIST_INCANDESCENCE);
             key_val_read_string(&lkv,
                 buf, off, ".name", 6, &ml->name);
         }
@@ -1298,36 +1300,36 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
 
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".coverageU", 11, &ott->coverage_u))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_COVERAGE_U;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_COVERAGE_U);
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".coverageV", 11, &ott->coverage_v))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_COVERAGE_V;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_COVERAGE_V);
                     key_val_read_string(&sub_local_key_val,
                         buf, off, ".name", 6, &ott->name);
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".offsetU", 9, &ott->offset_u))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_OFFSET_U;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_OFFSET_U);
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".offsetV", 9, &ott->offset_v))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_OFFSET_V;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_OFFSET_V);
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".repeatU", 9, &ott->repeat_u))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_REPEAT_U;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_REPEAT_U);
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".repeatV", 9, &ott->repeat_v))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_REPEAT_V;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_REPEAT_V);
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".rotate", 8, &ott->rotate))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_ROTATE;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_ROTATE);
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".rotateFrame", 13, &ott->rotate_frame))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_ROTATE_FRAME;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_ROTATE_FRAME);
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".translateFrameU", 17, &ott->translate_frame_u))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_U;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_U);
                     if (key_val_read_a3da_key(&sub_local_key_val,
                         buf, off, ".translateFrameV", 17, &ott->translate_frame_v))
-                        ott->flags |= A3DA_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_V;
+                        enum_or(ott->flags, A3DA_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_V);
                 }
                 key_val_free(&sub_local_key_val);
             }
@@ -1380,7 +1382,7 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
 
                     if (key_val_read_vec3(&sub_local_key_val,
                         buf, off, ".joint_orient", 14, &ohn->joint_orient))
-                        ohn->flags |= A3DA_OBJECT_NODE_JOINT_ORIENT;
+                        enum_or(ohn->flags, A3DA_OBJECT_NODE_JOINT_ORIENT);
                     key_val_read_a3da_model_transform(&sub_local_key_val,
                         buf, off, "", 1, &ohn->model_transform);
                     key_val_read_string(&sub_local_key_val,
@@ -1813,7 +1815,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
                     buf, off, ".Specular", 10, &l->specular);
             key_val_write_int32_t(&s,
                 buf, off, ".id", 4, l->id);
-            char* name = "none";
+            const char* name = "none";
             switch (l->id) {
             case LIGHT_CHARA:
                 name = "Char";
@@ -1982,7 +1984,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
                 key_val_write_a3da_key(&s, buf, off, ".glow_intensity", 16, &ml->glow_intensity);
             key_val_write_uint32_t(&s, buf, off, ".hash_name", 11,
-                hash_murmurhash(string_data(&ml->name), ml->name.length, 0, false, false));
+                hash_string_murmurhash(&ml->name, 0, false));
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
                 key_val_write_a3da_rgba(&s, buf, off, ".incandescence", 15, &ml->incandescence);
             key_val_write_string(&s, buf, off, ".name", 6, &ml->name);
@@ -2303,16 +2305,17 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
         vector_a3da_point* vp = &a->point;
         count = (int32_t)vector_length(*vp);
         key_val_get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            a3da_point* p = &vp->begin[sort_index.begin[i]];
+        if (sort_index.begin)
+            for (int32_t i = 0; i < count; i++) {
+                a3da_point* p = &vp->begin[sort_index.begin[i]];
 
-            len1 = sprintf_s(buf + len, A3DA_TEXT_BUF_SIZE - len, ".%d", sort_index.begin[i]);
-            off = len + len1;
+                len1 = sprintf_s(buf + len, A3DA_TEXT_BUF_SIZE - len, ".%d", sort_index.begin[i]);
+                off = len + len1;
 
-            key_val_write_string(&s, buf, off, ".name", 6, &p->name);
-            key_val_write_a3da_model_transform(&s,
-                buf, off, "", 1, &p->model_transform, 0x1F);
-        }
+                key_val_write_string(&s, buf, off, ".name", 6, &p->name);
+                key_val_write_a3da_model_transform(&s,
+                    buf, off, "", 1, &p->model_transform, 0x1F);
+            }
 
         off = len;
         key_val_write_int32_t(&s, buf, off, ".length", 8, count);
@@ -2768,7 +2771,7 @@ static void a3da_get_time_stamp(char* buf, size_t buf_size) {
 }
 
 static bool key_val_read_a3da_key(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_key* value) {
+    size_t offset, const char* str_add, size_t str_add_len, a3da_key* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -2836,18 +2839,18 @@ static bool key_val_read_a3da_key(key_val* kv, char* buf,
         case 0: {
             float_t f;
             if (sscanf_s(data, "%g", &f) == 1)
-                k = (kft3){ f, 0.0f, 0.0f, 0.0f };
+                k = { f, 0.0f, 0.0f, 0.0f };
             else
-                k = (kft3){ 0.0f, 0.0f, 0.0f, 0.0f };
+                k = { 0.0f, 0.0f, 0.0f, 0.0f };
             vector_kft3_push_back(&value->keys, &k);
         } break;
         case 1: {
             float_t f;
             float_t v;
             if (sscanf_s(data, "(%g,%g)", &f, &v) == 2)
-                k = (kft3){ f, v, 0.0f, 0.0f };
+                k = { f, v, 0.0f, 0.0f };
             else
-                k = (kft3){ 0.0f, 0.0f, 0.0f, 0.0f };
+                k = { 0.0f, 0.0f, 0.0f, 0.0f };
             vector_kft3_push_back(&value->keys, &k);
         } break;
         case 2: {
@@ -2855,9 +2858,9 @@ static bool key_val_read_a3da_key(key_val* kv, char* buf,
             float_t v;
             float_t t;
             if (sscanf_s(data, "(%g,%g,%g)", &f, &v, &t) == 3)
-                k = (kft3){ f, v, t, t };
+                k = { f, v, t, t };
             else
-                k = (kft3){ 0.0f, 0.0f, 0.0f, 0.0f };
+                k = { 0.0f, 0.0f, 0.0f, 0.0f };
             vector_kft3_push_back(&value->keys, &k);
         } break;
         case 3: {
@@ -2866,13 +2869,13 @@ static bool key_val_read_a3da_key(key_val* kv, char* buf,
             float_t t1;
             float_t t2;
             if (sscanf_s(data, "(%g,%g,%g,%g)", &f, &v, &t1, &t2) == 4)
-                k = (kft3){ f, v, t1, t2 };
+                k = { f, v, t1, t2 };
             else
-                k = (kft3){ 0.0f, 0.0f, 0.0f, 0.0f };
+                k = { 0.0f, 0.0f, 0.0f, 0.0f };
             vector_kft3_push_back(&value->keys, &k);
         } break;
         default: {
-            k = (kft3){ 0.0f, 0.0f, 0.0f, 0.0f };
+            k = { 0.0f, 0.0f, 0.0f, 0.0f };
             vector_kft3_push_back(&value->keys, &k);
         } break;
         }
@@ -2882,13 +2885,13 @@ static bool key_val_read_a3da_key(key_val* kv, char* buf,
 }
 
 static void key_val_write_a3da_key(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_key* value) {
+    size_t offset, const char* str_add, size_t str_add_len, a3da_key* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
     if (value->flags & A3DA_KEY_BIN_OFFSET) {
         key_val_write_int32_t(s, buf, offset, ".bin_offset", 12, value->bin_offset);
-        value->flags &= ~A3DA_KEY_BIN_OFFSET;
+        value->flags, ~A3DA_KEY_BIN_OFFSET;
         value->bin_offset = 0;
         return;
     }
@@ -2923,37 +2926,38 @@ static void key_val_write_a3da_key(stream* s, char* buf,
     vector_int32_t sort_index = vector_empty(int32_t);
     key_val_get_lexicographic_order(&sort_index, length);
     size_t len = offset;
-    for (int32_t i = 0; i < length; i++) {
-        size_t len1 = sprintf_s(buf + len, A3DA_TEXT_BUF_SIZE - len, ".%d", sort_index.begin[i]);
-        offset = len + len1;
+    if (sort_index.begin)
+        for (int32_t i = 0; i < length; i++) {
+            size_t len1 = sprintf_s(buf + len, A3DA_TEXT_BUF_SIZE - len, ".%d", sort_index.begin[i]);
+            offset = len + len1;
 
-        kft3 k = value->keys.begin[sort_index.begin[i]];
-        kf_type kt = KEY_FRAME_TYPE_3;
-        kft_check(&k, kt, &k, &kt);
+            kft3 k = value->keys.begin[sort_index.begin[i]];
+            kf_type kt = KEY_FRAME_TYPE_3;
+            kft_check(&k, kt, &k, &kt);
 
-        char data_buf[0x200];
-        switch (kt) {
-        case KEY_FRAME_TYPE_0:
-            sprintf_s(data_buf, sizeof(data_buf), "%g",
-                k.frame);
-            break;
-        case KEY_FRAME_TYPE_1:
-            sprintf_s(data_buf, sizeof(data_buf), "(%g,%g)",
-                k.frame, k.value);
-            break;
-        case KEY_FRAME_TYPE_2:
-            sprintf_s(data_buf, sizeof(data_buf), "(%g,%g,%g)",
-                k.frame, k.value, k.tangent1);
-            break;
-        case KEY_FRAME_TYPE_3:
-            sprintf_s(data_buf, sizeof(data_buf), "(%g,%g,%g,%g)",
-                k.frame, k.value, k.tangent1, k.tangent2);
-            break;
+            char data_buf[0x200];
+            switch (kt) {
+            case KEY_FRAME_TYPE_0:
+                sprintf_s(data_buf, sizeof(data_buf), "%g",
+                    k.frame);
+                break;
+            case KEY_FRAME_TYPE_1:
+                sprintf_s(data_buf, sizeof(data_buf), "(%g,%g)",
+                    k.frame, k.value);
+                break;
+            case KEY_FRAME_TYPE_2:
+                sprintf_s(data_buf, sizeof(data_buf), "(%g,%g,%g)",
+                    k.frame, k.value, k.tangent1);
+                break;
+            case KEY_FRAME_TYPE_3:
+                sprintf_s(data_buf, sizeof(data_buf), "(%g,%g,%g,%g)",
+                    k.frame, k.value, k.tangent1, k.tangent2);
+                break;
+            }
+
+            key_val_write_string_ptr(s, buf, offset, ".data", 6, data_buf);
+            key_val_write_int32_t(s, buf, offset, ".type", 6, kt);
         }
-
-        key_val_write_string_ptr(s, buf, offset, ".data", 6, data_buf);
-        key_val_write_int32_t(s, buf, offset, ".type", 6, kt);
-    }
     vector_int32_t_free(&sort_index, 0);
 
     offset = len;
@@ -3152,7 +3156,7 @@ static void key_val_write_a3da_key_raw_data(stream* s, char* buf,
 }
 
 static bool key_val_read_a3da_model_transform(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len,
+    size_t offset, const char* str_add, size_t str_add_len,
     a3da_model_transform* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
@@ -3177,7 +3181,7 @@ static bool key_val_read_a3da_model_transform(key_val* kv, char* buf,
 }
 
 static void key_val_write_a3da_model_transform(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_model_transform* value, int32_t write_mask) {
+    size_t offset, const char* str_add, size_t str_add_len, a3da_model_transform* value, int32_t write_mask) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -3188,7 +3192,7 @@ static void key_val_write_a3da_model_transform(stream* s, char* buf,
         }
         if (write_mask & 0x01)
             if (value->flags & A3DA_MODEL_TRANSFORM_BIN_OFFSET) {
-                value->flags &= ~A3DA_MODEL_TRANSFORM_BIN_OFFSET;
+                value->flags, ~A3DA_MODEL_TRANSFORM_BIN_OFFSET;
                 value->bin_offset = 0;
             }
     }
@@ -3205,7 +3209,7 @@ static void key_val_write_a3da_model_transform(stream* s, char* buf,
 }
 
 static bool key_val_read_a3da_rgba(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_rgba* value) {
+    size_t offset, const char* str_add, size_t str_add_len, a3da_rgba* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -3215,19 +3219,19 @@ static bool key_val_read_a3da_rgba(key_val* kv, char* buf,
         return false;
 
     if (key_val_read_a3da_key(&lkv, buf, offset, ".r", 3, &value->r))
-        value->flags |= A3DA_RGBA_R;
+        enum_or(value->flags, A3DA_RGBA_R);
     if (key_val_read_a3da_key(&lkv, buf, offset, ".g", 3, &value->g))
-        value->flags |= A3DA_RGBA_G;
+        enum_or(value->flags, A3DA_RGBA_G);
     if (key_val_read_a3da_key(&lkv, buf, offset, ".b", 3, &value->b))
-        value->flags |= A3DA_RGBA_B;
+        enum_or(value->flags, A3DA_RGBA_B);
     if (key_val_read_a3da_key(&lkv, buf, offset, ".a", 3, &value->a))
-        value->flags |= A3DA_RGBA_A;
+        enum_or(value->flags, A3DA_RGBA_A);
     key_val_free(&lkv);
     return true;
 }
 
 static void key_val_write_a3da_rgba(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_rgba* value) {
+    size_t offset, const char* str_add, size_t str_add_len, a3da_rgba* value) {
     if (!value->flags)
         return;
 
@@ -3245,7 +3249,7 @@ static void key_val_write_a3da_rgba(stream* s, char* buf,
 }
 
 static bool key_val_read_a3da_vec3(key_val* kv, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_vec3* value) {
+    size_t offset, const char* str_add, size_t str_add_len, a3da_vec3* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -3262,7 +3266,7 @@ static bool key_val_read_a3da_vec3(key_val* kv, char* buf,
 }
 
 static void key_val_write_a3da_vec3(stream* s, char* buf,
-    size_t offset, char* str_add, size_t str_add_len, a3da_vec3* value) {
+    size_t offset, const char* str_add, size_t str_add_len, a3da_vec3* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -3303,8 +3307,8 @@ static void a3dc_read_a3da_key_f16(void* data, size_t length, a3da_key* value, a
     else if (~value->flags & A3DA_KEY_BIN_OFFSET)
         return;
 
-    a3dc_key_header* head = (void*)((size_t)data + value->bin_offset);
-    value->flags &= ~A3DA_KEY_BIN_OFFSET;
+    a3dc_key_header* head = (a3dc_key_header*)((size_t)data + value->bin_offset);
+    value->flags, ~A3DA_KEY_BIN_OFFSET;
     value->bin_offset = 0;
 
     size_t d = (size_t)head + sizeof(a3dc_key_header);
@@ -3399,7 +3403,7 @@ static void a3dc_write_a3da_key_f16(stream* s, a3da_key* value, a3da_compress_f1
     }
 
     value->bin_offset = (int32_t)io_get_position(s);
-    value->flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->flags, A3DA_KEY_BIN_OFFSET);
 
     if (value->type == A3DA_KEY_NONE) {
         io_write_int32_t(s, A3DA_KEY_NONE);
@@ -3459,30 +3463,30 @@ static void a3dc_read_a3da_model_transform(void* data, size_t length,
     if (~value->flags & A3DA_MODEL_TRANSFORM_BIN_OFFSET)
         return;
 
-    a3da_model_transform_header* head = (void*)((size_t)data + value->bin_offset);
-    value->flags &= ~A3DA_MODEL_TRANSFORM_BIN_OFFSET;
+    a3da_model_transform_header* head = (a3da_model_transform_header*)((size_t)data + value->bin_offset);
+    enum_and(value->flags, ~A3DA_MODEL_TRANSFORM_BIN_OFFSET);
     value->bin_offset = 0;
 
     value->scale.x.bin_offset = head->scale.x;
-    value->scale.x.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->scale.x.flags, A3DA_KEY_BIN_OFFSET);
     value->scale.y.bin_offset = head->scale.y;
-    value->scale.y.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->scale.y.flags, A3DA_KEY_BIN_OFFSET);
     value->scale.z.bin_offset = head->scale.z;
-    value->scale.z.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->scale.z.flags, A3DA_KEY_BIN_OFFSET);
     value->rotation.x.bin_offset = head->rotation.x;
-    value->rotation.x.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->rotation.x.flags, A3DA_KEY_BIN_OFFSET);
     value->rotation.y.bin_offset = head->rotation.y;
-    value->rotation.y.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->rotation.y.flags, A3DA_KEY_BIN_OFFSET);
     value->rotation.z.bin_offset = head->rotation.z;
-    value->rotation.z.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->rotation.z.flags, A3DA_KEY_BIN_OFFSET);
     value->translation.x.bin_offset = head->translation.x;
-    value->translation.x.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->translation.x.flags, A3DA_KEY_BIN_OFFSET);
     value->translation.y.bin_offset = head->translation.y;
-    value->translation.y.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->translation.y.flags, A3DA_KEY_BIN_OFFSET);
     value->translation.z.bin_offset = head->translation.z;
-    value->translation.z.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->translation.z.flags, A3DA_KEY_BIN_OFFSET);
     value->visibility.bin_offset = head->visibility;
-    value->visibility.flags |= A3DA_KEY_BIN_OFFSET;
+    enum_or(value->visibility.flags, A3DA_KEY_BIN_OFFSET);
 
     a3dc_read_a3da_vec3(data, length, &value->scale);
     a3dc_read_a3da_vec3_f16(data, length, &value->rotation, f16);
@@ -3501,42 +3505,42 @@ static void a3dc_write_a3da_model_transform(stream* s,
 static void a3dc_write_a3da_model_transform_offset(stream* s,
     a3da_model_transform* value) {
     value->bin_offset = (int32_t)io_get_position(s);
-    value->flags |= A3DA_MODEL_TRANSFORM_BIN_OFFSET;
-    io_write(s, 0, 0x30);
+    enum_or(value->flags, A3DA_MODEL_TRANSFORM_BIN_OFFSET);
+    io_write(s, 0x30);
 }
 
 static void a3dc_write_a3da_model_transform_offset_data(stream* s,
     a3da_model_transform* value) {
     io_position_push(s, value->bin_offset, SEEK_SET);
     io_write_uint32_t(s, value->scale.x.bin_offset);
-    value->scale.x.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->scale.x.flags, ~A3DA_KEY_BIN_OFFSET);
     value->scale.x.bin_offset = 0;
     io_write_uint32_t(s, value->scale.y.bin_offset);
-    value->scale.y.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->scale.y.flags, ~A3DA_KEY_BIN_OFFSET);
     value->scale.y.bin_offset = 0;
     io_write_uint32_t(s, value->scale.z.bin_offset);
-    value->scale.z.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->scale.z.flags, ~A3DA_KEY_BIN_OFFSET);
     value->scale.z.bin_offset = 0;
     io_write_uint32_t(s, value->rotation.x.bin_offset);
-    value->rotation.x.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->rotation.x.flags, ~A3DA_KEY_BIN_OFFSET);
     value->rotation.x.bin_offset = 0;
     io_write_uint32_t(s, value->rotation.y.bin_offset);
-    value->rotation.y.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->rotation.y.flags, ~A3DA_KEY_BIN_OFFSET);
     value->rotation.y.bin_offset = 0;
     io_write_uint32_t(s, value->rotation.z.bin_offset);
-    value->rotation.z.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->rotation.z.flags, ~A3DA_KEY_BIN_OFFSET);
     value->rotation.z.bin_offset = 0;
     io_write_uint32_t(s, value->translation.x.bin_offset);
-    value->translation.x.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->translation.x.flags, ~A3DA_KEY_BIN_OFFSET);
     value->translation.x.bin_offset = 0;
     io_write_uint32_t(s, value->translation.y.bin_offset);
-    value->translation.y.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->translation.y.flags, ~A3DA_KEY_BIN_OFFSET);
     value->translation.y.bin_offset = 0;
     io_write_uint32_t(s, value->translation.z.bin_offset);
-    value->translation.z.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->translation.z.flags, ~A3DA_KEY_BIN_OFFSET);
     value->translation.z.bin_offset = 0;
     io_write_uint32_t(s, value->visibility.bin_offset);
-    value->visibility.flags &= ~A3DA_KEY_BIN_OFFSET;
+    enum_and(value->visibility.flags, ~A3DA_KEY_BIN_OFFSET);
     value->visibility.bin_offset = 0;
     io_position_pop(s);
 }

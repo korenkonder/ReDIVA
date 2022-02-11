@@ -75,7 +75,7 @@ void post_process_init(post_process_struct* pp) {
 }
 
 void post_process_apply(post_process_struct* pp, camera* cam, texture* light_proj_tex, int32_t npr_param) {
-    fbo_blit(pp->render_texture.fbos[0],
+    fbo_blit(pp->rend_texture.fbos[0],
         pp->pre_texture.fbos[0],
         0, 0, pp->render_width, pp->render_height,
         0, 0, pp->render_width, pp->render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
@@ -83,20 +83,20 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
     for (int32_t i = 0; i < 8; i++)
         gl_state_bind_sampler(i, 0);
 
-    post_process_apply_dof(pp->dof, &pp->render_texture, pp->samplers, cam);
+    post_process_apply_dof(pp->dof, &pp->rend_texture, pp->samplers, cam);
 
     shader_state_matrix_set_mvp_separate(&shaders_ft,
         (mat4*)&mat4_identity, (mat4*)&mat4_identity, (mat4*)&mat4_identity);
 
-    post_process_get_blur(pp->blur, &pp->render_texture);
+    post_process_get_blur(pp->blur, &pp->rend_texture);
     post_process_get_exposure(pp->exposure, pp->reset_exposure,
         pp->blur->tex[4].color_texture->texture, pp->blur->tex[2].color_texture->texture);
-    post_process_apply_tone_map(pp->tone_map, &pp->render_texture, light_proj_tex, 0,
-        &pp->render_texture, &pp->buf_texture, &pp->sss_contour_texture,
+    post_process_apply_tone_map(pp->tone_map, &pp->rend_texture, light_proj_tex, 0,
+        &pp->rend_texture, &pp->buf_texture, &pp->sss_contour_texture,
         pp->blur->tex[0].color_texture->texture,
         pp->exposure->exposure.color_texture->texture, npr_param);
     if (pp->mlaa)
-        post_process_apply_mlaa(pp->aa, &pp->render_texture,
+        post_process_apply_mlaa(pp->aa, &pp->rend_texture,
             &pp->buf_texture, pp->samplers, pp->parent_bone_node);
 
     for (int32_t i = 0; i < 16; i++) {
@@ -112,17 +112,22 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
             uniform_value[U_REDUCE] = 0;
 
         glViewport(0, 0, t->width, t->height);
-        gl_state_active_bind_texture_2d(0, pp->render_texture.color_texture->texture);
+        gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->texture);
         gl_state_bind_sampler(0, pp->samplers[0]);
         shader_set(&shaders_ft, SHADER_FT_REDUCE);
         render_texture_draw_params(&shaders_ft, pp->render_width,
             pp->render_height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     }
 
+    fbo_blit(pp->rend_texture.fbos[0],
+        pp->post_texture.fbos[0],
+        0, 0, pp->render_width, pp->render_height,
+        0, 0, pp->render_width, pp->render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
     render_texture_bind(&pp->screen_texture, 0);
     glViewport(pp->screen_x_offset, pp->screen_y_offset, pp->sprite_width, pp->sprite_height);
     if (pp->ssaa) {
-        gl_state_active_bind_texture_2d(0, pp->render_texture.color_texture->texture);
+        gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->texture);
         gl_state_bind_sampler(0, pp->samplers[0]);
         uniform_value[U01] = pp->parent_bone_node ? 1 : 0;
         uniform_value[U_REDUCE] = 0;
@@ -132,7 +137,7 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
         uniform_value[U01] = 0;
     }
     else {
-        gl_state_active_bind_texture_2d(0, pp->render_texture.color_texture->texture);
+        gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->texture);
         if (pp->mag_filter == POST_PROCESS_MAG_FILTER_NEAREST)
             gl_state_bind_sampler(0, pp->samplers[1]);
         else
@@ -161,7 +166,7 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
     for (int32_t i = 0; i < 8; i++)
         gl_state_bind_sampler(i, 0);
 
-    fbo_blit(pp->screen_texture.fbos[0], pp->post_texture.fbos[0],
+    fbo_blit(pp->screen_texture.fbos[0], pp->fbo_texture.fbos[0],
         pp->screen_x_offset, pp->screen_y_offset, pp->sprite_width, pp->sprite_height,
         0, 0, pp->render_width, pp->render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
@@ -178,7 +183,7 @@ void post_process_init_fbo(post_process_struct* pp, int32_t render_width, int32_
         post_process_dof_init_fbo(pp->dof, render_width, render_height);
         post_process_exposure_init_fbo(pp->exposure);
         post_process_tone_map_init_fbo(pp->tone_map);
-        render_texture_init(&pp->render_texture, render_width,
+        render_texture_init(&pp->rend_texture, render_width,
             render_height, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
         render_texture_init(&pp->buf_texture, render_width,
             render_height, 0, GL_RGBA16F, 0);
@@ -188,16 +193,13 @@ void post_process_init_fbo(post_process_struct* pp, int32_t render_width, int32_
             render_height, 0, GL_RGBA16F, 0);
         render_texture_init(&pp->post_texture, render_width,
             render_height, 0, GL_RGBA16F, 0);
-        render_texture_init(&pp->fbo_texture, render_width,
-            render_height, 0, GL_RGBA16F, 0);
         render_texture_init(&pp->alpha_layer_texture, render_width,
             render_height, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
-        gl_state_bind_texture_2d(pp->render_texture.depth_texture->texture);
-        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA,
-            (GLint[]) { GL_RED, GL_RED, GL_RED, GL_ONE });
+        gl_state_bind_texture_2d(pp->rend_texture.depth_texture->texture);
+        GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         gl_state_bind_texture_2d(pp->sss_contour_texture.depth_texture->texture);
-        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA,
-            (GLint[]) { GL_RED, GL_RED, GL_RED, GL_ONE });
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         gl_state_bind_texture_2d(0);
         pp->render_width = render_width;
         pp->render_height = render_height;
@@ -210,6 +212,8 @@ void post_process_init_fbo(post_process_struct* pp, int32_t render_width, int32_
     pp->screen_y_offset = (screen_height - sprite_height) / 2 + (screen_height - sprite_height) % 2;
 
     if (pp->screen_width != screen_width || pp->screen_height != screen_height) {
+        render_texture_init(&pp->fbo_texture, screen_width,
+            screen_height, 0, GL_RGBA16F, 0);
         render_texture_init(&pp->screen_texture, screen_width,
             screen_height, 0, GL_R11F_G11F_B10F, 0);
         pp->screen_width = screen_width;
@@ -283,12 +287,14 @@ void post_process_reset(post_process_struct* pp) {
     pp->mlaa = true;
     pp->mag_filter = POST_PROCESS_MAG_FILTER_BILINEAR;
     post_process_dof_initialize_data(pp->dof, 0, 0);
-    post_process_blur_initialize_data(pp->blur,
-        &((vec3) { 2.0f, 2.0f, 2.0f }), &((vec3) { 1.0f, 1.0f, 1.0f }));
-    post_process_tone_map_initialize_data(pp->tone_map, 2.0f, true,
-        1.0f, 1, 1.0f, &((vec3) { 0.0f, 0.0f, 0.0f }), 0.0f, 0,
-        &((vec3) { 0.0f, 0.0f, 0.0f }), &((vec3) { 1.0f, 1.0f, 1.0f }),
-        TONE_MAP_YCC_EXPONENT);
+    vec3 radius = { 2.0f, 2.0f, 2.0f };
+    vec3 intensity = { 1.0f, 1.0f, 1.0f };
+    post_process_blur_initialize_data(pp->blur, &radius, &intensity);
+    vec3 scene_fade_color = { 1.0f, 1.0f, 1.0f };
+    vec3 tone_trans_start = { 0.0f, 0.0f, 0.0f };
+    vec3 tone_trans_end = { 1.0f, 1.0f, 1.0f };
+    post_process_tone_map_initialize_data(pp->tone_map, 2.0f, true, 1.0f, 1, 1.0f,
+        &scene_fade_color, 0.0f, 0, &tone_trans_start, &tone_trans_end, TONE_MAP_YCC_EXPONENT);
 }
 
 void post_process_update(post_process_struct* pp, camera* cam) {
@@ -331,7 +337,7 @@ void post_process_free(post_process_struct* pp) {
     post_process_dof_dispose(pp->dof);
     post_process_exposure_dispose(pp->exposure);
     post_process_tone_map_dispose(pp->tone_map);
-    render_texture_free(&pp->render_texture);
+    render_texture_free(&pp->rend_texture);
     render_texture_free(&pp->buf_texture);
     render_texture_free(&pp->sss_contour_texture);
     render_texture_free(&pp->pre_texture);
