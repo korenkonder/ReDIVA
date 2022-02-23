@@ -13,16 +13,16 @@
 
 typedef struct f2_struct f2_struct;
 
-vector(f2_struct)
+vector_old(f2_struct)
 
 struct f2_struct {
     f2_header header;
     void* data;
     size_t length;
-    vector_f2_struct sub_structs;
+    vector_old_f2_struct sub_structs;
 
-    vector_enrs_entry enrs;
-    vector_size_t pof;
+    vector_old_enrs_entry enrs;
+    vector_old_size_t pof;
 };
 
 extern void f2_struct_read(f2_struct* st, char* path);

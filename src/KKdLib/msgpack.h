@@ -43,10 +43,10 @@ typedef struct msgpack {
 #define MSGPACK_SELECT(a, b) (MSGPACK_CHECK(a) ? (a*)(b).ptr : (##a##*)(b).data)
 #define MSGPACK_SELECT_PTR(a, b) (MSGPACK_CHECK(a) ? (a*)(b)->ptr : (##a##*)(b)->data)
 
-vector(msgpack)
+vector_old(msgpack)
 
-typedef vector_msgpack msgpack_array;
-typedef vector_msgpack msgpack_map;
+typedef vector_old_msgpack msgpack_array;
+typedef vector_old_msgpack msgpack_map;
 
 extern void msgpack_init_map(msgpack* msg, char* name);
 extern void msgpack_init_array(msgpack* msg, char* name, size_t length);

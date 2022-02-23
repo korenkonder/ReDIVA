@@ -35,7 +35,7 @@ bool glitter_diva_resource_unparse_file(glitter_effect_group* a1, f2_struct* st)
         return false;
     }
 
-    vector_f2_struct_push_back(&st->sub_structs, &s);
+    vector_old_f2_struct_push_back(&st->sub_structs, &s);
 
     st->header.signature = reverse_endianness_uint32_t('DVRS');
     st->header.length = 0x20;

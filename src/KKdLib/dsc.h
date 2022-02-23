@@ -269,14 +269,14 @@ typedef struct dsc_data {
     uint32_t data_offset;
 } dsc_data;
 
-vector(dsc_data)
+vector_old(dsc_data)
 
 typedef struct dsc {
     dsc_type type;
     uint32_t signature;
     uint32_t id;
-    vector_dsc_data data;
-    vector_uint32_t data_buffer;
+    vector_old_dsc_data data;
+    vector_old_uint32_t data_buffer;
 } dsc;
 
 typedef struct dsc_replace dsc_replace;

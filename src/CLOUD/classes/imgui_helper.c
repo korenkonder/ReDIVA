@@ -15,11 +15,42 @@ const ImVec2 ImVec2_Identity = { 1.0f, 1.0f };
 const ImVec4 ImVec4_Identity = { 1.0f, 1.0f, 1.0f, 1.0f };
 const float_t imgui_alpha_disabled_scale = 0.5f;
 
+bool imgui_is_item_active;
+bool imgui_is_item_focused;
+bool imgui_is_item_visible;
+bool imgui_is_item_edited;
+bool imgui_is_item_activated;
+bool imgui_is_item_deactivated;
+bool imgui_is_item_deactivated_after_edit;
+bool imgui_is_item_toggled_open;
+
 static float_t column_space = (float_t)(1.0 / 3.0);
 static float_t cell_padding;
 
 #undef min
 #undef max
+
+static void imgui_reset_is_item() {
+    imgui_is_item_active = false;
+    imgui_is_item_focused = false;
+    imgui_is_item_visible = false;
+    imgui_is_item_edited = false;
+    imgui_is_item_activated = false;
+    imgui_is_item_deactivated = false;
+    imgui_is_item_deactivated_after_edit = false;
+    imgui_is_item_toggled_open = false;
+}
+
+static void imgui_get_is_item() {
+    imgui_is_item_active |= igIsItemActive();
+    imgui_is_item_focused |= igIsItemFocused();
+    imgui_is_item_visible |= igIsItemVisible();
+    imgui_is_item_edited |= igIsItemEdited();
+    imgui_is_item_activated |= igIsItemActivated();
+    imgui_is_item_deactivated |= igIsItemDeactivated();
+    imgui_is_item_deactivated_after_edit |= igIsItemDeactivatedAfterEdit();
+    imgui_is_item_toggled_open |= igIsItemToggledOpen();
+}
 
 inline bool imguiItemKeyDown(int32_t key) {
     return igIsItemFocused() && igIsKeyDown(key);
@@ -121,14 +152,18 @@ bool igSliderFloatButton(const char* label, float_t* val, float_t step,
     igPushID_Str(label);
     igBeginGroup();
     igPushButtonRepeat(true);
+    imgui_reset_is_item();
     igButtonEx("<", { button_size, button_size }, ImGuiButtonFlags_Repeat);
+    imgui_get_is_item();
     bool l = igIsItemActive() && (igIsKeyPressed(VK_RETURN, true)
         || igIsMouseClicked(ImGuiMouseButton_Left, true));
     igSameLine(0.0f, 0.0f);
     igSetNextItemWidth(w - button_size * 2.0f);
     igSliderScalar(label, ImGuiDataType_Float, &v, &min, &max, format, flags);
+    imgui_get_is_item();
     igSameLine(0.0f, 0.0f);
     igButtonEx(">", { button_size, button_size }, ImGuiButtonFlags_Repeat);
+    imgui_get_is_item();
     bool r = igIsItemActive() && (igIsKeyPressed(VK_RETURN, true)
         || igIsMouseClicked(ImGuiMouseButton_Left, true));
     igPopButtonRepeat();
@@ -171,14 +206,18 @@ bool igSliderIntButton(const char* label, int32_t* val,
     igPushID_Str(label);
     igBeginGroup();
     igPushButtonRepeat(true);
+    imgui_reset_is_item();
     igButtonEx("<", { button_size, button_size }, ImGuiButtonFlags_Repeat);
+    imgui_get_is_item();
     bool l = igIsItemActive() && (igIsKeyPressed(VK_RETURN, true)
         || igIsMouseClicked(ImGuiMouseButton_Left, true));
     igSameLine(0.0f, 0.0f);
     igSetNextItemWidth(w - button_size * 2.0f);
     igSliderScalar(label, ImGuiDataType_S32, &v, &min, &max, format, flags);
+    imgui_get_is_item();
     igSameLine(0.0f, 0.0f);
     igButtonEx(">", { button_size, button_size }, ImGuiButtonFlags_Repeat);
+    imgui_get_is_item();
     bool r = igIsItemActive() && (igIsKeyPressed(VK_RETURN, true)
         || igIsMouseClicked(ImGuiMouseButton_Left, true));
     igPopButtonRepeat();
@@ -205,11 +244,17 @@ bool igSliderIntButton(const char* label, int32_t* val,
 }
 
 bool imguiButton(const char* label, const ImVec2 size) {
-    return igButton(label, size) || imguiItemKeyPressed(GLFW_KEY_ENTER, true);
+    imgui_reset_is_item();
+    bool res = igButton(label, size);
+    imgui_get_is_item();
+    return res || imguiItemKeyPressed(GLFW_KEY_ENTER, true);
 }
 
 bool imguiButtonEx(const char* label, const ImVec2 size, ImGuiButtonFlags flags) {
-    return igButtonEx(label, size, flags) || imguiItemKeyPressed(GLFW_KEY_ENTER, true);
+    imgui_reset_is_item();
+    bool res = igButtonEx(label, size, flags);
+    imgui_get_is_item();
+    return res || imguiItemKeyPressed(GLFW_KEY_ENTER, true);
 }
 
 bool imguiCheckbox(const char* label, bool* v) {
@@ -448,11 +493,11 @@ bool imguiComboBoxConfigFile(const char* label, void* items, const size_t size,
     }
 
     data_struct_file* items_ds = (data_struct_file*)items;
-    if (igBeginCombo(label, string_data(&items_ds[*selected_idx].name), flags)) {
+    if (igBeginCombo(label, items_ds[*selected_idx].name.c_str(), flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {
                 igPushID_Int((int32_t)n);
-                if (igSelectable_Bool((const char*)string_data(&items_ds[n].name),
+                if (igSelectable_Bool(items_ds[n].name.c_str(),
                     *selected_idx == n, 0, ImVec2_Empty)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (igIsItemFocused() && *selected_idx != n))
@@ -465,7 +510,7 @@ bool imguiComboBoxConfigFile(const char* label, void* items, const size_t size,
         else
             for (size_t n = 0; n < size; n++) {
                 igPushID_Int((int32_t)n);
-                if (igSelectable_Bool((const char*)string_data(&items_ds[n].name),
+                if (igSelectable_Bool(items_ds[n].name.c_str(),
                     *selected_idx == n, 0, ImVec2_Empty)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (igIsItemFocused() && *selected_idx != n))
@@ -699,10 +744,13 @@ bool imguiColumnSliderFloat(const char* label, float_t* val, float_t step,
     v[0] = *val;
     imguiStartPropertyColumn(label);
     bool res = false;
+    imgui_reset_is_item();
     if (button)
         res = igSliderFloatButton("", v, step, min, max, format, flags);
-    else
+    else {
         res = igSliderFloat("", v, min, max, format, flags);
+        imgui_get_is_item();
+    }
     imguiEndPropertyColumn();
     if (!res)
         return false;
@@ -721,6 +769,7 @@ bool imguiColumnSliderVec2(const char* label, vec2* val, float_t step,
     *(vec2*)v = *val;
     imguiStartPropertyColumn(label);
     bool res = false;
+    imgui_reset_is_item();
     if (button) {
         ImGuiStyle* style = igGetStyle();
         igBeginGroup();
@@ -732,8 +781,10 @@ bool imguiColumnSliderVec2(const char* label, vec2* val, float_t step,
         igPopItemWidth();
         igEndGroup();
     }
-    else
+    else {
         res = igSliderFloat2("", v, min, max, format, flags);
+        imgui_get_is_item();
+    }
     imguiEndPropertyColumn();
     if (!res)
         return false;
@@ -753,6 +804,7 @@ bool imguiColumnSliderVec3(const char* label, vec3* val, float_t step,
     *(vec3*)v = *val;
     imguiStartPropertyColumn(label);
     bool res = false;
+    imgui_reset_is_item();
     if (button) {
         ImGuiStyle* style = igGetStyle();
         igBeginGroup();
@@ -767,8 +819,10 @@ bool imguiColumnSliderVec3(const char* label, vec3* val, float_t step,
         igPopItemWidth();
         igEndGroup();
     }
-    else
+    else {
         res = igSliderFloat3("", v, min, max, format, flags);
+        imgui_get_is_item();
+    }
     imguiEndPropertyColumn();
     if (!res)
         return false;
@@ -789,6 +843,7 @@ bool imguiColumnSliderVec4(const char* label, vec4* val, float_t step,
     *(vec4*)v = *val;
     imguiStartPropertyColumn(label);
     bool res = false;
+    imgui_reset_is_item();
     if (button) {
         ImGuiStyle* style = igGetStyle();
         igBeginGroup();
@@ -806,8 +861,10 @@ bool imguiColumnSliderVec4(const char* label, vec4* val, float_t step,
         igPopItemWidth();
         igEndGroup();
     }
-    else
+    else {
         res = igSliderFloat4("", v, min, max, format, flags);
+        imgui_get_is_item();
+    }
     imguiEndPropertyColumn();
     if (!res)
         return false;
@@ -829,10 +886,13 @@ bool imguiColumnSliderInt(const char* label, int32_t* val,
     v[0] = *val;
     imguiStartPropertyColumn(label);
     bool res = false;
+    imgui_reset_is_item();
     if (button)
         res = igSliderIntButton("", v, min, max, format, flags);
-    else
+    else {
         res = igSliderInt("", v, min, max, format, flags);
+        imgui_get_is_item();
+    }
     imguiEndPropertyColumn();
     if (!res)
         return false;
@@ -851,6 +911,7 @@ bool imguiColumnSliderVec2I(const char* label, vec2i* val,
     *(vec2i*)v = *val;
     imguiStartPropertyColumn(label);
     bool res = false;
+    imgui_reset_is_item();
     if (button) {
         ImGuiStyle* style = igGetStyle();
         igBeginGroup();
@@ -863,8 +924,10 @@ bool imguiColumnSliderVec2I(const char* label, vec2i* val,
 
         igEndGroup();
     }
-    else
+    else {
         res = igSliderInt2("", v, min, max, format, flags);
+        imgui_get_is_item();
+    }
     imguiEndPropertyColumn();
     if (!res)
         return false;
@@ -884,6 +947,7 @@ bool imguiColumnSliderVec3I(const char* label, vec3i* val,
     *(vec3i*)v = *val;
     imguiStartPropertyColumn(label);
     bool res = false;
+    imgui_reset_is_item();
     if (button) {
         ImGuiStyle* style = igGetStyle();
         igBeginGroup();
@@ -898,8 +962,10 @@ bool imguiColumnSliderVec3I(const char* label, vec3i* val,
         igPopItemWidth();
         igEndGroup();
     }
-    else
+    else {
         res = igSliderInt3("", v, min, max, format, flags);
+        imgui_get_is_item();
+    }
     imguiEndPropertyColumn();
     if (!res)
         return false;
@@ -920,6 +986,7 @@ bool imguiColumnSliderVec4I(const char* label, vec4i* val,
     *(vec4i*)v = *val;
     imguiStartPropertyColumn(label);
     bool res = false;
+    imgui_reset_is_item();
     if (button) {
         ImGuiStyle* style = igGetStyle();
         igBeginGroup();
@@ -937,8 +1004,10 @@ bool imguiColumnSliderVec4I(const char* label, vec4i* val,
         igPopItemWidth();
         igEndGroup();
     }
-    else
+    else {
         res = igSliderInt4("", v, min, max, format, flags);
+        imgui_get_is_item();
+    }
     imguiEndPropertyColumn();
     if (!res)
         return false;

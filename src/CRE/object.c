@@ -7,6 +7,7 @@
 #include "data.h"
 #include "gl_state.h"
 #include "shader_ft.h"
+#include "../KKdLib/hash.h"
 #include "../KKdLib/str_utils.h"
 
 typedef obj object_file;
@@ -24,7 +25,7 @@ typedef obj_skin_block_constraint_direction object_skin_block_constraint_directi
 typedef obj_skin_block_constraint_distance object_skin_block_constraint_distance_file;
 typedef obj_skin_block_constraint_orientation object_skin_block_constraint_orientation_file;
 typedef obj_skin_block_constraint_position object_skin_block_constraint_position_file;
-typedef obj_skin_block_constraint_up_vector object_skin_block_constraint_up_vector_file;
+typedef obj_skin_block_constraint_up_vector_old object_skin_block_constraint_up_vector_old_file;
 typedef obj_skin_block_expression object_skin_block_expression_file;
 typedef obj_skin_block_motion object_skin_block_motion_file;
 typedef obj_skin_block_node object_skin_block_node_file;
@@ -43,7 +44,7 @@ typedef struct object_storage {
     object_set set;
 } object_storage;
 
-vector(object_storage)
+vector_old(object_storage)
 
 static bool object_mesh_index_buffer_load(object_mesh_index_buffer* buffer, object_mesh* mesh);
 static GLuint object_mesh_index_buffer_load_data(size_t size, void* data);
@@ -59,9 +60,9 @@ static void object_set_vertex_buffer_free(object_set* set);
 static void object_skin_block_constraint_attach_point_load(
     object_skin_block_constraint_attach_point* attach_point,
     object_skin_block_constraint_attach_point_file* attach_point_file);
-static void object_skin_block_constraint_up_vector_load(
-    object_skin_block_constraint_up_vector* up_vector,
-    object_skin_block_constraint_up_vector_file* up_vector_file);
+static void object_skin_block_constraint_up_vector_old_load(
+    object_skin_block_constraint_up_vector_old* up_vector_old,
+    object_skin_block_constraint_up_vector_old_file* up_vector_old_file);
 static void object_skin_block_node_load(object_skin_block_node* node,
     object_skin_block_node_file* node_file);
 static void object_skin_block_node_free(object_skin_block_node* node);
@@ -72,9 +73,9 @@ static size_t object_vertex_flags_get_vertex_size_comp(object_vertex_flags flags
 static bool object_set_load_file(void* data, char* path, char* file, uint32_t hash);
 static bool object_set_load_file_modern(void* data, char* path, char* file, uint32_t hash);
 
-vector_func(object_storage)
+vector_old_func(object_storage)
 
-vector_object_storage object_storage_data;
+vector_old_object_storage object_storage_data;
 
 void object_set_init(object_set* set) {
     if (!set)
@@ -102,9 +103,9 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
             string* name = &set->texture_names[i];
             *name = string_empty;
 
-            for (texture_info* j = tex_db->texture.begin; j != tex_db->texture.end; j++)
-                if (j->id == texture_id) {
-                    string_copy(&j->name, name);
+            for (texture_info& j : tex_db->texture)
+                if (j.id == texture_id) {
+                    string_init_length(name, j.name.c_str(), j.name.size());
                     break;
                 }
 
@@ -317,8 +318,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                         }
 
                         if (flags & OBJ_VERTEX_TANGENT) {
-                            vec4 tangent;
-                            vec4u_to_vec4(vertex_file[i].tangent, tangent);
+                            vec4 tangent = vertex_file[i].tangent;
                             vec4_mult_scalar(tangent, 32727.0f, tangent);
                             vec4_to_vec4i16(tangent, *(vec4i16*)d);
                             d += 8;
@@ -345,21 +345,18 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                         }
 
                         if (flags & OBJ_VERTEX_COLOR0) {
-                            vec4 color0;
-                            vec4u_to_vec4(vertex_file[i].color0, color0);
+                            vec4 color0 = vertex_file[i].color0;
                             vec4_to_vec4h(color0, *(vec4h*)d);
                             d += 8;
                         }
 
                         if (flags & OBJ_VERTEX_BONE_DATA) {
-                            vec4 bone_weight;
-                            vec4u_to_vec4(vertex_file[i].bone_weight, bone_weight);
+                            vec4 bone_weight = vertex_file[i].bone_weight;
                             vec4_mult_scalar(bone_weight, 65535.0f, bone_weight);
                             vec4_to_vec4u16(bone_weight, *(vec4u16*)d);
                             d += 8;
 
-                            vec4i bone_index;
-                            vec4iu_to_vec4i(vertex_file[i].bone_index, bone_index);
+                            vec4i bone_index = vertex_file[i].bone_index;
                             vec4i_to_vec4u16(bone_index, *(vec4u16*)d);
                             d += 8;
                         }
@@ -582,8 +579,8 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                     object_skin_block_constraint_direction_file* direction_file
                         = &constraint_file->direction;
 
-                    object_skin_block_constraint_up_vector_load(
-                        &direction->up_vector, &direction_file->up_vector);
+                    object_skin_block_constraint_up_vector_old_load(
+                        &direction->up_vector_old, &direction_file->up_vector_old);
                     direction->align_axis = direction_file->align_axis;
                     direction->target_offset = direction_file->target_offset;
                 } break;
@@ -594,9 +591,9 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                     object_skin_block_constraint_position_file* position_file
                         = &constraint_file->position;
 
-                    object_skin_block_constraint_up_vector_load(
-                        &position->up_vector, &position_file->up_vector);
-                    string_copy(&position_file->up_vector.name, &position->up_vector.name);
+                    object_skin_block_constraint_up_vector_old_load(
+                        &position->up_vector_old, &position_file->up_vector_old);
+                    string_copy(&position_file->up_vector_old.name, &position->up_vector_old.name);
                     object_skin_block_constraint_attach_point_load(
                         &position->constrained_object, &position_file->constrained_object);
                     object_skin_block_constraint_attach_point_load(
@@ -609,8 +606,8 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                     object_skin_block_constraint_distance_file* distance_file
                         = &constraint_file->distance;
 
-                    object_skin_block_constraint_up_vector_load(
-                        &distance->up_vector, &distance_file->up_vector);
+                    object_skin_block_constraint_up_vector_old_load(
+                        &distance->up_vector_old, &distance_file->up_vector_old);
                     distance->distance = distance_file->distance;
                     object_skin_block_constraint_attach_point_load(
                         &distance->constrained_object, &distance_file->constrained_object);
@@ -701,7 +698,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
         skin->ex_data_init = true;
     }
 
-    int32_t textures_count = (int32_t)vector_length(*txp_set_file);
+    int32_t textures_count = (int32_t)vector_old_length(*txp_set_file);
     set->textures_count = textures_count;
     set->textures = force_malloc_s(GLuint, textures_count);
     texture_txp_set_load(txp_set_file, &set->texture_data, set->texture_ids);
@@ -1001,8 +998,7 @@ void object_skin_set_matrix_buffer(object_skin* s, mat4* matrices,
 
             mat4_mult(&temp, global_mat, &temp);
 
-            mat4 inv_bind_pose_mat;
-            mat4u_to_mat4(&s->bones[i].inv_bind_pose_mat, &inv_bind_pose_mat);
+            mat4 inv_bind_pose_mat = s->bones[i].inv_bind_pose_mat;
             mat4_mult(&inv_bind_pose_mat, &temp, &matrix_buffer[i]);
         }
     else
@@ -1019,14 +1015,13 @@ void object_skin_set_matrix_buffer(object_skin* s, mat4* matrices,
 
             mat4_mult(&temp, global_mat, &temp);
 
-            mat4 inv_bind_pose_mat;
-            mat4u_to_mat4(&s->bones[i].inv_bind_pose_mat, &inv_bind_pose_mat);
+            mat4 inv_bind_pose_mat = s->bones[i].inv_bind_pose_mat;
             mat4_mult(&inv_bind_pose_mat, &temp, &matrix_buffer[i]);
         }
 }
 
 inline void object_storage_init() {
-    object_storage_data = vector_empty(object_storage);
+    object_storage_data = vector_old_empty(object_storage);
 }
 
 inline void object_storage_append_object_set(uint32_t set_id) {
@@ -1046,7 +1041,7 @@ inline void object_storage_insert_object_set(object_set* set, uint32_t set_id) {
             return;
         }
 
-    object_storage* obj_set_storage = vector_object_storage_reserve_back(&object_storage_data);
+    object_storage* obj_set_storage = vector_old_object_storage_reserve_back(&object_storage_data);
     obj_set_storage->set_id = set_id;
     obj_set_storage->count = 1;
     obj_set_storage->set = *set;
@@ -1167,7 +1162,7 @@ inline object_set* object_storage_get_object_set(uint32_t set_id) {
 }
 
 inline ssize_t object_storage_get_object_set_count() {
-    return vector_length(object_storage_data);
+    return vector_old_length(object_storage_data);
 }
 
 inline int32_t object_storage_get_object_set_load_count(uint32_t set_id) {
@@ -1178,13 +1173,13 @@ inline int32_t object_storage_get_object_set_load_count(uint32_t set_id) {
 }
 
 inline object_set* object_storage_get_object_set_by_index(ssize_t index) {
-    if (index >= 0 && index < vector_length(object_storage_data))
+    if (index >= 0 && index < vector_old_length(object_storage_data))
         return &object_storage_data.begin[index].set;
     return 0;
 }
 
 inline int32_t object_storage_get_object_set_load_count_by_index(ssize_t index) {
-    if (index >= 0 && index < vector_length(object_storage_data))
+    if (index >= 0 && index < vector_old_length(object_storage_data))
         return object_storage_data.begin[index].count;
     return 0;
 }
@@ -1274,7 +1269,7 @@ inline void object_storage_delete_object_set(uint32_t set_id) {
                 texture_storage_delete_texture(set->texture_ids[j]);
             object_set_free(set);
 
-            vector_object_storage_erase(&object_storage_data,
+            vector_old_object_storage_erase(&object_storage_data,
                 i - object_storage_data.begin, 0);
             break;
         }
@@ -1283,7 +1278,7 @@ inline void object_storage_delete_object_set(uint32_t set_id) {
 inline void object_storage_free() {
     for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++)
         object_set_free(&i->set);
-    vector_object_storage_free(&object_storage_data, 0);
+    vector_old_object_storage_free(&object_storage_data, 0);
 }
 
 static bool object_mesh_index_buffer_load(object_mesh_index_buffer* buffer, object_mesh* mesh) {
@@ -1421,14 +1416,14 @@ inline static void object_skin_block_constraint_attach_point_load(
     attach_point->affected_by_scaling = attach_point_file->affected_by_scaling;
     attach_point->offset = attach_point_file->offset;
 }
-inline static void object_skin_block_constraint_up_vector_load(
-    object_skin_block_constraint_up_vector* up_vector,
-    object_skin_block_constraint_up_vector_file* up_vector_file) {
-    up_vector->active = up_vector_file->active;
-    up_vector->roll = up_vector_file->roll;
-    up_vector->affected_axis = up_vector_file->affected_axis;
-    up_vector->point_at = up_vector_file->point_at;
-    string_copy(&up_vector_file->name, &up_vector->name);
+inline static void object_skin_block_constraint_up_vector_old_load(
+    object_skin_block_constraint_up_vector_old* up_vector_old,
+    object_skin_block_constraint_up_vector_old_file* up_vector_old_file) {
+    up_vector_old->active = up_vector_old_file->active;
+    up_vector_old->roll = up_vector_old_file->roll;
+    up_vector_old->affected_axis = up_vector_old_file->affected_axis;
+    up_vector_old->point_at = up_vector_old_file->point_at;
+    string_copy(&up_vector_old_file->name, &up_vector_old->name);
 }
 
 
@@ -1555,12 +1550,11 @@ static bool object_set_load_file(void* data, char* path, char* file, uint32_t ha
     object_set_info* set_info = (object_set_info*)((size_t*)data)[1];
 
     farc f;
-    farc_init(&f);
-    if (!farc_load_file(&f, path, file, hash))
+    if (!farc::load_file(&f, path, file, hash))
         return false;
 
-    farc_file* obj = farc_read_file(&f, string_data(&set_info->object_file_name));
-    farc_file* tex = farc_read_file(&f, string_data(&set_info->texture_file_name));
+    farc_file* obj = f.read_file(string_data(&set_info->object_file_name));
+    farc_file* tex = f.read_file(string_data(&set_info->texture_file_name));
 
     if (obj && tex) {
         obj_set obj_set;
@@ -1574,14 +1568,13 @@ static bool object_set_load_file(void* data, char* path, char* file, uint32_t ha
         if (obj_set.ready) {
             object_set object_set;
             object_set_init(&object_set);
-            object_set_load(&object_set, &obj_set, &txp_set, &d->tex_db, &set_info->name, set_info->id, true);
+            object_set_load(&object_set, &obj_set, &txp_set, &d->tex_db, &set_info->name, set_info->id, false);
             object_storage_insert_object_set(&object_set, set_info->id);
         }
 
         obj_free(&obj_set);
         txp_set_free(&txp_set);
     }
-    farc_free(&f);
     return true;
 }
 
@@ -1590,31 +1583,28 @@ static bool object_set_load_file_modern(void* data, char* path, char* file, uint
     texture_database* tex_db = (texture_database*)((size_t*)data)[1];
 
     farc f;
-    farc_init(&f);
-    if (!farc_load_file(&f, path, file, hash))
+    if (!farc::load_file(&f, path, file, hash))
         return false;
 
     char buf[0x100];
     size_t file_len = utf8_length(file);
-    if (file_len >= 0x100) {
-        farc_free(&f);
+    if (file_len >= 0x100)
         return false;
-    }
 
     memcpy(buf, file, file_len);
     char* ext = buf + file_len - 5;
 
     memcpy(ext, ".osd", 5);
-    farc_file* osd = farc_read_file(&f, buf);
+    farc_file* osd = f.read_file(buf);
 
     memcpy(ext, ".txd", 5);
-    farc_file* txd = farc_read_file(&f, buf);
+    farc_file* txd = f.read_file(buf);
 
     memcpy(ext, ".osi", 5);
-    farc_file* osi = farc_read_file(&f, buf);
+    farc_file* osi = f.read_file(buf);
 
     memcpy(ext, ".txi", 5);
-    farc_file* txi = farc_read_file(&f, buf);
+    farc_file* txi = f.read_file(buf);
 
     if (osd && txd && osi && txi) {
         obj_set obj_set;
@@ -1626,7 +1616,7 @@ static bool object_set_load_file_modern(void* data, char* path, char* file, uint
         txp_set_unpack_file_modern(&txp_set, txd->data, txd->size);
 
         object_database_mread(obj_db, osi->data, osi->size, true);
-        texture_database_mread(tex_db, txi->data, txi->size, true);
+        tex_db->read(txi->data, txi->size, true);
 
         string* name = 0;
         if (obj_db->ready)
@@ -1640,7 +1630,7 @@ static bool object_set_load_file_modern(void* data, char* path, char* file, uint
             if (!object_storage_get_object_set(hash)) {
                 object_set object_set;
                 object_set_init(&object_set);
-                object_set_load(&object_set, &obj_set, &txp_set, tex_db, name, hash, true);
+                object_set_load(&object_set, &obj_set, &txp_set, tex_db, name, hash, false);
                 object_storage_insert_object_set(&object_set, hash);
             }
             else
@@ -1649,6 +1639,5 @@ static bool object_set_load_file_modern(void* data, char* path, char* file, uint
         obj_free(&obj_set);
         txp_set_free(&txp_set);
     }
-    farc_free(&f);
     return true;
 }

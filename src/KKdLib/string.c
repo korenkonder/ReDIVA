@@ -18,10 +18,10 @@ const wstring wstring_empty = {
     WSTRING_NULL_LENGTH,
 };
 
-vector_func(string)
-vector_func(wstring)
-vector_ptr_func(string)
-vector_ptr_func(wstring)
+vector_old_func(string)
+vector_old_func(wstring)
+vector_old_ptr_func(string)
+vector_old_ptr_func(wstring)
 
 static void string_reserve(string* s, ssize_t size);
 static void wstring_reserve(wstring* s, ssize_t size);

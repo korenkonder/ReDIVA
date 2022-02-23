@@ -5,16 +5,21 @@
 
 #pragma once
 
-#include "../../KKdLib/default.h"
+#include <map>
+#include <map>
+#include <vector>
 #include "../../KKdLib/database/object.h"
 #include "../../KKdLib/f2/header.h"
 #include "../../KKdLib/f2/struct.h"
+#include "../../KKdLib/default.h"
+#include "../../KKdLib/farc.h"
 #include "../../KKdLib/hash.h"
 #include "../../KKdLib/mat.h"
 #include "../../KKdLib/txp.h"
 #include "../../KKdLib/vec.h"
 #include "../../KKdLib/vector.h"
 #include "../static_var.h"
+#include "../task.h"
 #include "../texture.h"
 
 extern void axis_angle_from_vectors(vec3* axis, float_t* angle, vec3* vec0, vec3* vec1);

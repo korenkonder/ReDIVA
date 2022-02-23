@@ -18,14 +18,21 @@
 #include "scene.h"
 #include "texture.h"
 
-glitter_effect_group* glitter_effect_group_init(GLT) {
-    glitter_effect_group* eg = force_malloc_s(glitter_effect_group, 1);
-    eg->emission = 1.0f;
-    eg->version = GLT_VAL == GLITTER_X ? 0x0C : 0x09;
+glitter_effect_group::glitter_effect_group(GLT) : effects(), load_count(), hash(), scene(),
+resources_count(), resources_tex(), resources(), field_3C(), scene_init(), buffer_init() {
+    emission = 1.0f;
+    version = GLT_VAL == GLITTER_X ? 0x0C : 0x09;
+    type = GLT_VAL;
+
+}
+
+glitter_effect_group::~glitter_effect_group() {
+    vector_old_ptr_glitter_effect_free(&this->effects, glitter_effect_dispose);
+    glitter_texture_unload(this);
+    txp_set_free(&resources_tex);
 #if defined(CRE_DEV)
-    eg->object_set_ids = vector_empty(uint32_t);
+    glitter_effect_group_free_model(this);
 #endif
-    return eg;
 }
 
 bool glitter_effect_group_parse_file(glitter_effect_group* eg, f2_struct* st) {
@@ -53,13 +60,13 @@ bool glitter_effect_group_unparse_file(GLT, glitter_effect_group* eg, f2_struct*
         f2_struct s;
         memset(&s, 0, sizeof(f2_struct));
         if (glitter_effect_unparse_file(GLT_VAL, eg, &s, *i))
-            vector_f2_struct_push_back(&st->sub_structs, &s);
+            vector_old_f2_struct_push_back(&st->sub_structs, &s);
     }
 
     f2_struct s;
     memset(&s, 0, sizeof(f2_struct));
     if (glitter_texture_hashes_pack_file(eg, &s))
-        vector_f2_struct_push_back(&st->sub_structs, &s);
+        vector_old_f2_struct_push_back(&st->sub_structs, &s);
 
     st->header.signature = reverse_endianness_uint32_t('DVEF');
     st->header.length = 0x20;
@@ -75,7 +82,7 @@ bool glitter_effect_group_check_model(glitter_effect_group* eg) {
         return false;
 
     bool has_model = false;
-    vector_uint32_t* object_set_ids = &eg->object_set_ids;
+    std::vector<uint32_t>* object_set_ids = &eg->object_set_ids;
     for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
         if (!*i)
             continue;
@@ -97,14 +104,14 @@ bool glitter_effect_group_check_model(glitter_effect_group* eg) {
                 has_model = true;
                 uint32_t object_set_hash = (uint32_t)ptcl->data.mesh.object_set_name_hash;
                 bool found = false;
-                for (uint32_t* l = object_set_ids->begin; l != object_set_ids->end; l++)
-                    if (*l == object_set_hash) {
+                for (uint32_t& l : *object_set_ids)
+                    if (l == object_set_hash) {
                         found = true;
                         break;
                     }
 
                 if (!found)
-                    vector_uint32_t_push_back(object_set_ids, &object_set_hash);
+                    object_set_ids->push_back(object_set_hash);
             }
         }
     }
@@ -115,35 +122,18 @@ void glitter_effect_group_load_model(glitter_effect_group* eg, void* ds) {
     if (eg->type != GLITTER_X)
         return;
 
-    vector_uint32_t* object_set_ids = &eg->object_set_ids;
-    if (vector_length(*object_set_ids) < 1)
-        return;
-
-    for (uint32_t* i = object_set_ids->begin; i != object_set_ids->end; i++) {
+    for (uint32_t& i : eg->object_set_ids) {
         object_database obj_db;
         texture_database tex_db;
         object_database_init(&obj_db);
-        texture_database_init(&tex_db);
-        object_set_load_by_hash(ds, &obj_db, &tex_db, *i);
+        object_set_load_by_hash(ds, &obj_db, &tex_db, i);
         object_database_free(&obj_db);
-        texture_database_free(&tex_db);
     }
 }
 
 void glitter_effect_group_free_model(glitter_effect_group* eg) {
-    for (uint32_t* i = eg->object_set_ids.begin; i != eg->object_set_ids.end; i++)
-        object_storage_delete_object_set(*i);
-    vector_uint32_t_free(&eg->object_set_ids, 0);
+    for (uint32_t& i : eg->object_set_ids)
+        object_storage_delete_object_set(i);
+    eg->object_set_ids = {};
 }
 #endif
-
-void glitter_effect_group_dispose(glitter_effect_group* eg) {
-    vector_ptr_glitter_effect_free(&eg->effects, glitter_effect_dispose);
-    vector_uint64_t_free(&eg->resource_hashes, 0);
-    glitter_texture_unload(eg);
-    txp_set_free(&eg->resources_tex);
-#if defined(CRE_DEV)
-    glitter_effect_group_free_model(eg);
-#endif
-    free(eg);
-}

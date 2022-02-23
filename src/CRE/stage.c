@@ -4,6 +4,7 @@
 */
 
 #include "stage.h"
+#include "../KKdLib/hash.h"
 #include "../KKdLib/str_utils.h"
 #include "draw_task.h"
 
@@ -12,76 +13,43 @@ void stage_init(stage* s) {
 }
 
 void stage_ctrl(stage* s, render_context* rctx) {
-    if (!s || s->modern || !s->stage_classic)
+    if (!s || s->modern || !s->stage_data)
         return;
-
-    if (s->effects) {
-        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
-            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
-            if (auth)
-                auth_3d_ctrl(auth, (mat4*)&mat4_identity, rctx);
-        }
-    }
-
 }
 
 void stage_ctrl_modern(stage* s, render_context* rctx) {
     if (!s || !s->modern || !s->stage_modern)
         return;
-
-    if (s->effects) {
-        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
-            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
-            if (auth)
-                auth_3d_ctrl(auth, (mat4*)&mat4_identity, rctx);
-        }
-    }
 }
 
 void stage_disp(stage* s, render_context* rctx) {
-    if (!s || s->modern || !s->stage_classic || !s->display)
+    if (!s || s->modern || !s->stage_data || !s->display)
         return;
 
-    stage_info* info = s->stage_classic;
+    stage_data* data = s->stage_data;
 
     if (s->ground)
         draw_task_add_draw_object_by_object_info_opaque(rctx,
-            (mat4*)&mat4_identity, info->object_ground);
+            (mat4*)&mat4_identity, data->object_ground);
 
     if (s->sky)
         draw_task_add_draw_object_by_object_info_opaque(rctx,
-            (mat4*)&mat4_identity, info->object_sky);
-
-    if (s->effects) {
-        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
-            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
-            if (auth)
-                auth_3d_disp(auth, (mat4*)&mat4_identity, rctx);
-        }
-    }
+            (mat4*)&mat4_identity, data->object_sky);
 }
 
 void stage_disp_modern(stage* s, render_context* rctx) {
     if (!s || !s->modern || !s->stage_modern || !s->display)
         return;
 
-    stage_info_modern* info = s->stage_modern;
+    stage_data_modern* data = s->stage_modern;
 
     if (s->ground)
         draw_task_add_draw_object_by_object_info_opaque(rctx,
-            (mat4*)&mat4_identity, info->object_ground);
+            (mat4*)&mat4_identity, data->object_ground);
 
     if (s->sky)
         draw_task_add_draw_object_by_object_info_opaque(rctx,
-            (mat4*)&mat4_identity, info->object_sky);
-
-    if (s->effects) {
-        for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++) {
-            auth_3d* auth = auth_3d_data_get_auth_3d(*i);
-            if (auth)
-                auth_3d_disp(auth, (mat4*)&mat4_identity, rctx);
-        }
-    }
+            (mat4*)&mat4_identity, data->object_sky);
 }
 
 void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, object_database* obj_db,
@@ -105,28 +73,28 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
     uint32_t movie_texture = -1;
     s->light_param_name = 0;
     if (!s->modern) {
-        s->stage_classic = 0;
-        vector_stage_info* stage = &stage_data->stage_classic;
-        for (stage_info* i = stage->begin; i != stage->end; i++)
+        s->stage_data = 0;
+        vector_old_stage_data* stage = &stage_data->stage_data;
+        for (::stage_data* i = stage->begin; i != stage->end; i++)
             if (!str_utils_compare_length(name, name_len + 1,
                 string_data(&i->name), i->name.length + 1)) {
                 string_copy(&i->auth_3d_name, &auth_3d_category);
-                s->stage_classic = i;
+                s->stage_data = i;
                 auth_3d_count = i->auth_3d_count;
                 auth_3d_ids = i->auth_3d_ids;
                 render_texture = i->render_texture;
                 movie_texture = i->movie_texture;
-                s->light_param_name = light_param_get_string(string_data(&i->name));
+                s->light_param_name = light_param_get_stage_name_string(string_data(&i->name));
                 break;
             }
 
-        if (!s->stage_classic)
+        if (!s->stage_data)
             return;
     }
     else {
         s->stage_modern = 0;
-        vector_stage_info_modern* stage = &stage_data->stage_modern;
-        for (stage_info_modern* i = stage->begin; i != stage->end; i++)
+        vector_old_stage_data_modern* stage = &stage_data->stage_modern;
+        for (stage_data_modern* i = stage->begin; i != stage->end; i++)
             if (!str_utils_compare_length(name, name_len + 1,
                 string_data(&i->name), i->name.length + 1)) {
                 string_copy(&i->auth_3d_name, &auth_3d_category);
@@ -135,7 +103,7 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
                 auth_3d_ids = i->auth_3d_ids;
                 render_texture = i->render_texture;
                 movie_texture = i->movie_texture;
-                s->light_param_name = light_param_get_string(string_data(&i->name));
+                s->light_param_name = light_param_get_stage_name_string(string_data(&i->name));
                 break;
             }
 
@@ -145,76 +113,59 @@ void stage_load(stage* s, data_struct* data, auth_3d_database* auth_3d_db, objec
 
     light_param_storage_load_light_param_data(data, s->light_param_name);
 
-    auth_3d_database_uid* uids = auth_3d_db->uid.begin;
+    auth_3d_database_uid* uids = auth_3d_db->uid.data();
     if (auth_3d_category.length) {
-        for (auth_3d_database_category* i = auth_3d_db->category.begin; i != auth_3d_db->category.end; i++) {
-            if (str_utils_compare_length(string_data(&i->name), i->name.length,
+        for (auth_3d_database_category& i : auth_3d_db->category) {
+            if (str_utils_compare_length(i.name.c_str(), i.name.size(),
                 string_data(&auth_3d_category), auth_3d_category.length))
                 continue;
-            else if (i->name.length > auth_3d_category.length
-                && string_data(&i->name)[auth_3d_category.length] != 'S')
+            else if (i.name.size() > (size_t)auth_3d_category.length
+                && i.name.c_str()[auth_3d_category.length] != 'S')
                 continue;
 
-            string auth_3d_farc;
-            string_copy(&i->name, &auth_3d_farc);
-            string_add_length(&auth_3d_farc, ".farc", 5);
+            std::string auth_3d_farc = i.name;;
+            auth_3d_farc += ".farc";
 
             farc f;
-            farc_init(&f);
-            data_struct_load_file(data, &f, "rom/auth_3d/", string_data(&auth_3d_farc), farc_load_file);
-            string_free(&auth_3d_farc);
+            data_struct_load_file(data, &f, "rom/auth_3d/", auth_3d_farc.c_str(), farc::load_file);
 
-            if (vector_length(f.files) < 1) {
-                farc_free(&f);
+            if (f.files.size() < 1)
                 continue;
-            }
 
-            for (int32_t* j = i->uid.begin; j != i->uid.end; j++)
+            for (int32_t& j : i.uid)
                 for (uint32_t k = 0; k < auth_3d_count; k++) {
-                    if (uids[*j].enabled && uids[*j].org_uid != auth_3d_ids[k])
+                    if (uids[j].enabled && uids[j].org_uid != auth_3d_ids[k])
                         continue;
 
-                    string auth_3d_file;
-                    string_copy(&uids[*j].category, &auth_3d_file);
-                    string_add_length(&auth_3d_file, ".a3da", 5);
+                    std::string auth_3d_file = uids[j].category;
+                    auth_3d_file += ".a3da";
 
-                    farc_file* ff = farc_read_file(&f, string_data(&auth_3d_file));
+                    farc_file* ff = f.read_file(auth_3d_file.c_str());
 
-                    if (!ff || !ff->data || !ff->size) {
-                        string_free(&auth_3d_file);
+                    if (!ff || !ff->data || !ff->size)
                         continue;
-                    }
 
-                    char* l_str = string_data(&ff->name);
-                    char* t = strrchr(l_str, '.');
-                    size_t l_len = ff->name.length;
+                    const char* l_str = ff->name.c_str();
+                    const char* t = strrchr(l_str, '.');
+                    size_t l_len = ff->name.size();
                     if (t)
                         l_len = t - l_str;
 
                     uint32_t h = hash_murmurhash((uint8_t*)l_str, l_len, 0, false, false);
 
                     a3da a3da_file;
-                    a3da_init(&a3da_file);
-                    a3da_mread(&a3da_file, ff->data, ff->size);
-                    if (!a3da_file.ready) {
-                        a3da_free(&a3da_file);
-                        string_free(&auth_3d_file);
+                    a3da_file.read(ff->data, ff->size);
+                    if (!a3da_file.ready)
                         continue;
-                    }
                     a3da_file.hash = h;
 
-                    int32_t id = auth_3d_data_load_uid(uids[*j].org_uid, auth_3d_db);
+                    int32_t id = auth_3d_data_load_uid(uids[j].org_uid, auth_3d_db);
                     auth_3d* auth = auth_3d_data_get_auth_3d(id);
                     if (auth) {
-                        auth_3d_load(auth, &a3da_file, obj_db, tex_db);
-                        vector_int32_t_push_back(&s->auth_3d_ids, &id);
+                        auth->load(&a3da_file, obj_db, tex_db);
+                        vector_old_int32_t_push_back(&s->auth_3d_ids, &id);
                     }
-                    a3da_free(&a3da_file);
-
-                    string_free(&auth_3d_file);
                 }
-
-            farc_free(&f);
             break;
         }
     }
@@ -266,7 +217,7 @@ void stage_set(stage* s, render_context* rctx) {
         return;
     
     rctx->stage = s;
-    stage_index = (uint32_t)(s->modern ? s->stage_modern->id : s->stage_classic->id);
+    stage_index = (uint32_t)(s->modern ? s->stage_modern->id : s->stage_data->id);
     render_context_set_light_param(rctx,
         light_param_storage_get_light_param_data(s->light_param_name));
 }
@@ -274,23 +225,23 @@ void stage_set(stage* s, render_context* rctx) {
 void stage_free(stage* s, render_context* rctx) {
     uint32_t render_texture = -1;
     uint32_t movie_texture = -1;
-    if (!s->modern && s->stage_classic) {
-        stage_info* info = s->stage_classic;
+    if (!s->modern && s->stage_data) {
+        stage_data* info = s->stage_data;
         render_texture = info->render_texture;
         movie_texture = info->movie_texture;
 
         for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++)
             auth_3d_data_unload_id(*i, rctx);
-        vector_int32_t_free(&s->auth_3d_ids, 0);
+        vector_old_int32_t_free(&s->auth_3d_ids, 0);
     }
     else if (s->modern && s->stage_modern) {
-        stage_info_modern* info = s->stage_modern;
+        stage_data_modern* info = s->stage_modern;
         render_texture = info->render_texture;
         movie_texture = info->movie_texture;
 
         for (int32_t* i = s->auth_3d_ids.begin; i != s->auth_3d_ids.end; i++)
             auth_3d_data_unload_id(*i, rctx);
-        vector_int32_t_free(&s->auth_3d_ids, 0);
+        vector_old_int32_t_free(&s->auth_3d_ids, 0);
     }
 
     if (render_texture != -1)

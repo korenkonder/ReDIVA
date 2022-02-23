@@ -405,11 +405,11 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
     wchar_t temp[MAX_PATH];
     size_t count = 0;
     wchar_t* temp_path = str_utils_wget_without_extension(path);
-    vector_bool loop;
+    vector_old_bool loop;
     bool n, l;
     bool add_loop = false;
 
-    loop = vector_empty(bool);
+    loop = vector_old_empty(bool);
     while (true) {
         swprintf_s(temp, MAX_PATH, L"%ls.%llu.wav", temp_path, count);
         n = path_wcheck_file_exists(temp);
@@ -423,12 +423,12 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
         add_loop = !n;
 
-        vector_bool_push_back(&loop, &l);
+        vector_old_bool_push_back(&loop, &l);
         count++;
     }
 
     if (!count) {
-        vector_bool_free(&loop, 0);
+        vector_old_bool_free(&loop, 0);
         free(temp_path);
         return;
     }
@@ -456,7 +456,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
             free(wav_samples);
             free(wav_data);
-            vector_bool_free(&loop, 0);
+            vector_old_bool_free(&loop, 0);
             free(temp_path);
             return;
         }
@@ -530,7 +530,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
 
     free(wav_samples);
     free(wav_data);
-    vector_bool_free(&loop, 0);
+    vector_old_bool_free(&loop, 0);
     free(temp_path);
 }
 

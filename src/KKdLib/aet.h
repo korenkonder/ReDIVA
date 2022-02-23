@@ -7,9 +7,10 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "default.h"
 #include "kf.h"
-#include "string.h"
 #include "vec.h"
 
 typedef enum aet_layer_quality {
@@ -114,16 +115,16 @@ typedef struct aet_audio {
 } aet_audio;
 
 typedef struct aet_video_source {
-    string name;
+    std::string name;
     int32_t name_offset;
     uint32_t id;
 } aet_video_source;
 
 typedef struct aet_layer_audio {
-    vector_kft2 volume_left;
-    vector_kft2 volume_right;
-    vector_kft2 pan_left;
-    vector_kft2 pan_right;
+    std::vector<kft2> volume_left;
+    std::vector<kft2> volume_right;
+    std::vector<kft2> pan_left;
+    std::vector<kft2> pan_right;
 } aet_layer_audio;
 
 typedef struct aet_layer_transfer_mode {
@@ -133,42 +134,38 @@ typedef struct aet_layer_transfer_mode {
 } aet_layer_transfer_mode;
 
 typedef struct aet_layer_video_3d {
-    vector_kft2 anchor_z;
-    vector_kft2 position_z;
-    vector_kft2 direction_x;
-    vector_kft2 direction_y;
-    vector_kft2 direction_z;
-    vector_kft2 rotation_x;
-    vector_kft2 rotation_y;
-    vector_kft2 scale_z;
+    std::vector<kft2> anchor_z;
+    std::vector<kft2> position_z;
+    std::vector<kft2> direction_x;
+    std::vector<kft2> direction_y;
+    std::vector<kft2> direction_z;
+    std::vector<kft2> rotation_x;
+    std::vector<kft2> rotation_y;
+    std::vector<kft2> scale_z;
 } aet_layer_video_3d;
 
 typedef struct aet_layer_video {
     aet_layer_transfer_mode transfer_mode;
     uint8_t padding;
-    vector_kft2 anchor_x;
-    vector_kft2 anchor_y;
-    vector_kft2 positionx;
-    vector_kft2 position_y;
-    vector_kft2 rotation;
-    vector_kft2 scale_x;
-    vector_kft2 scale_y;
-    vector_kft2 opacit_y;
+    std::vector<kft2> anchor_x;
+    std::vector<kft2> anchor_y;
+    std::vector<kft2> positionx;
+    std::vector<kft2> position_y;
+    std::vector<kft2> rotation;
+    std::vector<kft2> scale_x;
+    std::vector<kft2> scale_y;
+    std::vector<kft2> opacit_y;
     aet_layer_video_3d* video_3d;
 } aet_layer_video;
 
 typedef struct aet_marker {
     float_t frame;
-    string name;
+    std::string name;
     int32_t name_offset;
 } aet_marker;
 
-vector(aet_marker)
-vector(aet_layer_video)
-vector(aet_layer_audio)
-
 typedef struct aet_layer {
-    string name;
+    std::string name;
     int32_t name_offset;
     float_t start_frame;
     float_t end_frame;
@@ -179,9 +176,9 @@ typedef struct aet_layer {
     aet_item_type type;
     int32_t video_item_offset;
     int32_t parent_layer_offset;
-    vector_aet_marker marker;
-    vector_aet_layer_video video;
-    vector_aet_layer_audio audio;
+    std::vector<aet_marker> marker;
+    std::vector<aet_layer_video> video;
+    std::vector<aet_layer_audio> audio;
 
     int32_t DataID;
 } aet_layer;
@@ -192,7 +189,7 @@ typedef struct aet_composition {
     aet_layer* elements;
 } aet_composition;
 
-vector(aet_video_source);
+vector_old(aet_video_source);
 
 typedef struct aet_video {
     int32_t offset;
@@ -200,32 +197,27 @@ typedef struct aet_video {
     uint16_t width;
     uint16_t height;
     float_t frames;
-    vector_aet_video_source video_source;
+    std::vector<aet_video_source> video_source;
 } aet_video;
 
 typedef struct aet_camera {
-    vector_kft2 eye_x;
-    vector_kft2 eye_y;
-    vector_kft2 eye_z;
-    vector_kft2 position_x;
-    vector_kft2 position_y;
-    vector_kft2 position_z;
-    vector_kft2 direction_x;
-    vector_kft2 direction_y;
-    vector_kft2 direction_z;
-    vector_kft2 rotation_x;
-    vector_kft2 rotation_y;
-    vector_kft2 rotation_z;
-    vector_kft2 zoom;
+    std::vector<kft2> eye_x;
+    std::vector<kft2> eye_y;
+    std::vector<kft2> eye_z;
+    std::vector<kft2> position_x;
+    std::vector<kft2> position_y;
+    std::vector<kft2> position_z;
+    std::vector<kft2> direction_x;
+    std::vector<kft2> direction_y;
+    std::vector<kft2> direction_z;
+    std::vector<kft2> rotation_x;
+    std::vector<kft2> rotation_y;
+    std::vector<kft2> rotation_z;
+    std::vector<kft2> zoom;
 } aet_camera;
 
-vector(aet_camera)
-vector(aet_composition)
-vector(aet_video)
-vector(aet_audio)
-
 typedef struct aet_scene {
-    string name;
+    std::string name;
     int32_t name_offset;
     float_t start_frame;
     float_t end_frame;
@@ -233,10 +225,10 @@ typedef struct aet_scene {
     uint32_t back_color;
     uint32_t width;
     uint32_t height;
-    vector_aet_camera camera;
-    vector_aet_composition composition;
-    vector_aet_video video;
-    vector_aet_audio audio;
+    std::vector<aet_camera> camera;
+    std::vector<aet_composition> composition;
+    std::vector<aet_video> video;
+    std::vector<aet_audio> audio;
 } aet_scene;
 
 typedef struct aet_header {

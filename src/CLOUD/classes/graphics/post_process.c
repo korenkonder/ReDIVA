@@ -10,7 +10,6 @@
 
 extern int32_t width;
 extern int32_t height;
-extern bool input_locked;
 
 const char* graphics_post_process_window_title = "Post Process##Graphics";
 
@@ -230,22 +229,14 @@ void graphics_post_process_imgui(class_data* data) {
 
     if (imguiButton("Reset Post Process", ImVec2_Empty) && rctx->stage) {
         stage* stg = (stage*)rctx->stage;
-        light_param_data* light_param = light_param_storage_get_light_param_data(stg->light_param_name);
+        //light_param_data* light_param = light_param_storage_get_light_param_data(stg->light_param_name);
         post_process_reset(pp);
-        if (light_param->glow.ready)
-            render_context_light_param_data_glow_set(rctx, &light_param->glow);
+        //if (light_param->glow.ready)
+            //render_context_light_param_data_glow_set(rctx, &light_param->glow);
     }
 
     data->imgui_focus |= igIsWindowFocused(0);
     igEnd();
-}
-
-void graphics_post_process_input(class_data* data) {
-    input_locked |= data->imgui_focus;
-}
-
-void graphics_post_process_render(class_data* data) {
-
 }
 
 bool graphics_post_process_dispose(class_data* data) {

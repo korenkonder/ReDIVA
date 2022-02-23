@@ -166,8 +166,8 @@ static void io_msgpack_read_map(stream* s, char* name, msgpack* msg, size_t leng
     msgpack m;
     msgpack_init_map(&m, 0);
     msgpack_map* ptr = MSGPACK_SELECT(msgpack_map, m);
-    *ptr = vector_empty(msgpack);
-    vector_msgpack_reserve(ptr, length);
+    *ptr = vector_old_empty(msgpack);
+    vector_old_msgpack_reserve(ptr, length);
     for (size_t i = 0; i < length; i++) {
         msgpack t_m;
         msgpack_init_null(&t_m, 0);
@@ -177,7 +177,7 @@ static void io_msgpack_read_map(stream* s, char* name, msgpack* msg, size_t leng
         if (t_m.type == MSGPACK_STRING)
             n = string_data(MSGPACK_SELECT(string, t_m));
 
-        msgpack* m = vector_msgpack_reserve_back(ptr);
+        msgpack* m = vector_old_msgpack_reserve_back(ptr);
         io_msgpack_read_inner(s, n, m);
         msgpack_free(&t_m);
     }
@@ -238,13 +238,13 @@ static void io_msgpack_write_inner(stream* s, msgpack* msg) {
         break;
     case MSGPACK_ARRAY: {
         msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-        io_msgpack_write_array(s, vector_length(*ptr));
+        io_msgpack_write_array(s, vector_old_length(*ptr));
         for (msgpack* i = ptr->begin; i != ptr->end; i++)
             io_msgpack_write_inner(s, i);
     } break;
     case MSGPACK_MAP: {
         msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
-        io_msgpack_write_map(s, vector_length(*ptr));
+        io_msgpack_write_map(s, vector_old_length(*ptr));
         for (msgpack* i = ptr->begin; i != ptr->end; i++)
             io_msgpack_write_inner(s, i);
     } break;

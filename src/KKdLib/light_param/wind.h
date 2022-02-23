@@ -8,12 +8,17 @@
 #include "../default.h"
 #include "../vec.h"
 
-typedef struct light_param_wind_spc {
+class light_param_wind_spc {
+public:
     float_t cos;
     float_t sin;
-} light_param_wind_spc;
 
-typedef struct light_param_wind {
+    light_param_wind_spc();
+    ~light_param_wind_spc();
+};
+
+class light_param_wind {
+public:
     bool ready;
 
     bool has_scale;
@@ -27,14 +32,15 @@ typedef struct light_param_wind {
     float_t bias;
     bool has_spc[16];
     light_param_wind_spc spc[16];
-} light_param_wind;
 
-extern void light_param_wind_init(light_param_wind* wind);
-extern void light_param_wind_read(light_param_wind* wind, char* path);
-extern void light_param_wind_wread(light_param_wind* wind, wchar_t* path);
-extern void light_param_wind_mread(light_param_wind* wind, void* data, size_t length);
-extern void light_param_wind_write(light_param_wind* wind, char* path);
-extern void light_param_wind_wwrite(light_param_wind* wind, wchar_t* path);
-extern void light_param_wind_mwrite(light_param_wind* wind, void** data, size_t* length);
+    light_param_wind();
+    void read(char* path);
+    void read(wchar_t* path);
+    void read(void* data, size_t length);
+    void write(char* path);
+    void write(wchar_t* path);
+    void write(void** data, size_t* length);
+    ~light_param_wind();
+};
+
 extern bool light_param_wind_load_file(void* data, char* path, char* file, uint32_t hash);
-extern void light_param_wind_free(light_param_wind* wind);

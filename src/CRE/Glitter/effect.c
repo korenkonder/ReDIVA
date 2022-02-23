@@ -41,22 +41,22 @@ glitter_effect* glitter_effect_copy(glitter_effect* e) {
         *ec->data.ext_anim_x = *e->data.ext_anim_x;
     }
 
-    ec->emitters = vector_ptr_empty(glitter_emitter);
-    vector_ptr_glitter_emitter_reserve(&ec->emitters, vector_length(e->emitters));
+    ec->emitters = vector_old_ptr_empty(glitter_emitter);
+    vector_old_ptr_glitter_emitter_reserve(&ec->emitters, vector_old_length(e->emitters));
     for (glitter_emitter** i = e->emitters.begin; i != e->emitters.end; i++)
         if (*i) {
             glitter_emitter* e = glitter_emitter_copy(*i);
             if (e)
-                vector_ptr_glitter_emitter_push_back(&ec->emitters, &e);
+                vector_old_ptr_glitter_emitter_push_back(&ec->emitters, &e);
         }
 
-    ec->animation = vector_ptr_empty(glitter_curve);
+    ec->animation = vector_old_ptr_empty(glitter_curve);
     glitter_animation_copy(&e->animation, &ec->animation);
     return ec;
 }
 
 bool glitter_effect_parse_file(glitter_effect_group* a1,
-    f2_struct* st, vector_ptr_glitter_effect* vec) {
+    f2_struct* st, vector_old_ptr_glitter_effect* vec) {
     f2_struct* i;
     glitter_effect* effect;
 
@@ -79,7 +79,7 @@ bool glitter_effect_parse_file(glitter_effect_group* a1,
         else if (i->header.signature == reverse_endianness_uint32_t('EMIT'))
             glitter_emitter_parse_file(a1, i, &effect->emitters, effect);
     }
-    vector_ptr_glitter_effect_push_back(vec, &effect);
+    vector_old_ptr_glitter_effect_push_back(vec, &effect);
     return true;
 }
 
@@ -90,7 +90,7 @@ bool glitter_effect_unparse_file(GLT,
 
     f2_struct s;
     if (glitter_animation_unparse_file(GLT_VAL, &s, &a3->animation, glitter_effect_curve_flags))
-        vector_f2_struct_push_back(&st->sub_structs, &s);
+        vector_old_f2_struct_push_back(&st->sub_structs, &s);
 
     for (glitter_emitter** i = a3->emitters.begin; i != a3->emitters.end; i++) {
         if (!*i)
@@ -98,7 +98,7 @@ bool glitter_effect_unparse_file(GLT,
 
         f2_struct s;
         if (glitter_emitter_unparse_file(GLT_VAL, a1, &s, *i, a3))
-            vector_f2_struct_push_back(&st->sub_structs, &s);
+            vector_old_f2_struct_push_back(&st->sub_structs, &s);
     }
     return true;
 }
@@ -106,12 +106,12 @@ bool glitter_effect_unparse_file(GLT,
 void glitter_effect_dispose(glitter_effect* e) {
     free(e->data.ext_anim);
     glitter_animation_free(&e->animation);
-    vector_ptr_glitter_emitter_free(&e->emitters, glitter_emitter_dispose);
+    vector_old_ptr_glitter_emitter_free(&e->emitters, glitter_emitter_dispose);
     free(e);
 }
 
 object_info glitter_effect_ext_anim_get_object_info(uint64_t hash) {
-    vector_object_set_info* object_set = &obj_db_ptr->object_set;
+    vector_old_object_set_info* object_set = &obj_db_ptr->object_set;
     for (object_set_info* i = object_set->begin; i != object_set->end; i++) {
         for (object_info_data* j = i->object.begin; j != i->object.end; j++)
             if (hash == j->name_hash_murmurhash || hash == j->name_hash_fnv1a64m_upper)
@@ -134,39 +134,39 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
     l = 0;
 
     uint32_t o;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = { 0, 2, 56, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-    vector_enrs_sub_entry_append(&ee.sub, 0, 12, ENRS_DWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 2, 56, 1, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 12, ENRS_DWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     l += o = 56;
 
     if (a2->version == 7) {
-        ee = { 0, 1, 4, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         l += o = 4;
     }
 
-    ee = { 0, 1, 4, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     l += o = 4;
 
     if (~a2->data.flags & GLITTER_EFFECT_LOCAL && ext_anim)
         if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
-            ee = { 0, 1, 12, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { 0, 1, 12, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             l += o = 12;
         }
         else {
-            ee = { 0, 2, 140, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { 0, 2, 140, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             l += o = 140;
         }
 

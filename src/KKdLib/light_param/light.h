@@ -32,7 +32,8 @@ typedef enum light_type {
     LIGHT_SPOT     = 0x03,
 } light_type;
 
-typedef struct light_param_light_data {
+class light_param_light_data {
+public:
     bool has_type;
     light_type type;
     bool has_ambient;
@@ -55,24 +56,33 @@ typedef struct light_param_light_data {
     bool clip_plane[4];
     bool has_tone_curve;
     vec3 tone_curve;
-} light_param_light_data;
 
-typedef struct light_param_light_group {
+    light_param_light_data();
+    ~light_param_light_data();
+};
+
+class light_param_light_group {
+public:
     light_param_light_data data[LIGHT_MAX];
-} light_param_light_group;
 
-typedef struct light_param_light {
+    light_param_light_group();
+    ~light_param_light_group();
+};
+
+class light_param_light {
+public:
     bool ready;
 
     light_param_light_group group[LIGHT_SET_MAX];
-} light_param_light;
 
-extern void light_param_light_init(light_param_light* light);
-extern void light_param_light_read(light_param_light* light, char* path);
-extern void light_param_light_wread(light_param_light* light, wchar_t* path);
-extern void light_param_light_mread(light_param_light* light, void* data, size_t length);
-extern void light_param_light_write(light_param_light* light, char* path);
-extern void light_param_light_wwrite(light_param_light* light, wchar_t* path);
-extern void light_param_light_mwrite(light_param_light* light, void** data, size_t* length);
+    light_param_light();
+    void read(char* path);
+    void read(wchar_t* path);
+    void read(void* data, size_t length);
+    void write(char* path);
+    void write(wchar_t* path);
+    void write(void** data, size_t* length);
+    ~light_param_light();
+};
+
 extern bool light_param_light_load_file(void* data, char* path, char* file, uint32_t hash);
-extern void light_param_light_free(light_param_light* light);

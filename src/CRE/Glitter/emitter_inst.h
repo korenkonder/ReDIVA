@@ -14,7 +14,7 @@ extern void glitter_emitter_inst_ctrl(GPM, GLT,
 extern void glitter_emitter_inst_ctrl_init(GPM, GLT,
     glitter_emitter_inst* a1, glitter_effect_inst* a2, float_t delta_frame);
 extern void glitter_emitter_inst_free(GPM, GLT,
-    glitter_emitter_inst* a1, float_t emission);
+    glitter_emitter_inst* a1, float_t emission, bool free);
 extern void glitter_emitter_inst_emit(GPM, GLT,
     glitter_emitter_inst* a1, float_t delta_frame, float_t emission);
 extern bool glitter_emitter_inst_has_ended(glitter_emitter_inst* emitter, bool a2);

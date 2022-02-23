@@ -13,8 +13,6 @@ extern int32_t width;
 extern int32_t height;
 extern bool input_locked;
 
-extern GPM;
-
 static const char* graphics_glitter_window_title = "Glitter##Graphics";
 
 bool graphics_glitter_init(class_data* data, render_context* rctx) {
@@ -50,29 +48,29 @@ void graphics_glitter_imgui(class_data* data) {
     size_t total_ctrl = 0;
     size_t total_disp = 0;
 
-    ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_QUAD);
-    disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_QUAD);
+    ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_QUAD);
+    disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_QUAD);
     igText("QUAD  (ctrl):%5lld", ctrl);
     igText("      (disp):%5lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
-    ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_LOCUS);
-    disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_LOCUS);
+    ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LOCUS);
+    disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LOCUS);
     igText("LOCUS (ctrl):%5lld", ctrl);
     igText("      (disp):%5lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
-    ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_LINE);
-    disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_LINE);
+    ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LINE);
+    disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LINE);
     igText("LINE  (ctrl):%5lld", ctrl);
     igText("      (disp):%5lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
-    ctrl = glitter_particle_manager_get_ctrl_count(GPM_VAL, GLITTER_PARTICLE_MESH);
-    disp = glitter_particle_manager_get_disp_count(GPM_VAL, GLITTER_PARTICLE_MESH);
+    ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_MESH);
+    disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_MESH);
     igText("MESH  (ctrl):%5lld", ctrl);
     igText("      (disp):%5lld", disp);
     total_ctrl += ctrl;

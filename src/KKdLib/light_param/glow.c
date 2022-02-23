@@ -14,76 +14,84 @@ static char* light_param_glow_read_line(char* buf, int32_t size, char* src);
 static void light_param_glow_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
 static void light_param_glow_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
 
-void light_param_glow_init(light_param_glow* glow) {
-    memset(glow, 0, sizeof(light_param_glow));
+light_param_glow::light_param_glow() : ready(), has_exposure(), exposure(), has_gamma(), gamma(),
+has_saturate_power(), saturate_power(), has_saturate_coef(), saturate_coef(), has_flare(), flare(),
+has_sigma(), sigma(), has_intensity(), intensity(), has_auto_exposure(), auto_exposure(),
+has_tone_map_method(), tone_map_method(), has_fade_color(), fade_color(), fade_color_blend_func(),
+has_tone_transform(), tone_transform_start(), tone_transform_end() {
+
 }
 
-void light_param_glow_read(light_param_glow* glow, char* path) {
+void light_param_glow::read(char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
         io_open(&s, path_txt, "rb");
         if (s.io.stream)
-            light_param_glow_read_inner(glow, &s);
+            light_param_glow_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_glow_wread(light_param_glow* glow, wchar_t* path) {
+void light_param_glow::read(wchar_t* path) {
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     if (path_wcheck_file_exists(path_txt)) {
         stream s;
         io_wopen(&s, path_txt, L"rb");
         if (s.io.stream)
-            light_param_glow_read_inner(glow, &s);
+            light_param_glow_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_glow_mread(light_param_glow* glow, void* data, size_t length) {
+void light_param_glow::read(void* data, size_t length) {
     stream s;
     io_mopen(&s, data, length);
-    light_param_glow_read_inner(glow, &s);
+    light_param_glow_read_inner(this, &s);
     io_free(&s);
 }
 
-void light_param_glow_write(light_param_glow* glow, char* path) {
-    if (!glow || !path || !glow->ready)
+void light_param_glow::write(char* path) {
+    if (!path || !ready)
         return;
 
     char* path_txt = str_utils_add(path, ".txt");
     stream s;
     io_open(&s, path_txt, "wb");
     if (s.io.stream)
-        light_param_glow_write_inner(glow, &s);
+        light_param_glow_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_glow_wwrite(light_param_glow* glow, wchar_t* path) {
-    if (!glow || !path || !glow->ready)
+void light_param_glow::write(wchar_t* path) {
+    if (!path || !ready)
         return;
 
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     stream s;
     io_wopen(&s, path_txt, L"wb");
     if (s.io.stream)
-        light_param_glow_write_inner(glow, &s);
+        light_param_glow_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_glow_mwrite(light_param_glow* glow, void** data, size_t* length) {
-    if (!glow || !data || !glow->ready)
+void light_param_glow::write(void** data, size_t* length) {
+    if (!data || !ready)
         return;
 
     stream s;
     io_mopen(&s, 0, 0);
-    light_param_glow_write_inner(glow, &s);
+    light_param_glow_write_inner(this, &s);
     io_mcopy(&s, data, length);
     io_free(&s);
+}
+
+light_param_glow::~light_param_glow() {
+
 }
 
 bool light_param_glow_load_file(void* data, char* path, char* file, uint32_t hash) {
@@ -98,14 +106,10 @@ bool light_param_glow_load_file(void* data, char* path, char* file, uint32_t has
     string_add_length(&s, file, file_len);
 
     light_param_glow* glow = (light_param_glow*)data;
-    light_param_glow_read(glow, string_data(&s));
+    glow->read(string_data(&s));
 
     string_free(&s);
     return glow->ready;
-}
-
-void light_param_glow_free(light_param_glow* glow) {
-
 }
 
 static void light_param_glow_read_inner(light_param_glow* glow, stream* s) {

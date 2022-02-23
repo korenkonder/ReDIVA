@@ -34,18 +34,18 @@ typedef struct txp_mipmap {
     void* data;
 } txp_mipmap;
 
-vector(txp_mipmap)
+vector_old(txp_mipmap)
 
 typedef struct txp {
     bool has_cube_map;
     uint32_t array_size;
     uint32_t mipmaps_count;
-    vector_txp_mipmap data;
+    vector_old_txp_mipmap data;
 } txp;
 
-vector(txp)
+vector_old(txp)
 
-typedef vector_txp txp_set;
+typedef vector_old_txp txp_set;
 
 extern void txp_init(txp* t);
 extern void txp_copy(txp* src, txp* dst);
@@ -54,7 +54,7 @@ extern void txp_free(txp* t);
 extern void txp_set_init(txp_set* ts);
 extern bool txp_set_pack_file(txp_set* ts, void** data, size_t* length, bool big_endian);
 extern bool txp_set_pack_file_modern(txp_set* ts, void** data, size_t* length, bool big_endian);
-extern bool txp_set_produce_enrs(txp_set* ts, vector_enrs_entry* enrs);
+extern bool txp_set_produce_enrs(txp_set* ts, vector_old_enrs_entry* enrs);
 extern bool txp_set_unpack_file(txp_set* ts, void* data, bool big_endian);
 extern bool txp_set_unpack_file_modern(txp_set* ts, void* data, size_t length);
 extern void txp_set_free(txp_set* ts);

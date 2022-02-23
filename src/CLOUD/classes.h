@@ -10,7 +10,7 @@
 #include "../CRE/render_context.h"
 
 #define CLASS_DATA_NO_DATA (0)
-#define CLASSES_STRUCT_NO_FUNC (0)
+#define CLASSES_DATA_NO_FUNC (0)
 
 typedef enum class_flags {
     CLASS_INIT     = 0x01,
@@ -34,31 +34,31 @@ typedef struct class_data {
     void* data;
 } class_data;
 
-typedef struct classes_struct classes_struct;
+typedef struct classes_data classes_data;
 
-struct classes_struct {
+struct classes_data {
     const char* name;
     const classes_enum flags;
     bool(*    init)(class_data* data, render_context* rctx);
+    void(*    ctrl)(class_data* data);
     void(*    disp)(class_data* data);
     void(*    drop)(class_data* data, size_t count, char** paths);
     bool(*    hide)(class_data* data);
     void(*   imgui)(class_data* data);
     void(*   input)(class_data* data);
-    void(*  render)(class_data* data);
     bool(*    show)(class_data* data);
     void(*   sound)(class_data* data);
     bool(* dispose)(class_data* data);
     class_data data;
-    classes_struct* sub_classes;
+    classes_data* sub_classes;
     size_t sub_classes_count;
 };
 
-extern void classes_process_init   (classes_struct* classes, size_t classes_count, render_context* rctx);
-extern void classes_process_draw   (classes_struct* classes, size_t classes_count);
-extern void classes_process_drop   (classes_struct* classes, size_t classes_count, size_t count, char** paths);
-extern void classes_process_imgui  (classes_struct* classes, size_t classes_count);
-extern void classes_process_input  (classes_struct* classes, size_t classes_count);
-extern void classes_process_render (classes_struct* classes, size_t classes_count);
-extern void classes_process_sound  (classes_struct* classes, size_t classes_count);
-extern void classes_process_dispose(classes_struct* classes, size_t classes_count);
+extern void classes_process_init   (classes_data* classes, size_t classes_count, render_context* rctx);
+extern void classes_process_draw   (classes_data* classes, size_t classes_count);
+extern void classes_process_drop   (classes_data* classes, size_t classes_count, size_t count, char** paths);
+extern void classes_process_imgui  (classes_data* classes, size_t classes_count);
+extern void classes_process_input  (classes_data* classes, size_t classes_count);
+extern void classes_process_ctrl   (classes_data* classes, size_t classes_count);
+extern void classes_process_sound  (classes_data* classes, size_t classes_count);
+extern void classes_process_dispose(classes_data* classes, size_t classes_count);

@@ -36,6 +36,12 @@ typedef enum stage_data_refract_resolution_mode {
     STAGE_DATA_REFRACT_RESOLUTION_512X512 = 0x02,
 } stage_data_refract_resolution_mode;
 
+typedef enum stage_data_reflect_type {
+    STAGE_DATA_REFLECT_DISABLE     = 0x00,
+    STAGE_DATA_REFLECT_NORMAL      = 0x01,
+    STAGE_DATA_REFLECT_REFLECT_MAP = 0x02,
+} stage_data_reflect_type;
+
 typedef enum stage_data_blur_filter_mode {
     STAGE_DATA_BLUR_FILTER_4  = 0x00,
     STAGE_DATA_BLUR_FILTER_9  = 0x01,
@@ -58,13 +64,13 @@ typedef struct stage_effects {
     int32_t parent_bone_node[16];
 } stage_effects;
 
-typedef struct stage_info {
+typedef struct stage_data {
     int32_t id;
     string name;
     string auth_3d_name;
     uint32_t object_set_id;
     object_info object_ground;
-    object_info object_unknown;
+    object_info object_ring;
     object_info object_sky;
     object_info object_shadow;
     object_info object_reflect;
@@ -77,7 +83,7 @@ typedef struct stage_info {
     uint32_t render_texture;
     uint32_t movie_texture;
     string collision_file_path;
-    uint32_t reflect_type;
+    stage_data_reflect_type reflect_type;
     bool refract_enable;
     bool reflect_data;
     stage_data_reflect reflect;
@@ -93,9 +99,9 @@ typedef struct stage_info {
     stage_effects effects;
     uint32_t auth_3d_count;
     uint32_t* auth_3d_ids;
-} stage_info;
+} stage_data;
 
-typedef struct stage_info_modern {
+typedef struct stage_data_modern {
     uint64_t id;
     string name;
     string auth_3d_name;
@@ -133,10 +139,10 @@ typedef struct stage_info_modern {
     stage_effects effects;
     uint32_t auth_3d_count;
     uint32_t* auth_3d_ids;
-} stage_info_modern;
+} stage_data_modern;
 
-vector(stage_info)
-vector(stage_info_modern)
+vector_old(stage_data)
+vector_old(stage_data_modern)
 
 typedef struct stage_database {
     bool ready;
@@ -147,8 +153,8 @@ typedef struct stage_database {
     };
 
     union {
-        vector_stage_info stage_classic;
-        vector_stage_info_modern stage_modern;
+        vector_old_stage_data stage_data;
+        vector_old_stage_data_modern stage_modern;
     };
 } stage_database;
 
@@ -166,5 +172,5 @@ extern void stage_database_split_mdata(stage_database* stage_data,
     stage_database* base_stage_data, stage_database* mdata_stage_data);
 extern void stage_database_free(stage_database* stage_data);
 
-extern void stage_info_free(stage_info* info);
-extern void stage_info_modern_free(stage_info_modern* info);
+extern void stage_data_free(stage_data* data);
+extern void stage_data_modern_free(stage_data_modern* data);

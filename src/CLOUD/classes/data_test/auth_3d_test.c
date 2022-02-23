@@ -20,22 +20,23 @@
 #include "../imgui_helper.h"
 
 typedef struct data_test_auth_3d_test_uid {
-    char* name;
+    const char* name;
     uint32_t uid;
 } data_test_auth_3d_test_uid;
 
-vector(data_test_auth_3d_test_uid)
+vector_old(data_test_auth_3d_test_uid)
 
 typedef struct data_test_auth_3d_test_category {
-    char* name;
+    const char* name;
     int32_t index;
-    vector_data_test_auth_3d_test_uid uid;
+    vector_old_data_test_auth_3d_test_uid uid;
 } data_test_auth_3d_test_category;
 
-vector(data_test_auth_3d_test_category)
+vector_old(data_test_auth_3d_test_category)
 
 typedef struct data_test_auth_3d_test {
     int32_t auth_3d_category_index;
+    int32_t auth_3d_category_index_prev;
     int32_t auth_3d_index;
     int32_t stage_index;
 
@@ -49,22 +50,27 @@ typedef struct data_test_auth_3d_test {
 
     render_context* rctx;
 
-    auth_3d_farc farc;
+    bool enable;
+    bool repeat;
+    bool left_right_reverse;
+    float_t frame;
+    bool frame_changed;
+    float_t last_frame;
+    bool paused;
     float_t trans_x;
     float_t trans_z;
     float_t rot_y;
-    vector_uint32_t obj_set_id;
+    vector_old_uint32_t obj_set_id;
 
-    vector_ptr_char stage;
-    vector_data_test_auth_3d_test_category category;
+    vector_old_ptr_char stage;
+    vector_old_data_test_auth_3d_test_category category;
 } data_test_auth_3d_test;
 
-vector_func(data_test_auth_3d_test_category)
-vector_func(data_test_auth_3d_test_uid)
+vector_old_func(data_test_auth_3d_test_category)
+vector_old_func(data_test_auth_3d_test_uid)
 
 extern int32_t width;
 extern int32_t height;
-extern bool input_locked;
 extern float_t frame_speed;
 extern stage stage_stgtst;
 extern stage stage_test_data;
@@ -83,33 +89,31 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
     data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
     if (auth_3d_test) {
         auth_3d_database* auth_3d_db = &rctx->data->data_ft.auth_3d_db;
-        vector_auth_3d_database_category* auth_3d_db_cat = &auth_3d_db->category;
-        auth_3d_database_uid* uids = auth_3d_db->uid.begin;
+        std::vector<auth_3d_database_category>& auth_3d_db_cat = auth_3d_db->category;
+        auth_3d_database_uid* uids = auth_3d_db->uid.data();
 
-        auth_3d_test->category = vector_empty(data_test_auth_3d_test_category);
-        vector_data_test_auth_3d_test_category_reserve(&auth_3d_test->category,
-            vector_length(*auth_3d_db_cat));
-        for (auth_3d_database_category* i = auth_3d_db_cat->begin;
-            i != auth_3d_db_cat->end; i++) {
+        auth_3d_test->category = vector_old_empty(data_test_auth_3d_test_category);
+        vector_old_data_test_auth_3d_test_category_reserve(&auth_3d_test->category, auth_3d_db_cat.size());
+        for (auth_3d_database_category& i : auth_3d_db_cat) {
             data_test_auth_3d_test_category* cat
-                = vector_data_test_auth_3d_test_category_reserve_back(&auth_3d_test->category);
-            cat->name = string_data(&i->name);
+                = vector_old_data_test_auth_3d_test_category_reserve_back(&auth_3d_test->category);
+            cat->name = i.name.c_str();
             cat->index = -1;
-            cat->uid = vector_empty(data_test_auth_3d_test_uid);
+            cat->uid = vector_old_empty(data_test_auth_3d_test_uid);
 
-            vector_data_test_auth_3d_test_uid_reserve(&cat->uid, vector_length(i->uid));
-            for (int32_t* j = i->uid.begin; j != i->uid.end; j++) {
-                if (!uids[*j].enabled)
+            vector_old_data_test_auth_3d_test_uid_reserve(&cat->uid, i.uid.size());
+            for (int32_t& j : i.uid) {
+                if (!uids[j].enabled)
                     continue;
 
                 data_test_auth_3d_test_uid uid;
-                uid.name = string_data(&uids[*j].name);
-                uid.uid = uids[*j].org_uid;
-                vector_data_test_auth_3d_test_uid_push_back(&cat->uid, &uid);
+                uid.name = uids[j].name.c_str();
+                uid.uid = uids[j].org_uid;
+                vector_old_data_test_auth_3d_test_uid_push_back(&cat->uid, &uid);
             }
 
-            if (vector_length(cat->uid)) {
-                quicksort_custom(cat->uid.begin, vector_length(cat->uid),
+            if (vector_old_length(cat->uid)) {
+                quicksort_custom(cat->uid.begin, vector_old_length(cat->uid),
                     sizeof(data_test_auth_3d_test_uid),
                     data_test_auth_3d_test_uid_quicksort_compare_func);
                 cat->index = 0;
@@ -119,56 +123,193 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
         auth_3d_test->rctx = rctx;
 
         auth_3d_test->auth_3d_category_index = -1;
+        auth_3d_test->auth_3d_category_index_prev = -1;
         auth_3d_test->auth_3d_index = -1;
         auth_3d_test->stage_index = -1;
 
         stage* stg = (stage*)rctx->stage;
-        if (stg && !stg->modern && stg->stage_classic) {
-            stage_info* info = stg->stage_classic;
+        if (stg && !stg->modern && stg->stage_data) {
+            stage_data* stg_data = stg->stage_data;
             data_struct* aft_data = rctx->data;
             stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
-            for (stage_info* i = aft_stage_data->stage_classic.begin; i != aft_stage_data->stage_classic.end; i++)
-                if (info == i) {
-                    auth_3d_test->stage_index = (int32_t)(i - aft_stage_data->stage_classic.begin);
+            for (stage_data* i = aft_stage_data->stage_data.begin; i != aft_stage_data->stage_data.end; i++)
+                if (stg_data == i) {
+                    auth_3d_test->stage_index = (int32_t)(i - aft_stage_data->stage_data.begin);
                     break;
                 }
         }
         
+        auth_3d_test->auth_3d_id = -1;
         auth_3d_test->auth_3d_uid = -1;
         auth_3d_test->auth_3d_load = false;
         auth_3d_test->auth_3d_uid_load = false;
 
-        if (vector_length(auth_3d_test->category) > 0) {
+        if (vector_old_length(auth_3d_test->category) > 0) {
             data_test_auth_3d_test_category* cat = &auth_3d_test->category.begin[0];
 
-            if (vector_length(cat->uid)) {
+            if (vector_old_length(cat->uid)) {
                 auth_3d_test->auth_3d_load = true;
                 auth_3d_test->auth_3d_uid_load = true;
                 auth_3d_test->auth_3d_uid = cat->uid.begin[0].uid;
             }
 
             auth_3d_test->auth_3d_category_index = 0;
+            auth_3d_test->auth_3d_category_index_prev = 0;
             auth_3d_test->auth_3d_index = cat->index;
         }
 
-        stage_database* stage_data = &rctx->data->data_ft.stage_data;
+        stage_database* aft_stage_data = &rctx->data->data_ft.stage_data;
 
-        auth_3d_test->stage = vector_ptr_empty(char);
-        vector_ptr_char_reserve(&auth_3d_test->stage, vector_length(stage_data->stage_classic));
-        for (stage_info* i = stage_data->stage_classic.begin; i != stage_data->stage_classic.end; i++)
-            *vector_ptr_char_reserve_back(&auth_3d_test->stage) = string_data(&i->name);
+        auth_3d_test->stage = vector_old_ptr_empty(char);
+        vector_old_ptr_char_reserve(&auth_3d_test->stage, vector_old_length(aft_stage_data->stage_data));
+        for (stage_data* i = aft_stage_data->stage_data.begin; i != aft_stage_data->stage_data.end; i++)
+            *vector_old_ptr_char_reserve_back(&auth_3d_test->stage) = string_data(&i->name);
 
         auth_3d_test->a3d_stage_window_pos = { 200.0f, 100.0f };
 
+        auth_3d_test->enable = true;
+        auth_3d_test->repeat = true;
+        auth_3d_test->left_right_reverse = false;
+        auth_3d_test->frame = 0.0f;
+        auth_3d_test->frame_changed = false;
+        auth_3d_test->last_frame = 0.0f;
+        auth_3d_test->paused = false;
         auth_3d_test->trans_x = 0.0f;
         auth_3d_test->trans_z = 0.0f;
         auth_3d_test->rot_y = 0.0f;
-        auth_3d_test->obj_set_id = vector_empty(uint32_t);
+        auth_3d_test->obj_set_id = vector_old_empty(uint32_t);
     }
     ret = true;
     lock_unlock(&pv_lock);
     return ret;
+}
+
+void data_test_auth_3d_test_ctrl(class_data* data) {
+    data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
+    if (!auth_3d_test)
+        return;
+
+    if (auth_3d_test->auth_3d_uid_load && auth_3d_test->auth_3d_id != -1) {
+        render_context* rctx = auth_3d_test->rctx;
+
+        data_struct* aft_data = rctx->data;
+        stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
+        auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
+        auth_3d_database_uid* uids = aft_auth_3d_db->uid.data();
+        const char* uid_name = uids[auth_3d_test->auth_3d_uid].name.c_str();
+
+        string name = string_empty;
+        const char* s = 0;
+        if (s = strchr(uid_name, '_'))
+            string_init_length(&name, uid_name, s - uid_name);
+        else
+            string_init(&name, uid_name);
+
+        for (stage_data* i = aft_stage_data->stage_data.begin;
+            i != aft_stage_data->stage_data.end; i++)
+            if (string_compare(&name, &i->name)) {
+                int32_t stage_index = (int32_t)(i - aft_stage_data->stage_data.begin);
+                if (stage_index != auth_3d_test->stage_index)
+                    auth_3d_test->stage_load = true;
+                auth_3d_test->stage_index = stage_index;
+                break;
+            }
+        string_free(&name);
+        auth_3d_data_unload_id(auth_3d_test->auth_3d_id, auth_3d_test->rctx);
+        auth_3d_test->auth_3d_id = -1;
+    }
+
+    if (auth_3d_test->auth_3d_load) {
+        render_context* rctx = auth_3d_test->rctx;
+        if (auth_3d_test->auth_3d_category_index_prev != auth_3d_test->auth_3d_category_index) {
+            data_test_auth_3d_test_category* cat_prev
+                = &auth_3d_test->category.begin[auth_3d_test->auth_3d_category_index_prev];
+            auth_3d_data_unload_category((char*)cat_prev->name);
+        }
+
+        {
+            for (uint32_t* i = auth_3d_test->obj_set_id.begin; i != auth_3d_test->obj_set_id.end; i++)
+                object_storage_delete_object_set(*i);
+            vector_old_uint32_t_clear(&auth_3d_test->obj_set_id, 0);
+        }
+
+        data_test_auth_3d_test_category* cat
+            = &auth_3d_test->category.begin[auth_3d_test->auth_3d_category_index];
+        {
+            object_database* obj_db = &rctx->data->data_ft.obj_db;
+
+            const char* name_str = cat->name;
+            size_t name_len = utf8_length(cat->name);
+
+            object_set_info* set_info;
+            if (!memcmp(name_str, "ITMPV", 5)
+                && object_database_get_object_set_info(obj_db, name_str, &set_info)) {
+                object_set_load_by_db_index(&set_info, rctx->data, obj_db, set_info->id);
+                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_info->id);
+            }
+
+            if (!memcmp(name_str, "EFFCHRPV", 8)
+                && object_database_get_object_set_info(obj_db, name_str, &set_info)) {
+                object_set_load_by_db_index(&set_info, rctx->data, obj_db, set_info->id);
+                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_info->id);
+            }
+
+            string obj = string_empty;
+            for (size_t i = 0; i < name_len && name_len - i >= 8; i++)
+                if (!memcmp(&name_str[i], "STGPV", 5)) {
+                    string_free(&obj);
+                    string_init_length(&obj, &name_str[i], 8);
+                    break;
+                }
+
+            for (size_t i = 0; i < name_len && name_len - i >= 10; i++)
+                if (!memcmp(&name_str[i], "STGD2PV", 7)) {
+                    string_free(&obj);
+                    string_init_length(&obj, &name_str[i], 10);
+                    break;
+                }
+
+            if (object_database_get_object_set_info(obj_db, string_data(&obj), &set_info)) {
+                object_set_load_by_db_index(&set_info, rctx->data, obj_db, set_info->id);
+                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_info->id);
+            }
+
+            string_add_length(&obj, "HRC", 3);
+            if (object_database_get_object_set_info(obj_db, string_data(&obj), &set_info)) {
+                object_set_load_by_db_index(&set_info, rctx->data, obj_db, set_info->id);
+                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_info->id);
+            }
+            string_free(&obj);
+        }
+
+        auth_3d_data_load_category((char*)cat->name);
+        auth_3d_test->auth_3d_category_index_prev = auth_3d_test->auth_3d_category_index;
+        auth_3d_test->auth_3d_load = false;
+    }
+
+    if (auth_3d_test->auth_3d_uid_load) {
+        data_test_auth_3d_test_load_auth_file(auth_3d_test);
+        auth_3d_test->auth_3d_uid_load = false;
+    }
+
+    if (auth_3d_test->stage_load) {
+        render_context* rctx = auth_3d_test->rctx;
+
+        data_struct* aft_data = rctx->data;
+        auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
+        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+        stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
+
+        stage_free(&stage_test_data, rctx);
+        stage_init(&stage_test_data);
+        stage_load(&stage_test_data, aft_data, aft_auth_3d_db,
+            aft_obj_db, aft_tex_db, aft_stage_data,
+            (char*)auth_3d_test->stage.begin[auth_3d_test->stage_index], rctx);
+        stage_set(&stage_test_data, rctx);
+        auth_3d_test->stage_load = false;
+    }
 }
 
 bool data_test_auth_3d_test_hide(class_data* data) {
@@ -183,13 +324,12 @@ bool data_test_auth_3d_test_hide(class_data* data) {
     for (uint32_t* i = auth_3d_test->obj_set_id.begin;
         i != auth_3d_test->obj_set_id.end; i++)
         object_storage_delete_object_set(*i);
-    vector_uint32_t_free(&auth_3d_test->obj_set_id, 0);
-
-    auth_3d_farc_free(&auth_3d_test->farc);
+    vector_old_uint32_t_free(&auth_3d_test->obj_set_id, 0);
 
     auth_3d_data_unload_id(auth_3d_test->auth_3d_id, auth_3d_test->rctx);
 
     auth_3d_test->auth_3d_category_index = -1;
+    auth_3d_test->auth_3d_category_index_prev = -1;
     auth_3d_test->auth_3d_index = -1;
     auth_3d_test->auth_3d_uid = -1;
 
@@ -231,12 +371,24 @@ void data_test_auth_3d_test_imgui(class_data* data) {
         return;
     }
 
-    vector_data_test_auth_3d_test_category* auth_3d_db_cat = &auth_3d_test->category;
+    auth_3d* auth = auth_3d_data_get_auth_3d(auth_3d_test->auth_3d_id);
+    auth_3d_test->last_frame = auth->play_control.size;
+
+    if (auth_3d_data_check_id_not_empty(&auth_3d_test->auth_3d_id)) {
+        auth_3d_test->enable = auth_3d_data_get_enable(&auth_3d_test->auth_3d_id);
+        auth_3d_test->repeat = auth_3d_data_get_repeat(&auth_3d_test->auth_3d_id);
+        auth_3d_test->left_right_reverse = auth_3d_data_get_left_right_reverse(&auth_3d_test->auth_3d_id);
+        auth_3d_test->frame = auth_3d_data_get_frame(&auth_3d_test->auth_3d_id);
+        auth_3d_test->frame_changed = false;
+        auth_3d_test->paused = auth_3d_data_get_paused(&auth_3d_test->auth_3d_id);
+    }
+
+    vector_old_data_test_auth_3d_test_category* auth_3d_db_cat = &auth_3d_test->category;
 
     render_context* rctx = auth_3d_test->rctx;
     data_struct* aft_data = rctx->data;
     auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
-    auth_3d_database_uid* uids = aft_auth_3d_db->uid.begin;
+    auth_3d_database_uid* uids = aft_auth_3d_db->uid.data();
 
     int32_t auth_3d_category_index = auth_3d_test->auth_3d_category_index;
 
@@ -251,7 +403,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
                 auth_3d_category_index == auth_3d_category_idx, 0, ImVec2_Empty)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (igIsItemFocused() && auth_3d_category_index != auth_3d_category_idx)) {
-                auth_3d_test->auth_3d_category_index = 0;
+                auth_3d_test->auth_3d_category_index = -1;
                 auth_3d_category_index = auth_3d_category_idx;
             }
             igPopID();
@@ -267,7 +419,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     if (auth_3d_category_index != auth_3d_test->auth_3d_category_index) {
         data_test_auth_3d_test_category* cat = &auth_3d_db_cat->begin[auth_3d_category_index];
 
-        if (vector_length(cat->uid) > 0) {
+        if (vector_old_length(cat->uid) > 0) {
             auth_3d_test->auth_3d_load = true;
             auth_3d_test->auth_3d_uid_load = true;
             auth_3d_test->auth_3d_uid = cat->uid.begin[cat->index].uid;
@@ -329,57 +481,33 @@ void data_test_auth_3d_test_imgui(class_data* data) {
         igEndCombo();
     }
 
-    auth_3d* auth = auth_3d_data_get_auth_3d(auth_3d_test->auth_3d_id);
-    if (auth) {
-        float_t frame = auth->frame;
-        float_t last_frame = auth->last_frame;
-        igText("frame[ 0,%4.0f)", last_frame);
+    float_t frame = auth_3d_test->frame;
+    igText("frame[ 0,%4.0f)", auth_3d_test->last_frame);
 
-        imguiGetContentRegionAvailSetNextItemWidth();
-        igSliderFloatButton("##frame slider", &frame, 1.0f,
-            0.0f, last_frame, "%5.0f", 0);
-        if (igIsItemActivated())
-            auth->paused = true;
+    imguiGetContentRegionAvailSetNextItemWidth();
+    igSliderFloatButton("##frame slider", &frame, 1.0f,
+        0.0f, auth_3d_test->last_frame, "%5.0f", 0);
+    if (igIsItemActivated())
+        auth_3d_test->paused = true;
 
-        if (igButton("|<<", { 32.0, 0.0f }))
-            frame = 0.0f;
-        igSameLine(0.0f, -1.0f);
-        if (igButton(auth->paused ? " > " : "||", { 32.0, 0.0f }))
-            auth->paused = auth->paused ? false : true;
-        igSameLine(0.0f, -1.0f);
-        if (igButton(">>|", { 32.0, 0.0f }))
-            frame = last_frame;
-        igSameLine(0.0f, -1.0f);
-        igCheckbox("repeat", &auth->repeat);
+    if (igButton("|<<", { 32.0, 0.0f }))
+        frame = 0.0f;
+    igSameLine(0.0f, -1.0f);
+    if (igButton(auth_3d_test->paused ? " > " : "||", { 32.0, 0.0f }))
+        auth_3d_test->paused = auth_3d_test->paused ? false : true;
+    igSameLine(0.0f, -1.0f);
+    if (igButton(">>|", { 32.0, 0.0f }))
+        frame = auth_3d_test->last_frame;
+    igSameLine(0.0f, -1.0f);
+    if (igCheckbox("repeat", &auth_3d_test->repeat) && auth_3d_test->repeat && auth_3d_test->paused)
+        auth_3d_test->paused = false;
 
-        if (igCheckbox("Left Right Reverse", &auth->left_right_reverse))
-            frame = 0.0f;
+    if (igCheckbox("Left Right Reverse", &auth_3d_test->left_right_reverse))
+        frame = 0.0f;
 
-        if (frame != auth->frame) {
-            auth->frame_changed = true;
-            auth->set_frame = frame;
-        }
-    }
-    else {
-        float_t frame = 0.0f;
-        bool repeat = true;
-        bool left_right_reverse = false;
-
-        igText("frame[ 0,%4.0f)", 0.0f);
-        imguiGetContentRegionAvailSetNextItemWidth();
-        igSliderFloatButton("##frame slider", &frame, 1.0f,
-            0.0f, 0.0f, "%5.0f", 0);
-
-        igPushItemFlag(ImGuiItemFlags_Disabled, true);
-        igButton("|<<", { 32.0, 0.0f });
-        igSameLine(0.0f, -1.0f);
-        igButton(" > ", { 32.0, 0.0f });
-        igSameLine(0.0f, -1.0f);
-        igButton(">>|", { 32.0, 0.0f });
-        igSameLine(0.0f, -1.0f);
-        igCheckbox("repeat", &repeat);
-        igCheckbox("Left Right Reverse", &left_right_reverse);
-        igPopItemFlag();
+    if (frame != auth_3d_test->frame) {
+        auth_3d_test->frame_changed = true;
+        auth_3d_test->frame = frame;
     }
 
     imguiColumnSliderFloat("transX", &auth_3d_test->trans_x, 0.1f, -5.0f, 5.0f, "%.2f", 0, true);
@@ -420,7 +548,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     if (igBegin("A3D STAGE", 0, window_flags)) {
         stage* stg = (stage*)auth_3d_test->rctx->stage;
         if (!stg)
-            if (stage_test_data.stage_classic)
+            if (stage_test_data.stage_data)
                 stg = &stage_test_data;
             else
                 stg = &stage_stgtst;
@@ -462,96 +590,23 @@ void data_test_auth_3d_test_imgui(class_data* data) {
 
         data->imgui_focus |= igIsWindowFocused(0);
     }
-    igEnd();
-}
 
-void data_test_auth_3d_test_input(class_data* data) {
-    input_locked |= data->imgui_focus;
-}
+    if (auth_3d_data_check_id_not_empty(&auth_3d_test->auth_3d_id)) {
+        auth_3d_data_set_enable(&auth_3d_test->auth_3d_id, auth_3d_test->enable);
+        auth_3d_data_set_repeat(&auth_3d_test->auth_3d_id, auth_3d_test->repeat);
+        auth_3d_data_set_left_right_reverse(&auth_3d_test->auth_3d_id, auth_3d_test->left_right_reverse);
+        if (auth_3d_test->frame_changed) {
+            auth_3d_data_set_req_frame(&auth_3d_test->auth_3d_id, auth_3d_test->frame);
+            auth_3d_test->frame_changed = false;
+        }
+        auth_3d_data_set_paused(&auth_3d_test->auth_3d_id, auth_3d_test->paused);
 
-void data_test_auth_3d_test_render(class_data* data) {
-    data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
-    if (!auth_3d_test)
-        return;
-
-    if (auth_3d_test->auth_3d_uid_load) {
-        render_context* rctx = auth_3d_test->rctx;
-
-        data_struct* aft_data = rctx->data;
-        stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
-        auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
-        auth_3d_database_uid* uids = aft_auth_3d_db->uid.begin;
-        char* uid_name = string_data(&uids[auth_3d_test->auth_3d_uid].name);
-
-        string name = string_empty;
-        char* s = 0;
-        if (s = strchr(uid_name, '_'))
-            string_init_length(&name, uid_name, s - uid_name);
-        else
-            string_init(&name, uid_name);
-
-        for (stage_info* i = aft_stage_data->stage_classic.begin;
-            i != aft_stage_data->stage_classic.end; i++)
-            if (string_compare(&name, &i->name)) {
-                int32_t stage_index = (int32_t)(i - aft_stage_data->stage_classic.begin);
-                if (stage_index != auth_3d_test->stage_index)
-                    auth_3d_test->stage_load = true;
-                auth_3d_test->stage_index = stage_index;
-                break;
-            }
-        string_free(&name);
-        auth_3d_data_unload_id(auth_3d_test->auth_3d_id, auth_3d_test->rctx);
-        auth_3d_test->auth_3d_id = -1;
-    }
-
-    if (auth_3d_test->auth_3d_load) {
-        render_context* rctx = auth_3d_test->rctx;
-        data_test_auth_3d_test_category* cat
-            = &auth_3d_test->category.begin[auth_3d_test->auth_3d_category_index];
-
-        auth_3d_farc_free(&auth_3d_test->farc);
-
-        data_struct* aft_data = rctx->data;
-        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-
-        auth_3d_farc_init(&auth_3d_test->farc);
-        auth_3d_farc_load(&auth_3d_test->farc, aft_data, cat->name, aft_obj_db);
-        auth_3d_test->auth_3d_load = false;
-    }
-
-    if (auth_3d_test->auth_3d_uid_load) {
-        data_test_auth_3d_test_load_auth_file(auth_3d_test);
-        auth_3d_test->auth_3d_uid_load = false;
-    }
-
-    if (auth_3d_test->stage_load) {
-        render_context* rctx = auth_3d_test->rctx;
-
-        data_struct* aft_data = rctx->data;
-        auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
-        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
-        stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
-
-        stage_free(&stage_test_data, rctx);
-        stage_init(&stage_test_data);
-        stage_load(&stage_test_data, aft_data, aft_auth_3d_db,
-            aft_obj_db, aft_tex_db, aft_stage_data,
-            (char*)auth_3d_test->stage.begin[auth_3d_test->stage_index], rctx);
-        stage_set(&stage_test_data, rctx);
-        auth_3d_test->stage_load = false;
-    }
-
-    float_t max_frame = 0.0f;
-    auth_3d* auth = auth_3d_data_get_auth_3d(auth_3d_test->auth_3d_id);
-    if (auth) {
         mat4 mat;
         mat4_translate(auth_3d_test->trans_x, 0.0f, auth_3d_test->trans_z, &mat);
         mat4_rotate_y_mult(&mat, auth_3d_test->rot_y * DEG_TO_RAD_FLOAT, &mat);
-        auth_3d_ctrl(auth, &mat, auth_3d_test->rctx);
-
-        auth_3d_disp(auth, &mat, auth_3d_test->rctx);
+        auth_3d_data_set_mat(&auth_3d_test->auth_3d_id, &mat);
     }
+    igEnd();
 }
 
 bool data_test_auth_3d_test_show(class_data* data) {
@@ -566,6 +621,17 @@ bool data_test_auth_3d_test_show(class_data* data) {
 
     ret = true;
 
+    auth_3d_test->enable = true;
+    auth_3d_test->repeat = true;
+    auth_3d_test->left_right_reverse = false;
+    auth_3d_test->frame = 0.0f;
+    auth_3d_test->frame_changed = false;
+    auth_3d_test->last_frame = 0.0f;
+    auth_3d_test->paused = false;
+    auth_3d_test->trans_x = 0.0f;
+    auth_3d_test->trans_z = 0.0f;
+    auth_3d_test->rot_y = 0.0f;
+
 End:
     lock_unlock(&pv_lock);
     return ret;
@@ -574,18 +640,25 @@ End:
 bool data_test_auth_3d_test_dispose(class_data* data) {
     data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
     if (auth_3d_test) {
-        memset(auth_3d_test->stage.begin, 0, sizeof(char*) * vector_length(auth_3d_test->stage));
+        memset(auth_3d_test->stage.begin, 0, sizeof(char*) * vector_old_length(auth_3d_test->stage));
 
-        vector_data_test_auth_3d_test_category_free(&auth_3d_test->category,
+        for (uint32_t* i = auth_3d_test->obj_set_id.begin;
+            i != auth_3d_test->obj_set_id.end; i++)
+            object_storage_delete_object_set(*i);
+        vector_old_uint32_t_free(&auth_3d_test->obj_set_id, 0);
+
+        auth_3d_data_unload_id(auth_3d_test->auth_3d_id, auth_3d_test->rctx);
+
+        vector_old_data_test_auth_3d_test_category_free(&auth_3d_test->category,
             data_test_auth_3d_test_category_free);
-        vector_ptr_char_free(&auth_3d_test->stage, 0);
+        vector_old_ptr_char_free(&auth_3d_test->stage, 0);
     }
     free(data->data);
     return true;
 }
 
 static void data_test_auth_3d_test_category_free(data_test_auth_3d_test_category* cat) {
-    vector_data_test_auth_3d_test_uid_free(&cat->uid, 0);
+    vector_old_data_test_auth_3d_test_uid_free(&cat->uid, 0);
 }
 
 static void data_test_auth_3d_test_load_auth_file(data_test_auth_3d_test* auth_3d_test) {
@@ -594,27 +667,30 @@ static void data_test_auth_3d_test_load_auth_file(data_test_auth_3d_test* auth_3
     auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
     texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
-    auth_3d_database_uid* uids = aft_auth_3d_db->uid.begin;
-    char* uid_name = string_data(&uids[auth_3d_test->auth_3d_uid].name);
+    auth_3d_database_uid* uids = aft_auth_3d_db->uid.data();
+    const char* uid_name = uids[auth_3d_test->auth_3d_uid].name.c_str();
 
     auth_3d_test->auth_3d_id = auth_3d_data_load_uid(auth_3d_test->auth_3d_uid, aft_auth_3d_db);
     auth_3d* auth = auth_3d_data_get_auth_3d(auth_3d_test->auth_3d_id);
     if (!auth)
         return;
 
-    string file;
-    string_init(&file, uid_name);
-    string_add_length(&file, ".a3da", 5);
-    auth_3d_load_from_farc(auth, &auth_3d_test->farc.auth_3d_farc, string_data(&file), aft_obj_db, aft_tex_db);
-    string_free(&file);
+    auth_3d_data_read_file(&auth_3d_test->auth_3d_id, aft_auth_3d_db);
 
+    auth_3d_test->enable = true;
+    auth_3d_test->repeat = true;
+    auth_3d_test->left_right_reverse = false;
+    auth_3d_test->frame = 0.0f;
+    auth_3d_test->frame_changed = false;
+    auth_3d_test->last_frame = auth->play_control.size;
+    auth_3d_test->paused = false;
     auth_3d_test->trans_x = 0.0f;
     auth_3d_test->trans_z = 0.0f;
     auth_3d_test->rot_y = 0.0f;
 }
 
 static int data_test_auth_3d_test_uid_quicksort_compare_func(void const* src1, void const* src2) {
-    char* str1 = ((data_test_auth_3d_test_uid*)src1)->name;
-    char* str2 = ((data_test_auth_3d_test_uid*)src2)->name;
+    const char* str1 = ((data_test_auth_3d_test_uid*)src1)->name;
+    const char* str2 = ((data_test_auth_3d_test_uid*)src2)->name;
     return str_utils_compare(str1, str2);
 }

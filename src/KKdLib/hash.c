@@ -99,6 +99,14 @@ inline uint64_t hash_string_fnv1a64m(string* data, bool make_upper) {
     return hash_fnv1a64m(string_data(data), data->length, make_upper);
 }
 
+inline uint64_t hash_string_fnv1a64m(std::string* data, bool make_upper) {
+    return hash_fnv1a64m(data->c_str(), data->size(), make_upper);
+}
+
+inline uint64_t hash_string_fnv1a64m(const std::string* data, bool make_upper) {
+    return hash_fnv1a64m(data->c_str(), data->size(), make_upper);
+}
+
 // MurmurHash
 // 0x814D7A9C in PCSB00554
 // 0x8134C304 in PCSB01007
@@ -264,6 +272,14 @@ inline uint32_t hash_string_murmurhash(string* data, uint32_t seed, bool upper) 
     return hash_murmurhash(string_data(data), data->length, seed, upper, false);
 }
 
+inline uint32_t hash_string_murmurhash(std::string* data, uint32_t seed, bool upper) {
+    return hash_murmurhash(data->c_str(), data->size(), seed, upper, false);
+}
+
+inline uint32_t hash_string_murmurhash(const std::string* data, uint32_t seed, bool upper) {
+    return hash_murmurhash(data->c_str(), data->size(), seed, upper, false);
+}
+
 // CRC16-CCITT
 // 0x140011A90 in SBZV_7.10
 inline uint16_t hash_crc16_ccitt(void* data, size_t length, bool make_upper) {
@@ -313,4 +329,12 @@ inline uint16_t hash_utf16_crc16_ccitt(const wchar_t* data, bool make_upper) {
 
 inline uint16_t hash_string_crc16_ccitt(string* data, bool make_upper) {
     return hash_crc16_ccitt(string_data(data), data->length, make_upper);
+}
+
+inline uint16_t hash_string_crc16_ccitt(std::string* data, bool make_upper) {
+    return hash_crc16_ccitt(data->c_str(), data->size(), make_upper);
+}
+
+inline uint16_t hash_string_crc16_ccitt(const std::string* data, bool make_upper) {
+    return hash_crc16_ccitt(data->c_str(), data->size(), make_upper);
 }

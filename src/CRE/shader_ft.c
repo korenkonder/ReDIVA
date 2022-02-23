@@ -574,11 +574,11 @@ static const int32_t glitter_particle_fpt_unival_max[] = {
     2, 3, 3, 3,
 };
 
-static const int32_t show_vector_vpt_unival_max[] = {
+static const int32_t show_vector_old_vpt_unival_max[] = {
     1, 1, 3,
 };
 
-static const int32_t show_vector_fpt_unival_max[] = {
+static const int32_t show_vector_old_fpt_unival_max[] = {
     0, 0, 0,
 };
 
@@ -1219,10 +1219,10 @@ static const shader_sub_table GLITTER_PT_table[] = {
 static const shader_sub_table SHOWVEC_table[] = {
     {
         SHADER_FT_SUB_SHOW_VECTOR,
-        show_vector_vpt_unival_max,
-        show_vector_fpt_unival_max,
-        "show_vector",
-        "show_vector",
+        show_vector_old_vpt_unival_max,
+        show_vector_old_fpt_unival_max,
+        "show_vector_old",
+        "show_vector_old",
     },
 };
 
@@ -2159,88 +2159,6 @@ static const bool SPRITE_permut[] = {
     false,
 };
 
-static const shader_table SHADER_FFP_shader = {
-    "SHADER_FFP",
-    0,
-    0,
-    0,
-     0,
-};
-
-#define shader_table_struct(n) \
-static const shader_table n##_shader = { \
-    #n, \
-    SHADER_FT_##n, \
-    sizeof(n##_table) / sizeof(shader_sub_table), \
-    n##_table, \
-    sizeof(n##_uniform) / sizeof(uniform_name), \
-    n##_uniform, \
-    n##_permut, \
-}; \
-
-shader_table_struct(BLINN)
-shader_table_struct(ITEM)
-shader_table_struct(STAGE)
-shader_table_struct(SKIN)
-shader_table_struct(SSS_SKIN)
-shader_table_struct(SSS_FILT)
-shader_table_struct(HAIR)
-shader_table_struct(CLOTH)
-shader_table_struct(TIGHTS)
-shader_table_struct(SKY)
-shader_table_struct(EYEBALL)
-shader_table_struct(EYELENS)
-shader_table_struct(GLASEYE)
-shader_table_struct(MEMBRAN)
-shader_table_struct(SHDMAP)
-shader_table_struct(ESM)
-shader_table_struct(ESMGAUSS)
-shader_table_struct(ESMFILT)
-shader_table_struct(LITPROJ)
-shader_table_struct(SIMPLE)
-shader_table_struct(SIL)
-shader_table_struct(LAMBERT)
-shader_table_struct(CONSTANT)
-shader_table_struct(PEEL)
-shader_table_struct(TONEMAP)
-shader_table_struct(REDUCE)
-shader_table_struct(MAGNIFY)
-shader_table_struct(MLAA)
-shader_table_struct(CONTOUR)
-shader_table_struct(EXPOSURE)
-shader_table_struct(GAUSS)
-shader_table_struct(SUN)
-shader_table_struct(FADE)
-shader_table_struct(WATER01)
-shader_table_struct(WATER02)
-shader_table_struct(WATRING)
-shader_table_struct(W_PTCL)
-shader_table_struct(SNOW_PT)
-shader_table_struct(LEAF_PT)
-shader_table_struct(STAR)
-shader_table_struct(SNORING)
-shader_table_struct(SN_FOOT)
-shader_table_struct(SN_TSL)
-shader_table_struct(SN_NRM)
-shader_table_struct(FLOOR)
-shader_table_struct(PUDDLE)
-shader_table_struct(S_REFL)
-shader_table_struct(S_REFR)
-shader_table_struct(RIPEMIT)
-shader_table_struct(RAIN)
-shader_table_struct(VOLLIT)
-shader_table_struct(FENCE)
-shader_table_struct(RIPPLE)
-shader_table_struct(FOGPTCL)
-shader_table_struct(PARTICL)
-shader_table_struct(GLITTER_PT)
-shader_table_struct(SHOWVEC)
-shader_table_struct(FONT)
-shader_table_struct(MOVIE)
-shader_table_struct(IMGFILT)
-shader_table_struct(SPRITE)
-#undef shader_table_struct
-
 typedef struct glass_eye_struct {
     vec4u field_0;
     vec4u field_10;
@@ -2270,73 +2188,94 @@ typedef struct glass_eye_struct {
     int32_t field_BC;
 } glass_eye_struct;
 
-static const shader_table* shader_ft_table[] = {
-    &SHADER_FFP_shader,
-    &BLINN_shader,
-    &ITEM_shader,
-    &STAGE_shader,
-    &SKIN_shader,
-    &SSS_SKIN_shader,
-    &SSS_FILT_shader,
-    &HAIR_shader,
-    &CLOTH_shader,
-    &TIGHTS_shader,
-    &SKY_shader,
-    &EYEBALL_shader,
-    &EYELENS_shader,
-    &GLASEYE_shader,
-    &MEMBRAN_shader,
-    &SHDMAP_shader,
-    &ESM_shader,
-    &ESMGAUSS_shader,
-    &ESMFILT_shader,
-    &LITPROJ_shader,
-    &SIMPLE_shader,
-    &SIL_shader,
-    &LAMBERT_shader,
-    &CONSTANT_shader,
-    &PEEL_shader,
-    &TONEMAP_shader,
-    &REDUCE_shader,
-    &MAGNIFY_shader,
-    &MLAA_shader,
-    &CONTOUR_shader,
-    &EXPOSURE_shader,
-    &GAUSS_shader,
-    &SUN_shader,
-    &FADE_shader,
-    &WATER01_shader,
-    &WATER02_shader,
-    &WATRING_shader,
-    &W_PTCL_shader,
-    &SNOW_PT_shader,
-    &LEAF_PT_shader,
-    &STAR_shader,
-    &SNORING_shader,
-    &SN_FOOT_shader,
-    &SN_TSL_shader,
-    &SN_NRM_shader,
-    &FLOOR_shader,
-    &PUDDLE_shader,
-    &S_REFL_shader,
-    &S_REFR_shader,
-    &RIPEMIT_shader,
-    &RAIN_shader,
-    &VOLLIT_shader,
-    &FENCE_shader,
-    &RIPPLE_shader,
-    &FOGPTCL_shader,
-    &PARTICL_shader,
-    &GLITTER_PT_shader,
-    &SHOWVEC_shader,
-    &FONT_shader,
-    &MOVIE_shader,
-    &IMGFILT_shader,
-    &SPRITE_shader,
+#define shader_table_struct(n) \
+{ \
+    #n, \
+    SHADER_FT_##n, \
+    sizeof(n##_table) / sizeof(shader_sub_table), \
+    n##_table, \
+    sizeof(n##_uniform) / sizeof(uniform_name), \
+    n##_uniform, \
+    n##_permut, \
+}
+
+static const shader_table shader_ft_table[] = {
+    {
+        "SHADER_FFP",
+        SHADER_FT_FFP,
+        0,
+        0,
+        0,
+        0,
+        0,
+    },
+    shader_table_struct(BLINN),
+    shader_table_struct(ITEM),
+    shader_table_struct(STAGE),
+    shader_table_struct(SKIN),
+    shader_table_struct(SSS_SKIN),
+    shader_table_struct(SSS_FILT),
+    shader_table_struct(HAIR),
+    shader_table_struct(CLOTH),
+    shader_table_struct(TIGHTS),
+    shader_table_struct(SKY),
+    shader_table_struct(EYEBALL),
+    shader_table_struct(EYELENS),
+    shader_table_struct(GLASEYE),
+    shader_table_struct(MEMBRAN),
+    shader_table_struct(SHDMAP),
+    shader_table_struct(ESM),
+    shader_table_struct(ESMGAUSS),
+    shader_table_struct(ESMFILT),
+    shader_table_struct(LITPROJ),
+    shader_table_struct(SIMPLE),
+    shader_table_struct(SIL),
+    shader_table_struct(LAMBERT),
+    shader_table_struct(CONSTANT),
+    shader_table_struct(PEEL),
+    shader_table_struct(TONEMAP),
+    shader_table_struct(REDUCE),
+    shader_table_struct(MAGNIFY),
+    shader_table_struct(MLAA),
+    shader_table_struct(CONTOUR),
+    shader_table_struct(EXPOSURE),
+    shader_table_struct(GAUSS),
+    shader_table_struct(SUN),
+    shader_table_struct(FADE),
+    shader_table_struct(WATER01),
+    shader_table_struct(WATER02),
+    shader_table_struct(WATRING),
+    shader_table_struct(W_PTCL),
+    shader_table_struct(SNOW_PT),
+    shader_table_struct(LEAF_PT),
+    shader_table_struct(STAR),
+    shader_table_struct(SNORING),
+    shader_table_struct(SN_FOOT),
+    shader_table_struct(SN_TSL),
+    shader_table_struct(SN_NRM),
+    shader_table_struct(FLOOR),
+    shader_table_struct(PUDDLE),
+    shader_table_struct(S_REFL),
+    shader_table_struct(S_REFR),
+    shader_table_struct(RIPEMIT),
+    shader_table_struct(RAIN),
+    shader_table_struct(VOLLIT),
+    shader_table_struct(FENCE),
+    shader_table_struct(RIPPLE),
+    shader_table_struct(FOGPTCL),
+    shader_table_struct(PARTICL),
+    shader_table_struct(GLITTER_PT),
+    shader_table_struct(SHOWVEC),
+    shader_table_struct(FONT),
+    shader_table_struct(MOVIE),
+    shader_table_struct(IMGFILT),
+    shader_table_struct(SPRITE),
 };
 
+#undef shader_table_struct
+
 static const size_t shader_ft_table_size =
-    sizeof(shader_ft_table) / sizeof(shader_table*);
+    sizeof(shader_ft_table) / sizeof(shader_table);
 
 static void glass_eye_calc(glass_eye_struct* glass_eye);
 static void glass_eye_set(glass_eye_struct* glass_eye, shader_set_data* set);
@@ -2458,9 +2397,9 @@ static void glass_eye_set(glass_eye_struct* glass_eye, shader_set_data* set) {
     shader_local_vert_set_ptr(set, 0x0B, &temp);
     shader_local_frag_set_ptr(set, 0x0B, &temp);
 
-    vec4u_to_vec4(glass_eye->field_0, temp);
+    temp = glass_eye->field_0;
     shader_local_vert_set_ptr(set, 0x0C, &temp);
-    vec4u_to_vec4(glass_eye->field_A0, temp);
+    temp = glass_eye->field_A0;
     shader_local_vert_set_ptr(set, 0x0D, &temp);
 
     vec3_mult(glass_eye->field_90, glass_eye->field_90, *(vec3*)&temp);
@@ -2468,7 +2407,7 @@ static void glass_eye_set(glass_eye_struct* glass_eye, shader_set_data* set) {
     vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
     shader_local_vert_set_ptr(set, 0x0E, &temp);
 
-    vec4u_to_vec4(glass_eye->field_10, temp);
+    temp = glass_eye->field_10;
     shader_local_vert_set_ptr(set, 0x0F, &temp);
 
     vec3_mult(glass_eye->field_68, glass_eye->field_68, *(vec3*)&temp);

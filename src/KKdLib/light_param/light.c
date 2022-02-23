@@ -14,76 +14,80 @@ static char* light_param_light_read_line(char* buf, int32_t size, char* src);
 static void light_param_light_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
 static void light_param_light_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
 
-void light_param_light_init(light_param_light* light) {
-    memset(light, 0, sizeof(light_param_light));
+light_param_light::light_param_light() : ready() {
+
 }
 
-void light_param_light_read(light_param_light* light, char* path) {
+void light_param_light::read(char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
         io_open(&s, path_txt, "rb");
         if (s.io.stream)
-            light_param_light_read_inner(light, &s);
+            light_param_light_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_light_wread(light_param_light* light, wchar_t* path) {
+void light_param_light::read(wchar_t* path) {
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     if (path_wcheck_file_exists(path_txt)) {
         stream s;
         io_wopen(&s, path_txt, L"rb");
         if (s.io.stream)
-            light_param_light_read_inner(light, &s);
+            light_param_light_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_light_mread(light_param_light* light, void* data, size_t length) {
+void light_param_light::read(void* data, size_t length) {
     stream s;
     io_mopen(&s, data, length);
-    light_param_light_read_inner(light, &s);
+    light_param_light_read_inner(this, &s);
     io_free(&s);
 }
 
-void light_param_light_write(light_param_light* light, char* path) {
-    if (!light || !path || !light->ready)
+void light_param_light::write(char* path) {
+    if (!path || !ready)
         return;
 
     char* path_txt = str_utils_add(path, ".txt");
     stream s;
     io_open(&s, path_txt, "wb");
     if (s.io.stream)
-        light_param_light_write_inner(light, &s);
+        light_param_light_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_light_wwrite(light_param_light* light, wchar_t* path) {
-    if (!light || !path || !light->ready)
+void light_param_light::write(wchar_t* path) {
+    if (!path || !ready)
         return;
 
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     stream s;
     io_wopen(&s, path_txt, L"wb");
     if (s.io.stream)
-        light_param_light_write_inner(light, &s);
+        light_param_light_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_light_mwrite(light_param_light* light, void** data, size_t* length) {
-    if (!light || !data || !light->ready)
+void light_param_light::write(void** data, size_t* length) {
+    if (!data || !ready)
         return;
 
     stream s;
     io_mopen(&s, 0, 0);
-    light_param_light_write_inner(light, &s);
+    light_param_light_write_inner(this, &s);
     io_mcopy(&s, data, length);
     io_free(&s);
+}
+
+light_param_light::~light_param_light() {
+
 }
 
 bool light_param_light_load_file(void* data, char* path, char* file, uint32_t hash) {
@@ -98,13 +102,28 @@ bool light_param_light_load_file(void* data, char* path, char* file, uint32_t ha
     string_add_length(&s, file, file_len);
 
     light_param_light* light = (light_param_light*)data;
-    light_param_light_read(light, string_data(&s));
+    light->read(string_data(&s));
 
     string_free(&s);
     return light->ready;
 }
 
-void light_param_light_free(light_param_light* light) {
+light_param_light_data::light_param_light_data() : has_type(), type(), has_ambient(), ambient(),
+has_diffuse(), diffuse(), has_specular(), specular(), has_position(), position(), has_spot_direction(),
+has_spot_exponent(), has_spot_cutoff(), has_attenuation(), spot_direction(), spot_exponent(),
+spot_cutoff(), attenuation(), has_clip_plane(), clip_plane(), has_tone_curve(), tone_curve() {
+
+}
+
+light_param_light_data::~light_param_light_data() {
+
+}
+
+light_param_light_group::light_param_light_group() {
+
+}
+
+light_param_light_group::~light_param_light_group() {
 
 }
 

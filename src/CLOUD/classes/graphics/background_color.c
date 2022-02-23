@@ -9,7 +9,6 @@
 
 extern int32_t width;
 extern int32_t height;
-extern bool input_locked;
 extern vec3 back3d_color;
 extern bool set_clear_color;
 
@@ -63,14 +62,6 @@ void graphics_background_color_imgui(class_data* data) {
 
     data->imgui_focus |= igIsWindowFocused(0);
     igEnd();
-}
-
-void graphics_background_color_input(class_data* data) {
-    input_locked |= data->imgui_focus;
-}
-
-void graphics_background_color_render(class_data* data) {
-
 }
 
 bool graphics_background_color_dispose(class_data* data) {

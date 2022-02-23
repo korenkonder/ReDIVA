@@ -8,19 +8,19 @@
 #include "data_test/glitter_test.h"
 #include "data_test/stage_test.h"
 
-classes_struct data_test_classes[] = {
+classes_data data_test_classes[] = {
     {
         "Auth 3D Test##Data Test",
         CLASSES_IN_CONTEXT_MENU,
         data_test_auth_3d_test_init,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
+        data_test_auth_3d_test_ctrl,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         data_test_auth_3d_test_hide,
         data_test_auth_3d_test_imgui,
-        data_test_auth_3d_test_input,
-        data_test_auth_3d_test_render,
+        CLASSES_DATA_NO_FUNC,
         data_test_auth_3d_test_show,
-        CLASSES_STRUCT_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         data_test_auth_3d_test_dispose,
         {
             {},
@@ -39,14 +39,14 @@ classes_struct data_test_classes[] = {
         (classes_enum)(CLASSES_SHOW_AT_STARTUP | CLASSES_DISPOSE_AT_HIDE | CLASSES_IN_CONTEXT_MENU),
 #endif
         data_test_glitter_test_init,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
+        data_test_glitter_test_ctrl,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         data_test_glitter_test_imgui,
-        data_test_glitter_test_input,
-        data_test_glitter_test_render,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         data_test_glitter_test_dispose,
         {
             {},
@@ -61,14 +61,14 @@ classes_struct data_test_classes[] = {
         "Stage Test##Data Test",
         (classes_enum)(CLASSES_INIT_AT_STARTUP | CLASSES_IN_CONTEXT_MENU),
         data_test_stage_test_init,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
+        data_test_stage_test_ctrl,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         data_test_stage_test_hide,
         data_test_stage_test_imgui,
-        data_test_stage_test_input,
-        data_test_stage_test_render,
+        CLASSES_DATA_NO_FUNC,
         data_test_stage_test_show,
-        CLASSES_STRUCT_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         data_test_stage_test_dispose,
         {
             {},

@@ -44,15 +44,12 @@ static void decrypt_edat() {
     io_free(&f1);
 }
 
-static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
+static void a3da_to_dft_dsc(const char* a3da_path, int32_t pv_id) {
     a3da cam_a3da_file;
-    a3da_init(&cam_a3da_file);
-    a3da_load_file(&cam_a3da_file, (char*)"", a3da_path, 0);
+    a3da::load_file(&cam_a3da_file, (char*)"", (char*)a3da_path, 0);
 
-    if (!cam_a3da_file.dof.has_dof) {
-        a3da_free(&cam_a3da_file);
+    if (!cam_a3da_file.dof.has_dof)
         return;
-    }
 
     typedef struct dof_data {
         int32_t flags;
@@ -64,9 +61,7 @@ static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
     } dof_data;
 
     auth_3d cam_a3da;
-    auth_3d_init(&cam_a3da);
-    auth_3d_load(&cam_a3da, &cam_a3da_file, 0, 0);
-    a3da_free(&cam_a3da_file);
+    cam_a3da.load(&cam_a3da_file, 0, 0);
 
     int32_t frames = (int32_t)cam_a3da.play_control.size;
 
@@ -76,7 +71,7 @@ static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
 
     *dof++ = { 0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
-    auth_3d_camera_root* cr = &cam_a3da.camera_root.begin[0];
+    auth_3d_camera_root* cr = &cam_a3da.camera_root[0];
 
     for (int32_t i = 0; i < frames; i++) {
         //auth_3d_ctrl(&cam_a3da, (mat4*)&mat4_identity, rctx);
@@ -115,8 +110,6 @@ static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
 
     dof--;
 
-    auth_3d_free(&cam_a3da);
-
     char buf[0x100];
     sprintf_s(buf, sizeof(buf), "pv_%03d_dof.dsc", pv_id);
 
@@ -141,19 +134,19 @@ static void a3da_to_dft_dsc(char* a3da_path, int32_t pv_id) {
     stream s_dft;
     io_mopen(&s_dft, 0, 0);
     uint32_t off;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
-    vector_size_t pof = vector_empty(size_t);
+    vector_old_size_t pof = vector_old_empty(size_t);
 
-    ee = { 0, 1, 8, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 1, 8, 1, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     off = 8;
     off = align_val(off, 0x10);
 
-    ee = { off, 1, 24, (uint32_t)count, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { off, 1, 24, (uint32_t)count, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     off = (uint32_t)(count * 24ULL);
     off = align_val(off, 0x10);
 

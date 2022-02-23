@@ -4,15 +4,17 @@
 */
 
 #include "render_context.h"
+#include "Glitter/glitter.h"
 #include "draw_pass.h"
 #include "draw_task.h"
+#include "file_handler.h"
 #include "rob.h"
 #include "shader_ft.h"
 #include "stage.h"
 
-vector_func(texture_pattern_struct)
-vector_func(texture_transform_struct)
-vector_ptr_func(draw_task)
+vector_old_func(texture_pattern_struct)
+vector_old_func(texture_transform_struct)
+vector_old_ptr_func(draw_task)
 
 static void draw_pass_init(draw_pass* draw_pass);
 static void draw_pass_free(draw_pass* draw_pass);
@@ -35,10 +37,6 @@ static void sss_data_init(sss_data_struct* sss);
 static void sss_data_free(sss_data_struct* sss);
 
 const texture_pattern_struct texture_pattern_struct_null = { -1, -1 };
-
-frame_rate_control sys_frame_rate = { 1.0f };
-frame_rate_control diva_pv_frame_rate = { 1.0f };
-frame_rate_control diva_stage_frame_rate = { 1.0f };
 
 static const GLfloat depth_clear = 1.0f;
 
@@ -344,7 +342,6 @@ inline render_context* render_context_init() {
     draw_state_init(&rctx->draw_state);
     object_data_init(&rctx->object_data);
     glGenVertexArrays(1, &rctx->vao);
-    glGenTextures(5, rctx->ibl_tex);
 
     face_init(&rctx->face);
     for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++)
@@ -358,6 +355,7 @@ inline render_context* render_context_init() {
 }
 
 extern float_t rob_frame;
+extern render_context* rctx_ptr;
 extern wind* wind_ptr;
 
 inline void render_context_ctrl(render_context* rctx) {
@@ -370,18 +368,31 @@ inline void render_context_ctrl(render_context* rctx) {
         frame += get_delta_frame();
         if (frame >= frame_count)
             frame -= frame_count;
-        //rob_chara_set_frame(&rob_chara_array[j], frame);
+        //rob_chara_set_frame(&rob_chara_array[i], frame);
         rob_chara_set_frame(&rob_chara_array[i], rob_frame);
         rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
     }
 
-    TaskWork_ctrl();
+    camera* cam = rctx->camera;
+
+    glt_particle_manager.cam_projection = cam->projection;
+    glt_particle_manager.cam_view = cam->view;
+    glt_particle_manager.cam_inv_view = cam->inv_view;
+    glt_particle_manager.cam_inv_view_mat3 = cam->inv_view_mat3;
+    glt_particle_manager.cam_view_point = cam->view_point;
+    glt_particle_manager.cam_rotation_y = cam->rotation.y;
+    glt_particle_manager.rctx = rctx;
+
+    rctx_ptr = rctx;
+    TaskWork::Ctrl();
     wind_ctrl(rctx->wind);
 
     wind_ptr = rctx->wind;
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         if (rob_chara_pv_data_array[i].field_0 != -1)
             rob_chara_calc(&rob_chara_array[i]);
+
+    file_handler_storage_ctrl();
 
     stage_ctrl((stage*)rctx->stage, rctx);
 
@@ -391,7 +402,8 @@ inline void render_context_ctrl(render_context* rctx) {
 }
 
 inline void render_context_disp(render_context* rctx) {
-    TaskWork_disp();
+    rctx_ptr = rctx;
+    TaskWork::Disp();
 
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         if (rob_chara_pv_data_array[i].field_0 != -1)
@@ -401,7 +413,7 @@ inline void render_context_disp(render_context* rctx) {
 
     post_process_update(&rctx->post_process, rctx->camera);
     draw_pass_main(rctx);
-    TaskWork_basic();
+    TaskWork::Basic();
 }
 
 void render_context_light_param_data_light_set(render_context* rctx, light_param_light* light) {
@@ -417,20 +429,17 @@ void render_context_light_param_data_light_set(render_context* rctx, light_param
                 light_set_type(light, data->type);
 
             if (data->has_ambient) {
-                vec4 ambient;
-                vec4u_to_vec4(data->ambient, ambient);
+                vec4 ambient = data->ambient;
                 light_set_ambient(light, &ambient);
             }
 
             if (data->has_diffuse) {
-                vec4 diffuse;
-                vec4u_to_vec4(data->diffuse, diffuse);
+                vec4 diffuse = data->diffuse;
                 light_set_diffuse(light, &diffuse);
             }
 
             if (data->has_specular) {
-                vec4 specular;
-                vec4u_to_vec4(data->specular, specular);
+                vec4 specular = data->specular;
                 light_set_specular(light, &specular);
             }
 
@@ -474,8 +483,7 @@ void render_context_light_param_data_fog_set(render_context* rctx, light_param_f
         }
 
         if (group->has_color) {
-            vec4 color;
-            vec4u_to_vec4(group->color, color);
+            vec4 color = group->color;
             fog_set_color(fog, &color);
         }
     }
@@ -526,8 +534,7 @@ void render_context_light_param_data_glow_set(render_context* rctx, light_param_
         post_process_tone_map_set_tone_map_method(tone_map, glow->tone_map_method);
 
     if (glow->has_fade_color) {
-        vec4 fade_color;
-        vec4u_to_vec4(glow->fade_color, fade_color);
+        vec4 fade_color = glow->fade_color;
         post_process_tone_map_set_scene_fade(tone_map, &fade_color);
         post_process_tone_map_set_scene_fade_blend_func(tone_map, glow->fade_color_blend_func);
     }
@@ -538,12 +545,13 @@ void render_context_light_param_data_glow_set(render_context* rctx, light_param_
     }
 }
 
-void render_context_light_param_data_ibl_set(render_context* rctx, light_param_ibl* ibl) {
+void render_context_light_param_data_ibl_set(render_context* rctx,
+    light_param_ibl* ibl, light_param_data_storage* storage) {
     if (!ibl->ready)
         return;
 
     for (int32_t i = 0, j = -1; i < 5; i++, j++) {
-        gl_state_bind_texture_cube_map(rctx->ibl_tex[i]);
+        gl_state_bind_texture_cube_map(storage->textures[i]);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -565,7 +573,11 @@ void render_context_light_param_data_ibl_set(render_context* rctx, light_param_i
     gl_state_bind_texture_cube_map(0);
 
     light_set* set = &rctx->light_set_data[LIGHT_SET_MAIN];
-    light_set_set_irradiance(set, &ibl->diff_coef[1][0], &ibl->diff_coef[1][1], &ibl->diff_coef[1][2]);
+    mat4 irradiance[3];
+    irradiance[0] = ibl->diff_coef[1][0];
+    irradiance[1] = ibl->diff_coef[1][1];
+    irradiance[2] = ibl->diff_coef[1][2];
+    light_set_set_irradiance(set, &irradiance[0], &irradiance[1], &irradiance[2]);
 
     float_t len;
     vec3 pos;
@@ -573,21 +585,30 @@ void render_context_light_param_data_ibl_set(render_context* rctx, light_param_i
     light_data* l = &set->lights[LIGHT_CHARA];
     light_get_position(l, &pos);
     vec3_length(pos, len);
-    if (fabsf(len - 1.0f) < 0.02f)
-        light_set_position_vec4(l, &ibl->lit_dir[0]);
+    if (fabsf(len - 1.0f) < 0.02f) {
+        vec4 position = ibl->lit_dir[0];
+        light_set_position_vec4(l, &position);
+    }
 
-    light_set_ibl_specular(l, &ibl->lit_col[0]);
-    light_set_ibl_back(l, &ibl->lit_col[2]);
-    light_set_ibl_direction(l, &ibl->lit_dir[0]);
+    vec4 ibl_specular = ibl->lit_col[0];
+    light_set_ibl_specular(l, &ibl_specular);
+    vec4 ibl_back = ibl->lit_col[2];
+    light_set_ibl_back(l, &ibl_back);
+    vec4 ibl_direction = ibl->lit_dir[0];
+    light_set_ibl_direction(l, &ibl_direction);
 
     l = &set->lights[LIGHT_STAGE];
     light_get_position(l, &pos);
     vec3_length(pos, len);
-    if (fabsf(len - 1.0f) < 0.02f)
-        light_set_position_vec4(l, &ibl->lit_dir[1]);
+    if (fabsf(len - 1.0f) < 0.02f) {
+        vec4 position = ibl->lit_dir[1];
+        light_set_position_vec4(l, &position);
+    }
 
-    light_set_ibl_specular(l, &ibl->lit_col[1]);
-    light_set_ibl_direction(l, &ibl->lit_dir[1]);
+    ibl_specular = ibl->lit_col[1];
+    light_set_ibl_specular(l, &ibl_specular);
+    ibl_direction = ibl->lit_dir[1];
+    light_set_ibl_direction(l, &ibl_specular);
 }
 
 void render_context_light_param_data_wind_set(render_context* rctx, light_param_wind* w) {
@@ -620,6 +641,8 @@ void render_context_light_param_data_face_set(render_context* rctx, light_param_
     rctx->face.direction = face->direction;
 }
 
+extern light_param_data_storage light_param_data_storage_data;
+
 void render_context_set_light_param(render_context* rctx, light_param_data* light_param) {
     if (light_param->light.ready)
         render_context_light_param_data_light_set(rctx, &light_param->light);
@@ -628,7 +651,7 @@ void render_context_set_light_param(render_context* rctx, light_param_data* ligh
     if (light_param->glow.ready)
         render_context_light_param_data_glow_set(rctx, &light_param->glow);
     if (light_param->ibl.ready)
-        render_context_light_param_data_ibl_set(rctx, &light_param->ibl);
+        render_context_light_param_data_ibl_set(rctx, &light_param->ibl, &light_param_data_storage_data);
     render_context_light_param_data_wind_set(rctx, &light_param->wind);
     if (light_param->face.ready)
         render_context_light_param_data_face_set(rctx, &light_param->face);
@@ -642,7 +665,7 @@ void render_context_unset_light_param(render_context* rctx, light_param_data* li
     if (light_param->glow.ready)
         render_context_light_param_data_glow_set(rctx, &light_param->glow);
     if (light_param->ibl.ready)
-        render_context_light_param_data_ibl_set(rctx, &light_param->ibl);
+        render_context_light_param_data_ibl_set(rctx, &light_param->ibl, &light_param_data_storage_data);
     render_context_light_param_data_wind_set(rctx, &light_param->wind);
     if (light_param->face.ready)
         render_context_light_param_data_face_set(rctx, &light_param->face);
@@ -653,7 +676,6 @@ inline void render_context_free(render_context* rctx) {
     draw_pass_free(&rctx->draw_pass);
     object_data_free(&rctx->object_data);
     glDeleteVertexArrays(1, &rctx->vao);
-    glDeleteTextures(5, rctx->ibl_tex);
 
     wind_free(rctx->wind);
     post_process_free(&rctx->post_process);
@@ -674,6 +696,8 @@ static void draw_pass_init(draw_pass* draw_pass) {
     draw_pass->alpha_z_sort = true;
     for (int32_t i = DRAW_PASS_3D_OPAQUE; i < DRAW_PASS_3D_MAX; i++)
         draw_pass->draw_pass_3d[i] = true;
+    render_texture_init(&draw_pass->reflect_texture, 512, 256, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
+    render_texture_init(&draw_pass->refract_texture, 512, 256, 0, GL_RGBA8, GL_DEPTH24_STENCIL8);
     memset(draw_pass->cpu_time, 0, sizeof(draw_pass->cpu_time));
     memset(draw_pass->gpu_time, 0, sizeof(draw_pass->gpu_time));
     time_struct_init(&draw_pass->time);
@@ -685,6 +709,7 @@ static void draw_pass_init(draw_pass* draw_pass) {
 
 static void draw_pass_free(draw_pass* draw_pass) {
     render_texture_free(&draw_pass->reflect_texture);
+    render_texture_free(&draw_pass->refract_texture);
     shadow_free(draw_pass->shadow_ptr);
     sss_data_free(&draw_pass->sss_data);
 }
@@ -748,7 +773,7 @@ static void object_data_init(object_data* data) {
         data->texture_specular_offset = vec4_null;
         data->wet_param = 0.0f;
         for (int32_t i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++)
-            data->draw_task_array[i] = vector_ptr_empty(draw_task);
+            data->draw_task_array[i] = vector_old_ptr_empty(draw_task);
     }
 }
 
@@ -772,7 +797,7 @@ static void object_data_reset(object_data* data) {
 
     for (int32_t i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++) {
         data->draw_task_array[i].end = data->draw_task_array[i].begin;
-        vector_ptr_draw_task_clear(&data->draw_task_array[i], 0);
+        vector_old_ptr_draw_task_clear(&data->draw_task_array[i], 0);
     }
     object_data_buffer_reset(&data->buffer);
 }
@@ -780,7 +805,7 @@ static void object_data_reset(object_data* data) {
 static void object_data_free(object_data* data) {
     for (int32_t i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++) {
         data->draw_task_array[i].end = data->draw_task_array[i].begin;
-        vector_ptr_draw_task_free(&data->draw_task_array[i], 0);
+        vector_old_ptr_draw_task_free(&data->draw_task_array[i], 0);
     }
     free(data->buffer.data);
 }
@@ -807,7 +832,7 @@ inline static void render_context_light_param_data_ibl_set_specular(light_param_
     int32_t size = specular->size;
     int32_t max_level = specular->max_level;
     for (int32_t i = 0; i <= max_level; i++, size /= 2) {
-        half_t* data = specular->data[i];
+        std::vector<half_t>& data = specular->data[i];
         size_t data_size = size;
         data_size = 4 * data_size * data_size;
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, i, GL_RGBA16F,
@@ -895,26 +920,26 @@ static void shadow_ctrl_inner(shadow* shad, render_context* rctx) {
     int32_t count = 0;
     shad->field_2EC = 0;
     for (int32_t i = 0; i < 2; i++)
-        if (shad->field_2F0[i] && vector_length(shad->field_1D0[i]) > 0) {
+        if (shad->field_2F0[i] && vector_old_length(shad->field_1D0[i]) > 0) {
             shad->field_2EC++;
-            count += (int32_t)vector_length(shad->field_1D0[i]);
+            count += (int32_t)vector_old_length(shad->field_1D0[i]);
         }
         else
             shad->field_2F0[i] = false;
 
     if (count < 3) {
         for (int32_t i = 0; i < 2; i++) {
-            vector_vec3* v5 = &shad->field_1D0[i];
+            vector_old_vec3* v5 = &shad->field_1D0[i];
             shad->field_1A8[i] = vec3_null;
             shad->field_1C8[i] = 0.0f;
-            if (!shad->field_2F0[i] || vector_length(*v5) < 1)
+            if (!shad->field_2F0[i] || vector_old_length(*v5) < 1)
                 continue;
 
             vec3 v7 = vec3_null;
             for (vec3* j = v5->begin; j != v5->end; j++)
                 vec3_add(v7, *j, v7);
 
-            float_t v14 = (float_t)(int32_t)vector_length(*v5);
+            float_t v14 = (float_t)(int32_t)vector_old_length(*v5);
             if (v14 < 0.0f)
                 v14 += 1.8446744e19f;
             vec3_mult_scalar(v7, 1.0f / v14, v7);
@@ -1026,17 +1051,17 @@ static void shadow_ctrl_inner(shadow* shad, render_context* rctx) {
         }
 
         for (int32_t i = 0; i < 2; i++) {
-            vector_vec3* v18 = &shad->field_1D0[i];
+            vector_old_vec3* v18 = &shad->field_1D0[i];
             shad->field_1A8[i] = vec3_null;
             shad->field_1C8[i] = 0.0;
-            if (!shad->field_2F0[i] || vector_length(*v18) < 1)
+            if (!shad->field_2F0[i] || vector_old_length(*v18) < 1)
                 continue;
 
             vec3 v22 = vec3_null;
             for (vec3* j = v18->begin; j != v18->end; j++)
                 vec3_add(v22, *j, v22);
 
-            int32_t v27 = (int32_t)vector_length(*v18);
+            int32_t v27 = (int32_t)vector_old_length(*v18);
             float_t v29 = (float_t)v27;
             if (v27 < 0)
                 v29 += 1.8446744e19f;
@@ -1085,7 +1110,7 @@ static void shadow_ctrl_inner(shadow* shad, render_context* rctx) {
             vec3 interest = vec3_null;
             int32_t count = 0;;
             for (int32_t i = 0; i < 2; i++) {
-                int32_t c = (int32_t)vector_length(shad->field_1D0[i]);
+                int32_t c = (int32_t)vector_old_length(shad->field_1D0[i]);
                 vec3 view_point_temp;
                 vec3 interest_temp;
                 vec3_mult_scalar(shad->view_point[i], (float_t)c, view_point_temp);
@@ -1113,7 +1138,7 @@ static void shadow_ctrl_inner(shadow* shad, render_context* rctx) {
                 if (!shad->field_2F0[i])
                     continue;
 
-                vector_vec3* v72 = &shad->field_1D0[i];
+                vector_old_vec3* v72 = &shad->field_1D0[i];
                 for (vec3* j = v72->begin; j != v72->end; j++) {
                     vec3 v74;
                     vec3_sub(*j, shad->interest_shared, v74);
@@ -1212,7 +1237,7 @@ static void shadow_free(shadow* shad) {
         render_texture_free(&shad->field_8[i]);
 
     for (int32_t i = 0; i < 2; i++)
-        vector_vec3_free(&shad->field_1D0[i], 0);
+        vector_old_vec3_free(&shad->field_1D0[i], 0);
     free(shad);
 }
 

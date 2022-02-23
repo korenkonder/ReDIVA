@@ -17,7 +17,7 @@ static size_t pof_read_offsets_count(stream* s);
 inline static bool pof_write_packed_value(stream* s, size_t val);
 
 inline void io_write_offset_pof_add(stream* s, ssize_t val,
-    int32_t offset, bool is_x, vector_size_t* pof) {
+    int32_t offset, bool is_x, vector_old_size_t* pof) {
     if (!is_x) {
         if (val)
             val += offset;
@@ -32,41 +32,41 @@ inline void io_write_offset_pof_add(stream* s, ssize_t val,
 }
 
 inline void io_write_offset_f2_pof_add(stream* s, ssize_t val,
-    int32_t offset, vector_size_t* pof) {
+    int32_t offset, vector_old_size_t* pof) {
     if (val)
         val += offset;
     pof_add(s, pof, offset);
     io_write_int32_t_stream_reverse_endianness(s, (int32_t)val);
 }
 
-inline void io_write_offset_x_pof_add(stream* s, ssize_t val, vector_size_t* pof) {
+inline void io_write_offset_x_pof_add(stream* s, ssize_t val, vector_old_size_t* pof) {
     io_align_write(s, 0x08);
     pof_add(s, pof, 0);
     io_write_int64_t_stream_reverse_endianness(s, val);
 }
 
-inline void pof_add(stream* s, vector_size_t* pof, size_t offset) {
+inline void pof_add(stream* s, vector_old_size_t* pof, size_t offset) {
     if (!s || !pof)
         return;
 
-    *vector_size_t_reserve_back(pof) = io_get_position(s) + offset;
+    *vector_old_size_t_reserve_back(pof) = io_get_position(s) + offset;
 }
 
-void pof_read(stream* s, vector_size_t* pof, bool shift_x) {
-    vector_size_t p;
+void pof_read(stream* s, vector_old_size_t* pof, bool shift_x) {
+    vector_old_size_t p;
     size_t i, j, l, length, offset, v;
     uint8_t bit_shift;
     pof_value_type value;
 
-    vector_size_t_free(pof, 0);
+    vector_old_size_t_free(pof, 0);
 
     length = pof_read_offsets_count(s);
 
     bit_shift = (uint8_t)(shift_x ? 3 : 2);
     l = io_read_uint32_t(s) - 4ULL;
 
-    p = vector_empty(size_t);
-    vector_size_t_reserve(&p, length);
+    p = vector_old_empty(size_t);
+    vector_old_size_t_reserve(&p, length);
 
     i = 0;
     j = 0;
@@ -96,8 +96,8 @@ void pof_read(stream* s, vector_size_t* pof, bool shift_x) {
     *pof = p;
 }
 
-void pof_write(stream* s, vector_size_t* pof, bool shift_x) {
-    vector_size_t p;
+void pof_write(stream* s, vector_old_size_t* pof, bool shift_x) {
+    vector_old_size_t p;
     size_t* i;
     size_t j, k, l, o, v;
     uint8_t bit_shift;
@@ -135,8 +135,8 @@ void pof_write(stream* s, vector_size_t* pof, bool shift_x) {
         io_write_uint8_t(s, 0);
 }
 
-uint32_t pof_length(vector_size_t* pof, bool shift_x) {
-    vector_size_t p;
+uint32_t pof_length(vector_old_size_t* pof, bool shift_x) {
+    vector_old_size_t p;
     size_t* i;
     size_t j, k, o, v;
     uint32_t l;

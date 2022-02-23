@@ -7,18 +7,50 @@
 #include "../GlitterX/effect_inst_x.h"
 #include "effect_inst.h"
 
-glitter_scene* glitter_scene_init(glitter_effect_group* eg) {
-    glitter_scene* s = force_malloc_s(glitter_scene, 1);
-    s->emission = 1.0f;
-    s->effect_group = eg;
-    s->hash = eg->hash;
-    s->type = eg->type;
-    if (eg)
-        s->emission = eg->emission;
-    s->delta_frame_history = 0.0f;
-    s->skip = false;
-    return s;
+glitter_scene::glitter_scene(glitter_scene_counter counter, uint64_t hash, glitter_effect_group* a4, bool a5) : counter(0) {
+    effects = {};
+    this->counter = counter;
+    this->hash = hash;
+    flags = GLITTER_SCENE_NONE;
+    emission = 1.0f;
+    type = a4->type;
+    effect_group = a4;
+    delta_frame_history = 0.0f;
+    skip = false;
+    if (a4) {
+        vector_old_glitter_scene_effect_reserve(&effects, vector_old_length(a4->effects));
+        emission = a4->emission;
+        if (a5)
+            enum_or(flags, GLITTER_SCENE_FLAG_4);
+    }
 }
+
+glitter_scene::~glitter_scene() {
+    if (type == GLITTER_X) {
+        for (glitter_scene_effect* i = effects.begin; i != effects.end; ++i)
+            if (i->ptr)
+                glitter_x_effect_inst_dispose(i->ptr);
+    }
+    else {
+        for (glitter_scene_effect* i = effects.begin; i != effects.end; ++i)
+            if (i->ptr)
+                glitter_effect_inst_dispose(i->ptr);
+    }
+    vector_old_glitter_scene_effect_free(&effects, 0);
+}
+
+#if defined(CRE_DEV)
+void glitter_scene_calc_disp(GPM, glitter_scene* scene) {
+    if (scene->type == GLITTER_X) {
+        for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+            if (i->ptr && i->disp) {
+                if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != i->ptr)
+                    continue;
+                glitter_x_effect_inst_calc_disp(GPM_VAL, i->ptr);
+            }
+    }
+}
+#endif
 
 void glitter_scene_ctrl(GPM, glitter_scene* scene, float_t delta_frame) {
     glitter_scene_effect* i;
@@ -32,6 +64,29 @@ void glitter_scene_ctrl(GPM, glitter_scene* scene, float_t delta_frame) {
         for (i = scene->effects.begin; i != scene->effects.end; ++i)
             if (i->ptr && i->disp)
                 glitter_effect_inst_ctrl(GPM_VAL, scene->type, i->ptr, delta_frame, scene->emission);
+    }
+}
+
+void glitter_scene_disp(GPM, glitter_scene* scene, draw_pass_3d_type alpha) {
+    if (scene->type == GLITTER_X) {
+        for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+            if (i->ptr && i->disp) {
+#if defined(CRE_DEV)
+                if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != i->ptr)
+                    continue;
+#endif
+                glitter_x_effect_inst_disp(GPM_VAL, i->ptr, alpha);
+            }
+    }
+    else {
+        for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+            if (i->ptr && i->disp) {
+#if defined(CRE_DEV)
+                if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != i->ptr)
+                    continue;
+#endif
+                glitter_effect_inst_disp(GPM_VAL, i->ptr, alpha);
+            }
     }
 }
 
@@ -104,16 +159,49 @@ void glitter_scene_get_start_end_frame(glitter_scene* scene, int32_t* start_fram
     }
 }
 
-bool glitter_scene_has_ended(glitter_scene* scene, bool a2) {
-    glitter_scene_effect* i;
+bool glitter_scene_free_effect(GPM, glitter_scene* scene, uint64_t effect_hash, bool free) {
+    glitter_type type = scene->type;
+    float_t emission = scene->emission;
+    if (type == GLITTER_X) {
+        if (effect_hash == hash_murmurhash_empty) {
+            for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+                if (i->disp && i->ptr)
+                    glitter_x_effect_inst_free(i->ptr, emission, free);
+            return true;
+        }
+        else if (vector_old_length(scene->effects) > 0)
+            for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+                if (i->disp && i->ptr && i->ptr->data.name_hash == effect_hash) {
+                    glitter_x_effect_inst_free(i->ptr, emission, free);
+                    return true;
+                }
+    }
+    else {
+        if (type == GLITTER_FT && effect_hash == hash_fnv1a64m_empty
+            || type != GLITTER_FT && effect_hash == hash_murmurhash_empty) {
+            for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+                if (i->disp && i->ptr)
+                    glitter_effect_inst_free(GPM_VAL, type, i->ptr, emission, free);
+            return true;
+        }
+        else if (vector_old_length(scene->effects) > 0)
+            for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+                if (i->disp && i->ptr && i->ptr->data.name_hash == effect_hash) {
+                    glitter_effect_inst_free(GPM_VAL, type, i->ptr, emission, free);
+                    return true;
+                }
+    }
+    return false;
+}
 
+bool glitter_scene_has_ended(glitter_scene* scene, bool a2) {
     if (scene->type == GLITTER_X) {
-        for (i = scene->effects.begin; i != scene->effects.end; i++)
+        for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
             if (i->ptr && i->disp && !glitter_x_effect_inst_has_ended(i->ptr, a2))
                 return false;
     }
     else {
-        for (i = scene->effects.begin; i != scene->effects.end; i++)
+        for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
             if (i->ptr && i->disp && !glitter_effect_inst_has_ended(i->ptr, a2))
                 return false;
     }
@@ -122,46 +210,77 @@ bool glitter_scene_has_ended(glitter_scene* scene, bool a2) {
 
 void glitter_scene_init_effect(GPM, glitter_scene* scene,
     glitter_effect* a2, size_t id, bool appear_now) {
-    glitter_scene_effect* i;
-    glitter_scene_effect effect;
-
     if (!a2)
         return;
 
-    if (scene->type == GLITTER_X) {
-        for (i = scene->effects.begin; i != scene->effects.end; i++)
+    glitter_type type = scene->type;
+    float_t emission = scene->emission;
+
+    glitter_scene_effect effect;
+    if (type == GLITTER_X) {
+        for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
             if (i->ptr && i->disp && i->ptr->id == id) {
-                glitter_x_effect_inst_reset(i->ptr, scene->emission);
+                glitter_x_effect_inst_reset(i->ptr, emission);
                 return;
             }
 
-        effect.ptr = glitter_x_effect_inst_init(GPM_VAL, a2, id, scene->emission, appear_now);
+        effect.ptr = glitter_x_effect_inst_init(GPM_VAL, a2, id, emission, appear_now);
     }
     else {
-        for (i = scene->effects.begin; i != scene->effects.end; i++)
+        for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
             if (i->ptr && i->disp && i->ptr->id == id) {
-                glitter_effect_inst_reset(GPM_VAL, scene->type, i->ptr, scene->emission);
+                glitter_effect_inst_reset(GPM_VAL, type, i->ptr, emission);
                 return;
             }
 
-        effect.ptr = glitter_effect_inst_init(GPM_VAL, scene->type, a2, id, scene->emission, appear_now);
+        effect.ptr = glitter_effect_inst_init(GPM_VAL, type, a2, id, emission, appear_now);
     }
     effect.disp = true;
 
-    vector_glitter_scene_effect_push_back(&scene->effects, &effect);
+    vector_old_glitter_scene_effect_push_back(&scene->effects, &effect);
 }
 
-void glitter_scene_dispose(glitter_scene* s) {
-    if (s->type == GLITTER_X) {
-        for (glitter_scene_effect* i = s->effects.begin; i != s->effects.end; ++i)
-            if (i->ptr)
-                glitter_x_effect_inst_dispose(i->ptr);
+bool glitter_scene_reset_effect(GPM, glitter_scene* scene, uint64_t effect_hash) {
+    glitter_type type = scene->type;
+    float_t emission = scene->emission;
+    if (type == GLITTER_X) {
+        if (effect_hash == hash_murmurhash_empty) {
+            for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+                if (i->disp && i->ptr)
+                    glitter_x_effect_inst_reset(i->ptr, emission);
+            return true;
+        }
+        else if (vector_old_length(scene->effects) > 0)
+            for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+                if (i->disp && i->ptr && i->ptr->data.name_hash == effect_hash) {
+                    glitter_x_effect_inst_reset(i->ptr, emission);
+                    return true;
+                }
     }
     else {
-        for (glitter_scene_effect* i = s->effects.begin; i != s->effects.end; ++i)
-            if (i->ptr)
-                glitter_effect_inst_dispose(i->ptr);
+        if (type == GLITTER_FT && effect_hash == hash_fnv1a64m_empty
+            || type != GLITTER_FT && effect_hash == hash_murmurhash_empty) {
+            for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+                if (i->disp && i->ptr)
+                    glitter_effect_inst_reset(GPM_VAL, type, i->ptr, emission);
+            return true;
+        }
+        else if (vector_old_length(scene->effects) > 0)
+            for (glitter_scene_effect* i = scene->effects.begin; i != scene->effects.end; i++)
+                if (i->disp && i->ptr && i->ptr->data.name_hash == effect_hash) {
+                    glitter_effect_inst_reset(GPM_VAL, type, i->ptr, emission);
+                    return true;
+                }
     }
-    vector_glitter_scene_effect_free(&s->effects, 0);
-    free(s);
+    return false;
+}
+
+glitter_scene_counter::glitter_scene_counter(uint32_t counter) {
+    this->index = 0;
+    this->counter = counter;
+}
+
+glitter_scene_counter::glitter_scene_counter(uint32_t index, uint32_t counter) {
+    this->index = index;
+    this->counter = counter;
 }

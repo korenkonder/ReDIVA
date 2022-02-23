@@ -14,76 +14,80 @@ static char* light_param_face_read_line(char* buf, int32_t size, char* src);
 static void light_param_face_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
 static void light_param_face_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
 
-void light_param_face_init(light_param_face* face) {
-    memset(face, 0, sizeof(light_param_face));
+light_param_face::light_param_face() : ready(), offset(), scale(), position(), direction() {
+
 }
 
-void light_param_face_read(light_param_face* face, char* path) {
+void light_param_face::read(char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
         io_open(&s, path_txt, "rb");
         if (s.io.stream)
-            light_param_face_read_inner(face, &s);
+            light_param_face_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_face_wread(light_param_face* face, wchar_t* path) {
+void light_param_face::read(wchar_t* path) {
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     if (path_wcheck_file_exists(path_txt)) {
         stream s;
         io_wopen(&s, path_txt, L"rb");
         if (s.io.stream)
-            light_param_face_read_inner(face, &s);
+            light_param_face_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_face_mread(light_param_face* face, void* data, size_t length) {
+void light_param_face::read(void* data, size_t length) {
     stream s;
     io_mopen(&s, data, length);
-    light_param_face_read_inner(face, &s);
+    light_param_face_read_inner(this, &s);
     io_free(&s);
 }
 
-void light_param_face_write(light_param_face* face, char* path) {
-    if (!face || !path || !face->ready)
+void light_param_face::write(char* path) {
+    if (!path || !ready)
         return;
 
     char* path_txt = str_utils_add(path, ".txt");
     stream s;
     io_open(&s, path_txt, "wb");
     if (s.io.stream)
-        light_param_face_write_inner(face, &s);
+        light_param_face_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_face_wwrite(light_param_face* face, wchar_t* path) {
-    if (!face || !path || !face->ready)
+void light_param_face::write(wchar_t* path) {
+    if (!path || !ready)
         return;
 
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     stream s;
     io_wopen(&s, path_txt, L"wb");
     if (s.io.stream)
-        light_param_face_write_inner(face, &s);
+        light_param_face_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_face_mwrite(light_param_face* face, void** data, size_t* length) {
-    if (!face || !data || !face->ready)
+void light_param_face::write(void** data, size_t* length) {
+    if (!data || !ready)
         return;
 
     stream s;
     io_mopen(&s, 0, 0);
-    light_param_face_write_inner(face, &s);
+    light_param_face_write_inner(this, &s);
     io_mcopy(&s, data, length);
     io_free(&s);
+}
+
+light_param_face::~light_param_face() {
+
 }
 
 bool light_param_face_load_file(void* data, char* path, char* file, uint32_t hash) {
@@ -98,14 +102,10 @@ bool light_param_face_load_file(void* data, char* path, char* file, uint32_t has
     string_add_length(&s, file, file_len);
 
     light_param_face* face = (light_param_face*)data;
-    light_param_face_read(face, string_data(&s));
+    face->read(string_data(&s));
 
     string_free(&s);
     return face->ready;
-}
-
-void light_param_face_free(light_param_face* face) {
-
 }
 
 static void light_param_face_read_inner(light_param_face* face, stream* s) {

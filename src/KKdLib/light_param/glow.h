@@ -14,7 +14,8 @@ typedef enum tone_map_method {
     TONE_MAP_RGB_LINEAR2  = 2,
 } tone_map_method;
 
-typedef struct light_param_glow {
+class light_param_glow {
+public:
     bool ready;
 
     bool has_exposure;
@@ -41,14 +42,15 @@ typedef struct light_param_glow {
     bool has_tone_transform;
     vec3 tone_transform_start;
     vec3 tone_transform_end;
-} light_param_glow;
 
-extern void light_param_glow_init(light_param_glow* glow);
-extern void light_param_glow_read(light_param_glow* glow, char* path);
-extern void light_param_glow_wread(light_param_glow* glow, wchar_t* path);
-extern void light_param_glow_mread(light_param_glow* glow, void* data, size_t length);
-extern void light_param_glow_write(light_param_glow* glow, char* path);
-extern void light_param_glow_wwrite(light_param_glow* glow, wchar_t* path);
-extern void light_param_glow_mwrite(light_param_glow* glow, void** data, size_t* length);
+    light_param_glow();
+    void read(char* path);
+    void read(wchar_t* path);
+    void read(void* data, size_t length);
+    void write(char* path);
+    void write(wchar_t* path);
+    void write(void** data, size_t* length);
+    ~light_param_glow();
+};
+
 extern bool light_param_glow_load_file(void* data, char* path, char* file, uint32_t hash);
-extern void light_param_glow_free(light_param_glow* glow);

@@ -12,9 +12,14 @@
 typedef struct object_info {
     uint32_t id;
     uint32_t set_id;
+
+    inline bool is_null() { return id == (uint32_t)-1 && set_id == (uint32_t)-1; }
+    inline bool not_null() { return id != (uint32_t)-1 || set_id != (uint32_t)-1; }
+    inline bool operator ==(object_info& right) { return id == right.id && set_id == right.set_id; }
+    inline bool operator !=(object_info& right) { return id != right.id || set_id != right.set_id; }
 } object_info;
 
-vector(object_info)
+vector_old(object_info)
 
 typedef struct object_info_data {
     uint32_t id;
@@ -24,7 +29,7 @@ typedef struct object_info_data {
     uint32_t name_hash_murmurhash;
 } object_info_data;
 
-vector(object_info_data)
+vector_old(object_info_data)
 
 typedef struct object_set_info {
     string name;
@@ -33,18 +38,18 @@ typedef struct object_set_info {
     string object_file_name;
     string texture_file_name;
     string archive_file_name;
-    vector_object_info_data object;
+    vector_old_object_info_data object;
 } object_set_info;
 
-vector(object_set_info)
+vector_old(object_set_info)
 
 typedef struct object_database {
     bool ready;
     bool modern;
     bool is_x;
 
-    vector_string bone_name;
-    vector_object_set_info object_set;
+    vector_old_string bone_name;
+    vector_old_object_set_info object_set;
 } object_database;
 
 extern const object_info object_info_null;

@@ -6,7 +6,7 @@
 #include "curve_x.h"
 #include "random_x.h"
 
-static void glitter_x_curve_get_key_indexes(vector_glitter_curve_key* keys,
+static void glitter_x_curve_get_key_indexes(vector_old_glitter_curve_key* keys,
     float_t frame, size_t* curr, size_t* next);
 static float_t glitter_x_curve_interpolate(glitter_curve* c, float_t frame,
     glitter_curve_key* curr, glitter_curve_key* next, glitter_key_type key_type, glitter_random* random);
@@ -22,7 +22,7 @@ bool glitter_x_curve_get_value(glitter_curve* c,
     bool negate;
     float_t _value;
 
-    keys_count = vector_length(c->keys);
+    keys_count = vector_old_length(c->keys);
     if (!keys_count)
         return false;
 
@@ -100,7 +100,7 @@ End:
     return true;
 }
 
-static void glitter_x_curve_get_key_indexes(vector_glitter_curve_key* keys,
+static void glitter_x_curve_get_key_indexes(vector_old_glitter_curve_key* keys,
     float_t frame, size_t* curr, size_t* next) {
     size_t v4;
     glitter_curve_key* v6;
@@ -108,7 +108,7 @@ static void glitter_x_curve_get_key_indexes(vector_glitter_curve_key* keys,
     size_t v9;
     size_t v10;
 
-    count = vector_length(*keys);
+    count = vector_old_length(*keys);
     if (count <= 1) {
         *curr = 0;
         *next = 0;

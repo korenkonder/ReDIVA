@@ -10,20 +10,20 @@
 #include "classes/graphics.h"
 #include "classes/information.h"
 
-classes_struct classes[] = {
+classes_data classes[] = {
     {
         "Data Test",
         CLASSES_IN_CONTEXT_MENU,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         {
             {},
             (class_flags)CLASS_INIT,
@@ -36,16 +36,16 @@ classes_struct classes[] = {
     {
         "Data View",
         CLASSES_IN_CONTEXT_MENU,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         {
             {},
             (class_flags)CLASS_INIT,
@@ -58,16 +58,16 @@ classes_struct classes[] = {
     {
         "Graphics",
         CLASSES_IN_CONTEXT_MENU,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         {
             {},
             (class_flags)CLASS_INIT,
@@ -80,16 +80,16 @@ classes_struct classes[] = {
     {
         "Information",
         CLASSES_IN_CONTEXT_MENU,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         {
             {},
             (class_flags)CLASS_INIT,
@@ -104,14 +104,14 @@ classes_struct classes[] = {
         "Glitter Editor",
         CLASSES_IN_CONTEXT_MENU,
         glitter_editor_init,
+        glitter_editor_ctrl,
         glitter_editor_draw,
         glitter_editor_drop,
-        CLASSES_STRUCT_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         glitter_editor_imgui,
         glitter_editor_input,
-        glitter_editor_render,
-        CLASSES_STRUCT_NO_FUNC,
-        CLASSES_STRUCT_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         glitter_editor_dispose,
         {
             {},
@@ -125,7 +125,7 @@ classes_struct classes[] = {
 #endif
 };
 
-const size_t classes_count = sizeof(classes) / sizeof(classes_struct);
+const size_t classes_count = sizeof(classes) / sizeof(classes_data);
 
 render_state state;
 lock state_lock;

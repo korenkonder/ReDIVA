@@ -14,76 +14,81 @@ static char* light_param_wind_read_line(char* buf, int32_t size, char* src);
 static void light_param_wind_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
 static void light_param_wind_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
 
-void light_param_wind_init(light_param_wind* wind) {
-    memset(wind, 0, sizeof(light_param_wind));
+light_param_wind::light_param_wind() : ready(), has_scale(), scale(), has_cycle(),
+cycle(), has_rot(), rot_y(), rot_z(), has_bias(), bias(), has_spc(), spc() {
+
 }
 
-void light_param_wind_read(light_param_wind* wind, char* path) {
+void light_param_wind::read(char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
         io_open(&s, path_txt, "rb");
         if (s.io.stream)
-            light_param_wind_read_inner(wind, &s);
+            light_param_wind_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_wind_wread(light_param_wind* wind, wchar_t* path) {
+void light_param_wind::read(wchar_t* path) {
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     if (path_wcheck_file_exists(path_txt)) {
         stream s;
         io_wopen(&s, path_txt, L"rb");
         if (s.io.stream)
-            light_param_wind_read_inner(wind, &s);
+            light_param_wind_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_wind_mread(light_param_wind* wind, void* data, size_t length) {
+void light_param_wind::read(void* data, size_t length) {
     stream s;
     io_mopen(&s, data, length);
-    light_param_wind_read_inner(wind, &s);
+    light_param_wind_read_inner(this, &s);
     io_free(&s);
 }
 
-void light_param_wind_write(light_param_wind* wind, char* path) {
-    if (!wind || !path || !wind->ready)
+void light_param_wind::write(char* path) {
+    if (!path || !ready)
         return;
 
     char* path_txt = str_utils_add(path, ".txt");
     stream s;
     io_open(&s, path_txt, "wb");
     if (s.io.stream)
-        light_param_wind_write_inner(wind, &s);
+        light_param_wind_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_wind_wwrite(light_param_wind* wind, wchar_t* path) {
-    if (!wind || !path || !wind->ready)
+void light_param_wind::write(wchar_t* path) {
+    if (!path || !ready)
         return;
 
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     stream s;
     io_wopen(&s, path_txt, L"wb");
     if (s.io.stream)
-        light_param_wind_write_inner(wind, &s);
+        light_param_wind_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_wind_mwrite(light_param_wind* wind, void** data, size_t* length) {
-    if (!wind || !data || !wind->ready)
+void light_param_wind::write(void** data, size_t* length) {
+    if (!data || !ready)
         return;
 
     stream s;
     io_mopen(&s, 0, 0);
-    light_param_wind_write_inner(wind, &s);
+    light_param_wind_write_inner(this, &s);
     io_mcopy(&s, data, length);
     io_free(&s);
+}
+
+light_param_wind::~light_param_wind() {
+
 }
 
 bool light_param_wind_load_file(void* data, char* path, char* file, uint32_t hash) {
@@ -98,13 +103,17 @@ bool light_param_wind_load_file(void* data, char* path, char* file, uint32_t has
     string_add_length(&s, file, file_len);
 
     light_param_wind* wind = (light_param_wind*)data;
-    light_param_wind_read(wind, string_data(&s));
+    wind->read(string_data(&s));
 
     string_free(&s);
     return wind->ready;
 }
 
-void light_param_wind_free(light_param_wind* wind) {
+light_param_wind_spc::light_param_wind_spc() : cos(), sin() {
+
+}
+
+light_param_wind_spc::~light_param_wind_spc() {
 
 }
 

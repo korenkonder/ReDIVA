@@ -12,8 +12,8 @@ typedef enum enrs_value_type {
     ENRS_VALUE_INVALID = 0x3,
 } enrs_value_type;
 
-vector_func(enrs_sub_entry)
-vector_func(enrs_entry)
+vector_old_func(enrs_sub_entry)
+vector_old_func(enrs_entry)
 
 inline static bool enrs_length_get_size_type(uint32_t* length, size_t val);
 inline static bool enrs_length_get_size(uint32_t* length, size_t val);
@@ -22,7 +22,7 @@ static bool enrs_write_packed_value(stream* s, uint32_t val);
 static bool enrs_read_packed_value_type(stream* s, uint32_t* val, enrs_type* type);
 static bool enrs_write_packed_value_type(stream* s, uint32_t val, enrs_type type);
 
-void enrs_apply(vector_enrs_entry* enrs, void* data) {
+void enrs_apply(vector_old_enrs_entry* enrs, void* data) {
     if (!enrs || !data)
         return;
 
@@ -59,7 +59,7 @@ void enrs_apply(vector_enrs_entry* enrs, void* data) {
     }
 }
 
-uint32_t enrs_length(vector_enrs_entry* enrs) {
+uint32_t enrs_length(vector_old_enrs_entry* enrs) {
     enrs_entry entry;
     enrs_sub_entry sub_entry;
     enrs_entry* i;
@@ -71,7 +71,7 @@ uint32_t enrs_length(vector_enrs_entry* enrs) {
     o = 0;
     for (i = enrs->begin; i != enrs->end; i++) {
         entry = *i;
-        entry.count = (uint32_t)vector_length(entry.sub);
+        entry.count = (uint32_t)vector_old_length(entry.sub);
         if (i != enrs->begin && i[-1].count < 1) {
             o += (uint32_t)((size_t)i[-1].size * i[-1].repeat_count);
             if (i->count > 0) {
@@ -104,21 +104,21 @@ End:
     return l;
 }
 
-void enrs_read(stream* s, vector_enrs_entry* enrs) {
+void enrs_read(stream* s, vector_old_enrs_entry* enrs) {
     enrs_sub_entry sub_entry;
-    vector_enrs_entry e;
-    vector_enrs_sub_entry sub;
+    vector_old_enrs_entry e;
+    vector_old_enrs_sub_entry sub;
     size_t i, j, l;
 
-    vector_enrs_entry_free(enrs, 0);
+    vector_old_enrs_entry_free(enrs, 0);
 
     io_read_uint32_t(s);
     l = io_read_uint32_t(s);
     io_read_uint32_t(s);
     io_read_uint32_t(s);
 
-    e = vector_empty(enrs_entry);
-    vector_enrs_entry_reserve(&e, l);
+    e = vector_old_empty(enrs_entry);
+    vector_old_enrs_entry_reserve(&e, l);
     for (i = 0; i < l; i++) {
         enrs_entry entry;
         memset(&entry, 0, sizeof(enrs_entry));
@@ -129,27 +129,27 @@ void enrs_read(stream* s, vector_enrs_entry* enrs) {
             goto End;
 
         if (!entry.count || !entry.repeat_count) {
-            vector_enrs_entry_push_back(&e, &entry);
+            vector_old_enrs_entry_push_back(&e, &entry);
             continue;
         }
 
-        sub = vector_empty(enrs_sub_entry);
-        vector_enrs_sub_entry_reserve(&sub, entry.count);
+        sub = vector_old_empty(enrs_sub_entry);
+        vector_old_enrs_sub_entry_reserve(&sub, entry.count);
         for (j = 0; j < entry.count; j++) {
             memset(&sub_entry, 0, sizeof(sub_entry));
             if (enrs_read_packed_value_type(s, &sub_entry.skip_bytes, &sub_entry.type)
                 || enrs_read_packed_value(s, &sub_entry.repeat_count))
                 goto End;
-            vector_enrs_sub_entry_push_back(&sub, &sub_entry);
+            vector_old_enrs_sub_entry_push_back(&sub, &sub_entry);
         }
         entry.sub = sub;
-        vector_enrs_entry_push_back(&e, &entry);
+        vector_old_enrs_entry_push_back(&e, &entry);
     }
 End:
     *enrs = e;
 }
 
-void enrs_write(stream* s, vector_enrs_entry* enrs) {
+void enrs_write(stream* s, vector_old_enrs_entry* enrs) {
     enrs_entry entry;
     enrs_sub_entry sub_entry;
     enrs_entry* i;
@@ -159,12 +159,12 @@ void enrs_write(stream* s, vector_enrs_entry* enrs) {
     o = 0;
     size_t length = enrs_length(enrs);
     io_write_uint32_t(s, 0);
-    io_write_uint32_t(s, (uint32_t)vector_length(*enrs));
+    io_write_uint32_t(s, (uint32_t)vector_old_length(*enrs));
     io_write_uint32_t(s, 0);
     io_write_uint32_t(s, 0);
     for (i = enrs->begin; i != enrs->end; i++) {
         entry = *i;
-        entry.count = (uint32_t)vector_length(entry.sub);
+        entry.count = (uint32_t)vector_old_length(entry.sub);
         if (i != enrs->begin && i[-1].count < 1) {
             o += (uint32_t)((size_t)i[-1].size * i[-1].repeat_count);
             if (i->count > 0) {
@@ -197,18 +197,18 @@ End:
     io_align_write(s, 0x10);
 }
 
-void enrs_free(vector_enrs_entry* e) {
+void enrs_free(vector_old_enrs_entry* e) {
     if (!e)
         return;
 
     for (enrs_entry* i = e->begin; i != e->end; i++)
-        vector_enrs_sub_entry_free(&i->sub, 0);
-    vector_enrs_entry_free(e, 0);
+        vector_old_enrs_sub_entry_free(&i->sub, 0);
+    vector_old_enrs_entry_free(e, 0);
 }
 
-inline void vector_enrs_sub_entry_append(vector_enrs_sub_entry* enrs_sub,
+inline void vector_old_enrs_sub_entry_append(vector_old_enrs_sub_entry* enrs_sub,
     uint32_t skip_bytes, uint32_t repeat_count, enrs_type type) {
-    *vector_enrs_sub_entry_reserve_back(enrs_sub) = { skip_bytes, repeat_count, type };
+    *vector_old_enrs_sub_entry_reserve_back(enrs_sub) = { skip_bytes, repeat_count, type };
 }
 
 inline static bool enrs_length_get_size_type(uint32_t* length, size_t val) {

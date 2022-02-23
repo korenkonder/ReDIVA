@@ -15,7 +15,7 @@ typedef struct dds {
     uint32_t height;
     uint32_t mipmaps_count;
     bool has_cube_map;
-    vector_ptr_void data;
+    vector_old_ptr_void data;
 } dds;
 
 extern dds* dds_init();

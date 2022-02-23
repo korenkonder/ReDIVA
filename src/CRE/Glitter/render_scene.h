@@ -9,7 +9,6 @@
 
 extern void glitter_render_scene_append(glitter_render_scene* rs,
     glitter_render_group* rg);
-extern void glitter_render_scene_calc_disp(GPM, glitter_render_scene* rs);
 extern void glitter_render_scene_ctrl(GLT,
     glitter_render_scene* rs, float_t delta_frame);
 extern void glitter_render_scene_disp(GPM, glitter_render_scene* rs, draw_pass_3d_type alpha);

@@ -59,20 +59,20 @@ typedef struct mot_data {
     mot_key_set_data* key_set;
 } mot_data;
 
-vector(mot_data)
+vector_old(mot_data)
 
 typedef struct mot_set {
     bool is_x;
     string name;
-    vector_mot_data vec;
+    vector_old_mot_data vec;
 } mot_set;
 
-vector(mot_set)
+vector_old(mot_set)
 
 typedef struct mot_set_farc {
     bool ready;
     bool modern;
-    vector_mot_set vec;
+    vector_old_mot_set vec;
 } mot_set_farc;
 
 extern void mot_init(mot_set_farc* msf);

@@ -11,7 +11,6 @@
 
 extern int32_t width;
 extern int32_t height;
-extern bool input_locked;
 
 extern timer render_timer;
 extern timer sound_timer;
@@ -125,14 +124,6 @@ void graphics_render_settings_imgui(class_data* data) {
 
     data->imgui_focus |= igIsWindowFocused(0);
     igEnd();
-}
-
-void graphics_render_settings_input(class_data* data) {
-    input_locked |= data->imgui_focus;
-}
-
-void graphics_render_settings_render(class_data* data) {
-
 }
 
 bool graphics_render_settings_dispose(class_data* data) {

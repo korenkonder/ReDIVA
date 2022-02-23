@@ -397,6 +397,7 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
         light_get_direction_from_position(&spot_direction, &set->lights[LIGHT_REFLECT], 1);
         light_get_position_vec4(&set->lights[LIGHT_REFLECT], &position);
         vec3_dot(*(vec3*)&position, *(vec3*)&spot_direction, spot_direction.w);
+        spot_direction.w = -spot_direction.w;
 
         shader_env_vert_set_ptr(&shaders_ft, 28, &spot_direction);
         shader_env_frag_set_ptr(&shaders_ft, 22, &spot_direction);

@@ -45,26 +45,26 @@ typedef struct bone_database_bone {
     string name;
 } bone_database_bone;
 
-vector(bone_database_bone)
+vector_old(bone_database_bone)
 
 typedef struct bone_database_skeleton {
-    vector_bone_database_bone bone;
-    vector_vec3 position;
+    vector_old_bone_database_bone bone;
+    vector_old_vec3 position;
     float_t heel_height;
-    vector_string object_bone;
-    vector_string motion_bone;
-    vector_uint16_t parent_index;
+    vector_old_string object_bone;
+    vector_old_string motion_bone;
+    vector_old_uint16_t parent_index;
     string name;
 } bone_database_skeleton;
 
-vector(bone_database_skeleton)
+vector_old(bone_database_skeleton)
 
 typedef struct bone_database {
     bool ready;
     bool modern;
     bool is_x;
 
-    vector_bone_database_skeleton skeleton;
+    vector_old_bone_database_skeleton skeleton;
 } bone_database;
 
 extern void bone_database_init(bone_database* bone_data);
@@ -75,25 +75,28 @@ extern void bone_database_write(bone_database* bone_data, char* path);
 extern void bone_database_wwrite(bone_database* bone_data, wchar_t* path);
 extern void bone_database_mwrite(bone_database* bone_data, void** data, size_t* length);
 extern bool bone_database_load_file(void* data, char* path, char* file, uint32_t hash);
-extern void bone_database_bones_calculate_count(vector_bone_database_bone* bones, size_t* object_bone_count,
+extern void bone_database_bones_calculate_count(vector_old_bone_database_bone* bones, size_t* object_bone_count,
     size_t* motion_bone_count, size_t* total_bone_count, size_t* ik_bone_count, size_t* chain_pos);
 extern bool bone_database_get_skeleton(bone_database* bone_data,
     char* name, bone_database_skeleton** skeleton);
-extern int32_t bone_database_get_skeleton_bone_index(bone_database* bone_data, char* name, char* bone_name);
+extern int32_t bone_database_get_skeleton_bone_index(bone_database* bone_data,
+    const char* name, char* bone_name);
+extern int32_t bone_database_get_skeleton_bone_index(bone_database* bone_data,
+    const char* name, const char* bone_name);
 extern bool bone_database_get_skeleton_bones(bone_database* bone_data,
-    char* name, vector_bone_database_bone** bone);
+    char* name, vector_old_bone_database_bone** bone);
 extern bool bone_database_get_skeleton_positions(bone_database* bone_data,
-    char* name, vector_vec3** positions);
+    char* name, vector_old_vec3** positions);
 extern int32_t bone_database_get_skeleton_object_bone_index(bone_database* bone_data,
     char* name, char* bone_name);
 extern bool bone_database_get_skeleton_object_bones(bone_database* bone_data,
-    char* name, vector_string** object_bones);
+    char* name, vector_old_string** object_bones);
 extern int32_t bone_database_get_skeleton_motion_bone_index(bone_database* bone_data,
     char* name, char* bone_name);
 extern bool bone_database_get_skeleton_motion_bones(bone_database* bone_data,
-    char* name, vector_string** motion_bones);
+    char* name, vector_old_string** motion_bones);
 extern bool bone_database_get_skeleton_parent_indices(bone_database* bone_data,
-    char* name, vector_uint16_t** parent_indices);
+    char* name, vector_old_uint16_t** parent_indices);
 extern bool bone_database_get_skeleton_heel_height(bone_database* bone_data,
     char* name, float_t** unknown_value);
 extern void bone_database_free(bone_database* bone_data);

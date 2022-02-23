@@ -21,8 +21,8 @@
 
 typedef unsigned short half_t;
 
-vector(half_t)
-vector_ptr(half_t)
+vector_old(half_t)
+vector_old_ptr(half_t)
 
 extern half_t load_reverse_endianness_half_t(void* ptr);
 extern void store_reverse_endianness_half_t(half_t value, void* ptr);

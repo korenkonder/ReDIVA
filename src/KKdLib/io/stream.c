@@ -15,7 +15,7 @@ void io_open(stream* s, char* path, const char* mode) {
     wchar_t* temp_mode = utf8_to_utf16((char*)mode);
     s->io.stream = _wfsopen(temp_path, temp_mode, _SH_DENYNO);
     s->type = s->io.stream ? ferror(s->io.stream) ? STREAM_NONE : STREAM_FILE : STREAM_NONE;
-    s->position_stack = vector_empty(ssize_t);
+    s->position_stack = vector_old_empty(ssize_t);
     io_get_length(s);
     free(temp_path);
     free(temp_mode);
@@ -32,11 +32,11 @@ void io_wopen(stream* s, wchar_t* path, const wchar_t* mode) {
 
     s->io.stream = _wfsopen(path, mode, _SH_DENYNO);
     s->type = s->io.stream ? ferror(s->io.stream) ? STREAM_NONE : STREAM_FILE : STREAM_NONE;
-    s->position_stack = vector_empty(ssize_t);
+    s->position_stack = vector_old_empty(ssize_t);
     io_get_length(s);
 }
 
-inline void io_wopen(stream* s, const wchar_t* path, const char* mode) {
+inline void io_wopen(stream* s, const wchar_t* path, const wchar_t* mode) {
     io_wopen(s, (wchar_t*)path, mode);
 }
 
@@ -48,14 +48,14 @@ void io_mopen(stream* s, void* data, size_t length) {
         return;
     }
 
-    s->io.data.vec = vector_empty(uint8_t);
-    vector_uint8_t_reserve(&s->io.data.vec, length);
+    s->io.data.vec = vector_old_empty(uint8_t);
+    vector_old_uint8_t_reserve(&s->io.data.vec, length);
     if (s->io.data.vec.begin && data)
         memcpy(s->io.data.vec.begin, data, length);
     s->io.data.data = s->io.data.vec.begin;
     s->io.data.vec.end = s->io.data.vec.begin + length;
     s->type = STREAM_MEMORY;
-    s->position_stack = vector_empty(ssize_t);
+    s->position_stack = vector_old_empty(ssize_t);
     s->length = length;
 }
 
@@ -63,7 +63,7 @@ void io_mcopy(stream* s, void** data, size_t* length) {
     if (!s || !data || !length || s->type != STREAM_MEMORY)
         return;
 
-    *length = vector_length(s->io.data.vec);
+    *length = vector_old_length(s->io.data.vec);
     *data = force_malloc(*length);
     memcpy(*data, s->io.data.vec.begin, *length);
 }
@@ -91,7 +91,7 @@ void io_align_read(stream* s, ssize_t align) {
         case STREAM_MEMORY:
             capacity = s->io.data.vec.end - s->io.data.data;
             if (capacity < temp_align) {
-                vector_uint8_t_reserve(&s->io.data.vec, temp_align);
+                vector_old_uint8_t_reserve(&s->io.data.vec, temp_align);
                 memset(s->io.data.vec.begin + position, 0, temp_align);
             }
             s->io.data.data = s->io.data.vec.begin + position + temp_align;
@@ -132,7 +132,7 @@ void io_align_write(stream* s, ssize_t align) {
         case STREAM_MEMORY:
             capacity = s->io.data.vec.end - s->io.data.data;
             if (capacity < temp_align) {
-                vector_uint8_t_reserve(&s->io.data.vec, temp_align);
+                vector_old_uint8_t_reserve(&s->io.data.vec, temp_align);
                 memset(s->io.data.vec.begin + position, 0, temp_align);
             }
             s->io.data.data = s->io.data.vec.begin + position + temp_align;
@@ -166,7 +166,7 @@ inline ssize_t io_get_length(stream* s) {
             s->length = 0;
         break;
     case STREAM_MEMORY:
-        s->length = vector_length(s->io.data.vec);
+        s->length = vector_old_length(s->io.data.vec);
         break;
     default:
         s->length = 0;
@@ -197,9 +197,9 @@ int32_t io_set_position(stream* s, ssize_t pos, int32_t seek) {
             if (pos < 0)
                 return EOF;
 
-            capacity = vector_capacity(s->io.data.vec);
+            capacity = vector_old_capacity(s->io.data.vec);
             if (capacity < pos)
-                vector_uint8_t_reserve(&s->io.data.vec, pos - capacity);
+                vector_old_uint8_t_reserve(&s->io.data.vec, pos - capacity);
 
             s->io.data.data = s->io.data.vec.begin + pos;
             if (s->io.data.data > s->io.data.vec.end) {
@@ -212,7 +212,7 @@ int32_t io_set_position(stream* s, ssize_t pos, int32_t seek) {
             if (pos > 0) {
                 capacity = s->io.data.vec.capacity_end - s->io.data.data;
                 if (capacity < pos) {
-                    vector_uint8_t_reserve(&s->io.data.vec, pos - capacity);
+                    vector_old_uint8_t_reserve(&s->io.data.vec, pos - capacity);
                     s->io.data.vec.end = s->io.data.vec.capacity_end;
                     s->io.data.data = s->io.data.vec.capacity_end;
                 }
@@ -231,7 +231,7 @@ int32_t io_set_position(stream* s, ssize_t pos, int32_t seek) {
             if (pos < 0)
                 return EOF;
 
-            capacity = vector_length(s->io.data.vec);
+            capacity = vector_old_length(s->io.data.vec);
             if (capacity < pos)
                 return EOF;
 
@@ -245,16 +245,16 @@ int32_t io_set_position(stream* s, ssize_t pos, int32_t seek) {
 }
 
 inline int32_t io_position_push(stream* s, ssize_t pos, int32_t seek) {
-    *vector_ssize_t_reserve_back(&s->position_stack) = io_get_position(s);
+    *vector_old_ssize_t_reserve_back(&s->position_stack) = io_get_position(s);
     return io_set_position(s, pos, seek);
 }
 
 inline void io_position_pop(stream* s) {
-    if (vector_length(s->position_stack) < 1)
+    if (vector_old_length(s->position_stack) < 1)
         return;
 
     ssize_t position = s->position_stack.end[-1];
-    vector_ssize_t_pop_back(&s->position_stack, 0);
+    vector_old_ssize_t_pop_back(&s->position_stack, 0);
     io_set_position(s, position, SEEK_SET);
     io_flush(s);
 }
@@ -316,7 +316,7 @@ ssize_t io_write(stream* s, void* buf, ssize_t count) {
         capacity = s->io.data.vec.capacity_end - s->io.data.data;
         if (capacity < count) {
             ssize_t pos = s->io.data.data - s->io.data.vec.begin;
-            vector_uint8_t_reserve(&s->io.data.vec, count + capacity);
+            vector_old_uint8_t_reserve(&s->io.data.vec, count + capacity);
             s->io.data.data = s->io.data.vec.begin + pos;
         }
         if (buf)
@@ -358,7 +358,7 @@ int32_t io_write_char(stream* s, char c) {
         capacity = s->io.data.vec.capacity_end - s->io.data.data;
         if (capacity < 1) {
             ssize_t pos = s->io.data.data - s->io.data.vec.begin;
-            vector_uint8_t_reserve(&s->io.data.vec, 1 - capacity);
+            vector_old_uint8_t_reserve(&s->io.data.vec, 1 - capacity);
             s->io.data.data = s->io.data.vec.begin + pos;
         }
         *s->io.data.data++ = c;
@@ -399,11 +399,27 @@ inline void io_read_string(stream* s, string* str, size_t length) {
     temp[length] = 0;
 }
 
+inline void io_read_string(stream* s, std::string* str, size_t length) {
+    char* temp = new char[length + 1];
+    io_read(s, temp, length);
+    temp[length] = 0;
+    *str = std::string(temp, length);
+    delete[] temp;
+}
+
 inline void io_read_wstring(stream* s, wstring* str, size_t length) {
     wstring_init_length(str, length);
     wchar_t* temp = wstring_data(str);
     io_read(s, temp, sizeof(wchar_t) * length);
     temp[length] = 0;
+}
+
+inline void io_read_wstring(stream* s, std::wstring* str, size_t length) {
+    wchar_t* temp = new wchar_t[length + 1];
+    io_read(s, temp, sizeof(wchar_t) * length);
+    temp[length] = 0;
+    *str = std::wstring(temp, length);
+    delete[] temp;
 }
 
 inline void io_read_string_null_terminated(stream* s, string* str) {
@@ -414,11 +430,27 @@ inline void io_read_string_null_terminated(stream* s, string* str) {
     free(temp);
 }
 
+inline void io_read_string_null_terminated(stream* s, std::string* str) {
+    ssize_t offset = io_get_position(s);
+    ssize_t length = 0;
+    char* temp = io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
+    *str = std::string(temp, length);
+    free(temp);
+}
+
 inline void io_read_wstring_null_terminated(stream* s, wstring* str) {
     ssize_t offset = io_get_position(s);
     ssize_t length = 0;
     wchar_t* temp = io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
     wstring_init_length(str, temp, length);
+    free(temp);
+}
+
+inline void io_read_wstring_null_terminated(stream* s, std::wstring* str) {
+    ssize_t offset = io_get_position(s);
+    ssize_t length = 0;
+    wchar_t* temp = io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
+    *str = std::wstring(temp, length);
     free(temp);
 }
 
@@ -434,6 +466,18 @@ inline void io_read_string_null_terminated_offset(stream* s,
         *str = string_empty;
 }
 
+inline void io_read_string_null_terminated_offset(stream* s,
+    ssize_t offset, std::string* str) {
+    if (offset) {
+        ssize_t length = 0;
+        char* temp = io_read_utf8_string_null_terminated_offset_length(s, offset, &length);
+        *str = std::string(temp, length);
+        free(temp);
+    }
+    else
+        *str = {};
+}
+
 inline void io_read_wstring_null_terminated_offset(stream* s,
     ssize_t offset, wstring* str) {
     if (offset) {
@@ -444,6 +488,18 @@ inline void io_read_wstring_null_terminated_offset(stream* s,
     }
     else
         *str = wstring_empty;
+}
+
+inline void io_read_wstring_null_terminated_offset(stream* s,
+    ssize_t offset, std::wstring* str) {
+    if (offset) {
+        ssize_t length = 0;
+        wchar_t* temp = io_read_utf16_string_null_terminated_offset_length(s, offset, &length);
+        *str = std::wstring(temp, length);
+        free(temp);
+    }
+    else
+        *str = {};
 }
 
 inline char* io_read_utf8_string_null_terminated(stream* s) {
@@ -532,8 +588,16 @@ inline void io_write_string(stream* s, string* str) {
     io_write(s, string_data(str), str->length);
 }
 
+inline void io_write_string(stream* s, std::string* str) {
+    io_write(s, str->c_str(), str->size());
+}
+
 inline void io_write_wstring(stream* s, wstring* str) {
     io_write(s, wstring_data(str), sizeof(wchar_t) * str->length);
+}
+
+inline void io_write_wstring(stream* s, std::wstring* str) {
+    io_write(s, str->c_str(), sizeof(wchar_t) * str->size());
 }
 
 inline void io_write_string_null_terminated(stream* s, string* str) {
@@ -541,8 +605,18 @@ inline void io_write_string_null_terminated(stream* s, string* str) {
     io_write_uint8_t(s, 0);
 }
 
+inline void io_write_string_null_terminated(stream* s, std::string* str) {
+    io_write(s, str->c_str(), str->size());
+    io_write_uint8_t(s, 0);
+}
+
 inline void io_write_wstring_null_terminated(stream* s, wstring* str) {
     io_write(s, wstring_data(str), sizeof(wchar_t) * str->length);
+    io_write_uint16_t(s, 0);
+}
+
+inline void io_write_wstring_null_terminated(stream* s, std::wstring* str) {
+    io_write(s, str->c_str(), sizeof(wchar_t) * str->size());
     io_write_uint16_t(s, 0);
 }
 
@@ -644,10 +718,10 @@ void io_free(stream* s) {
         }
         break;
     case STREAM_MEMORY:
-        vector_uint8_t_free(&s->io.data.vec, 0);
+        vector_old_uint8_t_free(&s->io.data.vec, 0);
         break;
     }
-    vector_ssize_t_free(&s->position_stack, 0);
+    vector_old_ssize_t_free(&s->position_stack, 0);
     memset(s, 0, sizeof(stream));
 }
 

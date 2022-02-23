@@ -5,20 +5,21 @@
 
 #pragma once
 
+#include <vector>
 #include "../KKdLib/default.h"
 
-typedef enum class task_enum {
-    NONE = 0x00,
-    INIT = 0x01,
-    CTRL = 0x02,
-    DEST = 0x03,
-    MAX  = 0x04,
+typedef enum task_enum {
+    TASK_NONE = 0x00,
+    TASK_INIT = 0x01,
+    TASK_CTRL = 0x02,
+    TASK_DEST = 0x03,
+    TASK_MAX  = 0x04,
 } task_enum;
 
 class Task {
 public:
     int32_t priority;
-    Task* parent;
+    Task* parent_task;
     task_enum field_18;
     uint32_t field_1C;
     uint32_t field_20;
@@ -36,23 +37,37 @@ public:
     uint32_t disp_time_max;
 
     Task();
-    virtual void Basic();
+    virtual ~Task();
+    virtual bool Init();
     virtual bool Ctrl();
     virtual bool Dest();
     virtual void Disp();
-    virtual void Dispose(bool free_data);
-    virtual bool Init();
+    virtual void Basic();
 
-    void Free();
     void SetName(char* name);
     void SetName(const char* name);
     void SetPriority(int32_t priority);
-    ~Task();
 };
 
-extern void TaskWork_init();
-extern void TaskWork_basic();
-extern void TaskWork_ctrl();
-extern void TaskWork_disp();
-extern bool TaskWork_has_task(Task* t);
-extern void TaskWork_free();
+class TaskWork;
+
+extern TaskWork task_work;
+
+class TaskWork {
+public:
+    std::vector<Task*> tasks;
+    Task* current;
+    bool disp;
+
+    TaskWork();
+    ~TaskWork();
+
+    static bool AppendTask(Task* t,
+        const char* name = "(unknown)", int32_t priority = 1);
+    static bool AppendTask(Task* t, Task* parent_task = task_work.current,
+        const char* name = "(unknown)", int32_t priority = 1);
+    static void Basic();
+    static void Ctrl();
+    static void Disp();
+    static bool HasTask(Task* t);
+};

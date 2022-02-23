@@ -8,7 +8,7 @@
 #include "sort.h"
 #include "str_utils.h"
 
-vector_func(dsc_data)
+vector_old_func(dsc_data)
 
 static const dsc_func dsc_ac101_func[] = {
     { 0, 0, "END" },
@@ -358,7 +358,7 @@ static const dsc_func dsc_f2_func[] = {
     { 104, 1, "EDIT_STAGE_PARAM" },
     { 105, 1, "EDIT_CHANGE_FIELD" },
     { 106, 7, "MIKUDAYO_ADJUST" },
-    { 107, 2, "LYRIC_2" },
+    { 107, 2, "LYRIC_2" },                  // US/EU
     { 108, 2, "LYRIC_READ" },
     { 109, 2, "LYRIC_READ_2" },
     { 110, 5, "ANNOTATION" },
@@ -1263,8 +1263,8 @@ typedef struct dsc_data_time {
     uint32_t data_offset;
 } dsc_data_time;
 
-vector(dsc_data_time)
-vector_func(dsc_data_time)
+vector_old(dsc_data_time)
+vector_old_func(dsc_data_time)
 
 static void dsc_convert_from_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
 static void dsc_convert_from_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
@@ -1625,8 +1625,8 @@ void dsc_convert(dsc* d, dsc_type dst_type) {
         }
     }
 
-    vector_dsc_data_free(&d->data, 0);
-    vector_uint32_t_free(&d->data_buffer, 0);
+    vector_old_dsc_data_free(&d->data, 0);
+    vector_old_uint32_t_free(&d->data_buffer, 0);
 
     d->type = dr.dst_type;
     switch (d->type) {
@@ -1645,8 +1645,8 @@ void dsc_convert(dsc* d, dsc_type dst_type) {
     d->data = dr.dsc.data;
     d->data_buffer = dr.dsc.data_buffer;
 
-    dr.dsc.data = vector_empty(dsc_data);
-    dr.dsc.data_buffer = vector_empty(uint32_t);
+    dr.dsc.data = vector_old_empty(dsc_data);
+    dr.dsc.data_buffer = vector_old_empty(uint32_t);
     dsc_replace_free(&dr);
 }
 
@@ -1659,18 +1659,18 @@ void dsc_data_buffer_rebuild(dsc* d) {
     for (dsc_data* i = d->data.begin; i != d->data.end; i++)
         size += get_func_length(i->func);
 
-    vector_uint32_t data_buffer = vector_empty(uint32_t);
-    vector_uint32_t_reserve(&data_buffer, size);
+    vector_old_uint32_t data_buffer = vector_old_empty(uint32_t);
+    vector_old_uint32_t_reserve(&data_buffer, size);
     for (dsc_data* i = d->data.begin; i != d->data.end; i++) {
         uint32_t* func_data = dsc_data_get_func_data(d, i);
-        i->data_offset = (uint32_t)vector_length(data_buffer);
+        i->data_offset = (uint32_t)vector_old_length(data_buffer);
 
         int32_t func_length = get_func_length(i->func);
-        memmove(vector_uint32_t_reserve_back_range(&data_buffer, func_length),
+        memmove(vector_old_uint32_t_reserve_back_range(&data_buffer, func_length),
             func_data, sizeof(uint32_t) * func_length);
         func_data += func_length;
     }
-    vector_uint32_t_free(&d->data_buffer, 0);
+    vector_old_uint32_t_free(&d->data_buffer, 0);
     d->data_buffer = data_buffer;
 }
 
@@ -1728,7 +1728,7 @@ void dsc_merge(dsc* d, int32_t count, ...) {
     va_start(args, count);
     for (int32_t i = 0; i < count; i++) {
         dsc* s = va_arg(args, dsc*);
-        func_count += vector_length(s->data);
+        func_count += vector_old_length(s->data);
         for (dsc_data* j = s->data.begin; j != s->data.end; j++)
             if (j->func == time_func_id || j->func == pv_branch_mode_func_id)
                 func_count--;
@@ -1737,14 +1737,14 @@ void dsc_merge(dsc* d, int32_t count, ...) {
     }
     va_end(args);
 
-    vector_dsc_data_time data_time = vector_empty(dsc_data_time);
-    vector_uint32_t data_time_buffer = vector_empty(uint32_t);
-    vector_dsc_data_time_reserve(&data_time, func_count);
-    vector_uint32_t_reserve(&data_time_buffer, size);
+    vector_old_dsc_data_time data_time = vector_old_empty(dsc_data_time);
+    vector_old_uint32_t data_time_buffer = vector_old_empty(uint32_t);
+    vector_old_dsc_data_time_reserve(&data_time, func_count);
+    vector_old_uint32_t_reserve(&data_time_buffer, size);
     va_start(args, count);
     for (int32_t i = 0; i < count; i++) {
         dsc* s = va_arg(args, dsc*);
-        func_count += vector_length(s->data);
+        func_count += vector_old_length(s->data);
 
         int32_t time = -1;
         int32_t pv_branch_mode = 0;
@@ -1758,32 +1758,32 @@ void dsc_merge(dsc* d, int32_t count, ...) {
                 continue;
             }
 
-            dsc_data_time* dsc_d = vector_dsc_data_time_reserve_back(&data_time);
+            dsc_data_time* dsc_d = vector_old_dsc_data_time_reserve_back(&data_time);
             dsc_d->time = time;
             dsc_d->pv_branch_mode = pv_branch_mode;
             dsc_d->name = j->name;
             dsc_d->func = j->func;
-            dsc_d->data_offset = (uint32_t)vector_length(data_time_buffer);
+            dsc_d->data_offset = (uint32_t)vector_old_length(data_time_buffer);
 
             uint32_t* func_data = dsc_data_get_func_data(s, j);
             int32_t func_length = get_func_length(j->func);
-            memmove(vector_uint32_t_reserve_back_range(&data_time_buffer, func_length),
+            memmove(vector_old_uint32_t_reserve_back_range(&data_time_buffer, func_length),
                 func_data, sizeof(uint32_t) * func_length);
             func_data += func_length;
         }
     }
     va_end(args);
 
-    if (vector_length(data_time)) {
+    if (vector_old_length(data_time)) {
         for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
             i->time = radix_preprocess_int32_t(i->time);
-        radix_sort_custom(data_time.begin, vector_length(data_time), sizeof(dsc_data_time),
+        radix_sort_custom(data_time.begin, vector_old_length(data_time), sizeof(dsc_data_time),
             sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_time);
         for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
             i->time = radix_postprocess_int32_t(i->time);
     }
 
-    func_count = vector_length(data_time);
+    func_count = vector_old_length(data_time);
     size = 0;
 
     int32_t time = -1;
@@ -1820,10 +1820,10 @@ void dsc_merge(dsc* d, int32_t count, ...) {
     for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
         size += get_func_length(i->func);
 
-    vector_dsc_data data = vector_empty(dsc_data);
-    vector_uint32_t data_buffer = vector_empty(uint32_t);
-    vector_dsc_data_reserve(&data, func_count);
-    vector_uint32_t_reserve(&data_buffer, size);
+    vector_old_dsc_data data = vector_old_empty(dsc_data);
+    vector_old_uint32_t data_buffer = vector_old_empty(uint32_t);
+    vector_old_dsc_data_reserve(&data, func_count);
+    vector_old_uint32_t_reserve(&data_buffer, size);
 
     time = -1;
     pv_branch_mode = -1;
@@ -1831,39 +1831,39 @@ void dsc_merge(dsc* d, int32_t count, ...) {
         if (time_func_id != -1 && time != i->time) {
             time = i->time;
 
-            dsc_data* dsc_d = vector_dsc_data_reserve_back(&data);
+            dsc_data* dsc_d = vector_old_dsc_data_reserve_back(&data);
             dsc_d->name = get_func_name(time_func_id);
             dsc_d->func = time_func_id;
-            dsc_d->data_offset = (uint32_t)vector_length(data_buffer);
+            dsc_d->data_offset = (uint32_t)vector_old_length(data_buffer);
 
-            *(int32_t*)vector_uint32_t_reserve_back(&data_buffer) = time;
+            *(int32_t*)vector_old_uint32_t_reserve_back(&data_buffer) = time;
         }
 
         if (pv_branch_mode_func_id != -1 && pv_branch_mode != i->pv_branch_mode) {
             pv_branch_mode = i->pv_branch_mode;
 
-            dsc_data* dsc_d = vector_dsc_data_reserve_back(&data);
+            dsc_data* dsc_d = vector_old_dsc_data_reserve_back(&data);
             dsc_d->name = get_func_name(pv_branch_mode_func_id);
             dsc_d->func = pv_branch_mode_func_id;
-            dsc_d->data_offset = (uint32_t)vector_length(data_buffer);
+            dsc_d->data_offset = (uint32_t)vector_old_length(data_buffer);
 
-            *(int32_t*)vector_uint32_t_reserve_back(&data_buffer) = pv_branch_mode;
+            *(int32_t*)vector_old_uint32_t_reserve_back(&data_buffer) = pv_branch_mode;
         }
 
         uint32_t* func_data = (uint32_t*)(data_time_buffer.begin + i->data_offset);
-        dsc_data* dsc_d = vector_dsc_data_reserve_back(&data);
+        dsc_data* dsc_d = vector_old_dsc_data_reserve_back(&data);
         dsc_d->name = get_func_name(i->func);
         dsc_d->func = i->func;
-        dsc_d->data_offset = (uint32_t)vector_length(data_buffer);
+        dsc_d->data_offset = (uint32_t)vector_old_length(data_buffer);
 
         int32_t func_length = get_func_length(i->func);
-        memmove(vector_uint32_t_reserve_back_range(&data_buffer, func_length),
+        memmove(vector_old_uint32_t_reserve_back_range(&data_buffer, func_length),
             func_data, sizeof(uint32_t) * func_length);
         func_data += func_length;
     }
 
-    vector_dsc_data_time_free(&data_time, 0);
-    vector_uint32_t_free(&data_time_buffer, 0);
+    vector_old_dsc_data_time_free(&data_time, 0);
+    vector_old_uint32_t_free(&data_time_buffer, 0);
 
     d->data = data;
     d->data_buffer = data_buffer;
@@ -1943,20 +1943,20 @@ bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type) {
         func_count++;
     }
 
-    d->data = vector_empty(dsc_data);
-    d->data_buffer = vector_empty(uint32_t);
-    vector_dsc_data_reserve(&d->data, func_count);
-    vector_uint32_t_reserve(&d->data_buffer, data_size);
+    d->data = vector_old_empty(dsc_data);
+    d->data_buffer = vector_old_empty(uint32_t);
+    vector_old_dsc_data_reserve(&d->data, func_count);
+    vector_old_uint32_t_reserve(&d->data_buffer, data_size);
 
     func_data = data_dsc;
     for (size_t i = 0; i < func_count; i++) {
-        dsc_data* data = vector_dsc_data_reserve_back(&d->data);
+        dsc_data* data = vector_old_dsc_data_reserve_back(&d->data);
         data->name = get_func_name(*func_data);
         data->func = *func_data++;
-        data->data_offset = (uint32_t)vector_length(d->data_buffer);
+        data->data_offset = (uint32_t)vector_old_length(d->data_buffer);
 
         int32_t func_length = get_func_length(data->func);
-        vector_uint32_t_insert_range(&d->data_buffer,
+        vector_old_uint32_t_insert_range(&d->data_buffer,
             data->data_offset, func_data, func_data + func_length);
         func_data += func_length;
     }
@@ -2023,12 +2023,12 @@ void dsc_unparse(dsc* d, void** data, size_t* length) {
     *func_data++ = 0;
 
     if (f2) {
-        vector_enrs_entry e = vector_empty(enrs_entry);
+        vector_old_enrs_entry e = vector_old_empty(enrs_entry);
         enrs_entry ee;
 
-        ee = { 0, 1, 4, (uint32_t)size, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 4, (uint32_t)size, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
 
         f2_struct st;
         memset(&st, 0, sizeof(f2_struct));
@@ -2073,8 +2073,8 @@ void dsc_free(dsc* d) {
     if (!d)
         return;
 
-    vector_dsc_data_free(&d->data, 0);
-    vector_uint32_t_free(&d->data_buffer, 0);
+    vector_old_dsc_data_free(&d->data, 0);
+    vector_old_uint32_t_free(&d->data_buffer, 0);
 }
 
 void dsc_replace_init(dsc_replace* dr, dsc_type src_type,
@@ -2881,9 +2881,9 @@ inline static dsc_get_func_length dsc_get_dsc_get_func_length(dsc* d) {
 }
 
 static uint32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd) {
-    dsc_data* data = vector_dsc_data_reserve_back(&dr->dsc.data);
+    dsc_data* data = vector_old_dsc_data_reserve_back(&dr->dsc.data);
     data->name = drd->name;
     data->func = drd->func_id;
-    data->data_offset = (uint32_t)vector_length(dr->dsc.data_buffer);
-    return vector_uint32_t_reserve_back_range(&dr->dsc.data_buffer, drd->length);
+    data->data_offset = (uint32_t)vector_old_length(dr->dsc.data_buffer);
+    return vector_old_uint32_t_reserve_back_range(&dr->dsc.data_buffer, drd->length);
 }

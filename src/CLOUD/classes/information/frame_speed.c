@@ -9,7 +9,6 @@
 
 extern int32_t width;
 extern int32_t height;
-extern bool input_locked;
 extern float_t frame_speed;
 
 static const char* information_frame_speed_window_title = "FrameSpeedWindow##Information";
@@ -56,14 +55,6 @@ void information_frame_speed_imgui(class_data* data) {
 
     data->imgui_focus |= igIsWindowFocused(0);
     igEnd();
-}
-
-void information_frame_speed_input(class_data* data) {
-    input_locked |= data->imgui_focus;
-}
-
-void information_frame_speed_render(class_data* data) {
-
 }
 
 bool information_frame_speed_dispose(class_data* data) {

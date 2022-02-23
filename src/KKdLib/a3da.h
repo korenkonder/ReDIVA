@@ -5,14 +5,14 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "default.h"
 #include "light_param/fog.h"
 #include "light_param/light.h"
 #include "kf.h"
 #include "mat.h"
-#include "string.h"
 #include "vec.h"
-#include "vector.h"
 
 typedef enum a3da_ambient_flags {
     A3DA_AMBIENT_LIGHT_DIFFUSE     = 0x01,
@@ -148,96 +148,99 @@ typedef enum a3da_rgba_flags {
     A3DA_RGBA_A = 0x08,
 } a3da_rgba_flags;
 
-typedef struct a3da_ambient a3da_ambient;
-typedef struct a3da_camera_auxiliary a3da_camera_auxiliary;
-typedef struct a3da_camera_root a3da_camera_root;
-typedef struct a3da_camera_root_view_point a3da_camera_root_view_point;
-typedef struct a3da_chara a3da_chara;
-typedef struct a3da_curve a3da_curve;
-typedef struct a3da_dof a3da_dof;
-typedef struct a3da_event a3da_event;
-typedef struct a3da_fog a3da_fog;
-typedef struct a3da_key a3da_key;
-typedef struct a3da_light a3da_light;
-typedef struct a3da_m_object_hrc a3da_m_object_hrc;
-typedef struct a3da_material_list a3da_material_list;
-typedef struct a3da_model_transform a3da_model_transform;
-typedef struct a3da_object a3da_object;
-typedef struct a3da_object_hrc a3da_object_hrc;
-typedef struct a3da_object_instance a3da_object_instance;
-typedef struct a3da_object_node a3da_object_node;
-typedef struct a3da_object_texture_pattern a3da_object_texture_pattern;
-typedef struct a3da_object_texture_transform a3da_object_texture_transform;
-typedef struct a3da_play_control a3da_play_control;
-typedef struct a3da_point a3da_point;
-typedef struct a3da_post_process a3da_post_process;
-typedef struct a3da_rgba a3da_rgba;
-typedef struct a3da_vec3 a3da_vec3;
+class a3da_ambient;
+class a3da_camera_auxiliary;
+class a3da_camera_root;
+class a3da_camera_root_view_point;
+class a3da_chara;
+class a3da_curve;
+class a3da_dof;
+class a3da_event;
+class a3da_fog;
+class a3da_key;
+class a3da_light;
+class a3da_m_object_hrc;
+class a3da_material_list;
+class a3da_model_transform;
+class a3da_object;
+class a3da_object_hrc;
+class a3da_object_instance;
+class a3da_object_node;
+class a3da_object_texture_pattern;
+class a3da_object_texture_transform;
+class a3da_play_control;
+class a3da_point;
+class a3da_post_process;
+class a3da_rgba;
+class a3da_vec3;
 
-vector(a3da_ambient)
-vector(a3da_model_transform)
-vector(a3da_camera_root)
-vector(a3da_chara)
-vector(a3da_curve)
-vector(a3da_event)
-vector(a3da_fog)
-vector(a3da_light)
-vector(a3da_m_object_hrc)
-vector(a3da_material_list)
-vector(a3da_object)
-vector(a3da_object_hrc)
-vector(a3da_object_instance)
-vector(a3da_object_node)
-vector(a3da_object_texture_pattern)
-vector(a3da_object_texture_transform)
-vector(a3da_point)
-
-struct a3da_key {
+class a3da_key {
+public:
     a3da_key_flags flags;
     int32_t bin_offset;
     a3da_key_type type;
     a3da_ep_type ep_type_pre;
     a3da_ep_type ep_type_post;
-    vector_kft3 keys;
-    float_t max;
+    std::vector<kft3> keys;
+    float_t max_frame;
     bool raw_data;
     bool raw_data_binary;
     int32_t raw_data_value_list_size;
     int32_t raw_data_value_list_offset;
     float_t value;
+
+    a3da_key();
+    ~a3da_key();
 };
 
-struct a3da_rgba {
+class a3da_rgba {
+public:
     a3da_rgba_flags flags;
     a3da_key r;
     a3da_key g;
     a3da_key b;
     a3da_key a;
+
+    a3da_rgba();
+    ~a3da_rgba();
 };
 
-struct a3da_vec3 {
+class a3da_vec3 {
+public:
     a3da_key x;
     a3da_key y;
     a3da_key z;
+
+    a3da_vec3();
+    ~a3da_vec3();
 };
 
-struct a3da_model_transform {
+class a3da_model_transform {
+public:
     a3da_model_transform_flags flags;
     int32_t bin_offset;
     a3da_vec3 rotation;
     a3da_vec3 scale;
     a3da_vec3 translation;
     a3da_key visibility;
+
+    a3da_model_transform();
+    ~a3da_model_transform();
 };
 
-struct a3da_ambient {
+class a3da_ambient {
+public:
     a3da_ambient_flags flags;
     a3da_rgba light_diffuse;
-    string name;
+    std::string name;
     a3da_rgba rim_light_diffuse;
+
+    a3da_ambient();
+    ~a3da_ambient();
 };
 
-struct a3da_camera_auxiliary {
+class a3da_camera_auxiliary {
+public:
     a3da_camera_auxiliary_flags flags;
     a3da_key auto_exposure;
     a3da_key exposure;
@@ -245,9 +248,13 @@ struct a3da_camera_auxiliary {
     a3da_key gamma;
     a3da_key gamma_rate;
     a3da_key saturate;
+
+    a3da_camera_auxiliary();
+    ~a3da_camera_auxiliary();
 };
 
-struct a3da_camera_root_view_point {
+class a3da_camera_root_view_point {
+public:
     a3da_camera_root_view_point_flags flags;
     float_t aspect;
     float_t camera_aperture_h;
@@ -257,51 +264,79 @@ struct a3da_camera_root_view_point {
     bool fov_is_horizontal;
     a3da_model_transform model_transform;
     a3da_key roll;
+
+    a3da_camera_root_view_point();
+    ~a3da_camera_root_view_point();
 };
 
-struct a3da_camera_root {
+class a3da_camera_root {
+public:
     a3da_model_transform interest;
     a3da_model_transform model_transform;
     a3da_camera_root_view_point view_point;
+
+    a3da_camera_root();
+    ~a3da_camera_root();
 };
 
-struct a3da_chara {
+class a3da_chara {
+public:
     a3da_model_transform model_transform;
-    string name;
+    std::string name;
+
+    a3da_chara();
+    ~a3da_chara();
 };
 
-struct a3da_curve {
+class a3da_curve {
+public:
     a3da_key curve;
-    string name;
+    std::string name;
+
+    a3da_curve();
+    ~a3da_curve();
 };
 
-struct a3da_dof {
+class a3da_dof {
+public:
     bool has_dof;
     a3da_model_transform model_transform;
+
+    a3da_dof();
+    ~a3da_dof();
 };
 
-struct a3da_event {
+class a3da_event {
+public:
     float_t begin;
     float_t clip_begin;
     float_t clip_end;
     float_t end;
-    string name;
-    string param_1;
-    string ref;
+    std::string name;
+    std::string param_1;
+    std::string ref;
     float_t time_ref_scale;
     a3da_event_type type;
+
+    a3da_event();
+    ~a3da_event();
 };
 
-struct a3da_fog {
+class a3da_fog {
+public:
     a3da_fog_flags flags;
     a3da_rgba color;
     a3da_key density;
     a3da_key end;
     fog_id id;
     a3da_key start;
+
+    a3da_fog();
+    ~a3da_fog();
 };
 
-struct a3da_light {
+class a3da_light {
+public:
     a3da_light_flags flags;
     a3da_rgba ambient;
     a3da_key cone_angle;
@@ -317,73 +352,105 @@ struct a3da_light {
     a3da_rgba specular;
     a3da_model_transform spot_direction;
     a3da_rgba tone_curve;
-    string type;
+    std::string type;
+
+    a3da_light();
+    ~a3da_light();
 };
 
-struct a3da_m_object_hrc {
-    vector_a3da_object_instance instance;
+class a3da_m_object_hrc {
+public:
+    std::vector<a3da_object_instance> instance;
     a3da_model_transform model_transform;
-    string name;
-    vector_a3da_object_node node;
+    std::string name;
+    std::vector<a3da_object_node> node;
+
+    a3da_m_object_hrc();
+    ~a3da_m_object_hrc();
 };
 
-struct a3da_material_list {
+class a3da_material_list {
+public:
     a3da_material_list_flags flags;
     a3da_rgba blend_color;
     a3da_key glow_intensity;
     a3da_rgba incandescence;
-    string name;
+    std::string name;
+
+    a3da_material_list();
+    ~a3da_material_list();
 };
 
-struct a3da_object {
+class a3da_object {
+public:
     a3da_model_transform model_transform;
-    string morph;
+    std::string morph;
     float_t morph_offset;
-    string name;
-    string parent_name;
-    string parent_node;
-    string pattern;
+    std::string name;
+    std::string parent_name;
+    std::string parent_node;
+    std::string pattern;
     float_t pattern_offset;
-    vector_a3da_object_texture_pattern texture_pattern;
-    vector_a3da_object_texture_transform texture_transform;
-    string uid_name;
+    std::vector<a3da_object_texture_pattern> texture_pattern;
+    std::vector<a3da_object_texture_transform> texture_transform;
+    std::string uid_name;
+
+    a3da_object();
+    ~a3da_object();
 };
 
-struct a3da_object_hrc {
-    string name;
-    vector_a3da_object_node node;
-    string parent_name;
-    string parent_node;
+class a3da_object_hrc {
+public:
+    std::string name;
+    std::vector<a3da_object_node> node;
+    std::string parent_name;
+    std::string parent_node;
     bool shadow;
-    string uid_name;
+    std::string uid_name;
+
+    a3da_object_hrc();
+    ~a3da_object_hrc();
 };
 
-struct a3da_object_instance {
+class a3da_object_instance {
+public:
     a3da_model_transform model_transform;
-    string name;
+    std::string name;
     bool shadow;
-    string uid_name;
+    std::string uid_name;
+
+    a3da_object_instance();
+    ~a3da_object_instance();
 };
 
-struct a3da_object_node {
+class a3da_object_node {
+public:
     a3da_object_node_flags flags;
     vec3 joint_orient;
     a3da_model_transform model_transform;
-    string name;
+    std::string name;
     int32_t parent;
+
+    a3da_object_node();
+    ~a3da_object_node();
 };
 
-struct a3da_object_texture_pattern {
-    string name;
-    string pattern;
+class a3da_object_texture_pattern {
+public:
+    std::string name;
+    std::string pattern;
     float_t pattern_offset;
+
+    a3da_object_texture_pattern();
+    ~a3da_object_texture_pattern();
 };
 
-struct a3da_object_texture_transform {
+class a3da_object_texture_transform {
+public:
     a3da_object_texture_transform_flags flags;
     a3da_key coverage_u;
     a3da_key coverage_v;
-    string name;
+    std::string name;
     a3da_key offset_u;
     a3da_key offset_v;
     a3da_key repeat_u;
@@ -392,23 +459,35 @@ struct a3da_object_texture_transform {
     a3da_key rotate_frame;
     a3da_key translate_frame_u;
     a3da_key translate_frame_v;
+
+    a3da_object_texture_transform();
+    ~a3da_object_texture_transform();
 };
 
-struct a3da_play_control {
+class a3da_play_control {
+public:
     a3da_play_control_flags flags;
     float_t begin;
     int32_t div;
     float_t fps;
     float_t offset;
     float_t size;
+
+    a3da_play_control();
+    ~a3da_play_control();
 };
 
-struct a3da_point {
+class a3da_point {
+public:
     a3da_model_transform model_transform;
-    string name;
+    std::string name;
+
+    a3da_point();
+    ~a3da_point();
 };
 
-struct a3da_post_process {
+class a3da_post_process {
+public:
     a3da_post_process_flags flags;
     a3da_rgba intensity;
     a3da_key lens_flare;
@@ -416,9 +495,13 @@ struct a3da_post_process {
     a3da_key lens_shaft;
     a3da_rgba radius;
     a3da_rgba scene_fade;
+
+    a3da_post_process();
+    ~a3da_post_process();
 };
 
-typedef struct a3da {
+class a3da {
+public:
     bool ready;
     bool compressed;
     a3da_format format;
@@ -426,65 +509,41 @@ typedef struct a3da {
     uint32_t hash;
 
     a3da_compress_f16 _compress_f16;
-    string _file_name;
-    string _property_version;
-    string _converter_version;
+    std::string _file_name;
+    std::string _property_version;
+    std::string _converter_version;
 
-    vector_a3da_ambient ambient;
-    vector_string auth_2d;
+    std::vector<a3da_ambient> ambient;
+    std::vector<std::string> auth_2d;
     a3da_camera_auxiliary camera_auxiliary;
-    vector_a3da_camera_root camera_root;
-    vector_a3da_chara chara;
-    vector_a3da_curve curve;
+    std::vector<a3da_camera_root> camera_root;
+    std::vector<a3da_chara> chara;
+    std::vector<a3da_curve> curve;
     a3da_dof dof;
-    vector_a3da_event event;
-    vector_a3da_fog fog;
-    vector_a3da_light light;
-    vector_a3da_m_object_hrc m_object_hrc;
-    vector_string m_object_hrc_list;
-    vector_a3da_material_list material_list;
-    vector_string motion;
-    vector_a3da_object object;
-    vector_a3da_object_hrc object_hrc;
-    vector_string object_hrc_list;
-    vector_string object_list;
+    std::vector<a3da_event> event;
+    std::vector<a3da_fog> fog;
+    std::vector<a3da_light> light;
+    std::vector<a3da_m_object_hrc> m_object_hrc;
+    std::vector<std::string> m_object_hrc_list;
+    std::vector<a3da_material_list> material_list;
+    std::vector<std::string> motion;
+    std::vector<a3da_object> object;
+    std::vector<a3da_object_hrc> object_hrc;
+    std::vector<std::string> object_hrc_list;
+    std::vector<std::string> object_list;
     a3da_play_control play_control;
-    vector_a3da_point point;
+    std::vector<a3da_point> point;
     a3da_post_process post_process;
-} a3da;
 
-extern void a3da_init(a3da* a);
-extern void a3da_read(a3da* a, char* path);
-extern void a3da_wread(a3da* a, wchar_t* path);
-extern void a3da_mread(a3da* a, void* data, size_t length);
-extern void a3da_write(a3da* a, char* path);
-extern void a3da_wwrite(a3da* a, wchar_t* path);
-extern void a3da_mwrite(a3da* a, void** data, size_t* length);
-extern bool a3da_load_file(void* data, char* path, char* file, uint32_t hash);
-extern void a3da_free(a3da* a);
+    a3da();
+    ~a3da();
 
-extern void a3da_key_free(a3da_key* k);
-extern void a3da_rgba_free(a3da_rgba* rgba);
-extern void a3da_vec3_free(a3da_vec3* vec);
-extern void a3da_model_transform_free(a3da_model_transform* mt);
+    void read(char* path);
+    void read(wchar_t* path);
+    void read(void* data, size_t length);
+    void write(char* path);
+    void write(wchar_t* path);
+    void write(void** data, size_t* length);
 
-extern void a3da_ambient_free(a3da_ambient* a);
-extern void a3da_camera_auxiliary_free(a3da_camera_auxiliary* ca);
-extern void a3da_camera_root_free(a3da_camera_root* cr);
-extern void a3da_camera_root_view_point_free(a3da_camera_root_view_point* crvp);
-extern void a3da_chara_free(a3da_chara* c);
-extern void a3da_curve_free(a3da_curve* c);
-extern void a3da_dof_free(a3da_dof* d);
-extern void a3da_event_free(a3da_event* e);
-extern void a3da_fog_free(a3da_fog* f);
-extern void a3da_light_free(a3da_light* l);
-extern void a3da_m_object_hrc_free(a3da_m_object_hrc* moh);
-extern void a3da_material_list_free(a3da_material_list* ml);
-extern void a3da_object_free(a3da_object* o);
-extern void a3da_object_hrc_free(a3da_object_hrc* oh);
-extern void a3da_object_instance_free(a3da_object_instance* oi);
-extern void a3da_object_node_free(a3da_object_node* on);
-extern void a3da_object_texture_pattern_free(a3da_object_texture_pattern* otp);
-extern void a3da_object_texture_transform_free(a3da_object_texture_transform* ott);
-extern void a3da_point_free(a3da_point* p);
-extern void a3da_post_process_free(a3da_post_process* pp);
+    static bool load_file(void* data, char* path, char* file, uint32_t hash);
+};

@@ -333,12 +333,12 @@ inline GLuint gl_state_get_program() {
 
 inline void gl_state_set_blend_func(GLenum src, GLenum dst) {
     if (gl_state.blend_src_rgb != src || gl_state.blend_dst_rgb != dst
-        || gl_state.blend_src_alpha != GL_ONE_MINUS_DST_ALPHA || gl_state.blend_dst_alpha != GL_ONE) {
-        glBlendFuncSeparate(src, dst, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+        || gl_state.blend_src_alpha != GL_ONE || gl_state.blend_dst_alpha != GL_ONE_MINUS_SRC_ALPHA) {
+        glBlendFuncSeparate(src, dst, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         gl_state.blend_src_rgb = src;
         gl_state.blend_dst_rgb = dst;
-        gl_state.blend_src_alpha = GL_ONE_MINUS_DST_ALPHA;
-        gl_state.blend_dst_alpha = GL_ONE;
+        gl_state.blend_src_alpha = GL_ONE;
+        gl_state.blend_dst_alpha = GL_ONE_MINUS_SRC_ALPHA;
     }
 }
 

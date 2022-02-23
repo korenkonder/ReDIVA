@@ -5,6 +5,7 @@
 
 #include "draw_task.h"
 #include "../../../CRE/render_context.h"
+#include "../../../KKdLib/hash.h"
 #include "../imgui_helper.h"
 
 static const char* draw_object_type_name[] = {
@@ -49,14 +50,13 @@ static const char* draw_task_type_name[] = {
 
 typedef struct data_view_draw_task {
     render_context* rctx;
-    vector_ptr_draw_task draw_tasks;
-    vector_uint32_t draw_task_hashes;
-    vector_uint32_t draw_task_indices;
+    vector_old_ptr_draw_task draw_tasks;
+    vector_old_uint32_t draw_task_hashes;
+    vector_old_uint32_t draw_task_indices;
 } data_view_draw_task;
 
 extern int32_t width;
 extern int32_t height;
-extern bool input_locked;
 
 const char* data_view_draw_task_window_title = "Draw Task##Data Viewer";
 
@@ -67,9 +67,9 @@ bool data_view_draw_task_init(class_data* data, render_context* rctx) {
     data_view_draw_task* data_view = (data_view_draw_task*)data->data;
     if (data_view) {
         data_view->rctx = rctx;
-        data_view->draw_tasks = vector_ptr_empty(draw_task);
-        data_view->draw_task_hashes = vector_empty(uint32_t);
-        data_view->draw_task_indices = vector_empty(uint32_t);
+        data_view->draw_tasks = vector_old_ptr_empty(draw_task);
+        data_view->draw_task_hashes = vector_old_empty(uint32_t);
+        data_view->draw_task_indices = vector_old_empty(uint32_t);
     }
     return true;
 }
@@ -105,10 +105,10 @@ void data_view_draw_task_imgui(class_data* data) {
     }
 
     render_context* rctx = data_view->rctx;
-    vector_ptr_draw_task* draw_task_array = rctx->object_data.draw_task_array;
-    vector_ptr_draw_task* draw_tasks_sort = &data_view->draw_tasks;
-    vector_uint32_t* draw_task_hashes = &data_view->draw_task_hashes;
-    vector_uint32_t* draw_task_indices = &data_view->draw_task_indices;
+    vector_old_ptr_draw_task* draw_task_array = rctx->object_data.draw_task_array;
+    vector_old_ptr_draw_task* draw_tasks_sort = &data_view->draw_tasks;
+    vector_old_uint32_t* draw_task_hashes = &data_view->draw_task_hashes;
+    vector_old_uint32_t* draw_task_indices = &data_view->draw_task_indices;
 
     ImGuiTreeNodeFlags tree_node_base_flags = 0;
     tree_node_base_flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -122,8 +122,8 @@ void data_view_draw_task_imgui(class_data* data) {
         tree_node_flags = tree_node_base_flags;
 
         igPushID_Int(i);
-        vector_ptr_draw_task* draw_tasks = &draw_task_array[i];
-        size_t count = vector_length(*draw_tasks);
+        vector_old_ptr_draw_task* draw_tasks = &draw_task_array[i];
+        size_t count = vector_old_length(*draw_tasks);
         bool enable = count > 0;
         imguiDisableElementPush(enable);
         if (!igTreeNodeEx_StrStr("", tree_node_flags,
@@ -133,12 +133,12 @@ void data_view_draw_task_imgui(class_data* data) {
             continue;
         }
 
-        vector_ptr_draw_task_insert_range(draw_tasks_sort, 0, draw_tasks->begin, draw_tasks->end);
-        vector_uint32_t_reserve(draw_task_hashes, count);
-        vector_uint32_t_reserve(draw_task_indices, count);
+        vector_old_ptr_draw_task_insert_range(draw_tasks_sort, 0, draw_tasks->begin, draw_tasks->end);
+        vector_old_uint32_t_reserve(draw_task_hashes, count);
+        vector_old_uint32_t_reserve(draw_task_indices, count);
         for (draw_task** j = draw_tasks_sort->begin; j != draw_tasks_sort->end; j++) {
-            *vector_uint32_t_reserve_back(draw_task_hashes) = hash_murmurhash((void*)j, 8, 0, true, false);
-            *vector_uint32_t_reserve_back(draw_task_indices) = (uint32_t)(j - draw_tasks_sort->begin);
+            *vector_old_uint32_t_reserve_back(draw_task_hashes) = hash_murmurhash((void*)j, 8, 0, true, false);
+            *vector_old_uint32_t_reserve_back(draw_task_indices) = (uint32_t)(j - draw_tasks_sort->begin);
         }
 
         for (uint32_t* i = draw_task_hashes->begin; i != &draw_task_hashes->end[-1]; i++)
@@ -173,14 +173,21 @@ void data_view_draw_task_imgui(class_data* data) {
                 continue;
             }
 
-            if (igTreeNodeEx_Str("Matrix", ImGuiTreeNodeFlags_DefaultOpen)) {
-                mat4u* mat = &task->mat;
-                igText("%9.4f %9.4f %9.4f %9.4f", mat->row0.x, mat->row1.x, mat->row2.x, mat->row3.x);
-                igText("%9.4f %9.4f %9.4f %9.4f", mat->row0.y, mat->row1.y, mat->row2.y, mat->row3.y);
-                igText("%9.4f %9.4f %9.4f %9.4f", mat->row0.z, mat->row1.z, mat->row2.z, mat->row3.z);
-                igText("%9.4f %9.4f %9.4f %9.4f", mat->row0.w, mat->row1.w, mat->row2.w, mat->row3.w);
-                igTreePop();
-            }
+            mat4 mat = task->mat;
+
+            vec3 trans;
+            mat4_get_translation(&mat, &trans);
+
+            vec3 rot;
+            mat4_get_rotation(&mat, &rot);
+            vec3_mult_scalar(rot, RAD_TO_DEG_FLOAT, rot);
+
+            vec3 scale;
+            mat4_get_scale(&mat, &scale);
+
+            igText("Trans: %9.4f %9.4f %9.4f", trans.x, trans.y, trans.z);
+            igText("  Rot: %9.4f %9.4f %9.4f", rot.x, rot.y, rot.z);
+            igText("Scale: %9.4f %9.4f %9.4f", scale.x, scale.y, scale.z);
 
             switch (task->type) {
             case DRAW_TASK_TYPE_OBJECT: {
@@ -224,17 +231,13 @@ void data_view_draw_task_imgui(class_data* data) {
     igEnd();
 }
 
-void data_view_draw_task_input(class_data* data) {
-    input_locked |= data->imgui_focus;
-}
-
 bool data_view_draw_task_dispose(class_data* data) {
     data_view_draw_task* data_view = (data_view_draw_task*)data->data;
     if (data_view) {
         data_view->draw_tasks.end = data_view->draw_tasks.begin;
-        vector_ptr_draw_task_free(&data_view->draw_tasks, 0);
-        vector_uint32_t_free(&data_view->draw_task_hashes, 0);
-        vector_uint32_t_free(&data_view->draw_task_indices, 0);
+        vector_old_ptr_draw_task_free(&data_view->draw_tasks, 0);
+        vector_old_uint32_t_free(&data_view->draw_task_hashes, 0);
+        vector_old_uint32_t_free(&data_view->draw_task_indices, 0);
     }
     free(data->data);
     return true;

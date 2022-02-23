@@ -110,7 +110,7 @@ const char obj_material_texture_enrs_table_bin[] =
 "\x10\x01\x10\x01\x10\x01\x10\x01\x10\x01\x10\x01\x10\x01\x10\x01"
 "\x50\x40\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
 
-static vector_enrs_entry obj_material_texture_enrs_table;
+static vector_old_enrs_entry obj_material_texture_enrs_table;
 static bool obj_material_texture_enrs_table_initialized;
 
 static void obj_material_texture_enrs_table_init();
@@ -126,46 +126,46 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset);
 static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
     stream* s, char** str);
 static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets,
     ssize_t* field_18_offset, ssize_t* field_1C_offset, ssize_t* field_20_offset,
     ssize_t* field_24_offset, ssize_t* field_28_offset);
 static void obj_classic_read_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
     stream* s, char** str);
 static void obj_classic_write_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets);
 static void obj_classic_read_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
     stream* s, char** str);
 static void obj_classic_write_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets);
 static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     stream* s, char** str);
 static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, char** bone_names, ssize_t* offsets);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, char** bone_names, ssize_t* offsets);
 static void obj_classic_read_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
     stream* s, char** str);
 static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets);
-static void obj_classic_read_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets);
+static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
     stream* s, char** str);
-static void obj_classic_write_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets);
+static void obj_classic_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets);
 static void obj_classic_read_skin_block_expression(obj_skin_block_expression* b,
     stream* s, char** str);
 static void obj_classic_write_skin_block_expression(obj_skin_block_expression* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, char** bone_names);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, char** bone_names);
 static void obj_classic_read_skin_block_motion(obj_skin_block_motion* b,
     stream* s, char** str);
 static void obj_classic_write_skin_block_motion(obj_skin_block_motion* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets,
     char** bone_names, ssize_t* bone_names_offset, ssize_t* bone_matrices_offset);
 static void obj_classic_read_skin_block_node(obj_skin_block_node* b,
     stream* s, char** str);
 static void obj_classic_write_skin_block_node(obj_skin_block_node* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets);
 static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
     stream* s, char** str);
 static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, ssize_t* nodes_offset);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, ssize_t* nodes_offset);
 static void obj_classic_read_vertex(obj* obj, stream* s, ssize_t* attrib_offsets, obj_mesh* mesh,
     ssize_t base_offset, int32_t vertex_count, obj_vertex_attrib_type attrib_type);
 static void obj_classic_write_vertex(obj* obj, stream* s, ssize_t* attrib_offsets, obj_mesh* mesh,
@@ -187,64 +187,64 @@ static void obj_modern_write_skin(obj* obj, stream* s,
 static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x,
     ssize_t* field_18_offset, ssize_t* field_1C_offset, ssize_t* field_20_offset,
     ssize_t* field_24_offset, ssize_t* field_28_offset);
 static void obj_modern_read_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x);
 static void obj_modern_read_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x);
 static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, char** bone_names,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, char** bone_names,
     bool is_x, ssize_t* offsets);
 static void obj_modern_read_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x);
-static void obj_modern_read_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x);
+static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
     stream* s, uint32_t header_length, char** str, bool is_x);
-static void obj_modern_write_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x);
+static void obj_modern_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x);
 static void obj_modern_read_skin_block_expression(obj_skin_block_expression* b,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_expression(obj_skin_block_expression* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, char** bone_names, bool is_x);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, char** bone_names, bool is_x);
 static void obj_modern_read_skin_block_motion(obj_skin_block_motion* b,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_motion(obj_skin_block_motion* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x,
     char** bone_names, ssize_t* bone_names_offset, ssize_t* bone_matrices_offset);
 static void obj_modern_read_skin_block_node(obj_skin_block_node* b,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_node(obj_skin_block_node* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x);
 static void obj_modern_read_skin_block_osage(obj_skin_block_osage* b,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_osage(obj_skin_block_osage* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x);
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x);
 static void obj_modern_read_vertex(obj* obj, stream* s, ssize_t* attrib_offsets, obj_mesh* mesh,
     const uint32_t attrib_flags, int32_t vertex_count, int32_t vertex_size);
 static void obj_modern_write_vertex(obj* obj, stream* s, bool is_x,
     ssize_t* attrib_offsets, obj_mesh* mesh, uint32_t* attrib_flags,
     int32_t* vertex_count, int32_t* vertex_size, f2_struct* ovtx);
 static void obj_skin_block_node_free(obj_skin_block_node* b);
-static uint32_t obj_skin_strings_get_string_index(vector_string* vec, char* str);
-static uint32_t obj_skin_strings_get_string_index(vector_string* vec, const char* str);
-static ssize_t obj_skin_strings_get_string_offset(vector_string* vec,
-    vector_ssize_t* vec_off, char* str);
-static ssize_t obj_skin_strings_get_string_offset(vector_string* vec,
-    vector_ssize_t* vec_off, const char* str);
-static ssize_t obj_skin_strings_get_string_offset_by_index(vector_string* vec,
-    vector_ssize_t* vec_off, char** strings, uint32_t index);
-static void obj_skin_strings_push_back_check(vector_string* vec, char* str);
-static void obj_skin_strings_push_back_check(vector_string* vec, const char* str);
-static void obj_skin_strings_push_back_check_by_index(vector_string* vec, char** strings, uint32_t index);
+static uint32_t obj_skin_strings_get_string_index(vector_old_string* vec, char* str);
+static uint32_t obj_skin_strings_get_string_index(vector_old_string* vec, const char* str);
+static ssize_t obj_skin_strings_get_string_offset(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, char* str);
+static ssize_t obj_skin_strings_get_string_offset(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, const char* str);
+static ssize_t obj_skin_strings_get_string_offset_by_index(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, char** strings, uint32_t index);
+static void obj_skin_strings_push_back_check(vector_old_string* vec, char* str);
+static void obj_skin_strings_push_back_check(vector_old_string* vec, const char* str);
+static void obj_skin_strings_push_back_check_by_index(vector_old_string* vec, char** strings, uint32_t index);
 
 void obj_init(obj_set* os) {
     if (!os)
@@ -1032,25 +1032,23 @@ static void obj_classic_read_skin(obj* obj, stream* s, ssize_t base_offset) {
             if (sh.bone_matrices_offset) {
                 io_set_position(s, sh.bone_matrices_offset, SEEK_SET);
                 for (int32_t i = 0; i < sk->bones_count; i++) {
-                    mat4 mat;
+                    mat4u& mat = sk->bones[i].inv_bind_pose_mat;
                     mat.row0.x = io_read_float_t(s);
-                    mat.row0.y = io_read_float_t(s);
-                    mat.row0.z = io_read_float_t(s);
-                    mat.row0.w = io_read_float_t(s);
                     mat.row1.x = io_read_float_t(s);
-                    mat.row1.y = io_read_float_t(s);
-                    mat.row1.z = io_read_float_t(s);
-                    mat.row1.w = io_read_float_t(s);
                     mat.row2.x = io_read_float_t(s);
-                    mat.row2.y = io_read_float_t(s);
-                    mat.row2.z = io_read_float_t(s);
-                    mat.row2.w = io_read_float_t(s);
                     mat.row3.x = io_read_float_t(s);
+                    mat.row0.y = io_read_float_t(s);
+                    mat.row1.y = io_read_float_t(s);
+                    mat.row2.y = io_read_float_t(s);
                     mat.row3.y = io_read_float_t(s);
+                    mat.row0.z = io_read_float_t(s);
+                    mat.row1.z = io_read_float_t(s);
+                    mat.row2.z = io_read_float_t(s);
                     mat.row3.z = io_read_float_t(s);
+                    mat.row0.w = io_read_float_t(s);
+                    mat.row1.w = io_read_float_t(s);
+                    mat.row2.w = io_read_float_t(s);
                     mat.row3.w = io_read_float_t(s);
-                    mat4_transpose(&mat, &mat);
-                    mat4_to_mat4u(&mat, &sk->bones[i].inv_bind_pose_mat);
                 }
             }
 
@@ -1088,8 +1086,8 @@ static void obj_classic_read_skin(obj* obj, stream* s, ssize_t base_offset) {
         io_read(s, 0, 0x1C);
 
         if (exh.bone_names_offset) {
-            vector_string bone_names = vector_empty(string);
-            vector_string_reserve(&bone_names, exh.bone_names_count);
+            vector_old_string bone_names = vector_old_empty(string);
+            vector_old_string_reserve(&bone_names, exh.bone_names_count);
             int32_t* strings_offsets = force_malloc_s(int32_t, exh.bone_names_count);
             io_set_position(s, exh.bone_names_offset, SEEK_SET);
             for (int32_t i = 0; i < exh.bone_names_count; i++)
@@ -1097,7 +1095,7 @@ static void obj_classic_read_skin(obj* obj, stream* s, ssize_t base_offset) {
 
             size_t buf_size = 0;
             for (int32_t i = 0; i < exh.bone_names_count; i++) {
-                string* str = vector_string_reserve_back(&bone_names);
+                string* str = vector_old_string_reserve_back(&bone_names);
                 if (strings_offsets[i])
                     io_read_string_null_terminated_offset(s, strings_offsets[i], str);
                 else
@@ -1122,7 +1120,7 @@ static void obj_classic_read_skin(obj* obj, stream* s, ssize_t base_offset) {
                 }
                 *bone_names_ptr = 0;
             }
-            vector_string_free(&bone_names, string_free);
+            vector_old_string_free(&bone_names, string_free);
         }
         else {
             ex->bone_names_buf = 0;
@@ -1273,9 +1271,9 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
     io_write(s, 0x0C);
     io_align_write(s, 0x10);
 
-    vector_string strings = vector_empty(string);
-    vector_ssize_t string_offsets = vector_empty(ssize_t);
-    vector_string bone_names = vector_empty(string);
+    vector_old_string strings = vector_old_empty(string);
+    vector_old_ssize_t string_offsets = vector_old_empty(ssize_t);
+    vector_old_string bone_names = vector_old_empty(string);
     if (sk->bones) {
         sh.bone_ids_offset = io_get_position(s);
         for (int32_t i = 0; i < sk->bones_count; i++)
@@ -1296,24 +1294,22 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
 
         sh.bone_matrices_offset = io_get_position(s);
         for (int32_t i = 0; i < sk->bones_count; i++) {
-            mat4 mat;
-            mat4u_to_mat4(&sk->bones[i].inv_bind_pose_mat, &mat);
-            mat4_transpose(&mat, &mat);
+            mat4u& mat = sk->bones[i].inv_bind_pose_mat;
             io_write_float_t(s, mat.row0.x);
-            io_write_float_t(s, mat.row0.y);
-            io_write_float_t(s, mat.row0.z);
-            io_write_float_t(s, mat.row0.w);
             io_write_float_t(s, mat.row1.x);
-            io_write_float_t(s, mat.row1.y);
-            io_write_float_t(s, mat.row1.z);
-            io_write_float_t(s, mat.row1.w);
             io_write_float_t(s, mat.row2.x);
-            io_write_float_t(s, mat.row2.y);
-            io_write_float_t(s, mat.row2.z);
-            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.x);
+            io_write_float_t(s, mat.row0.y);
+            io_write_float_t(s, mat.row1.y);
+            io_write_float_t(s, mat.row2.y);
             io_write_float_t(s, mat.row3.y);
+            io_write_float_t(s, mat.row0.z);
+            io_write_float_t(s, mat.row1.z);
+            io_write_float_t(s, mat.row2.z);
             io_write_float_t(s, mat.row3.z);
+            io_write_float_t(s, mat.row0.w);
+            io_write_float_t(s, mat.row1.w);
+            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.w);
         }
         io_align_write(s, 0x10);
@@ -1418,17 +1414,17 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
                 case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
                     obj_skin_strings_push_back_check(&strings, "Direction");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->direction.up_vector.name));
+                        string_data(&constraint->direction.up_vector_old.name));
                     break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
                     obj_skin_strings_push_back_check(&strings, "Position");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->position.up_vector.name));
+                        string_data(&constraint->position.up_vector_old.name));
                     break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
                     obj_skin_strings_push_back_check(&strings, "Distance");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->distance.up_vector.name));
+                        string_data(&constraint->distance.up_vector_old.name));
                     break;
                 }
                 obj_skin_strings_push_back_check(&strings, "CNS");
@@ -1529,7 +1525,7 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
             }
         }
 
-        exh.bone_names_count = (int32_t)vector_length(bone_names);
+        exh.bone_names_count = (int32_t)vector_old_length(bone_names);
         exh.bone_names_offset = io_get_position(s);
         for (string* i = bone_names.begin; i != bone_names.end; i++)
             io_write_int32_t(s, 0);
@@ -1723,16 +1719,16 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
     }
 
     if (sk->bones || sk->ex_data_init) {
-        quicksort_string(strings.begin, vector_length(strings));
-        vector_ssize_t_reserve(&string_offsets, vector_length(strings));
+        quicksort_string(strings.begin, vector_old_length(strings));
+        vector_old_ssize_t_reserve(&string_offsets, vector_old_length(strings));
         for (string* i = strings.begin; i != strings.end; i++) {
-            *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
+            *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
             io_write_string_null_terminated(s, i);
         }
     }
     io_align_write(s, 0x10);
 
-    vector_string osage_names = vector_empty(string);
+    vector_old_string osage_names = vector_old_empty(string);
     if (sk->ex_data_init) {
         obj_skin_ex_data* ex = &sk->ex_data;
 
@@ -1903,7 +1899,7 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
             io_write_int32_t(s, 0);
             io_position_pop(s);
 
-            exh.osage_count = (int32_t)vector_length(osage_names);
+            exh.osage_count = (int32_t)vector_old_length(osage_names);
             exh.osage_count -= exh.cloth_count;
             io_position_push(s, exh.osage_names_offset, SEEK_SET);
             for (string* i = osage_names.begin; i != osage_names.end; i++) {
@@ -1928,7 +1924,7 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
         io_write(s, 0x1C);
         io_position_pop(s);
 
-        vector_string_free(&osage_names, string_free);
+        vector_old_string_free(&osage_names, string_free);
     }
 
     io_position_push(s, base_offset, SEEK_SET);
@@ -1941,9 +1937,9 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
     io_write(s, 0x0C);
     io_position_pop(s);
 
-    vector_string_free(&strings, string_free);
-    vector_ssize_t_free(&string_offsets, 0);
-    vector_string_free(&bone_names, string_free);
+    vector_old_string_free(&strings, string_free);
+    vector_old_ssize_t_free(&string_offsets, 0);
+    vector_old_string_free(&bone_names, string_free);
 }
 
 static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
@@ -1989,7 +1985,7 @@ static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
             mat.row3.z = io_read_float_t(s);
             mat.row3.w = io_read_float_t(s);
             mat4_transpose(&mat, &mat);
-            mat4_to_mat4u(&mat, &b->field_18[i]);
+            b->field_18[i] = mat;
         }
         io_position_pop(s);
     }
@@ -2045,7 +2041,7 @@ static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
 }
 
 static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets,
     ssize_t* field_18_offset, ssize_t* field_1C_offset, ssize_t* field_20_offset,
     ssize_t* field_24_offset, ssize_t* field_28_offset) {
     ssize_t mesh_name_offset = obj_skin_strings_get_string_offset(strings,
@@ -2073,24 +2069,22 @@ static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
             if (!(b->field_10 & (1 << i)))
                 continue;
 
-            mat4 mat;
-            mat4u_to_mat4(&b->field_18[i], &mat);
-            mat4_transpose(&mat, &mat);
+            mat4u& mat = b->field_18[i];
             io_write_float_t(s, mat.row0.x);
-            io_write_float_t(s, mat.row0.y);
-            io_write_float_t(s, mat.row0.z);
-            io_write_float_t(s, mat.row0.w);
             io_write_float_t(s, mat.row1.x);
-            io_write_float_t(s, mat.row1.y);
-            io_write_float_t(s, mat.row1.z);
-            io_write_float_t(s, mat.row1.w);
             io_write_float_t(s, mat.row2.x);
-            io_write_float_t(s, mat.row2.y);
-            io_write_float_t(s, mat.row2.z);
-            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.x);
+            io_write_float_t(s, mat.row0.y);
+            io_write_float_t(s, mat.row1.y);
+            io_write_float_t(s, mat.row2.y);
             io_write_float_t(s, mat.row3.y);
+            io_write_float_t(s, mat.row0.z);
+            io_write_float_t(s, mat.row1.z);
+            io_write_float_t(s, mat.row2.z);
             io_write_float_t(s, mat.row3.z);
+            io_write_float_t(s, mat.row0.w);
+            io_write_float_t(s, mat.row1.w);
+            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.w);
             *field_18_offset += sizeof(mat4);
         }
@@ -2160,7 +2154,7 @@ static void obj_classic_read_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_
 }
 
 static void obj_classic_write_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets) {
     ssize_t bone_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, string_data(&sub->bone_name));
     io_write_int32_t(s, (int32_t)bone_name_offset);
@@ -2185,7 +2179,7 @@ static void obj_classic_read_skin_block_cloth_field_20_sub(obj_skin_block_cloth_
 }
 
 static void obj_classic_write_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets) {
     io_write_uint32_t(s, sub->field_00);
     io_write_float_t(s, sub->field_04);
     io_write_float_t(s, sub->field_08);
@@ -2230,7 +2224,7 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Direction")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION;
-        obj_classic_read_skin_block_constraint_up_vector(&b->direction.up_vector,
+        obj_classic_read_skin_block_constraint_up_vector_old(&b->direction.up_vector_old,
             s, str);
         b->direction.align_axis.x = io_read_float_t(s);
         b->direction.align_axis.y = io_read_float_t(s);
@@ -2241,7 +2235,7 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Position")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_POSITION;
-        obj_classic_read_skin_block_constraint_up_vector(&b->position.up_vector,
+        obj_classic_read_skin_block_constraint_up_vector_old(&b->position.up_vector_old,
             s, str);
         obj_classic_read_skin_block_constraint_attach_point(&b->position.constrained_object,
             s, str);
@@ -2250,7 +2244,7 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Distance")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE;
-        obj_classic_read_skin_block_constraint_up_vector(&b->distance.up_vector,
+        obj_classic_read_skin_block_constraint_up_vector_old(&b->distance.up_vector_old,
             s, str);
         b->distance.distance = io_read_float_t(s);
         obj_classic_read_skin_block_constraint_attach_point(&b->distance.constrained_object,
@@ -2264,7 +2258,7 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
 }
 
 static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, char** bone_names, ssize_t* offsets) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, char** bone_names, ssize_t* offsets) {
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
 
     ssize_t type_offset = 0;
@@ -2301,7 +2295,7 @@ static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b
         io_write_float_t(s, b->orientation.offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
-        obj_classic_write_skin_block_constraint_up_vector(&b->direction.up_vector,
+        obj_classic_write_skin_block_constraint_up_vector_old(&b->direction.up_vector_old,
             s, strings, string_offsets);
         io_write_float_t(s, b->direction.align_axis.x);
         io_write_float_t(s, b->direction.align_axis.y);
@@ -2311,7 +2305,7 @@ static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b
         io_write_float_t(s, b->direction.target_offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
-        obj_classic_write_skin_block_constraint_up_vector(&b->position.up_vector,
+        obj_classic_write_skin_block_constraint_up_vector_old(&b->position.up_vector_old,
             s, strings, string_offsets);
         obj_classic_write_skin_block_constraint_attach_point(&b->position.constrained_object,
             s, strings, string_offsets);
@@ -2319,7 +2313,7 @@ static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b
             s, strings, string_offsets);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
-        obj_classic_write_skin_block_constraint_up_vector(&b->distance.up_vector,
+        obj_classic_write_skin_block_constraint_up_vector_old(&b->distance.up_vector_old,
             s, strings, string_offsets);
         io_write_float_t(s, b->distance.distance);
         obj_classic_write_skin_block_constraint_attach_point(&b->distance.constrained_object,
@@ -2340,7 +2334,7 @@ static void obj_classic_read_skin_block_constraint_attach_point(obj_skin_block_c
 }
 
 static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets) {
     io_write_int32_t(s, ap->affected_by_orientation ? 1 : 0);
     io_write_int32_t(s, ap->affected_by_scaling ? 1 : 0);
     io_write_float_t(s, ap->offset.x);
@@ -2348,7 +2342,7 @@ static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_
     io_write_float_t(s, ap->offset.z);
 }
 
-static void obj_classic_read_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up,
+static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
     stream* s, char** str) {
     up->active = io_read_int32_t(s) != 0;
     up->roll = io_read_float_t(s);
@@ -2363,8 +2357,8 @@ static void obj_classic_read_skin_block_constraint_up_vector(obj_skin_block_cons
     io_read_string_null_terminated_offset(s, name_offset, &up->name);
 }
 
-static void obj_classic_write_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets) {
+static void obj_classic_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets) {
     io_write_int32_t(s, up->active ? 1 : 0);
     io_write_float_t(s, up->roll);
     io_write_float_t(s, up->affected_axis.x);
@@ -2407,7 +2401,7 @@ static void obj_classic_read_skin_block_expression(obj_skin_block_expression* b,
 }
 
 static void obj_classic_write_skin_block_expression(obj_skin_block_expression* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, char** bone_names) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, char** bone_names) {
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
 
     ssize_t name_offset = obj_skin_strings_get_string_offset_by_index(strings,
@@ -2461,32 +2455,30 @@ static void obj_classic_read_skin_block_motion(obj_skin_block_motion* b,
     if (bone_matrices_offset) {
         io_position_push(s, bone_matrices_offset, SEEK_SET);
         for (int32_t i = 0; i < b->nodes_count; i++) {
-            mat4 mat;
+            mat4u& mat = b->nodes[i].transformation;
             mat.row0.x = io_read_float_t(s);
-            mat.row0.y = io_read_float_t(s);
-            mat.row0.z = io_read_float_t(s);
-            mat.row0.w = io_read_float_t(s);
             mat.row1.x = io_read_float_t(s);
-            mat.row1.y = io_read_float_t(s);
-            mat.row1.z = io_read_float_t(s);
-            mat.row1.w = io_read_float_t(s);
             mat.row2.x = io_read_float_t(s);
-            mat.row2.y = io_read_float_t(s);
-            mat.row2.z = io_read_float_t(s);
-            mat.row2.w = io_read_float_t(s);
             mat.row3.x = io_read_float_t(s);
+            mat.row0.y = io_read_float_t(s);
+            mat.row1.y = io_read_float_t(s);
+            mat.row2.y = io_read_float_t(s);
             mat.row3.y = io_read_float_t(s);
+            mat.row0.z = io_read_float_t(s);
+            mat.row1.z = io_read_float_t(s);
+            mat.row2.z = io_read_float_t(s);
             mat.row3.z = io_read_float_t(s);
+            mat.row0.w = io_read_float_t(s);
+            mat.row1.w = io_read_float_t(s);
+            mat.row2.w = io_read_float_t(s);
             mat.row3.w = io_read_float_t(s);
-            mat4_transpose(&mat, &mat);
-            mat4_to_mat4u(&mat, &b->nodes[i].transformation);
         }
         io_position_pop(s);
     }
 }
 
 static void obj_classic_write_skin_block_motion(obj_skin_block_motion* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets,
     char** bone_names, ssize_t* bone_names_offset, ssize_t* bone_matrices_offset) {
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
 
@@ -2509,24 +2501,22 @@ static void obj_classic_write_skin_block_motion(obj_skin_block_motion* b,
 
         io_position_push(s, *bone_matrices_offset, SEEK_SET);
         for (int32_t i = 0; i < b->nodes_count; i++) {
-            mat4 mat;
-            mat4u_to_mat4(&b->nodes[i].transformation, &mat);
-            mat4_transpose(&mat, &mat);
+            mat4u& mat = b->nodes[i].transformation;
             io_write_float_t(s, mat.row0.x);
-            io_write_float_t(s, mat.row0.y);
-            io_write_float_t(s, mat.row0.z);
-            io_write_float_t(s, mat.row0.w);
             io_write_float_t(s, mat.row1.x);
-            io_write_float_t(s, mat.row1.y);
-            io_write_float_t(s, mat.row1.z);
-            io_write_float_t(s, mat.row1.w);
             io_write_float_t(s, mat.row2.x);
-            io_write_float_t(s, mat.row2.y);
-            io_write_float_t(s, mat.row2.z);
-            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.x);
+            io_write_float_t(s, mat.row0.y);
+            io_write_float_t(s, mat.row1.y);
+            io_write_float_t(s, mat.row2.y);
             io_write_float_t(s, mat.row3.y);
+            io_write_float_t(s, mat.row0.z);
+            io_write_float_t(s, mat.row1.z);
+            io_write_float_t(s, mat.row2.z);
             io_write_float_t(s, mat.row3.z);
+            io_write_float_t(s, mat.row0.w);
+            io_write_float_t(s, mat.row1.w);
+            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.w);
         }
         io_position_pop(s);
@@ -2551,7 +2541,7 @@ static void obj_classic_read_skin_block_node(obj_skin_block_node* b,
 }
 
 static void obj_classic_write_skin_block_node(obj_skin_block_node* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets) {
     ssize_t parent_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, string_data(&b->parent_name));
     io_write_int32_t(s, (int32_t)parent_name_offset);
@@ -2602,7 +2592,7 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
 }
 
 static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, ssize_t* nodes_offset) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, ssize_t* nodes_offset) {
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
 
     io_write_int32_t(s, b->start_index);
@@ -3157,9 +3147,9 @@ static void obj_modern_write_inner(obj_set* os, stream* s) {
     stream s_mosd;
     io_mopen(&s_mosd, 0, 0);
     uint32_t off;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
-    vector_size_t pof = vector_empty(size_t);
+    vector_old_size_t pof = vector_old_empty(size_t);
 
     bool is_x = os->is_x;
 
@@ -3170,17 +3160,17 @@ static void obj_modern_write_inner(obj_set* os, stream* s) {
     int32_t count = os->objects_count;
 
     if (!is_x) {
-        ee = { 0, 1, 44, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 44, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = 44;
     }
     else {
-        ee = { 0, 3, 72, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 4, 5, ENRS_QWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 3, 72, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 4, 5, ENRS_QWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = 72;
         off = align_val(off, 0x10);
     }
@@ -3198,28 +3188,28 @@ static void obj_modern_write_inner(obj_set* os, stream* s) {
     off = align_val(off, 0x10);
 
     if (!is_x) {
-        ee = { off, 1, 4, (uint32_t)count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { off, 1, 4, (uint32_t)count, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(count * 4ULL);
     }
     else {
-        ee = { off, 1, 8, (uint32_t)count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { off, 1, 8, (uint32_t)count, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(count * 8ULL);
     }
     off = align_val(off, 0x10);
 
-    ee = { off, 1, 4, (uint32_t)count, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { off, 1, 4, (uint32_t)count, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     off = (uint32_t)(count * 4ULL);
     off = align_val(off, 0x10);
 
-    ee = { off, 1, 4, (uint32_t)os->texture_ids_count, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { off, 1, 4, (uint32_t)os->texture_ids_count, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     off = (uint32_t)(os->texture_ids_count * 4ULL);
     off = align_val(off, 0x10);
 
@@ -3339,13 +3329,13 @@ static void obj_modern_write_inner(obj_set* os, stream* s) {
     for (int32_t i = 0; i < count; i++) {
         obj* obj = &os->objects[i];
 
-        f2_struct* omdl = vector_f2_struct_reserve_back(&st.sub_structs);
+        f2_struct* omdl = vector_old_f2_struct_reserve_back(&st.sub_structs);
 
         stream s_omdl;
         io_mopen(&s_omdl, 0, 0);
 
         if (obj->skin_init) {
-            f2_struct* oskn = vector_f2_struct_reserve_back(&st.sub_structs);
+            f2_struct* oskn = vector_old_f2_struct_reserve_back(&st.sub_structs);
 
             stream s_oskn;
             io_mopen(&s_oskn, 0, 0);
@@ -3430,10 +3420,10 @@ static void obj_modern_write_index(obj* obj, stream* s, bool is_x,
     }
 
     uint32_t off = 0;
-    vector_enrs_entry* e = &oidx->enrs;
+    vector_old_enrs_entry* e = &oidx->enrs;
     enrs_entry ee;
     bool add_enrs = true;
-    if (vector_length(*e) > 0) {
+    if (vector_old_length(*e) > 0) {
         off = (uint32_t)((size_t)e->end[-1].size * e->end[-1].repeat_count);
         if (e->end[-1].count && e->end[-1].sub.begin[0].type == type) {
             e->end[-1].repeat_count += sub_mesh->indices_count;
@@ -3443,13 +3433,13 @@ static void obj_modern_write_index(obj* obj, stream* s, bool is_x,
 
     if (add_enrs)
         if (type != ENRS_INVALID) {
-            ee = { off, 1, (uint32_t)size,(uint32_t)sub_mesh->indices_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, type);
-            vector_enrs_entry_push_back(e, &ee);
+            ee = { off, 1, (uint32_t)size,(uint32_t)sub_mesh->indices_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, type);
+            vector_old_enrs_entry_push_back(e, &ee);
         }
         else {
-            ee = { off, 0, (uint32_t)size, (uint32_t)sub_mesh->indices_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_entry_push_back(e, &ee);
+            ee = { off, 0, (uint32_t)size, (uint32_t)sub_mesh->indices_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_entry_push_back(e, &ee);
         }
 
     uint32_t* indices = sub_mesh->indices;
@@ -3615,8 +3605,8 @@ static void obj_modern_write_model(obj* obj, stream* s,
     const size_t mesh_size = is_x ? 0x130 : 0xD8;
     const size_t sub_mesh_size = is_x ? 0x80 : 0x70;
 
-    f2_struct* oidx = vector_f2_struct_reserve_back(&omdl->sub_structs);
-    f2_struct* ovtx = vector_f2_struct_reserve_back(&omdl->sub_structs);
+    f2_struct* oidx = vector_old_f2_struct_reserve_back(&omdl->sub_structs);
+    f2_struct* ovtx = vector_old_f2_struct_reserve_back(&omdl->sub_structs);
 
     stream s_oidx;
     stream s_ovtx;
@@ -3624,41 +3614,41 @@ static void obj_modern_write_model(obj* obj, stream* s,
     io_mopen(&s_ovtx, 0, 0);
 
     uint32_t off;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
-    vector_size_t pof = vector_empty(size_t);
+    vector_old_size_t pof = vector_old_empty(size_t);
 
     obj_header oh;
     memset(&oh, 0, sizeof(obj_header));
 
     if (!is_x) {
-        ee = { 0, 1, 80, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 10, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 80, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 10, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = 80;
     }
     else {
-        ee = { 0, 2, 112, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 8, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 2, 112, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 8, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = 112;
     }
 
     if (!is_x) {
-        ee = { off, 1, 216, (uint32_t)obj->meshes_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 32, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { off, 1, 216, (uint32_t)obj->meshes_count, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 32, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(obj->meshes_count * 216ULL);
     }
     else {
-        ee = { off, 5, 304, (uint32_t)obj->meshes_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 4, 20, ENRS_QWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { off, 5, 304, (uint32_t)obj->meshes_count, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 4, 20, ENRS_QWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(obj->meshes_count * 304ULL);
     }
 
@@ -3667,47 +3657,47 @@ static void obj_modern_write_model(obj* obj, stream* s,
         total_sub_meshes += obj->meshes[i].sub_meshes_count;
 
     if (!is_x) {
-        ee = { off, 17, 112, total_sub_meshes, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 8, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 16, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { off, 17, 112, total_sub_meshes, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 8, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 16, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(obj->meshes_count * 112ULL);
     }
     else {
-        ee = { off, 17, 128, total_sub_meshes, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 8, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 16, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { off, 17, 128, total_sub_meshes, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 8, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 16, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(obj->meshes_count * 128ULL);
     }
 
@@ -3721,9 +3711,9 @@ static void obj_modern_write_model(obj* obj, stream* s,
         }
     }
 
-    ee = { off, 1, 2, (uint32_t)total_bone_indices_count, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { off, 1, 2, (uint32_t)total_bone_indices_count, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     off = (uint32_t)(2 * (size_t)total_bone_indices_count);
     off = align_val(off, is_x ? 0x10 : 0x04);
 
@@ -3736,9 +3726,9 @@ static void obj_modern_write_model(obj* obj, stream* s,
         ee.count = mte->count;
         ee.size = mte->size;
         ee.repeat_count = obj->materials_count;
-        ee.sub = vector_empty(enrs_sub_entry);
-        vector_enrs_sub_entry_insert_range(&ee.sub, 0, mte->sub.begin, mte->sub.end);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee.sub = vector_old_empty(enrs_sub_entry);
+        vector_old_enrs_sub_entry_insert_range(&ee.sub, 0, mte->sub.begin, mte->sub.end);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(ee.size * ee.repeat_count);
     }
 
@@ -4080,25 +4070,23 @@ static void obj_modern_read_skin(obj* obj, stream* s, ssize_t base_offset,
             if (sh.bone_matrices_offset) {
                 io_set_position(s, sh.bone_matrices_offset, SEEK_SET);
                 for (int32_t i = 0; i < sk->bones_count; i++) {
-                    mat4 mat;
+                    mat4u& mat = sk->bones[i].inv_bind_pose_mat;
                     mat.row0.x = io_read_float_t_stream_reverse_endianness(s);
-                    mat.row0.y = io_read_float_t_stream_reverse_endianness(s);
-                    mat.row0.z = io_read_float_t_stream_reverse_endianness(s);
-                    mat.row0.w = io_read_float_t_stream_reverse_endianness(s);
                     mat.row1.x = io_read_float_t_stream_reverse_endianness(s);
-                    mat.row1.y = io_read_float_t_stream_reverse_endianness(s);
-                    mat.row1.z = io_read_float_t_stream_reverse_endianness(s);
-                    mat.row1.w = io_read_float_t_stream_reverse_endianness(s);
                     mat.row2.x = io_read_float_t_stream_reverse_endianness(s);
-                    mat.row2.y = io_read_float_t_stream_reverse_endianness(s);
-                    mat.row2.z = io_read_float_t_stream_reverse_endianness(s);
-                    mat.row2.w = io_read_float_t_stream_reverse_endianness(s);
                     mat.row3.x = io_read_float_t_stream_reverse_endianness(s);
+                    mat.row0.y = io_read_float_t_stream_reverse_endianness(s);
+                    mat.row1.y = io_read_float_t_stream_reverse_endianness(s);
+                    mat.row2.y = io_read_float_t_stream_reverse_endianness(s);
                     mat.row3.y = io_read_float_t_stream_reverse_endianness(s);
+                    mat.row0.z = io_read_float_t_stream_reverse_endianness(s);
+                    mat.row1.z = io_read_float_t_stream_reverse_endianness(s);
+                    mat.row2.z = io_read_float_t_stream_reverse_endianness(s);
                     mat.row3.z = io_read_float_t_stream_reverse_endianness(s);
+                    mat.row0.w = io_read_float_t_stream_reverse_endianness(s);
+                    mat.row1.w = io_read_float_t_stream_reverse_endianness(s);
+                    mat.row2.w = io_read_float_t_stream_reverse_endianness(s);
                     mat.row3.w = io_read_float_t_stream_reverse_endianness(s);
-                    mat4_transpose(&mat, &mat);
-                    mat4_to_mat4u(&mat, &sk->bones[i].inv_bind_pose_mat);
                 }
             }
 
@@ -4152,8 +4140,8 @@ static void obj_modern_read_skin(obj* obj, stream* s, ssize_t base_offset,
         }
 
         if (exh.bone_names_offset) {
-            vector_string bone_names = vector_empty(string);
-            vector_string_reserve(&bone_names, exh.bone_names_count);
+            vector_old_string bone_names = vector_old_empty(string);
+            vector_old_string_reserve(&bone_names, exh.bone_names_count);
             ssize_t* strings_offsets = force_malloc_s(ssize_t, exh.bone_names_count);
             io_set_position(s, exh.bone_names_offset, SEEK_SET);
             if (!is_x)
@@ -4165,7 +4153,7 @@ static void obj_modern_read_skin(obj* obj, stream* s, ssize_t base_offset,
 
             size_t buf_size = 0;
             for (int32_t i = 0; i < exh.bone_names_count; i++) {
-                string* str = vector_string_reserve_back(&bone_names);
+                string* str = vector_old_string_reserve_back(&bone_names);
                 if (strings_offsets[i])
                     io_read_string_null_terminated_offset(s, strings_offsets[i], str);
                 else
@@ -4190,7 +4178,7 @@ static void obj_modern_read_skin(obj* obj, stream* s, ssize_t base_offset,
                 }
                 *bone_names_ptr = 0;
             }
-            vector_string_free(&bone_names, string_free);
+            vector_old_string_free(&bone_names, string_free);
         }
         else {
             ex->bone_names_buf = 0;
@@ -4322,22 +4310,22 @@ static void obj_modern_write_skin(obj* obj, stream* s,
     obj_skin* sk = &obj->skin;
 
     uint32_t off;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
-    vector_size_t pof = vector_empty(size_t);
+    vector_old_size_t pof = vector_old_empty(size_t);
 
     if (!is_x) {
-        ee = { 0, 1, 48, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 48, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = 48;
     }
     else {
-        ee = { 0, 3, 72, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_QWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 4, 4, ENRS_QWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 3, 72, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_QWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 4, 4, ENRS_QWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = 72;
     }
     off = align_val(off, 0x10);
@@ -4346,49 +4334,49 @@ static void obj_modern_write_skin(obj* obj, stream* s,
     memset(&sh, 0, sizeof(obj_skin_header));
     if (sk->bones_count) {
         if (sk->bones_count % 4) {
-            ee = { off, 1, 4, (uint32_t)sk->bones_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 4, (uint32_t)sk->bones_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(sk->bones_count * 4ULL);
             off = align_val(off, 0x10);
 
-            ee = { off, 1, 4, (uint32_t)sk->bones_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 4, (uint32_t)sk->bones_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(sk->bones_count * 4ULL);
         }
         else {
-            ee = { off, 1, 4, (uint32_t)(sk->bones_count * 2ULL), vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 4, (uint32_t)(sk->bones_count * 2ULL), vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(sk->bones_count * 2 * 4ULL);
         }
         off = align_val(off, 0x10);
 
         if (!is_x) {
-            ee = { off, 1, 4, (uint32_t)sk->bones_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 4, (uint32_t)sk->bones_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(sk->bones_count * 4ULL);
         }
         else {
-            ee = { off, 1, 8, (uint32_t)sk->bones_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 8, (uint32_t)sk->bones_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(sk->bones_count * 8ULL);
         }
         off = align_val(off, 0x10);
 
-        ee = { off, 1, 64, (uint32_t)sk->bones_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 16, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { off, 1, 64, (uint32_t)sk->bones_count, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 16, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(sk->bones_count * 64ULL);
         off = align_val(off, 0x10);
     }
 
-    vector_string strings = vector_empty(string);
-    vector_ssize_t string_offsets = vector_empty(ssize_t);
-    vector_string bone_names = vector_empty(string);
+    vector_old_string strings = vector_old_empty(string);
+    vector_old_ssize_t string_offsets = vector_old_empty(ssize_t);
+    vector_old_string bone_names = vector_old_empty(string);
 
     obj_skin_ex_data_header exh;
     memset(&exh, 0, sizeof(obj_skin_ex_data_header));
@@ -4438,17 +4426,17 @@ static void obj_modern_write_skin(obj* obj, stream* s,
                 case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
                     obj_skin_strings_push_back_check(&strings, "Direction");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->direction.up_vector.name));
+                        string_data(&constraint->direction.up_vector_old.name));
                     break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
                     obj_skin_strings_push_back_check(&strings, "Position");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->position.up_vector.name));
+                        string_data(&constraint->position.up_vector_old.name));
                     break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
                     obj_skin_strings_push_back_check(&strings, "Distance");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->distance.up_vector.name));
+                        string_data(&constraint->distance.up_vector_old.name));
                     break;
                 }
                 obj_skin_strings_push_back_check(&strings, "CNS");
@@ -4550,40 +4538,40 @@ static void obj_modern_write_skin(obj* obj, stream* s,
                 exh.osage_count++;
         }
 
-        exh.bone_names_count = (int32_t)vector_length(bone_names);
+        exh.bone_names_count = (int32_t)vector_old_length(bone_names);
     }
 
     if (sk->ex_data_init) {
         obj_skin_ex_data* ex = &sk->ex_data;
 
         if (!is_x) {
-            ee = { off, 1, 80, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 10, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 80, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 10, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = 80;
         }
         else {
-            ee = { off, 5, 128, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_QWORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 5, 128, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_QWORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = 128;
         }
         off = align_val(off, 0x10);
 
         if (ex->osage_nodes_count) {
-            ee = { off, 1, 12, (uint32_t)ex->osage_nodes_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 12, (uint32_t)ex->osage_nodes_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(ex->osage_nodes_count * 12ULL);
             off = align_val(off, 0x10);
 
-            ee = { off, 1, 12, (uint32_t)ex->osage_sibling_infos_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 12, (uint32_t)ex->osage_sibling_infos_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(ex->osage_sibling_infos_count * 12ULL);
             off = align_val(off, 0x10);
         }
@@ -4591,64 +4579,64 @@ static void obj_modern_write_skin(obj* obj, stream* s,
         if (exh.osage_count || exh.cloth_count) {
             int32_t count = exh.osage_count + exh.cloth_count;
             if (!is_x) {
-                ee = { off, 1, 4, (uint32_t)count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, 4, (uint32_t)count, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(count * 4ULL);
             }
             else {
-                ee = { off, 1, 8, (uint32_t)count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, 8, (uint32_t)count, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(count * 8ULL);
             }
             off = align_val(off, 0x10);
         }
 
         if (!is_x) {
-            ee = { off, 1, 4, (uint32_t)exh.bone_names_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 4, (uint32_t)exh.bone_names_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(exh.bone_names_count * 4ULL);
         }
         else {
-            ee = { off, 1, 8, (uint32_t)exh.bone_names_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 8, (uint32_t)exh.bone_names_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(exh.bone_names_count * 8ULL);
         }
         off = align_val(off, 0x10);
 
         if (ex->blocks_count > 0) {
             if (!is_x) {
-                ee = { off, 1, 8, (uint32_t)ex->blocks_count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, 8, (uint32_t)ex->blocks_count, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(ex->blocks_count * 8ULL);
             }
             else {
-                ee = { off, 1, 16, (uint32_t)ex->blocks_count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, 16, (uint32_t)ex->blocks_count, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(ex->blocks_count * 16ULL);
             }
             off = align_val(off, 0x10);
 
             if (exh.osage_count) {
                 if (!is_x) {
-                    ee = { off, 2, 76, (uint32_t)exh.osage_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 14, ENRS_DWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_DWORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 2, 76, (uint32_t)exh.osage_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 14, ENRS_DWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_DWORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(exh.osage_count * 76ULL);
                 }
                 else {
-                    ee = { off, 4, 104, (uint32_t)exh.osage_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 4, 4, ENRS_DWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 8, 1, ENRS_QWORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 4, 104, (uint32_t)exh.osage_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 4, 4, ENRS_DWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 8, 1, ENRS_QWORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(exh.osage_count * 104ULL);
                 }
                 off = align_val(off, 0x10);
@@ -4656,19 +4644,19 @@ static void obj_modern_write_skin(obj* obj, stream* s,
 
             if (expressions_count) {
                 if (!is_x) {
-                    ee = { off, 1, 84, (uint32_t)expressions_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 19, ENRS_DWORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 1, 84, (uint32_t)expressions_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 19, ENRS_DWORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(expressions_count * 84ULL);
                 }
                 else {
-                    ee = { off, 5, 136, (uint32_t)expressions_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 4, 9, ENRS_QWORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 5, 136, (uint32_t)expressions_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 4, 9, ENRS_QWORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(expressions_count * 136ULL);
                 }
                 off = align_val(off, 0x10);
@@ -4676,18 +4664,18 @@ static void obj_modern_write_skin(obj* obj, stream* s,
 
             if (exh.cloth_count) {
                 if (!is_x) {
-                    ee = { off, 1, 52, (uint32_t)exh.cloth_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 13, ENRS_DWORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 1, 52, (uint32_t)exh.cloth_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 13, ENRS_DWORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(exh.cloth_count * 52ULL);
                 }
                 else {
-                    ee = { off, 4, 88, (uint32_t)exh.cloth_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_QWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 4, 88, (uint32_t)exh.cloth_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_QWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(exh.cloth_count * 88ULL);
                 }
                 off = align_val(off, 0x10);
@@ -4707,7 +4695,7 @@ static void obj_modern_write_skin(obj* obj, stream* s,
 
                 if (cns_type) {
                     ee.repeat_count = constraint_count;
-                    vector_enrs_entry_push_back(&e, &ee);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = ee.size * ee.repeat_count;
                 }
 
@@ -4715,65 +4703,65 @@ static void obj_modern_write_skin(obj* obj, stream* s,
                 if (!is_x)
                     switch (cns_type) {
                     case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION:
-                        ee = { off, 6, 68, 0, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 17, ENRS_DWORD);
+                        ee = { off, 6, 68, 0, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 17, ENRS_DWORD);
                         break;
                     case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
-                        ee = { off, 8, 144, 0, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 29, ENRS_DWORD);
+                        ee = { off, 8, 144, 0, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 29, ENRS_DWORD);
                         break;
                     case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
-                        ee = { off, 8, 132, 0, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 33, ENRS_DWORD);
+                        ee = { off, 8, 132, 0, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 33, ENRS_DWORD);
                         break;
                     case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
-                        ee = { off, 8, 136, 0, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 34, ENRS_DWORD);
+                        ee = { off, 8, 136, 0, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 34, ENRS_DWORD);
                         break;
                     }
                 else
                     switch (cns_type) {
                     case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION:
-                        ee = { off, 6, 96, 0, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+                        ee = { off, 6, 96, 0, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
                         break;
                     case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
-                        ee = { off, 8, 144, 0, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 8, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
+                        ee = { off, 8, 144, 0, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 8, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
                         break;
                     case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
-                        ee = { off, 8, 160, 0, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 8, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 10, ENRS_DWORD);
+                        ee = { off, 8, 160, 0, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 8, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 10, ENRS_DWORD);
                         break;
                     case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
-                        ee = { off, 8, 168, 0, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 8, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 11, ENRS_DWORD);
+                        ee = { off, 8, 168, 0, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 8, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 11, ENRS_DWORD);
                         break;
                     }
                 constraint_count = 1;
@@ -4781,39 +4769,39 @@ static void obj_modern_write_skin(obj* obj, stream* s,
 
             if (constraint_count) {
                 ee.repeat_count = constraint_count;
-                vector_enrs_entry_push_back(&e, &ee);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = ee.size * ee.repeat_count;
             }
             off = align_val(off, 0x10);
 
             if (!is_x) {
-                ee = { off, 1, 56, (uint32_t)motion_count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 14, ENRS_DWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, 56, (uint32_t)motion_count, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 14, ENRS_DWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(motion_count * 56ULL);
             }
             else {
-                ee = { off, 5, 80, (uint32_t)motion_count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                vector_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-                vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-                vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                vector_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 5, 80, (uint32_t)motion_count, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
+                vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                vector_old_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(motion_count * 80ULL);
             }
             off = align_val(off, 0x10);
 
             if (motion_count) {
-                ee = { off, 1, 64, (uint32_t)motion_nodes_count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 16, ENRS_DWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, 64, (uint32_t)motion_nodes_count, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 16, ENRS_DWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(motion_nodes_count * 64ULL);
                 off = align_val(off, 0x10);
 
-                ee = { off, 1, 4, (uint32_t)motion_nodes_count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, 4, (uint32_t)motion_nodes_count, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(motion_nodes_count * 4ULL);
                 off = align_val(off, 0x10);
             }
@@ -4839,57 +4827,57 @@ static void obj_modern_write_skin(obj* obj, stream* s,
                 }
 
                 if (field_18_count) {
-                    ee = { off, 1, 64, (uint32_t)field_18_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 16, ENRS_DWORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 1, 64, (uint32_t)field_18_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 16, ENRS_DWORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(field_18_count * 64ULL);
                     off = align_val(off, 0x10);
                 }
 
                 if (field_1C_count) {
                     if (!is_x) {
-                        ee = { off, 1, 104, (uint32_t)field_1C_count, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 26, ENRS_DWORD);
-                        vector_enrs_entry_push_back(&e, &ee);
+                        ee = { off, 1, 104, (uint32_t)field_1C_count, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 26, ENRS_DWORD);
+                        vector_old_enrs_entry_push_back(&e, &ee);
                         off = (uint32_t)(field_1C_count * 104ULL);
                     }
                     else {
-                        ee = { off, 9, 136, (uint32_t)field_1C_count, vector_empty(enrs_sub_entry) };
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 10, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-                        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-                        vector_enrs_entry_push_back(&e, &ee);
+                        ee = { off, 9, 136, (uint32_t)field_1C_count, vector_old_empty(enrs_sub_entry) };
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 10, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+                        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+                        vector_old_enrs_entry_push_back(&e, &ee);
                         off = (uint32_t)(field_1C_count * 136ULL);
                     }
                     off = align_val(off, 0x10);
                 }
 
                 if (field_20_count) {
-                    ee = { off, 1, 440, (uint32_t)field_20_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 110, ENRS_DWORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 1, 440, (uint32_t)field_20_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 110, ENRS_DWORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(field_20_count * 440ULL);
                     off = align_val(off, 0x10);
                 }
 
                 if (field_24_count) {
-                    ee = { off, 1, 2, (uint32_t)field_24_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 1, 2, (uint32_t)field_24_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(field_24_count * 2ULL);
                     off = align_val(off, 0x10);
                 }
 
                 if (field_28_count) {
-                    ee = { off, 1, 2, (uint32_t)field_28_count, vector_empty(enrs_sub_entry) };
-                    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
-                    vector_enrs_entry_push_back(&e, &ee);
+                    ee = { off, 1, 2, (uint32_t)field_28_count, vector_old_empty(enrs_sub_entry) };
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
+                    vector_old_enrs_entry_push_back(&e, &ee);
                     off = (uint32_t)(field_28_count * 2ULL);
                     off = align_val(off, 0x10);
                 }
@@ -4943,24 +4931,22 @@ static void obj_modern_write_skin(obj* obj, stream* s,
 
         sh.bone_matrices_offset = io_get_position(s);
         for (int32_t i = 0; i < sk->bones_count; i++) {
-            mat4 mat;
-            mat4u_to_mat4(&sk->bones[i].inv_bind_pose_mat, &mat);
-            mat4_transpose(&mat, &mat);
+            mat4u& mat = sk->bones[i].inv_bind_pose_mat;
             io_write_float_t(s, mat.row0.x);
-            io_write_float_t(s, mat.row0.y);
-            io_write_float_t(s, mat.row0.z);
-            io_write_float_t(s, mat.row0.w);
             io_write_float_t(s, mat.row1.x);
-            io_write_float_t(s, mat.row1.y);
-            io_write_float_t(s, mat.row1.z);
-            io_write_float_t(s, mat.row1.w);
             io_write_float_t(s, mat.row2.x);
-            io_write_float_t(s, mat.row2.y);
-            io_write_float_t(s, mat.row2.z);
-            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.x);
+            io_write_float_t(s, mat.row0.y);
+            io_write_float_t(s, mat.row1.y);
+            io_write_float_t(s, mat.row2.y);
             io_write_float_t(s, mat.row3.y);
+            io_write_float_t(s, mat.row0.z);
+            io_write_float_t(s, mat.row1.z);
+            io_write_float_t(s, mat.row2.z);
             io_write_float_t(s, mat.row3.z);
+            io_write_float_t(s, mat.row0.w);
+            io_write_float_t(s, mat.row1.w);
+            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.w);
         }
         io_align_write(s, 0x10);
@@ -5424,17 +5410,17 @@ static void obj_modern_write_skin(obj* obj, stream* s,
     }
 
     if (sk->bones || sk->ex_data_init) {
-        quicksort_string(strings.begin, vector_length(strings));
-        vector_ssize_t_reserve(&string_offsets, vector_length(strings));
+        quicksort_string(strings.begin, vector_old_length(strings));
+        vector_old_ssize_t_reserve(&string_offsets, vector_old_length(strings));
         for (string* i = strings.begin; i != strings.end; i++) {
             ssize_t off = io_get_position(s);
             io_write_string_null_terminated(s, i);
-            vector_ssize_t_push_back(&string_offsets, &off);
+            vector_old_ssize_t_push_back(&string_offsets, &off);
         }
     }
     io_align_write(s, 0x10);
 
-    vector_string osage_names = vector_empty(string);
+    vector_old_string osage_names = vector_old_empty(string);
     if (sk->ex_data_init) {
         obj_skin_ex_data* ex = &sk->ex_data;
 
@@ -5654,7 +5640,7 @@ static void obj_modern_write_skin(obj* obj, stream* s,
             io_write_int32_t(s, 0);
             io_position_pop(s);
 
-            exh.osage_count = (int32_t)vector_length(osage_names);
+            exh.osage_count = (int32_t)vector_old_length(osage_names);
             exh.osage_count -= exh.cloth_count;
             io_position_push(s, exh.osage_names_offset, SEEK_SET);
             if (!is_x)
@@ -5702,7 +5688,7 @@ static void obj_modern_write_skin(obj* obj, stream* s,
         }
         io_position_pop(s);
 
-        vector_string_free(&osage_names, string_free);
+        vector_old_string_free(&osage_names, string_free);
     }
 
     io_position_push(s, base_offset, SEEK_SET);
@@ -5726,9 +5712,9 @@ static void obj_modern_write_skin(obj* obj, stream* s,
     }
     io_position_pop(s);
 
-    vector_string_free(&strings, string_free);
-    vector_ssize_t_free(&string_offsets, 0);
-    vector_string_free(&bone_names, string_free);
+    vector_old_string_free(&strings, string_free);
+    vector_old_ssize_t_free(&string_offsets, 0);
+    vector_old_string_free(&bone_names, string_free);
 
     oskn->enrs = e;
     oskn->pof = pof;
@@ -5765,25 +5751,23 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
             if (!(b->field_10 & (1 << i)))
                 continue;
 
-            mat4 mat;
+            mat4u& mat = b->field_18[i];
             mat.row0.x = io_read_float_t_stream_reverse_endianness(s);
-            mat.row0.y = io_read_float_t_stream_reverse_endianness(s);
-            mat.row0.z = io_read_float_t_stream_reverse_endianness(s);
-            mat.row0.w = io_read_float_t_stream_reverse_endianness(s);
             mat.row1.x = io_read_float_t_stream_reverse_endianness(s);
-            mat.row1.y = io_read_float_t_stream_reverse_endianness(s);
-            mat.row1.z = io_read_float_t_stream_reverse_endianness(s);
-            mat.row1.w = io_read_float_t_stream_reverse_endianness(s);
             mat.row2.x = io_read_float_t_stream_reverse_endianness(s);
-            mat.row2.y = io_read_float_t_stream_reverse_endianness(s);
-            mat.row2.z = io_read_float_t_stream_reverse_endianness(s);
-            mat.row2.w = io_read_float_t_stream_reverse_endianness(s);
             mat.row3.x = io_read_float_t_stream_reverse_endianness(s);
+            mat.row0.y = io_read_float_t_stream_reverse_endianness(s);
+            mat.row1.y = io_read_float_t_stream_reverse_endianness(s);
+            mat.row2.y = io_read_float_t_stream_reverse_endianness(s);
             mat.row3.y = io_read_float_t_stream_reverse_endianness(s);
+            mat.row0.z = io_read_float_t_stream_reverse_endianness(s);
+            mat.row1.z = io_read_float_t_stream_reverse_endianness(s);
+            mat.row2.z = io_read_float_t_stream_reverse_endianness(s);
             mat.row3.z = io_read_float_t_stream_reverse_endianness(s);
+            mat.row0.w = io_read_float_t_stream_reverse_endianness(s);
+            mat.row1.w = io_read_float_t_stream_reverse_endianness(s);
+            mat.row2.w = io_read_float_t_stream_reverse_endianness(s);
             mat.row3.w = io_read_float_t_stream_reverse_endianness(s);
-            mat4_transpose(&mat, &mat);
-            mat4_to_mat4u(&mat, &b->field_18[i]);
         }
         io_position_pop(s);
     }
@@ -5852,7 +5836,7 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
 }
 
 static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x,
     ssize_t* field_18_offset, ssize_t* field_1C_offset, ssize_t* field_20_offset,
     ssize_t* field_24_offset, ssize_t* field_28_offset) {
     ssize_t mesh_name_offset = obj_skin_strings_get_string_offset(strings,
@@ -5897,24 +5881,22 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
             if (!(b->field_10 & (1 << i)))
                 continue;
 
-            mat4 mat;
-            mat4u_to_mat4(&b->field_18[i], &mat);
-            mat4_transpose(&mat, &mat);
+            mat4u& mat = b->field_18[i];
             io_write_float_t(s, mat.row0.x);
-            io_write_float_t(s, mat.row0.y);
-            io_write_float_t(s, mat.row0.z);
-            io_write_float_t(s, mat.row0.w);
             io_write_float_t(s, mat.row1.x);
-            io_write_float_t(s, mat.row1.y);
-            io_write_float_t(s, mat.row1.z);
-            io_write_float_t(s, mat.row1.w);
             io_write_float_t(s, mat.row2.x);
-            io_write_float_t(s, mat.row2.y);
-            io_write_float_t(s, mat.row2.z);
-            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.x);
+            io_write_float_t(s, mat.row0.y);
+            io_write_float_t(s, mat.row1.y);
+            io_write_float_t(s, mat.row2.y);
             io_write_float_t(s, mat.row3.y);
+            io_write_float_t(s, mat.row0.z);
+            io_write_float_t(s, mat.row1.z);
+            io_write_float_t(s, mat.row2.z);
             io_write_float_t(s, mat.row3.z);
+            io_write_float_t(s, mat.row0.w);
+            io_write_float_t(s, mat.row1.w);
+            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.w);
             *field_18_offset += sizeof(mat4);
         }
@@ -5990,7 +5972,7 @@ static void obj_modern_read_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_f
 }
 
 static void obj_modern_write_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x) {
     ssize_t bone_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, string_data(&sub->bone_name));
     io_write_offset(s, bone_name_offset, 0x20, is_x);
@@ -6017,7 +5999,7 @@ static void obj_modern_read_skin_block_cloth_field_20_sub(obj_skin_block_cloth_f
 }
 
 static void obj_modern_write_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x) {
     io_write_uint32_t(s, sub->field_00);
     io_write_float_t(s, sub->field_04);
     io_write_float_t(s, sub->field_08);
@@ -6062,7 +6044,7 @@ static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Direction")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION;
-        obj_modern_read_skin_block_constraint_up_vector(&b->direction.up_vector,
+        obj_modern_read_skin_block_constraint_up_vector_old(&b->direction.up_vector_old,
             s, header_length, str, is_x);
         b->direction.align_axis.x = io_read_float_t_stream_reverse_endianness(s);
         b->direction.align_axis.y = io_read_float_t_stream_reverse_endianness(s);
@@ -6073,7 +6055,7 @@ static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Position")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_POSITION;
-        obj_modern_read_skin_block_constraint_up_vector(&b->position.up_vector,
+        obj_modern_read_skin_block_constraint_up_vector_old(&b->position.up_vector_old,
             s, header_length, str, is_x);
         obj_modern_read_skin_block_constraint_attach_point(&b->position.constrained_object,
             s, header_length, str, is_x);
@@ -6082,7 +6064,7 @@ static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Distance")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE;
-        obj_modern_read_skin_block_constraint_up_vector(&b->distance.up_vector,
+        obj_modern_read_skin_block_constraint_up_vector_old(&b->distance.up_vector_old,
             s, header_length, str, is_x);
         b->distance.distance = io_read_float_t_stream_reverse_endianness(s);
         obj_modern_read_skin_block_constraint_attach_point(&b->distance.constrained_object,
@@ -6096,7 +6078,7 @@ static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
 }
 
 static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, char** bone_names,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, char** bone_names,
     bool is_x, ssize_t* offsets) {
     obj_modern_write_skin_block_node(&b->base, s, strings, string_offsets, is_x);
 
@@ -6134,7 +6116,7 @@ static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
         io_write_float_t(s, b->orientation.offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
-        obj_modern_write_skin_block_constraint_up_vector(&b->direction.up_vector,
+        obj_modern_write_skin_block_constraint_up_vector_old(&b->direction.up_vector_old,
             s, strings, string_offsets, is_x);
         io_write_float_t(s, b->direction.align_axis.x);
         io_write_float_t(s, b->direction.align_axis.y);
@@ -6144,7 +6126,7 @@ static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
         io_write_float_t(s, b->direction.target_offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
-        obj_modern_write_skin_block_constraint_up_vector(&b->position.up_vector,
+        obj_modern_write_skin_block_constraint_up_vector_old(&b->position.up_vector_old,
             s, strings, string_offsets, is_x);
         obj_modern_write_skin_block_constraint_attach_point(&b->position.constrained_object,
             s, strings, string_offsets, is_x);
@@ -6152,7 +6134,7 @@ static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
             s, strings, string_offsets, is_x);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
-        obj_modern_write_skin_block_constraint_up_vector(&b->distance.up_vector,
+        obj_modern_write_skin_block_constraint_up_vector_old(&b->distance.up_vector_old,
             s, strings, string_offsets, is_x);
         io_write_float_t(s, b->distance.distance);
         obj_modern_write_skin_block_constraint_attach_point(&b->distance.constrained_object,
@@ -6173,7 +6155,7 @@ static void obj_modern_read_skin_block_constraint_attach_point(obj_skin_block_co
 }
 
 static void obj_modern_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x) {
     io_write_int32_t(s, ap->affected_by_orientation ? 1 : 0);
     io_write_int32_t(s, ap->affected_by_scaling ? 1 : 0);
     io_write_float_t(s, ap->offset.x);
@@ -6181,7 +6163,7 @@ static void obj_modern_write_skin_block_constraint_attach_point(obj_skin_block_c
     io_write_float_t(s, ap->offset.z);
 }
 
-static void obj_modern_read_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up,
+static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
     stream* s, uint32_t header_length, char** str, bool is_x) {
     up->active = io_read_int32_t_stream_reverse_endianness(s) != 0;
     up->roll = io_read_float_t_stream_reverse_endianness(s);
@@ -6196,8 +6178,8 @@ static void obj_modern_read_skin_block_constraint_up_vector(obj_skin_block_const
     io_read_string_null_terminated_offset(s, name_offset, &up->name);
 }
 
-static void obj_modern_write_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x) {
+static void obj_modern_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x) {
     io_write_int32_t(s, up->active ? 1 : 0);
     io_write_float_t(s, up->roll);
     io_write_float_t(s, up->affected_axis.x);
@@ -6247,7 +6229,7 @@ static void obj_modern_read_skin_block_expression(obj_skin_block_expression* b,
 }
 
 static void obj_modern_write_skin_block_expression(obj_skin_block_expression* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, char** bone_names, bool is_x) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, char** bone_names, bool is_x) {
     obj_modern_write_skin_block_node(&b->base, s, strings, string_offsets, is_x);
 
     ssize_t name_offset = obj_skin_strings_get_string_offset_by_index(strings,
@@ -6316,32 +6298,30 @@ static void obj_modern_read_skin_block_motion(obj_skin_block_motion* b,
     if (bone_matrices_offset) {
         io_position_push(s, bone_matrices_offset, SEEK_SET);
         for (int32_t i = 0; i < b->nodes_count; i++) {
-            mat4 mat;
+            mat4u& mat = b->nodes[i].transformation;
             mat.row0.x = io_read_float_t_stream_reverse_endianness(s);
-            mat.row0.y = io_read_float_t_stream_reverse_endianness(s);
-            mat.row0.z = io_read_float_t_stream_reverse_endianness(s);
-            mat.row0.w = io_read_float_t_stream_reverse_endianness(s);
             mat.row1.x = io_read_float_t_stream_reverse_endianness(s);
-            mat.row1.y = io_read_float_t_stream_reverse_endianness(s);
-            mat.row1.z = io_read_float_t_stream_reverse_endianness(s);
-            mat.row1.w = io_read_float_t_stream_reverse_endianness(s);
             mat.row2.x = io_read_float_t_stream_reverse_endianness(s);
-            mat.row2.y = io_read_float_t_stream_reverse_endianness(s);
-            mat.row2.z = io_read_float_t_stream_reverse_endianness(s);
-            mat.row2.w = io_read_float_t_stream_reverse_endianness(s);
             mat.row3.x = io_read_float_t_stream_reverse_endianness(s);
+            mat.row0.y = io_read_float_t_stream_reverse_endianness(s);
+            mat.row1.y = io_read_float_t_stream_reverse_endianness(s);
+            mat.row2.y = io_read_float_t_stream_reverse_endianness(s);
             mat.row3.y = io_read_float_t_stream_reverse_endianness(s);
+            mat.row0.z = io_read_float_t_stream_reverse_endianness(s);
+            mat.row1.z = io_read_float_t_stream_reverse_endianness(s);
+            mat.row2.z = io_read_float_t_stream_reverse_endianness(s);
             mat.row3.z = io_read_float_t_stream_reverse_endianness(s);
+            mat.row0.w = io_read_float_t_stream_reverse_endianness(s);
+            mat.row1.w = io_read_float_t_stream_reverse_endianness(s);
+            mat.row2.w = io_read_float_t_stream_reverse_endianness(s);
             mat.row3.w = io_read_float_t_stream_reverse_endianness(s);
-            mat4_transpose(&mat, &mat);
-            mat4_to_mat4u(&mat, &b->nodes[i].transformation);
         }
         io_position_pop(s);
     }
 }
 
 static void obj_modern_write_skin_block_motion(obj_skin_block_motion* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x,
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x,
     char** bone_names, ssize_t* bone_names_offset, ssize_t* bone_matrices_offset) {
     obj_modern_write_skin_block_node(&b->base, s, strings, string_offsets, is_x);
 
@@ -6366,24 +6346,22 @@ static void obj_modern_write_skin_block_motion(obj_skin_block_motion* b,
 
         io_position_push(s, *bone_matrices_offset, SEEK_SET);
         for (int32_t i = 0; i < b->nodes_count; i++) {
-            mat4 mat;
-            mat4u_to_mat4(&b->nodes[i].transformation, &mat);
-            mat4_transpose(&mat, &mat);
+            mat4u& mat = b->nodes[i].transformation;
             io_write_float_t(s, mat.row0.x);
-            io_write_float_t(s, mat.row0.y);
-            io_write_float_t(s, mat.row0.z);
-            io_write_float_t(s, mat.row0.w);
             io_write_float_t(s, mat.row1.x);
-            io_write_float_t(s, mat.row1.y);
-            io_write_float_t(s, mat.row1.z);
-            io_write_float_t(s, mat.row1.w);
             io_write_float_t(s, mat.row2.x);
-            io_write_float_t(s, mat.row2.y);
-            io_write_float_t(s, mat.row2.z);
-            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.x);
+            io_write_float_t(s, mat.row0.y);
+            io_write_float_t(s, mat.row1.y);
+            io_write_float_t(s, mat.row2.y);
             io_write_float_t(s, mat.row3.y);
+            io_write_float_t(s, mat.row0.z);
+            io_write_float_t(s, mat.row1.z);
+            io_write_float_t(s, mat.row2.z);
             io_write_float_t(s, mat.row3.z);
+            io_write_float_t(s, mat.row0.w);
+            io_write_float_t(s, mat.row1.w);
+            io_write_float_t(s, mat.row2.w);
             io_write_float_t(s, mat.row3.w);
         }
         io_position_pop(s);
@@ -6410,7 +6388,7 @@ static void obj_modern_read_skin_block_node(obj_skin_block_node* b,
 }
 
 static void obj_modern_write_skin_block_node(obj_skin_block_node* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x) {
     ssize_t parent_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, string_data(&b->parent_name));
     io_write_offset(s, parent_name_offset, 0x20, is_x);
@@ -6451,7 +6429,7 @@ static void obj_modern_read_skin_block_osage(obj_skin_block_osage* b,
 }
 
 static void obj_modern_write_skin_block_osage(obj_skin_block_osage* b,
-    stream* s, vector_string* strings, vector_ssize_t* string_offsets, bool is_x) {
+    stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x) {
     obj_modern_write_skin_block_node(&b->base, s, strings, string_offsets, is_x);
 
     io_write_int32_t(s, b->start_index);
@@ -6512,7 +6490,7 @@ static void obj_modern_read_vertex(obj* obj, stream* s, ssize_t* attrib_offsets,
         tangent.z = (float_t)io_read_int16_t_stream_reverse_endianness(s);
         tangent.w = (float_t)io_read_int16_t_stream_reverse_endianness(s);
         vec4_div_min_max_scalar(tangent, -32768.0f, 32767.0f, tangent);
-        vec4_to_vec4u(tangent, vtx[i].tangent);
+        vtx[i].tangent = tangent;
 
         vec2h texcoord0;
         texcoord0.x = io_read_half_t_stream_reverse_endianness(s);
@@ -6556,7 +6534,7 @@ static void obj_modern_read_vertex(obj* obj, stream* s, ssize_t* attrib_offsets,
             bone_weight.z = (float_t)io_read_int16_t_stream_reverse_endianness(s);
             bone_weight.w = (float_t)io_read_int16_t_stream_reverse_endianness(s);
             vec4_div_min_max_scalar(bone_weight, -32768.0f, 32767.0f, bone_weight);
-            vec4_to_vec4u(bone_weight, vtx[i].bone_weight);
+            vtx[i].bone_weight = bone_weight;
 
             vec4i bone_index;
             bone_index.x = (int32_t)io_read_uint8_t(s);
@@ -6571,7 +6549,7 @@ static void obj_modern_read_vertex(obj* obj, stream* s, ssize_t* attrib_offsets,
                 bone_index.z = -1;
             if (bone_index.w == 0xFF)
                 bone_index.w = -1;
-            vec4i_to_vec4iu(bone_index, vtx[i].bone_index);
+            vtx[i].bone_index = bone_index;
         }
 
         if (memcmp(&vtx[i].tangent, &vec4_null, sizeof(vec4)))
@@ -6615,10 +6593,10 @@ static void obj_modern_write_vertex(obj* obj, stream* s, bool is_x,
     }
 
     uint32_t off = 0;
-    vector_enrs_entry* e = &ovtx->enrs;
+    vector_old_enrs_entry* e = &ovtx->enrs;
     enrs_entry ee;
     bool add_enrs = true;
-    if (vector_length(*e) > 0) {
+    if (vector_old_length(*e) > 0) {
         off = (uint32_t)((size_t)e->end[-1].size * e->end[-1].repeat_count);
         if (e->end[-1].sub.begin[2].repeat_count == enrs_se3_rc) {
             e->end[-1].repeat_count += _vertex_count;
@@ -6627,11 +6605,11 @@ static void obj_modern_write_vertex(obj* obj, stream* s, bool is_x,
     }
 
     if (add_enrs) {
-        ee = { off, 3, (uint32_t)_vertex_size, (uint32_t)_vertex_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_WORD);
-        vector_enrs_sub_entry_append(&ee.sub, 2, enrs_se3_rc, ENRS_WORD);
-        vector_enrs_entry_push_back(e, &ee);
+        ee = { off, 3, (uint32_t)_vertex_size, (uint32_t)_vertex_count, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_WORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 2, enrs_se3_rc, ENRS_WORD);
+        vector_old_enrs_entry_push_back(e, &ee);
     }
 
     bool has_tangents = false;
@@ -6649,8 +6627,7 @@ static void obj_modern_write_vertex(obj* obj, stream* s, bool is_x,
         io_write_int16_t(s, (int16_t)roundf(normal.z));
         io_write(s, 0x02);
 
-        vec4 tangent;
-        vec4u_to_vec4(vtx[i].tangent, tangent);
+        vec4 tangent = vtx[i].tangent;
         vec4_mult_min_max_scalar(tangent, -32768.0f, 32767.0f, tangent);
         io_write_int16_t(s, (int16_t)roundf(tangent.x));
         io_write_int16_t(s, (int16_t)roundf(tangent.y));
@@ -6687,8 +6664,7 @@ static void obj_modern_write_vertex(obj* obj, stream* s, bool is_x,
         io_write_half_t(s, color.w);
 
         if (_attrib_flags & 0x04) {
-            vec4 bone_weight;
-            vec4u_to_vec4(vtx[i].bone_weight, bone_weight);
+            vec4 bone_weight = vtx[i].bone_weight;
             vec4_mult_min_max_scalar(bone_weight, -32768.0f, 32767.0f, bone_weight);
             io_write_int16_t(s, (int16_t)bone_weight.x);
             io_write_int16_t(s, (int16_t)bone_weight.y);
@@ -6713,7 +6689,7 @@ inline static void obj_skin_block_node_free(obj_skin_block_node* b) {
     string_free(&b->parent_name);
 }
 
-inline static uint32_t obj_skin_strings_get_string_index(vector_string* vec, char* str) {
+inline static uint32_t obj_skin_strings_get_string_index(vector_old_string* vec, char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
@@ -6721,7 +6697,7 @@ inline static uint32_t obj_skin_strings_get_string_index(vector_string* vec, cha
     return 0x8000;
 }
 
-inline static uint32_t obj_skin_strings_get_string_index(vector_string* vec, const char* str) {
+inline static uint32_t obj_skin_strings_get_string_index(vector_old_string* vec, const char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
@@ -6729,8 +6705,8 @@ inline static uint32_t obj_skin_strings_get_string_index(vector_string* vec, con
     return 0x8000;
 }
 
-inline static ssize_t obj_skin_strings_get_string_offset(vector_string* vec,
-    vector_ssize_t* vec_off, char* str) {
+inline static ssize_t obj_skin_strings_get_string_offset(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
@@ -6738,8 +6714,8 @@ inline static ssize_t obj_skin_strings_get_string_offset(vector_string* vec,
     return 0;
 }
 
-inline static ssize_t obj_skin_strings_get_string_offset(vector_string* vec,
-    vector_ssize_t* vec_off, const char* str) {
+inline static ssize_t obj_skin_strings_get_string_offset(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, const char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
@@ -6747,8 +6723,8 @@ inline static ssize_t obj_skin_strings_get_string_offset(vector_string* vec,
     return 0;
 }
 
-inline static ssize_t obj_skin_strings_get_string_offset_by_index(vector_string* vec,
-    vector_ssize_t* vec_off, char** strings, uint32_t index) {
+inline static ssize_t obj_skin_strings_get_string_offset_by_index(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, char** strings, uint32_t index) {
     if (!(index & 0x8000))
         return 0;
 
@@ -6760,27 +6736,27 @@ inline static ssize_t obj_skin_strings_get_string_offset_by_index(vector_string*
     return 0;
 }
 
-inline static void obj_skin_strings_push_back_check(vector_string* vec, char* str) {
+inline static void obj_skin_strings_push_back_check(vector_old_string* vec, char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return;
 
-    string* s = vector_string_reserve_back(vec);
+    string* s = vector_old_string_reserve_back(vec);
     string_init_length(s, str, len);
 }
 
-inline static void obj_skin_strings_push_back_check(vector_string* vec, const char* str) {
+inline static void obj_skin_strings_push_back_check(vector_old_string* vec, const char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return;
 
-    string* s = vector_string_reserve_back(vec);
+    string* s = vector_old_string_reserve_back(vec);
     string_init_length(s, str, len);
 }
 
-inline static void obj_skin_strings_push_back_check_by_index(vector_string* vec, char** strings, uint32_t index) {
+inline static void obj_skin_strings_push_back_check_by_index(vector_old_string* vec, char** strings, uint32_t index) {
     if (!(index & 0x8000))
         return;
 
@@ -6790,6 +6766,6 @@ inline static void obj_skin_strings_push_back_check_by_index(vector_string* vec,
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return;
 
-    string* s = vector_string_reserve_back(vec);
+    string* s = vector_old_string_reserve_back(vec);
     string_init_length(s, str, len);
 }

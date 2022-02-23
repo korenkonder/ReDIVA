@@ -11,8 +11,8 @@ bool glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st) {
     size_t d;
     size_t count;
 
-    if (vector_length(a1->effects) < 1 || !a1->resources_count
-        || vector_length(a1->resource_hashes) < 1)
+    if (vector_old_length(a1->effects) < 1 || !a1->resources_count
+        || a1->resource_hashes.size() < 1)
         return false;
 
     count = a1->resources_count;
@@ -20,13 +20,13 @@ bool glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st) {
     memset(st, 0, sizeof(f2_struct));
     l = 0;
 
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = { 0, 2, (uint32_t)(8 + count * 8), 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-    vector_enrs_sub_entry_append(&ee.sub, 4, (uint32_t)count, ENRS_QWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 2, (uint32_t)(8 + count * 8), 1, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+    vector_old_enrs_sub_entry_append(&ee.sub, 4, (uint32_t)count, ENRS_QWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     l += 8 + count * 8;
 
     l = align_val(l, 0x10);
@@ -39,7 +39,7 @@ bool glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st) {
     *(int32_t*)(d + 4) = 0;
     d += 8;
 
-    memcpy((void*)d, a1->resource_hashes.begin, sizeof(uint64_t) * count);
+    memcpy((void*)d, a1->resource_hashes.data(), sizeof(uint64_t) * count);
 
     st->header.signature = reverse_endianness_uint32_t('DVRS');
     st->header.length = 0x20;
@@ -54,7 +54,7 @@ bool glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st)
     uint64_t* resource_hashes;
     size_t i;
 
-    if (a1->resources_count && vector_length(a1->resource_hashes) > 0)
+    if (a1->resources_count && a1->resource_hashes.size() > 0)
         return true;
 
     if (!st || !st->header.data_size)
@@ -72,10 +72,8 @@ bool glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st)
 
     a1->resources_count = count;
     if (count) {
-        resource_hashes = force_malloc_s(uint64_t, count);
-        a1->resource_hashes.begin = resource_hashes;
-        a1->resource_hashes.end = resource_hashes + count;
-        a1->resource_hashes.capacity_end = resource_hashes + count;
+        a1->resource_hashes = std::vector<uint64_t>(count);
+        resource_hashes = a1->resource_hashes.data();
         if (!resource_hashes)
             return false;
 
@@ -89,7 +87,7 @@ bool glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st)
 }
 
 bool glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st) {
-    if (vector_length(a1->resources_tex) < 1)
+    if (vector_old_length(a1->resources_tex) < 1)
         return false;
 
     memset(st, 0, sizeof(f2_struct));
@@ -118,7 +116,7 @@ bool glitter_texture_load(GPM, glitter_effect_group* a1) {
     if (!a1->resources_count)
         return false;
 
-    size_t count = vector_length(a1->resources_tex);
+    size_t count = vector_old_length(a1->resources_tex);
 
     if (count < 1 || a1->resources_count < 1 || a1->resources_count != count)
         return false;
@@ -176,9 +174,9 @@ bool glitter_texture_load(GPM, glitter_effect_group* a1) {
                         || particle->data.type == GLITTER_PARTICLE_MESH)
                         continue;
 
-                    if (particle->data.tex_hash == a1->resource_hashes.begin[i])
+                    if (particle->data.tex_hash == a1->resource_hashes[i])
                         particle->data.texture = a1->resources[i]->texture;
-                    if (particle->data.mask_tex_hash == a1->resource_hashes.begin[i])
+                    if (particle->data.mask_tex_hash == a1->resource_hashes[i])
                         particle->data.mask_texture = a1->resources[i]->texture;
                 }
             }

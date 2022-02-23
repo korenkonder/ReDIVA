@@ -4,18 +4,7 @@
 */
 
 #include "task.h"
-#include "../KKdLib/vector.h"
 #include "time.h"
-
-vector_ptr(Task)
-
-typedef struct TaskWork {
-    vector_ptr_Task tasks;
-    Task* current;
-    bool disp;
-} TaskWork;
-
-vector_ptr_func(Task)
 
 extern float_t get_delta_frame();
 extern uint32_t get_frame_counter();
@@ -30,20 +19,21 @@ static void Task_set_base_calc_time(Task* t, uint32_t base_calc_time);
 static void Task_set_calc_time(Task* t);
 static void Task_set_disp_time(Task* t, uint32_t disp_time);
 static bool Task_sub_14019B810(Task* t, int32_t a2);
+static void Task_sub_14019C480(Task* t, uint32_t a2);
 static void Task_sub_14019C5A0(Task* t);
 
 static bool TaskWork_has_task_dest(Task* t);
 static bool TaskWork_sub_14019B6B0(Task* t);
 
-TaskWork task_work_data;
+TaskWork task_work;
 
 Task::Task() {
-    priority = 0;
-    parent = 0;
-    field_18 = task_enum::NONE;
+    priority = 1;
+    parent_task = 0;
+    field_18 = TASK_NONE;
     field_1C = 0;
     field_20 = 0;
-    field_24 = task_enum::NONE;
+    field_24 = TASK_NONE;
     field_28 = 0;
     field_2C = false;
     field_2D = false;
@@ -57,8 +47,12 @@ Task::Task() {
     disp_time_max = 0;
 }
 
-void Task::Basic() {
+Task::~Task() {
 
+}
+
+bool Task::Init() {
+    return true;
 }
 
 bool Task::Ctrl() {
@@ -73,19 +67,7 @@ void Task::Disp() {
 
 }
 
-void Task::Dispose(bool free_data) {
-    Free();
-    if (free_data) {
-        void* data = (void*)this;
-        free(data);
-    }
-}
-
-bool Task::Init() {
-    return true;
-}
-
-void Task::Free() {
+void Task::Basic() {
 
 }
 
@@ -109,54 +91,74 @@ void Task::SetPriority(int32_t priority) {
     this->priority = priority;
 }
 
-Task::~Task() {
-    Free();
+TaskWork::TaskWork() : current(), disp() {
+
 }
 
-void TaskWork_init() {
-    task_work_data.tasks = vector_ptr_empty(Task);
-    task_work_data.current = 0;
-    task_work_data.disp = false;
+TaskWork::~TaskWork() {
+
 }
 
-void TaskWork_basic() {
-    vector_ptr_Task* tasks = &task_work_data.tasks;
+bool TaskWork::AppendTask(Task* t, const char* name, int32_t priority) {
+    return TaskWork::AppendTask(t, task_work.current, name, priority);
+}
+
+bool TaskWork::AppendTask(Task* t, Task* parent_task, const char* name, int32_t priority) {
+    Task_sub_14019C480(t, 0);
+    if (TaskWork::HasTask(t) || !Task_sub_14019B810(t, 1))
+        return false;
+
+    t->SetPriority(priority);
+    t->parent_task = parent_task;
+    t->field_18 = TASK_NONE;
+    t->field_1C = 0;
+    t->field_24 = TASK_NONE;
+    t->field_28 = 0;
+    t->SetName(name);
+    Task_sub_14019C480(t, 1);
+    Task_sub_14019C5A0(t);
+    task_work.tasks.push_back(t);
+    return true;
+}
+
+void TaskWork::Basic() {
+    std::vector<Task*>* tasks = &task_work.tasks;
     for (int32_t i = 0; i < 3; i++)
-        for (Task** j = tasks->begin; j != tasks->end; j++)
-            if ((*j)->priority == i)
-                Task_do_basic(*j);
+        for (Task*& j : task_work.tasks)
+            if (j->priority == i)
+                Task_do_basic(j);
 }
 
-void TaskWork_ctrl() {
-    vector_ptr_Task* tasks = &task_work_data.tasks;
-    for (Task** i = tasks->begin; i != tasks->end; i++) {
-        Task_sub_14019C5A0(*i);
-        Task_set_base_calc_time(*i, 0);
+void TaskWork::Ctrl() {
+    std::vector<Task*>* tasks = &task_work.tasks;
+    for (Task*& i : task_work.tasks) {
+        Task_sub_14019C5A0(i);
+        Task_set_base_calc_time(i, 0);
     }
 
-    if (vector_length(task_work_data.tasks))
-        for (int32_t i = 2; i >= 0; i--)
-            for (Task** j = &tasks->end[-1]; j != tasks->begin; j--) {
-                Task* tsk = *j;
-                if (!tsk->priority != i || !TaskWork_has_task_dest(tsk))
-                    continue;
+    for (int32_t i = 2; i >= 0; i--)
+        for (Task** j = task_work.tasks.end()._Ptr; j != task_work.tasks.begin()._Ptr; ) {
+            --j;
+            Task* tsk = *j;
+            if (tsk->priority != i || !TaskWork_has_task_dest(tsk))
+                continue;
 
-                time_struct t;
-                time_struct_init(&t);
-                task_work_data.current = tsk;
-                Task_do_ctrl(tsk);
-                task_work_data.current = 0;
-                Task_add_base_calc_time(tsk, (uint32_t)time_struct_calc_time(&t));
-            }
+            time_struct t;
+            time_struct_init(&t);
+            task_work.current = tsk;
+            Task_do_ctrl(tsk);
+            task_work.current = 0;
+            Task_add_base_calc_time(tsk, (uint32_t)time_struct_calc_time(&t));
+        }
 
-    for (Task** i = tasks->begin; i != tasks->end; ) {
-        if (!TaskWork_sub_14019B6B0(*i)) {
+    for (Task** i = task_work.tasks.begin()._Ptr; i != task_work.tasks.end()._Ptr; ) {
+        if (TaskWork_sub_14019B6B0(*i)) {
             i++;
             continue;
         }
 
-        *i = 0;
-        vector_ptr_Task_erase(tasks, i - tasks->begin, 0);
+        task_work.tasks.erase(task_work.tasks.begin()
+            + (i - task_work.tasks.begin()._Ptr));
     }
 
     int32_t delta_frame = (int32_t)get_delta_frame();
@@ -165,16 +167,16 @@ void TaskWork_ctrl() {
             Task_do_ctrl_frames(delta_frame, true);
     Task_do_ctrl_frames(delta_frame, false);
 
-    for (Task** i = tasks->begin; i != tasks->end; i++)
-        Task_set_calc_time(*i);
+    for (Task*& i : task_work.tasks)
+        Task_set_calc_time(i);
 }
 
-void TaskWork_disp() {
-    task_work_data.disp = true;
-    vector_ptr_Task* tasks = &task_work_data.tasks;
+void TaskWork::Disp() {
+    task_work.disp = true;
+    std::vector<Task*>* tasks = &task_work.tasks;
     for (int32_t i = 0; i < 3; i++)
-        for (Task** j = tasks->begin; j != tasks->end; j++) {
-            Task* tsk = *j;
+        for (Task*& j : task_work.tasks) {
+            Task* tsk = j;
             if (tsk->priority != i)
                 continue;
 
@@ -183,22 +185,15 @@ void TaskWork_disp() {
             Task_do_disp(tsk);
             Task_add_disp_time(tsk, (uint32_t)time_struct_calc_time(&t));
         }
-    task_work_data.disp = false;
+    task_work.disp = false;
 }
 
-bool task_work_has_Task(Task* t) {
-    vector_ptr_Task* tasks = &task_work_data.tasks;
-    for (Task** i = tasks->begin; i != tasks->end; i++)
-        if ((*i) == t)
+bool TaskWork::HasTask(Task* t) {
+    std::vector<Task*>* tasks = &task_work.tasks;
+    for (Task*& i : task_work.tasks)
+        if (i == t)
             return true;
     return false;
-}
-
-void TaskWork_free() {
-    task_work_data.tasks.end = task_work_data.tasks.begin;
-    vector_ptr_Task_free(&task_work_data.tasks, 0);
-    task_work_data.current = 0;
-    task_work_data.disp = false;
 }
 
 static void Task_add_base_calc_time(Task* t, uint32_t calc_time) {
@@ -211,7 +206,7 @@ static void Task_add_disp_time(Task* t, uint32_t disp_time) {
 
 static void Task_do_basic(Task* t) {
     if ((t->field_1C == 1 || t->field_1C == 2)
-        && t->field_18 != task_enum::INIT && t->field_18 != task_enum::DEST)
+        && t->field_18 != TASK_INIT && t->field_18 != TASK_DEST)
         t->Basic();
 }
 
@@ -219,28 +214,28 @@ static void Task_do_ctrl(Task* t) {
     if (t->field_1C != 1)
         return;
 
-    if (t->field_18 == task_enum::INIT && t->Init()) {
-        t->field_24 = task_enum::CTRL;
-        t->field_18 = task_enum::CTRL;
+    if (t->field_18 == TASK_INIT && t->Init()) {
+        t->field_24 = TASK_CTRL;
+        t->field_18 = TASK_CTRL;
     }
 
-    if (t->field_18 == task_enum::CTRL && t->Ctrl()) {
-        t->field_24 = task_enum::DEST;
-        t->field_18 = task_enum::DEST;
+    if (t->field_18 == TASK_CTRL && t->Ctrl()) {
+        t->field_24 = TASK_DEST;
+        t->field_18 = TASK_DEST;
     }
 
-    if (t->field_18 == task_enum::DEST && t->Dest()) {
+    if (t->field_18 == TASK_DEST && t->Dest()) {
         t->field_28 = 0;
-        t->field_24 = task_enum::MAX;
+        t->field_24 = TASK_MAX;
         t->field_20 = 0;
     }
 }
 
 static void Task_do_ctrl_frames(int32_t frames, bool a2) {
-    vector_ptr_Task* tasks = &task_work_data.tasks;
+    std::vector<Task*>* tasks = &task_work.tasks;
     for (int32_t i = 0; i < 3; i++)
-        for (Task** j = tasks->begin; j != tasks->end; j++) {
-            Task* tsk = *j;
+        for (Task*& j : task_work.tasks) {
+            Task* tsk = j;
             if (tsk->priority != i || TaskWork_has_task_dest(tsk))
                 continue;
             else if ((!tsk->field_2D || frames <= 0) && a2)
@@ -248,16 +243,16 @@ static void Task_do_ctrl_frames(int32_t frames, bool a2) {
 
             time_struct t;
             time_struct_init(&t);
-            task_work_data.current = tsk;
+            task_work.current = tsk;
             Task_do_ctrl(tsk);
-            task_work_data.current = 0;
+            task_work.current = 0;
             Task_add_base_calc_time(tsk, (uint32_t)time_struct_calc_time(&t));
         }
 }
 
 static void Task_do_disp(Task* t) {
     if ((t->field_1C == 1 || t->field_1C == 2)
-        && t->field_18 != task_enum::INIT && t->field_18 != task_enum::DEST)
+        && t->field_18 != TASK_INIT && t->field_18 != TASK_DEST)
         t->Disp();
 }
 
@@ -282,7 +277,7 @@ static void Task_set_disp_time(Task* t, uint32_t disp_time) {
 }
 
 static bool Task_sub_14019B810(Task* t, int32_t a2) {
-    if (task_work_data.disp)
+    if (task_work.disp)
         return false;
 
     if (a2 == 1)
@@ -298,16 +293,24 @@ static bool Task_sub_14019B810(Task* t, int32_t a2) {
     return false;
 }
 
+static void Task_sub_14019C480(Task* t, uint32_t a2) {
+    if (a2 > 1)
+        for (Task*& i : task_work.tasks)
+            if (i->parent_task == t)
+                Task_sub_14019C480(i, a2);
+    t->field_20 = a2;
+}
+
 static void Task_sub_14019C5A0(Task* t) {
-    if (t->field_18 != task_enum::INIT && t->field_18 != task_enum::DEST
+    if (t->field_18 != TASK_INIT && t->field_18 != TASK_DEST
         && Task_sub_14019B810(t, t->field_20)) {
         switch (t->field_20) {
         case 1:
-            t->field_24 = task_enum::INIT;
+            t->field_24 = TASK_INIT;
             t->field_28 = 1;
             break;
         case 2:
-            t->field_24 = task_enum::DEST;
+            t->field_24 = TASK_DEST;
             t->field_28 = 1;
             break;
         case 3:
@@ -328,11 +331,11 @@ static void Task_sub_14019C5A0(Task* t) {
 }
 
 static bool TaskWork_has_task_dest(Task* t) {
-    if (task_work_has_Task(t))
-        return t->field_18 == task_enum::DEST;
+    if (TaskWork::HasTask(t))
+        return t->field_18 == TASK_DEST;
     return false;
 }
 
 static bool TaskWork_sub_14019B6B0(Task* t) {
-    return task_work_has_Task(t) && (t->field_18 == task_enum::NONE || t->field_1C);
+    return TaskWork::HasTask(t) && (t->field_18 == TASK_NONE || t->field_1C);
 }

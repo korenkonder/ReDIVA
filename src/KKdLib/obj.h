@@ -11,20 +11,20 @@
 #include "string.h"
 #include "vec.h"
 
-typedef enum obj_index_format {
+typedef enum obj_index_format : uint32_t {
     OBJ_INDEX_U8  = 0x00,
     OBJ_INDEX_U16 = 0x01,
     OBJ_INDEX_U32 = 0x02,
 } obj_index_format;
 
-typedef enum obj_material_aniso_direction {
+typedef enum obj_material_aniso_direction : uint32_t {
     OBJ_MATERIAL_ANISO_DIRECTION_NORMAL = 0,
     OBJ_MATERIAL_ANISO_DIRECTION_U      = 1,
     OBJ_MATERIAL_ANISO_DIRECTION_V      = 2,
     OBJ_MATERIAL_ANISO_DIRECTION_RADIAL = 3,
 } obj_material_aniso_direction;
 
-typedef enum obj_material_blend_factor {
+typedef enum obj_material_blend_factor : uint32_t {
     OBJ_MATERIAL_BLEND_ZERO              = 0,
     OBJ_MATERIAL_BLEND_ONE               = 1,
     OBJ_MATERIAL_BLEND_SRC_COLOR         = 2,
@@ -38,19 +38,19 @@ typedef enum obj_material_blend_factor {
     OBJ_MATERIAL_BLEND_ALPHA_SATURATE = 10,
 } obj_material_blend_factor;
 
-typedef enum obj_material_bump_map_type {
+typedef enum obj_material_bump_map_type : uint32_t {
     OBJ_MATERIAL_BUMP_MAP_NONE = 0,
     OBJ_MATERIAL_BUMP_MAP_DOT  = 1,
     OBJ_MATERIAL_BUMP_MAP_ENV  = 2,
 } obj_material_bump_map_type;
 
-typedef enum obj_material_color_source_type {
+typedef enum obj_material_color_source_type : uint32_t {
     OBJ_MATERIAL_COLOR_SOURCE_MATERIAL_COLOR = 0,
     OBJ_MATERIAL_COLOR_SOURCE_VERTEX_COLOR   = 1,
     OBJ_MATERIAL_COLOR_SOURCE_VERTEX_MORPH   = 2,
 } obj_material_color_source_type;
 
-typedef enum obj_material_flags {
+typedef enum obj_material_flags : uint32_t {
     OBJ_MATERIAL_COLOR          = 0x0001,
     OBJ_MATERIAL_COLOR_ALPHA    = 0x0002,
     OBJ_MATERIAL_COLOR_L1       = 0x0004,
@@ -69,12 +69,12 @@ typedef enum obj_material_flags {
     OBJ_MATERIAL_OVERRIDE_IBL   = 0x8000,
 } obj_material_flags;
 
-typedef enum obj_material_specular_quality {
+typedef enum obj_material_specular_quality : uint32_t {
     OBJ_MATERIAL_SPECULAR_QUALITY_LOW  = 0,
     OBJ_MATERIAL_SPECULAR_QUALITY_HIGH = 1,
 } obj_material_specular_quality;
 
-typedef enum obj_material_texture_type {
+typedef enum obj_material_texture_type : uint32_t {
     OBJ_MATERIAL_TEXTURE_NONE               = 0x00,
     OBJ_MATERIAL_TEXTURE_COLOR              = 0x01,
     OBJ_MATERIAL_TEXTURE_NORMAL             = 0x02,
@@ -87,27 +87,27 @@ typedef enum obj_material_texture_type {
     OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE   = 0x09,
 } obj_material_texture_type;
 
-typedef enum obj_material_texture_coordinate_translation_type {
+typedef enum obj_material_texture_coordinate_translation_type : uint32_t {
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_NONE   = 0x00,
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_UV     = 0x01,
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_SPHERE = 0x02,
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_CUBE   = 0x03
 } obj_material_texture_coordinate_translation_type;
 
-typedef enum obj_material_vertex_translation_type {
+typedef enum obj_material_vertex_translation_type : uint32_t {
     OBJ_MATERIAL_VERTEX_TRANSLATION_DEFAULT  = 0,
     OBJ_MATERIAL_VERTEX_TRANSLATION_ENVELOPE = 1,
     OBJ_MATERIAL_VERTEX_TRANSLATION_MORPHING = 2,
 } obj_material_vertex_translation_type;
 
-typedef enum obj_mesh_flags {
+typedef enum obj_mesh_flags : uint32_t {
     OBJ_MESH_FLAG_1                = 0x01,
     OBJ_MESH_BILLBOARD_Y_AXIS      = 0x02,
     OBJ_MESH_TRANSLUCENT_NO_SHADOW = 0x04,
     OBJ_MESH_BILLBOARD             = 0x08,
 } obj_mesh_flags;
 
-typedef enum obj_primitive_type {
+typedef enum obj_primitive_type : uint32_t {
     OBJ_PRIMITIVE_POINTS         = 0x00,
     OBJ_PRIMITIVE_LINES          = 0x01,
     OBJ_PRIMITIVE_LINE_STRIP     = 0x02,
@@ -120,7 +120,7 @@ typedef enum obj_primitive_type {
     OBJ_PRIMITIVE_POLYGON        = 0x09,
 } obj_primitive_type;
 
-typedef enum obj_skin_block_constraint_type {
+typedef enum obj_skin_block_constraint_type : uint32_t {
     OBJ_SKIN_BLOCK_CONSTRAINT_NONE = 0,
     OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION,
     OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION,
@@ -128,12 +128,12 @@ typedef enum obj_skin_block_constraint_type {
     OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE,
 } obj_skin_block_constraint_type;
 
-typedef enum obj_skin_block_constraint_coupling {
+typedef enum obj_skin_block_constraint_coupling : uint32_t {
     OBJ_SKIN_BLOCK_CONSTRAINT_COUPLING_RIGID = 0x01,
     OBJ_SKIN_BLOCK_CONSTRAINT_COUPLING_SOFT  = 0x03,
 } obj_skin_block_constraint_coupling;
 
-typedef enum obj_skin_block_type {
+typedef enum obj_skin_block_type : uint32_t {
     OBJ_SKIN_BLOCK_NONE = 0,
     OBJ_SKIN_BLOCK_CLOTH,
     OBJ_SKIN_BLOCK_CONSTRAINT,
@@ -143,7 +143,7 @@ typedef enum obj_skin_block_type {
     OBJ_SKIN_BLOCK_OSAGE,
 } obj_skin_block_type;
 
-typedef enum obj_sub_mesh_flags {
+typedef enum obj_sub_mesh_flags : uint32_t {
     OBJ_SUB_MESH_RECIEVE_SHADOW = 0x01,
     OBJ_SUB_MESH_CAST_SHADOW    = 0x02,
     OBJ_SUB_MESH_TRANSPARENT    = 0x04,
@@ -154,7 +154,7 @@ typedef enum obj_sub_mesh_flags {
     OBJ_SUB_MESH_FLAG_80        = 0x80,
 } obj_sub_mesh_flags;
 
-typedef enum obj_vertex_flags {
+typedef enum obj_vertex_flags : uint32_t {
     OBJ_VERTEX_NONE      = 0x000,
     OBJ_VERTEX_POSITION  = 0x001,
     OBJ_VERTEX_NORMAL    = 0x002,
@@ -389,22 +389,22 @@ typedef struct obj_skin_block_constraint_attach_point {
     vec3 offset;
 } obj_skin_block_constraint_attach_point;
 
-typedef struct obj_skin_block_constraint_up_vector {
+typedef struct obj_skin_block_constraint_up_vector_old {
     bool active;
     float_t roll;
     vec3 affected_axis;
     vec3 point_at;
     string name;
-} obj_skin_block_constraint_up_vector;
+} obj_skin_block_constraint_up_vector_old;
 
 typedef struct obj_skin_block_constraint_direction {
-    obj_skin_block_constraint_up_vector up_vector;
+    obj_skin_block_constraint_up_vector_old up_vector_old;
     vec3 align_axis;
     vec3 target_offset;
 } obj_skin_block_constraint_direction;
 
 typedef struct obj_skin_block_constraint_distance {
-    obj_skin_block_constraint_up_vector up_vector;
+    obj_skin_block_constraint_up_vector_old up_vector_old;
     float_t distance;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
@@ -415,7 +415,7 @@ typedef struct obj_skin_block_constraint_orientation {
 } obj_skin_block_constraint_orientation;
 
 typedef struct obj_skin_block_constraint_position {
-    obj_skin_block_constraint_up_vector up_vector;
+    obj_skin_block_constraint_up_vector_old up_vector_old;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
 } obj_skin_block_constraint_position;

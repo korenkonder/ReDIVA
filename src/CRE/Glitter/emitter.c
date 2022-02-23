@@ -29,22 +29,22 @@ glitter_emitter* glitter_emitter_copy(glitter_emitter* e) {
     glitter_emitter* ec = force_malloc_s(glitter_emitter, 1);
     *ec = *e;
 
-    ec->particles = vector_ptr_empty(glitter_particle);
-    vector_ptr_glitter_particle_reserve(&ec->particles, vector_length(e->particles));
+    ec->particles = vector_old_ptr_empty(glitter_particle);
+    vector_old_ptr_glitter_particle_reserve(&ec->particles, vector_old_length(e->particles));
     for (glitter_particle** i = e->particles.begin; i != e->particles.end; i++)
         if (*i) {
             glitter_particle* p = glitter_particle_copy(*i);
             if (p)
-                vector_ptr_glitter_particle_push_back(&ec->particles, &p);
+                vector_old_ptr_glitter_particle_push_back(&ec->particles, &p);
         }
 
-    ec->animation = vector_ptr_empty(glitter_curve);
+    ec->animation = vector_old_ptr_empty(glitter_curve);
     glitter_animation_copy(&e->animation, &ec->animation);
     return ec;
 }
 
 bool glitter_emitter_parse_file(glitter_effect_group* a1,
-    f2_struct* st, vector_ptr_glitter_emitter* vec, glitter_effect* effect) {
+    f2_struct* st, vector_old_ptr_glitter_emitter* vec, glitter_effect* effect) {
     f2_struct* i;
     glitter_emitter* emitter;
 
@@ -67,7 +67,7 @@ bool glitter_emitter_parse_file(glitter_effect_group* a1,
         else if (i->header.signature == reverse_endianness_uint32_t('PTCL'))
             glitter_particle_parse_file(a1, i, &emitter->particles, effect);
     }
-    vector_ptr_glitter_emitter_push_back(vec, &emitter);
+    vector_old_ptr_glitter_emitter_push_back(vec, &emitter);
     return true;
 }
 
@@ -78,7 +78,7 @@ bool glitter_emitter_unparse_file(GLT, glitter_effect_group* a1,
 
     f2_struct s;
     if (glitter_animation_unparse_file(GLT_VAL, &s, &a3->animation, glitter_emitter_curve_flags))
-        vector_f2_struct_push_back(&st->sub_structs, &s);
+        vector_old_f2_struct_push_back(&st->sub_structs, &s);
 
     for (glitter_particle** i = a3->particles.begin; i != a3->particles.end; i++) {
         if (!*i)
@@ -86,14 +86,14 @@ bool glitter_emitter_unparse_file(GLT, glitter_effect_group* a1,
 
         f2_struct s;
         if (glitter_particle_unparse_file(GLT_VAL, a1, &s, *i, effect))
-            vector_f2_struct_push_back(&st->sub_structs, &s);
+            vector_old_f2_struct_push_back(&st->sub_structs, &s);
     }
     return true;
 }
 
 void glitter_emitter_dispose(glitter_emitter* e) {
     glitter_animation_free(&e->animation);
-    vector_ptr_glitter_particle_free(&e->particles, glitter_particle_dispose);
+    vector_old_ptr_glitter_particle_free(&e->particles, glitter_particle_dispose);
     free(e);
 }
 
@@ -118,41 +118,41 @@ static bool glitter_emitter_pack_file(GLT, f2_struct* st, glitter_emitter* a2) {
     l = 0;
 
     uint32_t o;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = { 0, 5, 96, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 5, ENRS_DWORD);
-    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-    vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-    vector_enrs_sub_entry_append(&ee.sub, 0, 15, ENRS_DWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 5, 96, 1, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 5, ENRS_DWORD);
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 15, ENRS_DWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     l += o = 96;
 
     switch (a2->data.type) {
     case GLITTER_EMITTER_BOX:
-        ee = { o, 1, 12, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, 12, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         l += o = 12;
         break;
     case GLITTER_EMITTER_CYLINDER:
-        ee = { o, 1, 20, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 5, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, 20, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 5, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         l += o = 20;
         break;
     case GLITTER_EMITTER_SPHERE:
-        ee = { o, 1, 16, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, 16, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         l += o = 16;
         break;
     case GLITTER_EMITTER_POLYGON:
-        ee = { o, 1, 8, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, 8, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         l += o = 8;
         break;
     }

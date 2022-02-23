@@ -112,7 +112,12 @@ typedef struct vec3 {
     float_t z;
 } vec3;
 
-typedef union vec4 {
+typedef union vec4 vec4;
+typedef union vec4i vec4i;
+typedef struct vec4u vec4u;
+typedef struct vec4iu vec4iu;
+
+union vec4 {
     struct {
         float_t x;
         float_t y;
@@ -120,7 +125,9 @@ typedef union vec4 {
         float_t w;
     };
     __m128 data;
-} vec4;
+
+    operator vec4u() const;
+};
 
 typedef struct vec2i {
     int32_t x;
@@ -133,7 +140,7 @@ typedef struct vec3i {
     int32_t z;
 } vec3i;
 
-typedef union vec4i {
+union vec4i {
     struct {
         int32_t x;
         int32_t y;
@@ -141,7 +148,9 @@ typedef union vec4i {
         int32_t w;
     };
     __m128 data;
-} vec4i;
+
+    operator vec4iu() const;
+};
 
 typedef struct vec2d {
     struct {
@@ -151,19 +160,23 @@ typedef struct vec2d {
     __m128d data;
 } vec2d;
 
-typedef struct vec4u {
+struct vec4u {
     float_t x;
     float_t y;
     float_t z;
     float_t w;
-} vec4u;
 
-typedef struct vec4iu {
+    operator vec4() const;
+};
+
+struct vec4iu {
     int32_t x;
     int32_t y;
     int32_t z;
     int32_t w;
-} vec4iu;
+
+    operator vec4i() const;
+};
 
 extern const __m128 vec2_negate;
 extern const __m128 vec3_negate;
@@ -196,18 +209,18 @@ extern const vec4u vec4u_null;
 
 extern const vec4iu vec4iu_null;
 
-vector(vec2)
-vector(vec2i)
-vector(vec3)
-vector(vec3i)
-vector(vec4)
-vector(vec4i)
-vector_ptr(vec2)
-vector_ptr(vec2i)
-vector_ptr(vec3)
-vector_ptr(vec3i)
-vector_ptr(vec4)
-vector_ptr(vec4i)
+vector_old(vec2)
+vector_old(vec2i)
+vector_old(vec3)
+vector_old(vec3i)
+vector_old(vec4)
+vector_old(vec4i)
+vector_old_ptr(vec2)
+vector_old_ptr(vec2i)
+vector_old_ptr(vec3)
+vector_old_ptr(vec3i)
+vector_old_ptr(vec4)
+vector_old_ptr(vec4i)
 
 #define vec2i8_to_vec2(src, dst) \
 (dst).x = (float_t)(src).x; \
@@ -478,30 +491,6 @@ vector_ptr(vec4i)
 (dst).y = (uint16_t)(src).y; \
 (dst).z = (uint16_t)(src).z; \
 (dst).w = (uint16_t)(src).w;
-
-#define vec4_to_vec4u(src, dst) \
-(dst).x = (src).x; \
-(dst).y = (src).y; \
-(dst).z = (src).z; \
-(dst).w = (src).w;
-
-#define vec4u_to_vec4(src, dst) \
-(dst).x = (src).x; \
-(dst).y = (src).y; \
-(dst).z = (src).z; \
-(dst).w = (src).w;
-
-#define vec4i_to_vec4iu(src, dst) \
-(dst).x = (src).x; \
-(dst).y = (src).y; \
-(dst).z = (src).z; \
-(dst).w = (src).w;
-
-#define vec4iu_to_vec4i(src, dst) \
-(dst).x = (src).x; \
-(dst).y = (src).y; \
-(dst).z = (src).z; \
-(dst).w = (src).w;
 
 #define vec2_add(x, y, z) \
 { \

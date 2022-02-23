@@ -12,6 +12,7 @@
 #include "light_param/fog.h"
 #include "light_param/light.h"
 #include "light_param/wind.h"
+#include "light_param.h"
 #include "camera.h"
 #include "data.h"
 #include "gl_state.h"
@@ -72,7 +73,7 @@ typedef enum draw_pass_type {
     DRAW_PASS_TYPE_6       = 0x06,
     DRAW_PASS_TYPE_7       = 0x07,
     DRAW_PASS_3D           = 0x08,
-    DRAW_PASS_SHOW_VECTOR  = 0x09,
+    DRAW_PASS_SHOW_vector_old  = 0x09,
     DRAW_PASS_POST_PROCESS = 0x0A,
     DRAW_PASS_SPRITE       = 0x0B,
     DRAW_PASS_TYPE_12      = 0x0C,
@@ -177,15 +178,21 @@ typedef struct draw_pass {
     bool opaque_z_sort;
     bool alpha_z_sort;
     bool draw_pass_3d[DRAW_PASS_3D_MAX];
-    int32_t reflect_type;
+    stage_data_reflect_type reflect_type;
     render_texture reflect_texture;
+    render_texture refract_texture;
     int32_t show_vector_flags;
     float_t show_vector_length;
     float_t show_vector_z_offset;
     bool field_2F8;
-    //vector_draw_preprocess preprocess;
+    //vector_old_draw_preprocess preprocess;
     texture* sss_texture;
     int32_t npr_param;
+    bool field_31C;
+    bool field_31D;
+    bool field_31E;
+    bool field_31F;
+    bool field_320;
     bool npr;
     sss_data_struct sss_data;
 } draw_pass;
@@ -218,14 +225,14 @@ typedef struct texture_pattern_struct {
     int32_t dst;
 } texture_pattern_struct;
 
-vector(texture_pattern_struct)
+vector_old(texture_pattern_struct)
 
 typedef struct texture_transform_struct {
     int32_t id;
     mat4u mat;
 } texture_transform_struct;
 
-vector(texture_transform_struct)
+vector_old(texture_transform_struct)
 
 typedef struct draw_object draw_object;
 
@@ -358,10 +365,6 @@ typedef struct draw_task {
     draw_task_union data;
 } draw_task;
 
-typedef struct frame_rate_control {
-    float_t frame_speed;
-} frame_rate_control;
-
 typedef struct light_proj {
     bool enable;
     render_texture shadow_texture[2];
@@ -374,7 +377,7 @@ typedef struct morph_struct {
     float_t value;
 } morph_struct;
 
-vector_ptr(draw_task)
+vector_old_ptr(draw_task)
 
 typedef struct object_data_buffer {
     int32_t offset;
@@ -394,7 +397,7 @@ typedef struct object_data {
     shadow_type_enum shadow_type;
     int32_t field_8;
     int32_t field_C;
-    vector_ptr_draw_task draw_task_array[DRAW_OBJECT_MAX];
+    vector_old_ptr_draw_task draw_task_array[DRAW_OBJECT_MAX];
     object_data_culling_info passed;
     object_data_culling_info culled;
     object_data_culling_info passed_prev;
@@ -425,7 +428,6 @@ struct render_context {
     object_data object_data;
     draw_pass draw_pass;
     GLuint vao;
-    GLuint ibl_tex[5];
 
     face face;
     fog fog_data[FOG_MAX];
@@ -453,7 +455,7 @@ struct shadow {
     vec3 field_1A8[2];
     float_t field_1C0[2];
     float_t field_1C8[2];
-    vector_vec3 field_1D0[2];
+    vector_old_vec3 field_1D0[2];
     int32_t field_200[2];
     float_t field_208;
     vec3 direction;
@@ -482,9 +484,6 @@ struct shadow {
     bool field_2F5;
 };
 
-extern frame_rate_control sys_frame_rate;
-extern frame_rate_control diva_pv_frame_rate;
-extern frame_rate_control diva_stage_frame_rate;
 extern const texture_pattern_struct texture_pattern_struct_null;
 
 extern float_t frame_rate_control_get_delta_frame(frame_rate_control* control);
@@ -533,7 +532,8 @@ extern void render_context_disp(render_context* rctx);
 extern void render_context_light_param_data_light_set(render_context* rctx, light_param_light* light);
 extern void render_context_light_param_data_fog_set(render_context* rctx, light_param_fog* f);
 extern void render_context_light_param_data_glow_set(render_context* rctx, light_param_glow* glow);
-extern void render_context_light_param_data_ibl_set(render_context* rctx, light_param_ibl* ibl);
+extern void render_context_light_param_data_ibl_set(render_context* rctx,
+    light_param_ibl* ibl, light_param_data_storage* storage);
 extern void render_context_light_param_data_wind_set(render_context* rctx, light_param_wind* w);
 extern void render_context_light_param_data_face_set(render_context* rctx, light_param_face* face);
 extern void render_context_set_light_param(render_context* rctx, light_param_data* light_param);

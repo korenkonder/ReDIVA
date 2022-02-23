@@ -27,8 +27,8 @@ typedef struct texture {
     int32_t size;
 } texture;
 
-vector(texture)
-vector_ptr(texture)
+vector_old(texture)
+vector_old_ptr(texture)
 
 #define texture_make_id(id, index) ((uint32_t)(((id) << 24) | ((index) & 0xFFFFFF)))
 #define texture_get_id(id) (((id) >> 24) & 0xFF)

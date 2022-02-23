@@ -36,17 +36,53 @@ const vec4u vec4u_null = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 const vec4iu vec4iu_null = { 0, 0, 0, 0 };
 
-vector_func(vec2)
-vector_func(vec2i)
-vector_func(vec3)
-vector_func(vec3i)
-vector_func(vec4)
-vector_func(vec4i)
-vector_ptr_func(vec2)
-vector_ptr_func(vec2i)
-vector_ptr_func(vec3)
-vector_ptr_func(vec3i)
-vector_ptr_func(vec4)
-vector_ptr_func(vec4i)
+vector_old_func(vec2)
+vector_old_func(vec2i)
+vector_old_func(vec3)
+vector_old_func(vec3i)
+vector_old_func(vec4)
+vector_old_func(vec4i)
+vector_old_ptr_func(vec2)
+vector_old_ptr_func(vec2i)
+vector_old_ptr_func(vec3)
+vector_old_ptr_func(vec3i)
+vector_old_ptr_func(vec4)
+vector_old_ptr_func(vec4i)
 
-// Crutch for vector_func definition
+// Crutch for vector_old_func definition
+
+vec4::operator vec4u() const {
+    vec4u v;
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    v.w = w;
+    return v;
+}
+
+vec4u::operator vec4() const {
+    vec4 v;
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    v.w = w;
+    return v;
+}
+
+vec4i::operator vec4iu() const {
+    vec4iu v;
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    v.w = w;
+    return v;
+}
+
+vec4iu::operator vec4i() const {
+    vec4i v;
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    v.w = w;
+    return v;
+}

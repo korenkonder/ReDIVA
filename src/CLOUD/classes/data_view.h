@@ -15,4 +15,4 @@ typedef enum data_view_classes_enum {
     DATA_VIEW_MAX,
 } data_view_classes_enum;
 
-extern classes_struct data_view_classes[];
+extern classes_data data_view_classes[];

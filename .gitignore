@@ -1,11 +1,7 @@
 .vs
 bin
 lib
-libdebug
-libdebugopt
 obj
-objdebug
-objdebugopt
 *.aps
 *.cs
 *.rc

@@ -19,19 +19,19 @@ typedef struct bone_database_skeleton_header {
     ssize_t parent_indices_offset;
 } bone_database_skeleton_header;
 
-vector_func(bone_database_bone)
-vector_func(bone_database_skeleton)
+vector_old_func(bone_database_bone)
+vector_old_func(bone_database_skeleton)
 
 static void bone_database_classic_read_inner(bone_database* bone_data, stream* s);
 static void bone_database_classic_write_inner(bone_database* bone_data, stream* s);
 static void bone_database_modern_read_inner(bone_database* bone_data, stream* s, uint32_t header_length);
 static void bone_database_modern_write_inner(bone_database* bone_data, stream* s);
-static ssize_t bone_database_strings_get_string_offset(vector_string* vec,
-    vector_ssize_t* vec_off, char* str);
-static ssize_t bone_database_strings_get_string_offset(vector_string* vec,
-    vector_ssize_t* vec_off, const char* str);
-static bool bone_database_strings_push_back_check(vector_string* vec, char* str);
-static bool bone_database_strings_push_back_check(vector_string* vec, const char* str);
+static ssize_t bone_database_strings_get_string_offset(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, char* str);
+static ssize_t bone_database_strings_get_string_offset(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, const char* str);
+static bool bone_database_strings_push_back_check(vector_old_string* vec, char* str);
+static bool bone_database_strings_push_back_check(vector_old_string* vec, const char* str);
 
 void bone_database_init(bone_database* bone_data) {
     memset(bone_data, 0, sizeof(bone_database));
@@ -222,7 +222,7 @@ bool bone_database_load_file(void* data, char* path, char* file, uint32_t hash) 
     return bone_data->ready;
 }
 
-void bone_database_bones_calculate_count(vector_bone_database_bone* bones, size_t* object_bone_count,
+void bone_database_bones_calculate_count(vector_old_bone_database_bone* bones, size_t* object_bone_count,
     size_t* motion_bone_count, size_t* total_bone_count, size_t* ik_bone_count, size_t* chain_pos) {
     size_t _object_bone_count = 0;
     size_t _motion_bone_count = 0;
@@ -286,7 +286,21 @@ bool bone_database_get_skeleton(bone_database* bone_data,
     return false;
 }
 
-int32_t bone_database_get_skeleton_bone_index(bone_database* bone_data, char* name, char* bone_name) {
+int32_t bone_database_get_skeleton_bone_index(bone_database* bone_data, const char* name, char* bone_name) {
+    if (!bone_data || !name || !bone_name)
+        return -1;
+
+    for (bone_database_skeleton* i = bone_data->skeleton.begin; i != bone_data->skeleton.end; i++)
+        if (!str_utils_compare(string_data(&i->name), name)) {
+            for (bone_database_bone* j = i->bone.begin; j != i->bone.end; j++)
+                if (!str_utils_compare(string_data(&j->name), bone_name))
+                    return (int32_t)(j - i->bone.begin);
+            return -1;
+        }
+    return -1;
+}
+
+int32_t bone_database_get_skeleton_bone_index(bone_database* bone_data, const char* name, const char* bone_name) {
     if (!bone_data || !name || !bone_name)
         return -1;
 
@@ -301,7 +315,7 @@ int32_t bone_database_get_skeleton_bone_index(bone_database* bone_data, char* na
 }
 
 bool bone_database_get_skeleton_bones(bone_database* bone_data,
-    char* name, vector_bone_database_bone** bone) {
+    char* name, vector_old_bone_database_bone** bone) {
     if (!bone)
         return false;
 
@@ -318,7 +332,7 @@ bool bone_database_get_skeleton_bones(bone_database* bone_data,
 }
 
 bool bone_database_get_skeleton_positions(bone_database* bone_data,
-    char* name, vector_vec3** positions) {
+    char* name, vector_old_vec3** positions) {
     if (!positions)
         return false;
 
@@ -341,7 +355,7 @@ int32_t bone_database_get_skeleton_object_bone_index(bone_database* bone_data,
 
     for (bone_database_skeleton* i = bone_data->skeleton.begin; i != bone_data->skeleton.end; i++)
         if (!str_utils_compare(string_data(&i->name), name)) {
-            vector_string* object_bones = &i->object_bone;
+            vector_old_string* object_bones = &i->object_bone;
             for (string* j = object_bones->begin; j != object_bones->end; j++)
                 if (!str_utils_compare(string_data(j), bone_name))
                     return (int32_t)(j - object_bones->begin);
@@ -351,7 +365,7 @@ int32_t bone_database_get_skeleton_object_bone_index(bone_database* bone_data,
 }
 
 bool bone_database_get_skeleton_object_bones(bone_database* bone_data,
-    char* name, vector_string** object_bones) {
+    char* name, vector_old_string** object_bones) {
     if (!object_bones)
         return false;
 
@@ -374,7 +388,7 @@ int32_t bone_database_get_skeleton_motion_bone_index(bone_database* bone_data,
 
     for (bone_database_skeleton* i = bone_data->skeleton.begin; i != bone_data->skeleton.end; i++)
         if (!str_utils_compare(string_data(&i->name), name)) {
-            vector_string* motion_bones = &i->motion_bone;
+            vector_old_string* motion_bones = &i->motion_bone;
             for (string* j = motion_bones->begin; j != motion_bones->end; j++)
                 if (!str_utils_compare(string_data(j), bone_name))
                     return (int32_t)(j - motion_bones->begin);
@@ -384,7 +398,7 @@ int32_t bone_database_get_skeleton_motion_bone_index(bone_database* bone_data,
 }
 
 bool bone_database_get_skeleton_motion_bones(bone_database* bone_data,
-    char* name, vector_string** motion_bones) {
+    char* name, vector_old_string** motion_bones) {
     if (!motion_bones)
         return false;
 
@@ -401,7 +415,7 @@ bool bone_database_get_skeleton_motion_bones(bone_database* bone_data,
 }
 
 bool bone_database_get_skeleton_parent_indices(bone_database* bone_data,
-    char* name, vector_uint16_t** parent_indices) {
+    char* name, vector_old_uint16_t** parent_indices) {
     if (!parent_indices)
         return false;
 
@@ -435,7 +449,7 @@ bool bone_database_get_skeleton_heel_height(bone_database* bone_data,
 }
 
 void bone_database_free(bone_database* bone_data) {
-    vector_bone_database_skeleton_free(&bone_data->skeleton, bone_database_skeleton_free);
+    vector_old_bone_database_skeleton_free(&bone_data->skeleton, bone_database_skeleton_free);
 }
 
 const char* bone_database_skeleton_type_to_string(bone_database_skeleton_type type) {
@@ -472,11 +486,11 @@ void bone_database_bone_free(bone_database_bone* bone) {
 }
 
 void bone_database_skeleton_free(bone_database_skeleton* skel) {
-    vector_bone_database_bone_free(&skel->bone, bone_database_bone_free);
-    vector_vec3_free(&skel->position, 0);;
-    vector_string_free(&skel->object_bone, string_free);
-    vector_string_free(&skel->motion_bone, string_free);
-    vector_uint16_t_free(&skel->parent_index, 0);
+    vector_old_bone_database_bone_free(&skel->bone, bone_database_bone_free);
+    vector_old_vec3_free(&skel->position, 0);;
+    vector_old_string_free(&skel->object_bone, string_free);
+    vector_old_string_free(&skel->motion_bone, string_free);
+    vector_old_uint16_t_free(&skel->parent_index, 0);
     string_free(&skel->name);
 }
 
@@ -490,7 +504,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
     uint32_t skeleton_name_offsets_offset = io_read_uint32_t(s);
     io_read(s, 0x14);
 
-    vector_bone_database_skeleton_reserve(&bone_data->skeleton, skeleton_count);
+    vector_old_bone_database_skeleton_reserve(&bone_data->skeleton, skeleton_count);
     bone_data->skeleton.end += skeleton_count;
 
     io_position_push(s, skeleton_offsets_offset, SEEK_SET);
@@ -521,7 +535,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
         }
         io_position_pop(s);
 
-        vector_bone_database_bone_reserve(&skel->bone, bone_count);
+        vector_old_bone_database_bone_reserve(&skel->bone, bone_count);
         skel->bone.end += bone_count;
 
         io_position_push(s, bones_offset, SEEK_SET);
@@ -538,7 +552,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
         }
         io_position_pop(s);
 
-        vector_vec3_reserve(&skel->position, position_count);
+        vector_old_vec3_reserve(&skel->position, position_count);
         skel->position.end += position_count;
 
         io_position_push(s, positions_offset, SEEK_SET);
@@ -554,7 +568,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
         skel->heel_height = io_read_float_t(s);
         io_position_pop(s);
 
-        vector_string_reserve(&skel->object_bone, object_bone_count);
+        vector_old_string_reserve(&skel->object_bone, object_bone_count);
         skel->object_bone.end += object_bone_count;
 
         io_position_push(s, object_bone_names_offset, SEEK_SET);
@@ -564,7 +578,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
         }
         io_position_pop(s);
 
-        vector_string_reserve(&skel->motion_bone, motion_bone_count);
+        vector_old_string_reserve(&skel->motion_bone, motion_bone_count);
         skel->motion_bone.end += motion_bone_count;
 
         io_position_push(s, motion_bone_names_offset, SEEK_SET);
@@ -574,7 +588,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
         }
         io_position_pop(s);
 
-        vector_uint16_t_reserve(&skel->parent_index, motion_bone_count);
+        vector_old_uint16_t_reserve(&skel->parent_index, motion_bone_count);
         skel->parent_index.end += motion_bone_count;
 
         io_position_push(s, parent_indices_offset, SEEK_SET);
@@ -607,7 +621,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
     io_write_int32_t(s, 0);
     io_write_int32_t(s, 0);
 
-    uint32_t skeleton_count = (uint32_t)vector_length(bone_data->skeleton);
+    uint32_t skeleton_count = (uint32_t)vector_old_length(bone_data->skeleton);
     ssize_t skeleton_offsets_offset = io_get_position(s);
     io_write(s, skeleton_count * 0x04ULL);
     
@@ -621,30 +635,30 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
         skeleton_name_offset += i->name.length + 1;
     }
 
-    vector_string strings = vector_empty(string);
-    vector_ssize_t string_offsets = vector_empty(ssize_t);
+    vector_old_string strings = vector_old_empty(string);
+    vector_old_ssize_t string_offsets = vector_old_empty(ssize_t);
 
     ssize_t* skeleton_offsets = force_malloc_s(ssize_t, skeleton_count);
 
     for (uint32_t i = 0; i < skeleton_count; i++) {
         bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-        uint32_t bone_count = (uint32_t)vector_length(skel->bone);
-        uint32_t position_count = (uint32_t)vector_length(skel->position);
-        uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
-        uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
+        uint32_t bone_count = (uint32_t)vector_old_length(skel->bone);
+        uint32_t position_count = (uint32_t)vector_old_length(skel->position);
+        uint32_t object_bone_count = (uint32_t)vector_old_length(skel->object_bone);
+        uint32_t motion_bone_count = (uint32_t)vector_old_length(skel->motion_bone);
 
-        vector_string_reserve(&strings, bone_count);
-        vector_ssize_t_reserve(&string_offsets, bone_count);
+        vector_old_string_reserve(&strings, bone_count);
+        vector_old_ssize_t_reserve(&string_offsets, bone_count);
 
         for (bone_database_bone* j = skel->bone.begin; j != skel->bone.end; j++)
             if (bone_database_strings_push_back_check(&strings, string_data(&j->name))) {
-                *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
+                *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
                 io_write_string_null_terminated(s, &j->name);
             }
 
         if (bone_database_strings_push_back_check(&strings, "End")) {
-            *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
+            *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
             io_write_utf8_string_null_terminated(s, "End");
         }
         io_align_write(s, 0x04);
@@ -675,7 +689,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
 
         for (string* j = skel->object_bone.begin; j != skel->object_bone.end; j++)
             if (bone_database_strings_push_back_check(&strings, string_data(j))) {
-                *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
+                *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
                 io_write_string_null_terminated(s, j);
             }
         io_align_write(s, 0x04);
@@ -687,7 +701,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
 
         for (string* j = skel->motion_bone.begin; j != skel->motion_bone.end; j++)
             if (bone_database_strings_push_back_check(&strings, string_data(j))) {
-                *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
+                *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(s);
                 io_write_string_null_terminated(s, j);
             }
         io_align_write(s, 0x04);
@@ -713,8 +727,8 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
         io_write_uint32_t(s, (uint32_t)parent_indices_offset);
         io_write(s, 0x14);
 
-        vector_string_clear(&strings, string_free);
-        vector_ssize_t_clear(&string_offsets, 0);
+        vector_old_string_clear(&strings, string_free);
+        vector_old_ssize_t_clear(&string_offsets, 0);
     }
 
     io_position_push(s, 0x00, SEEK_SET);
@@ -730,8 +744,8 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
         io_write_uint32_t(s, (uint32_t)skeleton_offsets[i]);
     io_position_pop(s);
 
-    vector_string_free(&strings, string_free);
-    vector_ssize_t_free(&string_offsets, 0);
+    vector_old_string_free(&strings, string_free);
+    vector_old_ssize_t_free(&string_offsets, 0);
     free(skeleton_offsets);
 }
 
@@ -751,7 +765,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
     ssize_t skeleton_offsets_offset = io_read_offset(s, header_length, is_x);
     ssize_t skeleton_name_offsets_offset = io_read_offset(s, header_length, is_x);
 
-    vector_bone_database_skeleton_reserve(&bone_data->skeleton, skeleton_count);
+    vector_old_bone_database_skeleton_reserve(&bone_data->skeleton, skeleton_count);
     bone_data->skeleton.end += skeleton_count;
 
     io_position_push(s, skeleton_offsets_offset, SEEK_SET);
@@ -814,7 +828,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
             }
         io_position_pop(s);
 
-        vector_bone_database_bone_reserve(&skeleton->bone, bone_count);
+        vector_old_bone_database_bone_reserve(&skeleton->bone, bone_count);
         skeleton->bone.end += bone_count;
 
         io_position_push(s, bones_offset, SEEK_SET);
@@ -844,7 +858,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
             }
         io_position_pop(s);
 
-        vector_vec3_reserve(&skeleton->position, position_count);
+        vector_old_vec3_reserve(&skeleton->position, position_count);
         skeleton->position.end += position_count;
 
         io_position_push(s, positions_offset, SEEK_SET);
@@ -860,7 +874,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
         skeleton->heel_height = io_read_float_t_stream_reverse_endianness(s);
         io_position_pop(s);
 
-        vector_string_reserve(&skeleton->object_bone, object_bone_count);
+        vector_old_string_reserve(&skeleton->object_bone, object_bone_count);
         skeleton->object_bone.end += object_bone_count;
 
         io_position_push(s, object_bone_names_offset, SEEK_SET);
@@ -876,7 +890,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
             }
         io_position_pop(s);
 
-        vector_string_reserve(&skeleton->motion_bone, motion_bone_count);
+        vector_old_string_reserve(&skeleton->motion_bone, motion_bone_count);
         skeleton->motion_bone.end += motion_bone_count;
 
         io_position_push(s, motion_bone_names_offset, SEEK_SET);
@@ -892,7 +906,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
             }
         io_position_pop(s);
 
-        vector_uint16_t_reserve(&skeleton->parent_index, motion_bone_count);
+        vector_old_uint16_t_reserve(&skeleton->parent_index, motion_bone_count);
         skeleton->parent_index.end += motion_bone_count;
         
         io_position_push(s, parent_indices_offset, SEEK_SET);
@@ -929,183 +943,183 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
     stream s_bone;
     io_mopen(&s_bone, 0, 0);
     uint32_t off;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
-    vector_size_t pof = vector_empty(size_t);
+    vector_old_size_t pof = vector_old_empty(size_t);
 
     bool is_x = bone_data->is_x;
 
-    uint32_t skeleton_count = (uint32_t)vector_length(bone_data->skeleton);
+    uint32_t skeleton_count = (uint32_t)vector_old_length(bone_data->skeleton);
 
     if (!is_x) {
         uint32_t pos;
-        ee = { 0, 1, 16, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 16, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         pos = off = 16;
 
         skeleton_count *= 2;
-        ee = { off, 1, (uint32_t)(skeleton_count * 4ULL), 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { off, 1, (uint32_t)(skeleton_count * 4ULL), 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         pos += off = (uint32_t)(skeleton_count * 4ULL);
         skeleton_count /= 2;
 
         for (uint32_t i = 0; i < skeleton_count; i++) {
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-            uint32_t bone_count = (uint32_t)vector_length(skel->bone);
-            uint32_t position_count = (uint32_t)vector_length(skel->position);
-            uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
-            uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
+            uint32_t bone_count = (uint32_t)vector_old_length(skel->bone);
+            uint32_t position_count = (uint32_t)vector_old_length(skel->position);
+            uint32_t object_bone_count = (uint32_t)vector_old_length(skel->object_bone);
+            uint32_t motion_bone_count = (uint32_t)vector_old_length(skel->motion_bone);
 
-            ee = { off, 1, 56, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 14, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 56, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 14, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             pos += off = 56;
 
             bone_count++;
             off += 8;
             pos += 8;
-            ee = { off, 1, 12, bone_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 12, bone_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(bone_count * 12ULL);
             if (pos + off % 0x10)
                 off -= 8;
             pos += off = align_val(pos + off, 0x10) - pos;
             bone_count--;
 
-            ee = { off, 1, 12, position_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 12, position_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(position_count * 12ULL);
             pos += off = align_val(off, 0x10);
 
-            ee = { off, 1, 4, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             pos += off = 4;
 
             object_bone_count += motion_bone_count;
-            ee = { off, 1, (uint32_t)(object_bone_count * 4ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(object_bone_count * 4ULL), 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             pos += off = (uint32_t)(object_bone_count * 4ULL);
             object_bone_count -= motion_bone_count;
 
-            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_WORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_WORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(motion_bone_count * 2ULL);
             pos += off = align_val(off, 0x04);
         }
     }
     else {
-        ee = { 0, 2, 24, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 2, 24, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = 24;
         off = align_val(off, 0x10);
 
         if (skeleton_count % 2) {
-            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
 
-            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
         }
         else {
             skeleton_count *= 2;
-            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
             skeleton_count /= 2;
         }
 
-        ee = { off, 7, 112, skeleton_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_enrs_sub_entry_append(&ee.sub, 4, 7, ENRS_QWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { off, 7, 112, skeleton_count, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_sub_entry_append(&ee.sub, 4, 7, ENRS_QWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         off = (uint32_t)(skeleton_count * 112ULL);
         off = align_val(off, 0x10);
 
         for (uint32_t i = 0; i < skeleton_count; i++) {
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-            uint32_t bone_count = (uint32_t)vector_length(skel->bone);
-            uint32_t position_count = (uint32_t)vector_length(skel->position);
-            uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
-            uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
+            uint32_t bone_count = (uint32_t)vector_old_length(skel->bone);
+            uint32_t position_count = (uint32_t)vector_old_length(skel->position);
+            uint32_t object_bone_count = (uint32_t)vector_old_length(skel->object_bone);
+            uint32_t motion_bone_count = (uint32_t)vector_old_length(skel->motion_bone);
 
             bone_count++;
             off += 8;
-            ee = { off, 1, 16, bone_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 16, bone_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(bone_count * 16ULL);
             bone_count--;
 
-            ee = { off, 1, 12, position_count, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 12, position_count, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(position_count * 12ULL);
             off = align_val(off, 0x10);
 
-            ee = { off, 1, 4, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = 4;
             off = align_val(off, 0x10);
 
             if (object_bone_count % 1) {
-                ee = { off, 1, 12, position_count, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, 12, position_count, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(position_count * 12ULL);
                 off = align_val(off, 0x10);
             }
 
             if (skeleton_count % 2) {
-                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_QWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_QWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(object_bone_count * 8ULL);
                 off = align_val(off, 0x10);
 
-                ee = { off, 1, (uint32_t)(motion_bone_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_QWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, (uint32_t)(motion_bone_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_QWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(motion_bone_count * 8ULL);
                 off = align_val(off, 0x10);
             }
             else {
                 object_bone_count += motion_bone_count;
-                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_QWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_QWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 off = (uint32_t)(object_bone_count * 8ULL);
                 off = align_val(off, 0x10);
                 object_bone_count -= motion_bone_count;
             }
 
-            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_WORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_WORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             off = (uint32_t)(motion_bone_count * 2ULL);
             off = align_val(off, 0x10);
         }
@@ -1143,10 +1157,10 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
         for (uint32_t i = 0; i < skeleton_count; i++) {
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-            uint32_t bone_count = (uint32_t)vector_length(skel->bone);
-            uint32_t position_count = (uint32_t)vector_length(skel->position);
-            uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
-            uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
+            uint32_t bone_count = (uint32_t)vector_old_length(skel->bone);
+            uint32_t position_count = (uint32_t)vector_old_length(skel->position);
+            uint32_t object_bone_count = (uint32_t)vector_old_length(skel->object_bone);
+            uint32_t motion_bone_count = (uint32_t)vector_old_length(skel->motion_bone);
 
             skh[i].offset = io_get_position(&s_bone);
             io_write_offset_f2_pof_add(&s_bone, 0, 0x40, &pof);
@@ -1208,10 +1222,10 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
         for (uint32_t i = 0; i < skeleton_count; i++) {
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-            uint32_t bone_count = (uint32_t)vector_length(skel->bone);
-            uint32_t position_count = (uint32_t)vector_length(skel->position);
-            uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
-            uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
+            uint32_t bone_count = (uint32_t)vector_old_length(skel->bone);
+            uint32_t position_count = (uint32_t)vector_old_length(skel->position);
+            uint32_t object_bone_count = (uint32_t)vector_old_length(skel->object_bone);
+            uint32_t motion_bone_count = (uint32_t)vector_old_length(skel->motion_bone);
 
 
             skh[i].bones_offset = io_get_position(&s_bone);
@@ -1248,15 +1262,15 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
         }
     }
 
-    vector_string strings = vector_empty(string);
-    vector_ssize_t string_offsets = vector_empty(ssize_t);
+    vector_old_string strings = vector_old_empty(string);
+    vector_old_ssize_t string_offsets = vector_old_empty(ssize_t);
 
     if (is_x)
         for (uint32_t i = 0; i < skeleton_count; i++) {
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
             if (bone_database_strings_push_back_check(&strings, string_data(&skel->name))) {
-                *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
+                *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
                 io_write_utf8_string_null_terminated(&s_bone, string_data(&skel->name));
             }
         }
@@ -1266,24 +1280,24 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
 
         for (bone_database_bone* j = skel->bone.begin; j != skel->bone.end; j++)
             if (bone_database_strings_push_back_check(&strings, string_data(&j->name))) {
-                *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
+                *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
                 io_write_string_null_terminated(&s_bone, &j->name);
             }
 
         if (bone_database_strings_push_back_check(&strings, "End")) {
-            *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
+            *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
             io_write_utf8_string_null_terminated(&s_bone, "End");
         }
 
         for (string* j = skel->object_bone.begin; j != skel->object_bone.end; j++)
             if (bone_database_strings_push_back_check(&strings, string_data(j))) {
-                *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
+                *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
                 io_write_string_null_terminated(&s_bone, j);
             }
 
         for (string* j = skel->motion_bone.begin; j != skel->motion_bone.end; j++)
             if (bone_database_strings_push_back_check(&strings, string_data(j))) {
-                *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
+                *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
                 io_write_string_null_terminated(&s_bone, j);
             }
     }
@@ -1293,7 +1307,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
             if (bone_database_strings_push_back_check(&strings, string_data(&skel->name))) {
-                *vector_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
+                *vector_old_ssize_t_reserve_back(&string_offsets) = io_get_position(&s_bone);
                 io_write_utf8_string_null_terminated(&s_bone, string_data(&skel->name));
             }
         }
@@ -1302,10 +1316,10 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
     for (uint32_t i = 0; i < skeleton_count; i++) {
         bone_database_skeleton* skel = &bone_data->skeleton.begin[i];
 
-        uint32_t bone_count = (uint32_t)vector_length(skel->bone);
-        uint32_t position_count = (uint32_t)vector_length(skel->position);
-        uint32_t object_bone_count = (uint32_t)vector_length(skel->object_bone);
-        uint32_t motion_bone_count = (uint32_t)vector_length(skel->motion_bone);
+        uint32_t bone_count = (uint32_t)vector_old_length(skel->bone);
+        uint32_t position_count = (uint32_t)vector_old_length(skel->position);
+        uint32_t object_bone_count = (uint32_t)vector_old_length(skel->object_bone);
+        uint32_t motion_bone_count = (uint32_t)vector_old_length(skel->motion_bone);
 
         io_position_push(&s_bone, skh[i].offset, SEEK_SET);
         if (!is_x) {
@@ -1436,12 +1450,12 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
                 &string_offsets, string_data(&i->name)));
     io_position_pop(&s_bone);
 
-    vector_string_free(&strings, string_free);
-    vector_ssize_t_free(&string_offsets, 0);
+    vector_old_string_free(&strings, string_free);
+    vector_old_ssize_t_free(&string_offsets, 0);
     free(skh);
 
-    vector_string_free(&strings, string_free);
-    vector_ssize_t_free(&string_offsets, 0);
+    vector_old_string_free(&strings, string_free);
+    vector_old_ssize_t_free(&string_offsets, 0);
 
     f2_struct st;
     memset(&st, 0, sizeof(f2_struct));
@@ -1461,8 +1475,8 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
     f2_struct_free(&st);
 }
 
-inline static ssize_t bone_database_strings_get_string_offset(vector_string* vec,
-    vector_ssize_t* vec_off, char* str) {
+inline static ssize_t bone_database_strings_get_string_offset(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
@@ -1470,8 +1484,8 @@ inline static ssize_t bone_database_strings_get_string_offset(vector_string* vec
     return 0;
 }
 
-inline static ssize_t bone_database_strings_get_string_offset(vector_string* vec,
-    vector_ssize_t* vec_off, const char* str) {
+inline static ssize_t bone_database_strings_get_string_offset(vector_old_string* vec,
+    vector_old_ssize_t* vec_off, const char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
@@ -1479,24 +1493,24 @@ inline static ssize_t bone_database_strings_get_string_offset(vector_string* vec
     return 0;
 }
 
-inline static bool bone_database_strings_push_back_check(vector_string* vec, char* str) {
+inline static bool bone_database_strings_push_back_check(vector_old_string* vec, char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return false;
 
-    string* s = vector_string_reserve_back(vec);
+    string* s = vector_old_string_reserve_back(vec);
     string_init_length(s, str, len);
     return true;
 }
 
-inline static bool bone_database_strings_push_back_check(vector_string* vec, const char* str) {
+inline static bool bone_database_strings_push_back_check(vector_old_string* vec, const char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return false;
 
-    string* s = vector_string_reserve_back(vec);
+    string* s = vector_old_string_reserve_back(vec);
     string_init_length(s, str, len);
     return true;
 }

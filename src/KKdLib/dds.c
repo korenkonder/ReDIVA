@@ -166,7 +166,7 @@ void dds_wread(dds* d, wchar_t* path) {
     if (!d || !path)
         return;
 
-    vector_ptr_void_free(&d->data, 0);
+    vector_old_ptr_void_free(&d->data, 0);
     memset(d, 0, sizeof(dds));
     wchar_t* path_dds = str_utils_wadd(path, L".dds");
     stream s;
@@ -252,8 +252,8 @@ void dds_wread(dds* d, wchar_t* path) {
         d->height = dds_h.height;
         d->mipmaps_count = dds_h.flags & DDSD_MIPMAPCOUNT ? dds_h.mipMapCount : 1;
         d->has_cube_map = dds_h.caps2 & DDS_cube_map ? true : false;
-        d->data = vector_ptr_empty(void);
-        vector_ptr_void_reserve(&d->data, d->has_cube_map ? d->mipmaps_count * 6ULL : d->mipmaps_count);
+        d->data = vector_old_ptr_empty(void);
+        vector_old_ptr_void_reserve(&d->data, d->has_cube_map ? d->mipmaps_count * 6ULL : d->mipmaps_count);
 
         do
             for (uint32_t i = 0; i < d->mipmaps_count; i++) {
@@ -267,9 +267,9 @@ void dds_wread(dds* d, wchar_t* path) {
                     dds_reverse_rgb(d->format, size, (uint8_t*)data);
                 else if (d->format == TXP_DXT1 && dds_check_is_dxt1a(size, (uint8_t*)data))
                     d->format = TXP_DXT1a;
-                vector_ptr_void_push_back(&d->data, &data);
+                vector_old_ptr_void_push_back(&d->data, &data);
             }
-        while (d->has_cube_map && vector_length(d->data) / d->mipmaps_count < 6);
+        while (d->has_cube_map && vector_old_length(d->data) / d->mipmaps_count < 6);
     }
 End:
     io_free(&s);
@@ -277,7 +277,7 @@ End:
 }
 
 void dds_write(dds* d, char* path) {
-    if (!d || !path || vector_length(d->data) < 1)
+    if (!d || !path || vector_old_length(d->data) < 1)
         return;
 
     wchar_t* path_buf = utf8_to_utf16(path);
@@ -286,7 +286,7 @@ void dds_write(dds* d, char* path) {
 }
 
 void dds_wwrite(dds* d, wchar_t* path) {
-    if (!d || !path || vector_length(d->data) < 1)
+    if (!d || !path || vector_old_length(d->data) < 1)
         return;
 
     wchar_t* path_dds = str_utils_wadd(path, L".dds");
@@ -381,7 +381,7 @@ void dds_dispose(dds* d) {
     if (!d)
         return;
 
-    vector_ptr_void_free(&d->data, 0);
+    vector_old_ptr_void_free(&d->data, 0);
     free(d);
 }
 

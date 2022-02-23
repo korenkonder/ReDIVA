@@ -14,4 +14,4 @@ typedef enum data_test_classes_enum {
     DATA_TEST_MAX,
 } data_test_classes_enum;
 
-extern classes_struct data_test_classes[];
+extern classes_data data_test_classes[];

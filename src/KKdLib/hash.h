@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <string>
 #include "default.h"
 #include "string.h"
 
@@ -19,6 +20,8 @@ extern uint64_t hash_utf8_fnv1a64m(const char* data, bool make_upper);
 extern uint64_t hash_utf16_fnv1a64m(wchar_t* data, bool make_upper);
 extern uint64_t hash_utf16_fnv1a64m(const wchar_t* data, bool make_upper);
 extern uint64_t hash_string_fnv1a64m(string* data, bool make_upper);
+extern uint64_t hash_string_fnv1a64m(std::string* data, bool make_upper);
+extern uint64_t hash_string_fnv1a64m(const std::string* data, bool make_upper);
 extern uint32_t hash_murmurhash(void* data, size_t length, uint32_t seed, bool upper, bool big_endian);
 extern uint32_t hash_murmurhash(const void* data, size_t length, uint32_t seed, bool upper, bool big_endian);
 extern uint32_t hash_utf8_murmurhash(char* data, uint32_t seed, bool upper);
@@ -26,6 +29,8 @@ extern uint32_t hash_utf8_murmurhash(const char* data, uint32_t seed, bool upper
 extern uint32_t hash_utf16_murmurhash(wchar_t* data, uint32_t seed, bool upper);
 extern uint32_t hash_utf16_murmurhash(const wchar_t* data, uint32_t seed, bool upper);
 extern uint32_t hash_string_murmurhash(string* data, uint32_t seed, bool upper);
+extern uint32_t hash_string_murmurhash(std::string* data, uint32_t seed, bool upper);
+extern uint32_t hash_string_murmurhash(const std::string* data, uint32_t seed, bool upper);
 extern uint16_t hash_crc16_ccitt(void* data, size_t length, bool make_upper);
 extern uint16_t hash_crc16_ccitt(const void* data, size_t length, bool make_upper);
 extern uint16_t hash_utf8_crc16_ccitt(char* data, bool make_upper);
@@ -33,3 +38,5 @@ extern uint16_t hash_utf8_crc16_ccitt(const char* data, bool make_upper);
 extern uint16_t hash_utf16_crc16_ccitt(wchar_t* data, bool make_upper);
 extern uint16_t hash_utf16_crc16_ccitt(const wchar_t* data, bool make_upper);
 extern uint16_t hash_string_crc16_ccitt(string* data, bool make_upper);
+extern uint16_t hash_string_crc16_ccitt(std::string* data, bool make_upper);
+extern uint16_t hash_string_crc16_ccitt(const std::string* data, bool make_upper);

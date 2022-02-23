@@ -13,39 +13,43 @@ static char* light_param_ibl_read_line(char* buf, int32_t size, char* src);
 static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* specular);
 static void light_param_ibl_specular_generate_mipmap(float_t* src, float_t* dst, size_t size);
 
-void light_param_ibl_init(light_param_ibl* ibl) {
-    memset(ibl, 0, sizeof(light_param_ibl));
+light_param_ibl::light_param_ibl() : ready(), lit_col(), lit_dir(), diff_coef() {
+
 }
 
-void light_param_ibl_read(light_param_ibl* ibl, char* path) {
+void light_param_ibl::read(char* path) {
     char* path_ibl = str_utils_add(path, ".ibl");
     if (path_check_file_exists(path_ibl)) {
         stream s;
         io_open(&s, path_ibl, "rb");
         if (s.io.stream)
-            light_param_ibl_read_inner(ibl, &s);
+            light_param_ibl_read_inner(this, &s);
         io_free(&s);
     }
     free(path_ibl);
 }
 
-void light_param_ibl_wread(light_param_ibl* ibl, wchar_t* path) {
+void light_param_ibl::read(wchar_t* path) {
     wchar_t* path_ibl = str_utils_wadd(path, L".ibl");
     if (path_wcheck_file_exists(path_ibl)) {
         stream s;
         io_wopen(&s, path_ibl, L"rb");
         if (s.io.stream)
-            light_param_ibl_read_inner(ibl, &s);
+            light_param_ibl_read_inner(this, &s);
         io_free(&s);
     }
     free(path_ibl);
 }
 
-void light_param_ibl_mread(light_param_ibl* ibl, void* data, size_t length) {
+void light_param_ibl::read(void* data, size_t length) {
     stream s;
     io_mopen(&s, data, length);
-    light_param_ibl_read_inner(ibl, &s);
+    light_param_ibl_read_inner(this, &s);
     io_free(&s);
+}
+
+light_param_ibl::~light_param_ibl() {
+
 }
 
 bool light_param_ibl_load_file(void* data, char* path, char* file, uint32_t hash) {
@@ -60,23 +64,26 @@ bool light_param_ibl_load_file(void* data, char* path, char* file, uint32_t hash
     string_add_length(&s, file, file_len);
 
     light_param_ibl* ibl = (light_param_ibl*)data;
-    light_param_ibl_read(ibl, string_data(&s));
+    ibl->read(string_data(&s));
 
     string_free(&s);
     return ibl->ready;
 }
 
-void light_param_ibl_free(light_param_ibl* ibl) {
-    for (int32_t i = 0; i < 2; i++)
-        free(ibl->diffuse[i].data);
+light_param_ibl_diffuse::light_param_ibl_diffuse() : data(), size() {
 
-    for (int32_t i = 0; i < 4; i++) {
-        light_param_ibl_specular* specular = &ibl->specular[i];
-        if (specular->data)
-            for (int32_t j = 0; j <= specular->max_level; j++)
-                free(specular->data[j]);
-        free(specular->data);
-    }
+}
+
+light_param_ibl_diffuse::~light_param_ibl_diffuse() {
+
+}
+
+light_param_ibl_specular::light_param_ibl_specular() : data(), max_level(), size() {
+
+}
+
+light_param_ibl_specular::~light_param_ibl_specular() {
+
 }
 
 static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s) {
@@ -107,7 +114,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s) {
 
             d = light_param_ibl_read_line(buf, sizeof(buf), d);
 
-            vec4 dir;
+            vec4u dir;
             if (sscanf_s(buf, "%f %f %f", &dir.x, &dir.y, &dir.z) != 3)
                 goto End;
 
@@ -123,7 +130,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s) {
 
             d = light_param_ibl_read_line(buf, sizeof(buf), d);
 
-            vec4 col;
+            vec4u col;
             if (sscanf_s(buf, "%f %f %f", &col.x, &col.y, &col.z) != 3)
                 goto End;
 
@@ -140,7 +147,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s) {
             for (int32_t i = 0; i < 3; i++) {
                 d = light_param_ibl_read_line(buf, sizeof(buf), d);
 
-                mat4* mat = &ibl->diff_coef[index][i];
+                mat4u* mat = &ibl->diff_coef[index][i];
                 if (sscanf_s(buf, "%f %f %f %f", &mat->row0.x, &mat->row1.x, &mat->row2.x, &mat->row3.x) != 4)
                     goto End;
 
@@ -189,7 +196,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s) {
 
                 if (i < 2) {
                     light_param_ibl_diffuse* diffuse = &ibl->diffuse[i];
-                    diffuse->data = force_malloc_s(half_t, size * 6);
+                    diffuse->data = std::vector<half_t>(size * 6);
                     diffuse->size = widths[i];
                     for (int32_t k = 0; k < 6; k++, dh += size)
                         memcpy(&diffuse->data[size * k], dh, sizeof(half_t) * size);
@@ -198,15 +205,15 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s) {
                     const int32_t max_level = 2;
 
                     light_param_ibl_specular* specular = &ibl->specular[j];
-                    specular->data = force_malloc_s(half_t*, max_level + 1ULL);
+                    specular->data = std::vector<std::vector<half_t>>(max_level + 1ULL);
                     specular->max_level = max_level;
                     specular->size = widths[i];
 
                     size_t img_size = widths[i];
                     for (int32_t i = 0; i <= max_level; i++, img_size /= 2)
-                        specular->data[i] = force_malloc_s(half_t, 4 * (img_size * img_size) * 6);
+                        specular->data[i] = std::vector<half_t>(4 * (img_size * img_size) * 6);
 
-                    half_t* specular_data = specular->data[0];
+                    std::vector<half_t>& specular_data = specular->data[0];
                     for (int32_t k = 0; k < 6; k++, dh += size)
                         memcpy(&specular_data[size * k], dh, sizeof(half_t) * size);
 
@@ -266,7 +273,7 @@ static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* 
         size_t data_size_2 = 4 * ((size / 2) * (size / 2)) * 6;
 
         if (!i) {
-            half_t* data = specular->data[i];
+            std::vector<half_t>& data = specular->data[i];
             float_t* temp = data_f32[0];
             for (size_t j = 0; j < data_size; j++)
                 temp[j] = half_to_float(data[j]);
@@ -278,7 +285,7 @@ static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* 
         data_f32[0] = data_f32[1];
         data_f32[1] = temp;
 
-        half_t* data = specular->data[i + 1];
+        std::vector<half_t>& data = specular->data[i + 1];
         temp = data_f32[0];
         for (size_t j = 0; j < data_size_2; j++)
             data[j] = float_to_half(temp[j]);

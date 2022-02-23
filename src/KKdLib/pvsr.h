@@ -31,7 +31,7 @@ typedef struct pvsr_aet_entry {
     float_t bright_scale;
 } pvsr_aet_entry;
 
-vector(pvsr_aet_entry)
+vector_old(pvsr_aet_entry)
 
 typedef struct pvsr_aet {
     uint16_t u48;
@@ -49,9 +49,9 @@ typedef struct pvsr_aet {
     uint16_t u60;
 
     string set_name;
-    vector_pvsr_aet_entry front;
-    vector_pvsr_aet_entry front_low;
-    vector_pvsr_aet_entry back;
+    vector_old_pvsr_aet_entry front;
+    vector_old_pvsr_aet_entry front_low;
+    vector_old_pvsr_aet_entry back;
     pvsr_aet_sub1 sub1_data;
     bool sub1_data_init;
     pvsr_aet_sub2 sub2a_data;
@@ -62,8 +62,8 @@ typedef struct pvsr_aet {
     bool sub2c_data_init;
     pvsr_aet_sub2 sub2d_data;
     bool sub2d_data_init;
-    vector_pvsr_aet_entry unk03;
-    vector_pvsr_aet_entry unk04;
+    vector_old_pvsr_aet_entry unk03;
+    vector_old_pvsr_aet_entry unk04;
 } pvsr_aet;
 
 typedef struct pvsr_a3da {
@@ -81,29 +81,29 @@ typedef struct pvsr_glitter {
     uint8_t unk1;
 } pvsr_glitter;
 
-vector(pvsr_a3da)
-vector(pvsr_glitter)
+vector_old(pvsr_a3da)
+vector_old(pvsr_glitter)
 
 typedef struct pvsr_stage_effect {
-    vector_pvsr_a3da a3da;
-    vector_pvsr_glitter glitter;
+    vector_old_pvsr_a3da a3da;
+    vector_old_pvsr_glitter glitter;
 } pvsr_stage_effect;
 
-vector(pvsr_aet)
-vector(pvsr_effect)
-vector(pvsr_stage_effect)
+vector_old(pvsr_aet)
+vector_old(pvsr_effect)
+vector_old(pvsr_stage_effect)
 
 #define PVSR_STAGE_CHANGE_EFFECT_COUNT 0x10
 
 typedef struct pvsr {
     bool ready;
 
-    vector_pvsr_aet aet;
-    vector_pvsr_effect effect;
-    vector_string emcs;
+    vector_old_pvsr_aet aet;
+    vector_old_pvsr_effect effect;
+    vector_old_string emcs;
     pvsr_stage_effect stage_change_effect[PVSR_STAGE_CHANGE_EFFECT_COUNT][PVSR_STAGE_CHANGE_EFFECT_COUNT];
     bool stage_change_effect_init[PVSR_STAGE_CHANGE_EFFECT_COUNT][PVSR_STAGE_CHANGE_EFFECT_COUNT];
-    vector_pvsr_stage_effect stage_effect;
+    vector_old_pvsr_stage_effect stage_effect;
 } pvsr;
 
 extern void pvsr_init(pvsr* sr);

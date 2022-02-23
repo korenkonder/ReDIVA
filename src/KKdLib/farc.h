@@ -5,9 +5,10 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "default.h"
 #include "io/stream.h"
-#include "vector.h"
 
 typedef enum farc_signature {
     FARC_FArc = 'FArc',
@@ -29,41 +30,50 @@ typedef enum farc_compress_mode {
     FARC_COMPRESS_FARC_GZIP_AES = 5,
 } farc_compress_mode;
 
-typedef struct farc_file {
+class farc_file {
+public:
     size_t offset;
     size_t size;
     size_t size_compressed;
-    string name;
+    std::string name;
     void* data;
     void* data_compressed;
     farc_flags flags;
     bool data_changed;
-} farc_file;
 
-vector(farc_file)
+    farc_file();
+    ~farc_file();
+};
 
-typedef struct farc {
-    wchar_t file_path[MAX_PATH];
-    wchar_t directory_path[MAX_PATH];
-    vector_farc_file files;
+class farc {
+public:
+    std::wstring file_path;
+    std::wstring directory_path;
+    std::vector<farc_file> files;
     farc_signature signature;
     farc_flags flags;
     int32_t compression_level;
     bool ft;
-} farc;
 
-extern void farc_init(farc* f);
-extern void farc_read(farc* f, char* path, bool unpack, bool save);
-extern void farc_wread(farc* f, wchar_t* path, bool unpack, bool save);
-extern void farc_mread(farc* f, void* data, size_t length, bool unpack);
-extern farc_file* farc_read_file(farc* f, char* name);
-extern farc_file* farc_read_file(farc* f, const char* name);
-extern farc_file* farc_wread_file(farc* f, wchar_t* name);
-extern farc_file* farc_wread_file(farc* f, const wchar_t* name);
-extern void farc_write(farc* f, char* path, farc_compress_mode mode, bool get_files);
-extern void farc_wwrite(farc* f, wchar_t* path, farc_compress_mode mode, bool get_files);
-extern void farc_mwrite(farc* f, void** data, size_t* length, farc_compress_mode mode);
-extern bool farc_load_file(void* data, char* path, char* file, uint32_t hash);
-extern void farc_free(farc* f);
+    farc();
+    ~farc();
 
-extern void farc_file_free(farc_file* ff);
+    size_t get_file_size(char* name);
+    size_t get_file_size(const char* name);
+    size_t get_file_size(wchar_t* name);
+    size_t get_file_size(const wchar_t* name);
+    void read(char* path, bool unpack, bool save);
+    void read(const char* path, bool unpack, bool save);
+    void read(wchar_t* path, bool unpack, bool save);
+    void read(const wchar_t* path, bool unpack, bool save);
+    void read(void* data, size_t length, bool unpack);
+    farc_file* read_file(char* name);
+    farc_file* read_file(const char* name);
+    farc_file* read_file(wchar_t* name);
+    farc_file* read_file(const wchar_t* name);
+    void write(char* path, farc_compress_mode mode, bool get_files);
+    void write(wchar_t* path, farc_compress_mode mode, bool get_files);
+    void write(void** data, size_t* length, farc_compress_mode mode);
+
+    static bool load_file(void* data, char* path, char* file, uint32_t hash);
+};

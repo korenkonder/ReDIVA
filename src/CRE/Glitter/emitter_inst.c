@@ -50,42 +50,19 @@ glitter_emitter_inst* glitter_emitter_inst_init(glitter_emitter* a1,
         ei->emission = GLITTER_EMITTER_EMISSION_ON_END;
     ei->loop = ei->data.flags & GLITTER_EMITTER_LOOP ? true : false;
 
-    vector_ptr_glitter_particle_inst_reserve(&ei->particles, vector_length(a1->particles));
+    vector_old_ptr_glitter_particle_inst_reserve(&ei->particles, vector_old_length(a1->particles));
     for (i = a1->particles.begin; i != a1->particles.end; i++) {
         if (!*i)
             continue;
 
         particle = glitter_particle_inst_init(*i, a2, ei, ei->random_ptr, emission);
         if (particle)
-            vector_ptr_glitter_particle_inst_push_back(&ei->particles, &particle);
+            vector_old_ptr_glitter_particle_inst_push_back(&ei->particles, &particle);
     }
 
     ei->random = glitter_random_get_value(ei->random_ptr);
     glitter_random_set_value(ei->random_ptr, glitter_random_get_value(ei->random_ptr) + 1);
     return ei;
-}
-
-void glitter_emitter_inst_free(GPM, GLT, glitter_emitter_inst* a1, float_t emission) {
-    glitter_particle_inst** i;
-
-    if (a1->flags & GLITTER_EMITTER_INST_ENDED)
-        return;
-
-    if (a1->emission == GLITTER_EMITTER_EMISSION_ON_END) {
-        glitter_emitter_inst_emit_particle(GPM_VAL, GLT_VAL, a1, emission);
-        a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
-    }
-
-    if (a1->loop && a1->data.loop_end_time >= 0.0f)
-        a1->loop = false;
-
-    enum_or(a1->flags, GLITTER_EMITTER_INST_ENDED);
-    if (a1->data.flags & GLITTER_EMITTER_KILL_ON_END)
-        for (i = a1->particles.begin; i != a1->particles.end; ++i)
-            glitter_particle_inst_free(*i, true);
-    else
-        for (i = a1->particles.begin; i != a1->particles.end; ++i)
-            glitter_particle_inst_free(*i, false);
 }
 
 void glitter_emitter_inst_emit(GPM, GLT,
@@ -117,8 +94,35 @@ void glitter_emitter_inst_emit(GPM, GLT,
         }
 
     if (!a1->loop && a1->frame >= a1->data.life_time)
-        glitter_emitter_inst_free(GPM_VAL, GLT_VAL, a1, emission);
+        glitter_emitter_inst_free(GPM_VAL, GLT_VAL, a1, emission, false);
     a1->frame += delta_frame;
+}
+
+void glitter_emitter_inst_free(GPM, GLT, glitter_emitter_inst* a1, float_t emission, bool free) {
+    glitter_particle_inst** i;
+
+    if (a1->flags & GLITTER_EMITTER_INST_ENDED) {
+        if (free)
+            for (i = a1->particles.begin; i != a1->particles.end; ++i)
+                glitter_particle_inst_free(*i, true);
+        return;
+    }
+
+    if (a1->emission == GLITTER_EMITTER_EMISSION_ON_END) {
+        glitter_emitter_inst_emit_particle(GPM_VAL, GLT_VAL, a1, emission);
+        a1->emission = GLITTER_EMITTER_EMISSION_EMITTED;
+    }
+
+    if (a1->loop && a1->data.loop_end_time >= 0.0f)
+        a1->loop = false;
+
+    enum_or(a1->flags, GLITTER_EMITTER_INST_ENDED);
+    if (a1->data.flags & GLITTER_EMITTER_KILL_ON_END || free)
+        for (i = a1->particles.begin; i != a1->particles.end; i++)
+            glitter_particle_inst_free(*i, true);
+    else
+        for (i = a1->particles.begin; i != a1->particles.end; i++)
+            glitter_particle_inst_free(*i, false);
 }
 
 bool glitter_emitter_inst_has_ended(glitter_emitter_inst* emitter, bool a2) {
@@ -203,7 +207,7 @@ void glitter_emitter_inst_ctrl_init(GPM, GLT,
 }
 
 void glitter_emitter_inst_dispose(glitter_emitter_inst* ei) {
-    vector_ptr_glitter_particle_inst_free(&ei->particles, glitter_particle_inst_dispose);
+    vector_old_ptr_glitter_particle_inst_free(&ei->particles, glitter_particle_inst_dispose);
     free(ei);
 }
 
@@ -228,7 +232,7 @@ static void glitter_emitter_inst_get_value(GLT, glitter_emitter_inst* a1) {
     glitter_curve* curve;
     float_t value;
 
-    length = vector_length(a1->emitter->animation);
+    length = vector_old_length(a1->emitter->animation);
     if (!length)
         return;
 

@@ -8,7 +8,6 @@
 #include "glitter.h"
 
 extern glitter_render_group* glitter_render_group_init(glitter_particle_inst* a1);
-extern void glitter_render_group_calc_disp(GPM, glitter_render_group* a1);
 extern bool glitter_render_group_cannot_disp(glitter_render_group* a1);
 extern void glitter_render_group_ctrl(GLT,
     glitter_render_group* render_group, float_t delta_frame, bool copy_mats);

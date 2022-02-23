@@ -34,10 +34,10 @@ typedef struct wstring {
 extern const string string_empty;
 extern const wstring wstring_empty;
 
-vector(string)
-vector(wstring)
-vector_ptr(string)
-vector_ptr(wstring)
+vector_old(string)
+vector_old(wstring)
+vector_old_ptr(string)
+vector_old_ptr(wstring)
 
 extern void string_init(string* s);
 extern void string_init(string* s, char* str);

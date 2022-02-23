@@ -215,10 +215,10 @@ extern void shader_draw_range_elements(shader_set_data* set,
 extern int32_t shader_get_index_by_name(shader_set_data* set, char* name);
 extern int32_t shader_get_index_by_name(shader_set_data* set, const char* name);
 extern void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load_cache,
-    char* name, const shader_table** shaders_table, const size_t size,
+    char* name, const shader_table* shaders_table, const size_t size,
     const shader_bind_func* bind_func_table, const size_t bind_func_table_size);
 extern void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load_cache,
-    const char* name, const shader_table** shaders_table, const size_t size,
+    const char* name, const shader_table* shaders_table, const size_t size,
     const shader_bind_func* bind_func_table, const size_t bind_func_table_size);
 extern void shader_free(shader_set_data* set);
 extern void shader_set(shader_set_data* set, uint32_t index);

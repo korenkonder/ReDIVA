@@ -21,6 +21,15 @@ extern const ImVec2 ImVec2_Identity;
 extern const ImVec4 ImVec4_Identity;
 extern const float_t imgui_alpha_disabled_scale;
 
+extern bool imgui_is_item_active;
+extern bool imgui_is_item_focused;
+extern bool imgui_is_item_visible;
+extern bool imgui_is_item_edited;
+extern bool imgui_is_item_activated;
+extern bool imgui_is_item_deactivated;
+extern bool imgui_is_item_deactivated_after_edit;
+extern bool imgui_is_item_toggled_open;
+
 extern bool imguiItemKeyDown(int32_t key);
 extern bool imguiItemKeyPressed(int32_t key, bool repeat);
 extern bool imguiItemKeyReleased(int32_t key);

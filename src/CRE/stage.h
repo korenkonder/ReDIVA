@@ -6,15 +6,16 @@
 #pragma once
 
 #include "../KKdLib/default.h"
-#include "../KKdLib/vec.h"
 #include "../KKdLib/database/stage.h"
+#include "../KKdLib/vec.h"
+#include "../KKdLib/vector.h"
 #include "render_context.h"
 #include "auth_3d.h"
 
 typedef struct stage {
     union {
-        stage_info* stage_classic;
-        stage_info_modern* stage_modern;
+        stage_data* stage_data;
+        stage_data_modern* stage_modern;
     };
 
     bool modern;
@@ -27,7 +28,7 @@ typedef struct stage {
     uint32_t set_id;
     uint32_t stage_set_id;
     char* light_param_name;
-    vector_int32_t auth_3d_ids;
+    vector_old_int32_t auth_3d_ids;
 } stage;
 
 extern void stage_init(stage* s);

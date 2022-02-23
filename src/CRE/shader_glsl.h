@@ -25,10 +25,10 @@ typedef struct shader_glsl_param {
 typedef struct shader_glsl {
     string name;
     GLuint program;
-    vector_uint64_t uniform_name_buf;
-    vector_int32_t uniform_location_buf;
-    vector_uint64_t uniform_block_name_buf;
-    vector_int32_t uniform_block_index_buf;
+    vector_old_uint64_t uniform_name_buf;
+    vector_old_int32_t uniform_location_buf;
+    vector_old_uint64_t uniform_block_name_buf;
+    vector_old_int32_t uniform_block_index_buf;
 } shader_glsl;
 
 extern void shader_glsl_load(shader_glsl* s, farc* f, shader_glsl_param* param);

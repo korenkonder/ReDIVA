@@ -14,76 +14,80 @@ static char* light_param_fog_read_line(char* buf, int32_t size, char* src);
 static void light_param_fog_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
 static void light_param_fog_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
 
-void light_param_fog_init(light_param_fog* fog) {
-    memset(fog, 0, sizeof(light_param_fog));
+light_param_fog::light_param_fog() : ready() {
+
 }
 
-void light_param_fog_read(light_param_fog* fog, char* path) {
+void light_param_fog::read(char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
         io_open(&s, path_txt, "rb");
         if (s.io.stream)
-            light_param_fog_read_inner(fog, &s);
+            light_param_fog_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_fog_wread(light_param_fog* fog, wchar_t* path) {
+void light_param_fog::read(wchar_t* path) {
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     if (path_wcheck_file_exists(path_txt)) {
         stream s;
         io_wopen(&s, path_txt, L"rb");
         if (s.io.stream)
-            light_param_fog_read_inner(fog, &s);
+            light_param_fog_read_inner(this, &s);
         io_free(&s);
     }
     free(path_txt);
 }
 
-void light_param_fog_mread(light_param_fog* fog, void* data, size_t length) {
+void light_param_fog::read(void* data, size_t length) {
     stream s;
     io_mopen(&s, data, length);
-    light_param_fog_read_inner(fog, &s);
+    light_param_fog_read_inner(this, &s);
     io_free(&s);
 }
 
-void light_param_fog_write(light_param_fog* fog, char* path) {
-    if (!fog || !path || !fog->ready)
+void light_param_fog::write(char* path) {
+    if (!path || !ready)
         return;
 
     char* path_txt = str_utils_add(path, ".txt");
     stream s;
     io_open(&s, path_txt, "wb");
     if (s.io.stream)
-        light_param_fog_write_inner(fog, &s);
+        light_param_fog_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_fog_wwrite(light_param_fog* fog, wchar_t* path) {
-    if (!fog || !path || !fog->ready)
+void light_param_fog::write(wchar_t* path) {
+    if (!path || !ready)
         return;
 
     wchar_t* path_txt = str_utils_wadd(path, L".txt");
     stream s;
     io_wopen(&s, path_txt, L"wb");
     if (s.io.stream)
-        light_param_fog_write_inner(fog, &s);
+        light_param_fog_write_inner(this, &s);
     io_free(&s);
     free(path_txt);
 }
 
-void light_param_fog_mwrite(light_param_fog* fog, void** data, size_t* length) {
-    if (!fog || !data || !fog->ready)
+void light_param_fog::write(void** data, size_t* length) {
+    if (!data || !ready)
         return;
 
     stream s;
     io_mopen(&s, 0, 0);
-    light_param_fog_write_inner(fog, &s);
+    light_param_fog_write_inner(this, &s);
     io_mcopy(&s, data, length);
     io_free(&s);
+}
+
+light_param_fog::~light_param_fog() {
+
 }
 
 bool light_param_fog_load_file(void* data, char* path, char* file, uint32_t hash) {
@@ -98,13 +102,18 @@ bool light_param_fog_load_file(void* data, char* path, char* file, uint32_t hash
     string_add_length(&s, file, file_len);
 
     light_param_fog* fog = (light_param_fog*)data;
-    light_param_fog_read(fog, string_data(&s));
+    fog->read(string_data(&s));
 
     string_free(&s);
     return fog->ready;
 }
 
-void light_param_fog_free(light_param_fog* fog) {
+light_param_fog_group::light_param_fog_group() : has_type(), type(), has_density(),
+density(), has_linear(), linear_start(), linear_end(), has_color(), color() {
+
+}
+
+light_param_fog_group::~light_param_fog_group() {
 
 }
 

@@ -13,7 +13,7 @@ if (MSGPACK_CHECK(a)) \
 if (MSGPACK_CHECK(a)) \
     (b)->ptr = force_malloc(sizeof(a));
 
-vector_func(msgpack);
+vector_old_func(msgpack);
 
 void msgpack_init_map(msgpack* msg, char* name) {
     msg->type = MSGPACK_MAP;
@@ -31,7 +31,7 @@ void msgpack_init_array(msgpack* msg, char* name, size_t length) {
 
     msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
     ptr->capacity_end = ptr->end = ptr->begin = 0;
-    vector_msgpack_reserve(ptr, length);
+    vector_old_msgpack_reserve(ptr, length);
     ptr->end = ptr->begin + length;
 }
 
@@ -190,7 +190,7 @@ msgpack* msgpack_get_by_index(msgpack* msg, size_t index) {
         return 0;
 
     msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-    if ((ssize_t)index < vector_length(*ptr))
+    if ((ssize_t)index < vector_old_length(*ptr))
         return &ptr->begin[index];
     return 0;
 }
@@ -200,7 +200,7 @@ void msgpack_set_by_index(msgpack* msg, msgpack* m, size_t index) {
         return;
 
     msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-    if ((ssize_t)index < vector_length(*ptr)) {
+    if ((ssize_t)index < vector_old_length(*ptr)) {
         msgpack_free(&ptr->begin[index]);
         ptr->begin[index] = *m;
     }
@@ -238,7 +238,7 @@ void msgpack_append(msgpack* msg, msgpack* m) {
         return;
 
     msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
-    vector_msgpack_push_back(ptr, m);
+    vector_old_msgpack_push_back(ptr, m);
     memset(m->data, 0, sizeof(m->data));
 }
 
@@ -982,11 +982,11 @@ void msgpack_free(msgpack* msg) {
         break;
     case MSGPACK_ARRAY: {
         msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-        vector_msgpack_free(ptr, msgpack_free);
+        vector_old_msgpack_free(ptr, msgpack_free);
     } break;
     case MSGPACK_MAP: {
         msgpack_map* ptr = MSGPACK_SELECT_PTR(msgpack_map, msg);
-        vector_msgpack_free(ptr, msgpack_free);
+        vector_old_msgpack_free(ptr, msgpack_free);
     } break;
     }
     memset(msg, 0, sizeof(msgpack));

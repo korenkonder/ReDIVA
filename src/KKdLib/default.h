@@ -45,15 +45,6 @@ null(double_t)
 null(size_t)
 null(ssize_t)
 
-#define ptr_t(t) \
-typedef t* ptr_##t;
-
-#define pair(t0, t1) \
-typedef struct pair_##t0##_##t1 { \
-    t0 key; \
-    t1 val; \
-} pair_##t0##_##t1;
-
 #ifndef max
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #endif

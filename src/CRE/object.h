@@ -15,20 +15,20 @@
 #include "static_var.h"
 #include "texture.h"
 
-typedef enum object_index_format {
+typedef enum object_index_format : uint32_t {
     OBJECT_INDEX_U8  = 0x00,
     OBJECT_INDEX_U16 = 0x01,
     OBJECT_INDEX_U32 = 0x02,
 } object_index_format;
 
-typedef enum object_material_aniso_direction {
+typedef enum object_material_aniso_direction : uint32_t {
     OBJECT_MATERIAL_ANISO_DIRECTION_NORMAL = 0,
     OBJECT_MATERIAL_ANISO_DIRECTION_U      = 1,
     OBJECT_MATERIAL_ANISO_DIRECTION_V      = 2,
     OBJECT_MATERIAL_ANISO_DIRECTION_RADIAL = 3,
 } object_material_aniso_direction;
 
-typedef enum object_material_blend_factor {
+typedef enum object_material_blend_factor : uint32_t {
     OBJECT_MATERIAL_BLEND_ZERO              = 0,
     OBJECT_MATERIAL_BLEND_ONE               = 1,
     OBJECT_MATERIAL_BLEND_SRC_COLOR         = 2,
@@ -42,19 +42,19 @@ typedef enum object_material_blend_factor {
     OBJECT_MATERIAL_BLEND_ALPHA_SATURATE    = 10,
 } object_material_blend_factor;
 
-typedef enum object_material_bump_map_type {
+typedef enum object_material_bump_map_type : uint32_t {
     OBJECT_MATERIAL_BUMP_MAP_NONE = 0,
     OBJECT_MATERIAL_BUMP_MAP_DOT  = 1,
     OBJECT_MATERIAL_BUMP_MAP_ENV  = 2,
 } object_material_bump_map_type;
 
-typedef enum object_material_color_source_type {
+typedef enum object_material_color_source_type : uint32_t {
     OBJECT_MATERIAL_COLOR_SOURCE_MATERIAL_COLOR = 0,
     OBJECT_MATERIAL_COLOR_SOURCE_VERTEX_COLOR   = 1,
     OBJECT_MATERIAL_COLOR_SOURCE_VERTEX_MORPH   = 2,
 } object_material_color_source_type;
 
-typedef enum object_material_flags {
+typedef enum object_material_flags : uint32_t {
     OBJECT_MATERIAL_COLOR          = 0x0001,
     OBJECT_MATERIAL_COLOR_ALPHA    = 0x0002,
     OBJECT_MATERIAL_COLOR_L1       = 0x0004,
@@ -73,12 +73,12 @@ typedef enum object_material_flags {
     OBJECT_MATERIAL_OVERRIDE_IBL   = 0x8000,
 } object_material_flags;
 
-typedef enum object_material_specular_quality {
+typedef enum object_material_specular_quality : uint32_t {
     OBJECT_MATERIAL_SPECULAR_QUALITY_LOW  = 0,
     OBJECT_MATERIAL_SPECULAR_QUALITY_HIGH = 1,
 } object_material_specular_quality;
 
-typedef enum object_material_texture_type {
+typedef enum object_material_texture_type : uint32_t {
     OBJECT_MATERIAL_TEXTURE_NONE               = 0x00,
     OBJECT_MATERIAL_TEXTURE_COLOR              = 0x01,
     OBJECT_MATERIAL_TEXTURE_NORMAL             = 0x02,
@@ -91,33 +91,33 @@ typedef enum object_material_texture_type {
     OBJECT_MATERIAL_TEXTURE_ENVIRONMENT_CUBE   = 0x09,
 } object_material_texture_type;
 
-typedef enum object_material_texture_coordinate_translation_type {
+typedef enum object_material_texture_coordinate_translation_type : uint32_t {
     OBJECT_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_NONE   = 0x00,
     OBJECT_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_UV     = 0x01,
     OBJECT_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_SPHERE = 0x02,
     OBJECT_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_CUBE   = 0x03
 } object_material_texture_coordinate_translation_type;
 
-typedef enum object_material_shader_lighting_type {
+typedef enum object_material_shader_lighting_type : uint32_t {
     OBJECT_MATERIAL_SHADER_LIGHTING_LAMBERT  = 0x0,
     OBJECT_MATERIAL_SHADER_LIGHTING_CONSTANT = 0x1,
     OBJECT_MATERIAL_SHADER_LIGHTING_PHONG    = 0x2,
 } object_material_shader_lighting_type;
 
-typedef enum object_material_vertex_translation_type {
+typedef enum object_material_vertex_translation_type : uint32_t {
     OBJECT_MATERIAL_VERTEX_TRANSLATION_DEFAULT  = 0,
     OBJECT_MATERIAL_VERTEX_TRANSLATION_ENVELOPE = 1,
     OBJECT_MATERIAL_VERTEX_TRANSLATION_MORPHING = 2,
 } object_material_vertex_translation_type;
 
-typedef enum object_mesh_flags {
+typedef enum object_mesh_flags : uint32_t {
     OBJECT_MESH_FLAG_1                = 0x01,
     OBJECT_MESH_BILLBOARD_Y_AXIS      = 0x02,
     OBJECT_MESH_TRANSLUCENT_NO_SHADOW = 0x04,
     OBJECT_MESH_BILLBOARD             = 0x08,
 } object_mesh_flags;
 
-typedef enum object_primitive_type {
+typedef enum object_primitive_type : uint32_t {
     OBJECT_PRIMITIVE_POINTS         = 0x00,
     OBJECT_PRIMITIVE_LINES          = 0x01,
     OBJECT_PRIMITIVE_LINE_STRIP     = 0x02,
@@ -130,7 +130,7 @@ typedef enum object_primitive_type {
     OBJECT_PRIMITIVE_POLYGON        = 0x09,
 } object_primitive_type;
 
-typedef enum object_skin_block_constraint_type {
+typedef enum object_skin_block_constraint_type : uint32_t {
     OBJECT_SKIN_BLOCK_CONSTRAINT_NONE = 0,
     OBJECT_SKIN_BLOCK_CONSTRAINT_ORIENTATION,
     OBJECT_SKIN_BLOCK_CONSTRAINT_DIRECTION,
@@ -138,12 +138,12 @@ typedef enum object_skin_block_constraint_type {
     OBJECT_SKIN_BLOCK_CONSTRAINT_DISTANCE,
 } object_skin_block_constraint_type;
 
-typedef enum object_skin_block_constraint_coupling {
+typedef enum object_skin_block_constraint_coupling : uint32_t {
     OBJECT_SKIN_BLOCK_CONSTRAINT_COUPLING_RIGID = 0x01,
     OBJECT_SKIN_BLOCK_CONSTRAINT_COUPLING_SOFT  = 0x03,
 } object_skin_block_constraint_coupling;
 
-typedef enum object_skin_block_type {
+typedef enum object_skin_block_type : uint32_t {
     OBJECT_SKIN_BLOCK_NONE = 0,
     OBJECT_SKIN_BLOCK_CLOTH,
     OBJECT_SKIN_BLOCK_CONSTRAINT,
@@ -152,7 +152,7 @@ typedef enum object_skin_block_type {
     OBJECT_SKIN_BLOCK_OSAGE,
 } object_skin_block_type;
 
-typedef enum object_sub_mesh_flags {
+typedef enum object_sub_mesh_flags : uint32_t {
     OBJECT_SUB_MESH_RECIEVE_SHADOW = 0x01,
     OBJECT_SUB_MESH_CAST_SHADOW    = 0x02,
     OBJECT_SUB_MESH_TRANSPARENT    = 0x04,
@@ -163,7 +163,7 @@ typedef enum object_sub_mesh_flags {
     OBJECT_SUB_MESH_FLAG_80        = 0x80,
 } object_sub_mesh_flags;
 
-typedef enum object_vertex_flags {
+typedef enum object_vertex_flags : uint32_t {
     OBJECT_VERTEX_NONE      = 0x000,
     OBJECT_VERTEX_POSITION  = 0x001,
     OBJECT_VERTEX_NORMAL    = 0x002,
@@ -398,22 +398,22 @@ typedef struct object_skin_block_constraint_attach_point  {
     vec3 offset;
 } object_skin_block_constraint_attach_point;
 
-typedef struct object_skin_block_constraint_up_vector {
+typedef struct object_skin_block_constraint_up_vector_old {
     bool active;
     float_t roll;
     vec3 affected_axis;
     vec3 point_at;
     string name;
-} object_skin_block_constraint_up_vector;
+} object_skin_block_constraint_up_vector_old;
 
 typedef struct object_skin_block_constraint_direction {
-    object_skin_block_constraint_up_vector up_vector;
+    object_skin_block_constraint_up_vector_old up_vector_old;
     vec3 align_axis;
     vec3 target_offset;
 } object_skin_block_constraint_direction;
 
 typedef struct object_skin_block_constraint_distance {
-    object_skin_block_constraint_up_vector up_vector;
+    object_skin_block_constraint_up_vector_old up_vector_old;
     float_t distance;
     object_skin_block_constraint_attach_point constrained_object;
     object_skin_block_constraint_attach_point constraining_object;
@@ -424,7 +424,7 @@ typedef struct object_skin_block_constraint_orientation {
 } object_skin_block_constraint_orientation;
 
 typedef struct object_skin_block_constraint_position {
-    object_skin_block_constraint_up_vector up_vector;
+    object_skin_block_constraint_up_vector_old up_vector_old;
     object_skin_block_constraint_attach_point constrained_object;
     object_skin_block_constraint_attach_point constraining_object;
 } object_skin_block_constraint_position;

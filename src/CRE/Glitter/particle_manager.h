@@ -7,7 +7,7 @@
 
 #include "glitter.h"
 
-extern glitter_particle_manager* glitter_particle_manager_init();
+/*extern glitter_particle_manager* glitter_particle_manager_init();
 extern void glitter_particle_manager_calc_disp(GPM);
 extern bool glitter_particle_manager_check_effect_group(GPM, uint64_t effect_group_hash);
 extern bool glitter_particle_manager_check_file_reader(GPM, uint64_t effect_group_hash);
@@ -32,4 +32,4 @@ extern bool glitter_particle_manager_load_scene(GPM, uint64_t effect_group_hash)
 extern void glitter_particle_manager_set_frame(GPM,
     glitter_effect_group* effect_group, glitter_scene** scene, float_t curr_frame,
     float_t prev_frame, uint32_t counter, glitter_random* random, bool reset);
-extern void glitter_particle_manager_dispose(GPM);
+extern void glitter_particle_manager_dispose(GPM);*/

@@ -13,7 +13,6 @@ typedef struct data_view_texture {
 
 extern int32_t width;
 extern int32_t height;
-extern bool input_locked;
 
 const char* data_view_texture_window_title = "Texture##Data Viewer";
 
@@ -74,10 +73,6 @@ void data_view_texture_imgui(class_data* data) {
 
     data->imgui_focus |= igIsWindowFocused(0);
     igEnd();
-}
-
-void data_view_texture_input(class_data* data) {
-    input_locked |= data->imgui_focus;
 }
 
 bool data_view_texture_dispose(class_data* data) {

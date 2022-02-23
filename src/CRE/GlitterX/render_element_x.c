@@ -199,7 +199,7 @@ void glitter_x_render_element_ctrl(glitter_render_group* a1,
         translation = vec3_null;
 
         glitter_animation* curv = &particle->particle->animation;
-        length = vector_length(*curv);
+        length = vector_old_length(*curv);
         for (int32_t i = 0; i < length; i++) {
             curve = curv->begin[i];
             if (!glitter_x_curve_get_value(curve, a2->frame,

@@ -17,7 +17,7 @@ typedef enum render_state {
     RENDER_DISPOSED      =  4,
 } render_state;
 
-extern classes_struct classes[];
+extern classes_data classes[];
 extern const size_t classes_count;
 extern render_state state;
 extern lock state_lock;

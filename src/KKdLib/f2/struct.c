@@ -8,13 +8,13 @@
 #include "../io/stream.h"
 #include "../divafile.h"
 
-vector_func(f2_struct)
+vector_old_func(f2_struct)
 
 static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h);
 static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool use_depth, bool shift_x);
 static void f2_struct_get_length(f2_struct* s, bool shift_x);
-static void f2_struct_write_pof(stream* s, vector_size_t* pof, uint32_t depth, bool shift_x);
-static void f2_struct_write_enrs(stream* s, vector_enrs_entry* enrs, uint32_t depth);
+static void f2_struct_write_pof(stream* s, vector_old_size_t* pof, uint32_t depth, bool shift_x);
+static void f2_struct_write_enrs(stream* s, vector_old_enrs_entry* enrs, uint32_t depth);
 
 void f2_struct_read(f2_struct* st, char* path) {
     memset(st, 0, sizeof(f2_struct));
@@ -118,11 +118,11 @@ void f2_struct_free(f2_struct* st) {
         free(st->data);
     st->length = 0;
     if (st->pof.begin)
-        vector_size_t_free(&st->pof, 0);
+        vector_old_size_t_free(&st->pof, 0);
     if (st->enrs.begin)
         enrs_free(&st->enrs);
     if (st->sub_structs.begin)
-        vector_f2_struct_free(&st->sub_structs, f2_struct_free);
+        vector_old_f2_struct_free(&st->sub_structs, f2_struct_free);
     memset(st, 0, sizeof(f2_struct));
 }
 
@@ -130,11 +130,11 @@ static void f2_struct_get_length(f2_struct* s, bool shift_x) {
     bool has_enrs, has_pof, has_sub_structs;
     f2_struct* i;
     uint32_t l;
-    vector_f2_struct ls;
+    vector_old_f2_struct ls;
 
-    has_pof = vector_length(s->pof) > 0 ? true : false;
-    has_enrs = vector_length(s->enrs) > 0 ? true : false;
-    has_sub_structs = vector_length(s->sub_structs) > 0 ? true : false;
+    has_pof = vector_old_length(s->pof) > 0 ? true : false;
+    has_enrs = vector_old_length(s->enrs) > 0 ? true : false;
+    has_sub_structs = vector_old_length(s->sub_structs) > 0 ? true : false;
 
     s->header.section_size = s->data ? (uint32_t)s->length : 0;
 
@@ -197,13 +197,13 @@ static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h) {
             io_set_position(s, pos + l, SEEK_SET);
         }
         else {
-            f2_struct* s_st = vector_f2_struct_reserve_back(&st->sub_structs);
+            f2_struct* s_st = vector_old_f2_struct_reserve_back(&st->sub_structs);
             f2_struct_read_data(s, s_st, h);
         }
     }
 
-    if (vector_length(st->sub_structs) < 1)
-        vector_f2_struct_free(&st->sub_structs, f2_struct_free);
+    if (vector_old_length(st->sub_structs) < 1)
+        vector_old_f2_struct_free(&st->sub_structs, f2_struct_free);
 }
 
 static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool use_depth, bool shift_x) {
@@ -224,7 +224,7 @@ static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool
         f2_header_write_end_of_container(s, 0);
 }
 
-static void f2_struct_write_pof(stream* s, vector_size_t* pof, uint32_t depth, bool shift_x) {
+static void f2_struct_write_pof(stream* s, vector_old_size_t* pof, uint32_t depth, bool shift_x) {
     size_t len = pof_length(pof, shift_x);
     f2_header h;
     memset(&h, 0, sizeof(f2_header));
@@ -237,7 +237,7 @@ static void f2_struct_write_pof(stream* s, vector_size_t* pof, uint32_t depth, b
     pof_write(s, pof, shift_x);
 }
 
-static void f2_struct_write_enrs(stream* s, vector_enrs_entry* enrs, uint32_t depth) {
+static void f2_struct_write_enrs(stream* s, vector_old_enrs_entry* enrs, uint32_t depth) {
     size_t len = enrs_length(enrs);
     f2_header h;
     memset(&h, 0, sizeof(f2_header));

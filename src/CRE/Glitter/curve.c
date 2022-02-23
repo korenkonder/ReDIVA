@@ -23,10 +23,10 @@ static const float_t glitter_curve_baked_half_reverse_bias[] = {
 static float_t glitter_curve_key_add_key(bool has_error,
     bool has_error_lerp, bool has_error_hermite, float_t* a, float_t* b, int32_t frame,
     const uint8_t step, size_t i, float_t t1, float_t t2, float_t t2_old,
-    vector_glitter_curve_key* keys_rev);
+    vector_old_glitter_curve_key* keys_rev);
 #endif
 static void glitter_curve_key_pack_file(GLT, f2_struct* st,
-    glitter_curve* c, vector_glitter_curve_key* keys);
+    glitter_curve* c, vector_old_glitter_curve_key* keys);
 static void glitter_curve_key_unpack_file(GLT, f2_struct* st, glitter_curve* c, uint32_t count);
 static void glitter_curve_pack_file(GLT, f2_struct* st, glitter_curve* c, size_t keys_count);
 static void glitter_curve_unpack_file(GLT, void* data,
@@ -41,7 +41,7 @@ glitter_curve* glitter_curve_init(GLT) {
 
 #if defined(CRE_DEV)
 void glitter_curve_add_value(GLT, glitter_curve* curve, float_t val) {
-    vector_glitter_curve_key* keys = &curve->keys_rev;
+    vector_old_glitter_curve_key* keys = &curve->keys_rev;
     for (glitter_curve_key* i = keys->begin; i != keys->end; i++)
         i->value += val;
     glitter_curve_recalculate(GLT_VAL, curve);
@@ -55,13 +55,13 @@ glitter_curve* glitter_curve_copy(glitter_curve* c) {
     glitter_curve* cc = force_malloc_s(glitter_curve, 1);
     *cc = *c;
 
-    cc->keys = vector_empty(glitter_curve_key);
-    vector_glitter_curve_key_reserve(&cc->keys, vector_length(c->keys));
-    vector_glitter_curve_key_insert_range(&cc->keys, 0, c->keys.begin, c->keys.end);
+    cc->keys = vector_old_empty(glitter_curve_key);
+    vector_old_glitter_curve_key_reserve(&cc->keys, vector_old_length(c->keys));
+    vector_old_glitter_curve_key_insert_range(&cc->keys, 0, c->keys.begin, c->keys.end);
 #if defined(CRE_DEV)
-    cc->keys_rev = vector_empty(glitter_curve_key);
-    vector_glitter_curve_key_reserve(&cc->keys_rev, vector_length(c->keys_rev));
-    vector_glitter_curve_key_insert_range(&cc->keys_rev, 0, c->keys_rev.begin, c->keys_rev.end);
+    cc->keys_rev = vector_old_empty(glitter_curve_key);
+    vector_old_glitter_curve_key_reserve(&cc->keys_rev, vector_old_length(c->keys_rev));
+    vector_old_glitter_curve_key_insert_range(&cc->keys_rev, 0, c->keys_rev.begin, c->keys_rev.end);
 #endif
     return cc;
 }
@@ -94,14 +94,14 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
     int32_t start_time = curve->start_time;
     int32_t end_time = curve->end_time;
 
-    vector_glitter_curve_key keys_rev = curve->keys_rev;
-    vector_glitter_curve_key* keys = &curve->keys;
-    vector_glitter_curve_key_clear(keys, 0);
-    if (vector_length(keys_rev) == 1)
-        vector_glitter_curve_key_push_back(keys, &keys_rev.begin[0]);
-    else if (vector_length(keys_rev) > 1) {
+    vector_old_glitter_curve_key keys_rev = curve->keys_rev;
+    vector_old_glitter_curve_key* keys = &curve->keys;
+    vector_old_glitter_curve_key_clear(keys, 0);
+    if (vector_old_length(keys_rev) == 1)
+        vector_old_glitter_curve_key_push_back(keys, &keys_rev.begin[0]);
+    else if (vector_old_length(keys_rev) > 1) {
         if (~curve->flags & GLITTER_CURVE_BAKED) {
-            vector_glitter_curve_key_insert_range(keys, 0, keys_rev.begin, keys_rev.end);
+            vector_old_glitter_curve_key_insert_range(keys, 0, keys_rev.begin, keys_rev.end);
             return;
         }
 
@@ -109,7 +109,7 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
         if (GLT_VAL == GLITTER_F2 || (GLT_VAL == GLITTER_X && ~curve->flags & GLITTER_CURVE_BAKED_FULL))
             curve_baked_half = true;
 
-        ssize_t keys_count = vector_length(keys_rev);
+        ssize_t keys_count = vector_old_length(keys_rev);
         size_t count = (size_t)end_time - start_time;
         if (curve_baked_half)
             count /= 2;
@@ -122,7 +122,7 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
 
         glitter_curve_key key;
         memset(&key, 0, sizeof(glitter_curve_key));
-        vector_glitter_curve_key_reserve(keys, count);
+        vector_old_glitter_curve_key_reserve(keys, count);
         for (size_t i = 0; i < count; i++) {
             int32_t frame = start_time + (int32_t)(i * step);
 
@@ -131,7 +131,7 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
                 key.frame = frame;
                 key.value = first_key.value;
                 key.random_range = first_key.random_range;
-                vector_glitter_curve_key_push_back(keys, &key);
+                vector_old_glitter_curve_key_push_back(keys, &key);
                 continue;
             }
             else if (frame >= last_key.frame) {
@@ -139,7 +139,7 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
                 key.frame = frame;
                 key.value = last_key.value;
                 key.random_range = last_key.random_range;
-                vector_glitter_curve_key_push_back(keys, &key);
+                vector_old_glitter_curve_key_push_back(keys, &key);
                 continue;
             }
 
@@ -186,7 +186,7 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
             key.frame = frame;
             key.value = val;
             key.random_range = rand_range;
-            vector_glitter_curve_key_push_back(keys, &key);
+            vector_old_glitter_curve_key_push_back(keys, &key);
         }
     }
 }
@@ -194,43 +194,43 @@ void glitter_curve_recalculate(GLT, glitter_curve* curve) {
 
 bool glitter_curve_unparse_file(GLT, f2_struct* st, glitter_curve* c) {
 #if !defined(CRE_DEV)
-    vector_glitter_curve_key keys = c->keys;
-    if (vector_length(keys) < 1)
+    vector_old_glitter_curve_key keys = c->keys;
+    if (vector_old_length(keys) < 1)
         return false;
 #else
-    vector_glitter_curve_key keys = c->keys;
-    if (vector_length(c->keys_rev) < 1)
+    vector_old_glitter_curve_key keys = c->keys;
+    if (vector_old_length(c->keys_rev) < 1)
         return false;
 
-    c->keys = vector_empty(glitter_curve_key);
+    c->keys = vector_old_empty(glitter_curve_key);
     glitter_curve_recalculate(GLT_VAL, c);
     if (!c->keys.begin) {
         c->keys = keys;
         return false;
     }
 #endif
-    glitter_curve_pack_file(GLT_VAL, st, c, vector_length(c->keys));
+    glitter_curve_pack_file(GLT_VAL, st, c, vector_old_length(c->keys));
 
     f2_struct s;
     glitter_curve_key_pack_file(GLT_VAL, &s, c, &c->keys);
-    vector_f2_struct_push_back(&st->sub_structs, &s);
+    vector_old_f2_struct_push_back(&st->sub_structs, &s);
 #if defined(CRE_DEV)
-    vector_glitter_curve_key_free(&c->keys, 0);
+    vector_old_glitter_curve_key_free(&c->keys, 0);
 #endif
     c->keys = keys;
     return true;
 }
 
 void glitter_curve_dispose(glitter_curve* c) {
-    vector_glitter_curve_key_free(&c->keys, 0);
+    vector_old_glitter_curve_key_free(&c->keys, 0);
 #if defined(CRE_DEV)
-    vector_glitter_curve_key_free(&c->keys_rev, 0);
+    vector_old_glitter_curve_key_free(&c->keys_rev, 0);
 #endif
     free(c);
 }
 
 static void glitter_curve_key_pack_file(GLT, f2_struct* st,
-    glitter_curve* c, vector_glitter_curve_key* keys) {
+    glitter_curve* c, vector_old_glitter_curve_key* keys) {
     size_t l;
     size_t d;
     glitter_key_type key_type;
@@ -240,7 +240,7 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
     l = 0;
 
     uint32_t o;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
 
     if (keys->begin == keys->end) {
@@ -255,15 +255,15 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
     if (c->flags & GLITTER_CURVE_KEY_RANDOM_RANGE) {
         key_type = keys->begin->type;
         if (key_type == GLITTER_KEY_HERMITE) {
-            ee = { 0, 2, 20, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
+            ee = { 0, 2, 20, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
             l = 20;
         }
         else {
-            ee = { 0, 2, 12, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+            ee = { 0, 2, 12, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
             l = 12;
         }
 
@@ -275,20 +275,20 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
 
             if (count > 0) {
                 ee.repeat_count = (uint32_t)count;
-                vector_enrs_entry_push_back(&e, &ee);
+                vector_old_enrs_entry_push_back(&e, &ee);
             }
 
             count = 1;
             o = (uint32_t)((key_type == GLITTER_KEY_HERMITE ? 20 : 12) * count);
             if (i->type == GLITTER_KEY_HERMITE) {
-                ee = { o, 2, 20, 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-                vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
+                ee = { o, 2, 20, 1, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
             }
             else {
-                ee = { o, 2, 12, 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-                vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+                ee = { o, 2, 12, 1, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
             }
             key_type = i->type;
         }
@@ -296,15 +296,15 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
     else {
         key_type = keys->begin->type;
         if (key_type == GLITTER_KEY_HERMITE) {
-            ee = { 0, 2, 16, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+            ee = { 0, 2, 16, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
             l = 16;
         }
         else {
-            ee = { 0, 2, 8, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            ee = { 0, 2, 8, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
             l = 8;
         }
 
@@ -316,20 +316,20 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
 
             if (count > 0) {
                 ee.repeat_count = (uint32_t)count;
-                vector_enrs_entry_push_back(&e, &ee);
+                vector_old_enrs_entry_push_back(&e, &ee);
             }
 
             count = 1;
             o = (uint32_t)((key_type == GLITTER_KEY_HERMITE ? 16 : 8) * count);
             if (i->type == GLITTER_KEY_HERMITE) {
-                ee = { o, 2, 16, 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-                vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+                ee = { o, 2, 16, 1, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
             }
             else {
-                ee = { o, 2, 8, 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-                vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                ee = { o, 2, 8, 1, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
             }
             key_type = i->type;
         }
@@ -337,7 +337,7 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
 
     if (count > 0) {
         ee.repeat_count = (uint32_t)count;
-        vector_enrs_entry_push_back(&e, &ee);
+        vector_old_enrs_entry_push_back(&e, &ee);
     }
 
     float_t scale = 1.0f;
@@ -456,8 +456,8 @@ static void glitter_curve_key_unpack_file(GLT,
     key.tangent2 = 0.0f;
     key.random_range = 0.0f;
 
-    vector_glitter_curve_key keys = vector_empty(glitter_curve_key);
-    vector_glitter_curve_key_reserve(&keys, count);
+    vector_old_glitter_curve_key keys = vector_old_empty(glitter_curve_key);
+    vector_old_glitter_curve_key_reserve(&keys, count);
     if (GLT_VAL == GLITTER_X && c->keys_version != 2) {
         if (st->header.use_big_endian)
             if (c->flags & GLITTER_CURVE_KEY_RANDOM_RANGE)
@@ -469,13 +469,13 @@ static void glitter_curve_key_unpack_file(GLT,
                         key.tangent2 = load_reverse_endianness_float_t((void*)(d + 20));
                         key.random_range = load_reverse_endianness_float_t((void*)(d + 24));
                         key.value = load_reverse_endianness_float_t((void*)(d + 28));
-                        vector_glitter_curve_key_push_back(&keys, &key);
+                        vector_old_glitter_curve_key_push_back(&keys, &key);
                         d += 32;
                     }
                     else {
                         key.random_range = load_reverse_endianness_float_t((void*)(d + 8));
                         key.value = load_reverse_endianness_float_t((void*)(d + 12));
-                        vector_glitter_curve_key_push_back(&keys, &key);
+                        vector_old_glitter_curve_key_push_back(&keys, &key);
                         d += 16;
                     }
                 }
@@ -487,12 +487,12 @@ static void glitter_curve_key_unpack_file(GLT,
                         key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
                         key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
                         key.value = load_reverse_endianness_float_t((void*)(d + 12));
-                        vector_glitter_curve_key_push_back(&keys, &key);
+                        vector_old_glitter_curve_key_push_back(&keys, &key);
                         d += 16;
                     }
                     else {
                         key.value = load_reverse_endianness_float_t((void*)(d + 12));
-                        vector_glitter_curve_key_push_back(&keys, &key);
+                        vector_old_glitter_curve_key_push_back(&keys, &key);
                         d += 16;
                     }
                 }
@@ -506,13 +506,13 @@ static void glitter_curve_key_unpack_file(GLT,
                         key.tangent2 = *(float_t*)(d + 20);
                         key.random_range = *(float_t*)(d + 24);
                         key.value = *(float_t*)(d + 28);
-                        vector_glitter_curve_key_push_back(&keys, &key);
+                        vector_old_glitter_curve_key_push_back(&keys, &key);
                         d += 32;
                     }
                     else {
                         key.random_range = *(float_t*)(d + 8);
                         key.value = *(float_t*)(d + 12);
-                        vector_glitter_curve_key_push_back(&keys, &key);
+                        vector_old_glitter_curve_key_push_back(&keys, &key);
                         d += 16;
                     }
                 }
@@ -524,12 +524,12 @@ static void glitter_curve_key_unpack_file(GLT,
                         key.tangent1 = *(float_t*)(d + 4);
                         key.tangent2 = *(float_t*)(d + 8);
                         key.value = *(float_t*)(d + 12);
-                        vector_glitter_curve_key_push_back(&keys, &key);
+                        vector_old_glitter_curve_key_push_back(&keys, &key);
                         d += 16;
                     }
                     else {
                         key.value = *(float_t*)(d + 12);
-                        vector_glitter_curve_key_push_back(&keys, &key);
+                        vector_old_glitter_curve_key_push_back(&keys, &key);
                         d += 16;
                     }
                 }
@@ -562,13 +562,13 @@ static void glitter_curve_key_unpack_file(GLT,
                             key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
                             key.random_range = load_reverse_endianness_float_t((void*)(d + 12));
                             key.value = load_reverse_endianness_float_t((void*)(d + 16));
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 20;
                         }
                         else {
                             key.random_range = load_reverse_endianness_float_t((void*)(d + 4));
                             key.value = load_reverse_endianness_float_t((void*)(d + 8));
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 12;
                         }
                     }
@@ -580,12 +580,12 @@ static void glitter_curve_key_unpack_file(GLT,
                             key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
                             key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
                             key.value = load_reverse_endianness_float_t((void*)(d + 12));
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 16;
                         }
                         else {
                             key.value = load_reverse_endianness_float_t((void*)(d + 4));
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 8;
                         }
                     }
@@ -599,13 +599,13 @@ static void glitter_curve_key_unpack_file(GLT,
                             key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8)) * scale;
                             key.random_range = load_reverse_endianness_float_t((void*)(d + 12)) * scale;
                             key.value = load_reverse_endianness_float_t((void*)(d + 16)) * scale;
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 20;
                         }
                         else {
                             key.random_range = load_reverse_endianness_float_t((void*)(d + 4)) * scale;
                             key.value = load_reverse_endianness_float_t((void*)(d + 8)) * scale;
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 12;
                         }
                     }
@@ -617,12 +617,12 @@ static void glitter_curve_key_unpack_file(GLT,
                             key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4)) * scale;
                             key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8)) * scale;
                             key.value = load_reverse_endianness_float_t((void*)(d + 12)) * scale;
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 16;
                         }
                         else {
                             key.value = load_reverse_endianness_float_t((void*)(d + 4)) * scale;
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 8;
                         }
                     }
@@ -637,13 +637,13 @@ static void glitter_curve_key_unpack_file(GLT,
                             key.tangent2 = *(float_t*)(d + 8);
                             key.random_range = *(float_t*)(d + 12);
                             key.value = *(float_t*)(d + 16);
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 20;
                         }
                         else {
                             key.random_range = *(float_t*)(d + 4);
                             key.value = *(float_t*)(d + 8);
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 12;
                         }
                     }
@@ -655,12 +655,12 @@ static void glitter_curve_key_unpack_file(GLT,
                             key.tangent1 = *(float_t*)(d + 4);
                             key.tangent2 = *(float_t*)(d + 8);
                             key.value = *(float_t*)(d + 12);
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 16;
                         }
                         else {
                             key.value = *(float_t*)(d + 4);
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 8;
                         }
                     }
@@ -674,13 +674,13 @@ static void glitter_curve_key_unpack_file(GLT,
                             key.tangent2 = *(float_t*)(d + 8) * scale;
                             key.random_range = *(float_t*)(d + 12) * scale;
                             key.value = *(float_t*)(d + 16) * scale;
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 20;
                         }
                         else {
                             key.random_range = *(float_t*)(d + 4) * scale;
                             key.value = *(float_t*)(d + 8) * scale;
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 12;
                         }
                     }
@@ -692,12 +692,12 @@ static void glitter_curve_key_unpack_file(GLT,
                             key.tangent1 = *(float_t*)(d + 4) * scale;
                             key.tangent2 = *(float_t*)(d + 8) * scale;
                             key.value = *(float_t*)(d + 12) * scale;
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 16;
                         }
                         else {
                             key.value = *(float_t*)(d + 4) * scale;
-                            vector_glitter_curve_key_push_back(&keys, &key);
+                            vector_old_glitter_curve_key_push_back(&keys, &key);
                             d += 8;
                         }
                     }
@@ -762,14 +762,14 @@ static void glitter_curve_key_unpack_file(GLT,
     }
 
 #if defined(CRE_DEV)
-    c->keys_rev = vector_empty(glitter_curve_key);
+    c->keys_rev = vector_old_empty(glitter_curve_key);
     if (~c->flags & GLITTER_CURVE_BAKED) {
-        vector_glitter_curve_key_insert_range(&c->keys_rev, 0, keys.begin, keys.end);
+        vector_old_glitter_curve_key_insert_range(&c->keys_rev, 0, keys.begin, keys.end);
         return;
     }
     else if (count == 1) {
         keys.begin[0].frame = c->start_time;
-        vector_glitter_curve_key_push_back(&c->keys_rev, &keys.begin[0]);
+        vector_old_glitter_curve_key_push_back(&c->keys_rev, &keys.begin[0]);
         return;
     }
 
@@ -794,7 +794,7 @@ static void glitter_curve_key_unpack_file(GLT,
         ? glitter_curve_baked_half_reverse_bias : glitter_curve_baked_reverse_bias;
     const size_t reverse_min_count = curve_baked_half ? 5 : 4;
 
-    vector_glitter_curve_key keys_rev = vector_empty(glitter_curve_key);
+    vector_old_glitter_curve_key keys_rev = vector_old_empty(glitter_curve_key);
     float_t* a = arr_a;
     float_t* b = arr_b;
     size_t left_count = count;
@@ -814,7 +814,7 @@ static void glitter_curve_key_unpack_file(GLT,
                 key.tangent1 = t2_old;
                 key.tangent2 = 0.0f;
                 key.random_range = b[0];
-                vector_glitter_curve_key_push_back(&keys_rev, &key);
+                vector_old_glitter_curve_key_push_back(&keys_rev, &key);
                 t2_old = 0.0f;
             }
             else {
@@ -942,7 +942,7 @@ static void glitter_curve_key_unpack_file(GLT,
     key.tangent1 = t2_old;
     key.tangent2 = 0.0f;
     key.random_range = arr_b[count - 1];
-    vector_glitter_curve_key_push_back(&keys_rev, &key);
+    vector_old_glitter_curve_key_push_back(&keys_rev, &key);
     free(arr_a);
     free(arr_b);
     c->keys_rev = keys_rev;
@@ -955,7 +955,7 @@ static void glitter_curve_key_unpack_file(GLT,
 static float_t glitter_curve_key_add_key(bool has_error,
     bool has_error_lerp, bool has_error_hermite, float_t* a, float_t* b, int32_t frame,
     const uint8_t step, size_t i, float_t t1, float_t t2, float_t t2_old,
-    vector_glitter_curve_key* keys_rev) {
+    vector_old_glitter_curve_key* keys_rev) {
     glitter_curve_key key;
     memset(&key, 0, sizeof(glitter_curve_key));
     if (has_error && has_error_lerp && has_error_hermite) {
@@ -967,7 +967,7 @@ static float_t glitter_curve_key_add_key(bool has_error,
             key.tangent1 = _t2;
             key.tangent2 = 0.0f;
             key.random_range = b[j];
-            vector_glitter_curve_key_push_back(keys_rev, &key);
+            vector_old_glitter_curve_key_push_back(keys_rev, &key);
             _t2 = 0.0f;
         }
     }
@@ -978,7 +978,7 @@ static float_t glitter_curve_key_add_key(bool has_error,
         key.tangent1 = t2_old;
         key.tangent2 = t1;
         key.random_range = b[0];
-        vector_glitter_curve_key_push_back(keys_rev, &key);
+        vector_old_glitter_curve_key_push_back(keys_rev, &key);
         return t2;
     }
     else if (has_error || (i > 1 && b[0] != b[1])) {
@@ -988,7 +988,7 @@ static float_t glitter_curve_key_add_key(bool has_error,
         key.tangent1 = 0.0f;
         key.tangent2 = 0.0f;
         key.random_range = b[0];
-        vector_glitter_curve_key_push_back(keys_rev, &key);
+        vector_old_glitter_curve_key_push_back(keys_rev, &key);
     }
     else {
         key.type = GLITTER_KEY_CONSTANT;
@@ -997,7 +997,7 @@ static float_t glitter_curve_key_add_key(bool has_error,
         key.tangent1 = 0.0f;
         key.tangent2 = 0.0f;
         key.random_range = b[0];
-        vector_glitter_curve_key_push_back(keys_rev, &key);
+        vector_old_glitter_curve_key_push_back(keys_rev, &key);
     }
     return 0.0f;
 }
@@ -1012,13 +1012,13 @@ static void glitter_curve_pack_file(GLT,
     l = 0;
 
     uint32_t o;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = { 0, 2, 32, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
-    vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_WORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 2, 32, 1, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_WORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     l += o = 32;
 
     d = (size_t)force_malloc(l);

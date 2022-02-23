@@ -9,8 +9,8 @@
 #include "gl_state.h"
 #include "static_var.h"
 
-vector_func(texture)
-vector_ptr_func(texture)
+vector_old_func(texture)
+vector_old_ptr_func(texture)
 
 static void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type);
 static int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height);
@@ -22,7 +22,7 @@ static texture* texture_load_tex(uint32_t id, GLenum target,
 static void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy);
 static GLenum texture_txp_get_internal_format(txp* t);
 
-vector_ptr_texture texture_storage_data;
+vector_old_ptr_texture texture_storage_data;
 
 texture* texture_init(uint32_t id) {
     return texture_storage_create_texture(id);
@@ -72,7 +72,7 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
     if (!t || !texs || !ids)
         return false;
 
-    size_t count = vector_length(*t);
+    size_t count = vector_old_length(*t);
     *texs = force_malloc_s(texture*, count + 1);
     texture** tex = *texs;
     for (size_t i = 0; i < count; i++)
@@ -82,7 +82,7 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
 }
 
 inline void texture_storage_init() {
-    texture_storage_data = vector_ptr_empty(texture);
+    texture_storage_data = vector_old_ptr_empty(texture);
 }
 
 inline texture* texture_storage_create_texture(uint32_t id) {
@@ -92,7 +92,7 @@ inline texture* texture_storage_create_texture(uint32_t id) {
             return *i;
         }
 
-    texture** tex = vector_ptr_texture_reserve_back(&texture_storage_data);
+    texture** tex = vector_old_ptr_texture_reserve_back(&texture_storage_data);
     *tex = force_malloc_s(texture, 1);
     (*tex)->init_count = 1;
     (*tex)->id = id;
@@ -107,11 +107,11 @@ inline texture* texture_storage_get_texture(uint32_t id) {
 }
 
 inline size_t texture_storage_get_texture_count() {
-    return vector_length(texture_storage_data);
+    return vector_old_length(texture_storage_data);
 }
 
 inline texture* texture_storage_get_texture_by_index(ssize_t index) {
-    if (index >= 0 && index < vector_length(texture_storage_data))
+    if (index >= 0 && index < vector_old_length(texture_storage_data))
         return texture_storage_data.begin[index];
     return 0;
 }
@@ -126,7 +126,7 @@ inline void texture_storage_delete_texture(uint32_t id) {
             }
 
             glDeleteTextures(1, &tex->texture);
-            vector_ptr_texture_erase(&texture_storage_data,
+            vector_old_ptr_texture_erase(&texture_storage_data,
                 i - texture_storage_data.begin, 0);
             break;
         }
@@ -136,7 +136,7 @@ inline void texture_storage_free() {
     for (texture** i = texture_storage_data.begin; i != texture_storage_data.end; i++)
         if (*i)
             glDeleteTextures(1, &(*i)->texture);
-    vector_ptr_texture_free(&texture_storage_data, 0);
+    vector_old_ptr_texture_free(&texture_storage_data, 0);
 }
 
 static void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type) {

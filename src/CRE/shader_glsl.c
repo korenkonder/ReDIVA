@@ -125,7 +125,7 @@ static GLuint shader_compile(GLenum type, const char* data) {
 }
 
 static GLint shader_get_uniform_location(GLint program, GLchar* name,
-    vector_uint64_t* uniform_name_buf, vector_int32_t* uniform_location_buf) {
+    vector_old_uint64_t* uniform_name_buf, vector_old_int32_t* uniform_location_buf) {
     uint64_t hash = hash_utf8_fnv1a64m(name, false);
     for (uint64_t* i = uniform_name_buf->begin; i != uniform_name_buf->end; i++)
         if (*i == hash)
@@ -139,14 +139,14 @@ static GLint shader_get_uniform_location(GLint program, GLchar* name,
         }
         printf("    Location for \"%s\" not found\n", name);
     }
-    vector_uint64_t_push_back(uniform_name_buf, &hash);
-    vector_int32_t_push_back(uniform_location_buf, &location);
+    vector_old_uint64_t_push_back(uniform_name_buf, &hash);
+    vector_old_int32_t_push_back(uniform_location_buf, &location);
     return location;
 
 }
 
 static GLint shader_get_uniform_block_index(GLint program, GLchar* name,
-    vector_uint64_t* uniform_block_name_buf, vector_int32_t* uniform_block_index_buf) {
+    vector_old_uint64_t* uniform_block_name_buf, vector_old_int32_t* uniform_block_index_buf) {
     uint64_t hash = hash_utf8_fnv1a64m(name, false);
     for (uint64_t* i = uniform_block_name_buf->begin; i != uniform_block_name_buf->end; i++)
         if (*i == hash)
@@ -160,8 +160,8 @@ static GLint shader_get_uniform_block_index(GLint program, GLchar* name,
         }
         printf("    Block Index for \"%s\" not found\n", name);
     }
-    vector_uint64_t_push_back(uniform_block_name_buf, &hash);
-    vector_int32_t_push_back(uniform_block_index_buf, &index);
+    vector_old_uint64_t_push_back(uniform_block_name_buf, &hash);
+    vector_old_int32_t_push_back(uniform_block_index_buf, &index);
     return index;
 }
 
@@ -172,10 +172,10 @@ void shader_glsl_load(shader_glsl* s, farc* f, shader_glsl_param* param) {
     if (s->program)
         glDeleteProgram(s->program);
 
-    vector_uint64_t_clear(&s->uniform_name_buf, 0);
-    vector_int32_t_clear(&s->uniform_location_buf, 0);
-    vector_uint64_t_clear(&s->uniform_block_name_buf, 0);
-    vector_int32_t_clear(&s->uniform_block_index_buf, 0);
+    vector_old_uint64_t_clear(&s->uniform_name_buf, 0);
+    vector_old_int32_t_clear(&s->uniform_location_buf, 0);
+    vector_old_uint64_t_clear(&s->uniform_block_name_buf, 0);
+    vector_old_int32_t_clear(&s->uniform_block_index_buf, 0);
 
     char temp[0x1000];
     temp[0] = 0;
@@ -191,8 +191,8 @@ void shader_glsl_load(shader_glsl* s, farc* f, shader_glsl_param* param) {
 
     char* temp_frag = str_utils_add(param->frag, ".frag");
     char* temp_vert = str_utils_add(param->vert, ".vert");
-    farc_file* frag = farc_read_file(f, temp_frag);
-    farc_file* vert = farc_read_file(f, temp_vert);
+    farc_file* frag = f->read_file(temp_frag);
+    farc_file* vert = f->read_file(temp_vert);
     size_t frag_length = !frag ? 0 : frag->size;
     size_t vert_length = !vert ? 0 : vert->size;
     char* frag_data = !frag ? 0 : force_malloc_s(char, frag_length + 1);
@@ -252,10 +252,10 @@ void shader_glsl_load_file(shader_glsl* s, char* vert_path,
     if (!s || (!vert_path && !frag_path && !geom_path) || !param)
         return;
 
-    vector_uint64_t_clear(&s->uniform_name_buf, 0);
-    vector_int32_t_clear(&s->uniform_location_buf, 0);
-    vector_uint64_t_clear(&s->uniform_block_name_buf, 0);
-    vector_int32_t_clear(&s->uniform_block_index_buf, 0);
+    vector_old_uint64_t_clear(&s->uniform_name_buf, 0);
+    vector_old_int32_t_clear(&s->uniform_location_buf, 0);
+    vector_old_uint64_t_clear(&s->uniform_block_name_buf, 0);
+    vector_old_int32_t_clear(&s->uniform_block_index_buf, 0);
 
     stream st;
     size_t l;
@@ -301,10 +301,10 @@ void shader_glsl_wload_file(shader_glsl* s, wchar_t* vert_path,
     if (!s || (!vert_path && !frag_path && !geom_path) || !param)
         return;
 
-    vector_uint64_t_clear(&s->uniform_name_buf, 0);
-    vector_int32_t_clear(&s->uniform_location_buf, 0);
-    vector_uint64_t_clear(&s->uniform_block_name_buf, 0);
-    vector_int32_t_clear(&s->uniform_block_index_buf, 0);
+    vector_old_uint64_t_clear(&s->uniform_name_buf, 0);
+    vector_old_int32_t_clear(&s->uniform_location_buf, 0);
+    vector_old_uint64_t_clear(&s->uniform_block_name_buf, 0);
+    vector_old_int32_t_clear(&s->uniform_block_index_buf, 0);
 
     stream st;
     size_t l;
@@ -350,10 +350,10 @@ void shader_glsl_load_string(shader_glsl* s, char* vert,
     if (!s || (!frag && !vert && !geom) || !param)
         return;
 
-    vector_uint64_t_clear(&s->uniform_name_buf, 0);
-    vector_int32_t_clear(&s->uniform_location_buf, 0);
-    vector_uint64_t_clear(&s->uniform_block_name_buf, 0);
-    vector_int32_t_clear(&s->uniform_block_index_buf, 0);
+    vector_old_uint64_t_clear(&s->uniform_name_buf, 0);
+    vector_old_int32_t_clear(&s->uniform_location_buf, 0);
+    vector_old_uint64_t_clear(&s->uniform_block_name_buf, 0);
+    vector_old_int32_t_clear(&s->uniform_block_index_buf, 0);
 
     char* frag_data = str_utils_copy(frag);
     char* vert_data = str_utils_copy(vert);
@@ -428,8 +428,8 @@ void shader_glsl_free(shader_glsl* s) {
         s->program = 0;
     }
     string_free(&s->name);
-    vector_uint64_t_free(&s->uniform_name_buf, 0);
-    vector_int32_t_free(&s->uniform_location_buf, 0);
-    vector_uint64_t_free(&s->uniform_block_name_buf, 0);
-    vector_int32_t_free(&s->uniform_block_index_buf, 0);
+    vector_old_uint64_t_free(&s->uniform_name_buf, 0);
+    vector_old_int32_t_free(&s->uniform_location_buf, 0);
+    vector_old_uint64_t_free(&s->uniform_block_name_buf, 0);
+    vector_old_int32_t_free(&s->uniform_block_index_buf, 0);
 }

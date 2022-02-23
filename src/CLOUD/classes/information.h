@@ -12,4 +12,4 @@ typedef enum information_classes_enum {
     INFORMATION_MAX,
 } information_classes_enum;
 
-extern classes_struct information_classes[];
+extern classes_data information_classes[];

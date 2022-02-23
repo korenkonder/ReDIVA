@@ -764,7 +764,7 @@ typedef struct bone_node {
     mat4* ex_data_mat;
 } bone_node;
 
-vector(bone_node)
+vector_old(bone_node)
 
 typedef struct struc_314 {
     uint32_t* field_0;
@@ -780,7 +780,7 @@ typedef struct mot_key_set {
     float_t* values;
 } mot_key_set;
 
-vector(mot_key_set)
+vector_old(mot_key_set)
 
 typedef union request_data_object_data {
     struct {
@@ -1466,7 +1466,7 @@ typedef struct struc_215 {
     float_t field_8;
 } struc_215;
 
-vector(struc_215)
+vector_old(struc_215)
 
 typedef struct struc_267 {
     float_t field_0;
@@ -1513,7 +1513,7 @@ typedef struct struc_209 {
     struc_195 field_1668[27];
     struc_210 field_1AA0[27];
     float_t field_1BE4[27];
-    vector_struc_215 field_1C50;
+    vector_old_struc_215 field_1C50;
     int64_t field_1C68;
     int64_t field_1C70;
     int64_t field_1C78;
@@ -1712,12 +1712,12 @@ typedef struct rob_touch_area {
     int16_t field_34;
 } rob_touch_area;
 
-vector(rob_touch_area)
+vector_old(rob_touch_area)
 
 typedef struct rob_touch {
     void** dispose;
     uint8_t field_8;
-    vector_rob_touch_area area;
+    vector_old_rob_touch_area area;
 } rob_touch;
 
 typedef struct struc_307 {
@@ -2316,7 +2316,7 @@ struct rob_chara {
 };
 
 typedef struct struc_313 {
-    vector_uint32_t bitfield;
+    vector_old_uint32_t bitfield;
     size_t motion_bone_count;
 } struc_313;
 
@@ -2348,9 +2348,9 @@ typedef struct mot_data {
 typedef struct mot_parent {
     bool key_sets_ready;
     size_t key_set_count;
-    vector_mot_key_set key_set;
+    vector_old_mot_key_set key_set;
     mot mot;
-    vector_float_t key_set_data;
+    vector_old_float_t key_set_data;
     mot_data* mot_data;
     aft_bone_database_skeleton_type skeleton_type;
     int32_t skeleton_select;
@@ -2386,7 +2386,7 @@ typedef struct bone_data {
     float_t eyes_xrot_adjust_pos;
 } bone_data;
 
-vector(bone_data)
+vector_old(bone_data)
 
 typedef struct motion_blend motion_blend;
 
@@ -2395,7 +2395,7 @@ typedef struct motion_blend_vtbl {
     void(*field_8)(motion_blend*);
     void(*field_10)(motion_blend*);
     void(*field_18)(motion_blend*, uint8_t*);
-    void(*field_20)(motion_blend*, vector_bone_data*, vector_bone_data*);
+    void(*field_20)(motion_blend*, vector_old_bone_data*, vector_old_bone_data*);
     void(*field_28)(motion_blend*, bone_data*, bone_data*);
     bool(*field_30)(motion_blend*);
 } motion_blend_vtbl;
@@ -2519,7 +2519,7 @@ typedef struct struc_243 {
 } struc_243;
 
 typedef struct struc_258 {
-    vector_bone_data* field_0;
+    vector_old_bone_data* field_0;
     mat4u field_8;
     struc_241 field_48;
     uint8_t field_8C;
@@ -2599,8 +2599,8 @@ typedef struct bone_data_parent {
     size_t motion_bone_count;
     size_t ik_bone_count;
     size_t chain_pos;
-    vector_bone_data bones;
-    vector_uint16_t bone_indices;
+    vector_old_bone_data bones;
+    vector_old_uint16_t bone_indices;
     vec3 global_trans;
     vec3 global_rotation;
     uint32_t bone_key_set_count;
@@ -2650,7 +2650,7 @@ typedef struct motion_blend_mot {
     motion_blend* field_5D0;
 } motion_blend_mot;
 
-vector_ptr(motion_blend_mot)
+vector_old_ptr(motion_blend_mot)
 list_ptr(motion_blend_mot)
 list(size_t)
 
@@ -2669,12 +2669,12 @@ struct rob_chara_bone_data {
     size_t motion_bone_count;
     size_t ik_bone_count;
     size_t chain_pos;
-    vector_mat4 mats;
-    vector_mat4 mats2;
-    vector_bone_node nodes;
+    vector_old_mat4 mats;
+    vector_old_mat4 mats2;
+    vector_old_bone_node nodes;
     aft_bone_database_skeleton_type base_skeleton_type;
     aft_bone_database_skeleton_type skeleton_type;
-    vector_ptr_motion_blend_mot motions;
+    vector_old_ptr_motion_blend_mot motions;
     list_size_t motion_indices;
     list_size_t motion_loaded_indices;
     list_ptr_motion_blend_mot motion_loaded;
@@ -2702,7 +2702,7 @@ typedef struct struc_373 {
     float_t blend;
 } struc_373;
 
-vector(struc_373)
+vector_old(struc_373)
 
 typedef struct aft_obj_skin_block_node {
     char* parent_name;
@@ -2790,16 +2790,16 @@ typedef struct aft_obj_skin_block_constraint_orientation {
     vec3 offset;
 } aft_obj_skin_block_constraint_orientation;
 
-typedef struct aft_obj_skin_block_constraint_up_vector {
+typedef struct aft_obj_skin_block_constraint_up_vector_old {
     bool active;
     float_t roll;
     vec3 affected_axis;
     vec3 point_at;
     char* name;
-} aft_obj_skin_block_constraint_up_vector;
+} aft_obj_skin_block_constraint_up_vector_old;
 
 typedef struct aft_obj_skin_block_constraint_direction {
-    aft_obj_skin_block_constraint_up_vector up_vector;
+    aft_obj_skin_block_constraint_up_vector_old up_vector_old;
     vec3 align_axis;
     vec3 target_offset;
 } aft_obj_skin_block_constraint_direction;
@@ -2811,13 +2811,13 @@ typedef struct aft_obj_skin_block_constraint_attach_point {
 } aft_obj_skin_block_constraint_attach_point;
 
 typedef struct aft_obj_skin_block_constraint_position {
-    aft_obj_skin_block_constraint_up_vector up_vector;
+    aft_obj_skin_block_constraint_up_vector_old up_vector_old;
     aft_obj_skin_block_constraint_attach_point constrained_object;
     aft_obj_skin_block_constraint_attach_point constraining_object;
 } aft_obj_skin_block_constraint_position;
 
 typedef struct aft_obj_skin_block_constraint_distance {
-    aft_obj_skin_block_constraint_up_vector up_vector;
+    aft_obj_skin_block_constraint_up_vector_old up_vector_old;
     float_t distance;
     aft_obj_skin_block_constraint_attach_point constrained_object;
     aft_obj_skin_block_constraint_attach_point constraining_object;
@@ -2911,11 +2911,11 @@ typedef struct skin_param_osage_node {
     skin_param_hinge hinge;
 } skin_param_osage_node;
 
-vector_ptr(rob_osage_node)
+vector_old_ptr(rob_osage_node)
 
 typedef struct rob_osage_node_data {
     float_t force;
-    vector_ptr_rob_osage_node boc;
+    vector_old_ptr_rob_osage_node boc;
     rob_osage_node_data_normal_ref normal_ref;
     skin_param_osage_node skp_osg_node;
 } rob_osage_node_data;
@@ -2926,7 +2926,7 @@ typedef struct struc_331 {
     int64_t field_10;
 } struc_331;
 
-vector(struc_331)
+vector_old(struc_331)
 
 typedef struct struc_477 {
     float_t length;
@@ -2965,11 +2965,11 @@ struct rob_osage_node {
     float_t force;
     rob_osage_node_data* data_ptr;
     rob_osage_node_data data;
-    vector_struc_331 field_198;
+    vector_old_struc_331 field_198;
     struc_476 field_1B0;
 };
 
-vector(rob_osage_node)
+vector_old(rob_osage_node)
 
 typedef struct skin_param_osage_root_coli {
     int32_t type;
@@ -2980,10 +2980,10 @@ typedef struct skin_param_osage_root_coli {
     vec3 bone1_pos;
 } skin_param_osage_root_coli;
 
-vector(skin_param_osage_root_coli)
+vector_old(skin_param_osage_root_coli)
 
 typedef struct skin_param {
-    vector_skin_param_osage_root_coli coli;
+    vector_old_skin_param_osage_root_coli coli;
     float_t friction;
     float_t wind_afc;
     float_t air_res;
@@ -2996,7 +2996,7 @@ typedef struct skin_param {
     skin_param_hinge hinge;
     float_t force;
     float_t force_gain;
-    vector_rob_osage_node* colli_tgt_osg;
+    vector_old_rob_osage_node* colli_tgt_osg;
 } skin_param;
 
 typedef struct osage_coli {
@@ -3010,7 +3010,7 @@ typedef struct osage_coli {
     float_t field_34;
 } osage_coli;
 
-vector(osage_coli)
+vector_old(osage_coli)
 
 typedef struct osage_ring_data {
     float_t ring_rectangle_x;
@@ -3020,8 +3020,8 @@ typedef struct osage_ring_data {
     float_t ring_height;
     float_t ring_out_height;
     bool field_18;
-    vector_osage_coli coli;
-    vector_skin_param_osage_root_coli skp_root_coli;
+    vector_old_osage_coli coli;
+    vector_old_skin_param_osage_root_coli skp_root_coli;
 } osage_ring_data;
 
 typedef struct struc_478 {
@@ -3049,7 +3049,7 @@ typedef struct list_struc_479 {
 typedef struct rob_osage {
     skin_param* skin_param_ptr;
     bone_node_expression_data exp_data;
-    vector_rob_osage_node nodes;
+    vector_old_rob_osage_node nodes;
     rob_osage_node node;
     skin_param skin_param;
     int32_t field_290;
@@ -3090,7 +3090,7 @@ typedef struct ex_constraint_block {
     ex_node_block base;
     aft_obj_skin_block_constraint_type type;
     bone_node* source_node_bone_node;
-    bone_node* direction_up_vector_bone_node;
+    bone_node* direction_up_vector_old_bone_node;
     aft_obj_skin_block_constraint* cns_data;
     int64_t field_80;
 } ex_constraint_block;
@@ -3215,7 +3215,7 @@ typedef struct struc_341 {
     int64_t field_10;
 } struc_341;
 
-vector(struc_341)
+vector_old(struc_341)
 
 struct cloth {
     cloth_vftable* vftable;
@@ -3229,7 +3229,7 @@ struct cloth {
     float_t field_44;
     uint8_t field_48;
     vec3 field_4C;
-    vector_struc_341 field_58;
+    vector_old_struc_341 field_58;
     skin_param* field_70;
     skin_param field_78;
     osage_coli coli[64];
@@ -3428,7 +3428,7 @@ typedef struct texture_pattern_struct {
     int32_t dst;
 } texture_pattern_struct;
 
-vector(texture_pattern_struct)
+vector_old(texture_pattern_struct)
 
 typedef struct aft_obj_skin_osage_node {
     int32_t name_index;
@@ -3482,12 +3482,12 @@ typedef struct pair_uint32_t_obj_set_info {
     aft_obj_set_info data;
 } pair_uint32_t_obj_set_info;
 
-vector(pair_uint32_t_obj_set_info)
+vector_old(pair_uint32_t_obj_set_info)
 
 typedef struct aft_obj_database {
-    vector_pair_uint32_t_obj_set_info field_0;
+    vector_old_pair_uint32_t_obj_set_info field_0;
     size_t field_18;
-    vector_pair_uint32_t_obj_set_info field_20;
+    vector_old_pair_uint32_t_obj_set_info field_20;
     bool field_38;
 } aft_obj_database;
 
@@ -3581,7 +3581,7 @@ typedef struct struc_295 {
     int64_t field_10;
 } struc_295;
 
-vector(struc_295)
+vector_old(struc_295)
 
 typedef struct rob_cloth {
     cloth base;
@@ -3599,7 +3599,7 @@ typedef struct rob_cloth {
     aft_obj_mesh_vertex_buffer field_2370[2];
     GLuint mesh_buffer;
     int32_t field_23A4;
-    vector_struc_295 field_23A8;
+    vector_old_struc_295 field_23A8;
     int64_t field_23B8;
 } rob_cloth;
 
@@ -3611,19 +3611,19 @@ typedef struct ex_cloth_block {
     int64_t field_2430;
 } ex_cloth_block;
 
-vector_ptr(ex_node_block)
-vector_ptr(ex_null_block)
-vector_ptr(ex_osage_block)
-vector_ptr(ex_constraint_block)
-vector_ptr(ex_expression_block)
-vector_ptr(ex_cloth_block)
+vector_old_ptr(ex_node_block)
+vector_old_ptr(ex_null_block)
+vector_old_ptr(ex_osage_block)
+vector_old_ptr(ex_constraint_block)
+vector_old_ptr(ex_expression_block)
+vector_old_ptr(ex_cloth_block)
 
 typedef struct ex_data_name_bone_index {
     char* name;
     int32_t bone_index;
 } ex_data_name_bone_index;
 
-vector(ex_data_name_bone_index)
+vector_old(ex_data_name_bone_index)
 
 typedef struct texture_data_struct {
     int32_t field_0;
@@ -3638,7 +3638,7 @@ struct rob_chara_item_equip_object {
     mat4* mat;
     aft_object_info object_info;
     int32_t field_14;
-    vector_texture_pattern_struct field_18;
+    vector_old_texture_pattern_struct field_18;
     texture_data_struct texture_data;
     char field_64;
     bone_node_expression_data exp_data;
@@ -3649,17 +3649,17 @@ struct rob_chara_item_equip_object {
     mat4* field_A8;
     int32_t field_B0;
     bone_node* bone_nodes;
-    vector_ptr_ex_node_block node_blocks;
-    vector_bone_node ex_data_bone_nodes;
-    vector_mat4 ex_data_matrices;
-    vector_mat4 field_108;
-    vector_ex_data_name_bone_index ex_bones;
+    vector_old_ptr_ex_node_block node_blocks;
+    vector_old_bone_node ex_data_bone_nodes;
+    vector_old_mat4 ex_data_matrices;
+    vector_old_mat4 field_108;
+    vector_old_ex_data_name_bone_index ex_bones;
     int64_t field_138;
-    vector_ptr_ex_null_block null_blocks;
-    vector_ptr_ex_osage_block osage_blocks;
-    vector_ptr_ex_constraint_block constraint_blocks;
-    vector_ptr_ex_expression_block expression_blocks;
-    vector_ptr_ex_cloth_block cloth_blocks;
+    vector_old_ptr_ex_null_block null_blocks;
+    vector_old_ptr_ex_osage_block osage_blocks;
+    vector_old_ptr_ex_constraint_block constraint_blocks;
+    vector_old_ptr_ex_expression_block expression_blocks;
+    vector_old_ptr_ex_cloth_block cloth_blocks;
     char field_1B8;
     int64_t field_1C0;
     char field_1C8;
@@ -3680,7 +3680,7 @@ struct rob_chara_item_equip {
     shadow_type_enum shadow_type;
     vec3 position;
     int32_t eyes_adjust;
-    vector_texture_pattern_struct texture_pattern;
+    vector_old_texture_pattern_struct texture_pattern;
     aft_object_info field_D0;
     int32_t field_D4;
     uint8_t field_D8;
@@ -3718,7 +3718,7 @@ struct rob_chara_item_equip {
     int64_t field_930;
     float_t step;
     uint8_t field_93C;
-    vector_struc_373 field_940;
+    vector_old_struc_373 field_940;
     uint8_t field_958;
     uint8_t field_959;
     uint8_t field_95A;

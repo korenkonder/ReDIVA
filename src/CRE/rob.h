@@ -355,7 +355,7 @@ struct bone_node {
     mat4* ex_data_mat;
 };
 
-vector(bone_node)
+vector_old(bone_node)
 
 typedef struct struc_314 {
     uint32_t* field_0;
@@ -371,7 +371,7 @@ typedef struct mot_key_set {
     float_t* values;
 } mot_key_set;
 
-vector(mot_key_set)
+vector_old(mot_key_set)
 
 typedef union request_data_object_data {
     struct {
@@ -412,7 +412,7 @@ typedef struct eyes_adjust {
 } eyes_adjust;
 
 typedef struct struc_313 {
-    vector_uint32_t bitfield;
+    vector_old_uint32_t bitfield;
     size_t motion_bone_count;
 } struc_313;
 
@@ -431,9 +431,9 @@ typedef struct struc_369 {
 typedef struct mot_parent {
     bool key_sets_ready;
     size_t key_set_count;
-    vector_mot_key_set key_set;
+    vector_old_mot_key_set key_set;
     mot mot;
-    vector_float_t key_set_data;
+    vector_old_float_t key_set_data;
     mot_data* mot_data;
     bone_database_skeleton_type skeleton_type;
     int32_t skeleton_select;
@@ -469,15 +469,15 @@ typedef struct bone_data {
     float_t eyes_xrot_adjust_pos;
 } bone_data;
 
-vector(bone_data)
+vector_old(bone_data)
 
 typedef struct bone_data_parent {
     rob_chara_bone_data* rob_bone_data;
     size_t motion_bone_count;
     size_t ik_bone_count;
     size_t chain_pos;
-    vector_bone_data bones;
-    vector_uint16_t bone_indices;
+    vector_old_bone_data bones;
+    vector_old_uint16_t bone_indices;
     vec3 global_trans;
     vec3 global_rotation;
     uint32_t bone_key_set_count;
@@ -535,7 +535,7 @@ typedef struct motion_blend_mot {
     struc_308 field_4F8;
 } motion_blend_mot;
 
-vector_ptr(motion_blend_mot)
+vector_old_ptr(motion_blend_mot)
 
 typedef struct rob_chara_bone_data_ik_scale {
     float_t ratio0;
@@ -550,15 +550,15 @@ struct rob_chara_bone_data {
     size_t motion_bone_count;
     size_t ik_bone_count;
     size_t chain_pos;
-    vector_mat4 mats;
-    vector_mat4 mats2;
-    vector_bone_node nodes;
+    vector_old_mat4 mats;
+    vector_old_mat4 mats2;
+    vector_old_bone_node nodes;
     bone_database_skeleton_type base_skeleton_type;
     bone_database_skeleton_type skeleton_type;
-    vector_ptr_motion_blend_mot motions;
-    vector_size_t motion_indices;
-    vector_size_t motion_loaded_indices;
-    vector_ptr_motion_blend_mot motion_loaded;
+    vector_old_ptr_motion_blend_mot motions;
+    vector_old_size_t motion_indices;
+    vector_old_size_t motion_loaded_indices;
+    vector_old_ptr_motion_blend_mot motion_loaded;
     rob_chara_bone_data_ik_scale ik_scale;
 };
 
@@ -657,7 +657,8 @@ public:
     bool field_59;
     bool field_5A;
 
-    virtual void Dispose(bool free_data);
+    ExNodeBlock();
+    virtual ~ExNodeBlock();
     virtual void Init() = 0;
     virtual void Field_10() = 0;
     virtual void Field_18(int32_t a2, bool a3) = 0;
@@ -673,19 +674,16 @@ public:
     static void InitData(ExNodeBlock* node, bone_node* bone_node, ex_node_type type,
         char* name, rob_chara_item_equip_object* itm_eq_obj);
 
-    ExNodeBlock();
-    ~ExNodeBlock();
-
 private:
     void InitMembers();
-    void Destroy();
 };
 
 class ExNullBlock : public ExNodeBlock {
 public:
     object_skin_block_constraint* cns_data;
 
-    virtual void Dispose(bool free_data) override;
+    ExNullBlock();
+    virtual ~ExNullBlock() override;
     virtual void Init() override;
     virtual void Field_10();
     virtual void Field_18(int32_t a2, bool a3) override;
@@ -701,12 +699,8 @@ public:
     static void InitData(ExNullBlock* null, rob_chara_item_equip_object* itm_eq_obj,
         object_skin_block_constraint* cns_data, char* cns_data_name, bone_database* bone_data);
 
-    ExNullBlock();
-    ~ExNullBlock();
-
 private:
     void InitMembers();
-    void Destroy();
 };
 
 struct ExClothBlock : public ExNodeBlock {
@@ -716,7 +710,8 @@ public:
     mat4* field_2428;
     size_t index;
 
-    virtual void Dispose(bool free_data) override;
+    ExClothBlock();
+    virtual ~ExClothBlock() override;
     virtual void Init() override;
     virtual void Field_10();
     virtual void Field_18(int32_t a2, bool a3) override;
@@ -729,12 +724,8 @@ public:
     virtual void Field_50() override;
     virtual void Field_58();
 
-    ExClothBlock();
-    ~ExClothBlock();
-
 private:
     void InitMembers();
-    void Destroy();
 };
 
 typedef struct struc_331 {
@@ -743,7 +734,7 @@ typedef struct struc_331 {
     int64_t field_10;
 } struc_331;
 
-vector(struc_331)
+vector_old(struc_331)
 
 typedef struct rob_osage_node rob_osage_node;
 
@@ -771,13 +762,13 @@ typedef struct skin_param_osage_node {
     skin_param_hinge hinge;
 } skin_param_osage_node;
 
-vector(skin_param_osage_node)
+vector_old(skin_param_osage_node)
 
-vector_ptr(rob_osage_node)
+vector_old_ptr(rob_osage_node)
 
 typedef struct rob_osage_node_data {
     float_t force;
-    vector_ptr_rob_osage_node boc;
+    vector_old_ptr_rob_osage_node boc;
     rob_osage_node_data_normal_ref normal_ref;
     skin_param_osage_node skp_osg_node;
 } rob_osage_node_data;
@@ -809,21 +800,21 @@ struct rob_osage_node {
     float_t force;
     rob_osage_node_data* data_ptr;
     rob_osage_node_data data;
-    vector_struc_331 field_198;
+    vector_old_struc_331 field_198;
     float_t field_1B0;
     vec3 field_1B4;
     vec3 field_1C0;
     float_t field_1CC;
 };
 
-vector(rob_osage_node)
+vector_old(rob_osage_node)
 
 typedef struct pair_uint32_t_ptr_rob_osage_node {
     uint32_t key;
     rob_osage_node* value;
 } pair_uint32_t_ptr_rob_osage_node;
 
-vector(pair_uint32_t_ptr_rob_osage_node)
+vector_old(pair_uint32_t_ptr_rob_osage_node)
 
 typedef struct skin_param_osage_root_coli {
     int32_t type;
@@ -834,7 +825,7 @@ typedef struct skin_param_osage_root_coli {
     vec3 bone1_pos;
 } skin_param_osage_root_coli;
 
-vector(skin_param_osage_root_coli)
+vector_old(skin_param_osage_root_coli)
 
 typedef struct skin_param_osage_root_normal_ref {
     string n;
@@ -850,8 +841,8 @@ typedef struct skin_param_osage_root_boc {
     int32_t st_node;
 } skin_param_osage_root_boc;
 
-vector(skin_param_osage_root_boc)
-vector(skin_param_osage_root_normal_ref)
+vector_old(skin_param_osage_root_boc)
+vector_old(skin_param_osage_root_normal_ref)
 
 typedef struct skin_param_osage_root {
     int32_t field_0;
@@ -865,20 +856,20 @@ typedef struct skin_param_osage_root {
     float_t hinge_y;
     float_t hinge_z;
     char* name;
-    vector_skin_param_osage_root_coli coli;
+    vector_old_skin_param_osage_root_coli coli;
     float_t coli_r;
     float_t friction;
     float_t wind_afc;
-    vector_skin_param_osage_root_boc boc;
+    vector_old_skin_param_osage_root_boc boc;
     int32_t coli_type;
     float_t stiffness;
     float_t move_cancel;
     string colli_tgt_osg;
-    vector_skin_param_osage_root_normal_ref normal_ref;
+    vector_old_skin_param_osage_root_normal_ref normal_ref;
 } skin_param_osage_root;
 
 typedef struct skin_param {
-    vector_skin_param_osage_root_coli coli;
+    vector_old_skin_param_osage_root_coli coli;
     float_t friction;
     float_t wind_afc;
     float_t air_res;
@@ -891,7 +882,7 @@ typedef struct skin_param {
     skin_param_hinge hinge;
     float_t force;
     float_t force_gain;
-    vector_rob_osage_node* colli_tgt_osg;
+    vector_old_rob_osage_node* colli_tgt_osg;
 } skin_param;
 
 typedef struct osage_coli {
@@ -905,7 +896,7 @@ typedef struct osage_coli {
     float_t field_34;
 } osage_coli;
 
-vector(osage_coli)
+vector_old(osage_coli)
 
 typedef struct osage_ring_data {
     float_t ring_rectangle_x;
@@ -915,14 +906,14 @@ typedef struct osage_ring_data {
     float_t ring_height;
     float_t ring_out_height;
     bool field_18;
-    vector_osage_coli coli;
-    vector_skin_param_osage_root_coli skp_root_coli;
+    vector_old_osage_coli coli;
+    vector_old_skin_param_osage_root_coli skp_root_coli;
 } osage_ring_data;
 
 typedef struct rob_osage {
     skin_param* skin_param_ptr;
     bone_node_expression_data exp_data;
-    vector_rob_osage_node nodes;
+    vector_old_rob_osage_node nodes;
     rob_osage_node node;
     skin_param skin_param;
     int32_t field_290;
@@ -952,7 +943,7 @@ typedef struct rob_osage {
 
 typedef struct pair_name_ExOsageBlock pair_name_ExOsageBlock;
 
-vector(pair_name_ExOsageBlock)
+vector_old(pair_name_ExOsageBlock)
 
 class ExOsageBlock : public ExNodeBlock {
 public:
@@ -962,7 +953,8 @@ public:
     int32_t field_1FF8;
     float_t step;
 
-    virtual void Dispose(bool free_data) override;
+    ExOsageBlock();
+    virtual ~ExOsageBlock() override;
     virtual void Init() override;
     virtual void Field_10();
     virtual void Field_18(int32_t a2, bool a3) override;
@@ -981,15 +973,11 @@ public:
         bone_node* ex_data_bone_nodes, object_skin* skin);
     static void SetWindDirection(ExOsageBlock* osg);
     static void sub_1405F3E10(ExOsageBlock* osg, object_skin_block_osage* osg_data,
-        object_skin_osage_node* osg_nodes, vector_pair_uint32_t_ptr_rob_osage_node* a4,
-        vector_pair_name_ExOsageBlock* a5);
-    
-    ExOsageBlock();
-    ~ExOsageBlock();
+        object_skin_osage_node* osg_nodes, vector_old_pair_uint32_t_ptr_rob_osage_node* a4,
+        vector_old_pair_name_ExOsageBlock* a5);
 
 private:
     void InitMembers();
-    void Destroy();
 };
 
 struct pair_name_ExOsageBlock {
@@ -1001,11 +989,12 @@ class ExConstraintBlock : public ExNodeBlock {
 public:
     object_skin_block_constraint_type constraint_type;
     bone_node* source_node_bone_node;
-    bone_node* direction_up_vector_bone_node;
+    bone_node* direction_up_vector_old_bone_node;
     object_skin_block_constraint* cns_data;
     int64_t field_80;
 
-    virtual void Dispose(bool free_data) override;
+    ExConstraintBlock();
+    virtual ~ExConstraintBlock() override;
     virtual void Init() override;
     virtual void Field_10() override;
     virtual void Field_18(int32_t a2, bool a3) override;
@@ -1026,12 +1015,9 @@ public:
     static void InitData(ExConstraintBlock* cns, rob_chara_item_equip_object* itm_eq_obj,
         object_skin_block_constraint* cns_data, char* cns_data_name, bone_database* bone_data);
 
-    ExConstraintBlock();
-    ~ExConstraintBlock();
 
 private:
     void InitMembers();
-    void Destroy();
 };
 
 typedef struct ex_expression_block_stack ex_expression_block_stack;
@@ -1090,7 +1076,8 @@ public:
     float_t frame;
     bool step;
 
-    virtual void Dispose(bool free_data) override;
+    ExExpressionBlock();
+    virtual ~ExExpressionBlock() override;
     virtual void Init() override;
     virtual void Field_10() override;
     virtual void Field_18(int32_t a2, bool a3) override;
@@ -1109,12 +1096,8 @@ public:
         object_skin_block_expression* exp_data, char* exp_data_name, object_info a4,
         size_t index, bone_database* bone_data);
 
-    ExExpressionBlock();
-    ~ExExpressionBlock();
-
 private:
     void InitMembers();
-    void Destroy();
 };
 
 typedef struct ex_data_name_bone_index {
@@ -1122,23 +1105,23 @@ typedef struct ex_data_name_bone_index {
     int32_t bone_index;
 } ex_data_name_bone_index;
 
-vector(ex_data_name_bone_index)
+vector_old(ex_data_name_bone_index)
 
 typedef struct rob_chara_item_equip rob_chara_item_equip;
 
-vector_ptr(ExConstraintBlock)
-vector_ptr(ExClothBlock)
-vector_ptr(ExExpressionBlock)
-vector_ptr(ExOsageBlock)
-vector_ptr(ExNodeBlock)
-vector_ptr(ExNullBlock)
+vector_old_ptr(ExConstraintBlock)
+vector_old_ptr(ExClothBlock)
+vector_old_ptr(ExExpressionBlock)
+vector_old_ptr(ExOsageBlock)
+vector_old_ptr(ExNodeBlock)
+vector_old_ptr(ExNullBlock)
 
 struct rob_chara_item_equip_object {
     size_t index;
     mat4* mat;
     object_info obj_info;
     int32_t field_14;
-    vector_texture_pattern_struct texture_pattern;
+    vector_old_texture_pattern_struct texture_pattern;
     texture_data_struct texture_data;
     bool field_64;
     bone_node_expression_data exp_data;
@@ -1149,17 +1132,17 @@ struct rob_chara_item_equip_object {
     mat4* field_A8;
     int32_t field_B0;
     bone_node* bone_nodes;
-    vector_ptr_ExNodeBlock node_blocks;
-    vector_bone_node ex_data_bone_nodes;
-    vector_mat4 field_F0;
-    vector_mat4 field_108;
-    vector_ex_data_name_bone_index ex_bones;
+    vector_old_ptr_ExNodeBlock node_blocks;
+    vector_old_bone_node ex_data_bone_nodes;
+    vector_old_mat4 field_F0;
+    vector_old_mat4 field_108;
+    vector_old_ex_data_name_bone_index ex_bones;
     int64_t field_138;
-    vector_ptr_ExNullBlock null_blocks;
-    vector_ptr_ExOsageBlock osage_blocks;
-    vector_ptr_ExConstraintBlock constraint_blocks;
-    vector_ptr_ExExpressionBlock expression_blocks;
-    vector_ptr_ExClothBlock cloth_blocks;
+    vector_old_ptr_ExNullBlock null_blocks;
+    vector_old_ptr_ExOsageBlock osage_blocks;
+    vector_old_ptr_ExConstraintBlock constraint_blocks;
+    vector_old_ptr_ExExpressionBlock expression_blocks;
+    vector_old_ptr_ExClothBlock cloth_blocks;
     bool field_1B8;
     int64_t field_1C0;
     bool field_1C8;
@@ -1177,7 +1160,7 @@ typedef struct struc_373 {
     float_t blend;
 } struc_373;
 
-vector(struc_373)
+vector_old(struc_373)
 
 struct rob_chara_item_equip {
     bone_node* bone_nodes;
@@ -1191,7 +1174,7 @@ struct rob_chara_item_equip {
     shadow_type_enum shadow_type;
     vec3 position;
     int32_t eyes_adjust;
-    vector_texture_pattern_struct texture_pattern;
+    vector_old_texture_pattern_struct texture_pattern;
     object_info field_D0;
     int32_t field_D4;
     bool field_D8;
@@ -1229,7 +1212,7 @@ struct rob_chara_item_equip {
     int64_t field_930;
     float_t step;
     bool field_93C;
-    vector_struc_373 field_940;
+    vector_old_struc_373 field_940;
     bool field_958;
     bool field_959;
     bool field_95A;
@@ -1271,7 +1254,7 @@ typedef struct pair_object_info_item_id {
     item_id value;
 } pair_object_info_item_id;
 
-vector(pair_object_info_item_id)
+vector_old(pair_object_info_item_id)
 
 typedef struct item_sub_data_texture_change_tex {
     texture* org;
@@ -1279,47 +1262,47 @@ typedef struct item_sub_data_texture_change_tex {
     bool changed;
 } item_sub_data_texture_change_tex;
 
-vector(item_sub_data_texture_change_tex)
+vector_old(item_sub_data_texture_change_tex)
 
 typedef struct item_sub_data_texture_change {
     uint32_t item_no;
-    vector_item_sub_data_texture_change_tex tex;
+    vector_old_item_sub_data_texture_change_tex tex;
 } item_sub_data_texture_change;
 
-vector(item_sub_data_texture_change)
+vector_old(item_sub_data_texture_change)
 
 typedef struct item_sub_data_item_change {
     item_id id;
-    vector_uint32_t item_ids;
+    vector_old_uint32_t item_ids;
 } item_sub_data_item_change;
 
-vector(item_sub_data_item_change)
+vector_old(item_sub_data_item_change)
 
 typedef struct struc_294 {
     int32_t key;
     int32_t value;
 } struc_294;
 
-vector(struc_294)
+vector_old(struc_294)
 
 typedef struct pair_int32_t_object_info {
     int32_t key;
     object_info value;
 } pair_int32_t_object_info;
 
-vector(pair_int32_t_object_info)
+vector_old(pair_int32_t_object_info)
 
 typedef struct rob_chara_item_sub_data {
     chara_index chara_index_1st;
     chara_index chara_index_2nd;
     item_sub_data item;
     item_sub_data item_2nd;
-    vector_item_sub_data_texture_change texture_change;
-    vector_item_sub_data_item_change item_change;
-    vector_pair_object_info_item_id field_F0;
-    vector_struc_294 field_100;
-    vector_texture_pattern_struct texture_pattern[31];
-    vector_pair_int32_t_object_info field_3F8;
+    vector_old_item_sub_data_texture_change texture_change;
+    vector_old_item_sub_data_item_change item_change;
+    vector_old_pair_object_info_item_id field_F0;
+    vector_old_struc_294 field_100;
+    vector_old_texture_pattern_struct texture_pattern[31];
+    vector_old_pair_int32_t_object_info field_3F8;
 } rob_chara_item_sub_data;
 
 typedef struct struc_264 {
@@ -1386,7 +1369,7 @@ typedef struct struc_264 {
     int32_t field_104;
     int32_t field_108;
     int32_t field_10C;
-    vector_ptr_void field_110;
+    vector_old_ptr_void field_110;
     int32_t field_120;
     int32_t field_124;
     int32_t field_128;
@@ -1823,7 +1806,7 @@ typedef struct struc_223 {
     float_t field_218;
     float_t field_21C;
     int16_t field_220;
-    vector_ptr_void field_228;
+    vector_old_ptr_void field_228;
     int16_t field_238;
     int32_t field_23C;
     int32_t field_240;
@@ -1964,7 +1947,7 @@ typedef struct struc_215 {
     float_t field_8;
 } struc_215;
 
-vector(struc_215)
+vector_old(struc_215)
 
 typedef struct struc_267 {
     float_t field_0;
@@ -2013,7 +1996,7 @@ typedef struct struc_209 {
     struc_195 field_1668[27];
     struc_210 field_1AA0[27];
     float field_1BE4[27];
-    vector_struc_215 field_1C50;
+    vector_old_struc_215 field_1C50;
     int64_t field_1C68;
     int64_t field_1C70;
     int32_t field_1C78[4];
@@ -2155,24 +2138,45 @@ typedef struct skeleton_rotation_offset {
     vec3 rotation;
 } skeleton_rotation_offset;
 
-vector_ptr(rob_chara)
+vector_old_ptr(rob_chara)
 
 class RobImplTask : public Task {
 public:
-    vector_ptr_rob_chara init;
-    vector_ptr_rob_chara ctrl;
-    vector_ptr_rob_chara free;
+    vector_old_ptr_rob_chara init_chara;
+    vector_old_ptr_rob_chara ctrl_chara;
+    vector_old_ptr_rob_chara free_chara;
+
+    RobImplTask();
+    virtual ~RobImplTask() override;
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+private:
+    void InitMembers();
 };
 
 struct TaskRobManager : public Task {
 public:
     int32_t field_68;
-    vector_ptr_rob_chara init_chara;
-    vector_ptr_rob_chara load_chara;
-    vector_ptr_rob_chara free_chara;
-    vector_ptr_rob_chara loaded_chara;
+    int32_t field_6C;
+    vector_old_ptr_rob_chara init_chara;
+    vector_old_ptr_rob_chara load_chara;
+    vector_old_ptr_rob_chara free_chara;
+    vector_old_ptr_rob_chara loaded_chara;
     bone_database* bone_data;
     motion_database* mot_db;
+
+    TaskRobManager();
+    virtual ~TaskRobManager() override;
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+private:
+    void InitMembers();
 };
 
 #define ROB_CHARA_COUNT 6
@@ -2183,7 +2187,7 @@ extern TaskRobManager task_rob_manager;
 
 extern chara_init_data* chara_init_data_get(chara_index chara_index);
 
-extern void motion_set_load_motion(uint32_t set, string* motion_name, motion_database* mot_db);
+extern void motion_set_load_motion(uint32_t set, std::string* motion_name, motion_database* mot_db);
 extern void motion_set_unload(uint32_t set);
 
 extern void rob_chara_init(rob_chara* rob_chr);

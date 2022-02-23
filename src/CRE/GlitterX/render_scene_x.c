@@ -8,7 +8,7 @@
 
 void glitter_x_render_scene_append(glitter_render_scene* rs,
     glitter_render_group* rg) {
-    vector_ptr_glitter_render_group_push_back(rs, &rg);
+    vector_old_ptr_glitter_render_group_push_back(rs, &rg);
 }
 
 void glitter_x_render_scene_calc_disp(GPM, glitter_render_scene* rs) {
@@ -27,10 +27,11 @@ void glitter_x_render_scene_calc_disp(GPM, glitter_render_scene* rs) {
             continue;
 
 #if !defined(CRE_DEV)
-        glitter_x_render_group_calc_draw(GPM_VAL, rg);
+        glitter_x_render_group_calc_disp(GPM_VAL, rg);
 #else
-        if (!GPM_VAL->draw_selected || !eff)
+        if (!GPM_VAL->draw_selected || !eff) {
             glitter_x_render_group_calc_disp(GPM_VAL, rg);
+        }
         else if ((eff && ptcl) || (eff && !emit)) {
             if (!ptcl || rg->particle == ptcl)
                 glitter_x_render_group_calc_disp(GPM_VAL, rg);
@@ -45,7 +46,7 @@ void glitter_x_render_scene_calc_disp(GPM, glitter_render_scene* rs) {
                     glitter_x_render_group_calc_disp(GPM_VAL, rg);
 
                 if (particle->data.children.begin) {
-                    vector_ptr_glitter_particle_inst* children = &particle->data.children;
+                    vector_old_ptr_glitter_particle_inst* children = &particle->data.children;
                     for (glitter_particle_inst** j = children->begin; j != children->end; j++) {
                         if (!*j || rg->particle != *j)
                             continue;
@@ -81,7 +82,7 @@ void glitter_x_render_scene_disp(GPM, glitter_render_scene* rs, draw_pass_3d_typ
             continue;
 
 #if !defined(CRE_DEV)
-        glitter_x_render_group_draw(GPM_VAL, rg);
+        glitter_x_render_group_disp(GPM_VAL, rg);
 #else
         if (!GPM_VAL->draw_selected || !eff) {
             glitter_x_render_group_disp(GPM_VAL, rg);
@@ -100,7 +101,7 @@ void glitter_x_render_scene_disp(GPM, glitter_render_scene* rs, draw_pass_3d_typ
                     glitter_x_render_group_disp(GPM_VAL, rg);
 
                 if (particle->data.children.begin) {
-                    vector_ptr_glitter_particle_inst* children = &particle->data.children;
+                    vector_old_ptr_glitter_particle_inst* children = &particle->data.children;
                     for (glitter_particle_inst** j = children->begin; j != children->end; j++) {
                         if (!*j || rg->particle != *j)
                             continue;
@@ -114,5 +115,5 @@ void glitter_x_render_scene_disp(GPM, glitter_render_scene* rs, draw_pass_3d_typ
 }
 
 void glitter_x_render_scene_free(glitter_render_scene* rs) {
-    vector_ptr_glitter_render_group_free(rs, glitter_x_render_group_dispose);
+    vector_old_ptr_glitter_render_group_free(rs, glitter_x_render_group_dispose);
 }

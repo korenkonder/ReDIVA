@@ -7,8 +7,8 @@
 #include "f2/struct.h"
 #include "io/stream.h"
 
-vector_func(txp_mipmap)
-vector_func(txp)
+vector_old_func(txp_mipmap)
+vector_old_func(txp)
 
 void txp_init(txp* t) {
     memset(t, 0, sizeof(txp));
@@ -19,8 +19,8 @@ void txp_copy(txp* src, txp* dst) {
     dst->has_cube_map = src->has_cube_map;
     dst->array_size = src->array_size;
     dst->mipmaps_count = src->mipmaps_count;
-    dst->data = vector_empty(txp_mipmap);
-    vector_txp_mipmap_reserve(&dst->data, vector_length(src->data));
+    dst->data = vector_old_empty(txp_mipmap);
+    vector_old_txp_mipmap_reserve(&dst->data, vector_old_length(src->data));
     txp_mipmap* tex_mipmap = src->data.begin;
     for (size_t j = 0; j < src->array_size; j++) {
         for (size_t k = 0; k < src->mipmaps_count; k++, tex_mipmap++) {
@@ -93,11 +93,11 @@ void txp_free(txp* t) {
 
     for (txp_mipmap* i = t->data.begin; i != t->data.end; i++)
         free(i->data);
-    vector_txp_mipmap_free(&t->data, 0);
+    vector_old_txp_mipmap_free(&t->data, 0);
 }
 
 void txp_set_init(txp_set* ts) {
-    *ts = vector_empty(txp);
+    *ts = vector_old_empty(txp);
 }
 
 bool txp_set_pack_file(txp_set* ts, void** data, size_t* length, bool big_endian) {
@@ -111,7 +111,7 @@ bool txp_set_pack_file(txp_set* ts, void** data, size_t* length, bool big_endian
     *data = 0;
     *length = 0;
 
-    size_t count = vector_length(*ts);
+    size_t count = vector_old_length(*ts);
     if (count < 1)
         return false;
 
@@ -207,7 +207,7 @@ bool txp_set_pack_file_modern(txp_set* ts, void** data, size_t* length, bool big
     return true;
 }
 
-bool txp_set_produce_enrs(txp_set* ts, vector_enrs_entry* enrs) {
+bool txp_set_produce_enrs(txp_set* ts, vector_old_enrs_entry* enrs) {
     size_t l;
     txp* tex;
     txp_mipmap* tex_mipmap;
@@ -215,45 +215,45 @@ bool txp_set_produce_enrs(txp_set* ts, vector_enrs_entry* enrs) {
     if (!ts || !enrs)
         return false;
 
-    *enrs = vector_empty(enrs_entry);
+    *enrs = vector_old_empty(enrs_entry);
     l = 0;
 
-    size_t count = vector_length(*ts);
+    size_t count = vector_old_length(*ts);
     if (count < 1)
         return false;
 
     uint32_t o;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
 
-    ee = { 0, 1, 12, 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 1, 12, 1, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     l += o = 12;
 
-    ee = { o, 1, (uint32_t)(count * 4), 1, vector_empty(enrs_sub_entry) };
-    vector_enrs_sub_entry_append(&ee.sub, 0, (uint32_t)count, ENRS_DWORD);
-    vector_enrs_entry_push_back(&e, &ee);
+    ee = { o, 1, (uint32_t)(count * 4), 1, vector_old_empty(enrs_sub_entry) };
+    vector_old_enrs_sub_entry_append(&ee.sub, 0, (uint32_t)count, ENRS_DWORD);
+    vector_old_enrs_entry_push_back(&e, &ee);
     l += (size_t)(o = (uint32_t)(count * 4ULL));
 
     tex = ts->begin;
     for (size_t i = 0; i < count; i++, tex++) {
-        ee = { o, 1, 12, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, 12, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         l += o = 12;
 
-        ee = { o, 1, tex->array_size * 4, tex->mipmaps_count, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, tex->array_size, ENRS_DWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, tex->array_size * 4, tex->mipmaps_count, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, tex->array_size, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         l += (size_t)(o = (uint32_t)((size_t)tex->array_size * tex->mipmaps_count * 4));
 
         tex_mipmap = tex->data.begin;
         for (size_t j = 0; j < tex->array_size; j++) {
             for (size_t k = 0; k < tex->mipmaps_count; k++, tex_mipmap++) {
-                ee = { o, 1, 24, 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { o, 1, 24, 1, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 l += (size_t)(o = (uint32_t)(24 + tex_mipmap->size));
             }
         }
@@ -291,8 +291,8 @@ bool txp_set_unpack_file(txp_set* ts, void* data, bool big_endian) {
     else
         tex_count = *(uint32_t*)(set_d + 4);
 
-    *ts = vector_empty(txp);
-    vector_txp_reserve(ts, tex_count);
+    *ts = vector_old_empty(txp);
+    vector_old_txp_reserve(ts, tex_count);
     for (size_t i = 0; i < tex_count; i++) {
         if (big_endian) {
             d = set_d + (size_t)load_reverse_endianness_uint32_t((uint32_t*)(set_d + 12) + i);
@@ -315,7 +315,7 @@ bool txp_set_unpack_file(txp_set* ts, void* data, bool big_endian) {
             info = *(uint32_t*)(d + 8);
         }
 
-        tex = vector_txp_reserve_back(ts);
+        tex = vector_old_txp_reserve_back(ts);
         tex->has_cube_map = sign == 0x05505854;
         tex->mipmaps_count = info & 0xFF;
         tex->array_size = (info >> 8) & 0xFF;
@@ -324,8 +324,8 @@ bool txp_set_unpack_file(txp_set* ts, void* data, bool big_endian) {
             tex->mipmaps_count = sub_tex_count & 0xFF;
 
         uint32_t mipmaps_count = tex->mipmaps_count;
-        tex->data = vector_empty(txp_mipmap);
-        vector_txp_mipmap_reserve(&tex->data, (size_t)tex->array_size * tex->mipmaps_count);
+        tex->data = vector_old_empty(txp_mipmap);
+        vector_old_txp_mipmap_reserve(&tex->data, (size_t)tex->array_size * tex->mipmaps_count);
         for (size_t j = 0; j < tex->array_size; j++)
             for (size_t k = 0; k < tex->mipmaps_count; k++) {
                 if (big_endian) {
@@ -337,7 +337,7 @@ bool txp_set_unpack_file(txp_set* ts, void* data, bool big_endian) {
                     sign = *(uint32_t*)mipmap_d;
                 }
 
-                tex_mipmap = vector_txp_mipmap_reserve_back(&tex->data);
+                tex_mipmap = vector_old_txp_mipmap_reserve_back(&tex->data);
 
                 if (big_endian) {
                     tex_mipmap->width = load_reverse_endianness_uint32_t((void*)(mipmap_d + 4));
@@ -380,7 +380,7 @@ void txp_set_free(txp_set* t) {
     for (txp* i = t->begin; i != t->end; i++) {
         for (txp_mipmap* j = i->data.begin; j != i->data.end; j++)
             free(j->data);
-        vector_txp_mipmap_free(&i->data, 0);
+        vector_old_txp_mipmap_free(&i->data, 0);
     }
-    vector_txp_free(t, 0);
+    vector_old_txp_free(t, 0);
 }

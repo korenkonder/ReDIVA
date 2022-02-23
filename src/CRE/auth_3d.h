@@ -11,6 +11,7 @@
 #include "../KKdLib/a3da.h"
 #include "../KKdLib/kf.h"
 #include "render_context.h"
+#include "task.h"
 
 typedef enum auth_3d_ambient_flags {
     AUTH_3D_AMBIENT_LIGHT_DIFFUSE     = 0x01,
@@ -152,60 +153,36 @@ typedef enum auth_3d_rgba_flags {
     AUTH_3D_RGBA_A = 0x08,
 } auth_3d_rgba_flags;
 
-typedef struct auth_3d_ambient auth_3d_ambient;
-typedef struct auth_3d_camera_auxiliary auth_3d_camera_auxiliary;
-typedef struct auth_3d_camera_root auth_3d_camera_root;
-typedef struct auth_3d_camera_root_view_point auth_3d_camera_root_view_point;
-typedef struct auth_3d_chara auth_3d_chara;
-typedef struct auth_3d_curve auth_3d_curve;
-typedef struct auth_3d_dof auth_3d_dof;
-typedef struct auth_3d_event auth_3d_event;
-typedef struct auth_3d_fog auth_3d_fog;
-typedef struct auth_3d_key auth_3d_key;
-typedef struct auth_3d_light auth_3d_light;
-typedef struct auth_3d_m_object_hrc auth_3d_m_object_hrc;
-typedef struct auth_3d_material_list auth_3d_material_list;
-typedef struct auth_3d_model_transform auth_3d_model_transform;
-typedef struct auth_3d_object auth_3d_object;
-typedef struct auth_3d_object_curve auth_3d_object_curve;
-typedef struct auth_3d_object_hrc auth_3d_object_hrc;
-typedef struct auth_3d_object_instance auth_3d_object_instance;
-typedef struct auth_3d_object_model_transform auth_3d_object_model_transform;
-typedef struct auth_3d_object_node auth_3d_object_node;
-typedef struct auth_3d_object_texture_pattern auth_3d_object_texture_pattern;
-typedef struct auth_3d_object_texture_transform auth_3d_object_texture_transform;
-typedef struct auth_3d_play_control auth_3d_play_control;
-typedef struct auth_3d_point auth_3d_point;
-typedef struct auth_3d_post_process auth_3d_post_process;
-typedef struct auth_3d_rgba auth_3d_rgba;
-typedef struct auth_3d_vec3 auth_3d_vec3;
+class auth_3d_ambient;
+class auth_3d_camera_auxiliary;
+class auth_3d_camera_root;
+class auth_3d_camera_root_view_point;
+class auth_3d_chara;
+class auth_3d_curve;
+class auth_3d_dof;
+class auth_3d_event;
+class auth_3d_fog;
+class auth_3d_key;
+class auth_3d_light;
+class auth_3d_m_object_hrc;
+class auth_3d_material_list;
+class auth_3d_model_transform;
+class auth_3d_object;
+class auth_3d_object_curve;
+class auth_3d_object_hrc;
+class auth_3d_object_instance;
+class auth_3d_object_model_transform;
+class auth_3d_object_node;
+class auth_3d_object_texture_pattern;
+class auth_3d_object_texture_transform;
+class auth_3d_play_control;
+class auth_3d_point;
+class auth_3d_post_process;
+class auth_3d_rgba;
+class auth_3d_vec3;
 
-ptr_t(auth_3d_m_object_hrc)
-ptr_t(auth_3d_object)
-ptr_t(auth_3d_object_hrc)
-
-vector(auth_3d_ambient)
-vector(auth_3d_model_transform)
-vector(auth_3d_camera_root)
-vector(auth_3d_chara)
-vector(auth_3d_curve)
-vector(auth_3d_event)
-vector(auth_3d_fog)
-vector(auth_3d_light)
-vector(auth_3d_m_object_hrc)
-vector(auth_3d_material_list)
-vector(auth_3d_object)
-vector(auth_3d_object_hrc)
-vector(auth_3d_object_instance)
-vector(auth_3d_object_node)
-vector(auth_3d_object_texture_pattern)
-vector(auth_3d_object_texture_transform)
-vector(auth_3d_point)
-vector(ptr_auth_3d_m_object_hrc)
-vector(ptr_auth_3d_object)
-vector(ptr_auth_3d_object_hrc)
-
-struct auth_3d_key {
+class auth_3d_key {
+public:
     auth_3d_key_type type;
     float_t value;
     float_t max_frame;
@@ -213,16 +190,21 @@ struct auth_3d_key {
     auth_3d_ep_type ep_type_post;
     float_t frame_delta;
     float_t value_delta;
-    vector_kft3 keys_vec;
+    std::vector<kft3> keys_vec;
     size_t length;
     kft3* keys;
 
     float_t frame;
     float_t value_interp;
     float_t value_init;
+
+    auth_3d_key();
+    void reset();
+    ~auth_3d_key();
 };
 
-struct auth_3d_rgba {
+class auth_3d_rgba {
+public:
     auth_3d_rgba_flags flags;
     auth_3d_key r;
     auth_3d_key g;
@@ -230,15 +212,25 @@ struct auth_3d_rgba {
     auth_3d_key a;
 
     vec4u value;
+
+    auth_3d_rgba();
+    void reset();
+    ~auth_3d_rgba();
 };
 
-struct auth_3d_vec3 {
+class auth_3d_vec3 {
+public:
     auth_3d_key x;
     auth_3d_key y;
     auth_3d_key z;
+
+    auth_3d_vec3();
+    void reset();
+    ~auth_3d_vec3();
 };
 
-struct auth_3d_model_transform {
+class auth_3d_model_transform {
+public:
     mat4u mat;
     auth_3d_vec3 scale;
     auth_3d_vec3 rotation;
@@ -249,16 +241,26 @@ struct auth_3d_model_transform {
     vec3 rotation_value;
     vec3 translation_value;
     bool visible;
+
+    auth_3d_model_transform();
+    void reset();
+    ~auth_3d_model_transform();
 };
 
-struct auth_3d_ambient {
+class auth_3d_ambient {
+public:
     auth_3d_ambient_flags flags;
     auth_3d_rgba light_diffuse;
-    string name;
+    std::string name;
     auth_3d_rgba rim_light_diffuse;
+
+    auth_3d_ambient();
+    void reset();
+    ~auth_3d_ambient();
 };
 
-struct auth_3d_camera_auxiliary {
+class auth_3d_camera_auxiliary {
+public:
     auth_3d_camera_auxiliary_flags flags;
     auth_3d_key auto_exposure;
     auth_3d_key exposure;
@@ -273,9 +275,14 @@ struct auth_3d_camera_auxiliary {
     float_t gamma_value;
     float_t gamma_rate_value;
     float_t saturate_value;
+
+    auth_3d_camera_auxiliary();
+    void reset();
+    ~auth_3d_camera_auxiliary();
 };
 
-struct auth_3d_camera_root_view_point {
+class auth_3d_camera_root_view_point {
+public:
     auth_3d_camera_root_view_point_flags flags;
     float_t aspect;
     float_t camera_aperture_h;
@@ -285,9 +292,14 @@ struct auth_3d_camera_root_view_point {
     bool fov_is_horizontal;
     auth_3d_model_transform model_transform;
     auth_3d_key roll;
+
+    auth_3d_camera_root_view_point();
+    void reset();
+    ~auth_3d_camera_root_view_point();
 };
 
-struct auth_3d_camera_root {
+class auth_3d_camera_root {
+public:
     auth_3d_model_transform interest;
     auth_3d_model_transform model_transform;
     auth_3d_camera_root_view_point view_point;
@@ -296,37 +308,62 @@ struct auth_3d_camera_root {
     vec3 interest_value;
     float_t roll_value;
     vec3 view_point_value;
+
+    auth_3d_camera_root();
+    void reset();
+    ~auth_3d_camera_root();
 };
 
-struct auth_3d_chara {
+class auth_3d_chara {
+public:
     auth_3d_model_transform model_transform;
-    string name;
+    std::string name;
+
+    auth_3d_chara();
+    void reset();
+    ~auth_3d_chara();
 };
 
-struct auth_3d_curve {
+class auth_3d_curve {
+public:
     auth_3d_key curve;
-    string name;
+    std::string name;
     float_t value;
+
+    auth_3d_curve();
+    void reset();
+    ~auth_3d_curve();
 };
 
-struct auth_3d_dof {
+class auth_3d_dof {
+public:
     bool has_dof;
     auth_3d_model_transform model_transform;
+
+    auth_3d_dof();
+    void reset();
+    ~auth_3d_dof();
 };
 
-struct auth_3d_event {
+class auth_3d_event {
+public:
     float_t begin;
     float_t clip_begin;
     float_t clip_end;
     float_t end;
-    string name;
-    string param_1;
-    string ref;
+    std::string name;
+    std::string param_1;
+    std::string ref;
     float_t time_ref_scale;
     auth_3d_event_type type;
+
+    auth_3d_event();
+    void reset();
+    ~auth_3d_event();
 };
 
-struct auth_3d_fog {
+class auth_3d_fog {
+public:
     auth_3d_fog_flags flags;
     auth_3d_fog_flags flags_init;
     auth_3d_rgba color;
@@ -343,9 +380,14 @@ struct auth_3d_fog {
     float_t density_init;
     float_t end_init;
     float_t start_init;
+
+    auth_3d_fog();
+    void reset();
+    ~auth_3d_fog();
 };
 
-struct auth_3d_light {
+class auth_3d_light {
+public:
     auth_3d_light_flags flags;
     auth_3d_light_flags flags_init;
     auth_3d_rgba ambient;
@@ -362,7 +404,7 @@ struct auth_3d_light {
     auth_3d_rgba specular;
     auth_3d_model_transform spot_direction;
     auth_3d_rgba tone_curve;
-    string type;
+    std::string type;
 
     float_t cone_angle_value;
     float_t constant_value;
@@ -383,9 +425,14 @@ struct auth_3d_light {
     float_t quadratic_init;
     vec4u specular_init;
     vec3 tone_curve_init;
+
+    auth_3d_light();
+    void reset();
+    ~auth_3d_light();
 };
 
-struct auth_3d_object_model_transform {
+class auth_3d_object_model_transform {
+public:
     mat4u mat;
     mat4u mat_inner;
     mat4u mat_rot;
@@ -403,102 +450,147 @@ struct auth_3d_object_model_transform {
     bool has_translation;
     bool has_scale;
     bool has_visibility;
+
+    auth_3d_object_model_transform();
+    void reset();
+    ~auth_3d_object_model_transform();
 };
 
-struct auth_3d_m_object_hrc {
-    vector_auth_3d_object_instance instance;
+class auth_3d_m_object_hrc {
+public:
+    std::vector<auth_3d_object_instance> instance;
     auth_3d_object_model_transform model_transform;
-    string name;
-    vector_auth_3d_object_node node;
+    std::string name;
+    std::vector<auth_3d_object_node> node;
+
+    auth_3d_m_object_hrc();
+    void reset();
+    ~auth_3d_m_object_hrc();
 };
 
-struct auth_3d_material_list {
+class auth_3d_material_list {
+public:
     auth_3d_material_list_flags flags;
     auth_3d_rgba blend_color;
     auth_3d_key glow_intensity;
     auth_3d_rgba incandescence;
-    string name;
+    std::string name;
 
     float_t glow_intensity_value;
+
+    auth_3d_material_list();
+    void reset();
+    ~auth_3d_material_list();
 };
 
-struct auth_3d_object_curve {
+class auth_3d_object_curve {
+public:
     auth_3d_curve* curve;
-    string name;
+    std::string name;
     float_t frame_offset;
     float_t value;
+
+    auth_3d_object_curve();
+    void reset();
+    ~auth_3d_object_curve();
 };
 
-struct auth_3d_object {
-    vector_ptr_auth_3d_object children_object;
-    vector_ptr_auth_3d_object_hrc children_object_hrc;
+class auth_3d_object {
+public:
+    std::vector<auth_3d_object*> children_object;
+    std::vector<auth_3d_object_hrc*> children_object_hrc;
     auth_3d_model_transform model_transform;
     auth_3d_object_curve morph;
     object_info object_info;
     uint32_t object_hash;
-    string name;
-    string parent_name;
-    string parent_node;
+    std::string name;
+    std::string parent_name;
+    std::string parent_node;
     auth_3d_object_curve pattern;
     bool reflect;
     bool refract;
-    vector_auth_3d_object_texture_pattern texture_pattern;
-    vector_auth_3d_object_texture_transform texture_transform;
-    string uid_name;
+    std::vector<auth_3d_object_texture_pattern> texture_pattern;
+    std::vector<auth_3d_object_texture_transform> texture_transform;
+    std::string uid_name;
+
+    auth_3d_object();
+    void reset();
+    ~auth_3d_object();
 };
 
-struct auth_3d_object_hrc {
-    vector_ptr_auth_3d_object children_object;
-    vector_ptr_auth_3d_object_hrc children_object_hrc;
-    vector_int32_t childer_object_hrc_parent_node;
-    vector_int32_t childer_object_parent_node;
-    vector_mat4 mats;
-    string name;
-    vector_auth_3d_object_node node;
+class auth_3d_object_hrc {
+public:
+    std::vector<auth_3d_object*> children_object;
+    std::vector<auth_3d_object_hrc*> children_object_hrc;
+    std::vector<int32_t> childer_object_hrc_parent_node;
+    std::vector<int32_t> childer_object_parent_node;
+    std::vector<mat4> mats;
+    std::string name;
+    std::vector<auth_3d_object_node> node;
     object_info object_info;
     uint32_t object_hash;
-    string parent_name;
-    string parent_node;
+    std::string parent_name;
+    std::string parent_node;
     bool reflect;
     bool refract;
     bool shadow;
-    string uid_name;
+    std::string uid_name;
+
+    auth_3d_object_hrc();
+    void reset();
+    ~auth_3d_object_hrc();
 };
 
-struct auth_3d_object_instance {
-    vector_mat4 mats;
+class auth_3d_object_instance {
+public:
+    std::vector<mat4> mats;
     auth_3d_object_model_transform model_transform;
-    string name;
-    vector_int32_t object_bone_indices;
+    std::string name;
+    std::vector<int32_t> object_bone_indices;
     object_info object_info;
     uint32_t object_hash;
     bool shadow;
-    string uid_name;
+    std::string uid_name;
+
+    auth_3d_object_instance();
+    void reset();
+    ~auth_3d_object_instance();
 };
 
-struct auth_3d_object_node {
+class auth_3d_object_node {
+public:
     auth_3d_object_node_flags flags;
     int32_t bone_id;
     vec3 joint_orient;
     mat4u joint_orient_mat;
     mat4* mat;
     auth_3d_object_model_transform model_transform;
-    string name;
+    std::string name;
     int32_t parent;
+
+    auth_3d_object_node();
+    void reset();
+    ~auth_3d_object_node();
 };
 
-struct auth_3d_object_texture_pattern {
-    string name;
+class auth_3d_object_texture_pattern {
+public:
+    std::string name;
     auth_3d_object_curve pattern;
     int32_t texture_id;
+
+    auth_3d_object_texture_pattern();
+    void reset();
+    ~auth_3d_object_texture_pattern();
 };
 
-struct auth_3d_object_texture_transform {
+class auth_3d_object_texture_transform {
+public:
     auth_3d_object_texture_transform_flags flags;
     auth_3d_key coverage_u;
     auth_3d_key coverage_v;
     mat4u mat;
-    string name;
+    std::string name;
     auth_3d_key offset_u;
     auth_3d_key offset_v;
     auth_3d_key repeat_u;
@@ -508,23 +600,38 @@ struct auth_3d_object_texture_transform {
     int32_t texture_id;
     auth_3d_key translate_frame_u;
     auth_3d_key translate_frame_v;
+
+    auth_3d_object_texture_transform();
+    void reset();
+    ~auth_3d_object_texture_transform();
 };
 
-struct auth_3d_play_control {
+class auth_3d_play_control {
+public:
     auth_3d_play_control_flags flags;
     float_t begin;
     int32_t div;
     float_t fps;
     float_t offset;
     float_t size;
+
+    auth_3d_play_control();
+    void reset();
+    ~auth_3d_play_control();
 };
 
-struct auth_3d_point {
+class auth_3d_point {
+public:
     auth_3d_model_transform model_transform;
-    string name;
+    std::string name;
+
+    auth_3d_point();
+    void reset();
+    ~auth_3d_point();
 };
 
-struct auth_3d_post_process {
+class auth_3d_post_process {
+public:
     auth_3d_post_process_flags flags;
     auth_3d_post_process_flags flags_init;
     auth_3d_rgba intensity;
@@ -544,11 +651,17 @@ struct auth_3d_post_process {
     float_t lens_shaft_init;
     vec3 radius_init;
     vec4u scene_fade_init;
+
+    auth_3d_post_process();
+    void reset();
+    ~auth_3d_post_process();
 };
 
-typedef struct auth_3d {
+class auth_3d {
+public:
     int32_t uid;
     int32_t id;
+    mat4u mat;
     bool enable;
     bool camera_root_update;
     bool visible;
@@ -556,109 +669,145 @@ typedef struct auth_3d {
     bool ended;
     bool left_right_reverse;
     bool once;
-
     float_t alpha;
+    draw_task_flags draw_task_flags;
     int32_t chara_id;
+    bool shadow;
     frame_rate_control* frame_rate;
     float_t frame;
-    float_t set_frame;
+    float_t req_frame;
     float_t max_frame;
     bool frame_changed;
     float_t frame_offset;
     float_t last_frame;
     bool paused;
 
-    vector_auth_3d_ambient ambient;
-    vector_string auth_2d;
+    std::vector<auth_3d_ambient> ambient;
+    std::vector<std::string> auth_2d;
     auth_3d_camera_auxiliary camera_auxiliary;
-    vector_auth_3d_camera_root camera_root;
-    vector_auth_3d_chara chara;
-    vector_auth_3d_curve curve;
+    std::vector<auth_3d_camera_root> camera_root;
+    std::vector<auth_3d_chara> chara;
+    std::vector<auth_3d_curve> curve;
     auth_3d_dof dof;
-    vector_auth_3d_event event;
-    vector_auth_3d_fog fog;
-    vector_auth_3d_light light;
-    vector_auth_3d_m_object_hrc m_object_hrc;
-    vector_ptr_auth_3d_m_object_hrc m_object_hrc_list;
-    vector_auth_3d_material_list material_list;
-    vector_string motion;
-    vector_auth_3d_object object;
-    vector_auth_3d_object_hrc object_hrc;
-    vector_ptr_auth_3d_object_hrc object_hrc_list;
-    vector_ptr_auth_3d_object object_list;
+    std::vector<auth_3d_event> event;
+    std::vector<auth_3d_fog> fog;
+    std::vector<auth_3d_light> light;
+    std::vector<auth_3d_m_object_hrc> m_object_hrc;
+    std::vector<auth_3d_m_object_hrc*> m_object_hrc_list;
+    std::vector<auth_3d_material_list> material_list;
+    std::vector<std::string> motion;
+    std::vector<auth_3d_object> object;
+    std::vector<auth_3d_object_hrc> object_hrc;
+    std::vector<auth_3d_object_hrc*> object_hrc_list;
+    std::vector<auth_3d_object*> object_list;
     auth_3d_play_control play_control;
-    vector_auth_3d_point point;
+    std::vector<auth_3d_point> point;
     auth_3d_post_process post_process;
+    int32_t state;
 
-    string file_name;
+    std::string file_name;
     int32_t frame_int;
     uint32_t hash;
-} auth_3d;
+
+    auth_3d();
+    void ctrl(render_context* rctx);
+    void disp(render_context* rctx);
+    void load(a3da* auth_file,
+        object_database* obj_db, texture_database* tex_db);
+    void load_from_farc(farc* f, char* file,
+        object_database* obj_db, texture_database* tex_db);
+    void reset();
+    void unload(render_context* rctx);
+    ~auth_3d();
+};
 
 #define AUTH_3D_DATA_COUNT 0x100
 
-typedef struct auth_3d_data_struct {
-    vector_int32_t loaded_ids;
-    auth_3d data[AUTH_3D_DATA_COUNT];
-} auth_3d_data_struct;
+class auth_3d_farc {
+public:
+    int32_t load_count;
+    const char* name;
+    int32_t state;
+    std::string path;
+    std::string file;
+    p_file_handler file_handler;
+    farc* farc;
+    void* data;
+    size_t size;
 
-typedef struct auth_3d_farc {
-    farc auth_3d_farc;
-    vector_uint32_t obj_set_id;
-} auth_3d_farc;
+    auth_3d_farc();
+    ~auth_3d_farc();
+};
+
+class auth_3d_uid_file {
+public:
+    int32_t load_count;
+    int32_t uid;
+    std::string file_name;
+    int32_t state;
+    const char* name;
+    auth_3d_farc* farc;
+
+    auth_3d_uid_file();
+    ~auth_3d_uid_file();
+};
+
+class auth_3d_data_struct {
+public:
+    std::vector<auth_3d_farc> farcs;
+    std::vector<auth_3d_uid_file> uid_files;
+    std::vector<int32_t> loaded_ids;
+    auth_3d data[AUTH_3D_DATA_COUNT];
+
+    auth_3d_data_struct();
+    ~auth_3d_data_struct();
+};
+
+class TaskAuth3d : public Task {
+public:
+    TaskAuth3d();
+    virtual ~TaskAuth3d() override;
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual void Disp() override;
+};
 
 extern auth_3d_data_struct auth_3d_data;
+extern TaskAuth3d task_auth_3d;
 
-extern void auth_3d_init(auth_3d* auth);
-extern void auth_3d_ctrl(auth_3d* auth, mat4* mat, render_context* rctx);
-extern void auth_3d_disp(auth_3d* auth, mat4* mat, render_context* rctx);
-extern void auth_3d_load(auth_3d* auth, a3da* auth_file,
-    object_database* obj_db, texture_database* tex_db);
-extern void auth_3d_load_from_farc(auth_3d* auth, farc* f, char* file,
-    object_database* obj_db, texture_database* tex_db);
-extern void auth_3d_unload(auth_3d* auth, render_context* rctx);
-extern void auth_3d_free(auth_3d* auth);
-
-extern void auth_3d_farc_init(auth_3d_farc* f);
-extern void auth_3d_farc_load(auth_3d_farc* f, void* data, char* name, object_database* obj_db);
-extern void auth_3d_farc_free(auth_3d_farc* f);
-
-extern void auth_3d_key_free(auth_3d_key* k);
-extern void auth_3d_rgba_free(auth_3d_rgba* rgba);
-extern void auth_3d_vec3_free(auth_3d_vec3* vec);
-extern void auth_3d_model_transform_free(auth_3d_model_transform* mt);
-
-extern void auth_3d_ambient_free(auth_3d_ambient* a);
-extern void auth_3d_camera_auxiliary_free(auth_3d_camera_auxiliary* ca);
-extern void auth_3d_camera_root_free(auth_3d_camera_root* cr);
-extern void auth_3d_camera_root_view_point_free(auth_3d_camera_root_view_point* crvp);
-extern void auth_3d_chara_free(auth_3d_chara* c);
-extern void auth_3d_curve_free(auth_3d_curve* c);
-extern void auth_3d_dof_free(auth_3d_dof* d);
-extern void auth_3d_event_free(auth_3d_event* e);
-extern void auth_3d_fog_free(auth_3d_fog* f);
-extern void auth_3d_light_free(auth_3d_light* l);
-extern void auth_3d_m_object_hrc_free(auth_3d_m_object_hrc* moh);
-extern void auth_3d_material_list_free(auth_3d_material_list* ml);
-extern void auth_3d_object_free(auth_3d_object* o);
-extern void auth_3d_object_curve_free(auth_3d_object_curve* oc);
-extern void auth_3d_object_hrc_free(auth_3d_object_hrc* oh);
-extern void auth_3d_object_instance_free(auth_3d_object_instance* oi);
-extern void auth_3d_object_model_transform_free(auth_3d_object_model_transform* omt);
-extern void auth_3d_object_node_free(auth_3d_object_node* on);
-extern void auth_3d_object_texture_pattern_free(auth_3d_object_texture_pattern* otp);
-extern void auth_3d_object_texture_transform_free(auth_3d_object_texture_transform* ott);
-extern void auth_3d_point_free(auth_3d_point* p);
-extern void auth_3d_post_process_free(auth_3d_post_process* pp);
-
-extern void auth_3d_data_init();
-extern int32_t auth_3d_data_load_uid(int32_t uid, auth_3d_database* auth_3d_db);
+extern bool auth_3d_data_check_id_not_empty(int32_t* id);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t id);
 extern int32_t auth_3d_data_get_chara_id(int32_t id);
 extern int32_t auth_3d_data_get_auth_3d_id_by_object_info(object_info obj_info,
     int32_t* object_index, bool* hrc, int32_t instance);
 extern int32_t auth_3d_data_get_auth_3d_id_by_hash(uint32_t file_name_hash, uint32_t object_hash,
     int32_t* object_index, bool* hrc, int32_t instance);
-extern mat4* auth_3d_data_struct_get_auth_3d_object_mat(int32_t id, size_t index, bool hrc, mat4* mat);
+extern mat4* auth_3d_data_get_auth_3d_object_mat(int32_t id, size_t index, bool hrc, mat4* mat);
+extern bool auth_3d_data_get_enable(int32_t* id);
+extern bool auth_3d_data_get_ended(int32_t* id);
+extern float_t auth_3d_data_get_frame(int32_t* id);
+extern bool auth_3d_data_get_left_right_reverse(int32_t* id);
+extern bool auth_3d_data_get_paused(int32_t* id);
+extern float_t auth_3d_data_get_play_control_begin(int32_t* id);
+extern float_t auth_3d_data_get_play_control_size(int32_t* id);
+extern bool auth_3d_data_get_repeat(int32_t* id);
+extern int32_t auth_3d_data_get_uid(int32_t* id);
+extern void auth_3d_data_load_auth_3d_db(auth_3d_database* auth_3d_db);
+extern void auth_3d_data_load_category(char* category_name);
+extern int32_t auth_3d_data_load_uid(int32_t uid, auth_3d_database* auth_3d_db);
+extern void auth_3d_data_read_file(int32_t* id, auth_3d_database* auth_3d_db);
+extern void auth_3d_data_set_camera_root_update(int32_t* id, bool value);
+extern void auth_3d_data_set_chara_id(int32_t* id, int32_t value);
+extern void auth_3d_data_set_enable(int32_t* id, bool value);
+extern void auth_3d_data_set_frame_rate(int32_t* id, frame_rate_control* value);
+extern void auth_3d_data_set_last_frame(int32_t* id, float_t value);
+extern void auth_3d_data_set_left_right_reverse(int32_t* id, bool value);
+extern void auth_3d_data_set_mat(int32_t* id, mat4* value);
+extern void auth_3d_data_set_max_frame(int32_t* id, float_t value);
+extern void auth_3d_data_set_paused(int32_t* id, bool value);
+extern void auth_3d_data_set_repeat(int32_t* id, bool value);
+extern void auth_3d_data_set_req_frame(int32_t* id, float_t value);
+extern void auth_3d_data_set_shadow(int32_t* id, bool value);
+extern void auth_3d_data_set_visibility(int32_t* id, bool value);
+extern void auth_3d_data_unload_category(char* category_name);
 extern void auth_3d_data_unload_id(int32_t id, render_context* rctx);
-extern void auth_3d_data_free();

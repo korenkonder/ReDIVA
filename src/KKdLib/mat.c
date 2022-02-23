@@ -46,12 +46,12 @@ const mat4u mat4u_null = {
     { 0.0f, 0.0f, 0.0f, 0.0f },
 };
 
-vector_func(mat3)
-vector_func(mat4)
-vector_ptr_func(mat3)
-vector_ptr_func(mat4)
+vector_old_func(mat3)
+vector_old_func(mat4)
+vector_old_ptr_func(mat3)
+vector_old_ptr_func(mat4)
 
-// Crutch for vector_func definition
+// Crutch for vector_old_func definition
 
 inline void mat3_add(mat3* x, mat3* y, mat3* z) {
     __m128 xt;
@@ -763,6 +763,23 @@ inline void mat4_transpose(mat4* x, mat4* z) {
     z->row1.data = _mm_movehl_ps(yt2, yt0);
     z->row2.data = _mm_movelh_ps(yt1, yt3);
     z->row3.data = _mm_movehl_ps(yt3, yt1);
+}
+
+inline void mat4_transpose(mat4* x, mat4u* z) {
+    mat4 y;
+    mat4_transpose(x, &y);
+    *z = y;
+}
+
+inline void mat4_transpose(mat4u* x, mat4* z) {
+    mat4 y = *x;
+    mat4_transpose(&y, z);
+}
+
+inline void mat4_transpose(mat4u* x, mat4u* z) {
+    mat4 y = *x;
+    mat4_transpose(&y, &y);
+    *z = y;
 }
 
 void mat4_inverse(mat4* x, mat4* z) {
@@ -1706,7 +1723,7 @@ inline void mat4_from_quat(quat* quat, mat4* mat) {
     mat->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-float_t vec3_angle_between_two_vectors(vec3* x, vec3* y) {
+float_t vec3_angle_between_two_vector_olds(vec3* x, vec3* y) {
     vec3 z_t;
     vec3_cross(*x, *y, z_t);
     float_t v2;
@@ -1716,7 +1733,7 @@ float_t vec3_angle_between_two_vectors(vec3* x, vec3* y) {
     return fabsf(atan2f(v2, v3));
 }
 
-void mat4_from_two_vectors(vec3* x, vec3* y, mat4* mat) {
+void mat4_from_two_vector_olds(vec3* x, vec3* y, mat4* mat) {
     *mat = mat4_identity;
     if (x->x == y->x && y->y == x->y && y->z == x->z)
         return;
@@ -1731,7 +1748,7 @@ void mat4_from_two_vectors(vec3* x, vec3* y, mat4* mat) {
     float_t axis_length;
     vec3_length(axis, axis_length);
     if (axis_length > 0.000001f) {
-        float_t angle = vec3_angle_between_two_vectors(x, y);
+        float_t angle = vec3_angle_between_two_vector_olds(x, y);
         if (axis_length != 0.0)
             vec3_mult_scalar(axis, 1.0f / axis_length, axis);
         mat4_from_axis_angle(&axis, angle, mat);
@@ -1997,34 +2014,20 @@ inline void mat4_look_at(vec3* eye, vec3* target, vec3* up, mat4* mat) {
     mat->row3.w = 1.0f;
 }
 
-inline void mat4_to_mat4u(mat4* x, mat4u* z) {
-    vec4_to_vec4u(x->row0, z->row0);
-    vec4_to_vec4u(x->row1, z->row1);
-    vec4_to_vec4u(x->row2, z->row2);
-    vec4_to_vec4u(x->row3, z->row3);
+mat4::operator mat4u() const {
+    mat4u m;
+    m.row0 = row0;
+    m.row1 = row1;
+    m.row2 = row2;
+    m.row3 = row3;
+    return m;
 }
 
-inline void mat4u_to_mat4(mat4u* x, mat4* z) {
-    vec4u_to_vec4(x->row0, z->row0);
-    vec4u_to_vec4(x->row1, z->row1);
-    vec4u_to_vec4(x->row2, z->row2);
-    vec4u_to_vec4(x->row3, z->row3);
-}
-
-inline void mat4_to_mat4u_transpose(mat4* x, mat4u* z) {
-    mat4 y;
-    mat4_transpose(x, &y);
-    vec4_to_vec4u(y.row0, z->row0);
-    vec4_to_vec4u(y.row1, z->row1);
-    vec4_to_vec4u(y.row2, z->row2);
-    vec4_to_vec4u(y.row3, z->row3);
-}
-
-inline void mat4u_to_mat4_transpose(mat4u* x, mat4* z) {
-    mat4 y;
-    vec4u_to_vec4(x->row0, y.row0);
-    vec4u_to_vec4(x->row1, y.row1);
-    vec4u_to_vec4(x->row2, y.row2);
-    vec4u_to_vec4(x->row3, y.row3);
-    mat4_transpose(&y, z);
+mat4u::operator mat4() const {
+    mat4 m;
+    m.row0 = row0;
+    m.row1 = row1;
+    m.row2 = row2;
+    m.row3 = row3;
+    return m;
 }

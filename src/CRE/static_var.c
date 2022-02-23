@@ -25,6 +25,10 @@ float_t current_fps = 60.0f;
 
 int32_t uniform_value[U_MAX];
 
+frame_rate_control sys_frame_rate = { 1.0f };
+frame_rate_control diva_pv_frame_rate = { 1.0f };
+frame_rate_control diva_stage_frame_rate = { 1.0f };
+
 const vec3 sv_rgb_to_luma = {
     0.2126f, 0.7152f, 0.0722f
 };

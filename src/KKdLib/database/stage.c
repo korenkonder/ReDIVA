@@ -9,8 +9,8 @@
 #include "../io/stream.h"
 #include "../str_utils.h"
 
-vector_func(stage_info)
-vector_func(stage_info_modern)
+vector_old_func(stage_data)
+vector_old_func(stage_data_modern)
 
 static void stage_database_classic_read_inner(stage_database* stage_data, stream* s);
 static void stage_database_classic_write_inner(stage_database* stage_data, stream* s);
@@ -212,17 +212,17 @@ void stage_database_merge_mdata(stage_database* stage_data,
         || !base_stage_data->ready || !mdata_stage_data->ready)
         return;
 
-    vector_stage_info* stage = &stage_data->stage_classic;
-    vector_stage_info* base_stage = &base_stage_data->stage_classic;
-    vector_stage_info* mdata_stage = &mdata_stage_data->stage_classic;
+    vector_old_stage_data* stage = &stage_data->stage_data;
+    vector_old_stage_data* base_stage = &base_stage_data->stage_data;
+    vector_old_stage_data* mdata_stage = &mdata_stage_data->stage_data;
 
-    int32_t count = (int32_t)vector_length(*base_stage);
-    vector_stage_info_reserve(stage, count);
+    int32_t count = (int32_t)vector_old_length(*base_stage);
+    vector_old_stage_data_reserve(stage, count);
     stage->end += count;
 
     for (int32_t i = 0; i < count; i++) {
-        stage_info* b_info = &base_stage->begin[i];
-        stage_info* info = &stage->begin[i];
+        ::stage_data* b_info = &base_stage->begin[i];
+        ::stage_data* info = &stage->begin[i];
 
         *info = *b_info;
         string_copy(&b_info->name, &info->name);
@@ -239,26 +239,26 @@ void stage_database_merge_mdata(stage_database* stage_data,
         }
     }
 
-    int32_t mdata_count = (int32_t)vector_length(*mdata_stage);
+    int32_t mdata_count = (int32_t)vector_old_length(*mdata_stage);
     mdata_count -= count;
     if (mdata_count > 0)
-        vector_stage_info_reserve(stage, mdata_count);
+        vector_old_stage_data_reserve(stage, mdata_count);
     mdata_count += count;
     for (int32_t i = 0; i < mdata_count; i++) {
-        stage_info* m_info = &mdata_stage->begin[i];
+        ::stage_data* m_info = &mdata_stage->begin[i];
 
         char* name_str = string_data(&m_info->name);
         ssize_t name_len = m_info->name.length;
 
-        stage_info* info = 0;
+        ::stage_data* info = 0;
         for (info = stage->begin; info != stage->end; info++)
             if (!memcmp(name_str, string_data(&info->name), min(name_len, info->name.length) + 1))
                 break;
 
         if (info == stage->end)
-            info = vector_stage_info_reserve_back(stage);
+            info = vector_old_stage_data_reserve_back(stage);
         else
-            stage_info_free(info);
+            stage_data_free(info);
 
         *info = *m_info;
         string_copy(&m_info->name, &info->name);
@@ -287,20 +287,20 @@ void stage_database_split_mdata(stage_database* stage_data,
 }
 
 void stage_database_free(stage_database* stage_data) {
-    vector_stage_info_free(&stage_data->stage_classic, stage_info_free);
+    vector_old_stage_data_free(&stage_data->stage_data, stage_data_free);
 }
 
-void stage_info_free(stage_info* info) {
-    string_free(&info->name);
-    string_free(&info->auth_3d_name);
-    string_free(&info->collision_file_path);
-    free(info->auth_3d_ids);
+void stage_data_free(stage_data* data) {
+    string_free(&data->name);
+    string_free(&data->auth_3d_name);
+    string_free(&data->collision_file_path);
+    free(data->auth_3d_ids);
 }
 
-void stage_info_modern_free(stage_info_modern* info) {
-    string_free(&info->name);
-    string_free(&info->auth_3d_name);
-    free(info->auth_3d_ids);
+void stage_data_modern_free(stage_data_modern* data) {
+    string_free(&data->name);
+    string_free(&data->auth_3d_name);
+    free(data->auth_3d_ids);
 }
 
 static void stage_database_classic_read_inner(stage_database* stage_data, stream* s) {
@@ -320,13 +320,13 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
         return;
     }
 
-    stage_data->stage_classic = vector_empty(stage_info);
-    vector_stage_info_reserve(&stage_data->stage_classic, count);
-    stage_data->stage_classic.end += count;
+    stage_data->stage_data = vector_old_empty(stage_data);
+    vector_old_stage_data_reserve(&stage_data->stage_data, count);
+    stage_data->stage_data.end += count;
 
     io_position_push(s, stages_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_info* stage = &stage_data->stage_classic.begin[i];
+        ::stage_data* stage = &stage_data->stage_data.begin[i];
 
         stage->id = i;
         io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &stage->name);
@@ -334,8 +334,8 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
         stage->object_set_id = io_read_uint32_t(s);
         stage->object_ground.id = io_read_uint16_t(s);
         stage->object_ground.set_id = io_read_uint16_t(s);
-        stage->object_unknown.id = io_read_uint16_t(s);
-        stage->object_unknown.set_id = io_read_uint16_t(s);
+        stage->object_ring.id = io_read_uint16_t(s);
+        stage->object_ring.set_id = io_read_uint16_t(s);
         stage->object_sky.id = io_read_uint16_t(s);
         stage->object_sky.set_id = io_read_uint16_t(s);
         stage->object_shadow.id = io_read_uint16_t(s);
@@ -357,7 +357,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
             stage->movie_texture = -1;
 
         io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &stage->collision_file_path);
-        stage->reflect_type = io_read_uint32_t(s);
+        stage->reflect_type = (stage_data_reflect_type)io_read_uint32_t(s);
         stage->refract_enable = io_read_uint32_t(s) ? true : false;
 
         int32_t reflect_offset = io_read_uint32_t(s);
@@ -397,10 +397,10 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
         if (stage->object_ground.set_id == 0xFFFF)
             stage->object_ground.set_id = -1;
 
-        if (stage->object_unknown.id == 0xFFFF)
-            stage->object_unknown.id = -1;
-        if (stage->object_unknown.set_id == 0xFFFF)
-            stage->object_unknown.set_id = -1;
+        if (stage->object_ring.id == 0xFFFF)
+            stage->object_ring.id = -1;
+        if (stage->object_ring.set_id == 0xFFFF)
+            stage->object_ring.set_id = -1;
 
         if (stage->object_sky.id == 0xFFFF)
             stage->object_sky.id = -1;
@@ -426,7 +426,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
 
     io_position_push(s, stage_effects_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_info* stage = &stage_data->stage_classic.begin[i];
+        ::stage_data* stage = &stage_data->stage_data.begin[i];
         stage_effects* effects = &stage->effects;
 
         for (int32_t j = 0; j < 8; j++)
@@ -439,7 +439,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
 
     io_position_push(s, auth3d_id_counts_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_info* stage = &stage_data->stage_classic.begin[i];
+        ::stage_data* stage = &stage_data->stage_data.begin[i];
 
         stage->auth_3d_count = io_read_uint32_t(s);
     }
@@ -447,7 +447,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
 
     io_position_push(s, auth3d_ids_offsets_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_info* stage = &stage_data->stage_classic.begin[i];
+        ::stage_data* stage = &stage_data->stage_data.begin[i];
 
         uint32_t id = io_read_uint32_t(s);
         uint32_t offset = io_read_uint32_t(s);

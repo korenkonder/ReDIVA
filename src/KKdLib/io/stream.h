@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <string>
 #include "../default.h"
 #include "../string.h"
 #include "../half_t.h"
@@ -22,13 +23,13 @@ typedef struct stream {
         FILE* stream;
         struct data {
             uint8_t* data;
-            vector_uint8_t vec;
+            vector_old_uint8_t vec;
         } data;
     } io;
     ssize_t length;
     stream_type type;
     bool is_big_endian;
-    vector_ssize_t position_stack;
+    vector_old_ssize_t position_stack;
 } stream;
 
 extern void io_open(stream* s, char* path, const char* mode);
@@ -59,11 +60,17 @@ extern void io_write_int8_t(stream* s, int8_t val);
 extern void io_write_uint8_t(stream* s, uint8_t val);
 
 extern void io_read_string(stream* s, string* str, size_t length);
+extern void io_read_string(stream* s, std::string* str, size_t length);
 extern void io_read_wstring(stream* s, wstring* str, size_t length);
+extern void io_read_wstring(stream* s, std::wstring* str, size_t length);
 extern void io_read_string_null_terminated(stream* s, string* str);
+extern void io_read_string_null_terminated(stream* s, std::string* str);
 extern void io_read_wstring_null_terminated(stream* s, wstring* str);
+extern void io_read_wstring_null_terminated(stream* s, std::wstring* str);
 extern void io_read_string_null_terminated_offset(stream* s, ssize_t offset, string* str);
+extern void io_read_string_null_terminated_offset(stream* s, ssize_t offset, std::string* str);
 extern void io_read_wstring_null_terminated_offset(stream* s, ssize_t offset, wstring* str);
+extern void io_read_wstring_null_terminated_offset(stream* s, ssize_t offset, std::wstring* str);
 extern char* io_read_utf8_string_null_terminated(stream* s);
 extern wchar_t* io_read_utf16_string_null_terminated(stream* s);
 extern char* io_read_utf8_string_null_terminated_length(stream* s, ssize_t* length);
@@ -73,9 +80,13 @@ extern wchar_t* io_read_utf16_string_null_terminated_offset(stream* s, ssize_t o
 extern char* io_read_utf8_string_null_terminated_offset_length(stream* s, ssize_t offset, ssize_t* length);
 extern wchar_t* io_read_utf16_string_null_terminated_offset_length(stream* s, ssize_t offset, ssize_t* length);
 extern void io_write_string(stream* s, string* str);
+extern void io_write_string(stream* s, std::string* str);
 extern void io_write_wstring(stream* s, wstring* str);
+extern void io_write_wstring(stream* s, std::wstring* str);
 extern void io_write_string_null_terminated(stream* s, string* str);
+extern void io_write_string_null_terminated(stream* s, std::string* str);
 extern void io_write_wstring_null_terminated(stream* s, wstring* str);
+extern void io_write_wstring_null_terminated(stream* s, std::wstring* str);
 extern void io_write_utf8_string(stream* s, char* str);
 extern void io_write_utf8_string(stream* s, const char* str);
 extern void io_write_utf16_string(stream* s, wchar_t* str);

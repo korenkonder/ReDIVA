@@ -5,32 +5,37 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "default.h"
-#include "string.h"
 #include "vec.h"
-#include "vector.h"
 
 typedef enum pvpp_chara_type {
-    PVPP_CHARA_MIKU   = 0,
-    PVPP_CHARA_RIN    = 1,
-    PVPP_CHARA_LEN    = 2,
-    PVPP_CHARA_LUKA   = 3,
-    PVPP_CHARA_NERU   = 4,
-    PVPP_CHARA_HAKU   = 5,
-    PVPP_CHARA_KAITO  = 6,
-    PVPP_CHARA_MEIKO  = 7,
+    PVPP_CHARA_MIKU = 0,
+    PVPP_CHARA_RIN = 1,
+    PVPP_CHARA_LEN = 2,
+    PVPP_CHARA_LUKA = 3,
+    PVPP_CHARA_NERU = 4,
+    PVPP_CHARA_HAKU = 5,
+    PVPP_CHARA_KAITO = 6,
+    PVPP_CHARA_MEIKO = 7,
     PVPP_CHARA_SAKINE = 8,
-    PVPP_CHARA_TETO   = 9,
-    PVPP_CHARA_EXTRA  = 10,
-    PVPP_CHARA_STAGE  = 255,
+    PVPP_CHARA_TETO = 9,
+    PVPP_CHARA_EXTRA = 10,
+    PVPP_CHARA_STAGE = 255,
 } pvpp_chara_type;
 
-typedef struct pvpp_a3da {
+class pvpp_a3da {
+public:
     uint32_t hash;
-    string name;
-} pvpp_a3da;
+    std::string name;
 
-typedef struct pvpp_chara_effect_a3da {
+    pvpp_a3da();
+    ~pvpp_a3da();
+};
+
+class pvpp_chara_effect_a3da {
+public:
     pvpp_a3da a3da;
     uint8_t u00;
     uint8_t u01;
@@ -40,83 +45,83 @@ typedef struct pvpp_chara_effect_a3da {
     uint8_t u05;
     uint8_t u06;
     uint8_t u07;
-} pvpp_chara_effect_a3da;
 
-vector(pvpp_chara_effect_a3da)
+    pvpp_chara_effect_a3da();
+    ~pvpp_chara_effect_a3da();
+};
 
-typedef struct pvpp_chara_effect {
+class pvpp_chara_effect {
+public:
     pvpp_chara_type base_chara;
-    vector_pvpp_chara_effect_a3da effect_a3da;
-} pvpp_chara_effect;
+    std::vector<pvpp_chara_effect_a3da> effect_a3da;
 
-vector(pvpp_a3da)
+    pvpp_chara_effect();
+    ~pvpp_chara_effect();
+};
 
-typedef struct pvpp_chara_item {
-    vector_pvpp_a3da a3da;
-    string bone;
+class pvpp_chara_item {
+public:
+    std::vector<pvpp_a3da> a3da;
+    std::string bone;
     vec4u u18;
-} pvpp_chara_item;
 
-typedef struct pvpp_glitter {
-    string name;
-    string unk1;
+    pvpp_chara_item();
+    ~pvpp_chara_item();
+};
+
+class pvpp_glitter {
+public:
+    std::string name;
+    std::string unk1;
     bool unk2;
-} pvpp_glitter;
 
-typedef struct pvpp_motion {
+    pvpp_glitter();
+    ~pvpp_glitter();
+};
+
+class pvpp_motion {
+public:
     uint32_t hash;
-    string name;
-} pvpp_motion;
+    std::string name;
 
-vector(pvpp_glitter)
+    pvpp_motion();
+    ~pvpp_motion();
+};
 
-typedef struct pvpp_effect {
-    vector_pvpp_a3da a3da;
+class pvpp_effect {
+public:
+    std::vector<pvpp_a3da> a3da;
     pvpp_chara_type chara_index;
-    vector_pvpp_glitter glitter;
-} pvpp_effect;
+    std::vector<pvpp_glitter> glitter;
 
-vector(pvpp_chara_effect)
-vector(pvpp_chara_item)
-vector(pvpp_motion)
+    pvpp_effect();
+    ~pvpp_effect();
+};
 
-typedef struct pvpp_chara {
-    vector_pvpp_a3da a3da;
-    vector_pvpp_chara_item item;
-    vector_pvpp_chara_effect chara_effect;
-    vector_pvpp_glitter glitter;
-    vector_pvpp_motion motion;
-} pvpp_chara;
+class pvpp_chara {
+public:
+    std::vector<pvpp_a3da> a3da;
+    std::vector<pvpp_chara_item> item;
+    std::vector<pvpp_chara_effect> chara_effect;
+    std::vector<pvpp_glitter> glitter;
+    std::vector<pvpp_motion> motion;
 
-vector(pvpp_chara)
-vector(pvpp_effect)
+    pvpp_chara();
+    ~pvpp_chara();
+};
 
-typedef struct pvpp {
+class pvpp {
+public:
     bool ready;
 
-    vector_pvpp_chara chara;
-    vector_pvpp_effect effect;
-} pvpp;
+    std::vector<pvpp_chara> chara;
+    std::vector<pvpp_effect> effect;
 
-extern void pvpp_init(pvpp* pp);
-extern void pvpp_read(pvpp* pp, char* path);
-extern void pvpp_wread(pvpp* pp, wchar_t* path);
+    pvpp();
+    void read(char* path);
+    void read(wchar_t* path);
+    void read(void* data, size_t length);
+    virtual ~pvpp();
+};
+
 extern bool pvpp_load_file(void* data, char* path, char* file, uint32_t hash);
-extern void pvpp_free(pvpp* pp);
-
-extern void pvpp_a3da_init(pvpp_a3da* a3d);
-extern void pvpp_a3da_free(pvpp_a3da* a3d);
-extern void pvpp_chara_init(pvpp_chara* chr);
-extern void pvpp_chara_free(pvpp_chara* chr);
-extern void pvpp_chara_effect_init(pvpp_chara_effect* chr_eff);
-extern void pvpp_chara_effect_free(pvpp_chara_effect* chr_eff);
-extern void pvpp_chara_effect_a3da_init(pvpp_chara_effect_a3da* chr_pv_eff);
-extern void pvpp_chara_effect_a3da_free(pvpp_chara_effect_a3da* chr_pv_eff);
-extern void pvpp_chara_item_init(pvpp_chara_item* chr_itm);
-extern void pvpp_chara_item_free(pvpp_chara_item* chr_itm);
-extern void pvpp_effect_init(pvpp_effect* eff);
-extern void pvpp_effect_free(pvpp_effect* eff);
-extern void pvpp_glitter_init(pvpp_glitter* glt);
-extern void pvpp_glitter_free(pvpp_glitter* glt);
-extern void pvpp_motion_init(pvpp_motion* mot);
-extern void pvpp_motion_free(pvpp_motion* mot);

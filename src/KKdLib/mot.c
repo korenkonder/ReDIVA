@@ -29,8 +29,8 @@ typedef struct mot_header_modern {
     int32_t bone_info_count;
 } mot_header_modern;
 
-vector_func(mot_data)
-vector_func(mot_set)
+vector_old_func(mot_data)
+vector_old_func(mot_set)
 
 static bool mot_classic_read_inner(mot_set* ms, stream* s);
 static void mot_classic_write_inner(mot_set* ms, stream* s);
@@ -48,22 +48,21 @@ void mot_read(mot_set_farc* msf, char* path, bool modern) {
     char* path_farc = str_utils_add(path, ".farc");
     if (path_check_file_exists(path_farc)) {
         farc f;
-        farc_init(&f);
-        farc_read(&f, path_farc, true, false);
+        f.read(path_farc, true, false);
 
-        vector_mot_set_reserve(&msf->vec, vector_length(f.files));
+        vector_old_mot_set_reserve(&msf->vec, f.files.size());
         if (!modern)
-            for (farc_file* i = f.files.begin; i != f.files.end; i++) {
-                if (!i->data || !i->size
-                    || str_utils_compare_length(string_data(&i->name), i->name.length, "mot_", 4)
-                    || !str_utils_check_ends_with(string_data(&i->name), ".bin"))
+            for (farc_file& i : f.files) {
+                if (!i.data || !i.size
+                    || str_utils_compare_length(i.name.c_str(), i.name.size(), "mot_", 4)
+                    || !str_utils_check_ends_with(i.name.c_str(), ".bin"))
                     continue;
 
                 mot_set ms;
                 mot_set_init(&ms);
 
                 stream s;
-                io_mopen(&s, i->data, i->size);
+                io_mopen(&s, i.data, i.size);
                 bool ret = mot_classic_read_inner(&ms, &s);
                 io_free(&s);
 
@@ -72,22 +71,22 @@ void mot_read(mot_set_farc* msf, char* path, bool modern) {
                     continue;
                 }
 
-                string_copy(&i->name, &ms.name);
-                vector_mot_set_push_back(&msf->vec, &ms);
+                string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
+                vector_old_mot_set_push_back(&msf->vec, &ms);
                 msf->ready = true;
                 msf->modern = false;
             }
         else
-            for (farc_file* i = f.files.begin; i != f.files.end; i++) {
-                if (!i->data || !i->size
-                    || !str_utils_check_ends_with(string_data(&i->name), ".mot"))
+            for (farc_file& i : f.files) {
+                if (!i.data || !i.size
+                    || !str_utils_check_ends_with(i.name.c_str(), ".mot"))
                     continue;
 
                 mot_set ms;
                 mot_set_init(&ms);
 
                 stream s;
-                io_mopen(&s, i->data, i->size);
+                io_mopen(&s, i.data, i.size);
                 bool ret = mot_classic_read_inner(&ms, &s);
                 io_free(&s);
 
@@ -96,12 +95,11 @@ void mot_read(mot_set_farc* msf, char* path, bool modern) {
                     continue;
                 }
 
-                string_copy(&i->name, &ms.name);
-                vector_mot_set_push_back(&msf->vec, &ms);
+                string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
+                vector_old_mot_set_push_back(&msf->vec, &ms);
                 msf->ready = true;
                 msf->modern = true;
             }
-        farc_free(&f);
     }
     free(path_farc);
 }
@@ -113,22 +111,21 @@ void mot_wread(mot_set_farc* msf, wchar_t* path, bool modern) {
     wchar_t* path_farc = str_utils_wadd(path, L".farc");
     if (path_wcheck_file_exists(path_farc)) {
         farc f;
-        farc_init(&f);
-        farc_wread(&f, path_farc, true, false);
+        f.read(path_farc, true, false);
 
-        vector_mot_set_reserve(&msf->vec, vector_length(f.files));
+        vector_old_mot_set_reserve(&msf->vec, f.files.size());
         if (!modern)
-            for (farc_file* i = f.files.begin; i != f.files.end; i++) {
-                if (!i->data || !i->size
-                    || str_utils_compare_length(string_data(&i->name), i->name.length, "mot_", 4)
-                    || !str_utils_check_ends_with(string_data(&i->name), ".bin"))
+            for (farc_file& i : f.files) {
+                if (!i.data || !i.size
+                    || str_utils_compare_length(i.name.c_str(), i.name.size(), "mot_", 4)
+                    || !str_utils_check_ends_with(i.name.c_str(), ".bin"))
                     continue;
 
                 mot_set ms;
                 mot_set_init(&ms);
 
                 stream s;
-                io_mopen(&s, i->data, i->size);
+                io_mopen(&s, i.data, i.size);
                 bool ret = mot_classic_read_inner(&ms, &s);
                 io_free(&s);
 
@@ -137,22 +134,22 @@ void mot_wread(mot_set_farc* msf, wchar_t* path, bool modern) {
                     continue;
                 }
 
-                string_copy(&i->name, &ms.name);
-                vector_mot_set_push_back(&msf->vec, &ms);
+                string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
+                vector_old_mot_set_push_back(&msf->vec, &ms);
                 msf->ready = true;
                 msf->modern = false;
             }
         else
-            for (farc_file* i = f.files.begin; i != f.files.end; i++) {
-                if (!i->data || !i->size
-                    || !str_utils_check_ends_with(string_data(&i->name), ".mot"))
+            for (farc_file& i : f.files) {
+                if (!i.data || !i.size
+                    || !str_utils_check_ends_with(i.name.c_str(), ".mot"))
                     continue;
 
                 mot_set ms;
                 mot_set_init(&ms);
 
                 stream s;
-                io_mopen(&s, i->data, i->size);
+                io_mopen(&s, i.data, i.size);
                 bool ret = mot_classic_read_inner(&ms, &s);
                 io_free(&s);
 
@@ -161,8 +158,8 @@ void mot_wread(mot_set_farc* msf, wchar_t* path, bool modern) {
                     continue;
                 }
 
-                string_copy(&i->name, &ms.name);
-                vector_mot_set_push_back(&msf->vec, &ms);
+                string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
+                vector_old_mot_set_push_back(&msf->vec, &ms);
                 msf->ready = true;
                 msf->modern = true;
             }
@@ -175,22 +172,21 @@ void mot_mread(mot_set_farc* msf, void* data, size_t length, bool modern) {
         return;
 
     farc f;
-    farc_init(&f);
-    farc_mread(&f, data, length, true);
+    f.read(data, length, true);
 
-    vector_mot_set_reserve(&msf->vec, vector_length(f.files));
+    vector_old_mot_set_reserve(&msf->vec, f.files.size());
     if (!modern)
-        for (farc_file* i = f.files.begin; i != f.files.end; i++) {
-            if (!i->data || !i->size
-                || str_utils_compare_length(string_data(&i->name), i->name.length, "mot_", 4)
-                || !str_utils_check_ends_with(string_data(&i->name), ".bin"))
+        for (farc_file& i : f.files) {
+            if (!i.data || !i.size
+                || str_utils_compare_length(i.name.c_str(), i.name.size(), "mot_", 4)
+                || !str_utils_check_ends_with(i.name.c_str(), ".bin"))
                 continue;
 
             mot_set ms;
             mot_set_init(&ms);
 
             stream s;
-            io_mopen(&s, i->data, i->size);
+            io_mopen(&s, i.data, i.size);
             bool ret = mot_classic_read_inner(&ms, &s);
             io_free(&s);
 
@@ -199,22 +195,22 @@ void mot_mread(mot_set_farc* msf, void* data, size_t length, bool modern) {
                 continue;
             }
 
-            string_init_length(&ms.name, string_data(&i->name), i->name.length - 4);
-            vector_mot_set_push_back(&msf->vec, &ms);
+            string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
+            vector_old_mot_set_push_back(&msf->vec, &ms);
             msf->ready = true;
             msf->modern = false;
         }
     else
-        for (farc_file* i = f.files.begin; i != f.files.end; i++) {
-            if (!i->data || !i->size
-                || !str_utils_check_ends_with(string_data(&i->name), ".mot"))
+        for (farc_file& i : f.files) {
+            if (!i.data || !i.size
+                || !str_utils_check_ends_with(i.name.c_str(), ".mot"))
                 continue;
 
             mot_set ms;
             mot_set_init(&ms);
 
             stream s;
-            io_mopen(&s, i->data, i->size);
+            io_mopen(&s, i.data, i.size);
             bool ret = mot_classic_read_inner(&ms, &s);
             io_free(&s);
 
@@ -223,12 +219,11 @@ void mot_mread(mot_set_farc* msf, void* data, size_t length, bool modern) {
                 continue;
             }
 
-            string_init_length(&ms.name, string_data(&i->name), i->name.length - 4);
-            vector_mot_set_push_back(&msf->vec, &ms);
+            string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
+            vector_old_mot_set_push_back(&msf->vec, &ms);
             msf->ready = true;
             msf->modern = true;
         }
-    farc_free(&f);
 }
 
 void mot_write(mot_set_farc* msf, char* path, farc_compress_mode mode) {
@@ -238,7 +233,6 @@ void mot_write(mot_set_farc* msf, char* path, farc_compress_mode mode) {
     char* path_farc = str_utils_add(path, ".farc");
 
     farc f;
-    farc_init(&f);
     if (!msf->modern)
         for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
             farc_file ff;
@@ -251,10 +245,10 @@ void mot_write(mot_set_farc* msf, char* path, farc_compress_mode mode) {
             io_mcopy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            string_copy(&i->name, &ff.name);
-            string_add(&ff.name, ".bin");
+            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name += ".bin";
 
-            vector_farc_file_push_back(&f.files, &ff);
+            f.files.push_back(ff);
         }
     else
         for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
@@ -268,12 +262,12 @@ void mot_write(mot_set_farc* msf, char* path, farc_compress_mode mode) {
             io_mcopy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            string_copy(&i->name, &ff.name);
-            string_add(&ff.name, ".mot");
+            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name += ".mot";
 
-            vector_farc_file_push_back(&f.files, &ff);
+            f.files.push_back(ff);
         }
-    farc_write(&f, path_farc, mode, false);
+    f.write(path_farc, mode, false);
     free(path_farc);
 }
 
@@ -284,11 +278,9 @@ void mot_wwrite(mot_set_farc* msf, wchar_t* path, farc_compress_mode mode) {
     wchar_t* path_farc = str_utils_wadd(path, L".farc");
 
     farc f;
-    farc_init(&f);
     if (!msf->modern)
         for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
             farc_file ff;
-            memset(&ff, 0, sizeof(farc_file));
 
             stream s;
             io_mopen(&s, 0, 0);
@@ -297,15 +289,14 @@ void mot_wwrite(mot_set_farc* msf, wchar_t* path, farc_compress_mode mode) {
             io_mcopy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            string_copy(&i->name, &ff.name);
-            string_add(&ff.name, ".bin");
+            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name += ".bin";
 
-            vector_farc_file_push_back(&f.files, &ff);
+            f.files.push_back(ff);
         }
     else
         for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
             farc_file ff;
-            memset(&ff, 0, sizeof(farc_file));
 
             stream s;
             io_mopen(&s, 0, 0);
@@ -314,12 +305,12 @@ void mot_wwrite(mot_set_farc* msf, wchar_t* path, farc_compress_mode mode) {
             io_mcopy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            string_copy(&i->name, &ff.name);
-            string_add(&ff.name, ".mot");
+            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name += ".mot";
 
-            vector_farc_file_push_back(&f.files, &ff);
+            f.files.push_back(ff);
         }
-    farc_wwrite(&f, path_farc, mode, false);
+    f.write(path_farc, mode, false);
     free(path_farc);
 }
 
@@ -328,12 +319,9 @@ void mot_mwrite(mot_set_farc* msf, void** data, size_t* length, farc_compress_mo
         return;
 
     farc f;
-    farc_init(&f);
     if (!msf->modern)
         for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
             farc_file ff;
-            memset(&ff, 0, sizeof(farc_file));
-
             stream s;
             io_mopen(&s, 0, 0);
             mot_classic_write_inner(i, &s);
@@ -341,10 +329,10 @@ void mot_mwrite(mot_set_farc* msf, void** data, size_t* length, farc_compress_mo
             io_mcopy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            string_copy(&i->name, &ff.name);
-            string_add(&ff.name, ".bin");
+            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name += ".bin";
 
-            vector_farc_file_push_back(&f.files, &ff);
+            f.files.push_back(ff);
         }
     else
         for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
@@ -358,12 +346,12 @@ void mot_mwrite(mot_set_farc* msf, void** data, size_t* length, farc_compress_mo
             io_mcopy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            string_copy(&i->name, &ff.name);
-            string_add(&ff.name, ".mot");
+            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name += ".mot";
 
-            vector_farc_file_push_back(&f.files, &ff);
+            f.files.push_back(ff);
         }
-    farc_mwrite(&f, data, length,  mode);
+    f.write(data, length,  mode);
 }
 
 bool mot_load_file(void* data, char* path, char* file, uint32_t hash) {
@@ -388,7 +376,7 @@ void mot_free(mot_set_farc* msf) {
     if (!msf)
         return;
 
-    vector_mot_set_free(&msf->vec, mot_set_free);
+    vector_old_mot_set_free(&msf->vec, mot_set_free);
 }
 
 void mot_set_init(mot_set* ms) {
@@ -415,7 +403,7 @@ void mot_set_free(mot_set* ms) {
     }
 
     string_free(&ms->name);
-    vector_mot_data_free(&ms->vec, 0);
+    vector_old_mot_data_free(&ms->vec, 0);
 }
 
 static bool mot_classic_read_inner(mot_set* ms, stream* s) {
@@ -431,7 +419,7 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
     }
 
     io_set_position(s, 0x00, SEEK_SET);
-    vector_mot_data_reserve(&ms->vec, count);
+    vector_old_mot_data_reserve(&ms->vec, count);
     mot_header_classic* mh = force_malloc_s(mot_header_classic, count);
     for (size_t i = 0; i < count; i++) {
         mh[i].key_set_count_offset = io_read_uint32_t(s);
@@ -441,7 +429,7 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
     }
 
     for (size_t i = 0; i < count; i++) {
-        mot_data* m = vector_mot_data_reserve_back(&ms->vec);
+        mot_data* m = vector_old_mot_data_reserve_back(&ms->vec);
 
         io_set_position(s, mh[i].bone_info_offset, SEEK_SET);
         m->bone_info_count = 0;
@@ -514,7 +502,7 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
 }
 
 static void mot_classic_write_inner(mot_set* ms, stream* s) {
-    size_t count = vector_length(ms->vec);
+    size_t count = vector_old_length(ms->vec);
     io_set_position(s, count * 0x10 + 0x10, SEEK_SET);
     mot_header_classic* mh = force_malloc_s(mot_header_classic, count);
     for (size_t i = 0; i < count; i++) {
@@ -604,7 +592,7 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
     bool is_x = io_read_uint32_t_stream_reverse_endianness(&s_motc) == 0;
 
     io_set_position(&s_motc, 0x00, SEEK_SET);
-    vector_mot_data_reserve(&ms->vec, 1);
+    vector_old_mot_data_reserve(&ms->vec, 1);
     mot_header_modern mh;
     memset(&mh, 0, sizeof(mot_header_modern));
     if (!is_x) {
@@ -628,7 +616,7 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
         mh.bone_info_count = io_read_int32_t_stream_reverse_endianness(&s_motc);
     }
 
-    mot_data* m = vector_mot_data_reserve_back(&ms->vec);
+    mot_data* m = vector_old_mot_data_reserve_back(&ms->vec);
     m->div_frames = io_read_uint16_t_stream_reverse_endianness(&s_motc);;
     m->div_count = io_read_uint8_t(&s_motc);;
 
@@ -724,57 +712,57 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
     stream s_motc;
     io_mopen(&s_motc, 0, 0);
     uint32_t o;
-    vector_enrs_entry e = vector_empty(enrs_entry);
+    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
-    vector_size_t pof = vector_empty(size_t);
+    vector_old_size_t pof = vector_old_empty(size_t);
     uint32_t murmurhash = 0;
-    if (vector_length(ms->vec) > 0) {
+    if (vector_old_length(ms->vec) > 0) {
         mot_header_modern mh;
         memset(&mh, 0, sizeof(mot_header_modern));
         mot_data* m = ms->vec.begin;
 
         if (!ms->is_x) {
-            ee = { 0, 3, 48, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 7, ENRS_DWORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { 0, 3, 48, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 7, ENRS_DWORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             o = 48;
         }
         else {
-            ee = { 0, 3, 64, 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, 7, ENRS_QWORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { 0, 3, 64, 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 7, ENRS_QWORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_WORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             o = 64;
         };
 
-        ee = { o, 1, 4, 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         o = 4;
 
-        ee = { o, 1, (uint32_t)((m->key_set_count + 3ULL) / 4), 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, (uint32_t)((m->key_set_count + 7ULL) / 8), ENRS_WORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, (uint32_t)((m->key_set_count + 3ULL) / 4), 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, (uint32_t)((m->key_set_count + 7ULL) / 8), ENRS_WORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         o = (m->key_set_count + 3) / 4;
         o = align_val(o, 4);
 
         for (int32_t j = 0; j < m->key_set_count; j++) {
             mot_key_set_data* mks = &m->key_set[j];
             if (mks->type == MOT_KEY_SET_STATIC) {
-                ee = { o, 1, 4, 1, vector_empty(enrs_sub_entry) };
-                vector_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-                vector_enrs_entry_push_back(&e, &ee);
+                ee = { o, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                vector_old_enrs_entry_push_back(&e, &ee);
                 o = 4;
             }
             else if (mks->type != MOT_KEY_SET_NONE) {
                 bool has_tangents = mks->type != MOT_KEY_SET_HERMITE;
                 if (has_tangents)
-                    ee = { o, 1, 4, 1, vector_empty(enrs_sub_entry) };
+                    ee = { o, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
                 else
-                    ee = { o, 1, 3, 1, vector_empty(enrs_sub_entry) };
+                    ee = { o, 1, 3, 1, vector_old_empty(enrs_sub_entry) };
 
                 uint16_t keys_count = mks->keys_count;
                 mot_key_set_data_type data_type = mks->data_type;
@@ -790,39 +778,39 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
                 o = align_val(o, 4);
                 ee.size = o;
 
-                vector_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
+                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
                 if (has_tangents)
-                    vector_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_DWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_DWORD);
                 if (data_type == MOT_KEY_SET_DATA_F16) {
-                    vector_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_WORD);
-                    vector_enrs_sub_entry_append(&ee.sub, keys_count % 2 == 1 ? 2 : 0, keys_count, ENRS_WORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_WORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, keys_count % 2 == 1 ? 2 : 0, keys_count, ENRS_WORD);
                 }
                 else {
-                    vector_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_DWORD);
-                    vector_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_WORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_DWORD);
+                    vector_old_enrs_sub_entry_append(&ee.sub, 0, keys_count, ENRS_WORD);
                 }
-                vector_enrs_entry_push_back(&e, &ee);
+                vector_old_enrs_entry_push_back(&e, &ee);
             }
         }
         o = align_val(o, 16);
 
         if (!ms->is_x) {
-            ee = { o, 1, (uint32_t)(m->bone_info_count * 4ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, m->bone_info_count, ENRS_DWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { o, 1, (uint32_t)(m->bone_info_count * 4ULL), 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, m->bone_info_count, ENRS_DWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             o = m->bone_info_count * 4;
         }
         else {
-            ee = { o, 1, (uint32_t)(m->bone_info_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-            vector_enrs_sub_entry_append(&ee.sub, 0, m->bone_info_count, ENRS_QWORD);
-            vector_enrs_entry_push_back(&e, &ee);
+            ee = { o, 1, (uint32_t)(m->bone_info_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
+            vector_old_enrs_sub_entry_append(&ee.sub, 0, m->bone_info_count, ENRS_QWORD);
+            vector_old_enrs_entry_push_back(&e, &ee);
             o = m->bone_info_count * 8;
         }
         o = align_val(o, 16);
 
-        ee = { o, 1,(uint32_t)(m->bone_info_count * 8ULL), 1, vector_empty(enrs_sub_entry) };
-        vector_enrs_sub_entry_append(&ee.sub, 0, m->bone_info_count, ENRS_QWORD);
-        vector_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1,(uint32_t)(m->bone_info_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, m->bone_info_count, ENRS_QWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
         o = m->bone_info_count * 8;
 
         if (!ms->is_x) {

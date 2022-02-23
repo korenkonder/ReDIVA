@@ -16,6 +16,7 @@
 #include "../CRE/camera.h"
 #include "../CRE/data.h"
 #include "../CRE/fbo.h"
+#include "../CRE/file_handler.h"
 #include "../CRE/gl_state.h"
 #include "../CRE/light_param.h"
 #include "../CRE/lock.h"
@@ -32,10 +33,6 @@
 #include "../CRE/timer.h"
 #include "../CRE/post_process.h"
 #include "../KKdLib/io/path.h"
-#include "../KKdLib/dsc.h"
-#include "../KKdLib/farc.h"
-#include "../KKdLib/pvpp.h"
-#include "../KKdLib/pvsr.h"
 #include"classes/imgui_helper.h"
 #include <timeapi.h>
 
@@ -107,7 +104,7 @@ static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths);
 static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h);
 static void render_resize_fb(render_context* rctx, bool change_fb);
 
-static void render_imgui_context_menu(classes_struct* classes,
+static void render_imgui_context_menu(classes_data* classes,
     const size_t classes_count, render_context* rctx);
 static void render_shaders_load();
 static void render_shaders_free();
@@ -115,14 +112,6 @@ static void render_shaders_free();
 #if defined (DEBUG) && OPENGL_DEBUG
 static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id,
     GLenum severity, GLsizei length, const char* message, const void* userParam);
-#endif
-
-#if defined(CLOUD_DEV)
-static void x_pv_player_init();
-static void x_pv_player_ctrl();
-static void x_pv_player_disp();
-static void x_pv_player_load(int32_t pv_id, int32_t stage_id);
-static void x_pv_player_free();
 #endif
 
 extern bool close;
@@ -136,6 +125,7 @@ bool global_context_menu;
 extern size_t frame_counter;
 wind* wind_ptr;
 object_database* obj_db_ptr;
+render_context* rctx_ptr;
 int32_t stage_index = -1;
 
 int32_t render_main(void* arg) {
@@ -161,7 +151,6 @@ int32_t render_main(void* arg) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
-    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 #if defined (DEBUG) && OPENGL_DEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 #endif
@@ -193,8 +182,10 @@ int32_t render_main(void* arg) {
 #endif
 #endif
 
-    window = glfwCreateWindow(width, height, glfw_titlelabel,
-        mode->width == width && mode->height == height ? monitor : 0, 0);
+    bool maximized = mode->width == width && mode->height == height;
+    glfwWindowHint(GLFW_MAXIMIZED, maximized ? GLFW_TRUE : GLFW_FALSE);
+
+    window = glfwCreateWindow(width, height, glfw_titlelabel, maximized ? monitor : 0, 0);
     if (!window) {
         glfwTerminate();
         return -1;
@@ -206,7 +197,7 @@ int32_t render_main(void* arg) {
         glfwTerminate();
         return -2;
     }
-    gl_state_get_all_gl_errors();
+    glGetError();
     glViewport(0, 0, width, height);
 
     window_handle = glfwGetWin32Window(window);
@@ -215,6 +206,7 @@ int32_t render_main(void* arg) {
     glfwSetWindowSizeCallback(window, (GLFWwindowsizefun)render_resize_fb_glfw);
     glfwSetWindowSize(window, width, height);
     glfwSetWindowSizeLimits(window, 896, 504, GLFW_DONT_CARE, GLFW_DONT_CARE);
+    glfwSetWindowPos(window, 8, 31);
 
     RECT window_rect;
     GetClientRect(window_handle, &window_rect);
@@ -358,26 +350,25 @@ float_t rob_frame = 0.0f;
 int32_t rob_chara_id_array[ROB_CHARA_COUNT];
 
 static render_context* render_load() {
-    TaskWork_init();
     object_storage_init();
     texture_storage_init();
 
+    file_handler_storage_init_thread();
+
     render_context* rctx = render_context_init();
+    rctx_ptr = rctx;
 
     gl_state_get();
     render_texture_data_init();
 
-    auth_3d_data_init();
-    light_param_storage_init();
     motion_storage_init();
 
-    GPM_VAL = glitter_particle_manager_init();
-    GPM_VAL->rctx = rctx;
+    glt_particle_manager.rctx = rctx;
 
     data_struct_init();
     data_struct_load("CLOUD_data.txt");
 
-    GPM_VAL->bone_data = &data_list[DATA_AFT].data_ft.bone_data;
+    glt_particle_manager.bone_data = &data_list[DATA_AFT].data_ft.bone_data;
 
     glGenBuffers(1, &common_data_ubo);
 
@@ -554,6 +545,9 @@ static render_context* render_load() {
 
     rctx->data = aft_data;
 
+    light_param_data_storage::load(aft_data);
+    auth_3d_data_load_auth_3d_db(aft_auth_3d_db);
+
     stage_init(&stage_stgtst);
     stage_load(&stage_stgtst, aft_data, aft_auth_3d_db,
         aft_obj_db, aft_tex_db, aft_stage_data, "STGTST", rctx);
@@ -573,8 +567,8 @@ static render_context* render_load() {
     object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM681");
     object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM981");
 
-    motion_set_load_motion(motion_database_get_motion_set_id(aft_mot_db, "CMN"), 0, aft_mot_db);
-    motion_set_load_motion(motion_database_get_motion_set_id(aft_mot_db, "PV824"), 0, aft_mot_db);
+    motion_set_load_motion(aft_mot_db->get_motion_set_id("CMN"), 0, aft_mot_db);
+    motion_set_load_motion(aft_mot_db->get_motion_set_id("PV824"), 0, aft_mot_db);
 
     rob_chara_pv_data pv_data;
     rob_chara_pv_data_init(&pv_data);
@@ -585,7 +579,7 @@ static render_context* render_load() {
         rob_chara_reset_data(&rob_chara_array[chara_id], &rob_chara_array[chara_id].pv_data, aft_bone_data, aft_mot_db);
         rob_chara_reset(&rob_chara_array[chara_id], aft_bone_data, aft_data, aft_obj_db);
         rob_chara_load_motion(&rob_chara_array[chara_id],
-            motion_database_get_motion_id(aft_mot_db, "PV824_STF_P1_00"), 2, aft_bone_data, aft_mot_db);
+            aft_mot_db->get_motion_id("PV824_STF_P1_00"), 2, aft_bone_data, aft_mot_db);
         rob_chara_set_visibility(&rob_chara_array[chara_id], true);
         //rob_chara_set_frame(&rob_chara_array[chara_id], 1000.0f);
     }
@@ -647,14 +641,6 @@ static render_context* render_load() {
 
     free(grid_verts);
 
-#if defined(CLOUD_DEV)
-    for (int32_t i = 1; i <= 32; i++) {
-        x_pv_player_init();
-        x_pv_player_load(800 + i, i);
-        x_pv_player_free();
-    }
-#endif
-
     camera* cam = rctx->camera;
 
     camera_initialize(cam, aspect, internal_3d_res.x, internal_3d_res.y);
@@ -688,6 +674,9 @@ static render_context* render_load() {
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
     shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
     classes_process_init(classes, classes_count, rctx);
+
+    TaskWork::AppendTask(&task_auth_3d, "AUTH_3D");
+    TaskWork::AppendTask(&glt_particle_manager, "GLITTER_TASK", 2);
     return rctx;
 }
 
@@ -765,9 +754,9 @@ static void render_ctrl(render_context* rctx) {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     obj_db_ptr = &aft_data->data_ft.obj_db;
-    render_context_ctrl(rctx);
+    classes_process_ctrl(classes, classes_count);
 
-    classes_process_render(classes, classes_count);
+    render_context_ctrl(rctx);
 
     igRender();
 
@@ -917,7 +906,7 @@ static void render_draw(render_context* rctx) {
         size_t object_bone_count = rob_bone_data->object_bone_count;
         size_t total_bone_count = rob_bone_data->total_bone_count;
         size_t ik_bone_count = rob_bone_data->ik_bone_count;
-        vector_bone_node* nodes = &rob_bone_data->nodes;
+        vector_old_bone_node* nodes = &rob_bone_data->nodes;
         shader_glsl_use(&cube_line_shader);
         for (bone_node* j = nodes->begin; j != nodes->end; j++) {
             if (!j->parent)
@@ -938,7 +927,7 @@ static void render_draw(render_context* rctx) {
             j < rob_item_equip->max_item_equip_object; j++) {
             rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
 
-            vector_ptr_ExExpressionBlock* expression_blocks = &itm_eq_obj->expression_blocks;
+            vector_old_ptr_ExExpressionBlock* expression_blocks = &itm_eq_obj->expression_blocks;
             for (ExExpressionBlock** k = expression_blocks->begin; k != expression_blocks->end; k++) {
                 if (!*k)
                     continue;
@@ -958,7 +947,7 @@ static void render_draw(render_context* rctx) {
                 cube_line_draw(&cube_line_shader, cam, trans, line_size, &cns_color);
             }
 
-            vector_ptr_ExConstraintBlock* constraint_blocks = &itm_eq_obj->constraint_blocks;
+            vector_old_ptr_ExConstraintBlock* constraint_blocks = &itm_eq_obj->constraint_blocks;
             for (ExConstraintBlock** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
                 if (!*k)
                     continue;
@@ -978,7 +967,7 @@ static void render_draw(render_context* rctx) {
                 cube_line_draw(&cube_line_shader, cam, trans, line_size, &exp_color);
             }
 
-            vector_ptr_ExOsageBlock* osage_blocks = &itm_eq_obj->osage_blocks;
+            vector_old_ptr_ExOsageBlock* osage_blocks = &itm_eq_obj->osage_blocks;
             for (ExOsageBlock** k = osage_blocks->begin; k != osage_blocks->end; k++) {
                 if (!*k)
                     continue;
@@ -998,7 +987,7 @@ static void render_draw(render_context* rctx) {
                 cube_line_draw(&cube_line_shader, cam, trans, line_size, &osg_color);
 
                 rob_osage* rob_osg = &osg->rob;
-                vector_rob_osage_node* nodes = &osg->rob.nodes;
+                vector_old_rob_osage_node* nodes = &osg->rob.nodes;
                 rob_osage_node* parent_node = &osg->rob.node;
                 for (rob_osage_node* l = nodes->begin; l != nodes->end; parent_node = l++) {
                     if (!l->bone_node_ptr || !parent_node->bone_node_ptr)
@@ -1028,7 +1017,7 @@ static void render_draw(render_context* rctx) {
             j < rob_item_equip->max_item_equip_object; j++) {
             rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
 
-            vector_ptr_ExExpressionBlock* expression_blocks = &itm_eq_obj->expression_blocks;
+            vector_old_ptr_ExExpressionBlock* expression_blocks = &itm_eq_obj->expression_blocks;
             for (ExExpressionBlock** k = expression_blocks->begin; k != expression_blocks->end; k++) {
                 if (!*k)
                     continue;
@@ -1044,7 +1033,7 @@ static void render_draw(render_context* rctx) {
                     line_point_size, line_point_dark_size, &point_color, &point_dark_color);
             }
 
-            vector_ptr_ExConstraintBlock* constraint_blocks = &itm_eq_obj->constraint_blocks;
+            vector_old_ptr_ExConstraintBlock* constraint_blocks = &itm_eq_obj->constraint_blocks;
             for (ExConstraintBlock** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
                 if (!*k)
                     continue;
@@ -1060,7 +1049,7 @@ static void render_draw(render_context* rctx) {
                     line_point_size, line_point_dark_size, &point_color, &point_dark_color);
             }
 
-            vector_ptr_ExOsageBlock* osage_blocks = &itm_eq_obj->osage_blocks;
+            vector_old_ptr_ExOsageBlock* osage_blocks = &itm_eq_obj->osage_blocks;
             for (ExOsageBlock** k = osage_blocks->begin; k != osage_blocks->end; k++) {
                 if (!*k)
                     continue;
@@ -1076,7 +1065,7 @@ static void render_draw(render_context* rctx) {
                     line_point_size, line_point_dark_size, &point_color, &point_dark_color);
 
                 rob_osage* rob_osg = &osg->rob;
-                vector_rob_osage_node* nodes = &osg->rob.nodes;
+                vector_old_rob_osage_node* nodes = &osg->rob.nodes;
                 for (rob_osage_node* l = nodes->begin; l != nodes->end; l++) {
                     if (!l->bone_node_ptr)
                         continue;
@@ -1110,8 +1099,6 @@ static void render_dispose(render_context* rctx) {
     igDestroyContext(imgui_context);
     lock_free(&imgui_context_lock);
 
-    glitter_particle_manager_dispose(GPM_VAL);
-
     stage_free(&stage_test_data, rctx);
     stage_free(&stage_stgtst, rctx);
 
@@ -1123,10 +1110,6 @@ static void render_dispose(render_context* rctx) {
     shader_glsl_free(&cube_line_point_shader);
     shader_glsl_free(&cube_line_shader);
 
-#if defined(CLOUD_DEV)
-    x_pv_player_free();
-#endif
-
     glDeleteBuffers(1, &common_data_ubo);
     glDeleteBuffers(1, &grid_vbo);
     glDeleteBuffers(1, &cube_line_vbo);
@@ -1134,16 +1117,15 @@ static void render_dispose(render_context* rctx) {
 
     rob_chara_array_free();
 
-    auth_3d_data_free();
-    light_param_storage_free();
     motion_storage_free();
+
+    light_param_data_storage::unload();
 
     render_texture_data_free();
     render_context_free(rctx);
 
     object_storage_free();
     texture_storage_free();
-    TaskWork_free();
 }
 
 static void render_imgui(render_context* rctx) {
@@ -1159,10 +1141,8 @@ static bool render_load_shaders(void* data, char* path, char* file, uint32_t has
     string_add(&s, file);
 
     farc f;
-    farc_init(&f);
-    farc_read(&f, string_data(&s), true, false);
+    f.read(string_data(&s), true, false);
     shader_ft_load((shader_set_data*)data, &f, false);
-    farc_free(&f);
 
     string_free(&s);
     return true;
@@ -1232,10 +1212,10 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     }
 }
 
-static void render_imgui_context_menu(classes_struct* classes,
+static void render_imgui_context_menu(classes_data* classes,
     const size_t classes_count, render_context* rctx) {
     for (size_t i = 0; i < classes_count; i++) {
-        classes_struct* c = &classes[i];
+        classes_data* c = &classes[i];
         if (!c->name || ~c->flags & CLASSES_IN_CONTEXT_MENU)
             continue;
 
@@ -1355,240 +1335,5 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
 
     printf("Debug message (%d): %s\n", id, message);
     printf("########################################\n\n");
-}
-#endif
-
-#if defined(CLOUD_DEV)
-typedef enum x_pv_player_frame_data_type {
-    X_PV_PLAYER_FRAME_DATA_NONE = 0,
-    X_PV_PLAYER_FRAME_DATA_BPM,
-    X_PV_PLAYER_FRAME_DATA_SONG_EFFECT,
-    X_PV_PLAYER_FRAME_DATA_STAGE_EFFECT,
-} x_pv_player_frame_data_type;
-
-typedef struct x_pv_player_glitter {
-    string name;
-    uint32_t hash;
-    glitter_effect_group* effect_group;
-} x_pv_player_glitter;
-
-typedef struct x_pv_player_song_effect {
-    bool enable;
-    int32_t id;
-} x_pv_player_song_effect;
-
-typedef struct x_pv_player_frame_data {
-    int32_t frame;
-    x_pv_player_frame_data_type type;
-    union {
-        int32_t bpm;
-        x_pv_player_song_effect song_effect;
-        int32_t stage_effect;
-    };
-} x_pv_player_frame_data;
-
-vector(x_pv_player_frame_data)
-
-typedef struct x_pv_player {
-    int32_t pv_id;
-    int32_t stage_id;
-    pvpp pp;
-    pvsr sr;
-
-    x_pv_player_glitter pv_glitter;
-    x_pv_player_glitter stage_glitter;
-    vector_x_pv_player_frame_data frame_data;
-} x_pv_player;
-
-vector_func(x_pv_player_frame_data)
-
-static void x_pv_player_glitter_load(x_pv_player_glitter* pv_glt, char* name);
-static void x_pv_player_glitter_free(x_pv_player_glitter* pv_glt);
-
-static x_pv_player x_pv_player_data;
-
-static void x_pv_player_init() {
-    memset(&x_pv_player_data, 0, sizeof(x_pv_player));
-}
-
-static void x_pv_player_ctrl() {
-
-}
-
-static void x_pv_player_disp() {
-
-}
-
-static void x_pv_player_load(int32_t pv_id, int32_t stage_id) {
-    x_pv_player* x_pv = &x_pv_player_data;
-    x_pv->pv_id = pv_id;
-    x_pv->stage_id = stage_id;
-
-    char path_buf[0x200];
-    char file_buf[0x200];
-
-    data_struct* x_data = &data_list[DATA_X];
-
-    sprintf_s(file_buf, sizeof(file_buf), "pv%03d.pvpp", pv_id);
-    pvpp_init(&x_pv->pp);
-    data_struct_load_file(x_data, &x_pv->pp, "rom/pv/", file_buf, pvpp_load_file);
-
-    sprintf_s(file_buf, sizeof(file_buf), "stgpv%03d_param.pvsr", stage_id);
-    pvsr_init(&x_pv->sr);
-    data_struct_load_file(x_data, &x_pv->sr, "rom/pv_stage_rsrc/", file_buf, pvsr_load_file);
-
-    GPM_VAL->data = x_data;
-    sprintf_s(file_buf, sizeof(file_buf), "eff_pv%03d_main", pv_id);
-    x_pv_player_glitter_load(&x_pv->pv_glitter, file_buf);
-
-    sprintf_s(file_buf, sizeof(file_buf), "eff_stgpv%03d_main", stage_id);
-    x_pv_player_glitter_load(&x_pv->stage_glitter, file_buf);
-
-    dsc dsc_scene;
-    dsc dsc_system;
-    dsc dsc_easy;
-    dsc_init(&dsc_scene);
-    dsc_init(&dsc_system);
-    dsc_init(&dsc_easy);
-
-    farc dsc_common_farc;
-    sprintf_s(path_buf, sizeof(path_buf), "rom/pv_script/pv%03d/", pv_id);
-    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_common.farc", pv_id);
-    farc_init(&dsc_common_farc);
-    data_struct_load_file(x_data, &dsc_common_farc, path_buf, file_buf, farc_load_file);
-
-    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_scene.dsc", pv_id);
-    farc_file* dsc_scene_ff = farc_read_file(&dsc_common_farc, file_buf);
-    if (dsc_scene_ff)
-        dsc_parse(&dsc_scene, dsc_scene_ff->data, dsc_scene_ff->size, DSC_X);
-
-    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_system.dsc", pv_id);
-    farc_file* dsc_system_ff = farc_read_file(&dsc_common_farc, file_buf);
-    if (dsc_system_ff)
-        dsc_parse(&dsc_system, dsc_system_ff->data, dsc_system_ff->size, DSC_X);
-    farc_free(&dsc_common_farc);
-
-    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_easy.dsc", pv_id);
-    dsc_easy.type = DSC_X;
-    data_struct_load_file(x_data, &dsc_easy, path_buf, file_buf, dsc_load_file);
-
-    dsc dsc_m;
-    dsc_merge(&dsc_m, 3, &dsc_scene, &dsc_system, &dsc_easy);
-
-    dsc_free(&dsc_scene);
-    dsc_free(&dsc_system);
-    dsc_free(&dsc_easy);
-
-    int32_t end_func_id = dsc_x_get_func_id("END");
-    int32_t time_func_id = dsc_x_get_func_id("TIME");
-    int32_t bar_time_set_func_id = dsc_x_get_func_id("BAR_TIME_SET");
-    int32_t pv_end_func_id = dsc_x_get_func_id("PV_END");
-    int32_t bar_point_func_id = dsc_x_get_func_id("BAR_POINT");
-    int32_t stage_effect_func_id = dsc_x_get_func_id("STAGE_EFFECT");
-    int32_t song_effect_func_id = dsc_x_get_func_id("SONG_EFFECT");
-
-    int32_t time = -1;
-    int32_t frame = -1;
-    bool bar_set = false;
-    int32_t prev_bar_point_time = -1;
-    int32_t prev_bpm = -1;
-    int32_t end_frame = -1;
-    for (dsc_data* i = dsc_m.data.begin; i != dsc_m.data.end; i++) {
-        uint32_t* data = dsc_data_get_func_data(&dsc_m, i);
-        if (i->func == end_func_id)
-            break;
-        else if (i->func == time_func_id) {
-            time = (int32_t)data[0];
-            frame = (int32_t)roundf((float_t)time * (float_t)(60.0f / 100000.0f));
-        }
-        else if (i->func == bar_time_set_func_id) {
-            if (prev_bar_point_time != -1)
-                continue;
-
-            int32_t bpm = (int32_t)data[0];
-            int32_t time_signature = (int32_t)(data[1] + 1);
-
-            if (bpm != prev_bpm) {
-                x_pv_player_frame_data frame_data = { 0 };
-                frame_data.frame = frame;
-                frame_data.type = X_PV_PLAYER_FRAME_DATA_BPM;
-                frame_data.bpm = bpm;
-                vector_x_pv_player_frame_data_push_back(&x_pv->frame_data, &frame_data);
-                //printf("Frame: %5d; BPM: %3d; Speed: %.9f\n", frame, bpm, (double_t)bpm * (1.0 / 120.0));
-
-            }
-            prev_bpm = bpm;
-        }
-        else if (i->func == pv_end_func_id) {
-            end_frame = frame;
-            break;
-        }
-        else if (i->func == bar_point_func_id) {
-            if (prev_bar_point_time != -1) {
-                float_t frame_speed = 200000.0f / (float_t)(time - prev_bar_point_time);
-                int32_t bpm = (int32_t)roundf(frame_speed * 120.0f);
-                if (bpm != prev_bpm) {
-                    x_pv_player_frame_data frame_data = { 0 };
-                    frame_data.frame = frame;
-                    frame_data.type = X_PV_PLAYER_FRAME_DATA_BPM;
-                    frame_data.bpm = bpm;
-                    vector_x_pv_player_frame_data_push_back(&x_pv->frame_data, &frame_data);
-                    //printf("Frame: %5d; BPM: %3d; Speed: %.9f\n", frame, bpm, (double_t)bpm * (1.0 / 120.0));
-                }
-                prev_bpm = bpm;
-            }
-            prev_bar_point_time = time;
-        }
-        else if (i->func == stage_effect_func_id) {
-            x_pv_player_frame_data frame_data = { 0 };
-            frame_data.frame = frame;
-            frame_data.type = X_PV_PLAYER_FRAME_DATA_STAGE_EFFECT;
-            frame_data.stage_effect = (int32_t)data[0];
-            vector_x_pv_player_frame_data_push_back(&x_pv->frame_data, &frame_data);
-
-            printf("Frame: %5d; %s(", frame, i->name);
-            for (int32_t j = dsc_x_get_func_length(i->func); j > 0; j--)
-                printf(j > 1 ? "%d, " : "%d", (int32_t)*data++);
-            printf(");\n");
-        }
-        else if (i->func == song_effect_func_id) {
-            x_pv_player_frame_data frame_data = { 0 };
-            frame_data.frame = frame;
-            frame_data.type = X_PV_PLAYER_FRAME_DATA_SONG_EFFECT;
-            frame_data.song_effect.enable = data[0] ? true : false;
-            frame_data.song_effect.id = (int32_t)data[1];
-            vector_x_pv_player_frame_data_push_back(&x_pv->frame_data, &frame_data);
-
-            printf("Frame: %5d; %s(", frame, i->name);
-            for (int32_t j = dsc_x_get_func_length(i->func); j > 0; j--)
-                printf(j > 1 ? "%d, " : "%d", (int32_t)*data++);
-            printf(");\n");
-        }
-    }
-    dsc_free(&dsc_m);
-}
-
-static void x_pv_player_free() {
-    x_pv_player* x_pv = &x_pv_player_data;
-    pvpp_free(&x_pv->pp);
-    pvsr_free(&x_pv->sr);
-    x_pv_player_glitter_free(&x_pv->pv_glitter);
-    x_pv_player_glitter_free(&x_pv->stage_glitter);
-    vector_x_pv_player_frame_data_free(&x_pv->frame_data, 0);
-}
-
-static void x_pv_player_glitter_load(x_pv_player_glitter* pv_glt, char* name) {
-    string_init(&pv_glt->name, name);
-    pv_glt->hash = hash_string_murmurhash(&pv_glt->name, 0, false);
-    glitter_file_reader* fr = glitter_file_reader_init(GLITTER_X, 0, string_data(&pv_glt->name), -1.0f);
-    vector_ptr_glitter_file_reader_push_back(&GPM_VAL->file_readers, &fr);
-    glitter_particle_manager_ctrl_file_reader(GPM_VAL);
-    pv_glt->effect_group = glitter_particle_manager_get_effect_group(GPM_VAL, pv_glt->hash);
-}
-
-static void x_pv_player_glitter_free(x_pv_player_glitter* pv_glt) {
-    string_free(&pv_glt->name);
-    glitter_particle_manager_free_scene(GPM_VAL, pv_glt->hash);
-    glitter_particle_manager_free_effect_group(GPM_VAL, pv_glt->hash);
 }
 #endif

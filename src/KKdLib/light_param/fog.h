@@ -22,7 +22,8 @@ typedef enum fog_type {
     FOG_EXP2   = 0x03,
 } fog_type;
 
-typedef struct light_param_fog_group {
+class light_param_fog_group {
+public:
     bool has_type;
     fog_type type;
     bool has_density;
@@ -32,20 +33,24 @@ typedef struct light_param_fog_group {
     float_t linear_end;
     bool has_color;
     vec4u color;
-} light_param_fog_group;
 
-typedef struct light_param_fog {
+    light_param_fog_group();
+    ~light_param_fog_group();
+};
+
+class light_param_fog {
+public:
     bool ready;
 
     light_param_fog_group group[FOG_MAX];
-} light_param_fog;
 
-extern void light_param_fog_init(light_param_fog* fog);
-extern void light_param_fog_read(light_param_fog* fog, char* path);
-extern void light_param_fog_wread(light_param_fog* fog, wchar_t* path);
-extern void light_param_fog_mread(light_param_fog* fog, void* data, size_t length);
-extern void light_param_fog_write(light_param_fog* fog, char* path);
-extern void light_param_fog_wwrite(light_param_fog* fog, wchar_t* path);
-extern void light_param_fog_mwrite(light_param_fog* fog, void** data, size_t* length);
+    light_param_fog();
+    void read(char* path);
+    void read(wchar_t* path);
+    void read(void* data, size_t length);
+    void write(char* path);
+    void write(wchar_t* path);
+    void write(void** data, size_t* length);
+    ~light_param_fog();
+};
 extern bool light_param_fog_load_file(void* data, char* path, char* file, uint32_t hash);
-extern void light_param_fog_free(light_param_fog* fog);

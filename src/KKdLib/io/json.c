@@ -413,7 +413,7 @@ static void io_json_read_map(stream* s, io_json_read_buffer* buf, char* name, ms
             }
             io_json_read_skip_whitespace(s, buf, c);
 
-            msgpack* m = vector_msgpack_reserve_back(&map);
+            msgpack* m = vector_old_msgpack_reserve_back(&map);
             io_json_read_inner(s, buf, key, m, c);
             free(key);
 
@@ -450,7 +450,7 @@ static void io_json_read_array(stream* s, io_json_read_buffer* buf, char* name, 
             if (*c == ']')
                 break;
 
-            msgpack* m = vector_msgpack_reserve_back(&array);
+            msgpack* m = vector_old_msgpack_reserve_back(&array);
             io_json_read_inner(s, buf, 0, m, c);
 
             io_json_read_skip_whitespace(s, buf, c);

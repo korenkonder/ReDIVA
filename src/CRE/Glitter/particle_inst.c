@@ -62,7 +62,7 @@ void glitter_particle_inst_emit(GPM, GLT,
     while (!a1->data.parent && a1->data.flags & GLITTER_PARTICLE_INST_NO_CHILD) {
         particle = glitter_particle_inst_init_child(a1, emission);
         if (particle)
-            vector_ptr_glitter_particle_inst_push_back(&a1->data.children, &particle);
+            vector_old_ptr_glitter_particle_inst_push_back(&a1->data.children, &particle);
         else
             return;
 
@@ -113,7 +113,7 @@ void glitter_particle_inst_dispose(glitter_particle_inst* pi) {
         pi->data.render_group = 0;
     }
 
-    vector_ptr_glitter_particle_inst_free(&pi->data.children, glitter_particle_inst_dispose);
+    vector_old_ptr_glitter_particle_inst_free(&pi->data.children, glitter_particle_inst_dispose);
     free(pi);
 }
 

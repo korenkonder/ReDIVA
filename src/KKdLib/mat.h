@@ -15,19 +15,26 @@ typedef struct mat3 {
     vec3 row2;
 } mat3;
 
-typedef struct mat4 {
+typedef struct mat4 mat4;
+typedef struct mat4u mat4u;
+
+struct mat4 {
     vec4 row0;
     vec4 row1;
     vec4 row2;
     vec4 row3;
-} mat4;
 
-typedef struct mat4u {
+    operator mat4u() const;
+};
+
+struct mat4u {
     vec4u row0;
     vec4u row1;
     vec4u row2;
     vec4u row3;
-} mat4u;
+
+    operator mat4() const;
+};
 
 extern const mat3 mat3_identity;
 extern const mat3 mat3_null;
@@ -36,10 +43,10 @@ extern const mat4 mat4_null;
 extern const mat4u mat4u_identity;
 extern const mat4u mat4u_null;
 
-vector(mat3)
-vector(mat4)
-vector_ptr(mat3)
-vector_ptr(mat4)
+vector_old(mat3)
+vector_old(mat4)
+vector_old_ptr(mat3)
+vector_old_ptr(mat4)
 
 extern void mat3_add(mat3* x, mat3* y, mat3* z);
 extern void mat3_sub(mat3* x, mat3* y, mat3* z);
@@ -87,6 +94,9 @@ extern void mat4_mult_vec3_inv_trans(mat4* x, vec3* y, vec3* z);
 extern void mat4_mult_vec(mat4* x, vec4* y, vec4* z);
 extern void mat4_mult_scalar(mat4* x, float_t y, mat4* z);
 extern void mat4_transpose(mat4* x, mat4* z);
+extern void mat4_transpose(mat4* x, mat4u* z);
+extern void mat4_transpose(mat4u* x, mat4* z);
+extern void mat4_transpose(mat4u* x, mat4u* z);
 extern void mat4_inverse(mat4* x, mat4* z);
 extern void mat4_invtrans(mat4* x, mat4* z);
 extern void mat4_invrot(mat4* x, mat4* z);
@@ -159,8 +169,3 @@ extern void mat4_ortho(double_t left, double_t right,
     double_t bottom, double_t top, double_t z_near, double_t z_far, mat4* mat);
 extern void mat4_persp(double_t fov_y, double_t aspect, double_t z_near, double_t z_far, mat4* mat);
 extern void mat4_look_at(vec3* eye, vec3* target, vec3* up, mat4* mat);
-
-extern void mat4_to_mat4u(mat4* x, mat4u* z);
-extern void mat4u_to_mat4(mat4u* x, mat4* z);
-extern void mat4_to_mat4u_transpose(mat4* x, mat4u* z);
-extern void mat4u_to_mat4_transpose(mat4u* x, mat4* z);

@@ -315,7 +315,7 @@ static void rob_chara_bone_data_set_mats(rob_chara_bone_data* rob_bone_data,
 
 static void rob_chara_bone_data_set_parent_mats(rob_chara_bone_data* rob_bone_data,
     uint16_t* parent_indices) {
-    if (vector_length(rob_bone_data->nodes) < 1)
+    if (vector_old_length(rob_bone_data->nodes) < 1)
         return;
 
     parent_indices++;
@@ -630,7 +630,7 @@ static void sub_14040E690(struc_313* a1, uint32_t** a2, uint32_t* a3, size_t a4,
         sub_14040BD00(&v14[v15], a4, a5);
         sub_14040BDB0(a1->bitfield.begin, a3, v14);
         sub_14040BDB0(a3, a1->bitfield.end, &v14[v15 + a4]);
-        size_t v16 = vector_length(a1->bitfield) + a4;
+        size_t v16 = vector_old_length(a1->bitfield) + a4;
         if (a1->bitfield.begin)
             HeapCMallocFree(HeapCMallocSystem, a1->bitfield.begin);
         a1->bitfield.capacity_end = &v14[v12];
@@ -811,7 +811,7 @@ static void motion_blend_mot_load_bone_data(motion_blend_mot* a1, rob_chara_bone
 
 static void sub_140414900(struc_308* a1, mat4* mat) {
     if (mat) {
-        mat4_to_mat4u(mat, &a1->mat);
+        a1->mat = *mat;
         a1->field_8C = true;
     }
     else {
@@ -1025,8 +1025,8 @@ static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* 
         exp_data->rotation.y = a3[MOTION_BONE_KL_EYE_R].node[0].exp_data.rotation.y * (float_t)(-1.0 / 2.0);
         break;
     case MOTION_BONE_N_KUBI_WJ_EX:
-        mat4u_to_mat4_transpose(&a3[MOTION_BONE_CL_KAO].rot_mat[0], &dst);
-        mat4u_to_mat4_transpose(&a3[MOTION_BONE_CL_KAO].rot_mat[1], &mat);
+        mat4_transpose(&a3[MOTION_BONE_CL_KAO].rot_mat[0], &dst);
+        mat4_transpose(&a3[MOTION_BONE_CL_KAO].rot_mat[1], &mat);
         mat4_mult(&mat, &dst, &dst);
         mat4_get_rotation(&dst, &v15);
         v10 = v15.z;
@@ -1164,7 +1164,7 @@ void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select) {
     }
 
     if (a1->type == AFT_BONE_DATABASE_BONE_HEAD_IK_ROTATION) {
-        mat4_to_mat4u_transpose(&rot_mat, &a1->rot_mat[1]);
+        mat4_transpose(&rot_mat, &a1->rot_mat[1]);
         mat4_transpose(&mat, a1->node[1].mat);
         mat4_translate_mult(&mat, a1->ik_segment_length[skeleton_select], 0.0f, 0.0f, &mat);
         mat4_transpose(&mat, a1->node[2].mat);
@@ -1210,12 +1210,12 @@ void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select) {
     mat4_rotate_z_mult_sin_cos(&mat, v24, v23, &mat);
     mat4_transpose(&mat, a1->node[1].mat);
     mat4_rotate_z_mult_sin_cos(&rot_mat, v24, v23, &rot_mat);
-    mat4_to_mat4u_transpose(&rot_mat, &a1->rot_mat[1]);
+    mat4_transpose(&rot_mat, &a1->rot_mat[1]);
     mat4_translate_mult(&mat, v21, 0.0f, 0.0f, &mat);
     mat4_rotate_z_mult_sin_cos(&mat, v25, v22, &mat);
     mat4_transpose(&mat, a1->node[2].mat);
     mat4_rotate_z_sin_cos(v25, v22, &rot_mat);
-    mat4_to_mat4u_transpose(&rot_mat, &a1->rot_mat[2]);
+    mat4_transpose(&rot_mat, &a1->rot_mat[2]);
     mat4_translate_mult(&mat, v20, 0.0f, 0.0f, &mat);
     mat4_transpose(&mat, a1->node[3].mat);
 }
@@ -1242,7 +1242,7 @@ static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
     else {
         mat4 rot_mat;
         if (a1->type == AFT_BONE_DATABASE_BONE_POSITION_ROTATION) {
-            mat4u_to_mat4_transpose(&a1->rot_mat[0], &rot_mat);
+            mat4_transpose(&a1->rot_mat[0], &rot_mat);
             mat4_rotate_z_mult(&rot_mat, a1->rotation.z, &rot_mat);
         }
         else {
@@ -1263,7 +1263,7 @@ static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
         mat4_rotate_x_mult(&rot_mat, a1->rotation.x, &rot_mat);
         mat4_translate_mult(&mat, a1->trans.x, a1->trans.y, a1->trans.z, &mat);
         mat4_mult(&rot_mat, &mat, &mat);
-        mat4_to_mat4u_transpose(&rot_mat, &a1->rot_mat[0]);
+        mat4_transpose(&rot_mat, &a1->rot_mat[0]);
     }
 
     mat4_transpose(&mat, a1->node[0].mat);
@@ -1287,13 +1287,13 @@ void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool a4) {
         if (a4) {
             a1->node[0].exp_data.rotation = vec3_null;
             if (!a1->flags) {
-                mat4u_to_mat4_transpose(&a1->rot_mat[0], &rot_mat);
+                mat4_transpose(&a1->rot_mat[0], &rot_mat);
                 mat4_get_rotation(&rot_mat, &a1->node[0].exp_data.rotation);
             }
             else if (bone_data_mult_1_exp_data(a1, &a1->node[0].exp_data, a3)) {
                 vec3 rotation = a1->node[0].exp_data.rotation;
                 mat4_rotate(rotation.x, rotation.y, rotation.z, &rot_mat);
-                mat4_to_mat4u_transpose(&rot_mat, &a1->rot_mat[0]);
+                mat4_transpose(&rot_mat, &a1->rot_mat[0]);
             }
             else {
                 mat4_transpose(&mat, a1->node[0].mat);
@@ -1305,14 +1305,14 @@ void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool a4) {
                     mat4_mult(&dst, &rot_mat, &rot_mat);
                     mat4_clear_trans(&rot_mat, &rot_mat);
                     mat4_get_rotation(&rot_mat, &a1->node[0].exp_data.rotation);
-                    mat4_to_mat4u_transpose(&rot_mat, &a1->rot_mat[0]);
+                    mat4_transpose(&rot_mat, &a1->rot_mat[0]);
                 }
                 else
                     a1->rot_mat[0] = mat4u_identity;
             }
         }
 
-        mat4u_to_mat4_transpose(&a1->rot_mat[0], &rot_mat);
+        mat4_transpose(&a1->rot_mat[0], &rot_mat);
         mat4_mult(&rot_mat, &mat, &mat);
 
     }
@@ -1331,7 +1331,7 @@ void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool a4) {
     if (a1->type < AFT_BONE_DATABASE_BONE_HEAD_IK_ROTATION)
         return;
 
-    mat4u_to_mat4_transpose(&a1->rot_mat[1], &rot_mat);
+    mat4_transpose(&a1->rot_mat[1], &rot_mat);
     mat4_mult(&rot_mat, &mat, &mat);
     mat4_transpose(&mat, a1->node[1].mat);
     mat4_translate_mult(&mat, a1->ik_segment_length[1], 0.0f, 0.0f, &mat);
@@ -1342,14 +1342,14 @@ void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool a4) {
             return;
 
         a1->node[1].exp_data.position = vec3_null;
-        mat4u_to_mat4_transpose(&a1->rot_mat[1], &rot_mat);
+        mat4_transpose(&a1->rot_mat[1], &rot_mat);
         mat4_get_rotation(&rot_mat, &a1->node[1].exp_data.rotation);
         bone_node_expression_data_reset_scale(&a1->node[1].exp_data);
         bone_node_expression_data_set_position_rotation(&a1->node[2].exp_data,
             a1->ik_segment_length[1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     }
     else {
-        mat4u_to_mat4_transpose(&a1->rot_mat[2], &rot_mat);
+        mat4_transpose(&a1->rot_mat[2], &rot_mat);
         mat4_mult(&rot_mat, &mat, &mat);
         mat4_transpose(&mat, a1->node[2].mat);
         mat4_translate_mult(&mat, a1->ik_2nd_segment_length[1], 0.0f, 0.0f, &mat);
@@ -1358,12 +1358,12 @@ void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool a4) {
             return;
 
         a1->node[1].exp_data.position = vec3_null;
-        mat4u_to_mat4_transpose(&a1->rot_mat[1], &rot_mat);
+        mat4_transpose(&a1->rot_mat[1], &rot_mat);
         mat4_get_rotation(&rot_mat, &a1->node[1].exp_data.rotation);
         bone_node_expression_data_reset_scale(&a1->node[1].exp_data);
         a1->node[2].exp_data.position.x = a1->ik_segment_length[1];
         *(vec2*)&a1->node[2].exp_data.position.y = vec2_null;
-        mat4u_to_mat4_transpose(&a1->rot_mat[2], &rot_mat);
+        mat4_transpose(&a1->rot_mat[2], &rot_mat);
         mat4_get_rotation(&rot_mat, &a1->node[2].exp_data.rotation);
         bone_node_expression_data_reset_scale(&a1->node[2].exp_data);
         bone_node_expression_data_set_position_rotation(&a1->node[3].exp_data,
@@ -1399,14 +1399,14 @@ static void sub_14040FBF0(motion_blend_mot* a1, float_t a2) {
 
     mat4 rot_mat;
     mat4 mat;
-    mat4u_to_mat4_transpose(&b_n_hara_cp->rot_mat[0], &rot_mat);
-    mat4u_to_mat4_transpose(&b_kg_hara_y->rot_mat[0], &mat);
+    mat4_transpose(&b_n_hara_cp->rot_mat[0], &rot_mat);
+    mat4_transpose(&b_kg_hara_y->rot_mat[0], &mat);
     mat4_mult(&mat, &rot_mat, &rot_mat);
-    mat4u_to_mat4_transpose(&b_kl_hara_xz->rot_mat[0], &mat);
+    mat4_transpose(&b_kl_hara_xz->rot_mat[0], &mat);
     mat4_mult(&mat, &rot_mat, &rot_mat);
-    mat4u_to_mat4_transpose(&b_kl_hara_etc->rot_mat[0], &mat);
+    mat4_transpose(&b_kl_hara_etc->rot_mat[0], &mat);
     mat4_mult(&mat, &rot_mat, &rot_mat);
-    mat4_to_mat4u_transpose(&rot_mat, &b_n_hara_cp->rot_mat[0]);
+    mat4_transpose(&rot_mat, &b_n_hara_cp->rot_mat[0]);
     b_kg_hara_y->rot_mat[0] = mat4u_identity;
     b_kl_hara_xz->rot_mat[0] = mat4u_identity;
     b_kl_hara_etc->rot_mat[0] = mat4u_identity;
@@ -1448,7 +1448,7 @@ static bool sub_140410250(struc_313* a1, size_t a2) {
     return (a1->bitfield.begin[a2 >> 5] & (1 << (a2 & 0x1F))) != 0;
 }
 
-static void sub_140410A40(motion_blend_mot* a1, vector_bone_data* a2, vector_bone_data* a3) {
+static void sub_140410A40(motion_blend_mot* a1, vector_old_bone_data* a2, vector_old_bone_data* a3) {
     motion_blend* v1 = a1->field_5D0;
     if (!v1 || !v1->field_9)
         return;
@@ -1465,7 +1465,7 @@ static void sub_140410A40(motion_blend_mot* a1, vector_bone_data* a2, vector_bon
     }
 }
 
-static void sub_140410B70(motion_blend_mot* a1, vector_bone_data* a2) {
+static void sub_140410B70(motion_blend_mot* a1, vector_old_bone_data* a2) {
     motion_blend* v1 = a1->field_5D0;
     if (!v1 || !v1->field_9)
         return;
@@ -1493,7 +1493,7 @@ static motion_blend_type sub_1404125C0(motion_blend_mot* a1) {
     return MOTION_BLEND;
 }
 
-static void sub_140410CB0(mot_blend* a1, vector_bone_data* a2) {
+static void sub_140410CB0(mot_blend* a1, vector_old_bone_data* a2) {
     motion_blend* v1 = &a1->field_F8;
     if (!v1->field_9)
         return;
@@ -1559,8 +1559,7 @@ static void sub_14041B9F0(rob_chara_bone_data* rob_bone_data) {
 static void motion_blend_mot_mult_mat(motion_blend_mot* a1, mat4* a2) {
     sub_140414900(&a1->field_4F8, a2);
 
-    mat4 mat;
-    mat4u_to_mat4(&a1->field_4F8.mat, &mat);
+    mat4 mat = a1->field_4F8.mat;
     bone_data* v3 = a1->bone_data.bones.begin;
     for (bone_data* v4 = a1->bone_data.bones.begin; v4 != a1->bone_data.bones.end; v4++)
         bone_data_mult_1(v4, &mat, v3, true);
@@ -2371,7 +2370,7 @@ static void rob_chara_bone_data_reset(rob_chara_bone_data* rob_bone_data) {
     rob_bone_data->base_skeleton_type = AFT_BONE_DATABASE_SKELETON_NONE;
     rob_bone_data->skeleton_type = AFT_BONE_DATABASE_SKELETON_NONE;
 
-    if (rob_bone_data->motion_loaded.size && vector_length(rob_bone_data->motions) == 3) {
+    if (rob_bone_data->motion_loaded.size && vector_old_length(rob_bone_data->motions) == 3) {
         rob_chara_bone_data_motion_blend_mot_list_free(rob_bone_data, 0);
         for (motion_blend_mot** i = rob_bone_data->motions.begin; i != rob_bone_data->motions.end; i++)
             motion_blend_mot_reset(*i);
@@ -2577,7 +2576,7 @@ static void sub_140415430(motion_blend_mot* a1) {
         case AFT_BONE_DATABASE_BONE_POSITION_ROTATION: {
             mat4 rot_mat;
             mat4_clear_trans(&mat, &rot_mat);
-            mat4_to_mat4u_transpose(&rot_mat, &i->rot_mat[0]);
+            mat4_transpose(&rot_mat, &i->rot_mat[0]);
             mat4_mult_vec3_trans(&mat, &i->trans, &i->trans);
         } break;
         case AFT_BONE_DATABASE_BONE_HEAD_IK_ROTATION:
@@ -2626,8 +2625,8 @@ static void motion_blend_mot_interpolate(motion_blend_mot* a1) {
     sub_140415430(a1);
 }
 
-static void mot_blend_interpolate(mot_blend* a1, vector_bone_data* bones,
-    vector_uint16_t* bone_indices, aft_bone_database_skeleton_type skeleton_type) {
+static void mot_blend_interpolate(mot_blend* a1, vector_old_bone_data* bones,
+    vector_old_uint16_t* bone_indices, aft_bone_database_skeleton_type skeleton_type) {
     if (!a1->field_38.key_sets_ready || !a1->field_38.mot_data || a1->field_30)
         return;
 
@@ -2762,7 +2761,7 @@ static void sub_14041AD50(rob_chara_bone_data* a1) {
         sub_140413EA0(&a1->eyelid.field_0, sub_14041B440);
 }
 
-static void sub_140412F20(mot_blend* a1, vector_bone_data* a2) {
+static void sub_140412F20(mot_blend* a1, vector_old_bone_data* a2) {
     uint32_t* bitfield = a1->field_0.field_8.bitfield.begin;
     for (bone_data* i = a2->begin; i != a2->end; ++i) {
         motion_bone_index v5 = i->motion_bone_index;
@@ -2946,8 +2945,8 @@ void rob_chara_bone_data_interpolate(rob_chara_bone_data* rob_bone_data) {
 
     aft_bone_database_skeleton_type skeleton_type = rob_bone_data->base_skeleton_type;
     motion_blend_mot* v5 = rob_bone_data->motion_loaded.head->next->value;
-    vector_bone_data* bones = &v5->bone_data.bones;
-    vector_uint16_t* bone_indices = &v5->bone_data.bone_indices;
+    vector_old_bone_data* bones = &v5->bone_data.bones;
+    vector_old_uint16_t* bone_indices = &v5->bone_data.bone_indices;
     mot_blend_interpolate(&rob_bone_data->face, bones, bone_indices, skeleton_type);
     mot_blend_interpolate(&rob_bone_data->hand_l, bones, bone_indices, skeleton_type);
     mot_blend_interpolate(&rob_bone_data->hand_r, bones, bone_indices, skeleton_type);
@@ -2996,7 +2995,7 @@ static void sub_1401EAD00(bone_data* a1, bone_data* a2) {
     }
 }
 
-static void sub_140412BB0(motion_blend_mot* a1, vector_bone_data* a2) {
+static void sub_140412BB0(motion_blend_mot* a1, vector_old_bone_data* a2) {
     for (bone_data* i = a1->bone_data.bones.begin; i != a1->bone_data.bones.end; i++)
         sub_1401EAD00(i, &a2->begin[i->motion_bone_index]);
 }
@@ -3050,11 +3049,11 @@ static void bone_data_parent_load_bone_indices_from_mot(bone_data_parent* a1, mo
 
     char** (*sub_140403B00)()
         = (char** (*)())0x0000000140403B00;
-    void (*sub_14040F210)(vector_uint16_t * a1, size_t a2)
-        = (void (*)(vector_uint16_t*, size_t))0x000000014040F210;
+    void (*sub_14040F210)(vector_old_uint16_t * a1, size_t a2)
+        = (void (*)(vector_old_uint16_t*, size_t))0x000000014040F210;
 
     char** v4 = sub_140403B00();
-    vector_uint16_t* v5 = &a1->bone_indices;
+    vector_old_uint16_t* v5 = &a1->bone_indices;
     uint16_t v6 = a2->data_file->info;
     a1->bone_indices.end = a1->bone_indices.begin;
     aft_bone_database_skeleton_type v8 = a1->rob_bone_data->base_skeleton_type;
@@ -3232,7 +3231,7 @@ void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data,
     rob_bone_data->motion_loaded.size++;
     v8->prev = v10;
     v10->prev->next = v10;
-    size_t v17 = vector_length(rob_bone_data->motions);
+    size_t v17 = vector_old_length(rob_bone_data->motions);
     list_size_t_node* v12 = rob_bone_data->motion_loaded_indices.head->next;
     list_size_t_node* v13 = sub_140415DB0(&rob_bone_data->motion_loaded_indices.head, v12, v12->prev, &v17);
     rob_bone_data->motion_loaded_indices.size++;
@@ -3417,7 +3416,7 @@ static void rob_chara_load_default_motion(rob_chara* a1) {
 }
 
 static bone_node* rob_chara_bone_data_get_node(rob_chara_bone_data* rob_bone_data, size_t index) {
-    if ((ssize_t)index < vector_length(rob_bone_data->nodes))
+    if ((ssize_t)index < vector_old_length(rob_bone_data->nodes))
         return &rob_bone_data->nodes.begin[index];
     return 0;
 }
@@ -3432,7 +3431,7 @@ static bone_node* rob_chara_item_equip_object_get_bone_node(
     a2 &= 0x7FFF;
     if (!ex_data)
         return &a1->bone_nodes[a2];
-    else if (a2 < vector_length(a1->ex_data_bone_nodes))
+    else if (a2 < vector_old_length(a1->ex_data_bone_nodes))
         return &a1->ex_data_bone_nodes.begin[a2];
     return 0;
 }
@@ -3519,7 +3518,7 @@ static void sub_14041D560(rob_chara_bone_data* a1, char a2, char a3) {
 }
 
 static void rob_chara_bone_data_ik_scale_calculate(
-    rob_chara_bone_data_ik_scale* a1, vector_bone_data* a2,
+    rob_chara_bone_data_ik_scale* a1, vector_old_bone_data* a2,
     aft_bone_database_skeleton_type base_skeleton_type,
     aft_bone_database_skeleton_type skeleton_type) {
     bone_data* b_cl_mune = &a2->begin[MOTION_BONE_CL_MUNE];
@@ -3724,8 +3723,8 @@ static void rob_osage_node_data_init(rob_osage_node_data *node_data) {
 }
 
 static void rob_osage_node_init(rob_osage_node* node) {
-    void (*sub_14021DCC0)(vector_struc_331 * vec, size_t size)
-        = (void (*)(vector_struc_331*, size_t))0x000000014021DCC0;
+    void (*sub_14021DCC0)(vector_old_struc_331 * vec, size_t size)
+        = (void (*)(vector_old_struc_331*, size_t))0x000000014021DCC0;
     node->length = 0.0f;
     node->trans = vec3_null;
     node->trans_orig = vec3_null;
@@ -3773,11 +3772,11 @@ static void skin_param_init(skin_param* skp) {
 static void rob_osage_init(rob_osage* rob_osg) {
     void (*sub_140216750)(tree_struc_478 * a1, tree_struc_478_node * a2)
         = (void (*)(tree_struc_478*, tree_struc_478_node*))0x0000000140216750;
-    void (*vector_rob_osage_node_clear)(vector_rob_osage_node * vec,
+    void (*vector_old_rob_osage_node_clear)(vector_old_rob_osage_node * vec,
         rob_osage_node * begin, rob_osage_node * end)
-        = (void (*)(vector_rob_osage_node*, rob_osage_node*, rob_osage_node*))0x00000001404817E0;
+        = (void (*)(vector_old_rob_osage_node*, rob_osage_node*, rob_osage_node*))0x00000001404817E0;
 
-    vector_rob_osage_node_clear(&rob_osg->nodes, rob_osg->nodes.begin, rob_osg->nodes.end);
+    vector_old_rob_osage_node_clear(&rob_osg->nodes, rob_osg->nodes.begin, rob_osg->nodes.end);
     rob_osg->nodes.end = rob_osg->nodes.begin;
     rob_osage_node_init(&rob_osg->node);
     rob_osg->wind_direction = vec3_null;
@@ -3837,9 +3836,9 @@ static void rob_osage_free(rob_osage* rob_osg) {
         tree_struc_478_node * a3, tree_struc_478_node * a4)
         = (void (*)(tree_struc_478*, tree_struc_478_node**,
             tree_struc_478_node*, tree_struc_478_node*))0x000000014021BEF0;
-    void (*vector_rob_osage_node_clear)(vector_rob_osage_node * vec,
+    void (*vector_old_rob_osage_node_clear)(vector_old_rob_osage_node * vec,
         rob_osage_node * begin, rob_osage_node * end)
-        = (void (*)(vector_rob_osage_node*,
+        = (void (*)(vector_old_rob_osage_node*,
             rob_osage_node*, rob_osage_node*))0x00000001404817E0;
 
     rob_osage_init(rob_osg);
@@ -3872,7 +3871,7 @@ static void rob_osage_free(rob_osage* rob_osg) {
     rob_osage_node_free(&rob_osg->node);
 
     if (rob_osg->nodes.begin) {
-        vector_rob_osage_node_clear(&rob_osg->nodes, rob_osg->nodes.begin, rob_osg->nodes.end);
+        vector_old_rob_osage_node_clear(&rob_osg->nodes, rob_osg->nodes.begin, rob_osg->nodes.end);
         j_free_2(rob_osg->nodes.begin);
         rob_osg->nodes.begin = 0;
         rob_osg->nodes.end = 0;
@@ -3920,7 +3919,7 @@ static void sub_14047EE90(rob_osage* rob_osg, mat4* mat) {
         mat4_mult_vec3(&temp, &v9->field_A0.trans_diff, &v9->trans_diff);
         mat4_mult_vec3_trans(&temp, &v9->field_A0.trans, &v9->trans);
     }
-    mat4_to_mat4u(rob_osg->parent_mat_ptr, &rob_osg->parent_mat);
+    rob_osg->parent_mat = *rob_osg->parent_mat_ptr;
 }
 
 static void sub_14047F110(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, bool init_rot) {
@@ -4032,7 +4031,7 @@ static void sub_1404803B0(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, boo
             for (rob_osage_node* v19 = rob_osg->nodes.begin + 1; v19 != rob_osg->nodes.end; v19++) {
                 mat4 parent_mat;
                 vec3 v46;
-                mat4u_to_mat4_transpose(&rob_osg->parent_mat, &parent_mat);
+                mat4_transpose(&rob_osg->parent_mat, &parent_mat);
                 mat4_mult_vec3_inv_trans(&parent_mat, &v19->trans, &v46);
                 mat4_transpose(rob_osg->parent_mat_ptr, &parent_mat);
                 mat4_mult_vec3_trans(&parent_mat, &v46, &v46);
@@ -4624,7 +4623,7 @@ static void osage_coli_set(osage_coli* osg_coli, skin_param_osage_root_coli* skp
     osg_coli->type = 0;
 }
 
-static void osage_coli_ring_set(osage_coli* osg_coli, vector_skin_param_osage_root_coli* vec_skp_root_coli, mat4* mats) {
+static void osage_coli_ring_set(osage_coli* osg_coli, vector_old_skin_param_osage_root_coli* vec_skp_root_coli, mat4* mats) {
     if (vec_skp_root_coli->begin == vec_skp_root_coli->end) {
         osg_coli->type = 0;
         osg_coli->radius = 0.0f;
@@ -4759,7 +4758,7 @@ static int32_t sub_140485220(vec3* a1, skin_param_osage_node* a2, osage_coli* co
     return v8;
 }
 
-static int32_t sub_1404851C0(vec3* a1, skin_param_osage_node* a2, vector_osage_coli* a3, float_t* a4) {
+static int32_t sub_1404851C0(vec3* a1, skin_param_osage_node* a2, vector_old_osage_coli* a3, float_t* a4) {
     if (a3->begin == a3->end || a3->end[-1].type)
         return 0;
 
@@ -4777,7 +4776,7 @@ static void sub_14047ECA0(rob_osage* rob_osg, float_t step) {
 
     osage_coli* coli = rob_osg->coli;
     osage_coli* coli_ring = rob_osg->coli_ring;
-    vector_osage_coli* ring_coli = &rob_osg->ring.coli;
+    vector_old_osage_coli* ring_coli = &rob_osg->ring.coli;
     bool v11 = rob_osg->field_1F0F;
     for (rob_osage_node* i = rob_osg->nodes.begin + 1; i != rob_osg->nodes.end; i++) {
         rob_osage_node_data* data = i->data_ptr;
@@ -4799,7 +4798,7 @@ static void sub_14047D620(rob_osage* rob_osg, float_t step) {
     if (step < 0.0f && rob_osg->field_1F0F)
         return;
 
-    vector_rob_osage_node* nodes = &rob_osg->nodes;
+    vector_old_rob_osage_node* nodes = &rob_osg->nodes;
     vec3 v7 = nodes->begin[0].trans;
     osage_coli* coli = rob_osg->coli;
     osage_coli* coli_ring = rob_osg->coli_ring;
@@ -4832,7 +4831,7 @@ static void sub_14047D8C0(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, flo
 
     osage_coli* coli = rob_osg->coli;
     osage_coli* coli_ring = rob_osg->coli_ring;
-    vector_osage_coli* vec_ring_coli = &rob_osg->ring.coli;
+    vector_old_osage_coli* vec_ring_coli = &rob_osg->ring.coli;
 
     float_t v9 = 0.0f;
     if (step > 0.0f)
@@ -4868,12 +4867,12 @@ static void sub_14047D8C0(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, flo
         v60 = v22 + v18;
     }
 
-    float_t  v23 = 0.2f;
+    float_t v23 = 0.2f;
     if (step < 1.0f)
         v23 = 0.2f / (2.0f - step);
 
     if (rob_osg->skin_param_ptr->colli_tgt_osg) {
-        vector_rob_osage_node* v24 = rob_osg->skin_param_ptr->colli_tgt_osg;
+        vector_old_rob_osage_node* v24 = rob_osg->skin_param_ptr->colli_tgt_osg;
         rob_osage_node* v26 = v24->end;
         rob_osage_node* v27 = rob_osg->nodes.begin;
         for (rob_osage_node* v25 = rob_osg->nodes.begin + 1;
@@ -5020,7 +5019,7 @@ static void sub_140480260(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, flo
     rob_osg->field_1F0C = false;
     rob_osg->wind_reset = false;
     rob_osg->field_1F0E = false;
-    mat4_to_mat4u(rob_osg->parent_mat_ptr, &rob_osg->parent_mat);
+    rob_osg->parent_mat = *rob_osg->parent_mat_ptr;
 }
 
 void ex_osage_block_field_18(ex_osage_block* osg, int32_t a2, bool a3) {
@@ -5111,8 +5110,8 @@ void ex_osage_block_update(ex_osage_block* osg) {
 }
 
 void ex_osage_block_field_28(ex_osage_block* osg) {
-    void (*sub_14047E240) (rob_osage * a1, mat4 * a2, vec3 * a3, vector_struc_373 * a4)
-        = (void (*) (rob_osage*, mat4*, vec3*, vector_struc_373*))0x000000014047E240;
+    void (*sub_14047E240) (rob_osage * a1, mat4 * a2, vec3 * a3, vector_old_struc_373 * a4)
+        = (void (*) (rob_osage*, mat4*, vec3*, vector_old_struc_373*))0x000000014047E240;
 
     rob_chara_item_equip* rob_itm_equip = osg->base.item_equip_object->item_equip;
     bone_node* parent_node = osg->base.parent_bone_node;
@@ -5146,7 +5145,8 @@ void ex_osage_block_field_48(ex_osage_block* osg) {
     rob_osage_coli_set(&osg->rob, osg->mat);
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
-    sub_14047F990(&osg->rob, parent_node->ex_data_mat, &parent_scale, false);
+    if (toggle1[5])
+        sub_14047F990(&osg->rob, parent_node->ex_data_mat, &parent_scale, false);
     osg->field_1FF8 &= ~2;
 }
 
@@ -5156,7 +5156,7 @@ void ex_osage_block_field_50(ex_osage_block* osg) {
         return;
     }
 
-    void (*sub_14047C770) (rob_osage * rob_osg, mat4 * mat,
+    void (*_sub_14047C770) (rob_osage * rob_osg, mat4 * mat,
         vec3 * parent_scale, float_t step, bool a5)
         = (void(*) (rob_osage*, mat4*, vec3*, float_t, bool))0x000000014047C770;
 
@@ -5165,7 +5165,11 @@ void ex_osage_block_field_50(ex_osage_block* osg) {
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
     rob_osage_coli_set(&osg->rob, osg->mat);
-    sub_14047C770(&osg->rob, parent_node->ex_data_mat, &parent_scale, osg->step, 1);
+    if (toggle1[6])
+        if (toggle2[6])
+            _sub_14047C770(&osg->rob, parent_node->ex_data_mat, &parent_scale, osg->step, 1);
+        else
+            sub_14047C770(&osg->rob, parent_node->ex_data_mat, &parent_scale, osg->step, 1);
     float_t step = 0.5f * osg->step;
     osg->step = max(step, 1.0f);
 }
@@ -5176,5 +5180,6 @@ void ex_osage_block_field_58(ex_osage_block* osg) {
 
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
-    sub_14047E1C0(&osg->rob, &parent_scale);
+    if (toggle1[4])
+        sub_14047E1C0(&osg->rob, &parent_scale);
 }

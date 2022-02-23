@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <string>
 #include "default.h"
 #include "string.h"
 
@@ -76,5 +77,7 @@ extern void quicksort_size_t(size_t* arr, size_t n);
 extern void quicksort_char_ptr(char** arr, size_t n);
 extern void quicksort_wchar_t_ptr(wchar_t** arr, size_t n);
 extern void quicksort_string(string* arr, size_t n);
+extern void quicksort_string(std::string* arr, size_t n);
 extern void quicksort_wstring(wstring* arr, size_t n);
+extern void quicksort_wstring(std::wstring* arr, size_t n);
 extern void quicksort_custom(void* arr, size_t n, size_t s, quicksort_compare_func comp_finc);

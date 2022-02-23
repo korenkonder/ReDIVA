@@ -85,8 +85,8 @@ inline bool path_wcheck_directory_exists(const wchar_t* path) {
     return path_wcheck_directory_exists((wchar_t*)path);
 }
 
-void path_get_files(vector_string* files, char* path) {
-    vector_string_free(files, string_free);
+void path_get_files(vector_old_string* files, char* path) {
+    vector_old_string_free(files, string_free);
 
     wchar_t* dir_temp = utf8_to_utf16(path);
     size_t dir_len = utf16_length(dir_temp);
@@ -122,7 +122,7 @@ void path_get_files(vector_string* files, char* path) {
             continue;
 
         char* file_temp = utf16_to_utf8(fdata.cFileName);
-        string* file = vector_string_reserve_back(files);
+        string* file = vector_old_string_reserve_back(files);
         string_init(file, file_temp);
         free(file_temp);
     } while (FindNextFileW(h, &fdata));
@@ -130,12 +130,12 @@ void path_get_files(vector_string* files, char* path) {
     free(dir);
 }
 
-inline void path_get_files(vector_string* files, const char* path) {
+inline void path_get_files(vector_old_string* files, const char* path) {
     path_get_files(files, (char*)path);
 }
 
-void path_wget_files(vector_wstring* files, wchar_t* path) {
-    vector_wstring_free(files, wstring_free);
+void path_wget_files(vector_old_wstring* files, wchar_t* path) {
+    vector_old_wstring_free(files, wstring_free);
 
     size_t dir_len = utf16_length(path);
 
@@ -166,20 +166,20 @@ void path_wget_files(vector_wstring* files, wchar_t* path) {
         if (fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             continue;
 
-        wstring* file = vector_wstring_reserve_back(files);
+        wstring* file = vector_old_wstring_reserve_back(files);
         wstring_init(file, fdata.cFileName);
     } while (FindNextFileW(h, &fdata));
     FindClose(h);
     free(dir);
 }
 
-inline void path_wget_files(vector_wstring* files, const wchar_t* path) {
+inline void path_wget_files(vector_old_wstring* files, const wchar_t* path) {
     path_wget_files(files, (wchar_t*)path);
 }
 
-void path_get_directories(vector_string* directories, char* path,
+void path_get_directories(vector_old_string* directories, char* path,
     char** exclude_list, size_t exclude_count) {
-    vector_string_free(directories, string_free);
+    vector_old_string_free(directories, string_free);
 
     wchar_t* dir_temp = utf8_to_utf16(path);
     size_t dir_len = utf16_length(dir_temp);
@@ -247,7 +247,7 @@ void path_get_directories(vector_string* directories, char* path,
 
 
         char* directory_temp = utf16_to_utf8(fdata.cFileName);
-        string* directory = vector_string_reserve_back(directories);
+        string* directory = vector_old_string_reserve_back(directories);
         string_init(directory, directory_temp);
         free(directory_temp);
     } while (FindNextFileW(h, &fdata));
@@ -256,14 +256,14 @@ void path_get_directories(vector_string* directories, char* path,
     free(dir);
 }
 
-inline void path_get_directories(vector_string* directories, const char* path,
+inline void path_get_directories(vector_old_string* directories, const char* path,
     char** exclude_list, size_t exclude_count) {
     path_get_directories(directories, (char*)path, exclude_list, exclude_count);
 }
 
-void path_wget_directories(vector_wstring* directories, wchar_t* path,
+void path_wget_directories(vector_old_wstring* directories, wchar_t* path,
     wchar_t** exclude_list, size_t exclude_count) {
-    vector_wstring_free(directories, wstring_free);
+    vector_old_wstring_free(directories, wstring_free);
 
     size_t dir_len = utf16_length(path);
 
@@ -323,7 +323,7 @@ void path_wget_directories(vector_wstring* directories, wchar_t* path,
                 continue;
         }
 
-        wstring* directory = vector_wstring_reserve_back(directories);
+        wstring* directory = vector_old_wstring_reserve_back(directories);
         wstring_init(directory, fdata.cFileName);
     } while (FindNextFileW(h, &fdata));
     FindClose(h);
@@ -331,14 +331,14 @@ void path_wget_directories(vector_wstring* directories, wchar_t* path,
     free(dir);
 }
 
-inline void path_wget_directories(vector_wstring* directories, const wchar_t* path,
+inline void path_wget_directories(vector_old_wstring* directories, const wchar_t* path,
     wchar_t** exclude_list, size_t exclude_count) {
     path_wget_directories(directories, (wchar_t*)path, exclude_list, exclude_count);
 }
 
-void path_get_directories_recursive(vector_string* directories, char* path,
+void path_get_directories_recursive(vector_old_string* directories, char* path,
     char** exclude_list, size_t exclude_count) {
-    vector_string_free(directories, string_free);
+    vector_old_string_free(directories, string_free);
 
     wchar_t* dir_temp = utf8_to_utf16(path);
     size_t dir_len = utf16_length(dir_temp);
@@ -379,7 +379,7 @@ void path_get_directories_recursive(vector_string* directories, char* path,
         return;
     }
 
-    vector_string temp_vec = vector_empty(string);
+    vector_old_string temp_vec = vector_old_empty(string);
     do {
         if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             continue;
@@ -406,7 +406,7 @@ void path_get_directories_recursive(vector_string* directories, char* path,
         }
 
         char* directory_temp = utf16_to_utf8(fdata.cFileName);
-        string* directory = vector_string_reserve_back(&temp_vec);
+        string* directory = vector_old_string_reserve_back(&temp_vec);
         string_init(directory, directory_temp);
         free(directory_temp);
     } while (FindNextFileW(h, &fdata));
@@ -428,13 +428,13 @@ void path_get_directories_recursive(vector_string* directories, char* path,
     for (string* i = temp_vec.begin; i != temp_vec.end; i++) {
         memcpy(&path_temp[path_length + 1], string_data(i), i->length + 1);
 
-        vector_string temp = vector_empty(string);
+        vector_old_string temp = vector_old_empty(string);
         path_get_directories_recursive(&temp, path_temp, exclude_list, exclude_count);
 
-        vector_string_push_back(directories, i);
+        vector_old_string_push_back(directories, i);
 
-        if (vector_length(temp) < 1) {
-            vector_string_free(&temp, string_free);
+        if (vector_old_length(temp) < 1) {
+            vector_old_string_free(&temp, string_free);
             continue;
         }
 
@@ -453,26 +453,26 @@ void path_get_directories_recursive(vector_string* directories, char* path,
             for (string* j = temp.begin; j != temp.end; j++) {
                 memcpy(&sub_path_temp[sub_path_length + 1], string_data(j), j->length);
 
-                string* directory = vector_string_reserve_back(&temp_vec);
+                string* directory = vector_old_string_reserve_back(&temp_vec);
                 string_init_length(directory, sub_path_temp, sub_path_length + 1 + j->length);
             }
         }
         free(sub_path_temp);
 
-        vector_string_free(&temp, string_free);
+        vector_old_string_free(&temp, string_free);
     }
     free(path_temp);
-    vector_string_free(&temp_vec, 0);
+    vector_old_string_free(&temp_vec, 0);
 }
 
-inline void path_get_directories_recursive(vector_string* directories, const char* path,
+inline void path_get_directories_recursive(vector_old_string* directories, const char* path,
     char** exclude_list, size_t exclude_count) {
     path_get_directories_recursive(directories, (char*)path, exclude_list, exclude_count);
 }
 
-void path_wget_directories_recursive(vector_wstring* directories, wchar_t* path,
+void path_wget_directories_recursive(vector_old_wstring* directories, wchar_t* path,
     wchar_t** exclude_list, size_t exclude_count) {
-    vector_wstring_free(directories, wstring_free);
+    vector_old_wstring_free(directories, wstring_free);
 
     size_t dir_len = utf16_length(path);
 
@@ -509,7 +509,7 @@ void path_wget_directories_recursive(vector_wstring* directories, wchar_t* path,
         return;
     }
 
-    vector_wstring temp_vec = vector_empty(wstring);
+    vector_old_wstring temp_vec = vector_old_empty(wstring);
     do {
         if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             continue;
@@ -533,7 +533,7 @@ void path_wget_directories_recursive(vector_wstring* directories, wchar_t* path,
                 continue;
         }
 
-        wstring* directory = vector_wstring_reserve_back(&temp_vec);
+        wstring* directory = vector_old_wstring_reserve_back(&temp_vec);
         wstring_init(directory, fdata.cFileName);
     } while (FindNextFileW(h, &fdata));
     FindClose(h);
@@ -554,13 +554,13 @@ void path_wget_directories_recursive(vector_wstring* directories, wchar_t* path,
     for (wstring* i = temp_vec.begin; i != temp_vec.end; i++) {
         memcpy(&path_temp[path_length + 1], wstring_data(i), sizeof(wchar_t) * (i->length + 1));
 
-        vector_wstring temp = vector_empty(wstring);
+        vector_old_wstring temp = vector_old_empty(wstring);
         path_wget_directories_recursive(&temp, path_temp, exclude_list, exclude_count);
 
-        vector_wstring_push_back(directories, i);
+        vector_old_wstring_push_back(directories, i);
 
-        if (vector_length(temp) < 1) {
-            vector_wstring_free(&temp, wstring_free);
+        if (vector_old_length(temp) < 1) {
+            vector_old_wstring_free(&temp, wstring_free);
             continue;
         }
 
@@ -579,19 +579,19 @@ void path_wget_directories_recursive(vector_wstring* directories, wchar_t* path,
             for (wstring* j = temp.begin; j != temp.end; j++) {
                 memcpy(&sub_path_temp[sub_path_length + 1], wstring_data(j), sizeof(wchar_t) * j->length);
 
-                wstring* directory = vector_wstring_reserve_back(directories);
+                wstring* directory = vector_old_wstring_reserve_back(directories);
                 wstring_init_length(directory, sub_path_temp, sub_path_length + 1 + j->length);
             }
         }
         free(sub_path_temp);
 
-        vector_wstring_free(&temp, wstring_free);
+        vector_old_wstring_free(&temp, wstring_free);
     }
     free(path_temp);
-    vector_wstring_free(&temp_vec, 0);
+    vector_old_wstring_free(&temp_vec, 0);
 }
 
-inline void path_wget_directories_recursive(vector_wstring* directories, const wchar_t* path,
+inline void path_wget_directories_recursive(vector_old_wstring* directories, const wchar_t* path,
     wchar_t** exclude_list, size_t exclude_count) {
     path_wget_directories_recursive(directories, (wchar_t*)path, exclude_list, exclude_count);
 }

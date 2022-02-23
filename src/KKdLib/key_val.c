@@ -13,12 +13,12 @@ static void key_val_sort(key_val* kv);
 
 void key_val_init(key_val* kv, uint8_t* data, size_t length) {
     kv->buf = 0;
-    kv->key = vector_ptr_empty(char);
-    kv->key_len = vector_empty(size_t);
-    kv->val = vector_ptr_empty(char);
-    kv->val_len = vector_empty(size_t);
-    kv->key_hash = vector_empty(uint64_t);
-    kv->key_index = vector_empty(size_t);
+    kv->key = vector_old_ptr_empty(char);
+    kv->key_len = vector_old_empty(size_t);
+    kv->val = vector_old_ptr_empty(char);
+    kv->val_len = vector_old_empty(size_t);
+    kv->key_hash = vector_old_empty(uint64_t);
+    kv->key_index = vector_old_empty(size_t);
 
     if (!data || !length)
         return;
@@ -28,10 +28,10 @@ void key_val_init(key_val* kv, uint8_t* data, size_t length) {
     if (!str_utils_text_file_parse(data, length, &kv->buf, &lines, &count))
         return;
 
-    vector_ptr_char_reserve(&kv->key, count);
-    vector_size_t_reserve(&kv->key_len, count);
-    vector_ptr_char_reserve(&kv->val, count);
-    vector_size_t_reserve(&kv->val_len, count);
+    vector_old_ptr_char_reserve(&kv->key, count);
+    vector_old_size_t_reserve(&kv->key_len, count);
+    vector_old_ptr_char_reserve(&kv->val, count);
+    vector_old_size_t_reserve(&kv->val_len, count);
 
     for (size_t i = 0, j = 0; i < count; i++) {
         char* s = lines[i];
@@ -53,10 +53,10 @@ void key_val_init(key_val* kv, uint8_t* data, size_t length) {
 
         uint64_t key_hash = hash_fnv1a64m((uint8_t*)key_str_data, key_length, false);
 
-        vector_ptr_char_push_back(&kv->key, &key_str_data);
-        vector_size_t_push_back(&kv->key_len, &key_length);
-        vector_ptr_char_push_back(&kv->val, &val_str_data);
-        vector_size_t_push_back(&kv->val_len, &val_length);
+        vector_old_ptr_char_push_back(&kv->key, &key_str_data);
+        vector_old_size_t_push_back(&kv->key_len, &key_length);
+        vector_old_ptr_char_push_back(&kv->val, &val_str_data);
+        vector_old_size_t_push_back(&kv->val_len, &val_length);
         j++;
     }
     key_val_sort(kv);
@@ -105,11 +105,11 @@ void key_val_wfile_read(key_val* kv, wchar_t* path) {
 
 bool key_val_get_local_key_val(key_val* kv, char* str, key_val* lkv) {
     lkv->buf = 0;
-    lkv->key = vector_ptr_empty(char);
-    lkv->key_len = vector_empty(size_t);
-    lkv->val = vector_ptr_empty(char);
-    lkv->key_hash = vector_empty(uint64_t);
-    lkv->key_index = vector_empty(size_t);
+    lkv->key = vector_old_ptr_empty(char);
+    lkv->key_len = vector_old_empty(size_t);
+    lkv->val = vector_old_ptr_empty(char);
+    lkv->key_hash = vector_old_empty(uint64_t);
+    lkv->key_index = vector_old_empty(size_t);
 
     if (!str)
         return false;
@@ -120,7 +120,7 @@ bool key_val_get_local_key_val(key_val* kv, char* str, key_val* lkv) {
 
     char** i = kv->key.begin;
     size_t* i_len = kv->key_len.begin;
-    size_t j = vector_length(kv->key);
+    size_t j = vector_old_length(kv->key);
     for (; j; i++, i_len++, j--)
         if (str_length <= *i_len && !memcmp(str, (char*)*i, str_length)) {
             if (!first)
@@ -154,7 +154,7 @@ bool key_val_has_key(key_val* kv, char* str) {
 
     char** i = kv->key.begin;
     size_t* i_len = kv->key_len.begin;
-    size_t j = vector_length(kv->key);
+    size_t j = vector_old_length(kv->key);
     for (; j; i++, i_len++, j--) {
         size_t len = min(str_length, *i_len);
         if (len && str_length <= *i_len && !memcmp(str, *i, len))
@@ -292,7 +292,22 @@ bool key_val_read_string(key_val* kv, char* buf,
     return true;
 }
 
-bool key_val_read_string_ptr(key_val* kv, char* buf,
+bool key_val_read_string(key_val* kv, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, std::string* value) {
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    ssize_t index = key_val_get_key_index(kv, buf, offset);
+    buf[offset - (str_add_len - 1)] = 0;
+    if (index == -1) {
+        *value = std::string();
+        return false;
+    }
+    *value = std::string(kv->val.begin[index], kv->val_len.begin[index]);
+    return true;
+}
+
+bool key_val_read_string(key_val* kv, char* buf,
     size_t offset, const char* str_add, size_t str_add_len, char** value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
@@ -321,7 +336,18 @@ void key_val_write_string(stream* s, char* buf,
     io_write_char(s, '\n');
 }
 
-void key_val_write_string_ptr(stream* s, char* buf,
+void key_val_write_string(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, std::string* value) {
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    io_write_utf8_string(s, buf);
+    io_write_char(s, '=');
+    io_write(s, value->c_str(), value->size());
+    io_write_char(s, '\n');
+}
+
+void key_val_write_string(stream* s, char* buf,
     size_t offset, const char* str_add, size_t str_add_len, char* value) {
     if (!value)
         return;
@@ -335,7 +361,7 @@ void key_val_write_string_ptr(stream* s, char* buf,
     io_write_char(s, '\n');
 }
 
-void key_val_write_string_ptr(stream* s, char* buf,
+void key_val_write_string(stream* s, char* buf,
     size_t offset, const char* str_add, size_t str_add_len, const char* value) {
     if (!value)
         return;
@@ -379,32 +405,32 @@ void key_val_write_vec3(stream* s, char* buf,
 
 void key_val_free(key_val* kv) {
     if (kv->buf) {
-        size_t count = vector_length(kv->key);
+        size_t count = vector_old_length(kv->key);
         memset(kv->key.begin, 0, sizeof(char*) * count);
         memset(kv->val.begin, 0, sizeof(char*) * count);
 
-        vector_ptr_char_free(&kv->key, 0);
-        vector_size_t_free(&kv->key_len, 0);
-        vector_ptr_char_free(&kv->val, 0);
-        vector_size_t_free(&kv->val_len, 0);
+        vector_old_ptr_char_free(&kv->key, 0);
+        vector_old_size_t_free(&kv->key_len, 0);
+        vector_old_ptr_char_free(&kv->val, 0);
+        vector_old_size_t_free(&kv->val_len, 0);
     }
-    vector_uint64_t_free(&kv->key_hash, 0);
-    vector_size_t_free(&kv->key_index, 0);
+    vector_old_uint64_t_free(&kv->key_hash, 0);
+    vector_old_size_t_free(&kv->key_index, 0);
     free(kv->buf);
 }
 
-void key_val_get_lexicographic_order(vector_int32_t* vec, int32_t length) {
-    vector_int32_t_clear(vec, 0);
+void key_val_get_lexicographic_order(vector_old_int32_t* vec, int32_t length) {
+    vector_old_int32_t_clear(vec, 0);
 
     int32_t i, j, m;
 
     if (length < 1)
         return;
 
-    vector_int32_t_reserve(vec, length);
+    vector_old_int32_t_reserve(vec, length);
 
     j = 0;
-    vector_int32_t_push_back(vec, &j);
+    vector_old_int32_t_push_back(vec, &j);
     i = 1;
     j = 1;
 
@@ -414,7 +440,7 @@ void key_val_get_lexicographic_order(vector_int32_t* vec, int32_t length) {
 
     while (i < length) {
         if (j * 10 < m) {
-            vector_int32_t_push_back(vec, &j);
+            vector_old_int32_t_push_back(vec, &j);
             i++;
             j *= 10;
         }
@@ -426,7 +452,7 @@ void key_val_get_lexicographic_order(vector_int32_t* vec, int32_t length) {
             j++;
         }
         else if (j % 10 != 9) {
-            vector_int32_t_push_back(vec, &j);
+            vector_old_int32_t_push_back(vec, &j);
             i++;
             j++;
         }
@@ -440,7 +466,7 @@ void key_val_get_lexicographic_order(vector_int32_t* vec, int32_t length) {
                 j++;
             }
             else if (j < length && j % 10 == 9) {
-                vector_int32_t_push_back(vec, &j);
+                vector_old_int32_t_push_back(vec, &j);
                 i++;
                 while (j % 10 == 9)
                     j /= 10;
@@ -450,13 +476,13 @@ void key_val_get_lexicographic_order(vector_int32_t* vec, int32_t length) {
 }
 
 static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
-    if (vector_length(kv->key_hash) < 1)
+    if (vector_old_length(kv->key_hash) < 1)
         return -1;
 
     uint64_t hash = hash_fnv1a64m((uint8_t*)str, length, false);
 
     uint64_t* key = kv->key_hash.begin;
-    size_t len = vector_length(kv->key);
+    size_t len = vector_old_length(kv->key);
     size_t temp;
     while (len > 0) {
         if (hash < key[temp = len / 2])
@@ -474,6 +500,8 @@ static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
             return -1;
     else if (key[-1] == hash)
         return kv->key_index.begin[key - kv->key_hash.begin - 1];
+    else if (key == kv->key_hash.end)
+        return -1;
     else if (key[0] == hash)
         return kv->key_index.begin[key - kv->key_hash.begin];
     return -1;
@@ -483,12 +511,12 @@ static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
 #define RADIX (1 << RADIX_BASE)
 
 static void key_val_sort(key_val* kv) {
-    size_t count = vector_length(kv->key);
+    size_t count = vector_old_length(kv->key);
 
-    kv->key_hash = vector_empty(uint64_t);
-    kv->key_index = vector_empty(size_t);
-    vector_uint64_t_reserve(&kv->key_hash, count);
-    vector_size_t_reserve(&kv->key_index, count);
+    kv->key_hash = vector_old_empty(uint64_t);
+    kv->key_index = vector_old_empty(size_t);
+    vector_old_uint64_t_reserve(&kv->key_hash, count);
+    vector_old_size_t_reserve(&kv->key_index, count);
     kv->key_hash.end += count;
     kv->key_index.end += count;
 

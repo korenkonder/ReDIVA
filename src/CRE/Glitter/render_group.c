@@ -64,8 +64,8 @@ glitter_render_group* glitter_render_group_init(glitter_particle_inst* a1) {
     rg->random_ptr = a1->data.random_ptr;
     rg->vbo = 0;
     rg->ebo = 0;
-    rg->vec_key = vector_empty(int32_t);
-    rg->vec_val = vector_empty(int32_t);
+    rg->vec_key = vector_old_empty(int32_t);
+    rg->vec_val = vector_old_empty(int32_t);
 
     rg->elements = force_malloc_s(glitter_render_element, rg->count);
     if (!rg->elements) {
@@ -105,34 +105,10 @@ glitter_render_group* glitter_render_group_init(glitter_particle_inst* a1) {
     static const GLsizei buffer_size = sizeof(glitter_buffer);
 
     if (!is_quad) {
-        vector_int32_t_reserve(&rg->vec_key, rg->count);
-        vector_int32_t_reserve(&rg->vec_val, rg->count);
+        vector_old_int32_t_reserve(&rg->vec_key, rg->count);
+        vector_old_int32_t_reserve(&rg->vec_val, rg->count);
     }
     return rg;
-}
-
-void glitter_render_group_calc_disp(GPM, glitter_render_group* a1) {
-    switch (a1->type) {
-    case GLITTER_PARTICLE_QUAD:
-    case GLITTER_PARTICLE_LINE:
-    case GLITTER_PARTICLE_LOCUS:
-        break;
-    default:
-        return;
-    }
-
-    a1->disp = 0;
-    switch (a1->type) {
-    case GLITTER_PARTICLE_QUAD:
-        glitter_render_group_calc_disp_quad(GPM_VAL, a1);
-        break;
-    case GLITTER_PARTICLE_LINE:
-        glitter_render_group_calc_disp_line(a1);
-        break;
-    case GLITTER_PARTICLE_LOCUS:
-        glitter_render_group_calc_disp_locus(GPM_VAL, a1);
-        break;
-    }
 }
 
 bool glitter_render_group_cannot_disp(glitter_render_group* a1) {
@@ -214,6 +190,28 @@ void glitter_render_group_delete_buffers(glitter_render_group* a1, bool a2) {
 }
 
 void glitter_render_group_draw(GPM, glitter_render_group* a1) {
+    switch (a1->type) {
+    case GLITTER_PARTICLE_QUAD:
+    case GLITTER_PARTICLE_LINE:
+    case GLITTER_PARTICLE_LOCUS:
+        break;
+    default:
+        return;
+    }
+
+    a1->disp = 0;
+    switch (a1->type) {
+    case GLITTER_PARTICLE_QUAD:
+        glitter_render_group_calc_disp_quad(GPM_VAL, a1);
+        break;
+    case GLITTER_PARTICLE_LINE:
+        glitter_render_group_calc_disp_line(a1);
+        break;
+    case GLITTER_PARTICLE_LOCUS:
+        glitter_render_group_calc_disp_locus(GPM_VAL, a1);
+        break;
+    }
+
     if (a1->disp < 1)
         return;
 
@@ -379,7 +377,7 @@ void glitter_render_group_draw(GPM, glitter_render_group* a1) {
         gl_state_bind_array_buffer(0);
 
         const GLenum mode = a1->type == GLITTER_PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
-        const size_t count = vector_length(a1->vec_key);
+        const size_t count = vector_old_length(a1->vec_key);
         for (size_t i = 0; i < count; i++)
             shader_draw_arrays(&shaders_ft,
                 mode, a1->vec_key.begin[i], a1->vec_val.begin[i]);
@@ -424,8 +422,8 @@ void glitter_render_group_free(glitter_render_group* a1) {
 }
 
 void glitter_render_group_dispose(glitter_render_group* rg) {
-    vector_int32_t_free(&rg->vec_key, 0);
-    vector_int32_t_free(&rg->vec_val, 0);
+    vector_old_int32_t_free(&rg->vec_key, 0);
+    vector_old_int32_t_free(&rg->vec_val, 0);
     glitter_render_group_delete_buffers(rg, false);
     free(rg);
 }
@@ -478,7 +476,7 @@ static void glitter_render_group_calc_disp_line(glitter_render_group* a1) {
             continue;
 
         if (elem->locus_history) {
-            size_t length = vector_length(elem->locus_history->data);
+            size_t length = vector_old_length(elem->locus_history->data);
             if (length > 1)
                 count +=  length;
         }
@@ -507,15 +505,15 @@ static void glitter_render_group_calc_disp_line(glitter_render_group* a1) {
     buf = (glitter_buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
     elem = a1->elements;
     disp = 0;
-    vector_int32_t_clear(&a1->vec_key, 0);
-    vector_int32_t_clear(&a1->vec_val, 0);
+    vector_old_int32_t_clear(&a1->vec_key, 0);
+    vector_old_int32_t_clear(&a1->vec_val, 0);
     for (i = a1->ctrl, index = 0; i > 0; elem++) {
         if (!elem->alive)
             continue;
 
         i--;
         hist = elem->locus_history;
-        if (!elem->disp || !hist || vector_length(hist->data) < 2)
+        if (!elem->disp || !hist || vector_old_length(hist->data) < 2)
             continue;
 
         if (has_scale)
@@ -536,8 +534,8 @@ static void glitter_render_group_calc_disp_line(glitter_render_group* a1) {
 
         if (j > 0) {
             disp += j;
-            *vector_int32_t_reserve_back(&a1->vec_key) = (uint32_t)index;
-            *vector_int32_t_reserve_back(&a1->vec_val) = (uint32_t)j;
+            *vector_old_int32_t_reserve_back(&a1->vec_key) = (uint32_t)index;
+            *vector_old_int32_t_reserve_back(&a1->vec_val) = (uint32_t)j;
             index += j;
         }
     }
@@ -579,7 +577,7 @@ static void glitter_render_group_calc_disp_locus(GPM, glitter_render_group* a1) 
 
         if (elem->locus_history) {
             hist = elem->locus_history;
-            size_t length = vector_length(elem->locus_history->data);
+            size_t length = vector_old_length(elem->locus_history->data);
             if (length > 1)
                 count += 2 * length;
         }
@@ -626,25 +624,25 @@ static void glitter_render_group_calc_disp_locus(GPM, glitter_render_group* a1) 
     buf = (glitter_buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
     elem = a1->elements;
     disp = 0;
-    vector_int32_t_clear(&a1->vec_key, 0);
-    vector_int32_t_clear(&a1->vec_val, 0);
+    vector_old_int32_t_clear(&a1->vec_key, 0);
+    vector_old_int32_t_clear(&a1->vec_val, 0);
     for (i = a1->ctrl, index = 0; i > 0; elem++) {
         if (!elem->alive)
             continue;
 
         i--;
         hist = elem->locus_history;
-        if (!elem->disp || !hist || vector_length(hist->data) < 2)
+        if (!elem->disp || !hist || vector_old_length(hist->data) < 2)
             continue;
 
         uv_u = elem->uv.x + elem->uv_scroll.x;
         uv_u_2nd = elem->uv.x + elem->uv_scroll.x + a1->split_uv.x;
         uv_v_2nd = elem->uv.y + elem->uv_scroll.y + a1->split_uv.y;
-        uv_v_scale = a1->split_uv.y / (float_t)(vector_length(hist->data) - 1);
+        uv_v_scale = a1->split_uv.y / (float_t)(vector_old_length(hist->data) - 1);
 
         uv_v_2nd = 1.0f - uv_v_2nd;
 
-        size_t len = vector_length(elem->locus_history->data);
+        size_t len = vector_old_length(elem->locus_history->data);
         for (j = 0, hist_data = hist->data.begin; hist_data != hist->data.end; j++, buf += 2, hist_data++) {
             pos = hist_data->translation;
             if (has_scale) {
@@ -673,8 +671,8 @@ static void glitter_render_group_calc_disp_locus(GPM, glitter_render_group* a1) 
 
         if (j > 0) {
             disp += j;
-            *vector_int32_t_reserve_back(&a1->vec_key) = (uint32_t)index;
-            *vector_int32_t_reserve_back(&a1->vec_val) = (uint32_t)(j * 2);
+            *vector_old_int32_t_reserve_back(&a1->vec_key) = (uint32_t)index;
+            *vector_old_int32_t_reserve_back(&a1->vec_val) = (uint32_t)(j * 2);
             index += j * 2;
         }
     }

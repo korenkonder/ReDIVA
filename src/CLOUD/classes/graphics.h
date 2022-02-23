@@ -11,4 +11,4 @@
 #include "graphics/post_process.h"
 #include "graphics/render_settings.h"
 
-extern classes_struct graphics_classes[];
+extern classes_data graphics_classes[];
