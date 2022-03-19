@@ -8,59 +8,26 @@
 #include "../KKdLib/str_utils.h"
 #include "render_context.h"
 
-class light_param_storage {
-public:
-    bool pv;
-    uint64_t hash;
-    uint32_t pv_id;
-    int32_t count;
-    light_param_data data;
-
-    light_param_storage();
-    ~light_param_storage();
-};
-
 static void light_param_data_get_stage_name_string(std::string* str, int32_t stage_index);
 static int32_t light_param_data_load_file(light_param_data* a1, p_file_handler* a2);
 static void light_param_data_load_file_pv_cut(std::map<int32_t, light_param_data>* tree,
     farc* f, light_param_data* default_light_param, int32_t pv_id);
 static void light_param_data_load_pv_cut_file_names(light_param_data* light_param, int32_t cut_id, std::string* name);
 static void light_param_data_load_stage_file_names(light_param_data* light_param, std::string* name);
+static void light_param_data_set(light_param_data* a1, light_param_data_storage* storage);
+static void light_param_storage_free_file_handlers(light_param_data_storage* a1);
 static void light_param_storage_load_stages(light_param_data_storage* a1, std::vector<int32_t>* stage_indices);
 static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool read_now);
 static void light_param_storage_set_default_light_param(light_param_data_storage* a1, int32_t stage_index);
 static void light_param_storage_set_stage(light_param_data_storage* a1,
     std::map<int32_t, light_param_data>::iterator* elem, int32_t stage_index);
 
-std::vector<light_param_storage> light_param_storage_data;
 light_param_data_storage light_param_data_storage_data;
 
-light_param_data::light_param_data() : id(), not_loaded() {
+extern render_context* rctx_ptr;
 
-}
+light_param_data::light_param_data() : not_loaded() {
 
-void light_param_data_load(light_param_data* light_param, data_struct* data, char* name) {
-    char buf[_MAX_PATH];
-
-    light_param->id = 0;
-
-    sprintf_s(buf, sizeof(buf), "light_%s.txt", name);
-    data_struct_load_file(data, &light_param->light, "rom/light_param/", buf, light_param_light_load_file);
-
-    sprintf_s(buf, sizeof(buf), "fog_%s.txt", name);
-    data_struct_load_file(data, &light_param->fog, "rom/light_param/", buf, light_param_fog_load_file);
-
-    sprintf_s(buf, sizeof(buf), "glow_%s.txt", name);
-    data_struct_load_file(data, &light_param->glow, "rom/light_param/", buf, light_param_glow_load_file);
-
-    sprintf_s(buf, sizeof(buf), "%s.ibl", name);
-    data_struct_load_file(data, &light_param->ibl, "rom/ibl/", buf, light_param_ibl_load_file);
-
-    sprintf_s(buf, sizeof(buf), "wind_%s.txt", name);
-    data_struct_load_file(data, &light_param->wind, "rom/light_param/", buf, light_param_wind_load_file);
-
-    sprintf_s(buf, sizeof(buf), "face_%s.txt", name);
-    data_struct_load_file(data, &light_param->face, "rom/light_param/", buf, light_param_face_load_file);
 }
 
 light_param_data::~light_param_data() {
@@ -91,88 +58,12 @@ void light_param_data_storage::unload() {
     glDeleteTextures(5, light_param_data_storage_data.textures);
 }
 
-char* light_param_get_stage_name_string(char* name) {
-    size_t length = utf8_length(name);
-    if (str_utils_compare_length(name, length, "STG", 3))
-        return 0;
-
-    name += 3;
-    length -= 3;
-
-    char* str = force_malloc_s(char, length + 1);
-    for (size_t i = 0; i < length; i++) {
-        char c = name[i];
-        if (c > 0x40 && c < 0x5B)
-            c += 0x20;
-        str[i] = c;
-    }
-    str[length] = 0;
-    return str;
+void light_param_storage_data_free_file_handlers() {
+    light_param_storage_free_file_handlers(&light_param_data_storage_data);
 }
 
-inline void light_param_storage_init() {
-    light_param_storage_data = {};
-}
-
-inline void light_param_storage_append_light_param_data(char* name) {
-    uint64_t hash = hash_utf8_fnv1a64m(name, false);
-    for (light_param_storage& i : light_param_storage_data)
-        if (!i.pv && i.hash == hash) {
-            i.count++;
-            return;
-        }
-}
-
-inline void light_param_storage_load_light_param_data(data_struct* data, char* name) {
-    light_param_data light_param;
-    light_param_data_load(&light_param, data, name);
-    light_param_storage_insert_light_param_data(&light_param, name);
-}
-
-inline void light_param_storage_insert_light_param_data(light_param_data* data, char* name) {
-    uint64_t hash = hash_utf8_fnv1a64m(name, false);
-    for (light_param_storage& i : light_param_storage_data)
-        if (!i.pv && i.hash == hash) {
-            i.count++;
-            i.data = *data;
-            return;
-        }
-
-    light_param_storage lit_param_set_storage;
-    lit_param_set_storage.pv = false;
-    lit_param_set_storage.hash = hash;
-    lit_param_set_storage.count = 1;
-    lit_param_set_storage.data = *data;
-    light_param_storage_data.push_back(lit_param_set_storage);
-}
-
-inline light_param_data* light_param_storage_get_light_param_data(char* name) {
-    uint64_t hash = hash_utf8_fnv1a64m(name, false);
-    for (light_param_storage& i : light_param_storage_data)
-        if (!i.pv && i.hash == hash)
-            return &i.data;
-    return 0;
-}
-
-inline void light_param_storage_delete_light_param_data(char* name) {
-    uint64_t hash = hash_utf8_fnv1a64m(name, false);
-    for (light_param_storage* i = light_param_storage_data.begin()._Ptr;
-        i != light_param_storage_data.end()._Ptr;)
-        if (!i->pv && i->hash == hash) {
-            i->count--;
-            if (i->count > 0)
-                break;
-
-            light_param_storage_data.erase(light_param_storage_data.begin()
-                + (i - light_param_storage_data.data()));
-            break;
-        }
-        else
-            i++;
-}
-
-inline void light_param_storage_free() {
-    light_param_storage_data = {};
+int32_t light_param_storage_data_load_file() {
+    return light_param_storage_load_file(&light_param_data_storage_data, false);
 }
 
 void light_param_storage_data_load_stage(int32_t stage_index) {
@@ -184,20 +75,16 @@ void light_param_storage_data_load_stages(std::vector<int32_t>* stage_indices) {
     light_param_storage_load_stages(&light_param_data_storage_data, stage_indices);
 }
 
+void light_param_storage_data_set_default_light_param() {
+    light_param_data_set(&light_param_data_storage_data.default_light_param, &light_param_data_storage_data);
+}
+
 void light_param_storage_data_set_stage(int32_t stage_id) {
     std::map<int32_t, light_param_data>::iterator elem;
     light_param_storage_set_stage(&light_param_data_storage_data, &elem, stage_id);
 }
 
-light_param_storage::light_param_storage() : pv(), hash(), pv_id(), count() {
-
-}
-
-light_param_storage::~light_param_storage() {
-
-}
-
-int32_t light_param_storage_load_file(light_param_data_storage* a1, bool read_now) {
+static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool read_now) {
     if (a1->state == 1) {
         light_param_data* light_param = &a1->stage_light_param_iterator->second;
         std::string* paths = light_param->paths;
@@ -234,38 +121,37 @@ int32_t light_param_storage_load_file(light_param_data_storage* a1, bool read_no
         }
         return 1;
     }
-    else if (a1->state - 3) {
-        char DstBuf[256]; // [rsp+90h] [rbp-138h] BYREF
-        sprintf_s(DstBuf, 0x100ui64, "light_pv%03d.farc", a1->pv_id);
-        if (a1->farc_file_handler.read_file_path((char*)"./rom/light_param/", DstBuf))
+    else if (a1->state == 3) {
+        char buf[0x100];
+        sprintf_s(buf, sizeof(buf), "light_pv%03d.farc", a1->pv_id);
+        if (a1->farc_file_handler.read_file_path((char*)"./rom/light_param/", buf))
             a1->state = 4;
         else {
             a1->farc_file_handler.free_data();
             a1->state = 0;
-            return false;
+            return 0;
         }
-        return true;
+        return 1;
     }
     else if (a1->state == 4) {
         if (read_now)
             a1->farc_file_handler.read_now();
         else if (a1->farc_file_handler.check_not_ready())
-            return true;
+            return 1;
 
         farc a1a;
         a1a.read(a1->farc_file_handler.get_data(), a1->farc_file_handler.get_size(), true);
         if (a1a.files.size())
             light_param_data_load_file_pv_cut(&a1->pv_cut, &a1a, &a1->default_light_param, a1->pv_id);
         a1->state = 0;
-        return false;
+        return 0;
     }
-    return false;
+    return 0;
 }
 
-extern render_context* rctx_ptr;
-
 static void light_param_data_get_stage_name_string(std::string* str, int32_t stage_index) {
-    *str = {};
+    str->clear();
+    str->shrink_to_fit();;
     stage_database* data = &rctx_ptr->data->data_ft.stage_data;
     char* stage_name = stage_index < vector_old_length(data->stage_data)
         ? string_data(&data->stage_data.begin[stage_index].name) : 0;
@@ -299,32 +185,32 @@ static void light_param_data_get_stage_name_string(std::string* str, int32_t sta
 
 static int32_t light_param_data_load_file(light_param_data* a1, p_file_handler* a2) {
     if (a2[0].ptr) {
-        a1->ibl = {};
+        a1->ibl = light_param_ibl();
         a1->ibl.read(a2[0].get_data(), a2[0].get_size());
     }
 
     if (a2[1].ptr) {
-        a1->light = {};
+        a1->light = light_param_light();
         a1->light.read(a2[1].get_data(), a2[1].get_size());
     }
 
     if (a2[2].ptr) {
-        a1->fog = {};
+        a1->fog = light_param_fog();
         a1->fog.read(a2[2].get_data(), a2[2].get_size());
     }
 
     if (a2[3].ptr) {
-        a1->glow = {};
+        a1->glow = light_param_glow();
         a1->glow.read(a2[3].get_data(), a2[3].get_size());
     }
 
     if (a2[4].ptr) {
-        a1->wind = {};
+        a1->wind = light_param_wind();
         a1->wind.read(a2[4].get_data(), a2[4].get_size());
     }
 
     if (a2[5].ptr) {
-        a1->face = {};
+        a1->face = light_param_face();
         a1->face.read(a2[5].get_data(), a2[5].get_size());
     }
 
@@ -443,23 +329,23 @@ static void light_param_data_load_file_pv_cut(std::map<int32_t, light_param_data
         }
 
         if (type == 1) {
-            light_param->light = {};
+            light_param->light = light_param_light();
             light_param->light.read(i.data, i.size);
         }
         else if (type == 2) {
-            light_param->fog = {};
+            light_param->fog = light_param_fog();
             light_param->fog.read(i.data, i.size);
         }
         else if (type == 3) {
-            light_param->glow = {};
+            light_param->glow = light_param_glow();
             light_param->glow.read(i.data, i.size);
         }
         else if (type == 4) {
-            light_param->wind = {};
+            light_param->wind = light_param_wind();
             light_param->wind.read(i.data, i.size);
         }
         else if (type == 5) {
-            light_param->face = {};
+            light_param->face = light_param_face();
             light_param->face.read(i.data, i.size);
         }
     }
@@ -526,6 +412,12 @@ void light_param_data_load_stage_file_names(light_param_data* light_param, std::
     light_param->files[5] = std::string(buf);
 }
 
+static void light_param_storage_free_file_handlers(light_param_data_storage* a1) {
+    for (int32_t i = 0; i < 6; ++i)
+        a1->file_handlers[i].free_data();
+    a1->farc_file_handler.free_data();
+}
+
 static void light_param_storage_load_stages(light_param_data_storage* a1, std::vector<int32_t>* stage_indices) {
     if (a1->state)
         for (int32_t i = 0; i < 6; ++i)
@@ -562,7 +454,7 @@ static void light_param_storage_set_default_light_param(light_param_data_storage
         a1->default_light_param = elem->second;
 }
 
-void light_param_data_set(light_param_data* a1, light_param_data_storage* storage) {
+static void light_param_data_set(light_param_data* a1, light_param_data_storage* storage) {
     if (!a1->not_loaded || a1->light.ready)
         render_context_light_param_data_light_set(rctx_ptr, &a1->light);
     if (!a1->not_loaded || a1->fog.ready)

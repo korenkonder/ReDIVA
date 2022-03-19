@@ -85,10 +85,10 @@ typedef struct stage_data {
     string collision_file_path;
     stage_data_reflect_type reflect_type;
     bool refract_enable;
-    bool reflect_data;
-    stage_data_reflect reflect;
-    bool refract_data;
-    stage_data_refract refract;
+    bool reflect;
+    stage_data_reflect reflect_data;
+    bool refract;
+    stage_data_refract refract_data;
     stage_data_flags flags;
     float_t ring_rectangle_x;
     float_t ring_rectangle_y;
@@ -97,8 +97,8 @@ typedef struct stage_data {
     float_t ring_height;
     float_t ring_out_height;
     stage_effects effects;
-    uint32_t auth_3d_count;
-    uint32_t* auth_3d_ids;
+    int32_t auth_3d_count;
+    int32_t* auth_3d_ids;
 } stage_data;
 
 typedef struct stage_data_modern {
@@ -137,8 +137,8 @@ typedef struct stage_data_modern {
     float_t ring_out_height;
     uint32_t field_13;
     stage_effects effects;
-    uint32_t auth_3d_count;
-    uint32_t* auth_3d_ids;
+    int32_t auth_3d_count;
+    int32_t* auth_3d_ids;
 } stage_data_modern;
 
 vector_old(stage_data)
@@ -159,13 +159,13 @@ typedef struct stage_database {
 } stage_database;
 
 extern void stage_database_init(stage_database* stage_data);
-extern void stage_database_read(stage_database* stage_data, char* path, bool modern);
-extern void stage_database_wread(stage_database* stage_data, wchar_t* path, bool modern);
-extern void stage_database_mread(stage_database* stage_data, void* data, size_t length, bool modern);
-extern void stage_database_write(stage_database* stage_data, char* path);
-extern void stage_database_wwrite(stage_database* stage_data, wchar_t* path);
-extern void stage_database_mwrite(stage_database* stage_data, void** data, size_t* length);
-extern bool stage_database_load_file(void* data, char* path, char* file, uint32_t hash);
+extern void stage_database_read(stage_database* stage_data, const char* path, bool modern);
+extern void stage_database_read(stage_database* stage_data, const wchar_t* path, bool modern);
+extern void stage_database_read(stage_database* stage_data, const void* data, size_t length, bool modern);
+extern void stage_database_write(stage_database* stage_data, const char* path);
+extern void stage_database_write(stage_database* stage_data, const wchar_t* path);
+extern void stage_database_write(stage_database* stage_data, void** data, size_t* length);
+extern bool stage_database_load_file(void* data, const char* path, const char* file, uint32_t hash);
 extern void stage_database_merge_mdata(stage_database* stage_data,
     stage_database* base_stage_data, stage_database* mdata_stage_data);
 extern void stage_database_split_mdata(stage_database* stage_data,

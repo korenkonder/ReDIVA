@@ -36,7 +36,7 @@ extern bool draw_task_add_draw_object_by_object_info_color(render_context* rctx,
 extern bool draw_task_add_draw_object_by_object_info_color_vec4(render_context* rctx, mat4* mat,
     object_info obj_info, vec4* blend_color);
 extern void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, object_info obj_info,
-    vector_old_texture_pattern_struct* texture_pattern, texture_data_struct* texture_data, float_t alpha,
+    std::vector<texture_pattern_struct>* texture_pattern, texture_data_struct* texture_data, float_t alpha,
     mat4* matrices, mat4* ex_data_matrices, mat4* mat, mat4* global_mat);
 extern bool draw_task_add_draw_object_by_object_info_opaque(render_context* rctx,
     mat4* mat, object_info obj_info);

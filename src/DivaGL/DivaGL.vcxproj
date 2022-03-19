@@ -188,7 +188,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -224,7 +223,6 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -264,7 +262,6 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
@@ -300,10 +297,9 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <CallingConvention>FastCall</CallingConvention>
       <CompileAs>CompileAsCpp</CompileAs>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
@@ -345,7 +341,6 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
@@ -386,7 +381,6 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
@@ -431,7 +425,6 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
@@ -474,7 +467,6 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <UseFullPaths>false</UseFullPaths>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>

@@ -198,8 +198,12 @@ void graphics_post_process_imgui(class_data* data) {
         }
         imguiColumnSliderFloat("distance to focus[m]",
             &dof->data.debug.distance_to_focus, 0.01f, 0.01f, 30.0f, "%.2f", 0, true);
+
+        float_t focal_length = dof->data.debug.focal_length * 1000.0f;
         imguiColumnSliderFloat("focal length[mm]",
-            &dof->data.debug.focal_length, 0.01f, 0.1f, 100.0f, "%.2f", 0, true);
+            &focal_length, 0.01f, 0.1f, 100.0f, "%.2f", 0, true);
+        dof->data.debug.focal_length = focal_length / 1000.0f;
+
         imguiColumnSliderFloat("F-Number",
             &dof->data.debug.f_number, 0.01f, 0.1f, 40.0f, "%.2f", 0, true);
         if (!phys) {
@@ -227,12 +231,9 @@ void graphics_post_process_imgui(class_data* data) {
         igTreePop();
     }
 
-    if (imguiButton("Reset Post Process", ImVec2_Empty) && rctx->stage) {
-        stage* stg = (stage*)rctx->stage;
-        //light_param_data* light_param = light_param_storage_get_light_param_data(stg->light_param_name);
-        post_process_reset(pp);
-        //if (light_param->glow.ready)
-            //render_context_light_param_data_glow_set(rctx, &light_param->glow);
+    if (imguiButton("Reset Post Process", ImVec2_Empty)) {
+        stage* stg = task_stage_get_current_stage();
+        light_param_storage_data_set_stage(stg->index);
     }
 
     data->imgui_focus |= igIsWindowFocused(0);

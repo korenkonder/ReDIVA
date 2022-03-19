@@ -21,7 +21,7 @@ motion_database::~motion_database() {
 
 }
 
-void motion_database::read(char* path) {
+void motion_database::read(const char* path) {
     if (!path)
         return;
 
@@ -33,7 +33,7 @@ void motion_database::read(char* path) {
         farc_file* ff = f.read_file("mot_db.bin");
         if (ff) {
             stream s;
-            io_mopen(&s, ff->data, ff->size);
+            io_open(&s, ff->data, ff->size);
             motion_database_read_inner(this, &s);
             io_free(&s);
         }
@@ -41,19 +41,19 @@ void motion_database::read(char* path) {
     free(path_farc);
 }
 
-void motion_database::read(wchar_t* path) {
+void motion_database::read(const wchar_t* path) {
     if (!path)
         return;
 
     wchar_t* path_farc = str_utils_wadd(path, L".farc");
-    if (path_wcheck_file_exists(path_farc)) {
+    if (path_check_file_exists(path_farc)) {
         farc f;
         f.read(path_farc, true, false);
 
         farc_file* ff = f.read_file("mot_db.bin");
         if (ff) {
             stream s;
-            io_mopen(&s, ff->data, ff->size);
+            io_open(&s, ff->data, ff->size);
             motion_database_read_inner(this, &s);
             io_free(&s);
         }
@@ -61,17 +61,17 @@ void motion_database::read(wchar_t* path) {
     free(path_farc);
 }
 
-void motion_database::read(void* data, size_t length) {
+void motion_database::read(const void* data, size_t length) {
     if (!data || !length)
         return;
 
     stream s;
-    io_mopen(&s, data, length);
+    io_open(&s, data, length);
     motion_database_read_inner(this, &s);
     io_free(&s);
 }
 
-void motion_database::write(char* path) {
+void motion_database::write(const char* path) {
     if (!path || !ready)
         return;
 
@@ -81,9 +81,9 @@ void motion_database::write(char* path) {
     ff.name = std::string("mot_db.bin", 10);
 
     stream s;
-    io_mopen(&s, 0, 0);
+    io_open(&s);
     motion_database_write_inner(this, &s);
-    io_mcopy(&s, &ff.data, &ff.size);
+    io_copy(&s, &ff.data, &ff.size);
     io_free(&s);
 
     f.files.push_back(ff);
@@ -91,7 +91,7 @@ void motion_database::write(char* path) {
     f.write(path, FARC_COMPRESS_FArC, false);
 }
 
-void motion_database::write(wchar_t* path) {
+void motion_database::write(const wchar_t* path) {
     if (!path || !this->ready)
         return;
 
@@ -100,9 +100,9 @@ void motion_database::write(wchar_t* path) {
     farc_file ff;
     ff.name = std::string("mot_db.bin", 10);
     stream s;
-    io_mopen(&s, 0, 0);
+    io_open(&s);
     motion_database_write_inner(this, &s);
-    io_mcopy(&s, &ff.data, &ff.size);
+    io_copy(&s, &ff.data, &ff.size);
     io_free(&s);
 
     f.files.push_back(ff);
@@ -115,9 +115,9 @@ void motion_database::write(void** data, size_t* length) {
         return;
 
     stream s;
-    io_mopen(&s, 0, 0);
+    io_open(&s);
     motion_database_write_inner(this, &s);
-    io_mcopy(&s, data, length);
+    io_copy(&s, data, length);
     io_free(&s);
 }
 
@@ -202,18 +202,6 @@ motion_set_info* motion_database::get_motion_set_by_id(uint32_t id) {
     return 0;
 }
 
-motion_set_info* motion_database::get_motion_set_by_name(char* name) {
-    if (!name)
-        return 0;
-
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
-
-    for (motion_set_info& i : motion_set)
-        if (name_hash == i.name_hash)
-            return &i;
-    return 0;
-}
-
 motion_set_info* motion_database::get_motion_set_by_name(const char* name) {
     if (!name)
         return 0;
@@ -224,18 +212,6 @@ motion_set_info* motion_database::get_motion_set_by_name(const char* name) {
         if (name_hash == i.name_hash)
             return &i;
     return 0;
-}
-
-uint32_t motion_database::get_motion_set_id(char* name) {
-    if (!name)
-        return -1;
-
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
-
-    for (motion_set_info& i : motion_set)
-        if (name_hash == i.name_hash)
-            return i.id;
-    return -1;
 }
 
 uint32_t motion_database::get_motion_set_id(const char* name) {
@@ -271,19 +247,6 @@ motion_info* motion_database::get_motion_by_id(uint32_t id) {
     return 0;
 }
 
-motion_info* motion_database::get_motion_by_name(char* name) {
-    if (!name)
-        return 0;
-
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
-
-    for (motion_set_info& i : motion_set)
-        for (motion_info& j : i.motion)
-            if (name_hash == j.name_hash)
-                return &j;
-    return 0;
-}
-
 motion_info* motion_database::get_motion_by_name(const char* name) {
     if (!name)
         return 0;
@@ -295,19 +258,6 @@ motion_info* motion_database::get_motion_by_name(const char* name) {
             if (name_hash == j.name_hash)
                 return &j;
     return 0;
-}
-
-uint32_t motion_database::get_motion_id(char* name) {
-    if (!name)
-        return -1;
-
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
-
-    for (motion_set_info& i : motion_set)
-        for (motion_info& j : i.motion)
-            if (name_hash == j.name_hash)
-                return j.id;
-    return -1;
 }
 
 uint32_t motion_database::get_motion_id(const char* name) {
@@ -334,10 +284,10 @@ const char* motion_database::get_motion_name(uint32_t id) {
     return 0;
 }
 
-bool motion_database::load_file(void* data, char* path, char* file, uint32_t hash) {
+bool motion_database::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
-    char* t = strrchr(file, '.');
+    const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 

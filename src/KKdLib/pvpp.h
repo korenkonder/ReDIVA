@@ -118,10 +118,12 @@ public:
     std::vector<pvpp_effect> effect;
 
     pvpp();
-    void read(char* path);
-    void read(wchar_t* path);
-    void read(void* data, size_t length);
-    virtual ~pvpp();
+    ~pvpp();
+
+    void read(const char* path);
+    void read(const wchar_t* path);
+    void read(const void* data, size_t length);
+
+    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };
 
-extern bool pvpp_load_file(void* data, char* path, char* file, uint32_t hash);

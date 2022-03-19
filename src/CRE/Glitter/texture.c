@@ -87,15 +87,15 @@ bool glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st)
 }
 
 bool glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st) {
-    if (vector_old_length(a1->resources_tex) < 1)
+    if (a1->resources_tex.textures.size() < 1)
         return false;
 
     memset(st, 0, sizeof(f2_struct));
 
-    if (!txp_set_produce_enrs(&a1->resources_tex, &st->enrs))
+    if (!a1->resources_tex.produce_enrs(&st->enrs))
         return false;
 
-    txp_set_pack_file(&a1->resources_tex, &st->data, &st->length, false);
+    a1->resources_tex.pack_file(&st->data, &st->length, false);
 
     st->header.signature = reverse_endianness_uint32_t('TXPC');
     st->header.length = 0x20;
@@ -108,7 +108,7 @@ bool glitter_texture_resource_unpack_file(GPM, glitter_effect_group* a1, f2_stru
     if (!st || !st->header.data_size)
         return false;
 
-    txp_set_unpack_file(&a1->resources_tex, st->data, st->header.use_big_endian);
+    a1->resources_tex.unpack_file(st->data, st->header.use_big_endian);
     return glitter_texture_load(GPM_VAL, a1);
 }
 
@@ -116,7 +116,7 @@ bool glitter_texture_load(GPM, glitter_effect_group* a1) {
     if (!a1->resources_count)
         return false;
 
-    size_t count = vector_old_length(a1->resources_tex);
+    size_t count = a1->resources_tex.textures.size();
 
     if (count < 1 || a1->resources_count < 1 || a1->resources_count != count)
         return false;

@@ -5,6 +5,7 @@
     Some code is from LearnOpenGL
 */
 
+#if defined(CLOUD_DEV)
 #include "x_pv_player.h"
 #include "../KKdLib/dsc.h"
 #include "../KKdLib/farc.h"
@@ -40,11 +41,11 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
 
     sprintf_s(file_buf, sizeof(file_buf), "pv%03d.pvpp", pv_id);
     pp = new pvpp;
-    data_struct_load_file(x_data, pp, "rom/pv/", file_buf, pvpp_load_file);
+    x_data->load_file(pp, "rom/pv/", file_buf, pvpp::load_file);
 
     sprintf_s(file_buf, sizeof(file_buf), "stgpv%03d_param.pvsr", stage_id);
     pvsr_init(&sr);
-    data_struct_load_file(x_data, &sr, "rom/pv_stage_rsrc/", file_buf, pvsr_load_file);
+    x_data->load_file(&sr, "rom/pv_stage_rsrc/", file_buf, pvsr_load_file);
 
     glt_particle_manager.data = x_data;
 
@@ -64,7 +65,7 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
     farc dsc_common_farc;
     sprintf_s(path_buf, sizeof(path_buf), "rom/pv_script/pv%03d/", pv_id);
     sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_common.farc", pv_id);
-    data_struct_load_file(x_data, &dsc_common_farc, path_buf, file_buf, farc::load_file);
+    x_data->load_file(&dsc_common_farc, path_buf, file_buf, farc::load_file);
 
     sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_scene.dsc", pv_id);
     farc_file* dsc_scene_ff = dsc_common_farc.read_file(file_buf);
@@ -78,7 +79,7 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
 
     sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_easy.dsc", pv_id);
     dsc_easy.type = DSC_X;
-    data_struct_load_file(x_data, &dsc_easy, path_buf, file_buf, dsc_load_file);
+    x_data->load_file(&dsc_easy, path_buf, file_buf, dsc_load_file);
 
     dsc dsc_m;
     dsc_merge(&dsc_m, 3, &dsc_scene, &dsc_system, &dsc_easy);
@@ -87,7 +88,8 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
     dsc_free(&dsc_system);
     dsc_free(&dsc_easy);
 
-    this->frame_data = {};
+    this->frame_data.clear();
+    this->frame_data.shrink_to_fit();
 
     int32_t end_func_id = dsc_x_get_func_id("END");
     int32_t time_func_id = dsc_x_get_func_id("TIME");
@@ -174,3 +176,4 @@ x_pv_player_glitter::x_pv_player_glitter(char* name) {
 x_pv_player_glitter::~x_pv_player_glitter() {
 
 }
+#endif

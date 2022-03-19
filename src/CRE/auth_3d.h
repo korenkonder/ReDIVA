@@ -661,7 +661,6 @@ class auth_3d {
 public:
     int32_t uid;
     int32_t id;
-    mat4u mat;
     bool enable;
     bool camera_root_update;
     bool visible;
@@ -669,6 +668,7 @@ public:
     bool ended;
     bool left_right_reverse;
     bool once;
+    mat4u mat;
     float_t alpha;
     draw_task_flags draw_task_flags;
     int32_t chara_id;
@@ -763,19 +763,10 @@ public:
     ~auth_3d_data_struct();
 };
 
-class TaskAuth3d : public Task {
-public:
-    TaskAuth3d();
-    virtual ~TaskAuth3d() override;
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual void Disp() override;
-};
-
 extern auth_3d_data_struct auth_3d_data;
-extern TaskAuth3d task_auth_3d;
 
 extern bool auth_3d_data_check_id_not_empty(int32_t* id);
+extern bool auth_3d_data_check_category_loaded(char* category_name);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t id);
 extern int32_t auth_3d_data_get_chara_id(int32_t id);
 extern int32_t auth_3d_data_get_auth_3d_id_by_object_info(object_info obj_info,
@@ -811,3 +802,5 @@ extern void auth_3d_data_set_shadow(int32_t* id, bool value);
 extern void auth_3d_data_set_visibility(int32_t* id, bool value);
 extern void auth_3d_data_unload_category(char* category_name);
 extern void auth_3d_data_unload_id(int32_t id, render_context* rctx);
+
+extern void task_auth_3d_append_task();

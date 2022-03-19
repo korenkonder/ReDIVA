@@ -11,21 +11,12 @@
 #include "render_group.h"
 #include "scene.h"
 
-GltParticleManager::GltParticleManager() {
-    scenes = {};
-    file_readers = {};
-    sys_frame_rate = 0;
-    flags = (glitter_particle_manager_flag)0;
-    scene_counter = 0;
-    emission = 1.5;
-    delta_frame = 2.0;
-    texture_counter = 0;
-    scenes = {};
+GltParticleManager::GltParticleManager() :scene(), effect(), emitter(), particle(), rctx(),
+data(), bone_data(), sys_frame_rate(), flags(), scene_counter(), emission(1.5f), delta_frame(2.0f),
+texture_counter(), random(), counter(), cam_projection(), cam_view(), cam_inv_view(), cam_inv_view_mat3(),
+cam_view_point(), cam_rotation_y(), draw_all(true), draw_all_mesh(true), draw_selected() {
     scenes.reserve(0x100);
-    file_readers = {};
     file_readers.reserve(0x100);
-    draw_all = true;
-    draw_all_mesh = true;
 }
 
 GltParticleManager::~GltParticleManager() {
@@ -40,10 +31,10 @@ bool GltParticleManager::Init() {
 bool GltParticleManager::Ctrl() {
     if (flags & GLITTER_PARTICLE_MANAGER_READ_FILES) {
         for (glitter_file_reader** i = file_readers.begin()._Ptr; i != file_readers.end()._Ptr;)
-            if (!*i || (*i)->ReadFarc(this, this->emission)) {
+            if (!*i || (*i)->ReadFarc(this, emission)) {
                 delete* i;
                 *i = 0;
-                file_readers.erase(file_readers.begin() + (i - file_readers.begin()._Ptr));
+                file_readers.erase(file_readers.begin() + (i - file_readers.data()));
             }
             else
                 i++;
@@ -52,33 +43,8 @@ bool GltParticleManager::Ctrl() {
             enum_and(flags, ~GLITTER_PARTICLE_MANAGER_READ_FILES);
     }
 
-    if (flags & GLITTER_PARTICLE_MANAGER_PAUSE)
-        return false;
-
-    delta_frame = get_delta_frame();
-    if (sys_frame_rate)
-        delta_frame *= sys_frame_rate->frame_speed;
-
-    for (glitter_scene** i = scenes.begin()._Ptr; i != scenes.end()._Ptr;) {
-        if (!*i || glitter_scene_has_ended(*i, 1)) {
-            delete* i;
-            *i = 0;
-            scenes.erase(scenes.begin() + (i - scenes.begin()._Ptr));
-        }
-#if defined(CRE_DEV)
-        else if (~(*i)->flags & GLITTER_SCENE_EDITOR) {
-            glitter_scene_ctrl(this, *i, delta_frame);
-            i++;
-        }
-        else
-            i++;
-#else
-        else {
-            glitter_scene_ctrl(this, *i, delta_frame);
-            i++;
-        }
-#endif
-    }
+    if (~flags & GLITTER_PARTICLE_MANAGER_PAUSE)
+        CtrlScenes();
     return false;
 }
 
@@ -131,7 +97,7 @@ void GltParticleManager::BasicEffectGroups() {
 
             delete* j;
             *j = 0;
-            scenes.erase(scenes.begin() + (j - scenes.begin()._Ptr));
+            scenes.erase(scenes.begin() + (j - scenes.data()));
         }
         i = effect_groups.erase(i);
     }
@@ -153,6 +119,33 @@ bool GltParticleManager::CheckNoFileReaders(uint64_t hash) {
         return true;
     }
     return false;
+}
+
+void GltParticleManager::CtrlScenes() {
+    delta_frame = get_delta_frame();
+    if (sys_frame_rate)
+        delta_frame *= sys_frame_rate->frame_speed;
+
+    for (glitter_scene** i = scenes.begin()._Ptr; i != scenes.end()._Ptr;) {
+        if (!*i || glitter_scene_has_ended(*i, 1)) {
+            delete* i;
+            *i = 0;
+            scenes.erase(scenes.begin() + (i - scenes.data()));
+        }
+#if defined(CRE_DEV)
+        else if (~(*i)->flags & GLITTER_SCENE_EDITOR) {
+            glitter_scene_ctrl(this, *i, delta_frame);
+            i++;
+        }
+        else
+            i++;
+#else
+        else {
+            glitter_scene_ctrl(this, *i, delta_frame);
+            i++;
+        }
+#endif
+    }
 }
 
 void GltParticleManager::Disp(draw_pass_3d_type draw_pass_type) {
@@ -188,7 +181,7 @@ void GltParticleManager::FreeSceneEffect(glitter_scene_counter scene_counter, ui
                 && (glitter_scene_free_effect(this, *i, scene_counter.index, true), glitter_scene_has_ended(*i, 0))) {
                 delete *i;
                 *i = 0;
-                scenes.erase(scenes.begin() + (i - scenes.begin()._Ptr));
+                scenes.erase(scenes.begin() + (i - scenes.data()));
             }
         }
     }
@@ -621,7 +614,7 @@ void GltParticleManager::SetFrame(glitter_effect_group* effect_group,
                 continue;
             }
 
-            scenes.erase(scenes.begin() + (i - scenes.begin()._Ptr));
+            scenes.erase(scenes.begin() + (i - scenes.data()));
             break;
         }
 
@@ -664,7 +657,7 @@ void GltParticleManager::UnloadEffectGroup(uint64_t hash) {
         if (!*i || (*i)->hash == hash) {
             delete* i;
             *i = 0;
-            file_readers.erase(file_readers.begin() + (i - file_readers.begin()._Ptr));
+            file_readers.erase(file_readers.begin() + (i - file_readers.data()));
         }
         else
             i++;

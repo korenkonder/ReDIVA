@@ -469,8 +469,6 @@ typedef struct object_skin_osage_node {
     uint32_t name_index;
     float_t length;
     vec3 rotation;
-    uint32_t sibling_name_index;
-    float_t sibling_max_distance;
 } object_skin_osage_node;
 
 typedef struct object_skin_block_osage {
@@ -499,7 +497,7 @@ typedef struct object_skin_block {
 typedef struct object_skin_osage_sibling_info {
     uint32_t name_index;
     uint32_t sibling_name_index;
-    float_t distance;
+    float_t max_distance;
 } object_skin_osage_sibling_info;
 
 typedef struct object_skin_ex_data {
@@ -582,7 +580,7 @@ typedef struct object_set {
 
 extern void object_set_init(object_set* set);
 extern void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_file,
-    texture_database* tex_db, string* name, uint32_t id, bool compressed);
+    texture_database* tex_db, const char* name, uint32_t id, bool compressed);
 extern bool object_set_load_db_entry(object_set_info** set_info,
     void* data, object_database* obj_db, char* name);
 extern bool object_set_load_db_entry(object_set_info** set_info,
@@ -629,6 +627,8 @@ extern object_mesh_index_buffer* object_storage_get_object_mesh_index_buffer(obj
 extern object_vertex_buffer* object_storage_get_object_vertex_buffers(uint32_t set_id);
 extern object_mesh_vertex_buffer* object_storage_get_object_mesh_vertex_buffer(object_info obj_info);
 extern GLuint* object_storage_get_textures(uint32_t set_id);
+extern int32_t object_storage_get_textures_count(uint32_t set_id);
 extern uint32_t* object_storage_get_texture_ids(uint32_t set_id);
+extern int32_t object_storage_get_texture_ids_count(uint32_t set_id);
 extern void object_storage_delete_object_set(uint32_t set_id);
 extern void object_storage_free();

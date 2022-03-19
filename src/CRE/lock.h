@@ -32,7 +32,3 @@ LeaveCriticalSection(&(val)->cs); \
 extern void lock_init(lock* l);
 extern bool lock_check_init(lock* l);
 extern void lock_free(lock* l);
-
-extern bool lock_data_init(lock_data* ld, lock* l,
-    void* data, void(*free_func)(void* data));
-extern bool lock_data_free(lock_data* ld, void(*free_func)(void* data));

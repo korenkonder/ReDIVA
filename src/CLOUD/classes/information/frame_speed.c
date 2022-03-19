@@ -4,7 +4,6 @@
 */
 
 #include "frame_speed.h"
-#include "../../../KKdLib/vec.h"
 #include "../imgui_helper.h"
 
 extern int32_t width;
@@ -44,11 +43,6 @@ void information_frame_speed_imgui(class_data* data) {
         igEnd();
         return;
     }
-
-    ImGuiColorEditFlags color_edit_flags = 0;
-    color_edit_flags |= ImGuiColorEditFlags_NoLabel;
-    color_edit_flags |= ImGuiColorEditFlags_NoSidePreview;
-    color_edit_flags |= ImGuiColorEditFlags_NoDragDrop;
 
     imguiGetContentRegionAvailSetNextItemWidth();
     imguiColumnSliderFloat("frame speed", &frame_speed, 0.01f, 0.0f, 3.0f, "%.2f", 0, true);

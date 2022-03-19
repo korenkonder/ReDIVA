@@ -27,7 +27,7 @@ texture_database::~texture_database() {
 
 }
 
-void texture_database::read(char* path, bool modern) {
+void texture_database::read(const char* path, bool modern) {
     if (!path)
         return;
 
@@ -40,7 +40,7 @@ void texture_database::read(char* path, bool modern) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
-                io_mopen(&s_bin, data, s.length);
+                io_open(&s_bin, data, s.length);
                 texture_database_classic_read_inner(this, &s_bin);
                 io_free(&s_bin);
                 free(data);
@@ -56,7 +56,7 @@ void texture_database::read(char* path, bool modern) {
             f2_struct_read(&st, path_txi);
             if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
                 stream s_mtxi;
-                io_mopen(&s_mtxi, st.data, st.length);
+                io_open(&s_mtxi, st.data, st.length);
                 s_mtxi.is_big_endian = st.header.use_big_endian;
                 texture_database_modern_read_inner(this, &s_mtxi, st.header.length);
                 io_free(&s_mtxi);
@@ -67,20 +67,20 @@ void texture_database::read(char* path, bool modern) {
     }
 }
 
-void texture_database::read(wchar_t* path, bool modern) {
+void texture_database::read(const wchar_t* path, bool modern) {
     if (!path)
         return;
 
     if (!modern) {
         wchar_t* path_bin = str_utils_wadd(path, L".bin");
-        if (path_wcheck_file_exists(path_bin)) {
+        if (path_check_file_exists(path_bin)) {
             stream s;
-            io_wopen(&s, path_bin, L"rb");
+            io_open(&s, path_bin, L"rb");
             if (s.io.stream) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
-                io_mopen(&s_bin, data, s.length);
+                io_open(&s_bin, data, s.length);
                 texture_database_classic_read_inner(this, &s_bin);
                 io_free(&s_bin);
                 free(data);
@@ -91,12 +91,12 @@ void texture_database::read(wchar_t* path, bool modern) {
     }
     else {
         wchar_t* path_txi = str_utils_wadd(path, L".txi");
-        if (path_wcheck_file_exists(path_txi)) {
+        if (path_check_file_exists(path_txi)) {
             f2_struct st;
-            f2_struct_wread(&st, path_txi);
+            f2_struct_read(&st, path_txi);
             if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
                 stream s_mtxi;
-                io_mopen(&s_mtxi, st.data, st.length);
+                io_open(&s_mtxi, st.data, st.length);
                 s_mtxi.is_big_endian = st.header.use_big_endian;
                 texture_database_modern_read_inner(this, &s_mtxi, st.header.length);
                 io_free(&s_mtxi);
@@ -107,22 +107,22 @@ void texture_database::read(wchar_t* path, bool modern) {
     }
 }
 
-void texture_database::read(void* data, size_t length, bool modern) {
+void texture_database::read(const void* data, size_t length, bool modern) {
     if (!data || !length)
         return;
 
     if (!modern) {
         stream s;
-        io_mopen(&s, data, length);
+        io_open(&s, data, length);
         texture_database_classic_read_inner(this, &s);
         io_free(&s);
     }
     else {
         f2_struct st;
-        f2_struct_mread(&st, data, length);
+        f2_struct_read(&st, data, length);
         if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
             stream s_mtxi;
-            io_mopen(&s_mtxi, st.data, st.length);
+            io_open(&s_mtxi, st.data, st.length);
             s_mtxi.is_big_endian = st.header.use_big_endian;
             texture_database_modern_read_inner(this, &s_mtxi, st.header.length);
             io_free(&s_mtxi);
@@ -131,7 +131,7 @@ void texture_database::read(void* data, size_t length, bool modern) {
     }
 }
 
-void texture_database::write(char* path) {
+void texture_database::write(const char* path) {
     if (!path || !ready)
         return;
 
@@ -155,14 +155,14 @@ void texture_database::write(char* path) {
     }
 }
 
-void texture_database::write(wchar_t* path) {
+void texture_database::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
     if (!modern) {
         wchar_t* path_bin = str_utils_wadd(path, L".bin");
         stream s;
-        io_wopen(&s, path_bin, L"wb");
+        io_open(&s, path_bin, L"wb");
         if (s.io.stream)
             texture_database_classic_write_inner(this, &s);
         io_free(&s);
@@ -171,7 +171,7 @@ void texture_database::write(wchar_t* path) {
     else {
         wchar_t* path_txi = str_utils_wadd(path, L".txi");
         stream s;
-        io_wopen(&s, path_txi, L"wb");
+        io_open(&s, path_txi, L"wb");
         if (s.io.stream)
             texture_database_modern_write_inner(this, &s);
         io_free(&s);
@@ -184,13 +184,13 @@ void texture_database::write(void** data, size_t* length) {
         return;
 
     stream s;
-    io_mopen(&s, 0, 0);
+    io_open(&s);
     if (!modern)
         texture_database_classic_write_inner(this, &s);
     else
         texture_database_modern_write_inner(this, &s);
     io_align_write(&s, 0x10);
-    io_mcopy(&s, data, length);
+    io_copy(&s, data, length);
     io_free(&s);
 }
 
@@ -276,10 +276,10 @@ const char* texture_database::get_texture_name(uint32_t id) {
     return 0;
 }
 
-bool texture_database::load_file(void* data, char* path, char* file, uint32_t hash) {
+bool texture_database::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
-    char* t = strrchr(file, '.');
+    const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
@@ -398,7 +398,7 @@ static void texture_database_modern_read_inner(texture_database* tex_db, stream*
 
 static void texture_database_modern_write_inner(texture_database* tex_db, stream* s) {
     stream s_mtxi;
-    io_mopen(&s_mtxi, 0, 0);
+    io_open(&s_mtxi);
     uint32_t off;
     vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
@@ -478,7 +478,7 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     f2_struct st;
     memset(&st, 0, sizeof(f2_struct));
     io_align_write(&s_mtxi, 0x10);
-    io_mcopy(&s_mtxi, &st.data, &st.length);
+    io_copy(&s_mtxi, &st.data, &st.length);
     io_free(&s_mtxi);
 
     st.enrs = e;
@@ -489,7 +489,7 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     st.header.use_big_endian = false;
     st.header.use_section_size = true;
 
-    f2_struct_swrite(&st, s, true, tex_db->is_x);
+    f2_struct_write(&st, s, true, tex_db->is_x);
     f2_struct_free(&st);
 }
 

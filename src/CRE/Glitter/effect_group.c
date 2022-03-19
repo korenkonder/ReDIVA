@@ -29,7 +29,6 @@ resources_count(), resources_tex(), resources(), field_3C(), scene_init(), buffe
 glitter_effect_group::~glitter_effect_group() {
     vector_old_ptr_glitter_effect_free(&this->effects, glitter_effect_dispose);
     glitter_texture_unload(this);
-    txp_set_free(&resources_tex);
 #if defined(CRE_DEV)
     glitter_effect_group_free_model(this);
 #endif
@@ -125,15 +124,14 @@ void glitter_effect_group_load_model(glitter_effect_group* eg, void* ds) {
     for (uint32_t& i : eg->object_set_ids) {
         object_database obj_db;
         texture_database tex_db;
-        object_database_init(&obj_db);
         object_set_load_by_hash(ds, &obj_db, &tex_db, i);
-        object_database_free(&obj_db);
     }
 }
 
 void glitter_effect_group_free_model(glitter_effect_group* eg) {
     for (uint32_t& i : eg->object_set_ids)
         object_storage_delete_object_set(i);
-    eg->object_set_ids = {};
+    eg->object_set_ids.clear();
+    eg->object_set_ids.shrink_to_fit();
 }
 #endif

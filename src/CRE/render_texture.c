@@ -35,12 +35,14 @@ int32_t render_texture_init(render_texture* rt, int32_t width, int32_t height,
 
         render_texture_counter++;
         color_texture = rt->color_texture->texture;
+        gl_state_bind_texture_2d(rt->color_texture->texture);
         if (color_format == GL_RGBA32F) {
-            gl_state_bind_texture_2d(rt->color_texture->texture);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            gl_state_bind_texture_2d(0);
         }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        gl_state_bind_texture_2d(0);
     }
     else {
         rt->color_texture = 0;

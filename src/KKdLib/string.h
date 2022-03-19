@@ -46,6 +46,7 @@ extern void string_init_length(string* s, ssize_t length);
 extern void string_init_length(string* s, char* str, ssize_t length);
 extern void string_init_length(string* s, const char* str, ssize_t length);
 extern char* string_data(string* s);
+extern const char* string_data(const string* s);
 extern void string_add(string* s, char* str);
 extern void string_add(string* s, const char* str);
 extern void string_add_length(string* s, char* str, ssize_t length);

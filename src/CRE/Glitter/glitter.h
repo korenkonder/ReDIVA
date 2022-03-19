@@ -533,7 +533,7 @@ public:
     float_t emission;
     uint32_t resources_count;
     std::vector<uint64_t> resource_hashes;
-    vector_old_txp resources_tex;
+    txp_set resources_tex;
     texture** resources;
 #if defined(CRE_DEV) || defined(CLOUD_DEV)
     std::vector<uint32_t> object_set_ids;

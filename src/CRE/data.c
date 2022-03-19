@@ -9,57 +9,171 @@
 #include "../KKdLib/hash.h"
 #include "../KKdLib/str_utils.h"
 
-data_struct data_list[DATA_MAX];
+data_struct* data_list;
 
 static char default_config[] = "#AFT\n\n\n";
 
 static void data_free_inner(data_struct* ds);
 static void data_load_inner(stream* s);
 #if defined(CRE_DEV)
-static void data_load_glitter_list(data_struct* ds, char* path);
+static void data_load_glitter_list(data_struct* ds, const char* path);
 #endif
 
 void data_struct_init() {
+    data_list = new data_struct[8];
     for (int32_t i = DATA_AFT; i < DATA_MAX; i++)
         data_list[i].type = (data_type)i;
 }
 
-void data_struct_load(char* path) {
+void data_struct_load(const char* path) {
     stream s;
     io_open(&s, path, "rb");
     if (s.io.stream)
         data_load_inner(&s);
     else {
         io_free(&s);
-        io_mopen(&s, default_config, 7);
+        io_open(&s, default_config, 7);
         data_load_inner(&s);
     }
     io_free(&s);
 }
 
-inline void data_struct_load(const char* path) {
-    data_struct_load((char*)path);
-}
-
-void data_struct_load(wchar_t* path) {
+void data_struct_load(const wchar_t* path) {
     stream s;
-    io_wopen(&s, path, L"rb");
+    io_open(&s, path, L"rb");
     if (s.io.stream)
         data_load_inner(&s);
     else {
         io_free(&s);
-        io_mopen(&s, default_config, 7);
+        io_open(&s, default_config, 7);
         data_load_inner(&s);
     }
     io_free(&s);
 }
 
-inline void data_struct_load(const wchar_t* path) {
-    data_struct_load((wchar_t*)path);
+void data_struct_free() {
+    if (data_list[DATA_AFT].ready) {
+        data_struct* ds = &data_list[DATA_AFT];
+        data_ft* d = &ds->data_ft;
+
+        stage_database_free(&d->stage_data);
+
+        stage_database_free(&d->base_stage_data);
+    }
+#if defined(CRE_DEV)
+    if (data_list[DATA_F2BE].ready) {
+        data_struct* ds = &data_list[DATA_F2BE];
+        data_f2* d = &ds->data_f2;
+    }
+
+    if (data_list[DATA_F2LE].ready) {
+        data_struct* ds = &data_list[DATA_F2LE];
+        data_f2* d = &ds->data_f2;
+    }
+
+    if (data_list[DATA_FT].ready) {
+        data_struct* ds = &data_list[DATA_FT];
+        data_ft* d = &ds->data_ft;
+    }
+
+    if (data_list[DATA_M39].ready) {
+        data_struct* ds = &data_list[DATA_M39];
+        data_ft* d = &ds->data_ft;
+    }
+
+    if (data_list[DATA_VRFL].ready) {
+        data_struct* ds = &data_list[DATA_VRFL];
+        data_x* d = &ds->data_x;
+    }
+
+    if (data_list[DATA_X].ready) {
+        data_struct* ds = &data_list[DATA_X];
+        data_x* d = &ds->data_x;
+    }
+
+    if (data_list[DATA_XHD].ready) {
+        data_struct* ds = &data_list[DATA_XHD];
+        data_x* d = &ds->data_x;
+    }
+#endif
+
+    for (int32_t i = DATA_AFT; i < DATA_MAX; i++)
+        data_free_inner(&data_list[i]);
+    delete[] data_list;
 }
 
-void data_struct_get_directory_files(data_struct* ds, char* dir, std::vector<data_struct_file>* data_files) {
-    *data_files = {};
+bool data_struct::check_file_exists(const char* dir, const char* file) {
+    if (path_check_directory_exists(dir)) {
+        const char* t = strrchr(file, '.');
+        size_t t_len;
+        if (t)
+            t_len = t - file;
+        else
+            t_len = utf8_length(file);
+
+        uint32_t h = hash_murmurhash(file, t_len, 0, false, false);
+        std::string path = std::string(dir) + file;
+        if (path_check_file_exists(path.c_str()))
+            return true;
+    }
+
+    size_t dir_len = utf8_length(dir);
+    if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
+        dir += 2;
+        dir_len -= 2;
+    }
+
+    if (dir_len < 3 || memcmp(dir, "rom", 3))
+        return false;
+
+    dir += 3;
+    dir_len -= 3;
+
+    while (*dir == '/' || *dir == '\\') {
+        dir++;
+        dir_len--;
+    }
+
+    size_t max_len = 0;
+    for (data_struct_path& i : data_paths)
+        for (data_struct_directory& j : i.data)
+            if (max_len < j.path.size())
+                max_len = j.path.size();
+
+    char* dir_temp = force_malloc_s(char, dir_len + 1);
+    memcpy(dir_temp, dir, dir_len + 1);
+
+    char* t = dir_temp;
+    while (t = strchr(t, '/'))
+        *t = '\\';
+
+    char* temp = force_malloc_s(char, max_len + dir_len + 2);
+    for (data_struct_path& i : data_paths)
+        for (data_struct_directory& j : i.data) {
+            const char* path = j.path.c_str();
+            size_t path_len = j.path.size();
+
+            memcpy(temp, path, path_len);
+            memcpy(&temp[path_len], "\\", 2);
+            if (dir_len)
+                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
+
+            std::string path_temp = std::string(temp) + file;
+            if (path_check_file_exists(path_temp.c_str())) {
+                free(dir_temp);
+                free(temp);
+                return true;
+            }
+        }
+
+    free(dir_temp);
+    free(temp);
+    return false;
+}
+
+void data_struct::get_directory_files(const char* dir, std::vector<data_struct_file>* data_files) {
+    data_files->clear();
+    data_files->shrink_to_fit();
 
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
@@ -79,7 +193,7 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, std::vector<dat
     }
 
     size_t max_len = 0;
-    for (data_struct_path& i : ds->data_paths)
+    for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data)
             if (max_len < j.path.size())
                 max_len = j.path.size();
@@ -92,7 +206,7 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, std::vector<dat
         *t = '\\';
 
     char* temp = force_malloc_s(char, max_len + dir_len + 2);
-    for (data_struct_path& i : ds->data_paths)
+    for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             const char* path = j.path.c_str();
             size_t path_len = j.path.size();
@@ -102,14 +216,12 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, std::vector<dat
             if (dir_len)
                 memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
 
-            vector_old_string files = vector_old_empty(string);
+            std::vector<std::string> files;
             path_get_files(&files, temp);
-            for (string* k = files.begin; k != files.end; k++) {
-                char* k_str = string_data(k);
-                size_t len = k->length;
+            for (std::string& k : files) {
                 bool found = false;
                 for (data_struct_file& l : *data_files)
-                    if (!memcmp(k_str, l.name.c_str(), min(len, l.name.size()) + 1)) {
+                    if (k == l.name) {
                         found = true;
                         break;
                     }
@@ -119,25 +231,19 @@ void data_struct_get_directory_files(data_struct* ds, char* dir, std::vector<dat
 
                 data_struct_file f;
                 f.path = std::string(temp);
-                f.name = std::string(string_data(k), k->length);
-                *k = string_empty;
+                f.name = k;
                 data_files->push_back(f);
             }
-            vector_old_string_free(&files, string_free);
         }
 
     free(dir_temp);
     free(temp);
 }
 
-inline void data_struct_get_directory_files(data_struct* ds, const char* dir, std::vector<data_struct_file>* data_files) {
-    data_struct_get_directory_files(ds, (char*)dir, data_files);
-}
-
-bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
+bool data_struct::load_file(void* data, const char* dir, const char* file,
+    bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
     if (path_check_directory_exists(dir)) {
-        char* t = strrchr(file, '.');
+        const char* t = strrchr(file, '.');
         size_t t_len;
         if (t)
             t_len = t - file;
@@ -168,7 +274,7 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
     }
 
     size_t max_len = 0;
-    for (data_struct_path& i : ds->data_paths)
+    for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data)
             if (max_len < j.path.size())
                 max_len = j.path.size();
@@ -181,7 +287,7 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
         *t = '\\';
 
     char* temp = force_malloc_s(char, max_len + dir_len + 2);
-    for (data_struct_path& i : ds->data_paths)
+    for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             const char* path = j.path.c_str();
             size_t path_len = j.path.size();
@@ -191,25 +297,18 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
             if (dir_len)
                 memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
 
-            vector_old_string files = vector_old_empty(string);
-            path_get_files(&files, temp);
-
+            std::string path_temp = std::string(temp) + file;
             bool ret = false;
-            for (string* l = files.begin; l != files.end; l++) {
-                if (str_utils_compare(string_data(l), file))
-                    continue;
-
-                char* l_str = string_data(l);
-                char* t = strrchr(l_str, '.');
-                size_t l_len = l->length;
+            if (path_check_file_exists(path_temp.c_str())) {
+                const char* l_str = file;
+                const char* t = strrchr(l_str, '.');
+                size_t l_len = utf8_length(file);
                 if (t)
                     l_len = t - l_str;
 
                 uint32_t h = hash_murmurhash(l_str, l_len, 0, false, false);
                 ret = load_func(data, temp, l_str, h);
-                break;
             }
-            vector_old_string_free(&files, string_free);
 
             if (ret) {
                 free(dir_temp);
@@ -223,23 +322,8 @@ bool data_struct_load_file(data_struct* ds, void* data, char* dir, char* file,
     return false;
 }
 
-inline bool data_struct_load_file(data_struct* c, void* data, char* dir, const char* file,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
-    return data_struct_load_file(c, data, dir, (char*)file, load_func);
-}
-
-inline bool data_struct_load_file(data_struct* c, void* data, const char* dir, char* file,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
-    return data_struct_load_file(c, data, (char*)dir, file, load_func);
-}
-
-inline bool data_struct_load_file(data_struct* c, void* data, const char* dir, const char* file,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
-    return data_struct_load_file(c, data, (char*)dir, (char*)file, load_func);
-}
-
-bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint32_t hash,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
+bool data_struct::load_file_by_hash(void* data, const char* dir, uint32_t hash,
+    bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
         dir += 2;
@@ -258,7 +342,7 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
     }
 
     size_t max_len = 0;
-    for (data_struct_path& i : ds->data_paths)
+    for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data)
             if (max_len < j.path.size())
                 max_len = j.path.size();
@@ -271,7 +355,7 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
         *t = '\\';
 
     char* temp = force_malloc_s(char, max_len + dir_len + 2);
-    for (data_struct_path& i : ds->data_paths)
+    for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             const char* path = j.path.c_str();
             size_t path_len = j.path.size();
@@ -281,31 +365,28 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
             if (dir_len)
                 memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
 
-            vector_old_string files = vector_old_empty(string);
+            std::vector<std::string> files;
             path_get_files(&files, temp);
 
-            vector_old_uint32_t files_murmurhash = vector_old_empty(uint32_t);
-            vector_old_uint32_t_reserve(&files_murmurhash, vector_old_length(files));
-            for (string* l = files.begin; l != files.end; l++) {
-                char* t = strrchr(string_data(l), '.');
-                size_t t_len = l->length;
+            std::vector<uint32_t> files_murmurhash;
+            files_murmurhash.reserve(files.size());
+            for (std::string& l : files) {
+                const char* t = strrchr(l.c_str(), '.');
+                size_t t_len = l.size();
                 if (t)
-                    t_len = t - string_data(l);
-                t = string_data(l);
+                    t_len = t - l.c_str();
+                t = l.c_str();
 
-                uint32_t h = hash_murmurhash(t, t_len, 0, false, false);
-                vector_old_uint32_t_push_back(&files_murmurhash, &h);
+                files_murmurhash.push_back(hash_murmurhash(t, t_len, 0, false, false));
             }
 
             bool ret = false;
-            for (uint32_t* l = files_murmurhash.begin; l != files_murmurhash.end; l++)
-                if (*l == hash) {
-                    string* file = &files.begin[l - files_murmurhash.begin];
-                    ret = load_func(data, temp, string_data(file), hash);
+            for (uint32_t& l : files_murmurhash)
+                if (l == hash) {
+                    std::string& file = files[&l - files_murmurhash.data()];
+                    ret = load_func(data, temp, (char*)file.c_str(), hash);
                     break;
                 }
-            vector_old_string_free(&files, string_free);
-            vector_old_uint32_t_free(&files_murmurhash, 0);
 
             if (ret) {
                 free(dir_temp);
@@ -317,70 +398,6 @@ bool data_struct_load_file_by_hash(data_struct* ds, void* data, char* dir, uint3
     free(dir_temp);
     free(temp);
     return false;
-}
-
-inline bool data_struct_load_file_by_hash(data_struct* c, void* data, const char* dir, uint32_t hash,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash)) {
-    return data_struct_load_file_by_hash(c, data, (char*)dir, hash, load_func);
-}
-
-void data_struct_free() {
-    if (data_list[DATA_AFT].ready) {
-        data_struct* ds = &data_list[DATA_AFT];
-        data_ft* d = &ds->data_ft;
-
-        bone_database_free(&d->bone_data);
-        object_database_free(&d->obj_db);
-        stage_database_free(&d->stage_data);
-
-        object_database_free(&d->base_obj_db);
-        stage_database_free(&d->base_stage_data);
-    }
-#if defined(CRE_DEV)
-    if (data_list[DATA_F2BE].ready) {
-        data_struct* ds = &data_list[DATA_F2BE];
-        data_f2* d = &ds->data_f2;
-    }
-
-    if (data_list[DATA_F2LE].ready) {
-        data_struct* ds = &data_list[DATA_F2LE];
-        data_f2* d = &ds->data_f2;
-    }
-
-    if (data_list[DATA_FT].ready) {
-        data_struct* ds = &data_list[DATA_FT];
-        data_ft* d = &ds->data_ft;
-    }
-
-    if (data_list[DATA_M39].ready) {
-        data_struct* ds = &data_list[DATA_M39];
-        data_ft* d = &ds->data_ft;
-    }
-
-    if (data_list[DATA_VRFL].ready) {
-        data_struct* ds = &data_list[DATA_VRFL];
-        data_x* d = &ds->data_x;
-
-        bone_database_free(&d->bone_data);
-    }
-
-    if (data_list[DATA_X].ready) {
-        data_struct* ds = &data_list[DATA_X];
-        data_x* d = &ds->data_x;
-
-        bone_database_free(&d->bone_data);
-    }
-
-    if (data_list[DATA_XHD].ready) {
-        data_struct* ds = &data_list[DATA_XHD];
-        data_x* d = &ds->data_x;
-
-        bone_database_free(&d->bone_data);
-    }
-#endif
-
-    for (int32_t i = DATA_AFT; i < DATA_MAX; i++)
-        data_free_inner(&data_list[i]);
 }
 
 data_struct::data_struct() : type(), ready() {
@@ -415,51 +432,56 @@ data_struct_path::~data_struct_path() {
 
 }
 
-data_f2::data_f2() : bone_data() {
+#if defined(CRE_DEV)
+data_f2::data_f2() {
 
 }
 
 data_f2::~data_f2() {
-    bone_database_free(&bone_data);
-}
 
-data_ft::data_ft() : bone_data(), obj_db(),  stage_data(), base_obj_db(), base_stage_data() {
+}
+#endif
+
+data_ft::data_ft() : obj_db(),  stage_data(), base_obj_db(), base_stage_data() {
 
 }
 
 data_ft::~data_ft() {
-    bone_database_free(&bone_data);
-    object_database_free(&obj_db);
     stage_database_free(&stage_data);
-    object_database_free(&base_obj_db);
     stage_database_free(&base_stage_data);
 }
 
-data_x::data_x() : bone_data() {
+#if defined(CRE_DEV)
+data_x::data_x() {
 
 }
 
 data_x::~data_x() {
-    bone_database_free(&bone_data);
+
 }
+#endif
 
 static void data_free_inner(data_struct* ds) {
-    ds->data_paths = {};
+    ds->data_paths.clear();
+    ds->data_paths.shrink_to_fit();
 
 #if defined(CRE_DEV)
-    ds->glitter_list_names = {};
+    ds->glitter_list_names.clear();
+    ds->glitter_list_names.shrink_to_fit();
     switch (ds->type) {
     case DATA_F2LE:
     case DATA_F2BE:
     case DATA_VRFL:
     case DATA_X:
     case DATA_XHD:
-        ds->glitter_list_murmurhash = {};
+        ds->glitter_list_murmurhash.clear();
+        ds->glitter_list_murmurhash.shrink_to_fit();
         break;
     case DATA_AFT:
     case DATA_FT:
     case DATA_M39:
-        ds->glitter_list_fnv1a64m = {};
+        ds->glitter_list_fnv1a64m.clear();
+        ds->glitter_list_fnv1a64m.shrink_to_fit();
         break;
     }
 #endif
@@ -641,45 +663,43 @@ static void data_load_inner(stream* s) {
                 add_data_rom_path_len--;
             }
 
-            vector_old_string data_directories = vector_old_empty(string);
+            std::vector<std::string> data_directories;
             path_get_directories(&data_directories, add_data_rom_path, &main_rom_path, 1);
 
             max_len = 0;
-            for (string* k = data_directories.begin; k != data_directories.end; k++) {
-                size_t len = k->length;
+            for (std::string& k : data_directories) {
+                size_t len = k.size();
                 if (max_len < len)
                     max_len = len;
             }
 
             char* data_dir_path_temp = force_malloc_s(char, add_data_rom_path_len + max_len + add_data_rom_len + 3);
             if (data_dir_path_temp) {
-                j.data.reserve(vector_old_length(data_directories) + 1);
+                j.data.reserve(data_directories.size() + 1);
                 memcpy(data_dir_path_temp, add_data_rom_path, add_data_rom_path_len);
                 data_dir_path_temp[add_data_rom_path_len] = '\\';
-                for (string* k = data_directories.end - 1; k != data_directories.begin - 1; k--) {
-                    memcpy(&data_dir_path_temp[add_data_rom_path_len + 1], string_data(k), k->length + 1);
+                for (std::vector<std::string>::reverse_iterator k = data_directories.rbegin();
+                    k != data_directories.rend(); k++) {
+                    memcpy(&data_dir_path_temp[add_data_rom_path_len + 1], k->c_str(), k->size() + 1);
                     if (add_data_rom_len) {
-                        data_dir_path_temp[add_data_rom_path_len + 1 + k->length] = '\\';
-                        memcpy(&data_dir_path_temp[add_data_rom_path_len + 1 + k->length + 1],
+                        data_dir_path_temp[add_data_rom_path_len + 1 + k->size()] = '\\';
+                        memcpy(&data_dir_path_temp[add_data_rom_path_len + 1 + k->size() + 1],
                             add_data_rom, add_data_rom_len + 1);
                     }
 
                     data_struct_directory data_dir;
                     data_dir.path = std::string(data_dir_path_temp);
-                    data_dir.name = std::string(string_data(k), k->length);
+                    data_dir.name = *k;
                     j.data.push_back(data_dir);
                 }
-                vector_old_string_free(&data_directories, 0);
             }
-            else {
+            else
                 j.data.reserve(1);
-                vector_old_string_free(&data_directories, string_free);
-            }
             free(data_dir_path_temp);
 
             data_struct_directory data_dir;
             data_dir.path = std::string(main_rom_path);
-            data_dir.name = {};
+            data_dir.name = std::string();
             j.data.push_back(data_dir);
             free(data_dir_path_temp);
         }
@@ -696,12 +716,12 @@ static void data_load_inner(stream* s) {
 
         {
             auth_3d_database_file* base_auth_3d_db = &d->base_auth_3d_db;
-            *base_auth_3d_db = {};
-            data_struct_load_file(ds, base_auth_3d_db, "rom/auth_3d/",
+            *base_auth_3d_db = auth_3d_database_file();
+            ds->load_file(base_auth_3d_db, "rom/auth_3d/",
                 "auth_3d_db.bin", auth_3d_database_file::load_file);
 
             auth_3d_database_file mdata_auth_3d_db;
-            data_struct_load_file(ds, &mdata_auth_3d_db, "rom/auth_3d/",
+            ds->load_file(&mdata_auth_3d_db, "rom/auth_3d/",
                 "mdata_auth_3d_db.bin", auth_3d_database_file::load_file);
 
             d->auth_3d_db.merge_mdata(base_auth_3d_db, &mdata_auth_3d_db);
@@ -709,19 +729,19 @@ static void data_load_inner(stream* s) {
 
         {
             bone_database* bone_data = &d->bone_data;
-            bone_database_init(bone_data);
+            *bone_data = bone_database();
             bone_data->modern = false;
-            data_struct_load_file(ds, bone_data, "rom/",
-                "bone_data.bin", bone_database_load_file);
+            ds->load_file(bone_data, "rom/",
+                "bone_data.bin", bone_database::load_file);
         }
 
         {
             motion_database* base_mot_db = &d->base_mot_db;
-            data_struct_load_file(ds, base_mot_db, "rom/rob/",
+            ds->load_file(base_mot_db, "rom/rob/",
                 "mot_db.farc", motion_database::load_file);
 
             motion_database mdata_mot_db;
-            data_struct_load_file(ds, &mdata_mot_db, "rom/rob/",
+            ds->load_file(&mdata_mot_db, "rom/rob/",
                 "mdata_mot_db.farc", motion_database::load_file);
 
             d->mot_db.merge_mdata(base_mot_db, &mdata_mot_db);
@@ -729,34 +749,32 @@ static void data_load_inner(stream* s) {
 
         {
             object_database* base_obj_db = &d->base_obj_db;
-            object_database_init(base_obj_db);
+            *base_obj_db = object_database();
             base_obj_db->modern = false;
-            data_struct_load_file(ds, base_obj_db, "rom/objset/",
-                "obj_db.bin", object_database_load_file);
+            ds->load_file(base_obj_db, "rom/objset/",
+                "obj_db.bin", object_database::load_file);
 
             object_database mdata_obj_db;
-            object_database_init(&mdata_obj_db);
             mdata_obj_db.modern = false;
-            data_struct_load_file(ds, &mdata_obj_db, "rom/objset/",
-                "mdata_obj_db.bin", object_database_load_file);
+            ds->load_file(&mdata_obj_db, "rom/objset/",
+                "mdata_obj_db.bin", object_database::load_file);
 
             object_database* obj_db = &d->obj_db;
-            object_database_init(obj_db);
-            object_database_merge_mdata(obj_db, base_obj_db, &mdata_obj_db);
-            object_database_free(&mdata_obj_db);
+            *obj_db = object_database();
+            obj_db->merge_mdata(base_obj_db, &mdata_obj_db);
         }
         
         {
             stage_database* base_stage_data = &d->base_stage_data;
             stage_database_init(base_stage_data);
             base_stage_data->modern = false;
-            data_struct_load_file(ds, base_stage_data, "rom/",
+            ds->load_file(base_stage_data, "rom/",
                 "stage_data.bin", stage_database_load_file);
 
             stage_database mdata_stage_data;
             stage_database_init(&mdata_stage_data);
             mdata_stage_data.modern = false;
-            data_struct_load_file(ds, &mdata_stage_data, "rom/",
+            ds->load_file(&mdata_stage_data, "rom/",
                 "mdata_stage_data.bin", stage_database_load_file);
 
             stage_database* stage_data = &d->stage_data;
@@ -767,14 +785,14 @@ static void data_load_inner(stream* s) {
 
         {
             texture_database* base_tex_db = &d->base_tex_db;
-            *base_tex_db = {};
+            *base_tex_db = texture_database();
             base_tex_db->modern = false;
-            data_struct_load_file(ds, base_tex_db, "rom/objset/",
+            ds->load_file(base_tex_db, "rom/objset/",
                 "tex_db.bin", texture_database::load_file);
 
             texture_database mdata_tex_db;
             mdata_tex_db.modern = false;
-            data_struct_load_file(ds, &mdata_tex_db, "rom/objset/",
+            ds->load_file(&mdata_tex_db, "rom/objset/",
                 "mdata_tex_db.bin", texture_database::load_file);
 
             d->tex_db.merge_mdata(base_tex_db, &mdata_tex_db);
@@ -804,10 +822,10 @@ static void data_load_inner(stream* s) {
 
         {
             bone_database* bone_data = &d->bone_data;
-            bone_database_init(bone_data);
+            *bone_data = bone_database();
             bone_data->modern = true;
-            data_struct_load_file(ds, bone_data, "rom/",
-                "bone_data.bon", bone_database_load_file);
+            ds->load_file(bone_data, "rom/",
+                "bone_data.bon", bone_database::load_file);
         }
     }
 
@@ -817,10 +835,10 @@ static void data_load_inner(stream* s) {
 
         {
             bone_database* bone_data = &d->bone_data;
-            bone_database_init(bone_data);
+            *bone_data = bone_database();
             bone_data->modern = true;
-            data_struct_load_file(ds, bone_data, "rom/",
-                "bone_data.bon", bone_database_load_file);
+            ds->load_file(bone_data, "rom/",
+                "bone_data.bon", bone_database::load_file);
         }
     }
 
@@ -830,17 +848,17 @@ static void data_load_inner(stream* s) {
 
         {
             bone_database* bone_data = &d->bone_data;
-            bone_database_init(bone_data);
+            *bone_data = bone_database();
             bone_data->modern = true;
-            data_struct_load_file(ds, bone_data, "rom/",
-                "bone_data.bon", bone_database_load_file);
+            ds->load_file(bone_data, "rom/",
+                "bone_data.bon", bone_database::load_file);
         }
     }
 #endif
 }
 
 #if defined(CRE_DEV)
-static void data_load_glitter_list(data_struct* ds, char* path) {
+static void data_load_glitter_list(data_struct* ds, const char* path) {
     stream s;
     io_open(&s, path, "rb");
     size_t length = s.length;

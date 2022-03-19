@@ -116,29 +116,20 @@ public:
 
     data_struct();
     ~data_struct();
+
+    bool check_file_exists(const char* dir, const char* file);
+    void get_directory_files(const char* dir, std::vector<data_struct_file>* data_files);
+    bool load_file(void* data, const char* dir, const char* file,
+        bool (*load_func)(void* data, const char* path, const  char* file, uint32_t hash));
+    bool load_file_by_hash(void* data, const char* dir, uint32_t hash,
+        bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash));
 };
 
-extern data_struct data_list[];
+extern data_struct* data_list;
 
 #define DATA_LOAD_FILE_FUNC(f) 
 
 extern void data_struct_init();
-extern void data_struct_load(char* path);
 extern void data_struct_load(const char* path);
-extern void data_struct_load(wchar_t* path);
 extern void data_struct_load(const wchar_t* path);
-extern void data_struct_get_directory_files(data_struct* c, char* dir, std::vector<data_struct_file>* data_files);
-extern void data_struct_get_directory_files(data_struct* c, const char* dir, std::vector<data_struct_file>* data_files);
-extern bool data_struct_load_file(data_struct* c, void* data, char* dir, char* file,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
-extern bool data_struct_load_file(data_struct* c, void* data, char* dir, const char* file,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
-extern bool data_struct_load_file(data_struct* c, void* data, const char* dir, char* file,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
-extern bool data_struct_load_file(data_struct* c, void* data, const char* dir, const char* file,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
-extern bool data_struct_load_file_by_hash(data_struct* c, void* data, char* dir, uint32_t hash,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
-extern bool data_struct_load_file_by_hash(data_struct* c, void* data, const char* dir, uint32_t hash,
-    bool (*load_func)(void* data, char* path, char* file, uint32_t hash));
 extern void data_struct_free();

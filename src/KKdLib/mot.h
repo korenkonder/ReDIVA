@@ -23,23 +23,29 @@ typedef enum mot_key_set_data_type {
     MOT_KEY_SET_DATA_F16 = 0x01,
 } mot_key_set_data_type;
 
-typedef union mot_bone_info {
-    string name;
+class mot_bone_info {
+public:
+    std::string name;
     uint16_t index;
-} mot_bone_info;
 
-typedef struct mot_key_set_data {
+    mot_bone_info();
+    ~mot_bone_info();
+};
+
+class mot_key_set_data {
+public:
     mot_key_set_type type;
-    union {
-        uint16_t* frames;
-        int16_t* frames_modern;
-    };
-    float_t* values;
+    std::vector<uint16_t> frames;
+    std::vector<float_t> values;
     uint16_t keys_count : 16;
     mot_key_set_data_type data_type : 16;
-} mot_key_set_data;
 
-typedef struct mot_data {
+    mot_key_set_data();
+    ~mot_key_set_data();
+};
+
+class mot_data {
+public:
     union {
         struct {
             uint16_t key_set_count : 14;
@@ -54,36 +60,42 @@ typedef struct mot_data {
     uint32_t murmurhash;
     uint16_t div_frames;
     uint8_t div_count;
-    string name;
-    mot_bone_info* bone_info;
-    mot_key_set_data* key_set;
-} mot_data;
+    std::string name;
+    std::vector<mot_bone_info> bone_info;
+    std::vector<mot_key_set_data> key_set;
 
-vector_old(mot_data)
+    mot_data();
+    ~mot_data();
+};
 
-typedef struct mot_set {
+class mot_set {
+public:
     bool is_x;
-    string name;
-    vector_old_mot_data vec;
-} mot_set;
 
-vector_old(mot_set)
+    std::string name;
+    std::vector<mot_data> vec;
 
-typedef struct mot_set_farc {
+    mot_set();
+    ~mot_set();
+};
+
+class mot_set_farc {
+public:
     bool ready;
     bool modern;
-    vector_old_mot_set vec;
-} mot_set_farc;
 
-extern void mot_init(mot_set_farc* msf);
-extern void mot_read(mot_set_farc* msf, char* path, bool modern);
-extern void mot_wread(mot_set_farc* msf, wchar_t* path, bool modern);
-extern void mot_mread(mot_set_farc* msf, void* data, size_t length, bool modern);
-extern void mot_write(mot_set_farc* msf, char* path, farc_compress_mode mode);
-extern void mot_wwrite(mot_set_farc* msf, wchar_t* path, farc_compress_mode mode);
-extern void mot_mwrite(mot_set_farc* msf, void** data, size_t* length, farc_compress_mode mode);
-extern bool mot_load_file(void* data, char* path, char* file, uint32_t hash);
-extern void mot_free(mot_set_farc* msf);
+    std::vector<mot_set> vec;
 
-extern void mot_set_init(mot_set* ms);
-extern void mot_set_free(mot_set* ms);
+    mot_set_farc();
+    ~mot_set_farc();
+
+    void read(const char* path, bool modern);
+    void read(const wchar_t* path, bool modern);
+    void read(const void* data, size_t length, bool modern);
+    void write(const char* path, farc_compress_mode mode);
+    void write(const wchar_t* path, farc_compress_mode mode);
+    void write(void** data, size_t* length, farc_compress_mode mode);
+
+    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+
+};

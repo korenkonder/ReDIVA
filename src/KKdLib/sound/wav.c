@@ -23,7 +23,7 @@ void wav_wread(wav* w, wchar_t* path, float_t** data, size_t* samples) {
     memset(w, 0, sizeof(wav));
 
     stream s;
-    io_wopen(&s, path, L"rb");
+    io_open(&s, path, L"rb");
     if (s.io.stream) {
         wav w_t;
         if (io_read_uint32_t(&s) != 0x46464952)
@@ -127,7 +127,7 @@ void wav_write(wav* w, char* path, float_t* data, size_t samples) {
 
 void wav_wwrite(wav* w, wchar_t* path, float_t* data, size_t samples) {
     stream s;
-    io_wopen(&s, path, L"wb");
+    io_open(&s, path, L"wb");
     if (s.io.stream && data) {
         w->size = (int32_t)(samples * w->channels * w->bytes);
 

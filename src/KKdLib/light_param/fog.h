@@ -45,12 +45,14 @@ public:
     light_param_fog_group group[FOG_MAX];
 
     light_param_fog();
-    void read(char* path);
-    void read(wchar_t* path);
-    void read(void* data, size_t length);
-    void write(char* path);
-    void write(wchar_t* path);
-    void write(void** data, size_t* length);
     ~light_param_fog();
+
+    void read(const char* path);
+    void read(const wchar_t* path);
+    void read(const void* data, size_t length);
+    void write(const char* path);
+    void write(const wchar_t* path);
+    void write(void** data, size_t* length);
+
+    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };
-extern bool light_param_fog_load_file(void* data, char* path, char* file, uint32_t hash);

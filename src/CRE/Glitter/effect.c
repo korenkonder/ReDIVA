@@ -111,13 +111,12 @@ void glitter_effect_dispose(glitter_effect* e) {
 }
 
 object_info glitter_effect_ext_anim_get_object_info(uint64_t hash) {
-    vector_old_object_set_info* object_set = &obj_db_ptr->object_set;
-    for (object_set_info* i = object_set->begin; i != object_set->end; i++) {
-        for (object_info_data* j = i->object.begin; j != i->object.end; j++)
-            if (hash == j->name_hash_murmurhash || hash == j->name_hash_fnv1a64m_upper)
-                return { j->id, i->id };
+    for (object_set_info& i : obj_db_ptr->object_set) {
+        for (object_info_data& j : i.object)
+            if (hash == j.name_hash_murmurhash || hash == j.name_hash_fnv1a64m_upper)
+                return { j.id, i.id };
     }
-    return object_info_null;
+    return object_info();
 }
 
 static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {

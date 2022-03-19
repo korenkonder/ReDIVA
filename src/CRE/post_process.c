@@ -89,7 +89,7 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
         (mat4*)&mat4_identity, (mat4*)&mat4_identity, (mat4*)&mat4_identity);
 
     post_process_get_blur(pp->blur, &pp->rend_texture);
-    post_process_get_exposure(pp->exposure, pp->reset_exposure,
+    post_process_get_exposure(pp->exposure, cam, pp->render_width, pp->render_height, pp->reset_exposure,
         pp->blur->tex[4].color_texture->texture, pp->blur->tex[2].color_texture->texture);
     post_process_apply_tone_map(pp->tone_map, &pp->rend_texture, light_proj_tex, 0,
         &pp->rend_texture, &pp->buf_texture, &pp->sss_contour_texture,
@@ -295,6 +295,7 @@ void post_process_reset(post_process_struct* pp) {
     vec3 tone_trans_end = { 1.0f, 1.0f, 1.0f };
     post_process_tone_map_initialize_data(pp->tone_map, 2.0f, true, 1.0f, 1, 1.0f,
         &scene_fade_color, 0.0f, 0, &tone_trans_start, &tone_trans_end, TONE_MAP_YCC_EXPONENT);
+    pp->reset_exposure = true;
 }
 
 void post_process_update(post_process_struct* pp, camera* cam) {

@@ -107,9 +107,9 @@ typedef struct pvsr {
 } pvsr;
 
 extern void pvsr_init(pvsr* sr);
-extern void pvsr_read(pvsr* sr, char* path);
-extern void pvsr_wread(pvsr* sr, wchar_t* path);
-extern bool pvsr_load_file(void* data, char* path, char* file, uint32_t hash);
+extern void pvsr_read(pvsr* sr, const char* path);
+extern void pvsr_wread(pvsr* sr, const wchar_t* path);
+extern bool pvsr_load_file(void* data, const char* path, const char* file, uint32_t hash);
 extern void pvsr_free(pvsr* sr);
 
 extern void pvsr_a3da_init(pvsr_a3da* a3d);

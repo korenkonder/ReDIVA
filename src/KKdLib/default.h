@@ -106,16 +106,16 @@ extern void* force_malloc(size_t size);
 #define enum_not(s0, s1) \
 (s0) = (decltype(s0))(~(int32_t)(s0))
 
-extern int16_t load_reverse_endianness_int16_t(void* ptr);
-extern uint16_t load_reverse_endianness_uint16_t(void* ptr);
-extern int32_t load_reverse_endianness_int32_t(void* ptr);
-extern uint32_t load_reverse_endianness_uint32_t(void* ptr);
-extern int64_t load_reverse_endianness_int64_t(void* ptr);
-extern uint64_t load_reverse_endianness_uint64_t(void* ptr);
-extern ssize_t load_reverse_endianness_ssize_t(void* ptr);
-extern size_t load_reverse_endianness_size_t(void* ptr);
-extern float_t load_reverse_endianness_float_t(void* ptr);
-extern double_t load_reverse_endianness_double_t(void* ptr);
+extern int16_t load_reverse_endianness_int16_t(const void* ptr);
+extern uint16_t load_reverse_endianness_uint16_t(const void* ptr);
+extern int32_t load_reverse_endianness_int32_t(const void* ptr);
+extern uint32_t load_reverse_endianness_uint32_t(const void* ptr);
+extern int64_t load_reverse_endianness_int64_t(const void* ptr);
+extern uint64_t load_reverse_endianness_uint64_t(const void* ptr);
+extern ssize_t load_reverse_endianness_ssize_t(const void* ptr);
+extern size_t load_reverse_endianness_size_t(const void* ptr);
+extern float_t load_reverse_endianness_float_t(const void* ptr);
+extern double_t load_reverse_endianness_double_t(const void* ptr);
 extern void store_reverse_endianness_int16_t(int16_t value, void* ptr);
 extern void store_reverse_endianness_int16_t(uint16_t value, void* ptr);
 extern void store_reverse_endianness_uint16_t(int16_t value, void* ptr);

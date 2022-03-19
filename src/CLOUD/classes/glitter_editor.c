@@ -432,11 +432,6 @@ static bool glitter_editor_hash_input(glitter_editor_struct* glt_edt,
     const char* label, uint64_t* hash);
 
 bool glitter_editor_init(class_data* data, render_context* rctx) {
-    if (!lock_data_init(&glitter_data_lock, &data->lock, data, (void(*)(void*))glitter_editor_dispose))
-        return false;
-
-    bool ret = false;
-    lock_trylock(&pv_lock);
     data->data = force_malloc_s(glitter_editor_struct, 1);
 
     LARGE_INTEGER time;
@@ -460,8 +455,6 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
         glitter_editor_reset(glt_edt);
         glitter_editor_gl_load(glt_edt);
     }
-    ret = true;
-    lock_unlock(&pv_lock);
 
     /*char* path_x = "VRFL\\";
     vector_old_string files_x = vector_old_empty(string);
@@ -478,7 +471,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
     glitter_file_reader* fr = 0;
     if (files_x.begin) {
         stream s;
-        io_wopen(&s, L"name_VRFL.glitter.txt", L"rb");
+        io_open(&s, L"name_VRFL.glitter.txt", L"rb");
         size_t length = s.length;
         uint8_t* data = force_malloc(length);
         io_read(&s, data, length);
@@ -626,7 +619,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
         }
 
     stream s;
-    io_wopen(&s, L"name_F2.glitter.txt", L"rb");
+    io_open(&s, L"name_F2.glitter.txt", L"rb");
     size_t length = s.length;
     uint8_t* data = force_malloc(length);
     io_read(&s, data, length);
@@ -704,7 +697,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
     vector_old_string_free(&files_ft);
     free(data);
     glt_edt->effect_group = 0;*/
-    return ret;
+    return true;
 }
 
 void glitter_editor_ctrl(class_data* data) {
@@ -767,7 +760,7 @@ void glitter_editor_ctrl(class_data* data) {
             if (j > -1) {
                 uint64_t hash = eg->resource_hashes[j];
                 eg->resource_hashes.erase(eg->resource_hashes.begin() + j);
-                vector_old_txp_erase(&eg->resources_tex, j, txp_free);
+                eg->resources_tex.textures.erase(eg->resources_tex.textures.begin() + j);
                 eg->resources_count--;
 
                 uint64_t empty_hash = eg->type != GLITTER_FT
@@ -808,7 +801,7 @@ void glitter_editor_ctrl(class_data* data) {
         else if (glt_edt->resource_flags & GLITTER_EDITOR_MOVE_UP) {
             size_t rc = eg->resources_count;
             uint64_t* rh = eg->resource_hashes.data();
-            txp* rt = eg->resources_tex.begin;
+            txp* rt = eg->resources_tex.textures.data();
 
             ssize_t j = -1;
             for (size_t i = 0; i < rc; i++)
@@ -831,7 +824,7 @@ void glitter_editor_ctrl(class_data* data) {
         else if (glt_edt->resource_flags & GLITTER_EDITOR_MOVE_DOWN) {
             size_t rc = eg->resources_count;
             uint64_t* rh = eg->resource_hashes.data();
-            txp* rt = eg->resources_tex.begin;
+            txp* rt = eg->resources_tex.textures.data();
 
             ssize_t j = -1;
             for (size_t i = 0; i < rc; i++)
@@ -1105,19 +1098,19 @@ void glitter_editor_ctrl(class_data* data) {
                 if (e->data.name_hash == hash_murmurhash_empty)
                     continue;
 
-                uint32_t* hash = 0;
-                for (uint32_t j : hashes)
-                    if (e->data.name_hash == j) {
-                        hash = &j;
+                std::vector<uint32_t>::iterator hash = hashes.end();
+                for (std::vector<uint32_t>::iterator j = hashes.begin(); j != hashes.end(); j++)
+                    if (e->data.name_hash == *j) {
+                        hash = j;
                         break;
                     }
 
-                if (hash == hashes.end()._Ptr) {
+                if (hash == hashes.end()) {
                     load_success = false;
                     continue;
                 }
 
-                std::string* s = &ds->glitter_list_names[hash - hashes.data()];
+                std::string* s = &ds->glitter_list_names[hash - hashes.begin()];
                 size_t len = s->size();
                 memcpy(e->name, s->c_str(), min(len, 0x7F));
             }
@@ -1144,17 +1137,19 @@ void glitter_editor_ctrl(class_data* data) {
                 if (e->data.name_hash == hash_fnv1a64m_empty)
                     continue;
 
-                uint64_t* hash = 0;
-                for (uint64_t j : hashes)
-                    if (e->data.name_hash == j)
+                std::vector<uint64_t>::iterator hash = hashes.end();
+                for (std::vector<uint64_t>::iterator j = hashes.begin(); j != hashes.end(); j++)
+                    if (e->data.name_hash == *j) {
+                        hash = j;
                         break;
+                    }
 
-                if (hash == hashes.end()._Ptr) {
+                if (hash == hashes.end()) {
                     load_success = false;
                     continue;
                 }
 
-                std::string* s = &ds->glitter_list_names[hash - hashes.data()];
+                std::string* s = &ds->glitter_list_names[hash - hashes.begin()];
                 size_t len = s->size();
                 memcpy(e->name, s->c_str(), min(len, 0x7F));
             }
@@ -1307,8 +1302,6 @@ void glitter_editor_input(class_data* data) {
 
 bool glitter_editor_dispose(class_data* data) {
     GPM_VAL.FreeScenes();
-
-    lock_data_free(&glitter_data_lock, (void(*)(void*))glitter_editor_dispose);
 
     glitter_editor_struct* glt_edt = (glitter_editor_struct*)data->data;
     if (glt_edt) {
@@ -1799,7 +1792,7 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, char* path,
 
     farc f;
     if (glitter_diva_effect_unparse_file(glt_type, glt_edt->effect_group, &st)) {
-        f2_struct_mwrite(&st, &ff_dve.data, &ff_dve.size, true, false);
+        f2_struct_write(&st, &ff_dve.data, &ff_dve.size, true, false);
         ff_dve.name = std::string(file);
         ff_dve.name += ".dve";
         f2_struct_free(&st);
@@ -1808,7 +1801,7 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, char* path,
         goto End;
 
     if (glitter_diva_resource_unparse_file(glt_edt->effect_group, &st)) {
-        f2_struct_mwrite(&st, &ff_drs.data, &ff_drs.size, true, false);
+        f2_struct_write(&st, &ff_drs.data, &ff_drs.size, true, false);
         ff_drs.name = std::string(file);
         ff_drs.name += ".drs";
     }
@@ -1816,7 +1809,7 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, char* path,
 
     if (glt_type == GLITTER_FT)
         if (glitter_diva_list_unparse_file(glt_edt->effect_group, &st)) {
-            f2_struct_mwrite(&st, &ff_lst.data, &ff_lst.size, true, false);
+            f2_struct_write(&st, &ff_lst.data, &ff_lst.size, true, false);
             ff_lst.name = std::string(file);
             ff_lst.name += ".lst";
         }
@@ -1881,7 +1874,7 @@ static bool glitter_editor_list_open_window(glitter_effect_group* eg) {
     ofn.lpstrTitle = L"File to Open";
     if (GetOpenFileNameW(&ofn)) {
         stream s;
-        io_wopen(&s, file, L"rb");
+        io_open(&s, file, L"rb");
         size_t length = s.length;
         uint8_t* data = force_malloc_s(uint8_t, length);
         io_read(&s, data, length);
@@ -1983,13 +1976,13 @@ static bool glitter_editor_resource_import(glitter_editor_struct* glt_edt) {
         if (d->width == 0 || d->height == 0 || d->mipmaps_count == 0 || vector_old_length(d->data) < 1)
             goto DDSEnd;
 
-        tex = vector_old_txp_reserve_back(&eg->resources_tex);
+        eg->resources_tex.textures.push_back({});
+        tex = &eg->resources_tex.textures.end()[-1];
         tex->array_size = d->has_cube_map ? 6 : 1;
         tex->has_cube_map = d->has_cube_map;
         tex->mipmaps_count = d->mipmaps_count;
 
-        vector_old_txp_mipmap_reserve(&tex->data,
-            (tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
+        tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
         index = 0;
         do
             for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
@@ -1999,12 +1992,11 @@ static bool glitter_editor_resource_import(glitter_editor_struct* glt_edt) {
                 tex_mip.height = max(d->height >> i, 1);
                 tex_mip.format = d->format;
 
-                uint32_t size = txp_get_size(tex_mip.format,
-                    tex_mip.width, tex_mip.height);
+                uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
                 tex_mip.size = size;
-                tex_mip.data = force_malloc(size);
-                memcpy(tex_mip.data, d->data.begin[index], size);
-                vector_old_txp_mipmap_push_back(&tex->data, &tex_mip);
+                tex_mip.data.resize(size);
+                memcpy(tex_mip.data.data(), d->data.begin[index], size);
+                tex->mipmaps.push_back(tex_mip);
                 index++;
             }
         while (index / tex->mipmaps_count < tex->array_size);
@@ -2048,11 +2040,11 @@ static bool glitter_editor_resource_export(glitter_editor_struct* glt_edt) {
         dds* d = dds_init();
 
         glitter_effect_group* eg = glt_edt->effect_group;
-        txp tex = eg->resources_tex.begin[sel_rsrc];
+        txp& tex = eg->resources_tex.textures[sel_rsrc];
 
-        txp_format format = tex.data.begin[0].format;
-        uint32_t width = tex.data.begin[0].width;
-        uint32_t height = tex.data.begin[0].height;
+        txp_format format = tex.mipmaps[0].format;
+        uint32_t width = tex.mipmaps[0].width;
+        uint32_t height = tex.mipmaps[0].height;
 
         d->format = format;
         d->width = width;
@@ -2065,9 +2057,9 @@ static bool glitter_editor_resource_export(glitter_editor_struct* glt_edt) {
         uint32_t index = 0;
         do
             for (uint32_t i = 0; i < tex.mipmaps_count; i++) {
-                uint32_t size = txp_get_size(format, max(width >> i, 1), max(height >> i, 1));
+                uint32_t size = txp::get_size(format, max(width >> i, 1), max(height >> i, 1));
                 void* data = force_malloc(size);
-                memcpy(data, tex.data.begin[index].data, size);
+                memcpy(data, tex.mipmaps[index].data.data(), size);
                 vector_old_ptr_void_push_back(&d->data, &data);
                 index++;
             }
@@ -2090,10 +2082,8 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
     float_t x;
     float_t y;
 
-    float_t w = min((float_t)width, 360.0f);
-    float_t h = min((float_t)height, 326.0f);
-
-    float_t frame_counter;
+    float_t w = 280.0f;
+    float_t h = 326.0f;
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_FirstUseEver, ImVec2_Empty);
     igSetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -2138,13 +2128,12 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
 
     igSeparator();
 
-    frame_counter = glt_edt->frame_counter;
     glt_edt->old_frame_counter = glt_edt->frame_counter;
     imguiColumnSliderFloat("Frame", &glt_edt->frame_counter, 1.0f,
         (float_t)glt_edt->start_frame, (float_t)glt_edt->end_frame, "%.0f", 0, true);
     glt_edt->input_pause_temp = imgui_is_item_activated;
 
-    igText("Start/End Frame: %d/%d %d", glt_edt->start_frame, glt_edt->end_frame, (int32_t)glt_edt->input_pause_temp);
+    igText("Start/End Frame: %d/%d", glt_edt->start_frame, glt_edt->end_frame);
 
     imguiColumnSliderFloat("Emission", &GPM_VAL.emission, 0.01f, 1.0f, 2.0f, "%.2f", 0, true);
 
@@ -2638,7 +2627,7 @@ static void glitter_editor_resources(glitter_editor_struct* glt_edt) {
     texture** r = eg->resources;
     int32_t rc = eg->resources_count;
     uint64_t* rh = eg->resource_hashes.data();
-    txp* rt = eg->resources_tex.begin;
+    txp* rt = eg->resources_tex.textures.data();
     igPushID_Ptr(eg);
     ssize_t i_idx = 1;
     for (int32_t i = 0; i < rc; i++, i_idx++) {
@@ -2646,7 +2635,7 @@ static void glitter_editor_resources(glitter_editor_struct* glt_edt) {
         igPushID_Int(i);
         igSelectable_Bool(buf, i == sel_rsrc, 0, { 0.0f, 0.0f });
         if (igIsItemHovered(0)) {
-            txp_mipmap* rtm = rt[i].data.begin;
+            txp_mipmap* rtm = rt[i].mipmaps.data();
             float_t aspect = (float_t)rtm->width / (float_t)rtm->height;
 
             ImVec2 size = { 192.0f, 192.0f };
@@ -2787,8 +2776,9 @@ static void glitter_editor_play_manager(glitter_editor_struct* glt_edt) {
     igSeparator();
 
     glt_edt->old_frame_counter = glt_edt->frame_counter;
-    glt_edt->input_pause_temp = imguiColumnSliderFloat("Frame", &glt_edt->frame_counter, 1.0f,
+    imguiColumnSliderFloat("Frame", &glt_edt->frame_counter, 1.0f,
         (float_t)glt_edt->start_frame, (float_t)glt_edt->end_frame, "%.0f", 0, true);
+    glt_edt->input_pause_temp = imgui_is_item_activated;
 
     igText("Start/End Frame: %d/%d", glt_edt->start_frame, glt_edt->end_frame);
 
@@ -4250,7 +4240,7 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
     size_t rc = eg->resources_count;
     texture** r = eg->resources;
     uint64_t* rh = eg->resource_hashes.data();
-    txp* rt = eg->resources_tex.begin;
+    txp* rt = eg->resources_tex.textures.data();
 
     const uint64_t empty_hash = eg->type != GLITTER_FT
         ? hash_murmurhash_empty : hash_fnv1a64m_empty;
@@ -4362,7 +4352,7 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
                 }
 
 
-                txp_mipmap* rtm = rt[n - 1].data.begin;
+                txp_mipmap* rtm = rt[n - 1].mipmaps.data();
                 float_t aspect1 = (float_t)rtm->width / (float_t)rtm->height;
                 float_t aspect2 = aspect1;
                 if (particle->data.split_u * particle->data.split_v > 1)

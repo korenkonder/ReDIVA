@@ -170,7 +170,7 @@ void dds_wread(dds* d, wchar_t* path) {
     memset(d, 0, sizeof(dds));
     wchar_t* path_dds = str_utils_wadd(path, L".dds");
     stream s;
-    io_wopen(&s, path_dds, L"rb");
+    io_open(&s, path_dds, L"rb");
     if (s.io.stream) {
         if (io_read_uint32_t_reverse_endianness(&s, true) != DDS_MAGIC)
             goto End;
@@ -259,7 +259,7 @@ void dds_wread(dds* d, wchar_t* path) {
             for (uint32_t i = 0; i < d->mipmaps_count; i++) {
                 uint32_t width = max(d->width >> i, 1);
                 uint32_t height = max(d->height >> i, 1);
-                uint32_t size = txp_get_size(d->format,
+                uint32_t size = txp::get_size(d->format,
                     max(d->width >> i, 1), max(d->height >> i, 1));
                 void* data = force_malloc(size);
                 io_read(&s, data, size);
@@ -291,7 +291,7 @@ void dds_wwrite(dds* d, wchar_t* path) {
 
     wchar_t* path_dds = str_utils_wadd(path, L".dds");
     stream s;
-    io_wopen(&s, path_dds, L"wb");
+    io_open(&s, path_dds, L"wb");
     if (s.io.stream) {
         DDS_HEADER dds_h;
         memset(&dds_h, 0, sizeof(DDS_HEADER));
@@ -301,7 +301,7 @@ void dds_wwrite(dds* d, wchar_t* path) {
             dds_h.flags |= DDSD_MIPMAPCOUNT;
         dds_h.height = d->height;
         dds_h.width = d->width;
-        dds_h.pitchOrLinearSize = txp_get_size(d->format, d->width, d->height);
+        dds_h.pitchOrLinearSize = txp::get_size(d->format, d->width, d->height);
         dds_h.mipMapCount = d->mipmaps_count;
         dds_h.caps |= DDS_SURFACE_FLAGS_TEXTURE;
         if (d->has_cube_map)
@@ -362,7 +362,7 @@ void dds_wwrite(dds* d, wchar_t* path) {
         uint32_t index = 0;
         do
             for (uint32_t i = 0; i < d->mipmaps_count; i++) {
-                uint32_t size = txp_get_size(d->format,
+                uint32_t size = txp::get_size(d->format,
                     max(d->width >> i, 1), max(d->height >> i, 1));
                 void* data = force_malloc(size);
                 memcpy(data, d->data.begin[index], size);

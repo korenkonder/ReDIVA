@@ -16,7 +16,7 @@ static void f2_struct_get_length(f2_struct* s, bool shift_x);
 static void f2_struct_write_pof(stream* s, vector_old_size_t* pof, uint32_t depth, bool shift_x);
 static void f2_struct_write_enrs(stream* s, vector_old_enrs_entry* enrs, uint32_t depth);
 
-void f2_struct_read(f2_struct* st, char* path) {
+void f2_struct_read(f2_struct* st, const char* path) {
     memset(st, 0, sizeof(f2_struct));
 
     stream s;
@@ -31,11 +31,11 @@ void f2_struct_read(f2_struct* st, char* path) {
     io_free(&s);
 }
 
-void f2_struct_wread(f2_struct* st, wchar_t* path) {
+void f2_struct_read(f2_struct* st, const wchar_t* path) {
     memset(st, 0, sizeof(f2_struct));
 
     stream s;
-    io_wopen(&s, path, L"rb");
+    io_open(&s, path, L"rb");
     if (&s.io.stream) {
         divafile_sdecrypt(&s);
 
@@ -46,11 +46,11 @@ void f2_struct_wread(f2_struct* st, wchar_t* path) {
     io_free(&s);
 }
 
-void f2_struct_mread(f2_struct* st, void* data, size_t length) {
+void f2_struct_read(f2_struct* st, const void* data, size_t length) {
     memset(st, 0, sizeof(f2_struct));
 
     stream s;
-    io_mopen(&s, data, length);
+    io_open(&s, data, length);
     if (&s.io.data.data) {
         divafile_sdecrypt(&s);
 
@@ -61,7 +61,7 @@ void f2_struct_mread(f2_struct* st, void* data, size_t length) {
     io_free(&s);
 }
 
-void f2_struct_sread(f2_struct* st, stream* s) {
+void f2_struct_read(f2_struct* st, stream* s) {
     memset(st, 0, sizeof(f2_struct));
 
     if (s->io.stream || s->io.data.data) {
@@ -73,7 +73,7 @@ void f2_struct_sread(f2_struct* st, stream* s) {
     }
 }
 
-void f2_struct_write(f2_struct* st, char* path, bool use_depth, bool shift_x) {
+void f2_struct_write(f2_struct* st, const char* path, bool use_depth, bool shift_x) {
     stream s;
     io_open(&s, path, "wb");
     if (s.io.stream) {
@@ -83,9 +83,9 @@ void f2_struct_write(f2_struct* st, char* path, bool use_depth, bool shift_x) {
     io_free(&s);
 }
 
-void f2_struct_wwrite(f2_struct* st, wchar_t* path, bool use_depth, bool shift_x) {
+void f2_struct_write(f2_struct* st, const wchar_t* path, bool use_depth, bool shift_x) {
     stream s;
-    io_wopen(&s, path, L"wb");
+    io_open(&s, path, L"wb");
     if (s.io.stream) {
         f2_struct_get_length(st, shift_x);
         f2_struct_write_inner(&s, st, 0, use_depth, shift_x);
@@ -93,20 +93,20 @@ void f2_struct_wwrite(f2_struct* st, wchar_t* path, bool use_depth, bool shift_x
     io_free(&s);
 }
 
-void f2_struct_mwrite(f2_struct* st, void** data, size_t* length, bool use_depth, bool shift_x) {
+void f2_struct_write(f2_struct* st, void** data, size_t* length, bool use_depth, bool shift_x) {
     if (!st || !data)
         return;
 
     f2_struct_get_length(st, shift_x);
     stream s;
-    io_mopen(&s, 0, st->header.data_size + 0x40ULL);
+    io_open(&s, 0, st->header.data_size + 0x40ULL);
     f2_struct_write_inner(&s, st, 0, use_depth, shift_x);
 
-    io_mcopy(&s, data, length);
+    io_copy(&s, data, length);
     io_free(&s);
 }
 
-void f2_struct_swrite(f2_struct* st, stream* s, bool use_depth, bool shift_x) {
+void f2_struct_write(f2_struct* st, stream* s, bool use_depth, bool shift_x) {
     if (s->io.stream || s->type == STREAM_MEMORY) {
         f2_struct_get_length(st, shift_x);
         f2_struct_write_inner(s, st, 0, use_depth, shift_x);

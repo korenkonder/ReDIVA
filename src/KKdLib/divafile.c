@@ -25,7 +25,7 @@ inline void divafile_decrypt(const char* path) {
 void divafile_wdecrypt(wchar_t* path) {
     wchar_t* file_temp = str_utils_wadd(path, L"_dec");
     stream s_enc;
-    io_wopen(&s_enc, path, L"rb");
+    io_open(&s_enc, path, L"rb");
     if (s_enc.io.stream) {
         uint64_t signature = io_read_uint64_t(&s_enc);
         if (signature == 0x454C494641564944) {
@@ -39,7 +39,7 @@ void divafile_wdecrypt(wchar_t* path) {
             aes_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
 
             stream s_dec;
-            io_wopen(&s_dec, file_temp, L"wb");
+            io_open(&s_dec, file_temp, L"wb");
             io_write(&s_dec, data, min(file_length, stream_length));
             io_free(&s_dec);
             free(data);
@@ -100,7 +100,7 @@ void divafile_sdecrypt(stream* s) {
     aes_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
 
     io_free(s);
-    io_mopen(s, data, file_length);
+    io_open(s, data, file_length);
     free(data);
 }
 
@@ -117,7 +117,7 @@ inline void divafile_encrypt(const char* path) {
 void divafile_wencrypt(wchar_t* path) {
     wchar_t* file_temp = str_utils_wadd(path, L"_enc");
     stream s_dec;
-    io_wopen(&s_dec, path, L"rb");
+    io_open(&s_dec, path, L"rb");
     if (s_dec.io.stream) {
         size_t len = s_dec.length;
         size_t len_align = align_val(len, 0x10);
@@ -130,7 +130,7 @@ void divafile_wencrypt(wchar_t* path) {
         aes_ecb_encrypt_buffer(&ctx, (uint8_t*)data, len_align);
 
         stream s_enc;
-        io_wopen(&s_enc, file_temp, L"wb");
+        io_open(&s_enc, file_temp, L"wb");
         io_write_uint64_t(&s_enc, 0x454C494641564944);
         io_write_uint32_t(&s_enc, (uint32_t)len_align);
         io_write_uint32_t(&s_enc, (uint32_t)len);

@@ -141,6 +141,13 @@ static void input_poll() {
         if (input_is_down('D'))
             input_move.y += speed;
 
+        if (input_is_down(VK_SHIFT))
+            speed = input_movement_speed * 2.0;
+        else if (input_is_down(VK_CONTROL))
+            speed = input_movement_speed / 2.0;
+        else
+            speed = input_movement_speed;
+        speed *= freq / freq_hist;
         speed *= 10.0;
 
         if (input_is_down(VK_UP))

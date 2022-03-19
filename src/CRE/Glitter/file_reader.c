@@ -55,7 +55,7 @@ glitter_file_reader::~glitter_file_reader() {
 bool glitter_file_reader::Read(GPM, float_t emission) {
     ::farc f;
     char* farc_file_temp = str_utils_add(this->file.c_str(), ".farc");
-    bool ret = data_struct_load_file((data_struct*)GPM_VAL->data,
+    bool ret = ((data_struct*)GPM_VAL->data)->load_file(
         &f, this->path.c_str(), farc_file_temp, farc::load_file);
     free(farc_file_temp);
 
@@ -70,7 +70,7 @@ bool glitter_file_reader::Read(GPM, float_t emission) {
         return false;
 
     f2_struct st;
-    f2_struct_mread(&st, dve_ff->data, dve_ff->size);
+    f2_struct_read(&st, dve_ff->data, dve_ff->size);
     if (st.header.signature == reverse_endianness_uint32_t('DVEF'))
         ret = glitter_diva_effect_parse_file(GPM_VAL, this, &st, emission);
     else
@@ -86,7 +86,7 @@ bool glitter_file_reader::Read(GPM, float_t emission) {
 
     if (drs_ff) {
         f2_struct st;
-        f2_struct_mread(&st, drs_ff->data, drs_ff->size);
+        f2_struct_read(&st, drs_ff->data, drs_ff->size);
         if (st.header.signature == reverse_endianness_uint32_t('DVRS'))
             glitter_diva_resource_parse_file(GPM_VAL, this->effect_group, &st);
         f2_struct_free(&st);
@@ -98,7 +98,7 @@ bool glitter_file_reader::Read(GPM, float_t emission) {
 
     if (lst_ff) {
         f2_struct st;
-        f2_struct_mread(&st, lst_ff->data, lst_ff->size);
+        f2_struct_read(&st, lst_ff->data, lst_ff->size);
         if (st.header.signature == reverse_endianness_uint32_t('LIST'))
             glitter_diva_list_parse_file(this->effect_group, &st);
         f2_struct_free(&st);
@@ -127,7 +127,7 @@ bool glitter_file_reader_load_farc(glitter_file_reader* fr,
 
     std::string file_temp = fr->file + ".farc";
 
-    if (data_struct_load_file((data_struct*)(GPM_VAL.data),
+    if (((data_struct*)(GPM_VAL.data))->load_file(
         fr->farc, path, file_temp.c_str(), farc::load_file)) {
         fr->hash = hash;
         fr->load_count = 1;

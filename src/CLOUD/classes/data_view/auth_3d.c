@@ -136,7 +136,7 @@ void data_view_auth_3d_imgui(class_data* data) {
         if (auth->camera_root.size() > 1
             && igTreeNodeEx_Str("Camera Root", tree_node_flags)) {
             for (auth_3d_camera_root& l : auth->camera_root)
-                data_view_auth_3d_imgui_auth_3d_camera_root(&l, &l - auth->camera_root.begin()._Ptr);
+                data_view_auth_3d_imgui_auth_3d_camera_root(&l, &l - auth->camera_root.data());
             igTreePop();
         }
         else if (auth->camera_root.size() == 1)

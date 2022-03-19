@@ -306,9 +306,9 @@ static int32_t glitter_x_effect_inst_get_ext_anim_bone_index(GPM,
         return -1;
 
     bone_database* bone_data = (bone_database*)GPM_VAL->bone_data;
-    vector_old_string* motion_bone_names = 0;
-    if (!bone_data || vector_old_length(bone_data->skeleton) < 1
-        || !bone_database_get_skeleton_motion_bones(bone_data,
+    std::vector<std::string>* motion_bone_names = 0;
+    if (!bone_data || bone_data->skeleton.size() < 1
+        || !bone_data->get_skeleton_motion_bones(
             (char*)bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), &motion_bone_names))
         return -1;
 
@@ -334,9 +334,9 @@ static int32_t glitter_x_effect_inst_get_ext_anim_bone_index(GPM,
     };
 
     char* bone_name = (char*)bone_names[node];
-    for (string* i = motion_bone_names->begin; i != motion_bone_names->end; i++)
-        if (!str_utils_compare(bone_name, string_data(i)))
-            return (int32_t)(i - motion_bone_names->begin);
+    for (std::string& i : *motion_bone_names)
+        if (!str_utils_compare(bone_name, i.c_str()))
+            return (int32_t)(&i - motion_bone_names->data());
     return -1;
 }
 

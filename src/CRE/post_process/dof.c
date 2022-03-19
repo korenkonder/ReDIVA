@@ -6,7 +6,7 @@
 #include "dof.h"
 #include "../../KKdLib/str_utils.h"
 #include "../gl_state.h"
-#include "../camera.h"
+#include "../rob.h"
 
 typedef struct post_process_dof_shader_data {
     vec4 g_depth_params;
@@ -573,7 +573,7 @@ static const char* dof_frag_shader_step_5 =
 static const dof_debug dof_debug_default = {
     (dof_debug_flags)0,
     10.0f,
-    40.0f,
+    0.04f,
     1.4f,
     {
         10.0f,
@@ -617,6 +617,8 @@ static void post_process_dof_update_data(post_process_dof* dof, float_t min_dist
     float_t max_dist, float_t fov, float_t dist, float_t focal_length,
     float_t f_number, float_t focus_range, float_t fuzzing_range, float_t ratio);
 
+static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat);
+
 post_process_dof* post_process_dof_init() {
     post_process_dof* dof = force_malloc_s(post_process_dof, 1);
     post_process_dof_load_shaders(dof);
@@ -633,25 +635,38 @@ void post_process_apply_dof(post_process_dof* dof,
         if (dof->data.debug.flags & DOF_DEBUG_ENABLE_DOF) {
             if (dof->data.debug.flags & DOF_DEBUG_ENABLE_PHYS_DOF) {
                 float_t dist_to_focus = dof->data.debug.distance_to_focus;
-                if (dof->data.debug.flags & DOF_DEBUG_AUTO_FOCUS && false) {
-                    mat4 view_transpose;
-                    mat4_transpose(&cam->view, &view_transpose);
-                    vec3 chara_trans = vec3_null;
-                    vec3_dot(cam->view_point, chara_trans, dist_to_focus);
-                    dist_to_focus = -dist_to_focus - 0.1f;
+                if (dof->data.debug.flags & DOF_DEBUG_AUTO_FOCUS) {
+                    rob_chara* rob_chr = 0;
+                    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+                        rob_chara* rob_chr = rob_chara_array_get(i);
+                        if (!(rob_chr->data.field_0 & 1))
+                            continue;
+
+                        mat4 mat;
+                        sub_1405163C0(rob_chr, 4, &mat);
+
+                        vec3 chara_trans = vec3_null;
+                        mat4_get_translation(&mat, &chara_trans);
+
+                        mat4 view_transpose;
+                        mat4_transpose(&cam->view, &view_transpose);
+                        vec3_dot(*(vec3*)&view_transpose.row2, chara_trans, dist_to_focus);
+                        dist_to_focus = -dist_to_focus - view_transpose.row2.w - 0.1f;
+                        break;
+                    }
                 }
 
                 dist_to_focus = max(dist_to_focus, (float_t)cam->min_distance);
                 post_process_apply_dof_physical(dof, rt, samplers,
                     rt->color_texture->texture, rt->depth_texture->texture,
-                    (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov, dist_to_focus,
-                    dof->data.debug.focal_length, dof->data.debug.f_number);
+                    (float_t)cam->min_distance, (float_t)cam->max_distance, dist_to_focus,
+                    dof->data.debug.focal_length, (float_t)cam->fov_rad, dof->data.debug.f_number);
             }
             else {
                 float_t fuzzing_range = max(dof->data.debug.f2.fuzzing_range, 0.01f);
                 post_process_apply_dof_f2(dof, rt, samplers,
                     rt->color_texture->texture, rt->depth_texture->texture,
-                    (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov,
+                    (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
                     dof->data.debug.f2.distance_to_focus, dof->data.debug.f2.focus_range,
                     fuzzing_range, dof->data.debug.f2.ratio);
                 use_dof_f2 = true;
@@ -662,7 +677,7 @@ void post_process_apply_dof(post_process_dof* dof,
         float_t fuzzing_range = max(dof->data.pv.f2.fuzzing_range, 0.01f);
         post_process_apply_dof_f2(dof, rt, samplers,
             rt->color_texture->texture, rt->depth_texture->texture,
-            (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov,
+            (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
             dof->data.pv.f2.distance_to_focus, dof->data.pv.f2.focus_range,
             fuzzing_range, dof->data.pv.f2.ratio);
         enum_or(dof->data.debug.flags, DOF_DEBUG_ENABLE_DOF);
@@ -1022,14 +1037,14 @@ static void post_process_dof_update_data(post_process_dof* dof, float_t min_dist
     float_t fl = focal_length;
     if (dist <= focal_length)
         fl = dist + 0.1f;
-    fl *= fl * (1.0f / ((dist - fl) * f_number));
+    fl = fl / (dist - fl) * fl / f_number;
 
     post_process_dof_shader_data data;
-    data.g_depth_params.x = (min_dist - max_dist) / (min_dist * max_dist);
+    data.g_depth_params.x = 1.0f / (min_dist * max_dist) * (min_dist - max_dist);
     data.g_depth_params.y = 1.0f / min_dist;
-    data.g_depth_params.z = -dist * data.g_depth_params.x * fl;
-    data.g_depth_params.w = (1.0f - dist * data.g_depth_params.y) * fl;
-    data.g_spread_scale.x = 720.0f / (tanf(fov * 0.5f) * 2.0f * min_dist);
+    data.g_depth_params.z = -((fl * dist * (min_dist - max_dist)) * (1.0f / (min_dist * max_dist)));
+    data.g_depth_params.w = (1.0f - 1.0f / min_dist * dist) * fl;
+    data.g_spread_scale.x = 720.0f / (tanf(fov * 0.5f) * (min_dist * 2.0f));
     data.g_spread_scale.y = data.g_spread_scale.x * (float_t)(1.0 / 3.0);
     data.g_spread_scale.z = (float_t)(1.0 / 3.0);
     data.g_spread_scale.w = 3.0f;
@@ -1040,6 +1055,11 @@ static void post_process_dof_update_data(post_process_dof* dof, float_t min_dist
 
     gl_state_bind_uniform_buffer(dof->ubo[0]);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(post_process_dof_shader_data), &data);
+}
+
+static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat) {
+    if (a2 >= 0 && a2 <= 26)
+        *mat = rob_chr->data.field_1E68.field_78[a2];
 }
 
 void post_process_dof_initialize_data(post_process_dof* dof, dof_debug* debug, dof_pv* pv) {

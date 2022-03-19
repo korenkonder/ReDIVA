@@ -30,7 +30,7 @@ auth_3d_database_file::~auth_3d_database_file() {
 
 }
 
-void auth_3d_database_file::read(char* path) {
+void auth_3d_database_file::read(const char* path) {
     if (!path)
         return;
 
@@ -45,14 +45,14 @@ void auth_3d_database_file::read(char* path) {
     free(path_bin);
 }
 
-void auth_3d_database_file::read(wchar_t* path) {
+void auth_3d_database_file::read(const wchar_t* path) {
     if (!path)
         return;
 
     wchar_t* path_bin = str_utils_wadd(path, L".bin");
-    if (path_wcheck_file_exists(path_bin)) {
+    if (path_check_file_exists(path_bin)) {
         stream s;
-        io_wopen(&s, path_bin, L"rb");
+        io_open(&s, path_bin, L"rb");
         if (s.io.stream)
             auth_3d_database_file_read_inner(this, &s);
         io_free(&s);
@@ -60,17 +60,17 @@ void auth_3d_database_file::read(wchar_t* path) {
     free(path_bin);
 }
 
-void auth_3d_database_file::read(void* data, size_t length) {
+void auth_3d_database_file::read(const void* data, size_t length) {
     if (!data || !length)
         return;
 
     stream s;
-    io_mopen(&s, data, length);
+    io_open(&s, data, length);
     auth_3d_database_file_read_inner(this, &s);
     io_free(&s);
 }
 
-void auth_3d_database_file::write(char* path) {
+void auth_3d_database_file::write(const char* path) {
     if (!path || !ready)
         return;
 
@@ -83,13 +83,13 @@ void auth_3d_database_file::write(char* path) {
     free(path_bin);
 }
 
-void auth_3d_database_file::write(wchar_t* path) {
+void auth_3d_database_file::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
     wchar_t* path_bin = str_utils_wadd(path, L".bin");
     stream s;
-    io_wopen(&s, path_bin, L"wb");
+    io_open(&s, path_bin, L"wb");
     if (s.io.stream)
         auth_3d_database_file_write_inner(this, &s);
     io_free(&s);
@@ -101,16 +101,16 @@ void auth_3d_database_file::write(void** data, size_t* length) {
         return;
 
     stream s;
-    io_mopen(&s, 0, 0);
+    io_open(&s);
     auth_3d_database_file_write_inner(this, &s);
-    io_mcopy(&s, data, length);
+    io_copy(&s, data, length);
     io_free(&s);
 }
 
-bool auth_3d_database_file::load_file(void* data, char* path, char* file, uint32_t hash) {
+bool auth_3d_database_file::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
-    char* t = strrchr(file, '.');
+    const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
@@ -314,16 +314,16 @@ static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_fi
     size_t off;
 
     key_val kv;
-    key_val_init(&kv, (uint8_t*)data, length);
+    kv.parse((uint8_t*)data, length);
     key_val lkv;
 
     len = 8;
     memcpy(buf, "category", 8);
     off = len;
 
-    auth_3d_db_file->category = vector_old_empty(string);
-    if (key_val_read_int32_t(&kv, buf, off, ".length", 8, &count)
-        && key_val_get_local_key_val(&kv, "category", &lkv)) {
+    auth_3d_db_file->category.clear();
+    if (kv.read_int32_t(buf, off, ".length", 8, &count)
+        && kv.get_local_key_val("category", &lkv)) {
         std::vector<std::string>& vc = auth_3d_db_file->category;
 
         vc.resize(count);
@@ -332,22 +332,21 @@ static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_fi
             len1 = sprintf_s(buf + len, AUTH_3D_DATABASE_TEXT_BUF_SIZE - len, ".%d", i);
             off = len + len1;
 
-            key_val_read_string(&lkv,
+            lkv.read_string(
                 buf, off, ".value", 7, c);
         }
-        key_val_free(&lkv);
     }
 
     len = 3;
     memcpy(buf, "uid", 3);
     off = len;
 
-    auth_3d_db_file->uid = vector_old_empty(auth_3d_database_uid_file);
-    if (!key_val_read_int32_t(&kv, buf, off, ".max", 5, &auth_3d_db_file->uid_max))
+    auth_3d_db_file->uid.clear();
+    if (!kv.read_int32_t(buf, off, ".max", 5, &auth_3d_db_file->uid_max))
         auth_3d_db_file->uid_max = -1;
 
-    if (key_val_read_int32_t(&kv, buf, off, ".length", 8, &count)
-        && key_val_get_local_key_val(&kv, "uid", &lkv)) {
+    if (kv.read_int32_t(buf, off, ".length", 8, &count)
+        && kv.get_local_key_val("uid", &lkv)) {
         std::vector<auth_3d_database_uid_file>& vu = auth_3d_db_file->uid;
 
         vu.resize(count);
@@ -356,21 +355,18 @@ static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_fi
             len1 = sprintf_s(buf + len, AUTH_3D_DATABASE_TEXT_BUF_SIZE - len, ".%d", i);
             off = len + len1;
 
-            key_val_read_string(&lkv,
+            lkv.read_string(
                 buf, off, ".category", 10, &u->category);
-            if (key_val_read_int32_t(&lkv,
+            if (lkv.read_int32_t(
                 buf, off, ".org_uid", 9, &u->org_uid))
                 enum_or(u->flags, AUTH_3D_DATABASE_UID_ORG_UID);
-            if (key_val_read_float_t(&lkv,
+            if (lkv.read_float_t(
                 buf, off, ".size", 6, &u->size))
                 enum_or(u->flags, AUTH_3D_DATABASE_UID_SIZE);
-            key_val_read_string(&lkv,
+            lkv.read_string(
                 buf, off, ".value", 7, &u->value);
         }
-        key_val_free(&lkv);
     }
-
-    key_val_free(&kv);
 }
 
 static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_file, void** data, size_t* length) {
@@ -381,12 +377,11 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
     size_t off;
 
     stream s;
-    io_mopen(&s, 0, 0);
+    io_open(&s);
     
     io_write(&s, "#A3DA__________\n", 16);
     io_write(&s, "# date time was eliminated.\n", 28);
 
-    vector_old_int32_t sort_index = vector_old_empty(int32_t);
     if (auth_3d_db_file->category.size() > 0) {
         len = 8;
         memcpy(buf, "category", 8);
@@ -394,19 +389,19 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
 
         std::vector<std::string>& vc = auth_3d_db_file->category;
         count = (int32_t)vc.size();
-        key_val_get_lexicographic_order(&sort_index, count);
-        if (sort_index.begin)
-            for (int32_t i = 0; i < count; i++) {
-                std::string* c = &vc[sort_index.begin[i]];
+        std::vector<int32_t> sort_index;
+        key_val::get_lexicographic_order(&sort_index, count);
+        for (int32_t i = 0; i < count; i++) {
+            std::string* c = &vc[sort_index[i]];
 
-                len1 = sprintf_s(buf + len, AUTH_3D_DATABASE_TEXT_BUF_SIZE - len, ".%d", sort_index.begin[i]);
-                off = len + len1;
+            len1 = sprintf_s(buf + len, AUTH_3D_DATABASE_TEXT_BUF_SIZE - len, ".%d", sort_index[i]);
+            off = len + len1;
 
-                key_val_write_string(&s, buf, off, ".value", 7, c);
-            }
+            key_val::write_string(&s, buf, off, ".value", 7, c);
+        }
 
         off = len;
-        key_val_write_int32_t(&s, buf, off, ".length", 8, count);
+        key_val::write_int32_t(&s, buf, off, ".length", 8, count);
     }
 
     if (auth_3d_db_file->uid.size() > 0) {
@@ -417,35 +412,33 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
         int32_t uid_max = -1;
         std::vector<auth_3d_database_uid_file>& vu = auth_3d_db_file->uid;
         count = (int32_t)vu.size();
-        key_val_get_lexicographic_order(&sort_index, count);
-        if (sort_index.begin)
-            for (int32_t i = 0; i < count; i++) {
-                auth_3d_database_uid_file* u = &vu[sort_index.begin[i]];
+        std::vector<int32_t> sort_index;
+        key_val::get_lexicographic_order(&sort_index, count);
+        for (int32_t i = 0; i < count; i++) {
+            auth_3d_database_uid_file* u = &vu[sort_index[i]];
 
-                len1 = sprintf_s(buf + len, AUTH_3D_DATABASE_TEXT_BUF_SIZE - len, ".%d", sort_index.begin[i]);
-                off = len + len1;
+            len1 = sprintf_s(buf + len, AUTH_3D_DATABASE_TEXT_BUF_SIZE - len, ".%d", sort_index[i]);
+            off = len + len1;
 
-                key_val_write_string(&s, buf, off, ".category", 10, &u->category);
-                if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_ORG_UID))
-                    key_val_write_int32_t(&s, buf, off, ".org_uid", 9, u->org_uid);
-                if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_SIZE))
-                    key_val_write_float_t(&s, buf, off, ".size", 6, u->size);
-                key_val_write_string(&s, buf, off, ".value", 7, &u->value);
+            key_val::write_string(&s, buf, off, ".category", 10, &u->category);
+            if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_ORG_UID))
+                key_val::write_int32_t(&s, buf, off, ".org_uid", 9, u->org_uid);
+            if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_SIZE))
+                key_val::write_float_t(&s, buf, off, ".size", 6, u->size);
+            key_val::write_string(&s, buf, off, ".value", 7, &u->value);
 
-                if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_ORG_UID) && u->org_uid > uid_max)
-                    uid_max = u->org_uid;
-            }
+            if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_ORG_UID) && u->org_uid > uid_max)
+                uid_max = u->org_uid;
+        }
 
         if (uid_max == 0)
             uid_max = count;
 
         off = len;
-        key_val_write_int32_t(&s, buf, off, ".length", 8, count);
-        key_val_write_int32_t(&s, buf, off, ".max", 5, uid_max);
+        key_val::write_int32_t(&s, buf, off, ".length", 8, count);
+        key_val::write_int32_t(&s, buf, off, ".max", 5, uid_max);
     }
 
-    vector_old_int32_t_free(&sort_index, 0);
-
-    io_mcopy(&s, data, length);
+    io_copy(&s, data, length);
     io_free(&s);
 }

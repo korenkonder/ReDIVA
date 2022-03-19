@@ -47,8 +47,8 @@ public:
 
 class farc {
 public:
-    std::wstring file_path;
-    std::wstring directory_path;
+    std::string file_path;
+    std::string directory_path;
     std::vector<farc_file> files;
     farc_signature signature;
     farc_flags flags;
@@ -58,22 +58,16 @@ public:
     farc();
     ~farc();
 
-    size_t get_file_size(char* name);
     size_t get_file_size(const char* name);
-    size_t get_file_size(wchar_t* name);
     size_t get_file_size(const wchar_t* name);
-    void read(char* path, bool unpack, bool save);
     void read(const char* path, bool unpack, bool save);
-    void read(wchar_t* path, bool unpack, bool save);
     void read(const wchar_t* path, bool unpack, bool save);
-    void read(void* data, size_t length, bool unpack);
-    farc_file* read_file(char* name);
+    void read(const void* data, size_t length, bool unpack);
     farc_file* read_file(const char* name);
-    farc_file* read_file(wchar_t* name);
     farc_file* read_file(const wchar_t* name);
-    void write(char* path, farc_compress_mode mode, bool get_files);
-    void write(wchar_t* path, farc_compress_mode mode, bool get_files);
+    void write(const char* path, farc_compress_mode mode, bool get_files);
+    void write(const wchar_t* path, farc_compress_mode mode, bool get_files);
     void write(void** data, size_t* length, farc_compress_mode mode);
 
-    static bool load_file(void* data, char* path, char* file, uint32_t hash);
+    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };

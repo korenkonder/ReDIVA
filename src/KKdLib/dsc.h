@@ -431,7 +431,7 @@ extern uint32_t* dsc_data_get_func_data(dsc* d, dsc_data* data);
 extern void dsc_merge(dsc* d, int32_t count, ...);
 extern bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type);
 extern void dsc_unparse(dsc* d, void** data, size_t* length);
-extern bool dsc_load_file(void* data, char* path, char* file, uint32_t hash);
+extern bool dsc_load_file(void* data, const char* path, const char* file, uint32_t hash);
 extern void dsc_free(dsc* d);
 
 extern void dsc_replace_init(dsc_replace* dr, dsc_type src_type,

@@ -59,7 +59,7 @@ classes_data data_test_classes[] = {
     },
     {
         "Stage Test##Data Test",
-        (classes_enum)(CLASSES_INIT_AT_STARTUP | CLASSES_IN_CONTEXT_MENU),
+        CLASSES_IN_CONTEXT_MENU,
         data_test_stage_test_init,
         data_test_stage_test_ctrl,
         CLASSES_DATA_NO_FUNC,

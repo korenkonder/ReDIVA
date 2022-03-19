@@ -44,6 +44,13 @@ public:
     virtual void Disp();
     virtual void Basic();
 
+    uint32_t GetCalcTime();
+    uint32_t GetCalcTimeMax();
+    uint32_t GetDispTime();
+    uint32_t GetDispTimeMax();
+    char* GetName();
+
+    bool SetDest();
     void SetName(char* name);
     void SetName(const char* name);
     void SetPriority(int32_t priority);
@@ -67,7 +74,10 @@ public:
     static bool AppendTask(Task* t, Task* parent_task = task_work.current,
         const char* name = "(unknown)", int32_t priority = 1);
     static void Basic();
+    static bool CheckTaskNotReady(Task* t);
     static void Ctrl();
     static void Disp();
+    static Task* GetTaskByIndex(int32_t index);
     static bool HasTask(Task* t);
+    static bool HasTaskDest(Task* t);
 };

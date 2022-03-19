@@ -1898,7 +1898,7 @@ bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type) {
     case DSC_MGF:
     case DSC_X:
     case DSC_VRFL:
-        f2_struct_mread(&st, data, length);
+        f2_struct_read(&st, data, length);
         data_dsc = (uint32_t*)st.data;
         if (st.header.use_big_endian)
             for (size_t i = length / 4; i; i--, data_dsc++)
@@ -2040,7 +2040,7 @@ void dsc_unparse(dsc* d, void** data, size_t* length) {
         st.header.length = 0x40;
         st.header.use_section_size = true;
         st.header.inner_signature = 0x13120420;
-        f2_struct_mwrite(&st, data, length, true, false);
+        f2_struct_write(&st, data, length, true, false);
         f2_struct_free(&st);
     }
     else {
@@ -2049,7 +2049,7 @@ void dsc_unparse(dsc* d, void** data, size_t* length) {
     }
 }
 
-bool dsc_load_file(void* data, char* path, char* file, uint32_t hash) {
+bool dsc_load_file(void* data, const char* path, const char* file, uint32_t hash) {
     string s;
     string_init(&s, path);
     string_add(&s, file);

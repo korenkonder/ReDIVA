@@ -488,7 +488,7 @@ typedef struct obj_skin_block {
 typedef struct obj_skin_osage_sibling_info {
     uint32_t name_index;
     uint32_t sibling_name_index;
-    float_t distance;
+    float_t max_distance;
 } obj_skin_osage_sibling_info;
 
 typedef struct obj_skin_ex_data {
@@ -530,7 +530,8 @@ typedef struct obj {
     uint32_t id;
 } obj;
 
-typedef struct obj_set {
+class obj_set {
+public:
     bool ready;
     bool modern;
     bool is_x;
@@ -539,13 +540,10 @@ typedef struct obj_set {
     int32_t objects_count;
     uint32_t* texture_ids;
     int32_t texture_ids_count;
-} obj_set;
 
-extern void obj_init(obj_set* os);
-extern void obj_read(obj_set* os, char* path, bool modern);
-extern void obj_wread(obj_set* os, wchar_t* path, bool modern);
-extern void obj_mread(obj_set* os, void* data, size_t length, bool modern);
-extern void obj_write(obj_set* os, char* path);
-extern void obj_wwrite(obj_set* os, wchar_t* path);
-extern void obj_mwrite(obj_set* os, void** data, size_t* length);
-extern void obj_free(obj_set* os);
+    obj_set();
+    ~obj_set();
+
+    void pack_file(void** data, size_t* length);
+    void unpack_file(void* data, size_t length, bool modern);
+};

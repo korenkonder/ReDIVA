@@ -21,7 +21,7 @@ void stage_database_init(stage_database* stage_data) {
     memset(stage_data, 0, sizeof(stage_database));
 }
 
-void stage_database_read(stage_database* stage_data, char* path, bool modern) {
+void stage_database_read(stage_database* stage_data, const char* path, bool modern) {
     if (!stage_data || !path)
         return;
 
@@ -34,7 +34,7 @@ void stage_database_read(stage_database* stage_data, char* path, bool modern) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
-                io_mopen(&s_bin, data, s.length);
+                io_open(&s_bin, data, s.length);
                 stage_database_classic_read_inner(stage_data, &s_bin);
                 io_free(&s_bin);
                 free(data);
@@ -50,7 +50,7 @@ void stage_database_read(stage_database* stage_data, char* path, bool modern) {
             f2_struct_read(&st, path_stg);
             if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
                 stream s_stgc;
-                io_mopen(&s_stgc, st.data, st.length);
+                io_open(&s_stgc, st.data, st.length);
                 s_stgc.is_big_endian = st.header.use_big_endian;
                 stage_database_modern_read_inner(stage_data, &s_stgc, st.header.length);
                 io_free(&s_stgc);
@@ -61,20 +61,20 @@ void stage_database_read(stage_database* stage_data, char* path, bool modern) {
     }
 }
 
-void stage_database_wread(stage_database* stage_data, wchar_t* path, bool modern) {
+void stage_database_read(stage_database* stage_data, const wchar_t* path, bool modern) {
     if (!stage_data || !path)
         return;
 
     if (!modern) {
         wchar_t* path_bin = str_utils_wadd(path, L".bin");
-        if (path_wcheck_file_exists(path_bin)) {
+        if (path_check_file_exists(path_bin)) {
             stream s;
-            io_wopen(&s, path_bin, L"rb");
+            io_open(&s, path_bin, L"rb");
             if (s.io.stream) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 io_read(&s, data, s.length);
                 stream s_bin;
-                io_mopen(&s_bin, data, s.length);
+                io_open(&s_bin, data, s.length);
                 stage_database_classic_read_inner(stage_data, &s_bin);
                 io_free(&s_bin);
                 free(data);
@@ -85,12 +85,12 @@ void stage_database_wread(stage_database* stage_data, wchar_t* path, bool modern
     }
     else {
         wchar_t* path_stg = str_utils_wadd(path, L".stg");
-        if (path_wcheck_file_exists(path_stg)) {
+        if (path_check_file_exists(path_stg)) {
             f2_struct st;
-            f2_struct_wread(&st, path_stg);
+            f2_struct_read(&st, path_stg);
             if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
                 stream s_stgc;
-                io_mopen(&s_stgc, st.data, st.length);
+                io_open(&s_stgc, st.data, st.length);
                 s_stgc.is_big_endian = st.header.use_big_endian;
                 stage_database_modern_read_inner(stage_data, &s_stgc, st.header.length);
                 io_free(&s_stgc);
@@ -101,22 +101,22 @@ void stage_database_wread(stage_database* stage_data, wchar_t* path, bool modern
     }
 }
 
-void stage_database_mread(stage_database* stage_data, void* data, size_t length, bool modern) {
+void stage_database_read(stage_database* stage_data, const void* data, size_t length, bool modern) {
     if (!stage_data || !data || !length)
         return;
 
     if (!modern) {
         stream s;
-        io_mopen(&s, data, length);
+        io_open(&s, data, length);
         stage_database_classic_read_inner(stage_data, &s);
         io_free(&s);
     }
     else {
         f2_struct st;
-        f2_struct_mread(&st, data, length);
+        f2_struct_read(&st, data, length);
         if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
             stream s_stgc;
-            io_mopen(&s_stgc, st.data, st.length);
+            io_open(&s_stgc, st.data, st.length);
             s_stgc.is_big_endian = st.header.use_big_endian;
             stage_database_modern_read_inner(stage_data, &s_stgc, st.header.length);
             io_free(&s_stgc);
@@ -125,7 +125,7 @@ void stage_database_mread(stage_database* stage_data, void* data, size_t length,
     }
 }
 
-void stage_database_write(stage_database* stage_data, char* path) {
+void stage_database_write(stage_database* stage_data, const char* path) {
     if (!stage_data || !path || !stage_data->ready)
         return;
 
@@ -149,14 +149,14 @@ void stage_database_write(stage_database* stage_data, char* path) {
     }
 }
 
-void stage_database_wwrite(stage_database* stage_data, wchar_t* path) {
+void stage_database_write(stage_database* stage_data, const wchar_t* path) {
     if (!stage_data || !path || !stage_data->ready)
         return;
 
     if (!stage_data->modern) {
         wchar_t* path_bin = str_utils_wadd(path, L".bin");
         stream s;
-        io_wopen(&s, path_bin, L"wb");
+        io_open(&s, path_bin, L"wb");
         if (s.io.stream)
             stage_database_classic_write_inner(stage_data, &s);
         io_free(&s);
@@ -165,7 +165,7 @@ void stage_database_wwrite(stage_database* stage_data, wchar_t* path) {
     else {
         wchar_t* path_stg = str_utils_wadd(path, L".stg");
         stream s;
-        io_wopen(&s, path_stg, L"wb");
+        io_open(&s, path_stg, L"wb");
         if (s.io.stream)
             stage_database_modern_write_inner(stage_data, &s);
         io_free(&s);
@@ -173,25 +173,25 @@ void stage_database_wwrite(stage_database* stage_data, wchar_t* path) {
     }
 }
 
-void stage_database_mwrite(stage_database* stage_data, void** data, size_t* length) {
+void stage_database_write(stage_database* stage_data, void** data, size_t* length) {
     if (!stage_data || !data || !stage_data->ready)
         return;
 
     stream s;
-    io_mopen(&s, 0, 0);
+    io_open(&s);
     if (!stage_data->modern)
         stage_database_classic_write_inner(stage_data, &s);
     else
         stage_database_modern_write_inner(stage_data, &s);
     io_align_write(&s, 0x10);
-    io_mcopy(&s, data, length);
+    io_copy(&s, data, length);
     io_free(&s);
 }
 
-bool stage_database_load_file(void* data, char* path, char* file, uint32_t hash) {
+bool stage_database_load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
-    char* t = strrchr(file, '.');
+    const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
@@ -230,8 +230,8 @@ void stage_database_merge_mdata(stage_database* stage_data,
         string_copy(&b_info->collision_file_path, &info->collision_file_path);
         if (b_info->auth_3d_count) {
             info->auth_3d_count = b_info->auth_3d_count;
-            info->auth_3d_ids = force_malloc_s(uint32_t, b_info->auth_3d_count);
-            memcpy(info->auth_3d_ids, b_info->auth_3d_ids, sizeof(uint32_t) * b_info->auth_3d_count);
+            info->auth_3d_ids = force_malloc_s(int32_t, b_info->auth_3d_count);
+            memcpy(info->auth_3d_ids, b_info->auth_3d_ids, sizeof(int32_t) * b_info->auth_3d_count);
         }
         else {
             info->auth_3d_count = 0;
@@ -266,8 +266,8 @@ void stage_database_merge_mdata(stage_database* stage_data,
         string_copy(&m_info->collision_file_path, &info->collision_file_path);
         if (m_info->auth_3d_count) {
             info->auth_3d_count = m_info->auth_3d_count;
-            info->auth_3d_ids = force_malloc_s(uint32_t, m_info->auth_3d_count);
-            memcpy(info->auth_3d_ids, m_info->auth_3d_ids, sizeof(uint32_t) * m_info->auth_3d_count);
+            info->auth_3d_ids = force_malloc_s(int32_t, m_info->auth_3d_count);
+            memcpy(info->auth_3d_ids, m_info->auth_3d_ids, sizeof(int32_t) * m_info->auth_3d_count);
         }
         else {
             info->auth_3d_count = 0;
@@ -363,24 +363,24 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
         int32_t reflect_offset = io_read_uint32_t(s);
         if (reflect_offset) {
             io_position_push(s, reflect_offset, SEEK_SET);
-            stage->reflect_data = true;
-            stage->reflect.mode = (stage_data_reflect_resolution_mode)io_read_uint32_t(s);
-            stage->reflect.blur_num = io_read_uint32_t(s);
-            stage->reflect.blur_filter = (stage_data_blur_filter_mode)io_read_uint32_t(s);
+            stage->reflect = true;
+            stage->reflect_data.mode = (stage_data_reflect_resolution_mode)io_read_uint32_t(s);
+            stage->reflect_data.blur_num = io_read_uint32_t(s);
+            stage->reflect_data.blur_filter = (stage_data_blur_filter_mode)io_read_uint32_t(s);
             io_position_pop(s);
         }
         else
-            stage->reflect_data = false;
+            stage->reflect = false;
 
         int32_t refract_offset = io_read_uint32_t(s);
         if (refract_offset) {
             io_position_push(s, refract_offset, SEEK_SET);
-            stage->refract_data = true;
-            stage->refract.mode = (stage_data_refract_resolution_mode)io_read_uint32_t(s);
+            stage->refract = true;
+            stage->refract_data.mode = (stage_data_refract_resolution_mode)io_read_uint32_t(s);
             io_position_pop(s);
         }
         else
-            stage->refract_data = false;
+            stage->refract = false;
 
         if (stage_data->format > STAGE_DATA_F)
             stage->flags = (stage_data_flags)io_read_uint32_t(s);
@@ -441,7 +441,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
     for (int32_t i = 0; i < count; i++) {
         ::stage_data* stage = &stage_data->stage_data.begin[i];
 
-        stage->auth_3d_count = io_read_uint32_t(s);
+        stage->auth_3d_count = io_read_int32_t(s);
     }
     io_position_pop(s);
 
@@ -457,19 +457,18 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
         }
 
         io_position_push(s, offset, SEEK_SET);
-        for (uint32_t j = 0; j < stage->auth_3d_count; j++) {
-            if (io_read_uint32_t(s) == -1) {
+        for (int32_t j = 0; j < stage->auth_3d_count; j++)
+            if (io_read_int32_t(s) == -1) {
                 stage->auth_3d_count = j;
                 break;
             }
-        }
         io_position_pop(s);
         
         if (stage->auth_3d_count) {
             io_position_push(s, offset, SEEK_SET);
-            stage->auth_3d_ids = force_malloc_s(uint32_t, stage->auth_3d_count);
-            for (uint32_t j = 0; j < stage->auth_3d_count; j++)
-                stage->auth_3d_ids[j] = io_read_uint32_t(s);
+            stage->auth_3d_ids = force_malloc_s(int32_t, stage->auth_3d_count);
+            for (int32_t j = 0; j < stage->auth_3d_count; j++)
+                stage->auth_3d_ids[j] = io_read_int32_t(s);
             io_position_pop(s);
         }
 

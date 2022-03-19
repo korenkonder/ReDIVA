@@ -47,6 +47,16 @@ typedef struct post_process_struct {
     post_process_tone_map* tone_map;
     GLuint samplers[2];
     shader_glsl alpha_layer_shader;
+    GLuint lens_flare_texture;
+    GLuint lens_shaft_texture;
+    GLuint lens_ghost_texture;
+    int32_t lens_flare_count;
+    vec3 lens_flare_pos;
+    float_t lens_shaft_scale;
+    float_t lens_shaft_inv_scale;
+    float_t lens_flare_power;
+    float_t field_A10;
+    float_t lens_flare_appear_power;
     int32_t render_width;
     int32_t render_height;
     vec3 view_point;

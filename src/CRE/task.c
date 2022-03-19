@@ -10,7 +10,6 @@ extern float_t get_delta_frame();
 extern uint32_t get_frame_counter();
 
 static void Task_add_base_calc_time(Task* t, uint32_t calc_time);
-static void Task_add_disp_time(Task* t, uint32_t disp_time);
 static void Task_do_basic(Task* t);
 static void Task_do_ctrl(Task* t);
 static void Task_do_ctrl_frames(int32_t frames, bool a2);
@@ -23,7 +22,6 @@ static void Task_sub_14019C480(Task* t, uint32_t a2);
 static void Task_sub_14019C5A0(Task* t);
 
 static bool TaskWork_has_task_dest(Task* t);
-static bool TaskWork_sub_14019B6B0(Task* t);
 
 TaskWork task_work;
 
@@ -69,6 +67,34 @@ void Task::Disp() {
 
 void Task::Basic() {
 
+}
+
+uint32_t Task::GetCalcTime() {
+    return calc_time;
+}
+
+uint32_t Task::GetCalcTimeMax() {
+    return calc_time_max;
+}
+
+uint32_t Task::GetDispTime() {
+    return disp_time;
+}
+
+uint32_t Task::GetDispTimeMax() {
+    return disp_time_max;
+}
+
+char* Task::GetName() {
+    return name;
+}
+
+bool Task::SetDest() {
+    if (!TaskWork::HasTask(this) || !Task_sub_14019B810(this, 2))
+        return 0;
+
+    Task_sub_14019C480(this, 2);
+    return 1;
 }
 
 void Task::SetName(char* name) {
@@ -129,6 +155,10 @@ void TaskWork::Basic() {
                 Task_do_basic(j);
 }
 
+bool TaskWork::CheckTaskNotReady(Task* t) {
+    return TaskWork::HasTask(t) && (t->field_18 == TASK_NONE || t->field_1C);
+}
+
 void TaskWork::Ctrl() {
     std::vector<Task*>* tasks = &task_work.tasks;
     for (Task*& i : task_work.tasks) {
@@ -148,17 +178,17 @@ void TaskWork::Ctrl() {
             task_work.current = tsk;
             Task_do_ctrl(tsk);
             task_work.current = 0;
-            Task_add_base_calc_time(tsk, (uint32_t)time_struct_calc_time(&t));
+            Task_add_base_calc_time(tsk, (uint32_t)(time_struct_calc_time(&t) * 1000.0));
         }
 
     for (Task** i = task_work.tasks.begin()._Ptr; i != task_work.tasks.end()._Ptr; ) {
-        if (TaskWork_sub_14019B6B0(*i)) {
+        if (TaskWork::CheckTaskNotReady(*i)) {
             i++;
             continue;
         }
 
         task_work.tasks.erase(task_work.tasks.begin()
-            + (i - task_work.tasks.begin()._Ptr));
+            + (i - task_work.tasks.data()));
     }
 
     int32_t delta_frame = (int32_t)get_delta_frame();
@@ -183,9 +213,19 @@ void TaskWork::Disp() {
             time_struct t;
             time_struct_init(&t);
             Task_do_disp(tsk);
-            Task_add_disp_time(tsk, (uint32_t)time_struct_calc_time(&t));
+            Task_set_disp_time(tsk, (uint32_t)(time_struct_calc_time(&t) * 1000.0));
         }
     task_work.disp = false;
+}
+
+Task* TaskWork::GetTaskByIndex(int32_t index) {
+    int32_t k = 0;
+    for (int32_t i = 0; i < 3; i++)
+        for (Task*& j : task_work.tasks)
+            if (j->priority == i)
+                if (k++ == index)
+                    return j;
+    return 0;
 }
 
 bool TaskWork::HasTask(Task* t) {
@@ -196,12 +236,15 @@ bool TaskWork::HasTask(Task* t) {
     return false;
 }
 
-static void Task_add_base_calc_time(Task* t, uint32_t calc_time) {
-    t->base_calc_time += calc_time;
+bool TaskWork::HasTaskDest(Task* t) {
+    if (TaskWork::HasTask(t))
+        return t->field_18 == TASK_DEST;
+    else
+        return false;
 }
 
-static void Task_add_disp_time(Task* t, uint32_t disp_time) {
-    t->disp_time += disp_time;
+static void Task_add_base_calc_time(Task* t, uint32_t calc_time) {
+    t->base_calc_time += calc_time;
 }
 
 static void Task_do_basic(Task* t) {
@@ -246,7 +289,7 @@ static void Task_do_ctrl_frames(int32_t frames, bool a2) {
             task_work.current = tsk;
             Task_do_ctrl(tsk);
             task_work.current = 0;
-            Task_add_base_calc_time(tsk, (uint32_t)time_struct_calc_time(&t));
+            Task_add_base_calc_time(tsk, (uint32_t)(time_struct_calc_time(&t) * 1000.0));
         }
 }
 
@@ -334,8 +377,4 @@ static bool TaskWork_has_task_dest(Task* t) {
     if (TaskWork::HasTask(t))
         return t->field_18 == TASK_DEST;
     return false;
-}
-
-static bool TaskWork_sub_14019B6B0(Task* t) {
-    return TaskWork::HasTask(t) && (t->field_18 == TASK_NONE || t->field_1C);
 }

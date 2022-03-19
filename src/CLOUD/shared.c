@@ -97,7 +97,7 @@ classes_data classes[] = {
             CLASS_DATA_NO_DATA,
         },
         information_classes,
-        1,
+        2,
     },
 #if defined(CLOUD_DEV)
     {
@@ -130,6 +130,5 @@ const size_t classes_count = sizeof(classes) / sizeof(classes_data);
 render_state state;
 lock state_lock;
 
-lock_data glitter_data_lock;
-lock_data stage_data_lock;
-lock pv_lock;
+bool stage_control;
+lock stage_control_lock;

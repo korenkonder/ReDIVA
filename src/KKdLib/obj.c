@@ -115,8 +115,8 @@ static bool obj_material_texture_enrs_table_initialized;
 
 static void obj_material_texture_enrs_table_init();
 static void obj_material_texture_enrs_table_free(void);
-static void obj_classic_read_inner(obj_set* os, stream* s);
-static void obj_classic_write_inner(obj_set* os, stream* s);
+static void obj_set_classic_read_inner(obj_set* os, stream* s);
+static void obj_set_classic_write_inner(obj_set* os, stream* s);
 static void obj_classic_read_index(obj* obj, stream* s, obj_sub_mesh* sub_mesh);
 static void obj_classic_write_index(obj* obj, stream* s, obj_sub_mesh* sub_mesh);
 static void obj_classic_read_model(obj* obj, stream* s, ssize_t base_offset);
@@ -170,8 +170,8 @@ static void obj_classic_read_vertex(obj* obj, stream* s, ssize_t* attrib_offsets
     ssize_t base_offset, int32_t vertex_count, obj_vertex_attrib_type attrib_type);
 static void obj_classic_write_vertex(obj* obj, stream* s, ssize_t* attrib_offsets, obj_mesh* mesh,
     ssize_t base_offset, int32_t* vertex_count, obj_vertex_attrib_type* attrib_type, int32_t* vertex_size);
-static void obj_modern_read_inner(obj_set* os, stream* s);
-static void obj_modern_write_inner(obj_set* os, stream* s);
+static void obj_set_modern_read_inner(obj_set* os, stream* s);
+static void obj_set_modern_write_inner(obj_set* os, stream* s);
 static void obj_modern_read_index(obj* obj, stream* s,
     obj_sub_mesh* sub_mesh);
 static void obj_modern_write_index(obj* obj, stream* s, bool is_x,
@@ -246,152 +246,14 @@ static void obj_skin_strings_push_back_check(vector_old_string* vec, char* str);
 static void obj_skin_strings_push_back_check(vector_old_string* vec, const char* str);
 static void obj_skin_strings_push_back_check_by_index(vector_old_string* vec, char** strings, uint32_t index);
 
-void obj_init(obj_set* os) {
-    if (!os)
-        return;
+obj_set::obj_set() : ready(), modern(), is_x(), objects(),
+objects_count(), texture_ids(), texture_ids_count() {
 
-    memset(os, 0, sizeof(obj_set));
 }
 
-void obj_read(obj_set* os, char* path, bool modern) {
-    if (!os || !path)
-        return;
-
-    if (!modern) {
-        char* path_bin = str_utils_add(path, ".bin");
-        if (path_check_file_exists(path_bin)) {
-            stream s;
-            io_open(&s, path_bin, "rb");
-            if (s.io.stream)
-                obj_classic_read_inner(os, &s);
-            io_free(&s);
-        }
-        free(path_bin);
-    }
-    else {
-        char* path_osd = str_utils_add(path, ".osd");
-        if (path_check_file_exists(path_osd)) {
-            stream s;
-            io_open(&s, path_osd, "rb");
-            if (s.io.stream)
-                obj_modern_read_inner(os, &s);
-            io_free(&s);
-        }
-        free(path_osd);
-    }
-}
-
-void obj_wread(obj_set* os, wchar_t* path, bool modern) {
-    if (!os || !path)
-        return;
-
-    if (!modern) {
-        wchar_t* path_bin = str_utils_wadd(path, L".bin");
-        if (path_wcheck_file_exists(path_bin)) {
-            stream s;
-            io_wopen(&s, path_bin, L"rb");
-            if (s.io.stream)
-                obj_classic_read_inner(os, &s);
-            io_free(&s);
-        }
-        free(path_bin);
-    }
-    else {
-        wchar_t* path_osd = str_utils_wadd(path, L".osd");
-        if (path_wcheck_file_exists(path_osd)) {
-            stream s;
-            io_wopen(&s, path_osd, L"rb");
-            if (s.io.stream)
-                obj_modern_read_inner(os, &s);
-            io_free(&s);
-        }
-        free(path_osd);
-    }
-}
-
-void obj_mread(obj_set* os, void* data, size_t length, bool modern) {
-    if (!os || !data || !length)
-        return;
-
-    stream s;
-    io_mopen(&s, data, length);
-    if (!modern)
-        obj_classic_read_inner(os, &s);
-    else
-        obj_modern_read_inner(os, &s);
-    io_free(&s);
-}
-
-void obj_write(obj_set* os, char* path) {
-    if (!os || !path || !os->ready)
-        return;
-
-    if (!os->modern) {
-        char* path_bin = str_utils_add(path, ".bin");
-        stream s;
-        io_open(&s, path_bin, "wb");
-        if (s.io.stream)
-            obj_classic_write_inner(os, &s);
-        io_free(&s);
-        free(path_bin);
-    }
-    else {
-        char* path_osd = str_utils_add(path, ".osd");
-        stream s;
-        io_open(&s, path_osd, "wb");
-        if (s.io.stream)
-            obj_modern_write_inner(os, &s);
-        io_free(&s);
-        free(path_osd);
-    }
-}
-
-void obj_wwrite(obj_set* os, wchar_t* path) {
-    if (!os || !path || !os->ready)
-        return;
-
-    if (!os->modern) {
-        wchar_t* path_bin = str_utils_wadd(path, L".bin");
-        stream s;
-        io_wopen(&s, path_bin, L"wb");
-        if (s.io.stream)
-            obj_classic_write_inner(os, &s);
-        io_free(&s);
-        free(path_bin);
-    }
-    else {
-        wchar_t* path_osd = str_utils_wadd(path, L".osd");
-        stream s;
-        io_wopen(&s, path_osd, L"wb");
-        if (s.io.stream)
-            obj_modern_write_inner(os, &s);
-        io_free(&s);
-        free(path_osd);
-    }
-}
-
-void obj_mwrite(obj_set* os, void** data, size_t* length) {
-    if (!os || !data || !os->ready)
-        return;
-
-    stream s;
-    io_mopen(&s, 0, 0);
-    if (!os->modern)
-        obj_classic_write_inner(os, &s);
-    else
-        obj_modern_write_inner(os, &s);
-    io_align_write(&s, 0x10);
-    io_mcopy(&s, data, length);
-    io_free(&s);
-}
-
-void obj_free(obj_set* os) {
-    if (!os)
-        return;
-
-    bool is_x = os->is_x;
-    for (int32_t i = 0; i < os->objects_count; i++) {
-        obj* obj = &os->objects[i];
+obj_set::~obj_set() {
+    for (int32_t i = 0; i < objects_count; i++) {
+        obj* obj = &objects[i];
         for (int32_t j = 0; j < obj->skin.bones_count; j++)
             string_free(&obj->skin.bones[j].name);
         free(obj->skin.bones);
@@ -479,16 +341,42 @@ void obj_free(obj_set* os) {
         obj->materials_count = 0;
         string_free(&obj->name);
     }
-    free(os->objects);
-    os->objects_count = 0;
-    free(os->texture_ids);
-    os->texture_ids_count = 0;
+    free(objects);
+    free(texture_ids);
+}
+
+void obj_set::pack_file(void** data, size_t* length) {
+    if (!data || !ready)
+        return;
+
+    stream s;
+    io_open(&s);
+    if (!modern)
+        obj_set_classic_write_inner(this, &s);
+    else
+        obj_set_modern_write_inner(this, &s);
+    io_align_write(&s, 0x10);
+    io_copy(&s, data, length);
+    io_free(&s);
+}
+
+void obj_set::unpack_file(void* data, size_t length, bool modern) {
+    if (!data || !length)
+        return;
+
+    stream s;
+    io_open(&s, data, length);
+    if (!modern)
+        obj_set_classic_read_inner(this, &s);
+    else
+        obj_set_modern_read_inner(this, &s);
+    io_free(&s);
 }
 
 static void obj_material_texture_enrs_table_init() {
     if (!obj_material_texture_enrs_table_initialized) {
         stream s;
-        io_mopen(&s, (void*)&obj_material_texture_enrs_table_bin,
+        io_open(&s, (void*)&obj_material_texture_enrs_table_bin,
             sizeof(obj_material_texture_enrs_table_bin));
         enrs_read(&s, &obj_material_texture_enrs_table);
         io_free(&s);
@@ -502,7 +390,7 @@ static void obj_material_texture_enrs_table_free(void) {
     obj_material_texture_enrs_table_initialized = false;
 }
 
-static void obj_classic_read_inner(obj_set* os, stream* s) {
+static void obj_set_classic_read_inner(obj_set* os, stream* s) {
     uint32_t signature = io_read_uint32_t(s);
     if (signature != 0x5062500) {
         os->is_x = false;
@@ -584,7 +472,7 @@ static void obj_classic_read_inner(obj_set* os, stream* s) {
 }
 
 
-static void obj_classic_write_inner(obj_set* os, stream* s) {
+static void obj_set_classic_write_inner(obj_set* os, stream* s) {
     io_write_int32_t(s, 0);
     io_write_int32_t(s, 0);
     io_write_int32_t(s, 0);
@@ -1228,7 +1116,7 @@ static void obj_classic_read_skin(obj* obj, stream* s, ssize_t base_offset) {
             for (int32_t i = 0; i < ex->osage_sibling_infos_count; i++) {
                 osis[i].name_index = io_read_uint32_t(s);
                 osis[i].sibling_name_index = io_read_uint32_t(s);
-                osis[i].distance = io_read_float_t(s);
+                osis[i].max_distance = io_read_float_t(s);
             }
 
             io_set_position(s, exh.osage_sibling_infos_offset, SEEK_SET);
@@ -1892,7 +1780,7 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
                 obj_skin_osage_sibling_info* osage_sibling_info = &ex->osage_sibling_infos[i];
                 io_write_uint32_t(s, osage_sibling_info->name_index);
                 io_write_uint32_t(s, osage_sibling_info->sibling_name_index);
-                io_write_float_t(s, osage_sibling_info->distance);
+                io_write_float_t(s, osage_sibling_info->max_distance);
             }
             io_write_int32_t(s, 0);
             io_write_int32_t(s, 0);
@@ -2571,10 +2459,11 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
 
     b->nodes = 0;
 
-    if (!b->nodes_count || !offset)
+    if (!b->count || !offset)
         return;
 
-    b->nodes = force_malloc_s(obj_skin_osage_node, b->nodes_count);
+    b->nodes_count = b->count;
+    b->nodes = force_malloc_s(obj_skin_osage_node, b->count);
 
     io_position_push(s, offset, SEEK_SET);
     if (io_read_uint32_t(s)) {
@@ -2959,12 +2848,12 @@ static void obj_classic_write_vertex(obj* obj, stream* s, ssize_t* attrib_offset
     }
 }
 
-static void obj_modern_read_inner(obj_set* os, stream* s) {
+static void obj_set_modern_read_inner(obj_set* os, stream* s) {
     f2_struct st;
-    f2_struct_sread(&st, s);
+    f2_struct_read(&st, s);
     if (st.header.signature == reverse_endianness_uint32_t('MOSD') && st.data) {
         stream s_mosd;
-        io_mopen(&s_mosd, st.data, st.length);
+        io_open(&s_mosd, st.data, st.length);
         s_mosd.is_big_endian = st.header.use_big_endian;
 
         uint32_t signature = io_read_uint32_t_stream_reverse_endianness(&s_mosd);
@@ -3098,26 +2987,26 @@ static void obj_modern_read_inner(obj_set* os, stream* s) {
             stream* s_oidx_ptr = 0;
             stream* s_ovtx_ptr = 0;
             if (oskn) {
-                io_mopen(&s_oskn, oskn->data, oskn->length);
+                io_open(&s_oskn, oskn->data, oskn->length);
                 s_oskn.is_big_endian = oskn->header.use_big_endian;
                 s_oskn_ptr = &s_oskn;
             }
 
             if (oidx) {
-                io_mopen(&s_oidx, oidx->data, oidx->length);
+                io_open(&s_oidx, oidx->data, oidx->length);
                 s_oidx.is_big_endian = oidx->header.use_big_endian;
                 s_oidx_ptr = &s_oidx;
             }
 
             if (ovtx) {
-                io_mopen(&s_ovtx, ovtx->data, ovtx->length);
+                io_open(&s_ovtx, ovtx->data, ovtx->length);
                 s_ovtx.is_big_endian = ovtx->header.use_big_endian;
                 s_ovtx_ptr = &s_ovtx;
             }
 
             obj* obj = &os->objects[omdl_index];
             stream s_omdl;
-            io_mopen(&s_omdl, i->data, i->length);
+            io_open(&s_omdl, i->data, i->length);
             s_omdl.is_big_endian = i->header.use_big_endian;
             obj_modern_read_model(obj, &s_omdl, 0, i->header.length, is_x, s_oidx_ptr, s_ovtx_ptr);
             io_free(&s_omdl);
@@ -3143,9 +3032,9 @@ static void obj_modern_read_inner(obj_set* os, stream* s) {
     f2_struct_free(&st);
 }
 
-static void obj_modern_write_inner(obj_set* os, stream* s) {
+static void obj_set_modern_write_inner(obj_set* os, stream* s) {
     stream s_mosd;
-    io_mopen(&s_mosd, 0, 0);
+    io_open(&s_mosd);
     uint32_t off;
     vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
@@ -3332,18 +3221,18 @@ static void obj_modern_write_inner(obj_set* os, stream* s) {
         f2_struct* omdl = vector_old_f2_struct_reserve_back(&st.sub_structs);
 
         stream s_omdl;
-        io_mopen(&s_omdl, 0, 0);
+        io_open(&s_omdl);
 
         if (obj->skin_init) {
             f2_struct* oskn = vector_old_f2_struct_reserve_back(&st.sub_structs);
 
             stream s_oskn;
-            io_mopen(&s_oskn, 0, 0);
+            io_open(&s_oskn);
 
             obj_modern_write_skin(obj, &s_oskn, 0, is_x, oskn);
 
             io_align_write(&s_oskn, 0x10);
-            io_mcopy(&s_oskn, &oskn->data, &oskn->length);
+            io_copy(&s_oskn, &oskn->data, &oskn->length);
             io_free(&s_oskn);
 
             oskn->header.signature = reverse_endianness_uint32_t('OSKN');
@@ -3355,7 +3244,7 @@ static void obj_modern_write_inner(obj_set* os, stream* s) {
         obj_modern_write_model(obj, &s_omdl, 0, is_x, omdl);
 
         io_align_write(&s_omdl, 0x10);
-        io_mcopy(&s_omdl, &omdl->data, &omdl->length);
+        io_copy(&s_omdl, &omdl->data, &omdl->length);
         io_free(&s_omdl);
 
         omdl->header.signature = reverse_endianness_uint32_t('OMDL');
@@ -3365,7 +3254,7 @@ static void obj_modern_write_inner(obj_set* os, stream* s) {
     }
 
     io_align_write(&s_mosd, 0x10);
-    io_mcopy(&s_mosd, &st.data, &st.length);
+    io_copy(&s_mosd, &st.data, &st.length);
     io_free(&s_mosd);
 
     st.enrs = e;
@@ -3376,7 +3265,7 @@ static void obj_modern_write_inner(obj_set* os, stream* s) {
     st.header.use_big_endian = false;
     st.header.use_section_size = true;
 
-    f2_struct_swrite(&st, s, true, os->is_x);
+    f2_struct_write(&st, s, true, os->is_x);
     f2_struct_free(&st);
 }
 
@@ -3610,8 +3499,8 @@ static void obj_modern_write_model(obj* obj, stream* s,
 
     stream s_oidx;
     stream s_ovtx;
-    io_mopen(&s_oidx, 0, 0);
-    io_mopen(&s_ovtx, 0, 0);
+    io_open(&s_oidx);
+    io_open(&s_ovtx);
 
     uint32_t off;
     vector_old_enrs_entry e = vector_old_empty(enrs_entry);
@@ -3998,7 +3887,7 @@ static void obj_modern_write_model(obj* obj, stream* s,
     omdl->pof = pof;
 
     io_align_write(&s_oidx, 0x10);
-    io_mcopy(&s_oidx, &oidx->data, &oidx->length);
+    io_copy(&s_oidx, &oidx->data, &oidx->length);
     io_free(&s_oidx);
 
     oidx->header.signature = reverse_endianness_uint32_t('OIDX');
@@ -4007,7 +3896,7 @@ static void obj_modern_write_model(obj* obj, stream* s,
     oidx->header.use_section_size = true;
 
     io_align_write(&s_ovtx, 0x10);
-    io_mcopy(&s_ovtx, &ovtx->data, &ovtx->length);
+    io_copy(&s_ovtx, &ovtx->data, &ovtx->length);
     io_free(&s_ovtx);
 
     ovtx->header.signature = reverse_endianness_uint32_t('OVTX');
@@ -4297,7 +4186,7 @@ static void obj_modern_read_skin(obj* obj, stream* s, ssize_t base_offset,
             for (int32_t i = 0; i < ex->osage_sibling_infos_count; i++) {
                 osis[i].name_index = io_read_uint32_t_stream_reverse_endianness(s);
                 osis[i].sibling_name_index = io_read_uint32_t_stream_reverse_endianness(s);
-                osis[i].distance = io_read_float_t_stream_reverse_endianness(s);
+                osis[i].max_distance = io_read_float_t_stream_reverse_endianness(s);
             }
 
             io_set_position(s, exh.osage_sibling_infos_offset, SEEK_SET);
@@ -5633,7 +5522,7 @@ static void obj_modern_write_skin(obj* obj, stream* s,
                 obj_skin_osage_sibling_info* osage_sibling_info = &ex->osage_sibling_infos[i];
                 io_write_uint32_t(s, osage_sibling_info->name_index);
                 io_write_uint32_t(s, osage_sibling_info->sibling_name_index);
-                io_write_float_t(s, osage_sibling_info->distance);
+                io_write_float_t(s, osage_sibling_info->max_distance);
             }
             io_write_int32_t(s, 0);
             io_write_int32_t(s, 0);

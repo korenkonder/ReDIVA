@@ -22,41 +22,42 @@
 class data_test_stage_test_stage_pv {
 public:
     int32_t pv_id;
-    std::vector<std::string> stage;
+    std::vector<std::int32_t> stage;
 
     data_test_stage_test_stage_pv(int32_t pv_id);
     ~data_test_stage_test_stage_pv();
 };
 
-typedef struct data_test_stage_test {
+class data_test_stage_test {
+public:
     int32_t pv_id;
     int32_t pv_index;
     int32_t ns_index;
     int32_t other_index;
     int32_t stage_index;
 
-    const char* stage_name;
+    int32_t stage_index_load;
     bool stage_load;
 
     render_context* rctx;
 
     std::vector<data_test_stage_test_stage_pv> stage_pv;
-    std::vector<std::string> stage_ns;
-    std::vector<std::string> stage_other;
-} data_test_stage_test;
+    std::vector<std::int32_t> stage_ns;
+    std::vector<std::int32_t> stage_other;
+
+    data_test_stage_test();
+    ~data_test_stage_test();
+};
 
 extern int32_t width;
 extern int32_t height;
-extern stage stage_stgtst;
-extern stage stage_test_data;
 
 static const char* data_test_stage_test_window_title = "Stage Test##Data Test";
 
 static int data_test_stage_test_stage_pv_quicksort_compare_func(void const* src1, void const* src2);
-static void data_test_stage_test_stage_pv_free(data_test_stage_test_stage_pv* pv);
 
 bool data_test_stage_test_init(class_data* data, render_context* rctx) {
-    data->data = force_malloc_s(data_test_stage_test, 1);
+    data->data = new data_test_stage_test;
 
     data_test_stage_test* stage_test = (data_test_stage_test*)data->data;
     if (stage_test) {
@@ -68,7 +69,7 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
         stage_test->other_index = -1;
         stage_test->stage_index = -1;
 
-        stage_test->stage_name = 0;
+        stage_test->stage_index_load = -1;
         stage_test->stage_load = false;
 
         stage_test->rctx = rctx;
@@ -93,9 +94,9 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
                 stg_other_count++;
         }
 
-        std::vector<data_test_stage_test_stage_pv> stage_pv = {};
-        std::vector<std::string> stage_ns = {};
-        std::vector<std::string> stage_other = {};
+        std::vector<data_test_stage_test_stage_pv> stage_pv;
+        std::vector<std::int32_t> stage_ns;
+        std::vector<std::int32_t> stage_other;
 
         stage_pv.reserve(stg_pv_count);
         stage_ns.reserve(stg_ns_count);
@@ -121,7 +122,7 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
                 if (stgpv)
                     ret = sscanf_s(string_data(&i->name) + 5, "%03d", &pv_id);
                 else
-                    ret = sscanf_s(string_data(&i->name) + 8, "%03d", &pv_id);
+                    ret = sscanf_s(string_data(&i->name) + 7, "%03d", &pv_id);
 
                 if (ret != 1)
                     continue;
@@ -136,8 +137,7 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
                     stg_pv = &stage_pv.end()[-1];
                 }
 
-                std::string stg = std::string(string_data(&i->name), i->name.length);
-                stg_pv->stage.push_back(stg);
+                stg_pv->stage.push_back(i->id);
             }
             else if (stgns || stgd2ns) {
                 int32_t ns_id = 0;
@@ -145,17 +145,16 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
                 if (stgns)
                     ret = sscanf_s(string_data(&i->name) + 5, "%03d", &ns_id);
                 else
-                    ret = sscanf_s(string_data(&i->name) + 8, "%03d", &ns_id);
+                    ret = sscanf_s(string_data(&i->name) + 7, "%03d", &ns_id);
 
                 if (ret != 1)
                     continue;
 
-                std::string stg = std::string(string_data(&i->name), i->name.length);
-                stage_ns.push_back(stg);
+                stage_ns.push_back(i->id);
             }
             else {
                 std::string stg = std::string(string_data(&i->name), i->name.length);
-                stage_other.push_back(stg);
+                stage_other.push_back(i->id);
             }
         }
 
@@ -164,26 +163,16 @@ bool data_test_stage_test_init(class_data* data, render_context* rctx) {
                 sizeof(data_test_stage_test_stage_pv),
                 data_test_stage_test_stage_pv_quicksort_compare_func);
 
-        if (stage_pv.size()) 
+        if (stage_pv.size())
             stage_test->pv_id = stage_pv[0].pv_id;
 
         stage_test->stage_pv = stage_pv;
         stage_test->stage_ns = stage_ns;
         stage_test->stage_other = stage_other;
 
-        stage* stg = (stage*)rctx->stage;
-        if ((stg && !stg->modern && stg->stage_data) || !stg) {
-            if (!stg) {
-                stg = &stage_stgtst;
-                stage_set(&stage_stgtst, rctx);
-            }
-
-            stage_data* data = stg->stage_data;
-            if (data - stg_data->begin >= 0 && data - stg_data->begin < vector_old_length(*stg_data)) {
-                stage_test->stage_index = (int32_t)(data - stg_data->begin);
-                stage_test->stage_name = string_data(&data->name);
-            }
-        }
+        stage_test->stage_index = 0;
+        stage_test->stage_load = false;
+        stage_test->stage_index_load = 0;
     }
     return true;
 }
@@ -192,21 +181,7 @@ void data_test_stage_test_ctrl(class_data* data) {
     data_test_stage_test* stage_test = (data_test_stage_test*)data->data;
 
     if (stage_test->stage_load) {
-        render_context* rctx = stage_test->rctx;
-        stage_free(&stage_test_data, rctx);
-
-        data_struct* aft_data = rctx->data;
-        auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
-        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
-        stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
-
-        stage_set(&stage_stgtst, rctx);
-
-        stage_init(&stage_test_data);
-        stage_load(&stage_test_data, aft_data, aft_auth_3d_db,
-            aft_obj_db, aft_tex_db, aft_stage_data, stage_test->stage_name, rctx);
-        stage_set(&stage_test_data, rctx);
+        task_stage_set_stage_index(stage_test->stage_index_load);
         stage_test->stage_load = false;
     }
 }
@@ -216,7 +191,8 @@ bool data_test_stage_test_hide(class_data* data) {
     if (!stage_test)
         return false;
 
-    lock_data_free(&stage_data_lock, (void(*)(void*))data_test_stage_test_hide);
+    task_stage_set_stage_index(-1);
+    task_stage_unload();
 
     enum_and(data->flags, ~CLASS_HIDE);
     enum_or(data->flags, CLASS_HIDDEN);
@@ -254,9 +230,9 @@ void data_test_stage_test_imgui(class_data* data) {
 
     vector_old_stage_data* stg_data = &stage_test->rctx->data->data_ft.stage_data.stage_data;
 
-    std::vector<data_test_stage_test_stage_pv>* stage_pv = &stage_test->stage_pv;
-    std::vector<std::string>* stage_ns = &stage_test->stage_ns;
-    std::vector<std::string>* stage_other = &stage_test->stage_other;
+    std::vector<data_test_stage_test_stage_pv>& stage_pv = stage_test->stage_pv;
+    std::vector<std::int32_t>& stage_ns = stage_test->stage_ns;
+    std::vector<std::int32_t>& stage_other = stage_test->stage_other;
 
     int32_t pv_id = stage_test->pv_id;
 
@@ -267,7 +243,7 @@ void data_test_stage_test_imgui(class_data* data) {
     igSameLine(0.0f, 1.0f);
     igSetNextItemWidth(48.0f);
     if (igBeginCombo("##PV:", buf, 0)) {
-        for (data_test_stage_test_stage_pv& i : *stage_pv) {
+        for (data_test_stage_test_stage_pv& i : stage_pv) {
             igPushID_Ptr(&i);
             sprintf_s(buf, sizeof(buf), "%03d", i.pv_id);
             if (igSelectable_Bool(buf, pv_id == i.pv_id, 0, ImVec2_Empty)
@@ -294,17 +270,18 @@ void data_test_stage_test_imgui(class_data* data) {
     igSameLine(0.0f, 1.0f);
     igSetNextItemWidth(160.0f);
     bool pv_id_found = false;
-    for (data_test_stage_test_stage_pv& i : *stage_pv) {
+    for (data_test_stage_test_stage_pv& i : stage_pv) {
         if (pv_id != i.pv_id)
             continue;
 
         if (igBeginCombo("##PV Index", pv_index > -1
-            ? i.stage[pv_index].c_str() : "", 0)) {
-            for (std::string& j : i.stage) {
-                int32_t pv_idx = (int32_t)(&j - i.stage.begin()._Ptr);
+            ? string_data(&stg_data->begin[i.stage[pv_index]].name) : "", 0)) {
+            for (int32_t& j : i.stage) {
+                int32_t pv_idx = (int32_t)(&j - i.stage.data());
 
-                igPushID_Ptr(&j);
-                if (igSelectable_Bool(j.c_str(), pv_index == pv_idx, 0, ImVec2_Empty)
+                igPushID_Int(j);
+                if (igSelectable_Bool(string_data(&stg_data->begin[j].name),
+                        pv_index == pv_idx, 0, ImVec2_Empty)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (igIsItemFocused() && pv_index != pv_idx)) {
                     stage_test->pv_index = -1;
@@ -321,7 +298,7 @@ void data_test_stage_test_imgui(class_data* data) {
 
         if (pv_index != stage_test->pv_index) {
             stage_test->stage_load = true;
-            stage_test->stage_name = i.stage[pv_index].c_str();
+            stage_test->stage_index_load = i.stage[pv_index];
             stage_test->pv_index = pv_index;
         }
         pv_id_found = true;
@@ -339,12 +316,13 @@ void data_test_stage_test_imgui(class_data* data) {
     igSameLine(0.0f, 1.0f);
     igSetNextItemWidth(160.0f);
     if (igBeginCombo("##NS Index", ns_index > -1
-        ? (*stage_ns)[ns_index].c_str() : "", 0)) {
-        for (std::string& i : *stage_ns) {
-            int32_t ns_idx = (int32_t)(&i - stage_ns->begin()._Ptr);
+        ? string_data(&stg_data->begin[(stage_ns)[ns_index]].name) : "", 0)) {
+        for (int32_t& i : stage_ns) {
+            int32_t ns_idx = (int32_t)(&i - stage_ns.data());
 
-            igPushID_Ptr(&i);
-            if (igSelectable_Bool(i.c_str(), ns_index == ns_idx, 0, ImVec2_Empty)
+            igPushID_Int(i);
+            if (igSelectable_Bool(string_data(&stg_data->begin[stage_ns[i]].name),
+                ns_index == ns_idx, 0, ImVec2_Empty)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (igIsItemFocused() && ns_index != ns_idx)) {
                 stage_test->ns_index = -1;
@@ -362,7 +340,7 @@ void data_test_stage_test_imgui(class_data* data) {
 
     if (ns_index != stage_test->ns_index) {
         stage_test->stage_load = true;
-        stage_test->stage_name = (*stage_ns)[ns_index].c_str();
+        stage_test->stage_index_load = stage_ns[ns_index];
         stage_test->ns_index = ns_index;
     }
 
@@ -372,12 +350,13 @@ void data_test_stage_test_imgui(class_data* data) {
     igSameLine(0.0f, 1.0f);
     igSetNextItemWidth(160.0f);
     if (igBeginCombo("##Other Index", other_index > -1
-        ? (*stage_other)[other_index].c_str() : "", 0)) {
-        for (std::string& i : *stage_other) {
-            int32_t other_idx = (int32_t)(&i - stage_other->begin()._Ptr);
+        ? string_data(&stg_data->begin[stage_other[ns_index]].name) : "", 0)) {
+        for (int32_t& i : stage_other) {
+            int32_t other_idx = (int32_t)(&i - stage_other.data());
 
-            igPushID_Ptr(&i);
-            if (igSelectable_Bool(i.c_str(), other_index == other_idx, 0, ImVec2_Empty)
+            igPushID_Int(i);
+            if (igSelectable_Bool(string_data(&stg_data->begin[stage_other[i]].name),
+                other_index == other_idx, 0, ImVec2_Empty)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (igIsItemFocused() && other_index != other_idx)) {
                 stage_test->other_index = -1;
@@ -395,7 +374,7 @@ void data_test_stage_test_imgui(class_data* data) {
 
     if (other_index != stage_test->other_index) {
         stage_test->stage_load = true;
-        stage_test->stage_name = (*stage_other)[other_index].c_str();
+        stage_test->stage_index_load = stage_other[other_index];
         stage_test->other_index = other_index;
     }
 
@@ -428,22 +407,31 @@ void data_test_stage_test_imgui(class_data* data) {
 
     if (stage_index != stage_test->stage_index) {
         stage_test->stage_load = true;
-        stage_test->stage_name = string_data(&stg_data->begin[stage_index].name);
+        stage_test->stage_index_load = stage_index;
         stage_test->stage_index = stage_index;
     }
 
-    stage* stg = (stage*)stage_test->rctx->stage;
-    if (!stg)
-        if (stage_test_data.stage_data)
-            stg = &stage_test_data;
-        else
-            stg = &stage_stgtst;
+    stage* stg = task_stage_get_current_stage();
+    if (stg) {
+        igCheckbox("Stage display", &stg->stage_display);
+        igCheckbox("[Ring]", &stg->ring);
+        igCheckbox("[Ground]", &stg->ground);
+        igCheckbox("[Sky]", &stg->sky);
+        igCheckbox("Effects display", &stg->effects);
 
-    igCheckbox("Stage display", &stg->display);
-    igCheckbox("[Ring]", &stg->ring);
-    igCheckbox("[Ground]", &stg->ground);
-    igCheckbox("[Sky]", &stg->sky);
-    igCheckbox("Effects display", &stg->effects);
+    }
+    else {
+        bool stage_display = true;
+        igCheckbox("Stage display", &stage_display);
+        bool ring = true;
+        igCheckbox("[Ring]", &ring);
+        bool ground = true;
+        igCheckbox("[Ground]", &ground);
+        bool sky = true;
+        igCheckbox("[Sky]", &sky);
+        bool effects_display = true;
+        igCheckbox("Effects display", &effects_display);
+    }
 
     data->imgui_focus |= igIsWindowFocused(0);
     igEnd();
@@ -454,28 +442,15 @@ bool data_test_stage_test_show(class_data* data) {
     if (!stage_test)
         return false;
 
-    bool ret = false;
-    lock_trylock(&pv_lock);
-    if (!lock_data_init(&stage_data_lock, &data->lock, data, (void(*)(void*))data_test_stage_test_hide))
-        goto End;
+    task_stage_load("DATA_TEST_STG_STAGE");
+    task_stage_set_stage_index(stage_test->stage_index);
 
-    ret = true;
-
-End:
-    lock_unlock(&pv_lock);
-    return ret;
+    return true;
 }
 
 bool data_test_stage_test_dispose(class_data* data) {
-    lock_data_free(&stage_data_lock, (void(*)(void*))data_test_stage_test_dispose);
-
     data_test_stage_test* stage_test = (data_test_stage_test*)data->data;
-    if (stage_test) {
-        stage_test->stage_pv = {};
-        stage_test->stage_ns = {};
-        stage_test->stage_other = {};
-    }
-    free(data->data);
+    delete stage_test;
 
     data->flags = (class_flags)(CLASS_HIDDEN | CLASS_DISPOSED);
     data->imgui_focus = false;
@@ -488,14 +463,19 @@ static int data_test_stage_test_stage_pv_quicksort_compare_func(void const* src1
     return pv1 > pv2 ? 1 : (pv1 < pv2 ? -1 : 0);
 }
 
-static void data_test_stage_test_stage_pv_free(data_test_stage_test_stage_pv* pv) {
-    pv->stage = {};
-}
-
 data_test_stage_test_stage_pv::data_test_stage_test_stage_pv(int32_t pv_id) {
     this->pv_id = pv_id;
 }
 
 data_test_stage_test_stage_pv::~data_test_stage_test_stage_pv() {
+
+}
+
+data_test_stage_test::data_test_stage_test() : pv_id(), pv_index(), ns_index(),
+other_index(), stage_index(), stage_index_load(), stage_load(), rctx() {
+
+}
+
+data_test_stage_test::~data_test_stage_test() {
 
 }

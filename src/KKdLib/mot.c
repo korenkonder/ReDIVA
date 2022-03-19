@@ -29,20 +29,21 @@ typedef struct mot_header_modern {
     int32_t bone_info_count;
 } mot_header_modern;
 
-vector_old_func(mot_data)
-vector_old_func(mot_set)
-
 static bool mot_classic_read_inner(mot_set* ms, stream* s);
 static void mot_classic_write_inner(mot_set* ms, stream* s);
 static bool mot_modern_read_inner(mot_set* ms, stream* s);
 static void mot_modern_write_inner(mot_set* ms, stream* s);
 
-void mot_init(mot_set_farc* msf) {
-    memset(msf, 0, sizeof(mot_set_farc));
+mot_set_farc::mot_set_farc() : ready(), modern() {
+
 }
 
-void mot_read(mot_set_farc* msf, char* path, bool modern) {
-    if (!msf || !path)
+mot_set_farc::~mot_set_farc() {
+
+}
+
+void mot_set_farc::read(const char* path, bool modern) {
+    if (!path)
         return;
 
     char* path_farc = str_utils_add(path, ".farc");
@@ -50,7 +51,7 @@ void mot_read(mot_set_farc* msf, char* path, bool modern) {
         farc f;
         f.read(path_farc, true, false);
 
-        vector_old_mot_set_reserve(&msf->vec, f.files.size());
+        vec.reserve(f.files.size());
         if (!modern)
             for (farc_file& i : f.files) {
                 if (!i.data || !i.size
@@ -59,22 +60,19 @@ void mot_read(mot_set_farc* msf, char* path, bool modern) {
                     continue;
 
                 mot_set ms;
-                mot_set_init(&ms);
 
                 stream s;
-                io_mopen(&s, i.data, i.size);
+                io_open(&s, i.data, i.size);
                 bool ret = mot_classic_read_inner(&ms, &s);
                 io_free(&s);
 
-                if (!ret) {
-                    mot_set_free(&ms);
+                if (!ret)
                     continue;
-                }
 
-                string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
-                vector_old_mot_set_push_back(&msf->vec, &ms);
-                msf->ready = true;
-                msf->modern = false;
+                ms.name = std::string(i.name.c_str(), i.name.size() - 4);
+                vec.push_back(ms);
+                ready = true;
+                modern = false;
             }
         else
             for (farc_file& i : f.files) {
@@ -83,37 +81,34 @@ void mot_read(mot_set_farc* msf, char* path, bool modern) {
                     continue;
 
                 mot_set ms;
-                mot_set_init(&ms);
 
                 stream s;
-                io_mopen(&s, i.data, i.size);
+                io_open(&s, i.data, i.size);
                 bool ret = mot_classic_read_inner(&ms, &s);
                 io_free(&s);
 
-                if (!ret) {
-                    mot_set_free(&ms);
+                if (!ret)
                     continue;
-                }
 
-                string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
-                vector_old_mot_set_push_back(&msf->vec, &ms);
-                msf->ready = true;
-                msf->modern = true;
+                ms.name = std::string(i.name.c_str(), i.name.size() - 4);
+                vec.push_back(ms);
+                ready = true;
+                modern = true;
             }
     }
     free(path_farc);
 }
 
-void mot_wread(mot_set_farc* msf, wchar_t* path, bool modern) {
-    if (!msf || !path)
+void mot_set_farc::read(const wchar_t* path, bool modern) {
+    if (!path)
         return;
 
     wchar_t* path_farc = str_utils_wadd(path, L".farc");
-    if (path_wcheck_file_exists(path_farc)) {
+    if (path_check_file_exists(path_farc)) {
         farc f;
         f.read(path_farc, true, false);
 
-        vector_old_mot_set_reserve(&msf->vec, f.files.size());
+        vec.reserve(f.files.size());
         if (!modern)
             for (farc_file& i : f.files) {
                 if (!i.data || !i.size
@@ -122,22 +117,19 @@ void mot_wread(mot_set_farc* msf, wchar_t* path, bool modern) {
                     continue;
 
                 mot_set ms;
-                mot_set_init(&ms);
 
                 stream s;
-                io_mopen(&s, i.data, i.size);
+                io_open(&s, i.data, i.size);
                 bool ret = mot_classic_read_inner(&ms, &s);
                 io_free(&s);
 
-                if (!ret) {
-                    mot_set_free(&ms);
+                if (!ret)
                     continue;
-                }
 
-                string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
-                vector_old_mot_set_push_back(&msf->vec, &ms);
-                msf->ready = true;
-                msf->modern = false;
+                ms.name = std::string(i.name.c_str(), i.name.size() - 4);
+                vec.push_back(ms);
+                ready = true;
+                modern = false;
             }
         else
             for (farc_file& i : f.files) {
@@ -146,35 +138,32 @@ void mot_wread(mot_set_farc* msf, wchar_t* path, bool modern) {
                     continue;
 
                 mot_set ms;
-                mot_set_init(&ms);
 
                 stream s;
-                io_mopen(&s, i.data, i.size);
+                io_open(&s, i.data, i.size);
                 bool ret = mot_classic_read_inner(&ms, &s);
                 io_free(&s);
 
-                if (!ret) {
-                    mot_set_free(&ms);
+                if (!ret)
                     continue;
-                }
 
-                string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
-                vector_old_mot_set_push_back(&msf->vec, &ms);
-                msf->ready = true;
-                msf->modern = true;
+                ms.name = std::string(i.name.c_str(), i.name.size() - 4);
+                vec.push_back(ms);
+                ready = true;
+                modern = true;
             }
     }
     free(path_farc);
 }
 
-void mot_mread(mot_set_farc* msf, void* data, size_t length, bool modern) {
-    if (!msf || !data || !length)
+void mot_set_farc::read(const void* data, size_t length, bool modern) {
+    if (!data || !length)
         return;
 
     farc f;
     f.read(data, length, true);
 
-    vector_old_mot_set_reserve(&msf->vec, f.files.size());
+    vec.reserve(f.files.size());
     if (!modern)
         for (farc_file& i : f.files) {
             if (!i.data || !i.size
@@ -183,22 +172,19 @@ void mot_mread(mot_set_farc* msf, void* data, size_t length, bool modern) {
                 continue;
 
             mot_set ms;
-            mot_set_init(&ms);
 
             stream s;
-            io_mopen(&s, i.data, i.size);
+            io_open(&s, i.data, i.size);
             bool ret = mot_classic_read_inner(&ms, &s);
             io_free(&s);
 
-            if (!ret) {
-                mot_set_free(&ms);
+            if (!ret)
                 continue;
-            }
 
-            string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
-            vector_old_mot_set_push_back(&msf->vec, &ms);
-            msf->ready = true;
-            msf->modern = false;
+            ms.name = std::string(i.name.c_str(), i.name.size() - 4);
+            vec.push_back(ms);
+            ready = true;
+            modern = false;
         }
     else
         for (farc_file& i : f.files) {
@@ -207,62 +193,59 @@ void mot_mread(mot_set_farc* msf, void* data, size_t length, bool modern) {
                 continue;
 
             mot_set ms;
-            mot_set_init(&ms);
 
             stream s;
-            io_mopen(&s, i.data, i.size);
+            io_open(&s, i.data, i.size);
             bool ret = mot_classic_read_inner(&ms, &s);
             io_free(&s);
 
-            if (!ret) {
-                mot_set_free(&ms);
+            if (!ret)
                 continue;
-            }
 
-            string_init_length(&ms.name, i.name.c_str(), i.name.size() - 4);
-            vector_old_mot_set_push_back(&msf->vec, &ms);
-            msf->ready = true;
-            msf->modern = true;
+            ms.name = std::string(i.name.c_str(), i.name.size() - 4);
+            vec.push_back(ms);
+            ready = true;
+            modern = true;
         }
 }
 
-void mot_write(mot_set_farc* msf, char* path, farc_compress_mode mode) {
-    if (!msf || !path || !msf->ready)
+void mot_set_farc::write(const char* path, farc_compress_mode mode) {
+    if (!path || !ready)
         return;
 
     char* path_farc = str_utils_add(path, ".farc");
 
     farc f;
-    if (!msf->modern)
-        for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
+    if (!modern)
+        for (mot_set& i : vec) {
             farc_file ff;
             memset(&ff, 0, sizeof(farc_file));
 
             stream s;
-            io_mopen(&s, 0, 0);
-            mot_classic_write_inner(i, &s);
+            io_open(&s);
+            mot_classic_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_mcopy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name = i.name;
             ff.name += ".bin";
 
             f.files.push_back(ff);
         }
     else
-        for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
+        for (mot_set& i : vec) {
             farc_file ff;
             memset(&ff, 0, sizeof(farc_file));
 
             stream s;
-            io_mopen(&s, 0, 0);
-            mot_modern_write_inner(i, &s);
+            io_open(&s);
+            mot_modern_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_mcopy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name = i.name;
             ff.name += ".mot";
 
             f.files.push_back(ff);
@@ -271,41 +254,41 @@ void mot_write(mot_set_farc* msf, char* path, farc_compress_mode mode) {
     free(path_farc);
 }
 
-void mot_wwrite(mot_set_farc* msf, wchar_t* path, farc_compress_mode mode) {
-    if (!msf || !path || !msf->ready)
+void mot_set_farc::write(const wchar_t* path, farc_compress_mode mode) {
+    if (!path || !ready)
         return;
 
     wchar_t* path_farc = str_utils_wadd(path, L".farc");
 
     farc f;
-    if (!msf->modern)
-        for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
+    if (!modern)
+        for (mot_set& i : vec) {
             farc_file ff;
 
             stream s;
-            io_mopen(&s, 0, 0);
-            mot_classic_write_inner(i, &s);
+            io_open(&s);
+            mot_classic_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_mcopy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name = i.name;
             ff.name += ".bin";
 
             f.files.push_back(ff);
         }
     else
-        for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
+        for (mot_set& i : vec) {
             farc_file ff;
 
             stream s;
-            io_mopen(&s, 0, 0);
-            mot_modern_write_inner(i, &s);
+            io_open(&s);
+            mot_modern_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_mcopy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name = i.name;
             ff.name += ".mot";
 
             f.files.push_back(ff);
@@ -314,39 +297,39 @@ void mot_wwrite(mot_set_farc* msf, wchar_t* path, farc_compress_mode mode) {
     free(path_farc);
 }
 
-void mot_mwrite(mot_set_farc* msf, void** data, size_t* length, farc_compress_mode mode) {
-    if (!msf || !data || !msf->ready)
+void mot_set_farc::write(void** data, size_t* length, farc_compress_mode mode) {
+    if (!data || !ready)
         return;
 
     farc f;
-    if (!msf->modern)
-        for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
+    if (!modern)
+        for (mot_set& i : vec) {
             farc_file ff;
             stream s;
-            io_mopen(&s, 0, 0);
-            mot_classic_write_inner(i, &s);
+            io_open(&s);
+            mot_classic_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_mcopy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name = i.name;
             ff.name += ".bin";
 
             f.files.push_back(ff);
         }
     else
-        for (mot_set* i = msf->vec.begin; i != msf->vec.end; i++) {
+        for (mot_set& i : vec) {
             farc_file ff;
             memset(&ff, 0, sizeof(farc_file));
 
             stream s;
-            io_mopen(&s, 0, 0);
-            mot_modern_write_inner(i, &s);
+            io_open(&s);
+            mot_modern_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_mcopy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff.data, &ff.size);
             io_free(&s);
 
-            ff.name = std::string(string_data(&i->name), i->name.length);
+            ff.name = i.name;
             ff.name += ".mot";
 
             f.files.push_back(ff);
@@ -354,10 +337,10 @@ void mot_mwrite(mot_set_farc* msf, void** data, size_t* length, farc_compress_mo
     f.write(data, length,  mode);
 }
 
-bool mot_load_file(void* data, char* path, char* file, uint32_t hash) {
+bool mot_set_farc::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
-    char* t = strrchr(file, '.');
+    const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
@@ -366,44 +349,43 @@ bool mot_load_file(void* data, char* path, char* file, uint32_t hash) {
     string_add_length(&s, file, file_len);
 
     mot_set_farc* msf = (mot_set_farc*)data;
-    mot_read(msf, string_data(&s), msf->modern);
+    msf->read(string_data(&s), msf->modern);
 
     string_free(&s);
     return msf->ready;
 }
 
-void mot_free(mot_set_farc* msf) {
-    if (!msf)
-        return;
+mot_bone_info::mot_bone_info() : index() {
 
-    vector_old_mot_set_free(&msf->vec, mot_set_free);
 }
 
-void mot_set_init(mot_set* ms) {
-    memset(ms, 0, sizeof(mot_set));
+mot_bone_info::~mot_bone_info() {
+
 }
 
-void mot_set_free(mot_set* ms) {
-    if (!ms)
-        return;
+mot_key_set_data::mot_key_set_data() : type(), frames(), values(), keys_count(), data_type() {
 
-    for (mot_data* i = ms->vec.begin; i != ms->vec.end; i++) {
-        if (i->bone_info)
-            for (size_t j = 0; j < i->bone_info_count; j++)
-             string_free(&i->bone_info[j].name);
-        free(i->bone_info);
+}
 
-        if (i->key_set)
-            for (size_t j = 0; j < i->key_set_count; j++) {
-                free(i->key_set[j].frames);
-                free(i->key_set[j].values);
-            }
-        free(i->key_set);
-        string_free(&i->name);
-    }
+mot_key_set_data::~mot_key_set_data() {
 
-    string_free(&ms->name);
-    vector_old_mot_data_free(&ms->vec, 0);
+}
+
+mot_data::mot_data() : info(), frame_count(), bone_info_count(),
+murmurhash(), div_frames(), div_count(), bone_info(), key_set() {
+
+}
+
+mot_data::~mot_data() {
+
+}
+
+mot_set::mot_set() : is_x() {
+
+}
+
+mot_set::~mot_set() {
+
 }
 
 static bool mot_classic_read_inner(mot_set* ms, stream* s) {
@@ -419,7 +401,7 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
     }
 
     io_set_position(s, 0x00, SEEK_SET);
-    vector_old_mot_data_reserve(&ms->vec, count);
+    ms->vec.resize(count);
     mot_header_classic* mh = force_malloc_s(mot_header_classic, count);
     for (size_t i = 0; i < count; i++) {
         mh[i].key_set_count_offset = io_read_uint32_t(s);
@@ -429,7 +411,7 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
     }
 
     for (size_t i = 0; i < count; i++) {
-        mot_data* m = vector_old_mot_data_reserve_back(&ms->vec);
+        mot_data* m = &ms->vec[i];
 
         io_set_position(s, mh[i].bone_info_offset, SEEK_SET);
         m->bone_info_count = 0;
@@ -439,7 +421,7 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
         while (io_read_uint16_t(s) != 0 && io_get_position(s) < s->length);
 
         io_set_position(s, mh[i].bone_info_offset, SEEK_SET);
-        m->bone_info = force_malloc_s(mot_bone_info, m->bone_info_count);
+        m->bone_info.resize(m->bone_info_count);
         for (size_t j = 0; j < m->bone_info_count; j++)
             m->bone_info[j].index = io_read_uint16_t(s);
 
@@ -447,7 +429,7 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
         m->info = io_read_uint16_t(s);
         m->frame_count = io_read_uint16_t(s);
 
-        m->key_set = force_malloc_s(mot_key_set_data, m->key_set_count);
+        m->key_set.resize(m->key_set_count);
         io_set_position(s, mh[i].key_set_types_offset, SEEK_SET);
         for (int32_t j = 0, b = 0; j < m->key_set_count; j++) {
             if (j % 8 == 0)
@@ -461,13 +443,13 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
             mot_key_set_data* mks = &m->key_set[j];
             if (mks->type == MOT_KEY_SET_NONE) {
                 mks->keys_count = 0;
-                mks->frames = 0;
-                mks->values = 0;
+                mks->frames.resize(0);
+                mks->values.resize(0);
             }
             else if (mks->type == MOT_KEY_SET_STATIC) {
                 mks->keys_count = 1;
-                mks->frames = 0;
-                mks->values = force_malloc_s(float_t, 1);
+                mks->frames.resize(0);
+                mks->values.resize(1);
                 mks->values[0] = io_read_float_t(s);
             }
             else {
@@ -475,15 +457,15 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
                 uint16_t keys_count = io_read_uint16_t(s);
                 mks->keys_count = keys_count;
 
-                mks->frames = force_malloc_s(uint16_t, keys_count);
-                mks->values = force_malloc_s(float_t, has_tangents ? keys_count * 2ULL : keys_count);
+                mks->frames.resize(keys_count);
+                mks->values.resize(has_tangents ? keys_count * 2ULL : keys_count);
 
-                uint16_t* frames = mks->frames;
+                uint16_t* frames = mks->frames.data();
                 for (int32_t k = 0; k < keys_count; k++)
                     *frames++ = io_read_uint16_t(s);
                 io_align_read(s, 0x04);
 
-                float_t* values = mks->values;
+                float_t* values = mks->values.data();
                 if (!has_tangents)
                     for (int32_t k = 0; k < keys_count; k++)
                         *values++ = io_read_float_t(s);
@@ -502,11 +484,11 @@ static bool mot_classic_read_inner(mot_set* ms, stream* s) {
 }
 
 static void mot_classic_write_inner(mot_set* ms, stream* s) {
-    size_t count = vector_old_length(ms->vec);
+    size_t count = ms->vec.size();
     io_set_position(s, count * 0x10 + 0x10, SEEK_SET);
     mot_header_classic* mh = force_malloc_s(mot_header_classic, count);
     for (size_t i = 0; i < count; i++) {
-        mot_data* m = &ms->vec.begin[i];
+        mot_data* m = &ms->vec[i];
 
         mh[i].key_set_count_offset = (uint32_t)io_get_position(s);
         io_write_uint16_t(s, m->info);
@@ -537,12 +519,12 @@ static void mot_classic_write_inner(mot_set* ms, stream* s) {
                 uint16_t keys_count = mks->keys_count;
                 io_write_uint16_t(s, keys_count);
 
-                uint16_t* frames = mks->frames;
+                uint16_t* frames = mks->frames.data();
                 for (int32_t k = 0; k < keys_count; k++)
                     io_write_uint16_t(s, *frames++);
                 io_align_write(s, 0x04);
 
-                float_t* values = mks->values;
+                float_t* values = mks->values.data();
                 if (!has_tangents)
                     for (int32_t k = 0; k < keys_count; k++)
                         io_write_float_t(s, *values++);
@@ -578,21 +560,21 @@ static void mot_classic_write_inner(mot_set* ms, stream* s) {
 static bool mot_modern_read_inner(mot_set* ms, stream* s) {
     bool ret = false;
     f2_struct st;
-    f2_struct_sread(&st, s);
+    f2_struct_read(&st, s);
     if (st.header.signature != reverse_endianness_uint32_t('MOTC') || !st.data) {
         f2_struct_free(&st);
         return false;
     }
 
     stream s_motc;
-    io_mopen(&s_motc, st.data, st.length);
+    io_open(&s_motc, st.data, st.length);
     s_motc.is_big_endian = st.header.use_big_endian;
 
     io_set_position(&s_motc, 0x0C, SEEK_SET);
     bool is_x = io_read_uint32_t_stream_reverse_endianness(&s_motc) == 0;
 
     io_set_position(&s_motc, 0x00, SEEK_SET);
-    vector_old_mot_data_reserve(&ms->vec, 1);
+    ms->vec.resize(1);
     mot_header_modern mh;
     memset(&mh, 0, sizeof(mot_header_modern));
     if (!is_x) {
@@ -616,7 +598,7 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
         mh.bone_info_count = io_read_int32_t_stream_reverse_endianness(&s_motc);
     }
 
-    mot_data* m = vector_old_mot_data_reserve_back(&ms->vec);
+    mot_data* m = &ms->vec[0];
     m->div_frames = io_read_uint16_t_stream_reverse_endianness(&s_motc);;
     m->div_count = io_read_uint8_t(&s_motc);;
 
@@ -624,7 +606,7 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
 
     io_set_position(&s_motc, mh.bone_info_offset, SEEK_SET);
     m->bone_info_count = mh.bone_info_count;
-    m->bone_info = force_malloc_s(mot_bone_info, m->bone_info_count);
+    m->bone_info.resize(m->bone_info_count);
     if (!is_x)
         for (size_t j = 0; j < mh.bone_info_count; j++)
             io_read_string_null_terminated_offset(&s_motc,
@@ -642,7 +624,7 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
     m->info = io_read_uint16_t_stream_reverse_endianness(&s_motc);
     m->frame_count = io_read_uint16_t_stream_reverse_endianness(&s_motc);
 
-    m->key_set = force_malloc_s(mot_key_set_data, m->key_set_count);
+    m->key_set.resize(m->key_set_count);
     io_set_position(&s_motc, mh.key_set_types_offset, SEEK_SET);
     for (int32_t j = 0, b = 0; j < m->key_set_count; j++) {
         if (j % 8 == 0)
@@ -656,13 +638,13 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
         mot_key_set_data* mks = &m->key_set[j];
         if (mks->type == MOT_KEY_SET_NONE) {
             mks->keys_count = 0;
-            mks->frames_modern = 0;
-            mks->values = 0;
+            mks->frames.resize(0);
+            mks->values.resize(0);
         }
         else if (mks->type == MOT_KEY_SET_STATIC) {
             mks->keys_count = 1;
-            mks->frames_modern = 0;
-            mks->values = force_malloc_s(float_t, 1);
+            mks->frames.resize(0);
+            mks->values.resize(1);
             mks->values[0] = io_read_float_t_stream_reverse_endianness(&s_motc);
         }
         else {
@@ -673,8 +655,8 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
             mks->keys_count = keys_count;
             mks->data_type = data_type;
 
-            mks->frames_modern = force_malloc_s(int16_t, keys_count);
-            mks->values = force_malloc_s(float_t, has_tangents ? keys_count * 2ULL : keys_count);
+            mks->frames.resize(keys_count);
+            mks->values.resize(has_tangents ? keys_count * 2ULL : keys_count);
 
             uint8_t step = has_tangents ? 2 : 1;
             if (has_tangents) {
@@ -683,7 +665,7 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
                     *values = io_read_float_t_stream_reverse_endianness(&s_motc);
             }
 
-            float_t* values = mks->values;
+            float_t* values = mks->values.data();
             if (data_type == MOT_KEY_SET_DATA_F16)
                 for (int32_t k = 0; k < keys_count; k++, values += step)
                     *values = half_to_float(io_read_half_t_stream_reverse_endianness(&s_motc));
@@ -692,7 +674,7 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
                     *values = io_read_float_t_stream_reverse_endianness(&s_motc);
             io_align_read(&s_motc, 0x04);
 
-            int16_t* frames = mks->frames_modern;
+            int16_t* frames = (int16_t*)mks->frames.data();
             for (int32_t k = 0; k < keys_count; k++)
                 *frames++ = io_read_int16_t_stream_reverse_endianness(&s_motc);
             io_align_read(&s_motc, 0x04);
@@ -710,16 +692,16 @@ static bool mot_modern_read_inner(mot_set* ms, stream* s) {
 
 static void mot_modern_write_inner(mot_set* ms, stream* s) {
     stream s_motc;
-    io_mopen(&s_motc, 0, 0);
+    io_open(&s_motc);
     uint32_t o;
     vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
     vector_old_size_t pof = vector_old_empty(size_t);
     uint32_t murmurhash = 0;
-    if (vector_old_length(ms->vec) > 0) {
+    if (ms->vec.size() > 0) {
         mot_header_modern mh;
         memset(&mh, 0, sizeof(mot_header_modern));
-        mot_data* m = ms->vec.begin;
+        mot_data* m = &ms->vec[0];
 
         if (!ms->is_x) {
             ee = { 0, 3, 48, 1, vector_old_empty(enrs_sub_entry) };
@@ -838,7 +820,7 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
         io_write_uint8_t(&s_motc, 0);
         io_align_write(&s_motc, 0x10);
 
-        mh.hash = hash_utf8_murmurhash(string_data(&m->name), 0, false);
+        mh.hash = hash_string_murmurhash(&m->name, 0, false);
 
         mh.key_set_count_offset = io_get_position(&s_motc);
         io_write_uint16_t(&s_motc, m->info);
@@ -878,7 +860,7 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
                         io_write_float_t(&s_motc, *values);
                 }
 
-                float_t* values = mks->values;
+                float_t* values = mks->values.data();
                 if (data_type == MOT_KEY_SET_DATA_F16)
                     for (int32_t k = 0; k < keys_count; k++, values += step)
                         io_write_half_t(&s_motc, float_to_half(*values));
@@ -887,7 +869,7 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
                         io_write_float_t(&s_motc, *values);
                 io_align_write(&s_motc, 0x04);
 
-                int16_t* frames = mks->frames_modern;
+                int16_t* frames = (int16_t*)mks->frames.data();
                 for (int32_t k = 0; k < keys_count; k++)
                     io_write_int16_t(&s_motc, *frames++);
                 io_align_write(&s_motc, 0x04);
@@ -907,8 +889,7 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
 
         mh.bone_hash_offset = io_get_position(&s_motc);
         for (int32_t j = 0; j < m->bone_info_count; j++)
-            io_write_uint64_t(&s_motc, hash_utf8_murmurhash(
-                string_data(&m->bone_info[j].name), 0, false));
+            io_write_uint64_t(&s_motc, hash_string_murmurhash(&m->bone_info[j].name, 0, false));
         io_align_write(&s_motc, 0x10);
 
         mh.name_offset = io_get_position(&s_motc);
@@ -968,7 +949,7 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
     memset(&st, 0, sizeof(f2_struct));
 
     io_align_write(&s_motc, 0x10);
-    io_mcopy(&s_motc, &st.data, &st.length);
+    io_copy(&s_motc, &st.data, &st.length);
     io_free(&s_motc);
 
     st.enrs = e;
@@ -981,6 +962,6 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
     st.header.murmurhash = murmurhash;
     st.header.inner_signature = 0xFF010008;
 
-    f2_struct_swrite(&st, s, true, ms->is_x);
+    f2_struct_write(&st, s, true, ms->is_x);
     f2_struct_free(&st);
 }

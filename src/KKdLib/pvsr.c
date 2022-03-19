@@ -30,7 +30,7 @@ void pvsr_init(pvsr* sr) {
     memset(sr, 0, sizeof(pvsr));
 }
 
-void pvsr_read(pvsr* sr, char* path) {
+void pvsr_read(pvsr* sr, const char* path) {
     if (!sr || !path)
         return;
 
@@ -45,14 +45,14 @@ void pvsr_read(pvsr* sr, char* path) {
     free(path_pvsr);
 }
 
-void pvsr_wread(pvsr* sr, wchar_t* path) {
+void pvsr_wread(pvsr* sr, const wchar_t* path) {
     if (!sr || !path)
         return;
 
     wchar_t* path_pvsr = str_utils_wadd(path, L".pvsr");
-    if (path_wcheck_file_exists(path_pvsr)) {
+    if (path_check_file_exists(path_pvsr)) {
         stream s;
-        io_wopen(&s, path_pvsr, L"rb");
+        io_open(&s, path_pvsr, L"rb");
         if (s.io.stream)
             pvsr_read_inner(sr, &s);
         io_free(&s);
@@ -60,10 +60,10 @@ void pvsr_wread(pvsr* sr, wchar_t* path) {
     free(path_pvsr);
 }
 
-bool pvsr_load_file(void* data, char* path, char* file, uint32_t hash) {
+bool pvsr_load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
-    char* t = strrchr(file, '.');
+    const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
@@ -310,10 +310,10 @@ static void pvsr_glitter_read(pvsr_glitter* glt, stream* s) {
 
 static void pvsr_read_inner(pvsr* sr, stream* s) {
     f2_struct st;
-    f2_struct_sread(&st, s);
+    f2_struct_read(&st, s);
     if (st.header.signature == reverse_endianness_uint32_t('PVSR') && st.data) {
         stream s_pvsr;
-        io_mopen(&s_pvsr, st.data, st.length);
+        io_open(&s_pvsr, st.data, st.length);
         s_pvsr.is_big_endian = st.header.use_big_endian;
 
         int32_t x00 = io_read_int32_t_stream_reverse_endianness(&s_pvsr);

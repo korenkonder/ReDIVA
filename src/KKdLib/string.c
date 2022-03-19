@@ -72,6 +72,10 @@ inline char* string_data(string* s) {
     return s->capacity > STRING_NULL_LENGTH ? s->ptr : s->data;
 }
 
+inline const char* string_data(const string* s) {
+    return s->capacity > STRING_NULL_LENGTH ? s->ptr : s->data;
+}
+
 inline void string_add(string* s, char* str) {
     if (!s || !str)
         return;

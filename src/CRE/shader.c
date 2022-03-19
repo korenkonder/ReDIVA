@@ -126,7 +126,7 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
         wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), buf);
 
         swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"%ls.farc", temp_buf);
-        if (path_wcheck_file_exists(buf) && !not_load_cache)
+        if (path_check_file_exists(buf) && !not_load_cache)
             shader_cache_farc.read(buf, true, false);
     }
 
@@ -2240,7 +2240,7 @@ static GLuint shader_compile_shader(GLenum type, char* data, char* file) {
             buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
 
             stream s;
-            io_wopen(&s, buf, L"wb");
+            io_open(&s, buf, L"wb");
             io_write(&s, data, utf8_length(data));
             io_free(&s);
         }

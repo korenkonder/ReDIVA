@@ -27,7 +27,6 @@ public:
     std::string paths[6];
     std::string files[6];
     bool not_loaded;
-    int32_t id;
     light_param_light light;
     light_param_fog fog;
     light_param_glow glow;
@@ -37,8 +36,6 @@ public:
 
     light_param_data();
     ~light_param_data();
-
-    static int32_t load_file();
 };
 
 class light_param_data_storage {
@@ -63,18 +60,9 @@ public:
     static void unload();
 };
 
-extern void light_param_data_load(light_param_data* light_param, data_struct* data, char* name);
-
-extern char* light_param_get_stage_name_string(char* name);
-
-extern void light_param_storage_init();
-extern void light_param_storage_append_light_param_data(char* name);
-extern void light_param_storage_load_light_param_data(data_struct* data, char* name);
-extern void light_param_storage_insert_light_param_data(light_param_data* data, char* name);
-extern light_param_data* light_param_storage_get_light_param_data(char* name);
-extern void light_param_storage_delete_light_param_data(char* name);
-extern void light_param_storage_free();
-
+extern void light_param_storage_data_free_file_handlers();
+extern int32_t light_param_storage_data_load_file();
 extern void light_param_storage_data_load_stage(int32_t stage_index);
 extern void light_param_storage_data_load_stages(std::vector<int32_t>* stage_indices);
+extern void light_param_storage_data_set_default_light_param();
 extern void light_param_storage_data_set_stage(int32_t stage_id);

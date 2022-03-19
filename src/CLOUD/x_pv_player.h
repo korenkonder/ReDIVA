@@ -3,6 +3,7 @@
     GitHub/GitLab: korenkonder
 */
 
+#if defined(CLOUD_DEV)
 #pragma once
 
 #include <string>
@@ -60,3 +61,4 @@ public:
 
     void Load(int32_t pv_id, int32_t stage_id);
 } x_pv_player;
+#endif

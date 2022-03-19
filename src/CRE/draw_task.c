@@ -34,7 +34,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
     int32_t alpha_test = 0;
     float_t min_alpha = 1.0f;
     bool reflect = uniform_value[U_REFLECT] == 1;
-    void(*draw_object_func)(render_context* rctx, draw_object* disp) = draw_object_draw_default;
+    void(*draw_object_func)(render_context* rctx, draw_object* draw) = draw_object_draw_default;
 
     for (int32_t i = 0; i < 6; i++)
         gl_state_active_bind_texture_2d(i, 0);
@@ -645,7 +645,7 @@ inline bool draw_task_add_draw_object_by_object_info_color_vec4(render_context* 
 }
 
 void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, object_info obj_info,
-    vector_old_texture_pattern_struct* texture_pattern, texture_data_struct* texture_data, float_t alpha,
+    std::vector<texture_pattern_struct>* texture_pattern, texture_data_struct* texture_data, float_t alpha,
     mat4* matrices, mat4* ex_data_matrices, mat4* mat, mat4* global_mat) {
     object_skin* skin = object_storage_get_object_skin(obj_info);
     if (!skin)
@@ -681,9 +681,9 @@ void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, 
         object_data_set_texture_specular_offset(object_data, &value);
     }
 
-    size_t texture_pattern_count = texture_pattern ? vector_old_length(*texture_pattern) : 0;
+    size_t texture_pattern_count = texture_pattern ? texture_pattern->size() : 0;
     if (texture_pattern && texture_pattern_count)
-        object_data_set_texture_pattern(object_data, (int32_t)texture_pattern_count, texture_pattern->begin);
+        object_data_set_texture_pattern(object_data, (int32_t)texture_pattern_count, texture_pattern->data());
 
     if (fabsf(alpha - 1.0f) > 0.000001f)
         draw_task_add_draw_object_by_object_info_alpha_bone_mat(rctx,
@@ -830,7 +830,7 @@ int32_t object_axis_aligned_bounding_box_check_visibility(
 int32_t object_bounding_sphere_check_visibility(object_bounding_sphere* sphere,
     object_data* object_data, camera* cam, mat4* mat) {
     if (object_data->object_bounding_sphere_check_func)
-        return object_data->object_bounding_sphere_check_func(sphere);
+        return object_data->object_bounding_sphere_check_func(sphere, cam);
 
     vec3 center;
     mat4_mult_vec3_trans(mat, &sphere->center, &center);
@@ -891,35 +891,35 @@ inline static void draw_task_object_init(draw_task* task, object_data* object_da
     task->data.object.element_array_buffer = element_array_buffer;
     task->data.object.morph_array_buffer = morph_array_buffer;
 
-    draw_object* disp = &task->data.object;
-    disp->texture_pattern_count = object_data->texture_pattern_count;
+    draw_object* draw = &task->data.object;
+    draw->texture_pattern_count = object_data->texture_pattern_count;
     for (int32_t i = 0; i < object_data->texture_pattern_count && i < TEXTURE_PATTERN_COUNT; i++)
-        disp->texture_pattern_array[i] = object_data->texture_pattern_array[i];
+        draw->texture_pattern_array[i] = object_data->texture_pattern_array[i];
 
-    disp->texture_transform_count = object_data->texture_transform_count;
+    draw->texture_transform_count = object_data->texture_transform_count;
     for (int32_t i = 0; i < object_data->texture_transform_count && i < TEXTURE_TRANSFORM_COUNT; i++)
-        disp->texture_transform_array[i] = object_data->texture_transform_array[i];
+        draw->texture_transform_array[i] = object_data->texture_transform_array[i];
 
     if (blend_color) {
-        disp->set_blend_color = true;
-        disp->blend_color = *blend_color;
+        draw->set_blend_color = true;
+        draw->blend_color = *blend_color;
     }
     else {
-        disp->set_blend_color = false;
-        disp->blend_color = vec4u_identity;
+        draw->set_blend_color = false;
+        draw->blend_color = vec4u_identity;
     }
 
-    disp->chara_color = object_data->chara_color;
-    disp->self_shadow = object_data->draw_task_flags & (DRAW_TASK_8 | DRAW_TASK_4) ? 1 : 0;
-    disp->shadow = object_data->shadow_type;
-    disp->texture_color_coeff = object_data->texture_color_coeff;
-    disp->texture_color_coeff.w = object_data->wet_param;
-    disp->texture_color_offset = object_data->texture_color_offset;
-    disp->texture_specular_coeff = object_data->texture_specular_coeff;
-    disp->texture_specular_offset = object_data->texture_specular_offset;
-    disp->instances_count = instances_count;
-    disp->instances_mat = instances_mat;
-    disp->draw_object_func = draw_object_func;
+    draw->chara_color = object_data->chara_color;
+    draw->self_shadow = object_data->draw_task_flags & (DRAW_TASK_8 | DRAW_TASK_4) ? 1 : 0;
+    draw->shadow = object_data->shadow_type;
+    draw->texture_color_coeff = object_data->texture_color_coeff;
+    draw->texture_color_coeff.w = object_data->wet_param;
+    draw->texture_color_offset = object_data->texture_color_offset;
+    draw->texture_specular_coeff = object_data->texture_specular_coeff;
+    draw->texture_specular_offset = object_data->texture_specular_offset;
+    draw->instances_count = instances_count;
+    draw->instances_mat = instances_mat;
+    draw->draw_object_func = draw_object_func;
 }
 
 inline static void draw_task_object_translucent_init(draw_task* task, mat4* mat,

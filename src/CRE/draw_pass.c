@@ -249,21 +249,7 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
             mat4_mult(&proj, &temp, &proj);
             shader_state_matrix_set_projection(&shaders_ft, &proj, false);
 
-            vec3 up = { 0.0f, 1.0f, 0.0f };
-            vec3 dir;
-            float_t length;
-            vec3_sub(*interest, *view_point, dir);
-            vec3_length_squared(dir, length);
-            if (length <= 0.000001f) {
-                up.x = 0.0f;
-                up.y = 0.0f;
-                if (dir.z < 0.0f)
-                    up.z = 1.0f;
-                else
-                    up.z = -1.0f;
-            }
-
-            mat4_look_at(view_point, interest, &up, &rctx->view_mat);
+            mat4_look_at(view_point, interest, &rctx->view_mat);
 
             rctx->draw_state.shader_index = SHADER_FT_SIL;
             uniform_value[U0A] = 0;
@@ -637,7 +623,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
         v46[i] = interest;
         v14[i] = 999999.0f;
         rob_chara_bone_data* v16 = rob_chara_array[i].bone_data;
-        if (rob_chara_pv_data_array[i].field_0 != -1 && rob_chara_array[i].data.field_0 & 1) {
+        if (rob_chara_pv_data_array[i].type != ROB_CHARA_TYPE_NONE && rob_chara_array[i].data.field_0 & 1) {
             mat4* v17 = rob_chara_bone_data_get_mats_mat(v16, MOTION_BONE_N_HARA_CP);
             if (v17) {
                 mat4_get_translation(v17, &v46[i]);
@@ -1039,20 +1025,6 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
                 view_point = &shad->view_point_shared;
             }
 
-            vec3 up = { 0.0f, 1.0f, 0.0f };
-            vec3 dir;
-            float_t length;
-            vec3_sub(*interest, *view_point, dir);
-            vec3_length_squared(dir, length);
-            if (length <= 0.000001f) {
-                up.x = 0.0f;
-                up.y = 0.0f;
-                if (dir.z < 0.0f)
-                    up.z = 1.0f;
-                else
-                    up.z = -1.0f;
-            }
-
             mat4 temp;
             mat4_translate(0.5f, 0.5f, 0.5f, &temp);
             mat4_scale_rot(&temp, 0.5f, 0.5f, 0.5f, &temp);
@@ -1063,7 +1035,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
             mat4_mult(&proj, &temp, &proj);
 
             mat4 view;
-            mat4_look_at(view_point, interest, &up, &view);
+            mat4_look_at(view_point, interest, &view);
             mat4_mult(&view, &proj, &view);
             shader_state_matrix_set_texture(&shaders_ft, 6ULL + i, &view);
         }

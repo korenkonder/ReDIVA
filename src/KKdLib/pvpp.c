@@ -24,7 +24,11 @@ pvpp::pvpp() : ready() {
 
 }
 
-void pvpp::read(char* path) {
+pvpp::~pvpp() {
+
+}
+
+void pvpp::read(const char* path) {
     if (!path)
         return;
 
@@ -39,14 +43,14 @@ void pvpp::read(char* path) {
     free(path_pvpp);
 }
 
-void pvpp::read(wchar_t* path) {
+void pvpp::read(const wchar_t* path) {
     if (!path)
         return;
 
     wchar_t* path_pvpp = str_utils_wadd(path, L".pvpp");
-    if (path_wcheck_file_exists(path_pvpp)) {
+    if (path_check_file_exists(path_pvpp)) {
         stream s;
-        io_wopen(&s, path_pvpp, L"rb");
+        io_open(&s, path_pvpp, L"rb");
         if (s.io.stream)
             pvpp_read_inner(this, &s);
         io_free(&s);
@@ -54,24 +58,20 @@ void pvpp::read(wchar_t* path) {
     free(path_pvpp);
 }
 
-void pvpp::read(void* data, size_t length) {
+void pvpp::read(const void* data, size_t length) {
     if (!data || !length)
         return;
 
     stream s;
-    io_mopen(&s, data, length);
+    io_open(&s, data, length);
     pvpp_read_inner(this, &s);
     io_free(&s);
 }
 
-pvpp::~pvpp() {
-
-}
-
-bool pvpp_load_file(void* data, char* path, char* file, uint32_t hash) {
+bool pvpp::load_file(void* data, const  char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
-    char* t = strrchr(file, '.');
+    const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
@@ -298,10 +298,10 @@ static void pvpp_motion_read(pvpp_motion* mot, stream* s) {
 
 static void pvpp_read_inner(pvpp* pp, stream* s) {
     f2_struct st;
-    f2_struct_sread(&st, s);
+    f2_struct_read(&st, s);
     if (st.header.signature == reverse_endianness_uint32_t('PVPP') && st.data) {
         stream s_pvpp;
-        io_mopen(&s_pvpp, st.data, st.length);
+        io_open(&s_pvpp, st.data, st.length);
         s_pvpp.is_big_endian = st.header.use_big_endian;
 
         io_read_uint32_t_stream_reverse_endianness(&s_pvpp);

@@ -30,11 +30,11 @@ public:
     texture_database();
     ~texture_database();
 
-    void read(char* path, bool modern);
-    void read(wchar_t* path, bool modern);
-    void read(void* data, size_t length, bool modern);
-    void write(char* path);
-    void write(wchar_t* path);
+    void read(const char* path, bool modern);
+    void read(const wchar_t* path, bool modern);
+    void read(const void* data, size_t length, bool modern);
+    void write(const char* path);
+    void write(const wchar_t* path);
     void write(void** data, size_t* length);
 
     void merge_mdata(texture_database* base_tex_db,
@@ -46,5 +46,5 @@ public:
     uint32_t get_texture_id(const char* name);
     const char* get_texture_name(uint32_t id);
 
-    static bool load_file(void* data, char* path, char* file, uint32_t hash);
+    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 } texture_database;

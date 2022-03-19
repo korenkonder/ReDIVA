@@ -661,6 +661,46 @@ inline void mat4_mult(mat4* x, mat4* y, mat4* z) {
     z->row3.data = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
 }
 
+inline void mat4_mult(mat4u* x, mat4u* y, mat4u* z) {
+    __m128 t0;
+    __m128 t1;
+    __m128 t2;
+    __m128 t3;
+    __m128 xt;
+    __m128 y0;
+    __m128 y1;
+    __m128 y2;
+    __m128 y3;
+    y0 = _mm_loadu_ps((float_t*)&y->row0);
+    y1 = _mm_loadu_ps((float_t*)&y->row1);
+    y2 = _mm_loadu_ps((float_t*)&y->row2);
+    y3 = _mm_loadu_ps((float_t*)&y->row3);
+    xt = _mm_loadu_ps((float_t*)&x->row0);
+    t0 = _mm_mul_ps(y0, _mm_shuffle_ps(xt, xt, 0x00));
+    t1 = _mm_mul_ps(y1, _mm_shuffle_ps(xt, xt, 0x55));
+    t2 = _mm_mul_ps(y2, _mm_shuffle_ps(xt, xt, 0xAA));
+    t3 = _mm_mul_ps(y3, _mm_shuffle_ps(xt, xt, 0xFF));
+    _mm_storeu_ps((float_t*)&z->row0, _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3)));
+    xt = _mm_loadu_ps((float_t*)&x->row1);
+    t0 = _mm_mul_ps(y0, _mm_shuffle_ps(xt, xt, 0x00));
+    t1 = _mm_mul_ps(y1, _mm_shuffle_ps(xt, xt, 0x55));
+    t2 = _mm_mul_ps(y2, _mm_shuffle_ps(xt, xt, 0xAA));
+    t3 = _mm_mul_ps(y3, _mm_shuffle_ps(xt, xt, 0xFF));
+    _mm_storeu_ps((float_t*)&z->row1, _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3)));
+    xt = _mm_loadu_ps((float_t*)&x->row2);
+    t0 = _mm_mul_ps(y0, _mm_shuffle_ps(xt, xt, 0x00));
+    t1 = _mm_mul_ps(y1, _mm_shuffle_ps(xt, xt, 0x55));
+    t2 = _mm_mul_ps(y2, _mm_shuffle_ps(xt, xt, 0xAA));
+    t3 = _mm_mul_ps(y3, _mm_shuffle_ps(xt, xt, 0xFF));
+    _mm_storeu_ps((float_t*)&z->row2, _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3)));
+    xt = _mm_loadu_ps((float_t*)&x->row3);
+    t0 = _mm_mul_ps(y0, _mm_shuffle_ps(xt, xt, 0x00));
+    t1 = _mm_mul_ps(y1, _mm_shuffle_ps(xt, xt, 0x55));
+    t2 = _mm_mul_ps(y2, _mm_shuffle_ps(xt, xt, 0xAA));
+    t3 = _mm_mul_ps(y3, _mm_shuffle_ps(xt, xt, 0xFF));
+    _mm_storeu_ps((float_t*)&z->row3, _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3)));
+}
+
 inline void mat4_mult_vec3(mat4* x, vec3* y, vec3* z) {
     __m128 yt;
     __m128 zt;
@@ -1678,6 +1718,10 @@ inline void mat4_translate_z_add(mat4* x, float_t y, mat4* z) {
 }
 
 inline void mat4_from_quat(quat* quat, mat4* mat) {
+    mat4_from_quat(quat, (mat4u*)mat);
+}
+
+inline void mat4_from_quat(quat* quat, mat4u* mat) {
     float_t y;
     float_t x;
     float_t z;
@@ -1855,7 +1899,15 @@ inline void mat4_get_translation(mat4* x, vec3* z) {
     *z = *(vec3*)&x->row3;
 }
 
+inline void mat4_get_translation(mat4u* x, vec3* z) {
+    *z = *(vec3*)&x->row3;
+}
+
 inline void mat4_set_translation(mat4* x, vec3* z) {
+    *(vec3*)&x->row3 = *z;
+}
+
+inline void mat4_set_translation(mat4u* x, vec3* z) {
     *(vec3*)&x->row3 = *z;
 }
 
@@ -1882,7 +1934,43 @@ inline void mat4_blend(mat4* x, mat4* y, mat4* z, float_t blend) {
     mat4_set_translation(z, &t3);
 }
 
+inline void mat4_blend(mat4u* x, mat4u* y, mat4u* z, float_t blend) {
+    quat q1;
+    quat q2;
+    quat q3;
+
+    quat_from_mat3(x->row0.x, x->row1.x, x->row2.x, x->row0.y,
+        x->row1.y, x->row2.y, x->row0.z, x->row1.z, x->row2.z, &q1);
+    quat_from_mat3(y->row0.x, y->row1.x, y->row2.x, y->row0.y,
+        y->row1.y, y->row2.y, y->row0.z, y->row1.z, y->row2.z, &q1);
+
+    vec3 t1;
+    vec3 t2;
+    vec3 t3;
+    mat4_get_translation(x, &t1);
+    mat4_get_translation(y, &t2);
+
+    quat_slerp(&q3, &q1, &q2, blend);
+    vec3_lerp_scalar(t1, t2, t3, blend);
+
+    mat4_from_quat(&q3, z);
+    mat4_set_translation(z, &t3);
+}
+
 inline void mat4_blend_rotation(mat4* x, mat4* y, mat4* z, float_t blend) {
+    quat q0;
+    quat q1;
+    quat q2;
+
+    quat_from_mat3(x->row0.x, x->row1.x, x->row2.x, x->row0.y,
+        x->row1.y, x->row2.y, x->row0.z, x->row1.z, x->row2.z, &q1);
+    quat_from_mat3(y->row0.x, y->row1.x, y->row2.x, y->row0.y,
+        y->row1.y, y->row2.y, y->row0.z, y->row1.z, y->row2.z, &q1);
+    quat_slerp(&q0, &q1, &q2, blend);
+    mat4_from_quat(&q2, z);
+}
+
+inline void mat4_blend_rotation(mat4u* x, mat4u* y, mat4u* z, float_t blend) {
     quat q0;
     quat q1;
     quat q2;
@@ -2012,6 +2100,24 @@ inline void mat4_look_at(vec3* eye, vec3* target, vec3* up, mat4* mat) {
     vec3_negate(xyz, xyz);
     *(vec3*)&mat->row3 = xyz;
     mat->row3.w = 1.0f;
+}
+
+inline void mat4_look_at(vec3* eye, vec3* target, mat4* mat) {
+    vec3 up = { 0.0f, 1.0f, 0.0f };
+    vec3 dir;
+    float_t length;
+    vec3_sub(*target, *eye, dir);
+    vec3_length_squared(dir, length);
+    if (length <= 0.000001f) {
+        up.x = 0.0f;
+        up.y = 0.0f;
+        if (dir.z < 0.0f)
+            up.z = 1.0f;
+        else
+            up.z = -1.0f;
+    }
+
+    mat4_look_at(eye, target, &up, mat);
 }
 
 mat4::operator mat4u() const {

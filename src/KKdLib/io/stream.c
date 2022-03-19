@@ -6,7 +6,13 @@
 #include "stream.h"
 #include <share.h>
 
-void io_open(stream* s, char* path, const char* mode) {
+void io_open(stream* s) {
+    memset(s, 0, sizeof(stream));
+    s->type = STREAM_MEMORY;
+    s->length = 0;
+}
+
+void io_open(stream* s, const char* path, const char* mode) {
     memset(s, 0, sizeof(stream));
     if (!path || !mode)
         return;
@@ -21,11 +27,7 @@ void io_open(stream* s, char* path, const char* mode) {
     free(temp_mode);
 }
 
-inline void io_open(stream* s, const char* path, const char* mode) {
-    io_open(s, (char*)path, mode);
-}
-
-void io_wopen(stream* s, wchar_t* path, const wchar_t* mode) {
+void io_open(stream* s, const wchar_t* path, const wchar_t* mode) {
     memset(s, 0, sizeof(stream));
     if (!path || !mode)
         return;
@@ -36,11 +38,7 @@ void io_wopen(stream* s, wchar_t* path, const wchar_t* mode) {
     io_get_length(s);
 }
 
-inline void io_wopen(stream* s, const wchar_t* path, const wchar_t* mode) {
-    io_wopen(s, (wchar_t*)path, mode);
-}
-
-void io_mopen(stream* s, void* data, size_t length) {
+void io_open(stream* s, const void* data, size_t length) {
     memset(s, 0, sizeof(stream));
     if (!data || !length) {
         s->type = STREAM_MEMORY;
@@ -59,7 +57,7 @@ void io_mopen(stream* s, void* data, size_t length) {
     s->length = length;
 }
 
-void io_mcopy(stream* s, void** data, size_t* length) {
+void io_copy(stream* s, void** data, size_t* length) {
     if (!s || !data || !length || s->type != STREAM_MEMORY)
         return;
 
@@ -475,7 +473,7 @@ inline void io_read_string_null_terminated_offset(stream* s,
         free(temp);
     }
     else
-        *str = {};
+        *str = std::string();
 }
 
 inline void io_read_wstring_null_terminated_offset(stream* s,
@@ -499,7 +497,7 @@ inline void io_read_wstring_null_terminated_offset(stream* s,
         free(temp);
     }
     else
-        *str = {};
+        *str = std::wstring();
 }
 
 inline char* io_read_utf8_string_null_terminated(stream* s) {

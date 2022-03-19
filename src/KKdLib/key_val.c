@@ -11,27 +11,112 @@
 static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length);
 static void key_val_sort(key_val* kv);
 
-void key_val_init(key_val* kv, uint8_t* data, size_t length) {
-    kv->buf = 0;
-    kv->key = vector_old_ptr_empty(char);
-    kv->key_len = vector_old_empty(size_t);
-    kv->val = vector_old_ptr_empty(char);
-    kv->val_len = vector_old_empty(size_t);
-    kv->key_hash = vector_old_empty(uint64_t);
-    kv->key_index = vector_old_empty(size_t);
+key_val::key_val() : buf() {
 
+}
+
+key_val::~key_val() {
+    free(buf);
+}
+
+void key_val::file_read(char* path) {
+    if (!path || !path_check_file_exists(path))
+        return;
+
+    stream s;
+    io_open(&s, path, "rb");
+    if (s.io.stream) {
+        char* d = force_malloc_s(char, s.length);
+        io_read(&s, d, s.length);
+        parse((uint8_t*)d, s.length);
+        free(d);
+    }
+    io_free(&s);
+}
+
+void key_val::file_read(wchar_t* path) {
+    if (!path || !path_check_file_exists(path))
+        return;
+
+    stream s;
+    io_open(&s, path, L"rb");
+    if (s.io.stream) {
+        char* d = force_malloc_s(char, s.length);
+        io_read(&s, d, s.length);
+        parse((uint8_t*)d, s.length);
+        free(d);
+    }
+    io_free(&s);
+}
+
+bool key_val::get_local_key_val(const char* str, key_val* lkv) {
+    lkv->buf = 0;
+    lkv->key.clear();
+    lkv->key_len.clear();
+    lkv->val.clear();
+    lkv->key_hash.clear();
+    lkv->key_index.clear();
+
+    if (!str)
+        return false;
+
+    char** first = 0;
+    char** last = 0;
+    size_t str_length = utf8_length(str);
+
+    char** i = key.data();
+    size_t* i_len = key_len.data();
+    size_t j = key.size();
+    for (; j; i++, i_len++, j--)
+        if (str_length <= *i_len && !memcmp(str, (char*)*i, str_length)) {
+            if (!first)
+                first = i;
+            last = i + 1;
+        }
+        else if (first)
+            break;
+
+    if (!first)
+        return false;
+
+    size_t index = first - key.data();
+    size_t count = last - first;
+    lkv->key = std::vector<char*>(key.begin() + index, key.begin() + index + count);
+    lkv->key_len = std::vector<size_t>(key_len.begin() + index, key_len.begin() + index + count);
+    lkv->val = std::vector<char*>(val.begin() + index, val.begin() + index + count);
+    lkv->val_len = std::vector<size_t>(val_len.begin() + index, val_len.begin() + index + count);
+
+    key_val_sort(lkv);
+    return true;
+}
+
+bool key_val::has_key(char* str) {
+    size_t str_length = utf8_length(str);
+
+    char** i = key.data();
+    size_t* i_len = key_len.data();
+    size_t j = key.size();
+    for (; j; i++, i_len++, j--) {
+        size_t len = min(str_length, *i_len);
+        if (len && str_length <= *i_len && !memcmp(str, *i, len))
+            return true;
+    }
+    return false;
+}
+
+void key_val::parse(uint8_t* data, size_t length) {
     if (!data || !length)
         return;
 
     char** lines;
     size_t count;
-    if (!str_utils_text_file_parse(data, length, &kv->buf, &lines, &count))
+    if (!str_utils_text_file_parse(data, length, &buf, &lines, &count))
         return;
 
-    vector_old_ptr_char_reserve(&kv->key, count);
-    vector_old_size_t_reserve(&kv->key_len, count);
-    vector_old_ptr_char_reserve(&kv->val, count);
-    vector_old_size_t_reserve(&kv->val_len, count);
+    key.reserve(count);
+    key_len.reserve(count);
+    val.reserve(count);
+    val_len.reserve(count);
 
     for (size_t i = 0, j = 0; i < count; i++) {
         char* s = lines[i];
@@ -53,384 +138,150 @@ void key_val_init(key_val* kv, uint8_t* data, size_t length) {
 
         uint64_t key_hash = hash_fnv1a64m((uint8_t*)key_str_data, key_length, false);
 
-        vector_old_ptr_char_push_back(&kv->key, &key_str_data);
-        vector_old_size_t_push_back(&kv->key_len, &key_length);
-        vector_old_ptr_char_push_back(&kv->val, &val_str_data);
-        vector_old_size_t_push_back(&kv->val_len, &val_length);
+        key.push_back(key_str_data);
+        key_len.push_back(key_length);
+        val.push_back(val_str_data);
+        val_len.push_back(val_length);
         j++;
     }
-    key_val_sort(kv);
+    key_val_sort(this);
     free(lines)
 }
 
-void key_val_file_read(key_val* kv, char* path) {
-    if (!kv)
-        return;
-
-    if (!path || !path_check_file_exists(path)) {
-        key_val_init(kv, 0, 0);
-        return;
-    }
-
-    stream s;
-    io_open(&s, path, "rb");
-    if (s.io.stream) {
-        char* d = force_malloc_s(char, s.length);
-        io_read(&s, d, s.length);
-        key_val_init(kv, (uint8_t*)d, s.length);
-        free(d);
-    }
-    io_free(&s);
-}
-
-void key_val_wfile_read(key_val* kv, wchar_t* path) {
-    if (!kv)
-        return;
-
-    if (!path || !path_wcheck_file_exists(path)) {
-        key_val_init(kv, 0, 0);
-        return;
-    }
-
-    stream s;
-    io_wopen(&s, path, L"rb");
-    if (s.io.stream) {
-        char* d = force_malloc_s(char, s.length);
-        io_read(&s, d, s.length);
-        key_val_init(kv, (uint8_t*)d, s.length);
-        free(d);
-    }
-    io_free(&s);
-}
-
-bool key_val_get_local_key_val(key_val* kv, char* str, key_val* lkv) {
-    lkv->buf = 0;
-    lkv->key = vector_old_ptr_empty(char);
-    lkv->key_len = vector_old_empty(size_t);
-    lkv->val = vector_old_ptr_empty(char);
-    lkv->key_hash = vector_old_empty(uint64_t);
-    lkv->key_index = vector_old_empty(size_t);
-
-    if (!str)
-        return false;
-
-    char** first = 0;
-    char** last = 0;
-    size_t str_length = utf8_length(str);
-
-    char** i = kv->key.begin;
-    size_t* i_len = kv->key_len.begin;
-    size_t j = vector_old_length(kv->key);
-    for (; j; i++, i_len++, j--)
-        if (str_length <= *i_len && !memcmp(str, (char*)*i, str_length)) {
-            if (!first)
-                first = i;
-            last = i + 1;
-        }
-        else if (first)
-            break;
-
-    if (!first)
-        return false;
-
-    size_t index = first - kv->key.begin;
-    size_t count = last - first;
-    lkv->key.begin = &kv->key.begin[index];
-    lkv->key.end = &kv->key.begin[index + count];
-    lkv->key_len.begin = &kv->key_len.begin[index];
-    lkv->val.begin = &kv->val.begin[index];
-    lkv->val_len.begin = &kv->val_len.begin[index];
-
-    key_val_sort(lkv);
-    return true;
-}
-
-inline bool key_val_get_local_key_val(key_val* kv, const char* str, key_val* lkv) {
-    return key_val_get_local_key_val(kv, (char*)str, lkv);
-}
-
-bool key_val_has_key(key_val* kv, char* str) {
-    size_t str_length = utf8_length(str);
-
-    char** i = kv->key.begin;
-    size_t* i_len = kv->key_len.begin;
-    size_t j = vector_old_length(kv->key);
-    for (; j; i++, i_len++, j--) {
-        size_t len = min(str_length, *i_len);
-        if (len && str_length <= *i_len && !memcmp(str, *i, len))
-            return true;
-    }
-    return false;
-}
-
-bool key_val_read_bool(key_val* kv, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, bool* value) {
+bool key_val::read_bool(char* buf, size_t offset,
+    const char* str_add, size_t str_add_len, bool* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
-    ssize_t index = key_val_get_key_index(kv, buf, offset);
+    ssize_t index = key_val_get_key_index(this, buf, offset);
     buf[offset - (str_add_len - 1)] = 0;
     if (index == -1) {
         *value = false;
         return false;
     }
-    *value = atoi(kv->val.begin[index]) ? true : false;
+    *value = atoi(val[index]) ? true : false;
     return true;
 }
 
-void key_val_write_bool(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, bool value) {
-    if (!value)
-        return;
-
+bool key_val::read_float_t(char* buf, size_t offset,
+    const char* str_add, size_t str_add_len, float_t* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
-    io_write_utf8_string(s, buf);
-    io_write(s, "=1\n", 3);
-}
-
-bool key_val_read_float_t(key_val* kv, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, float_t* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    ssize_t index = key_val_get_key_index(kv, buf, offset);
+    ssize_t index = key_val_get_key_index(this, buf, offset);
     buf[offset - (str_add_len - 1)] = 0;
     if (index == -1) {
         *value = 0.0f;
         return false;
     }
-    *value = (float_t)atof(kv->val.begin[index]);
+    *value = (float_t)atof(val[index]);
     return true;
 }
 
-void key_val_write_float_t(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, float_t value) {
+bool key_val::read_int32_t(char* buf, size_t offset,
+    const char* str_add, size_t str_add_len, int32_t* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
-    char val_buf[0x100];
-    sprintf_s(val_buf, 0x100, "%g", value);
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, val_buf);
-    io_write_char(s, '\n');
-}
-
-bool key_val_read_int32_t(key_val* kv, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, int32_t* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    ssize_t index = key_val_get_key_index(kv, buf, offset);
+    ssize_t index = key_val_get_key_index(this, buf, offset);
     buf[offset - (str_add_len - 1)] = 0;
     if (index == -1) {
         *value = 0;
         return false;
     }
-    *value = atoi(kv->val.begin[index]);
+    *value = atoi(val[index]);
     return true;
 }
 
-void key_val_write_int32_t(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, int32_t value) {
+bool key_val::read_uint32_t(char* buf, size_t offset,
+    const char* str_add, size_t str_add_len, uint32_t* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
-    char val_buf[0x100];
-    sprintf_s(val_buf, 0x100, "%d", value);
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, val_buf);
-    io_write_char(s, '\n');
-}
-
-bool key_val_read_uint32_t(key_val* kv, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, uint32_t* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    ssize_t index = key_val_get_key_index(kv, buf, offset);
+    ssize_t index = key_val_get_key_index(this, buf, offset);
     buf[offset - (str_add_len - 1)] = 0;
     if (index == -1) {
         *value = 0;
         return false;
     }
-    *value = atoi(kv->val.begin[index]);
+    *value = atoi(val[index]);
     return true;
 }
 
-void key_val_write_uint32_t(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, uint32_t value) {
+bool key_val::read_string(char* buf, size_t offset,
+    const char* str_add, size_t str_add_len, string* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
-    char val_buf[0x100];
-    sprintf_s(val_buf, 0x100, "%u", value);
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, val_buf);
-    io_write_char(s, '\n');
-}
-
-bool key_val_read_string(key_val* kv, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, string* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    ssize_t index = key_val_get_key_index(kv, buf, offset);
+    ssize_t index = key_val_get_key_index(this, buf, offset);
     buf[offset - (str_add_len - 1)] = 0;
     if (index == -1) {
         *value = string_empty;
         return false;
     }
-    string_init_length(value, kv->val.begin[index], kv->val_len.begin[index]);
+    string_init_length(value, val[index], val_len[index]);
     return true;
 }
 
-bool key_val_read_string(key_val* kv, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, std::string* value) {
+bool key_val::read_string(char* buf, size_t offset,
+    const char* str_add, size_t str_add_len, std::string* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
-    ssize_t index = key_val_get_key_index(kv, buf, offset);
+    ssize_t index = key_val_get_key_index(this, buf, offset);
     buf[offset - (str_add_len - 1)] = 0;
     if (index == -1) {
         *value = std::string();
         return false;
     }
-    *value = std::string(kv->val.begin[index], kv->val_len.begin[index]);
+    *value = std::string(val[index], val_len[index]);
     return true;
 }
 
-bool key_val_read_string(key_val* kv, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, char** value) {
+bool key_val::read_string(char* buf, size_t offset,
+    const char* str_add, size_t str_add_len, char** value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
-    ssize_t index = key_val_get_key_index(kv, buf, offset);
+    ssize_t index = key_val_get_key_index(this, buf, offset);
     buf[offset - (str_add_len - 1)] = 0;
     if (index == -1) {
         *value = 0;
         return false;
     }
-    *value = kv->val.begin[index];
+    *value = val[index];
     return true;
 }
 
-void key_val_write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, string* value) {
-    if (!string_data(value))
-        return;
-
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write(s, string_data(value), value->length);
-    io_write_char(s, '\n');
-}
-
-void key_val_write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, std::string* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write(s, value->c_str(), value->size());
-    io_write_char(s, '\n');
-}
-
-void key_val_write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, char* value) {
-    if (!value)
-        return;
-
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, value);
-    io_write_char(s, '\n');
-}
-
-void key_val_write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, const char* value) {
-    if (!value)
-        return;
-
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, value);
-    io_write_char(s, '\n');
-}
-
-bool key_val_read_vec3(key_val* kv, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, vec3* value) {
+bool key_val::read_vec3(char* buf, size_t offset,
+    const char* str_add, size_t str_add_len, vec3* value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
     key_val lkv;
-    if (!key_val_get_local_key_val(kv, buf, &lkv)) {
+    if (!get_local_key_val(buf, &lkv)) {
         memset(value, 0, sizeof(vec3));
         return false;
     }
 
-    key_val_read_float_t(&lkv, buf, offset, ".x", 3, &value->x);
-    key_val_read_float_t(&lkv, buf, offset, ".y", 3, &value->y);
-    key_val_read_float_t(&lkv, buf, offset, ".z", 3, &value->z);
-    key_val_free(&lkv);
+    lkv.read_float_t(buf, offset, ".x", 3, &value->x);
+    lkv.read_float_t(buf, offset, ".y", 3, &value->y);
+    lkv.read_float_t(buf, offset, ".z", 3, &value->z);
     return true;
 }
 
-void key_val_write_vec3(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, vec3* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    key_val_write_float_t(s, buf, offset, ".x", 3, value->x);
-    key_val_write_float_t(s, buf, offset, ".y", 3, value->y);
-    key_val_write_float_t(s, buf, offset, ".z", 3, value->z);
-}
-
-void key_val_free(key_val* kv) {
-    if (kv->buf) {
-        size_t count = vector_old_length(kv->key);
-        memset(kv->key.begin, 0, sizeof(char*) * count);
-        memset(kv->val.begin, 0, sizeof(char*) * count);
-
-        vector_old_ptr_char_free(&kv->key, 0);
-        vector_old_size_t_free(&kv->key_len, 0);
-        vector_old_ptr_char_free(&kv->val, 0);
-        vector_old_size_t_free(&kv->val_len, 0);
-    }
-    vector_old_uint64_t_free(&kv->key_hash, 0);
-    vector_old_size_t_free(&kv->key_index, 0);
-    free(kv->buf);
-}
-
-void key_val_get_lexicographic_order(vector_old_int32_t* vec, int32_t length) {
-    vector_old_int32_t_clear(vec, 0);
+void key_val::get_lexicographic_order(std::vector<int32_t>* vec, int32_t length) {
+    vec->clear();
 
     int32_t i, j, m;
 
     if (length < 1)
         return;
 
-    vector_old_int32_t_reserve(vec, length);
+    vec->reserve(length);
 
     j = 0;
-    vector_old_int32_t_push_back(vec, &j);
+    vec->push_back(j);
     i = 1;
     j = 1;
 
@@ -440,7 +291,7 @@ void key_val_get_lexicographic_order(vector_old_int32_t* vec, int32_t length) {
 
     while (i < length) {
         if (j * 10 < m) {
-            vector_old_int32_t_push_back(vec, &j);
+            vec->push_back(j);
             i++;
             j *= 10;
         }
@@ -452,7 +303,7 @@ void key_val_get_lexicographic_order(vector_old_int32_t* vec, int32_t length) {
             j++;
         }
         else if (j % 10 != 9) {
-            vector_old_int32_t_push_back(vec, &j);
+            vec->push_back(j);
             i++;
             j++;
         }
@@ -466,7 +317,7 @@ void key_val_get_lexicographic_order(vector_old_int32_t* vec, int32_t length) {
                 j++;
             }
             else if (j < length && j % 10 == 9) {
-                vector_old_int32_t_push_back(vec, &j);
+                vec->push_back(j);
                 i++;
                 while (j % 10 == 9)
                     j /= 10;
@@ -475,14 +326,131 @@ void key_val_get_lexicographic_order(vector_old_int32_t* vec, int32_t length) {
     }
 }
 
+void key_val::write_bool(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, bool value) {
+    if (!value)
+        return;
+
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    io_write_utf8_string(s, buf);
+    io_write(s, "=1\n", 3);
+}
+
+void key_val::write_float_t(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, float_t value) {
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%g", value);
+
+    io_write_utf8_string(s, buf);
+    io_write_char(s, '=');
+    io_write_utf8_string(s, val_buf);
+    io_write_char(s, '\n');
+}
+
+void key_val::write_int32_t(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, int32_t value) {
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%d", value);
+
+    io_write_utf8_string(s, buf);
+    io_write_char(s, '=');
+    io_write_utf8_string(s, val_buf);
+    io_write_char(s, '\n');
+}
+
+void key_val::write_uint32_t(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, uint32_t value) {
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%u", value);
+
+    io_write_utf8_string(s, buf);
+    io_write_char(s, '=');
+    io_write_utf8_string(s, val_buf);
+    io_write_char(s, '\n');
+}
+
+void key_val::write_string(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, string* value) {
+    if (!string_data(value))
+        return;
+
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    io_write_utf8_string(s, buf);
+    io_write_char(s, '=');
+    io_write(s, string_data(value), value->length);
+    io_write_char(s, '\n');
+}
+
+void key_val::write_string(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, std::string* value) {
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    io_write_utf8_string(s, buf);
+    io_write_char(s, '=');
+    io_write(s, value->c_str(), value->size());
+    io_write_char(s, '\n');
+}
+
+void key_val::write_string(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, char* value) {
+    if (!value)
+        return;
+
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    io_write_utf8_string(s, buf);
+    io_write_char(s, '=');
+    io_write_utf8_string(s, value);
+    io_write_char(s, '\n');
+}
+
+void key_val::write_string(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, const char* value) {
+    if (!value)
+        return;
+
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    io_write_utf8_string(s, buf);
+    io_write_char(s, '=');
+    io_write_utf8_string(s, value);
+    io_write_char(s, '\n');
+}
+
+void key_val::write_vec3(stream* s, char* buf,
+    size_t offset, const char* str_add, size_t str_add_len, vec3* value) {
+    memcpy(buf + offset, str_add, str_add_len);
+    offset += str_add_len - 1;
+
+    write_float_t(s, buf, offset, ".x", 3, value->x);
+    write_float_t(s, buf, offset, ".y", 3, value->y);
+    write_float_t(s, buf, offset, ".z", 3, value->z);
+}
+
 static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
-    if (vector_old_length(kv->key_hash) < 1)
+    if (kv->key_hash.size() < 1)
         return -1;
 
     uint64_t hash = hash_fnv1a64m((uint8_t*)str, length, false);
 
-    uint64_t* key = kv->key_hash.begin;
-    size_t len = vector_old_length(kv->key);
+    std::vector<uint64_t>::iterator key = kv->key_hash.begin();
+    size_t len = kv->key.size();
     size_t temp;
     while (len > 0) {
         if (hash < key[temp = len / 2])
@@ -493,17 +461,17 @@ static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
         }
     }
 
-    if (key - kv->key_hash.begin == 0)
+    if (key - kv->key_hash.begin() == 0)
         if (key[0] == hash)
-            return kv->key_index.begin[key - kv->key_hash.begin];
+            return kv->key_index[key - kv->key_hash.begin()];
         else
             return -1;
     else if (key[-1] == hash)
-        return kv->key_index.begin[key - kv->key_hash.begin - 1];
-    else if (key == kv->key_hash.end)
+        return kv->key_index[key - kv->key_hash.begin() - 1];
+    else if (key == kv->key_hash.end())
         return -1;
     else if (key[0] == hash)
-        return kv->key_index.begin[key - kv->key_hash.begin];
+        return kv->key_index[key - kv->key_hash.begin()];
     return -1;
 }
 
@@ -511,19 +479,15 @@ static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
 #define RADIX (1 << RADIX_BASE)
 
 static void key_val_sort(key_val* kv) {
-    size_t count = vector_old_length(kv->key);
+    size_t count = kv->key.size();
 
-    kv->key_hash = vector_old_empty(uint64_t);
-    kv->key_index = vector_old_empty(size_t);
-    vector_old_uint64_t_reserve(&kv->key_hash, count);
-    vector_old_size_t_reserve(&kv->key_index, count);
-    kv->key_hash.end += count;
-    kv->key_index.end += count;
+    kv->key_hash.resize(count);
+    kv->key_index.resize(count);
 
-    char** key = kv->key.begin;
-    size_t* key_len = kv->key_len.begin;
-    uint64_t* key_hash = kv->key_hash.begin;
-    size_t* key_index = kv->key_index.begin;
+    char** key = kv->key.data();
+    size_t* key_len = kv->key_len.data();
+    uint64_t* key_hash = kv->key_hash.data();
+    size_t* key_index = kv->key_index.data();
     for (size_t i = 0; i < count; i++) {
         *key_index++ = i;
         *key_hash++ = hash_fnv1a64m((uint8_t*)*key++, *key_len++, false);
@@ -535,8 +499,8 @@ static void key_val_sort(key_val* kv) {
     uint64_t* o_key_hash = (uint64_t*)force_malloc_s(uint64_t, count);
     size_t* o_key_index = (size_t*)force_malloc_s(size_t, count);
     size_t* c = (size_t*)force_malloc_s(size_t, (1 << 8));
-    uint64_t* arr_key_hash = kv->key_hash.begin;
-    size_t* arr_key_index = kv->key_index.begin;
+    uint64_t* arr_key_hash = kv->key_hash.data();
+    size_t* arr_key_index = kv->key_index.data();
     uint64_t* org_arr = arr_key_hash;
 
     for (size_t shift = 0, s = 0; shift < sizeof(uint64_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {

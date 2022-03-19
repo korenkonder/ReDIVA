@@ -16,44 +16,44 @@ void* force_malloc(size_t size) {
     return buf;
 }
 
-inline int16_t load_reverse_endianness_int16_t(void* ptr) {
+inline int16_t load_reverse_endianness_int16_t(const void* ptr) {
     return (int16_t)_byteswap_ushort(*(uint16_t*)ptr);
 }
 
-inline uint16_t load_reverse_endianness_uint16_t(void* ptr) {
+inline uint16_t load_reverse_endianness_uint16_t(const void* ptr) {
     return (uint16_t)_byteswap_ushort(*(uint16_t*)ptr);
 }
 
-inline int32_t load_reverse_endianness_int32_t(void* ptr) {
+inline int32_t load_reverse_endianness_int32_t(const void* ptr) {
     return (int32_t)_byteswap_ulong(*(uint32_t*)ptr);
 }
 
-inline uint32_t load_reverse_endianness_uint32_t(void* ptr) {
+inline uint32_t load_reverse_endianness_uint32_t(const void* ptr) {
     return (uint32_t)_byteswap_ulong(*(uint32_t*)ptr);
 }
 
-inline int64_t load_reverse_endianness_int64_t(void* ptr) {
+inline int64_t load_reverse_endianness_int64_t(const void* ptr) {
     return (int64_t)_byteswap_uint64(*(uint64_t*)ptr);
 }
 
-inline uint64_t load_reverse_endianness_uint64_t(void* ptr) {
+inline uint64_t load_reverse_endianness_uint64_t(const void* ptr) {
     return (uint64_t)_byteswap_uint64(*(uint64_t*)ptr);
 }
 
-inline ssize_t load_reverse_endianness_ssize_t(void* ptr) {
+inline ssize_t load_reverse_endianness_ssize_t(const void* ptr) {
     return (ssize_t)_byteswap_uint64(*(uint64_t*)ptr);
 }
 
-inline size_t load_reverse_endianness_size_t(void* ptr) {
+inline size_t load_reverse_endianness_size_t(const void* ptr) {
     return (size_t)_byteswap_uint64(*(uint64_t*)ptr);
 }
 
-inline float_t load_reverse_endianness_float_t(void* ptr) {
+inline float_t load_reverse_endianness_float_t(const void* ptr) {
     uint32_t v = (uint32_t)_byteswap_ulong(*(uint32_t*)ptr);
     return *(float_t*)&v;
 }
 
-inline double_t load_reverse_endianness_double_t(void* ptr) {
+inline double_t load_reverse_endianness_double_t(const void* ptr) {
     uint64_t v = (uint64_t)_byteswap_uint64(*(uint64_t*)ptr);
     return *(double_t*)&v;
 }

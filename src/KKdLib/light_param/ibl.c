@@ -17,7 +17,11 @@ light_param_ibl::light_param_ibl() : ready(), lit_col(), lit_dir(), diff_coef() 
 
 }
 
-void light_param_ibl::read(char* path) {
+light_param_ibl::~light_param_ibl() {
+
+}
+
+void light_param_ibl::read(const char* path) {
     char* path_ibl = str_utils_add(path, ".ibl");
     if (path_check_file_exists(path_ibl)) {
         stream s;
@@ -29,11 +33,11 @@ void light_param_ibl::read(char* path) {
     free(path_ibl);
 }
 
-void light_param_ibl::read(wchar_t* path) {
+void light_param_ibl::read(const wchar_t* path) {
     wchar_t* path_ibl = str_utils_wadd(path, L".ibl");
-    if (path_wcheck_file_exists(path_ibl)) {
+    if (path_check_file_exists(path_ibl)) {
         stream s;
-        io_wopen(&s, path_ibl, L"rb");
+        io_open(&s, path_ibl, L"rb");
         if (s.io.stream)
             light_param_ibl_read_inner(this, &s);
         io_free(&s);
@@ -41,21 +45,17 @@ void light_param_ibl::read(wchar_t* path) {
     free(path_ibl);
 }
 
-void light_param_ibl::read(void* data, size_t length) {
+void light_param_ibl::read(const void* data, size_t length) {
     stream s;
-    io_mopen(&s, data, length);
+    io_open(&s, data, length);
     light_param_ibl_read_inner(this, &s);
     io_free(&s);
 }
 
-light_param_ibl::~light_param_ibl() {
-
-}
-
-bool light_param_ibl_load_file(void* data, char* path, char* file, uint32_t hash) {
+bool light_param_ibl::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
-    char* t = strrchr(file, '.');
+    const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
@@ -285,7 +285,7 @@ static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* 
         data_f32[0] = data_f32[1];
         data_f32[1] = temp;
 
-        std::vector<half_t>& data = specular->data[i + 1];
+        std::vector<half_t>& data = specular->data[i + 1ULL];
         temp = data_f32[0];
         for (size_t j = 0; j < data_size_2; j++)
             data[j] = float_to_half(temp[j]);

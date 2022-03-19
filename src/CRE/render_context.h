@@ -419,7 +419,7 @@ typedef struct object_data {
     float_t wet_param;
     int32_t texture_transform_count;
     texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
-    bool(*object_bounding_sphere_check_func)(object_bounding_sphere*);
+    bool(*object_bounding_sphere_check_func)(object_bounding_sphere*, camera*);
 } object_data;
 
 struct render_context {
@@ -433,9 +433,7 @@ struct render_context {
     fog fog_data[FOG_MAX];
     light_proj* litproj;
     light_set light_set_data[LIGHT_SET_MAX];
-    wind* wind;
 
-    void* stage;
     data_struct* data;
     post_process_struct post_process;
     bool chara_reflect;
@@ -515,6 +513,8 @@ extern float_t object_data_get_wet_param(object_data* object_data);
 extern void object_data_set_chara_color(object_data* object_data, bool value);
 extern void object_data_set_draw_task_flags(object_data* object_data, draw_task_flags flags);
 extern void object_data_set_morph(object_data* object_data, object_info object, float_t value);
+extern void object_data_set_object_bounding_sphere_check_func(object_data* object_data,
+    bool(*func)(object_bounding_sphere*, camera*));
 extern void object_data_set_shadow_type(object_data* object_data, shadow_type_enum type);
 extern void object_data_set_texture_color_coeff(object_data* object_data, vec4* value);
 extern void object_data_set_texture_color_offset(object_data* object_data, vec4* value);

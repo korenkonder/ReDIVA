@@ -33,12 +33,16 @@
 #include "../CRE/timer.h"
 #include "../CRE/post_process.h"
 #include "../KKdLib/io/path.h"
+#include "../KKdLib/database/item_table.h"
 #include"classes/imgui_helper.h"
 #include <timeapi.h>
 
 #if defined(DEBUG)
 #define OPENGL_DEBUG 0
 #endif
+
+#define CUBE_LINE_SIZE (0.0025f)
+#define CUBE_LINE_POINT_SIZE (CUBE_LINE_SIZE * 1.5f)
 
 shader_glsl cube_line_shader;
 shader_glsl cube_line_point_shader;
@@ -52,10 +56,10 @@ size_t grid_vertex_count = ((size_t)(grid_size / grid_spacing) * 2 + 1) * 4;
 
 GLuint cube_line_vao;
 GLuint cube_line_vbo;
+GLuint cube_line_point_vao;
+GLuint cube_line_point_instance_vbo;
 GLuint grid_vbo;
 static GLuint common_data_ubo = 0;
-stage stage_stgtst;
-stage stage_test_data;
 
 #define COMMON_DATA_SIZE (int32_t)(sizeof(vec4) + sizeof(mat4) * 3 + sizeof(vec4))
 
@@ -64,14 +68,23 @@ bool draw_grid_3d = false;
 
 const double_t render_scale_table[] = {
      1.0 / 4.0, //  25%
+     2.0 / 6.0, //  33.3%
      2.0 / 4.0, //  50%
+     4.0 / 6.0, //  66.6%
      3.0 / 4.0, //  75%
+     5.0 / 6.0, //  83.3%
      4.0 / 4.0, // 100%
+     7.0 / 6.0, // 116.6%
      5.0 / 4.0, // 125%
+     8.0 / 6.0, // 133.3%
      6.0 / 4.0, // 150%
+    10.0 / 6.0, // 166.6%
      7.0 / 4.0, // 175%
+    11.0 / 6.0, // 183.3%
      8.0 / 4.0, // 200%
 };
+
+size_t render_scale_table_count = sizeof(render_scale_table) / sizeof(double_t);
 
 static float_t old_scale, scale;
 
@@ -96,7 +109,7 @@ static void render_ctrl(render_context* rctx);
 static void render_draw(render_context* rctx);
 static void render_dispose(render_context* rctx);
 
-static bool render_load_shaders(void* data, char* path, char* file, uint32_t hash);
+static bool render_load_shaders(void* data, const char* path, const char* file, uint32_t hash);
 
 static void render_imgui(render_context* rctx);
 
@@ -123,7 +136,6 @@ ImGuiContext* imgui_context;
 lock imgui_context_lock;
 bool global_context_menu;
 extern size_t frame_counter;
-wind* wind_ptr;
 object_database* obj_db_ptr;
 render_context* rctx_ptr;
 int32_t stage_index = -1;
@@ -160,8 +172,8 @@ int32_t render_main(void* arg) {
     width = ris->res.x > 0 && ris->res.x < 8192 ? ris->res.x : mode->width;
     height = ris->res.y > 0 && ris->res.y < 8192 ? ris->res.y : mode->height;
 
-    width = (int32_t)(width / 1.5f);
-    height = (int32_t)(height / 1.5f);
+    width = (int32_t)(width / 2.0f);
+    height = (int32_t)(height / 2.0f);
 
     glfwWindowHint(GLFW_RED_BITS, mode->redBits);
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
@@ -228,8 +240,6 @@ int32_t render_main(void* arg) {
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 
-    lock_init(&pv_lock);
-
     lock_lock(&state_lock);
     state = RENDER_INITIALIZING;
     lock_unlock(&state_lock);
@@ -290,8 +300,6 @@ int32_t render_main(void* arg) {
     state = RENDER_DISPOSED;
     lock_unlock(&state_lock);
 
-    lock_free(&pv_lock);
-
 #pragma region GLFW Dispose
     glfwDestroyWindow(window);
     glfwTerminate();
@@ -307,41 +315,40 @@ double_t render_get_scale() {
 
 void render_set_scale(double_t value) {
     size_t i;
-    const size_t c = sizeof(render_scale_table) / sizeof(double_t);
-    for (i = 0; i < c; i++)
+    for (i = 0; i < render_scale_table_count; i++)
         if (value <= render_scale_table[i]) break;
 
-    if (i < c)
+    if (i < render_scale_table_count)
         value = render_scale_table[i];
+    else if (render_scale_table_count - 1 > -1)
+        value = render_scale_table[render_scale_table_count - 1];
     else
-        value = render_scale_table[c - 1];
+        value = 1.0;
 
     scale = (float_t)value;
 }
 
 int32_t render_get_scale_index() {
     size_t i;
-    const size_t c = sizeof(render_scale_table) / sizeof(double_t);
-    for (i = 0; i < c; i++)
+    for (i = 0; i < render_scale_table_count; i++)
         if (scale <= render_scale_table[i]) break;
 
     int32_t index;
-    if (i < c)
+    if (i < render_scale_table_count)
         index = (int32_t)i;
     else
-        index = (int32_t)(c - 1);
+        index = (int32_t)(render_scale_table_count - 1);
     return index;
 }
 
 void render_set_scale_index(int32_t index) {
-    const size_t c = sizeof(render_scale_table) / sizeof(double_t);
     double_t value;
     if (index < 0)
         value = render_scale_table[0];
-    else if (index < c)
+    else if (index < render_scale_table_count)
         value = render_scale_table[index];
     else
-        value = render_scale_table[c - 1];
+        value = render_scale_table[render_scale_table_count - 1];
 
     scale = (float_t)value;
 }
@@ -390,15 +397,10 @@ static render_context* render_load() {
         "} result;\n"
         "\n"
         "uniform mat4 vp;\n"
-        "uniform vec3 trans[4];\n"
-        "uniform float scale;\n"
         "uniform vec4 color;\n"
         "\n"
         "void main() {\n"
-        "    vec4 pos;\n"
-        "    pos.xyz = trans[gl_VertexID];\n"
-        "    pos.w = 1.0;\n"
-        "    gl_Position = vp * pos;\n"
+        "    gl_Position = vp * a_position;\n"
         "    result.color = color;\n"
         "}\n";
 
@@ -416,20 +418,24 @@ static render_context* render_load() {
     
     const char* cube_line_point_vert_shader =
         "#version 430 core\n"
-        "layout(location = 0) in vec4 a_position;\n"
+        "layout(location = 0) in vec3 i_trans;\n"
         "\n"
         "out VertexData {\n"
-        "    vec4 color;\n"
+        "    vec2 uv;\n"
         "} result;\n"
         "\n"
         "uniform mat4 vp;\n"
-        "uniform mat4 mat;\n"
-        "uniform vec4 color;\n"
+        "uniform vec3 trans[4];\n"
         "\n"
         "void main() {\n"
-        "    vec4 pos = mat * a_position;\n"
+        "    vec4 pos;\n"
+        "    pos.xyz = trans[gl_VertexID] + i_trans;\n"
+        "    pos.w = 1.0;\n"
         "    gl_Position = vp * pos;\n"
-        "    result.color = color;\n"
+        "    vec2 uv;\n"
+        "    uv.x = float(gl_VertexID / 2);\n"
+        "    uv.y = float(gl_VertexID % 2);\n"
+        "    result.uv = uv;\n"
         "}\n";
 
     const char* cube_line_point_frag_shader =
@@ -437,11 +443,16 @@ static render_context* render_load() {
         "layout(location = 0) out vec4 result;\n"
         "\n"
         "in VertexData {\n"
-        "    vec4 color;\n"
+        "    vec2 uv;\n"
         "} frg;\n"
         "\n"
+        "uniform float dark_border_end;\n"
+        "uniform float dark_border_start;\n"
+        "\n"
         "void main() {\n"
-        "    result = frg.color;\n"
+        "    float blend = step(dark_border_end, frg.uv.x) * (1.0 - step(dark_border_start, frg.uv.x))"
+        " * step(dark_border_end, frg.uv.y) * (1.0 - step(dark_border_start, frg.uv.y));\n"
+        "    result = vec4(blend, blend, blend, 1.0);\n"
         "}\n";
 
     const char* grid_vert_shader =
@@ -532,8 +543,9 @@ static render_context* render_load() {
 
     render_resize_fb(rctx, true);
 
-    rob_chara_array_init();
-    rob_chara_pv_data_array_init();
+    task_auth_3d_append_task();
+    TaskWork::AppendTask(&glt_particle_manager, "GLITTER_TASK", 2);
+    task_rob_manager_append_task();
 
     data_struct* aft_data = &data_list[DATA_AFT];
     auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
@@ -545,17 +557,24 @@ static render_context* render_load() {
 
     rctx->data = aft_data;
 
+    {
+        farc chritm_prop;
+        aft_data->load_file(&chritm_prop, "rom/", "chritm_prop.farc", farc::load_file);
+
+        farc_file* ff = chritm_prop.read_file("mikitm_tbl.txt");
+        if (ff && ff->size) {
+            itm_table itm;
+            itm.read(ff->data, ff->size);
+            itm.write("mikitm_tbl.tst");
+        }
+    }
+
+    rob_mot_tbl_init();
+    rob_thread_handler_init();
+    pv_osage_manager_array_ptr_init();
+
     light_param_data_storage::load(aft_data);
     auth_3d_data_load_auth_3d_db(aft_auth_3d_db);
-
-    stage_init(&stage_stgtst);
-    stage_load(&stage_stgtst, aft_data, aft_auth_3d_db,
-        aft_obj_db, aft_tex_db, aft_stage_data, "STGTST", rctx);
-    stage_set(&stage_stgtst, rctx);
-
-    stage_init(&stage_test_data);
-    stage_test_data.set_id = -1;
-    stage_test_data.stage_set_id = -1;
 
     object_set_info* set_info;
     object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM000");
@@ -571,33 +590,44 @@ static render_context* render_load() {
     motion_set_load_motion(aft_mot_db->get_motion_set_id("PV824"), 0, aft_mot_db);
 
     rob_chara_pv_data pv_data;
-    rob_chara_pv_data_init(&pv_data);
-    pv_data.field_0 = 2;
     int32_t chara_id = rob_chara_array_init_chara_index(CHARA_MIKU, &pv_data, 0, false);
     rob_chara_id_array[0] = chara_id;
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
-        rob_chara_reset_data(&rob_chara_array[chara_id], &rob_chara_array[chara_id].pv_data, aft_bone_data, aft_mot_db);
-        rob_chara_reset(&rob_chara_array[chara_id], aft_bone_data, aft_data, aft_obj_db);
-        rob_chara_load_motion(&rob_chara_array[chara_id],
-            aft_mot_db->get_motion_id("PV824_STF_P1_00"), 2, aft_bone_data, aft_mot_db);
-        rob_chara_set_visibility(&rob_chara_array[chara_id], true);
-        //rob_chara_set_frame(&rob_chara_array[chara_id], 1000.0f);
-    }
+        for (int32_t i = 0; i < 120; i++)
+            TaskWork::Ctrl();
 
-    float_t cube_line_verts[] = {
-        -1.0,  1.0,
-         1.0,  1.0,
-        -1.0, -1.0,
-         1.0, -1.0,
-    };
+        int32_t motion_id = aft_mot_db->get_motion_id("PV824_STF_P1_00");
+        rob_chara_set_motion_id(&rob_chara_array[chara_id], motion_id, 0.0f,
+            motion_storage_get_mot_data_frame_count(motion_id, aft_mot_db),
+            false, true, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+        rob_chara_set_visibility(&rob_chara_array[chara_id], true);
+        rob_chara_set_frame(&rob_chara_array[chara_id], 0.0f);
+        rob_chara_item_equip* rob_item_equip = rob_chara_array[chara_id].item_equip;
+        for (int32_t j = rob_item_equip->first_item_equip_object;
+            j < rob_item_equip->max_item_equip_object; j++) {
+            rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
+            for (ExOsageBlock*& i : itm_eq_obj->osage_blocks)
+                if (i)
+                    i->rob.osage_reset = true;
+        }
+    }
 
     glGenVertexArrays(1, &cube_line_vao);
     glGenBuffers(1, &cube_line_vbo);
     gl_state_bind_vertex_array(cube_line_vao);
     gl_state_bind_array_buffer(cube_line_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_line_verts), (void*)cube_line_verts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * 4, 0, GL_STREAM_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float_t) * 2, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), 0);
+    gl_state_bind_array_buffer(0);
+    
+    glGenVertexArrays(1, &cube_line_point_vao);
+    glGenBuffers(1, &cube_line_point_instance_vbo);
+    gl_state_bind_vertex_array(cube_line_point_vao);
+    gl_state_bind_array_buffer(cube_line_point_instance_vbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(std::pair<vec3, float_t>), 0);
+    glVertexAttribDivisor(0, 1);
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
 
@@ -674,9 +704,6 @@ static render_context* render_load() {
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
     shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
     classes_process_init(classes, classes_count, rctx);
-
-    TaskWork::AppendTask(&task_auth_3d, "AUTH_3D");
-    TaskWork::AppendTask(&glt_particle_manager, "GLITTER_TASK", 2);
     return rctx;
 }
 
@@ -789,20 +816,22 @@ static void cube_line_draw(shader_glsl* shader, camera* cam, vec3* trans, float_
     mat4 mat[2];
     mat4_translate(trans[0].x, trans[0].y, trans[0].z, &mat[0]);
     mat4_translate(trans[1].x, trans[1].y, trans[1].z, &mat[1]);
-    mat4_mult(&cam->inv_view_rot, &mat[0], &mat[0]);
-    mat4_mult(&cam->inv_view_rot, &mat[1], &mat[1]);
-    mat4_get_translation(&mat[0], &trans[0]);
-    mat4_get_translation(&mat[1], &trans[1]);
+    mat4_mult(&cam->view, &mat[0], &mat[0]);
+    mat4_mult(&cam->view, &mat[1], &mat[1]);
 
-    float_t dx = trans[1].x - trans[0].x;
-    float_t dy = trans[1].y - trans[0].y;
+    vec3 t[2];
+    mat4_get_translation(&mat[0], &t[0]);
+    mat4_get_translation(&mat[1], &t[1]);
+
+    vec3 d;
+    vec2_sub(*(vec2*)&t[1], *(vec2*)&t[0], *(vec2*)&d);
+    vec2_normalize(*(vec2*)&d, *(vec2*)&d);
+    vec2_mult_scalar(*(vec2*)&d, line_size, *(vec2*)&d);
+    d.z = 0.0f;
+
     vec3 norm[2];
-    norm[0] = { -dy, dx, 0.0f };
-    norm[1] = { dy, -dx, 0.0f };
-    vec3_normalize(norm[0], norm[0]);
-    vec3_normalize(norm[1], norm[1]);
-    vec3_mult_scalar(norm[0], line_size, norm[0]);
-    vec3_mult_scalar(norm[1], line_size, norm[1]);
+    norm[0] = { -d.y, d.x, 0.0f };
+    norm[1] = { d.y, -d.x, 0.0f };
     mat4_mult_vec3(&cam->inv_view_rot, &norm[0], &norm[0]);
     mat4_mult_vec3(&cam->inv_view_rot, &norm[1], &norm[1]);
 
@@ -811,27 +840,21 @@ static void cube_line_draw(shader_glsl* shader, camera* cam, vec3* trans, float_
     vec3_add(trans[0], norm[1], vert_trans[1]);
     vec3_add(trans[1], norm[0], vert_trans[2]);
     vec3_add(trans[1], norm[1], vert_trans[3]);
-    shader_glsl_set_vec3_array(shader, "trans", 4, vert_trans);
+
     shader_glsl_set_vec4(shader, "color", *color);
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vert_trans), vert_trans);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-static void cube_line_point_draw(shader_glsl* shader, camera* cam, vec3* trans,
-    float_t size, float_t dark_size, vec4* color, vec4* dark_color) {
-    mat4 mat;
-    mat4_scale(dark_size, dark_size, dark_size, &mat);
-    mat4_set_translation(&mat, trans);
-    mat4_mult(&cam->inv_view_rot, &mat, &mat);
-    shader_glsl_set_mat4(&cube_line_point_shader, "mat", false, mat);
-    shader_glsl_set_vec4(&cube_line_point_shader, "color", *dark_color);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+#include "../KKdLib/sort.h"
+#include "../KKdLib/str_utils.h"
 
-    mat4_scale(size, size, size, &mat);
-    mat4_set_translation(&mat, trans);
-    mat4_mult(&cam->inv_view_rot, &mat, &mat);
-    shader_glsl_set_mat4(&cube_line_point_shader, "mat", false, mat);
-    shader_glsl_set_vec4(&cube_line_point_shader, "color", *color);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+static int cube_line_points_sort(void const* src1, void const* src2) {
+    std::pair<vec3, float_t>* t2 = (std::pair<vec3, float_t>*)src2;
+    float_t d1 = ((std::pair<vec3, float_t>*)src1)->second;
+    float_t d2 = ((std::pair<vec3, float_t>*)src2)->second;
+    return d1 > d2 ? -1 : (d1 < d2 ? 1 : 0);
 }
 
 static void render_draw(render_context* rctx) {
@@ -886,40 +909,33 @@ static void render_draw(render_context* rctx) {
     static bool rob_draw = false;
 
     gl_state_disable_cull_face();
-    gl_state_bind_vertex_array(cube_line_vao);
-    const float_t line_size = 0.0025f;
-    const float_t line_point_size = line_size * 1.125f;
-    const float_t line_point_dark_size = line_size * 1.5f;
     vec4 bone_color = { 1.0f, 0.0f, 0.0f, 1.0f };
     vec4 cns_color = { 1.0f, 1.0f, 0.0f, 1.0f };
     vec4 exp_color = { 0.0f, 1.0f, 0.0f, 1.0f };
     vec4 osg_color = { 0.0f, 0.0f, 1.0f, 1.0f };
     vec4 osg_node_color = { 1.0f, 0.0f, 1.0f, 1.0f };
-    vec4 point_color = { 1.0f, 1.0f, 1.0f, 1.0f };
-    vec4 point_dark_color = { 0.0f, 0.0f, 0.0f, 1.0f };
     for (int32_t i = 0; i < ROB_CHARA_COUNT && rob_draw; i++) {
-        if (rob_chara_pv_data_array[i].field_0 == -1)
+        if (rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
             continue;
 
+        gl_state_bind_vertex_array(cube_line_vao);
+        gl_state_bind_array_buffer(cube_line_vbo);
         rob_chara* rob_chr = &rob_chara_array[i];
         rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
         size_t object_bone_count = rob_bone_data->object_bone_count;
         size_t total_bone_count = rob_bone_data->total_bone_count;
         size_t ik_bone_count = rob_bone_data->ik_bone_count;
-        vector_old_bone_node* nodes = &rob_bone_data->nodes;
         shader_glsl_use(&cube_line_shader);
-        for (bone_node* j = nodes->begin; j != nodes->end; j++) {
-            if (!j->parent)
+        for (bone_node& j : rob_bone_data->nodes) {
+            if (!j.parent)
                 continue;
 
             vec3 trans[2];
-            mat4_get_translation(j->parent->mat, &trans[0]);
-            mat4_get_translation(j->mat, &trans[1]);
+            mat4_get_translation(j.parent->mat, &trans[0]);
+            mat4_get_translation(j.mat, &trans[1]);
 
-            if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                continue;
-
-            cube_line_draw(&cube_line_shader, cam, trans, line_size, &bone_color);
+            if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &bone_color);
         }
 
         rob_chara_item_equip* rob_item_equip = rob_chr->item_equip;
@@ -927,156 +943,171 @@ static void render_draw(render_context* rctx) {
             j < rob_item_equip->max_item_equip_object; j++) {
             rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
 
-            vector_old_ptr_ExExpressionBlock* expression_blocks = &itm_eq_obj->expression_blocks;
-            for (ExExpressionBlock** k = expression_blocks->begin; k != expression_blocks->end; k++) {
-                if (!*k)
-                    continue;
-
-                ExExpressionBlock* exp = *k;
-
-                if (!exp->bone_node_ptr || !exp->parent_bone_node)
+            for (ExExpressionBlock*& k : itm_eq_obj->expression_blocks) {
+                ExExpressionBlock* exp = k;
+                if (!exp || !exp->bone_node_ptr || !exp->parent_bone_node)
                     continue;
 
                 vec3 trans[2];
                 mat4_get_translation(exp->parent_bone_node->mat, &trans[0]);
                 mat4_get_translation(exp->bone_node_ptr->mat, &trans[1]);
 
-                if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                    continue;
-
-                cube_line_draw(&cube_line_shader, cam, trans, line_size, &cns_color);
+                if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                    cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &cns_color);
             }
 
-            vector_old_ptr_ExConstraintBlock* constraint_blocks = &itm_eq_obj->constraint_blocks;
-            for (ExConstraintBlock** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
-                if (!*k)
-                    continue;
-
-                ExConstraintBlock* cns = *k;
-
-                if (!cns->bone_node_ptr || !cns->parent_bone_node)
+            for (ExConstraintBlock*& k : itm_eq_obj->constraint_blocks) {
+                ExConstraintBlock* cns = k;
+                if (!cns || !cns->bone_node_ptr || !cns->parent_bone_node)
                     continue;
 
                 vec3 trans[2];
                 mat4_get_translation(cns->parent_bone_node->mat, &trans[0]);
                 mat4_get_translation(cns->bone_node_ptr->mat, &trans[1]);
 
-                if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                    continue;
-
-                cube_line_draw(&cube_line_shader, cam, trans, line_size, &exp_color);
+                if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                    cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &exp_color);
             }
 
-            vector_old_ptr_ExOsageBlock* osage_blocks = &itm_eq_obj->osage_blocks;
-            for (ExOsageBlock** k = osage_blocks->begin; k != osage_blocks->end; k++) {
-                if (!*k)
-                    continue;
-
-                ExOsageBlock* osg = *k;
-
-                if (!osg->bone_node_ptr || !osg->parent_bone_node)
+            for (ExOsageBlock*& k : itm_eq_obj->osage_blocks) {
+                ExOsageBlock* osg = k;
+                if (!osg || !osg->bone_node_ptr || !osg->parent_bone_node)
                     continue;
 
                 vec3 trans[2];
                 mat4_get_translation(osg->parent_bone_node->mat, &trans[0]);
                 mat4_get_translation(osg->bone_node_ptr->mat, &trans[1]);
 
-                if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                    continue;
+                if (!memcmp(&trans[0], &trans[1], sizeof(vec3))) {
+                    mat4_get_translation(osg->parent_bone_node->parent->mat, &trans[0]);
+                    if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                        continue;
+                }
 
-                cube_line_draw(&cube_line_shader, cam, trans, line_size, &osg_color);
+                cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &osg_color);
 
                 rob_osage* rob_osg = &osg->rob;
-                vector_old_rob_osage_node* nodes = &osg->rob.nodes;
                 rob_osage_node* parent_node = &osg->rob.node;
-                for (rob_osage_node* l = nodes->begin; l != nodes->end; parent_node = l++) {
-                    if (!l->bone_node_ptr || !parent_node->bone_node_ptr)
+                for (rob_osage_node& l : osg->rob.nodes) {
+                    if (!l.bone_node_ptr || !parent_node->bone_node_ptr) {
+                        parent_node = &l;
                         continue;
+                    }
 
                     vec3 trans[2];
                     mat4_get_translation(parent_node->bone_node_ptr->mat, &trans[0]);
-                    mat4_get_translation(l->bone_node_ptr->mat, &trans[1]);
+                    mat4_get_translation(l.bone_node_ptr->mat, &trans[1]);
 
-                    if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                        continue;
-
-                    cube_line_draw(&cube_line_shader, cam, trans, line_size, &osg_node_color);
+                    if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                        cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &osg_node_color);
+                    else {
+                        mat4_get_translation(parent_node->bone_node_ptr->parent->mat, &trans[0]);
+                        if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                            continue;
+                        cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &osg_node_color);
+                    }
+                    parent_node = &l;
                 }
             }
         }
+        gl_state_bind_array_buffer(0);
 
-        shader_glsl_use(&cube_line_point_shader);
-        for (bone_node* j = nodes->begin; j != nodes->end; j++) {
+        std::vector<std::pair<vec3, float_t>> cube_line_points;
+        for (bone_node& j : rob_bone_data->nodes) {
             vec3 trans;
-            mat4_get_translation(j->mat, &trans);
-            cube_line_point_draw(&cube_line_point_shader, cam, &trans,
-                line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+            mat4_get_translation(j.mat, &trans);
+            cube_line_points.push_back({ trans, 0.0f });
         }
 
         for (int32_t j = rob_item_equip->first_item_equip_object;
             j < rob_item_equip->max_item_equip_object; j++) {
             rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
 
-            vector_old_ptr_ExExpressionBlock* expression_blocks = &itm_eq_obj->expression_blocks;
-            for (ExExpressionBlock** k = expression_blocks->begin; k != expression_blocks->end; k++) {
-                if (!*k)
-                    continue;
-
-                ExExpressionBlock* exp = *k;
-
-                if (!exp->bone_node_ptr)
+            for (ExExpressionBlock*& k : itm_eq_obj->expression_blocks) {
+                ExExpressionBlock* exp = k;
+                if (!exp || !exp->bone_node_ptr)
                     continue;
 
                 vec3 trans;
                 mat4_get_translation(exp->bone_node_ptr->mat, &trans);
-                cube_line_point_draw(&cube_line_point_shader, cam, &trans,
-                    line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+                cube_line_points.push_back({ trans, 0.0f });
             }
 
-            vector_old_ptr_ExConstraintBlock* constraint_blocks = &itm_eq_obj->constraint_blocks;
-            for (ExConstraintBlock** k = constraint_blocks->begin; k != constraint_blocks->end; k++) {
-                if (!*k)
-                    continue;
-
-                ExConstraintBlock* cns = *k;
-
-                if (!cns->bone_node_ptr)
+            for (ExConstraintBlock*& k : itm_eq_obj->constraint_blocks) {
+                ExConstraintBlock* cns = k;
+                if (!cns || !cns->bone_node_ptr)
                     continue;
 
                 vec3 trans;
                 mat4_get_translation(cns->bone_node_ptr->mat, &trans);
-                cube_line_point_draw(&cube_line_point_shader, cam, &trans,
-                    line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+                cube_line_points.push_back({ trans, 0.0f });
             }
 
-            vector_old_ptr_ExOsageBlock* osage_blocks = &itm_eq_obj->osage_blocks;
-            for (ExOsageBlock** k = osage_blocks->begin; k != osage_blocks->end; k++) {
-                if (!*k)
-                    continue;
-
-                ExOsageBlock* osg = *k;
-
-                if (!osg->bone_node_ptr)
+            for (ExOsageBlock*& k : itm_eq_obj->osage_blocks) {
+                ExOsageBlock* osg = k;
+                if (!osg || !osg->bone_node_ptr)
                     continue;
 
                 vec3 trans;
                 mat4_get_translation(osg->bone_node_ptr->mat, &trans);
-                cube_line_point_draw(&cube_line_point_shader, cam, &trans,
-                    line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+                cube_line_points.push_back({ trans, 0.0f });
 
                 rob_osage* rob_osg = &osg->rob;
-                vector_old_rob_osage_node* nodes = &osg->rob.nodes;
-                for (rob_osage_node* l = nodes->begin; l != nodes->end; l++) {
-                    if (!l->bone_node_ptr)
+                rob_osage_node* parent_node = &osg->rob.node;
+                for (rob_osage_node& l : osg->rob.nodes) {
+                    if (!l.bone_node_ptr) {
+                        parent_node = &l;
                         continue;
+                    }
 
                     vec3 trans;
-                    mat4_get_translation(l->bone_node_ptr->mat, &trans);
-                    cube_line_point_draw(&cube_line_point_shader, cam, &trans,
-                        line_point_size, line_point_dark_size, &point_color, &point_dark_color);
+                    mat4_get_translation(l.bone_node_ptr->mat, &trans);
+                    cube_line_points.push_back({ trans, 0.0f });
+                    parent_node = &l;
                 }
             }
         }
+
+        for (std::pair<vec3, float_t>& i : cube_line_points) {
+            vec3 trans;
+            mat4_mult_vec3(&cam->view_projection, &i.first, &trans);
+            i.second = trans.z;
+        }
+
+        quicksort_custom(cube_line_points.data(), cube_line_points.size(),
+            sizeof(std::pair<vec3, float_t>), cube_line_points_sort);
+
+        gl_state_bind_array_buffer(cube_line_point_instance_vbo);
+        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(std::pair<vec3, float_t>)
+            * cube_line_points.size()), cube_line_points.data(), GL_STREAM_DRAW);
+        gl_state_bind_array_buffer(0);
+
+        vec3 trans[4];
+        trans[0] = { -1.0,  1.0, 0.0 };
+        trans[1] = {  1.0,  1.0, 0.0 };
+        trans[2] = { -1.0, -1.0, 0.0 };
+        trans[3] = {  1.0, -1.0, 0.0 };
+
+        vec3_mult_scalar(trans[0], CUBE_LINE_POINT_SIZE, trans[0]);
+        vec3_mult_scalar(trans[1], CUBE_LINE_POINT_SIZE, trans[1]);
+        vec3_mult_scalar(trans[2], CUBE_LINE_POINT_SIZE, trans[2]);
+        vec3_mult_scalar(trans[3], CUBE_LINE_POINT_SIZE, trans[3]);
+
+        mat4_mult_vec3(&cam->inv_view_rot, &trans[0], &trans[0]);
+        mat4_mult_vec3(&cam->inv_view_rot, &trans[1], &trans[1]);
+        mat4_mult_vec3(&cam->inv_view_rot, &trans[2], &trans[2]);
+        mat4_mult_vec3(&cam->inv_view_rot, &trans[3], &trans[3]);
+
+        gl_state_bind_vertex_array(cube_line_point_vao);
+        shader_glsl_use(&cube_line_point_shader);
+        shader_glsl_set_vec3_array(&cube_line_point_shader, "trans", 4, trans);
+        shader_glsl_set_float(&cube_line_point_shader, "dark_border_end",
+            ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
+        shader_glsl_set_float(&cube_line_point_shader, "dark_border_start",
+            (1.0f - ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE))));
+        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)cube_line_points.size());
+        cube_line_points.clear();
+        cube_line_points.shrink_to_fit();
     }
     gl_state_bind_vertex_array(0);
     gl_state_enable_cull_face();
@@ -1099,9 +1130,6 @@ static void render_dispose(render_context* rctx) {
     igDestroyContext(imgui_context);
     lock_free(&imgui_context_lock);
 
-    stage_free(&stage_test_data, rctx);
-    stage_free(&stage_stgtst, rctx);
-
     data_struct_free();
 
     render_shaders_free();
@@ -1112,10 +1140,14 @@ static void render_dispose(render_context* rctx) {
 
     glDeleteBuffers(1, &common_data_ubo);
     glDeleteBuffers(1, &grid_vbo);
+    glDeleteBuffers(1, &cube_line_point_instance_vbo);
+    glDeleteVertexArrays(1, &cube_line_point_vao);
     glDeleteBuffers(1, &cube_line_vbo);
     glDeleteVertexArrays(1, &cube_line_vao);
 
-    rob_chara_array_free();
+    pv_osage_manager_array_ptr_free();
+    rob_thread_handler_free();
+    rob_mot_tbl_free();
 
     motion_storage_free();
 
@@ -1123,6 +1155,8 @@ static void render_dispose(render_context* rctx) {
 
     render_texture_data_free();
     render_context_free(rctx);
+
+    file_handler_storage_free_thread();
 
     object_storage_free();
     texture_storage_free();
@@ -1135,7 +1169,7 @@ static void render_imgui(render_context* rctx) {
     lock_unlock(&imgui_context_lock);
 }
 
-static bool render_load_shaders(void* data, char* path, char* file, uint32_t hash) {
+static bool render_load_shaders(void* data, const char* path, const char* file, uint32_t hash) {
     string s;
     string_init(&s, path);
     string_add(&s, file);
@@ -1252,7 +1286,7 @@ static void render_imgui_context_menu(classes_data* classes,
 }
 
 inline static void render_shaders_load() {
-    data_struct_load_file(&data_list[DATA_AFT], &shaders_ft,
+    data_list[DATA_AFT].load_file(&shaders_ft,
         "rom/", "ft_shaders.farc", render_load_shaders);
 }
 

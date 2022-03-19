@@ -46,7 +46,7 @@ void diva_read(diva* d, char* path) {
 void diva_wread(diva* d, wchar_t* path) {
     wchar_t* path_diva = str_utils_wadd(path, L".diva");
     stream s;
-    io_wopen(&s, path_diva, L"rb");
+    io_open(&s, path_diva, L"rb");
     if (s.io.stream) {
         uint32_t signature = io_read_uint32_t_reverse_endianness(&s, true);
         if (signature != 'DIVA')
@@ -109,7 +109,7 @@ void diva_wwrite(diva* d, wchar_t* path) {
 
     wchar_t* path_diva = str_utils_wadd(path, L".diva");
     stream s;
-    io_wopen(&s, path_diva, L"wb");
+    io_open(&s, path_diva, L"wb");
     if (s.io.stream) {
         io_write_uint32_t_reverse_endianness(&s, 'DIVA', true);
         io_write_uint32_t(&s, 0);
@@ -164,26 +164,26 @@ void diva_dispose(diva* d) {
 static void diva_read_wav(diva* d, wchar_t* path, float_t** data) {
     *data = 0;
     size_t samples = 0;
-    wchar_t* path_wav = str_utils_wadd(path, L".wav");
+    wchar_t* path_av = str_utils_wadd(path, L".wav");
     wav* w = wav_init();
-    wav_wread(w, path_wav, data, &samples);
+    wav_wread(w, path_av, data, &samples);
     d->channels = w->channels;
     d->sample_rate = w->sample_rate;
     d->samples_count = (uint32_t)samples;
     wav_dispose(w);
-    free(path_wav);
+    free(path_av);
 }
 
 static void diva_write_wav(diva* d, wchar_t* path, float_t* data) {
-    wchar_t* path_wav = str_utils_wadd(path, L".wav");
+    wchar_t* path_av = str_utils_wadd(path, L".wav");
     wav* w = wav_init();
     w->bytes = 4;
     w->channels = d->channels;
     w->format = 0x03;
     w->sample_rate = d->sample_rate;
-    wav_wwrite(w, path_wav, data, d->samples_count);
+    wav_wwrite(w, path_av, data, d->samples_count);
     wav_dispose(w);
-    free(path_wav);
+    free(path_av);
 }
 
 static void ima_decode(uint8_t value, int32_t* current, int32_t* current_clamp, int8_t* step_index) {

@@ -280,6 +280,11 @@ inline void object_data_set_morph(object_data* object_data, object_info object, 
     object_data->morph.object = object;
 }
 
+inline void object_data_set_object_bounding_sphere_check_func(object_data* object_data,
+    bool(*func)(object_bounding_sphere*, camera*)) {
+    object_data->object_bounding_sphere_check_func = func;
+}
+
 inline void object_data_set_shadow_type(object_data* object_data, shadow_type_enum type) {
     if (type == SHADOW_CHARA || type == SHADOW_STAGE)
         object_data->shadow_type = type;
@@ -348,7 +353,6 @@ inline render_context* render_context_init() {
         fog_init(&rctx->fog_data[i]);
     for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
         light_set_init(&rctx->light_set_data[i]);
-    rctx->wind = wind_init();
 
     post_process_init(&rctx->post_process);
     return rctx;
@@ -356,18 +360,26 @@ inline render_context* render_context_init() {
 
 extern float_t rob_frame;
 extern render_context* rctx_ptr;
-extern wind* wind_ptr;
 
 inline void render_context_ctrl(render_context* rctx) {
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        if (rob_chara_pv_data_array[i].field_0 == -1)
+        if (rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
             continue;
 
         float_t frame = rob_chara_get_frame(&rob_chara_array[i]);
         float_t frame_count = rob_chara_get_frame_count(&rob_chara_array[i]);
-        frame += get_delta_frame();
-        if (frame >= frame_count)
-            frame -= frame_count;
+        //frame += get_delta_frame();
+        if (frame >= frame_count) {
+            frame = 0.0f;
+            rob_chara_item_equip* rob_item_equip = rob_chara_array[i].item_equip;
+            for (int32_t j = rob_item_equip->first_item_equip_object;
+                j < rob_item_equip->max_item_equip_object; j++) {
+                rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
+                for (ExOsageBlock*& i : itm_eq_obj->osage_blocks)
+                    if (i)
+                        i->rob.osage_reset = true;
+            }
+        }
         //rob_chara_set_frame(&rob_chara_array[i], frame);
         rob_chara_set_frame(&rob_chara_array[i], rob_frame);
         rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
@@ -385,16 +397,8 @@ inline void render_context_ctrl(render_context* rctx) {
 
     rctx_ptr = rctx;
     TaskWork::Ctrl();
-    wind_ctrl(rctx->wind);
-
-    wind_ptr = rctx->wind;
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-        if (rob_chara_pv_data_array[i].field_0 != -1)
-            rob_chara_calc(&rob_chara_array[i]);
 
     file_handler_storage_ctrl();
-
-    stage_ctrl((stage*)rctx->stage, rctx);
 
     shadow_ctrl(rctx->draw_pass.shadow_ptr, rctx);
     draw_state_stats_update(&rctx->draw_state);
@@ -404,12 +408,6 @@ inline void render_context_ctrl(render_context* rctx) {
 inline void render_context_disp(render_context* rctx) {
     rctx_ptr = rctx;
     TaskWork::Disp();
-
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-        if (rob_chara_pv_data_array[i].field_0 != -1)
-            rob_chara_disp(&rob_chara_array[i], rctx);
-
-    stage_disp((stage*)rctx->stage, rctx);
 
     post_process_update(&rctx->post_process, rctx->camera);
     draw_pass_main(rctx);
@@ -612,7 +610,7 @@ void render_context_light_param_data_ibl_set(render_context* rctx,
 }
 
 void render_context_light_param_data_wind_set(render_context* rctx, light_param_wind* w) {
-    wind* wind = rctx->wind;
+    wind* wind = task_wind.ptr;
     if (w->has_scale)
         wind->scale = w->scale;
 
@@ -677,7 +675,6 @@ inline void render_context_free(render_context* rctx) {
     object_data_free(&rctx->object_data);
     glDeleteVertexArrays(1, &rctx->vao);
 
-    wind_free(rctx->wind);
     post_process_free(&rctx->post_process);
     free(rctx);
 }
@@ -754,7 +751,7 @@ static void object_data_init(object_data* data) {
     data->object_sort = true;
     data->chara_color = true;
     data->morph.value = 0.0f;
-    data->morph.object = object_info_null;
+    data->morph.object = object_info();
     data->object_bounding_sphere_check_func = 0;
 
     data->buffer.offset = 0;

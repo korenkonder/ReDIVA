@@ -41,18 +41,18 @@ texture* texture_load_tex_cube_map(uint32_t id, GLenum internal_format, int32_t 
 }
 
 texture* texture_txp_load(txp* t, uint32_t id) {
-    if (!t || !t->data.begin)
+    if (!t || !t->mipmaps.size())
         return 0;
 
     int32_t count = t->array_size * t->mipmaps_count;
     void** data_ptr = force_malloc_s(void*, count);
     for (uint32_t i = 0, k = 0; i < t->array_size; i++)
         for (uint32_t j = 0; j < t->mipmaps_count; j++, k++)
-            data_ptr[k] = t->data.begin[k].data;
+            data_ptr[k] = t->mipmaps[k].data.data();
 
     GLenum internal_format = texture_txp_get_internal_format(t);
-    int32_t width = t->data.begin->width;
-    int32_t height = t->data.begin->height;
+    int32_t width = t->mipmaps[0].width;
+    int32_t height = t->mipmaps[0].height;
     int32_t max_mipmap_level = t->mipmaps_count - 1;
 
     texture* tex;
@@ -72,11 +72,11 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
     if (!t || !texs || !ids)
         return false;
 
-    size_t count = vector_old_length(*t);
+    size_t count = t->textures.size();
     *texs = force_malloc_s(texture*, count + 1);
     texture** tex = *texs;
     for (size_t i = 0; i < count; i++)
-        tex[i] = texture_txp_load(&t->begin[i], ids[i]);
+        tex[i] = texture_txp_load(&t->textures[i], ids[i]);
     tex[count] = 0;
     return true;
 }
@@ -491,10 +491,10 @@ static void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use
 }
 
 static GLenum texture_txp_get_internal_format(txp* t) {
-    if (!t || !t->data.begin)
+    if (!t || !t->mipmaps.size())
         return GL_ZERO;
 
-    switch (t->data.begin->format) {
+    switch (t->mipmaps[0].format) {
     case TXP_A8:
         return GL_ALPHA8;
     case TXP_RGB8:

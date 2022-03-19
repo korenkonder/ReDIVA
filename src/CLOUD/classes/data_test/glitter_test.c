@@ -18,7 +18,8 @@
 #include "../data_test.h"
 #include "../imgui_helper.h"
 
-typedef struct data_test_glitter_test_struct {
+class data_test_glitter_test_struct {
+public:
     uint64_t hash;
     glitter_scene_counter scene_counter;
     float_t frame;
@@ -34,7 +35,10 @@ typedef struct data_test_glitter_test_struct {
 
     bool stage_test;
     render_context* rctx;
-} data_test_glitter_test_struct;
+
+    data_test_glitter_test_struct();
+    ~data_test_glitter_test_struct();
+};
 
 extern int32_t width;
 extern int32_t height;
@@ -45,11 +49,7 @@ extern bool draw_grid_3d;
 static const char* data_test_glitter_test_window_title = "Glitter Test##Data Test";
 
 bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
-    if (!lock_data_init(&glitter_data_lock, &data->lock, data, (void(*)(void*))data_test_glitter_test_dispose))
-        return false;
-
-    lock_trylock(&pv_lock);
-    data->data = force_malloc_s(data_test_glitter_test_struct, 1);
+    data->data = new data_test_glitter_test_struct;
 
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
@@ -57,11 +57,11 @@ bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
 
     data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
     if (glt_test) {
-        data_struct_get_directory_files(&data_list[DATA_AFT], "rom/particle/", &glt_test->files);
+        data_list[DATA_AFT].get_directory_files("rom/particle/", &glt_test->files);
         for (data_struct_file* i = glt_test->files.begin()._Ptr; i != glt_test->files.end()._Ptr;)
             if (str_utils_check_ends_with(i->name.c_str(), ".farc")) {
                 char* temp = str_utils_get_without_extension(i->name.c_str());
-                i->name = std::string(temp);
+                i->name = temp ? std::string(temp) : std::string();
                 free(temp);
                 i++;
             }
@@ -77,7 +77,6 @@ bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
         GPM_VAL.draw_all_mesh = false;
         draw_grid_3d = false;
     }
-    lock_unlock(&pv_lock);
     return true;
 }
 
@@ -150,8 +149,8 @@ void data_test_glitter_test_imgui(class_data* data) {
     ImGuiStyle* style = igGetStyle();
     ImFont* font = igGetFont();
 
-    float_t w = min((float_t)width, 320.0f);
-    float_t h = min((float_t)height, 278.0f);
+    float_t w = 280.0f;
+    float_t h = 278.0f;
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
     igSetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -291,21 +290,22 @@ bool data_test_glitter_test_dispose(class_data* data) {
     GPM_VAL.FreeScenes();
     GPM_VAL.SetPause(false);
 
-    lock_data_free(&glitter_data_lock, (void(*)(void*))data_test_glitter_test_dispose);
-
     data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
+    delete glt_test;
 
     draw_grid_3d = false;
-    if (glt_test) {
-        glt_test->files = {};
-        glt_test->file = 0;
-        glt_test->input_play = false;
-        glt_test->input_stop = false;
-        glt_test->frame = 0.0f;
-    }
-    free(data->data);
 
     data->flags = (class_flags)(CLASS_HIDDEN | CLASS_DISPOSED);
     data->imgui_focus = false;
     return true;
+}
+
+data_test_glitter_test_struct::data_test_glitter_test_struct() : hash(),
+scene_counter(), frame(), auto_and_repeat(), reload(), pv_mode(),
+input_play(), input_stop(), delta_frame(), file(), stage_test(), rctx() {
+
+}
+
+data_test_glitter_test_struct::~data_test_glitter_test_struct() {
+
 }

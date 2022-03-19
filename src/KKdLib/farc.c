@@ -40,10 +40,11 @@ data(), data_compressed(), flags(), data_changed() {
 }
 
 farc_file::~farc_file() {
-
+    delete data;
+    delete data_compressed;
 }
 
-size_t farc::get_file_size(char* name) {
+size_t farc::get_file_size(const char* name) {
     if (!name)
         return 0;
 
@@ -53,11 +54,7 @@ size_t farc::get_file_size(char* name) {
     return 0;
 }
 
-size_t farc::get_file_size(const char* name) {
-    return get_file_size((char*)name);
-}
-
-size_t farc::get_file_size(wchar_t* name) {
+size_t farc::get_file_size(const wchar_t* name) {
     if (!name)
         return 0;
 
@@ -71,19 +68,6 @@ size_t farc::get_file_size(wchar_t* name) {
     return 0;
 }
 
-size_t farc::get_file_size(const wchar_t* name) {
-    return get_file_size((wchar_t*)name);
-}
-
-void farc::read(char* path, bool unpack, bool save) {
-    if (!path)
-        return;
-
-    wchar_t* path_buf = utf8_to_utf16(path);
-    read(path_buf, unpack, save);
-    free(path_buf);
-}
-
 void farc::read(const char* path, bool unpack, bool save) {
     if (!path)
         return;
@@ -93,55 +77,56 @@ void farc::read(const char* path, bool unpack, bool save) {
     free(path_buf);
 }
 
-void farc::read(wchar_t* path, bool unpack, bool save) {
+void farc::read(const wchar_t* path, bool unpack, bool save) {
     if (!path)
         return;
 
-    files = {};
+    files.clear();
+    files.shrink_to_fit();
 
     wchar_t full_path_buf[MAX_PATH];
     wchar_t* full_path = _wfullpath(full_path_buf, path, MAX_PATH);
 
     if (!full_path)
         return;
-    else if (!path_wcheck_file_exists(full_path_buf))
+    else if (!path_check_file_exists(full_path_buf))
         return;
 
-    size_t full_path_buf_len = utf16_length(full_path_buf);
-    file_path = std::wstring(full_path_buf, full_path_buf_len);
-    directory_path = std::wstring(full_path_buf, full_path_buf_len);
-    const wchar_t* dot = wcsrchr(directory_path.c_str(), L'.');
+    char* dir_temp = utf16_to_utf8(full_path_buf);
+    size_t dir_temp_len = utf8_length(dir_temp);
+    file_path = std::string(dir_temp, dir_temp_len);
+    directory_path = std::string(dir_temp, dir_temp_len);
+    free(dir_temp);
+
+    const char* dot = strrchr(directory_path.c_str(), '.');
     if (dot)
-        directory_path = std::wstring(directory_path.c_str(), dot - directory_path.c_str());
+        directory_path = std::string(directory_path.c_str(), dot - directory_path.c_str());
 
     stream s;
-    io_wopen(&s, file_path.c_str(), L"rb");
+    io_open(&s, file_path.c_str(), "rb");
     if (s.io.stream && !farc_read_header(this, &s) && unpack)
         farc_unpack_files(this, &s, save);
     io_free(&s);
 }
 
-void farc::read(const wchar_t* path, bool unpack, bool save) {
-    read((wchar_t*)path, unpack, save);
-}
-
-void farc::read(void* data, size_t length, bool unpack) {
+void farc::read(const void* data, size_t length, bool unpack) {
     if (!data || !length)
         return;
 
-    files = {};
+    files.clear();
+    files.shrink_to_fit();
 
-    file_path = std::wstring(L"", 0);
-    directory_path = std::wstring(L"", 0);
+    file_path = std::string("", 0);
+    directory_path = std::string("", 0);
 
     stream s;
-    io_mopen(&s, data, length);
+    io_open(&s, data, length);
     if (!farc_read_header(this, &s) && unpack)
         farc_unpack_files(this, &s, false);
     io_free(&s);
 }
 
-farc_file* farc::read_file(char* name) {
+farc_file* farc::read_file(const char* name) {
     if (!name)
         return 0;
 
@@ -154,7 +139,7 @@ farc_file* farc::read_file(char* name) {
                 &i.data, &i.size, DEFLATE_MODE_GZIP);
         else if (!i.data) {
             stream s;
-            io_wopen(&s, file_path.c_str(), L"rb");
+            io_open(&s, file_path.c_str(), "rb");
             if (s.io.stream)
                 farc_unpack_file(this, &s, &i);
             io_free(&s);
@@ -164,11 +149,7 @@ farc_file* farc::read_file(char* name) {
     return 0;
 }
 
-farc_file* farc::read_file(const char* name) {
-    return read_file((char*)name);
-}
-
-farc_file* farc::read_file(wchar_t* name) {
+farc_file* farc::read_file(const wchar_t* name) {
     if (!name)
         return 0;
 
@@ -179,7 +160,7 @@ farc_file* farc::read_file(wchar_t* name) {
 
         if (!i.data) {
             stream s;
-            io_wopen(&s, file_path.c_str(), L"rb");
+            io_open(&s, file_path.c_str(), "rb");
             if (s.io.stream)
                 farc_unpack_file(this, &s, &i);
             io_free(&s);
@@ -191,11 +172,7 @@ farc_file* farc::read_file(wchar_t* name) {
     return 0;
 }
 
-farc_file* farc::read_file(const wchar_t* name) {
-    return read_file((wchar_t*)name);
-}
-
-void farc::write(char* path, farc_compress_mode mode, bool get_files) {
+void farc::write(const char* path, farc_compress_mode mode, bool get_files) {
     if (!path)
         return;
 
@@ -204,49 +181,53 @@ void farc::write(char* path, farc_compress_mode mode, bool get_files) {
     free(path_buf);
 }
 
-void farc::write(wchar_t* path, farc_compress_mode mode, bool get_files) {
+void farc::write(const wchar_t* path, farc_compress_mode mode, bool get_files) {
     if (!path)
         return;
 
-    if (get_files)
-        files = {};
+    if (get_files) {
+        files.clear();
+        files.shrink_to_fit();
+    }
 
     wchar_t full_path_buf[MAX_PATH];
     wchar_t* full_path = _wfullpath(full_path_buf, path, MAX_PATH);
 
     if (!full_path)
         return;
-    else if (get_files && !path_wcheck_directory_exists(full_path_buf))
+    else if (get_files && !path_check_directory_exists(full_path_buf))
         return;
 
-    size_t full_path_buf_len = utf16_length(full_path_buf);
-    directory_path = std::wstring(full_path_buf, full_path_buf_len);
-    file_path = std::wstring(full_path_buf, full_path_buf_len);
-    file_path += L".farc", 6;
+    char* dir_temp = utf16_to_utf8(full_path_buf);
+    size_t dir_temp_len = utf8_length(dir_temp);
+    directory_path = std::string(dir_temp, dir_temp_len);
+    file_path = std::string(dir_temp, dir_temp_len);
+    file_path += ".farc", 6;
+    free(dir_temp);
 
     if (!get_files || (get_files && !farc_get_files(this))) {
         stream s;
-        io_wopen(&s, file_path.c_str(), L"wb");
+        io_open(&s, file_path.c_str(), "wb");
         if (s.io.stream)
             farc_pack_files(this, &s, mode, get_files);
         io_free(&s);
     }
 }
 
-void farc::write( void** data, size_t* length, farc_compress_mode mode) {
+void farc::write(void** data, size_t* length, farc_compress_mode mode) {
     if (!data || !length)
         return;
 
-    directory_path = std::wstring(L"", 0);
-    file_path = std::wstring(L"", 0);
+    directory_path = std::string("", 0);
+    file_path = std::string("", 0);
 
     stream s;
-    io_mopen(&s, 0, 0);
+    io_open(&s);
     farc_pack_files(this, &s, mode, false);
     io_free(&s);
 }
 
-bool farc::load_file(void* data, char* path, char* file, uint32_t hash) {
+bool farc::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
     if (file_len >= 5 && memcmp(&file[file_len - 5], ".farc", 6))
         return false;
@@ -267,25 +248,17 @@ bool farc::load_file(void* data, char* path, char* file, uint32_t hash) {
 }
 
 static errno_t farc_get_files(farc* f) {
-    f->files = {};
+    f->files.clear();
+    f->files.shrink_to_fit();
 
-    vector_old_wstring files = vector_old_empty(wstring);
-    path_wget_files(&files, f->directory_path.c_str());
-    if (vector_old_length(files) < 1) {
-        vector_old_wstring_free(&files, wstring_free);
+    std::vector<std::string> files;
+    path_get_files(&files, f->directory_path.c_str());
+    if (files.size() < 1)
         return -1;
-    }
 
-    f->files = std::vector<farc_file>(vector_old_length(files));
-    if (files.begin)
-        for (farc_file& i : f->files) {
-            wstring* str = &files.begin[&i - f->files.data()];
-            char* temp = utf16_to_utf8(wstring_data(str));
-            i.name = std::string(temp);
-            free(temp)
-        }
-
-    vector_old_wstring_free(&files, wstring_free);
+    f->files = std::vector<farc_file>(files.size());
+    for (farc_file& i : f->files)
+        i.name = files[&i - f->files.data()];
     return 0;
 }
 
@@ -371,7 +344,7 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode, bool ge
             i.offset = io_get_position(s);
 
             stream s_t;
-            io_wopen(&s_t, temp, L"rb");
+            io_open(&s_t, temp, L"rb");
             if (!s_t.io.stream) {
                 io_free(&s_t);
                 continue;
@@ -579,7 +552,8 @@ static errno_t farc_read_header(farc* f, stream* s) {
             header_length -= 0x0C;
     }
 
-    f->files = {};
+    f->files.clear();
+    f->files.shrink_to_fit();
 
     uint8_t* d_t;
     uint8_t* dt;
@@ -676,10 +650,12 @@ static void farc_unpack_files(farc* f, stream* s, bool save) {
             max_path_len = path_len;
     }
 
-    CreateDirectoryW(f->directory_path.c_str(), 0);
+    wchar_t* dir_temp = utf8_to_utf16(f->directory_path.c_str());
+    CreateDirectoryW(dir_temp, 0);
     wchar_t* temp_path = force_malloc_s(wchar_t, max_path_len + 1);
-    memcpy(temp_path, f->directory_path.c_str(), sizeof(wchar_t) * dir_len);
+    memcpy(temp_path, dir_temp, sizeof(wchar_t) * dir_len);
     temp_path[dir_len] = L'\\';
+    free(dir_temp);
 
     for (farc_file& i : f->files) {
         wchar_t* name_buf = utf8_to_utf16(i.name.c_str());
@@ -692,7 +668,7 @@ static void farc_unpack_files(farc* f, stream* s, bool save) {
 
         if (i.data) {
             stream temp_s;
-            io_wopen(&temp_s, temp_path, L"wb");
+            io_open(&temp_s, temp_path, L"wb");
             if (temp_s.io.stream)
                 io_write(&temp_s, i.data, i.size);
             io_free(&temp_s);

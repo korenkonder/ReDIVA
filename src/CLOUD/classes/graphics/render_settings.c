@@ -16,6 +16,7 @@ extern timer render_timer;
 extern timer sound_timer;
 extern timer input_timer;
 
+extern size_t render_scale_table_count;
 extern double_t render_get_scale();
 extern void render_set_scale(double_t value);
 extern int32_t render_get_scale_index();
@@ -43,11 +44,11 @@ void graphics_render_settings_imgui(class_data* data) {
     ImGuiStyle* style = igGetStyle();
     ImFont* font = igGetFont();
 
-    float_t w = min((float_t)width / 4.0f, 280.0f);
+    float_t w = 280.0f;
 #if defined(CLOUD_DEV)
-    float_t h = min((float_t)height, 196.0f);
+    float_t h = 196.0f;
 #else
-    float_t h = min((float_t)height, 86.0f);
+    float_t h = 86.0f;
 #endif
 
     igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
@@ -73,7 +74,7 @@ void graphics_render_settings_imgui(class_data* data) {
     int32_t scale_index = render_get_scale_index();
     char buf[0x80];
     snprintf(buf, sizeof(buf), "%g%%%%", scale);
-    if (imguiColumnSliderInt("Scale", &scale_index, 0, 7, buf, ImGuiSliderFlags_NoInput, true))
+    if (imguiColumnSliderInt("Scale", &scale_index, 0, (int32_t)render_scale_table_count, buf, ImGuiSliderFlags_NoInput, true))
         render_set_scale_index(scale_index);
 
 #if defined(CLOUD_DEV)

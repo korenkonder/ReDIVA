@@ -32,12 +32,11 @@ typedef struct stream {
     vector_old_ssize_t position_stack;
 } stream;
 
-extern void io_open(stream* s, char* path, const char* mode);
+extern void io_open(stream* s);
 extern void io_open(stream* s, const char* path, const char* mode);
-extern void io_wopen(stream* s, wchar_t* path, const wchar_t* mode);
-extern void io_wopen(stream* s, const wchar_t* path, const wchar_t* mode);
-extern void io_mopen(stream* s, void* data, size_t length);
-extern void io_mcopy(stream* s, void** data, size_t* length);
+extern void io_open(stream* s, const wchar_t* path, const wchar_t* mode);
+extern void io_open(stream* s, const void* data, size_t length);
+extern void io_copy(stream* s, void** data, size_t* length);
 extern void io_align_read(stream* s, ssize_t align);
 extern void io_align_write(stream* s, ssize_t align);
 extern int io_flush(stream* s);

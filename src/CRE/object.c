@@ -70,8 +70,8 @@ static size_t obj_vertex_flags_get_vertex_size(obj_vertex_flags flags);
 static size_t obj_vertex_flags_get_vertex_size_comp(obj_vertex_flags flags);
 static size_t object_vertex_flags_get_vertex_size(object_vertex_flags flags);
 static size_t object_vertex_flags_get_vertex_size_comp(object_vertex_flags flags);
-static bool object_set_load_file(void* data, char* path, char* file, uint32_t hash);
-static bool object_set_load_file_modern(void* data, char* path, char* file, uint32_t hash);
+static bool object_set_load_file(void* data, const char* path, const char* file, uint32_t hash);
+static bool object_set_load_file_modern(void* data, const char* path, const char* file, uint32_t hash);
 
 vector_old_func(object_storage)
 
@@ -85,7 +85,7 @@ void object_set_init(object_set* set) {
 }
 
 void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_file,
-    texture_database* tex_db, string* name, uint32_t id, bool compressed) {
+    texture_database* tex_db, const char* name, uint32_t id, bool compressed) {
     if (!set || !obj_set_file || !txp_set_file || !tex_db || !name)
         return;
 
@@ -124,7 +124,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
             string_init_length(name, buf, len);
         }
 
-    string_copy(name, &set->name);
+    string_init(&set->name, name);
     set->id = id;
     set->hash = hash_string_murmurhash(&set->name, 0, false);
 
@@ -668,8 +668,8 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
                 osage->nodes_count = nodes_count;
                 osage->nodes = force_malloc_s(object_skin_osage_node, nodes_count);
                 for (int32_t k = 0; k < nodes_count; k++) {
-                    object_skin_osage_node* node = &osage->nodes[j];
-                    object_skin_osage_node_file* node_file = &osage_file->nodes[j];
+                    object_skin_osage_node* node = &osage->nodes[k];
+                    object_skin_osage_node_file* node_file = &osage_file->nodes[k];
 
                     node->name_index = node_file->name_index;
                     node->length = node_file->length;
@@ -693,12 +693,12 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
 
             osage_sibling_info->name_index = osage_sibling_info_file->name_index;
             osage_sibling_info->sibling_name_index = osage_sibling_info_file->sibling_name_index;
-            osage_sibling_info->distance = osage_sibling_info_file->distance;
+            osage_sibling_info->max_distance = osage_sibling_info_file->max_distance;
         }
         skin->ex_data_init = true;
     }
 
-    int32_t textures_count = (int32_t)vector_old_length(*txp_set_file);
+    int32_t textures_count = (int32_t)txp_set_file->textures.size();
     set->textures_count = textures_count;
     set->textures = force_malloc_s(GLuint, textures_count);
     texture_txp_set_load(txp_set_file, &set->texture_data, set->texture_ids);
@@ -715,7 +715,7 @@ void object_set_load(object_set* set, obj_set* obj_set_file, txp_set* txp_set_fi
 
 bool object_set_load_db_entry(object_set_info** set_info,
     void* data, object_database* obj_db, char* name) {
-    if (!object_database_get_object_set_info(obj_db, name, set_info))
+    if (!obj_db->get_object_set_info(name, set_info))
         return false;
     else if (object_storage_get_object_set((*set_info)->id)) {
         object_storage_append_object_set((*set_info)->id);
@@ -725,13 +725,13 @@ bool object_set_load_db_entry(object_set_info** set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)*set_info;
-    return data_struct_load_file((data_struct*)data, temp, "rom/objset/",
-        string_data(&(*set_info)->archive_file_name), object_set_load_file);
+    return ((data_struct*)data)->load_file(temp, "rom/objset/",
+        (*set_info)->archive_file_name.c_str(), object_set_load_file);
 }
 
 bool object_set_load_db_entry(object_set_info** set_info,
     void* data, object_database* obj_db, const char* name) {
-    if (!object_database_get_object_set_info(obj_db, name, set_info))
+    if (!obj_db->get_object_set_info(name, set_info))
         return false;
     else if (object_storage_get_object_set((*set_info)->id)) {
         object_storage_append_object_set((*set_info)->id);
@@ -741,8 +741,8 @@ bool object_set_load_db_entry(object_set_info** set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)*set_info;
-    return data_struct_load_file((data_struct*)data, temp, "rom/objset/",
-        string_data(&(*set_info)->archive_file_name), object_set_load_file);
+    return ((data_struct*)data)->load_file(temp, "rom/objset/",
+        (*set_info)->archive_file_name.c_str(), object_set_load_file);
 }
 
 bool object_set_load_by_db_entry(object_set_info* set_info,
@@ -755,13 +755,13 @@ bool object_set_load_by_db_entry(object_set_info* set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)set_info;
-    return data_struct_load_file((data_struct*)data, temp, "rom/objset/",
-        string_data(&set_info->archive_file_name), object_set_load_file);
+    return ((data_struct*)data)->load_file(temp, "rom/objset/",
+        set_info->archive_file_name.c_str(), object_set_load_file);
 }
 
 bool object_set_load_by_db_index(object_set_info** set_info,
     void* data, object_database* obj_db, uint32_t set_id) {
-    if (!object_database_get_object_set_info_by_set_id(obj_db, set_id, set_info))
+    if (!obj_db->get_object_set_info_by_set_id(set_id, set_info))
         return false;
     else if (object_storage_get_object_set(set_id)) {
         object_storage_append_object_set(set_id);
@@ -771,8 +771,8 @@ bool object_set_load_by_db_index(object_set_info** set_info,
     size_t temp[2];
     temp[0] = (size_t)data;
     temp[1] = (size_t)*set_info;
-    return data_struct_load_file((data_struct*)data, temp, "rom/objset/",
-        string_data(&(*set_info)->archive_file_name), object_set_load_file);
+    return ((data_struct*)data)->load_file(temp, "rom/objset/",
+        (*set_info)->archive_file_name.c_str(), object_set_load_file);
 }
 
 bool object_set_load_by_hash(void* data,
@@ -780,7 +780,7 @@ bool object_set_load_by_hash(void* data,
     size_t temp[2];
     temp[0] = (size_t)obj_db;
     temp[1] = (size_t)tex_db;
-    return data_struct_load_file_by_hash((data_struct*)data, temp, "rom/objset/",
+    return ((data_struct*)data)->load_file_by_hash(temp, "rom/objset/",
         hash, object_set_load_file_modern);
 }
 
@@ -1250,10 +1250,24 @@ inline GLuint* object_storage_get_textures(uint32_t set_id) {
     return 0;
 }
 
+inline int32_t object_storage_get_textures_count(uint32_t set_id) {
+    for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++)
+        if (i->set_id == set_id)
+            return i->set.textures_count;
+    return 0;
+}
+
 inline uint32_t* object_storage_get_texture_ids(uint32_t set_id) {
     for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++)
         if (i->set_id == set_id)
             return i->set.texture_ids;
+    return 0;
+}
+
+inline int32_t object_storage_get_texture_ids_count(uint32_t set_id) {
+    for (object_storage* i = object_storage_data.begin; i != object_storage_data.end; i++)
+        if (i->set_id == set_id)
+            return i->set.texture_ids_count;
     return 0;
 }
 
@@ -1543,7 +1557,7 @@ inline static size_t object_vertex_flags_get_vertex_size_comp(object_vertex_flag
     return size;
 }
 
-static bool object_set_load_file(void* data, char* path, char* file, uint32_t hash) {
+static bool object_set_load_file(void* data, const char* path, const char* file, uint32_t hash) {
     data_struct* ds = (data_struct*)((size_t*)data)[0];
     data_ft* d = &ds->data_ft;
 
@@ -1553,32 +1567,27 @@ static bool object_set_load_file(void* data, char* path, char* file, uint32_t ha
     if (!farc::load_file(&f, path, file, hash))
         return false;
 
-    farc_file* obj = f.read_file(string_data(&set_info->object_file_name));
-    farc_file* tex = f.read_file(string_data(&set_info->texture_file_name));
+    farc_file* obj = f.read_file(set_info->object_file_name.c_str());
+    farc_file* tex = f.read_file(set_info->texture_file_name.c_str());
 
     if (obj && tex) {
         obj_set obj_set;
-        obj_init(&obj_set);
-        obj_mread(&obj_set, obj->data, obj->size, false);
+        obj_set.unpack_file(obj->data, obj->size, false);
 
         txp_set txp_set;
-        txp_set_init(&txp_set);
-        txp_set_unpack_file(&txp_set, tex->data, false);
+        txp_set.unpack_file(tex->data, false);
 
         if (obj_set.ready) {
             object_set object_set;
             object_set_init(&object_set);
-            object_set_load(&object_set, &obj_set, &txp_set, &d->tex_db, &set_info->name, set_info->id, false);
+            object_set_load(&object_set, &obj_set, &txp_set, &d->tex_db, set_info->name.c_str(), set_info->id, false);
             object_storage_insert_object_set(&object_set, set_info->id);
         }
-
-        obj_free(&obj_set);
-        txp_set_free(&txp_set);
     }
     return true;
 }
 
-static bool object_set_load_file_modern(void* data, char* path, char* file, uint32_t hash) {
+static bool object_set_load_file_modern(void* data, const char* path, const char* file, uint32_t hash) {
     object_database* obj_db = (object_database*)((size_t*)data)[0];
     texture_database* tex_db = (texture_database*)((size_t*)data)[1];
 
@@ -1608,21 +1617,19 @@ static bool object_set_load_file_modern(void* data, char* path, char* file, uint
 
     if (osd && txd && osi && txi) {
         obj_set obj_set;
-        obj_init(&obj_set);
-        obj_mread(&obj_set, osd->data, osd->size, true);
+        obj_set.unpack_file(osd->data, osd->size, true);
 
         txp_set txp_set;
-        txp_set_init(&txp_set);
-        txp_set_unpack_file_modern(&txp_set, txd->data, txd->size);
+        txp_set.unpack_file_modern(txd->data, txd->size);
 
-        object_database_mread(obj_db, osi->data, osi->size, true);
+        obj_db->read(osi->data, osi->size, true);
         tex_db->read(txi->data, txi->size, true);
 
-        string* name = 0;
+        std::string* name = 0;
         if (obj_db->ready)
-            for (object_set_info* m = obj_db->object_set.begin; m != obj_db->object_set.end; m++)
-                if (m->id == hash) {
-                    name = &m->name;
+            for (object_set_info& m : obj_db->object_set)
+                if (m.id == hash) {
+                    name = &m.name;
                     break;
                 }
 
@@ -1630,14 +1637,11 @@ static bool object_set_load_file_modern(void* data, char* path, char* file, uint
             if (!object_storage_get_object_set(hash)) {
                 object_set object_set;
                 object_set_init(&object_set);
-                object_set_load(&object_set, &obj_set, &txp_set, tex_db, name, hash, false);
+                object_set_load(&object_set, &obj_set, &txp_set, tex_db, name->c_str(), hash, false);
                 object_storage_insert_object_set(&object_set, hash);
             }
             else
                 object_storage_append_object_set(hash);
-
-        obj_free(&obj_set);
-        txp_set_free(&txp_set);
     }
     return true;
 }

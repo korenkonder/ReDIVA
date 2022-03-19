@@ -313,7 +313,7 @@ void shader_glsl_wload_file(shader_glsl* s, wchar_t* vert_path,
     char* frag = 0;
     char* geom = 0;
 
-    io_wopen(&st, vert_path, L"rb");
+    io_open(&st, vert_path, L"rb");
     if (st.io.stream) {
         l = st.length;
         vert = force_malloc_s(char, l + 1);
@@ -322,7 +322,7 @@ void shader_glsl_wload_file(shader_glsl* s, wchar_t* vert_path,
     }
     io_free(&st);
 
-    io_wopen(&st, frag_path, L"rb");
+    io_open(&st, frag_path, L"rb");
     if (st.io.stream) {
         l = st.length;
         frag = force_malloc_s(char, l + 1);
@@ -331,7 +331,7 @@ void shader_glsl_wload_file(shader_glsl* s, wchar_t* vert_path,
     }
     io_free(&st);
 
-    io_wopen(&st, geom_path, L"rb");
+    io_open(&st, geom_path, L"rb");
     if (st.io.stream) {
         l = st.length;
         geom = force_malloc_s(char, l + 1);

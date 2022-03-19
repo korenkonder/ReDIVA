@@ -132,7 +132,7 @@ static void a3da_to_dft_dsc(const char* a3da_path, int32_t pv_id) {
     io_free(&s_dsc);
 
     stream s_dft;
-    io_mopen(&s_dft, 0, 0);
+    io_open(&s_dft);
     uint32_t off;
     vector_old_enrs_entry e = vector_old_empty(enrs_entry);
     enrs_entry ee;
@@ -159,7 +159,7 @@ static void a3da_to_dft_dsc(const char* a3da_path, int32_t pv_id) {
     memset(&st, 0, sizeof(f2_struct));
 
     io_align_write(&s_dft, 0x10);
-    io_mcopy(&s_dft, &st.data, &st.length);
+    io_copy(&s_dft, &st.data, &st.length);
     io_free(&s_dft);
 
     st.enrs = e;

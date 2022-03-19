@@ -118,7 +118,7 @@ void vag_read(vag* v, char* path) {
 void vag_wread(vag* v, wchar_t* path) {
     wchar_t* path_vag = str_utils_wadd(path, L".vag");
     stream s;
-    io_wopen(&s, path_vag, L"rb");
+    io_open(&s, path_vag, L"rb");
     if (s.io.stream) {
         uint32_t signature = io_read_uint32_t_reverse_endianness(&s, true);
         if (signature != 'VAGp')
@@ -227,7 +227,7 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
     wchar_t* temp_path = str_utils_wget_without_extension(path);
     wchar_t* path_vag = str_utils_wadd(temp_path, L".vag");
     stream s;
-    io_wopen(&s, path_vag, L"wb");
+    io_open(&s, path_vag, L"wb");
     if (s.io.stream) {
         int32_t coef_index_count;
         switch (option) {
@@ -384,13 +384,13 @@ void vag_dispose(vag* v) {
 static void vag_read_wav_straight(vag* v, wchar_t* path, float_t** data, size_t* samples) {
     *data = 0;
     *samples = 0;
-    wchar_t* path_wav = str_utils_wadd(path, L".wav");
+    wchar_t* path_av = str_utils_wadd(path, L".wav");
     wav* w = wav_init();
-    wav_wread(w, path_wav, data, samples);
+    wav_wread(w, path_av, data, samples);
     v->channels = w->channels;
     v->sample_rate = w->sample_rate;
     wav_dispose(w);
-    free(path_wav);
+    free(path_av);
 }
 
 static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples, uint8_t** flags) {
@@ -412,11 +412,11 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
     loop = vector_old_empty(bool);
     while (true) {
         swprintf_s(temp, MAX_PATH, L"%ls.%llu.wav", temp_path, count);
-        n = path_wcheck_file_exists(temp);
+        n = path_check_file_exists(temp);
         l = false;
         if (!n) {
             swprintf_s(temp, MAX_PATH, L"%ls.%llu.loop.wav", temp_path, count);
-            l = path_wcheck_file_exists(temp);
+            l = path_check_file_exists(temp);
         }
         if (!n && !l)
             break;
@@ -546,15 +546,15 @@ static void vag_write_wav_straight(vag* v, wchar_t* path, float_t* data, size_t 
             break;
     }
 
-    wchar_t* path_wav = str_utils_wadd(path, L".wav");
+    wchar_t* path_av = str_utils_wadd(path, L".wav");
     wav* w = wav_init();
     w->bytes = 4;
     w->channels = v->channels;
     w->format = 0x03;
     w->sample_rate = v->sample_rate;
-    wav_wwrite(w, path_wav, data, i * BLOCK_SIZE);
+    wav_wwrite(w, path_av, data, i * BLOCK_SIZE);
     wav_dispose(w);
-    free(path_wav);
+    free(path_av);
 }
 
 static void vag_write_wav(vag* v, wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags) {

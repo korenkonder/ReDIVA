@@ -8,7 +8,6 @@
 #include "effect_inst.h"
 
 glitter_scene::glitter_scene(glitter_scene_counter counter, uint64_t hash, glitter_effect_group* a4, bool a5) : counter(0) {
-    effects = {};
     this->counter = counter;
     this->hash = hash;
     flags = GLITTER_SCENE_NONE;
@@ -17,6 +16,7 @@ glitter_scene::glitter_scene(glitter_scene_counter counter, uint64_t hash, glitt
     effect_group = a4;
     delta_frame_history = 0.0f;
     skip = false;
+    effects = {};
     if (a4) {
         vector_old_glitter_scene_effect_reserve(&effects, vector_old_length(a4->effects));
         emission = a4->emission;
