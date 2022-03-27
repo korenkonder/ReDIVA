@@ -14,18 +14,18 @@ glEnableVertexAttribArray(index); \
 draw->vertex_attrib_array[index] = true
 
 static bool draw_object_blend_set(render_context* rctx,
-    draw_object* draw, object_material_shader_lighting_type lighting_type);
+    draw_object* draw, obj_material_shader_lighting_type lighting_type);
 static void draw_object_chara_color_fog_set(render_context* rctx,
     draw_object* draw, bool disable_fog);
-static void draw_object_material_reset_default(object_material_data* mat_data);
+static void draw_object_material_reset_default(obj_material_data* mat_data);
 static void draw_object_material_reset_reflect();
 static void draw_object_material_set_default(render_context* rctx,
     draw_object* draw, bool use_shader);
 static void draw_object_material_set_parameter(render_context* rctx,
-    object_material_data* mat_data);
+    obj_material_data* mat_data);
 static void draw_object_material_set_reflect(render_context* rctx, draw_object* draw);
 static void draw_object_material_set_uniform(render_context* rctx,
-    object_material_data* mat_data, bool disable_color_l);
+    obj_material_data* mat_data, bool disable_color_l);
 static void draw_object_vertex_attrib_reset_default(draw_object* draw);
 static void draw_object_vertex_attrib_reset_default_compressed(draw_object* draw);
 static void draw_object_vertex_attrib_reset_reflect(draw_object* draw);
@@ -58,9 +58,9 @@ void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
     }
 
     mat4 mat;
-    if (draw->mesh->flags & OBJECT_MESH_BILLBOARD)
+    if (draw->mesh->flags & OBJ_MESH_BILLBOARD)
         model_mat_face_camera_view(&rctx->camera->inv_view_rot, model, &mat);
-    else if (draw->mesh->flags & OBJECT_MESH_BILLBOARD_Y_AXIS)
+    else if (draw->mesh->flags & OBJ_MESH_BILLBOARD_Y_AXIS)
         model_mat_face_camera_position(&rctx->camera->view, model, &mat);
     else
         mat = *model;
@@ -83,7 +83,7 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
 
     draw_object_material_set_default(rctx, draw, rctx->draw_state.shader);
     if (!draw->instances_count)
-        object_sub_mesh_draw(rctx,
+        obj_sub_mesh_draw(rctx,
             draw->sub_mesh->primitive_type,
             draw->sub_mesh->indices_count,
             draw->sub_mesh->first_index,
@@ -98,7 +98,7 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
             glVertexAttrib4fv(13, (const GLfloat*)&mat.row1);
             glVertexAttrib4fv(14, (const GLfloat*)&mat.row2);
             glVertexAttrib4fv(15, (const GLfloat*)&mat.row3);
-            object_sub_mesh_draw(rctx,
+            obj_sub_mesh_draw(rctx,
                 draw->sub_mesh->primitive_type,
                 draw->sub_mesh->indices_count,
                 draw->sub_mesh->first_index,
@@ -120,19 +120,19 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
 }
 
 void draw_object_draw_sss(render_context* rctx, draw_object* draw) {
-    object_material_blend_flags blend_flags = draw->material->material.blend_flags;
+    obj_material_blend_flags blend_flags = draw->material->material.blend_flags;
     uniform_value[U_ALPHA_TEST] = (!blend_flags.flag_28 && (draw->blend_color.w < 1.0f
         || (blend_flags.alpha_texture || blend_flags.alpha_material) && !blend_flags.punch_through
-        || draw->sub_mesh->flags & OBJECT_SUB_MESH_TRANSPARENT)
+        || draw->sub_mesh->flags & OBJ_SUB_MESH_TRANSPARENT)
         || blend_flags.punch_through) ? 1 : 0;
 
     uniform_value[U26] = 1;
     bool aniso = false;
-    object_material_data* material = draw->material;
-    switch (material->material.shader_index) {
+    obj_material_data* material = draw->material;
+    switch (material->material.shader.index) {
     case SHADER_FT_CLOTH:
         if (!rctx->draw_pass.npr_param && material->material.ambient.w < 1.0f
-            && (material->material.shader_flags.aniso_direction & 0x03) == OBJECT_MATERIAL_ANISO_DIRECTION_NORMAL)
+            && (material->material.shader_flags.aniso_direction & 0x03) == OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
             aniso = true;
         break;
     case SHADER_FT_TIGHTS:
@@ -161,17 +161,17 @@ void draw_object_draw_sss(render_context* rctx, draw_object* draw) {
 }
 
 void draw_object_draw_reflect(render_context* rctx, draw_object* draw) {
-    object_material_data* material = draw->material;
+    obj_material_data* material = draw->material;
     draw_object_vertex_attrib_set_reflect(draw);
-    object_material_shader_lighting_type lighting_type =
-        object_material_shader_get_lighting_type(&material->material.shader_flags);
+    obj_material_shader_lighting_type lighting_type =
+        obj_material_shader_get_lighting_type(&material->material.shader_flags);
     bool disable_fog = draw_object_blend_set(rctx, draw, lighting_type);
     draw_object_chara_color_fog_set(rctx, draw, disable_fog);
     draw_object_material_set_reflect(rctx, draw);
 
-    object_sub_mesh* sub_mesh = draw->sub_mesh;
-    if (sub_mesh->index_format != OBJECT_INDEX_U8)
-        object_sub_mesh_draw(rctx,
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
+    if (sub_mesh->index_format != OBJ_INDEX_U8)
+        obj_sub_mesh_draw(rctx,
             sub_mesh->primitive_type,
             sub_mesh->indices_count,
             sub_mesh->first_index,
@@ -190,9 +190,9 @@ void draw_object_draw_reflect_reflect_map(render_context* rctx, draw_object* dra
     draw_object_vertex_attrib_set_reflect(draw);
     draw_object_material_set_reflect(rctx, draw);
 
-    object_sub_mesh* sub_mesh = draw->sub_mesh;
-    if (sub_mesh->index_format != OBJECT_INDEX_U8)
-        object_sub_mesh_draw(rctx,
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
+    if (sub_mesh->index_format != OBJ_INDEX_U8)
+        obj_sub_mesh_draw(rctx,
             sub_mesh->primitive_type,
             sub_mesh->indices_count,
             sub_mesh->first_index,
@@ -207,10 +207,10 @@ void draw_object_draw_reflect_reflect_map(render_context* rctx, draw_object* dra
 }
 
 void draw_object_draw_shadow(render_context* rctx, draw_object* draw) {
-    object_material_blend_flags blend_flags = draw->material->material.blend_flags;
+    obj_material_blend_flags blend_flags = draw->material->material.blend_flags;
     if (!blend_flags.flag_28 && (draw->blend_color.w < 1.0f
         || (blend_flags.alpha_texture || blend_flags.alpha_material) && !blend_flags.punch_through
-        || draw->sub_mesh->flags & OBJECT_SUB_MESH_TRANSPARENT)
+        || draw->sub_mesh->flags & OBJ_SUB_MESH_TRANSPARENT)
         || blend_flags.punch_through) {
         uniform_value[U_ALPHA_TEST] = 1;
         draw_object_draw_translucent(rctx, draw);
@@ -222,8 +222,8 @@ void draw_object_draw_shadow(render_context* rctx, draw_object* draw) {
 }
 
 void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
-    object_material_data* material = draw->material;
-    GLuint* textures = draw->textures;
+    obj_material_data* material = draw->material;
+    std::vector<GLuint>* textures = draw->textures;
     if (rctx->draw_state.shader_index != -1) {
         vec4 emission = material->material.emission;
         shader_state_material_set_emission_ptr(&shaders_ft, false, &emission);
@@ -240,12 +240,12 @@ void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
     GLuint tex_id = -1;
     int32_t tex_index = 0;
     if (material->material.blend_flags.alpha_texture) {
-        object_material_texture* mat_tex = material->material.textures;
+        obj_material_texture* mat_tex = material->material.textures;
         uint32_t texture_id = -1;
         uint32_t texture_index = -1;
-        if (~material->material.flags & OBJECT_MATERIAL_TRANSPARENCY) {
+        if (~material->material.flags & OBJ_MATERIAL_TRANSPARENCY) {
             for (int32_t i = 0; i < 8; i++, mat_tex++)
-                if (mat_tex->texture_flags.type == OBJECT_MATERIAL_TEXTURE_COLOR) {
+                if (mat_tex->texture_flags.type == OBJ_MATERIAL_TEXTURE_COLOR) {
                     texture_id = mat_tex->texture_id;
                     texture_index = mat_tex->texture_index;
                     break;
@@ -254,7 +254,7 @@ void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
         }
         else {
             for (int32_t i = 0; i < 8; i++, mat_tex++)
-                if (mat_tex->texture_flags.type == OBJECT_MATERIAL_TEXTURE_TRANSPARENCY) {
+                if (mat_tex->texture_flags.type == OBJ_MATERIAL_TEXTURE_TRANSPARENCY) {
                     if (mat_tex->sampler_flags.flag_29) {
                         texture_id = mat_tex->texture_id;
                         texture_index = mat_tex->texture_index;
@@ -274,7 +274,7 @@ void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
                 }
 
             if (tex_id == -1)
-                tex_id = textures[mat_tex->texture_index];
+                tex_id = (*textures)[mat_tex->texture_index];
 
             if (tex_id == -1)
                 tex_id = 0;
@@ -283,9 +283,9 @@ void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
         }
     }
 
-    object_sub_mesh* sub_mesh = draw->sub_mesh;
-    if (sub_mesh->index_format != OBJECT_INDEX_U8)
-        object_sub_mesh_draw(rctx,
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
+    if (sub_mesh->index_format != OBJ_INDEX_U8)
+        obj_sub_mesh_draw(rctx,
             sub_mesh->primitive_type,
             sub_mesh->indices_count,
             sub_mesh->first_index,
@@ -342,8 +342,8 @@ inline void model_mat_face_camera_view(mat4* inv_view_rot, mat4* src, mat4* dst)
     mat4_mult(inv_view_rot, src, dst);
 }
 
-void object_sub_mesh_draw(render_context* rctx, object_primitive_type primitive_type,
-    uint32_t count, uint16_t start, uint16_t end, object_index_format index_format, size_t indices) {
+void obj_sub_mesh_draw(render_context* rctx, obj_primitive_type primitive_type,
+    uint32_t count, uint16_t start, uint16_t end, obj_index_format index_format, size_t indices) {
     GLenum mesh_draw_mode[] = {
         GL_ZERO, //GL_POINTS,
         GL_LINES,
@@ -363,7 +363,7 @@ void object_sub_mesh_draw(render_context* rctx, object_primitive_type primitive_
         GL_UNSIGNED_INT,
     };
 
-    if (primitive_type == OBJECT_PRIMITIVE_TRIANGLE_STRIP && index_format == OBJECT_INDEX_U16) {
+    if (primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP && index_format == OBJ_INDEX_U16) {
         gl_state_enable_primitive_restart();
         glPrimitiveRestartIndex(0xFFFF);
         shader_draw_range_elements(&shaders_ft, GL_TRIANGLE_STRIP,
@@ -375,14 +375,14 @@ void object_sub_mesh_draw(render_context* rctx, object_primitive_type primitive_
             count, mesh_indices_type[index_format], (void*)indices);
 
     rctx->draw_state.stats.draw_count += count;
-    if (primitive_type == OBJECT_PRIMITIVE_TRIANGLES)
+    if (primitive_type == OBJ_PRIMITIVE_TRIANGLES)
         rctx->draw_state.stats.draw_triangle_count += count / 3;
-    else if (primitive_type == OBJECT_PRIMITIVE_TRIANGLE_STRIP)
+    else if (primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP)
         rctx->draw_state.stats.draw_triangle_count += count - 2;
 }
 
 static bool draw_object_blend_set(render_context* rctx,
-    draw_object* draw, object_material_shader_lighting_type lighting_type) {
+    draw_object* draw, obj_material_shader_lighting_type lighting_type) {
     GLenum blend_factor_table[] = {
         GL_ZERO,
         GL_ONE,
@@ -402,8 +402,8 @@ static bool draw_object_blend_set(render_context* rctx,
         GL_ZERO,
     };
 
-    object_material_data* material = draw->material;
-    object_material_blend_flags blend_flags = material->material.blend_flags;
+    obj_material_data* material = draw->material;
+    obj_material_blend_flags blend_flags = material->material.blend_flags;
     if ((!blend_flags.alpha_texture && !blend_flags.alpha_material) || blend_flags.punch_through)
         return false;
 
@@ -418,11 +418,11 @@ static bool draw_object_blend_set(render_context* rctx,
             && (src_blend_factor != GL_ONE || dst_blend_factor)) {
             int32_t shader_index = rctx->draw_state.shader_index;
             if (rctx->draw_state.shader_index == -1) {
-                shader_index = material->material.shader_index;
+                shader_index = material->material.shader.index;
                 if (shader_index == SHADER_FT_BLINN) {
-                    if (lighting_type == OBJECT_MATERIAL_SHADER_LIGHTING_CONSTANT)
+                    if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT)
                         shader_index = SHADER_FT_CONSTANT;
-                    if (lighting_type == OBJECT_MATERIAL_SHADER_LIGHTING_LAMBERT)
+                    if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT)
                         shader_index = SHADER_FT_LAMBERT;
                 }
             }
@@ -455,7 +455,7 @@ static void draw_object_chara_color_fog_set(render_context* rctx, draw_object* d
             uniform_value[U_CHARA_COLOR] = 1;
     }
 
-    object_material_blend_flags blend_flags = draw->material->material.blend_flags;
+    obj_material_blend_flags blend_flags = draw->material->material.blend_flags;
     if (!blend_flags.no_fog && !disable_fog) {
         if (blend_flags.has_fog_height)
             uniform_value[U_FOG_HEIGHT] = 2 + blend_flags.fog_height;
@@ -465,10 +465,10 @@ static void draw_object_chara_color_fog_set(render_context* rctx, draw_object* d
     }
 }
 
-static void draw_object_material_reset_default(object_material_data* mat_data) {
+static void draw_object_material_reset_default(obj_material_data* mat_data) {
     if (mat_data) {
         gl_state_enable_cull_face();
-        object_material_blend_flags blend_flags = mat_data->material.blend_flags;
+        obj_material_blend_flags blend_flags = mat_data->material.blend_flags;
         if ((blend_flags.alpha_texture || blend_flags.alpha_material) && !blend_flags.punch_through)
             gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
@@ -482,10 +482,10 @@ static void draw_object_material_reset_reflect() {
 }
 
 static void draw_object_material_set_default(render_context* rctx, draw_object* draw, bool use_shader) {
-    GLuint* textures = draw->textures;
-    object_material_data* material = draw->material;
-    object_material_shader_lighting_type lighting_type =
-        object_material_shader_get_lighting_type(&material->material.shader_flags);
+    std::vector<GLuint>* textures = draw->textures;
+    obj_material_data* material = draw->material;
+    obj_material_shader_lighting_type lighting_type =
+        obj_material_shader_get_lighting_type(&material->material.shader_flags);
     bool disable_fog = draw_object_blend_set(rctx, draw, lighting_type);
     draw_object_material_set_uniform(rctx, material, false);
     if (!rctx->draw_state.light)
@@ -493,11 +493,11 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
     else if (draw->self_shadow)
         uniform_value[U_LIGHT_0] = draw->self_shadow ? 1 : 1;
     else
-        uniform_value[U_LIGHT_0] = draw->sub_mesh->flags & OBJECT_SUB_MESH_RECIEVE_SHADOW ? 1 : 0;
+        uniform_value[U_LIGHT_0] = draw->sub_mesh->flags & OBJ_SUB_MESH_RECIEVE_SHADOW ? 1 : 0;
     uniform_value[U_SHADOW] = 0;
     uniform_value[U_SELF_SHADOW] = rctx->draw_state.self_shadow ? 1 : 0;
 
-    object_material_texture* mat_tex = material->material.textures;
+    obj_material_texture* mat_tex = material->material.textures;
     uniform_value[U_SHADOW] = draw->shadow > SHADOW_CHARA;
     for (int32_t i = 0, j = 0; i < 8; i++, mat_tex++) {
         if (mat_tex->texture_id == -1)
@@ -514,38 +514,38 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
             }
 
         if (tex_id == -1)
-            tex_id = textures[mat_tex->texture_index];
+            tex_id = (*textures)[mat_tex->texture_index];
 
         if (tex_id == -1)
             continue;
 
-        int32_t tex_index = object_material_texture_type_get_texture_index(mat_tex->texture_flags.type, j);
+        int32_t tex_index = obj_material_texture_type_get_texture_index(mat_tex->texture_flags.type, j);
         if (tex_index < 0)
             continue;
 
-        object_material_texture_type tex_type = mat_tex->texture_flags.type;
-        if (tex_type == OBJECT_MATERIAL_TEXTURE_COLOR)
+        obj_material_texture_type tex_type = mat_tex->texture_flags.type;
+        if (tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
             j++;
 
         if (mat_tex->sampler_flags.flag_29) {
             switch (tex_type) {
-            case OBJECT_MATERIAL_TEXTURE_NORMAL:
+            case OBJ_MATERIAL_TEXTURE_NORMAL:
                 uniform_value[U_NORMAL] = 0;
                 break;
-            case OBJECT_MATERIAL_TEXTURE_SPECULAR:
+            case OBJ_MATERIAL_TEXTURE_SPECULAR:
                 uniform_value[U_SPECULAR] = 0;
                 break;
-            case OBJECT_MATERIAL_TEXTURE_TRANSLUCENCY:
+            case OBJ_MATERIAL_TEXTURE_TRANSLUCENCY:
                 uniform_value[U_TRANSLUCENCY] = 0;
                 break;
-            case OBJECT_MATERIAL_TEXTURE_TRANSPARENCY:
+            case OBJ_MATERIAL_TEXTURE_TRANSPARENCY:
                 uniform_value[U_TRANSPARENCY] = 0;
                 break;
             }
             continue;
         }
 
-        if (tex_type == OBJECT_MATERIAL_TEXTURE_ENVIRONMENT_CUBE)
+        if (tex_type == OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE)
             gl_state_active_bind_texture_cube_map(tex_index, tex_id);
         else {
             gl_state_active_bind_texture_2d(tex_index, tex_id);
@@ -568,7 +568,7 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_t);
         }
 
-        if (material->material.shader_index == SHADER_FT_SKY) {
+        if (material->material.shader.index == SHADER_FT_SKY) {
             uniform_name uni_type = U_TEX_0_TYPE;
             if (tex_index == 1)
                 uni_type = U_TEX_1_TYPE;
@@ -584,7 +584,7 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
                 uniform_value[uni_type] = 1;
         }
 
-        int32_t texture_blend = object_material_texture_get_blend(mat_tex);
+        int32_t texture_blend = obj_material_texture_get_blend(mat_tex);
         if (tex_index == 0 || tex_index == 1)
             uniform_value[U_TEXTURE_BLEND] = texture_blend;
     }
@@ -610,7 +610,7 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
     shader_state_material_set_emission_ptr(&shaders_ft, false, &emission);
 
     float_t line_light;
-    if (lighting_type == OBJECT_MATERIAL_SHADER_LIGHTING_PHONG) {
+    if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_PHONG) {
         vec4 specular = material->material.specular;
         shader_state_material_set_specular_ptr(&shaders_ft, false, &specular);
 
@@ -634,12 +634,12 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
         shader_set(&shaders_ft, SHADER_FT_SIMPLE);
     else if (rctx->draw_state.shader_index != -1)
         shader_set(&shaders_ft, rctx->draw_state.shader_index);
-    else if (material->material.shader_index != -1) {
-        if (material->material.shader_index != SHADER_FT_BLINN)
-            shader_set(&shaders_ft, material->material.shader_index);
-        else if (lighting_type == OBJECT_MATERIAL_SHADER_LIGHTING_LAMBERT)
+    else if (material->material.shader.index != -1) {
+        if (material->material.shader.index != SHADER_FT_BLINN)
+            shader_set(&shaders_ft, material->material.shader.index);
+        else if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT)
             shader_set(&shaders_ft, SHADER_FT_LAMBERT);
-        else if (lighting_type == OBJECT_MATERIAL_SHADER_LIGHTING_PHONG)
+        else if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_PHONG)
             shader_set(&shaders_ft, SHADER_FT_BLINN);
         else
             shader_set(&shaders_ft, SHADER_FT_CONSTANT);
@@ -647,9 +647,9 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
     else
         shader_set(&shaders_ft, SHADER_FT_CONSTANT);
 
-    if (lighting_type != OBJECT_MATERIAL_SHADER_LIGHTING_CONSTANT) {
+    if (lighting_type != OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT) {
         float_t shininess;
-        if (material->material.shader_index == SHADER_FT_EYEBALL)
+        if (material->material.shader.index == SHADER_FT_EYEBALL)
             shininess = 10.0f;
         else {
             shininess = (material->material.shininess - 16.0f) * (float_t)(1.0 / 112.0);
@@ -671,7 +671,7 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
         shader_local_vert_set(&shaders_ft, 1, shininess, 0.0f, 0.0f, 0.0f);
         shader_local_frag_set(&shaders_ft, 3, shininess, 0.0f, 0.0f, 0.0f);
 
-        switch (material->material.shader_index) {
+        switch (material->material.shader.index) {
         case SHADER_FT_SKIN: {
             vec4 texture_color_coeff = draw->texture_color_coeff;
             vec4 texture_color_offset = draw->texture_color_offset;
@@ -698,7 +698,7 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
     draw_object_material_set_parameter(rctx, material);
 }
 
-static void draw_object_material_set_parameter(render_context* rctx, object_material_data* mat_data) {
+static void draw_object_material_set_parameter(render_context* rctx, obj_material_data* mat_data) {
     float_t bump_depth;
     float_t intensity;
     float_t reflect_uv_scale;
@@ -739,12 +739,12 @@ static void draw_object_material_set_parameter(render_context* rctx, object_mate
 }
 
 static void draw_object_material_set_reflect(render_context* rctx, draw_object* draw) {
-    object_material_data* material = draw->material;
-    GLuint* textures = draw->textures;
+    obj_material_data* material = draw->material;
+    std::vector<GLuint>* textures = draw->textures;
     if (material->material.blend_flags.double_sided)
         gl_state_disable_cull_face();
 
-    object_material_texture* mat_tex = material->material.textures;
+    obj_material_texture* mat_tex = material->material.textures;
     for (int32_t i = 0; i < 1; i++, mat_tex++) {
         uint32_t texture_id = mat_tex->texture_id;
         if (mat_tex->texture_id == -1)
@@ -760,7 +760,7 @@ static void draw_object_material_set_reflect(render_context* rctx, draw_object* 
             }
 
         if (tex_id == -1)
-            tex_id = textures[mat_tex->texture_index];
+            tex_id = (*textures)[mat_tex->texture_index];
 
         if (tex_id == -1)
             tex_id = 0;
@@ -789,7 +789,7 @@ static void draw_object_material_set_reflect(render_context* rctx, draw_object* 
     vec4 diffuse;
     vec4 emission;
     vec4 specular;
-    if (material->material.shader_index == -1) {
+    if (material->material.shader.index == -1) {
         ambient = vec4_identity;
         diffuse = material->material.diffuse;
         emission = vec4_identity;
@@ -811,20 +811,20 @@ static void draw_object_material_set_reflect(render_context* rctx, draw_object* 
     draw_object_material_set_parameter(rctx, draw->material);
 }
 
-static void draw_object_material_set_uniform(render_context* rctx, object_material_data* mat_data, bool disable_color_l) {
+static void draw_object_material_set_uniform(render_context* rctx, obj_material_data* mat_data, bool disable_color_l) {
     int32_t flags = mat_data->material.flags;
-    object_material_shader_flags shader_flags = mat_data->material.shader_flags;
+    obj_material_shader_flags shader_flags = mat_data->material.shader_flags;
 
     if (disable_color_l) {
-        if (flags & OBJECT_MATERIAL_COLOR)
-            flags &= ~OBJECT_MATERIAL_COLOR_L1;
-        flags &= ~OBJECT_MATERIAL_COLOR_L2;
+        if (flags & OBJ_MATERIAL_COLOR)
+            flags &= ~OBJ_MATERIAL_COLOR_L1;
+        flags &= ~OBJ_MATERIAL_COLOR_L2;
     }
 
     int32_t v4 = 0;
-    if (flags & OBJECT_MATERIAL_COLOR) {
-        if (~flags & OBJECT_MATERIAL_COLOR_L2)
-            if (flags & OBJECT_MATERIAL_COLOR_L1) {
+    if (flags & OBJ_MATERIAL_COLOR) {
+        if (~flags & OBJ_MATERIAL_COLOR_L2)
+            if (flags & OBJ_MATERIAL_COLOR_L1) {
                 uniform_value[U_TEXTURE_COUNT] = 2;
                 v4 = 3;
             }
@@ -833,29 +833,29 @@ static void draw_object_material_set_uniform(render_context* rctx, object_materi
                 v4 = 1;
             }
     }
-    else if (flags & OBJECT_MATERIAL_COLOR_L1 && ~flags & OBJECT_MATERIAL_COLOR_L2) {
+    else if (flags & OBJ_MATERIAL_COLOR_L1 && ~flags & OBJ_MATERIAL_COLOR_L2) {
         uniform_value[U_TEXTURE_COUNT] = 1;
         v4 = 1;
     }
     else
         uniform_value[U_TEXTURE_COUNT] = 0;
 
-    if (flags & OBJECT_MATERIAL_NORMAL)
+    if (flags & OBJ_MATERIAL_NORMAL)
         uniform_value[U_NORMAL] = 1;
-    if (flags & OBJECT_MATERIAL_SPECULAR)
+    if (flags & OBJ_MATERIAL_SPECULAR)
         uniform_value[U_SPECULAR] = 1;
-    if (flags & OBJECT_MATERIAL_TRANSPARENCY) {
+    if (flags & OBJ_MATERIAL_TRANSPARENCY) {
         uniform_value[U_TRANSPARENCY] = 1;
         v4 |= 2;
     }
-    if (flags & OBJECT_MATERIAL_TRANSLUCENCY) {
+    if (flags & OBJ_MATERIAL_TRANSLUCENCY) {
         uniform_value[U_TRANSLUCENCY] = 1;
         v4 |= 2;
     }
-    if (flags & OBJECT_MATERIAL_OVERRIDE_IBL)
+    if (flags & OBJ_MATERIAL_OVERRIDE_IBL)
         uniform_value[U_ENV_MAP] = 1;
 
-    if ((shader_flags.aniso_direction & 0x03) != OBJECT_MATERIAL_ANISO_DIRECTION_NORMAL)
+    if ((shader_flags.aniso_direction & 0x03) != OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
         uniform_value[U_ANISO] = shader_flags.aniso_direction & 0x03;
 
     if (v4 == 1)
@@ -865,10 +865,10 @@ static void draw_object_material_set_uniform(render_context* rctx, object_materi
 }
 
 static void draw_object_vertex_attrib_reset_default(draw_object* draw) {
-    object_mesh* mesh = draw->mesh;
-    object_vertex_flags vertex_flags = mesh->vertex_flags;
+    obj_mesh* mesh = draw->mesh;
+    obj_vertex_flags vertex_flags = mesh->vertex_flags;
 
-    if (mesh->compressed) {
+    if (mesh->flags & OBJ_MESH_COMPRESSED) {
         draw_object_vertex_attrib_reset_default_compressed(draw);
         return;
     }
@@ -879,7 +879,7 @@ static void draw_object_vertex_attrib_reset_default(draw_object* draw) {
         draw->vertex_attrib_array[i] = false;
     }
 
-    if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
+    if (vertex_flags & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 0;
 
     if (draw->morph_array_buffer) {
@@ -895,8 +895,8 @@ static void draw_object_vertex_attrib_reset_default(draw_object* draw) {
 }
 
 static void draw_object_vertex_attrib_reset_default_compressed(draw_object* draw) {
-    object_mesh* mesh = draw->mesh;
-    object_vertex_flags vertex_flags = mesh->vertex_flags;
+    obj_mesh* mesh = draw->mesh;
+    obj_vertex_flags vertex_flags = mesh->vertex_flags;
 
     for (int32_t i = 0; i < 16; i++) {
         if (draw->vertex_attrib_array[i])
@@ -904,7 +904,7 @@ static void draw_object_vertex_attrib_reset_default_compressed(draw_object* draw
         draw->vertex_attrib_array[i] = false;
     }
 
-    if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
+    if (vertex_flags & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 0;
 
     if (draw->morph_array_buffer) {
@@ -920,10 +920,10 @@ static void draw_object_vertex_attrib_reset_default_compressed(draw_object* draw
 }
 
 static void draw_object_vertex_attrib_reset_reflect(draw_object* draw) {
-    object_mesh* mesh = draw->mesh;
-    object_vertex_flags vertex_flags = mesh->vertex_flags;
+    obj_mesh* mesh = draw->mesh;
+    obj_vertex_flags vertex_flags = mesh->vertex_flags;
 
-    if (mesh->compressed) {
+    if (mesh->flags & OBJ_MESH_COMPRESSED) {
         draw_object_vertex_attrib_reset_reflect_compressed(draw);
         return;
     }
@@ -934,7 +934,7 @@ static void draw_object_vertex_attrib_reset_reflect(draw_object* draw) {
         draw->vertex_attrib_array[i] = false;
     }
 
-    if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
+    if (vertex_flags & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 0;
 
     if (draw->morph_array_buffer) {
@@ -948,8 +948,8 @@ static void draw_object_vertex_attrib_reset_reflect(draw_object* draw) {
 }
 
 inline static void draw_object_vertex_attrib_reset_reflect_compressed(draw_object* draw) {
-    object_mesh* mesh = draw->mesh;
-    object_vertex_flags vertex_flags = mesh->vertex_flags;
+    obj_mesh* mesh = draw->mesh;
+    obj_vertex_flags vertex_flags = mesh->vertex_flags;
 
     for (int32_t i = 0; i < 16; i++) {
         if (draw->vertex_attrib_array[i])
@@ -957,7 +957,7 @@ inline static void draw_object_vertex_attrib_reset_reflect_compressed(draw_objec
         draw->vertex_attrib_array[i] = false;
     }
 
-    if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
+    if (vertex_flags & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 0;
 
     if (draw->morph_array_buffer) {
@@ -971,12 +971,12 @@ inline static void draw_object_vertex_attrib_reset_reflect_compressed(draw_objec
 }
 
 static void draw_object_vertex_attrib_set_default(draw_object* draw) {
-    object_mesh* mesh = draw->mesh;
-    object_sub_mesh* sub_mesh = draw->sub_mesh;
+    obj_mesh* mesh = draw->mesh;
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
     GLsizei vertex_size = (GLsizei)mesh->vertex_size;
-    object_vertex_flags vertex_flags = mesh->vertex_flags;
+    obj_vertex_flags vertex_flags = mesh->vertex_flags;
 
-    if (mesh->compressed) {
+    if (mesh->flags & OBJ_MESH_COMPRESSED) {
         draw_object_vertex_attrib_set_default_compressed(draw);
         return;
     }
@@ -984,7 +984,7 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
     gl_state_bind_array_buffer(draw->array_buffer);
 
     size_t offset = 0;
-    if (vertex_flags & OBJECT_VERTEX_POSITION) {
+    if (vertex_flags & OBJ_VERTEX_POSITION) {
         enable_vertex_attrib_array(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 12;
@@ -992,7 +992,7 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
     else
         glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_NORMAL) {
+    if (vertex_flags & OBJ_VERTEX_NORMAL) {
         enable_vertex_attrib_array(2);
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 12;
@@ -1000,7 +1000,7 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
     else
         glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_TANGENT) {
+    if (vertex_flags & OBJ_VERTEX_TANGENT) {
         enable_vertex_attrib_array(6);
         glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 16;
@@ -1008,24 +1008,24 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
     else
         glVertexAttrib4f(5, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_BINORMAL)
+    if (vertex_flags & OBJ_VERTEX_BINORMAL)
         offset += 12;
 
     bool texcoord_mat_set[4] = { false };
-    object_material_data* material = draw->material;
+    obj_material_data* material = draw->material;
     for (int32_t i = 0, j = 0, l = 0; i < 4; i++) {
         if (material->material.textures[i].texture_id == -1)
             continue;
 
-        int32_t texcoord_index = object_material_texture_type_get_texcoord_index(
+        int32_t texcoord_index = obj_material_texture_type_get_texcoord_index(
             material->material.textures[i].texture_flags.type, j);
         if (texcoord_index < 0)
             continue;
 
-        if (material->material.textures[i].texture_flags.type == OBJECT_MATERIAL_TEXTURE_COLOR)
+        if (material->material.textures[i].texture_flags.type == OBJ_MATERIAL_TEXTURE_COLOR)
             j++;
 
-        if (vertex_flags & (OBJECT_VERTEX_TEXCOORD0 << sub_mesh->texcoord_indices[l])) {
+        if (vertex_flags & (OBJ_VERTEX_TEXCOORD0 << sub_mesh->texcoord_indices[l])) {
             enable_vertex_attrib_array(8 + texcoord_index);
             glVertexAttribPointer(8 + texcoord_index, 2, GL_FLOAT, GL_FALSE,
                 vertex_size, (void*)(offset + 8ULL * sub_mesh->texcoord_indices[l]));
@@ -1039,7 +1039,7 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
 
         mat4 mat = material->material.textures[i].tex_coord_mat;
         shader_state_matrix_set_texture(&shaders_ft, texcoord_index, &mat);
-        if (material->material.textures[i].texture_flags.type == OBJECT_MATERIAL_TEXTURE_COLOR)
+        if (material->material.textures[i].texture_flags.type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t k = 0; k < draw->texture_transform_count; k++)
                 if (draw->texture_transform_array[k].id == texture_id) {
                     mat = draw->texture_transform_array[k].mat;
@@ -1053,16 +1053,16 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         if (!draw->vertex_attrib_array[8 + i])
             glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD0)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD0)
         offset += 8;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD1)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD1)
         offset += 8;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD2)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD2)
         offset += 8;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD3)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD3)
         offset += 8;
 
-    if (vertex_flags & OBJECT_VERTEX_COLOR0) {
+    if (vertex_flags & OBJ_VERTEX_COLOR0) {
         enable_vertex_attrib_array(3);
         glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 16;
@@ -1070,10 +1070,10 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
     else
         glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_COLOR1)
+    if (vertex_flags & OBJ_VERTEX_COLOR1)
         offset += 16;
 
-    if (vertex_flags & OBJECT_VERTEX_BONE_DATA) {
+    if (vertex_flags & OBJ_VERTEX_BONE_DATA) {
         uniform_value[U_BONE_MAT] = 1;
 
         enable_vertex_attrib_array(1);
@@ -1089,7 +1089,7 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         glVertexAttrib4f(15, 0.0f, 0.0f, 0.0f, 1.0f);
     }
 
-    if (vertex_flags & OBJECT_VERTEX_UNKNOWN) {
+    if (vertex_flags & OBJ_VERTEX_UNKNOWN) {
         enable_vertex_attrib_array(7);
         glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 16;
@@ -1103,7 +1103,7 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         gl_state_bind_array_buffer(draw->morph_array_buffer);
 
         offset = 0;
-        if (vertex_flags & OBJECT_VERTEX_POSITION) {
+        if (vertex_flags & OBJ_VERTEX_POSITION) {
             enable_vertex_attrib_array(10);
             glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 12;
@@ -1111,7 +1111,7 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         else
             glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_NORMAL) {
+        if (vertex_flags & OBJ_VERTEX_NORMAL) {
             enable_vertex_attrib_array(11);
             glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 12;
@@ -1119,7 +1119,7 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         else
             glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TANGENT) {
+        if (vertex_flags & OBJ_VERTEX_TANGENT) {
             enable_vertex_attrib_array(12);
             glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 16;
@@ -1127,10 +1127,10 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         else
             glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_BINORMAL)
+        if (vertex_flags & OBJ_VERTEX_BINORMAL)
             offset += 12;
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD0) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD0) {
             enable_vertex_attrib_array(13);
             glVertexAttribPointer(13, 2, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 8;
@@ -1138,7 +1138,7 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         else
             glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD1) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD1) {
             enable_vertex_attrib_array(14);
             glVertexAttribPointer(14, 2, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 8;
@@ -1146,12 +1146,12 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         else
             glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD2)
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD2)
             offset += 8;
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD3)
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD3)
             offset += 8;
 
-        if (vertex_flags & OBJECT_VERTEX_COLOR0) {
+        if (vertex_flags & OBJ_VERTEX_COLOR0) {
             uniform_value[U_MORPH_COLOR] = 1;
 
             enable_vertex_attrib_array(5);
@@ -1161,13 +1161,13 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         else
             glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_COLOR1)
+        if (vertex_flags & OBJ_VERTEX_COLOR1)
             offset += 16;
 
-        if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
+        if (vertex_flags & OBJ_VERTEX_BONE_DATA)
             offset += 32;
 
-        if (vertex_flags & OBJECT_VERTEX_UNKNOWN)
+        if (vertex_flags & OBJ_VERTEX_UNKNOWN)
             offset += 16;
 
         shader_env_vert_set(&shaders_ft, 13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
@@ -1181,15 +1181,15 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
 }
 
 inline static void draw_object_vertex_attrib_set_default_compressed(draw_object* draw) {
-    object_mesh* mesh = draw->mesh;
-    object_sub_mesh* sub_mesh = draw->sub_mesh;
+    obj_mesh* mesh = draw->mesh;
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
     GLsizei vertex_size = (GLsizei)mesh->vertex_size;
-    object_vertex_flags vertex_flags = mesh->vertex_flags;
+    obj_vertex_flags vertex_flags = mesh->vertex_flags;
 
     gl_state_bind_array_buffer(draw->array_buffer);
 
     size_t offset = 0;
-    if (vertex_flags & OBJECT_VERTEX_POSITION) {
+    if (vertex_flags & OBJ_VERTEX_POSITION) {
         enable_vertex_attrib_array(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 12;
@@ -1197,7 +1197,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
     else
         glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_NORMAL) {
+    if (vertex_flags & OBJ_VERTEX_NORMAL) {
         enable_vertex_attrib_array(2);
         glVertexAttribPointer(2, 3, GL_SHORT, GL_TRUE, vertex_size, (void*)offset);
         offset += 8;
@@ -1205,7 +1205,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
     else
         glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_TANGENT) {
+    if (vertex_flags & OBJ_VERTEX_TANGENT) {
         enable_vertex_attrib_array(6);
         glVertexAttribPointer(6, 4, GL_SHORT, GL_TRUE, vertex_size, (void*)offset);
         offset += 8;
@@ -1214,17 +1214,17 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         glVertexAttrib4f(6, 0.0f, 0.0f, 0.0f, 1.0f);
 
     bool texcoord_mat_set[4] = { false };
-    object_material_data* material = draw->material;
+    obj_material_data* material = draw->material;
     for (int32_t i = 0, j = 0, l = 0; i < 4; i++) {
         if (material->material.textures[i].texture_id == -1)
             continue;
 
-        int32_t texcoord_index = object_material_texture_type_get_texcoord_index(
+        int32_t texcoord_index = obj_material_texture_type_get_texcoord_index(
             material->material.textures[i].texture_flags.type, j);
         if (texcoord_index < 0)
             continue;
 
-        if (material->material.textures[i].texture_flags.type == OBJECT_MATERIAL_TEXTURE_COLOR)
+        if (material->material.textures[i].texture_flags.type == OBJ_MATERIAL_TEXTURE_COLOR)
             j++;
 
         if (!strcmp(mesh->name, "body_MZ"))
@@ -1234,7 +1234,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         if (!strcmp(mesh->name, "MZ_ami1") && !strcmp(material->material.name, "test_YZ_frame_2s"))
             printf("");
 
-        if (vertex_flags & (OBJECT_VERTEX_TEXCOORD0 << sub_mesh->texcoord_indices[l])) {
+        if (vertex_flags & (OBJ_VERTEX_TEXCOORD0 << sub_mesh->texcoord_indices[l])) {
             enable_vertex_attrib_array(8 + texcoord_index);
             glVertexAttribPointer(8 + texcoord_index, 2, GL_HALF_FLOAT, GL_FALSE,
                 vertex_size, (void*)(offset + 4ULL * sub_mesh->texcoord_indices[l]));
@@ -1248,7 +1248,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
 
         mat4 mat = material->material.textures[i].tex_coord_mat;
         shader_state_matrix_set_texture(&shaders_ft, texcoord_index, &mat);
-        if (material->material.textures[i].texture_flags.type == OBJECT_MATERIAL_TEXTURE_COLOR)
+        if (material->material.textures[i].texture_flags.type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t k = 0; k < draw->texture_transform_count; k++)
                 if (draw->texture_transform_array[k].id == texture_id) {
                     mat = draw->texture_transform_array[k].mat;
@@ -1262,16 +1262,16 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         if (!draw->vertex_attrib_array[8 + i])
             glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD0)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD0)
         offset += 4;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD1)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD1)
         offset += 4;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD2)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD2)
         offset += 4;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD3)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD3)
         offset += 4;
 
-    if (vertex_flags & OBJECT_VERTEX_COLOR0) {
+    if (vertex_flags & OBJ_VERTEX_COLOR0) {
         enable_vertex_attrib_array(3);
         glVertexAttribPointer(3, 4, GL_HALF_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 8;
@@ -1279,7 +1279,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
     else
         glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_BONE_DATA) {
+    if (vertex_flags & OBJ_VERTEX_BONE_DATA) {
         uniform_value[U_BONE_MAT] = 1;
 
         enable_vertex_attrib_array(1);
@@ -1301,7 +1301,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         gl_state_bind_array_buffer(draw->morph_array_buffer);
 
         offset = 0;
-        if (vertex_flags & OBJECT_VERTEX_POSITION) {
+        if (vertex_flags & OBJ_VERTEX_POSITION) {
             enable_vertex_attrib_array(10);
             glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 12;
@@ -1309,7 +1309,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         else
             glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_NORMAL) {
+        if (vertex_flags & OBJ_VERTEX_NORMAL) {
             enable_vertex_attrib_array(11);
             glVertexAttribPointer(11, 3, GL_SHORT, GL_TRUE, vertex_size, (void*)offset);
             offset += 8;
@@ -1317,7 +1317,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         else
             glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TANGENT) {
+        if (vertex_flags & OBJ_VERTEX_TANGENT) {
             enable_vertex_attrib_array(12);
             glVertexAttribPointer(12, 4, GL_SHORT, GL_TRUE, vertex_size, (void*)offset);
             offset += 8;
@@ -1325,7 +1325,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         else
             glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD0) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD0) {
             enable_vertex_attrib_array(13);
             glVertexAttribPointer(13, 2, GL_HALF_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 4;
@@ -1333,7 +1333,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         else
             glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD1) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD1) {
             enable_vertex_attrib_array(14);
             glVertexAttribPointer(14, 2, GL_HALF_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 4;
@@ -1341,12 +1341,12 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         else
             glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD2)
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD2)
             offset += 4;
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD3)
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD3)
             offset += 4;
 
-        if (vertex_flags & OBJECT_VERTEX_COLOR0) {
+        if (vertex_flags & OBJ_VERTEX_COLOR0) {
             uniform_value[U_MORPH_COLOR] = 1;
 
             enable_vertex_attrib_array(5);
@@ -1356,7 +1356,7 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
         else
             glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
+        if (vertex_flags & OBJ_VERTEX_BONE_DATA)
             offset += 16;
 
         shader_env_vert_set(&shaders_ft, 13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
@@ -1370,12 +1370,12 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
 }
 
 static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
-    object_mesh* mesh = draw->mesh;
-    object_sub_mesh* sub_mesh = draw->sub_mesh;
+    obj_mesh* mesh = draw->mesh;
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
     GLsizei vertex_size = (GLsizei)mesh->vertex_size;
-    object_vertex_flags vertex_flags = mesh->vertex_flags;
+    obj_vertex_flags vertex_flags = mesh->vertex_flags;
 
-    if (mesh->compressed) {
+    if (mesh->flags & OBJ_MESH_COMPRESSED) {
         draw_object_vertex_attrib_set_reflect_compressed(draw);
         return;
     }
@@ -1383,7 +1383,7 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
     gl_state_bind_array_buffer(draw->array_buffer);
 
     size_t offset = 0;
-    if (vertex_flags & OBJECT_VERTEX_POSITION) {
+    if (vertex_flags & OBJ_VERTEX_POSITION) {
         enable_vertex_attrib_array(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 12;
@@ -1391,7 +1391,7 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
     else
         glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_NORMAL) {
+    if (vertex_flags & OBJ_VERTEX_NORMAL) {
         enable_vertex_attrib_array(2);
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 12;
@@ -1399,15 +1399,15 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
     else
         glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_TANGENT)
+    if (vertex_flags & OBJ_VERTEX_TANGENT)
         offset += 16;
 
-    if (vertex_flags & OBJECT_VERTEX_BINORMAL)
+    if (vertex_flags & OBJ_VERTEX_BINORMAL)
         offset += 12;
 
-    object_material_data* material = draw->material;
+    obj_material_data* material = draw->material;
     if (material->material.textures[0].texture_id != -1) {
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD0) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD0) {
             enable_vertex_attrib_array(8);
             glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE,
                 vertex_size, (void*)(offset + 8ULL * sub_mesh->texcoord_indices[0]));
@@ -1419,7 +1419,7 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
 
         mat4 mat = material->material.textures[0].tex_coord_mat;
         shader_state_matrix_set_texture(&shaders_ft, 0, &mat);
-        if (material->material.textures[0].texture_flags.type == OBJECT_MATERIAL_TEXTURE_COLOR)
+        if (material->material.textures[0].texture_flags.type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t j = 0; j < draw->texture_transform_count; j++)
                 if (draw->texture_transform_array[j].id == texture_id) {
                     mat = draw->texture_transform_array[j].mat;
@@ -1431,16 +1431,16 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
     for (int32_t i = 1; i < 4; i++)
         glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD0)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD0)
         offset += 8;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD1)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD1)
         offset += 8;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD2)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD2)
         offset += 8;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD3)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD3)
         offset += 8;
 
-    if (vertex_flags & OBJECT_VERTEX_COLOR0) {
+    if (vertex_flags & OBJ_VERTEX_COLOR0) {
         enable_vertex_attrib_array(3);
         glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 16;
@@ -1448,10 +1448,10 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
     else
         glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_COLOR1)
+    if (vertex_flags & OBJ_VERTEX_COLOR1)
         offset += 16;
 
-    if (vertex_flags & OBJECT_VERTEX_BONE_DATA) {
+    if (vertex_flags & OBJ_VERTEX_BONE_DATA) {
         uniform_value[U_BONE_MAT] = 1;
 
         enable_vertex_attrib_array(1);
@@ -1467,7 +1467,7 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
         glVertexAttrib4f(15, 0.0f, 0.0f, 0.0f, 1.0f);
     }
 
-    if (vertex_flags & OBJECT_VERTEX_UNKNOWN)
+    if (vertex_flags & OBJ_VERTEX_UNKNOWN)
         offset += 16;
 
     if (draw->morph_array_buffer) {
@@ -1476,7 +1476,7 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
         gl_state_bind_array_buffer(draw->morph_array_buffer);
 
         offset = 0;
-        if (vertex_flags & OBJECT_VERTEX_POSITION) {
+        if (vertex_flags & OBJ_VERTEX_POSITION) {
             enable_vertex_attrib_array(10);
             glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 12;
@@ -1484,7 +1484,7 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
         else
             glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_NORMAL) {
+        if (vertex_flags & OBJ_VERTEX_NORMAL) {
             enable_vertex_attrib_array(11);
             glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 12;
@@ -1492,7 +1492,7 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
         else
             glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TANGENT) {
+        if (vertex_flags & OBJ_VERTEX_TANGENT) {
             enable_vertex_attrib_array(12);
             glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 16;
@@ -1500,10 +1500,10 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
         else
             glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_BINORMAL)
+        if (vertex_flags & OBJ_VERTEX_BINORMAL)
             offset += 12;
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD0) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD0) {
             enable_vertex_attrib_array(13);
             glVertexAttribPointer(13, 2, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 8;
@@ -1511,7 +1511,7 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
         else
             glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD1) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD1) {
             enable_vertex_attrib_array(14);
             glVertexAttribPointer(14, 2, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 8;
@@ -1519,12 +1519,12 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
         else
             glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD2)
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD2)
             offset += 8;
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD3)
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD3)
             offset += 8;
 
-        if (vertex_flags & OBJECT_VERTEX_COLOR0) {
+        if (vertex_flags & OBJ_VERTEX_COLOR0) {
             uniform_value[U_MORPH_COLOR] = 1;
 
             enable_vertex_attrib_array(5);
@@ -1534,13 +1534,13 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
         else
             glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_COLOR1)
+        if (vertex_flags & OBJ_VERTEX_COLOR1)
             offset += 16;
 
-        if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
+        if (vertex_flags & OBJ_VERTEX_BONE_DATA)
             offset += 32;
 
-        if (vertex_flags & OBJECT_VERTEX_UNKNOWN)
+        if (vertex_flags & OBJ_VERTEX_UNKNOWN)
             offset += 16;
 
         shader_env_vert_set(&shaders_ft, 13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
@@ -1551,15 +1551,15 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
 }
 
 inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object* draw) {
-    object_mesh* mesh = draw->mesh;
-    object_sub_mesh* sub_mesh = draw->sub_mesh;
+    obj_mesh* mesh = draw->mesh;
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
     GLsizei vertex_size = (GLsizei)mesh->vertex_size;
-    object_vertex_flags vertex_flags = mesh->vertex_flags;
+    obj_vertex_flags vertex_flags = mesh->vertex_flags;
 
     gl_state_bind_array_buffer(draw->array_buffer);
 
     size_t offset = 0;
-    if (vertex_flags & OBJECT_VERTEX_POSITION) {
+    if (vertex_flags & OBJ_VERTEX_POSITION) {
         enable_vertex_attrib_array(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 12;
@@ -1567,7 +1567,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
     else
         glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_NORMAL) {
+    if (vertex_flags & OBJ_VERTEX_NORMAL) {
         enable_vertex_attrib_array(2);
         glVertexAttribPointer(2, 3, GL_SHORT, GL_TRUE, vertex_size, (void*)offset);
         offset += 8;
@@ -1575,12 +1575,12 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
     else
         glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_TANGENT)
+    if (vertex_flags & OBJ_VERTEX_TANGENT)
         offset += 8;
 
-    object_material_data* material = draw->material;
+    obj_material_data* material = draw->material;
     if (material->material.textures[0].texture_id != -1) {
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD0) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD0) {
             enable_vertex_attrib_array(8);
             glVertexAttribPointer(8, 2, GL_HALF_FLOAT, GL_FALSE,
                 vertex_size, (void*)(offset + 4ULL * sub_mesh->texcoord_indices[0]));
@@ -1592,7 +1592,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
 
         mat4 mat = material->material.textures[0].tex_coord_mat;
         shader_state_matrix_set_texture(&shaders_ft, 0, &mat);
-        if (material->material.textures[0].texture_flags.type == OBJECT_MATERIAL_TEXTURE_COLOR)
+        if (material->material.textures[0].texture_flags.type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t j = 0; j < draw->texture_transform_count; j++)
                 if (draw->texture_transform_array[j].id == texture_id) {
                     mat = draw->texture_transform_array[j].mat;
@@ -1604,16 +1604,16 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
     for (int32_t i = 1; i < 4; i++)
         glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD0)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD0)
         offset += 4;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD1)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD1)
         offset += 4;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD2)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD2)
         offset += 4;
-    if (vertex_flags & OBJECT_VERTEX_TEXCOORD3)
+    if (vertex_flags & OBJ_VERTEX_TEXCOORD3)
         offset += 4;
 
-    if (vertex_flags & OBJECT_VERTEX_COLOR0) {
+    if (vertex_flags & OBJ_VERTEX_COLOR0) {
         enable_vertex_attrib_array(3);
         glVertexAttribPointer(3, 4, GL_HALF_FLOAT, GL_FALSE, vertex_size, (void*)offset);
         offset += 8;
@@ -1621,7 +1621,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
     else
         glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
 
-    if (vertex_flags & OBJECT_VERTEX_BONE_DATA) {
+    if (vertex_flags & OBJ_VERTEX_BONE_DATA) {
         uniform_value[U_BONE_MAT] = 1;
 
         enable_vertex_attrib_array(1);
@@ -1643,7 +1643,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
         gl_state_bind_array_buffer(draw->morph_array_buffer);
 
         offset = 0;
-        if (vertex_flags & OBJECT_VERTEX_POSITION) {
+        if (vertex_flags & OBJ_VERTEX_POSITION) {
             enable_vertex_attrib_array(10);
             glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 12;
@@ -1651,7 +1651,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
         else
             glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_NORMAL) {
+        if (vertex_flags & OBJ_VERTEX_NORMAL) {
             enable_vertex_attrib_array(11);
             glVertexAttribPointer(11, 3, GL_SHORT, GL_TRUE, vertex_size, (void*)offset);
             offset += 8;
@@ -1659,7 +1659,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
         else
             glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TANGENT) {
+        if (vertex_flags & OBJ_VERTEX_TANGENT) {
             enable_vertex_attrib_array(12);
             glVertexAttribPointer(12, 4, GL_SHORT, GL_TRUE, vertex_size, (void*)offset);
             offset += 8;
@@ -1667,7 +1667,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
         else
             glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD0) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD0) {
             enable_vertex_attrib_array(13);
             glVertexAttribPointer(13, 2, GL_HALF_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 4;
@@ -1675,7 +1675,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
         else
             glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD1) {
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD1) {
             enable_vertex_attrib_array(14);
             glVertexAttribPointer(14, 2, GL_HALF_FLOAT, GL_FALSE, vertex_size, (void*)offset);
             offset += 4;
@@ -1683,12 +1683,12 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
         else
             glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD2)
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD2)
             offset += 4;
-        if (vertex_flags & OBJECT_VERTEX_TEXCOORD3)
+        if (vertex_flags & OBJ_VERTEX_TEXCOORD3)
             offset += 4;
 
-        if (vertex_flags & OBJECT_VERTEX_COLOR0) {
+        if (vertex_flags & OBJ_VERTEX_COLOR0) {
             uniform_value[U_MORPH_COLOR] = 1;
 
             enable_vertex_attrib_array(5);
@@ -1698,7 +1698,7 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
         else
             glVertexAttrib4f(5, 0.0f, 0.0f, 0.0f, 1.0f);
 
-        if (vertex_flags & OBJECT_VERTEX_BONE_DATA)
+        if (vertex_flags & OBJ_VERTEX_BONE_DATA)
             offset += 16;
 
         shader_env_vert_set(&shaders_ft, 13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);

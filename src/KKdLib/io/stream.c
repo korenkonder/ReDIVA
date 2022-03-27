@@ -398,11 +398,11 @@ inline void io_read_string(stream* s, string* str, size_t length) {
 }
 
 inline void io_read_string(stream* s, std::string* str, size_t length) {
-    char* temp = new char[length + 1];
+    char* temp = force_malloc_s(char, length + 1);
     io_read(s, temp, length);
     temp[length] = 0;
     *str = std::string(temp, length);
-    delete[] temp;
+    free(temp);
 }
 
 inline void io_read_wstring(stream* s, wstring* str, size_t length) {
@@ -413,11 +413,11 @@ inline void io_read_wstring(stream* s, wstring* str, size_t length) {
 }
 
 inline void io_read_wstring(stream* s, std::wstring* str, size_t length) {
-    wchar_t* temp = new wchar_t[length + 1];
+    wchar_t* temp = force_malloc_s(wchar_t, length + 1);
     io_read(s, temp, sizeof(wchar_t) * length);
     temp[length] = 0;
     *str = std::wstring(temp, length);
-    delete[] temp;
+    free(temp);
 }
 
 inline void io_read_string_null_terminated(stream* s, string* str) {

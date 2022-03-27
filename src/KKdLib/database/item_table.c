@@ -120,16 +120,40 @@ bool itm_table::load_file(void* data, const char* path, const char* file, uint32
     return itm_tbl->ready;
 }
 
-itm_table_itm_data::itm_table_itm_data() {
+itm_table_item_data_tex::itm_table_item_data_tex() {
 
 }
 
-itm_table_itm_data::~itm_table_itm_data() {
+itm_table_item_data_tex::~itm_table_item_data_tex() {
 
 }
 
-itm_table_item::itm_table_item() : flag(), type(), attr(), des_id(),
-sub_id(), exclusion_point(), field_AC(), org_itm(), npr_flag(), face_depth() {
+itm_table_item_data_obj::itm_table_item_data_obj() : rpk() {
+
+}
+
+itm_table_item_data_obj::~itm_table_item_data_obj() {
+
+}
+
+itm_table_item_data_col::itm_table_item_data_col() : flag(), col_tone() {
+
+}
+
+itm_table_item_data_col::~itm_table_item_data_col() {
+
+}
+
+itm_table_item_data::itm_table_item_data() {
+
+}
+
+itm_table_item_data::~itm_table_item_data() {
+
+}
+
+itm_table_item::itm_table_item() : no(), flag(), type(), attr(), des_id(),
+sub_id(), exclusion(), point(), org_itm(), npr_flag(), face_depth() {
 
 }
 
@@ -178,6 +202,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t length) {
     size_t len1;
     size_t len2;
     size_t len3;
+    size_t len4;
     size_t off;
 
     key_val kv;
@@ -231,7 +256,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t length) {
     memcpy(buf, "dbgset", 6);
     off = len;
 
-    itm_tbl->item.clear();
+    itm_tbl->dbgset.clear();
     if (kv.read_int32_t(buf, off, ".length", 8, &count)
         && kv.get_local_key_val("dbgset", &lkv)) {
         std::vector<itm_table_dbgset>& vd = itm_tbl->dbgset;
@@ -268,7 +293,220 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t length) {
             off = len + len1;
             lkv.read_string(
                 buf, off, ".name", 6, &d->name);
+        }
+    }
 
+    len = 4;
+    memcpy(buf, "item", 4);
+    off = len;
+
+    itm_tbl->item.clear();
+    if (kv.read_int32_t(buf, off, ".length", 8, &count)
+        && kv.get_local_key_val("item", &lkv)) {
+        std::vector<itm_table_item>& vi = itm_tbl->item;
+
+        vi.reserve(count);
+        for (int32_t i = 0; i < count; i++) {
+
+            len1 = sprintf_s(buf + len, ITEM_TABLE_TEXT_BUF_SIZE - len, ".%d", i);
+            off = len + len1;
+
+            itm_table_item itm;
+            if (!lkv.read_int32_t(buf, off, ".no", 4, &itm.no))
+                continue;
+
+            if (!lkv.read_int32_t(
+                buf, off, ".flag", 6, &itm.flag)
+                || !lkv.read_string(
+                    buf, off, ".name", 6, &itm.name))
+                continue;
+
+            len2 = 7;
+            memcpy(buf + len + len1, ".objset", 7);
+            off = len + len1 + len2;
+
+            if (off >= 0 && off < ITEM_TABLE_TEXT_BUF_SIZE)
+                buf[off] = 0;
+            key_val sub_local_key_val;
+            if (lkv.read_int32_t(buf, off, ".length", 8, &count1)
+                && lkv.get_local_key_val(buf, &sub_local_key_val)) {
+                std::vector<std::string>& vio = itm.objset;
+
+                vio.resize(count1);
+                for (int32_t j = 0; j < count1; j++) {
+                    len3 = sprintf_s(buf + len + len1 + len2,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2, ".%d", j);
+                    off = len + len1 + len2 + len3;
+
+                    sub_local_key_val.read_string(
+                        buf, off, "", 1, &vio[j]);
+                }
+            }
+
+            off = len + len1;
+            if (!lkv.read_int32_t(
+                buf, off, ".type", 6, &itm.type)
+                || !lkv.read_int32_t(
+                    buf, off, ".attr", 6, &itm.attr)
+                || !lkv.read_int32_t(
+                    buf, off, ".des_id", 8, &itm.des_id)
+                || !lkv.read_int32_t(
+                    buf, off, ".sub_id", 8, (int32_t*)&itm.sub_id))
+                continue;
+
+            len2 = 5;
+            memcpy(buf + len + len1, ".data", 5);
+            off = len + len1 + len2;
+
+            len3 = 4;
+            memcpy(buf + len + len1 + len2, ".obj", 4);
+            off = len + len1 + len2 + len3;
+            if (lkv.read_int32_t(buf, off, ".length", 8, &count1)
+                && lkv.get_local_key_val(buf, &sub_local_key_val)) {
+                std::vector<itm_table_item_data_obj>& vido = itm.data.obj;
+
+                vido.reserve(count1);
+                for (int32_t j = 0; j < count1; j++) {
+
+                    len4 = sprintf_s(buf + len + len1 + len2 + len3,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2 - len3, ".%d", j);
+                    off = len + len1 + len2 + len3 + len4;
+
+                    itm_table_item_data_obj obj;
+                    sub_local_key_val.read_int32_t(
+                        buf, off, ".rpk", 5, (int32_t*)&obj.rpk);
+                    sub_local_key_val.read_string(
+                        buf, off, ".uid", 5, &obj.uid);
+                    vido.push_back(obj);
+                }
+            }
+
+            len3 = 4;
+            memcpy(buf + len + len1 + len2, ".ofs", 4);
+            off = len + len1 + len2 + len3;
+            if (lkv.read_int32_t(buf, off, ".length", 8, &count1)
+                && lkv.get_local_key_val(buf, &sub_local_key_val)) {
+                std::vector<itm_table_item_data_ofs>& vido = itm.data.ofs;
+
+                vido.reserve(count1);
+                for (int32_t j = 0; j < count1; j++) {
+                    len4 = sprintf_s(buf + len + len1 + len2 + len3,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2 - len3, ".%d", j);
+                    off = len + len1 + len2 + len3 + len4;
+
+                    itm_table_item_data_ofs ofs;
+                    if (sub_local_key_val.read_int32_t(
+                        buf, off, ".no", 4, &ofs.no)
+                        && sub_local_key_val.read_int32_t(
+                            buf, off, ".sub_id", 8, (int32_t*)&ofs.sub_id)
+                        && sub_local_key_val.read_float_t(
+                            buf, off, ".tx", 4, &ofs.position.x)
+                        && sub_local_key_val.read_float_t(
+                            buf, off, ".ty", 4, &ofs.position.y)
+                        && sub_local_key_val.read_float_t(
+                            buf, off, ".tz", 4, &ofs.position.z)
+                        && sub_local_key_val.read_float_t(
+                            buf, off, ".rx", 4, &ofs.rotation.x)
+                        && sub_local_key_val.read_float_t(
+                            buf, off, ".ry", 4, &ofs.rotation.y)
+                        && sub_local_key_val.read_float_t(
+                            buf, off, ".rz", 4, &ofs.rotation.z)
+                        && sub_local_key_val.read_float_t(
+                            buf, off, ".sx", 4, &ofs.scale.x)
+                        && sub_local_key_val.read_float_t(
+                            buf, off, ".sy", 4, &ofs.scale.y)
+                        && sub_local_key_val.read_float_t(
+                            buf, off, ".sz", 4, &ofs.scale.z))
+                        vido.push_back(ofs);
+                }
+            }
+
+            len3 = 4;
+            memcpy(buf + len + len1 + len2, ".tex", 4);
+            off = len + len1 + len2 + len3;
+            if (lkv.read_int32_t(buf, off, ".length", 8, &count1)
+                && lkv.get_local_key_val(buf, &sub_local_key_val)) {
+                std::vector<itm_table_item_data_tex>& vidt = itm.data.tex;
+
+                vidt.reserve(count1);
+                for (int32_t j = 0; j < count1; j++) {
+                    len4 = sprintf_s(buf + len + len1 + len2 + len3,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2 - len3, ".%d", j);
+                    off = len + len1 + len2 + len3 + len4;
+
+                    itm_table_item_data_tex tex;
+                    sub_local_key_val.read_string(
+                        buf, off, ".org", 5, &tex.org);
+                    sub_local_key_val.read_string(
+                        buf, off, ".chg", 5, &tex.chg);
+                    vidt.push_back(tex);
+                }
+            }
+
+            len3 = 4;
+            memcpy(buf + len + len1 + len2, ".col", 4);
+            off = len + len1 + len2 + len3;
+            if (lkv.read_int32_t(buf, off, ".length", 8, &count1)
+                && lkv.get_local_key_val(buf, &sub_local_key_val)) {
+                std::vector<itm_table_item_data_col>& vidc = itm.data.col;
+
+                vidc.reserve(count1);
+                for (int32_t j = 0; j < count1; j++) {
+                    len4 = sprintf_s(buf + len + len1 + len2 + len3,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2 - len3, ".%d", j);
+                    off = len + len1 + len2 + len3 + len4;
+
+                    itm_table_item_data_col col;
+                    sub_local_key_val.read_string(
+                        buf, off, ".tex", 5, &col.tex);
+                    sub_local_key_val.read_int32_t(
+                        buf, off, ".flag", 6, &col.flag);
+
+                    if (~col.flag & 0x01) {
+                        vidc.push_back(col);
+                        continue;
+                    }
+
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".blend.0", 9, &col.col_tone.blend.x);
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".blend.1", 9, &col.col_tone.blend.y);
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".blend.2", 9, &col.col_tone.blend.z);
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".offset.0", 10, &col.col_tone.offset.x);
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".offset.1", 10, &col.col_tone.offset.y);
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".offset.2", 10, &col.col_tone.offset.z);
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".hue", 5, &col.col_tone.hue);
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".saturation", 12, &col.col_tone.saturation);
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".value", 7, &col.col_tone.value);
+                    sub_local_key_val.read_float_t(
+                        buf, off, ".contrast", 10, &col.col_tone.contrast);
+                    sub_local_key_val.read_bool(
+                        buf, off, ".inverse", 9, &col.col_tone.inverse);
+                    vidc.push_back(col);
+                }
+            }
+
+            off = len + len1;
+            if (!lkv.read_int32_t(
+                buf, off, ".exclusion", 11, &itm.exclusion)
+                || !lkv.read_int32_t(
+                    buf, off, ".point", 7, &itm.point)
+                || !lkv.read_int32_t(
+                    buf, off, ".org_itm", 9, &itm.org_itm))
+                continue;
+
+            lkv.read_bool(
+                buf, off, ".npr_flag", 10, &itm.npr_flag);
+            lkv.read_float_t(
+                buf, off, ".face_depth", 12, &itm.face_depth);
+            vi.push_back(itm);
         }
     }
 }
@@ -281,6 +519,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* length
     size_t len1;
     size_t len2;
     size_t len3;
+    size_t len4;
     size_t off;
 
     stream s;
@@ -333,12 +572,12 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* length
         memcpy(buf, "dbgset", 6);
         off = len;
 
-        std::vector<itm_table_dbgset>& vc = itm_tbl->dbgset;
-        count = (int32_t)vc.size();
+        std::vector<itm_table_dbgset>& vd = itm_tbl->dbgset;
+        count = (int32_t)vd.size();
         std::vector<int32_t> sort_index;
         key_val::get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
-            itm_table_dbgset* d = &vc[sort_index[i]];
+            itm_table_dbgset* d = &vd[sort_index[i]];
 
             len1 = sprintf_s(buf + len, ITEM_TABLE_TEXT_BUF_SIZE - len, ".%d", sort_index[i]);
             off = len + len1;
@@ -364,7 +603,199 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* length
             key_val::write_int32_t(&s, buf, off, ".length", 8, count1);
 
             off = len + len1;
-            key_val::write_string(&s, buf, off, ".name", 6, &d->name);
+            key_val::write_string(&s, buf, off, ".name", 6, d->name);
+        }
+
+        off = len;
+        key_val::write_int32_t(&s, buf, off, ".length", 8, count);
+    }
+
+
+    if (itm_tbl->item.size() > 0) {
+        len = 4;
+        memcpy(buf, "item", 4);
+        off = len;
+
+        std::vector<itm_table_item>& vi = itm_tbl->item;
+        count = (int32_t)vi.size();
+        std::vector<int32_t> sort_index;
+        key_val::get_lexicographic_order(&sort_index, count);
+        for (int32_t i = 0; i < count; i++) {
+            itm_table_item* itm = &vi[sort_index[i]];
+
+            len1 = sprintf_s(buf + len, ITEM_TABLE_TEXT_BUF_SIZE - len, ".%d", sort_index[i]);
+            off = len + len1;
+
+            key_val::write_int32_t(&s, buf, off, ".attr", 6, itm->attr);
+
+            len2 = 5;
+            memcpy(buf + len + len1, ".data", 5);
+            off = len + len1 + len2;
+
+            if (itm->data.col.size()) {
+                len3 = 4;
+                memcpy(buf + len + len1 + len2, ".col", 4);
+                off = len + len1 + len2 + len3;
+
+                std::vector<itm_table_item_data_col>& vidc = itm->data.col;
+                count1 = (int32_t)vidc.size();
+                std::vector<int32_t> sort_index;
+                key_val::get_lexicographic_order(&sort_index, count1);
+                for (int32_t j = 0; j < count1; j++) {
+                    itm_table_item_data_col* col = &vidc[sort_index[j]];
+
+                    len4 = sprintf_s(buf + len + len1 + len2 + len3,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2 - len3, ".%d", sort_index[j]);
+                    off = len + len1 + len2 + len3 + len4;
+
+                    if (col->flag & 0x01) {
+                        key_val::write_float_t(&s, buf, off, ".blend.0", 9, col->col_tone.blend.x);
+                        key_val::write_float_t(&s, buf, off, ".blend.1", 9, col->col_tone.blend.y);
+                        key_val::write_float_t(&s, buf, off, ".blend.2", 9, col->col_tone.blend.z);
+                        key_val::write_float_t(&s, buf, off, ".contrast", 10, col->col_tone.contrast);
+                    }
+
+                    key_val::write_int32_t(&s, buf, off, ".flag", 6, col->flag);
+
+                    if (col->flag & 0x01) {
+                        key_val::write_float_t(&s, buf, off, ".hue", 5, col->col_tone.hue);
+                        key_val::write_int32_t(&s, buf, off, ".inverse", 9, col->col_tone.inverse ? 1 : 0);
+                        key_val::write_float_t(&s, buf, off, ".offset.0", 10, col->col_tone.offset.x);
+                        key_val::write_float_t(&s, buf, off, ".offset.1", 10, col->col_tone.offset.y);
+                        key_val::write_float_t(&s, buf, off, ".offset.2", 10, col->col_tone.offset.z);
+                        key_val::write_float_t(&s, buf, off, ".saturation", 12, col->col_tone.saturation);
+                    }
+
+                    key_val::write_string(&s, buf, off, ".tex", 5, col->tex);
+
+                    if (col->flag & 0x01)
+                        key_val::write_float_t(&s, buf, off, ".value", 7, col->col_tone.value);
+                }
+
+                off = len + len1 + len2 + len3;
+                key_val::write_int32_t(&s, buf, off, ".length", 8, count1);
+            }
+
+            if (itm->data.obj.size()) {
+                len3 = 4;
+                memcpy(buf + len + len1 + len2, ".obj", 4);
+                off = len + len1 + len2 + len3;
+
+                std::vector<itm_table_item_data_obj>& vido = itm->data.obj;
+                count1 = (int32_t)vido.size();
+                std::vector<int32_t> sort_index;
+                key_val::get_lexicographic_order(&sort_index, count1);
+                for (int32_t j = 0; j < count1; j++) {
+                    itm_table_item_data_obj* obj = &vido[sort_index[j]];
+
+                    len4 = sprintf_s(buf + len + len1 + len2 + len3,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2 - len3, ".%d", sort_index[j]);
+                    off = len + len1 + len2 + len3 + len4;
+
+                    key_val::write_int32_t(&s, buf, off, ".rpk", 5, obj->rpk);
+                    key_val::write_string(&s, buf, off, ".uid", 5, obj->uid);
+                }
+
+                off = len + len1 + len2 + len3;
+                key_val::write_int32_t(&s, buf, off, ".length", 8, count1);
+            }
+
+            if (itm->data.ofs.size()) {
+                len3 = 4;
+                memcpy(buf + len + len1 + len2, ".ofs", 4);
+                off = len + len1 + len2 + len3;
+
+                std::vector<itm_table_item_data_ofs>& vidof = itm->data.ofs;
+                count1 = (int32_t)vidof.size();
+                std::vector<int32_t> sort_index;
+                key_val::get_lexicographic_order(&sort_index, count1);
+                for (int32_t j = 0; j < count1; j++) {
+                    itm_table_item_data_ofs* ofs = &vidof[sort_index[j]];
+
+                    len4 = sprintf_s(buf + len + len1 + len2 + len3,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2 - len3, ".%d", sort_index[j]);
+                    off = len + len1 + len2 + len3 + len4;
+
+                    key_val::write_int32_t(&s, buf, off, ".no", 4, ofs->no);
+                    key_val::write_float_t(&s, buf, off, ".rx", 4, ofs->rotation.x);
+                    key_val::write_float_t(&s, buf, off, ".ry", 4, ofs->rotation.y);
+                    key_val::write_float_t(&s, buf, off, ".rz", 4, ofs->rotation.z);
+                    key_val::write_int32_t(&s, buf, off, ".sub_id", 8, ofs->sub_id);
+                    key_val::write_float_t(&s, buf, off, ".sx", 4, ofs->scale.x);
+                    key_val::write_float_t(&s, buf, off, ".sy", 4, ofs->scale.y);
+                    key_val::write_float_t(&s, buf, off, ".sz", 4, ofs->scale.z);
+                    key_val::write_float_t(&s, buf, off, ".tx", 4, ofs->position.x);
+                    key_val::write_float_t(&s, buf, off, ".ty", 4, ofs->position.y);
+                    key_val::write_float_t(&s, buf, off, ".tz", 4, ofs->position.z);
+                }
+
+                off = len + len1 + len2 + len3;
+                key_val::write_int32_t(&s, buf, off, ".length", 8, count1);
+            }
+
+            if (itm->data.tex.size()) {
+                len3 = 4;
+                memcpy(buf + len + len1 + len2, ".tex", 4);
+                off = len + len1 + len2 + len3;
+
+                std::vector<itm_table_item_data_tex>& vidt = itm->data.tex;
+                count1 = (int32_t)vidt.size();
+                std::vector<int32_t> sort_index;
+                key_val::get_lexicographic_order(&sort_index, count1);
+                for (int32_t j = 0; j < count1; j++) {
+                    itm_table_item_data_tex* tex = &vidt[sort_index[j]];
+
+                    len4 = sprintf_s(buf + len + len1 + len2 + len3,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2 - len3, ".%d", sort_index[j]);
+                    off = len + len1 + len2 + len3 + len4;
+
+                    key_val::write_string(&s, buf, off, ".chg", 5, tex->chg);
+                    key_val::write_string(&s, buf, off, ".org", 5, tex->org);
+                }
+
+                off = len + len1 + len2 + len3;
+                key_val::write_int32_t(&s, buf, off, ".length", 8, count1);
+            }
+
+            off = len + len1;
+            key_val::write_int32_t(&s, buf, off, ".des_id", 8, itm->des_id);
+            key_val::write_int32_t(&s, buf, off, ".exclusion", 11, itm->exclusion);
+            key_val::write_float_t(&s, buf, off, ".face_depth", 12, itm->face_depth);
+            key_val::write_int32_t(&s, buf, off, ".flag", 6, itm->flag);
+            key_val::write_string(&s, buf, off, ".name", 6, itm->name);
+            key_val::write_int32_t(&s, buf, off, ".no", 4, itm->no);
+            if (itm->npr_flag)
+                key_val::write_int32_t(&s, buf, off, ".npr_flag", 10, itm->npr_flag);
+
+            if (itm->objset.size()) {
+                len2 = 7;
+                memcpy(buf + len + len1, ".objset", 7);
+                off = len + len1 + len2;
+
+                if (off >= 0 && off < ITEM_TABLE_TEXT_BUF_SIZE)
+                    buf[off] = 0;
+
+                std::vector<std::string>& vio = itm->objset;
+                count1 = (int32_t)vio.size();
+                std::vector<int32_t> sort_index;
+                key_val::get_lexicographic_order(&sort_index, count1);
+                for (int32_t j = 0; j < count1; j++) {
+                    len3 = sprintf_s(buf + len + len1 + len2,
+                        ITEM_TABLE_TEXT_BUF_SIZE - len - len1 - len2, ".%d", sort_index[j]);
+                    off = len + len1 + len2 + len3;
+
+                    key_val::write_string(&s, buf, off, "", 1, vio[sort_index[j]]);
+                }
+
+                off = len + len1 + len2;
+                key_val::write_int32_t(&s, buf, off, ".length", 8, count1);
+            }
+
+            off = len + len1;
+            key_val::write_int32_t(&s, buf, off, ".org_itm", 9, itm->org_itm);
+            key_val::write_int32_t(&s, buf, off, ".point", 7, itm->point);
+            key_val::write_int32_t(&s, buf, off, ".sub_id", 8, itm->sub_id);
+            key_val::write_int32_t(&s, buf, off, ".type", 6, itm->type);
         }
 
         off = len;

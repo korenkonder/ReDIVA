@@ -23,6 +23,7 @@ classes_data data_view_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         data_view_auth_3d_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -45,6 +46,7 @@ classes_data data_view_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         data_view_draw_task_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -67,6 +69,7 @@ classes_data data_view_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         data_view_object_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -89,6 +92,7 @@ classes_data data_view_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         data_view_texture_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),

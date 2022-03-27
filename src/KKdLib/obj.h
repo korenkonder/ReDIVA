@@ -69,6 +69,12 @@ typedef enum obj_material_flags : uint32_t {
     OBJ_MATERIAL_OVERRIDE_IBL   = 0x8000,
 } obj_material_flags;
 
+typedef enum obj_material_shader_lighting_type : uint32_t {
+    OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT  = 0x00,
+    OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT = 0x01,
+    OBJ_MATERIAL_SHADER_LIGHTING_PHONG    = 0x02,
+} obj_material_shader_lighting_type;
+
 typedef enum obj_material_specular_quality : uint32_t {
     OBJ_MATERIAL_SPECULAR_QUALITY_LOW  = 0,
     OBJ_MATERIAL_SPECULAR_QUALITY_HIGH = 1,
@@ -105,6 +111,7 @@ typedef enum obj_mesh_flags : uint32_t {
     OBJ_MESH_BILLBOARD_Y_AXIS      = 0x02,
     OBJ_MESH_TRANSLUCENT_NO_SHADOW = 0x04,
     OBJ_MESH_BILLBOARD             = 0x08,
+    OBJ_MESH_COMPRESSED            = 0x10, // Own stuff
 } obj_mesh_flags;
 
 typedef enum obj_primitive_type : uint32_t {
@@ -170,6 +177,11 @@ typedef enum obj_vertex_flags : uint32_t {
     OBJ_VERTEX_UNKNOWN   = 0x800,
 } obj_vertex_flags;
 
+typedef struct obj_axis_aligned_bounding_box {
+    vec3 center;
+    vec3 size;
+} obj_axis_aligned_bounding_box;
+
 typedef struct obj_bounding_box {
     vec3 center;
     vec3 size;
@@ -180,7 +192,7 @@ typedef struct obj_bounding_sphere {
     float_t radius;
 } obj_bounding_sphere;
 
-typedef struct objt_material_blend_flags {
+typedef struct obj_material_blend_flags {
     uint32_t alpha_texture : 1;
     uint32_t alpha_material : 1;
     uint32_t punch_through : 1;
@@ -191,10 +203,11 @@ typedef struct objt_material_blend_flags {
     uint32_t blend_operation : 3;
     uint32_t z_bias : 4;
     uint32_t no_fog : 1;
-    uint32_t flag_21 : 6;
-    uint32_t flag_27 : 1;
+    uint32_t translucent_priority : 6;
+    uint32_t has_fog_height : 1;
     uint32_t flag_28 : 1;
-    uint32_t flag_29 : 2;
+    uint32_t fog_height : 1;
+    uint32_t flag_30 : 1;
     uint32_t flag_31 : 1;
 } obj_material_blend_flags;
 
@@ -250,12 +263,18 @@ typedef struct obj_material_texture {
     char shader_name[8];
     float_t weight;
     mat4u tex_coord_mat;
-    int32_t reserved[8];
+    union {
+        int32_t reserved[8];
+        int32_t texture_index;
+    };
 } obj_material_texture;
 
 typedef struct obj_material {
     obj_material_flags flags;
-    char shader_name[8];
+    union {
+        char name[8];
+        int32_t index;
+    } shader;
     obj_material_shader_flags shader_flags;
     obj_material_texture textures[8];
     obj_material_blend_flags blend_flags;
@@ -288,8 +307,13 @@ typedef struct obj_sub_mesh {
     uint32_t* indices;
     int32_t indices_count;
     obj_sub_mesh_flags flags;
+    union {
+        obj_axis_aligned_bounding_box axis_aligned_bounding_box;
+        obj_bounding_box bounding_box;
+    };
+    uint16_t first_index;
+    uint16_t last_index;
     uint32_t indices_offset;
-    obj_bounding_box bounding_box;
 } obj_sub_mesh;
 
 typedef struct obj_vertex_data {
@@ -314,6 +338,7 @@ typedef struct obj_mesh {
     int32_t sub_meshes_count;
     obj_vertex_data* vertex;
     int32_t vertex_count;
+    int32_t vertex_size;
     obj_vertex_flags vertex_flags;
     obj_mesh_flags flags;
     char name[0x40];
@@ -389,22 +414,22 @@ typedef struct obj_skin_block_constraint_attach_point {
     vec3 offset;
 } obj_skin_block_constraint_attach_point;
 
-typedef struct obj_skin_block_constraint_up_vector_old {
+typedef struct obj_skin_block_constraint_up_vector {
     bool active;
     float_t roll;
     vec3 affected_axis;
     vec3 point_at;
     string name;
-} obj_skin_block_constraint_up_vector_old;
+} obj_skin_block_constraint_up_vector;
 
 typedef struct obj_skin_block_constraint_direction {
-    obj_skin_block_constraint_up_vector_old up_vector_old;
+    obj_skin_block_constraint_up_vector up_vector;
     vec3 align_axis;
     vec3 target_offset;
 } obj_skin_block_constraint_direction;
 
 typedef struct obj_skin_block_constraint_distance {
-    obj_skin_block_constraint_up_vector_old up_vector_old;
+    obj_skin_block_constraint_up_vector up_vector;
     float_t distance;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
@@ -415,7 +440,7 @@ typedef struct obj_skin_block_constraint_orientation {
 } obj_skin_block_constraint_orientation;
 
 typedef struct obj_skin_block_constraint_position {
-    obj_skin_block_constraint_up_vector_old up_vector_old;
+    obj_skin_block_constraint_up_vector up_vector;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
 } obj_skin_block_constraint_position;
@@ -528,6 +553,7 @@ typedef struct obj {
     bool skin_init;
     string name;
     uint32_t id;
+    uint32_t hash;
 } obj;
 
 class obj_set {
@@ -542,7 +568,7 @@ public:
     int32_t texture_ids_count;
 
     obj_set();
-    ~obj_set();
+    virtual ~obj_set();
 
     void pack_file(void** data, size_t* length);
     void unpack_file(void* data, size_t length, bool modern);

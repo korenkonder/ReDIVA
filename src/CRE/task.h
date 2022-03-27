@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <vector>
+#include <list>
 #include "../KKdLib/default.h"
 
 typedef enum task_enum {
@@ -62,7 +62,7 @@ extern TaskWork task_work;
 
 class TaskWork {
 public:
-    std::vector<Task*> tasks;
+    std::list<Task*> tasks;
     Task* current;
     bool disp;
 
@@ -74,7 +74,7 @@ public:
     static bool AppendTask(Task* t, Task* parent_task = task_work.current,
         const char* name = "(unknown)", int32_t priority = 1);
     static void Basic();
-    static bool CheckTaskNotReady(Task* t);
+    static bool CheckTaskReady(Task* t);
     static void Ctrl();
     static void Disp();
     static Task* GetTaskByIndex(int32_t index);

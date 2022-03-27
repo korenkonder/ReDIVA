@@ -34,7 +34,7 @@ public:
     void* data;
 
     file_handler();
-    ~file_handler();
+    virtual ~file_handler();
 
     void call_read_free_func(int32_t index);
     void free_data_lock();
@@ -49,7 +49,7 @@ public:
     file_handler* ptr;
 
     p_file_handler();
-    ~p_file_handler();
+    virtual ~p_file_handler();
 
     void call_free_func_free_data();
     bool check_not_ready();
@@ -69,9 +69,9 @@ public:
     farc* farc;
 
     farc_read_handler();
-    ~farc_read_handler();
+    virtual ~farc_read_handler();
 };
 
+extern void file_handler_storage_init();
 extern void file_handler_storage_ctrl();
-extern void file_handler_storage_free_thread();
-extern void file_handler_storage_init_thread();
+extern void file_handler_storage_free();

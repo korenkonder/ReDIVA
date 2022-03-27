@@ -968,7 +968,7 @@ public:
 
     bool AppendEffectGroup(uint64_t hash, glitter_effect_group* eff_group, glitter_file_reader* file_read);
     void BasicEffectGroups();
-    uint64_t CalculateHash(char* str);
+    uint64_t CalculateHash(const char* str);
     bool CheckNoFileReaders(uint64_t hash);
     void CtrlScenes();
     void Disp(draw_pass_3d_type draw_pass_type);
@@ -978,6 +978,7 @@ public:
     size_t GetCtrlCount(glitter_particle_type type);
     size_t GetDispCount(glitter_particle_type type);
     glitter_effect_group* GetEffectGroup(uint64_t hash);
+    const char* GetEffectName(uint64_t hash, int32_t index);
     size_t GetEffectsCount(uint64_t hash);
     bool GetPause();
     glitter_scene* GetScene(uint64_t hash);

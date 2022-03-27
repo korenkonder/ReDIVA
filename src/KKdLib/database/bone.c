@@ -264,7 +264,7 @@ bool bone_database::get_skeleton_positions(const char* name, std::vector<vec3>**
     return false;
 }
 
-int32_t bone_database::get_skeleton_object_bone_index(const char* name, char* bone_name) {
+int32_t bone_database::get_skeleton_object_bone_index(const char* name, const char* bone_name) {
     if (!name || !bone_name)
         return -1;
 
@@ -294,7 +294,7 @@ bool bone_database::get_skeleton_object_bones(const char* name, std::vector<std:
     return false;
 }
 
-int32_t bone_database::get_skeleton_motion_bone_index(const char* name, char* bone_name) {
+int32_t bone_database::get_skeleton_motion_bone_index(const char* name, const char* bone_name) {
     if (!name || !bone_name)
         return -1;
 

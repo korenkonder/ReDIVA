@@ -58,9 +58,6 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
     dsc dsc_scene;
     dsc dsc_system;
     dsc dsc_easy;
-    dsc_init(&dsc_scene);
-    dsc_init(&dsc_system);
-    dsc_init(&dsc_easy);
 
     farc dsc_common_farc;
     sprintf_s(path_buf, sizeof(path_buf), "rom/pv_script/pv%03d/", pv_id);
@@ -70,23 +67,19 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
     sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_scene.dsc", pv_id);
     farc_file* dsc_scene_ff = dsc_common_farc.read_file(file_buf);
     if (dsc_scene_ff)
-        dsc_parse(&dsc_scene, dsc_scene_ff->data, dsc_scene_ff->size, DSC_X);
+        dsc_scene.parse(dsc_scene_ff->data, dsc_scene_ff->size, DSC_X);
 
     sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_system.dsc", pv_id);
     farc_file* dsc_system_ff = dsc_common_farc.read_file(file_buf);
     if (dsc_system_ff)
-        dsc_parse(&dsc_system, dsc_system_ff->data, dsc_system_ff->size, DSC_X);
+        dsc_system.parse(dsc_system_ff->data, dsc_system_ff->size, DSC_X);
 
     sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_easy.dsc", pv_id);
     dsc_easy.type = DSC_X;
-    x_data->load_file(&dsc_easy, path_buf, file_buf, dsc_load_file);
+    x_data->load_file(&dsc_easy, path_buf, file_buf, dsc::load_file);
 
     dsc dsc_m;
-    dsc_merge(&dsc_m, 3, &dsc_scene, &dsc_system, &dsc_easy);
-
-    dsc_free(&dsc_scene);
-    dsc_free(&dsc_system);
-    dsc_free(&dsc_easy);
+    dsc_m.merge(3, &dsc_scene, &dsc_system, &dsc_easy);
 
     this->frame_data.clear();
     this->frame_data.shrink_to_fit();
@@ -105,15 +98,15 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
     int32_t prev_bar_point_time = -1;
     int32_t prev_bpm = -1;
     int32_t end_frame = -1;
-    for (dsc_data* i = dsc_m.data.begin; i != dsc_m.data.end; i++) {
-        uint32_t* data = dsc_data_get_func_data(&dsc_m, i);
-        if (i->func == end_func_id)
+    for (dsc_data& i : dsc_m.data) {
+        uint32_t* data = dsc_m.get_func_data(&i);
+        if (i.func == end_func_id)
             break;
-        else if (i->func == time_func_id) {
+        else if (i.func == time_func_id) {
             time = (int32_t)data[0];
             frame = (int32_t)roundf((float_t)time * (float_t)(60.0f / 100000.0f));
         }
-        else if (i->func == bar_time_set_func_id) {
+        else if (i.func == bar_time_set_func_id) {
             if (prev_bar_point_time != -1)
                 continue;
 
@@ -130,11 +123,11 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
             }
             prev_bpm = bpm;
         }
-        else if (i->func == pv_end_func_id) {
+        else if (i.func == pv_end_func_id) {
             end_frame = frame;
             break;
         }
-        else if (i->func == bar_point_func_id) {
+        else if (i.func == bar_point_func_id) {
             if (prev_bar_point_time != -1) {
                 float_t frame_speed = 200000.0f / (float_t)(time - prev_bar_point_time);
                 int32_t bpm = (int32_t)roundf(frame_speed * 120.0f);
@@ -149,14 +142,14 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
             }
             prev_bar_point_time = time;
         }
-        else if (i->func == stage_effect_func_id) {
+        else if (i.func == stage_effect_func_id) {
             x_pv_player_frame_data frame_data;
             frame_data.frame = frame;
             frame_data.type = X_PV_PLAYER_FRAME_DATA_STAGE_EFFECT;
             frame_data.stage_effect = (int32_t)data[0];
             this->frame_data.push_back(frame_data);
         }
-        else if (i->func == song_effect_func_id) {
+        else if (i.func == song_effect_func_id) {
             x_pv_player_frame_data frame_data;
             frame_data.frame = frame;
             frame_data.type = X_PV_PLAYER_FRAME_DATA_SONG_EFFECT;
@@ -165,7 +158,6 @@ void x_pv_player::Load(int32_t pv_id, int32_t stage_id) {
             this->frame_data.push_back(frame_data);
         }
     }
-    dsc_free(&dsc_m);
 }
 
 x_pv_player_glitter::x_pv_player_glitter(char* name) {

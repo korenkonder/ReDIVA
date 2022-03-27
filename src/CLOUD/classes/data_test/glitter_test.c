@@ -14,11 +14,13 @@
 #include "../../../CRE/Glitter/scene.h"
 #include "../../../CRE/data.h"
 #include "../../../CRE/render_context.h"
+#include "../../../CRE/stage.h"
 #include "../../input.h"
 #include "../data_test.h"
 #include "../imgui_helper.h"
+#include "stage_test.h"
 
-class data_test_glitter_test_struct {
+class TaskDataTestGlitterParticle : public TaskWindow {
 public:
     uint64_t hash;
     glitter_scene_counter scene_counter;
@@ -26,213 +28,234 @@ public:
     bool auto_and_repeat;
     bool reload;
     bool pv_mode;
+    bool show_grid;
+    bool rebuild_geff;
+
+    std::vector<std::string> geff;
+    size_t geff_index;
+
+    std::vector<data_struct_file> files;
+    size_t file_index;
+    bool load_file;
 
     bool input_play;
     bool input_stop;
     double_t delta_frame;
-    const char* file;
-    std::vector<data_struct_file> files;
 
     bool stage_test;
-    render_context* rctx;
 
-    data_test_glitter_test_struct();
-    ~data_test_glitter_test_struct();
+    TaskDataTestGlitterParticle();
+    virtual ~TaskDataTestGlitterParticle();
+    virtual bool Init();
+    virtual bool Ctrl();
+    virtual bool Dest();
+    virtual void Window();
+
+    void LoadFile(const char* file);
 };
+
+TaskDataTestGlitterParticle task_data_test_glitter_particle;
 
 extern int32_t width;
 extern int32_t height;
+extern render_context* rctx_ptr;
+extern vec3 clear_color;
 extern bool input_reset;
 extern bool input_locked;
 extern bool draw_grid_3d;
 
-static const char* data_test_glitter_test_window_title = "Glitter Test##Data Test";
+bool task_data_test_glitter_particle_load() {
+    TaskWork::AppendTask(&task_data_test_glitter_particle, "DATA_TEST_PARTICLE");
+    dtm_stg_load(0);
+    //dtw_stg_load(1);
+    return true;
+}
 
-bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
-    data->data = new data_test_glitter_test_struct;
+bool task_data_test_glitter_particle_unload() {
+    //dtw_stg_unload();
+    dtm_stg_unload();
+    //if (data_test_chr.CheckTaskReady())
+    //    data_test_chr.SetDest();
+    task_data_test_glitter_particle.SetDest();
+    return true;
+}
 
+TaskDataTestGlitterParticle::TaskDataTestGlitterParticle() : hash(), scene_counter(), frame(),
+auto_and_repeat(), reload(), pv_mode(), show_grid(), rebuild_geff(), geff_index(),
+file_index(), load_file(), input_play(), input_stop(), delta_frame(), stage_test() {
+
+}
+
+TaskDataTestGlitterParticle::~TaskDataTestGlitterParticle() {
+
+}
+
+bool TaskDataTestGlitterParticle::Init() {
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
     GPM_VAL.counter = (uint32_t)(time.LowPart * 0x0CAD3078ULL);
 
-    data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
-    if (glt_test) {
-        data_list[DATA_AFT].get_directory_files("rom/particle/", &glt_test->files);
-        for (data_struct_file* i = glt_test->files.begin()._Ptr; i != glt_test->files.end()._Ptr;)
-            if (str_utils_check_ends_with(i->name.c_str(), ".farc")) {
-                char* temp = str_utils_get_without_extension(i->name.c_str());
-                i->name = temp ? std::string(temp) : std::string();
-                free(temp);
-                i++;
-            }
-            else
-                glt_test->files.erase(glt_test->files.begin() + (i - glt_test->files.data()));
+    data_list[DATA_AFT].get_directory_files("rom/particle/", &files);
+    for (std::vector<data_struct_file>::iterator i = files.begin(); i != files.end();)
+        if (str_utils_check_ends_with(i->name.c_str(), ".farc")) {
+            char* temp = str_utils_get_without_extension(i->name.c_str());
+            i->name = temp ? std::string(temp) : std::string();
+            free(temp);
+            i++;
+        }
+        else
+            files.erase(i);
 
-        glt_test->file = glt_test->files.size() > 0
-            ? glt_test->files[0].name.c_str() : 0;
-        glt_test->stage_test = false;
-        glt_test->rctx = rctx;
-        GPM_VAL.emission = 1.0f;
-        GPM_VAL.draw_all = false;
-        GPM_VAL.draw_all_mesh = false;
-        draw_grid_3d = false;
-    }
+    GPM_VAL.emission = 1.0f;
+    GPM_VAL.draw_all = false;
+    GPM_VAL.draw_all_mesh = false;
+    dtm_stg_load(0);
+
+    clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
+
+    camera* cam = rctx_ptr->camera;
+    camera_reset(cam);
+    vec3 view_point = { 0.0f, 0.88f, 4.3f };
+    camera_set_view_point(cam, &view_point);
+    vec3 interest = { 0.0f, 1.0f, 0.0f };
+    camera_set_interest(cam, &interest);
+
+    hash = hash_fnv1a64m_empty;
+    scene_counter = 0;
+    frame = 0.0f;
+    auto_and_repeat = false;
+    reload = false;
+    pv_mode = false;
+    show_grid = false;
+    rebuild_geff = false;
     return true;
 }
 
-void data_test_glitter_test_ctrl(class_data* data) {
-    data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
-    if (!glt_test)
-        return;
+bool TaskDataTestGlitterParticle::Ctrl() {
+    GPM_VAL.rctx = rctx_ptr;
+    GPM_VAL.data = rctx_ptr->data;
 
-    GPM_VAL.rctx = glt_test->rctx;
-    GPM_VAL.data = glt_test->rctx->data;
-    if (glt_test->file) {
-        if (glt_test->input_play)
-            glt_test->reload = true;
-        else if (glt_test->input_stop)
-            GPM_VAL.FreeSceneEffect(glt_test->scene_counter, hash_fnv1a64m_empty);
+    if (load_file && file_index < files.size())
+        LoadFile(files[file_index].path.c_str());
+    load_file = false;
 
-        if (glt_test->reload) {
-            GPM_VAL.FreeSceneEffect(glt_test->scene_counter, hash_fnv1a64m_empty);
-            GPM_VAL.UnloadEffectGroup(glt_test->hash);
-            glt_test->hash = GPM_VAL.LoadFile(GLITTER_FT, glt_test->file, 0, -1.0f, true);
-        }
+    if (input_play)
+        reload = true;
+    else if (input_stop)
+        GPM_VAL.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty);
 
-        if (GPM_VAL.CheckNoFileReaders(glt_test->hash)) {
-            if (GPM_VAL.SceneHasNotEnded(glt_test->scene_counter) && !GPM_VAL.GetPause())
-                glt_test->frame += get_delta_frame() * sys_frame_rate.frame_speed;
-
-            if (glt_test->reload || glt_test->auto_and_repeat
-                && !GPM_VAL.SceneHasNotEnded(glt_test->scene_counter)) {
-                GPM_VAL.FreeSceneEffect(glt_test->scene_counter, hash_fnv1a64m_empty);
-
-                uint64_t effect_hash = hash_fnv1a64m_empty;
-                if (!glt_test->pv_mode)
-                    glt_test->scene_counter = GPM_VAL.Load(glt_test->hash, effect_hash, false);
-                else if (effect_hash == hash_fnv1a64m_empty)
-                    glt_test->scene_counter = GPM_VAL.LoadScene(glt_test->hash, hash_fnv1a64m_empty);
-                else
-                    glt_test->scene_counter = GPM_VAL.LoadScene(hash_fnv1a64m_empty, effect_hash);
-                glt_test->frame = 0.0f;
-            }
-            glt_test->reload = false;
-        }
-
-        glt_test->input_play = false;
-        glt_test->input_stop = false;
+    if (!GPM_VAL.CheckNoFileReaders(hash)) {
+        reload = false;
+        return false;
     }
 
-    if (glt_test->stage_test) {
-        classes_data* c = &data_test_classes[DATA_TEST_STAGE_TEST];
-        if (~c->data.flags & CLASS_INIT) {
-            lock_init(&c->data.lock);
-            if (lock_check_init(&c->data.lock) && c->init) {
-                lock_lock(&c->data.lock);
-                c->init(&c->data, glt_test->rctx);
-                lock_unlock(&c->data.lock);
-            }
-        }
-
-        if (lock_check_init(&c->data.lock)) {
-            lock_lock(&c->data.lock);
-            if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show))
-                enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN));
-            lock_unlock(&c->data.lock);
-        }
-        glt_test->stage_test = false;
+    if (rebuild_geff) {
+        int32_t effects_count = (int32_t)GPM_VAL.GetEffectsCount(this->hash);
+        geff.clear();
+        geff.push_back(std::string("ALL"));
+        for (int32_t i = 0; i < effects_count; i++)
+            geff.push_back(std::string(GPM_VAL.GetEffectName(hash, i)));
+        rebuild_geff = false;
     }
+
+    if (GPM_VAL.SceneHasNotEnded(scene_counter) && !GPM_VAL.GetPause())
+        frame += sys_frame_rate.frame_speed;
+
+    if (reload || auto_and_repeat && !GPM_VAL.SceneHasNotEnded(scene_counter)) {
+        GPM_VAL.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty);
+        uint64_t effect_hash = hash_fnv1a64m_empty;
+
+        if (geff_index)
+            effect_hash = GPM_VAL.CalculateHash(geff[geff_index].c_str());
+
+        if (!pv_mode)
+            scene_counter = GPM_VAL.Load(hash, effect_hash, 0);
+        else if (effect_hash == hash_fnv1a64m_empty)
+            scene_counter = GPM_VAL.LoadScene(hash, hash_fnv1a64m_empty);
+        else
+            scene_counter = GPM_VAL.LoadScene(hash_fnv1a64m_empty, effect_hash);
+        frame = 0.0f;
+        reload = false;
+    }
+
+    input_play = false;
+    input_stop = false;
+    return false;
 }
 
-void data_test_glitter_test_imgui(class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+bool TaskDataTestGlitterParticle::Dest() {
+    GPM_VAL.FreeScenes();
+    GPM_VAL.FreeEffects();
+    GPM_VAL.SetPause(false);
+    show_window = false;
+    return true;
+}
+
+void TaskDataTestGlitterParticle::Window() {
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     float_t w = 280.0f;
     float_t h = 278.0f;
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
-    data->imgui_focus = false;
-    bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(data_test_glitter_test_window_title, &open, window_flags);
-    if (!open) {
-        enum_or(data->flags, CLASS_HIDE);
-        igEnd();
-        return;
-    }
-    else if (collapsed) {
-        igEnd();
+    window_focus = false;
+    if (!ImGui::Begin("Glitter Test##Data Test", 0, window_flags)) {
+        ImGui::End();
         return;
     }
 
-    data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
-    if (!glt_test) {
-        igEnd();
-        return;
+    if (imguiColumnComboBoxConfigFile("File", files.data(),
+        files.size(), &file_index, 0, false, &window_focus)) {
+        load_file = true;
+        input_play = true;
     }
 
-    int32_t file_index = -1;
-    if (glt_test->file)
-        for (data_struct_file& i : glt_test->files)
-            if (!str_utils_compare(i.name.c_str(), glt_test->file)) {
-                file_index = (int32_t)(&i - glt_test->files.data());
-                break;
-            }
-
-    int32_t file_index_old = file_index;
-    imguiColumnComboBoxConfigFile("File", glt_test->files.data(),
-        glt_test->files.size(), &file_index, 0, false, &data->imgui_focus);
-
-    if (file_index != file_index_old) {
-        glt_test->file = glt_test->files[file_index].name.c_str();
-        glt_test->input_play = true;
-    }
-
-    if (imguiButton("Reset Camera (R)", ImVec2_Empty))
+    if (imguiButton("Reset Camera (R)"))
         input_reset = true;
 
     w = imguiGetContentRegionAvailWidth();
-    if (imguiButton("Play (F)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_F, true))
-        glt_test->input_play = true;
+    if (imguiButton("Play (F)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_F))
+        input_play = true;
 
     w = imguiGetContentRegionAvailWidth();
-    if (imguiButton("Stop (V)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_V, true))
-        glt_test->input_stop = true;
+    if (imguiButton("Stop (V)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_V))
+        input_stop = true;
 
     bool pause = GPM_VAL.GetPause();
     imguiCheckbox("Pause (G)", &pause);
-    if (igIsKeyPressed(GLFW_KEY_G, true))
+    if (ImGui::IsKeyPressed(GLFW_KEY_G))
         pause ^= true;
     GPM_VAL.SetPause(pause);
 
-    imguiCheckbox("Auto (T)", &glt_test->auto_and_repeat);
-    if (igIsKeyPressed(GLFW_KEY_T, true))
-        glt_test->auto_and_repeat ^= true;
+    imguiCheckbox("Auto (T)", &auto_and_repeat);
+    if (ImGui::IsKeyPressed(GLFW_KEY_T))
+        auto_and_repeat ^= true;
 
-    imguiCheckbox("PV Mode (P)", &glt_test->pv_mode);
-    if (igIsKeyPressed(GLFW_KEY_P, true))
-        glt_test->pv_mode ^= true;
+    imguiCheckbox("PV Mode (P)", &pv_mode);
+    if (ImGui::IsKeyPressed(GLFW_KEY_P))
+        pv_mode ^= true;
 
-    igSeparator();
+    ImGui::Separator();
 
     imguiColumnSliderFloat("Emission", &GPM_VAL.emission, 0.01f, 1.0f, 2.0f, "%.2f", 0, true);
 
-    igSeparator();
+    ImGui::Separator();
 
     imguiCheckbox("Show Grid", &draw_grid_3d);
 
     w = imguiGetContentRegionAvailWidth();
     if (imguiButton("Stage", { w, 0.0f }))
-        glt_test->stage_test = true;
+        stage_test = true;
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    window_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 
     float_t win_x = min((float_t)width, 240.0f);
     float_t win_y = min((float_t)height, 96.0f);
@@ -242,8 +265,8 @@ void data_test_glitter_test_imgui(class_data* data) {
     w = win_x;
     h = win_y;
 
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoTitleBar;
@@ -254,58 +277,57 @@ void data_test_glitter_test_imgui(class_data* data) {
     window_flags |= ImGuiWindowFlags_NoNavInputs;
     window_flags |= ImGuiWindowFlags_NoNavFocus;
 
-    igPushStyleColor_U32(ImGuiCol_Border, 0);
-    igPushStyleColor_U32(ImGuiCol_WindowBg, 0);
-    if (igBegin("Glitter Test Sub##Data Test", 0, window_flags)) {
+    ImGui::PushStyleColor(ImGuiCol_Border, 0);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, 0);
+    if (ImGui::Begin("Glitter Test Sub##Data Test", 0, window_flags)) {
         size_t ctrl;
         size_t disp;
         float_t frame;
         int32_t life_time;
 
         life_time = 0;
-        frame = GPM_VAL.GetSceneFrameLifeTime(glt_test->scene_counter, &life_time);
-        igText("%.0f - %.0f/%d", glt_test->frame, frame, life_time);
+        frame = GPM_VAL.GetSceneFrameLifeTime(scene_counter, &life_time);
+        ImGui::Text("%.0f - %.0f/%d", this->frame, frame, life_time);
 
         ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_QUAD);
         disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_QUAD);
-        igText(" Quad: ctrl%lld, disp%lld", ctrl, disp);
+        ImGui::Text(" Quad: ctrl%lld, disp%lld", ctrl, disp);
 
         ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LOCUS);
         disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LOCUS);
-        igText("Locus: ctrl%lld, disp%lld", ctrl, disp);
+        ImGui::Text("Locus: ctrl%lld, disp%lld", ctrl, disp);
 
         ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LINE);
         disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LINE);
-        igText(" Line: ctrl%lld, disp%lld", ctrl, disp);
+        ImGui::Text(" Line: ctrl%lld, disp%lld", ctrl, disp);
 
         ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_MESH);
         disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_MESH);
-        igText(" Mesh: ctrl%lld, disp%lld", ctrl, disp);
+        ImGui::Text(" Mesh: ctrl%lld, disp%lld", ctrl, disp);
     }
-    igPopStyleColor(2);
-    igEnd();
+    ImGui::PopStyleColor(2);
+    ImGui::End();
 }
 
-bool data_test_glitter_test_dispose(class_data* data) {
-    GPM_VAL.FreeScenes();
-    GPM_VAL.SetPause(false);
+void TaskDataTestGlitterParticle::LoadFile(const char* file) {
+    GPM_VAL.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty);
+    GPM_VAL.UnloadEffectGroup(hash);
+    hash = GPM_VAL.LoadFile(GLITTER_FT, file, 0, -1.0f, true);
+    rebuild_geff = true;
+}
 
-    data_test_glitter_test_struct* glt_test = (data_test_glitter_test_struct*)data->data;
-    delete glt_test;
-
-    draw_grid_3d = false;
-
-    data->flags = (class_flags)(CLASS_HIDDEN | CLASS_DISPOSED);
-    data->imgui_focus = false;
+bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
     return true;
 }
 
-data_test_glitter_test_struct::data_test_glitter_test_struct() : hash(),
-scene_counter(), frame(), auto_and_repeat(), reload(), pv_mode(),
-input_play(), input_stop(), delta_frame(), file(), stage_test(), rctx() {
+void data_test_glitter_test_ctrl(class_data* data) {
 
 }
 
-data_test_glitter_test_struct::~data_test_glitter_test_struct() {
+void data_test_glitter_test_imgui(class_data* data) {
 
+}
+
+bool data_test_glitter_test_dispose(class_data* data) {
+    return true;
 }

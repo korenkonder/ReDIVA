@@ -24,6 +24,7 @@ classes_data classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
+        0,
         {
             {},
             (class_flags)CLASS_INIT,
@@ -46,6 +47,7 @@ classes_data classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
+        0,
         {
             {},
             (class_flags)CLASS_INIT,
@@ -68,6 +70,7 @@ classes_data classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
+        0,
         {
             {},
             (class_flags)CLASS_INIT,
@@ -90,6 +93,7 @@ classes_data classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
+        0,
         {
             {},
             (class_flags)CLASS_INIT,
@@ -113,6 +117,7 @@ classes_data classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         glitter_editor_dispose,
+        &data_test_shared_lock,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -128,7 +133,5 @@ classes_data classes[] = {
 const size_t classes_count = sizeof(classes) / sizeof(classes_data);
 
 render_state state;
+thread_flag thread_flags;
 lock state_lock;
-
-bool stage_control;
-lock stage_control_lock;

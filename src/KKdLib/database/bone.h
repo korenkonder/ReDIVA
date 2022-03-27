@@ -86,9 +86,9 @@ public:
     int32_t get_skeleton_bone_index(const char* name, const char* bone_name);
     bool get_skeleton_bones(const char* name, std::vector<bone_database_bone>** bone);
     bool get_skeleton_positions(const char* name, std::vector<vec3>** positions);
-    int32_t get_skeleton_object_bone_index(const char* name, char* bone_name);
+    int32_t get_skeleton_object_bone_index(const char* name, const char* bone_name);
     bool get_skeleton_object_bones(const char* name, std::vector<std::string>** object_bones);
-    int32_t get_skeleton_motion_bone_index(const char* name, char* bone_name);
+    int32_t get_skeleton_motion_bone_index(const char* name, const char* bone_name);
     bool get_skeleton_motion_bones(const char* name, std::vector<std::string>** motion_bones);
     bool get_skeleton_parent_indices(const char* name, std::vector<uint16_t>** parent_indices);
     bool get_skeleton_heel_height(const char* name, float_t** unknown_value);

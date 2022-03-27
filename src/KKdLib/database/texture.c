@@ -304,13 +304,13 @@ texture_info::~texture_info() {
 }
 
 static void texture_database_classic_read_inner(texture_database* tex_db, stream* s) {
-    uint32_t texture_count = io_read_uint32_t(s);
+    uint32_t textures_count = io_read_uint32_t(s);
     uint32_t textures_offset = io_read_uint32_t(s);
 
-    tex_db->texture.resize(texture_count);
+    tex_db->texture.resize(textures_count);
 
     io_position_push(s, textures_offset, SEEK_SET);
-    for (uint32_t i = 0; i < texture_count; i++) {
+    for (uint32_t i = 0; i < textures_count; i++) {
         texture_info& info = tex_db->texture[i];
         info.id = io_read_uint32_t(s);
         io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &info.name);
@@ -333,10 +333,10 @@ static void texture_database_classic_write_inner(texture_database* tex_db, strea
     io_write_uint32_t(s, 0x90669066);
     io_align_write(s, 0x20);
 
-    uint32_t texture_count = (uint32_t)tex_db->texture.size();
+    uint32_t textures_count = (uint32_t)tex_db->texture.size();
 
     vector_old_ssize_t string_offsets = vector_old_empty(ssize_t);
-    vector_old_ssize_t_reserve(&string_offsets, texture_count);
+    vector_old_ssize_t_reserve(&string_offsets, textures_count);
 
     for (texture_info& i : tex_db->texture) {
         ssize_t off = io_get_position(s);
@@ -358,7 +358,7 @@ static void texture_database_classic_write_inner(texture_database* tex_db, strea
     vector_old_ssize_t_free(&string_offsets, 0);
 
     io_position_push(s, 0x00, SEEK_SET);
-    io_write_uint32_t(s, texture_count);
+    io_write_uint32_t(s, textures_count);
     io_write_uint32_t(s, (uint32_t)textures_offset);
     io_position_pop(s);
 }
@@ -371,20 +371,20 @@ static void texture_database_modern_read_inner(texture_database* tex_db, stream*
 
     io_set_position(s, 0x00, SEEK_SET);
 
-    uint32_t texture_count = io_read_uint32_t_stream_reverse_endianness(s);
+    uint32_t textures_count = io_read_uint32_t_stream_reverse_endianness(s);
     ssize_t textures_offset = io_read_offset(s, header_length, is_x);
 
-    tex_db->texture.resize(texture_count);
+    tex_db->texture.resize(textures_count);
 
     io_position_push(s, textures_offset, SEEK_SET);
     if (!is_x)
-        for (uint32_t i = 0; i < texture_count; i++) {
+        for (uint32_t i = 0; i < textures_count; i++) {
             texture_info& info = tex_db->texture[i];
             info.id = io_read_uint32_t_stream_reverse_endianness(s);
             io_read_string_null_terminated_offset(s, io_read_offset_f2(s, header_length), &info.name);
         }
     else
-        for (uint32_t i = 0; i < texture_count; i++) {
+        for (uint32_t i = 0; i < textures_count; i++) {
             texture_info& info = tex_db->texture[i];
             info.id = io_read_uint32_t_stream_reverse_endianness(s);
             io_read_string_null_terminated_offset(s, io_read_offset_x(s), &info.name);
@@ -406,28 +406,28 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
 
     bool is_x = tex_db->is_x;
 
-    uint32_t texture_count = (uint32_t)tex_db->texture.size();
+    uint32_t textures_count = (uint32_t)tex_db->texture.size();
 
     if (!is_x) {
-        ee = { 0, 2, 8, texture_count, vector_old_empty(enrs_sub_entry) };
+        ee = { 0, 2, 8, textures_count, vector_old_empty(enrs_sub_entry) };
         vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
         vector_old_enrs_entry_push_back(&e, &ee);
         off = 8;
         off = align_val(off, 0x10);
 
-        ee = { off, 2, 8, texture_count, vector_old_empty(enrs_sub_entry) };
+        ee = { off, 2, 8, textures_count, vector_old_empty(enrs_sub_entry) };
         vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
         vector_old_enrs_entry_push_back(&e, &ee);
-        off = (uint32_t)(texture_count * 16ULL);
+        off = (uint32_t)(textures_count * 16ULL);
     }
     else {
-        texture_count++;
-        ee = { 0, 2, 16, texture_count, vector_old_empty(enrs_sub_entry) };
+        textures_count++;
+        ee = { 0, 2, 16, textures_count, vector_old_empty(enrs_sub_entry) };
         vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
         vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
         vector_old_enrs_entry_push_back(&e, &ee);
-        off = (uint32_t)(texture_count * 16ULL);
-        texture_count--;
+        off = (uint32_t)(textures_count * 16ULL);
+        textures_count--;
     }
 
     io_write_int32_t(&s_mtxi, 0);
@@ -435,13 +435,13 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     io_align_write(&s_mtxi, 0x10);
 
     ssize_t textures_offset = io_get_position(&s_mtxi);
-    io_write(&s_mtxi, texture_count * (is_x ? 0x10ULL : 0x08ULL));
+    io_write(&s_mtxi, textures_count * (is_x ? 0x10ULL : 0x08ULL));
     io_align_write(&s_mtxi, 0x10);
 
     std::vector<std::string> strings;
     std::vector<ssize_t> string_offsets;
 
-    strings.reserve(texture_count);
+    strings.reserve(textures_count);
 
     for (texture_info& i : tex_db->texture)
         texture_database_strings_push_back_check(strings, i.name);
@@ -455,7 +455,7 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     io_align_write(&s_mtxi, 0x10);
 
     io_position_push(&s_mtxi, 0x00, SEEK_SET);
-    io_write_uint32_t(&s_mtxi, texture_count);
+    io_write_uint32_t(&s_mtxi, textures_count);
     io_write_offset_pof_add(&s_mtxi, textures_offset, 0x20, is_x, &pof);
     io_align_write(&s_mtxi, 0x10);
 

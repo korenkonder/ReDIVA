@@ -12,8 +12,8 @@
 
 static void draw_task_add(render_context* rctx, draw_object_type type, draw_task* task);
 static void draw_task_object_init(draw_task* task, object_data* object_data, mat4* mat,
-    float_t bounding_radius, object_sub_mesh* sub_mesh, object_mesh* mesh, object_material_data* material,
-    uint32_t* textures, int32_t mat_count, mat4u* mats, GLuint array_buffer,
+    float_t bounding_radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
+    std::vector<GLuint>* textures, int32_t mat_count, mat4u* mats, GLuint array_buffer,
     GLuint element_array_buffer, vec4* blend_color, int32_t morph_array_buffer,
     int32_t instances_count, mat4* instances_mat, void(*draw_object_func)(draw_object*));
 static void draw_task_object_translucent_init(draw_task* task, mat4* mat,
@@ -270,27 +270,27 @@ inline int32_t draw_task_get_count(render_context* rctx, draw_object_type type) 
         - rctx->object_data.draw_task_array[type].begin);
 }
 
-bool draw_task_add_draw_object(render_context* rctx, object* obj,
-    object_mesh_vertex_buffer* obj_vertex_buf, object_mesh_index_buffer* obj_index_buf, mat4* mat,
-    uint32_t* textures, vec4* blend_color, mat4* bone_mat, object* object_morph,
-    object_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
+bool draw_task_add_draw_object(render_context* rctx, obj* object,
+    obj_mesh_vertex_buffer* obj_vertex_buf, obj_mesh_index_buffer* obj_index_buf, mat4* mat,
+    std::vector<GLuint>* textures, vec4* blend_color, mat4* bone_mat, obj* object_morph,
+    obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
     mat4* instances_mat, void(*draw_object_func)(draw_object*), bool enable_bone_mat) {
     object_data* object_data = &rctx->object_data;
     draw_task_flags draw_task_flags = object_data->draw_task_flags;
 
-    if (object_data->object_culling && !instances_count && !bone_mat && (!obj
-        || !object_bounding_sphere_check_visibility(&obj->bounding_sphere, object_data, rctx->camera, mat))) {
+    if (object_data->object_culling && !instances_count && !bone_mat && (!object
+        || !object_bounding_sphere_check_visibility(&object->bounding_sphere, object_data, rctx->camera, mat))) {
         object_data->culled.objects++;
         return false;
     }
     object_data->passed.objects++;
 
-    for (int32_t i = 0; i < obj->meshes_count; i++) {
-        object_mesh* mesh = &obj->meshes[i];
-        object_mesh* mesh_morph = 0;
+    for (int32_t i = 0; i < object->meshes_count; i++) {
+        obj_mesh* mesh = &object->meshes[i];
+        obj_mesh* mesh_morph = 0;
         if (obj_vertex_buf && obj_morph_vertex_buf) {
-            if (object_mesh_vertex_buffer_get_size(&obj_vertex_buf[i])
-                != object_mesh_vertex_buffer_get_size(&obj_morph_vertex_buf[i]))
+            if (obj_mesh_vertex_buffer_get_size(&obj_vertex_buf[i])
+                != obj_mesh_vertex_buffer_get_size(&obj_morph_vertex_buf[i]))
                 continue;
 
             if (object_morph && i < object_morph->meshes_count)
@@ -310,21 +310,21 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
         int32_t translucent_priority_count = 0;
 
         for (int32_t j = 0; j < mesh->sub_meshes_count; j++) {
-            object_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
-            object_sub_mesh* sub_mesh_morph = 0;
-            if (sub_mesh->flags & OBJECT_SUB_MESH_FLAG_8)
+            obj_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
+            obj_sub_mesh* sub_mesh_morph = 0;
+            if (sub_mesh->flags & OBJ_SUB_MESH_FLAG_8)
                 continue;
 
             if (object_data->object_culling && !instances_count && !bone_mat) {
                 int32_t v32 = object_bounding_sphere_check_visibility(
                     &sub_mesh->bounding_sphere, object_data, rctx->camera, mat);
-                if (v32 != 2 || (~mesh->flags & OBJECT_MESH_BILLBOARD &&
-                    ~mesh->flags & OBJECT_MESH_BILLBOARD_Y_AXIS)) {
+                if (v32 != 2 || (~mesh->flags & OBJ_MESH_BILLBOARD &&
+                    ~mesh->flags & OBJ_MESH_BILLBOARD_Y_AXIS)) {
                     if (v32 == 2) {
                         if (object_data->object_bounding_sphere_check_func)
                             v32 = 1;
                         else
-                            v32 = object_axis_aligned_bounding_box_check_visibility(
+                            v32 = obj_axis_aligned_bounding_box_check_visibility(
                                 &sub_mesh->axis_aligned_bounding_box, rctx->camera, mat);
                     }
 
@@ -346,7 +346,7 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
                             if (object_data->object_bounding_sphere_check_func)
                                 v32 = 1;
                             else
-                                v32 = object_axis_aligned_bounding_box_check_visibility(
+                                v32 = obj_axis_aligned_bounding_box_check_visibility(
                                     &sub_mesh_morph->axis_aligned_bounding_box, rctx->camera, mat);
                         }
 
@@ -377,14 +377,14 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
                 bone_indices_count = 0;
             }
 
-            object_material_data* material = &obj->materials[sub_mesh->material_index];
+            obj_material_data* material = &object->materials[sub_mesh->material_index];
             draw_task* task = object_data_buffer_add_draw_task(&rctx->object_data.buffer, DRAW_TASK_TYPE_OBJECT);
             if (!task)
                 continue;
 
             GLuint morph_array_buffer = 0;
             if (obj_morph_vertex_buf)
-                morph_array_buffer = object_mesh_vertex_buffer_get_buffer(&obj_morph_vertex_buf[i]);
+                morph_array_buffer = obj_mesh_vertex_buffer_get_buffer(&obj_morph_vertex_buf[i]);
 
             GLuint element_array_buffer = 0;
             if (obj_index_buf)
@@ -392,13 +392,13 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
 
             GLuint array_buffer = 0;
             if (obj_vertex_buf)
-                array_buffer = object_mesh_vertex_buffer_get_buffer(&obj_vertex_buf[i]);
+                array_buffer = obj_mesh_vertex_buffer_get_buffer(&obj_vertex_buf[i]);
 
             draw_task_object_init(
                 task,
                 object_data,
                 mat,
-                obj->bounding_sphere.radius,
+                object->bounding_sphere.radius,
                 sub_mesh,
                 mesh,
                 material,
@@ -421,13 +421,13 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
                 continue;
             }
 
-            object_material_blend_flags blend_flags = material->material.blend_flags;
+            obj_material_blend_flags blend_flags = material->material.blend_flags;
             if (draw_task_flags & (DRAW_TASK_10000 | DRAW_TASK_20000 | DRAW_TASK_40000)
                 && task->data.object.blend_color.w < 1.0f) {
                 if (~draw_task_flags | DRAW_TASK_NO_TRANSLUCENCY) {
                     if (blend_flags.flag_28 || (blend_flags.punch_through
                         || !(blend_flags.alpha_texture | blend_flags.alpha_material))
-                        && ~sub_mesh->flags & OBJECT_SUB_MESH_TRANSPARENT) {
+                        && ~sub_mesh->flags & OBJ_SUB_MESH_TRANSPARENT) {
                         if (!blend_flags.punch_through) {
                             if (draw_task_flags & DRAW_TASK_10000)
                                 draw_task_add(rctx, DRAW_OBJECT_OPAQUE_TYPE_20, task);
@@ -460,7 +460,7 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
             else {
                 if (blend_flags.flag_28 || task->data.object.blend_color.w >= 1.0f
                     && (blend_flags.punch_through || !(blend_flags.alpha_texture | blend_flags.alpha_material))
-                    && ~sub_mesh->flags & OBJECT_SUB_MESH_TRANSPARENT) {
+                    && ~sub_mesh->flags & OBJ_SUB_MESH_TRANSPARENT) {
                     if (draw_task_flags & DRAW_TASK_SHADOW)
                         draw_task_add(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_CHARA
                             + object_data->shadow_type), task);
@@ -504,7 +504,7 @@ bool draw_task_add_draw_object(render_context* rctx, object* obj,
                 }
                 else if (~draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY) {
                     if (!blend_flags.translucent_priority)
-                        if (mesh->flags & OBJECT_MESH_TRANSLUCENT_NO_SHADOW
+                        if (mesh->flags & OBJ_MESH_TRANSLUCENT_NO_SHADOW
                             || draw_task_flags & DRAW_TASK_TRANSLUCENT_NO_SHADOW)
                             draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_NO_SHADOW, task);
                         else
@@ -574,23 +574,23 @@ bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
 
     object_data* object_data = &rctx->object_data;
 
-    object* obj = object_storage_get_object(obj_info);
-    if (!obj)
+    obj* object = object_storage_get_obj(obj_info);
+    if (!object)
         return false;
 
-    uint32_t* textures = object_storage_get_textures(obj_info.set_id);
-    object_mesh_vertex_buffer* obj_vertex_buffer = object_storage_get_object_mesh_vertex_buffer(obj_info);
-    object_mesh_index_buffer* obj_index_buffer = object_storage_get_object_mesh_index_buffer(obj_info);
+    std::vector<GLuint>* textures = object_storage_get_obj_set_textures(obj_info.set_id);
+    obj_mesh_vertex_buffer* obj_vertex_buffer = object_storage_get_obj_mesh_vertex_buffer(obj_info);
+    obj_mesh_index_buffer* obj_index_buffer = object_storage_get_obj_mesh_index_buffer(obj_info);
 
-    object* obj_morph = 0;
-    object_mesh_vertex_buffer* obj_morph_vertex_buffer = 0;
+    obj* obj_morph = 0;
+    obj_mesh_vertex_buffer* obj_morph_vertex_buffer = 0;
     if (object_data->morph.object.set_id != -1) {
-        obj_morph = object_storage_get_object(object_data->morph.object);
-        obj_morph_vertex_buffer = object_storage_get_object_mesh_vertex_buffer(object_data->morph.object);
+        obj_morph = object_storage_get_obj(object_data->morph.object);
+        obj_morph_vertex_buffer = object_storage_get_obj_mesh_vertex_buffer(object_data->morph.object);
     }
 
     return draw_task_add_draw_object(rctx,
-        obj,
+        object,
         obj_vertex_buffer,
         obj_index_buffer,
         mat,
@@ -647,11 +647,11 @@ inline bool draw_task_add_draw_object_by_object_info_color_vec4(render_context* 
 void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, object_info obj_info,
     std::vector<texture_pattern_struct>* texture_pattern, texture_data_struct* texture_data, float_t alpha,
     mat4* matrices, mat4* ex_data_matrices, mat4* mat, mat4* global_mat) {
-    object_skin* skin = object_storage_get_object_skin(obj_info);
+    obj_skin* skin = object_storage_get_obj_skin(obj_info);
     if (!skin)
         return;
 
-    object_skin_set_matrix_buffer(skin, matrices, ex_data_matrices, rctx->matrix_buffer, mat, global_mat);
+    obj_skin_set_matrix_buffer(skin, matrices, ex_data_matrices, rctx->matrix_buffer, mat, global_mat);
 
     vec4 texture_color_coeff;
     vec4 texture_color_offset;
@@ -721,13 +721,13 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
         vec3 center;
         mat4_get_translation(&mat, &center);
         if (task->type == DRAW_TASK_TYPE_OBJECT) {
-            object_mesh_flags mesh_flags = task->data.object.mesh->flags;
-            if (mesh_flags & OBJECT_MESH_BILLBOARD) {
+            obj_mesh_flags mesh_flags = task->data.object.mesh->flags;
+            if (mesh_flags & OBJ_MESH_BILLBOARD) {
                 model_mat_face_camera_view(&rctx->camera->view, &mat, &mat);}
-            else if (mesh_flags & OBJECT_MESH_BILLBOARD_Y_AXIS)
+            else if (mesh_flags & OBJ_MESH_BILLBOARD_Y_AXIS)
                 model_mat_face_camera_position(&rctx->camera->view, &mat, &mat);
             else {
-                object_sub_mesh* sub_mesh = task->data.object.sub_mesh;
+                obj_sub_mesh* sub_mesh = task->data.object.sub_mesh;
                 if (task->data.object.mat_count < 1 || !sub_mesh->bone_indices_count)
                     mat4_mult_vec3_trans(&mat, &sub_mesh->bounding_sphere.center, &center);
                 else {
@@ -764,8 +764,8 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
     }
 }
 
-int32_t object_axis_aligned_bounding_box_check_visibility(
-    object_axis_aligned_bounding_box* aabb, camera* cam, mat4* mat) {
+int32_t obj_axis_aligned_bounding_box_check_visibility(
+    obj_axis_aligned_bounding_box* aabb, camera* cam, mat4* mat) {
     vec3 size;
     vec3 points[8];
     vec3 neg;
@@ -827,7 +827,7 @@ int32_t object_axis_aligned_bounding_box_check_visibility(
     return 1;
 }
 
-int32_t object_bounding_sphere_check_visibility(object_bounding_sphere* sphere,
+int32_t object_bounding_sphere_check_visibility(obj_bounding_sphere* sphere,
     object_data* object_data, camera* cam, mat4* mat) {
     if (object_data->object_bounding_sphere_check_func)
         return object_data->object_bounding_sphere_check_func(sphere, cam);
@@ -873,8 +873,8 @@ inline static void draw_task_add(render_context* rctx, draw_object_type type, dr
 }
 
 inline static void draw_task_object_init(draw_task* task, object_data* object_data, mat4* mat,
-    float_t bounding_radius, object_sub_mesh* sub_mesh, object_mesh* mesh, object_material_data* material,
-    uint32_t* textures, int32_t mat_count, mat4u* mats, GLuint array_buffer,
+    float_t bounding_radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
+    std::vector<GLuint>* textures, int32_t mat_count, mat4u* mats, GLuint array_buffer,
     GLuint element_array_buffer, vec4* blend_color, int32_t morph_array_buffer,
     int32_t instances_count, mat4* instances_mat, void(*draw_object_func)(draw_object*)) {
     task->type = DRAW_TASK_TYPE_OBJECT;

@@ -7,7 +7,8 @@
 
 #include "classes.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-#include <cimgui.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 typedef enum render_state {
     RENDER_UNINITIALIZED =  0,
@@ -17,7 +18,14 @@ typedef enum render_state {
     RENDER_DISPOSED      =  4,
 } render_state;
 
+typedef enum thread_flag {
+    THREAD_RENDER = 0x01,
+    THREAD_SOUND  = 0x02,
+    THREAD_INPUT  = 0x04,
+} thread_flag;
+
 extern classes_data classes[];
 extern const size_t classes_count;
 extern render_state state;
+extern thread_flag thread_flags;
 extern lock state_lock;

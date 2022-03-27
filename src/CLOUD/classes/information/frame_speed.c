@@ -18,37 +18,37 @@ bool information_frame_speed_init(class_data* data, render_context* rctx) {
 }
 
 void information_frame_speed_imgui(class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     float_t w = min((float_t)width, 240.0f);
     float_t h = min((float_t)height, 58.0f);
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(information_frame_speed_window_title, &open, window_flags);
+    bool collapsed = !ImGui::Begin(information_frame_speed_window_title, &open, window_flags);
     if (!open) {
         enum_or(data->flags, CLASS_HIDE);
-        igEnd();
+        ImGui::End();
         return;
     }
     else if (collapsed) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
     imguiGetContentRegionAvailSetNextItemWidth();
     imguiColumnSliderFloat("frame speed", &frame_speed, 0.01f, 0.0f, 3.0f, "%.2f", 0, true);
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 }
 
 bool information_frame_speed_dispose(class_data* data) {

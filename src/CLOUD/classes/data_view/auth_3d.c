@@ -62,26 +62,26 @@ bool data_view_auth_3d_init(class_data* data, render_context* rctx) {
 }
 
 void data_view_auth_3d_imgui(class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     float_t w = min((float_t)width, 480.0f);
     float_t h = min((float_t)height, 540.0f);
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(data_view_auth_3d_window_title, &open, 0);
+    bool collapsed = !ImGui::Begin(data_view_auth_3d_window_title, &open, 0);
     if (!open) {
         enum_or(data->flags, CLASS_HIDE);
-        igEnd();
+        ImGui::End();
         return;
     }
     else if (collapsed) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
@@ -94,7 +94,7 @@ void data_view_auth_3d_imgui(class_data* data) {
 
     char buf[0x200];
     for (size_t i = 0; i < AUTH_3D_DATA_COUNT; i++) {
-        auth_3d* auth = &auth_3d_data.data[i];
+        auth_3d* auth = &auth_3d_data->data[i];
         if (auth->id == -1)
             continue;
 
@@ -107,10 +107,10 @@ void data_view_auth_3d_imgui(class_data* data) {
 
         tree_node_flags = tree_node_base_flags;
 
-        igPushID_Int(auth->id);
-        if (!igTreeNodeEx_Ptr(auth, tree_node_flags,
+        ImGui::PushID(auth->id);
+        if (!ImGui::TreeNodeEx(auth, tree_node_flags,
             "ID: %5d; File: %s; Frame: %5d", auth->id & 0x7FFF, buf, auth->frame_int)) {
-            igPopID();
+            ImGui::PopID();
             continue;
         }
 
@@ -118,103 +118,103 @@ void data_view_auth_3d_imgui(class_data* data) {
         tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
         if (auth->ambient.size() > 0
-            && igTreeNodeEx_Str("Ambient", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Ambient", tree_node_flags)) {
             for (auth_3d_ambient& l : auth->ambient)
                 data_view_auth_3d_imgui_auth_3d_ambient(&l);
-            igTreePop();
+            ImGui::TreePop();
         }
 
         if (auth->auth_2d.size() > 0
-            && igTreeNodeEx_Str("Auth 2D", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Auth 2D", tree_node_flags)) {
             for (std::string& l : auth->auth_2d)
-                igText(l.c_str());
-            igTreePop();
+                ImGui::Text(l.c_str());
+            ImGui::TreePop();
         }
 
         data_view_auth_3d_imgui_auth_3d_camera_auxiliary(&auth->camera_auxiliary);
 
         if (auth->camera_root.size() > 1
-            && igTreeNodeEx_Str("Camera Root", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Camera Root", tree_node_flags)) {
             for (auth_3d_camera_root& l : auth->camera_root)
                 data_view_auth_3d_imgui_auth_3d_camera_root(&l, &l - auth->camera_root.data());
-            igTreePop();
+            ImGui::TreePop();
         }
         else if (auth->camera_root.size() == 1)
             data_view_auth_3d_imgui_auth_3d_camera_root(&auth->camera_root[0], -1);
 
         if (auth->chara.size() > 0
-            && igTreeNodeEx_Str("Chara", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Chara", tree_node_flags)) {
             for (auth_3d_chara& l : auth->chara)
                 data_view_auth_3d_imgui_auth_3d_chara(&l);
-            igTreePop();
+            ImGui::TreePop();
         }
 
         data_view_auth_3d_imgui_auth_3d_dof(&auth->dof);
 
         if (auth->fog.size() > 0
-            && igTreeNodeEx_Str("Fog", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Fog", tree_node_flags)) {
             for (auth_3d_fog& l : auth->fog)
                 data_view_auth_3d_imgui_auth_3d_fog(&l);
-            igTreePop();
+            ImGui::TreePop();
         }
 
         if (auth->light.size() > 0
-            && igTreeNodeEx_Str("Light", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Light", tree_node_flags)) {
             for (auth_3d_light& l : auth->light)
                 data_view_auth_3d_imgui_auth_3d_light(&l);
-            igTreePop();
+            ImGui::TreePop();
         }
 
         if (auth->m_object_hrc_list.size() > 0
-            && igTreeNodeEx_Str("M Object HRC", tree_node_flags)) {
+            && ImGui::TreeNodeEx("M Object HRC", tree_node_flags)) {
             for (auth_3d_m_object_hrc*& l : auth->m_object_hrc_list)
                 data_view_auth_3d_imgui_auth_3d_m_object_hrc(l);
-            igTreePop();
+            ImGui::TreePop();
         }
 
         if (auth->material_list.size() > 0
-            && igTreeNodeEx_Str("Material List", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Material List", tree_node_flags)) {
             for (auth_3d_material_list& l : auth->material_list)
                 data_view_auth_3d_imgui_auth_3d_material_list(&l);
-            igTreePop();
+            ImGui::TreePop();
         }
 
         if (auth->motion.size() > 0
-            && igTreeNodeEx_Str("Motion", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Motion", tree_node_flags)) {
             for (std::string& l : auth->motion)
-                igText(l.c_str());
-            igTreePop();
+                ImGui::Text(l.c_str());
+            ImGui::TreePop();
         }
 
         if (auth->object_list.size() > 0
-            && igTreeNodeEx_Str("Object", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Object", tree_node_flags)) {
             for (auth_3d_object*& l : auth->object_list)
                 data_view_auth_3d_imgui_auth_3d_object(l);
-            igTreePop();
+            ImGui::TreePop();
         }
 
         if (auth->object_hrc_list.size() > 0
-            && igTreeNodeEx_Str("Object HRC", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Object HRC", tree_node_flags)) {
             for (auth_3d_object_hrc*& l : auth->object_hrc_list)
                 data_view_auth_3d_imgui_auth_3d_object_hrc(l);
-            igTreePop();
+            ImGui::TreePop();
         }
 
         if (auth->point.size() > 0
-            && igTreeNodeEx_Str("Point", tree_node_flags)) {
+            && ImGui::TreeNodeEx("Point", tree_node_flags)) {
             for (auth_3d_point& l : auth->point)
                 data_view_auth_3d_imgui_auth_3d_point(&l);
-            igTreePop();
+            ImGui::TreePop();
         }
 
         data_view_auth_3d_imgui_auth_3d_post_process(&auth->post_process);
 
-        igTreePop();
-        igPopID();
+        ImGui::TreePop();
+        ImGui::PopID();
     }
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 }
 
 bool data_view_auth_3d_dispose(class_data* data) {
@@ -226,30 +226,30 @@ static void data_view_auth_3d_imgui_auth_3d_key(auth_3d_key* k, const char* form
         return;
 
     if (offset) {
-        igText("  ");
+        ImGui::Text("  ");
         if (format) {
-            igSameLine(0.0f, -1.0f);
-            igText(format);
+            ImGui::SameLine();
+            ImGui::Text(format);
         }
-        igSameLine(0.0f, -1.0f);
+        ImGui::SameLine();
     }
     else if (format) {
-        igText(format);
-        igSameLine(0.0f, -1.0f);
+        ImGui::Text(format);
+        ImGui::SameLine();
     }
 
     switch (k->type) {
     case A3DA_KEY_NONE:
     default:
-        igText("V: %#.6g", 0.0f);
+        ImGui::Text("V: %#.6g", 0.0f);
         break;
     case A3DA_KEY_STATIC:
-        igText("V: %#.6g", k->value);
+        ImGui::Text("V: %#.6g", k->value);
         break;
     case A3DA_KEY_LINEAR:
     case A3DA_KEY_HERMITE:
     case A3DA_KEY_HOLD:
-        igText("F: %5g; V: %#.6g", k->frame, k->value_interp);
+        ImGui::Text("F: %5g; V: %#.6g", k->frame, k->value_interp);
         break;
     }
 }
@@ -258,7 +258,7 @@ static void data_view_auth_3d_imgui_auth_3d_rgba(auth_3d_rgba* rgba, const char*
     if (!rgba || !rgba->flags || !format)
         return;
 
-    igText(format);
+    ImGui::Text(format);
     if (rgba->flags & A3DA_RGBA_R)
         data_view_auth_3d_imgui_auth_3d_key(&rgba->r, "R:", true);
     if (rgba->flags & A3DA_RGBA_G)
@@ -273,12 +273,12 @@ static void data_view_auth_3d_imgui_auth_3d_vec3(auth_3d_vec3* vec, const char* 
     if (!vec || !format)
         return;
 
-    igText(format);
-    igPushStyleColor_U32(ImGuiCol_WindowBg, 0xFF404040);
+    ImGui::Text(format);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, 0xFF404040);
     data_view_auth_3d_imgui_auth_3d_key(&vec->x, "X:", true);
     data_view_auth_3d_imgui_auth_3d_key(&vec->y, "Y:", true);
     data_view_auth_3d_imgui_auth_3d_key(&vec->z, "Z:", true);
-    igPopStyleColor(1);
+    ImGui::PopStyleColor();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_model_transform(auth_3d_model_transform* mt) {
@@ -290,16 +290,16 @@ static void data_view_auth_3d_imgui_auth_3d_model_transform(auth_3d_model_transf
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(mt, tree_node_flags, "Model Transform"))
+    if (!ImGui::TreeNodeEx(mt, tree_node_flags, "Model Transform"))
         return;
 
     data_view_auth_3d_imgui_auth_3d_vec3(&mt->translation, "Translation");
     data_view_auth_3d_imgui_auth_3d_vec3(&mt->rotation, "Rotation");
     data_view_auth_3d_imgui_auth_3d_vec3(&mt->scale, "Scale");
 
-    igText("Visibility");
+    ImGui::Text("Visibility");
     data_view_auth_3d_imgui_auth_3d_key(&mt->visibility, 0, true);
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_ambient(auth_3d_ambient* a) {
@@ -311,14 +311,14 @@ static void data_view_auth_3d_imgui_auth_3d_ambient(auth_3d_ambient* a) {
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(a, tree_node_flags, a->name.c_str()))
+    if (!ImGui::TreeNodeEx(a, tree_node_flags, a->name.c_str()))
         return;
 
     if (a->flags & A3DA_AMBIENT_LIGHT_DIFFUSE)
         data_view_auth_3d_imgui_auth_3d_rgba(&a->light_diffuse, "Light Diffuse");
     if (a->flags & A3DA_AMBIENT_RIM_LIGHT_DIFFUSE)
         data_view_auth_3d_imgui_auth_3d_rgba(&a->rim_light_diffuse, "Rim Light Diffuse");
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_camera_auxiliary(auth_3d_camera_auxiliary* ca) {
@@ -331,34 +331,34 @@ static void data_view_auth_3d_imgui_auth_3d_camera_auxiliary(auth_3d_camera_auxi
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(ca, tree_node_flags, "Camera Auxiliary"))
+    if (!ImGui::TreeNodeEx(ca, tree_node_flags, "Camera Auxiliary"))
         return;
 
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_AUTO_EXPOSURE) {
-        igText("Auto Exposure");
+        ImGui::Text("Auto Exposure");
         data_view_auth_3d_imgui_auth_3d_key(&ca->auto_exposure, 0, true);
     }
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_EXPOSURE) {
-        igText("Exposure");
+        ImGui::Text("Exposure");
         data_view_auth_3d_imgui_auth_3d_key(&ca->exposure, 0, true);
     }
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_EXPOSURE_RATE) {
-        igText("Exposure Rate");
+        ImGui::Text("Exposure Rate");
         data_view_auth_3d_imgui_auth_3d_key(&ca->exposure_rate, 0, true);
     }
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA) {
-        igText("Gamma");
+        ImGui::Text("Gamma");
         data_view_auth_3d_imgui_auth_3d_key(&ca->gamma, 0, true);
     }
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA_RATE) {
-        igText("Gamma Rate");
+        ImGui::Text("Gamma Rate");
         data_view_auth_3d_imgui_auth_3d_key(&ca->gamma_rate, 0, true);
     }
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_SATURATE) {
-        igText("Saturate");
+        ImGui::Text("Saturate");
         data_view_auth_3d_imgui_auth_3d_key(&ca->saturate, 0, true);
     }
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_camera_root(auth_3d_camera_root* cr, size_t index) {
@@ -372,7 +372,7 @@ static void data_view_auth_3d_imgui_auth_3d_camera_root(auth_3d_camera_root* cr,
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(cr, tree_node_flags,
+    if (!ImGui::TreeNodeEx(cr, tree_node_flags,
         index == -1 ? "Camera Root" : "%d", (int32_t)index))
         return;
 
@@ -382,29 +382,29 @@ static void data_view_auth_3d_imgui_auth_3d_camera_root(auth_3d_camera_root* cr,
     auth_3d_camera_root_view_point* vp = &cr->view_point;
     data_view_auth_3d_imgui_auth_3d_vec3(&vp->model_transform.translation, "View Point");
 
-    igText("Aspect");
-    igText("   %#.6g", vp->aspect);
+    ImGui::Text("Aspect");
+    ImGui::Text("   %#.6g", vp->aspect);
 
     if (vp->flags & AUTH_3D_CAMERA_ROOT_VIEW_POINT_FOV) {
-        igText(vp->fov_is_horizontal ? "FOV Horizontal" : "FOV");
+        ImGui::Text(vp->fov_is_horizontal ? "FOV Horizontal" : "FOV");
         data_view_auth_3d_imgui_auth_3d_key(&vp->fov, 0, true);
     }
     else {
-        igText("Camera Aperture Width");
-        igText("   %#.6g", vp->camera_aperture_w);
+        ImGui::Text("Camera Aperture Width");
+        ImGui::Text("   %#.6g", vp->camera_aperture_w);
 
-        igText("Camera Aperture Height");
-        igText("   %#.6g", vp->camera_aperture_h);
+        ImGui::Text("Camera Aperture Height");
+        ImGui::Text("   %#.6g", vp->camera_aperture_h);
 
-        igText("Focal Length");
+        ImGui::Text("Focal Length");
         data_view_auth_3d_imgui_auth_3d_key(&vp->focal_length, 0, true);
     }
 
     if (vp->flags & AUTH_3D_CAMERA_ROOT_VIEW_POINT_ROLL) {
-        igText("Roll");
+        ImGui::Text("Roll");
         data_view_auth_3d_imgui_auth_3d_key(&vp->roll, 0, true);
     }
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_chara(auth_3d_chara* c) {
@@ -416,11 +416,11 @@ static void data_view_auth_3d_imgui_auth_3d_chara(auth_3d_chara* c) {
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(c, tree_node_flags, c->name.c_str()))
+    if (!ImGui::TreeNodeEx(c, tree_node_flags, c->name.c_str()))
         return;
 
     data_view_auth_3d_imgui_auth_3d_model_transform(&c->model_transform);
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_curve(auth_3d_curve* c) {
@@ -432,11 +432,11 @@ static void data_view_auth_3d_imgui_auth_3d_curve(auth_3d_curve* c) {
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(c, tree_node_flags, c->name.c_str()))
+    if (!ImGui::TreeNodeEx(c, tree_node_flags, c->name.c_str()))
         return;
 
     data_view_auth_3d_imgui_auth_3d_key(&c->curve, 0, false);
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_dof(auth_3d_dof* d) {
@@ -451,28 +451,28 @@ static void data_view_auth_3d_imgui_auth_3d_dof(auth_3d_dof* d) {
 
     bool enable = fabsf(d->model_transform.rotation_value.z) > 0.000001f;
     if (!enable)
-        igPushStyleColor_U32(ImGuiCol_Text, 0xFF888888);
-    if (!igTreeNodeEx_Ptr(d, tree_node_flags, "DOF"))
+        ImGui::PushStyleColor(ImGuiCol_Text, 0xFF888888);
+    if (!ImGui::TreeNodeEx(d, tree_node_flags, "DOF"))
         if (!enable)
-            igPopStyleColor(1);
+            ImGui::PopStyleColor();
         return;
 
     auth_3d_model_transform* mt = &d->model_transform;
 
     data_view_auth_3d_imgui_auth_3d_vec3(&mt->translation, "Position");
 
-    igText("Focus Range");
+    ImGui::Text("Focus Range");
     data_view_auth_3d_imgui_auth_3d_key(&mt->scale.y, 0, true);
 
-    igText("Fuzzing Range");
+    ImGui::Text("Fuzzing Range");
     data_view_auth_3d_imgui_auth_3d_key(&mt->rotation.y, 0, true);
 
-    igText("Ratio");
+    ImGui::Text("Ratio");
     data_view_auth_3d_imgui_auth_3d_key(&mt->rotation.z, 0, true);
-    igTreePop();
+    ImGui::TreePop();
 
     if (!enable)
-        igPopStyleColor(1);
+        ImGui::PopStyleColor();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_fog(auth_3d_fog* f) {
@@ -484,27 +484,27 @@ static void data_view_auth_3d_imgui_auth_3d_fog(auth_3d_fog* f) {
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(f, tree_node_flags, auth_3d_fog_name[f->id]))
+    if (!ImGui::TreeNodeEx(f, tree_node_flags, auth_3d_fog_name[f->id]))
         return;
 
     if (f->flags & AUTH_3D_FOG_COLOR)
         data_view_auth_3d_imgui_auth_3d_rgba(&f->color, "Color");
 
     if (f->flags & AUTH_3D_FOG_DENSITY) {
-        igText("Density");
+        ImGui::Text("Density");
         data_view_auth_3d_imgui_auth_3d_key(&f->density, 0, true);
     }
 
     if (f->flags & AUTH_3D_FOG_END) {
-        igText("End");
+        ImGui::Text("End");
         data_view_auth_3d_imgui_auth_3d_key(&f->end, 0, true);
     }
 
     if (f->flags & AUTH_3D_FOG_START) {
-        igText("Start");
+        ImGui::Text("Start");
         data_view_auth_3d_imgui_auth_3d_key(&f->start, 0, true);
     }
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_light(auth_3d_light* l) {
@@ -516,19 +516,19 @@ static void data_view_auth_3d_imgui_auth_3d_light(auth_3d_light* l) {
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(l, tree_node_flags, auth_3d_light_name[l->id]))
+    if (!ImGui::TreeNodeEx(l, tree_node_flags, auth_3d_light_name[l->id]))
         return;
     
     if (l->flags & AUTH_3D_LIGHT_AMBIENT)
         data_view_auth_3d_imgui_auth_3d_rgba(&l->ambient, "Ambient");
 
     if (l->flags & AUTH_3D_LIGHT_CONE_ANGLE) {
-        igText("Cone Angle");
+        ImGui::Text("Cone Angle");
         data_view_auth_3d_imgui_auth_3d_key(&l->cone_angle, 0, true);
     }
 
     if (l->flags & AUTH_3D_LIGHT_CONSTANT) {
-        igText("Constant");
+        ImGui::Text("Constant");
         data_view_auth_3d_imgui_auth_3d_key(&l->constant, 0, true);
     }
 
@@ -536,22 +536,22 @@ static void data_view_auth_3d_imgui_auth_3d_light(auth_3d_light* l) {
         data_view_auth_3d_imgui_auth_3d_rgba(&l->diffuse, "Diffuse");
 
     if (l->flags & AUTH_3D_LIGHT_DROP_OFF) {
-        igText("Drop Off");
+        ImGui::Text("Drop Off");
         data_view_auth_3d_imgui_auth_3d_key(&l->drop_off, 0, true);
     }
 
     if (l->flags & AUTH_3D_LIGHT_FAR) {
-        igText("Far");
+        ImGui::Text("Far");
         data_view_auth_3d_imgui_auth_3d_key(&l->_far, 0, true);
     }
 
     if (l->flags & AUTH_3D_LIGHT_INTENSITY) {
-        igText("Intensity");
+        ImGui::Text("Intensity");
         data_view_auth_3d_imgui_auth_3d_key(&l->intensity, 0, true);
     }
 
     if (l->flags & AUTH_3D_LIGHT_LINEAR) {
-        igText("Linear");
+        ImGui::Text("Linear");
         data_view_auth_3d_imgui_auth_3d_key(&l->linear, 0, true);
     }
 
@@ -559,7 +559,7 @@ static void data_view_auth_3d_imgui_auth_3d_light(auth_3d_light* l) {
         data_view_auth_3d_imgui_auth_3d_vec3(&l->position.translation, "Position");
 
     if (l->flags & AUTH_3D_LIGHT_QUADRATIC) {
-        igText("Quadratic");
+        ImGui::Text("Quadratic");
         data_view_auth_3d_imgui_auth_3d_key(&l->quadratic, 0, true);
     }
 
@@ -571,7 +571,7 @@ static void data_view_auth_3d_imgui_auth_3d_light(auth_3d_light* l) {
 
     if (l->flags & AUTH_3D_LIGHT_TONE_CURVE)
         data_view_auth_3d_imgui_auth_3d_rgba(&l->tone_curve, "Tone Curve");
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_m_object_hrc(auth_3d_m_object_hrc* moh) {
@@ -585,33 +585,33 @@ static void data_view_auth_3d_imgui_auth_3d_m_object_hrc(auth_3d_m_object_hrc* m
 
     bool visible = moh->model_transform.visible;
     if (!visible)
-        igPushStyleColor_U32(ImGuiCol_Text, 0xFF888888);
+        ImGui::PushStyleColor(ImGuiCol_Text, 0xFF888888);
 
-    if (!igTreeNodeEx_Ptr(moh, tree_node_flags, moh->name.c_str())) {
+    if (!ImGui::TreeNodeEx(moh, tree_node_flags, moh->name.c_str())) {
         if (!visible)
-            igPopStyleColor(1);
+            ImGui::PopStyleColor();
         return;
     }
 
     if (moh->instance.size() > 0
-        && igTreeNodeEx_Str("Instance", tree_node_flags)) {
+        && ImGui::TreeNodeEx("Instance", tree_node_flags)) {
         for (auth_3d_object_instance& i : moh->instance)
             data_view_auth_3d_imgui_auth_3d_object_instance(&i);
-        igTreePop();
+        ImGui::TreePop();
     }
 
     data_view_auth_3d_imgui_auth_3d_object_model_transform(&moh->model_transform);
 
     if (moh->node.size() > 0
-        && igTreeNodeEx_Str("Node", tree_node_flags)) {
+        && ImGui::TreeNodeEx("Node", tree_node_flags)) {
         for (auth_3d_object_node& i : moh->node)
             data_view_auth_3d_imgui_auth_3d_object_node(&i);
-        igTreePop();
+        ImGui::TreePop();
     }
-    igTreePop();
+    ImGui::TreePop();
 
     if (!visible)
-        igPopStyleColor(1);
+        ImGui::PopStyleColor();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_material_list(auth_3d_material_list* ml) {
@@ -623,20 +623,20 @@ static void data_view_auth_3d_imgui_auth_3d_material_list(auth_3d_material_list*
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(ml, tree_node_flags, ml->name.c_str()))
+    if (!ImGui::TreeNodeEx(ml, tree_node_flags, ml->name.c_str()))
         return;
 
     if (ml->flags & AUTH_3D_MATERIAL_LIST_BLEND_COLOR)
         data_view_auth_3d_imgui_auth_3d_rgba(&ml->blend_color, "Blend Color");
 
     if (ml->flags & AUTH_3D_MATERIAL_LIST_GLOW_INTENSITY) {
-        igText("Glow Intensity");
+        ImGui::Text("Glow Intensity");
         data_view_auth_3d_imgui_auth_3d_key(&ml->glow_intensity, 0, false);
     }
 
     if (ml->flags & AUTH_3D_MATERIAL_LIST_INCANDESCENCE)
         data_view_auth_3d_imgui_auth_3d_rgba(&ml->incandescence, "Incandescence");
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
@@ -657,13 +657,13 @@ static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
 
     bool visible = o->model_transform.visible;
     if (!visible)
-        igPushStyleColor_U32(ImGuiCol_Text, 0xFF888888);
+        ImGui::PushStyleColor(ImGuiCol_Text, 0xFF888888);
 
     tree_node_flags = tree_node_base_flags;
 
-    if (!igTreeNodeEx_Ptr(o, tree_node_flags, name)) {
+    if (!ImGui::TreeNodeEx(o, tree_node_flags, name)) {
         if (!visible)
-            igPopStyleColor(1);
+            ImGui::PopStyleColor();
         return;
     }
 
@@ -675,19 +675,19 @@ static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
     tree_node_flags = tree_node_base_flags;
 
     if (o->texture_pattern.size() > 0
-        && igTreeNodeEx_Str("Texture Pattern", tree_node_flags)) {
+        && ImGui::TreeNodeEx("Texture Pattern", tree_node_flags)) {
         for (auth_3d_object_texture_pattern& i : o->texture_pattern)
             data_view_auth_3d_imgui_auth_3d_object_texture_pattern(&i);
-        igTreePop();
+        ImGui::TreePop();
     }
 
     tree_node_flags = tree_node_base_flags;
 
     if (o->texture_transform.size() > 0
-        && igTreeNodeEx_Str("Texture Transform", tree_node_flags)) {
+        && ImGui::TreeNodeEx("Texture Transform", tree_node_flags)) {
         for (auth_3d_object_texture_transform& i : o->texture_transform)
             data_view_auth_3d_imgui_auth_3d_object_texture_transform(&i);
-        igTreePop();
+        ImGui::TreePop();
     }
 
 
@@ -695,25 +695,25 @@ static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
     if (o->children_object.size() > 0
-        && igTreeNodeEx_Str("Children Object", tree_node_flags)) {
+        && ImGui::TreeNodeEx("Children Object", tree_node_flags)) {
         for (auth_3d_object*& i : o->children_object)
             data_view_auth_3d_imgui_auth_3d_object(i);
-        igTreePop();
+        ImGui::TreePop();
     }
 
     tree_node_flags = tree_node_base_flags;
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
     if (o->children_object_hrc.size() > 0
-        && igTreeNodeEx_Str("Children Object HRC", tree_node_flags)) {
+        && ImGui::TreeNodeEx("Children Object HRC", tree_node_flags)) {
         for (auth_3d_object_hrc*& i : o->children_object_hrc)
             data_view_auth_3d_imgui_auth_3d_object_hrc(i);
-        igTreePop();
+        ImGui::TreePop();
     }
-    igTreePop();
+    ImGui::TreePop();
 
     if (!visible)
-        igPopStyleColor(1);
+        ImGui::PopStyleColor();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_object_curve(auth_3d_object_curve* oc, const char* format) {
@@ -726,11 +726,11 @@ static void data_view_auth_3d_imgui_auth_3d_object_curve(auth_3d_object_curve* o
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(oc, tree_node_flags, format))
+    if (!ImGui::TreeNodeEx(oc, tree_node_flags, format))
         return;
 
     data_view_auth_3d_imgui_auth_3d_curve(oc->curve);
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_object_hrc(auth_3d_object_hrc* oh) {
@@ -751,48 +751,48 @@ static void data_view_auth_3d_imgui_auth_3d_object_hrc(auth_3d_object_hrc* oh) {
 
     bool visible = oh->node[0].model_transform.visible;
     if (!visible)
-        igPushStyleColor_U32(ImGuiCol_Text, 0xFF888888);
+        ImGui::PushStyleColor(ImGuiCol_Text, 0xFF888888);
 
     tree_node_flags = tree_node_base_flags;
 
-    if (!igTreeNodeEx_Ptr(oh, tree_node_flags, name)) {
+    if (!ImGui::TreeNodeEx(oh, tree_node_flags, name)) {
         if (!visible)
-            igPopStyleColor(1);
+            ImGui::PopStyleColor();
         return;
     }
 
     tree_node_flags = tree_node_base_flags;
 
     if (oh->node.size() > 0
-        && igTreeNodeEx_Str("Node", tree_node_flags)) {
+        && ImGui::TreeNodeEx("Node", tree_node_flags)) {
         for (auth_3d_object_node& i : oh->node)
             data_view_auth_3d_imgui_auth_3d_object_node(&i);
-        igTreePop();
+        ImGui::TreePop();
     }
 
     tree_node_flags = tree_node_base_flags;
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
     if (oh->children_object.size() > 0
-        && igTreeNodeEx_Str("Children Object", tree_node_flags)) {
+        && ImGui::TreeNodeEx("Children Object", tree_node_flags)) {
         for (auth_3d_object*& i : oh->children_object)
             data_view_auth_3d_imgui_auth_3d_object(i);
-        igTreePop();
+        ImGui::TreePop();
     }
 
     tree_node_flags = tree_node_base_flags;
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
     if (oh->children_object_hrc.size() > 0
-        && igTreeNodeEx_Str("Children Object HRC", tree_node_flags)) {
+        && ImGui::TreeNodeEx("Children Object HRC", tree_node_flags)) {
         for (auth_3d_object_hrc*& i : oh->children_object_hrc)
             data_view_auth_3d_imgui_auth_3d_object_hrc(i);
-        igTreePop();
+        ImGui::TreePop();
     }
-    igTreePop();
+    ImGui::TreePop();
 
     if (!visible)
-        igPopStyleColor(1);
+        ImGui::PopStyleColor();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_object_instance(auth_3d_object_instance* oi) {
@@ -806,24 +806,24 @@ static void data_view_auth_3d_imgui_auth_3d_object_instance(auth_3d_object_insta
 
     bool visible = oi->model_transform.visible;
     if (!visible)
-        igPushStyleColor_U32(ImGuiCol_Text, 0xFF888888);
+        ImGui::PushStyleColor(ImGuiCol_Text, 0xFF888888);
 
-    if (!igTreeNodeEx_Ptr(oi, tree_node_flags, oi->name.c_str())) {
+    if (!ImGui::TreeNodeEx(oi, tree_node_flags, oi->name.c_str())) {
         if (!visible)
-            igPopStyleColor(1);
+            ImGui::PopStyleColor();
         return;
     }
 
     data_view_auth_3d_imgui_auth_3d_object_model_transform(&oi->model_transform);
 
     if (oi->shadow)
-        igText("Shadow: True");
+        ImGui::Text("Shadow: True");
     
-    igText("UID Name: %s", oi->uid_name.c_str());
-    igTreePop();
+    ImGui::Text("UID Name: %s", oi->uid_name.c_str());
+    ImGui::TreePop();
 
     if (!visible)
-        igPopStyleColor(1);
+        ImGui::PopStyleColor();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_object_model_transform(auth_3d_object_model_transform* omt) {
@@ -835,18 +835,18 @@ static void data_view_auth_3d_imgui_auth_3d_object_model_transform(auth_3d_objec
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(omt, tree_node_flags, "Model Transform"))
+    if (!ImGui::TreeNodeEx(omt, tree_node_flags, "Model Transform"))
         return;
 
-    igText("Frame: %5f", omt->frame);
+    ImGui::Text("Frame: %5f", omt->frame);
 
     data_view_auth_3d_imgui_auth_3d_vec3(&omt->translation, "Translation");
     data_view_auth_3d_imgui_auth_3d_vec3(&omt->rotation, "Rotation");
     data_view_auth_3d_imgui_auth_3d_vec3(&omt->scale, "Scale");
 
-    igText("Visibility");
+    ImGui::Text("Visibility");
     data_view_auth_3d_imgui_auth_3d_key(&omt->visibility, 0, true);
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_object_node(auth_3d_object_node* on) {
@@ -858,20 +858,20 @@ static void data_view_auth_3d_imgui_auth_3d_object_node(auth_3d_object_node* on)
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(on, tree_node_flags, on->name.c_str()))
+    if (!ImGui::TreeNodeEx(on, tree_node_flags, on->name.c_str()))
         return;
 
     data_view_auth_3d_imgui_auth_3d_object_model_transform(&on->model_transform);
 
     if (on->flags & AUTH_3D_OBJECT_NODE_JOINT_ORIENT) {
-        igText("Joint Orient ");
-        igText("   X: %#.6g", on->joint_orient.x);
-        igText("   Y: %#.6g", on->joint_orient.y);
-        igText("   Z: %#.6g", on->joint_orient.z);
+        ImGui::Text("Joint Orient ");
+        ImGui::Text("   X: %#.6g", on->joint_orient.x);
+        ImGui::Text("   Y: %#.6g", on->joint_orient.y);
+        ImGui::Text("   Z: %#.6g", on->joint_orient.z);
     }
 
-    igText("Parent: %d", on->parent);
-    igTreePop();
+    ImGui::Text("Parent: %d", on->parent);
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_object_texture_pattern(auth_3d_object_texture_pattern* otp) {
@@ -890,7 +890,7 @@ static void data_view_auth_3d_imgui_auth_3d_object_texture_transform(auth_3d_obj
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(ott, tree_node_flags, ott->name.c_str()))
+    if (!ImGui::TreeNodeEx(ott, tree_node_flags, ott->name.c_str()))
         return;
 
     if (ott->flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_COVERAGE_U)
@@ -913,7 +913,7 @@ static void data_view_auth_3d_imgui_auth_3d_object_texture_transform(auth_3d_obj
         data_view_auth_3d_imgui_auth_3d_key(&ott->translate_frame_u, "Translate Frame U:", false);
     if (ott->flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_V)
         data_view_auth_3d_imgui_auth_3d_key(&ott->translate_frame_v, "Translate Frame V:", false);;
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_point(auth_3d_point* p) {
@@ -925,11 +925,11 @@ static void data_view_auth_3d_imgui_auth_3d_point(auth_3d_point* p) {
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(p, tree_node_flags, p->name.c_str()))
+    if (!ImGui::TreeNodeEx(p, tree_node_flags, p->name.c_str()))
         return;
 
     data_view_auth_3d_imgui_auth_3d_model_transform(&p->model_transform);
-    igTreePop();
+    ImGui::TreePop();
 }
 
 static void data_view_auth_3d_imgui_auth_3d_post_process(auth_3d_post_process* pp) {
@@ -942,24 +942,24 @@ static void data_view_auth_3d_imgui_auth_3d_post_process(auth_3d_post_process* p
     tree_node_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!igTreeNodeEx_Ptr(pp, tree_node_flags, "Post Process"))
+    if (!ImGui::TreeNodeEx(pp, tree_node_flags, "Post Process"))
         return;
 
     if (pp->flags & AUTH_3D_POST_PROCESS_INTENSITY)
         data_view_auth_3d_imgui_auth_3d_rgba(&pp->intensity, "intensity");
 
     if (pp->flags & AUTH_3D_POST_PROCESS_LENS_FLARE) {
-        igText("Lens Flare");
+        ImGui::Text("Lens Flare");
         data_view_auth_3d_imgui_auth_3d_key(&pp->lens_flare, 0, false);
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_LENS_GHOST) {
-        igText("Lens Gghost");
+        ImGui::Text("Lens Gghost");
         data_view_auth_3d_imgui_auth_3d_key(&pp->lens_ghost, 0, false);
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_LENS_SHAFT) {
-        igText("Lens Shaft");
+        ImGui::Text("Lens Shaft");
         data_view_auth_3d_imgui_auth_3d_key(&pp->lens_shaft, 0, false);
     }
 
@@ -968,5 +968,5 @@ static void data_view_auth_3d_imgui_auth_3d_post_process(auth_3d_post_process* p
 
     if (pp->flags & AUTH_3D_POST_PROCESS_SCENE_FADE)
         data_view_auth_3d_imgui_auth_3d_rgba(&pp->scene_fade, "Scene Fade");
-    igTreePop();
+    ImGui::TreePop();
 }

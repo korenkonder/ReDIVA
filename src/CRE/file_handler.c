@@ -28,10 +28,10 @@ public:
     int32_t field_74;
 
     file_handler_storage();
-    ~file_handler_storage();
+    virtual ~file_handler_storage();
 };
 
-file_handler_storage file_handler_storage_data;
+file_handler_storage* file_handler_storage_data;
 
 static bool file_handler_load_file(void* data, const char* path, const char* file, uint32_t hash);
 static bool file_handler_load_farc_file(void* data, const char* path, const char* file, uint32_t hash);
@@ -125,42 +125,44 @@ file_handler_storage::~file_handler_storage() {
 
 }
 
+void file_handler_storage_init() {
+    file_handler_storage_data = new file_handler_storage;
+    file_handler_storage_data->thread = new std::thread(file_handler_storage_thread_ctrl);
+    if (file_handler_storage_data->thread) {
+        SetThreadDescription((HANDLE)file_handler_storage_data->thread->native_handle(), L"File Thread");
+        //file_handler_storage_data->thread->detach();
+    }
+}
+
 void file_handler_storage_ctrl() {
     file_handler_storage_ctrl_list();
 
-    std::unique_lock<std::mutex> u_lock(file_handler_storage_data.mtx);
-    if (!file_handler_storage_data.deque.size()) {
-        for (file_handler*& i : file_handler_storage_data.list)
+    std::unique_lock<std::mutex> u_lock(file_handler_storage_data->mtx);
+    if (!file_handler_storage_data->deque.size()) {
+        for (file_handler*& i : file_handler_storage_data->list)
             if (i->not_ready && !i->reading) {
                 std::unique_lock<std::mutex> u_lock(i->mtx);
                 i->count++;
                 u_lock.unlock();
-                file_handler_storage_data.deque.push_back(i);
+                file_handler_storage_data->deque.push_back(i);
             }
 
-        if (file_handler_storage_data.deque.size())
-            file_handler_storage_data.cnd.notify_all();
+        if (file_handler_storage_data->deque.size())
+            file_handler_storage_data->cnd.notify_all();
     }
     u_lock.unlock();
 }
 
-void file_handler_storage_free_thread() {
-    std::unique_lock<std::mutex> u_lock(file_handler_storage_data.mtx);
-    file_handler_storage_data.exit = true;
-    file_handler_storage_data.cnd.notify_one();
+void file_handler_storage_free() {
+    std::unique_lock<std::mutex> u_lock(file_handler_storage_data->mtx);
+    file_handler_storage_data->exit = true;
+    file_handler_storage_data->cnd.notify_one();
     u_lock.unlock();
 
-    file_handler_storage_data.thread->join();
-    delete file_handler_storage_data.thread;
-    file_handler_storage_data.thread = 0;
-}
-
-void file_handler_storage_init_thread() {
-    file_handler_storage_data.thread = new std::thread(file_handler_storage_thread_ctrl);
-    if (file_handler_storage_data.thread) {
-        SetThreadDescription((HANDLE)file_handler_storage_data.thread->native_handle(), L"File Thread");
-        //file_handler_storage_data.thread->detach();
-    }
+    file_handler_storage_data->thread->join();
+    delete file_handler_storage_data->thread;
+    file_handler_storage_data->thread = 0;
+    delete file_handler_storage_data;
 }
 
 static bool file_handler_load_file(void* data, const char* path, const char* file, uint32_t hash) {
@@ -192,19 +194,19 @@ static bool file_handler_load_farc_file(void* data, const char* path, const char
 
     file_handler* fhndl = (file_handler*)data;
 
-    std::unique_lock<std::mutex> u_lock(file_handler_storage_data.mtx);
+    std::unique_lock<std::mutex> u_lock(file_handler_storage_data->farc_mtx);
     bool cache = fhndl->cache;
 
-    farc_read_handler* farc_read_hndl = file_handler_storage_data.farc_read_handler;
+    farc_read_handler* farc_read_hndl = file_handler_storage_data->farc_read_handler;
     if (farc_read_hndl && farc_read_hndl->file_path != file_path) {
         delete farc_read_hndl;
-        file_handler_storage_data.farc_read_handler = 0;
+        file_handler_storage_data->farc_read_handler = 0;
     }
 
-    if (!file_handler_storage_data.farc_read_handler)
-        file_handler_storage_data.farc_read_handler = new farc_read_handler;
+    if (!file_handler_storage_data->farc_read_handler)
+        file_handler_storage_data->farc_read_handler = new farc_read_handler;
 
-    farc_read_hndl = file_handler_storage_data.farc_read_handler;
+    farc_read_hndl = file_handler_storage_data->farc_read_handler;
     if (farc_read_hndl && farc_read_handler_read(farc_read_hndl, &file_path, cache)) {
         fhndl->size = farc_read_handler_get_file_size(farc_read_hndl, &fhndl->file);
         if (!fhndl->size)
@@ -224,12 +226,12 @@ static bool file_handler_load_farc_file(void* data, const char* path, const char
 }
 
 static void file_handler_storage_ctrl_list() {
-    for (std::list<file_handler*>::iterator i = file_handler_storage_data.list.begin();
-        i != file_handler_storage_data.list.end();) {
+    for (std::list<file_handler*>::iterator i = file_handler_storage_data->list.begin();
+        i != file_handler_storage_data->list.end();) {
         file_handler* pfhndl = i._Ptr->_Myval;
         if (pfhndl->count == 1) {
             pfhndl->free_data_lock();
-            i = file_handler_storage_data.list.erase(i);
+            i = file_handler_storage_data->list.erase(i);
         }
         else {
             if (!pfhndl->not_ready && !pfhndl->read_free_func[0].ready)
@@ -242,33 +244,32 @@ static void file_handler_storage_ctrl_list() {
 extern render_context* rctx_ptr;
 
 static void file_handler_storage_thread_ctrl() {
-    std::unique_lock<std::mutex> u_lock(file_handler_storage_data.mtx);
-    while (!file_handler_storage_data.exit) {
-        file_handler_storage_data.cnd.wait(u_lock);
-        if (file_handler_storage_data.exit)
+    std::unique_lock<std::mutex> u_lock(file_handler_storage_data->mtx);
+    while (!file_handler_storage_data->exit) {
+        file_handler_storage_data->cnd.wait(u_lock);
+        if (file_handler_storage_data->exit)
             break;
 
-        for (file_handler*& i : file_handler_storage_data.deque) {
+        for (file_handler*& i : file_handler_storage_data->deque) {
             if (i->not_ready) {
                 std::unique_lock<std::mutex> u_lock(i->mtx);
                 i->reading = true;
                 if (i->not_ready) {
                     if (i->farc_file.size())
-                        rctx_ptr->data->load_file(i,
+                        i->not_ready = !rctx_ptr->data->load_file(i,
                             i->path.c_str(), i->farc_file.c_str(), file_handler_load_farc_file);
                     else
-                        rctx_ptr->data->load_file(i,
+                        i->not_ready = !rctx_ptr->data->load_file(i,
                             i->path.c_str(), i->file.c_str(), file_handler_load_file);
-                    i->not_ready = false;
                 }
                 i->reading = false;
                 u_lock.unlock();
             }
             i->free_data_lock();
         }
-        file_handler_storage_data.deque.clear();
+        file_handler_storage_data->deque.clear();
     }
-    file_handler_storage_data.exit = false;
+    file_handler_storage_data->exit = false;
     u_lock.unlock();
 }
 
@@ -399,7 +400,7 @@ bool p_file_handler::read_file(const char* path, const char* farc_file, const ch
     std::unique_lock<std::mutex> u_lock1(ptr->mtx);
     ptr->count++;
     u_lock1.unlock();
-    file_handler_storage_data.list.push_back(ptr);
+    file_handler_storage_data->list.push_back(ptr);
     return true;
 }
 
@@ -409,7 +410,7 @@ bool p_file_handler::read_file_path(const char* path, const char* file) {
 
 void p_file_handler::read_now() {
     while (check_not_ready()) {
-        if (file_handler_storage_data.read_in_thread)
+        if (file_handler_storage_data->read_in_thread)
             break;
 
         if (ptr) {

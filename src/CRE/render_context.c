@@ -281,7 +281,7 @@ inline void object_data_set_morph(object_data* object_data, object_info object, 
 }
 
 inline void object_data_set_object_bounding_sphere_check_func(object_data* object_data,
-    bool(*func)(object_bounding_sphere*, camera*)) {
+    bool(*func)(obj_bounding_sphere*, camera*)) {
     object_data->object_bounding_sphere_check_func = func;
 }
 
@@ -368,7 +368,7 @@ inline void render_context_ctrl(render_context* rctx) {
 
         float_t frame = rob_chara_get_frame(&rob_chara_array[i]);
         float_t frame_count = rob_chara_get_frame_count(&rob_chara_array[i]);
-        //frame += get_delta_frame();
+        frame += get_delta_frame();
         if (frame >= frame_count) {
             frame = 0.0f;
             rob_chara_item_equip* rob_item_equip = rob_chara_array[i].item_equip;
@@ -380,8 +380,8 @@ inline void render_context_ctrl(render_context* rctx) {
                         i->rob.osage_reset = true;
             }
         }
-        //rob_chara_set_frame(&rob_chara_array[i], frame);
-        rob_chara_set_frame(&rob_chara_array[i], rob_frame);
+        rob_chara_set_frame(&rob_chara_array[i], frame);
+        //rob_chara_set_frame(&rob_chara_array[i], rob_frame);
         rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
     }
 
@@ -639,7 +639,7 @@ void render_context_light_param_data_face_set(render_context* rctx, light_param_
     rctx->face.direction = face->direction;
 }
 
-extern light_param_data_storage light_param_data_storage_data;
+extern light_param_data_storage* light_param_data_storage_data;
 
 void render_context_set_light_param(render_context* rctx, light_param_data* light_param) {
     if (light_param->light.ready)
@@ -649,7 +649,7 @@ void render_context_set_light_param(render_context* rctx, light_param_data* ligh
     if (light_param->glow.ready)
         render_context_light_param_data_glow_set(rctx, &light_param->glow);
     if (light_param->ibl.ready)
-        render_context_light_param_data_ibl_set(rctx, &light_param->ibl, &light_param_data_storage_data);
+        render_context_light_param_data_ibl_set(rctx, &light_param->ibl, light_param_data_storage_data);
     render_context_light_param_data_wind_set(rctx, &light_param->wind);
     if (light_param->face.ready)
         render_context_light_param_data_face_set(rctx, &light_param->face);
@@ -663,7 +663,7 @@ void render_context_unset_light_param(render_context* rctx, light_param_data* li
     if (light_param->glow.ready)
         render_context_light_param_data_glow_set(rctx, &light_param->glow);
     if (light_param->ibl.ready)
-        render_context_light_param_data_ibl_set(rctx, &light_param->ibl, &light_param_data_storage_data);
+        render_context_light_param_data_ibl_set(rctx, &light_param->ibl, light_param_data_storage_data);
     render_context_light_param_data_wind_set(rctx, &light_param->wind);
     if (light_param->face.ready)
         render_context_light_param_data_face_set(rctx, &light_param->face);

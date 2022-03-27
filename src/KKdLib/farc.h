@@ -56,7 +56,7 @@ public:
     bool ft;
 
     farc();
-    ~farc();
+    virtual ~farc();
 
     size_t get_file_size(const char* name);
     size_t get_file_size(const wchar_t* name);

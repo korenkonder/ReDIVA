@@ -92,14 +92,6 @@ inline void shader_draw_range_elements(shader_set_data* set,
     glDrawRangeElements(mode, start, end, count, type, indices);
 }
 
-int32_t shader_get_index_by_name(shader_set_data* set, char* name) {
-    shader* shaders = set->shaders;
-    for (size_t i = 0; i < set->size; i++)
-        if (!str_utils_compare(shaders[i].name, name))
-            return (int32_t)shaders[i].index;
-    return -1;
-}
-
 int32_t shader_get_index_by_name(shader_set_data* set, const char* name) {
     shader* shaders = set->shaders;
     for (size_t i = 0; i < set->size; i++)
@@ -109,7 +101,7 @@ int32_t shader_get_index_by_name(shader_set_data* set, const char* name) {
 }
 
 void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load_cache,
-    char* name, const shader_table* shaders_table, const size_t size,
+    const char* name, const shader_table* shaders_table, const size_t size,
     const shader_bind_func* bind_func_table, const size_t bind_func_table_size) {
     if (!set || !f || !shaders_table || !size)
         return;
@@ -443,13 +435,6 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
     glBufferData(GL_UNIFORM_BUFFER,
         sizeof(set->data.buffer), (void*)&set->data.buffer, GL_DYNAMIC_DRAW);
     gl_state_bind_uniform_buffer(0);
-}
-
-inline void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load_cache,
-    const char* name, const shader_table* shaders_table, const size_t size,
-    const shader_bind_func* bind_func_table, const size_t bind_func_table_size) {
-    shader_load(set, f, ignore_cache, not_load_cache, (char*)name,
-        shaders_table, size, bind_func_table, bind_func_table_size);
 }
 
 void shader_free(shader_set_data* set) {

@@ -30,7 +30,7 @@ public:
     float_t strength;
 
     wind();
-    ~wind();
+    virtual ~wind();
 
     float_t get_scale();
     void set_scale(float_t value);

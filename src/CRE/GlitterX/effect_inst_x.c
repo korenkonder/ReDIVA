@@ -420,11 +420,11 @@ static void glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
             goto SetMat;
 
         if (inst_ext_anim->mesh_index == -1)
-            inst_ext_anim->mesh_index = object_storage_get_object_mesh_index_by_hash(
+            inst_ext_anim->mesh_index = object_storage_get_obj_mesh_index_by_hash(
                 inst_ext_anim->object_hash, inst_ext_anim->mesh_name);
 
         if (inst_ext_anim->mesh_index != -1) {
-            object_mesh* mesh = object_storage_get_object_mesh_by_object_hash_index(
+            obj_mesh* mesh = object_storage_get_obj_mesh_by_object_hash_index(
                 inst_ext_anim->object_hash, inst_ext_anim->mesh_index);
             if (mesh) {
                 trans = &mesh->bounding_sphere.center;
@@ -437,12 +437,12 @@ static void glitter_x_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
             if (!inst_ext_anim->mesh_name)
                 return;
 
-            inst_ext_anim->mesh_index = object_storage_get_object_mesh_index_by_hash(
+            inst_ext_anim->mesh_index = object_storage_get_obj_mesh_index_by_hash(
                 inst_ext_anim->object_hash, inst_ext_anim->mesh_name);
         }
 
         if (inst_ext_anim->mesh_index != -1) {
-            object_mesh* mesh = object_storage_get_object_mesh_by_object_hash_index(
+            obj_mesh* mesh = object_storage_get_obj_mesh_by_object_hash_index(
                 inst_ext_anim->object_hash, inst_ext_anim->mesh_index);
             if (mesh) {
                 trans = &mesh->bounding_sphere.center;

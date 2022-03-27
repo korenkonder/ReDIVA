@@ -24,22 +24,22 @@ void graphics_glitter_imgui(class_data* data) {
     float_t w = min((float_t)width / 4.0f, 148.0f);
     float_t h = min((float_t)height, 204.0f);
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(graphics_glitter_window_title, &open, window_flags);
+    bool collapsed = !ImGui::Begin(graphics_glitter_window_title, &open, window_flags);
     if (!open) {
         enum_or(data->flags, CLASS_HIDE);
-        igEnd();
+        ImGui::End();
         return;
     }
     else if (collapsed) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
@@ -50,37 +50,37 @@ void graphics_glitter_imgui(class_data* data) {
 
     ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_QUAD);
     disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_QUAD);
-    igText("QUAD  (ctrl):%5lld", ctrl);
-    igText("      (disp):%5lld", disp);
+    ImGui::Text("QUAD  (ctrl):%5lld", ctrl);
+    ImGui::Text("      (disp):%5lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
     ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LOCUS);
     disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LOCUS);
-    igText("LOCUS (ctrl):%5lld", ctrl);
-    igText("      (disp):%5lld", disp);
+    ImGui::Text("LOCUS (ctrl):%5lld", ctrl);
+    ImGui::Text("      (disp):%5lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
     ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LINE);
     disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LINE);
-    igText("LINE  (ctrl):%5lld", ctrl);
-    igText("      (disp):%5lld", disp);
+    ImGui::Text("LINE  (ctrl):%5lld", ctrl);
+    ImGui::Text("      (disp):%5lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
     ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_MESH);
     disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_MESH);
-    igText("MESH  (ctrl):%5lld", ctrl);
-    igText("      (disp):%5lld", disp);
+    ImGui::Text("MESH  (ctrl):%5lld", ctrl);
+    ImGui::Text("      (disp):%5lld", disp);
     total_ctrl += ctrl;
     total_disp += disp;
 
-    igText("TOTAL (ctrl):%5lld", total_ctrl);
-    igText("      (disp):%5lld", total_disp);
+    ImGui::Text("TOTAL (ctrl):%5lld", total_ctrl);
+    ImGui::Text("      (disp):%5lld", total_disp);
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 }
 
 void graphics_glitter_input(class_data* data) {

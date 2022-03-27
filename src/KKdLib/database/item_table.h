@@ -10,131 +10,150 @@
 #include <string>
 #include <vector>
 #include "../default.h"
+#include "../image.h"
 #include "../vec.h"
 
-typedef enum itm_id {
-    ITM_NONE        = -1,
-    ITM_BODY        = 0x00,
-    ITM_ATAMA       = 0x01,
-    ITM_KATA_R      = 0x02,
-    ITM_MUNE        = 0x03,
-    ITM_KATA_L      = 0x04,
-    ITM_UDE_R       = 0x05,
-    ITM_SENAKA      = 0x06,
-    ITM_UDE_L       = 0x07,
-    ITM_HARA        = 0x08,
-    ITM_KOSI        = 0x09,
-    ITM_TE_R        = 0x0A,
-    ITM_TE_L        = 0x0B,
-    ITM_MOMO        = 0x0C,
-    ITM_SUNE        = 0x0D,
-    ITM_ASI         = 0x0E,
-    ITM_KAMI        = 0x0F,
-    ITM_OUTER       = 0x10,
-    ITM_PANTS       = 0x11,
-    ITM_ZUJO        = 0x12,
-    ITM_MEGANE      = 0x13,
-    ITM_KUBI        = 0x14,
-    ITM_JOHA_USHIRO = 0x15,
-    ITM_KUCHI       = 0x16,
-    ITM_ITEM09      = 0x17,
-    ITM_ITEM10      = 0x18,
-    ITM_ITEM11      = 0x19,
-    ITM_ITEM12      = 0x1A,
-    ITM_ITEM13      = 0x1B,
-    ITM_ITEM14      = 0x1C,
-    ITM_ITEM15      = 0x1D,
-    ITM_ITEM16      = 0x1E,
-    ITM_MAX         = 0x1F,
-} itm_id;
+typedef enum chara_index {
+    CHARA_NONE   = -1,
+    CHARA_MIKU   =  0,
+    CHARA_RIN    =  1,
+    CHARA_LEN    =  2,
+    CHARA_LUKA   =  3,
+    CHARA_NERU   =  4,
+    CHARA_HAKU   =  5,
+    CHARA_KAITO  =  6,
+    CHARA_MEIKO  =  7,
+    CHARA_SAKINE =  8,
+    CHARA_TETO   =  9,
+    CHARA_MAX    = 10,
+} chara_index;
 
-typedef enum itm_sub_id {
-    ITM_SUB_NONE        = -1,
-    ITM_SUB_ZUJO        = 0x00,
-    ITM_SUB_KAMI        = 0x01,
-    ITM_SUB_HITAI       = 0x02,
-    ITM_SUB_ME          = 0x03,
-    ITM_SUB_MEGANE      = 0x04,
-    ITM_SUB_MIMI        = 0x05,
-    ITM_SUB_KUCHI       = 0x06,
-    ITM_SUB_MAKI        = 0x07,
-    ITM_SUB_KUBI        = 0x08,
-    ITM_SUB_INNER       = 0x09,
-    ITM_SUB_OUTER       = 0x0A,
-    ITM_SUB_JOHA_MAE    = 0x0B,
-    ITM_SUB_JOHA_USHIRO = 0x0C,
-    ITM_SUB_HADA        = 0x0D,
-    ITM_SUB_KATA        = 0x0E,
-    ITM_SUB_U_UDE       = 0x0F,
-    ITM_SUB_L_UDE       = 0x10,
-    ITM_SUB_TE          = 0x11,
-    ITM_SUB_BELT        = 0x12,
-    ITM_SUB_COSI        = 0x13,
-    ITM_SUB_PANTS       = 0x14,
-    ITM_SUB_ASI         = 0x15,
-    ITM_SUB_SUNE        = 0x16,
-    ITM_SUB_KUTSU       = 0x17,
-    ITM_SUB_HEAD        = 0x18,
-    ITM_SUB_MAX         = 0x19,
-} itm_sub_id;
+typedef enum item_id {
+    ITEM_NONE        = -1,
+    ITEM_BODY        = 0x00,
+    ITEM_ATAMA       = 0x01,
+    ITEM_KATA_R      = 0x02,
+    ITEM_MUNE        = 0x03,
+    ITEM_KATA_L      = 0x04,
+    ITEM_UDE_R       = 0x05,
+    ITEM_SENAKA      = 0x06,
+    ITEM_UDE_L       = 0x07,
+    ITEM_HARA        = 0x08,
+    ITEM_KOSI        = 0x09,
+    ITEM_TE_R        = 0x0A,
+    ITEM_TE_L        = 0x0B,
+    ITEM_MOMO        = 0x0C,
+    ITEM_SUNE        = 0x0D,
+    ITEM_ASI         = 0x0E,
+    ITEM_KAMI        = 0x0F,
+    ITEM_OUTER       = 0x10,
+    ITEM_PANTS       = 0x11,
+    ITEM_ZUJO        = 0x12,
+    ITEM_MEGANE      = 0x13,
+    ITEM_KUBI        = 0x14,
+    ITEM_JOHA_USHIRO = 0x15,
+    ITEM_KUCHI       = 0x16,
+    ITEM_ITEM09      = 0x17,
+    ITEM_ITEM10      = 0x18,
+    ITEM_ITEM11      = 0x19,
+    ITEM_ITEM12      = 0x1A,
+    ITEM_ITEM13      = 0x1B,
+    ITEM_ITEM14      = 0x1C,
+    ITEM_ITEM15      = 0x1D,
+    ITEM_ITEM16      = 0x1E,
+    ITEM_MAX         = 0x1F,
+} item_id;
 
-typedef struct itm_table_itm_data_obj {
+typedef enum item_sub_id {
+    ITEM_SUB_NONE        = -1,
+    ITEM_SUB_ZUJO        = 0x00,
+    ITEM_SUB_KAMI        = 0x01,
+    ITEM_SUB_HITAI       = 0x02,
+    ITEM_SUB_ME          = 0x03,
+    ITEM_SUB_MEGANE      = 0x04,
+    ITEM_SUB_MIMI        = 0x05,
+    ITEM_SUB_KUCHI       = 0x06,
+    ITEM_SUB_MAKI        = 0x07,
+    ITEM_SUB_KUBI        = 0x08,
+    ITEM_SUB_INNER       = 0x09,
+    ITEM_SUB_OUTER       = 0x0A,
+    ITEM_SUB_JOHA_MAE    = 0x0B,
+    ITEM_SUB_JOHA_USHIRO = 0x0C,
+    ITEM_SUB_HADA        = 0x0D,
+    ITEM_SUB_KATA        = 0x0E,
+    ITEM_SUB_U_UDE       = 0x0F,
+    ITEM_SUB_L_UDE       = 0x10,
+    ITEM_SUB_TE          = 0x11,
+    ITEM_SUB_BELT        = 0x12,
+    ITEM_SUB_COSI        = 0x13,
+    ITEM_SUB_PANTS       = 0x14,
+    ITEM_SUB_ASI         = 0x15,
+    ITEM_SUB_SUNE        = 0x16,
+    ITEM_SUB_KUTSU       = 0x17,
+    ITEM_SUB_HEAD        = 0x18,
+    ITEM_SUB_MAX         = 0x19,
+} item_sub_id;
+
+class itm_table_item_data_obj{
+public:
     std::string uid;
-    itm_id rpk;
-} itm_table_itm_data_obj;
+    item_id rpk;
 
-typedef struct itm_table_itm_data_ofs {
-    itm_sub_id sub_id;
+    itm_table_item_data_obj();
+    ~itm_table_item_data_obj();
+};
+
+typedef struct itm_table_item_data_ofs {
+    item_sub_id sub_id;
     int32_t no;
     vec3 position;
     vec3 rotation;
     vec3 scale;
-} itm_table_itm_data_ofs;
+} itm_table_item_data_ofs;
 
-typedef struct itm_table_itm_data_tex {
+class itm_table_item_data_tex {
+public:
     std::string org;
     std::string chg;
-} itm_table_itm_data_tex;
 
-typedef struct itm_table_itm_data_col_data {
-    vec3 blend;
-    vec3 offset;
-    float_t hue;
-    float_t saturation;
-    float_t value;
-    float_t constrast;
-    bool inverse;
-} itm_table_itm_data_col_data;
+    itm_table_item_data_tex();
+    ~itm_table_item_data_tex();
+};
 
-typedef struct itm_table_itm_data_col {
+class itm_table_item_data_col {
+public:
     std::string tex;
     int32_t flag;
-    itm_table_itm_data_col_data data;
-} itm_table_itm_data_col;
+    color_tone col_tone;
 
-class itm_table_itm_data {
+    itm_table_item_data_col();
+    ~itm_table_item_data_col();
+};
+
+class itm_table_item_data {
 public:
-    std::vector<itm_table_itm_data_obj> obj;
-    std::vector<itm_table_itm_data_ofs> ofs;
-    std::vector<itm_table_itm_data_tex> tex;
-    std::vector<itm_table_itm_data_col> col;
+    std::vector<itm_table_item_data_obj> obj;
+    std::vector<itm_table_item_data_ofs> ofs;
+    std::vector<itm_table_item_data_tex> tex;
+    std::vector<itm_table_item_data_col> col;
 
-    itm_table_itm_data();
-    ~itm_table_itm_data();
+    itm_table_item_data();
+    ~itm_table_item_data();
 };
 
 class itm_table_item {
 public:
+    int32_t no;
     int32_t flag;
     std::string name;
     std::vector<std::string> objset;
     int32_t type;
     int32_t attr;
     int32_t des_id;
-    itm_sub_id sub_id;
-    itm_table_itm_data data;
-    int32_t exclusion_point;
-    int32_t field_AC;
+    item_sub_id sub_id;
+    itm_table_item_data data;
+    int32_t exclusion;
+    int32_t point;
     int32_t org_itm;
     bool npr_flag;
     float_t face_depth;
@@ -165,7 +184,7 @@ class itm_table {
 public:
     bool ready;
 
-    std::vector<std::pair<int32_t, itm_table_item>> item;
+    std::vector<itm_table_item> item;
     std::vector<itm_table_cos> cos;
     std::vector<itm_table_dbgset> dbgset;
 

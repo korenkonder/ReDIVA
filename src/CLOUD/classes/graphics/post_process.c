@@ -20,29 +20,29 @@ bool graphics_post_process_init(class_data* data, render_context* rctx) {
 }
 
 void graphics_post_process_imgui(class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     float_t w = min((float_t)width, 400.0f);
     float_t h = min((float_t)height, 790.0f);
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(graphics_post_process_window_title, &open, window_flags);
+    bool collapsed = !ImGui::Begin(graphics_post_process_window_title, &open, window_flags);
     if (!open) {
         enum_or(data->flags, CLASS_HIDE);
-        igEnd();
+        ImGui::End();
         return;
     }
     else if (collapsed) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
@@ -68,7 +68,7 @@ void graphics_post_process_imgui(class_data* data) {
     imguiCheckbox("Morphological AA", &pp->mlaa);
 
     imguiSetColumnSpace(1.0f / 4.0f);
-    if (igTreeNode_Str("Tone Trans")) {
+    if (ImGui::TreeNode("Tone Trans")) {
         vec3 tone_trans_start;
         post_process_tone_map_get_tone_trans_start(tone_map, &tone_trans_start);
         imguiColumnSliderVec3("Start", &tone_trans_start, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
@@ -78,10 +78,10 @@ void graphics_post_process_imgui(class_data* data) {
         post_process_tone_map_get_tone_trans_end(tone_map, &tone_trans_end);
         imguiColumnSliderVec3("End", &tone_trans_end, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
         post_process_tone_map_set_tone_trans_end(tone_map, &tone_trans_end);
-        igTreePop();
+        ImGui::TreePop();
     }
 
-    if (igTreeNode_Str("Scene Fade")) {
+    if (ImGui::TreeNode("Scene Fade")) {
         float_t scene_fade_alpha = post_process_tone_map_get_scene_fade_alpha(tone_map);
         imguiColumnSliderFloat("Alpha", &scene_fade_alpha, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
         post_process_tone_map_set_scene_fade_alpha(tone_map, scene_fade_alpha);
@@ -101,10 +101,10 @@ void graphics_post_process_imgui(class_data* data) {
         imguiColumnComboBox("Blend Func", scene_fade_blend_func_labels, 3,
             &scene_fade_blend_func, 0, false, &data->imgui_focus);
         post_process_tone_map_set_scene_fade_blend_func(tone_map, scene_fade_blend_func);
-        igTreePop();
+        ImGui::TreePop();
     }
 
-    if (igTreeNodeEx_Str("Glow Param", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::TreeNodeEx("Glow Param", ImGuiTreeNodeFlags_DefaultOpen)) {
         const char* tone_map_method_labels[] = {
             "YCC EXPONENT",
             "RGB LINEAR",
@@ -136,10 +136,10 @@ void graphics_post_process_imgui(class_data* data) {
         float_t saturate2 = post_process_tone_map_get_saturate_coeff(tone_map);
         imguiColumnSliderFloat("Saturate 2", &saturate2, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
         post_process_tone_map_set_saturate_coeff(tone_map, saturate2);
-        igTreePop();
+        ImGui::TreePop();
     }
 
-    if (igTreeNodeEx_Str("Glare", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::TreeNodeEx("Glare", ImGuiTreeNodeFlags_DefaultOpen)) {
         vec3 radius;
         post_process_blur_get_radius(blur, &radius);
         imguiColumnSliderFloat("Radius R", &radius.x, 0.1f, 1.0f, 3.0f, "%.2f", 0, true);
@@ -153,48 +153,48 @@ void graphics_post_process_imgui(class_data* data) {
         imguiColumnSliderFloat("Inten  G", &intensity.y, 0.05f, 0.0f, 2.0f, "%.2f", 0, true);
         imguiColumnSliderFloat("Inten  B", &intensity.z, 0.05f, 0.0f, 2.0f, "%.2f", 0, true);
         post_process_blur_set_intensity(blur, &intensity);
-        igTreePop();
+        ImGui::TreePop();
     }
     imguiSetDefaultColumnSpace();
 
-    if (igTreeNodeEx_Str("DOF", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::TreeNodeEx("DOF", ImGuiTreeNodeFlags_DefaultOpen)) {
         bool use_ui_params = dof->data.debug.flags & DOF_DEBUG_USE_UI_PARAMS;
         bool phys = use_ui_params && dof->data.debug.flags & DOF_DEBUG_ENABLE_PHYS_DOF;
         bool f2 = use_ui_params && ~dof->data.debug.flags & DOF_DEBUG_ENABLE_PHYS_DOF;
 
-        float_t alpha = style->Alpha * imgui_alpha_disabled_scale;
+        float_t alpha = style.Alpha * imgui_alpha_disabled_scale;
 
-        imguiCheckboxFlags_UintPtr("use UI params",
+        imguiCheckboxFlags("use UI params",
             (uint32_t*)&dof->data.debug.flags, DOF_DEBUG_USE_UI_PARAMS);
 
         if (!use_ui_params) {
-            igPushItemFlag(ImGuiItemFlags_Disabled, true);
-            igPushStyleVar_Float(ImGuiStyleVar_Alpha, alpha);
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
-        imguiCheckboxFlags_UintPtr("enable DOF",
+        imguiCheckboxFlags("enable DOF",
             (uint32_t*)&dof->data.debug.flags, DOF_DEBUG_ENABLE_DOF);
-        imguiCheckboxFlags_UintPtr("enable physical DOF",
+        imguiCheckboxFlags("enable physical DOF",
             (uint32_t*)&dof->data.debug.flags, DOF_DEBUG_ENABLE_PHYS_DOF);
         if (!use_ui_params) {
-            igPopItemFlag();
-            igPopStyleVar(1);
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
         }
 
         if (!phys) {
-            igPushItemFlag(ImGuiItemFlags_Disabled, true);
-            igPushStyleVar_Float(ImGuiStyleVar_Alpha, alpha);
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
-        imguiCheckboxFlags_UintPtr("auto focus",
+        imguiCheckboxFlags("auto focus",
             (uint32_t*)&dof->data.debug.flags, DOF_DEBUG_AUTO_FOCUS);
         if (!phys) {
-            igPopItemFlag();
-            igPopStyleVar(1);
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
         }
 
         imguiSetColumnSpace(16.0f / 31.0f);
         if (!phys) {
-            igPushItemFlag(ImGuiItemFlags_Disabled, true);
-            igPushStyleVar_Float(ImGuiStyleVar_Alpha, alpha);
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
         imguiColumnSliderFloat("distance to focus[m]",
             &dof->data.debug.distance_to_focus, 0.01f, 0.01f, 30.0f, "%.2f", 0, true);
@@ -207,13 +207,13 @@ void graphics_post_process_imgui(class_data* data) {
         imguiColumnSliderFloat("F-Number",
             &dof->data.debug.f_number, 0.01f, 0.1f, 40.0f, "%.2f", 0, true);
         if (!phys) {
-            igPopItemFlag();
-            igPopStyleVar(1);
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
         }
 
         if (!f2) {
-            igPushItemFlag(ImGuiItemFlags_Disabled, true);
-            igPushStyleVar_Float(ImGuiStyleVar_Alpha, alpha);
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
         imguiColumnSliderFloat("f2 distance to focus[m]",
             &dof->data.debug.f2.distance_to_focus, 0.01f, 0.01f, 30.0f, "%.2f", 0, true);
@@ -224,20 +224,20 @@ void graphics_post_process_imgui(class_data* data) {
         imguiColumnSliderFloat("f2 ratio",
             &dof->data.debug.f2.ratio, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
         if (!f2) {
-            igPopItemFlag();
-            igPopStyleVar(1);
+            ImGui::PopItemFlag();
+            ImGui::PopStyleVar();
         }
         imguiSetDefaultColumnSpace();
-        igTreePop();
+        ImGui::TreePop();
     }
 
-    if (imguiButton("Reset Post Process", ImVec2_Empty)) {
+    if (imguiButton("Reset Post Process", { 0, 0 })) {
         stage* stg = task_stage_get_current_stage();
         light_param_storage_data_set_stage(stg->index);
     }
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 }
 
 bool graphics_post_process_dispose(class_data* data) {

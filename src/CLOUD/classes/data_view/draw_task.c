@@ -75,32 +75,32 @@ bool data_view_draw_task_init(class_data* data, render_context* rctx) {
 }
 
 void data_view_draw_task_imgui(class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     float_t w = min((float_t)width, 480.0f);
     float_t h = min((float_t)height, 542.0f);
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(data_view_draw_task_window_title, &open, 0);
+    bool collapsed = !ImGui::Begin(data_view_draw_task_window_title, &open, 0);
     if (!open) {
         enum_or(data->flags, CLASS_HIDE);
-        igEnd();
+        ImGui::End();
         return;
     }
     else if (collapsed) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
     data_view_draw_task* data_view = (data_view_draw_task*)data->data;
     if (!data_view) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
@@ -121,15 +121,15 @@ void data_view_draw_task_imgui(class_data* data) {
         bool translucent_no_shadow = i == DRAW_OBJECT_TRANSLUCENT_NO_SHADOW;
         tree_node_flags = tree_node_base_flags;
 
-        igPushID_Int(i);
+        ImGui::PushID(i);
         vector_old_ptr_draw_task* draw_tasks = &draw_task_array[i];
         size_t count = vector_old_length(*draw_tasks);
         bool enable = count > 0;
         imguiDisableElementPush(enable);
-        if (!igTreeNodeEx_StrStr("", tree_node_flags,
+        if (!ImGui::TreeNodeEx("", tree_node_flags,
             "%s; Count: %llu", draw_object_type_name[i], count)) {
             imguiDisableElementPop(enable);
-            igPopID();
+            ImGui::PopID();
             continue;
         }
 
@@ -160,16 +160,16 @@ void data_view_draw_task_imgui(class_data* data) {
                     draw_task_indices->begin[j_idx] = temp_index;
                 }
 
-        igText("       Hash;    Index; Type");
+        ImGui::Text("       Hash;    Index; Type");
 
         for (draw_task** j = draw_tasks_sort->begin; j != draw_tasks_sort->end; j++) {
             size_t task_idx = j - draw_tasks_sort->begin;
             draw_task* task = *j;
-            igPushID_Ptr(task);
-            if (!igTreeNodeEx_StrStr("", tree_node_flags,
+            ImGui::PushID(task);
+            if (!ImGui::TreeNodeEx("", tree_node_flags,
                 "%08x; %8u; %s", draw_task_hashes->begin[task_idx],
                 draw_task_indices->begin[task_idx], draw_task_type_name[task->type])) {
-                igPopID();
+                ImGui::PopID();
                 continue;
             }
 
@@ -185,15 +185,15 @@ void data_view_draw_task_imgui(class_data* data) {
             vec3 scale;
             mat4_get_scale(&mat, &scale);
 
-            igText("Trans: %9.4f %9.4f %9.4f", trans.x, trans.y, trans.z);
-            igText("  Rot: %9.4f %9.4f %9.4f", rot.x, rot.y, rot.z);
-            igText("Scale: %9.4f %9.4f %9.4f", scale.x, scale.y, scale.z);
+            ImGui::Text("Trans: %9.4f %9.4f %9.4f", trans.x, trans.y, trans.z);
+            ImGui::Text("  Rot: %9.4f %9.4f %9.4f", rot.x, rot.y, rot.z);
+            ImGui::Text("Scale: %9.4f %9.4f %9.4f", scale.x, scale.y, scale.z);
 
             switch (task->type) {
             case DRAW_TASK_TYPE_OBJECT: {
-                if (igTreeNodeEx_Str("Data", ImGuiTreeNodeFlags_DefaultOpen)) {
+                if (ImGui::TreeNodeEx("Data", ImGuiTreeNodeFlags_DefaultOpen)) {
                     data_view_draw_task_imgui_draw_object(&task->data.object);
-                    igTreePop();
+                    ImGui::TreePop();
                 }
             } break;
             case DRAW_TASK_TYPE_PRIMITIVE: {
@@ -205,30 +205,30 @@ void data_view_draw_task_imgui(class_data* data) {
             case DRAW_TASK_TYPE_OBJECT_TRANSLUCENT: {
                 draw_task_object_translucent* object_translucent = &task->data.object_translucent;
                 for (int32_t l = 0; l < 40 && l < object_translucent->count; l++) {
-                    igPushID_Int(l);
-                    if (igTreeNodeEx_StrStr("", ImGuiTreeNodeFlags_DefaultOpen, "Data %2d", l)) {
+                    ImGui::PushID(l);
+                    if (ImGui::TreeNodeEx("", ImGuiTreeNodeFlags_DefaultOpen, "Data %2d", l)) {
                         data_view_draw_task_imgui_draw_object(object_translucent->objects[l]);
-                        igTreePop();
+                        ImGui::TreePop();
                     }
-                    igPopID();
+                    ImGui::PopID();
                 }
             } break;
             }
 
-            igTreePop();
-            igPopID();
+            ImGui::TreePop();
+            ImGui::PopID();
         }
         draw_tasks_sort->end = draw_tasks_sort->begin;
         draw_task_hashes->end = draw_task_hashes->begin;
         draw_task_indices->end = draw_task_indices->begin;
 
-        igTreePop();
+        ImGui::TreePop();
         imguiDisableElementPop(enable);
-        igPopID();
+        ImGui::PopID();
     }
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 }
 
 bool data_view_draw_task_dispose(class_data* data) {
@@ -244,6 +244,6 @@ bool data_view_draw_task_dispose(class_data* data) {
 }
 
 static void data_view_draw_task_imgui_draw_object(draw_object* object) {
-    igText("Mesh Name: %s", object->mesh->name);
-    igText("Sub Mesh Index: %lld", object->sub_mesh - object->mesh->sub_meshes);
+    ImGui::Text("Mesh Name: %s", object->mesh->name);
+    ImGui::Text("Sub Mesh Index: %lld", object->sub_mesh - object->mesh->sub_meshes);
 }

@@ -22,6 +22,7 @@ classes_data data_test_classes[] = {
         data_test_auth_3d_test_show,
         CLASSES_DATA_NO_FUNC,
         data_test_auth_3d_test_dispose,
+        &data_test_shared_lock,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -48,6 +49,7 @@ classes_data data_test_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         data_test_glitter_test_dispose,
+        &data_test_shared_lock,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -70,6 +72,7 @@ classes_data data_test_classes[] = {
         data_test_stage_test_show,
         CLASSES_DATA_NO_FUNC,
         data_test_stage_test_dispose,
+        &data_test_shared_lock,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),

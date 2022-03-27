@@ -40,9 +40,9 @@ bool graphics_render_settings_init(class_data* data, render_context* rctx) {
 }
 
 void graphics_render_settings_imgui(class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     float_t w = 280.0f;
 #if defined(CLOUD_DEV)
@@ -51,22 +51,22 @@ void graphics_render_settings_imgui(class_data* data) {
     float_t h = 86.0f;
 #endif
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(graphics_render_settings_window_title, &open, window_flags);
+    bool collapsed = !ImGui::Begin(graphics_render_settings_window_title, &open, window_flags);
     if (!open) {
         enum_or(data->flags, CLASS_HIDE);
-        igEnd();
+        ImGui::End();
         return;
     }
     else if (collapsed) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
@@ -74,11 +74,12 @@ void graphics_render_settings_imgui(class_data* data) {
     int32_t scale_index = render_get_scale_index();
     char buf[0x80];
     snprintf(buf, sizeof(buf), "%g%%%%", scale);
-    if (imguiColumnSliderInt("Scale", &scale_index, 0, (int32_t)render_scale_table_count, buf, ImGuiSliderFlags_NoInput, true))
+    if (imguiColumnSliderInt("Scale", &scale_index, 0,
+        (int32_t)render_scale_table_count, buf, ImGuiSliderFlags_NoInput, true))
         render_set_scale_index(scale_index);
 
 #if defined(CLOUD_DEV)
-    igSeparator();
+    ImGui::Separator();
 
     double_t render_freq = timer_get_freq(&render_timer);
     double_t sound_freq = timer_get_freq(&sound_timer);
@@ -107,24 +108,24 @@ void graphics_render_settings_imgui(class_data* data) {
     render_settings_freq_to_string(sound_freq_hist, sound_freq_hist_str, sound_ms_hist_str);
     render_settings_freq_to_string(input_freq_hist, input_freq_hist_str, input_ms_hist_str);
 
-    igText("Targ:   Render /    Sound /    Input");
-    igText("freq: %s / %s / %s", render_freq_str, sound_freq_str, input_freq_str);
-    igText("  ms: %s / %s / %s", render_ms_str, sound_ms_str, input_ms_str);
+    ImGui::Text("Targ:   Render /    Sound /    Input");
+    ImGui::Text("freq: %s / %s / %s", render_freq_str, sound_freq_str, input_freq_str);
+    ImGui::Text("  ms: %s / %s / %s", render_ms_str, sound_ms_str, input_ms_str);
 
-    igSeparator();
+    ImGui::Separator();
 
-    igText("Curr:   Render /    Sound /    Input");
-    igText("freq: %s / %s / %s", render_freq_hist_str, sound_freq_hist_str, input_freq_hist_str);
-    igText("  ms: %s / %s / %s", render_ms_hist_str, sound_ms_hist_str, input_ms_hist_str);
+    ImGui::Text("Curr:   Render /    Sound /    Input");
+    ImGui::Text("freq: %s / %s / %s", render_freq_hist_str, sound_freq_hist_str, input_freq_hist_str);
+    ImGui::Text("  ms: %s / %s / %s", render_ms_hist_str, sound_ms_hist_str, input_ms_hist_str);
 #endif
 
-    igSeparator();
+    ImGui::Separator();
 
-    if (imguiButton("Reset Render Settings", ImVec2_Empty))
+    if (imguiButton("Reset Render Settings"))
         render_set_scale(1.0);
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 }
 
 bool graphics_render_settings_dispose(class_data* data) {

@@ -12,23 +12,9 @@
 #include "../KKdLib/mot.h"
 #include "../KKdLib/vec.h"
 #include "draw_object.h"
+#include "item_table.h"
 #include "object.h"
 #include "static_var.h"
-
-typedef enum chara_index {
-    CHARA_NONE   = -1,
-    CHARA_MIKU   =  0,
-    CHARA_RIN    =  1,
-    CHARA_LEN    =  2,
-    CHARA_LUKA   =  3,
-    CHARA_NERU   =  4,
-    CHARA_HAKU   =  5,
-    CHARA_KAITO  =  6,
-    CHARA_MEIKO  =  7,
-    CHARA_SAKINE =  8,
-    CHARA_TETO   =  9,
-    CHARA_MAX    = 10,
-} chara_index;
 
 typedef enum ex_expression_block_stack_type {
     EX_EXPRESSION_BLOCK_STACK_NUMBER          = 0x00,
@@ -52,72 +38,6 @@ typedef enum eyes_base_adjust_type {
     EYES_BASE_ADJUST_CLEARANCE = 1,
     EYES_BASE_ADJUST_OFF       = 2,
 } eyes_base_adjust_type;
-
-typedef enum item_id {
-    ITEM_NONE        = -1,
-    ITEM_BODY        = 0x00,
-    ITEM_ATAMA       = 0x01,
-    ITEM_KATA_R      = 0x02,
-    ITEM_MUNE        = 0x03,
-    ITEM_KATA_L      = 0x04,
-    ITEM_UDE_R       = 0x05,
-    ITEM_SENAKA      = 0x06,
-    ITEM_UDE_L       = 0x07,
-    ITEM_HARA        = 0x08,
-    ITEM_KOSI        = 0x09,
-    ITEM_TE_R        = 0x0A,
-    ITEM_TE_L        = 0x0B,
-    ITEM_MOMO        = 0x0C,
-    ITEM_SUNE        = 0x0D,
-    ITEM_ASI         = 0x0E,
-    ITEM_KAMI        = 0x0F,
-    ITEM_OUTER       = 0x10,
-    ITEM_PANTS       = 0x11,
-    ITEM_ZUJO        = 0x12,
-    ITEM_MEGANE      = 0x13,
-    ITEM_KUBI        = 0x14,
-    ITEM_JOHA_USHIRO = 0x15,
-    ITEM_KUCHI       = 0x16,
-    ITEM_ITEM09      = 0x17,
-    ITEM_ITEM10      = 0x18,
-    ITEM_ITEM11      = 0x19,
-    ITEM_ITEM12      = 0x1A,
-    ITEM_ITEM13      = 0x1B,
-    ITEM_ITEM14      = 0x1C,
-    ITEM_ITEM15      = 0x1D,
-    ITEM_ITEM16      = 0x1E,
-    ITEM_MAX         = 0x1F,
-} item_id;
-
-typedef enum item_sub_id {
-    ITEM_SUB_NONE        = -1,
-    ITEM_SUB_ZUJO        = 0x00,
-    ITEM_SUB_KAMI        = 0x01,
-    ITEM_SUB_HITAI       = 0x02,
-    ITEM_SUB_ME          = 0x03,
-    ITEM_SUB_MEGANE      = 0x04,
-    ITEM_SUB_MIMI        = 0x05,
-    ITEM_SUB_KUCHI       = 0x06,
-    ITEM_SUB_MAKI        = 0x07,
-    ITEM_SUB_KUBI        = 0x08,
-    ITEM_SUB_INNER       = 0x09,
-    ITEM_SUB_OUTER       = 0x0A,
-    ITEM_SUB_JOHA_MAE    = 0x0B,
-    ITEM_SUB_JOHA_USHIRO = 0x0C,
-    ITEM_SUB_HADA        = 0x0D,
-    ITEM_SUB_KATA        = 0x0E,
-    ITEM_SUB_U_UDE       = 0x0F,
-    ITEM_SUB_L_UDE       = 0x10,
-    ITEM_SUB_TE          = 0x11,
-    ITEM_SUB_BELT        = 0x12,
-    ITEM_SUB_COSI        = 0x13,
-    ITEM_SUB_PANTS       = 0x14,
-    ITEM_SUB_ASI         = 0x15,
-    ITEM_SUB_SUNE        = 0x16,
-    ITEM_SUB_KUTSU       = 0x17,
-    ITEM_SUB_HEAD        = 0x18,
-    ITEM_SUB_MAX         = 0x19,
-} item_sub_id;
 
 typedef enum mothead_data_type {
     MOTHEAD_DATA_TYPE_0      = 0x00,
@@ -718,37 +638,6 @@ typedef struct mot_key_set {
 
 vector_old(mot_key_set)
 
-typedef union request_data_object_data {
-    struct {
-        int32_t zujo;
-        int32_t kami;
-        int32_t hitai;
-        int32_t me;
-        int32_t megane;
-        int32_t mimi;
-        int32_t kuchi;
-        int32_t maki;
-        int32_t kubi;
-        int32_t inner;
-        int32_t outer;
-        int32_t joha_mae;
-        int32_t joha_ushiro;
-        int32_t hada;
-        int32_t kata;
-        int32_t u_ude;
-        int32_t l_ude;
-        int32_t te;
-        int32_t belt;
-        int32_t cosi;
-        int32_t pants;
-        int32_t asi;
-        int32_t sune;
-        int32_t kutsu;
-        int32_t head;
-    };
-    int32_t array[25];
-} request_data_object_data;
-
 typedef struct eyes_adjust {
     bool xrot_adjust;
     eyes_base_adjust_type base_adjust;
@@ -994,7 +883,7 @@ public:
     MotionBlend* blend;
 
     motion_blend_mot();
-    ~motion_blend_mot();
+    virtual ~motion_blend_mot();
 };
 
 typedef struct rob_chara_bone_data_ik_scale {
@@ -1164,8 +1053,18 @@ public:
     struc_312 field_958;
 
     rob_chara_bone_data();
-    ~rob_chara_bone_data();
+    virtual ~rob_chara_bone_data();
 };
+
+typedef union rob_chara_pv_data_customize_items {
+    struct {
+        int32_t head;
+        int32_t face;
+        int32_t chest;
+        int32_t back;
+    };
+    int32_t arr[4];
+} rob_chara_pv_data_customize_items;
 
 class rob_chara_pv_data {
 public:
@@ -1182,11 +1081,11 @@ public:
     int32_t field_74[10];
     int32_t chara_size_index;
     bool height_adjust;
-    int32_t item_no[4];
+    rob_chara_pv_data_customize_items customize_items;
     eyes_adjust eyes_adjust;
 
     rob_chara_pv_data();
-    ~rob_chara_pv_data();
+    virtual ~rob_chara_pv_data();
 };
 
 typedef struct struc_218 {
@@ -1206,7 +1105,7 @@ typedef struct struc_344 {
 typedef struct chara_init_data {
     int32_t object_set;
     bone_database_skeleton_type skeleton_type;
-    object_info base_face;
+    object_info field_7E0[15];
     uint32_t motion_set;
     const struc_218* field_828;
     const struc_218* field_830;
@@ -1252,7 +1151,7 @@ public:
 
 class ExNullBlock : public ExNodeBlock {
 public:
-    object_skin_block_constraint* cns_data;
+    obj_skin_block_constraint* cns_data;
 
     ExNullBlock();
     virtual ~ExNullBlock() override;
@@ -1268,7 +1167,7 @@ public:
     virtual void Field_50() override;
     virtual void Field_58();
 
-    void InitData(rob_chara_item_equip_object* itm_eq_obj, object_skin_block_constraint* cns_data,
+    void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_constraint* cns_data,
         const char* cns_data_name, bone_database* bone_data);
 };
 
@@ -1277,7 +1176,7 @@ class struc_571;
 struct ExClothBlock : public ExNodeBlock {
 public:
     //rob_cloth rob;
-    object_skin_block_cloth* cls_data;
+    obj_skin_block_cloth* cls_data;
     mat4* field_2428;
     size_t index;
 
@@ -1588,25 +1487,25 @@ public:
     virtual void Field_50() override;
     virtual void Field_58() override;
 
-    void InitData(rob_chara_item_equip_object* itm_eq_obj, object_skin_block_osage* osg_data,
-        const char* osg_data_name, object_skin_osage_node* osg_nodes, bone_node* bone_nodes,
-        bone_node* ex_data_bone_nodes, object_skin* skin);
+    void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_osage* osg_data,
+        const char* osg_data_name, obj_skin_osage_node* osg_nodes, bone_node* bone_nodes,
+        bone_node* ex_data_bone_nodes, obj_skin* skin);
     float_t* LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count);
     void SetMotionResetData(int32_t motion_id, float_t frame);
     void SetOsageReset();
     void SetSkinParam(struc_571* skp);
     void SetWindDirection();
-    void sub_1405F3E10(object_skin_block_osage* osg_data, object_skin_osage_node* osg_nodes,
+    void sub_1405F3E10(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
         std::vector<std::pair<uint32_t, rob_osage_node*>>* a4,
         std::map<const char*, ExNodeBlock*>* a5);
 };
 
 class ExConstraintBlock : public ExNodeBlock {
 public:
-    object_skin_block_constraint_type constraint_type;
+    obj_skin_block_constraint_type constraint_type;
     bone_node* source_node_bone_node;
     bone_node* direction_up_vector_bone_node;
-    object_skin_block_constraint* cns_data;
+    obj_skin_block_constraint* cns_data;
     int64_t field_80;
 
     ExConstraintBlock();
@@ -1625,7 +1524,7 @@ public:
 
     void Calc();
     void DataSet();
-    void InitData(rob_chara_item_equip_object* itm_eq_obj, object_skin_block_constraint* cns_data,
+    void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_constraint* cns_data,
         const char* cns_data_name, bone_database* bone_data);
 
     static void sub_1405F10D0(mat4* mat, vec3* a2, float_t a3, float_t a4);
@@ -1682,7 +1581,7 @@ public:
     ex_expression_block_stack_type types[9];
     ex_expression_block_stack* expressions[9];
     ex_expression_block_stack stack_data[384];
-    object_skin_block_expression* exp_data;
+    obj_skin_block_expression* exp_data;
     bool field_3D20;
     void(*field_3D28)(bone_node_expression_data*);
     float_t frame;
@@ -1704,7 +1603,7 @@ public:
 
     void Calc();
     void DataSet();
-    void InitData(rob_chara_item_equip_object* itm_eq_obj, object_skin_block_expression* exp_data,
+    void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_expression* exp_data,
         const char* exp_data_name, object_info a4, size_t index, bone_database* bone_data);
 };
 
@@ -1725,7 +1624,7 @@ public:
     int32_t field_14;
     std::vector<texture_pattern_struct> texture_pattern;
     texture_data_struct texture_data;
-    bool field_64;
+    bool null_blocks_data_set;
     bone_node_expression_data exp_data;
     float_t alpha;
     draw_task_flags draw_task_flags;
@@ -1748,12 +1647,12 @@ public:
     bool field_1B8;
     int64_t field_1C0;
     bool use_opd;
-    object_skin_ex_data* skin_ex_data;
-    object_skin* skin;
+    obj_skin_ex_data* skin_ex_data;
+    obj_skin* skin;
     rob_chara_item_equip* item_equip;
 
     rob_chara_item_equip_object();
-    ~rob_chara_item_equip_object();
+    virtual ~rob_chara_item_equip_object();
 };
 
 typedef struct opd_blend_data {
@@ -1822,83 +1721,34 @@ public:
     bool parts_white_one_l;
 
     rob_chara_item_equip();
-    ~rob_chara_item_equip();
+    virtual ~rob_chara_item_equip();
 };
 
-typedef union item_sub_data {
-    struct {
-        int32_t zujo;
-        int32_t kami;
-        int32_t hitai;
-        int32_t me;
-        int32_t megane;
-        int32_t mimi;
-        int32_t kuchi;
-        int32_t maki;
-        int32_t kubi;
-        int32_t inner;
-        int32_t outer;
-        int32_t joha_mae;
-        int32_t joha_ushiro;
-        int32_t hada;
-        int32_t kata;
-        int32_t u_ude;
-        int32_t l_ude;
-        int32_t te;
-        int32_t belt;
-        int32_t cosi;
-        int32_t pants;
-        int32_t asi;
-        int32_t sune;
-        int32_t kutsu;
-        int32_t head;
-    };
-    int32_t data[25];
-} item_sub_data;
-
-class item_sub_data_texture_change_tex {
+class item_cos_texture_change_tex {
 public:
     texture* org;
     texture* chg;
     bool changed;
 
-    item_sub_data_texture_change_tex();
-    ~item_sub_data_texture_change_tex();
+    item_cos_texture_change_tex();
+    ~item_cos_texture_change_tex();
 };
 
-class item_sub_data_texture_change {
+class rob_chara_item_cos_data {
 public:
-    uint32_t item_no;
-    std::vector<item_sub_data_texture_change_tex> tex;
-
-    item_sub_data_texture_change();
-    ~item_sub_data_texture_change();
-};
-
-class item_sub_data_item_change {
-public:
-    item_id id;
-    std::vector<uint32_t> item_ids;
-
-    item_sub_data_item_change();
-    ~item_sub_data_item_change();
-};
-
-class rob_chara_item_sub_data {
-public:
-    chara_index chara_index_1st;
-    chara_index chara_index_2nd;
-    item_sub_data item;
-    item_sub_data item_2nd;
-    std::vector<item_sub_data_texture_change> texture_change;
-    std::vector<item_sub_data_item_change> item_change;
-    std::vector<std::pair<object_info, item_id>> field_F0;
-    std::vector<std::pair<int32_t, int32_t >> field_100;
+    ::chara_index chara_index;
+    ::chara_index chara_index_2nd;
+    item_cos_data cos;
+    item_cos_data cos_2nd;
+    std::map<int32_t, std::vector<item_cos_texture_change_tex>> texture_change;
+    std::map<int32_t, std::vector<uint32_t>> item_change;
+    std::map<object_info, item_id> field_F0;
+    std::map<int32_t, int32_t > field_100;
     std::vector<texture_pattern_struct> texture_pattern[31];
-    std::vector<std::pair<int32_t, object_info>> field_3F8;
+    std::map<int32_t, object_info> head_replace;
 
-    rob_chara_item_sub_data();
-    ~rob_chara_item_sub_data();
+    rob_chara_item_cos_data();
+    ~rob_chara_item_cos_data();
 };
 
 typedef struct struc_525 {
@@ -2835,14 +2685,14 @@ public:
     int32_t module_index;
     rob_chara_bone_data* bone_data;
     rob_chara_item_equip* item_equip;
-    rob_chara_item_sub_data item_sub_data;
+    rob_chara_item_cos_data item_cos_data;
     rob_chara_data data;
     rob_chara_data data_prev;
     chara_init_data* chara_init_data;
     rob_chara_pv_data pv_data;
 
     rob_chara();
-    ~rob_chara();
+    virtual ~rob_chara();
 };
 
 typedef struct skeleton_rotation_offset {
@@ -2854,13 +2704,13 @@ typedef struct skeleton_rotation_offset {
 
 #define ROB_CHARA_COUNT 6
 
-extern rob_chara rob_chara_array[];
-extern rob_chara_pv_data rob_chara_pv_data_array[];
+extern rob_chara* rob_chara_array;
+extern rob_chara_pv_data* rob_chara_pv_data_array;
 
 extern chara_init_data* chara_init_data_get(chara_index chara_index);
 
 extern void motion_set_load_motion(uint32_t set, std::string* motion_name, motion_database* mot_db);
-extern void motion_set_unload(uint32_t set);
+extern void motion_set_unload_motion(uint32_t set);
 
 extern void pv_osage_manager_array_reset(int32_t chara_id);
 
@@ -2873,7 +2723,7 @@ extern float_t rob_chara_get_frame(rob_chara* rob_chr);
 extern float_t rob_chara_get_frame_count(rob_chara* rob_chr);
 extern void rob_chara_load_motion(rob_chara* rob_chr, int32_t motion_id, bool a3, float_t frame,
     MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
-extern void rob_chara_reload_items(rob_chara* rob_chr, item_sub_data* sub_data,
+extern void rob_chara_reload_items(rob_chara* rob_chr, item_cos_data* cos,
     bone_database* bone_data, void* data, object_database* obj_db);
 extern void rob_chara_reset_data(rob_chara* rob_chr, rob_chara_pv_data* pv_data,
     bone_database* bone_data, motion_database* mot_db);
@@ -2881,14 +2731,14 @@ extern void rob_chara_set_frame(rob_chara* rob_chr, float_t frame);
 extern bool rob_chara_set_motion_id(rob_chara* rob_chr, int32_t motion_id,
     float_t frame, float_t duration, bool a5, bool set_motion_reset_data,
     MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
-extern void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
-    chara_index chara_index, uint32_t module_index, rob_chara_pv_data* pv_data);
 extern void rob_chara_set_visibility(rob_chara* rob_chr, bool value);
 
+extern void rob_chara_array_init();
 extern rob_chara* rob_chara_array_get(int32_t chara_id);
 extern int32_t rob_chara_array_init_chara_index(chara_index chara_index,
-    rob_chara_pv_data* pv_data, uint32_t module_index, bool a4);
+    rob_chara_pv_data* pv_data, int32_t module_index, bool can_set_default);
 extern void rob_chara_array_free_chara_id(int32_t chara_id);
+extern void rob_chara_array_free();
 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
 
@@ -2898,7 +2748,10 @@ extern void rob_mot_tbl_free();
 extern void rob_thread_handler_init();
 extern void rob_thread_handler_free();
 
+extern bool pv_osage_manager_array_ptr_get_disp();
+
 extern void task_rob_manager_append_task();
+extern bool task_rob_manager_check_chara_loaded(int32_t chara_id);
 
 extern void motion_storage_init();
 extern void motion_storage_append_mot_set(uint32_t set_id);

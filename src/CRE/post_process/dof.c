@@ -639,7 +639,7 @@ void post_process_apply_dof(post_process_dof* dof,
                     rob_chara* rob_chr = 0;
                     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
                         rob_chara* rob_chr = rob_chara_array_get(i);
-                        if (!(rob_chr->data.field_0 & 1))
+                        if (~rob_chr->data.field_0 & 0x01)
                             continue;
 
                         mat4 mat;

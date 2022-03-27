@@ -9,7 +9,6 @@
 #include "../KKdLib/vec.h"
 #include "../CRE/timer.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-#include <cimgui.h>
 #include <timeapi.h>
 
 #define KEYBOARD_KEYS 0xFF
@@ -64,8 +63,8 @@ int32_t input_main(void* arg) {
 
     do {
         lock_lock(&state_lock);
-        state_wait = state != RENDER_INITIALIZED;
-        state_disposed = state == RENDER_DISPOSED;
+        state_wait = state != RENDER_INITIALIZING;
+        state_disposed = state == RENDER_DISPOSING;
         lock_unlock(&state_lock);
         if (state_disposed) {
             lock_free(&input_lock);
@@ -74,11 +73,15 @@ int32_t input_main(void* arg) {
         timer_sleep(&input_timer, 0.0625);
     } while (state_wait);
 
+    lock_lock(&state_lock);
+    enum_or(thread_flags, THREAD_INPUT);
+    lock_unlock(&state_lock);
+
     timer_reset(&input_timer);
     while (!close && !local_close) {
         timer_start_of_cycle(&input_timer);
         lock_lock(&state_lock);
-        local_close = state == RENDER_DISPOSED;
+        local_close = state == RENDER_DISPOSING;
         lock_unlock(&state_lock);
 
         lock_lock(&input_lock);
@@ -90,6 +93,10 @@ int32_t input_main(void* arg) {
 
 End:
     timer_dispose(&input_timer);
+
+    lock_lock(&state_lock);
+    enum_and(thread_flags, ~THREAD_INPUT);
+    lock_unlock(&state_lock);
     return 0;
 }
 
@@ -173,8 +180,8 @@ static void input_poll() {
     }
 
     lock_lock(&imgui_context_lock);
-    igSetCurrentContext(imgui_context);
-    if (!igGetIO()->WantCaptureMouse && input_is_down(VK_MBUTTON)) {
+    ImGui::SetCurrentContext(imgui_context);
+    if (!ImGui::GetIO().WantCaptureMouse && input_is_down(VK_MBUTTON)) {
         if (!input_reset_mouse_position) {
             POINT last = input_mouse_last_state.position;
             POINT curr = input_mouse_current_state.position;

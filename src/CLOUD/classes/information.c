@@ -21,6 +21,7 @@ classes_data information_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         information_frame_speed_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -43,6 +44,7 @@ classes_data information_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         information_task_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),

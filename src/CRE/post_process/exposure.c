@@ -43,7 +43,7 @@ void post_process_get_exposure(post_process_exposure* exp, camera* cam, int32_t 
 
     for (struc_188& i : field_648) {
         rob_chara* rob_chr = rob_chara_array_get((int32_t)(&i - field_648));
-        if (!rob_chr || !(rob_chr->data.field_0 & 1))
+        if (!rob_chr || ~rob_chr->data.field_0 & 0x01)
             continue;
 
         vec4 v34 = { 0.05f, 0.0f, -0.04f, 1.0f };

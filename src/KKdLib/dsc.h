@@ -5,8 +5,8 @@
 
 #pragma once
 
+#include <vector>
 #include "default.h"
-#include "vector.h"
 
 typedef enum dsc_diff {
     DSC_DIFF_EASY    = 0,
@@ -269,23 +269,37 @@ typedef struct dsc_data {
     uint32_t data_offset;
 } dsc_data;
 
-vector_old(dsc_data)
-
-typedef struct dsc {
-    dsc_type type;
-    uint32_t signature;
-    uint32_t id;
-    vector_old_dsc_data data;
-    vector_old_uint32_t data_buffer;
-} dsc;
-
-typedef struct dsc_replace dsc_replace;
+class dsc_replace;
 typedef struct dsc_replace_data dsc_replace_data;
 
 typedef int32_t(*dsc_get_func_id)(const char* name);
 typedef int32_t(*dsc_get_func_length)(int32_t id);
 typedef const char*(*dsc_get_func_name)(int32_t id);
 typedef const void(*dsc_func_convert)(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
+
+class dsc {
+public:
+    dsc_type type;
+    uint32_t signature;
+    uint32_t id;
+    std::vector<dsc_data> data;
+    std::vector<uint32_t> data_buffer;
+
+    dsc(dsc_type type = DSC_FT, uint32_t signature = 0x15122517, uint32_t id = 0);
+    ~dsc();
+
+    uint32_t* add_func(const char* name, int32_t func, int32_t func_length);
+    void convert(dsc_type dst_type);
+    dsc_get_func_length get_dsc_get_func_length();
+    uint32_t* get_func_data(dsc_data* data);
+    void merge(int32_t count, ...);
+    bool parse(void* data, size_t length, dsc_type type);
+    void rebuild();
+    void unparse(void** data, size_t* length);
+
+    static int32_t calculate_target_flying_time(int32_t bpm, int32_t time_signature);
+    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+};
 
 struct dsc_replace_data {
     const char* name;
@@ -294,7 +308,8 @@ struct dsc_replace_data {
     dsc_func_convert func;
 };
 
-struct dsc_replace {
+class dsc_replace {
+public:
     dsc_type src_type;
     dsc_type dst_type;
     dsc_replace_data* replace_data;
@@ -307,6 +322,9 @@ struct dsc_replace {
 
     int32_t bar_time_set_func_id;
     int32_t target_flying_time_func_id;
+
+    dsc_replace(dsc_type src_type, dsc_type dst_type, bool dst_has_perf_id);
+    ~dsc_replace();
 };
 
 extern const int32_t dsc_ac101_func_count;
@@ -423,22 +441,6 @@ extern const int32_t dsc_func_count_array[];
 extern const dsc_get_func_length dsc_get_func_length_array[];
 extern const dsc_get_func_length dsc_get_func_length_old_array[];
 extern const dsc_get_func_name dsc_get_func_name_array[];
-
-extern void dsc_init(dsc* d);
-extern void dsc_convert(dsc* d, dsc_type dst_type);
-extern void dsc_data_buffer_rebuild(dsc* d);
-extern uint32_t* dsc_data_get_func_data(dsc* d, dsc_data* data);
-extern void dsc_merge(dsc* d, int32_t count, ...);
-extern bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type);
-extern void dsc_unparse(dsc* d, void** data, size_t* length);
-extern bool dsc_load_file(void* data, const char* path, const char* file, uint32_t hash);
-extern void dsc_free(dsc* d);
-
-extern void dsc_replace_init(dsc_replace* dr, dsc_type src_type,
-    dsc_type dst_type, bool dst_has_perf_id);
-extern void dsc_replace_free(dsc_replace* dr);
-
-extern int32_t dsc_calculate_target_flying_time(int32_t bpm, int32_t time_signature);
 
 extern int32_t dsc_type_get_dsc_func_count(dsc_type type);
 extern dsc_get_func_id dsc_type_get_dsc_get_func_id(dsc_type type);

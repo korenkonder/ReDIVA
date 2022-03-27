@@ -35,7 +35,7 @@ public:
     bool read_uint32_t(char* buf, size_t offset, const char* str_add, size_t str_add_len, uint32_t* value);
     bool read_string(char* buf, size_t offset, const char* str_add, size_t str_add_len, string* value);
     bool read_string(char* buf, size_t offset, const char* str_add, size_t str_add_len, std::string* value);
-    bool read_string(char* buf, size_t offset, const char* str_add, size_t str_add_len, char** value);
+    bool read_string(char* buf, size_t offset, const char* str_add, size_t str_add_len, const char** value);
     bool read_vec3(char* buf, size_t offset, const char* str_add, size_t str_add_len, vec3* value);
     void parse(uint8_t* data, size_t length);
 
@@ -49,13 +49,11 @@ public:
     static void write_uint32_t(stream* s, char* buf,
         size_t offset, const char* str_add, size_t str_add_len, uint32_t value);
     static void write_string(stream* s, char* buf,
-        size_t offset, const char* str_add, size_t str_add_len, string* value);
+        size_t offset, const char* str_add, size_t str_add_len, string& value);
     static void write_string(stream* s, char* buf,
-        size_t offset, const char* str_add, size_t str_add_len, std::string* value);
-    static void write_string(stream* s, char* buf,
-        size_t offset, const char* str_add, size_t str_add_len, char* value);
+        size_t offset, const char* str_add, size_t str_add_len, std::string& value);
     static void write_string(stream* s, char* buf,
         size_t offset, const char* str_add, size_t str_add_len, const char* value);
     static void write_vec3(stream* s, char* buf,
-        size_t offset, const char* str_add, size_t str_add_len, vec3* value);
+        size_t offset, const char* str_add, size_t str_add_len, vec3& value);
 };

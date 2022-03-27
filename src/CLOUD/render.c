@@ -10,7 +10,10 @@
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
-#include <cimgui_impl.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
 #include "../CRE/Glitter/file_reader.h"
 #include "../CRE/Glitter/particle_manager.h"
 #include "../CRE/camera.h"
@@ -98,7 +101,7 @@ int32_t width;
 int32_t height;
 
 static const double_t aspect = 16.0 / 9.0;
-vec3 back3d_color;
+vec3 clear_color;
 bool set_clear_color;
 
 bool light_chara_ambient;
@@ -242,6 +245,7 @@ int32_t render_main(void* arg) {
 
     lock_lock(&state_lock);
     state = RENDER_INITIALIZING;
+    enum_or(thread_flags, THREAD_RENDER);
     lock_unlock(&state_lock);
 
     do {
@@ -274,9 +278,9 @@ int32_t render_main(void* arg) {
         while (!close && !reload_render) {
             timer_start_of_cycle(&render_timer);
             glfwPollEvents();
-            ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
-            igNewFrame();
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui::NewFrame();
             lock_lock(&render_lock);
             render_ctrl(rctx);
             lock_unlock(&render_lock);
@@ -291,6 +295,16 @@ int32_t render_main(void* arg) {
         state = RENDER_DISPOSING;
         lock_unlock(&state_lock);
 
+        bool threads_wait = false;
+        timer_reset(&render_timer);
+        do {
+            timer_start_of_cycle(&render_timer);
+            lock_lock(&state_lock);
+            threads_wait = thread_flags & ~THREAD_RENDER;
+            lock_unlock(&state_lock);
+            timer_end_of_cycle(&render_timer);
+        } while (threads_wait);
+
         lock_lock(&render_lock);
         render_dispose(rctx);
         lock_unlock(&render_lock);
@@ -298,6 +312,7 @@ int32_t render_main(void* arg) {
 
     lock_lock(&state_lock);
     state = RENDER_DISPOSED;
+    enum_and(thread_flags, ~THREAD_RENDER);
     lock_unlock(&state_lock);
 
 #pragma region GLFW Dispose
@@ -354,13 +369,11 @@ void render_set_scale_index(int32_t index) {
 }
 
 float_t rob_frame = 0.0f;
-int32_t rob_chara_id_array[ROB_CHARA_COUNT];
 
 static render_context* render_load() {
-    object_storage_init();
     texture_storage_init();
 
-    file_handler_storage_init_thread();
+    file_handler_storage_init();
 
     render_context* rctx = render_context_init();
     rctx_ptr = rctx;
@@ -375,7 +388,23 @@ static render_context* render_load() {
     data_struct_init();
     data_struct_load("CLOUD_data.txt");
 
-    glt_particle_manager.bone_data = &data_list[DATA_AFT].data_ft.bone_data;
+    data_struct* aft_data = &data_list[DATA_AFT];
+    auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+    texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+    stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
+
+    rctx->data = aft_data;
+
+    object_storage_init(aft_obj_db);
+    item_table_array_init();
+    rob_chara_array_init();
+    auth_3d_data_init();
+    light_param_storage_data_init();
+
+    glt_particle_manager.bone_data = aft_bone_data;
 
     glGenBuffers(1, &common_data_ubo);
 
@@ -547,27 +576,8 @@ static render_context* render_load() {
     TaskWork::AppendTask(&glt_particle_manager, "GLITTER_TASK", 2);
     task_rob_manager_append_task();
 
-    data_struct* aft_data = &data_list[DATA_AFT];
-    auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
-    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-    texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
-    stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
-
-    rctx->data = aft_data;
-
-    {
-        farc chritm_prop;
-        aft_data->load_file(&chritm_prop, "rom/", "chritm_prop.farc", farc::load_file);
-
-        farc_file* ff = chritm_prop.read_file("mikitm_tbl.txt");
-        if (ff && ff->size) {
-            itm_table itm;
-            itm.read(ff->data, ff->size);
-            itm.write("mikitm_tbl.tst");
-        }
-    }
+    aft_data->load_file(aft_data, "rom/", "chritm_prop.farc", item_table_array_load_file);
+    aft_data->load_file(aft_data, "rom/", "mdata_chritm_prop.farc", item_table_array_load_file);
 
     rob_mot_tbl_init();
     rob_thread_handler_init();
@@ -576,30 +586,45 @@ static render_context* render_load() {
     light_param_data_storage::load(aft_data);
     auth_3d_data_load_auth_3d_db(aft_auth_3d_db);
 
-    object_set_info* set_info;
-    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM000");
-    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM001");
-    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM301");
-    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM500");
-    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM181");
-    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM481");
-    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM681");
-    object_set_load_db_entry(&set_info, aft_data, aft_obj_db, "MIKITM981");
+    //object_storage_load_set(aft_obj_db, "MIKITM000");
+    //object_storage_load_set(aft_obj_db, "MIKITM001");
+    //object_storage_load_set(aft_obj_db, "MIKITM301");
+    //object_storage_load_set(aft_obj_db, "MIKITM500");
+    //object_storage_load_set(aft_obj_db, "MIKITM181");
+    //object_storage_load_set(aft_obj_db, "MIKITM481");
+    //object_storage_load_set(aft_obj_db, "MIKITM681");
+    //object_storage_load_set(aft_obj_db, "MIKITM981");
+
+    timer_reset(&render_timer);
+    for (int32_t i = 0; i < 30; i++) {
+        timer_start_of_cycle(&render_timer);
+        lock_lock(&render_lock);
+        TaskWork::Ctrl();
+        file_handler_storage_ctrl();
+        lock_unlock(&render_lock);
+        timer_end_of_cycle(&render_timer);
+    }
 
     motion_set_load_motion(aft_mot_db->get_motion_set_id("CMN"), 0, aft_mot_db);
     motion_set_load_motion(aft_mot_db->get_motion_set_id("PV824"), 0, aft_mot_db);
 
     rob_chara_pv_data pv_data;
-    int32_t chara_id = rob_chara_array_init_chara_index(CHARA_MIKU, &pv_data, 0, false);
-    rob_chara_id_array[0] = chara_id;
+    int32_t chara_id = rob_chara_array_init_chara_index(CHARA_MIKU, &pv_data, 180, true);
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
-        for (int32_t i = 0; i < 120; i++)
+        timer_reset(&render_timer);
+        while (!task_rob_manager_check_chara_loaded(chara_id)) {
+            timer_start_of_cycle(&render_timer);
+            lock_lock(&render_lock);
             TaskWork::Ctrl();
+            file_handler_storage_ctrl();
+            lock_unlock(&render_lock);
+            timer_end_of_cycle(&render_timer);
+        }
 
-        int32_t motion_id = aft_mot_db->get_motion_id("PV824_STF_P1_00");
+        /*int32_t motion_id = aft_mot_db->get_motion_id("PV824_STF_P1_00");
         rob_chara_set_motion_id(&rob_chara_array[chara_id], motion_id, 0.0f,
             motion_storage_get_mot_data_frame_count(motion_id, aft_mot_db),
-            false, true, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+            false, true, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);*/
         rob_chara_set_visibility(&rob_chara_array[chara_id], true);
         rob_chara_set_frame(&rob_chara_array[chara_id], 0.0f);
         rob_chara_item_equip* rob_item_equip = rob_chara_array[chara_id].item_equip;
@@ -684,21 +709,21 @@ static render_context* render_load() {
     camera_set_interest(cam, &interest);
     //camera_set_fov(cam, 70.0);
 
-    imgui_context = igCreateContext(0);
+    imgui_context = ImGui::CreateContext(0);
     lock_init(&imgui_context_lock);
 
     lock_lock(&imgui_context_lock);
-    igSetCurrentContext(imgui_context);
-    ImGuiIO* io = igGetIO();
-    io->IniFilename = 0;
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    ImGui::SetCurrentContext(imgui_context);
+    ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = 0;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     lock_unlock(&imgui_context_lock);
 
-    igStyleColorsDark(0);
+    ImGui::StyleColorsDark(0);
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
 
-    back3d_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
+    clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
     set_clear_color = true;
 
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
@@ -727,7 +752,8 @@ static void render_ctrl(render_context* rctx) {
 
     global_context_menu = true;
     lock_lock(&imgui_context_lock);
-    igSetCurrentContext(imgui_context);
+    ImGui::SetCurrentContext(imgui_context);
+    TaskWork_Window();
     classes_process_imgui(classes, classes_count);
     lock_unlock(&imgui_context_lock);
 
@@ -740,14 +766,14 @@ static void render_ctrl(render_context* rctx) {
     old_scale = scale;
 
     lock_lock(&imgui_context_lock);
-    igSetCurrentContext(imgui_context);
-    if (global_context_menu && igIsMouseReleased(ImGuiMouseButton_Right)
-        && !igIsItemHovered(0) && imgui_context->OpenPopupStack.Size < 1)
-        igOpenPopup_Str("Classes init context menu", 0);
+    ImGui::SetCurrentContext(imgui_context);
+    if (global_context_menu && ImGui::IsMouseReleased(ImGuiMouseButton_Right)
+        && !ImGui::IsItemHovered(0) && imgui_context->OpenPopupStack.Size < 1)
+        ImGui::OpenPopup("Classes init context menu", 0);
 
-    if (igBeginPopupContextItem("Classes init context menu", 0)) {
+    if (ImGui::BeginPopupContextItem("Classes init context menu", 0)) {
         render_imgui_context_menu(classes, classes_count, rctx);
-        igEndPopup();
+        ImGui::EndPopup();
     }
     lock_unlock(&imgui_context_lock);
 
@@ -785,7 +811,7 @@ static void render_ctrl(render_context* rctx) {
 
     render_context_ctrl(rctx);
 
-    igRender();
+    ImGui::Render();
 
     struct common_data_struct {
         vec4 res; //x=width, y=height, z=1/width, w=1/height
@@ -892,7 +918,7 @@ static void render_draw(render_context* rctx) {
 
     if (set_clear_color) {
         vec4 color;
-        *(vec3*)&color = back3d_color;
+        *(vec3*)&color = clear_color;
         color.w = 1.0f;
         glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
     }
@@ -1127,9 +1153,27 @@ static void render_dispose(render_context* rctx) {
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    igDestroyContext(imgui_context);
+    ImGui::DestroyContext(imgui_context);
     lock_free(&imgui_context_lock);
 
+    rob_chara_array_free_chara_id(0);
+    timer_reset(&render_timer);
+    for (int32_t i = 0; i < 6; i++) {
+        timer_start_of_cycle(&render_timer);
+        lock_lock(&render_lock);
+        TaskWork::Ctrl();
+        file_handler_storage_ctrl();
+        lock_unlock(&render_lock);
+        timer_end_of_cycle(&render_timer);
+    }
+
+    light_param_data_storage::unload();
+
+    light_param_storage_data_free();
+    auth_3d_data_free();
+    rob_chara_array_free();
+    item_table_array_free();
+    object_storage_free();
     data_struct_free();
 
     render_shaders_free();
@@ -1151,21 +1195,18 @@ static void render_dispose(render_context* rctx) {
 
     motion_storage_free();
 
-    light_param_data_storage::unload();
-
     render_texture_data_free();
     render_context_free(rctx);
 
-    file_handler_storage_free_thread();
+    file_handler_storage_free();
 
-    object_storage_free();
     texture_storage_free();
 }
 
 static void render_imgui(render_context* rctx) {
     lock_lock(&imgui_context_lock);
-    igSetCurrentContext(imgui_context);
-    ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
+    ImGui::SetCurrentContext(imgui_context);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     lock_unlock(&imgui_context_lock);
 }
 
@@ -1254,15 +1295,16 @@ static void render_imgui_context_menu(classes_data* classes,
             continue;
 
         if (c->sub_classes && c->sub_classes_count) {
-            if (igBeginMenu(c->name, ~c->data.flags & CLASS_HIDDEN)) {
+            if (ImGui::BeginMenu(c->name, ~c->data.flags & CLASS_HIDDEN)) {
                 render_imgui_context_menu(c->sub_classes,
                     c->sub_classes_count, rctx);
-                igEndMenu();
+                ImGui::EndMenu();
             }
         }
         else if (~c->data.flags & CLASS_HIDDEN)
-            igMenuItem_Bool(c->name, 0, false, false);
-        else if (igMenuItem_Bool(c->name, 0, false, true)) {
+            ImGui::MenuItem(c->name, 0, false, false);
+        else if (ImGui::MenuItem(c->name, 0, false,
+            !c->shared_lock || c->shared_lock && !*c->shared_lock)) {
             if (~c->data.flags & CLASS_INIT) {
                 lock_init(&c->data.lock);
                 if (lock_check_init(&c->data.lock) && c->init) {
@@ -1275,10 +1317,14 @@ static void render_imgui_context_menu(classes_data* classes,
                 }
             }
 
-            if (lock_check_init(&c->data.lock)) {
+            if (lock_check_init(&c->data.lock)
+                && (!c->shared_lock || c->shared_lock && !*c->shared_lock)) {
                 lock_lock(&c->data.lock);
-                if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show))
-                    enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN));
+                if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show)) {
+                    if (c->shared_lock)
+                        *c->shared_lock = true;
+                    enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN | CLASS_HIDE_WINDOW));
+                }
                 lock_unlock(&c->data.lock);
             }
         }

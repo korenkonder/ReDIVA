@@ -15,11 +15,41 @@ typedef struct object_info {
 
     object_info();
     object_info(uint32_t id, uint32_t set_id);
-    inline bool is_null() { return id == (uint32_t)-1 && set_id == (uint32_t)-1; }
-    inline bool not_null() { return id != (uint32_t)-1 || set_id != (uint32_t)-1; }
-    inline bool operator ==(object_info& right) { return id == right.id && set_id == right.set_id; }
-    inline bool operator !=(object_info& right) { return id != right.id || set_id != right.set_id; }
+    bool is_null();
+    bool not_null();
 } object_info;
+
+inline bool object_info::is_null() {
+    return id == (uint32_t)-1 && set_id == (uint32_t)-1;
+}
+
+inline bool object_info::not_null() {
+    return id != (uint32_t)-1 || set_id != (uint32_t)-1;
+}
+
+inline bool operator >(const object_info& left, const object_info& right) {
+    return left.set_id > right.set_id && left.id > right.id;
+}
+
+inline bool operator <(const object_info& left, const object_info& right) {
+    return left.set_id < right.set_id&& left.id < right.id;
+}
+
+inline bool operator >=(const object_info& left, const object_info& right) {
+    return left.set_id >= right.set_id && left.id >= right.id;
+}
+
+inline bool operator <=(const object_info& left, const object_info& right) {
+    return left.set_id <= right.set_id && left.id <= right.id;
+}
+
+inline bool operator ==(const object_info& left, const object_info& right) {
+    return left.id == right.id && left.set_id == right.set_id;
+}
+
+inline bool operator !=(const object_info& left, const object_info& right) {
+    return left.id != right.id || left.set_id != right.set_id;
+}
 
 class object_info_data {
 public:
@@ -70,11 +100,12 @@ public:
     void split_mdata(object_database* base_obj_db, object_database* mdata_obj_db);
 
     bool get_object_set_info(const char* name, object_set_info** set_info);
-    bool get_object_set_info_by_set_id(uint32_t set_id, object_set_info** set_info);
+    bool get_object_set_info(uint32_t set_id, object_set_info** set_info);
     bool get_object_info_data(const char* name, object_info_data** info);
     bool get_object_info_data_by_fnv1a64m_hash(uint64_t hash, object_info_data** info);
     bool get_object_info_data_by_fnv1a64m_hash_upper(uint64_t hash, object_info_data** info);
     bool get_object_info_data_by_murmurhash(uint32_t hash, object_info_data** info);
+    uint32_t get_object_set_id(const char* name);
     object_info get_object_info(const char* name);
     const char* get_object_name(object_info obj_info);
 

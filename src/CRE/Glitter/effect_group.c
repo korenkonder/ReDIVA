@@ -121,16 +121,13 @@ void glitter_effect_group_load_model(glitter_effect_group* eg, void* ds) {
     if (eg->type != GLITTER_X)
         return;
 
-    for (uint32_t& i : eg->object_set_ids) {
-        object_database obj_db;
-        texture_database tex_db;
-        object_set_load_by_hash(ds, &obj_db, &tex_db, i);
-    }
+    for (uint32_t& i : eg->object_set_ids)
+        object_storage_load_set_hash(ds, i);
 }
 
 void glitter_effect_group_free_model(glitter_effect_group* eg) {
     for (uint32_t& i : eg->object_set_ids)
-        object_storage_delete_object_set(i);
+        object_storage_unload_set(i);
     eg->object_set_ids.clear();
     eg->object_set_ids.shrink_to_fit();
 }

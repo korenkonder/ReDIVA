@@ -8,8 +8,6 @@
 #include "sort.h"
 #include "str_utils.h"
 
-vector_old_func(dsc_data)
-
 static const dsc_func dsc_ac101_func[] = {
     { 0, 0, "END" },
     { 1, 1, "TIME" },
@@ -1263,9 +1261,6 @@ typedef struct dsc_data_time {
     uint32_t data_offset;
 } dsc_data_time;
 
-vector_old(dsc_data_time)
-vector_old_func(dsc_data_time)
-
 static void dsc_convert_from_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
 static void dsc_convert_from_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
 static void dsc_convert_from_ac100_edit_motion(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
@@ -1317,827 +1312,8 @@ static void dsc_convert_note11_to_note7(dsc_replace* dr, dsc_replace_data* drd, 
 static void dsc_convert_note11_to_note12(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
 static void dsc_convert_note12_to_note7(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
 static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static dsc_get_func_length dsc_get_dsc_get_func_length(dsc* d);
 static uint32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd);
 inline static dsc_get_func_length dsc_type_get_dsc_get_func_length(dsc_type type, bool has_perf_id);
-
-void dsc_init(dsc* d) {
-    if (!d)
-        return;
-    memset(d, 0, sizeof(dsc));
-}
-
-void dsc_convert(dsc* d, dsc_type dst_type) {
-    if (!d || d->type < DSC_AC101 || d->type > DSC_VRFL
-        || dst_type < DSC_AC101 || dst_type > DSC_VRFL)
-        return;
-
-    static const dsc_func_convert dsc_convert_ac100[3][21] = {
-        {
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-            (dsc_func_convert)0,
-        },
-        {
-            (dsc_func_convert)dsc_convert_to_ac100_miku_move,
-            (dsc_func_convert)dsc_convert_to_ac100_miku_rot,
-            (dsc_func_convert)dsc_convert_to_ac100_miku_disp,
-            (dsc_func_convert)dsc_convert_to_ac100_miku_shadow,
-            (dsc_func_convert)dsc_convert_to_ac100_set_motion,
-            (dsc_func_convert)dsc_convert_to_ac100_set_playdata,
-            (dsc_func_convert)dsc_convert_to_ac100_effect,
-            (dsc_func_convert)dsc_convert_to_ac100_eye_anim,
-            (dsc_func_convert)dsc_convert_to_ac100_mouth_anim,
-            (dsc_func_convert)dsc_convert_to_ac100_hand_anim,
-            (dsc_func_convert)dsc_convert_to_ac100_look_anim,
-            (dsc_func_convert)dsc_convert_to_ac100_expression,
-            (dsc_func_convert)dsc_convert_to_ac100_look_camera,
-            (dsc_func_convert)dsc_convert_to_ac100_lyric,
-            (dsc_func_convert)dsc_convert_to_ac100_mode_select,
-            (dsc_func_convert)dsc_convert_to_ac100_edit_motion,
-            (dsc_func_convert)dsc_convert_to_ac100_shadowheight,
-            (dsc_func_convert)dsc_convert_to_ac100_edit_face,
-            (dsc_func_convert)dsc_convert_to_ac100_move_camera,
-            (dsc_func_convert)dsc_convert_to_ac100_shadowpos,
-            (dsc_func_convert)dsc_convert_to_ac100_cloth_wet,
-        },
-        {
-            (dsc_func_convert)dsc_convert_from_ac100_miku_move,
-            (dsc_func_convert)dsc_convert_from_ac100_miku_rot,
-            (dsc_func_convert)dsc_convert_from_ac100_miku_disp,
-            (dsc_func_convert)dsc_convert_from_ac100_miku_shadow,
-            (dsc_func_convert)dsc_convert_from_ac100_set_motion,
-            (dsc_func_convert)dsc_convert_from_ac100_set_playdata,
-            (dsc_func_convert)dsc_convert_from_ac100_effect,
-            (dsc_func_convert)dsc_convert_from_ac100_eye_anim,
-            (dsc_func_convert)dsc_convert_from_ac100_mouth_anim,
-            (dsc_func_convert)dsc_convert_from_ac100_hand_anim,
-            (dsc_func_convert)dsc_convert_from_ac100_look_anim,
-            (dsc_func_convert)dsc_convert_from_ac100_expression,
-            (dsc_func_convert)dsc_convert_from_ac100_look_camera,
-            (dsc_func_convert)dsc_convert_from_ac100_lyric,
-            (dsc_func_convert)dsc_convert_from_ac100_mode_select,
-            (dsc_func_convert)dsc_convert_from_ac100_edit_motion,
-            (dsc_func_convert)dsc_convert_from_ac100_shadowheight,
-            (dsc_func_convert)dsc_convert_from_ac100_move_camera,
-            (dsc_func_convert)dsc_convert_from_ac100_edit_face,
-            (dsc_func_convert)dsc_convert_from_ac100_shadowpos,
-            (dsc_func_convert)dsc_convert_from_ac100_cloth_wet,
-        },
-    };
-
-    static const dsc_func_convert change_field_convert_func_array[2][2] = {
-        {
-            (dsc_func_convert)0,
-            (dsc_func_convert)dsc_convert_change_field1_to_change_field2,
-        },
-        {
-            (dsc_func_convert)dsc_convert_change_field2_to_change_field1,
-            (dsc_func_convert)0,
-        },
-    };
-
-    static const dsc_func_convert edit_camera_convert_func_array[2][2] = {
-        {
-            (dsc_func_convert)0,
-            (dsc_func_convert)dsc_convert_dummy,
-        },
-        {
-            (dsc_func_convert)dsc_convert_dummy,
-            (dsc_func_convert)0,
-        },
-    };
-
-    static const dsc_func_convert note_convert_func_array[3][3] = {
-        {
-            (dsc_func_convert)0,
-            (dsc_func_convert)dsc_convert_note7_to_note11,
-            (dsc_func_convert)dsc_convert_note7_to_note12,
-        },
-        {
-            (dsc_func_convert)dsc_convert_note11_to_note7,
-            (dsc_func_convert)0,
-            (dsc_func_convert)dsc_convert_note11_to_note12,
-        },
-        {
-            (dsc_func_convert)dsc_convert_note12_to_note7,
-            (dsc_func_convert)dsc_convert_note12_to_note11,
-            (dsc_func_convert)0,
-        },
-    };
-
-    static const dsc_func_convert vr_live_transform_convert_func_array[2][2] = {
-        {
-            (dsc_func_convert)0,
-            (dsc_func_convert)dsc_convert_dummy,
-        },
-        {
-            (dsc_func_convert)dsc_convert_dummy,
-            (dsc_func_convert)0,
-        },
-    };
-
-    bool src_has_perf_id = d->signature >= 0x10101514;
-    int32_t dsc_convert_ac100_type = src_has_perf_id ? 0 : 2;
-
-    if (dsc_convert_ac100_type == 2 && d->signature < 0x10000000)
-        d->signature = 0x10101514;
-
-    bool dst_has_perf_id;
-    switch (dst_type) {
-    default:
-        dst_has_perf_id = d->signature >= 0x10101514;
-        break;
-    case DSC_PSP:
-    case DSC_DT:
-    case DSC_AC101:
-    case DSC_AC110:
-    case DSC_AC120:
-        dst_has_perf_id = false;
-        dsc_convert_ac100_type = src_has_perf_id ? 1 : 0;
-        break;
-    }
-
-    if (dsc_convert_ac100_type == 1)
-        d->signature = 0;
-
-    int32_t note_convert_src;
-    switch (d->type) {
-    default:
-        note_convert_src = 0;
-        break;
-    case DSC_2ND:
-        note_convert_src = 1;
-        break;
-    case DSC_DT2:
-    case DSC_F:
-        note_convert_src = src_has_perf_id ? 1 : 0;
-        break;
-    case DSC_F2:
-    case DSC_MGF:
-    case DSC_X:
-    case DSC_VRFL:
-        note_convert_src = 2;
-        break;
-    }
-
-    int32_t note_convert_dst;
-    switch (dst_type) {
-    default:
-        note_convert_dst = 0;
-        break;
-    case DSC_2ND:
-        note_convert_dst = 1;
-        break;
-    case DSC_DT2:
-    case DSC_F:
-        note_convert_dst = dst_has_perf_id ? 1 : 0;
-        break;
-    case DSC_F2:
-    case DSC_MGF:
-    case DSC_X:
-    case DSC_VRFL:
-        note_convert_dst = 2;
-        break;
-    }
-
-    bool enable_edit_camera = ((note_convert_src == 0 || note_convert_src == 1)
-        && (note_convert_dst == 0 || note_convert_dst == 1)
-        || note_convert_src == 2 && note_convert_dst == 2);
-    bool enable_edit_camera_ac = (note_convert_src == 0 || note_convert_src == 1)
-        && (note_convert_dst == 0 || note_convert_dst == 1) && dst_has_perf_id;
-
-    dsc_replace dr;
-    dsc_replace_init(&dr, d->type, dst_type, dst_has_perf_id);
-
-    int32_t src_func_count = dsc_type_get_dsc_func_count(d->type);
-    dsc_get_func_name src_get_func_name = dsc_type_get_dsc_get_func_name(d->type);
-
-    for (int32_t i = 0; i < src_func_count; i++) {
-        dsc_replace_data* repl_data = &dr.replace_data[i];
-        char* src_func_name = (char*)src_get_func_name(i);
-        if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_MOVE"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][0];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_ROT"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][1];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_DISP"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][2];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_SHADOW"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][3];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "TARGET"))
-            repl_data->func = note_convert_func_array[note_convert_src][note_convert_dst];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "SET_MOTION"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][4];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "SET_PLAYDATA"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][5];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EFFECT"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][6];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "CHANGE_FIELD"))
-            repl_data->func = change_field_convert_func_array
-            [note_convert_src == 2 ? 1 : 0][note_convert_dst == 2 ? 1 : 0];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EYE_ANIM"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][7];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MOUTH_ANIM"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][8];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "HAND_ANIM"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][9];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "LOOK_ANIM"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][10];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EXPRESSION"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][11];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "LOOK_CAMERA"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][12];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "LYRIC"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][13];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MODE_SELECT"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][14];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EDIT_MOTION"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][15];
-        else if (dr.bar_time_set_func_id == -1 && !str_utils_compare(
-            src_func_name, "BAR_TIME_SET"))
-            dr.bar_time_set_func_id = i;
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "SHADOWHEIGHT"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][16];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EDIT_FACE"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][17];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MOVE_CAMERA"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][18];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "SHADOWPOS"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][19];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "CLOTH_WET"))
-            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][20];
-        else if (dr.target_flying_time_func_id == -1 && !str_utils_compare(
-            src_func_name, "TARGET_FLYING_TIME"))
-            dr.target_flying_time_func_id = i;
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EDIT_CAMERA"))
-            repl_data->func = edit_camera_convert_func_array
-            [note_convert_src == 2 ? 1 : 0][note_convert_dst == 2 ? 1 : 0];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "VR_LIVE_TRANSFORM"))
-            repl_data->func = vr_live_transform_convert_func_array
-            [d->type == DSC_VRFL][dst_type == DSC_VRFL];
-    }
-
-    for (dsc_data* i = d->data.begin; i != d->data.end; i++) {
-        int32_t func = i->func;
-        if (func == -1 || dr.replace_data[func].func_id == -1)
-            continue;
-
-        uint32_t* data = dsc_data_get_func_data(d, i);
-        dsc_replace_data* repl_data = &dr.replace_data[func];
-        if (func == dr.bar_time_set_func_id) {
-            dr.bpm = data[0];
-            dr.time_signature = data[1];
-            dr.target_flying_time = -1000;
-
-            uint32_t* bar_time_set = dsc_replace_add_func(&dr, repl_data);
-            *bar_time_set++ = dr.bpm;
-            *bar_time_set++ = dr.time_signature;
-        }
-        else if (func == dr.target_flying_time_func_id) {
-            dr.target_flying_time = data[0];
-
-            uint32_t* target_flying_time = dsc_replace_add_func(&dr, repl_data);
-            *target_flying_time++ = dr.target_flying_time;
-        }
-        else if (dr.replace_data[func].func)
-            dr.replace_data[func].func(&dr, repl_data, data);
-        else {
-            uint32_t* dst_data = dsc_replace_add_func(&dr, repl_data);
-            memmove(dst_data, data, sizeof(uint32_t) * repl_data->length);
-        }
-    }
-
-    vector_old_dsc_data_free(&d->data, 0);
-    vector_old_uint32_t_free(&d->data_buffer, 0);
-
-    d->type = dr.dst_type;
-    switch (d->type) {
-    case DSC_F:
-        if (d->signature >= 0x10000000)
-            d->signature = 0x12020220;
-        break;
-    case DSC_F2:
-    case DSC_MGF:
-    case DSC_X:
-    case DSC_VRFL:
-        d->signature = 0x13120420;
-        d->id = 0;
-        break;
-    }
-    d->data = dr.dsc.data;
-    d->data_buffer = dr.dsc.data_buffer;
-
-    dr.dsc.data = vector_old_empty(dsc_data);
-    dr.dsc.data_buffer = vector_old_empty(uint32_t);
-    dsc_replace_free(&dr);
-}
-
-void dsc_data_buffer_rebuild(dsc* d) {
-    if (!d)
-        return;
-
-    dsc_get_func_length get_func_length = dsc_get_dsc_get_func_length(d);
-    size_t size = 0;
-    for (dsc_data* i = d->data.begin; i != d->data.end; i++)
-        size += get_func_length(i->func);
-
-    vector_old_uint32_t data_buffer = vector_old_empty(uint32_t);
-    vector_old_uint32_t_reserve(&data_buffer, size);
-    for (dsc_data* i = d->data.begin; i != d->data.end; i++) {
-        uint32_t* func_data = dsc_data_get_func_data(d, i);
-        i->data_offset = (uint32_t)vector_old_length(data_buffer);
-
-        int32_t func_length = get_func_length(i->func);
-        memmove(vector_old_uint32_t_reserve_back_range(&data_buffer, func_length),
-            func_data, sizeof(uint32_t) * func_length);
-        func_data += func_length;
-    }
-    vector_old_uint32_t_free(&d->data_buffer, 0);
-    d->data_buffer = data_buffer;
-}
-
-inline uint32_t* dsc_data_get_func_data(dsc* d, dsc_data* data) {
-    return (uint32_t*)(d->data_buffer.begin + data->data_offset);
-}
-
-static size_t dsc_data_time_radix_index_func_pv_branch_mode(dsc_data_time* data, size_t index);
-static size_t dsc_data_time_radix_index_func_time(dsc_data_time* data, size_t index);
-
-static size_t dsc_data_time_radix_index_func_pv_branch_mode(dsc_data_time* data, size_t index) {
-    return (size_t)(ssize_t)data[index].pv_branch_mode;
-}
-
-static size_t dsc_data_time_radix_index_func_time(dsc_data_time* data, size_t index) {
-    return (size_t)(ssize_t)data[index].time;
-}
-
-void dsc_merge(dsc* d, int32_t count, ...) {
-    if (!d)
-        return;
-
-    dsc_init(d);
-
-    va_list args;
-    va_start(args, count);
-    dsc* s0 = va_arg(args, dsc*);
-    if (!s0) {
-        va_end(args);
-        return;
-    }
-
-    for (int32_t i = 1; i < count; i++) {
-        dsc* d1 = va_arg(args, dsc*);
-        if (!d1 || s0->type != d1->type || s0->signature != d1->signature) {
-            va_end(args);
-            return;
-        }
-    }
-    va_end(args);
-
-    d->type = s0->type;
-    d->signature = s0->signature;
-    d->id = s0->id;
-
-    dsc_get_func_id get_func_id = dsc_type_get_dsc_get_func_id(s0->type);
-    dsc_get_func_length get_func_length = dsc_get_dsc_get_func_length(s0);
-    dsc_get_func_name get_func_name = dsc_type_get_dsc_get_func_name(s0->type);
-
-    int32_t time_func_id = get_func_id("TIME");
-    int32_t pv_branch_mode_func_id = get_func_id("PV_BRANCH_MODE");
-
-    size_t func_count = 0;
-    size_t size = 0;
-    va_start(args, count);
-    for (int32_t i = 0; i < count; i++) {
-        dsc* s = va_arg(args, dsc*);
-        func_count += vector_old_length(s->data);
-        for (dsc_data* j = s->data.begin; j != s->data.end; j++)
-            if (j->func == time_func_id || j->func == pv_branch_mode_func_id)
-                func_count--;
-            else
-                size += get_func_length(j->func);
-    }
-    va_end(args);
-
-    vector_old_dsc_data_time data_time = vector_old_empty(dsc_data_time);
-    vector_old_uint32_t data_time_buffer = vector_old_empty(uint32_t);
-    vector_old_dsc_data_time_reserve(&data_time, func_count);
-    vector_old_uint32_t_reserve(&data_time_buffer, size);
-    va_start(args, count);
-    for (int32_t i = 0; i < count; i++) {
-        dsc* s = va_arg(args, dsc*);
-        func_count += vector_old_length(s->data);
-
-        int32_t time = -1;
-        int32_t pv_branch_mode = 0;
-        for (dsc_data* j = s->data.begin; j != s->data.end; j++) {
-            if (j->func == time_func_id) {
-                time = (int32_t)dsc_data_get_func_data(s, j)[0];
-                continue;
-            }
-            else if (j->func == pv_branch_mode_func_id) {
-                pv_branch_mode = (int32_t)dsc_data_get_func_data(s, j)[0];
-                continue;
-            }
-
-            dsc_data_time* dsc_d = vector_old_dsc_data_time_reserve_back(&data_time);
-            dsc_d->time = time;
-            dsc_d->pv_branch_mode = pv_branch_mode;
-            dsc_d->name = j->name;
-            dsc_d->func = j->func;
-            dsc_d->data_offset = (uint32_t)vector_old_length(data_time_buffer);
-
-            uint32_t* func_data = dsc_data_get_func_data(s, j);
-            int32_t func_length = get_func_length(j->func);
-            memmove(vector_old_uint32_t_reserve_back_range(&data_time_buffer, func_length),
-                func_data, sizeof(uint32_t) * func_length);
-            func_data += func_length;
-        }
-    }
-    va_end(args);
-
-    if (vector_old_length(data_time)) {
-        for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
-            i->time = radix_preprocess_int32_t(i->time);
-        radix_sort_custom(data_time.begin, vector_old_length(data_time), sizeof(dsc_data_time),
-            sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_time);
-        for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
-            i->time = radix_postprocess_int32_t(i->time);
-    }
-
-    func_count = vector_old_length(data_time);
-    size = 0;
-
-    int32_t time = -1;
-    int32_t time_count = 0;
-    for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
-        if (time != i->time) {
-            if (time_count > 1)
-                radix_sort_custom(i - time_count, time_count, sizeof(dsc_data_time),
-                    sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_pv_branch_mode);
-            time = i->time;
-            time_count = 1;
-            func_count++;
-            size++;
-        }
-        else
-            time_count++;
-
-    if (time_count > 1)
-        radix_sort_custom(data_time.end - time_count, time_count, sizeof(dsc_data_time),
-            sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_pv_branch_mode);
-
-    int32_t pv_branch_mode = -1;
-    int32_t pv_branch_mode_count = 0;
-    for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
-        if (pv_branch_mode != i->pv_branch_mode) {
-            pv_branch_mode = i->pv_branch_mode;
-            pv_branch_mode_count = 1;
-            func_count++;
-            size++;
-        }
-        else
-            pv_branch_mode_count++;
-
-    for (dsc_data_time* i = data_time.begin; i != data_time.end; i++)
-        size += get_func_length(i->func);
-
-    vector_old_dsc_data data = vector_old_empty(dsc_data);
-    vector_old_uint32_t data_buffer = vector_old_empty(uint32_t);
-    vector_old_dsc_data_reserve(&data, func_count);
-    vector_old_uint32_t_reserve(&data_buffer, size);
-
-    time = -1;
-    pv_branch_mode = -1;
-    for (dsc_data_time* i = data_time.begin; i != data_time.end; i++) {
-        if (time_func_id != -1 && time != i->time) {
-            time = i->time;
-
-            dsc_data* dsc_d = vector_old_dsc_data_reserve_back(&data);
-            dsc_d->name = get_func_name(time_func_id);
-            dsc_d->func = time_func_id;
-            dsc_d->data_offset = (uint32_t)vector_old_length(data_buffer);
-
-            *(int32_t*)vector_old_uint32_t_reserve_back(&data_buffer) = time;
-        }
-
-        if (pv_branch_mode_func_id != -1 && pv_branch_mode != i->pv_branch_mode) {
-            pv_branch_mode = i->pv_branch_mode;
-
-            dsc_data* dsc_d = vector_old_dsc_data_reserve_back(&data);
-            dsc_d->name = get_func_name(pv_branch_mode_func_id);
-            dsc_d->func = pv_branch_mode_func_id;
-            dsc_d->data_offset = (uint32_t)vector_old_length(data_buffer);
-
-            *(int32_t*)vector_old_uint32_t_reserve_back(&data_buffer) = pv_branch_mode;
-        }
-
-        uint32_t* func_data = (uint32_t*)(data_time_buffer.begin + i->data_offset);
-        dsc_data* dsc_d = vector_old_dsc_data_reserve_back(&data);
-        dsc_d->name = get_func_name(i->func);
-        dsc_d->func = i->func;
-        dsc_d->data_offset = (uint32_t)vector_old_length(data_buffer);
-
-        int32_t func_length = get_func_length(i->func);
-        memmove(vector_old_uint32_t_reserve_back_range(&data_buffer, func_length),
-            func_data, sizeof(uint32_t) * func_length);
-        func_data += func_length;
-    }
-
-    vector_old_dsc_data_time_free(&data_time, 0);
-    vector_old_uint32_t_free(&data_time_buffer, 0);
-
-    d->data = data;
-    d->data_buffer = data_buffer;
-}
-
-bool dsc_parse(dsc* d, void* data, size_t length, dsc_type type) {
-    if (!d || !data || !(length / 4) || type < DSC_AC101 || type > DSC_VRFL)
-        return false;
-
-    uint32_t* data_dsc = (uint32_t*)data;
-
-    f2_struct st;
-    memset(&st, 0, sizeof(f2_struct));
-    d->signature = 0;
-    switch (type) {
-    default:
-        if (*data_dsc >= 0x10000000) {
-            d->signature = *data_dsc++;
-            length--;
-        }
-        break;
-    case DSC_F:
-        if (*data_dsc >= 0x10000000) {
-            if (*data_dsc != 0x12020220)
-                return false;
-
-            data_dsc++;
-            d->signature = 0x12020220;
-        }
-        break;
-    case DSC_F2:
-    case DSC_MGF:
-    case DSC_X:
-    case DSC_VRFL:
-        f2_struct_read(&st, data, length);
-        data_dsc = (uint32_t*)st.data;
-        if (st.header.use_big_endian)
-            for (size_t i = length / 4; i; i--, data_dsc++)
-                *data_dsc = load_reverse_endianness_uint32_t(data_dsc);
-
-        data_dsc = (uint32_t*)st.data;
-        if (*data_dsc++ != 0x13120420) {
-            f2_struct_free(&st);
-            return false;
-        }
-
-        d->signature = 0x13120420;
-        d->id = *data_dsc++;
-        break;
-    }
-
-    length /= 4;
-
-    d->type = type;
-
-    dsc_get_func_name get_func_name = dsc_type_get_dsc_get_func_name(type);
-    dsc_get_func_length get_func_length = dsc_get_dsc_get_func_length(d);
-
-    size_t func_count = 0;
-    size_t data_size = 0;
-    uint32_t* func_data = data_dsc;
-    for (size_t i = 0; i < length; i++) {
-        if (!*func_data) {
-            length = i;
-            break;
-        }
-
-        int32_t func_length = get_func_length(*func_data++);
-        if (func_length < 0) {
-            length = i;
-            break;
-        }
-
-        data_size += func_length;
-        func_data += func_length;
-        i += func_length;
-        func_count++;
-    }
-
-    d->data = vector_old_empty(dsc_data);
-    d->data_buffer = vector_old_empty(uint32_t);
-    vector_old_dsc_data_reserve(&d->data, func_count);
-    vector_old_uint32_t_reserve(&d->data_buffer, data_size);
-
-    func_data = data_dsc;
-    for (size_t i = 0; i < func_count; i++) {
-        dsc_data* data = vector_old_dsc_data_reserve_back(&d->data);
-        data->name = get_func_name(*func_data);
-        data->func = *func_data++;
-        data->data_offset = (uint32_t)vector_old_length(d->data_buffer);
-
-        int32_t func_length = get_func_length(data->func);
-        vector_old_uint32_t_insert_range(&d->data_buffer,
-            data->data_offset, func_data, func_data + func_length);
-        func_data += func_length;
-    }
-    f2_struct_free(&st);
-    return true;
-}
-
-void dsc_unparse(dsc* d, void** data, size_t* length) {
-    if (!d || !data || !length)
-        return;
-
-    dsc_get_func_length get_func_length = dsc_get_dsc_get_func_length(d);
-
-    bool f2 = false;
-    size_t size = 1;
-    switch (d->type) {
-    default:
-        if (d->signature >= 0x10000000)
-            size++;
-        break;
-    case DSC_F2:
-    case DSC_MGF:
-    case DSC_X:
-    case DSC_VRFL:
-        size += 2;
-        f2 = true;
-        break;
-    }
-
-    for (dsc_data* i = d->data.begin; i != d->data.end; i++)
-        size += get_func_length(i->func) + 1ULL;
-
-    size_t data_size = size;
-    if (f2)
-        data_size = align_val(size, 4);
-
-    uint32_t* data_dsc = force_malloc_s(uint32_t, data_size);
-    uint32_t* func_data = data_dsc;
-
-    switch (d->type) {
-    default:
-        if (d->signature >= 0x10000000)
-            *func_data++ = d->signature;
-        break;
-    case DSC_F:
-        if (d->signature >= 0x10000000)
-            *func_data++ = 0x12020220;
-        break;
-    case DSC_F2:
-    case DSC_MGF:
-    case DSC_X:
-    case DSC_VRFL:
-        *func_data++ = 0x13120420;
-        *func_data++ = d->id;
-        break;
-    }
-
-    for (dsc_data* i = d->data.begin; i != d->data.end; i++) {
-        *func_data++ = i->func;
-        uint32_t* data = dsc_data_get_func_data(d, i);
-        for (int32_t j = get_func_length(i->func); j; j--)
-            *func_data++ = *data++;
-    }
-    *func_data++ = 0;
-
-    if (f2) {
-        vector_old_enrs_entry e = vector_old_empty(enrs_entry);
-        enrs_entry ee;
-
-        ee = { 0, 1, 4, (uint32_t)size, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
-
-        f2_struct st;
-        memset(&st, 0, sizeof(f2_struct));
-        st.data = data_dsc;
-        st.length = data_size * sizeof(uint32_t);
-        st.enrs = e;
-
-        st.header.signature = reverse_endianness_uint32_t('PVSC');
-        st.header.length = 0x40;
-        st.header.use_section_size = true;
-        st.header.inner_signature = 0x13120420;
-        f2_struct_write(&st, data, length, true, false);
-        f2_struct_free(&st);
-    }
-    else {
-        *data = data_dsc;
-        *length = data_size * sizeof(uint32_t);
-    }
-}
-
-bool dsc_load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    string s;
-    string_init(&s, path);
-    string_add(&s, file);
-
-    stream dsc_s;
-    io_open(&dsc_s, string_data(&s), "rb");
-    void* dsc_data = force_malloc(dsc_s.length);
-    size_t dsc_length = dsc_s.length;
-    io_read(&dsc_s, dsc_data, dsc_length);
-
-    dsc* d = (dsc*)data;
-    bool ret = dsc_parse(d, dsc_data, dsc_length, d->type);
-
-    io_free(&dsc_s);
-    string_free(&s);
-    free(dsc_data);
-    return ret;
-}
-
-void dsc_free(dsc* d) {
-    if (!d)
-        return;
-
-    vector_old_dsc_data_free(&d->data, 0);
-    vector_old_uint32_t_free(&d->data_buffer, 0);
-}
-
-void dsc_replace_init(dsc_replace* dr, dsc_type src_type,
-    dsc_type dst_type, bool dst_has_perf_id) {
-    if (!dr)
-        return;
-
-    memset(dr, 0, sizeof(dsc_replace));
-    dr->bpm = 120;
-    dr->time_signature = 3;
-    dr->target_flying_time = -1000;
-
-    dr->bar_time_set_func_id = -1;
-    dr->target_flying_time_func_id = -1;
-    dr->dst_has_perf_id = dst_has_perf_id;
-
-    if (src_type < DSC_AC101 || src_type > DSC_VRFL
-        || dst_type < DSC_AC101 || dst_type > DSC_VRFL)
-        return;
-
-    dr->src_type = src_type;
-    dr->dst_type = dst_type;
-    dr->replace_data = 0;
-    dsc_init(&dr->dsc);
-
-    int32_t src_func_count = dsc_type_get_dsc_func_count(src_type);
-    int32_t dst_func_count = dsc_type_get_dsc_func_count(dst_type);
-    dsc_get_func_name src_get_func_name = dsc_type_get_dsc_get_func_name(src_type);
-    dsc_get_func_name dst_get_func_name = dsc_type_get_dsc_get_func_name(dst_type);
-    dsc_get_func_length dst_get_func_length = dsc_type_get_dsc_get_func_length(dst_type, dst_has_perf_id);
-    dsc_replace_data* replace_data = force_malloc_s(dsc_replace_data, src_func_count);
-    dr->replace_data = replace_data;
-
-    for (int32_t i = 0; i < src_func_count; i++) {
-        replace_data->name = 0;
-        replace_data->func_id = -1;
-        replace_data->length = 0;
-        replace_data->func = 0;
-        char* src_func_name = (char*)src_get_func_name(i);
-        if (str_utils_compare(src_func_name, ""))
-            for (int32_t j = 0; j < dst_func_count; j++) {
-                if (!str_utils_compare(src_func_name, (char*)dst_get_func_name(j))) {
-                    replace_data->name = src_func_name;
-                    replace_data->func_id = j;
-                    replace_data->length = dst_get_func_length(j);
-                    break;
-                }
-            }
-        replace_data++;
-    }
-}
-
-void dsc_replace_free(dsc_replace* dr) {
-    if (!dr)
-        return;
-
-    free(dr->replace_data);
-    dsc_free(&dr->dsc);
-}
-
-inline int32_t dsc_calculate_target_flying_time(int32_t bpm, int32_t time_signature) {
-    return (int32_t)((float_t)time_signature * (60.0f / (float_t)bpm) * 1000.0f);
-}
 
 inline int32_t dsc_type_get_dsc_func_count(dsc_type type) {
     switch (type) {
@@ -2876,14 +2052,920 @@ static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd,
     note11->time_signature = dn->time_signature;
 }
 
-inline static dsc_get_func_length dsc_get_dsc_get_func_length(dsc* d) {
-    return dsc_type_get_dsc_get_func_length(d->type, d->signature >= 0x10101514);
+uint32_t* dsc::add_func(const char* name, int32_t func, int32_t func_length) {
+    dsc_data dsc_d;
+    dsc_d.name = name;
+    dsc_d.func = func;
+    dsc_d.data_offset = (uint32_t)data_buffer.size();
+    data.push_back(dsc_d);
+
+    data_buffer.resize((size_t)dsc_d.data_offset + func_length);
+    return data_buffer.data() + dsc_d.data_offset;
 }
 
-static uint32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd) {
-    dsc_data* data = vector_old_dsc_data_reserve_back(&dr->dsc.data);
-    data->name = drd->name;
-    data->func = drd->func_id;
-    data->data_offset = (uint32_t)vector_old_length(dr->dsc.data_buffer);
-    return vector_old_uint32_t_reserve_back_range(&dr->dsc.data_buffer, drd->length);
+inline static uint32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd) {
+    return dr->dsc.add_func(drd->name, drd->func_id, drd->length);
+}
+
+dsc::dsc(dsc_type type, uint32_t signature, uint32_t id) : type(type), signature(signature), id(id) {
+
+}
+
+dsc::~dsc() {
+
+}
+
+static size_t dsc_data_time_radix_index_func_pv_branch_mode(dsc_data_time* data, size_t index);
+static size_t dsc_data_time_radix_index_func_time(dsc_data_time* data, size_t index);
+
+static size_t dsc_data_time_radix_index_func_pv_branch_mode(dsc_data_time* data, size_t index) {
+    return (size_t)(ssize_t)data[index].pv_branch_mode;
+}
+
+static size_t dsc_data_time_radix_index_func_time(dsc_data_time* data, size_t index) {
+    return (size_t)(ssize_t)data[index].time;
+}
+
+void dsc::convert(dsc_type dst_type) {
+    if (type < DSC_AC101 || type > DSC_VRFL || dst_type < DSC_AC101 || dst_type > DSC_VRFL)
+        return;
+
+    static const dsc_func_convert dsc_convert_ac100[3][21] = {
+        {
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+            (dsc_func_convert)0,
+        },
+        {
+            (dsc_func_convert)dsc_convert_to_ac100_miku_move,
+            (dsc_func_convert)dsc_convert_to_ac100_miku_rot,
+            (dsc_func_convert)dsc_convert_to_ac100_miku_disp,
+            (dsc_func_convert)dsc_convert_to_ac100_miku_shadow,
+            (dsc_func_convert)dsc_convert_to_ac100_set_motion,
+            (dsc_func_convert)dsc_convert_to_ac100_set_playdata,
+            (dsc_func_convert)dsc_convert_to_ac100_effect,
+            (dsc_func_convert)dsc_convert_to_ac100_eye_anim,
+            (dsc_func_convert)dsc_convert_to_ac100_mouth_anim,
+            (dsc_func_convert)dsc_convert_to_ac100_hand_anim,
+            (dsc_func_convert)dsc_convert_to_ac100_look_anim,
+            (dsc_func_convert)dsc_convert_to_ac100_expression,
+            (dsc_func_convert)dsc_convert_to_ac100_look_camera,
+            (dsc_func_convert)dsc_convert_to_ac100_lyric,
+            (dsc_func_convert)dsc_convert_to_ac100_mode_select,
+            (dsc_func_convert)dsc_convert_to_ac100_edit_motion,
+            (dsc_func_convert)dsc_convert_to_ac100_shadowheight,
+            (dsc_func_convert)dsc_convert_to_ac100_edit_face,
+            (dsc_func_convert)dsc_convert_to_ac100_move_camera,
+            (dsc_func_convert)dsc_convert_to_ac100_shadowpos,
+            (dsc_func_convert)dsc_convert_to_ac100_cloth_wet,
+        },
+        {
+            (dsc_func_convert)dsc_convert_from_ac100_miku_move,
+            (dsc_func_convert)dsc_convert_from_ac100_miku_rot,
+            (dsc_func_convert)dsc_convert_from_ac100_miku_disp,
+            (dsc_func_convert)dsc_convert_from_ac100_miku_shadow,
+            (dsc_func_convert)dsc_convert_from_ac100_set_motion,
+            (dsc_func_convert)dsc_convert_from_ac100_set_playdata,
+            (dsc_func_convert)dsc_convert_from_ac100_effect,
+            (dsc_func_convert)dsc_convert_from_ac100_eye_anim,
+            (dsc_func_convert)dsc_convert_from_ac100_mouth_anim,
+            (dsc_func_convert)dsc_convert_from_ac100_hand_anim,
+            (dsc_func_convert)dsc_convert_from_ac100_look_anim,
+            (dsc_func_convert)dsc_convert_from_ac100_expression,
+            (dsc_func_convert)dsc_convert_from_ac100_look_camera,
+            (dsc_func_convert)dsc_convert_from_ac100_lyric,
+            (dsc_func_convert)dsc_convert_from_ac100_mode_select,
+            (dsc_func_convert)dsc_convert_from_ac100_edit_motion,
+            (dsc_func_convert)dsc_convert_from_ac100_shadowheight,
+            (dsc_func_convert)dsc_convert_from_ac100_move_camera,
+            (dsc_func_convert)dsc_convert_from_ac100_edit_face,
+            (dsc_func_convert)dsc_convert_from_ac100_shadowpos,
+            (dsc_func_convert)dsc_convert_from_ac100_cloth_wet,
+        },
+    };
+
+    static const dsc_func_convert change_field_convert_func_array[2][2] = {
+        {
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_change_field1_to_change_field2,
+        },
+        {
+            (dsc_func_convert)dsc_convert_change_field2_to_change_field1,
+            (dsc_func_convert)0,
+        },
+    };
+
+    static const dsc_func_convert edit_camera_convert_func_array[2][2] = {
+        {
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_dummy,
+        },
+        {
+            (dsc_func_convert)dsc_convert_dummy,
+            (dsc_func_convert)0,
+        },
+    };
+
+    static const dsc_func_convert note_convert_func_array[3][3] = {
+        {
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_note7_to_note11,
+            (dsc_func_convert)dsc_convert_note7_to_note12,
+        },
+        {
+            (dsc_func_convert)dsc_convert_note11_to_note7,
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_note11_to_note12,
+        },
+        {
+            (dsc_func_convert)dsc_convert_note12_to_note7,
+            (dsc_func_convert)dsc_convert_note12_to_note11,
+            (dsc_func_convert)0,
+        },
+    };
+
+    static const dsc_func_convert vr_live_transform_convert_func_array[2][2] = {
+        {
+            (dsc_func_convert)0,
+            (dsc_func_convert)dsc_convert_dummy,
+        },
+        {
+            (dsc_func_convert)dsc_convert_dummy,
+            (dsc_func_convert)0,
+        },
+    };
+
+    bool src_has_perf_id = signature >= 0x10101514;
+    int32_t dsc_convert_ac100_type = src_has_perf_id ? 0 : 2;
+
+    if (dsc_convert_ac100_type == 2 && signature < 0x10000000)
+        signature = 0x10101514;
+
+    bool dst_has_perf_id;
+    switch (dst_type) {
+    default:
+        dst_has_perf_id = signature >= 0x10101514;
+        break;
+    case DSC_PSP:
+    case DSC_DT:
+    case DSC_AC101:
+    case DSC_AC110:
+    case DSC_AC120:
+        dst_has_perf_id = false;
+        dsc_convert_ac100_type = src_has_perf_id ? 1 : 0;
+        break;
+    }
+
+    if (dsc_convert_ac100_type == 1)
+        signature = 0;
+
+    int32_t note_convert_src;
+    switch (type) {
+    default:
+        note_convert_src = 0;
+        break;
+    case DSC_2ND:
+        note_convert_src = 1;
+        break;
+    case DSC_DT2:
+    case DSC_F:
+        note_convert_src = src_has_perf_id ? 1 : 0;
+        break;
+    case DSC_F2:
+    case DSC_MGF:
+    case DSC_X:
+    case DSC_VRFL:
+        note_convert_src = 2;
+        break;
+    }
+
+    int32_t note_convert_dst;
+    switch (dst_type) {
+    default:
+        note_convert_dst = 0;
+        break;
+    case DSC_2ND:
+        note_convert_dst = 1;
+        break;
+    case DSC_DT2:
+    case DSC_F:
+        note_convert_dst = dst_has_perf_id ? 1 : 0;
+        break;
+    case DSC_F2:
+    case DSC_MGF:
+    case DSC_X:
+    case DSC_VRFL:
+        note_convert_dst = 2;
+        break;
+    }
+
+    bool enable_edit_camera = ((note_convert_src == 0 || note_convert_src == 1)
+        && (note_convert_dst == 0 || note_convert_dst == 1)
+        || note_convert_src == 2 && note_convert_dst == 2);
+    bool enable_edit_camera_ac = (note_convert_src == 0 || note_convert_src == 1)
+        && (note_convert_dst == 0 || note_convert_dst == 1) && dst_has_perf_id;
+
+    dsc_replace dr(type, dst_type, dst_has_perf_id);
+
+    int32_t src_func_count = dsc_type_get_dsc_func_count(type);
+    dsc_get_func_name src_get_func_name = dsc_type_get_dsc_get_func_name(type);
+
+    for (int32_t i = 0; i < src_func_count; i++) {
+        dsc_replace_data* repl_data = &dr.replace_data[i];
+        char* src_func_name = (char*)src_get_func_name(i);
+        if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_MOVE"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][0];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_ROT"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][1];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_DISP"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][2];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_SHADOW"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][3];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "TARGET"))
+            repl_data->func = note_convert_func_array[note_convert_src][note_convert_dst];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "SET_MOTION"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][4];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "SET_PLAYDATA"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][5];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "EFFECT"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][6];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "CHANGE_FIELD"))
+            repl_data->func = change_field_convert_func_array
+            [note_convert_src == 2 ? 1 : 0][note_convert_dst == 2 ? 1 : 0];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "EYE_ANIM"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][7];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "MOUTH_ANIM"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][8];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "HAND_ANIM"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][9];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "LOOK_ANIM"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][10];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "EXPRESSION"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][11];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "LOOK_CAMERA"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][12];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "LYRIC"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][13];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "MODE_SELECT"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][14];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "EDIT_MOTION"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][15];
+        else if (dr.bar_time_set_func_id == -1 && !str_utils_compare(
+            src_func_name, "BAR_TIME_SET"))
+            dr.bar_time_set_func_id = i;
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "SHADOWHEIGHT"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][16];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "EDIT_FACE"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][17];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "MOVE_CAMERA"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][18];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "SHADOWPOS"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][19];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "CLOTH_WET"))
+            repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][20];
+        else if (dr.target_flying_time_func_id == -1 && !str_utils_compare(
+            src_func_name, "TARGET_FLYING_TIME"))
+            dr.target_flying_time_func_id = i;
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "EDIT_CAMERA"))
+            repl_data->func = edit_camera_convert_func_array
+            [note_convert_src == 2 ? 1 : 0][note_convert_dst == 2 ? 1 : 0];
+        else if (!repl_data->func && !str_utils_compare(src_func_name, "VR_LIVE_TRANSFORM"))
+            repl_data->func = vr_live_transform_convert_func_array
+            [type == DSC_VRFL][dst_type == DSC_VRFL];
+    }
+
+    for (dsc_data& i : data) {
+        int32_t func = i.func;
+        if (func == -1 || dr.replace_data[func].func_id == -1)
+            continue;
+
+        uint32_t* data = get_func_data(&i);
+        dsc_replace_data* repl_data = &dr.replace_data[func];
+        if (func == dr.bar_time_set_func_id) {
+            dr.bpm = data[0];
+            dr.time_signature = data[1];
+            dr.target_flying_time = -1000;
+
+            uint32_t* bar_time_set = dsc_replace_add_func(&dr, repl_data);
+            *bar_time_set++ = dr.bpm;
+            *bar_time_set++ = dr.time_signature;
+        }
+        else if (func == dr.target_flying_time_func_id) {
+            dr.target_flying_time = data[0];
+
+            uint32_t* target_flying_time = dsc_replace_add_func(&dr, repl_data);
+            *target_flying_time++ = dr.target_flying_time;
+        }
+        else if (dr.replace_data[func].func)
+            dr.replace_data[func].func(&dr, repl_data, data);
+        else {
+            uint32_t* dst_data = dsc_replace_add_func(&dr, repl_data);
+            memmove(dst_data, data, sizeof(uint32_t) * repl_data->length);
+        }
+    }
+
+    data.clear();
+    data.shrink_to_fit();
+    data_buffer.clear();
+    data_buffer.shrink_to_fit();
+
+    type = dr.dst_type;
+    switch (type) {
+    case DSC_F:
+        if (signature >= 0x10000000)
+            signature = 0x12020220;
+        break;
+    case DSC_F2:
+    case DSC_MGF:
+    case DSC_X:
+    case DSC_VRFL:
+        signature = 0x13120420;
+        id = 0;
+        break;
+    }
+    data = dr.dsc.data;
+    data_buffer = dr.dsc.data_buffer;
+}
+
+void dsc::rebuild() {
+    dsc_get_func_id get_func_id = dsc_type_get_dsc_get_func_id(type);
+    dsc_get_func_length get_func_length = get_dsc_get_func_length();
+    dsc_get_func_name get_func_name = dsc_type_get_dsc_get_func_name(type);
+
+    int32_t time_func_id = get_func_id("TIME");
+    int32_t pv_branch_mode_func_id = get_func_id("PV_BRANCH_MODE");
+
+    const char* time_func_name = get_func_name(time_func_id);
+    const char* pv_branch_mode_func_name = get_func_name(pv_branch_mode_func_id);
+
+    int32_t time_func_length = get_func_length(time_func_id);
+    int32_t pv_branch_mode_func_length = get_func_length(pv_branch_mode_func_id);
+
+    size_t func_count = data.size();
+    size_t size = 0;
+    for (dsc_data& j : data)
+        if (j.func == time_func_id || j.func == pv_branch_mode_func_id)
+            func_count--;
+        else
+            size += get_func_length(j.func);
+
+    std::vector<dsc_data_time> data_time;
+    std::vector<uint32_t> data_time_buffer;
+    data_time.reserve(func_count);
+    data_time_buffer.reserve(size);
+
+    int32_t time = -1;
+    int32_t pv_branch_mode = 0;
+    for (dsc_data& j : data) {
+        if (j.func == time_func_id) {
+            time = (int32_t)get_func_data(&j)[0];
+            continue;
+        }
+        else if (j.func == pv_branch_mode_func_id) {
+            pv_branch_mode = (int32_t)get_func_data(&j)[0];
+            continue;
+        }
+
+        dsc_data_time dsc_d;
+        dsc_d.time = time;
+        dsc_d.pv_branch_mode = pv_branch_mode;
+        dsc_d.name = j.name;
+        dsc_d.func = j.func;
+        dsc_d.data_offset = (uint32_t)data_time_buffer.size();
+        data_time.push_back(dsc_d);
+
+        uint32_t* func_data = get_func_data(&j);
+        int32_t func_length = get_func_length(j.func);
+        data_time_buffer.resize((size_t)dsc_d.data_offset + func_length);
+        memmove(data_time_buffer.data() + dsc_d.data_offset, func_data, sizeof(uint32_t) * func_length);
+    }
+
+    if (data_time.size()) {
+        for (dsc_data_time& i : data_time)
+            i.time = radix_preprocess_int32_t(i.time);
+        radix_sort_custom(data_time.data(), data_time.size(), sizeof(dsc_data_time),
+            sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_time);
+        for (dsc_data_time& i : data_time)
+            i.time = radix_postprocess_int32_t(i.time);
+    }
+
+    func_count = data_time.size();
+    size = 0;
+
+    time = -1;
+    int32_t time_count = 0;
+    for (dsc_data_time& i : data_time)
+        if (time != i.time) {
+            if (time_count > 1)
+                radix_sort_custom(&i - time_count, time_count, sizeof(dsc_data_time),
+                    sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_pv_branch_mode);
+            time = i.time;
+            time_count = 1;
+            func_count++;
+            size++;
+        }
+        else
+            time_count++;
+
+    if (time_count > 1)
+        radix_sort_custom(&(data_time.end() - time_count)[0], time_count, sizeof(dsc_data_time),
+            sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_pv_branch_mode);
+
+    pv_branch_mode = -1;
+    int32_t pv_branch_mode_count = 0;
+    for (dsc_data_time& i : data_time)
+        if (pv_branch_mode != i.pv_branch_mode) {
+            pv_branch_mode = i.pv_branch_mode;
+            pv_branch_mode_count = 1;
+            func_count++;
+            size++;
+        }
+        else
+            pv_branch_mode_count++;
+
+    for (dsc_data_time& i : data_time)
+        size += get_func_length(i.func);
+
+    data.reserve(func_count);
+    data_buffer.reserve(size);
+
+    time = -1;
+    pv_branch_mode = -1;
+    for (dsc_data_time& i : data_time) {
+        if (time_func_id != -1 && time != i.time) {
+            time = i.time;
+
+            dsc_data dsc_d;
+            dsc_d.name = time_func_name;
+            dsc_d.func = time_func_id;
+            dsc_d.data_offset = (uint32_t)data_buffer.size();
+            data.push_back(dsc_d);
+
+            data_buffer.push_back(time);
+        }
+
+        if (pv_branch_mode_func_id != -1 && pv_branch_mode != i.pv_branch_mode) {
+            pv_branch_mode = i.pv_branch_mode;
+
+            dsc_data dsc_d;
+            dsc_d.name = pv_branch_mode_func_name;
+            dsc_d.func = pv_branch_mode_func_id;
+            dsc_d.data_offset = (uint32_t)data_buffer.size();
+            data.push_back(dsc_d);
+
+            data_buffer.push_back(pv_branch_mode);
+        }
+
+        uint32_t* func_data = (uint32_t*)(data_time_buffer.data() + i.data_offset);
+        uint32_t* data = add_func(get_func_name(i.func),
+            pv_branch_mode_func_id, get_func_length(i.func));
+        memmove(data, func_data, sizeof(uint32_t) * get_func_length(i.func));
+    }
+}
+
+dsc_get_func_length dsc::get_dsc_get_func_length() {
+    return dsc_type_get_dsc_get_func_length(type, signature >= 0x10101514);
+}
+
+uint32_t* dsc::get_func_data(dsc_data* data) {
+    return (uint32_t*)(data_buffer.data() + data->data_offset);
+}
+
+void dsc::merge(int32_t count, ...) {
+    va_list args;
+    va_start(args, count);
+    dsc* s0 = va_arg(args, dsc*);
+    if (!s0) {
+        va_end(args);
+        return;
+    }
+
+    for (int32_t i = 1; i < count; i++) {
+        dsc* d1 = va_arg(args, dsc*);
+        if (!d1 || s0->type != d1->type || s0->signature != d1->signature) {
+            va_end(args);
+            return;
+        }
+    }
+    va_end(args);
+
+    type = s0->type;
+    signature = s0->signature;
+    id = s0->id;
+
+    dsc_get_func_id get_func_id = dsc_type_get_dsc_get_func_id(s0->type);
+    dsc_get_func_length get_func_length = s0->get_dsc_get_func_length();
+    dsc_get_func_name get_func_name = dsc_type_get_dsc_get_func_name(s0->type);
+
+    int32_t time_func_id = get_func_id("TIME");
+    int32_t pv_branch_mode_func_id = get_func_id("PV_BRANCH_MODE");
+
+    const char* time_func_name = get_func_name(time_func_id);
+    const char* pv_branch_mode_func_name = get_func_name(pv_branch_mode_func_id);
+
+    int32_t time_func_length = get_func_length(time_func_id);
+    int32_t pv_branch_mode_func_length = get_func_length(pv_branch_mode_func_id);
+
+    size_t func_count = 0;
+    size_t size = 0;
+    va_start(args, count);
+    for (int32_t i = 0; i < count; i++) {
+        dsc* s = va_arg(args, dsc*);
+        func_count += s->data.size();
+        for (dsc_data& j : s->data)
+            if (j.func == time_func_id || j.func == pv_branch_mode_func_id)
+                func_count--;
+            else
+                size += get_func_length(j.func);
+    }
+    va_end(args);
+
+    std::vector<dsc_data_time> data_time;
+    std::vector<uint32_t> data_time_buffer;
+    data_time.reserve(func_count);
+    data_time_buffer.reserve(size);
+    va_start(args, count);
+    for (int32_t i = 0; i < count; i++) {
+        dsc* s = va_arg(args, dsc*);
+
+        int32_t time = -1;
+        int32_t pv_branch_mode = 0;
+        for (dsc_data& j : s->data) {
+            if (j.func == time_func_id) {
+                time = (int32_t)s->get_func_data(&j)[0];
+                continue;
+            }
+            else if (j.func == pv_branch_mode_func_id) {
+                pv_branch_mode = (int32_t)s->get_func_data(&j)[0];
+                continue;
+            }
+
+            dsc_data_time dsc_d;
+            dsc_d.time = time;
+            dsc_d.pv_branch_mode = pv_branch_mode;
+            dsc_d.name = j.name;
+            dsc_d.func = j.func;
+            dsc_d.data_offset = (uint32_t)data_time_buffer.size();
+            data_time.push_back(dsc_d);
+
+            uint32_t* func_data = s->get_func_data(&j);
+            int32_t func_length = get_func_length(j.func);
+            data_time_buffer.resize((size_t)dsc_d.data_offset + func_length);
+            memmove(data_time_buffer.data() + dsc_d.data_offset, func_data, sizeof(uint32_t) * func_length);
+        }
+    }
+    va_end(args);
+
+    if (data_time.size()) {
+        for (dsc_data_time& i : data_time)
+            i.time = radix_preprocess_int32_t(i.time);
+        radix_sort_custom(data_time.data(), data_time.size(), sizeof(dsc_data_time),
+            sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_time);
+        for (dsc_data_time& i : data_time)
+            i.time = radix_postprocess_int32_t(i.time);
+    }
+
+    func_count = data_time.size();
+    size = 0;
+
+    int32_t time = -1;
+    int32_t time_count = 0;
+    for (dsc_data_time& i : data_time)
+        if (time != i.time) {
+            if (time_count > 1)
+                radix_sort_custom(&i - time_count, time_count, sizeof(dsc_data_time),
+                    sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_pv_branch_mode);
+            time = i.time;
+            time_count = 1;
+            func_count++;
+            size++;
+        }
+        else
+            time_count++;
+
+    if (time_count > 1)
+        radix_sort_custom(&(data_time.end() - time_count)[0], time_count, sizeof(dsc_data_time),
+            sizeof(int32_t), (radix_index_func)dsc_data_time_radix_index_func_pv_branch_mode);
+
+    int32_t pv_branch_mode = -1;
+    int32_t pv_branch_mode_count = 0;
+    for (dsc_data_time& i : data_time)
+        if (pv_branch_mode != i.pv_branch_mode) {
+            pv_branch_mode = i.pv_branch_mode;
+            pv_branch_mode_count = 1;
+            func_count++;
+            size++;
+        }
+        else
+            pv_branch_mode_count++;
+
+    for (dsc_data_time& i : data_time)
+        size += get_func_length(i.func);
+
+    data.reserve(func_count);
+    data_buffer.reserve(size);
+
+    time = -1;
+    pv_branch_mode = -1;
+    for (dsc_data_time& i : data_time) {
+        if (time_func_id != -1 && time != i.time) {
+            time = i.time;
+
+            dsc_data dsc_d;
+            dsc_d.name = time_func_name;
+            dsc_d.func = time_func_id;
+            dsc_d.data_offset = (uint32_t)data_buffer.size();
+            data.push_back(dsc_d);
+
+            data_buffer.push_back(time);
+        }
+
+        if (pv_branch_mode_func_id != -1 && pv_branch_mode != i.pv_branch_mode) {
+            pv_branch_mode = i.pv_branch_mode;
+
+            dsc_data dsc_d;
+            dsc_d.name = pv_branch_mode_func_name;
+            dsc_d.func = pv_branch_mode_func_id;
+            dsc_d.data_offset = (uint32_t)data_buffer.size();
+            data.push_back(dsc_d);
+
+            data_buffer.push_back(pv_branch_mode);
+        }
+
+        uint32_t* data = add_func(get_func_name(i.func),
+            pv_branch_mode_func_id, get_func_length(i.func));
+        memmove(data, data_time_buffer.data() + i.data_offset,
+            sizeof(uint32_t) * get_func_length(i.func));
+    }
+}
+
+bool dsc::parse(void* data, size_t length, dsc_type type) {
+    if (!data || !(length / 4) || type < DSC_AC101 || type > DSC_VRFL)
+        return false;
+
+    uint32_t* data_dsc = (uint32_t*)data;
+
+    f2_struct st;
+    memset(&st, 0, sizeof(f2_struct));
+    signature = 0;
+    switch (type) {
+    default:
+        if (*data_dsc >= 0x10000000) {
+            signature = *data_dsc++;
+            length--;
+        }
+        break;
+    case DSC_F:
+        if (*data_dsc >= 0x10000000) {
+            if (*data_dsc != 0x12020220)
+                return false;
+
+            data_dsc++;
+            signature = 0x12020220;
+        }
+        break;
+    case DSC_F2:
+    case DSC_MGF:
+    case DSC_X:
+    case DSC_VRFL:
+        f2_struct_read(&st, data, length);
+        data_dsc = (uint32_t*)st.data;
+        if (st.header.use_big_endian)
+            for (size_t i = length / 4; i; i--, data_dsc++)
+                *data_dsc = load_reverse_endianness_uint32_t(data_dsc);
+
+        data_dsc = (uint32_t*)st.data;
+        if (*data_dsc++ != 0x13120420) {
+            f2_struct_free(&st);
+            return false;
+        }
+
+        signature = 0x13120420;
+        id = *data_dsc++;
+        break;
+    }
+
+    length /= 4;
+
+    this->type = type;
+
+    dsc_get_func_name get_func_name = dsc_type_get_dsc_get_func_name(type);
+    dsc_get_func_length get_func_length = get_dsc_get_func_length();
+
+    size_t func_count = 0;
+    size_t data_size = 0;
+    uint32_t* func_data = data_dsc;
+    for (size_t i = 0; i < length; i++) {
+        if (!*func_data) {
+            length = i;
+            break;
+        }
+
+        int32_t func_length = get_func_length(*func_data++);
+        if (func_length < 0) {
+            length = i;
+            break;
+        }
+
+        data_size += func_length;
+        func_data += func_length;
+        i += func_length;
+        func_count++;
+    }
+
+    this->data.reserve(func_count);
+    data_buffer.reserve(data_size);
+
+    func_data = data_dsc;
+    for (size_t i = 0; i < func_count; i++) {
+        dsc_data data;
+        data.name = get_func_name(*func_data);
+        data.func = *func_data++;
+        data.data_offset = (uint32_t)data_buffer.size();
+        this->data.push_back(data);
+
+        int32_t func_length = get_func_length(data.func);
+        data_buffer.resize((size_t)data.data_offset + func_length);
+        memmove(data_buffer.data() + data.data_offset, func_data, sizeof(uint32_t) * func_length);
+        func_data += func_length;
+    }
+    f2_struct_free(&st);
+    return true;
+}
+
+void dsc::unparse(void** data, size_t* length) {
+    if (!data || !length)
+        return;
+
+    dsc_get_func_length get_func_length = get_dsc_get_func_length();
+
+    bool f2 = false;
+    size_t size = 1;
+    switch (type) {
+    default:
+        if (signature >= 0x10000000)
+            size++;
+        break;
+    case DSC_F2:
+    case DSC_MGF:
+    case DSC_X:
+    case DSC_VRFL:
+        size += 2;
+        f2 = true;
+        break;
+    }
+
+    for (dsc_data& i : this->data)
+        size += get_func_length(i.func) + 1ULL;
+
+    size_t data_size = size;
+    if (f2)
+        data_size = align_val(size, 4);
+
+    uint32_t* data_dsc = force_malloc_s(uint32_t, data_size);
+    uint32_t* func_data = data_dsc;
+
+    switch (type) {
+    default:
+        if (signature >= 0x10000000)
+            *func_data++ = signature;
+        break;
+    case DSC_F:
+        if (signature >= 0x10000000)
+            *func_data++ = 0x12020220;
+        break;
+    case DSC_F2:
+    case DSC_MGF:
+    case DSC_X:
+    case DSC_VRFL:
+        *func_data++ = 0x13120420;
+        *func_data++ = id;
+        break;
+    }
+
+    for (dsc_data& i : this->data) {
+        *func_data++ = i.func;
+        uint32_t* data = this->get_func_data(&i);
+        for (int32_t j = get_func_length(i.func); j; j--)
+            *func_data++ = *data++;
+    }
+    *func_data++ = 0;
+
+    if (f2) {
+        vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+        enrs_entry ee;
+
+        ee = { 0, 1, 4, (uint32_t)size, vector_old_empty(enrs_sub_entry) };
+        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+        vector_old_enrs_entry_push_back(&e, &ee);
+
+        f2_struct st;
+        memset(&st, 0, sizeof(f2_struct));
+        st.data = data_dsc;
+        st.length = data_size * sizeof(uint32_t);
+        st.enrs = e;
+
+        st.header.signature = reverse_endianness_uint32_t('PVSC');
+        st.header.length = 0x40;
+        st.header.use_section_size = true;
+        st.header.inner_signature = 0x13120420;
+        f2_struct_write(&st, data, length, true, false);
+        f2_struct_free(&st);
+    }
+    else {
+        *data = data_dsc;
+        *length = data_size * sizeof(uint32_t);
+    }
+}
+
+int32_t dsc::calculate_target_flying_time(int32_t bpm, int32_t time_signature) {
+    return (int32_t)((float_t)time_signature * (60.0f / (float_t)bpm) * 1000.0f);
+}
+
+bool dsc::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+    string s;
+    string_init(&s, path);
+    string_add(&s, file);
+
+    stream dsc_s;
+    io_open(&dsc_s, string_data(&s), "rb");
+    void* dsc_data = force_malloc(dsc_s.length);
+    size_t dsc_length = dsc_s.length;
+    io_read(&dsc_s, dsc_data, dsc_length);
+
+    dsc* d = (dsc*)data;
+    bool ret = d->parse(dsc_data, dsc_length, d->type);
+
+    io_free(&dsc_s);
+    string_free(&s);
+    free(dsc_data);
+    return ret;
+}
+
+dsc_replace::dsc_replace(dsc_type src_type, dsc_type dst_type,
+    bool dst_has_perf_id) : src_type(DSC_FT), dst_type(DSC_FT), replace_data() {
+
+    bpm = 120;
+    time_signature = 3;
+    target_flying_time = -1000;
+
+    bar_time_set_func_id = -1;
+    target_flying_time_func_id = -1;
+    this->dst_has_perf_id = dst_has_perf_id;
+
+    if (src_type < DSC_AC101 || src_type > DSC_VRFL
+        || dst_type < DSC_AC101 || dst_type > DSC_VRFL)
+        return;
+
+    this->src_type = src_type;
+    this->dst_type = dst_type;
+    this->replace_data = 0;
+
+    int32_t src_func_count = dsc_type_get_dsc_func_count(src_type);
+    int32_t dst_func_count = dsc_type_get_dsc_func_count(dst_type);
+    dsc_get_func_name src_get_func_name = dsc_type_get_dsc_get_func_name(src_type);
+    dsc_get_func_name dst_get_func_name = dsc_type_get_dsc_get_func_name(dst_type);
+    dsc_get_func_length dst_get_func_length = dsc_type_get_dsc_get_func_length(dst_type, dst_has_perf_id);
+    dsc_replace_data* replace_data = force_malloc_s(dsc_replace_data, src_func_count);
+    this->replace_data = replace_data;
+
+    for (int32_t i = 0; i < src_func_count; i++) {
+        replace_data->name = 0;
+        replace_data->func_id = -1;
+        replace_data->length = 0;
+        replace_data->func = 0;
+        char* src_func_name = (char*)src_get_func_name(i);
+        if (str_utils_compare(src_func_name, ""))
+            for (int32_t j = 0; j < dst_func_count; j++) {
+                if (!str_utils_compare(src_func_name, (char*)dst_get_func_name(j))) {
+                    replace_data->name = src_func_name;
+                    replace_data->func_id = j;
+                    replace_data->length = dst_get_func_length(j);
+                    break;
+                }
+            }
+        replace_data++;
+    }
+}
+
+dsc_replace::~dsc_replace() {
+
 }

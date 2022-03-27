@@ -19,6 +19,7 @@ classes_data graphics_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         graphics_background_color_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -41,6 +42,7 @@ classes_data graphics_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         graphics_post_process_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -63,6 +65,7 @@ classes_data graphics_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         graphics_glitter_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
@@ -85,6 +88,7 @@ classes_data graphics_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         graphics_render_settings_dispose,
+        0,
         {
             {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),

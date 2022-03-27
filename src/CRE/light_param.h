@@ -54,15 +54,17 @@ public:
     uint32_t pv_id;
 
     light_param_data_storage();
-    ~light_param_data_storage();
+    virtual ~light_param_data_storage();
 
     static void load(data_struct* data);
     static void unload();
 };
 
+extern void light_param_storage_data_init();
 extern void light_param_storage_data_free_file_handlers();
 extern int32_t light_param_storage_data_load_file();
 extern void light_param_storage_data_load_stage(int32_t stage_index);
 extern void light_param_storage_data_load_stages(std::vector<int32_t>* stage_indices);
 extern void light_param_storage_data_set_default_light_param();
 extern void light_param_storage_data_set_stage(int32_t stage_id);
+extern void light_param_storage_data_free();

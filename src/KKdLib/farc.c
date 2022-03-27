@@ -40,8 +40,8 @@ data(), data_compressed(), flags(), data_changed() {
 }
 
 farc_file::~farc_file() {
-    delete data;
-    delete data_compressed;
+    free(data);
+    free(data_compressed);
 }
 
 size_t farc::get_file_size(const char* name) {

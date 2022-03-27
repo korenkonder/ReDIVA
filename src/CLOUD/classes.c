@@ -5,7 +5,42 @@
 
 #include "classes.h"
 
+bool data_test_shared_lock;
+
 extern bool input_locked;
+
+static void TaskWindow_do_disp(TaskWindow* t);
+
+TaskWindow::TaskWindow() : show_window(), window_focus() {
+
+}
+
+TaskWindow::~TaskWindow() {
+
+}
+
+void TaskWindow::Window() {
+    if (!show_window)
+        return;
+}
+
+void TaskWork_Window() {
+    task_work.disp = true;;
+    for (int32_t i = 0; i < 3; i++)
+        for (Task*& j : task_work.tasks) {
+            Task* tsk = j;
+            TaskWindow* tsk_w = dynamic_cast<TaskWindow*>(tsk);
+            if (tsk_w && tsk_w->priority == i)
+                TaskWindow_do_disp(tsk_w);
+        }
+    task_work.disp = false;
+}
+
+static void TaskWindow_do_disp(TaskWindow* t) {
+    if ((t->field_1C == 1 || t->field_1C == 2)
+        && t->field_18 != TASK_INIT && t->field_18 != TASK_DEST)
+        t->Window();
+}
 
 void classes_process_init(classes_data* classes, const size_t classes_count, render_context* rctx) {
     if (!classes || !classes_count)
@@ -29,10 +64,14 @@ void classes_process_init(classes_data* classes, const size_t classes_count, ren
         }
 
         if (lock_check_init(&c->data.lock)
-            && c->flags & CLASSES_SHOW_AT_STARTUP) {
+            && c->flags & CLASSES_SHOW_AT_STARTUP
+            && (!c->shared_lock || c->shared_lock && !*c->shared_lock)) {
             lock_lock(&c->data.lock);
-            if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show))
+            if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show)) {
+                if (~c->data.flags & CLASS_HAS_PARENT && c->shared_lock)
+                    *c->shared_lock = true;
                 enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN));
+            }
             lock_unlock(&c->data.lock);
         }
 
@@ -53,6 +92,9 @@ void classes_process_ctrl(classes_data* classes, const size_t classes_count) {
                 if (~c->data.flags & CLASS_HIDDEN && ((c->hide && c->hide(&c->data)) || !c->hide)) {
                     enum_and(c->data.flags, ~CLASS_HIDE);
                     enum_or(c->data.flags, CLASS_HIDDEN);
+                    if (~c->data.flags & CLASS_HAS_PARENT && c->shared_lock)
+                        *c->shared_lock = false;
+                    enum_and(c->data.flags, ~CLASS_HAS_PARENT);
                 }
                 lock_unlock(&c->data.lock);
             }
@@ -63,6 +105,9 @@ void classes_process_ctrl(classes_data* classes, const size_t classes_count) {
                 if (~c->data.flags & CLASS_HIDDEN && ((c->hide && c->hide(&c->data)) || !c->hide)) {
                     enum_and(c->data.flags, ~CLASS_HIDE);
                     enum_or(c->data.flags, CLASS_HIDDEN);
+                    if (~c->data.flags & CLASS_HAS_PARENT && c->shared_lock)
+                        *c->shared_lock = false;
+                    enum_and(c->data.flags, ~CLASS_HAS_PARENT);
                 }
 
                 if (~c->data.flags & CLASS_DISPOSED && ((c->dispose && c->dispose(&c->data)) || !c->dispose)) {
@@ -187,6 +232,9 @@ void classes_process_dispose(classes_data* classes, const size_t classes_count) 
             if (~c->data.flags & CLASS_HIDDEN && ((c->hide && c->hide(&c->data)) || !c->hide)) {
                 enum_and(c->data.flags, ~CLASS_HIDE);
                 enum_or(c->data.flags, CLASS_HIDDEN);
+                if (~c->data.flags & CLASS_HAS_PARENT && c->shared_lock)
+                    *c->shared_lock = false;
+                enum_and(c->data.flags, ~CLASS_HAS_PARENT);
             }
 
             if (~c->data.flags & CLASS_DISPOSED && ((c->dispose && c->dispose(&c->data)) || !c->dispose)) {

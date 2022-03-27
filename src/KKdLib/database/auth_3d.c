@@ -392,7 +392,7 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
         std::vector<int32_t> sort_index;
         key_val::get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
-            std::string* c = &vc[sort_index[i]];
+            std::string& c = vc[sort_index[i]];
 
             len1 = sprintf_s(buf + len, AUTH_3D_DATABASE_TEXT_BUF_SIZE - len, ".%d", sort_index[i]);
             off = len + len1;
@@ -420,12 +420,12 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
             len1 = sprintf_s(buf + len, AUTH_3D_DATABASE_TEXT_BUF_SIZE - len, ".%d", sort_index[i]);
             off = len + len1;
 
-            key_val::write_string(&s, buf, off, ".category", 10, &u->category);
+            key_val::write_string(&s, buf, off, ".category", 10, u->category);
             if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_ORG_UID))
                 key_val::write_int32_t(&s, buf, off, ".org_uid", 9, u->org_uid);
             if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_SIZE))
                 key_val::write_float_t(&s, buf, off, ".size", 6, u->size);
-            key_val::write_string(&s, buf, off, ".value", 7, &u->value);
+            key_val::write_string(&s, buf, off, ".value", 7, u->value);
 
             if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_ORG_UID) && u->org_uid > uid_max)
                 uid_max = u->org_uid;

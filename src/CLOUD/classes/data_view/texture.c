@@ -26,32 +26,32 @@ bool data_view_texture_init(class_data* data, render_context* rctx) {
 }
 
 void data_view_texture_imgui(class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     float_t w = min((float_t)width, 560.0f);
     float_t h = min((float_t)height, 480.0f);
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(data_view_texture_window_title, &open, 0);
+    bool collapsed = !ImGui::Begin(data_view_texture_window_title, &open, 0);
     if (!open) {
         enum_or(data->flags, CLASS_HIDE);
-        igEnd();
+        ImGui::End();
         return;
     }
     else if (collapsed) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
     data_view_texture* data_view = (data_view_texture*)data->data;
     if (!data_view) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
@@ -63,16 +63,16 @@ void data_view_texture_imgui(class_data* data) {
         if (texture_get_id(tex->id))
             continue;
 
-        igPushID_Int(tex->id);
+        ImGui::PushID(tex->id);
         char buf[0x1000];
         sprintf_s(buf, sizeof(buf), "ID: 0x%06X; Init Count: %3d; Width: %5d; Height: %5d; Mipmap Count: %2d",
             texture_get_index(tex->id), tex->init_count, tex->width, tex->height, tex->max_mipmap_level + 1);
-        igSelectable_Bool(buf, false, 0, ImVec2_Empty);
-        igPopID();
+        ImGui::Selectable(buf);
+        ImGui::PopID();
     }
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 }
 
 bool data_view_texture_dispose(class_data* data) {

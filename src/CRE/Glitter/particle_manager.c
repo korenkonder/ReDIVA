@@ -103,7 +103,7 @@ void GltParticleManager::BasicEffectGroups() {
     }
 }
 
-uint64_t GltParticleManager::CalculateHash(char* str) {
+uint64_t GltParticleManager::CalculateHash(const char* str) {
     return hash_utf8_fnv1a64m(str, false);
 }
 
@@ -220,6 +220,17 @@ glitter_effect_group* GltParticleManager::GetEffectGroup(uint64_t hash) {
     if (elem != effect_groups.end())
         return elem->second;
     return 0;
+}
+
+const char* GltParticleManager::GetEffectName(uint64_t hash, int32_t index) {
+    std::map<uint64_t, glitter_effect_group*>::iterator elem = effect_groups.find(hash);
+    if (elem == effect_groups.end())
+        return 0;
+
+    glitter_effect_group* eff_group = elem->second;
+    if (index >= vector_old_length(eff_group->effects))
+        return 0;
+    return eff_group->effects.begin[index]->name;
 }
 
 size_t GltParticleManager::GetEffectsCount(uint64_t hash) {

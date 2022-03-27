@@ -860,7 +860,7 @@ static void glitter_x_render_group_calc_disp_mesh(GPM, glitter_render_group* a1)
             object_info object_info;
             object_info.set_id = (uint32_t)particle->data.mesh.object_set_name_hash;
             object_info.id = (uint32_t)particle->data.mesh.object_name_hash;
-            object* obj = object_storage_get_object(object_info);
+            obj* obj = object_storage_get_obj(object_info);
             if (!obj)
                 continue;
 
@@ -868,14 +868,14 @@ static void glitter_x_render_group_calc_disp_mesh(GPM, glitter_render_group* a1)
             int32_t ttc = 0;
             texture_transform_struct* tt = object_data->texture_transform_array;
             for (int32_t i = 0; i < obj->meshes_count; i++) {
-                object_mesh* mesh = &obj->meshes[i];
+                obj_mesh* mesh = &obj->meshes[i];
                 for (int32_t j = 0; j < mesh->sub_meshes_count; j++) {
-                    object_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
-                    object_material* material = &obj->materials[sub_mesh->material_index].material;
+                    obj_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
+                    obj_material* material = &obj->materials[sub_mesh->material_index].material;
 
                     for (int32_t k = 0, l = 0; k < 8; k++) {
-                        object_material_texture* texture = &material->textures[k];
-                        if (texture->texture_flags.type != OBJECT_MATERIAL_TEXTURE_COLOR)
+                        obj_material_texture* texture = &material->textures[k];
+                        if (texture->texture_flags.type != OBJ_MATERIAL_TEXTURE_COLOR)
                             continue;
 
                         tt->id = texture->texture_id;

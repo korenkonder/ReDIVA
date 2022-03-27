@@ -115,7 +115,7 @@ public:
 #endif
 
     data_struct();
-    ~data_struct();
+    virtual ~data_struct();
 
     bool check_file_exists(const char* dir, const char* file);
     void get_directory_files(const char* dir, std::vector<data_struct_file>* data_files);

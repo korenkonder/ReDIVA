@@ -72,8 +72,8 @@ extern bool draw_grid_3d;
 extern shader_glsl grid_shader;
 extern GLuint grid_vbo;
 extern size_t grid_vertex_count;
-extern vec3 back3d_color;
-extern light_param_data_storage light_param_data_storage_data;
+extern vec3 clear_color;
+extern light_param_data_storage* light_param_data_storage_data;
 
 void draw_pass_main(render_context* rctx) {
     static const int32_t ibl_texture_index[] = {
@@ -84,7 +84,7 @@ void draw_pass_main(render_context* rctx) {
 
     for (int32_t i = 0; i < 5; i++)
         gl_state_active_bind_texture_cube_map(ibl_texture_index[i],
-            light_param_data_storage_data.textures[i]);
+            light_param_data_storage_data->textures[i]);
 
     shader_env_frag_set(&shaders_ft, 0,
         1.0f / (float_t)rctx->post_process.render_width,
@@ -123,7 +123,7 @@ void draw_pass_main(render_context* rctx) {
         case DRAW_PASS_TYPE_6: {
             render_texture_bind(&rctx->post_process.rend_texture, 0);
             vec4 color;
-            *(vec3*)&color = back3d_color;
+            *(vec3*)&color = clear_color;
             color.w = 1.0f;
             glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
             //sub_140501470(rctx, &rctx->draw_pass);

@@ -31,5 +31,5 @@ extern void draw_object_draw_translucent(render_context* rctx, draw_object* draw
 extern void draw_object_model_mat_load(render_context* rctx, mat4* mat);
 extern void model_mat_face_camera_position(mat4* view, mat4* src, mat4* dst);
 extern void model_mat_face_camera_view(mat4* view, mat4* src, mat4* dst);
-extern void object_sub_mesh_draw(render_context* rctx, object_primitive_type primitive_type,
-    uint32_t count, uint16_t start, uint16_t end, object_index_format index_format, size_t indices);
+extern void obj_sub_mesh_draw(render_context* rctx, obj_primitive_type primitive_type,
+    uint32_t count, uint16_t start, uint16_t end, obj_index_format index_format, size_t indices);

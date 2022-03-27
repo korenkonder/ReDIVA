@@ -210,7 +210,7 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
         }
 
         for (uint32_t* i = auth_3d_test->obj_set_id.begin; i != auth_3d_test->obj_set_id.end; i++)
-            object_storage_delete_object_set(*i);
+            object_storage_unload_set(*i);
         vector_old_uint32_t_clear(&auth_3d_test->obj_set_id, 0);
 
         data_test_auth_3d_test_category* cat
@@ -221,17 +221,20 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
             const char* name_str = cat->name;
             size_t name_len = utf8_length(cat->name);
 
-            object_set_info* set_info;
-            if (!memcmp(name_str, "ITMPV", 5)
-                && obj_db->get_object_set_info(name_str, &set_info)) {
-                object_set_load_by_db_index(&set_info, rctx->data, obj_db, set_info->id);
-                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_info->id);
+            if (!memcmp(name_str, "ITMPV", 5)) {
+                uint32_t set_id = obj_db->get_object_set_id(name_str);
+                if (set_id != (uint32_t)-1) {
+                    object_storage_load_set(obj_db, set_id);
+                    vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_id);
+                }
             }
 
-            if (!memcmp(name_str, "EFFCHRPV", 8)
-                && obj_db->get_object_set_info(name_str, &set_info)) {
-                object_set_load_by_db_index(&set_info, rctx->data, obj_db, set_info->id);
-                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_info->id);
+            if (!memcmp(name_str, "EFFCHRPV", 8)) {
+                uint32_t set_id = obj_db->get_object_set_id(name_str);
+                if (set_id != (uint32_t)-1) {
+                    object_storage_load_set(obj_db, set_id);
+                    vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_id);
+                }
             }
 
             string obj = string_empty;
@@ -249,15 +252,17 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
                     break;
                 }
 
-            if (obj_db->get_object_set_info(string_data(&obj), &set_info)) {
-                object_set_load_by_db_index(&set_info, rctx->data, obj_db, set_info->id);
-                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_info->id);
+            uint32_t set_id = obj_db->get_object_set_id(string_data(&obj));
+            if (set_id != (uint32_t)-1) {
+                object_storage_load_set(obj_db, set_id);
+                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_id);
             }
 
             string_add_length(&obj, "HRC", 3);
-            if (obj_db->get_object_set_info(string_data(&obj), &set_info)) {
-                object_set_load_by_db_index(&set_info, rctx->data, obj_db, set_info->id);
-                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_info->id);
+            uint32_t hrc_set_id = obj_db->get_object_set_id(string_data(&obj));
+            if (hrc_set_id != (uint32_t)-1) {
+                object_storage_load_set( obj_db, hrc_set_id);
+                vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &hrc_set_id);
             }
             string_free(&obj);
         }
@@ -287,7 +292,7 @@ bool data_test_auth_3d_test_hide(class_data* data) {
 
     for (uint32_t* i = auth_3d_test->obj_set_id.begin;
         i != auth_3d_test->obj_set_id.end; i++)
-        object_storage_delete_object_set(*i);
+        object_storage_unload_set(*i);
     vector_old_uint32_t_free(&auth_3d_test->obj_set_id, 0);
 
     auth_3d_data_unload_id(auth_3d_test->auth_3d_id, auth_3d_test->rctx);
@@ -303,35 +308,35 @@ bool data_test_auth_3d_test_hide(class_data* data) {
 }
 
 void data_test_auth_3d_test_imgui(class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     float_t w = min((float_t)width, 280.0f);
     float_t h = min((float_t)height, 316.0f);
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(data_test_auth_3d_test_window_title, &open, window_flags);
+    bool collapsed = !ImGui::Begin(data_test_auth_3d_test_window_title, &open, window_flags);
     if (!open) {
         enum_or(data->flags, CLASS_HIDE);
-        igEnd();
+        ImGui::End();
         return;
     }
     else if (collapsed) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
     data_test_auth_3d_test* auth_3d_test = (data_test_auth_3d_test*)data->data;
     if (!auth_3d_test) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
@@ -358,27 +363,26 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     int32_t auth_3d_category_index = auth_3d_test->auth_3d_category_index;
 
     imguiGetContentRegionAvailSetNextItemWidth();
-    if (igBeginCombo("##Auth 3D Category Index", auth_3d_category_index > -1
+    if (ImGui::BeginCombo("##Auth 3D Category Index", auth_3d_category_index > -1
         ? auth_3d_db_cat->begin[auth_3d_category_index].name : "", 0)) {
         for (data_test_auth_3d_test_category* i = auth_3d_db_cat->begin; i != auth_3d_db_cat->end; i++) {
             int32_t auth_3d_category_idx = (int32_t)(i - auth_3d_db_cat->begin);
 
-            igPushID_Ptr(i);
-            if (igSelectable_Bool(i->name,
-                auth_3d_category_index == auth_3d_category_idx, 0, ImVec2_Empty)
+            ImGui::PushID(i);
+            if (ImGui::Selectable(i->name, auth_3d_category_index == auth_3d_category_idx)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
-                || (igIsItemFocused() && auth_3d_category_index != auth_3d_category_idx)) {
+                || (ImGui::IsItemFocused() && auth_3d_category_index != auth_3d_category_idx)) {
                 auth_3d_test->auth_3d_category_index = -1;
                 auth_3d_category_index = auth_3d_category_idx;
             }
-            igPopID();
+            ImGui::PopID();
 
             if (auth_3d_category_index == auth_3d_category_idx)
-                igSetItemDefaultFocus();
+                ImGui::SetItemDefaultFocus();
         }
 
         data->imgui_focus |= true;
-        igEndCombo();
+        ImGui::EndCombo();
     }
 
     if (auth_3d_category_index != auth_3d_test->auth_3d_category_index) {
@@ -400,7 +404,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
 
     int32_t auth_3d_index = auth_3d_test->auth_3d_index;
 
-    igText(" ID  ");
+    ImGui::Text(" ID  ");
 
     imguiGetContentRegionAvailSetNextItemWidth();
     bool auth_3d_category_found = false;
@@ -408,27 +412,26 @@ void data_test_auth_3d_test_imgui(class_data* data) {
         if (auth_3d_category_index != i - auth_3d_db_cat->begin)
             continue;
 
-        if (igBeginCombo("##Auth 3D Index", auth_3d_index > -1
+        if (ImGui::BeginCombo("##Auth 3D Index", auth_3d_index > -1
             ? i->uid.begin[auth_3d_index].name : "", 0)) {
             for (data_test_auth_3d_test_uid* j = i->uid.begin; j != i->uid.end; j++) {
                 int32_t auth_3d_idx = (int32_t)(j - i->uid.begin);
 
-                igPushID_Ptr(j);
-                if (igSelectable_Bool(j->name,
-                    auth_3d_index == auth_3d_idx, 0, ImVec2_Empty)
+                ImGui::PushID(j);
+                if (ImGui::Selectable(j->name, auth_3d_index == auth_3d_idx)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
-                    || (igIsItemFocused() && auth_3d_index != auth_3d_idx)) {
+                    || (ImGui::IsItemFocused() && auth_3d_index != auth_3d_idx)) {
                     auth_3d_test->auth_3d_index = -1;
                     auth_3d_index = auth_3d_idx;
                 }
-                igPopID();
+                ImGui::PopID();
 
                 if (auth_3d_index == auth_3d_idx)
-                    igSetItemDefaultFocus();
+                    ImGui::SetItemDefaultFocus();
             }
 
             data->imgui_focus |= true;
-            igEndCombo();
+            ImGui::EndCombo();
         }
 
         if (auth_3d_index != auth_3d_test->auth_3d_index) {
@@ -441,33 +444,33 @@ void data_test_auth_3d_test_imgui(class_data* data) {
         break;
     }
 
-    if (!auth_3d_category_found && igBeginCombo("##Auth 3D Index", "", 0)) {
+    if (!auth_3d_category_found && ImGui::BeginCombo("##Auth 3D Index", "", 0)) {
         data->imgui_focus |= true;
-        igEndCombo();
+        ImGui::EndCombo();
     }
 
     float_t frame = auth_3d_test->frame;
-    igText("frame[ 0,%4.0f)", auth_3d_test->last_frame);
+    ImGui::Text("frame[ 0,%4.0f)", auth_3d_test->last_frame);
 
     imguiGetContentRegionAvailSetNextItemWidth();
     igSliderFloatButton("##frame slider", &frame, 1.0f,
         0.0f, auth_3d_test->last_frame, "%5.0f", 0);
-    if (igIsItemActivated())
+    if (ImGui::IsItemActivated())
         auth_3d_test->paused = true;
 
-    if (igButton("|<<", { 32.0, 0.0f }))
+    if (ImGui::Button("|<<", { 32.0, 0.0f }))
         frame = 0.0f;
-    igSameLine(0.0f, -1.0f);
-    if (igButton(auth_3d_test->paused ? " > " : "||", { 32.0, 0.0f }))
+    ImGui::SameLine();
+    if (ImGui::Button(auth_3d_test->paused ? " > " : "||", { 32.0, 0.0f }))
         auth_3d_test->paused = auth_3d_test->paused ? false : true;
-    igSameLine(0.0f, -1.0f);
-    if (igButton(">>|", { 32.0, 0.0f }))
+    ImGui::SameLine();
+    if (ImGui::Button(">>|", { 32.0, 0.0f }))
         frame = auth_3d_test->last_frame;
-    igSameLine(0.0f, -1.0f);
-    if (igCheckbox("repeat", &auth_3d_test->repeat) && auth_3d_test->repeat && auth_3d_test->paused)
+    ImGui::SameLine();
+    if (ImGui::Checkbox("repeat", &auth_3d_test->repeat) && auth_3d_test->repeat && auth_3d_test->paused)
         auth_3d_test->paused = false;
 
-    if (igCheckbox("Left Right Reverse", &auth_3d_test->left_right_reverse))
+    if (ImGui::Checkbox("Left Right Reverse", &auth_3d_test->left_right_reverse))
         frame = 0.0f;
 
     if (frame != auth_3d_test->frame) {
@@ -479,7 +482,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     imguiColumnSliderFloat("transZ", &auth_3d_test->trans_z, 0.1f, -5.0f, 5.0f, "%.2f", 0, true);
     imguiColumnSliderFloat("rotY", &auth_3d_test->rot_y, 1.0f, -360.0f, 360.0f, "%.0f", 0, true);
 
-    if (igButton("cam reset", { 72.0f, 0.0f })
+    if (ImGui::Button("cam reset", { 72.0f, 0.0f })
         && auth_3d_test->rctx && auth_3d_test->rctx->camera) {
         camera* cam = auth_3d_test->rctx->camera;
         camera_set_fov(cam, 32.2673416137695);
@@ -490,12 +493,12 @@ void data_test_auth_3d_test_imgui(class_data* data) {
         camera_set_interest(cam, &interest);
     }
 
-    igSeparator();
+    ImGui::Separator();
 
     imguiColumnSliderFloat("Frame Speed", &frame_speed, 0.01f, 0.0f, 3.0f, "%.2f", 0, true);
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 
     float_t x = w;
     float_t y = 0.0f;
@@ -503,52 +506,50 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     w = min((float_t)width, auth_3d_test->a3d_stage_window_pos.x);
     h = min((float_t)height, auth_3d_test->a3d_stage_window_pos.y);
 
-    igSetNextWindowPos({ x, y }, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
     window_flags |= ImGuiWindowFlags_NoCollapse;
 
-    if (igBegin("A3D STAGE", 0, window_flags)) {
+    if (ImGui::Begin("A3D STAGE", 0, window_flags)) {
         stage* stg = task_stage_get_current_stage();
 
         if (stg){
-            igCheckbox("stage", &stg->stage_display);
-            igCheckbox("stg auth display", &stg->effects);
+            ImGui::Checkbox("stage", &stg->stage_display);
+            ImGui::Checkbox("stg auth display", &stg->effect_display);
         }
         else {
             bool stage = true;
-            igCheckbox("stage", &stage);
+            ImGui::Checkbox("stage", &stage);
             bool effects = true;
-            igCheckbox("stg auth display", &effects);
+            ImGui::Checkbox("stg auth display", &effects);
         }
 
         int32_t stage_index = auth_3d_test->stage_index;
 
-        ImVec2 t;
-        igGetContentRegionAvail(&t);
-        igSetNextItemWidth(t.x);
-        if (igBeginCombo("##Stage Index", stage_index > -1
+        imguiGetContentRegionAvailSetNextItemWidth();
+        if (ImGui::BeginCombo("##Stage Index", stage_index > -1
             ? auth_3d_test->stage.begin[stage_index] : "", 0)) {
             for (char** i = auth_3d_test->stage.begin; i != auth_3d_test->stage.end; i++) {
                 int32_t stage_idx = (int32_t)(i - auth_3d_test->stage.begin);
 
-                igPushID_Ptr(i);
-                if (igSelectable_Bool((char*)*i, stage_index == stage_idx, 0, ImVec2_Empty)
+                ImGui::PushID(i);
+                if (ImGui::Selectable(*i, stage_index == stage_idx)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
-                    || (igIsItemFocused() && stage_index != stage_idx)) {
+                    || (ImGui::IsItemFocused() && stage_index != stage_idx)) {
                     auth_3d_test->stage_index = -1;
                     stage_index = stage_idx;
                 }
-                igPopID();
+                ImGui::PopID();
 
                 if (stage_index == stage_idx)
-                    igSetItemDefaultFocus();
+                    ImGui::SetItemDefaultFocus();
             }
 
-            data->imgui_focus |= igIsWindowFocused(0);
-            igEndCombo();
+            data->imgui_focus |= ImGui::IsWindowFocused();
+            ImGui::EndCombo();
         }
 
         if (stage_index != auth_3d_test->stage_index) {
@@ -556,7 +557,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
             auth_3d_test->stage_index = stage_index;
         }
 
-        data->imgui_focus |= igIsWindowFocused(0);
+        data->imgui_focus |= ImGui::IsWindowFocused();
     }
 
     if (auth_3d_data_check_id_not_empty(&auth_3d_test->auth_3d_id)) {
@@ -574,7 +575,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
         mat4_rotate_y_mult(&mat, auth_3d_test->rot_y * DEG_TO_RAD_FLOAT, &mat);
         auth_3d_data_set_mat(&auth_3d_test->auth_3d_id, &mat);
     }
-    igEnd();
+    ImGui::End();
 }
 
 bool data_test_auth_3d_test_show(class_data* data) {
@@ -605,7 +606,7 @@ bool data_test_auth_3d_test_dispose(class_data* data) {
 
         for (uint32_t* i = auth_3d_test->obj_set_id.begin;
             i != auth_3d_test->obj_set_id.end; i++)
-            object_storage_delete_object_set(*i);
+            object_storage_unload_set(*i);
         vector_old_uint32_t_free(&auth_3d_test->obj_set_id, 0);
 
         auth_3d_data_unload_id(auth_3d_test->auth_3d_id, auth_3d_test->rctx);

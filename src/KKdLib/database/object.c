@@ -313,7 +313,7 @@ bool object_database::get_object_set_info(const char* name, object_set_info** se
     return false;
 }
 
-bool object_database::get_object_set_info_by_set_id(uint32_t set_id, object_set_info** set_info) {
+bool object_database::get_object_set_info(uint32_t set_id, object_set_info** set_info) {
     if (!set_info)
         return false;
     *set_info = 0;
@@ -399,6 +399,25 @@ bool object_database::get_object_info_data_by_murmurhash(uint32_t hash, object_i
     return false;
 }
 
+uint32_t object_database::get_object_set_id(const char* name) {
+    if (!name)
+        return (uint32_t)-1;
+
+    size_t name_len = utf8_length(name);
+    if (!str_utils_compare_length(name, name_len, "NULL", 5))
+        return (uint32_t)-1;
+
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    if (name_hash == hash_fnv1a64m_empty)
+        return (uint32_t)-1;
+
+    for (object_set_info& i : object_set)
+        if (name_hash == i.name_hash)
+            return i.id;
+
+    return (uint32_t)-1;
+}
+
 object_info object_database::get_object_info(const char* name) {
     if (!name)
         return object_info();
@@ -408,7 +427,7 @@ object_info object_database::get_object_info(const char* name) {
         return object_info();
 
     uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
-    if (name_hash == hash_murmurhash_empty)
+    if (name_hash == hash_fnv1a64m_empty)
         return object_info();
 
     for (object_set_info& i : object_set)

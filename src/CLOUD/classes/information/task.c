@@ -30,29 +30,29 @@ void information_task_imgui(class_data* data) {
     if (!data->data)
         return;
 
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     float_t w = 496.0f;
     float_t h = 240.0f;
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_Appearing, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
     data->imgui_focus = false;
     bool open = data->flags & CLASS_HIDDEN ? false : true;
-    bool collapsed = !igBegin(information_task_window_title, &open, window_flags);
+    bool collapsed = !ImGui::Begin(information_task_window_title, &open, window_flags);
     if (!open) {
         enum_or(data->flags, CLASS_HIDE);
-        igEnd();
+        ImGui::End();
         return;
     }
     else if (collapsed) {
-        igEnd();
+        ImGui::End();
         return;
     }
 
@@ -77,52 +77,51 @@ void information_task_imgui(class_data* data) {
         break;
     }
 
-    ImVec2 size;
-    igGetContentRegionAvail(&size);
-    size.y -= font->FontSize + style->ItemSpacing.y;
-    igBeginListBox("#Tasks", size);
+    ImVec2 size = ImGui::GetContentRegionAvail();
+    size.y -= font->FontSize + style.ItemSpacing.y;
+    ImGui::BeginListBox("#Tasks", size);
     for (Task*& i : vec) {
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "%-32s % 7d(% 7d) % 7d(% 7d)",
             i->GetName(), i->GetCalcTime(), i->GetCalcTimeMax(), i->GetDispTime(), i->GetDispTimeMax());
-        igSelectable_Bool((const char*)buf, false, 0, ImVec2_Empty);
+        ImGui::Selectable(buf);
     }
-    igEndListBox();
+    ImGui::EndListBox();
     vec.clear();
 
     int32_t task_sort_new = task_sort;
-    igText("(%c)exec", task_sort == 0 ? '*' : ' ');
-    if (igIsItemClicked(ImGuiMouseButton_Left))
+    ImGui::Text("(%c)exec", task_sort == 0 ? '*' : ' ');
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         task_sort_new = 0;
 
-    igSameLine(0.0f, -1.0f);
+    ImGui::SameLine();
 
-    igText("(%c)tree", task_sort == 1 ? '*' : ' ');
-    if (igIsItemClicked(ImGuiMouseButton_Left))
+    ImGui::Text("(%c)tree", task_sort == 1 ? '*' : ' ');
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         task_sort_new = 1;
 
-    igSameLine(0.0f, -1.0f);
+    ImGui::SameLine();
 
-    igText("(%c)name", task_sort == 2 ? '*' : ' ');
-    if (igIsItemClicked(ImGuiMouseButton_Left))
+    ImGui::Text("(%c)name", task_sort == 2 ? '*' : ' ');
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         task_sort_new = 2;
 
-    igSameLine(0.0f, -1.0f);
+    ImGui::SameLine();
 
-    igText("(%c)calc", task_sort == 3 ? '*' : ' ');
-    if (igIsItemClicked(ImGuiMouseButton_Left))
+    ImGui::Text("(%c)calc", task_sort == 3 ? '*' : ' ');
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         task_sort_new = 3;
 
-    igSameLine(0.0f, -1.0f);
+    ImGui::SameLine();
 
-    igText("(%c)disp", task_sort == 4 ? '*' : ' ');
-    if (igIsItemClicked(ImGuiMouseButton_Left))
+    ImGui::Text("(%c)disp", task_sort == 4 ? '*' : ' ');
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         task_sort_new = 4;
 
     task_sort = task_sort_new;
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 }
 
 bool information_task_dispose(class_data* data) {

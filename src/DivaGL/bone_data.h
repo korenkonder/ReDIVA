@@ -2793,7 +2793,7 @@ typedef struct aft_obj_skin_block_constraint_up_vector_old {
 } aft_obj_skin_block_constraint_up_vector_old;
 
 typedef struct aft_obj_skin_block_constraint_direction {
-    aft_obj_skin_block_constraint_up_vector_old up_vector_old;
+    aft_obj_skin_block_constraint_up_vector_old up_vector;
     vec3 align_axis;
     vec3 target_offset;
 } aft_obj_skin_block_constraint_direction;
@@ -2805,13 +2805,13 @@ typedef struct aft_obj_skin_block_constraint_attach_point {
 } aft_obj_skin_block_constraint_attach_point;
 
 typedef struct aft_obj_skin_block_constraint_position {
-    aft_obj_skin_block_constraint_up_vector_old up_vector_old;
+    aft_obj_skin_block_constraint_up_vector_old up_vector;
     aft_obj_skin_block_constraint_attach_point constrained_object;
     aft_obj_skin_block_constraint_attach_point constraining_object;
 } aft_obj_skin_block_constraint_position;
 
 typedef struct aft_obj_skin_block_constraint_distance {
-    aft_obj_skin_block_constraint_up_vector_old up_vector_old;
+    aft_obj_skin_block_constraint_up_vector_old up_vector;
     float_t distance;
     aft_obj_skin_block_constraint_attach_point constrained_object;
     aft_obj_skin_block_constraint_attach_point constraining_object;

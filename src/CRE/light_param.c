@@ -22,7 +22,7 @@ static void light_param_storage_set_default_light_param(light_param_data_storage
 static void light_param_storage_set_stage(light_param_data_storage* a1,
     std::map<int32_t, light_param_data>::iterator* elem, int32_t stage_index);
 
-light_param_data_storage light_param_data_storage_data;
+light_param_data_storage* light_param_data_storage_data;
 
 extern render_context* rctx_ptr;
 
@@ -35,7 +35,7 @@ light_param_data::~light_param_data() {
 }
 
 int32_t light_param_data_load_file() {
-    return light_param_storage_load_file(&light_param_data_storage_data, 0);
+    return light_param_storage_load_file(light_param_data_storage_data, 0);
 }
 
 light_param_data_storage::light_param_data_storage() :  textures(),
@@ -48,40 +48,48 @@ light_param_data_storage::~light_param_data_storage() {
 }
 
 void light_param_data_storage::load(data_struct* data) {
-    glGenTextures(5, light_param_data_storage_data.textures);
+    glGenTextures(5, light_param_data_storage_data->textures);
     light_param_storage_data_load_stage(0);
-    while (light_param_storage_load_file(&light_param_data_storage_data, 1));
-    light_param_storage_set_default_light_param(&light_param_data_storage_data, 0);
+    while (light_param_storage_load_file(light_param_data_storage_data, 1));
+    light_param_storage_set_default_light_param(light_param_data_storage_data, 0);
 }
 
 void light_param_data_storage::unload() {
-    glDeleteTextures(5, light_param_data_storage_data.textures);
+    glDeleteTextures(5, light_param_data_storage_data->textures);
+}
+
+void light_param_storage_data_init() {
+    light_param_data_storage_data = new light_param_data_storage;
 }
 
 void light_param_storage_data_free_file_handlers() {
-    light_param_storage_free_file_handlers(&light_param_data_storage_data);
+    light_param_storage_free_file_handlers(light_param_data_storage_data);
 }
 
 int32_t light_param_storage_data_load_file() {
-    return light_param_storage_load_file(&light_param_data_storage_data, false);
+    return light_param_storage_load_file(light_param_data_storage_data, false);
 }
 
 void light_param_storage_data_load_stage(int32_t stage_index) {
     std::vector<int32_t> stage_indices = { stage_index };
-    light_param_storage_load_stages(&light_param_data_storage_data, &stage_indices);
+    light_param_storage_load_stages(light_param_data_storage_data, &stage_indices);
 }
 
 void light_param_storage_data_load_stages(std::vector<int32_t>* stage_indices) {
-    light_param_storage_load_stages(&light_param_data_storage_data, stage_indices);
+    light_param_storage_load_stages(light_param_data_storage_data, stage_indices);
 }
 
 void light_param_storage_data_set_default_light_param() {
-    light_param_data_set(&light_param_data_storage_data.default_light_param, &light_param_data_storage_data);
+    light_param_data_set(&light_param_data_storage_data->default_light_param, light_param_data_storage_data);
 }
 
 void light_param_storage_data_set_stage(int32_t stage_id) {
     std::map<int32_t, light_param_data>::iterator elem;
-    light_param_storage_set_stage(&light_param_data_storage_data, &elem, stage_id);
+    light_param_storage_set_stage(light_param_data_storage_data, &elem, stage_id);
+}
+
+void light_param_storage_data_free() {
+    delete light_param_data_storage_data;
 }
 
 static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool read_now) {
@@ -90,7 +98,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
         std::string* paths = light_param->paths;
         std::string* files = light_param->files;
         for (int32_t i = 0; i < 6; i++)
-            a1->file_handlers[i].read_file_path((char*)paths[i].c_str(), (char*)files[i].c_str());
+            a1->file_handlers[i].read_file_path(paths[i].c_str(), files[i].c_str());
         a1->state = 2;
         return 1;
     }
@@ -124,7 +132,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
     else if (a1->state == 3) {
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "light_pv%03d.farc", a1->pv_id);
-        if (a1->farc_file_handler.read_file_path((char*)"./rom/light_param/", buf))
+        if (a1->farc_file_handler.read_file_path("./rom/light_param/", buf))
             a1->state = 4;
         else {
             a1->farc_file_handler.free_data();

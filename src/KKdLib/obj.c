@@ -145,9 +145,9 @@ static void obj_classic_read_skin_block_constraint_attach_point(obj_skin_block_c
     stream* s, char** str);
 static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
     stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets);
-static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream* s, char** str);
-static void obj_classic_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+static void obj_classic_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets);
 static void obj_classic_read_skin_block_expression(obj_skin_block_expression* b,
     stream* s, char** str);
@@ -207,9 +207,9 @@ static void obj_modern_read_skin_block_constraint_attach_point(obj_skin_block_co
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
     stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x);
-static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream* s, uint32_t header_length, char** str, bool is_x);
-static void obj_modern_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+static void obj_modern_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x);
 static void obj_modern_read_skin_block_expression(obj_skin_block_expression* b,
     stream* s, uint32_t header_length, char** str, bool is_x);
@@ -257,7 +257,6 @@ obj_set::~obj_set() {
         for (int32_t j = 0; j < obj->skin.bones_count; j++)
             string_free(&obj->skin.bones[j].name);
         free(obj->skin.bones);
-        obj->skin.bones_count = 0;
 
         for (int32_t j = 0; j < obj->skin.ex_data.blocks_count; j++) {
             obj_skin_block* block = &obj->skin.ex_data.blocks[j];
@@ -276,7 +275,6 @@ obj_set::~obj_set() {
                 free(cloth->field_20);
                 free(cloth->field_24);
                 free(cloth->field_28);
-                cloth->count = 0;
             } break;
             case OBJ_SKIN_BLOCK_CONSTRAINT: {
                 obj_skin_block_constraint* constraint = &block->constraint;
@@ -288,7 +286,6 @@ obj_set::~obj_set() {
                 obj_skin_block_node_free(&expression->base);
                 for (int32_t k = 0; k < 9; k++)
                     string_free(&expression->expressions[k]);
-                expression->expressions_count = 0;
             } break;
             case OBJ_SKIN_BLOCK_MOTION: {
                 obj_skin_block_motion* motion = &block->motion;
@@ -296,28 +293,19 @@ obj_set::~obj_set() {
                 if (is_x)
                     string_free(&motion->name);
                 free(motion->nodes);
-                motion->nodes_count = 0;
             } break;
             case OBJ_SKIN_BLOCK_OSAGE: {
                 obj_skin_block_osage* osage = &block->osage;
                 obj_skin_block_node_free(&osage->base);
                 free(osage->nodes);
-                osage->nodes_count = 0;
             } break;
             }
         }
         free(obj->skin.ex_data.blocks);
-        obj->skin.ex_data.blocks_count = 0;
-
         free(obj->skin.ex_data.osage_nodes);
-        obj->skin.ex_data.osage_nodes_count = 0;
-
         free(obj->skin.ex_data.bone_names_buf);
         free(obj->skin.ex_data.bone_names);
-        obj->skin.ex_data.bone_names_count = 0;
-
         free(obj->skin.ex_data.osage_sibling_infos);
-        obj->skin.ex_data.osage_sibling_infos_count = 0;
 
         if (obj->meshes)
             for (int32_t j = 0; j < obj->meshes_count; j++) {
@@ -326,19 +314,13 @@ obj_set::~obj_set() {
                     for (int32_t k = 0; k < mesh->sub_meshes_count; k++) {
                         obj_sub_mesh* sub_mesh = &mesh->sub_meshes[k];
                         free(sub_mesh->bone_indices);
-                        sub_mesh->bone_indices_count = 0;
                         free(sub_mesh->indices);
-                        sub_mesh->indices_count = 0;
                     }
                 free(mesh->vertex);
-                mesh->vertex_count = 0;
                 free(mesh->sub_meshes);
-                mesh->sub_meshes_count = 0;
             }
         free(obj->meshes);
-        obj->meshes_count = 0;
         free(obj->materials);
-        obj->materials_count = 0;
         string_free(&obj->name);
     }
     free(objects);
@@ -580,22 +562,23 @@ static void obj_set_classic_write_inner(obj_set* os, stream* s) {
 static void obj_classic_read_index(obj* obj, stream* s,
     obj_sub_mesh* sub_mesh) {
     bool tri_strip = sub_mesh->primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP;
-    uint32_t* indices = force_malloc_s(uint32_t, sub_mesh->indices_count);
+    int32_t indices_count = sub_mesh->indices_count;
+    uint32_t* indices = force_malloc_s(uint32_t, indices_count);
     switch (sub_mesh->index_format) {
     case OBJ_INDEX_U8:
-        for (int32_t i = 0; i < sub_mesh->indices_count; i++) {
+        for (int32_t i = 0; i < indices_count; i++) {
             uint8_t idx = io_read_uint8_t(s);
             indices[i] = tri_strip && idx == 0xFF ? 0xFFFFFFFF : idx;
         }
         break;
     case OBJ_INDEX_U16:
-        for (int32_t i = 0; i < sub_mesh->indices_count; i++) {
+        for (int32_t i = 0; i < indices_count; i++) {
             uint16_t idx = io_read_uint16_t(s);
             indices[i] = tri_strip && idx == 0xFFFF ? 0xFFFFFFFF : idx;
         }
         break;
     case OBJ_INDEX_U32:
-        for (int32_t i = 0; i < sub_mesh->indices_count; i++)
+        for (int32_t i = 0; i < indices_count; i++)
             indices[i] = io_read_uint32_t(s);
         break;
     }
@@ -604,18 +587,18 @@ static void obj_classic_read_index(obj* obj, stream* s,
 
 static void obj_classic_write_index(obj* obj, stream* s, obj_sub_mesh* sub_mesh) {
     uint32_t* indices = sub_mesh->indices;
-    int32_t _indices_count = sub_mesh->indices_count;
+    int32_t indices_count = sub_mesh->indices_count;
     switch (sub_mesh->index_format) {
     case OBJ_INDEX_U8:
-        for (int32_t i = 0; i < _indices_count; i++)
+        for (int32_t i = 0; i < indices_count; i++)
             io_write_uint8_t(s, (uint8_t)indices[i]);
         break;
     case OBJ_INDEX_U16:
-        for (int32_t i = 0; i < _indices_count; i++)
+        for (int32_t i = 0; i < indices_count; i++)
             io_write_uint16_t(s, (uint16_t)indices[i]);
         break;
     case OBJ_INDEX_U32:
-        for (int32_t i = 0; i < _indices_count; i++)
+        for (int32_t i = 0; i < indices_count; i++)
             io_write_uint32_t(s, indices[i]);
         break;
     }
@@ -1302,17 +1285,17 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
                 case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
                     obj_skin_strings_push_back_check(&strings, "Direction");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->direction.up_vector_old.name));
+                        string_data(&constraint->direction.up_vector.name));
                     break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
                     obj_skin_strings_push_back_check(&strings, "Position");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->position.up_vector_old.name));
+                        string_data(&constraint->position.up_vector.name));
                     break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
                     obj_skin_strings_push_back_check(&strings, "Distance");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->distance.up_vector_old.name));
+                        string_data(&constraint->distance.up_vector.name));
                     break;
                 }
                 obj_skin_strings_push_back_check(&strings, "CNS");
@@ -1852,7 +1835,7 @@ static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
     if (field_18_offset) {
         io_position_push(s, field_18_offset, SEEK_SET);
         for (int32_t i = 0; i < 32; i++) {
-            if (!(b->field_10 & (1 << i)))
+            if (~b->field_10 & (1 << i))
                 continue;
 
             mat4 mat;
@@ -1954,7 +1937,7 @@ static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
     if (b->field_10) {
         io_position_push(s, *field_18_offset, SEEK_SET);
         for (int32_t i = 0; i < 32; i++) {
-            if (!(b->field_10 & (1 << i)))
+            if (~b->field_10 & (1 << i))
                 continue;
 
             mat4u& mat = b->field_18[i];
@@ -2112,7 +2095,7 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Direction")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION;
-        obj_classic_read_skin_block_constraint_up_vector_old(&b->direction.up_vector_old,
+        obj_classic_read_skin_block_constraint_up_vector_old(&b->direction.up_vector,
             s, str);
         b->direction.align_axis.x = io_read_float_t(s);
         b->direction.align_axis.y = io_read_float_t(s);
@@ -2123,7 +2106,7 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Position")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_POSITION;
-        obj_classic_read_skin_block_constraint_up_vector_old(&b->position.up_vector_old,
+        obj_classic_read_skin_block_constraint_up_vector_old(&b->position.up_vector,
             s, str);
         obj_classic_read_skin_block_constraint_attach_point(&b->position.constrained_object,
             s, str);
@@ -2132,7 +2115,7 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Distance")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE;
-        obj_classic_read_skin_block_constraint_up_vector_old(&b->distance.up_vector_old,
+        obj_classic_read_skin_block_constraint_up_vector_old(&b->distance.up_vector,
             s, str);
         b->distance.distance = io_read_float_t(s);
         obj_classic_read_skin_block_constraint_attach_point(&b->distance.constrained_object,
@@ -2183,7 +2166,7 @@ static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b
         io_write_float_t(s, b->orientation.offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
-        obj_classic_write_skin_block_constraint_up_vector_old(&b->direction.up_vector_old,
+        obj_classic_write_skin_block_constraint_up_vector_old(&b->direction.up_vector,
             s, strings, string_offsets);
         io_write_float_t(s, b->direction.align_axis.x);
         io_write_float_t(s, b->direction.align_axis.y);
@@ -2193,7 +2176,7 @@ static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b
         io_write_float_t(s, b->direction.target_offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
-        obj_classic_write_skin_block_constraint_up_vector_old(&b->position.up_vector_old,
+        obj_classic_write_skin_block_constraint_up_vector_old(&b->position.up_vector,
             s, strings, string_offsets);
         obj_classic_write_skin_block_constraint_attach_point(&b->position.constrained_object,
             s, strings, string_offsets);
@@ -2201,7 +2184,7 @@ static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b
             s, strings, string_offsets);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
-        obj_classic_write_skin_block_constraint_up_vector_old(&b->distance.up_vector_old,
+        obj_classic_write_skin_block_constraint_up_vector_old(&b->distance.up_vector,
             s, strings, string_offsets);
         io_write_float_t(s, b->distance.distance);
         obj_classic_write_skin_block_constraint_attach_point(&b->distance.constrained_object,
@@ -2230,7 +2213,7 @@ static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_
     io_write_float_t(s, ap->offset.z);
 }
 
-static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream* s, char** str) {
     up->active = io_read_int32_t(s) != 0;
     up->roll = io_read_float_t(s);
@@ -2245,7 +2228,7 @@ static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_
     io_read_string_null_terminated_offset(s, name_offset, &up->name);
 }
 
-static void obj_classic_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+static void obj_classic_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets) {
     io_write_int32_t(s, up->active ? 1 : 0);
     io_write_float_t(s, up->roll);
@@ -4315,17 +4298,17 @@ static void obj_modern_write_skin(obj* obj, stream* s,
                 case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
                     obj_skin_strings_push_back_check(&strings, "Direction");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->direction.up_vector_old.name));
+                        string_data(&constraint->direction.up_vector.name));
                     break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
                     obj_skin_strings_push_back_check(&strings, "Position");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->position.up_vector_old.name));
+                        string_data(&constraint->position.up_vector.name));
                     break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
                     obj_skin_strings_push_back_check(&strings, "Distance");
                     obj_skin_strings_push_back_check(&strings,
-                        string_data(&constraint->distance.up_vector_old.name));
+                        string_data(&constraint->distance.up_vector.name));
                     break;
                 }
                 obj_skin_strings_push_back_check(&strings, "CNS");
@@ -5637,7 +5620,7 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
     if (field_18_offset) {
         io_position_push(s, field_18_offset, SEEK_SET);
         for (int32_t i = 0; i < 32; i++) {
-            if (!(b->field_10 & (1 << i)))
+            if (~b->field_10 & (1 << i))
                 continue;
 
             mat4u& mat = b->field_18[i];
@@ -5767,7 +5750,7 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
     if (b->field_10) {
         io_position_push(s, *field_18_offset, SEEK_SET);
         for (int32_t i = 0; i < 32; i++) {
-            if (!(b->field_10 & (1 << i)))
+            if (~b->field_10 & (1 << i))
                 continue;
 
             mat4u& mat = b->field_18[i];
@@ -5933,7 +5916,7 @@ static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Direction")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION;
-        obj_modern_read_skin_block_constraint_up_vector_old(&b->direction.up_vector_old,
+        obj_modern_read_skin_block_constraint_up_vector_old(&b->direction.up_vector,
             s, header_length, str, is_x);
         b->direction.align_axis.x = io_read_float_t_stream_reverse_endianness(s);
         b->direction.align_axis.y = io_read_float_t_stream_reverse_endianness(s);
@@ -5944,7 +5927,7 @@ static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Position")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_POSITION;
-        obj_modern_read_skin_block_constraint_up_vector_old(&b->position.up_vector_old,
+        obj_modern_read_skin_block_constraint_up_vector_old(&b->position.up_vector,
             s, header_length, str, is_x);
         obj_modern_read_skin_block_constraint_attach_point(&b->position.constrained_object,
             s, header_length, str, is_x);
@@ -5953,7 +5936,7 @@ static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else if (!str_utils_compare(type, "Distance")) {
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE;
-        obj_modern_read_skin_block_constraint_up_vector_old(&b->distance.up_vector_old,
+        obj_modern_read_skin_block_constraint_up_vector_old(&b->distance.up_vector,
             s, header_length, str, is_x);
         b->distance.distance = io_read_float_t_stream_reverse_endianness(s);
         obj_modern_read_skin_block_constraint_attach_point(&b->distance.constrained_object,
@@ -6005,7 +5988,7 @@ static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
         io_write_float_t(s, b->orientation.offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
-        obj_modern_write_skin_block_constraint_up_vector_old(&b->direction.up_vector_old,
+        obj_modern_write_skin_block_constraint_up_vector_old(&b->direction.up_vector,
             s, strings, string_offsets, is_x);
         io_write_float_t(s, b->direction.align_axis.x);
         io_write_float_t(s, b->direction.align_axis.y);
@@ -6015,7 +5998,7 @@ static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
         io_write_float_t(s, b->direction.target_offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
-        obj_modern_write_skin_block_constraint_up_vector_old(&b->position.up_vector_old,
+        obj_modern_write_skin_block_constraint_up_vector_old(&b->position.up_vector,
             s, strings, string_offsets, is_x);
         obj_modern_write_skin_block_constraint_attach_point(&b->position.constrained_object,
             s, strings, string_offsets, is_x);
@@ -6023,7 +6006,7 @@ static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
             s, strings, string_offsets, is_x);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
-        obj_modern_write_skin_block_constraint_up_vector_old(&b->distance.up_vector_old,
+        obj_modern_write_skin_block_constraint_up_vector_old(&b->distance.up_vector,
             s, strings, string_offsets, is_x);
         io_write_float_t(s, b->distance.distance);
         obj_modern_write_skin_block_constraint_attach_point(&b->distance.constrained_object,
@@ -6052,7 +6035,7 @@ static void obj_modern_write_skin_block_constraint_attach_point(obj_skin_block_c
     io_write_float_t(s, ap->offset.z);
 }
 
-static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream* s, uint32_t header_length, char** str, bool is_x) {
     up->active = io_read_int32_t_stream_reverse_endianness(s) != 0;
     up->roll = io_read_float_t_stream_reverse_endianness(s);
@@ -6067,7 +6050,7 @@ static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_c
     io_read_string_null_terminated_offset(s, name_offset, &up->name);
 }
 
-static void obj_modern_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector_old* up,
+static void obj_modern_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, bool is_x) {
     io_write_int32_t(s, up->active ? 1 : 0);
     io_write_float_t(s, up->roll);
@@ -6614,7 +6597,7 @@ inline static ssize_t obj_skin_strings_get_string_offset(vector_old_string* vec,
 
 inline static ssize_t obj_skin_strings_get_string_offset_by_index(vector_old_string* vec,
     vector_old_ssize_t* vec_off, char** strings, uint32_t index) {
-    if (!(index & 0x8000))
+    if (~index & 0x8000)
         return 0;
 
     char* str = strings[index & 0x7FFF];
@@ -6646,7 +6629,7 @@ inline static void obj_skin_strings_push_back_check(vector_old_string* vec, cons
 }
 
 inline static void obj_skin_strings_push_back_check_by_index(vector_old_string* vec, char** strings, uint32_t index) {
-    if (!(index & 0x8000))
+    if (~index & 0x8000)
         return;
 
     char* str = strings[index & 0x7FFF];

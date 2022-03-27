@@ -148,26 +148,26 @@ bool TaskWork::AppendTask(Task* t, Task* parent_task, const char* name, int32_t 
 }
 
 void TaskWork::Basic() {
-    std::vector<Task*>* tasks = &task_work.tasks;
+    std::list<Task*>* tasks = &task_work.tasks;
     for (int32_t i = 0; i < 3; i++)
         for (Task*& j : task_work.tasks)
             if (j->priority == i)
                 Task_do_basic(j);
 }
 
-bool TaskWork::CheckTaskNotReady(Task* t) {
+bool TaskWork::CheckTaskReady(Task* t) {
     return TaskWork::HasTask(t) && (t->field_18 == TASK_NONE || t->field_1C);
 }
 
 void TaskWork::Ctrl() {
-    std::vector<Task*>* tasks = &task_work.tasks;
+    std::list<Task*>* tasks = &task_work.tasks;
     for (Task*& i : task_work.tasks) {
         Task_sub_14019C5A0(i);
         Task_set_base_calc_time(i, 0);
     }
 
     for (int32_t i = 2; i >= 0; i--)
-        for (Task** j = task_work.tasks.end()._Ptr; j != task_work.tasks.begin()._Ptr; ) {
+        for (std::list<Task*>::iterator j = task_work.tasks.end(); j != task_work.tasks.begin(); ) {
             --j;
             Task* tsk = *j;
             if (tsk->priority != i || !TaskWork_has_task_dest(tsk))
@@ -181,14 +181,13 @@ void TaskWork::Ctrl() {
             Task_add_base_calc_time(tsk, (uint32_t)(time_struct_calc_time(&t) * 1000.0));
         }
 
-    for (Task** i = task_work.tasks.begin()._Ptr; i != task_work.tasks.end()._Ptr; ) {
-        if (TaskWork::CheckTaskNotReady(*i)) {
+    for (std::list<Task*>::iterator i = task_work.tasks.begin(); i != task_work.tasks.end(); ) {
+        if (TaskWork::CheckTaskReady(*i)) {
             i++;
             continue;
         }
 
-        task_work.tasks.erase(task_work.tasks.begin()
-            + (i - task_work.tasks.data()));
+        i = task_work.tasks.erase(i);
     }
 
     int32_t delta_frame = (int32_t)get_delta_frame();
@@ -203,7 +202,7 @@ void TaskWork::Ctrl() {
 
 void TaskWork::Disp() {
     task_work.disp = true;
-    std::vector<Task*>* tasks = &task_work.tasks;
+    std::list<Task*>* tasks = &task_work.tasks;
     for (int32_t i = 0; i < 3; i++)
         for (Task*& j : task_work.tasks) {
             Task* tsk = j;
@@ -229,7 +228,7 @@ Task* TaskWork::GetTaskByIndex(int32_t index) {
 }
 
 bool TaskWork::HasTask(Task* t) {
-    std::vector<Task*>* tasks = &task_work.tasks;
+    std::list<Task*>* tasks = &task_work.tasks;
     for (Task*& i : task_work.tasks)
         if (i == t)
             return true;
@@ -275,11 +274,13 @@ static void Task_do_ctrl(Task* t) {
 }
 
 static void Task_do_ctrl_frames(int32_t frames, bool a2) {
-    std::vector<Task*>* tasks = &task_work.tasks;
+    std::list<Task*>* tasks = &task_work.tasks;
     for (int32_t i = 0; i < 3; i++)
         for (Task*& j : task_work.tasks) {
             Task* tsk = j;
-            if (tsk->priority != i || TaskWork_has_task_dest(tsk))
+            if (tsk->priority != i)
+                continue;
+            else if (TaskWork_has_task_dest(tsk))
                 continue;
             else if ((!tsk->field_2D || frames <= 0) && a2)
                 continue;

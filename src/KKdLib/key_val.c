@@ -239,7 +239,7 @@ bool key_val::read_string(char* buf, size_t offset,
 }
 
 bool key_val::read_string(char* buf, size_t offset,
-    const char* str_add, size_t str_add_len, char** value) {
+    const char* str_add, size_t str_add_len, const char** value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
@@ -381,8 +381,8 @@ void key_val::write_uint32_t(stream* s, char* buf,
 }
 
 void key_val::write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, string* value) {
-    if (!string_data(value))
+    size_t offset, const char* str_add, size_t str_add_len, string& value) {
+    if (!string_data(&value))
         return;
 
     memcpy(buf + offset, str_add, str_add_len);
@@ -390,32 +390,18 @@ void key_val::write_string(stream* s, char* buf,
 
     io_write_utf8_string(s, buf);
     io_write_char(s, '=');
-    io_write(s, string_data(value), value->length);
+    io_write(s, string_data(&value), value.length);
     io_write_char(s, '\n');
 }
 
 void key_val::write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, std::string* value) {
+    size_t offset, const char* str_add, size_t str_add_len, std::string& value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
     io_write_utf8_string(s, buf);
     io_write_char(s, '=');
-    io_write(s, value->c_str(), value->size());
-    io_write_char(s, '\n');
-}
-
-void key_val::write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, char* value) {
-    if (!value)
-        return;
-
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, value);
+    io_write(s, value.c_str(), value.size());
     io_write_char(s, '\n');
 }
 
@@ -434,13 +420,13 @@ void key_val::write_string(stream* s, char* buf,
 }
 
 void key_val::write_vec3(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, vec3* value) {
+    size_t offset, const char* str_add, size_t str_add_len, vec3& value) {
     memcpy(buf + offset, str_add, str_add_len);
     offset += str_add_len - 1;
 
-    write_float_t(s, buf, offset, ".x", 3, value->x);
-    write_float_t(s, buf, offset, ".y", 3, value->y);
-    write_float_t(s, buf, offset, ".z", 3, value->z);
+    write_float_t(s, buf, offset, ".x", 3, value.x);
+    write_float_t(s, buf, offset, ".y", 3, value.y);
+    write_float_t(s, buf, offset, ".z", 3, value.z);
 }
 
 static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {

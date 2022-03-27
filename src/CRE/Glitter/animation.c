@@ -11,7 +11,7 @@ void glitter_animation_add_value(GLT, glitter_animation* anim,
     float_t val, glitter_curve_type_flags flags) {
     for (int32_t i = GLITTER_CURVE_TRANSLATION_X;
         i <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND; i++) {
-        if (!(flags & 1 << (size_t)i))
+        if (~flags & (1 << (size_t)i))
             continue;
 
         for (glitter_curve** j = anim->begin; j != anim->end; j++) {
@@ -107,7 +107,7 @@ bool glitter_animation_unparse_file(GLT, f2_struct* st,
     };
 
     for (int32_t i = GLITTER_CURVE_TRANSLATION_X; i <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND; i++) {
-        if (!(flags & 1 << (size_t)order[i]))
+        if (~flags & (1 << (size_t)order[i]))
             continue;
 
         for (glitter_curve** j = anim->begin; j != anim->end; j++) {

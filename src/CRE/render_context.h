@@ -237,10 +237,10 @@ vector_old(texture_transform_struct)
 typedef struct draw_object draw_object;
 
 struct draw_object {
-    object_sub_mesh* sub_mesh;
-    object_mesh* mesh;
-    object_material_data* material;
-    uint32_t* textures;
+    obj_sub_mesh* sub_mesh;
+    obj_mesh* mesh;
+    obj_material_data* material;
+    std::vector<GLuint>* textures;
     int32_t mat_count;
     mat4u* mats;
     GLuint array_buffer;
@@ -419,7 +419,7 @@ typedef struct object_data {
     float_t wet_param;
     int32_t texture_transform_count;
     texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
-    bool(*object_bounding_sphere_check_func)(object_bounding_sphere*, camera*);
+    bool(*object_bounding_sphere_check_func)(obj_bounding_sphere*, camera*);
 } object_data;
 
 struct render_context {
@@ -514,7 +514,7 @@ extern void object_data_set_chara_color(object_data* object_data, bool value);
 extern void object_data_set_draw_task_flags(object_data* object_data, draw_task_flags flags);
 extern void object_data_set_morph(object_data* object_data, object_info object, float_t value);
 extern void object_data_set_object_bounding_sphere_check_func(object_data* object_data,
-    bool(*func)(object_bounding_sphere*, camera*));
+    bool(*func)(obj_bounding_sphere*, camera*));
 extern void object_data_set_shadow_type(object_data* object_data, shadow_type_enum type);
 extern void object_data_set_texture_color_coeff(object_data* object_data, vec4* value);
 extern void object_data_set_texture_color_offset(object_data* object_data, vec4* value);

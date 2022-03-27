@@ -35,6 +35,7 @@
 #include "../../CRE/gl_state.h"
 #include "../../CRE/render_context.h"
 #include "../../CRE/shader_glsl.h"
+#include "../../CRE/stage.h"
 #include "../../CRE/static_var.h"
 #include "../input.h"
 #include <windows.h>
@@ -384,15 +385,15 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
 
 static void glitter_editor_popups(glitter_editor_struct* glt_edt, class_data* data);
 static void glitter_editor_file_create_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size);
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
 static void glitter_editor_file_load_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size);
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
 static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size);
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
 static void glitter_editor_file_load_error_list_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size);
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
 static void glitter_editor_file_save_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size);
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
 
 static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt);
 static void glitter_editor_curve_editor_curve_reset(glitter_editor_struct* glt_edt,
@@ -454,6 +455,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
 
         glitter_editor_reset(glt_edt);
         glitter_editor_gl_load(glt_edt);
+        dtm_stg_load(0);
     }
 
     /*char* path_x = "VRFL\\";
@@ -1266,7 +1268,7 @@ void glitter_editor_imgui(class_data* data) {
 }
 
 void glitter_editor_input(class_data* data) {
-    if (igGetIO()->WantTextInput)
+    if (ImGui::GetIO().WantTextInput)
         return;
 
     glitter_editor_struct* glt_edt = (glitter_editor_struct*)data->data;
@@ -1305,6 +1307,7 @@ bool glitter_editor_dispose(class_data* data) {
 
     glitter_editor_struct* glt_edt = (glitter_editor_struct*)data->data;
     if (glt_edt) {
+        dtm_stg_unload();
         glitter_editor_gl_free(glt_edt);
         GPM_VAL.UnloadEffectGroup(glt_edt->hash);
 
@@ -1352,72 +1355,72 @@ bool glitter_editor_dispose(class_data* data) {
 }
 
 static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
     const float_t title_bar_size = font->FontSize
-        + style->ItemSpacing.y + style->FramePadding.y * 2.0f;
+        + style.ItemSpacing.y + style.FramePadding.y * 2.0f;
 
-    ImVec2 main_menu_bar_size = ImVec2_Empty;
+    ImVec2 main_menu_bar_size = { 0, 0 };
 
-    if (igBeginMainMenuBar()) {
+    if (ImGui::BeginMainMenuBar()) {
         bool is_x = glt_edt->effect_group
             && glt_edt->effect_group->type == GLITTER_X ? true : false;
-        if (igBeginMenu("File", true)) {
-            if (igMenuItem_Bool("Open", "Ctrl+O", false, true))
+        if (ImGui::BeginMenu("File", true)) {
+            if (ImGui::MenuItem("Open", "Ctrl+O"))
                 glitter_editor_open_window(glt_edt);
-            if (igMenuItem_Bool("Save", "Ctrl+S", false, !is_x))
+            if (ImGui::MenuItem("Save", "Ctrl+S", false, !is_x))
                 glitter_editor_save_window(glt_edt);
-            if (igMenuItem_Bool("Save As..", "Ctrl+Shift+S", false, !is_x))
+            if (ImGui::MenuItem("Save As..", "Ctrl+Shift+S", false, !is_x))
                 glitter_editor_save_as_window(glt_edt);
-            if (igMenuItem_Bool("Close", "Ctrl+F4", false, true))
+            if (ImGui::MenuItem("Close", "Ctrl+F4"))
                 glt_edt->close = true;
-            if (igMenuItem_Bool("Close Editor", "Ctrl+F3", false, true))
+            if (ImGui::MenuItem("Close Editor", "Ctrl+F3"))
                 enum_or(data->flags, CLASS_DISPOSE);
-            if (igMenuItem_Bool("Quit", "Ctrl+Q", false, true))
+            if (ImGui::MenuItem("Quit", "Ctrl+Q"))
                 close = true;
-            igEndMenu();
+            ImGui::EndMenu();
         }
 
-        if (igBeginMenu("Edit", false)) {
-            igEndMenu();
+        if (ImGui::BeginMenu("Edit", false)) {
+            ImGui::EndMenu();
         }
 
-        if (igBeginMenu("Mode", glt_edt->effect_group ? true : false)) {
+        if (ImGui::BeginMenu("Mode", glt_edt->effect_group ? true : false)) {
             glitter_effect_group* eg = glt_edt->effect_group;
             if (eg->type != GLITTER_X) {
-                if (igMenuItem_Bool("F2", 0, false, eg->type != GLITTER_F2)) {
+                if (ImGui::MenuItem("F2", 0, false, eg->type != GLITTER_F2)) {
                     eg->type = GLITTER_F2;
                     glitter_editor_reload(glt_edt);
                 }
 
-                if (igMenuItem_Bool("FT", 0, false, eg->type != GLITTER_FT)) {
+                if (ImGui::MenuItem("FT", 0, false, eg->type != GLITTER_FT)) {
                     eg->type = GLITTER_FT;
                     glitter_editor_reload(glt_edt);
                 }
             }
             else {
-                if (igMenuItem_Bool("X", 0, false, eg->type != GLITTER_X)) {
+                if (ImGui::MenuItem("X", 0, false, eg->type != GLITTER_X)) {
                     eg->type = GLITTER_X;
                     glitter_editor_reload(glt_edt);
                 }
             }
-            igEndMenu();
+            ImGui::EndMenu();
         }
 
-        if (igBeginMenu("View", true)) {
-            igCheckboxFlags_UintPtr("Draw Wireframe",
+        if (ImGui::BeginMenu("View", true)) {
+            imguiCheckboxFlags("Draw Wireframe",
                 (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DRAW_WIREFRAME);
-            igCheckboxFlags_UintPtr("Draw Selected",
+            imguiCheckboxFlags("Draw Selected",
                 (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DRAW_SELECTED);
-            igCheckboxFlags_UintPtr("No Draw",
+            imguiCheckboxFlags("No Draw",
                 (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DRAW_NO_DRAW);
-            igEndMenu();
+            ImGui::EndMenu();
         }
-        data->imgui_focus |= igIsWindowFocused(0);
-        igGetWindowSize(&main_menu_bar_size);
-        igEndMainMenuBar();
+        data->imgui_focus |= ImGui::IsWindowFocused();
+        main_menu_bar_size = ImGui::GetWindowSize();
+        ImGui::EndMainMenuBar();
     }
 
     float_t x;
@@ -1446,37 +1449,37 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
     window_flags |= ImGuiWindowFlags_NoFocusOnAppearing;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
-    igPushID_Str("Glitter Editor Effects Window");
-    if (igBegin("Effects", 0, window_flags)) {
-        if (igBeginTabBar("Effects Tab", 0)) {
-            if (igBeginTabItem("Effects", 0, 0)) {
+    ImGui::PushID("Glitter Editor Effects Window");
+    if (ImGui::Begin("Effects", 0, window_flags)) {
+        if (ImGui::BeginTabBar("Effects Tab", 0)) {
+            if (ImGui::BeginTabItem("Effects", 0, 0)) {
                 if (glt_edt->effect_group)
                     glitter_editor_effects(glt_edt);
-                igEndTabItem();
+                ImGui::EndTabItem();
             }
 
             imguiDisableElementPush(glt_edt->effect_group != 0);
-            if (igBeginTabItem("Resources", 0, 0)) {
+            if (ImGui::BeginTabItem("Resources", 0, 0)) {
                 glitter_editor_resources_context_menu(glt_edt, -1, 0, true);
                 if (glt_edt->effect_group)
                     glitter_editor_resources(glt_edt);
-                igEndTabItem();
+                ImGui::EndTabItem();
             }
             imguiDisableElementPop(glt_edt->effect_group != 0);
 
-            if (igBeginTabItem("Play Manager", 0, 0)) {
+            if (ImGui::BeginTabItem("Play Manager", 0, 0)) {
                 glitter_editor_play_manager(glt_edt);
-                igEndTabItem();
+                ImGui::EndTabItem();
             }
-            igEndTabBar();
+            ImGui::EndTabBar();
         }
-        data->imgui_focus |= igIsWindowFocused(0);
+        data->imgui_focus |= ImGui::IsWindowFocused();
     }
-    igEnd();
-    igPopID();
+    ImGui::End();
+    ImGui::PopID();
 
     win_x = min((float_t)width / 4.0f, 400.0f);
 
@@ -1492,17 +1495,17 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
     window_flags |= ImGuiWindowFlags_NoFocusOnAppearing;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
-    igPushID_Str("Glitter Editor Property Window");
-    if (igBegin("Property", 0, window_flags)) {
+    ImGui::PushID("Glitter Editor Property Window");
+    if (ImGui::Begin("Property", 0, window_flags)) {
         if (glt_edt->effect_group && selected)
             glitter_editor_property(glt_edt, data);
-        data->imgui_focus |= igIsWindowFocused(0);
+        data->imgui_focus |= ImGui::IsWindowFocused();
     }
-    igEnd();
-    igPopID();
+    ImGui::End();
+    ImGui::PopID();
 
     win_x = min((float_t)width / 4.0f, 400.0f);
     win_y = min((float_t)height / 3.0f, 320.0f);
@@ -1519,17 +1522,17 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
     window_flags |= ImGuiWindowFlags_NoFocusOnAppearing;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
-    igPushID_Str("Glitter Editor Curve Editor Selector Window");
-    if (igBegin("Curve Editor Selector", 0, window_flags)) {
+    ImGui::PushID("Glitter Editor Curve Editor Selector Window");
+    if (ImGui::Begin("Curve Editor Selector", 0, window_flags)) {
         if (glt_edt->effect_group && selected)
             glitter_editor_curve_editor_selector(glt_edt, data);
-        data->imgui_focus |= igIsWindowFocused(0);
+        data->imgui_focus |= ImGui::IsWindowFocused();
     }
-    igEnd();
-    igPopID();
+    ImGui::End();
+    ImGui::PopID();
 
     win_x = min((float_t)width / 4.0f, 400.0f);
     win_y = min((float_t)height / 3.0f, 320.0f);
@@ -1546,17 +1549,17 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
     window_flags |= ImGuiWindowFlags_NoFocusOnAppearing;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
-    igPushID_Str("Glitter Editor Curve Editor Property Window");
-    if (igBegin("Curve Editor Property", 0, window_flags)) {
+    ImGui::PushID("Glitter Editor Curve Editor Property Window");
+    if (ImGui::Begin("Curve Editor Property", 0, window_flags)) {
         if (glt_edt->effect_group && selected)
             glitter_editor_curve_editor_property_window(glt_edt, data);
-        data->imgui_focus |= igIsWindowFocused(0);
+        data->imgui_focus |= ImGui::IsWindowFocused();
     }
-    igEnd();
-    igPopID();
+    ImGui::End();
+    ImGui::PopID();
 
     win_x = min((float_t)width / 4.0f, 400.0f);
     win_y = min((float_t)height / 3.0f, 320.0f);
@@ -1573,17 +1576,17 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
     window_flags |= ImGuiWindowFlags_NoFocusOnAppearing;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
-    igPushID_Str("Glitter Editor Curve Editor Window");
-    if (igBegin("Curve Editor", 0, window_flags)) {
+    ImGui::PushID("Glitter Editor Curve Editor Window");
+    if (ImGui::Begin("Curve Editor", 0, window_flags)) {
         if (glt_edt->effect_group && selected)
             glitter_editor_curve_editor(glt_edt);
-        data->imgui_focus |= igIsWindowFocused(0);
+        data->imgui_focus |= ImGui::IsWindowFocused();
     }
-    igEnd();
-    igPopID();
+    ImGui::End();
+    ImGui::PopID();
 }
 
 static void glitter_editor_reload(glitter_editor_struct* glt_edt) {
@@ -2085,59 +2088,59 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
     float_t w = 280.0f;
     float_t h = 326.0f;
 
-    igSetNextWindowPos(ImVec2_Empty, ImGuiCond_FirstUseEver, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
     window_flags |= ImGuiWindowFlags_NoCollapse;
 
-    if (!igBegin("Glitter Editor Test Window", &glt_edt->test, window_flags)) {
-        data->imgui_focus |= igIsWindowFocused(0);
+    if (!ImGui::Begin("Glitter Editor Test Window", &glt_edt->test, window_flags)) {
+        data->imgui_focus |= ImGui::IsWindowFocused();
         goto End;
     }
 
-    if (imguiButton("Reset Camera (R)", ImVec2_Empty))
+    if (imguiButton("Reset Camera (R)"))
         input_reset = true;
 
     w = imguiGetContentRegionAvailWidth();
-    if (igBeginTable("buttons", 2, 0, ImVec2_Empty, 0.0f)) {
-        igTableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.5f, 0);
+    if (ImGui::BeginTable("buttons", 2)) {
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.5f);
 
-        igTableNextColumn();
+        ImGui::TableNextColumn();
         w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Play (T)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_T, true))
+        if (imguiButton("Play (T)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_T))
             glt_edt->input_play = true;
 
-        igTableNextColumn();
+        ImGui::TableNextColumn();
         w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Reload (Y)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_Y, true))
+        if (imguiButton("Reload (Y)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_Y))
             glt_edt->input_reload = true;
 
-        igTableNextColumn();
+        ImGui::TableNextColumn();
         w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Pause (F)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_F, true))
+        if (imguiButton("Pause (F)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_F))
             glt_edt->input_pause = true;
 
-        igTableNextColumn();
+        ImGui::TableNextColumn();
         w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Reset (G)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_G, true))
+        if (imguiButton("Reset (G)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_G))
             glt_edt->input_reset = true;
-        igEndTable();
+        ImGui::EndTable();
     }
 
-    igSeparator();
+    ImGui::Separator();
 
     glt_edt->old_frame_counter = glt_edt->frame_counter;
     imguiColumnSliderFloat("Frame", &glt_edt->frame_counter, 1.0f,
         (float_t)glt_edt->start_frame, (float_t)glt_edt->end_frame, "%.0f", 0, true);
     glt_edt->input_pause_temp = imgui_is_item_activated;
 
-    igText("Start/End Frame: %d/%d", glt_edt->start_frame, glt_edt->end_frame);
+    ImGui::Text("Start/End Frame: %d/%d", glt_edt->start_frame, glt_edt->end_frame);
 
     imguiColumnSliderFloat("Emission", &GPM_VAL.emission, 0.01f, 1.0f, 2.0f, "%.2f", 0, true);
 
-    igSeparator();
+    ImGui::Separator();
 
     imguiCheckbox("Show Grid", &draw_grid_3d);
 
@@ -2147,17 +2150,17 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
     imguiCheckbox("Draw All Mesh", &GPM_VAL.draw_all_mesh);
     imguiDisableElementPop(GPM_VAL.draw_all && eg && eg->type == GLITTER_X);
 
-    igSeparator();
+    ImGui::Separator();
 
-    igCheckboxFlags_UintPtr("Draw Wireframe",
+    imguiCheckboxFlags("Draw Wireframe",
         (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DRAW_WIREFRAME);
-    igCheckboxFlags_UintPtr("Draw Selected",
+    imguiCheckboxFlags("Draw Selected",
         (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DRAW_SELECTED);
-    igCheckboxFlags_UintPtr("No Draw",
+    imguiCheckboxFlags("No Draw",
         (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DRAW_NO_DRAW);
 
-    data->imgui_focus |= igIsWindowFocused(0);
-    igEnd();
+    data->imgui_focus |= ImGui::IsWindowFocused();
+    ImGui::End();
 
     win_x = min((float_t)width, 240.0f);
     win_y = min((float_t)height, 96.0f);
@@ -2167,8 +2170,8 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
     w = win_x;
     h = win_y;
 
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
     window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoTitleBar;
@@ -2179,9 +2182,9 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
     window_flags |= ImGuiWindowFlags_NoNavInputs;
     window_flags |= ImGuiWindowFlags_NoNavFocus;
 
-    igPushStyleColor_U32(ImGuiCol_Border, 0);
-    igPushStyleColor_U32(ImGuiCol_WindowBg, 0);
-    if (igBegin("Glitter Test Sub##Data Test", 0, window_flags)) {
+    ImGui::PushStyleColor(ImGuiCol_Border, 0);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, 0);
+    if (ImGui::Begin("Glitter Test Sub##Data Test", 0, window_flags)) {
         size_t ctrl;
         size_t disp;
         float_t frame;
@@ -2189,28 +2192,28 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
 
         life_time = 0;
         frame = GPM_VAL.GetSceneFrameLifeTime(glt_edt->scene_counter, &life_time);
-        igText("%.0f - %.0f/%d", max(glt_edt->frame_counter - glt_edt->start_frame, 0), frame, life_time);
+        ImGui::Text("%.0f - %.0f/%d", max(glt_edt->frame_counter - glt_edt->start_frame, 0), frame, life_time);
 
         ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_QUAD);
         disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_QUAD);
-        igText(" Quad: ctrl%lld, disp%lld", ctrl, disp);
+        ImGui::Text(" Quad: ctrl%lld, disp%lld", ctrl, disp);
 
         ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LOCUS);
         disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LOCUS);
-        igText("Locus: ctrl%lld, disp%lld", ctrl, disp);
+        ImGui::Text("Locus: ctrl%lld, disp%lld", ctrl, disp);
 
         ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LINE);
         disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LINE);
-        igText(" Line: ctrl%lld, disp%lld", ctrl, disp);
+        ImGui::Text(" Line: ctrl%lld, disp%lld", ctrl, disp);
 
         ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_MESH);
         disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_MESH);
-        igText(" Mesh: ctrl%lld, disp%lld", ctrl, disp);
+        ImGui::Text(" Mesh: ctrl%lld, disp%lld", ctrl, disp);
     }
-    igPopStyleColor(2);
+    ImGui::PopStyleColor(2);
 
 End:
-    igEnd();
+    ImGui::End();
 }
 
 static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
@@ -2224,7 +2227,7 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
     ImGuiTreeNodeFlags tree_node_flags;
 
     glitter_effect_group* eg = glt_edt->effect_group;
-    igPushID_Ptr(eg);
+    ImGui::PushID(eg);
     ssize_t i_idx = 1;
     for (glitter_effect** i = eg->effects.begin;
         i != eg->effects.end; i++, i_idx++) {
@@ -2250,8 +2253,8 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
             eff_str = "%s (%08X)";
 
 
-        igPushID_Ptr(effect);
-        if (igTreeNodeEx_StrStr("effect", tree_node_flags, eff_str,
+        ImGui::PushID(effect);
+        if (ImGui::TreeNodeEx("effect", tree_node_flags, eff_str,
             effect->name, (uint32_t)((size_t)effect * hash_fnv1a64m_empty))) {
             glitter_editor_effects_context_menu(glt_edt, effect, 0, 0,
                 i_idx, 0, 0, GLITTER_EDITOR_SELECTED_EFFECT);
@@ -2281,8 +2284,8 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
                 else
                     emit_str = "Emitter %lld (%08X)";
 
-                igPushID_Ptr(emitter);
-                if (igTreeNodeEx_StrStr("emitter", tree_node_flags, emit_str,
+                ImGui::PushID(emitter);
+                if (ImGui::TreeNodeEx("emitter", tree_node_flags, emit_str,
                     j_idx, (uint32_t)((size_t)emitter * hash_fnv1a64m_empty))) {
                     glitter_editor_effects_context_menu(glt_edt, effect, emitter, 0,
                         i_idx, j_idx, 0, GLITTER_EDITOR_SELECTED_EMITTER);
@@ -2315,30 +2318,30 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
                             break;
                         }
 
-                        igPushID_Ptr(particle);
+                        ImGui::PushID(particle);
                         snprintf(buf, sizeof(buf), ptcl_str,
                             k_idx, (uint32_t)((size_t)particle * hash_fnv1a64m_empty));
-                        igSelectable_Bool(buf, particle == glt_edt->selected_particle,
+                        ImGui::Selectable(buf, particle == glt_edt->selected_particle,
                             0, { 0.0f, 0.0f });
                         glitter_editor_effects_context_menu(glt_edt, effect, emitter, particle,
                             i_idx, j_idx, k_idx, GLITTER_EDITOR_SELECTED_PARTICLE);
-                        igPopID();
+                        ImGui::PopID();
                     }
-                    igTreePop();
+                    ImGui::TreePop();
                 }
                 else
                     glitter_editor_effects_context_menu(glt_edt, effect, emitter, 0,
                         i_idx, j_idx, 0, GLITTER_EDITOR_SELECTED_EMITTER);
-                igPopID();
+                ImGui::PopID();
             }
-            igTreePop();
+            ImGui::TreePop();
         }
         else
             glitter_editor_effects_context_menu(glt_edt, effect, 0, 0,
                 i_idx, 0, 0, GLITTER_EDITOR_SELECTED_EFFECT);
-        igPopID();
+        ImGui::PopID();
     }
-    igPopID();
+    ImGui::PopID();
 }
 
 static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
@@ -2348,21 +2351,21 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
     glitter_effect* sel_efct = glt_edt->selected_effect;
     glitter_emitter* sel_emit = glt_edt->selected_emitter;
 
-    bool focused = igIsItemFocused();
+    bool focused = ImGui::IsItemFocused();
 
     ImGuiWindowFlags window_flags;
     bool close;
 
     static void* selected;
     if (type == GLITTER_EDITOR_SELECTED_NONE) {
-        if (igIsWindowHovered(0) && igIsMouseReleased(ImGuiMouseButton_Right)) {
-            igOpenPopup_Str("effects popup", ImGuiPopupFlags_MouseButtonRight);
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
+            ImGui::OpenPopup("effects popup", ImGuiPopupFlags_MouseButtonRight);
             selected = 0;
         }
         else if (selected != 0)
             goto End;
     }
-    else if (igIsItemHovered(0) && igIsMouseReleased(ImGuiMouseButton_Right)) {
+    else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
         switch (type) {
         case GLITTER_EDITOR_SELECTED_EFFECT:
             selected = effect;
@@ -2376,7 +2379,7 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
         default:
             goto End;
         }
-        igOpenPopup_Str("effects popup", ImGuiPopupFlags_MouseButtonRight);
+        ImGui::OpenPopup("effects popup", ImGuiPopupFlags_MouseButtonRight);
     }
     else
         switch (type) {
@@ -2400,7 +2403,7 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
     window_flags |= ImGuiWindowFlags_NoTitleBar;
     window_flags |= ImGuiWindowFlags_AlwaysAutoResize;
 
-    if (!igBeginPopup("effects popup", window_flags))
+    if (!ImGui::BeginPopup("effects popup", window_flags))
         goto End;
 
     global_context_menu = false;
@@ -2408,7 +2411,7 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
     close = false;
     switch (type) {
     case GLITTER_EDITOR_SELECTED_NONE: {
-        if (igMenuItem_Bool("Add Effect", 0, false, true)) {
+        if (ImGui::MenuItem("Add Effect", 0)) {
             if (!glt_edt->effect_group)
                 glt_edt->create_popup = true;
             else
@@ -2433,35 +2436,35 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
             eff_str = "%s (%08X)";
 
         glitter_effect_group* eg = glt_edt->effect_group;
-        igText(eff_str, effect->name, (uint32_t)((size_t)effect * hash_fnv1a64m_empty));
-        igSeparator();
-        if (igMenuItem_Bool("Duplicate Effect", 0, false, true)) {
+        ImGui::Text(eff_str, effect->name, (uint32_t)((size_t)effect * hash_fnv1a64m_empty));
+        ImGui::Separator();
+        if (ImGui::MenuItem("Duplicate Effect")) {
             enum_or(glt_edt->effect_flags, GLITTER_EDITOR_DUPLICATE);
             glt_edt->selected_effect = effect;
             close = true;
         }
 
-        if (igMenuItem_Bool("Delete Effect", 0, false, true)) {
+        if (ImGui::MenuItem("Delete Effect")) {
             enum_or(glt_edt->effect_flags, GLITTER_EDITOR_DELETE);
             glt_edt->selected_effect = effect;
             close = true;
         }
 
-        if (igMenuItem_Bool("Move Effect Up", 0, false, i_idx > 1)) {
+        if (ImGui::MenuItem("Move Effect Up", 0, false, i_idx > 1)) {
             enum_or(glt_edt->effect_flags, GLITTER_EDITOR_MOVE_UP);
             glt_edt->selected_effect = effect;
             close = true;
         }
 
-        if (igMenuItem_Bool("Move Effect Down", 0, false, i_idx < vector_old_length(eg->effects))) {
+        if (ImGui::MenuItem("Move Effect Down", 0, false, i_idx < vector_old_length(eg->effects))) {
             enum_or(glt_edt->effect_flags, GLITTER_EDITOR_MOVE_DOWN);
             glt_edt->selected_effect = effect;
             close = true;
         }
 
-        igSeparator();
+        ImGui::Separator();
 
-        if (igMenuItem_Bool("Add Emitter", 0, false, true)) {
+        if (ImGui::MenuItem("Add Emitter")) {
             enum_or(glt_edt->emitter_flags, GLITTER_EDITOR_ADD);
             glt_edt->selected_effect = effect;
             close = true;
@@ -2485,27 +2488,27 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
         else
             emit_str = "Emitter %lld (%08X)";
 
-        igText(emit_str, j_idx, (size_t)emitter * hash_fnv1a64m_empty);
-        igSeparator();
-        if (igMenuItem_Bool("Duplicate Emitter", 0, false, true)) {
+        ImGui::Text(emit_str, j_idx, (size_t)emitter * hash_fnv1a64m_empty);
+        ImGui::Separator();
+        if (ImGui::MenuItem("Duplicate Emitter")) {
             enum_or(glt_edt->emitter_flags, GLITTER_EDITOR_DUPLICATE);
             glt_edt->selected_emitter = emitter;
             close = true;
         }
 
-        if (igMenuItem_Bool("Delete Emitter", 0, false, true)) {
+        if (ImGui::MenuItem("Delete Emitter")) {
             enum_or(glt_edt->emitter_flags, GLITTER_EDITOR_DELETE);
             glt_edt->selected_emitter = emitter;
             close = true;
         }
 
-        if (igMenuItem_Bool("Move Emitter Up", 0, false, j_idx > 1)) {
+        if (ImGui::MenuItem("Move Emitter Up", 0, false, j_idx > 1)) {
             enum_or(glt_edt->emitter_flags, GLITTER_EDITOR_MOVE_UP);
             glt_edt->selected_emitter = emitter;
             close = true;
         }
 
-        if (igMenuItem_Bool("Move Emitter Down", 0, false,
+        if (ImGui::MenuItem("Move Emitter Down", 0, false,
             j_idx < sel_efct->emitters.end
             - sel_efct->emitters.begin)) {
             enum_or(glt_edt->emitter_flags, GLITTER_EDITOR_MOVE_DOWN);
@@ -2513,9 +2516,9 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
             close = true;
         }
 
-        igSeparator();
+        ImGui::Separator();
 
-        if (igMenuItem_Bool("Add Particle", 0, false, true)) {
+        if (ImGui::MenuItem("Add Particle")) {
             enum_or(glt_edt->particle_flags, GLITTER_EDITOR_ADD);
             glt_edt->selected_emitter = emitter;
             close = true;
@@ -2544,27 +2547,27 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
             break;
         }
 
-        igText(ptcl_str, k_idx, (uint32_t)((size_t)particle * hash_fnv1a64m_empty));
-        igSeparator();
-        if (igMenuItem_Bool("Duplicate Particle", 0, false, true)) {
+        ImGui::Text(ptcl_str, k_idx, (uint32_t)((size_t)particle * hash_fnv1a64m_empty));
+        ImGui::Separator();
+        if (ImGui::MenuItem("Duplicate Particle")) {
             enum_or(glt_edt->particle_flags, GLITTER_EDITOR_DUPLICATE);
             glt_edt->selected_particle = particle;
             close = true;
         }
 
-        if (igMenuItem_Bool("Delete Particle", 0, false, true)) {
+        if (ImGui::MenuItem("Delete Particle")) {
             enum_or(glt_edt->particle_flags, GLITTER_EDITOR_DELETE);
             glt_edt->selected_particle = particle;
             close = true;
         }
 
-        if (igMenuItem_Bool("Move Particle Up", 0, false, k_idx > 1)) {
+        if (ImGui::MenuItem("Move Particle Up", 0, false, k_idx > 1)) {
             enum_or(glt_edt->particle_flags, GLITTER_EDITOR_MOVE_UP);
             glt_edt->selected_particle = particle;
             close = true;
         }
 
-        if (igMenuItem_Bool("Move Particle Down", 0, false,
+        if (ImGui::MenuItem("Move Particle Down", 0, false,
             k_idx < sel_emit->particles.end
             - sel_emit->particles.begin)) {
             enum_or(glt_edt->particle_flags, GLITTER_EDITOR_MOVE_DOWN);
@@ -2575,10 +2578,10 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
     }
 
     if (close) {
-        igCloseCurrentPopup();
+        ImGui::CloseCurrentPopup();
         selected = 0;
     }
-    igEndPopup();
+    ImGui::EndPopup();
 
 End:
     if (!focused)
@@ -2628,13 +2631,13 @@ static void glitter_editor_resources(glitter_editor_struct* glt_edt) {
     int32_t rc = eg->resources_count;
     uint64_t* rh = eg->resource_hashes.data();
     txp* rt = eg->resources_tex.textures.data();
-    igPushID_Ptr(eg);
+    ImGui::PushID(eg);
     ssize_t i_idx = 1;
     for (int32_t i = 0; i < rc; i++, i_idx++) {
         snprintf(buf, sizeof(buf), "Texture %d (%016llX)", i + 1, rh[i]);
-        igPushID_Int(i);
-        igSelectable_Bool(buf, i == sel_rsrc, 0, { 0.0f, 0.0f });
-        if (igIsItemHovered(0)) {
+        ImGui::PushID(i);
+        ImGui::Selectable(buf, i == sel_rsrc, 0, { 0.0f, 0.0f });
+        if (ImGui::IsItemHovered()) {
             txp_mipmap* rtm = rt[i].mipmaps.data();
             float_t aspect = (float_t)rtm->width / (float_t)rtm->height;
 
@@ -2644,37 +2647,37 @@ static void glitter_editor_resources(glitter_editor_struct* glt_edt) {
             else if (aspect < 1.0f)
                 size.x *= aspect;
 
-            igBeginTooltip();
-            igText("Tex Size: %dx%d", rtm->width, rtm->height);\
-            igImage((void*)(size_t)r[i]->texture, size,
-                ImVec2_Empty, ImVec2_Identity, tint_col, border_col);
-            igEndTooltip();
+            ImGui::BeginTooltip();
+            ImGui::Text("Tex Size: %dx%d", rtm->width, rtm->height);
+            ImGui::Image((void*)(size_t)r[i]->texture, size,
+                { 0, 0 }, { 1, 1 }, tint_col, border_col);
+            ImGui::EndTooltip();
         }
         glitter_editor_resources_context_menu(glt_edt, i, i_idx, false);
-        igPopID();
+        ImGui::PopID();
     }
-    igPopID();
+    ImGui::PopID();
 }
 
 static void glitter_editor_resources_context_menu(glitter_editor_struct* glt_edt,
     int32_t resource, ssize_t i_idx, bool selected_none) {
-    bool focused = igIsItemFocused();
+    bool focused = ImGui::IsItemFocused();
 
     ImGuiWindowFlags window_flags;
     bool close;
 
     static size_t selected;
     if (selected_none) {
-        if (igIsWindowHovered(0) && igIsMouseReleased(ImGuiMouseButton_Right)) {
-            igOpenPopup_Str("resources popup", ImGuiPopupFlags_MouseButtonRight);
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
+            ImGui::OpenPopup("resources popup", ImGuiPopupFlags_MouseButtonRight);
             selected = -1;
         }
         else if (selected != -1)
             goto End;
     }
-    else if (igIsItemHovered(0) && igIsMouseReleased(ImGuiMouseButton_Right)) {
+    else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
         selected = resource;
-        igOpenPopup_Str("resources popup", ImGuiPopupFlags_MouseButtonRight);
+        ImGui::OpenPopup("resources popup", ImGuiPopupFlags_MouseButtonRight);
     }
     else if (selected != resource)
         goto End;
@@ -2683,14 +2686,14 @@ static void glitter_editor_resources_context_menu(glitter_editor_struct* glt_edt
     window_flags |= ImGuiWindowFlags_NoTitleBar;
     window_flags |= ImGuiWindowFlags_AlwaysAutoResize;
 
-    if (!igBeginPopup("resources popup", window_flags))
+    if (!ImGui::BeginPopup("resources popup", window_flags))
         goto End;
 
     global_context_menu = false;
 
     close = false;
     if (selected_none) {
-        if (igMenuItem_Bool("Import Resource", 0, false, true)) {
+        if (ImGui::MenuItem("Import Resource", 0)) {
             enum_or(glt_edt->resource_flags, GLITTER_EDITOR_IMPORT);
             close = true;
         }
@@ -2700,27 +2703,27 @@ static void glitter_editor_resources_context_menu(glitter_editor_struct* glt_edt
         glitter_effect_group* eg = glt_edt->effect_group;
         ssize_t rc = eg->resources_count;
         uint64_t* rh = eg->resource_hashes.data();
-        igText("Texture %lld (%016llX)", i + 1, rh[i]);
-        igSeparator();
-        if (igMenuItem_Bool("Export Resource", 0, false, true)) {
+        ImGui::Text("Texture %lld (%016llX)", i + 1, rh[i]);
+        ImGui::Separator();
+        if (ImGui::MenuItem("Export Resource")) {
             enum_or(glt_edt->resource_flags, GLITTER_EDITOR_EXPORT);
             glt_edt->selected_resource = resource;
             close = true;
         }
 
-        if (igMenuItem_Bool("Delete Resource", 0, false, true)) {
+        if (ImGui::MenuItem("Delete Resource")) {
             enum_or(glt_edt->resource_flags, GLITTER_EDITOR_DELETE);
             glt_edt->selected_resource = resource;
             close = true;
         }
 
-        if (igMenuItem_Bool("Move Resource Up", 0, false, i_idx > 1)) {
+        if (ImGui::MenuItem("Move Resource Up", 0, false, i_idx > 1)) {
             enum_or(glt_edt->resource_flags, GLITTER_EDITOR_MOVE_UP);
             glt_edt->selected_resource = resource;
             close = true;
         }
 
-        if (igMenuItem_Bool("Move Resource Down", 0, false,
+        if (ImGui::MenuItem("Move Resource Down", 0, false,
             i_idx < rc)) {
             enum_or(glt_edt->resource_flags, GLITTER_EDITOR_MOVE_DOWN);
             glt_edt->selected_resource = resource;
@@ -2729,10 +2732,10 @@ static void glitter_editor_resources_context_menu(glitter_editor_struct* glt_edt
     }
 
     if (close) {
-        igCloseCurrentPopup();
+        ImGui::CloseCurrentPopup();
         selected = 0;
     }
-    igEndPopup();
+    ImGui::EndPopup();
 
 End:
     if (!focused)
@@ -2744,45 +2747,45 @@ End:
 static void glitter_editor_play_manager(glitter_editor_struct* glt_edt) {
     glitter_effect_group* eg = glt_edt->effect_group;
 
-    if (imguiButton("Reset Camera (R)", ImVec2_Empty))
+    if (imguiButton("Reset Camera (R)"))
         input_reset = true;
 
     float_t w = imguiGetContentRegionAvailWidth();
-    if (igBeginTable("buttons", 2, 0, ImVec2_Empty, 0.0f)) {
-        igTableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.5f, 0);
+    if (ImGui::BeginTable("buttons", 2)) {
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.5f);
 
-        igTableNextColumn();
+        ImGui::TableNextColumn();
         w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Play (T)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_T, true))
+        if (imguiButton("Play (T)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_T))
             glt_edt->input_play = true;
 
-        igTableNextColumn();
+        ImGui::TableNextColumn();
         w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Reload (Y)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_Y, true))
+        if (imguiButton("Reload (Y)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_Y))
             glt_edt->input_reload = true;
 
-        igTableNextColumn();
+        ImGui::TableNextColumn();
         w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Pause (F)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_F, true))
+        if (imguiButton("Pause (F)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_F))
             glt_edt->input_pause = true;
 
-        igTableNextColumn();
+        ImGui::TableNextColumn();
         w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Reset (G)", { w, 0.0f }) || igIsKeyPressed(GLFW_KEY_G, true))
+        if (imguiButton("Reset (G)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_G))
             glt_edt->input_reset = true;
-        igEndTable();
+        ImGui::EndTable();
     }
 
-    igSeparator();
+    ImGui::Separator();
 
     glt_edt->old_frame_counter = glt_edt->frame_counter;
     imguiColumnSliderFloat("Frame", &glt_edt->frame_counter, 1.0f,
         (float_t)glt_edt->start_frame, (float_t)glt_edt->end_frame, "%.0f", 0, true);
     glt_edt->input_pause_temp = imgui_is_item_activated;
 
-    igText("Start/End Frame: %d/%d", glt_edt->start_frame, glt_edt->end_frame);
+    ImGui::Text("Start/End Frame: %d/%d", glt_edt->start_frame, glt_edt->end_frame);
 
-    igSeparator();
+    ImGui::Separator();
 
     size_t ctrl;
     size_t disp;
@@ -2791,29 +2794,29 @@ static void glitter_editor_play_manager(glitter_editor_struct* glt_edt) {
 
     life_time = 0;
     frame = GPM_VAL.GetSceneFrameLifeTime(glt_edt->scene_counter, &life_time);
-    igText("%.0f - %.0f/%d", max(glt_edt->frame_counter - glt_edt->start_frame, 0), frame, life_time);
+    ImGui::Text("%.0f - %.0f/%d", max(glt_edt->frame_counter - glt_edt->start_frame, 0), frame, life_time);
 
     ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_QUAD);
     disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_QUAD);
-    igText(" Quad: ctrl%lld, disp%lld", ctrl, disp);
+    ImGui::Text(" Quad: ctrl%lld, disp%lld", ctrl, disp);
 
     ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LOCUS);
     disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LOCUS);
-    igText("Locus: ctrl%lld, disp%lld", ctrl, disp);
+    ImGui::Text("Locus: ctrl%lld, disp%lld", ctrl, disp);
 
     ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_LINE);
     disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_LINE);
-    igText(" Line: ctrl%lld, disp%lld", ctrl, disp);
+    ImGui::Text(" Line: ctrl%lld, disp%lld", ctrl, disp);
 
     ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_MESH);
     disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_MESH);
-    igText(" Mesh: ctrl%lld, disp%lld", ctrl, disp);
+    ImGui::Text(" Mesh: ctrl%lld, disp%lld", ctrl, disp);
 
-    igSeparator();
+    ImGui::Separator();
 
     imguiColumnSliderFloat("Emission", &GPM_VAL.emission, 0.01f, 1.0f, 2.0f, "%.2f", 0, true);
 
-    igSeparator();
+    ImGui::Separator();
 
     imguiCheckbox("Grid", &draw_grid_3d);
 
@@ -2873,7 +2876,7 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
         &effect.data.start_time, 1.0f, 0x0000, 0x7FFF - effect.data.appear_time, "%d", 0))
         changed = true;
 
-    igSeparator();
+    ImGui::Separator();
 
     if (imguiColumnDragVec3Flag("Translation",
         &effect.translation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
@@ -2897,35 +2900,35 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
         (flags & GLITTER_CURVE_TYPE_SCALE_XYZ) >> 6))
         changed = true;
 
-    igSeparator();
+    ImGui::Separator();
 
-    if (imguiCheckboxFlags_UintPtr("Loop",
+    if (imguiCheckboxFlags("Loop",
         (uint32_t*)&effect.data.flags,
         GLITTER_EFFECT_LOOP))
         changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Draw as Transparent",
+    if (imguiCheckboxFlags("Draw as Transparent",
         (uint32_t*)&effect.data.flags,
         GLITTER_EFFECT_ALPHA))
         changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Fog",
+    if (imguiCheckboxFlags("Fog",
         (uint32_t*)&effect.data.flags,
         GLITTER_EFFECT_FOG))
         changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Fog Height",
+    if (imguiCheckboxFlags("Fog Height",
         (uint32_t*)&effect.data.flags,
         GLITTER_EFFECT_FOG_HEIGHT))
         changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Use External Emission",
+    if (imguiCheckboxFlags("Use External Emission",
         (uint32_t*)&effect.data.flags,
         GLITTER_EFFECT_EMISSION))
         changed = true;
 
     if (eg->type == GLITTER_X)
-        if (imguiCheckboxFlags_UintPtr("Use Seed",
+        if (imguiCheckboxFlags("Use Seed",
             (uint32_t*)&effect.data.flags,
             GLITTER_EFFECT_USE_SEED))
             changed = true;
@@ -2996,7 +2999,7 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
     }
 
     if (~effect.data.flags & GLITTER_EFFECT_LOCAL && effect.data.ext_anim) {
-        igSeparator();
+        ImGui::Separator();
 
         bool ext_anim_changed = false;
         if (eg->type == GLITTER_X) {
@@ -3052,32 +3055,32 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
                 }
             }
 
-            if (imguiCheckboxFlags_UintPtr("Trans Only",
+            if (imguiCheckboxFlags("Trans Only",
                 (uint32_t*)&ext_anim.flags,
                 GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY))
                 ext_anim_changed = true;
 
-            if (imguiCheckboxFlags_UintPtr("No Trans X",
+            if (imguiCheckboxFlags("No Trans X",
                 (uint32_t*)&ext_anim.flags,
                 GLITTER_EFFECT_EXT_ANIM_NO_TRANS_X))
                 ext_anim_changed = true;
 
-            if (imguiCheckboxFlags_UintPtr("No Trans Y",
+            if (imguiCheckboxFlags("No Trans Y",
                 (uint32_t*)&ext_anim.flags,
                 GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Y))
                 ext_anim_changed = true;
 
-            if (imguiCheckboxFlags_UintPtr("No Trans Z",
+            if (imguiCheckboxFlags("No Trans Z",
                 (uint32_t*)&ext_anim.flags,
                 GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Z))
                 ext_anim_changed = true;
 
-            if (imguiCheckboxFlags_UintPtr("Draw Only when Chara Visible",
+            if (imguiCheckboxFlags("Draw Only when Chara Visible",
                 (uint32_t*)&ext_anim.flags,
                 GLITTER_EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA))
                 ext_anim_changed = true;
 
-            if (imguiCheckboxFlags_UintPtr("Get Then Update",
+            if (imguiCheckboxFlags("Get Then Update",
                 (uint32_t*)&ext_anim.flags,
                 GLITTER_EFFECT_EXT_ANIM_GET_THEN_UPDATE))
                 ext_anim_changed = true;
@@ -3132,7 +3135,7 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
                 }
             }
 
-            if (imguiCheckboxFlags_UintPtr("Trans Only",
+            if (imguiCheckboxFlags("Trans Only",
                 (uint32_t*)&ext_anim.flags,
                 GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY))
                 ext_anim_changed = true;
@@ -3196,12 +3199,12 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
             if (*j && (*j)->type == i)
                 enum_and(flags, ~(1 << i));
 
-    igText("Parent Effect:\nAppear Time: %d; Life Time: %d; Start Time: %d",
+    ImGui::Text("Parent Effect:\nAppear Time: %d; Life Time: %d; Start Time: %d",
         sel_efct->data.appear_time,
         sel_efct->data.life_time,
         sel_efct->data.start_time);
 
-    igSeparator();
+    ImGui::Separator();
 
     if (imguiColumnDragInt("Start Time",
         &emitter.data.start_time, 1.0f, 0x0000, 0x7FFF, "%d", 0))
@@ -3225,7 +3228,7 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
         changed = emitter.data.loop_end_time != sel_emit->data.loop_end_time;
     }
 
-    igSeparator();
+    ImGui::Separator();
 
     if (imguiColumnDragVec3Flag("Translation",
         &emitter.translation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
@@ -3279,25 +3282,25 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
         (flags & GLITTER_CURVE_TYPE_SCALE_XYZ) >> 6))
         changed = true;
 
-    igSeparator();
+    ImGui::Separator();
 
-    if (imguiCheckboxFlags_UintPtr("Loop",
+    if (imguiCheckboxFlags("Loop",
         (uint32_t*)&emitter.data.flags,
         GLITTER_EMITTER_LOOP))
         changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Kill On End",
+    if (imguiCheckboxFlags("Kill On End",
         (uint32_t*)&emitter.data.flags,
         GLITTER_EMITTER_KILL_ON_END))
         changed = true;
 
     if (eg->type == GLITTER_X
-        && imguiCheckboxFlags_UintPtr("Use Seed",
+        && imguiCheckboxFlags("Use Seed",
             (uint32_t*)&emitter.data.flags,
             GLITTER_EMITTER_USE_SEED))
         changed = true;
 
-    igSeparator();
+    ImGui::Separator();
 
     if (eg->type == GLITTER_X) {
         if (emitter.data.flags & GLITTER_EMITTER_USE_SEED
@@ -3412,21 +3415,21 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
         (int32_t*)&emitter.data.type, 0, true, &data->imgui_focus))
         changed = true;
 
-    igSeparator();
+    ImGui::Separator();
 
     switch (emitter.data.type) {
     case GLITTER_EMITTER_BOX: {
-        igPushID_Str("Box");
+        ImGui::PushID("Box");
         if (imguiColumnDragVec3("Size",
             &emitter.data.box.size, 0.0001f, 0.0f, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
-        igPopID();
+        ImGui::PopID();
     } break;
     case GLITTER_EMITTER_CYLINDER: {
         float_t start_angle, end_angle;
 
-        igPushID_Str("Cylinder");
+        ImGui::PushID("Cylinder");
         if (imguiColumnDragFloat("Radius",
             &emitter.data.cylinder.radius, 0.0001f, 0.0f, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
@@ -3462,12 +3465,12 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
             GLITTER_EMITTER_EMISSION_DIRECTION_INWARD,
             (int32_t*)&emitter.data.cylinder.direction, 0, true, &data->imgui_focus))
             changed = true;
-        igPopID();
+        ImGui::PopID();
     } break;
     case GLITTER_EMITTER_SPHERE: {
         float_t latitude, longitude;
 
-        igPushID_Str("Sphere");
+        ImGui::PushID("Sphere");
         if (imguiColumnDragFloat("Radius",
             &emitter.data.sphere.radius, 0.0001f, 0.0f, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
@@ -3498,10 +3501,10 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
             GLITTER_EMITTER_EMISSION_DIRECTION_INWARD,
             (int32_t*)&emitter.data.sphere.direction, 0, true, &data->imgui_focus))
             changed = true;
-        igPopID();
+        ImGui::PopID();
     } break;
     case GLITTER_EMITTER_POLYGON: {
-        igPushID_Str("Polygon");
+        ImGui::PushID("Polygon");
         if (imguiColumnDragFloat("Scale",
             &emitter.data.polygon.size, 0.0001f, 0.0f, FLT_MAX,
             "%g", ImGuiSliderFlags_NoRoundToFormat))
@@ -3517,7 +3520,7 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
                 GLITTER_EMITTER_EMISSION_DIRECTION_INWARD,
                 (int32_t*)&emitter.data.cylinder.direction, 0, true, &data->imgui_focus))
                 changed = true;
-        igPopID();
+        ImGui::PopID();
     } break;
     }
 
@@ -3559,63 +3562,63 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
                 if (*j && (*j)->type == i)
                     enum_and(flags, ~(1 << i));
 
-    igText("Parent Effect:\nAppear Time: %d; Life Time: %d; Start Time: %d",
+    ImGui::Text("Parent Effect:\nAppear Time: %d; Life Time: %d; Start Time: %d",
         sel_efct->data.appear_time,
         sel_efct->data.life_time,
         sel_efct->data.start_time);
 
-    igText("Parent Emitter:\nStart Time: %d; Life Time: %d\nLoop Start Time: %d; Loop End Time: %d",
+    ImGui::Text("Parent Emitter:\nStart Time: %d; Life Time: %d\nLoop Start Time: %d; Loop End Time: %d",
         sel_emit->data.start_time,
         sel_emit->data.life_time,
         sel_emit->data.loop_start_time,
         sel_emit->data.loop_end_time);
 
-    igSeparator();
+    ImGui::Separator();
 
     bool flags_changed = false;
-    if (imguiCheckboxFlags_UintPtr("Loop",
+    if (imguiCheckboxFlags("Loop",
         (uint32_t*)&particle.data.flags,
         GLITTER_PARTICLE_LOOP))
         flags_changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Emitter Local",
+    if (imguiCheckboxFlags("Emitter Local",
         (uint32_t*)&particle.data.flags,
         GLITTER_PARTICLE_EMITTER_LOCAL))
         flags_changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Scale Y by X",
+    if (imguiCheckboxFlags("Scale Y by X",
         (uint32_t*)&particle.data.flags,
         GLITTER_PARTICLE_SCALE_Y_BY_X))
         flags_changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Rebound Plane",
+    if (imguiCheckboxFlags("Rebound Plane",
         (uint32_t*)&particle.data.flags,
         GLITTER_PARTICLE_REBOUND_PLANE))
         flags_changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Rotate by Emitter",
+    if (imguiCheckboxFlags("Rotate by Emitter",
         (uint32_t*)&particle.data.flags,
         GLITTER_PARTICLE_ROTATE_BY_EMITTER))
         flags_changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Scale by Emitter",
+    if (imguiCheckboxFlags("Scale by Emitter",
         (uint32_t*)&particle.data.flags,
         GLITTER_PARTICLE_SCALE))
         flags_changed = true;
 
-    if (imguiCheckboxFlags_UintPtr("Texture Mask##Flag",
+    if (imguiCheckboxFlags("Texture Mask##Flag",
         (uint32_t*)&particle.data.flags,
         GLITTER_PARTICLE_TEXTURE_MASK))
         flags_changed = true;
 
     if (eg->type == GLITTER_X) {
-        if (imguiCheckboxFlags_UintPtr("Disable Depth Test",
+        if (imguiCheckboxFlags("Disable Depth Test",
             (uint32_t*)&particle.data.flags,
             GLITTER_PARTICLE_DEPTH_TEST))
             flags_changed = true;
 
         if (particle.data.type == GLITTER_PARTICLE_LOCUS
-            && imguiCheckboxFlags_UintPtr("Rotate Locus",
+            && imguiCheckboxFlags("Rotate Locus",
                 (uint32_t*)&particle.data.flags,
                 GLITTER_PARTICLE_ROTATE_LOCUS))
                 flags_changed = true;
@@ -3624,7 +3627,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
     if (flags_changed)
         changed = true;
 
-    igSeparator();
+    ImGui::Separator();
 
     if (eg->type == GLITTER_X) {
         vec2i life_time;
@@ -3732,7 +3735,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
             "%g", ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
 
-    igSeparator();
+    ImGui::Separator();
 
     if (eg->type != GLITTER_X) {
         bool draw_prev_pos =
@@ -3816,7 +3819,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
         changed = true;
     imguiDisableElementPop(particle.data.type != GLITTER_PARTICLE_MESH);
 
-    igSeparator();
+    ImGui::Separator();
 
     if (imguiColumnDragVec3("Direction",
         &particle.data.direction, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
@@ -3881,7 +3884,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
         ImGuiSliderFlags_NoRoundToFormat))
         changed = true;
 
-    igSeparator();
+    ImGui::Separator();
 
     vec4 color = particle.data.color;
     if (imguiColumnColorEdit4("Color", &color,
@@ -4059,18 +4062,18 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
     if (particle.data.uv_index_count < 0)
         particle.data.uv_index_count = 0;
 
-    if (imguiCheckboxFlags_UintPtr("Use Animation Curve",
+    if (imguiCheckboxFlags("Use Animation Curve",
         (uint32_t*)&particle.data.sub_flags,
         GLITTER_PARTICLE_SUB_USE_CURVE))
         changed = true;
 
     if (eg->type == GLITTER_X && particle.data.type == GLITTER_PARTICLE_MESH)
-        if (imguiCheckboxFlags_UintPtr("UV Add",
+        if (imguiCheckboxFlags("UV Add",
             (uint32_t*)&particle.data.sub_flags,
             GLITTER_PARTICLE_SUB_UV_2ND_ADD))
             changed = true;
 
-    igSeparator();
+    ImGui::Separator();
 
     if (eg->type != GLITTER_X || particle.data.type == GLITTER_PARTICLE_QUAD)
         if (imguiColumnDragInt("Count",
@@ -4106,39 +4109,40 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
             changed = true;
     }
     else if (particle.data.type == GLITTER_PARTICLE_MESH) {
-        igSeparator();
+        ImGui::Separator();
 
         glitter_particle_mesh* mesh = &particle.data.mesh;
         uint32_t set_id = (uint32_t)mesh->object_set_name_hash;
         uint32_t obj_id = (uint32_t)mesh->object_name_hash;
 
-        object_set* set = object_storage_get_object_set(set_id);
-        ssize_t object_set_count = object_storage_get_object_set_count();
+        obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
+        obj_set* set = handler->obj_set;
+        ssize_t object_set_count = object_storage_get_obj_set_count();
 
         imguiStartPropertyColumn("Object Set");
-        if (igBeginCombo("##Object Set", set ? string_data(&set->name) : "None", 0)) {
-            ssize_t set_index = set ? object_storage_get_object_set_index(set_id) : -1;
+        if (ImGui::BeginCombo("##Object Set", handler ? handler->set_info->name.c_str() : "None", 0)) {
+            ssize_t set_index = handler ? object_storage_get_obj_set_index(set_id) : -1;
 
-            igPushID_Int(-1);
-            if (igSelectable_Bool("None", !set, 0, ImVec2_Empty)
+            ImGui::PushID(-1);
+            if (ImGui::Selectable("None", !handler)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true))
                 set_index = -1;
-            igPopID();
+            ImGui::PopID();
 
             for (ssize_t i = 0; i < object_set_count; i++) {
-                igPushID_Int((int32_t)i);
-                object_set* set = object_storage_get_object_set_by_index(i);
-                if (igSelectable_Bool(string_data(&set->name), set->id == set_id, 0, ImVec2_Empty)
+                ImGui::PushID((int32_t)i);
+                obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
+                if (ImGui::Selectable(handler->set_info->name.c_str(), handler->set_id == set_id)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
-                    || (igIsItemFocused() && set->id != set_id))
+                    || (ImGui::IsItemFocused() && handler->set_id != set_id))
                     set_index = i;
-                igPopID();
+                ImGui::PopID();
             }
 
             if (set_index == -1)
                 set_id = -1;
             else
-                set_id = object_storage_get_object_set_by_index(set_index)->id;
+                set_id = object_storage_get_obj_set_handler_by_index(set_index)->set_id;
 
             if (mesh->object_set_name_hash != set_id) {
                 mesh->object_set_name_hash = set_id;
@@ -4147,12 +4151,12 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
             }
 
             data->imgui_focus |= true;
-            igEndCombo();
+            ImGui::EndCombo();
         }
         imguiEndPropertyColumn();
 
         imguiDisableElementPush(set_id != -1);
-        object* obj = 0;
+        obj* obj = 0;
         if (set)
             for (int32_t i = 0; i < set->objects_count; i++)
                 if (set->objects[i].id == obj_id) {
@@ -4161,8 +4165,8 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
                 }
 
         imguiStartPropertyColumn("Object");
-        if (igBeginCombo("##Object", obj ? string_data(&obj->name) : "None", 0)) {
-            if (set && set_id != -1 && set->id == set_id) {
+        if (ImGui::BeginCombo("##Object", obj ? string_data(&obj->name) : "None", 0)) {
+            if (set && set_id != -1 && handler->set_info->id == set_id) {
                 ssize_t obj_index = -1;
                 for (int32_t i = 0; i < set->objects_count; i++)
                     if (set->objects[i].id == obj_id) {
@@ -4170,21 +4174,21 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
                         break;
                     }
 
-                igPushID_Int(-1);
-                if (igSelectable_Bool("None", !obj, 0, ImVec2_Empty)
+                ImGui::PushID(-1);
+                if (ImGui::Selectable("None", !obj)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
-                    || (igIsItemFocused() && obj))
+                    || (ImGui::IsItemFocused() && obj))
                     obj_index = -1;
-                igPopID();
+                ImGui::PopID();
 
                 for (int32_t i = 0; i < set->objects_count; i++) {
-                    igPushID_Int(i);
-                    object* obj = &set->objects[i];
-                    if (igSelectable_Bool(string_data(&obj->name), obj->id == obj_id, 0, ImVec2_Empty)
+                    ImGui::PushID(i);
+                    ::obj* obj = &set->objects[i];
+                    if (ImGui::Selectable(string_data(&obj->name), obj->id == obj_id)
                         || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
-                        || (igIsItemFocused() && obj->id != obj_id))
+                        || (ImGui::IsItemFocused() && obj->id != obj_id))
                         obj_index = i;
-                    igPopID();
+                    ImGui::PopID();
                 }
 
                 if (obj_index == -1 || obj_index >= set->objects_count)
@@ -4199,7 +4203,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
             }
 
             data->imgui_focus |= true;
-            igEndCombo();
+            ImGui::EndCombo();
         }
         imguiEndPropertyColumn();
         imguiDisableElementPop(set_id != -1);
@@ -4250,7 +4254,7 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
 
     imguiStartPropertyColumn(label);
     int32_t prev_tex_idx = tex_idx;
-    if (igBeginCombo("", items[tex_idx], 0)) {
+    if (ImGui::BeginCombo("", items[tex_idx], 0)) {
         int32_t uv_index = *tex_index;
         if (!*tex_anim) {
             *tex_anim = true;
@@ -4315,13 +4319,13 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
         uv_max.y = uv.y + particle->data.split_uv.y;
 
         for (int32_t n = 0; n <= rc; n++) {
-            igPushID_Int(n);
-            if (igSelectable_Bool(items[n], tex_idx == n, 0, ImVec2_Empty)
+            ImGui::PushID(n);
+            if (ImGui::Selectable(items[n], tex_idx == n)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
-                || (igIsItemFocused() && tex_idx != n))
+                || (ImGui::IsItemFocused() && tex_idx != n))
                 tex_idx = n;
 
-            if (igIsItemHovered(0) && n) {
+            if (ImGui::IsItemHovered(0) && n) {
                 if (*tex_tex != n) {
                     *tex_anim = true;
                     *tex_frame = 0;
@@ -4371,29 +4375,29 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
                 else if (aspect2 < 1.0f)
                     size2.x *= aspect2;
 
-                igBeginTooltip();
-                igText("Frame: %d\nUV Index %d", *tex_frame, *tex_index);
-                igText("Tex Size: %dx%d", rtm->width, rtm->height);
-                igImage((void*)(size_t)r[n - 1]->texture, size1,
-                    ImVec2_Empty, ImVec2_Identity, tint_col, border_col);
-                igText("Preview Tex Size: %gx%g",
+                ImGui::BeginTooltip();
+                ImGui::Text("Frame: %d\nUV Index %d", *tex_frame, *tex_index);
+                ImGui::Text("Tex Size: %dx%d", rtm->width, rtm->height);
+                ImGui::Image((void*)(size_t)r[n - 1]->texture, size1,
+                    { 0, 0 }, { 1, 1 }, tint_col, border_col);
+                ImGui::Text("Preview Tex Size: %gx%g",
                     particle->data.split_u > 1
                     ? (float_t)rtm->width / (float_t)particle->data.split_u
                     : (float_t)rtm->width,
                     particle->data.split_u > 1
                     ? (float_t)rtm->height / (float_t)particle->data.split_v
                     : (float_t)rtm->height);
-                igImage((void*)(size_t)r[n - 1]->texture, size2, uv_min, uv_max, tint_col, border_col);
-                igEndTooltip();
+                ImGui::Image((void*)(size_t)r[n - 1]->texture, size2, uv_min, uv_max, tint_col, border_col);
+                ImGui::EndTooltip();
             }
 
             if (tex_idx == n)
-                igSetItemDefaultFocus();
-            igPopID();
+                ImGui::SetItemDefaultFocus();
+            ImGui::PopID();
         }
 
         data->imgui_focus |= true;
-        igEndCombo();
+        ImGui::EndCombo();
         (*tex_frame)++;
     }
     else {
@@ -4418,37 +4422,37 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
 }
 
 static void glitter_editor_popups(glitter_editor_struct* glt_edt, class_data* data) {
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
-    const float_t title_bar_size = font->FontSize + style->ItemSpacing.y + style->FramePadding.y * 2.0f;
+    const float_t title_bar_size = font->FontSize + style.ItemSpacing.y + style.FramePadding.y * 2.0f;
 
-    igPushID_Str("Glitter Editor Glitter File Create Pop-up");
+    ImGui::PushID("Glitter Editor Glitter File Create Pop-up");
     glitter_editor_file_create_popup(glt_edt, data, io, style, font, title_bar_size);
-    igPopID();
+    ImGui::PopID();
 
-    igPushID_Str("Glitter Editor Glitter File Load Pop-up");
+    ImGui::PushID("Glitter Editor Glitter File Load Pop-up");
     glitter_editor_file_load_popup(glt_edt, data, io, style, font, title_bar_size);
-    igPopID();
+    ImGui::PopID();
 
-    igPushID_Str("Glitter Editor Glitter File Load Pop-up");
+    ImGui::PushID("Glitter Editor Glitter File Load Pop-up");
     glitter_editor_file_load_model_popup(glt_edt, data, io, style, font, title_bar_size);
-    igPopID();
+    ImGui::PopID();
 
-    igPushID_Str("Glitter Editor Glitter File Load Error List Pop-up");
+    ImGui::PushID("Glitter Editor Glitter File Load Error List Pop-up");
     glitter_editor_file_load_error_list_popup(glt_edt, data, io, style, font, title_bar_size);
-    igPopID();
+    ImGui::PopID();
 
-    igPushID_Str("Glitter Editor Glitter File Save");
+    ImGui::PushID("Glitter Editor Glitter File Save");
     glitter_editor_file_save_popup(glt_edt, data, io, style, font, title_bar_size);
-    igPopID();
+    ImGui::PopID();
 }
 
 static void glitter_editor_file_create_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size) {
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size) {
     if (glt_edt->create_popup) {
-        igOpenPopup_Str("Create Glitter File as...", 0);
+        ImGui::OpenPopup("Create Glitter File as...", 0);
         glt_edt->create_popup = false;
     }
 
@@ -4465,8 +4469,8 @@ static void glitter_editor_file_create_popup(glitter_editor_struct* glt_edt, cla
 
     const float_t button_width = 70.0f;
 
-    win_x = button_width * 2.0f + style->ItemSpacing.x * 1.0f;
-    win_y = title_bar_size + font->FontSize + style->ItemSpacing.y * 1.0f + style->FramePadding.y * 2.0f;
+    win_x = button_width * 2.0f + style.ItemSpacing.x * 1.0f;
+    win_y = title_bar_size + font->FontSize + style.ItemSpacing.y * 1.0f + style.FramePadding.y * 2.0f;
 
     x = (float_t)width * 0.5f - win_x * 0.5f;
     y = (float_t)height * 0.5f - win_y * 0.5f;
@@ -4479,37 +4483,31 @@ static void glitter_editor_file_create_popup(glitter_editor_struct* glt_edt, cla
     window_flags |= ImGuiWindowFlags_NoScrollbar;
     window_flags |= ImGuiWindowFlags_NoScrollWithMouse;
 
-    igPushStyleVar_Vec2(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
-    if (igBeginPopupModal("Create Glitter File as...", 0, window_flags)) {
-        ImVec2 t;
-        igGetContentRegionAvail(&t);
-        x = win_x * 0.5f - t.x * 0.5f;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+    if (ImGui::BeginPopupModal("Create Glitter File as...", 0, window_flags)) {
+        x = win_x * 0.5f - ImGui::GetContentRegionAvail().x * 0.5f;
         y = title_bar_size;
 
-        igSetCursorPos({ x, y });
-        igGetContentRegionAvail(&t);
-        if (igBeginTable("buttons", 2, 0, ImVec2_Empty, 0.0f)) {
+        ImGui::SetCursorPos({ x, y });
+        if (ImGui::BeginTable("buttons", 2)) {
             bool close = false;
 
-            igTableNextColumn();;
-            igGetContentRegionAvail(&t);
-            if (imguiButton("F2", t)) {
+            ImGui::TableNextColumn();
+            if (imguiButton("F2", ImGui::GetContentRegionAvail())) {
                 glt_edt->load_glt_type = GLITTER_F2;
                 close = true;
             }
 
-            igTableNextColumn();;
-            igGetContentRegionAvail(&t);
-            if (imguiButton("FT", t)) {
+            ImGui::TableNextColumn();
+            if (imguiButton("FT", ImGui::GetContentRegionAvail())) {
                 glt_edt->load_glt_type = GLITTER_FT;
                 close = true;
             }
 
-            /*igTableNextColumn();
-            igGetContentRegionAvail(&t);
-            if (imguiButton("X", t)) {
+            /*ImGui::TableNextColumn();
+            if (imguiButton("X", ImGui::GetContentRegionAvail())) {
                 glt_edt->load_glt_type = GLITTER_X;
                 close = true;
             }*/
@@ -4517,21 +4515,21 @@ static void glitter_editor_file_create_popup(glitter_editor_struct* glt_edt, cla
             if (close) {
                 glt_edt->effect_group_add = true;
                 enum_or(glt_edt->effect_flags, GLITTER_EDITOR_ADD);
-                igCloseCurrentPopup();
+                ImGui::CloseCurrentPopup();
             }
-            igEndTable();
+            ImGui::EndTable();
         }
-        data->imgui_focus |= igIsWindowFocused(0);
-        igEndPopup();
+        data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::EndPopup();
     }
-    igEnd();
-    igPopStyleVar(1);
+    ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 static void glitter_editor_file_load_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size) {
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size) {
     if (glt_edt->load_popup) {
-        igOpenPopup_Str("Load Glitter File as...", 0);
+        ImGui::OpenPopup("Load Glitter File as...", 0);
         glt_edt->load_popup = false;
     }
 
@@ -4546,8 +4544,8 @@ static void glitter_editor_file_load_popup(glitter_editor_struct* glt_edt, class
 
     const float_t button_width = 70.0f;
 
-    win_x = button_width * 3.0f + style->ItemSpacing.x * 2.0f;
-    win_y = title_bar_size + font->FontSize + style->ItemSpacing.y * 2.0f + style->FramePadding.y * 3.0f;
+    win_x = button_width * 3.0f + style.ItemSpacing.x * 2.0f;
+    win_y = title_bar_size + font->FontSize + style.ItemSpacing.y * 2.0f + style.FramePadding.y * 3.0f;
 
     x = (float_t)width * 0.5f - win_x * 0.5f;
     y = (float_t)height * 0.5f - win_y * 0.5f;
@@ -4560,56 +4558,50 @@ static void glitter_editor_file_load_popup(glitter_editor_struct* glt_edt, class
     window_flags |= ImGuiWindowFlags_NoScrollbar;
     window_flags |= ImGuiWindowFlags_NoScrollWithMouse;
 
-    igPushStyleVar_Vec2(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
-    if (igBeginPopupModal("Load Glitter File as...", 0, window_flags)) {
-        ImVec2 t;
-        igGetContentRegionAvail(&t);
-        x = win_x * 0.5f - t.x * 0.5f;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+    if (ImGui::BeginPopupModal("Load Glitter File as...", 0, window_flags)) {
+        x = win_x * 0.5f - ImGui::GetContentRegionAvail().x * 0.5f;
         y = title_bar_size;
 
-        igSetCursorPos({ x, y });
-        igGetContentRegionAvail(&t);
-        if (igBeginTable("buttons", 3, 0, ImVec2_Empty, 0.0f)) {
+        ImGui::SetCursorPos({ x, y });
+        if (ImGui::BeginTable("buttons", 3)) {
             bool close = false;
 
-            igTableNextColumn();;
-            igGetContentRegionAvail(&t);
-            if (imguiButton("F2", t)) {
+            ImGui::TableNextColumn();
+            if (imguiButton("F2", ImGui::GetContentRegionAvail())) {
                 glt_edt->load_glt_type = GLITTER_F2;
                 close = true;
             }
 
-            igTableNextColumn();;
-            igGetContentRegionAvail(&t);
-            if (imguiButton("FT", t)) {
+            ImGui::TableNextColumn();
+            if (imguiButton("FT", ImGui::GetContentRegionAvail())) {
                 glt_edt->load_glt_type = GLITTER_FT;
                 close = true;
             }
 
-            igTableNextColumn();
-            igGetContentRegionAvail(&t);
-            if (imguiButton("X", t)) {
+            ImGui::TableNextColumn();
+            if (imguiButton("X", ImGui::GetContentRegionAvail())) {
                 glt_edt->load_glt_type = GLITTER_X;
                 close = true;
             }
 
             if (close) {
                 glt_edt->load = true;
-                igCloseCurrentPopup();
+                ImGui::CloseCurrentPopup();
             }
-            igEndTable();
+            ImGui::EndTable();
         }
-        data->imgui_focus |= igIsWindowFocused(0);
-        igEndPopup();
+        data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::EndPopup();
     }
-    igEnd();
-    igPopStyleVar(1);
+    ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size) {
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size) {
     if (!glt_edt->effect_group) {
         glt_edt->load_data_popup = false;
         return;
@@ -4652,7 +4644,7 @@ static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt,
 
     if (glt_edt->load_data_popup) {
         if (data_count)
-            igOpenPopup_Str("Which data should be loaded?", 0);
+            ImGui::OpenPopup("Which data should be loaded?", 0);
         glt_edt->load_data_popup = false;
     }
 
@@ -4671,17 +4663,17 @@ static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt,
     float_t button_width;
     if (data_count == 3) {
         button_width = 70.0f;
-        win_x = button_width * 3.0f + style->ItemSpacing.x * 2.0f;
+        win_x = button_width * 3.0f + style.ItemSpacing.x * 2.0f;
     }
     else if (data_count == 2) {
         button_width = 105.0f;
-        win_x = button_width * 2.0f + style->ItemSpacing.x;
+        win_x = button_width * 2.0f + style.ItemSpacing.x;
     }
     else {
         button_width = 210.0f;
         win_x = button_width;
     }
-    win_y = title_bar_size + font->FontSize + style->ItemSpacing.y * 2.0f + style->FramePadding.y * 3.0f;
+    win_y = title_bar_size + font->FontSize + style.ItemSpacing.y * 2.0f + style.FramePadding.y * 3.0f;
 
     x = (float_t)width * 0.5f - win_x * 0.5f;
     y = (float_t)height * 0.5f - win_y * 0.5f;
@@ -4694,35 +4686,30 @@ static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt,
     window_flags |= ImGuiWindowFlags_NoScrollbar;
     window_flags |= ImGuiWindowFlags_NoScrollWithMouse;
 
-    igPushStyleVar_Vec2(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
-    if (igBeginPopupModal("Which data should be loaded?", 0, window_flags)) {
-        ImVec2 t;
-        igGetContentRegionAvail(&t);
-        x = win_x * 0.5f - t.x * 0.5f;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+    if (ImGui::BeginPopupModal("Which data should be loaded?", 0, window_flags)) {
+        x = win_x * 0.5f - ImGui::GetContentRegionAvail().x * 0.5f;
         y = title_bar_size;
 
-        igSetCursorPos({ x, y });
-        igGetContentRegionAvail(&t);
-        if (igBeginTable("buttons", data_count, 0, ImVec2_Empty, 0.0f)) {
+        ImGui::SetCursorPos({ x, y });
+        if (ImGui::BeginTable("buttons", data_count)) {
             bool close = false;
 
             switch (glt_edt->effect_group->type) {
             case GLITTER_F2:
                 if (data_f2le_enable) {
-                    igTableNextColumn();;
-                    igGetContentRegionAvail(&t);
-                    if (imguiButton("F2LE", t)) {
+                    ImGui::TableNextColumn();
+                    if (imguiButton("F2LE",  ImGui::GetContentRegionAvail())) {
                         glt_edt->load_data_type = DATA_F2LE;
                         close = true;
                     }
                 }
 
                 if (data_f2be_enable) {
-                    igTableNextColumn();;
-                    igGetContentRegionAvail(&t);
-                    if (imguiButton("F2BE", t)) {
+                    ImGui::TableNextColumn();
+                    if (imguiButton("F2BE", ImGui::GetContentRegionAvail())) {
                         glt_edt->load_data_type = DATA_F2BE;
                         close = true;
                     }
@@ -4730,27 +4717,24 @@ static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt,
                 break;
             case GLITTER_FT:
                 if (data_aft_enable) {
-                    igTableNextColumn();;
-                    igGetContentRegionAvail(&t);
-                    if (imguiButton("AFT", t)) {
+                    ImGui::TableNextColumn();
+                    if (imguiButton("AFT", ImGui::GetContentRegionAvail())) {
                         glt_edt->load_data_type = DATA_AFT;
                         close = true;
                     }
                 }
 
                 if (data_ft_enable) {
-                    igTableNextColumn();;
-                    igGetContentRegionAvail(&t);
-                    if (imguiButton("FT", t)) {
+                    ImGui::TableNextColumn();
+                    if (imguiButton("FT", ImGui::GetContentRegionAvail())) {
                         glt_edt->load_data_type = DATA_FT;
                         close = true;
                     }
                 }
 
                 if (data_m39_enable) {
-                    igTableNextColumn();
-                    igGetContentRegionAvail(&t);
-                    if (imguiButton("M39", t)) {
+                    ImGui::TableNextColumn();
+                    if (imguiButton("M39", ImGui::GetContentRegionAvail())) {
                         glt_edt->load_data_type = DATA_M39;
                         close = true;
                     }
@@ -4758,27 +4742,24 @@ static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt,
                 break;
             case GLITTER_X:
                 if (data_x_enable) {
-                    igTableNextColumn();;
-                    igGetContentRegionAvail(&t);
-                    if (imguiButton("X", t)) {
+                    ImGui::TableNextColumn();
+                    if (imguiButton("X", ImGui::GetContentRegionAvail())) {
                         glt_edt->load_data_type = DATA_X;
                         close = true;
                     }
                 }
 
                 if (data_xhd_enable) {
-                    igTableNextColumn();;
-                    igGetContentRegionAvail(&t);
-                    if (imguiButton("XHD", t)) {
+                    ImGui::TableNextColumn();
+                    if (imguiButton("XHD", ImGui::GetContentRegionAvail())) {
                         glt_edt->load_data_type = DATA_XHD;
                         close = true;
                     }
                 }
 
                 if (data_vrfl_enable) {
-                    igTableNextColumn();
-                    igGetContentRegionAvail(&t);
-                    if (imguiButton("VRFL", t)) {
+                    ImGui::TableNextColumn();
+                    if (imguiButton("VRFL", ImGui::GetContentRegionAvail())) {
                         glt_edt->load_data_type = DATA_VRFL;
                         close = true;
                     }
@@ -4789,21 +4770,21 @@ static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt,
 
             if (close) {
                 glt_edt->load_data = true;
-                igCloseCurrentPopup();
+                ImGui::CloseCurrentPopup();
             }
-            igEndTable();
+            ImGui::EndTable();
         }
-        data->imgui_focus |= igIsWindowFocused(0);
-        igEndPopup();
+        data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::EndPopup();
     }
-    igEnd();
-    igPopStyleVar(1);
+    ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 static void glitter_editor_file_load_error_list_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size) {
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size) {
     if (glt_edt->load_error_list_popup) {
-        igOpenPopup_Str("Glitter File Load Error", 0);
+        ImGui::OpenPopup("Glitter File Load Error", 0);
         glt_edt->load_error_list_popup = false;
     }
 
@@ -4818,7 +4799,7 @@ static void glitter_editor_file_load_error_list_popup(glitter_editor_struct* glt
 
     win_x = 264.0f;
     win_y = title_bar_size + font->FontSize * 3.0f
-        + style->ItemSpacing.y * 3.0f + style->FramePadding.y * 2.0f;
+        + style.ItemSpacing.y * 3.0f + style.FramePadding.y * 2.0f;
 
     x = (float_t)width * 0.5f - win_x * 0.5f;
     y = (float_t)height * 0.5f - win_y * 0.5f;
@@ -4831,33 +4812,31 @@ static void glitter_editor_file_load_error_list_popup(glitter_editor_struct* glt
     window_flags |= ImGuiWindowFlags_NoScrollbar;
     window_flags |= ImGuiWindowFlags_NoScrollWithMouse;
 
-    igPushStyleVar_Vec2(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
-    if (igBeginPopupModal("Glitter File Load Error", 0, window_flags)) {
-        igSetCursorPosY(title_bar_size);
-        igText("Can't find name in Glitter List File\n"
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+    if (ImGui::BeginPopupModal("Glitter File Load Error", 0, window_flags)) {
+        ImGui::SetCursorPosY(title_bar_size);
+        ImGui::Text("Can't find name in Glitter List File\n"
             "for hash in Glitter Effect File");
 
-        ImVec2 t;
-        igGetContentRegionAvail(&t);
-        igSetCursorPosX(t.x * 0.5f - 20.0f);
+        ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x * 0.5f - 20.0f);
 
         x = 40.0f;
-        y = font->FontSize + style->FramePadding.y * 2.0f;
+        y = font->FontSize + style.FramePadding.y * 2.0f;
         if (imguiButton("OK", { x, y }))
-            igCloseCurrentPopup();
-        data->imgui_focus |= igIsWindowFocused(0);
-        igEndPopup();
+            ImGui::CloseCurrentPopup();
+        data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::EndPopup();
     }
-    igEnd();
-    igPopStyleVar(1);
+    ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 static void glitter_editor_file_save_popup(glitter_editor_struct* glt_edt, class_data* data,
-    ImGuiIO* io, ImGuiStyle* style, ImFont* font, const float_t title_bar_size) {
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size) {
     if (glt_edt->save_popup) {
-        igOpenPopup_Str("Save Glitter File as...", 0);
+        ImGui::OpenPopup("Save Glitter File as...", 0);
         glt_edt->save_popup = false;
     }
 
@@ -4874,10 +4853,10 @@ static void glitter_editor_file_save_popup(glitter_editor_struct* glt_edt, class
     const float_t button_width = 70.0f;
 
     if (eg && eg->type != GLITTER_X)
-        win_x = button_width * 4.0f + style->ItemSpacing.x * 3.0f;
+        win_x = button_width * 4.0f + style.ItemSpacing.x * 3.0f;
     else
-        win_x = button_width * 3.0f + style->ItemSpacing.x * 2.0f;
-    win_y = title_bar_size + font->FontSize + style->ItemSpacing.y * 2.0f + style->FramePadding.y * 3.0f;
+        win_x = button_width * 3.0f + style.ItemSpacing.x * 2.0f;
+    win_y = title_bar_size + font->FontSize + style.ItemSpacing.y * 2.0f + style.FramePadding.y * 3.0f;
 
     x = (float_t)width * 0.5f - win_x * 0.5f;
     y = (float_t)height * 0.5f - win_y * 0.5f;
@@ -4890,101 +4869,91 @@ static void glitter_editor_file_save_popup(glitter_editor_struct* glt_edt, class
     window_flags |= ImGuiWindowFlags_NoScrollbar;
     window_flags |= ImGuiWindowFlags_NoScrollWithMouse;
 
-    igPushStyleVar_Vec2(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
-    igSetNextWindowPos({ x, y }, ImGuiCond_Always, ImVec2_Empty);
-    igSetNextWindowSize({ w, h }, ImGuiCond_Always);
-    if (igBeginPopupModal("Save Glitter File as...", 0, window_flags)) {
-        ImVec2 t;
-        igGetContentRegionAvail(&t);
-        x = win_x * 0.5f - t.x * 0.5f;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+    if (ImGui::BeginPopupModal("Save Glitter File as...", 0, window_flags)) {
+        x = win_x * 0.5f - ImGui::GetContentRegionAvail().x * 0.5f;
         y = title_bar_size;
 
-        igSetCursorPos({ x, y });
-        igGetContentRegionAvail(&t);
+        ImGui::SetCursorPos({ x, y });
         /*if (eg && eg->type == GLITTER_X) {
-            if (igBeginTable("buttons", 3, 0, ImVec2_Empty, 0.0f)) {
+            if (ImGui::BeginTable("buttons", 3)) {
                 bool close = false;
 
-                igTableNextColumn();;
-                igGetContentRegionAvail(&t);
-                if (imguiButton("X", t)) {
+                ImGui::TableNextColumn();
+                if (imguiButton("X", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = false;
                     glt_edt->save_glt_type = GLITTER_X;
                     close = true;
                 }
 
-                igTableNextColumn();;
-                igGetContentRegionAvail(&t);
-                if (imguiButton("X HD", t)) {
+                ImGui::TableNextColumn();
+                if (imguiButton("X HD", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = true;
                     glt_edt->save_glt_type = GLITTER_X;
                     close = true;
                 }
 
-                igTableNextColumn();
-                igGetContentRegionAvail(&t);
-                if (imguiButton("None", t)) {
+                ImGui::TableNextColumn();
+                if (imguiButton("None", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = false;
                     glt_edt->save_compress = false;
                     close = true;
                 }
 
                 if (close)
-                    igCloseCurrentPopup();
-                igEndTable();
+                    ImGui::CloseCurrentPopup();
+                ImGui::EndTable();
             }
         }
         else*/ {
-            if (igBeginTable("buttons", 4, 0, ImVec2_Empty, 0.0f)) {
+            if (ImGui::BeginTable("buttons", 4)) {
                 bool close = false;
 
-                igTableNextColumn();;
-                igGetContentRegionAvail(&t);
-                if (imguiButton("F2 PSV", t)) {
+                ImGui::TableNextColumn();
+                if (imguiButton("F2 PSV", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = false;
                     glt_edt->save_glt_type = GLITTER_F2;
                     close = true;
                 }
 
-                igTableNextColumn();;
-                igGetContentRegionAvail(&t);
-                if (imguiButton("F2 PS3", t)) {
+                ImGui::TableNextColumn();
+                if (imguiButton("F2 PS3", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = true;
                     glt_edt->save_glt_type = GLITTER_F2;
                     close = true;
                 }
 
-                igTableNextColumn();;
-                igGetContentRegionAvail(&t);
-                if (imguiButton("FT", t)) {
+                ImGui::TableNextColumn();
+                if (imguiButton("FT", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = false;
                     glt_edt->save_glt_type = GLITTER_FT;
                     close = true;
                 }
 
-                igTableNextColumn();
-                igGetContentRegionAvail(&t);
-                if (imguiButton("None", t)) {
+                ImGui::TableNextColumn();
+                if (imguiButton("None", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = false;
                     glt_edt->save_compress = false;
                     close = true;
                 }
 
                 if (close)
-                    igCloseCurrentPopup();
-                igEndTable();
+                    ImGui::CloseCurrentPopup();
+                ImGui::EndTable();
             }
         }
-        data->imgui_focus |= igIsWindowFocused(0);
-        igEndPopup();
+        data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::EndPopup();
     }
-    igEnd();
-    igPopStyleVar(1);
+    ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 static float_t convert_height_to_value(glitter_editor_struct* glt_edt,
@@ -5037,14 +5006,14 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
     bool del_key = false;
     glitter_editor_curve_editor_key_manager(glt_edt, keys, &add_key, &del_key);
 
-    if (igIsWindowFocused(0)) {
-        if (add_key && igIsKeyPressed(GLFW_KEY_INSERT, true))
+    if (ImGui::IsWindowFocused()) {
+        if (add_key && ImGui::IsKeyPressed(GLFW_KEY_INSERT))
             crv_edt->add_key = true;
-        else if (del_key && igIsKeyPressed(GLFW_KEY_DELETE, true))
+        else if (del_key && ImGui::IsKeyPressed(GLFW_KEY_DELETE))
             crv_edt->del_key = true;
-        else if (igIsKeyPressed(GLFW_KEY_RIGHT, true))
+        else if (ImGui::IsKeyPressed(GLFW_KEY_RIGHT))
             crv_edt->frame++;
-        else if (igIsKeyPressed(GLFW_KEY_LEFT, true))
+        else if (ImGui::IsKeyPressed(GLFW_KEY_LEFT))
             crv_edt->frame--;
     }
 
@@ -5221,17 +5190,16 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
     int32_t start_time = curve->start_time;
     int32_t end_time = curve->end_time;
 
-    ImGuiIO* io = igGetIO();
-    ImGuiStyle* style = igGetStyle();
-    ImFont* font = igGetFont();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
 
-    ImVec2 cont_reg_avail;
-    igGetContentRegionAvail(&cont_reg_avail);
+    ImVec2 cont_reg_avail = ImGui::GetContentRegionAvail();
 
     ImVec2 canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max;
-    crv_edt->draw_list = igGetWindowDrawList();
+    crv_edt->draw_list = ImGui::GetWindowDrawList();
     canvas_size = cont_reg_avail;
-    igGetCursorScreenPos(&canvas_pos);
+    canvas_pos = ImGui::GetCursorScreenPos();
     canvas_pos_min.x = canvas_pos.x;
     canvas_pos_min.y = canvas_pos.y;
     canvas_pos_max.x = canvas_pos.x + canvas_size.x;
@@ -5253,35 +5221,35 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
         * crv_edt->zoom_time;
     canvas_pos.x -= crv_edt->timeline_pos;
 
-    igItemSize_Rect(boundaries, -1.0f);
-    bool hovered = igIsMouseHoveringRect(boundaries.Min, boundaries.Max, true);
-    igRenderFrame(boundaries.Min, boundaries.Max, igGetColorU32_Col(ImGuiCol_FrameBg, 1.0f), true, 1.0f);
+    ImGui::ItemSize(boundaries);
+    bool hovered = ImGui::IsMouseHoveringRect(boundaries.Min, boundaries.Max);
+    ImGui::RenderFrame(boundaries.Min, boundaries.Max, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 1.0f);
 
     static bool can_drag;
-    if (hovered && igIsMouseClicked(ImGuiMouseButton_Left, false))
+    if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left, false))
         can_drag = true;
 
-    if (can_drag && (igIsKeyDown(GLFW_KEY_LEFT_SHIFT) || igIsKeyDown(GLFW_KEY_RIGHT_SHIFT))) {
+    if (can_drag && (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))) {
         crv_edt->key = glitter_editor_curve_editor_get_closest_key(glt_edt, curve);
         crv_edt->frame = crv_edt->key->frame;
     }
     else
         crv_edt->key = glitter_editor_curve_editor_get_selected_key(glt_edt, curve);
 
-    if (can_drag && igIsMouseReleased(ImGuiMouseButton_Left))
+    if (can_drag && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         can_drag = false;
 
     float_t timeline_max_offset = (end_time - start_time) * frame_width;
     timeline_max_offset = max(timeline_max_offset, 0.0f) - curve_editor_timeline_base_pos;
 
-    ImDrawList_PushClipRect(crv_edt->draw_list, boundaries.Min, boundaries.Max, true);
+    crv_edt->draw_list->PushClipRect(boundaries.Min, boundaries.Max, true);
 
     int32_t start = (int32_t)(crv_edt->timeline_pos / frame_width) + start_time;
     int32_t end = (int32_t)((crv_edt->timeline_pos + canvas_size.x) / frame_width) + start_time;
 
-    ImU32 line_color_valid_bold = igGetColorU32_Vec4({ 0.5f, 0.5f, 0.5f, 0.75f });
-    ImU32 line_color_valid = igGetColorU32_Vec4({ 0.4f, 0.4f, 0.4f, 0.45f });
-    ImU32 line_color_not_valid = igGetColorU32_Vec4({ 0.2f, 0.2f, 0.2f, 0.75f });
+    ImU32 line_color_valid_bold = ImGui::GetColorU32({ 0.5f, 0.5f, 0.5f, 0.75f });
+    ImU32 line_color_valid = ImGui::GetColorU32({ 0.4f, 0.4f, 0.4f, 0.45f });
+    ImU32 line_color_not_valid = ImGui::GetColorU32({ 0.2f, 0.2f, 0.2f, 0.75f });
     for (int32_t frame = start; frame <= end; frame++) {
         if (frame < start_time)
             continue;
@@ -5295,14 +5263,13 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
 
         ImU32 line_color = valid_frame ? (bold_frame ? line_color_valid_bold
             : line_color_valid) : line_color_not_valid;
-        ImDrawList_AddLine(crv_edt->draw_list,
-            { x, y - canvas_size.y }, { x, y }, line_color, 0.80f);
+        crv_edt->draw_list->AddLine({ x, y - canvas_size.y },
+            { x, y }, line_color, 0.80f);
 
         if (bold_frame) {
             char buf[0x20];
             snprintf(buf, sizeof(buf), "%d", frame);
-            ImDrawList_AddText_Vec2(crv_edt->draw_list,
-                { x + 3, canvas_pos.y }, line_color, buf, 0);
+            crv_edt->draw_list->AddText({ x + 3, canvas_pos.y }, line_color, buf);
         }
     }
 
@@ -5321,18 +5288,18 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             - crv_edt->height_offset) + crv_edt->height_offset;
 
         ImU32 line_color = j % 2 == 1
-            ? igGetColorU32_Vec4({ 0.35f, 0.35f, 0.35f, 0.45f })
-            : igGetColorU32_Vec4({ 0.45f, 0.45f, 0.45f, 0.75f });
+            ? ImGui::GetColorU32({ 0.35f, 0.35f, 0.35f, 0.45f })
+            : ImGui::GetColorU32({ 0.45f, 0.45f, 0.45f, 0.75f });
         bool last = j == 4;
         if (j && !last)
-            ImDrawList_AddLine(crv_edt->draw_list, { x_pos, y_pos },
+            crv_edt->draw_list->AddLine({ x_pos, y_pos },
                 { x_pos + canvas_size.x, y_pos }, line_color, 0.80f);
 
         float_t val = max - j * 0.25f * (max - min);
         char buf[0x20];
         snprintf(buf, sizeof(buf), "%.2f", val);
-        ImDrawList_AddText_Vec2(crv_edt->draw_list, { x_pos + 2, y_pos + (last ? -16 : -2) },
-            igGetColorU32_Vec4({ 0.65f, 0.65f, 0.65f, 0.85f }), buf, 0);
+        crv_edt->draw_list->AddText({ x_pos + 2, y_pos + (last ? -16 : -2) },
+            ImGui::GetColorU32({ 0.65f, 0.65f, 0.65f, 0.85f }), buf);
     }
 
     if (curve->type >= GLITTER_CURVE_ROTATION_X && curve->type <= GLITTER_CURVE_ROTATION_Z) {
@@ -5353,13 +5320,13 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
     p2.y = canvas_pos.y + crv_edt->height_offset;
     p3.x = canvas_pos_min.x;
     p3.y = canvas_pos.y;
-    ImDrawList_AddLine(crv_edt->draw_list, p1, p2,
-        igGetColorU32_Vec4({ 0.5f, 0.5f, 0.5f, 0.85f }), 2.0f);
+    crv_edt->draw_list->AddLine(p1, p2,
+        ImGui::GetColorU32({ 0.5f, 0.5f, 0.5f, 0.85f }), 2.0f);
 
-    ImU32 random_range_color = igGetColorU32_Vec4({ 0.5f, 0.5f, 0.0f, 0.25f });
-    ImU32 key_random_range_color = igGetColorU32_Vec4({ 0.5f, 0.0f, 0.5f, 0.25f });
-    ImU32 default_color = igGetColorU32_Vec4({ 1.0f, 1.0f, 1.0f, 0.75f });
-    ImU32 selected_color = igGetColorU32_Vec4({ 0.0f, 1.0f, 1.0f, 0.75f });
+    ImU32 random_range_color = ImGui::GetColorU32({ 0.5f, 0.5f, 0.0f, 0.25f });
+    ImU32 key_random_range_color = ImGui::GetColorU32({ 0.5f, 0.0f, 0.5f, 0.25f });
+    ImU32 default_color = ImGui::GetColorU32({ 1.0f, 1.0f, 1.0f, 0.75f });
+    ImU32 selected_color = ImGui::GetColorU32({ 0.0f, 1.0f, 1.0f, 0.75f });
 
     if (curve->flags & GLITTER_CURVE_RANDOM_RANGE
         || curve->flags & GLITTER_CURVE_KEY_RANDOM_RANGE) {
@@ -5422,16 +5389,14 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                     y1 = clamp(y1, canvas_pos_min.y, canvas_pos_max.y);
                     y2 = clamp(y2, canvas_pos_min.y, canvas_pos_max.y);
                     if (y1 != y2)
-                        ImDrawList_AddRectFilled(crv_edt->draw_list,
-                            { x1, y1 }, { x2, y2 },
-                            random_range_color, 0.0f, 0);
+                        crv_edt->draw_list->AddRectFilled({ x1, y1 },
+                            { x2, y2 }, random_range_color, 0.0f, 0);
 
                     y3 = clamp(y3, canvas_pos_min.y, canvas_pos_max.y);
                     y4 = clamp(y4, canvas_pos_min.y, canvas_pos_max.y);
                     if (y3 != y4)
-                        ImDrawList_AddRectFilled(crv_edt->draw_list,
-                            { x1, y3 }, { x2, y4 },
-                            key_random_range_color, 0.0f, 0);
+                        crv_edt->draw_list->AddRectFilled({ x1, y3 },
+                            { x2, y4 }, key_random_range_color, 0.0f, 0);
                 }
                 else {
                     float_t y1 = convert_value_to_height(glt_edt, value.y + random.y,
@@ -5442,9 +5407,8 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                     y1 = clamp(y1, canvas_pos_min.y, canvas_pos_max.y);
                     y2 = clamp(y2, canvas_pos_min.y, canvas_pos_max.y);
                     if (y1 != y2)
-                        ImDrawList_AddRectFilled(crv_edt->draw_list,
-                            { x1, y1 }, { x2, y2 },
-                            random_range_color, 0.0f, 0);
+                        crv_edt->draw_list->AddRectFilled({ x1, y1 },
+                            { x2, y2 }, random_range_color, 0.0f, 0);
                 }
 
                 if (random_range_negate)
@@ -5461,16 +5425,14 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                         y1 = clamp(y1, canvas_pos_min.y, canvas_pos_max.y);
                         y2 = clamp(y2, canvas_pos_min.y, canvas_pos_max.y);
                         if (y1 != y2)
-                            ImDrawList_AddRectFilled(crv_edt->draw_list,
-                                { x1, y1 }, { x2, y2 },
-                                key_random_range_color, 0.0f, 0);
+                            crv_edt->draw_list->AddRectFilled({ x1, y1 },
+                                { x2, y2 }, key_random_range_color, 0.0f, 0);
 
                         y3 = clamp(y3, canvas_pos_min.y, canvas_pos_max.y);
                         y4 = clamp(y4, canvas_pos_min.y, canvas_pos_max.y);
                         if (y3 != y4)
-                            ImDrawList_AddRectFilled(crv_edt->draw_list,
-                                { x1, y3 }, { x2, y4 },
-                                random_range_color, 0.0f, 0);
+                            crv_edt->draw_list->AddRectFilled({ x1, y3 },
+                                { x2, y4 }, random_range_color, 0.0f, 0);
                     }
                     else {
                         float_t y1 = convert_value_to_height(glt_edt, value.y,
@@ -5481,9 +5443,8 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                         y1 = clamp(y1, canvas_pos_min.y, canvas_pos_max.y);
                         y2 = clamp(y2, canvas_pos_min.y, canvas_pos_max.y);
                         if (y1 != y2)
-                            ImDrawList_AddRectFilled(crv_edt->draw_list,
-                                { x1, y1 }, { x2, y2 },
-                                random_range_color, 0.0f, 0);
+                            crv_edt->draw_list->AddRectFilled({ x1, y1 },
+                                { x2, y2 }, random_range_color, 0.0f, 0);
                     }
             }
             else {
@@ -5542,16 +5503,14 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                             y1 = clamp(y1, canvas_pos_min.y, canvas_pos_max.y);
                             y2 = clamp(y2, canvas_pos_min.y, canvas_pos_max.y);
                             if (y1 != y2)
-                                ImDrawList_AddLine(crv_edt->draw_list,
-                                    { x, y1 }, { x, y2 },
-                                    random_range_color, 0.0f);
+                                crv_edt->draw_list->AddLine({ x, y1 },
+                                    { x, y2 }, random_range_color, 0.0f);
 
                             y3 = clamp(y3, canvas_pos_min.y, canvas_pos_max.y);
                             y4 = clamp(y4, canvas_pos_min.y, canvas_pos_max.y);
                             if (y3 != y4)
-                                ImDrawList_AddLine(crv_edt->draw_list,
-                                    { x, y3 }, { x, y4 },
-                                    key_random_range_color, 0.0f);
+                                crv_edt->draw_list->AddLine({ x, y3 },
+                                    { x, y4 }, key_random_range_color, 0.0f);
                         }
                         else {
                             float_t y1 = convert_value_to_height(glt_edt, value.y + random.y,
@@ -5562,9 +5521,8 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                             y1 = clamp(y1, canvas_pos_min.y, canvas_pos_max.y);
                             y2 = clamp(y2, canvas_pos_min.y, canvas_pos_max.y);
                             if (y1 != y2)
-                                ImDrawList_AddLine(crv_edt->draw_list,
-                                    { x, y1 }, { x, y2 },
-                                    random_range_color, 0.0f);
+                                crv_edt->draw_list->AddLine({ x, y1 },
+                                    { x, y2 }, random_range_color, 0.0f);
                         }
 
                         if (random_range_negate)
@@ -5581,16 +5539,14 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                                 y1 = clamp(y1, canvas_pos_min.y, canvas_pos_max.y);
                                 y2 = clamp(y2, canvas_pos_min.y, canvas_pos_max.y);
                                 if (y1 != y2)
-                                    ImDrawList_AddLine(crv_edt->draw_list,
-                                        { x, y1 }, { x, y2 },
-                                        key_random_range_color, 0.0f);
+                                    crv_edt->draw_list->AddLine({ x, y1 },
+                                        { x, y2 }, key_random_range_color, 0.0f);
 
                                 y3 = clamp(y3, canvas_pos_min.y, canvas_pos_max.y);
                                 y4 = clamp(y4, canvas_pos_min.y, canvas_pos_max.y);
                                 if (y3 != y4)
-                                    ImDrawList_AddLine(crv_edt->draw_list,
-                                        { x, y3 }, { x, y4 },
-                                        random_range_color, 0.0f);
+                                    crv_edt->draw_list->AddLine({ x, y3 },
+                                        { x, y4 }, random_range_color, 0.0f);
                             }
                             else {
                                 float_t y1 = convert_value_to_height(glt_edt, value.y,
@@ -5601,9 +5557,8 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                                 y1 = clamp(y1, canvas_pos_min.y, canvas_pos_max.y);
                                 y2 = clamp(y2, canvas_pos_min.y, canvas_pos_max.y);
                                 if (y1 != y2)
-                                    ImDrawList_AddLine(crv_edt->draw_list,
-                                        { x, y1 }, { x, y2 },
-                                        random_range_color, 0.0f);
+                                    crv_edt->draw_list->AddLine({ x, y1 },
+                                        { x, y2 }, random_range_color, 0.0f);
                             }
                     }
             }
@@ -5641,11 +5596,11 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                 points_temp[1] = { x2, y1 };
                 points_temp[2] = { x2, y1 };
                 points_temp[3] = { x2, y2 };
-                ImDrawList_AddPolyline(crv_edt->draw_list, points_temp, 4, default_color, 0, 3.0f);
+                crv_edt->draw_list->AddPolyline(points_temp,
+                    4, default_color, 0, 3.0f);
             }
             else
-                ImDrawList_AddLine(crv_edt->draw_list,
-                    { x1, y1 }, { x2, y2 }, default_color, 3.0f);
+                crv_edt->draw_list->AddLine({ x1, y1 }, { x2, y2 }, default_color, 3.0f);
         }
         else {
             float_t c_frame = (float_t)c->frame;
@@ -5667,15 +5622,15 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                         canvas_pos.y, canvas_size.y, min, max);
                     points[(i - c->frame) * frame_width_int + j] = point;
                 }
-            ImDrawList_AddPolyline(crv_edt->draw_list, points,
+            crv_edt->draw_list->AddPolyline(points,
                 (int32_t)points_count, default_color, 0, 3.0f);
             free(points);
         }
     }
 
-    const ImU32 key_constant_color = igGetColorU32_Vec4({ 1.0f, 0.0f, 0.0f, 0.75f });
-    const ImU32 key_linear_color = igGetColorU32_Vec4({ 0.0f, 1.0f, 0.0f, 0.75f });
-    const ImU32 key_hermite_color = igGetColorU32_Vec4({ 0.0f, 0.0f, 1.0f, 0.75f });
+    const ImU32 key_constant_color = ImGui::GetColorU32({ 1.0f, 0.0f, 0.0f, 0.75f });
+    const ImU32 key_linear_color = ImGui::GetColorU32({ 0.0f, 1.0f, 0.0f, 0.75f });
+    const ImU32 key_hermite_color = ImGui::GetColorU32({ 0.0f, 0.0f, 1.0f, 0.75f });
 
     bool dragged = false;
     bool holding_tan = false;
@@ -5712,17 +5667,18 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             break;
         }
 
-        igPushID_Ptr(i);
-        igSetCursorScreenPos({ x - 7.5f, y - 7.5f });
-        igInvisibleButton("val", { 15.0f, 15.0f }, 0);
+        ImGui::PushID(i);
+        ImGui::SetCursorScreenPos({ x - 7.5f, y - 7.5f });
+        ImGui::InvisibleButton("val", { 15.0f, 15.0f }, 0);
 
-        if (can_drag && igIsItemActive() && igIsMouseDragging(ImGuiMouseButton_Left, -1.0f)) {
+        if (can_drag && ImGui::IsItemActive()
+            && ImGui::IsMouseDragging(ImGuiMouseButton_Left, -1.0f)) {
             float_t old_y = y;
 
             static int32_t base_frame;
             static float_t base_y;
-            if ((igIsKeyPressed(GLFW_KEY_LEFT_SHIFT, false) && !igIsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-                || (igIsKeyPressed(GLFW_KEY_RIGHT_SHIFT, false) && !igIsKeyDown(GLFW_KEY_LEFT_SHIFT))) {
+            if ((ImGui::IsKeyPressed(GLFW_KEY_LEFT_SHIFT, false) && !ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
+                || (ImGui::IsKeyPressed(GLFW_KEY_RIGHT_SHIFT, false) && !ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT))) {
                 base_frame = i->frame;
                 base_y = base_value;
             }
@@ -5730,7 +5686,7 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             if (i->frame >= start_time && i->frame <= end_time) {
                 int32_t start = i - keys->begin > 0 ? (i - 1)->frame + 1 : start_time;
                 int32_t end = keys->end - i > 1 ? (i + 1)->frame - 1 : end_time;
-                crv_edt->frame = (int32_t)roundf((io->MousePos.x - canvas_pos.x) / frame_width);
+                crv_edt->frame = (int32_t)roundf((io.MousePos.x - canvas_pos.x) / frame_width);
                 crv_edt->frame = clamp(crv_edt->frame + start_time, start, end);
                 if (i->frame != crv_edt->frame) {
                     i->frame = crv_edt->frame;
@@ -5739,18 +5695,18 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             }
 
             static float_t mouse_delta_history;
-            if ((igIsKeyPressed(GLFW_KEY_LEFT_SHIFT, false) && !igIsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-                || (igIsKeyPressed(GLFW_KEY_RIGHT_SHIFT, false) && !igIsKeyDown(GLFW_KEY_LEFT_SHIFT)))
-                mouse_delta_history = io->MouseDelta.y;
-            else if ((igIsKeyReleased(GLFW_KEY_LEFT_SHIFT) && !igIsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-                || igIsKeyReleased(GLFW_KEY_RIGHT_SHIFT) && !igIsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
+            if ((ImGui::IsKeyPressed(GLFW_KEY_LEFT_SHIFT, false) && !ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
+                || (ImGui::IsKeyPressed(GLFW_KEY_RIGHT_SHIFT, false) && !ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT)))
+                mouse_delta_history = io.MouseDelta.y;
+            else if ((ImGui::IsKeyReleased(GLFW_KEY_LEFT_SHIFT) && !ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
+                || ImGui::IsKeyReleased(GLFW_KEY_RIGHT_SHIFT) && !ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
                 y += mouse_delta_history;
-                y += io->MouseDelta.y;
+                y += io.MouseDelta.y;
             }
-            else if (igIsKeyDown(GLFW_KEY_LEFT_SHIFT) || igIsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-                mouse_delta_history += io->MouseDelta.y;
+            else if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
+                mouse_delta_history += io.MouseDelta.y;
             else
-                y += io->MouseDelta.y;
+                y += io.MouseDelta.y;
 
             if (old_y != y) {
                 float_t value = convert_height_to_value(glt_edt,
@@ -5774,17 +5730,17 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             circle_pos.x = x - 25.0f;
             circle_pos.y = y - base_line + convert_value_to_height(glt_edt, tangent1 = i->tangent1,
                 canvas_pos.y, canvas_size.y, min, max);
-            ImDrawList_AddLine(crv_edt->draw_list, { x, y }, circle_pos, default_color, 1.5f);
+            crv_edt->draw_list->AddLine({ x, y }, circle_pos, default_color, 1.5f);
 
             if ((circle_pos.x >= p3.x - 10.0f && circle_pos.x <= p3.x + canvas_size.x + 10.0f)
                 && (circle_pos.y >= p3.y - 10.0f && circle_pos.y <= p3.y + canvas_size.y + 10.0f)) {
-                igSetCursorScreenPos({ circle_pos.x - 7.5f, circle_pos.y - 7.5f });
-                igInvisibleButton("tan1", { 15.0f, 15.0f }, 0);
+                ImGui::SetCursorScreenPos({ circle_pos.x - 7.5f, circle_pos.y - 7.5f });
+                ImGui::InvisibleButton("tan1", { 15.0f, 15.0f }, 0);
 
-                if (can_drag && igIsItemActive()) {
-                    if (igIsMouseDragging(ImGuiMouseButton_Left, -1.0f)) {
+                if (can_drag && ImGui::IsItemActive()) {
+                    if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                         i->tangent1 = convert_height_to_value(glt_edt,
-                            circle_pos.y + io->MouseDelta.y - y + base_line,
+                            circle_pos.y + io.MouseDelta.y - y + base_line,
                             canvas_pos.y, canvas_size.y, min, max);
 
                         if (i->tangent1 != tangent1)
@@ -5796,7 +5752,7 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                 else
                     tangent1_color = default_color;
 
-                ImDrawList_AddCircleFilled(crv_edt->draw_list, circle_pos,
+                crv_edt->draw_list->AddCircleFilled(circle_pos,
                     crv_edt->key_radius_in, tangent1_color, 12);
             }
         }
@@ -5808,17 +5764,17 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             circle_pos.x = x + 25.0f;
             circle_pos.y = y - base_line + convert_value_to_height(glt_edt, tangent2 = i->tangent2,
                 canvas_pos.y, canvas_size.y, min, max);
-            ImDrawList_AddLine(crv_edt->draw_list, { x, y }, circle_pos, default_color, 1.5f);
+            crv_edt->draw_list->AddLine({ x, y }, circle_pos, default_color, 1.5f);
 
             if ((circle_pos.x >= p3.x - 10.0f && circle_pos.x <= p3.x + canvas_size.x + 10.0f)
                 && (circle_pos.y >= p3.y - 10.0f && circle_pos.y <= p3.y + canvas_size.y + 10.0f)) {
-                igSetCursorScreenPos({ circle_pos.x - 7.5f, circle_pos.y - 7.5f });
-                igInvisibleButton("tan2", { 15.0f, 15.0f }, 0);
+                ImGui::SetCursorScreenPos({ circle_pos.x - 7.5f, circle_pos.y - 7.5f });
+                ImGui::InvisibleButton("tan2", { 15.0f, 15.0f }, 0);
 
-                if (can_drag && igIsItemActive()) {
-                    if (igIsMouseDragging(ImGuiMouseButton_Left, -1.0f)) {
+                if (can_drag && ImGui::IsItemActive()) {
+                    if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                         i->tangent2 = convert_height_to_value(glt_edt,
-                            circle_pos.y + io->MouseDelta.y - y + base_line,
+                            circle_pos.y + io.MouseDelta.y - y + base_line,
                             canvas_pos.y, canvas_size.y, min, max);
 
                         if (i->tangent2 != tangent2)
@@ -5830,22 +5786,22 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                 else
                     tangent2_color = default_color;
 
-                ImDrawList_AddCircleFilled(crv_edt->draw_list, circle_pos,
+                crv_edt->draw_list->AddCircleFilled(circle_pos,
                     crv_edt->key_radius_in, tangent2_color, 12);
             }
         }
 
-        ImDrawList_AddCircleFilled(crv_edt->draw_list, { x, y },
+        crv_edt->draw_list->AddCircleFilled({ x, y },
             crv_edt->key_radius_out, crv_edt->key == i ? selected_color : default_color, 12);
-        ImDrawList_AddCircleFilled(crv_edt->draw_list, { x, y },
+        crv_edt->draw_list->AddCircleFilled({ x, y },
             crv_edt->key_radius_in, value_color, 12);
-        igPopID();
+        ImGui::PopID();
     }
 
-    if (!crv_edt->key_edit && can_drag && io->MouseDown[0] && (!holding_tan || dragged)) {
-        int32_t frame = (int32_t)roundf((io->MousePos.x - canvas_pos.x) / frame_width);
+    if (!crv_edt->key_edit && can_drag && ImGui::IsMouseDown(ImGuiMouseButton_Left) && (!holding_tan || dragged)) {
+        int32_t frame = (int32_t)roundf((io.MousePos.x - canvas_pos.x) / frame_width);
         crv_edt->frame = clamp(frame + start_time, start_time, end_time);
-        if (igIsKeyDown(GLFW_KEY_LEFT_SHIFT) || igIsKeyDown(GLFW_KEY_RIGHT_SHIFT)) {
+        if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT)) {
             crv_edt->key = glitter_editor_curve_editor_get_closest_key(glt_edt, curve);
             crv_edt->frame = crv_edt->key->frame;
         }
@@ -5858,24 +5814,24 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
     ImVec2 cursor_pos = canvas_pos;
     cursor_pos.x += cursor_frame * frame_width;
     if (cursor_pos.x >= p1.x - 10.0f && cursor_pos.x <= p1.x + canvas_size.x + 10.0f) {
-        ImU32 cursor_color = igGetColorU32_Vec4({ 0.8f, 0.8f, 0.8f, 0.75f });
+        ImU32 cursor_color = ImGui::GetColorU32({ 0.8f, 0.8f, 0.8f, 0.75f });
         p1.x = cursor_pos.x;
         p1.y = canvas_pos.y + canvas_size.y;
-        ImDrawList_AddLine(crv_edt->draw_list, cursor_pos, p1, cursor_color, 2.5f);
+        crv_edt->draw_list->AddLine(cursor_pos, p1, cursor_color, 2.5f);
 
         p1 = p2 = p3 = cursor_pos;
         p1.x -= 10.0f;
         p2.y += 10.0f;
         p3.x += 10.0f;
-        ImDrawList_AddTriangleFilled(crv_edt->draw_list, p1, p2, p3, cursor_color);
+        crv_edt->draw_list->AddTriangleFilled(p1, p2, p3, cursor_color);
     }
-    ImDrawList_PopClipRect(crv_edt->draw_list);
+    crv_edt->draw_list->PopClipRect();
 
     if (hovered)
-        if (igIsKeyDown(GLFW_KEY_LEFT_SHIFT) || igIsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-            crv_edt->timeline_pos -= io->MouseWheel * 25.0f * 4.0f;
+        if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
+            crv_edt->timeline_pos -= io.MouseWheel * 25.0f * 4.0f;
         else
-            crv_edt->timeline_pos -= io->MouseWheel * 25.0f;
+            crv_edt->timeline_pos -= io.MouseWheel * 25.0f;
 
     crv_edt->timeline_pos = clamp(crv_edt->timeline_pos,
         -curve_editor_timeline_base_pos, timeline_max_offset);
@@ -6157,16 +6113,16 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
         value = 0.0f;
 
     value *= scale;
-    igText("Frame: %d; Value: %g", crv_edt->frame, value);
+    ImGui::Text("Frame: %d; Value: %g", crv_edt->frame, value);
 
-    if (crv_edt->key && igTreeNodeEx_Str("Key", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (crv_edt->key && ImGui::TreeNodeEx("Key", ImGuiTreeNodeFlags_DefaultOpen)) {
         glitter_curve_key* c = crv_edt->key;
         glitter_curve_key* n = curve->keys_rev.end - c > 1 ? crv_edt->key + 1 : 0;
         if (imguiColumnComboBox("Type", glitter_key_name,
             GLITTER_KEY_HERMITE,
             (int32_t*)&c->type, 0, true, &data->imgui_focus))
             changed = true;
-        key_edit |= igIsItemFocused();
+        key_edit |= ImGui::IsItemFocused();
 
         float_t value = c->value;
         if (fix_rot_z)
@@ -6181,7 +6137,7 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
             c->value = value;
             changed = true;
         }
-        key_edit |= igIsItemFocused();
+        key_edit |= ImGui::IsItemFocused();
 
         imguiDisableElementPush(key_random_range);
         float_t random = c->random_range * scale;
@@ -6194,7 +6150,7 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
                 changed = true;
             }
         }
-        key_edit |= igIsItemFocused();
+        key_edit |= ImGui::IsItemFocused();
         imguiDisableElementPop(key_random_range);
 
         if (n && c->type == GLITTER_KEY_HERMITE) {
@@ -6205,7 +6161,7 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
                 c->tangent2 = tangent2 * inv_scale;
                 changed = true;
             }
-            key_edit |= igIsItemFocused();
+            key_edit |= ImGui::IsItemFocused();
 
             float_t tangent1 = n->tangent1 * scale;
             if (imguiColumnDragFloat("Tangent 2",
@@ -6214,13 +6170,13 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
                 n->tangent1 = tangent1 * inv_scale;
                 changed = true;
             }
-            key_edit |= igIsItemFocused();
+            key_edit |= ImGui::IsItemFocused();
         }
-        igTreePop();
+        ImGui::TreePop();
     }
     crv_edt->key_edit = key_edit;
 
-    if (igTreeNodeEx_Str("Curve", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::TreeNodeEx("Curve", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (imguiCheckbox("Repeat", &curve->repeat))
             changed = true;
 
@@ -6265,10 +6221,10 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
         imguiDisableElementPop(random_range);
 
         int32_t c_type = curve->version;
-        igText("C Type:");
-        igSameLine(0.0f, -1.0f);
-        igSetNextItemWidth(60.0f);
-        if (igInputInt("##C Type:", &c_type, 1, 1, 0)) {
+        ImGui::Text("C Type:");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(60.0f);
+        if (ImGui::InputInt("##C Type:", &c_type, 1, 1)) {
             if (eg->type == GLITTER_X)
                 c_type = clamp(c_type, 1, 2);
             else
@@ -6280,11 +6236,11 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
         }
 
         int32_t k_type = curve->keys_version;
-        igSameLine(0.0f, -1.0f);
-        igText("K Type:");
-        igSameLine(0.0f, -1.0f);
-        igSetNextItemWidth(60.0f);
-        if (igInputInt("##K Type:", &k_type, 1, 1, 0)) {
+        ImGui::SameLine();
+        ImGui::Text("K Type:");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(60.0f);
+        if (ImGui::InputInt("##K Type:", &k_type, 1, 1)) {
             if (eg->type == GLITTER_X)
                 k_type = clamp(k_type, 2, 3);
             else
@@ -6295,57 +6251,57 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
             curve->keys_version = k_type;
         }
 
-        igSeparator();
+        ImGui::Separator();
 
-        igPushID_Str("Flags");
-        if (imguiCheckboxFlags_UintPtr("Baked",
+        ImGui::PushID("Flags");
+        if (imguiCheckboxFlags("Baked",
             (uint32_t*)&curve->flags,
             GLITTER_CURVE_BAKED))
             changed = true;
 
         if (eg->type == GLITTER_X) {
             imguiDisableElementPush(curve->flags & GLITTER_CURVE_BAKED ? true : false);
-            if (imguiCheckboxFlags_UintPtr("Baked Full",
+            if (imguiCheckboxFlags("Baked Full",
                 (uint32_t*)&curve->flags,
                 GLITTER_CURVE_BAKED_FULL))
                 changed = true;
             imguiDisableElementPop(curve->flags & GLITTER_CURVE_BAKED ? true : false);
         }
 
-        igSeparator();
+        ImGui::Separator();
 
-        if (imguiCheckboxFlags_UintPtr("Random Range",
+        if (imguiCheckboxFlags("Random Range",
             (uint32_t*)&curve->flags,
             GLITTER_CURVE_RANDOM_RANGE))
             changed = true;
 
-        if (imguiCheckboxFlags_UintPtr("Key Random Range",
+        if (imguiCheckboxFlags("Key Random Range",
             (uint32_t*)&curve->flags,
             GLITTER_CURVE_KEY_RANDOM_RANGE))
             changed = true;
 
-        if (imguiCheckboxFlags_UintPtr("Random Range Negate",
+        if (imguiCheckboxFlags("Random Range Negate",
             (uint32_t*)&curve->flags,
             GLITTER_CURVE_RANDOM_RANGE_NEGATE))
             changed = true;
 
-        if (imguiCheckboxFlags_UintPtr("Step Random",
+        if (imguiCheckboxFlags("Step Random",
             (uint32_t*)&curve->flags,
             GLITTER_CURVE_STEP))
             changed = true;
 
-        if (imguiCheckboxFlags_UintPtr("Random Negate",
+        if (imguiCheckboxFlags("Random Negate",
             (uint32_t*)&curve->flags,
             GLITTER_CURVE_NEGATE))
             changed = true;
 
-        if (imguiCheckboxFlags_UintPtr(eg->type == GLITTER_FT
+        if (imguiCheckboxFlags(eg->type == GLITTER_FT
             ? "Scale Random by Value" : "Scale Random by Value * 0.01",
             (uint32_t*)&curve->flags,
             GLITTER_CURVE_RANDOM_RANGE_MULT))
             changed = true;
-        igPopID();
-        igTreePop();
+        ImGui::PopID();
+        ImGui::TreePop();
     }
 
     if (crv_edt->list[crv_edt->type]) {
@@ -6481,9 +6437,8 @@ static void glitter_editor_curve_editor_selector(glitter_editor_struct* glt_edt,
     }
 
     bool reset = false;
-    ImVec2 cont_reg_avail;
-    igGetContentRegionAvail(&cont_reg_avail);
-    if (igBeginListBox("##Curves", { cont_reg_avail.x * 0.5f, cont_reg_avail.y })) {
+    ImVec2 cont_reg_avail = ImGui::GetContentRegionAvail();
+    if (ImGui::BeginListBox("##Curves", { cont_reg_avail.x * 0.5f, cont_reg_avail.y })) {
         ImGuiTreeNodeFlags tree_node_flags = 0;
         tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
         tree_node_flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -6493,96 +6448,96 @@ static void glitter_editor_curve_editor_selector(glitter_editor_struct* glt_edt,
 #define LIST_BOX(label, curve_type) \
 if (flags & GLITTER_CURVE_TYPE_##curve_type){ \
     const char* _l =  crv_edt->list[GLITTER_CURVE_##curve_type] ? label" [*]" : label; \
-    igSelectable_Bool(_l, crv_edt->type == GLITTER_CURVE_##curve_type, 0, ImVec2_Empty); \
+    ImGui::Selectable(_l, crv_edt->type == GLITTER_CURVE_##curve_type); \
 \
-    if (igIsItemFocused() && crv_edt->type != GLITTER_CURVE_##curve_type) { \
+    if (ImGui::IsItemFocused() && crv_edt->type != GLITTER_CURVE_##curve_type) { \
         glitter_editor_curve_editor_reset_state(glt_edt, GLITTER_CURVE_##curve_type); \
         reset = true; \
     } \
 }
 
         if (flags & GLITTER_CURVE_TYPE_TRANSLATION_XYZ
-            && igTreeNodeEx_Str("Translation", tree_node_flags)) {
-            igPushID_Str("T");
+            && ImGui::TreeNodeEx("Translation", tree_node_flags)) {
+            ImGui::PushID("T");
             LIST_BOX("X", TRANSLATION_X);
             LIST_BOX("Y", TRANSLATION_Y);
             LIST_BOX("Z", TRANSLATION_Z);
-            igPopID();
-            igTreePop();
+            ImGui::PopID();
+            ImGui::TreePop();
         }
 
         if (flags & GLITTER_CURVE_TYPE_ROTATION_XYZ
-            && igTreeNodeEx_Str("Rotation", tree_node_flags)) {
-            igPushID_Str("R");
+            && ImGui::TreeNodeEx("Rotation", tree_node_flags)) {
+            ImGui::PushID("R");
             LIST_BOX("X", ROTATION_X);
             LIST_BOX("Y", ROTATION_Y);
             LIST_BOX("Z", ROTATION_Z);
-            igPopID();
-            igTreePop();
+            ImGui::PopID();
+            ImGui::TreePop();
         }
 
         if (flags & (GLITTER_CURVE_TYPE_SCALE_XYZ | GLITTER_CURVE_TYPE_SCALE_ALL)
-            && igTreeNodeEx_Str("Scale", tree_node_flags)) {
-            igPushID_Str("S");
+            && ImGui::TreeNodeEx("Scale", tree_node_flags)) {
+            ImGui::PushID("S");
             LIST_BOX("X", SCALE_X);
             LIST_BOX("Y", SCALE_Y);
             LIST_BOX("Z", SCALE_Z);
             LIST_BOX("All", SCALE_ALL);
-            igPopID();
-            igTreePop();
+            ImGui::PopID();
+            ImGui::TreePop();
         }
 
         if (flags & (GLITTER_CURVE_TYPE_COLOR_RGBA | GLITTER_CURVE_TYPE_COLOR_RGB_SCALE)
-            && igTreeNodeEx_Str("Color", tree_node_flags)) {
-            igPushID_Str("C");
+            && ImGui::TreeNodeEx("Color", tree_node_flags)) {
+            ImGui::PushID("C");
             LIST_BOX("R", COLOR_R);
             LIST_BOX("G", COLOR_G);
             LIST_BOX("B", COLOR_B);
             LIST_BOX("A", COLOR_A);
             LIST_BOX("RGB Scale", COLOR_RGB_SCALE);
-            igPopID();
-            igTreePop();
+            ImGui::PopID();
+            ImGui::TreePop();
         }
 
         if (flags & (GLITTER_CURVE_TYPE_COLOR_RGBA_2ND | GLITTER_CURVE_TYPE_COLOR_RGB_SCALE_2ND)
-            && igTreeNodeEx_Str("Color 2nd", tree_node_flags)) {
-            igPushID_Str("C2");
+            && ImGui::TreeNodeEx("Color 2nd", tree_node_flags)) {
+            ImGui::PushID("C2");
             LIST_BOX("R", COLOR_R_2ND);
             LIST_BOX("G", COLOR_G_2ND);
             LIST_BOX("B", COLOR_B_2ND);
             LIST_BOX("A", COLOR_A_2ND);
             LIST_BOX("RGB Scale", COLOR_RGB_SCALE_2ND);
-            igPopID();
-            igTreePop();
+            ImGui::PopID();
+            ImGui::TreePop();
         }
 
         LIST_BOX("Emit Interval", EMISSION_INTERVAL);
         LIST_BOX("PTC Per Emit", PARTICLES_PER_EMISSION);
 
         if (flags & (GLITTER_CURVE_TYPE_UV_SCROLL | GLITTER_CURVE_TYPE_UV_SCROLL_ALPHA)
-            && igTreeNodeEx_Str("UV Scroll", tree_node_flags)) {
-            igPushID_Str("UV");
+            && ImGui::TreeNodeEx("UV Scroll", tree_node_flags)) {
+            ImGui::PushID("UV");
             LIST_BOX("U", U_SCROLL);
             LIST_BOX("V", V_SCROLL);
             LIST_BOX("U Alpha", U_SCROLL_ALPHA);
             LIST_BOX("V Alpha", V_SCROLL_ALPHA);
-            igPopID();
-            igTreePop();
+            ImGui::PopID();
+            ImGui::TreePop();
         }
 
         if (flags & (GLITTER_CURVE_TYPE_UV_SCROLL_2ND | GLITTER_CURVE_TYPE_UV_SCROLL_ALPHA_2ND)
-            && igTreeNodeEx_Str("UV Scroll 2nd", tree_node_flags)) {
-            igPushID_Str("UV2");
+            && ImGui::TreeNodeEx("UV Scroll 2nd", tree_node_flags)) {
+            ImGui::PushID("UV2");
             LIST_BOX("U", U_SCROLL_2ND);
             LIST_BOX("V", V_SCROLL_2ND);
             LIST_BOX("U Alpha", U_SCROLL_ALPHA_2ND);
             LIST_BOX("V Alpha", V_SCROLL_ALPHA_2ND);
-            igPopID();
-            igTreePop();
+            ImGui::PopID();
+            ImGui::TreePop();
         }
 #undef LIST_BOX
-        data->imgui_focus |= igIsWindowFocused(0);
-        igEndListBox();
+        data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::EndListBox();
     }
 
     if (crv_edt->type < GLITTER_CURVE_TRANSLATION_X
@@ -6601,8 +6556,8 @@ if (flags & GLITTER_CURVE_TYPE_##curve_type){ \
         crv_edt->key = glitter_editor_curve_editor_get_closest_key(glt_edt,
             &crv_edt->curve);
 
-    igSameLine(0.0f, -1.0f);
-    igBeginGroup();
+    ImGui::SameLine();
+    ImGui::BeginGroup();
     imguiSetColumnSpace(3.0f / 7.0f);
     float_t zoom_time = crv_edt->zoom_time * 100.0f;
     imguiColumnSliderFloat("Zoom Time", &zoom_time, 1.0f, 5.0f, 500.0f, "%.1f%%", 0, true);
@@ -6620,7 +6575,7 @@ if (flags & GLITTER_CURVE_TYPE_##curve_type){ \
     bool del_key = false;
     glitter_editor_curve_editor_key_manager(glt_edt, &curve->keys_rev, &add_key, &del_key);
 
-    igSeparator();
+    ImGui::Separator();
     float_t w = imguiGetContentRegionAvailWidth();
     imguiDisableElementPush(add_key);
     if (imguiButton("Add Key", { w, 0.0f }))
@@ -6883,11 +6838,11 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
             object_info object_info;
             object_info.set_id = (uint32_t)particle->data.mesh.object_set_name_hash;
             object_info.id = (uint32_t)particle->data.mesh.object_name_hash;
-            object* obj = object_storage_get_object(object_info);
-            object_mesh_vertex_buffer* obj_vertex_buffer
-                = object_storage_get_object_mesh_vertex_buffer(object_info);
-            object_mesh_index_buffer* obj_index_buffer
-                = object_storage_get_object_mesh_index_buffer(object_info);
+            obj* obj = object_storage_get_obj(object_info);
+            obj_mesh_vertex_buffer* obj_vertex_buffer
+                = object_storage_get_obj_mesh_vertex_buffer(object_info);
+            obj_mesh_index_buffer* obj_index_buffer
+                = object_storage_get_obj_mesh_index_buffer(object_info);
 
             mat4 mat = elem->mat_draw;
             if (!obj || !obj_vertex_buffer || !obj_index_buffer || (object_data->object_culling
@@ -6900,28 +6855,28 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
             int32_t ttc = 0;
             texture_transform_struct* tt = object_data->texture_transform_array;
             for (int32_t i = 0; i < obj->meshes_count; i++) {
-                object_mesh* mesh = &obj->meshes[i];
+                obj_mesh* mesh = &obj->meshes[i];
 
                 if (object_data->object_culling && !object_bounding_sphere_check_visibility(
                     &mesh->bounding_sphere, object_data, rctx->camera, &mat))
                     continue;
 
                 for (int32_t j = 0; j < mesh->sub_meshes_count; j++) {
-                    object_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
+                    obj_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
 
-                    if (sub_mesh->flags & OBJECT_SUB_MESH_FLAG_8)
+                    if (sub_mesh->flags & OBJ_SUB_MESH_FLAG_8)
                         continue;
 
                     if (object_data->object_culling) {
                         int32_t v32 = object_bounding_sphere_check_visibility(
                             &sub_mesh->bounding_sphere, object_data, rctx->camera, &mat);
-                        if (v32 != 2 || (~mesh->flags & OBJECT_MESH_BILLBOARD &&
-                            ~mesh->flags & OBJECT_MESH_BILLBOARD_Y_AXIS)) {
+                        if (v32 != 2 || (~mesh->flags & OBJ_MESH_BILLBOARD &&
+                            ~mesh->flags & OBJ_MESH_BILLBOARD_Y_AXIS)) {
                             if (v32 == 2) {
                                 if (object_data->object_bounding_sphere_check_func)
                                     v32 = 1;
                                 else
-                                    v32 = object_axis_aligned_bounding_box_check_visibility(
+                                    v32 = obj_axis_aligned_bounding_box_check_visibility(
                                         &sub_mesh->axis_aligned_bounding_box, rctx->camera, &mat);
                             }
 
@@ -6949,7 +6904,7 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
                         GL_UNSIGNED_INT,
                     };
 
-                    GLuint array_buffer = object_mesh_vertex_buffer_get_buffer(&obj_vertex_buffer[i]);
+                    GLuint array_buffer = obj_mesh_vertex_buffer_get_buffer(&obj_vertex_buffer[i]);
                     gl_state_bind_array_buffer(array_buffer);
                     glEnableVertexAttribArray(0);
                     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, mesh->vertex_size, (void*)0);
@@ -6957,8 +6912,8 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
 
                     GLuint element_array_buffer = obj_index_buffer[i];
                     gl_state_bind_element_array_buffer(element_array_buffer);
-                    if (sub_mesh->primitive_type == OBJECT_PRIMITIVE_TRIANGLE_STRIP
-                        && sub_mesh->index_format == OBJECT_INDEX_U16)
+                    if (sub_mesh->primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP
+                        && sub_mesh->index_format == OBJ_INDEX_U16)
                         glDrawRangeElements(GL_TRIANGLE_STRIP, sub_mesh->first_index, sub_mesh->last_index,
                             sub_mesh->indices_count, GL_UNSIGNED_SHORT, (void*)(size_t)sub_mesh->indices_offset);
                     else

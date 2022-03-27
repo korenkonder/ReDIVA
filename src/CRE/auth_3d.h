@@ -199,8 +199,10 @@ public:
     float_t value_init;
 
     auth_3d_key();
-    void reset();
     ~auth_3d_key();
+
+    float_t interpolate(float_t frame);
+    void reset();
 };
 
 class auth_3d_rgba {
@@ -214,8 +216,10 @@ public:
     vec4u value;
 
     auth_3d_rgba();
-    void reset();
     ~auth_3d_rgba();
+
+    void interpolate(float_t frame);
+    void reset();
 };
 
 class auth_3d_vec3 {
@@ -225,8 +229,10 @@ public:
     auth_3d_key z;
 
     auth_3d_vec3();
-    void reset();
     ~auth_3d_vec3();
+
+    vec3 interpolate(float_t frame);
+    void reset();
 };
 
 class auth_3d_model_transform {
@@ -243,8 +249,10 @@ public:
     bool visible;
 
     auth_3d_model_transform();
-    void reset();
     ~auth_3d_model_transform();
+
+    void interpolate(float_t frame);
+    void reset();
 };
 
 class auth_3d_ambient {
@@ -255,8 +263,9 @@ public:
     auth_3d_rgba rim_light_diffuse;
 
     auth_3d_ambient();
-    void reset();
     ~auth_3d_ambient();
+
+    void reset();
 };
 
 class auth_3d_camera_auxiliary {
@@ -277,8 +286,9 @@ public:
     float_t saturate_value;
 
     auth_3d_camera_auxiliary();
-    void reset();
     ~auth_3d_camera_auxiliary();
+
+    void reset();
 };
 
 class auth_3d_camera_root_view_point {
@@ -294,8 +304,9 @@ public:
     auth_3d_key roll;
 
     auth_3d_camera_root_view_point();
-    void reset();
     ~auth_3d_camera_root_view_point();
+
+    void reset();
 };
 
 class auth_3d_camera_root {
@@ -310,8 +321,9 @@ public:
     vec3 view_point_value;
 
     auth_3d_camera_root();
-    void reset();
     ~auth_3d_camera_root();
+
+    void reset();
 };
 
 class auth_3d_chara {
@@ -320,8 +332,9 @@ public:
     std::string name;
 
     auth_3d_chara();
-    void reset();
     ~auth_3d_chara();
+
+    void reset();
 };
 
 class auth_3d_curve {
@@ -331,8 +344,9 @@ public:
     float_t value;
 
     auth_3d_curve();
-    void reset();
     ~auth_3d_curve();
+
+    void reset();
 };
 
 class auth_3d_dof {
@@ -341,8 +355,9 @@ public:
     auth_3d_model_transform model_transform;
 
     auth_3d_dof();
-    void reset();
     ~auth_3d_dof();
+
+    void reset();
 };
 
 class auth_3d_event {
@@ -358,8 +373,9 @@ public:
     auth_3d_event_type type;
 
     auth_3d_event();
-    void reset();
     ~auth_3d_event();
+
+    void reset();
 };
 
 class auth_3d_fog {
@@ -382,8 +398,9 @@ public:
     float_t start_init;
 
     auth_3d_fog();
-    void reset();
     ~auth_3d_fog();
+
+    void reset();
 };
 
 class auth_3d_light {
@@ -427,8 +444,9 @@ public:
     vec3 tone_curve_init;
 
     auth_3d_light();
-    void reset();
     ~auth_3d_light();
+
+    void reset();
 };
 
 class auth_3d_object_model_transform {
@@ -452,8 +470,9 @@ public:
     bool has_visibility;
 
     auth_3d_object_model_transform();
-    void reset();
     ~auth_3d_object_model_transform();
+
+    void reset();
 };
 
 class auth_3d_m_object_hrc {
@@ -464,8 +483,9 @@ public:
     std::vector<auth_3d_object_node> node;
 
     auth_3d_m_object_hrc();
-    void reset();
     ~auth_3d_m_object_hrc();
+
+    void reset();
 };
 
 class auth_3d_material_list {
@@ -479,8 +499,9 @@ public:
     float_t glow_intensity_value;
 
     auth_3d_material_list();
-    void reset();
     ~auth_3d_material_list();
+
+    void reset();
 };
 
 class auth_3d_object_curve {
@@ -491,8 +512,9 @@ public:
     float_t value;
 
     auth_3d_object_curve();
-    void reset();
     ~auth_3d_object_curve();
+
+    void reset();
 };
 
 class auth_3d_object {
@@ -514,8 +536,9 @@ public:
     std::string uid_name;
 
     auth_3d_object();
-    void reset();
     ~auth_3d_object();
+
+    void reset();
 };
 
 class auth_3d_object_hrc {
@@ -537,8 +560,9 @@ public:
     std::string uid_name;
 
     auth_3d_object_hrc();
-    void reset();
     ~auth_3d_object_hrc();
+
+    void reset();
 };
 
 class auth_3d_object_instance {
@@ -553,8 +577,9 @@ public:
     std::string uid_name;
 
     auth_3d_object_instance();
-    void reset();
     ~auth_3d_object_instance();
+
+    void reset();
 };
 
 class auth_3d_object_node {
@@ -569,8 +594,9 @@ public:
     int32_t parent;
 
     auth_3d_object_node();
-    void reset();
     ~auth_3d_object_node();
+
+    void reset();
 };
 
 class auth_3d_object_texture_pattern {
@@ -580,8 +606,9 @@ public:
     int32_t texture_id;
 
     auth_3d_object_texture_pattern();
-    void reset();
     ~auth_3d_object_texture_pattern();
+
+    void reset();
 };
 
 class auth_3d_object_texture_transform {
@@ -602,8 +629,9 @@ public:
     auth_3d_key translate_frame_v;
 
     auth_3d_object_texture_transform();
-    void reset();
     ~auth_3d_object_texture_transform();
+
+    void reset();
 };
 
 class auth_3d_play_control {
@@ -616,8 +644,9 @@ public:
     float_t size;
 
     auth_3d_play_control();
-    void reset();
     ~auth_3d_play_control();
+
+    void reset();
 };
 
 class auth_3d_point {
@@ -626,8 +655,9 @@ public:
     std::string name;
 
     auth_3d_point();
-    void reset();
     ~auth_3d_point();
+
+    void reset();
 };
 
 class auth_3d_post_process {
@@ -653,8 +683,9 @@ public:
     vec4u scene_fade_init;
 
     auth_3d_post_process();
-    void reset();
     ~auth_3d_post_process();
+
+    void reset();
 };
 
 class auth_3d {
@@ -710,6 +741,8 @@ public:
     uint32_t hash;
 
     auth_3d();
+    ~auth_3d();
+
     void ctrl(render_context* rctx);
     void disp(render_context* rctx);
     void load(a3da* auth_file,
@@ -718,7 +751,6 @@ public:
         object_database* obj_db, texture_database* tex_db);
     void reset();
     void unload(render_context* rctx);
-    ~auth_3d();
 };
 
 #define AUTH_3D_DATA_COUNT 0x100
@@ -760,11 +792,12 @@ public:
     auth_3d data[AUTH_3D_DATA_COUNT];
 
     auth_3d_data_struct();
-    ~auth_3d_data_struct();
+    virtual ~auth_3d_data_struct();
 };
 
-extern auth_3d_data_struct auth_3d_data;
+extern auth_3d_data_struct* auth_3d_data;
 
+extern void auth_3d_data_init();
 extern bool auth_3d_data_check_id_not_empty(int32_t* id);
 extern bool auth_3d_data_check_category_loaded(char* category_name);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t id);
@@ -802,5 +835,6 @@ extern void auth_3d_data_set_shadow(int32_t* id, bool value);
 extern void auth_3d_data_set_visibility(int32_t* id, bool value);
 extern void auth_3d_data_unload_category(char* category_name);
 extern void auth_3d_data_unload_id(int32_t id, render_context* rctx);
+extern void auth_3d_data_free();
 
 extern void task_auth_3d_append_task();

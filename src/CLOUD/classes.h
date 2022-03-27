@@ -8,16 +8,31 @@
 #include "../KKdLib/default.h"
 #include "../CRE/lock.h"
 #include "../CRE/render_context.h"
+#include "../CRE/task.h"
 
 #define CLASS_DATA_NO_DATA (0)
 #define CLASSES_DATA_NO_FUNC (0)
 
+class TaskWindow : public Task {
+public:
+    bool show_window;
+    bool window_focus;
+
+    TaskWindow();
+    ~TaskWindow();
+    virtual void Window() = 0;
+};
+
+extern void TaskWork_Window();
+
 typedef enum class_flags {
-    CLASS_INIT     = 0x01,
-    CLASS_DISPOSE  = 0x02,
-    CLASS_DISPOSED = 0x04,
-    CLASS_HIDE     = 0x08,
-    CLASS_HIDDEN   = 0x10,
+    CLASS_INIT        = 0x01,
+    CLASS_DISPOSE     = 0x02,
+    CLASS_DISPOSED    = 0x04,
+    CLASS_HIDE        = 0x08,
+    CLASS_HIDDEN      = 0x10,
+    CLASS_HIDE_WINDOW = 0x20,
+    CLASS_HAS_PARENT  = 0x40,
 } class_flags;
 
 typedef enum classes_enum {
@@ -49,10 +64,13 @@ struct classes_data {
     bool(*    show)(class_data* data);
     void(*   sound)(class_data* data);
     bool(* dispose)(class_data* data);
+    bool* shared_lock;
     class_data data;
     classes_data* sub_classes;
     size_t sub_classes_count;
 };
+
+extern bool data_test_shared_lock;
 
 extern void classes_process_init   (classes_data* classes, size_t classes_count, render_context* rctx);
 extern void classes_process_draw   (classes_data* classes, size_t classes_count);

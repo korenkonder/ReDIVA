@@ -9,16 +9,11 @@
 #include "../../KKdLib/string.h"
 #include "../../KKdLib/vec.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-#include <cimgui.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-extern const ImVec1 ImVec1_Empty;
-extern const ImVec2 ImVec2_Empty;
-extern const ImVec4 ImVec4_Empty;
-extern const ImVec1 ImVec1_Identity;
-extern const ImVec2 ImVec2_Identity;
-extern const ImVec4 ImVec4_Identity;
 extern const float_t imgui_alpha_disabled_scale;
 
 extern bool imgui_is_item_active;
@@ -50,25 +45,37 @@ bool igSliderFloatButton(const char* label, float_t* val, float_t step,
 bool igSliderIntButton(const char* label, int32_t* val,
     int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags);
 
-extern bool imguiButton(const char* label, const ImVec2 size);
-extern bool imguiButtonEx(const char* label, const ImVec2 size, ImGuiButtonFlags flags);
+extern bool imguiButton(const char* label, const ImVec2& size = ImVec2(0, 0));
+extern bool imguiButtonEx(const char* label, const ImVec2& size = ImVec2(0, 0), ImGuiButtonFlags flags = 0);
 extern bool imguiCheckbox(const char* label, bool* v);
-extern bool imguiCheckboxFlags_IntPtr(const char* label, int* flags, int flags_value);
-extern bool imguiCheckboxFlags_UintPtr(const char* label, unsigned int* flags, unsigned int flags_value);
+extern bool imguiCheckboxFlags(const char* label, int* flags, int flags_value);
+extern bool imguiCheckboxFlags(const char* label, unsigned int* flags, unsigned int flags_value);
 extern bool imguiComboBox(const char* label, const char** items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiComboBox(const char* label, const char** items, const size_t size,
+    size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiComboBoxString(const char* label, string* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiComboBoxString(const char* label, string* items, const size_t size,
+    size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiComboBoxConfigFile(const char* label, void* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiComboBoxConfigFile(const char* label, void* items, const size_t size,
+    size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnColorEdit3(const char* label, vec3* val, ImGuiColorEditFlags flags);
 extern bool imguiColumnColorEdit4(const char* label, vec4* val, ImGuiColorEditFlags flags);
 extern bool imguiColumnComboBox(const char* label, const char** items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiColumnComboBox(const char* label, const char** items, const size_t size,
+    size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnComboBoxString(const char* label, string* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiColumnComboBoxString(const char* label, string* items, const size_t size,
+    size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnComboBoxConfigFile(const char* label, void* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
+extern bool imguiColumnComboBoxConfigFile(const char* label, void* items, const size_t size,
+    size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnDragFloat(const char* label, float_t* val, float_t speed,
     float_t min, float_t max, const char* format, ImGuiSliderFlags flags);
 extern bool imguiColumnDragVec2(const char* label, vec2* val, float_t speed,
