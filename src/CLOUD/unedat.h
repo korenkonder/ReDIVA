@@ -106,5 +106,5 @@ typedef struct EDAT_HEADER {
 
 // Decrypts full file, or null/empty file
 extern void rap_to_rif(uint8_t* rap, uint8_t* rif);
-extern void DecryptEDAT(stream* input, stream* output, int mode, char* rap_file_name, uint8_t* custom_klic);
+extern void DecryptEDAT(stream* input, stream* output, int mode, const char* rap_file_name, uint8_t* custom_klic);
 extern void GetEdatRifKeyFromRapFile(stream* rap_file, uint8_t* rifKey);

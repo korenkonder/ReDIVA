@@ -8,11 +8,11 @@
 #include "glitter.h"
 
 extern void glitter_render_element_emit(GPM, GLT, glitter_render_element* a1,
-    glitter_particle_inst_data* a2, glitter_emitter_inst* a3, int32_t index, glitter_random* random);
-extern void glitter_render_element_ctrl(GLT, glitter_render_group* a1,
+    GlitterF2ParticleInstData* a2, GlitterF2EmitterInst* a3, int32_t index, glitter_random* random);
+extern void glitter_render_element_ctrl(GLT, GlitterF2RenderGroup* a1,
     glitter_render_element* a2, float_t delta_frame);
 extern void glitter_render_element_rotate_to_emit_position(mat4* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec);
+    GlitterF2RenderGroup* a2, glitter_render_element* a3, vec3* vec);
 extern void glitter_render_element_rotate_to_prev_position(mat4* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec);
+    GlitterF2RenderGroup* a2, glitter_render_element* a3, vec3* vec);
 extern void glitter_render_element_free(glitter_render_element* a1);

@@ -612,7 +612,7 @@ static void post_process_dof_calculate_texcoords(vec2* data, float_t size);
 static void post_process_dof_free_fbo(post_process_dof* dof);
 static void post_process_dof_load_shaders(post_process_dof* dof);
 static GLuint post_process_dof_program_link(GLuint vert_shad, GLuint frag_shad);
-static GLuint post_process_dof_shader_compile(GLenum type, char* data);
+static GLuint post_process_dof_shader_compile(GLenum type, const char* data);
 static void post_process_dof_update_data(post_process_dof* dof, float_t min_dist,
     float_t max_dist, float_t fov, float_t dist, float_t focal_length,
     float_t f_number, float_t focus_range, float_t fuzzing_range, float_t ratio);
@@ -944,40 +944,40 @@ static void post_process_dof_free_fbo(post_process_dof* dof) {
 
 static void post_process_dof_load_shaders(post_process_dof* dof) {
     char* frag_shader_string[9];
-    frag_shader_string[0] = str_utils_copy((char*)dof_frag_shader_step_2);
+    frag_shader_string[0] = str_utils_copy(dof_frag_shader_step_2);
     for (int32_t i = 0; i < 2; i++) {
         char* t0;
         char* t1;
         const char* define = i ? dof_frag_shader_f2_define : dof_frag_shader_physical_define;
-        char* shared = str_utils_add((char*)define, (char*)dof_frag_shader_shared);
+        char* shared = str_utils_add(define, dof_frag_shader_shared);
 
-        t0 = str_utils_copy((char*)dof_frag_shader_version);
+        t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
-        frag_shader_string[1 + i * 4] = str_utils_add(t1, (char*)dof_frag_shader_step_1);
+        frag_shader_string[1 + i * 4] = str_utils_add(t1, dof_frag_shader_step_1);
         free(t0);
         free(t1);
 
-        t0 = str_utils_copy((char*)dof_frag_shader_version);
+        t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
-        frag_shader_string[2 + i * 4] = str_utils_add(t1, (char*)dof_frag_shader_step_3);
+        frag_shader_string[2 + i * 4] = str_utils_add(t1, dof_frag_shader_step_3);
         free(t0);
         free(t1);
 
-        t0 = str_utils_copy((char*)dof_frag_shader_version);
+        t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
-        frag_shader_string[3 + i * 4] = str_utils_add(t1, (char*)dof_frag_shader_step_4);
+        frag_shader_string[3 + i * 4] = str_utils_add(t1, dof_frag_shader_step_4);
         free(t0);
         free(t1);
 
-        t0 = str_utils_copy((char*)dof_frag_shader_version);
+        t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
-        frag_shader_string[4 + i * 4] = str_utils_add(t1, (char*)dof_frag_shader_step_5);
+        frag_shader_string[4 + i * 4] = str_utils_add(t1, dof_frag_shader_step_5);
         free(t0);
         free(t1);
         free(shared);
     }
 
-    GLuint vert_shader = post_process_dof_shader_compile(GL_VERTEX_SHADER, (char*)dof_vert_shader);
+    GLuint vert_shader = post_process_dof_shader_compile(GL_VERTEX_SHADER, dof_vert_shader);
     for (int32_t i = 0; i < 9; i++) {
         GLuint frag_shader = post_process_dof_shader_compile(GL_FRAGMENT_SHADER, frag_shader_string[i]);
         dof->program[i] = post_process_dof_program_link(vert_shader, frag_shader);
@@ -987,7 +987,7 @@ static void post_process_dof_load_shaders(post_process_dof* dof) {
     glDeleteShader(vert_shader);
 }
 
-static GLuint post_process_dof_shader_compile(GLenum type, char* data) {
+static GLuint post_process_dof_shader_compile(GLenum type, const char* data) {
     if (!data)
         return 0;
 

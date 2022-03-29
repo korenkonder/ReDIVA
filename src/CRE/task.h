@@ -51,14 +51,13 @@ public:
     char* GetName();
 
     bool SetDest();
-    void SetName(char* name);
     void SetName(const char* name);
     void SetPriority(int32_t priority);
 };
 
 class TaskWork;
 
-extern TaskWork task_work;
+extern TaskWork* task_work;
 
 class TaskWork {
 public:
@@ -71,7 +70,7 @@ public:
 
     static bool AppendTask(Task* t,
         const char* name = "(unknown)", int32_t priority = 1);
-    static bool AppendTask(Task* t, Task* parent_task = task_work.current,
+    static bool AppendTask(Task* t, Task* parent_task = task_work->current,
         const char* name = "(unknown)", int32_t priority = 1);
     static void Basic();
     static bool CheckTaskReady(Task* t);
@@ -81,3 +80,6 @@ public:
     static bool HasTask(Task* t);
     static bool HasTaskDest(Task* t);
 };
+
+extern void task_work_init();
+extern void task_work_free();

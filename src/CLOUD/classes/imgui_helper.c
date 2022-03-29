@@ -103,7 +103,7 @@ void imguiStartPropertyColumn(const char* label) {
     ImGui::BeginTable("table", 2);
     ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * column_space, 0);
 
-    char* label_temp = str_utils_copy((char*)label);
+    char* label_temp = str_utils_copy(label);
     char* temp;
     if (temp = strstr(label_temp, "##"))
         *temp = 0;
@@ -351,7 +351,7 @@ static const char* imguiStartPropertyColumnDisable(const char* label, bool enabl
     ImGui::BeginTable("table", 2);
     ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * column_space, 0);
 
-    char* label_temp = str_utils_copy((char*)label);
+    char* label_temp = str_utils_copy(label);
     char* temp;
     if (temp = strstr(label_temp, "##"))
         *temp = 0;
@@ -364,7 +364,7 @@ static const char* imguiStartPropertyColumnDisable(const char* label, bool enabl
 
     ImGui::TableNextColumn();
     imguiGetContentRegionAvailSetNextItemWidth();
-    return (const char*)str_utils_add("##", (char*)label);
+    return 0;
 }
 
 bool imguiComboBox(const char* label, const char** items, const size_t size,
@@ -382,7 +382,7 @@ bool imguiComboBox(const char* label, const char** items, const size_t size,
         return false;
     }
 
-    if (ImGui::BeginCombo(label, items[*selected_idx], flags)) {
+    if (ImGui::BeginCombo(label, *selected_idx != -1 ? items[*selected_idx] : 0, flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {
                 ImGui::PushID((int32_t)n);
@@ -430,7 +430,7 @@ bool imguiComboBox(const char* label, const char** items, const size_t size,
         return false;
     }
 
-    if (ImGui::BeginCombo(label, items[*selected_idx], flags)) {
+    if (ImGui::BeginCombo(label, *selected_idx != -1 ? items[*selected_idx] : 0, flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {
                 ImGui::PushID((void*)n);
@@ -478,7 +478,7 @@ bool imguiComboBoxString(const char* label, string* items, const size_t size,
         return false;
     }
 
-    if (ImGui::BeginCombo(label, string_data(&items[*selected_idx]), flags)) {
+    if (ImGui::BeginCombo(label, *selected_idx != -1 ? string_data(&items[*selected_idx]) : 0, flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {
                 ImGui::PushID((int32_t)n);
@@ -526,7 +526,7 @@ bool imguiComboBoxString(const char* label, string* items, const size_t size,
         return false;
     }
 
-    if (ImGui::BeginCombo(label, string_data(&items[*selected_idx]), flags)) {
+    if (ImGui::BeginCombo(label, *selected_idx != -1 ? string_data(&items[*selected_idx]) : 0, flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {
                 ImGui::PushID((void*)n);
@@ -575,7 +575,7 @@ bool imguiComboBoxConfigFile(const char* label, void* items, const size_t size,
     }
 
     data_struct_file* items_ds = (data_struct_file*)items;
-    if (ImGui::BeginCombo(label, items_ds[*selected_idx].name.c_str(), flags)) {
+    if (ImGui::BeginCombo(label, *selected_idx != -1 ? items_ds[*selected_idx].name.c_str() : 0, flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {
                 ImGui::PushID((int32_t)n);
@@ -624,7 +624,7 @@ bool imguiComboBoxConfigFile(const char* label, void* items, const size_t size,
     }
 
     data_struct_file* items_ds = (data_struct_file*)items;
-    if (ImGui::BeginCombo(label, items_ds[*selected_idx].name.c_str(), flags)) {
+    if (ImGui::BeginCombo(label, *selected_idx != -1 ? items_ds[*selected_idx].name.c_str() : 0, flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {
                 ImGui::PushID((void*)n);
@@ -1336,30 +1336,6 @@ bool imguiColumnSliderLogVec4I(const char* label, vec4i* val,
 
     *val = *(vec4i*)v;
     return true;
-}
-
-bool imguiColumnInputFloat(const char* label, float_t* val,
-    float_t step, float_t step_fast, const char* format, ImGuiInputTextFlags flags) {
-    float_t v[1];
-    v[0] = *val;
-    imguiStartPropertyColumn(label);
-    bool res = ImGui::InputFloat("", v, step, step_fast, format, flags);
-    imguiEndPropertyColumn();
-    if (res)
-        *val = v[0];
-    return res;
-}
-
-bool imguiColumnInputInt(const char* label, int32_t* val,
-    int32_t step, int32_t step_fast, ImGuiInputTextFlags flags) {
-    int32_t v[1];
-    v[0] = *val;
-    imguiStartPropertyColumn(label);
-    bool res = ImGui::InputInt("", v, step, step_fast, flags);
-    imguiEndPropertyColumn();
-    if (res)
-        *val = v[0];
-    return res;
 }
 
 bool imguiColumnInputScalar(const char* label, ImGuiDataType data_type, void* p_data,

@@ -146,7 +146,7 @@ void a3da::write(const char* path) {
     if (!path || !this->ready)
         return;
 
-    char* path_a3da = str_utils_add(path, (char*)".a3da");
+    char* path_a3da = str_utils_add(path, ".a3da");
     stream s;
     io_open(&s, path_a3da, "wb");
     if (s.io.stream)
@@ -159,7 +159,7 @@ void a3da::write(const wchar_t* path) {
     if (!path || !this->ready)
         return;
 
-    wchar_t* path_a3da = str_utils_wadd(path, (wchar_t*)L".a3da");
+    wchar_t* path_a3da = str_utils_wadd(path, L".a3da");
     stream s;
     io_open(&s, path_a3da, L"wb");
     if (s.io.stream)

@@ -83,14 +83,6 @@ void graphics_glitter_imgui(class_data* data) {
     ImGui::End();
 }
 
-void graphics_glitter_input(class_data* data) {
-    input_locked |= data->imgui_focus;
-}
-
-void graphics_glitter_render(class_data* data) {
-
-}
-
 bool graphics_glitter_dispose(class_data* data) {
     return true;
 }

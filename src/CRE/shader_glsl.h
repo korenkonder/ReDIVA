@@ -32,12 +32,12 @@ typedef struct shader_glsl {
 } shader_glsl;
 
 extern void shader_glsl_load(shader_glsl* s, farc* f, shader_glsl_param* param);
-extern void shader_glsl_load_file(shader_glsl* s, char* vert_path,
-    char* frag_path, char* geom_path, shader_glsl_param* param);
-extern void shader_glsl_wload_file(shader_glsl* s, wchar_t* vert_path,
-    wchar_t* frag_path, wchar_t* geom_path, shader_glsl_param* param);
-extern void shader_glsl_load_string(shader_glsl* s, char* vert_data,
-    char* frag_data, char* geom_data, shader_glsl_param* param);
+extern void shader_glsl_load_file(shader_glsl* s, const char* vert_path,
+    const char* frag_path, const char* geom_path, shader_glsl_param* param);
+extern void shader_glsl_wload_file(shader_glsl* s, const wchar_t* vert_path,
+    const wchar_t* frag_path, wchar_t* geom_path, shader_glsl_param* param);
+extern void shader_glsl_load_string(shader_glsl* s, const char* vert_data,
+    const char* frag_data, const char* geom_data, shader_glsl_param* param);
 extern void shader_glsl_use(shader_glsl* s);
 extern GLint shader_glsl_get_uniform_location(shader_glsl* s, GLchar* name);
 extern void shader_glsl_set_uniform_block_binding(shader_glsl* s, GLchar* name, GLint binding);

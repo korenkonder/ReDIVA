@@ -199,7 +199,7 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
 
             char shader_cache_file_name[MAX_PATH];
             strcpy_s(shader_cache_file_name, sizeof(shader_cache_file_name), sub_table->vp);
-            if (str_utils_compare((char*)sub_table->vp, (char*)sub_table->fp)) {
+            if (str_utils_compare(sub_table->vp, sub_table->fp)) {
                 strcat_s(shader_cache_file_name, sizeof(shader_cache_file_name), ".");
                 strcat_s(shader_cache_file_name, sizeof(shader_cache_file_name), sub_table->fp);
             }

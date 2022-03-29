@@ -171,6 +171,82 @@ bool data_struct::check_file_exists(const char* dir, const char* file) {
     return false;
 }
 
+bool data_struct::check_file_exists(const char* dir, uint32_t hash) {
+    size_t dir_len = utf8_length(dir);
+    if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
+        dir += 2;
+        dir_len -= 2;
+    }
+
+    if (dir_len < 3 || memcmp(dir, "rom", 3))
+        return false;
+
+    dir += 3;
+    dir_len -= 3;
+
+    while (*dir == '/' || *dir == '\\') {
+        dir++;
+        dir_len--;
+    }
+
+    size_t max_len = 0;
+    for (data_struct_path& i : data_paths)
+        for (data_struct_directory& j : i.data)
+            if (max_len < j.path.size())
+                max_len = j.path.size();
+
+    char* dir_temp = force_malloc_s(char, dir_len + 1);
+    memcpy(dir_temp, dir, dir_len + 1);
+
+    char* t = dir_temp;
+    while (t = strchr(t, '/'))
+        *t = '\\';
+
+    char* temp = force_malloc_s(char, max_len + dir_len + 2);
+    for (data_struct_path& i : data_paths)
+        for (data_struct_directory& j : i.data) {
+            const char* path = j.path.c_str();
+            size_t path_len = j.path.size();
+
+            memcpy(temp, path, path_len);
+            memcpy(&temp[path_len], "\\", 2);
+            if (dir_len)
+                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
+
+            std::vector<std::string> files;
+            path_get_files(&files, temp);
+
+            std::vector<uint32_t> files_murmurhash;
+            files_murmurhash.reserve(files.size());
+            for (std::string& l : files) {
+                const char* t = strrchr(l.c_str(), '.');
+                size_t t_len = l.size();
+                if (t)
+                    t_len = t - l.c_str();
+                t = l.c_str();
+
+                files_murmurhash.push_back(hash_murmurhash(t, t_len, 0, false, false));
+            }
+
+            bool ret = false;
+            for (uint32_t& l : files_murmurhash)
+                if (l == hash) {
+                    ret = true;
+                    break;
+                }
+
+            if (ret) {
+                free(dir_temp);
+                free(temp);
+                return true;
+            }
+        }
+
+    free(dir_temp);
+    free(temp);
+    return false;
+}
+
 void data_struct::get_directory_files(const char* dir, std::vector<data_struct_file>* data_files) {
     data_files->clear();
     data_files->shrink_to_fit();
@@ -238,6 +314,83 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
 
     free(dir_temp);
     free(temp);
+}
+
+bool data_struct::get_file(const char* dir, uint32_t hash, std::string* file) {
+    size_t dir_len = utf8_length(dir);
+    if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
+        dir += 2;
+        dir_len -= 2;
+    }
+
+    if (dir_len < 3 || memcmp(dir, "rom", 3))
+        return false;
+
+    dir += 3;
+    dir_len -= 3;
+
+    while (*dir == '/' || *dir == '\\') {
+        dir++;
+        dir_len--;
+    }
+
+    size_t max_len = 0;
+    for (data_struct_path& i : data_paths)
+        for (data_struct_directory& j : i.data)
+            if (max_len < j.path.size())
+                max_len = j.path.size();
+
+    char* dir_temp = force_malloc_s(char, dir_len + 1);
+    memcpy(dir_temp, dir, dir_len + 1);
+
+    char* t = dir_temp;
+    while (t = strchr(t, '/'))
+        *t = '\\';
+
+    char* temp = force_malloc_s(char, max_len + dir_len + 2);
+    for (data_struct_path& i : data_paths)
+        for (data_struct_directory& j : i.data) {
+            const char* path = j.path.c_str();
+            size_t path_len = j.path.size();
+
+            memcpy(temp, path, path_len);
+            memcpy(&temp[path_len], "\\", 2);
+            if (dir_len)
+                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
+
+            std::vector<std::string> files;
+            path_get_files(&files, temp);
+
+            std::vector<uint32_t> files_murmurhash;
+            files_murmurhash.reserve(files.size());
+            for (std::string& l : files) {
+                const char* t = strrchr(l.c_str(), '.');
+                size_t t_len = l.size();
+                if (t)
+                    t_len = t - l.c_str();
+                t = l.c_str();
+
+                files_murmurhash.push_back(hash_murmurhash(t, t_len, 0, false, false));
+            }
+
+            bool ret = false;
+            for (uint32_t& l : files_murmurhash)
+                if (l == hash) {
+                    *file = files[&l - files_murmurhash.data()];
+                    ret = true;
+                    break;
+                }
+
+            if (ret) {
+                free(dir_temp);
+                free(temp);
+                return true;
+            }
+        }
+
+    free(dir_temp);
+    free(temp);
+    return false;
 }
 
 bool data_struct::load_file(void* data, const char* dir, const char* file,
@@ -322,7 +475,7 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
     return false;
 }
 
-bool data_struct::load_file_by_hash(void* data, const char* dir, uint32_t hash,
+bool data_struct::load_file(void* data, const char* dir, uint32_t hash,
     bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
@@ -384,7 +537,7 @@ bool data_struct::load_file_by_hash(void* data, const char* dir, uint32_t hash,
             for (uint32_t& l : files_murmurhash)
                 if (l == hash) {
                     std::string& file = files[&l - files_murmurhash.data()];
-                    ret = load_func(data, temp, (char*)file.c_str(), hash);
+                    ret = load_func(data, temp, file.c_str(), hash);
                     break;
                 }
 

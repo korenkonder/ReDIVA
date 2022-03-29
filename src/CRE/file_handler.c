@@ -4,10 +4,24 @@
 */
 
 #include <thread>
+#include "../KKdLib/hash.h"
 #include "file_handler.h"
 #include "data.h"
-#include "render_context.h"
 #include <sys/stat.h>
+
+class farc_read_handler {
+public:
+    std::string file_path;
+    bool cache;
+    farc* farc;
+
+    farc_read_handler();
+    virtual ~farc_read_handler();
+
+    size_t get_file_size(std::string& file);
+    bool read(std::string& file_path, bool cache);
+    bool read_data(void* data, size_t size, std::string& file);
+};
 
 class file_handler_storage {
 public:
@@ -37,12 +51,9 @@ static bool file_handler_load_file(void* data, const char* path, const char* fil
 static bool file_handler_load_farc_file(void* data, const char* path, const char* file, uint32_t hash);
 static void file_handler_storage_ctrl_list();
 static void file_handler_storage_thread_ctrl();
-static size_t farc_read_handler_get_file_size(farc_read_handler* frh, std::string* file);
-static bool farc_read_handler_read(farc_read_handler* frh, std::string* file_path, bool cache);
-static bool farc_read_handler_read_data(farc_read_handler* frh, void* data, size_t size, std::string* file);
 
 file_handler::file_handler() : count(), not_ready(true),
-reading(), cache(), read_free_func(), size(), data() {
+reading(), cache(), read_free_func(), size(), data(), ds() {
 
 }
 
@@ -116,13 +127,58 @@ farc_read_handler::~farc_read_handler() {
     delete farc;
 }
 
+size_t farc_read_handler::get_file_size(std::string& file) {
+    if (farc)
+        return farc->get_file_size(file.c_str());
+    return 0;
+}
+
+bool farc_read_handler::read(std::string& file_path, bool cache) {
+    if (farc) {
+        if (this->file_path == file_path && this->cache == cache)
+            return true;
+
+        delete farc;
+        farc = 0;
+    }
+
+    this->file_path = file_path;
+    this->cache = cache;
+
+    struct stat st;
+    if (!stat(this->file_path.c_str(), &st) && st.st_size) {
+        size_t size = st.st_size;
+        farc = new ::farc;
+        if (farc) {
+            farc->read(this->file_path.c_str(), this->cache, false);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool farc_read_handler::read_data(void* data, size_t size, std::string& file) {
+    if (farc) {
+        farc_file* ff = farc->read_file(file.c_str());
+        if (ff) {
+            memcpy(data, ff->data, min(size, ff->size));
+            if (!cache) {
+                free(ff->data);
+                ff->data = 0;
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 file_handler_storage::file_handler_storage() : farc_read_handler(), thread(), cnd(), exit(),
 field_61(), field_64(), read_in_thread(), field_69(), field_6C(), field_70(), field_74() {
 
 }
 
 file_handler_storage::~file_handler_storage() {
-
+    delete farc_read_handler;
 }
 
 void file_handler_storage_init() {
@@ -199,7 +255,7 @@ static bool file_handler_load_farc_file(void* data, const char* path, const char
 
     farc_read_handler* farc_read_hndl = file_handler_storage_data->farc_read_handler;
     if (farc_read_hndl && farc_read_hndl->file_path != file_path) {
-        delete farc_read_hndl;
+        delete file_handler_storage_data->farc_read_handler;
         file_handler_storage_data->farc_read_handler = 0;
     }
 
@@ -207,14 +263,13 @@ static bool file_handler_load_farc_file(void* data, const char* path, const char
         file_handler_storage_data->farc_read_handler = new farc_read_handler;
 
     farc_read_hndl = file_handler_storage_data->farc_read_handler;
-    if (farc_read_hndl && farc_read_handler_read(farc_read_hndl, &file_path, cache)) {
-        fhndl->size = farc_read_handler_get_file_size(farc_read_hndl, &fhndl->file);
+    if (farc_read_hndl && farc_read_hndl->read(file_path, cache)) {
+        fhndl->size = farc_read_hndl->get_file_size(fhndl->file);
         if (!fhndl->size)
             fhndl->size = 1;
 
         fhndl->data = malloc(fhndl->size);
-        if (fhndl->data && farc_read_handler_read_data(farc_read_hndl,
-            fhndl->data, fhndl->size, &fhndl->file)) {
+        if (fhndl->data && farc_read_hndl->read_data(fhndl->data, fhndl->size, fhndl->file)) {
             u_lock.unlock();
             return true;
         }
@@ -241,8 +296,6 @@ static void file_handler_storage_ctrl_list() {
     }
 }
 
-extern render_context* rctx_ptr;
-
 static void file_handler_storage_thread_ctrl() {
     std::unique_lock<std::mutex> u_lock(file_handler_storage_data->mtx);
     while (!file_handler_storage_data->exit) {
@@ -256,10 +309,10 @@ static void file_handler_storage_thread_ctrl() {
                 i->reading = true;
                 if (i->not_ready) {
                     if (i->farc_file.size())
-                        i->not_ready = !rctx_ptr->data->load_file(i,
+                        i->not_ready = !((data_struct*)i->ds)->load_file(i,
                             i->path.c_str(), i->farc_file.c_str(), file_handler_load_farc_file);
                     else
-                        i->not_ready = !rctx_ptr->data->load_file(i,
+                        i->not_ready = !((data_struct*)i->ds)->load_file(i,
                             i->path.c_str(), i->file.c_str(), file_handler_load_file);
                 }
                 i->reading = false;
@@ -271,51 +324,6 @@ static void file_handler_storage_thread_ctrl() {
     }
     file_handler_storage_data->exit = false;
     u_lock.unlock();
-}
-
-static size_t farc_read_handler_get_file_size(farc_read_handler* frh, std::string* file) {
-    if (frh->farc)
-        return frh->farc->get_file_size(file->c_str());
-    return 0;
-}
-
-static bool farc_read_handler_read(farc_read_handler* frh, std::string* file_path, bool cache) {
-    if (frh->farc) {
-        if (frh->file_path == *file_path && frh->cache == cache)
-            return true;
-
-        delete frh->farc;
-        frh->farc = 0;
-    }
-
-    frh->file_path = *file_path;
-    frh->cache = cache;
-
-    struct stat st;
-    if (!stat(frh->file_path.c_str(), &st) && st.st_size) {
-        size_t size = st.st_size;
-        frh->farc = new farc;
-        if (frh->farc) {
-            frh->farc->read(frh->file_path.c_str(), cache, false);
-            return true;
-        }
-    }
-    return false;
-}
-
-static bool farc_read_handler_read_data(farc_read_handler* frh, void* data, size_t size, std::string* file) {
-    if (frh->farc) {
-        farc_file* ff = frh->farc->read_file(file->c_str());
-        if (ff) {
-            memcpy(data, ff->data, min(size, ff->size));
-            if (!frh->cache) {
-                free(ff->data);
-                ff->data;
-            }
-            return true;
-        }
-    }
-    return false;
 }
 
 p_file_handler::p_file_handler() {
@@ -371,7 +379,8 @@ ssize_t p_file_handler::get_size() {
     return ptr->size;
 }
 
-bool p_file_handler::read_file(const char* path, const char* farc_file, const char* file, bool cache) {
+bool p_file_handler::read_file(void* data, const char* path,
+    const char* farc_file, const char* file, bool cache) {
     if (!path || !file)
         return false;
 
@@ -381,12 +390,14 @@ bool p_file_handler::read_file(const char* path, const char* farc_file, const ch
         free_data();
     }
 
-    if (!rctx_ptr->data->check_file_exists(path, farc_file ? farc_file : file))
+    if (!((data_struct*)data)->check_file_exists(path, farc_file ? farc_file : file))
         return false;
 
     ptr = new file_handler;
     if (!ptr)
         return false;
+
+    ptr->ds = data;
 
     std::unique_lock<std::mutex> u_lock(ptr->mtx);
     ptr->count++;
@@ -404,8 +415,42 @@ bool p_file_handler::read_file(const char* path, const char* farc_file, const ch
     return true;
 }
 
-bool p_file_handler::read_file_path(const char* path, const char* file) {
-    return read_file(path, 0, file, false);
+bool p_file_handler::read_file(void* data, const char* path, const char* file) {
+    return read_file(data, path, 0, file, false);
+}
+
+bool p_file_handler::read_file(void* data, const char* path, uint32_t hash) {
+    if (!path || !hash || hash == hash_murmurhash_empty)
+        return false;
+
+    if (ptr) {
+        if (ptr->not_ready)
+            return false;
+        free_data();
+    }
+
+    std::string file;
+    if (!((data_struct*)data)->get_file(path, hash, &file))
+        return false;
+
+    ptr = new file_handler;
+    if (!ptr)
+        return false;
+
+    ptr->ds = data;
+
+    std::unique_lock<std::mutex> u_lock(ptr->mtx);
+    ptr->count++;
+    u_lock.unlock();
+
+    ptr->set_path(path);
+    ptr->set_file(file.c_str());
+
+    std::unique_lock<std::mutex> u_lock1(ptr->mtx);
+    ptr->count++;
+    u_lock1.unlock();
+    file_handler_storage_data->list.push_back(ptr);
+    return true;
 }
 
 void p_file_handler::read_now() {
@@ -419,10 +464,10 @@ void p_file_handler::read_now() {
             if (ptr->not_ready) {
                 bool ret;
                 if (ptr->farc_file.size())
-                    ret = ((data_struct*)rctx_ptr->data)->load_file(
+                    ret = ((data_struct*)ptr->ds)->load_file(
                         ptr, ptr->path.c_str(), ptr->farc_file.c_str(), file_handler_load_farc_file);
-                else
-                    ret = ((data_struct*)rctx_ptr->data)->load_file(
+                else 
+                    ret = ((data_struct*)ptr->ds)->load_file(
                         ptr, ptr->path.c_str(), ptr->file.c_str(), file_handler_load_file);
 
                 if (ret)

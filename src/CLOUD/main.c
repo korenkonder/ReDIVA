@@ -40,7 +40,7 @@ static void decrypt_edat() {
     io_open(&f0, "misc\\shader_ps3.edat", "rb");
     io_open(&f1, "misc\\shader_ps3.dat", "wb");
     if (f0.io.stream && f1.io.stream)
-        DecryptEDAT(&f0, &f1, 8, (char*)"misc\\EP0177-NPEB02013_00-PJDF2MOMJTNSDAYO.rap", klic);
+        DecryptEDAT(&f0, &f1, 8, "misc\\EP0177-NPEB02013_00-PJDF2MOMJTNSDAYO.rap", klic);
     io_free(&f0);
     io_free(&f1);
 }

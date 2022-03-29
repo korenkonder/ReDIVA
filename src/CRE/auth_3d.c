@@ -147,17 +147,17 @@ static void auth_3d_post_process_restore_prev_value(auth_3d_post_process* pp, re
 static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* rctx);
 
 static bool auth_3d_data_struct_init(auth_3d_data_struct* auth_3d_data, render_context* rctx);
-static bool auth_3d_data_struct_check_category_loaded(auth_3d_data_struct* auth_3d_data, char* category_name);
+static bool auth_3d_data_struct_check_category_loaded(auth_3d_data_struct* auth_3d_data, const char* category_name);
 static bool auth_3d_data_struct_ctrl(auth_3d_data_struct* auth_3d_data, render_context* rctx);
 static void auth_3d_data_struct_disp(auth_3d_data_struct* auth_3d_data, render_context* rctx);
 static auth_3d_farc* auth_3d_data_struct_get_farc(auth_3d_data_struct* auth_3d_data, const char* category_name);
 static void auth_3d_data_struct_load_category(auth_3d_data_struct* auth_3d_data,
-    char* category_name, char* mdata_dir);
-static void auth_3d_data_struct_unload_category(auth_3d_data_struct* auth_3d_data, char* category_name);
+    const char* category_name, const char* mdata_dir);
+static void auth_3d_data_struct_unload_category(auth_3d_data_struct* auth_3d_data, const char* category_name);
 
 static void auth_3d_farc_free_data(auth_3d_farc* a3da_farc);
-static void auth_3d_farc_load(auth_3d_farc* a3da_farc, char* mdata_dir);
-static void auth_3d_farc_read_file(auth_3d_farc* a3da_farc, char* mdata_dir);
+static void auth_3d_farc_load(auth_3d_farc* a3da_farc, const char* mdata_dir);
+static void auth_3d_farc_read_file(auth_3d_farc* a3da_farc, const char* mdata_dir);
 static bool auth_3d_farc_read_func(auth_3d_farc* a3da_farc, void* data, size_t size);
 static void auth_3d_farc_unload(auth_3d_farc* a3da_farc);
 
@@ -574,7 +574,7 @@ void auth_3d::load(a3da* auth_file,
     file_name = auth_file->_file_name;
 }
 
-void auth_3d::load_from_farc(farc* f, char* file,
+void auth_3d::load_from_farc(farc* f, const char* file,
     object_database* obj_db, texture_database* tex_db) {
     farc_file* ff = f->read_file(file);
     if (!ff)
@@ -1760,7 +1760,7 @@ bool auth_3d_data_check_id_not_empty(int32_t* id) {
     return false;
 }
 
-bool auth_3d_data_check_category_loaded(char* category_name) {
+bool auth_3d_data_check_category_loaded(const char* category_name) {
     return auth_3d_data_struct_check_category_loaded(auth_3d_data, category_name);
 }
 
@@ -1895,7 +1895,7 @@ int32_t auth_3d_data_get_uid(int32_t* id) {
     return -1;
 }
 
-void auth_3d_data_load_category(char* category_name) {
+void auth_3d_data_load_category(const char* category_name) {
     auth_3d_data_struct_load_category(auth_3d_data, category_name, 0);
 }
 
@@ -2104,7 +2104,7 @@ int32_t auth_3d_data_get_auth_3d_id_by_hash(uint32_t file_name_hash, uint32_t ob
     return -1;
 }
 
-void auth_3d_data_unload_category(char* category_name) {
+void auth_3d_data_unload_category(const char* category_name) {
     auth_3d_data_struct_unload_category(auth_3d_data, category_name);
 }
 
@@ -2121,12 +2121,12 @@ void auth_3d_data_unload_id(int32_t id, render_context* rctx) {
         return;
 
 
-    for (int32_t& i : auth_3d_data->loaded_ids) {
-        if (i != id)
+    for (std::vector<int32_t>::iterator i = auth_3d_data->loaded_ids.begin();
+        i != auth_3d_data->loaded_ids.end();) {
+        if (*i != id)
             continue;
 
-        auth_3d_data->loaded_ids.erase(auth_3d_data->loaded_ids.begin()
-            + (&i - auth_3d_data->loaded_ids.data()));
+        i = auth_3d_data->loaded_ids.erase(i);
         auth->unload(rctx);
         break;
     }
@@ -3972,7 +3972,7 @@ static bool auth_3d_data_struct_init(auth_3d_data_struct* auth_3d_data, render_c
     return true;
 }
 
-static bool auth_3d_data_struct_check_category_loaded(auth_3d_data_struct* auth_3d_data, char* category_name) {
+static bool auth_3d_data_struct_check_category_loaded(auth_3d_data_struct* auth_3d_data, const char* category_name) {
     if (category_name) {
         auth_3d_farc* a3da_farc = auth_3d_data_struct_get_farc(auth_3d_data, category_name);
         if (a3da_farc)
@@ -4011,7 +4011,7 @@ static auth_3d_farc* auth_3d_data_struct_get_farc(auth_3d_data_struct* auth_3d_d
 }
 
 static void auth_3d_data_struct_load_category(auth_3d_data_struct* auth_3d_data,
-    char* category_name, char* mdata_dir) {
+    const char* category_name, const char* mdata_dir) {
     if (!category_name)
         return;
 
@@ -4020,7 +4020,7 @@ static void auth_3d_data_struct_load_category(auth_3d_data_struct* auth_3d_data,
         auth_3d_farc_load(a3da_farc, mdata_dir);
 }
 
-static void auth_3d_data_struct_unload_category(auth_3d_data_struct* auth_3d_data, char* category_name) {
+static void auth_3d_data_struct_unload_category(auth_3d_data_struct* auth_3d_data, const char* category_name) {
     if (!category_name)
         return;
 
@@ -4047,7 +4047,7 @@ static void auth_3d_farc_free_data(auth_3d_farc* a3da_farc) {
     a3da_farc->state = 0;
 }
 
-static void auth_3d_farc_load(auth_3d_farc* a3da_farc, char* mdata_dir) {
+static void auth_3d_farc_load(auth_3d_farc* a3da_farc, const char* mdata_dir) {
     if (a3da_farc->load_count) {
         a3da_farc->load_count++;
         return;
@@ -4057,7 +4057,7 @@ static void auth_3d_farc_load(auth_3d_farc* a3da_farc, char* mdata_dir) {
     auth_3d_farc_read_file(a3da_farc, mdata_dir);
 }
 
-static void auth_3d_farc_read_file(auth_3d_farc* a3da_farc, char* mdata_dir) {
+static void auth_3d_farc_read_file(auth_3d_farc* a3da_farc, const char* mdata_dir) {
     if (a3da_farc->state) {
         a3da_farc->state = 2;
         return;
@@ -4070,7 +4070,7 @@ static void auth_3d_farc_read_file(auth_3d_farc* a3da_farc, char* mdata_dir) {
     a3da_farc->file = std::string(a3da_farc->name) + ".farc";
 
 
-    if (a3da_farc->file_handler.read_file_path(a3da_farc->path.c_str(), a3da_farc->file.c_str()))
+    if (a3da_farc->file_handler.read_file(rctx_ptr->data, a3da_farc->path.c_str(), a3da_farc->file.c_str()))
         a3da_farc->file_handler.set_read_free_func_data(0,
             (void(*)(void*, void*, size_t))auth_3d_farc_read_func, a3da_farc);
     else

@@ -357,58 +357,47 @@ typedef enum glitter_uv_index_type {
     GLITTER_UV_INDEX_USER                   = 7,
 } glitter_uv_index_type;
 
+class GlitterAnimation;
 typedef struct glitter_buffer glitter_buffer;
-typedef struct glitter_curve_key glitter_curve_key;
-typedef struct glitter_curve glitter_curve;
+class GlitterCurve;
 typedef struct glitter_effect_data glitter_effect_data;
 typedef struct glitter_effect_ext_anim glitter_effect_ext_anim;
 typedef struct glitter_effect_ext_anim_x glitter_effect_ext_anim_x;
-typedef struct glitter_effect glitter_effect;
-typedef struct glitter_effect_inst_ext_anim glitter_effect_inst_ext_anim;
-typedef struct glitter_effect_inst_ext_anim_x glitter_effect_inst_ext_anim_x;
-typedef struct glitter_effect_inst glitter_effect_inst;
+class glitter_effect;
 typedef struct glitter_emitter_box glitter_emitter_box;
 typedef struct glitter_emitter_cylinder glitter_emitter_cylinder;
 typedef struct glitter_emitter_polygon glitter_emitter_polygon;
 typedef struct glitter_emitter_sphere glitter_emitter_sphere;
 typedef struct glitter_emitter_data glitter_emitter_data;
-typedef struct glitter_emitter glitter_emitter;
-typedef struct glitter_emitter_inst glitter_emitter_inst;
-typedef struct glitter_locus_history glitter_locus_history;
-typedef struct glitter_locus_history_data glitter_locus_history_data;
-typedef struct glitter_particle glitter_particle;
+class glitter_emitter;
+class GlitterEmitterInst;
+class GlitterF2EmitterInst;
+class GlitterXEmitterInst;
+class glitter_particle;
 typedef struct glitter_particle_data glitter_particle_data;
-typedef struct glitter_particle_inst glitter_particle_inst;
-typedef struct glitter_particle_inst_data glitter_particle_inst_data;
+class GlitterParticleInst;
+class GlitterF2ParticleInst;
+class GlitterF2ParticleInstData;
+class GlitterXParticleInst;
+class GlitterXParticleInstData;
 typedef struct glitter_particle_mesh glitter_particle_mesh;
 typedef struct glitter_random glitter_random;
 typedef struct glitter_render_element glitter_render_element;
-typedef struct glitter_render_group glitter_render_group;
-typedef struct glitter_scene_counter glitter_scene_counter; 
-typedef struct glitter_scene_effect glitter_scene_effect;
+class GlitterRenderGroup;
+class GlitterF2RenderGroup;
+class GlitterXRenderGroup;
+class GlitterRenderScene;
+class GlitterF2RenderScene;
+class GlitterXRenderScene;
 
 class GltParticleManager;
-class glitter_scene;
+class GlitterScene;
 
 #define GPM GltParticleManager* glt_particle_manager
 #define GPM_VAL (glt_particle_manager)
 
 #define GLT glitter_type glt_type
 #define GLT_VAL (glt_type)
-
-vector_old(glitter_curve_key)
-vector_old_ptr(glitter_curve)
-vector_old_ptr(glitter_effect)
-vector_old_ptr(glitter_emitter)
-vector_old_ptr(glitter_emitter_inst)
-vector_old(glitter_locus_history_data)
-vector_old_ptr(glitter_particle)
-vector_old_ptr(glitter_particle_inst)
-vector_old_ptr(glitter_render_group)
-vector_old(glitter_scene_effect)
-
-typedef vector_old_ptr_glitter_curve glitter_animation;
-typedef vector_old_ptr_glitter_render_group glitter_render_scene;
 
 extern const float_t glitter_min_emission;
 extern const glitter_curve_type_flags glitter_effect_curve_flags;
@@ -438,34 +427,49 @@ struct glitter_random {
     uint8_t step;
 };
 
+class GlitterAnimation {
+public:
+    std::vector<GlitterCurve*> curves;
+
+    GlitterAnimation();
+    ~GlitterAnimation();
+};
+
 struct glitter_buffer {
     vec3 position;
     vec2 uv;
     vec4u color;
 };
 
-struct glitter_curve_key {
-    glitter_key_type type;
-    int32_t frame;
-    float_t value;
-    float_t tangent1;
-    float_t tangent2;
-    float_t random_range;
-};
 
-struct glitter_curve {
+class GlitterCurve {
+public:
+    struct Key {
+        glitter_key_type type;
+        int32_t frame;
+        float_t value;
+        float_t tangent1;
+        float_t tangent2;
+        float_t random_range;
+
+        Key();
+    };
+
     glitter_curve_type type;
     bool repeat;
     int32_t start_time;
     int32_t end_time;
     glitter_curve_flag flags;
     float_t random_range;
-    vector_old_glitter_curve_key keys;
+    std::vector<Key> keys;
 #if defined(CRE_DEV) || defined(CLOUD_DEV)
-    vector_old_glitter_curve_key keys_rev;
+    std::vector<Key> keys_rev;
 #endif
     uint32_t version;
     uint32_t keys_version;
+
+    GlitterCurve(GLT);
+    virtual ~GlitterCurve();
 };
 
 struct glitter_effect_data {
@@ -513,23 +517,27 @@ struct glitter_effect_ext_anim_x {
     };
 };
 
-struct glitter_effect {
+class glitter_effect {
+public:
     char name[0x80];
-    glitter_animation animation;
+    GlitterAnimation animation;
     vec3 translation;
     vec3 rotation;
     vec3 scale;
     glitter_effect_data data;
-    vector_old_ptr_glitter_emitter emitters;
+    std::vector<glitter_emitter*> emitters;
     uint32_t version;
+
+    glitter_effect(GLT);
+    virtual ~glitter_effect();
 };
 
-class glitter_effect_group {
+class GlitterEffectGroup {
 public:
-    vector_old_ptr_glitter_effect effects;
+    std::vector<glitter_effect*> effects;
     int32_t load_count;
     uint64_t hash;
-    glitter_scene* scene;
+    GlitterScene* scene;
     float_t emission;
     uint32_t resources_count;
     std::vector<uint64_t> resource_hashes;
@@ -544,51 +552,121 @@ public:
     uint32_t version;
     glitter_type type;
 
-    glitter_effect_group(GLT);
-    virtual ~glitter_effect_group();
+    GlitterEffectGroup(GLT);
+    virtual ~GlitterEffectGroup();
+
+#if defined(CRE_DEV) || defined(CLOUD_DEV)
+    bool CheckModel();
+    bool CheckLoadModel();
+    void LoadModel(void* data);
+    void FreeModel();
+#endif
+    bool ParseFile(f2_struct* st);
+    bool UnparseFile(GLT, f2_struct* st);
 };
 
-struct glitter_effect_inst_ext_anim {
-    union {
-        struct {
-            int32_t object_index;
-            int32_t mesh_index;
-            int32_t a3da_id;
-            bool object_is_hrc;
-            object_info object;
-            char* mesh_name;
-        };
-        struct {
-            int32_t chara_index;
-            int32_t bone_index;
-        };
-    };
+class GlitterRenderGroup {
+public:
+    glitter_particle_flag flags;
+    glitter_particle_type type;
+    glitter_direction draw_type;
+    glitter_particle_blend blend_mode;
+    glitter_particle_blend mask_blend_mode;
+    glitter_pivot pivot;
+    int32_t split_u;
+    int32_t split_v;
+    vec2 split_uv;
+    float_t z_offset;
+    size_t count;
+    size_t ctrl;
+    size_t disp;
+    int32_t texture;
+    int32_t mask_texture;
+    float_t frame;
     mat4 mat;
-    vec3 translation;
+    mat4 mat_rot;
+    mat4 mat_draw;
+    glitter_render_element* elements;
+    size_t max_count;
+    glitter_random* random_ptr;
+    draw_pass_3d_type alpha;
+    fog_id fog;
+    GLuint vbo;
+    GLuint ebo;
+    float_t emission;
+    std::vector<int32_t> vec_key;
+    std::vector<int32_t> vec_val;
+
+    GlitterRenderGroup();
+    virtual ~GlitterRenderGroup();
 };
 
-struct glitter_effect_inst_ext_anim_x {
-    union {
-        struct {
-            int32_t object_index;
-            int32_t mesh_index;
-            int32_t a3da_id;
-            bool object_is_hrc;
-            uint32_t file_name_hash;
-            uint32_t object_hash;
-            int32_t instance_id;
-            char* mesh_name;
-        };
-        struct {
-            int32_t chara_index;
-            int32_t bone_index;
-        };
-    };
-    mat4 mat;
-    vec3 translation;
+class GlitterF2RenderGroup : public GlitterRenderGroup {
+public:
+    GlitterF2ParticleInst* particle;
+
+    GlitterF2RenderGroup(GlitterF2ParticleInst* a1);
+    virtual ~GlitterF2RenderGroup();
+
+    bool CannotDisp();
+    void Ctrl(GLT, float_t delta_frame, bool copy_mats);
+    void DeleteBuffers(bool a2);
+    void Disp(GPM);
+    void Emit(GPM, GLT, GlitterF2ParticleInstData* a2,
+        GlitterF2EmitterInst* a3, int32_t dup_count, int32_t count);
+    void Free();
 };
 
-struct glitter_effect_inst {
+class GlitterXRenderGroup : public GlitterRenderGroup {
+public:
+    GlitterXParticleInst* particle;
+    uint64_t object_name_hash;
+    bool use_culling;
+
+    GlitterXRenderGroup(GlitterXParticleInst* a1);
+    virtual ~GlitterXRenderGroup();
+
+    void CalcDisp(GPM);
+    bool CannotDisp();
+    void Ctrl(float_t delta_frame, bool copy_mats);
+    void Disp(GPM);
+    void DeleteBuffers(bool a2);
+    void Emit(GlitterXParticleInstData* a2,
+        GlitterXEmitterInst* a3, int32_t dup_count, int32_t count);
+    void Free();
+};
+
+class GlitterF2RenderScene {
+public:
+    std::vector<GlitterF2RenderGroup*> groups;
+
+    GlitterF2RenderScene();
+    ~GlitterF2RenderScene();
+
+    void Append(GlitterF2RenderGroup* rg);
+    void Ctrl(GLT, float_t delta_frame);
+    void Disp(GPM, draw_pass_3d_type alpha);
+    size_t GetCtrlCount(glitter_particle_type type);
+    size_t GetDispCount(glitter_particle_type type);
+};
+
+class GlitterXRenderScene {
+public:
+    std::vector<GlitterXRenderGroup*> groups;
+
+    GlitterXRenderScene();
+    ~GlitterXRenderScene();
+
+    void Append(GlitterXRenderGroup* rg);
+    void CalcDisp(GPM);
+    void Ctrl(float_t delta_frame, bool copy_mats);
+    void Disp(GPM, draw_pass_3d_type alpha);
+    size_t GetCtrlCount(glitter_particle_type type);
+    size_t GetDispCount(glitter_particle_type type);
+};
+
+class GlitterEffectInst {
+public:
     glitter_effect* effect;
     glitter_effect_data data;
     float_t frame0;
@@ -599,22 +677,115 @@ struct glitter_effect_inst {
     vec3 scale;
     float_t scale_all;
     mat4 mat;
-    mat4 mat_rot;
-    mat4 mat_rot_eff_rot;
-    vector_old_ptr_glitter_emitter_inst emitters;
-    union {
-        glitter_random* random_ptr;
-        glitter_random random_shared;
-    };
     glitter_effect_inst_flag flags;
     size_t id;
-    union {
-        glitter_effect_inst_ext_anim* ext_anim;
-        glitter_effect_inst_ext_anim_x* ext_anim_x;
-    };
-    vec3 ext_anim_scale;
-    glitter_render_scene render_scene;
     uint32_t random;
+
+    GlitterEffectInst(GPM, GLT, glitter_effect* a1,
+        size_t id, float_t emission, bool appear_now);
+    virtual ~GlitterEffectInst();
+
+    virtual void Ctrl(GPM, GLT, float_t delta_frame, float_t emission) = 0;
+    virtual void Disp(GPM, draw_pass_3d_type alpha) = 0;
+    virtual void Free(GPM, GLT, float_t emission, bool free) = 0;
+    virtual size_t GetCtrlCount(glitter_particle_type type) = 0;
+    virtual size_t GetDispCount(glitter_particle_type type) = 0;
+    virtual bool HasEnded(bool a2) = 0;
+    virtual void Reset(GPM, GLT, float_t emission) = 0;
+
+    draw_pass_3d_type GetAlpha();
+    fog_id GetFog();
+};
+
+class GlitterF2EffectInst : public GlitterEffectInst {
+public:
+    struct ExtAnim {
+        union {
+            struct {
+                int32_t object_index;
+                int32_t mesh_index;
+                int32_t a3da_id;
+                bool object_is_hrc;
+                object_info object;
+                const char* mesh_name;
+            };
+            struct {
+                int32_t chara_index;
+                int32_t bone_index;
+            };
+        };
+        mat4 mat;
+        vec3 translation;
+
+        ExtAnim();
+        ~ExtAnim();
+    };
+
+    std::vector<GlitterF2EmitterInst*> emitters;
+    glitter_random* random_ptr;
+    ExtAnim* ext_anim;
+    vec3 ext_anim_scale;
+    GlitterF2RenderScene render_scene;
+
+    GlitterF2EffectInst(GPM, GLT, glitter_effect* a1,
+        size_t id, float_t emission, bool appear_now);
+    virtual ~GlitterF2EffectInst();
+
+    virtual void Ctrl(GPM, GLT, float_t delta_frame, float_t emission) override;
+    virtual void Disp(GPM, draw_pass_3d_type alpha) override;
+    virtual void Free(GPM, GLT, float_t emission, bool free) override;
+    virtual size_t GetCtrlCount(glitter_particle_type type) override;
+    virtual size_t GetDispCount(glitter_particle_type type) override;
+    virtual bool HasEnded(bool a2) override;
+    virtual void Reset(GPM, GLT, float_t emission) override;
+};
+
+class GlitterXEffectInst : public GlitterEffectInst {
+public:
+    struct ExtAnim {
+        union {
+            struct {
+                int32_t object_index;
+                int32_t mesh_index;
+                int32_t a3da_id;
+                bool object_is_hrc;
+                uint32_t file_name_hash;
+                uint32_t object_hash;
+                int32_t instance_id;
+                const char* mesh_name;
+            };
+            struct {
+                int32_t chara_index;
+                int32_t bone_index;
+            };
+        };
+        mat4 mat;
+        vec3 translation;
+
+        ExtAnim();
+        ~ExtAnim();
+    };
+
+    std::vector<GlitterXEmitterInst*> emitters;
+    mat4 mat_rot;
+    mat4 mat_rot_eff_rot;
+    glitter_random random_shared;
+    ExtAnim* ext_anim;
+    vec3 ext_anim_scale;
+    GlitterXRenderScene render_scene;
+
+    GlitterXEffectInst(GPM, glitter_effect* a1, size_t id, float_t emission, bool appear_now);
+    virtual ~GlitterXEffectInst();
+
+    virtual void Ctrl(GPM, GLT, float_t delta_frame, float_t emission) override;
+    virtual void Disp(GPM, draw_pass_3d_type alpha) override;
+    virtual void Free(GPM, GLT, float_t emission, bool free) override;
+    virtual size_t GetCtrlCount(glitter_particle_type type) override;
+    virtual size_t GetDispCount(glitter_particle_type type) override;
+    virtual bool HasEnded(bool a2) override;
+    virtual void Reset(GPM, GLT, float_t emission) override;
+
+    void CalcDisp(GPM);
 };
 
 struct glitter_emitter_box {
@@ -644,7 +815,6 @@ struct glitter_emitter_sphere {
     glitter_emitter_emission_direction direction;
 };
 
-
 struct glitter_emitter_data {
     int32_t start_time;
     int32_t life_time;
@@ -665,18 +835,22 @@ struct glitter_emitter_data {
     int32_t seed;
 };
 
-
-struct glitter_emitter {
-    glitter_animation animation;
+class glitter_emitter {
+public:
+    GlitterAnimation animation;
     vec3 translation;
     vec3 rotation;
     vec3 scale;
     glitter_emitter_data data;
-    vector_old_ptr_glitter_particle particles;
+    std::vector<glitter_particle*> particles;
     uint32_t version;
+
+    glitter_emitter(GLT);
+    virtual ~glitter_emitter();
 };
 
-struct glitter_emitter_inst {
+class GlitterEmitterInst {
+public:
     glitter_emitter* emitter;
     vec3 translation;
     vec3 rotation;
@@ -685,7 +859,6 @@ struct glitter_emitter_inst {
     mat4 mat_rot;
     float_t scale_all;
     float_t emission_timer;
-    vector_old_ptr_glitter_particle_inst particles;
     glitter_emitter_data data;
     float_t emission_interval;
     float_t particles_per_emission;
@@ -694,15 +867,50 @@ struct glitter_emitter_inst {
     glitter_emitter_emission emission;
     float_t frame;
     glitter_emitter_inst_flag flags;
-    uint32_t counter;
     uint32_t random;
-    uint8_t step;
+
+    GlitterEmitterInst(glitter_emitter* a1, glitter_random* random);
+    virtual ~GlitterEmitterInst();
 };
 
-class glitter_file_reader {
+class GlitterF2EmitterInst : public GlitterEmitterInst {
+public:
+    std::vector<GlitterF2ParticleInst*> particles;
+
+    GlitterF2EmitterInst(glitter_emitter* a1, GlitterF2EffectInst* a2, float_t emission);
+    virtual ~GlitterF2EmitterInst();
+
+    void Ctrl(GPM, GLT, GlitterF2EffectInst* a2, float_t delta_frame);
+    void CtrlInit(GPM, GLT, GlitterF2EffectInst* a2, float_t delta_frame);
+    void Emit(GPM, GLT, float_t delta_frame, float_t emission);
+    void Free(GPM, GLT, float_t emission, bool free);
+    bool HasEnded(bool a2);
+    void Reset();
+};
+
+class GlitterXEmitterInst : public GlitterEmitterInst {
+public:
+    std::vector<GlitterXParticleInst*> particles;
+    uint32_t counter;
+    uint8_t step;
+
+    GlitterXEmitterInst(glitter_emitter* a1, GlitterXEffectInst* a2, float_t emission);
+    virtual ~GlitterXEmitterInst();
+
+    void Ctrl(GPM, GlitterXEffectInst* a2, float_t delta_frame);
+    void CtrlInit(GlitterXEffectInst* a2, float_t delta_frame);
+    void Emit(float_t delta_frame, float_t emission);
+    void Free(float_t emission, bool free);
+    bool HasEnded(bool a2);
+    uint8_t RandomGetStep();
+    void RandomSetValue();
+    void Reset();
+};
+
+class GlitterFileReader {
 public:
     farc* farc;
-    glitter_effect_group* effect_group;
+    GlitterEffectGroup* effect_group;
     uint64_t hash;
     int32_t load_count;
     float_t emission;
@@ -712,24 +920,32 @@ public:
     int32_t state;
     bool init_scene;
 
-    glitter_file_reader(GLT);
-    glitter_file_reader(GLT, char* path, char* file, float_t emission);
-    glitter_file_reader(GLT, wchar_t* path, wchar_t* file, float_t emission);
-    virtual ~glitter_file_reader();
+    GlitterFileReader(GLT);
+    GlitterFileReader(GLT, char* path, char* file, float_t emission);
+    GlitterFileReader(GLT, wchar_t* path, wchar_t* file, float_t emission);
+    virtual ~GlitterFileReader();
 
     bool Read(GPM, float_t emission);
     bool ReadFarc(GPM, float_t emission);
 };
 
-struct glitter_locus_history {
-    vector_old_glitter_locus_history_data data;
+class GlitterLocusHistory {
+public:
+    struct Data {
+        vec4u color;
+        vec3 translation;
+        float_t scale;
+    };
+
+    std::vector<Data> data;
+
+    GlitterLocusHistory(size_t size);
+    virtual ~GlitterLocusHistory();
+
+    void Append(glitter_render_element* a2, GlitterF2ParticleInst* a3);
+    void Append(glitter_render_element* a2, GlitterXParticleInst* a3);
 };
 
-struct glitter_locus_history_data {
-    vec4u color;
-    vec3 translation;
-    float_t scale;
-};
 
 struct glitter_particle_mesh {
     uint64_t object_name_hash;
@@ -799,27 +1015,84 @@ struct glitter_particle_data {
     glitter_particle_mesh mesh;
 };
 
-struct glitter_particle {
-    glitter_animation animation;
+class glitter_particle {
+public:
+    GlitterAnimation animation;
     glitter_particle_data data;
     int32_t version;
+
+    glitter_particle(GLT);
+    virtual ~glitter_particle();
 };
 
-struct glitter_particle_inst_data {
+class GlitterParticleInst {
+public:
+    glitter_particle* particle;
+
+    GlitterParticleInst();
+    virtual ~GlitterParticleInst();
+};
+
+class GlitterF2ParticleInstData {
+public:
     glitter_particle_data data;
     glitter_particle_inst_flag flags;
-    glitter_render_group* render_group;
+    GlitterF2RenderGroup* render_group;
     glitter_random* random_ptr;
-    glitter_effect_inst* effect;
-    glitter_emitter_inst* emitter;
-    glitter_particle_inst* parent;
+    GlitterF2EffectInst* effect;
+    GlitterF2EmitterInst* emitter;
+    GlitterF2ParticleInst* parent;
     glitter_particle* particle;
-    vector_old_ptr_glitter_particle_inst children;
+    std::vector<GlitterF2ParticleInst*> children;
+
+    GlitterF2ParticleInstData();
+    ~GlitterF2ParticleInstData();
 };
 
-struct glitter_particle_inst {
+class GlitterF2ParticleInst : public GlitterParticleInst {
+public:
+    GlitterF2ParticleInstData data;
+
+    GlitterF2ParticleInst(glitter_particle* a1, GlitterF2EffectInst* a2,
+        GlitterF2EmitterInst* a3, glitter_random* random, float_t emission);
+    GlitterF2ParticleInst(GlitterF2ParticleInst* a1, float_t emission);
+    virtual ~GlitterF2ParticleInst();
+
+    void Emit(GPM, GLT, int32_t dup_count, int32_t count, float_t emission);
+    void Free(bool free);
+    bool HasEnded(bool a2);
+    void Reset();
+};
+
+class GlitterXParticleInstData {
+public:
+    glitter_particle_data data;
+    glitter_particle_inst_flag flags;
+    GlitterXRenderGroup* render_group;
+    glitter_random* random_ptr;
+    GlitterXEffectInst* effect;
+    GlitterXEmitterInst* emitter;
+    GlitterXParticleInst* parent;
     glitter_particle* particle;
-    glitter_particle_inst_data data;
+    std::vector<GlitterXParticleInst*> children;
+
+    GlitterXParticleInstData();
+    ~GlitterXParticleInstData();
+};
+
+class GlitterXParticleInst : public GlitterParticleInst {
+public:
+    GlitterXParticleInstData data;
+
+    GlitterXParticleInst(glitter_particle* a1, GlitterXEffectInst* a2,
+        GlitterXEmitterInst* a3, glitter_random* random, float_t emission);
+    GlitterXParticleInst(GlitterXParticleInst* a1, float_t emission);
+    virtual ~GlitterXParticleInst();
+
+    void Emit(int32_t dup_count, int32_t count, float_t emission);
+    void Free(bool free);
+    bool HasEnded(bool a2);
+    void Reset();
 };
 
 struct glitter_render_element {
@@ -855,86 +1128,65 @@ struct glitter_render_element {
     float_t fade_in_frames;
     mat4 mat;
     mat4 mat_draw;
-    glitter_locus_history* locus_history;
+    GlitterLocusHistory* locus_history;
     uint32_t random;
     uint8_t step;
 };
 
-struct glitter_render_group {
-    glitter_particle_flag flags;
-    glitter_particle_type type;
-    glitter_direction draw_type;
-    glitter_particle_blend blend_mode;
-    glitter_particle_blend mask_blend_mode;
-    glitter_pivot pivot;
-    int32_t split_u;
-    int32_t split_v;
-    vec2 split_uv;
-    float_t z_offset;
-    size_t count;
-    size_t ctrl;
-    size_t disp;
-    int32_t texture;
-    int32_t mask_texture;
-    uint64_t object_name_hash;
-    float_t frame;
-    mat4 mat;
-    mat4 mat_rot;
-    mat4 mat_draw;
-    glitter_render_element* elements;
-    size_t max_count;
-    glitter_particle_inst* particle;
-    glitter_random* random_ptr;
-    draw_pass_3d_type alpha;
-    fog_id fog;
-    GLuint vbo;
-    GLuint ebo;
-    float_t emission;
-    vector_old_int32_t vec_key;
-    vector_old_int32_t vec_val;
-    bool use_culling;
-};
-
-struct glitter_scene_effect {
-    glitter_effect_inst* ptr;
+typedef struct GlitterSceneEffect {
+    GlitterEffectInst* ptr;
     bool disp;
-};
+} GlitterSceneEffect;
 
-struct glitter_scene_counter {
+struct GlitterSceneCounter {
     uint32_t index : 8;
     uint32_t counter : 24;
 
-    glitter_scene_counter(uint32_t counter = 0);
-    glitter_scene_counter(uint32_t index, uint32_t counter);
+    GlitterSceneCounter(uint32_t counter = 0);
+    GlitterSceneCounter(uint32_t index, uint32_t counter);
 
     operator uint32_t() const { return (counter << 8) || index; }
 };
 
-class glitter_scene {
+class GlitterScene {
 public:
-    vector_old_glitter_scene_effect effects;
-    glitter_scene_counter counter;
+    std::vector<GlitterSceneEffect> effects;
+    GlitterSceneCounter counter;
     uint64_t hash;
     glitter_scene_flag flags;
     float_t emission;
     glitter_type type;
-    glitter_effect_group* effect_group;
+    GlitterEffectGroup* effect_group;
     float_t delta_frame_history;
     bool skip;
 
-    glitter_scene(glitter_scene_counter counter, uint64_t hash, glitter_effect_group* a4, bool a5);
-    virtual ~glitter_scene();
+    GlitterScene(GlitterSceneCounter counter, uint64_t hash, GlitterEffectGroup* a4, bool a5);
+    virtual ~GlitterScene();
+
+#if defined(CRE_DEV) || defined(CLOUD_DEV)
+    void CalcDisp(GPM);
+#endif
+    void Ctrl(GPM, float_t delta_frame);
+    void Disp(GPM, draw_pass_3d_type alpha);
+    size_t GetCtrlCount(glitter_particle_type ptcl_type);
+    size_t GetDispCount(glitter_particle_type ptcl_type);
+    void GetFrame(float_t* frame, int32_t* life_time);
+    void GetStartEndFrame(int32_t* start_frame, int32_t* end_frame);
+    bool FreeEffect(GPM, uint64_t effect_hash, bool free);
+    bool HasEnded(bool a2);
+    void InitEffect(GPM, glitter_effect* a2, size_t id, bool appear_now);
+    bool ResetEffect(GPM, uint64_t effect_hash);
 };
 
 class GltParticleManager : public Task {
 public:
-    std::vector<glitter_scene*> scenes;
-    std::vector<glitter_file_reader*> file_readers;
-    std::map<uint64_t, glitter_effect_group*> effect_groups;
-    glitter_scene* scene;
-    glitter_effect_inst* effect;
-    glitter_emitter_inst* emitter;
-    glitter_particle_inst* particle;
+    std::vector<GlitterScene*> scenes;
+    std::vector<GlitterFileReader*> file_readers;
+    std::map<uint64_t, GlitterEffectGroup*> effect_groups;
+    GlitterScene* scene;
+    GlitterEffectInst* effect;
+    GlitterEmitterInst* emitter;
+    GlitterParticleInst* particle;
     void* rctx;
     void* data;
     void* bone_data;
@@ -966,37 +1218,37 @@ public:
 #endif
     virtual void Basic() override;
 
-    bool AppendEffectGroup(uint64_t hash, glitter_effect_group* eff_group, glitter_file_reader* file_read);
+    bool AppendEffectGroup(uint64_t hash, GlitterEffectGroup* eff_group, GlitterFileReader* file_read);
     void BasicEffectGroups();
     uint64_t CalculateHash(const char* str);
     bool CheckNoFileReaders(uint64_t hash);
     void CtrlScenes();
     void Disp(draw_pass_3d_type draw_pass_type);
     void FreeEffects();
-    void FreeSceneEffect(glitter_scene_counter scene_counter, uint64_t hash);
+    void FreeSceneEffect(GlitterSceneCounter scene_counter, uint64_t hash);
     void FreeScenes();
     size_t GetCtrlCount(glitter_particle_type type);
     size_t GetDispCount(glitter_particle_type type);
-    glitter_effect_group* GetEffectGroup(uint64_t hash);
+    GlitterEffectGroup* GetEffectGroup(uint64_t hash);
     const char* GetEffectName(uint64_t hash, int32_t index);
     size_t GetEffectsCount(uint64_t hash);
     bool GetPause();
-    glitter_scene* GetScene(uint64_t hash);
-    glitter_scene* GetScene(glitter_scene_counter scene_counter);
+    GlitterScene* GetScene(uint64_t hash);
+    GlitterScene* GetScene(GlitterSceneCounter scene_counter);
     void GetStartEndFrame(int32_t* start_frame,
         int32_t* end_frame, uint64_t effect_group_hash);
     void GetStartEndFrame(int32_t* start_frame,
-        int32_t* end_frame, glitter_scene_counter scene_counter);
-    float_t GetSceneFrameLifeTime(glitter_scene_counter scene_counter, int32_t* life_time);
-    glitter_scene_counter GetSceneCounter(uint8_t index);
-    glitter_scene_counter Load(uint64_t effect_group_hash, uint64_t effect_hash, bool use_existing);
+        int32_t* end_frame, GlitterSceneCounter scene_counter);
+    float_t GetSceneFrameLifeTime(GlitterSceneCounter scene_counter, int32_t* life_time);
+    GlitterSceneCounter GetSceneCounter(uint8_t index);
+    GlitterSceneCounter Load(uint64_t effect_group_hash, uint64_t effect_hash, bool use_existing);
     uint64_t LoadFile(GLT, const char* file, const char* path, float_t emission, bool init_scene);
-    glitter_scene_counter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now = true);
-    glitter_scene_counter LoadSceneEffect(uint64_t hash, bool appear_now = true);
-    bool SceneHasNotEnded(glitter_scene_counter load_counter);
+    GlitterSceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now = true);
+    GlitterSceneCounter LoadSceneEffect(uint64_t hash, bool appear_now = true);
+    bool SceneHasNotEnded(GlitterSceneCounter load_counter);
 #if defined(CRE_DEV) || defined(CLOUD_DEV)
-    void SetFrame(glitter_effect_group* effect_group,
-        glitter_scene** scene, float_t curr_frame, float_t prev_frame,
+    void SetFrame(GlitterEffectGroup* effect_group,
+        GlitterScene** scene, float_t curr_frame, float_t prev_frame,
         uint32_t counter, glitter_random* random, bool reset);
 #endif
     void SetPause(bool value);

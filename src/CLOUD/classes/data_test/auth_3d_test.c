@@ -206,7 +206,7 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
         if (auth_3d_test->auth_3d_category_index_prev != auth_3d_test->auth_3d_category_index) {
             data_test_auth_3d_test_category* cat_prev
                 = &auth_3d_test->category.begin[auth_3d_test->auth_3d_category_index_prev];
-            auth_3d_data_unload_category((char*)cat_prev->name);
+            auth_3d_data_unload_category(cat_prev->name);
         }
 
         for (uint32_t* i = auth_3d_test->obj_set_id.begin; i != auth_3d_test->obj_set_id.end; i++)
@@ -216,7 +216,8 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
         data_test_auth_3d_test_category* cat
             = &auth_3d_test->category.begin[auth_3d_test->auth_3d_category_index];
         {
-            object_database* obj_db = &rctx->data->data_ft.obj_db;
+            data_struct* aft_data = rctx->data;
+            object_database* obj_db = &aft_data->data_ft.obj_db;
 
             const char* name_str = cat->name;
             size_t name_len = utf8_length(cat->name);
@@ -224,7 +225,7 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
             if (!memcmp(name_str, "ITMPV", 5)) {
                 uint32_t set_id = obj_db->get_object_set_id(name_str);
                 if (set_id != (uint32_t)-1) {
-                    object_storage_load_set(obj_db, set_id);
+                    object_storage_load_set(aft_data, obj_db, set_id);
                     vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_id);
                 }
             }
@@ -232,7 +233,7 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
             if (!memcmp(name_str, "EFFCHRPV", 8)) {
                 uint32_t set_id = obj_db->get_object_set_id(name_str);
                 if (set_id != (uint32_t)-1) {
-                    object_storage_load_set(obj_db, set_id);
+                    object_storage_load_set(aft_data, obj_db, set_id);
                     vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_id);
                 }
             }
@@ -254,20 +255,20 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
 
             uint32_t set_id = obj_db->get_object_set_id(string_data(&obj));
             if (set_id != (uint32_t)-1) {
-                object_storage_load_set(obj_db, set_id);
+                object_storage_load_set(aft_data, obj_db, set_id);
                 vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_id);
             }
 
             string_add_length(&obj, "HRC", 3);
             uint32_t hrc_set_id = obj_db->get_object_set_id(string_data(&obj));
             if (hrc_set_id != (uint32_t)-1) {
-                object_storage_load_set( obj_db, hrc_set_id);
+                object_storage_load_set(aft_data, obj_db, hrc_set_id);
                 vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &hrc_set_id);
             }
             string_free(&obj);
         }
 
-        auth_3d_data_load_category((char*)cat->name);
+        auth_3d_data_load_category(cat->name);
         auth_3d_test->auth_3d_category_index_prev = auth_3d_test->auth_3d_category_index;
         auth_3d_test->auth_3d_load = false;
     }

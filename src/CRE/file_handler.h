@@ -32,6 +32,7 @@ public:
     file_handler_read_func_data read_free_func[2];
     ssize_t size;
     void* data;
+    void* ds;
 
     file_handler();
     virtual ~file_handler();
@@ -56,20 +57,11 @@ public:
     void free_data();
     void* get_data();
     ssize_t get_size();
-    bool read_file(const char* path, const char* farc_file, const char* file, bool cache);
-    bool read_file_path(const char* path, const char* file);
+    bool read_file(void* data, const char* path, const char* farc_file, const char* file, bool cache);
+    bool read_file(void* data, const char* path, const char* file);
+    bool read_file(void* data, const char* path, uint32_t hash);
     void read_now();
     void set_read_free_func_data(int32_t index, void(* func)(void*, void*, size_t), void* data);
-};
-
-class farc_read_handler {
-public:
-    std::string file_path;
-    bool cache;
-    farc* farc;
-
-    farc_read_handler();
-    virtual ~farc_read_handler();
 };
 
 extern void file_handler_storage_init();

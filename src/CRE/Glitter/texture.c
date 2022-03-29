@@ -6,12 +6,12 @@
 #include "texture.h"
 #include "../texture.h"
 
-bool glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_texture_hashes_pack_file(GlitterEffectGroup* a1, f2_struct* st) {
     size_t l;
     size_t d;
     size_t count;
 
-    if (vector_old_length(a1->effects) < 1 || !a1->resources_count
+    if (a1->effects.size() < 1 || !a1->resources_count
         || a1->resource_hashes.size() < 1)
         return false;
 
@@ -48,7 +48,7 @@ bool glitter_texture_hashes_pack_file(glitter_effect_group* a1, f2_struct* st) {
     return true;
 }
 
-bool glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_texture_hashes_unpack_file(GlitterEffectGroup* a1, f2_struct* st) {
     size_t d;
     uint32_t count;
     uint64_t* resource_hashes;
@@ -86,7 +86,7 @@ bool glitter_texture_hashes_unpack_file(glitter_effect_group* a1, f2_struct* st)
     return true;
 }
 
-bool glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_texture_resource_pack_file(GlitterEffectGroup* a1, f2_struct* st) {
     if (a1->resources_tex.textures.size() < 1)
         return false;
 
@@ -104,7 +104,7 @@ bool glitter_texture_resource_pack_file(glitter_effect_group* a1, f2_struct* st)
     return true;
 }
 
-bool glitter_texture_resource_unpack_file(GPM, glitter_effect_group* a1, f2_struct* st) {
+bool glitter_texture_resource_unpack_file(GPM, GlitterEffectGroup* a1, f2_struct* st) {
     if (!st || !st->header.data_size)
         return false;
 
@@ -112,7 +112,7 @@ bool glitter_texture_resource_unpack_file(GPM, glitter_effect_group* a1, f2_stru
     return glitter_texture_load(GPM_VAL, a1);
 }
 
-bool glitter_texture_load(GPM, glitter_effect_group* a1) {
+bool glitter_texture_load(GPM, GlitterEffectGroup* a1) {
     if (!a1->resources_count)
         return false;
 
@@ -133,21 +133,21 @@ bool glitter_texture_load(GPM, glitter_effect_group* a1) {
     }
     free(ids);
 
-    for (glitter_effect** i = a1->effects.begin; i != a1->effects.end; i++) {
-        if (!*i)
+    for (glitter_effect*& i : a1->effects) {
+        if (!i)
             continue;
 
-        glitter_effect* effect = *i;
-        for (glitter_emitter** j = effect->emitters.begin; j != effect->emitters.end; j++) {
-            if (!*j)
+        glitter_effect* effect = i;
+        for (glitter_emitter*& j : effect->emitters) {
+            if (!j)
                 continue;
 
-            glitter_emitter* emitter = *j;
-            for (glitter_particle** k = emitter->particles.begin; k != emitter->particles.end; k++) {
-                if (!*k)
+            glitter_emitter* emitter = j;
+            for (glitter_particle*& k : emitter->particles) {
+                if (!k)
                     continue;
 
-                glitter_particle* particle = *k;
+                glitter_particle* particle = k;
                 particle->data.texture = 0;
                 particle->data.mask_texture = 0;
             }
@@ -155,21 +155,21 @@ bool glitter_texture_load(GPM, glitter_effect_group* a1) {
     }
 
     for (size_t i = 0; i < a1->resources_count; i++)
-        for (glitter_effect** j = a1->effects.begin; j != a1->effects.end; j++) {
-            if (!*j)
+        for (glitter_effect*& j : a1->effects) {
+            if (!j)
                 continue;
 
-            glitter_effect* effect = *j;
-            for (glitter_emitter** k = effect->emitters.begin; k != effect->emitters.end; k++) {
-                if (!*k)
+            glitter_effect* effect = j;
+            for (glitter_emitter*& k : effect->emitters) {
+                if (!k)
                     continue;
 
-                glitter_emitter* emitter = *k;
-                for (glitter_particle** l = emitter->particles.begin; l != emitter->particles.end; l++) {
-                    if (!*l)
+                glitter_emitter* emitter = k;
+                for (glitter_particle*& l : emitter->particles) {
+                    if (!l)
                         continue;
 
-                    glitter_particle* particle = *l;
+                    glitter_particle* particle = l;
                     if (particle->data.type == GLITTER_PARTICLE_LINE
                         || particle->data.type == GLITTER_PARTICLE_MESH)
                         continue;
@@ -184,7 +184,7 @@ bool glitter_texture_load(GPM, glitter_effect_group* a1) {
     return true;
 }
 
-void glitter_texture_unload(glitter_effect_group* a1) {
+void glitter_texture_unload(GlitterEffectGroup* a1) {
     if (a1->resources) {
         for (texture** i = a1->resources; *i; i++)
             texture_free(*i);

@@ -203,7 +203,7 @@ void render_texture_data_init() {
         memset(&param, 0, sizeof(shader_glsl_param));
         param.name = "Render Texture";
         shader_glsl_load_string(&render_texture_shader,
-            (char*)render_texture_vert_shader, (char*)render_texture_frag_shader, 0, &param);
+            render_texture_vert_shader, render_texture_frag_shader, 0, &param);
 
         const float_t verts_quad[] = {
             -1.0f,  1.0f,  0.0f,  1.0f,

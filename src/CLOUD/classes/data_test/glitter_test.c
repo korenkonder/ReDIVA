@@ -23,7 +23,7 @@
 class TaskDataTestGlitterParticle : public TaskWindow {
 public:
     uint64_t hash;
-    glitter_scene_counter scene_counter;
+    GlitterSceneCounter scene_counter;
     float_t frame;
     bool auto_and_repeat;
     bool reload;
@@ -104,7 +104,7 @@ bool TaskDataTestGlitterParticle::Init() {
             i++;
         }
         else
-            files.erase(i);
+            i = files.erase(i);
 
     GPM_VAL.emission = 1.0f;
     GPM_VAL.draw_all = false;
@@ -128,6 +128,7 @@ bool TaskDataTestGlitterParticle::Init() {
     pv_mode = false;
     show_grid = false;
     rebuild_geff = false;
+    file_index = -1;
     return true;
 }
 
@@ -136,7 +137,7 @@ bool TaskDataTestGlitterParticle::Ctrl() {
     GPM_VAL.data = rctx_ptr->data;
 
     if (load_file && file_index < files.size())
-        LoadFile(files[file_index].path.c_str());
+        LoadFile(files[file_index].name.c_str());
     load_file = false;
 
     if (input_play)
@@ -214,7 +215,7 @@ void TaskDataTestGlitterParticle::Window() {
     if (imguiColumnComboBoxConfigFile("File", files.data(),
         files.size(), &file_index, 0, false, &window_focus)) {
         load_file = true;
-        input_play = true;
+        input_stop = true;
     }
 
     if (imguiButton("Reset Camera (R)"))
@@ -317,6 +318,7 @@ void TaskDataTestGlitterParticle::LoadFile(const char* file) {
 }
 
 bool data_test_glitter_test_init(class_data* data, render_context* rctx) {
+    task_data_test_glitter_particle_load();
     return true;
 }
 
@@ -329,5 +331,6 @@ void data_test_glitter_test_imgui(class_data* data) {
 }
 
 bool data_test_glitter_test_dispose(class_data* data) {
+    task_data_test_glitter_particle_unload();
     return true;
 }

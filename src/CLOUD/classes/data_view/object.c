@@ -60,7 +60,7 @@ void data_view_object_imgui(class_data* data) {
     size_t count = object_storage_get_obj_set_count();
     for (size_t i = 0; i < count; i++) {
         obj_set_handler* handler = object_storage_get_obj_set_handler_by_index(i);
-        if (!handler->obj_set)
+        if (!handler || !handler->obj_set)
             continue;
 
         int32_t load_count = object_storage_get_obj_storage_load_count_by_index(i);
@@ -68,7 +68,7 @@ void data_view_object_imgui(class_data* data) {
         ImGui::PushID(handler->set_id);
         char buf[0x1000];
         sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Load Count: %3d; Name: %s",
-            handler->set_id, load_count, handler->set_info->name.c_str());
+            handler->set_id, load_count, handler->name.c_str());
         ImGui::Selectable(buf);
         ImGui::PopID();
     }

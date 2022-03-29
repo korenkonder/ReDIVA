@@ -11,15 +11,15 @@
 #include "particle_inst_x.h"
 #include "random_x.h"
 
-static void glitter_x_render_element_accelerate(glitter_particle_inst* a1,
+static void glitter_x_render_element_accelerate(GlitterXParticleInst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random);
 static void glitter_x_render_element_init_mesh_by_type(glitter_render_element* a1,
-    glitter_particle_inst_data* a2, glitter_emitter_inst* a3, int32_t index, glitter_random* random);
-static void glitter_x_render_element_step_uv(glitter_particle_inst* a1,
+    GlitterXParticleInstData* a2, GlitterXEmitterInst* a3, int32_t index, glitter_random* random);
+static void glitter_x_render_element_step_uv(GlitterXParticleInst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random);
 
 void glitter_x_render_element_emit(glitter_render_element* a1,
-    glitter_particle_inst_data* a2, glitter_emitter_inst* a3,
+    GlitterXParticleInstData* a2, GlitterXEmitterInst* a3,
     int32_t index, uint8_t step, glitter_random* random) {
     a1->random = glitter_x_random_get_value(random);
     a1->frame = 0.0f;
@@ -138,25 +138,25 @@ void glitter_x_render_element_emit(glitter_render_element* a1,
         uint32_t locus_history_size = glitter_x_random_get_int_min_max(random,
             -a2->data.locus_history_size_random, a2->data.locus_history_size_random)
             + a2->data.locus_history_size;
-        a1->locus_history = glitter_x_locus_history_init(locus_history_size);
+        a1->locus_history = new GlitterLocusHistory(locus_history_size);
     }
     glitter_x_random_step_value(random);
 }
 
-void glitter_x_render_element_ctrl(glitter_render_group* a1,
+void glitter_x_render_element_ctrl(GlitterXRenderGroup* a1,
     glitter_render_element* a2, float_t delta_frame) {
-    glitter_particle_inst* particle;
+    GlitterXParticleInst* particle;
     vec3 translation;
     bool has_translation;
     size_t length;
-    glitter_curve* curve;
+    GlitterCurve* curve;
     float_t value;
     float_t color_scale;
 
     glitter_x_random_set_step(a1->random_ptr, a2->step);
     particle = a1->particle;
     if (!particle || (particle->data.data.flags & GLITTER_PARTICLE_LOOP
-        && glitter_x_particle_inst_has_ended(particle, false)) || a2->frame >= a2->life_time) {
+        && particle->HasEnded(false)) || a2->frame >= a2->life_time) {
         a1->ctrl--;
         glitter_x_render_element_free(a2);
         return;
@@ -198,10 +198,10 @@ void glitter_x_render_element_ctrl(glitter_render_group* a1,
         has_translation = false;
         translation = vec3_null;
 
-        glitter_animation* curv = &particle->particle->animation;
-        length = vector_old_length(*curv);
+        GlitterAnimation* anim = &particle->particle->animation;
+        length = anim->curves.size();
         for (int32_t i = 0; i < length; i++) {
-            curve = curv->begin[i];
+            curve = anim->curves.data()[i];
             if (!glitter_x_curve_get_value(curve, a2->frame,
                 &value, a2->random + i, a1->random_ptr))
                 continue;
@@ -303,7 +303,7 @@ void glitter_x_render_element_ctrl(glitter_render_group* a1,
     }
 
     if (particle->data.data.type == GLITTER_PARTICLE_LOCUS)
-        glitter_x_locus_history_append(a2->locus_history, a2, particle);
+        a2->locus_history->Append(a2, particle);
 
     a2->frame += delta_frame;
     if (particle->data.data.flags & GLITTER_PARTICLE_LOOP && a2->frame >= a2->life_time)
@@ -312,14 +312,12 @@ void glitter_x_render_element_ctrl(glitter_render_group* a1,
 
 void glitter_x_render_element_free(glitter_render_element* a1) {
     a1->alive = false;
-    if (a1->locus_history) {
-        glitter_x_locus_history_dispose(a1->locus_history);
-        a1->locus_history = 0;
-    }
+    delete a1->locus_history;
+    a1->locus_history = 0;
 }
 
 void glitter_x_render_element_rotate_mesh_to_emit_position(mat4* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
+    GlitterXRenderGroup* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
     vec3 vec1;
     vec3 vec2;
     float_t angle;
@@ -339,7 +337,7 @@ void glitter_x_render_element_rotate_mesh_to_emit_position(mat4* mat,
 }
 
 void glitter_x_render_element_rotate_mesh_to_prev_position(mat4* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
+    GlitterXRenderGroup* a2, glitter_render_element* a3, vec3* vec, vec3* trans) {
     vec3 vec1;
     vec3 vec2;
     float_t angle;
@@ -358,7 +356,7 @@ void glitter_x_render_element_rotate_mesh_to_prev_position(mat4* mat,
 }
 
 void glitter_x_render_element_rotate_to_emit_position(mat3* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
+    GlitterXRenderGroup* a2, glitter_render_element* a3, vec3* vec) {
     vec3 trans;
     vec3 vec1;
     vec3 vec2;
@@ -380,7 +378,7 @@ void glitter_x_render_element_rotate_to_emit_position(mat3* mat,
 }
 
 void glitter_x_render_element_rotate_to_prev_position(mat3* mat,
-    glitter_render_group* a2, glitter_render_element* a3, vec3* vec) {
+    GlitterXRenderGroup* a2, glitter_render_element* a3, vec3* vec) {
     vec3 vec1;
     vec3 vec2;
     float_t angle;
@@ -398,7 +396,7 @@ void glitter_x_render_element_rotate_to_prev_position(mat3* mat,
     mat3_mult_axis_angle((mat3*)&mat3_identity, mat, &axis, angle);
 }
 
-static void glitter_x_render_element_accelerate(glitter_particle_inst* a1,
+static void glitter_x_render_element_accelerate(GlitterXParticleInst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random) {
     vec3 acceleration;
     vec3 direction;
@@ -438,7 +436,7 @@ static void glitter_x_render_element_accelerate(glitter_particle_inst* a1,
 }
 
 static void glitter_x_render_element_init_mesh_by_type(glitter_render_element* a1,
-    glitter_particle_inst_data* a2, glitter_emitter_inst* a3, int32_t index, glitter_random* random) {
+    GlitterXParticleInstData* a2, GlitterXEmitterInst* a3, int32_t index, glitter_random* random) {
     float_t radius;
     float_t angle;
     float_t longitude;
@@ -547,7 +545,7 @@ static void glitter_x_render_element_init_mesh_by_type(glitter_render_element* a
     vec3_add(acceleration, a2->data.gravity, a1->acceleration);
 }
 
-static void glitter_x_render_element_step_uv(glitter_particle_inst* a1,
+static void glitter_x_render_element_step_uv(GlitterXParticleInst* a1,
     glitter_render_element* a2, float_t delta_frame, glitter_random* random) {
     if (a1->data.data.frame_step_uv <= 0.0f)
         return;

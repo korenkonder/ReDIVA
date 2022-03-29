@@ -5,12 +5,11 @@
 
 #include "list.h"
 
-bool glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_list_pack_file(GlitterEffectGroup* a1, f2_struct* st) {
     size_t data;
-    glitter_effect** i;
     size_t length;
 
-    if (!a1->effects.begin)
+    if (!a1->effects.size())
         return false;
 
     memset(st, 0, sizeof(f2_struct));
@@ -23,8 +22,8 @@ bool glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
     vector_old_enrs_entry_push_back(&e, &ee);
 
     length = 0;
-    for (i = a1->effects.begin; i != a1->effects.end; i++)
-        if (*i)
+    for (glitter_effect*& i : a1->effects)
+        if (i)
             length++;
 
     data = (size_t)force_malloc(0x10 + 0x80 * length);
@@ -35,9 +34,9 @@ bool glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
     *(uint32_t*)data = (uint32_t)length;
     data += 4;
 
-    for (i = a1->effects.begin; i != a1->effects.end; i++)
-        if (*i) {
-            memcpy((void*)data, (*i)->name, 0x80);
+    for (glitter_effect*& i : a1->effects)
+        if (i) {
+            memcpy((void*)data, i->name, 0x80);
             data += 0x80;
         }
 
@@ -48,9 +47,8 @@ bool glitter_list_pack_file(glitter_effect_group* a1, f2_struct* st) {
     return true;
 }
 
-bool glitter_list_unpack_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_list_unpack_file(GlitterEffectGroup* a1, f2_struct* st) {
     size_t d;
-    glitter_effect** i;
     uint32_t length;
 
     if (!st || !st->header.data_size)
@@ -62,18 +60,20 @@ bool glitter_list_unpack_file(glitter_effect_group* a1, f2_struct* st) {
     else
         length = *(uint32_t*)d;
 
-    if (length != vector_old_length(a1->effects)) {
-        for (i = a1->effects.begin; i != a1->effects.end; i++)
-            if (*i)
-                memset((*i)->name, 0, 0x80);
+    if (length != a1->effects.size()) {
+        for (glitter_effect*& i : a1->effects)
+            if (i)
+                memset(i->name, 0, 0x80);
         return false;
     }
 
     if (length) {
         d += 0x04;
-        for (i = a1->effects.begin; i != a1->effects.end; i++, d += 0x80)
-            if (*i)
-                memcpy((*i)->name, (void*)d, 0x80);
+        for (glitter_effect*& i : a1->effects) {
+            if (i)
+                memcpy(i->name, (void*)d, 0x80);
+            d += 0x80;
+        }
     }
     return true;
 }

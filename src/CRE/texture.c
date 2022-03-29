@@ -210,7 +210,7 @@ inline void texture_storage_delete_texture(uint32_t id) {
 
             glDeleteTextures(1, &tex->texture);
             delete tex;
-            texture_storage.erase(i);
+            i = texture_storage.erase(i);
             break;
         }
 }

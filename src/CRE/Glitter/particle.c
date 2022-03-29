@@ -7,67 +7,57 @@
 #include "animation.h"
 #include "curve.h"
 
-static bool glitter_particle_pack_file(GLT, glitter_effect_group* a1,
+static bool glitter_particle_pack_file(GLT, GlitterEffectGroup* a1,
     f2_struct* st, glitter_particle* a3, glitter_effect* effect);
-static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
+static bool glitter_particle_unpack_file(GLT, GlitterEffectGroup* a1,
     void* data, glitter_particle* a3, glitter_effect* effect, bool use_big_endian);
 
-glitter_particle* glitter_particle_init(GLT) {
-    glitter_particle* p = force_malloc_s(glitter_particle, 1);
-    p->version = GLT_VAL == GLITTER_X ? 0x05 : 0x03;
-    p->data.pivot = GLITTER_PIVOT_MIDDLE_CENTER;
-    p->data.scale = vec3_identity;
-    p->data.reflection_coeff = 1.0f;
-    p->data.color = vec4u_identity;
-    p->data.uv_index = 0;
-    p->data.uv_index_start = 0;
-    p->data.uv_index_end = 1;
-    p->data.uv_scroll_add_scale = 1.0f;
-    p->data.uv_scroll_2nd_add_scale = 1.0f;
-    p->data.split_uv = vec2_identity;
-    p->data.split_u = 1;
-    p->data.split_v = 1;
-    p->data.sub_flags = GLITTER_PARTICLE_SUB_USE_CURVE;
-    p->data.blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
-    p->data.mask_blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
-    p->data.tex_hash = GLT_VAL != GLITTER_FT
+glitter_particle::glitter_particle(GLT) : data() {
+    version = GLT_VAL == GLITTER_X ? 0x05 : 0x03;
+    data.pivot = GLITTER_PIVOT_MIDDLE_CENTER;
+    data.scale = vec3_identity;
+    data.reflection_coeff = 1.0f;
+    data.color = vec4u_identity;
+    data.uv_index = 0;
+    data.uv_index_start = 0;
+    data.uv_index_end = 1;
+    data.uv_scroll_add_scale = 1.0f;
+    data.uv_scroll_2nd_add_scale = 1.0f;
+    data.split_uv = vec2_identity;
+    data.split_u = 1;
+    data.split_v = 1;
+    data.sub_flags = GLITTER_PARTICLE_SUB_USE_CURVE;
+    data.blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
+    data.mask_blend_mode = GLITTER_PARTICLE_BLEND_TYPICAL;
+    data.tex_hash = GLT_VAL != GLITTER_FT
         ? hash_murmurhash_empty : hash_fnv1a64m_empty;
-    p->data.mask_tex_hash = GLT_VAL != GLITTER_FT
+    data.mask_tex_hash = GLT_VAL != GLITTER_FT
         ? hash_murmurhash_empty : hash_fnv1a64m_empty;
 
     if (GLT_VAL == GLITTER_X) {
-        p->data.mesh.object_set_name_hash = hash_murmurhash_empty;
-        p->data.mesh.object_name_hash = hash_murmurhash_empty;
-        //p->data.mesh.mesh_name[0] = 0;
-        //p->data.mesh.sub_mesh_hash = hash_murmurhash_empty;
+        data.mesh.object_set_name_hash = hash_murmurhash_empty;
+        data.mesh.object_name_hash = hash_murmurhash_empty;
+        //data.mesh.mesh_name[0] = 0;
+        //data.mesh.sub_mesh_hash = hash_murmurhash_empty;
     }
-    return p;
 }
 
-glitter_particle* glitter_particle_copy(glitter_particle* p) {
-    if (!p)
-        return 0;
+glitter_particle::~glitter_particle() {
 
-    glitter_particle* pc = force_malloc_s(glitter_particle, 1);
-    *pc = *p;
-
-    pc->animation = vector_old_ptr_empty(glitter_curve);
-    glitter_animation_copy(&p->animation, &pc->animation);
-    return pc;
 }
 
-bool glitter_particle_parse_file(glitter_effect_group* a1,
-    f2_struct* st, vector_old_ptr_glitter_particle* vec, glitter_effect* effect) {
+bool glitter_particle_parse_file(GlitterEffectGroup* a1,
+    f2_struct* st, std::vector<glitter_particle*>* vec, glitter_effect* effect) {
     f2_struct* i;
     glitter_particle* particle;
 
     if (!st || !st->header.data_size)
         return false;
 
-    particle = glitter_particle_init(a1->type);
+    particle = new glitter_particle(a1->type);
     particle->version = st->header.version;
     if (!glitter_particle_unpack_file(a1->type, a1, st->data, particle, effect, st->header.use_big_endian)) {
-        glitter_particle_dispose(particle);
+        delete particle;
         return false;
     }
 
@@ -91,11 +81,11 @@ bool glitter_particle_parse_file(glitter_effect_group* a1,
         }
     }
 
-    vector_old_ptr_glitter_particle_push_back(vec, &particle);
+    vec->push_back(particle);
     return true;
 }
 
-bool glitter_particle_unparse_file(GLT, glitter_effect_group* a1,
+bool glitter_particle_unparse_file(GLT, GlitterEffectGroup* a1,
     f2_struct* st, glitter_particle* a3, glitter_effect* effect) {
     if (!glitter_particle_pack_file(GLT_VAL, a1, st, a3, effect))
         return false;
@@ -118,13 +108,8 @@ bool glitter_particle_unparse_file(GLT, glitter_effect_group* a1,
     return true;
 }
 
-void glitter_particle_dispose(glitter_particle* p) {
-    glitter_animation_free(&p->animation);
-    free(p);
-}
-
 static bool glitter_particle_pack_file(GLT,
-    glitter_effect_group* a1, f2_struct* st, glitter_particle* a3, glitter_effect* effect) {
+    GlitterEffectGroup* a1, f2_struct* st, glitter_particle* a3, glitter_effect* effect) {
     size_t l;
     size_t d;
     glitter_particle_flag flags;
@@ -275,7 +260,7 @@ static bool glitter_particle_pack_file(GLT,
     return true;
 }
 
-static bool glitter_particle_unpack_file(GLT, glitter_effect_group* a1,
+static bool glitter_particle_unpack_file(GLT, GlitterEffectGroup* a1,
     void* data, glitter_particle* a3, glitter_effect* effect, bool use_big_endian) {
     uint8_t r;
     uint8_t b;

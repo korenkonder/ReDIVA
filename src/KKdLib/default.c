@@ -204,27 +204,7 @@ inline double_t reverse_endianness_double_t(double_t value) {
     return *(double_t*)&v;
 }
 
-inline ssize_t utf8_length(char* s) {
-    if (!s)
-        return 0;
-
-    ssize_t len = 0;
-    while (*s++)
-        len++;
-    return len;
-}
-
 inline ssize_t utf8_length(const char* s) {
-    if (!s)
-        return 0;
-
-    ssize_t len = 0;
-    while (*s++)
-        len++;
-    return len;
-}
-
-inline ssize_t utf16_length(wchar_t* s) {
     if (!s)
         return 0;
 
@@ -244,7 +224,7 @@ inline ssize_t utf16_length(const wchar_t* s) {
     return len;
 }
 
-wchar_t* utf8_to_utf16(char* s) {
+wchar_t* utf8_to_utf16(const char* s) {
     if (!s)
         return 0;
 
@@ -299,11 +279,7 @@ wchar_t* utf8_to_utf16(char* s) {
     return str;
 }
 
-inline wchar_t* utf8_to_utf16(const char* s) {
-    return utf8_to_utf16((char*)s);
-}
-
-char* utf16_to_utf8(wchar_t* s) {
+char* utf16_to_utf8(const wchar_t* s) {
     if (!s)
         return 0;
 
@@ -355,18 +331,6 @@ char* utf16_to_utf8(wchar_t* s) {
     return str;
 }
 
-inline char* utf16_to_utf8(const wchar_t* s) {
-    return utf16_to_utf8((wchar_t*)s);
-}
-
-inline bool utf8_check_for_ascii_only(char* s) {
-    char c;
-    while (c = *s++)
-        if (c & 0x80)
-            return false;
-    return true;
-}
-
 inline bool utf8_check_for_ascii_only(const char* s) {
     char c;
     while (c = *s++)
@@ -375,7 +339,7 @@ inline bool utf8_check_for_ascii_only(const char* s) {
     return true;
 }
 
-ssize_t utf8_to_utf16_length(char* s) {
+ssize_t utf8_to_utf16_length(const char* s) {
     if (!s)
         return 0;
 
@@ -423,11 +387,7 @@ ssize_t utf8_to_utf16_length(char* s) {
     return length;
 }
 
-inline ssize_t utf8_to_utf16_length(const char* s) {
-    return utf8_to_utf16_length((char*)s);
-}
-
-ssize_t utf16_to_utf8_length(wchar_t* s) {
+ssize_t utf16_to_utf8_length(const wchar_t* s) {
     uint32_t c = 0;
     ssize_t length = 0;
     while (*s) {
@@ -458,8 +418,4 @@ ssize_t utf16_to_utf8_length(wchar_t* s) {
             length += 4;
     }
     return length;
-}
-
-inline ssize_t utf16_to_utf8_length(const wchar_t* s) {
-    return utf16_to_utf8_length((wchar_t*)s);
 }

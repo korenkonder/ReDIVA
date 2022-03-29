@@ -371,7 +371,7 @@ void GetEdatRifKeyFromRapFile(stream* rap_file, uint8_t* rifKey) {
 }
 
 // Decrypts full file
-void DecryptEDAT(stream* input, stream* output, int mode, char* rap_file_name, uint8_t* custom_klic) {
+void DecryptEDAT(stream* input, stream* output, int mode, const char* rap_file_name, uint8_t* custom_klic) {
     if (!input || !output || !rap_file_name)
         return;
 

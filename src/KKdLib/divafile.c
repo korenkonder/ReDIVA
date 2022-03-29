@@ -12,17 +12,13 @@ static const uint8_t key[] = {
     0x65, 0x73, 0x73, 0x20, 0x64, 0x65, 0x6E, 0x79
 };
 
-void divafile_decrypt(char* path) {
+void divafile_decrypt(const char* path) {
     wchar_t* file_buf = utf8_to_utf16(path);
-    divafile_wdecrypt(file_buf);
+    divafile_decrypt(file_buf);
     free(file_buf);
 }
 
-inline void divafile_decrypt(const char* path) {
-    divafile_decrypt((char*)path);
-}
-
-void divafile_wdecrypt(wchar_t* path) {
+void divafile_decrypt(const wchar_t* path) {
     wchar_t* file_temp = str_utils_wadd(path, L"_dec");
     stream s_enc;
     io_open(&s_enc, path, L"rb");
@@ -49,11 +45,7 @@ void divafile_wdecrypt(wchar_t* path) {
     free(file_temp);
 }
 
-inline void divafile_wdecrypt(const wchar_t* path) {
-    divafile_wdecrypt((wchar_t*)path);
-}
-
-void divafile_mdecrypt(void* enc_data, void** dec_data, size_t* dec_size) {
+void divafile_decrypt(void* enc_data, void** dec_data, size_t* dec_size) {
     if (!enc_data || !dec_data || !dec_size)
         return;
 
@@ -79,7 +71,7 @@ void divafile_mdecrypt(void* enc_data, void** dec_data, size_t* dec_size) {
     *dec_size = file_length;
 }
 
-void divafile_sdecrypt(stream* s) {
+void divafile_decrypt(stream* s) {
     if (!s)
         return;
 
@@ -104,17 +96,13 @@ void divafile_sdecrypt(stream* s) {
     free(data);
 }
 
-void divafile_encrypt(char* path) {
+void divafile_encrypt(const char* path) {
     wchar_t* file_buf = utf8_to_utf16(path);
-    divafile_wencrypt(file_buf);
+    divafile_encrypt(file_buf);
     free(file_buf);
 }
 
-inline void divafile_encrypt(const char* path) {
-    divafile_encrypt((char*)path);
-}
-
-void divafile_wencrypt(wchar_t* path) {
+void divafile_encrypt(const wchar_t* path) {
     wchar_t* file_temp = str_utils_wadd(path, L"_enc");
     stream s_dec;
     io_open(&s_dec, path, L"rb");
@@ -142,11 +130,7 @@ void divafile_wencrypt(wchar_t* path) {
     free(file_temp);
 }
 
-inline void divafile_wencrypt(const wchar_t* path) {
-    divafile_wencrypt((wchar_t*)path);
-}
-
-void divafile_mencrypt(void* dec_data, size_t dec_size, void** enc_data, size_t* enc_size) {
+void divafile_encrypt(void* dec_data, size_t dec_size, void** enc_data, size_t* enc_size) {
     if (!dec_data || !dec_size || !enc_data || !enc_size)
         return;
 

@@ -169,11 +169,13 @@ void task_stage_set_stage_index(int32_t stage_index) {
 
     std::vector<int32_t> stage_indices;
     stage_indices.push_back(stage_index);
-    task_stage.load_stage_indices = stage_indices;
+    task_stage.load_stage_indices.insert(task_stage.load_stage_indices.end(),
+        stage_indices.begin(), stage_indices.end());
 }
 
 void task_stage_set_stage_indices(std::vector<int32_t>* stage_indices) {
-    task_stage.load_stage_indices = *stage_indices;
+    task_stage.load_stage_indices.insert(task_stage.load_stage_indices.end(),
+        stage_indices->begin(), stage_indices->end());
 }
 
 bool task_stage_unload() {
@@ -182,8 +184,7 @@ bool task_stage_unload() {
 
 static void stage_detail::TaskStage_CtrlInner(stage_detail::TaskStage* a1) {
     if (a1->load_stage_indices.size())
-        if (!a1->state)
-        {
+        if (!a1->state) {
             a1->state = 3;
             int32_t stage_count = (int32_t)a1->load_stage_indices.size();
             stage_count = min(stage_count, TASK_STAGE_STAGE_COUNT);
@@ -487,9 +488,8 @@ static void stage_free(stage* s) {
     if (!s->state)
         return;
 
-    if (s->state >= 1 && s->state <= 6) {
+    if (s->state >= 1 && s->state <= 6)
         s->state = 9;
-    }
 
     if (s->state < 7 || s->state > 9)
         return;
@@ -530,13 +530,14 @@ static void stage_free(stage* s) {
     s->obj_set = -1;
     s->index = -1;
     s->state = 0;
+    s->counter = 0;
 }
 
 static void stage_load(stage* s) {
     if (s->state == 1) {
         data_struct* data = rctx_ptr->data;
         object_database* obj_db = &data->data_ft.obj_db;
-        object_storage_load_set(obj_db, s->obj_set);
+        object_storage_load_set(data, obj_db, s->obj_set);
         s->state = 2;
     }
     else if (s->state == 2) {
@@ -546,7 +547,7 @@ static void stage_load(stage* s) {
     else if (s->state == 3) {
         data_struct* data = rctx_ptr->data;
         object_database* obj_db = &data->data_ft.obj_db;
-        object_storage_load_set(obj_db, s->stage_data->object_set_id);
+        object_storage_load_set(data, obj_db, s->stage_data->object_set_id);
 
         auth_3d_data_load_category(string_data(&s->stage_data->name));
         auth_3d_data_load_category(string_data(&s->stage_data->auth_3d_name));

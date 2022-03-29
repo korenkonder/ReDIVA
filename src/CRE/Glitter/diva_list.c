@@ -7,7 +7,7 @@
 #include "effect_group.h"
 #include "list.h"
 
-bool glitter_diva_list_parse_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_diva_list_parse_file(GlitterEffectGroup* a1, f2_struct* st) {
     f2_struct* i;
 
     if (!st || !st->header.data_size)
@@ -25,7 +25,7 @@ bool glitter_diva_list_parse_file(glitter_effect_group* a1, f2_struct* st) {
     return true;
 }
 
-bool glitter_diva_list_unparse_file(glitter_effect_group* a1, f2_struct* st) {
+bool glitter_diva_list_unparse_file(GlitterEffectGroup* a1, f2_struct* st) {
     memset(st, 0, sizeof(f2_struct));
 
     f2_struct s;

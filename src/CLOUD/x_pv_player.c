@@ -12,7 +12,6 @@
 #include "../CRE/data.h"
 #include "../CRE/Glitter/glitter.h"
 
-
 x_pv_player::x_pv_player() : pv_id(), stage_id(), pp(), sr() {
 
 }

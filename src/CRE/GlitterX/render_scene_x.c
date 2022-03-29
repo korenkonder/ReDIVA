@@ -6,114 +6,126 @@
 #include "render_scene_x.h"
 #include "render_group_x.h"
 
-void glitter_x_render_scene_append(glitter_render_scene* rs,
-    glitter_render_group* rg) {
-    vector_old_ptr_glitter_render_group_push_back(rs, &rg);
+GlitterXRenderScene::GlitterXRenderScene() {
+
 }
 
-void glitter_x_render_scene_calc_disp(GPM, glitter_render_scene* rs) {
-    glitter_render_group** i;
-    glitter_render_group* rg;
+GlitterXRenderScene::~GlitterXRenderScene() {
+    for (GlitterXRenderGroup*& i : groups)
+        delete i;
+}
 
-    glitter_effect_inst* eff = GPM_VAL->effect;
-    glitter_emitter_inst* emit = GPM_VAL->emitter;
-    glitter_particle_inst* ptcl = GPM_VAL->particle;
-    for (i = rs->begin; i != rs->end; i++) {
-        if (!*i)
+void GlitterXRenderScene::Append(GlitterXRenderGroup* rg) {
+    groups.push_back(rg);
+}
+
+void GlitterXRenderScene::CalcDisp(GPM) {
+    GlitterXEffectInst* eff = dynamic_cast<GlitterXEffectInst*>(GPM_VAL->effect);
+    GlitterXEmitterInst* emit = dynamic_cast<GlitterXEmitterInst*>(GPM_VAL->emitter);
+    GlitterXParticleInst* ptcl = dynamic_cast<GlitterXParticleInst*>(GPM_VAL->particle);
+    for (GlitterXRenderGroup*& i : groups) {
+        if (!i)
             continue;
 
-        rg = *i;
-        if (glitter_x_render_group_cannot_disp(rg) && !GPM_VAL->draw_all)
+        GlitterXRenderGroup* rg = i;
+        if (rg->CannotDisp() && !GPM_VAL->draw_all)
             continue;
 
 #if !defined(CRE_DEV)
-        glitter_x_render_group_calc_disp(GPM_VAL, rg);
+        GlitterXRenderGroup_calc_disp(GPM_VAL, rg);
 #else
         if (!GPM_VAL->draw_selected || !eff) {
-            glitter_x_render_group_calc_disp(GPM_VAL, rg);
+            rg->CalcDisp(GPM_VAL);
         }
         else if ((eff && ptcl) || (eff && !emit)) {
             if (!ptcl || rg->particle == ptcl)
-                glitter_x_render_group_calc_disp(GPM_VAL, rg);
+                rg->CalcDisp(GPM_VAL);
         }
         else if (emit)
-            for (glitter_particle_inst** i = emit->particles.begin; i != emit->particles.end; i++) {
-                if (!*i)
+            for (GlitterXParticleInst*& i : emit->particles) {
+                if (!i)
                     continue;
 
-                glitter_particle_inst* particle = *i;
+                GlitterXParticleInst* particle = i;
                 if (rg->particle == particle)
-                    glitter_x_render_group_calc_disp(GPM_VAL, rg);
+                    rg->CalcDisp(GPM_VAL);
 
-                if (particle->data.children.begin) {
-                    vector_old_ptr_glitter_particle_inst* children = &particle->data.children;
-                    for (glitter_particle_inst** j = children->begin; j != children->end; j++) {
-                        if (!*j || rg->particle != *j)
-                            continue;
 
-                        glitter_x_render_group_calc_disp(GPM_VAL, rg);
-                    }
-                }
+                for (GlitterXParticleInst*& j : particle->data.children)
+                    if (j && rg->particle == j)
+                        rg->CalcDisp(GPM_VAL);
             }
 #endif
     }
 }
 
-void glitter_x_render_scene_ctrl(glitter_render_scene* rs,
-    float_t delta_frame, bool copy_mats) {
-    for (glitter_render_group** i = rs->begin; i != rs->end; i++)
-        if (*i)
-            glitter_x_render_group_ctrl(*i, delta_frame, copy_mats);
+void GlitterXRenderScene::Ctrl(float_t delta_frame, bool copy_mats) {
+    for (GlitterXRenderGroup*& i : groups)
+        if (i)
+            i->Ctrl(delta_frame, copy_mats);
 }
 
-void glitter_x_render_scene_disp(GPM, glitter_render_scene* rs, draw_pass_3d_type alpha) {
-    glitter_render_group** i;
-    glitter_render_group* rg;
-
-    glitter_effect_inst* eff = GPM_VAL->effect;
-    glitter_emitter_inst* emit = GPM_VAL->emitter;
-    glitter_particle_inst* ptcl = GPM_VAL->particle;
-    for (i = rs->begin; i != rs->end; i++) {
-        if (!*i)
+void GlitterXRenderScene::Disp(GPM, draw_pass_3d_type alpha) {
+    GlitterXEffectInst* eff = dynamic_cast<GlitterXEffectInst*>(GPM_VAL->effect);
+    GlitterXEmitterInst* emit = dynamic_cast<GlitterXEmitterInst*>(GPM_VAL->emitter);
+    GlitterXParticleInst* ptcl = dynamic_cast<GlitterXParticleInst*>(GPM_VAL->particle);
+    for (GlitterXRenderGroup* i : groups) {
+        if (!i)
             continue;
 
-        rg = *i;
-        if ((rg)->alpha != alpha || glitter_x_render_group_cannot_disp(rg) && !GPM_VAL->draw_all)
+        GlitterXRenderGroup* rg = i;
+        if ((rg)->alpha != alpha || rg->CannotDisp() && !GPM_VAL->draw_all)
             continue;
 
 #if !defined(CRE_DEV)
-        glitter_x_render_group_disp(GPM_VAL, rg);
+        GlitterXRenderGroup_disp(GPM_VAL, rg);
 #else
         if (!GPM_VAL->draw_selected || !eff) {
-            glitter_x_render_group_disp(GPM_VAL, rg);
+            rg->Disp(GPM_VAL);
         }
         else if ((eff && ptcl) || (eff && !emit)) {
             if (!ptcl || rg->particle == ptcl)
-                glitter_x_render_group_disp(GPM_VAL, rg);
+                rg->Disp(GPM_VAL);
         }
         else if (emit)
-            for (glitter_particle_inst** i = emit->particles.begin; i != emit->particles.end; i++) {
-                if (!*i)
+            for (GlitterXParticleInst*& i : emit->particles) {
+                if (!i)
                     continue;
 
-                glitter_particle_inst* particle = *i;
+                GlitterXParticleInst* particle = i;
                 if (rg->particle == particle)
-                    glitter_x_render_group_disp(GPM_VAL, rg);
+                    rg->Disp(GPM_VAL);
 
-                if (particle->data.children.begin) {
-                    vector_old_ptr_glitter_particle_inst* children = &particle->data.children;
-                    for (glitter_particle_inst** j = children->begin; j != children->end; j++) {
-                        if (!*j || rg->particle != *j)
-                            continue;
-
-                        glitter_x_render_group_disp(GPM_VAL, rg);
-                    }
-                }
+                for (GlitterXParticleInst*& j : particle->data.children)
+                    if (j && rg->particle == j)
+                        rg->Disp(GPM_VAL);
             }
 #endif
     }
 }
 
-void glitter_x_render_scene_free(glitter_render_scene* rs) {
-    vector_old_ptr_glitter_render_group_free(rs, glitter_x_render_group_dispose);
+size_t GlitterXRenderScene::GetCtrlCount(glitter_particle_type type) {
+    size_t ctrl = 0;
+    for (GlitterXRenderGroup*& i : groups) {
+        if (!i)
+            continue;
+
+        GlitterXRenderGroup* rg = i;
+        if (rg->type == type)
+            ctrl += rg->ctrl;
+    }
+    return ctrl;
+}
+
+size_t GlitterXRenderScene::GetDispCount(glitter_particle_type type) {
+    size_t disp = 0;
+    for (GlitterXRenderGroup* i : groups) {
+        if (!i)
+            continue;
+
+        GlitterXRenderGroup* rg = i;
+        if (rg->type == type)
+            disp += rg->disp;
+    }
+    return disp;
 }

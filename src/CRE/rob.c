@@ -201,14 +201,17 @@ public:
     int32_t CtrlFunc4();
     void FreeLoadedReqData(ReqData* req_data);
     void FreeLoadedReqDataObj(ReqDataObj* req_data_obj);
-    void LoadCharaItem(chara_index chara_index, int32_t item_no, object_database* obj_db);
+    void LoadCharaItem(chara_index chara_index,
+        int32_t item_no, void* data, object_database* obj_db);
     bool LoadCharaItemCheckNotRead(chara_index chara_index, int32_t item_no);
-    void LoadCharaItems(chara_index chara_index, item_cos_data* cos, object_database* obj_db);
+    void LoadCharaItems(chara_index chara_index,
+        item_cos_data* cos, void* data, object_database* obj_db);
     bool LoadCharaItemsCheckNotRead(chara_index chara_index, item_cos_data* cos);
     bool LoadCharaItemsCheckNotReadParent(chara_index chara_index, item_cos_data* cos);
-    void LoadCharaItemsParent(chara_index chara_index, item_cos_data* cos, object_database* obj_db);
+    void LoadCharaItemsParent(chara_index chara_index,
+        item_cos_data* cos, void* data, object_database* obj_db);
     void LoadCharaObjSetMotionSet(chara_index chara_index,
-        object_database* obj_db, motion_database* mot_db);
+        void* data, object_database* obj_db, motion_database* mot_db);
     bool LoadCharaObjSetMotionSetCheck(chara_index chara_index);
     void ResetReqData();
     void ResetReqDataObj();
@@ -9306,7 +9309,7 @@ static void rob_chara_item_equip_object_disp(
 static int32_t rob_chara_item_equip_object_get_bone_index(
     rob_chara_item_equip_object* itm_eq_obj, const char* name, bone_database* bone_data) {
     int32_t bone_index = bone_data->get_skeleton_motion_bone_index(
-        bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), (char*)name);
+        bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), name);
     if (bone_index == -1)
         for (ex_data_name_bone_index& i : itm_eq_obj->ex_bones)
             if (!str_utils_compare(name, i.name))
@@ -10659,6 +10662,9 @@ void rob_chara_array_init() {
 }
 
 rob_chara* rob_chara_array_get(int32_t chara_id) {
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+        return 0;
+
     if (rob_chara_pv_data_array_check_chara_id(chara_id))
         return &rob_chara_array[chara_id];
     return 0;
@@ -10700,7 +10706,7 @@ void rob_chara_array_free() {
 
 void rob_mot_tbl_init() {
     p_file_handler rob_mot_tbl_file_handler;
-    rob_mot_tbl_file_handler.read_file_path("./rom/rob/", "rob_mot_tbl.bin");
+    rob_mot_tbl_file_handler.read_file(rctx_ptr->data, "./rom/rob/", "rob_mot_tbl.bin");
     rob_mot_tbl_file_handler.set_read_free_func_data(0, rob_cmn_mottbl_read, 0);
     rob_mot_tbl_file_handler.read_now();
     rob_mot_tbl_file_handler.free_data();
@@ -12862,10 +12868,10 @@ inline mot_set* motion_storage_get_motion_set(uint32_t set_id) {
 inline void motion_storage_delete_motion_set(uint32_t set_id) {
     for (std::vector<motion_storage>::iterator i = motion_storage_data.begin();
         i != motion_storage_data.end(); i++)
-        if (i._Ptr->set_id == set_id) {
-            i._Ptr->count--;
-            if (i._Ptr->count <= 0)
-                motion_storage_data.erase(i);
+        if (i->set_id == set_id) {
+            i->count--;
+            if (i->count <= 0)
+                i = motion_storage_data.erase(i);
             break;
         }
 }
@@ -12904,6 +12910,7 @@ inline float_t motion_storage_get_mot_data_frame_count(uint32_t motion_id, motio
 
 inline void motion_storage_free() {
     motion_storage_data.clear();
+    motion_storage_data.shrink_to_fit();
 }
 
 motion_storage::motion_storage() : set_id(), count() {
@@ -13592,7 +13599,12 @@ RobThreadParent::RobThreadParent() : exit(), thread() {
 }
 
 RobThreadParent::~RobThreadParent() {
-
+    mtx.lock();
+    exit = true;
+    mtx.unlock();
+    cnd.notify_one();
+    thread->join();
+    delete thread;
 }
 
 void RobThreadParent::AppendRobCharaFunc(rob_chara* rob_chr, void(*rob_chr_func)(rob_chara*)) {
@@ -13794,7 +13806,7 @@ bool TaskRobBase::Ctrl() {
 }
 
 bool TaskRobBase::Dest() {
-    if (!pv_osage_manager_array_ptr_get_disp()) {
+    if (pv_osage_manager_array_ptr_get_disp()) {
         pv_osage_manager_array_ptr_set_not_reset_true();
         return false;
     }
@@ -14056,7 +14068,7 @@ bool TaskRobLoad::AppendFreeReqData(chara_index chara_index) {
     for (std::list<ReqData>::iterator i = load_req_data.end(); i != load_req_data.begin(); ) {
         i--;
         if (i->chara_index == chara_index) {
-            load_req_data.erase(i);
+            i = load_req_data.erase(i);
             return true;
         }
     }
@@ -14075,7 +14087,7 @@ bool TaskRobLoad::AppendFreeReqDataObj(chara_index chara_index, item_cos_data* c
         i--;
         if (i->chara_index == chara_index
             && !memcmp(&i->cos, cos, sizeof(item_cos_data))) {
-            load_req_data_obj.erase(i);
+            i = load_req_data_obj.erase(i);
             return true;
         }
     }
@@ -14094,7 +14106,7 @@ bool TaskRobLoad::AppendLoadReqData(chara_index chara_index) {
     for (std::list<ReqData>::iterator i = free_req_data.end(); i != free_req_data.begin(); ) {
         i--;
         if (i->chara_index == chara_index) {
-            free_req_data.erase(i);
+            i = free_req_data.erase(i);
             return true;
         }
     }
@@ -14114,7 +14126,7 @@ bool TaskRobLoad::AppendLoadReqDataObj(chara_index chara_index, item_cos_data* c
         i--;
         if (i->chara_index == chara_index
             && !memcmp(&i->cos, cos, sizeof(item_cos_data))) {
-            free_req_data_obj.erase(i);
+            i = free_req_data_obj.erase(i);
             return true;
         }
     }
@@ -14184,7 +14196,7 @@ int32_t TaskRobLoad::CtrlFunc3() {
     if (load_req_data_obj.size()) {
         for (ReqDataObj& i : load_req_data_obj) {
             AppendLoadedReqDataObj(&i);
-            LoadCharaItemsParent(i.chara_index, &i.cos, obj_db);
+            LoadCharaItemsParent(i.chara_index, &i.cos, data, obj_db);
             load_item_req_data_obj.push_back(i);
         }
         load_req_data_obj.clear();
@@ -14194,7 +14206,7 @@ int32_t TaskRobLoad::CtrlFunc3() {
     if (load_req_data.size()) {
         for (ReqData& i : load_req_data) {
             AppendLoadedReqData(&i);
-            LoadCharaObjSetMotionSet(i.chara_index, obj_db, mot_db);
+            LoadCharaObjSetMotionSet(i.chara_index, data, obj_db, mot_db);
             load_item_req_data.push_back(i);
         }
         load_req_data.clear();
@@ -14232,7 +14244,7 @@ void TaskRobLoad::FreeLoadedReqData(ReqData* req_data) {
                 i->count--;
 
             if (!i->count)
-                loaded_req_data.erase(i);
+                i = loaded_req_data.erase(i);
             return;
         }
 }
@@ -14245,12 +14257,13 @@ void TaskRobLoad::FreeLoadedReqDataObj(ReqDataObj* req_data_obj) {
                 i->count--;
 
             if (!i->count)
-                loaded_req_data_obj.erase(i);
+                i = loaded_req_data_obj.erase(i);
             return;
         }
 }
 
-void TaskRobLoad::LoadCharaItem(chara_index chara_index, int32_t item_no, object_database* obj_db) {
+void TaskRobLoad::LoadCharaItem(chara_index chara_index,
+    int32_t item_no, void* data, object_database* obj_db) {
     if (!item_no)
         return;
 
@@ -14261,7 +14274,7 @@ void TaskRobLoad::LoadCharaItem(chara_index chara_index, int32_t item_no, object
 
     for (uint32_t& i : *item_objset)
         if (i != (uint32_t)-1)
-            object_storage_load_set(obj_db, i);
+            object_storage_load_set(data, obj_db, i);
 }
 
 bool TaskRobLoad::LoadCharaItemCheckNotRead(chara_index chara_index, int32_t item_no) {
@@ -14279,9 +14292,10 @@ bool TaskRobLoad::LoadCharaItemCheckNotRead(chara_index chara_index, int32_t ite
     return false;
 }
 
-void TaskRobLoad::LoadCharaItems(chara_index chara_index, item_cos_data* cos, object_database* obj_db) {
+void TaskRobLoad::LoadCharaItems(chara_index chara_index,
+    item_cos_data* cos, void* data, object_database* obj_db) {
     for (int32_t i = ITEM_SUB_ZUJO; i < ITEM_SUB_MAX; i++)
-        LoadCharaItem(chara_index, cos->arr[i], obj_db);
+        LoadCharaItem(chara_index, cos->arr[i], data, obj_db);
 }
 
 bool TaskRobLoad::LoadCharaItemsCheckNotRead(chara_index chara_index, item_cos_data* cos) {
@@ -14296,16 +14310,17 @@ bool TaskRobLoad::LoadCharaItemsCheckNotReadParent(chara_index chara_index, item
         || cos->data.kami == 649 && object_storage_load_obj_set_check_not_read(3291);
 }
 
-void TaskRobLoad::LoadCharaItemsParent(chara_index chara_index, item_cos_data* cos, object_database* obj_db) {
-    LoadCharaItems(chara_index, cos, obj_db);
+void TaskRobLoad::LoadCharaItemsParent(chara_index chara_index,
+    item_cos_data* cos, void* data, object_database* obj_db) {
+    LoadCharaItems(chara_index, cos, data, obj_db);
     if (cos->data.kami == 649)
-        object_storage_load_set(obj_db, 3291);
+        object_storage_load_set(rctx_ptr->data, obj_db, 3291);
 }
 
 void TaskRobLoad::LoadCharaObjSetMotionSet(chara_index chara_index,
-    object_database* obj_db, motion_database* mot_db) {
+    void* data, object_database* obj_db, motion_database* mot_db) {
     chara_init_data* chr_init_data = chara_init_data_get(chara_index);
-    object_storage_load_set(obj_db, chr_init_data->object_set);
+    object_storage_load_set(data, obj_db, chr_init_data->object_set);
     motion_set_load_motion(2u, 0, mot_db);
     //motion_set_load_mothead(2u, 0, mot_db);
     motion_set_load_motion(chr_init_data->motion_set, 0, mot_db);
@@ -14518,7 +14533,7 @@ void TaskRobManager::AppendFreeCharaList(rob_chara* rob_chr) {
     int32_t chara_id = rob_chr->chara_id;
     for (std::list<rob_chara*>::iterator i = init_chara.begin(); i != init_chara.end();)
         if (i._Ptr->_Myval->chara_id == chara_id) {
-            init_chara.erase(i);
+            i = init_chara.erase(i);
             return;
         }
         else
@@ -14654,7 +14669,7 @@ void TaskRobManager::FreeLoadedCharaList(int8_t* chara_id) {
 
     for (std::list<rob_chara*>::iterator i = loaded_chara.begin(); i != loaded_chara.end();)
         if (i._Ptr->_Myval->chara_id == *chara_id) {
-            loaded_chara.erase(i);
+            i = loaded_chara.erase(i);
             return;
         }
         else

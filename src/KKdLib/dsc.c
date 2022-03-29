@@ -858,161 +858,161 @@ const int32_t dsc_vrfl_func_count = DSC_VRFL_FUNC_COUNT;
 
 inline int32_t dsc_ac101_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AC101_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_ac101_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_ac101_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac110_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AC110_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_ac110_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_ac110_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac120_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AC120_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_ac120_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_ac120_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac200_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AC200_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_ac200_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_ac200_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac210_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AC210_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_ac210_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_ac210_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac500_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AC500_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_ac500_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_ac500_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac510_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AC510_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_ac510_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_ac510_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft101_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AFT101_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_aft101_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_aft101_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft200_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AFT200_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_aft200_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_aft200_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft300_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AFT300_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_aft300_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_aft300_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft310_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AFT310_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_aft310_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_aft310_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft410_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AFT410_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_aft410_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_aft410_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft701_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_AFT701_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_aft701_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_aft701_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ft_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_FT_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_ft_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_ft_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_psp_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_PSP_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_psp_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_psp_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_2nd_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_2ND_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_2nd_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_2nd_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_dt_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_DT_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_dt_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_dt_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_dt2_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_DT2_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_dt2_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_dt2_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_f_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_F_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_f_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_f_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_f2_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_F2_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_f2_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_f2_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_mgf_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_MGF_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_mgf_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_mgf_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_x_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_X_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_x_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_x_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_vrfl_get_func_id(const char* name) {
     for (int32_t i = 0; i < DSC_VRFL_FUNC_COUNT; i++)
-        if (!str_utils_compare((char*)name, (char*)dsc_vrfl_get_func_name(i)))
+        if (!str_utils_compare(name, dsc_vrfl_get_func_name(i)))
             return i;
     return -1;
 }
@@ -2290,7 +2290,7 @@ void dsc::convert(dsc_type dst_type) {
 
     for (int32_t i = 0; i < src_func_count; i++) {
         dsc_replace_data* repl_data = &dr.replace_data[i];
-        char* src_func_name = (char*)src_get_func_name(i);
+        const char* src_func_name = src_get_func_name(i);
         if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_MOVE"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][0];
         else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_ROT"))
@@ -2952,10 +2952,10 @@ dsc_replace::dsc_replace(dsc_type src_type, dsc_type dst_type,
         replace_data->func_id = -1;
         replace_data->length = 0;
         replace_data->func = 0;
-        char* src_func_name = (char*)src_get_func_name(i);
+        const char* src_func_name = src_get_func_name(i);
         if (str_utils_compare(src_func_name, ""))
             for (int32_t j = 0; j < dst_func_count; j++) {
-                if (!str_utils_compare(src_func_name, (char*)dst_get_func_name(j))) {
+                if (!str_utils_compare(src_func_name, dst_get_func_name(j))) {
                     replace_data->name = src_func_name;
                     replace_data->func_id = j;
                     replace_data->length = dst_get_func_length(j);

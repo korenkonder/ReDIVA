@@ -98,7 +98,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
         std::string* paths = light_param->paths;
         std::string* files = light_param->files;
         for (int32_t i = 0; i < 6; i++)
-            a1->file_handlers[i].read_file_path(paths[i].c_str(), files[i].c_str());
+            a1->file_handlers[i].read_file(rctx_ptr->data, paths[i].c_str(), files[i].c_str());
         a1->state = 2;
         return 1;
     }
@@ -132,7 +132,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
     else if (a1->state == 3) {
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "light_pv%03d.farc", a1->pv_id);
-        if (a1->farc_file_handler.read_file_path("./rom/light_param/", buf))
+        if (a1->farc_file_handler.read_file(rctx_ptr->data, "./rom/light_param/", buf))
             a1->state = 4;
         else {
             a1->farc_file_handler.free_data();

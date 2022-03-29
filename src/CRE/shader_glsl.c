@@ -74,7 +74,7 @@ static char* shader_parse_define(char* data, shader_glsl_param* param) {
     return temp_data;
 }
 
-static char* shader_parse(char* data, char* parse_string, const char* replace_string) {
+static char* shader_parse(char* data, const char* parse_string, const char* replace_string) {
     if (!data)
         return data;
 
@@ -84,7 +84,7 @@ static char* shader_parse(char* data, char* parse_string, const char* replace_st
 
     size_t len_a = def - data;
     def += utf8_length(parse_string);
-    size_t len_b = utf8_length((char*)replace_string);
+    size_t len_b = utf8_length(replace_string);
     size_t len_c = utf8_length(def);
     size_t len = len_a + len_b + len_c;
 
@@ -97,10 +97,6 @@ static char* shader_parse(char* data, char* parse_string, const char* replace_st
     memcpy(temp_data + pos, def, len_c);
     free(data);
     return temp_data;
-}
-
-inline static char* shader_parse(char* data, const char* parse_string, const char* replace_string) {
-    return shader_parse(data, (char*)parse_string, replace_string);
 }
 
 static GLuint shader_compile(GLenum type, const char* data) {
@@ -247,8 +243,8 @@ void shader_glsl_load(shader_glsl* s, farc* f, shader_glsl_param* param) {
         glDeleteShader(vert_shad);
 }
 
-void shader_glsl_load_file(shader_glsl* s, char* vert_path,
-    char* frag_path, char* geom_path, shader_glsl_param* param) {
+void shader_glsl_load_file(shader_glsl* s, const char* vert_path,
+    const char* frag_path, const char* geom_path, shader_glsl_param* param) {
     if (!s || (!vert_path && !frag_path && !geom_path) || !param)
         return;
 
@@ -296,8 +292,8 @@ void shader_glsl_load_file(shader_glsl* s, char* vert_path,
     free(frag);
 }
 
-void shader_glsl_wload_file(shader_glsl* s, wchar_t* vert_path,
-    wchar_t* frag_path, wchar_t* geom_path, shader_glsl_param* param) {
+void shader_glsl_wload_file(shader_glsl* s, const wchar_t* vert_path,
+    const wchar_t* frag_path, const wchar_t* geom_path, shader_glsl_param* param) {
     if (!s || (!vert_path && !frag_path && !geom_path) || !param)
         return;
 
@@ -345,8 +341,8 @@ void shader_glsl_wload_file(shader_glsl* s, wchar_t* vert_path,
     free(frag);
 }
 
-void shader_glsl_load_string(shader_glsl* s, char* vert,
-    char* frag, char* geom, shader_glsl_param* param) {
+void shader_glsl_load_string(shader_glsl* s, const char* vert,
+    const char* frag, const char* geom, shader_glsl_param* param) {
     if (!s || (!frag && !vert && !geom) || !param)
         return;
 

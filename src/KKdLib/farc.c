@@ -7,6 +7,7 @@
 #include "io/path.h"
 #include "aes.h"
 #include "deflate.h"
+#include "hash.h"
 #include "str_utils.h"
 
 static const uint8_t key[] = {
@@ -130,8 +131,9 @@ farc_file* farc::read_file(const char* name) {
     if (!name)
         return 0;
 
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
     for (farc_file& i : files) {
-        if (str_utils_compare(i.name.c_str(), name))
+        if (hash_string_fnv1a64m(&i.name, true) != name_hash)
             continue;
 
         if (!i.data && i.data_compressed)
@@ -153,22 +155,23 @@ farc_file* farc::read_file(const wchar_t* name) {
     if (!name)
         return 0;
 
-    char* name_temp = utf16_to_utf8(name);
+    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
     for (farc_file& i : files) {
-        if (str_utils_compare(i.name.c_str(), name_temp))
+        if (hash_string_fnv1a64m(&i.name, true) != name_hash)
             continue;
 
-        if (!i.data) {
+        if (!i.data && i.data_compressed)
+            deflate_decompress(i.data_compressed, i.size_compressed,
+                &i.data, &i.size, DEFLATE_MODE_GZIP);
+        else if (!i.data) {
             stream s;
             io_open(&s, file_path.c_str(), "rb");
             if (s.io.stream)
                 farc_unpack_file(this, &s, &i);
             io_free(&s);
         }
-        free(name_temp);
         return &i;
     }
-    free(name_temp);
     return 0;
 }
 
@@ -329,22 +332,19 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode, bool ge
 
     f->compression_level = clamp(f->compression_level, 0, 12);
     if (get_files) {
-        wchar_t* temp = force_malloc_s(wchar_t, dir_len + 2 + MAX_PATH);
-        memcpy(temp, f->directory_path.c_str(), sizeof(wchar_t) * dir_len);
-        temp[dir_len] = L'\\';
+        char* temp = force_malloc_s(char, dir_len + 2 + MAX_PATH);
+        memcpy(temp, f->directory_path.c_str(), sizeof(char) * dir_len);
+        temp[dir_len] = '\\';
         for (farc_file& i : f->files) {
-            wchar_t* name_buf = utf8_to_utf16(i.name.c_str());
-            if (name_buf) {
-                size_t path_len = utf16_length(name_buf);
-                memcpy(temp + dir_len + 1, name_buf, sizeof(wchar_t) * path_len);
-                temp[dir_len + 1 + path_len] = L'\0';
-                free(name_buf);
+            if (i.name.size()) {
+                memcpy(temp + dir_len + 1, i.name.c_str(), sizeof(char) * i.name.size());
+                temp[dir_len + 1 + i.name.size()] = '\0';
             }
 
             i.offset = io_get_position(s);
 
             stream s_t;
-            io_open(&s_t, temp, L"rb");
+            io_open(&s_t, temp, "rb");
             if (!s_t.io.stream) {
                 io_free(&s_t);
                 continue;
@@ -652,23 +652,21 @@ static void farc_unpack_files(farc* f, stream* s, bool save) {
 
     wchar_t* dir_temp = utf8_to_utf16(f->directory_path.c_str());
     CreateDirectoryW(dir_temp, 0);
-    wchar_t* temp_path = force_malloc_s(wchar_t, max_path_len + 1);
-    memcpy(temp_path, dir_temp, sizeof(wchar_t) * dir_len);
-    temp_path[dir_len] = L'\\';
     free(dir_temp);
 
+    char* temp_path = force_malloc_s(char, max_path_len + 1);
+    memcpy(temp_path, f->directory_path.c_str(), sizeof(char) * dir_len);
+    temp_path[dir_len] = '\\';
+
     for (farc_file& i : f->files) {
-        wchar_t* name_buf = utf8_to_utf16(i.name.c_str());
-        if (name_buf) {
-            size_t path_len = utf16_length(name_buf);
-            memcpy(temp_path + dir_len + 1, name_buf, sizeof(wchar_t) * path_len);
-            temp_path[dir_len + 1 + path_len] = L'\0';
-            free(name_buf);
+        if (i.name.c_str()) {
+            memcpy(temp_path + dir_len + 1, i.name.c_str(), sizeof(wchar_t) * i.name.size());
+            temp_path[dir_len + 1 + i.name.size()] = '\0';
         }
 
         if (i.data) {
             stream temp_s;
-            io_open(&temp_s, temp_path, L"wb");
+            io_open(&temp_s, temp_path, "wb");
             if (temp_s.io.stream)
                 io_write(&temp_s, i.data, i.size);
             io_free(&temp_s);

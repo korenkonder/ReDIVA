@@ -70,7 +70,7 @@ void post_process_init(post_process_struct* pp) {
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Alpha Layer";
     shader_glsl_load_string(&pp->alpha_layer_shader,
-        (char*)alpha_layer_vert_shader, (char*)alpha_layer_frag_shader, 0, &param);
+        alpha_layer_vert_shader, alpha_layer_frag_shader, 0, &param);
     post_process_reset(pp);
 }
 

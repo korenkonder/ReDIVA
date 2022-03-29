@@ -8,158 +8,149 @@
 #include "render_group.h"
 #include "render_scene.h"
 
-static glitter_particle_inst* glitter_particle_inst_init_child(glitter_particle_inst* a1,
-    float_t emission);
+GlitterParticleInst::GlitterParticleInst() : particle() {
 
-glitter_particle_inst* glitter_particle_inst_init(glitter_particle* a1,
-    glitter_effect_inst* a2, glitter_emitter_inst* a3, glitter_random* random, float_t emission) {
-    glitter_render_group* rg;
+}
 
-    glitter_particle_inst* pi = force_malloc_s(glitter_particle_inst, 1);
-    pi->particle = a1;
-    pi->data.effect = a2;
-    pi->data.emitter = a3;
-    pi->data.particle = a1;
-    pi->data.data = a1->data;
-    pi->data.random_ptr = random;
+GlitterParticleInst::~GlitterParticleInst() {
 
-    if (pi->data.data.type != GLITTER_PARTICLE_LOCUS) {
-        rg = glitter_render_group_init(pi);
+}
+
+GlitterF2ParticleInstData::GlitterF2ParticleInstData() : data(), flags(),
+render_group(), random_ptr(), effect(), emitter(), parent(), particle() {
+}
+
+GlitterF2ParticleInstData::~GlitterF2ParticleInstData() {
+
+}
+
+GlitterF2ParticleInst::GlitterF2ParticleInst(glitter_particle* a1, GlitterF2EffectInst* a2,
+    GlitterF2EmitterInst* a3, glitter_random* random, float_t emission) {
+    particle = a1;
+    data.effect = a2;
+    data.emitter = a3;
+    data.particle = a1;
+    data.data = a1->data;
+    data.random_ptr = random;
+
+    if (data.data.type != GLITTER_PARTICLE_LOCUS) {
+        GlitterF2RenderGroup* rg = new GlitterF2RenderGroup(this);
         if (rg) {
-            rg->alpha = glitter_effect_inst_get_alpha(a2);
-            rg->fog = glitter_effect_inst_get_fog(a2);
-            if (pi->data.data.type == GLITTER_PARTICLE_QUAD
-                && pi->data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH)
+            rg->alpha = a2->GetAlpha();
+            rg->fog = a2->GetFog();
+            if (data.data.type == GLITTER_PARTICLE_QUAD
+                && data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH)
                 rg->alpha = DRAW_PASS_3D_OPAQUE;
 
-            if (pi->data.data.draw_flags & GLITTER_PARTICLE_DRAW_NO_BILLBOARD_CULL)
-                rg->use_culling = false;
-            else
-                rg->use_culling = true;
-
-            if (pi->data.data.emission >= glitter_min_emission)
-                rg->emission = pi->data.data.emission;
+            if (data.data.emission >= glitter_min_emission)
+                rg->emission = data.data.emission;
             else if (a2->data.emission >= glitter_min_emission)
                 rg->emission = a2->data.emission;
             else
                 rg->emission = emission;
-            pi->data.render_group = rg;
-            glitter_render_scene_append(&a2->render_scene, rg);
+            data.render_group = rg;
+            a2->render_scene.Append(rg);
         }
     }
     else
-        enum_or(pi->data.flags, GLITTER_PARTICLE_INST_NO_CHILD);
-    return pi;
+        enum_or(data.flags, GLITTER_PARTICLE_INST_NO_CHILD);
 }
 
-void glitter_particle_inst_emit(GPM, GLT,
-    glitter_particle_inst* a1, int32_t dup_count, int32_t count, float_t emission) {
-    glitter_particle_inst* particle;
+GlitterF2ParticleInst::GlitterF2ParticleInst(GlitterF2ParticleInst* a1, float_t emission) {
+    particle = a1->particle;
+    data.effect = a1->data.effect;
+    data.emitter = a1->data.emitter;
+    data.parent = a1;
 
-    if (a1->data.flags & GLITTER_PARTICLE_INST_ENDED)
-        return;
+    data.random_ptr = a1->data.random_ptr;
+    data.data = a1->data.data;
 
-    while (!a1->data.parent && a1->data.flags & GLITTER_PARTICLE_INST_NO_CHILD) {
-        particle = glitter_particle_inst_init_child(a1, emission);
-        if (particle)
-            vector_old_ptr_glitter_particle_inst_push_back(&a1->data.children, &particle);
-        else
-            return;
+    data.particle = a1->data.particle;
 
-        a1 = particle;
-        if (particle->data.flags & GLITTER_PARTICLE_INST_ENDED)
-            return;
-    }
-
-    if (a1->data.render_group)
-        glitter_render_group_emit(GPM_VAL, GLT_VAL,
-            a1->data.render_group, &a1->data, a1->data.emitter, dup_count, count);
-}
-
-void glitter_particle_inst_free(glitter_particle_inst* a1, bool free) {
-    glitter_particle_inst** i;
-
-    enum_or(a1->data.flags, GLITTER_PARTICLE_INST_ENDED);
-    if (free && a1->data.render_group)
-        glitter_render_group_free(a1->data.render_group);
-
-    for (i = a1->data.children.begin; i != a1->data.children.end; i++)
-        glitter_particle_inst_free(*i, free);
-}
-
-bool glitter_particle_inst_has_ended(glitter_particle_inst* particle, bool a2) {
-    glitter_particle_inst** i;
-
-    if (~particle->data.flags & GLITTER_PARTICLE_INST_ENDED)
-        return false;
-    else if (!a2)
-        return true;
-
-    if (~particle->data.flags & GLITTER_PARTICLE_INST_NO_CHILD || particle->data.parent) {
-        if (particle->data.render_group && particle->data.render_group->ctrl > 0)
-            return false;
-        return true;
-    }
-
-    for (i = particle->data.children.begin; i != particle->data.children.end; i++)
-        if (!glitter_particle_inst_has_ended(*i, a2))
-            return false;
-    return true;
-}
-
-void glitter_particle_inst_dispose(glitter_particle_inst* pi) {
-    if (pi->data.render_group) {
-        glitter_render_group_delete_buffers(pi->data.render_group, true);
-        pi->data.render_group = 0;
-    }
-
-    vector_old_ptr_glitter_particle_inst_free(&pi->data.children, glitter_particle_inst_dispose);
-    free(pi);
-}
-
-void glitter_particle_inst_reset(glitter_particle_inst* a1) {
-    glitter_particle_inst** i;
-
-    a1->data.flags = (glitter_particle_inst_flag)0;
-    if (a1->data.render_group)
-        glitter_render_group_free(a1->data.render_group);
-
-    for (i = a1->data.children.begin; i != a1->data.children.end; ++i)
-        glitter_particle_inst_reset(*i);
-}
-
-static glitter_particle_inst* glitter_particle_inst_init_child(glitter_particle_inst* a1,
-    float_t emission) {
-    glitter_render_group* rg;
-    glitter_effect_inst* effect;
-
-    glitter_particle_inst* pi = force_malloc_s(glitter_particle_inst, 1);
-    pi->particle = a1->particle;
-    pi->data.effect = a1->data.effect;
-    pi->data.emitter = a1->data.emitter;
-    pi->data.parent = a1;
-
-    pi->data.random_ptr = a1->data.random_ptr;
-    pi->data.data = a1->data.data;
-
-    pi->data.particle = a1->data.particle;
-    rg = glitter_render_group_init(pi);
+    GlitterF2RenderGroup* rg = new GlitterF2RenderGroup(this);
     if (rg) {
-        effect = a1->data.effect;
-        rg->alpha = glitter_effect_inst_get_alpha(effect);
-        rg->fog = glitter_effect_inst_get_fog(effect);
-        if (pi->data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH
-            && pi->data.data.type == GLITTER_PARTICLE_QUAD)
+        GlitterF2EffectInst* effect = (GlitterF2EffectInst*)a1->data.effect;
+        rg->alpha = effect->GetAlpha();
+        rg->fog = effect->GetFog();
+        if (data.data.blend_mode == GLITTER_PARTICLE_BLEND_PUNCH_THROUGH
+            && data.data.type == GLITTER_PARTICLE_QUAD)
             rg->alpha = DRAW_PASS_3D_OPAQUE;
         if (effect->data.emission >= glitter_min_emission)
             rg->emission = effect->data.emission;
         else
             rg->emission = emission;
-        pi->data.render_group = rg;
-        glitter_render_scene_append(&a1->data.effect->render_scene, rg);
+        data.render_group = rg;
+        effect->render_scene.Append(rg);
     }
 
-    if (pi->data.data.type == GLITTER_PARTICLE_LOCUS)
-        enum_or(pi->data.flags, GLITTER_PARTICLE_INST_NO_CHILD);
-    return pi;
+    if (data.data.type == GLITTER_PARTICLE_LOCUS)
+        enum_or(data.flags, GLITTER_PARTICLE_INST_NO_CHILD);
+}
+
+GlitterF2ParticleInst::~GlitterF2ParticleInst() {
+    for (GlitterF2ParticleInst* i : data.children)
+        delete i;
+
+    if (data.render_group) {
+        data.render_group->DeleteBuffers(true);
+        data.render_group = 0;
+    }
+}
+
+void GlitterF2ParticleInst::Emit(GPM, GLT, int32_t dup_count, int32_t count, float_t emission) {
+    if (data.flags & GLITTER_PARTICLE_INST_ENDED)
+        return;
+
+    GlitterF2ParticleInst* ptcl = this;
+    while (!ptcl->data.parent && ptcl->data.flags & GLITTER_PARTICLE_INST_NO_CHILD) {
+        GlitterF2ParticleInst* particle = new GlitterF2ParticleInst(ptcl, emission);
+        if (particle)
+            ptcl->data.children.push_back(particle);
+        else
+            return;
+
+        ptcl = particle;
+        if (particle->data.flags & GLITTER_PARTICLE_INST_ENDED)
+            return;
+    }
+
+    if (ptcl->data.render_group)
+        ptcl->data.render_group->Emit(GPM_VAL, GLT_VAL,
+            &ptcl->data, ptcl->data.emitter, dup_count, count);
+}
+
+void GlitterF2ParticleInst::Free(bool free) {
+    enum_or(data.flags, GLITTER_PARTICLE_INST_ENDED);
+    if (free && data.render_group)
+        data.render_group->Free();
+
+    for (GlitterF2ParticleInst*& i : data.children)
+        i->Free(free);
+}
+
+bool GlitterF2ParticleInst::HasEnded(bool a2) {
+    if (~data.flags & GLITTER_PARTICLE_INST_ENDED)
+        return false;
+    else if (!a2)
+        return true;
+
+    if (~data.flags & GLITTER_PARTICLE_INST_NO_CHILD || data.parent) {
+        if (data.render_group && data.render_group->ctrl > 0)
+            return false;
+        return true;
+    }
+
+    for (GlitterF2ParticleInst*& i : data.children)
+        if (!i->HasEnded(a2))
+            return false;
+    return true;
+}
+
+void GlitterF2ParticleInst::Reset() {
+    data.flags = (glitter_particle_inst_flag)0;
+    if (data.render_group)
+        data.render_group->Free();
+
+    for (GlitterF2ParticleInst*& i : data.children)
+        i->Reset();
 }

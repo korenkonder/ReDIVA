@@ -25,15 +25,15 @@ void TaskWindow::Window() {
 }
 
 void TaskWork_Window() {
-    task_work.disp = true;;
+    task_work->disp = true;
     for (int32_t i = 0; i < 3; i++)
-        for (Task*& j : task_work.tasks) {
+        for (Task*& j : task_work->tasks) {
             Task* tsk = j;
             TaskWindow* tsk_w = dynamic_cast<TaskWindow*>(tsk);
             if (tsk_w && tsk_w->priority == i)
                 TaskWindow_do_disp(tsk_w);
         }
-    task_work.disp = false;
+    task_work->disp = false;
 }
 
 static void TaskWindow_do_disp(TaskWindow* t) {
@@ -192,9 +192,8 @@ void classes_process_input(classes_data* classes, const size_t classes_count) {
         if (lock_check_init(&c->data.lock)) {
             lock_lock(&c->data.lock);
             if (c->data.flags & CLASS_INIT) {
-                if (c->input) {
+                if (c->input)
                     c->input(&c->data);
-                }
                 input_locked |= c->data.imgui_focus;
             }
             lock_unlock(&c->data.lock);
@@ -202,6 +201,15 @@ void classes_process_input(classes_data* classes, const size_t classes_count) {
         
         classes_process_input(c->sub_classes, c->sub_classes_count);
     }
+
+    if (task_work)
+        for (int32_t i = 0; i < 3; i++)
+            for (Task*& j : task_work->tasks) {
+                Task* tsk = j;
+                TaskWindow* tsk_w = dynamic_cast<TaskWindow*>(tsk);
+                if (tsk_w && tsk_w->priority == i)
+                    input_locked |= tsk_w->window_focus;
+            }
 }
 
 void classes_process_sound(classes_data* classes, const size_t classes_count) {

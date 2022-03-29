@@ -13,210 +13,213 @@
 #include "../auth_3d.h"
 #include "../rob.h"
 
-static void glitter_effect_inst_ctrl_init(GPM, GLT, glitter_effect_inst* a1, float_t emission);
-static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1);
-static int32_t glitter_effect_inst_get_ext_anim_bone_index(
+static void GlitterEffectInst__ctrl_init(GPM, GLT, GlitterF2EffectInst* a1, float_t emission);
+static void GlitterEffectInst__get_ext_anim(GlitterF2EffectInst* a1);
+static int32_t GlitterEffectInst__get_ext_anim_bone_index(
     glitter_effect_ext_anim_chara_node index);
-static void glitter_effect_inst_get_value(GLT, glitter_effect_inst* a1);
+static void GlitterEffectInst__get_value(GLT, GlitterF2EffectInst* a1);
 
-glitter_effect_inst* glitter_effect_inst_init(GPM, GLT,
-    glitter_effect* a1, size_t id, float_t emission, bool appear_now) {
-    glitter_effect_inst_ext_anim* inst_ext_anim;
-    glitter_effect_ext_anim* ext_anim;
-    glitter_emitter** i;
-    glitter_emitter_inst* emitter;
-
-    glitter_effect_inst* ei = force_malloc_s(glitter_effect_inst, 1);
-    ei->effect = a1;
-    ei->data = a1->data;
-    ei->color = vec4u_identity;
-    ei->scale_all = 1.0f;
-    ei->id = id;
-    ei->translation = a1->translation;
-    ei->rotation = a1->rotation;
-    ei->scale = a1->scale;
-    ei->random_ptr = &GPM_VAL->random;
+GlitterEffectInst::GlitterEffectInst(GPM, GLT, glitter_effect* a1,
+    size_t id, float_t emission, bool appear_now) {
+    effect = a1;
+    data = a1->data;
+    color = vec4u_identity;
+    scale_all = 1.0f;
+    this->id = id;
+    translation = a1->translation;
+    rotation = a1->rotation;
+    scale = a1->scale;
+    frame0 = 0.0f;
+    frame1 = 0.0f;
+    mat = mat4_identity;
+    flags = (glitter_effect_inst_flag)0;
+    random = 0;
 
     if (appear_now)
-        ei->data.appear_time = 0;
+        data.appear_time = 0;
     else
-        ei->frame0 = (float_t)-ei->data.appear_time;
-
-    if (~a1->data.flags & GLITTER_EFFECT_LOCAL && ei->data.ext_anim) {
-        inst_ext_anim = force_malloc_s(glitter_effect_inst_ext_anim, 1);
-        inst_ext_anim->object_index = -1;
-        inst_ext_anim->mesh_index = -1;
-        inst_ext_anim->a3da_id = -1;
-        inst_ext_anim->object_is_hrc = false;
-        inst_ext_anim->object = object_info();
-        inst_ext_anim->mesh_name = 0;
-
-        inst_ext_anim->mat = mat4_identity;
-        inst_ext_anim->translation = vec3_null;
-
-        if (inst_ext_anim) {
-            ext_anim = ei->data.ext_anim;
-            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_SET_ONCE)
-                enum_or(ei->flags, GLITTER_EFFECT_INST_SET_EXT_ANIM_ONCE);
-            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY)
-                enum_or(ei->flags, GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY);
-
-            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
-                inst_ext_anim->chara_index = ext_anim->chara_index;
-                inst_ext_anim->bone_index
-                    = glitter_effect_inst_get_ext_anim_bone_index(ext_anim->node_index);
-                enum_or(ei->flags, GLITTER_EFFECT_INST_CHARA_ANIM);
-            }
-            else
-                inst_ext_anim->object = ext_anim->object;
-
-            if (ext_anim->mesh_name[0])
-                inst_ext_anim->mesh_name = ext_anim->mesh_name;
-            else
-                inst_ext_anim->mesh_name = 0;
-        }
-        ei->ext_anim = inst_ext_anim;
-        enum_or(ei->flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM);
-        enum_or(ei->flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
-        enum_or(ei->flags, GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT);
-    }
-
-    glitter_random_set_value(ei->random_ptr,
-        GLT_VAL == GLITTER_FT ? (uint32_t)ei->data.name_hash : 0);
-    ei->random = glitter_random_get_value(ei->random_ptr);
-
-    ei->mat = mat4_identity;
-    vector_old_ptr_glitter_emitter_inst_reserve(&ei->emitters, vector_old_length(a1->emitters));
-    for (i = a1->emitters.begin; i != a1->emitters.end; i++) {
-        if (!*i)
-            continue;
-
-        emitter = glitter_emitter_inst_init(*i, ei, emission);
-        if (emitter)
-            vector_old_ptr_glitter_emitter_inst_push_back(&ei->emitters, &emitter);
-    }
-    glitter_effect_inst_ctrl_init(GPM_VAL, GLT_VAL, ei, emission);
-    return ei;
+        frame0 = -(float_t)data.appear_time;
 }
 
-void glitter_effect_inst_ctrl(GPM, GLT,
-    glitter_effect_inst* effect, float_t delta_frame, float_t emission) {
-    glitter_emitter_inst** i;
-    mat4 mat;
-    vec3 trans;
-    vec3 rot;
-    vec3 scale;
+GlitterEffectInst::~GlitterEffectInst() {
 
-    glitter_effect_inst_get_ext_anim(effect);
-    glitter_effect_inst_get_value(GLT_VAL, effect);
-    if (effect->flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS && effect->ext_anim) {
-        vec3_add(effect->translation, effect->ext_anim->translation, trans);
-        mat4_translate_mult(&effect->ext_anim->mat, trans.x, trans.y, trans.z, &mat);
-    }
-    else {
-        trans = effect->translation;
-        mat4_translate(trans.x, trans.y, trans.z, &mat);
-    }
-    rot = effect->rotation;
-    vec3_mult_scalar(effect->scale, effect->scale_all, scale);
-
-    mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
-    mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &effect->mat);
-    for (i = effect->emitters.begin; i != effect->emitters.end; i++)
-        if (*i)
-            glitter_emitter_inst_ctrl(GPM_VAL, GLT_VAL, *i, effect, delta_frame);
-
-    if (effect->frame0 >= 0.0f)
-        if (effect->frame0 < (float_t)effect->data.life_time) {
-            for (i = effect->emitters.begin; i != effect->emitters.end; i++)
-                if (*i)
-                    glitter_emitter_inst_emit(GPM_VAL, GLT_VAL, *i, delta_frame, emission);
-        }
-        else if (effect->data.flags & GLITTER_EFFECT_LOOP)
-            effect->frame0 -= (float_t)effect->data.life_time;
-        else {
-            enum_or(effect->flags, GLITTER_EFFECT_INST_FREE);
-            for (i = effect->emitters.begin; i != effect->emitters.end; i++)
-                if (*i)
-                    glitter_emitter_inst_free(GPM_VAL, GLT_VAL, *i, emission, false);
-        }
-
-    glitter_render_scene_ctrl(GLT_VAL, &effect->render_scene, delta_frame);
-    effect->frame0 += delta_frame;
 }
 
-void glitter_effect_inst_disp(GPM, glitter_effect_inst* a1, draw_pass_3d_type alpha) {
-    glitter_render_scene_disp(GPM_VAL, &a1->render_scene, alpha);
+draw_pass_3d_type GlitterEffectInst::GetAlpha() {
+    return data.flags & GLITTER_EFFECT_ALPHA ? DRAW_PASS_3D_TRANSPARENT : DRAW_PASS_3D_TRANSLUCENT;
 }
 
-void glitter_effect_inst_free(GPM, GLT, glitter_effect_inst* a1, float_t emission, bool free) {
-    glitter_emitter_inst** i;
-
-    enum_or(a1->flags, GLITTER_EFFECT_INST_FREE);
-    for (i = a1->emitters.begin; i != a1->emitters.end; i++)
-        if (*i)
-            glitter_emitter_inst_free(GPM_VAL, GLT_VAL, *i, emission, free);
-}
-
-draw_pass_3d_type glitter_effect_inst_get_alpha(glitter_effect_inst* a1) {
-    return a1->data.flags & GLITTER_EFFECT_ALPHA ? DRAW_PASS_3D_TRANSPARENT : DRAW_PASS_3D_TRANSLUCENT;
-}
-
-size_t glitter_effect_inst_get_ctrl_count(glitter_effect_inst* a1, glitter_particle_type type) {
-    return glitter_render_scene_get_ctrl_count(&a1->render_scene, type);
-}
-
-size_t glitter_effect_inst_get_disp_count(glitter_effect_inst* a1, glitter_particle_type type) {
-    return glitter_render_scene_get_disp_count(&a1->render_scene, type);
-}
-
-fog_id glitter_effect_inst_get_fog(glitter_effect_inst* a1) {
-    if (a1->data.flags & GLITTER_EFFECT_FOG)
+fog_id GlitterEffectInst::GetFog() {
+    if (data.flags & GLITTER_EFFECT_FOG)
         return FOG_DEPTH;
-    else if (a1->data.flags & GLITTER_EFFECT_FOG_HEIGHT)
+    else if (data.flags & GLITTER_EFFECT_FOG_HEIGHT)
         return FOG_HEIGHT;
     else
         return (fog_id)-1;
 }
 
-bool glitter_effect_inst_has_ended(glitter_effect_inst* effect, bool a2) {
-    glitter_emitter_inst** i;
+GlitterF2EffectInst::GlitterF2EffectInst(GPM, GLT, glitter_effect* a1,
+    size_t id, float_t emission, bool appear_now)
+    : GlitterEffectInst(GPM_VAL, GLT_VAL, a1, id, emission, appear_now) {
+    random_ptr = &GPM_VAL->random;
+    ext_anim = 0;
+    ext_anim_scale = vec3_null;
 
-    if (~effect->flags & GLITTER_EFFECT_INST_FREE)
+    if (~a1->data.flags & GLITTER_EFFECT_LOCAL && data.ext_anim) {
+        GlitterF2EffectInst::ExtAnim* inst_ext_anim = new GlitterF2EffectInst::ExtAnim;
+        if (inst_ext_anim) {
+            glitter_effect_ext_anim* ext_anim = data.ext_anim;
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_SET_ONCE)
+                enum_or(flags, GLITTER_EFFECT_INST_SET_EXT_ANIM_ONCE);
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY)
+                enum_or(flags, GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY);
+
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
+                inst_ext_anim->chara_index = ext_anim->chara_index;
+                inst_ext_anim->bone_index
+                    = GlitterEffectInst__get_ext_anim_bone_index(ext_anim->node_index);
+                enum_or(flags, GLITTER_EFFECT_INST_CHARA_ANIM);
+                inst_ext_anim->mesh_name = 0;
+            }
+            else {
+                inst_ext_anim->object = ext_anim->object;
+
+                if (ext_anim->mesh_name[0])
+                    inst_ext_anim->mesh_name = ext_anim->mesh_name;
+                else
+                    inst_ext_anim->mesh_name = 0;
+            }
+        }
+        ext_anim = inst_ext_anim;
+        enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM);
+        enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
+        enum_or(flags, GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT);
+    }
+
+    glitter_random_set_value(random_ptr,
+        GLT_VAL == GLITTER_FT ? (uint32_t)data.name_hash : 0);
+    random = glitter_random_get_value(random_ptr);
+
+    emitters.reserve(a1->emitters.size());
+    for (glitter_emitter*& i : a1->emitters) {
+        if (!i)
+            continue;
+
+        GlitterF2EmitterInst* emitter = new GlitterF2EmitterInst(i, this, emission);
+        if (emitter)
+            emitters.push_back(emitter);
+    }
+    GlitterEffectInst__ctrl_init(GPM_VAL, GLT_VAL, this, emission);
+}
+
+GlitterF2EffectInst::~GlitterF2EffectInst() {
+    for (GlitterF2EmitterInst*& i : emitters)
+        delete i;
+
+    delete ext_anim;
+}
+
+void GlitterF2EffectInst::Ctrl(GPM, GLT, float_t delta_frame, float_t emission) {
+    mat4 mat;
+    vec3 trans;
+    vec3 rot;
+    vec3 scale;
+
+    GlitterEffectInst__get_ext_anim(this);
+    GlitterEffectInst__get_value(GLT_VAL, this);
+    if (flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS && ext_anim) {
+        vec3_add(translation, ext_anim->translation, trans);
+        mat4_translate_mult(&ext_anim->mat, trans.x, trans.y, trans.z, &mat);
+    }
+    else {
+        trans = translation;
+        mat4_translate(trans.x, trans.y, trans.z, &mat);
+    }
+    rot = rotation;
+    vec3_mult_scalar(this->scale, scale_all, scale);
+
+    mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+    mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &this->mat);
+    for (GlitterF2EmitterInst*& i : emitters)
+        if (i)
+            i->Ctrl(GPM_VAL, GLT_VAL, this, delta_frame);
+
+    if (frame0 >= 0.0f)
+        if (frame0 < (float_t)data.life_time) {
+            for (GlitterF2EmitterInst*& i : emitters)
+                if (i)
+                    i->Emit(GPM_VAL, GLT_VAL, delta_frame, emission);
+        }
+        else if (data.flags & GLITTER_EFFECT_LOOP)
+            frame0 -= (float_t)data.life_time;
+        else {
+            enum_or(flags, GLITTER_EFFECT_INST_FREE);
+            for (GlitterF2EmitterInst*& i : emitters)
+                if (i)
+                    i->Free(GPM_VAL, GLT_VAL, emission, false);
+        }
+
+    render_scene.Ctrl(GLT_VAL, delta_frame);
+    frame0 += delta_frame;
+}
+
+void GlitterF2EffectInst::Disp(GPM, draw_pass_3d_type alpha) {
+    render_scene.Disp(GPM_VAL, alpha);
+}
+
+void GlitterF2EffectInst::Free(GPM, GLT, float_t emission, bool free) {
+    enum_or(flags, GLITTER_EFFECT_INST_FREE);
+    for (GlitterF2EmitterInst*& i : emitters)
+        if (i)
+            i->Free(GPM_VAL, GLT_VAL, emission, free);
+}
+
+size_t GlitterF2EffectInst::GetCtrlCount(glitter_particle_type type) {
+    return render_scene.GetCtrlCount(type);
+}
+
+size_t GlitterF2EffectInst::GetDispCount(glitter_particle_type type) {
+    return render_scene.GetDispCount(type);
+}
+
+bool GlitterF2EffectInst::HasEnded(bool a2) {
+    if (~flags & GLITTER_EFFECT_INST_FREE)
         return false;
     else if (!a2)
         return true;
 
-    for (i = effect->emitters.begin; i != effect->emitters.end; i++)
-        if (*i)
-            if (!glitter_emitter_inst_has_ended(*i, a2))
+    for (GlitterF2EmitterInst*& i : emitters)
+        if (i)
+            if (!i->HasEnded(a2))
                 return false;
     return true;
 }
 
-void glitter_effect_inst_reset(GPM, GLT, glitter_effect_inst* a1, float_t emission) {
-    glitter_emitter_inst** i;
-
-    a1->frame0 = (float_t)-a1->data.appear_time;
-    a1->flags = (glitter_effect_inst_flag)0;
-    for (i = a1->emitters.begin; i != a1->emitters.end; i++)
-        if (*i)
-            glitter_emitter_inst_reset(*i);
-    glitter_effect_inst_ctrl_init(GPM_VAL, GLT_VAL, a1, emission);
+void GlitterF2EffectInst::Reset(GPM, GLT, float_t emission) {
+    frame0 = -(float_t)data.appear_time;
+    flags = (glitter_effect_inst_flag)0;
+    for (GlitterF2EmitterInst*& i : emitters)
+        if (i)
+            i->Reset();
+    GlitterEffectInst__ctrl_init(GPM_VAL, GLT_VAL, this, emission);
 }
 
-void glitter_effect_inst_dispose(glitter_effect_inst* ei) {
-    if (ei->ext_anim)
-        free(ei->ext_anim);
-
-    glitter_render_scene_free(&ei->render_scene);
-    vector_old_ptr_glitter_emitter_inst_free(&ei->emitters, glitter_emitter_inst_dispose);
-    free(ei);
+GlitterF2EffectInst::ExtAnim::ExtAnim() {
+    object_index = -1;
+    mesh_index = -1;
+    a3da_id = -1;
+    object_is_hrc = false;
+    mesh_name = 0;
+    mat = mat4_identity;
+    translation = vec3_null;
 }
 
-static void glitter_effect_inst_ctrl_init(GPM, GLT,
-    glitter_effect_inst* a1, float_t emission) {
-    glitter_emitter_inst** i;
+GlitterF2EffectInst::ExtAnim::~ExtAnim() {
+
+}
+
+static void GlitterEffectInst__ctrl_init(GPM, GLT,
+    GlitterF2EffectInst* a1, float_t emission) {
     vec3 trans;
     vec3 rot;
     vec3 scale;
@@ -235,7 +238,7 @@ static void glitter_effect_inst_ctrl_init(GPM, GLT,
             delta_frame -= start_time;
 
         if (a1->frame0 >= 0.0f) {
-            glitter_effect_inst_get_value(GLT_VAL, a1);
+            GlitterEffectInst__get_value(GLT_VAL, a1);
             if (a1->flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS && a1->ext_anim) {
                 vec3_add(a1->translation, a1->ext_anim->translation, trans);
                 mat4_translate_mult(&a1->ext_anim->mat, trans.x, trans.y, trans.z, &mat);
@@ -249,31 +252,31 @@ static void glitter_effect_inst_ctrl_init(GPM, GLT,
 
             mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
             mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &a1->mat);
-            for (i = a1->emitters.begin; i != a1->emitters.end; i++)
-                if (*i)
-                    glitter_emitter_inst_ctrl_init(GPM_VAL, GLT_VAL, *i, a1, delta_frame);
+            for (GlitterF2EmitterInst*& i : a1->emitters)
+                if (i)
+                    i->CtrlInit(GPM_VAL, GLT_VAL, a1, delta_frame);
 
             if (a1->frame0 < (float_t)a1->data.life_time) {
-                for (i = a1->emitters.begin; i != a1->emitters.end; i++)
-                    if (*i)
-                        glitter_emitter_inst_emit(GPM_VAL, GLT_VAL, *i, delta_frame, emission);
+                for (GlitterF2EmitterInst*& i : a1->emitters)
+                    if (i)
+                        i->Emit(GPM_VAL, GLT_VAL, delta_frame, emission);
             }
             else if (a1->data.flags & GLITTER_EFFECT_LOOP)
                 a1->frame0 -= (float_t)a1->data.life_time;
             else {
                 enum_or(a1->flags, GLITTER_EFFECT_INST_FREE);
-                for (i = a1->emitters.begin; i != a1->emitters.end; i++)
-                    if (*i)
-                        glitter_emitter_inst_free(GPM_VAL, GLT_VAL, *i, emission, false);
+                for (GlitterF2EmitterInst*& i : a1->emitters)
+                    if (i)
+                        i->Free(GPM_VAL, GLT_VAL, emission, false);
             }
 
-            glitter_render_scene_ctrl(GLT_VAL, &a1->render_scene, delta_frame);
+            a1->render_scene.Ctrl(GLT_VAL, delta_frame);
         }
     }
     a1->frame1 += delta_frame;
 }
 
-static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
+static void GlitterEffectInst__get_ext_anim(GlitterF2EffectInst* a1) {
     if (!a1->ext_anim || !a1->data.ext_anim)
         return;
 
@@ -282,7 +285,7 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
             && a1->flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS))
         return;
 
-    glitter_effect_inst_ext_anim* inst_ext_anim = a1->ext_anim;
+    GlitterF2EffectInst::ExtAnim* inst_ext_anim = a1->ext_anim;
 
     mat4* obj_mat = 0;
     mat4 temp;
@@ -294,7 +297,7 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
         if (!rob_chr)
             return;
 
-        mat4 mat = mat4_identity/*chara root mat*/;
+        mat4 mat = rob_chr->data.adjust_data.mat;
 
         vec3 scale;
         mat4_get_scale(&mat, &scale);
@@ -323,7 +326,6 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
             }
             else
                 inst_ext_anim->mat = mat;
-
         }
         goto SetFlags;
     }
@@ -370,7 +372,7 @@ static void glitter_effect_inst_get_ext_anim(glitter_effect_inst* a1) {
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
         rob_chara* rob_chr = rob_chara_array_get(chara_id);
         if (rob_chr) {
-            mat = mat4_identity/*chara root mat*/;
+            mat = rob_chr->data.adjust_data.mat;
 
             vec3 scale;
             mat4_get_scale(&mat, &scale);
@@ -415,7 +417,7 @@ SetFlags:
     }
 }
 
-static int32_t glitter_effect_inst_get_ext_anim_bone_index(
+static int32_t GlitterEffectInst__get_ext_anim_bone_index(
     glitter_effect_ext_anim_chara_node node) {
     if (node < GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD || node > GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
         return -1;
@@ -424,7 +426,7 @@ static int32_t glitter_effect_inst_get_ext_anim_bone_index(
     std::vector<std::string>* motion_bone_names = 0;
     if (!bone_data || bone_data->skeleton.size() < 1
         || !bone_data->get_skeleton_motion_bones(
-            (char*)bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), &motion_bone_names))
+            bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), &motion_bone_names))
         return -1;
 
     static const char* bone_names[] = {
@@ -448,24 +450,24 @@ static int32_t glitter_effect_inst_get_ext_anim_bone_index(
         "kl_toe_r_wj"
     };
 
-    char* bone_name = (char*)bone_names[node];
+    const char* bone_name = bone_names[node];
     for (std::string& i : *motion_bone_names)
         if (!str_utils_compare(bone_name, i.c_str()))
             return (int32_t)(&i - motion_bone_names->data());
     return -1;
 }
 
-static void glitter_effect_inst_get_value(GLT, glitter_effect_inst* a1) {
+static void GlitterEffectInst__get_value(GLT, GlitterF2EffectInst* a1) {
     int64_t length;
-    glitter_curve* curve;
+    GlitterCurve* curve;
     float_t value;
 
-    length = vector_old_length(a1->effect->animation);
+    length = a1->effect->animation.curves.size();
     if (!length)
         return;
 
     for (int32_t i = 0; i < length; i++) {
-        curve = a1->effect->animation.begin[i];
+        curve = a1->effect->animation.curves.data()[i];
         if (!glitter_curve_get_value(GLT_VAL, curve, a1->frame0,
             &value, a1->random + i, a1->random_ptr))
             continue;

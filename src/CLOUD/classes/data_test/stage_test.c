@@ -228,7 +228,7 @@ void data_test_stage_test_imgui(class_data* data) {
     ImGui::SameLine(0.0f, 1.0f);
     ImGui::SetNextItemWidth(160.0f);
     if (ImGui::BeginCombo("##Other Index", other_index > -1
-        ? string_data(&stg_data->begin[stage_other[ns_index]].name) : "", 0)) {
+        ? string_data(&stg_data->begin[stage_other[other_index]].name) : "", 0)) {
         for (int32_t& i : stage_other) {
             int32_t other_idx = (int32_t)(&i - stage_other.data());
 
@@ -424,14 +424,14 @@ other_index(), stage_index(), stage_index_load(), stage_load() {
             if (ret != 1)
                 continue;
 
-            data_test_stage_test_stage_pv* stg_pv = 0;
-            for (stg_pv = stage_pv.begin()._Ptr; stg_pv != stage_pv.end()._Ptr; stg_pv++)
-                if (pv_id == stg_pv->pv_id)
+            std::vector<data_test_stage_test_stage_pv>::iterator stg_pv = stage_pv.begin();
+            while (stg_pv != stage_pv.end())
+                if (pv_id == (stg_pv++)->pv_id)
                     break;
 
-            if (stg_pv == stage_pv.end()._Ptr) {
+            if (stg_pv == stage_pv.end()) {
                 stage_pv.push_back(data_test_stage_test_stage_pv(pv_id));
-                stg_pv = &stage_pv.end()[-1];
+                stg_pv = stage_pv.end() - 1;
             }
 
             stg_pv->stage.push_back(i->id);

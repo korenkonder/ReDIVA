@@ -13,60 +13,34 @@ static bool glitter_effect_unpack_file(GLT,
 
 extern object_database* obj_db_ptr;
 
-glitter_effect* glitter_effect_init(GLT) {
-    glitter_effect* e = force_malloc_s(glitter_effect, 1);
-    e->version = GLT_VAL == GLITTER_X ? 0x0C : 0x07;
-    e->scale = vec3_identity;
-    e->data.start_time = 0;
-    e->data.ext_anim = 0;
-    e->data.flags = (glitter_effect_flag)0;
-    e->data.name_hash = GLT_VAL != GLITTER_FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
-    e->data.seed = 0;
-    return e;
+glitter_effect::glitter_effect(GLT) : name(), translation(), rotation(), data() {
+    version = GLT_VAL == GLITTER_X ? 0x0C : 0x07;
+    scale = vec3_identity;
+    data.start_time = 0;
+    data.ext_anim = 0;
+    data.flags = (glitter_effect_flag)0;
+    data.name_hash = GLT_VAL != GLITTER_FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
+    data.seed = 0;
 }
 
-glitter_effect* glitter_effect_copy(glitter_effect* e) {
-    if (!e)
-        return 0;
-
-    glitter_effect* ec = force_malloc_s(glitter_effect, 1);
-    *ec = *e;
-
-    if (e->data.ext_anim) {
-        ec->data.ext_anim = force_malloc_s(glitter_effect_ext_anim, 1);
-        *ec->data.ext_anim = *e->data.ext_anim;
-    }
-    else if (e->data.ext_anim_x) {
-        ec->data.ext_anim_x = force_malloc_s(glitter_effect_ext_anim_x, 1);
-        *ec->data.ext_anim_x = *e->data.ext_anim_x;
-    }
-
-    ec->emitters = vector_old_ptr_empty(glitter_emitter);
-    vector_old_ptr_glitter_emitter_reserve(&ec->emitters, vector_old_length(e->emitters));
-    for (glitter_emitter** i = e->emitters.begin; i != e->emitters.end; i++)
-        if (*i) {
-            glitter_emitter* e = glitter_emitter_copy(*i);
-            if (e)
-                vector_old_ptr_glitter_emitter_push_back(&ec->emitters, &e);
-        }
-
-    ec->animation = vector_old_ptr_empty(glitter_curve);
-    glitter_animation_copy(&e->animation, &ec->animation);
-    return ec;
+glitter_effect::~glitter_effect() {
+    free(data.ext_anim);
+    for (glitter_emitter*& i : emitters)
+        delete i;
 }
 
-bool glitter_effect_parse_file(glitter_effect_group* a1,
-    f2_struct* st, vector_old_ptr_glitter_effect* vec) {
+bool glitter_effect_parse_file(GlitterEffectGroup* a1,
+    f2_struct* st, std::vector<glitter_effect*>* vec) {
     f2_struct* i;
     glitter_effect* effect;
 
     if (!st || !st->header.data_size)
         return false;
 
-    effect = glitter_effect_init(a1->type);
+    effect = new glitter_effect(a1->type);
     effect->version = st->header.version;
     if (!glitter_effect_unpack_file(a1->type, st->data, effect, st->header.use_big_endian)) {
-        glitter_effect_dispose(effect);
+        delete effect;
         return false;
     }
 
@@ -79,12 +53,12 @@ bool glitter_effect_parse_file(glitter_effect_group* a1,
         else if (i->header.signature == reverse_endianness_uint32_t('EMIT'))
             glitter_emitter_parse_file(a1, i, &effect->emitters, effect);
     }
-    vector_old_ptr_glitter_effect_push_back(vec, &effect);
+    vec->push_back(effect);
     return true;
 }
 
 bool glitter_effect_unparse_file(GLT,
-    glitter_effect_group* a1, f2_struct* st, glitter_effect* a3) {
+    GlitterEffectGroup* a1, f2_struct* st, glitter_effect* a3) {
     if (!glitter_effect_pack_file(GLT_VAL, st, a3))
         return false;
 
@@ -92,22 +66,15 @@ bool glitter_effect_unparse_file(GLT,
     if (glitter_animation_unparse_file(GLT_VAL, &s, &a3->animation, glitter_effect_curve_flags))
         vector_old_f2_struct_push_back(&st->sub_structs, &s);
 
-    for (glitter_emitter** i = a3->emitters.begin; i != a3->emitters.end; i++) {
-        if (!*i)
+    for (glitter_emitter*& i : a3->emitters) {
+        if (!i)
             continue;
 
         f2_struct s;
-        if (glitter_emitter_unparse_file(GLT_VAL, a1, &s, *i, a3))
+        if (glitter_emitter_unparse_file(GLT_VAL, a1, &s, i, a3))
             vector_old_f2_struct_push_back(&st->sub_structs, &s);
     }
     return true;
-}
-
-void glitter_effect_dispose(glitter_effect* e) {
-    free(e->data.ext_anim);
-    glitter_animation_free(&e->animation);
-    vector_old_ptr_glitter_emitter_free(&e->emitters, glitter_emitter_dispose);
-    free(e);
 }
 
 object_info glitter_effect_ext_anim_get_object_info(uint64_t hash) {
@@ -338,7 +305,6 @@ static bool glitter_effect_unpack_file(GLT,
                 }
 
                 enum_or(ext_anim_x->flags, GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM);
-                ext_anim_x->mesh_name[0] = 0;
             }
         }
         else if (type == 3) {
@@ -504,7 +470,6 @@ static bool glitter_effect_unpack_file(GLT,
                 }
 
                 enum_or(ext_anim->flags, GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM);
-                ext_anim->mesh_name[0] = 0;
             }
         }
         else if (type == 3) {

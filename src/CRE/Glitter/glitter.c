@@ -5,17 +5,6 @@
 
 #include "glitter.h"
 
-vector_old_func(glitter_curve_key)
-vector_old_ptr_func(glitter_curve)
-vector_old_ptr_func(glitter_effect)
-vector_old_ptr_func(glitter_emitter)
-vector_old_ptr_func(glitter_emitter_inst)
-vector_old_func(glitter_locus_history_data)
-vector_old_ptr_func(glitter_particle)
-vector_old_ptr_func(glitter_particle_inst)
-vector_old_ptr_func(glitter_render_group)
-vector_old_func(glitter_scene_effect)
-
 const float_t glitter_min_emission = 0.01f;
 
 const glitter_curve_type_flags glitter_effect_curve_flags = (glitter_curve_type_flags)(0

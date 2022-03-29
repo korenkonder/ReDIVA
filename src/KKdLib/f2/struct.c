@@ -22,7 +22,7 @@ void f2_struct_read(f2_struct* st, const char* path) {
     stream s;
     io_open(&s, path, "rb");
     if (&s.io.stream) {
-        divafile_sdecrypt(&s);
+        divafile_decrypt(&s);
 
         f2_header h;
         f2_header_read(&s, &h);
@@ -37,7 +37,7 @@ void f2_struct_read(f2_struct* st, const wchar_t* path) {
     stream s;
     io_open(&s, path, L"rb");
     if (&s.io.stream) {
-        divafile_sdecrypt(&s);
+        divafile_decrypt(&s);
 
         f2_header h;
         f2_header_read(&s, &h);
@@ -52,7 +52,7 @@ void f2_struct_read(f2_struct* st, const void* data, size_t length) {
     stream s;
     io_open(&s, data, length);
     if (&s.io.data.data) {
-        divafile_sdecrypt(&s);
+        divafile_decrypt(&s);
 
         f2_header h;
         f2_header_read(&s, &h);
@@ -65,7 +65,7 @@ void f2_struct_read(f2_struct* st, stream* s) {
     memset(st, 0, sizeof(f2_struct));
 
     if (s->io.stream || s->io.data.data) {
-        divafile_sdecrypt(s);
+        divafile_decrypt(s);
 
         f2_header h;
         f2_header_read(s, &h);

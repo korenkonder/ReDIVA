@@ -10,6 +10,4 @@
 
 extern bool graphics_glitter_init(class_data* data, render_context* rctx);
 extern void graphics_glitter_imgui(class_data* data);
-extern void graphics_glitter_input(class_data* data);
-extern void graphics_glitter_render(class_data* data);
 extern bool graphics_glitter_dispose(class_data* data);

@@ -15,14 +15,14 @@
 #include "../../KKdLib/str_utils.h"
 #include "../data.h"
 
-glitter_file_reader::glitter_file_reader(GLT) : farc(), effect_group(),
+GlitterFileReader::GlitterFileReader(GLT) : farc(), effect_group(),
 load_count(), type(), path(), file(), state(), init_scene() {
     emission = -1.0f;
     type = GLT_VAL;
     hash = GLT_VAL != GLITTER_FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
 }
 
-glitter_file_reader::glitter_file_reader(GLT, char* path, char* file, float_t emission)
+GlitterFileReader::GlitterFileReader(GLT, char* path, char* file, float_t emission)
     : effect_group(), load_count() {
     this->path = std::string(path ? path : "rom/particle/");
     this->file = std::string(file);
@@ -33,7 +33,7 @@ glitter_file_reader::glitter_file_reader(GLT, char* path, char* file, float_t em
         : hash_utf8_fnv1a64m(file, false);
 }
 
-glitter_file_reader::glitter_file_reader(GLT, wchar_t* path, wchar_t* file, float_t emission)
+GlitterFileReader::GlitterFileReader(GLT, wchar_t* path, wchar_t* file, float_t emission)
     : effect_group(), load_count() {
     char* path_temp = utf16_to_utf8(path);
     char* file_temp = utf16_to_utf8(file);
@@ -48,11 +48,11 @@ glitter_file_reader::glitter_file_reader(GLT, wchar_t* path, wchar_t* file, floa
     free(file_temp);
 }
 
-glitter_file_reader::~glitter_file_reader() {
-
+GlitterFileReader::~GlitterFileReader() {
+    delete farc;
 }
 
-bool glitter_file_reader::Read(GPM, float_t emission) {
+bool GlitterFileReader::Read(GPM, float_t emission) {
     ::farc f;
     char* farc_file_temp = str_utils_add(this->file.c_str(), ".farc");
     bool ret = ((data_struct*)GPM_VAL->data)->load_file(
@@ -87,7 +87,7 @@ bool glitter_file_reader::Read(GPM, float_t emission) {
     if (drs_ff) {
         f2_struct st;
         f2_struct_read(&st, drs_ff->data, drs_ff->size);
-        if (st.header.signature == reverse_endianness_uint32_t('DVRS'))
+        if (st.header.signature == reverse_endianness_uint32_t('DVRS') && this->effect_group)
             glitter_diva_resource_parse_file(GPM_VAL, this->effect_group, &st);
         f2_struct_free(&st);
     }
@@ -99,14 +99,14 @@ bool glitter_file_reader::Read(GPM, float_t emission) {
     if (lst_ff) {
         f2_struct st;
         f2_struct_read(&st, lst_ff->data, lst_ff->size);
-        if (st.header.signature == reverse_endianness_uint32_t('LIST'))
+        if (st.header.signature == reverse_endianness_uint32_t('LIST') && this->effect_group)
             glitter_diva_list_parse_file(this->effect_group, &st);
         f2_struct_free(&st);
     }
     return true;
 }
 
-bool glitter_file_reader::ReadFarc(GPM, float_t emission) {
+bool GlitterFileReader::ReadFarc(GPM, float_t emission) {
     if (state == 0 && Read(GPM_VAL, emission) && init_scene) {
         state = 1;
         return false;
@@ -114,7 +114,7 @@ bool glitter_file_reader::ReadFarc(GPM, float_t emission) {
     return true;
 }
 
-bool glitter_file_reader_load_farc(glitter_file_reader* fr,
+bool glitter_file_reader_load_farc(GlitterFileReader* fr,
     const char* path, const char* file, uint64_t hash) {
     if (fr->type == GLITTER_FT && fr->hash != hash_fnv1a64m_empty
         || fr->type != GLITTER_FT && fr->hash != hash_murmurhash_empty)

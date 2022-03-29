@@ -747,7 +747,7 @@ public:
     void disp(render_context* rctx);
     void load(a3da* auth_file,
         object_database* obj_db, texture_database* tex_db);
-    void load_from_farc(farc* f, char* file,
+    void load_from_farc(farc* f, const char* file,
         object_database* obj_db, texture_database* tex_db);
     void reset();
     void unload(render_context* rctx);
@@ -799,7 +799,7 @@ extern auth_3d_data_struct* auth_3d_data;
 
 extern void auth_3d_data_init();
 extern bool auth_3d_data_check_id_not_empty(int32_t* id);
-extern bool auth_3d_data_check_category_loaded(char* category_name);
+extern bool auth_3d_data_check_category_loaded(const char* category_name);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t id);
 extern int32_t auth_3d_data_get_chara_id(int32_t id);
 extern int32_t auth_3d_data_get_auth_3d_id_by_object_info(object_info obj_info,
@@ -817,7 +817,7 @@ extern float_t auth_3d_data_get_play_control_size(int32_t* id);
 extern bool auth_3d_data_get_repeat(int32_t* id);
 extern int32_t auth_3d_data_get_uid(int32_t* id);
 extern void auth_3d_data_load_auth_3d_db(auth_3d_database* auth_3d_db);
-extern void auth_3d_data_load_category(char* category_name);
+extern void auth_3d_data_load_category(const char* category_name);
 extern int32_t auth_3d_data_load_uid(int32_t uid, auth_3d_database* auth_3d_db);
 extern void auth_3d_data_read_file(int32_t* id, auth_3d_database* auth_3d_db);
 extern void auth_3d_data_set_camera_root_update(int32_t* id, bool value);
@@ -833,7 +833,7 @@ extern void auth_3d_data_set_repeat(int32_t* id, bool value);
 extern void auth_3d_data_set_req_frame(int32_t* id, float_t value);
 extern void auth_3d_data_set_shadow(int32_t* id, bool value);
 extern void auth_3d_data_set_visibility(int32_t* id, bool value);
-extern void auth_3d_data_unload_category(char* category_name);
+extern void auth_3d_data_unload_category(const char* category_name);
 extern void auth_3d_data_unload_id(int32_t id, render_context* rctx);
 extern void auth_3d_data_free();
 

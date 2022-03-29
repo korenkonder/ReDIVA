@@ -69,10 +69,9 @@ typedef enum glitter_editor_draw_flags {
 
 typedef struct glitter_curve_editor {
     glitter_curve_type type;
-    glitter_animation* animation;
-    glitter_curve* list[GLITTER_CURVE_V_SCROLL_ALPHA_2ND - GLITTER_CURVE_TRANSLATION_X + 1];
-    glitter_curve curve;
-    glitter_curve_key* key;
+    GlitterAnimation* animation;
+    GlitterCurve* list[GLITTER_CURVE_V_SCROLL_ALPHA_2ND - GLITTER_CURVE_TRANSLATION_X + 1];
+    GlitterCurve::Key* key;
 
     int32_t frame_width;
     float_t zoom_time;
@@ -110,6 +109,7 @@ typedef struct glitter_editor_struct {
     bool load;
     bool load_wait;
     bool load_data;
+    bool load_data_wait;
     bool load_popup;
     bool load_data_popup;
     bool load_error_list_popup;
@@ -137,10 +137,10 @@ typedef struct glitter_editor_struct {
     int32_t end_frame;
     glitter_random random;
     int32_t counter;
-    glitter_effect_group* effect_group;
-    glitter_scene* scene;
+    GlitterEffectGroup* effect_group;
+    GlitterScene* scene;
     uint64_t hash;
-    glitter_scene_counter scene_counter;
+    GlitterSceneCounter scene_counter;
     char file[MAX_PATH * 2];
     GLuint vao;
 
@@ -360,7 +360,7 @@ static void glitter_editor_save_window(glitter_editor_struct* glt_edt);
 static void glitter_editor_save_as_window(glitter_editor_struct* glt_edt);
 static void glitter_editor_load_file(glitter_editor_struct* glt_edt, char* path, char* file);
 static void glitter_editor_save_file(glitter_editor_struct* glt_edt, char* path, char* file);
-static bool glitter_editor_list_open_window(glitter_effect_group* eg);
+static bool glitter_editor_list_open_window(GlitterEffectGroup* eg);
 static bool glitter_editor_resource_import(glitter_editor_struct* glt_edt);
 static bool glitter_editor_resource_export(glitter_editor_struct* glt_edt);
 
@@ -396,19 +396,17 @@ static void glitter_editor_file_save_popup(glitter_editor_struct* glt_edt, class
     ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
 
 static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt);
-static void glitter_editor_curve_editor_curve_reset(glitter_editor_struct* glt_edt,
-    glitter_curve* curve);
 static void glitter_editor_curve_editor_curve_set(glitter_editor_struct* glt_edt,
-    glitter_curve* curve, glitter_curve_type type);
+    GlitterCurve* curve, glitter_curve_type type);
 static void glitter_editor_curve_editor_curves_reset(glitter_editor_struct* glt_edt);
-static glitter_curve_key* glitter_editor_curve_editor_get_closest_key(glitter_editor_struct* glt_edt,
-    glitter_curve* curve);
-static glitter_curve_key* glitter_editor_curve_editor_get_selected_key(glitter_editor_struct* glt_edt,
-    glitter_curve* curve);
+static GlitterCurve::Key* glitter_editor_curve_editor_get_closest_key(
+    glitter_editor_struct* glt_edt, GlitterCurve* curve);
+static GlitterCurve::Key* glitter_editor_curve_editor_get_selected_key(
+    glitter_editor_struct* glt_edt, GlitterCurve* curve);
 static float_t glitter_editor_curve_editor_get_value(glitter_editor_struct* glt_edt,
     glitter_curve_type type);
 static void glitter_editor_curve_editor_key_manager(glitter_editor_struct* glt_edt,
-    vector_old_glitter_curve_key* keys, bool* add_key, bool* del_key);
+    std::vector<GlitterCurve::Key>* keys, bool* add_key, bool* del_key);
 static void glitter_editor_curve_editor_property_window(glitter_editor_struct* glt_edt, class_data* data);
 static void glitter_editor_curve_editor_reset_state(glitter_editor_struct* glt_edt,
     glitter_curve_type type);
@@ -421,11 +419,19 @@ static void glitter_editor_gl_free(glitter_editor_struct* glt_edt);
 
 static void glitter_editor_gl_draw_wireframe(glitter_editor_struct* glt_edt);
 static size_t glitter_editor_gl_draw_wireframe_calc(glitter_editor_struct* glt_edt,
-    glitter_effect_inst* eff, glitter_particle_inst* ptcl);
+    GlitterEffectInst* eff, GlitterParticleInst* ptcl);
+static size_t glitter_editor_gl_draw_wireframe_calc(glitter_editor_struct* glt_edt,
+    GlitterF2EffectInst* eff, GlitterF2ParticleInst* ptcl);
+static size_t glitter_editor_gl_draw_wireframe_calc(glitter_editor_struct* glt_edt,
+    GlitterXEffectInst* eff, GlitterF2ParticleInst* ptcl);
 static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt,
-    glitter_effect_inst* eff, glitter_particle_inst* ptcl);
+    GlitterEffectInst* eff, GlitterParticleInst* ptcl);
+static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt,
+    GlitterF2EffectInst* eff, GlitterF2ParticleInst* ptcl);
+static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt,
+    GlitterXEffectInst* eff, GlitterXParticleInst* ptcl);
 static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* glt_edt,
-    glitter_render_group* rg);
+    GlitterXRenderGroup* rg);
 
 static void glitter_editor_gl_select_particle(glitter_editor_struct* glt_edt);
 
@@ -470,7 +476,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
         }
 
     ssize_t c = vector_old_length(files_x);
-    glitter_file_reader* fr = 0;
+    GlitterFileReader* fr = 0;
     if (files_x.begin) {
         stream s;
         io_open(&s, L"name_VRFL.glitter.txt", L"rb");
@@ -507,7 +513,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
                 glitter_file_reader_read(fr, GPM_VAL.emission);
 
                 if (fr && fr->effect_group) {
-                    glitter_effect_group* eg = fr->effect_group;
+                    GlitterEffectGroup* eg = fr->effect_group;
                     for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
                         if (!*i)
                             continue;
@@ -528,7 +534,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
                         }
                     }
 
-                    glitter_effect_group_dispose(fr->effect_group);
+                    GlitterEffectGroup_dispose(fr->effect_group);
                 }
                 free(file_x);
             }
@@ -556,7 +562,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
         }
 
     ssize_t c = vector_old_length(files_x);
-    glitter_file_reader* fr = 0;
+    GlitterFileReader* fr = 0;
     if (files_x.begin)
         for (ssize_t i = 0; i < c; i++) {
             char* file_x = str_utils_get_without_extension(string_data(&files_x.begin[i]));
@@ -570,7 +576,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
             glitter_file_reader_read(fr, GPM_VAL.emission);
 
             if (fr && fr->effect_group) {
-                glitter_effect_group* eg = fr->effect_group;
+                GlitterEffectGroup* eg = fr->effect_group;
                 for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
                     if (!*i)
                         continue;
@@ -587,7 +593,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
                     }
                 }
 
-                glitter_effect_group_dispose(fr->effect_group);
+                GlitterEffectGroup_dispose(fr->effect_group);
             }
             free(file_x);
         }
@@ -644,7 +650,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
         }
 
         ssize_t c = vector_old_length(files_f2);
-        glitter_file_reader* fr = 0;
+        GlitterFileReader* fr = 0;
         if (files_f2.begin && files_ft.begin)
             for (ssize_t i = 0; i < c; i++) {
                 char* file_f2 = str_utils_get_without_extension(string_data(&files_f2.begin[i]));
@@ -654,7 +660,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
                 glitter_file_reader_read(fr, GPM_VAL.emission);
 
                 if (fr && fr->effect_group) {
-                    glitter_effect_group* eg = fr->effect_group;
+                    GlitterEffectGroup* eg = fr->effect_group;
                     for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
                         if (!*i)
                             continue;
@@ -679,7 +685,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
                     glt_edt->effect_group = fr->effect_group;
                     //glt_edt->save_glt_type = GLITTER_FT;
                     //glitter_editor_save_file(path_ft, file_ft);
-                    glitter_effect_group_dispose(fr->effect_group);
+                    GlitterEffectGroup_dispose(fr->effect_group);
                 }
                 free(file_f2);
                 free(file_ft);
@@ -720,7 +726,7 @@ void glitter_editor_ctrl(class_data* data) {
         LARGE_INTEGER time;
         QueryPerformanceCounter(&time);
 
-        glitter_effect_group* eg = new glitter_effect_group(glt_edt->load_glt_type);
+        GlitterEffectGroup* eg = new GlitterEffectGroup(glt_edt->load_glt_type);
         char buf[0x100];
         snprintf(buf, sizeof(buf), "eff_%016llx_main", time.LowPart * hash_fnv1a64m_empty);
         uint64_t hash = glt_edt->load_glt_type == GLITTER_FT
@@ -739,7 +745,7 @@ void glitter_editor_ctrl(class_data* data) {
     bool has_effect = glt_edt->selected_effect != 0;
     bool has_emitter = glt_edt->selected_emitter != 0 && has_effect;
     bool has_particle = glt_edt->selected_particle != 0 && has_emitter;
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
 
     bool tex_reload = false;
     if (glt_edt->resource_flags & GLITTER_EDITOR_IMPORT)
@@ -767,23 +773,21 @@ void glitter_editor_ctrl(class_data* data) {
 
                 uint64_t empty_hash = eg->type != GLITTER_FT
                     ? hash_murmurhash_empty : hash_fnv1a64m_empty;
-                for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
-                    if (!*i)
+                for (glitter_effect*& i : eg->effects) {
+                    if (!i)
                         continue;
 
-                    glitter_effect* effect = *i;
-                    for (glitter_emitter** j = effect->emitters.begin;
-                        j != effect->emitters.end; j++) {
-                        if (!*j)
+                    glitter_effect* effect = i;
+                    for (glitter_emitter*& j : effect->emitters) {
+                        if (!j)
                             continue;
 
-                        glitter_emitter* emitter = *j;
-                        for (glitter_particle** k = emitter->particles.begin;
-                            k != emitter->particles.end; k++) {
-                            if (!*k)
+                        glitter_emitter* emitter = j;
+                        for (glitter_particle*& k : emitter->particles) {
+                            if (!k)
                                 continue;
 
-                            glitter_particle* particle = *k;
+                            glitter_particle* particle = k;
                             if (particle->data.tex_hash == hash) {
                                 particle->data.tex_hash = empty_hash;
                                 particle->data.texture = 0;
@@ -854,108 +858,104 @@ void glitter_editor_ctrl(class_data* data) {
     }
 
     if (eg && glt_edt->effect_flags & GLITTER_EDITOR_ADD) {
-        ssize_t eff_count = vector_old_length(eg->effects);
+        ssize_t eff_count = eg->effects.size();
 
         LARGE_INTEGER time;
         QueryPerformanceCounter(&time);
 
-        glitter_effect* e = glitter_effect_init(eg->type);
+        glitter_effect* e = new glitter_effect(eg->type);
         snprintf(e->name, sizeof(e->name), "eff_%08x",
             (uint32_t)((eff_count + 1) * time.LowPart * hash_murmurhash_empty));
-        vector_old_ptr_glitter_effect_push_back(&eg->effects, &e);
+        eg->effects.push_back(e);
         glt_edt->input_reload = true;
     }
 
     if (eg && has_effect)
         if (glt_edt->effect_flags & GLITTER_EDITOR_DUPLICATE) {
-            ssize_t eff_count = vector_old_length(eg->effects);
+            ssize_t eff_count = eg->effects.size();
 
             LARGE_INTEGER time;
             QueryPerformanceCounter(&time);
 
-            glitter_effect* e = glitter_effect_copy(glt_edt->selected_effect);
+            /*glitter_effect* e = glitter_effect_copy(glt_edt->selected_effect);
             snprintf(e->name, sizeof(e->name), "eff_%08x",
                 (uint32_t)((eff_count + 1) * time.LowPart * hash_murmurhash_empty));
-            vector_old_ptr_glitter_effect_push_back(&eg->effects, &e);
+            eg->effects.push_back(e);*/
             glt_edt->input_reload = true;
         }
         else if ((glt_edt->effect_flags & GLITTER_EDITOR_DELETE)) {
             ssize_t j = -1;
-            for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++)
-                if (*i && *i == glt_edt->selected_effect) {
-                    j = i - eg->effects.begin;
+            for (glitter_effect*& i : eg->effects)
+                if (i && i == glt_edt->selected_effect) {
+                    j = &i - eg->effects.data();
                     break;
                 }
 
             if (j > -1)
-                vector_old_ptr_glitter_effect_erase(&eg->effects, j, glitter_effect_dispose);
+                eg->effects.erase(eg->effects.begin() + j);
             glt_edt->selected_type = GLITTER_EDITOR_SELECTED_NONE;
             glt_edt->selected_resource = -1;
             glt_edt->selected_effect = 0;
             glt_edt->selected_emitter = 0;
             glt_edt->selected_particle = 0;
 
-            if (vector_old_length(eg->effects) < 1)
+            if (eg->effects.size() < 1)
                 glt_edt->close = true;
             else
                 glt_edt->input_reload = true;
         }
         else if (glt_edt->effect_flags & GLITTER_EDITOR_MOVE_UP) {
             ssize_t j = -1;
-            for (glitter_effect** i = eg->effects.begin;
-                i != eg->effects.end; i++)
-                if (*i == glt_edt->selected_effect) {
-                    j = i - eg->effects.begin;
+            for (glitter_effect*& i : eg->effects)
+                if (i == glt_edt->selected_effect) {
+                    j = &i - eg->effects.data();
                     break;
                 }
 
             if (j > 0) {
-                glitter_effect* temp = eg->effects.begin[j - 1];
-                eg->effects.begin[j - 1] = eg->effects.begin[j];
-                eg->effects.begin[j] = temp;
+                glitter_effect* temp = eg->effects.data()[j - 1];
+                eg->effects.data()[j - 1] = eg->effects.data()[j];
+                eg->effects.data()[j] = temp;
                 glt_edt->input_reload = true;
             }
         }
         else if (glt_edt->effect_flags & GLITTER_EDITOR_MOVE_DOWN) {
             ssize_t j = -1;
-            for (glitter_effect** i = eg->effects.begin;
-                i != eg->effects.end; i++)
-                if (*i == glt_edt->selected_effect) {
-                    j = i - eg->effects.begin;
+            for (glitter_effect*& i : eg->effects)
+                if (i == glt_edt->selected_effect) {
+                    j = &i - eg->effects.data();
                     break;
                 }
 
-            if (j > -1 && j < vector_old_length(eg->effects) - 1) {
-                glitter_effect* temp = eg->effects.begin[j + 1];
-                eg->effects.begin[j + 1] = eg->effects.begin[j];
-                eg->effects.begin[j] = temp;
+            if (j > -1 && j < (ssize_t)eg->effects.size() - 1) {
+                glitter_effect* temp = eg->effects.data()[j + 1];
+                eg->effects.data()[j + 1] = eg->effects.data()[j];
+                eg->effects.data()[j] = temp;
                 glt_edt->input_reload = true;
             }
         }
         else if (glt_edt->emitter_flags & GLITTER_EDITOR_ADD) {
-            glitter_emitter* e = glitter_emitter_init(eg->type);
-            vector_old_ptr_glitter_emitter_push_back(&sel_efct->emitters, &e);
+            glitter_emitter* e = new glitter_emitter(eg->type);
+            sel_efct->emitters.push_back(e);
             glt_edt->input_reload = true;
         }
 
     if (eg && has_emitter)
         if (glt_edt->emitter_flags & GLITTER_EDITOR_DUPLICATE) {
-            glitter_emitter* e = glitter_emitter_copy(glt_edt->selected_emitter);
-            vector_old_ptr_glitter_emitter_push_back(&sel_efct->emitters, &e);
+            /*glitter_emitter* e = glitter_emitter_copy(glt_edt->selected_emitter);
+            sel_efct->emitters.push_back(e);*/
             glt_edt->input_reload = true;
         }
         else if (glt_edt->emitter_flags & GLITTER_EDITOR_DELETE) {
             ssize_t j = -1;
-            for (glitter_emitter** i = sel_efct->emitters.begin;
-                i != sel_efct->emitters.end; i++)
-                if (*i && *i == glt_edt->selected_emitter) {
-                    j = i - sel_efct->emitters.begin;
+            for (glitter_emitter*& i : sel_efct->emitters)
+                if (i && i == glt_edt->selected_emitter) {
+                    j = &i - sel_efct->emitters.data();
                     break;
                 }
 
             if (j > -1)
-                vector_old_ptr_glitter_emitter_erase(&sel_efct->emitters,
-                    j, glitter_emitter_dispose);
+                sel_efct->emitters.erase(sel_efct->emitters.begin() + j);
             glt_edt->selected_type = GLITTER_EDITOR_SELECTED_EFFECT;
             glt_edt->selected_emitter = 0;
             glt_edt->selected_particle = 0;
@@ -963,99 +963,87 @@ void glitter_editor_ctrl(class_data* data) {
         }
         else if (glt_edt->emitter_flags & GLITTER_EDITOR_MOVE_UP) {
             ssize_t j = -1;
-            for (glitter_emitter** i = sel_efct->emitters.begin;
-                i != sel_efct->emitters.end; i++)
-                if (*i == glt_edt->selected_emitter) {
-                    j = i - sel_efct->emitters.begin;
+            for (glitter_emitter*& i : sel_efct->emitters)
+                if (i == glt_edt->selected_emitter) {
+                    j = &i - sel_efct->emitters.data();
                     break;
                 }
 
             if (j > 0) {
-                glitter_emitter* temp = sel_efct->emitters.begin[j - 1];
-                sel_efct->emitters.begin[j - 1]
-                    = sel_efct->emitters.begin[j];
-                sel_efct->emitters.begin[j] = temp;
+                glitter_emitter* temp = sel_efct->emitters.data()[j - 1];
+                sel_efct->emitters.data()[j - 1] = sel_efct->emitters.data()[j];
+                sel_efct->emitters.data()[j] = temp;
                 glt_edt->input_reload = true;
             }
         }
         else if (glt_edt->emitter_flags & GLITTER_EDITOR_MOVE_DOWN) {
             ssize_t j = -1;
-            for (glitter_emitter** i = sel_efct->emitters.begin;
-                i != sel_efct->emitters.end; i++)
-                if (*i == glt_edt->selected_emitter) {
-                    j = i - sel_efct->emitters.begin;
+            for (glitter_emitter*& i : sel_efct->emitters)
+                if (i == glt_edt->selected_emitter) {
+                    j = &i - sel_efct->emitters.data();
                     break;
                 }
 
-            if (j > -1 && j < sel_efct->emitters.end
-                - sel_efct->emitters.begin - 1) {
-                glitter_emitter* temp = sel_efct->emitters.begin[j + 1];
-                sel_efct->emitters.begin[j + 1]
-                    = sel_efct->emitters.begin[j];
-                sel_efct->emitters.begin[j] = temp;
+            if (j > -1 && j < (ssize_t)sel_efct->emitters.size() - 1) {
+                glitter_emitter* temp = sel_efct->emitters.data()[j + 1];
+                sel_efct->emitters.data()[j + 1] = sel_efct->emitters.data()[j];
+                sel_efct->emitters.data()[j] = temp;
                 glt_edt->input_reload = true;
             }
         }
         else if (glt_edt->particle_flags & GLITTER_EDITOR_ADD) {
-            glitter_particle* p = glitter_particle_init(eg->type);
-            vector_old_ptr_glitter_particle_push_back(&sel_emit->particles, &p);
+            glitter_particle* p = new glitter_particle(eg->type);
+            sel_emit->particles.push_back(p);
             glt_edt->input_reload = true;
         }
 
     if (eg && has_particle)
         if (glt_edt->particle_flags & GLITTER_EDITOR_DUPLICATE) {
-            glitter_particle* p = glitter_particle_copy(glt_edt->selected_particle);
-            vector_old_ptr_glitter_particle_push_back(&sel_emit->particles, &p);
+            /*glitter_particle* p = glitter_particle_copy(glt_edt->selected_particle);
+            sel_emit->particles.push_back(p);*/
             glt_edt->input_reload = true;
         }
         else if (glt_edt->particle_flags & GLITTER_EDITOR_DELETE) {
             ssize_t j = (ssize_t)-1;
-            for (glitter_particle** i = sel_emit->particles.begin;
-                i != sel_emit->particles.end; i++)
-                if (*i && *i == glt_edt->selected_particle) {
-                    j = i - sel_emit->particles.begin;
+            for (glitter_particle*& i : sel_emit->particles)
+                if (i && i == glt_edt->selected_particle) {
+                    j = &i - sel_emit->particles.data();
                     break;
                 }
 
             if (j > -1)
-                vector_old_ptr_glitter_particle_erase(&sel_emit->particles,
-                    j, glitter_particle_dispose);
+                sel_emit->particles.erase(sel_emit->particles.begin() + j);
             glt_edt->selected_type = GLITTER_EDITOR_SELECTED_EMITTER;
             glt_edt->selected_particle = 0;
             glt_edt->input_reload = true;
         }
         else if (glt_edt->particle_flags & GLITTER_EDITOR_MOVE_UP) {
             ssize_t j = -1;
-            for (glitter_particle** i = sel_emit->particles.begin;
-                i != sel_emit->particles.end; i++)
-                if (*i == glt_edt->selected_particle) {
-                    j = i - sel_emit->particles.begin;
+            for (glitter_particle*& i : sel_emit->particles)
+                if (i == glt_edt->selected_particle) {
+                    j = &i - sel_emit->particles.data();
                     break;
                 }
 
             if (j > 0) {
-                glitter_particle* temp = sel_emit->particles.begin[j - 1];
-                sel_emit->particles.begin[j - 1]
-                    = sel_emit->particles.begin[j];
-                sel_emit->particles.begin[j] = temp;
+                glitter_particle* temp = sel_emit->particles.data()[j - 1];
+                sel_emit->particles.data()[j - 1] = sel_emit->particles.data()[j];
+                sel_emit->particles.data()[j] = temp;
                 glt_edt->input_reload = true;
             }
         }
         else if (glt_edt->particle_flags & GLITTER_EDITOR_MOVE_DOWN) {
             ssize_t j = -1;
-            for (glitter_particle** i = sel_emit->particles.begin;
-                i != sel_emit->particles.end; i++)
-                if (*i == glt_edt->selected_particle) {
-                    j = i - sel_emit->particles.begin;
+            for (glitter_particle*& i : sel_emit->particles)
+                if (i == glt_edt->selected_particle) {
+                    j = &i - sel_emit->particles.data();
                     break;
                 }
 
-            if (j > -1 && j < sel_emit->particles.end
-                - sel_emit->particles.begin - 1) {
-                glitter_particle* temp = sel_emit->particles.begin[j + 1];
-                sel_emit->particles.begin[j + 1]
-                    = sel_emit->particles.begin[j];
-                sel_emit->particles.begin[j] = temp;
+            if (j > -1 && j < (ssize_t)sel_emit->particles.size() - 1) {
+                glitter_particle* temp = sel_emit->particles.data()[j + 1];
+                sel_emit->particles.data()[j + 1] = sel_emit->particles.data()[j];
+                sel_emit->particles.data()[j] = temp;
                 glt_edt->input_reload = true;
             }
         }
@@ -1091,11 +1079,11 @@ void glitter_editor_ctrl(class_data* data) {
         case DATA_X:
         case DATA_XHD: {
             std::vector<uint32_t>& hashes = ds->glitter_list_murmurhash;
-            for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
-                if (!*i)
+            for (glitter_effect*& i : eg->effects) {
+                if (!i)
                     continue;
 
-                glitter_effect* e = *i;
+                glitter_effect* e = i;
                 memset(e->name, 0, 0x80);
                 if (e->data.name_hash == hash_murmurhash_empty)
                     continue;
@@ -1121,8 +1109,10 @@ void glitter_editor_ctrl(class_data* data) {
             case DATA_VRFL:
             case DATA_X:
             case DATA_XHD:
-                if (glitter_effect_group_check_model(eg))
-                    glitter_effect_group_load_model(eg, ds);
+                if (!glt_edt->load_data_wait && eg->CheckModel()) {
+                    eg->LoadModel(ds);
+                    glt_edt->load_data_wait = true;
+                }
                 break;
             }
         } break;
@@ -1130,11 +1120,11 @@ void glitter_editor_ctrl(class_data* data) {
         case DATA_FT:
         case DATA_M39: {
             std::vector<uint64_t>& hashes = ds->glitter_list_fnv1a64m;
-            for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
-                if (!*i)
+            for (glitter_effect* i : eg->effects) {
+                if (!i)
                     continue;
 
-                glitter_effect* e = *i;
+                glitter_effect* e = i;
                 memset(e->name, 0, 0x80);
                 if (e->data.name_hash == hash_fnv1a64m_empty)
                     continue;
@@ -1158,7 +1148,20 @@ void glitter_editor_ctrl(class_data* data) {
         } break;
         }
 
-        glt_edt->load_data = false;
+        if (glt_edt->load_data_wait)
+            switch (ds->type) {
+            case DATA_VRFL:
+            case DATA_X:
+            case DATA_XHD:
+                if (!eg->CheckLoadModel()) {
+                    glt_edt->load_data_wait = false;
+                    glt_edt->load_data = false;
+                }
+                break;
+            }
+        else
+            glt_edt->load_data = false;
+
 
         if (!load_success && !glitter_editor_list_open_window(glt_edt->effect_group)) {
             glt_edt->load_error_list_popup = true;
@@ -1168,7 +1171,17 @@ void glitter_editor_ctrl(class_data* data) {
     }
     else if (glt_edt->close) {
     effect_unload:
-        GPM_VAL.FreeScenes();
+        data_struct* ds = &data_list[glt_edt->load_data_type];
+        switch (ds->type) {
+        case DATA_VRFL:
+        case DATA_X:
+        case DATA_XHD:
+            if (eg)
+                eg->FreeModel();
+            break;
+        }
+
+        GPM_VAL.FreeSceneEffect(glt_edt->scene_counter, hash_fnv1a64m_empty);
         GPM_VAL.UnloadEffectGroup(glt_edt->hash);
 
         glitter_editor_reset_draw();
@@ -1193,7 +1206,7 @@ void glitter_editor_ctrl(class_data* data) {
         glt_edt->frame_counter += get_delta_frame();
 
     if (glt_edt->input_reload) {
-        GPM_VAL.FreeScenes();
+        GPM_VAL.FreeSceneEffect(glt_edt->scene_counter, hash_fnv1a64m_empty);
         glt_edt->effect_group->emission = GPM_VAL.emission;
         GPM_VAL.SetFrame(glt_edt->effect_group, &glt_edt->scene, glt_edt->frame_counter,
             glt_edt->old_frame_counter, glt_edt->counter, &glt_edt->random, true);
@@ -1303,18 +1316,18 @@ void glitter_editor_input(class_data* data) {
 }
 
 bool glitter_editor_dispose(class_data* data) {
-    GPM_VAL.FreeScenes();
-
     glitter_editor_struct* glt_edt = (glitter_editor_struct*)data->data;
     if (glt_edt) {
         dtm_stg_unload();
         glitter_editor_gl_free(glt_edt);
+        GPM_VAL.FreeSceneEffect(glt_edt->scene_counter, hash_fnv1a64m_empty);
         GPM_VAL.UnloadEffectGroup(glt_edt->hash);
 
         glt_edt->test = false;
         glt_edt->create_popup = false;
         glt_edt->load = false;
         glt_edt->load_data = false;
+        glt_edt->load_data_wait = false;
         glt_edt->load_popup = false;
         glt_edt->load_data_popup = false;
         glt_edt->load_error_list_popup = false;
@@ -1388,7 +1401,7 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
         }
 
         if (ImGui::BeginMenu("Mode", glt_edt->effect_group ? true : false)) {
-            glitter_effect_group* eg = glt_edt->effect_group;
+            GlitterEffectGroup* eg = glt_edt->effect_group;
             if (eg->type != GLITTER_X) {
                 if (ImGui::MenuItem("F2", 0, false, eg->type != GLITTER_F2)) {
                     eg->type = GLITTER_F2;
@@ -1477,8 +1490,8 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
             ImGui::EndTabBar();
         }
         data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::End();
     }
-    ImGui::End();
     ImGui::PopID();
 
     win_x = min((float_t)width / 4.0f, 400.0f);
@@ -1503,8 +1516,8 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
         if (glt_edt->effect_group && selected)
             glitter_editor_property(glt_edt, data);
         data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::End();
     }
-    ImGui::End();
     ImGui::PopID();
 
     win_x = min((float_t)width / 4.0f, 400.0f);
@@ -1530,8 +1543,8 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
         if (glt_edt->effect_group && selected)
             glitter_editor_curve_editor_selector(glt_edt, data);
         data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::End();
     }
-    ImGui::End();
     ImGui::PopID();
 
     win_x = min((float_t)width / 4.0f, 400.0f);
@@ -1557,8 +1570,8 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
         if (glt_edt->effect_group && selected)
             glitter_editor_curve_editor_property_window(glt_edt, data);
         data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::End();
     }
-    ImGui::End();
     ImGui::PopID();
 
     win_x = min((float_t)width / 4.0f, 400.0f);
@@ -1584,8 +1597,8 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
         if (glt_edt->effect_group && selected)
             glitter_editor_curve_editor(glt_edt);
         data->imgui_focus |= ImGui::IsWindowFocused();
+        ImGui::End();
     }
-    ImGui::End();
     ImGui::PopID();
 }
 
@@ -1594,14 +1607,14 @@ static void glitter_editor_reload(glitter_editor_struct* glt_edt) {
         return;
 
     glt_edt->input_reload = true;
-    glitter_effect_group* eg = glt_edt->effect_group;
-    glitter_scene* sc = glt_edt->scene;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
+    GlitterScene* sc = glt_edt->scene;
     sc->type = eg->type;
-    for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
-        if (!*i)
+    for (glitter_effect*& i : eg->effects) {
+        if (!i)
             continue;
 
-        glitter_effect* effect = *i;
+        glitter_effect* effect = i;
         size_t len = utf8_length(effect->name);
         if (eg->type != GLITTER_FT)
             effect->data.name_hash = hash_murmurhash(effect->name,
@@ -1610,29 +1623,27 @@ static void glitter_editor_reload(glitter_editor_struct* glt_edt) {
             effect->data.name_hash = hash_fnv1a64m(effect->name,
                 min(len, 0x7F), false);
 
-        for (glitter_curve** c = effect->animation.begin; c != effect->animation.end; c++)
-            if (*c)
-                glitter_curve_recalculate(eg->type, *c);
+        for (GlitterCurve*& c : effect->animation.curves)
+            if (c)
+                glitter_curve_recalculate(eg->type, c);
 
-        for (glitter_emitter** j = effect->emitters.begin;
-            j != effect->emitters.end; j++) {
-            if (!*j)
+        for (glitter_emitter*& j : effect->emitters) {
+            if (!j)
                 continue;
 
-            glitter_emitter* emitter = *j;
-            for (glitter_curve** c = emitter->animation.begin; c != emitter->animation.end; c++)
-                if (*c)
-                    glitter_curve_recalculate(eg->type, *c);
+            glitter_emitter* emitter = j;
+            for (GlitterCurve*& c : emitter->animation.curves)
+                if (c)
+                    glitter_curve_recalculate(eg->type, c);
 
-            for (glitter_particle** k = emitter->particles.begin;
-                k != emitter->particles.end; k++) {
-                if (!*k)
+            for (glitter_particle*& k : emitter->particles) {
+                if (!k)
                     continue;
 
-                glitter_particle* particle = *k;
-                for (glitter_curve** c = particle->animation.begin; c != particle->animation.end; c++)
-                    if (*c)
-                        glitter_curve_recalculate(eg->type, *c);
+                glitter_particle* particle = k;
+                for (GlitterCurve*& c : particle->animation.curves)
+                    if (c)
+                        glitter_curve_recalculate(eg->type, c);
             }
         }
     }
@@ -1730,7 +1741,7 @@ static void glitter_editor_save_as_window(glitter_editor_struct* glt_edt) {
 
 static void glitter_editor_load_file(glitter_editor_struct* glt_edt, char* path, char* file) {
     if (!glt_edt->load_wait) {
-        GPM_VAL.FreeScenes();
+        GPM_VAL.FreeSceneEffect(glt_edt->scene_counter, hash_fnv1a64m_empty);
         GPM_VAL.UnloadEffectGroup(glt_edt->hash);
 
         glitter_editor_reset_draw();
@@ -1739,24 +1750,30 @@ static void glitter_editor_load_file(glitter_editor_struct* glt_edt, char* path,
 
         glt_edt->effect_group = 0;
         glt_edt->scene = 0;
-        glt_edt->hash = GPM_VAL.LoadFile(glt_edt->load_glt_type, file, path, -1.0f, false);
         glt_edt->load_wait = true;
     }
 
-    if (GPM_VAL.CheckNoFileReaders(glt_edt->hash)) {
-        glitter_effect_group* eg = GPM_VAL.GetEffectGroup(glt_edt->hash);
+    if (!glt_edt->load_data_wait && GPM_VAL.GetEffectGroup(glt_edt->hash))
+        return;
+
+    if (!glt_edt->load_data_wait) {
+        glt_edt->hash = GPM_VAL.LoadFile(glt_edt->load_glt_type, file, path, -1.0f, false);
+        glt_edt->load_data_wait = true;
+    }
+    else if (GPM_VAL.CheckNoFileReaders(glt_edt->hash)) {
+        GlitterEffectGroup* eg = GPM_VAL.GetEffectGroup(glt_edt->hash);
         GPM_VAL.LoadScene(glt_edt->hash, eg->type != GLITTER_FT
             ? hash_murmurhash_empty : hash_fnv1a64m_empty, false);
-        glitter_scene* sc = GPM_VAL.GetScene(glt_edt->hash);
+        GlitterScene* sc = GPM_VAL.GetScene(glt_edt->hash);
         enum_or(sc->flags, GLITTER_SCENE_EDITOR);
         bool lst_not_valid = true;
         if (glt_edt->load_glt_type == GLITTER_FT) {
             lst_not_valid = false;
-            for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
-                if (!*i)
+            for (glitter_effect*& i : eg->effects) {
+                if (!i)
                     continue;
 
-                glitter_effect* e = *i;
+                glitter_effect* e = i;
                 size_t len = utf8_length(e->name);
                 if (e->data.name_hash != hash_fnv1a64m(e->name, min(len, 0x80), false)) {
                     lst_not_valid = true;
@@ -1778,6 +1795,7 @@ static void glitter_editor_load_file(glitter_editor_struct* glt_edt, char* path,
         glt_edt->load_data_popup = lst_not_valid;
         glt_edt->load = false;
         glt_edt->load_wait = false;
+        glt_edt->load_data_wait = false;
     }
 
     glitter_editor_reset(glt_edt);
@@ -1842,10 +1860,10 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, char* path,
         stream s;
         io_open(&s, list_temp, "wb");
         if (s.io.stream) {
-            glitter_effect_group* eg = glt_edt->effect_group;
-            for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++)
-                if (*i) {
-                    io_write(&s, (*i)->name, utf8_length((*i)->name));
+            GlitterEffectGroup* eg = glt_edt->effect_group;
+            for (glitter_effect*& i : eg->effects)
+                if (i) {
+                    io_write(&s, i->name, utf8_length(i->name));
                     io_write_char(&s, '\n');
                 }
         }
@@ -1859,7 +1877,7 @@ End:
     f2_struct_free(&st);
 }
 
-static bool glitter_editor_list_open_window(glitter_effect_group* eg) {
+static bool glitter_editor_list_open_window(GlitterEffectGroup* eg) {
     if (FAILED(CoInitializeEx(0, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return false;
 
@@ -1908,11 +1926,11 @@ static bool glitter_editor_list_open_window(glitter_effect_group* eg) {
                 }
 
             ret = true;
-            for (glitter_effect** i = eg->effects.begin; i != eg->effects.end; i++) {
-                if (!*i)
+            for (glitter_effect*& i : eg->effects) {
+                if (!i)
                     continue;
 
-                glitter_effect* e = *i;
+                glitter_effect* e = i;
                 memset(e->name, 0, 0x80);
                 if (e->data.name_hash == empty_hash)
                     continue;
@@ -1968,7 +1986,7 @@ static bool glitter_editor_resource_import(glitter_editor_struct* glt_edt) {
         txp* tex;
         uint32_t index;
 
-        glitter_effect_group* eg = glt_edt->effect_group;
+        GlitterEffectGroup* eg = glt_edt->effect_group;
         int32_t rc = eg->resources_count;
         uint64_t* rh = eg->resource_hashes.data();
         for (int32_t i = 0; i < rc; i++)
@@ -2042,7 +2060,7 @@ static bool glitter_editor_resource_export(glitter_editor_struct* glt_edt) {
         wchar_t* p = str_utils_wsplit_right_get_left(file, L'.');
         dds* d = dds_init();
 
-        glitter_effect_group* eg = glt_edt->effect_group;
+        GlitterEffectGroup* eg = glt_edt->effect_group;
         txp& tex = eg->resources_tex.textures[sel_rsrc];
 
         txp_format format = tex.mipmaps[0].format;
@@ -2077,7 +2095,7 @@ static bool glitter_editor_resource_export(glitter_editor_struct* glt_edt) {
 }
 
 static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_data* data) {
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
 
     float_t win_x;
     float_t win_y;
@@ -2097,7 +2115,7 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
 
     if (!ImGui::Begin("Glitter Editor Test Window", &glt_edt->test, window_flags)) {
         data->imgui_focus |= ImGui::IsWindowFocused();
-        goto End;
+        return;
     }
 
     if (imguiButton("Reset Camera (R)"))
@@ -2209,11 +2227,9 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
         ctrl = GPM_VAL.GetCtrlCount(GLITTER_PARTICLE_MESH);
         disp = GPM_VAL.GetDispCount(GLITTER_PARTICLE_MESH);
         ImGui::Text(" Mesh: ctrl%lld, disp%lld", ctrl, disp);
+        ImGui::End();
     }
     ImGui::PopStyleColor(2);
-
-End:
-    ImGui::End();
 }
 
 static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
@@ -2226,15 +2242,16 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
 
     ImGuiTreeNodeFlags tree_node_flags;
 
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
     ImGui::PushID(eg);
     ssize_t i_idx = 1;
-    for (glitter_effect** i = eg->effects.begin;
-        i != eg->effects.end; i++, i_idx++) {
-        if (!*i)
+    for (glitter_effect*& i : eg->effects) {
+        if (!i) {
+            i_idx++;
             continue;
+        }
 
-        glitter_effect* effect = *i;
+        glitter_effect* effect = i;
         tree_node_flags = tree_node_base_flags;
         if (effect == glt_edt->selected_effect && !glt_edt->selected_emitter
             && !glt_edt->selected_particle)
@@ -2260,12 +2277,13 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
                 i_idx, 0, 0, GLITTER_EDITOR_SELECTED_EFFECT);
 
             ssize_t j_idx = 1;
-            for (glitter_emitter** j = effect->emitters.begin;
-                j != effect->emitters.end; j++, j_idx++) {
-                if (!*j)
+            for (glitter_emitter*& j : effect->emitters) {
+                if (!j) {
+                    j_idx++;
                     continue;
+                }
 
-                glitter_emitter* emitter = *j;
+                glitter_emitter* emitter = j;
                 tree_node_flags = tree_node_base_flags;
                 if (emitter == glt_edt->selected_emitter && !glt_edt->selected_particle)
                     tree_node_flags |= ImGuiTreeNodeFlags_Selected;
@@ -2291,12 +2309,13 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
                         i_idx, j_idx, 0, GLITTER_EDITOR_SELECTED_EMITTER);
 
                     ssize_t k_idx = 1;
-                    for (glitter_particle** k = emitter->particles.begin;
-                        k != emitter->particles.end; k++, k_idx++) {
-                        if (!*k)
+                    for (glitter_particle*& k : emitter->particles) {
+                        if (!k) {
+                            k_idx++;
                             continue;
+                        }
 
-                        glitter_particle* particle = *k;
+                        glitter_particle* particle = k;
                         tree_node_flags = tree_node_base_flags;
 
                         const char* ptcl_str;
@@ -2326,6 +2345,7 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
                         glitter_editor_effects_context_menu(glt_edt, effect, emitter, particle,
                             i_idx, j_idx, k_idx, GLITTER_EDITOR_SELECTED_PARTICLE);
                         ImGui::PopID();
+                        k_idx++;
                     }
                     ImGui::TreePop();
                 }
@@ -2333,6 +2353,7 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
                     glitter_editor_effects_context_menu(glt_edt, effect, emitter, 0,
                         i_idx, j_idx, 0, GLITTER_EDITOR_SELECTED_EMITTER);
                 ImGui::PopID();
+                j_idx++;
             }
             ImGui::TreePop();
         }
@@ -2340,6 +2361,7 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
             glitter_editor_effects_context_menu(glt_edt, effect, 0, 0,
                 i_idx, 0, 0, GLITTER_EDITOR_SELECTED_EFFECT);
         ImGui::PopID();
+        i_idx++;
     }
     ImGui::PopID();
 }
@@ -2435,7 +2457,7 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
         else
             eff_str = "%s (%08X)";
 
-        glitter_effect_group* eg = glt_edt->effect_group;
+        GlitterEffectGroup* eg = glt_edt->effect_group;
         ImGui::Text(eff_str, effect->name, (uint32_t)((size_t)effect * hash_fnv1a64m_empty));
         ImGui::Separator();
         if (ImGui::MenuItem("Duplicate Effect")) {
@@ -2456,7 +2478,7 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
             close = true;
         }
 
-        if (ImGui::MenuItem("Move Effect Down", 0, false, i_idx < vector_old_length(eg->effects))) {
+        if (ImGui::MenuItem("Move Effect Down", 0, false, i_idx < (ssize_t)eg->effects.size())) {
             enum_or(glt_edt->effect_flags, GLITTER_EDITOR_MOVE_DOWN);
             glt_edt->selected_effect = effect;
             close = true;
@@ -2509,8 +2531,7 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
         }
 
         if (ImGui::MenuItem("Move Emitter Down", 0, false,
-            j_idx < sel_efct->emitters.end
-            - sel_efct->emitters.begin)) {
+            j_idx < (ssize_t)sel_efct->emitters.size())) {
             enum_or(glt_edt->emitter_flags, GLITTER_EDITOR_MOVE_DOWN);
             glt_edt->selected_emitter = emitter;
             close = true;
@@ -2568,8 +2589,7 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
         }
 
         if (ImGui::MenuItem("Move Particle Down", 0, false,
-            k_idx < sel_emit->particles.end
-            - sel_emit->particles.begin)) {
+            k_idx < (ssize_t)sel_emit->particles.size())) {
             enum_or(glt_edt->particle_flags, GLITTER_EDITOR_MOVE_DOWN);
             glt_edt->selected_particle = particle;
             close = true;
@@ -2626,7 +2646,7 @@ static void glitter_editor_resources(glitter_editor_struct* glt_edt) {
     tree_node_base_flags |= ImGuiTreeNodeFlags_OpenOnArrow;
     tree_node_base_flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
     texture** r = eg->resources;
     int32_t rc = eg->resources_count;
     uint64_t* rh = eg->resource_hashes.data();
@@ -2700,7 +2720,7 @@ static void glitter_editor_resources_context_menu(glitter_editor_struct* glt_edt
     }
     else {
         size_t i = resource;
-        glitter_effect_group* eg = glt_edt->effect_group;
+        GlitterEffectGroup* eg = glt_edt->effect_group;
         ssize_t rc = eg->resources_count;
         uint64_t* rh = eg->resource_hashes.data();
         ImGui::Text("Texture %lld (%016llX)", i + 1, rh[i]);
@@ -2745,7 +2765,7 @@ End:
 }
 
 static void glitter_editor_play_manager(glitter_editor_struct* glt_edt) {
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
 
     if (imguiButton("Reset Camera (R)"))
         input_reset = true;
@@ -2844,58 +2864,60 @@ static void glitter_editor_property(glitter_editor_struct* glt_edt, class_data* 
 static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class_data* data) {
     imguiSetColumnSpace(2.0f / 5.0f);
 
-    glitter_effect_group* eg = glt_edt->effect_group;
-    glitter_effect effect = *glt_edt->selected_effect;
+    uint64_t hash_before = hash_fnv1a64m(glt_edt->selected_effect, sizeof(glitter_effect), false);
+
+    GlitterEffectGroup* eg = glt_edt->effect_group;
+    glitter_effect* effect = glt_edt->selected_effect;
     bool changed = false;
 
     glitter_curve_type_flags flags = glitter_effect_curve_flags;
     for (int32_t i = GLITTER_CURVE_TRANSLATION_X; i <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND; i++)
-        for (glitter_curve** j = effect.animation.begin; j != effect.animation.end; j++)
-            if (*j && (*j)->type == i)
+        for (GlitterCurve*& j : effect->animation.curves)
+            if (j && j->type == i)
                 enum_and(flags, ~(1 << i));
 
-    const size_t name_size = sizeof(effect.name);
-    char name[sizeof(effect.name)];
-    memcpy(name, effect.name, name_size);
+    const size_t name_size = sizeof(effect->name);
+    char name[sizeof(effect->name)];
+    memcpy(name, effect->name, name_size);
     if (imguiColumnInputText("Name", name, name_size, 0, 0, 0)) {
-        effect.data.name_hash = eg->type != GLITTER_FT
+        effect->data.name_hash = eg->type != GLITTER_FT
             ? hash_utf8_murmurhash(name, 0, false) : hash_utf8_fnv1a64m(name, false);
-        memcpy(effect.name, name, name_size - 1);
+        memcpy(effect->name, name, name_size - 1);
         changed = true;
     }
 
     if (imguiColumnDragInt("Appear Time",
-        &effect.data.appear_time, 1.0f, 0x0000, 0x7FFF, "%d", 0))
+        &effect->data.appear_time, 1.0f, 0x0000, 0x7FFF, "%d", 0))
         changed = true;
 
     if (imguiColumnDragInt("Life Time",
-        &effect.data.life_time, 1.0f, 0x0000, 0x7FFF - effect.data.appear_time, "%d", 0))
+        &effect->data.life_time, 1.0f, 0x0000, 0x7FFF - effect->data.appear_time, "%d", 0))
         changed = true;
 
     if (imguiColumnDragInt("Start Time",
-        &effect.data.start_time, 1.0f, 0x0000, 0x7FFF - effect.data.appear_time, "%d", 0))
+        &effect->data.start_time, 1.0f, 0x0000, 0x7FFF - effect->data.appear_time, "%d", 0))
         changed = true;
 
     ImGui::Separator();
 
     if (imguiColumnDragVec3Flag("Translation",
-        &effect.translation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &effect->translation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         flags & GLITTER_CURVE_TYPE_TRANSLATION_XYZ))
         changed = true;
 
     vec3 rotation;
-    vec3_mult_scalar(effect.rotation, RAD_TO_DEG_FLOAT, rotation);
+    vec3_mult_scalar(effect->rotation, RAD_TO_DEG_FLOAT, rotation);
     if (imguiColumnDragVec3Flag("Rotation",
         &rotation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         (flags & GLITTER_CURVE_TYPE_ROTATION_XYZ) >> 3)) {
-        vec3_mult_scalar(rotation, DEG_TO_RAD_FLOAT, effect.rotation);
+        vec3_mult_scalar(rotation, DEG_TO_RAD_FLOAT, effect->rotation);
         changed = true;
     }
 
     if (imguiColumnDragVec3Flag("Scale",
-        &effect.scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &effect->scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         (flags & GLITTER_CURVE_TYPE_SCALE_XYZ) >> 6))
         changed = true;
@@ -2903,114 +2925,117 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
     ImGui::Separator();
 
     if (imguiCheckboxFlags("Loop",
-        (uint32_t*)&effect.data.flags,
+        (uint32_t*)&effect->data.flags,
         GLITTER_EFFECT_LOOP))
         changed = true;
 
     if (imguiCheckboxFlags("Draw as Transparent",
-        (uint32_t*)&effect.data.flags,
+        (uint32_t*)&effect->data.flags,
         GLITTER_EFFECT_ALPHA))
         changed = true;
 
     if (imguiCheckboxFlags("Fog",
-        (uint32_t*)&effect.data.flags,
+        (uint32_t*)&effect->data.flags,
         GLITTER_EFFECT_FOG))
         changed = true;
 
     if (imguiCheckboxFlags("Fog Height",
-        (uint32_t*)&effect.data.flags,
+        (uint32_t*)&effect->data.flags,
         GLITTER_EFFECT_FOG_HEIGHT))
         changed = true;
 
     if (imguiCheckboxFlags("Use External Emission",
-        (uint32_t*)&effect.data.flags,
+        (uint32_t*)&effect->data.flags,
         GLITTER_EFFECT_EMISSION))
         changed = true;
 
     if (eg->type == GLITTER_X)
         if (imguiCheckboxFlags("Use Seed",
-            (uint32_t*)&effect.data.flags,
+            (uint32_t*)&effect->data.flags,
             GLITTER_EFFECT_USE_SEED))
             changed = true;
 
-    if (effect.data.flags & GLITTER_EFFECT_FOG && effect.data.flags & GLITTER_EFFECT_FOG_HEIGHT) {
-        enum_and(effect.data.flags, ~GLITTER_EFFECT_FOG_HEIGHT);
+    if (effect->data.flags & GLITTER_EFFECT_FOG && effect->data.flags & GLITTER_EFFECT_FOG_HEIGHT) {
+        enum_and(effect->data.flags, ~GLITTER_EFFECT_FOG_HEIGHT);
         changed = true;
     }
 
-    if (effect.data.flags & GLITTER_EFFECT_FOG_HEIGHT && effect.data.flags & GLITTER_EFFECT_FOG) {
-        enum_and(effect.data.flags, ~GLITTER_EFFECT_FOG);
+    if (effect->data.flags & GLITTER_EFFECT_FOG_HEIGHT && effect->data.flags & GLITTER_EFFECT_FOG) {
+        enum_and(effect->data.flags, ~GLITTER_EFFECT_FOG);
         changed = true;
     }
 
     if (eg->type != GLITTER_X) {
-        bool set_emission = effect.version == 7;
+        bool set_emission = effect->version == 7;
         if (imguiCheckbox("Set Emission",
             &set_emission)) {
-            effect.version = set_emission ? 7 : 6;
+            effect->version = set_emission ? 7 : 6;
             changed = true;
         }
 
-        if (effect.version == 7 && imguiColumnDragFloat("Emission",
-            &effect.data.emission, 0.0001f, 0.0f, HALF_MAX, "%g",
+        if (effect->version == 7 && imguiColumnDragFloat("Emission",
+            &effect->data.emission, 0.0001f, 0.0f, HALF_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
     }
     else {
-        if (effect.data.flags & GLITTER_EFFECT_USE_SEED
-            && imguiColumnInputScalar("Seed", ImGuiDataType_U32, &effect.data.seed,
+        if (effect->data.flags & GLITTER_EFFECT_USE_SEED
+            && imguiColumnInputScalar("Seed", ImGuiDataType_U32, &effect->data.seed,
                 0, 0, "%08X", ImGuiInputTextFlags_CharsHexadecimal))
             changed = true;
 
         if (imguiColumnDragFloat("Emission",
-            &effect.data.emission, 0.0001f, 0.0f, HALF_MAX, "%g",
+            &effect->data.emission, 0.0001f, 0.0f, HALF_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
     }
 
     int32_t type;
-    if (effect.data.flags & GLITTER_EFFECT_LOCAL)
+    if (effect->data.flags & GLITTER_EFFECT_LOCAL)
         type = 1;
-    else if (effect.data.ext_anim)
-        type = effect.data.ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM ? 2 : 3;
+    else if (effect->data.ext_anim)
+        type = effect->data.ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM ? 2 : 3;
     else
         type = 0;
 
     if (imguiColumnComboBox("Type", glitter_effect_type_name,
         4, &type, 0, false, &data->imgui_focus)) {
         if (type == 1) {
-            enum_or(effect.data.flags, GLITTER_EFFECT_LOCAL);
-            free(effect.data.ext_anim);
+            enum_or(effect->data.flags, GLITTER_EFFECT_LOCAL);
+            free(effect->data.ext_anim);
         }
         else {
-            enum_and(effect.data.flags, ~GLITTER_EFFECT_LOCAL);
+            enum_and(effect->data.flags, ~GLITTER_EFFECT_LOCAL);
             if (type == 2 || type == 3) {
-                if (!effect.data.ext_anim)
-                    effect.data.ext_anim = force_malloc_s(glitter_effect_ext_anim, 1);
+                if (!effect->data.ext_anim)
+                    effect->data.ext_anim = force_malloc_s(glitter_effect_ext_anim, 1);
                 if (type == 2)
-                    enum_or(effect.data.ext_anim->flags, GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM);
+                    enum_or(effect->data.ext_anim->flags, GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM);
                 else
-                    enum_and(effect.data.ext_anim->flags, ~GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM);
+                    enum_and(effect->data.ext_anim->flags, ~GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM);
             }
             else
-                free(effect.data.ext_anim);
+                free(effect->data.ext_anim);
         }
         changed = true;
     }
 
-    if (~effect.data.flags & GLITTER_EFFECT_LOCAL && effect.data.ext_anim) {
+    if (~effect->data.flags & GLITTER_EFFECT_LOCAL && effect->data.ext_anim) {
         ImGui::Separator();
 
-        bool ext_anim_changed = false;
+        bool changed = false;
         if (eg->type == GLITTER_X) {
-            glitter_effect_ext_anim_x ext_anim = *effect.data.ext_anim_x;
-            if (ext_anim.flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
+            uint64_t hash_before = hash_fnv1a64m(effect->data.ext_anim_x,
+                sizeof(glitter_effect_ext_anim_x), false);
+
+            glitter_effect_ext_anim_x* ext_anim = effect->data.ext_anim_x;
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
                 const int32_t max_chara = 4;
                 if (imguiColumnComboBox("Chara Index", glitter_effect_ext_anim_index_name,
-                    max_chara, &ext_anim.chara_index, 0, false, &data->imgui_focus))
-                    ext_anim_changed = true;
+                    max_chara, &ext_anim->chara_index, 0, false, &data->imgui_focus))
+                    changed = true;
 
-                int32_t node_index = ext_anim.node_index;
+                int32_t node_index = ext_anim->node_index;
                 if (node_index < GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD
                     || node_index > GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
                     node_index = GLITTER_EFFECT_EXT_ANIM_CHARA_NONE;
@@ -3024,83 +3049,84 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
                         || node_index > GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
                         node_index = GLITTER_EFFECT_EXT_ANIM_CHARA_NONE;
 
-                    if (ext_anim.node_index != node_index) {
-                        ext_anim.node_index = (glitter_effect_ext_anim_chara_node)node_index;
-                        ext_anim_changed = true;
+                    if (ext_anim->node_index != node_index) {
+                        ext_anim->node_index = (glitter_effect_ext_anim_chara_node)node_index;
+                        changed = true;
                     }
                 }
             }
             else {
-                uint64_t object_hash = ext_anim.object_hash;
+                uint64_t object_hash = ext_anim->object_hash;
                 if (glitter_editor_hash_input(glt_edt, "Object Hash", &object_hash)) {
-                    ext_anim.object_hash = (uint32_t)object_hash;
-                    ext_anim_changed = true;
+                    ext_anim->object_hash = (uint32_t)object_hash;
+                    changed = true;
                 }
 
-                imguiColumnInputScalar("Instance ID", ImGuiDataType_U32, &ext_anim.instance_id,
+                imguiColumnInputScalar("Instance ID", ImGuiDataType_U32, &ext_anim->instance_id,
                     0, 0, "%d", ImGuiInputTextFlags_CharsDecimal);
 
-                uint64_t file_name_hash = ext_anim.file_name_hash;
+                uint64_t file_name_hash = ext_anim->file_name_hash;
                 if (glitter_editor_hash_input(glt_edt, "File Name Hash", &file_name_hash)) {
-                    ext_anim.file_name_hash = (uint32_t)file_name_hash;
-                    ext_anim_changed = true;
+                    ext_anim->file_name_hash = (uint32_t)file_name_hash;
+                    changed = true;
                 }
 
-                const size_t mesh_name_size = sizeof(ext_anim.mesh_name);
-                char mesh_name[sizeof(ext_anim.mesh_name)];
-                memcpy(mesh_name, ext_anim.mesh_name, mesh_name_size);
+                const size_t mesh_name_size = sizeof(ext_anim->mesh_name);
+                char mesh_name[sizeof(ext_anim->mesh_name)];
+                memcpy(mesh_name, ext_anim->mesh_name, mesh_name_size);
                 if (imguiColumnInputText("Mesh Name", mesh_name, mesh_name_size, 0, 0, 0)) {
-                    memcpy(ext_anim.mesh_name, mesh_name, mesh_name_size);
-                    ext_anim_changed = true;
+                    memcpy(ext_anim->mesh_name, mesh_name, mesh_name_size);
+                    changed = true;
                 }
             }
 
             if (imguiCheckboxFlags("Trans Only",
-                (uint32_t*)&ext_anim.flags,
+                (uint32_t*)&ext_anim->flags,
                 GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY))
-                ext_anim_changed = true;
+                changed = true;
 
             if (imguiCheckboxFlags("No Trans X",
-                (uint32_t*)&ext_anim.flags,
+                (uint32_t*)&ext_anim->flags,
                 GLITTER_EFFECT_EXT_ANIM_NO_TRANS_X))
-                ext_anim_changed = true;
+                changed = true;
 
             if (imguiCheckboxFlags("No Trans Y",
-                (uint32_t*)&ext_anim.flags,
+                (uint32_t*)&ext_anim->flags,
                 GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Y))
-                ext_anim_changed = true;
+                changed = true;
 
             if (imguiCheckboxFlags("No Trans Z",
-                (uint32_t*)&ext_anim.flags,
+                (uint32_t*)&ext_anim->flags,
                 GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Z))
-                ext_anim_changed = true;
+                changed = true;
 
             if (imguiCheckboxFlags("Draw Only when Chara Visible",
-                (uint32_t*)&ext_anim.flags,
+                (uint32_t*)&ext_anim->flags,
                 GLITTER_EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA))
-                ext_anim_changed = true;
+                changed = true;
 
             if (imguiCheckboxFlags("Get Then Update",
-                (uint32_t*)&ext_anim.flags,
+                (uint32_t*)&ext_anim->flags,
                 GLITTER_EFFECT_EXT_ANIM_GET_THEN_UPDATE))
-                ext_anim_changed = true;
-
-            uint64_t hash1 = hash_fnv1a64m(effect.data.ext_anim_x, sizeof(glitter_effect_ext_anim_x), false);
-            uint64_t hash2 = hash_fnv1a64m(&ext_anim, sizeof(glitter_effect_ext_anim_x), false);
-            if (hash1 != hash2 && ext_anim_changed) {
-                *effect.data.ext_anim_x = ext_anim;
                 changed = true;
-            }
+
+            uint64_t hash_after = hash_fnv1a64m(effect->data.ext_anim_x,
+                sizeof(glitter_effect_ext_anim_x), false);
+            if (hash_before != hash_after && changed)
+                glt_edt->input_reload = true;
         }
         else {
-            glitter_effect_ext_anim ext_anim = *effect.data.ext_anim;
-            if (ext_anim.flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
+            uint64_t hash_before = hash_fnv1a64m(effect->data.ext_anim,
+                sizeof(glitter_effect_ext_anim), false);
+
+            glitter_effect_ext_anim* ext_anim = effect->data.ext_anim;
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
                 const int32_t max_chara = eg->type == GLITTER_FT ? 6 : 3;
                 if (imguiColumnComboBox("Chara Index", glitter_effect_ext_anim_index_name,
-                    max_chara, &ext_anim.chara_index, 0, false, &data->imgui_focus))
-                    ext_anim_changed = true;
+                    max_chara, &ext_anim->chara_index, 0, false, &data->imgui_focus))
+                    changed = true;
 
-                int32_t node_index = ext_anim.node_index;
+                int32_t node_index = ext_anim->node_index;
                 if (node_index < GLITTER_EFFECT_EXT_ANIM_CHARA_HEAD
                     || node_index > GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
                     node_index = GLITTER_EFFECT_EXT_ANIM_CHARA_NONE;
@@ -3114,61 +3140,58 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
                         || node_index > GLITTER_EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
                         node_index = GLITTER_EFFECT_EXT_ANIM_CHARA_NONE;
 
-                    if (ext_anim.node_index != node_index) {
-                        ext_anim.node_index = (glitter_effect_ext_anim_chara_node)node_index;
-                        ext_anim_changed = true;
+                    if (ext_anim->node_index != node_index) {
+                        ext_anim->node_index = (glitter_effect_ext_anim_chara_node)node_index;
+                        changed = true;
                     }
                 }
             }
             else {
-                if (glitter_editor_hash_input(glt_edt, "Object Hash", &ext_anim.object_hash)) {
-                    ext_anim.object = glitter_effect_ext_anim_get_object_info(ext_anim.object_hash);
-                    ext_anim_changed = true;
+                if (glitter_editor_hash_input(glt_edt, "Object Hash", &ext_anim->object_hash)) {
+                    ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
+                    changed = true;
                 }
 
-                const size_t mesh_name_size = sizeof(ext_anim.mesh_name);
-                char mesh_name[sizeof(ext_anim.mesh_name)];
-                memcpy(mesh_name, ext_anim.mesh_name, mesh_name_size);
+                const size_t mesh_name_size = sizeof(ext_anim->mesh_name);
+                char mesh_name[sizeof(ext_anim->mesh_name)];
+                memcpy(mesh_name, ext_anim->mesh_name, mesh_name_size);
                 if (imguiColumnInputText("Mesh Name", mesh_name, mesh_name_size, 0, 0, 0)) {
-                    memcpy(ext_anim.mesh_name, mesh_name, mesh_name_size);
-                    ext_anim_changed = true;
+                    memcpy(ext_anim->mesh_name, mesh_name, mesh_name_size);
+                    changed = true;
                 }
             }
 
             if (imguiCheckboxFlags("Trans Only",
-                (uint32_t*)&ext_anim.flags,
+                (uint32_t*)&ext_anim->flags,
                 GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY))
-                ext_anim_changed = true;
-
-            uint64_t hash1 = hash_fnv1a64m(effect.data.ext_anim, sizeof(glitter_effect_ext_anim), false);
-            uint64_t hash2 = hash_fnv1a64m(&ext_anim, sizeof(glitter_effect_ext_anim), false);
-            if (hash1 != hash2 && ext_anim_changed) {
-                *effect.data.ext_anim = ext_anim;
                 changed = true;
-            }
+
+            uint64_t hash_after = hash_fnv1a64m(effect->data.ext_anim,
+                sizeof(glitter_effect_ext_anim), false);
+            if (hash_before != hash_after && changed)
+                glt_edt->input_reload = true;
         }
     }
 
-    uint64_t hash1 = hash_fnv1a64m(glt_edt->selected_effect, sizeof(glitter_effect), false);
-    uint64_t hash2 = hash_fnv1a64m(&effect, sizeof(glitter_effect), false);
-    if (hash1 != hash2 && changed) {
-        for (glitter_emitter** i = effect.emitters.begin; i != effect.emitters.end; i++) {
-            if (!*i)
+    uint64_t hash_after = hash_fnv1a64m(glt_edt->selected_effect, sizeof(glitter_effect), false);
+    if (hash_before != hash_after && changed) {
+        for (glitter_emitter*& i : effect->emitters) {
+            if (!i)
                 continue;
 
-            glitter_emitter* emitter = *i;
-            for (glitter_particle** j = emitter->particles.begin; j != emitter->particles.end; j++) {
-                if (!*j)
+            glitter_emitter* emitter = i;
+            for (glitter_particle*& j : emitter->particles) {
+                if (!j)
                     continue;
 
-                glitter_particle* particle = *j;
+                glitter_particle* particle = j;
                 glitter_particle_flag flags = particle->data.flags;
-                if (effect.data.flags & GLITTER_EFFECT_LOCAL)
+                if (effect->data.flags & GLITTER_EFFECT_LOCAL)
                     enum_or(flags, GLITTER_PARTICLE_LOCAL);
                 else
                     enum_and(flags, ~GLITTER_PARTICLE_LOCAL);
 
-                if (effect.data.flags & GLITTER_EFFECT_EMISSION
+                if (effect->data.flags & GLITTER_EFFECT_EMISSION
                     || particle->data.emission >= glitter_min_emission)
                     enum_or(flags, GLITTER_PARTICLE_EMISSION);
                 else
@@ -3177,7 +3200,6 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
             }
         }
         glt_edt->input_reload = true;
-        *glt_edt->selected_effect = effect;
     }
 
     imguiSetDefaultColumnSpace();
@@ -3189,14 +3211,16 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
 
     imguiSetColumnSpace(2.0f / 5.0f);
 
-    glitter_effect_group* eg = glt_edt->effect_group;
-    glitter_emitter emitter = *glt_edt->selected_emitter;
+    uint64_t hash_before = hash_fnv1a64m(glt_edt->selected_emitter, sizeof(glitter_emitter), false);
+
+    GlitterEffectGroup* eg = glt_edt->effect_group;
+    glitter_emitter* emitter = glt_edt->selected_emitter;
     bool changed = false;
 
     glitter_curve_type_flags flags = glitter_emitter_curve_flags;
     for (int32_t i = GLITTER_CURVE_TRANSLATION_X; i <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND; i++)
-        for (glitter_curve** j = emitter.animation.begin; j != emitter.animation.end; j++)
-            if (*j && (*j)->type == i)
+        for (GlitterCurve*& j : emitter->animation.curves)
+            if (j && j->type == i)
                 enum_and(flags, ~(1 << i));
 
     ImGui::Text("Parent Effect:\nAppear Time: %d; Life Time: %d; Start Time: %d",
@@ -3207,39 +3231,39 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
     ImGui::Separator();
 
     if (imguiColumnDragInt("Start Time",
-        &emitter.data.start_time, 1.0f, 0x0000, 0x7FFF, "%d", 0))
+        &emitter->data.start_time, 1.0f, 0x0000, 0x7FFF, "%d", 0))
         changed = true;
 
     if (imguiColumnDragInt("Life Time",
-        &emitter.data.life_time, 1.0f, 0x0000, 0x7FFF, "%d", 0))
+        &emitter->data.life_time, 1.0f, 0x0000, 0x7FFF, "%d", 0))
         changed = true;
 
-    if (imguiColumnDragInt("Loop Start Time", &emitter.data.loop_start_time,
-        1.0f, -0x0001, emitter.data.start_time + emitter.data.life_time, "%d", 0)) {
-        if (emitter.data.loop_start_time < emitter.data.start_time)
-            emitter.data.loop_start_time = 0;
-        changed = emitter.data.loop_start_time != sel_emit->data.loop_start_time;
+    if (imguiColumnDragInt("Loop Start Time", &emitter->data.loop_start_time,
+        1.0f, -0x0001, emitter->data.start_time + emitter->data.life_time, "%d", 0)) {
+        if (emitter->data.loop_start_time < emitter->data.start_time)
+            emitter->data.loop_start_time = 0;
+        changed = emitter->data.loop_start_time != sel_emit->data.loop_start_time;
     }
 
-    if (imguiColumnDragInt("Loop End Time", &emitter.data.loop_end_time,
-        1.0f, -0x0001, emitter.data.start_time + emitter.data.life_time, "%d", 0)) {
-        if (emitter.data.loop_end_time < 0)
-            emitter.data.loop_end_time = -1;
-        changed = emitter.data.loop_end_time != sel_emit->data.loop_end_time;
+    if (imguiColumnDragInt("Loop End Time", &emitter->data.loop_end_time,
+        1.0f, -0x0001, emitter->data.start_time + emitter->data.life_time, "%d", 0)) {
+        if (emitter->data.loop_end_time < 0)
+            emitter->data.loop_end_time = -1;
+        changed = emitter->data.loop_end_time != sel_emit->data.loop_end_time;
     }
 
     ImGui::Separator();
 
     if (imguiColumnDragVec3Flag("Translation",
-        &emitter.translation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &emitter->translation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         flags & GLITTER_CURVE_TYPE_TRANSLATION_XYZ))
         changed = true;
 
     if (eg->type != GLITTER_X) {
-        bool draw_z_axis = emitter.data.direction == GLITTER_DIRECTION_Z_AXIS;
+        bool draw_z_axis = emitter->data.direction == GLITTER_DIRECTION_Z_AXIS;
 
-        vec3 rotation = emitter.rotation;
+        vec3 rotation = emitter->rotation;
         if (draw_z_axis)
             rotation.z -= (float_t)M_PI_2;
         vec3_mult_scalar(rotation, RAD_TO_DEG_FLOAT, rotation);
@@ -3250,34 +3274,34 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
             vec3_mult_scalar(rotation, DEG_TO_RAD_FLOAT, rotation);
             if (draw_z_axis)
                 rotation.z += (float_t)M_PI_2;
-            emitter.rotation = rotation;
+            emitter->rotation = rotation;
             changed = true;
         }
     }
     else {
         vec3 rotation;
-        vec3_mult_scalar(emitter.rotation, RAD_TO_DEG_FLOAT, rotation);
+        vec3_mult_scalar(emitter->rotation, RAD_TO_DEG_FLOAT, rotation);
         if (imguiColumnDragVec3Flag("Rotation",
             &rotation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat,
             (flags & GLITTER_CURVE_TYPE_ROTATION_XYZ) >> 3)) {
-            vec3_mult_scalar(rotation, DEG_TO_RAD_FLOAT, emitter.rotation);
+            vec3_mult_scalar(rotation, DEG_TO_RAD_FLOAT, emitter->rotation);
             changed = true;
         }
     }
 
     vec3 rotation_add;
-    vec3_mult_scalar(emitter.data.rotation_add, RAD_TO_DEG_FLOAT, rotation_add);
+    vec3_mult_scalar(emitter->data.rotation_add, RAD_TO_DEG_FLOAT, rotation_add);
     if (imguiColumnDragVec3Flag("Rotation Add",
         &rotation_add, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         (flags & GLITTER_CURVE_TYPE_ROTATION_XYZ) >> 3)) {
-        vec3_mult_scalar(rotation_add, DEG_TO_RAD_FLOAT, emitter.data.rotation_add);
+        vec3_mult_scalar(rotation_add, DEG_TO_RAD_FLOAT, emitter->data.rotation_add);
         changed = true;
     }
 
     if (imguiColumnDragVec3Flag("Scale",
-        &emitter.scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &emitter->scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         (flags & GLITTER_CURVE_TYPE_SCALE_XYZ) >> 6))
         changed = true;
@@ -3285,54 +3309,54 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
     ImGui::Separator();
 
     if (imguiCheckboxFlags("Loop",
-        (uint32_t*)&emitter.data.flags,
+        (uint32_t*)&emitter->data.flags,
         GLITTER_EMITTER_LOOP))
         changed = true;
 
     if (imguiCheckboxFlags("Kill On End",
-        (uint32_t*)&emitter.data.flags,
+        (uint32_t*)&emitter->data.flags,
         GLITTER_EMITTER_KILL_ON_END))
         changed = true;
 
     if (eg->type == GLITTER_X
         && imguiCheckboxFlags("Use Seed",
-            (uint32_t*)&emitter.data.flags,
+            (uint32_t*)&emitter->data.flags,
             GLITTER_EMITTER_USE_SEED))
         changed = true;
 
     ImGui::Separator();
 
     if (eg->type == GLITTER_X) {
-        if (emitter.data.flags & GLITTER_EMITTER_USE_SEED
-            && imguiColumnInputScalar("Seed", ImGuiDataType_U32, &emitter.data.seed,
+        if (emitter->data.flags & GLITTER_EMITTER_USE_SEED
+            && imguiColumnInputScalar("Seed", ImGuiDataType_U32, &emitter->data.seed,
                 0, 0, "%08X", ImGuiInputTextFlags_CharsHexadecimal))
             changed = true;
 
         if (imguiColumnComboBox("Timer Type", glitter_emitter_timer_name,
             GLITTER_EMITTER_TIMER_BY_DISTANCE,
-            (int32_t*)&emitter.data.timer, 0, true, &data->imgui_focus)) {
-            float_t emission_interval = emitter.data.emission_interval;
-            if (emitter.data.timer == GLITTER_EMITTER_TIMER_BY_TIME)
+            (int32_t*)&emitter->data.timer, 0, true, &data->imgui_focus)) {
+            float_t emission_interval = emitter->data.emission_interval;
+            if (emitter->data.timer == GLITTER_EMITTER_TIMER_BY_TIME)
                 emission_interval = clamp(floorf(emission_interval), 1.0f, FLT_MAX);
             else
                 emission_interval = clamp(emission_interval, 0.0f, FLT_MAX);
-            emitter.data.emission_interval = emission_interval;
+            emitter->data.emission_interval = emission_interval;
             changed = true;
         }
     }
 
     if (eg->type == GLITTER_X
-        && emitter.data.timer == GLITTER_EMITTER_TIMER_BY_DISTANCE) {
+        && emitter->data.timer == GLITTER_EMITTER_TIMER_BY_DISTANCE) {
         if (imguiColumnDragFloatFlag("Emit Interval",
-            &emitter.data.emission_interval, 0.0001f, -1.0f, FLT_MAX, "%g",
+            &emitter->data.emission_interval, 0.0001f, -1.0f, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat,
             (flags & GLITTER_CURVE_TYPE_EMISSION_INTERVAL) >> 20))
             changed = true;
     }
     else {
         glitter_emitter_emission emission;
-        if (emitter.data.emission_interval >= -0.000001f)
-            emission = emitter.data.emission_interval <= 0.000001f
+        if (emitter->data.emission_interval >= -0.000001f)
+            emission = emitter->data.emission_interval <= 0.000001f
             ? GLITTER_EMITTER_EMISSION_ON_START : GLITTER_EMITTER_EMISSION_ON_TIMER;
         else
             emission = GLITTER_EMITTER_EMISSION_ON_END;
@@ -3354,22 +3378,22 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
                 break;
             }
 
-            if (emission_interval != emitter.data.emission_interval) {
-                emitter.data.emission_interval = emission_interval;
+            if (emission_interval != emitter->data.emission_interval) {
+                emitter->data.emission_interval = emission_interval;
                 changed = true;
             }
         }
 
         if (emission == GLITTER_EMITTER_EMISSION_ON_TIMER
             && imguiColumnDragFloatFlag("Emit Interval",
-                &emitter.data.emission_interval, 1.0f, 1.0f, FLT_MAX, "%g",
+                &emitter->data.emission_interval, 1.0f, 1.0f, FLT_MAX, "%g",
                 ImGuiSliderFlags_NoRoundToFormat,
                 (flags & GLITTER_CURVE_TYPE_EMISSION_INTERVAL) >> 20))
                 changed = true;
     }
 
     if (imguiColumnDragFloatFlag("PTC Per Emit",
-        &emitter.data.particles_per_emission, 1.0f, 0.0f, FLT_MAX, "%g",
+        &emitter->data.particles_per_emission, 1.0f, 0.0f, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         (flags & GLITTER_CURVE_TYPE_PARTICLES_PER_EMISSION) >> 21))
         changed = true;
@@ -3377,7 +3401,7 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
     glitter_emitter_direction direction = glitter_emitter_direction_default;
     glitter_emitter_direction prev_direction;
     for (int32_t i = 0; i < glitter_emitter_direction_types_count; i++)
-        if (glitter_emitter_direction_types[i] == emitter.data.direction) {
+        if (glitter_emitter_direction_types[i] == emitter->data.direction) {
             direction = (glitter_emitter_direction)i;
             break;
         }
@@ -3386,7 +3410,7 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
     if (imguiColumnComboBox("Direction", glitter_emitter_direction_name,
         GLITTER_EMITTER_DIRECTION_EFFECT_ROTATION,
         (int32_t*)&direction, 0, true, &data->imgui_focus))
-        if (glitter_emitter_direction_types[direction] != emitter.data.direction) {
+        if (glitter_emitter_direction_types[direction] != emitter->data.direction) {
             changed = true;
             if (eg->type != GLITTER_X) {
                 bool draw_z_axis =
@@ -3395,33 +3419,33 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
                     prev_direction == GLITTER_EMITTER_DIRECTION_Z_AXIS;
                 if (draw_z_axis && !prev_draw_z_axis) {
                     if (~flags & GLITTER_CURVE_TYPE_ROTATION_Z)
-                        glitter_animation_add_value(eg->type, &emitter.animation,
+                        glitter_animation_add_value(eg->type, &emitter->animation,
                             (float_t)M_PI_2, GLITTER_CURVE_TYPE_ROTATION_Z);
-                    emitter.rotation.z += (float_t)M_PI_2;
+                    emitter->rotation.z += (float_t)M_PI_2;
                 }
                 else if (!draw_z_axis && prev_draw_z_axis) {
                     if (~flags & GLITTER_CURVE_TYPE_ROTATION_Z)
-                        glitter_animation_add_value(eg->type, &emitter.animation,
+                        glitter_animation_add_value(eg->type, &emitter->animation,
                             (float_t)-M_PI_2, GLITTER_CURVE_TYPE_ROTATION_Z);
-                    emitter.rotation.z -= (float_t)M_PI_2;
+                    emitter->rotation.z -= (float_t)M_PI_2;
                 }
             }
-            emitter.data.direction = glitter_emitter_direction_types[direction];
+            emitter->data.direction = glitter_emitter_direction_types[direction];
             changed = true;
         }
 
     if (imguiColumnComboBox("Type", glitter_emitter_name,
         GLITTER_EMITTER_POLYGON,
-        (int32_t*)&emitter.data.type, 0, true, &data->imgui_focus))
+        (int32_t*)&emitter->data.type, 0, true, &data->imgui_focus))
         changed = true;
 
     ImGui::Separator();
 
-    switch (emitter.data.type) {
+    switch (emitter->data.type) {
     case GLITTER_EMITTER_BOX: {
         ImGui::PushID("Box");
         if (imguiColumnDragVec3("Size",
-            &emitter.data.box.size, 0.0001f, 0.0f, FLT_MAX, "%g",
+            &emitter->data.box.size, 0.0001f, 0.0f, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
         ImGui::PopID();
@@ -3431,39 +3455,39 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
 
         ImGui::PushID("Cylinder");
         if (imguiColumnDragFloat("Radius",
-            &emitter.data.cylinder.radius, 0.0001f, 0.0f, FLT_MAX, "%g",
+            &emitter->data.cylinder.radius, 0.0001f, 0.0f, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
 
         if (imguiColumnDragFloat("Height",
-            &emitter.data.cylinder.height, 0.0001f, 0.0f, FLT_MAX, "%g",
+            &emitter->data.cylinder.height, 0.0001f, 0.0f, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
 
-        start_angle = emitter.data.cylinder.start_angle * RAD_TO_DEG_FLOAT;
+        start_angle = emitter->data.cylinder.start_angle * RAD_TO_DEG_FLOAT;
         if (imguiColumnDragFloat("Start Angle",
             &start_angle, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat)) {
-            emitter.data.cylinder.start_angle = start_angle * DEG_TO_RAD_FLOAT;
+            emitter->data.cylinder.start_angle = start_angle * DEG_TO_RAD_FLOAT;
             changed = true;
         }
 
-        end_angle = emitter.data.cylinder.end_angle * RAD_TO_DEG_FLOAT;
+        end_angle = emitter->data.cylinder.end_angle * RAD_TO_DEG_FLOAT;
         if (imguiColumnDragFloat("End Angle",
             &end_angle, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat)) {
-            emitter.data.cylinder.end_angle = end_angle * DEG_TO_RAD_FLOAT;
+            emitter->data.cylinder.end_angle = end_angle * DEG_TO_RAD_FLOAT;
             changed = true;
         }
 
         if (imguiCheckbox("On Edge",
-            &emitter.data.cylinder.on_edge))
+            &emitter->data.cylinder.on_edge))
             changed = true;
 
         if (imguiColumnComboBox("Direction",
             glitter_emitter_emission_direction_name,
             GLITTER_EMITTER_EMISSION_DIRECTION_INWARD,
-            (int32_t*)&emitter.data.cylinder.direction, 0, true, &data->imgui_focus))
+            (int32_t*)&emitter->data.cylinder.direction, 0, true, &data->imgui_focus))
             changed = true;
         ImGui::PopID();
     } break;
@@ -3472,64 +3496,61 @@ static void glitter_editor_property_emitter(glitter_editor_struct* glt_edt, clas
 
         ImGui::PushID("Sphere");
         if (imguiColumnDragFloat("Radius",
-            &emitter.data.sphere.radius, 0.0001f, 0.0f, FLT_MAX, "%g",
+            &emitter->data.sphere.radius, 0.0001f, 0.0f, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
 
-        latitude = emitter.data.sphere.latitude * RAD_TO_DEG_FLOAT;
+        latitude = emitter->data.sphere.latitude * RAD_TO_DEG_FLOAT;
         if (imguiColumnDragFloat("Latitude",
             &latitude, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat)) {
-            emitter.data.sphere.latitude = latitude * DEG_TO_RAD_FLOAT;
+            emitter->data.sphere.latitude = latitude * DEG_TO_RAD_FLOAT;
             changed = true;
         }
 
-        longitude = emitter.data.sphere.longitude * RAD_TO_DEG_FLOAT;
+        longitude = emitter->data.sphere.longitude * RAD_TO_DEG_FLOAT;
         if (imguiColumnDragFloat("Longitude",
             &longitude, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat)) {
-            emitter.data.sphere.longitude = longitude * DEG_TO_RAD_FLOAT;
+            emitter->data.sphere.longitude = longitude * DEG_TO_RAD_FLOAT;
             changed = true;
         }
 
         if (imguiCheckbox("On Edge",
-            &emitter.data.sphere.on_edge))
+            &emitter->data.sphere.on_edge))
             changed = true;
 
         if (imguiColumnComboBox("Direction",
             glitter_emitter_emission_direction_name,
             GLITTER_EMITTER_EMISSION_DIRECTION_INWARD,
-            (int32_t*)&emitter.data.sphere.direction, 0, true, &data->imgui_focus))
+            (int32_t*)&emitter->data.sphere.direction, 0, true, &data->imgui_focus))
             changed = true;
         ImGui::PopID();
     } break;
     case GLITTER_EMITTER_POLYGON: {
         ImGui::PushID("Polygon");
         if (imguiColumnDragFloat("Scale",
-            &emitter.data.polygon.size, 0.0001f, 0.0f, FLT_MAX,
+            &emitter->data.polygon.size, 0.0001f, 0.0f, FLT_MAX,
             "%g", ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
 
         if (imguiColumnDragInt("Count",
-            &emitter.data.polygon.count, 1.0f, 0, 0x7FFFFF, "%d", 0))
+            &emitter->data.polygon.count, 1.0f, 0, 0x7FFFFF, "%d", 0))
             changed = true;
 
         if (eg->type == GLITTER_X)
             if (imguiColumnComboBox("Direction",
                 glitter_emitter_emission_direction_name,
                 GLITTER_EMITTER_EMISSION_DIRECTION_INWARD,
-                (int32_t*)&emitter.data.cylinder.direction, 0, true, &data->imgui_focus))
+                (int32_t*)&emitter->data.cylinder.direction, 0, true, &data->imgui_focus))
                 changed = true;
         ImGui::PopID();
     } break;
     }
 
-    uint64_t hash1 = hash_fnv1a64m(glt_edt->selected_emitter, sizeof(glitter_emitter), false);
-    uint64_t hash2 = hash_fnv1a64m(&emitter, sizeof(glitter_emitter), false);
-    if (hash1 != hash2 && changed) {
+    uint64_t hash_after = hash_fnv1a64m(glt_edt->selected_emitter, sizeof(glitter_emitter), false);
+    if (hash_before != hash_after && changed)
         glt_edt->input_reload = true;
-        *glt_edt->selected_emitter = emitter;
-    }
 
     imguiSetDefaultColumnSpace();
 }
@@ -3540,8 +3561,10 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
 
     imguiSetColumnSpace(2.0f / 5.0f);
 
-    glitter_effect_group* eg = glt_edt->effect_group;
-    glitter_particle particle = *glt_edt->selected_particle;
+    uint64_t hash_before = hash_fnv1a64m(glt_edt->selected_particle, sizeof(glitter_particle), false);
+
+    GlitterEffectGroup* eg = glt_edt->effect_group;
+    glitter_particle* particle = glt_edt->selected_particle;
     bool changed = false;
 
     glitter_curve_type_flags flags = (glitter_curve_type_flags)0;
@@ -3550,16 +3573,16 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
     else
         flags = glitter_particle_curve_flags;
 
-    if (particle.data.type != GLITTER_PARTICLE_MESH) {
+    if (particle->data.type != GLITTER_PARTICLE_MESH) {
         enum_and(flags, ~GLITTER_CURVE_TYPE_UV_SCROLL_2ND);
-        if (particle.data.draw_type != GLITTER_DIRECTION_PARTICLE_ROTATION)
+        if (particle->data.draw_type != GLITTER_DIRECTION_PARTICLE_ROTATION)
             enum_and(flags, ~(GLITTER_CURVE_TYPE_ROTATION_X | GLITTER_CURVE_TYPE_ROTATION_Y));
     }
 
-    if (particle.data.sub_flags & GLITTER_PARTICLE_SUB_USE_CURVE)
+    if (particle->data.sub_flags & GLITTER_PARTICLE_SUB_USE_CURVE)
         for (int32_t i = GLITTER_CURVE_TRANSLATION_X; i <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND; i++)
-            for (glitter_curve** j = particle.animation.begin; j != particle.animation.end; j++)
-                if (*j && (*j)->type == i)
+            for (GlitterCurve*& j : particle->animation.curves)
+                if (j && j->type == i)
                     enum_and(flags, ~(1 << i));
 
     ImGui::Text("Parent Effect:\nAppear Time: %d; Life Time: %d; Start Time: %d",
@@ -3577,49 +3600,49 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
 
     bool flags_changed = false;
     if (imguiCheckboxFlags("Loop",
-        (uint32_t*)&particle.data.flags,
+        (uint32_t*)&particle->data.flags,
         GLITTER_PARTICLE_LOOP))
         flags_changed = true;
 
     if (imguiCheckboxFlags("Emitter Local",
-        (uint32_t*)&particle.data.flags,
+        (uint32_t*)&particle->data.flags,
         GLITTER_PARTICLE_EMITTER_LOCAL))
         flags_changed = true;
 
     if (imguiCheckboxFlags("Scale Y by X",
-        (uint32_t*)&particle.data.flags,
+        (uint32_t*)&particle->data.flags,
         GLITTER_PARTICLE_SCALE_Y_BY_X))
         flags_changed = true;
 
     if (imguiCheckboxFlags("Rebound Plane",
-        (uint32_t*)&particle.data.flags,
+        (uint32_t*)&particle->data.flags,
         GLITTER_PARTICLE_REBOUND_PLANE))
         flags_changed = true;
 
     if (imguiCheckboxFlags("Rotate by Emitter",
-        (uint32_t*)&particle.data.flags,
+        (uint32_t*)&particle->data.flags,
         GLITTER_PARTICLE_ROTATE_BY_EMITTER))
         flags_changed = true;
 
     if (imguiCheckboxFlags("Scale by Emitter",
-        (uint32_t*)&particle.data.flags,
+        (uint32_t*)&particle->data.flags,
         GLITTER_PARTICLE_SCALE))
         flags_changed = true;
 
     if (imguiCheckboxFlags("Texture Mask##Flag",
-        (uint32_t*)&particle.data.flags,
+        (uint32_t*)&particle->data.flags,
         GLITTER_PARTICLE_TEXTURE_MASK))
         flags_changed = true;
 
     if (eg->type == GLITTER_X) {
         if (imguiCheckboxFlags("Disable Depth Test",
-            (uint32_t*)&particle.data.flags,
+            (uint32_t*)&particle->data.flags,
             GLITTER_PARTICLE_DEPTH_TEST))
             flags_changed = true;
 
-        if (particle.data.type == GLITTER_PARTICLE_LOCUS
+        if (particle->data.type == GLITTER_PARTICLE_LOCUS
             && imguiCheckboxFlags("Rotate Locus",
-                (uint32_t*)&particle.data.flags,
+                (uint32_t*)&particle->data.flags,
                 GLITTER_PARTICLE_ROTATE_LOCUS))
                 flags_changed = true;
     }
@@ -3631,62 +3654,62 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
 
     if (eg->type == GLITTER_X) {
         vec2i life_time;
-        life_time.x = particle.data.life_time;
-        life_time.y = particle.data.life_time_random;
+        life_time.x = particle->data.life_time;
+        life_time.y = particle->data.life_time_random;
         if (imguiColumnDragVec2I("Life Time [R]",
             &life_time, 1.0f, 0x0000, 0x7FFF, "%d", 0)) {
-            particle.data.life_time = life_time.x;
-            particle.data.life_time_random = life_time.y;
+            particle->data.life_time = life_time.x;
+            particle->data.life_time_random = life_time.y;
             changed = true;
         }
 
         vec2i fade_in;
-        fade_in.x = particle.data.fade_in;
-        fade_in.y = particle.data.fade_in_random;
+        fade_in.x = particle->data.fade_in;
+        fade_in.y = particle->data.fade_in_random;
         if (imguiColumnDragVec2I("Fade In [R]",
             &fade_in, 1.0f, 0x0000, 0x7FFF, "%d", 0)) {
-            particle.data.fade_in = fade_in.x;
-            particle.data.fade_in_random = fade_in.y;
+            particle->data.fade_in = fade_in.x;
+            particle->data.fade_in_random = fade_in.y;
             changed = true;
         }
 
         vec2i fade_out;
-        fade_out.x = particle.data.fade_out;
-        fade_out.y = particle.data.fade_out_random;
+        fade_out.x = particle->data.fade_out;
+        fade_out.y = particle->data.fade_out_random;
         if (imguiColumnDragVec2I("Fade Out [R]",
             &fade_out, 1.0f, 0x0000, 0x7FFF, "%d", 0)) {
-            particle.data.fade_out = fade_out.x;
-            particle.data.fade_out_random = fade_out.y;
+            particle->data.fade_out = fade_out.x;
+            particle->data.fade_out_random = fade_out.y;
             changed = true;
         }
 
         if (imguiColumnComboBox("Type", glitter_particle_name,
             GLITTER_PARTICLE_MESH,
-            (int32_t*)&particle.data.type, 0, true, &data->imgui_focus))
+            (int32_t*)&particle->data.type, 0, true, &data->imgui_focus))
             changed = true;
     }
     else {
         if (imguiColumnDragInt("Life Time",
-            &particle.data.life_time, 1.0f, 0x0000, 0x7FFF, "%d", 0))
+            &particle->data.life_time, 1.0f, 0x0000, 0x7FFF, "%d", 0))
             changed = true;
 
         if (imguiColumnComboBox("Type", glitter_particle_name,
             GLITTER_PARTICLE_LOCUS,
-            (int32_t*)&particle.data.type, 0, true, &data->imgui_focus))
+            (int32_t*)&particle->data.type, 0, true, &data->imgui_focus))
             changed = true;
     }
 
-    if (particle.data.type != GLITTER_PARTICLE_MESH
+    if (particle->data.type != GLITTER_PARTICLE_MESH
         && imguiColumnComboBox("Pivot", glitter_pivot_name,
             GLITTER_PIVOT_BOTTOM_RIGHT,
-            (int32_t*)&particle.data.pivot, 0, true, &data->imgui_focus))
+            (int32_t*)&particle->data.pivot, 0, true, &data->imgui_focus))
         changed = true;
 
-    if (particle.data.type == GLITTER_PARTICLE_QUAD || particle.data.type == GLITTER_PARTICLE_MESH) {
+    if (particle->data.type == GLITTER_PARTICLE_QUAD || particle->data.type == GLITTER_PARTICLE_MESH) {
         glitter_particle_draw_type draw_type = glitter_particle_draw_type_default;
         glitter_particle_draw_type prev_draw_type;
         for (int32_t i = 0; i < glitter_particle_draw_types_count; i++)
-            if (glitter_particle_draw_types[i] == particle.data.draw_type) {
+            if (glitter_particle_draw_types[i] == particle->data.draw_type) {
                 draw_type = (glitter_particle_draw_type)i;
                 break;
             }
@@ -3695,7 +3718,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
         if (imguiColumnComboBox("Draw Type", glitter_particle_draw_type_name,
             GLITTER_PARTICLE_DRAW_TYPE_EMIT_POSITION,
             (int32_t*)&draw_type, 0, true, &data->imgui_focus))
-            if (glitter_particle_draw_types[draw_type] != particle.data.draw_type) {
+            if (glitter_particle_draw_types[draw_type] != particle->data.draw_type) {
                 if (eg->type != GLITTER_X) {
                     bool draw_prev_pos =
                         draw_type == GLITTER_PARTICLE_DRAW_TYPE_PREV_POSITION
@@ -3708,30 +3731,30 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
                     bool prev_draw_z_axis =
                         prev_draw_type == GLITTER_PARTICLE_DRAW_TYPE_Z_AXIS;
                     if (draw_prev_pos && !prev_draw_prev_pos)
-                        particle.data.rotation.z += (float_t)M_PI;
+                        particle->data.rotation.z += (float_t)M_PI;
                     else if (!draw_prev_pos && prev_draw_prev_pos)
-                        particle.data.rotation.z -= (float_t)M_PI;
+                        particle->data.rotation.z -= (float_t)M_PI;
                     else if (draw_z_axis && !prev_draw_z_axis) {
                         if (~flags & GLITTER_CURVE_TYPE_ROTATION_Z)
-                            glitter_animation_add_value(eg->type, &particle.animation,
+                            glitter_animation_add_value(eg->type, &particle->animation,
                                 (float_t)M_PI_2, GLITTER_CURVE_TYPE_ROTATION_Z);
-                        particle.data.rotation.z += (float_t)M_PI_2;
+                        particle->data.rotation.z += (float_t)M_PI_2;
                     }
                     else if (!draw_z_axis && prev_draw_z_axis) {
                         if (~flags & GLITTER_CURVE_TYPE_ROTATION_Z)
-                            glitter_animation_add_value(eg->type, &particle.animation,
+                            glitter_animation_add_value(eg->type, &particle->animation,
                                 (float_t)-M_PI_2, GLITTER_CURVE_TYPE_ROTATION_Z);
-                        particle.data.rotation.z -= (float_t)M_PI_2;
+                        particle->data.rotation.z -= (float_t)M_PI_2;
                     }
                 }
-                particle.data.draw_type = glitter_particle_draw_types[draw_type];
+                particle->data.draw_type = glitter_particle_draw_types[draw_type];
                 changed = true;
             }
     }
 
-    if (particle.data.type == GLITTER_PARTICLE_QUAD)
+    if (particle->data.type == GLITTER_PARTICLE_QUAD)
         if (imguiColumnDragFloat("Z Offset",
-            &particle.data.z_offset, 0.0001f, -FLT_MAX, FLT_MAX,
+            &particle->data.z_offset, 0.0001f, -FLT_MAX, FLT_MAX,
             "%g", ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
 
@@ -3739,12 +3762,12 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
 
     if (eg->type != GLITTER_X) {
         bool draw_prev_pos =
-            particle.data.draw_type == GLITTER_DIRECTION_PREV_POSITION
-            || particle.data.draw_type == GLITTER_DIRECTION_PREV_POSITION_DUP;
+            particle->data.draw_type == GLITTER_DIRECTION_PREV_POSITION
+            || particle->data.draw_type == GLITTER_DIRECTION_PREV_POSITION_DUP;
         bool draw_z_axis =
-            particle.data.draw_type == GLITTER_DIRECTION_Z_AXIS;
+            particle->data.draw_type == GLITTER_DIRECTION_Z_AXIS;
 
-        vec3 rotation = particle.data.rotation;
+        vec3 rotation = particle->data.rotation;
         if (draw_prev_pos)
             rotation.z -= (float_t)M_PI;
         else if (draw_z_axis)
@@ -3759,214 +3782,214 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
                 rotation.z += (float_t)M_PI;
             else if (draw_z_axis)
                 rotation.z += (float_t)M_PI_2;
-            particle.data.rotation = rotation;
+            particle->data.rotation = rotation;
             changed = true;
         }
     }
     else {
         vec3 rotation;
-        vec3_mult_scalar(particle.data.rotation, RAD_TO_DEG_FLOAT, rotation);
+        vec3_mult_scalar(particle->data.rotation, RAD_TO_DEG_FLOAT, rotation);
         if (imguiColumnDragVec3Flag("Rotation",
             &rotation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat,
             (flags & GLITTER_CURVE_TYPE_ROTATION_XYZ) >> 3)) {
-            vec3_mult_scalar(rotation, DEG_TO_RAD_FLOAT, particle.data.rotation);
+            vec3_mult_scalar(rotation, DEG_TO_RAD_FLOAT, particle->data.rotation);
             changed = true;
         }
     }
 
     vec3 rotation_random;
-    vec3_mult_scalar(particle.data.rotation_random, RAD_TO_DEG_FLOAT, rotation_random);
+    vec3_mult_scalar(particle->data.rotation_random, RAD_TO_DEG_FLOAT, rotation_random);
     if (imguiColumnDragVec3Flag("Rotation Random",
         &rotation_random, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         (flags & GLITTER_CURVE_TYPE_ROTATION_XYZ) >> 3)) {
-        vec3_mult_scalar(rotation_random, DEG_TO_RAD_FLOAT, particle.data.rotation_random);
+        vec3_mult_scalar(rotation_random, DEG_TO_RAD_FLOAT, particle->data.rotation_random);
         changed = true;
     }
 
     vec3 rotation_add;
-    vec3_mult_scalar(particle.data.rotation_add, RAD_TO_DEG_FLOAT, rotation_add);
+    vec3_mult_scalar(particle->data.rotation_add, RAD_TO_DEG_FLOAT, rotation_add);
     if (imguiColumnDragVec3Flag("Rotation Add",
         &rotation_add, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         (flags & GLITTER_CURVE_TYPE_ROTATION_XYZ) >> 3)) {
-        vec3_mult_scalar(rotation_add, DEG_TO_RAD_FLOAT, particle.data.rotation_add);
+        vec3_mult_scalar(rotation_add, DEG_TO_RAD_FLOAT, particle->data.rotation_add);
         changed = true;
     }
 
     vec3 rotation_add_random;
-    vec3_mult_scalar(particle.data.rotation_add_random, RAD_TO_DEG_FLOAT, rotation_add_random);
+    vec3_mult_scalar(particle->data.rotation_add_random, RAD_TO_DEG_FLOAT, rotation_add_random);
     if (imguiColumnDragVec3Flag("Rotation Add Random",
         &rotation_add_random, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
         (flags & GLITTER_CURVE_TYPE_ROTATION_XYZ) >> 3)) {
-        vec3_mult_scalar(rotation_add_random, DEG_TO_RAD_FLOAT, particle.data.rotation_add_random);
+        vec3_mult_scalar(rotation_add_random, DEG_TO_RAD_FLOAT, particle->data.rotation_add_random);
         changed = true;
     }
 
-    imguiDisableElementPush(particle.data.type != GLITTER_PARTICLE_MESH);
+    imguiDisableElementPush(particle->data.type != GLITTER_PARTICLE_MESH);
     if (imguiColumnDragVec2Flag("Scale",
-        (vec2*)&particle.data.scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        (vec2*)&particle->data.scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
-        particle.data.flags & GLITTER_PARTICLE_SCALE_Y_BY_X ? 0x01 : 0x03))
+        particle->data.flags & GLITTER_PARTICLE_SCALE_Y_BY_X ? 0x01 : 0x03))
         changed = true;
 
     if (imguiColumnDragVec2Flag("Scale Random",
-        (vec2*)&particle.data.scale_random, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        (vec2*)&particle->data.scale_random, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat,
-        particle.data.flags & GLITTER_PARTICLE_SCALE_Y_BY_X ? 0x01 : 0x03))
+        particle->data.flags & GLITTER_PARTICLE_SCALE_Y_BY_X ? 0x01 : 0x03))
         changed = true;
-    imguiDisableElementPop(particle.data.type != GLITTER_PARTICLE_MESH);
+    imguiDisableElementPop(particle->data.type != GLITTER_PARTICLE_MESH);
 
     ImGui::Separator();
 
     if (imguiColumnDragVec3("Direction",
-        &particle.data.direction, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &particle->data.direction, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat))
         changed = true;
 
     if (imguiColumnDragVec3("Direction Random",
-        &particle.data.direction_random, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &particle->data.direction_random, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat))
         changed = true;
 
     vec2 speed;
-    speed.x = particle.data.speed;
-    speed.y = particle.data.speed_random;
-    if (imguiColumnSliderVec2("Speed [R]",
+    speed.x = particle->data.speed;
+    speed.y = particle->data.speed_random;
+    if (imguiColumnDragVec2("Speed [R]",
         &speed, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
-        ImGuiSliderFlags_NoRoundToFormat, false)) {
-        particle.data.speed = speed.x;
-        particle.data.speed_random = speed.y;
+        ImGuiSliderFlags_NoRoundToFormat)) {
+        particle->data.speed = speed.x;
+        particle->data.speed_random = speed.y;
         changed = true;
     }
 
     vec2 deceleration;
-    deceleration.x = particle.data.deceleration;
-    deceleration.y = particle.data.deceleration_random;
+    deceleration.x = particle->data.deceleration;
+    deceleration.y = particle->data.deceleration_random;
     if (imguiColumnDragVec2("Deceleration [R]",
         &deceleration, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat)) {
-        particle.data.deceleration = deceleration.x;
-        particle.data.deceleration_random = deceleration.y;
+        particle->data.deceleration = deceleration.x;
+        particle->data.deceleration_random = deceleration.y;
         changed = true;
     }
 
     if (imguiColumnDragVec3("Gravity",
-        &particle.data.gravity, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &particle->data.gravity, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat))
         changed = true;
 
     if (imguiColumnDragVec3("Acceleration",
-        &particle.data.acceleration, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &particle->data.acceleration, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat))
         changed = true;
 
     if (imguiColumnDragVec3("Acceleration Random",
-        &particle.data.acceleration_random, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &particle->data.acceleration_random, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat))
         changed = true;
 
     vec2 reflection_coeff;
-    reflection_coeff.x = particle.data.reflection_coeff;
-    reflection_coeff.y = particle.data.reflection_coeff_random;
+    reflection_coeff.x = particle->data.reflection_coeff;
+    reflection_coeff.y = particle->data.reflection_coeff_random;
     if (imguiColumnDragVec2("Refl Coeff [R]",
         &reflection_coeff, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat)) {
-        particle.data.reflection_coeff = reflection_coeff.x;
-        particle.data.reflection_coeff_random = reflection_coeff.y;
+        particle->data.reflection_coeff = reflection_coeff.x;
+        particle->data.reflection_coeff_random = reflection_coeff.y;
         changed = true;
     }
 
     if (imguiColumnDragFloat("Rebound Plane Y",
-        &particle.data.rebound_plane_y, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &particle->data.rebound_plane_y, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat))
         changed = true;
 
     ImGui::Separator();
 
-    vec4 color = particle.data.color;
+    vec4 color = particle->data.color;
     if (imguiColumnColorEdit4("Color", &color,
         ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar))
         changed = true;
-    particle.data.color = color;
+    particle->data.color = color;
 
     if (imguiColumnComboBox("UV Index Type", glitter_uv_index_type_name,
         GLITTER_UV_INDEX_USER,
-        (int32_t*)&particle.data.uv_index_type, 0, true, &data->imgui_focus))
+        (int32_t*)&particle->data.uv_index_type, 0, true, &data->imgui_focus))
         changed = true;
 
     vec2i split;
-    split.x = particle.data.split_u;
-    split.y = particle.data.split_v;
+    split.x = particle->data.split_u;
+    split.y = particle->data.split_v;
     if (imguiColumnSliderLogVec2I("UV Split",
         &split, 1, 128, "%d", 0)) {
-        particle.data.split_u = (uint8_t)split.x;
-        particle.data.split_v = (uint8_t)split.y;
+        particle->data.split_u = (uint8_t)split.x;
+        particle->data.split_v = (uint8_t)split.y;
 
-        particle.data.split_uv.x = 1.0f / (float_t)particle.data.split_u;
-        particle.data.split_uv.y = 1.0f / (float_t)particle.data.split_v;
+        particle->data.split_uv.x = 1.0f / (float_t)particle->data.split_u;
+        particle->data.split_uv.y = 1.0f / (float_t)particle->data.split_v;
         changed = true;
     }
 
-    int32_t uv_max_count = (int32_t)(particle.data.split_u * particle.data.split_v);
+    int32_t uv_max_count = (int32_t)(particle->data.split_u * particle->data.split_v);
     if (uv_max_count)
         uv_max_count--;
 
     if (imguiColumnDragInt("Frame Step UV",
-        &particle.data.frame_step_uv, 1.0f, 0x0000, 0x7FFF, "%d", 0))
+        &particle->data.frame_step_uv, 1.0f, 0x0000, 0x7FFF, "%d", 0))
         changed = true;
 
     if (imguiColumnDragInt("UV Index Start",
-        &particle.data.uv_index_start, 1.0f, 0, uv_max_count, "%d", 0))
+        &particle->data.uv_index_start, 1.0f, 0, uv_max_count, "%d", 0))
         changed = true;
 
     if (imguiColumnDragInt("UV Index End",
-        &particle.data.uv_index_end, 1.0f, particle.data.uv_index_start + 1, uv_max_count + 1, "%d", 0))
+        &particle->data.uv_index_end, 1.0f, particle->data.uv_index_start + 1, uv_max_count + 1, "%d", 0))
         changed = true;
 
     if (imguiColumnDragInt("UV Index",
-        &particle.data.uv_index, 1.0f, particle.data.uv_index_start,
-        particle.data.uv_index_end - 1, "%d", 0))
+        &particle->data.uv_index, 1.0f, particle->data.uv_index_start,
+        particle->data.uv_index_end - 1, "%d", 0))
         changed = true;
 
     if (imguiColumnDragVec2("UV Scroll Add",
-        &particle.data.uv_scroll_add, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &particle->data.uv_scroll_add, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat))
         changed = true;
 
     if (imguiColumnDragFloat("UV Scroll Add Scale",
-        &particle.data.uv_scroll_add_scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+        &particle->data.uv_scroll_add_scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat))
         changed = true;
 
-    if (particle.data.type == GLITTER_PARTICLE_MESH) {
-        bool uv_2nd_add = particle.data.sub_flags & GLITTER_PARTICLE_SUB_UV_2ND_ADD ? true : false;
+    if (particle->data.type == GLITTER_PARTICLE_MESH) {
+        bool uv_2nd_add = particle->data.sub_flags & GLITTER_PARTICLE_SUB_UV_2ND_ADD ? true : false;
         imguiDisableElementPush(uv_2nd_add);
         if (imguiColumnDragVec2("UV Scroll 2nd Add",
-            &particle.data.uv_scroll_2nd_add, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+            &particle->data.uv_scroll_2nd_add, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
 
         if (imguiColumnDragFloat("UV Scroll 2nd Add Scale",
-            &particle.data.uv_scroll_2nd_add_scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
+            &particle->data.uv_scroll_2nd_add_scale, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
         imguiDisableElementPop(uv_2nd_add);
     }
 
-    if (particle.data.type != GLITTER_PARTICLE_MESH) {
+    if (particle->data.type != GLITTER_PARTICLE_MESH) {
         int32_t idx0 = 0;
         int32_t idx1 = 0;
-        glitter_effect_group* eg = glt_edt->effect_group;
+        GlitterEffectGroup* eg = glt_edt->effect_group;
         size_t rc = eg->resources_count;
         uint64_t* rh = eg->resource_hashes.data();
         for (size_t i = 0; i < rc && (!idx0 || !idx1); i++) {
-            if (idx0 == 0 && rh[i] == particle.data.tex_hash)
+            if (idx0 == 0 && rh[i] == particle->data.tex_hash)
                 idx0 = (int32_t)(i + 1);
 
-            if (idx1 == 0 && rh[i] == particle.data.mask_tex_hash)
+            if (idx1 == 0 && rh[i] == particle->data.mask_tex_hash)
                 idx1 = (int32_t)(i + 1);
         }
 
@@ -3984,17 +4007,17 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
         static int32_t tex0_index;
         static int32_t tex0_tex;
         if (glitter_editor_property_particle_texture(glt_edt, data, "Texture", texture_name_list,
-            &particle, &particle.data.texture, &particle.data.tex_hash,
+            particle, &particle->data.texture, &particle->data.tex_hash,
             idx0, &tex0_anim, &tex0_frame, &tex0_index, &tex0_tex))
             changed = true;
 
-        if (particle.data.flags & GLITTER_PARTICLE_TEXTURE_MASK) {
+        if (particle->data.flags & GLITTER_PARTICLE_TEXTURE_MASK) {
             static bool tex11_anim;
             static int32_t tex1_frame;
             static int32_t tex1_index;
             static int32_t tex1_tex;
             if (glitter_editor_property_particle_texture(glt_edt, data, "Texture Mask", texture_name_list,
-                &particle, &particle.data.mask_texture, &particle.data.mask_tex_hash,
+                particle, &particle->data.mask_texture, &particle->data.mask_tex_hash,
                 idx1, &tex11_anim, &tex1_frame, &tex1_index, &tex1_tex))
                 changed = true;
         }
@@ -4003,7 +4026,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
 
         glitter_particle_blend_draw blend_draw = glitter_particle_blend_draw_default;
         for (int32_t i = 0; i < glitter_particle_blend_mask_types_count; i++)
-            if (glitter_particle_blend_draw_types[i] == particle.data.blend_mode) {
+            if (glitter_particle_blend_draw_types[i] == particle->data.blend_mode) {
                 blend_draw = (glitter_particle_blend_draw)i;
                 break;
             }
@@ -4011,15 +4034,15 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
         if (imguiColumnComboBox("Blend Mode", glitter_particle_blend_draw_name,
             GLITTER_PARTICLE_BLEND_DRAW_MULTIPLY,
             (int32_t*)&blend_draw, 0, true, &data->imgui_focus))
-            if (glitter_particle_blend_draw_types[blend_draw] != particle.data.blend_mode) {
-                particle.data.blend_mode = glitter_particle_blend_draw_types[blend_draw];
+            if (glitter_particle_blend_draw_types[blend_draw] != particle->data.blend_mode) {
+                particle->data.blend_mode = glitter_particle_blend_draw_types[blend_draw];
                 changed = true;
             }
 
-        if (particle.data.flags & GLITTER_PARTICLE_TEXTURE_MASK) {
+        if (particle->data.flags & GLITTER_PARTICLE_TEXTURE_MASK) {
             glitter_particle_blend_mask blend_mask = glitter_particle_blend_mask_default;
             for (int32_t i = 0; i < glitter_particle_blend_mask_types_count; i++)
-                if (glitter_particle_blend_mask_types[i] == particle.data.mask_blend_mode) {
+                if (glitter_particle_blend_mask_types[i] == particle->data.mask_blend_mode) {
                     blend_mask = (glitter_particle_blend_mask)i;
                     break;
                 }
@@ -4027,100 +4050,99 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
             if (imguiColumnComboBox("Mask Blend Mode", glitter_particle_blend_mask_name,
                 GLITTER_PARTICLE_BLEND_MASK_MULTIPLY,
                 (int32_t*)&blend_mask, 0, true, &data->imgui_focus))
-                if (glitter_particle_blend_mask_types[blend_mask] != particle.data.mask_blend_mode) {
-                    particle.data.mask_blend_mode = glitter_particle_blend_mask_types[blend_mask];
+                if (glitter_particle_blend_mask_types[blend_mask] != particle->data.mask_blend_mode) {
+                    particle->data.mask_blend_mode = glitter_particle_blend_mask_types[blend_mask];
                     changed = true;
                 }
         }
     }
 
-    switch (particle.data.uv_index_type) {
+    switch (particle->data.uv_index_type) {
     case GLITTER_UV_INDEX_FIXED:
     case GLITTER_UV_INDEX_RANDOM:
     case GLITTER_UV_INDEX_FORWARD:
     case GLITTER_UV_INDEX_REVERSE:
     case GLITTER_UV_INDEX_USER:
-        particle.data.uv_index &= uv_max_count;
+        particle->data.uv_index &= uv_max_count;
         break;
     case GLITTER_UV_INDEX_INITIAL_RANDOM_FIXED:
     case GLITTER_UV_INDEX_INITIAL_RANDOM_FORWARD:
     case GLITTER_UV_INDEX_INITIAL_RANDOM_REVERSE:
-        if (particle.data.uv_index < particle.data.uv_index_start)
-            particle.data.uv_index = particle.data.uv_index_start;
-        else if (particle.data.uv_index_end >= 0 && particle.data.uv_index > particle.data.uv_index_end)
-            particle.data.uv_index = particle.data.uv_index_end;
+        if (particle->data.uv_index < particle->data.uv_index_start)
+            particle->data.uv_index = particle->data.uv_index_start;
+        else if (particle->data.uv_index_end >= 0 && particle->data.uv_index > particle->data.uv_index_end)
+            particle->data.uv_index = particle->data.uv_index_end;
 
-        particle.data.uv_index = min(particle.data.uv_index, uv_max_count);
+        particle->data.uv_index = min(particle->data.uv_index, uv_max_count);
         break;
     }
 
-    if (particle.data.uv_index_end >= 0)
-        particle.data.uv_index_count = particle.data.uv_index_end - particle.data.uv_index_start + 1;
+    if (particle->data.uv_index_end >= 0)
+        particle->data.uv_index_count = particle->data.uv_index_end - particle->data.uv_index_start + 1;
     else
-        particle.data.uv_index_count = uv_max_count - particle.data.uv_index_start;
+        particle->data.uv_index_count = uv_max_count - particle->data.uv_index_start;
 
-    if (particle.data.uv_index_count < 0)
-        particle.data.uv_index_count = 0;
+    if (particle->data.uv_index_count < 0)
+        particle->data.uv_index_count = 0;
 
     if (imguiCheckboxFlags("Use Animation Curve",
-        (uint32_t*)&particle.data.sub_flags,
+        (uint32_t*)&particle->data.sub_flags,
         GLITTER_PARTICLE_SUB_USE_CURVE))
         changed = true;
 
-    if (eg->type == GLITTER_X && particle.data.type == GLITTER_PARTICLE_MESH)
+    if (eg->type == GLITTER_X && particle->data.type == GLITTER_PARTICLE_MESH)
         if (imguiCheckboxFlags("UV Add",
-            (uint32_t*)&particle.data.sub_flags,
+            (uint32_t*)&particle->data.sub_flags,
             GLITTER_PARTICLE_SUB_UV_2ND_ADD))
             changed = true;
 
     ImGui::Separator();
 
-    if (eg->type != GLITTER_X || particle.data.type == GLITTER_PARTICLE_QUAD)
+    if (eg->type != GLITTER_X || particle->data.type == GLITTER_PARTICLE_QUAD)
         if (imguiColumnDragInt("Count",
-            &particle.data.count, 1.0f, 0x0000, 0x7FFFFF, "%d", 0))
+            &particle->data.count, 1.0f, 0x0000, 0x7FFFFF, "%d", 0))
             changed = true;
 
     if (imguiColumnDragFloat("Emission",
-        &particle.data.emission, 0.0001f, 0.0f, HALF_MAX, "%g",
+        &particle->data.emission, 0.0001f, 0.0f, HALF_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat)) {
         if (sel_efct->data.flags & GLITTER_EFFECT_EMISSION
-            || particle.data.emission >= glitter_min_emission)
-            enum_or(particle.data.flags, GLITTER_PARTICLE_EMISSION);
+            || particle->data.emission >= glitter_min_emission)
+            enum_or(particle->data.flags, GLITTER_PARTICLE_EMISSION);
         else
-            enum_and(particle.data.flags, ~GLITTER_PARTICLE_EMISSION);
+            enum_and(particle->data.flags, ~GLITTER_PARTICLE_EMISSION);
         changed = true;
     }
 
     if (imguiColumnDragInt("Unk 0",
-        &particle.data.unk0, 1.0f, INT_MIN, INT_MAX, "%d", 0))
+        &particle->data.unk0, 1.0f, INT_MIN, INT_MAX, "%d", 0))
         changed = true;
 
     if (eg->version >= 7 && imguiColumnDragInt("Unk 1",
-        &particle.data.unk1, 1.0f, INT_MIN, INT_MAX, "%d", 0))
+        &particle->data.unk1, 1.0f, INT_MIN, INT_MAX, "%d", 0))
         changed = true;
 
-    if (particle.data.type == GLITTER_PARTICLE_LOCUS) {
+    if (particle->data.type == GLITTER_PARTICLE_LOCUS) {
         if (imguiColumnDragInt("Locus Hist Size",
-            &particle.data.locus_history_size, 1.0f, 0x0000, 0x7FFFFF, "%d", 0))
+            &particle->data.locus_history_size, 1.0f, 0x0000, 0x7FFFFF, "%d", 0))
             changed = true;
 
         if (imguiColumnDragInt("Locus Hist Size Rand",
-            &particle.data.locus_history_size_random, 1.0f, 0x0000, 0x7FFFFF, "%d", 0))
+            &particle->data.locus_history_size_random, 1.0f, 0x0000, 0x7FFFFF, "%d", 0))
             changed = true;
     }
-    else if (particle.data.type == GLITTER_PARTICLE_MESH) {
+    else if (particle->data.type == GLITTER_PARTICLE_MESH) {
         ImGui::Separator();
 
-        glitter_particle_mesh* mesh = &particle.data.mesh;
+        glitter_particle_mesh* mesh = &particle->data.mesh;
         uint32_t set_id = (uint32_t)mesh->object_set_name_hash;
         uint32_t obj_id = (uint32_t)mesh->object_name_hash;
 
         obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
-        obj_set* set = handler->obj_set;
         ssize_t object_set_count = object_storage_get_obj_set_count();
 
         imguiStartPropertyColumn("Object Set");
-        if (ImGui::BeginCombo("##Object Set", handler ? handler->set_info->name.c_str() : "None", 0)) {
+        if (ImGui::BeginCombo("##Object Set", handler ? handler->name.c_str() : "None", 0)) {
             ssize_t set_index = handler ? object_storage_get_obj_set_index(set_id) : -1;
 
             ImGui::PushID(-1);
@@ -4130,9 +4152,12 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
             ImGui::PopID();
 
             for (ssize_t i = 0; i < object_set_count; i++) {
+                obj_set_handler* handler = object_storage_get_obj_set_handler_by_index(i);
+                if (!handler || !handler->obj_set)
+                    continue;
+
                 ImGui::PushID((int32_t)i);
-                obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
-                if (ImGui::Selectable(handler->set_info->name.c_str(), handler->set_id == set_id)
+                if (ImGui::Selectable(handler->name.c_str(), handler->set_id == set_id)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (ImGui::IsItemFocused() && handler->set_id != set_id))
                     set_index = i;
@@ -4157,16 +4182,19 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
 
         imguiDisableElementPush(set_id != -1);
         obj* obj = 0;
-        if (set)
+        if (handler && handler->obj_set) {
+            obj_set* set = handler->obj_set;
             for (int32_t i = 0; i < set->objects_count; i++)
                 if (set->objects[i].id == obj_id) {
                     obj = &set->objects[i];
                     break;
                 }
+        }
 
         imguiStartPropertyColumn("Object");
         if (ImGui::BeginCombo("##Object", obj ? string_data(&obj->name) : "None", 0)) {
-            if (set && set_id != -1 && handler->set_info->id == set_id) {
+            if (set_id != -1 && handler && handler->set_id == set_id && handler->obj_set) {
+                obj_set* set = handler->obj_set;
                 ssize_t obj_index = -1;
                 for (int32_t i = 0; i < set->objects_count; i++)
                     if (set->objects[i].id == obj_id) {
@@ -4226,12 +4254,9 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
             changed = true;*/
     }
 
-    uint64_t hash1 = hash_fnv1a64m(glt_edt->selected_particle, sizeof(glitter_particle), false);
-    uint64_t hash2 = hash_fnv1a64m(&particle, sizeof(glitter_particle), false);
-    if (hash1 != hash2 && changed) {
+    uint64_t hash_after = hash_fnv1a64m(glt_edt->selected_particle, sizeof(glitter_particle), false);
+    if (hash_before != hash_after && changed)
         glt_edt->input_reload = true;
-        *glt_edt->selected_particle = particle;
-    }
 
     imguiSetDefaultColumnSpace();
 }
@@ -4240,7 +4265,7 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
     class_data* data, const char* label, char** items, glitter_particle* particle,
     int32_t* tex, uint64_t* tex_hash, int32_t tex_idx, bool* tex_anim,
     int32_t* tex_frame, int32_t* tex_index, int32_t* tex_tex) {
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
     size_t rc = eg->resources_count;
     texture** r = eg->resources;
     uint64_t* rh = eg->resource_hashes.data();
@@ -4463,7 +4488,7 @@ static void glitter_editor_file_create_popup(glitter_editor_struct* glt_edt, cla
     float_t win_x;
     float_t win_y;
 
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
 
     ImGuiWindowFlags window_flags;
 
@@ -4522,7 +4547,6 @@ static void glitter_editor_file_create_popup(glitter_editor_struct* glt_edt, cla
         data->imgui_focus |= ImGui::IsWindowFocused();
         ImGui::EndPopup();
     }
-    ImGui::End();
     ImGui::PopStyleVar();
 }
 
@@ -4596,7 +4620,6 @@ static void glitter_editor_file_load_popup(glitter_editor_struct* glt_edt, class
         data->imgui_focus |= ImGui::IsWindowFocused();
         ImGui::EndPopup();
     }
-    ImGui::End();
     ImGui::PopStyleVar();
 }
 
@@ -4777,7 +4800,6 @@ static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt,
         data->imgui_focus |= ImGui::IsWindowFocused();
         ImGui::EndPopup();
     }
-    ImGui::End();
     ImGui::PopStyleVar();
 }
 
@@ -4829,7 +4851,6 @@ static void glitter_editor_file_load_error_list_popup(glitter_editor_struct* glt
         data->imgui_focus |= ImGui::IsWindowFocused();
         ImGui::EndPopup();
     }
-    ImGui::End();
     ImGui::PopStyleVar();
 }
 
@@ -4847,7 +4868,7 @@ static void glitter_editor_file_save_popup(glitter_editor_struct* glt_edt, class
     float_t win_x;
     float_t win_y;
 
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
     ImGuiWindowFlags window_flags;
 
     const float_t button_width = 70.0f;
@@ -4952,7 +4973,6 @@ static void glitter_editor_file_save_popup(glitter_editor_struct* glt_edt, class
         data->imgui_focus |= ImGui::IsWindowFocused();
         ImGui::EndPopup();
     }
-    ImGui::End();
     ImGui::PopStyleVar();
 }
 
@@ -4991,9 +5011,9 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
         return;
     }
 
-    glitter_effect_group* eg = glt_edt->effect_group;
-    glitter_curve* curve = &crv_edt->curve;
-    vector_old_glitter_curve_key* keys = &curve->keys_rev;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
+    GlitterCurve* curve = crv_edt->list[crv_edt->type];
+    std::vector<GlitterCurve::Key>* keys = curve ? &curve->keys_rev : 0;
     bool changed = false;
 
     bool fix_rot_z = eg->type != GLITTER_X && curve->type == GLITTER_CURVE_ROTATION_Z
@@ -5004,7 +5024,8 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
 
     bool add_key = false;
     bool del_key = false;
-    glitter_editor_curve_editor_key_manager(glt_edt, keys, &add_key, &del_key);
+    if (curve)
+        glitter_editor_curve_editor_key_manager(glt_edt, keys, &add_key, &del_key);
 
     if (ImGui::IsWindowFocused()) {
         if (add_key && ImGui::IsKeyPressed(GLFW_KEY_INSERT))
@@ -5019,43 +5040,48 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
 
     bool exist = true;
     if (crv_edt->add_key && add_key) {
-        if (!crv_edt->list[crv_edt->type] || vector_old_length(*keys) == 0) {
-            glitter_curve_key* key = vector_old_glitter_curve_key_reserve_back(keys);
-            key->frame = crv_edt->curve.start_time;
-            key->value = glitter_editor_curve_editor_get_value(glt_edt, curve->type);
-
+        if (!crv_edt->list[crv_edt->type] || !keys || keys->size() == 0) {
             if (!crv_edt->list[crv_edt->type]) {
-                glitter_curve* curve = glitter_curve_init(eg->type);
-                vector_old_ptr_glitter_curve_push_back(crv_edt->animation, &curve);
-                crv_edt->list[crv_edt->type] = curve;
+                GlitterCurve* c = new GlitterCurve(eg->type);
+                crv_edt->animation->curves.push_back(curve);
+                crv_edt->list[crv_edt->type] = c;
+                curve = c;
             }
 
             glitter_editor_curve_editor_curve_set(glt_edt, curve, crv_edt->type);
-            *crv_edt->list[crv_edt->type] = crv_edt->curve;
-            crv_edt->frame = crv_edt->curve.start_time;
+
+            if (!keys)
+                keys = &curve->keys_rev;
+
+            GlitterCurve::Key key;
+            key.frame = 0;
+            key.value = glitter_editor_curve_editor_get_value(glt_edt, curve->type);
+            keys->push_back(key);
+
+            crv_edt->frame = 0;
             changed = true;
         }
         else {
-            glitter_curve_key* i = keys->begin;
-            bool is_before_start = keys->begin->frame > crv_edt->frame;
+            std::vector<GlitterCurve::Key>::iterator i = keys->begin();
+            bool is_before_start = keys->data()[0].frame > crv_edt->frame;
             bool has_key_after = false;
             if (!is_before_start)
-                for (i++; i != keys->end; i++)
+                for (i++; i != keys->end(); i++)
                     if (crv_edt->frame <= i->frame) {
-                        has_key_after = keys->end - i > 0;
+                        has_key_after = keys->end() - i > 0;
                         break;
                     }
 
-            ssize_t pos = i - keys->begin;
+            ssize_t pos = i - keys->begin();
             if (!is_before_start)
                 pos--;
 
-            glitter_curve_key key;
-            memset(&key, 0, sizeof(glitter_curve_key));
-            key.frame = crv_edt->frame;
             if (!is_before_start && has_key_after) {
-                glitter_curve_key* c = i - 1;
-                glitter_curve_key* n = i;
+                std::vector<GlitterCurve::Key>::iterator c = i - 1;
+                std::vector<GlitterCurve::Key>::iterator n = i;
+
+                GlitterCurve::Key key;
+                key.frame = crv_edt->frame;
                 key.type = c->type;
                 switch (c->type) {
                 case GLITTER_KEY_CONSTANT:
@@ -5080,34 +5106,40 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                     free(v_arr);
                 } break;
                 }
-                vector_old_glitter_curve_key_insert(keys, ++pos, &key);
+                keys->insert(keys->begin() + ++pos, key);
             }
             else if (is_before_start) {
-                glitter_curve_key* n = i;
+                std::vector<GlitterCurve::Key>::iterator n = i;
+
+                GlitterCurve::Key key;
+                key.frame = crv_edt->frame;
                 key.type = n->type;
                 key.value = n->value;
                 key.random_range = n->random_range;
-                vector_old_glitter_curve_key_insert(keys, pos, &key);
+                keys->insert(keys->begin() + pos, key);
             }
             else {
-                glitter_curve_key* c = i - 1;
+                std::vector<GlitterCurve::Key>::iterator c = i - 1;
+
+                GlitterCurve::Key key;
+                key.frame = crv_edt->frame;
                 key.type = c->type;
                 key.value = c->value;
                 key.random_range = c->random_range;
-                vector_old_glitter_curve_key_insert(keys, ++pos, &key);
+                keys->insert(keys->begin() + ++pos, key);
             }
             *crv_edt->list[crv_edt->type] = *curve;
             changed = true;
         }
     }
-    else if (crv_edt->del_key && del_key) {
-        for (glitter_curve_key* i = keys->begin; i != keys->end; i++)
-            if (i == crv_edt->key) {
-                bool has_key_before = keys->begin->frame < i->frame;
-                bool has_key_after = keys->end[-1].frame > i->frame;
+    else if (keys && crv_edt->del_key && del_key) {
+        for (std::vector<GlitterCurve::Key>::iterator i = keys->begin(); i != keys->end(); i++)
+            if (&i[0] == crv_edt->key) {
+                bool has_key_before = keys->begin()->frame < i->frame;
+                bool has_key_after = keys->end()[-1].frame > i->frame;
                 if (has_key_before && i[-1].type == GLITTER_KEY_HERMITE && has_key_after) {
-                    glitter_curve_key* c = i - 1;
-                    glitter_curve_key* n = i + 1;
+                    std::vector<GlitterCurve::Key>::iterator c = i - 1;
+                    std::vector<GlitterCurve::Key>::iterator n = i + 1;
                     int32_t df_c = i->frame - c->frame;
                     int32_t df_n = n->frame - i->frame;
 
@@ -5135,49 +5167,32 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                         &n->tangent1, 0, (size_t)n->frame - c->frame);
                     free(v_arr);
                 }
-                vector_old_glitter_curve_key_erase(keys, i - keys->begin, 0);
+                keys->erase(i);
                 changed = true;
                 break;
             }
-
-        glitter_curve* c = crv_edt->list[crv_edt->type];
-        if (c && vector_old_length(*keys) == 0) {
-            glitter_animation* anim = crv_edt->animation;
-            for (glitter_curve** i = anim->begin; i != anim->end; i++)
-                if (*i && *i == c) {
-                    vector_old_ptr_glitter_curve_erase(anim, i - anim->begin, glitter_curve_dispose);
-                    exist = false;
-                    break;
-                }
-
-            glitter_editor_curve_editor_curve_reset(glt_edt, curve);
-            crv_edt->list[crv_edt->type] = 0;
-            changed = true;
-        }
     }
     else if (crv_edt->add_curve) {
-        glitter_curve_key* key = vector_old_glitter_curve_key_reserve_back(keys);
-        key->frame = crv_edt->curve.start_time;
-        key->value = glitter_editor_curve_editor_get_value(glt_edt, curve->type);
-
-        glitter_curve* c = glitter_curve_init(eg->type);
-        vector_old_ptr_glitter_curve_push_back(crv_edt->animation, &c);
+        GlitterCurve* c = new GlitterCurve(eg->type);
+        crv_edt->animation->curves.push_back(c);
         crv_edt->list[crv_edt->type] = c;
+        curve = c;
+
         glitter_editor_curve_editor_curve_set(glt_edt, curve, crv_edt->type);
         *crv_edt->list[crv_edt->type] = *curve;
         crv_edt->frame = curve->start_time;
         changed = true;
     }
     else if (crv_edt->del_curve) {
-        glitter_curve* c = crv_edt->list[crv_edt->type];
-        glitter_animation* anim = crv_edt->animation;
-        for (glitter_curve** i = anim->begin; i != anim->end; i++)
+        GlitterCurve* c = crv_edt->list[crv_edt->type];
+        GlitterAnimation* anim = crv_edt->animation;
+        for (std::vector<GlitterCurve*>::iterator i = anim->curves.begin(); i != anim->curves.end(); i++)
             if (*i && *i == c) {
-                vector_old_ptr_glitter_curve_erase(anim, i - anim->begin, glitter_curve_dispose);
+                delete* i;
+                anim->curves.erase(i);
                 break;
             }
 
-        glitter_editor_curve_editor_curve_reset(glt_edt, curve);
         crv_edt->list[crv_edt->type] = 0;
         crv_edt->frame = 0;
         changed = true;
@@ -5186,6 +5201,9 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
     crv_edt->del_key = false;
     crv_edt->add_curve = false;
     crv_edt->del_curve = false;
+
+    if (!curve || !keys)
+        return;
 
     int32_t start_time = curve->start_time;
     int32_t end_time = curve->end_time;
@@ -5334,12 +5352,12 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
         bool random_range_mult = curve->flags & GLITTER_CURVE_RANDOM_RANGE_MULT;
         bool random_range_negate = curve->flags & GLITTER_CURVE_RANDOM_RANGE_NEGATE;
         bool glt_type_ft = eg->type == GLITTER_FT;
-        for (glitter_curve_key* i = keys->begin; i != keys->end; i++) {
-            if (i->frame >= end_time || keys->end - i <= 1)
+        for (std::vector<GlitterCurve::Key>::iterator i = keys->begin(); i != keys->end(); i++) {
+            if (i->frame >= end_time || keys->end() - i <= 1)
                 break;
 
-            glitter_curve_key* c = i;
-            glitter_curve_key* n = i + 1;
+            std::vector<GlitterCurve::Key>::iterator c = i;
+            std::vector<GlitterCurve::Key>::iterator n = i + 1;
             float_t x1 = canvas_pos.x + (float_t)(c->frame - start_time) * frame_width;
             float_t x2 = canvas_pos.x + (float_t)(n->frame - start_time) * frame_width;
 
@@ -5565,12 +5583,12 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
         }
     }
 
-    for (glitter_curve_key* i = keys->begin; i != keys->end; i++) {
-        if (i->frame >= end_time || keys->end - i <= 1)
+    for (std::vector<GlitterCurve::Key>::iterator i = keys->begin(); i != keys->end(); i++) {
+        if (i->frame >= end_time || keys->end() - i <= 1)
             break;
 
-        glitter_curve_key* c = i;
-        glitter_curve_key* n = i + 1;
+        std::vector<GlitterCurve::Key>::iterator c = i;
+        std::vector<GlitterCurve::Key>::iterator n = i + 1;
         float_t x1 = canvas_pos.x + (float_t)(c->frame - start_time) * frame_width;
         float_t x2 = canvas_pos.x + (float_t)(n->frame - start_time) * frame_width;
 
@@ -5591,13 +5609,17 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             float_t y2 = convert_value_to_height(glt_edt, n_value, canvas_pos.y, canvas_size.y, min, max);
 
             if (i->type == GLITTER_KEY_CONSTANT) {
-                ImVec2 points_temp[4];
-                points_temp[0] = { x1, y1 };
-                points_temp[1] = { x2, y1 };
-                points_temp[2] = { x2, y1 };
-                points_temp[3] = { x2, y2 };
-                crv_edt->draw_list->AddPolyline(points_temp,
-                    4, default_color, 0, 3.0f);
+                int32_t count = 0;
+                ImVec2 points_temp[3];
+                if (x1 != x2)
+                    points_temp[count++] = { x1, y1 };
+                points_temp[count++] = { x2, y1 };
+                if (y1 != y2)
+                    points_temp[count++] = { x2, y2 };
+
+                if (count > 1)
+                    crv_edt->draw_list->AddPolyline(points_temp,
+                        count, default_color, 0, 3.0f);
             }
             else
                 crv_edt->draw_list->AddLine({ x1, y1 }, { x2, y2 }, default_color, 3.0f);
@@ -5634,10 +5656,10 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
 
     bool dragged = false;
     bool holding_tan = false;
-    for (glitter_curve_key* i = keys->begin; i != keys->end; i++) {
+    for (std::vector<GlitterCurve::Key>::iterator i = keys->begin(); i != keys->end(); i++) {
         if (!(i->frame >= start_time || i->frame <= end_time))
             continue;
-        else if (i - keys->begin > 1)
+        else if (i - keys->begin() > 1)
             if (i->frame < start_time && i[1].frame < start_time)
                 continue;
             else if (i->frame > end_time && i[-1].frame > end_time)
@@ -5667,7 +5689,7 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             break;
         }
 
-        ImGui::PushID(i);
+        ImGui::PushID(i._Ptr);
         ImGui::SetCursorScreenPos({ x - 7.5f, y - 7.5f });
         ImGui::InvisibleButton("val", { 15.0f, 15.0f }, 0);
 
@@ -5684,8 +5706,8 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             }
 
             if (i->frame >= start_time && i->frame <= end_time) {
-                int32_t start = i - keys->begin > 0 ? (i - 1)->frame + 1 : start_time;
-                int32_t end = keys->end - i > 1 ? (i + 1)->frame - 1 : end_time;
+                int32_t start = i - keys->begin() > 0 ? (i - 1)->frame + 1 : start_time;
+                int32_t end = keys->end() - i > 1 ? (i + 1)->frame - 1 : end_time;
                 crv_edt->frame = (int32_t)roundf((io.MousePos.x - canvas_pos.x) / frame_width);
                 crv_edt->frame = clamp(crv_edt->frame + start_time, start, end);
                 if (i->frame != crv_edt->frame) {
@@ -5719,11 +5741,11 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
                     i->value = value;
                     changed = true;
                 }
-                crv_edt->key = i;
+                crv_edt->key = &i[0];
             }
         }
 
-        if (i - keys->begin > 0 && (i - 1)->type == GLITTER_KEY_HERMITE) {
+        if (i - keys->begin() > 0 && (i - 1)->type == GLITTER_KEY_HERMITE) {
             ImU32 tangent1_color;
             float_t tangent1;
             ImVec2 circle_pos;
@@ -5757,7 +5779,7 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
             }
         }
 
-        if (keys->end - i > 1 && i->type == GLITTER_KEY_HERMITE) {
+        if (keys->end() - i > 1 && i->type == GLITTER_KEY_HERMITE) {
             ImU32 tangent2_color;
             float_t tangent2;
             ImVec2 circle_pos;
@@ -5792,7 +5814,7 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
         }
 
         crv_edt->draw_list->AddCircleFilled({ x, y },
-            crv_edt->key_radius_out, crv_edt->key == i ? selected_color : default_color, 12);
+            crv_edt->key_radius_out, crv_edt->key == &i[0] ? selected_color : default_color, 12);
         crv_edt->draw_list->AddCircleFilled({ x, y },
             crv_edt->key_radius_in, value_color, 12);
         ImGui::PopID();
@@ -5843,15 +5865,19 @@ static void glitter_editor_curve_editor(glitter_editor_struct* glt_edt) {
     }
 }
 
-static void glitter_editor_curve_editor_curve_reset(glitter_editor_struct* glt_edt, glitter_curve* curve) {
-    memset(curve, 0, sizeof(glitter_curve));
-    glitter_editor_curve_editor_curve_set(glt_edt, curve, (glitter_curve_type)-1);
-}
-
 static void glitter_editor_curve_editor_curve_set(glitter_editor_struct* glt_edt,
-    glitter_curve* curve, glitter_curve_type type) {
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterCurve* curve, glitter_curve_type type) {
+    GlitterEffectGroup* eg = glt_edt->effect_group;
     curve->type = type;
+    curve->repeat = false;
+    curve->start_time = 0;
+    curve->end_time = 0;
+    curve->flags = (glitter_curve_flag)0;
+    curve->random_range = 0.0f;
+    curve->keys.clear();
+#if defined(CLOUD_DEV)
+    curve->keys_rev.clear();
+#endif
     if (eg && eg->type == GLITTER_X) {
         curve->version = 2;
         curve->keys_version = 3;
@@ -5864,38 +5890,37 @@ static void glitter_editor_curve_editor_curve_set(glitter_editor_struct* glt_edt
 
 static void glitter_editor_curve_editor_curves_reset(glitter_editor_struct* glt_edt) {
     glitter_curve_editor* crv_edt = &glt_edt->curve_editor;
-
-    glitter_editor_curve_editor_curve_reset(glt_edt, &crv_edt->curve);
-    memset(&crv_edt->list, 0, sizeof(glitter_curve*)
-        * GLITTER_CURVE_V_SCROLL_ALPHA_2ND - GLITTER_CURVE_TRANSLATION_X + 1);
+    memset(&crv_edt->list, 0, sizeof(GlitterCurve*)
+        * (GLITTER_CURVE_V_SCROLL_ALPHA_2ND - GLITTER_CURVE_TRANSLATION_X + 1));
     crv_edt->animation = 0;
-    crv_edt->key = 0;
+    crv_edt->key = {};
 }
 
-static glitter_curve_key* glitter_editor_curve_editor_get_closest_key(glitter_editor_struct* glt_edt,
-    glitter_curve* curve) {
+static GlitterCurve::Key* glitter_editor_curve_editor_get_closest_key(
+    glitter_editor_struct* glt_edt, GlitterCurve* curve) {
     glitter_curve_editor* crv_edt = &glt_edt->curve_editor;
 
-    glitter_curve_key* key = 0;
-    vector_old_glitter_curve_key* keys = &curve->keys_rev;
-    for (glitter_curve_key* i = keys->begin; i != keys->end; i++) {
+    std::vector<GlitterCurve::Key>::iterator key = {};
+    std::vector<GlitterCurve::Key>* keys = &curve->keys_rev;
+    for (std::vector<GlitterCurve::Key>::iterator i = keys->begin(); i != keys->end(); i++) {
         if (i->frame == crv_edt->frame)
-            return i;
+            return &i[0];
 
-        if (!key || (key && abs(i->frame - crv_edt->frame)
+        if (!key._Ptr || (key._Ptr && abs(i->frame - crv_edt->frame)
             <= abs(key->frame - crv_edt->frame)))
             key = i;
     }
-    return key;
+    return &key[0];
 }
 
-static glitter_curve_key* glitter_editor_curve_editor_get_selected_key(glitter_editor_struct* glt_edt, glitter_curve* curve) {
+static GlitterCurve::Key* glitter_editor_curve_editor_get_selected_key(
+    glitter_editor_struct* glt_edt, GlitterCurve* curve) {
     glitter_curve_editor* crv_edt = &glt_edt->curve_editor;
 
-    vector_old_glitter_curve_key* keys = &curve->keys_rev;
-    for (glitter_curve_key* i = keys->begin; i != keys->end; i++)
+    std::vector<GlitterCurve::Key>* keys = &curve->keys_rev;
+    for (std::vector<GlitterCurve::Key>::iterator i = keys->begin(); i != keys->end(); i++)
         if (i->frame == crv_edt->frame)
-            return i;
+            return &i[0];
     return 0;
 }
 
@@ -6015,13 +6040,13 @@ static float_t glitter_editor_curve_editor_get_value(glitter_editor_struct* glt_
 }
 
 static void glitter_editor_curve_editor_key_manager(glitter_editor_struct* glt_edt,
-    vector_old_glitter_curve_key* keys, bool* add_key, bool* del_key) {
+    std::vector<GlitterCurve::Key>* keys, bool* add_key, bool* del_key) {
     glitter_curve_editor* crv_edt = &glt_edt->curve_editor;
 
-    glitter_curve* curve = &crv_edt->curve;
+    GlitterCurve* curve = crv_edt->list[crv_edt->type];
     *add_key = true;
     *del_key = false;
-    for (glitter_curve_key* i = keys->begin; i != keys->end; i++)
+    for (std::vector<GlitterCurve::Key>::iterator i = keys->begin(); i != keys->end(); i++)
         if (i->frame > curve->end_time)
             break;
         else if (i->frame == crv_edt->frame) {
@@ -6046,8 +6071,10 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
     float_t inv_scale;
     float_t min;
 
-    glitter_effect_group* eg = glt_edt->effect_group;
-    glitter_curve* curve = &crv_edt->curve;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
+    GlitterCurve* curve = crv_edt->list[crv_edt->type];
+    if (!curve)
+        return;
 
     bool fix_rot_z = eg->type != GLITTER_X && curve->type == GLITTER_CURVE_ROTATION_Z
         && ((glt_edt->selected_type == GLITTER_EDITOR_SELECTED_EMITTER
@@ -6081,16 +6108,16 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
     bool changed = false;
     bool key_edit = false;
 
-    float_t value;
-    if (vector_old_length(curve->keys_rev) > 1) {
-        glitter_curve_key* c = curve->keys_rev.begin;
-        glitter_curve_key* n = vector_old_length(curve->keys_rev) > 1 ? c + 1 : 0;
-        while (n != curve->keys_rev.end && n->frame < crv_edt->frame) {
+    float_t value = 0.0f;
+    if (curve->keys_rev.size() > 1) {
+        std::vector<GlitterCurve::Key>::iterator c = curve->keys_rev.begin();
+        std::vector<GlitterCurve::Key>::iterator n = c + 1;
+        while (n != curve->keys_rev.end() && n->frame < crv_edt->frame) {
             c++;
             n++;
         }
 
-        if (c + 1 != curve->keys_rev.end)
+        if (c + 1 != curve->keys_rev.end())
             switch (c->type) {
             case GLITTER_KEY_CONSTANT:
                 value = n->frame == crv_edt->frame ? n->value : c->value;
@@ -6105,8 +6132,8 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
                 break;
             }
     }
-    else if (vector_old_length(curve->keys_rev) == 1)
-        value = curve->keys_rev.begin->value;
+    else if (curve->keys_rev.size() == 1)
+        value = curve->keys_rev.data()[0].value;
     else if (curve->type >= GLITTER_CURVE_TRANSLATION_X && curve->type <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND)
         value = glitter_editor_curve_editor_get_value(glt_edt, curve->type);
     else
@@ -6116,8 +6143,9 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
     ImGui::Text("Frame: %d; Value: %g", crv_edt->frame, value);
 
     if (crv_edt->key && ImGui::TreeNodeEx("Key", ImGuiTreeNodeFlags_DefaultOpen)) {
-        glitter_curve_key* c = crv_edt->key;
-        glitter_curve_key* n = curve->keys_rev.end - c > 1 ? crv_edt->key + 1 : 0;
+        GlitterCurve::Key* c = crv_edt->key;
+        GlitterCurve::Key* n = curve->keys_rev.data() + curve->keys_rev.size()
+            - crv_edt->key > 1 ? &crv_edt->key[1] : 0;
         if (imguiColumnComboBox("Type", glitter_key_name,
             GLITTER_KEY_HERMITE,
             (int32_t*)&c->type, 0, true, &data->imgui_focus))
@@ -6181,9 +6209,8 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
             changed = true;
 
         int32_t start_time = curve->start_time;
-        if (imguiColumnInputInt("Start Time",
-            &start_time, 1, 1, 0)) {
-            start_time = clamp(start_time, 0, 0x7FFF);
+        if (imguiColumnDragInt("Start Time",
+            &start_time, 1, 0, 0x7FFF, "%d", 0)) {
             if (curve->end_time < start_time) {
                 curve->end_time = start_time;
                 changed = true;
@@ -6196,8 +6223,8 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
         }
 
         int32_t end_time = curve->end_time;
-        if (imguiColumnInputInt("End Time",
-            &end_time, 1, 1, 0)) {
+        if (imguiColumnDragInt("End Time",
+            &end_time, 1, 0, 0x7FFF, "%d", 0)) {
             if (curve->start_time > end_time)
                 end_time = curve->start_time;
 
@@ -6310,7 +6337,7 @@ static void glitter_editor_curve_editor_property_window(glitter_editor_struct* g
             glt_edt->input_reload = true;
         }
 
-        uint64_t hash1 = hash_fnv1a64m(crv_edt->list[crv_edt->type], sizeof(glitter_curve), false);
+        uint64_t hash1 = hash_fnv1a64m(crv_edt->list[crv_edt->type], sizeof(GlitterCurve), false);
         uint64_t hash2 = hash_fnv1a64m(curve, sizeof(glitter_effect), false);
         if (hash1 != hash2)
             *crv_edt->list[crv_edt->type] = *curve;
@@ -6395,9 +6422,9 @@ static void glitter_editor_curve_editor_selector(glitter_editor_struct* glt_edt,
     glitter_emitter* sel_emit = glt_edt->selected_emitter;
     glitter_particle* sel_ptcl = glt_edt->selected_particle;
 
-    glitter_effect_group* eg = glt_edt->effect_group;
+    GlitterEffectGroup* eg = glt_edt->effect_group;
     glitter_curve_type_flags flags = (glitter_curve_type_flags)0;
-    glitter_animation* anim = 0;
+    GlitterAnimation* anim = 0;
     switch (glt_edt->selected_type) {
     case GLITTER_EDITOR_SELECTED_EFFECT:
         flags = glitter_effect_curve_flags;
@@ -6427,8 +6454,8 @@ static void glitter_editor_curve_editor_selector(glitter_editor_struct* glt_edt,
 
     for (int32_t i = GLITTER_CURVE_TRANSLATION_X; i <= GLITTER_CURVE_V_SCROLL_ALPHA_2ND; i++) {
         bool found = false;
-        glitter_curve** j;
-        for (j = anim->begin; j != anim->end; j++)
+        std::vector<GlitterCurve*>::iterator j;
+        for (j = anim->curves.begin(); j != anim->curves.end(); j++)
             if (*j && (*j)->type == i) {
                 found = true;
                 break;
@@ -6544,17 +6571,10 @@ if (flags & GLITTER_CURVE_TYPE_##curve_type){ \
         || crv_edt->type > GLITTER_CURVE_V_SCROLL_ALPHA_2ND)
         return;
 
-    if (crv_edt->list[crv_edt->type])
-        crv_edt->curve = *crv_edt->list[crv_edt->type];
-    else if (crv_edt->curve.type != crv_edt->type) {
-        memset(&crv_edt->curve, 0, sizeof(glitter_curve));
-        glitter_editor_curve_editor_curve_set(glt_edt, &crv_edt->curve, crv_edt->type);
-    }
-    glitter_curve* curve = &crv_edt->curve;
+    GlitterCurve* curve = crv_edt->list[crv_edt->type];
 
-    if (reset)
-        crv_edt->key = glitter_editor_curve_editor_get_closest_key(glt_edt,
-            &crv_edt->curve);
+    if (reset && curve)
+        crv_edt->key = &glitter_editor_curve_editor_get_closest_key(glt_edt, curve)[0];
 
     ImGui::SameLine();
     ImGui::BeginGroup();
@@ -6573,7 +6593,8 @@ if (flags & GLITTER_CURVE_TYPE_##curve_type){ \
 
     bool add_key = false;
     bool del_key = false;
-    glitter_editor_curve_editor_key_manager(glt_edt, &curve->keys_rev, &add_key, &del_key);
+    if (curve)
+        glitter_editor_curve_editor_key_manager(glt_edt, &curve->keys_rev, &add_key, &del_key);
 
     ImGui::Separator();
     float_t w = imguiGetContentRegionAvailWidth();
@@ -6587,7 +6608,7 @@ if (flags & GLITTER_CURVE_TYPE_##curve_type){ \
         crv_edt->del_key = true;
     imguiDisableElementPop(del_key);
 
-    bool has_curve_in_list = crv_edt->list[crv_edt->type] ? true : false;
+    bool has_curve_in_list = curve ? true : false;
     imguiDisableElementPush(!has_curve_in_list);
     if (imguiButton("Add Curve", { w, 0.0f }))
         crv_edt->add_curve = true;
@@ -6597,6 +6618,7 @@ if (flags & GLITTER_CURVE_TYPE_##curve_type){ \
     if (imguiButton("Delete Curve", { w, 0.0f }))
         crv_edt->del_curve = true;
     imguiDisableElementPop(has_curve_in_list);
+    ImGui::EndGroup();
 }
 
 static bool glitter_editor_hash_input(glitter_editor_struct* glt_edt, const char* label, uint64_t* hash) {
@@ -6649,7 +6671,7 @@ static void glitter_editor_gl_load(glitter_editor_struct* glt_edt) {
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Glitter Editor Wireframe";
     shader_glsl_load_string(&glt_edt->gl_data.wireframe.shader,
-        (char*)glitter_editor_wireframe_vert, (char*)glitter_editor_wireframe_frag, 0, &param);
+        glitter_editor_wireframe_vert, glitter_editor_wireframe_frag, 0, &param);
 }
 
 static void glitter_editor_gl_draw(glitter_editor_struct* glt_edt) {
@@ -6674,25 +6696,25 @@ static void glitter_editor_gl_free(glitter_editor_struct* glt_edt) {
 }
 
 static void glitter_editor_gl_draw_wireframe(glitter_editor_struct* glt_edt) {
-    glitter_scene* sc = GPM_VAL.scene;
-    glitter_effect_inst* eff = GPM_VAL.effect;
-    glitter_emitter_inst* emit = GPM_VAL.emitter;
-    glitter_particle_inst* ptcl = GPM_VAL.particle;
+    GlitterScene* sc = GPM_VAL.scene;
+    GlitterEffectInst* eff = GPM_VAL.effect;
+    GlitterEmitterInst* emit = GPM_VAL.emitter;
+    GlitterParticleInst* ptcl = GPM_VAL.particle;
     if (!GPM_VAL.draw_selected || !eff) {
         if (!sc)
             return;
 
         size_t count = 0;
-        for (glitter_scene_effect* i = sc->effects.begin; i != sc->effects.end; i++)
-            if (i->disp && i->ptr)
-                count += glitter_editor_gl_draw_wireframe_calc(glt_edt, i->ptr, 0);
+        for (GlitterSceneEffect& i : sc->effects)
+            if (i.disp && i.ptr)
+                count += glitter_editor_gl_draw_wireframe_calc(glt_edt, i.ptr, 0);
 
         if (count == 0)
             return;
 
-        for (glitter_scene_effect* i = sc->effects.begin; i != sc->effects.end; i++)
-            if (i->disp && i->ptr)
-                glitter_editor_gl_draw_wireframe_draw(glt_edt, i->ptr, 0);
+        for (GlitterSceneEffect& i : sc->effects)
+            if (i.disp && i.ptr)
+                glitter_editor_gl_draw_wireframe_draw(glt_edt, i.ptr, 0);
     }
     else if ((eff && ptcl) || (eff && !emit)) {
         size_t count = glitter_editor_gl_draw_wireframe_calc(glt_edt, eff, ptcl);
@@ -6702,48 +6724,101 @@ static void glitter_editor_gl_draw_wireframe(glitter_editor_struct* glt_edt) {
         glitter_editor_gl_draw_wireframe_draw(glt_edt, eff, ptcl);
     }
     else if (emit) {
-        size_t count = 0;
-        for (glitter_particle_inst** i = emit->particles.begin; i != emit->particles.end; i++) {
-            if (!*i)
-                continue;
+        GlitterF2EmitterInst* emit_f2 = dynamic_cast<GlitterF2EmitterInst*>(emit);
+        GlitterXEmitterInst* emit_x = dynamic_cast<GlitterXEmitterInst*>(emit);
+        if (emit_f2) {
+            size_t count = 0;
+            for (GlitterF2ParticleInst*& i : emit_f2->particles) {
+                if (!i)
+                    continue;
 
-            glitter_particle_inst* particle = *i;
-            count += glitter_editor_gl_draw_wireframe_calc(glt_edt, eff, particle);
-            if (particle->data.children.begin) {
-                vector_old_ptr_glitter_particle_inst* children = &particle->data.children;
-                for (glitter_particle_inst** j = children->begin; j != children->end; j++)
-                    if (*j)
-                        count += glitter_editor_gl_draw_wireframe_calc(glt_edt, eff, *j);
+                GlitterF2ParticleInst* particle = i;
+                count += glitter_editor_gl_draw_wireframe_calc(glt_edt, eff, particle);
+                for (GlitterF2ParticleInst*& j : particle->data.children)
+                    if (j)
+                        count += glitter_editor_gl_draw_wireframe_calc(glt_edt, eff, j);
+            }
+
+            if (count == 0)
+                return;
+
+            for (GlitterF2ParticleInst*& i : emit_f2->particles) {
+                if (!i)
+                    continue;
+
+                GlitterF2ParticleInst* particle = i;
+                glitter_editor_gl_draw_wireframe_draw(glt_edt, eff, particle);
+                for (GlitterF2ParticleInst*& j : particle->data.children)
+                    if (j)
+                        glitter_editor_gl_draw_wireframe_draw(glt_edt, eff, j);
             }
         }
+        else if (emit_x) {
+            size_t count = 0;
+            for (GlitterXParticleInst*& i : emit_x->particles) {
+                if (!i)
+                    continue;
 
-        if (count == 0)
-            return;
+                GlitterXParticleInst* particle = i;
+                count += glitter_editor_gl_draw_wireframe_calc(glt_edt, eff, particle);
+                for (GlitterXParticleInst*& j : particle->data.children)
+                    if (j)
+                        count += glitter_editor_gl_draw_wireframe_calc(glt_edt, eff, j);
+            }
 
-        for (glitter_particle_inst** i = emit->particles.begin; i != emit->particles.end; i++) {
-            if (!*i)
-                continue;
+            if (count == 0)
+                return;
 
-            glitter_particle_inst* particle = *i;
-            glitter_editor_gl_draw_wireframe_draw(glt_edt, eff, particle);
-            if (particle->data.children.begin) {
-                vector_old_ptr_glitter_particle_inst* children = &particle->data.children;
-                for (glitter_particle_inst** j = children->begin; j != children->end; j++)
-                    if (*j)
-                        glitter_editor_gl_draw_wireframe_draw(glt_edt, eff, *j);
+            for (GlitterXParticleInst*& i : emit_x->particles) {
+                if (!i)
+                    continue;
+
+                GlitterXParticleInst* particle = i;
+                glitter_editor_gl_draw_wireframe_draw(glt_edt, eff, particle);
+                for (GlitterXParticleInst*& j : particle->data.children)
+                    if (j)
+                        glitter_editor_gl_draw_wireframe_draw(glt_edt, eff, j);
             }
         }
     }
 }
 
 static size_t glitter_editor_gl_draw_wireframe_calc(glitter_editor_struct* glt_edt,
-    glitter_effect_inst* eff, glitter_particle_inst* ptcl) {
+    GlitterEffectInst* eff, GlitterParticleInst* ptcl) {
+    GlitterF2EffectInst* e = dynamic_cast<GlitterF2EffectInst*>(eff);
+    if (e)
+        return glitter_editor_gl_draw_wireframe_calc(glt_edt, e, ptcl);
+
+    GlitterXEffectInst* ex = dynamic_cast<GlitterXEffectInst*>(eff);
+    if (ex)
+        return glitter_editor_gl_draw_wireframe_calc(glt_edt, ex, ptcl);
+    return 0;
+}
+
+static size_t glitter_editor_gl_draw_wireframe_calc(glitter_editor_struct* glt_edt,
+    GlitterF2EffectInst* eff, GlitterF2ParticleInst* ptcl) {
     size_t count = 0;
-    for (glitter_render_group** i = eff->render_scene.begin; i != eff->render_scene.end; i++) {
-        if (!*i)
+    for (GlitterF2RenderGroup*& i : eff->render_scene.groups) {
+        if (!i)
             continue;
 
-        glitter_render_group* rg = *i;
+        GlitterF2RenderGroup* rg = i;
+        if (ptcl && rg->particle != ptcl)
+            continue;
+        else if (rg->disp > 0)
+            count++;
+    }
+    return count;
+}
+
+static size_t glitter_editor_gl_draw_wireframe_calc(glitter_editor_struct* glt_edt,
+    GlitterXEffectInst* eff, GlitterXParticleInst* ptcl) {
+    size_t count = 0;
+    for (GlitterXRenderGroup*& i : eff->render_scene.groups) {
+        if (!i)
+            continue;
+
+        GlitterXRenderGroup* rg = i;
         if (ptcl && rg->particle != ptcl)
             continue;
         else if (rg->disp > 0)
@@ -6753,7 +6828,20 @@ static size_t glitter_editor_gl_draw_wireframe_calc(glitter_editor_struct* glt_e
 }
 
 static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt,
-    glitter_effect_inst* eff, glitter_particle_inst* ptcl) {
+    GlitterEffectInst* eff, GlitterParticleInst* ptcl) {
+    GlitterF2EffectInst* e = dynamic_cast<GlitterF2EffectInst*>(eff);
+    if (e) {
+        glitter_editor_gl_draw_wireframe_draw(glt_edt, e, ptcl);
+        return;
+    }
+
+    GlitterXEffectInst* ex = dynamic_cast<GlitterXEffectInst*>(eff);
+    if (ex)
+        glitter_editor_gl_draw_wireframe_draw(glt_edt, ex, ptcl);
+}
+
+static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt,
+    GlitterF2EffectInst* eff, GlitterF2ParticleInst* ptcl) {
     gl_state_disable_blend();
     gl_state_disable_depth_test();
     gl_state_set_depth_mask(GL_FALSE);
@@ -6763,11 +6851,11 @@ static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt
     gl_state_bind_vertex_array(glt_edt->vao);
     shader_glsl_use(&glt_edt->gl_data.wireframe.shader);
     shader_glsl_set_vec4_value(&glt_edt->gl_data.wireframe.shader, "color", 1.0f, 1.0f, 0.0f, 1.0f);
-    for (glitter_render_group** i = eff->render_scene.begin; i != eff->render_scene.end; i++) {
-        if (!*i)
+    for (GlitterF2RenderGroup*& i : eff->render_scene.groups) {
+        if (!i)
             continue;
 
-        glitter_render_group* rg = *i;
+        GlitterF2RenderGroup* rg = i;
         if (ptcl && rg->particle != ptcl)
             continue;
         else if (rg->disp < 1)
@@ -6802,9 +6890,72 @@ static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt
             gl_state_bind_array_buffer(0);
 
             const GLenum mode = rg->type == GLITTER_PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
-            const size_t count = vector_old_length(rg->vec_key);
+            const size_t count = rg->vec_key.size();
             for (size_t i = 0; i < count; i++)
-                glDrawArrays(mode, rg->vec_key.begin[i], rg->vec_val.begin[i]);
+                glDrawArrays(mode, rg->vec_key.data()[i], rg->vec_val.data()[i]);
+
+            glDisableVertexAttribArray(0);
+        } break;
+        }
+    }
+    gl_state_bind_vertex_array(0);
+    gl_state_set_polygon_mode(GL_FRONT_AND_BACK, GL_FILL);
+    shader_glsl_use(0);
+}
+
+static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt,
+    GlitterXEffectInst* eff, GlitterXParticleInst* ptcl) {
+    gl_state_disable_blend();
+    gl_state_disable_depth_test();
+    gl_state_set_depth_mask(GL_FALSE);
+    gl_state_disable_cull_face();
+    gl_state_set_polygon_mode(GL_FRONT_AND_BACK, GL_LINE);
+
+    gl_state_bind_vertex_array(glt_edt->vao);
+    shader_glsl_use(&glt_edt->gl_data.wireframe.shader);
+    shader_glsl_set_vec4_value(&glt_edt->gl_data.wireframe.shader, "color", 1.0f, 1.0f, 0.0f, 1.0f);
+    for (GlitterXRenderGroup*& i : eff->render_scene.groups) {
+        if (!i)
+            continue;
+
+        GlitterXRenderGroup* rg = i;
+        if (ptcl && rg->particle != ptcl)
+            continue;
+        else if (rg->disp < 1)
+            continue;
+
+        shader_glsl_set_mat4(&glt_edt->gl_data.wireframe.shader, "model", false, rg->mat_draw);
+
+        switch (rg->type) {
+        case GLITTER_PARTICLE_QUAD: {
+            static const GLsizei buffer_size = sizeof(glitter_buffer);
+
+            gl_state_bind_array_buffer(rg->vbo);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(glitter_buffer, position)); // Pos
+            gl_state_bind_array_buffer(0);
+
+            gl_state_bind_element_array_buffer(rg->ebo);
+            glDrawElements(GL_TRIANGLES, (GLsizei)(6 * rg->disp), GL_UNSIGNED_INT, 0);
+            gl_state_bind_element_array_buffer(0);
+
+            glDisableVertexAttribArray(0);
+        } break;
+        case GLITTER_PARTICLE_LINE:
+        case GLITTER_PARTICLE_LOCUS: {
+            static const GLsizei buffer_size = sizeof(glitter_buffer);
+
+            gl_state_bind_array_buffer(rg->vbo);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(glitter_buffer, position)); // Pos
+            gl_state_bind_array_buffer(0);
+
+            const GLenum mode = rg->type == GLITTER_PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
+            const size_t count = rg->vec_key.size();
+            for (size_t i = 0; i < count; i++)
+                glDrawArrays(mode, rg->vec_key.data()[i], rg->vec_val.data()[i]);
 
             glDisableVertexAttribArray(0);
         } break;
@@ -6819,7 +6970,7 @@ static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt
 }
 
 static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* glt_edt,
-    glitter_render_group* rg) {
+    GlitterXRenderGroup* rg) {
     glitter_render_element* elem = rg->elements;
     for (size_t i = rg->ctrl, j_max = 1024; i > 0; i -= j_max) {
         j_max = min(i, j_max);
@@ -6935,13 +7086,13 @@ static void glitter_editor_gl_select_particle(glitter_editor_struct* glt_edt) {
     GPM_VAL.particle = 0;
     GPM_VAL.draw_selected = false;
 
-    glitter_effect_group* eg = glt_edt->effect_group;
-    glitter_scene* sc = 0;
-    for (glitter_scene*& i : GPM_VAL.scenes) {
+    GlitterEffectGroup* eg = glt_edt->effect_group;
+    GlitterScene* sc = 0;
+    for (GlitterScene*& i : GPM_VAL.scenes) {
         if (!i)
             continue;
 
-        glitter_scene* scene = i;
+        GlitterScene* scene = i;
         if (scene->effect_group == eg) {
             sc = scene;
             break;
@@ -6950,64 +7101,85 @@ static void glitter_editor_gl_select_particle(glitter_editor_struct* glt_edt) {
     if (!sc)
         return;
 
-    glitter_effect_inst* eff = 0;
-    glitter_emitter_inst* emit = 0;
-    glitter_particle_inst* ptcl = 0;
-    for (glitter_scene_effect* i = sc->effects.begin; i != sc->effects.end; i++) {
-        if (!i->disp || !i->ptr)
+    GlitterF2EffectInst* eff_f2 = 0;
+    GlitterF2EmitterInst* emit_f2 = 0;
+    GlitterF2ParticleInst* ptcl_f2 = 0;
+    GlitterXEffectInst* eff_x = 0;
+    GlitterXEmitterInst* emit_x = 0;
+    GlitterXParticleInst* ptcl_x = 0;
+    for (GlitterSceneEffect& i : sc->effects) {
+        if (!i.disp || !i.ptr)
             continue;
 
-        glitter_effect_inst* effect = i->ptr;
+        GlitterEffectInst* effect = i.ptr;
         if (effect->effect != glt_edt->selected_effect)
             continue;
 
-        eff = effect;
-        for (glitter_emitter_inst** j = effect->emitters.begin; j != effect->emitters.end; j++) {
-            if (!*j)
-                continue;
-
-            glitter_emitter_inst* emitter = *j;
-            if (emitter->emitter != glt_edt->selected_emitter)
-                continue;
-
-            emit = emitter;
-            for (glitter_particle_inst** k = emitter->particles.begin; k != emitter->particles.end; k++) {
-                if (!*k)
+        eff_f2 = dynamic_cast<GlitterF2EffectInst*>(effect);
+        eff_x = dynamic_cast<GlitterXEffectInst*>(effect);
+        if (eff_f2)
+            for (GlitterF2EmitterInst*& j : eff_f2->emitters) {
+                if (!j)
                     continue;
 
-                glitter_particle_inst* particle = *k;
-                if (particle->particle == glt_edt->selected_particle) {
-                    ptcl = particle;
-                    break;
+                GlitterF2EmitterInst* emitter = j;
+                if (emitter->emitter != glt_edt->selected_emitter)
+                    continue;
+
+                emit_f2 = emitter;
+                for (GlitterF2ParticleInst*& k : emitter->particles) {
+                    if (!k)
+                        continue;
+
+                    GlitterF2ParticleInst* particle = k;
+                    if (particle->particle == glt_edt->selected_particle) {
+                        ptcl_f2 = particle;
+                        break;
+                    }
                 }
+                break;
             }
-            break;
-        }
+        else if (eff_x)
+            for (GlitterXEmitterInst*& j : eff_x->emitters) {
+                if (!j)
+                    continue;
+
+                GlitterXEmitterInst* emitter = j;
+                if (emitter->emitter != glt_edt->selected_emitter)
+                    continue;
+
+                emit_x = emitter;
+                for (GlitterXParticleInst*& k : emitter->particles) {
+                    if (!k)
+                        continue;
+
+                    GlitterXParticleInst* particle = k;
+                    if (particle->particle == glt_edt->selected_particle) {
+                        ptcl_x = particle;
+                        break;
+                    }
+                }
+                break;
+            }
         break;
     }
 
-    if (ptcl && ptcl->data.children.begin) {
-        vector_old_ptr_glitter_particle_inst* children = &ptcl->data.children;
-        ptcl = 0;
-        for (glitter_particle_inst** i = children->begin; i != children->end; i++) {
-            if (!*i)
-                continue;
-
-            glitter_particle_inst* particle = *i;
-            if (particle->particle == glt_edt->selected_particle) {
-                ptcl = particle;
-                break;
-            }
-        }
-
-        if (!ptcl)
-            return;
-    }
-
     GPM_VAL.scene = sc;
-    GPM_VAL.effect = eff;
-    GPM_VAL.emitter = emit;
-    GPM_VAL.particle = ptcl;
+    if (eff_f2) {
+        GPM_VAL.effect = eff_f2;
+        GPM_VAL.emitter = emit_f2;
+        GPM_VAL.particle = ptcl_f2;
+    }
+    else if (eff_x) {
+        GPM_VAL.effect = eff_x;
+        GPM_VAL.emitter = emit_x;
+        GPM_VAL.particle = ptcl_x;
+    }
+    else {
+        GPM_VAL.effect = 0;
+        GPM_VAL.emitter = 0;
+        GPM_VAL.particle = 0;
+    }
     GPM_VAL.draw_selected = glt_edt->draw_flags & GLITTER_EDITOR_DRAW_SELECTED;
 }
 #endif

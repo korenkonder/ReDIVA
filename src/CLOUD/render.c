@@ -400,6 +400,7 @@ static render_context* render_load() {
 
     object_storage_init(aft_obj_db);
     item_table_array_init();
+    task_work_init();
     rob_chara_array_init();
     auth_3d_data_init();
     light_param_storage_data_init();
@@ -553,17 +554,17 @@ static render_context* render_load() {
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Cube Line";
     shader_glsl_load_string(&cube_line_shader,
-        (char*)cube_line_vert_shader, (char*)cube_line_frag_shader, 0, &param);
+        cube_line_vert_shader, cube_line_frag_shader, 0, &param);
 
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Cube Line Point";
     shader_glsl_load_string(&cube_line_point_shader,
-        (char*)cube_line_point_vert_shader, (char*)cube_line_point_frag_shader, 0, &param);
+        cube_line_point_vert_shader, cube_line_point_frag_shader, 0, &param);
 
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Grid";
     shader_glsl_load_string(&grid_shader,
-        (char*)grid_vert_shader, (char*)grid_frag_shader, 0, &param);
+        grid_vert_shader, grid_frag_shader, 0, &param);
 
     render_resize_fb(rctx, false);
 
@@ -1158,7 +1159,7 @@ static void render_dispose(render_context* rctx) {
 
     rob_chara_array_free_chara_id(0);
     timer_reset(&render_timer);
-    for (int32_t i = 0; i < 6; i++) {
+    for (int32_t i = 0; i < 30; i++) {
         timer_start_of_cycle(&render_timer);
         lock_lock(&render_lock);
         TaskWork::Ctrl();
@@ -1172,6 +1173,7 @@ static void render_dispose(render_context* rctx) {
     light_param_storage_data_free();
     auth_3d_data_free();
     rob_chara_array_free();
+    task_work_free();
     item_table_array_free();
     object_storage_free();
     data_struct_free();

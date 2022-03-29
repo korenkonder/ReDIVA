@@ -6,23 +6,23 @@
 #include "curve_x.h"
 #include "random_x.h"
 
-static void glitter_x_curve_get_key_indexes(vector_old_glitter_curve_key* keys,
+static void glitter_x_curve_get_key_indexes(std::vector<GlitterCurve::Key>* keys,
     float_t frame, size_t* curr, size_t* next);
-static float_t glitter_x_curve_interpolate(glitter_curve* c, float_t frame,
-    glitter_curve_key* curr, glitter_curve_key* next, glitter_key_type key_type, glitter_random* random);
-static float_t glitter_x_curve_randomize(glitter_curve* c,
+static float_t glitter_x_curve_interpolate(GlitterCurve* c, float_t frame,
+    GlitterCurve::Key* curr, GlitterCurve::Key* next, glitter_key_type key_type, glitter_random* random);
+static float_t glitter_x_curve_randomize(GlitterCurve* c,
     float_t value, glitter_random* random);
-static float_t glitter_x_curve_randomize_key(glitter_curve* c,
-    glitter_curve_key* key, glitter_random* random);
+static float_t glitter_x_curve_randomize_key(GlitterCurve* c,
+    GlitterCurve::Key* key, glitter_random* random);
 
-bool glitter_x_curve_get_value(glitter_curve* c,
+bool glitter_x_curve_get_value(GlitterCurve* c,
     float_t frame, float_t* value, int32_t random_value, glitter_random* random) {
     size_t keys_count;
     int32_t random_val;
     bool negate;
     float_t _value;
 
-    keys_count = vector_old_length(c->keys);
+    keys_count = c->keys.size();
     if (!keys_count)
         return false;
 
@@ -36,7 +36,7 @@ bool glitter_x_curve_get_value(glitter_curve* c,
     float_t start_time;
     float_t end_time;
     if (keys_count == 1) {
-        glitter_curve_key* curr_key = &c->keys.begin[keys_count - 1];
+        GlitterCurve::Key* curr_key = &c->keys.data()[keys_count - 1];
         _value = glitter_x_curve_randomize_key(c, curr_key, random);
         goto End;
     }
@@ -50,11 +50,11 @@ bool glitter_x_curve_get_value(glitter_curve* c,
     }
 
     if (end_time <= frame) {
-        glitter_curve_key* key = &c->keys.begin[keys_count - 1];
+        GlitterCurve::Key* key = &c->keys.data()[keys_count - 1];
         _value = glitter_x_curve_randomize_key(c, key, random);
     }
     else if (start_time > frame) {
-        glitter_curve_key* key = &c->keys.begin[0];
+        GlitterCurve::Key* key = &c->keys.data()[0];
         _value = glitter_x_curve_randomize_key(c, key, random);
     }
     else if (c->flags & GLITTER_CURVE_BAKED) {
@@ -72,7 +72,7 @@ bool glitter_x_curve_get_value(glitter_curve* c,
         else
             key_index = 0;
 
-        glitter_curve_key* key = &c->keys.begin[key_index];
+        GlitterCurve::Key* key = &c->keys.data()[key_index];
         _value = glitter_x_curve_randomize_key(c, key, random);
     }
     else {
@@ -80,7 +80,7 @@ bool glitter_x_curve_get_value(glitter_curve* c,
         size_t next_key_index = 0;
         if (keys_count > 3)
             glitter_x_curve_get_key_indexes(&c->keys, frame, &curr_key_index, &next_key_index);
-        else if (keys_count == 3 && frame >= c->keys.begin[1].frame) {
+        else if (keys_count == 3 && frame >= c->keys.data()[1].frame) {
             curr_key_index = 1;
             next_key_index = 2;
         }
@@ -88,8 +88,8 @@ bool glitter_x_curve_get_value(glitter_curve* c,
             curr_key_index = 0;
             next_key_index = 1;
         }
-        glitter_curve_key* curr_key = &c->keys.begin[curr_key_index];
-        glitter_curve_key* next_key = &c->keys.begin[next_key_index];
+        GlitterCurve::Key* curr_key = &c->keys.data()[curr_key_index];
+        GlitterCurve::Key* next_key = &c->keys.data()[next_key_index];
         _value = glitter_x_curve_interpolate(c, frame, curr_key, next_key, curr_key->type, random);
     }
 
@@ -100,15 +100,15 @@ End:
     return true;
 }
 
-static void glitter_x_curve_get_key_indexes(vector_old_glitter_curve_key* keys,
+static void glitter_x_curve_get_key_indexes(std::vector<GlitterCurve::Key>* keys,
     float_t frame, size_t* curr, size_t* next) {
     size_t v4;
-    glitter_curve_key* v6;
+    GlitterCurve::Key* v6;
     size_t count;
     size_t v9;
     size_t v10;
 
-    count = vector_old_length(*keys);
+    count = keys->size();
     if (count <= 1) {
         *curr = 0;
         *next = 0;
@@ -116,7 +116,7 @@ static void glitter_x_curve_get_key_indexes(vector_old_glitter_curve_key* keys,
     }
 
     v4 = 0;
-    v6 = keys->begin;
+    v6 = keys->data();
     v9 = count - 1;
     v10 = v9 / 2;
     while (v4 <= v9) {
@@ -142,8 +142,8 @@ static void glitter_x_curve_get_key_indexes(vector_old_glitter_curve_key* keys,
     *next %= count;
 }
 
-static float_t glitter_x_curve_interpolate(glitter_curve* c, float_t frame,
-    glitter_curve_key* curr, glitter_curve_key* next, glitter_key_type key_type, glitter_random* random) {
+static float_t glitter_x_curve_interpolate(GlitterCurve* c, float_t frame,
+    GlitterCurve::Key* curr, GlitterCurve::Key* next, glitter_key_type key_type, glitter_random* random) {
     float_t next_val;
     float_t curr_val;
     float_t val;
@@ -169,7 +169,7 @@ static float_t glitter_x_curve_interpolate(glitter_curve* c, float_t frame,
     return val;
 }
 
-static float_t glitter_x_curve_randomize(glitter_curve* c,
+static float_t glitter_x_curve_randomize(GlitterCurve* c,
     float_t value, glitter_random* random) {
     float_t rand;
 
@@ -184,8 +184,8 @@ static float_t glitter_x_curve_randomize(glitter_curve* c,
     return rand + value;
 }
 
-static float_t glitter_x_curve_randomize_key(glitter_curve* c,
-    glitter_curve_key* key, glitter_random* random) {
+static float_t glitter_x_curve_randomize_key(GlitterCurve* c,
+    GlitterCurve::Key* key, glitter_random* random) {
     float_t rand;
 
     if (~c->flags & GLITTER_CURVE_KEY_RANDOM_RANGE)
