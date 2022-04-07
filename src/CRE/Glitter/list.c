@@ -12,23 +12,20 @@ bool glitter_list_pack_file(GlitterEffectGroup* a1, f2_struct* st) {
     if (!a1->effects.size())
         return false;
 
-    memset(st, 0, sizeof(f2_struct));
-
-    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+    enrs e;
     enrs_entry ee;
 
-    ee = { 0, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-    vector_old_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 1, 4, 1 };
+    ee.sub.push_back({ 0, 1, ENRS_DWORD });
+    e.vec.push_back(ee);
 
     length = 0;
     for (glitter_effect*& i : a1->effects)
         if (i)
             length++;
 
-    data = (size_t)force_malloc(0x10 + 0x80 * length);
-    st->data = (void*)data;
-    st->length = 0x10 + 0x80 * length;
+    st->data.resize(0x10 + 0x80 * length);
+    data = (size_t)st->data.data();
     st->enrs = e;
 
     *(uint32_t*)data = (uint32_t)length;
@@ -54,7 +51,7 @@ bool glitter_list_unpack_file(GlitterEffectGroup* a1, f2_struct* st) {
     if (!st || !st->header.data_size)
         return false;
 
-    d = (size_t)st->data;
+    d = (size_t)st->data.data();
     if (st->header.use_big_endian)
         length = load_reverse_endianness_uint32_t((void*)d);
     else

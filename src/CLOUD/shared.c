@@ -55,7 +55,7 @@ classes_data classes[] = {
             CLASS_DATA_NO_DATA,
         },
         data_view_classes,
-        4,
+        5,
     },
     {
         "Graphics",

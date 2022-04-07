@@ -49,7 +49,7 @@ void auth_3d_database_file::read(const wchar_t* path) {
     if (!path)
         return;
 
-    wchar_t* path_bin = str_utils_wadd(path, L".bin");
+    wchar_t* path_bin = str_utils_add(path, L".bin");
     if (path_check_file_exists(path_bin)) {
         stream s;
         io_open(&s, path_bin, L"rb");
@@ -87,7 +87,7 @@ void auth_3d_database_file::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
-    wchar_t* path_bin = str_utils_wadd(path, L".bin");
+    wchar_t* path_bin = str_utils_add(path, L".bin");
     stream s;
     io_open(&s, path_bin, L"wb");
     if (s.io.stream)

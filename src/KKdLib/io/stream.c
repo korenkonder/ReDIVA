@@ -57,6 +57,25 @@ void io_open(stream* s, const void* data, size_t length) {
     s->length = length;
 }
 
+void io_open(stream* s, std::vector<uint8_t>* data) {
+    memset(s, 0, sizeof(stream));
+    if (!data) {
+        s->type = STREAM_MEMORY;
+        s->length = 0;
+        return;
+    }
+
+    s->io.data.vec = vector_old_empty(uint8_t);
+    vector_old_uint8_t_reserve(&s->io.data.vec, data->size());
+    if (s->io.data.vec.begin && data->size())
+        memcpy(s->io.data.vec.begin, data->data(), data->size());
+    s->io.data.data = s->io.data.vec.begin;
+    s->io.data.vec.end = s->io.data.vec.begin + data->size();
+    s->type = STREAM_MEMORY;
+    s->position_stack = vector_old_empty(ssize_t);
+    s->length = data->size();
+}
+
 void io_copy(stream* s, void** data, size_t* length) {
     if (!s || !data || !length || s->type != STREAM_MEMORY)
         return;
@@ -64,6 +83,15 @@ void io_copy(stream* s, void** data, size_t* length) {
     *length = vector_old_length(s->io.data.vec);
     *data = force_malloc(*length);
     memcpy(*data, s->io.data.vec.begin, *length);
+}
+
+void io_copy(stream* s, std::vector<uint8_t>* data) {
+    if (!s || !data || s->type != STREAM_MEMORY)
+        return;
+
+    size_t length = vector_old_length(s->io.data.vec);
+    data->resize(length);
+    memcpy(data->data(), s->io.data.vec.begin, length);
 }
 
 void io_align_read(stream* s, ssize_t align) {

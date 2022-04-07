@@ -5,11 +5,14 @@
 
 #pragma once
 
+#include <map>
+#include <vector>
 #include "../KKdLib/default.h"
 #include "../KKdLib/database/object.h"
 #include "../KKdLib/database/texture.h"
 #include "../KKdLib/a3da.h"
 #include "../KKdLib/kf.h"
+#include "frame_rate_control.h"
 #include "render_context.h"
 #include "task.h"
 
@@ -491,12 +494,16 @@ public:
 class auth_3d_material_list {
 public:
     auth_3d_material_list_flags flags;
+    auth_3d_material_list_flags flags_init;
     auth_3d_rgba blend_color;
     auth_3d_key glow_intensity;
     auth_3d_rgba incandescence;
     std::string name;
+    obj_material* material;
 
     float_t glow_intensity_value;
+
+    vec4u incandescence_init;
 
     auth_3d_material_list();
     ~auth_3d_material_list();
@@ -704,7 +711,7 @@ public:
     draw_task_flags draw_task_flags;
     int32_t chara_id;
     bool shadow;
-    frame_rate_control* frame_rate;
+    FrameRateControl* frame_rate;
     float_t frame;
     float_t req_frame;
     float_t max_frame;
@@ -739,6 +746,8 @@ public:
     std::string file_name;
     int32_t frame_int;
     uint32_t hash;
+    object_database* obj_db;
+    texture_database* tex_db;
 
     auth_3d();
     ~auth_3d();
@@ -758,7 +767,7 @@ public:
 class auth_3d_farc {
 public:
     int32_t load_count;
-    const char* name;
+    std::string name;
     int32_t state;
     std::string path;
     std::string file;
@@ -784,10 +793,29 @@ public:
     ~auth_3d_uid_file();
 };
 
+class auth_3d_uid_file_modern {
+public:
+    int32_t load_count;
+    uint32_t hash;
+    uint32_t category_hash;
+    std::string file_name;
+    int32_t state;
+    std::string name;
+    auth_3d_farc* farc;
+    void* data;
+    object_database* obj_db;
+    texture_database* tex_db;
+
+    auth_3d_uid_file_modern();
+    ~auth_3d_uid_file_modern();
+};
+
 class auth_3d_data_struct {
 public:
     std::vector<auth_3d_farc> farcs;
+    std::map<uint32_t, auth_3d_farc> farcs_modern;
     std::vector<auth_3d_uid_file> uid_files;
+    std::map<uint32_t, auth_3d_uid_file_modern> uid_files_modern;
     std::vector<int32_t> loaded_ids;
     auth_3d data[AUTH_3D_DATA_COUNT];
 
@@ -800,13 +828,14 @@ extern auth_3d_data_struct* auth_3d_data;
 extern void auth_3d_data_init();
 extern bool auth_3d_data_check_id_not_empty(int32_t* id);
 extern bool auth_3d_data_check_category_loaded(const char* category_name);
+extern bool auth_3d_data_check_category_loaded(uint32_t category_hash);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t id);
-extern int32_t auth_3d_data_get_chara_id(int32_t id);
-extern int32_t auth_3d_data_get_auth_3d_id_by_object_info(object_info obj_info,
+extern int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
     int32_t* object_index, bool* hrc, int32_t instance);
-extern int32_t auth_3d_data_get_auth_3d_id_by_hash(uint32_t file_name_hash, uint32_t object_hash,
+extern int32_t auth_3d_data_get_auth_3d_id(uint32_t file_name_hash, uint32_t object_hash,
     int32_t* object_index, bool* hrc, int32_t instance);
 extern mat4* auth_3d_data_get_auth_3d_object_mat(int32_t id, size_t index, bool hrc, mat4* mat);
+extern int32_t auth_3d_data_get_chara_id(int32_t id);
 extern bool auth_3d_data_get_enable(int32_t* id);
 extern bool auth_3d_data_get_ended(int32_t* id);
 extern float_t auth_3d_data_get_frame(int32_t* id);
@@ -818,12 +847,16 @@ extern bool auth_3d_data_get_repeat(int32_t* id);
 extern int32_t auth_3d_data_get_uid(int32_t* id);
 extern void auth_3d_data_load_auth_3d_db(auth_3d_database* auth_3d_db);
 extern void auth_3d_data_load_category(const char* category_name);
+extern void auth_3d_data_load_category(void* data, const char* category_name, uint32_t category_hash);
+extern int32_t auth_3d_data_load_hash(uint32_t hash, uint32_t category_hash,
+    const char* category_name, void* data, object_database* obj_db, texture_database* tex_db);
 extern int32_t auth_3d_data_load_uid(int32_t uid, auth_3d_database* auth_3d_db);
 extern void auth_3d_data_read_file(int32_t* id, auth_3d_database* auth_3d_db);
+extern void auth_3d_data_read_file_modern(int32_t* id);
 extern void auth_3d_data_set_camera_root_update(int32_t* id, bool value);
 extern void auth_3d_data_set_chara_id(int32_t* id, int32_t value);
 extern void auth_3d_data_set_enable(int32_t* id, bool value);
-extern void auth_3d_data_set_frame_rate(int32_t* id, frame_rate_control* value);
+extern void auth_3d_data_set_frame_rate(int32_t* id, FrameRateControl* value);
 extern void auth_3d_data_set_last_frame(int32_t* id, float_t value);
 extern void auth_3d_data_set_left_right_reverse(int32_t* id, bool value);
 extern void auth_3d_data_set_mat(int32_t* id, mat4* value);
@@ -834,6 +867,7 @@ extern void auth_3d_data_set_req_frame(int32_t* id, float_t value);
 extern void auth_3d_data_set_shadow(int32_t* id, bool value);
 extern void auth_3d_data_set_visibility(int32_t* id, bool value);
 extern void auth_3d_data_unload_category(const char* category_name);
+extern void auth_3d_data_unload_category(uint32_t category_hash);
 extern void auth_3d_data_unload_id(int32_t id, render_context* rctx);
 extern void auth_3d_data_free();
 

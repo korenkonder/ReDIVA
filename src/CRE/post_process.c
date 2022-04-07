@@ -90,11 +90,11 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
 
     post_process_get_blur(pp->blur, &pp->rend_texture);
     post_process_get_exposure(pp->exposure, cam, pp->render_width, pp->render_height, pp->reset_exposure,
-        pp->blur->tex[4].color_texture->texture, pp->blur->tex[2].color_texture->texture);
+        pp->blur->tex[4].color_texture->tex, pp->blur->tex[2].color_texture->tex);
     post_process_apply_tone_map(pp->tone_map, &pp->rend_texture, light_proj_tex, 0,
         &pp->rend_texture, &pp->buf_texture, &pp->sss_contour_texture,
-        pp->blur->tex[0].color_texture->texture,
-        pp->exposure->exposure.color_texture->texture, npr_param);
+        pp->blur->tex[0].color_texture->tex,
+        pp->exposure->exposure.color_texture->tex, npr_param);
     if (pp->mlaa)
         post_process_apply_mlaa(pp->aa, &pp->rend_texture,
             &pp->buf_texture, pp->samplers, pp->parent_bone_node);
@@ -112,7 +112,7 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
             uniform_value[U_REDUCE] = 0;
 
         glViewport(0, 0, t->width, t->height);
-        gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->texture);
+        gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->tex);
         gl_state_bind_sampler(0, pp->samplers[0]);
         shader_set(&shaders_ft, SHADER_FT_REDUCE);
         render_texture_draw_params(&shaders_ft, pp->render_width,
@@ -127,7 +127,7 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
     render_texture_bind(&pp->screen_texture, 0);
     glViewport(pp->screen_x_offset, pp->screen_y_offset, pp->sprite_width, pp->sprite_height);
     if (pp->ssaa) {
-        gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->texture);
+        gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->tex);
         gl_state_bind_sampler(0, pp->samplers[0]);
         uniform_value[U01] = pp->parent_bone_node ? 1 : 0;
         uniform_value[U_REDUCE] = 0;
@@ -137,7 +137,7 @@ void post_process_apply(post_process_struct* pp, camera* cam, texture* light_pro
         uniform_value[U01] = 0;
     }
     else {
-        gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->texture);
+        gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->tex);
         if (pp->mag_filter == POST_PROCESS_MAG_FILTER_NEAREST)
             gl_state_bind_sampler(0, pp->samplers[1]);
         else
@@ -195,10 +195,10 @@ void post_process_init_fbo(post_process_struct* pp, int32_t render_width, int32_
             render_height, 0, GL_RGBA16F, 0);
         render_texture_init(&pp->alpha_layer_texture, render_width,
             render_height, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
-        gl_state_bind_texture_2d(pp->rend_texture.depth_texture->texture);
+        gl_state_bind_texture_2d(pp->rend_texture.depth_texture->tex);
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-        gl_state_bind_texture_2d(pp->sss_contour_texture.depth_texture->texture);
+        gl_state_bind_texture_2d(pp->sss_contour_texture.depth_texture->tex);
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         gl_state_bind_texture_2d(0);
         pp->render_width = render_width;
@@ -232,7 +232,7 @@ int32_t post_process_movie_texture_set(post_process_struct* pp, texture* movie_t
 
     pp->movie_textures_data[index] = movie_texture;
     render_texture_set_color_depth_textures(&pp->movie_textures[index],
-        movie_texture->texture, 0, 0, false);
+        movie_texture->tex, 0, 0, false);
     return index;
 }
 
@@ -263,7 +263,7 @@ int32_t post_process_render_texture_set(post_process_struct* pp, texture* render
 
     pp->render_textures_data[index] = render_texture;
     render_texture_set_color_depth_textures(&pp->render_textures[index],
-        render_texture->texture, 0, 0, false);
+        render_texture->tex, 0, 0, false);
     return index;
 }
 

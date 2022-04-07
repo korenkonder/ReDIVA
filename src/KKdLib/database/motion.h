@@ -12,7 +12,7 @@
 class motion_info {
 public:
     std::string name;
-    uint64_t name_hash;
+    uint32_t name_hash;
     uint32_t id;
 
     motion_info();
@@ -22,7 +22,7 @@ public:
 class motion_set_info {
 public:
     std::string name;
-    uint64_t name_hash;
+    uint32_t name_hash;
     uint32_t id;
     std::vector<motion_info> motion;
 

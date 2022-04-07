@@ -116,7 +116,7 @@ void vag_read(vag* v, char* path) {
 }
 
 void vag_wread(vag* v, wchar_t* path) {
-    wchar_t* path_vag = str_utils_wadd(path, L".vag");
+    wchar_t* path_vag = str_utils_add(path, L".vag");
     stream s;
     io_open(&s, path_vag, L"rb");
     if (s.io.stream) {
@@ -224,8 +224,8 @@ void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
 
     v->size = align_val_divide(num_samples, BLOCK_SIZE, BLOCK_SIZE);
 
-    wchar_t* temp_path = str_utils_wget_without_extension(path);
-    wchar_t* path_vag = str_utils_wadd(temp_path, L".vag");
+    wchar_t* temp_path = str_utils_get_without_extension(path);
+    wchar_t* path_vag = str_utils_add(temp_path, L".vag");
     stream s;
     io_open(&s, path_vag, L"wb");
     if (s.io.stream) {
@@ -384,7 +384,7 @@ void vag_dispose(vag* v) {
 static void vag_read_wav_straight(vag* v, wchar_t* path, float_t** data, size_t* samples) {
     *data = 0;
     *samples = 0;
-    wchar_t* path_av = str_utils_wadd(path, L".wav");
+    wchar_t* path_av = str_utils_add(path, L".wav");
     wav* w = wav_init();
     wav_wread(w, path_av, data, samples);
     v->channels = w->channels;
@@ -397,14 +397,14 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
     *data = 0;
     *samples = 0;
     *flags = 0;
-    if (!str_utils_wcheck_ends_with(path, L".0")) {
+    if (!str_utils_check_ends_with(path, L".0")) {
         vag_read_wav_straight(v, path, data, samples);
         return;
     }
 
     wchar_t temp[MAX_PATH];
     size_t count = 0;
-    wchar_t* temp_path = str_utils_wget_without_extension(path);
+    wchar_t* temp_path = str_utils_get_without_extension(path);
     vector_old_bool loop;
     bool n, l;
     bool add_loop = false;
@@ -546,7 +546,7 @@ static void vag_write_wav_straight(vag* v, wchar_t* path, float_t* data, size_t 
             break;
     }
 
-    wchar_t* path_av = str_utils_wadd(path, L".wav");
+    wchar_t* path_av = str_utils_add(path, L".wav");
     wav* w = wav_init();
     w->bytes = 4;
     w->channels = v->channels;

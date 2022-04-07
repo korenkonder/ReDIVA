@@ -168,7 +168,7 @@ void dds_wread(dds* d, wchar_t* path) {
 
     vector_old_ptr_void_free(&d->data, 0);
     memset(d, 0, sizeof(dds));
-    wchar_t* path_dds = str_utils_wadd(path, L".dds");
+    wchar_t* path_dds = str_utils_add(path, L".dds");
     stream s;
     io_open(&s, path_dds, L"rb");
     if (s.io.stream) {
@@ -289,7 +289,7 @@ void dds_wwrite(dds* d, wchar_t* path) {
     if (!d || !path || vector_old_length(d->data) < 1)
         return;
 
-    wchar_t* path_dds = str_utils_wadd(path, L".dds");
+    wchar_t* path_dds = str_utils_add(path, L".dds");
     stream s;
     io_open(&s, path_dds, L"wb");
     if (s.io.stream) {

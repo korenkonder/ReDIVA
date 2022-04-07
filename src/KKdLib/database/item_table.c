@@ -44,7 +44,7 @@ void itm_table::read(const wchar_t* path) {
     if (!path)
         return;
 
-    wchar_t* path_bin = str_utils_wadd(path, L".txt");
+    wchar_t* path_bin = str_utils_add(path, L".txt");
     if (path_check_file_exists(path_bin)) {
         stream s;
         io_open(&s, path_bin, L"rb");
@@ -82,7 +82,7 @@ void itm_table::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
-    wchar_t* path_bin = str_utils_wadd(path, L".txt");
+    wchar_t* path_bin = str_utils_add(path, L".txt");
     stream s;
     io_open(&s, path_bin, L"wb");
     if (s.io.stream)

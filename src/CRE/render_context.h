@@ -221,8 +221,11 @@ typedef struct draw_state {
 } draw_state;
 
 typedef struct texture_pattern_struct {
-    int32_t src;
-    int32_t dst;
+    texture_id src;
+    texture_id dst;
+
+    texture_pattern_struct();
+    texture_pattern_struct(texture_id src, texture_id dst);
 } texture_pattern_struct;
 
 vector_old(texture_pattern_struct)
@@ -481,11 +484,6 @@ struct shadow {
     bool blur_filter_enable[2];
     bool field_2F5;
 };
-
-extern const texture_pattern_struct texture_pattern_struct_null;
-
-extern float_t frame_rate_control_get_delta_frame(frame_rate_control* control);
-extern void frame_rate_control_set_frame_speed(frame_rate_control* control, float_t value);
 
 extern light_proj* light_proj_init(int32_t width, int32_t height);
 extern void light_proj_get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat4* mat);

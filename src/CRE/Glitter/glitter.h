@@ -545,10 +545,10 @@ public:
     texture** resources;
 #if defined(CRE_DEV) || defined(CLOUD_DEV)
     std::vector<uint32_t> object_set_ids;
+    std::string name;
 #endif
-    bool field_3C;
+    bool not_loaded;
     bool scene_init;
-    bool buffer_init;
     uint32_t version;
     glitter_type type;
 
@@ -561,7 +561,7 @@ public:
     void LoadModel(void* data);
     void FreeModel();
 #endif
-    bool ParseFile(f2_struct* st);
+    bool ParseFile(f2_struct* st, object_database* obj_db);
     bool UnparseFile(GLT, f2_struct* st);
 };
 
@@ -667,6 +667,9 @@ public:
 
 class GlitterEffectInst {
 public:
+#if defined(CRE_DEV) || defined(CLOUD_DEV)
+    std::string name;
+#endif
     glitter_effect* effect;
     glitter_effect_data data;
     float_t frame0;
@@ -909,6 +912,7 @@ public:
 
 class GlitterFileReader {
 public:
+    p_file_handler* file_handler;
     farc* farc;
     GlitterEffectGroup* effect_group;
     uint64_t hash;
@@ -919,14 +923,16 @@ public:
     std::string file;
     int32_t state;
     bool init_scene;
+    object_database* obj_db;
 
     GlitterFileReader(GLT);
     GlitterFileReader(GLT, char* path, char* file, float_t emission);
     GlitterFileReader(GLT, wchar_t* path, wchar_t* file, float_t emission);
     virtual ~GlitterFileReader();
 
-    bool Read(GPM, float_t emission);
-    bool ReadFarc(GPM, float_t emission);
+    bool LoadFarc(void* data, const char* path, const char* file, uint64_t hash, object_database* obj_db);
+    bool Read(GPM, object_database* obj_db);
+    bool ReadFarc(GPM);
 };
 
 class GlitterLocusHistory {
@@ -1150,6 +1156,9 @@ struct GlitterSceneCounter {
 
 class GlitterScene {
 public:
+#if defined(CRE_DEV) || defined(CLOUD_DEV)
+    std::string name;
+#endif
     std::vector<GlitterSceneEffect> effects;
     GlitterSceneCounter counter;
     uint64_t hash;
@@ -1157,8 +1166,11 @@ public:
     float_t emission;
     glitter_type type;
     GlitterEffectGroup* effect_group;
+#if defined(CRE_DEV) || defined(CLOUD_DEV)
     float_t delta_frame_history;
     bool skip;
+    FrameRateControl* frame_rate;
+#endif
 
     GlitterScene(GlitterSceneCounter counter, uint64_t hash, GlitterEffectGroup* a4, bool a5);
     virtual ~GlitterScene();
@@ -1176,6 +1188,9 @@ public:
     bool HasEnded(bool a2);
     void InitEffect(GPM, glitter_effect* a2, size_t id, bool appear_now);
     bool ResetEffect(GPM, uint64_t effect_hash);
+#if defined(CRE_DEV) || defined(CLOUD_DEV)
+    void SetFrameRate(FrameRateControl* frame_rate);
+#endif
 };
 
 class GltParticleManager : public Task {
@@ -1188,11 +1203,10 @@ public:
     GlitterEmitterInst* emitter;
     GlitterParticleInst* particle;
     void* rctx;
-    void* data;
     void* bone_data;
-    frame_rate_control* sys_frame_rate;
+    FrameRateControl* frame_rate;
     glitter_particle_manager_flag flags;
-    int32_t scene_counter;
+    int32_t scene_load_counter;
     float_t emission;
     float_t delta_frame;
     uint32_t texture_counter;
@@ -1225,7 +1239,7 @@ public:
     void CtrlScenes();
     void Disp(draw_pass_3d_type draw_pass_type);
     void FreeEffects();
-    void FreeSceneEffect(GlitterSceneCounter scene_counter, uint64_t hash);
+    void FreeSceneEffect(GlitterSceneCounter scene_counter, uint64_t hash, bool force_kill);
     void FreeScenes();
     size_t GetCtrlCount(glitter_particle_type type);
     size_t GetDispCount(glitter_particle_type type);
@@ -1242,7 +1256,8 @@ public:
     float_t GetSceneFrameLifeTime(GlitterSceneCounter scene_counter, int32_t* life_time);
     GlitterSceneCounter GetSceneCounter(uint8_t index);
     GlitterSceneCounter Load(uint64_t effect_group_hash, uint64_t effect_hash, bool use_existing);
-    uint64_t LoadFile(GLT, const char* file, const char* path, float_t emission, bool init_scene);
+    uint64_t LoadFile(GLT, void* data, const char* file, const char* path,
+        float_t emission, bool init_scene, object_database* obj_db);
     GlitterSceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now = true);
     GlitterSceneCounter LoadSceneEffect(uint64_t hash, bool appear_now = true);
     bool SceneHasNotEnded(GlitterSceneCounter load_counter);
@@ -1250,6 +1265,9 @@ public:
     void SetFrame(GlitterEffectGroup* effect_group,
         GlitterScene** scene, float_t curr_frame, float_t prev_frame,
         uint32_t counter, glitter_random* random, bool reset);
+    void SetSceneEffectName(uint64_t hash, uint64_t effect_hash, const char* name);
+    void SetSceneFrameRate(uint64_t hash, FrameRateControl* frame_rate);
+    void SetSceneName(uint64_t hash, const char* name);
 #endif
     void SetPause(bool value);
     void UnloadEffectGroup(uint64_t hash);

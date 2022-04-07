@@ -1251,6 +1251,8 @@ public:
 
     rob_osage_node_data();
     ~rob_osage_node_data();
+
+    void reset();
 };
 
 typedef struct struc_477 {
@@ -1296,6 +1298,8 @@ public:
 
     rob_osage_node();
     ~rob_osage_node();
+
+    void reset();
 };
 
 class skin_param_osage_root_coli {
@@ -1381,6 +1385,8 @@ public:
 
     skin_param();
     ~skin_param();
+
+    void reset();
 };
 
 class struc_571 {
@@ -2723,8 +2729,6 @@ extern float_t rob_chara_get_frame(rob_chara* rob_chr);
 extern float_t rob_chara_get_frame_count(rob_chara* rob_chr);
 extern void rob_chara_load_motion(rob_chara* rob_chr, int32_t motion_id, bool a3, float_t frame,
     MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
-extern void rob_chara_reload_items(rob_chara* rob_chr, item_cos_data* cos,
-    bone_database* bone_data, void* data, object_database* obj_db);
 extern void rob_chara_reset_data(rob_chara* rob_chr, rob_chara_pv_data* pv_data,
     bone_database* bone_data, motion_database* mot_db);
 extern void rob_chara_set_frame(rob_chara* rob_chr, float_t frame);

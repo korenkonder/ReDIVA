@@ -140,10 +140,6 @@ bool task_stage_has_stage_info(task_stage_info* stg_info) {
     return task_stage_get_stage(*stg_info) != 0;
 }
 
-bool task_stage_load(char* name) {
-    return stage_detail::TaskStage_Load(&task_stage, (const char*)name);
-}
-
 bool task_stage_load(const char* name) {
     return stage_detail::TaskStage_Load(&task_stage, name);
 }
@@ -164,7 +160,7 @@ void task_stage_set_stage_index(int32_t stage_index) {
     data_struct* data = rctx_ptr->data;
     stage_database* stage_data = &data->data_ft.stage_data;
 
-    if (stage_index >= vector_old_length(stage_data->stage_data))
+    if (stage_index >= stage_data->stage_data.size())
         return;
 
     std::vector<int32_t> stage_indices;
@@ -403,8 +399,10 @@ static bool stage_ctrl(stage* s) {
         return true;
     }
 
-    for (int32_t& i : s->auth_3d_uids)
+    for (int32_t& i : s->auth_3d_ids) {
+        auth_3d_data_set_enable(&i, true);
         auth_3d_data_set_visibility(&i, s->effect_display);
+    }
     return false;
 }
 
@@ -417,30 +415,36 @@ static void stage_disp(stage* s) {
     mat4 mat;
     mat4_rotate_y(s->rot_y, &mat);
 
+
     if (s->stage_data->object_ground.not_null() && s->ground)
-        draw_task_add_draw_object_by_object_info(rctx_ptr, &mat, s->stage_data->object_ground, 0, 0, 0, 0, 0, 0);
+        draw_task_add_draw_object_by_object_info(rctx_ptr,
+            &mat, s->stage_data->object_ground, 0, 0, 0, 0, 0, 0);
 
     if (s->stage_data->object_ring.not_null() && s->ring)
-        draw_task_add_draw_object_by_object_info(rctx_ptr, &mat, s->stage_data->object_ring, 0, 0, 0, 0, 0, 0);
+        draw_task_add_draw_object_by_object_info(rctx_ptr,
+            &mat, s->stage_data->object_ring, 0, 0, 0, 0, 0, 0);
 
     if (s->stage_data->object_reflect.not_null()) {
         object_data_set_draw_task_flags(object_data,
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
-        draw_task_add_draw_object_by_object_info(rctx_ptr, &mat, s->stage_data->object_reflect, 0, 0, 0, 0, 0, 0);
+        draw_task_add_draw_object_by_object_info(rctx_ptr,
+            &mat, s->stage_data->object_reflect, 0, 0, 0, 0, 0, 0);
         object_data_set_draw_task_flags(object_data, (draw_task_flags)0);
     }
 
     if (s->stage_data->object_refract.not_null()) {
         object_data_set_draw_task_flags(object_data,
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
-        draw_task_add_draw_object_by_object_info(rctx_ptr, &mat, s->stage_data->object_refract, 0, 0, 0, 0, 0, 0);
+        draw_task_add_draw_object_by_object_info(rctx_ptr,
+            &mat, s->stage_data->object_refract, 0, 0, 0, 0, 0, 0);
         object_data_set_draw_task_flags(object_data, (draw_task_flags)0);
     }
 
     if (s->stage_data->object_sky.not_null() && s->sky) {
         mat4 t = s->mat;
         mat4_mult(&t, &mat, &t);
-        draw_task_add_draw_object_by_object_info(rctx_ptr, &t, s->stage_data->object_sky, 0, 0, 0, 0, 0, 0);
+        draw_task_add_draw_object_by_object_info(rctx_ptr,
+            &t, s->stage_data->object_sky, 0, 0, 0, 0, 0, 0);
     }
 
     if (s->stage_data->lens_flare_texture != -1 && s->lens_flare) {
@@ -495,17 +499,13 @@ static void stage_free(stage* s) {
         return;
 
     draw_pass* draw_pass = &rctx_ptr->draw_pass;
-    if (s->stage_data->render_texture != -1) {
+    if (s->stage_data->render_texture != -1)
         post_process_render_texture_free(&rctx_ptr->post_process,
             texture_storage_get_texture(s->stage_data->render_texture), 0);
-        s->stage_data->render_texture = -1;
-    }
 
-    if (s->stage_data->movie_texture != -1) {
+    if (s->stage_data->movie_texture != -1)
         post_process_movie_texture_free(&rctx_ptr->post_process,
             texture_storage_get_texture(s->stage_data->movie_texture));
-        s->stage_data->movie_texture = -1;
-    }
 
     draw_pass->shadow = true;
     //rctx_ptr->post_process.field_14 = 0;
@@ -518,13 +518,13 @@ static void stage_free(stage* s) {
     light_chara_ambient = false;
 
     if (s->auth_3d_loaded) {
-        auth_3d_data_unload_category(string_data(&s->stage_data->auth_3d_name));
-        auth_3d_data_unload_category(string_data(&s->stage_data->name));
+        auth_3d_data_unload_category(s->stage_data->auth_3d_name.c_str());
+        auth_3d_data_unload_category(s->stage_data->name.c_str());
         s->auth_3d_loaded = false;
     }
-
+    
     object_storage_unload_set(s->stage_data->object_set_id);
-    if (s->obj_set >= 0)
+    if (s->obj_set != -1)
         object_storage_unload_set(s->obj_set);
 
     s->obj_set = -1;
@@ -549,15 +549,17 @@ static void stage_load(stage* s) {
         object_database* obj_db = &data->data_ft.obj_db;
         object_storage_load_set(data, obj_db, s->stage_data->object_set_id);
 
-        auth_3d_data_load_category(string_data(&s->stage_data->name));
-        auth_3d_data_load_category(string_data(&s->stage_data->auth_3d_name));
+        auth_3d_data_load_category(s->stage_data->name.c_str());
+        auth_3d_data_load_category(s->stage_data->auth_3d_name.c_str());
         s->auth_3d_loaded = true;
         s->state = 4;
     }
-    else if (s->state == 4
-        && !object_storage_load_obj_set_check_not_read(s->stage_data->object_set_id)
-        && auth_3d_data_check_category_loaded(string_data(&s->stage_data->name))
-        && auth_3d_data_check_category_loaded(string_data(&s->stage_data->auth_3d_name))) {
+    else if (s->state == 4) {
+        if (object_storage_load_obj_set_check_not_read(s->stage_data->object_set_id)
+            || !auth_3d_data_check_category_loaded(s->stage_data->name.c_str())
+            || !auth_3d_data_check_category_loaded(s->stage_data->auth_3d_name.c_str()))
+            return;
+
         if (s->stage_data->render_texture != -1)
             post_process_render_texture_set(&rctx_ptr->post_process,
                 texture_storage_get_texture(s->stage_data->render_texture), 0);
@@ -569,16 +571,14 @@ static void stage_load(stage* s) {
 
         data_struct* data = rctx_ptr->data;
         auth_3d_database* auth_3d_db = &data->data_ft.auth_3d_db;
-        int32_t auth_3d_count = s->stage_data->auth_3d_count;
-        int32_t* auth_3d_ids = s->stage_data->auth_3d_ids;
-        for (int32_t i = 0; i < auth_3d_count; i++) {
-            int32_t id = auth_3d_data_load_uid(auth_3d_ids[i], auth_3d_db);
-            auth_3d_data_read_file(&id, auth_3d_db);
-            s->auth_3d_uids.push_back(id);
-        }
+        for (int32_t& i : s->stage_data->auth_3d_ids) {
+            int32_t id = auth_3d_data_load_uid(i, auth_3d_db);
+            if (id == -1)
+                continue;
 
-        for (int32_t& i : s->auth_3d_uids)
-            auth_3d_data_set_visibility(&i, true);
+            auth_3d_data_read_file(&id, auth_3d_db);
+            s->auth_3d_ids.push_back(id);
+        }
     }
 }
 
@@ -597,10 +597,10 @@ static void stage_reset(stage* s) {
     s->rot_y = 0.0;
     s->obj_set = -1;
 
-    for (int32_t& i : s->auth_3d_uids)
+    for (int32_t& i : s->auth_3d_ids)
         auth_3d_data_unload_id(i, rctx_ptr);
-    s->auth_3d_uids.clear();
-    s->auth_3d_uids.shrink_to_fit();
+    s->auth_3d_ids.clear();
+    s->auth_3d_ids.shrink_to_fit();
     s->effect_display = true;
 }
 
@@ -674,16 +674,12 @@ static void stage_set(stage* s, stage* other) {
         light_param_storage_data_set_default_light_param();
 
     if (s)
-        for (int32_t& i : s->auth_3d_uids) {
+        for (int32_t& i : s->auth_3d_ids)
             auth_3d_data_set_req_frame(&i, 0.0f);
-            auth_3d_data_set_visibility(&i, false);
-        }
 
     if (other)
-        for (int32_t& i : other->auth_3d_uids) {
+        for (int32_t& i : other->auth_3d_ids)
             auth_3d_data_set_req_frame(&i, 0.0f);
-            auth_3d_data_set_visibility(&i, true);
-        }
 
     //sub_140344180(0);
 
@@ -705,22 +701,21 @@ static void stage_set_by_stage_index(stage* s, int32_t stage_index, uint16_t sta
     s->counter = stage_counter;
     s->state = 1;
 
-    if (stage_index >= vector_old_length(stage_data->stage_data)) {
+    if (stage_index >= stage_data->stage_data.size()) {
         s->stage_data = 0;
         return;
     }
     
-    s->stage_data = &stage_data->stage_data.begin[stage_index];
+    s->stage_data = &stage_data->stage_data[stage_index];
 
-    char* name = string_data(&s->stage_data->name);
-    size_t name_len = s->stage_data->name.length;
+    const char* name = s->stage_data->name.c_str();
+    size_t name_len = s->stage_data->name.size();
 
     char set_name[11];
     set_name[0] = 0;
     if (!str_utils_compare_length(name, name_len, "STGPV", 5)) {
         memcpy(set_name, name, 8);
         set_name[8] = 0;
-
     }
     else if (!str_utils_compare_length(name, name_len, "STGD2PV", 7)) {
         memcpy(set_name, name, 10);

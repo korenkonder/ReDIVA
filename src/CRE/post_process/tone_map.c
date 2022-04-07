@@ -74,24 +74,24 @@ void post_process_apply_tone_map(post_process_tone_map* tm,
     shader_local_frag_set_ptr(&shaders_ft, 5, &tm->shader_data.p_tone_offset);
     shader_local_frag_set_ptr(&shaders_ft, 6, &tm->shader_data.p_fade_func);
     shader_local_frag_set_ptr(&shaders_ft, 7, &tm->shader_data.p_inv_tone);
-    gl_state_active_bind_texture_2d(0, in_tex->color_texture->texture);
+    gl_state_active_bind_texture_2d(0, in_tex->color_texture->tex);
     gl_state_active_bind_texture_2d(1, in_tex_0);
     gl_state_active_bind_texture_2d(2, 0);
     gl_state_active_texture(2);
     glBindTexture(GL_TEXTURE_1D, tm->tone_map);
     gl_state_active_bind_texture_2d(3, in_tex_1);
     if (uniform_value[U_LIGHT_PROJ] && light_proj_tex)
-        gl_state_active_bind_texture_2d(6, light_proj_tex->texture);
+        gl_state_active_bind_texture_2d(6, light_proj_tex->tex);
     else if (uniform_value[U_AET_BACK] && back_2d_tex)
-        gl_state_active_bind_texture_2d(6, back_2d_tex->texture);
+        gl_state_active_bind_texture_2d(6, back_2d_tex->tex);
     if (npr_param == 1) {
-        gl_state_active_bind_texture_2d(16, contour_rt->color_texture->texture);
+        gl_state_active_bind_texture_2d(16, contour_rt->color_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        gl_state_active_bind_texture_2d(17, contour_rt->depth_texture->texture);
+        gl_state_active_bind_texture_2d(17, contour_rt->depth_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        gl_state_active_bind_texture_2d(14, rt->depth_texture->texture);
+        gl_state_active_bind_texture_2d(14, rt->depth_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }

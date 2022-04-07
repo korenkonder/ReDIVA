@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include "../default.h"
 #include "../string.h"
 #include "../half_t.h"
@@ -36,7 +37,9 @@ extern void io_open(stream* s);
 extern void io_open(stream* s, const char* path, const char* mode);
 extern void io_open(stream* s, const wchar_t* path, const wchar_t* mode);
 extern void io_open(stream* s, const void* data, size_t length);
+extern void io_open(stream* s, std::vector<uint8_t>* data);
 extern void io_copy(stream* s, void** data, size_t* length);
+extern void io_copy(stream* s, std::vector<uint8_t>* data);
 extern void io_align_read(stream* s, ssize_t align);
 extern void io_align_write(stream* s, ssize_t align);
 extern int io_flush(stream* s);

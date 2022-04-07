@@ -5,8 +5,8 @@
 
 #pragma once
 
+#include <vector>
 #include "../default.h"
-#include "../vector.h"
 #include "../io/stream.h"
 
 typedef enum enrs_type {
@@ -22,23 +22,28 @@ typedef struct enrs_sub_entry {
     enrs_type type;
 } enrs_sub_entry;
 
-vector_old(enrs_sub_entry)
-
-typedef struct enrs_entry {
+class enrs_entry {
+public:
     uint32_t offset;
     uint32_t count;
     uint32_t size;
     uint32_t repeat_count;
-    vector_old_enrs_sub_entry sub;
-} enrs_entry;
+    std::vector<enrs_sub_entry> sub;
 
-vector_old(enrs_entry)
+    enrs_entry();
+    enrs_entry(uint32_t offset, uint32_t count, uint32_t size, uint32_t repeat_count);
+    ~enrs_entry();
+};
 
-extern void enrs_apply(vector_old_enrs_entry* enrs, void* data);
-extern uint32_t enrs_length(vector_old_enrs_entry* enrs);
-extern void enrs_read(stream* s, vector_old_enrs_entry* enrs);
-extern void enrs_write(stream* s, vector_old_enrs_entry* enrs);
-extern void enrs_free(vector_old_enrs_entry* e);
+class enrs {
+public:
+    std::vector<enrs_entry> vec;
 
-extern void vector_old_enrs_sub_entry_append(vector_old_enrs_sub_entry* enrs_sub,
-    uint32_t skip_bytes, uint32_t repeat_count, enrs_type type);
+    enrs();
+    ~enrs();
+
+    void apply(void* data);
+    uint32_t length();
+    void read(stream* s);
+    void write(stream* s);
+};

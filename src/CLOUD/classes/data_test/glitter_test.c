@@ -134,7 +134,6 @@ bool TaskDataTestGlitterParticle::Init() {
 
 bool TaskDataTestGlitterParticle::Ctrl() {
     GPM_VAL.rctx = rctx_ptr;
-    GPM_VAL.data = rctx_ptr->data;
 
     if (load_file && file_index < files.size())
         LoadFile(files[file_index].name.c_str());
@@ -143,7 +142,7 @@ bool TaskDataTestGlitterParticle::Ctrl() {
     if (input_play)
         reload = true;
     else if (input_stop)
-        GPM_VAL.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty);
+        GPM_VAL.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty, true);
 
     if (!GPM_VAL.CheckNoFileReaders(hash)) {
         reload = false;
@@ -163,7 +162,7 @@ bool TaskDataTestGlitterParticle::Ctrl() {
         frame += sys_frame_rate.frame_speed;
 
     if (reload || auto_and_repeat && !GPM_VAL.SceneHasNotEnded(scene_counter)) {
-        GPM_VAL.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty);
+        GPM_VAL.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty, true);
         uint64_t effect_hash = hash_fnv1a64m_empty;
 
         if (geff_index)
@@ -311,9 +310,9 @@ void TaskDataTestGlitterParticle::Window() {
 }
 
 void TaskDataTestGlitterParticle::LoadFile(const char* file) {
-    GPM_VAL.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty);
+    GPM_VAL.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty, true);
     GPM_VAL.UnloadEffectGroup(hash);
-    hash = GPM_VAL.LoadFile(GLITTER_FT, file, 0, -1.0f, true);
+    hash = GPM_VAL.LoadFile(GLITTER_FT, rctx_ptr->data, file, 0, -1.0f, true, &rctx_ptr->data->data_ft.obj_db);
     rebuild_geff = true;
 }
 

@@ -11,26 +11,26 @@
 #include "header.h"
 #include "pof.h"
 
-typedef struct f2_struct f2_struct;
+class f2_struct;
 
-vector_old(f2_struct)
-
-struct f2_struct {
+class f2_struct {
+public:
     f2_header header;
-    void* data;
-    size_t length;
-    vector_old_f2_struct sub_structs;
+    std::vector<uint8_t> data;
+    std::vector<f2_struct> sub_structs;
 
-    vector_old_enrs_entry enrs;
-    vector_old_size_t pof;
+    enrs enrs;
+    pof pof;
+
+    f2_struct();
+    ~f2_struct();
+
+    void read(const char* path);
+    void read(const wchar_t* path);
+    void read(const void* data, size_t length);
+    void read(stream* s);
+    void write(const char* path, bool use_depth = true, bool shift_x = false);
+    void write(const wchar_t* path, bool use_depth = true, bool shift_x = false);
+    void write(void** data, size_t* length, bool use_depth = true, bool shift_x = false);
+    void write(stream* s, bool use_depth = true, bool shift_x = false);
 };
-
-extern void f2_struct_read(f2_struct* st, const char* path);
-extern void f2_struct_read(f2_struct* st, const wchar_t* path);
-extern void f2_struct_read(f2_struct* st, const void* data, size_t length);
-extern void f2_struct_read(f2_struct* st, stream* s);
-extern void f2_struct_write(f2_struct* st, const char* path, bool use_depth, bool shift_x);
-extern void f2_struct_write(f2_struct* st, const wchar_t* path, bool use_depth, bool shift_x);
-extern void f2_struct_write(f2_struct* st, void** data, size_t* length, bool use_depth, bool shift_x);
-extern void f2_struct_write(f2_struct* st, stream* s, bool use_depth, bool shift_x);
-extern void f2_struct_free(f2_struct* st);

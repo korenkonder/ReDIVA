@@ -18,6 +18,8 @@
 #include "../../KKdLib/txp.h"
 #include "../../KKdLib/vec.h"
 #include "../../KKdLib/vector.h"
+#include "../file_handler.h"
+#include "../frame_rate_control.h"
 #include "../static_var.h"
 #include "../task.h"
 #include "../texture.h"

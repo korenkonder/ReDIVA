@@ -43,6 +43,7 @@ typedef struct data_test_auth_3d_test {
     int32_t auth_3d_id;
     int32_t auth_3d_uid;
     bool auth_3d_load;
+    bool auth_3d_load_wait;
     bool auth_3d_uid_load;
     bool stage_load;
 
@@ -126,6 +127,7 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
         auth_3d_test->auth_3d_id = -1;
         auth_3d_test->auth_3d_uid = -1;
         auth_3d_test->auth_3d_load = false;
+        auth_3d_test->auth_3d_load_wait = false;
         auth_3d_test->auth_3d_uid_load = false;
 
         if (vector_old_length(auth_3d_test->category) > 0) {
@@ -133,6 +135,7 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
 
             if (vector_old_length(cat->uid)) {
                 auth_3d_test->auth_3d_load = true;
+                auth_3d_test->auth_3d_load_wait = true;
                 auth_3d_test->auth_3d_uid_load = true;
                 auth_3d_test->auth_3d_uid = cat->uid.begin[0].uid;
             }
@@ -145,9 +148,9 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
         stage_database* aft_stage_data = &rctx->data->data_ft.stage_data;
 
         auth_3d_test->stage = vector_old_ptr_empty(char);
-        vector_old_ptr_char_reserve(&auth_3d_test->stage, vector_old_length(aft_stage_data->stage_data));
-        for (stage_data* i = aft_stage_data->stage_data.begin; i != aft_stage_data->stage_data.end; i++)
-            *vector_old_ptr_char_reserve_back(&auth_3d_test->stage) = string_data(&i->name);
+        vector_old_ptr_char_reserve(&auth_3d_test->stage, aft_stage_data->stage_data.size());
+        for (stage_data& i : aft_stage_data->stage_data)
+            *vector_old_ptr_char_reserve_back(&auth_3d_test->stage) = (char*)i.name.c_str();
 
         auth_3d_test->a3d_stage_window_pos = { 200.0f, 100.0f };
 
@@ -180,23 +183,23 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
         auth_3d_database_uid* uids = aft_auth_3d_db->uid.data();
         const char* uid_name = uids[auth_3d_test->auth_3d_uid].name.c_str();
 
-        string name = string_empty;
+        uint32_t name_hash;
         const char* s = 0;
         if (s = strchr(uid_name, '_'))
-            string_init_length(&name, uid_name, s - uid_name);
+            name_hash = hash_murmurhash(uid_name, s - uid_name);
         else
-            string_init(&name, uid_name);
+            name_hash = hash_utf8_murmurhash(uid_name);
 
-        for (stage_data* i = aft_stage_data->stage_data.begin;
-            i != aft_stage_data->stage_data.end; i++)
-            if (string_compare(&name, &i->name)) {
-                int32_t stage_index = (int32_t)(i - aft_stage_data->stage_data.begin);
-                if (stage_index != auth_3d_test->stage_index)
-                    auth_3d_test->stage_load = true;
-                auth_3d_test->stage_index = stage_index;
-                break;
-            }
-        string_free(&name);
+        for (stage_data& i : aft_stage_data->stage_data) {
+            if (name_hash != i.name_hash)
+                continue;
+
+            int32_t stage_index = (int32_t)(&i - aft_stage_data->stage_data.data());
+            if (stage_index != auth_3d_test->stage_index)
+                auth_3d_test->stage_load = true;
+            auth_3d_test->stage_index = stage_index;
+            break;
+        }
         auth_3d_data_unload_id(auth_3d_test->auth_3d_id, auth_3d_test->rctx);
         auth_3d_test->auth_3d_id = -1;
     }
@@ -271,6 +274,16 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
         auth_3d_data_load_category(cat->name);
         auth_3d_test->auth_3d_category_index_prev = auth_3d_test->auth_3d_category_index;
         auth_3d_test->auth_3d_load = false;
+        auth_3d_test->auth_3d_load_wait = true;
+    }
+
+    if (auth_3d_test->auth_3d_load_wait) {
+        bool wait = false;
+        for (uint32_t* i = auth_3d_test->obj_set_id.begin; i != auth_3d_test->obj_set_id.end; i++)
+            wait |= object_storage_load_obj_set_check_not_read(*i);
+        if (wait)
+            return;
+        auth_3d_test->auth_3d_load_wait = false;
     }
 
     if (auth_3d_test->auth_3d_uid_load) {

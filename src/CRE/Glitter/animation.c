@@ -39,12 +39,12 @@ bool glitter_animation_parse_file(GLT, f2_struct* st,
     if (!st || !st->header.data_size)
         return false;
 
-    for (f2_struct* i = st->sub_structs.begin; i != st->sub_structs.end; i++) {
-        if (!i->header.data_size)
+    for (f2_struct& i : st->sub_structs) {
+        if (!i.header.data_size)
             continue;
 
-        if (i->header.signature == reverse_endianness_uint32_t('CURV')
-            && glitter_curve_parse_file(GLT_VAL, i, st->header.version, &c))
+        if (i.header.signature == reverse_endianness_uint32_t('CURV')
+            && glitter_curve_parse_file(GLT_VAL, &i, st->header.version, &c))
             if (flags & 1 << (size_t)(int32_t)c->type)
                 anim->curves.push_back(c);
             else
@@ -55,8 +55,6 @@ bool glitter_animation_parse_file(GLT, f2_struct* st,
 
 bool glitter_animation_unparse_file(GLT, f2_struct* st,
     GlitterAnimation* anim, glitter_curve_type_flags flags) {
-    memset(st, 0, sizeof(f2_struct));
-
     if (anim->curves.size() < 1)
         return false;
 
@@ -104,13 +102,13 @@ bool glitter_animation_unparse_file(GLT, f2_struct* st,
 
             f2_struct s;
             if (glitter_curve_unparse_file(GLT_VAL, &s, c)) {
-                vector_old_f2_struct_push_back(&st->sub_structs, &s);
+                st->sub_structs.push_back(s);
                 break;
             }
         }
     }
 
-    if (vector_old_length(st->sub_structs) < 1)
+    if (st->sub_structs.size() < 1)
         return false;
 
     st->header.signature = reverse_endianness_uint32_t('ANIM');

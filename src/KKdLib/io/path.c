@@ -226,8 +226,8 @@ void path_get_directories(std::vector<std::string>* directories, char* path,
     do {
         if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             continue;
-        else if (!str_utils_wcompare(fdata.cFileName, L".")
-            || !str_utils_wcompare(fdata.cFileName, L".."))
+        else if (!str_utils_compare(fdata.cFileName, L".")
+            || !str_utils_compare(fdata.cFileName, L".."))
             continue;
 
         if (exclude_list && exclude_count) {
@@ -307,8 +307,8 @@ void path_get_directories(std::vector<std::wstring>* directories, wchar_t* path,
     do {
         if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             continue;
-        else if (!str_utils_wcompare(fdata.cFileName, L".")
-            || !str_utils_wcompare(fdata.cFileName, L".."))
+        else if (!str_utils_compare(fdata.cFileName, L".")
+            || !str_utils_compare(fdata.cFileName, L".."))
             continue;
 
         if (exclude_list && exclude_count) {
@@ -318,7 +318,7 @@ void path_get_directories(std::vector<std::wstring>* directories, wchar_t* path,
 
             bool exclude = false;
             for (size_t i = 0; i < exclude_count; i++)
-                if (!str_utils_wcompare(exclude_list[i], temp)) {
+                if (!str_utils_compare(exclude_list[i], temp)) {
                     exclude = true;
                     break;
                 }
@@ -388,8 +388,8 @@ void path_get_directories_recursive(std::vector<std::string>* directories, char*
     do {
         if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             continue;
-        else if (!str_utils_wcompare(fdata.cFileName, L".")
-            || !str_utils_wcompare(fdata.cFileName, L".."))
+        else if (!str_utils_compare(fdata.cFileName, L".")
+            || !str_utils_compare(fdata.cFileName, L".."))
             continue;
 
         if (exclude_list && exclude_count) {
@@ -514,8 +514,8 @@ void path_get_directories_recursive(std::vector<std::wstring>* directories, wcha
     do {
         if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             continue;
-        else if (!str_utils_wcompare(fdata.cFileName, L".")
-            || !str_utils_wcompare(fdata.cFileName, L".."))
+        else if (!str_utils_compare(fdata.cFileName, L".")
+            || !str_utils_compare(fdata.cFileName, L".."))
             continue;
 
         if (exclude_list && exclude_count) {
@@ -525,7 +525,7 @@ void path_get_directories_recursive(std::vector<std::wstring>* directories, wcha
 
             bool exclude = false;
             for (size_t i = 0; i < exclude_count; i++)
-                if (!str_utils_wcompare(exclude_list[i], temp)) {
+                if (!str_utils_compare(exclude_list[i], temp)) {
                     exclude = true;
                     break;
                 }

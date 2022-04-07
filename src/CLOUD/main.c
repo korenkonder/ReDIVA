@@ -278,19 +278,19 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     stream s_dft;
     io_open(&s_dft);
     uint32_t off;
-    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+    enrs e;
     enrs_entry ee;
-    vector_old_size_t pof = vector_old_empty(size_t);
+    pof pof;
 
-    ee = { 0, 1, 8, 1, vector_old_empty(enrs_sub_entry) };
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-    vector_old_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 1, 8, 1 };
+    ee.sub.push_back({ 0, 2, ENRS_DWORD });
+    e.vec.push_back(ee);
     off = 8;
     off = align_val(off, 0x10);
 
-    ee = { off, 1, 24, (uint32_t)dft_data.dof.size(), vector_old_empty(enrs_sub_entry) };
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
-    vector_old_enrs_entry_push_back(&e, &ee);
+    ee = { off, 1, 24, (uint32_t)dft_data.dof.size() };
+    ee.sub.push_back({ 0, 6, ENRS_DWORD });
+    e.vec.push_back(ee);
     off = (uint32_t)(dft_data.dof.size() * 24ULL);
     off = align_val(off, 0x10);
 
@@ -300,10 +300,8 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     io_write(&s_dft, dft_data.dof.data(), sizeof(dof_data) * dft_data.dof.size());
 
     f2_struct st;
-    memset(&st, 0, sizeof(f2_struct));
-
     io_align_write(&s_dft, 0x10);
-    io_copy(&s_dft, &st.data, &st.length);
+    io_copy(&s_dft, &st.data);
     io_free(&s_dft);
 
     st.enrs = e;
@@ -316,8 +314,7 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     st.header.inner_signature = 0x03;
 
     sprintf_s(buf, sizeof(buf), "DOF\\post_process_table\\pv%03d.dft", pv_id);
-    f2_struct_write(&st, buf, true, false);
-    f2_struct_free(&st);
+    st.write(buf, true, false);
 }
 
 bool close;

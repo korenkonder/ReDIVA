@@ -44,11 +44,11 @@ inline bool operator <=(const object_info& left, const object_info& right) {
 }
 
 inline bool operator ==(const object_info& left, const object_info& right) {
-    return left.id == right.id && left.set_id == right.set_id;
+    return left.set_id == right.set_id && left.id == right.id;
 }
 
 inline bool operator !=(const object_info& left, const object_info& right) {
-    return left.id != right.id || left.set_id != right.set_id;
+    return left.set_id != right.set_id || left.id != right.id;
 }
 
 class object_info_data {
@@ -66,7 +66,7 @@ public:
 class object_set_info {
 public:
     std::string name;
-    uint64_t name_hash;
+    uint32_t name_hash;
     uint32_t id;
     std::string object_file_name;
     std::string texture_file_name;
@@ -83,7 +83,6 @@ public:
     bool modern;
     bool is_x;
 
-    std::vector<std::string> bone_name;
     std::vector<object_set_info> object_set;
 
     object_database();

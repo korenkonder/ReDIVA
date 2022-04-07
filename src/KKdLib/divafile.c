@@ -19,7 +19,7 @@ void divafile_decrypt(const char* path) {
 }
 
 void divafile_decrypt(const wchar_t* path) {
-    wchar_t* file_temp = str_utils_wadd(path, L"_dec");
+    wchar_t* file_temp = str_utils_add(path, L"_dec");
     stream s_enc;
     io_open(&s_enc, path, L"rb");
     if (s_enc.io.stream) {
@@ -103,7 +103,7 @@ void divafile_encrypt(const char* path) {
 }
 
 void divafile_encrypt(const wchar_t* path) {
-    wchar_t* file_temp = str_utils_wadd(path, L"_enc");
+    wchar_t* file_temp = str_utils_add(path, L"_enc");
     stream s_dec;
     io_open(&s_dec, path, L"rb");
     if (s_dec.io.stream) {

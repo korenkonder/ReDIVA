@@ -64,7 +64,10 @@ extern void light_param_storage_data_init();
 extern void light_param_storage_data_free_file_handlers();
 extern int32_t light_param_storage_data_load_file();
 extern void light_param_storage_data_load_stage(int32_t stage_index);
+extern void light_param_storage_data_load_stage(uint32_t stage_hash, stage_database* stage_data);
 extern void light_param_storage_data_load_stages(std::vector<int32_t>* stage_indices);
+extern void light_param_storage_data_load_stages(
+    std::vector<uint32_t>* stage_hashes, stage_database* stage_data);
 extern void light_param_storage_data_set_default_light_param();
 extern void light_param_storage_data_set_stage(int32_t stage_id);
 extern void light_param_storage_data_free();

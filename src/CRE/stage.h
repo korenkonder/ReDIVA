@@ -25,10 +25,10 @@ public:
     bool auth_3d_loaded;
     mat4u mat;
     float_t rot_y;
-    int32_t obj_set;
+    uint32_t obj_set;
 
     // Temp
-    std::vector<int32_t> auth_3d_uids;
+    std::vector<int32_t> auth_3d_ids;
     bool effect_display;
 
     stage();
@@ -96,7 +96,6 @@ extern void task_stage_get_current_stage_info(task_stage_info* stg_info);
 extern void task_stage_get_loaded_stage_infos(std::vector<task_stage_info>* vec);
 extern stage* task_stage_get_stage(task_stage_info stg_info);
 extern bool task_stage_has_stage_info(task_stage_info* stg_info);
-extern bool task_stage_load(char* name);
 extern bool task_stage_load(const char* name);
 extern void task_stage_set_mat(mat4* mat);
 extern void task_stage_set_mat(mat4u* mat);

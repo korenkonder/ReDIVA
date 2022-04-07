@@ -2711,7 +2711,7 @@ void dsc::merge(int32_t count, ...) {
         }
 
         uint32_t* data = add_func(get_func_name(i.func),
-            pv_branch_mode_func_id, get_func_length(i.func));
+            i.func, get_func_length(i.func));
         memmove(data, data_time_buffer.data() + i.data_offset,
             sizeof(uint32_t) * get_func_length(i.func));
     }
@@ -2724,7 +2724,6 @@ bool dsc::parse(void* data, size_t length, dsc_type type) {
     uint32_t* data_dsc = (uint32_t*)data;
 
     f2_struct st;
-    memset(&st, 0, sizeof(f2_struct));
     signature = 0;
     switch (type) {
     default:
@@ -2746,15 +2745,14 @@ bool dsc::parse(void* data, size_t length, dsc_type type) {
     case DSC_MGF:
     case DSC_X:
     case DSC_VRFL:
-        f2_struct_read(&st, data, length);
-        data_dsc = (uint32_t*)st.data;
+        st.read(data, length);
+        data_dsc = (uint32_t*)st.data.data();
         if (st.header.use_big_endian)
             for (size_t i = length / 4; i; i--, data_dsc++)
                 *data_dsc = load_reverse_endianness_uint32_t(data_dsc);
 
-        data_dsc = (uint32_t*)st.data;
+        data_dsc = (uint32_t*)st.data.data();
         if (*data_dsc++ != 0x13120420) {
-            f2_struct_free(&st);
             return false;
         }
 
@@ -2807,7 +2805,6 @@ bool dsc::parse(void* data, size_t length, dsc_type type) {
         memmove(data_buffer.data() + data.data_offset, func_data, sizeof(uint32_t) * func_length);
         func_data += func_length;
     }
-    f2_struct_free(&st);
     return true;
 }
 
@@ -2840,7 +2837,14 @@ void dsc::unparse(void** data, size_t* length) {
     if (f2)
         data_size = align_val(size, 4);
 
-    uint32_t* data_dsc = force_malloc_s(uint32_t, data_size);
+    f2_struct st;
+    uint32_t* data_dsc;
+    if (f2) {
+        st.data.resize(data_size * sizeof(uint32_t));
+        data_dsc = (uint32_t*)st.data.data();
+    }
+    else
+        data_dsc = force_malloc_s(uint32_t, data_size);
     uint32_t* func_data = data_dsc;
 
     switch (type) {
@@ -2870,25 +2874,20 @@ void dsc::unparse(void** data, size_t* length) {
     *func_data++ = 0;
 
     if (f2) {
-        vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+        enrs e;
         enrs_entry ee;
 
-        ee = { 0, 1, 4, (uint32_t)size, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 4, (uint32_t)size };
+        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        e.vec.push_back(ee);
 
-        f2_struct st;
-        memset(&st, 0, sizeof(f2_struct));
-        st.data = data_dsc;
-        st.length = data_size * sizeof(uint32_t);
         st.enrs = e;
 
         st.header.signature = reverse_endianness_uint32_t('PVSC');
         st.header.length = 0x40;
         st.header.use_section_size = true;
         st.header.inner_signature = 0x13120420;
-        f2_struct_write(&st, data, length, true, false);
-        f2_struct_free(&st);
+        st.write(data, length, true, false);
     }
     else {
         *data = data_dsc;

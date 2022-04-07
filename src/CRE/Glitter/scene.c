@@ -17,6 +17,9 @@ GlitterScene::GlitterScene(GlitterSceneCounter counter, uint64_t hash, GlitterEf
     delta_frame_history = 0.0f;
     skip = false;
     effects = {};
+#if defined(CRE_DEV)
+    frame_rate = 0;
+#endif
     if (a4) {
         effects.reserve(a4->effects.size());
         emission = a4->emission;
@@ -43,6 +46,7 @@ void GlitterScene::CalcDisp(GPM) {
 #endif
 
 void GlitterScene::Ctrl(GPM, float_t delta_frame) {
+    static int32_t call_count;
     for (GlitterSceneEffect& i : effects)
         if (i.ptr && i.disp)
             i.ptr->Ctrl(GPM_VAL, type, delta_frame, emission);
@@ -194,6 +198,12 @@ bool GlitterScene::ResetEffect(GPM, uint64_t effect_hash) {
             }
     return false;
 }
+
+#if defined(CRE_DEV)
+void GlitterScene::SetFrameRate(FrameRateControl* frame_rate) {
+    this->frame_rate = frame_rate;
+}
+#endif
 
 GlitterSceneCounter::GlitterSceneCounter(uint32_t counter) {
     this->index = 0;

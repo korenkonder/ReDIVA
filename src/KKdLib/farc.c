@@ -131,9 +131,9 @@ farc_file* farc::read_file(const char* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
+    uint32_t name_hash = hash_utf8_murmurhash(name);
     for (farc_file& i : files) {
-        if (hash_string_fnv1a64m(&i.name, true) != name_hash)
+        if (hash_string_murmurhash(&i.name) != name_hash)
             continue;
 
         if (!i.data && i.data_compressed)
@@ -155,9 +155,38 @@ farc_file* farc::read_file(const wchar_t* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
+    uint32_t name_hash = hash_utf16_murmurhash(name);
     for (farc_file& i : files) {
-        if (hash_string_fnv1a64m(&i.name, true) != name_hash)
+        if (hash_string_murmurhash(&i.name) != name_hash)
+            continue;
+
+        if (!i.data && i.data_compressed)
+            deflate_decompress(i.data_compressed, i.size_compressed,
+                &i.data, &i.size, DEFLATE_MODE_GZIP);
+        else if (!i.data) {
+            stream s;
+            io_open(&s, file_path.c_str(), "rb");
+            if (s.io.stream)
+                farc_unpack_file(this, &s, &i);
+            io_free(&s);
+        }
+        return &i;
+    }
+    return 0;
+}
+
+farc_file* farc::read_file(uint32_t hash) {
+    if (!hash || hash == hash_murmurhash_empty)
+        return 0;
+
+    for (farc_file& i : files) {
+        const char* l_str = i.name.c_str();
+        const char* t = strrchr(l_str, '.');
+        size_t l_len = i.name.size();
+        if (t)
+            l_len = t - l_str;
+
+        if (hash_murmurhash(l_str, l_len) != hash)
             continue;
 
         if (!i.data && i.data_compressed)

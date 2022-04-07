@@ -55,10 +55,6 @@ void data_struct_free() {
     if (data_list[DATA_AFT].ready) {
         data_struct* ds = &data_list[DATA_AFT];
         data_ft* d = &ds->data_ft;
-
-        stage_database_free(&d->stage_data);
-
-        stage_database_free(&d->base_stage_data);
     }
 #if defined(CRE_DEV)
     if (data_list[DATA_F2BE].ready) {
@@ -215,6 +211,8 @@ bool data_struct::check_file_exists(const char* dir, uint32_t hash) {
 
             std::vector<std::string> files;
             path_get_files(&files, temp);
+            if (!files.size())
+                continue;
 
             std::vector<uint32_t> files_murmurhash;
             files_murmurhash.reserve(files.size());
@@ -294,6 +292,9 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
 
             std::vector<std::string> files;
             path_get_files(&files, temp);
+            if (!files.size())
+                continue;
+
             for (std::string& k : files) {
                 bool found = false;
                 for (data_struct_file& l : *data_files)
@@ -360,6 +361,8 @@ bool data_struct::get_file(const char* dir, uint32_t hash, std::string* file) {
 
             std::vector<std::string> files;
             path_get_files(&files, temp);
+            if (!files.size())
+                continue;
 
             std::vector<uint32_t> files_murmurhash;
             files_murmurhash.reserve(files.size());
@@ -520,6 +523,8 @@ bool data_struct::load_file(void* data, const char* dir, uint32_t hash,
 
             std::vector<std::string> files;
             path_get_files(&files, temp);
+            if (!files.size())
+                continue;
 
             std::vector<uint32_t> files_murmurhash;
             files_murmurhash.reserve(files.size());
@@ -600,8 +605,7 @@ data_ft::data_ft() : obj_db(),  stage_data(), base_obj_db(), base_stage_data() {
 }
 
 data_ft::~data_ft() {
-    stage_database_free(&stage_data);
-    stage_database_free(&base_stage_data);
+
 }
 
 #if defined(CRE_DEV)
@@ -919,21 +923,19 @@ static void data_load_inner(stream* s) {
         
         {
             stage_database* base_stage_data = &d->base_stage_data;
-            stage_database_init(base_stage_data);
+            *base_stage_data = stage_database();
             base_stage_data->modern = false;
             ds->load_file(base_stage_data, "rom/",
-                "stage_data.bin", stage_database_load_file);
+                "stage_data.bin", stage_database::load_file);
 
             stage_database mdata_stage_data;
-            stage_database_init(&mdata_stage_data);
             mdata_stage_data.modern = false;
             ds->load_file(&mdata_stage_data, "rom/",
-                "mdata_stage_data.bin", stage_database_load_file);
+                "mdata_stage_data.bin", stage_database::load_file);
 
             stage_database* stage_data = &d->stage_data;
-            stage_database_init(stage_data);
-            stage_database_merge_mdata(stage_data, base_stage_data, &mdata_stage_data);
-            stage_database_free(&mdata_stage_data);
+            *stage_data = stage_database();
+            stage_data->merge_mdata(base_stage_data, &mdata_stage_data);
         }
 
         {
@@ -1045,7 +1047,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
         case DATA_XHD:
             ds->glitter_list_murmurhash.reserve(count);
             for (size_t i = 0; i < count; i++) {
-                uint32_t hash = hash_string_murmurhash(&ds->glitter_list_names[i], 0, false);
+                uint32_t hash = hash_string_murmurhash(&ds->glitter_list_names[i]);
                 ds->glitter_list_murmurhash.push_back(hash);
             }
             break;
@@ -1054,7 +1056,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
         case DATA_M39:
             ds->glitter_list_fnv1a64m.reserve(count);
             for (size_t i = 0; i < count; i++) {
-                uint64_t hash = hash_string_fnv1a64m(&ds->glitter_list_names[i], false);
+                uint64_t hash = hash_string_fnv1a64m(&ds->glitter_list_names[i]);
                 ds->glitter_list_fnv1a64m.push_back(hash);
             }
             break;

@@ -16,65 +16,37 @@ inline static bool pof_length_get_size(uint32_t* length, size_t val);
 static size_t pof_read_offsets_count(stream* s);
 inline static bool pof_write_packed_value(stream* s, size_t val);
 
-inline void io_write_offset_pof_add(stream* s, ssize_t val,
-    int32_t offset, bool is_x, vector_old_size_t* pof) {
-    if (!is_x) {
-        if (val)
-            val += offset;
-        pof_add(s, pof, offset);
-        io_write_int32_t_stream_reverse_endianness(s, (int32_t)val);
-    }
-    else {
-        io_align_write(s, 0x08);
-        pof_add(s, pof, 0);
-        io_write_int64_t_stream_reverse_endianness(s, val);
-    }
+pof::pof() {
+
 }
 
-inline void io_write_offset_f2_pof_add(stream* s, ssize_t val,
-    int32_t offset, vector_old_size_t* pof) {
-    if (val)
-        val += offset;
-    pof_add(s, pof, offset);
-    io_write_int32_t_stream_reverse_endianness(s, (int32_t)val);
+pof::~pof() {
+
 }
 
-inline void io_write_offset_x_pof_add(stream* s, ssize_t val, vector_old_size_t* pof) {
-    io_align_write(s, 0x08);
-    pof_add(s, pof, 0);
-    io_write_int64_t_stream_reverse_endianness(s, val);
-}
-
-inline void pof_add(stream* s, vector_old_size_t* pof, size_t offset) {
-    if (!s || !pof)
+void pof::add(stream* s,size_t offset) {
+    if (!s)
         return;
 
-    *vector_old_size_t_reserve_back(pof) = io_get_position(s) + offset;
+    vec.push_back(io_get_position(s) + offset);
 }
 
-void pof_read(stream* s, vector_old_size_t* pof, bool shift_x) {
-    vector_old_size_t p;
-    size_t i, j, l, length, offset, v;
-    uint8_t bit_shift;
-    pof_value_type value;
+void pof::read(stream* s, bool shift_x) {
+    vec.clear();
 
-    vector_old_size_t_free(pof, 0);
+    size_t length = pof_read_offsets_count(s);
 
-    length = pof_read_offsets_count(s);
+    uint8_t bit_shift = (uint8_t)(shift_x ? 3 : 2);
+    size_t l = io_read_uint32_t(s) - 4ULL;
 
-    bit_shift = (uint8_t)(shift_x ? 3 : 2);
-    l = io_read_uint32_t(s) - 4ULL;
+    vec.reserve(length);
 
-    p = vector_old_empty(size_t);
-    vector_old_size_t_reserve(&p, length);
-
-    i = 0;
-    j = 0;
-    offset = 0;
+    size_t i = 0;
+    size_t j = 0;
+    size_t offset = 0;
     while (i < l) {
-
-        v = io_read_uint8_t(s);
-        value = (pof_value_type)((v >> 6) & 0x3);
+        size_t v = io_read_uint8_t(s);
+        pof_value_type value = (pof_value_type)((v >> 6) & 0x03);
         v &= 0x3F;
 
         if (value == POF_VALUE_INT32) {
@@ -89,40 +61,32 @@ void pof_read(stream* s, vector_old_size_t* pof, bool shift_x) {
             break;
 
         offset += v;
-        *p.end++ = offset << bit_shift;
+        vec.push_back(offset << bit_shift);
         i++;
         j++;
     }
-    *pof = p;
 }
 
-void pof_write(stream* s, vector_old_size_t* pof, bool shift_x) {
-    vector_old_size_t p;
-    size_t* i;
-    size_t j, k, l, o, v;
-    uint8_t bit_shift;
-
-    p = *pof;
-
-    j = 0;
-    o = 0;
-    bit_shift = (uint8_t)(shift_x ? 3 : 2);
-    v = ((size_t)1 << bit_shift) - 1;
-    l = pof_length(pof, shift_x);
+void pof::write(stream* s, bool shift_x) {
+    size_t j = 0;
+    size_t o = 0;
+    uint8_t bit_shift = (uint8_t)(shift_x ? 3 : 2);
+    size_t v = ((size_t)1 << bit_shift) - 1;
+    size_t l = length(shift_x);
     if (shift_x)
         io_write_uint32_t(s, (uint32_t)l);
     else
         io_write_uint32_t(s, (uint32_t)align_val(l, 4));
 
-    for (i = p.begin; i != p.end; i++) {
-        o = *i;
+    for (size_t& i : vec) {
+        o = i;
         if (o & v) {
             pof_write_packed_value(s, 0x7FFFFFFF);
             break;
         }
 
-        k = o - j;
-        if (i != p.begin && !k)
+        size_t k = o - j;
+        if (&i != vec.data() && !k)
             continue;
         j = o;
         o = k;
@@ -135,26 +99,18 @@ void pof_write(stream* s, vector_old_size_t* pof, bool shift_x) {
         io_write_uint8_t(s, 0);
 }
 
-uint32_t pof_length(vector_old_size_t* pof, bool shift_x) {
-    vector_old_size_t p;
-    size_t* i;
-    size_t j, k, o, v;
-    uint32_t l;
-    uint8_t bit_shift;
+uint32_t pof::length(bool shift_x) {
+    uint32_t l = 4;
+    size_t j = 0;
+    uint8_t bit_shift = (uint8_t)(shift_x ? 3 : 2);
+    size_t v = ((size_t)1 << bit_shift) - 1;
 
-    l = 4;
-    j = 0;
-    o = 0;
-    bit_shift = (uint8_t)(shift_x ? 3 : 2);
-    v = ((size_t)1 << bit_shift) - 1;
-    p = *pof;
-
-    for (i = p.begin; i != p.end; i++) {
-        o = *i;
+    for (size_t& i : vec) {
+        size_t o = i;
         if (o & v)
             break;
-        else if (i != p.begin) {
-            k = o - j;
+        else if (&i != vec.data()) {
+            size_t k = o - j;
             if (!k)
                 continue;
             j = o;
@@ -167,6 +123,35 @@ uint32_t pof_length(vector_old_size_t* pof, bool shift_x) {
             break;
     }
     return l;
+}
+
+inline void io_write_offset_pof_add(stream* s, ssize_t val,
+    int32_t offset, bool is_x, pof* pof) {
+    if (!is_x) {
+        if (val)
+            val += offset;
+        pof->add(s, offset);
+        io_write_int32_t_stream_reverse_endianness(s, (int32_t)val);
+    }
+    else {
+        io_align_write(s, 0x08);
+        pof->add(s, 0);
+        io_write_int64_t_stream_reverse_endianness(s, val);
+    }
+}
+
+inline void io_write_offset_f2_pof_add(stream* s, ssize_t val,
+    int32_t offset, pof* pof) {
+    if (val)
+        val += offset;
+    pof->add(s, offset);
+    io_write_int32_t_stream_reverse_endianness(s, (int32_t)val);
+}
+
+inline void io_write_offset_x_pof_add(stream* s, ssize_t val, pof* pof) {
+    io_align_write(s, 0x08);
+    pof->add(s, 0);
+    io_write_int64_t_stream_reverse_endianness(s, val);
 }
 
 inline static bool pof_length_get_size(uint32_t* length, size_t val) {

@@ -168,7 +168,7 @@ void post_process_get_exposure(post_process_exposure* exp, camera* cam, int32_t 
 
     glViewport(0, 0, 1, 1);
     render_texture_bind(&exp->exposure, 0);
-    gl_state_active_bind_texture_2d(0, exp->exposure_history.color_texture->texture);
+    gl_state_active_bind_texture_2d(0, exp->exposure_history.color_texture->tex);
     render_texture_draw_params(&shaders_ft, 1, 1, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 }
 

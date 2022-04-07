@@ -446,7 +446,7 @@ static int quicksort_char_ptr_compare(void const* src1, void const* src2) {
 static int quicksort_wchar_t_ptr_compare(void const* src1, void const* src2) {
     wchar_t* str1 = *(wchar_t**)src1;
     wchar_t* str2 = *(wchar_t**)src2;
-    return str_utils_wcompare(str1, str2);
+    return str_utils_compare(str1, str2);
 }
 
 static int quicksort_string_compare(void const* src1, void const* src2) {
@@ -466,13 +466,13 @@ static int quicksort_std_string_compare(void const* src1, void const* src2) {
 static int quicksort_wstring_compare(void const* src1, void const* src2) {
     wstring* str1 = (wstring*)src1;
     wstring* str2 = (wstring*)src2;
-    return str_utils_wcompare_length(wstring_data(str1), str1->length,
+    return str_utils_compare_length(wstring_data(str1), str1->length,
         wstring_data(str2), str2->length);
 }
 
 static int quicksort_std_wstring_compare(void const* src1, void const* src2) {
     std::wstring* str1 = (std::wstring*)src1;
     std::wstring* str2 = (std::wstring*)src2;
-    return str_utils_wcompare_length(str1->c_str(), str1->size(),
+    return str_utils_compare_length(str1->c_str(), str1->size(),
         str2->c_str(), str2->size());
 }

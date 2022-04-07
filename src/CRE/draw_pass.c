@@ -269,9 +269,9 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
                 draw_pass_shadow_filter(&shad->field_8[3], &shad->field_8[4], shad->field_158[0],
                     shad->field_2DC, shad->field_2E0 / (shad->field_208 * 2.0f), false);
 
-                GLuint v5 = shad->field_8[5].color_texture->texture;
-                GLuint v6 = shad->field_8[6].color_texture->texture;
-                GLuint v7 = shad->field_8[3].color_texture->texture;
+                GLuint v5 = shad->field_8[5].color_texture->tex;
+                GLuint v6 = shad->field_8[6].color_texture->tex;
+                GLuint v7 = shad->field_8[3].color_texture->tex;
                 if (v5 && v6 && v7) {
                     texture_param tex_params[3];
                     texture_params_get(v5, &tex_params[0], v7, &tex_params[1], v6, &tex_params[2]);
@@ -299,8 +299,8 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
             render_texture* rend_tex = shad->field_158[1 + index];
             render_texture_bind(rend_tex, 0);
 
-            GLuint v11 = shad->field_158[1 + index]->color_texture->texture;
-            GLuint v12 = shad->field_158[0]->color_texture->texture;
+            GLuint v11 = shad->field_158[1 + index]->color_texture->tex;
+            GLuint v12 = shad->field_158[0]->color_texture->tex;
             if (v11 && v12) {
                 texture_param tex_params[3];
                 texture_params_get(v11, &tex_params[0], v12, &tex_params[1], 0, 0);
@@ -324,15 +324,15 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
             render_texture_bind(rend_tex, 0);
             if (shad->blur_filter_enable[index])
                 for (int32_t i = 0; i < shad->near_blur; i++)
-                    blur_filter_apply(rend_tex->color_texture->texture,
-                        rend_tex->color_texture->texture, shad->blur_filter);
+                    blur_filter_apply(rend_tex->color_texture->tex,
+                        rend_tex->color_texture->tex, shad->blur_filter);
             else {
                 glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
                 glClear(GL_COLOR_BUFFER_BIT);
             }
 
             gl_state_bind_framebuffer(0);
-            gl_state_bind_texture_2d(rend_tex->color_texture->texture);
+            gl_state_bind_texture_2d(rend_tex->color_texture->tex);
             glGenerateMipmap(GL_TEXTURE_2D);
             gl_state_bind_texture_2d(0);
             j++;
@@ -355,11 +355,11 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
 
 static void draw_pass_shadow_filter(render_texture* a1, render_texture* a2,
     render_texture* a3, float_t sigma, float_t far_texel_offset, bool enable_lit_proj) {
-    GLuint v7 = a1->color_texture->texture;
-    GLuint v9 = a2->color_texture->texture;
+    GLuint v7 = a1->color_texture->tex;
+    GLuint v9 = a2->color_texture->tex;
     GLuint v11 = v7;
     if (a3)
-        v11 = a3->depth_texture->texture;
+        v11 = a3->depth_texture->tex;
 
     if (!v7 || !v9 || !v11)
         return;
@@ -434,11 +434,11 @@ static bool draw_pass_shadow_litproj(render_context* rctx, light_proj* litproj) 
     }
 
     rctx->draw_state.shader_index = SHADER_FT_LITPROJ;
-    gl_state_active_bind_texture_2d(17, tex->texture);
+    gl_state_active_bind_texture_2d(17, tex->tex);
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&vec4_null);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    gl_state_active_bind_texture_2d(18, litproj->shadow_texture[0].color_texture->texture);
+    gl_state_active_bind_texture_2d(18, litproj->shadow_texture[0].color_texture->tex);
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&vec4_null);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
@@ -527,12 +527,12 @@ static void draw_pass_sss_contour(render_context* rctx, post_process_struct* pp)
     gl_state_set_depth_func(GL_ALWAYS);
     gl_state_set_depth_mask(GL_TRUE);
     glViewport(0, 0, pp->render_width, pp->render_height);
-    gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->texture);
+    gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    gl_state_active_bind_texture_2d(1, pp->rend_texture.depth_texture->texture);
+    gl_state_active_bind_texture_2d(1, pp->rend_texture.depth_texture->tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -672,7 +672,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
         render_texture_bind(a1->textures, 0);
         glViewport(0, 0, 640, 360);
         post_process_struct* pp = &rctx->post_process;
-        gl_state_bind_texture_2d(pp->rend_texture.color_texture->texture);
+        gl_state_bind_texture_2d(pp->rend_texture.color_texture->tex);
         uniform_value[U_REDUCE] = 0;
         shader_set(&shaders_ft, SHADER_FT_REDUCE);
 
@@ -681,7 +681,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
     }
     render_texture_bind(&a1->textures[2], 0);
     glViewport(0, 0, 320, 180);
-    gl_state_bind_texture_2d(a1->textures[0].color_texture->texture);
+    gl_state_bind_texture_2d(a1->textures[0].color_texture->tex);
     uniform_value[U_SSS_FILTER] = 0;
     shader_set(&shaders_ft, SHADER_FT_SSS_FILT);
     render_texture_draw_params(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
@@ -710,7 +710,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
 
     shader_local_frag_set(&shaders_ft, 1, (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f);
     glViewport(0, 0, 320, 180);
-    gl_state_bind_texture_2d(a1->textures[2].color_texture->texture);
+    gl_state_bind_texture_2d(a1->textures[2].color_texture->tex);
     render_texture_draw_params(&shaders_ft, 320, 180, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
     gl_state_bind_texture_2d(0);
 }
@@ -768,8 +768,8 @@ static void draw_pass_reflect(render_context* rctx, draw_pass* a1) {
 
         render_texture_bind(reflect_texture, 0);
         for (int32_t i = a1->reflect_blur_num; i > 0; i--)
-            blur_filter_apply(reflect_texture->color_texture->texture,
-                reflect_texture->color_texture->texture, a1->reflect_blur_filter);
+            blur_filter_apply(reflect_texture->color_texture->tex,
+                reflect_texture->color_texture->tex, a1->reflect_blur_filter);
     }
     else {
         vec4 clear_color;
@@ -847,16 +847,16 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
         draw_pass_3d_shadow_reset(rctx);
 
     if (a1->enable[DRAW_PASS_REFLECT] && a1->reflect && a1->reflect_texture.color_texture) {
-        gl_state_active_bind_texture_2d(15, a1->reflect_texture.color_texture->texture);
+        gl_state_active_bind_texture_2d(15, a1->reflect_texture.color_texture->tex);
         uniform_value[U_WATER_REFLECT] = 1;
     }
     else
         uniform_value[U_WATER_REFLECT] = 0;
 
     if (a1->sss_texture)
-        gl_state_active_bind_texture_2d(14, a1->sss_texture->texture);
+        gl_state_active_bind_texture_2d(14, a1->sss_texture->tex);
 
-    gl_state_active_bind_texture_2d(16, a1->sss_data.textures[1].color_texture->texture);
+    gl_state_active_bind_texture_2d(16, a1->sss_data.textures[1].color_texture->tex);
     gl_state_active_texture(0);
 
     if (a1->alpha_z_sort) {
@@ -993,8 +993,8 @@ static void draw_pass_3d_shadow_reset(render_context* rctx) {
 
 static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
     if (shad->self_shadow && shad->field_2EC > 0) {
-        gl_state_active_bind_texture_2d(19, shad->field_8[3].color_texture->texture);
-        gl_state_active_bind_texture_2d(20, shad->field_8[5].color_texture->texture);
+        gl_state_active_bind_texture_2d(19, shad->field_8[3].color_texture->tex);
+        gl_state_active_bind_texture_2d(20, shad->field_8[5].color_texture->tex);
         gl_state_active_texture(0);
         shader_env_frag_set(&shaders_ft, 23,
             ((shad->field_2D8 * shad->field_208) * 2.0f) * 1.442695f, 0.0f, 0.0f, 0.0f);
@@ -1044,7 +1044,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
             if (!shad->field_2F0[i])
                 continue;
 
-            gl_state_active_bind_texture_2d(6 + j, shad->field_158[1 + i]->color_texture->texture);
+            gl_state_active_bind_texture_2d(6 + j, shad->field_158[1 + i]->color_texture->tex);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
             j++;
         }
@@ -1069,7 +1069,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
         rctx->draw_state.light = false;
 
         for (int32_t i = 0; i < 2; i++)
-            gl_state_active_bind_texture_2d(6 + i, shad->field_158[1 + i]->color_texture->texture);
+            gl_state_active_bind_texture_2d(6 + i, shad->field_158[1 + i]->color_texture->tex);
         gl_state_active_texture(0);
 
         shader_env_frag_set_ptr(&shaders_ft, 12, (vec4*)&vec4_identity);

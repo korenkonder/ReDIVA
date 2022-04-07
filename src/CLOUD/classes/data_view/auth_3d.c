@@ -107,10 +107,15 @@ void data_view_auth_3d_imgui(class_data* data) {
 
         tree_node_flags = tree_node_base_flags;
 
+        bool visible = auth->enable && auth->visible;
+        if (!visible)
+            ImGui::PushStyleColor(ImGuiCol_Text, 0xFF888888);
         ImGui::PushID(auth->id);
         if (!ImGui::TreeNodeEx(auth, tree_node_flags,
-            "ID: %5d; File: %s; Frame: %5d", auth->id & 0x7FFF, buf, auth->frame_int)) {
+            "ID: %5d; Frame: %5d; File: %s", auth->id & 0x7FFF, auth->frame_int, buf)) {
             ImGui::PopID();
+            if (!visible)
+                ImGui::PopStyleColor();
             continue;
         }
 
@@ -211,6 +216,8 @@ void data_view_auth_3d_imgui(class_data* data) {
 
         ImGui::TreePop();
         ImGui::PopID();
+        if (!visible)
+            ImGui::PopStyleColor();
     }
 
     data->imgui_focus |= ImGui::IsWindowFocused();

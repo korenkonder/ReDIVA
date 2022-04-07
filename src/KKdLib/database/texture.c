@@ -53,15 +53,14 @@ void texture_database::read(const char* path, bool modern) {
         char* path_txi = str_utils_add(path, ".txi");
         if (path_check_file_exists(path_txi)) {
             f2_struct st;
-            f2_struct_read(&st, path_txi);
+            st.read(path_txi);
             if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
                 stream s_mtxi;
-                io_open(&s_mtxi, st.data, st.length);
+                io_open(&s_mtxi, &st.data);
                 s_mtxi.is_big_endian = st.header.use_big_endian;
                 texture_database_modern_read_inner(this, &s_mtxi, st.header.length);
                 io_free(&s_mtxi);
             }
-            f2_struct_free(&st);
         }
         free(path_txi);
     }
@@ -72,7 +71,7 @@ void texture_database::read(const wchar_t* path, bool modern) {
         return;
 
     if (!modern) {
-        wchar_t* path_bin = str_utils_wadd(path, L".bin");
+        wchar_t* path_bin = str_utils_add(path, L".bin");
         if (path_check_file_exists(path_bin)) {
             stream s;
             io_open(&s, path_bin, L"rb");
@@ -90,18 +89,17 @@ void texture_database::read(const wchar_t* path, bool modern) {
         free(path_bin);
     }
     else {
-        wchar_t* path_txi = str_utils_wadd(path, L".txi");
+        wchar_t* path_txi = str_utils_add(path, L".txi");
         if (path_check_file_exists(path_txi)) {
             f2_struct st;
-            f2_struct_read(&st, path_txi);
+            st.read(path_txi);
             if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
                 stream s_mtxi;
-                io_open(&s_mtxi, st.data, st.length);
+                io_open(&s_mtxi, &st.data);
                 s_mtxi.is_big_endian = st.header.use_big_endian;
                 texture_database_modern_read_inner(this, &s_mtxi, st.header.length);
                 io_free(&s_mtxi);
             }
-            f2_struct_free(&st);
         }
         free(path_txi);
     }
@@ -119,15 +117,14 @@ void texture_database::read(const void* data, size_t length, bool modern) {
     }
     else {
         f2_struct st;
-        f2_struct_read(&st, data, length);
+        st.read(data, length);
         if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
             stream s_mtxi;
-            io_open(&s_mtxi, st.data, st.length);
+            io_open(&s_mtxi, &st.data);
             s_mtxi.is_big_endian = st.header.use_big_endian;
             texture_database_modern_read_inner(this, &s_mtxi, st.header.length);
             io_free(&s_mtxi);
         }
-        f2_struct_free(&st);
     }
 }
 
@@ -160,7 +157,7 @@ void texture_database::write(const wchar_t* path) {
         return;
 
     if (!modern) {
-        wchar_t* path_bin = str_utils_wadd(path, L".bin");
+        wchar_t* path_bin = str_utils_add(path, L".bin");
         stream s;
         io_open(&s, path_bin, L"wb");
         if (s.io.stream)
@@ -169,7 +166,7 @@ void texture_database::write(const wchar_t* path) {
         free(path_bin);
     }
     else {
-        wchar_t* path_txi = str_utils_wadd(path, L".txi");
+        wchar_t* path_txi = str_utils_add(path, L".txi");
         stream s;
         io_open(&s, path_txi, L"wb");
         if (s.io.stream)
@@ -200,38 +197,30 @@ void texture_database::merge_mdata(texture_database* base_tex_db,
         || !base_tex_db->ready || !mdata_tex_db->ready)
         return;
 
-    texture.reserve(base_tex_db->texture.size());
-
-    for (texture_info& i : base_tex_db->texture) {
-        texture_info info;
-        info.id = i.id;
-        info.name = i.name;
-        info.name_hash = hash_string_fnv1a64m(&i.name, false);
-        texture.push_back(info);
-    }
+    if (this != base_tex_db)
+        texture = base_tex_db->texture;
 
     for (texture_info& i : mdata_tex_db->texture) {
         uint32_t id = i.id;
 
-        texture_info* info_ptr = 0;
+        texture_info* info = 0;
         for (texture_info& j : texture)
             if (id == j.id) {
-                info_ptr = &j;
+                info = &j;
                 break;
             }
 
-        texture_info info;
-        info.id = i.id;
-        info.name = i.name;
-        info.name_hash = hash_string_fnv1a64m(&i.name, false);
-
-        if (info_ptr)
-            *info_ptr = info;
+        if (info)
+            *info = i;
         else
-            texture.push_back(info);
+            texture.push_back(i);
     }
 
-    ready = true;
+    if (this != base_tex_db) {
+        ready = true;
+        modern = base_tex_db->modern;
+        is_x = base_tex_db->is_x;
+    }
 }
 
 void texture_database::split_mdata(texture_database* base_tex_db,
@@ -246,7 +235,7 @@ uint32_t texture_database::get_texture_id(char* name) {
     if (!name)
         return -1;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    uint32_t name_hash = hash_utf8_murmurhash(name);
 
     for (texture_info& i : texture)
         if (name_hash == i.name_hash)
@@ -258,7 +247,7 @@ uint32_t texture_database::get_texture_id(const char* name) {
     if (!name)
         return -1;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    uint32_t name_hash = hash_utf8_murmurhash(name);
 
     for (texture_info& i : texture)
         if (name_hash == i.name_hash)
@@ -295,7 +284,7 @@ bool texture_database::load_file(void* data, const char* path, const char* file,
 }
 
 
-texture_info::texture_info() :  name_hash(hash_fnv1a64m_empty), id((uint32_t)-1) {
+texture_info::texture_info() : name_hash(hash_murmurhash_empty), id((uint32_t)-1) {
 
 }
 
@@ -314,6 +303,7 @@ static void texture_database_classic_read_inner(texture_database* tex_db, stream
         texture_info& info = tex_db->texture[i];
         info.id = io_read_uint32_t(s);
         io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &info.name);
+        info.name_hash = hash_string_murmurhash(&info.name);
     }
     io_position_pop(s);
 
@@ -382,12 +372,14 @@ static void texture_database_modern_read_inner(texture_database* tex_db, stream*
             texture_info& info = tex_db->texture[i];
             info.id = io_read_uint32_t_stream_reverse_endianness(s);
             io_read_string_null_terminated_offset(s, io_read_offset_f2(s, header_length), &info.name);
+            info.name_hash = hash_string_murmurhash(&info.name);
         }
     else
         for (uint32_t i = 0; i < textures_count; i++) {
             texture_info& info = tex_db->texture[i];
             info.id = io_read_uint32_t_stream_reverse_endianness(s);
             io_read_string_null_terminated_offset(s, io_read_offset_x(s), &info.name);
+            info.name_hash = hash_string_murmurhash(&info.name);
         }
     io_position_pop(s);
 
@@ -400,32 +392,32 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     stream s_mtxi;
     io_open(&s_mtxi);
     uint32_t off;
-    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+    enrs e;
     enrs_entry ee;
-    vector_old_size_t pof = vector_old_empty(size_t);
+    pof pof;
 
     bool is_x = tex_db->is_x;
 
     uint32_t textures_count = (uint32_t)tex_db->texture.size();
 
     if (!is_x) {
-        ee = { 0, 2, 8, textures_count, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 9, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 2, 8, textures_count };
+        ee.sub.push_back({ 0, 9, ENRS_DWORD });
+        e.vec.push_back(ee);
         off = 8;
         off = align_val(off, 0x10);
 
-        ee = { off, 2, 8, textures_count, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { off, 2, 8, textures_count };
+        ee.sub.push_back({ 0, 2, ENRS_DWORD });
+        e.vec.push_back(ee);
         off = (uint32_t)(textures_count * 16ULL);
     }
     else {
         textures_count++;
-        ee = { 0, 2, 16, textures_count, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 2, 16, textures_count };
+        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.sub.push_back({ 4, 1, ENRS_QWORD });
+        e.vec.push_back(ee);
         off = (uint32_t)(textures_count * 16ULL);
         textures_count--;
     }
@@ -476,9 +468,8 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     io_position_pop(&s_mtxi);
 
     f2_struct st;
-    memset(&st, 0, sizeof(f2_struct));
     io_align_write(&s_mtxi, 0x10);
-    io_copy(&s_mtxi, &st.data, &st.length);
+    io_copy(&s_mtxi, &st.data);
     io_free(&s_mtxi);
 
     st.enrs = e;
@@ -489,8 +480,7 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     st.header.use_big_endian = false;
     st.header.use_section_size = true;
 
-    f2_struct_write(&st, s, true, tex_db->is_x);
-    f2_struct_free(&st);
+    st.write(s, true, tex_db->is_x);
 }
 
 inline static ssize_t texture_database_strings_get_string_offset(std::vector<std::string>& vec,

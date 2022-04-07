@@ -34,7 +34,7 @@ void light_param_ibl::read(const char* path) {
 }
 
 void light_param_ibl::read(const wchar_t* path) {
-    wchar_t* path_ibl = str_utils_wadd(path, L".ibl");
+    wchar_t* path_ibl = str_utils_add(path, L".ibl");
     if (path_check_file_exists(path_ibl)) {
         stream s;
         io_open(&s, path_ibl, L"rb");

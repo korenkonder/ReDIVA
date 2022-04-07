@@ -61,15 +61,14 @@ void bone_database::read(const char* path, bool modern) {
         char* path_bon = str_utils_add(path, ".bon");
         if (path_check_file_exists(path_bon)) {
             f2_struct st;
-            f2_struct_read(&st, path_bon);
+            st.read(path_bon);
             if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
                 stream s_bone;
-                io_open(&s_bone, st.data, st.length);
+                io_open(&s_bone, &st.data);
                 s_bone.is_big_endian = st.header.use_big_endian;
                 bone_database_modern_read_inner(this, &s_bone, st.header.length);
                 io_free(&s_bone);
             }
-            f2_struct_free(&st);
         }
         free(path_bon);
     }
@@ -80,7 +79,7 @@ void bone_database::read(const wchar_t* path, bool modern) {
         return;
 
     if (!modern) {
-        wchar_t* path_bin = str_utils_wadd(path, L".bin");
+        wchar_t* path_bin = str_utils_add(path, L".bin");
         if (path_check_file_exists(path_bin)) {
             stream s;
             io_open(&s, path_bin, L"rb");
@@ -98,18 +97,17 @@ void bone_database::read(const wchar_t* path, bool modern) {
         free(path_bin);
     }
     else {
-        wchar_t* path_bon = str_utils_wadd(path, L".bon");
+        wchar_t* path_bon = str_utils_add(path, L".bon");
         if (path_check_file_exists(path_bon)) {
             f2_struct st;
-            f2_struct_read(&st, path_bon);
+            st.read(path_bon);
             if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
                 stream s_bone;
-                io_open(&s_bone, st.data, st.length);
+                io_open(&s_bone, &st.data);
                 s_bone.is_big_endian = st.header.use_big_endian;
                 bone_database_modern_read_inner(this, &s_bone, st.header.length);
                 io_free(&s_bone);
             }
-            f2_struct_free(&st);
         }
         free(path_bon);
     }
@@ -127,15 +125,14 @@ void bone_database::read(const void* data, size_t length, bool modern) {
     }
     else {
         f2_struct st;
-        f2_struct_read(&st, data, length);
+        st.read(data, length);
         if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
             stream s_bone;
-            io_open(&s_bone, st.data, st.length);
+            io_open(&s_bone, &st.data);
             s_bone.is_big_endian = st.header.use_big_endian;
             bone_database_modern_read_inner(this, &s_bone, st.header.length);
             io_free(&s_bone);
         }
-        f2_struct_free(&st);
     }
 }
 
@@ -168,7 +165,7 @@ void bone_database::write(const wchar_t* path) {
         return;
 
     if (!modern) {
-        wchar_t* path_bin = str_utils_wadd(path, L".bin");
+        wchar_t* path_bin = str_utils_add(path, L".bin");
         stream s;
         io_open(&s, path_bin, L"wb");
         if (s.io.stream)
@@ -177,7 +174,7 @@ void bone_database::write(const wchar_t* path) {
         free(path_bin);
     }
     else {
-        wchar_t* path_bon = str_utils_wadd(path, L".bon");
+        wchar_t* path_bon = str_utils_add(path, L".bon");
         stream s;
         io_open(&s, path_bon, L"wb");
         if (s.io.stream)
@@ -901,9 +898,9 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
     stream s_bone;
     io_open(&s_bone);
     uint32_t off;
-    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+    enrs e;
     enrs_entry ee;
-    vector_old_size_t pof = vector_old_empty(size_t);
+    pof pof;
 
     bool is_x = bone_data->is_x;
 
@@ -911,15 +908,15 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
 
     if (!is_x) {
         uint32_t pos;
-        ee = { 0, 1, 16, 1, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 16, 1 };
+        ee.sub.push_back({ 0, 4, ENRS_DWORD });
+        e.vec.push_back(ee);
         pos = off = 16;
 
         skeleton_count *= 2;
-        ee = { off, 1, (uint32_t)(skeleton_count * 4ULL), 1, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { off, 1, (uint32_t)(skeleton_count * 4ULL), 1 };
+        ee.sub.push_back({ 0, skeleton_count, ENRS_DWORD });
+        e.vec.push_back(ee);
         pos += off = (uint32_t)(skeleton_count * 4ULL);
         skeleton_count /= 2;
 
@@ -931,88 +928,88 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             uint32_t object_bone_count = (uint32_t)skel->object_bone.size();
             uint32_t motion_bone_count = (uint32_t)skel->motion_bone.size();
 
-            ee = { off, 1, 56, 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 14, ENRS_DWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 56, 1 };
+            ee.sub.push_back({ 0, 14, ENRS_DWORD });
+            e.vec.push_back(ee);
             pos += off = 56;
 
             bone_count++;
             off += 8;
             pos += 8;
-            ee = { off, 1, 12, bone_count, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 12, bone_count };
+            ee.sub.push_back({ 0, 1, ENRS_DWORD });
+            e.vec.push_back(ee);
             off = (uint32_t)(bone_count * 12ULL);
             if (pos + off % 0x10)
                 off -= 8;
             pos += off = align_val(pos + off, 0x10) - pos;
             bone_count--;
 
-            ee = { off, 1, 12, position_count, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 12, position_count };
+            ee.sub.push_back({ 0, 3, ENRS_DWORD });
+            e.vec.push_back(ee);
             off = (uint32_t)(position_count * 12ULL);
             pos += off = align_val(off, 0x10);
 
-            ee = { off, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 4, 1 };
+            ee.sub.push_back({ 0, 1, ENRS_DWORD });
+            e.vec.push_back(ee);
             pos += off = 4;
 
             object_bone_count += motion_bone_count;
-            ee = { off, 1, (uint32_t)(object_bone_count * 4ULL), 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_DWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(object_bone_count * 4ULL), 1 };
+            ee.sub.push_back({ 0, object_bone_count, ENRS_DWORD });
+            e.vec.push_back(ee);
             pos += off = (uint32_t)(object_bone_count * 4ULL);
             object_bone_count -= motion_bone_count;
 
-            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_WORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1 };
+            ee.sub.push_back({ 0, motion_bone_count, ENRS_WORD });
+            e.vec.push_back(ee);
             off = (uint32_t)(motion_bone_count * 2ULL);
             pos += off = align_val(off, 0x04);
         }
     }
     else {
-        ee = { 0, 2, 24, 1, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_QWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 2, 24, 1 };
+        ee.sub.push_back({ 0, 2, ENRS_DWORD });
+        ee.sub.push_back({ 0, 2, ENRS_QWORD });
+        e.vec.push_back(ee);
         off = 24;
         off = align_val(off, 0x10);
 
         if (skeleton_count % 2) {
-            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1 };
+            ee.sub.push_back({ 0, skeleton_count, ENRS_QWORD });
+            e.vec.push_back(ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
 
-            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1 };
+            ee.sub.push_back({ 0, skeleton_count, ENRS_QWORD });
+            e.vec.push_back(ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
         }
         else {
             skeleton_count *= 2;
-            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, skeleton_count, ENRS_QWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1 };
+            ee.sub.push_back({ 0, skeleton_count, ENRS_QWORD });
+            e.vec.push_back(ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
             skeleton_count /= 2;
         }
 
-        ee = { off, 7, 112, skeleton_count, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 4, 2, ENRS_QWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 4, 7, ENRS_QWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { off, 7, 112, skeleton_count };
+        ee.sub.push_back({ 0, 1, ENRS_QWORD });
+        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.sub.push_back({ 4, 2, ENRS_QWORD });
+        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.sub.push_back({ 4, 1, ENRS_QWORD });
+        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.sub.push_back({ 4, 7, ENRS_QWORD });
+        e.vec.push_back(ee);
         off = (uint32_t)(skeleton_count * 112ULL);
         off = align_val(off, 0x10);
 
@@ -1026,58 +1023,58 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
 
             bone_count++;
             off += 8;
-            ee = { off, 1, 16, bone_count, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 16, bone_count };
+            ee.sub.push_back({ 0, 1, ENRS_QWORD });
+            e.vec.push_back(ee);
             off = (uint32_t)(bone_count * 16ULL);
             bone_count--;
 
-            ee = { off, 1, 12, position_count, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 12, position_count };
+            ee.sub.push_back({ 0, 3, ENRS_DWORD });
+            e.vec.push_back(ee);
             off = (uint32_t)(position_count * 12ULL);
             off = align_val(off, 0x10);
 
-            ee = { off, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, 4, 1 };
+            ee.sub.push_back({ 0, 1, ENRS_DWORD });
+            e.vec.push_back(ee);
             off = 4;
             off = align_val(off, 0x10);
 
             if (object_bone_count % 1) {
-                ee = { off, 1, 12, position_count, vector_old_empty(enrs_sub_entry) };
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-                vector_old_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, 12, position_count };
+                ee.sub.push_back({ 0, 3, ENRS_DWORD });
+                e.vec.push_back(ee);
                 off = (uint32_t)(position_count * 12ULL);
                 off = align_val(off, 0x10);
             }
 
             if (skeleton_count % 2) {
-                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_QWORD);
-                vector_old_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1 };
+                ee.sub.push_back({ 0, object_bone_count, ENRS_QWORD });
+                e.vec.push_back(ee);
                 off = (uint32_t)(object_bone_count * 8ULL);
                 off = align_val(off, 0x10);
 
-                ee = { off, 1, (uint32_t)(motion_bone_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_QWORD);
-                vector_old_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, (uint32_t)(motion_bone_count * 8ULL), 1 };
+                ee.sub.push_back({ 0, motion_bone_count, ENRS_QWORD });
+                e.vec.push_back(ee);
                 off = (uint32_t)(motion_bone_count * 8ULL);
                 off = align_val(off, 0x10);
             }
             else {
                 object_bone_count += motion_bone_count;
-                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1, vector_old_empty(enrs_sub_entry) };
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, object_bone_count, ENRS_QWORD);
-                vector_old_enrs_entry_push_back(&e, &ee);
+                ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1 };
+                ee.sub.push_back({ 0, object_bone_count, ENRS_QWORD });
+                e.vec.push_back(ee);
                 off = (uint32_t)(object_bone_count * 8ULL);
                 off = align_val(off, 0x10);
                 object_bone_count -= motion_bone_count;
             }
 
-            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, motion_bone_count, ENRS_WORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1 };
+            ee.sub.push_back({ 0, motion_bone_count, ENRS_WORD });
+            e.vec.push_back(ee);
             off = (uint32_t)(motion_bone_count * 2ULL);
             off = align_val(off, 0x10);
         }
@@ -1411,9 +1408,8 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
     free(skh);
 
     f2_struct st;
-    memset(&st, 0, sizeof(f2_struct));
     io_align_write(&s_bone, 0x10);
-    io_copy(&s_bone, &st.data, &st.length);
+    io_copy(&s_bone, &st.data);
     io_free(&s_bone);
 
     st.enrs = e;
@@ -1424,8 +1420,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
     st.header.use_big_endian = false;
     st.header.use_section_size = true;
 
-    f2_struct_write(&st, s, true, is_x);
-    f2_struct_free(&st);
+    st.write(s, true, is_x);
 }
 
 inline static ssize_t bone_database_strings_get_string_offset(std::vector<std::string>& vec,

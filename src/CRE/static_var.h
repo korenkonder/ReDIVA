@@ -10,6 +10,7 @@
 #include "../KKdLib/light_param/light.h"
 #include "../KKdLib/mat.h"
 #include "../KKdLib/vec.h"
+#include "../KKdLib/vec.h"
 #include <glad/glad.h>
 
 typedef enum draw_pass_3d_type {
@@ -94,10 +95,6 @@ typedef enum uniform_name {
     U_INVALID       = 0xFFFFFFFF,
 } uniform_name;
 
-typedef struct frame_rate_control {
-    float_t frame_speed;
-} frame_rate_control;
-
 extern int32_t sv_max_texture_buffer_size;
 extern int32_t sv_max_texture_size;
 extern int32_t sv_max_texture_max_anisotropy;
@@ -106,10 +103,6 @@ extern bool sv_anisotropy_changed;
 extern int32_t sv_anisotropy;
 
 extern int32_t uniform_value[];
-
-extern frame_rate_control sys_frame_rate;
-extern frame_rate_control diva_pv_frame_rate;
-extern frame_rate_control diva_stage_frame_rate;
 
 extern const vec3 sv_rgb_to_luma;
 extern const mat3 sv_rgb_to_ypbpr;

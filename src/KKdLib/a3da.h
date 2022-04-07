@@ -506,8 +506,6 @@ public:
     bool compressed;
     a3da_format format;
 
-    uint32_t hash;
-
     a3da_compress_f16 _compress_f16;
     std::string _file_name;
     std::string _property_version;

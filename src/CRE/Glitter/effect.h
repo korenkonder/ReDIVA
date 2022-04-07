@@ -8,8 +8,8 @@
 #include "glitter.h"
 
 extern bool glitter_effect_parse_file(GlitterEffectGroup* a1,
-    f2_struct* st, std::vector<glitter_effect*>* vec);
+    f2_struct* st, std::vector<glitter_effect*>* vec, object_database* obj_db);
 extern bool glitter_effect_unparse_file(GLT, GlitterEffectGroup* a1,
     f2_struct* st, glitter_effect* a3);
 
-extern object_info glitter_effect_ext_anim_get_object_info(uint64_t hash);
+extern object_info glitter_effect_ext_anim_get_object_info(uint64_t hash, object_database* obj_db);

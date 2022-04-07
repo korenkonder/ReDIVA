@@ -17,6 +17,8 @@ static void light_param_data_load_stage_file_names(light_param_data* light_param
 static void light_param_data_set(light_param_data* a1, light_param_data_storage* storage);
 static void light_param_storage_free_file_handlers(light_param_data_storage* a1);
 static void light_param_storage_load_stages(light_param_data_storage* a1, std::vector<int32_t>* stage_indices);
+static void light_param_storage_load_stages(light_param_data_storage* a1,
+    std::vector<uint32_t>* stage_hashes, stage_database* stage_data);
 static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool read_now);
 static void light_param_storage_set_default_light_param(light_param_data_storage* a1, int32_t stage_index);
 static void light_param_storage_set_stage(light_param_data_storage* a1,
@@ -75,8 +77,19 @@ void light_param_storage_data_load_stage(int32_t stage_index) {
     light_param_storage_load_stages(light_param_data_storage_data, &stage_indices);
 }
 
+void light_param_storage_data_load_stage(
+    uint32_t stage_hash, stage_database* stage_data) {
+    std::vector<uint32_t> stage_hashes = { stage_hash };
+    light_param_storage_load_stages(light_param_data_storage_data, &stage_hashes, stage_data);
+}
+
 void light_param_storage_data_load_stages(std::vector<int32_t>* stage_indices) {
     light_param_storage_load_stages(light_param_data_storage_data, stage_indices);
+}
+
+void light_param_storage_data_load_stages(
+    std::vector<uint32_t>* stage_hashes, stage_database* stage_data) {
+    light_param_storage_load_stages(light_param_data_storage_data, stage_hashes, stage_data);
 }
 
 void light_param_storage_data_set_default_light_param() {
@@ -161,8 +174,49 @@ static void light_param_data_get_stage_name_string(std::string* str, int32_t sta
     str->clear();
     str->shrink_to_fit();;
     stage_database* data = &rctx_ptr->data->data_ft.stage_data;
-    char* stage_name = stage_index < vector_old_length(data->stage_data)
-        ? string_data(&data->stage_data.begin[stage_index].name) : 0;
+    const char* stage_name = stage_index < data->stage_data.size()
+        ? data->stage_data[stage_index].name.c_str() : 0;
+    if (!stage_name)
+        return;
+
+    size_t length = utf8_length(stage_name);
+    if (length <= 3)
+        return;
+
+    stage_name += 3;
+    length -= 3;
+
+    char* s = force_malloc_s(char, length + 1);
+    for (size_t i = 0; i < length; i++) {
+        char c = stage_name[i];
+        if (c == '_') {
+            length = i;
+            break;
+        }
+
+        if (c > 0x40 && c < 0x5B)
+            c += 0x20;
+        s[i] = c;
+    }
+    s[length] = '\0';
+
+    *str = std::string(s, length);
+    free(s);
+}
+
+static void light_param_data_get_stage_name_string(std::string* str,
+    uint32_t stage_hash, stage_database* stage_data) {
+    str->clear();
+    str->shrink_to_fit();;
+    const char* stage_name = 0;
+    for (stage_data_modern& i : stage_data->stage_modern) {
+        if (i.hash != stage_hash)
+            continue;
+
+        stage_name = i.name.c_str();
+        break;
+    }
+
     if (!stage_name)
         return;
 
@@ -452,7 +506,40 @@ static void light_param_storage_load_stages(light_param_data_storage* a1, std::v
         light_param->not_loaded = 0;
     }
     a1->stage_light_param_iterator = a1->stage.begin();
-    a1->state = a1->stage.size() != 0 ? 1 : 0;
+    a1->state = a1->stage.size() ? 1 : 0;
+}
+
+static void light_param_storage_load_stages(light_param_data_storage* a1,
+    std::vector<uint32_t>* stage_hashes, stage_database* stage_data) {
+    if (a1->state)
+        for (int32_t i = 0; i < 6; ++i)
+            if (a1->file_handlers[i].check_not_ready())
+                a1->file_handlers[i].call_free_func_free_data();
+
+    a1->stage_index = -1;
+    a1->stage.clear();
+
+    for (uint32_t& i : *stage_hashes) {
+        std::string name;
+        light_param_data_get_stage_name_string(&name, i, stage_data);
+        if (!name.size())
+            continue;
+
+        if (!str_utils_compare_length(name.c_str(), name.size(), "pv0", 3))
+            name[2] = '8';
+
+        std::map<int32_t, light_param_data>::iterator elem = a1->stage.find(i);
+        light_param_data* light_param;
+        if (elem != a1->stage.end())
+            light_param = &elem->second;
+        else
+            light_param = &a1->stage.insert({ i, a1->default_light_param }).first->second;;
+
+        light_param_data_load_stage_file_names(light_param, &name);
+        light_param->not_loaded = 0;
+    }
+    a1->stage_light_param_iterator = a1->stage.begin();
+    a1->state = a1->stage.size() ? 1 : 0;
 }
 
 static void light_param_storage_set_default_light_param(light_param_data_storage* a1, int32_t stage_index) {

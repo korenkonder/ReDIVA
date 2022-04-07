@@ -36,17 +36,15 @@ static void shadow_free(shadow* shad);
 static void sss_data_init(sss_data_struct* sss);
 static void sss_data_free(sss_data_struct* sss);
 
-const texture_pattern_struct texture_pattern_struct_null = { -1, -1 };
+texture_pattern_struct::texture_pattern_struct() : src(), dst() {
+
+}
+
+texture_pattern_struct::texture_pattern_struct(texture_id src, texture_id dst) : src(src), dst(dst) {
+
+}
 
 static const GLfloat depth_clear = 1.0f;
-
-inline float_t frame_rate_control_get_delta_frame(frame_rate_control* control) {
-    return get_delta_frame() * control->frame_speed;
-}
-
-inline void frame_rate_control_set_frame_speed(frame_rate_control* control, float_t value) {
-    control->frame_speed = value;
-}
 
 light_proj* light_proj_init(int32_t width, int32_t height) {
     light_proj* litproj = force_malloc_s(light_proj, 1);
@@ -310,7 +308,7 @@ void object_data_set_texture_pattern(object_data* object_data,
             object_data->texture_pattern_array[i] = value[i];
     else
         for (int32_t i = 0; i < TEXTURE_PATTERN_COUNT; i++)
-            object_data->texture_pattern_array[i] = texture_pattern_struct_null;
+            object_data->texture_pattern_array[i] = texture_pattern_struct();
 }
 
 inline void object_data_set_texture_specular_coeff(object_data* object_data, vec4* value) {
@@ -362,8 +360,9 @@ extern float_t rob_frame;
 extern render_context* rctx_ptr;
 
 inline void render_context_ctrl(render_context* rctx) {
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        if (rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
+    /*for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        if (!task_rob_manager_check_chara_loaded(rob_chara_array[i].chara_id)
+            || rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
             continue;
 
         float_t frame = rob_chara_get_frame(&rob_chara_array[i]);
@@ -375,15 +374,16 @@ inline void render_context_ctrl(render_context* rctx) {
             for (int32_t j = rob_item_equip->first_item_equip_object;
                 j < rob_item_equip->max_item_equip_object; j++) {
                 rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
+                itm_eq_obj->osage_iterations = 60;
                 for (ExOsageBlock*& i : itm_eq_obj->osage_blocks)
                     if (i)
                         i->rob.osage_reset = true;
             }
         }
-        rob_chara_set_frame(&rob_chara_array[i], frame);
-        //rob_chara_set_frame(&rob_chara_array[i], rob_frame);
+        //rob_chara_set_frame(&rob_chara_array[i], frame);
+        rob_chara_set_frame(&rob_chara_array[i], rob_frame);
         rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
-    }
+    }*/
 
     camera* cam = rctx->camera;
 
@@ -1216,7 +1216,7 @@ static int32_t shadow_init_data(shadow* shad) {
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
-        gl_state_bind_texture_2d(shad->field_8[i].color_texture->texture);
+        gl_state_bind_texture_2d(shad->field_8[i].color_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&vec4_identity);

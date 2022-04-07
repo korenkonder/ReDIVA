@@ -60,13 +60,13 @@ void data_view_texture_imgui(class_data* data) {
     size_t count = texture_storage_get_texture_count();
     for (size_t i = 0; i < count; i++) {
         texture* tex = texture_storage_get_texture_by_index(i);
-        if (texture_get_id(tex->id))
+        if (tex->id.id)
             continue;
 
-        ImGui::PushID(tex->id);
+        ImGui::PushID(tex->id.index);
         char buf[0x1000];
-        sprintf_s(buf, sizeof(buf), "ID: 0x%06X; Init Count: %3d; Width: %5d; Height: %5d; Mipmap Count: %2d",
-            texture_get_index(tex->id), tex->init_count, tex->width, tex->height, tex->max_mipmap_level + 1);
+        sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Init Count: %3d; Width: %5d; Height: %5d; Mipmap Count: %2d",
+            tex->id.index, tex->init_count, tex->width, tex->height, tex->max_mipmap_level + 1);
         ImGui::Selectable(buf);
         ImGui::PopID();
     }

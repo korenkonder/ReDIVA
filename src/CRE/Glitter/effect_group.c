@@ -18,8 +18,8 @@
 #include "scene.h"
 #include "texture.h"
 
-GlitterEffectGroup::GlitterEffectGroup(GLT) : effects(), load_count(), hash(), scene(),
-resources_count(), resources_tex(), resources(), field_3C(), scene_init(), buffer_init() {
+GlitterEffectGroup::GlitterEffectGroup(GLT) : effects(), load_count(), hash(),
+scene(), resources_count(), resources_tex(), resources(), not_loaded(), scene_init() {
     emission = 1.0f;
     version = GLT_VAL == GLITTER_X ? 0x0C : 0x09;
     type = GLT_VAL;
@@ -83,6 +83,22 @@ bool GlitterEffectGroup::CheckLoadModel() {
     bool ret = false;
     for (uint32_t& i : object_set_ids)
         ret |= object_storage_load_obj_set_check_not_read(i);
+
+    if (!ret)
+        for (uint32_t& i : object_set_ids) {
+            obj_set* set = object_storage_get_obj_set(i);
+            if (!set)
+                continue;
+
+            for (int32_t i = 0; i < set->objects_count; i++) {
+                obj* obj = &set->objects[i];
+                for (int32_t j = 0; j < obj->materials_count; j++) {
+                    obj_material* mat = &obj->materials[j].material;
+                    if (!memcmp(&mat->emission, &vec3_null, sizeof(vec3)) && mat->emission.w == 1.0f)
+                        mat->emission = vec4u_identity;
+                }
+            }
+        }
     return ret;
 }
 
@@ -102,38 +118,34 @@ void GlitterEffectGroup::FreeModel() {
 }
 #endif
 
-bool GlitterEffectGroup::ParseFile(f2_struct* st) {
-    for (f2_struct* i = st->sub_structs.begin; i != st->sub_structs.end; i++) {
-        if (!i->header.data_size)
+bool GlitterEffectGroup::ParseFile(f2_struct* st, object_database* obj_db) {
+    for (f2_struct& i : st->sub_structs) {
+        if (!i.header.data_size)
             continue;
 
-        if (i->header.signature == reverse_endianness_uint32_t('EFCT')
-            && !glitter_effect_parse_file(this, i, &this->effects))
+        if (i.header.signature == reverse_endianness_uint32_t('EFCT')
+            && !glitter_effect_parse_file(this, &i, &effects, obj_db))
             return false;
-        else if (i->header.signature == reverse_endianness_uint32_t('DVRS')
-            && !glitter_texture_hashes_unpack_file(this, i))
+        else if (i.header.signature == reverse_endianness_uint32_t('DVRS')
+            && !glitter_texture_hashes_unpack_file(this, &i))
             return false;
     }
     return true;
 }
 
 bool GlitterEffectGroup::UnparseFile(GLT, f2_struct* st) {
-    memset(st, 0, sizeof(f2_struct));
-
     for (glitter_effect*& i : effects) {
         if (!i)
             continue;
 
         f2_struct s;
-        memset(&s, 0, sizeof(f2_struct));
         if (glitter_effect_unparse_file(GLT_VAL, this, &s, i))
-            vector_old_f2_struct_push_back(&st->sub_structs, &s);
+            st->sub_structs.push_back(s);
     }
 
     f2_struct s;
-    memset(&s, 0, sizeof(f2_struct));
     if (glitter_texture_hashes_pack_file(this, &s))
-        vector_old_f2_struct_push_back(&st->sub_structs, &s);
+        st->sub_structs.push_back(s);
 
     st->header.signature = reverse_endianness_uint32_t('DVEF');
     st->header.length = 0x20;

@@ -108,7 +108,7 @@ void data_test_stage_test_imgui(class_data* data) {
         return;
     }
 
-    vector_old_stage_data* stg_data = &rctx_ptr->data->data_ft.stage_data.stage_data;
+    std::vector<stage_data>& stg_data = rctx_ptr->data->data_ft.stage_data.stage_data;
 
     std::vector<data_test_stage_test_stage_pv>& stage_pv = dtw_stg->stage_pv;
     std::vector<std::int32_t>& stage_ns = dtw_stg->stage_ns;
@@ -155,12 +155,12 @@ void data_test_stage_test_imgui(class_data* data) {
             continue;
 
         if (ImGui::BeginCombo("##PV Index", pv_index > -1
-            ? string_data(&stg_data->begin[i.stage[pv_index]].name) : "", 0)) {
+            ? stg_data[i.stage[pv_index]].name.c_str() : "", 0)) {
             for (int32_t& j : i.stage) {
                 int32_t pv_idx = (int32_t)(&j - i.stage.data());
 
                 ImGui::PushID(j);
-                if (ImGui::Selectable(string_data(&stg_data->begin[j].name), pv_index == pv_idx)
+                if (ImGui::Selectable(stg_data[j].name.c_str(), pv_index == pv_idx)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (ImGui::IsItemFocused() && pv_index != pv_idx)) {
                     dtw_stg->pv_index = -1;
@@ -195,12 +195,12 @@ void data_test_stage_test_imgui(class_data* data) {
     ImGui::SameLine(0.0f, 1.0f);
     ImGui::SetNextItemWidth(160.0f);
     if (ImGui::BeginCombo("##NS Index", ns_index > -1
-        ? string_data(&stg_data->begin[(stage_ns)[ns_index]].name) : "", 0)) {
+        ? stg_data[(stage_ns)[ns_index]].name.c_str() : "", 0)) {
         for (int32_t& i : stage_ns) {
             int32_t ns_idx = (int32_t)(&i - stage_ns.data());
 
             ImGui::PushID(i);
-            if (ImGui::Selectable(string_data(&stg_data->begin[stage_ns[i]].name), ns_index == ns_idx)
+            if (ImGui::Selectable(stg_data[stage_ns[i]].name.c_str(), ns_index == ns_idx)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (ImGui::IsItemFocused() && ns_index != ns_idx)) {
                 dtw_stg->ns_index = -1;
@@ -228,12 +228,12 @@ void data_test_stage_test_imgui(class_data* data) {
     ImGui::SameLine(0.0f, 1.0f);
     ImGui::SetNextItemWidth(160.0f);
     if (ImGui::BeginCombo("##Other Index", other_index > -1
-        ? string_data(&stg_data->begin[stage_other[other_index]].name) : "", 0)) {
+        ? stg_data[stage_other[other_index]].name.c_str() : "", 0)) {
         for (int32_t& i : stage_other) {
             int32_t other_idx = (int32_t)(&i - stage_other.data());
 
             ImGui::PushID(i);
-            if (ImGui::Selectable(string_data(&stg_data->begin[i].name), other_index == other_idx)
+            if (ImGui::Selectable(stg_data[i].name.c_str(), other_index == other_idx)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (ImGui::IsItemFocused() && other_index != other_idx)) {
                 dtw_stg->other_index = -1;
@@ -259,12 +259,12 @@ void data_test_stage_test_imgui(class_data* data) {
 
     imguiGetContentRegionAvailSetNextItemWidth();
     if (ImGui::BeginCombo("##Stage Index", stage_index > -1
-        ? string_data(&stg_data->begin[stage_index].name) : "", 0)) {
-        for (stage_data* i = stg_data->begin; i != stg_data->end; i++) {
-            int32_t stage_idx = (int32_t)(i - stg_data->begin);
+        ? stg_data[stage_index].name.c_str() : "", 0)) {
+        for (stage_data& i : stg_data) {
+            int32_t stage_idx = (int32_t)(&i - stg_data.data());
 
-            ImGui::PushID(i);
-            if (ImGui::Selectable(string_data(&i->name), stage_index == stage_idx)
+            ImGui::PushID(&i);
+            if (ImGui::Selectable(i.name.c_str(), stage_index == stage_idx)
                 || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (ImGui::IsItemFocused() && stage_index != stage_idx)) {
                 dtw_stg->stage_index = -1;
@@ -364,7 +364,7 @@ data_test_stage_test_stage_pv::~data_test_stage_test_stage_pv() {
 
 DtwStg::DtwStg() : pv_id(), pv_index(), ns_index(),
 other_index(), stage_index(), stage_index_load(), stage_load() {
-    vector_old_stage_data* stg_data = &rctx_ptr->data->data_ft.stage_data.stage_data;
+    std::vector<stage_data>& stg_data = rctx_ptr->data->data_ft.stage_data.stage_data;
 
     pv_id = -1;
     pv_index = -1;
@@ -378,18 +378,18 @@ other_index(), stage_index(), stage_index_load(), stage_load() {
     size_t stg_pv_count = 0;
     size_t stg_ns_count = 0;
     size_t stg_other_count = 0;
-    for (stage_data* i = stg_data->begin; i != stg_data->end; i++) {
+    for (stage_data& i : stg_data) {
         bool stgpv = false;
         bool stgd2pv = false;
         bool stgns = false;
         bool stgd2ns = false;
-        if (i->name.length >= 8 && !memcmp(string_data(&i->name), "STGPV", 5))
+        if (i.name.size() >= 8 && !memcmp(i.name.c_str(), "STGPV", 5))
             stg_pv_count++;
-        else if (i->name.length >= 10 && !memcmp(string_data(&i->name), "STGD2PV", 7))
+        else if (i.name.size() >= 10 && !memcmp(i.name.c_str(), "STGD2PV", 7))
             stg_pv_count++;
-        else if (i->name.length >= 8 && !memcmp(string_data(&i->name), "STGNS", 5))
+        else if (i.name.size() >= 8 && !memcmp(i.name.c_str(), "STGNS", 5))
             stg_ns_count++;
-        else if (i->name.length >= 10 && !memcmp(string_data(&i->name), "STGD2NS", 7))
+        else if (i.name.size() >= 10 && !memcmp(i.name.c_str(), "STGD2NS", 7))
             stg_ns_count++;
         else
             stg_other_count++;
@@ -399,27 +399,27 @@ other_index(), stage_index(), stage_index_load(), stage_load() {
     stage_ns.reserve(stg_ns_count);
     stage_other.reserve(stg_other_count);
 
-    for (stage_data* i = stg_data->begin; i != stg_data->end; i++) {
+    for (stage_data& i : stg_data) {
         bool stgpv = false;
         bool stgd2pv = false;
         bool stgns = false;
         bool stgd2ns = false;
-        if (i->name.length >= 8 && !memcmp(string_data(&i->name), "STGPV", 5))
+        if (i.name.size() >= 8 && !memcmp(i.name.c_str(), "STGPV", 5))
             stgpv = true;
-        else if (i->name.length >= 10 && !memcmp(string_data(&i->name), "STGD2PV", 7))
+        else if (i.name.size() >= 10 && !memcmp(i.name.c_str(), "STGD2PV", 7))
             stgd2pv = true;
-        else if (i->name.length >= 8 && !memcmp(string_data(&i->name), "STGNS", 5))
+        else if (i.name.size() >= 8 && !memcmp(i.name.c_str(), "STGNS", 5))
             stgns = true;
-        else if (i->name.length >= 10 && !memcmp(string_data(&i->name), "STGD2NS", 7))
+        else if (i.name.size() >= 10 && !memcmp(i.name.c_str(), "STGD2NS", 7))
             stgd2ns = true;
 
         if (stgpv || stgd2pv) {
             int32_t pv_id = 0;
             int32_t ret;
             if (stgpv)
-                ret = sscanf_s(string_data(&i->name) + 5, "%03d", &pv_id);
+                ret = sscanf_s(i.name.c_str() + 5, "%03d", &pv_id);
             else
-                ret = sscanf_s(string_data(&i->name) + 7, "%03d", &pv_id);
+                ret = sscanf_s(i.name.c_str() + 7, "%03d", &pv_id);
 
             if (ret != 1)
                 continue;
@@ -434,25 +434,23 @@ other_index(), stage_index(), stage_index_load(), stage_load() {
                 stg_pv = stage_pv.end() - 1;
             }
 
-            stg_pv->stage.push_back(i->id);
+            stg_pv->stage.push_back(i.id);
         }
         else if (stgns || stgd2ns) {
             int32_t ns_id = 0;
             int32_t ret;
             if (stgns)
-                ret = sscanf_s(string_data(&i->name) + 5, "%03d", &ns_id);
+                ret = sscanf_s(i.name.c_str() + 5, "%03d", &ns_id);
             else
-                ret = sscanf_s(string_data(&i->name) + 7, "%03d", &ns_id);
+                ret = sscanf_s(i.name.c_str() + 7, "%03d", &ns_id);
 
             if (ret != 1)
                 continue;
 
-            stage_ns.push_back(i->id);
+            stage_ns.push_back(i.id);
         }
-        else {
-            std::string stg = std::string(string_data(&i->name), i->name.length);
-            stage_other.push_back(i->id);
-        }
+        else
+            stage_other.push_back(i.id);
     }
 
     if (stage_pv.size())

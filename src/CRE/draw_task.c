@@ -40,6 +40,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
         gl_state_active_bind_texture_2d(i, 0);
     gl_state_active_texture(0);
     gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glPrimitiveRestartIndex(0xFFFF);
     uniform_value_reset();
     gl_state_get();
 
@@ -253,8 +254,8 @@ void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaqu
 
         render_texture_bind(&rctx->post_process.buf_texture, 0);
         render_texture_shader_set_glsl(&rctx->post_process.alpha_layer_shader);
-        gl_state_active_bind_texture_2d(0, rctx->post_process.alpha_layer_texture.color_texture->texture);
-        gl_state_active_bind_texture_2d(1, rctx->post_process.rend_texture.color_texture->texture);
+        gl_state_active_bind_texture_2d(0, rctx->post_process.alpha_layer_texture.color_texture->tex);
+        gl_state_active_bind_texture_2d(1, rctx->post_process.rend_texture.color_texture->tex);
         glUniform1f(0, (float_t)(alpha * (1.0 / 255.0)));
         render_texture_draw_custom_glsl();
 
@@ -394,24 +395,15 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             if (obj_vertex_buf)
                 array_buffer = obj_mesh_vertex_buffer_get_buffer(&obj_vertex_buf[i]);
 
-            draw_task_object_init(
-                task,
-                object_data,
-                mat,
-                object->bounding_sphere.radius,
-                sub_mesh,
-                mesh,
-                material,
-                textures,
-                bone_indices_count,
-                mats,
-                array_buffer,
-                element_array_buffer,
-                blend_color,
-                morph_array_buffer,
-                instances_count,
-                instances_mat,
-                draw_object_func);
+            vec4 local_blend_color = blend_color ? *blend_color : vec4_identity;
+            material_change* mat_chng = material_change_storage_get(material->material.name);
+            if (mat_chng)
+                local_blend_color = mat_chng->blend_color;
+
+            draw_task_object_init(task, object_data, mat, object->bounding_sphere.radius, 
+                sub_mesh, mesh, material, textures, bone_indices_count, mats, array_buffer,
+                element_array_buffer, blend_color || mat_chng ? &local_blend_color : 0,
+                morph_array_buffer, instances_count, instances_mat, draw_object_func);
 
             if (draw_task_flags & DRAW_TASK_SHADOW_OBJECT) {
                 draw_task_add(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_OBJECT_CHARA
@@ -566,13 +558,18 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
     return true;
 }
 
+inline bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
+    object_info obj_info, mat4* bone_mat) {
+    vec4 blend_color = vec4_identity;
+    return draw_task_add_draw_object_by_object_info(rctx,
+        mat, obj_info, &blend_color, bone_mat, 0, 0, 0, true);
+}
+
 bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
     object_info obj_info, vec4* blend_color, mat4* bone_mat, int32_t instances_count,
     mat4* instances_mat, void(*draw_object_func)(draw_object*), bool enable_bone_mat) {
     if (obj_info.id == -1 && obj_info.set_id == -1)
         return false;
-
-    object_data* object_data = &rctx->object_data;
 
     obj* object = object_storage_get_obj(obj_info);
     if (!object)
@@ -584,36 +581,18 @@ bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
 
     obj* obj_morph = 0;
     obj_mesh_vertex_buffer* obj_morph_vertex_buffer = 0;
+    object_data* object_data = &rctx->object_data;
     if (object_data->morph.object.set_id != -1) {
         obj_morph = object_storage_get_obj(object_data->morph.object);
         obj_morph_vertex_buffer = object_storage_get_obj_mesh_vertex_buffer(object_data->morph.object);
     }
 
-    return draw_task_add_draw_object(rctx,
-        object,
-        obj_vertex_buffer,
-        obj_index_buffer,
-        mat,
-        textures,
-        blend_color,
-        bone_mat,
-        obj_morph,
-        obj_morph_vertex_buffer,
-        instances_count,
-        instances_mat,
-        draw_object_func,
-        enable_bone_mat);
+    return draw_task_add_draw_object(rctx, object, obj_vertex_buffer, obj_index_buffer,
+        mat, textures, blend_color, bone_mat, obj_morph, obj_morph_vertex_buffer,
+        instances_count, instances_mat, draw_object_func, enable_bone_mat);
 }
 
 inline bool draw_task_add_draw_object_by_object_info_alpha(render_context* rctx, mat4* mat,
-    object_info obj_info, float_t alpha) {
-    vec4 blend_color = vec4_identity;
-    blend_color.w = alpha;
-    return draw_task_add_draw_object_by_object_info(rctx,
-        mat, obj_info, &blend_color, 0, 0, 0, 0, false);
-}
-
-inline bool draw_task_add_draw_object_by_object_info_alpha_bone_mat(render_context* rctx, mat4* mat,
     object_info obj_info, float_t alpha, mat4* bone_mat) {
     vec4 blend_color = vec4_identity;
     blend_color.w = alpha;
@@ -621,25 +600,15 @@ inline bool draw_task_add_draw_object_by_object_info_alpha_bone_mat(render_conte
         mat, obj_info, &blend_color, bone_mat, 0, 0, 0, true);
 }
 
-inline bool draw_task_add_draw_object_by_object_info_bone_mat(render_context* rctx, mat4* mat,
-    object_info obj_info, mat4* bone_mat) {
-    return draw_task_add_draw_object_by_object_info(rctx,
-        mat, obj_info, 0, bone_mat, 0, 0, 0, true);
-}
-
 inline bool draw_task_add_draw_object_by_object_info_color(render_context* rctx, mat4* mat,
-    object_info obj_info, float_t r, float_t g, float_t b, float_t a) {
-    vec4 blend_color;
-    blend_color.x = r;
-    blend_color.y = g;
-    blend_color.z = b;
-    blend_color.w = a;
+    object_info obj_info, float_t r, float_t g, float_t b, float_t a, mat4* bone_mat) {
+    vec4 blend_color = { r, g, b, a };
     return draw_task_add_draw_object_by_object_info(rctx,
-        mat, obj_info, &blend_color, 0, 0, 0, 0, false);
+        mat, obj_info, &blend_color, bone_mat, 0, 0, 0, false);
 }
 
 inline bool draw_task_add_draw_object_by_object_info_color_vec4(render_context* rctx, mat4* mat,
-    object_info obj_info, vec4* blend_color) {
+    object_info obj_info, vec4* blend_color, mat4* bone_mat) {
     return draw_task_add_draw_object_by_object_info(rctx,
         mat, obj_info, blend_color, 0, 0, 0, 0, false);
 }
@@ -686,10 +655,10 @@ void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, 
         object_data_set_texture_pattern(object_data, (int32_t)texture_pattern_count, texture_pattern->data());
 
     if (fabsf(alpha - 1.0f) > 0.000001f)
-        draw_task_add_draw_object_by_object_info_alpha_bone_mat(rctx,
+        draw_task_add_draw_object_by_object_info_alpha(rctx,
             global_mat, obj_info, alpha, rctx->matrix_buffer);
     else
-        draw_task_add_draw_object_by_object_info_bone_mat(rctx,
+        draw_task_add_draw_object_by_object_info(rctx,
             global_mat, obj_info, rctx->matrix_buffer);
 
     if (texture_pattern && texture_pattern_count)
@@ -701,12 +670,6 @@ void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, 
         object_data_set_texture_specular_coeff(object_data, &texture_specular_coeff);
         object_data_set_texture_specular_offset(object_data, &texture_specular_offset);
     }
-}
-
-inline bool draw_task_add_draw_object_by_object_info_opaque(render_context* rctx,
-    mat4* mat, object_info obj_info) {
-    return draw_task_add_draw_object_by_object_info(rctx,
-        mat, obj_info, (vec4*)&vec4_identity, 0, 0, 0, 0, false);
 }
 
 void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare_func) {
@@ -900,7 +863,7 @@ inline static void draw_task_object_init(draw_task* task, object_data* object_da
     for (int32_t i = 0; i < object_data->texture_transform_count && i < TEXTURE_TRANSFORM_COUNT; i++)
         draw->texture_transform_array[i] = object_data->texture_transform_array[i];
 
-    if (blend_color) {
+    if (blend_color && memcmp(blend_color, &vec4_identity, sizeof(vec4))) {
         draw->set_blend_color = true;
         draw->blend_color = *blend_color;
     }

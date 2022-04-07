@@ -45,7 +45,7 @@ void motion_database::read(const wchar_t* path) {
     if (!path)
         return;
 
-    wchar_t* path_farc = str_utils_wadd(path, L".farc");
+    wchar_t* path_farc = str_utils_add(path, L".farc");
     if (path_check_file_exists(path_farc)) {
         farc f;
         f.read(path_farc, true, false);
@@ -135,7 +135,7 @@ void motion_database::merge_mdata(motion_database* base_mot_db,
         motion_set_info set_info;
         set_info.id = i.id;
         set_info.name = i.name;
-        set_info.name_hash = hash_string_fnv1a64m(&i.name, false);
+        set_info.name_hash = hash_string_murmurhash(&i.name);
 
         set_info.motion.reserve(i.motion.size());
 
@@ -143,7 +143,7 @@ void motion_database::merge_mdata(motion_database* base_mot_db,
             motion_info info;
             info.id = j.id;
             info.name = j.name;
-            info.name_hash = hash_string_fnv1a64m(&j.name, false);
+            info.name_hash = hash_string_murmurhash(&j.name);
             set_info.motion.push_back(info);
         }
         motion_set.push_back(set_info);
@@ -163,7 +163,7 @@ void motion_database::merge_mdata(motion_database* base_mot_db,
         motion_set_info set_info;
         set_info.id = i.id;
         set_info.name = i.name;
-        set_info.name_hash = hash_string_fnv1a64m(&i.name, false);
+        set_info.name_hash = hash_string_murmurhash(&i.name);
 
         set_info.motion.reserve(i.motion.size());
 
@@ -171,7 +171,7 @@ void motion_database::merge_mdata(motion_database* base_mot_db,
             motion_info info;
             info.id = j.id;
             info.name = j.name;
-            info.name_hash = hash_string_fnv1a64m(&j.name, false);
+            info.name_hash = hash_string_murmurhash(&j.name);
             set_info.motion.push_back(info);
         }
 
@@ -206,7 +206,7 @@ motion_set_info* motion_database::get_motion_set_by_name(const char* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    uint32_t name_hash = hash_utf8_murmurhash(name);
 
     for (motion_set_info& i : motion_set)
         if (name_hash == i.name_hash)
@@ -218,7 +218,7 @@ uint32_t motion_database::get_motion_set_id(const char* name) {
     if (!name)
         return -1;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    uint32_t name_hash = hash_utf8_murmurhash(name);
 
     for (motion_set_info& i : motion_set)
         if (name_hash == i.name_hash)
@@ -251,7 +251,7 @@ motion_info* motion_database::get_motion_by_name(const char* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    uint32_t name_hash = hash_utf8_murmurhash(name);
 
     for (motion_set_info& i : motion_set)
         for (motion_info& j : i.motion)
@@ -264,7 +264,7 @@ uint32_t motion_database::get_motion_id(const char* name) {
     if (!name)
         return -1;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    uint32_t name_hash = hash_utf8_murmurhash(name);
 
     for (motion_set_info& i : motion_set)
         for (motion_info& j : i.motion)
@@ -302,7 +302,7 @@ bool motion_database::load_file(void* data, const char* path, const char* file, 
     return mot_db->ready;
 }
 
-motion_info::motion_info() : name_hash(hash_fnv1a64m_empty), id((uint32_t)-1) {
+motion_info::motion_info() : name_hash(hash_murmurhash_empty), id((uint32_t)-1) {
 
 }
 
@@ -310,7 +310,7 @@ motion_info::~motion_info() {
 
 }
 
-motion_set_info::motion_set_info() : name_hash(hash_fnv1a64m_empty), id((uint32_t)-1) {
+motion_set_info::motion_set_info() : name_hash(hash_murmurhash_empty), id((uint32_t)-1) {
 
 }
 
@@ -340,13 +340,16 @@ static void motion_database_read_inner(motion_database* mot_db, stream* s) {
        uint32_t motion_ids_offset = io_read_uint32_t(s);
 
        io_read_string_null_terminated_offset(s, name_offset, &set_info.name);
+       set_info.name_hash = hash_string_murmurhash(&set_info.name);
 
        set_info.motion.resize(motion_count);
 
        io_position_push(s, motion_name_offsets_offset, SEEK_SET);
-       for (uint32_t j = 0; j < motion_count; j++)
+       for (uint32_t j = 0; j < motion_count; j++) {
            io_read_string_null_terminated_offset(s,
                io_read_uint32_t(s), &set_info.motion[j].name);
+           set_info.motion[j].name_hash = hash_string_murmurhash(&set_info.motion[j].name);
+       }
        io_position_pop(s);
 
        io_position_push(s, motion_ids_offset, SEEK_SET);

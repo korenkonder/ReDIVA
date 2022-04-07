@@ -322,37 +322,37 @@ extern void shader_state_texenv_get_color(shader_set_data* set,
     size_t index, vec4* data);
 
 extern void shader_buffer_set_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_buffer_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, vec4* data);
+    size_t index, size_t count, const vec4* data);
 extern void shader_local_frag_set(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_local_frag_set_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_local_frag_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, vec4* data);
+    size_t index, size_t count, const vec4* data);
 extern void shader_local_vert_set(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_local_vert_set_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_local_vert_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, vec4* data);
+    size_t index, size_t count, const vec4* data);
 extern void shader_env_frag_set(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_env_frag_set_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_env_frag_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, vec4* data);
+    size_t index, size_t count, const vec4* data);
 extern void shader_env_vert_set(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_env_vert_set_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_env_vert_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, vec4* data);
+    size_t index, size_t count, const vec4* data);
 extern void shader_state_clip_set_plane(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_clip_set_plane_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_depth_set_range(shader_set_data* set,
     float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_depth_set_range_ptr(shader_set_data* set,
@@ -368,71 +368,71 @@ extern void shader_state_fog_set_params_ptr(shader_set_data* set,
 extern void shader_state_light_set_ambient(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_light_set_ambient_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_light_set_diffuse(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_light_set_diffuse_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_light_set_specular(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_light_set_specular_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_light_set_position(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_light_set_position_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_light_set_attenuation(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_light_set_attenuation_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_light_set_spot_direction(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_light_set_spot_direction_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_light_set_half(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_light_set_half_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_lightmodel_set_ambient(shader_set_data* set,
     bool back, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_lightmodel_set_ambient_ptr(shader_set_data* set,
-    bool back, vec4* data);
+    bool back, const vec4* data);
 extern void shader_state_lightmodel_set_scene_color(shader_set_data* set,
     bool back, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_lightmodel_set_scene_color_ptr(shader_set_data* set,
-    bool back, vec4* data);
+    bool back, const vec4* data);
 extern void shader_state_lightprod_set_ambient(shader_set_data* set,
     bool back, size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_lightprod_set_ambient_ptr(shader_set_data* set,
-    bool back, size_t index, vec4* data);
+    bool back, size_t index, const vec4* data);
 extern void shader_state_lightprod_set_diffuse(shader_set_data* set,
     bool back, size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_lightprod_set_diffuse_ptr(shader_set_data* set,
-    bool back, size_t index, vec4* data);
+    bool back, size_t index, const vec4* data);
 extern void shader_state_lightprod_set_specular(shader_set_data* set,
     bool back, size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_lightprod_set_specular_ptr(shader_set_data* set,
-    bool back, size_t index, vec4* data);
+    bool back, size_t index, const vec4* data);
 extern void shader_state_material_set_ambient(shader_set_data* set,
     bool back, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_material_set_ambient_ptr(shader_set_data* set,
-    bool back, vec4* data);
+    bool back, const vec4* data);
 extern void shader_state_material_set_diffuse(shader_set_data* set,
     bool back, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_material_set_diffuse_ptr(shader_set_data* set,
-    bool back, vec4* data);
+    bool back, const vec4* data);
 extern void shader_state_material_set_specular(shader_set_data* set,
     bool back, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_material_set_specular_ptr(shader_set_data* set,
-    bool back, vec4* data);
+    bool back, const vec4* data);
 extern void shader_state_material_set_emission(shader_set_data* set,
     bool back, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_material_set_emission_ptr(shader_set_data* set,
-    bool back, vec4* data);
+    bool back, const vec4* data);
 extern void shader_state_material_set_shininess(shader_set_data* set,
     bool back, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_material_set_shininess_ptr(shader_set_data* set,
-    bool back, vec4* data);
+    bool back, const vec4* data);
 extern void shader_state_matrix_set_modelview(shader_set_data* set,
     size_t index, mat4* data, bool mult);
 extern void shader_state_matrix_set_projection(shader_set_data* set,
@@ -460,36 +460,36 @@ extern void shader_state_point_set_attenuation_ptr(shader_set_data* set,
 extern void shader_state_texgen_set_eye_s(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_texgen_set_eye_s_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_texgen_set_eye_t(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_texgen_set_eye_t_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_texgen_set_eye_r(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_texgen_set_eye_r_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_texgen_set_eye_q(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_texgen_set_eye_q_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_texgen_set_object_s(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_texgen_set_object_s_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_texgen_set_object_t(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_texgen_set_object_t_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_texgen_set_object_r(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_texgen_set_object_r_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_texgen_set_object_q(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_texgen_set_object_q_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);
 extern void shader_state_texenv_set_color(shader_set_data* set,
     size_t index, float_t x, float_t y, float_t z, float_t w);
 extern void shader_state_texenv_set_color_ptr(shader_set_data* set,
-    size_t index, vec4* data);
+    size_t index, const vec4* data);

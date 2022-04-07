@@ -25,14 +25,14 @@ post_process_aa* post_process_aa_init() {
 void post_process_apply_mlaa(post_process_aa* aa, render_texture* rt,
     render_texture* buf_rt, GLuint* samplers, int32_t a4) {
     render_texture_bind(aa->mlaa_buffer, 0);
-    gl_state_active_bind_texture_2d(0, rt->color_texture->texture);
+    gl_state_active_bind_texture_2d(0, rt->color_texture->tex);
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 0;
     shader_set(&shaders_ft, SHADER_FT_MLAA);
     render_texture_draw_params(&shaders_ft, aa->width, aa->height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
     render_texture_bind(&aa->mlaa_buffer[1], 0);
-    gl_state_active_bind_texture_2d(0, aa->mlaa_buffer[0].color_texture->texture);
+    gl_state_active_bind_texture_2d(0, aa->mlaa_buffer[0].color_texture->tex);
     gl_state_active_bind_texture_2d(1, aa->mlaa_area_texture);
     gl_state_bind_sampler(0, samplers[0]);
     gl_state_bind_sampler(1, samplers[1]);
@@ -42,8 +42,8 @@ void post_process_apply_mlaa(post_process_aa* aa, render_texture* rt,
     render_texture_draw_params(&shaders_ft, aa->width, aa->height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
     render_texture_bind(buf_rt, 0);
-    gl_state_active_bind_texture_2d(0, rt->color_texture->texture);
-    gl_state_active_bind_texture_2d(1, aa->mlaa_buffer[1].color_texture->texture);
+    gl_state_active_bind_texture_2d(0, rt->color_texture->tex);
+    gl_state_active_bind_texture_2d(1, aa->mlaa_buffer[1].color_texture->tex);
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 2;
     uniform_value[U01] = a4 ? 1 : 0;

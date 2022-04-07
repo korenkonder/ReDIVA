@@ -77,6 +77,7 @@ public:
 
     auth_3d_database();
     ~auth_3d_database();
+
     void merge_mdata(auth_3d_database_file* base_auth_3d_db,
         auth_3d_database_file* mdata_auth_3d_db);
     void split_mdata(auth_3d_database_file* base_auth_3d_db,

@@ -8,17 +8,15 @@
 #include "texture.h"
 
 bool glitter_diva_resource_parse_file(GPM, GlitterEffectGroup* a1, f2_struct* st) {
-    f2_struct* i;
-
     if (!st || !st->header.data_size)
         return false;
 
-    for (i = st->sub_structs.begin; i != st->sub_structs.end; i++) {
-        if (!i->header.data_size)
+    for (f2_struct& i : st->sub_structs) {
+        if (!i.header.data_size)
             continue;
 
-        if (i->header.signature == reverse_endianness_uint32_t('TXPC')) {
-            glitter_texture_resource_unpack_file(GPM_VAL, a1, i);
+        if (i.header.signature == reverse_endianness_uint32_t('TXPC')) {
+            glitter_texture_resource_unpack_file(GPM_VAL, a1, &i);
             break;
         }
     }
@@ -26,16 +24,11 @@ bool glitter_diva_resource_parse_file(GPM, GlitterEffectGroup* a1, f2_struct* st
 }
 
 bool glitter_diva_resource_unparse_file(GlitterEffectGroup* a1, f2_struct* st) {
-    memset(st, 0, sizeof(f2_struct));
-
     f2_struct s;
-    memset(&s, 0, sizeof(f2_struct));
-    if (!glitter_texture_resource_pack_file(a1, &s)) {
-        f2_struct_free(&s);
+    if (!glitter_texture_resource_pack_file(a1, &s))
         return false;
-    }
 
-    vector_old_f2_struct_push_back(&st->sub_structs, &s);
+    st->sub_structs.push_back(s);
 
     st->header.signature = reverse_endianness_uint32_t('DVRS');
     st->header.length = 0x20;

@@ -71,7 +71,6 @@ GlitterCurve* glitter_curve_copy(GlitterCurve* c) {
 }
 
 bool glitter_curve_parse_file(GLT, f2_struct* st, uint32_t version, GlitterCurve** c) {
-    f2_struct* i;
     uint32_t keys_count;
 
     if (!st || !st->header.data_size)
@@ -79,14 +78,14 @@ bool glitter_curve_parse_file(GLT, f2_struct* st, uint32_t version, GlitterCurve
 
     *c = new GlitterCurve(GLT_VAL);
     (*c)->version = st->header.version;
-    glitter_curve_unpack_file(GLT_VAL, st->data, *c, version, st->header.use_big_endian, &keys_count);
+    glitter_curve_unpack_file(GLT_VAL, st->data.data(), *c, version, st->header.use_big_endian, &keys_count);
     if (keys_count)
-        for (i = st->sub_structs.begin; i != st->sub_structs.end; i++) {
-            if (!i->header.data_size)
+        for (f2_struct& i : st->sub_structs) {
+            if (!i.header.data_size)
                 continue;
 
-            if (i->header.signature == reverse_endianness_uint32_t('KEYS')) {
-                glitter_curve_key_unpack_file(GLT_VAL, i, *c, keys_count);
+            if (i.header.signature == reverse_endianness_uint32_t('KEYS')) {
+                glitter_curve_key_unpack_file(GLT_VAL, &i, *c, keys_count);
                 break;
             }
         }
@@ -216,7 +215,7 @@ bool glitter_curve_unparse_file(GLT, f2_struct* st, GlitterCurve* c) {
 
     f2_struct s;
     glitter_curve_key_pack_file(GLT_VAL, &s, c, &c->keys);
-    vector_old_f2_struct_push_back(&st->sub_structs, &s);
+    st->sub_structs.push_back(s);
 #if defined(CRE_DEV)
     c->keys.clear();
 #endif
@@ -230,12 +229,10 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
     size_t d;
     glitter_key_type key_type;
     size_t count;
-
-    memset(st, 0, sizeof(f2_struct));
     l = 0;
 
     uint32_t o;
-    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+    enrs e;
     enrs_entry ee;
 
     if (!keys->size()) {
@@ -248,83 +245,87 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
     }
 
     if (c->flags & GLITTER_CURVE_KEY_RANDOM_RANGE) {
-        key_type = keys->begin()[0].type;
+        key_type = keys->front().type;
         if (key_type == GLITTER_KEY_HERMITE) {
-            ee = { 0, 2, 20, 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
+            ee = { 0, 2, 20, 1 };
+            ee.sub.push_back({ 0, 2, ENRS_WORD });
+            ee.sub.push_back({ 0, 4, ENRS_DWORD });
             l = 20;
         }
         else {
-            ee = { 0, 2, 12, 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+            ee = { 0, 2, 12, 1 };
+            ee.sub.push_back({ 0, 2, ENRS_WORD });
+            ee.sub.push_back({ 0, 2, ENRS_DWORD });
             l = 12;
         }
 
         count = 1;
-        for (std::vector<GlitterCurve::Key>::iterator i = keys->begin() + 1; i != keys->end();
+        GlitterCurve::Key* i_begin = keys->data() + 1;
+        GlitterCurve::Key* i_end = keys->data() + keys->size();
+        for (GlitterCurve::Key* i = i_begin; i != i_end;
             i++, count++, l += key_type == GLITTER_KEY_HERMITE ? 20 : 12) {
             if (i->type == key_type)
                 continue;
 
             if (count > 0) {
                 ee.repeat_count = (uint32_t)count;
-                vector_old_enrs_entry_push_back(&e, &ee);
+                e.vec.push_back(ee);
             }
 
             count = 1;
             o = (uint32_t)((key_type == GLITTER_KEY_HERMITE ? 20 : 12) * count);
             if (i->type == GLITTER_KEY_HERMITE) {
-                ee = { o, 2, 20, 1, vector_old_empty(enrs_sub_entry) };
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
+                ee = { o, 2, 20, 1 };
+                ee.sub.push_back({ 0, 2, ENRS_WORD });
+                ee.sub.push_back({ 0, 4, ENRS_DWORD });
             }
             else {
-                ee = { o, 2, 12, 1, vector_old_empty(enrs_sub_entry) };
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+                ee = { o, 2, 12, 1 };
+                ee.sub.push_back({ 0, 2, ENRS_WORD });
+                ee.sub.push_back({ 0, 2, ENRS_DWORD });
             }
             key_type = i->type;
         }
     }
     else {
-        key_type = keys->begin()[0].type;
+        key_type = keys->front().type;
         if (key_type == GLITTER_KEY_HERMITE) {
-            ee = { 0, 2, 16, 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+            ee = { 0, 2, 16, 1 };
+            ee.sub.push_back({ 0, 2, ENRS_WORD });
+            ee.sub.push_back({ 0, 3, ENRS_DWORD });
             l = 16;
         }
         else {
-            ee = { 0, 2, 8, 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+            ee = { 0, 2, 8, 1 };
+            ee.sub.push_back({ 0, 2, ENRS_WORD });
+            ee.sub.push_back({ 0, 1, ENRS_DWORD });
             l = 8;
         }
 
         count = 1;
-        for (std::vector<GlitterCurve::Key>::iterator i = keys->begin() + 1; i != keys->end();
+        GlitterCurve::Key* i_begin = keys->data() + 1;
+        GlitterCurve::Key* i_end = keys->data() + keys->size();
+        for (GlitterCurve::Key* i = i_begin; i != i_end;
             i++, count++, l += key_type == GLITTER_KEY_HERMITE ? 16 : 8) {
             if (i->type == key_type)
                 continue;
 
             if (count > 0) {
                 ee.repeat_count = (uint32_t)count;
-                vector_old_enrs_entry_push_back(&e, &ee);
+                e.vec.push_back(ee);
             }
 
             count = 1;
             o = (uint32_t)((key_type == GLITTER_KEY_HERMITE ? 16 : 8) * count);
             if (i->type == GLITTER_KEY_HERMITE) {
-                ee = { o, 2, 16, 1, vector_old_empty(enrs_sub_entry) };
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
+                ee = { o, 2, 16, 1 };
+                ee.sub.push_back({ 0, 2, ENRS_WORD });
+                ee.sub.push_back({ 0, 3, ENRS_DWORD });
             }
             else {
-                ee = { o, 2, 8, 1, vector_old_empty(enrs_sub_entry) };
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-                vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
+                ee = { o, 2, 8, 1 };
+                ee.sub.push_back({ 0, 2, ENRS_WORD });
+                ee.sub.push_back({ 0, 1, ENRS_DWORD });
             }
             key_type = i->type;
         }
@@ -332,7 +333,7 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
 
     if (count > 0) {
         ee.repeat_count = (uint32_t)count;
-        vector_old_enrs_entry_push_back(&e, &ee);
+        e.vec.push_back(ee);
     }
 
     float_t scale = 1.0f;
@@ -352,9 +353,8 @@ static void glitter_curve_key_pack_file(GLT, f2_struct* st,
         }
 
     l = align_val(l, 0x10);
-    d = (size_t)force_malloc(l);
-    st->length = l;
-    st->data = (void*)d;
+    st->data.resize(l);
+    d = (size_t)st->data.data();
     st->enrs = e;
 
     if (scale == 1.0f)
@@ -442,7 +442,7 @@ static void glitter_curve_key_unpack_file(GLT,
         return;
 
     c->keys_version = st->header.version;
-    d = (size_t)st->data;
+    d = (size_t)st->data.data();
 
     key.type = GLITTER_KEY_CONSTANT;
     key.frame = 0;
@@ -998,23 +998,20 @@ static void glitter_curve_pack_file(GLT,
     f2_struct* st, GlitterCurve* c, size_t keys_count) {
     size_t l;
     size_t d;
-
-    memset(st, 0, sizeof(f2_struct));
     l = 0;
 
     uint32_t o;
-    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+    enrs e;
     enrs_entry ee;
 
-    ee = { 0, 2, 32, 1, vector_old_empty(enrs_sub_entry) };
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 4, ENRS_DWORD);
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_WORD);
-    vector_old_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 2, 32, 1 };
+    ee.sub.push_back({ 0, 4, ENRS_DWORD });
+    ee.sub.push_back({ 0, 3, ENRS_WORD });
+    e.vec.push_back(ee);
     l += o = 32;
 
-    d = (size_t)force_malloc(l);
-    st->data = (void*)d;
-    st->length = l;
+    st->data.resize(l);
+    d = (size_t)st->data.data();
     st->enrs = e;
 
     float_t random_range = c->random_range;

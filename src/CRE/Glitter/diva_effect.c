@@ -8,21 +8,19 @@
 #include "effect_group.h"
 #include "scene.h"
 
-bool glitter_diva_effect_parse_file(GPM, GlitterFileReader* fr, f2_struct* st, float_t emission) {
+bool glitter_diva_effect_parse_file(GPM,
+    GlitterFileReader* fr, f2_struct* st, object_database* obj_db) {
     if (!st || !st->header.data_size)
         return false;
 
     GlitterEffectGroup* effect_group = new GlitterEffectGroup(fr->type);
     effect_group->hash = fr->hash;
-    effect_group->emission = fr->emission;
-    if (fr->emission <= 0.0f)
-        effect_group->emission = emission;
     effect_group->version = st->header.version;
     effect_group->type = fr->type;
 
     effect_group->scene = 0;
-    if (!effect_group->ParseFile(st)) {
-        effect_group->field_3C = true;
+    if (!effect_group->ParseFile(st, obj_db)) {
+        effect_group->not_loaded = true;
         if (GPM_VAL->AppendEffectGroup(fr->hash, effect_group, fr))
             return true;
     }

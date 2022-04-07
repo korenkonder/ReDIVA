@@ -61,8 +61,9 @@ public:
     ~txp_set();
 
     bool pack_file(void** data, size_t* length, bool big_endian);
+    bool pack_file(std::vector<uint8_t>* data, bool big_endian);
     bool pack_file_modern(void** data, size_t* length, bool big_endian);
-    bool produce_enrs(vector_old_enrs_entry* enrs);
+    bool produce_enrs(enrs* enrs);
     bool unpack_file(void* data, bool big_endian);
     bool unpack_file_modern(void* data, size_t length);
 };

@@ -5,9 +5,9 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "../default.h"
-#include "../string.h"
-#include "../vector.h"
 #include "object.h"
 
 typedef enum stage_data_format {
@@ -61,13 +61,15 @@ typedef struct stage_data_refract {
 
 typedef struct stage_effects {
     int32_t field_0[8];
-    int32_t parent_bone_node[16];
+    int32_t field_20[16];
 } stage_effects;
 
-typedef struct stage_data {
+class stage_data {
+public:
     int32_t id;
-    string name;
-    string auth_3d_name;
+    std::string name;
+    uint32_t name_hash;
+    std::string auth_3d_name;
     uint32_t object_set_id;
     object_info object_ground;
     object_info object_ring;
@@ -82,7 +84,7 @@ typedef struct stage_data {
     uint32_t unknown;
     uint32_t render_texture;
     uint32_t movie_texture;
-    string collision_file_path;
+    std::string collision_file_path;
     stage_data_reflect_type reflect_type;
     bool refract_enable;
     bool reflect;
@@ -97,14 +99,18 @@ typedef struct stage_data {
     float_t ring_height;
     float_t ring_out_height;
     stage_effects effects;
-    int32_t auth_3d_count;
-    int32_t* auth_3d_ids;
-} stage_data;
+    std::vector<int32_t> auth_3d_ids;
 
-typedef struct stage_data_modern {
-    uint64_t id;
-    string name;
-    string auth_3d_name;
+    stage_data();
+    ~stage_data();
+};
+
+class stage_data_modern {
+public:
+    uint32_t hash;
+    std::string name;
+    std::string auth_3d_name;
+    uint32_t auth_3d_name_hash;
     object_info object_ground;
     object_info object_sky;
     object_info object_shadow;
@@ -137,40 +143,35 @@ typedef struct stage_data_modern {
     float_t ring_out_height;
     uint32_t field_13;
     stage_effects effects;
-    int32_t auth_3d_count;
-    int32_t* auth_3d_ids;
-} stage_data_modern;
+    std::vector<uint32_t> auth_3d_ids;
 
-vector_old(stage_data)
-vector_old(stage_data_modern)
+    stage_data_modern();
+    ~stage_data_modern();
+};
 
-typedef struct stage_database {
+class stage_database {
+public:
     bool ready;
     bool modern;
-    union {
-        bool is_x;
-        stage_data_format format;
-    };
+    bool is_x;
+    stage_data_format format;
+    
+    std::vector<stage_data> stage_data;
+    std::vector<stage_data_modern> stage_modern;
 
-    union {
-        vector_old_stage_data stage_data;
-        vector_old_stage_data_modern stage_modern;
-    };
-} stage_database;
+    stage_database();
+    ~stage_database();
 
-extern void stage_database_init(stage_database* stage_data);
-extern void stage_database_read(stage_database* stage_data, const char* path, bool modern);
-extern void stage_database_read(stage_database* stage_data, const wchar_t* path, bool modern);
-extern void stage_database_read(stage_database* stage_data, const void* data, size_t length, bool modern);
-extern void stage_database_write(stage_database* stage_data, const char* path);
-extern void stage_database_write(stage_database* stage_data, const wchar_t* path);
-extern void stage_database_write(stage_database* stage_data, void** data, size_t* length);
-extern bool stage_database_load_file(void* data, const char* path, const char* file, uint32_t hash);
-extern void stage_database_merge_mdata(stage_database* stage_data,
-    stage_database* base_stage_data, stage_database* mdata_stage_data);
-extern void stage_database_split_mdata(stage_database* stage_data,
-    stage_database* base_stage_data, stage_database* mdata_stage_data);
-extern void stage_database_free(stage_database* stage_data);
+    void read(const char* path, bool modern);
+    void read(const wchar_t* path, bool modern);
+    void read(const void* data, size_t length, bool modern);
+    void write(const char* path);
+    void write(const wchar_t* path);
+    void write(void** data, size_t* length);
 
-extern void stage_data_free(stage_data* data);
-extern void stage_data_modern_free(stage_data_modern* data);
+    void merge_mdata(stage_database* base_stage_data, stage_database* mdata_stage_data);
+    void split_mdata(stage_database* base_stage_data, stage_database* mdata_stage_data);
+
+    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+};
+

@@ -122,7 +122,7 @@ static GLuint shader_compile(GLenum type, const char* data) {
 
 static GLint shader_get_uniform_location(GLint program, GLchar* name,
     vector_old_uint64_t* uniform_name_buf, vector_old_int32_t* uniform_location_buf) {
-    uint64_t hash = hash_utf8_fnv1a64m(name, false);
+    uint64_t hash = hash_utf8_fnv1a64m(name);
     for (uint64_t* i = uniform_name_buf->begin; i != uniform_name_buf->end; i++)
         if (*i == hash)
             return uniform_location_buf->begin[i - uniform_name_buf->begin];
@@ -143,7 +143,7 @@ static GLint shader_get_uniform_location(GLint program, GLchar* name,
 
 static GLint shader_get_uniform_block_index(GLint program, GLchar* name,
     vector_old_uint64_t* uniform_block_name_buf, vector_old_int32_t* uniform_block_index_buf) {
-    uint64_t hash = hash_utf8_fnv1a64m(name, false);
+    uint64_t hash = hash_utf8_fnv1a64m(name);
     for (uint64_t* i = uniform_block_name_buf->begin; i != uniform_block_name_buf->end; i++)
         if (*i == hash)
             return uniform_block_index_buf->begin[i - uniform_block_name_buf->begin];

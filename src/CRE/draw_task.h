@@ -23,23 +23,19 @@ extern bool draw_task_add_draw_object(render_context* rctx, obj* object,
     obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
     mat4* instances_mat, void(*draw_object_func)(draw_object*), bool enable_bone_mat);
 extern bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
+    object_info obj_info, mat4* bone_mat = 0);
+extern bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
     object_info obj_info, vec4* blend_color, mat4* bone_mat, int32_t instances_count,
     mat4* instances_mat, void(*draw_object_func)(draw_object*), bool enable_bone_mat);
 extern bool draw_task_add_draw_object_by_object_info_alpha(render_context* rctx, mat4* mat,
-    object_info obj_info, float_t alpha);
-extern bool draw_task_add_draw_object_by_object_info_alpha_bone_mat(render_context* rctx, mat4* mat,
-    object_info obj_info, float_t alpha, mat4* bone_mat);
-extern bool draw_task_add_draw_object_by_object_info_bone_mat(render_context* rctx, mat4* mat,
-    object_info obj_info, mat4* bone_mat);
+    object_info obj_info, float_t alpha, mat4* bone_mat = 0);
 extern bool draw_task_add_draw_object_by_object_info_color(render_context* rctx, mat4* mat,
-    object_info obj_info, float_t r, float_t g, float_t b, float_t a);
+    object_info obj_info, float_t r, float_t g, float_t b, float_t a, mat4* bone_mat = 0);
 extern bool draw_task_add_draw_object_by_object_info_color_vec4(render_context* rctx, mat4* mat,
-    object_info obj_info, vec4* blend_color);
+    object_info obj_info, vec4* blend_color, mat4* bone_mat = 0);
 extern void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, object_info obj_info,
     std::vector<texture_pattern_struct>* texture_pattern, texture_data_struct* texture_data, float_t alpha,
     mat4* matrices, mat4* ex_data_matrices, mat4* mat, mat4* global_mat);
-extern bool draw_task_add_draw_object_by_object_info_opaque(render_context* rctx,
-    mat4* mat, object_info obj_info);
 extern void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare_func);
 extern int32_t obj_axis_aligned_bounding_box_check_visibility(
     obj_axis_aligned_bounding_box* aabb, camera* cam, mat4* mat);

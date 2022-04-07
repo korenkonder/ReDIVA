@@ -10,19 +10,26 @@
 #include "default.h"
 #include "vec.h"
 
+typedef enum pvpp_chara_index {
+    PVPP_CHARA_1P = 0,
+    PVPP_CHARA_2P = 1,
+    PVPP_CHARA_3P = 2,
+    PVPP_CHARA_4P = 3,
+} pvpp_chara_index;
+
 typedef enum pvpp_chara_type {
-    PVPP_CHARA_MIKU = 0,
-    PVPP_CHARA_RIN = 1,
-    PVPP_CHARA_LEN = 2,
-    PVPP_CHARA_LUKA = 3,
-    PVPP_CHARA_NERU = 4,
-    PVPP_CHARA_HAKU = 5,
-    PVPP_CHARA_KAITO = 6,
-    PVPP_CHARA_MEIKO = 7,
+    PVPP_CHARA_MIKU   = 0,
+    PVPP_CHARA_RIN    = 1,
+    PVPP_CHARA_LEN    = 2,
+    PVPP_CHARA_LUKA   = 3,
+    PVPP_CHARA_NERU   = 4,
+    PVPP_CHARA_HAKU   = 5,
+    PVPP_CHARA_KAITO  = 6,
+    PVPP_CHARA_MEIKO  = 7,
     PVPP_CHARA_SAKINE = 8,
-    PVPP_CHARA_TETO = 9,
-    PVPP_CHARA_EXTRA = 10,
-    PVPP_CHARA_STAGE = 255,
+    PVPP_CHARA_TETO   = 9,
+    PVPP_CHARA_EXTRA  = 10,
+    PVPP_CHARA_STAGE  = 255,
 } pvpp_chara_type;
 
 class pvpp_a3da {
@@ -39,7 +46,7 @@ public:
     pvpp_a3da a3da;
     uint8_t u00;
     uint8_t u01;
-    uint8_t u02;
+    uint8_t chara_index;
     uint8_t u03;
     uint8_t u04;
     uint8_t u05;
@@ -53,6 +60,7 @@ public:
 class pvpp_chara_effect {
 public:
     pvpp_chara_type base_chara;
+    pvpp_chara_index chara_index;
     std::vector<pvpp_chara_effect_a3da> effect_a3da;
 
     pvpp_chara_effect();
@@ -118,7 +126,7 @@ public:
     std::vector<pvpp_effect> effect;
 
     pvpp();
-    ~pvpp();
+    virtual ~pvpp();
 
     void read(const char* path);
     void read(const wchar_t* path);

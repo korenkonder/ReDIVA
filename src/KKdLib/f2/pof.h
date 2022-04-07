@@ -5,16 +5,25 @@
 
 #pragma once
 
+#include <vector>
 #include "../default.h"
-#include "../vector.h"
 #include "../io/stream.h"
 
+class pof {
+public:
+    std::vector<size_t> vec;
+
+    pof();
+    ~pof();
+
+    void add(stream* s, size_t offset);
+    void read(stream* s, bool shift_x = false);
+    void write(stream* s, bool shift_x = false);
+    uint32_t length(bool shift_x = false);
+};
+
 extern void io_write_offset_pof_add(stream* s, ssize_t val,
-    int32_t offset, bool is_x, vector_old_size_t* pof);
+    int32_t offset, bool is_x, pof* pof);
 extern void io_write_offset_f2_pof_add(stream* s, ssize_t val,
-    int32_t offset, vector_old_size_t* pof);
-extern void io_write_offset_x_pof_add(stream* s, ssize_t val, vector_old_size_t* pof);
-extern void pof_add(stream* s, vector_old_size_t* pof, size_t offset);
-extern void pof_read(stream* s, vector_old_size_t* pof, bool shift_x);
-extern void pof_write(stream* s, vector_old_size_t* pof, bool shift_x);
-extern uint32_t pof_length(vector_old_size_t* pof, bool shift_x);
+    int32_t offset, pof* pof);
+extern void io_write_offset_x_pof_add(stream* s, ssize_t val, pof* pof);

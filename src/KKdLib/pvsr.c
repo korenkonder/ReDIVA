@@ -7,31 +7,29 @@
 #include "f2/struct.h"
 #include "io/path.h"
 #include "io/stream.h"
+#include "hash.h"
 #include "str_utils.h"
 
-vector_old_func(pvsr_a3da)
-vector_old_func(pvsr_aet)
-vector_old_func(pvsr_aet_entry)
-vector_old_func(pvsr_effect)
-vector_old_func(pvsr_glitter)
-vector_old_func(pvsr_stage_effect)
-
 static void pvsr_a3da_read(pvsr_a3da* a3d, stream* s);
-static void pvsr_aet_read(pvsr_aet* aet, stream* s, int32_t x00);
-static void pvsr_aet_entry_read(pvsr_aet_entry* aet_entry, stream* s);
-static bool pvsr_aet_sub1_read(pvsr_aet_sub1* aet_sub1, stream* s, ssize_t offset);
-static bool pvsr_aet_sub2_read(pvsr_aet_sub2* aet_sub2, stream* s, ssize_t offset);
+static void pvsr_aet_read(pvsr_aet* aet_entry, stream* s);
 static void pvsr_effect_read(pvsr_effect* eff, stream* s);
 static void pvsr_glitter_read(pvsr_glitter* glt, stream* s);
 static void pvsr_read_inner(pvsr* sr, stream* s);
 static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream* s);
+static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream* s, int32_t x00);
+static bool pvsr_stage_effect_env_sub1_read(pvsr_stage_effect_env_sub1* aet_sub1, stream* s, ssize_t offset);
+static bool pvsr_stage_effect_env_sub2_read(pvsr_stage_effect_env_sub2* aet_sub2, stream* s, ssize_t offset);
 
-void pvsr_init(pvsr* sr) {
-    memset(sr, 0, sizeof(pvsr));
+pvsr::pvsr() : ready(), stage_change_effect_init() {
+
 }
 
-void pvsr_read(pvsr* sr, const char* path) {
-    if (!sr || !path)
+pvsr::~pvsr() {
+
+}
+
+void pvsr::read(const char* path) {
+    if (!path)
         return;
 
     char* path_pvsr = str_utils_add(path, ".pvsr");
@@ -39,28 +37,28 @@ void pvsr_read(pvsr* sr, const char* path) {
         stream s;
         io_open(&s, path_pvsr, "rb");
         if (s.io.stream)
-            pvsr_read_inner(sr, &s);
+            pvsr_read_inner(this, &s);
         io_free(&s);
     }
     free(path_pvsr);
 }
 
-void pvsr_wread(pvsr* sr, const wchar_t* path) {
-    if (!sr || !path)
+void pvsr::read(const wchar_t* path) {
+    if (!path)
         return;
 
-    wchar_t* path_pvsr = str_utils_wadd(path, L".pvsr");
+    wchar_t* path_pvsr = str_utils_add(path, L".pvsr");
     if (path_check_file_exists(path_pvsr)) {
         stream s;
         io_open(&s, path_pvsr, L"rb");
         if (s.io.stream)
-            pvsr_read_inner(sr, &s);
+            pvsr_read_inner(this, &s);
         io_free(&s);
     }
     free(path_pvsr);
 }
 
-bool pvsr_load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool pvsr::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
@@ -72,96 +70,68 @@ bool pvsr_load_file(void* data, const char* path, const char* file, uint32_t has
     string_add_length(&s, file, file_len);
 
     pvsr* sr = (pvsr*)data;
-    pvsr_read(sr, string_data(&s));
+    sr->read(string_data(&s));
 
     string_free(&s);
     return sr->ready;
 }
 
-void pvsr_free(pvsr* sr) {
-    vector_old_pvsr_aet_free(&sr->aet, pvsr_aet_free);
-    vector_old_pvsr_effect_free(&sr->effect, pvsr_effect_free);
-    vector_old_string_free(&sr->emcs, string_free);
-    for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
-        for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++)
-            if (sr->stage_change_effect_init[i][j])
-                pvsr_stage_effect_free(&sr->stage_change_effect[i][j]);
-    vector_old_pvsr_stage_effect_free(&sr->stage_effect, pvsr_stage_effect_free);
-}
-
-void pvsr_a3da_init(pvsr_a3da* a3d) {
-    memset(a3d, 0, sizeof(pvsr_a3da));
-}
-
-void pvsr_a3da_free(pvsr_a3da* a3d) {
-    string_free(&a3d->name);
-}
-
-void pvsr_aet_init(pvsr_aet* aet) {
-    memset(aet, 0, sizeof(pvsr_aet));
-}
-
-void pvsr_aet_free(pvsr_aet* aet) {
-    string_free(&aet->set_name);
-    vector_old_pvsr_aet_entry_free(&aet->front, pvsr_aet_entry_free);
-    vector_old_pvsr_aet_entry_free(&aet->front_low, pvsr_aet_entry_free);
-    vector_old_pvsr_aet_entry_free(&aet->back, pvsr_aet_entry_free);
-    pvsr_aet_sub1_free(&aet->sub1_data);
-    pvsr_aet_sub2_free(&aet->sub2a_data);
-    pvsr_aet_sub2_free(&aet->sub2b_data);
-    pvsr_aet_sub2_free(&aet->sub2c_data);
-    pvsr_aet_sub2_free(&aet->sub2d_data);
-    vector_old_pvsr_aet_entry_free(&aet->unk03, pvsr_aet_entry_free);
-    vector_old_pvsr_aet_entry_free(&aet->unk04, pvsr_aet_entry_free);
-}
-
-void pvsr_aet_entry_init(pvsr_aet_entry* aet_entry) {
-    memset(aet_entry, 0, sizeof(pvsr_aet_entry));
-}
-
-void pvsr_aet_entry_free(pvsr_aet_entry* aet_entry) {
-    string_free(&aet_entry->name);
-}
-
-void pvsr_aet_sub1_init(pvsr_aet_sub1* aet_sub1) {
-    memset(aet_sub1, 0, sizeof(pvsr_aet_sub1));
-}
-
-void pvsr_aet_sub1_free(pvsr_aet_sub1* aet_sub1) {
-    string_free(&aet_sub1->name);
-}
-
-void pvsr_aet_sub2_init(pvsr_aet_sub2* aet_sub2) {
-    memset(aet_sub2, 0, sizeof(pvsr_aet_sub2));
-}
-
-void pvsr_aet_sub2_free(pvsr_aet_sub2* aet_sub2) {
+pvsr_a3da::pvsr_a3da() : hash(hash_murmurhash_empty) {
 
 }
 
-void pvsr_effect_init(pvsr_effect* eff) {
-    memset(eff, 0, sizeof(pvsr_effect));
+pvsr_a3da::~pvsr_a3da() {
+
 }
 
-void pvsr_effect_free(pvsr_effect* eff) {
-    string_free(&eff->name);
+pvsr_aet::pvsr_aet() : bright_scale(1.0f), hash(hash_murmurhash_empty) {
+
 }
 
-void pvsr_glitter_init(pvsr_glitter* glt) {
-    memset(glt, 0, sizeof(pvsr_glitter));
+pvsr_aet::~pvsr_aet() {
+
 }
 
-void pvsr_glitter_free(pvsr_glitter* glt) {
-    string_free(&glt->name);
+pvsr_effect::pvsr_effect() : emission(1.0f) {
+
 }
 
-void pvsr_stage_effect_init(pvsr_stage_effect* stg_eff) {
-    memset(stg_eff, 0, sizeof(pvsr_stage_effect));
+pvsr_effect::~pvsr_effect() {
+
 }
 
-void pvsr_stage_effect_free(pvsr_stage_effect* stg_eff) {
-    vector_old_pvsr_a3da_free(&stg_eff->a3da, pvsr_a3da_free);
-    vector_old_pvsr_glitter_free(&stg_eff->glitter, pvsr_glitter_free);
+pvsr_glitter::pvsr_glitter() : unk1() {
+
+}
+
+pvsr_glitter::~pvsr_glitter() {
+
+}
+
+pvsr_stage_effect::pvsr_stage_effect() : bar_count() {
+
+}
+
+pvsr_stage_effect::~pvsr_stage_effect() {
+
+}
+
+pvsr_stage_effect_env_sub1::pvsr_stage_effect_env_sub1() : hash(hash_murmurhash_empty), unk2() {
+
+}
+
+pvsr_stage_effect_env_sub1::~pvsr_stage_effect_env_sub1() {
+
+}
+
+pvsr_stage_effect_env::pvsr_stage_effect_env() : u48(), u4a(), u4c(), u4e(), u50(), u52(), u54(), u56(), u58(), u5a(),
+u5c(), u5e(), u60(), sub1_data(), sub1_data_init(), sub2a_data(), sub2a_data_init(),
+sub2b_data(), sub2b_data_init(), sub2c_data(), sub2c_data_init(), sub2d_data(), sub2d_data_init() {
+
+}
+
+pvsr_stage_effect_env::~pvsr_stage_effect_env() {
+
 }
 
 static void pvsr_a3da_read(pvsr_a3da* a3d, stream* s) {
@@ -170,7 +140,150 @@ static void pvsr_a3da_read(pvsr_a3da* a3d, stream* s) {
     io_align_read(s, 0x08);
 }
 
-static void pvsr_aet_read(pvsr_aet* aet, stream* s, int32_t x00) {
+static void pvsr_aet_read(pvsr_aet* aet_entry, stream* s) {
+    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &aet_entry->name);
+    aet_entry->hash = io_read_uint32_t_stream_reverse_endianness(s);
+    aet_entry->bright_scale = io_read_float_t_stream_reverse_endianness(s);
+}
+
+static void pvsr_effect_read(pvsr_effect* eff, stream* s) {
+    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &eff->name);
+    eff->emission = io_read_float_t_stream_reverse_endianness(s);
+    io_align_read(s, 0x08);
+}
+
+static void pvsr_glitter_read(pvsr_glitter* glt, stream* s) {
+    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &glt->name);
+    glt->unk1 = io_read_uint8_t(s);
+    io_align_read(s, 0x08);
+}
+
+static void pvsr_read_inner(pvsr* sr, stream* s) {
+    f2_struct st;
+    st.read(s);
+    if (st.header.signature != reverse_endianness_uint32_t('PVSR') || !st.data.data())
+        return;
+
+    stream s_pvsr;
+    io_open(&s_pvsr, &st.data);
+    s_pvsr.is_big_endian = st.header.use_big_endian;
+
+    int32_t x00 = io_read_int32_t_stream_reverse_endianness(&s_pvsr);
+    uint8_t x04 = io_read_uint8_t(&s_pvsr);
+    uint8_t x05 = io_read_uint8_t(&s_pvsr);
+    uint8_t x06 = io_read_uint8_t(&s_pvsr);
+    uint8_t x07 = io_read_uint8_t(&s_pvsr);
+    uint8_t stage_effect_count = io_read_uint8_t(&s_pvsr);
+    uint8_t aets_count = io_read_uint8_t(&s_pvsr);
+    uint8_t x0a = io_read_uint8_t(&s_pvsr);
+    uint8_t x0b = io_read_uint8_t(&s_pvsr);
+    uint8_t x0c = io_read_uint8_t(&s_pvsr);
+    uint8_t x0d = io_read_uint8_t(&s_pvsr);
+    uint8_t x0e = io_read_uint8_t(&s_pvsr);
+    uint8_t x0f = io_read_uint8_t(&s_pvsr);
+    ssize_t x10 = io_read_offset_x(&s_pvsr);
+    ssize_t stage_effect_offset = io_read_offset_x(&s_pvsr);
+    ssize_t stage_change_effect_offset = io_read_offset_x(&s_pvsr);
+    ssize_t aet_offset = io_read_offset_x(&s_pvsr);
+
+    io_position_push(&s_pvsr, x10, SEEK_SET);
+    uint8_t unknown_count = io_read_uint8_t(&s_pvsr);
+    uint8_t effect_count = io_read_uint8_t(&s_pvsr);
+    uint8_t emcs_count = io_read_uint8_t(&s_pvsr);
+    ssize_t unknown_offset = io_read_offset_x(&s_pvsr);
+    ssize_t effect_offset = io_read_offset_x(&s_pvsr);
+    ssize_t emcs_offset = io_read_offset_x(&s_pvsr);
+    io_position_pop(&s_pvsr);
+
+    sr->effect.resize(effect_count);
+
+    io_position_push(&s_pvsr, effect_offset, SEEK_SET);
+    for (pvsr_effect& i : sr->effect)
+        pvsr_effect_read(&i, &s_pvsr);
+    io_position_pop(&s_pvsr);
+
+    sr->emcs.resize(emcs_count);
+
+    io_position_push(&s_pvsr, emcs_offset, SEEK_SET);
+    for (std::string& i : sr->emcs)
+        io_read_string_null_terminated_offset(&s_pvsr,
+            io_read_offset_x(&s_pvsr), &i);
+    io_position_pop(&s_pvsr);
+
+    sr->stage_effect.resize(stage_effect_count);
+
+    io_position_push(&s_pvsr, stage_effect_offset, SEEK_SET);
+    for (pvsr_stage_effect& i : sr->stage_effect)
+        pvsr_stage_effect_read(&i, &s_pvsr);
+    io_position_pop(&s_pvsr);
+
+    for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
+        for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++)
+            sr->stage_change_effect_init[i][j] = false;
+
+    io_position_push(&s_pvsr, stage_change_effect_offset, SEEK_SET);
+    for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
+        for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++) {
+            ssize_t offset = io_read_offset_x(&s_pvsr);
+            if (offset <= 0)
+                continue;
+
+            io_position_push(&s_pvsr, offset, SEEK_SET);
+            pvsr_stage_effect_read(&sr->stage_change_effect[i][j], &s_pvsr);
+            sr->stage_change_effect_init[i][j] = true;
+            io_position_pop(&s_pvsr);
+        }
+    io_position_pop(&s_pvsr);
+
+    sr->stage_effect_env.resize(aets_count);
+
+    io_position_push(&s_pvsr, aet_offset, SEEK_SET);
+    for (pvsr_stage_effect_env& i : sr->stage_effect_env)
+        pvsr_stage_effect_env_read(&i, &s_pvsr, x00);
+    io_position_pop(&s_pvsr);
+
+    io_free(&s_pvsr);
+
+    sr->ready = true;
+}
+
+static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream* s) {
+    uint8_t u00 = io_read_uint8_t(s);
+    uint8_t u01 = io_read_uint8_t(s);
+    uint8_t u02 = io_read_uint8_t(s);
+    uint8_t u03 = io_read_uint8_t(s);
+    stg_eff->bar_count = io_read_uint8_t(s);
+    ssize_t a3da_offset = io_read_offset_x(s);
+    ssize_t glitter_offset = io_read_offset_x(s);
+    io_read_offset_x(s);
+
+    uint8_t a3da_count;
+    uint8_t glitter_count;
+    if (stg_eff->bar_count != 0xFF) {
+        a3da_count = u00;
+        glitter_count = u01;
+    }
+    else {
+        a3da_count = u01;
+        glitter_count = u02;
+    }
+
+    stg_eff->a3da.resize(a3da_count);
+
+    io_position_push(s, a3da_offset, SEEK_SET);
+    for (pvsr_a3da& i : stg_eff->a3da)
+        pvsr_a3da_read(&i, s);
+    io_position_pop(s);
+
+    stg_eff->glitter.resize(glitter_count);
+
+    io_position_push(s, glitter_offset, SEEK_SET);
+    for (pvsr_glitter& i : stg_eff->glitter)
+        pvsr_glitter_read(&i, s);
+    io_position_pop(s);
+}
+
+static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream* s, int32_t x00) {
     ssize_t set_name_offset = io_read_offset_x(s);
     ssize_t front_offset = io_read_offset_x(s);
     ssize_t front_low_offset = io_read_offset_x(s);
@@ -211,62 +324,51 @@ static void pvsr_aet_read(pvsr_aet* aet, stream* s, int32_t x00) {
 
     io_read_string_null_terminated_offset(s, set_name_offset, &aet->set_name);
 
-    vector_old_pvsr_aet_entry_reserve(&aet->front, front_count);
-    aet->front.end += front_count;
+    aet->aet_front.resize(front_count);
 
     io_position_push(s, front_offset, SEEK_SET);
-    for (int32_t i = 0; i < front_count; i++)
-        pvsr_aet_entry_read(&aet->front.begin[i], s);
+    for (pvsr_aet& i : aet->aet_front)
+        pvsr_aet_read(&i, s);
     io_position_pop(s);
 
-    vector_old_pvsr_aet_entry_reserve(&aet->front_low, front_low_count);
-    aet->front_low.end += front_low_count;
+    aet->aet_front_low.resize(front_low_count);
 
     io_position_push(s, front_low_offset, SEEK_SET);
-    for (int32_t i = 0; i < front_low_count; i++)
-        pvsr_aet_entry_read(&aet->front_low.begin[i], s);
+    for (pvsr_aet& i : aet->aet_front_low)
+        pvsr_aet_read(&i, s);
     io_position_pop(s);
 
-    vector_old_pvsr_aet_entry_reserve(&aet->back, back_count);
-    aet->back.end += back_count;
+    aet->aet_back.resize(back_count);
 
     io_position_push(s, back_offset, SEEK_SET);
-    for (int32_t i = 0; i < back_count; i++)
-        pvsr_aet_entry_read(&aet->back.begin[i], s);
+    for (pvsr_aet& i : aet->aet_back)
+        pvsr_aet_read(&i, s);
     io_position_pop(s);
 
-    aet->sub1_data_init = pvsr_aet_sub1_read(&aet->sub1_data, s, sub1_offset);
-    aet->sub2a_data_init = pvsr_aet_sub2_read(&aet->sub2a_data, s, sub2a_offset);
-    aet->sub2b_data_init = pvsr_aet_sub2_read(&aet->sub2b_data, s, sub2b_offset);
-    aet->sub2c_data_init = pvsr_aet_sub2_read(&aet->sub2c_data, s, sub2c_offset);
-    aet->sub2d_data_init = pvsr_aet_sub2_read(&aet->sub2d_data, s, sub2d_offset);
+    aet->sub1_data_init = pvsr_stage_effect_env_sub1_read(&aet->sub1_data, s, sub1_offset);
+    aet->sub2a_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2a_data, s, sub2a_offset);
+    aet->sub2b_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2b_data, s, sub2b_offset);
+    aet->sub2c_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2c_data, s, sub2c_offset);
+    aet->sub2d_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2d_data, s, sub2d_offset);
 
     if (x00 & 0x100) {
-        vector_old_pvsr_aet_entry_reserve(&aet->unk03, u78);
-        aet->unk03.end += u78;
+        aet->unk03.resize(u78);
 
         io_position_push(s, o68, SEEK_SET);
-        for (int32_t i = 0; i < u78; i++)
-            pvsr_aet_entry_read(&aet->unk03.begin[i], s);
+        for (pvsr_aet& i : aet->unk03)
+            pvsr_aet_read(&i, s);
         io_position_pop(s);
 
-        vector_old_pvsr_aet_entry_reserve(&aet->unk04, u79);
-        aet->unk04.end += u79;
+        aet->unk04.resize(u79);
 
         io_position_push(s, o70, SEEK_SET);
-        for (int32_t i = 0; i < u79; i++)
-            pvsr_aet_entry_read(&aet->unk04.begin[i], s);
+        for (pvsr_aet& i : aet->unk04)
+            pvsr_aet_read(&i, s);
         io_position_pop(s);
     }
 }
 
-static void pvsr_aet_entry_read(pvsr_aet_entry* aet_entry, stream* s) {
-    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &aet_entry->name);
-    aet_entry->hash = io_read_uint32_t_stream_reverse_endianness(s);
-    aet_entry->bright_scale = io_read_float_t_stream_reverse_endianness(s);
-}
-
-static bool pvsr_aet_sub1_read(pvsr_aet_sub1* aet_sub1, stream* s, ssize_t offset) {
+static bool pvsr_stage_effect_env_sub1_read(pvsr_stage_effect_env_sub1* aet_sub1, stream* s, ssize_t offset) {
     if (offset <= 0)
         return false;
 
@@ -279,7 +381,7 @@ static bool pvsr_aet_sub1_read(pvsr_aet_sub1* aet_sub1, stream* s, ssize_t offse
     return true;
 }
 
-static bool pvsr_aet_sub2_read(pvsr_aet_sub2* aet_sub2, stream* s, ssize_t offset) {
+static bool pvsr_stage_effect_env_sub2_read(pvsr_stage_effect_env_sub2* aet_sub2, stream* s, ssize_t offset) {
     if (offset <= 0)
         return false;
 
@@ -294,149 +396,4 @@ static bool pvsr_aet_sub2_read(pvsr_aet_sub2* aet_sub2, stream* s, ssize_t offse
     io_align_read(s, 0x08);
     io_position_pop(s);
     return true;
-}
-
-static void pvsr_effect_read(pvsr_effect* eff, stream* s) {
-    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &eff->name);
-    eff->emission = io_read_float_t_stream_reverse_endianness(s);
-    io_align_read(s, 0x08);
-}
-
-static void pvsr_glitter_read(pvsr_glitter* glt, stream* s) {
-    io_read_string_null_terminated_offset(s, io_read_offset_x(s), &glt->name);
-    glt->unk1 = io_read_uint8_t(s);
-    io_align_read(s, 0x08);
-}
-
-static void pvsr_read_inner(pvsr* sr, stream* s) {
-    f2_struct st;
-    f2_struct_read(&st, s);
-    if (st.header.signature == reverse_endianness_uint32_t('PVSR') && st.data) {
-        stream s_pvsr;
-        io_open(&s_pvsr, st.data, st.length);
-        s_pvsr.is_big_endian = st.header.use_big_endian;
-
-        int32_t x00 = io_read_int32_t_stream_reverse_endianness(&s_pvsr);
-        uint8_t x04 = io_read_uint8_t(&s_pvsr);
-        uint8_t x05 = io_read_uint8_t(&s_pvsr);
-        uint8_t x06 = io_read_uint8_t(&s_pvsr);
-        uint8_t x07 = io_read_uint8_t(&s_pvsr);
-        uint8_t stage_effect_count = io_read_uint8_t(&s_pvsr);
-        uint8_t aets_count = io_read_uint8_t(&s_pvsr);
-        uint8_t x0a = io_read_uint8_t(&s_pvsr);
-        uint8_t x0b = io_read_uint8_t(&s_pvsr);
-        uint8_t x0c = io_read_uint8_t(&s_pvsr);
-        uint8_t x0d = io_read_uint8_t(&s_pvsr);
-        uint8_t x0e = io_read_uint8_t(&s_pvsr);
-        uint8_t x0f = io_read_uint8_t(&s_pvsr);
-        ssize_t x10 = io_read_offset_x(&s_pvsr);
-        ssize_t stage_effect_offset = io_read_offset_x(&s_pvsr);
-        ssize_t stage_change_effect_offset = io_read_offset_x(&s_pvsr);
-        ssize_t aet_offset = io_read_offset_x(&s_pvsr);
-
-        io_position_push(&s_pvsr, x10, SEEK_SET);
-        uint8_t unknown_count = io_read_uint8_t(&s_pvsr);
-        uint8_t effect_count = io_read_uint8_t(&s_pvsr);
-        uint8_t emcs_count = io_read_uint8_t(&s_pvsr);
-        ssize_t unknown_offset = io_read_offset_x(&s_pvsr);
-        ssize_t effect_offset = io_read_offset_x(&s_pvsr);
-        ssize_t emcs_offset = io_read_offset_x(&s_pvsr);
-        io_position_pop(&s_pvsr);
-
-        vector_old_pvsr_effect_reserve(&sr->effect, effect_count);
-        sr->effect.end += effect_count;
-
-        io_position_push(&s_pvsr, effect_offset, SEEK_SET);
-        for (int32_t i = 0; i < effect_count; i++)
-            pvsr_effect_read(&sr->effect.begin[i], &s_pvsr);
-        io_position_pop(&s_pvsr);
-
-        vector_old_string_reserve(&sr->emcs, emcs_count);
-        sr->emcs.end += emcs_count;
-
-        io_position_push(&s_pvsr, emcs_offset, SEEK_SET);
-        for (int32_t i = 0; i < emcs_count; i++)
-            io_read_string_null_terminated_offset(&s_pvsr,
-                io_read_offset_x(&s_pvsr), &sr->emcs.begin[i]);
-        io_position_pop(&s_pvsr);
-
-        vector_old_pvsr_stage_effect_reserve(&sr->stage_effect, stage_effect_count);
-        sr->stage_effect.end += stage_effect_count;
-
-        io_position_push(&s_pvsr, stage_effect_offset, SEEK_SET);
-        for (int32_t i = 0; i < stage_effect_count; i++)
-            pvsr_stage_effect_read(&sr->stage_effect.begin[i], &s_pvsr);
-        io_position_pop(&s_pvsr);
-
-        for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
-            for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++) {
-                pvsr_stage_effect_init(&sr->stage_change_effect[i][j]);
-                sr->stage_change_effect_init[i][j] = false;
-            }
-
-        io_position_push(&s_pvsr, stage_change_effect_offset, SEEK_SET);
-        for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
-            for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++) {
-                ssize_t offset = io_read_offset_x(&s_pvsr);
-                if (offset <= 0)
-                    continue;
-
-                io_position_push(&s_pvsr, offset, SEEK_SET);
-                pvsr_stage_effect_read(&sr->stage_change_effect[i][j], &s_pvsr);
-                sr->stage_change_effect_init[i][j] = true;
-                io_position_pop(&s_pvsr);
-            }
-        io_position_pop(&s_pvsr);
-
-        vector_old_pvsr_aet_reserve(&sr->aet, aets_count);
-        sr->aet.end += aets_count;
-
-        io_position_push(&s_pvsr, aet_offset, SEEK_SET);
-        for (int32_t i = 0; i < aets_count; i++)
-            pvsr_aet_read(&sr->aet.begin[i], &s_pvsr, x00);
-        io_position_pop(&s_pvsr);
-
-        io_free(&s_pvsr);
-
-        sr->ready = true;
-    }
-    f2_struct_free(&st);
-}
-
-static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream* s) {
-    uint8_t u00 = io_read_uint8_t(s);
-    uint8_t u01 = io_read_uint8_t(s);
-    uint8_t u02 = io_read_uint8_t(s);
-    uint8_t u03 = io_read_uint8_t(s);
-    uint8_t u04 = io_read_uint8_t(s);
-    ssize_t a3da_offset = io_read_offset_x(s);
-    ssize_t glitter_offset = io_read_offset_x(s);
-    io_read_offset_x(s);
-
-    uint8_t a3da_count;
-    uint8_t glitter_count;
-    if (u04 != 0xFF) {
-        a3da_count = u00;
-        glitter_count = u01;
-    }
-    else {
-        a3da_count = u01;
-        glitter_count = u02;
-    }
-
-    vector_old_pvsr_a3da_reserve(&stg_eff->a3da, a3da_count);
-    stg_eff->a3da.end += a3da_count;
-
-    io_position_push(s, a3da_offset, SEEK_SET);
-    for (int32_t i = 0; i < a3da_count; i++)
-        pvsr_a3da_read(&stg_eff->a3da.begin[i], s);
-    io_position_pop(s);
-
-    vector_old_pvsr_glitter_reserve(&stg_eff->glitter, glitter_count);
-    stg_eff->glitter.end += glitter_count;
-
-    io_position_push(s, glitter_offset, SEEK_SET);
-    for (int32_t i = 0; i < glitter_count; i++)
-        pvsr_glitter_read(&stg_eff->glitter.begin[i], s);
-    io_position_pop(s);
 }

@@ -63,15 +63,14 @@ void object_database::read(const char* path, bool modern) {
         char* path_osi = str_utils_add(path, ".osi");
         if (path_check_file_exists(path_osi)) {
             f2_struct st;
-            f2_struct_read(&st, path_osi);
+            st.read(path_osi);
             if (st.header.signature == reverse_endianness_uint32_t('MOSI')) {
                 stream s_mosi;
-                io_open(&s_mosi, st.data, st.length);
+                io_open(&s_mosi, &st.data);
                 s_mosi.is_big_endian = st.header.use_big_endian;
                 object_database_modern_read_inner(this, &s_mosi, st.header.length);
                 io_free(&s_mosi);
             }
-            f2_struct_free(&st);
         }
         free(path_osi);
     }
@@ -82,7 +81,7 @@ void object_database::read(const wchar_t* path, bool modern) {
         return;
 
     if (!modern) {
-        wchar_t* path_bin = str_utils_wadd(path, L".bin");
+        wchar_t* path_bin = str_utils_add(path, L".bin");
         if (path_check_file_exists(path_bin)) {
             stream s;
             io_open(&s, path_bin, L"rb");
@@ -100,18 +99,17 @@ void object_database::read(const wchar_t* path, bool modern) {
         free(path_bin);
     }
     else {
-        wchar_t* path_osi = str_utils_wadd(path, L".osi");
+        wchar_t* path_osi = str_utils_add(path, L".osi");
         if (path_check_file_exists(path_osi)) {
             f2_struct st;
-            f2_struct_read(&st, path_osi);
+            st.read(path_osi);
             if (st.header.signature == reverse_endianness_uint32_t('MOSI')) {
                 stream s_mosi;
-                io_open(&s_mosi, st.data, st.length);
+                io_open(&s_mosi, &st.data);
                 s_mosi.is_big_endian = st.header.use_big_endian;
                 object_database_modern_read_inner(this, &s_mosi, st.header.length);
                 io_free(&s_mosi);
             }
-            f2_struct_free(&st);
         }
         free(path_osi);
     }
@@ -129,15 +127,14 @@ void object_database::read(const void* data, size_t length, bool modern) {
     }
     else {
         f2_struct st;
-        f2_struct_read(&st, data, length);
+        st.read(data, length);
         if (st.header.signature == reverse_endianness_uint32_t('MOSI')) {
             stream s_mosi;
-            io_open(&s_mosi, st.data, st.length);
+            io_open(&s_mosi, &st.data);
             s_mosi.is_big_endian = st.header.use_big_endian;
             object_database_modern_read_inner(this, &s_mosi, st.header.length);
             io_free(&s_mosi);
         }
-        f2_struct_free(&st);
     }
 }
 
@@ -170,7 +167,7 @@ void object_database::write(const wchar_t* path) {
         return;
 
     if (!modern) {
-        wchar_t* path_bin = str_utils_wadd(path, L".bin");
+        wchar_t* path_bin = str_utils_add(path, L".bin");
         stream s;
         io_open(&s, path_bin, L"wb");
         if (s.io.stream)
@@ -179,7 +176,7 @@ void object_database::write(const wchar_t* path) {
         free(path_bin);
     }
     else {
-        wchar_t* path_osi = str_utils_wadd(path, L".osi");
+        wchar_t* path_osi = str_utils_add(path, L".osi");
         stream s;
         io_open(&s, path_osi, L"wb");
         if (s.io.stream)
@@ -208,86 +205,30 @@ void object_database::merge_mdata(object_database* base_obj_db, object_database*
     if (!base_obj_db || !mdata_obj_db || !base_obj_db->ready || !mdata_obj_db->ready)
         return;
 
-    bone_name.reserve(base_obj_db->bone_name.size());
+    if (this != base_obj_db)
+        object_set = base_obj_db->object_set;
 
-    for (std::string& i : base_obj_db->bone_name)
-        bone_name.push_back(i);
+    for (object_set_info& i : mdata_obj_db->object_set) {
+        uint32_t name_hash = i.name_hash;
 
-    std::vector<object_set_info>& base_object_set = base_obj_db->object_set;
-    std::vector<object_set_info>& mdata_object_set = mdata_obj_db->object_set;
-
-    int32_t count = (int32_t)base_object_set.size();
-    object_set.resize(count);
-
-    for (int32_t i = 0; i < count; i++) {
-        object_set_info* b_set_info = &base_object_set[i];
-        object_set_info* set_info = &object_set[i];
-
-        set_info->name = b_set_info->name;
-        set_info->name_hash = hash_string_fnv1a64m(&set_info->name, false);
-        set_info->id = b_set_info->id;
-        set_info->object_file_name = b_set_info->object_file_name;
-        set_info->texture_file_name = b_set_info->texture_file_name;
-        set_info->archive_file_name = b_set_info->archive_file_name;
-
-        int32_t info_count = (int32_t)b_set_info->object.size();
-        set_info->object.resize(info_count);
-
-        for (int32_t j = 0; j < info_count; j++) {
-            object_info_data* b_info = &b_set_info->object[j];
-            object_info_data* info = &set_info->object[j];
-
-            info->id = b_info->id;
-            info->name = b_info->name;
-            info->name_hash_fnv1a64m = hash_string_fnv1a64m(&info->name, false);
-            info->name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info->name, true);
-            info->name_hash_murmurhash = hash_string_murmurhash(&info->name, 0, false);
-        }
-    }
-
-    int32_t mdata_count = (int32_t)mdata_object_set.size();
-    for (int32_t i = 0; i < mdata_count; i++) {
-        object_set_info* m_set_info = &mdata_object_set[i];
-
-        uint64_t name_hash = m_set_info->name_hash;
-        size_t name_len = m_set_info->name.size();
-
-        object_set_info* info_ptr = 0;
+        object_set_info* info = 0;
         for (object_set_info& j : object_set)
             if (name_hash == j.name_hash) {
-                info_ptr = &j;
+                info = &j;
                 break;
             }
 
-        object_set_info set_info;
-        set_info.name = m_set_info->name;
-        set_info.name_hash = hash_string_fnv1a64m(&set_info.name, false);
-        set_info.id = m_set_info->id;
-        set_info.object_file_name = m_set_info->object_file_name;
-        set_info.texture_file_name = m_set_info->texture_file_name;
-        set_info.archive_file_name = m_set_info->archive_file_name;
-
-        int32_t info_count = (int32_t)m_set_info->object.size();
-        set_info.object.resize(info_count);
-
-        for (int32_t j = 0; j < info_count; j++) {
-            object_info_data* m_info = &m_set_info->object[j];
-            object_info_data* info = &set_info.object[j];
-
-            info->id = m_info->id;
-            info->name = m_info->name;
-            info->name_hash_fnv1a64m = hash_string_fnv1a64m(&info->name, false);
-            info->name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info->name, true);
-            info->name_hash_murmurhash = hash_string_murmurhash(&info->name, 0, false);
-        }
-
-        if (info_ptr)
-            *info_ptr = set_info;
+        if (info)
+            *info = i;
         else
-            object_set.push_back(set_info);
+            object_set.push_back(i);
     }
 
-    ready = true;
+    if (this != base_obj_db) {
+        ready = true;
+        modern = base_obj_db->modern;
+        is_x = base_obj_db->is_x;
+    }
 }
 
 void object_database::split_mdata(object_database* base_obj_db, object_database* mdata_obj_db) {
@@ -303,7 +244,7 @@ bool object_database::get_object_set_info(const char* name, object_set_info** se
     if (!name)
         return false;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    uint32_t name_hash = hash_utf8_murmurhash(name);
 
     for (object_set_info& i : object_set)
         if (name_hash == i.name_hash) {
@@ -337,11 +278,11 @@ bool object_database::get_object_info_data(const char* name, object_info_data** 
     if (!name)
         return false;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
+    uint32_t name_hash = hash_utf8_murmurhash(name);
 
     for (object_set_info& i : object_set)
         for (object_info_data& j : i.object)
-            if (name_hash == j.name_hash_fnv1a64m) {
+            if (name_hash == j.name_hash_murmurhash) {
                 *info = &j;
                 return true;
             }
@@ -407,8 +348,8 @@ uint32_t object_database::get_object_set_id(const char* name) {
     if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return (uint32_t)-1;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
-    if (name_hash == hash_fnv1a64m_empty)
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
         return (uint32_t)-1;
 
     for (object_set_info& i : object_set)
@@ -426,13 +367,13 @@ object_info object_database::get_object_info(const char* name) {
     if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return object_info();
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, false);
-    if (name_hash == hash_fnv1a64m_empty)
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    if (name_hash == hash_murmurhash_empty)
         return object_info();
 
     for (object_set_info& i : object_set)
         for (object_info_data& j : i.object)
-            if (name_hash == j.name_hash_fnv1a64m)
+            if (name_hash == j.name_hash_murmurhash)
                 return { j.id, i.id };
 
     return object_info();
@@ -499,6 +440,7 @@ static void object_database_classic_read_inner(object_database* obj_db, stream* 
         object_set_info* set_info = &obj_db->object_set[i];
         io_read_string_null_terminated_offset(s,
             io_read_uint32_t(s), &set_info->name);
+        set_info->name_hash = hash_string_murmurhash(&set_info->name);
         set_info->id = io_read_uint32_t(s);
         io_read_string_null_terminated_offset(s,
             io_read_uint32_t(s), &set_info->object_file_name);
@@ -516,6 +458,9 @@ static void object_database_classic_read_inner(object_database* obj_db, stream* 
         info.id = io_read_uint16_t(s);
         uint32_t set_id = io_read_uint16_t(s);
         io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &info.name);
+        info.name_hash_fnv1a64m = hash_string_fnv1a64m(&info.name);
+        info.name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info.name, true);
+        info.name_hash_murmurhash = hash_string_murmurhash(&info.name);
 
         if (info.id == 0xFFFF)
             info.id = -1;
@@ -640,6 +585,7 @@ static void object_database_modern_read_inner(object_database* obj_db, stream* s
             object_set_info* set_info = &obj_db->object_set[i];
             io_read_string_null_terminated_offset(s,
                 io_read_offset_f2(s, header_length), &set_info->name);
+            set_info->name_hash = hash_string_murmurhash(&set_info->name);
             set_info->id = io_read_uint32_t_stream_reverse_endianness(s);
             io_read_string_null_terminated_offset(s,
                 io_read_offset_f2(s, header_length), &set_info->object_file_name);
@@ -654,6 +600,7 @@ static void object_database_modern_read_inner(object_database* obj_db, stream* s
             object_set_info* set_info = &obj_db->object_set[i];
             io_read_string_null_terminated_offset(s,
                 io_read_offset_x(s), &set_info->name);
+            set_info->name_hash = hash_string_murmurhash(&set_info->name);
             set_info->id = io_read_uint32_t_stream_reverse_endianness(s);
             io_read_string_null_terminated_offset(s,
                 io_read_offset_x(s), &set_info->object_file_name);
@@ -672,9 +619,12 @@ static void object_database_modern_read_inner(object_database* obj_db, stream* s
             info.id = io_read_uint32_t_stream_reverse_endianness(s);
             uint32_t set_id = io_read_uint32_t_stream_reverse_endianness(s);
             io_read_string_null_terminated_offset(s, io_read_offset_f2(s, header_length), &info.name);
+            info.name_hash_fnv1a64m = hash_string_fnv1a64m(&info.name);
+            info.name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info.name, true);
+            info.name_hash_murmurhash = hash_string_murmurhash(&info.name);
 
             for (uint32_t i = 0; i < object_set_count; i++)
-                if (set_id != obj_db->object_set[i].id) {
+                if (set_id == obj_db->object_set[i].id) {
                     obj_db->object_set[i].object.push_back(info);
                     break;
                 }
@@ -685,9 +635,12 @@ static void object_database_modern_read_inner(object_database* obj_db, stream* s
             info.id = io_read_uint32_t_stream_reverse_endianness(s);
             uint32_t set_id = io_read_uint32_t_stream_reverse_endianness(s);
             io_read_string_null_terminated_offset(s, io_read_offset_x(s), &info.name);
+            info.name_hash_fnv1a64m = hash_string_fnv1a64m(&info.name);
+            info.name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info.name, true);
+            info.name_hash_murmurhash = hash_string_murmurhash(&info.name);
 
             for (uint32_t i = 0; i < object_set_count; i++)
-                if (set_id != obj_db->object_set[i].id) {
+                if (set_id == obj_db->object_set[i].id) {
                     obj_db->object_set[i].object.push_back(info);
                     break;
                 }
@@ -703,9 +656,9 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
     stream s_mosi;
     io_open(&s_mosi);
     uint32_t off;
-    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+    enrs e;
     enrs_entry ee;
-    vector_old_size_t pof = vector_old_empty(size_t);
+    pof pof;
 
     bool is_x = obj_db->is_x;
 
@@ -716,44 +669,44 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
         object_count += (uint32_t)i.object.size();
 
     if (!is_x) {
-        ee = { 0, 1, 1, 1, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 6, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 1, 1 };
+        ee.sub.push_back({ 0, 6, ENRS_DWORD });
+        e.vec.push_back(ee);
         off = 32;
 
-        ee = { off, 1, 36, object_set_count, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 5, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { off, 1, 36, object_set_count };
+        ee.sub.push_back({ 0, 5, ENRS_DWORD });
+        e.vec.push_back(ee);
         off = (uint32_t)(object_set_count * 36ULL);
         off = align_val(off, 0x10);
 
-        ee = { off, 1, 12, object_count, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { off, 1, 12, object_count };
+        ee.sub.push_back({ 0, 3, ENRS_DWORD });
+        e.vec.push_back(ee);
         off = (uint32_t)(object_count * 12ULL);
         off = align_val(off, 0x10);
     }
     else {
-        ee = { 0, 4, 48, 1, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 4, 1, ENRS_QWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 4, 48, 1 };
+        ee.sub.push_back({ 0, 3, ENRS_DWORD });
+        ee.sub.push_back({ 4, 1, ENRS_QWORD });
+        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.sub.push_back({ 4, 1, ENRS_QWORD });
+        e.vec.push_back(ee);
         off = 48;
 
-        ee = { off, 3, 56, object_set_count, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 4, 3, ENRS_QWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { off, 3, 56, object_set_count };
+        ee.sub.push_back({ 0, 1, ENRS_QWORD });
+        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.sub.push_back({ 4, 3, ENRS_QWORD });
+        e.vec.push_back(ee);
         off = (uint32_t)(object_set_count * 56ULL);
         off = align_val(off, 0x10);
 
-        ee = { off, 2, 16, object_count, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { off, 2, 16, object_count };
+        ee.sub.push_back({ 0, 2, ENRS_DWORD });
+        ee.sub.push_back({ 0, 1, ENRS_QWORD });
+        e.vec.push_back(ee);
         off = (uint32_t)(object_count * 16ULL);
         off = align_val(off, 0x10);
     }
@@ -857,9 +810,8 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
     io_position_pop(&s_mosi);
 
     f2_struct st;
-    memset(&st, 0, sizeof(f2_struct));
     io_align_write(&s_mosi, 0x10);
-    io_copy(&s_mosi, &st.data, &st.length);
+    io_copy(&s_mosi, &st.data);
     io_free(&s_mosi);
 
     st.enrs = e;
@@ -870,8 +822,7 @@ static void object_database_modern_write_inner(object_database* obj_db, stream* 
     st.header.use_big_endian = false;
     st.header.use_section_size = true;
 
-    f2_struct_write(&st, s, true, is_x);
-    f2_struct_free(&st);
+    st.write(s, true, is_x);
 }
 
 inline static ssize_t object_database_strings_get_string_offset(std::vector<std::string>& vec,

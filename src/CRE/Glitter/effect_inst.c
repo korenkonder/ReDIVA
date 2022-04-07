@@ -189,9 +189,8 @@ bool GlitterF2EffectInst::HasEnded(bool a2) {
         return true;
 
     for (GlitterF2EmitterInst*& i : emitters)
-        if (i)
-            if (!i->HasEnded(a2))
-                return false;
+        if (i && !i->HasEnded(a2))
+            return false;
     return true;
 }
 
@@ -355,7 +354,7 @@ static void GlitterEffectInst__get_ext_anim(GlitterF2EffectInst* a1) {
             inst_ext_anim->object_index, inst_ext_anim->object_is_hrc, &temp);
 
     if (!obj_mat) {
-        inst_ext_anim->a3da_id = auth_3d_data_get_auth_3d_id_by_object_info(inst_ext_anim->object,
+        inst_ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(inst_ext_anim->object,
             &inst_ext_anim->object_index, &inst_ext_anim->object_is_hrc, 0);
         if (inst_ext_anim->a3da_id == -1)
             return;

@@ -75,7 +75,7 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
     if (draw->set_blend_color) {
         vec4 blend_color = draw->blend_color;
         shader_env_vert_set_ptr(&shaders_ft, 3, &blend_color);
-        shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
+        shader_env_vert_set_ptr(&shaders_ft, 4, &vec4_null);
     }
 
     if (!draw->draw_object_func)
@@ -112,8 +112,8 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
         draw_object_vertex_attrib_reset_default(draw);
 
     if (draw->set_blend_color) {
-        shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
-        shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
+        shader_env_vert_set_ptr(&shaders_ft, 3, &vec4_identity);
+        shader_env_vert_set_ptr(&shaders_ft, 4, &vec4_null);
     }
 
     rctx->draw_state.stats.object_draw_count++;
@@ -266,10 +266,10 @@ void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
 
         if (texture_id != -1) {
             for (int32_t j = 0; j < draw->texture_pattern_count; j++)
-                if (draw->texture_pattern_array[j].src == texture_id) {
+                if (draw->texture_pattern_array[j].src == ::texture_id(0, texture_id)) {
                     texture* tex = texture_storage_get_texture(draw->texture_pattern_array[j].dst);
                     if (tex)
-                        tex_id = tex->texture;
+                        tex_id = tex->tex;
                     break;
                 }
 
@@ -506,10 +506,10 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
         GLuint tex_id = -1;
         uint32_t texture_id = mat_tex->texture_id;
         for (int32_t j = 0; j < draw->texture_pattern_count; j++)
-            if (draw->texture_pattern_array[j].src == texture_id) {
+            if (draw->texture_pattern_array[j].src == ::texture_id(0, texture_id)) {
                 texture* tex = texture_storage_get_texture(draw->texture_pattern_array[j].dst);
                 if (tex)
-                    tex_id = tex->texture;
+                    tex_id = tex->tex;
                 break;
             }
 
@@ -752,10 +752,10 @@ static void draw_object_material_set_reflect(render_context* rctx, draw_object* 
 
         GLuint tex_id = -1;
         for (int32_t j = 0; j < draw->texture_pattern_count; j++)
-            if (draw->texture_pattern_array[j].src == texture_id) {
+            if (draw->texture_pattern_array[j].src == ::texture_id(0, texture_id)) {
                 texture* tex = texture_storage_get_texture(draw->texture_pattern_array[j].dst);
                 if (tex)
-                    tex_id = tex->texture;
+                    tex_id = tex->tex;
                 break;
             }
 

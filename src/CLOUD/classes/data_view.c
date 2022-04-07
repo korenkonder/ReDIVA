@@ -6,6 +6,7 @@
 #include "data_view.h"
 #include "data_view/auth_3d.h"
 #include "data_view/draw_task.h"
+#include "data_view/glitter.h"
 #include "data_view/object.h"
 #include "data_view/texture.h"
 
@@ -46,6 +47,29 @@ classes_data data_view_classes[] = {
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         data_view_draw_task_dispose,
+        0,
+        {
+            {},
+            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
+    {
+        "Glitter##Data View",
+        CLASSES_IN_CONTEXT_MENU,
+        data_view_glitter_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        data_view_glitter_imgui,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        data_view_glitter_dispose,
         0,
         {
             {},

@@ -31,7 +31,7 @@ void light_param_face::read(const char* path) {
 }
 
 void light_param_face::read(const wchar_t* path) {
-    wchar_t* path_txt = str_utils_wadd(path, L".txt");
+    wchar_t* path_txt = str_utils_add(path, L".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
         io_open(&s, path_txt, L"rb");
@@ -66,7 +66,7 @@ void light_param_face::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
-    wchar_t* path_txt = str_utils_wadd(path, L".txt");
+    wchar_t* path_txt = str_utils_add(path, L".txt");
     stream s;
     io_open(&s, path_txt, L"wb");
     if (s.io.stream)

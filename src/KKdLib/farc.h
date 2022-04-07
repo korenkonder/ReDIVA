@@ -65,6 +65,7 @@ public:
     void read(const void* data, size_t length, bool unpack);
     farc_file* read_file(const char* name);
     farc_file* read_file(const wchar_t* name);
+    farc_file* read_file(uint32_t hash);
     void write(const char* path, farc_compress_mode mode, bool get_files);
     void write(const wchar_t* path, farc_compress_mode mode, bool get_files);
     void write(void** data, size_t* length, farc_compress_mode mode);

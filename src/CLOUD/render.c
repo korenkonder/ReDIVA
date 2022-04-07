@@ -37,7 +37,8 @@
 #include "../CRE/post_process.h"
 #include "../KKdLib/io/path.h"
 #include "../KKdLib/database/item_table.h"
-#include"classes/imgui_helper.h"
+#include "classes/imgui_helper.h"
+#include "x_pv_player.h"
 #include <timeapi.h>
 
 #if defined(DEBUG)
@@ -139,7 +140,6 @@ ImGuiContext* imgui_context;
 lock imgui_context_lock;
 bool global_context_menu;
 extern size_t frame_counter;
-object_database* obj_db_ptr;
 render_context* rctx_ptr;
 int32_t stage_index = -1;
 
@@ -575,6 +575,7 @@ static render_context* render_load() {
 
     task_auth_3d_append_task();
     TaskWork::AppendTask(&glt_particle_manager, "GLITTER_TASK", 2);
+    TaskWork::AppendTask(&x_pv_player_data, "X_PV_PLAYER", 0);
     task_rob_manager_append_task();
 
     aft_data->load_file(aft_data, "rom/", "chritm_prop.farc", item_table_array_load_file);
@@ -607,10 +608,10 @@ static render_context* render_load() {
     }
 
     motion_set_load_motion(aft_mot_db->get_motion_set_id("CMN"), 0, aft_mot_db);
-    motion_set_load_motion(aft_mot_db->get_motion_set_id("PV824"), 0, aft_mot_db);
+    /*motion_set_load_motion(aft_mot_db->get_motion_set_id("PV824"), 0, aft_mot_db);
 
     rob_chara_pv_data pv_data;
-    int32_t chara_id = rob_chara_array_init_chara_index(CHARA_MIKU, &pv_data, 180, true);
+    int32_t chara_id = rob_chara_array_init_chara_index(CHARA_MIKU, &pv_data, 0, true);
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
         timer_reset(&render_timer);
         while (!task_rob_manager_check_chara_loaded(chara_id)) {
@@ -622,21 +623,22 @@ static render_context* render_load() {
             timer_end_of_cycle(&render_timer);
         }
 
-        /*int32_t motion_id = aft_mot_db->get_motion_id("PV824_STF_P1_00");
+        int32_t motion_id = aft_mot_db->get_motion_id("PV824_STF_P1_00");
         rob_chara_set_motion_id(&rob_chara_array[chara_id], motion_id, 0.0f,
             motion_storage_get_mot_data_frame_count(motion_id, aft_mot_db),
-            false, true, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);*/
+            false, true, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
         rob_chara_set_visibility(&rob_chara_array[chara_id], true);
         rob_chara_set_frame(&rob_chara_array[chara_id], 0.0f);
         rob_chara_item_equip* rob_item_equip = rob_chara_array[chara_id].item_equip;
         for (int32_t j = rob_item_equip->first_item_equip_object;
             j < rob_item_equip->max_item_equip_object; j++) {
             rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
+            itm_eq_obj->osage_iterations = 60;
             for (ExOsageBlock*& i : itm_eq_obj->osage_blocks)
                 if (i)
                     i->rob.osage_reset = true;
         }
-    }
+    }*/
 
     glGenVertexArrays(1, &cube_line_vao);
     glGenBuffers(1, &cube_line_vbo);
@@ -727,6 +729,8 @@ static render_context* render_load() {
     clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
     set_clear_color = true;
 
+    x_pv_player_data.Load(824, 24);
+
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
     shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
     classes_process_init(classes, classes_count, rctx);
@@ -806,8 +810,6 @@ static void render_ctrl(render_context* rctx) {
     }
     camera_update(cam);
 
-    data_struct* aft_data = &data_list[DATA_AFT];
-    obj_db_ptr = &aft_data->data_ft.obj_db;
     classes_process_ctrl(classes, classes_count);
 
     render_context_ctrl(rctx);
@@ -1157,7 +1159,10 @@ static void render_dispose(render_context* rctx) {
     ImGui::DestroyContext(imgui_context);
     lock_free(&imgui_context_lock);
 
-    rob_chara_array_free_chara_id(0);
+    x_pv_player_data.SetDest();
+    glt_particle_manager.SetDest();
+
+    //rob_chara_array_free_chara_id(0);
     timer_reset(&render_timer);
     for (int32_t i = 0; i < 30; i++) {
         timer_start_of_cycle(&render_timer);

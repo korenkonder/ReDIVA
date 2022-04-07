@@ -28,14 +28,14 @@ int32_t render_texture_init(render_texture* rt, int32_t width, int32_t height,
 
     GLuint color_texture;
     if (color_format) {
-        rt->color_texture = texture_load_tex_2d(texture_make_id(0x23, render_texture_counter),
+        rt->color_texture = texture_load_tex_2d(texture_id(0x23, render_texture_counter),
             color_format, width, height, max_level, 0, 0);
         if (!rt->color_texture)
             return -1;
 
         render_texture_counter++;
-        color_texture = rt->color_texture->texture;
-        gl_state_bind_texture_2d(rt->color_texture->texture);
+        color_texture = rt->color_texture->tex;
+        gl_state_bind_texture_2d(rt->color_texture->tex);
         if (color_format == GL_RGBA32F) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -52,13 +52,13 @@ int32_t render_texture_init(render_texture* rt, int32_t width, int32_t height,
     GLuint depth_texture;
     bool stencil;
     if (depth_format) {
-        rt->depth_texture = texture_load_tex_2d(texture_make_id(0x23, render_texture_counter),
+        rt->depth_texture = texture_load_tex_2d(texture_id(0x23, render_texture_counter),
             depth_format, width, height, 0, 0, 0);
         if (!rt->depth_texture)
             return -1;
 
         render_texture_counter++;
-        depth_texture = rt->depth_texture->texture;
+        depth_texture = rt->depth_texture->tex;
         stencil = depth_format == GL_DEPTH24_STENCIL8;
     }
     else {
@@ -88,9 +88,9 @@ int32_t render_texture_bind(render_texture* rt, int32_t index) {
 }
 
 inline void render_texture_draw(render_texture* rt, bool depth) {
-    gl_state_active_bind_texture_2d(0, rt->color_texture->texture);
-    if (depth && rt->depth_texture->texture)
-        gl_state_active_bind_texture_2d(1, rt->depth_texture->texture);
+    gl_state_active_bind_texture_2d(0, rt->color_texture->tex);
+    if (depth && rt->depth_texture->tex)
+        gl_state_active_bind_texture_2d(1, rt->depth_texture->tex);
     gl_state_bind_vertex_array(render_texture_vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
     gl_state_bind_vertex_array(0);

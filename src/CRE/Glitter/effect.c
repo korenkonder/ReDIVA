@@ -8,10 +8,8 @@
 #include "emitter.h"
 
 static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a3);
-static bool glitter_effect_unpack_file(GLT,
-    void* data, glitter_effect* a3, bool use_big_endian);
-
-extern object_database* obj_db_ptr;
+static bool glitter_effect_unpack_file(GLT, void* data,
+    glitter_effect* a3, bool use_big_endian, object_database* obj_db);
 
 glitter_effect::glitter_effect(GLT) : name(), translation(), rotation(), data() {
     version = GLT_VAL == GLITTER_X ? 0x0C : 0x07;
@@ -30,8 +28,7 @@ glitter_effect::~glitter_effect() {
 }
 
 bool glitter_effect_parse_file(GlitterEffectGroup* a1,
-    f2_struct* st, std::vector<glitter_effect*>* vec) {
-    f2_struct* i;
+    f2_struct* st, std::vector<glitter_effect*>* vec, object_database* obj_db) {
     glitter_effect* effect;
 
     if (!st || !st->header.data_size)
@@ -39,19 +36,20 @@ bool glitter_effect_parse_file(GlitterEffectGroup* a1,
 
     effect = new glitter_effect(a1->type);
     effect->version = st->header.version;
-    if (!glitter_effect_unpack_file(a1->type, st->data, effect, st->header.use_big_endian)) {
+    if (!glitter_effect_unpack_file(a1->type, st->data.data(),
+        effect, st->header.use_big_endian, obj_db)) {
         delete effect;
         return false;
     }
 
-    for (i = st->sub_structs.begin; i != st->sub_structs.end; i++) {
-        if (!i->header.data_size)
+    for (f2_struct& i : st->sub_structs) {
+        if (!i.header.data_size)
             continue;
 
-        if (i->header.signature == reverse_endianness_uint32_t('ANIM'))
-            glitter_animation_parse_file(a1->type, i, &effect->animation, glitter_effect_curve_flags);
-        else if (i->header.signature == reverse_endianness_uint32_t('EMIT'))
-            glitter_emitter_parse_file(a1, i, &effect->emitters, effect);
+        if (i.header.signature == reverse_endianness_uint32_t('ANIM'))
+            glitter_animation_parse_file(a1->type, &i, &effect->animation, glitter_effect_curve_flags);
+        else if (i.header.signature == reverse_endianness_uint32_t('EMIT'))
+            glitter_emitter_parse_file(a1, &i, &effect->emitters, effect);
     }
     vec->push_back(effect);
     return true;
@@ -64,7 +62,7 @@ bool glitter_effect_unparse_file(GLT,
 
     f2_struct s;
     if (glitter_animation_unparse_file(GLT_VAL, &s, &a3->animation, glitter_effect_curve_flags))
-        vector_old_f2_struct_push_back(&st->sub_structs, &s);
+        st->sub_structs.push_back(s);
 
     for (glitter_emitter*& i : a3->emitters) {
         if (!i)
@@ -72,13 +70,13 @@ bool glitter_effect_unparse_file(GLT,
 
         f2_struct s;
         if (glitter_emitter_unparse_file(GLT_VAL, a1, &s, i, a3))
-            vector_old_f2_struct_push_back(&st->sub_structs, &s);
+            st->sub_structs.push_back(s);
     }
     return true;
 }
 
-object_info glitter_effect_ext_anim_get_object_info(uint64_t hash) {
-    for (object_set_info& i : obj_db_ptr->object_set) {
+object_info glitter_effect_ext_anim_get_object_info(uint64_t hash, object_database* obj_db) {
+    for (object_set_info& i : obj_db->object_set) {
         for (object_info_data& j : i.object)
             if (hash == j.name_hash_murmurhash || hash == j.name_hash_fnv1a64m_upper)
                 return { j.id, i.id };
@@ -96,50 +94,48 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
         return false;
 
     ext_anim = a2->data.ext_anim;
-    memset(st, 0, sizeof(f2_struct));
     l = 0;
 
     uint32_t o;
-    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+    enrs e;
     enrs_entry ee;
 
-    ee = { 0, 2, 56, 1, vector_old_empty(enrs_sub_entry) };
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 12, ENRS_DWORD);
-    vector_old_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 2, 56, 1 };
+    ee.sub.push_back({ 0, 1, ENRS_QWORD });
+    ee.sub.push_back({ 0, 12, ENRS_DWORD });
+    e.vec.push_back(ee);
     l += o = 56;
 
     if (a2->version == 7) {
-        ee = { 0, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { 0, 1, 4, 1 };
+        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        e.vec.push_back(ee);
         l += o = 4;
     }
 
-    ee = { 0, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-    vector_old_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 1, 4, 1 };
+    ee.sub.push_back({ 0, 1, ENRS_DWORD });
+    e.vec.push_back(ee);
     l += o = 4;
 
     if (~a2->data.flags & GLITTER_EFFECT_LOCAL && ext_anim)
         if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
-            ee = { 0, 1, 12, 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 3, ENRS_DWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { 0, 1, 12, 1 };
+            ee.sub.push_back({ 0, 3, ENRS_DWORD });
+            e.vec.push_back(ee);
             l += o = 12;
         }
         else {
-            ee = { 0, 2, 140, 1, vector_old_empty(enrs_sub_entry) };
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-            vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-            vector_old_enrs_entry_push_back(&e, &ee);
+            ee = { 0, 2, 140, 1 };
+            ee.sub.push_back({ 0, 1, ENRS_QWORD });
+            ee.sub.push_back({ 0, 1, ENRS_DWORD });
+            e.vec.push_back(ee);
             l += o = 140;
         }
 
     l = align_val(l, 0x10);
-    d = (size_t)force_malloc(l);
-    st->length = l;
-    st->data = (void*)d;
+    st->data.resize(l);
+    d = (size_t)st->data.data();
     st->enrs = e;
 
     flags = (glitter_effect_file_flag)0;
@@ -155,8 +151,8 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
         enum_or(flags, GLITTER_EFFECT_FILE_EMISSION);
 
     *(uint64_t*)d = GLT_VAL != GLITTER_FT
-        ? hash_utf8_murmurhash(a2->name, 0, false)
-        : hash_utf8_fnv1a64m(a2->name, false);;
+        ? hash_utf8_murmurhash(a2->name)
+        : hash_utf8_fnv1a64m(a2->name);;
     *(int32_t*)(d + 8) = a2->data.appear_time;
     *(int32_t*)(d + 12) = a2->data.life_time;
     *(int32_t*)(d + 16) = a2->data.start_time;
@@ -206,8 +202,8 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
     return true;
 }
 
-static bool glitter_effect_unpack_file(GLT,
-    void* data, glitter_effect* a2, bool use_big_endian) {
+static bool glitter_effect_unpack_file(GLT, void* data,
+    glitter_effect* a2, bool use_big_endian, object_database* obj_db) {
     size_t d;
     glitter_effect_ext_anim* ext_anim;
     glitter_effect_ext_anim_x* ext_anim_x;
@@ -486,7 +482,7 @@ static bool glitter_effect_unpack_file(GLT,
                     ext_anim->flags = (glitter_effect_ext_anim_flag) * (int32_t*)(d + 8);
                 }
 
-                ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash);
+                ext_anim->object = glitter_effect_ext_anim_get_object_info(ext_anim->object_hash, obj_db);
                 ext_anim->node_index = GLITTER_EFFECT_EXT_ANIM_CHARA_MAX;
                 if (*(char*)(d + 12)) {
                     strncpy_s(ext_anim->mesh_name, 0x80, (char*)(d + 12), 0x80);
@@ -497,7 +493,5 @@ static bool glitter_effect_unpack_file(GLT,
             }
         }
     }
-
-    snprintf(a2->name, sizeof(a2->name), "eff_%08x", (uint32_t)a2->data.name_hash);
     return true;
 }

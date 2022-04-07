@@ -658,14 +658,14 @@ void post_process_apply_dof(post_process_dof* dof,
 
                 dist_to_focus = max(dist_to_focus, (float_t)cam->min_distance);
                 post_process_apply_dof_physical(dof, rt, samplers,
-                    rt->color_texture->texture, rt->depth_texture->texture,
+                    rt->color_texture->tex, rt->depth_texture->tex,
                     (float_t)cam->min_distance, (float_t)cam->max_distance, dist_to_focus,
                     dof->data.debug.focal_length, (float_t)cam->fov_rad, dof->data.debug.f_number);
             }
             else {
                 float_t fuzzing_range = max(dof->data.debug.f2.fuzzing_range, 0.01f);
                 post_process_apply_dof_f2(dof, rt, samplers,
-                    rt->color_texture->texture, rt->depth_texture->texture,
+                    rt->color_texture->tex, rt->depth_texture->tex,
                     (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
                     dof->data.debug.f2.distance_to_focus, dof->data.debug.f2.focus_range,
                     fuzzing_range, dof->data.debug.f2.ratio);
@@ -676,7 +676,7 @@ void post_process_apply_dof(post_process_dof* dof,
     else if (dof->data.pv.enable && dof->data.pv.f2.ratio > 0.0f) {
         float_t fuzzing_range = max(dof->data.pv.f2.fuzzing_range, 0.01f);
         post_process_apply_dof_f2(dof, rt, samplers,
-            rt->color_texture->texture, rt->depth_texture->texture,
+            rt->color_texture->tex, rt->depth_texture->tex,
             (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
             dof->data.pv.f2.distance_to_focus, dof->data.pv.f2.focus_range,
             fuzzing_range, dof->data.pv.f2.ratio);

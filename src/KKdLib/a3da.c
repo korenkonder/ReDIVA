@@ -91,7 +91,7 @@ static void a3dc_write_a3da_vec3(stream* s, a3da_vec3& value);
 static void a3dc_read_a3da_vec3_f16(void* data, size_t length, a3da_vec3* value, a3da_compress_f16 f16);
 static void a3dc_write_a3da_vec3_f16(stream* s, a3da_vec3& value, a3da_compress_f16 f16);
 
-a3da::a3da() : ready(), compressed(), format(), hash(), _compress_f16(), _file_name(), _property_version(),
+a3da::a3da() : ready(), compressed(), format(), _compress_f16(), _file_name(), _property_version(),
     _converter_version(), ambient(), auth_2d(), camera_auxiliary(), camera_root(), chara(), curve(),
     dof(), event(), fog(), light(), m_object_hrc(), m_object_hrc_list(), material_list(), motion(),
     object(), object_hrc(), object_hrc_list(), object_list(), play_control(), point(), post_process() {
@@ -121,7 +121,7 @@ void a3da::read(const wchar_t* path) {
     if (!path)
         return;
 
-    wchar_t* path_a3da = str_utils_wadd(path, (wchar_t*)L".a3da");
+    wchar_t* path_a3da = str_utils_add(path, (wchar_t*)L".a3da");
     if (path_check_file_exists(path_a3da)) {
         stream s;
         io_open(&s, path_a3da, L"rb");
@@ -159,7 +159,7 @@ void a3da::write(const wchar_t* path) {
     if (!path || !this->ready)
         return;
 
-    wchar_t* path_a3da = str_utils_wadd(path, L".a3da");
+    wchar_t* path_a3da = str_utils_add(path, L".a3da");
     stream s;
     io_open(&s, path_a3da, L"wb");
     if (s.io.stream)
@@ -411,10 +411,9 @@ static void a3da_read_inner(a3da* a, stream* s) {
     stream _s;
     if (signature == reverse_endianness_int32_t('A3DA')) {
         f2_struct st;
-        f2_struct_read(&st, s);
-        io_open(&_s, st.data, st.length);
+        st.read(s);
+        io_open(&_s, &st.data);
         a->format = A3DA_FORMAT_F2;
-        f2_struct_free(&st);
     }
     else {
         size_t length = s->length;
@@ -462,8 +461,9 @@ static void a3da_read_inner(a3da* a, stream* s) {
         goto End;
 
     io_set_position(&_s, header.string_offset, SEEK_SET);
-    a3da_data = force_malloc(header.string_length);
+    a3da_data = force_malloc(header.string_length + 1);
     io_read(&_s, a3da_data, header.string_length);
+    ((uint8_t*)a3da_data)[header.string_length] = 0;
     a3da_read_text(a, a3da_data, header.string_length);
     free(a3da_data);
 
@@ -537,10 +537,8 @@ static void a3da_write_inner(a3da* a, stream* s) {
 
     if (a->format > A3DA_FORMAT_AFT) {
         f2_struct st;
-        memset(&st, 0, sizeof(f2_struct));
-
         io_align_write(&s_a3da, 0x10);
-        io_copy(&s_a3da, &st.data, &st.length);
+        io_copy(&s_a3da, &st.data);
         io_free(&s_a3da);
 
         st.header.signature = reverse_endianness_uint32_t('A3DA');
@@ -549,8 +547,7 @@ static void a3da_write_inner(a3da* a, stream* s) {
         st.header.use_section_size = true;
         st.header.inner_signature = a->format == A3DA_FORMAT_XHD ? 0x00131010 : 0x01131010;
 
-        f2_struct_write(&st, s, true, a->format == A3DA_FORMAT_X || a->format == A3DA_FORMAT_XHD);
-        f2_struct_free(&st);
+        st.write(s, true, a->format == A3DA_FORMAT_X || a->format == A3DA_FORMAT_XHD);
     }
 }
 
@@ -1056,10 +1053,10 @@ static void a3da_read_text(a3da* a, void* data, size_t length) {
             off = len + len1;
 
             if (key_val_read_a3da_rgba(&lkv,
-                buf, off, ".blend_color", 15, &ml->blend_color))
+                buf, off, ".blend_color", 13, &ml->blend_color))
                 enum_or(ml->flags, A3DA_MATERIAL_LIST_BLEND_COLOR);
             if (key_val_read_a3da_key(&lkv,
-                buf, off, ".glow_intensity", 15, &ml->glow_intensity))
+                buf, off, ".glow_intensity", 16, &ml->glow_intensity))
                 enum_or(ml->flags, A3DA_MATERIAL_LIST_GLOW_INTENSITY);
             if (key_val_read_a3da_rgba(&lkv,
                 buf, off, ".incandescence", 15, &ml->incandescence))
@@ -1839,7 +1836,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* length, bool a3dc) {
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
                 key_val_write_a3da_key(&s, buf, off, ".glow_intensity", 16, ml->glow_intensity);
             key_val::write_uint32_t(&s, buf, off, ".hash_name",
-                11, hash_string_murmurhash(&ml->name, 0, false));
+                11, hash_string_murmurhash(&ml->name));
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
                 key_val_write_a3da_rgba(&s, buf, off, ".incandescence", 15, ml->incandescence);
             key_val::write_string(&s, buf, off, ".name", 6, ml->name);

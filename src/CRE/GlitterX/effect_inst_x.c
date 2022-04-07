@@ -137,13 +137,13 @@ void GlitterXEffectInst::Ctrl(GPM, GLT, float_t delta_frame, float_t emission) {
             i->Ctrl(GPM_VAL, this, delta_frame);
 
     if (frame0 >= 0.0f)
-        if (frame0 < (float_t)effect->data.life_time) {
+        if (frame0 < (float_t)data.life_time) {
             for (GlitterXEmitterInst*& i : emitters)
                 if (i)
                     i->Emit(delta_frame, emission);
         }
-        else if (effect->data.flags & GLITTER_EFFECT_LOOP)
-            frame0 -= (float_t)effect->data.life_time;
+        else if (data.flags & GLITTER_EFFECT_LOOP)
+            frame0 -= (float_t)data.life_time;
         else {
             enum_or(flags, GLITTER_EFFECT_INST_FREE);
             for (GlitterXEmitterInst*& i : emitters)
@@ -181,9 +181,8 @@ bool GlitterXEffectInst::HasEnded(bool a2) {
         return true;
 
     for (GlitterXEmitterInst*& i : emitters)
-        if (i)
-            if (!i->HasEnded(a2))
-                return false;
+        if (i && !i->HasEnded(a2))
+            return false;
     return true;
 }
 
@@ -375,7 +374,7 @@ static void GlitterXEffectInst__get_ext_anim(GlitterXEffectInst* a1) {
                 inst_ext_anim->object_index, inst_ext_anim->object_is_hrc, &temp);
         
         if (!mat) {
-            inst_ext_anim->a3da_id = auth_3d_data_get_auth_3d_id_by_hash(
+            inst_ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(
                 inst_ext_anim->file_name_hash, inst_ext_anim->object_hash,
                 &inst_ext_anim->object_index, &inst_ext_anim->object_is_hrc, inst_ext_anim->instance_id);
             if (inst_ext_anim->a3da_id == -1)

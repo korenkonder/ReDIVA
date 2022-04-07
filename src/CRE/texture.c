@@ -18,7 +18,7 @@ static uint32_t texture_get_width_align_mip_level(texture* tex, int32_t mip_leve
 static uint32_t texture_get_width_mip_level(texture* tex, int32_t mip_level);
 static int32_t texture_load(GLenum target, GLenum internal_format,
     int32_t width, int32_t height, int32_t level, void* data);
-static texture* texture_load_tex(uint32_t id, GLenum target,
+static texture* texture_load_tex(texture_id id, GLenum target,
     GLenum internal_format, int32_t width, int32_t height,
     int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy);
 static void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy);
@@ -26,7 +26,19 @@ static GLenum texture_txp_get_internal_format(txp* t);
 
 std::vector<texture*> texture_storage;
 
-texture* texture_init(uint32_t id) {
+texture_id::texture_id() : id(0), index(0) {
+
+}
+
+texture_id::texture_id(uint8_t id, uint32_t index) : id(id), index(index) {
+
+}
+
+texture::texture() : init_count(), flags(), width(), height(),
+tex(), target(), internal_format(), max_mipmap_level(), size() {
+}
+
+texture* texture_init(texture_id id) {
     return texture_storage_create_texture(id);
 }
 
@@ -47,14 +59,14 @@ void texture_apply_color_tone(texture* chg_tex,
 
         int32_t width_align = texture_get_width_align_mip_level(org_tex, i);
         int32_t height_align = texture_get_height_align_mip_level(org_tex, i);
-        glBindTexture(org_tex->target, org_tex->texture);
+        glBindTexture(org_tex->target, org_tex->tex);
         if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION) {
             glGetCompressedTexImage(org_tex->target, i, data);
             if (org_tex->internal_format == GL_COMPRESSED_RGB_S3TC_DXT1_EXT)
                 dxt1_image_apply_color_tone(width_align, height_align, size, (dxt1_block*)data, col_tone);
             else
                 dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, col_tone);
-            glBindTexture(chg_tex->target, chg_tex->texture);
+            glBindTexture(chg_tex->target, chg_tex->tex);
 
             int32_t width = texture_get_width_mip_level(org_tex, i);
             int32_t height = texture_get_width_mip_level(org_tex, i);
@@ -64,7 +76,7 @@ void texture_apply_color_tone(texture* chg_tex,
         else if (org_tex->internal_format == GL_RGB5) {
             glGetTexImage(org_tex->target, i, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
             rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, col_tone);
-            glBindTexture(chg_tex->target, chg_tex->texture);
+            glBindTexture(chg_tex->target, chg_tex->tex);
 
             int32_t width = texture_get_width_mip_level(org_tex, i);
             int32_t height = texture_get_width_mip_level(org_tex, i);
@@ -77,7 +89,7 @@ void texture_apply_color_tone(texture* chg_tex,
     }
 }
 
-texture* texture_copy(uint32_t id, texture* org_tex) {
+texture* texture_copy(texture_id id, texture* org_tex) {
     if (org_tex->target != GL_TEXTURE_2D)
         return 0;
 
@@ -87,14 +99,14 @@ texture* texture_copy(uint32_t id, texture* org_tex) {
         if (!data)
             break;
         if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION) {
-            glBindTexture(org_tex->target, org_tex->texture);
+            glBindTexture(org_tex->target, org_tex->tex);
             glGetCompressedTexImage(org_tex->target, i, data);
         }
         else {
             GLenum format;
             GLenum type;
             texture_get_format_type_by_internal_format(org_tex->internal_format, &format, &type);
-            glBindTexture(org_tex->target, org_tex->texture);
+            glBindTexture(org_tex->target, org_tex->tex);
             glGetTexImage(org_tex->target, i, format, type, data);
         }
         glBindTexture(org_tex->target, 0);
@@ -111,19 +123,19 @@ texture* texture_copy(uint32_t id, texture* org_tex) {
     return tex;
 }
 
-texture* texture_load_tex_2d(uint32_t id, GLenum internal_format, int32_t width, int32_t height,
+texture* texture_load_tex_2d(texture_id id, GLenum internal_format, int32_t width, int32_t height,
     int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy) {
     return texture_load_tex(id, GL_TEXTURE_2D, internal_format,
         width, height, max_mipmap_level, data_ptr, use_high_anisotropy);
 }
 
-texture* texture_load_tex_cube_map(uint32_t id, GLenum internal_format, int32_t width, int32_t height,
+texture* texture_load_tex_cube_map(texture_id id, GLenum internal_format, int32_t width, int32_t height,
     int32_t max_mipmap_level, void** data_ptr) {
     return texture_load_tex(id, GL_TEXTURE_CUBE_MAP, internal_format,
         width, height, max_mipmap_level, data_ptr, false);
 }
 
-texture* texture_txp_load(txp* t, uint32_t id) {
+texture* texture_txp_load(txp* t, texture_id id) {
     if (!t || !t->mipmaps.size())
         return 0;
 
@@ -159,6 +171,19 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
     *texs = force_malloc_s(texture*, count + 1);
     texture** tex = *texs;
     for (size_t i = 0; i < count; i++)
+        tex[i] = texture_txp_load(&t->textures[i], texture_id(0, ids[i]));
+    tex[count] = 0;
+    return true;
+}
+
+bool texture_txp_set_load(txp_set* t, texture*** texs, texture_id* ids) {
+    if (!t || !texs || !ids)
+        return false;
+
+    size_t count = t->textures.size();
+    *texs = force_malloc_s(texture*, count + 1);
+    texture** tex = *texs;
+    for (size_t i = 0; i < count; i++)
         tex[i] = texture_txp_load(&t->textures[i], ids[i]);
     tex[count] = 0;
     return true;
@@ -168,7 +193,7 @@ inline void texture_storage_init() {
     texture_storage = {};
 }
 
-inline texture* texture_storage_create_texture(uint32_t id) {
+inline texture* texture_storage_create_texture(texture_id id) {
     for (texture*& i : texture_storage)
         if (i && i->id == id) {
             i->init_count++;
@@ -183,6 +208,13 @@ inline texture* texture_storage_create_texture(uint32_t id) {
 }
 
 inline texture* texture_storage_get_texture(uint32_t id) {
+    for (texture*& i : texture_storage)
+        if (i && i->id.index == id)
+            return i;
+    return 0;
+}
+
+inline texture* texture_storage_get_texture(texture_id id) {
     for (texture*& i : texture_storage)
         if (i && i->id == id)
             return i;
@@ -199,7 +231,7 @@ inline texture* texture_storage_get_texture_by_index(size_t index) {
     return 0;
 }
 
-inline void texture_storage_delete_texture(uint32_t id) {
+inline void texture_storage_delete_texture(texture_id id) {
     for (std::vector<texture*>::iterator i = texture_storage.begin(); i != texture_storage.end(); i++)
         if (*i && (*i)->id == id) {
             texture* tex = *i;
@@ -208,7 +240,7 @@ inline void texture_storage_delete_texture(uint32_t id) {
                 break;
             }
 
-            glDeleteTextures(1, &tex->texture);
+            glDeleteTextures(1, &tex->tex);
             delete tex;
             i = texture_storage.erase(i);
             break;
@@ -218,7 +250,7 @@ inline void texture_storage_delete_texture(uint32_t id) {
 inline void texture_storage_free() {
     for (texture*& i : texture_storage) {
         if (i)
-            glDeleteTextures(1, &i->texture);
+            glDeleteTextures(1, &i->tex);
         delete i;
     }
     texture_storage.clear();
@@ -437,20 +469,20 @@ static int32_t texture_load(GLenum target, GLenum internal_format,
     return -(glGetError() != GL_ZERO);
 }
 
-static texture* texture_load_tex(uint32_t id, GLenum target,
+static texture* texture_load_tex(texture_id id, GLenum target,
     GLenum internal_format, int32_t width, int32_t height,
     int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy) {
     texture* tex = texture_init(id);
     if (tex->init_count > 1)
         return tex;
 
-    glGenTextures(1, &tex->texture);
+    glGenTextures(1, &tex->tex);
     switch (target) {
     case GL_TEXTURE_2D:
-        gl_state_bind_texture_2d(tex->texture);
+        gl_state_bind_texture_2d(tex->tex);
         break;
     case GL_TEXTURE_CUBE_MAP:
-        gl_state_bind_texture_cube_map(tex->texture);
+        gl_state_bind_texture_cube_map(tex->tex);
         break;
     }
     texture_set_params(target, max_mipmap_level, use_high_anisotropy);

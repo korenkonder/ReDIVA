@@ -5,13 +5,13 @@
 
 #include "str_utils.h"
 
-bool str_utils_check_ends_with(char* str, char* mask) {
+bool str_utils_check_ends_with(const char* str, const char* mask) {
     if (!str || !mask)
         return false;
 
     size_t mask_len = utf8_length(mask);
     size_t len = utf8_length(str);
-    char* t = str;
+    const char* t = str;
     while (t) {
         t = strstr(t, mask);
         if (t) {
@@ -23,25 +23,13 @@ bool str_utils_check_ends_with(char* str, char* mask) {
     return false;
 }
 
-inline bool str_utils_check_ends_with(char* str, const char* mask) {
-    return str_utils_check_ends_with(str, (char*)mask);
-}
-
-inline bool str_utils_check_ends_with(const char* str, char* mask) {
-    return str_utils_check_ends_with((char*)str, mask);
-}
-
-inline bool str_utils_check_ends_with(const char* str, const char* mask) {
-    return str_utils_check_ends_with((char*)str, (char*)mask);
-}
-
-bool str_utils_wcheck_ends_with(wchar_t* str, wchar_t* mask) {
+bool str_utils_check_ends_with(const wchar_t* str, const wchar_t* mask) {
     if (!str || !mask)
         return false;
 
     size_t mask_len = utf16_length(mask);
     size_t len = utf16_length(str);
-    wchar_t* t = str;
+    const wchar_t* t = str;
     while (t) {
         t = wcsstr(t, mask);
         if (t) {
@@ -53,19 +41,7 @@ bool str_utils_wcheck_ends_with(wchar_t* str, wchar_t* mask) {
     return false;
 }
 
-inline bool str_utils_wcheck_ends_with(wchar_t* str, const wchar_t* mask) {
-    return str_utils_wcheck_ends_with(str, (wchar_t*)mask);
-}
-
-inline bool str_utils_wcheck_ends_with(const wchar_t* str, wchar_t* mask) {
-    return str_utils_wcheck_ends_with((wchar_t*)str, mask);
-}
-
-inline bool str_utils_wcheck_ends_with(const wchar_t* str, const wchar_t* mask) {
-    return str_utils_wcheck_ends_with((wchar_t*)str, (wchar_t*)mask);
-}
-
-char* str_utils_get_next_int32_t(char* str, int32_t* value, char separator) {
+const char* str_utils_get_next_int32_t(const char* str, int32_t* value, char separator) {
     string s;
     str = str_utils_get_next_string(str, &s, separator);
     sscanf_s(string_data(&s), "%d", value);
@@ -73,23 +49,15 @@ char* str_utils_get_next_int32_t(char* str, int32_t* value, char separator) {
     return str;
 }
 
-inline char* str_utils_get_next_int32_t(const char* str, int32_t* value, char separator) {
-    return str_utils_get_next_int32_t((char*)str, value, separator);
-}
-
-wchar_t* str_utils_wget_next_int32_t(wchar_t* str, int32_t* value, wchar_t separator) {
+const wchar_t* str_utils_get_next_int32_t(const wchar_t* str, int32_t* value, wchar_t separator) {
     wstring s;
-    str = str_utils_wget_next_string(str, &s, separator);
+    str = str_utils_get_next_string(str, &s, separator);
     swscanf_s(wstring_data(&s), L"%d", value);
     wstring_free(&s);
     return str;
 }
 
-inline wchar_t* str_utils_wget_next_int32_t(const wchar_t* str, int32_t* value, wchar_t separator) {
-    return str_utils_wget_next_int32_t((wchar_t*)str, value, separator);
-}
-
-char* str_utils_get_next_float_t(char* str, float_t* value, char separator) {
+const char* str_utils_get_next_float_t(const char* str, float_t* value, char separator) {
     string s;
     str = str_utils_get_next_string(str, &s, separator);
     sscanf_s(string_data(&s), "%f", value);
@@ -97,23 +65,15 @@ char* str_utils_get_next_float_t(char* str, float_t* value, char separator) {
     return str;
 }
 
-inline char* str_utils_get_next_float_t(const char* str, float_t* value, char separator) {
-    return str_utils_get_next_float_t((char*)str, value, separator);
-}
-
-wchar_t* str_utils_wget_next_float_t(wchar_t* str, float_t* value, wchar_t separator) {
+const wchar_t* str_utils_get_next_float_t(const wchar_t* str, float_t* value, wchar_t separator) {
     wstring s;
-    str = str_utils_wget_next_string(str, &s, separator);
+    str = str_utils_get_next_string(str, &s, separator);
     swscanf_s(wstring_data(&s), L"%f", value);
     wstring_free(&s);
     return str;
 }
 
-inline wchar_t* str_utils_wget_next_float_t(const wchar_t* str, float_t* value, wchar_t separator) {
-    return str_utils_wget_next_float_t((wchar_t*)str, value, separator);
-}
-
-char* str_utils_get_next_string(char* str, string* value, char separator) {
+const char* str_utils_get_next_string(const char* str, string* value, char separator) {
     if (!str)
         return 0;
 
@@ -128,11 +88,7 @@ char* str_utils_get_next_string(char* str, string* value, char separator) {
     return *str ? str : 0;
 }
 
-inline char* str_utils_get_next_string(const char* str, string* value, char separator) {
-    return str_utils_get_next_string((char*)str, value, separator);
-}
-
-wchar_t* str_utils_wget_next_string(wchar_t* str, wstring* value, wchar_t separator) {
+const wchar_t* str_utils_get_next_string(const wchar_t* str, wstring* value, wchar_t separator) {
     if (!str)
         return 0;
 
@@ -147,15 +103,11 @@ wchar_t* str_utils_wget_next_string(wchar_t* str, wstring* value, wchar_t separa
     return str;
 }
 
-inline wchar_t* str_utils_wget_next_string(const wchar_t* str, wstring* value, wchar_t separator) {
-    return str_utils_wget_next_string((wchar_t*)str, value, separator);
-}
-
-char* str_utils_split_get_right(char* str, char split) {
+char* str_utils_split_get_right(const char* str, char split) {
     if (!str)
         return 0;
 
-    char* t = strchr(str, split);
+    const char* t = strchr(str, split);
     if (!t)
         return str_utils_copy(str);
     t++;
@@ -167,17 +119,13 @@ char* str_utils_split_get_right(char* str, char split) {
     return p;
 }
 
-inline char* str_utils_split_get_right(const char* str, char split) {
-    return str_utils_split_get_right((char*)str, split);
-}
-
-wchar_t* str_utils_wsplit_get_right(wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_get_right(const wchar_t* str, wchar_t split) {
     if (!str)
         return 0;
 
-    wchar_t* t = wcschr(str, split);
+    const wchar_t* t = wcschr(str, split);
     if (!t)
-        return str_utils_wcopy(str);
+        return str_utils_copy(str);
     t++;
 
     size_t len = utf16_length(t);
@@ -187,15 +135,11 @@ wchar_t* str_utils_wsplit_get_right(wchar_t* str, wchar_t split) {
     return p;
 }
 
-inline wchar_t* str_utils_wsplit_get_right(const wchar_t* str, wchar_t split) {
-    return str_utils_wsplit_get_right((wchar_t*)str, split);
-}
-
-char* str_utils_split_get_left(char* str, char split) {
+char* str_utils_split_get_left(const char* str, char split) {
     if (!str)
         return 0;
 
-    char* t = strchr(str, split);
+    const char* t = strchr(str, split);
 
     size_t len = t ? t - str : utf8_length(str);
     char* p = force_malloc_s(char, len + 1);
@@ -204,15 +148,11 @@ char* str_utils_split_get_left(char* str, char split) {
     return p;
 }
 
-inline char* str_utils_split_get_left(const char* str, char split) {
-    return str_utils_split_get_left((char*)str, split);
-}
-
-wchar_t* str_utils_wsplit_get_left(wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_get_left(const wchar_t* str, wchar_t split) {
     if (!str)
         return 0;
 
-    wchar_t* t = wcschr(str, split);
+    const wchar_t* t = wcschr(str, split);
 
     size_t len = t ? t - str : utf16_length(str);
     wchar_t* p = force_malloc_s(wchar_t, len + 1);
@@ -221,15 +161,11 @@ wchar_t* str_utils_wsplit_get_left(wchar_t* str, wchar_t split) {
     return p;
 }
 
-inline wchar_t* str_utils_wsplit_get_left(const wchar_t* str, wchar_t split) {
-    return str_utils_wsplit_get_left((wchar_t*)str, split);
-}
-
-char* str_utils_split_get_right_include(char* str, char split) {
+char* str_utils_split_get_right_include(const char* str, char split) {
     if (!str)
         return 0;
 
-    char* t = strchr(str, split);
+    const char* t = strchr(str, split);
     if (!t)
         return str_utils_copy(str);
 
@@ -240,17 +176,13 @@ char* str_utils_split_get_right_include(char* str, char split) {
     return p;
 }
 
-inline wchar_t* str_utils_split_get_right_include(const wchar_t* str, wchar_t split) {
-    return str_utils_split_get_right_include((wchar_t*)str, split);
-}
-
-wchar_t* str_utils_wsplit_get_right_include(wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_get_right_include(const wchar_t* str, wchar_t split) {
     if (!str)
         return 0;
 
-    wchar_t* t = wcschr(str, split);
+    const wchar_t* t = wcschr(str, split);
     if (!t)
-        return str_utils_wcopy(str);
+        return str_utils_copy(str);
 
     size_t len = utf16_length(t);
     wchar_t* p = force_malloc_s(wchar_t, len + 1);
@@ -259,15 +191,11 @@ wchar_t* str_utils_wsplit_get_right_include(wchar_t* str, wchar_t split) {
     return p;
 }
 
-inline wchar_t* str_utils_wsplit_get_right_include(const wchar_t* str, wchar_t split) {
-    return str_utils_wsplit_get_right_include((wchar_t*)str, split);
-}
-
-char* str_utils_split_get_left_include(char* str, char split) {
+char* str_utils_split_get_left_include(const char* str, char split) {
     if (!str)
         return 0;
 
-    char* t = strchr(str, split);
+    const char* t = strchr(str, split);
     t++;
 
     size_t len = t ? t - str : utf8_length(str);
@@ -277,15 +205,11 @@ char* str_utils_split_get_left_include(char* str, char split) {
     return p;
 }
 
-inline char* str_utils_split_get_left_include(const char* str, char split) {
-    return str_utils_split_get_left_include((char*)str, split);
-}
-
-wchar_t* str_utils_wsplit_get_left_include(wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_get_left_include(const wchar_t* str, wchar_t split) {
     if (!str)
         return 0;
 
-    wchar_t* t = wcschr(str, split);
+    const wchar_t* t = wcschr(str, split);
     t++;
 
     size_t len = t ? t - str : utf16_length(str);
@@ -295,15 +219,11 @@ wchar_t* str_utils_wsplit_get_left_include(wchar_t* str, wchar_t split) {
     return p;
 }
 
-inline wchar_t* str_utils_wsplit_get_left_include(const wchar_t* str, wchar_t split) {
-    return str_utils_wsplit_get_left_include((wchar_t*)str, split);
-}
-
-char* str_utils_split_right_get_right(char* str, char split) {
+char* str_utils_split_right_get_right(const char* str, char split) {
     if (!str)
         return 0;
 
-    char* t = strrchr(str, split);
+    const char* t = strrchr(str, split);
     if (!t)
         return str_utils_copy(str);
     t++;
@@ -315,17 +235,13 @@ char* str_utils_split_right_get_right(char* str, char split) {
     return p;
 }
 
-inline char* str_utils_split_right_get_right(const char* str, char split) {
-    return str_utils_split_right_get_right((char*)str, split);
-}
-
-wchar_t* str_utils_wsplit_right_get_right(wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_right_get_right(const wchar_t* str, wchar_t split) {
     if (!str)
         return 0;
 
-    wchar_t* t = wcsrchr(str, split);
+    const wchar_t* t = wcsrchr(str, split);
     if (!t)
-        return str_utils_wcopy(str);
+        return str_utils_copy(str);
     t++;
 
     size_t len = t - str;
@@ -335,15 +251,11 @@ wchar_t* str_utils_wsplit_right_get_right(wchar_t* str, wchar_t split) {
     return p;
 }
 
-inline wchar_t* str_utils_wsplit_right_get_right(const wchar_t* str, wchar_t split) {
-    return str_utils_wsplit_right_get_right((wchar_t*)str, split);
-}
-
-char* str_utils_split_right_get_left(char* str, char split) {
+char* str_utils_split_right_get_left(const char* str, char split) {
     if (!str)
         return 0;
 
-    char* t = strrchr(str, split);
+    const char* t = strrchr(str, split);
 
     size_t len = t ? t - str : utf8_length(str);
     char* p = force_malloc_s(char, len + 1);
@@ -352,15 +264,11 @@ char* str_utils_split_right_get_left(char* str, char split) {
     return p;
 }
 
-inline char* str_utils_split_right_get_left(const char* str, char split) {
-    return str_utils_split_right_get_left((char*)str, split);
-}
-
-wchar_t* str_utils_wsplit_right_get_left(wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_right_get_left(const wchar_t* str, wchar_t split) {
     if (!str)
         return 0;
 
-    wchar_t* t = wcsrchr(str, split);
+    const wchar_t* t = wcsrchr(str, split);
 
     size_t len = t ? t - str : utf16_length(str);
     wchar_t* p = force_malloc_s(wchar_t, len + 1);
@@ -369,15 +277,11 @@ wchar_t* str_utils_wsplit_right_get_left(wchar_t* str, wchar_t split) {
     return p;
 }
 
-inline wchar_t* str_utils_wsplit_right_get_left(const wchar_t* str, wchar_t split) {
-    return str_utils_wsplit_right_get_left((wchar_t*)str, split);
-}
-
-char* str_utils_split_right_get_right_include(char* str, char split) {
+char* str_utils_split_right_get_right_include(const char* str, char split) {
     if (!str)
         return 0;
 
-    char* t = strrchr(str, split);
+    const char* t = strrchr(str, split);
     if (!t)
         return str_utils_copy(str);
 
@@ -388,17 +292,13 @@ char* str_utils_split_right_get_right_include(char* str, char split) {
     return p;
 }
 
-inline char* str_utils_split_right_get_right_include(const char* str, char split) {
-    return str_utils_split_right_get_right_include((char*)str, split);
-}
-
-wchar_t* str_utils_wsplit_right_get_right_include(wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_right_get_right_include(const wchar_t* str, wchar_t split) {
     if (!str)
         return 0;
 
-    wchar_t* t = wcsrchr(str, split);
+    const wchar_t* t = wcsrchr(str, split);
     if (!t)
-        return str_utils_wcopy(str);
+        return str_utils_copy(str);
 
     size_t len = utf16_length(t);
     wchar_t* p = force_malloc_s(wchar_t, len + 1);
@@ -407,15 +307,11 @@ wchar_t* str_utils_wsplit_right_get_right_include(wchar_t* str, wchar_t split) {
     return p;
 }
 
-inline wchar_t* str_utils_wsplit_right_get_right_include(const wchar_t* str, wchar_t split) {
-    return str_utils_wsplit_right_get_right_include((wchar_t*)str, split);
-}
-
-char* str_utils_split_right_get_left_include(char* str, char split) {
+char* str_utils_split_right_get_left_include(const char* str, char split) {
     if (!str)
         return 0;
 
-    char* t = strrchr(str, split);
+    const char* t = strrchr(str, split);
     if (t)
         t++;
 
@@ -426,15 +322,11 @@ char* str_utils_split_right_get_left_include(char* str, char split) {
     return p;
 }
 
-inline char* str_utils_split_right_get_left_include(const char* str, char split) {
-    return str_utils_split_right_get_left_include((char*)str, split);
-}
-
-wchar_t* str_utils_wsplit_right_get_left_include(wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_right_get_left_include(const wchar_t* str, wchar_t split) {
     if (!str)
         return 0;
 
-    wchar_t* t = wcsrchr(str, split);
+    const wchar_t* t = wcsrchr(str, split);
     if (t)
         t++;
 
@@ -443,18 +335,6 @@ wchar_t* str_utils_wsplit_right_get_left_include(wchar_t* str, wchar_t split) {
     memcpy(p, str, sizeof(wchar_t) * len);
     p[len] = 0;
     return p;
-}
-
-inline wchar_t* str_utils_wsplit_right_get_left_include(const wchar_t* str, wchar_t split) {
-    return str_utils_wsplit_right_get_left_include((wchar_t*)str, split);
-}
-
-char* str_utils_get_extension(char* str) {
-    if (!str)
-        return 0;
-
-    char* t = strrchr(str, '\\');
-    return str_utils_split_right_get_right_include(t ? t + 1 : str, '.');
 }
 
 char* str_utils_get_extension(const char* str) {
@@ -465,28 +345,12 @@ char* str_utils_get_extension(const char* str) {
     return str_utils_split_right_get_right_include(t ? t + 1 : str, '.');
 }
 
-wchar_t* str_utils_wget_extension(wchar_t* str) {
-    if (!str)
-        return 0;
-
-    wchar_t* t = wcsrchr(str, L'\\');
-    return str_utils_wsplit_right_get_right_include(t ? t + 1 : str, L'.');
-}
-
-wchar_t* str_utils_wget_extension(const wchar_t* str) {
+wchar_t* str_utils_get_extension(const wchar_t* str) {
     if (!str)
         return 0;
 
     const wchar_t* t = wcsrchr(str, L'\\');
-    return str_utils_wsplit_right_get_right_include(t ? t + 1 : str, L'.');
-}
-
-char* str_utils_get_without_extension(char* str) {
-    if (!str)
-        return 0;
-
-    char* t = strrchr(str, '\\');
-    return str_utils_split_right_get_left(t ? t + 1 : str, '.');
+    return str_utils_split_right_get_right_include(t ? t + 1 : str, L'.');
 }
 
 char* str_utils_get_without_extension(const char* str) {
@@ -497,23 +361,15 @@ char* str_utils_get_without_extension(const char* str) {
     return str_utils_split_right_get_left(t ? t + 1 : str, '.');
 }
 
-wchar_t* str_utils_wget_without_extension(wchar_t* str) {
-    if (!str)
-        return 0;
-
-    wchar_t* t = wcsrchr(str, L'\\');
-    return str_utils_wsplit_right_get_left(t ? t + 1 : str, L'.');
-}
-
-wchar_t* str_utils_wget_without_extension(const wchar_t* str) {
+wchar_t* str_utils_get_without_extension(const wchar_t* str) {
     if (!str)
         return 0;
 
     const wchar_t* t = wcsrchr(str, L'\\');
-    return str_utils_wsplit_right_get_left(t ? t + 1 : str, L'.');
+    return str_utils_split_right_get_left(t ? t + 1 : str, L'.');
 }
 
-char* str_utils_add(char* str0, char* str1) {
+char* str_utils_add(const char* str0, const char* str1) {
     if (str0 && str1) {
         size_t str0_len = utf8_length(str0);
         size_t str1_len = utf8_length(str1);
@@ -530,19 +386,7 @@ char* str_utils_add(char* str0, char* str1) {
         return 0;
 }
 
-inline char* str_utils_add(char* str0, const char* str1) {
-    return str_utils_add(str0, (char*)str1);
-}
-
-inline char* str_utils_add(const char* str0, char* str1) {
-    return str_utils_add((char*)str0, str1);
-}
-
-inline char* str_utils_add(const char* str0, const char* str1) {
-    return str_utils_add((char*)str0, (char*)str1);
-}
-
-wchar_t* str_utils_wadd(wchar_t* str0, wchar_t* str1) {
+wchar_t* str_utils_add(const wchar_t* str0, const wchar_t* str1) {
     if (str0 && str1) {
         size_t str0_len = utf16_length(str0);
         size_t str1_len = utf16_length(str1);
@@ -552,33 +396,11 @@ wchar_t* str_utils_wadd(wchar_t* str0, wchar_t* str1) {
         return p;
     }
     else if (str0)
-        return str_utils_wcopy(str0);
+        return str_utils_copy(str0);
     else if (str1)
-        return str_utils_wcopy(str1);
+        return str_utils_copy(str1);
     else
         return 0;
-}
-
-inline wchar_t* str_utils_wadd(wchar_t* str0, const wchar_t* str1) {
-    return str_utils_wadd(str0, (wchar_t*)str1);
-}
-
-inline wchar_t* str_utils_wadd(const wchar_t* str0, wchar_t* str1) {
-    return str_utils_wadd((wchar_t*)str0, str1);
-}
-
-inline wchar_t* str_utils_wadd(const wchar_t* str0, const wchar_t* str1) {
-    return str_utils_wadd((wchar_t*)str0, (wchar_t*)str1);
-}
-
-char* str_utils_copy(char* str) {
-    if (!str)
-        return 0;
-
-    size_t len = utf8_length(str) + 1;
-    char* p = force_malloc_s(char, len);
-    memcpy(p, str, len);
-    return p;
 }
 
 char* str_utils_copy(const char* str) {
@@ -591,7 +413,7 @@ char* str_utils_copy(const char* str) {
     return p;
 }
 
-wchar_t* str_utils_wcopy(wchar_t* str) {
+wchar_t* str_utils_copy(const wchar_t* str) {
     if (!str)
         return 0;
 
@@ -599,45 +421,23 @@ wchar_t* str_utils_wcopy(wchar_t* str) {
     wchar_t* p = force_malloc_s(wchar_t, len);
     memcpy(p, str, sizeof(wchar_t) * len);
     return p;
-}
-
-wchar_t* str_utils_wcopy(const wchar_t* str) {
-    if (!str)
-        return 0;
-
-    size_t len = utf16_length(str) + 1;
-    wchar_t* p = force_malloc_s(wchar_t, len);
-    memcpy(p, str, sizeof(wchar_t) * len);
-    return p;
-}
-
-inline int32_t str_utils_compare(char* str0, char* str1) {
-    int32_t diff = 0;;
-    char c0;
-    char c1;
-    do
-    {
-        c0 = *str0++;
-        c1 = *str1++;
-        if (!c0 || !c1)
-            return c0 - c1;
-    } while (c0 == c1);
-    return c0 - c1;
-}
-
-inline int32_t str_utils_compare(char* str0, const char* str1) {
-    return str_utils_compare(str0, (char*)str1);
-}
-
-inline int32_t str_utils_compare(const char* str0, char* str1) {
-    return str_utils_compare((char*)str0, str1);
 }
 
 inline int32_t str_utils_compare(const char* str0, const char* str1) {
-    return str_utils_compare((char*)str0, (char*)str1);
+    int32_t diff = 0;;
+    char c0;
+    char c1;
+    do
+    {
+        c0 = *str0++;
+        c1 = *str1++;
+        if (!c0 || !c1)
+            return c0 - c1;
+    } while (c0 == c1);
+    return c0 - c1;
 }
 
-inline int32_t str_utils_wcompare(wchar_t* str0, wchar_t* str1) {
+inline int32_t str_utils_compare(const wchar_t* str0, const wchar_t* str1) {
     int32_t diff = 0;;
     wchar_t c0;
     wchar_t c1;
@@ -651,19 +451,7 @@ inline int32_t str_utils_wcompare(wchar_t* str0, wchar_t* str1) {
     return c0 - c1;
 }
 
-inline int32_t str_utils_wcompare(wchar_t* str0, const wchar_t* str1) {
-    return str_utils_wcompare(str0, (wchar_t*)str1);
-}
-
-inline int32_t str_utils_wcompare(const wchar_t* str0, wchar_t* str1) {
-    return str_utils_wcompare((wchar_t*)str0, str1);
-}
-
-inline int32_t str_utils_wcompare(const wchar_t* str0, const wchar_t* str1) {
-    return str_utils_wcompare((wchar_t*)str0, (wchar_t*)str1);
-}
-
-inline int32_t str_utils_compare_length(char* str0, size_t str0_len, char* str1, size_t str1_len) {
+inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, const char* str1, size_t str1_len) {
     if (!str0_len)
         return -*str1;
     else if (!str1_len)
@@ -682,19 +470,7 @@ inline int32_t str_utils_compare_length(char* str0, size_t str0_len, char* str1,
     return c0 - c1;
 }
 
-inline int32_t str_utils_compare_length(char* str0, size_t str0_len, const char* str1, size_t str1_len) {
-    return str_utils_compare_length(str0, str0_len, (char*)str1, str1_len);
-}
-
-inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, char* str1, size_t str1_len) {
-    return str_utils_compare_length((char*)str0, str0_len, str1, str1_len);
-}
-
-inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, const char* str1, size_t str1_len) {
-    return str_utils_compare_length((char*)str0, str0_len, (char*)str1, str1_len);
-}
-
-inline int32_t str_utils_wcompare_length(wchar_t* str0, size_t str0_len, wchar_t* str1, size_t str1_len) {
+inline int32_t str_utils_compare_length(const wchar_t* str0, size_t str0_len, const wchar_t* str1, size_t str1_len) {
     if (!str0_len)
         return -*str1;
     else if (!str1_len)
@@ -713,28 +489,16 @@ inline int32_t str_utils_wcompare_length(wchar_t* str0, size_t str0_len, wchar_t
     return c0 - c1;
 }
 
-inline int32_t str_utils_wcompare_length(wchar_t* str0, size_t str0_len, const wchar_t* str1, size_t str1_len) {
-    return str_utils_wcompare_length(str0, str0_len, (wchar_t*)str1, str1_len);
-}
-
-inline int32_t str_utils_wcompare_length(const wchar_t* str0, size_t str0_len, wchar_t* str1, size_t str1_len) {
-    return str_utils_wcompare_length((wchar_t*)str0, str0_len, str1, str1_len);
-}
-
-inline int32_t str_utils_wcompare_length(const wchar_t* str0, size_t str0_len, const wchar_t* str1, size_t str1_len) {
-    return str_utils_wcompare_length((wchar_t*)str0, str0_len, (wchar_t*)str1, str1_len);
-}
-
-size_t str_utils_get_substring_offset(char* str0, size_t str0_len,
-    size_t str0_off, char* str1, size_t str1_len) {
+size_t str_utils_get_substring_offset(const char* str0, size_t str0_len,
+    size_t str0_off, const char* str1, size_t str1_len) {
     if (!str1_len && str0_off <= str0_len)
         return str0_off;
 
     if (str0_off < str0_len && str1_len <= str0_len - str0_off) {
         size_t len = str0_len - str1_len - str0_off + 1;
-        char* str = &str0[str0_off];
+        const char* str = &str0[str0_off];
         for (; len; ) {
-            char* s = (char*)memchr(str, *str1, len);
+            const char* s = (const char*)memchr(str, *str1, len);
             if (!s)
                 break;
 
@@ -748,16 +512,16 @@ size_t str_utils_get_substring_offset(char* str0, size_t str0_len,
     return -1;
 }
 
-size_t str_utils_wget_substring_offset(wchar_t* str0, size_t str0_len,
-    size_t str0_off, wchar_t* str1, size_t str1_len) {
+size_t str_utils_get_substring_offset(const wchar_t* str0, size_t str0_len,
+    size_t str0_off, const wchar_t* str1, size_t str1_len) {
     if (!str1_len && str0_off <= str0_len)
         return str0_off;
 
     if (str0_off < str0_len && str1_len <= str0_len - str0_off) {
         size_t len = str0_len - str1_len - str0_off + 1;
-        wchar_t* str = &str0[str0_off];
+        const wchar_t* str = &str0[str0_off];
         for (; len; ) {
-            wchar_t* s = wmemchr(str, *str1, len);
+            const wchar_t* s = wmemchr(str, *str1, len);
             if (!s)
                 break;
 
@@ -800,7 +564,7 @@ bool str_utils_text_file_parse(void* data, size_t length,
 
         length /= 2;
         wchar_t* w_d = (wchar_t*)data + 1;
-        w_d = str_utils_wcopy(w_d);
+        w_d = str_utils_copy(w_d);
         for (size_t i = 0; i < length; i++)
             w_d[i] = (wchar_t)reverse_endianness_uint16_t((uint16_t)w_d[i]);
         d = utf16_to_utf8(w_d);

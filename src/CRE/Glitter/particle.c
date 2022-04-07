@@ -48,7 +48,6 @@ glitter_particle::~glitter_particle() {
 
 bool glitter_particle_parse_file(GlitterEffectGroup* a1,
     f2_struct* st, std::vector<glitter_particle*>* vec, glitter_effect* effect) {
-    f2_struct* i;
     glitter_particle* particle;
 
     if (!st || !st->header.data_size)
@@ -56,16 +55,17 @@ bool glitter_particle_parse_file(GlitterEffectGroup* a1,
 
     particle = new glitter_particle(a1->type);
     particle->version = st->header.version;
-    if (!glitter_particle_unpack_file(a1->type, a1, st->data, particle, effect, st->header.use_big_endian)) {
+    if (!glitter_particle_unpack_file(a1->type, a1, st->data.data(),
+        particle, effect, st->header.use_big_endian)) {
         delete particle;
         return false;
     }
 
-    for (i = st->sub_structs.begin; i != st->sub_structs.end; i++) {
-        if (!i->header.data_size)
+    for (f2_struct& i : st->sub_structs) {
+        if (!i.header.data_size)
             continue;
 
-        if (i->header.signature == reverse_endianness_uint32_t('ANIM')) {
+        if (i.header.signature == reverse_endianness_uint32_t('ANIM')) {
             glitter_curve_type_flags flags = (glitter_curve_type_flags)0;
             if (a1->type == GLITTER_X)
                 flags = glitter_particle_x_curve_flags;
@@ -77,7 +77,7 @@ bool glitter_particle_parse_file(GlitterEffectGroup* a1,
                 if (particle->data.draw_type != GLITTER_DIRECTION_PARTICLE_ROTATION)
                     enum_and(flags, ~(GLITTER_CURVE_TYPE_ROTATION_X | GLITTER_CURVE_TYPE_ROTATION_Y));
             }
-            glitter_animation_parse_file(a1->type, i, &particle->animation, flags);
+            glitter_animation_parse_file(a1->type, &i, &particle->animation, flags);
         }
     }
 
@@ -104,7 +104,7 @@ bool glitter_particle_unparse_file(GLT, GlitterEffectGroup* a1,
 
     f2_struct s;
     if (glitter_animation_unparse_file(GLT_VAL, &s, &a3->animation, flags))
-        vector_old_f2_struct_push_back(&st->sub_structs, &s);
+        st->sub_structs.push_back(s);
     return true;
 }
 
@@ -117,59 +117,57 @@ static bool glitter_particle_pack_file(GLT,
     if (a3->version < 2)
         return false;
 
-    memset(st, 0, sizeof(f2_struct));
     l = 0;
 
     uint32_t o;
-    vector_old_enrs_entry e = vector_old_empty(enrs_entry);
+    enrs e;
     enrs_entry ee;
 
-    ee = { 0, 1, 204, 1, vector_old_empty(enrs_sub_entry) };
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 51, ENRS_DWORD);
-    vector_old_enrs_entry_push_back(&e, &ee);
+    ee = { 0, 1, 204, 1 };
+    ee.sub.push_back({ 0, 51, ENRS_DWORD });
+    e.vec.push_back(ee);
     l += o = 204;
 
     if (a3->version == 3) {
-        ee = { o, 1, 8, 1, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, 8, 1 };
+        ee.sub.push_back({ 0, 2, ENRS_DWORD });
+        e.vec.push_back(ee);
         l += o = 8;
     }
 
     if (a3->data.type == GLITTER_PARTICLE_LOCUS || a3->data.type == GLITTER_PARTICLE_MESH) {
-        ee = { o, 1, 4, 1, vector_old_empty(enrs_sub_entry) };
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee = { o, 1, 4, 1 };
+        ee.sub.push_back({ 0, 2, ENRS_WORD });
+        e.vec.push_back(ee);
         l += o = 4;
     }
 
-    ee = { o, 4, 44, 1, vector_old_empty(enrs_sub_entry) };
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-    vector_old_enrs_sub_entry_append(&ee.sub, 4, 5, ENRS_DWORD);
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_WORD);
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 2, ENRS_DWORD);
+    ee = { o, 4, 44, 1 };
+    ee.sub.push_back({ 0, 1, ENRS_QWORD });
+    ee.sub.push_back({ 4, 5, ENRS_DWORD });
+    ee.sub.push_back({ 0, 2, ENRS_WORD });
+    ee.sub.push_back({ 0, 2, ENRS_DWORD });
     if (a1->version >= 7) {
         ee.count++;
         ee.size += 4;
-        vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-        vector_old_enrs_entry_push_back(&e, &ee);
+        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        e.vec.push_back(ee);
         l += o = 48;
     }
     else {
-        vector_old_enrs_entry_push_back(&e, &ee);
+        e.vec.push_back(ee);
         l += o = 44;
     }
 
-    ee = { o, 2, 12, 1, vector_old_empty(enrs_sub_entry) };
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_QWORD);
-    vector_old_enrs_sub_entry_append(&ee.sub, 0, 1, ENRS_DWORD);
-    vector_old_enrs_entry_push_back(&e, &ee);
+    ee = { o, 2, 12, 1 };
+    ee.sub.push_back({ 0, 1, ENRS_QWORD });
+    ee.sub.push_back({ 0, 1, ENRS_DWORD });
+    e.vec.push_back(ee);
     l += o = 12;
 
     l = align_val(l, 0x10);
-    d = (size_t)force_malloc(l);
-    st->length = l;
-    st->data = (void*)d;
+    st->data.resize(l);
+    d = (size_t)st->data.data();
     st->enrs = e;
 
     flags = a3->data.flags;

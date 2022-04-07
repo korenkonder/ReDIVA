@@ -12,7 +12,7 @@
 #include "scene.h"
 
 GltParticleManager::GltParticleManager() :scene(), effect(), emitter(), particle(), rctx(),
-data(), bone_data(), sys_frame_rate(), flags(), scene_counter(), emission(1.5f), delta_frame(2.0f),
+bone_data(), frame_rate(), flags(), scene_load_counter(), emission(1.5f), delta_frame(2.0f),
 texture_counter(), random(), counter(), cam_projection(), cam_view(), cam_inv_view(), cam_inv_view_mat3(),
 cam_view_point(), cam_rotation_y(), draw_all(true), draw_all_mesh(true), draw_selected() {
     scenes.reserve(0x100);
@@ -24,14 +24,14 @@ GltParticleManager::~GltParticleManager() {
 }
 
 bool GltParticleManager::Init() {
-    this->sys_frame_rate = &::sys_frame_rate;
+    frame_rate = &sys_frame_rate;
     return true;
 }
 
 bool GltParticleManager::Ctrl() {
     if (flags & GLITTER_PARTICLE_MANAGER_READ_FILES) {
         for (std::vector<GlitterFileReader*>::iterator i = file_readers.begin(); i != file_readers.end();)
-            if (!*i || (*i)->ReadFarc(this, emission)) {
+            if (!*i || (*i)->ReadFarc(this)) {
                 delete* i;
                 i = file_readers.erase(i);
             }
@@ -42,8 +42,13 @@ bool GltParticleManager::Ctrl() {
             enum_and(flags, ~GLITTER_PARTICLE_MANAGER_READ_FILES);
     }
 
-    if (~flags & GLITTER_PARTICLE_MANAGER_PAUSE)
+    if (~flags & GLITTER_PARTICLE_MANAGER_PAUSE) {
+        if (frame_rate)
+            delta_frame = frame_rate->GetDeltaFrame();
+        else
+            delta_frame = get_delta_frame();
         CtrlScenes();
+    }
     return false;
 }
 
@@ -104,7 +109,7 @@ void GltParticleManager::BasicEffectGroups() {
 }
 
 uint64_t GltParticleManager::CalculateHash(const char* str) {
-    return hash_utf8_fnv1a64m(str, false);
+    return hash_utf8_fnv1a64m(str);
 }
 
 bool GltParticleManager::CheckNoFileReaders(uint64_t hash) {
@@ -122,25 +127,25 @@ bool GltParticleManager::CheckNoFileReaders(uint64_t hash) {
 }
 
 void GltParticleManager::CtrlScenes() {
-    delta_frame = get_delta_frame();
-    if (sys_frame_rate)
-        delta_frame *= sys_frame_rate->frame_speed;
-
     for (std::vector<GlitterScene*>::iterator i = scenes.begin(); i != scenes.end();) {
-        if (!*i || (*i)->HasEnded(true)) {
-            delete* i;
+        GlitterScene* scene = *i;
+        if (!scene || scene->HasEnded(true)) {
+            delete scene;
             i = scenes.erase(i);
         }
 #if defined(CRE_DEV)
-        else if (~(*i)->flags & GLITTER_SCENE_EDITOR) {
-            (*i)->Ctrl(this, delta_frame);
+        else if (~scene->flags & GLITTER_SCENE_EDITOR) {
+            float_t delta_frame = this->delta_frame;
+            if (scene->frame_rate)
+                delta_frame *= scene->frame_rate->frame_speed;
+            scene->Ctrl(this, delta_frame);
             i++;
         }
         else
             i++;
 #else
         else {
-            (*i)->Ctrl(this, delta_frame);
+            scene->Ctrl(this, delta_frame);
             i++;
         }
 #endif
@@ -168,24 +173,25 @@ void GltParticleManager::FreeEffects() {
     file_readers.clear();
 }
 
-void GltParticleManager::FreeSceneEffect(GlitterSceneCounter scene_counter, uint64_t hash) {
+void GltParticleManager::FreeSceneEffect(GlitterSceneCounter scene_counter, uint64_t hash, bool force_kill) {
     if (scene_counter) {
         for (std::vector<GlitterScene*>::iterator i = scenes.begin(); i != scenes.end();) {
-            if (!*i || scene_counter.counter != (*i)->counter.counter) {
+            GlitterScene* scene = *i;
+            if (!scene || scene_counter.counter != scene->counter.counter) {
                 i++;
                 continue;
             }
 
             if (!scene_counter.index || scene_counter.index
-                && ((*i)->FreeEffect(this, scene_counter.index, true), (*i)->HasEnded(false))) {
-                delete* i;
+                && (scene->FreeEffect(this, scene_counter.index, force_kill), scene->HasEnded(false))) {
+                delete scene;
                 i = scenes.erase(i);
             }
         }
     }
     else if (hash != hash_fnv1a64m_empty && hash != hash_murmurhash_empty) {
         for (GlitterScene*& i : scenes)
-            if (i && i->FreeEffect(this, hash, true))
+            if (i && i->FreeEffect(this, hash, force_kill))
                 break;
     }
 }
@@ -244,9 +250,9 @@ bool GltParticleManager::GetPause() {
     return flags & GLITTER_PARTICLE_MANAGER_PAUSE ? true : false;
 }
 
-GlitterScene* GltParticleManager::GetScene(uint64_t effect_group_hash) {
+GlitterScene* GltParticleManager::GetScene(uint64_t hash) {
     for (GlitterScene*& i : scenes)
-        if (i && i->hash == effect_group_hash)
+        if (i && i->hash == hash)
             return i;
     return 0;
 }
@@ -332,15 +338,15 @@ float_t GltParticleManager::GetSceneFrameLifeTime(GlitterSceneCounter scene_coun
 }
 
 GlitterSceneCounter GltParticleManager::GetSceneCounter(uint8_t index) {
-    if (scene_counter + 1 < 0xFFFFFF && (~flags & GLITTER_PARTICLE_MANAGER_RESET_SCENE_COUNTER)) {
-        scene_counter++;
-        return GlitterSceneCounter(index, scene_counter);
+    if (scene_load_counter + 1 < 0xFFFFFF && (~flags & GLITTER_PARTICLE_MANAGER_RESET_SCENE_COUNTER)) {
+        scene_load_counter++;
+        return GlitterSceneCounter(index, scene_load_counter);
     }
 
     if (scenes.size()) {
         enum_and(flags, ~GLITTER_PARTICLE_MANAGER_RESET_SCENE_COUNTER);
-        scene_counter = 1;
-        return GlitterSceneCounter(index, scene_counter);
+        scene_load_counter = 1;
+        return GlitterSceneCounter(index, scene_load_counter);
     }
 
     uint32_t counter = 0;
@@ -356,7 +362,7 @@ GlitterSceneCounter GltParticleManager::GetSceneCounter(uint8_t index) {
         for (uint32_t v7 = 1; ; v7++) {
             bool found = false;
             for (GlitterScene*& i : scenes)
-                if (i && scene_counter == i->counter) {
+                if (i && scene_load_counter == i->counter) {
                     found = true;
                     break;
                 }
@@ -406,7 +412,7 @@ GlitterSceneCounter GltParticleManager::Load(uint64_t effect_group_hash, uint64_
         return GlitterSceneCounter(0);
 
     GlitterEffectGroup* eff_group = elem->second;
-    if (eff_group->field_3C)
+    if (eff_group->not_loaded)
         return GlitterSceneCounter(0);
 
     if (use_existing)
@@ -438,10 +444,11 @@ GlitterSceneCounter GltParticleManager::Load(uint64_t effect_group_hash, uint64_
         return GlitterSceneCounter(0);
 
     int32_t id = 1;
-    if (effect_hash == hash_fnv1a64m_empty || effect_hash == hash_murmurhash_empty)
+    if (effect_hash == hash_fnv1a64m_empty || effect_hash == hash_murmurhash_empty) {
         for (glitter_effect*& i : eff_group->effects)
             if (i)
                 scene->InitEffect(this, i, id++, false);
+    }
     else
         for (glitter_effect*& i : eff_group->effects) {
             if (!i)
@@ -457,17 +464,18 @@ GlitterSceneCounter GltParticleManager::Load(uint64_t effect_group_hash, uint64_
     return counter;
 }
 
-uint64_t GltParticleManager::LoadFile(GLT, const char* file, const char* path, float_t emission, bool init_scene) {
+uint64_t GltParticleManager::LoadFile(GLT, void* data, const char* file,
+    const char* path, float_t emission, bool init_scene, object_database* obj_db) {
     uint64_t effect_group_hash;
     uint64_t empty_hash;
     if (GLT_VAL == GLITTER_FT) {
-        effect_group_hash = hash_utf8_fnv1a64m(file, false);
+        effect_group_hash = hash_utf8_fnv1a64m(file);
         if (effect_group_hash == hash_fnv1a64m_empty)
             return effect_group_hash;
         empty_hash = hash_fnv1a64m_empty;
     }
     else {
-        effect_group_hash = hash_utf8_murmurhash(file, 0, false);
+        effect_group_hash = hash_utf8_murmurhash(file);
         if (effect_group_hash == hash_murmurhash_empty)
             return effect_group_hash;
         empty_hash = hash_murmurhash_empty;
@@ -499,7 +507,7 @@ uint64_t GltParticleManager::LoadFile(GLT, const char* file, const char* path, f
     if (!path)
         path = "rom/particle/";
 
-    if (!glitter_file_reader_load_farc(fr, path, file, effect_group_hash)) {
+    if (!fr->LoadFarc(data, path, file, effect_group_hash, obj_db)) {
         delete fr;
         return empty_hash;
     }
@@ -519,7 +527,7 @@ GlitterSceneCounter GltParticleManager::LoadScene(uint64_t effect_group_hash, ui
         return false;
 
     GlitterEffectGroup* eff_group = elem->second;
-    if (eff_group->field_3C)
+    if (eff_group->not_loaded)
         return false;
 
     GlitterScene* scene = 0;
@@ -571,12 +579,12 @@ GlitterSceneCounter GltParticleManager::LoadSceneEffect(uint64_t hash, bool appe
             }
 
         if (!found)
-            break;
+            continue;
 
         if (hash == hash_fnv1a64m_empty || hash == hash_murmurhash_empty)
             continue;
 
-        if (v8->field_3C)
+        if (v8->not_loaded)
             return GlitterSceneCounter(0);
 
         for (GlitterScene*& j : scenes)
@@ -680,6 +688,53 @@ void GltParticleManager::SetFrame(GlitterEffectGroup* effect_group,
             }
             else
                 s->Ctrl(this, delta_frame);
+    }
+}
+
+void GltParticleManager::SetSceneEffectName(uint64_t hash, uint64_t effect_hash, const char* name) {
+    if (hash == hash_fnv1a64m_empty || hash == hash_murmurhash_empty)
+        for (GlitterScene*& i : scenes) {
+            if (!i)
+                continue;
+
+            for (GlitterSceneEffect& j : i->effects)
+                if (j.disp && j.ptr && j.ptr->data.name_hash == effect_hash) {
+                    j.ptr->name = std::string(name);
+                    break;
+                }
+            break;
+        }
+    else
+        for (GlitterScene*& i : scenes) {
+            if (!i || i->hash != hash)
+                continue;
+
+            for (GlitterSceneEffect& j : i->effects)
+                if (j.disp && j.ptr && j.ptr->data.name_hash == effect_hash) {
+                    j.ptr->name = std::string(name);
+                    break;
+                }
+            break;
+        }
+}
+
+void GltParticleManager::SetSceneFrameRate(uint64_t hash, FrameRateControl* frame_rate) {
+    for (GlitterScene*& i : scenes)
+        if (i && i->hash == hash)
+            i->SetFrameRate(frame_rate);
+}
+
+void GltParticleManager::SetSceneName(uint64_t hash, const char* name) {
+    std::map<uint64_t, GlitterEffectGroup*>::iterator elem = effect_groups.find(hash);
+    if (elem != effect_groups.end())
+        elem->second->name = std::string(name);
+
+    for (GlitterScene*& i : scenes) {
+        if (!i || i->hash != hash)
+            continue;
+
+        i->name = std::string(name);
+        break;
     }
 }
 #endif

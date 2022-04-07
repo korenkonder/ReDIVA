@@ -3,12 +3,20 @@
     GitHub/GitLab: korenkonder
 */
 
+#include <list>
+#include <map>
+#include <vector>
 #include "object.h"
 #include "data.h"
 #include "gl_state.h"
 #include "shader_ft.h"
 #include "../KKdLib/hash.h"
 #include "../KKdLib/str_utils.h"
+
+typedef struct material_change_handler {
+    int32_t load_count;
+    material_change data;
+} material_change_handler;
 
 static bool obj_mesh_index_buffer_load(obj_mesh_index_buffer* buffer, obj_mesh* mesh);
 static GLuint obj_mesh_index_buffer_load_data(size_t size, void* data);
@@ -37,8 +45,9 @@ static void obj_skin_block_node_free(obj_skin_block_node* node);
 static size_t obj_vertex_flags_get_vertex_size(obj_vertex_flags flags);
 static size_t obj_vertex_flags_get_vertex_size_comp(obj_vertex_flags flags);
 
+std::map<uint32_t, material_change_handler> material_change_storage_data;
 std::vector<obj_set_handler> object_storage_data;
-std::vector<obj_set_handler> object_storage_data_modern;
+std::list<obj_set_handler> object_storage_data_modern;
 
 inline obj_material_shader_lighting_type obj_material_shader_get_lighting_type(
     obj_material_shader_flags* flags) {
@@ -161,7 +170,45 @@ void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
         }
 }
 
+void material_change_storage_load(const char* material_name) {
+    uint32_t name_hash = hash_utf8_murmurhash(material_name);
+    auto elem = material_change_storage_data.find(name_hash);
+    if (elem != material_change_storage_data.end()) {
+        elem->second.load_count++;
+        return;
+    }
+
+    elem = material_change_storage_data.insert({ name_hash, { } }).first;
+
+    material_change_handler* handler = &elem->second;
+    handler->data.blend_color = vec4u_identity;
+    handler->data.glow_intensity = 1.0f;
+    handler->data.incandescence = vec4u_identity;
+}
+
+material_change* material_change_storage_get(const char* material_name) {
+    uint32_t name_hash = hash_utf8_murmurhash(material_name);
+    auto elem = material_change_storage_data.find(name_hash);
+    if (elem != material_change_storage_data.end())
+        return &elem->second.data;
+    return 0;
+}
+
+void material_change_storage_unload(const char* material_name) {
+    uint32_t name_hash = hash_utf8_murmurhash(material_name);
+    auto elem = material_change_storage_data.find(name_hash);
+    if (elem == material_change_storage_data.end())
+        return;
+
+    material_change_handler* handler = &elem->second;
+    if (--handler->load_count > 0)
+        return;
+
+    material_change_storage_data.erase(elem);
+}
+
 inline void object_storage_init(object_database* obj_db) {
+    material_change_storage_data.clear();
     object_set_info* obj_set = obj_db->object_set.data();
     size_t count = obj_db->object_set.size();
     object_storage_data.resize(count);
@@ -169,6 +216,7 @@ inline void object_storage_init(object_database* obj_db) {
         object_storage_data[i].set_id = obj_set[i].id;
         object_storage_data[i].name = obj_set[i].name;
     }
+    object_storage_data_modern.clear();
 }
 
 inline obj* object_storage_get_obj(object_info obj_info) {
@@ -214,8 +262,41 @@ inline obj_set_handler* object_storage_get_obj_set_handler_by_index(size_t index
         return &object_storage_data[index];
 
     index -= object_storage_data.size();
-    if (index >= 0 && index < object_storage_data_modern.size())
-        return &object_storage_data_modern[index];
+    if (index >= 0 && index < object_storage_data_modern.size()) {
+        auto elem = object_storage_data_modern.begin();
+        std::advance(elem, index);
+        return &*elem;
+    }
+    return 0;
+}
+
+inline obj_material* object_storage_get_material(const char* name) {
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    for (obj_set_handler& i : object_storage_data) {
+        obj_set* set = i.obj_set;
+        if (!set)
+            continue;
+
+        for (int32_t j = 0; j < set->objects_count; j++) {
+            obj* obj = &set->objects[j];
+            for (int32_t k = 0; k < obj->materials_count; k++)
+                if (hash_utf8_murmurhash(obj->materials[k].material.name) == name_hash)
+                    return &obj->materials[k].material;
+        }
+    }
+
+    for (obj_set_handler& i : object_storage_data_modern) {
+        obj_set* set = i.obj_set;
+        if (!set)
+            continue;
+
+        for (int32_t j = 0; j < set->objects_count; j++) {
+            obj* obj = &set->objects[j];
+            for (int32_t k = 0; k < obj->materials_count; k++)
+                if (hash_utf8_murmurhash(obj->materials[k].material.name) == name_hash)
+                    return &obj->materials[k].material;
+        }
+    }
     return 0;
 }
 
@@ -230,9 +311,10 @@ inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* m
 
         for (int32_t j = 0; j < set->objects_count; j++)
             if (set->objects[j].id == obj_info.id) {
+                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
                 obj* obj = &set->objects[j];
                 for (int32_t k = 0; k < obj->meshes_count; k++)
-                    if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                    if (hash_utf8_murmurhash(obj->meshes[k].name) == mesh_name_hash)
                         return &obj->meshes[k];
                 return 0;
             }
@@ -249,9 +331,10 @@ inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* m
 
         for (int32_t j = 0; j < set->objects_count; j++)
             if (set->objects[j].id == obj_info.id) {
+                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
                 obj* obj = &set->objects[j];
                 for (int32_t k = 0; k < obj->meshes_count; k++)
-                    if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                    if (hash_utf8_murmurhash(obj->meshes[k].name) == mesh_name_hash)
                         return &obj->meshes[k];
                 return 0;
             }
@@ -307,9 +390,10 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
 
         for (int32_t j = 0; j < set->objects_count; j++)
             if (set->objects[j].hash == hash) {
+                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
                 obj* obj = &set->objects[j];
                 for (int32_t k = 0; k < obj->meshes_count; k++)
-                    if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                    if (hash_utf8_murmurhash(obj->meshes[k].name) == mesh_name_hash)
                         return &obj->meshes[k];
                 return 0;
             }
@@ -323,9 +407,10 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
 
         for (int32_t j = 0; j < set->objects_count; j++)
             if (set->objects[j].hash == hash) {
+                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
                 obj* obj = &set->objects[j];
                 for (int32_t k = 0; k < obj->meshes_count; k++)
-                    if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                    if (hash_utf8_murmurhash(obj->meshes[k].name) == mesh_name_hash)
                         return &obj->meshes[k];
                 return 0;
             }
@@ -376,9 +461,10 @@ inline int32_t object_storage_get_obj_mesh_index(object_info obj_info, const cha
 
         for (int32_t j = 0; j < set->objects_count; j++)
             if (set->objects[j].id == obj_info.id) {
+                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
                 obj* obj = &set->objects[j];
                 for (int32_t k = 0; k < obj->meshes_count; k++)
-                    if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                    if (hash_utf8_murmurhash(obj->meshes[k].name) == mesh_name_hash)
                         return k;
                 return -1;
             }
@@ -395,9 +481,10 @@ inline int32_t object_storage_get_obj_mesh_index(object_info obj_info, const cha
 
         for (int32_t j = 0; j < set->objects_count; j++)
             if (set->objects[j].id == obj_info.id) {
+                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
                 obj* obj = &set->objects[j];
                 for (int32_t k = 0; k < obj->meshes_count; k++)
-                    if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                    if (hash_utf8_murmurhash(obj->meshes[k].name) == mesh_name_hash)
                         return k;
                 return -1;
             }
@@ -414,9 +501,10 @@ inline int32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const ch
 
         for (int32_t j = 0; j < set->objects_count; j++)
             if (set->objects[j].hash == hash) {
+                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
                 obj* obj = &set->objects[j];
                 for (int32_t k = 0; k < obj->meshes_count; k++)
-                    if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                    if (hash_utf8_murmurhash(obj->meshes[k].name) == mesh_name_hash)
                         return k;
                 return -1;
             }
@@ -429,9 +517,10 @@ inline int32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const ch
 
         for (int32_t j = 0; j < set->objects_count; j++)
             if (set->objects[j].hash == hash) {
+                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
                 obj* obj = &set->objects[j];
                 for (int32_t k = 0; k < obj->meshes_count; k++)
-                    if (!str_utils_compare(obj->meshes[k].name, mesh_name))
+                    if (hash_utf8_murmurhash(obj->meshes[k].name) == mesh_name_hash)
                         return k;
                 return -1;
             }
@@ -470,8 +559,11 @@ inline obj_set* object_storage_get_obj_set_by_index(size_t index) {
         return object_storage_data[index].obj_set;
 
     index -= object_storage_data.size();
-    if (index >= 0 && index < object_storage_data_modern.size())
-        return object_storage_data_modern[index].obj_set;
+    if (index >= 0 && index < object_storage_data_modern.size()) {
+        auto elem = object_storage_data_modern.begin();
+        std::advance(elem, index);
+        return elem->obj_set;
+    }
     return 0;
 }
 
@@ -480,8 +572,11 @@ inline int32_t object_storage_get_obj_storage_load_count_by_index(size_t index) 
         return object_storage_data[index].load_count;
 
     index -= object_storage_data.size();
-    if (index >= 0 && index < object_storage_data_modern.size())
-        return object_storage_data_modern[index].load_count;
+    if (index >= 0 && index < object_storage_data_modern.size()) {
+        auto elem = object_storage_data_modern.begin();
+        std::advance(elem, index);
+        return elem->load_count;
+    }
     return 0;
 }
 
@@ -490,9 +585,12 @@ inline size_t object_storage_get_obj_set_index(uint32_t set_id) {
         if (i.set_id == set_id)
             return &i - object_storage_data.data();
 
+    size_t index = 0;
     for (obj_set_handler& i : object_storage_data_modern)
         if (i.set_id == set_id)
-            return object_storage_data.size() + (&i - object_storage_data_modern.data());
+            return object_storage_data.size() + index;
+        else
+            index++;
     return -1;
 }
 
@@ -675,10 +773,14 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
     if (!hash || hash == hash_murmurhash_empty)
         return 1;
 
+    std::string file;
+    if (!((data_struct*)data)->get_file("rom/objset/", hash, &file))
+        return 1;
+
     obj_set_handler* handler = object_storage_get_obj_set_handler(hash);
     if (!handler) {
         object_storage_data_modern.push_back({});
-        handler = &object_storage_data_modern.end()[-1];
+        handler = &object_storage_data_modern.back();
         handler->set_id = hash;
     }
 
@@ -689,7 +791,7 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
 
     handler->modern = true;
     
-    handler->farc_file_handler.read_file(data, "rom/objset/", hash);
+    handler->farc_file_handler.read_file(data, "rom/objset/", file.c_str());
 
     handler->load_count = 1;
     handler->obj_loaded = false;
@@ -697,7 +799,8 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
     return 0;
 }
 
-bool object_storage_load_obj_set_check_not_read(uint32_t set_id) {
+bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
+    object_database* obj_db, texture_database* tex_db) {
     obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
     if (!handler)
         return true;
@@ -787,19 +890,25 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id) {
         if (!txi)
             return false;
 
-        object_database obj_db;
-        obj_db.read(osi->data, osi->size, true);
+        object_database local_obj_db;
+        local_obj_db.read(osi->data, osi->size, true);
 
-        texture_database tex_db;
-        tex_db.read(txi->data, txi->size, true);
+        texture_database local_tex_db;
+        local_tex_db.read(txi->data, txi->size, true);
 
         std::string name;
-        if (obj_db.ready)
-            for (object_set_info& m : obj_db.object_set)
+        if (local_obj_db.ready)
+            for (object_set_info& m : local_obj_db.object_set)
                 if (m.id == handler->set_id) {
                     name = m.name;
                     break;
                 }
+
+        if (obj_db)
+            obj_db->merge_mdata(obj_db, &local_obj_db);
+        
+        if (tex_db)
+            tex_db->merge_mdata(tex_db, &local_tex_db);
 
         if (!name.size())
             return false;
@@ -868,8 +977,7 @@ inline void object_storage_unload_set(uint32_t set_id) {
     handler->obj_file_handler.free_data();
     handler->farc_file_handler.free_data();
     if (handler->modern)
-        for (std::vector<obj_set_handler>::iterator i = object_storage_data_modern.begin();
-            i != object_storage_data_modern.end(); i++)
+        for (auto i = object_storage_data_modern.begin(); i != object_storage_data_modern.end(); i++)
             if (i->set_id = set_id) {
                 i = object_storage_data_modern.erase(i);
                 break;
@@ -877,10 +985,10 @@ inline void object_storage_unload_set(uint32_t set_id) {
 }
 
 inline void object_storage_free() {
+    material_change_storage_data.clear();
     object_storage_data.clear();
     object_storage_data.shrink_to_fit();
     object_storage_data_modern.clear();
-    object_storage_data_modern.shrink_to_fit();
 }
 
 static bool obj_mesh_index_buffer_load(obj_mesh_index_buffer* buffer, obj_mesh* mesh) {
@@ -1266,7 +1374,7 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, void* data, 
     texture** texture_data = handler->texture_data;
     for (int32_t i = 0; i < textures_count; i++) {
         handler->texture_ids.push_back({ texture_ids[i], i });
-        handler->textures.push_back(texture_data[i]->texture);
+        handler->textures.push_back(texture_data[i]->tex);
     }
     return false;
 }
@@ -1290,7 +1398,7 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler, void*
     texture** texture_data = handler->texture_data;
     for (int32_t i = 0; i < textures_count; i++) {
         handler->texture_ids.push_back({ texture_ids[i], i });
-        handler->textures.push_back(texture_data[i]->texture);
+        handler->textures.push_back(texture_data[i]->tex);
     }
     return false;
 }

@@ -44,7 +44,7 @@ void diva_read(diva* d, char* path) {
 }
 
 void diva_wread(diva* d, wchar_t* path) {
-    wchar_t* path_diva = str_utils_wadd(path, L".diva");
+    wchar_t* path_diva = str_utils_add(path, L".diva");
     stream s;
     io_open(&s, path_diva, L"rb");
     if (s.io.stream) {
@@ -107,7 +107,7 @@ void diva_wwrite(diva* d, wchar_t* path) {
     if (!data)
         return;
 
-    wchar_t* path_diva = str_utils_wadd(path, L".diva");
+    wchar_t* path_diva = str_utils_add(path, L".diva");
     stream s;
     io_open(&s, path_diva, L"wb");
     if (s.io.stream) {
@@ -164,7 +164,7 @@ void diva_dispose(diva* d) {
 static void diva_read_wav(diva* d, wchar_t* path, float_t** data) {
     *data = 0;
     size_t samples = 0;
-    wchar_t* path_av = str_utils_wadd(path, L".wav");
+    wchar_t* path_av = str_utils_add(path, L".wav");
     wav* w = wav_init();
     wav_wread(w, path_av, data, &samples);
     d->channels = w->channels;
@@ -175,7 +175,7 @@ static void diva_read_wav(diva* d, wchar_t* path, float_t** data) {
 }
 
 static void diva_write_wav(diva* d, wchar_t* path, float_t* data) {
-    wchar_t* path_av = str_utils_wadd(path, L".wav");
+    wchar_t* path_av = str_utils_add(path, L".wav");
     wav* w = wav_init();
     w->bytes = 4;
     w->channels = d->channels;
