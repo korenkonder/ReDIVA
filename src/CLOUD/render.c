@@ -38,7 +38,7 @@
 #include "../KKdLib/io/path.h"
 #include "../KKdLib/database/item_table.h"
 #include "classes/imgui_helper.h"
-#include "x_pv_player.h"
+#include "x_pv_game.h"
 #include <timeapi.h>
 
 #if defined(DEBUG)
@@ -575,7 +575,7 @@ static render_context* render_load() {
 
     task_auth_3d_append_task();
     TaskWork::AppendTask(&glt_particle_manager, "GLITTER_TASK", 2);
-    TaskWork::AppendTask(&x_pv_player_data, "X_PV_PLAYER", 0);
+    TaskWork::AppendTask(&x_pv_game_data, "x_pv_game", 0);
     task_rob_manager_append_task();
 
     aft_data->load_file(aft_data, "rom/", "chritm_prop.farc", item_table_array_load_file);
@@ -711,6 +711,10 @@ static render_context* render_load() {
     vec3 interest = { 0.0f, 1.0f, 0.0f };
     camera_set_interest(cam, &interest);
     //camera_set_fov(cam, 70.0);
+    view_point = { 0.0f, 1.375f, 1.0f };
+    camera_set_view_point(cam, &view_point);
+    interest = { 0.0f, 1.375f, 0.0f };
+    camera_set_interest(cam, &interest);
 
     imgui_context = ImGui::CreateContext(0);
     lock_init(&imgui_context_lock);
@@ -729,7 +733,7 @@ static render_context* render_load() {
     clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
     set_clear_color = true;
 
-    x_pv_player_data.Load(824, 24);
+    x_pv_game_data.Load(817, 17);
 
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
     shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
@@ -1159,7 +1163,7 @@ static void render_dispose(render_context* rctx) {
     ImGui::DestroyContext(imgui_context);
     lock_free(&imgui_context_lock);
 
-    x_pv_player_data.SetDest();
+    x_pv_game_data.SetDest();
     glt_particle_manager.SetDest();
 
     //rob_chara_array_free_chara_id(0);

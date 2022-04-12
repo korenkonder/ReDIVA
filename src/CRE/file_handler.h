@@ -59,7 +59,7 @@ public:
     ssize_t get_size();
     bool read_file(void* data, const char* path, const char* farc_file, const char* file, bool cache);
     bool read_file(void* data, const char* path, const char* file);
-    bool read_file(void* data, const char* path, uint32_t hash);
+    bool read_file(void* data, const char* path, uint32_t hash, const char* ext);
     void read_now();
     void set_read_free_func_data(int32_t index, void(* func)(void*, void*, size_t), void* data);
 };

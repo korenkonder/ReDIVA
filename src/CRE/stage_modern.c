@@ -691,8 +691,8 @@ stage_modern::~stage_modern() {
 
 }
 
-stage_detail::TaskStageModern::TaskStageModern() : state(), current_stage(), stage_display(),
-field_FB1(), field_FB2(), field_FB3(), field_FB4(), mat(), field_FF8(), data(), obj_db(), tex_db() {
+stage_detail::TaskStageModern::TaskStageModern() : state(), current_stage(), stage_display(), field_FB1(),
+field_FB2(), field_FB3(), field_FB4(), mat(), field_FF8(), data(), obj_db(), tex_db(), stage_data() {
 
 }
 

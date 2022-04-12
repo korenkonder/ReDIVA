@@ -20,6 +20,7 @@ size_t frame_counter = 0;
 
 bool select_frame_speed = false;
 float_t frame_speed = 1.0f;
+float_t target_anim_fps = 60.0f;
 float_t target_fps = 60.0f;
 float_t current_fps = 60.0f;
 
@@ -48,6 +49,10 @@ void sv_anisotropy_set(int32_t value) {
     sv_old_anisotropy = sv_anisotropy;
 }
 
+float_t get_anim_frame_speed() {
+    return 60.0f / target_anim_fps;
+}
+
 float_t get_delta_frame() {
     if (!select_frame_speed)
         return frame_speed;
@@ -58,6 +63,10 @@ float_t get_delta_frame() {
 
 uint32_t get_frame_counter() {
     return (uint32_t)frame_counter;
+}
+
+float_t get_target_anim_fps() {
+    return target_anim_fps;
 }
 
 void uniform_value_reset() {

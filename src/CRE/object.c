@@ -774,7 +774,7 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
         return 1;
 
     std::string file;
-    if (!((data_struct*)data)->get_file("rom/objset/", hash, &file))
+    if (!((data_struct*)data)->get_file("root+/objset/", hash, ".farc", &file))
         return 1;
 
     obj_set_handler* handler = object_storage_get_obj_set_handler(hash);
@@ -791,7 +791,7 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
 
     handler->modern = true;
     
-    handler->farc_file_handler.read_file(data, "rom/objset/", file.c_str());
+    handler->farc_file_handler.read_file(data, "root+/objset/", file.c_str());
 
     handler->load_count = 1;
     handler->obj_loaded = false;

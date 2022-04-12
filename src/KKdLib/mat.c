@@ -555,10 +555,26 @@ inline void mat3_from_mat4(mat4* x, mat3* z) {
     z->row2 = *(vec3*)&x->row2;
 }
 
+inline void mat3_from_mat4(mat4u* x, mat3* z) {
+    z->row0 = *(vec3*)&x->row0;
+    z->row1 = *(vec3*)&x->row1;
+    z->row2 = *(vec3*)&x->row2;
+}
+
 inline void mat3_from_mat4_inverse(mat4* x, mat3* z) {
     mat4 yt;
 
     mat4_inverse(x, &yt);
+    z->row0 = *(vec3*)&yt.row0;
+    z->row1 = *(vec3*)&yt.row1;
+    z->row2 = *(vec3*)&yt.row2;
+}
+
+inline void mat3_from_mat4_inverse(mat4u* x, mat3* z) {
+    mat4 yt;
+
+    yt = *x;
+    mat4_inverse(&yt, &yt);
     z->row0 = *(vec3*)&yt.row0;
     z->row1 = *(vec3*)&yt.row1;
     z->row2 = *(vec3*)&yt.row2;
@@ -1889,10 +1905,43 @@ inline void mat4_get_rotation(mat4* x, vec3* z) {
     }
 }
 
+inline void mat4_get_rotation(mat4u* x, vec3* z) {
+    if (-x->row0.z >= 1.0f)
+        z->y = (float_t)M_PI_2;
+    else if (-x->row0.z <= -1.0f)
+        z->y = (float_t)-M_PI_2;
+    else
+        z->y = asinf(-x->row0.z);
+
+    if (fabs(x->row0.z) < 0.99999899f) {
+        z->x = atan2f(x->row1.z, x->row2.z);
+        z->z = atan2f(x->row0.y, x->row0.x);
+    }
+    else {
+        z->x = 0.0f;
+        z->z = atan2f(x->row2.y, x->row1.y);
+        if (x->row0.z > 0.0f)
+            z->z = -z->z;
+    }
+}
+
 inline void mat4_get_scale(mat4* x, vec3* z) {
     vec4_length(x->row0, z->x);
     vec4_length(x->row1, z->y);
     vec4_length(x->row2, z->z);
+}
+
+inline void mat4_get_scale(mat4u* x, vec3* z) {
+    vec4 yt0;
+    vec4 yt1;
+    vec4 yt2;
+
+    yt0 = x->row0;
+    yt1 = x->row1;
+    yt2 = x->row2;
+    vec4_length(yt0, z->x);
+    vec4_length(yt1, z->y);
+    vec4_length(yt2, z->z);
 }
 
 inline void mat4_get_translation(mat4* x, vec3* z) {
@@ -1984,6 +2033,52 @@ inline void mat4_blend_rotation(mat4u* x, mat4u* y, mat4u* z, float_t blend) {
 }
 
 void mat4_lerp_rotation(mat4* dst, mat4* src0, mat4* src1, float_t blend) {
+    vec3 m0;
+    vec3 m1;
+    vec3_lerp_scalar(*(vec3*)&src0->row0, *(vec3*)&src1->row0, m0, blend);
+    vec3_lerp_scalar(*(vec3*)&src0->row1, *(vec3*)&src1->row1, m1, blend);
+
+    float_t m0_len_sq;
+    float_t m1_len_sq;
+    vec3_length_squared(m0, m0_len_sq);
+    vec3_length_squared(m1, m1_len_sq);
+
+    if (m0_len_sq <= 0.000001f || m1_len_sq <= 0.000001f) {
+        *dst = *src1;
+        return;
+    }
+
+    vec3 m2;
+    vec3_cross(m0, m1, m2);
+    vec3_cross(m2, m0, m1);
+
+    float_t m2_len_sq;
+    vec3_length_squared(m1, m1_len_sq);
+    vec3_length_squared(m2, m2_len_sq);
+    if (m2_len_sq <= 0.000001f || m1_len_sq <= 0.000001) {
+        *dst = *src1;
+        return;
+    }
+
+    float_t m0_len = sqrtf(m0_len_sq);
+    if (m0_len != 0.0f)
+        vec3_div_scalar(m0, 1.0f / m0_len, m0);
+
+    float_t m1_len = sqrtf(m1_len_sq);
+    if (m1_len != 0.0f)
+        vec3_div_scalar(m1, 1.0f / m1_len, m1);
+
+    float_t m2_len = sqrtf(m2_len_sq);
+    if (m2_len != 0.0f)
+        vec3_div_scalar(m2, 1.0f / m2_len, m2);
+
+    *dst = mat4_identity;
+    *(vec3*)&dst->row0 = m0;
+    *(vec3*)&dst->row1 = m1;
+    *(vec3*)&dst->row2 = m2;
+}
+
+void mat4_lerp_rotation(mat4u* dst, mat4u* src0, mat4u* src1, float_t blend) {
     vec3 m0;
     vec3 m1;
     vec3_lerp_scalar(*(vec3*)&src0->row0, *(vec3*)&src1->row0, m0, blend);

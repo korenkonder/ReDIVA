@@ -192,7 +192,7 @@ extern render_context* rctx_ptr;
 
 auth_3d::auth_3d() : uid(), id(), mat(), enable(), camera_root_update(), visible(), repeat(),
 ended(), left_right_reverse(), once(), alpha(), chara_id(), shadow(), frame_rate(), frame(),
-req_frame(), max_frame(), frame_changed(), frame_offset(), last_frame(), paused(), frame_int() {
+req_frame(), max_frame(), frame_changed(), frame_offset(), last_frame(), paused() {
     hash = hash_murmurhash_empty;
     reset();
 }
@@ -266,11 +266,6 @@ void auth_3d::ctrl(render_context* rctx) {
             if (max_frame >= 0.0f && frame > max_frame)
                 frame = max_frame;
         }
-
-        float_t frame = this->frame;
-
-        frame_int = (int32_t)frame;
-        frame = (float_t)frame_int;
 
         for (auth_3d_point& i : point)
             auth_3d_point_ctrl(&i, frame);
@@ -372,6 +367,9 @@ void auth_3d::ctrl(render_context* rctx) {
 }
 
 void auth_3d::disp(render_context* rctx) {
+    if (state != 2 || !enable)
+        return;
+
     mat4 mat = this->mat;
 
     for (auth_3d_point& i : point)
@@ -639,7 +637,7 @@ void auth_3d::load_from_farc(farc* f, const char* file,
     if (t)
         l_len = t - l_str;
 
-    uint32_t h = hash_murmurhash(l_str, l_len, 0, false, false);
+    uint32_t h = hash_murmurhash(l_str, l_len);
 
     a3da a;
     a.read(ff->data, ff->size);
@@ -3795,7 +3793,7 @@ static void auth_3d_object_model_transform_load(auth_3d* auth,
     omt->rotation_value = vec3_null;
     omt->scale_value = vec3_identity;
     omt->visible = false;
-    omt->frame = 0.0f;
+    omt->frame = -1.0f;
     omt->has_rotation = false;
     omt->has_translation = false;
     omt->has_scale = false;
@@ -4359,7 +4357,7 @@ static void auth_3d_farc_read_file_modern(auth_3d_farc* a3da_farc, void* data) {
     }
 
     a3da_farc->state = 1;
-    a3da_farc->path = std::string("rom/auth_3d/");
+    a3da_farc->path = std::string("root+/auth_3d/");
     a3da_farc->file = std::string(a3da_farc->name) + ".farc";
 
 

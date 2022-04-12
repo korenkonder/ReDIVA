@@ -1194,6 +1194,7 @@ public:
     virtual void Field_50() override;
     virtual void Field_58();
 
+    void AddMotionResetData(int32_t motion_id, float_t frame);
     float_t* LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count);
     void SetMotionResetData(int32_t motion_id, float_t frame);
     void SetOsageReset();
@@ -1493,6 +1494,7 @@ public:
     virtual void Field_50() override;
     virtual void Field_58() override;
 
+    void AddMotionResetData(int32_t motion_id, float_t frame);
     void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_osage* osg_data,
         const char* osg_data_name, obj_skin_osage_node* osg_nodes, bone_node* bone_nodes,
         bone_node* ex_data_bone_nodes, obj_skin* skin);
@@ -2689,6 +2691,7 @@ public:
     bool field_D;
     chara_index chara_index;
     int32_t module_index;
+    float_t frame_speed;
     rob_chara_bone_data* bone_data;
     rob_chara_item_equip* item_equip;
     rob_chara_item_cos_data item_cos_data;
@@ -2731,10 +2734,33 @@ extern void rob_chara_load_motion(rob_chara* rob_chr, int32_t motion_id, bool a3
     MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
 extern void rob_chara_reset_data(rob_chara* rob_chr, rob_chara_pv_data* pv_data,
     bone_database* bone_data, motion_database* mot_db);
+extern void rob_chara_set_eyelid_mottbl_motion_from_face(rob_chara* rob_chr,
+    int32_t a2, float_t duration, float_t value, float_t offset, motion_database* mot_db);
+extern void rob_chara_set_eyes_mottbl_motion(rob_chara* rob_chr,
+    int32_t type, int32_t mottbl_index, float_t value, int32_t state, float_t duration,
+    float_t a7, float_t step, int32_t a9, float_t offset, motion_database* mot_db);
+extern void rob_chara_set_face_mottbl_motion(rob_chara* rob_chr,
+    int32_t type, int32_t mottbl_index, float_t value, int32_t state, float_t duration,
+    float_t a7, float_t step, int32_t a9, float_t offset, bool a11, motion_database* mot_db);
 extern void rob_chara_set_frame(rob_chara* rob_chr, float_t frame);
+extern void rob_chara_set_hand_l_mottbl_motion(rob_chara* rob_chr,
+    int32_t type, int32_t mottbl_index, float_t value, int32_t state, float_t duration,
+    float_t a7, float_t step, int32_t a9, float_t offset, motion_database* mot_db);
+extern void rob_chara_set_hand_r_mottbl_motion(rob_chara* rob_chr,
+    int32_t type, int32_t mottbl_index, float_t value, int32_t state, float_t duration,
+    float_t a7, float_t step, int32_t a9, float_t offset, motion_database* mot_db);
 extern bool rob_chara_set_motion_id(rob_chara* rob_chr, int32_t motion_id,
     float_t frame, float_t duration, bool a5, bool set_motion_reset_data,
     MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
+extern void rob_chara_set_motion_reset_data(rob_chara* rob_chr, int32_t motion_id, float_t frame);
+extern void rob_chara_set_motion_skin_param(rob_chara* rob_chr, int32_t motion_id, float_t frame);
+extern void rob_chara_set_mouth_mottbl_motion(rob_chara* rob_chr,
+    int32_t type, int32_t mottbl_index, float_t value, int32_t state, float_t duration,
+    float_t a7, float_t step, int32_t a9, float_t offset, motion_database* mot_db);
+extern void rob_chara_set_osage_move_cancel(rob_chara* rob_chr, uint8_t id, float_t value);
+extern void rob_chara_set_osage_reset(rob_chara* rob_chr);
+extern void rob_chara_set_osage_step(rob_chara* rob_chr, float_t value);
+extern void rob_chara_set_parts_disp(rob_chara* rob_chr, item_id id, bool disp);
 extern void rob_chara_set_visibility(rob_chara* rob_chr, bool value);
 
 extern void rob_chara_array_init();
@@ -2745,6 +2771,8 @@ extern void rob_chara_array_free_chara_id(int32_t chara_id);
 extern void rob_chara_array_free();
 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
+
+extern int32_t rob_cmn_mottbl_get_motion_id(rob_chara* rob_chr, int32_t id);
 
 extern void rob_mot_tbl_init();
 extern void rob_mot_tbl_free();

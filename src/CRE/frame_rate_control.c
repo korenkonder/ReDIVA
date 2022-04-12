@@ -31,7 +31,7 @@ SysFrameRate::~SysFrameRate() {
 }
 
 float_t SysFrameRate::GetDeltaFrame() {
-    return get_delta_frame() * frame_speed;
+    return get_delta_frame() * get_anim_frame_speed() * frame_speed;
 }
 
 DivaPvFrameRate::DivaPvFrameRate() {
@@ -43,7 +43,7 @@ DivaPvFrameRate::~DivaPvFrameRate() {
 }
 
 float_t DivaPvFrameRate::GetDeltaFrame() {
-    return get_delta_frame() * frame_speed;
+    return get_delta_frame() * get_anim_frame_speed() * frame_speed;
 }
 
 DivaStageFrameRate::DivaStageFrameRate() {
@@ -55,5 +55,5 @@ DivaStageFrameRate::~DivaStageFrameRate() {
 }
 
 float_t DivaStageFrameRate::GetDeltaFrame() {
-    return get_delta_frame() * frame_speed;
+    return get_delta_frame() * get_anim_frame_speed() * frame_speed;
 }

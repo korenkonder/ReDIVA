@@ -24,7 +24,8 @@ load_count(), type(), path(), file(), state(), init_scene(), obj_db() {
 
 GlitterFileReader::GlitterFileReader(GLT, char* path, char* file, float_t emission)
     : effect_group(), load_count() {
-    this->path = std::string(path ? path : "rom/particle/");
+    this->path = std::string(path ? path
+        : (GLT_VAL != GLITTER_FT ? "root+/particle/" : "rom/particle/"));
     this->file = std::string(file);
     this->emission = emission;
     this->type = GLT_VAL;
@@ -37,7 +38,8 @@ GlitterFileReader::GlitterFileReader(GLT, wchar_t* path, wchar_t* file, float_t 
     : effect_group(), load_count() {
     char* path_temp = utf16_to_utf8(path);
     char* file_temp = utf16_to_utf8(file);
-    this->path = std::string(path_temp ? path_temp : "rom/particle/");
+    this->path = std::string(path_temp ? path_temp
+        : (GLT_VAL != GLITTER_FT ? "root+/particle/" : "rom/particle/"));
     this->file = std::string(file_temp);
     this->emission = emission;
     this->type = GLT_VAL;

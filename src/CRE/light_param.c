@@ -145,7 +145,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
     else if (a1->state == 3) {
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "light_pv%03d.farc", a1->pv_id);
-        if (a1->farc_file_handler.read_file(rctx_ptr->data, "./rom/light_param/", buf))
+        if (a1->farc_file_handler.read_file(rctx_ptr->data, "rom/light_param/", buf))
             a1->state = 4;
         else {
             a1->farc_file_handler.free_data();
@@ -420,27 +420,27 @@ static void light_param_data_load_pv_cut_file_names(light_param_data* light_para
     light_param->name = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "%s.ibl", light_param->name.c_str());
-    light_param->paths[0] = std::string("./rom/ibl/");
+    light_param->paths[0] = std::string("rom/ibl/");
     light_param->files[0] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "light_%s.txt", light_param->name.c_str());
-    light_param->paths[1] = std::string("./rom/light_param/");
+    light_param->paths[1] = std::string("rom/light_param/");
     light_param->files[1] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "fog_%s.txt", light_param->name.c_str());
-    light_param->paths[2] = std::string("./rom/light_param/");
+    light_param->paths[2] = std::string("rom/light_param/");
     light_param->files[2] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "glow_%s.txt", light_param->name.c_str());
-    light_param->paths[3] = std::string("./rom/light_param/");
+    light_param->paths[3] = std::string("rom/light_param/");
     light_param->files[3] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "wind_%s.txt", light_param->name.c_str());
-    light_param->paths[4] = std::string("./rom/light_param/");
+    light_param->paths[4] = std::string("rom/light_param/");
     light_param->files[4] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "face_%s.txt", light_param->name.c_str());
-    light_param->paths[5] = std::string("./rom/light_param/");
+    light_param->paths[5] = std::string("rom/light_param/");
     light_param->files[5] = std::string(buf);
 }
 
@@ -450,27 +450,27 @@ void light_param_data_load_stage_file_names(light_param_data* light_param, std::
     light_param->name = *name;
 
     sprintf_s(buf, sizeof(buf), "%s.ibl", light_param->name.c_str());
-    light_param->paths[0] = std::string("./rom/ibl/");
+    light_param->paths[0] = std::string("rom/ibl/");
     light_param->files[0] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "light_%s.txt", light_param->name.c_str());
-    light_param->paths[1] = std::string("./rom/light_param/");
+    light_param->paths[1] = std::string("rom/light_param/");
     light_param->files[1] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "fog_%s.txt", light_param->name.c_str());
-    light_param->paths[2] = std::string("./rom/light_param/");
+    light_param->paths[2] = std::string("rom/light_param/");
     light_param->files[2] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "glow_%s.txt", light_param->name.c_str());
-    light_param->paths[3] = std::string("./rom/light_param/");
+    light_param->paths[3] = std::string("rom/light_param/");
     light_param->files[3] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "wind_%s.txt", light_param->name.c_str());
-    light_param->paths[4] = std::string("./rom/light_param/");
+    light_param->paths[4] = std::string("rom/light_param/");
     light_param->files[4] = std::string(buf);
 
     sprintf_s(buf, sizeof(buf), "face_%s.txt", light_param->name.c_str());
-    light_param->paths[5] = std::string("./rom/light_param/");
+    light_param->paths[5] = std::string("rom/light_param/");
     light_param->files[5] = std::string(buf);
 }
 

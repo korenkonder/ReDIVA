@@ -105,7 +105,8 @@ void GlitterXEmitterInst::Ctrl(GPM, GlitterXEffectInst* a2, float_t delta_frame)
         has_dist = true;
     }
 
-    mat4_translate_mult(&a2->mat, trans.x, trans.y, trans.z, &mat);
+    mat = a2->mat;
+    mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
     mat4_normalize_rotation(&mat, &mat);
 
     if (data.direction == GLITTER_DIRECTION_EFFECT_ROTATION)
@@ -119,7 +120,8 @@ void GlitterXEmitterInst::Ctrl(GPM, GlitterXEffectInst* a2, float_t delta_frame)
     switch (data.direction) {
     case GLITTER_DIRECTION_BILLBOARD:
         if (a2->data.flags & GLITTER_EFFECT_LOCAL) {
-            mat4_clear_trans(&GPM_VAL->cam_view, &mat1);
+            mat1 = GPM_VAL->cam_view;
+            mat4_clear_trans(&mat1, &mat1);
             mat4_mult(&mat1, &mat, &mat1);
         }
         else
@@ -197,20 +199,22 @@ void GlitterXEmitterInst::CtrlInit(GlitterXEffectInst* a2, float_t delta_frame) 
     if (data.timer == GLITTER_EMITTER_TIMER_BY_DISTANCE && flags & GLITTER_EMITTER_INST_HAS_DISTANCE) {
         vec3 trans_prev;
         mat4 mat;
-        mat4 mat_ext_anim;
+        mat4 mat_rot;
 
         if (data.direction == GLITTER_DIRECTION_EFFECT_ROTATION)
-            mat_ext_anim = a2->mat_rot_eff_rot;
+            mat_rot = a2->mat_rot_eff_rot;
         else
-            mat_ext_anim = a2->mat_rot;
+            mat_rot = a2->mat_rot;
 
         mat4_get_translation(&mat, &trans_prev);
         vec3 trans = translation;
         vec3 rot = rotation;
-        mat4_translate_mult(&a2->mat, trans.x, trans.y, trans.z, &mat);
+        mat = a2->mat;
+        mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
         mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_rot(&mat_ext_anim, rot.x, rot.y, rot.z, &mat_rot);
+        mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
         this->mat = mat;
+        this->mat_rot = mat_rot;
 
         float_t trans_dist;
         mat4_get_translation(&mat, &trans);

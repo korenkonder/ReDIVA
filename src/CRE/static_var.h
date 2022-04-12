@@ -109,6 +109,8 @@ extern const mat3 sv_rgb_to_ypbpr;
 extern const mat3 sv_ypbpr_to_rgb;
 
 extern void sv_anisotropy_set(int32_t value);
+extern float_t get_anim_frame_speed();
 extern float_t get_delta_frame();
 extern uint32_t get_frame_counter();
+extern float_t get_target_anim_fps();
 extern void uniform_value_reset();

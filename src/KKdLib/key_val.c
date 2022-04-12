@@ -136,7 +136,7 @@ void key_val::parse(uint8_t* data, size_t length) {
         size_t key_length = c - s;
         size_t val_length = len - (key_length + 1);
 
-        uint64_t key_hash = hash_fnv1a64m((uint8_t*)key_str_data, key_length, false);
+        uint64_t key_hash = hash_fnv1a64m(key_str_data, key_length);
 
         key.push_back(key_str_data);
         key_len.push_back(key_length);
@@ -433,7 +433,7 @@ static ssize_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
     if (kv->key_hash.size() < 1)
         return -1;
 
-    uint64_t hash = hash_fnv1a64m((uint8_t*)str, length, false);
+    uint64_t hash = hash_fnv1a64m(str, length);
 
     std::vector<uint64_t>::iterator key = kv->key_hash.begin();
     size_t len = kv->key.size();
@@ -476,7 +476,7 @@ static void key_val_sort(key_val* kv) {
     size_t* key_index = kv->key_index.data();
     for (size_t i = 0; i < count; i++) {
         *key_index++ = i;
-        *key_hash++ = hash_fnv1a64m((uint8_t*)*key++, *key_len++, false);
+        *key_hash++ = hash_fnv1a64m((uint8_t*)*key++, *key_len++);
     }
 
     if (count < 2)

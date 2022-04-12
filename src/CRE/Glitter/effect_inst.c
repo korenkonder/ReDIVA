@@ -93,7 +93,7 @@ GlitterF2EffectInst::GlitterF2EffectInst(GPM, GLT, glitter_effect* a1,
         ext_anim = inst_ext_anim;
         enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM);
         enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
-        enum_or(flags, GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT);
+        enum_or(flags, GLITTER_EFFECT_INST_GET_EXT_ANIM_MAT);
     }
 
     glitter_random_set_value(random_ptr,
@@ -196,7 +196,23 @@ bool GlitterF2EffectInst::HasEnded(bool a2) {
 
 void GlitterF2EffectInst::Reset(GPM, GLT, float_t emission) {
     frame0 = -(float_t)data.appear_time;
+
     flags = (glitter_effect_inst_flag)0;
+    if (~data.flags & GLITTER_EFFECT_LOCAL && data.ext_anim) {
+        if (ext_anim) {
+            glitter_effect_ext_anim* ext_anim = data.ext_anim;
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_SET_ONCE)
+                enum_or(flags, GLITTER_EFFECT_INST_SET_EXT_ANIM_ONCE);
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY)
+                enum_or(flags, GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY);
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM)
+                enum_or(flags, GLITTER_EFFECT_INST_CHARA_ANIM);
+        }
+        enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM);
+        enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
+        enum_or(flags, GLITTER_EFFECT_INST_GET_EXT_ANIM_MAT);
+    }
+
     for (GlitterF2EmitterInst*& i : emitters)
         if (i)
             i->Reset();
@@ -329,7 +345,7 @@ static void GlitterEffectInst__get_ext_anim(GlitterF2EffectInst* a1) {
         goto SetFlags;
     }
 
-    if (~a1->flags & GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT) {
+    if (~a1->flags & GLITTER_EFFECT_INST_GET_EXT_ANIM_MAT) {
         if (inst_ext_anim->mesh_index == -1) {
             if (!inst_ext_anim->mesh_name)
                 return;

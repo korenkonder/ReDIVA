@@ -5,6 +5,7 @@
 
 #include "dsc.h"
 #include "f2/struct.h"
+#include "hash.h"
 #include "sort.h"
 #include "str_utils.h"
 
@@ -123,7 +124,7 @@ static const dsc_func_ac dsc_ac_func[] = {
     { 68, 1, 1, "MOVIE_DISP" },
     { 69, 3, 3, "WIND" },
     { 70, 3, 3, "OSAGE_STEP" },
-    { 71, 3, 3, "OSAGE_MV_CC" },
+    { 71, 3, 3, "OSAGE_MV_CCL" },
     { 72, 2, 2, "CHARA_COLOR" },
     { 73, 1, 1, "SE_EFFECT" },
     { 74, 9, 9, "EDIT_MOVE_XYZ" },
@@ -233,7 +234,7 @@ static const dsc_func_ac dsc_f_func[] = {
     { 68, 1, 1, "MOVIE_DISP" },
     { 69, 3, 3, "WIND" },
     { 70, 3, 3, "OSAGE_STEP" },
-    { 71, 3, 3, "OSAGE_MV_CC" },
+    { 71, 3, 3, "OSAGE_MV_CCL" },
     { 72, 2, 2, "CHARA_COLOR" },
     { 73, 1, 1, "SE_EFFECT" },
     { 74, 9, 9, "EDIT_MOVE_XYZ" },
@@ -320,7 +321,7 @@ static const dsc_func dsc_f2_func[] = {
     { 68, 1, "MOVIE_DISP" },
     { 69, 3, "WIND" },
     { 70, 3, "OSAGE_STEP" },
-    { 71, 3, "OSAGE_MV_CC" },
+    { 71, 3, "OSAGE_MV_CCL" },
     { 72, 2, "CHARA_COLOR" },
     { 73, 1, "SE_EFFECT" },
     { 74, 9, "EDIT_MOVE_XYZ" },
@@ -434,7 +435,7 @@ static const dsc_func dsc_mgf_func[] = {
     { 68, 1, "MOVIE_DISP" },
     { 69, 3, "WIND" },
     { 70, 3, "OSAGE_STEP" },
-    { 71, 3, "OSAGE_MV_CC" },
+    { 71, 3, "OSAGE_MV_CCL" },
     { 72, 2, "CHARA_COLOR" },
     { 73, 1, "SE_EFFECT" },
     { 74, 9, "EDIT_MOVE_XYZ" },
@@ -548,7 +549,7 @@ static const dsc_func dsc_x_func[] = {
     { 68, 1, "MOVIE_DISP" },
     { 69, 3, "WIND" },
     { 70, 3, "OSAGE_STEP" },
-    { 71, 3, "OSAGE_MV_CC" },
+    { 71, 3, "OSAGE_MV_CCL" },
     { 72, 2, "CHARA_COLOR" },
     { 73, 1, "SE_EFFECT" },
     { 74, 2, "CHARA_SHADOW_QUALITY" },
@@ -714,7 +715,7 @@ static const dsc_func dsc_vrfl_func[] = {
     { 68, 1, "MOVIE_DISP" },
     { 69, 3, "WIND" },
     { 70, 3, "OSAGE_STEP" },
-    { 71, 3, "OSAGE_MV_CC" },
+    { 71, 3, "OSAGE_MV_CCL" },
     { 72, 2, "CHARA_COLOR" },
     { 73, 1, "SE_EFFECT" },
     { 74, 2, "CHARA_SHADOW_QUALITY" },
@@ -857,162 +858,185 @@ const int32_t dsc_x_func_count = DSC_X_FUNC_COUNT;
 const int32_t dsc_vrfl_func_count = DSC_VRFL_FUNC_COUNT;
 
 inline int32_t dsc_ac101_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AC101_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_ac101_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_ac101_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac110_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AC110_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_ac110_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_ac110_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac120_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AC120_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_ac120_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_ac120_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac200_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AC200_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_ac200_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_ac200_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac210_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AC210_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_ac210_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_ac210_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac500_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AC500_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_ac500_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_ac500_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac510_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AC510_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_ac510_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_ac510_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft101_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AFT101_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_aft101_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_aft101_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft200_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AFT200_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_aft200_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_aft200_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft300_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AFT300_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_aft300_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_aft300_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft310_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AFT310_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_aft310_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_aft310_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft410_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AFT410_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_aft410_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_aft410_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft701_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_AFT701_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_aft701_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_aft701_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ft_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_FT_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_ft_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_ft_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_psp_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_PSP_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_psp_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_psp_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_2nd_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_2ND_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_2nd_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_2nd_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_dt_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_DT_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_dt_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_dt_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_dt2_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_DT2_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_dt2_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_dt2_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_f_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_F_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_f_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_f_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_f2_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_F2_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_f2_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_f2_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_mgf_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_MGF_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_mgf_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_mgf_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_x_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_X_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_x_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_x_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_vrfl_get_func_id(const char* name) {
+    uint64_t name_hash = hash_utf8_fnv1a64m(name);
     for (int32_t i = 0; i < DSC_VRFL_FUNC_COUNT; i++)
-        if (!str_utils_compare(name, dsc_vrfl_get_func_name(i)))
+        if (name_hash == hash_utf8_fnv1a64m(dsc_vrfl_get_func_name(i)))
             return i;
     return -1;
 }
@@ -2291,63 +2315,64 @@ void dsc::convert(dsc_type dst_type) {
     for (int32_t i = 0; i < src_func_count; i++) {
         dsc_replace_data* repl_data = &dr.replace_data[i];
         const char* src_func_name = src_get_func_name(i);
-        if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_MOVE"))
+        uint64_t src_func_name_hash = hash_utf8_fnv1a64m(src_func_name);
+        if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MIKU_MOVE"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][0];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_ROT"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MIKU_ROT"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][1];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_DISP"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MIKU_DISP"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][2];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MIKU_SHADOW"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MIKU_SHADOW"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][3];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "TARGET"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("TARGET"))
             repl_data->func = note_convert_func_array[note_convert_src][note_convert_dst];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "SET_MOTION"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("SET_MOTION"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][4];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "SET_PLAYDATA"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("SET_PLAYDATA"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][5];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EFFECT"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EFFECT"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][6];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "CHANGE_FIELD"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("CHANGE_FIELD"))
             repl_data->func = change_field_convert_func_array
             [note_convert_src == 2 ? 1 : 0][note_convert_dst == 2 ? 1 : 0];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EYE_ANIM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EYE_ANIM"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][7];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MOUTH_ANIM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MOUTH_ANIM"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][8];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "HAND_ANIM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("HAND_ANIM"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][9];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "LOOK_ANIM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("LOOK_ANIM"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][10];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EXPRESSION"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EXPRESSION"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][11];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "LOOK_CAMERA"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("LOOK_CAMERA"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][12];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "LYRIC"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("LYRIC"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][13];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MODE_SELECT"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MODE_SELECT"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][14];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EDIT_MOTION"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EDIT_MOTION"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][15];
-        else if (dr.bar_time_set_func_id == -1 && !str_utils_compare(
-            src_func_name, "BAR_TIME_SET"))
+        else if (dr.bar_time_set_func_id == -1
+            && src_func_name_hash == hash_utf8_fnv1a64m("BAR_TIME_SET"))
             dr.bar_time_set_func_id = i;
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "SHADOWHEIGHT"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("SHADOWHEIGHT"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][16];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EDIT_FACE"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EDIT_FACE"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][17];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "MOVE_CAMERA"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MOVE_CAMERA"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][18];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "SHADOWPOS"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("SHADOWPOS"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][19];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "CLOTH_WET"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("CLOTH_WET"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][20];
-        else if (dr.target_flying_time_func_id == -1 && !str_utils_compare(
-            src_func_name, "TARGET_FLYING_TIME"))
+        else if (dr.target_flying_time_func_id == -1
+            && src_func_name_hash == hash_utf8_fnv1a64m("TARGET_FLYING_TIME"))
             dr.target_flying_time_func_id = i;
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "EDIT_CAMERA"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EDIT_CAMERA"))
             repl_data->func = edit_camera_convert_func_array
             [note_convert_src == 2 ? 1 : 0][note_convert_dst == 2 ? 1 : 0];
-        else if (!repl_data->func && !str_utils_compare(src_func_name, "VR_LIVE_TRANSFORM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("VR_LIVE_TRANSFORM"))
             repl_data->func = vr_live_transform_convert_func_array
             [type == DSC_VRFL][dst_type == DSC_VRFL];
     }
@@ -2952,15 +2977,16 @@ dsc_replace::dsc_replace(dsc_type src_type, dsc_type dst_type,
         replace_data->length = 0;
         replace_data->func = 0;
         const char* src_func_name = src_get_func_name(i);
-        if (str_utils_compare(src_func_name, ""))
-            for (int32_t j = 0; j < dst_func_count; j++) {
-                if (!str_utils_compare(src_func_name, dst_get_func_name(j))) {
+        if (src_func_name && src_func_name[0]) {
+            uint64_t src_func_name_hash = hash_utf8_fnv1a64m(src_func_name);
+            for (int32_t j = 0; j < dst_func_count; j++)
+                if (src_func_name_hash == hash_utf8_fnv1a64m(dst_get_func_name(j))) {
                     replace_data->name = src_func_name;
                     replace_data->func_id = j;
                     replace_data->length = dst_get_func_length(j);
                     break;
                 }
-            }
+        }
         replace_data++;
     }
 }

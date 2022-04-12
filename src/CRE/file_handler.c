@@ -419,7 +419,7 @@ bool p_file_handler::read_file(void* data, const char* path, const char* file) {
     return read_file(data, path, 0, file, false);
 }
 
-bool p_file_handler::read_file(void* data, const char* path, uint32_t hash) {
+bool p_file_handler::read_file(void* data, const char* path, uint32_t hash, const char* ext) {
     if (!path || !hash || hash == hash_murmurhash_empty)
         return false;
 
@@ -430,7 +430,7 @@ bool p_file_handler::read_file(void* data, const char* path, uint32_t hash) {
     }
 
     std::string file;
-    if (!((data_struct*)data)->get_file(path, hash, &file))
+    if (!((data_struct*)data)->get_file(path, hash, ext, &file))
         return false;
 
     ptr = new file_handler;

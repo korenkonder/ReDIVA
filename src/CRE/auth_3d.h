@@ -744,7 +744,6 @@ public:
     int32_t state;
 
     std::string file_name;
-    int32_t frame_int;
     uint32_t hash;
     object_database* obj_db;
     texture_database* tex_db;

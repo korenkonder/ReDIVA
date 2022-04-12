@@ -505,7 +505,7 @@ uint64_t GltParticleManager::LoadFile(GLT, void* data, const char* file,
     fr->init_scene = init_scene;
 
     if (!path)
-        path = "rom/particle/";
+        path = GLT_VAL != GLITTER_FT ? "root+/particle/" : "rom/particle/";
 
     if (!fr->LoadFarc(data, path, file, effect_group_hash, obj_db)) {
         delete fr;
@@ -700,9 +700,8 @@ void GltParticleManager::SetSceneEffectName(uint64_t hash, uint64_t effect_hash,
             for (GlitterSceneEffect& j : i->effects)
                 if (j.disp && j.ptr && j.ptr->data.name_hash == effect_hash) {
                     j.ptr->name = std::string(name);
-                    break;
+                    return;
                 }
-            break;
         }
     else
         for (GlitterScene*& i : scenes) {
@@ -712,9 +711,8 @@ void GltParticleManager::SetSceneEffectName(uint64_t hash, uint64_t effect_hash,
             for (GlitterSceneEffect& j : i->effects)
                 if (j.disp && j.ptr && j.ptr->data.name_hash == effect_hash) {
                     j.ptr->name = std::string(name);
-                    break;
+                    return;
                 }
-            break;
         }
 }
 

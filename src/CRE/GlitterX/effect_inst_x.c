@@ -18,6 +18,8 @@ static int32_t GlitterXEffectInst__get_ext_anim_bone_index(GPM,
     glitter_effect_ext_anim_chara_node node);
 static void GlitterXEffectInst__get_ext_anim(GlitterXEffectInst* a1);
 static void GlitterXEffectInst__get_value(GlitterXEffectInst* a1);
+static void GlitterXEffectInst__set_ext_anim(GlitterXEffectInst* a1,
+    mat4* a2, mat4* a3, vec3* trans, bool set_flags);
 
 GlitterXEffectInst::GlitterXEffectInst(GPM, glitter_effect* a1,
     size_t id, float_t emission, bool appear_now)
@@ -41,22 +43,16 @@ GlitterXEffectInst::GlitterXEffectInst(GPM, glitter_effect* a1,
             glitter_effect_ext_anim_x* ext_anim = data.ext_anim_x;
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_SET_ONCE)
                 enum_or(flags, GLITTER_EFFECT_INST_SET_EXT_ANIM_ONCE);
-
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY)
                 enum_or(flags, GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY);
-
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_NO_TRANS_X)
                 enum_or(flags, GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_X);
-
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Y)
                 enum_or(flags, GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Y);
-
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Z)
                 enum_or(flags, GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Z);
-
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_GET_THEN_UPDATE)
                 enum_or(flags, GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE);
-
 
             if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM) {
                 inst_ext_anim->chara_index = ext_anim->chara_index;
@@ -65,8 +61,8 @@ GlitterXEffectInst::GlitterXEffectInst(GPM, glitter_effect* a1,
                 enum_or(flags, GLITTER_EFFECT_INST_CHARA_ANIM);
             }
             else {
-                inst_ext_anim->object_hash = (uint32_t)ext_anim->object_hash;
-                inst_ext_anim->file_name_hash = (uint32_t)ext_anim->file_name_hash;
+                inst_ext_anim->object_hash = ext_anim->object_hash;
+                inst_ext_anim->file_name_hash = ext_anim->file_name_hash;
                 inst_ext_anim->instance_id = ext_anim->instance_id;
             }
 
@@ -78,7 +74,7 @@ GlitterXEffectInst::GlitterXEffectInst(GPM, glitter_effect* a1,
         ext_anim = inst_ext_anim;
         enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM);
         enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
-        enum_or(flags, GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT);
+        enum_or(flags, GLITTER_EFFECT_INST_GET_EXT_ANIM_MAT);
     }
 
     emitters.reserve(a1->emitters.size());
@@ -194,7 +190,31 @@ size_t GlitterXEffectInst::GetDispCount(glitter_particle_type type) override;
 
 void GlitterXEffectInst::Reset(GPM, GLT, float_t emission) {
     frame0 = -(float_t)data.appear_time;
+
     flags = (glitter_effect_inst_flag)0;
+    if (~data.flags & GLITTER_EFFECT_LOCAL && data.ext_anim_x) {
+        if (ext_anim) {
+            glitter_effect_ext_anim_x* ext_anim = data.ext_anim_x;
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_SET_ONCE)
+                enum_or(flags, GLITTER_EFFECT_INST_SET_EXT_ANIM_ONCE);
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_TRANS_ONLY)
+                enum_or(flags, GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY);
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_NO_TRANS_X)
+                enum_or(flags, GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_X);
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Y)
+                enum_or(flags, GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Y);
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_NO_TRANS_Z)
+                enum_or(flags, GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Z);
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_GET_THEN_UPDATE)
+                enum_or(flags, GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE);
+            if (ext_anim->flags & GLITTER_EFFECT_EXT_ANIM_CHARA_ANIM)
+                enum_or(flags, GLITTER_EFFECT_INST_CHARA_ANIM);
+        }
+        enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM);
+        enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
+        enum_or(flags, GLITTER_EFFECT_INST_GET_EXT_ANIM_MAT);
+    }
+
     for (GlitterXEmitterInst*& i : emitters)
         if (i)
             i->Reset();
@@ -362,13 +382,13 @@ static void GlitterXEffectInst__get_ext_anim(GlitterXEffectInst* a1) {
         int32_t bone_index = inst_ext_anim->bone_index;
         if (bone_index != -1) {
             mat4* bone_mat = rob_chara_get_bone_data_mat(rob_chr, bone_index);
-            mat4_mult(bone_mat, &temp, &temp);
+            if (bone_mat)
+                GlitterXEffectInst__set_ext_anim(a1, &temp, bone_mat, 0, set_flags);
         }
-
-        mat = &temp;
-        goto SetMat;
+        else
+            GlitterXEffectInst__set_ext_anim(a1, &temp, 0, 0, set_flags);
     }
-    else if (a1->flags & GLITTER_EFFECT_INST_FLAG_GET_EXT_ANIM_MAT) {
+    else if (a1->flags & GLITTER_EFFECT_INST_GET_EXT_ANIM_MAT) {
         if (inst_ext_anim->a3da_id != -1)
             mat = auth_3d_data_get_auth_3d_object_mat(inst_ext_anim->a3da_id,
                 inst_ext_anim->object_index, inst_ext_anim->object_is_hrc, &temp);
@@ -392,21 +412,23 @@ static void GlitterXEffectInst__get_ext_anim(GlitterXEffectInst* a1) {
         a1->ext_anim_scale.z = 0.0f;
         enum_or(a1->flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM_SCALE);
 
-        if (!inst_ext_anim->mesh_name)
-            goto SetMat;
+        if (inst_ext_anim->mesh_name) {
+            if (inst_ext_anim->mesh_index == -1)
+                inst_ext_anim->mesh_index = object_storage_get_obj_mesh_index_by_hash(
+                    inst_ext_anim->object_hash, inst_ext_anim->mesh_name);
 
-        if (inst_ext_anim->mesh_index == -1)
-            inst_ext_anim->mesh_index = object_storage_get_obj_mesh_index_by_hash(
-                inst_ext_anim->object_hash, inst_ext_anim->mesh_name);
-
-        if (inst_ext_anim->mesh_index != -1) {
-            obj_mesh* mesh = object_storage_get_obj_mesh_by_object_hash_index(
-                inst_ext_anim->object_hash, inst_ext_anim->mesh_index);
-            if (mesh) {
-                trans = &mesh->bounding_sphere.center;
-                goto SetMat;
+            if (inst_ext_anim->mesh_index != -1) {
+                obj_mesh* mesh = object_storage_get_obj_mesh_by_object_hash_index(
+                    inst_ext_anim->object_hash, inst_ext_anim->mesh_index);
+                if (mesh) {
+                    trans = &mesh->bounding_sphere.center;
+                    GlitterXEffectInst__set_ext_anim(a1, mat, 0, trans, true);
+                }
             }
         }
+        else
+            GlitterXEffectInst__set_ext_anim(a1, mat, 0, 0, true);
+
     }
     else if (inst_ext_anim->object_hash != hash_murmurhash_empty) {
         if (inst_ext_anim->mesh_index == -1) {
@@ -422,46 +444,10 @@ static void GlitterXEffectInst__get_ext_anim(GlitterXEffectInst* a1) {
                 inst_ext_anim->object_hash, inst_ext_anim->mesh_index);
             if (mesh) {
                 trans = &mesh->bounding_sphere.center;
-                goto SetMat;
+                GlitterXEffectInst__set_ext_anim(a1, 0, 0, trans, true);
             }
         }
     }
-    return;
-
-SetMat:
-    inst_ext_anim->mat = mat4_identity;
-    if (mat)
-        if (a1->flags & GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY)
-            mat4_get_translation(mat, &inst_ext_anim->translation);
-        else
-            inst_ext_anim->mat = *mat;
-
-    if (a1->flags & GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_X) {
-        inst_ext_anim->mat.row3.x = 0.0f;
-        inst_ext_anim->translation.x = 0.0f;
-    }
-    else if (trans)
-        inst_ext_anim->translation.x = trans->x;
-
-    if (a1->flags & GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Y) {
-        inst_ext_anim->mat.row3.y = 0.0f;
-        inst_ext_anim->translation.y = 0.0f;
-    }
-    else if (trans)
-        inst_ext_anim->translation.y = trans->y;
-
-    if (a1->flags & GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Z) {
-        inst_ext_anim->mat.row3.z = 0.0f;
-        inst_ext_anim->translation.z = 0.0f;
-    }
-    else if (trans)
-        inst_ext_anim->translation.z = trans->z;
-
-    if (set_flags) {
-        enum_and(a1->flags, ~GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE);
-        enum_and(a1->flags, ~GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
-    }
-    enum_or(a1->flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS);
 }
 
 static void GlitterXEffectInst__get_value(GlitterXEffectInst* a1) {
@@ -524,4 +510,53 @@ static void GlitterXEffectInst__get_value(GlitterXEffectInst* a1) {
             break;*/
         }
     }
+}
+
+static void GlitterXEffectInst__set_ext_anim(GlitterXEffectInst* a1,
+    mat4* a2, mat4* a3, vec3* trans, bool set_flags) {
+    glitter_effect_inst_flag flags = a1->flags;
+    GlitterXEffectInst::ExtAnim* ext_anim = a1->ext_anim;
+    if (a2) {
+        mat4 mat = *a2;
+        if (a3)
+            mat4_mult(a3, &mat, &mat);
+
+        if (flags & GLITTER_EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
+            ext_anim->mat = mat4_identity;
+            ext_anim->translation = *(vec3*)&mat.row3;
+        }
+        else
+            ext_anim->mat = mat;
+    }
+
+    if (flags & GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_X) {
+        ext_anim->mat.row3.x = 0.0f;
+        ext_anim->translation.x = 0.0f;
+    }
+    else if (trans)
+        a1->ext_anim->translation.x = trans->x;
+
+    if (flags & GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Y) {
+        ext_anim->mat.row3.y = 0.0f;
+        ext_anim->translation.y = 0.0f;
+    }
+    else if (trans)
+        a1->ext_anim->translation.y = trans->y;
+
+    if (flags & GLITTER_EFFECT_INST_NO_EXT_ANIM_TRANS_Z) {
+        ext_anim->mat.row3.z = 0.0f;
+        ext_anim->translation.z = 0.0f;
+    }
+    else if (trans)
+        a1->ext_anim->translation.z = trans->z;
+
+    if (set_flags) {
+        if (flags & GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE)
+            enum_and(flags, ~GLITTER_EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE);
+        if (flags & GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT)
+            enum_and(flags, ~GLITTER_EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
+    }
+    enum_or(flags, GLITTER_EFFECT_INST_HAS_EXT_ANIM_TRANS);
+    a1->flags = flags;
+    return;
 }

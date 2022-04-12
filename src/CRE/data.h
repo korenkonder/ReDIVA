@@ -120,10 +120,10 @@ public:
     bool check_file_exists(const char* dir, const char* file);
     bool check_file_exists(const char* dir, uint32_t hash);
     void get_directory_files(const char* dir, std::vector<data_struct_file>* data_files);
-    bool get_file(const char* dir, uint32_t hash, std::string* file);
+    bool get_file(const char* dir, uint32_t hash, const char* ext, std::string* file);
     bool load_file(void* data, const char* dir, const char* file,
         bool (*load_func)(void* data, const char* path, const  char* file, uint32_t hash));
-    bool load_file(void* data, const char* dir, uint32_t hash,
+    bool load_file(void* data, const char* dir, uint32_t hash, const char* ext,
         bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash));
 };
 

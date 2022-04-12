@@ -6,7 +6,7 @@
 #include "path.h"
 #include "../str_utils.h"
 
-bool path_check_path_exists(char* path) {
+bool path_check_path_exists(const char* path) {
     wchar_t* path_temp = utf8_to_utf16(path);
     DWORD ftyp = GetFileAttributesW(path_temp);
     free(path_temp);
@@ -16,11 +16,7 @@ bool path_check_path_exists(char* path) {
         return true;
 }
 
-inline bool path_check_path_exists(const char* path) {
-    return path_check_path_exists((char*)path);
-}
-
-bool path_check_path_exists(wchar_t* path) {
+bool path_check_path_exists(const wchar_t* path) {
     DWORD ftyp = GetFileAttributesW(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
         return false;
@@ -28,12 +24,7 @@ bool path_check_path_exists(wchar_t* path) {
         return true;
 }
 
-inline bool path_check_path_exists(const wchar_t* path) {
-    return path_check_path_exists((wchar_t*)path);
-
-}
-
-bool path_check_file_exists(char* path) {
+bool path_check_file_exists(const char* path) {
     wchar_t* path_temp = utf8_to_utf16(path);
     DWORD ftyp = GetFileAttributesW(path_temp);
     free(path_temp);
@@ -43,11 +34,7 @@ bool path_check_file_exists(char* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? false : true;
 }
 
-inline bool path_check_file_exists(const char* path) {
-    return path_check_file_exists((char*)path);
-}
-
-bool path_check_file_exists(wchar_t* path) {
+bool path_check_file_exists(const wchar_t* path) {
     DWORD ftyp = GetFileAttributesW(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
         return false;
@@ -55,11 +42,7 @@ bool path_check_file_exists(wchar_t* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? false : true;
 }
 
-inline bool path_check_file_exists(const wchar_t* path) {
-    return path_check_file_exists((wchar_t*)path);
-}
-
-bool path_check_directory_exists(char* path) {
+bool path_check_directory_exists(const char* path) {
     wchar_t* path_temp = utf8_to_utf16(path);
     DWORD ftyp = GetFileAttributesW(path_temp);
     free(path_temp);
@@ -69,11 +52,7 @@ bool path_check_directory_exists(char* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? true : false;
 }
 
-inline bool path_check_directory_exists(const char* path) {
-    return path_check_directory_exists((char*)path);
-}
-
-bool path_check_directory_exists(wchar_t* path) {
+bool path_check_directory_exists(const wchar_t* path) {
     DWORD ftyp = GetFileAttributesW(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES)
         return false;
@@ -81,11 +60,7 @@ bool path_check_directory_exists(wchar_t* path) {
         return ftyp & FILE_ATTRIBUTE_DIRECTORY ? true : false;
 }
 
-inline bool path_check_directory_exists(const wchar_t* path) {
-    return path_check_directory_exists((wchar_t*)path);
-}
-
-void path_get_files(std::vector<std::string>* files, char* path) {
+void path_get_files(std::vector<std::string>* files, const char* path) {
     files->clear();
     files->shrink_to_fit();
 
@@ -123,19 +98,15 @@ void path_get_files(std::vector<std::string>* files, char* path) {
             continue;
 
         char* file_temp = utf16_to_utf8(fdata.cFileName);
-        std::string file = std::string(file_temp);
-        files->push_back(file);
+        if (file_temp)
+            files->push_back(std::string(file_temp));
         free(file_temp);
     } while (FindNextFileW(h, &fdata));
     FindClose(h);
     free(dir);
 }
 
-inline void path_get_files(std::vector<std::string>* files, const char* path) {
-    path_get_files(files, (char*)path);
-}
-
-void path_get_files(std::vector<std::wstring>* files, wchar_t* path) {
+void path_get_files(std::vector<std::wstring>* files, const wchar_t* path) {
     files->clear();
     files->shrink_to_fit();
 
@@ -175,12 +146,8 @@ void path_get_files(std::vector<std::wstring>* files, wchar_t* path) {
     free(dir);
 }
 
-inline void path_get_files(std::vector<std::wstring>* files, const wchar_t* path) {
-    path_get_files(files, (wchar_t*)path);
-}
-
-void path_get_directories(std::vector<std::string>* directories, char* path,
-    char** exclude_list, size_t exclude_count) {
+void path_get_directories(std::vector<std::string>* directories,
+    const char* path, char** exclude_list, size_t exclude_count) {
     directories->clear();
     directories->shrink_to_fit();
 
@@ -248,10 +215,9 @@ void path_get_directories(std::vector<std::string>* directories, char* path,
                 continue;
         }
 
-
         char* directory_temp = utf16_to_utf8(fdata.cFileName);
-        std::string directory = std::string(directory_temp);
-        directories->push_back(directory);
+        if (directory_temp)
+            directories->push_back(std::string(directory_temp));
         free(directory_temp);
     } while (FindNextFileW(h, &fdata));
     FindClose(h);
@@ -259,13 +225,8 @@ void path_get_directories(std::vector<std::string>* directories, char* path,
     free(dir);
 }
 
-inline void path_get_directories(std::vector<std::string>* directories, const char* path,
-    char** exclude_list, size_t exclude_count) {
-    path_get_directories(directories, (char*)path, exclude_list, exclude_count);
-}
-
-void path_get_directories(std::vector<std::wstring>* directories, wchar_t* path,
-    wchar_t** exclude_list, size_t exclude_count) {
+void path_get_directories(std::vector<std::wstring>* directories,
+    const wchar_t* path, wchar_t** exclude_list, size_t exclude_count) {
     directories->clear();
     directories->shrink_to_fit();
 
@@ -335,13 +296,8 @@ void path_get_directories(std::vector<std::wstring>* directories, wchar_t* path,
     free(dir);
 }
 
-inline void path_get_directories(std::vector<std::wstring>* directories, const wchar_t* path,
-    wchar_t** exclude_list, size_t exclude_count) {
-    path_get_directories(directories, (wchar_t*)path, exclude_list, exclude_count);
-}
-
-void path_get_directories_recursive(std::vector<std::string>* directories, char* path,
-    char** exclude_list, size_t exclude_count) {
+void path_get_directories_recursive(std::vector<std::string>* directories,
+    const char* path, char** exclude_list, size_t exclude_count) {
     directories->clear();
     directories->shrink_to_fit();
 
@@ -465,13 +421,8 @@ void path_get_directories_recursive(std::vector<std::string>* directories, char*
     free(path_temp);
 }
 
-inline void path_get_directories_recursive(std::vector<std::string>* directories, const char* path,
-    char** exclude_list, size_t exclude_count) {
-    path_get_directories_recursive(directories, (char*)path, exclude_list, exclude_count);
-}
-
-void path_get_directories_recursive(std::vector<std::wstring>* directories, wchar_t* path,
-    wchar_t** exclude_list, size_t exclude_count) {
+void path_get_directories_recursive(std::vector<std::wstring>* directories,
+    const wchar_t* path, wchar_t** exclude_list, size_t exclude_count) {
     directories->clear();
     directories->shrink_to_fit();
 
@@ -585,9 +536,4 @@ void path_get_directories_recursive(std::vector<std::wstring>* directories, wcha
         free(sub_path_temp);
     }
     free(path_temp);
-}
-
-inline void path_get_directories_recursive(std::vector<std::wstring>* directories, const wchar_t* path,
-    wchar_t** exclude_list, size_t exclude_count) {
-    path_get_directories_recursive(directories, (wchar_t*)path, exclude_list, exclude_count);
 }

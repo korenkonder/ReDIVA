@@ -119,11 +119,18 @@ bool data_struct::check_file_exists(const char* dir, const char* file) {
         dir_len -= 2;
     }
 
-    if (dir_len < 3 || memcmp(dir, "rom", 3))
+    bool f2 = false;
+    if (dir_len >= 5 && !memcmp(dir, "root+", 5)) {
+        dir += 5;
+        dir_len -= 5;
+        f2 = true;
+    }
+    else if (dir_len >= 3 && !memcmp(dir, "rom", 3)) {
+        dir += 3;
+        dir_len -= 3;
+    }
+    else
         return false;
-
-    dir += 3;
-    dir_len -= 3;
 
     while (*dir == '/' || *dir == '\\') {
         dir++;
@@ -164,6 +171,9 @@ bool data_struct::check_file_exists(const char* dir, const char* file) {
 
     free(dir_temp);
     free(temp);
+
+    if (f2)
+        return check_file_exists("rom/data/", file);
     return false;
 }
 
@@ -174,11 +184,18 @@ bool data_struct::check_file_exists(const char* dir, uint32_t hash) {
         dir_len -= 2;
     }
 
-    if (dir_len < 3 || memcmp(dir, "rom", 3))
+    bool f2 = false;
+    if (dir_len >= 5 && !memcmp(dir, "root+", 5)) {
+        dir += 5;
+        dir_len -= 5;
+        f2 = true;
+    }
+    else if (dir_len >= 3 && !memcmp(dir, "rom", 3)) {
+        dir += 3;
+        dir_len -= 3;
+    }
+    else
         return false;
-
-    dir += 3;
-    dir_len -= 3;
 
     while (*dir == '/' || *dir == '\\') {
         dir++;
@@ -223,25 +240,22 @@ bool data_struct::check_file_exists(const char* dir, uint32_t hash) {
                     t_len = t - l.c_str();
                 t = l.c_str();
 
-                files_murmurhash.push_back(hash_murmurhash(t, t_len, 0, false, false));
+                files_murmurhash.push_back(hash_murmurhash(t, t_len));
             }
 
-            bool ret = false;
             for (uint32_t& l : files_murmurhash)
                 if (l == hash) {
-                    ret = true;
-                    break;
+                    free(dir_temp);
+                    free(temp);
+                    return true;
                 }
-
-            if (ret) {
-                free(dir_temp);
-                free(temp);
-                return true;
-            }
         }
 
     free(dir_temp);
     free(temp);
+
+    if (f2)
+        return check_file_exists("rom/data/", hash);
     return false;
 }
 
@@ -255,11 +269,18 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
         dir_len -= 2;
     }
 
-    if (dir_len < 3 || memcmp(dir, "rom", 3))
+    bool f2 = false;
+    if (dir_len >= 5 && !memcmp(dir, "root+", 5)) {
+        dir += 5;
+        dir_len -= 5;
+        f2 = true;
+    }
+    else if (dir_len >= 3 && !memcmp(dir, "rom", 3)) {
+        dir += 3;
+        dir_len -= 3;
+    }
+    else
         return;
-
-    dir += 3;
-    dir_len -= 3;
 
     while (*dir == '/' || *dir == '\\') {
         dir++;
@@ -317,18 +338,25 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
     free(temp);
 }
 
-bool data_struct::get_file(const char* dir, uint32_t hash, std::string* file) {
+bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std::string* file) {
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
         dir += 2;
         dir_len -= 2;
     }
 
-    if (dir_len < 3 || memcmp(dir, "rom", 3))
+    bool f2 = false;
+    if (dir_len >= 5 && !memcmp(dir, "root+", 5)) {
+        dir += 5;
+        dir_len -= 5;
+        f2 = true;
+    }
+    else if (dir_len >= 3 && !memcmp(dir, "rom", 3)) {
+        dir += 3;
+        dir_len -= 3;
+    }
+    else
         return false;
-
-    dir += 3;
-    dir_len -= 3;
 
     while (*dir == '/' || *dir == '\\') {
         dir++;
@@ -364,35 +392,30 @@ bool data_struct::get_file(const char* dir, uint32_t hash, std::string* file) {
             if (!files.size())
                 continue;
 
-            std::vector<uint32_t> files_murmurhash;
-            files_murmurhash.reserve(files.size());
             for (std::string& l : files) {
                 const char* t = strrchr(l.c_str(), '.');
+                if (str_utils_compare(t, ext))
+                    continue;
+
                 size_t t_len = l.size();
                 if (t)
                     t_len = t - l.c_str();
                 t = l.c_str();
 
-                files_murmurhash.push_back(hash_murmurhash(t, t_len, 0, false, false));
-            }
-
-            bool ret = false;
-            for (uint32_t& l : files_murmurhash)
-                if (l == hash) {
-                    *file = files[&l - files_murmurhash.data()];
-                    ret = true;
-                    break;
+                if (hash_murmurhash(t, t_len) == hash) {
+                    *file = l;
+                    free(dir_temp);
+                    free(temp);
+                    return true;
                 }
-
-            if (ret) {
-                free(dir_temp);
-                free(temp);
-                return true;
             }
         }
 
     free(dir_temp);
     free(temp);
+
+    if (f2)
+        return get_file("rom/data/", hash, ext, file);
     return false;
 }
 
@@ -406,7 +429,7 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
         else
             t_len = utf8_length(file);
 
-        uint32_t h = hash_murmurhash(file, t_len, 0, false, false);
+        uint32_t h = hash_murmurhash(file, t_len);
         bool ret = load_func(data, dir, file, h);
         if (ret)
             return true;
@@ -418,11 +441,18 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
         dir_len -= 2;
     }
 
-    if (dir_len < 3 || memcmp(dir, "rom", 3))
+    bool f2 = false;
+    if (dir_len >= 5 && !memcmp(dir, "root+", 5)) {
+        dir += 5;
+        dir_len -= 5;
+        f2 = true;
+    }
+    else if (dir_len >= 3 && !memcmp(dir, "rom", 3)) {
+        dir += 3;
+        dir_len -= 3;
+    }
+    else
         return false;
-
-    dir += 3;
-    dir_len -= 3;
 
     while (*dir == '/' || *dir == '\\') {
         dir++;
@@ -454,7 +484,6 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
                 memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
 
             std::string path_temp = std::string(temp) + file;
-            bool ret = false;
             if (path_check_file_exists(path_temp.c_str())) {
                 const char* l_str = file;
                 const char* t = strrchr(l_str, '.');
@@ -462,23 +491,24 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
                 if (t)
                     l_len = t - l_str;
 
-                uint32_t h = hash_murmurhash(l_str, l_len, 0, false, false);
-                ret = load_func(data, temp, l_str, h);
-            }
-
-            if (ret) {
-                free(dir_temp);
-                free(temp);
-                return true;
+                uint32_t h = hash_murmurhash(l_str, l_len);
+                if (load_func(data, temp, l_str, h)) {
+                    free(dir_temp);
+                    free(temp);
+                    return true;
+                }
             }
         }
 
     free(dir_temp);
     free(temp);
+
+    if (f2)
+        return load_file(data, "rom/data/", file, load_func);
     return false;
 }
 
-bool data_struct::load_file(void* data, const char* dir, uint32_t hash,
+bool data_struct::load_file(void* data, const char* dir, uint32_t hash, const char* ext,
     bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
@@ -486,7 +516,17 @@ bool data_struct::load_file(void* data, const char* dir, uint32_t hash,
         dir_len -= 2;
     }
 
-    if (dir_len < 3 || memcmp(dir, "rom", 3))
+    bool f2 = false;
+    if (dir_len >= 5 && !memcmp(dir, "root+", 5)) {
+        dir += 5;
+        dir_len -= 5;
+        f2 = true;
+    }
+    else if (dir_len >= 3 && !memcmp(dir, "rom", 3)) {
+        dir += 3;
+        dir_len -= 3;
+    }
+    else
         return false;
 
     dir += 3;
@@ -526,35 +566,30 @@ bool data_struct::load_file(void* data, const char* dir, uint32_t hash,
             if (!files.size())
                 continue;
 
-            std::vector<uint32_t> files_murmurhash;
-            files_murmurhash.reserve(files.size());
             for (std::string& l : files) {
                 const char* t = strrchr(l.c_str(), '.');
+                if (str_utils_compare(t, ext))
+                    continue;
+
                 size_t t_len = l.size();
                 if (t)
                     t_len = t - l.c_str();
                 t = l.c_str();
 
-                files_murmurhash.push_back(hash_murmurhash(t, t_len, 0, false, false));
-            }
-
-            bool ret = false;
-            for (uint32_t& l : files_murmurhash)
-                if (l == hash) {
-                    std::string& file = files[&l - files_murmurhash.data()];
-                    ret = load_func(data, temp, file.c_str(), hash);
-                    break;
+                if (hash_murmurhash(t, t_len) == hash
+                    && load_func(data, temp, l.c_str(), hash)) {
+                    free(dir_temp);
+                    free(temp);
+                    return true;
                 }
-
-            if (ret) {
-                free(dir_temp);
-                free(temp);
-                return true;
             }
         }
 
     free(dir_temp);
     free(temp);
+
+    if (f2)
+        return load_file(data, "rom/data/", hash, ext, load_func);
     return false;
 }
 
@@ -979,7 +1014,7 @@ static void data_load_inner(stream* s) {
             bone_database* bone_data = &d->bone_data;
             *bone_data = bone_database();
             bone_data->modern = true;
-            ds->load_file(bone_data, "rom/",
+            ds->load_file(bone_data, "root+/",
                 "bone_data.bon", bone_database::load_file);
         }
     }
@@ -992,7 +1027,7 @@ static void data_load_inner(stream* s) {
             bone_database* bone_data = &d->bone_data;
             *bone_data = bone_database();
             bone_data->modern = true;
-            ds->load_file(bone_data, "rom/",
+            ds->load_file(bone_data, "root+/",
                 "bone_data.bon", bone_database::load_file);
         }
     }
@@ -1005,7 +1040,7 @@ static void data_load_inner(stream* s) {
             bone_database* bone_data = &d->bone_data;
             *bone_data = bone_database();
             bone_data->modern = true;
-            ds->load_file(bone_data, "rom/",
+            ds->load_file(bone_data, "root+/",
                 "bone_data.bon", bone_database::load_file);
         }
     }

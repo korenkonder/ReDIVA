@@ -21,8 +21,10 @@ void GlitterLocusHistory::Append(glitter_render_element* a2, GlitterXParticleIns
         vec3 emit_trans;
         mat4_get_translation(&emitter->mat, &emit_trans);
         vec3_add(temp, emit_trans, temp);
-        if (a3->data.data.flags & GLITTER_PARTICLE_ROTATE_LOCUS)
-            mat4_mult_vec3(&emitter->mat_rot, &temp, &temp);
+        if (a3->data.data.flags & GLITTER_PARTICLE_ROTATE_LOCUS) {
+            mat4 mat_rot = emitter->mat_rot;
+            mat4_mult_vec3(&mat_rot, &temp, &temp);
+        }
     }
 
     locus_history.color = a2->color;
