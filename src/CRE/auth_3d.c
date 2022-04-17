@@ -1474,7 +1474,7 @@ auth_3d_farc::~auth_3d_farc() {
 }
 
 auth_3d_uid_file::auth_3d_uid_file() : load_count(), uid(), state(), name(), farc() {
-    
+
 }
 
 auth_3d_uid_file::~auth_3d_uid_file() {
@@ -1483,8 +1483,8 @@ auth_3d_uid_file::~auth_3d_uid_file() {
 
 auth_3d_uid_file_modern::auth_3d_uid_file_modern() : load_count(),
 state(), name(), farc(),data(), obj_db(), tex_db() {
-    hash = hash_murmurhash_empty;    
-    category_hash = hash_murmurhash_empty;    
+    hash = hash_murmurhash_empty;
+    category_hash = hash_murmurhash_empty;
 }
 
 auth_3d_uid_file_modern::~auth_3d_uid_file_modern() {
@@ -3579,7 +3579,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
 static void auth_3d_object_list_ctrl(auth_3d_object* o, mat4* parent_mat) {
     if (!o->model_transform.visible)
         return;
-    
+
     auth_3d_model_transform_set_mat(&o->model_transform, parent_mat);
 
     mat4 mat = o->model_transform.mat;
@@ -3657,7 +3657,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
 
     object_data_set_draw_task_flags(object_data, (draw_task_flags)flags);
     object_data_set_shadow_type(object_data, SHADOW_CHARA);
-    
+
     shadow* shad = rctx->draw_pass.shadow_ptr;
     if (shad && flags & DRAW_TASK_SHADOW) {
         object_data_set_shadow_type(object_data, SHADOW_STAGE);

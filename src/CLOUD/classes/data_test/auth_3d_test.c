@@ -123,7 +123,7 @@ bool data_test_auth_3d_test_init(class_data* data, render_context* rctx) {
         auth_3d_test->auth_3d_category_index_prev = -1;
         auth_3d_test->auth_3d_index = -1;
         auth_3d_test->stage_index = 0;
-        
+
         auth_3d_test->auth_3d_id = -1;
         auth_3d_test->auth_3d_uid = -1;
         auth_3d_test->auth_3d_load = false;

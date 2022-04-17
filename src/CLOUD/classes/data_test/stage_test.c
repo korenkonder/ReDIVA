@@ -183,7 +183,7 @@ void data_test_stage_test_imgui(class_data* data) {
         pv_id_found = true;
         break;
     }
-    
+
     if (!pv_id_found && ImGui::BeginCombo("##PV Index", "", 0)) {
         data->imgui_focus |= ImGui::IsWindowFocused();
         ImGui::EndCombo();

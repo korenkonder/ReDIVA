@@ -148,7 +148,7 @@ public:
 
     RobThreadParent();
     ~RobThreadParent();
-    
+
     void AppendRobCharaFunc(rob_chara* rob_chr, void(*rob_chr_func)(rob_chara*));
     void AppendRobThread(RobThread* thread);
     bool CheckThreadsNotNull();
@@ -1748,7 +1748,7 @@ void pv_osage_manager_array_ptr_free() {
 }
 
 static void sub_1405EE878(ExNodeBlock* node) {
-    
+
 }
 
 static void rob_chara_item_equip_object_ctrl_iterate_nodes(rob_chara_item_equip_object* itm_eq_obj, int32_t osage_iterations) {
@@ -1816,7 +1816,7 @@ static void rob_chara_item_equip_object_ctrl(rob_chara_item_equip_object* itm_eq
             for (int32_t i = 0; i < 6; i++)
                 for (ExNodeBlock*& j : itm_eq_obj->node_blocks)
                     j->Field_18(i, false);
-        
+
         for (ExNodeBlock*& i : itm_eq_obj->node_blocks)
             i->Field_20();
     }
@@ -2271,7 +2271,7 @@ void rob_chara_load_motion(rob_chara* rob_chr, int32_t motion_id, bool a3, float
 
     if (a3)
         rob_chr->data.adjust.field_28 ^= (rob_chr->data.adjust.field_28 ^ ~rob_chr->data.adjust.field_28) & 0x04;
-        
+
     if (rob_chr->data.adjust.field_28 & 0x04)
         rob_chr->data.adjust.field_28 |= 0x08;
     else
@@ -4458,19 +4458,19 @@ static int32_t sub_140485220(vec3* a1, skin_param_osage_node* a2, osage_coli* a3
         int32_t v11 = 0;
         vec3 v31 = vec3_null;
         switch (a3->type) {
-        case 1:
+        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL:
             v11 = sub_140483DE0(&v31, a1, &a3->bone0_pos, a3->radius + a2->coli_r);
             break;
-        case 2:
+        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_CYLINDER:
             v11 = sub_140484540(&v31, a1, a3, a3->radius + a2->coli_r);
             break;
-        case 3:
+        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_PLANE:
             v11 = sub_140484780(&v31, a1, &a3->bone0_pos, &a3->bone1_pos, a2->coli_r);
             break;
-        case 4:
+        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_ELLIPSE:
             v11 = sub_140483EA0(&v31, a1, a3, a3->radius + a2->coli_r);
             break;
-        case 5:
+        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_5:
             v11 = sub_140483B30(&v31, a1, a3, a2->coli_r);
             break;
         }
@@ -6137,7 +6137,7 @@ static void sub_140414550(struc_313* a1, size_t a2, bool a3) {
             a3a.field_0 = &bitfield[motion_bone_count >> 5];
             a3a.field_8 = motion_bone_count & 0x1F;
         }
-        
+
         struc_314 a4 = a3a;
         sub_14040E980(a1, &a3a, &a4, a2 - motion_bone_count, &a3);
     }
@@ -9744,7 +9744,7 @@ static void rob_chara_item_cos_data_texture_pattern_clear(rob_chara_item_cos_dat
 }
 
 static float_t sub_140512F60(rob_chara_item_equip* rob_itm_equip) {
-    float_t v26; 
+    float_t v26;
     float_t v27;
     float_t v28;
 
@@ -10331,7 +10331,7 @@ static void rob_chara_item_equip_object_load_object_info_ex_data(
     itm_eq_obj->skin_ex_data = &skin->ex_data;
     rob_chara_item_equip_object_init_ex_data_bone_nodes(itm_eq_obj, &skin->ex_data);
     rob_chara_item_equip_object_load_ex_data(itm_eq_obj, &skin->ex_data, bone_data, data, obj_db);
-    
+
     if (osage_reset && itm_eq_obj->osage_blocks.size())
         itm_eq_obj->osage_iterations = 60;
 }
@@ -11112,7 +11112,7 @@ static void skin_param_osage_root_parse(key_val* kv, const char* name,
     if (lkv.read_float_t(
         buf, off, ".friction", 10, &friction))
         skp_root->friction = friction;
-    
+
     float_t wind_afc = 0;
     if (lkv.read_float_t(
         buf, off, ".wind_afc", 10, &wind_afc)) {
@@ -11176,9 +11176,9 @@ static void skin_param_osage_root_parse(key_val* kv, const char* name,
                 SKP_TEXT_BUF_SIZE - len - len1 - len2, ".%d", i);
             off = len + len1 + len2 + len3;
 
-            int32_t type = 0;
+            skin_param_osage_root_coli_type type = SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_NONE;
             if (!sub_local_key_val.read_int32_t(
-                buf, off, ".type", 6, &type))
+                buf, off, ".type", 6, (int32_t*)&type))
                 break;
             c->type = type;
 
@@ -14025,7 +14025,7 @@ void RobImplTask::Disp() {
 void RobImplTask::AppendList(rob_chara* rob_chr, std::list<rob_chara*>* list) {
     if (!rob_chr || !list || rob_chr->chara_id >= ROB_CHARA_COUNT || list->size() >= ROB_CHARA_COUNT)
         return;
-    
+
     bool found = false;
     for (rob_chara*& i : *list)
         if (i->chara_id == rob_chr->chara_id) {

@@ -2529,6 +2529,8 @@ void dsc::rebuild() {
     for (dsc_data_time& i : data_time)
         size += get_func_length(i.func);
 
+    data.clear();
+    data_buffer.clear();
     data.reserve(func_count);
     data_buffer.reserve(size);
 
@@ -2559,10 +2561,10 @@ void dsc::rebuild() {
             data_buffer.push_back(pv_branch_mode);
         }
 
-        uint32_t* func_data = (uint32_t*)(data_time_buffer.data() + i.data_offset);
         uint32_t* data = add_func(get_func_name(i.func),
-            pv_branch_mode_func_id, get_func_length(i.func));
-        memmove(data, func_data, sizeof(uint32_t) * get_func_length(i.func));
+            i.func, get_func_length(i.func));
+        memmove(data, data_time_buffer.data() + i.data_offset,
+            sizeof(uint32_t) * get_func_length(i.func));
     }
 }
 
@@ -2705,6 +2707,8 @@ void dsc::merge(int32_t count, ...) {
     for (dsc_data_time& i : data_time)
         size += get_func_length(i.func);
 
+    data.clear();
+    data_buffer.clear();
     data.reserve(func_count);
     data_buffer.reserve(size);
 

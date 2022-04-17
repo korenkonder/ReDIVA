@@ -576,6 +576,15 @@ typedef enum rob_osage_parts_bit {
     ROB_OSAGE_PARTS_ANGEL_R_BIT     = 0x1000,
 } rob_osage_parts_bit;
 
+typedef enum skin_param_osage_root_coli_type {
+    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_NONE     = 0x00,
+    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL     = 0x01,
+    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_CYLINDER = 0x02,
+    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_PLANE    = 0x03,
+    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_ELLIPSE  = 0x04,
+    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_5        = 0x05,
+} skin_param_osage_root_coli_type;
+
 typedef enum SubActExecType {
     SUB_ACTION_EXECUTE_NONE        = 0,
     SUB_ACTION_EXECUTE_CRY         = 1,
@@ -786,7 +795,7 @@ public:
     virtual void Field_20(vector_old_bone_data*, vector_old_bone_data*) = 0;
     virtual void Blend(bone_data*, bone_data*) = 0;
     virtual bool Field_30();
-    
+
     void SetDuration(float_t duration, float_t step, float_t offset);
 };
 
@@ -1305,7 +1314,7 @@ public:
 
 class skin_param_osage_root_coli {
 public:
-    int32_t type;
+    skin_param_osage_root_coli_type type;
     int32_t bone0_index;
     int32_t bone1_index;
     float_t radius;

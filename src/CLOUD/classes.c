@@ -125,7 +125,7 @@ void classes_process_ctrl(classes_data* classes, const size_t classes_count) {
                 lock_unlock(&c->data.lock);
             }
         }
-        
+
         classes_process_ctrl(c->sub_classes, c->sub_classes_count);
     }
 }
@@ -178,7 +178,7 @@ void classes_process_imgui(classes_data* classes, const size_t classes_count) {
             }
             lock_unlock(&c->data.lock);
         }
-        
+
         classes_process_imgui(c->sub_classes, c->sub_classes_count);
     }
 }
@@ -198,7 +198,7 @@ void classes_process_input(classes_data* classes, const size_t classes_count) {
             }
             lock_unlock(&c->data.lock);
         }
-        
+
         classes_process_input(c->sub_classes, c->sub_classes_count);
     }
 
@@ -224,7 +224,7 @@ void classes_process_sound(classes_data* classes, const size_t classes_count) {
                 c->sound(&c->data);
             lock_unlock(&c->data.lock);
         }
-        
+
         classes_process_sound(c->sub_classes, c->sub_classes_count);
     }
 }

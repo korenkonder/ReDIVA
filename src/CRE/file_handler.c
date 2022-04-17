@@ -466,7 +466,7 @@ void p_file_handler::read_now() {
                 if (ptr->farc_file.size())
                     ret = ((data_struct*)ptr->ds)->load_file(
                         ptr, ptr->path.c_str(), ptr->farc_file.c_str(), file_handler_load_farc_file);
-                else 
+                else
                     ret = ((data_struct*)ptr->ds)->load_file(
                         ptr, ptr->path.c_str(), ptr->file.c_str(), file_handler_load_file);
 

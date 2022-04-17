@@ -588,7 +588,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
     uint32_t skeleton_count = (uint32_t)bone_data->skeleton.size();
     ssize_t skeleton_offsets_offset = io_get_position(s);
     io_write(s, skeleton_count * 0x04ULL);
-    
+
     ssize_t skeleton_name_offset = io_get_position(s);
     for (bone_database_skeleton& i : bone_data->skeleton)
         io_write_string_null_terminated(s, &i.name);
@@ -863,7 +863,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
         io_position_pop(s);
 
         skeleton->parent_index.resize(motion_bone_count);
-        
+
         io_position_push(s, parent_indices_offset, SEEK_SET);
         io_read(s, skeleton->parent_index.data(), motion_bone_count * sizeof(uint16_t));
         if (s->is_big_endian) {

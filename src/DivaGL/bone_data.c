@@ -1230,7 +1230,7 @@ static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
         mat4_transpose(a1->parent_mat, &mat);
     else
         mat = mat4_identity;
-    
+
     if (a1->type == AFT_BONE_DATABASE_BONE_POSITION) {
         mat4_translate_mult(&mat, a1->trans.x, a1->trans.y, a1->trans.z, &mat);
         a1->rot_mat[0] = mat4u_identity;
@@ -2592,7 +2592,7 @@ static void motion_blend_mot_interpolate(motion_blend_mot* a1) {
     vec3* keyframe_data = (vec3*)a1->mot_key_data.key_set_data.begin;
     bool reverse = motion_blend_mot_interpolate_get_reverse(&a1->field_4F8.field_0);
     float_t frame = a1->mot_play_data.frame_data.frame;
-    
+
     aft_bone_database_skeleton_type skeleton_type = a1->bone_data.rob_bone_data->base_skeleton_type;
     bone_data* bones_data = a1->bone_data.bones.begin;
     for (uint16_t* i = a1->bone_data.bone_indices.begin; i != a1->bone_data.bone_indices.end; i++) {
@@ -5009,7 +5009,7 @@ static void sub_140480260(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, flo
         rob_osg->set_external_force = false;
         rob_osg->external_force = vec3_null;
     }
-   
+
     for (rob_osage_node* v6 = rob_osg->nodes.begin; v6 != rob_osg->nodes.end; v6++) {
         v6->field_C8 = 0.0f;
         v6->field_CC = 1.0f;

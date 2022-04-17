@@ -289,7 +289,7 @@ a3da_dof::~a3da_dof() {
 
 a3da_event::a3da_event() : begin(), clip_begin(),
 clip_end(), end(), time_ref_scale(), type() {
-    
+
 }
 
 a3da_event::~a3da_event() {
@@ -461,7 +461,7 @@ static void a3da_read_inner(a3da* a, stream* s) {
         goto End;
 
     io_set_position(&_s, header.string_offset, SEEK_SET);
-    a3da_data = force_malloc(header.string_length + 1);
+    a3da_data = force_malloc(header.string_length + 1LL);
     io_read(&_s, a3da_data, header.string_length);
     ((uint8_t*)a3da_data)[header.string_length] = 0;
     a3da_read_text(a, a3da_data, header.string_length);
@@ -3026,6 +3026,11 @@ static bool key_val_read_a3da_model_transform(key_val* kv, char* buf,
     key_val_read_a3da_vec3(&lkv, buf, offset, ".scale", 7, &value->scale);
     key_val_read_a3da_vec3(&lkv, buf, offset, ".trans", 7, &value->translation);
     key_val_read_a3da_key(&lkv, buf, offset,".visibility", 12, &value->visibility);
+
+    if (value->visibility.type == A3DA_KEY_NONE) {
+        value->visibility.type = A3DA_KEY_STATIC;
+        value->visibility.value = 1.0f;
+    }
     return true;
 }
 
@@ -3337,6 +3342,11 @@ static void a3dc_read_a3da_model_transform(void* data, size_t length,
     a3dc_read_a3da_vec3_f16(data, length, &value->rotation, f16);
     a3dc_read_a3da_vec3(data, length, &value->translation);
     a3dc_read_a3da_key(data, length, &value->visibility);
+
+    if (value->visibility.type == A3DA_KEY_NONE) {
+        value->visibility.type = A3DA_KEY_STATIC;
+        value->visibility.value = 1.0f;
+    }
 }
 
 static void a3dc_write_a3da_model_transform(stream* s,

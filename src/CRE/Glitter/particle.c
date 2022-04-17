@@ -744,7 +744,7 @@ static bool glitter_particle_unpack_file(GLT, GlitterEffectGroup* a1,
     a3->data.unk1 = unk1;
 
     vec2_rcp(a3->data.split_uv, a3->data.split_uv);
-    
+
     vec4 color = a3->data.color;
     vec4_mult_scalar(color, (float_t)(1.0 / 255.0), color);
     a3->data.color = color;

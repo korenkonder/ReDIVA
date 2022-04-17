@@ -400,7 +400,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             if (mat_chng)
                 local_blend_color = mat_chng->blend_color;
 
-            draw_task_object_init(task, object_data, mat, object->bounding_sphere.radius, 
+            draw_task_object_init(task, object_data, mat, object->bounding_sphere.radius,
                 sub_mesh, mesh, material, textures, bone_indices_count, mats, array_buffer,
                 element_array_buffer, blend_color || mat_chng ? &local_blend_color : 0,
                 morph_array_buffer, instances_count, instances_mat, draw_object_func);

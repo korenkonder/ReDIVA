@@ -448,7 +448,7 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
                 break;
             }
         io_position_pop(s);
-        
+
         if (stage->auth_3d_ids.size()) {
             io_position_push(s, offset, SEEK_SET);
             for (int32_t& j : stage->auth_3d_ids)

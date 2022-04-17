@@ -706,7 +706,7 @@ int32_t object_storage_load_set(void* data, object_database* obj_db, const char*
         handler->load_count++;
         return 1;
     }
-    
+
     std::string* archive_file_name = &set_info->archive_file_name;
     std::string* object_file_name = &set_info->object_file_name;
     std::string* texture_file_name = &set_info->texture_file_name;
@@ -790,7 +790,7 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
     }
 
     handler->modern = true;
-    
+
     handler->farc_file_handler.read_file(data, "root+/objset/", file.c_str());
 
     handler->load_count = 1;
@@ -864,7 +864,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         const char* t = strrchr(file->c_str(), '.');
         if (t)
             file_len = t - file->c_str();
-        
+
         char buf[0x100];
         memcpy(buf, file->c_str(), file_len);
         char* ext = buf + file_len;
@@ -906,7 +906,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
 
         if (obj_db)
             obj_db->merge_mdata(obj_db, &local_obj_db);
-        
+
         if (tex_db)
             tex_db->merge_mdata(tex_db, &local_tex_db);
 
@@ -1361,7 +1361,7 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, void* data, 
         return true;
     else if (!set->texture_ids_count)
         return false;
- 
+
     {
         txp_set txp;
         txp.unpack_file(data, big_endian);

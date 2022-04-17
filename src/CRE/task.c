@@ -23,6 +23,9 @@ static void Task_sub_14019C5A0(Task* t);
 
 static bool TaskWork_has_task_dest(Task* t);
 
+extern float_t delta_frame_history;
+extern int32_t delta_frame_history_int;
+
 TaskWork* task_work;
 
 Task::Task() {
@@ -190,11 +193,11 @@ void TaskWork::Ctrl() {
         i = task_work->tasks.erase(i);
     }
 
-    int32_t delta_frame = (int32_t)get_delta_frame();
-    if (delta_frame > 1)
-        for (int32_t i = delta_frame - 1; i; i--)
-            Task_do_ctrl_frames(delta_frame, true);
-    Task_do_ctrl_frames(delta_frame, false);
+    int32_t frames = delta_frame_history_int;
+    if (frames > 1)
+        for (int32_t i = frames - 1; i; i--)
+            Task_do_ctrl_frames(frames, true);
+    Task_do_ctrl_frames(frames, false);
 
     for (Task*& i : task_work->tasks)
         Task_set_calc_time(i);
@@ -286,11 +289,13 @@ static void Task_do_ctrl_frames(int32_t frames, bool a2) {
     for (int32_t i = 0; i < 3; i++)
         for (Task*& j : task_work->tasks) {
             Task* tsk = j;
-            if (tsk->priority != i)
+            if (tsk->priority != i || TaskWork_has_task_dest(tsk))
                 continue;
-            else if (TaskWork_has_task_dest(tsk))
-                continue;
-            else if ((!tsk->field_2D || frames <= 0) && a2)
+            else if (tsk->field_2D) {
+                if (frames <= 0)
+                    continue;
+            }
+            else if (a2)
                 continue;
 
             time_struct t;

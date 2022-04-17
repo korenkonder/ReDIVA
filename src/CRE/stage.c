@@ -522,7 +522,7 @@ static void stage_free(stage* s) {
         auth_3d_data_unload_category(s->stage_data->name.c_str());
         s->auth_3d_loaded = false;
     }
-    
+
     object_storage_unload_set(s->stage_data->object_set_id);
     if (s->obj_set != -1)
         object_storage_unload_set(s->obj_set);
@@ -705,7 +705,7 @@ static void stage_set_by_stage_index(stage* s, int32_t stage_index, uint16_t sta
         s->stage_data = 0;
         return;
     }
-    
+
     s->stage_data = &stage_data->stage_data[stage_index];
 
     const char* name = s->stage_data->name.c_str();

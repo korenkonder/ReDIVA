@@ -227,7 +227,7 @@ int32_t render_main(void* arg) {
     GetClientRect(window_handle, &window_rect);
     width = window_rect.right;
     height = window_rect.bottom;
-    
+
     old_scale = scale = ris->scale > 0 ? ris->scale : 1.0f;
 #pragma endregion
 
@@ -445,7 +445,7 @@ static render_context* render_load() {
         "void main() {\n"
         "    result = frg.color;\n"
         "}\n";
-    
+
     const char* cube_line_point_vert_shader =
         "#version 430 core\n"
         "layout(location = 0) in vec3 i_trans;\n"
@@ -648,7 +648,7 @@ static render_context* render_load() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), 0);
     gl_state_bind_array_buffer(0);
-    
+
     glGenVertexArrays(1, &cube_line_point_vao);
     glGenBuffers(1, &cube_line_point_instance_vbo);
     gl_state_bind_vertex_array(cube_line_point_vao);

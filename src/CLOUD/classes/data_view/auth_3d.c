@@ -525,7 +525,7 @@ static void data_view_auth_3d_imgui_auth_3d_light(auth_3d_light* l) {
 
     if (!ImGui::TreeNodeEx(l, tree_node_flags, auth_3d_light_name[l->id]))
         return;
-    
+
     if (l->flags & AUTH_3D_LIGHT_AMBIENT)
         data_view_auth_3d_imgui_auth_3d_rgba(&l->ambient, "Ambient");
 
@@ -825,7 +825,7 @@ static void data_view_auth_3d_imgui_auth_3d_object_instance(auth_3d_object_insta
 
     if (oi->shadow)
         ImGui::Text("Shadow: True");
-    
+
     ImGui::Text("UID Name: %s", oi->uid_name.c_str());
     ImGui::TreePop();
 

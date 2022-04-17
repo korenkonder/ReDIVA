@@ -511,7 +511,7 @@ void path_get_directories_recursive(std::vector<std::wstring>* directories,
 
         directories->push_back(i);
 
-        if (temp.size() < 1) 
+        if (temp.size() < 1)
             continue;
 
         max_len = 0;

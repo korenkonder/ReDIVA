@@ -392,7 +392,7 @@ static void GlitterXEffectInst__get_ext_anim(GlitterXEffectInst* a1) {
         if (inst_ext_anim->a3da_id != -1)
             mat = auth_3d_data_get_auth_3d_object_mat(inst_ext_anim->a3da_id,
                 inst_ext_anim->object_index, inst_ext_anim->object_is_hrc, &temp);
-        
+
         if (!mat) {
             inst_ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(
                 inst_ext_anim->file_name_hash, inst_ext_anim->object_hash,

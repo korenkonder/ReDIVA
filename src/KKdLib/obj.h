@@ -150,6 +150,14 @@ typedef enum obj_skin_block_type : uint32_t {
     OBJ_SKIN_BLOCK_OSAGE,
 } obj_skin_block_type;
 
+typedef enum obj_skin_osage_root_coli_type {
+    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_NONE     = 0x00,
+    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_BALL     = 0x01,
+    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_CYLINDER = 0x02,
+    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_PLANE    = 0x03,
+    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_ELLIPSE  = 0x04,
+} obj_skin_osage_root_coli_type;
+
 typedef enum obj_sub_mesh_flags : uint32_t {
     OBJ_SUB_MESH_RECIEVE_SHADOW = 0x01,
     OBJ_SUB_MESH_CAST_SHADOW    = 0x02,
@@ -487,12 +495,41 @@ typedef struct obj_skin_osage_node {
     vec3 rotation;
 } obj_skin_osage_node;
 
+typedef struct obj_skin_osage_root_coli {
+    obj_skin_osage_root_coli_type type;
+    int32_t bone0_index;
+    int32_t bone1_index;
+    float_t radius;
+    vec3 bone0_pos;
+    vec3 bone1_pos;
+} obj_skin_osage_root_coli;
+
+typedef struct obj_skin_osage_root_node {
+    int32_t unk0;
+    float_t force;
+    float_t force_gain;
+    float_t air_res;
+    float_t rot_y;
+    float_t rot_z;
+    float_t hinge_y;
+    float_t hinge_z;
+    string name;
+    obj_skin_osage_root_coli* coli;
+    int32_t coli_count;
+    float_t coli_r;
+    float_t friction;
+    float_t wind_afc;
+    int32_t unk44;
+} obj_skin_osage_root_node;
+
 typedef struct obj_skin_block_osage {
     obj_skin_block_node base;
     int32_t start_index;
     int32_t count;
     obj_skin_osage_node* nodes;
     int32_t nodes_count;
+    obj_skin_osage_root_node root;
+    bool root_init;
     uint32_t external_name_index;
     uint32_t name_index;
     string motion_node_name;

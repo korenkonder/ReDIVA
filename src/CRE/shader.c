@@ -1488,7 +1488,7 @@ inline void shader_state_lightprod_set_ambient(shader_set_data* set,
 
     shader_state_lightprod* lightprod = back
         ? set->data.state.lightprod_back : set->data.state.lightprod_front;
-    
+
     vec4 data = { x, y, z, w };
     if (!memcmp(&lightprod[index].ambient, &data, sizeof(vec4)))
         return;

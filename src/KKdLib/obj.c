@@ -297,6 +297,7 @@ obj_set::~obj_set() {
             case OBJ_SKIN_BLOCK_OSAGE: {
                 obj_skin_block_osage* osage = &block->osage;
                 obj_skin_block_node_free(&osage->base);
+                free(osage->root.coli);
                 free(osage->nodes);
             } break;
             }
@@ -1393,6 +1394,9 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
                 }
                 obj_skin_strings_push_back_check_by_index(&bone_names,
                     bone_names_ptr, osage->name_index);
+
+                if (osage->root_init)
+                    obj_skin_strings_push_back_check(&strings, string_data(&osage->root.name));
             } break;
             }
         }
@@ -1418,6 +1422,17 @@ static void obj_classic_write_skin(obj* obj, stream* s, ssize_t base_offset) {
                 obj_skin_block* block = &ex->blocks[i];
                 if (block->type != OBJ_SKIN_BLOCK_OSAGE)
                     continue;
+
+                obj_skin_block_osage* osage = &block->osage;
+                if (osage->root_init) {
+                    obj_skin_osage_root_node* root = &osage->root;
+                    if (root->coli) {
+                        io_write(s, 0x28LL * root->coli_count);
+                        io_align_write(s, 0x10);
+                    }
+                    io_write(s, 0x38);
+                    io_align_write(s, 0x10);
+                }
 
                 bhs[i].block_offset = io_get_position(s);
                 io_write(s, 0x28);
@@ -2450,7 +2465,55 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
     b->nodes = force_malloc_s(obj_skin_osage_node, b->count);
 
     io_position_push(s, offset, SEEK_SET);
-    if (io_read_uint32_t(s)) {
+    if (~io_read_uint32_t(s) & 0x8000) {
+        obj_skin_osage_root_node* root = &b->root;
+        root->coli = 0;
+        root->coli_count = 0;
+
+        root->unk0 = io_read_int32_t(s);
+        root->force = io_read_float_t(s);
+        root->force_gain = io_read_float_t(s);
+        root->air_res = io_read_float_t(s);
+        root->rot_y = io_read_float_t(s);
+        root->rot_z = io_read_float_t(s);
+        root->hinge_y = io_read_float_t(s);
+        root->hinge_z = io_read_float_t(s);
+        io_read_string_null_terminated(s, &root->name);
+        int32_t coli_offset = io_read_int32_t(s);
+        root->coli_r = io_read_float_t(s);
+        root->friction = io_read_float_t(s);
+        root->wind_afc = io_read_float_t(s);
+        root->unk44 = io_read_int32_t(s);
+
+        if (coli_offset) {
+            io_set_position(s, coli_offset, SEEK_SET);
+            int32_t coli_count = 0;
+            while (io_read_int32_t(s)) {
+                io_read(s, 44);
+                coli_count++;
+            }
+
+            root->coli = force_malloc_s(obj_skin_osage_root_coli, coli_count);
+            root->coli_count = coli_count;
+
+            io_set_position(s, coli_offset, SEEK_SET);
+            for (int32_t i = 0; i < root->coli_count; i++) {
+                obj_skin_osage_root_coli* coli = &root->coli[i];
+                coli->type = (obj_skin_osage_root_coli_type)io_read_int32_t(s);
+                coli->bone0_index = io_read_int32_t(s);
+                coli->bone1_index = io_read_int32_t(s);
+                coli->radius = io_read_float_t(s);
+                coli->bone0_pos.x = io_read_float_t(s);
+                coli->bone0_pos.y = io_read_float_t(s);
+                coli->bone0_pos.z = io_read_float_t(s);
+                coli->bone1_pos.x = io_read_float_t(s);
+                coli->bone1_pos.y = io_read_float_t(s);
+                coli->bone1_pos.z = io_read_float_t(s);
+            }
+        }
+        b->root_init = true;
+    }
+    else {
         io_set_position(s, offset, SEEK_SET);
         for (int32_t i = 0; i < b->nodes_count; i++) {
             obj_skin_osage_node* node = &b->nodes[i];
@@ -2460,12 +2523,54 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
             node->rotation.y = io_read_float_t(s);
             node->rotation.z = io_read_float_t(s);
         }
+        b->root_init = false;
     }
     io_position_pop(s);
 }
 
 static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
     stream* s, vector_old_string* strings, vector_old_ssize_t* string_offsets, ssize_t* nodes_offset) {
+    int32_t nodes_offset_i32 = (int32_t)*nodes_offset;
+    if (b->root_init) {
+        nodes_offset_i32 = (int32_t)io_get_position(s);
+
+        obj_skin_osage_root_node* root = &b->root;
+        int32_t coli_offset = 0;
+        if (root->coli) {
+            coli_offset = (int32_t)io_get_position(s);
+            for (int32_t i = 0; i < root->coli_count; i++) {
+                obj_skin_osage_root_coli* coli = &root->coli[i];
+                io_write_int32_t(s, coli->type);
+                io_write_int32_t(s, coli->bone0_index);
+                io_write_int32_t(s, coli->bone1_index);
+                io_write_float_t(s, coli->radius);
+                io_write_float_t(s, coli->bone0_pos.x);
+                io_write_float_t(s, coli->bone0_pos.y);
+                io_write_float_t(s, coli->bone0_pos.z);
+                io_write_float_t(s, coli->bone1_pos.x);
+                io_write_float_t(s, coli->bone1_pos.y);
+                io_write_float_t(s, coli->bone1_pos.z);
+            }
+            io_align_write(s, 0x10);
+        }
+
+        io_write_int32_t(s, root->unk0);
+        io_write_float_t(s, root->force);
+        io_write_float_t(s, root->force_gain);
+        io_write_float_t(s, root->air_res);
+        io_write_float_t(s, root->rot_y);
+        io_write_float_t(s, root->rot_z);
+        io_write_float_t(s, root->hinge_y);
+        io_write_float_t(s, root->hinge_z);
+        io_write_string_null_terminated(s, &root->name);
+        io_write_int32_t(s, coli_offset);
+        io_write_float_t(s, root->coli_r);
+        io_write_float_t(s, root->friction);
+        io_write_float_t(s, root->wind_afc);
+        io_write_int32_t(s, root->unk44);
+        io_write(s, 0x08);
+    }
+
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
 
     io_write_int32_t(s, b->start_index);
@@ -2473,10 +2578,11 @@ static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
     io_write_uint32_t(s, b->external_name_index);
     io_write_uint32_t(s, b->name_index);
 
-    io_write_int32_t(s, (int32_t)*nodes_offset);
+    io_write_int32_t(s, nodes_offset_i32);
     io_write(s, 0x14);
 
-    if (b->nodes) {
+
+    if (!b->root_init && b->nodes) {
         io_position_push(s, *nodes_offset, SEEK_SET);
         for (int32_t i = 0; i < b->nodes_count; i++) {
             obj_skin_osage_node* node = &b->nodes[i];

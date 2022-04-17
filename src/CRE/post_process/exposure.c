@@ -142,7 +142,7 @@ void post_process_get_exposure(post_process_exposure* exp, camera* cam, int32_t 
             field_648[1].field_80,
             field_648[2].field_80,
             field_648[3].field_80);
-        
+
         int32_t index = 0;
         for (struc_188& i : field_648) {
             shader_local_frag_set_ptr_array(&shaders_ft, 4ULL + index * 8ULL, 8, (vec4*)field_648->field_0);

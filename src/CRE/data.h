@@ -129,7 +129,7 @@ public:
 
 extern data_struct* data_list;
 
-#define DATA_LOAD_FILE_FUNC(f) 
+#define DATA_LOAD_FILE_FUNC(f)
 
 extern void data_struct_init();
 extern void data_struct_load(const char* path);

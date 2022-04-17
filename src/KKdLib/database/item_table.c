@@ -566,7 +566,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* length
         off = len;
         key_val::write_int32_t(&s, buf, off, ".length", 8, count);
     }
-    
+
     if (itm_tbl->dbgset.size() > 0) {
         len = 6;
         memcpy(buf, "dbgset", 6);

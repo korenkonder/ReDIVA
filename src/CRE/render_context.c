@@ -16,6 +16,9 @@ vector_old_func(texture_pattern_struct)
 vector_old_func(texture_transform_struct)
 vector_old_ptr_func(draw_task)
 
+float_t delta_frame_history = 0;
+int32_t delta_frame_history_int = 0;
+
 static void draw_pass_init(draw_pass* draw_pass);
 static void draw_pass_free(draw_pass* draw_pass);
 static void draw_state_init(draw_state* draw_state);
@@ -360,6 +363,15 @@ extern float_t rob_frame;
 extern render_context* rctx_ptr;
 
 inline void render_context_ctrl(render_context* rctx) {
+    delta_frame_history += get_delta_frame();
+    float_t v1;
+    delta_frame_history = modff(delta_frame_history, &v1);
+    delta_frame_history_int = (int32_t)v1;
+    if (delta_frame_history < 0.001f)
+        delta_frame_history = 0.0f;
+    else if (1.0f - delta_frame_history < 0.001f)
+        delta_frame_history_int++;
+
     /*for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
         if (!task_rob_manager_check_chara_loaded(rob_chara_array[i].chara_id)
             || rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)

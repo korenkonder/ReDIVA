@@ -497,7 +497,7 @@ static void stage_modern_free(stage_modern* s) {
         auth_3d_data_unload_category(s->stage_data->auth_3d_name_hash);
         s->auth_3d_loaded = false;
     }
-    
+
     object_storage_unload_set(s->stage_data->hash);
     if (s->obj_set_hash != -1 && s->obj_set_hash != hash_murmurhash_empty)
         object_storage_unload_set(s->obj_set_hash);

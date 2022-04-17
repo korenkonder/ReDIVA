@@ -285,7 +285,7 @@ static void auth_3d_database_file_read_inner(auth_3d_database_file* auth_3d_db_f
     signature = io_read_uint32_t(s);
     if ((signature & 0xFF) != 'A')
         return;
-    
+
     size_t string_offset = 0x10;
     size_t string_length = (int32_t)(s->length - 0x10);
 
@@ -378,7 +378,7 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
 
     stream s;
     io_open(&s);
-    
+
     io_write(&s, "#A3DA__________\n", 16);
     io_write(&s, "# date time was eliminated.\n", 28);
 

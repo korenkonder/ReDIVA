@@ -955,7 +955,7 @@ static void data_load_inner(stream* s) {
             *obj_db = object_database();
             obj_db->merge_mdata(base_obj_db, &mdata_obj_db);
         }
-        
+
         {
             stage_database* base_stage_data = &d->base_stage_data;
             *base_stage_data = stage_database();

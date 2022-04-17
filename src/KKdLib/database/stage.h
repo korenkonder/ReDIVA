@@ -155,7 +155,7 @@ public:
     bool modern;
     bool is_x;
     stage_data_format format;
-    
+
     std::vector<stage_data> stage_data;
     std::vector<stage_data_modern> stage_modern;
 
