@@ -525,7 +525,7 @@ void auth_3d::load(a3da* auth_file,
         m_object_hrc_list = std::vector<auth_3d_m_object_hrc*>(auth_file->m_object_hrc_list.size());
         for (std::string& i : auth_file->m_object_hrc_list)
             for (auth_3d_m_object_hrc& j : m_object_hrc)
-                if (i == j.name) {
+                if (!i.compare(j.name)) {
                     m_object_hrc_list[m_object_hrc_list_index++] = &j;
                     break;
                 }
@@ -535,9 +535,9 @@ void auth_3d::load(a3da* auth_file,
     if (auth_file->object_list.size() > 0) {
         size_t object_list_index = 0;
         object_list = std::vector<auth_3d_object*>(auth_file->object_list.size());
-        for (std::string & i : auth_file->object_list)
+        for (std::string& i : auth_file->object_list)
             for (auth_3d_object& j : object)
-                if (i == j.name) {
+                if (!i.compare(j.name)) {
                     object_list[object_list_index++] = &j;
                     break;
                 }
@@ -549,7 +549,7 @@ void auth_3d::load(a3da* auth_file,
         object_hrc_list = std::vector<auth_3d_object_hrc*>(auth_file->object_hrc_list.size());
         for (std::string& i : auth_file->object_hrc_list)
             for (auth_3d_object_hrc& j : object_hrc)
-                if (i == j.name) {
+                if (!i.compare(j.name)) {
                     object_hrc_list[object_hrc_list_index++] = &j;
                     break;
                 }
@@ -565,11 +565,11 @@ void auth_3d::load(a3da* auth_file,
 
             if (i.parent_node.size())
                 for (auth_3d_object_hrc& j : object_hrc) {
-                    if (i.parent_name != j.name)
+                    if (i.parent_name.compare(j.name))
                         continue;
 
                     for (auth_3d_object_node& k : j.node) {
-                        if (i.parent_node != k.name)
+                        if (i.parent_node.compare(k.name))
                             continue;
 
                         int32_t node_index = (int32_t)(&k - j.node.data());
@@ -581,7 +581,7 @@ void auth_3d::load(a3da* auth_file,
                 }
             else
                 for (auth_3d_object& j : object) {
-                    if (i.parent_name != j.name)
+                    if (i.parent_name.compare(j.name))
                         continue;
 
                     j.children_object.push_back(&i);
@@ -597,11 +597,11 @@ void auth_3d::load(a3da* auth_file,
 
             if (i.parent_node.size())
                 for (auth_3d_object_hrc& j : object_hrc) {
-                    if (i.parent_name != j.name)
+                    if (i.parent_name.compare(j.name))
                         continue;
 
                     for (auth_3d_object_node& k : j.node) {
-                        if (i.parent_node != k.name)
+                        if (i.parent_node.compare(k.name))
                             continue;
 
                         int32_t node_index = (int32_t)(&k - j.node.data());
@@ -613,7 +613,7 @@ void auth_3d::load(a3da* auth_file,
                 }
             else
                 for (auth_3d_object& j : object) {
-                    if (i.parent_name != j.name)
+                    if (i.parent_name.compare(j.name))
                         continue;
 
                     j.children_object_hrc.push_back(&i);
@@ -3405,7 +3405,7 @@ static void auth_3d_object_load(auth_3d* auth, auth_3d_object* o,
     auth_3d_model_transform_load(auth, &o->model_transform, &of->model_transform);
     auth_3d_object_curve_load(auth, &o->morph, of->morph, of->morph_offset);
     o->name = of->name;
-    o->parent_node = of->parent_node;
+    o->parent_name = of->parent_name;
     o->parent_node = of->parent_node;
     auth_3d_object_curve_load(auth, &o->pattern, of->pattern, of->pattern_offset);
 
@@ -3451,7 +3451,7 @@ static void auth_3d_object_curve_load(auth_3d* auth, auth_3d_object_curve* oc,
     oc->value = 0.0f;
 
     for (auth_3d_curve& i : auth->curve)
-        if (oc->name == i.name) {
+        if (!oc->name.compare(i.name)) {
             oc->curve = &i;
             oc->frame_offset = frame_offset;
             break;

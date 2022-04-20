@@ -30,7 +30,7 @@ inline void string_init(string* s) {
     string_init(s, (char*)0);
 }
 
-inline void string_init(string* s, char* str) {
+inline void string_init(string* s, const char* str) {
     *s = string_empty;
     if (!str)
         return;
@@ -42,15 +42,11 @@ inline void string_init(string* s, char* str) {
     string_data(s)[s->length] = 0;
 }
 
-inline void string_init(string* s, const char* str) {
-    string_init(s, (char*)str);
-}
-
 inline void string_init_length(string* s, ssize_t length) {
     string_init_length(s, (char*)0, length);
 }
 
-inline void string_init_length(string* s, char* str, ssize_t length) {
+inline void string_init_length(string* s, const char* str, ssize_t length) {
     *s = string_empty;
     if (!str && !length)
         return;
@@ -64,10 +60,6 @@ inline void string_init_length(string* s, char* str, ssize_t length) {
     string_data(s)[s->length] = 0;
 }
 
-inline void string_init_length(string* s, const char* str, ssize_t length) {
-    string_init_length(s, (char*)str, length);
-}
-
 inline char* string_data(string* s) {
     return s->capacity > STRING_NULL_LENGTH ? s->ptr : s->data;
 }
@@ -76,7 +68,7 @@ inline const char* string_data(const string* s) {
     return s->capacity > STRING_NULL_LENGTH ? s->ptr : s->data;
 }
 
-inline void string_add(string* s, char* str) {
+inline void string_add(string* s, const char* str) {
     if (!s || !str)
         return;
 
@@ -90,11 +82,7 @@ inline void string_add(string* s, char* str) {
     string_data(s)[s->length] = 0;
 }
 
-inline void string_add(string* s, const char* str) {
-    string_add(s, (char*)str);
-}
-
-inline void string_add_length(string* s, char* str, ssize_t length) {
+inline void string_add_length(string* s, const char* str, ssize_t length) {
     if (!s || !length)
         return;
 
@@ -105,10 +93,6 @@ inline void string_add_length(string* s, char* str, ssize_t length) {
         memset(string_data(s) + s->length, 0, length);
     s->length += length;
     string_data(s)[s->length] = 0;
-}
-
-inline void string_add_length(string* s, const char* str, ssize_t length) {
-    string_add_length(s, (char*)str, length);
 }
 
 inline void string_add_char(string* s, char c) {
@@ -163,7 +147,7 @@ inline void wstring_init(wstring* s) {
     wstring_init(s, (wchar_t*)0);
 }
 
-inline void wstring_init(wstring* s, wchar_t* str) {
+inline void wstring_init(wstring* s, const wchar_t* str) {
     *s = wstring_empty;
     if (!str)
         return;
@@ -175,15 +159,11 @@ inline void wstring_init(wstring* s, wchar_t* str) {
     wstring_data(s)[s->length] = 0;
 }
 
-inline void wstring_init(wstring* s, const wchar_t* str) {
-    wstring_init(s, (wchar_t*)str);
-}
-
 inline void wstring_init_length(wstring* s, ssize_t length) {
     wstring_init_length(s, (wchar_t*)0, length);
 }
 
-inline void wstring_init_length(wstring* s, wchar_t* str, ssize_t length) {
+inline void wstring_init_length(wstring* s, const wchar_t* str, ssize_t length) {
     *s = wstring_empty;
     if (!length)
         return;
@@ -197,11 +177,7 @@ inline void wstring_init_length(wstring* s, wchar_t* str, ssize_t length) {
     wstring_data(s)[s->length] = 0;
 }
 
-inline void wstring_init_length(wstring* s, const wchar_t* str, ssize_t length) {
-    wstring_init_length(s, (wchar_t*)str, length);
-}
-
-inline void wstring_add(wstring* s, wchar_t* str) {
+inline void wstring_add(wstring* s, const wchar_t* str) {
     if (!s || !str)
         return;
 
@@ -215,11 +191,7 @@ inline void wstring_add(wstring* s, wchar_t* str) {
     wstring_data(s)[s->length] = 0;
 }
 
-inline void wstring_add(wstring* s, const wchar_t* str) {
-    wstring_add(s, (wchar_t*)str);
-}
-
-inline void wstring_add_length(wstring* s, wchar_t* str, ssize_t length) {
+inline void wstring_add_length(wstring* s, const wchar_t* str, ssize_t length) {
     if (!s || !length)
         return;
 
@@ -230,10 +202,6 @@ inline void wstring_add_length(wstring* s, wchar_t* str, ssize_t length) {
         memset(wstring_data(s) + s->length, 0, sizeof(wchar_t) * length);
     s->length += length;
     wstring_data(s)[s->length] = 0;
-}
-
-inline void wstring_add_length(wstring* s, const wchar_t* str, ssize_t length) {
-    wstring_add_length(s, (wchar_t*)str, length);
 }
 
 inline void wstring_add_char(wstring* s, wchar_t c) {

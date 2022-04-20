@@ -15,7 +15,7 @@ if (MSGPACK_CHECK(a)) \
 
 vector_old_func(msgpack);
 
-void msgpack_init_map(msgpack* msg, char* name) {
+void msgpack_init_map(msgpack* msg, const char* name) {
     msg->type = MSGPACK_MAP;
     MSGPACK_ALLOCATE_PTR(msgpack_map, msg);
     string_init(&msg->name, name);
@@ -24,7 +24,7 @@ void msgpack_init_map(msgpack* msg, char* name) {
     ptr->capacity_end = ptr->end = ptr->begin = 0;
 }
 
-void msgpack_init_array(msgpack* msg, char* name, size_t length) {
+void msgpack_init_array(msgpack* msg, const char* name, size_t length) {
     msg->type = MSGPACK_ARRAY;
     MSGPACK_ALLOCATE_PTR(msgpack_array, msg);
     string_init(&msg->name, name);
@@ -35,12 +35,12 @@ void msgpack_init_array(msgpack* msg, char* name, size_t length) {
     ptr->end = ptr->begin + length;
 }
 
-void msgpack_init_null(msgpack* msg, char* name) {
+void msgpack_init_null(msgpack* msg, const char* name) {
     msg->type = MSGPACK_NULL;
     string_init(&msg->name, name);
 }
 
-void msgpack_init_bool(msgpack* msg, char* name, bool val) {
+void msgpack_init_bool(msgpack* msg, const char* name, bool val) {
     msg->type = MSGPACK_bool;
     MSGPACK_ALLOCATE_PTR(bool, msg);
     string_init(&msg->name, name);
@@ -49,7 +49,7 @@ void msgpack_init_bool(msgpack* msg, char* name, bool val) {
     *ptr = val;
 }
 
-void msgpack_init_int8_t(msgpack* msg, char* name, int8_t val) {
+void msgpack_init_int8_t(msgpack* msg, const char* name, int8_t val) {
     msg->type = MSGPACK_INT8;
     MSGPACK_ALLOCATE_PTR(int8_t, msg);
     string_init(&msg->name, name);
@@ -58,7 +58,7 @@ void msgpack_init_int8_t(msgpack* msg, char* name, int8_t val) {
     *ptr = val;
 }
 
-void msgpack_init_uint8_t(msgpack* msg, char* name, uint8_t val) {
+void msgpack_init_uint8_t(msgpack* msg, const char* name, uint8_t val) {
     msg->type = MSGPACK_UINT8;
     MSGPACK_ALLOCATE_PTR(uint8_t, msg);
     string_init(&msg->name, name);
@@ -67,7 +67,7 @@ void msgpack_init_uint8_t(msgpack* msg, char* name, uint8_t val) {
     *ptr = val;
 }
 
-void msgpack_init_int16_t(msgpack* msg, char* name, int16_t val) {
+void msgpack_init_int16_t(msgpack* msg, const char* name, int16_t val) {
     msg->type = MSGPACK_INT16;
     MSGPACK_ALLOCATE_PTR(int16_t, msg);
     string_init(&msg->name, name);
@@ -76,7 +76,7 @@ void msgpack_init_int16_t(msgpack* msg, char* name, int16_t val) {
     *ptr = val;
 }
 
-void msgpack_init_uint16_t(msgpack* msg, char* name, uint16_t val) {
+void msgpack_init_uint16_t(msgpack* msg, const char* name, uint16_t val) {
     msg->type = MSGPACK_UINT16;
     MSGPACK_ALLOCATE_PTR(uint16_t, msg);
     string_init(&msg->name, name);
@@ -85,7 +85,7 @@ void msgpack_init_uint16_t(msgpack* msg, char* name, uint16_t val) {
     *ptr = val;
 }
 
-void msgpack_init_int32_t(msgpack* msg, char* name, int32_t val) {
+void msgpack_init_int32_t(msgpack* msg, const char* name, int32_t val) {
     msg->type = MSGPACK_INT32;
     MSGPACK_ALLOCATE_PTR(int32_t, msg);
     string_init(&msg->name, name);
@@ -94,7 +94,7 @@ void msgpack_init_int32_t(msgpack* msg, char* name, int32_t val) {
     *ptr = val;
 }
 
-void msgpack_init_uint32_t(msgpack* msg, char* name, uint32_t val) {
+void msgpack_init_uint32_t(msgpack* msg, const char* name, uint32_t val) {
     msg->type = MSGPACK_UINT32;
     MSGPACK_ALLOCATE_PTR(uint32_t, msg);
     string_init(&msg->name, name);
@@ -103,7 +103,7 @@ void msgpack_init_uint32_t(msgpack* msg, char* name, uint32_t val) {
     *ptr = val;
 }
 
-void msgpack_init_int64_t(msgpack* msg, char* name, int64_t val) {
+void msgpack_init_int64_t(msgpack* msg, const char* name, int64_t val) {
     msg->type = MSGPACK_INT64;
     MSGPACK_ALLOCATE_PTR(int64_t, msg);
     string_init(&msg->name, name);
@@ -112,7 +112,7 @@ void msgpack_init_int64_t(msgpack* msg, char* name, int64_t val) {
     *ptr = val;
 }
 
-void msgpack_init_uint64_t(msgpack* msg, char* name, uint64_t val) {
+void msgpack_init_uint64_t(msgpack* msg, const char* name, uint64_t val) {
     msg->type = MSGPACK_UINT64;
     MSGPACK_ALLOCATE_PTR(uint64_t, msg);
     string_init(&msg->name, name);
@@ -121,7 +121,7 @@ void msgpack_init_uint64_t(msgpack* msg, char* name, uint64_t val) {
     *ptr = val;
 }
 
-void msgpack_init_float_t(msgpack* msg, char* name, float_t val) {
+void msgpack_init_float_t(msgpack* msg, const char* name, float_t val) {
     msg->type = MSGPACK_FLOAT;
     MSGPACK_ALLOCATE_PTR(float_t, msg);
     string_init(&msg->name, name);
@@ -130,7 +130,7 @@ void msgpack_init_float_t(msgpack* msg, char* name, float_t val) {
     *ptr = val;
 }
 
-void msgpack_init_double_t(msgpack* msg, char* name, double_t val) {
+void msgpack_init_double_t(msgpack* msg, const char* name, double_t val) {
     msg->type = MSGPACK_DOUBLE;
     MSGPACK_ALLOCATE_PTR(double_t, msg);
     string_init(&msg->name, name);
@@ -139,14 +139,14 @@ void msgpack_init_double_t(msgpack* msg, char* name, double_t val) {
     *ptr = val;
 }
 
-void msgpack_init_utf8_string(msgpack* msg, char* name, char* val) {
+void msgpack_init_utf8_string(msgpack* msg, const char* name, const char* val) {
     msg->type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(string, msg);
     string_init(&msg->name, name);
     string_init(MSGPACK_SELECT_PTR(string, msg), val);
 }
 
-void msgpack_init_utf16_string(msgpack* msg, char* name, wchar_t* val) {
+void msgpack_init_utf16_string(msgpack* msg, const char* name, const wchar_t* val) {
     char* temp = utf16_to_utf8(val);
     msg->type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(string, msg);
@@ -155,14 +155,14 @@ void msgpack_init_utf16_string(msgpack* msg, char* name, wchar_t* val) {
     free(temp);
 }
 
-void msgpack_init_string(msgpack* msg, char* name, string* val) {
+void msgpack_init_string(msgpack* msg, const char* name, string* val) {
     msg->type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(string, msg);
     string_init(&msg->name, name);
     string_copy(val, MSGPACK_SELECT_PTR(string, msg));
 }
 
-void msgpack_init_wstring(msgpack* msg, char* name, wstring* val) {
+void msgpack_init_wstring(msgpack* msg, const char* name, wstring* val) {
     msg->type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(string, msg);
     string_init(&msg->name, name);
@@ -206,7 +206,7 @@ void msgpack_set_by_index(msgpack* msg, msgpack* m, size_t index) {
     }
 }
 
-msgpack* msgpack_get_by_name(msgpack* msg, char* name) {
+msgpack* msgpack_get_by_name(msgpack* msg, const char* name) {
     if (msg->type != MSGPACK_MAP)
         return 0;
 
@@ -242,7 +242,7 @@ void msgpack_append(msgpack* msg, msgpack* m) {
     memset(m->data, 0, sizeof(m->data));
 }
 
-void msgpack_append_bool(msgpack* msg, char* name, bool val) {
+void msgpack_append_bool(msgpack* msg, const char* name, bool val) {
     msgpack m;
     m.type = MSGPACK_bool;
     MSGPACK_ALLOCATE(bool, m);
@@ -253,7 +253,7 @@ void msgpack_append_bool(msgpack* msg, char* name, bool val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_int8_t(msgpack* msg, char* name, int8_t val) {
+void msgpack_append_int8_t(msgpack* msg, const char* name, int8_t val) {
     msgpack m;
     m.type = MSGPACK_INT8;
     MSGPACK_ALLOCATE(int8_t, m);
@@ -264,7 +264,7 @@ void msgpack_append_int8_t(msgpack* msg, char* name, int8_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_uint8_t(msgpack* msg, char* name, uint8_t val) {
+void msgpack_append_uint8_t(msgpack* msg, const char* name, uint8_t val) {
     msgpack m;
     m.type = MSGPACK_UINT8;
     MSGPACK_ALLOCATE(uint8_t, m);
@@ -275,7 +275,7 @@ void msgpack_append_uint8_t(msgpack* msg, char* name, uint8_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_int16_t(msgpack* msg, char* name, int16_t val) {
+void msgpack_append_int16_t(msgpack* msg, const char* name, int16_t val) {
     msgpack m;
     m.type = MSGPACK_INT16;
     MSGPACK_ALLOCATE(int16_t, m);
@@ -286,7 +286,7 @@ void msgpack_append_int16_t(msgpack* msg, char* name, int16_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_uint16_t(msgpack* msg, char* name, uint16_t val) {
+void msgpack_append_uint16_t(msgpack* msg, const char* name, uint16_t val) {
     msgpack m;
     m.type = MSGPACK_UINT16;
     MSGPACK_ALLOCATE(uint16_t, m);
@@ -297,7 +297,7 @@ void msgpack_append_uint16_t(msgpack* msg, char* name, uint16_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_int32_t(msgpack* msg, char* name, int32_t val) {
+void msgpack_append_int32_t(msgpack* msg, const char* name, int32_t val) {
     msgpack m;
     m.type = MSGPACK_INT32;
     MSGPACK_ALLOCATE(int32_t, m);
@@ -308,7 +308,7 @@ void msgpack_append_int32_t(msgpack* msg, char* name, int32_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_uint32_t(msgpack* msg, char* name, uint32_t val) {
+void msgpack_append_uint32_t(msgpack* msg, const char* name, uint32_t val) {
     msgpack m;
     m.type = MSGPACK_UINT32;
     MSGPACK_ALLOCATE(uint32_t, m);
@@ -319,7 +319,7 @@ void msgpack_append_uint32_t(msgpack* msg, char* name, uint32_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_int64_t(msgpack* msg, char* name, int64_t val) {
+void msgpack_append_int64_t(msgpack* msg, const char* name, int64_t val) {
     msgpack m;
     m.type = MSGPACK_INT64;
     MSGPACK_ALLOCATE(int64_t, m);
@@ -330,7 +330,7 @@ void msgpack_append_int64_t(msgpack* msg, char* name, int64_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_uint64_t(msgpack* msg, char* name, uint64_t val) {
+void msgpack_append_uint64_t(msgpack* msg, const char* name, uint64_t val) {
     msgpack m;
     m.type = MSGPACK_UINT64;
     MSGPACK_ALLOCATE(uint64_t, m);
@@ -341,7 +341,7 @@ void msgpack_append_uint64_t(msgpack* msg, char* name, uint64_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_float_t(msgpack* msg, char* name, float_t val) {
+void msgpack_append_float_t(msgpack* msg, const char* name, float_t val) {
     msgpack m;
     m.type = MSGPACK_FLOAT;
     MSGPACK_ALLOCATE(float_t, m);
@@ -352,7 +352,7 @@ void msgpack_append_float_t(msgpack* msg, char* name, float_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_double_t(msgpack* msg, char* name, double_t val) {
+void msgpack_append_double_t(msgpack* msg, const char* name, double_t val) {
     msgpack m;
     m.type = MSGPACK_DOUBLE;
     MSGPACK_ALLOCATE(double_t, m);
@@ -363,7 +363,7 @@ void msgpack_append_double_t(msgpack* msg, char* name, double_t val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_utf8_string(msgpack* msg, char* name, char* val) {
+void msgpack_append_utf8_string(msgpack* msg, const char* name, const char* val) {
     msgpack m;
     m.type = MSGPACK_STRING;
     MSGPACK_ALLOCATE(string, m);
@@ -372,7 +372,7 @@ void msgpack_append_utf8_string(msgpack* msg, char* name, char* val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_utf16_string(msgpack* msg, char* name, wchar_t* val) {
+void msgpack_append_utf16_string(msgpack* msg, const char* name, const wchar_t* val) {
     msgpack m;
     char* temp = utf16_to_utf8(val);
     m.type = MSGPACK_STRING;
@@ -383,7 +383,7 @@ void msgpack_append_utf16_string(msgpack* msg, char* name, wchar_t* val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_string(msgpack* msg, char* name, string* val) {
+void msgpack_append_string(msgpack* msg, const char* name, string* val) {
     msgpack m;
     m.type = MSGPACK_STRING;
     MSGPACK_ALLOCATE(string, m);
@@ -392,7 +392,7 @@ void msgpack_append_string(msgpack* msg, char* name, string* val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_append_wstring(msgpack* msg, char* name, wstring* val) {
+void msgpack_append_wstring(msgpack* msg, const char* name, wstring* val) {
     msgpack m;
     m.type = MSGPACK_STRING;
     MSGPACK_ALLOCATE(string, m);
@@ -401,7 +401,7 @@ void msgpack_append_wstring(msgpack* msg, char* name, wstring* val) {
     msgpack_append(msg, &m);
 }
 
-void msgpack_set_null(msgpack* msg, char* name) {
+void msgpack_set_null(msgpack* msg, const char* name) {
     if (!msg)
         return;
 
@@ -410,7 +410,7 @@ void msgpack_set_null(msgpack* msg, char* name) {
     string_init(&msg->name, name);
 }
 
-void msgpack_set_array(msgpack* msg, char* name, msgpack_array* val) {
+void msgpack_set_array(msgpack* msg, const char* name, msgpack_array* val) {
     if (!msg)
         return;
 
@@ -424,7 +424,7 @@ void msgpack_set_array(msgpack* msg, char* name, msgpack_array* val) {
     val->capacity_end = val->end = val->begin = 0;
 }
 
-void msgpack_set_array_empty(msgpack* msg, char* name) {
+void msgpack_set_array_empty(msgpack* msg, const char* name) {
     if (!msg)
         return;
 
@@ -437,7 +437,7 @@ void msgpack_set_array_empty(msgpack* msg, char* name) {
     ptr->capacity_end = ptr->end = ptr->begin = 0;
 }
 
-void msgpack_set_map(msgpack* msg, char* name, msgpack_map* val) {
+void msgpack_set_map(msgpack* msg, const char* name, msgpack_map* val) {
     if (!msg)
         return;
 
@@ -451,7 +451,7 @@ void msgpack_set_map(msgpack* msg, char* name, msgpack_map* val) {
     val->capacity_end = val->end = val->begin = 0;
 }
 
-void msgpack_set_map_empty(msgpack* msg, char* name) {
+void msgpack_set_map_empty(msgpack* msg, const char* name) {
     if (!msg)
         return;
 
@@ -464,7 +464,7 @@ void msgpack_set_map_empty(msgpack* msg, char* name) {
     ptr->capacity_end = ptr->end = ptr->begin = 0;
 }
 
-void msgpack_set_bool(msgpack* msg, char* name, bool val) {
+void msgpack_set_bool(msgpack* msg, const char* name, bool val) {
     if (!msg)
         return;
 
@@ -477,7 +477,7 @@ void msgpack_set_bool(msgpack* msg, char* name, bool val) {
     *ptr = val;
 }
 
-void msgpack_set_int8_t(msgpack* msg, char* name, int8_t val) {
+void msgpack_set_int8_t(msgpack* msg, const char* name, int8_t val) {
     if (!msg)
         return;
 
@@ -490,7 +490,7 @@ void msgpack_set_int8_t(msgpack* msg, char* name, int8_t val) {
     *ptr = val;
 }
 
-void msgpack_set_uint8_t(msgpack* msg, char* name, uint8_t val) {
+void msgpack_set_uint8_t(msgpack* msg, const char* name, uint8_t val) {
     if (!msg)
         return;
 
@@ -503,7 +503,7 @@ void msgpack_set_uint8_t(msgpack* msg, char* name, uint8_t val) {
     *ptr = val;
 }
 
-void msgpack_set_int16_t(msgpack* msg, char* name, int16_t val) {
+void msgpack_set_int16_t(msgpack* msg, const char* name, int16_t val) {
     if (!msg)
         return;
 
@@ -516,7 +516,7 @@ void msgpack_set_int16_t(msgpack* msg, char* name, int16_t val) {
     *ptr = val;
 }
 
-void msgpack_set_uint16_t(msgpack* msg, char* name, uint16_t val) {
+void msgpack_set_uint16_t(msgpack* msg, const char* name, uint16_t val) {
     if (!msg)
         return;
 
@@ -529,7 +529,7 @@ void msgpack_set_uint16_t(msgpack* msg, char* name, uint16_t val) {
     *ptr = val;
 }
 
-void msgpack_set_int32_t(msgpack* msg, char* name, int32_t val) {
+void msgpack_set_int32_t(msgpack* msg, const char* name, int32_t val) {
     if (!msg)
         return;
 
@@ -542,7 +542,7 @@ void msgpack_set_int32_t(msgpack* msg, char* name, int32_t val) {
     *ptr = val;
 }
 
-void msgpack_set_uint32_t(msgpack* msg, char* name, uint32_t val) {
+void msgpack_set_uint32_t(msgpack* msg, const char* name, uint32_t val) {
     if (!msg)
         return;
 
@@ -555,7 +555,7 @@ void msgpack_set_uint32_t(msgpack* msg, char* name, uint32_t val) {
     *ptr = val;
 }
 
-void msgpack_set_int64_t(msgpack* msg, char* name, int64_t val) {
+void msgpack_set_int64_t(msgpack* msg, const char* name, int64_t val) {
     if (!msg)
         return;
 
@@ -568,7 +568,7 @@ void msgpack_set_int64_t(msgpack* msg, char* name, int64_t val) {
     *ptr = val;
 }
 
-void msgpack_set_uint64_t(msgpack* msg, char* name, uint64_t val) {
+void msgpack_set_uint64_t(msgpack* msg, const char* name, uint64_t val) {
     if (!msg)
         return;
 
@@ -581,7 +581,7 @@ void msgpack_set_uint64_t(msgpack* msg, char* name, uint64_t val) {
     *ptr = val;
 }
 
-void msgpack_set_float_t(msgpack* msg, char* name, float_t val) {
+void msgpack_set_float_t(msgpack* msg, const char* name, float_t val) {
     if (!msg)
         return;
 
@@ -594,7 +594,7 @@ void msgpack_set_float_t(msgpack* msg, char* name, float_t val) {
     *ptr = val;
 }
 
-void msgpack_set_double_t(msgpack* msg, char* name, double_t val) {
+void msgpack_set_double_t(msgpack* msg, const char* name, double_t val) {
     if (!msg)
         return;
 
@@ -607,7 +607,7 @@ void msgpack_set_double_t(msgpack* msg, char* name, double_t val) {
     *ptr = val;
 }
 
-void msgpack_set_utf8_string(msgpack* msg, char* name, char* val) {
+void msgpack_set_utf8_string(msgpack* msg, const char* name, const char* val) {
     if (!msg)
         return;
 
@@ -618,7 +618,7 @@ void msgpack_set_utf8_string(msgpack* msg, char* name, char* val) {
     string_init(MSGPACK_SELECT_PTR(string, msg), val);
 }
 
-void msgpack_set_utf16_string(msgpack* msg, char* name, wchar_t* val) {
+void msgpack_set_utf16_string(msgpack* msg, const char* name, const wchar_t* val) {
     if (!msg)
         return;
 
@@ -631,7 +631,7 @@ void msgpack_set_utf16_string(msgpack* msg, char* name, wchar_t* val) {
     free(temp);
 }
 
-void msgpack_set_string(msgpack* msg, char* name, string* val) {
+void msgpack_set_string(msgpack* msg, const char* name, string* val) {
     if (!msg)
         return;
 
@@ -642,7 +642,7 @@ void msgpack_set_string(msgpack* msg, char* name, string* val) {
     string_copy(val, MSGPACK_SELECT_PTR(string, msg));
 }
 
-void msgpack_set_wstring(msgpack* msg, char* name, wstring* val) {
+void msgpack_set_wstring(msgpack* msg, const char* name, wstring* val) {
     if (!msg)
         return;
 
@@ -653,14 +653,14 @@ void msgpack_set_wstring(msgpack* msg, char* name, wstring* val) {
     string_copy_wstring(val, MSGPACK_SELECT_PTR(string, msg));
 }
 
-msgpack* msgpack_read(msgpack* msg, char* name) {
+msgpack* msgpack_read(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
     return name ? msgpack_get_by_name(msg, name) : msg;
 }
 
-bool msgpack_read_bool(msgpack* msg, char* name) {
+bool msgpack_read_bool(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -670,7 +670,7 @@ bool msgpack_read_bool(msgpack* msg, char* name) {
     return 0;
 }
 
-int8_t msgpack_read_int8_t(msgpack* msg, char* name) {
+int8_t msgpack_read_int8_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -685,7 +685,7 @@ int8_t msgpack_read_int8_t(msgpack* msg, char* name) {
     return 0;
 }
 
-uint8_t msgpack_read_uint8_t(msgpack* msg, char* name) {
+uint8_t msgpack_read_uint8_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -700,7 +700,7 @@ uint8_t msgpack_read_uint8_t(msgpack* msg, char* name) {
     return 0;
 }
 
-int16_t msgpack_read_int16_t(msgpack* msg, char* name) {
+int16_t msgpack_read_int16_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -719,7 +719,7 @@ int16_t msgpack_read_int16_t(msgpack* msg, char* name) {
     return 0;
 }
 
-uint16_t msgpack_read_uint16_t(msgpack* msg, char* name) {
+uint16_t msgpack_read_uint16_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -738,7 +738,7 @@ uint16_t msgpack_read_uint16_t(msgpack* msg, char* name) {
     return 0;
 }
 
-int32_t msgpack_read_int32_t(msgpack* msg, char* name) {
+int32_t msgpack_read_int32_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -761,7 +761,7 @@ int32_t msgpack_read_int32_t(msgpack* msg, char* name) {
     return 0;
 }
 
-uint32_t msgpack_read_uint32_t(msgpack* msg, char* name) {
+uint32_t msgpack_read_uint32_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -784,7 +784,7 @@ uint32_t msgpack_read_uint32_t(msgpack* msg, char* name) {
     return 0;
 }
 
-int64_t msgpack_read_int64_t(msgpack* msg, char* name) {
+int64_t msgpack_read_int64_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -811,7 +811,7 @@ int64_t msgpack_read_int64_t(msgpack* msg, char* name) {
     return 0;
 }
 
-uint64_t msgpack_read_uint64_t(msgpack* msg, char* name) {
+uint64_t msgpack_read_uint64_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -838,7 +838,7 @@ uint64_t msgpack_read_uint64_t(msgpack* msg, char* name) {
     return 0;
 }
 
-float_t msgpack_read_float_t(msgpack* msg, char* name) {
+float_t msgpack_read_float_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -869,7 +869,7 @@ float_t msgpack_read_float_t(msgpack* msg, char* name) {
     return 0;
 }
 
-double_t msgpack_read_double_t(msgpack* msg, char* name) {
+double_t msgpack_read_double_t(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -900,7 +900,7 @@ double_t msgpack_read_double_t(msgpack* msg, char* name) {
     return 0;
 }
 
-char* msgpack_read_utf8_string(msgpack* msg, char* name) {
+char* msgpack_read_utf8_string(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -917,7 +917,7 @@ char* msgpack_read_utf8_string(msgpack* msg, char* name) {
     return 0;
 }
 
-wchar_t* msgpack_read_utf16_string(msgpack* msg, char* name) {
+wchar_t* msgpack_read_utf16_string(msgpack* msg, const char* name) {
     if (!msg)
         return 0;
 
@@ -936,7 +936,7 @@ wchar_t* msgpack_read_utf16_string(msgpack* msg, char* name) {
     return 0;
 }
 
-void msgpack_read_string(msgpack* msg, char* name, string* str) {
+void msgpack_read_string(msgpack* msg, const char* name, string* str) {
     if (!msg) {
         *str = string_empty;
         return;
@@ -952,7 +952,7 @@ void msgpack_read_string(msgpack* msg, char* name, string* str) {
         *str = string_empty;
 }
 
-void msgpack_read_wstring(msgpack* msg, char* name, wstring* str) {
+void msgpack_read_wstring(msgpack* msg, const char* name, wstring* str) {
     if (!msg) {
         *str = wstring_empty;
         return;

@@ -218,37 +218,34 @@ void mot_set_farc::write(const char* path, farc_compress_mode mode) {
     farc f;
     if (!modern)
         for (mot_set& i : vec) {
-            farc_file ff;
-            memset(&ff, 0, sizeof(farc_file));
+            f.add_file();
+            farc_file* ff = &f.files.back();
 
             stream s;
             io_open(&s);
             mot_classic_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_copy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff->data, &ff->size);
             io_free(&s);
 
-            ff.name = i.name;
-            ff.name += ".bin";
-
-            f.files.push_back(ff);
+            ff->name = i.name;
+            ff->name += ".bin";
         }
     else
         for (mot_set& i : vec) {
-            farc_file ff;
-            memset(&ff, 0, sizeof(farc_file));
+            f.add_file();
+            farc_file* ff = &f.files.back();
 
             stream s;
             io_open(&s);
             mot_modern_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_copy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff->data, &ff->size);
             io_free(&s);
 
-            ff.name = i.name;
-            ff.name += ".mot";
+            ff->name = i.name;
+            ff->name += ".mot";
 
-            f.files.push_back(ff);
         }
     f.write(path_farc, mode, false);
     free(path_farc);
@@ -263,35 +260,33 @@ void mot_set_farc::write(const wchar_t* path, farc_compress_mode mode) {
     farc f;
     if (!modern)
         for (mot_set& i : vec) {
-            farc_file ff;
+            f.add_file();
+            farc_file* ff = &f.files.back();
 
             stream s;
             io_open(&s);
             mot_classic_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_copy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff->data, &ff->size);
             io_free(&s);
 
-            ff.name = i.name;
-            ff.name += ".bin";
-
-            f.files.push_back(ff);
+            ff->name = i.name;
+            ff->name += ".bin";
         }
     else
         for (mot_set& i : vec) {
-            farc_file ff;
+            f.add_file();
+            farc_file* ff = &f.files.back();
 
             stream s;
             io_open(&s);
             mot_modern_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_copy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff->data, &ff->size);
             io_free(&s);
 
-            ff.name = i.name;
-            ff.name += ".mot";
-
-            f.files.push_back(ff);
+            ff->name = i.name;
+            ff->name += ".mot";
         }
     f.write(path_farc, mode, false);
     free(path_farc);
@@ -304,35 +299,33 @@ void mot_set_farc::write(void** data, size_t* length, farc_compress_mode mode) {
     farc f;
     if (!modern)
         for (mot_set& i : vec) {
-            farc_file ff;
+            f.add_file();
+            farc_file* ff = &f.files.back();
+
             stream s;
             io_open(&s);
             mot_classic_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_copy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff->data, &ff->size);
             io_free(&s);
 
-            ff.name = i.name;
-            ff.name += ".bin";
-
-            f.files.push_back(ff);
+            ff->name = i.name;
+            ff->name += ".bin";
         }
     else
         for (mot_set& i : vec) {
-            farc_file ff;
-            memset(&ff, 0, sizeof(farc_file));
+            f.add_file();
+            farc_file* ff = &f.files.back();
 
             stream s;
             io_open(&s);
             mot_modern_write_inner(&i, &s);
             io_align_write(&s, 0x10);
-            io_copy(&s, &ff.data, &ff.size);
+            io_copy(&s, &ff->data, &ff->size);
             io_free(&s);
 
-            ff.name = i.name;
-            ff.name += ".mot";
-
-            f.files.push_back(ff);
+            ff->name = i.name;
+            ff->name += ".mot";
         }
     f.write(data, length,  mode);
 }

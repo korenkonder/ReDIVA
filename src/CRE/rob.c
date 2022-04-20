@@ -235,7 +235,7 @@ public:
     virtual bool Dest() override;
     virtual void Disp() override;
     virtual bool CheckType(rob_chara_type type) = 0;
-    virtual bool Field38() = 0;
+    virtual bool IsFrameDependent() = 0;
 
     void AppendList(rob_chara* rob_chr, std::list<rob_chara*>* list);
     void AppendCtrlCharaList(rob_chara* rob_chr);
@@ -256,7 +256,7 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual bool CheckType(rob_chara_type type) override;
-    virtual bool Field38() override;
+    virtual bool IsFrameDependent() override;
 };
 
 class TaskRobPrepareAction : public RobImplTask {
@@ -267,7 +267,7 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual bool CheckType(rob_chara_type type) override;
-    virtual bool Field38() override;
+    virtual bool IsFrameDependent() override;
 };
 
 class TaskRobBase : public RobImplTask {
@@ -278,7 +278,7 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual bool CheckType(rob_chara_type type) override;
-    virtual bool Field38() override;
+    virtual bool IsFrameDependent() override;
 };
 
 class TaskRobCollision : public RobImplTask {
@@ -289,7 +289,7 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual bool CheckType(rob_chara_type type) override;
-    virtual bool Field38() override;
+    virtual bool IsFrameDependent() override;
 };
 
 class TaskRobInfo : public RobImplTask {
@@ -300,7 +300,7 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual bool CheckType(rob_chara_type type) override;
-    virtual bool Field38() override;
+    virtual bool IsFrameDependent() override;
 };
 
 class TaskRobMotionModifier : public RobImplTask {
@@ -311,7 +311,7 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual bool CheckType(rob_chara_type type) override;
-    virtual bool Field38() override;
+    virtual bool IsFrameDependent() override;
 };
 
 class TaskRobDisp : public RobImplTask {
@@ -323,13 +323,13 @@ public:
     virtual bool Dest() override;
     virtual void Disp() override;
     virtual bool CheckType(rob_chara_type type) override;
-    virtual bool Field38() override;
+    virtual bool IsFrameDependent() override;
 };
 
 class TaskRobManager : public Task {
 public:
-    int32_t field_68;
-    int32_t state;
+    int32_t ctrl_state;
+    int32_t dest_state;
     TaskRobPrepareControl prepare_control;
     TaskRobPrepareAction prepare_action;
     TaskRobBase base;
@@ -14143,7 +14143,7 @@ bool TaskRobBase::CheckType(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobBase::Field38() {
+bool TaskRobBase::IsFrameDependent() {
     return true;
 }
 
@@ -14189,7 +14189,7 @@ bool TaskRobCollision::CheckType(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobCollision::Field38() {
+bool TaskRobCollision::IsFrameDependent() {
     return true;
 }
 
@@ -14278,7 +14278,7 @@ bool TaskRobDisp::CheckType(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_3;
 }
 
-bool TaskRobDisp::Field38() {
+bool TaskRobDisp::IsFrameDependent() {
     return false;
 }
 
@@ -14316,7 +14316,7 @@ bool TaskRobInfo::CheckType(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobInfo::Field38() {
+bool TaskRobInfo::IsFrameDependent() {
     return true;
 }
 
@@ -14711,7 +14711,7 @@ void TaskRobLoad::UnloadLoadedChara() {
     loaded_req_data.clear();
 }
 
-TaskRobManager::TaskRobManager() : field_68(), state() {
+TaskRobManager::TaskRobManager() : ctrl_state(), dest_state() {
 
 }
 
@@ -14725,7 +14725,7 @@ bool TaskRobManager::Init() {
     for (; rob_impls1->task; rob_impls1++) {
         RobImplTask* task = rob_impls1->task;
         TaskWork::AppendTask(task, rob_impls1->name);
-        task->field_2D = task->Field38();
+        task->is_frame_dependent = task->IsFrameDependent();
         task->FreeCharaLists();
     }
 
@@ -14733,12 +14733,12 @@ bool TaskRobManager::Init() {
     for (; rob_impls2->task; rob_impls2++) {
         RobImplTask* task = rob_impls2->task;
         TaskWork::AppendTask(task, rob_impls2->name);
-        task->field_2D = task->Field38();
+        task->is_frame_dependent = task->IsFrameDependent();
         task->FreeCharaLists();
     }
 
-    field_68 = 0;
-    state = 0;
+    ctrl_state = 0;
+    dest_state = 0;
     return true;
 }
 
@@ -14746,7 +14746,7 @@ static void sub_140532AF0(TaskRobManager* task, std::list<rob_chara*>* rob_chr_l
 }
 
 bool TaskRobManager::Ctrl() {
-    if (!field_68) {
+    if (!ctrl_state) {
         if (task_rob_load_check_load_req_data())
             return false;
         if (load_chara.size()) {
@@ -14761,9 +14761,9 @@ bool TaskRobManager::Ctrl() {
             CheckTypeAppendInitCharaLists(&load_chara);
             load_chara.clear();
         }
-        field_68 = 1;
+        ctrl_state = 1;
     }
-    else if (field_68 != 1)
+    else if (ctrl_state != 1)
         return false;
 
     if (free_chara.size()) {
@@ -14808,13 +14808,13 @@ bool TaskRobManager::Ctrl() {
             task_rob_load.AppendLoadReqDataObj(chara_index, &i->item_cos_data.cos);
         }
         init_chara.clear();
-        field_68 = 0;
+        ctrl_state = 0;
     }
     return false;
 }
 
 bool TaskRobManager::Dest() {
-    if (state == 0) {
+    if (dest_state == 0) {
         rob_manager_rob_impl* rob_impls1 = rob_manager_rob_impls1_get(this);
         for (; rob_impls1->task; rob_impls1++)
             rob_impls1->task->SetDest();
@@ -14827,13 +14827,13 @@ bool TaskRobManager::Dest() {
         load_chara.clear();
         free_chara.clear();
         loaded_chara.clear();
-        state = 1;
+        dest_state = 1;
     }
-    else if (state != 1)
+    else if (dest_state != 1)
         return false;
 
     task_rob_load.SetDest();
-    state = 2;
+    dest_state = 2;
     return true;
 }
 
@@ -15016,7 +15016,7 @@ bool TaskRobMotionModifier::CheckType(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobMotionModifier::Field38() {
+bool TaskRobMotionModifier::IsFrameDependent() {
     return true;
 }
 
@@ -15045,7 +15045,7 @@ bool TaskRobPrepareAction::CheckType(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobPrepareAction::Field38() {
+bool TaskRobPrepareAction::IsFrameDependent() {
     return true;
 }
 
@@ -15341,6 +15341,6 @@ bool TaskRobPrepareControl::CheckType(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobPrepareControl::Field38() {
+bool TaskRobPrepareControl::IsFrameDependent() {
     return true;
 }

@@ -344,6 +344,8 @@ static bool stage_test_load() {
 
     if (!dtw_stg)
         dtw_stg = new DtwStg();
+
+    dtw_stg->stage_load = true;
     return true;
 }
 

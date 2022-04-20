@@ -541,7 +541,7 @@ static void stage_load(stage* s) {
         s->state = 2;
     }
     else if (s->state == 2) {
-        if (s->obj_set < 0 || !object_storage_load_obj_set_check_not_read(s->obj_set))
+        if (s->obj_set == -1 || !object_storage_load_obj_set_check_not_read(s->obj_set))
             s->state = 3;
     }
     else if (s->state == 3) {

@@ -9,7 +9,7 @@
 #include "../str_utils.h"
 
 static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s);
-static char* light_param_ibl_read_line(char* buf, int32_t size, char* src);
+static const char* light_param_ibl_read_line(char* buf, int32_t size, const char* src);
 static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* specular);
 static void light_param_ibl_specular_generate_mipmap(float_t* src, float_t* dst, size_t size);
 
@@ -92,7 +92,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s) {
     data[s->length] = 0;
 
     char buf[0x100];
-    char* d = light_param_ibl_read_line(buf, sizeof(buf), data);
+    const char* d = light_param_ibl_read_line(buf, sizeof(buf), data);
     if (str_utils_compare(buf, "VF5_IBL"))
         return;
 
@@ -234,13 +234,13 @@ End:
     free(data);
 }
 
-static char* light_param_ibl_read_line(char* buf, int32_t size, char* src) {
+static const char* light_param_ibl_read_line(char* buf, int32_t size, const char* src) {
     char* b = buf;
     if (!src || !*src)
         return 0;
 
     for (int32_t i = 0; i < size - 1; i++, b++) {
-        char c = b[0] = *src++;
+        char c = *b = *src++;
         if (!c) {
             b++;
             break;

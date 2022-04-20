@@ -231,18 +231,6 @@ void texture_database::split_mdata(texture_database* base_tex_db,
 
 }
 
-uint32_t texture_database::get_texture_id(char* name) {
-    if (!name)
-        return -1;
-
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-
-    for (texture_info& i : texture)
-        if (name_hash == i.name_hash)
-            return i.id;
-    return -1;
-}
-
 uint32_t texture_database::get_texture_id(const char* name) {
     if (!name)
         return -1;

@@ -33,7 +33,7 @@ public:
     std::string name;
     uint32_t hash;
 
-    x_pv_game_glitter(char* name = 0);
+    x_pv_game_glitter(const char* name = 0);
     ~x_pv_game_glitter();
 };
 

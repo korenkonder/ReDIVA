@@ -91,10 +91,10 @@ static const int16_t hevag4_table[] = {
 
 #define BLOCK_SIZE 28
 
-static void vag_read_wav_straight(vag* v, wchar_t* path, float_t** data, size_t* samples);
-static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples, uint8_t** flags);
-static void vag_write_wav_straight(vag* v, wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags);
-static void vag_write_wav(vag* v, wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags);
+static void vag_read_wav_straight(vag* v, const wchar_t* path, float_t** data, size_t* samples);
+static void vag_read_wav(vag* v, const wchar_t* path, float_t** data, size_t* samples, uint8_t** flags);
+static void vag_write_wav_straight(vag* v, const wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags);
+static void vag_write_wav(vag* v, const wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags);
 static void calculate_4_bits_vag(int32_t* data, int8_t* four_bit, int32_t* coef_index,
     int32_t* shift_factor, int32_t* v, int32_t* tv, int32_t coef_index_count);
 static void calculate_4_bits_hevag(int32_t* data, int8_t* four_bit, int32_t* coef_index,
@@ -109,13 +109,13 @@ vag* vag_init() {
     return v;
 }
 
-void vag_read(vag* v, char* path) {
+void vag_read(vag* v, const char* path) {
     wchar_t* path_buf = utf8_to_utf16(path);
-    vag_wread(v, path_buf);
+    vag_read(v, path_buf);
     free(path_buf);
 }
 
-void vag_wread(vag* v, wchar_t* path) {
+void vag_read(vag* v, const wchar_t* path) {
     wchar_t* path_vag = str_utils_add(path, L".vag");
     stream s;
     io_open(&s, path_vag, L"rb");
@@ -207,13 +207,13 @@ End:
     free(path_vag);
 }
 
-void vag_write(vag* v, char* path, vag_option option) {
+void vag_write(vag* v, const char* path, vag_option option) {
     wchar_t* path_buf = utf8_to_utf16(path);
-    vag_wwrite(v, path_buf, option);
+    vag_write(v, path_buf, option);
     free(path_buf);
 }
 
-void vag_wwrite(vag* v, wchar_t* path, vag_option option) {
+void vag_write(vag* v, const wchar_t* path, vag_option option) {
     size_t num_samples;
     float_t* data;
     uint8_t* flags;
@@ -381,19 +381,19 @@ void vag_dispose(vag* v) {
     free(v);
 }
 
-static void vag_read_wav_straight(vag* v, wchar_t* path, float_t** data, size_t* samples) {
+static void vag_read_wav_straight(vag* v, const wchar_t* path, float_t** data, size_t* samples) {
     *data = 0;
     *samples = 0;
     wchar_t* path_av = str_utils_add(path, L".wav");
     wav* w = wav_init();
-    wav_wread(w, path_av, data, samples);
+    wav_read(w, path_av, data, samples);
     v->channels = w->channels;
     v->sample_rate = w->sample_rate;
     wav_dispose(w);
     free(path_av);
 }
 
-static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples, uint8_t** flags) {
+static void vag_read_wav(vag* v, const wchar_t* path, float_t** data, size_t* samples, uint8_t** flags) {
     *data = 0;
     *samples = 0;
     *flags = 0;
@@ -443,7 +443,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
             continue;
 
         swprintf_s(temp, MAX_PATH, loop.begin[i] ? L"%ls.%llu.loop.wav" : L"%ls.%llu.wav", temp_path, i);
-        wav_wread(w, temp, &wav_data[i], &wav_samples[i]);
+        wav_read(w, temp, &wav_data[i], &wav_samples[i]);
         if (i == 0) {
             v->channels = w->channels;
             v->sample_rate = w->sample_rate;
@@ -534,7 +534,7 @@ static void vag_read_wav(vag* v, wchar_t* path, float_t** data, size_t* samples,
     free(temp_path);
 }
 
-static void vag_write_wav_straight(vag* v, wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags) {
+static void vag_write_wav_straight(vag* v, const wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags) {
     size_t i = 0;
     for (i = 0; i < num_blocks; i++) {
         uint8_t flag = flags[i];
@@ -552,12 +552,12 @@ static void vag_write_wav_straight(vag* v, wchar_t* path, float_t* data, size_t 
     w->channels = v->channels;
     w->format = 0x03;
     w->sample_rate = v->sample_rate;
-    wav_wwrite(w, path_av, data, i * BLOCK_SIZE);
+    wav_write(w, path_av, data, i * BLOCK_SIZE);
     wav_dispose(w);
     free(path_av);
 }
 
-static void vag_write_wav(vag* v, wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags) {
+static void vag_write_wav(vag* v, const wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags) {
     uint8_t flag = flags[0];
     if (flag == 5 || flag == 7)
         return;
@@ -581,7 +581,7 @@ static void vag_write_wav(vag* v, wchar_t* path, float_t* data, size_t num_block
         else if (flag == 3 || flag == 6) {
             if (i) {
                 swprintf_s(temp, MAX_PATH, loop ? L"%ls.%llu.loop.wav" : L"%ls.%llu.wav", path, i2);
-                wav_wwrite(w, temp, temp_data_last, i * BLOCK_SIZE);
+                wav_write(w, temp, temp_data_last, i * BLOCK_SIZE);
                 i2++;
             }
 
@@ -598,7 +598,7 @@ static void vag_write_wav(vag* v, wchar_t* path, float_t* data, size_t num_block
 
     if (i) {
         swprintf_s(temp, MAX_PATH, L"%ls.%llu.wav", path, i2);
-        wav_wwrite(w, temp, temp_data_last, i * BLOCK_SIZE);
+        wav_write(w, temp, temp_data_last, i * BLOCK_SIZE);
     }
     wav_dispose(w);
 }

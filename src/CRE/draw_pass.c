@@ -57,7 +57,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1);
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx);
 static void draw_pass_3d_shadow_reset(render_context* rctx);
 static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx);
-static void draw_pass_show_vector_old(render_context* rctx, draw_pass* a1);
+static void draw_pass_show_vector(render_context* rctx, draw_pass* a1);
 static void draw_pass_post_process(render_context* rctx, draw_pass* a1);
 static void draw_pass_sprite(render_context* rctx, draw_pass* a1);
 static void draw_pass_end(draw_pass* pass, draw_pass_type type);
@@ -134,8 +134,8 @@ void draw_pass_main(render_context* rctx) {
         case DRAW_PASS_3D:
             draw_pass_3d(rctx, &rctx->draw_pass);
             break;
-        case DRAW_PASS_SHOW_vector_old:
-            draw_pass_show_vector_old(rctx, &rctx->draw_pass);
+        case DRAW_PASS_SHOW_VECTOR:
+            draw_pass_show_vector(rctx, &rctx->draw_pass);
             break;
         case DRAW_PASS_POST_PROCESS:
             draw_pass_post_process(rctx, &rctx->draw_pass);
@@ -1077,7 +1077,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
     }
 }
 
-static void draw_pass_show_vector_old(render_context* rctx, draw_pass* a1) {
+static void draw_pass_show_vector(render_context* rctx, draw_pass* a1) {
     if (!a1->show_vector_flags)
         return;
 

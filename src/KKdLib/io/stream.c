@@ -646,35 +646,17 @@ inline void io_write_wstring_null_terminated(stream* s, std::wstring* str) {
     io_write_uint16_t(s, 0);
 }
 
-inline void io_write_utf8_string(stream* s, char* str) {
-    io_write(s, str, utf8_length(str));
-}
-
 inline void io_write_utf8_string(stream* s, const char* str) {
     io_write(s, str, utf8_length(str));
-}
-
-inline void io_write_utf16_string(stream* s, wchar_t* str) {
-    io_write(s, str, sizeof(wchar_t) * utf16_length(str));
 }
 
 inline void io_write_utf16_string(stream* s, const wchar_t* str) {
     io_write(s, str, sizeof(wchar_t) * utf16_length(str));
 }
 
-inline void io_write_utf8_string_null_terminated(stream* s, char* str) {
-    io_write(s, str, utf8_length(str));
-    io_write_uint8_t(s, 0);
-}
-
 inline void io_write_utf8_string_null_terminated(stream* s, const char* str) {
     io_write(s, str, utf8_length(str));
     io_write_uint8_t(s, 0);
-}
-
-inline void io_write_utf16_string_null_terminated(stream* s, wchar_t* str) {
-    io_write(s, str, sizeof(wchar_t) * utf16_length(str));
-    io_write_uint16_t(s, 0);
 }
 
 inline void io_write_utf16_string_null_terminated(stream* s, const wchar_t* str) {

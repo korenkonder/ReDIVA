@@ -358,8 +358,8 @@ static void glitter_editor_save(glitter_editor_struct* glt_edt);
 static void glitter_editor_open_window(glitter_editor_struct* glt_edt);
 static void glitter_editor_save_window(glitter_editor_struct* glt_edt);
 static void glitter_editor_save_as_window(glitter_editor_struct* glt_edt);
-static void glitter_editor_load_file(glitter_editor_struct* glt_edt, char* path, char* file);
-static void glitter_editor_save_file(glitter_editor_struct* glt_edt, char* path, char* file);
+static void glitter_editor_load_file(glitter_editor_struct* glt_edt, const char* path, const char* file);
+static void glitter_editor_save_file(glitter_editor_struct* glt_edt, const char* path, const char* file);
 static bool glitter_editor_list_open_window(GlitterEffectGroup* eg);
 static bool glitter_editor_resource_import(glitter_editor_struct* glt_edt);
 static bool glitter_editor_resource_export(glitter_editor_struct* glt_edt);
@@ -1737,7 +1737,7 @@ static void glitter_editor_save_as_window(glitter_editor_struct* glt_edt) {
     CoUninitialize();
 }
 
-static void glitter_editor_load_file(glitter_editor_struct* glt_edt, char* path, char* file) {
+static void glitter_editor_load_file(glitter_editor_struct* glt_edt, const char* path, const char* file) {
     if (!glt_edt->load_wait) {
         GPM_VAL.FreeSceneEffect(glt_edt->scene_counter, hash_fnv1a64m_empty, true);
         GPM_VAL.UnloadEffectGroup(glt_edt->hash);
@@ -1818,14 +1818,14 @@ static void glitter_editor_load_file(glitter_editor_struct* glt_edt, char* path,
     glitter_editor_reset(glt_edt);
 }
 
-static void glitter_editor_save_file(glitter_editor_struct* glt_edt, char* path, char* file) {
+static void glitter_editor_save_file(glitter_editor_struct* glt_edt, const char* path, const char* file) {
     glitter_type glt_type = glt_edt->save_glt_type;
 
     farc f;
     {
         f2_struct st;
         if (glitter_diva_resource_unparse_file(glt_edt->effect_group, &st)) {
-            f.files.push_back({});
+            f.add_file();
             farc_file& ff_drs = f.files.back();
             st.write(&ff_drs.data, &ff_drs.size);
             ff_drs.name = std::string(file);
@@ -1836,7 +1836,7 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, char* path,
     {
         f2_struct st;
         if (glitter_diva_effect_unparse_file(glt_type, glt_edt->effect_group, &st)) {
-            f.files.push_back({});
+            f.add_file();
             farc_file& ff_dve = f.files.back();
             st.write(&ff_dve.data, &ff_dve.size);
             ff_dve.name = std::string(file);
@@ -1849,7 +1849,7 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, char* path,
     if (glt_type == GLITTER_FT) {
         f2_struct st;
         if (glitter_diva_list_unparse_file(glt_edt->effect_group, &st)) {
-            f.files.push_back({});
+            f.add_file();
             farc_file& ff_lst = f.files.back();
             st.write(&ff_lst.data, &ff_lst.size);
             ff_lst.name = std::string(file);
@@ -2001,7 +2001,7 @@ static bool glitter_editor_resource_import(glitter_editor_struct* glt_edt) {
             if (rh[i] == hash_ft || rh[i] == hash_f2)
                 goto DDSEnd;
 
-        dds_wread(d, p);
+        dds_read(d, p);
         if (d->width == 0 || d->height == 0 || d->mipmaps_count == 0 || vector_old_length(d->data) < 1)
             goto DDSEnd;
 
@@ -2093,7 +2093,7 @@ static bool glitter_editor_resource_export(glitter_editor_struct* glt_edt) {
                 index++;
             }
         while (index / tex.mipmaps_count < tex.array_size);
-        dds_wwrite(d, p);
+        dds_write(d, p);
         ret = true;
         dds_dispose(d);
         free(p);

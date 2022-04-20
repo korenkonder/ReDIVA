@@ -19,7 +19,7 @@ key_val::~key_val() {
     free(buf);
 }
 
-void key_val::file_read(char* path) {
+void key_val::file_read(const char* path) {
     if (!path || !path_check_file_exists(path))
         return;
 
@@ -34,7 +34,7 @@ void key_val::file_read(char* path) {
     io_free(&s);
 }
 
-void key_val::file_read(wchar_t* path) {
+void key_val::file_read(const wchar_t* path) {
     if (!path || !path_check_file_exists(path))
         return;
 
@@ -90,7 +90,7 @@ bool key_val::get_local_key_val(const char* str, key_val* lkv) {
     return true;
 }
 
-bool key_val::has_key(char* str) {
+bool key_val::has_key(const char* str) {
     size_t str_length = utf8_length(str);
 
     char** i = key.data();

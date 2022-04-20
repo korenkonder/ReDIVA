@@ -926,8 +926,8 @@ public:
     object_database* obj_db;
 
     GlitterFileReader(GLT);
-    GlitterFileReader(GLT, char* path, char* file, float_t emission);
-    GlitterFileReader(GLT, wchar_t* path, wchar_t* file, float_t emission);
+    GlitterFileReader(GLT, const char* path, const char* file, float_t emission);
+    GlitterFileReader(GLT, const wchar_t* path, const wchar_t* file, float_t emission);
     virtual ~GlitterFileReader();
 
     bool LoadFarc(void* data, const char* path, const char* file, uint64_t hash, object_database* obj_db);

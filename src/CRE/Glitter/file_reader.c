@@ -22,7 +22,7 @@ load_count(), type(), path(), file(), state(), init_scene(), obj_db() {
     hash = GLT_VAL != GLITTER_FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
 }
 
-GlitterFileReader::GlitterFileReader(GLT, char* path, char* file, float_t emission)
+GlitterFileReader::GlitterFileReader(GLT, const char* path, const char* file, float_t emission)
     : effect_group(), load_count() {
     this->path = std::string(path ? path
         : (GLT_VAL != GLITTER_FT ? "root+/particle/" : "rom/particle/"));
@@ -34,7 +34,7 @@ GlitterFileReader::GlitterFileReader(GLT, char* path, char* file, float_t emissi
         : hash_utf8_fnv1a64m(file);
 }
 
-GlitterFileReader::GlitterFileReader(GLT, wchar_t* path, wchar_t* file, float_t emission)
+GlitterFileReader::GlitterFileReader(GLT, const wchar_t* path, const wchar_t* file, float_t emission)
     : effect_group(), load_count() {
     char* path_temp = utf16_to_utf8(path);
     char* file_temp = utf16_to_utf8(file);

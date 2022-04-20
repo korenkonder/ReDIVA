@@ -574,11 +574,11 @@ static const int32_t glitter_particle_fpt_unival_max[] = {
     2, 3, 3, 3,
 };
 
-static const int32_t show_vector_old_vpt_unival_max[] = {
+static const int32_t show_vector_vpt_unival_max[] = {
     1, 1, 3,
 };
 
-static const int32_t show_vector_old_fpt_unival_max[] = {
+static const int32_t show_vector_fpt_unival_max[] = {
     0, 0, 0,
 };
 
@@ -1219,10 +1219,10 @@ static const shader_sub_table GLITTER_PT_table[] = {
 static const shader_sub_table SHOWVEC_table[] = {
     {
         SHADER_FT_SUB_SHOW_VECTOR,
-        show_vector_old_vpt_unival_max,
-        show_vector_old_fpt_unival_max,
-        "show_vector_old",
-        "show_vector_old",
+        show_vector_vpt_unival_max,
+        show_vector_fpt_unival_max,
+        "show_vector",
+        "show_vector",
     },
 };
 

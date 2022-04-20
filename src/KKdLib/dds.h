@@ -19,8 +19,8 @@ typedef struct dds {
 } dds;
 
 extern dds* dds_init();
-extern void dds_read(dds* d, char* path);
-extern void dds_wread(dds* d, wchar_t* path);
-extern void dds_write(dds* d, char* path);
-extern void dds_wwrite(dds* d, wchar_t* path);
+extern void dds_read(dds* d, const char* path);
+extern void dds_read(dds* d, const wchar_t* path);
+extern void dds_write(dds* d, const char* path);
+extern void dds_write(dds* d, const wchar_t* path);
 extern void dds_dispose(dds* d);

@@ -73,7 +73,7 @@ typedef enum draw_pass_type {
     DRAW_PASS_TYPE_6       = 0x06,
     DRAW_PASS_TYPE_7       = 0x07,
     DRAW_PASS_3D           = 0x08,
-    DRAW_PASS_SHOW_vector_old  = 0x09,
+    DRAW_PASS_SHOW_VECTOR  = 0x09,
     DRAW_PASS_POST_PROCESS = 0x0A,
     DRAW_PASS_SPRITE       = 0x0B,
     DRAW_PASS_TYPE_12      = 0x0C,

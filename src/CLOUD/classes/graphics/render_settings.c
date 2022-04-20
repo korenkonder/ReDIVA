@@ -24,14 +24,15 @@ extern void render_set_scale_index(int32_t index);
 
 const char* graphics_render_settings_window_title = "Render Settings##Graphics";
 
-inline static void render_settings_freq_to_string(double_t freq, char* freq_str, char* ms_str) {
+inline static void render_settings_freq_to_string(double_t freq,
+    char* freq_str, size_t freq_str_len, char* ms_str, size_t ms_str_len) {
     int32_t freq_int = (int32_t)freq;
     int32_t freq_frac = (int32_t)(fmod(freq, 1.0) * 1000.0);
     double_t ms = 1000.0 / freq;
     int32_t ms_int = (int32_t)ms;
     int32_t ms_frac = (int32_t)(fmod(ms, 1.0) * 1000.0);
-    snprintf(freq_str, 0x20, "%4d.%03d", freq_int, freq_frac);
-    snprintf(ms_str, 0x20, "%4d.%03d", ms_int, ms_frac);
+    snprintf(freq_str, freq_str_len, "%4d.%03d", freq_int, freq_frac);
+    snprintf(ms_str, ms_str_len, "%4d.%03d", ms_int, ms_frac);
 }
 
 bool graphics_render_settings_init(class_data* data, render_context* rctx) {
@@ -94,9 +95,12 @@ void graphics_render_settings_imgui(class_data* data) {
     char render_ms_str[0x20];
     char sound_ms_str[0x20];
     char input_ms_str[0x20];
-    render_settings_freq_to_string(render_freq, render_freq_str, render_ms_str);
-    render_settings_freq_to_string(sound_freq, sound_freq_str, sound_ms_str);
-    render_settings_freq_to_string(input_freq, input_freq_str, input_ms_str);
+    render_settings_freq_to_string(render_freq, render_freq_str,
+        sizeof(render_freq_str), render_ms_str, sizeof(render_ms_str));
+    render_settings_freq_to_string(sound_freq, sound_freq_str,
+        sizeof(sound_freq_str), sound_ms_str, sizeof(sound_ms_str));
+    render_settings_freq_to_string(input_freq, input_freq_str,
+        sizeof(input_freq_str), input_ms_str, sizeof(input_ms_str));
 
     char render_freq_hist_str[0x20];
     char sound_freq_hist_str[0x20];
@@ -104,9 +108,12 @@ void graphics_render_settings_imgui(class_data* data) {
     char render_ms_hist_str[0x20];
     char sound_ms_hist_str[0x20];
     char input_ms_hist_str[0x20];
-    render_settings_freq_to_string(render_freq_hist, render_freq_hist_str, render_ms_hist_str);
-    render_settings_freq_to_string(sound_freq_hist, sound_freq_hist_str, sound_ms_hist_str);
-    render_settings_freq_to_string(input_freq_hist, input_freq_hist_str, input_ms_hist_str);
+    render_settings_freq_to_string(render_freq_hist, render_freq_hist_str,
+        sizeof(render_freq_hist_str), render_ms_hist_str, sizeof(render_ms_hist_str));
+    render_settings_freq_to_string(sound_freq_hist, sound_freq_hist_str,
+        sizeof(sound_freq_hist_str), sound_ms_hist_str, sizeof(sound_ms_hist_str));
+    render_settings_freq_to_string(input_freq_hist, input_freq_hist_str,
+        sizeof(input_freq_hist_str), input_ms_hist_str, sizeof(input_ms_hist_str));
 
     ImGui::Text("Targ:   Render /    Sound /    Input");
     ImGui::Text("freq: %s / %s / %s", render_freq_str, sound_freq_str, input_freq_str);

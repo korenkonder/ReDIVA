@@ -36,7 +36,7 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw);
 static void draw_object_vertex_attrib_set_reflect_compressed(draw_object* draw);
 
 void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
-    void(*draw_object_func)(render_context* rctx, draw_object* draw), int32_t show_vector_old) {
+    void(*draw_object_func)(render_context* rctx, draw_object* draw), int32_t show_vector) {
     if (draw->mats) {
         mat4u* mats = draw->mats;
         if (draw->mat_count == 2) {
@@ -66,7 +66,7 @@ void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
         mat = *model;
     draw_object_model_mat_load(rctx, &mat);
 
-    if (!show_vector_old)
+    if (!show_vector)
         draw_object_func(rctx, draw);
     uniform_value[U_BONE_MAT] = 0;
 }
@@ -1226,13 +1226,6 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
 
         if (material->material.textures[i].texture_flags.type == OBJ_MATERIAL_TEXTURE_COLOR)
             j++;
-
-        if (!strcmp(mesh->name, "body_MZ"))
-            printf("");
-        if (!strcmp(mesh->name, "kao_MZ"))
-            printf("");
-        if (!strcmp(mesh->name, "MZ_ami1") && !strcmp(material->material.name, "test_YZ_frame_2s"))
-            printf("");
 
         if (vertex_flags & (OBJ_VERTEX_TEXCOORD0 << sub_mesh->texcoord_indices[l])) {
             enable_vertex_attrib_array(8 + texcoord_index);

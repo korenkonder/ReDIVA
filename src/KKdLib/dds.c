@@ -153,16 +153,16 @@ dds* dds_init() {
     return d;
 }
 
-void dds_read(dds* d, char* path) {
+void dds_read(dds* d, const char* path) {
     if (!d || !path)
         return;
 
     wchar_t* path_buf = utf8_to_utf16(path);
-    dds_wread(d, path_buf);
+    dds_read(d, path_buf);
     free(path_buf);
 }
 
-void dds_wread(dds* d, wchar_t* path) {
+void dds_read(dds* d, const wchar_t* path) {
     if (!d || !path)
         return;
 
@@ -276,16 +276,16 @@ End:
     free(path_dds);
 }
 
-void dds_write(dds* d, char* path) {
+void dds_write(dds* d, const char* path) {
     if (!d || !path || vector_old_length(d->data) < 1)
         return;
 
     wchar_t* path_buf = utf8_to_utf16(path);
-    dds_wwrite(d, path_buf);
+    dds_write(d, path_buf);
     free(path_buf);
 }
 
-void dds_wwrite(dds* d, wchar_t* path) {
+void dds_write(dds* d, const wchar_t* path) {
     if (!d || !path || vector_old_length(d->data) < 1)
         return;
 

@@ -10,7 +10,7 @@
 
 static void light_param_glow_read_inner(light_param_glow* glow, stream* s);
 static void light_param_glow_write_inner(light_param_glow* glow, stream* s);
-static char* light_param_glow_read_line(char* buf, int32_t size, char* src);
+static const char* light_param_glow_read_line(char* buf, int32_t size, const char* src);
 static void light_param_glow_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
 static void light_param_glow_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
 
@@ -118,7 +118,7 @@ static void light_param_glow_read_inner(light_param_glow* glow, stream* s) {
     data[s->length] = 0;
 
     char buf[0x100];
-    char* d = data;
+    const char* d = data;
 
     while (d = light_param_glow_read_line(buf, sizeof(buf), d)) {
         if (!str_utils_compare_length(buf, sizeof(buf), "exposure", 8)) {
@@ -306,13 +306,13 @@ static void light_param_glow_write_inner(light_param_glow* glow, stream* s) {
     io_write_char(s, '\n');
 }
 
-static char* light_param_glow_read_line(char* buf, int32_t size, char* src) {
+static const char* light_param_glow_read_line(char* buf, int32_t size, const char* src) {
     char* b = buf;
     if (!src || !*src)
         return 0;
 
     for (int32_t i = 0; i < size - 1; i++, b++) {
-        char c = b[0] = *src++;
+        char c = *b = *src++;
         if (!c) {
             b++;
             break;

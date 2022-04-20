@@ -234,15 +234,11 @@ static void obj_modern_write_vertex(obj* obj, stream* s, bool is_x,
     ssize_t* attrib_offsets, obj_mesh* mesh, uint32_t* attrib_flags,
     int32_t* vertex_count, int32_t* vertex_size, f2_struct* ovtx);
 static void obj_skin_block_node_free(obj_skin_block_node* b);
-static uint32_t obj_skin_strings_get_string_index(vector_old_string* vec, char* str);
 static uint32_t obj_skin_strings_get_string_index(vector_old_string* vec, const char* str);
-static ssize_t obj_skin_strings_get_string_offset(vector_old_string* vec,
-    vector_old_ssize_t* vec_off, char* str);
 static ssize_t obj_skin_strings_get_string_offset(vector_old_string* vec,
     vector_old_ssize_t* vec_off, const char* str);
 static ssize_t obj_skin_strings_get_string_offset_by_index(vector_old_string* vec,
     vector_old_ssize_t* vec_off, char** strings, uint32_t index);
-static void obj_skin_strings_push_back_check(vector_old_string* vec, char* str);
 static void obj_skin_strings_push_back_check(vector_old_string* vec, const char* str);
 static void obj_skin_strings_push_back_check_by_index(vector_old_string* vec, char** strings, uint32_t index);
 
@@ -6669,29 +6665,12 @@ inline static void obj_skin_block_node_free(obj_skin_block_node* b) {
     string_free(&b->parent_name);
 }
 
-inline static uint32_t obj_skin_strings_get_string_index(vector_old_string* vec, char* str) {
-    ssize_t len = utf8_length(str);
-    for (string* i = vec->begin; i != vec->end; i++)
-        if (!memcmp(str, string_data(i), min(len, i->length) + 1))
-            return (uint32_t)(0x8000 | i - vec->begin);
-    return 0x8000;
-}
-
 inline static uint32_t obj_skin_strings_get_string_index(vector_old_string* vec, const char* str) {
     ssize_t len = utf8_length(str);
     for (string* i = vec->begin; i != vec->end; i++)
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return (uint32_t)(0x8000 | i - vec->begin);
     return 0x8000;
-}
-
-inline static ssize_t obj_skin_strings_get_string_offset(vector_old_string* vec,
-    vector_old_ssize_t* vec_off, char* str) {
-    ssize_t len = utf8_length(str);
-    for (string* i = vec->begin; i != vec->end; i++)
-        if (!memcmp(str, string_data(i), min(len, i->length) + 1))
-            return vec_off->begin[i - vec->begin];
-    return 0;
 }
 
 inline static ssize_t obj_skin_strings_get_string_offset(vector_old_string* vec,
@@ -6714,16 +6693,6 @@ inline static ssize_t obj_skin_strings_get_string_offset_by_index(vector_old_str
         if (!memcmp(str, string_data(i), min(len, i->length) + 1))
             return vec_off->begin[i - vec->begin];
     return 0;
-}
-
-inline static void obj_skin_strings_push_back_check(vector_old_string* vec, char* str) {
-    ssize_t len = utf8_length(str);
-    for (string* i = vec->begin; i != vec->end; i++)
-        if (!memcmp(str, string_data(i), min(len, i->length) + 1))
-            return;
-
-    string* s = vector_old_string_reserve_back(vec);
-    string_init_length(s, str, len);
 }
 
 inline static void obj_skin_strings_push_back_check(vector_old_string* vec, const char* str) {

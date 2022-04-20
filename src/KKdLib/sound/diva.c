@@ -27,8 +27,8 @@ static const int16_t ima_step_table[] = {
     32767
 };
 
-static void diva_read_wav(diva* d, wchar_t* path, float_t** data);
-static void diva_write_wav(diva* d, wchar_t* path, float_t* data);
+static void diva_read_wav(diva* d, const wchar_t* path, float_t** data);
+static void diva_write_wav(diva* d, const wchar_t* path, float_t* data);
 static void ima_decode(uint8_t value, int32_t* current, int32_t* current_clamp, int8_t* step_index);
 static uint8_t ima_encode(int32_t sample, int32_t* current, int32_t* current_clamp, int8_t* step_index);
 
@@ -37,13 +37,13 @@ diva* diva_init() {
     return d;
 }
 
-void diva_read(diva* d, char* path) {
+void diva_read(diva* d, const char* path) {
     wchar_t* path_buf = utf8_to_utf16(path);
-    diva_wread(d, path_buf);
+    diva_read(d, path_buf);
     free(path_buf);
 }
 
-void diva_wread(diva* d, wchar_t* path) {
+void diva_read(diva* d, const wchar_t* path) {
     wchar_t* path_diva = str_utils_add(path, L".diva");
     stream s;
     io_open(&s, path_diva, L"rb");
@@ -94,13 +94,13 @@ End:
     free(path_diva);
 }
 
-void diva_write(diva* d, char* path) {
+void diva_write(diva* d, const char* path) {
     wchar_t* path_buf = utf8_to_utf16(path);
-    diva_wwrite(d, path_buf);
+    diva_write(d, path_buf);
     free(path_buf);
 }
 
-void diva_wwrite(diva* d, wchar_t* path) {
+void diva_write(diva* d, const wchar_t* path) {
     float_t* data;
 
     diva_read_wav(d, path, &data);
@@ -161,12 +161,12 @@ void diva_dispose(diva* d) {
     free(d);
 }
 
-static void diva_read_wav(diva* d, wchar_t* path, float_t** data) {
+static void diva_read_wav(diva* d, const wchar_t* path, float_t** data) {
     *data = 0;
     size_t samples = 0;
     wchar_t* path_av = str_utils_add(path, L".wav");
     wav* w = wav_init();
-    wav_wread(w, path_av, data, &samples);
+    wav_read(w, path_av, data, &samples);
     d->channels = w->channels;
     d->sample_rate = w->sample_rate;
     d->samples_count = (uint32_t)samples;
@@ -174,14 +174,14 @@ static void diva_read_wav(diva* d, wchar_t* path, float_t** data) {
     free(path_av);
 }
 
-static void diva_write_wav(diva* d, wchar_t* path, float_t* data) {
+static void diva_write_wav(diva* d, const wchar_t* path, float_t* data) {
     wchar_t* path_av = str_utils_add(path, L".wav");
     wav* w = wav_init();
     w->bytes = 4;
     w->channels = d->channels;
     w->format = 0x03;
     w->sample_rate = d->sample_rate;
-    wav_wwrite(w, path_av, data, d->samples_count);
+    wav_write(w, path_av, data, d->samples_count);
     wav_dispose(w);
     free(path_av);
 }

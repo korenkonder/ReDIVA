@@ -12,7 +12,7 @@ extern uint32_t get_frame_counter();
 static void Task_add_base_calc_time(Task* t, uint32_t calc_time);
 static void Task_do_basic(Task* t);
 static void Task_do_ctrl(Task* t);
-static void Task_do_ctrl_frames(int32_t frames, bool a2);
+static void Task_do_ctrl_frames(int32_t frames, bool frame_skip);
 static void Task_do_disp(Task* t);
 static void Task_set_base_calc_time(Task* t, uint32_t base_calc_time);
 static void Task_set_calc_time(Task* t);
@@ -37,7 +37,7 @@ Task::Task() {
     field_24 = TASK_NONE;
     field_28 = 0;
     field_2C = false;
-    field_2D = false;
+    is_frame_dependent = false;
     SetName("(unknown)");
     field_4E = false;
     field_4F = false;
@@ -284,18 +284,18 @@ static void Task_do_ctrl(Task* t) {
     }
 }
 
-static void Task_do_ctrl_frames(int32_t frames, bool a2) {
+static void Task_do_ctrl_frames(int32_t frames, bool frame_skip) {
     std::list<Task*>* tasks = &task_work->tasks;
     for (int32_t i = 0; i < 3; i++)
         for (Task*& j : task_work->tasks) {
             Task* tsk = j;
             if (tsk->priority != i || TaskWork_has_task_dest(tsk))
                 continue;
-            else if (tsk->field_2D) {
+            else if (tsk->is_frame_dependent) {
                 if (frames <= 0)
                     continue;
             }
-            else if (a2)
+            else if (frame_skip)
                 continue;
 
             time_struct t;

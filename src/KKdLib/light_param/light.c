@@ -10,7 +10,7 @@
 
 static void light_param_light_read_inner(light_param_light* light, stream* s);
 static void light_param_light_write_inner(light_param_light* light, stream* s);
-static char* light_param_light_read_line(char* buf, int32_t size, char* src);
+static const char* light_param_light_read_line(char* buf, int32_t size, const char* src);
 static void light_param_light_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
 static void light_param_light_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
 
@@ -133,7 +133,7 @@ static void light_param_light_read_inner(light_param_light* light, stream* s) {
     data[s->length] = 0;
 
     char buf[0x100];
-    char* d = data;
+    const char* d = data;
 
     int32_t group_id = -1;
     int32_t light_id = -1;
@@ -417,7 +417,7 @@ static void light_param_light_write_inner(light_param_light* light, stream* s) {
     io_write_char(s, '\n');
 }
 
-static char* light_param_light_read_line(char* buf, int32_t size, char* src) {
+static const char* light_param_light_read_line(char* buf, int32_t size, const char* src) {
     char* b = buf;
     if (!src || !*src)
         return 0;

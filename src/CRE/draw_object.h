@@ -21,7 +21,7 @@ typedef struct texture_data_struct {
 } texture_data_struct;
 
 extern void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
-    void(*draw_object_func)(render_context* rctx, draw_object* draw), int32_t show_vector_old);
+    void(*draw_object_func)(render_context* rctx, draw_object* draw), int32_t show_vector);
 extern void draw_object_draw_default(render_context* rctx, draw_object* draw);
 extern void draw_object_draw_sss(render_context* rctx, draw_object* draw);
 extern void draw_object_draw_reflect(render_context* rctx, draw_object* draw);

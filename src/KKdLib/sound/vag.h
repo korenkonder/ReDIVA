@@ -25,8 +25,8 @@ typedef struct vag {
 } vag;
 
 extern vag* vag_init();
-extern void vag_read(vag* v, char* path);
-extern void vag_wread(vag* v, wchar_t* path);
-extern void vag_write(vag* v, char* path, vag_option option);
-extern void vag_wwrite(vag* v, wchar_t* path, vag_option option);
+extern void vag_read(vag* v, const char* path);
+extern void vag_read(vag* v, const wchar_t* path);
+extern void vag_write(vag* v, const char* path, vag_option option);
+extern void vag_write(vag* v, const wchar_t* path, vag_option option);
 extern void vag_dispose(vag* f);

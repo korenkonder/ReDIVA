@@ -16,16 +16,16 @@ typedef struct io_json_read_buffer {
 static int32_t io_json_read_char(stream* s, io_json_read_buffer* buf);
 static void io_json_seek(stream* s, io_json_read_buffer* buf, ssize_t offset);
 static void io_json_seek_one(stream* s, io_json_read_buffer* buf);
-static void io_json_read_inner(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c);
+static void io_json_read_inner(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
 static void io_json_read_digit(stream* s, io_json_read_buffer* buf, int32_t* c, char** dig_buf, char* dig_buf_end);
-static void io_json_read_float(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c);
+static void io_json_read_float(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
 static uint8_t io_json_read_string_hex(int32_t c);
 static char* io_json_read_string_inner(stream* s, io_json_read_buffer* buf, msgpack* msg, int32_t* c);
-static void io_json_read_string(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c);
-static void io_json_read_map(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c);
-static void io_json_read_array(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c);
-static void io_json_read_bool(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c);
-static void io_json_read_null(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c);
+static void io_json_read_string(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_read_map(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_read_array(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_read_bool(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_read_null(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
 static void io_json_write_inner(stream* s, msgpack* msg, size_t tabs);
 static void io_json_write_null(stream* s);
 static void io_json_write_bool(stream* s, bool val);
@@ -101,7 +101,7 @@ static void io_json_seek_one(stream* s, io_json_read_buffer* buf) {
     buf->length++;
 }
 
-static void io_json_read_inner(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_inner(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     msgpack_init_null(msg, name);
     while (*c != EOF) {
         if (CHECK_WHITESPACE(*c))
@@ -149,7 +149,7 @@ static void io_json_read_digit(stream* s, io_json_read_buffer* buf, int32_t* c, 
     *dig_buf = b;
 }
 
-static void io_json_read_float(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_float(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     char dig_buf[0x100];
     char* t_buf = dig_buf;
     char* buf_end = dig_buf + 0x100;
@@ -375,7 +375,7 @@ static char* io_json_read_string_inner(stream* s, io_json_read_buffer* buf, msgp
 }
 
 
-static void io_json_read_string(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_string(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     char* temp = io_json_read_string_inner(s, buf, msg, c);
     if (temp)
         msgpack_set_utf8_string(msg, name, temp);
@@ -390,7 +390,7 @@ inline static void io_json_read_skip_whitespace(stream* s, io_json_read_buffer* 
     }
 }
 
-static void io_json_read_map(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_map(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     size_t i = 0;
     msgpack m;
     msgpack_map map;
@@ -438,7 +438,7 @@ Success:
     msgpack_set_map(msg, name, &map);
 }
 
-static void io_json_read_array(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_array(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     size_t i = 0;
     msgpack m;
     msgpack_array array;
@@ -473,7 +473,7 @@ Success:
     msgpack_set_array(msg, name, &array);
 }
 
-static void io_json_read_bool(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_bool(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     if (*c != 't') {
         if ((*c = io_json_read_char(s, buf)) == EOF || *c != 'a')
             return;
@@ -496,7 +496,7 @@ static void io_json_read_bool(stream* s, io_json_read_buffer* buf, char* name, m
     }
 }
 
-static void io_json_read_null(stream* s, io_json_read_buffer* buf, char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_null(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     if ((*c = io_json_read_char(s, buf)) == EOF || *c != 'u')
         return;
     if ((*c = io_json_read_char(s, buf)) == EOF || *c != 'l')

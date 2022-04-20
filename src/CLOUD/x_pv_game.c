@@ -223,7 +223,7 @@ x_pv_game::~x_pv_game() {
 }
 
 bool x_pv_game::Init() {
-    task_stage_modern_load("x_pv_game_STAGE");
+    task_stage_modern_load("X_PV_GAME_STAGE");
     return true;
 }
 
@@ -683,6 +683,17 @@ bool x_pv_game::Ctrl() {
 
         curr_frame_data = frame_data.size() ? &frame_data.front() : 0;
         state = 10;
+
+        frame_float = 0.0;
+        this->frame = 0;
+        this->time = 0;
+        while (dsc_data_ptr != dsc_data_ptr_end
+            && x_pv_game_dsc_process(this, this->time))
+            dsc_data_ptr++;
+
+        while (curr_frame_data
+            && x_pv_game_frame_data_process(this))
+            curr_frame_data++;
     }
     else if (state == 10) {
         frame_float += get_delta_frame();
@@ -1012,7 +1023,7 @@ void x_pv_game::Unload() {
     GPM_VAL.draw_all = true;
 }
 
-x_pv_game_glitter::x_pv_game_glitter(char* name) {
+x_pv_game_glitter::x_pv_game_glitter(const char* name) {
     this->name = std::string(name);
     hash = (uint32_t)GPM_VAL.LoadFile(GLITTER_X, &data_list[DATA_X], name, 0, -1.0f, false, 0);
 }

@@ -41,8 +41,56 @@ data(), data_compressed(), flags(), data_changed() {
 }
 
 farc_file::~farc_file() {
-    free(data);
-    free(data_compressed);
+
+}
+
+void farc::add_file(const char* name) {
+    size_t files_count = files.size();
+    void** data_temp = force_malloc_s(void*, files_count * 2);
+    for (size_t i = 0; i < files_count; i++) {
+        data_temp[i * 2 + 0] = files[i].data;
+        data_temp[i * 2 + 1] = files[i].data_compressed;
+        files[i].data = 0;
+        files[i].data_compressed = 0;
+    }
+
+    files.push_back({});
+    if (name)
+        files.back().name = std::string(name);
+
+    for (size_t i = 0; i < files_count; i++) {
+        files[i].data = data_temp[i * 2 + 0];
+        files[i].data_compressed = data_temp[i * 2 + 1];
+        data_temp[i * 2 + 0] = 0;
+        data_temp[i * 2 + 1] = 0;
+    }
+    free(data_temp);
+}
+
+void farc::add_file(const wchar_t* name) {
+    size_t files_count = files.size();
+    void** data_temp = force_malloc_s(void*, files_count * 2);
+    for (size_t i = 0; i < files_count; i++) {
+        data_temp[i * 2 + 0] = files[i].data;
+        data_temp[i * 2 + 1] = files[i].data_compressed;
+        files[i].data = 0;
+        files[i].data_compressed = 0;
+    }
+
+    files.push_back({});
+    if (name) {
+        char* name_temp = utf16_to_utf8(name);
+        files.back().name = std::string(name_temp);
+        free(name_temp);
+    }
+
+    for (size_t i = 0; i < files_count; i++) {
+        files[i].data = data_temp[i * 2 + 0];
+        files[i].data_compressed = data_temp[i * 2 + 1];
+        data_temp[i * 2 + 0] = 0;
+        data_temp[i * 2 + 1] = 0;
+    }
+    free(data_temp);
 }
 
 size_t farc::get_file_size(const char* name) {

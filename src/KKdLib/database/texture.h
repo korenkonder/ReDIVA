@@ -42,7 +42,6 @@ public:
     void split_mdata(texture_database* base_tex_db,
         texture_database* mdata_tex_db);
 
-    uint32_t get_texture_id(char* name);
     uint32_t get_texture_id(const char* name);
     const char* get_texture_name(uint32_t id);
 

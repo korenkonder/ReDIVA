@@ -11,13 +11,13 @@ wav* wav_init() {
     return w;
 }
 
-void wav_read(wav* w, char* path, float_t** data, size_t* samples) {
+void wav_read(wav* w, const char* path, float_t** data, size_t* samples) {
     wchar_t* path_buf = utf8_to_utf16(path);
-    wav_wread(w, path_buf, data, samples);
+    wav_read(w, path_buf, data, samples);
     free(path_buf);
 }
 
-void wav_wread(wav* w, wchar_t* path, float_t** data, size_t* samples) {
+void wav_read(wav* w, const wchar_t* path, float_t** data, size_t* samples) {
     *data = 0;
     *samples = 0;
     memset(w, 0, sizeof(wav));
@@ -119,13 +119,13 @@ End:
     io_free(&s);
 }
 
-void wav_write(wav* w, char* path, float_t* data, size_t samples) {
+void wav_write(wav* w, const char* path, float_t* data, size_t samples) {
     wchar_t* path_buf = utf8_to_utf16(path);
-    wav_wwrite(w, path_buf, data, samples);
+    wav_write(w, path_buf, data, samples);
     free(path_buf);
 }
 
-void wav_wwrite(wav* w, wchar_t* path, float_t* data, size_t samples) {
+void wav_write(wav* w, const wchar_t* path, float_t* data, size_t samples) {
     stream s;
     io_open(&s, path, L"wb");
     if (s.io.stream && data) {

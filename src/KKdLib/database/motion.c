@@ -77,16 +77,14 @@ void motion_database::write(const char* path) {
 
     farc f;
 
-    farc_file ff;
-    ff.name = std::string("mot_db.bin", 10);
+    f.add_file("mot_db.bin");
+    farc_file* ff = &f.files.back();
 
     stream s;
     io_open(&s);
     motion_database_write_inner(this, &s);
-    io_copy(&s, &ff.data, &ff.size);
+    io_copy(&s, &ff->data, &ff->size);
     io_free(&s);
-
-    f.files.push_back(ff);
 
     f.write(path, FARC_COMPRESS_FArC, false);
 }
@@ -97,15 +95,14 @@ void motion_database::write(const wchar_t* path) {
 
     farc f;
 
-    farc_file ff;
-    ff.name = std::string("mot_db.bin", 10);
+    f.add_file("mot_db.bin");
+    farc_file* ff = &f.files.back();
+
     stream s;
     io_open(&s);
     motion_database_write_inner(this, &s);
-    io_copy(&s, &ff.data, &ff.size);
+    io_copy(&s, &ff->data, &ff->size);
     io_free(&s);
-
-    f.files.push_back(ff);
 
     f.write(path, FARC_COMPRESS_FArC, false);
 }

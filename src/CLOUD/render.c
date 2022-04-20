@@ -575,7 +575,7 @@ static render_context* render_load() {
 
     task_auth_3d_append_task();
     TaskWork::AppendTask(&glt_particle_manager, "GLITTER_TASK", 2);
-    TaskWork::AppendTask(&x_pv_game_data, "x_pv_game", 0);
+    TaskWork::AppendTask(&x_pv_game_data, "X_PV_GAME", 0);
     task_rob_manager_append_task();
 
     aft_data->load_file(aft_data, "rom/", "chritm_prop.farc", item_table_array_load_file);
@@ -733,7 +733,7 @@ static render_context* render_load() {
     clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
     set_clear_color = true;
 
-    x_pv_game_data.Load(817, 17);
+    x_pv_game_data.Load(826, 26);
 
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
     shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);

@@ -26,7 +26,7 @@ public:
     task_enum field_24;
     uint32_t field_28;
     bool field_2C;
-    bool field_2D;
+    bool is_frame_dependent;
     char name[32];
     bool field_4E;
     bool field_4F;

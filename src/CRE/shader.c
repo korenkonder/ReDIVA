@@ -16,19 +16,16 @@ typedef struct program_binary {
     size_t binary;
 } program_binary;
 
-static GLuint shader_compile_shader(GLenum type, char* data, char* file);
-static GLuint shader_compile(char* vert, char* frag, char* vp, char* fp);
-static GLuint shader_compile_binary(char* vert, char* frag, char* vp, char* fp,
+static GLuint shader_compile_shader(GLenum type, const char* data, const char* file);
+static GLuint shader_compile(const char* vert, const char* frag, const char* vp, const char* fp);
+static GLuint shader_compile_binary(const char* vert, const char* frag, const char* vp, const char* fp,
     program_binary* bin, GLsizei* buffer_size, void** binary);
 static bool shader_load_binary_shader(program_binary* bin, GLuint* program);
-static bool shader_parse_define(char* data, int32_t num_uniform,
+static bool shader_parse_define(const char* data, int32_t num_uniform,
     const int32_t* vp_unival_max, const int32_t* fp_unival_max,
     int32_t* uniform_value, char** temp, size_t* temp_size);
 static char* shader_parse_include(char* data, farc* f);
 static void shader_update_data(shader_set_data* set);
-
-vector_old(program_binary)
-vector_old_func(program_binary)
 
 int32_t shader_bind(shader* shader, uint32_t sub_index) {
     int32_t num_sub = shader->num_sub;
@@ -128,9 +125,9 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
     char* temp_vert = force_malloc_s(char, temp_vert_size);
     size_t temp_frag_size = 0x10000;
     char* temp_frag = force_malloc_s(char, temp_frag_size);
-    vector_old_int32_t vec_vert = vector_old_empty(int32_t);
-    vector_old_int32_t vec_frag = vector_old_empty(int32_t);
-    vector_old_program_binary program_data_binary = vector_old_empty(program_binary);
+    std::vector<int32_t> vec_vert;
+    std::vector<int32_t> vec_frag;
+    std::vector<program_binary> program_data_binary;
     set->shaders = force_malloc_s(shader, size);
     set->size = size;
     for (size_t i = 0; i < size; i++) {
@@ -146,8 +143,8 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
         int32_t num_sub = shader->num_sub;
         const shader_sub_table* sub_table = shaders_table[i].sub;
         shader_sub* sub = shader->sub;
-        vector_old_int32_t_reserve(&vec_vert, shader->num_uniform);
-        vector_old_int32_t_reserve(&vec_frag, shader->num_uniform);
+        vec_vert.resize(shader->num_uniform);
+        vec_frag.resize(shader->num_uniform);
         for (size_t j = 0; j < num_sub; j++, sub++, sub_table++) {
             sub->sub_index = sub_table->sub_index;
             sub->vp_unival_max = sub_table->vp_unival_max;
@@ -236,7 +233,7 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                 }
 
                 if (!ignore_cache)
-                    vector_old_program_binary_reserve(&program_data_binary, unival_count);
+                    program_data_binary.reserve(unival_count);
                 sub->program = force_malloc_s(GLuint, unival_count);
                 if (sub->program) {
                     char vert_buf[MAX_PATH];
@@ -262,55 +259,55 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                         for (size_t l = 0, m = k; l < num_uniform; l++) {
                             size_t unival_max = (size_t)(shader->use_permut[l]
                                 ? max(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
-                            vec_vert.begin[l] = (uint32_t)(min(m % unival_max, vp_unival_max[l]));
+                            vec_vert[l] = (uint32_t)(min(m % unival_max, vp_unival_max[l]));
                             m /= unival_max;
-                            vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert.begin[l]);
+                            vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert[l]);
                         }
 
                         for (size_t l = 0, m = k; l < num_uniform; l++) {
                             size_t unival_max = (size_t)(shader->use_permut[l]
                                 ? max(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
-                            vec_frag.begin[l] = (uint32_t)(min(m % unival_max, fp_unival_max[l]));
+                            vec_frag[l] = (uint32_t)(min(m % unival_max, fp_unival_max[l]));
                             m /= unival_max;
-                            frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag.begin[l]);
+                            frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag[l]);
                         }
 
                         if (!bin || !shader_load_binary_shader(bin, &sub->program[k])) {
                             bool vert_succ = shader_parse_define(vert_data,
                                 num_uniform, vp_unival_max, fp_unival_max,
-                                vec_vert.begin, &temp_vert, &temp_vert_size);
+                                vec_vert.data(), &temp_vert, &temp_vert_size);
                             bool frag_succ = shader_parse_define(frag_data,
                                 num_uniform, vp_unival_max, fp_unival_max,
-                                vec_frag.begin, &temp_frag, &temp_frag_size);
+                                vec_frag.data(), &temp_frag, &temp_frag_size);
 
                             //printf("%s %s\n", vert_buf, frag_buf);
                             if (ignore_cache)
                                 sub->program[k] = shader_compile(vert_succ ? temp_vert : 0,
                                     frag_succ ? temp_frag : 0, vert_buf, frag_buf);
-                            else
+                            else {
+                                program_data_binary.push_back({});
                                 sub->program[k] = shader_compile_binary(vert_succ ? temp_vert : 0,
                                     frag_succ ? temp_frag : 0, vert_buf, frag_buf,
-                                    program_data_binary.end, &buffer_size, &binary);
+                                    &program_data_binary.back(), &buffer_size, &binary);
+                            }
                             shader_cache_changed |= sub->program[k] ? true : false;
                         }
                         else {
-                            program_binary* b = program_data_binary.end;
+                            program_data_binary.push_back({});
+                            program_binary* b = &program_data_binary.back();
                             b->length = bin->length;
                             b->binary_format = bin->binary_format;
                             b->binary = (size_t)force_malloc(bin->length);
                             memcpy((void*)b->binary, (void*)((size_t)bin + bin->binary), bin->length);
                         }
 
-                        if (!ignore_cache) {
-                            program_data_binary.end++;
-                            if (bin)
-                                bin++;
-                        }
+                        if (!ignore_cache && bin)
+                            bin++;
                     }
                 }
             }
             else {
-                vector_old_program_binary_reserve(&program_data_binary, 1);
+                program_data_binary.reserve(1);
                 sub->program = force_malloc_s(GLuint, 1);
                 if (sub->program) {
                     char vert_buf[MAX_PATH];
@@ -330,42 +327,40 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                         if (ignore_cache)
                             sub->program[0] = shader_compile(vert_succ ? temp_vert : 0,
                                 frag_succ ? temp_frag : 0, vert_buf, frag_buf);
-                        else
+                        else {
+                            program_data_binary.push_back({});
                             sub->program[0] = shader_compile_binary(vert_succ ? temp_vert : 0,
                                 frag_succ ? temp_frag : 0, vert_buf, frag_buf,
-                                program_data_binary.end, &buffer_size, &binary);
+                                &program_data_binary.back(), &buffer_size, &binary);
+                        }
                         shader_cache_changed |= sub->program[0] ? true : false;
                     }
                     else {
-                        program_binary* b = program_data_binary.end;
+                        program_data_binary.push_back({});
+                        program_binary* b = &program_data_binary.back();
                         b->length = bin->length;
                         b->binary_format = bin->binary_format;
                         b->binary = (size_t)force_malloc(bin->length);
                         memcpy((void*)b->binary, (void*)((size_t)bin + bin->binary), bin->length);
                     }
 
-                    if (!ignore_cache) {
-                        program_data_binary.end++;
-                        if (bin)
-                            bin++;
-                    }
+                    if (!ignore_cache && bin)
+                        bin++;
                 }
             }
 
             if (!ignore_cache) {
                 if (!shader_cache_file) {
-                    farc_file ff;
-                    ff.name = std::string(shader_cache_file_name);
-                    shader_cache_farc.files.push_back(ff);
-                    shader_cache_file = shader_cache_farc.read_file(shader_cache_file_name);
+                    shader_cache_farc.add_file(shader_cache_file_name);
+                    shader_cache_file = &shader_cache_farc.files.back();
                 }
                 else
                     free(shader_cache_file->data);
 
-                size_t bin_count = vector_old_length(program_data_binary);
+                size_t bin_count = program_data_binary.size();
                 size_t bin_size = sizeof(uint64_t) * 2 + bin_count * sizeof(program_binary);
-                for (program_binary* j = program_data_binary.begin; j != program_data_binary.end; j++)
-                    bin_size += j->length;
+                for (program_binary& k : program_data_binary)
+                    bin_size += k.length;
                 shader_cache_file->data = force_malloc(bin_size);
                 shader_cache_file->size = bin_size;
                 shader_cache_file->data_changed = true;
@@ -375,25 +370,26 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                 bin = (program_binary*)&((uint64_t*)shader_cache_file->data)[2];
                 size_t bin_data_base = (size_t)shader_cache_file->data + sizeof(uint64_t) * 2;
                 size_t bin_data = bin_data_base + bin_count * sizeof(program_binary);
-                for (program_binary* j = program_data_binary.begin; j != program_data_binary.end; bin++, j++) {
-                    bin->length = j->length;
-                    bin->binary_format = j->binary_format;
+                for (program_binary& k : program_data_binary) {
+                    bin->length = k.length;
+                    bin->binary_format = k.binary_format;
                     bin->binary = bin_data - bin_data_base;
-                    memcpy((void*)bin_data, (void*)j->binary, j->length);
+                    memcpy((void*)bin_data, (void*)k.binary, k.length);
                     bin_data_base += sizeof(program_binary);
-                    bin_data += j->length;
-                    void* binary = (void*)j->binary;
+                    bin_data += k.length;
+                    void* binary = (void*)k.binary;
                     free(binary);
-                    j->binary = 0;
+                    k.binary = 0;
+                    bin++;
                 }
-                vector_old_program_binary_clear(&program_data_binary, 0);
             }
 
             free(vert_data);
             free(frag_data);
+            program_data_binary.clear();
         }
-        vector_old_int32_t_clear(&vec_vert, 0);
-        vector_old_int32_t_clear(&vec_frag, 0);
+        vec_vert.clear();
+        vec_frag.clear();
 
         for (size_t j = 0; j < bind_func_table_size; j++)
             if (shader->index == bind_func_table[j].index) {
@@ -401,9 +397,6 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
                 break;
             }
     }
-    vector_old_int32_t_free(&vec_vert, 0);
-    vector_old_int32_t_free(&vec_frag, 0);
-    vector_old_program_binary_free(&program_data_binary, 0);
     free(binary);
     free(temp_vert);
     free(temp_frag);
@@ -2187,7 +2180,7 @@ inline void shader_state_texenv_set_color_ptr(shader_set_data* set,
     set->data.state_update_data = true;
 }
 
-static GLuint shader_compile_shader(GLenum type, char* data, char* file) {
+static GLuint shader_compile_shader(GLenum type, const char* data, const char* file) {
     if (!data)
         return 0;
 
@@ -2235,7 +2228,7 @@ static GLuint shader_compile_shader(GLenum type, char* data, char* file) {
     return shader;
 }
 
-static GLuint shader_compile(char* vert, char* frag, char* vp, char* fp) {
+static GLuint shader_compile(const char* vert, const char* frag, const char* vp, const char* fp) {
     GLuint vert_shad = shader_compile_shader(GL_VERTEX_SHADER, vert, vp);
     GLuint frag_shad = shader_compile_shader(GL_FRAGMENT_SHADER, frag, fp);
 
@@ -2270,7 +2263,7 @@ static GLuint shader_compile(char* vert, char* frag, char* vp, char* fp) {
     }
 }
 
-static GLuint shader_compile_binary(char* vert, char* frag, char* vp, char* fp,
+static GLuint shader_compile_binary(const char* vert, const char* frag, const char* vp, const char* fp,
     program_binary* bin, GLsizei* buffer_size, void** binary) {
     memset(bin, 0, sizeof(*bin));
 
@@ -2340,13 +2333,13 @@ static bool shader_load_binary_shader(program_binary* bin, GLuint* program) {
     return true;
 }
 
-static bool shader_parse_define(char* data, int32_t num_uniform,
+static bool shader_parse_define(const char* data, int32_t num_uniform,
     const int32_t* vp_unival_max, const int32_t* fp_unival_max,
     int32_t* uniform_value, char** temp, size_t* temp_size) {
     if (!data)
         return false;
 
-    char* def = strstr(data, "//DEF\n");
+    const char* def = strstr(data, "//DEF\n");
     if (!def)
         return str_utils_copy(data);
 

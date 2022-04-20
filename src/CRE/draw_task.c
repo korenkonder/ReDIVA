@@ -27,7 +27,7 @@ static int32_t draw_task_translucent_sort_count_layers(render_context* rctx,
 static void draw_task_translucent_sort_has_objects(render_context* rctx, bool* arr, draw_object_type type);
 
 void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
-    int32_t a2, int32_t show_vector_old, bool a4, int32_t alpha) {
+    int32_t a2, int32_t show_vector, bool a4, int32_t alpha) {
     if (draw_task_get_count(rctx, type) < 1)
         return;
 
@@ -143,7 +143,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
             case DRAW_TASK_TYPE_OBJECT: {
                 mat4 mat = task->mat;
                 draw_object_draw(rctx, &task->data.object,
-                    &mat, draw_object_func, show_vector_old);
+                    &mat, draw_object_func, show_vector);
             } break;
             case DRAW_TASK_TYPE_PRIMITIVE: {
                 mat4 mat = task->mat;
@@ -159,7 +159,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
                 mat4 mat = task->mat;
                 for (int32_t j = 0; j < task->data.object_translucent.count; j++)
                     draw_object_draw(rctx, task->data.object_translucent.objects[j],
-                        &mat, draw_object_func, show_vector_old);
+                        &mat, draw_object_func, show_vector);
             } break;
             }
         }
@@ -173,7 +173,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
                 if (a == alpha) {
                     mat4 mat = task->mat;
                     draw_object_draw(rctx, &task->data.object,
-                        &mat, draw_object_func, show_vector_old);
+                        &mat, draw_object_func, show_vector);
                 }
             } break;
             case DRAW_TASK_TYPE_OBJECT_TRANSLUCENT: {
@@ -184,7 +184,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
                     a = clamp(a, 0, 255);
                     if (a == alpha)
                         draw_object_draw(rctx, object,
-                            &mat, draw_object_func, show_vector_old);
+                            &mat, draw_object_func, show_vector);
                 }
             } break;
             }

@@ -10,7 +10,7 @@
 
 static void light_param_fog_read_inner(light_param_fog* fog, stream* s);
 static void light_param_fog_write_inner(light_param_fog* fog, stream* s);
-static char* light_param_fog_read_line(char* buf, int32_t size, char* src);
+static const char* light_param_fog_read_line(char* buf, int32_t size, const char* src);
 static void light_param_fog_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
 static void light_param_fog_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
 
@@ -123,7 +123,7 @@ static void light_param_fog_read_inner(light_param_fog* fog, stream* s) {
     data[s->length] = 0;
 
     char buf[0x100];
-    char* d = data;
+    const char* d = data;
 
     int32_t group_id = -1;
     while (d = light_param_fog_read_line(buf, sizeof(buf), d)) {
@@ -241,13 +241,13 @@ static void light_param_fog_write_inner(light_param_fog* fog, stream* s) {
     io_write_char(s, '\n');
 }
 
-static char* light_param_fog_read_line(char* buf, int32_t size, char* src) {
+static const char* light_param_fog_read_line(char* buf, int32_t size, const char* src) {
     char* b = buf;
     if (!src || !*src)
         return 0;
 
     for (int32_t i = 0; i < size - 1; i++, b++) {
-        char c = b[0] = *src++;
+        char c = *b = *src++;
         if (!c) {
             b++;
             break;

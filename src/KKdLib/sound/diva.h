@@ -17,8 +17,8 @@ typedef struct diva {
 } diva;
 
 extern diva* diva_init();
-extern void diva_read(diva* d, char* path);
-extern void diva_wread(diva* d, wchar_t* path);
-extern void diva_write(diva* d, char* path);
-extern void diva_wwrite(diva* d, wchar_t* path);
+extern void diva_read(diva* d, const char* path);
+extern void diva_read(diva* d, const wchar_t* path);
+extern void diva_write(diva* d, const char* path);
+extern void diva_write(diva* d, const wchar_t* path);
 extern void diva_dispose(diva* d);

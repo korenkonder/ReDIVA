@@ -25,10 +25,11 @@ public:
     key_val();
     ~key_val();
 
-    void file_read(char* path);
-    void file_read(wchar_t* path);
+    void file_read(const char* path);
+    void file_read(const wchar_t* path);
     bool get_local_key_val(const char* str, key_val* lkv);
-    bool has_key(char* str);
+    bool has_key(const char* str);
+    void parse(uint8_t* data, size_t length);
     bool read_bool(char* buf, size_t offset, const char* str_add, size_t str_add_len, bool* value);
     bool read_float_t(char* buf, size_t offset, const char* str_add, size_t str_add_len, float_t* value);
     bool read_int32_t(char* buf, size_t offset, const char* str_add, size_t str_add_len, int32_t* value);
@@ -37,7 +38,6 @@ public:
     bool read_string(char* buf, size_t offset, const char* str_add, size_t str_add_len, std::string* value);
     bool read_string(char* buf, size_t offset, const char* str_add, size_t str_add_len, const char** value);
     bool read_vec3(char* buf, size_t offset, const char* str_add, size_t str_add_len, vec3* value);
-    void parse(uint8_t* data, size_t length);
 
     static void get_lexicographic_order(std::vector<int32_t>* vec, int32_t length);
     static void write_bool(stream* s, char* buf,

@@ -19,8 +19,8 @@ typedef struct wav {
 } wav;
 
 extern wav* wav_init();
-extern void wav_read(wav* w, char* path, float_t** data, size_t* samples);
-extern void wav_wread(wav* w, wchar_t* path, float_t** data, size_t* samples);
-extern void wav_write(wav* w, char* path, float_t* data, size_t samples);
-extern void wav_wwrite(wav* w, wchar_t* path, float_t* data, size_t samples);
+extern void wav_read(wav* w, const char* path, float_t** data, size_t* samples);
+extern void wav_read(wav* w, const wchar_t* path, float_t** data, size_t* samples);
+extern void wav_write(wav* w, const char* path, float_t* data, size_t samples);
+extern void wav_write(wav* w, const wchar_t* path, float_t* data, size_t samples);
 extern void wav_dispose(wav* w);
