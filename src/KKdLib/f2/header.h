@@ -8,7 +8,7 @@
 #include "../default.h"
 #include "../io/stream.h"
 
-typedef struct f2_header {
+struct f2_header {
     union {
         char signature_char[0x04];  // 0x00
         uint32_t signature;         // 0x00
@@ -32,7 +32,7 @@ typedef struct f2_header {
     uint32_t unknown1[3];           // 0x24
     uint32_t inner_signature;       // 0x30
     uint32_t unknown2[3];           // 0x34
-} f2_header;
+};
 
 extern void f2_header_read(stream* s, f2_header* h);
 extern void f2_header_write(stream* s, f2_header* h, bool extended);

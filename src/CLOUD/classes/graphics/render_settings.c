@@ -31,8 +31,8 @@ inline static void render_settings_freq_to_string(double_t freq,
     double_t ms = 1000.0 / freq;
     int32_t ms_int = (int32_t)ms;
     int32_t ms_frac = (int32_t)(fmod(ms, 1.0) * 1000.0);
-    snprintf(freq_str, freq_str_len, "%4d.%03d", freq_int, freq_frac);
-    snprintf(ms_str, ms_str_len, "%4d.%03d", ms_int, ms_frac);
+    sprintf_s(freq_str, freq_str_len, "%4d.%03d", freq_int, freq_frac);
+    sprintf_s(ms_str, ms_str_len, "%4d.%03d", ms_int, ms_frac);
 }
 
 bool graphics_render_settings_init(class_data* data, render_context* rctx) {
@@ -74,7 +74,7 @@ void graphics_render_settings_imgui(class_data* data) {
     double_t scale = render_get_scale() * 100.0;
     int32_t scale_index = render_get_scale_index();
     char buf[0x80];
-    snprintf(buf, sizeof(buf), "%g%%%%", scale);
+    sprintf_s(buf, sizeof(buf), "%g%%%%", scale);
     if (imguiColumnSliderInt("Scale", &scale_index, 0,
         (int32_t)render_scale_table_count, buf, ImGuiSliderFlags_NoInput, true))
         render_set_scale_index(scale_index);

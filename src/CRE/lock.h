@@ -7,16 +7,16 @@
 
 #include "../KKdLib/default.h"
 
-typedef struct lock {
+struct lock {
     CRITICAL_SECTION cs;
     bool init;
-} lock;
+};
 
-typedef struct lock_data {
+struct lock_data {
     lock* lock;
     void* lock_data;
     void(*lock_free)(void* data);
-} lock_data;
+};
 
 #define lock_lock(val) \
 if ((val) && (val)->init) { \

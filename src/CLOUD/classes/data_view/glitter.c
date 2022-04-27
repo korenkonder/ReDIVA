@@ -4,13 +4,13 @@
 */
 
 #include "glitter.h"
-#include "../../../CRE/Glitter/glitter.h"
+#include "../../../CRE/Glitter/glitter.hpp"
 #include "../../../CRE/render_context.h"
 #include "../imgui_helper.h"
 
-typedef struct data_view_glitter {
+struct data_view_glitter {
     render_context* rctx;
-} data_view_glitter;
+};
 
 extern int32_t width;
 extern int32_t height;
@@ -69,7 +69,7 @@ void data_view_glitter_imgui(class_data* data) {
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
     if (ImGui::TreeNodeEx("Effect Groups", tree_node_flags)) {
-        for (auto& i : GPM_VAL.effect_groups)
+        for (auto& i : Glitter::glt_particle_manager.effect_groups)
             ImGui::Text("0x%08X: %s", i.first, i.second->name.c_str());
         ImGui::TreePop();
     }
@@ -79,7 +79,7 @@ void data_view_glitter_imgui(class_data* data) {
 
     if (ImGui::TreeNodeEx("Scenes", tree_node_flags)) {
         int32_t sc_index = 0;
-        for (GlitterScene*& i : GPM_VAL.scenes) {
+        for (Glitter::Scene*& i : Glitter::glt_particle_manager.scenes) {
             if (!i)
                 continue;
 
@@ -95,16 +95,16 @@ void data_view_glitter_imgui(class_data* data) {
             }
 
             int32_t eff_index = 0;
-            for (GlitterSceneEffect& j : i->effects) {
+            for (Glitter::SceneEffect& j : i->effects) {
                 if (!j.disp || !j.ptr)
                     continue;
 
-                GlitterF2EffectInst* eff_f2 = dynamic_cast<GlitterF2EffectInst*>(j.ptr);
+                Glitter::F2EffectInst* eff_f2 = dynamic_cast<Glitter::F2EffectInst*>(j.ptr);
                 if (eff_f2) {
                     tree_node_flags = tree_node_base_flags;
 
                     ImGui::PushStyleColor(ImGuiCol_Text,
-                        eff_f2->flags & GLITTER_EFFECT_INST_FREE ? 0xFF888888 : 0xFFFFFFFF);
+                        eff_f2->flags & Glitter::EFFECT_INST_FREE ? 0xFF888888 : 0xFFFFFFFF);
                     ImGui::PushID(eff_index);
                     if (!ImGui::TreeNodeEx("##Effect", tree_node_flags,
                         "Effect %d. 0x%08X: %s; Frame: %g", eff_index,
@@ -116,24 +116,24 @@ void data_view_glitter_imgui(class_data* data) {
                     }
 
                     int32_t emit_index = 0;
-                    for (GlitterF2EmitterInst*& k : eff_f2->emitters) {
+                    for (Glitter::F2EmitterInst*& k : eff_f2->emitters) {
                         if (!k)
                             continue;
 
                         tree_node_flags = tree_node_base_flags;
 
                         ImGui::PushStyleColor(ImGuiCol_Text,
-                            k->flags & GLITTER_EMITTER_INST_ENDED ? 0xFF888888 : 0xFFFFFFFF);
+                            k->flags & Glitter::EMITTER_INST_ENDED ? 0xFF888888 : 0xFFFFFFFF);
                         ImGui::PushID(emit_index);
                         if (ImGui::TreeNodeEx("##Effect", tree_node_flags,
                             "Emitter %d; Frame: %g", emit_index, k->frame)) {
                             int32_t ptcl_index = 0;
-                            for (GlitterF2ParticleInst*& l : k->particles) {
+                            for (Glitter::F2ParticleInst*& l : k->particles) {
                                 if (!l)
                                     continue;
 
                                 ImGui::PushStyleColor(ImGuiCol_Text,
-                                    l->data.flags & GLITTER_PARTICLE_INST_ENDED ? 0xFF888888 : 0xFFFFFFFF);
+                                    l->data.flags & Glitter::PARTICLE_INST_ENDED ? 0xFF888888 : 0xFFFFFFFF);
                                 ImGui::PushID(ptcl_index);
                                 ImGui::Text("Particle %d", ptcl_index);
                                 ImGui::PopID();
@@ -153,12 +153,12 @@ void data_view_glitter_imgui(class_data* data) {
                     continue;
                 }
 
-                GlitterXEffectInst* eff_x = dynamic_cast<GlitterXEffectInst*>(j.ptr);
+                Glitter::XEffectInst* eff_x = dynamic_cast<Glitter::XEffectInst*>(j.ptr);
                 if (eff_x) {
                     tree_node_flags = tree_node_base_flags;
 
                     ImGui::PushStyleColor(ImGuiCol_Text,
-                        eff_x->flags & GLITTER_EFFECT_INST_FREE ? 0xFF888888 : 0xFFFFFFFF);
+                        eff_x->flags & Glitter::EFFECT_INST_FREE ? 0xFF888888 : 0xFFFFFFFF);
                     ImGui::PushID(eff_index);
                     if (!ImGui::TreeNodeEx("##Effect", tree_node_flags,
                         "Effect %d. 0x%08X: %s; Frame: %g", eff_index,
@@ -170,24 +170,24 @@ void data_view_glitter_imgui(class_data* data) {
                     }
 
                     int32_t emit_index = 0;
-                    for (GlitterXEmitterInst*& k : eff_x->emitters) {
+                    for (Glitter::XEmitterInst*& k : eff_x->emitters) {
                         if (!k)
                             continue;
 
                         tree_node_flags = tree_node_base_flags;
 
                         ImGui::PushStyleColor(ImGuiCol_Text,
-                            k->flags & GLITTER_EMITTER_INST_ENDED ? 0xFF888888 : 0xFFFFFFFF);
+                            k->flags & Glitter::EMITTER_INST_ENDED ? 0xFF888888 : 0xFFFFFFFF);
                         ImGui::PushID(emit_index);
                         if (ImGui::TreeNodeEx("##Effect", tree_node_flags,
                             "Emitter %d; Frame: %g", emit_index, k->frame)) {
                             int32_t ptcl_index = 0;
-                            for (GlitterXParticleInst*& l : k->particles) {
+                            for (Glitter::XParticleInst*& l : k->particles) {
                                 if (!l)
                                     continue;
 
                                 ImGui::PushStyleColor(ImGuiCol_Text,
-                                    l->data.flags & GLITTER_PARTICLE_INST_ENDED ? 0xFF888888 : 0xFFFFFFFF);
+                                    l->data.flags & Glitter::PARTICLE_INST_ENDED ? 0xFF888888 : 0xFFFFFFFF);
                                 ImGui::PushID(ptcl_index);
                                 ImGui::Text("Particle %d", ptcl_index);
                                 ImGui::PopID();

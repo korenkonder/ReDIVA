@@ -53,7 +53,7 @@ vector_old_ptr_func(mat4)
 
 // Crutch for vector_old_func definition
 
-inline void mat3_add(mat3* x, mat3* y, mat3* z) {
+inline void mat3_add(const mat3* x, const mat3* y, mat3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -71,7 +71,7 @@ inline void mat3_add(mat3* x, mat3* y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
-inline void mat3_sub(mat3* x, mat3* y, mat3* z) {
+inline void mat3_sub(const mat3* x, const mat3* y, mat3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -89,7 +89,7 @@ inline void mat3_sub(mat3* x, mat3* y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
-inline void mat3_mult(mat3* x, mat3* y, mat3* z) {
+inline void mat3_mult(const mat3* x, const mat3* y, mat3* z) {
     __m128 t0;
     __m128 t1;
     __m128 t2;
@@ -121,7 +121,7 @@ inline void mat3_mult(mat3* x, mat3* y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
-inline void mat3_mult_vec(mat3* x, vec3* y, vec3* z) {
+inline void mat3_mult_vec(const mat3* x, const vec3* y, vec3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -139,7 +139,7 @@ inline void mat3_mult_vec(mat3* x, vec3* y, vec3* z) {
     *z = *(vec3*)&zt;
 }
 
-inline void mat3_mult_scalar(mat3* x, float_t y, mat3* z) {
+inline void mat3_mult_scalar(const mat3* x, float_t y, mat3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -156,7 +156,7 @@ inline void mat3_mult_scalar(mat3* x, float_t y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
-inline void mat3_transpose(mat3* x, mat3* z) {
+inline void mat3_transpose(const mat3* x, mat3* z) {
     __m128 xt0;
     __m128 xt1;
     __m128 xt2;
@@ -187,7 +187,7 @@ inline void mat3_transpose(mat3* x, mat3* z) {
     z->row2 = *(vec3*)&zt2;
 }
 
-void mat3_inverse(mat3* x, mat3* z) {
+void mat3_inverse(const mat3* x, mat3* z) {
     vec3 xt0;
     vec3 xt1;
     vec3 xt2;
@@ -247,18 +247,18 @@ void mat3_inverse(mat3* x, mat3* z) {
     z->row2 = *(vec3*)&yt;
 }
 
-inline void mat3_invtrans(mat3* x, mat3* z) {
+inline void mat3_invtrans(const mat3* x, mat3* z) {
     mat3 t = *x;
     mat3_inverse(&t, &t);
     mat3_transpose(&t, &t);
     *z = t;
 }
 
-inline void mat3_inverse_normalized(mat3* x, mat3* z) {
+inline void mat3_inverse_normalized(const mat3* x, mat3* z) {
     mat3_transpose(x, z);
 }
 
-inline void mat3_normalize(mat3* x, mat3* z) {
+inline void mat3_normalize(const mat3* x, mat3* z) {
     __m128 det;
     __m128 xt0;
     __m128 xt1;
@@ -278,7 +278,7 @@ inline void mat3_normalize(mat3* x, mat3* z) {
     z->row2 = *(vec3*)&xt2;
 }
 
-inline void mat3_normalize_rotation(mat3* x, mat3* z) {
+inline void mat3_normalize_rotation(const mat3* x, mat3* z) {
     __m128 xt;
     __m128 yt;
     *(vec3*)&xt = x->row0;
@@ -310,7 +310,7 @@ inline void mat3_normalize_rotation(mat3* x, mat3* z) {
     z->row2 = *(vec3*)&xt;
 }
 
-inline float_t mat3_determinant(mat3* x) {
+inline float_t mat3_determinant(const mat3* x) {
     vec3 xt0;
     vec3 xt1;
     vec3 xt2;
@@ -382,7 +382,7 @@ inline void mat3_rotate_z(float_t x, mat3* y) {
     *y = yt;
 }
 
-inline void mat3_rotate_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
     mat3 dt;
     dt = *s;
     if (z != 0.0f)
@@ -394,7 +394,7 @@ inline void mat3_rotate_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d) 
     *d = dt;
 }
 
-inline void mat3_rotate_x_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_rotate_x_mult(const mat3* x, float_t y, mat3* z) {
     mat3 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
@@ -406,7 +406,7 @@ inline void mat3_rotate_x_mult(mat3* x, float_t y, mat3* z) {
     mat3_mult(&yt, x, z);
 }
 
-inline void mat3_rotate_y_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_rotate_y_mult(const mat3* x, float_t y, mat3* z) {
     mat3 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
@@ -418,7 +418,7 @@ inline void mat3_rotate_y_mult(mat3* x, float_t y, mat3* z) {
     mat3_mult(&yt, x, z);
 }
 
-inline void mat3_rotate_z_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_rotate_z_mult(const mat3* x, float_t y, mat3* z) {
     mat3 yt;
     float_t y_sin = sinf(y);
     float_t y_cos = cosf(y);
@@ -463,7 +463,7 @@ inline void mat3_scale_z(float_t x, mat3* y) {
     *y = yt;
 }
 
-inline void mat3_scale_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_scale_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
     mat3 st;
     mat3 dt;
     if (x != 1.0f || y != 1.0f || z != 1.0f) {
@@ -479,28 +479,28 @@ inline void mat3_scale_mult(mat3* s, float_t x, float_t y, float_t z, mat3* d) {
         *d = *s;
 }
 
-inline void mat3_scale_x_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_scale_x_mult(const mat3* x, float_t y, mat3* z) {
     mat3 yt;
     yt = mat3_identity;
     yt.row0.x = y;
     mat3_mult(x, &yt, z);
 }
 
-inline void mat3_scale_y_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_scale_y_mult(const mat3* x, float_t y, mat3* z) {
     mat3 yt;
     yt = mat3_identity;
     yt.row1.y = y;
     mat3_mult(x, &yt, z);
 }
 
-inline void mat3_scale_z_mult(mat3* x, float_t y, mat3* z) {
+inline void mat3_scale_z_mult(const mat3* x, float_t y, mat3* z) {
     mat3 yt;
     yt = mat3_identity;
     yt.row2.z = y;
     mat3_mult(x, &yt, z);
 }
 
-inline void mat3_from_quat(quat* quat, mat3* mat) {
+inline void mat3_from_quat(const quat* quat, mat3* mat) {
     float_t y;
     float_t x;
     float_t z;
@@ -542,26 +542,26 @@ inline void mat3_from_quat(quat* quat, mat3* mat) {
     mat->row2.z = 1.0f - yy - xx;
 }
 
-inline void mat3_from_axis_angle(vec3* axis, float_t angle, mat3* mat) {
+inline void mat3_from_axis_angle(const vec3* axis, float_t angle, mat3* mat) {
     quat quat;
 
     quat_from_axis_angle(axis, angle, &quat);
     mat3_from_quat(&quat, mat);
 }
 
-inline void mat3_from_mat4(mat4* x, mat3* z) {
+inline void mat3_from_mat4(const mat4* x, mat3* z) {
     z->row0 = *(vec3*)&x->row0;
     z->row1 = *(vec3*)&x->row1;
     z->row2 = *(vec3*)&x->row2;
 }
 
-inline void mat3_from_mat4(mat4u* x, mat3* z) {
+inline void mat3_from_mat4(const mat4u* x, mat3* z) {
     z->row0 = *(vec3*)&x->row0;
     z->row1 = *(vec3*)&x->row1;
     z->row2 = *(vec3*)&x->row2;
 }
 
-inline void mat3_from_mat4_inverse(mat4* x, mat3* z) {
+inline void mat3_from_mat4_inverse(const mat4* x, mat3* z) {
     mat4 yt;
 
     mat4_inverse(x, &yt);
@@ -570,7 +570,7 @@ inline void mat3_from_mat4_inverse(mat4* x, mat3* z) {
     z->row2 = *(vec3*)&yt.row2;
 }
 
-inline void mat3_from_mat4_inverse(mat4u* x, mat3* z) {
+inline void mat3_from_mat4_inverse(const mat4u* x, mat3* z) {
     mat4 yt;
 
     yt = *x;
@@ -580,7 +580,7 @@ inline void mat3_from_mat4_inverse(mat4u* x, mat3* z) {
     z->row2 = *(vec3*)&yt.row2;
 }
 
-inline void mat3_get_rotation(mat3* x, vec3* z) {
+inline void mat3_get_rotation(const mat3* x, vec3* z) {
     if (-x->row0.z >= 1.0f)
         z->y = (float_t)M_PI_2;
     else if (-x->row0.z <= -1.0f)
@@ -599,13 +599,13 @@ inline void mat3_get_rotation(mat3* x, vec3* z) {
     }
 }
 
-inline void mat3_get_scale(mat3* x, vec3* z) {
+inline void mat3_get_scale(const mat3* x, vec3* z) {
     vec3_length(x->row0, z->x);
     vec3_length(x->row1, z->y);
     vec3_length(x->row2, z->z);
 }
 
-inline float_t mat3_get_max_scale(mat3* x) {
+inline float_t mat3_get_max_scale(const mat3* x) {
     mat3 mat;
     mat3_transpose(x, &mat);
 
@@ -623,21 +623,21 @@ inline float_t mat3_get_max_scale(mat3* x) {
     return max;
 }
 
-inline void mat4_add(mat4* x, mat4* y, mat4* z) {
+inline void mat4_add(const mat4* x, const mat4* y, mat4* z) {
     z->row0.data = _mm_add_ps(x->row0.data, y->row0.data);
     z->row1.data = _mm_add_ps(x->row1.data, y->row1.data);
     z->row2.data = _mm_add_ps(x->row2.data, y->row2.data);
     z->row3.data = _mm_add_ps(x->row3.data, y->row3.data);
 }
 
-inline void mat4_sub(mat4* x, mat4* y, mat4* z) {
+inline void mat4_sub(const mat4* x, const mat4* y, mat4* z) {
     z->row0.data = _mm_sub_ps(x->row0.data, y->row0.data);
     z->row1.data = _mm_sub_ps(x->row1.data, y->row1.data);
     z->row2.data = _mm_sub_ps(x->row2.data, y->row2.data);
     z->row3.data = _mm_sub_ps(x->row3.data, y->row3.data);
 }
 
-inline void mat4_mult(mat4* x, mat4* y, mat4* z) {
+inline void mat4_mult(const mat4* x, const mat4* y, mat4* z) {
     __m128 t0;
     __m128 t1;
     __m128 t2;
@@ -677,7 +677,7 @@ inline void mat4_mult(mat4* x, mat4* y, mat4* z) {
     z->row3.data = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
 }
 
-inline void mat4_mult(mat4u* x, mat4u* y, mat4u* z) {
+inline void mat4_mult(const mat4u* x, const mat4u* y, mat4u* z) {
     __m128 t0;
     __m128 t1;
     __m128 t2;
@@ -717,7 +717,7 @@ inline void mat4_mult(mat4u* x, mat4u* y, mat4u* z) {
     _mm_storeu_ps((float_t*)&z->row3, _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3)));
 }
 
-inline void mat4_mult_vec3(mat4* x, vec3* y, vec3* z) {
+inline void mat4_mult_vec3(const mat4* x, const vec3* y, vec3* z) {
     __m128 yt;
     __m128 zt;
     __m128 zt0;
@@ -731,7 +731,7 @@ inline void mat4_mult_vec3(mat4* x, vec3* y, vec3* z) {
     *z = *(vec3*)&zt;
 }
 
-inline void mat4_mult_vec3_inv(mat4* x, vec3* y, vec3* z) {
+inline void mat4_mult_vec3_inv(const mat4* x, const vec3* y, vec3* z) {
     __m128 yt;
     __m128 zt;
 
@@ -748,7 +748,7 @@ inline void mat4_mult_vec3_inv(mat4* x, vec3* y, vec3* z) {
     z->z = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
 }
 
-inline void mat4_mult_vec3_trans(mat4* x, vec3* y, vec3* z) {
+inline void mat4_mult_vec3_trans(const mat4* x, const vec3* y, vec3* z) {
     __m128 yt;
     __m128 zt;
     __m128 zt0;
@@ -764,7 +764,7 @@ inline void mat4_mult_vec3_trans(mat4* x, vec3* y, vec3* z) {
     *z = *(vec3*)&zt;
 }
 
-inline void mat4_mult_vec3_inv_trans(mat4* x, vec3* y, vec3* z) {
+inline void mat4_mult_vec3_inv_trans(const mat4* x, const vec3* y, vec3* z) {
     __m128 yt;
     __m128 zt;
 
@@ -782,7 +782,7 @@ inline void mat4_mult_vec3_inv_trans(mat4* x, vec3* y, vec3* z) {
     z->z = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
 }
 
-inline void mat4_mult_vec(mat4* x, vec4* y, vec4* z) {
+inline void mat4_mult_vec(const mat4* x, vec4* y, vec4* z) {
     __m128 yt;
     __m128 zt0;
     __m128 zt1;
@@ -796,7 +796,7 @@ inline void mat4_mult_vec(mat4* x, vec4* y, vec4* z) {
     z->data = _mm_add_ps(_mm_add_ps(zt0, zt1), _mm_add_ps(zt2, zt3));
 }
 
-inline void mat4_mult_scalar(mat4* x, float_t y, mat4* z) {
+inline void mat4_mult_scalar(const mat4* x, float_t y, mat4* z) {
     __m128 yt;
     yt = _mm_set_ss(y);
     yt = _mm_shuffle_ps(yt, yt, 0);
@@ -806,7 +806,7 @@ inline void mat4_mult_scalar(mat4* x, float_t y, mat4* z) {
     z->row3.data = _mm_mul_ps(x->row3.data, yt);
 }
 
-inline void mat4_transpose(mat4* x, mat4* z) {
+inline void mat4_transpose(const mat4* x, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -821,24 +821,24 @@ inline void mat4_transpose(mat4* x, mat4* z) {
     z->row3.data = _mm_movehl_ps(yt3, yt1);
 }
 
-inline void mat4_transpose(mat4* x, mat4u* z) {
+inline void mat4_transpose(const mat4* x, mat4u* z) {
     mat4 y;
     mat4_transpose(x, &y);
     *z = y;
 }
 
-inline void mat4_transpose(mat4u* x, mat4* z) {
+inline void mat4_transpose(const mat4u* x, mat4* z) {
     mat4 y = *x;
     mat4_transpose(&y, z);
 }
 
-inline void mat4_transpose(mat4u* x, mat4u* z) {
+inline void mat4_transpose(const mat4u* x, mat4u* z) {
     mat4 y = *x;
     mat4_transpose(&y, &y);
     *z = y;
 }
 
-void mat4_inverse(mat4* x, mat4* z) {
+void mat4_inverse(const mat4* x, mat4* z) {
     static const __m128 xor0 = { -0.0f,  0.0f, -0.0f,  0.0f };
     static const __m128 xor1 = {  0.0f, -0.0f,  0.0f, -0.0f };
 
@@ -926,14 +926,14 @@ void mat4_inverse(mat4* x, mat4* z) {
     z->row3.data = _mm_mul_ps(zt3, wt);
 }
 
-inline void mat4_invtrans(mat4* x, mat4* z) {
+inline void mat4_invtrans(const mat4* x, mat4* z) {
     mat4 t = *x;
     mat4_inverse(&t, &t);
     mat4_transpose(&t, &t);
     *z = t;
 }
 
-inline void mat4_invrot(mat4* x, mat4* z) {
+inline void mat4_invrot(const mat4* x, mat4* z) {
     mat3 yt;
     mat3_from_mat4(x, &yt);
     mat3_inverse(&yt, &yt);
@@ -944,7 +944,7 @@ inline void mat4_invrot(mat4* x, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_inverse_normalized(mat4* x, mat4* z) {
+inline void mat4_inverse_normalized(const mat4* x, mat4* z) {
     mat3 yt;
     mat3_from_mat4(x, &yt);
     vec3 row3;
@@ -960,7 +960,7 @@ inline void mat4_inverse_normalized(mat4* x, mat4* z) {
     z->row3.w = 1.0f;
 }
 
-inline void mat4_invrot_normalized(mat4* x, mat4* z) {
+inline void mat4_invrot_normalized(const mat4* x, mat4* z) {
     mat3 yt;
     mat3_from_mat4(x, &yt);
     mat3_transpose(&yt, &yt);
@@ -971,7 +971,7 @@ inline void mat4_invrot_normalized(mat4* x, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_normalize(mat4* x, mat4* z) {
+inline void mat4_normalize(const mat4* x, mat4* z) {
     __m128 det;
     det = _mm_set_ss(mat4_determinant(x));
     if (det.m128_f32[0] != 0.0f)
@@ -983,7 +983,7 @@ inline void mat4_normalize(mat4* x, mat4* z) {
     z->row3.data = _mm_mul_ps(x->row3.data, det);
 }
 
-inline void mat4_normalize_rotation(mat4* x, mat4* z) {
+inline void mat4_normalize_rotation(const mat4* x, mat4* z) {
     __m128 xt;
     __m128 yt;
     xt = _mm_and_ps(x->row0.data, vec4_mask_vec3.data);
@@ -1016,7 +1016,7 @@ inline void mat4_normalize_rotation(mat4* x, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline float_t mat4_determinant(mat4* x) {
+inline float_t mat4_determinant(const mat4* x) {
     vec4 xt0;
     vec4 xt1;
     vec4 xt2;
@@ -1096,7 +1096,7 @@ inline void mat4_rotate_z(float_t x, mat4* y) {
     *y = yt;
 }
 
-inline void mat4_rotate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = *s;
     if (z != 0.0f)
@@ -1108,7 +1108,7 @@ inline void mat4_rotate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) 
     *d = dt;
 }
 
-inline void mat4_rotate_x_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_rotate_x_mult(const mat4* x, float_t y, mat4* z) {
     __m128 t1;
     __m128 t2;
     __m128 xt;
@@ -1136,7 +1136,7 @@ inline void mat4_rotate_x_mult(mat4* x, float_t y, mat4* z) {
     z->row3.data = y3;
 }
 
-inline void mat4_rotate_y_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_rotate_y_mult(const mat4* x, float_t y, mat4* z) {
     __m128 t0;
     __m128 t2;
     __m128 xt;
@@ -1164,7 +1164,7 @@ inline void mat4_rotate_y_mult(mat4* x, float_t y, mat4* z) {
     z->row3.data = y3;
 }
 
-inline void mat4_rotate_z_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_rotate_z_mult(const mat4* x, float_t y, mat4* z) {
     __m128 t0;
     __m128 t1;
     __m128 xt;
@@ -1222,7 +1222,7 @@ inline void mat4_rotate_z_sin_cos(float_t sin_val, float_t cos_val, mat4* y) {
     *y = yt;
 }
 
-inline void mat4_rotate_x_mult_sin_cos(mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
+inline void mat4_rotate_x_mult_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
     __m128 t1;
     __m128 t2;
     __m128 xt;
@@ -1248,7 +1248,7 @@ inline void mat4_rotate_x_mult_sin_cos(mat4* x, float_t sin_val, float_t cos_val
     z->row3.data = y3;
 }
 
-inline void mat4_rotate_y_mult_sin_cos(mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
+inline void mat4_rotate_y_mult_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
     __m128 t0;
     __m128 t2;
     __m128 xt;
@@ -1274,7 +1274,7 @@ inline void mat4_rotate_y_mult_sin_cos(mat4* x, float_t sin_val, float_t cos_val
     z->row3.data = y3;
 }
 
-inline void mat4_rotate_z_mult_sin_cos(mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
+inline void mat4_rotate_z_mult_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
     __m128 t0;
     __m128 t1;
     __m128 xt;
@@ -1300,7 +1300,7 @@ inline void mat4_rotate_z_mult_sin_cos(mat4* x, float_t sin_val, float_t cos_val
     z->row3.data = y3;
 }
 
-inline void mat4_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rot(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = *s;
     if (z != 0.0f)
@@ -1312,7 +1312,7 @@ inline void mat4_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     *d = dt;
 }
 
-inline void mat4_rot_x(mat4* x, float_t y, mat4* z) {
+inline void mat4_rot_x(const mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1336,7 +1336,7 @@ inline void mat4_rot_x(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_rot_y(mat4* x, float_t y, mat4* z) {
+inline void mat4_rot_y(const mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1360,7 +1360,7 @@ inline void mat4_rot_y(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_rot_z(mat4* x, float_t y, mat4* z) {
+inline void mat4_rot_z(const mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1384,7 +1384,7 @@ inline void mat4_rot_z(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_rot_x_sin_cos(mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
+inline void mat4_rot_x_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1406,7 +1406,7 @@ inline void mat4_rot_x_sin_cos(mat4* x, float_t sin_val, float_t cos_val, mat4* 
     z->row3 = x->row3;
 }
 
-inline void mat4_rot_y_sin_cos(mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
+inline void mat4_rot_y_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1428,7 +1428,7 @@ inline void mat4_rot_y_sin_cos(mat4* x, float_t sin_val, float_t cos_val, mat4* 
     z->row3 = x->row3;
 }
 
-inline void mat4_rot_z_sin_cos(mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
+inline void mat4_rot_z_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1483,7 +1483,7 @@ inline void mat4_scale_z(float_t x, mat4* y) {
     *y = yt;
 }
 
-inline void mat4_scale_mult(mat4* s, float_t x, float_t y, float_t z, float_t w, mat4* d) {
+inline void mat4_scale_mult(const mat4* s, float_t x, float_t y, float_t z, float_t w, mat4* d) {
     mat4 dt;
     if (x != 1.0f || y != 1.0f || z != 1.0f) {
         dt = mat4_identity;
@@ -1497,35 +1497,35 @@ inline void mat4_scale_mult(mat4* s, float_t x, float_t y, float_t z, float_t w,
         *d = *s;
 }
 
-inline void mat4_scale_x_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_x_mult(const mat4* x, float_t y, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
     yt.row0.x = y;
     mat4_mult(x, &yt, z);
 }
 
-inline void mat4_scale_y_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_y_mult(const mat4* x, float_t y, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
     yt.row1.y = y;
     mat4_mult(x, &yt, z);
 }
 
-inline void mat4_scale_z_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_z_mult(const mat4* x, float_t y, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
     yt.row2.z = y;
     mat4_mult(x, &yt, z);
 }
 
-inline void mat4_scale_w_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_w_mult(const mat4* x, float_t y, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
     yt.row3.w = y;
     mat4_mult(x, &yt, z);
 }
 
-inline void mat4_scale_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_scale_rot(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat3 st;
     mat3 dt;
     if (x != 1.0f || y != 1.0f || z != 1.0f) {
@@ -1549,7 +1549,7 @@ inline void mat4_scale_rot(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
         *d = *s;
 }
 
-inline void mat4_scale_x_rot(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_x_rot(const mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1568,7 +1568,7 @@ inline void mat4_scale_x_rot(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_scale_y_rot(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_y_rot(const mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1587,7 +1587,7 @@ inline void mat4_scale_y_rot(mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_scale_z_rot(mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_z_rot(const mat4* x, float_t y, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1636,7 +1636,7 @@ inline void mat4_translate_z(float_t x, mat4* y) {
     *y = yt;
 }
 
-inline void mat4_translate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_translate_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -1660,7 +1660,7 @@ inline void mat4_translate_mult(mat4* s, float_t x, float_t y, float_t z, mat4* 
     }
 }
 
-inline void mat4_translate_x_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_x_mult(const mat4* x, float_t y, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -1675,7 +1675,7 @@ inline void mat4_translate_x_mult(mat4* x, float_t y, mat4* z) {
     }
 }
 
-inline void mat4_translate_y_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_y_mult(const mat4* x, float_t y, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -1690,7 +1690,7 @@ inline void mat4_translate_y_mult(mat4* x, float_t y, mat4* z) {
     }
 }
 
-inline void mat4_translate_z_mult(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_z_mult(const mat4* x, float_t y, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
@@ -1705,39 +1705,39 @@ inline void mat4_translate_z_mult(mat4* x, float_t y, mat4* z) {
     }
 }
 
-inline void mat4_translate_add(mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_translate_add(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     if (s != d)
         *d = *s;
     if (x != 0.0f || y != 0.0f || z != 0.0f)
         d->row3.data = _mm_add_ps(s->row3.data, _mm_set_ps(x, y, z, 0.0f));
 }
 
-inline void mat4_translate_x_add(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_x_add(const mat4* x, float_t y, mat4* z) {
     if (x != z)
         *z = *x;
     if (y != 0.0f)
         z->row3.x += y;
 }
 
-inline void mat4_translate_y_add(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_y_add(const mat4* x, float_t y, mat4* z) {
     if (x != z)
         *z = *x;
     if (y != 0.0f)
         z->row3.y += y;
 }
 
-inline void mat4_translate_z_add(mat4* x, float_t y, mat4* z) {
+inline void mat4_translate_z_add(const mat4* x, float_t y, mat4* z) {
     if (x != z)
         *z = *x;
     if (y != 0.0f)
         z->row3.z += y;
 }
 
-inline void mat4_from_quat(quat* quat, mat4* mat) {
+inline void mat4_from_quat(const quat* quat, mat4* mat) {
     mat4_from_quat(quat, (mat4u*)mat);
 }
 
-inline void mat4_from_quat(quat* quat, mat4u* mat) {
+inline void mat4_from_quat(const quat* quat, mat4u* mat) {
     float_t y;
     float_t x;
     float_t z;
@@ -1783,7 +1783,7 @@ inline void mat4_from_quat(quat* quat, mat4u* mat) {
     mat->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-float_t vec3_angle_between_two_vector_olds(vec3* x, vec3* y) {
+float_t vec3_angle_between_two_vectors(const vec3* x, const vec3* y) {
     vec3 z_t;
     vec3_cross(*x, *y, z_t);
     float_t v2;
@@ -1793,7 +1793,7 @@ float_t vec3_angle_between_two_vector_olds(vec3* x, vec3* y) {
     return fabsf(atan2f(v2, v3));
 }
 
-void mat4_from_two_vector_olds(vec3* x, vec3* y, mat4* mat) {
+void mat4_from_two_vectors(const vec3* x, const vec3* y, mat4* mat) {
     *mat = mat4_identity;
     if (x->x == y->x && y->y == x->y && y->z == x->z)
         return;
@@ -1808,14 +1808,14 @@ void mat4_from_two_vector_olds(vec3* x, vec3* y, mat4* mat) {
     float_t axis_length;
     vec3_length(axis, axis_length);
     if (axis_length > 0.000001f) {
-        float_t angle = vec3_angle_between_two_vector_olds(x, y);
+        float_t angle = vec3_angle_between_two_vectors(x, y);
         if (axis_length != 0.0)
             vec3_mult_scalar(axis, 1.0f / axis_length, axis);
         mat4_from_axis_angle(&axis, angle, mat);
     }
 }
 
-inline void mat4_from_axis_angle(vec3* axis, float_t angle, mat4* mat) {
+inline void mat4_from_axis_angle(const vec3* axis, float_t angle, mat4* mat) {
     float_t angle_sin;
     float_t angle_cos;
     float_t angle_cos_1;
@@ -1846,7 +1846,7 @@ inline void mat4_from_axis_angle(vec3* axis, float_t angle, mat4* mat) {
     mat->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-inline void mat4_from_mat3(mat3* x, mat4* z) {
+inline void mat4_from_mat3(const mat3* x, mat4* z) {
     *(vec3*)&z->row0 = x->row0;
     z->row0.w = 0.0f;
     *(vec3*)&z->row1 = x->row1;
@@ -1856,7 +1856,7 @@ inline void mat4_from_mat3(mat3* x, mat4* z) {
     z->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-inline void mat4_from_mat3_inverse(mat3* x, mat4* z) {
+inline void mat4_from_mat3_inverse(const mat3* x, mat4* z) {
     mat3 yt;
 
     mat3_inverse(x, &yt);
@@ -1885,7 +1885,7 @@ inline void mat4_clear_trans(mat4* x, mat4* z) {
     z->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-inline void mat4_get_rotation(mat4* x, vec3* z) {
+inline void mat4_get_rotation(const mat4* x, vec3* z) {
     if (-x->row0.z >= 1.0f)
         z->y = (float_t)M_PI_2;
     else if (-x->row0.z <= -1.0f)
@@ -1905,7 +1905,7 @@ inline void mat4_get_rotation(mat4* x, vec3* z) {
     }
 }
 
-inline void mat4_get_rotation(mat4u* x, vec3* z) {
+inline void mat4_get_rotation(const mat4u* x, vec3* z) {
     if (-x->row0.z >= 1.0f)
         z->y = (float_t)M_PI_2;
     else if (-x->row0.z <= -1.0f)
@@ -1925,13 +1925,13 @@ inline void mat4_get_rotation(mat4u* x, vec3* z) {
     }
 }
 
-inline void mat4_get_scale(mat4* x, vec3* z) {
+inline void mat4_get_scale(const mat4* x, vec3* z) {
     vec4_length(x->row0, z->x);
     vec4_length(x->row1, z->y);
     vec4_length(x->row2, z->z);
 }
 
-inline void mat4_get_scale(mat4u* x, vec3* z) {
+inline void mat4_get_scale(const mat4u* x, vec3* z) {
     vec4 yt0;
     vec4 yt1;
     vec4 yt2;
@@ -1944,11 +1944,11 @@ inline void mat4_get_scale(mat4u* x, vec3* z) {
     vec4_length(yt2, z->z);
 }
 
-inline void mat4_get_translation(mat4* x, vec3* z) {
+inline void mat4_get_translation(const mat4* x, vec3* z) {
     *z = *(vec3*)&x->row3;
 }
 
-inline void mat4_get_translation(mat4u* x, vec3* z) {
+inline void mat4_get_translation(const mat4u* x, vec3* z) {
     *z = *(vec3*)&x->row3;
 }
 
@@ -1960,7 +1960,7 @@ inline void mat4_set_translation(mat4u* x, vec3* z) {
     *(vec3*)&x->row3 = *z;
 }
 
-inline void mat4_blend(mat4* x, mat4* y, mat4* z, float_t blend) {
+inline void mat4_blend(const mat4* x, const mat4* y, mat4* z, float_t blend) {
     quat q1;
     quat q2;
     quat q3;
@@ -1983,7 +1983,7 @@ inline void mat4_blend(mat4* x, mat4* y, mat4* z, float_t blend) {
     mat4_set_translation(z, &t3);
 }
 
-inline void mat4_blend(mat4u* x, mat4u* y, mat4u* z, float_t blend) {
+inline void mat4_blend(const mat4u* x, const mat4u* y, mat4u* z, float_t blend) {
     quat q1;
     quat q2;
     quat q3;
@@ -2006,7 +2006,7 @@ inline void mat4_blend(mat4u* x, mat4u* y, mat4u* z, float_t blend) {
     mat4_set_translation(z, &t3);
 }
 
-inline void mat4_blend_rotation(mat4* x, mat4* y, mat4* z, float_t blend) {
+inline void mat4_blend_rotation(const mat4* x, const mat4* y, mat4* z, float_t blend) {
     quat q0;
     quat q1;
     quat q2;
@@ -2019,7 +2019,7 @@ inline void mat4_blend_rotation(mat4* x, mat4* y, mat4* z, float_t blend) {
     mat4_from_quat(&q2, z);
 }
 
-inline void mat4_blend_rotation(mat4u* x, mat4u* y, mat4u* z, float_t blend) {
+inline void mat4_blend_rotation(const mat4u* x, const mat4u* y, mat4u* z, float_t blend) {
     quat q0;
     quat q1;
     quat q2;
@@ -2032,7 +2032,7 @@ inline void mat4_blend_rotation(mat4u* x, mat4u* y, mat4u* z, float_t blend) {
     mat4_from_quat(&q2, z);
 }
 
-void mat4_lerp_rotation(mat4* dst, mat4* src0, mat4* src1, float_t blend) {
+void mat4_lerp_rotation(mat4* dst, const mat4* src0, const mat4* src1, float_t blend) {
     vec3 m0;
     vec3 m1;
     vec3_lerp_scalar(*(vec3*)&src0->row0, *(vec3*)&src1->row0, m0, blend);
@@ -2078,7 +2078,7 @@ void mat4_lerp_rotation(mat4* dst, mat4* src0, mat4* src1, float_t blend) {
     *(vec3*)&dst->row2 = m2;
 }
 
-void mat4_lerp_rotation(mat4u* dst, mat4u* src0, mat4u* src1, float_t blend) {
+void mat4_lerp_rotation(mat4u* dst, const mat4u* src0, const mat4u* src1, float_t blend) {
     vec3 m0;
     vec3 m1;
     vec3_lerp_scalar(*(vec3*)&src0->row0, *(vec3*)&src1->row0, m0, blend);
@@ -2124,7 +2124,7 @@ void mat4_lerp_rotation(mat4u* dst, mat4u* src0, mat4u* src1, float_t blend) {
     *(vec3*)&dst->row2 = m2;
 }
 
-inline float_t mat4_get_max_scale(mat4* x) {
+inline float_t mat4_get_max_scale(const mat4* x) {
     mat4 mat;
     mat4_transpose(x, &mat);
 
@@ -2169,7 +2169,7 @@ inline void mat4_persp(double_t fov_y, double_t aspect, double_t z_near, double_
     mat->row3.z = (float_t)d;
 }
 
-inline void mat4_look_at(vec3* eye, vec3* target, vec3* up, mat4* mat) {
+inline void mat4_look_at(const vec3* eye, const vec3* target, const vec3* up, mat4* mat) {
     vec3 x_axis, y_axis, z_axis;
     float_t t;
     vec3 xyz;
@@ -2197,7 +2197,7 @@ inline void mat4_look_at(vec3* eye, vec3* target, vec3* up, mat4* mat) {
     mat->row3.w = 1.0f;
 }
 
-inline void mat4_look_at(vec3* eye, vec3* target, mat4* mat) {
+inline void mat4_look_at(const vec3* eye, const vec3* target, mat4* mat) {
     vec3 up = { 0.0f, 1.0f, 0.0f };
     vec3 dir;
     float_t length;

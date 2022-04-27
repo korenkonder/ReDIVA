@@ -10,19 +10,19 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-typedef enum render_state {
+enum render_state {
     RENDER_UNINITIALIZED =  0,
     RENDER_INITIALIZING  =  1,
     RENDER_INITIALIZED   =  2,
     RENDER_DISPOSING     =  3,
     RENDER_DISPOSED      =  4,
-} render_state;
+};
 
-typedef enum thread_flag {
+enum thread_flag {
     THREAD_RENDER = 0x01,
     THREAD_SOUND  = 0x02,
     THREAD_INPUT  = 0x04,
-} thread_flag;
+};
 
 extern classes_data classes[];
 extern const size_t classes_count;

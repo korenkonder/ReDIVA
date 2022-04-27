@@ -10,11 +10,11 @@
 #include "gl_state.h"
 #include <shlobj_core.h>
 
-typedef struct program_binary {
+struct program_binary {
     GLsizei length;
     GLenum binary_format;
     size_t binary;
-} program_binary;
+};
 
 static GLuint shader_compile_shader(GLenum type, const char* data, const char* file);
 static GLuint shader_compile(const char* vert, const char* frag, const char* vp, const char* fp);
@@ -1134,7 +1134,7 @@ inline void shader_state_depth_set_range(shader_set_data* set,
 }
 
 inline void shader_state_depth_set_range_ptr(shader_set_data* set,
-    vec4* data) {
+    const vec4* data) {
     if (!set || !data)
         return;
 
@@ -1159,7 +1159,7 @@ inline void shader_state_fog_set_color(shader_set_data* set,
 }
 
 inline void shader_state_fog_set_color_ptr(shader_set_data* set,
-    vec4* data) {
+    const vec4* data) {
     if (!set || !data)
         return;
 
@@ -1184,7 +1184,7 @@ inline void shader_state_fog_set_params(shader_set_data* set,
 }
 
 inline void shader_state_fog_set_params_ptr(shader_set_data* set,
-    vec4* data) {
+    const vec4* data) {
     if (!set || !data)
         return;
 
@@ -1735,7 +1735,7 @@ inline void shader_state_material_set_shininess_ptr(shader_set_data* set,
 }
 
 inline void shader_state_matrix_set_modelview(shader_set_data* set,
-    size_t index, mat4* data, bool mult) {
+    size_t index, const mat4* data, bool mult) {
     if (!set || index >= SHADER_MAX_VERTEX_UNITS || !data)
         return;
 
@@ -1765,7 +1765,7 @@ inline void shader_state_matrix_set_modelview(shader_set_data* set,
 }
 
 inline void shader_state_matrix_set_projection(shader_set_data* set,
-    mat4* data, bool mult) {
+    const mat4* data, bool mult) {
     if (!set || !data)
         return;
 
@@ -1795,7 +1795,7 @@ inline void shader_state_matrix_set_projection(shader_set_data* set,
 }
 
 inline void shader_state_matrix_set_mvp(shader_set_data* set,
-    mat4* data) {
+    const mat4* data) {
     if (!set || !data)
         return;
 
@@ -1819,14 +1819,14 @@ inline void shader_state_matrix_set_mvp(shader_set_data* set,
 }
 
 inline void shader_state_matrix_set_modelview_separate(shader_set_data* set,
-    size_t index, mat4* model, mat4* view, bool mult) {
+    size_t index, const mat4* model, const mat4* view, bool mult) {
     mat4 mv;
     mat4_mult(model, view, &mv);
     shader_state_matrix_set_modelview(set, index, &mv, true);
 }
 
 inline void shader_state_matrix_set_mvp_separate(shader_set_data* set,
-    mat4* model, mat4* view, mat4* projection) {
+    const mat4* model, const mat4* view, const mat4* projection) {
     mat4 mv;
     mat4_mult(model, view, &mv);
     shader_state_matrix_set_modelview(set, 0, &mv, false);
@@ -1834,7 +1834,7 @@ inline void shader_state_matrix_set_mvp_separate(shader_set_data* set,
 }
 
 inline void shader_state_matrix_set_texture(shader_set_data* set,
-    size_t index, mat4* data) {
+    size_t index, const mat4* data) {
     if (!set || index >= SHADER_MAX_TEXTURE_COORDS || !data)
         return;
 
@@ -1858,7 +1858,7 @@ inline void shader_state_matrix_set_texture(shader_set_data* set,
 }
 
 inline void shader_state_matrix_set_palette(shader_set_data* set,
-    size_t index, mat4* data) {
+    size_t index, const mat4* data) {
     if (!set || index >= SHADER_MAX_PALETTE_MATRICES || !data)
         return;
 
@@ -1882,7 +1882,7 @@ inline void shader_state_matrix_set_palette(shader_set_data* set,
 }
 
 inline void shader_state_matrix_set_program(shader_set_data* set,
-    size_t index, mat4* data) {
+    size_t index, const mat4* data) {
     if (!set || index >= SHADER_MAX_PROGRAM_MATRICES || !data)
         return;
 
@@ -1919,7 +1919,7 @@ inline void shader_state_point_set_size(shader_set_data* set,
 }
 
 inline void shader_state_point_set_size_ptr(shader_set_data* set,
-    vec4* data) {
+    const vec4* data) {
     if (!set || !data)
         return;
 
@@ -1944,7 +1944,7 @@ inline void shader_state_point_set_attenuation(shader_set_data* set,
 }
 
 inline void shader_state_point_set_attenuation_ptr(shader_set_data* set,
-    vec4* data) {
+    const vec4* data) {
     if (!set || !data)
         return;
 
@@ -2375,7 +2375,7 @@ static bool shader_parse_define(const char* data, int32_t num_uniform,
     memset(t, 0, 0x100);
 
     for (int32_t i = 0; i < s; i++) {
-        snprintf(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
+        sprintf_s(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
         t_len[i] = utf8_length(t);
     }
 
@@ -2399,7 +2399,7 @@ static bool shader_parse_define(const char* data, int32_t num_uniform,
     memcpy(*temp + pos, data, len_a);
     pos += len_a;
     for (int32_t i = 0; i < s; i++) {
-        snprintf(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
+        sprintf_s(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
         memcpy(*temp + pos, t, t_len[i]);
         pos += t_len[i];
     }

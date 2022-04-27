@@ -8,7 +8,7 @@
 #if defined(CLOUD_DEV)
 #include <set>
 #include "x_pv_game.h"
-#include "../CRE/Glitter/glitter.h"
+#include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/light_param/light.h"
 #include "../CRE/data.h"
 #include "../CRE/object.h"
@@ -16,8 +16,9 @@
 #include "../KKdLib/farc.h"
 #include "../KKdLib/sort.h"
 #include "input.h"
+#include "classes/imgui_helper.h"
 
-typedef enum dsc_x_func {
+enum dsc_x_func {
     DSC_X_END = 0,
     DSC_X_TIME,
     DSC_X_MIKU_MOVE,
@@ -181,7 +182,7 @@ typedef enum dsc_x_func {
     DSC_X_VR_LIVE_TRANSFORM,
     DSC_X_VR_LIVE_FLY,
     DSC_X_VR_LIVE_CHARA_VOICE,
-} dsc_x_func;
+};
 
 x_pv_game x_pv_game_data;
 
@@ -192,17 +193,22 @@ static int32_t expression_id_to_mottbl_index(int32_t expression_id);
 static int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id);
 static int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
 static int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);
-static bool x_pv_game_dsc_process(x_pv_game* xpvpl, int64_t curr_time);
-static bool x_pv_game_frame_data_process(x_pv_game* xpvpl);
+static bool x_pv_game_dsc_process(x_pv_game* xpvgm, int64_t curr_time);
+static void x_pv_game_stage_effect_ctrl(x_pv_game* xpvgm);
+static void x_pv_game_stage_effect_start(x_pv_game* xpvgm, pvsr_stage_effect* stage_effect);
+static void x_pv_game_stage_effect_stop(x_pv_game* xpvgm,
+    pvsr_stage_effect* stage_effect, bool stop_a3da = true, bool stop_glitter = true);
+static bool x_pv_game_stage_effects_process(x_pv_game* xpvgm, int32_t frame);
 
 static dsc_data* sub_1401216D0(x_pv_game* a1, dsc_x_func func_name,
     int32_t* time, int32_t* pv_branch_mode, dsc_data* start, dsc_data* end);
 static void sub_140121A80(x_pv_game* a1, int32_t chara_id);
 static void sub_140122770(x_pv_game* a1, int32_t chara_id);
 
-x_pv_game::x_pv_game() : pp(), sr(), state(), frame(), frame_float(), time(), rob_chara_ids(),
-pv_glitter(), stage_glitter(), curr_frame_data(), dsc_time(), dsc_data_ptr(), dsc_data_ptr_end(),
-play(), success(), chara_id(), pv_end(), playdata(), scene_rot_y(), branch_mode() {
+x_pv_game::x_pv_game() : pp(), sr(), state(), frame(), frame_float(), time(),
+rob_chara_ids(), pv_glitter(), stage_glitter(), dsc_time(), dsc_data_ptr(), dsc_data_ptr_end(),
+stage_effects_ptr(), stage_effects_ptr_end(), play(), success(), chara_id(),
+pv_end(), playdata(), scene_rot_y(), branch_mode(), pause(), step_frame(), stage_effect() {
     pv_id = -1;
     stage_id = -1;
     effpv_objset = hash_murmurhash_empty;
@@ -216,6 +222,8 @@ play(), success(), chara_id(), pv_end(), playdata(), scene_rot_y(), branch_mode(
     target_anim_fps = 60.0f;
     anim_frame_speed = 1.0f;
     scene_rot_mat = mat4u_identity;
+    prev_bar_point_time = -1;
+    prev_bpm = -1;
 }
 
 x_pv_game::~x_pv_game() {
@@ -225,12 +233,6 @@ x_pv_game::~x_pv_game() {
 bool x_pv_game::Init() {
     task_stage_modern_load("X_PV_GAME_STAGE");
     return true;
-}
-
-static int32_t x_pv_game_frame_data_quicksort_compare_func(void const* src1, void const* src2) {
-    int32_t frame1 = ((x_pv_game_frame_data*)src1)->frame;
-    int32_t frame2 = ((x_pv_game_frame_data*)src2)->frame;
-    return frame1 > frame2 ? 1 : (frame1 < frame2 ? -1 : 0);
 }
 
 bool x_pv_game::Ctrl() {
@@ -248,13 +250,14 @@ bool x_pv_game::Ctrl() {
     else if (state == 2) {
         bool pv_glt = pv_glitter->hash != hash_murmurhash_empty;
         bool stg_glt = stage_glitter->hash != hash_murmurhash_empty;
-        if ((!pv_glt || GPM_VAL.CheckNoFileReaders(pv_glitter->hash))
-            && (!stg_glt || GPM_VAL.CheckNoFileReaders(stage_glitter->hash))) {
+        if ((!pv_glt || Glitter::glt_particle_manager.CheckNoFileReaders(pv_glitter->hash))
+            && (!stg_glt || Glitter::glt_particle_manager.CheckNoFileReaders(stage_glitter->hash))) {
             data_struct* x_data = &data_list[DATA_X];
 
             bool wait_load = false;
             if (pv_glt) {
-                GlitterEffectGroup* pv_eff_group = GPM_VAL.GetEffectGroup(pv_glitter->hash);
+                Glitter::EffectGroup* pv_eff_group
+                    = Glitter::glt_particle_manager.GetEffectGroup(pv_glitter->hash);
                 if (pv_eff_group && pv_eff_group->CheckModel()) {
                     pv_eff_group->LoadModel(x_data);
                     wait_load = true;
@@ -262,7 +265,8 @@ bool x_pv_game::Ctrl() {
             }
 
             if (stg_glt) {
-                GlitterEffectGroup* stage_eff_group = GPM_VAL.GetEffectGroup(stage_glitter->hash);
+                Glitter::EffectGroup* stage_eff_group
+                    = Glitter::glt_particle_manager.GetEffectGroup(stage_glitter->hash);
                 if (stage_eff_group && stage_eff_group->CheckModel()) {
                     stage_eff_group->LoadModel(x_data);
                     wait_load = true;
@@ -274,11 +278,13 @@ bool x_pv_game::Ctrl() {
     }
     else if (state == 3) {
         bool wait_load = false;
-        GlitterEffectGroup* pv_eff_group = GPM_VAL.GetEffectGroup(pv_glitter->hash);
+        Glitter::EffectGroup* pv_eff_group
+            = Glitter::glt_particle_manager.GetEffectGroup(pv_glitter->hash);
         if (pv_eff_group && pv_eff_group->CheckLoadModel())
             wait_load = true;
 
-        GlitterEffectGroup* stage_eff_group = GPM_VAL.GetEffectGroup(stage_glitter->hash);
+        Glitter::EffectGroup* stage_eff_group
+            = Glitter::glt_particle_manager.GetEffectGroup(stage_glitter->hash);
         if (stage_eff_group && stage_eff_group->CheckLoadModel())
             wait_load = true;
 
@@ -461,14 +467,13 @@ bool x_pv_game::Ctrl() {
 
             dsc_m.merge(4, &dsc_mouth, &dsc_scene, &dsc_system, &dsc_easy);
 
-            typedef struct miku_state {
+            struct miku_state {
                 bool disp;
                 int32_t disp_time;
                 int32_t set_motion_time;
                 uint32_t set_motion_data_offset;
-            } miku_state;
+            } state[6];
 
-            miku_state state[6];
             for (miku_state& i : state) {
                 i.disp = true;
                 i.disp_time = -1;
@@ -476,10 +481,17 @@ bool x_pv_game::Ctrl() {
                 i.set_motion_data_offset = 0;
             }
 
+
+            std::vector<std::pair<int32_t, int32_t>> bar_frames;
             std::vector<miku_state> state_vec;
 
             int32_t time = -1;
+            int32_t frame = -1;
+            int32_t prev_stage_effect = -1;
             for (dsc_data& i : dsc_m.data) {
+                if (i.func == DSC_X_END)
+                    break;
+
                 uint32_t* data = dsc_m.get_func_data(&i);
                 switch (i.func) {
                 case DSC_X_TIME: {
@@ -487,6 +499,7 @@ bool x_pv_game::Ctrl() {
                         if (state[chara_id].disp && i.disp_time == time && i.set_motion_time != time)
                             state_vec.push_back(i);
                     time = (int32_t)data[0];
+                    frame = (int32_t)roundf((float_t)time * (float_t)(60.0f / 100000.0f));
                 } break;
                 case DSC_X_MIKU_DISP: {
                     int32_t chara_id = (int32_t)data[0];
@@ -499,7 +512,75 @@ bool x_pv_game::Ctrl() {
                     state[chara_id].set_motion_time = time;
                     state[chara_id].set_motion_data_offset = i.data_offset;
                 } break;
+                case DSC_X_BAR_POINT: {
+                    int32_t bar = data[0];
+                    bar_frames.push_back({ frame, bar });
+                } break;
+                case DSC_X_STAGE_EFFECT: {
+                    int32_t stage_effect = (int32_t)data[0];
+                    stage_effect--;
+
+                    if (stage_effect < 0 || stage_effect > 6)
+                        break;
+
+                    int32_t bar_count = 2;
+                    pvsr_stage_effect& effect = sr->stage_effect[stage_effect];
+                    if (effect.bar_count && effect.bar_count != 0xFF)
+                        bar_count = effect.bar_count;
+
+                    int32_t bar_count_change = 2;
+                    if (prev_stage_effect != -1) {
+                        if (sr->stage_change_effect_init[prev_stage_effect][stage_effect]) {
+                            pvsr_stage_effect& effect = sr->stage_change_effect[prev_stage_effect][stage_effect];
+                            if (effect.bar_count && effect.bar_count != 0xFF)
+                                bar_count_change = effect.bar_count;
+                        }
+                        else {
+                            pvsr_stage_effect& effect = sr->stage_effect[prev_stage_effect];
+                            if (effect.bar_count && effect.bar_count != 0xFF)
+                                bar_count_change = effect.bar_count;
+                        }
+                    }
+
+                    int32_t stage_effect_frame = frame;
+                    int32_t bar = 1;
+                    for (std::pair<int32_t, int32_t>& i : bar_frames)
+                        if (&i - bar_frames.data() >= bar_count_change && frame >= i.first) {
+                            stage_effect_frame = (&i)[-bar_count_change].first;
+                            bar = (&i)[-bar_count_change].second;
+                        }
+                        else if (frame < i.first)
+                            break;
+
+                    stage_effects.push_back({ stage_effect_frame,
+                        stage_effect, bar_count + bar_count_change, bar });
+                    prev_stage_effect = stage_effect;
+                } break;
                 }
+            }
+
+            if (stage_effects.size() > 1) {
+                bool adjust = false;
+                do {
+                    adjust = false;
+                    size_t count = stage_effects.size() - 1;
+                    for (size_t i = 0; i < count; i++) {
+                        if (stage_effects[i].bar == 1 || stage_effects[i].bar
+                            + stage_effects[i + 1].bar_count <= stage_effects[i + 1].bar)
+                            continue;
+
+                        for (std::pair<int32_t, int32_t>& j : bar_frames) {
+                            int32_t bar = stage_effects[i + 1].bar - stage_effects[i + 1].bar_count;
+                            if (bar != j.second)
+                                continue;
+
+                            stage_effects[i].frame = j.first;
+                            stage_effects[i].bar = j.second;
+                            adjust = true;
+                            break;
+                        }
+                    }
+                } while (adjust);
             }
 
             if (state_vec.size()) {
@@ -529,9 +610,6 @@ bool x_pv_game::Ctrl() {
             io_write(&s, data, size);
             io_free(&s);
             free(data);*/
-
-            dsc_data_ptr = dsc_m.data.data();
-            dsc_data_ptr_end = dsc_data_ptr + dsc_m.data.size();
         }
 
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
@@ -550,139 +628,29 @@ bool x_pv_game::Ctrl() {
             sub_140121A80(this, i);
         }
 
-        frame_data.clear();
-        frame_data.shrink_to_fit();
+        dsc_data_ptr = dsc_m.data.data();
+        dsc_data_ptr_end = dsc_data_ptr + dsc_m.data.size();
 
-        std::vector<int32_t> bar_frames;
-        bar_frames.push_back(-1);
-        bar_frames.push_back(0);
+        stage_effects_ptr = stage_effects.data();
+        stage_effects_ptr_end = stage_effects_ptr + stage_effects.size();
 
-        int32_t time = -1;
-        int32_t frame = -1;
-        int32_t bar = 1;
-        bool bar_set = false;
-        int32_t prev_bar_point_time = -1;
-        int32_t prev_bpm = -1;
-        int32_t prev_stage_effect = -1;
-        for (dsc_data& i : dsc_m.data) {
-            uint32_t* data = dsc_m.get_func_data(&i);
-            switch (i.func) {
-            case DSC_X_END: {
-                x_pv_game_frame_data frame_data = {};
-                frame_data.frame = frame;
-                frame_data.type = X_PV_GAME_FRAME_DATA_END;
-                this->frame_data.push_back(frame_data);
-            } break;
-            case DSC_X_TIME: {
-                time = (int32_t)data[0];
-                frame = (int32_t)roundf((float_t)time * (float_t)(60.0f / 100000.0f));
-            } break;
-            case DSC_X_BAR_POINT: {
-                bar = data[0];
-                if (bar > bar_frames.size()) {
-                    int32_t frame = bar_frames.back();
-                    int32_t delta_frame = (int32_t)roundf(120.0f / (float_t)prev_bpm * 120.0f);
-                    for (size_t i = bar - bar_frames.size(); i; i--)
-                        bar_frames.push_back(frame += delta_frame);
-                }
-                bar_frames.push_back(frame);
-
-                if (prev_bar_point_time != -1) {
-                    float_t frame_speed = 200000.0f / (float_t)(time - prev_bar_point_time);
-                    int32_t bpm = (int32_t)roundf(frame_speed * 120.0f);
-                    if (bpm != prev_bpm) {
-                        x_pv_game_frame_data frame_data = {};
-                        frame_data.frame = frame;
-                        frame_data.type = X_PV_GAME_FRAME_DATA_BPM;
-                        frame_data.bpm = bpm;
-                        this->frame_data.push_back(frame_data);
-                    }
-                    prev_bpm = bpm;
-                }
-                prev_bar_point_time = time;
-            } break;
-            case DSC_X_STAGE_EFFECT: {
-                int32_t stage_effect = (int32_t)data[0];
-                stage_effect--;
-
-                if (stage_effect >= 0 && stage_effect <= 6) {
-                    if (prev_stage_effect != -1 && stage_effect != prev_stage_effect
-                        && sr->stage_change_effect_init[prev_stage_effect][stage_effect]) {
-                        pvsr_stage_effect& stg_eff = sr->stage_change_effect[prev_stage_effect][stage_effect];
-                        uint8_t& bar_count = stg_eff.bar_count;
-
-                        int32_t prev_bar = bar - 2;
-                        if (bar_count && bar_count != 0xFF)
-                            prev_bar = bar - bar_count;
-                        if (prev_bar < 1)
-                            prev_bar = 1;
-
-                        if (bar_frames.size() == 2 && prev_bpm == -1) {
-                            int32_t bpm = (int32_t)roundf(120.0f * (120.0f / frame));
-                            if (bpm != prev_bpm) {
-                                x_pv_game_frame_data frame_data = {};
-                                frame_data.frame = 0;
-                                frame_data.type = X_PV_GAME_FRAME_DATA_BPM;
-                                frame_data.bpm = bpm;
-                                this->frame_data.push_back(frame_data);
-                            }
-                            prev_bpm = bpm;
-
-                            for (x_pv_game_frame_data& i : this->frame_data) {
-                                if (i.frame != 0 || i.type != X_PV_GAME_FRAME_DATA_STAGE_EFFECT)
-                                    continue;
-
-                                x_pv_game_frame_data& frame_data = i;
-                                frame_data.type = X_PV_GAME_FRAME_DATA_STAGE_CHANGE_EFFECT;
-                                frame_data.stage_effect.prev = prev_stage_effect;
-                                frame_data.stage_effect.next = stage_effect;
-                                break;
-                            }
-                        }
-                        else {
-                            x_pv_game_frame_data frame_data = {};
-                            frame_data.frame = bar_frames[prev_bar] + (frame - bar_frames[bar]);
-                            frame_data.type = X_PV_GAME_FRAME_DATA_STAGE_CHANGE_EFFECT;
-                            frame_data.stage_effect.prev = prev_stage_effect;
-                            frame_data.stage_effect.next = stage_effect;
-                            this->frame_data.push_back(frame_data);
-                        }
-
-                        x_pv_game_frame_data frame_data = {};
-                        frame_data.frame = frame;
-                        frame_data.type = X_PV_GAME_FRAME_DATA_STAGE_CHANGE_EFFECT_END;
-                        frame_data.stage_effect.prev = prev_stage_effect;
-                        frame_data.stage_effect.next = stage_effect;
-                        this->frame_data.push_back(frame_data);
-                        prev_stage_effect = stage_effect;
-                    }
-                    else {
-                        x_pv_game_frame_data frame_data = {};
-                        frame_data.frame = frame;
-                        frame_data.type = X_PV_GAME_FRAME_DATA_STAGE_EFFECT;
-                        frame_data.stage_effect.prev = prev_stage_effect;
-                        frame_data.stage_effect.next = stage_effect;
-                        this->frame_data.push_back(frame_data);
-                        prev_stage_effect = stage_effect;
-                    }
-                }
-                else if (stage_effect >= 7 && stage_effect <= 8) {
-                    x_pv_game_frame_data frame_data = {};
-                    frame_data.frame = frame;
-                    frame_data.type = X_PV_GAME_FRAME_DATA_STAGE_EFFECT_ONE_SHOT;
-                    frame_data.stage_effect_one_shot = stage_effect;
-                    this->frame_data.push_back(frame_data);
-                }
-            } break;
-            }
-        }
-
-
-        quicksort_custom(frame_data.data(), frame_data.size(),
-            sizeof(x_pv_game_frame_data), x_pv_game_frame_data_quicksort_compare_func);
-
-        curr_frame_data = frame_data.size() ? &frame_data.front() : 0;
         state = 10;
+
+        Glitter::glt_particle_manager.SetPause(false);
+        extern float_t frame_speed;
+        frame_speed = 1.0f;
+
+        prev_bar_point_time = -1;
+        prev_bpm = -1;
+
+        pause = false;
+        step_frame = false;
+
+        stage_effect.frame = -1.0f;
+        stage_effect.last_frame = -1.0f;
+        stage_effect.prev_stage_effect = -1;
+        stage_effect.stage_effect = -1;
+        stage_effect.next_stage_effect = -1;
 
         frame_float = 0.0;
         this->frame = 0;
@@ -691,11 +659,27 @@ bool x_pv_game::Ctrl() {
             && x_pv_game_dsc_process(this, this->time))
             dsc_data_ptr++;
 
-        while (curr_frame_data
-            && x_pv_game_frame_data_process(this))
-            curr_frame_data++;
+        while (stage_effects_ptr != stage_effects_ptr_end
+            && x_pv_game_stage_effects_process(this, this->frame))
+            stage_effects_ptr++;
+
+        x_pv_game_stage_effect_ctrl(this);
+
+        pause = true;
     }
     else if (state == 10) {
+        if (step_frame)
+            if (pause)
+                pause = false;
+            else {
+                pause = true;
+                step_frame = false;
+            }
+
+        Glitter::glt_particle_manager.SetPause(pause);
+        extern float_t frame_speed;
+        frame_speed = pause ? 0.0f : 1.0f;
+
         frame_float += get_delta_frame();
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
@@ -704,14 +688,18 @@ bool x_pv_game::Ctrl() {
             && x_pv_game_dsc_process(this, time))
             dsc_data_ptr++;
 
-        while (curr_frame_data
-            && x_pv_game_frame_data_process(this))
-            curr_frame_data++;
+        while (stage_effects_ptr != stage_effects_ptr_end
+            && x_pv_game_stage_effects_process(this, this->frame))
+            stage_effects_ptr++;
+
+        stage_effect.frame += diva_stage_frame_rate.GetDeltaFrame();
+        x_pv_game_stage_effect_ctrl(this);
 
         if (!play || pv_end)
             state = 11;
     }
     else if (state == 11) {
+        Glitter::glt_particle_manager.FreeScenes();
         SetDest();
     }
     return false;
@@ -729,14 +717,67 @@ bool x_pv_game::Dest() {
     return true;
 }
 
-void x_pv_game::Basic() {
-    if (input_is_tapped('K')) {
-        extern float_t frame_speed;
-        if (frame_speed != 1.0f)
-            frame_speed = 1.0f;
-        else
-            frame_speed = 0.0f;
+void x_pv_game::Window() {
+    if (state != 10)
+        return;
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_K, false))
+        pause ^= true;
+
+    if (!pause)
+        return;
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
+
+    float_t w = 240.0f;
+    float_t h = 86.0f;
+
+    extern int32_t width;
+    ImGui::SetNextWindowPos({ width - w, 0 }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+
+    ImGuiWindowFlags window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoResize;
+
+    bool collapsed = !ImGui::Begin("X PV GAME", 0, window_flags);
+    if (collapsed) {
+        ImGui::End();
+        return;
     }
+
+    w = imguiGetContentRegionAvailWidth();
+    if (ImGui::BeginTable("buttons", 2)) {
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.5f);
+
+        ImGui::TableNextColumn();
+        w = imguiGetContentRegionAvailWidth();
+        if (imguiButton(pause || (!pause && step_frame) ? "Play (K)" : "Pause (K)", { w, 0.0f }))
+            pause ^= true;
+
+        ImGui::TableNextColumn();
+        w = imguiGetContentRegionAvailWidth();
+        if (imguiButton("Step Frame (L)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_L)) {
+            pause = true;
+            step_frame = true;
+        }
+        ImGui::EndTable();
+    }
+
+    w = imguiGetContentRegionAvailWidth();
+    char buf[0x100];
+    sprintf_s(buf, sizeof(buf), "%d", frame);
+    ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
+    imguiButtonEx(buf, { w, 0.0f }, ImGuiButtonFlags_DontClosePopups
+        | ImGuiButtonFlags_NoNavFocus | ImGuiButtonFlags_NoHoveredOnFocus);
+    ImGui::PopStyleColor(3);
+
+    extern bool input_locked;
+    input_locked |= ImGui::IsWindowFocused();
+    ImGui::End();
 }
 
 void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
@@ -838,6 +879,12 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
     scene_rot_mat = mat4u_identity;
     branch_mode = 0;
 
+    prev_bar_point_time = -1;
+    prev_bpm = -1;
+
+    pause = false;
+    step_frame = false;
+
     for (int32_t& i : rob_chara_ids)
         i = -1;
 
@@ -886,12 +933,19 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
     dsc_m.data.shrink_to_fit();
     dsc_m.data_buffer.clear();
     dsc_m.data_buffer.shrink_to_fit();
+    dsc_data_ptr = 0;
+    dsc_data_ptr_end = 0;
+
+    stage_effects.clear();
+    stage_effects.shrink_to_fit();
+    stage_effects_ptr = 0;
+    stage_effects_ptr_end = 0;
 
     dsc_time = 0;
     dsc_data_ptr = 0;
     dsc_data_ptr_end = 0;
 
-    GPM_VAL.draw_all = false;
+    Glitter::glt_particle_manager.draw_all = false;
 }
 
 void x_pv_game::Unload() {
@@ -924,10 +978,6 @@ void x_pv_game::Unload() {
     delete stage_glitter;
     pv_glitter = 0;
     stage_glitter = 0;
-
-    frame_data.clear();
-    frame_data.shrink_to_fit();
-    curr_frame_data = 0;
 
     obj_db.ready = false;
     obj_db.modern = false;
@@ -1003,6 +1053,13 @@ void x_pv_game::Unload() {
     dsc_m.data.shrink_to_fit();
     dsc_m.data_buffer.clear();
     dsc_m.data_buffer.shrink_to_fit();
+    dsc_data_ptr = 0;
+    dsc_data_ptr_end = 0;
+
+    stage_effects.clear();
+    stage_effects.shrink_to_fit();
+    stage_effects_ptr = 0;
+    stage_effects_ptr_end = 0;
 
     dsc_time = 0;
     dsc_data_ptr = 0;
@@ -1020,16 +1077,17 @@ void x_pv_game::Unload() {
     scene_rot_mat = mat4u_identity;
     branch_mode = 0;
 
-    GPM_VAL.draw_all = true;
+    Glitter::glt_particle_manager.draw_all = true;
 }
 
 x_pv_game_glitter::x_pv_game_glitter(const char* name) {
     this->name = std::string(name);
-    hash = (uint32_t)GPM_VAL.LoadFile(GLITTER_X, &data_list[DATA_X], name, 0, -1.0f, false, 0);
+    hash = (uint32_t)Glitter::glt_particle_manager
+        .LoadFile(Glitter::X, &data_list[DATA_X], name, 0, -1.0f, false, 0);
 }
 
 x_pv_game_glitter::~x_pv_game_glitter() {
-    GPM_VAL.UnloadEffectGroup(hash);
+    Glitter::glt_particle_manager.UnloadEffectGroup(hash);
 }
 
 struc_104::struc_104() : rob_chr(), current_time(),
@@ -1730,7 +1788,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_BAR_TIME_SET: {
-
+        int32_t bpm = (int32_t)data[0];
+        if (bpm != a1->prev_bpm)
+            diva_stage_frame_rate.SetFrameSpeed((float_t)bpm / 120.0f);
+        a1->prev_bpm = bpm;
+        a1->prev_bar_point_time = a1->dsc_time;
     } break;
     case DSC_X_SHADOWHEIGHT: {
         a1->chara_id = data[0];
@@ -1785,8 +1847,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_PV_END: {
-        a1->curr_frame_data = 0;
-        a1->state = 11;
+        a1->pv_end = true;
         break;
     } break;
     case DSC_X_SHADOWPOS: {
@@ -2046,7 +2107,14 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_BAR_POINT: {
-
+        if (a1->prev_bar_point_time != -1) {
+            float_t frame_speed = 200000.0f / ((float_t)(a1->dsc_time - a1->prev_bar_point_time) / 10000.0f);
+            int32_t bpm = (int32_t)roundf(frame_speed * 120.0f);
+            if (bpm != a1->prev_bpm)
+                diva_stage_frame_rate.SetFrameSpeed((float_t)bpm / 120.0f);
+            a1->prev_bpm = bpm;
+        }
+        a1->prev_bar_point_time = a1->dsc_time;
     } break;
     case DSC_X_BEAT_POINT: {
 
@@ -2124,13 +2192,41 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_STAGE_EFFECT: {
+        int32_t effect_id = (int32_t)data[0];
+        effect_id--;
+        uint32_t hash = a1->stage_glitter->hash;
 
+        if (effect_id < 0 || effect_id >= a1->sr->stage_effect.size())
+            break;
+
+        if (effect_id >= 7 && effect_id <= 8) {
+            pvsr_stage_effect& effect = a1->sr->stage_effect[effect_id];
+            for (pvsr_a3da& i : effect.a3da) {
+                int32_t& id = a1->stage_auth_3d_ids[i.hash];
+                auth_3d_data_set_camera_root_update(&id, false);
+                auth_3d_data_set_enable(&id, true);
+                auth_3d_data_set_req_frame(&id, 0.0f);
+                auth_3d_data_set_max_frame(&id, -1.0f);
+                auth_3d_data_set_paused(&id, false);
+                auth_3d_data_set_visibility(&id, true);
+                auth_3d_data_set_frame_rate(&id, &diva_stage_frame_rate);
+            }
+
+            for (pvsr_glitter& i : effect.glitter) {
+                uint32_t effect_hash = hash_string_murmurhash(&i.name);
+                Glitter::glt_particle_manager.LoadScene(hash_murmurhash_empty, effect_hash, true);
+                Glitter::glt_particle_manager.SetSceneName(hash, a1->stage_glitter->name.c_str());
+                Glitter::glt_particle_manager.SetSceneEffectName(
+                    hash_murmurhash_empty, effect_hash, i.name.c_str());
+                Glitter::glt_particle_manager.SetSceneFrameRate(hash, &diva_stage_frame_rate);
+            }
+        }
     } break;
     case DSC_X_SONG_EFFECT: {
         bool enable = data[0] ? true : false;
         int32_t effect_id = (int32_t)data[1];
 
-        if (effect_id >= a1->pp->effect.size())
+        if (effect_id < 0 || effect_id >= a1->pp->effect.size())
             break;
 
         uint32_t hash = a1->pv_glitter->hash;
@@ -2153,10 +2249,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
             for (pvpp_glitter& i : effect.glitter) {
                 uint32_t effect_hash = hash_string_murmurhash(&i.name);
-                GPM_VAL.LoadScene(hash_murmurhash_empty, effect_hash, true);
-                GPM_VAL.SetSceneName(hash, a1->pv_glitter->name.c_str());
-                GPM_VAL.SetSceneEffectName(hash_murmurhash_empty, effect_hash, i.name.c_str());
-                GPM_VAL.SetSceneFrameRate(hash, &diva_pv_frame_rate);
+                Glitter::glt_particle_manager.LoadScene(hash_murmurhash_empty, effect_hash, true);
+                Glitter::glt_particle_manager.SetSceneName(hash, a1->pv_glitter->name.c_str());
+                Glitter::glt_particle_manager.SetSceneEffectName(
+                    hash_murmurhash_empty, effect_hash, i.name.c_str());
+                Glitter::glt_particle_manager.SetSceneFrameRate(hash, &diva_pv_frame_rate);
             }
         }
         else {
@@ -2167,7 +2264,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             }
 
             for (pvpp_glitter& i : effect.glitter)
-                GPM_VAL.FreeSceneEffect(0, hash_string_murmurhash(&i.name), false);
+                Glitter::glt_particle_manager.FreeSceneEffect(
+                    0, hash_string_murmurhash(&i.name), false);
         }
     } break;
     case DSC_X_SONG_EFFECT_ATTACH: {
@@ -2336,189 +2434,119 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     return true;
 }
 
-static bool x_pv_game_frame_data_process(x_pv_game* xpvpl) {
-    if (xpvpl->curr_frame_data->frame > xpvpl->frame)
-        return false;
-    else if (xpvpl->curr_frame_data->frame < xpvpl->frame) {
-        xpvpl->curr_frame_data++;
-        return true;
+static void x_pv_game_stage_effect_ctrl(x_pv_game* xpvgm) {
+    x_pv_game_stage_effect& stage_effect = xpvgm->stage_effect;
+
+    if (stage_effect.next_stage_effect != -1 && stage_effect.prev_stage_effect == -1) {
+        if (stage_effect.stage_effect == -1) {
+            pvsr_stage_effect& effect = xpvgm->sr->stage_effect[stage_effect.next_stage_effect];
+
+            x_pv_game_stage_effect_start(xpvgm, &effect);
+
+            stage_effect.frame = 0.0f;
+            if (effect.bar_count && effect.bar_count != 0xFF)
+                stage_effect.last_frame = (float_t)(effect.bar_count * 120);
+            else
+                stage_effect.last_frame = 240.0f;
+            stage_effect.stage_effect = stage_effect.next_stage_effect;
+            stage_effect.next_stage_effect = -1;
+        }
+        else if (stage_effect.frame >= stage_effect.last_frame) {
+            pvsr_stage_effect& effect = xpvgm->sr->stage_effect[stage_effect.stage_effect];
+            pvsr_stage_effect& change_effect = xpvgm->sr->stage_change_effect
+                [stage_effect.stage_effect][stage_effect.next_stage_effect];
+
+            x_pv_game_stage_effect_stop(xpvgm, &effect,
+                !!change_effect.a3da.size(), !!change_effect.glitter.size());
+            x_pv_game_stage_effect_start(xpvgm, &change_effect);
+
+            stage_effect.frame = 0.0f;
+            if (change_effect.bar_count && change_effect.bar_count != 0xFF)
+                stage_effect.last_frame = (float_t)(change_effect.bar_count * 120);
+            else
+                stage_effect.last_frame = 240.0f;
+            stage_effect.prev_stage_effect = stage_effect.stage_effect;
+            stage_effect.stage_effect = stage_effect.next_stage_effect;
+            stage_effect.next_stage_effect = -1;
+        }
+    }
+    else if (stage_effect.prev_stage_effect != -1) {
+        if (stage_effect.stage_effect != -1 && stage_effect.frame >= stage_effect.last_frame) {
+            if (xpvgm->sr->stage_change_effect_init[stage_effect.prev_stage_effect][stage_effect.stage_effect]) {
+                pvsr_stage_effect& effect = xpvgm->sr->stage_effect[stage_effect.prev_stage_effect];
+                pvsr_stage_effect& change_effect = xpvgm->sr->stage_change_effect
+                    [stage_effect.prev_stage_effect][stage_effect.stage_effect];
+
+                x_pv_game_stage_effect_stop(xpvgm, &change_effect);
+                x_pv_game_stage_effect_stop(xpvgm, &effect,
+                    !change_effect.a3da.size(), !change_effect.glitter.size());
+            }
+            else
+                x_pv_game_stage_effect_stop(xpvgm,
+                    &xpvgm->sr->stage_effect[stage_effect.prev_stage_effect], 0);
+
+            pvsr_stage_effect& effect = xpvgm->sr->stage_effect[stage_effect.stage_effect];
+            x_pv_game_stage_effect_start(xpvgm, &effect);
+
+            stage_effect.frame = 0.0f;
+            if (effect.bar_count && effect.bar_count != 0xFF)
+                stage_effect.last_frame = (float_t)(effect.bar_count * 120);
+            else
+                stage_effect.last_frame = 240.0f;
+            stage_effect.prev_stage_effect = -1;
+            stage_effect.next_stage_effect = -1;
+        }
     }
 
-    switch (xpvpl->curr_frame_data->type) {
-    case X_PV_GAME_FRAME_DATA_END: {
-        xpvpl->curr_frame_data = 0;
-        return false;
-    } break;
-    case X_PV_GAME_FRAME_DATA_BPM: {
-        diva_stage_frame_rate.SetFrameSpeed((float_t)xpvpl->curr_frame_data->bpm / 120.0f);
-    } break;
-    case X_PV_GAME_FRAME_DATA_STAGE_EFFECT: {
-        x_pv_game_stage_effect& stage_effect = xpvpl->curr_frame_data->stage_effect;
-        uint32_t hash = xpvpl->stage_glitter->hash;
-
-        if (stage_effect.prev != -1) {
-            pvsr_stage_effect& effect = xpvpl->sr->stage_effect[stage_effect.prev];
-            for (pvsr_a3da& i : effect.a3da) {
-                int32_t& id = xpvpl->stage_auth_3d_ids[i.hash];
-                auth_3d_data_set_visibility(&id, false);
-                auth_3d_data_set_enable(&id, false);
-            }
-
-            for (pvsr_glitter& i : effect.glitter)
-                GPM_VAL.FreeSceneEffect(0, hash_string_murmurhash(&i.name), false);
-        }
-
-        if (stage_effect.next != -1) {
-            pvsr_stage_effect& effect = xpvpl->sr->stage_effect[stage_effect.next];
-            for (pvsr_a3da& i : effect.a3da) {
-                int32_t& id = xpvpl->stage_auth_3d_ids[i.hash];
-                auth_3d_data_set_camera_root_update(&id, false);
-                auth_3d_data_set_enable(&id, true);
-                auth_3d_data_set_req_frame(&id, 0.0f);
-                auth_3d_data_set_max_frame(&id, -1.0f);
-                auth_3d_data_set_paused(&id, false);
-                auth_3d_data_set_visibility(&id, true);
-                auth_3d_data_set_frame_rate(&id, &diva_stage_frame_rate);
-            }
-
-            for (pvsr_glitter& i : effect.glitter) {
-                uint32_t effect_hash = hash_string_murmurhash(&i.name);
-                GPM_VAL.LoadScene(hash_murmurhash_empty, effect_hash, true);
-                GPM_VAL.SetSceneName(hash, xpvpl->stage_glitter->name.c_str());
-                GPM_VAL.SetSceneEffectName(hash_murmurhash_empty, effect_hash, i.name.c_str());
-                GPM_VAL.SetSceneFrameRate(hash, &diva_stage_frame_rate);
-            }
-        }
-    } break;
-    case X_PV_GAME_FRAME_DATA_STAGE_EFFECT_ONE_SHOT: {
-        int32_t& stage_effect = xpvpl->curr_frame_data->stage_effect_one_shot;
-        uint32_t hash = xpvpl->stage_glitter->hash;
-
-        pvsr_stage_effect& effect = xpvpl->sr->stage_effect[stage_effect];
-        for (pvsr_a3da& i : effect.a3da) {
-            int32_t& id = xpvpl->stage_auth_3d_ids[i.hash];
-            auth_3d_data_set_camera_root_update(&id, false);
-            auth_3d_data_set_enable(&id, true);
-            auth_3d_data_set_req_frame(&id, 0.0f);
-            auth_3d_data_set_max_frame(&id, -1.0f);
-            auth_3d_data_set_paused(&id, false);
-            auth_3d_data_set_visibility(&id, true);
-            auth_3d_data_set_frame_rate(&id, &diva_stage_frame_rate);
-        }
-
-        for (pvsr_glitter& i : effect.glitter) {
-            uint32_t effect_hash = hash_string_murmurhash(&i.name);
-            GPM_VAL.LoadScene(hash_murmurhash_empty, effect_hash, true);
-            GPM_VAL.SetSceneName(hash, xpvpl->stage_glitter->name.c_str());
-            GPM_VAL.SetSceneEffectName(hash_murmurhash_empty, effect_hash, i.name.c_str());
-            GPM_VAL.SetSceneFrameRate(hash, &diva_stage_frame_rate);
-        }
-    } break;
-    case X_PV_GAME_FRAME_DATA_STAGE_CHANGE_EFFECT: {
-        x_pv_game_stage_effect& stage_effect = xpvpl->curr_frame_data->stage_effect;
-        uint32_t hash = xpvpl->stage_glitter->hash;
-
-        if (xpvpl->sr->stage_change_effect_init[stage_effect.prev][stage_effect.next]) {
-            pvsr_stage_effect& effect = xpvpl->sr->stage_effect[stage_effect.prev];
-            pvsr_stage_effect& change_effect = xpvpl->sr->stage_change_effect[stage_effect.prev][stage_effect.next];
-
-            if (change_effect.a3da.size())
-                for (pvsr_a3da& i : effect.a3da) {
-                    int32_t& id = xpvpl->stage_auth_3d_ids[i.hash];
-                    auth_3d_data_set_visibility(&id, false);
-                    auth_3d_data_set_enable(&id, false);
-                }
-
-            if (change_effect.glitter.size())
-                for (pvsr_glitter& i : effect.glitter)
-                    GPM_VAL.FreeSceneEffect(0, hash_string_murmurhash(&i.name), false);
-
-            for (pvsr_a3da& i : change_effect.a3da) {
-                int32_t& id = xpvpl->stage_auth_3d_ids[i.hash];
-                auth_3d_data_set_camera_root_update(&id, false);
-                auth_3d_data_set_enable(&id, true);
-                auth_3d_data_set_req_frame(&id, 0.0f);
-                auth_3d_data_set_max_frame(&id, -1.0f);
-                auth_3d_data_set_paused(&id, false);
-                auth_3d_data_set_visibility(&id, true);
-                auth_3d_data_set_frame_rate(&id, &diva_stage_frame_rate);
-            }
-
-            for (pvsr_glitter& i : change_effect.glitter) {
-                uint32_t effect_hash = hash_string_murmurhash(&i.name);
-                GPM_VAL.LoadScene(hash_murmurhash_empty, effect_hash, true);
-                GPM_VAL.SetSceneName(hash, xpvpl->stage_glitter->name.c_str());
-                GPM_VAL.SetSceneEffectName(hash_murmurhash_empty, effect_hash, i.name.c_str());
-                GPM_VAL.SetSceneFrameRate(hash, &diva_stage_frame_rate);
-            }
-        }
-    } break;
-    case X_PV_GAME_FRAME_DATA_STAGE_CHANGE_EFFECT_END: {
-        x_pv_game_stage_effect& stage_effect = xpvpl->curr_frame_data->stage_effect;
-        uint32_t hash = xpvpl->stage_glitter->hash;
-
-        if (xpvpl->sr->stage_change_effect_init[stage_effect.prev][stage_effect.next]) {
-            pvsr_stage_effect& effect = xpvpl->sr->stage_effect[stage_effect.prev];
-            pvsr_stage_effect& change_effect = xpvpl->sr->stage_change_effect[stage_effect.prev][stage_effect.next];
-
-            for (pvsr_a3da& i : change_effect.a3da) {
-                int32_t& id = xpvpl->stage_auth_3d_ids[i.hash];
-                auth_3d_data_set_visibility(&id, false);
-                auth_3d_data_set_enable(&id, false);
-            }
-
-            for (pvsr_glitter& i : change_effect.glitter)
-                GPM_VAL.FreeSceneEffect(0, hash_string_murmurhash(&i.name), false);
-
-            if (!change_effect.a3da.size())
-                for (pvsr_a3da& i : effect.a3da) {
-                    int32_t& id = xpvpl->stage_auth_3d_ids[i.hash];
-                    auth_3d_data_set_visibility(&id, false);
-                    auth_3d_data_set_enable(&id, false);
-                }
-
-            if (!change_effect.glitter.size())
-                for (pvsr_glitter& i : effect.glitter)
-                    GPM_VAL.FreeSceneEffect(0, hash_string_murmurhash(&i.name), false);
-        }
-        else {
-            pvsr_stage_effect& effect = xpvpl->sr->stage_effect[stage_effect.prev];
-            for (pvsr_a3da& i : effect.a3da) {
-                int32_t& id = xpvpl->stage_auth_3d_ids[i.hash];
-                auth_3d_data_set_visibility(&id, false);
-                auth_3d_data_set_enable(&id, false);
-            }
-
-            for (pvsr_glitter& i : effect.glitter)
-                GPM_VAL.FreeSceneEffect(0, hash_string_murmurhash(&i.name), false);
-        }
-
-        if (stage_effect.next != -1) {
-            pvsr_stage_effect& effect = xpvpl->sr->stage_effect[stage_effect.next];
-            for (pvsr_a3da& i : effect.a3da) {
-                int32_t& id = xpvpl->stage_auth_3d_ids[i.hash];
-                auth_3d_data_set_camera_root_update(&id, false);
-                auth_3d_data_set_enable(&id, true);
-                auth_3d_data_set_req_frame(&id, 0.0f);
-                auth_3d_data_set_max_frame(&id, -1.0f);
-                auth_3d_data_set_paused(&id, false);
-                auth_3d_data_set_visibility(&id, true);
-                auth_3d_data_set_frame_rate(&id, &diva_stage_frame_rate);
-            }
-
-            for (pvsr_glitter& i : effect.glitter) {
-                uint32_t effect_hash = hash_string_murmurhash(&i.name);
-                GPM_VAL.LoadScene(hash_murmurhash_empty, effect_hash, true);
-                GPM_VAL.SetSceneName(xpvpl->stage_glitter->hash, xpvpl->stage_glitter->name.c_str());
-                GPM_VAL.SetSceneEffectName(hash_murmurhash_empty, effect_hash, i.name.c_str());
-                GPM_VAL.SetSceneFrameRate(hash, &diva_stage_frame_rate);
-            }
-        }
-    } break;
-    }
-    return true;
+    if (stage_effect.frame >= stage_effect.last_frame)
+        stage_effect.frame -= stage_effect.last_frame;
 }
 
+static void x_pv_game_stage_effect_start(x_pv_game* xpvgm, pvsr_stage_effect* stage_effect) {
+    uint32_t hash = xpvgm->stage_glitter->hash;
+    for (pvsr_a3da& i : stage_effect->a3da) {
+        int32_t& id = xpvgm->stage_auth_3d_ids[i.hash];
+        auth_3d_data_set_camera_root_update(&id, false);
+        auth_3d_data_set_enable(&id, true);
+        auth_3d_data_set_req_frame(&id, 0.0f);
+        auth_3d_data_set_max_frame(&id, -1.0f);
+        auth_3d_data_set_paused(&id, false);
+        auth_3d_data_set_visibility(&id, true);
+        auth_3d_data_set_frame_rate(&id, &diva_stage_frame_rate);
+    }
+
+    for (pvsr_glitter& i : stage_effect->glitter) {
+        uint32_t effect_hash = hash_string_murmurhash(&i.name);
+        Glitter::glt_particle_manager.LoadScene(hash_murmurhash_empty, effect_hash, true);
+        Glitter::glt_particle_manager.SetSceneName(hash, xpvgm->stage_glitter->name.c_str());
+        Glitter::glt_particle_manager.SetSceneEffectName(
+            hash_murmurhash_empty, effect_hash, i.name.c_str());
+        Glitter::glt_particle_manager.SetSceneFrameRate(hash, &diva_stage_frame_rate);
+    }
+}
+
+static void x_pv_game_stage_effect_stop(x_pv_game* xpvgm,
+    pvsr_stage_effect* stage_effect, bool stop_a3da, bool stop_glitter) {
+        for (pvsr_a3da& i : stage_effect->a3da) {
+            int32_t& id = xpvgm->stage_auth_3d_ids[i.hash];
+            auth_3d_data_set_visibility(&id, false);
+            auth_3d_data_set_enable(&id, false);
+        }
+
+        for (pvsr_glitter& i : stage_effect->glitter)
+            Glitter::glt_particle_manager.FreeSceneEffect(
+                0, hash_string_murmurhash(&i.name), false);
+}
+
+static bool x_pv_game_stage_effects_process(x_pv_game* xpvgm, int32_t frame) {
+    if (xpvgm->stage_effects_ptr->frame > xpvgm->frame)
+        return false;
+    else if (xpvgm->stage_effects_ptr->frame < xpvgm->frame)
+        return true;
+    
+    xpvgm->stage_effect.next_stage_effect = xpvgm->stage_effects_ptr->effect_id;
+    return true;
+}
 
 static dsc_data* sub_1401216D0(x_pv_game* a1, dsc_x_func func_name,
     int32_t* time, int32_t* pv_branch_mode, dsc_data* start, dsc_data* end) {

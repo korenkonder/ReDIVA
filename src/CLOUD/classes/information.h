@@ -7,9 +7,9 @@
 
 #include "../classes.h"
 
-typedef enum information_classes_enum {
+enum information_classes_enum {
     INFORMATION_FRAME_SPEED,
     INFORMATION_MAX,
-} information_classes_enum;
+};
 
 extern classes_data information_classes[];

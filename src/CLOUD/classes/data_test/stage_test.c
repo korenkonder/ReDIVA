@@ -8,11 +8,6 @@
 #include "../../../KKdLib/sort.h"
 #include "../../../KKdLib/str_utils.h"
 #include "../../../KKdLib/vector.h"
-#include "../../../CRE/Glitter/glitter.h"
-#include "../../../CRE/Glitter/effect_group.h"
-#include "../../../CRE/Glitter/file_reader.h"
-#include "../../../CRE/Glitter/particle_manager.h"
-#include "../../../CRE/Glitter/scene.h"
 #include "../../../CRE/data.h"
 #include "../../../CRE/render_context.h"
 #include "../../../CRE/stage.h"
@@ -20,8 +15,7 @@
 #include "../data_test.h"
 #include "../imgui_helper.h"
 
-class data_test_stage_test_stage_pv {
-public:
+struct data_test_stage_test_stage_pv {
     int32_t pv_id;
     std::vector<std::int32_t> stage;
 

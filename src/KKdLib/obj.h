@@ -11,20 +11,20 @@
 #include "string.h"
 #include "vec.h"
 
-typedef enum obj_index_format : uint32_t {
+enum obj_index_format : uint32_t {
     OBJ_INDEX_U8  = 0x00,
     OBJ_INDEX_U16 = 0x01,
     OBJ_INDEX_U32 = 0x02,
-} obj_index_format;
+};
 
-typedef enum obj_material_aniso_direction : uint32_t {
+enum obj_material_aniso_direction : uint32_t {
     OBJ_MATERIAL_ANISO_DIRECTION_NORMAL = 0,
     OBJ_MATERIAL_ANISO_DIRECTION_U      = 1,
     OBJ_MATERIAL_ANISO_DIRECTION_V      = 2,
     OBJ_MATERIAL_ANISO_DIRECTION_RADIAL = 3,
-} obj_material_aniso_direction;
+};
 
-typedef enum obj_material_blend_factor : uint32_t {
+enum obj_material_blend_factor : uint32_t {
     OBJ_MATERIAL_BLEND_ZERO              = 0,
     OBJ_MATERIAL_BLEND_ONE               = 1,
     OBJ_MATERIAL_BLEND_SRC_COLOR         = 2,
@@ -36,21 +36,21 @@ typedef enum obj_material_blend_factor : uint32_t {
     OBJ_MATERIAL_BLEND_DST_COLOR         = 8,
     OBJ_MATERIAL_BLEND_INVERSE_DST_COLOR = 9,
     OBJ_MATERIAL_BLEND_ALPHA_SATURATE = 10,
-} obj_material_blend_factor;
+};
 
-typedef enum obj_material_bump_map_type : uint32_t {
+enum obj_material_bump_map_type : uint32_t {
     OBJ_MATERIAL_BUMP_MAP_NONE = 0,
     OBJ_MATERIAL_BUMP_MAP_DOT  = 1,
     OBJ_MATERIAL_BUMP_MAP_ENV  = 2,
-} obj_material_bump_map_type;
+};
 
-typedef enum obj_material_color_source_type : uint32_t {
+enum obj_material_color_source_type : uint32_t {
     OBJ_MATERIAL_COLOR_SOURCE_MATERIAL_COLOR = 0,
     OBJ_MATERIAL_COLOR_SOURCE_VERTEX_COLOR   = 1,
     OBJ_MATERIAL_COLOR_SOURCE_VERTEX_MORPH   = 2,
-} obj_material_color_source_type;
+};
 
-typedef enum obj_material_flags : uint32_t {
+enum obj_material_flags : uint32_t {
     OBJ_MATERIAL_COLOR          = 0x0001,
     OBJ_MATERIAL_COLOR_ALPHA    = 0x0002,
     OBJ_MATERIAL_COLOR_L1       = 0x0004,
@@ -67,20 +67,20 @@ typedef enum obj_material_flags : uint32_t {
     OBJ_MATERIAL_TRANSLUCENCY   = 0x2000,
     OBJ_MATERIAL_FLAG_14        = 0x4000,
     OBJ_MATERIAL_OVERRIDE_IBL   = 0x8000,
-} obj_material_flags;
+};
 
-typedef enum obj_material_shader_lighting_type : uint32_t {
+enum obj_material_shader_lighting_type : uint32_t {
     OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT  = 0x00,
     OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT = 0x01,
     OBJ_MATERIAL_SHADER_LIGHTING_PHONG    = 0x02,
-} obj_material_shader_lighting_type;
+};
 
-typedef enum obj_material_specular_quality : uint32_t {
+enum obj_material_specular_quality : uint32_t {
     OBJ_MATERIAL_SPECULAR_QUALITY_LOW  = 0,
     OBJ_MATERIAL_SPECULAR_QUALITY_HIGH = 1,
-} obj_material_specular_quality;
+};
 
-typedef enum obj_material_texture_type : uint32_t {
+enum obj_material_texture_type : uint32_t {
     OBJ_MATERIAL_TEXTURE_NONE               = 0x00,
     OBJ_MATERIAL_TEXTURE_COLOR              = 0x01,
     OBJ_MATERIAL_TEXTURE_NORMAL             = 0x02,
@@ -91,30 +91,30 @@ typedef enum obj_material_texture_type : uint32_t {
     OBJ_MATERIAL_TEXTURE_TRANSPARENCY       = 0x07,
     OBJ_MATERIAL_TEXTURE_ENVIRONMENT_SPHERE = 0x08,
     OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE   = 0x09,
-} obj_material_texture_type;
+};
 
-typedef enum obj_material_texture_coordinate_translation_type : uint32_t {
+enum obj_material_texture_coordinate_translation_type : uint32_t {
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_NONE   = 0x00,
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_UV     = 0x01,
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_SPHERE = 0x02,
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_CUBE   = 0x03
-} obj_material_texture_coordinate_translation_type;
+};
 
-typedef enum obj_material_vertex_translation_type : uint32_t {
+enum obj_material_vertex_translation_type : uint32_t {
     OBJ_MATERIAL_VERTEX_TRANSLATION_DEFAULT  = 0,
     OBJ_MATERIAL_VERTEX_TRANSLATION_ENVELOPE = 1,
     OBJ_MATERIAL_VERTEX_TRANSLATION_MORPHING = 2,
-} obj_material_vertex_translation_type;
+};
 
-typedef enum obj_mesh_flags : uint32_t {
+enum obj_mesh_flags : uint32_t {
     OBJ_MESH_FLAG_1                = 0x01,
     OBJ_MESH_BILLBOARD_Y_AXIS      = 0x02,
     OBJ_MESH_TRANSLUCENT_NO_SHADOW = 0x04,
     OBJ_MESH_BILLBOARD             = 0x08,
     OBJ_MESH_COMPRESSED            = 0x10, // Own stuff
-} obj_mesh_flags;
+};
 
-typedef enum obj_primitive_type : uint32_t {
+enum obj_primitive_type : uint32_t {
     OBJ_PRIMITIVE_POINTS         = 0x00,
     OBJ_PRIMITIVE_LINES          = 0x01,
     OBJ_PRIMITIVE_LINE_STRIP     = 0x02,
@@ -125,22 +125,22 @@ typedef enum obj_primitive_type : uint32_t {
     OBJ_PRIMITIVE_QUADS          = 0x07,
     OBJ_PRIMITIVE_QUAD_STRIP     = 0x08,
     OBJ_PRIMITIVE_POLYGON        = 0x09,
-} obj_primitive_type;
+};
 
-typedef enum obj_skin_block_constraint_type : uint32_t {
+enum obj_skin_block_constraint_type : uint32_t {
     OBJ_SKIN_BLOCK_CONSTRAINT_NONE = 0,
     OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION,
     OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION,
     OBJ_SKIN_BLOCK_CONSTRAINT_POSITION,
     OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE,
-} obj_skin_block_constraint_type;
+};
 
-typedef enum obj_skin_block_constraint_coupling : uint32_t {
+enum obj_skin_block_constraint_coupling : uint32_t {
     OBJ_SKIN_BLOCK_CONSTRAINT_COUPLING_RIGID = 0x01,
     OBJ_SKIN_BLOCK_CONSTRAINT_COUPLING_SOFT  = 0x03,
-} obj_skin_block_constraint_coupling;
+};
 
-typedef enum obj_skin_block_type : uint32_t {
+enum obj_skin_block_type : uint32_t {
     OBJ_SKIN_BLOCK_NONE = 0,
     OBJ_SKIN_BLOCK_CLOTH,
     OBJ_SKIN_BLOCK_CONSTRAINT,
@@ -148,17 +148,17 @@ typedef enum obj_skin_block_type : uint32_t {
     OBJ_SKIN_BLOCK_ITEM,
     OBJ_SKIN_BLOCK_MOTION,
     OBJ_SKIN_BLOCK_OSAGE,
-} obj_skin_block_type;
+};
 
-typedef enum obj_skin_osage_root_coli_type {
+enum obj_skin_osage_root_coli_type {
     OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_NONE     = 0x00,
     OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_BALL     = 0x01,
     OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_CYLINDER = 0x02,
     OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_PLANE    = 0x03,
     OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_ELLIPSE  = 0x04,
-} obj_skin_osage_root_coli_type;
+};
 
-typedef enum obj_sub_mesh_flags : uint32_t {
+enum obj_sub_mesh_flags : uint32_t {
     OBJ_SUB_MESH_RECIEVE_SHADOW = 0x01,
     OBJ_SUB_MESH_CAST_SHADOW    = 0x02,
     OBJ_SUB_MESH_TRANSPARENT    = 0x04,
@@ -167,9 +167,9 @@ typedef enum obj_sub_mesh_flags : uint32_t {
     OBJ_SUB_MESH_FLAG_20        = 0x20,
     OBJ_SUB_MESH_FLAG_40        = 0x40,
     OBJ_SUB_MESH_FLAG_80        = 0x80,
-} obj_sub_mesh_flags;
+};
 
-typedef enum obj_vertex_flags : uint32_t {
+enum obj_vertex_flags : uint32_t {
     OBJ_VERTEX_NONE      = 0x000,
     OBJ_VERTEX_POSITION  = 0x001,
     OBJ_VERTEX_NORMAL    = 0x002,
@@ -183,24 +183,24 @@ typedef enum obj_vertex_flags : uint32_t {
     OBJ_VERTEX_COLOR1    = 0x200,
     OBJ_VERTEX_BONE_DATA = 0x400,
     OBJ_VERTEX_UNKNOWN   = 0x800,
-} obj_vertex_flags;
+};
 
-typedef struct obj_axis_aligned_bounding_box {
+struct obj_axis_aligned_bounding_box {
     vec3 center;
     vec3 size;
-} obj_axis_aligned_bounding_box;
+};
 
-typedef struct obj_bounding_box {
+struct obj_bounding_box {
     vec3 center;
     vec3 size;
-} obj_bounding_box;
+};
 
-typedef struct obj_bounding_sphere {
+struct obj_bounding_sphere {
     vec3 center;
     float_t radius;
-} obj_bounding_sphere;
+};
 
-typedef struct obj_material_blend_flags {
+struct obj_material_blend_flags {
     uint32_t alpha_texture : 1;
     uint32_t alpha_material : 1;
     uint32_t punch_through : 1;
@@ -217,9 +217,9 @@ typedef struct obj_material_blend_flags {
     uint32_t fog_height : 1;
     uint32_t flag_30 : 1;
     uint32_t flag_31 : 1;
-} obj_material_blend_flags;
+};
 
-typedef struct obj_material_shader_flags {
+struct obj_material_shader_flags {
     obj_material_vertex_translation_type vertex_translation_type : 2;
     obj_material_color_source_type color_source_type : 2;
     uint32_t lambert_shading : 1;
@@ -233,15 +233,15 @@ typedef struct obj_material_shader_flags {
     uint32_t cast_shadow : 1;
     obj_material_specular_quality specular_quality : 1;
     obj_material_aniso_direction aniso_direction : 2;
-} obj_material_shader_flags;
+};
 
-typedef struct obj_material_texture_flags {
+struct obj_material_texture_flags {
     obj_material_texture_type type : 4;
     uint32_t tex_coord_index : 4;
     obj_material_texture_coordinate_translation_type tex_coord_trans_type : 4;
-} obj_material_texture_flags;
+};
 
-typedef struct obj_material_texture_sampler_flags {
+struct obj_material_texture_sampler_flags {
     uint32_t repeat_u : 1;
     uint32_t repeat_v : 1;
     uint32_t mirror_u : 1;
@@ -256,15 +256,15 @@ typedef struct obj_material_texture_sampler_flags {
     uint32_t mip_map_bias : 7;
     uint32_t flag_29 : 1;
     uint32_t anisotropic_filter : 2;
-} obj_material_texture_sampler_flags;
+};
 
-typedef struct obj_material_texture_texture_flags {
+struct obj_material_texture_texture_flags {
     obj_material_texture_type type : 4;
     uint32_t tex_coord_index : 4;
     obj_material_texture_coordinate_translation_type tex_coord_trans_type : 3;
-} obj_material_texture_texture_flags;
+};
 
-typedef struct obj_material_texture {
+struct obj_material_texture {
     obj_material_texture_sampler_flags sampler_flags;
     uint32_t texture_id;
     obj_material_texture_texture_flags texture_flags;
@@ -275,9 +275,9 @@ typedef struct obj_material_texture {
         int32_t reserved[8];
         int32_t texture_index;
     };
-} obj_material_texture;
+};
 
-typedef struct obj_material {
+struct obj_material {
     obj_material_flags flags;
     union {
         char name[8];
@@ -296,14 +296,14 @@ typedef struct obj_material {
     char name[64];
     float_t bump_depth;
     int32_t reserved[15];
-} obj_material;
+};
 
-typedef struct obj_material_data {
+struct obj_material_data {
     uint32_t textures_count;
     obj_material material;
-} obj_material_data;
+};
 
-typedef struct obj_sub_mesh {
+struct obj_sub_mesh {
     obj_bounding_sphere bounding_sphere;
     uint32_t material_index;
     uint8_t texcoord_indices[8];
@@ -322,9 +322,9 @@ typedef struct obj_sub_mesh {
     uint16_t first_index;
     uint16_t last_index;
     uint32_t indices_offset;
-} obj_sub_mesh;
+};
 
-typedef struct obj_vertex_data {
+struct obj_vertex_data {
     vec3 position;
     vec3 normal;
     vec4u tangent;
@@ -338,9 +338,9 @@ typedef struct obj_vertex_data {
     vec4u bone_weight;
     vec4iu bone_index;
     vec4u unknown;
-} obj_vertex_data;
+};
 
-typedef struct obj_mesh {
+struct obj_mesh {
     obj_bounding_sphere bounding_sphere;
     obj_sub_mesh* sub_meshes;
     int32_t sub_meshes_count;
@@ -350,16 +350,16 @@ typedef struct obj_mesh {
     obj_vertex_flags vertex_flags;
     obj_mesh_flags flags;
     char name[0x40];
-} obj_mesh;
+};
 
-typedef struct obj_skin_block_cloth_field_1C_sub {
+struct obj_skin_block_cloth_field_1C_sub {
     string bone_name;
     float_t weight;
     uint32_t matrix_index;
     uint32_t field_0C;
-} obj_skin_block_cloth_field_1C_sub;
+};
 
-typedef struct obj_skin_block_cloth_field_1C {
+struct obj_skin_block_cloth_field_1C {
     float_t field_00;
     float_t field_04;
     float_t field_08;
@@ -371,9 +371,9 @@ typedef struct obj_skin_block_cloth_field_1C {
     uint32_t field_20;
     uint32_t field_24;
     obj_skin_block_cloth_field_1C_sub sub_data[4];
-} obj_skin_block_cloth_field_1C;
+};
 
-typedef struct obj_skin_block_cloth_field_20_sub {
+struct obj_skin_block_cloth_field_20_sub {
     uint32_t field_00;
     float_t field_04;
     float_t field_08;
@@ -385,20 +385,20 @@ typedef struct obj_skin_block_cloth_field_20_sub {
     float_t field_20;
     float_t field_24;
     float_t field_28;
-} obj_skin_block_cloth_field_20_sub;
+};
 
-typedef struct obj_skin_block_cloth_field_20 {
+struct obj_skin_block_cloth_field_20 {
     obj_skin_block_cloth_field_20_sub sub_data[10];
-} obj_skin_block_cloth_field_20;
+};
 
-typedef struct obj_skin_block_node {
+struct obj_skin_block_node {
     string parent_name;
     vec3 position;
     vec3 rotation;
     vec3 scale;
-} obj_skin_block_node;
+};
 
-typedef struct obj_skin_block_cloth {
+struct obj_skin_block_cloth {
     string mesh_name;
     string backface_mesh_name;
     uint32_t field_08;
@@ -414,46 +414,46 @@ typedef struct obj_skin_block_cloth {
     int32_t field_28_count;
     uint32_t field_2C;
     uint32_t field_30;
-} obj_skin_block_cloth;
+};
 
-typedef struct obj_skin_block_constraint_attach_point {
+struct obj_skin_block_constraint_attach_point {
     bool affected_by_orientation;
     bool affected_by_scaling;
     vec3 offset;
-} obj_skin_block_constraint_attach_point;
+};
 
-typedef struct obj_skin_block_constraint_up_vector {
+struct obj_skin_block_constraint_up_vector {
     bool active;
     float_t roll;
     vec3 affected_axis;
     vec3 point_at;
     string name;
-} obj_skin_block_constraint_up_vector;
+};
 
-typedef struct obj_skin_block_constraint_direction {
+struct obj_skin_block_constraint_direction {
     obj_skin_block_constraint_up_vector up_vector;
     vec3 align_axis;
     vec3 target_offset;
-} obj_skin_block_constraint_direction;
+};
 
-typedef struct obj_skin_block_constraint_distance {
+struct obj_skin_block_constraint_distance {
     obj_skin_block_constraint_up_vector up_vector;
     float_t distance;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
-} obj_skin_block_constraint_distance;
+};
 
-typedef struct obj_skin_block_constraint_orientation {
+struct obj_skin_block_constraint_orientation {
     vec3 offset;
-} obj_skin_block_constraint_orientation;
+};
 
-typedef struct obj_skin_block_constraint_position {
+struct obj_skin_block_constraint_position {
     obj_skin_block_constraint_up_vector up_vector;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
-} obj_skin_block_constraint_position;
+};
 
-typedef struct obj_skin_block_constraint {
+struct obj_skin_block_constraint {
     obj_skin_block_node base;
     uint32_t name_index;
     string source_node_name;
@@ -465,21 +465,21 @@ typedef struct obj_skin_block_constraint {
         obj_skin_block_constraint_orientation orientation;
         obj_skin_block_constraint_position position;
     };
-} obj_skin_block_constraint;
+};
 
-typedef struct obj_skin_block_expression {
+struct obj_skin_block_expression {
     obj_skin_block_node base;
     uint32_t name_index;
     int32_t expressions_count;
     string expressions[9];
-} obj_skin_block_expression;
+};
 
-typedef struct obj_skin_motion_node {
+struct obj_skin_motion_node {
     uint32_t name_index;
     mat4u transformation;
-} obj_skin_motion_node;
+};
 
-typedef struct obj_skin_block_motion {
+struct obj_skin_block_motion {
     obj_skin_block_node base;
     union {
         string name;
@@ -487,24 +487,24 @@ typedef struct obj_skin_block_motion {
     };
     obj_skin_motion_node* nodes;
     int32_t nodes_count;
-} obj_skin_block_motion;
+};
 
-typedef struct obj_skin_osage_node {
+struct obj_skin_osage_node {
     uint32_t name_index;
     float_t length;
     vec3 rotation;
-} obj_skin_osage_node;
+};
 
-typedef struct obj_skin_osage_root_coli {
+struct obj_skin_osage_root_coli {
     obj_skin_osage_root_coli_type type;
     int32_t bone0_index;
     int32_t bone1_index;
     float_t radius;
     vec3 bone0_pos;
     vec3 bone1_pos;
-} obj_skin_osage_root_coli;
+};
 
-typedef struct obj_skin_osage_root_node {
+struct obj_skin_osage_root_node {
     int32_t unk0;
     float_t force;
     float_t force_gain;
@@ -520,9 +520,9 @@ typedef struct obj_skin_osage_root_node {
     float_t friction;
     float_t wind_afc;
     int32_t unk44;
-} obj_skin_osage_root_node;
+};
 
-typedef struct obj_skin_block_osage {
+struct obj_skin_block_osage {
     obj_skin_block_node base;
     int32_t start_index;
     int32_t count;
@@ -533,9 +533,9 @@ typedef struct obj_skin_block_osage {
     uint32_t external_name_index;
     uint32_t name_index;
     string motion_node_name;
-} obj_skin_block_osage;
+};
 
-typedef struct obj_skin_block {
+struct obj_skin_block {
     obj_skin_block_type type;
     union {
         obj_skin_block_node base;
@@ -545,15 +545,15 @@ typedef struct obj_skin_block {
         obj_skin_block_motion motion;
         obj_skin_block_osage osage;
     };
-} obj_skin_block;
+};
 
-typedef struct obj_skin_osage_sibling_info {
+struct obj_skin_osage_sibling_info {
     uint32_t name_index;
     uint32_t sibling_name_index;
     float_t max_distance;
-} obj_skin_osage_sibling_info;
+};
 
-typedef struct obj_skin_ex_data {
+struct obj_skin_ex_data {
     obj_skin_osage_node* osage_nodes;
     int32_t osage_nodes_count;
     obj_skin_block* blocks;
@@ -563,23 +563,23 @@ typedef struct obj_skin_ex_data {
     int32_t bone_names_count;
     obj_skin_osage_sibling_info* osage_sibling_infos;
     int32_t osage_sibling_infos_count;
-} obj_skin_ex_data;
+};
 
-typedef struct obj_skin_bone {
+struct obj_skin_bone {
     uint32_t id;
     uint32_t parent;
     mat4u inv_bind_pose_mat;
     string name;
-} obj_skin_bone;
+};
 
-typedef struct obj_skin {
+struct obj_skin {
     obj_skin_bone* bones;
     int32_t bones_count;
     obj_skin_ex_data ex_data;
     bool ex_data_init;
-} obj_skin;
+};
 
-typedef struct obj {
+struct obj {
     obj_bounding_sphere bounding_sphere;
     obj_mesh* meshes;
     int32_t meshes_count;
@@ -591,10 +591,9 @@ typedef struct obj {
     string name;
     uint32_t id;
     uint32_t hash;
-} obj;
+};
 
-class obj_set {
-public:
+struct obj_set {
     bool ready;
     bool modern;
     bool is_x;

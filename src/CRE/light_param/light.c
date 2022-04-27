@@ -223,12 +223,6 @@ inline void light_set_get_irradiance(light_set* set, mat4* r, mat4* g, mat4* b) 
     *b = set->irradiance_b;
 }
 
-inline void light_set_get_irradiance_ptr(light_set* set, mat4** r, mat4** g, mat4** b) {
-    *r = &set->irradiance_r;
-    *g = &set->irradiance_g;
-    *b = &set->irradiance_b;
-}
-
 inline void light_set_set_irradiance(light_set* set, mat4* r, mat4* g, mat4* b) {
     set->irradiance_r = *r;
     set->irradiance_g = *g;
@@ -242,12 +236,16 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
 
     for (int32_t i = LIGHT_CHARA; i <= LIGHT_PROJECTION; i++) {
         light_data* light = &set->lights[i];
-        if (light_chara_ambient || i != LIGHT_CHARA)
-            shader_state_light_set_ambient_ptr(&shaders_ft, i, &light->ambient);
+        if (light_chara_ambient || i != LIGHT_CHARA) {
+            vec4 ambient = light->ambient;
+            shader_state_light_set_ambient_ptr(&shaders_ft, i, &ambient);
+        }
         else
             shader_state_light_set_ambient(&shaders_ft, i, 0.0f, 0.0f, 0.0f, 1.0f);
-        shader_state_light_set_diffuse_ptr(&shaders_ft, i, &light->diffuse);
-        shader_state_light_set_specular_ptr(&shaders_ft, i, &light->specular);
+        vec4 diffuse = light->diffuse;
+        vec4 specular = light->specular;
+        shader_state_light_set_diffuse_ptr(&shaders_ft, i, &diffuse);
+        shader_state_light_set_specular_ptr(&shaders_ft, i, &specular);
 
         vec4 light_direction = light->position;
         light_get_direction_from_position(&light_direction, light, 0);
@@ -318,13 +316,13 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     shader_env_vert_set_ptr(&shaders_ft, 12, &temp);
     shader_env_frag_set_ptr(&shaders_ft, 17, &temp);
 
-    mat4* irradiance_r;
-    mat4* irradiance_g;
-    mat4* irradiance_b;
-    light_set_get_irradiance_ptr(set, &irradiance_r, &irradiance_g, &irradiance_b);
-    shader_state_matrix_set_program(&shaders_ft, 0, irradiance_r);
-    shader_state_matrix_set_program(&shaders_ft, 1, irradiance_g);
-    shader_state_matrix_set_program(&shaders_ft, 2, irradiance_b);
+    mat4 irradiance_r;
+    mat4 irradiance_g;
+    mat4 irradiance_b;
+    light_set_get_irradiance(set, &irradiance_r, &irradiance_g, &irradiance_b);
+    shader_state_matrix_set_program(&shaders_ft, 0, &irradiance_r);
+    shader_state_matrix_set_program(&shaders_ft, 1, &irradiance_g);
+    shader_state_matrix_set_program(&shaders_ft, 2, &irradiance_b);
 
     float_t offset = face_get_offset(face);
     float_t v28 = (float_t)(1.0 - exp(offset * -0.44999999)) * 2.0f;

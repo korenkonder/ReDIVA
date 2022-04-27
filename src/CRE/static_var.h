@@ -13,14 +13,14 @@
 #include "../KKdLib/vec.h"
 #include <glad/glad.h>
 
-typedef enum draw_pass_3d_type {
+enum draw_pass_3d_type {
     DRAW_PASS_3D_OPAQUE      = 0,
     DRAW_PASS_3D_TRANSLUCENT = 1,
     DRAW_PASS_3D_TRANSPARENT = 2,
     DRAW_PASS_3D_MAX         = 3,
-} draw_pass_3d_type;
+};
 
-typedef enum uniform_name {
+enum uniform_name {
     U_NONE          = 0x00,
     U01             = 0x01,
     U_ALPHA_TEST    = 0x02,
@@ -93,7 +93,7 @@ typedef enum uniform_name {
     U45             = 0x45,
     U_MAX           = 0x46,
     U_INVALID       = 0xFFFFFFFF,
-} uniform_name;
+};
 
 extern int32_t sv_max_texture_buffer_size;
 extern int32_t sv_max_texture_size;

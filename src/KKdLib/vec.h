@@ -11,111 +11,111 @@
 #include <pmmintrin.h>
 #include <xmmintrin.h>
 
-typedef struct vec2i8 {
+struct vec2i8 {
     int8_t x;
     int8_t y;
-} vec2i8;
+};
 
-typedef struct vec3i8 {
+struct vec3i8 {
     int8_t x;
     int8_t y;
     int8_t z;
-} vec3i8;
+};
 
-typedef struct vec4i8 {
+struct vec4i8 {
     int8_t x;
     int8_t y;
     int8_t z;
     int8_t w;
-} vec4i8;
+};
 
-typedef struct vec2u8 {
+struct vec2u8 {
     uint8_t x;
     uint8_t y;
-} vec2u8;
+};
 
-typedef struct vec3u8 {
+struct vec3u8 {
     uint8_t x;
     uint8_t y;
     uint8_t z;
-} vec3u8;
+};
 
-typedef struct vec4u8 {
+struct vec4u8 {
     uint8_t x;
     uint8_t y;
     uint8_t z;
     uint8_t w;
-} vec4u8;
+};
 
-typedef struct vec2i16 {
+struct vec2i16 {
     int16_t x;
     int16_t y;
-} vec2i16;
+};
 
-typedef struct vec3i16 {
+struct vec3i16 {
     int16_t x;
     int16_t y;
     int16_t z;
-} vec3i16;
+};
 
-typedef struct vec4i16 {
+struct vec4i16 {
     int16_t x;
     int16_t y;
     int16_t z;
     int16_t w;
-} vec4i16;
+};
 
-typedef struct vec2u16 {
+struct vec2u16 {
     uint16_t x;
     uint16_t y;
-} vec2u16;
+};
 
-typedef struct vec3u16 {
+struct vec3u16 {
     uint16_t x;
     uint16_t y;
     uint16_t z;
-} vec3u16;
+};
 
-typedef struct vec4u16 {
+struct vec4u16 {
     uint16_t x;
     uint16_t y;
     uint16_t z;
     uint16_t w;
-} vec4u16;
+};
 
-typedef struct vec2h {
+struct vec2h {
     half_t x;
     half_t y;
-} vec2h;
+};
 
-typedef struct vec3h {
+struct vec3h {
     half_t x;
     half_t y;
     half_t z;
-} vec3h;
+};
 
-typedef struct vec4h {
+struct vec4h {
     half_t x;
     half_t y;
     half_t z;
     half_t w;
-} vec4h;
+};
 
-typedef struct vec2 {
+struct vec2 {
     float_t x;
     float_t y;
-} vec2;
+};
 
-typedef struct vec3 {
+struct vec3 {
     float_t x;
     float_t y;
     float_t z;
-} vec3;
+};
 
-typedef union vec4 vec4;
-typedef union vec4i vec4i;
-typedef struct vec4u vec4u;
-typedef struct vec4iu vec4iu;
+union vec4;
+union vec4i;
+struct vec4u;
+struct vec4iu;
 
 union vec4 {
     struct {
@@ -129,16 +129,16 @@ union vec4 {
     operator vec4u() const;
 };
 
-typedef struct vec2i {
+struct vec2i {
     int32_t x;
     int32_t y;
-} vec2i;
+};
 
-typedef struct vec3i {
+struct vec3i {
     int32_t x;
     int32_t y;
     int32_t z;
-} vec3i;
+};
 
 union vec4i {
     struct {
@@ -152,13 +152,13 @@ union vec4i {
     operator vec4iu() const;
 };
 
-typedef struct vec2d {
+struct vec2d {
     struct {
         double_t x;
         double_t y;
     };
     __m128d data;
-} vec2d;
+};
 
 struct vec4u {
     float_t x;

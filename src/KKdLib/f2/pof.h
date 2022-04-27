@@ -9,8 +9,7 @@
 #include "../default.h"
 #include "../io/stream.h"
 
-class pof {
-public:
+struct pof {
     std::vector<size_t> vec;
 
     pof();

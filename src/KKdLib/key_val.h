@@ -12,8 +12,7 @@
 #include "vec.h"
 #include "vector.h"
 
-class key_val {
-public:
+struct key_val {
     std::vector<char*> key;
     std::vector<size_t> key_len;
     std::vector<char*> val;

@@ -9,7 +9,7 @@
 #include "../io/stream.h"
 #include "../str_utils.h"
 
-typedef struct bone_database_skeleton_header {
+struct bone_database_skeleton_header {
     ssize_t offset;
     ssize_t bones_offset;
     ssize_t positions_offset;
@@ -17,7 +17,7 @@ typedef struct bone_database_skeleton_header {
     ssize_t object_bone_names_offset;
     ssize_t motion_bone_names_offset;
     ssize_t parent_indices_offset;
-} bone_database_skeleton_header;
+};
 
 static void bone_database_classic_read_inner(bone_database* bone_data, stream* s);
 static void bone_database_classic_write_inner(bone_database* bone_data, stream* s);

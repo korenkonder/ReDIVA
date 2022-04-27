@@ -8,8 +8,7 @@
 #include "../default.h"
 #include "../vec.h"
 
-class light_param_wind_spc {
-public:
+struct light_param_wind_spc {
     float_t cos;
     float_t sin;
 
@@ -17,8 +16,7 @@ public:
     ~light_param_wind_spc();
 };
 
-class light_param_wind {
-public:
+struct light_param_wind {
     bool ready;
 
     bool has_scale;

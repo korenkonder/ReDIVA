@@ -9,7 +9,7 @@
 #include "../KKdLib/mat.h"
 #include "../KKdLib/vec.h"
 
-typedef struct camera {
+struct camera {
     mat4 view;
     mat4 inv_view;
     mat4 projection;
@@ -45,7 +45,7 @@ typedef struct camera {
     bool fast_change;
     bool fast_change_hist0;
     bool fast_change_hist1;
-} camera;
+};
 
 extern camera* camera_init();
 extern void camera_initialize(camera* c, double_t aspect, int32_t width, int32_t height);

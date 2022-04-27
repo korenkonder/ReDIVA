@@ -9,8 +9,7 @@
 #include "data.h"
 #include <sys/stat.h>
 
-class farc_read_handler {
-public:
+struct farc_read_handler {
     std::string file_path;
     bool cache;
     farc* farc;
@@ -23,8 +22,7 @@ public:
     bool read_data(void* data, size_t size, std::string& file);
 };
 
-class file_handler_storage {
-public:
+struct file_handler_storage {
     std::list<file_handler*> list;
     farc_read_handler* farc_read_handler;
     std::deque<file_handler*> deque;

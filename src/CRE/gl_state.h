@@ -8,7 +8,7 @@
 #include "../KKdLib/default.h"
 #include <glad/glad.h>
 
-typedef struct gl_state_struct {
+struct gl_state_struct {
     GLint program;
     GLenum active_texture;
     GLuint active_texture_index;
@@ -46,7 +46,7 @@ typedef struct gl_state_struct {
     GLboolean scissor_test;
     GLboolean stencil_test;
     GLuint stencil_mask;
-} gl_state_struct;
+};
 
 extern gl_state_struct gl_state;
 

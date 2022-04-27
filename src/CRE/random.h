@@ -7,11 +7,11 @@
 
 #include "../KKdLib/default.h"
 
-typedef struct random {
+struct random {
     int32_t inext;
     int32_t inextp;
     int32_t seed_array[56];
-} random;
+};
 
 random* random_init(int32_t seed);
 int32_t random_next(random* r);

@@ -6,7 +6,6 @@
 #pragma once
 
 #include <float.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <wchar.h>
 

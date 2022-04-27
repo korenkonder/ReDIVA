@@ -8,22 +8,21 @@
 #include "../default.h"
 #include "../vec.h"
 
-typedef enum fog_id {
+enum fog_id {
     FOG_DEPTH  = 0x00,
     FOG_HEIGHT = 0x01,
     FOG_BUMP   = 0x02,
     FOG_MAX    = 0x03,
-} fog_id;
+};
 
-typedef enum fog_type {
+enum fog_type {
     FOG_NONE   = 0x00,
     FOG_LINEAR = 0x01,
     FOG_EXP    = 0x02,
     FOG_EXP2   = 0x03,
-} fog_type;
+};
 
-class light_param_fog_group {
-public:
+struct light_param_fog_group {
     bool has_type;
     fog_type type;
     bool has_density;
@@ -38,8 +37,7 @@ public:
     ~light_param_fog_group();
 };
 
-class light_param_fog {
-public:
+struct light_param_fog {
     bool ready;
 
     light_param_fog_group group[FOG_MAX];

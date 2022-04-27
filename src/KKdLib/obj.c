@@ -13,7 +13,7 @@
 #include "str_utils.h"
 #include "vector.h"
 
-typedef enum obj_vertex_attrib_type {
+enum obj_vertex_attrib_type {
     OBJ_VERTEX_ATTRIB_POSITION       = 0x00000001,
     OBJ_VERTEX_ATTRIB_NORMAL         = 0x00000002,
     OBJ_VERTEX_ATTRIB_TANGENT        = 0x00000004,
@@ -28,14 +28,14 @@ typedef enum obj_vertex_attrib_type {
     OBJ_VERTEX_ATTRIB_BONE_INDEX     = 0x00000800,
     OBJ_VERTEX_ATTRIB_UNKNOWN        = 0x00001000,
     OBJ_VERTEX_ATTRIB_MODERN_STORAGE = 0x80000000,
-} obj_vertex_attrib_type;
+};
 
-typedef struct obj_skin_block_header {
+struct obj_skin_block_header {
     ssize_t block_signature_offset;
     ssize_t block_offset;
-} obj_skin_block_header;
+};
 
-typedef struct obj_skin_ex_data_header {
+struct obj_skin_ex_data_header {
     int32_t osage_count;
     ssize_t osage_nodes_offset;
     ssize_t osage_names_offset;
@@ -44,43 +44,43 @@ typedef struct obj_skin_ex_data_header {
     ssize_t bone_names_offset;
     ssize_t osage_sibling_infos_offset;
     int32_t cloth_count;
-} obj_skin_ex_data_header;
+};
 
-typedef struct obj_skin_header {
+struct obj_skin_header {
     ssize_t bone_ids_offset;
     ssize_t bone_matrices_offset;
     ssize_t bone_names_offset;
     ssize_t ex_data_offset;
     ssize_t bone_parent_ids_offset;
-} obj_skin_header;
+};
 
-typedef struct obj_sub_mesh_header {
+struct obj_sub_mesh_header {
     ssize_t bone_indices_offset;
     ssize_t indices_offset;
-} obj_sub_mesh_header;
+};
 
-typedef struct obj_mesh_header {
+struct obj_mesh_header {
     ssize_t sub_meshes_offset;
     obj_vertex_attrib_type attrib_type;
     int32_t vertex_size;
     int32_t vertex_count;
     ssize_t attrib_offsets[20];
     uint32_t attrib_flags;
-} obj_mesh_header;
+};
 
-typedef struct obj_header {
+struct obj_header {
     ssize_t meshes_offset;
     ssize_t materials_offset;
-} obj_header;
+};
 
-typedef struct obj_set_header {
+struct obj_set_header {
     int32_t max_object_id;
     ssize_t objects_offset;
     ssize_t object_skins_offset;
     ssize_t object_names_offset;
     ssize_t object_ids_offset;
     ssize_t texture_ids_offset;
-} obj_set_header;
+};
 
 const char obj_material_texture_enrs_table_bin[] =
 "\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"

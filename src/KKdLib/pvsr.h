@@ -9,8 +9,7 @@
 #include <vector>
 #include "default.h"
 
-class pvsr_a3da {
-public:
+struct pvsr_a3da {
     std::string name;
     uint32_t hash;
 
@@ -18,8 +17,7 @@ public:
     ~pvsr_a3da();
 };
 
-class pvsr_aet {
-public:
+struct pvsr_aet {
     std::string name;
     std::uint32_t hash;
     float_t bright_scale;
@@ -28,8 +26,7 @@ public:
     ~pvsr_aet();
 };
 
-class pvsr_effect {
-public:
+struct pvsr_effect {
     std::string name;
     float_t emission;
 
@@ -37,8 +34,7 @@ public:
     ~pvsr_effect();
 };
 
-class pvsr_glitter {
-public:
+struct pvsr_glitter {
     std::string name;
     uint8_t unk1;
 
@@ -46,8 +42,7 @@ public:
     ~pvsr_glitter();
 };
 
-class pvsr_stage_effect {
-public:
+struct pvsr_stage_effect {
     uint8_t bar_count;
     std::vector<pvsr_a3da> a3da;
     std::vector<pvsr_glitter> glitter;
@@ -56,8 +51,7 @@ public:
     ~pvsr_stage_effect();
 };
 
-class pvsr_stage_effect_env_sub1 {
-public:
+struct pvsr_stage_effect_env_sub1 {
     std::string name;
     uint32_t hash;
     uint16_t unk2;
@@ -66,7 +60,7 @@ public:
     ~pvsr_stage_effect_env_sub1();
 };
 
-typedef struct pvsr_stage_effect_env_sub2 {
+struct pvsr_stage_effect_env_sub2 {
     uint16_t u00;
     uint16_t u02;
     uint16_t u04;
@@ -74,10 +68,9 @@ typedef struct pvsr_stage_effect_env_sub2 {
     uint16_t u08;
     uint16_t u0a;
     uint16_t u0c;
-} pvsr_stage_effect_env_sub2;
+};
 
-class pvsr_stage_effect_env {
-public:
+struct pvsr_stage_effect_env {
     uint16_t u48;
     uint16_t u4a;
     uint16_t u4c;
@@ -115,8 +108,7 @@ public:
 
 #define PVSR_STAGE_CHANGE_EFFECT_COUNT 0x10
 
-class pvsr {
-public:
+struct pvsr {
     bool ready;
 
     std::vector<pvsr_effect> effect;

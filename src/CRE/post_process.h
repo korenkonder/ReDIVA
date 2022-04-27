@@ -14,7 +14,7 @@
 #include "post_process/tone_map.h"
 #include "camera.h"
 
-typedef enum post_process_mag_filter_type {
+enum post_process_mag_filter_type {
     POST_PROCESS_MAG_FILTER_NEAREST       = 0,
     POST_PROCESS_MAG_FILTER_BILINEAR      = 1,
     POST_PROCESS_MAG_FILTER_SHARPEN_5_TAP = 2,
@@ -22,9 +22,9 @@ typedef enum post_process_mag_filter_type {
     POST_PROCESS_MAG_FILTER_CONE_4_TAP    = 4,
     POST_PROCESS_MAG_FILTER_CONE_2_TAP    = 5,
     POST_PROCESS_MAG_FILTER_MAX           = 6,
-} post_process_mag_filter_type;
+};
 
-typedef struct post_process_struct {
+struct post_process {
     bool ssaa;
     bool mlaa;
     int32_t parent_bone_node;
@@ -73,16 +73,18 @@ typedef struct post_process_struct {
     int32_t screen_width;
     int32_t screen_height;
     post_process_mag_filter_type mag_filter;
-} post_process_struct;
 
-extern void post_process_init(post_process_struct* pp);
-extern void post_process_apply(post_process_struct* pp, camera* cam, texture* light_proj_tex, int32_t npr_param);
-extern void post_process_init_fbo(post_process_struct* pp, int32_t render_width, int32_t render_height,
-    int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height);
-extern void post_process_reset(post_process_struct* pp);
-extern int32_t post_process_movie_texture_set(post_process_struct* pp, texture* movie_texture);
-extern void post_process_movie_texture_free(post_process_struct* pp, texture* movie_texture);
-extern int32_t post_process_render_texture_set(post_process_struct* pp, texture* render_texture, bool task_photo);
-extern void post_process_render_texture_free(post_process_struct* pp, texture* render_texture, bool task_photo);
-extern void post_process_update(post_process_struct* pp, camera* cam);
-extern void post_process_free(post_process_struct* pp);
+    post_process();
+    ~post_process();
+
+    void apply(camera* cam, texture* light_proj_tex, int32_t npr_param);
+    void ctrl(camera* cam);
+    void init_fbo(int32_t render_width, int32_t render_height,
+        int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height);
+    int32_t movie_texture_set(texture* movie_texture);
+    void movie_texture_free(texture* movie_texture);
+    int32_t render_texture_set(texture* render_texture, bool task_photo);
+    void render_texture_free(texture* render_texture, bool task_photo);
+    void reset();
+};
+

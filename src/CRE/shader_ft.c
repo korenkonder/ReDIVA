@@ -6,7 +6,7 @@
 #include "shader_ft.h"
 #include "gl_state.h"
 
-typedef enum shader_ft_sub_enum {
+enum shader_ft_sub_enum {
     SHADER_FT_SUB_SHADER_FFP           = 0x00,
     SHADER_FT_SUB_BLINN_VERT           = 0x01,
     SHADER_FT_SUB_BLINN_FRAG           = 0x02,
@@ -76,7 +76,7 @@ typedef enum shader_ft_sub_enum {
     SHADER_FT_SUB_IMGFILTER            = 0x42,
     SHADER_FT_SUB_SPRITE               = 0x43,
     SHADER_FT_SUB_SHADER_END           = 0x44,
-} shader_ft_sub_enum;
+};
 
 static const int32_t blinn_vert_vpt_unival_max[] = {
     1, 1, 0, 1, 0, 0, 0, 3, 1, 1, 0, 0, // 11th added
@@ -2159,7 +2159,7 @@ static const bool SPRITE_permut[] = {
     false,
 };
 
-typedef struct glass_eye_struct {
+struct glass_eye_struct {
     vec4u field_0;
     vec4u field_10;
     float_t field_20;
@@ -2186,7 +2186,7 @@ typedef struct glass_eye_struct {
     int32_t field_B4;
     int32_t field_B8;
     int32_t field_BC;
-} glass_eye_struct;
+};
 
 #define shader_table_struct(n) \
 { \

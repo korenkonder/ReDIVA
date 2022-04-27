@@ -551,17 +551,17 @@ static void light_param_storage_set_default_light_param(light_param_data_storage
 
 static void light_param_data_set(light_param_data* a1, light_param_data_storage* storage) {
     if (!a1->not_loaded || a1->light.ready)
-        render_context_light_param_data_light_set(rctx_ptr, &a1->light);
+        rctx_ptr->light_param_data_light_set(&a1->light);
     if (!a1->not_loaded || a1->fog.ready)
-        render_context_light_param_data_fog_set(rctx_ptr, &a1->fog);
+        rctx_ptr->light_param_data_fog_set(&a1->fog);
     if (!a1->not_loaded || a1->glow.ready)
-        render_context_light_param_data_glow_set(rctx_ptr, &a1->glow);
+        rctx_ptr->light_param_data_glow_set(&a1->glow);
     if (!a1->not_loaded || a1->ibl.ready)
-        render_context_light_param_data_ibl_set(rctx_ptr, &a1->ibl, storage);
+        rctx_ptr->light_param_data_ibl_set(&a1->ibl, storage);
     if (!a1->not_loaded) {
-        render_context_light_param_data_wind_set(rctx_ptr, &a1->wind);
+        rctx_ptr->light_param_data_wind_set(&a1->wind);
         if (a1->face.ready)
-            render_context_light_param_data_face_set(rctx_ptr, &a1->face);
+            rctx_ptr->light_param_data_face_set(&a1->face);
     }
 }
 

@@ -10,14 +10,14 @@
 #include "../../KKdLib/vec.h"
 #include "../static_var.h"
 
-typedef struct fog {
+struct fog {
     fog_type type;
     float_t density;
     float_t start;
     float_t end;
     int32_t index;
     vec4 color;
-} fog;
+};
 
 extern void fog_init(fog* fog);
 extern fog_type fog_get_type(fog* fog);

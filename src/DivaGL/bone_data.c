@@ -7,12 +7,12 @@
 #include "../KKdLib/interpolation.h"
 
 typedef enum HeapCMallocType {
-  HeapCMallocSystem = 0x00,
-  HeapCMallocTemp   = 0x01,
-  HeapCMallocMode   = 0x02,
-  HeapCMallocEvent  = 0x03,
-  HeapCMallocDebug  = 0x04,
-  HeapCMallocMax    = 0x05,
+    HeapCMallocSystem = 0x00,
+    HeapCMallocTemp   = 0x01,
+    HeapCMallocMode   = 0x02,
+    HeapCMallocEvent  = 0x03,
+    HeapCMallocDebug  = 0x04,
+    HeapCMallocMax    = 0x05,
 } HeapCMallocType;
 
 typedef struct skeleton_rotation_offset {

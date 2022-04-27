@@ -11,8 +11,7 @@
 #include "render_context.h"
 #include "auth_3d.h"
 
-class stage {
-public:
+struct stage {
     int32_t index;
     uint16_t counter;
     int32_t state;
@@ -62,10 +61,10 @@ namespace stage_detail {
     };
 }
 
-typedef struct task_stage_info {
+struct task_stage_info {
     int16_t load_index;
     uint16_t load_counter;
-} task_stage_info;
+};
 
 class DtmStg : public Task {
 public:

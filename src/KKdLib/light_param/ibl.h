@@ -11,8 +11,7 @@
 #include "../mat.h"
 #include "../vec.h"
 
-class light_param_ibl_diffuse {
-public:
+struct light_param_ibl_diffuse {
     std::vector<half_t> data;
     int32_t size;
 
@@ -20,8 +19,7 @@ public:
     ~light_param_ibl_diffuse();
 };
 
-class light_param_ibl_specular{
-public:
+struct light_param_ibl_specular {
     std::vector<std::vector<half_t>> data;
     int32_t max_level;
     int32_t size;
@@ -30,7 +28,7 @@ public:
     ~light_param_ibl_specular();
 };
 
-typedef struct light_param_ibl {
+struct light_param_ibl {
     bool ready;
 
     vec4u lit_col[4];
@@ -47,4 +45,4 @@ typedef struct light_param_ibl {
     void read(const void* data, size_t length);
 
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
-} light_param_ibl;
+};

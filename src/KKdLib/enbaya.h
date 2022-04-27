@@ -10,15 +10,15 @@
 #include "quat_trans.h"
 #include "vec.h"
 
-typedef struct enb_track {
+struct enb_track {
     quat_trans qt[2];
     quat quat;
     vec3 trans;
     uint8_t flags;
     uint8_t padding[3];
-} enb_track;
+};
 
-typedef struct enb_head {
+struct enb_head {
     uint32_t signature;                   // 0x00
     uint32_t track_count;                 // 0x04
     float_t scale;                        // 0x08
@@ -39,9 +39,9 @@ typedef struct enb_head {
     uint32_t params_u32_length;           // 0x44
     uint32_t track_flags_length;          // 0x48
     uint32_t unknown;                     // In runtime becomes pointer to data after this uint32_t
-} enb_head;
+};
 
-typedef struct enb_play_head {
+struct enb_play_head {
     uint32_t current_sample;            // 0x00
     float_t current_sample_time;        // 0x04
     float_t previous_sample_time;       // 0x08
@@ -90,7 +90,7 @@ typedef struct enb_play_head {
     uint8_t track_mode_selector;        // 0xA8
     uint8_t track_data_selector;        // 0xA9
     uint8_t padding4[6];                // 0xAA
-} enb_play_head;
+};
 
 extern int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
     size_t* data_out_len, float_t* duration, float_t* fps, size_t* frames);

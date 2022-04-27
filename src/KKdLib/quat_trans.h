@@ -9,11 +9,11 @@
 #include "quat.h"
 #include "vec.h"
 
-typedef struct quat_trans {
+struct quat_trans {
     quat quat;
     vec3 trans;
     float_t time;
-} quat_trans;
+};
 
 static const quat_trans quat_trans_identity = { { 0.0f, 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, 0.0f };
 

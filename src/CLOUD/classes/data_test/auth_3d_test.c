@@ -5,36 +5,32 @@
 
 #include "auth_3d_test.h"
 #include "../../../KKdLib/io/path.h"
+#include "../../../KKdLib/hash.h"
 #include "../../../KKdLib/sort.h"
 #include "../../../KKdLib/str_utils.h"
 #include "../../../KKdLib/vector.h"
-#include "../../../CRE/Glitter/glitter.h"
-#include "../../../CRE/Glitter/effect_group.h"
-#include "../../../CRE/Glitter/file_reader.h"
-#include "../../../CRE/Glitter/particle_manager.h"
-#include "../../../CRE/Glitter/scene.h"
 #include "../../../CRE/data.h"
 #include "../../../CRE/render_context.h"
 #include "../../../CRE/stage.h"
 #include "../../input.h"
 #include "../imgui_helper.h"
 
-typedef struct data_test_auth_3d_test_uid {
+struct data_test_auth_3d_test_uid {
     const char* name;
     uint32_t uid;
-} data_test_auth_3d_test_uid;
+};
 
 vector_old(data_test_auth_3d_test_uid)
 
-typedef struct data_test_auth_3d_test_category {
+struct data_test_auth_3d_test_category {
     const char* name;
     int32_t index;
     vector_old_data_test_auth_3d_test_uid uid;
-} data_test_auth_3d_test_category;
+};
 
 vector_old(data_test_auth_3d_test_category)
 
-typedef struct data_test_auth_3d_test {
+struct data_test_auth_3d_test {
     int32_t auth_3d_category_index;
     int32_t auth_3d_category_index_prev;
     int32_t auth_3d_index;
@@ -65,7 +61,7 @@ typedef struct data_test_auth_3d_test {
 
     vector_old_ptr_char stage;
     vector_old_data_test_auth_3d_test_category category;
-} data_test_auth_3d_test;
+};
 
 vector_old_func(data_test_auth_3d_test_category)
 vector_old_func(data_test_auth_3d_test_uid)
@@ -583,6 +579,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
             auth_3d_test->frame_changed = false;
         }
         auth_3d_data_set_paused(&auth_3d_test->auth_3d_id, auth_3d_test->paused);
+        auth_3d_data_set_frame_rate(&auth_3d_test->auth_3d_id, 0);
 
         mat4 mat;
         mat4_translate(auth_3d_test->trans_x, 0.0f, auth_3d_test->trans_z, &mat);
@@ -647,18 +644,23 @@ static void data_test_auth_3d_test_load_auth_file(data_test_auth_3d_test* auth_3
     const char* uid_name = uids[auth_3d_test->auth_3d_uid].name.c_str();
 
     auth_3d_test->auth_3d_id = auth_3d_data_load_uid(auth_3d_test->auth_3d_uid, aft_auth_3d_db);
-    auth_3d* auth = auth_3d_data_get_auth_3d(auth_3d_test->auth_3d_id);
-    if (!auth)
+    if (auth_3d_test->auth_3d_id == -1)
         return;
 
     auth_3d_data_read_file(&auth_3d_test->auth_3d_id, aft_auth_3d_db);
+    auth_3d_data_set_enable(&auth_3d_test->auth_3d_id, true);
+    auth_3d_data_set_paused(&auth_3d_test->auth_3d_id, false);
+    auth_3d_data_set_repeat(&auth_3d_test->auth_3d_id, auth_3d_test->repeat);
+    auth_3d_data_set_left_right_reverse(&auth_3d_test->auth_3d_id, auth_3d_test->left_right_reverse);
+    auth_3d_data_set_camera_root_update(&auth_3d_test->auth_3d_id, true);
+    auth_3d_data_set_req_frame(&auth_3d_test->auth_3d_id, 0.0f);
+    auth_3d_data_set_max_frame(&auth_3d_test->auth_3d_id, -1.0f);
+    auth_3d_data_set_visibility(&auth_3d_test->auth_3d_id, true);
 
     auth_3d_test->enable = true;
-    auth_3d_test->repeat = true;
-    auth_3d_test->left_right_reverse = false;
     auth_3d_test->frame = 0.0f;
     auth_3d_test->frame_changed = false;
-    auth_3d_test->last_frame = auth->play_control.size;
+    auth_3d_test->last_frame = auth_3d_data_get_play_control_size(&auth_3d_test->auth_3d_id);
     auth_3d_test->paused = false;
     auth_3d_test->trans_x = 0.0f;
     auth_3d_test->trans_z = 0.0f;

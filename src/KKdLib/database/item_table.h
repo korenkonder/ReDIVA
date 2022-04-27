@@ -13,7 +13,7 @@
 #include "../image.h"
 #include "../vec.h"
 
-typedef enum chara_index {
+enum chara_index {
     CHARA_NONE   = -1,
     CHARA_MIKU   =  0,
     CHARA_RIN    =  1,
@@ -26,9 +26,9 @@ typedef enum chara_index {
     CHARA_SAKINE =  8,
     CHARA_TETO   =  9,
     CHARA_MAX    = 10,
-} chara_index;
+};
 
-typedef enum item_id {
+enum item_id {
     ITEM_NONE        = -1,
     ITEM_BODY        = 0x00,
     ITEM_ATAMA       = 0x01,
@@ -62,9 +62,9 @@ typedef enum item_id {
     ITEM_ITEM15      = 0x1D,
     ITEM_ITEM16      = 0x1E,
     ITEM_MAX         = 0x1F,
-} item_id;
+};
 
-typedef enum item_sub_id {
+enum item_sub_id {
     ITEM_SUB_NONE        = -1,
     ITEM_SUB_ZUJO        = 0x00,
     ITEM_SUB_KAMI        = 0x01,
@@ -92,10 +92,9 @@ typedef enum item_sub_id {
     ITEM_SUB_KUTSU       = 0x17,
     ITEM_SUB_HEAD        = 0x18,
     ITEM_SUB_MAX         = 0x19,
-} item_sub_id;
+};
 
-class itm_table_item_data_obj{
-public:
+struct itm_table_item_data_obj {
     std::string uid;
     item_id rpk;
 
@@ -103,16 +102,15 @@ public:
     ~itm_table_item_data_obj();
 };
 
-typedef struct itm_table_item_data_ofs {
+struct itm_table_item_data_ofs {
     item_sub_id sub_id;
     int32_t no;
     vec3 position;
     vec3 rotation;
     vec3 scale;
-} itm_table_item_data_ofs;
+};
 
-class itm_table_item_data_tex {
-public:
+struct itm_table_item_data_tex {
     std::string org;
     std::string chg;
 
@@ -120,8 +118,7 @@ public:
     ~itm_table_item_data_tex();
 };
 
-class itm_table_item_data_col {
-public:
+struct itm_table_item_data_col {
     std::string tex;
     int32_t flag;
     color_tone col_tone;
@@ -130,8 +127,7 @@ public:
     ~itm_table_item_data_col();
 };
 
-class itm_table_item_data {
-public:
+struct itm_table_item_data {
     std::vector<itm_table_item_data_obj> obj;
     std::vector<itm_table_item_data_ofs> ofs;
     std::vector<itm_table_item_data_tex> tex;
@@ -141,8 +137,7 @@ public:
     ~itm_table_item_data();
 };
 
-class itm_table_item {
-public:
+struct itm_table_item {
     int32_t no;
     int32_t flag;
     std::string name;
@@ -162,8 +157,7 @@ public:
     ~itm_table_item();
 };
 
-class itm_table_cos {
-public:
+struct itm_table_cos {
     int32_t id;
     std::vector<int32_t> item;
 
@@ -171,8 +165,7 @@ public:
     ~itm_table_cos();
 };
 
-class itm_table_dbgset {
-public:
+struct itm_table_dbgset {
     std::string name;
     std::vector<int32_t> item;
 
@@ -180,8 +173,7 @@ public:
     ~itm_table_dbgset();
 };
 
-class itm_table {
-public:
+struct itm_table {
     bool ready;
 
     std::vector<itm_table_item> item;

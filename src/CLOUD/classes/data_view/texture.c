@@ -7,9 +7,9 @@
 #include "../../../CRE/render_context.h"
 #include "../imgui_helper.h"
 
-typedef struct data_view_texture {
+struct data_view_texture {
     render_context* rctx;
-} data_view_texture;
+};
 
 extern int32_t width;
 extern int32_t height;

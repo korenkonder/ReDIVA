@@ -8,7 +8,7 @@
 #include "../default.h"
 #include "../vec.h"
 
-typedef enum light_id {
+enum light_id {
     LIGHT_CHARA       = 0x00,
     LIGHT_STAGE       = 0x01,
     LIGHT_SUN         = 0x02,
@@ -18,22 +18,21 @@ typedef enum light_id {
     LIGHT_TONE_CURVE  = 0x06,
     LIGHT_PROJECTION  = 0x07,
     LIGHT_MAX         = 0x08,
-} light_id;
+};
 
-typedef enum light_set_id {
+enum light_set_id {
     LIGHT_SET_MAIN = 0x00,
     LIGHT_SET_MAX  = 0x01,
-} light_set_id;
+};
 
-typedef enum light_type {
+enum light_type {
     LIGHT_OFF      = 0x00,
     LIGHT_PARALLEL = 0x01,
     LIGHT_POINT    = 0x02,
     LIGHT_SPOT     = 0x03,
-} light_type;
+};
 
-class light_param_light_data {
-public:
+struct light_param_light_data {
     bool has_type;
     light_type type;
     bool has_ambient;
@@ -61,16 +60,14 @@ public:
     ~light_param_light_data();
 };
 
-class light_param_light_group {
-public:
+struct light_param_light_group {
     light_param_light_data data[LIGHT_MAX];
 
     light_param_light_group();
     ~light_param_light_group();
 };
 
-class light_param_light {
-public:
+struct light_param_light {
     bool ready;
 
     light_param_light_group group[LIGHT_SET_MAX];

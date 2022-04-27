@@ -13,27 +13,27 @@
 #include "str_utils.h"
 #include <time.h>
 
-typedef struct a3da_vec3_header {
+struct a3da_vec3_header {
     uint32_t x;
     uint32_t y;
     uint32_t z;
-} a3da_vec3_header;
+};
 
-typedef struct a3da_model_transform_header {
+struct a3da_model_transform_header {
     a3da_vec3_header scale;
     a3da_vec3_header rotation;
     a3da_vec3_header translation;
     uint32_t visibility;
-} a3da_model_transform_header;
+};
 
-typedef struct a3dc_header {
+struct a3dc_header {
     uint32_t binary_length;
     uint32_t binary_offset;
     uint32_t string_length;
     uint32_t string_offset;
-} a3dc_header;
+};
 
-typedef struct a3dc_key_header {
+struct a3dc_key_header {
     a3da_key_type type : 8;
     a3da_ep_type ep_type_pre : 4;
     a3da_ep_type ep_type_post : 4;
@@ -41,7 +41,7 @@ typedef struct a3dc_key_header {
     float_t value;
     float_t max_frame;
     uint32_t length;
-} a3dc_key_header;
+};
 
 #define A3DA_TEXT_BUF_SIZE 0x400
 

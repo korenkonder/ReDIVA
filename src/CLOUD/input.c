@@ -13,13 +13,13 @@
 
 #define KEYBOARD_KEYS 0xFF
 
-typedef struct key_state {
+struct key_state {
     bool key_states[KEYBOARD_KEYS];
-} key_state;
+};
 
-typedef struct mouse_state {
+struct mouse_state {
     POINT position;
-} mouse_state;
+};
 
 timer input_timer;
 

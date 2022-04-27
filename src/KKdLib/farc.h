@@ -10,28 +10,27 @@
 #include "default.h"
 #include "io/stream.h"
 
-typedef enum farc_signature {
+enum farc_signature {
     FARC_FArc = 'FArc',
     FARC_FArC = 'FArC',
     FARC_FARC = 'FARC',
-} farc_signature;
+};
 
-typedef enum farc_flags {
+enum farc_flags {
     FARC_GZIP = 0x02,
     FARC_AES  = 0x04,
-} farc_flags;
+};
 
-typedef enum farc_compress_mode {
+enum farc_compress_mode {
     FARC_COMPRESS_FArc          = 0,
     FARC_COMPRESS_FArC          = 1,
     FARC_COMPRESS_FARC          = 2,
     FARC_COMPRESS_FARC_GZIP     = 3,
     FARC_COMPRESS_FARC_AES      = 4,
     FARC_COMPRESS_FARC_GZIP_AES = 5,
-} farc_compress_mode;
+};
 
-class farc_file {
-public:
+struct farc_file {
     size_t offset;
     size_t size;
     size_t size_compressed;
@@ -45,8 +44,7 @@ public:
     ~farc_file();
 };
 
-class farc {
-public:
+struct farc {
     std::string file_path;
     std::string directory_path;
     std::vector<farc_file> files;

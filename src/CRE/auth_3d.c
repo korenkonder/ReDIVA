@@ -352,7 +352,7 @@ void auth_3d::ctrl(render_context* rctx) {
         if (set || !repeat || last_frame > frame)
             break;
 
-        req_frame = frame - frame + frame_offset;
+        req_frame = frame - last_frame + frame_offset;
         frame_changed = true;
         set = true;
     }
@@ -406,7 +406,6 @@ void auth_3d::load(a3da* auth_file,
     draw_task_flags = DRAW_TASK_10000;
     chara_id = -1;
     shadow = false;
-    frame_rate = &sys_frame_rate;
     frame = 0.0f;
     req_frame = 0.0f;
     max_frame = play_control.size;
@@ -3230,12 +3229,12 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
         if (auth->alpha < 1.0f)
             enum_or(flags, auth->draw_task_flags);
 
-        object_data_set_draw_task_flags(object_data, (draw_task_flags)flags);
-        object_data_set_shadow_type(object_data, shadow_type);
+        object_data->set_draw_task_flags((draw_task_flags)flags);
+        object_data->set_shadow_type(shadow_type);
 
         shadow* shad = rctx->draw_pass.shadow_ptr;
         if (shad && flags & DRAW_TASK_SHADOW) {
-            object_data_set_shadow_type(object_data, SHADOW_STAGE);
+            object_data->set_shadow_type(SHADOW_STAGE);
 
             mat4u* m = &moh->model_transform.mat;
             for (auth_3d_object_node& j : moh->node)
@@ -3250,7 +3249,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
 
             vec3 pos = *(vec3*)&mat.row3;
             pos.y -= 0.2f;
-            vector_old_vec3_push_back(&shad->field_1D0[shadow_type], &pos);
+            shad->field_1D0[shadow_type].push_back(pos);
         }
 
         if (i.mats.size() > 0) {
@@ -3260,8 +3259,8 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
         }
     }
 
-    object_data_set_draw_task_flags(object_data, (draw_task_flags)0);
-    object_data_set_shadow_type(object_data, SHADOW_CHARA);
+    object_data->set_draw_task_flags();
+    object_data->set_shadow_type(SHADOW_CHARA);
 }
 
 static void auth_3d_m_object_hrc_list_ctrl(auth_3d_m_object_hrc* moh, mat4* parent_mat) {
@@ -3476,7 +3475,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     if (o->refract)
         enum_or(flags, DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT);
 
-    object_data_set_draw_task_flags(object_data, (draw_task_flags)flags);
+    object_data->set_draw_task_flags((draw_task_flags)flags);
 
     char buf[0x80];
     int32_t tex_pat_count = 0;
@@ -3503,7 +3502,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     }
 
     if (tex_pat_count)
-        object_data_set_texture_pattern(object_data, tex_pat_count, tex_pat);
+        object_data->set_texture_pattern(tex_pat_count, tex_pat);
 
     int32_t tex_trans_count = 0;
     texture_transform_struct tex_trans[TEXTURE_TRANSFORM_COUNT];
@@ -3518,7 +3517,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     }
 
     if (tex_trans_count)
-        object_data_set_texture_transform(object_data, tex_trans_count, tex_trans);
+        object_data->set_texture_transform(tex_trans_count, tex_trans);
 
     const char* uid_name = o->uid_name.c_str();
     int32_t uid_name_length = (int32_t)o->uid_name.size();
@@ -3534,12 +3533,12 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
             object_info morph_obj_info = obj_db->get_object_info(buf);
             if (morph_obj_info.is_null())
                 morph_obj_info = o->object_info;
-            object_data_set_morph(object_data, morph_obj_info, morph);
+            object_data->set_morph(morph_obj_info, morph);
 
             sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, morph_int);
             object_info obj_info = obj_db->get_object_info(buf);
             draw_task_add_draw_object_by_object_info(rctx, &mat, obj_info);
-            object_data_set_morph(object_data, object_info(), 0.0f);
+            object_data->set_morph({}, 0.0f);
         }
         else {
             if (morph >= 1.0f)
@@ -3566,9 +3565,9 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     else
         draw_task_add_draw_object_by_object_info(rctx, &mat, o->object_info);
 
-    object_data_set_texture_transform(object_data, 0, 0);
-    object_data_set_texture_pattern(object_data, 0, 0);
-    object_data_set_draw_task_flags(object_data, (draw_task_flags)0);
+    object_data->set_texture_transform();
+    object_data->set_texture_pattern();
+    object_data->set_draw_task_flags();
 
     for (auth_3d_object*& i : o->children_object)
         auth_3d_object_disp(i, auth, rctx);
@@ -3655,12 +3654,12 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
     if (auth->alpha < 1.0f)
         enum_or(flags, DRAW_TASK_10000);
 
-    object_data_set_draw_task_flags(object_data, (draw_task_flags)flags);
-    object_data_set_shadow_type(object_data, SHADOW_CHARA);
+    object_data->set_draw_task_flags((draw_task_flags)flags);
+    object_data->set_shadow_type(SHADOW_CHARA);
 
     shadow* shad = rctx->draw_pass.shadow_ptr;
     if (shad && flags & DRAW_TASK_SHADOW) {
-        object_data_set_shadow_type(object_data, SHADOW_STAGE);
+        object_data->set_shadow_type(SHADOW_STAGE);
 
         mat4u* m = &oh->node[0].model_transform.mat;
         for (auth_3d_object_node& i : oh->node)
@@ -3671,7 +3670,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
 
         vec3 pos = *(vec3*)&m->row3;
         pos.y -= 0.2f;
-        vector_old_vec3_push_back(&shad->field_1D0[SHADOW_STAGE], &pos);
+        shad->field_1D0[SHADOW_STAGE].push_back(pos);
     }
 
     if (oh->mats.size() > 0) {
@@ -3680,8 +3679,8 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
             oh->object_info, 0, 0, auth->alpha, oh->mats.data(), 0, 0, &mat);
     }
 
-    object_data_set_draw_task_flags(object_data, (draw_task_flags)0);
-    object_data_set_shadow_type(object_data, SHADOW_CHARA);
+    object_data->set_draw_task_flags();
+    object_data->set_shadow_type(SHADOW_CHARA);
 
     for (auth_3d_object*& i : oh->children_object)
         auth_3d_object_disp(i, auth, rctx);

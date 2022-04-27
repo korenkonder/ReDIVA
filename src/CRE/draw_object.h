@@ -12,13 +12,13 @@
 #include "object.h"
 #include "render_context.h"
 
-typedef struct texture_data_struct {
+struct texture_data_struct {
     int32_t field_0;
     vec3 texture_color_coeff;
     vec3 texture_color_offset;
     vec3 texture_specular_coeff;
     vec3 texture_specular_offset;
-} texture_data_struct;
+};
 
 extern void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
     void(*draw_object_func)(render_context* rctx, draw_object* draw), int32_t show_vector);

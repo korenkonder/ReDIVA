@@ -10,7 +10,7 @@
 #include "../default.h"
 #include "../vec.h"
 
-typedef enum bone_database_bone_type {
+enum bone_database_bone_type {
     BONE_DATABASE_BONE_ROTATION          = 0x00,
     BONE_DATABASE_BONE_TYPE_1            = 0x01,
     BONE_DATABASE_BONE_POSITION          = 0x02,
@@ -18,9 +18,9 @@ typedef enum bone_database_bone_type {
     BONE_DATABASE_BONE_HEAD_IK_ROTATION  = 0x04,
     BONE_DATABASE_BONE_ARM_IK_ROTATION   = 0x05,
     BONE_DATABASE_BONE_LEGS_IK_ROTATION  = 0x06,
-} bone_database_bone_type;
+};
 
-typedef enum bone_database_skeleton_type {
+enum bone_database_skeleton_type {
     BONE_DATABASE_SKELETON_COMMON = 0,
     BONE_DATABASE_SKELETON_MIKU   = 1,
     BONE_DATABASE_SKELETON_KAITO  = 2,
@@ -33,10 +33,9 @@ typedef enum bone_database_skeleton_type {
     BONE_DATABASE_SKELETON_SAKINE = 9,
     BONE_DATABASE_SKELETON_TETO   = 10,
     BONE_DATABASE_SKELETON_NONE   = -1,
-} bone_database_skeleton_type;
+};
 
-class bone_database_bone {
-public:
+struct bone_database_bone {
     bone_database_bone_type type;
     bool has_parent;
     uint8_t parent;
@@ -49,8 +48,7 @@ public:
     ~bone_database_bone();
 };
 
-class bone_database_skeleton {
-public:
+struct bone_database_skeleton {
     std::vector<bone_database_bone> bone;
     std::vector<vec3> position;
     float_t heel_height;
@@ -63,8 +61,7 @@ public:
     ~bone_database_skeleton();
 };
 
-class bone_database {
-public:
+struct bone_database {
     bool ready;
     bool modern;
     bool is_x;

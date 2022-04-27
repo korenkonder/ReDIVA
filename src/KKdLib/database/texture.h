@@ -9,8 +9,7 @@
 #include <vector>
 #include "../default.h"
 
-class texture_info {
-public:
+struct texture_info {
     std::string name;
     uint32_t name_hash;
     uint32_t id;
@@ -19,8 +18,7 @@ public:
     ~texture_info();
 };
 
-typedef struct texture_database {
-public:
+struct texture_database {
     bool ready;
     bool modern;
     bool is_x;
@@ -46,4 +44,4 @@ public:
     const char* get_texture_name(uint32_t id);
 
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
-} texture_database;
+};

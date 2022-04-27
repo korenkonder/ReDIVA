@@ -4,8 +4,7 @@
 */
 
 #include "draw_pass.h"
-#include "Glitter/glitter.h"
-#include "Glitter/particle_manager.h"
+#include "Glitter/glitter.hpp"
 #include "light_param/fog.h"
 #include "light_param/light.h"
 #include "gl_state.h"
@@ -17,29 +16,16 @@
 #include "static_var.h"
 #include "texture.h"
 
-typedef struct draw_preprocess {
+struct draw_preprocess {
     int32_t field_0;
-    void(__fastcall* draw_func)(void*);
+    void(*draw_func)(void*);
     void* data;
-} draw_preprocess;
-
-typedef struct list_draw_preprocess_node list_draw_preprocess_node;
-
-struct list_draw_preprocess_node{
-    list_draw_preprocess_node* next;
-    list_draw_preprocess_node* prev;
-    draw_preprocess value;
 };
 
-typedef struct list_draw_preprocess {
-    list_draw_preprocess_node* head;
-    size_t size;
-} list_draw_preprocess;
-
-typedef struct texture_param {
+struct texture_param {
     GLint width;
     GLint height;
-} texture_param;
+};
 
 static void blur_filter_apply(GLuint tex_0, GLuint tex_1, blur_filter_mode filter);
 static void draw_pass_begin(draw_pass* a1);
@@ -48,8 +34,8 @@ static void draw_pass_shadow_filter(render_texture* a1, render_texture* a2,
     render_texture* a3, float_t sigma, float_t far_texel_offset, bool enable_lit_proj);
 static bool draw_pass_shadow_litproj(render_context* rctx, light_proj* litproj);
 static void draw_pass_sss(render_context* rctx, draw_pass* a1);
-static void draw_pass_sss_contour(render_context* rctx, post_process_struct* pp);
-static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1);
+static void draw_pass_sss_contour(render_context* rctx, post_process* pp);
+static void draw_pass_sss_filter(render_context* rctx, sss_data* a1);
 static void draw_pass_reflect(render_context* rctx, draw_pass* a1);
 static void draw_pass_refract(render_context* rctx, draw_pass* a1);
 static void draw_pass_preprocess(render_context* rctx, draw_pass* a1);
@@ -158,7 +144,7 @@ inline static void draw_pass_begin(draw_pass* a1) {
 
 static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
     rctx->view_mat = rctx->camera->view;
-    if (light_proj_set(rctx->litproj, rctx)) {
+    if (rctx->litproj->set(rctx)) {
         gl_state_bind_vertex_array(rctx->vao);
         draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_OPAQUE, 0, 0, true, -1);
         draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TRANSPARENT, 0, 0, true, -1);
@@ -428,7 +414,7 @@ static bool draw_pass_shadow_litproj(render_context* rctx, light_proj* litproj) 
     glClearDepthf(1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (!light_proj_set_mat(rctx, true)) {
+    if (!light_proj::set_mat(rctx, true)) {
         gl_state_bind_framebuffer(0);
         return false;
     }
@@ -447,7 +433,7 @@ static bool draw_pass_shadow_litproj(render_context* rctx, light_proj* litproj) 
 }
 
 static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
-    sss_data_struct* sss = &a1->sss_data;
+    sss_data* sss = &a1->sss_data;
     if (!sss->init)
         return;
 
@@ -457,7 +443,7 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
     }
 
     rctx->view_mat = rctx->camera->view;
-    post_process_struct* pp = &rctx->post_process;
+    post_process* pp = &rctx->post_process;
     //if (pp->render_width > 1280.0)
     //    sss->npr_contour = false;
 
@@ -519,7 +505,7 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
     gl_state_bind_framebuffer(0);
 }
 
-static void draw_pass_sss_contour(render_context* rctx, post_process_struct* pp) {
+static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
     render_texture_bind(&pp->sss_contour_texture, 0);
     shader_state_matrix_set_modelview(&shaders_ft, 0, (mat4*)&mat4_identity, false);
     shader_state_matrix_set_projection(&shaders_ft, (mat4*)&mat4_identity, true);
@@ -610,7 +596,7 @@ static void draw_pass_sss_filter_calc_coef(double_t a1, size_t a2, double_t a3, 
     shader_local_frag_set_ptr_array(&shaders_ft, 4, a2 * a2, params);
 }
 
-static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
+static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     const int32_t sss_count = 6;
     vec3 interest = rctx->camera->interest;
     vec3 view_point = rctx->camera->view_point;
@@ -671,7 +657,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data_struct* a1) {
     if (a1->npr_contour) {
         render_texture_bind(a1->textures, 0);
         glViewport(0, 0, 640, 360);
-        post_process_struct* pp = &rctx->post_process;
+        post_process* pp = &rctx->post_process;
         gl_state_bind_texture_2d(pp->rend_texture.color_texture->tex);
         uniform_value[U_REDUCE] = 0;
         shader_set(&shaders_ft, SHADER_FT_REDUCE);
@@ -878,7 +864,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
         gl_state_disable_depth_test();
     }
 
-    glt_particle_manager.Disp(DRAW_PASS_3D_OPAQUE);
+    Glitter::glt_particle_manager.Disp(DRAW_PASS_3D_OPAQUE);
 
     if (draw_grid_3d)
         draw_pass_3d_grid(rctx);
@@ -909,7 +895,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     gl_state_disable_depth_test();
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-    glt_particle_manager.Disp(DRAW_PASS_3D_TRANSPARENT);
+    Glitter::glt_particle_manager.Disp(DRAW_PASS_3D_TRANSPARENT);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     if (a1->npr_param == 1) {
@@ -942,7 +928,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     gl_state_disable_depth_test();
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-    glt_particle_manager.Disp(DRAW_PASS_3D_TRANSLUCENT);
+    Glitter::glt_particle_manager.Disp(DRAW_PASS_3D_TRANSLUCENT);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     gl_state_enable_depth_test();
@@ -1112,7 +1098,7 @@ static void draw_pass_post_process(render_context* rctx, draw_pass* a1) {
             light_proj_tex = litproj->draw_texture.color_texture;
     }
 
-    post_process_apply(&rctx->post_process, rctx->camera, light_proj_tex, a1->npr_param);
+    rctx->post_process.apply(rctx->camera, light_proj_tex, a1->npr_param);
 }
 
 static void draw_pass_sprite(render_context* rctx, draw_pass* a1) {
@@ -1138,7 +1124,7 @@ static void draw_pass_3d_grid(render_context* rctx) {
     gl_state_set_depth_func(GL_LEQUAL);
     gl_state_set_depth_mask(GL_TRUE);
 
-    shader_glsl_use(&grid_shader);
+    grid_shader.use();
     shader_glsl_set_mat4(&grid_shader, "vp", GL_FALSE, rctx->camera->view_projection);
     gl_state_bind_array_buffer(grid_vbo);
     glEnableVertexAttribArray(0);
@@ -1151,7 +1137,7 @@ static void draw_pass_3d_grid(render_context* rctx) {
     glDrawArrays(GL_LINES, 0, (GLsizei)grid_vertex_count);
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
-    shader_glsl_use(0);
+    gl_state_use_program(0);
 
     gl_state_disable_depth_test();
     gl_state_set_depth_mask(GL_FALSE);

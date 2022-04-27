@@ -11,7 +11,7 @@
 
 const uint32_t DDS_MAGIC = 'DDS ';
 
-typedef struct DDS_PIXELFORMAT {
+struct DDS_PIXELFORMAT {
     uint32_t size;
     uint32_t flags;
     uint32_t fourCC;
@@ -20,7 +20,7 @@ typedef struct DDS_PIXELFORMAT {
     uint32_t GBitMask;
     uint32_t BBitMask;
     uint32_t ABitMask;
-} DDS_PIXELFORMAT;
+};
 
 #define DDSD_CAPS           0x00000001
 #define DDSD_HEIGHT         0x00000002
@@ -63,7 +63,7 @@ typedef struct DDS_PIXELFORMAT {
 
 #define DDS_FLAGS_VOLUME 0x00200000 // DDSCAPS2_VOLUME
 
-typedef struct DDS_HEADER {
+struct DDS_HEADER {
     uint32_t        size;
     uint32_t        flags;
     uint32_t        height;
@@ -78,7 +78,7 @@ typedef struct DDS_HEADER {
     uint32_t        caps3;
     uint32_t        caps4;
     uint32_t        reserved2;
-} DDS_HEADER;
+};
 
 #pragma pack(pop)
 

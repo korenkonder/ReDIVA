@@ -10,12 +10,12 @@
 #include "../../KKdLib/vec.h"
 #include "../static_var.h"
 
-typedef struct face {
+struct face {
     float_t offset;
     float_t scale;
     vec3 position;
     vec3 direction;
-} face;
+};
 
 extern void face_init(face* face);
 extern float_t face_get_offset(face* face);

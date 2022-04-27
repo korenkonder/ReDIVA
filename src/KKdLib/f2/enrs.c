@@ -5,12 +5,12 @@
 
 #include "enrs.h"
 
-typedef enum enrs_value_type {
+enum enrs_value_type {
     ENRS_VALUE_INT8    = 0x0,
     ENRS_VALUE_INT16   = 0x1,
     ENRS_VALUE_INT32   = 0x2,
     ENRS_VALUE_INVALID = 0x3,
-} enrs_value_type;
+};
 
 inline static bool enrs_length_get_size_type(uint32_t* length, size_t val);
 inline static bool enrs_length_get_size(uint32_t* length, size_t val);

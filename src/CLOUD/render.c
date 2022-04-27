@@ -14,8 +14,7 @@
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
-#include "../CRE/Glitter/file_reader.h"
-#include "../CRE/Glitter/particle_manager.h"
+#include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/camera.h"
 #include "../CRE/data.h"
 #include "../CRE/fbo.h"
@@ -37,6 +36,8 @@
 #include "../CRE/post_process.h"
 #include "../KKdLib/io/path.h"
 #include "../KKdLib/database/item_table.h"
+#include "../KKdLib/sort.h"
+#include "../KKdLib/str_utils.h"
 #include "classes/imgui_helper.h"
 #include "x_pv_game.h"
 #include <timeapi.h>
@@ -375,7 +376,7 @@ static render_context* render_load() {
 
     file_handler_storage_init();
 
-    render_context* rctx = render_context_init();
+    render_context* rctx = new render_context;
     rctx_ptr = rctx;
 
     gl_state_get();
@@ -383,7 +384,7 @@ static render_context* render_load() {
 
     motion_storage_init();
 
-    glt_particle_manager.rctx = rctx;
+    Glitter::glt_particle_manager.rctx = rctx;
 
     data_struct_init();
     data_struct_load("CLOUD_data.txt");
@@ -405,7 +406,7 @@ static render_context* render_load() {
     auth_3d_data_init();
     light_param_storage_data_init();
 
-    glt_particle_manager.bone_data = aft_bone_data;
+    Glitter::glt_particle_manager.bone_data = aft_bone_data;
 
     glGenBuffers(1, &common_data_ubo);
 
@@ -553,29 +554,26 @@ static render_context* render_load() {
     shader_glsl_param param;
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Cube Line";
-    shader_glsl_load_string(&cube_line_shader,
-        cube_line_vert_shader, cube_line_frag_shader, 0, &param);
+    cube_line_shader.load(cube_line_vert_shader, cube_line_frag_shader, 0, &param);
 
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Cube Line Point";
-    shader_glsl_load_string(&cube_line_point_shader,
-        cube_line_point_vert_shader, cube_line_point_frag_shader, 0, &param);
+    cube_line_point_shader.load(cube_line_point_vert_shader, cube_line_point_frag_shader, 0, &param);
 
     memset(&param, 0, sizeof(shader_glsl_param));
     param.name = "Grid";
-    shader_glsl_load_string(&grid_shader,
-        grid_vert_shader, grid_frag_shader, 0, &param);
+    grid_shader.load(grid_vert_shader, grid_frag_shader, 0, &param);
 
     render_resize_fb(rctx, false);
 
-    post_process_init_fbo(&rctx->post_process, internal_3d_res.x, internal_3d_res.y,
+    rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
         internal_2d_res.x, internal_2d_res.y, width, height);
 
     render_resize_fb(rctx, true);
 
     task_auth_3d_append_task();
-    TaskWork::AppendTask(&glt_particle_manager, "GLITTER_TASK", 2);
-    TaskWork::AppendTask(&x_pv_game_data, "X_PV_GAME", 0);
+    TaskWork::AppendTask(&Glitter::glt_particle_manager, "GLITTER_TASK", 2);
+    //TaskWork::AppendTask(&x_pv_game_data, "X_PV_GAME", 0);
     task_rob_manager_append_task();
 
     aft_data->load_file(aft_data, "rom/", "chritm_prop.farc", item_table_array_load_file);
@@ -733,7 +731,7 @@ static render_context* render_load() {
     clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
     set_clear_color = true;
 
-    x_pv_game_data.Load(826, 26);
+    //x_pv_game_data.Load(826, 26);
 
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
     shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
@@ -816,7 +814,7 @@ static void render_ctrl(render_context* rctx) {
 
     classes_process_ctrl(classes, classes_count);
 
-    render_context_ctrl(rctx);
+    rctx->ctrl();
 
     ImGui::Render();
 
@@ -880,9 +878,6 @@ static void cube_line_draw(shader_glsl* shader, camera* cam, vec3* trans, float_
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-#include "../KKdLib/sort.h"
-#include "../KKdLib/str_utils.h"
-
 static int cube_line_points_sort(void const* src1, void const* src2) {
     std::pair<vec3, float_t>* t2 = (std::pair<vec3, float_t>*)src2;
     float_t d1 = ((std::pair<vec3, float_t>*)src1)->second;
@@ -930,7 +925,7 @@ static void render_draw(render_context* rctx) {
         glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
     }
 
-    render_context_disp(rctx);
+    rctx->disp();
 
     int32_t screen_x_offset = (width - internal_2d_res.x) / 2 + (width - internal_2d_res.x) % 2;
     int32_t screen_y_offset = (height - internal_2d_res.y) / 2 + (width - internal_2d_res.x) % 2;
@@ -958,7 +953,7 @@ static void render_draw(render_context* rctx) {
         size_t object_bone_count = rob_bone_data->object_bone_count;
         size_t total_bone_count = rob_bone_data->total_bone_count;
         size_t ik_bone_count = rob_bone_data->ik_bone_count;
-        shader_glsl_use(&cube_line_shader);
+        cube_line_shader.use();
         for (bone_node& j : rob_bone_data->nodes) {
             if (!j.parent)
                 continue;
@@ -1132,7 +1127,7 @@ static void render_draw(render_context* rctx) {
         mat4_mult_vec3(&cam->inv_view_rot, &trans[3], &trans[3]);
 
         gl_state_bind_vertex_array(cube_line_point_vao);
-        shader_glsl_use(&cube_line_point_shader);
+        cube_line_point_shader.use();
         shader_glsl_set_vec3_array(&cube_line_point_shader, "trans", 4, trans);
         shader_glsl_set_float(&cube_line_point_shader, "dark_border_end",
             ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
@@ -1163,8 +1158,8 @@ static void render_dispose(render_context* rctx) {
     ImGui::DestroyContext(imgui_context);
     lock_free(&imgui_context_lock);
 
-    x_pv_game_data.SetDest();
-    glt_particle_manager.SetDest();
+    //x_pv_game_data.SetDest();
+    Glitter::glt_particle_manager.SetDest();
 
     //rob_chara_array_free_chara_id(0);
     timer_reset(&render_timer);
@@ -1189,9 +1184,9 @@ static void render_dispose(render_context* rctx) {
 
     render_shaders_free();
 
-    shader_glsl_free(&grid_shader);
-    shader_glsl_free(&cube_line_point_shader);
-    shader_glsl_free(&cube_line_shader);
+    grid_shader.unload();
+    cube_line_point_shader.unload();
+    cube_line_shader.unload();
 
     glDeleteBuffers(1, &common_data_ubo);
     glDeleteBuffers(1, &grid_vbo);
@@ -1207,7 +1202,7 @@ static void render_dispose(render_context* rctx) {
     motion_storage_free();
 
     render_texture_data_free();
-    render_context_free(rctx);
+    delete rctx;
 
     file_handler_storage_free();
 
@@ -1292,9 +1287,9 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     lock_unlock(&state_lock);
 
     if (st && fb_changed && change_fb) {
-        post_process_init_fbo(&rctx->post_process, internal_3d_res.x, internal_3d_res.y,
+        rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
             internal_2d_res.x, internal_2d_res.y, width, height);
-        light_proj_resize(rctx->litproj, internal_3d_res.x, internal_3d_res.y);
+        rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
     }
 }
 

@@ -10,7 +10,7 @@
 #include "shader_glsl.h"
 #include "texture.h"
 
-typedef struct render_texture {
+struct render_texture {
     texture* color_texture;
     texture* depth_texture;
     int32_t binding;
@@ -18,7 +18,9 @@ typedef struct render_texture {
     GLuint fbos[16];
     GLuint rbo;
     GLuint field_2C;
-} render_texture;
+
+    render_texture();
+};
 
 extern int32_t render_texture_init(render_texture* rt, int32_t width, int32_t height,
     int32_t max_level, GLenum color_format, GLenum depth_format);

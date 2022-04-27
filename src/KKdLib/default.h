@@ -26,10 +26,10 @@
 }
 
 #define null(t) \
-typedef struct null_##t { \
+struct null_##t { \
     bool has_value; \
     t value; \
-} null_##t;
+};
 
 null(bool)
 null(int8_t)

@@ -173,8 +173,8 @@ static void pvsr_read_inner(pvsr* sr, stream* s) {
     uint8_t x05 = io_read_uint8_t(&s_pvsr);
     uint8_t x06 = io_read_uint8_t(&s_pvsr);
     uint8_t x07 = io_read_uint8_t(&s_pvsr);
-    uint8_t stage_effect_count = io_read_uint8_t(&s_pvsr);
-    uint8_t aets_count = io_read_uint8_t(&s_pvsr);
+    int8_t stage_effect_count = io_read_int8_t(&s_pvsr);
+    int8_t stage_effect_envs_count = io_read_int8_t(&s_pvsr);
     uint8_t x0a = io_read_uint8_t(&s_pvsr);
     uint8_t x0b = io_read_uint8_t(&s_pvsr);
     uint8_t x0c = io_read_uint8_t(&s_pvsr);
@@ -184,12 +184,12 @@ static void pvsr_read_inner(pvsr* sr, stream* s) {
     ssize_t x10 = io_read_offset_x(&s_pvsr);
     ssize_t stage_effect_offset = io_read_offset_x(&s_pvsr);
     ssize_t stage_change_effect_offset = io_read_offset_x(&s_pvsr);
-    ssize_t aet_offset = io_read_offset_x(&s_pvsr);
+    ssize_t stage_effect_env_offset = io_read_offset_x(&s_pvsr);
 
     io_position_push(&s_pvsr, x10, SEEK_SET);
-    uint8_t unknown_count = io_read_uint8_t(&s_pvsr);
-    uint8_t effect_count = io_read_uint8_t(&s_pvsr);
-    uint8_t emcs_count = io_read_uint8_t(&s_pvsr);
+    int8_t unknown_count = io_read_int8_t(&s_pvsr);
+    int8_t effect_count = io_read_int8_t(&s_pvsr);
+    int8_t emcs_count = io_read_int8_t(&s_pvsr);
     ssize_t unknown_offset = io_read_offset_x(&s_pvsr);
     ssize_t effect_offset = io_read_offset_x(&s_pvsr);
     ssize_t emcs_offset = io_read_offset_x(&s_pvsr);
@@ -235,9 +235,9 @@ static void pvsr_read_inner(pvsr* sr, stream* s) {
         }
     io_position_pop(&s_pvsr);
 
-    sr->stage_effect_env.resize(aets_count);
+    sr->stage_effect_env.resize(stage_effect_envs_count);
 
-    io_position_push(&s_pvsr, aet_offset, SEEK_SET);
+    io_position_push(&s_pvsr, stage_effect_env_offset, SEEK_SET);
     for (pvsr_stage_effect_env& i : sr->stage_effect_env)
         pvsr_stage_effect_env_read(&i, &s_pvsr, x00);
     io_position_pop(&s_pvsr);

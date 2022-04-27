@@ -7,14 +7,14 @@
 
 #include "../default.h"
 
-typedef struct diva {
+struct diva {
     size_t size;
     uint32_t sample_rate;
     uint32_t samples_count;
     uint32_t loop_start;
     uint32_t loop_end;
     uint32_t channels;
-} diva;
+};
 
 extern diva* diva_init();
 extern void diva_read(diva* d, const char* path);

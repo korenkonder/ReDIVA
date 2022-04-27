@@ -1277,13 +1277,13 @@ inline const char* dsc_vrfl_get_func_name(int32_t id) {
     return id > -1 && id < DSC_VRFL_FUNC_COUNT ? dsc_vrfl_func[id].name : 0;
 }
 
-typedef struct dsc_data_time {
+struct dsc_data_time {
     int32_t time;
     int32_t pv_branch_mode;
     const char* name;
     int32_t func;
     uint32_t data_offset;
-} dsc_data_time;
+};
 
 static void dsc_convert_from_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
 static void dsc_convert_from_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);

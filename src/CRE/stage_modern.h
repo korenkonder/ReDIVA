@@ -11,8 +11,7 @@
 #include "render_context.h"
 #include "auth_3d.h"
 
-class stage_modern {
-public:
+struct stage_modern {
     uint32_t hash;
     uint16_t counter;
     int32_t state;
@@ -66,10 +65,10 @@ namespace stage_detail {
     };
 }
 
-typedef struct task_stage_modern_info {
+struct task_stage_modern_info {
     int16_t load_index;
     uint16_t load_counter;
-} task_stage_modern_info;
+};
 
 extern bool task_stage_modern_check_not_loaded();
 extern void task_stage_modern_current_set_effect_display(bool value);

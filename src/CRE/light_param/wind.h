@@ -11,13 +11,12 @@
 #include "../static_var.h"
 #include "../task.h"
 
-typedef struct wind_spc {
+struct wind_spc {
     float_t cos;
     float_t sin;
-} wind_spc;
+};
 
-class wind {
-public:
+struct wind {
     float_t scale;
     float_t cycle;
     float_t rot_y;

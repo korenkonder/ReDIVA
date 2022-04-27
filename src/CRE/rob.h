@@ -16,30 +16,30 @@
 #include "object.h"
 #include "static_var.h"
 
-typedef enum ex_expression_block_stack_type {
+enum ex_expression_block_stack_type {
     EX_EXPRESSION_BLOCK_STACK_NUMBER          = 0x00,
     EX_EXPRESSION_BLOCK_STACK_VARIABLE        = 0x01,
     EX_EXPRESSION_BLOCK_STACK_VARIABLE_RADIAN = 0x02,
     EX_EXPRESSION_BLOCK_STACK_OP1             = 0x03,
     EX_EXPRESSION_BLOCK_STACK_OP2             = 0x04,
     EX_EXPRESSION_BLOCK_STACK_OP3             = 0x05,
-} ex_expression_block_stack_type;
+};
 
-typedef enum ex_node_type {
+enum ex_node_type {
     EX_NONE       = 0x00,
     EX_OSAGE      = 0x01,
     EX_EXPRESSION = 0x02,
     EX_CONSTRAINT = 0x03,
     EX_CLOTH      = 0x04,
-} ex_node_type;
+};
 
-typedef enum eyes_base_adjust_type {
+enum eyes_base_adjust_type {
     EYES_BASE_ADJUST_DIRECTION = 0,
     EYES_BASE_ADJUST_CLEARANCE = 1,
     EYES_BASE_ADJUST_OFF       = 2,
-} eyes_base_adjust_type;
+};
 
-typedef enum mothead_data_type {
+enum mothead_data_type {
     MOTHEAD_DATA_TYPE_0      = 0x00,
     MOTHEAD_DATA_TYPE_1      = 0x01,
     MOTHEAD_DATA_TYPE_2      = 0x02,
@@ -121,17 +121,17 @@ typedef enum mothead_data_type {
     MOTHEAD_DATA_TYPE_78     = 0x4E,
     MOTHEAD_DATA_TYPE_79     = 0x4F,
     MOTHEAD_DATA_TYPE_80     = 0x50,
-} mothead_data_type;
+};
 
-typedef enum MotionBlendType {
+enum MotionBlendType {
     MOTION_BLEND_NONE    = -1,
     MOTION_BLEND         = 0x00,
     MOTION_BLEND_FREEZE  = 0x01,
     MOTION_BLEND_CROSS   = 0x02,
     MOTION_BLEND_COMBINE = 0x03,
-} MotionBlendType;
+};
 
-typedef enum motion_bone_index {
+enum motion_bone_index {
     MOTION_BONE_NONE                    = -1,
     MOTION_BONE_N_HARA_CP               = 0x00,
     MOTION_BONE_KG_HARA_Y               = 0x01,
@@ -319,9 +319,9 @@ typedef enum motion_bone_index {
     MOTION_BONE_N_HARA_B_WJ_EX          = 0xB7,
     MOTION_BONE_N_HARA_C_WJ_EX          = 0xB8,
     MOTION_BONE_MAX                     = 0xB9,
-} motion_bone_index;
+};
 
-typedef enum rob_bone_index {
+enum rob_bone_index {
     ROB_BONE_NONE                    = -1,
     ROB_BONE_N_HARA_CP               = 0x00,
     ROB_BONE_KG_HARA_Y               = 0x01,
@@ -517,17 +517,17 @@ typedef enum rob_bone_index {
     ROB_BONE_N_HARA_B_WJ_EX          = 0xBF,
     ROB_BONE_N_HARA_C_WJ_EX          = 0xC0,
     ROB_BONE_MAX                     = 0xC1,
-} rob_bone_index;
+};
 
-typedef enum rob_chara_type {
+enum rob_chara_type {
     ROB_CHARA_TYPE_NONE = -1,
     ROB_CHARA_TYPE_0    = 0x00,
     ROB_CHARA_TYPE_1    = 0x01,
     ROB_CHARA_TYPE_2    = 0x02,
     ROB_CHARA_TYPE_3    = 0x03,
-} rob_chara_type;
+};
 
-typedef enum rob_chara_data_hand_adjust_type : uint16_t {
+enum rob_chara_data_hand_adjust_type : uint16_t {
     ROB_CHARA_DATA_HAND_ADJUST_NONE           = (uint16_t)-1,
     ROB_CHARA_DATA_HAND_ADJUST_NORMAL         = 0x00,
     ROB_CHARA_DATA_HAND_ADJUST_SHORT          = 0x01,
@@ -540,9 +540,9 @@ typedef enum rob_chara_data_hand_adjust_type : uint16_t {
     ROB_CHARA_DATA_HAND_ADJUST_2P             = 0x08,
     ROB_CHARA_DATA_HAND_ADJUST_3P             = 0x09,
     ROB_CHARA_DATA_HAND_ADJUST_4P             = 0x0A,
-} rob_chara_data_hand_adjust_type;
+};
 
-typedef enum rob_osage_parts {
+enum rob_osage_parts {
     ROB_OSAGE_PARTS_NONE        = -1,
     ROB_OSAGE_PARTS_LEFT        = 0x00,
     ROB_OSAGE_PARTS_RIGHT       = 0x01,
@@ -558,9 +558,9 @@ typedef enum rob_osage_parts {
     ROB_OSAGE_PARTS_ANGEL_L     = 0x0B,
     ROB_OSAGE_PARTS_ANGEL_R     = 0x0C,
     ROB_OSAGE_PARTS_MAX         = 0x0D,
-} rob_osage_parts;
+};
 
-typedef enum rob_osage_parts_bit {
+enum rob_osage_parts_bit {
     ROB_OSAGE_PARTS_LEFT_BIT        = 0x0001,
     ROB_OSAGE_PARTS_RIGHT_BIT       = 0x0002,
     ROB_OSAGE_PARTS_CENTER_BIT      = 0x0004,
@@ -574,18 +574,18 @@ typedef enum rob_osage_parts_bit {
     ROB_OSAGE_PARTS_PONY_BIT        = 0x0400,
     ROB_OSAGE_PARTS_ANGEL_L_BIT     = 0x0800,
     ROB_OSAGE_PARTS_ANGEL_R_BIT     = 0x1000,
-} rob_osage_parts_bit;
+};
 
-typedef enum skin_param_osage_root_coli_type {
+enum skin_param_osage_root_coli_type {
     SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_NONE     = 0x00,
     SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL     = 0x01,
     SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_CYLINDER = 0x02,
     SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_PLANE    = 0x03,
     SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_ELLIPSE  = 0x04,
     SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_5        = 0x05,
-} skin_param_osage_root_coli_type;
+};
 
-typedef enum SubActExecType {
+enum SubActExecType {
     SUB_ACTION_EXECUTE_NONE        = 0,
     SUB_ACTION_EXECUTE_CRY         = 1,
     SUB_ACTION_EXECUTE_SHAKE_HAND  = 2,
@@ -593,9 +593,9 @@ typedef enum SubActExecType {
     SUB_ACTION_EXECUTE_ANGRY       = 4,
     SUB_ACTION_EXECUTE_LAUGH       = 5,
     SUB_ACTION_EXECUTE_COUNT_NUM   = 6,
-} SubActExecType;
+};
 
-typedef enum SubActParamType  {
+enum SubActParamType  {
     SUB_ACTION_PARAM_NONE        = 0x0,
     SUB_ACTION_PARAM_CRY         = 0x1,
     SUB_ACTION_PARAM_SHAKE_HAND  = 0x2,
@@ -603,24 +603,21 @@ typedef enum SubActParamType  {
     SUB_ACTION_PARAM_ANGRY       = 0x4,
     SUB_ACTION_PARAM_LAUGH       = 0x5,
     SUB_ACTION_PARAM_COUNT_NUM   = 0x6,
-} SubActParamType;
+};
 
-class rob_chara;
-class rob_chara_bone_data;
+struct rob_chara;
+struct rob_chara_bone_data;
 
-class bone_node_expression_data {
-public:
+struct bone_node_expression_data {
     vec3 position;
     vec3 rotation;
     vec3 scale;
     vec3 parent_scale;
 
     bone_node_expression_data();
-    ~bone_node_expression_data();
 };
 
-class bone_node {
-public:
+struct bone_node {
     const char* name;
     mat4* mat;
     bone_node* parent;
@@ -628,45 +625,44 @@ public:
     mat4* ex_data_mat;
 
     bone_node();
-    ~bone_node();
 };
 
-typedef struct struc_314 {
+struct struc_314 {
     uint32_t* field_0;
     size_t field_8;
-} struc_314;
+};
 
-typedef struct mot_key_set {
+struct mot_key_set {
     mot_key_set_type type;
     int32_t keys_count;
     int32_t current_key;
     int32_t last_key;
     uint16_t* frames;
     float_t* values;
-} mot_key_set;
+};
 
 vector_old(mot_key_set)
 
-typedef struct eyes_adjust {
+struct eyes_adjust {
     bool xrot_adjust;
     eyes_base_adjust_type base_adjust;
     float_t neg;
     float_t pos;
-} eyes_adjust;
+};
 
-typedef struct mot {
+struct mot {
     uint16_t key_set_count;
     uint16_t frame_count;
     uint16_t field_4;
     mot_key_set* key_sets;
-} mot;
+};
 
-typedef struct struc_369 {
+struct struc_369 {
     int32_t field_0;
     float_t field_4;
-} struc_369;
+};
 
-typedef struct mot_key_data {
+struct mot_key_data {
     bool key_sets_ready;
     size_t key_set_count;
     vector_old_mot_key_set key_set;
@@ -678,9 +674,9 @@ typedef struct mot_key_data {
     int32_t motion_id;
     float_t frame;
     struc_369 field_68;
-} mot_key_data;
+};
 
-typedef struct bone_data {
+struct bone_data {
     bone_database_bone_type type;
     int32_t has_parent;
     motion_bone_index motion_bone_index;
@@ -705,11 +701,11 @@ typedef struct bone_data {
     float_t field_2E0;
     float_t eyes_xrot_adjust_neg;
     float_t eyes_xrot_adjust_pos;
-} bone_data;
+};
 
 vector_old(bone_data)
 
-typedef struct bone_data_parent {
+struct bone_data_parent {
     rob_chara_bone_data* rob_bone_data;
     size_t motion_bone_count;
     size_t ik_bone_count;
@@ -721,9 +717,9 @@ typedef struct bone_data_parent {
     uint32_t bone_key_set_count;
     uint32_t global_key_set_count;
     float_t rotation_y;
-} bone_data_parent;
+};
 
-typedef struct mot_play_frame_data {
+struct mot_play_frame_data {
     float_t frame;
     float_t step;
     float_t step_prev;
@@ -736,18 +732,18 @@ typedef struct mot_play_frame_data {
     float_t field_24;
     bool field_28;
     int32_t field_2C;
-} mot_play_frame_data;
+};
 
-typedef struct mot_play_data {
+struct mot_play_data {
     mot_play_frame_data frame_data;
     int32_t field_30;
     bool field_34;
     float_t field_38;
     float_t* field_40;
     float_t* field_48;
-} mot_play_data;
+};
 
-typedef struct struc_308 {
+struct struc_308 {
     int32_t field_0;
     int32_t field_4;
     uint8_t field_8;
@@ -764,9 +760,9 @@ typedef struct struc_308 {
     float_t field_C0;
     float_t field_C4;
     vec3 field_C8;
-} struc_308;
+};
 
-typedef struct struc_400 {
+struct struc_400 {
     bool field_0;
     bool field_1;
     bool field_2;
@@ -775,7 +771,7 @@ typedef struct struc_400 {
     float_t frame;
     float_t eyes_adjust;
     float_t prev_eyes_adjust;
-} struc_400;
+};
 
 class MotionBlend {
 public:
@@ -858,8 +854,7 @@ public:
     virtual void Blend(bone_data*, bone_data*) override;
 };
 
-class struc_313 {
-public:
+struct struc_313 {
     std::vector<uint32_t> bitfield;
     size_t motion_bone_count;
 
@@ -868,8 +863,7 @@ public:
 };
 
 
-class struc_240 {
-public:
+struct struc_240 {
     bool(*bone_check_func)(motion_bone_index bone_index);
     struc_313 field_8;
     size_t motion_bone_count;
@@ -878,8 +872,7 @@ public:
     ~struc_240();
 };
 
-class motion_blend_mot {
-public:
+struct motion_blend_mot {
     struc_240 field_0;
     MotionBlendCross cross;
     MotionBlendFreeze freeze;
@@ -895,17 +888,16 @@ public:
     virtual ~motion_blend_mot();
 };
 
-typedef struct rob_chara_bone_data_ik_scale {
+struct rob_chara_bone_data_ik_scale {
     float_t ratio0;
     float_t ratio1;
     float_t ratio2;
     float_t ratio3;
 
     rob_chara_bone_data_ik_scale();
-} rob_chara_bone_data_ik_scale;
+};
 
-class mot_blend {
-public:
+struct mot_blend {
     struc_240 field_0;
     bool field_30;
     mot_key_data mot_key_data;
@@ -916,7 +908,7 @@ public:
     ~mot_blend();
 };
 
-typedef struct struc_241 {
+struct struc_241 {
     float_t field_0;
     float_t field_4;
     float_t field_8;
@@ -934,9 +926,9 @@ typedef struct struc_241 {
     float_t field_38;
     float_t field_3C;
     float_t field_40;
-} struc_241;
+};
 
-typedef struct struc_243 {
+struct struc_243 {
     float_t field_0;
     float_t field_4;
     float_t field_8;
@@ -947,9 +939,9 @@ typedef struct struc_243 {
     int32_t field_1C;
     float_t field_20;
     float_t field_24;
-} struc_243;
+};
 
-typedef struct struc_258 {
+struct struc_258 {
     std::vector<bone_data>* field_0;
     mat4u field_8;
     struc_241 field_48;
@@ -998,9 +990,9 @@ typedef struct struc_258 {
     bool field_1C4;
     int32_t field_1C8;
     int32_t field_1CC;
-} struc_258;
+};
 
-typedef struct struc_242 {
+struct struc_242 {
     float_t field_0;
     float_t field_4;
     float_t field_8;
@@ -1012,10 +1004,9 @@ typedef struct struc_242 {
     float_t field_20;
     float_t field_24;
     float_t field_28;
-} struc_242;
+};
 
-class struc_312 {
-public:
+struct struc_312 {
     struc_242 field_0;
     struc_242 field_2C;
     bool field_58;
@@ -1029,8 +1020,7 @@ public:
     float_t field_98;
 };
 
-class rob_chara_bone_data {
-public:
+struct rob_chara_bone_data {
     bool field_0;
     bool field_1;
     size_t object_bone_count;
@@ -1065,7 +1055,7 @@ public:
     virtual ~rob_chara_bone_data();
 };
 
-typedef union rob_chara_pv_data_customize_items {
+union rob_chara_pv_data_customize_items {
     struct {
         int32_t head;
         int32_t face;
@@ -1073,10 +1063,9 @@ typedef union rob_chara_pv_data_customize_items {
         int32_t back;
     };
     int32_t arr[4];
-} rob_chara_pv_data_customize_items;
+};
 
-class rob_chara_pv_data {
-public:
+struct rob_chara_pv_data {
     rob_chara_type type;
     bool field_4;
     bool field_5;
@@ -1097,21 +1086,21 @@ public:
     virtual ~rob_chara_pv_data();
 };
 
-typedef struct struc_218 {
+struct struc_218 {
     vec3 bone_offset;
     float_t scale;
     int32_t bone_index;
     int32_t field_14;
-} struc_218;
+};
 
-typedef struct struc_344 {
+struct struc_344 {
     int32_t field_0;
     int32_t field_4;
     int32_t field_8;
     int32_t field_C;
-} struc_344;
+};
 
-typedef struct chara_init_data {
+struct chara_init_data {
     int32_t object_set;
     bone_database_skeleton_type skeleton_type;
     object_info field_7E0[15];
@@ -1123,9 +1112,9 @@ typedef struct chara_init_data {
     struc_344 field_848;
     object_info head_objects[9];
     object_info face_objects[15];
-} chara_init_data;
+};
 
-class rob_chara_item_equip_object;
+struct rob_chara_item_equip_object;
 
 class ExNodeBlock {
 public:
@@ -1180,7 +1169,7 @@ public:
         const char* cns_data_name, bone_database* bone_data);
 };
 
-class struc_571;
+struct struc_571;
 
 struct ExClothBlock : public ExNodeBlock {
 public:
@@ -1210,15 +1199,15 @@ public:
     void SetSkinParam(struc_571* skp);
 };
 
-typedef struct opd_vec3_data {
+struct opd_vec3_data {
     float_t* x;
     float_t* y;
     float_t* z;
-} opd_vec3_data;
+};
 
-class rob_osage_node;
+struct rob_osage_node;
 
-typedef struct rob_osage_node_data_normal_ref {
+struct rob_osage_node_data_normal_ref {
     bool field_0;
     rob_osage_node* n;
     rob_osage_node* u;
@@ -1226,10 +1215,9 @@ typedef struct rob_osage_node_data_normal_ref {
     rob_osage_node* l;
     rob_osage_node* r;
     mat4u mat;
-} rob_osage_node_data_normal_ref;
+};
 
-class skin_param_hinge {
-public:
+struct skin_param_hinge {
     float_t ymin;
     float_t ymax;
     float_t zmin;
@@ -1241,8 +1229,7 @@ public:
     void limit();
 };
 
-class skin_param_osage_node {
-public:
+struct skin_param_osage_node {
     float_t coli_r;
     float_t weight;
     float_t inertial_cancel;
@@ -1252,8 +1239,7 @@ public:
     ~skin_param_osage_node();
 };
 
-class rob_osage_node_data {
-public:
+struct rob_osage_node_data {
     float_t force;
     std::vector<rob_osage_node*> boc;
     rob_osage_node_data_normal_ref normal_ref;
@@ -1265,25 +1251,24 @@ public:
     void reset();
 };
 
-typedef struct struc_477 {
+struct struc_477 {
     float_t length;
     vec3 angle;
-} struc_477;
+};
 
-typedef struct struc_476 {
+struct struc_476 {
     struc_477 field_0;
     struc_477 field_10;
-} struc_476;
+};
 
-typedef struct rob_osage_node_reset_data {
+struct rob_osage_node_reset_data {
     vec3 trans;
     vec3 trans_diff;
     vec3 rotation;
     float_t length;
-} rob_osage_node_reset_data;
+};
 
-class rob_osage_node {
-public:
+struct rob_osage_node {
     float_t length;
     vec3 trans;
     vec3 trans_orig;
@@ -1312,8 +1297,7 @@ public:
     void reset();
 };
 
-class skin_param_osage_root_coli {
-public:
+struct skin_param_osage_root_coli {
     skin_param_osage_root_coli_type type;
     int32_t bone0_index;
     int32_t bone1_index;
@@ -1325,8 +1309,7 @@ public:
     ~skin_param_osage_root_coli();
 };
 
-class skin_param_osage_root_normal_ref {
-public:
+struct skin_param_osage_root_normal_ref {
     std::string n;
     std::string u;
     std::string d;
@@ -1337,8 +1320,7 @@ public:
     ~skin_param_osage_root_normal_ref();
 };
 
-class skin_param_osage_root_boc {
-public:
+struct skin_param_osage_root_boc {
     int32_t ed_node;
     std::string ed_root;
     int32_t st_node;
@@ -1347,8 +1329,7 @@ public:
     ~skin_param_osage_root_boc();
 };
 
-class skin_param_osage_root {
-public:
+struct skin_param_osage_root {
     int32_t field_0;
     float_t force;
     float_t force_gain;
@@ -1376,8 +1357,7 @@ public:
     ~skin_param_osage_root();
 };
 
-class skin_param {
-public:
+struct skin_param {
     std::vector<skin_param_osage_root_coli> coli;
     float_t friction;
     float_t wind_afc;
@@ -1399,8 +1379,7 @@ public:
     void reset();
 };
 
-class struc_571 {
-public:
+struct struc_571 {
     skin_param skin_param;
     std::vector<rob_osage_node_data> nodes_data;
     bool field_88;
@@ -1409,8 +1388,7 @@ public:
     ~struc_571();
 };
 
-class osage_coli {
-public:
+struct osage_coli {
     int32_t type;
     float_t radius;
     vec3 bone0_pos;
@@ -1424,8 +1402,7 @@ public:
     ~osage_coli();
 };
 
-class osage_ring_data {
-public:
+struct osage_ring_data {
     float_t ring_rectangle_x;
     float_t ring_rectangle_y;
     float_t ring_rectangle_width;
@@ -1440,15 +1417,14 @@ public:
     ~osage_ring_data();
 };
 
-typedef struct osage_setting_osg_cat {
+struct osage_setting_osg_cat {
     int32_t parts;
     size_t exf;
 
     osage_setting_osg_cat();
-} osage_setting_osg_cat;
+};
 
-class rob_osage {
-public:
+struct rob_osage {
     skin_param* skin_param_ptr;
     bone_node_expression_data exp_data;
     std::vector<rob_osage_node> nodes;
@@ -1548,37 +1524,37 @@ public:
     static void sub_1401EB410(mat4* mat, vec3* a2, vec3* target_offset);
 };
 
-typedef struct ex_expression_block_stack ex_expression_block_stack;
+struct ex_expression_block_stack;
 
-typedef struct ex_expression_block_stack_number {
+struct ex_expression_block_stack_number {
     float_t value;
-} ex_expression_block_stack_number;
+};
 
-typedef struct ex_expression_block_stack_variable {
+struct ex_expression_block_stack_variable {
     float_t* value;
-} ex_expression_block_stack_variable;
+};
 
-typedef struct ex_expression_block_stack_variable_radian {
+struct ex_expression_block_stack_variable_radian {
     float_t* value;
-} ex_expression_block_stack_variable_radian;
+};
 
-typedef struct ex_expression_block_stack_op1 {
+struct ex_expression_block_stack_op1 {
     float_t(*func)(float_t v1);
     ex_expression_block_stack* v1;
-} ex_expression_block_stack_op1;
+};
 
-typedef struct ex_expression_block_stack_op2 {
+struct ex_expression_block_stack_op2 {
     float_t(*func)(float_t v1, float_t v2);
     ex_expression_block_stack* v1;
     ex_expression_block_stack* v2;
-} ex_expression_block_stack_op2;
+};
 
-typedef struct ex_expression_block_stack_op3 {
+struct ex_expression_block_stack_op3 {
     float_t(*func)(float_t v1, float_t v2, float_t v3);
     ex_expression_block_stack* v1;
     ex_expression_block_stack* v2;
     ex_expression_block_stack* v3;
-} ex_expression_block_stack_op3;
+};
 
 struct ex_expression_block_stack {
     ex_expression_block_stack_type type;
@@ -1624,17 +1600,16 @@ public:
         const char* exp_data_name, object_info a4, size_t index, bone_database* bone_data);
 };
 
-typedef struct ex_data_name_bone_index {
+struct ex_data_name_bone_index {
     const char* name;
     int32_t bone_index;
-} ex_data_name_bone_index;
+};
 
 vector_old(ex_data_name_bone_index)
 
-class rob_chara_item_equip;
+struct rob_chara_item_equip;
 
-class rob_chara_item_equip_object {
-public:
+struct rob_chara_item_equip_object {
     size_t index;
     mat4* mats;
     object_info obj_info;
@@ -1672,17 +1647,16 @@ public:
     virtual ~rob_chara_item_equip_object();
 };
 
-typedef struct opd_blend_data {
+struct opd_blend_data {
     int32_t motion_id;
     float_t frame;
     float_t frame_count;
     bool field_C;
     MotionBlendType type;
     float_t blend;
-} opd_blend_data;
+};
 
-class rob_chara_item_equip {
-public:
+struct rob_chara_item_equip {
     bone_node* bone_nodes;
     mat4* matrices;
     rob_chara_item_equip_object* item_equip_object;
@@ -1741,8 +1715,7 @@ public:
     virtual ~rob_chara_item_equip();
 };
 
-class item_cos_texture_change_tex {
-public:
+struct item_cos_texture_change_tex {
     texture* org;
     texture* chg;
     bool changed;
@@ -1751,8 +1724,7 @@ public:
     ~item_cos_texture_change_tex();
 };
 
-class rob_chara_item_cos_data {
-public:
+struct rob_chara_item_cos_data {
     ::chara_index chara_index;
     ::chara_index chara_index_2nd;
     item_cos_data cos;
@@ -1768,20 +1740,19 @@ public:
     ~rob_chara_item_cos_data();
 };
 
-typedef struct struc_525 {
+struct struc_525 {
     int32_t field_0;
     int32_t field_4;
-} struc_525;
+};
 
-typedef struct struc_524 {
+struct struc_524 {
     int32_t field_0;
     struc_525 field_4;
     int32_t motion_id;
     int8_t field_10;
-} struc_524;
+};
 
-class struc_523 {
-public:
+struct struc_523 {
     int8_t field_0;
     int8_t field_1;
     int32_t field_4;
@@ -1814,13 +1785,12 @@ public:
     ~struc_523();
 };
 
-typedef struct struc_526 {
+struct struc_526 {
     int32_t field_0;
     int32_t field_4;
-} struc_526;
+};
 
-class struc_264 {
-public:
+struct struc_264 {
     int8_t field_0;
     struc_524 field_4;
     struc_524 field_18;
@@ -1896,7 +1866,53 @@ public:
     ~struc_264();
 };
 
-class SubActParam;
+class SubActParam {
+public:
+    SubActParamType type;
+
+    SubActParam(SubActParamType type);
+    virtual ~SubActParam();
+};
+
+class SubActParamAngry : public SubActParam {
+public:
+    SubActParamAngry();
+    virtual ~SubActParamAngry();
+};
+
+class SubActParamCountNum : public SubActParam {
+public:
+    int32_t field_10;
+
+    SubActParamCountNum();
+    virtual ~SubActParamCountNum();
+};
+
+class SubActParamCry : public SubActParam {
+public:
+    SubActParamCry();
+    virtual ~SubActParamCry();
+};
+
+class SubActParamEmbarrassed : public SubActParam {
+public:
+    SubActParamEmbarrassed();
+    virtual ~SubActParamEmbarrassed();
+};
+
+class SubActParamLaugh : public SubActParam {
+public:
+    SubActParamLaugh();
+    virtual ~SubActParamLaugh();
+};
+
+class SubActParamShakeHand : public SubActParam {
+public:
+    int32_t field_10;
+
+    SubActParamShakeHand();
+    virtual ~SubActParamShakeHand();
+};
 
 class SubActExec {
 public:
@@ -1979,58 +1995,8 @@ public:
     virtual void Field_20(rob_chara* rob_chr) override;
 };
 
-class SubActParam {
-public:
-    SubActParamType type;
-
-    SubActParam(SubActParamType type);
-    virtual ~SubActParam();
-};
-
-class SubActParamAngry : public SubActParam {
-public:
-    SubActParamAngry();
-    virtual ~SubActParamAngry();
-};
-
-class SubActParamCountNum : public SubActParam {
-public:
-    int32_t field_10;
-
-    SubActParamCountNum();
-    virtual ~SubActParamCountNum();
-};
-
-class SubActParamCry : public SubActParam {
-public:
-    SubActParamCry();
-    virtual ~SubActParamCry();
-};
-
-class SubActParamEmbarrassed : public SubActParam {
-public:
-    SubActParamEmbarrassed();
-    virtual ~SubActParamEmbarrassed();
-};
-
-class SubActParamLaugh : public SubActParam {
-public:
-    SubActParamLaugh();
-    virtual ~SubActParamLaugh();
-};
-
-class SubActParamShakeHand : public SubActParam {
-public:
-    int32_t field_10;
-
-    SubActParamShakeHand();
-    virtual ~SubActParamShakeHand();
-};
-
-class RobSubAction {
-public:
-    class Data {
-    public:
+struct RobSubAction {
+    struct Data {
         SubActExec* field_0;
         SubActExec* field_8;
         SubActParam* field_10;
@@ -2052,22 +2018,21 @@ public:
     void Reset();
 };
 
-typedef struct struc_389 {
+struct struc_389 {
     float_t frame;
     float_t prev_frame;
     float_t last_set_frame;
-} struc_389;
+};
 
-typedef struct struc_406 {
+struct struc_406 {
     float_t frame;
     float_t field_4;
     float_t step;
-} struc_406;
+};
 
 class RobPartialMotion {
 public:
-    class Data {
-    public:
+    struct Data {
         int32_t motion_id;
         int32_t mottbl_index;
         int32_t state;
@@ -2126,8 +2091,7 @@ public:
     virtual void Reset() override;
 };
 
-class struc_405 {
-public:
+struct struc_405 {
     RobFaceMotion face;
     RobHandMotion hand_l;
     RobHandMotion hand_r;
@@ -2147,7 +2111,7 @@ public:
     void Reset();
 };
 
-typedef struct rob_chara_data_parts_adjust {
+struct rob_chara_data_parts_adjust {
     bool enable;
     float_t frame;
     float_t transition_frame;
@@ -2168,9 +2132,9 @@ typedef struct rob_chara_data_parts_adjust {
     float_t force;
     float_t strength;
     float_t strength_transition;
-} rob_chara_data_parts_adjust;
+};
 
-typedef struct rob_chara_data_hand_adjust {
+struct rob_chara_data_hand_adjust {
     bool enable;
     int16_t scale_select;
     rob_chara_data_hand_adjust_type type;
@@ -2188,19 +2152,18 @@ typedef struct rob_chara_data_hand_adjust {
     vec3 field_30;
     float_t field_3C;
     int32_t field_40;
-} rob_chara_data_hand_adjust;
+};
 
-typedef struct struc_222 {
+struct struc_222 {
     int8_t field_0;
     float_t field_4;
     float_t field_8;
     float_t field_C;
     float_t duration;
     float_t frame;
-} struc_222;
+};
 
-class rob_chara_adjust {
-public:
+struct rob_chara_adjust {
     int32_t motion_id;
     int32_t prev_motion_id;
     struc_389 frame_data;
@@ -2238,54 +2201,54 @@ public:
     ~rob_chara_adjust();
 };
 
-typedef struct struc_228 {
+struct struc_228 {
     int32_t field_0;
     int32_t field_4;
     uint32_t field_8;
     int32_t field_C;
-} struc_228;
+};
 
-typedef struct struc_227 {
+struct struc_227 {
     int32_t field_0;
     float_t field_4;
     float_t field_8;
-} struc_227;
+};
 
-typedef struct mothead_data {
+struct mothead_data {
     mothead_data_type type;
     int32_t frame;
     void* data;
-} mothead_data;
+};
 
-typedef struct mothead_data2 {
+struct mothead_data2 {
     int32_t type;
     void* data;
-} mothead_data2;
+};
 
-typedef struct mothead_sub {
+struct mothead_sub {
     struc_228 field_0;
     int16_t field_10;
     int16_t field_12;
     mothead_data2* field_18;
     mothead_data* data;
     int64_t* field_28;
-} mothead_sub;
+};
 
-typedef struct mothead {
+struct mothead {
     int32_t mot_set_id;
     int32_t first_mot_id;
     int32_t last_mot_id;
     mothead_sub** sub;
-} mothead;
+};
 
-typedef struct mothead_file {
+struct mothead_file {
     int32_t mot_set_id;
     int32_t first_mot_id;
     int32_t last_mot_id;
     int32_t field_C;
-} mothead_file;
+};
 
-typedef struct mothead_sub_file {
+struct mothead_sub_file {
     int32_t field_0;
     int32_t field_4;
     int32_t field_8;
@@ -2295,26 +2258,26 @@ typedef struct mothead_sub_file {
     uint32_t field_14;
     uint32_t field_18;
     uint32_t field_1C;
-} mothead_sub_file;
+};
 
-typedef struct struc_377 {
+struct struc_377 {
     mothead_data* field_0;
     mothead_data* field_8;
-} struc_377;
+};
 
-typedef struct struc_226 {
+struct struc_226 {
     int8_t field_0[27];
-} struc_226;
+};
 
-typedef struct struc_225 {
+struct struc_225 {
     float field_0[27];
-} struc_225;
+};
 
-typedef struct struc_224 {
+struct struc_224 {
     int32_t field_0[27];
-} struc_224;
+};
 
-typedef struct struc_306 {
+struct struc_306 {
     int16_t field_0;
     float_t frame;
     float_t field_8;
@@ -2329,10 +2292,9 @@ typedef struct struc_306 {
     int32_t field_40;
     int32_t field_44;
     int32_t field_48;
-} struc_306;
+};
 
-class struc_223 {
-public:
+struct struc_223 {
     int32_t field_0;
     float_t frame_count;
     float_t field_8;
@@ -2465,7 +2427,7 @@ public:
     ~struc_223();
 };
 
-typedef struct rob_chara_data_miku_rot {
+struct rob_chara_data_miku_rot {
     int16_t rot_y_int16;
     int16_t field_2;
     int16_t field_4;
@@ -2484,9 +2446,9 @@ typedef struct rob_chara_data_miku_rot {
     int32_t field_64;
     int32_t field_68;
     mat4u field_6C;
-} rob_chara_data_miku_rot;
+};
 
-typedef struct rob_chara_adjust_data {
+struct rob_chara_adjust_data {
     float_t scale;
     bool height_adjust;
     float_t pos_adjust_y;
@@ -2502,32 +2464,31 @@ typedef struct rob_chara_adjust_data {
     float_t right_hand_scale;
     float_t left_hand_scale_default;
     float_t right_hand_scale_default;
-} rob_chara_adjust_data;
+};
 
-typedef struct struc_195 {
+struct struc_195 {
     vec3 prev_trans;
     vec3 trans;
     float_t scale;
     float_t field_1C;
     float_t field_20;
     float_t field_24;
-} struc_195;
+};
 
-typedef struct struc_210 {
+struct struc_210 {
     vec2 field_0;
     float_t scale;
-} struc_210;
+};
 
-typedef struct struc_267 {
+struct struc_267 {
     float_t field_0;
     int16_t field_4;
     int16_t field_6;
     float_t field_8;
     int16_t field_C;
-} struc_267;
+};
 
-class struc_209 {
-public:
+struct struc_209 {
     int16_t field_0;
     int32_t field_4;
     int32_t field_8;
@@ -2652,8 +2613,7 @@ public:
     ~struc_209();
 };
 
-class rob_chara_data {
-public:
+struct rob_chara_data {
     uint8_t field_0;
     uint8_t field_1;
     uint8_t field_2;
@@ -2692,8 +2652,7 @@ public:
     ~rob_chara_data();
 };
 
-class rob_chara {
-public:
+struct rob_chara {
     int8_t chara_id;
     rob_chara_type type;
     bool field_C;
@@ -2713,12 +2672,12 @@ public:
     virtual ~rob_chara();
 };
 
-typedef struct skeleton_rotation_offset {
+struct skeleton_rotation_offset {
     bool x;
     bool y;
     bool z;
     vec3 rotation;
-} skeleton_rotation_offset;
+};
 
 #define ROB_CHARA_COUNT 6
 

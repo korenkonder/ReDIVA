@@ -8,7 +8,7 @@
 #include "../KKdLib/default.h"
 #include "shader.h"
 
-typedef enum shader_ft_enum {
+enum shader_ft_enum {
     SHADER_FT_FFP        = 0x00,
     SHADER_FT_BLINN      = 0x01,
     SHADER_FT_ITEM       = 0x02,
@@ -72,7 +72,7 @@ typedef enum shader_ft_enum {
     SHADER_FT_IMGFILT    = 0x3C,
     SHADER_FT_SPRITE     = 0x3D,
     SHADER_FT_END        = 0x3E,
-} shader_ft_enum;
+};
 
 extern shader_set_data shaders_ft;
 

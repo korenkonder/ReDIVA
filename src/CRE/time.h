@@ -7,10 +7,10 @@
 
 #include "../KKdLib/default.h"
 
-typedef struct time_struct {
+struct time_struct {
     LARGE_INTEGER timestamp;
     double_t inv_freq;
-} time_struct;
+};
 
 extern void time_struct_init(time_struct* t);
 extern double_t time_struct_calc_time(time_struct* t);

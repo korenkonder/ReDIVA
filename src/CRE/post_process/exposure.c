@@ -10,15 +10,19 @@
 #include "../rob.h"
 #include "../shader_ft.h"
 
-typedef struct struc_188 {
+struct struc_188 {
     vec4u field_0[8];
     float_t field_80;
     GLuint field_84[3];
     GLuint field_90[3];
-} struc_188;
+};
 
 static void post_process_exposure_free_fbo(post_process_exposure* exp);
 static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat);
+
+post_process_exposure::post_process_exposure() : exposure_history_counter() {
+
+}
 
 post_process_exposure* post_process_exposure_init() {
     post_process_exposure* exp = force_malloc_s(post_process_exposure, 1);

@@ -11,20 +11,19 @@
 #include "vec.h"
 #include "vector.h"
 
-typedef enum mot_key_set_type {
+enum mot_key_set_type {
     MOT_KEY_SET_NONE            = 0x00,
     MOT_KEY_SET_STATIC          = 0x01,
     MOT_KEY_SET_HERMITE         = 0x02,
     MOT_KEY_SET_HERMITE_TANGENT = 0x03,
-} mot_key_set_type;
+};
 
-typedef enum mot_key_set_data_type {
+enum mot_key_set_data_type {
     MOT_KEY_SET_DATA_F32 = 0x00,
     MOT_KEY_SET_DATA_F16 = 0x01,
-} mot_key_set_data_type;
+};
 
-class mot_bone_info {
-public:
+struct mot_bone_info {
     std::string name;
     uint16_t index;
 
@@ -32,8 +31,7 @@ public:
     ~mot_bone_info();
 };
 
-class mot_key_set_data {
-public:
+struct mot_key_set_data {
     mot_key_set_type type;
     std::vector<uint16_t> frames;
     std::vector<float_t> values;
@@ -44,8 +42,7 @@ public:
     ~mot_key_set_data();
 };
 
-class mot_data {
-public:
+struct mot_data {
     union {
         struct {
             uint16_t key_set_count : 14;
@@ -68,8 +65,7 @@ public:
     ~mot_data();
 };
 
-class mot_set {
-public:
+struct mot_set {
     bool is_x;
 
     std::string name;
@@ -79,8 +75,7 @@ public:
     ~mot_set();
 };
 
-class mot_set_farc {
-public:
+struct mot_set_farc {
     bool ready;
     bool modern;
 

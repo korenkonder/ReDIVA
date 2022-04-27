@@ -12,13 +12,13 @@
 #include "../half_t.h"
 #include "../vector.h"
 
-typedef enum stream_type {
+enum stream_type {
     STREAM_NONE = 0,
     STREAM_FILE,
     STREAM_MEMORY,
-} stream_type;
+};
 
-typedef struct stream {
+struct stream {
     uint8_t buf[0x100];
     union io {
         FILE* stream;
@@ -31,7 +31,7 @@ typedef struct stream {
     stream_type type;
     bool is_big_endian;
     vector_old_ssize_t position_stack;
-} stream;
+};
 
 extern void io_open(stream* s);
 extern void io_open(stream* s, const char* path, const char* mode);

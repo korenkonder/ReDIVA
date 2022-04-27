@@ -7,7 +7,7 @@
 #include <pmmintrin.h>
 #include <xmmintrin.h>
 
-inline void quat_mult(quat* x, quat* y, quat* z) {
+inline void quat_mult(const quat* x, const quat* y, quat* z) {
     __m128 xt;
     __m128 yt;
     quat zt;
@@ -37,7 +37,7 @@ inline void quat_mult(quat* x, quat* y, quat* z) {
     *z = zt;
 }
 
-void quat_slerp(quat* x, quat* y, quat* z, float_t blend) {
+void quat_slerp(const quat* x, const quat* y, quat* z, const float_t blend) {
     quat x_t;
     quat y_t;
     quat z_t;
@@ -114,7 +114,7 @@ void quat_from_mat3(float_t m00, float_t m01, float_t m02, float_t m10,
     }
 }
 
-void quat_from_axis_angle(vec3* axis, float_t angle, quat* quat) {
+void quat_from_axis_angle(const vec3* axis, const float_t angle, quat* quat) {
     float_t angle_sin;
     float_t angle_cos;
     vec3 _axis;

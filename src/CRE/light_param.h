@@ -21,8 +21,7 @@
 #include "file_handler.h"
 #include <glad/glad.h>
 
-class light_param_data {
-public:
+struct light_param_data {
     std::string name;
     std::string paths[6];
     std::string files[6];
@@ -38,8 +37,7 @@ public:
     ~light_param_data();
 };
 
-class light_param_data_storage {
-public:
+struct light_param_data_storage {
     GLuint textures[5];
     int32_t state;
     std::string name;

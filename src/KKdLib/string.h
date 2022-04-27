@@ -13,23 +13,23 @@
 #define WSTRING_LENGTH ((32 - sizeof(ssize_t) * 2) / sizeof(wchar_t))
 #define WSTRING_NULL_LENGTH (WSTRING_LENGTH - 1)
 
-typedef struct string {
+struct string {
     union {
         char data[STRING_LENGTH];
         char* ptr;
     };
     ssize_t length;
     ssize_t capacity;
-} string;
+};
 
-typedef struct wstring {
+struct wstring {
     union {
         wchar_t data[WSTRING_LENGTH];
         wchar_t* ptr;
     };
     ssize_t length;
     ssize_t capacity;
-} wstring;
+};
 
 extern const string string_empty;
 extern const wstring wstring_empty;

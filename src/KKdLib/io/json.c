@@ -7,11 +7,11 @@
 
 #define IO_JSON_READ_BUF_SIZE 0x200
 
-typedef struct io_json_read_buffer {
+struct io_json_read_buffer {
     char data[IO_JSON_READ_BUF_SIZE];
     int32_t first;
     int32_t length;
-} io_json_read_buffer;
+};
 
 static int32_t io_json_read_char(stream* s, io_json_read_buffer* buf);
 static void io_json_seek(stream* s, io_json_read_buffer* buf, ssize_t offset);
@@ -609,61 +609,61 @@ static void io_json_write_bool(stream* s, bool val) {
 
 static void io_json_write_int8_t(stream* s, int8_t val) {
     char temp[0x20];
-    size_t len = snprintf(temp, 0x20, "%hhi", val);
+    size_t len = sprintf_s(temp, 0x20, "%hhi", val);
     io_write(s, temp, len);
 }
 
 static void io_json_write_uint8_t(stream* s, uint8_t val) {
     char temp[0x20];
-    size_t len = snprintf(temp, 0x20, "%hhu", val);
+    size_t len = sprintf_s(temp, 0x20, "%hhu", val);
     io_write(s, temp, len);
 }
 
 static void io_json_write_int16_t(stream* s, int16_t val) {
     char temp[0x20];
-    size_t len = snprintf(temp, 0x20, "%hi", val);
+    size_t len = sprintf_s(temp, 0x20, "%hi", val);
     io_write(s, temp, len);
 }
 
 static void io_json_write_uint16_t(stream* s, uint16_t val) {
     char temp[0x20];
-    size_t len = snprintf(temp, 0x20, "%hu", val);
+    size_t len = sprintf_s(temp, 0x20, "%hu", val);
     io_write(s, temp, len);
 }
 
 static void io_json_write_int32_t(stream* s, int32_t val) {
     char temp[0x20];
-    size_t len = snprintf(temp, 0x20, "%i", val);
+    size_t len = sprintf_s(temp, 0x20, "%i", val);
     io_write(s, temp, len);
 }
 
 static void io_json_write_uint32_t(stream* s, uint32_t val) {
     char temp[0x20];
-    size_t len = snprintf(temp, 0x20, "%u", val);
+    size_t len = sprintf_s(temp, 0x20, "%u", val);
     io_write(s, temp, len);
 }
 
 static void io_json_write_int64_t(stream* s, int64_t val) {
     char temp[0x20];
-    size_t len = snprintf(temp, 0x20, "%lli", val);
+    size_t len = sprintf_s(temp, 0x20, "%lli", val);
     io_write(s, temp, len);
 }
 
 static void io_json_write_uint64_t(stream* s, uint64_t val) {
     char temp[0x20];
-    size_t len = snprintf(temp, 0x20, "%llu", val);
+    size_t len = sprintf_s(temp, 0x20, "%llu", val);
     io_write(s, temp, len);
 }
 
 static void io_json_write_float_t(stream* s, float_t val) {
     char temp[0x40];
-    size_t len = snprintf(temp, 0x40, "%.15lg", (double_t)val);
+    size_t len = sprintf_s(temp, 0x40, "%.15lg", (double_t)val);
     io_write(s, temp, len);
 }
 
 static void io_json_write_double_t(stream* s, double_t val) {
     char temp[0x40];
-    size_t len = snprintf(temp, 0x40, "%.15lg", val);
+    size_t len = sprintf_s(temp, 0x40, "%.15lg", val);
     io_write(s, temp, len);
 }
 
@@ -698,7 +698,7 @@ static void io_json_write_string(stream* s, string* val) {
             io_write(s, "\\u", 2);
 
             char t[5];
-            size_t len = snprintf(t, 5, "%04x", (wchar_t)c);
+            size_t len = sprintf_s(t, 5, "%04x", (wchar_t)c);
             io_write(s, t, len);
         }
         else

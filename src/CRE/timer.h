@@ -11,7 +11,7 @@
 
 #define HISTORY_COUNT 0x08
 
-typedef struct timer {
+struct timer {
     double_t history[HISTORY_COUNT];
     uint8_t history_counter;
     time_struct curr_time;
@@ -21,7 +21,7 @@ typedef struct timer {
     lock freq_lock;
     lock freq_hist_lock;
     HANDLE timer;
-} timer;
+};
 
 extern LARGE_INTEGER performance_frequency;
 

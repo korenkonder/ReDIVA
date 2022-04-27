@@ -10,14 +10,14 @@
 #include "default.h"
 #include "vec.h"
 
-typedef enum pvpp_chara_index {
+enum pvpp_chara_index {
     PVPP_CHARA_1P = 0,
     PVPP_CHARA_2P = 1,
     PVPP_CHARA_3P = 2,
     PVPP_CHARA_4P = 3,
-} pvpp_chara_index;
+};
 
-typedef enum pvpp_chara_type {
+enum pvpp_chara_type {
     PVPP_CHARA_MIKU   = 0,
     PVPP_CHARA_RIN    = 1,
     PVPP_CHARA_LEN    = 2,
@@ -30,10 +30,9 @@ typedef enum pvpp_chara_type {
     PVPP_CHARA_TETO   = 9,
     PVPP_CHARA_EXTRA  = 10,
     PVPP_CHARA_STAGE  = 255,
-} pvpp_chara_type;
+};
 
-class pvpp_a3da {
-public:
+struct pvpp_a3da {
     uint32_t hash;
     std::string name;
 
@@ -41,8 +40,7 @@ public:
     ~pvpp_a3da();
 };
 
-class pvpp_chara_effect_a3da {
-public:
+struct pvpp_chara_effect_a3da {
     pvpp_a3da a3da;
     uint8_t u00;
     uint8_t u01;
@@ -57,8 +55,7 @@ public:
     ~pvpp_chara_effect_a3da();
 };
 
-class pvpp_chara_effect {
-public:
+struct pvpp_chara_effect {
     pvpp_chara_type base_chara;
     pvpp_chara_index chara_index;
     std::vector<pvpp_chara_effect_a3da> effect_a3da;
@@ -67,8 +64,7 @@ public:
     ~pvpp_chara_effect();
 };
 
-class pvpp_chara_item {
-public:
+struct pvpp_chara_item {
     std::vector<pvpp_a3da> a3da;
     std::string bone;
     vec4u u18;
@@ -77,8 +73,7 @@ public:
     ~pvpp_chara_item();
 };
 
-class pvpp_glitter {
-public:
+struct pvpp_glitter {
     std::string name;
     std::string unk1;
     bool unk2;
@@ -87,8 +82,7 @@ public:
     ~pvpp_glitter();
 };
 
-class pvpp_motion {
-public:
+struct pvpp_motion {
     uint32_t hash;
     std::string name;
 
@@ -96,8 +90,7 @@ public:
     ~pvpp_motion();
 };
 
-class pvpp_effect {
-public:
+struct pvpp_effect {
     std::vector<pvpp_a3da> a3da;
     pvpp_chara_type chara_index;
     std::vector<pvpp_glitter> glitter;
@@ -106,8 +99,7 @@ public:
     ~pvpp_effect();
 };
 
-class pvpp_chara {
-public:
+struct pvpp_chara {
     std::vector<pvpp_a3da> a3da;
     std::vector<pvpp_chara_item> item;
     std::vector<pvpp_chara_effect> chara_effect;
@@ -118,8 +110,7 @@ public:
     ~pvpp_chara();
 };
 
-class pvpp {
-public:
+struct pvpp {
     bool ready;
 
     std::vector<pvpp_chara> chara;

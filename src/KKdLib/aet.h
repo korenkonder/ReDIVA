@@ -13,21 +13,7 @@
 #include "kf.h"
 #include "vec.h"
 
-typedef enum aet_layer_quality {
-    AET_LAYER_QUALITY_NONE      = 0,
-    AET_LAYER_QUALITY_WIREFRAME = 1,
-    AET_LAYER_QUALITY_DRAFT     = 2,
-    AET_LAYER_QUALITY_BEST      = 3,
-} aet_layer_quality;
-
-typedef enum aet_item_type {
-    AET_ITEM_TYPE_NONE        = 0,
-    AET_ITEM_TYPE_VIDEO       = 1,
-    AET_ITEM_TYPE_AUDIO       = 2,
-    AET_ITEM_TYPE_COMPOSITION = 3,
-} aet_item_type;
-
-typedef enum aet_blend_mode {
+enum aet_blend_mode {
     AET_BLEND_MODE_NONE                     = 0,
     AET_BLEND_MODE_COPY                     = 1,
     AET_BLEND_MODE_BEHIND                   = 2,
@@ -68,9 +54,31 @@ typedef enum aet_blend_mode {
     AET_BLEND_MODE_DARKER_COLOR             = 37,
     AET_BLEND_MODE_SUBTRACT                 = 38,
     AET_BLEND_MODE_DIVIDE                   = 39,
-} aet_blend_mode;
+};
 
-typedef struct aet_layer_flags {
+enum aet_item_type {
+    AET_ITEM_TYPE_NONE        = 0,
+    AET_ITEM_TYPE_VIDEO       = 1,
+    AET_ITEM_TYPE_AUDIO       = 2,
+    AET_ITEM_TYPE_COMPOSITION = 3,
+};
+
+enum aet_layer_quality {
+    AET_LAYER_QUALITY_NONE      = 0,
+    AET_LAYER_QUALITY_WIREFRAME = 1,
+    AET_LAYER_QUALITY_DRAFT     = 2,
+    AET_LAYER_QUALITY_BEST      = 3,
+};
+
+enum aet_track_matte {
+    AET_TRACK_MATTE_NONE      = 0,
+    AET_TRACK_MATTE_ALPHA     = 1,
+    AET_TRACK_MATTE_NOT_ALPHA = 2,
+    AET_TRACK_MATTE_LUMA      = 3,
+    AET_TRACK_MATTE_NOT_LUMA  = 4,
+};
+
+struct aet_layer_flags {
     // Toggles layer visuals on or off
     uint16_t video_active : 1;
     // Toggles layer sounds on or off
@@ -95,45 +103,37 @@ typedef struct aet_layer_flags {
     // Includes the current layer in previews and renders, ignoring layers without this switch set
     uint16_t solo : 1;
     uint16_t markers_locked : 1;
-} aet_layer_flags;
+};
 
-typedef struct aet_transfer_flags {
+struct aet_transfer_flags {
     uint8_t preserve_alpha : 1;
     uint8_t randomize_dissolve : 1;
-} aet_transfer_flags;
+};
 
-typedef enum aet_track_matte {
-    AET_TRACK_MATTE_NONE      = 0,
-    AET_TRACK_MATTE_ALPHA     = 1,
-    AET_TRACK_MATTE_NOT_ALPHA = 2,
-    AET_TRACK_MATTE_LUMA      = 3,
-    AET_TRACK_MATTE_NOT_LUMA  = 4,
-} aet_track_matte;
-
-typedef struct aet_audio {
+struct aet_audio {
     uint32_t sound_id;
-} aet_audio;
+};
 
-typedef struct aet_video_source {
+struct aet_video_source {
     std::string name;
     int32_t name_offset;
     uint32_t id;
-} aet_video_source;
+};
 
-typedef struct aet_layer_audio {
+struct aet_layer_audio {
     std::vector<kft2> volume_left;
     std::vector<kft2> volume_right;
     std::vector<kft2> pan_left;
     std::vector<kft2> pan_right;
-} aet_layer_audio;
+};
 
-typedef struct aet_layer_transfer_mode {
+struct aet_layer_transfer_mode {
     aet_blend_mode blend_mode;
     aet_transfer_flags transfer_flags;
     aet_track_matte track_matte;
-} aet_layer_transfer_mode;
+};
 
-typedef struct aet_layer_video_3d {
+struct aet_layer_video_3d {
     std::vector<kft2> anchor_z;
     std::vector<kft2> position_z;
     std::vector<kft2> direction_x;
@@ -142,9 +142,9 @@ typedef struct aet_layer_video_3d {
     std::vector<kft2> rotation_x;
     std::vector<kft2> rotation_y;
     std::vector<kft2> scale_z;
-} aet_layer_video_3d;
+};
 
-typedef struct aet_layer_video {
+struct aet_layer_video {
     aet_layer_transfer_mode transfer_mode;
     uint8_t padding;
     std::vector<kft2> anchor_x;
@@ -156,15 +156,15 @@ typedef struct aet_layer_video {
     std::vector<kft2> scale_y;
     std::vector<kft2> opacit_y;
     aet_layer_video_3d* video_3d;
-} aet_layer_video;
+};
 
-typedef struct aet_marker {
+struct aet_marker {
     float_t frame;
     std::string name;
     int32_t name_offset;
-} aet_marker;
+};
 
-typedef struct aet_layer {
+struct aet_layer {
     std::string name;
     int32_t name_offset;
     float_t start_frame;
@@ -181,26 +181,24 @@ typedef struct aet_layer {
     std::vector<aet_layer_audio> audio;
 
     int32_t DataID;
-} aet_layer;
+};
 
-typedef struct aet_composition {
+struct aet_composition {
     int32_t count;
     int32_t offset;
     aet_layer* elements;
-} aet_composition;
+};
 
-vector_old(aet_video_source);
-
-typedef struct aet_video {
+struct aet_video {
     int32_t offset;
     uint32_t color;
     uint16_t width;
     uint16_t height;
     float_t frames;
     std::vector<aet_video_source> video_source;
-} aet_video;
+};
 
-typedef struct aet_camera {
+struct aet_camera {
     std::vector<kft2> eye_x;
     std::vector<kft2> eye_y;
     std::vector<kft2> eye_z;
@@ -214,9 +212,9 @@ typedef struct aet_camera {
     std::vector<kft2> rotation_y;
     std::vector<kft2> rotation_z;
     std::vector<kft2> zoom;
-} aet_camera;
+};
 
-typedef struct aet_scene {
+struct aet_scene {
     std::string name;
     int32_t name_offset;
     float_t start_frame;
@@ -229,8 +227,8 @@ typedef struct aet_scene {
     std::vector<aet_composition> composition;
     std::vector<aet_video> video;
     std::vector<aet_audio> audio;
-} aet_scene;
+};
 
-typedef struct aet_header {
+struct aet_header {
     aet_scene scene;
-} aet_header;
+};

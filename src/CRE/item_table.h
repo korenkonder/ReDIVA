@@ -11,34 +11,33 @@
 #include "object.h"
 #include "texture.h"
 
-typedef struct item_table_item_data_obj {
+struct item_table_item_data_obj {
     object_info obj_info;
     item_id rpk;
 
     item_table_item_data_obj();
-} item_table_item_data_obj;
+};
 
-typedef struct item_table_item_data_ofs {
+struct item_table_item_data_ofs {
     item_sub_id sub_id;
     int32_t no;
     vec3 position;
     vec3 rotation;
     vec3 scale;
-} item_table_item_data_ofs;
+};
 
-typedef struct item_table_item_data_tex {
+struct item_table_item_data_tex {
     uint32_t org;
     uint32_t chg;
-} item_table_item_data_tex;
+};
 
-typedef struct item_table_item_data_col {
+struct item_table_item_data_col {
     uint32_t tex_id;
     int32_t flag;
     color_tone col_tone;
-} item_table_item_data_col;
+};
 
-class item_table_item_data {
-public:
+struct item_table_item_data {
     std::vector<item_table_item_data_obj> obj;
     std::vector<item_table_item_data_ofs> ofs;
     std::vector<item_table_item_data_tex> tex;
@@ -48,8 +47,7 @@ public:
     ~item_table_item_data();
 };
 
-class item_table_item {
-public:
+struct item_table_item {
     int32_t flag;
     std::string name;
     std::vector<uint32_t> objset;
@@ -68,7 +66,7 @@ public:
     ~item_table_item();
 };
 
-typedef union item_cos_data {
+union item_cos_data {
     struct {
         int32_t zujo;
         int32_t kami;
@@ -97,18 +95,16 @@ typedef union item_cos_data {
         int32_t head;
     } data;
     int32_t arr[25];
-} item_cos_data;
+};
 
-class item_table_dbgset {
-public:
+struct item_table_dbgset {
     std::vector<int32_t> item;
 
     item_table_dbgset();
     ~item_table_dbgset();
 };
 
-class item_table {
-public:
+struct item_table {
     std::map<int32_t, item_table_item> item;
     std::map<int32_t, item_cos_data> cos;
     std::map<uint32_t, item_table_dbgset> dbgset;

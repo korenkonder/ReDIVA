@@ -13,14 +13,13 @@
 #include "../KKdLib/default.h"
 #include "../KKdLib/farc.h"
 
-typedef struct file_handler_read_func_data {
+struct file_handler_read_func_data {
     void(*func)(void*, void*, size_t);
     void* data;
     bool ready;
-} file_handler_read_func_data;
+};
 
-class file_handler {
-public:
+struct file_handler {
     int32_t count;
     std::mutex mtx;
     bool not_ready;
@@ -45,8 +44,7 @@ public:
     void set_read_free_func_data(int32_t index, void(*func)(void*, void*, size_t), void* data);
 };
 
-class p_file_handler {
-public:
+struct p_file_handler {
     file_handler* ptr;
 
     p_file_handler();

@@ -17,19 +17,9 @@
 #include "../CRE/auth_3d.h"
 #include "../CRE/rob.h"
 #include "../CRE/task.h"
+#include "classes.h"
 
-typedef enum x_pv_game_frame_data_type {
-    X_PV_GAME_FRAME_DATA_NONE = 0,
-    X_PV_GAME_FRAME_DATA_END,
-    X_PV_GAME_FRAME_DATA_BPM,
-    X_PV_GAME_FRAME_DATA_STAGE_EFFECT,
-    X_PV_GAME_FRAME_DATA_STAGE_EFFECT_ONE_SHOT,
-    X_PV_GAME_FRAME_DATA_STAGE_CHANGE_EFFECT,
-    X_PV_GAME_FRAME_DATA_STAGE_CHANGE_EFFECT_END,
-} x_pv_game_frame_data_type;
-
-class x_pv_game_glitter {
-public:
+struct x_pv_game_glitter {
     std::string name;
     uint32_t hash;
 
@@ -37,22 +27,7 @@ public:
     ~x_pv_game_glitter();
 };
 
-typedef struct x_pv_game_stage_effect {
-    int32_t prev;
-    int32_t next;
-} x_pv_game_stage_effect;
-
-typedef struct x_pv_game_frame_data {
-    int32_t frame;
-    x_pv_game_frame_data_type type;
-    union {
-        int32_t bpm;
-        x_pv_game_stage_effect stage_effect;
-        int32_t stage_effect_one_shot;
-    };
-} x_pv_game_frame_data;
-
-typedef struct pv_play_data_set_motion {
+struct pv_play_data_set_motion {
     float_t frame_speed;
     int32_t motion_id;
     float_t frame;
@@ -63,28 +38,27 @@ typedef struct pv_play_data_set_motion {
     int32_t motion_index;
     int64_t dsc_time;
     float_t dsc_frame;
-} pv_play_data_set_motion;
+};
 
-typedef struct pv_play_data_motion {
+struct pv_play_data_motion {
     bool enable;
     int32_t motion_index;
     int64_t time;
-} pv_play_data_motion;
+};
 
-typedef struct dsc_set_item {
+struct dsc_set_item {
     int32_t time;
     int32_t item_index;
     int32_t pv_branch_mode;
-} dsc_set_item;
+};
 
-typedef struct dsc_set_motion {
+struct dsc_set_motion {
     int32_t time;
     int32_t motion_index;
     int32_t pv_branch_mode;
-} dsc_set_motion;
+};
 
-class struc_104 {
-public:
+struct struc_104 {
     rob_chara* rob_chr;
     float_t current_time;
     float_t duration;
@@ -102,8 +76,7 @@ public:
     void reset();
 };
 
-class pv_play_data {
-public:
+struct pv_play_data {
     std::vector<pv_play_data_motion> motion;
     rob_chara* rob_chr;
     std::list<pv_play_data_set_motion> set_motion;
@@ -116,7 +89,22 @@ public:
     void reset();
 };
 
-class x_pv_game : public Task {
+struct x_pv_game_stage_effect {
+    float_t frame;
+    float_t last_frame;
+    int32_t prev_stage_effect;
+    int32_t stage_effect;
+    int32_t next_stage_effect;
+};
+
+struct x_pv_game_stage_effect_init {
+    int32_t frame;
+    int32_t effect_id;
+    int32_t bar_count;
+    int32_t bar;
+};
+
+class x_pv_game : public TaskWindow {
 public:
     int32_t pv_id;
     int32_t stage_id;
@@ -135,9 +123,6 @@ public:
 
     x_pv_game_glitter* pv_glitter;
     x_pv_game_glitter* stage_glitter;
-
-    std::vector<x_pv_game_frame_data> frame_data;
-    x_pv_game_frame_data* curr_frame_data;
 
     object_database obj_db;
     texture_database tex_db;
@@ -167,6 +152,10 @@ public:
     dsc_data* dsc_data_ptr;
     dsc_data* dsc_data_ptr_end;
 
+    std::vector<x_pv_game_stage_effect_init> stage_effects;
+    x_pv_game_stage_effect_init* stage_effects_ptr;
+    x_pv_game_stage_effect_init* stage_effects_ptr_end;
+
     bool play;
     bool success;
     int32_t chara_id;
@@ -179,13 +168,21 @@ public:
     mat4u scene_rot_mat;
     int32_t branch_mode;
 
+    int64_t prev_bar_point_time;
+    int32_t prev_bpm;
+
+    bool pause;
+    bool step_frame;
+
+    x_pv_game_stage_effect stage_effect;
+
     x_pv_game();
     virtual ~x_pv_game() override;
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
-    virtual void Basic() override;
+    virtual void Window() override;
 
     void Load(int32_t pv_id, int32_t stage_id);
     void Unload();

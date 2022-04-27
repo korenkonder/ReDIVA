@@ -8,8 +8,7 @@
 #include "../default.h"
 #include "../vec.h"
 
-class light_param_face {
-public:
+struct light_param_face {
     bool ready;
 
     float_t offset;

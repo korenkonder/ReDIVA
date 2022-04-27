@@ -13,7 +13,7 @@
 
 #define POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES 32
 
-typedef struct post_process_tone_map_shader_data {
+struct post_process_tone_map_shader_data {
     vec4 p_exposure;
     vec4 p_flare_coef;
     vec4 p_fade_color;
@@ -21,9 +21,9 @@ typedef struct post_process_tone_map_shader_data {
     vec4 p_tone_offset;
     vec4 p_fade_func;
     vec4 p_inv_tone;
-} post_process_tone_map_shader_data;
+};
 
-typedef struct post_process_tone_map_data {
+struct post_process_tone_map_data {
     vec2 tex[16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES];
     float_t exposure;
     bool auto_exposure;
@@ -43,13 +43,13 @@ typedef struct post_process_tone_map_data {
     float_t lens_flare_appear_power;
     bool update;
     bool update_tex;
-} post_process_tone_map_data;
+};
 
-typedef struct post_process_tone_map {
+struct post_process_tone_map {
     post_process_tone_map_data data;
     post_process_tone_map_shader_data shader_data;
     GLuint tone_map;
-} post_process_tone_map;
+};
 
 extern post_process_tone_map* post_process_tone_map_init();
 extern void post_process_apply_tone_map(post_process_tone_map* tm,

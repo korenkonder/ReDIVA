@@ -10,12 +10,12 @@
 #include "../shared.h"
 #include "../render_texture.h"
 
-typedef struct post_process_aa {
+struct post_process_aa {
     int32_t width;
     int32_t height;
     render_texture mlaa_buffer[2];
     GLuint mlaa_area_texture;
-} post_process_aa;
+};
 
 extern post_process_aa* post_process_aa_init();
 extern void post_process_apply_mlaa(post_process_aa* aa, render_texture* rt,

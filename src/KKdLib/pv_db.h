@@ -9,7 +9,7 @@
 #include "string.h"
 #include "vector.h"
 
-typedef enum pv_db_chara {
+enum pv_db_chara {
     PV_DB_CHARA_MIK = 0,
     PV_DB_CHARA_RIN = 1,
     PV_DB_CHARA_LEN = 2,
@@ -20,14 +20,14 @@ typedef enum pv_db_chara {
     PV_DB_CHARA_MEI = 7,
     PV_DB_CHARA_SAK = 8,
     PV_DB_CHARA_TET = 9,
-} pv_db_chara;
+};
 
-typedef enum pv_db_chreff_type {
+enum pv_db_chreff_type {
     PV_DB_CHARA_EFFECT_AUTH3D     = 0,
     PV_DB_CHARA_EFFECT_AUTH3D_OBJ = 1,
-} pv_db_chreff_type;
+};
 
-typedef enum pv_db_format {
+enum pv_db_format {
     PV_DB_NONE,
     PV_DB_AC101,
     PV_DB_AC110,
@@ -72,9 +72,9 @@ typedef enum pv_db_format {
     PV_DB_AFT701,
     PV_DB_AFT710,
     PV_DB_FT,
-} pv_db_format;
+};
 
-typedef enum pv_db_duet_type {
+enum pv_db_duet_type {
     PV_DB_DUET_USER_SETTING   = 0,
     PV_DB_DUET_FIXED_SIZE     = 1,
     PV_DB_DUET_FIXED_SUB      = 2,
@@ -83,34 +83,34 @@ typedef enum pv_db_duet_type {
     PV_DB_DUET_PSEUDO_SAME    = 5,
     PV_DB_DUET_PSEUDO_SWIM    = 6,
     PV_DB_DUET_PSEUDO_SWIM_S  = 7,
-} pv_db_duet_type;
+};
 
-typedef enum pv_db_eyes_base_adjust_type {
+enum pv_db_eyes_base_adjust_type {
     PV_DB_EYES_BASE_ADJUST_DIRECTION = 0,
     PV_DB_EYES_BASE_ADJUST_CLEARANCE = 1,
     PV_DB_EYES_BASE_ADJUST_OFF       = 2,
-} pv_db_eyes_base_adjust_type;
+};
 
-typedef enum pv_db_frame_texture_type {
+enum pv_db_frame_texture_type {
     PV_DB_FRAME_TEXTURE_PRE_PP  = 0,
     PV_DB_FRAME_TEXTURE_POST_PP = 1,
     PV_DB_FRAME_TEXTURE_FB      = 2,
-} pv_db_frame_texture_type;
+};
 
-typedef enum pv_db_movie_surface {
+enum pv_db_movie_surface {
     PV_DB_MOVIE_SURFACE_BACK  = 0,
     PV_DB_MOVIE_SURFACE_FRONT = 1,
-} pv_db_movie_surface;
+};
 
-typedef enum pv_db_performer_size {
+enum pv_db_performer_size {
     PV_DB_PERFORMER_SIZE_NORMAL     = 0,
     PV_DB_PERFORMER_SIZE_PLAY_CHARA = 1,
     PV_DB_PERFORMER_SIZE_PV_CHARA   = 2,
     PV_DB_PERFORMER_SIZE_SHORT      = 3,
     PV_DB_PERFORMER_SIZE_TALL       = 4,
-} pv_db_performer_size;
+};
 
-typedef enum pv_db_performer_type {
+enum pv_db_performer_type {
     PV_DB_PERFORMER_VOCAL          = 0,
     PV_DB_PERFORMER_PSEUDO_DEFAULT = 1,
     PV_DB_PERFORMER_PSEUDO_SAME    = 2,
@@ -118,9 +118,9 @@ typedef enum pv_db_performer_type {
     PV_DB_PERFORMER_PSEUDO_SWIM_S  = 4,
     PV_DB_PERFORMER_PSEUDO_MYCHARA = 5,
     PV_DB_PERFORMER_GUEST          = 6,
-} pv_db_performer_type;
+};
 
-typedef enum pv_db_pv_level {
+enum pv_db_pv_level {
     PV_DB_PV_LV_00_0 = 0,
     PV_DB_PV_LV_00_5 = 1,
     PV_DB_PV_LV_01_0 = 2,
@@ -142,65 +142,65 @@ typedef enum pv_db_pv_level {
     PV_DB_PV_LV_09_0 = 18,
     PV_DB_PV_LV_09_5 = 19,
     PV_DB_PV_LV_10_0 = 20,
-} pv_db_pv_level;
+};
 
-typedef struct pv_db_another_song_aft310 {
+struct pv_db_another_song_aft310 {
     string name;
     string song_file_name;
-} pv_db_another_song_aft310;
+};
 
-typedef struct pv_db_another_song_aft500 {
+struct pv_db_another_song_aft500 {
     string name;
     string name_en;                                                 // FT/M39
     string song_file_name;
     string vocal_chara_num;                                         // FT/M39
     string vocal_disp_name;                                         // FT/M39
     string vocal_disp_name_en;                                      // FT/M39
-} pv_db_another_song_aft500;
+};
 
-typedef struct pv_db_auth_replace_by_module {
+struct pv_db_auth_replace_by_module {
     null_int32_t id;
     null_int32_t module_id;
     string name;
     string org_name;
-} pv_db_auth_replace_by_module;
+};
 
 null(pv_db_chara)
 
-typedef struct pv_db_chrcam {
+struct pv_db_chrcam {
     null_pv_db_chara chara;
 
     null_int32_t id;
     string name;
     string org_name;
-} pv_db_chrcam;
+};
 
 null(pv_db_chreff_type)
 
-typedef struct pv_db_chreff_data {
+struct pv_db_chreff_data {
     null_pv_db_chreff_type type;
 
     string Name;
-} pv_db_chreff_data;
+};
 
 vector_old(pv_db_chreff_data)
 
-typedef struct pv_db_chreff {
+struct pv_db_chreff {
     vector_old_pv_db_chreff_data data;
 
     null_int32_t id;
     string name;
-} pv_db_chreff;
+};
 
-typedef struct pv_db_chrmot {
+struct pv_db_chrmot {
     null_pv_db_chara chara;
 
     null_int32_t id;
     string name;
     string org_name;
-} pv_db_chrmot;
+};
 
-typedef struct pv_db_disp2d_ac200 {
+struct pv_db_disp2d_ac200 {
     string set_name;
     null_int32_t target_shadow_type;
     null_int32_t title_end_2d_field;
@@ -209,9 +209,9 @@ typedef struct pv_db_disp2d_ac200 {
     null_int32_t title_start_2d_field;
     null_int32_t title_start_2d_low_field;                          // not AC200
     null_int32_t title_start_3d_field;
-} pv_db_disp2d_ac200;
+};
 
-typedef struct pv_db_disp2d_aft210 {
+struct pv_db_disp2d_aft210 {
     string set_name;
     null_int32_t target_shadow_type;
     null_int32_t title_2d_layer;
@@ -221,34 +221,34 @@ typedef struct pv_db_disp2d_aft210 {
     null_int32_t title_start_2d_field;
     null_int32_t title_start_2d_low_field;
     null_int32_t title_start_3d_field;
-} pv_db_disp2d_aft210;
+};
 
 null(pv_db_duet_type)
 
-typedef struct pv_db_duet {
+struct pv_db_duet {
     null_pv_db_duet_type type;
     null_int32_t num;
-} pv_db_duet;
+};
 
-typedef struct pv_db_eyes_rot_rate {
+struct pv_db_eyes_rot_rate {
     null_pv_db_chara chr;
     null_float_t xn_rate;
     null_float_t xp_rate;
-} pv_db_eyes_rot_rate;
+};
 
-typedef struct pv_db_ex_auth {
+struct pv_db_ex_auth {
     string name;
     string org_name;
-} pv_db_ex_auth;
+};
 
-typedef struct pv_db_ex_song_ac101 {
+struct pv_db_ex_song_ac101 {
     null_pv_db_chara chara;
 
     string file;
     string name;
-} pv_db_ex_song_ac101;
+};
 
-typedef struct pv_db_ex_song_aft101 {
+struct pv_db_ex_song_aft101 {
     null_pv_db_chara chara;
     null_pv_db_chara chara2P;                                       // not AFT101
     null_pv_db_chara chara3P;                                       // not AFT101
@@ -256,11 +256,11 @@ typedef struct pv_db_ex_song_aft101 {
 
     string file;
     string name;
-} pv_db_ex_song_aft101;
+};
 
 vector_old(pv_db_ex_auth)
 
-typedef struct pv_db_ex_song_aft300 {
+struct pv_db_ex_song_aft300 {
     vector_old_pv_db_ex_auth ex_auth;                               // AFT621/AFT622/AFT701/FT/M39
 
     null_pv_db_chara chara;
@@ -272,9 +272,9 @@ typedef struct pv_db_ex_song_aft300 {
 
     string file;
     string name;
-} pv_db_ex_song_aft300;
+};
 
-typedef struct pv_db_field_ac101 {
+struct pv_db_field_ac101 {
     string aet_back;
     string aet_front;
     string aet_id_back;
@@ -282,9 +282,9 @@ typedef struct pv_db_field_ac101 {
     string auth_3d;
     string spr_set_back;
     string stage;
-} pv_db_field_ac101;
+};
 
-typedef struct pv_db_field_ac200 {
+struct pv_db_field_ac200 {
     vector_old_string auth_3d_list;                                 // not AC200/AC210/AC211
     vector_old_int32_t auth_3d_frame_list;                          // AC520/AC521/AC600
     vector_old_string ex_auth_3d_list;                              // AC510/AC511/AC520/AC521/AC600
@@ -301,9 +301,9 @@ typedef struct pv_db_field_ac200 {
     string spr_set_back;
     string stage;
     null_int32_t stage_flag;                                        // AC520/AC521/AC600
-} pv_db_field_ac200;
+};
 
-typedef struct pv_db_field_ac500 {
+struct pv_db_field_ac500 {
     vector_old_string auth_3d_list;
 
     string aet_back;
@@ -318,9 +318,9 @@ typedef struct pv_db_field_ac500 {
     string spr_set_back;
     string stage;
     null_int32_t stage_flag;                                        // AC520/AC521/AC600
-} pv_db_field_ac500;
+};
 
-typedef struct pv_db_field_aft101 {
+struct pv_db_field_aft101 {
     vector_old_string auth_3d_list;
     vector_old_int32_t auth_3d_frame_list;
     vector_old_string ex_auth_3d_list;
@@ -341,9 +341,9 @@ typedef struct pv_db_field_aft101 {
     string spr_set_back;
     string stage;
     null_int32_t stage_flag;
-} pv_db_field_aft101;
+};
 
-typedef struct pv_db_field_aft210 {
+struct pv_db_field_aft210 {
     vector_old_int32_t aet_back_frame_list;
     vector_old_string aet_back_list;
     vector_old_int32_t aet_front_frame_list;
@@ -380,9 +380,9 @@ typedef struct pv_db_field_aft210 {
     string spr_set_back;
     string stage;
     null_int32_t stage_flag;
-} pv_db_field_aft210;
+};
 
-typedef struct pv_db_field_aft500 {
+struct pv_db_field_aft500 {
     vector_old_int32_t aet_back_frame_list;
     vector_old_string aet_back_list;
     vector_old_int32_t aet_front_frame_list;
@@ -426,9 +426,9 @@ typedef struct pv_db_field_aft500 {
     string spr_set_back;
     string stage;
     null_int32_t stage_flag;
-} pv_db_field_aft500;
+};
 
-typedef struct pv_db_mdata_ac110 {
+struct pv_db_mdata_ac110 {
     string directory;
     null_int32_t flag;
     string gam_aet;
@@ -437,23 +437,23 @@ typedef struct pv_db_mdata_ac110 {
     string sel_spr;
     string sel_spr_cmn;
     string target_shadow_type;
-} pv_db_mdata_ac110;
+};
 
-typedef struct pv_db_mdata_ac200 {
+struct pv_db_mdata_ac200 {
     string directory;
     null_int32_t flag;
-} pv_db_mdata_ac200;
+};
 
-typedef struct pv_db_osage_init {
+struct pv_db_osage_init {
     null_int32_t frame;
     string motion;
     string stage;
-} pv_db_osage_init;
+};
 
 null(pv_db_performer_size)
 null(pv_db_performer_type)
 
-typedef struct pv_db_performer_aft101 {
+struct pv_db_performer_aft101 {
     null_pv_db_chara chara;
     null_pv_db_performer_size size;
     null_pv_db_performer_type type;
@@ -466,9 +466,9 @@ typedef struct pv_db_performer_aft101 {
     null_int32_t item_neck;
     null_int32_t item_zujo;
     null_int32_t pv_costume;
-} pv_db_performer_aft101;
+};
 
-typedef struct pv_db_performer_aft500 {
+struct pv_db_performer_aft500 {
     null_pv_db_chara chara;
     null_pv_db_performer_size size;
     null_pv_db_performer_type type;
@@ -483,34 +483,34 @@ typedef struct pv_db_performer_aft500 {
     null_int32_t item_zujo;
     null_int32_t pv_costume;
     null_int32_t pseudo_same_id;
-} pv_db_performer_aft500;
+};
 
-typedef struct pv_db_pv_expression {
+struct pv_db_pv_expression {
     string file_name;
-} pv_db_pv_expression;
+};
 
-typedef struct pv_db_sabi {
+struct pv_db_sabi {
     null_float_t play_time;
     null_float_t start_time;
-} pv_db_sabi;
+};
 
-typedef struct pv_db_sel_2d {
+struct pv_db_sel_2d {
     string bg;
     string jk;
     string logo;
     string plate;
-} pv_db_sel_2d;
+};
 
-typedef struct pv_db_song_info_ac101 {
+struct pv_db_song_info_ac101 {
     string arranger;
     string guitar_player;                                           // AC130
     string lyrics;
     string manipulator;
     string music;
     string pv_editor;
-} pv_db_song_info_ac101;
+};
 
-typedef struct pv_db_song_info_ac200 {
+struct pv_db_song_info_ac200 {
     string arranger;
     string guitar_player;
     string lyrics;
@@ -525,38 +525,38 @@ typedef struct pv_db_song_info_ac200 {
     string ex_info2val;
     string ex_info3key;
     string ex_info3val;
-} pv_db_song_info_ac200;
+};
 
-typedef struct pv_db_stage_param_ac200 {
+struct pv_db_stage_param_ac200 {
     string collision_file;
     string stage;
     string wind_file;
-} pv_db_stage_param_ac200;
+};
 
-typedef struct pv_db_stage_param_aft210 {
+struct pv_db_stage_param_aft210 {
     string collision_file;
     null_int32_t mhd_id;
     string stage;
     string wind_file;
-} pv_db_stage_param_aft210;
+};
 
-typedef struct pv_db_title_image_ac101 {
+struct pv_db_title_image_ac101 {
     vector_old_string file;                                         // AC101
     vector_old_string file_name;                                    // AC101
 
     string aet_name;
     null_float_t time;
-} pv_db_title_image_ac101;
+};
 
-typedef struct pv_db_title_image_ac200 {
+struct pv_db_title_image_ac200 {
     string aet_name;
     null_float_t end_time;
     null_float_t time;
-} pv_db_title_image_ac200;
+};
 
 vector_old(pv_db_field_ac101)
 
-typedef struct pv_db_diff_ac101 {
+struct pv_db_diff_ac101 {
     vector_old_pv_db_field_ac101 field;
 
     vector_old_string motion;
@@ -570,11 +570,11 @@ typedef struct pv_db_diff_ac101 {
     string script_file_name;
     string se_name;
     null_int32_t version;
-} pv_db_diff_ac101;
+};
 
 vector_old(pv_db_field_ac200)
 
-typedef struct pv_db_diff_ac200 {
+struct pv_db_diff_ac200 {
     vector_old_pv_db_field_ac200 field;
 
     vector_old_string edit_effect;
@@ -592,13 +592,13 @@ typedef struct pv_db_diff_ac200 {
     string script_file_name;
     string se_name;
     null_int32_t version;
-} pv_db_diff_ac200;
+};
 
 null(pv_db_movie_surface)
 
 vector_old(pv_db_field_aft101)
 
-typedef struct pv_db_diff_aft101 {
+struct pv_db_diff_aft101 {
     vector_old_pv_db_field_aft101 field;
 
     vector_old_string edit_effect;
@@ -629,18 +629,18 @@ typedef struct pv_db_diff_aft101 {
     string slide_name;
     string slidertouch_name;
     null_int32_t version;
-} pv_db_diff_aft101;
+};
 
-typedef struct pv_db_diff_attr {
+struct pv_db_diff_attr {
     null_int32_t extra;
     null_int32_t original;
     null_int32_t slide;
-} pv_db_diff_attr;
+};
 
 vector_old(pv_db_field_aft210)
 vector_old(pv_db_performer_aft101)
 
-typedef struct pv_db_diff_aft300 {
+struct pv_db_diff_aft300 {
     vector_old_pv_db_field_aft210 field;
     vector_old_pv_db_performer_aft101 performer;
 
@@ -683,19 +683,19 @@ typedef struct pv_db_diff_aft300 {
     string slidertouch_name;
     null_float_t sudden_timing;
     null_int32_t version;
-} pv_db_diff_aft300;
+};
 
 vector_old(pv_db_diff_aft300)
 
-typedef struct pv_db_difficulty_aft300 {
+struct pv_db_difficulty_aft300 {
     vector_old_pv_db_diff_aft300 diff[5];
     pv_db_diff_attr attribute;
-} pv_db_difficulty_aft300;
+};
 
 vector_old(pv_db_field_aft500)
 vector_old(pv_db_performer_aft500)
 
-typedef struct pv_db_diff_aft500 {
+struct pv_db_diff_aft500 {
     vector_old_pv_db_field_aft500 field;
     vector_old_pv_db_performer_aft500 performer;
 
@@ -739,19 +739,19 @@ typedef struct pv_db_diff_aft500 {
     string slidertouch_name;
     null_float_t sudden_timing;
     null_int32_t version;
-} pv_db_diff_aft500;
+};
 
 vector_old(pv_db_diff_aft500)
 
-typedef struct pv_db_difficulty_aft500 {
+struct pv_db_difficulty_aft500 {
     vector_old_pv_db_diff_aft500 diff[5];
     pv_db_diff_attr attribute;
-} pv_db_difficulty_aft500;
+};
 
 vector_old(pv_db_ex_song_ac101)
 vector_old(pv_db_osage_init)
 
-typedef struct pv_db_pv_ac101 {
+struct pv_db_pv_ac101 {
     vector_old_pv_db_ex_song_ac101 ex_song;
     vector_old_pv_db_field_ac200 field;
     vector_old_pv_db_osage_init osage_init;                         // AC120/AC130
@@ -776,11 +776,11 @@ typedef struct pv_db_pv_ac101 {
     string song_file_name;
     string song_name;
     string song_name_reading;
-} pv_db_pv_ac101;
+};
 
 vector_old(pv_db_stage_param_ac200)
 
-typedef struct pv_db_pv_ac200 {
+struct pv_db_pv_ac200 {
     vector_old_pv_db_ex_song_ac101 ex_song;
     vector_old_pv_db_field_ac200 field;
     vector_old_pv_db_osage_init osage_init;
@@ -814,7 +814,7 @@ typedef struct pv_db_pv_ac200 {
     string song_name;
     string song_name_reading;
     null_bool use_osage_play_data;                                  // not AC200
-} pv_db_pv_ac200;
+};
 
 null(pv_db_eyes_base_adjust_type)
 
@@ -822,7 +822,7 @@ vector_old(pv_db_chreff)
 vector_old(pv_db_ex_song_aft101)
 vector_old(pv_db_eyes_rot_rate)
 
-typedef struct pv_db_pv_aft101 {
+struct pv_db_pv_aft101 {
     vector_old_pv_db_chreff chreff;
     vector_old_pv_db_ex_song_aft101 ex_song;
     vector_old_pv_db_eyes_rot_rate eyes_rot_rate;                   // AFT200
@@ -873,11 +873,11 @@ typedef struct pv_db_pv_aft101 {
     string song_name;
     string song_name_reading;
     null_bool use_osage_play_data;
-} pv_db_pv_aft101;
+};
 
 vector_old(pv_db_stage_param_aft210)
 
-typedef struct pv_db_pv_aft210 {
+struct pv_db_pv_aft210 {
     vector_old_pv_db_chreff chreff;
     vector_old_pv_db_ex_song_aft101 ex_song;
     vector_old_pv_db_eyes_rot_rate eyes_rot_rate;
@@ -928,13 +928,13 @@ typedef struct pv_db_pv_aft210 {
     string song_name;
     string song_name_reading;
     null_bool use_osage_play_data;
-} pv_db_pv_aft210;
+};
 
 vector_old(pv_db_another_song_aft310)
 vector_old(pv_db_chrcam)
 vector_old(pv_db_ex_song_aft300)
 
-typedef struct pv_db_pv_aft300 {
+struct pv_db_pv_aft300 {
     vector_old_pv_db_another_song_aft310 another_song;              // not AFT300
     vector_old_pv_db_chrcam chrcam;                                 // not AFT300
     vector_old_pv_db_chreff chreff;
@@ -994,7 +994,7 @@ typedef struct pv_db_pv_aft300 {
     string song_name_reading;
     null_float_t sudden_timing;
     null_bool use_osage_play_data;
-} pv_db_pv_aft300;
+};
 
 null(pv_db_frame_texture_type)
 
@@ -1002,7 +1002,7 @@ vector_old(pv_db_another_song_aft500)
 vector_old(pv_db_auth_replace_by_module)
 vector_old(pv_db_chrmot)
 
-typedef struct pv_db_pv_aft500 {
+struct pv_db_pv_aft500 {
     vector_old_pv_db_another_song_aft500 another_song;
     vector_old_pv_db_auth_replace_by_module auth_replace_by_module; // AFT600/AFT601/AFT610/AFT620/AFT621/AFT622/AFT701/FT/M39
     vector_old_pv_db_chrcam chrcam;
@@ -1085,4 +1085,4 @@ typedef struct pv_db_pv_aft500 {
     string song_name_reading_en;                                    // FT/M39
     null_float_t sudden_timing;
     null_bool use_osage_play_data;
-} pv_db_pv_aft500;
+};

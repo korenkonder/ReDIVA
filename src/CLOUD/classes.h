@@ -25,7 +25,7 @@ public:
 
 extern void TaskWork_Window();
 
-typedef enum class_flags {
+enum class_flags {
     CLASS_INIT        = 0x01,
     CLASS_DISPOSE     = 0x02,
     CLASS_DISPOSED    = 0x04,
@@ -33,23 +33,21 @@ typedef enum class_flags {
     CLASS_HIDDEN      = 0x10,
     CLASS_HIDE_WINDOW = 0x20,
     CLASS_HAS_PARENT  = 0x40,
-} class_flags;
+};
 
-typedef enum classes_enum {
+enum classes_enum {
     CLASSES_INIT_AT_STARTUP = 0x01,
     CLASSES_SHOW_AT_STARTUP = 0x02,
     CLASSES_DISPOSE_AT_HIDE = 0x04,
     CLASSES_IN_CONTEXT_MENU = 0x08,
-} classes_enum;
+};
 
-typedef struct class_data {
+struct class_data {
     lock lock;
     class_flags flags;
     bool imgui_focus;
     void* data;
-} class_data;
-
-typedef struct classes_data classes_data;
+};
 
 struct classes_data {
     const char* name;

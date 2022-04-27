@@ -10,62 +10,61 @@
 #include "../default.h"
 #include "object.h"
 
-typedef enum stage_data_format {
+enum stage_data_format {
     STAGE_DATA_UNK = 0,
     STAGE_DATA_AC,
     STAGE_DATA_F,
     STAGE_DATA_FT,
-} stage_data_format;
+};
 
-typedef enum stage_data_flags {
+enum stage_data_flags {
     STAGE_DATA_FLAG_1              = 0x1,
     STAGE_DATA_LIGHT_CHARA_AMBIENT = 0x2,
     STAGE_DATA_FLAG_4              = 0x4,
     STAGE_DATA_FLAG_8              = 0x8,
-} stage_data_flags;
+};
 
-typedef enum stage_data_reflect_resolution_mode {
+enum stage_data_reflect_resolution_mode {
     STAGE_DATA_REFLECT_RESOLUTION_256X256 = 0x00,
     STAGE_DATA_REFLECT_RESOLUTION_512x256 = 0x01,
     STAGE_DATA_REFLECT_RESOLUTION_512x512 = 0x02,
-} stage_data_reflect_resolution_mode;
+};
 
-typedef enum stage_data_refract_resolution_mode {
+enum stage_data_refract_resolution_mode {
     STAGE_DATA_REFRACT_RESOLUTION_256X256 = 0x00,
     STAGE_DATA_REFRACT_RESOLUTION_512X256 = 0x01,
     STAGE_DATA_REFRACT_RESOLUTION_512X512 = 0x02,
-} stage_data_refract_resolution_mode;
+};
 
-typedef enum stage_data_reflect_type {
+enum stage_data_reflect_type {
     STAGE_DATA_REFLECT_DISABLE     = 0x00,
     STAGE_DATA_REFLECT_NORMAL      = 0x01,
     STAGE_DATA_REFLECT_REFLECT_MAP = 0x02,
-} stage_data_reflect_type;
+};
 
-typedef enum stage_data_blur_filter_mode {
+enum stage_data_blur_filter_mode {
     STAGE_DATA_BLUR_FILTER_4  = 0x00,
     STAGE_DATA_BLUR_FILTER_9  = 0x01,
     STAGE_DATA_BLUR_FILTER_16 = 0x02,
     STAGE_DATA_BLUR_FILTER_32 = 0x03,
-} stage_data_blur_filter_mode;
+};
 
-typedef struct stage_data_reflect {
+struct stage_data_reflect {
     stage_data_reflect_resolution_mode mode;
     int32_t blur_num;
     stage_data_blur_filter_mode blur_filter;
-} stage_data_reflect;
+};
 
-typedef struct stage_data_refract {
+struct stage_data_refract {
     stage_data_refract_resolution_mode mode;
-} stage_data_refract;
+};
 
-typedef struct stage_effects {
+struct stage_effects {
     int32_t field_0[8];
     int32_t field_20[16];
-} stage_effects;
+};
 
-class stage_data {
-public:
+struct stage_data {
     int32_t id;
     std::string name;
     uint32_t name_hash;
@@ -105,8 +104,7 @@ public:
     ~stage_data();
 };
 
-class stage_data_modern {
-public:
+struct stage_data_modern {
     uint32_t hash;
     std::string name;
     std::string auth_3d_name;
@@ -149,8 +147,7 @@ public:
     ~stage_data_modern();
 };
 
-class stage_database {
-public:
+struct stage_database {
     bool ready;
     bool modern;
     bool is_x;

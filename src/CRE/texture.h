@@ -11,17 +11,17 @@
 #include "../KKdLib/txp.h"
 #include <glad/glad.h>
 
-typedef enum texture_flags {
+enum texture_flags {
     TEXTURE_BLOCK_COMPRESSION = 0x01,
-} texture_flags;
+};
 
-typedef struct texture_id {
+struct texture_id {
     uint32_t index;
     uint8_t id;
 
     texture_id();
     texture_id(uint8_t id, uint32_t index);
-} texture_id;
+};
 
 inline bool operator >(const texture_id& left, const texture_id& right) {
     return left.id > right.id && left.index > right.index;
@@ -47,7 +47,7 @@ inline bool operator !=(const texture_id& left, const texture_id& right) {
     return left.id != right.id || left.index != right.index;
 }
 
-typedef struct texture {
+struct texture {
     int32_t init_count;
     texture_id id;
     texture_flags flags;
@@ -60,7 +60,7 @@ typedef struct texture {
     int32_t size;
 
     texture();
-} texture;
+};
 
 extern texture* texture_init(texture_id id);
 extern void texture_apply_color_tone(texture* chg_tex,

@@ -8,11 +8,11 @@
 #include "../gl_state.h"
 #include "../rob.h"
 
-typedef struct post_process_dof_shader_data {
+struct post_process_dof_shader_data {
     vec4 g_depth_params;
     vec4 g_spread_scale;
     vec4 g_depth_params2;
-} post_process_dof_shader_data;
+};
 
 static const char* dof_vert_shader =
 "#version 430\n"

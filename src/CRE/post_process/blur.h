@@ -12,13 +12,13 @@
 
 #define POST_PROCESS_BLUR_GAUSSIAN_KERNEL_SIZE 7
 
-typedef struct post_process_blur_data {
+struct post_process_blur_data {
     vec3 gauss[POST_PROCESS_BLUR_GAUSSIAN_KERNEL_SIZE];
     vec3 radius;
     vec3 intensity;
-} post_process_blur_data;
+};
 
-typedef struct post_process_blur {
+struct post_process_blur {
     post_process_blur_data data;
     int32_t width;
     int32_t height;
@@ -27,7 +27,7 @@ typedef struct post_process_blur {
     int32_t* height_down;
     render_texture* tex_down;
     int32_t count_down;
-} post_process_blur;
+};
 
 extern post_process_blur* post_process_blur_init();
 extern void post_process_get_blur(post_process_blur* blur, render_texture* rt);

@@ -9,7 +9,7 @@
 #include <vector>
 #include "../default.h"
 
-typedef struct object_info {
+struct object_info {
     uint32_t id;
     uint32_t set_id;
 
@@ -17,7 +17,7 @@ typedef struct object_info {
     object_info(uint32_t id, uint32_t set_id);
     bool is_null();
     bool not_null();
-} object_info;
+};
 
 inline bool object_info::is_null() {
     return id == (uint32_t)-1 && set_id == (uint32_t)-1;
@@ -51,8 +51,7 @@ inline bool operator !=(const object_info& left, const object_info& right) {
     return left.set_id != right.set_id || left.id != right.id;
 }
 
-class object_info_data {
-public:
+struct object_info_data {
     uint32_t id;
     std::string name;
     uint64_t name_hash_fnv1a64m;
@@ -63,8 +62,7 @@ public:
     ~object_info_data();
 };
 
-class object_set_info {
-public:
+struct object_set_info {
     std::string name;
     uint32_t name_hash;
     uint32_t id;
@@ -77,8 +75,7 @@ public:
     ~object_set_info();
 };
 
-class object_database {
-public:
+struct object_database {
     bool ready;
     bool modern;
     bool is_x;

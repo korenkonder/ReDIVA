@@ -16,6 +16,11 @@ static int32_t render_texture_framebuffer_init(render_texture* rt, int32_t max_l
 static int32_t render_texture_framebuffer_set_texture(render_texture* rrt,
     GLuint color_texture, int32_t level, GLuint depth_texture, bool stencil);
 
+render_texture::render_texture() : color_texture(),
+depth_texture(), binding(), max_level(), fbos(), rbo(), field_2C() {
+
+}
+
 int32_t render_texture_init(render_texture* rt, int32_t width, int32_t height,
     int32_t max_level, GLenum color_format, GLenum depth_format) {
     if (max_level < 0)
@@ -136,22 +141,26 @@ inline void render_texture_shader_set(shader_set_data* set, uint32_t index) {
     if (set && index)
         shader_set(set, index);
     else
-        shader_glsl_use(&render_texture_shader);
+        render_texture_shader.use();
 }
 
 inline void render_texture_shader_set_glsl(shader_glsl* shader) {
     if (shader)
-        shader_glsl_use(shader);
+        shader->use();
     else
-        shader_glsl_use(&render_texture_shader);
+        render_texture_shader.use();
 }
 
 void render_texture_free(render_texture* rt) {
-    if (rt->depth_texture)
+    if (rt->depth_texture) {
         texture_free(rt->depth_texture);
+        rt->depth_texture = 0;
+    }
 
-    if (rt->color_texture)
+    if (rt->color_texture) {
         texture_free(rt->color_texture);
+        rt->color_texture = 0;
+    }
 
     if (rt->rbo) {
         glDeleteRenderbuffers(1, &rt->rbo);
@@ -165,8 +174,9 @@ void render_texture_free(render_texture* rt) {
 
     if (rt->fbos[0]) {
         glDeleteFramebuffers(rt->max_level + 1, rt->fbos);
-        memset(rt->fbos, 0, sizeof(int32_t) * (rt->max_level + 1ULL));
+        memset(rt->fbos, 0, sizeof(rt->fbos));
     }
+    rt->max_level = 0;
 }
 
 void render_texture_data_init() {
@@ -202,8 +212,8 @@ void render_texture_data_init() {
         shader_glsl_param param;
         memset(&param, 0, sizeof(shader_glsl_param));
         param.name = "Render Texture";
-        shader_glsl_load_string(&render_texture_shader,
-            render_texture_vert_shader, render_texture_frag_shader, 0, &param);
+        render_texture_shader.load(render_texture_vert_shader,
+            render_texture_frag_shader, 0, &param);
 
         const float_t verts_quad[] = {
             -1.0f,  1.0f,  0.0f,  1.0f,
@@ -245,7 +255,7 @@ void render_texture_data_init() {
 }
 
 void render_texture_data_free() {
-    shader_glsl_free(&render_texture_shader);
+    render_texture_shader.unload();
 
     glDeleteBuffers(1, &render_texture_vbo);
     glDeleteVertexArrays(1, &render_texture_vao);

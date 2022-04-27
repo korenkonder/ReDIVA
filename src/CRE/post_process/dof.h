@@ -12,39 +12,39 @@
 #include "../render_texture.h"
 #include "../shared.h"
 
-typedef enum dof_debug_flags {
+enum dof_debug_flags {
     DOF_DEBUG_USE_UI_PARAMS   = 0x01,
     DOF_DEBUG_ENABLE_DOF      = 0x02,
     DOF_DEBUG_ENABLE_PHYS_DOF = 0x04,
     DOF_DEBUG_AUTO_FOCUS      = 0x08,
-} dof_debug_flags;
+};
 
-typedef struct dof_f2 {
+struct dof_f2 {
     float_t distance_to_focus;
     float_t focus_range;
     float_t fuzzing_range;
     float_t ratio;
-} dof_f2;
+};
 
-typedef struct dof_debug {
+struct dof_debug {
     dof_debug_flags flags;
     float_t distance_to_focus;
     float_t focal_length;
     float_t f_number;
     dof_f2 f2;
-} dof_debug;
+};
 
-typedef struct dof_pv {
+struct dof_pv {
     bool enable;
     dof_f2 f2;
-} dof_pv;
+};
 
-typedef struct post_process_dof_data {
+struct post_process_dof_data {
     dof_debug debug;
     dof_pv pv;
-} post_process_dof_data;
+};
 
-typedef struct post_process_dof {
+struct post_process_dof {
     post_process_dof_data data;
     int32_t width;
     int32_t height;
@@ -53,7 +53,7 @@ typedef struct post_process_dof {
     GLuint vao;
     GLuint program[9];
     GLuint ubo[2];
-} post_process_dof;
+};
 
 extern post_process_dof* post_process_dof_init();
 extern void post_process_apply_dof(post_process_dof* dof,

@@ -9,13 +9,12 @@
 #include <vector>
 #include "../default.h"
 
-typedef enum auth_3d_database_uid_flags {
+enum auth_3d_database_uid_flags {
     AUTH_3D_DATABASE_UID_ORG_UID = 0x01,
     AUTH_3D_DATABASE_UID_SIZE    = 0x02,
-} auth_3d_database_uid_flags;
+};
 
-class auth_3d_database_uid {
-public:
+struct auth_3d_database_uid {
     bool enabled;
     std::string category;
     std::string name;
@@ -26,8 +25,7 @@ public:
     ~auth_3d_database_uid();
 };
 
-class auth_3d_database_uid_file {
-public:
+struct auth_3d_database_uid_file {
     auth_3d_database_uid_flags flags;
     std::string category;
     int32_t org_uid;
@@ -38,8 +36,7 @@ public:
     ~auth_3d_database_uid_file();
 };
 
-class auth_3d_database_category {
-public:
+struct auth_3d_database_category {
     std::string name;
     std::vector<int32_t> uid;
 
@@ -47,8 +44,7 @@ public:
     ~auth_3d_database_category();
 };
 
-class auth_3d_database_file {
-public:
+struct auth_3d_database_file {
     bool ready;
 
     std::vector<std::string> category;
@@ -68,8 +64,7 @@ public:
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };
 
-class auth_3d_database {
-public:
+struct auth_3d_database {
     bool ready;
 
     std::vector<auth_3d_database_category> category;

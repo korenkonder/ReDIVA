@@ -11,14 +11,14 @@
 #include "hash.h"
 #include "str_utils.h"
 
-typedef struct mot_header_classic {
+struct mot_header_classic {
     uint32_t key_set_count_offset;
     uint32_t key_set_types_offset;
     uint32_t key_set_offset;
     uint32_t bone_info_offset;
-} mot_header_classic;
+};
 
-typedef struct mot_header_modern {
+struct mot_header_modern {
     uint32_t hash;
     int64_t name_offset;
     int64_t key_set_count_offset;
@@ -27,7 +27,7 @@ typedef struct mot_header_modern {
     int64_t bone_info_offset;
     int64_t bone_hash_offset;
     int32_t bone_info_count;
-} mot_header_modern;
+};
 
 static bool mot_classic_read_inner(mot_set* ms, stream* s);
 static void mot_classic_write_inner(mot_set* ms, stream* s);

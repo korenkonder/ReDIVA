@@ -16,7 +16,7 @@
 #include "../KKdLib/database/texture.h"
 #include "../KKdLib/vec.h"
 
-typedef enum data_type {
+enum data_type {
     DATA_AFT = 0,
 #if defined(CRE_DEV) || defined(CLOUD_DEV)
     DATA_F2LE,
@@ -28,10 +28,9 @@ typedef enum data_type {
     DATA_XHD,
 #endif
     DATA_MAX,
-} data_type;
+};
 
-class data_struct_file {
-public:
+struct data_struct_file {
     std::string path;
     std::string name;
 
@@ -39,8 +38,7 @@ public:
     ~data_struct_file();
 };
 
-class data_struct_directory {
-public:
+struct data_struct_directory {
     std::string path;
     std::string name;
 
@@ -48,8 +46,7 @@ public:
     ~data_struct_directory();
 };
 
-class data_struct_path {
-public:
+struct data_struct_path {
     std::string path;
     std::vector<data_struct_directory> data;
 
@@ -58,8 +55,7 @@ public:
 };
 
 #if defined(CRE_DEV) || defined(CLOUD_DEV)
-class data_f2 {
-public:
+struct data_f2 {
     bone_database bone_data;
 
     data_f2();
@@ -67,8 +63,7 @@ public:
 };
 #endif
 
-class data_ft {
-public:
+struct data_ft {
     auth_3d_database auth_3d_db;
     bone_database bone_data;
     motion_database mot_db;
@@ -87,8 +82,7 @@ public:
 };
 
 #if defined(CRE_DEV) || defined(CLOUD_DEV)
-class data_x {
-public:
+struct data_x {
     bone_database bone_data;
 
     data_x();
@@ -96,8 +90,7 @@ public:
 };
 #endif
 
-class data_struct {
-public:
+struct data_struct {
     data_type type;
     bool ready;
     std::vector<data_struct_path> data_paths;

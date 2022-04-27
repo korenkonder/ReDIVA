@@ -20,15 +20,17 @@ static int32_t task_sort_by_disp(void const* src1, void const* src2);
 static int32_t task_sort_by_name(void const* src1, void const* src2);
 
 bool information_task_init(class_data* data, render_context* rctx) {
-    data->data = force_malloc_s(int32_t, 1);
+    data->data = force_malloc_s(int32_t, 2);
     information_task_dispose(data);
     return true;
 }
 
 void information_task_imgui(class_data* data) {
-    int32_t& task_sort = *(int32_t*)data->data;
     if (!data->data)
         return;
+
+    int32_t& task_sort = ((int32_t*)data->data)[0];
+    bool& show_priority = *(bool*)&((int32_t*)data->data)[1];
 
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
@@ -80,12 +82,19 @@ void information_task_imgui(class_data* data) {
     ImVec2 size = ImGui::GetContentRegionAvail();
     size.y -= font->FontSize + style.ItemSpacing.y;
     ImGui::BeginListBox("#Tasks", size);
-    for (Task*& i : vec) {
-        char buf[0x100];
-        sprintf_s(buf, sizeof(buf), "%-32s % 7d(% 7d) % 7d(% 7d)",
-            i->GetName(), i->GetCalcTime(), i->GetCalcTimeMax(), i->GetDispTime(), i->GetDispTimeMax());
-        ImGui::Selectable(buf);
-    }
+    char buf[0x100];
+    if (show_priority)
+        for (Task*& i : vec) {
+            sprintf_s(buf, sizeof(buf), "%1d %-30s % 7d(% 7d) % 7d(% 7d)", i->priority,
+                i->GetName(), i->GetCalcTime(), i->GetCalcTimeMax(), i->GetDispTime(), i->GetDispTimeMax());
+            ImGui::Selectable(buf);
+        }
+    else
+        for (Task*& i : vec) {
+            sprintf_s(buf, sizeof(buf), "%-32s % 7d(% 7d) % 7d(% 7d)",
+                i->GetName(), i->GetCalcTime(), i->GetCalcTimeMax(), i->GetDispTime(), i->GetDispTimeMax());
+            ImGui::Selectable(buf);
+        }
     ImGui::EndListBox();
     vec.clear();
 
@@ -117,6 +126,17 @@ void information_task_imgui(class_data* data) {
     ImGui::Text("(%c)disp", task_sort == 4 ? '*' : ' ');
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         task_sort_new = 4;
+
+    ImGui::SameLine();
+
+    bool text_tranparency = !show_priority;
+    if (text_tranparency)
+        ImGui::PushStyleColor(ImGuiCol_Text, { 0.0f, 0.0f, 0.0f, 0.0f });
+    ImGui::Text("(%c)show prio", show_priority ? '*' : ' ');
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+        show_priority ^= true;
+    if (text_tranparency)
+        ImGui::PopStyleColor();
 
     task_sort = task_sort_new;
 

@@ -9,21 +9,20 @@
 #include "../default.h"
 #include "../io/stream.h"
 
-typedef enum enrs_type {
+enum enrs_type {
     ENRS_WORD    = 0x0,
     ENRS_DWORD   = 0x1,
     ENRS_QWORD   = 0x2,
     ENRS_INVALID = 0x3,
-} enrs_type;
+};
 
-typedef struct enrs_sub_entry {
+struct enrs_sub_entry {
     uint32_t skip_bytes;
     uint32_t repeat_count;
     enrs_type type;
-} enrs_sub_entry;
+};
 
-class enrs_entry {
-public:
+struct enrs_entry {
     uint32_t offset;
     uint32_t count;
     uint32_t size;
@@ -35,8 +34,7 @@ public:
     ~enrs_entry();
 };
 
-class enrs {
-public:
+struct enrs {
     std::vector<enrs_entry> vec;
 
     enrs();

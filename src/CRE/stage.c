@@ -402,6 +402,7 @@ static bool stage_ctrl(stage* s) {
     for (int32_t& i : s->auth_3d_ids) {
         auth_3d_data_set_enable(&i, true);
         auth_3d_data_set_visibility(&i, s->effect_display);
+        auth_3d_data_set_frame_rate(&i, 0);
     }
     return false;
 }
@@ -425,19 +426,19 @@ static void stage_disp(stage* s) {
             &mat, s->stage_data->object_ring, 0, 0, 0, 0, 0, 0);
 
     if (s->stage_data->object_reflect.not_null()) {
-        object_data_set_draw_task_flags(object_data,
+        object_data->set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
         draw_task_add_draw_object_by_object_info(rctx_ptr,
             &mat, s->stage_data->object_reflect, 0, 0, 0, 0, 0, 0);
-        object_data_set_draw_task_flags(object_data, (draw_task_flags)0);
+        object_data->set_draw_task_flags();
     }
 
     if (s->stage_data->object_refract.not_null()) {
-        object_data_set_draw_task_flags(object_data,
+        object_data->set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
         draw_task_add_draw_object_by_object_info(rctx_ptr,
             &mat, s->stage_data->object_refract, 0, 0, 0, 0, 0, 0);
-        object_data_set_draw_task_flags(object_data, (draw_task_flags)0);
+        object_data->set_draw_task_flags();
     }
 
     if (s->stage_data->object_sky.not_null() && s->sky) {
@@ -449,7 +450,7 @@ static void stage_disp(stage* s) {
 
     if (s->stage_data->lens_flare_texture != -1 && s->lens_flare) {
         int32_t object_set_id = s->stage_data->object_set_id;
-        post_process_struct* pp = &rctx_ptr->post_process;
+        post_process* pp = &rctx_ptr->post_process;
         pp->lens_flare_texture = obj_database_get_obj_set_texture(
             object_set_id, s->stage_data->lens_flare_texture);
         pp->lens_shaft_texture = obj_database_get_obj_set_texture(
@@ -475,17 +476,18 @@ static void stage_disp_shadow_object(object_info object, mat4* mat) {
     object_data* object_data = &rctx_ptr->object_data;
 
     for (int32_t i = SHADOW_CHARA; i < SHADOW_MAX; i++) {
-        object_data_set_shadow_type(object_data, (shadow_type_enum)i);
-        object_data_set_object_bounding_sphere_check_func(object_data,
-            i == SHADOW_CHARA ? object_bounding_sphere_check_visibility_shadow_chara : object_bounding_sphere_check_visibility_shadow_stage);
-        object_data_set_draw_task_flags(object_data,
+        object_data->set_shadow_type((shadow_type_enum)i);
+        object_data->set_object_bounding_sphere_check_func(i == SHADOW_CHARA
+            ? object_bounding_sphere_check_visibility_shadow_chara
+            : object_bounding_sphere_check_visibility_shadow_stage);
+        object_data->set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_SHADOW_OBJECT));
         draw_task_add_draw_object_by_object_info(rctx_ptr, mat, object, 0, 0, 0, 0, 0, 0);
     }
 
-    object_data_set_draw_task_flags(object_data, (draw_task_flags)0);
-    object_data_set_object_bounding_sphere_check_func(object_data, 0);
-    object_data_set_shadow_type(object_data, SHADOW_CHARA);
+    object_data->set_draw_task_flags();
+    object_data->set_object_bounding_sphere_check_func();
+    object_data->set_shadow_type();
 }
 
 static void stage_free(stage* s) {
@@ -500,11 +502,11 @@ static void stage_free(stage* s) {
 
     draw_pass* draw_pass = &rctx_ptr->draw_pass;
     if (s->stage_data->render_texture != -1)
-        post_process_render_texture_free(&rctx_ptr->post_process,
+        rctx_ptr->post_process.render_texture_free(
             texture_storage_get_texture(s->stage_data->render_texture), 0);
 
     if (s->stage_data->movie_texture != -1)
-        post_process_movie_texture_free(&rctx_ptr->post_process,
+        rctx_ptr->post_process.movie_texture_free(
             texture_storage_get_texture(s->stage_data->movie_texture));
 
     draw_pass->shadow = true;
@@ -561,11 +563,11 @@ static void stage_load(stage* s) {
             return;
 
         if (s->stage_data->render_texture != -1)
-            post_process_render_texture_set(&rctx_ptr->post_process,
+            rctx_ptr->post_process.render_texture_set(
                 texture_storage_get_texture(s->stage_data->render_texture), 0);
 
         if (s->stage_data->movie_texture != -1)
-            post_process_movie_texture_set(&rctx_ptr->post_process,
+            rctx_ptr->post_process.movie_texture_set(
                 texture_storage_get_texture(s->stage_data->movie_texture));
         s->state = 6;
 

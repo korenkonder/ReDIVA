@@ -9,10 +9,10 @@
 #include "../KKdLib/vec.h"
 #include "../KKdLib/vector.h"
 
-typedef struct render_init_struct {
+struct render_init_struct {
     vec2i res;
     float_t scale;
-} render_init_struct;
+};
 
 extern const double_t render_scale_table[];
 

@@ -15,8 +15,7 @@ vector_old_func(mot_key_set)
 
 #define SKP_TEXT_BUF_SIZE 0x400
 
-class motion_storage {
-public:
+struct motion_storage {
     uint32_t set_id;
     int32_t count;
     mot_set set;
@@ -25,31 +24,31 @@ public:
     ~motion_storage();
 };
 
-typedef struct exp_func_op1 {
+struct exp_func_op1 {
     const char* name;
     float_t(*func)(float_t v1);
-} exp_func_op1;
+};
 
-typedef struct exp_func_op2 {
+struct exp_func_op2 {
     const char* name;
     float_t(*func)(float_t v1, float_t v2);
-} exp_func_op2;
+};
 
-typedef struct exp_func_op3 {
+struct exp_func_op3 {
     const char* name;
     float_t(*func)(float_t v1, float_t v2, float_t v3);
-} exp_func_op3;
+};
 
-typedef struct rob_cmn_mottbl_sub_header {
+struct rob_cmn_mottbl_sub_header {
     int32_t data_offset;
     int32_t field_4;
-} rob_cmn_mottbl_sub_header;
+};
 
-typedef struct rob_cmn_mottbl_header {
+struct rob_cmn_mottbl_header {
     int32_t chara_count;
     int32_t mottbl_indices_count;
     int32_t subheaders_offset;
-} rob_cmn_mottbl_header;
+};
 
 class ReqData {
 public:
@@ -72,8 +71,7 @@ public:
     virtual void Reset() override;
 };
 
-class osage_set_motion {
-public:
+struct osage_set_motion {
     int32_t motion_id;
     std::vector<std::pair<float_t, int32_t>> frames;
 
@@ -81,8 +79,7 @@ public:
     ~osage_set_motion();
 };
 
-class pv_data_set_motion {
-public:
+struct pv_data_set_motion {
     int32_t motion_id;
     std::pair<float_t, int32_t> frame_stage_index;
 
@@ -130,13 +127,12 @@ public:
     static void ThreadMain(PvOsageManager* pv_osg_mgr);
 };
 
-typedef struct RobThread {
+struct RobThread {
     rob_chara* data;
     void(*func)(rob_chara*);
-} RobThread;
+};
 
-class RobThreadParent {
-public:
+struct RobThreadParent {
     bool exit;
     std::thread* thread;
     std::mutex mtx;
@@ -158,8 +154,7 @@ public:
     static void ThreadMain(RobThreadParent* rob_thrd_parent);
 };
 
-class RobThreadHandler {
-public:
+struct RobThreadHandler {
     RobThreadParent* arr[ROB_CHARA_COUNT];
 
     RobThreadHandler();
@@ -358,18 +353,18 @@ public:
     void FreeLoadedCharaList(int8_t* chara_id);
 };
 
-typedef struct rob_manager_rob_impl {
+struct rob_manager_rob_impl {
     RobImplTask* task;
     const char* name;
-} rob_manager_rob_impl;
+};
 
-typedef struct struc_150 {
+struct struc_150 {
     const char* name;
     const char* chara_name;
     const char* auth_3d_name;
     const char* field_18;
     const char* jp_name;
-} struc_150;
+};
 
 static bone_data* bone_data_init(bone_data* bone);
 static float_t bone_data_limit_angle(float_t angle);
@@ -1743,8 +1738,10 @@ void pv_osage_manager_array_ptr_init() {
 }
 
 void pv_osage_manager_array_ptr_free() {
-    if (pv_osage_manager_array_ptr)
+    if (pv_osage_manager_array_ptr) {
         delete[] pv_osage_manager_array_ptr;
+        pv_osage_manager_array_ptr = 0;
+    }
 }
 
 static void sub_1405EE878(ExNodeBlock* node) {
@@ -9834,10 +9831,10 @@ static void sub_140512C20(rob_chara_item_equip* rob_itm_equip, render_context* r
     glMultTransposeMatrixf(&mat.row0.x);
     int32_t tex_pat_count = (int32_t)rob_itm_equip->texture_pattern.size();
     if (tex_pat_count)
-        object_data_set_texture_pattern(&rctx->object_data, tex_pat_count, rob_itm_equip->texture_pattern.data());
+        rctx->object_data.set_texture_pattern(tex_pat_count, rob_itm_equip->texture_pattern.data());
     draw_task_add_draw_object_by_object_info(rctx, 0, rob_itm_equip->field_D0, 0, 0, 0, 0, 0, false);
     if (tex_pat_count)
-        object_data_set_texture_pattern(&rctx->object_data, 0, 0);
+        rctx->object_data.set_texture_pattern();
     glPopMatrix();
 }
 
@@ -9863,7 +9860,7 @@ static void rob_chara_item_equip_disp(
             shadow_type_enum shadow_type = rob_itm_equip->shadow_type;
             vec3 pos = rob_itm_equip->position;
             pos.y -= 0.2f;
-            vector_old_vec3_push_back(&shad->field_1D0[shadow_type], &pos);
+            shad->field_1D0[shadow_type].push_back(pos);
 
             float_t v9;
             if (sub_140512F60(rob_itm_equip) <= -0.2f)
@@ -9871,22 +9868,22 @@ static void rob_chara_item_equip_disp(
             else
                 v9 = 0.05f;
             rctx->draw_pass.shadow_ptr->field_1C0[shadow_type] = v9;
-            object_data_set_shadow_type(object_data, shadow_type);
+            object_data->set_shadow_type(shadow_type);
             enum_or(v2, DRAW_TASK_SHADOW);
         }
 
         if (rob_itm_equip->field_A0 & 1)
             enum_or(v2, DRAW_TASK_4);
     }
-    object_data_set_draw_task_flags(object_data, v2);
-    object_data_set_chara_color(object_data, rob_itm_equip->chara_color);
+    object_data->set_draw_task_flags(v2);
+    object_data->set_chara_color(rob_itm_equip->chara_color);
 
     vec4 v23;
-    object_data_get_texture_color_coeff(object_data, &v23);
+    object_data->get_texture_color_coeff(&v23);
 
     vec4 texture_color_coeff = rob_itm_equip->texture_color_coeff;
-    object_data_set_texture_color_coeff(object_data, &texture_color_coeff);
-    object_data_set_wet_param(object_data, rob_itm_equip->wet);
+    object_data->set_texture_color_coeff(&texture_color_coeff);
+    object_data->set_wet_param(rob_itm_equip->wet);
     //sub_140502FB0(rob_itm_equip->field_F9);
     sub_140512C20(rob_itm_equip, rctx);
     //sub_1405421D0(chara_id, rctx->chara_reflect, rob_itm_equip->chara_color);
@@ -9913,15 +9910,15 @@ static void rob_chara_item_equip_disp(
             if (~rob_itm_equip->field_A0 & 0x04)
                 enum_and(v19, ~DRAW_TASK_SHADOW);
 
-            object_data_set_draw_task_flags(object_data, (draw_task_flags)(v18 | v19 | DRAW_TASK_SSS));
+            object_data->set_draw_task_flags( (draw_task_flags)(v18 | v19 | DRAW_TASK_SSS));
             rob_chara_item_equip_object_disp(&rob_itm_equip->item_equip_object[i], &mat, rctx);
         }
     }
-    object_data_set_texture_color_coeff(object_data, &v23);
-    object_data_set_wet_param(object_data, 0.0f);
-    object_data_set_chara_color(object_data, 0);
-    object_data_set_draw_task_flags(object_data, (draw_task_flags)0);
-    object_data_set_shadow_type(object_data, SHADOW_CHARA);
+    object_data->set_texture_color_coeff(&v23);
+    object_data->set_wet_param();
+    object_data->set_chara_color();
+    object_data->set_draw_task_flags();
+    object_data->set_shadow_type();
 }
 
 static object_info rob_chara_item_equip_get_object_info(
@@ -10022,14 +10019,13 @@ static void rob_chara_item_equip_object_disp(
     if (itm_eq_obj->obj_info.is_null())
         return;
 
-    object_data* object_data = &rctx->object_data;
-    draw_task_flags v2 = object_data_get_draw_task_flags(object_data);
+    draw_task_flags v2 = rctx->object_data.get_draw_task_flags();
     draw_task_flags v4 = v2;
     if (fabsf(itm_eq_obj->alpha - 1.0f) > 0.000001f)
         enum_or(v4, itm_eq_obj->draw_task_flags);
     else
         enum_and(v4, ~(DRAW_TASK_40000 | DRAW_TASK_20000 | DRAW_TASK_10000));
-    object_data_set_draw_task_flags(object_data, v4);
+    rctx->object_data.set_draw_task_flags(v4);
     if (itm_eq_obj->disp) {
         draw_task_add_draw_object_by_object_info_object_skin(rctx,
             itm_eq_obj->obj_info,
@@ -10044,7 +10040,7 @@ static void rob_chara_item_equip_object_disp(
         for (ExNodeBlock*& i : itm_eq_obj->node_blocks)
             i->Disp();
     }
-    object_data_set_draw_task_flags(object_data, v2);
+    rctx->object_data.set_draw_task_flags(v2);
 }
 
 static int32_t rob_chara_item_equip_object_get_bone_index(
@@ -11363,7 +11359,9 @@ void rob_chara_array_free_chara_id(int32_t chara_id) {
 
 void rob_chara_array_free() {
     delete[] rob_chara_array;
+    rob_chara_array = 0;
     delete[] rob_chara_pv_data_array;
+    rob_chara_pv_data_array = 0;
 }
 
 void rob_mot_tbl_init() {
@@ -11384,8 +11382,10 @@ void rob_thread_handler_init() {
 }
 
 void rob_thread_handler_free() {
-    if (rob_thread_handler)
+    if (rob_thread_handler) {
         delete rob_thread_handler;
+        rob_thread_handler = 0;
+    }
 }
 
 bool pv_osage_manager_array_ptr_get_disp() {
@@ -11447,15 +11447,7 @@ bone_node_expression_data::bone_node_expression_data() {
     parent_scale = vec3_identity;
 }
 
-bone_node_expression_data::~bone_node_expression_data() {
-
-}
-
 bone_node::bone_node() : name(), mat(), parent(), ex_data_mat() {
-
-}
-
-bone_node::~bone_node() {
 
 }
 
@@ -11903,8 +11895,10 @@ field_758(), field_76C(), field_778(), field_784(), field_788(), field_958() {
 }
 
 rob_chara_bone_data::~rob_chara_bone_data() {
-    for (motion_blend_mot*& i : motions)
+    for (motion_blend_mot*& i : motions) {
         delete i;
+        i = 0;
+    }
 }
 
 rob_chara_pv_data::rob_chara_pv_data() {
@@ -13079,6 +13073,7 @@ field_928(), field_930(), step(1.0f), use_opd(), parts_short(), parts_append(), 
 rob_chara_item_equip::~rob_chara_item_equip() {
     rob_chara_item_equip_reset(this);
     delete[] item_equip_object;
+    item_equip_object = 0;
 }
 
 item_cos_texture_change_tex::item_cos_texture_change_tex() : org(), chg(), changed() {
@@ -13120,6 +13115,62 @@ field_1B8(), field_1BC(), field_1C0(), field_1C8(), field_1C9(), field_1CA(), fi
 }
 
 struc_264::~struc_264() {
+
+}
+
+SubActParam::SubActParam(SubActParamType type) {
+    this->type = type;
+}
+
+SubActParam::~SubActParam() {
+
+}
+
+SubActParamAngry::SubActParamAngry() : SubActParam(SUB_ACTION_PARAM_ANGRY) {
+
+}
+
+SubActParamAngry::~SubActParamAngry() {
+
+}
+
+SubActParamCountNum::SubActParamCountNum() : SubActParam(SUB_ACTION_PARAM_COUNT_NUM) {
+    field_10 = 0;
+}
+
+SubActParamCountNum::~SubActParamCountNum() {
+
+}
+
+SubActParamCry::SubActParamCry() : SubActParam(SUB_ACTION_PARAM_CRY) {
+
+}
+
+SubActParamCry::~SubActParamCry() {
+
+}
+
+SubActParamEmbarrassed::SubActParamEmbarrassed() : SubActParam(SUB_ACTION_PARAM_EMBARRASSED) {
+
+}
+
+SubActParamEmbarrassed::~SubActParamEmbarrassed() {
+
+}
+
+SubActParamLaugh::SubActParamLaugh() : SubActParam(SUB_ACTION_PARAM_LAUGH) {
+
+}
+
+SubActParamLaugh::~SubActParamLaugh() {
+
+}
+
+SubActParamShakeHand::SubActParamShakeHand() : SubActParam(SUB_ACTION_PARAM_SHAKE_HAND) {
+    field_10 = 0;
+}
+
+SubActParamShakeHand::~SubActParamShakeHand() {
 
 }
 
@@ -13302,62 +13353,6 @@ void SubActExecShakeHand::Field_18(rob_chara* rob_chr) {
 void SubActExecShakeHand::Field_20(rob_chara* rob_chr) {
 
 };
-
-SubActParam::SubActParam(SubActParamType type) {
-    this->type = type;
-}
-
-SubActParam::~SubActParam() {
-
-}
-
-SubActParamAngry::SubActParamAngry() : SubActParam(SUB_ACTION_PARAM_ANGRY) {
-
-}
-
-SubActParamAngry::~SubActParamAngry() {
-
-}
-
-SubActParamCountNum::SubActParamCountNum() : SubActParam(SUB_ACTION_PARAM_COUNT_NUM) {
-    field_10 = 0;
-}
-
-SubActParamCountNum::~SubActParamCountNum() {
-
-}
-
-SubActParamCry::SubActParamCry() : SubActParam(SUB_ACTION_PARAM_CRY) {
-
-}
-
-SubActParamCry::~SubActParamCry() {
-
-}
-
-SubActParamEmbarrassed::SubActParamEmbarrassed() : SubActParam(SUB_ACTION_PARAM_EMBARRASSED) {
-
-}
-
-SubActParamEmbarrassed::~SubActParamEmbarrassed() {
-
-}
-
-SubActParamLaugh::SubActParamLaugh() : SubActParam(SUB_ACTION_PARAM_LAUGH) {
-
-}
-
-SubActParamLaugh::~SubActParamLaugh() {
-
-}
-
-SubActParamShakeHand::SubActParamShakeHand() : SubActParam(SUB_ACTION_PARAM_SHAKE_HAND) {
-    field_10 = 0;
-}
-
-SubActParamShakeHand::~SubActParamShakeHand() {
-
-}
 
 RobSubAction::Data::Data() : field_0(), field_8(), field_10(), field_18() {
 
@@ -13623,7 +13618,9 @@ field_D(), chara_index(), module_index(), chara_init_data() {
 
 rob_chara::~rob_chara() {
     delete bone_data;
+    bone_data = 0;
     delete item_equip;
+    item_equip = 0;
 }
 
 inline void motion_storage_init() {
@@ -13788,6 +13785,7 @@ PvOsageManager::~PvOsageManager() {
     cnd.notify_one();
     thread->join();
     delete thread;
+    thread = 0;
 }
 
 bool PvOsageManager::Init() {
@@ -13919,6 +13917,7 @@ RobThreadParent::~RobThreadParent() {
     cnd.notify_one();
     thread->join();
     delete thread;
+    thread = 0;
 }
 
 void RobThreadParent::AppendRobCharaFunc(rob_chara* rob_chr, void(*rob_chr_func)(rob_chara*)) {
@@ -13990,8 +13989,10 @@ RobThreadHandler::RobThreadHandler() {
 }
 
 RobThreadHandler::~RobThreadHandler() {
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
         delete arr[i];
+        arr[i] = 0;
+    }
 }
 
 void RobThreadHandler::AppendRobCharaFunc(int32_t chara_id, rob_chara* rob_chr, void(*rob_chr_func)(rob_chara*)) {

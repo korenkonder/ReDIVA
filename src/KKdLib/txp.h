@@ -9,7 +9,7 @@
 #include "default.h"
 #include "f2/enrs.h"
 
-typedef enum txp_format {
+enum txp_format {
     TXP_A8     = 0,
     TXP_RGB8   = 1,
     TXP_RGBA8  = 2,
@@ -24,10 +24,9 @@ typedef enum txp_format {
     TXP_ATI2   = 11,
     TXP_L8     = 12,
     TXP_L8A8   = 13,
-} txp_format;
+};
 
-class txp_mipmap {
-public:
+struct txp_mipmap {
     uint32_t width;
     uint32_t height;
     txp_format format;
@@ -38,8 +37,7 @@ public:
     ~txp_mipmap();
 };
 
-class txp {
-public:
+struct txp {
     bool has_cube_map;
     uint32_t array_size;
     uint32_t mipmaps_count;
@@ -51,8 +49,7 @@ public:
     static uint32_t get_size(txp_format format, uint32_t width, uint32_t height);
 };
 
-class txp_set {
-public:
+struct txp_set {
     bool ready;
 
     std::vector<txp> textures;

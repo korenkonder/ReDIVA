@@ -8,13 +8,13 @@
 #include <list>
 #include "../KKdLib/default.h"
 
-typedef enum task_enum {
+enum task_enum {
     TASK_NONE = 0x00,
     TASK_INIT = 0x01,
     TASK_CTRL = 0x02,
     TASK_DEST = 0x03,
     TASK_MAX  = 0x04,
-} task_enum;
+};
 
 class Task {
 public:
@@ -55,12 +55,11 @@ public:
     void SetPriority(int32_t priority);
 };
 
-class TaskWork;
+struct TaskWork;
 
 extern TaskWork* task_work;
 
-class TaskWork {
-public:
+struct TaskWork {
     std::list<Task*> tasks;
     Task* current;
     bool disp;

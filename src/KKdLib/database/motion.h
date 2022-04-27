@@ -9,8 +9,7 @@
 #include <vector>
 #include "../default.h"
 
-class motion_info {
-public:
+struct motion_info {
     std::string name;
     uint32_t name_hash;
     uint32_t id;
@@ -19,8 +18,7 @@ public:
     ~motion_info();
 };
 
-class motion_set_info {
-public:
+struct motion_set_info {
     std::string name;
     uint32_t name_hash;
     uint32_t id;
@@ -30,8 +28,7 @@ public:
     ~motion_set_info();
 };
 
-class motion_database {
-public:
+struct motion_database {
     bool ready;
 
     std::vector<std::string> bone_name;

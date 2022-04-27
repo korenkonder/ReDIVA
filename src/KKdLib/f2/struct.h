@@ -11,10 +11,9 @@
 #include "header.h"
 #include "pof.h"
 
-class f2_struct;
+struct f2_struct;
 
-class f2_struct {
-public:
+struct f2_struct {
     f2_header header;
     std::vector<uint8_t> data;
     std::vector<f2_struct> sub_structs;

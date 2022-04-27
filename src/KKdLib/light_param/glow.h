@@ -8,14 +8,13 @@
 #include "../default.h"
 #include "../vec.h"
 
-typedef enum tone_map_method {
+enum tone_map_method {
     TONE_MAP_YCC_EXPONENT = 0,
     TONE_MAP_RGB_LINEAR   = 1,
     TONE_MAP_RGB_LINEAR2  = 2,
-} tone_map_method;
+};
 
-class light_param_glow {
-public:
+struct light_param_glow {
     bool ready;
 
     bool has_exposure;

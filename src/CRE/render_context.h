@@ -29,7 +29,7 @@
 #define TEXTURE_PATTERN_COUNT 24
 #define TEXTURE_TRANSFORM_COUNT 24
 
-typedef enum draw_object_type {
+enum draw_object_type {
     DRAW_OBJECT_OPAQUE                    = 0x00,
     DRAW_OBJECT_TRANSLUCENT               = 0x01,
     DRAW_OBJECT_TRANSLUCENT_NO_SHADOW     = 0x02,
@@ -61,9 +61,9 @@ typedef enum draw_object_type {
     DRAW_OBJECT_TRANSLUCENT_TYPE_28       = 0x1C,
     DRAW_OBJECT_RIPPLE                    = 0x1D,
     DRAW_OBJECT_MAX                       = 0x1E,
-} draw_object_type;
+};
 
-typedef enum draw_pass_type {
+enum draw_pass_type {
     DRAW_PASS_SHADOW       = 0x00,
     DRAW_PASS_SSS          = 0x01,
     DRAW_PASS_TYPE_2       = 0x02,
@@ -78,9 +78,9 @@ typedef enum draw_pass_type {
     DRAW_PASS_SPRITE       = 0x0B,
     DRAW_PASS_TYPE_12      = 0x0C,
     DRAW_PASS_MAX          = 0x0D,
-} draw_pass_type;
+};
 
-typedef enum draw_task_flags {
+enum draw_task_flags {
     DRAW_TASK_SHADOW                = 0x00000001,
     DRAW_TASK_2                     = 0x00000002,
     DRAW_TASK_4                     = 0x00000004,
@@ -113,38 +113,38 @@ typedef enum draw_task_flags {
     DRAW_TASK_20000000              = 0x20000000,
     DRAW_TASK_40000000              = 0x40000000,
     DRAW_TASK_NO_TRANSLUCENCY       = 0x80000000,
-} draw_task_flags;
+};
 
-typedef enum draw_task_type {
+enum draw_task_type {
     DRAW_TASK_TYPE_OBJECT             = 0x00,
     DRAW_TASK_TYPE_PRIMITIVE          = 0x01,
     DRAW_TASK_TYPE_PREPROCESS         = 0x02,
     DRAW_TASK_TYPE_OBJECT_TRANSLUCENT = 0x03,
-} draw_task_type;
+};
 
-typedef enum reflect_refract_resolution_mode {
+enum reflect_refract_resolution_mode {
     REFLECT_REFRACT_RESOLUTION_256x256 = 0x00,
     REFLECT_REFRACT_RESOLUTION_512x256 = 0x01,
     REFLECT_REFRACT_RESOLUTION_512x512 = 0x02,
-} reflect_refract_resolution_mode;
+};
 
-typedef enum blur_filter_mode {
+enum blur_filter_mode {
     BLUR_FILTER_4  = 0x00,
     BLUR_FILTER_9  = 0x01,
     BLUR_FILTER_16 = 0x02,
     BLUR_FILTER_32 = 0x03,
-} blur_filter_mode;
+};
 
-typedef enum shadow_type_enum {
+enum shadow_type_enum {
     SHADOW_CHARA = 0x00,
     SHADOW_STAGE = 0x01,
     SHADOW_MAX   = 0x02,
-} shadow_type_enum;
+};
 
-typedef struct render_context render_context;
-typedef struct shadow shadow;
+struct render_context;
+struct shadow;
 
-typedef struct draw_state_stats {
+struct draw_state_stats {
     int32_t object_draw_count;
     int32_t object_translucent_draw_count;
     int32_t object_reflect_draw_count;
@@ -153,17 +153,20 @@ typedef struct draw_state_stats {
     int32_t draw_count;
     int32_t draw_triangle_count;
     int32_t field_1C;
-} draw_state_stats;
+};
 
-typedef struct sss_data_struct {
+struct sss_data {
     bool init;
     bool enable;
     bool npr_contour;
     render_texture textures[4];
-    vec4 param;
-} sss_data_struct;
+    vec4u param;
 
-typedef struct draw_pass {
+    sss_data();
+    ~sss_data();
+};
+
+struct draw_pass {
     bool enable[DRAW_PASS_MAX];
     shadow* shadow_ptr;
     bool reflect;
@@ -185,7 +188,7 @@ typedef struct draw_pass {
     float_t show_vector_length;
     float_t show_vector_z_offset;
     bool field_2F8;
-    //vector_old_draw_preprocess preprocess;
+    //std::vector<draw_preprocess> preprocess;
     texture* sss_texture;
     int32_t npr_param;
     bool field_31C;
@@ -194,10 +197,13 @@ typedef struct draw_pass {
     bool field_31F;
     bool field_320;
     bool npr;
-    sss_data_struct sss_data;
-} draw_pass;
+    sss_data sss_data;
 
-typedef struct draw_state {
+    draw_pass();
+    ~draw_pass();
+};
+
+struct draw_state {
     draw_state_stats stats;
     draw_state_stats stats_prev;
     bool wireframe;
@@ -218,26 +224,22 @@ typedef struct draw_state {
     float_t refract_uv_scale;
     int32_t field_68;
     float_t fresnel;
-} draw_state;
+};
 
-typedef struct texture_pattern_struct {
+struct texture_pattern_struct {
     texture_id src;
     texture_id dst;
 
     texture_pattern_struct();
     texture_pattern_struct(texture_id src, texture_id dst);
-} texture_pattern_struct;
+};
 
-vector_old(texture_pattern_struct)
-
-typedef struct texture_transform_struct {
+struct texture_transform_struct {
     int32_t id;
     mat4u mat;
-} texture_transform_struct;
+};
 
-vector_old(texture_transform_struct)
-
-typedef struct draw_object draw_object;
+struct draw_object;
 
 struct draw_object {
     obj_sub_mesh* sub_mesh;
@@ -269,63 +271,63 @@ struct draw_object {
     bool vertex_attrib_array[16];
 };
 
-typedef enum draw_primitive_type {
-    DRAW_PRIMITIVE_TEAPOT = 0x0,
-    DRAW_PRIMITIVE_TYPE_1 = 0x1,
-    DRAW_PRIMITIVE_CUBE   = 0x2,
-    DRAW_PRIMITIVE_SPHERE = 0x3,
-    DRAW_PRIMITIVE_TYPE_4 = 0x4,
-    DRAW_PRIMITIVE_CONE   = 0x5,
-    DRAW_PRIMITIVE_LINE   = 0x6,
-    DRAW_PRIMITIVE_TYPE_7 = 0x7,
-} draw_primitive_type;
+enum draw_primitive_type {
+    DRAW_PRIMITIVE_TEAPOT = 0x00,
+    DRAW_PRIMITIVE_TYPE_1 = 0x01,
+    DRAW_PRIMITIVE_CUBE   = 0x02,
+    DRAW_PRIMITIVE_SPHERE = 0x03,
+    DRAW_PRIMITIVE_TYPE_4 = 0x04,
+    DRAW_PRIMITIVE_CONE   = 0x05,
+    DRAW_PRIMITIVE_LINE   = 0x06,
+    DRAW_PRIMITIVE_TYPE_7 = 0x07,
+};
 
-typedef struct draw_primitive_teapot {
+struct draw_primitive_teapot {
     float_t size;
-} draw_primitive_teapot;
+};
 
-typedef struct draw_primitive_type_1 {
+struct draw_primitive_type_1 {
     int32_t field_0;
     int32_t field_4;
     int32_t field_8;
     int32_t field_C;
-} draw_primitive_type_1;
+};
 
-typedef struct draw_primitive_cube {
+struct draw_primitive_cube {
     vec3 size;
     bool wireframe;
-} draw_primitive_cube;
+};
 
-typedef struct draw_primitive_sphere {
+struct draw_primitive_sphere {
     float_t radius;
     int32_t slices;
     int32_t stacks;
     bool wireframe;
-} draw_primitive_sphere;
+};
 
-typedef struct draw_primitive_type_4 {
+struct draw_primitive_type_4 {
     int32_t field_0;
     int32_t field_4;
-} draw_primitive_type_4;
+};
 
-typedef struct draw_primitive_cone {
+struct draw_primitive_cone {
     float_t base;
     float_t height;
     int32_t slices;
     int32_t stacks;
     bool wireframe;
-} draw_primitive_cone;
+};
 
-typedef struct draw_primitive_line {
+struct draw_primitive_line {
     vec3 v0;
     vec3 v1;
-} draw_primitive_line;
+};
 
-typedef struct draw_primitive_type_7 {
+struct draw_primitive_type_7 {
     float_t size;
-} draw_primitive_type_7;
+};
 
-typedef union draw_primitive_union {
+union draw_primitive_union {
     draw_primitive_teapot teapot;
     draw_primitive_type_1 field_1;
     draw_primitive_cube cube;
@@ -334,73 +336,89 @@ typedef union draw_primitive_union {
     draw_primitive_cone cone;
     draw_primitive_line line;
     draw_primitive_type_7 type_7;
-} draw_primitive_union;
+};
 
-typedef struct draw_primitive {
+struct draw_primitive {
     draw_primitive_type type;
     bool fog;
-    vec4 color;
+    vec4u color;
     draw_primitive_union data;
-} draw_primitive;
+};
 
-typedef struct draw_task_preprocess {
+struct draw_task_preprocess {
     void(*func)(render_context* rctx, void* data);
     void* data;
-} draw_task_preprocess;
+};
 
-typedef struct draw_task_object_translucent {
+struct draw_task_object_translucent {
     int32_t count;
     draw_object* objects[40];
-} draw_task_object_translucent;
+};
 
-typedef union draw_task_union {
+union draw_task_union {
     draw_object object;
     draw_primitive primitive;
     draw_task_preprocess preprocess;
     draw_task_object_translucent object_translucent;
-} draw_task_union;
+};
 
-typedef struct draw_task {
+struct draw_task {
     draw_task_type type;
     mat4u mat;
     float_t depth;
     float_t bounding_radius;
     draw_task_union data;
-} draw_task;
+};
 
-typedef struct light_proj {
+struct light_proj {
     bool enable;
     render_texture shadow_texture[2];
     render_texture draw_texture;
     uint32_t texture_id;
-} light_proj;
 
-typedef struct morph_struct {
+    light_proj(int32_t width, int32_t height);
+    virtual ~light_proj();
+
+    void resize(int32_t width, int32_t height);
+    bool set(render_context* rctx);
+
+    static void get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat4* mat);
+    static bool set_mat(render_context* rctx, bool set_mat);
+};
+
+struct morph_struct {
     object_info object;
     float_t value;
-} morph_struct;
 
-vector_old_ptr(draw_task)
+    morph_struct();
+};
 
-typedef struct object_data_buffer {
+struct object_data_buffer {
     int32_t offset;
     int32_t max_offset;
     int32_t size; //0x300000
     void* data;
-} object_data_buffer;
 
-typedef struct object_data_culling_info {
+    object_data_buffer();
+    ~object_data_buffer();
+
+    draw_task* add_draw_task(draw_task_type type);
+    mat4u* add_mat4(int32_t count);
+    void reset();
+};
+
+struct object_data_culling_info {
     int32_t objects;
     int32_t meshes;
     int32_t sub_meshes;
-} object_data_culling_info;
+};
 
-typedef struct object_data {
+struct object_data {
     draw_task_flags draw_task_flags;
     shadow_type_enum shadow_type;
     int32_t field_8;
     int32_t field_C;
-    vector_old_ptr_draw_task draw_task_array[DRAW_OBJECT_MAX];
+    std::vector<draw_task*> draw_task_array[DRAW_OBJECT_MAX];
     object_data_culling_info passed;
     object_data_culling_info culled;
     object_data_culling_info passed_prev;
@@ -415,15 +433,43 @@ typedef struct object_data {
     morph_struct morph;
     int32_t texture_pattern_count;
     texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
-    vec4 texture_color_coeff;
-    vec4 texture_color_offset;
-    vec4 texture_specular_coeff;
-    vec4 texture_specular_offset;
+    vec4u texture_color_coeff;
+    vec4u texture_color_offset;
+    vec4u texture_specular_coeff;
+    vec4u texture_specular_offset;
     float_t wet_param;
     int32_t texture_transform_count;
     texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
     bool(*object_bounding_sphere_check_func)(obj_bounding_sphere*, camera*);
-} object_data;
+
+    object_data();
+    ~object_data();
+
+    bool get_chara_color();
+    ::draw_task_flags get_draw_task_flags();
+    void get_morph(object_info* object, float_t* value);
+    shadow_type_enum get_shadow_type();
+    void get_texture_color_coeff(vec4* value);
+    void get_texture_color_offset(vec4* value);
+    void get_texture_pattern(int32_t* count, texture_pattern_struct* value);
+    void get_texture_specular_coeff(vec4* value);
+    void get_texture_specular_offset(vec4* value);
+    void get_texture_transform(int32_t* count, texture_transform_struct* value);
+    float_t get_wet_param();
+    void reset();
+    void set_chara_color(bool value = false);
+    void set_draw_task_flags(::draw_task_flags flags = (::draw_task_flags)0);
+    void set_morph(object_info object = {}, float_t value = 0.0f);
+    void set_object_bounding_sphere_check_func(bool(*func)(obj_bounding_sphere*, camera*) = 0);
+    void set_shadow_type(shadow_type_enum type = SHADOW_CHARA);
+    void set_texture_color_coeff(vec4* value);
+    void set_texture_color_offset(vec4* value);
+    void set_texture_pattern(int32_t count = 0, texture_pattern_struct* value = 0);
+    void set_texture_specular_coeff(vec4* value);
+    void set_texture_specular_offset(vec4* value);
+    void set_texture_transform(int32_t count = 0, texture_transform_struct* value = 0);
+    void set_wet_param(float_t value = 0.0f);
+};
 
 struct render_context {
     camera* camera;
@@ -438,12 +484,24 @@ struct render_context {
     light_set light_set_data[LIGHT_SET_MAX];
 
     data_struct* data;
-    post_process_struct post_process;
+    post_process post_process;
     bool chara_reflect;
     bool chara_refract;
 
     mat4 view_mat;
     mat4 matrix_buffer[MATRIX_BUFFER_COUNT];
+
+    render_context();
+    virtual ~render_context();
+
+    void ctrl();
+    void disp();
+    void light_param_data_light_set(light_param_light* light);
+    void light_param_data_fog_set(light_param_fog* f);
+    void light_param_data_glow_set(light_param_glow* glow);
+    void light_param_data_ibl_set(light_param_ibl* ibl, light_param_data_storage* storage);
+    void light_param_data_wind_set(light_param_wind* w);
+    void light_param_data_face_set(light_param_face* face);
 };
 
 struct shadow {
@@ -456,7 +514,7 @@ struct shadow {
     vec3 field_1A8[2];
     float_t field_1C0[2];
     float_t field_1C8[2];
-    vector_old_vec3 field_1D0[2];
+    std::vector<vec3> field_1D0[2];
     int32_t field_200[2];
     float_t field_208;
     vec3 direction;
@@ -483,59 +541,10 @@ struct shadow {
     bool self_shadow;
     bool blur_filter_enable[2];
     bool field_2F5;
+
+    shadow();
+    virtual ~shadow();
+
+    void ctrl(render_context* rctx);
+    int32_t init_data();
 };
-
-extern light_proj* light_proj_init(int32_t width, int32_t height);
-extern void light_proj_get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat4* mat);
-extern void light_proj_resize(light_proj* litproj, int32_t width, int32_t height);
-extern bool light_proj_set(light_proj* litproj, render_context* rctx);
-extern bool light_proj_set_mat(render_context* rctx, bool set_mat);
-extern void light_proj_free(light_proj* litproj);
-
-extern draw_task* object_data_buffer_add_draw_task(object_data_buffer* buffer, draw_task_type type);
-extern mat4u* object_data_buffer_add_mat4(object_data_buffer* buffer, int32_t count);
-extern void object_data_buffer_reset(object_data_buffer* buffer);
-extern bool object_data_get_chara_color(object_data* object_data);
-extern draw_task_flags object_data_get_draw_task_flags(object_data* object_data);
-extern void object_data_get_morph(object_data* object_data, object_info* object, float_t* value);
-extern shadow_type_enum object_data_get_shadow_type(object_data* object_data);
-extern void object_data_get_texture_color_coeff(object_data* object_data, vec4* value);
-extern void object_data_get_texture_color_offset(object_data* object_data, vec4* value);
-extern void object_data_get_texture_pattern(object_data* object_data,
-    int32_t* count, texture_pattern_struct* value);
-extern void object_data_get_texture_specular_coeff(object_data* object_data, vec4* value);
-extern void object_data_get_texture_specular_offset(object_data* object_data, vec4* value);
-extern void object_data_get_texture_transform(object_data* object_data,
-    int32_t* count, texture_transform_struct* value);
-extern float_t object_data_get_wet_param(object_data* object_data);
-extern void object_data_set_chara_color(object_data* object_data, bool value);
-extern void object_data_set_draw_task_flags(object_data* object_data, draw_task_flags flags);
-extern void object_data_set_morph(object_data* object_data, object_info object, float_t value);
-extern void object_data_set_object_bounding_sphere_check_func(object_data* object_data,
-    bool(*func)(obj_bounding_sphere*, camera*));
-extern void object_data_set_shadow_type(object_data* object_data, shadow_type_enum type);
-extern void object_data_set_texture_color_coeff(object_data* object_data, vec4* value);
-extern void object_data_set_texture_color_offset(object_data* object_data, vec4* value);
-extern void object_data_set_texture_pattern(object_data* object_data,
-    int32_t count, texture_pattern_struct* value);
-extern void object_data_set_texture_specular_coeff(object_data* object_data, vec4* value);
-extern void object_data_set_texture_specular_offset(object_data* object_data, vec4* value);
-extern void object_data_set_texture_transform(object_data* object_data,
-    int32_t count, texture_transform_struct* value);
-extern void object_data_set_wet_param(object_data* object_data, float_t value);
-
-extern render_context* render_context_init();
-extern void render_context_ctrl(render_context* rctx);
-extern void render_context_disp(render_context* rctx);
-extern void render_context_light_param_data_light_set(render_context* rctx, light_param_light* light);
-extern void render_context_light_param_data_fog_set(render_context* rctx, light_param_fog* f);
-extern void render_context_light_param_data_glow_set(render_context* rctx, light_param_glow* glow);
-extern void render_context_light_param_data_ibl_set(render_context* rctx,
-    light_param_ibl* ibl, light_param_data_storage* storage);
-extern void render_context_light_param_data_wind_set(render_context* rctx, light_param_wind* w);
-extern void render_context_light_param_data_face_set(render_context* rctx, light_param_face* face);
-extern void render_context_set_light_param(render_context* rctx, light_param_data* light_param);
-extern void render_context_unset_light_param(render_context* rctx, light_param_data* light_param);
-extern void render_context_free(render_context* rctx);
-
-extern void shadow_ctrl(shadow* shad, render_context* rctx);

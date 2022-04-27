@@ -48,12 +48,15 @@ static const char* draw_task_type_name[] = {
     "Object Translucent",
 };
 
-typedef struct data_view_draw_task {
+typedef std::pair<draw_task*, std::pair<uint32_t, uint32_t>> draw_task_sort;
+
+struct data_view_draw_task {
     render_context* rctx;
-    vector_old_ptr_draw_task draw_tasks;
-    vector_old_uint32_t draw_task_hashes;
-    vector_old_uint32_t draw_task_indices;
-} data_view_draw_task;
+    std::vector<std::pair<draw_task*, std::pair<uint32_t, uint32_t>>> draw_tasks;
+
+    data_view_draw_task();
+    virtual ~data_view_draw_task();
+};
 
 extern int32_t width;
 extern int32_t height;
@@ -63,14 +66,10 @@ const char* data_view_draw_task_window_title = "Draw Task##Data Viewer";
 static void data_view_draw_task_imgui_draw_object(draw_object* object);
 
 bool data_view_draw_task_init(class_data* data, render_context* rctx) {
-    data->data = force_malloc_s(data_view_draw_task, 1);
+    data->data = new data_view_draw_task;
     data_view_draw_task* data_view = (data_view_draw_task*)data->data;
-    if (data_view) {
+    if (data_view)
         data_view->rctx = rctx;
-        data_view->draw_tasks = vector_old_ptr_empty(draw_task);
-        data_view->draw_task_hashes = vector_old_empty(uint32_t);
-        data_view->draw_task_indices = vector_old_empty(uint32_t);
-    }
     return true;
 }
 
@@ -105,10 +104,8 @@ void data_view_draw_task_imgui(class_data* data) {
     }
 
     render_context* rctx = data_view->rctx;
-    vector_old_ptr_draw_task* draw_task_array = rctx->object_data.draw_task_array;
-    vector_old_ptr_draw_task* draw_tasks_sort = &data_view->draw_tasks;
-    vector_old_uint32_t* draw_task_hashes = &data_view->draw_task_hashes;
-    vector_old_uint32_t* draw_task_indices = &data_view->draw_task_indices;
+    std::vector<draw_task*>* draw_task_array = rctx->object_data.draw_task_array;
+    std::vector<std::pair<draw_task*, std::pair<uint32_t, uint32_t>>>& draw_tasks_sort = data_view->draw_tasks;
 
     ImGuiTreeNodeFlags tree_node_base_flags = 0;
     tree_node_base_flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -122,8 +119,8 @@ void data_view_draw_task_imgui(class_data* data) {
         tree_node_flags = tree_node_base_flags;
 
         ImGui::PushID(i);
-        vector_old_ptr_draw_task* draw_tasks = &draw_task_array[i];
-        size_t count = vector_old_length(*draw_tasks);
+        std::vector<draw_task*>& draw_tasks = draw_task_array[i];
+        size_t count = draw_tasks.size();
         bool enable = count > 0;
         imguiDisableElementPush(enable);
         if (!ImGui::TreeNodeEx("", tree_node_flags,
@@ -133,42 +130,30 @@ void data_view_draw_task_imgui(class_data* data) {
             continue;
         }
 
-        vector_old_ptr_draw_task_insert_range(draw_tasks_sort, 0, draw_tasks->begin, draw_tasks->end);
-        vector_old_uint32_t_reserve(draw_task_hashes, count);
-        vector_old_uint32_t_reserve(draw_task_indices, count);
-        for (draw_task** j = draw_tasks_sort->begin; j != draw_tasks_sort->end; j++) {
-            *vector_old_uint32_t_reserve_back(draw_task_hashes) = hash_murmurhash((void*)j, 8, 0, true, false);
-            *vector_old_uint32_t_reserve_back(draw_task_indices) = (uint32_t)(j - draw_tasks_sort->begin);
+        draw_tasks_sort.reserve(count);
+        for (draw_task*& j : draw_tasks) {
+            draw_task_sort draw_task;
+            draw_task.first = j;
+            draw_task.second.first = hash_murmurhash((void*)j, 8, 0, true);
+            draw_task.second.second = (uint32_t)(&j - draw_tasks.data());
+            draw_tasks_sort.push_back(draw_task);
         }
 
-        for (uint32_t* i = draw_task_hashes->begin; i != &draw_task_hashes->end[-1]; i++)
-            for (uint32_t* j = i + 1; j != draw_task_hashes->end; j++)
+        for (auto i = draw_tasks_sort.begin(); i != draw_tasks_sort.end() - 1; i++)
+            for (auto j = i + 1; j != draw_tasks_sort.end(); j++)
                 if (*i > *j) {
-                    size_t i_idx = i - draw_task_hashes->begin;
-                    size_t j_idx = j - draw_task_hashes->begin;
-
-                    draw_task* temp = draw_tasks_sort->begin[i_idx];
-                    draw_tasks_sort->begin[i_idx] = draw_tasks_sort->begin[j_idx];
-                    draw_tasks_sort->begin[j_idx] = temp;
-
-                    uint32_t temp_hash = *i;
+                    draw_task_sort temp = *i;
                     *i = *j;
-                    *j = temp_hash;
-
-                    uint32_t temp_index = draw_task_indices->begin[i_idx];
-                    draw_task_indices->begin[i_idx] = draw_task_indices->begin[j_idx];
-                    draw_task_indices->begin[j_idx] = temp_index;
+                    *j = temp;
                 }
 
         ImGui::Text("       Hash;    Index; Type");
 
-        for (draw_task** j = draw_tasks_sort->begin; j != draw_tasks_sort->end; j++) {
-            size_t task_idx = j - draw_tasks_sort->begin;
-            draw_task* task = *j;
+        for (draw_task_sort& j : draw_tasks_sort) {
+            draw_task* task = j.first;
             ImGui::PushID(task);
-            if (!ImGui::TreeNodeEx("", tree_node_flags,
-                "%08x; %8u; %s", draw_task_hashes->begin[task_idx],
-                draw_task_indices->begin[task_idx], draw_task_type_name[task->type])) {
+            if (!ImGui::TreeNodeEx("", tree_node_flags, "%08x; %8u; %s",
+                j.second.first, j.second.second, draw_task_type_name[task->type])) {
                 ImGui::PopID();
                 continue;
             }
@@ -218,9 +203,7 @@ void data_view_draw_task_imgui(class_data* data) {
             ImGui::TreePop();
             ImGui::PopID();
         }
-        draw_tasks_sort->end = draw_tasks_sort->begin;
-        draw_task_hashes->end = draw_task_hashes->begin;
-        draw_task_indices->end = draw_task_indices->begin;
+        draw_tasks_sort.clear();
 
         ImGui::TreePop();
         imguiDisableElementPop(enable);
@@ -233,14 +216,17 @@ void data_view_draw_task_imgui(class_data* data) {
 
 bool data_view_draw_task_dispose(class_data* data) {
     data_view_draw_task* data_view = (data_view_draw_task*)data->data;
-    if (data_view) {
-        data_view->draw_tasks.end = data_view->draw_tasks.begin;
-        vector_old_ptr_draw_task_free(&data_view->draw_tasks, 0);
-        vector_old_uint32_t_free(&data_view->draw_task_hashes, 0);
-        vector_old_uint32_t_free(&data_view->draw_task_indices, 0);
-    }
-    free(data->data);
+    delete data_view;
+    data->data = 0;
     return true;
+}
+
+data_view_draw_task::data_view_draw_task() : rctx() {
+
+}
+
+data_view_draw_task::~data_view_draw_task() {
+
 }
 
 static void data_view_draw_task_imgui_draw_object(draw_object* object) {

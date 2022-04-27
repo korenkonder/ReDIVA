@@ -9,7 +9,7 @@
 #include "string.h"
 #include "vector.h"
 
-typedef enum msgpack_type {
+enum msgpack_type {
     MSGPACK_NONE = 0,
     MSGPACK_NULL,
     MSGPACK_bool,
@@ -26,17 +26,17 @@ typedef enum msgpack_type {
     MSGPACK_STRING,
     MSGPACK_ARRAY,
     MSGPACK_MAP,
-} msgpack_type;
+};
 
 #pragma pack(push, 4)
-typedef struct msgpack {
+struct msgpack {
     union {
         uint8_t data[0x1C];
         void* ptr;
     };
     msgpack_type type;
     string name;
-} msgpack;
+};
 #pragma pack(pop)
 
 #define MSGPACK_CHECK(a) sizeof(a) > 0x1C

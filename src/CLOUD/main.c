@@ -45,17 +45,16 @@ static void decrypt_edat() {
     io_free(&f1);
 }
 
-typedef struct dof_data {
+struct dof_data {
     int32_t flags;
     float_t focus;
     float_t focus_range;
     float_t fuzzing_range;
     float_t ratio;
     float_t quality;
-} dof_data;
+};
 
-class dft_dsc_data{
-public:
+struct dft_dsc_data{
     int32_t frames;
     std::vector<dof_data> dof;
     std::vector<int32_t> dof_index;
@@ -319,10 +318,10 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
 
 bool close;
 
-typedef struct thread {
+struct thread {
     HANDLE handle;
     DWORD id;
-} thread;
+};
 
 int32_t wmain(int32_t argc, wchar_t** argv) {
     //ShowWindow(GetConsoleWindow(), SW_HIDE);

@@ -47,7 +47,7 @@ void graphics_post_process_imgui(class_data* data) {
     }
 
     render_context* rctx = (render_context*)data->data;
-    post_process_struct* pp = &rctx->post_process;
+    post_process* pp = &rctx->post_process;
 
     post_process_blur* blur = pp->blur;
     post_process_dof* dof = pp->dof;

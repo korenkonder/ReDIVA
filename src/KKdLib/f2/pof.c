@@ -5,12 +5,12 @@
 
 #include "pof.h"
 
-typedef enum pof_value_type {
+enum pof_value_type {
     POF_VALUE_INVALID = 0x0,
     POF_VALUE_INT8    = 0x1,
     POF_VALUE_INT16   = 0x2,
     POF_VALUE_INT32   = 0x3,
-} pof_value_type;
+};
 
 inline static bool pof_length_get_size(uint32_t* length, size_t val);
 static size_t pof_read_offsets_count(stream* s);

@@ -13,10 +13,10 @@
 #include "../KKdLib/hash.h"
 #include "../KKdLib/str_utils.h"
 
-typedef struct material_change_handler {
+struct material_change_handler {
     int32_t load_count;
     material_change data;
-} material_change_handler;
+};
 
 static bool obj_mesh_index_buffer_load(obj_mesh_index_buffer* buffer, obj_mesh* mesh);
 static GLuint obj_mesh_index_buffer_load_data(size_t size, void* data);
@@ -643,7 +643,7 @@ inline obj_mesh_index_buffer* object_storage_get_obj_mesh_index_buffer(object_in
     return 0;
 }
 
-inline object_vertex_buffer* object_storage_get_obj_vertex_buffers(uint32_t set_id) {
+inline obj_vertex_buffer* object_storage_get_obj_vertex_buffers(uint32_t set_id) {
     obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
     if (handler && handler->vertex_buffers)
         return handler->vertex_buffers;
@@ -997,7 +997,7 @@ static bool obj_mesh_index_buffer_load(obj_mesh_index_buffer* buffer, obj_mesh* 
         indices_count += mesh->sub_meshes[i].indices_count;
 
     if (!indices_count) {
-        *buffer = 0;
+        buffer->buffer = 0;
         return true;
     }
 
@@ -1043,7 +1043,7 @@ static bool obj_mesh_index_buffer_load(obj_mesh_index_buffer* buffer, obj_mesh* 
         offset += sub_mesh->indices_count;
     }
 
-    *buffer = obj_mesh_index_buffer_load_data((size_t)indices_count * sizeof(uint16_t), indices);
+    buffer->buffer = obj_mesh_index_buffer_load_data((size_t)indices_count * sizeof(uint16_t), indices);
     free(indices);
     return true;
 }
@@ -1061,7 +1061,7 @@ static GLuint obj_mesh_index_buffer_load_data(size_t size, void* data) {
 }
 
 static void obj_mesh_index_buffer_free(obj_mesh_index_buffer* buffer) {
-    glDeleteBuffers(1, buffer);
+    glDeleteBuffers(1, &buffer->buffer);
 }
 
 static bool obj_mesh_vertex_buffer_load(obj_mesh_vertex_buffer* buffer, obj_mesh* mesh) {
@@ -1406,13 +1406,13 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler, void*
 static bool obj_set_handler_vertex_buffer_load(obj_set_handler* handler) {
     obj_set* set = handler->obj_set;
     handler->vertex_buffers_count = set->objects_count;
-    handler->vertex_buffers = force_malloc_s(object_vertex_buffer, set->objects_count);
+    handler->vertex_buffers = force_malloc_s(obj_vertex_buffer, set->objects_count);
     if (!handler->vertex_buffers)
         return true;
 
     for (int32_t i = 0; i < set->objects_count; i++) {
         obj* obj = &set->objects[i];
-        object_vertex_buffer* buffer = &handler->vertex_buffers[i];
+        obj_vertex_buffer* buffer = &handler->vertex_buffers[i];
 
         buffer->meshes_count = obj->meshes_count;
         buffer->meshes = force_malloc_s(obj_mesh_vertex_buffer, obj->meshes_count);
@@ -1431,7 +1431,7 @@ static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler) {
         return;
 
     for (int32_t i = 0; i < handler->vertex_buffers_count; i++) {
-        object_vertex_buffer* buffer = &handler->vertex_buffers[i];
+        obj_vertex_buffer* buffer = &handler->vertex_buffers[i];
         if (buffer->meshes)
             for (int32_t j = 0; j < buffer->meshes_count; j++)
                 obj_mesh_vertex_buffer_free(&buffer->meshes[j]);

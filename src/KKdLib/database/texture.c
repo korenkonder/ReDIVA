@@ -313,27 +313,24 @@ static void texture_database_classic_write_inner(texture_database* tex_db, strea
 
     uint32_t textures_count = (uint32_t)tex_db->texture.size();
 
-    vector_old_ssize_t string_offsets = vector_old_empty(ssize_t);
-    vector_old_ssize_t_reserve(&string_offsets, textures_count);
+    std::vector<ssize_t> string_offsets;
+    string_offsets.reserve(textures_count);
 
     for (texture_info& i : tex_db->texture) {
-        ssize_t off = io_get_position(s);
+        string_offsets.push_back(io_get_position(s));
         io_write_string_null_terminated(s, &i.name);
-        vector_old_ssize_t_push_back(&string_offsets, &off);
     }
     io_align_write(s, 0x20);
 
     ssize_t textures_offset = io_get_position(s);
-    if (string_offsets.begin) {
+    if (string_offsets.size()) {
         size_t off_idx = 0;
         for (texture_info& i : tex_db->texture) {
             io_write_uint32_t(s, i.id);
-            io_write_uint32_t(s, (uint32_t)string_offsets.begin[off_idx++]);
+            io_write_uint32_t(s, (uint32_t)string_offsets[off_idx++]);
         }
     }
     io_align_write(s, 0x20);
-
-    vector_old_ssize_t_free(&string_offsets, 0);
 
     io_position_push(s, 0x00, SEEK_SET);
     io_write_uint32_t(s, textures_count);

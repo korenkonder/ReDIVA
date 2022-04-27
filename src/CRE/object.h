@@ -16,32 +16,33 @@
 #include "static_var.h"
 #include "texture.h"
 
-typedef struct material_change {
+struct material_change {
     vec4u blend_color;
     float_t glow_intensity;
     vec4u incandescence;
-} material_change;
+};
 
-typedef GLuint obj_mesh_index_buffer;
+struct obj_mesh_index_buffer {
+    GLuint buffer;
+};
 
-typedef struct obj_mesh_vertex_buffer {
+struct obj_mesh_vertex_buffer {
     int32_t count;
     GLuint buffers[3];
     int32_t index;
-} obj_mesh_vertex_buffer;
+};
 
-typedef struct obj_index_buffer {
+struct obj_index_buffer {
     int32_t meshes_count;
     obj_mesh_index_buffer* meshes;
-} obj_index_buffer;
+};
 
-typedef struct obj_vertex_buffer {
+struct obj_vertex_buffer {
     int32_t meshes_count;
     obj_mesh_vertex_buffer* meshes;
-} object_vertex_buffer;
+};
 
-class obj_set_handler {
-public:
+struct obj_set_handler {
     p_file_handler obj_file_handler;
     bool obj_loaded;
     p_file_handler tex_file_handler;

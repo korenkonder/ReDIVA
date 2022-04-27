@@ -14,11 +14,11 @@
 #define vector_old_capacity(vec) ((vec).capacity_end - (vec).begin)
 
 #define vector_old(t) \
-typedef struct vector_old_##t { \
+struct vector_old_##t { \
     t* begin; \
     t* end; \
     t* capacity_end; \
-} vector_old_##t; \
+}; \
 \
 extern void vector_old_##t##_reserve(vector_old_##t* vec, ssize_t size); \
 extern void vector_old_##t##_push_back(vector_old_##t* vec, t* val); \
@@ -35,11 +35,11 @@ extern void vector_old_##t##_clear(vector_old_##t* vec, vector_old_dispose_func(
 extern void vector_old_##t##_free(vector_old_##t* vec, vector_old_dispose_func(t));
 
 #define vector_old_ptr(t) \
-typedef struct vector_old_ptr_##t { \
+struct vector_old_ptr_##t { \
     t** begin; \
     t** end; \
     t** capacity_end; \
-} vector_old_ptr_##t; \
+}; \
 \
 extern void vector_old_ptr_##t##_reserve(vector_old_ptr_##t* vec, ssize_t size); \
 extern void vector_old_ptr_##t##_push_back(vector_old_ptr_##t* vec, t** val); \
