@@ -11,7 +11,7 @@
 #include "../../../CRE/data.h"
 #include "../../../CRE/render_context.h"
 #include "../../../CRE/stage.h"
-#include "../../input.h"
+#include "../../input.hpp"
 #include "../data_test.h"
 #include "../imgui_helper.h"
 

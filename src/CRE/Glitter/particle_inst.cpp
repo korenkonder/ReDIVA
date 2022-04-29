@@ -227,7 +227,8 @@ namespace Glitter {
             case UV_INDEX_INITIAL_RANDOM_FIXED:
             case UV_INDEX_INITIAL_RANDOM_FORWARD:
             case UV_INDEX_INITIAL_RANDOM_REVERSE:
-                rend_elem->uv_index += random->F2GetInt(GLT_VAL, ptcl_inst_data->data.uv_index_count);
+                rend_elem->uv_index = ptcl_inst_data->data.uv_index_start
+                    + random->F2GetInt(GLT_VAL, ptcl_inst_data->data.uv_index_count);
                 break;
             }
             rend_elem->uv_index = min(rend_elem->uv_index, ptcl_inst_data->data.uv_index_end);
@@ -646,7 +647,8 @@ namespace Glitter {
             case UV_INDEX_INITIAL_RANDOM_FIXED:
             case UV_INDEX_INITIAL_RANDOM_FORWARD:
             case UV_INDEX_INITIAL_RANDOM_REVERSE:
-                rend_elem->uv_index += random->XGetInt(ptcl_inst_data->data.uv_index_count);
+                rend_elem->uv_index = ptcl_inst_data->data.uv_index_start
+                    + random->XGetInt(ptcl_inst_data->data.uv_index_count);
                 break;
             }
             rend_elem->uv_index = min(rend_elem->uv_index, ptcl_inst_data->data.uv_index_end);

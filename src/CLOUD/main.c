@@ -339,14 +339,11 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     ris.res.y = 0;
     ris.scale = 0.0f;
 
-    thread input, render, sound;
-    HANDLE h[3];
-    h[0] = input.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)input_main, 0, 0, &input.id);
-    h[1] = render.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)render_main, &ris, 0, &render.id);
-    h[2] = sound.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)sound_main, 0, 0, &sound.id);
+    thread render, sound;
+    HANDLE h[2];
+    h[0] = render.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)render_main, &ris, 0, &render.id);
+    h[1] = sound.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)sound_main, 0, 0, &sound.id);
 
-    if (input.handle)
-        SetThreadDescription(input.handle, L"Input Thread");
     if (render.handle)
         SetThreadDescription(render.handle, L"Render Thread");
     if (sound.handle)
@@ -354,12 +351,10 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     lock_init(&state_lock);
     state = RENDER_UNINITIALIZED;
-    if (input.handle && render.handle && sound.handle)
-        WaitForMultipleObjects(3, h, true, INFINITE);
+    if (render.handle && sound.handle)
+        WaitForMultipleObjects(2, h, true, INFINITE);
     lock_free(&state_lock);
 
-    if (input.handle)
-        CloseHandle(input.handle);
     if (render.handle)
         CloseHandle(render.handle);
     if (sound.handle)

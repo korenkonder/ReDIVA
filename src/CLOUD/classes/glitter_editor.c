@@ -24,7 +24,7 @@
 #include "../../CRE/shader_glsl.h"
 #include "../../CRE/stage.h"
 #include "../../CRE/static_var.h"
-#include "../input.h"
+#include "../input.hpp"
 #include <windows.h>
 #include <commdlg.h>
 #include <shobjidl.h>
@@ -723,13 +723,29 @@ void glitter_editor_ctrl(class_data* data) {
             LARGE_INTEGER time;
             QueryPerformanceCounter(&time);
 
-            /*Glitter::Effect* e = Glitter::Effect_copy(glt_edt->selected_effect);
-            snprintf(e->name, sizeof(e->name), "eff_%08x",
-                (uint32_t)((eff_count + 1) * time.LowPart * hash_murmurhash_empty));
-            eg->effects.push_back(e);*/
+            Glitter::Effect* e = new Glitter::Effect(eg->type);
+            *e = *glt_edt->selected_effect;
+            if (eg->type != Glitter::X) {
+                if (glt_edt->selected_effect->data.ext_anim) {
+                    e->data.ext_anim = force_malloc_s(Glitter::Effect::ExtAnim, 1);
+                    *e->data.ext_anim = *glt_edt->selected_effect->data.ext_anim;
+                }
+            }
+            else {
+                if (glt_edt->selected_effect->data.ext_anim_x) {
+                    e->data.ext_anim_x = force_malloc_s(Glitter::Effect::ExtAnimX, 1);
+                    *e->data.ext_anim_x = *glt_edt->selected_effect->data.ext_anim_x;
+                }
+            }
+
+            char name[0x80];
+            sprintf_s(name, sizeof(name), "eff_%08x",
+                (uint32_t)((eff_count + 1)* time.LowPart* hash_murmurhash_empty));
+            e->name = std::string(name);
+            eg->effects.push_back(e);
             glt_edt->input_reload = true;
         }
-        else if ((glt_edt->effect_flags & GLITTER_EDITOR_DELETE)) {
+        else if (glt_edt->effect_flags & GLITTER_EDITOR_DELETE) {
             ssize_t j = -1;
             for (Glitter::Effect*& i : eg->effects)
                 if (i && i == glt_edt->selected_effect) {
@@ -788,8 +804,9 @@ void glitter_editor_ctrl(class_data* data) {
 
     if (eg && has_emitter)
         if (glt_edt->emitter_flags & GLITTER_EDITOR_DUPLICATE) {
-            /*Glitter::Emitter* e = Glitter::Emitter_copy(glt_edt->selected_emitter);
-            sel_efct->emitters.push_back(e);*/
+            Glitter::Emitter* e = new Glitter::Emitter(eg->type);
+            *e = *glt_edt->selected_emitter;
+            sel_efct->emitters.push_back(e);
             glt_edt->input_reload = true;
         }
         else if (glt_edt->emitter_flags & GLITTER_EDITOR_DELETE) {
@@ -845,8 +862,9 @@ void glitter_editor_ctrl(class_data* data) {
 
     if (eg && has_particle)
         if (glt_edt->particle_flags & GLITTER_EDITOR_DUPLICATE) {
-            /*Glitter::Particle* p = Glitter::Particle_copy(glt_edt->selected_particle);
-            sel_emit->particles.push_back(p);*/
+            Glitter::Particle* p = new Glitter::Particle(eg->type);
+            *p = *glt_edt->selected_particle;
+            sel_emit->particles.push_back(p);
             glt_edt->input_reload = true;
         }
         else if (glt_edt->particle_flags & GLITTER_EDITOR_DELETE) {
@@ -1052,6 +1070,7 @@ void glitter_editor_ctrl(class_data* data) {
         glt_edt->effect_group->emission = Glitter::glt_particle_manager.emission;
         Glitter::glt_particle_manager.SetFrame(glt_edt->effect_group, &glt_edt->scene, glt_edt->frame_counter,
             glt_edt->old_frame_counter, glt_edt->counter, &glt_edt->random, true);
+        Glitter::glt_particle_manager.scene = glt_edt->scene;
         glt_edt->scene_counter = glt_edt->scene->counter;
         glt_edt->old_frame_counter = glt_edt->frame_counter;
         glt_edt->input_reload = false;
@@ -1067,6 +1086,7 @@ void glitter_editor_ctrl(class_data* data) {
 
         Glitter::glt_particle_manager.SetFrame(glt_edt->effect_group, &glt_edt->scene, glt_edt->frame_counter,
             glt_edt->old_frame_counter, glt_edt->counter, &glt_edt->random, false);
+        Glitter::glt_particle_manager.scene = glt_edt->scene;
         glt_edt->scene_counter = glt_edt->scene->counter;
         glt_edt->old_frame_counter = glt_edt->frame_counter;
     }
@@ -1078,6 +1098,7 @@ void glitter_editor_ctrl(class_data* data) {
         glt_edt->frame_counter = (float_t)glt_edt->start_frame;
         Glitter::glt_particle_manager.SetFrame(glt_edt->effect_group, &glt_edt->scene, glt_edt->frame_counter,
             glt_edt->old_frame_counter, glt_edt->counter, &glt_edt->random, true);
+        Glitter::glt_particle_manager.scene = glt_edt->scene;
         glt_edt->scene_counter = glt_edt->scene->counter;
         glt_edt->old_frame_counter = glt_edt->frame_counter;
         glt_edt->input_pause = true;
@@ -1130,29 +1151,29 @@ void glitter_editor_input(class_data* data) {
     if (!glt_edt)
         return;
 
-    if (input_is_down(VK_CONTROL) && input_is_tapped('O'))
+    if (Input::IsKeyTapped(GLFW_KEY_O, GLFW_MOD_CONTROL))
         glitter_editor_open_window(glt_edt);
-    else if (input_is_down(VK_CONTROL) && input_is_tapped(VK_F4))
+    else if (Input::IsKeyTapped(GLFW_KEY_F4, GLFW_MOD_CONTROL))
         glt_edt->close = true;
-    else if (input_is_down(VK_CONTROL) && input_is_tapped(VK_F3))
+    else if (Input::IsKeyTapped(GLFW_KEY_F3, GLFW_MOD_CONTROL))
         enum_or(data->flags, CLASS_DISPOSE);
-    else if (input_is_down(VK_CONTROL) && input_is_tapped('Q'))
+    else if (Input::IsKeyTapped(GLFW_KEY_Q, GLFW_MOD_CONTROL))
         close = true;
-    else if (input_is_tapped('P'))
+    else if (Input::IsKeyTapped(GLFW_KEY_P))
         glt_edt->test ^= true;
-    else if (input_is_tapped('T'))
+    else if (Input::IsKeyTapped(GLFW_KEY_T))
         glt_edt->input_play = true;
-    else if (input_is_tapped('Y'))
+    else if (Input::IsKeyTapped(GLFW_KEY_Y))
         glt_edt->input_reload = true;
-    else if (input_is_tapped('F'))
+    else if (Input::IsKeyTapped(GLFW_KEY_F))
         glt_edt->input_pause = true;
-    else if (input_is_tapped('G'))
+    else if (Input::IsKeyTapped(GLFW_KEY_G))
         glt_edt->input_reset = true;
 
     if (data->imgui_focus) {
-        if (input_is_down(VK_CONTROL) && input_is_down(VK_SHIFT) && input_is_tapped('S'))
+        if (Input::IsKeyTapped(GLFW_KEY_S, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
             glitter_editor_save_as_window(glt_edt);
-        else if (input_is_down(VK_CONTROL) && input_is_tapped('S'))
+        else if (Input::IsKeyTapped(GLFW_KEY_S, GLFW_MOD_CONTROL))
             glitter_editor_save_window(glt_edt);
     }
 }
@@ -2305,7 +2326,7 @@ static void glitter_editor_effects_context_menu(glitter_editor_struct* glt_edt,
             eff_str = "%s (%08X)";
 
         Glitter::EffectGroup* eg = glt_edt->effect_group;
-        ImGui::Text(eff_str, effect->name, (uint32_t)((size_t)effect * hash_fnv1a64m_empty));
+        ImGui::Text(eff_str, effect->name.c_str(), (uint32_t)((size_t)effect * hash_fnv1a64m_empty));
         ImGui::Separator();
         if (ImGui::MenuItem("Duplicate Effect")) {
             enum_or(glt_edt->effect_flags, GLITTER_EDITOR_DUPLICATE);
@@ -4212,7 +4233,8 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
                         case Glitter::UV_INDEX_INITIAL_RANDOM_REVERSE: {
                             LARGE_INTEGER time;
                             QueryPerformanceCounter(&time);
-                            uv_index += time.LowPart % particle->data.uv_index_count;
+                            uv_index = particle->data.uv_index_start
+                                + time.LowPart % particle->data.uv_index_count;
                         } break;
                         }
                     }

@@ -7,7 +7,7 @@
 
 #if defined(CLOUD_DEV)
 #include <set>
-#include "x_pv_game.h"
+#include "x_pv_game.hpp"
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/light_param/light.h"
 #include "../CRE/data.h"
@@ -15,7 +15,7 @@
 #include "../CRE/stage_modern.h"
 #include "../KKdLib/farc.h"
 #include "../KKdLib/sort.h"
-#include "input.h"
+#include "input.hpp"
 #include "classes/imgui_helper.h"
 
 enum dsc_x_func {
@@ -481,7 +481,6 @@ bool x_pv_game::Ctrl() {
                 i.set_motion_data_offset = 0;
             }
 
-
             std::vector<std::pair<int32_t, int32_t>> bar_frames;
             std::vector<miku_state> state_vec;
 
@@ -514,7 +513,8 @@ bool x_pv_game::Ctrl() {
                 } break;
                 case DSC_X_BAR_POINT: {
                     int32_t bar = data[0];
-                    bar_frames.push_back({ frame, bar });
+                    if (bar % 2)
+                        bar_frames.push_back({ frame, bar });
                 } break;
                 case DSC_X_STAGE_EFFECT: {
                     int32_t stage_effect = (int32_t)data[0];
@@ -541,6 +541,7 @@ bool x_pv_game::Ctrl() {
                                 bar_count_change = effect.bar_count;
                         }
                     }
+                    bar_count_change /= 2;
 
                     int32_t stage_effect_frame = frame;
                     int32_t bar = 1;
@@ -549,8 +550,6 @@ bool x_pv_game::Ctrl() {
                             stage_effect_frame = (&i)[-bar_count_change].first;
                             bar = (&i)[-bar_count_change].second;
                         }
-                        else if (frame < i.first)
-                            break;
 
                     stage_effects.push_back({ stage_effect_frame,
                         stage_effect, bar_count + bar_count_change, bar });
@@ -714,6 +713,10 @@ void x_pv_game::Disp() {
 bool x_pv_game::Dest() {
     Unload();
     task_stage_modern_unload();
+
+    Glitter::glt_particle_manager.SetPause(false);
+    extern float_t frame_speed;
+    frame_speed = 1.0f;
     return true;
 }
 
@@ -721,8 +724,15 @@ void x_pv_game::Window() {
     if (state != 10)
         return;
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_K, false))
+    if (Input::IsKeyTapped(GLFW_KEY_K, GLFW_MOD_CONTROL))
+        state = 11;
+    else if (Input::IsKeyTapped(GLFW_KEY_K))
         pause ^= true;
+
+    if (Input::IsKeyTapped(GLFW_KEY_L)) {
+        pause = true;
+        step_frame = true;
+    }
 
     if (!pause)
         return;
@@ -758,22 +768,28 @@ void x_pv_game::Window() {
 
         ImGui::TableNextColumn();
         w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Step Frame (L)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_L)) {
+        if (imguiButton("Step Frame (L)", { w, 0.0f })) {
             pause = true;
             step_frame = true;
         }
+
+        ImGui::TableNextColumn();
+        w = imguiGetContentRegionAvailWidth();
+        if (imguiButton("Stop (Ctrl+K)", { w, 0.0f }))
+            state = 11;
+
+        ImGui::TableNextColumn();
+        w = imguiGetContentRegionAvailWidth();
+        char buf[0x100];
+        sprintf_s(buf, sizeof(buf), "%d", frame);
+        ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
+        imguiButtonEx(buf, { w, 0.0f }, ImGuiButtonFlags_DontClosePopups
+            | ImGuiButtonFlags_NoNavFocus | ImGuiButtonFlags_NoHoveredOnFocus);
+        ImGui::PopStyleColor(3);
         ImGui::EndTable();
     }
-
-    w = imguiGetContentRegionAvailWidth();
-    char buf[0x100];
-    sprintf_s(buf, sizeof(buf), "%d", frame);
-    ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
-    imguiButtonEx(buf, { w, 0.0f }, ImGuiButtonFlags_DontClosePopups
-        | ImGuiButtonFlags_NoNavFocus | ImGuiButtonFlags_NoHoveredOnFocus);
-    ImGui::PopStyleColor(3);
 
     extern bool input_locked;
     input_locked |= ImGui::IsWindowFocused();

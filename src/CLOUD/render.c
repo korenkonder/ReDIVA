@@ -39,7 +39,8 @@
 #include "../KKdLib/sort.h"
 #include "../KKdLib/str_utils.h"
 #include "classes/imgui_helper.h"
-#include "x_pv_game.h"
+#include "input.hpp"
+#include "x_pv_game.hpp"
 #include <timeapi.h>
 
 #if defined(DEBUG)
@@ -224,6 +225,8 @@ int32_t render_main(void* arg) {
     glfwSetWindowSizeLimits(window, 896, 504, GLFW_DONT_CARE, GLFW_DONT_CARE);
     glfwSetWindowPos(window, 8, 31);
 
+    Input::SetInputs(window);
+
     RECT window_rect;
     GetClientRect(window_handle, &window_rect);
     width = window_rect.right;
@@ -282,6 +285,7 @@ int32_t render_main(void* arg) {
             ImGui_ImplGlfw_NewFrame();
             ImGui_ImplOpenGL3_NewFrame();
             ImGui::NewFrame();
+            Input::NewFrame();
             lock_lock(&render_lock);
             render_ctrl(rctx);
             lock_unlock(&render_lock);
@@ -289,6 +293,7 @@ int32_t render_main(void* arg) {
             glfwSwapBuffers(window);
             close |= !!glfwWindowShouldClose(window);
             frame_counter++;
+            Input::EndFrame();
             timer_end_of_cycle(&render_timer);
         }
 
@@ -573,7 +578,7 @@ static render_context* render_load() {
 
     task_auth_3d_append_task();
     TaskWork::AppendTask(&Glitter::glt_particle_manager, "GLITTER_TASK", 2);
-    //TaskWork::AppendTask(&x_pv_game_data, "X_PV_GAME", 0);
+    TaskWork::AppendTask(&x_pv_game_data, "X_PV_GAME", 0);
     task_rob_manager_append_task();
 
     aft_data->load_file(aft_data, "rom/", "chritm_prop.farc", item_table_array_load_file);
@@ -731,7 +736,7 @@ static render_context* render_load() {
     clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
     set_clear_color = true;
 
-    //x_pv_game_data.Load(826, 26);
+    x_pv_game_data.Load(826, 26);
 
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
     shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
@@ -1158,7 +1163,7 @@ static void render_dispose(render_context* rctx) {
     ImGui::DestroyContext(imgui_context);
     lock_free(&imgui_context_lock);
 
-    //x_pv_game_data.SetDest();
+    x_pv_game_data.SetDest();
     Glitter::glt_particle_manager.SetDest();
 
     //rob_chara_array_free_chara_id(0);

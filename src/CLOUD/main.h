@@ -6,6 +6,6 @@
 #pragma once
 
 #include "../KKdLib/default.h"
-#include "input.h"
+#include "input.hpp"
 #include "render.h"
 #include "sound.h"

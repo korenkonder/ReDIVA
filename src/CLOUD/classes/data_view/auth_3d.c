@@ -5,7 +5,7 @@
 
 #include "auth_3d.h"
 #include "../../../CRE/auth_3d.h"
-#include "../../input.h"
+#include "../../input.hpp"
 #include "../imgui_helper.h"
 
 static const char* auth_3d_fog_name[] = {

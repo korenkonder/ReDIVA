@@ -238,6 +238,7 @@ namespace Glitter {
         ctrl_quad = 0;
         ctrl_line = 0;
         ctrl_locus = 0;
+        ctrl_mesh = 0;
 
         for (F2RenderGroup*& i : groups)
             if (i) {
@@ -252,52 +253,9 @@ namespace Glitter {
                     ctrl_locus += i->ctrl;
                     break;
                 }
+
                 i->Ctrl(GLT_VAL, delta_frame, true);
             }
-    }
-
-    void F2RenderScene::Disp(GPM, draw_pass_3d_type alpha) {
-        disp_quad = 0;
-        disp_line = 0;
-        disp_locus = 0;
-
-        F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->effect);
-        F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->emitter);
-        F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->particle);
-        for (F2RenderGroup*& i : groups) {
-            if (!i)
-                continue;
-
-            F2RenderGroup* rend_group = i;
-            if ((rend_group)->alpha != alpha
-                || (rend_group->CannotDisp() && !GPM_VAL->draw_all))
-                continue;
-
-#if !defined(CRE_DEV)
-            Disp(GPM_VAL, rend_group);
-#else
-            if (!GPM_VAL->draw_selected || !eff) {
-                Disp(GPM_VAL, rend_group);
-            }
-            else if ((eff && ptcl) || (eff && !emit)) {
-                if (!ptcl || rend_group->particle == ptcl)
-                    Disp(GPM_VAL, rend_group);
-            }
-            else if (emit)
-                for (F2ParticleInst*& i : emit->particles) {
-                    if (!i)
-                        continue;
-
-                    F2ParticleInst* particle = i;
-                    if (rend_group->particle == particle)
-                        Disp(GPM_VAL, rend_group);
-
-                    for (F2ParticleInst*& j : particle->data.children)
-                        if (j && rend_group->particle == j)
-                            Disp(GPM_VAL, rend_group);
-                }
-#endif
-        }
     }
 
     void F2RenderScene::CalcDispLocus(GPM, F2RenderGroup* rend_group) {
@@ -573,8 +531,7 @@ namespace Glitter {
                 float_t v10;
                 float_t v11;
                 CalcDispQuadSetPivot(rend_group->pivot,
-                    scale_particle.x,
-                    scale_particle.y,
+                    scale_particle.x, scale_particle.y,
                     &v00, &v01, &v10, &v11);
 
                 vec2 pos_add[4];
@@ -731,8 +688,7 @@ namespace Glitter {
                     float_t v11;
                     float_t v10;
                     CalcDispQuadSetPivot(rend_group->pivot,
-                        scale_particle.x,
-                        scale_particle.y,
+                        scale_particle.x, scale_particle.y,
                         &v00, &v01, &v10, &v11);
 
                     vec2 pos_add[4];
@@ -815,8 +771,7 @@ namespace Glitter {
                     float_t v11;
                     float_t v10;
                     CalcDispQuadSetPivot(rend_group->pivot,
-                        scale_particle.x,
-                        scale_particle.y,
+                        scale_particle.x, scale_particle.y,
                         &v00, &v01, &v10, &v11);
 
                     vec2 pos_add[4];
@@ -870,6 +825,51 @@ namespace Glitter {
         rend_group->disp = disp;
         glUnmapBuffer(GL_ARRAY_BUFFER);
         gl_state_bind_array_buffer(0);
+    }
+
+    void F2RenderScene::Disp(GPM, draw_pass_3d_type alpha) {
+        disp_quad = 0;
+        disp_line = 0;
+        disp_locus = 0;
+        disp_mesh = 0;
+
+        F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->effect);
+        F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->emitter);
+        F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->particle);
+        for (F2RenderGroup*& i : groups) {
+            if (!i)
+                continue;
+
+            F2RenderGroup* rend_group = i;
+            if ((rend_group)->alpha != alpha
+                || (rend_group->CannotDisp() && !GPM_VAL->draw_all))
+                continue;
+
+#if !defined(CRE_DEV)
+            Disp(GPM_VAL, rend_group);
+#else
+            if (!GPM_VAL->draw_selected || !eff) {
+                Disp(GPM_VAL, rend_group);
+            }
+            else if ((eff && ptcl) || (eff && !emit)) {
+                if (!ptcl || rend_group->particle == ptcl)
+                    Disp(GPM_VAL, rend_group);
+            }
+            else if (emit)
+                for (F2ParticleInst*& i : emit->particles) {
+                    if (!i)
+                        continue;
+
+                    F2ParticleInst* particle = i;
+                    if (rend_group->particle == particle)
+                        Disp(GPM_VAL, rend_group);
+
+                    for (F2ParticleInst*& j : particle->data.children)
+                        if (j && rend_group->particle == j)
+                            Disp(GPM_VAL, rend_group);
+                }
+#endif
+        }
     }
 
     void F2RenderScene::Disp(GPM, F2RenderGroup* rend_group) {
@@ -1133,6 +1133,8 @@ namespace Glitter {
     }
     
     void XRenderScene::CalcDisp(GPM, XRenderGroup* rend_group) {
+        disp_mesh = 0;
+
         switch (rend_group->type) {
         case PARTICLE_MESH:
             break;
@@ -1144,6 +1146,7 @@ namespace Glitter {
         switch (rend_group->type) {
         case PARTICLE_MESH:
             CalcDispMesh(GPM_VAL, rend_group);
+            disp_mesh += rend_group->disp;
             break;
         }
     }
@@ -1685,8 +1688,7 @@ namespace Glitter {
                 float_t v10;
                 float_t v11;
                 CalcDispQuadSetPivot(rend_group->pivot,
-                    scale_particle.x,
-                    scale_particle.y,
+                    scale_particle.x, scale_particle.y,
                     &v00, &v01, &v10, &v11);
 
                 vec2 pos_add[4];
@@ -1832,8 +1834,7 @@ namespace Glitter {
                     float_t v11;
                     float_t v10;
                     CalcDispQuadSetPivot(rend_group->pivot,
-                        scale_particle.x,
-                        scale_particle.y,
+                        scale_particle.x, scale_particle.y,
                         &v00, &v01, &v10, &v11);
 
                     vec2 pos_add[4];
@@ -1911,8 +1912,7 @@ namespace Glitter {
                     float_t v11;
                     float_t v10;
                     CalcDispQuadSetPivot(rend_group->pivot,
-                        scale_particle.x,
-                        scale_particle.y,
+                        scale_particle.x, scale_particle.y,
                         &v00, &v01, &v10, &v11);
 
                     vec2 pos_add[4];
@@ -1969,12 +1969,37 @@ namespace Glitter {
     }
 
     void XRenderScene::Ctrl(float_t delta_frame, bool copy_mats) {
+        ctrl_quad = 0;
+        ctrl_line = 0;
+        ctrl_locus = 0;
+        ctrl_mesh = 0;
+
         for (XRenderGroup*& i : groups)
-            if (i)
+            if (i) {
+                switch (i->type) {
+                case PARTICLE_QUAD:
+                    ctrl_quad += i->ctrl;
+                    break;
+                case PARTICLE_LINE:
+                    ctrl_line += i->ctrl;
+                    break;
+                case PARTICLE_LOCUS:
+                    ctrl_locus += i->ctrl;
+                    break;
+                case PARTICLE_MESH:
+                    ctrl_mesh += i->ctrl;
+                    break;
+                }
+
                 i->Ctrl(delta_frame, copy_mats);
+            }
     }
 
     void XRenderScene::Disp(GPM, draw_pass_3d_type alpha) {
+        disp_quad = 0;
+        disp_line = 0;
+        disp_locus = 0;
+
         XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->effect);
         XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->emitter);
         XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->particle);
@@ -2027,12 +2052,15 @@ namespace Glitter {
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             CalcDispQuad(GPM_VAL, rend_group);
+            disp_quad += rend_group->disp;
             break;
         case PARTICLE_LINE:
             CalcDispLine(rend_group);
+            disp_line += rend_group->disp;
             break;
         case PARTICLE_LOCUS:
             CalcDispLocus(GPM_VAL, rend_group);
+            disp_locus += rend_group->disp;
             break;
         }
 
