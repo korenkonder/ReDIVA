@@ -535,9 +535,9 @@ size_t str_utils_get_substring_offset(const wchar_t* str0, size_t str0_len,
     return -1;
 }
 
-bool str_utils_text_file_parse(void* data, size_t length,
+bool str_utils_text_file_parse(void* data, size_t size,
     char** buf, char*** lines, size_t* count) {
-    if (!data || !length || !buf || !lines || !count)
+    if (!data || !size || !buf || !lines || !count)
         return false;
 
     char* d = (char*)data;
@@ -549,36 +549,36 @@ bool str_utils_text_file_parse(void* data, size_t length,
     if ((uint8_t)d[0] == 0x00)
         return false;
     else if (d[0] == 0xFF) {
-        if (length == 1 || (uint8_t)d[1] != 0xFE || length == 2)
+        if (size == 1 || (uint8_t)d[1] != 0xFE || size == 2)
             return false;
 
         wchar_t* w_d = (wchar_t*)data + 1;
         d = utf16_to_utf8(w_d);
-        length = utf8_length(d);
+        size = utf8_length(d);
         del = true;
         goto decode_utf8_ansi;
     }
     else if ((uint8_t)d[0] == 0xFE) {
-        if (length == 1 || (uint8_t)d[1] != 0xFF || length == 2)
+        if (size == 1 || (uint8_t)d[1] != 0xFF || size == 2)
             return false;
 
-        length /= 2;
+        size /= 2;
         wchar_t* w_d = (wchar_t*)data + 1;
         w_d = str_utils_copy(w_d);
-        for (size_t i = 0; i < length; i++)
+        for (size_t i = 0; i < size; i++)
             w_d[i] = (wchar_t)reverse_endianness_uint16_t((uint16_t)w_d[i]);
         d = utf16_to_utf8(w_d);
-        length = utf8_length(d);
+        size = utf8_length(d);
         del = true;
         free(w_d);
         goto decode_utf8_ansi;
     }
     else if ((uint8_t)d[0] == 0xEF) {
-        if (length == 1 || (uint8_t)d[1] != 0xBB || length == 2 || (uint8_t)d[2] != 0xBF || length == 3)
+        if (size == 1 || (uint8_t)d[1] != 0xBB || size == 2 || (uint8_t)d[2] != 0xBF || size == 3)
             return false;
 
         d += 3;
-        length -= 3;
+        size -= 3;
         goto decode_utf8_ansi;
     }
     else {
@@ -591,11 +591,11 @@ bool str_utils_text_file_parse(void* data, size_t length,
         t = d;
         ch = 0;
 
-        size_t buf_len = length;
-        for (size_t i = 0, l = 0, m = 0; i < length; i++) {
+        size_t buf_len = size;
+        for (size_t i = 0, l = 0, m = 0; i < size; i++) {
             ch = *t++;
             if (ch == '\r') {
-                if (i + 1 < length && *t == '\n') {
+                if (i + 1 < size && *t == '\n') {
                     i++;
                     t++;
                     l++;
@@ -631,7 +631,7 @@ bool str_utils_text_file_parse(void* data, size_t length,
         for (size_t i = 0, j = 0, l = 0, m = 0; j < c; i++) {
             ch = *t++;
             if (ch == '\r') {
-                if (i + 1 < length && *t == '\n') {
+                if (i + 1 < size && *t == '\n') {
                     i++;
                     t++;
                     l++;
@@ -641,7 +641,7 @@ bool str_utils_text_file_parse(void* data, size_t length,
             else if (ch == '\n')
                 lf = true;
 
-            if (i >= length || lf) {
+            if (i >= size || lf) {
                 temp_lines[j] = b;
                 if (l) {
                     memcpy(b, d + i - l, m);

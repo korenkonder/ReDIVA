@@ -4,8 +4,8 @@
 */
 
 #include "draw_task.h"
-#include "../../../CRE/render_context.h"
-#include "../../../KKdLib/hash.h"
+#include "../../../CRE/render_context.hpp"
+#include "../../../KKdLib/hash.hpp"
 #include "../imgui_helper.h"
 
 static const char* draw_object_type_name[] = {

@@ -6,11 +6,10 @@
 #include "glitter_test.h"
 #include "../../../KKdLib/io/path.h"
 #include "../../../KKdLib/str_utils.h"
-#include "../../../KKdLib/vector.h"
 #include "../../../CRE/Glitter/glitter.hpp"
-#include "../../../CRE/data.h"
-#include "../../../CRE/render_context.h"
-#include "../../../CRE/stage.h"
+#include "../../../CRE/data.hpp"
+#include "../../../CRE/render_context.hpp"
+#include "../../../CRE/stage.hpp"
 #include "../../input.hpp"
 #include "../data_test.h"
 #include "../imgui_helper.h"
@@ -95,7 +94,7 @@ bool TaskDataTestGlitterParticle::Init() {
     for (std::vector<data_struct_file>::iterator i = files.begin(); i != files.end();)
         if (str_utils_check_ends_with(i->name.c_str(), ".farc")) {
             char* temp = str_utils_get_without_extension(i->name.c_str());
-            i->name = temp ? std::string(temp) : std::string();
+            i->name = temp ? temp : 0;
             free(temp);
             i++;
         }
@@ -148,9 +147,9 @@ bool TaskDataTestGlitterParticle::Ctrl() {
     if (rebuild_geff) {
         int32_t effects_count = (int32_t)Glitter::glt_particle_manager.GetEffectsCount(this->hash);
         geff.clear();
-        geff.push_back(std::string("ALL"));
+        geff.push_back("ALL");
         for (int32_t i = 0; i < effects_count; i++)
-            geff.push_back(std::string(Glitter::glt_particle_manager.GetEffectName(hash, i)));
+            geff.push_back(Glitter::glt_particle_manager.GetEffectName(hash, i));
         rebuild_geff = false;
     }
 

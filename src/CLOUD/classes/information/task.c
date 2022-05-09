@@ -4,9 +4,9 @@
 */
 
 #include "task.h"
-#include "../../../KKdLib/sort.h"
+#include "../../../KKdLib/sort.hpp"
 #include "../../../KKdLib/str_utils.h"
-#include "../../../CRE/task.h"
+#include "../../../CRE/task.hpp"
 #include "../imgui_helper.h"
 
 extern int32_t width;

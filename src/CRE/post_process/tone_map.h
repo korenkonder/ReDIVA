@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../../KKdLib/default.h"
-#include "../../KKdLib/light_param/glow.h"
+#include "../../KKdLib/light_param/glow.hpp"
 #include "../../KKdLib/vec.h"
 #include "../shared.h"
 #include "../render_texture.h"

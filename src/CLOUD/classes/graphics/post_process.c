@@ -5,7 +5,7 @@
 */
 
 #include "post_process.h"
-#include "../../../CRE/stage.h"
+#include "../../../CRE/stage.hpp"
 #include "../imgui_helper.h"
 
 extern int32_t width;

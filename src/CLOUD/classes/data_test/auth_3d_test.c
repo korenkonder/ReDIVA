@@ -5,13 +5,13 @@
 
 #include "auth_3d_test.h"
 #include "../../../KKdLib/io/path.h"
-#include "../../../KKdLib/hash.h"
-#include "../../../KKdLib/sort.h"
+#include "../../../KKdLib/hash.hpp"
+#include "../../../KKdLib/sort.hpp"
 #include "../../../KKdLib/str_utils.h"
 #include "../../../KKdLib/vector.h"
-#include "../../../CRE/data.h"
-#include "../../../CRE/render_context.h"
-#include "../../../CRE/stage.h"
+#include "../../../CRE/data.hpp"
+#include "../../../CRE/render_context.hpp"
+#include "../../../CRE/stage.hpp"
 #include "../../input.hpp"
 #include "../imgui_helper.h"
 

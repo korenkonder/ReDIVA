@@ -5,12 +5,12 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "../KKdLib/default.h"
-#include "../KKdLib/string.h"
-#include "../KKdLib/farc.h"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/mat.h"
 #include "../KKdLib/vec.h"
-#include "../KKdLib/vector.h"
 #include <glad/glad.h>
 
 #define SHADER_PARAM_NUM_PARAMS 12
@@ -42,7 +42,6 @@ struct shader_glsl {
     void unload();
     void use();
 };
-
 
 #define shader_glsl_set_bool(s, name, value) \
 { \

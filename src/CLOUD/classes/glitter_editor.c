@@ -12,17 +12,16 @@
 #include "../../KKdLib/dds.h"
 #include "../../KKdLib/interpolation.h"
 #include "../../KKdLib/str_utils.h"
-#include "../../KKdLib/txp.h"
-#include "../../KKdLib/str_utils.h"
+#include "../../KKdLib/txp.hpp"
 #include "../../KKdLib/vec.h"
 #include "../../CRE/Glitter/glitter.hpp"
 #include "../../CRE/camera.h"
-#include "../../CRE/data.h"
+#include "../../CRE/data.hpp"
 #include "../../CRE/draw_task.h"
 #include "../../CRE/gl_state.h"
-#include "../../CRE/render_context.h"
+#include "../../CRE/render_context.hpp"
 #include "../../CRE/shader_glsl.h"
-#include "../../CRE/stage.h"
+#include "../../CRE/stage.hpp"
 #include "../../CRE/static_var.h"
 #include "../input.hpp"
 #include <windows.h>
@@ -711,7 +710,7 @@ void glitter_editor_ctrl(class_data* data) {
         char name[0x80];
         sprintf_s(name, sizeof(name), "eff_%08x",
             (uint32_t)((eff_count + 1) * time.LowPart * hash_murmurhash_empty));
-        e->name = std::string(name);
+        e->name = name;
         eg->effects.push_back(e);
         glt_edt->input_reload = true;
     }
@@ -741,7 +740,7 @@ void glitter_editor_ctrl(class_data* data) {
             char name[0x80];
             sprintf_s(name, sizeof(name), "eff_%08x",
                 (uint32_t)((eff_count + 1)* time.LowPart* hash_murmurhash_empty));
-            e->name = std::string(name);
+            e->name = name;
             eg->effects.push_back(e);
             glt_edt->input_reload = true;
         }
@@ -1021,7 +1020,6 @@ void glitter_editor_ctrl(class_data* data) {
             }
         else
             glt_edt->load_data = false;
-
 
         if (!load_success && !glitter_editor_list_open_window(glt_edt->effect_group)) {
             glt_edt->load_error_list_popup = true;
@@ -1689,8 +1687,7 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, const char*
             f.add_file();
             farc_file& ff_drs = f.files.back();
             st.write(&ff_drs.data, &ff_drs.size);
-            ff_drs.name = std::string(file);
-            ff_drs.name += ".drs";
+            ff_drs.name = std::string(file) + ".drs";
         }
     }*/
 
@@ -1700,8 +1697,7 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, const char*
             f.add_file();
             farc_file& ff_dve = f.files.back();
             st.write(&ff_dve.data, &ff_dve.size);
-            ff_dve.name = std::string(file);
-            ff_dve.name += ".dve";
+            ff_dve.name = std::string(file) + ".dve";
         }
         else
             return;
@@ -1713,8 +1709,7 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, const char*
             f.add_file();
             farc_file& ff_lst = f.files.back();
             st.write(&ff_lst.data, &ff_lst.size);
-            ff_lst.name = std::string(file);
-            ff_lst.name += ".lst";
+            ff_lst.name = std::string(file) + ".lst";
         }
         else
             return;
@@ -1814,7 +1809,7 @@ static bool glitter_editor_list_open_window(Glitter::EffectGroup* eg) {
                     continue;
                 }
 
-                e->name = std::string(lines[j]);
+                e->name = lines[j];
             }
 
             free(buf);
@@ -2136,7 +2131,6 @@ static void glitter_editor_effects(glitter_editor_struct* glt_edt) {
             eff_str = "%s (%08X) [L]";
         else
             eff_str = "%s (%08X)";
-
 
         ImGui::PushID(effect);
         if (ImGui::TreeNodeEx("effect", tree_node_flags, eff_str,
@@ -4052,7 +4046,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
         obj* obj = 0;
         if (handler && handler->obj_set) {
             obj_set* set = handler->obj_set;
-            for (int32_t i = 0; i < set->objects_count; i++)
+            for (uint32_t i = 0; i < set->objects_count; i++)
                 if (set->objects[i].id == obj_id) {
                     obj = &set->objects[i];
                     break;
@@ -4064,7 +4058,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
             if (set_id != -1 && handler && handler->set_id == set_id && handler->obj_set) {
                 obj_set* set = handler->obj_set;
                 ssize_t obj_index = -1;
-                for (int32_t i = 0; i < set->objects_count; i++)
+                for (uint32_t i = 0; i < set->objects_count; i++)
                     if (set->objects[i].id == obj_id) {
                         obj_index = i;
                         break;
@@ -4077,7 +4071,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
                     obj_index = -1;
                 ImGui::PopID();
 
-                for (int32_t i = 0; i < set->objects_count; i++) {
+                for (uint32_t i = 0; i < set->objects_count; i++) {
                     ImGui::PushID(i);
                     ::obj* obj = &set->objects[i];
                     if (ImGui::Selectable(string_data(&obj->name), obj->id == obj_id)
@@ -4248,7 +4242,6 @@ static bool glitter_editor_property_particle_texture(glitter_editor_struct* glt_
                     uv_max.x = uv.x + particle->data.split_uv.x;
                     uv_max.y = uv.y + particle->data.split_uv.y;
                 }
-
 
                 txp_mipmap* rtm = rt[n - 1].mipmaps.data();
                 float_t aspect1 = (float_t)rtm->width / (float_t)rtm->height;
@@ -4659,7 +4652,6 @@ static void glitter_editor_file_load_model_popup(glitter_editor_struct* glt_edt,
                 }
                 break;
             }
-
 
             if (close) {
                 glt_edt->load_data = true;
@@ -6877,14 +6869,14 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
 
             int32_t ttc = 0;
             texture_transform_struct* tt = object_data->texture_transform_array;
-            for (int32_t i = 0; i < obj->meshes_count; i++) {
+            for (uint32_t i = 0; i < obj->meshes_count; i++) {
                 obj_mesh* mesh = &obj->meshes[i];
 
                 if (object_data->object_culling && !object_bounding_sphere_check_visibility(
                     &mesh->bounding_sphere, object_data, rctx->camera, &mat))
                     continue;
 
-                for (int32_t j = 0; j < mesh->sub_meshes_count; j++) {
+                for (uint32_t j = 0; j < mesh->sub_meshes_count; j++) {
                     obj_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
 
                     if (sub_mesh->flags & OBJ_SUB_MESH_FLAG_8)

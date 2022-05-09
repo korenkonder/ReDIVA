@@ -8,21 +8,21 @@
 #include <map>
 #include <map>
 #include <vector>
-#include "../../KKdLib/database/object.h"
+#include "../../KKdLib/database/object.hpp"
 #include "../../KKdLib/f2/header.h"
-#include "../../KKdLib/f2/struct.h"
+#include "../../KKdLib/f2/struct.hpp"
 #include "../../KKdLib/default.h"
-#include "../../KKdLib/farc.h"
-#include "../../KKdLib/hash.h"
+#include "../../KKdLib/farc.hpp"
+#include "../../KKdLib/hash.hpp"
 #include "../../KKdLib/mat.h"
-#include "../../KKdLib/txp.h"
+#include "../../KKdLib/txp.hpp"
 #include "../../KKdLib/vec.h"
 #include "../../KKdLib/vector.h"
-#include "../file_handler.h"
-#include "../frame_rate_control.h"
+#include "../file_handler.hpp"
+#include "../frame_rate_control.hpp"
 #include "../static_var.h"
-#include "../task.h"
-#include "../texture.h"
+#include "../task.hpp"
+#include "../texture.hpp"
 
 namespace Glitter {
     enum CurveFlag {
@@ -524,7 +524,6 @@ namespace Glitter {
         virtual ~ItemBase();
     };
 
-
     class Node : public ItemBase {
     public:
         vec3 translation;
@@ -685,7 +684,7 @@ namespace Glitter {
 
         RenderGroup();
         virtual ~RenderGroup();
-        
+
         RenderElement* AddElement(RenderElement* rend_elem);
     };
 
@@ -1078,7 +1077,6 @@ namespace Glitter {
         void Append(RenderElement* rend_elem, F2ParticleInst* ptcl_inst);
         void Append(RenderElement* rend_elem, XParticleInst* ptcl_inst);
     };
-
 
     class Particle : public ItemBase {
     public:

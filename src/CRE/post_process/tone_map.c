@@ -4,9 +4,9 @@
 */
 
 #include "tone_map.h"
-#include "../fbo.h"
+#include "../fbo.hpp"
 #include "../gl_state.h"
-#include "../post_process.h"
+#include "../post_process.hpp"
 #include "../shader_ft.h"
 
 static void post_process_tone_map_free_fbo(post_process_tone_map* tm);
@@ -100,7 +100,7 @@ void post_process_apply_tone_map(post_process_tone_map* tm,
     glBindTexture(GL_TEXTURE_1D, 0);
     uniform_value[U16] = 1;
 
-    fbo_blit(buf_rt->fbos[0], rt->fbos[0],
+    fbo::blit(buf_rt->fbos[0], rt->fbos[0],
         0, 0, buf_rt->color_texture->width, buf_rt->color_texture->height,
         0, 0, rt->color_texture->width, rt->color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }

@@ -4,10 +4,10 @@
 */
 
 #include "exposure.h"
-#include "../fbo.h"
+#include "../fbo.hpp"
 #include "../gl_state.h"
-#include "../post_process.h"
-#include "../rob.h"
+#include "../post_process.hpp"
+#include "../rob.hpp"
 #include "../shader_ft.h"
 
 struct struc_188 {

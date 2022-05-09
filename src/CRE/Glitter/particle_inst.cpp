@@ -279,7 +279,7 @@ namespace Glitter {
         rend_elem->InitLocusHistory(GLT_VAL, this, random);
         random->F2StepValue();
     }
-    
+
     void F2ParticleInst::Free(bool free) {
         enum_or(data.flags, PARTICLE_INST_ENDED);
         if (free && data.render_group)

@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../../KKdLib/default.h"
-#include "../../KKdLib/light_param/fog.h"
+#include "../../KKdLib/light_param/fog.hpp"
 #include "../../KKdLib/vec.h"
 #include "../static_var.h"
 

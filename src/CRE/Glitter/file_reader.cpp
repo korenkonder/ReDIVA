@@ -6,9 +6,9 @@
 #include "glitter.hpp"
 #include "../../KKdLib/io/path.h"
 #include "../../KKdLib/interpolation.h"
-#include "../../KKdLib/farc.h"
+#include "../../KKdLib/farc.hpp"
 #include "../../KKdLib/str_utils.h"
-#include "../data.h"
+#include "../data.hpp"
 
 namespace Glitter {
 #if defined(CRE_DEV)
@@ -27,9 +27,9 @@ namespace Glitter {
 
     FileReader::FileReader(GLT, const char* path, const char* file, float_t emission)
         : effect_group(), load_count() {
-        this->path = std::string(path ? path
-            : (GLT_VAL != Glitter::FT ? "root+/particle/" : "rom/particle/"));
-        this->file = std::string(file);
+        this->path = path ? path
+            : (GLT_VAL != Glitter::FT ? "root+/particle/" : "rom/particle/");
+        this->file = file;
         this->emission = emission;
         this->type = GLT_VAL;
         this->hash = GLT_VAL != Glitter::FT
@@ -41,9 +41,9 @@ namespace Glitter {
         : effect_group(), load_count() {
         char* path_temp = utf16_to_utf8(path);
         char* file_temp = utf16_to_utf8(file);
-        this->path = std::string(path_temp ? path_temp
-            : (GLT_VAL != Glitter::FT ? "root+/particle/" : "rom/particle/"));
-        this->file = std::string(file_temp);
+        this->path = path_temp ? path_temp
+            : (GLT_VAL != Glitter::FT ? "root+/particle/" : "rom/particle/");
+        this->file = file_temp;
         this->emission = emission;
         this->type = GLT_VAL;
         this->hash = GLT_VAL != Glitter::FT
@@ -65,8 +65,8 @@ namespace Glitter {
             || type != Glitter::FT && this->hash != hash_murmurhash_empty)
             return false;
 
-        this->path = std::string(path);
-        this->file = std::string(file);
+        this->path = path;
+        this->file = file;
 
         std::string file_temp = this->file + ".farc";
 
@@ -79,7 +79,7 @@ namespace Glitter {
         }
         return false;
     }
-    
+
     void FileReader::ParseAnimation(f2_struct* st, Animation* anim) {
         if (!st || !st->header.data_size
             || st->header.signature != reverse_endianness_uint32_t('ANIM'))
@@ -489,7 +489,7 @@ namespace Glitter {
             delete emit;
             return false;
         }
-        
+
         ParseAnimation(st->sub_structs.size() ? st->sub_structs.data() : 0, &emit->animation);
 
         for (f2_struct& i : st->sub_structs)
@@ -1334,7 +1334,7 @@ namespace Glitter {
                     memcpy(buf, (void*)d, 0x80);
                     buf[0x7F] = 0;
 
-                    i->name = std::string(buf);
+                    i->name = buf;
                 }
                 d += 0x80;
             }

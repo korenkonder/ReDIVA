@@ -118,7 +118,7 @@ namespace Glitter {
         PIVOT_TOP_CENTER,
         PIVOT_TOP_LEFT,
     };
-    
+
     const char* effect_ext_anim_index_name[] = {
         "P1",
         "P2",

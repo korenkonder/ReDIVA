@@ -5,7 +5,7 @@
 
 #include "shader.h"
 #include "../KKdLib/io/path.h"
-#include "../KKdLib/hash.h"
+#include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.h"
 #include "gl_state.h"
 #include <shlobj_core.h>

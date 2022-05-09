@@ -5,12 +5,12 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "../KKdLib/default.h"
-#include "../KKdLib/string.h"
-#include "../KKdLib/farc.h"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/mat.h"
 #include "../KKdLib/vec.h"
-#include "../KKdLib/vector.h"
 #include "static_var.h"
 
 #define SHADER_MAX_CLIP_PLANES 8

@@ -125,7 +125,7 @@ namespace Glitter {
     int32_t GltParticleManager::CounterGet() {
         return counter;
     }
-    
+
     void GltParticleManager::CounterIncrement() {
         counter++;
     }
@@ -703,7 +703,7 @@ namespace Glitter {
 
                 for (SceneEffect& j : i->effects)
                     if (j.disp && j.ptr && j.ptr->data.name_hash == effect_hash) {
-                        j.ptr->name = std::string(name);
+                        j.ptr->name = name;
                         return;
                     }
             }
@@ -714,7 +714,7 @@ namespace Glitter {
 
                 for (SceneEffect& j : i->effects)
                     if (j.disp && j.ptr && j.ptr->data.name_hash == effect_hash) {
-                        j.ptr->name = std::string(name);
+                        j.ptr->name = name;
                         return;
                     }
             }
@@ -729,13 +729,13 @@ namespace Glitter {
     void GltParticleManager::SetSceneName(uint64_t hash, const char* name) {
         std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(hash);
         if (elem != effect_groups.end())
-            elem->second->name = std::string(name);
+            elem->second->name = name;
 
         for (Scene*& i : scenes) {
             if (!i || i->hash != hash)
                 continue;
 
-            i->name = std::string(name);
+            i->name = name;
             break;
         }
     }
@@ -760,7 +760,7 @@ namespace Glitter {
         //if (a2 <= 0.0)
         //    field_D4 = -1.0;
     }
-    
+
     GltParticleManager glt_particle_manager;
 }
 

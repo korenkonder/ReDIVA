@@ -6,7 +6,7 @@
 #pragma once
 
 #include "default.h"
-#include "txp.h"
+#include "txp.hpp"
 #include "vector.h"
 
 struct dds {

@@ -3,10 +3,10 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "../KKdLib/a3da.h"
-#include "../KKdLib/dsc.h"
-#include "../KKdLib/f2/struct.h"
-#include "../CRE/auth_3d.h"
+#include "../KKdLib/a3da.hpp"
+#include "../KKdLib/dsc.hpp"
+#include "../KKdLib/f2/struct.hpp"
+#include "../CRE/auth_3d.hpp"
 #include "elf.h"
 #include "main.h"
 #include "shared.h"

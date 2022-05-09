@@ -10,11 +10,11 @@
 #include "x_pv_game.hpp"
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/light_param/light.h"
-#include "../CRE/data.h"
-#include "../CRE/object.h"
-#include "../CRE/stage_modern.h"
-#include "../KKdLib/farc.h"
-#include "../KKdLib/sort.h"
+#include "../CRE/data.hpp"
+#include "../CRE/object.hpp"
+#include "../CRE/stage_modern.hpp"
+#include "../KKdLib/farc.hpp"
+#include "../KKdLib/sort.hpp"
 #include "input.hpp"
 #include "classes/imgui_helper.h"
 
@@ -194,6 +194,7 @@ static int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id);
 static int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
 static int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);
 static bool x_pv_game_dsc_process(x_pv_game* xpvgm, int64_t curr_time);
+static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm);
 static void x_pv_game_stage_effect_ctrl(x_pv_game* xpvgm);
 static void x_pv_game_stage_effect_start(x_pv_game* xpvgm, pvsr_stage_effect* stage_effect);
 static void x_pv_game_stage_effect_stop(x_pv_game* xpvgm,
@@ -204,6 +205,44 @@ static dsc_data* sub_1401216D0(x_pv_game* a1, dsc_x_func func_name,
     int32_t* time, int32_t* pv_branch_mode, dsc_data* start, dsc_data* end);
 static void sub_140121A80(x_pv_game* a1, int32_t chara_id);
 static void sub_140122770(x_pv_game* a1, int32_t chara_id);
+
+x_pv_game_a3da_to_mot::x_pv_game_a3da_to_mot(int32_t auth_3d_id) {
+    this->auth_3d_id = auth_3d_id;
+    gblctr = -2;
+    n_hara = -2;
+    n_hara_y = -2;
+    j_hara_wj = -2;
+    n_kosi = -2;
+    j_mune_wj = -2;
+    n_mune_kl = -2;
+    j_mune_b_wj = -2;
+    j_kubi_wj = -2;
+    n_kao = -2;
+    j_kao_wj = -2;
+    j_eye_r_wj = -2;
+    j_eye_l_wj = -2;
+    n_waki_l = -2;
+    j_waki_l_wj = -2;
+    n_kata_l = -2;
+    j_kata_l_wj = -2;
+    j_ude_l_wj = -2;
+    j_te_l_wj = -2;
+    n_waki_r = -2;
+    j_waki_r_wj = -2;
+    n_kata_r = -2;
+    j_kata_r_wj = -2;
+    j_ude_r_wj = -2;
+    j_te_r_wj = -2;
+    j_kosi_wj = -2;
+    n_momo_l = -2;
+    j_momo_l_wj = -2;
+    j_sune_l_wj = -2;
+    j_asi_l_wj = -2;
+    n_momo_r = -2;
+    j_momo_r_wj = -2;
+    j_sune_r_wj = -2;
+    j_asi_r_wj = -2;
+}
 
 x_pv_game::x_pv_game() : pp(), sr(), state(), frame(), frame_float(), time(),
 rob_chara_ids(), pv_glitter(), stage_glitter(), dsc_time(), dsc_data_ptr(), dsc_data_ptr_end(),
@@ -292,43 +331,22 @@ bool x_pv_game::Ctrl() {
             state = 4;
     }
     else if (state == 4) {
-        if (!object_storage_get_obj_set_handler(effpv_objset)
-            || !object_storage_load_obj_set_check_not_read(
-            effpv_objset, &obj_db, &tex_db))
-            state = 6;
-    }
-    else if (state == 6) {
-        if (!object_storage_get_obj_set_handler(stgpv_objset)
-            || !object_storage_load_obj_set_check_not_read(
-            stgpv_objset, &obj_db, &tex_db))
-            state = 7;
-    }
-    else if (state == 7) {
-        if (!object_storage_get_obj_set_handler(stgpvhrc_objset)
-            || !object_storage_load_obj_set_check_not_read(
-            stgpvhrc_objset, &obj_db, &tex_db))
-            state = 8;
+        for (uint32_t& i : objset_load)
+            if (object_storage_get_obj_set_handler(i)
+                && object_storage_load_obj_set_check_not_read(i, &obj_db, &tex_db))
+                return false;
+
+        state = 8;
     }
     else if (state == 8) {
-        obj_set* effpv_objset = object_storage_get_obj_set(this->effpv_objset);
-        if (effpv_objset)
-            for (int32_t i = 0; i < effpv_objset->objects_count; i++) {
-                obj* obj = &effpv_objset->objects[i];
-                for (int32_t j = 0; j < obj->materials_count; j++) {
-                    obj_material* material = &obj->materials[j].material;
-                    vec3 spec = { 0.5f, 0.5f, 0.5f };
-                    if (!memcmp(&material->specular, &spec, sizeof(vec3)))
-                        *(vec3*)&material->specular = vec3_null;
-                    else if (memcmp(&material->specular, &vec3_null, sizeof(vec3)))
-                        *(vec3*)&material->specular = { 0.1f, 0.1f, 0.1f };
-                }
-            }
+        for (uint32_t& i : objset_load) {
+            obj_set* set = object_storage_get_obj_set(i);
+            if (!set)
+                continue;
 
-        obj_set* stgpv_objset = object_storage_get_obj_set(this->stgpv_objset);
-        if (stgpv_objset)
-            for (int32_t i = 0; i < stgpv_objset->objects_count; i++) {
-                obj* obj = &stgpv_objset->objects[i];
-                for (int32_t j = 0; j < obj->materials_count; j++) {
+            for (uint32_t i = 0; i < set->objects_count; i++) {
+                obj* obj = &set->objects[i];
+                for (uint32_t j = 0; j < obj->materials_count; j++) {
                     obj_material* material = &obj->materials[j].material;
                     vec3 spec = { 0.5f, 0.5f, 0.5f };
                     if (!memcmp(&material->specular, &spec, sizeof(vec3)))
@@ -337,37 +355,30 @@ bool x_pv_game::Ctrl() {
                         *(vec3*)&material->specular = { 0.1f, 0.1f, 0.1f };
                 }
             }
-
-        obj_set* stgpvhrc_objset = object_storage_get_obj_set(this->stgpvhrc_objset);
-        if (stgpvhrc_objset)
-            for (int32_t i = 0; i < stgpvhrc_objset->objects_count; i++) {
-                obj* obj = &stgpvhrc_objset->objects[i];
-                for (int32_t j = 0; j < obj->materials_count; j++) {
-                    obj_material* material = &obj->materials[j].material;
-                    vec3 spec = { 0.5f, 0.5f, 0.5f };
-                    if (!memcmp(&material->specular, &spec, sizeof(vec3)))
-                        *(vec3*)&material->specular = vec3_null;
-                    else if (memcmp(&material->specular, &vec3_null, sizeof(vec3)))
-                        *(vec3*)&material->specular = { 0.1f, 0.1f, 0.1f };
-                }
-            }
+        }
 
         data_struct* x_data = &data_list[DATA_X];
 
         task_stage_modern_set_data(x_data, &obj_db, &tex_db, &stage_data);
         task_stage_modern_set_stage_hashes(&stage_hashes, &stages_data);
 
-        auth_3d_data_load_category(x_data, pv_category.c_str(), pv_category_hash);
-        auth_3d_data_load_category(x_data, stage_category.c_str(), stage_category_hash);
+        for (std::pair<std::string, uint32_t>& i : category_load)
+            auth_3d_data_load_category(x_data, i.first.c_str(), i.second);
+
         auth_3d_data_load_category(light_category.c_str());
-        auth_3d_data_load_category(x_data, camera_category.c_str(), camera_category_hash);
+
+        for (pvpp_chara& i : pp->chara)
+            if (i.chara_effect_init)
+                for (pvpp_chara_effect_a3da& j : i.chara_effect.effect_a3da)
+                    auth_3d_data_load_category(x_data, camera_category.c_str(), camera_category_hash);
         state = 9;
     }
     else if (state == 9) {
-        if (!auth_3d_data_check_category_loaded(pv_category_hash)
-            || !auth_3d_data_check_category_loaded(stage_category_hash)
-            || !auth_3d_data_check_category_loaded(light_category.c_str())
-            || !auth_3d_data_check_category_loaded(camera_category_hash))
+        for (std::pair<std::string, uint32_t>& i : category_load)
+            if (!auth_3d_data_check_category_loaded(i.second))
+                return false;
+
+        if (!auth_3d_data_check_category_loaded(light_category.c_str()))
             return false;
 
         data_struct* x_data = &data_list[DATA_X];
@@ -377,6 +388,7 @@ bool x_pv_game::Ctrl() {
             int32_t id = auth_3d_data_load_hash(hash, pv_category_hash,
                 pv_category.c_str(), x_data, &obj_db, &tex_db);
             auth_3d_data_read_file_modern(&id);
+            auth_3d_data_set_enable(&id, false);
             auth_3d_data_set_visibility(&id, false);
             pv_auth_3d_ids.insert({ hash, id });
         }
@@ -386,6 +398,7 @@ bool x_pv_game::Ctrl() {
             int32_t id = auth_3d_data_load_hash(hash, stage_category_hash,
                 stage_category.c_str(), x_data, &obj_db, &tex_db);
             auth_3d_data_read_file_modern(&id);
+            auth_3d_data_set_enable(&id, false);
             auth_3d_data_set_visibility(&id, false);
             stage_auth_3d_ids.insert({ hash, id });
         }
@@ -405,8 +418,6 @@ bool x_pv_game::Ctrl() {
                     auth_3d_data_read_file(&light_auth_3d_id, auth_3d_db);
                     auth_3d_data_set_camera_root_update(&light_auth_3d_id, false);
                     auth_3d_data_set_enable(&light_auth_3d_id, true);
-                    auth_3d_data_set_req_frame(&light_auth_3d_id, 0.0f);
-                    auth_3d_data_set_max_frame(&light_auth_3d_id, -1.0f);
                     auth_3d_data_set_paused(&light_auth_3d_id, false);
                     auth_3d_data_set_visibility(&light_auth_3d_id, true);
                     break;
@@ -426,10 +437,28 @@ bool x_pv_game::Ctrl() {
             auth_3d_data_read_file_modern(&camera_auth_3d_id);
             auth_3d_data_set_repeat(&camera_auth_3d_id, false);
             auth_3d_data_set_enable(&camera_auth_3d_id, true);
-            auth_3d_data_set_req_frame(&camera_auth_3d_id, 0.0f);
-            auth_3d_data_set_max_frame(&camera_auth_3d_id, -1.0f);
             auth_3d_data_set_paused(&camera_auth_3d_id, false);
             auth_3d_data_set_visibility(&camera_auth_3d_id, true);
+        }
+
+        for (auto i : effchrpv_auth_3d_names) {
+            uint32_t hash = hash_string_murmurhash(&i.first);
+            int32_t id = auth_3d_data_load_hash(hash, i.second.first,
+                i.second.second.c_str(), x_data, &obj_db, &tex_db);
+            auth_3d_data_read_file_modern(&id);
+            auth_3d_data_set_enable(&id, false);
+            auth_3d_data_set_visibility(&id, false);
+            effchrpv_auth_3d_ids.insert({ hash, id });
+        }
+
+        for (auto i : effchrpv_auth_3d_mot_names) {
+            uint32_t hash = hash_string_murmurhash(&i.first);
+            int32_t id = auth_3d_data_load_hash(hash, i.second.first,
+                i.second.second.c_str(), x_data, &obj_db, &tex_db);
+            auth_3d_data_read_file_modern(&id);
+            auth_3d_data_set_enable(&id, false);
+            auth_3d_data_set_visibility(&id, false);
+            effchrpv_auth_3d_mot_ids.insert({ hash, id });
         }
 
         {
@@ -664,7 +693,59 @@ bool x_pv_game::Ctrl() {
 
         x_pv_game_stage_effect_ctrl(this);
 
-        pause = true;
+        if (pv_id == 826) {
+            data_struct* aft_data = &data_list[DATA_AFT];
+            bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+            motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+            for (int32_t& i : effchrpv_rob_mot_ids) {
+                char buf[0x100];
+                sprintf_s(buf, sizeof(buf), "PV826_OST_P%d_00", i + 1);
+                int32_t motion_id = aft_mot_db->get_motion_id(buf);
+                rob_chara* rob_chr = rob_chara_array_get(rob_chara_ids[i]);
+                rob_chr->set_motion_id(motion_id, 0.0f,
+                    0.0f, false, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+                rob_chr->set_motion_reset_data(motion_id, 0.0f);
+                rob_chr->set_motion_skin_param(motion_id, 0.0f);
+
+                sprintf_s(buf, sizeof(buf), "A3D_EFFCHRPV%03dMIK%03d", pv_id, i);
+                uint32_t hash = hash_utf8_murmurhash(buf);
+                bool found = false;
+                for (auto j : effchrpv_auth_3d_names)
+                    if (j.second.first == hash) {
+                        uint32_t hash = hash_string_murmurhash(&j.first);
+                        effchrpv_auth_3d_rob_mot_ids.insert({ i, { effchrpv_auth_3d_ids[hash] } });
+                        found = true;
+                        break;
+                    }
+
+                if (found)
+                    continue;
+
+                for (auto j : effchrpv_auth_3d_mot_names)
+                    if (j.second.first == hash) {
+                        uint32_t hash = hash_string_murmurhash(&j.first);
+                        effchrpv_auth_3d_rob_mot_ids.insert({ i, { effchrpv_auth_3d_mot_ids[hash] } });
+                        break;
+                    }
+            }
+
+            for (auto& i : effchrpv_auth_3d_mot_ids) {
+                int32_t& id = i.second;
+                auth_3d_data_set_repeat(&id, false);
+                auth_3d_data_set_camera_root_update(&id, false);
+                auth_3d_data_set_enable(&id, true);
+                auth_3d_data_set_paused(&id, false);
+                auth_3d_data_set_visibility(&id, false);
+                auth_3d_data_set_frame_rate(&id, &diva_pv_frame_rate);
+            }
+        }
+
+        if (pv_id == 826) {
+            extern int32_t global_ctrl_frames;
+            global_ctrl_frames = 10;
+        }
+        else
+            pause = true;
     }
     else if (state == 10) {
         if (step_frame)
@@ -683,6 +764,9 @@ bool x_pv_game::Ctrl() {
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
+        if (pv_id == 826 && frame == 10)
+            pause = true;
+
         while (dsc_data_ptr != dsc_data_ptr_end
             && x_pv_game_dsc_process(this, time))
             dsc_data_ptr++;
@@ -693,6 +777,9 @@ bool x_pv_game::Ctrl() {
 
         stage_effect.frame += diva_stage_frame_rate.GetDeltaFrame();
         x_pv_game_stage_effect_ctrl(this);
+
+        if (pv_id == 826)
+            x_pv_game_map_auth_3d_to_mot(this);
 
         if (!play || pv_end)
             state = 11;
@@ -796,7 +883,7 @@ void x_pv_game::Window() {
     ImGui::End();
 }
 
-void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
+void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]) {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -816,7 +903,9 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
     stgpvhrc_objset = hash_utf8_murmurhash(buf);
 
     sprintf_s(buf, sizeof(buf), "PV%03d", pv_id);
-    motion_set_load_motion(aft_mot_db->get_motion_set_id(buf), 0, aft_mot_db);
+    uint32_t mot_set = aft_mot_db->get_motion_set_id(buf);
+    motion_set_load_motion(mot_set, 0, aft_mot_db);
+    motion_set_load_mothead(mot_set, 0, aft_mot_db);
 
     char file_buf[0x200];
     sprintf_s(file_buf, sizeof(file_buf), "pv%03d.pvpp", pv_id);
@@ -838,19 +927,9 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
     stage_glitter = new x_pv_game_glitter(file_buf);
 
     sprintf_s(buf, sizeof(buf), "A3D_EFFPV%03d", pv_id);
-    pv_category = std::string(buf);
+    pv_category = buf;
     pv_category_hash = hash_string_murmurhash(&pv_category);
-
-    sprintf_s(buf, sizeof(buf), "EFFSTGPV%03d", stage_id);
-    stage_category = std::string(buf);
-    stage_category_hash = hash_string_murmurhash(&stage_category);
-
-    sprintf_s(buf, sizeof(buf), "EFFSTGPV%03d", 800 + stage_id);
-    light_category = std::string(buf);
-
-    sprintf_s(buf, sizeof(buf), "CAMPV%03d", pv_id);
-    camera_category = std::string(buf);
-    camera_category_hash = hash_string_murmurhash(&camera_category);
+    category_load.push_back({ pv_category, pv_category_hash });
 
     pv_auth_3d_names.clear();
     for (pvpp_effect i : pp->effect)
@@ -858,6 +937,11 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
             if (pv_auth_3d_names.find(j.name) == pv_auth_3d_names.end())
                 pv_auth_3d_names.insert(j.name);
         }
+
+    sprintf_s(buf, sizeof(buf), "EFFSTGPV%03d", stage_id);
+    stage_category = buf;
+    stage_category_hash = hash_string_murmurhash(&stage_category);
+    category_load.push_back({ stage_category, stage_category_hash });
 
     stage_auth_3d_names.clear();
     for (pvsr_stage_effect i : sr->stage_effect)
@@ -875,6 +959,64 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
                 if (stage_auth_3d_names.find(k.name) == stage_auth_3d_names.end())
                     stage_auth_3d_names.insert(k.name);
         }
+
+    sprintf_s(buf, sizeof(buf), "EFFSTGPV%03d", 800 + stage_id);
+    light_category = buf;
+
+    sprintf_s(buf, sizeof(buf), "CAMPV%03d", pv_id);
+    camera_category = buf;
+    camera_category_hash = hash_string_murmurhash(&camera_category);
+    category_load.push_back({ camera_category, camera_category_hash });
+
+    int32_t chara_index = 0;
+    effchrpv_auth_3d_names.clear();
+    if (pv_id == 826)
+        effchrpv_auth_3d_mot_names.clear();
+
+    for (pvpp_chara& i : pp->chara) {
+        if (!i.chara_effect_init) {
+            chara_index++;
+            continue;
+        }
+
+        const char* src_name = chara_index_get_auth_3d_name((::chara_index)i.chara_effect.base_chara);
+        const char* dst_name = chara_index_get_auth_3d_name(charas[chara_index++]);
+        const char* mik_name = chara_index_get_auth_3d_name(CHARA_MIKU);
+
+        for (pvpp_chara_effect_a3da& j : i.chara_effect.effect_a3da) {
+            std::string name = j.a3da.name;
+            if (name.find(src_name) == std::string::npos) {
+                size_t pos = name.find(dst_name);
+                if (pos != std::string::npos)
+                    name.replace(pos, utf8_length(dst_name), src_name, utf8_length(src_name));
+            }
+
+            if (pv_id != 826) {
+                std::string category = "A3D_" + name;
+                uint32_t category_hash = hash_string_murmurhash(&category);
+                category_load.push_back({ category, category_hash });
+
+                if (effchrpv_auth_3d_names.find(name) == effchrpv_auth_3d_names.end())
+                    effchrpv_auth_3d_names.insert({ name, { category_hash, category } });
+
+                effchrpv_auth_3d_hashes.insert({ j.a3da.hash, hash_string_murmurhash(&name) });
+            }
+            else {
+                sprintf_s(buf, sizeof(buf), "EFFCHRPV%03d", pv_id);
+                if (j.a3da.name.find(buf) == std::string::npos)
+                    continue;
+
+                name = j.a3da.name;
+                name.replace(utf8_length(buf), utf8_length(mik_name), mik_name, utf8_length(mik_name));
+
+                std::string category = "A3D_" + name;
+                uint32_t category_hash = hash_string_murmurhash(&category);
+
+                category_load.push_back({ category, category_hash });
+                effchrpv_auth_3d_mot_names.insert({ name, { category_hash, category } });
+            }
+        }
+    }
 
     stage_hashes.clear();
     stages_data.clear();
@@ -904,15 +1046,12 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
     for (int32_t& i : rob_chara_ids)
         i = -1;
 
-    int32_t chara_index = 0;
+    chara_index = 0;
     for (pvpp_chara& i : pp->chara) {
         if (i.motion.size()) {
-            ::chara_index chr_idx = CHARA_MIKU;
-            if (i.chara_effect.size())
-                chr_idx = (::chara_index)i.chara_effect.front().base_chara;
-
             rob_chara_pv_data pv_data;
-            int32_t chara_id = rob_chara_array_init_chara_index(chr_idx, &pv_data, 0, true);
+            int32_t chara_id = rob_chara_array_init_chara_index(
+                charas[chara_index], &pv_data, modules[chara_index], true);
             if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
                 rob_chara_ids[chara_index] = chara_id;
         }
@@ -921,9 +1060,50 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id) {
             break;
     }
 
-    object_storage_load_set_hash(x_data, effpv_objset);
-    object_storage_load_set_hash(x_data, stgpv_objset);
-    object_storage_load_set_hash(x_data, stgpvhrc_objset);
+    if (pv_id == 826)
+        for (int32_t i = (int32_t)pp->chara.size(); i < ROB_CHARA_COUNT; i++) {
+            rob_chara_pv_data pv_data;
+            int32_t chara_id = rob_chara_array_init_chara_index(charas[i], &pv_data, modules[i], true);
+            if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
+                rob_chara_ids[i] = chara_id;
+            effchrpv_rob_mot_ids.push_back(chara_id);
+        }
+
+    objset_load.push_back(effpv_objset);
+    objset_load.push_back(stgpv_objset);
+    objset_load.push_back(stgpvhrc_objset);
+
+    if (pv_id != 826) {
+        int32_t chara_index = 0;
+        for (pvpp_chara& i : pp->chara) {
+            if (!i.chara_effect_init) {
+                chara_index++;
+                continue;
+            }
+
+            const char* src_name = chara_index_get_auth_3d_name((::chara_index)i.chara_effect.base_chara);
+            const char* dst_name = chara_index_get_auth_3d_name(charas[chara_index++]);
+
+            for (pvpp_chara_effect_a3da& j : i.chara_effect.effect_a3da) {
+                std::string name = j.has_object_set ? j.object_set.name : j.a3da.name;
+                if (name.find(src_name) == std::string::npos) {
+                    size_t pos = name.find(dst_name);
+                    if (pos != std::string::npos)
+                        name.replace(pos, utf8_length(dst_name), src_name, utf8_length(src_name));
+                }
+
+                objset_load.push_back(hash_string_murmurhash(&name));
+
+                std::string nam = j.has_object_set ? j.object_set.name : j.a3da.name;
+                nam.replace(utf8_length(buf), utf8_length(dst_name), dst_name, utf8_length(dst_name));
+                if (nam != name)
+                    objset_load.push_back(hash_string_murmurhash(&nam));
+            }
+        }
+    }
+
+    for (uint32_t& i : objset_load)
+        object_storage_load_set_hash(x_data, i);
 
     state = 1;
     this->frame = 0;
@@ -970,14 +1150,12 @@ void x_pv_game::Unload() {
 
     char buf[0x200];
     sprintf_s(buf, sizeof(buf), "PV%03d", pv_id);
-    motion_set_unload_motion(aft_mot_db->get_motion_set_id(buf));
+    uint32_t mot_set = aft_mot_db->get_motion_set_id(buf);
+    motion_set_unload_motion(mot_set);
+    motion_set_unload_mothead(mot_set);
 
     pv_id = -1;
     stage_id = -1;
-    delete pp;
-    delete sr;
-    pp = 0;
-    sr = 0;
 
     state = 0;
     frame = 0;
@@ -1022,24 +1200,43 @@ void x_pv_game::Unload() {
     stage_auth_3d_names.clear();
     pv_auth_3d_names.clear();
 
-    for (std::pair<uint32_t, int32_t> i : pv_auth_3d_ids)
+    for (auto& i : pv_auth_3d_ids)
         auth_3d_data_unload_id(i.second, rctx_ptr);
 
-    for (std::pair<uint32_t, int32_t> i : stage_auth_3d_ids)
+    for (auto& i : stage_auth_3d_ids)
         auth_3d_data_unload_id(i.second, rctx_ptr);
 
     auth_3d_data_unload_id(light_auth_3d_id, rctx_ptr);
     auth_3d_data_unload_id(camera_auth_3d_id, rctx_ptr);
 
+    for (auto& i : effchrpv_auth_3d_ids)
+        auth_3d_data_unload_id(i.second, rctx_ptr);
+
+    for (auto& i : effchrpv_auth_3d_mot_ids)
+        auth_3d_data_unload_id(i.second, rctx_ptr);
+
     pv_auth_3d_ids.clear();
     stage_auth_3d_ids.clear();
     light_auth_3d_id = -1;
     camera_auth_3d_id = -1;
+    effchrpv_auth_3d_ids.clear();
+    effchrpv_auth_3d_mot_ids.clear();
 
-    auth_3d_data_unload_category(pv_category_hash);
-    auth_3d_data_unload_category(stage_category_hash);
+    effchrpv_rob_mot_ids.clear();
+    effchrpv_rob_mot_ids.shrink_to_fit();
+    effchrpv_auth_3d_rob_mot_ids.clear();
+    effchrpv_auth_3d_names.clear();
+    effchrpv_auth_3d_mot_names.clear();
+
+    effchrpv_auth_3d_hashes.clear();
+
+    for (std::pair<std::string, uint32_t>& i : category_load)
+        auth_3d_data_unload_category(i.second);
+
     auth_3d_data_unload_category(light_category.c_str());
-    auth_3d_data_unload_category(camera_category_hash);
+
+    category_load.clear();
+    category_load.shrink_to_fit();
 
     pv_category_hash = hash_murmurhash_empty;
     stage_category_hash = hash_murmurhash_empty;
@@ -1054,13 +1251,20 @@ void x_pv_game::Unload() {
     camera_category.clear();
     camera_category.shrink_to_fit();
 
-    object_storage_unload_set(effpv_objset);
-    object_storage_unload_set(stgpv_objset);
-    object_storage_unload_set(stgpvhrc_objset);
+    for (uint32_t& i : objset_load)
+        object_storage_unload_set(i);
 
     effpv_objset = hash_murmurhash_empty;
     stgpv_objset = hash_murmurhash_empty;
     stgpvhrc_objset = hash_murmurhash_empty;
+
+    objset_load.clear();
+    objset_load.shrink_to_fit();
+
+    delete pp;
+    delete sr;
+    pp = 0;
+    sr = 0;
 
     dsc_m.type = DSC_NONE;
     dsc_m.signature = 0;
@@ -1097,7 +1301,7 @@ void x_pv_game::Unload() {
 }
 
 x_pv_game_glitter::x_pv_game_glitter(const char* name) {
-    this->name = std::string(name);
+    this->name = name;
     hash = (uint32_t)Glitter::glt_particle_manager
         .LoadFile(Glitter::X, &data_list[DATA_X], name, 0, -1.0f, false, 0);
 }
@@ -1274,7 +1478,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         mat4 scene_rot_mat = a1->scene_rot_mat;
         mat4_mult_vec3_trans(&scene_rot_mat, &trans, &trans);
         rob_chr->data.miku_rot.position = trans;
-        rob_chara_set_osage_reset(rob_chr);
+        rob_chr->set_osage_reset();
     } break;
     case DSC_X_MIKU_ROT: {
         a1->chara_id = (int32_t)data[0];
@@ -1288,7 +1492,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
         int16_t rot_y_int16 = (int32_t)((rot_y + a1->scene_rot_y) * 32768.0f * (float_t)(1.0 / 180.0));
         rob_chr->data.miku_rot.rot_y_int16 = rot_y_int16;
-        rob_chara_set_osage_reset(rob_chr);
+        rob_chr->set_osage_reset();
     } break;
     case DSC_X_MIKU_DISP: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -1307,18 +1511,17 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
 
         if (disp == 1) {
-            rob_chara_set_visibility(rob_chr, true);
-            /*if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index,
-                rob_chr->module_index)) {
-                sub_1405430F0(rob_chr->chara_id, 1);
-                sub_1405430F0(rob_chr->chara_id, 2);
+            rob_chr->set_visibility(true);
+            /*if (rob_chara::check_for_ageageagain_module(chara_index, module_index)) {
+                sub_1405430F0(chara_id, 1);
+                sub_1405430F0(chara_id, 2);
             }*/
 
             //pv_game::set_data_itmpv_visibility(a1->pv_game, a1->chara_id, true);
             for (pv_play_data_set_motion& i : playdata->set_motion) {
-                bool v45 = rob_chara_set_motion_id(rob_chr, i.motion_id, i.frame,
+                bool v45 = rob_chr->set_motion_id(i.motion_id, i.frame,
                     i.duration, i.field_10, 0, i.blend_type, aft_bone_data, aft_mot_db);
-                rob_chara_set_motion_reset_data(rob_chr, i.motion_id, i.dsc_frame);
+                rob_chr->set_motion_reset_data(i.motion_id, i.dsc_frame);
                 rob_chr->bone_data->field_758 = i.field_18;
                 rob_chr->data.adjust.step_data.step = i.frame_speed;
                 //if (v45)
@@ -1329,7 +1532,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             playdata->set_motion.clear();
         }
         else {
-            rob_chara_set_visibility(rob_chr, false);
+            rob_chr->set_visibility(false);
             //pv_game::set_data_itmpv_visibility(a1->pv_game, a1->chara_id, false);
         }
     } break;
@@ -1436,12 +1639,12 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
         if (motion_index) {
             if (motion_id == -1)
-                motion_id = rob_cmn_mottbl_get_motion_id(rob_chr, 0);
+                motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
         }
         else if (motion_id == -1) {
-            motion_id = rob_cmn_mottbl_get_motion_id(rob_chr, 5);
+            motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(5);
             if (motion_id == -1)
-                motion_id = rob_cmn_mottbl_get_motion_id(rob_chr, 0);
+                motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
         }
 
         duration /= a1->anim_frame_speed;
@@ -1463,10 +1666,10 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         //a1->field_2C560[a1->chara_id] = true;
         //a1->field_2C568[a1->chara_id] = v519;
         if (playdata->disp) {
-            bool v84 = rob_chara_set_motion_id(rob_chr, motion_id, frame,
-                duration, v11, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
-            rob_chara_set_motion_reset_data(rob_chr, motion_id, dsc_frame);
-            rob_chara_set_motion_skin_param(rob_chr, motion_id, dsc_frame);
+            bool v84 = rob_chr->set_motion_id(motion_id, frame, duration,
+                v11, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+            rob_chr->set_motion_reset_data(motion_id, dsc_frame);
+            rob_chr->set_motion_skin_param(motion_id, dsc_frame);
             rob_chr->bone_data->field_758 = true;
             rob_chr->data.adjust.step_data.step = v519.frame_speed;
             //if (v84)
@@ -1563,8 +1766,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         //if (a1->pv_game->data.pv->is_old_pv)
         //    offset = 1.0f;
 
-        rob_chara_set_eyelid_mottbl_motion_from_face(rob_chr,
-            v115, duration, -1.0f, offset, aft_mot_db);
+        rob_chr->set_eyelid_mottbl_motion_from_face(v115, duration, -1.0f, offset, aft_mot_db);
     } break;
     case DSC_X_MOUTH_ANIM: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -1641,8 +1843,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         //if (a1->pv_game->data.pv->is_old_pv)
         //    offset = 1.0f;
 
-        rob_chara_set_mouth_mottbl_motion(rob_chr, 0, mottbl_index,
-            value, 0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
+            0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
     } break;
     case DSC_X_HAND_ANIM: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -1687,12 +1889,12 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
         switch (hand_index) {
         case 0:
-            rob_chara_set_hand_l_mottbl_motion(rob_chr, 0, mottbl_index,
-                value, 0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+            rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, value,
+                0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
             break;
         case 1:
-            rob_chara_set_hand_r_mottbl_motion(rob_chr, 0, mottbl_index,
-                value, 0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+            rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, value,
+                0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
             break;
         }
     } break;
@@ -1736,8 +1938,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         //if (a1->pv_game->data.pv->is_old_pv)
         //    offset = 1.0f;
 
-        rob_chara_set_eyes_mottbl_motion(rob_chr, 0, mottbl_index,
-            value, mottbl_index == 224 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+        rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value,
+            mottbl_index == 224 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
         return 1;
     } break;
     case DSC_X_EXPRESSION: {
@@ -1784,8 +1986,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         //if (a1->pv_game->data.pv->is_old_pv)
         //    offset = 1.0f;
 
-        rob_chara_set_face_mottbl_motion(rob_chr, 0, mottbl_index, value,
-            mottbl_index >= 214 && mottbl_index <= 223 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, v168, aft_mot_db);
+        rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214
+            && mottbl_index <= 223 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, v168, aft_mot_db);
 
     } break;
     case DSC_X_LOOK_CAMERA: {
@@ -1833,7 +2035,6 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-
         int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
         duration /= a1->anim_frame_speed;
 
@@ -1845,8 +2046,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         //if (a1->pv_game->data.pv->is_old_pv)
         //    offset = 1.0f;
 
-        rob_chara_set_face_mottbl_motion(rob_chr, 0, mottbl_index, 1.0f,
-            mottbl_index >= 214 && mottbl_index <= 223 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, v237, aft_mot_db);
+        rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, mottbl_index >= 214
+            && mottbl_index <= 223 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, v237, aft_mot_db);
 
         /*if (!a1->has_perf_id) {
             int32_t mottbl_index = mouth_anim_id_to_mottbl_index(v234);
@@ -1855,8 +2056,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             //if (a1->pv_game->data.field_2D090 && mottbl_index != 144)
             //    value = 0.0f;
 
-            rob_chara_set_mouth_mottbl_motion(rob_chr, 0, mottbl_index,
-                value, 0, a1->target_anim_fps * 0.1f, 0.0f, 1.0f, -1, offset, aft_mot_db);
+            rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0,
+            a1->target_anim_fps * 0.1f, 0.0f, 1.0f, -1, offset, aft_mot_db);
         }*/
     } break;
     case DSC_X_DUMMY: {
@@ -1902,8 +2103,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         //if (a1->pv_game->data.pv->is_old_pv)
         //    offset = 1.0f;
 
-        rob_chara_set_mouth_mottbl_motion(rob_chr, 0, mottbl_index,
-            value, 0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
+            0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
     } break;
     case DSC_X_SET_CHARA: {
         a1->chara_id = (int32_t)data[0];
@@ -1933,7 +2134,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_AIM: {
-
+        a1->chara_id = (int32_t)data[0];
     } break;
     case DSC_X_HAND_ITEM: {
 
@@ -1951,7 +2152,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         a1->chara_id = (int32_t)data[0];
         pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
-        float_t value = (float_t)(int32_t)data[0] * 0.001f;
+        float_t value = (float_t)(int32_t)data[1] * 0.001f;
 
         rob_chara* rob_chr = playdata->rob_chr;
         if (!rob_chr)
@@ -1966,13 +2167,24 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_TONE_TRANS: {
-
+        vec3 start;
+        vec3 end;
+        start.x = (float_t)(int32_t)data[0] * 0.001f;
+        start.y = (float_t)(int32_t)data[1] * 0.001f;
+        start.z = (float_t)(int32_t)data[2] * 0.001f;
+        end.x = (float_t)(int32_t)data[3] * 0.001f;
+        end.y = (float_t)(int32_t)data[4] * 0.001f;
+        end.z = (float_t)(int32_t)data[5] * 0.001f;
+        post_process_tone_map_set_tone_trans_start(rctx_ptr->post_process.tone_map, &start);
+        post_process_tone_map_set_tone_trans_start(rctx_ptr->post_process.tone_map, &end);
     } break;
     case DSC_X_SATURATE: {
-
+        float_t value = (float_t)(int32_t)data[0] * 0.001f;
+        post_process_tone_map_set_saturate_coeff(rctx_ptr->post_process.tone_map, value);
     } break;
     case DSC_X_FADE_MODE: {
-
+        int32_t value = data[0];
+        post_process_tone_map_set_scene_fade_blend_func(rctx_ptr->post_process.tone_map, value);
     } break;
     case DSC_X_AUTO_BLINK: {
 
@@ -1991,22 +2203,76 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        rob_chara_set_parts_disp(rob_chr, id, disp == 1);
+        rob_chr->set_parts_disp(id, disp == 1);
     } break;
     case DSC_X_TARGET_FLYING_TIME: {
 
     } break;
     case DSC_X_CHARA_SIZE: {
+        a1->chara_id = (int32_t)data[0];
+        pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
+        int32_t chara_size = (int32_t)data[1];
+
+        rob_chara* rob_chr = playdata->rob_chr;
+        if (!rob_chr)
+            return 1;
+
+        int32_t chara_size_index;
+        if (chara_size == 0)
+            chara_size_index = chara_init_data_get_chara_size_index(rob_chr->chara_index);
+        else if (chara_size == 1)
+            chara_size_index = chara_init_data_get_chara_size_index(rob_chr->chara_index
+                /*pv_db_pv_get_performer_chara(a1->pv_game->data.pv, a1->chara_id)*/);
+        else if (chara_size == 2)
+            chara_size_index = 1;
+        else if (chara_size == 3)
+            chara_size_index = rob_chr->pv_data.chara_size_index;
+        else {
+            rob_chr->set_chara_size((float_t)chara_size / 1000.0f/*a1->field_2C54C*/);
+            break;
+        }
+
+        if (chara_size_index < 0 || chara_size_index > 4)
+            break;
+
+        rob_chr->set_chara_size(chara_size_table_get_value(chara_size_index));
+        rob_chr->set_chara_pos_adjust_y(chara_pos_adjust_y_table_get_value(chara_size_index));
     } break;
     case DSC_X_CHARA_HEIGHT_ADJUST: {
+        a1->chara_id = (int32_t)data[0];
+        pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
+        int32_t height_adjust = (int32_t)data[1];
+
+        rob_chara* rob_chr = playdata->rob_chr;
+        if (rob_chr)
+            rob_chr->set_chara_height_adjust(height_adjust != 0);
     } break;
     case DSC_X_ITEM_ANIM: {
 
     } break;
     case DSC_X_CHARA_POS_ADJUST: {
+        a1->chara_id = (int32_t)data[0];
+        pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
+        vec3 pos;
+        pos.x = (float_t)(int32_t)data[2] * 0.001f;
+        pos.y = (float_t)(int32_t)data[3] * 0.001f;
+        pos.z = (float_t)(int32_t)data[4] * 0.001f;
+
+        rob_chara* rob_chr = playdata->rob_chr;
+        if (!rob_chr)
+            break;
+
+        mat4 scene_rot_mat = a1->scene_rot_mat;
+        mat4_mult_vec3_trans(&scene_rot_mat, &pos, &pos);
+        rob_chr->set_chara_pos_adjust(&pos);
+
+        /*if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
+            sub_1405430F0(rob_chr->chara_id, 1);
+            sub_1405430F0(rob_chr->chara_id, 2);
+        }*/
     } break;
     case DSC_X_SCENE_ROT: {
         float_t scene_rot_y = (float_t)(int32_t)data[0] * 0.001f;
@@ -2064,7 +2330,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        rob_chara_set_osage_step(rob_chr, osage_step_outer);
+        rob_chr->set_osage_step(osage_step_outer);
     } break;
     case DSC_X_OSAGE_MV_CCL: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -2080,8 +2346,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        rob_chara_set_osage_move_cancel(rob_chr, 1, osage_mv_ccl_kami);
-        rob_chara_set_osage_move_cancel(rob_chr, 2, osage_mv_ccl_outer);
+        rob_chr->set_osage_move_cancel(1, osage_mv_ccl_kami);
+        rob_chr->set_osage_move_cancel(2, osage_mv_ccl_outer);
     } break;
     case DSC_X_CHARA_COLOR: {
 
@@ -2330,7 +2596,41 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_CHARA_EFFECT: {
+        return true;
+        data_struct* aft_data = &data_list[DATA_AFT];
+        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
+        a1->chara_id = (int32_t)data[0];
+        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+
+        bool enable = data[1] ? true : false;
+        int32_t chara_effect_id = (int32_t)data[2];
+
+        pvpp_chara& chara = a1->pp->chara[a1->chara_id];
+        if (!chara.chara_effect_init)
+            break;
+        else if (chara_effect_id < 0 || chara_effect_id >= chara.chara_effect.effect_a3da.size())
+            break;
+
+        uint32_t hash = chara.chara_effect.effect_a3da[chara_effect_id].a3da.hash;
+        hash = a1->effchrpv_auth_3d_hashes[hash];
+        if (enable) {
+            int32_t& id = a1->effchrpv_auth_3d_ids[hash];
+            auth_3d_data_set_repeat(&id, false);
+            auth_3d_data_set_camera_root_update(&id, false);
+            auth_3d_data_set_enable(&id, true);
+            auth_3d_data_set_req_frame(&id, (float_t)a1->frame_float);
+            auth_3d_data_set_max_frame(&id, -1.0f);
+            auth_3d_data_set_paused(&id, false);
+            auth_3d_data_set_visibility(&id, true);
+            auth_3d_data_set_frame_rate(&id, &diva_pv_frame_rate);
+            auth_3d_data_set_chara_id(&id, a1->chara_id);
+        }
+        else {
+            int32_t& id = a1->effchrpv_auth_3d_ids[hash];
+            auth_3d_data_set_visibility(&id, false);
+            auth_3d_data_set_enable(&id, false);
+        }
     } break;
     case DSC_X_MARKER: {
 
@@ -2450,6 +2750,260 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     return true;
 }
 
+static int32_t get_bone_index(auth_3d_object_hrc* oh, const char* name) {
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    for (auth_3d_object_node& i : oh->node)
+        if (hash_string_murmurhash(&i.name) == name_hash)
+            return (int32_t)(&i - oh->node.data());
+    return -1;
+}
+
+static void set_bone_key_set_data(bone_data* bone_data,
+    motion_bone_index motion_bone_index, mot_key_set* key_set, vec3* data, int32_t count = 1) {
+    bone_data += motion_bone_index;
+    key_set += bone_data->key_set_offset;
+    while (count > 0) {
+        if (key_set[0].type == MOT_KEY_SET_STATIC && key_set[0].values)
+            *(float_t*)&key_set[0].values[0] = data->x;
+        if (key_set[1].type == MOT_KEY_SET_STATIC && key_set[1].values)
+            *(float_t*)&key_set[1].values[0] = data->y;
+        if (key_set[2].type == MOT_KEY_SET_STATIC && key_set[2].values)
+            *(float_t*)&key_set[2].values[0] = data->z;
+        key_set += 3;
+        data++;
+        count--;
+    }
+}
+
+static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm) {
+    for (auto& i : xpvgm->effchrpv_auth_3d_rob_mot_ids) {
+        rob_chara* rob_chr = rob_chara_array_get(xpvgm->rob_chara_ids[i.first]);
+        x_pv_game_a3da_to_mot& a2m = i.second;
+        auth_3d* auth = auth_3d_data_get_auth_3d(a2m.auth_3d_id);
+        auth_3d_object_hrc* oh = &auth->object_hrc[0];
+
+        if (a2m.gblctr == -2)
+            a2m.gblctr = get_bone_index(oh, "gblctr");
+        if (a2m.n_hara == -2)
+            a2m.n_hara = get_bone_index(oh, "n_hara");
+        if (a2m.n_hara_y == -2)
+            a2m.n_hara_y = get_bone_index(oh, "n_hara_y");
+        if (a2m.j_hara_wj == -2)
+            a2m.j_hara_wj = get_bone_index(oh, "j_hara_wj");
+        if (a2m.n_kosi == -2)
+            a2m.n_kosi = get_bone_index(oh, "n_kosi");
+        if (a2m.j_mune_wj == -2)
+            a2m.j_mune_wj = get_bone_index(oh, "j_mune_wj");
+        if (a2m.n_mune_kl == -2)
+            a2m.n_mune_kl = get_bone_index(oh, "n_mune_kl");
+        if (a2m.j_mune_b_wj == -2)
+            a2m.j_mune_b_wj = get_bone_index(oh, "j_mune_b_wj");
+        if (a2m.j_kubi_wj == -2)
+            a2m.j_kubi_wj = get_bone_index(oh, "j_kubi_wj");
+        if (a2m.n_kao == -2)
+            a2m.n_kao = get_bone_index(oh, "n_kao");
+        if (a2m.j_kao_wj == -2)
+            a2m.j_kao_wj = get_bone_index(oh, "j_kao_wj");
+        if (a2m.j_eye_r_wj == -2)
+            a2m.j_eye_r_wj = get_bone_index(oh, "j_eye_r_wj");
+        if (a2m.j_eye_l_wj == -2)
+            a2m.j_eye_l_wj = get_bone_index(oh, "j_eye_l_wj");
+        if (a2m.n_waki_l == -2)
+            a2m.n_waki_l = get_bone_index(oh, "n_waki_l");
+        if (a2m.j_waki_l_wj == -2)
+            a2m.j_waki_l_wj = get_bone_index(oh, "j_waki_l_wj");
+        if (a2m.n_kata_l == -2)
+            a2m.n_kata_l = get_bone_index(oh, "n_kata_l");
+        if (a2m.j_kata_l_wj == -2)
+            a2m.j_kata_l_wj = get_bone_index(oh, "j_kata_l_wj");
+        if (a2m.j_ude_l_wj == -2)
+            a2m.j_ude_l_wj = get_bone_index(oh, "j_ude_l_wj");
+        if (a2m.j_te_l_wj == -2)
+            a2m.j_te_l_wj = get_bone_index(oh, "j_te_l_wj");
+        if (a2m.n_waki_r == -2)
+            a2m.n_waki_r = get_bone_index(oh, "n_waki_r");
+        if (a2m.j_waki_r_wj == -2)
+            a2m.j_waki_r_wj = get_bone_index(oh, "j_waki_r_wj");
+        if (a2m.n_kata_r == -2)
+            a2m.n_kata_r = get_bone_index(oh, "n_kata_r");
+        if (a2m.j_kata_r_wj == -2)
+            a2m.j_kata_r_wj = get_bone_index(oh, "j_kata_r_wj");
+        if (a2m.j_ude_r_wj == -2)
+            a2m.j_ude_r_wj = get_bone_index(oh, "j_ude_r_wj");
+        if (a2m.j_te_r_wj == -2)
+            a2m.j_te_r_wj = get_bone_index(oh, "j_te_r_wj");
+        if (a2m.j_kosi_wj == -2)
+            a2m.j_kosi_wj = get_bone_index(oh, "j_kosi_wj");
+        if (a2m.n_momo_l == -2)
+            a2m.n_momo_l = get_bone_index(oh, "n_momo_l");
+        if (a2m.j_momo_l_wj == -2)
+            a2m.j_momo_l_wj = get_bone_index(oh, "j_momo_l_wj");
+        if (a2m.j_sune_l_wj == -2)
+            a2m.j_sune_l_wj = get_bone_index(oh, "j_sune_l_wj");
+        if (a2m.j_asi_l_wj == -2)
+            a2m.j_asi_l_wj = get_bone_index(oh, "j_asi_l_wj");
+        if (a2m.n_momo_r == -2)
+            a2m.n_momo_r = get_bone_index(oh, "n_momo_r");
+        if (a2m.j_momo_r_wj == -2)
+            a2m.j_momo_r_wj = get_bone_index(oh, "j_momo_r_wj");
+        if (a2m.j_sune_r_wj == -2)
+            a2m.j_sune_r_wj = get_bone_index(oh, "j_sune_r_wj");
+        if (a2m.j_asi_r_wj == -2)
+            a2m.j_asi_r_wj = get_bone_index(oh, "j_asi_r_wj");
+
+        rob_chr->set_visibility(oh->node[0].model_transform.visible);
+
+        motion_blend_mot* mot = rob_chr->bone_data->motion_loaded.front();
+        ::bone_data* bone_data = mot->bone_data.bones.data();
+        mot_key_set* key_set = mot->mot_key_data.mot.key_sets;
+
+        vec3 data[2];
+        mat4 mat;
+        data[0].x = oh->node[a2m.gblctr].model_transform.translation_value.x;
+        data[0].y = oh->node[a2m.n_hara].model_transform.translation_value.y;
+        data[0].z = oh->node[a2m.gblctr].model_transform.translation_value.z;
+        data[1] = vec3_null;
+        set_bone_key_set_data(bone_data, MOTION_BONE_N_HARA_CP, key_set, data, 2);
+
+        data[0] = oh->node[a2m.n_hara_y].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_KG_HARA_Y, key_set, data);
+
+        data[0] = oh->node[a2m.j_hara_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_KL_HARA_XZ, key_set, data);
+
+        data[0] = oh->node[a2m.n_kosi].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_N_HARA, key_set, data);
+
+        mat = oh->node[a2m.j_mune_wj].model_transform.mat;
+        data[0] = { 0.0f, 0.945f, 0.0f };
+        mat4_mult_vec3(&mat, &data[0], &data[1]);
+        mat4_get_translation(&mat, &data[0]);
+        vec3_add(data[0], data[1], data[0]);
+        data[1] = vec3_null;
+        set_bone_key_set_data(bone_data, MOTION_BONE_CL_MUNE, key_set, data, 2);
+
+        data[0] = oh->node[a2m.j_mune_b_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_KL_MUNE_B_WJ, key_set, data);
+
+        data[0] = oh->node[a2m.j_kubi_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_KL_KUBI, key_set, data);
+
+        data[0] = oh->node[a2m.n_kao].model_transform.rotation_value;
+        data[0].z -= (float_t)M_PI;
+        set_bone_key_set_data(bone_data, MOTION_BONE_N_KAO, key_set, data);
+
+        mat = oh->node[a2m.j_kao_wj].model_transform.mat;
+        data[0] = { 0.0f, 0.40f, 0.0f };
+        mat4_mult_vec3(&mat, &data[0], &data[1]);
+        mat4_get_translation(&mat, &data[0]);
+        vec3_add(data[0], data[1], data[0]);
+        data[1] = vec3_null;
+        data[1].z = (float_t)M_PI;
+        set_bone_key_set_data(bone_data, MOTION_BONE_CL_KAO, key_set, data, 2);
+
+        data[0] = oh->node[a2m.n_waki_l].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_N_WAKI_L, key_set, data);
+
+        data[0] = oh->node[a2m.j_waki_l_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_KL_WAKI_L_WJ, key_set, data);
+
+        {
+            vec3 pos_j_kata_l_wj;
+            vec3 pos_j_ude_l_wj;
+            vec3 pos_j_te_l_wj;
+            mat4_get_translation(&oh->node[a2m.j_kata_l_wj].model_transform.mat, &pos_j_kata_l_wj);
+            mat4_get_translation(&oh->node[a2m.j_ude_l_wj].model_transform.mat, &pos_j_ude_l_wj);
+            mat4_get_translation(&oh->node[a2m.j_te_l_wj].model_transform.mat, &pos_j_te_l_wj);
+
+            vec3 pos_middle;
+            vec3_lerp_scalar(pos_j_kata_l_wj, pos_j_te_l_wj, pos_middle, 0.5f);
+
+            vec3 tl_up_kata_dir;
+            vec3_sub(pos_j_ude_l_wj, pos_middle, tl_up_kata_dir);
+
+            float_t pos_middle_dist;
+            vec3_length(tl_up_kata_dir, pos_middle_dist);
+            if (pos_middle_dist == 0.0f) {
+                mat = oh->node[a2m.j_kata_l_wj].model_transform.mat;
+                data[0] = { 0.0f, 0.3f, 0.0f };
+                mat4_mult_vec3(&mat, &data[0], &tl_up_kata_dir);
+            }
+            else
+                vec3_mult_scalar(tl_up_kata_dir, 0.3f / pos_middle_dist, tl_up_kata_dir);
+
+            vec3 tl_up_kata_pos;
+            vec3_add(tl_up_kata_dir, pos_j_ude_l_wj, tl_up_kata_pos);
+
+            mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
+            mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
+            set_bone_key_set_data(bone_data, MOTION_BONE_TL_UP_KATA_L, key_set, data);
+        }
+
+        mat4_get_translation(&oh->node[a2m.j_te_l_wj].model_transform.mat, &data[0]);
+        mat4_get_rotation(&oh->node[a2m.j_kata_l_wj].model_transform.mat, &data[1]);
+        set_bone_key_set_data(bone_data, MOTION_BONE_C_KATA_L, key_set, data, 2);
+
+        data[0] = oh->node[a2m.j_te_l_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_KL_TE_L_WJ, key_set, data);
+
+        data[0] = oh->node[a2m.n_waki_r].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_N_WAKI_R, key_set, data);
+
+        data[0] = oh->node[a2m.j_waki_r_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_KL_WAKI_R_WJ, key_set, data);
+
+        {
+            vec3 pos_j_kata_r_wj;
+            vec3 pos_j_ude_r_wj;
+            vec3 pos_j_te_r_wj;
+            mat4_get_translation(&oh->node[a2m.j_kata_r_wj].model_transform.mat, &pos_j_kata_r_wj);
+            mat4_get_translation(&oh->node[a2m.j_ude_r_wj].model_transform.mat, &pos_j_ude_r_wj);
+            mat4_get_translation(&oh->node[a2m.j_te_r_wj].model_transform.mat, &pos_j_te_r_wj);
+
+            vec3 pos_middle;
+            vec3_lerp_scalar(pos_j_kata_r_wj, pos_j_te_r_wj, pos_middle, 0.5f);
+
+            vec3 tl_up_kata_dir;
+            vec3_sub(pos_j_ude_r_wj, pos_middle, tl_up_kata_dir);
+
+            float_t pos_middle_dist;
+            vec3_length(tl_up_kata_dir, pos_middle_dist);
+            if (pos_middle_dist == 0.0f) {
+                mat = oh->node[a2m.j_kata_r_wj].model_transform.mat;
+                data[0] = { 0.0f, 0.3f, 0.0f };
+                mat4_mult_vec3(&mat, &data[0], &tl_up_kata_dir);
+            }
+            else
+                vec3_mult_scalar(tl_up_kata_dir, 0.3f / pos_middle_dist, tl_up_kata_dir);
+
+            vec3 tl_up_kata_pos;
+            vec3_add(tl_up_kata_dir, pos_j_ude_r_wj, tl_up_kata_pos);
+
+            mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
+            mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
+            set_bone_key_set_data(bone_data, MOTION_BONE_TL_UP_KATA_R, key_set, data);
+        }
+
+        mat4_get_translation(&oh->node[a2m.j_te_r_wj].model_transform.mat, &data[0]);
+        data[1] = vec3_null;
+        mat4_get_rotation(&oh->node[a2m.j_kata_r_wj].model_transform.mat, &data[1]);
+        set_bone_key_set_data(bone_data, MOTION_BONE_C_KATA_R, key_set, data, 2);
+
+        data[0] = oh->node[a2m.j_te_r_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, MOTION_BONE_KL_TE_R_WJ, key_set, data);
+
+        mat4_get_translation(&oh->node[a2m.j_asi_l_wj].model_transform.mat, &data[0]);
+        data[1] = vec3_null;
+        set_bone_key_set_data(bone_data, MOTION_BONE_CL_MOMO_L, key_set, data, 2);
+
+        mat4_get_translation(&oh->node[a2m.j_asi_r_wj].model_transform.mat, &data[0]);
+        data[1] = vec3_null;
+        set_bone_key_set_data(bone_data, MOTION_BONE_CL_MOMO_R, key_set, data, 2);
+
+        printf("");
+    }
+}
+
 static void x_pv_game_stage_effect_ctrl(x_pv_game* xpvgm) {
     x_pv_game_stage_effect& stage_effect = xpvgm->stage_effect;
 
@@ -2524,6 +3078,7 @@ static void x_pv_game_stage_effect_start(x_pv_game* xpvgm, pvsr_stage_effect* st
         int32_t& id = xpvgm->stage_auth_3d_ids[i.hash];
         auth_3d_data_set_camera_root_update(&id, false);
         auth_3d_data_set_enable(&id, true);
+        auth_3d_data_set_repeat(&id, true);
         auth_3d_data_set_req_frame(&id, 0.0f);
         auth_3d_data_set_max_frame(&id, -1.0f);
         auth_3d_data_set_paused(&id, false);
@@ -2559,7 +3114,7 @@ static bool x_pv_game_stage_effects_process(x_pv_game* xpvgm, int32_t frame) {
         return false;
     else if (xpvgm->stage_effects_ptr->frame < xpvgm->frame)
         return true;
-    
+
     xpvgm->stage_effect.next_stage_effect = xpvgm->stage_effects_ptr->effect_id;
     return true;
 }

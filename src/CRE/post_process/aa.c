@@ -4,9 +4,9 @@
 */
 
 #include "aa.h"
-#include "../fbo.h"
+#include "../fbo.hpp"
 #include "../gl_state.h"
-#include "../post_process.h"
+#include "../post_process.hpp"
 #include "../shader_ft.h"
 
 static void post_process_aa_free_fbo(post_process_aa* exp);
@@ -53,7 +53,7 @@ void post_process_apply_mlaa(post_process_aa* aa, render_texture* rt,
     gl_state_active_bind_texture_2d(0, 0);
     gl_state_active_bind_texture_2d(1, 0);
 
-    fbo_blit(buf_rt->fbos[0], rt->fbos[0],
+    fbo::blit(buf_rt->fbos[0], rt->fbos[0],
         0, 0, buf_rt->color_texture->width, buf_rt->color_texture->height,
         0, 0, rt->color_texture->width, rt->color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }

@@ -99,7 +99,7 @@ void path_get_files(std::vector<std::string>* files, const char* path) {
 
         char* file_temp = utf16_to_utf8(fdata.cFileName);
         if (file_temp)
-            files->push_back(std::string(file_temp));
+            files->push_back(file_temp);
         free(file_temp);
     } while (FindNextFileW(h, &fdata));
     FindClose(h);
@@ -217,7 +217,7 @@ void path_get_directories(std::vector<std::string>* directories,
 
         char* directory_temp = utf16_to_utf8(fdata.cFileName);
         if (directory_temp)
-            directories->push_back(std::string(directory_temp));
+            directories->push_back(directory_temp);
         free(directory_temp);
     } while (FindNextFileW(h, &fdata));
     FindClose(h);
@@ -367,8 +367,7 @@ void path_get_directories_recursive(std::vector<std::string>* directories,
         }
 
         char* directory_temp = utf16_to_utf8(fdata.cFileName);
-        std::string directory = std::string(directory_temp);
-        temp_vec.push_back(directory);
+        temp_vec.push_back(directory_temp);
         free(directory_temp);
     } while (FindNextFileW(h, &fdata));
     FindClose(h);

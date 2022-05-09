@@ -93,12 +93,9 @@ int32_t enb_initialize(uint8_t* data, enb_play_head** play_head) {
     *play_head = 0;
 
     enb_head* head = (enb_head*)data;
-    if (head->signature != 0x100A9DA4 && head->signature != 0x100AAD74)
-        return -3;
-
     enb_play_head* ph = force_malloc_s(enb_play_head, 1);
     if (!ph)
-        return -4;
+        return -3;
 
     memset(ph, 0, sizeof(enb_play_head));
 
@@ -109,7 +106,7 @@ int32_t enb_initialize(uint8_t* data, enb_play_head** play_head) {
 
     if (!ph->track_data) {
         free(ph);
-        return -5;
+        return -4;
     }
 
     memset(ph->track_data, 0, sizeof(enb_track) * head->track_count);

@@ -5,8 +5,8 @@
 
 #include "glitter.hpp"
 #include "../../KKdLib/str_utils.h"
-#include "../auth_3d.h"
-#include "../rob.h"
+#include "../auth_3d.hpp"
+#include "../rob.hpp"
 
 namespace Glitter {
     EffectInst::EffectInst(GPM, GLT, Effect* eff,
@@ -336,7 +336,7 @@ namespace Glitter {
                     ext_anim->mat = mat;
             }
             else {
-                mat4* bone_mat = rob_chara_get_bone_data_mat(rob_chr, bone_index);
+                mat4* bone_mat = rob_chr->get_bone_data_mat(bone_index);
                 if (!bone_mat)
                     return;
 
@@ -854,7 +854,7 @@ namespace Glitter {
 
             int32_t bone_index = ext_anim->bone_index;
             if (bone_index != -1) {
-                mat4* bone_mat = rob_chara_get_bone_data_mat(rob_chr, bone_index);
+                mat4* bone_mat = rob_chr->get_bone_data_mat(bone_index);
                 if (bone_mat)
                     SetExtAnim(&temp, bone_mat, 0, set_flags);
             }

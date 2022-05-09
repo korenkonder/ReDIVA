@@ -145,8 +145,8 @@ DDSCONST DDS_PIXELFORMAT DDSPF_L8A8 =
 DDSCONST DDS_PIXELFORMAT DDSPF_A8 =
 { sizeof(DDS_PIXELFORMAT), DDS_ALPHA, 0, 8, 0, 0, 0, 0xff };
 
-static void dds_reverse_rgb(txp_format format, ssize_t size, uint8_t* data);
-static bool dds_check_is_dxt1a(ssize_t size, uint8_t* data);
+static void dds_reverse_rgb(txp_format format, int64_t size, uint8_t* data);
+static bool dds_check_is_dxt1a(int64_t size, uint8_t* data);
 
 dds* dds_init() {
     dds* d = force_malloc_s(dds, 1);
@@ -385,7 +385,7 @@ void dds_dispose(dds* d) {
     free(d);
 }
 
-static void dds_reverse_rgb(txp_format format, ssize_t size, uint8_t* data) {
+static void dds_reverse_rgb(txp_format format, int64_t size, uint8_t* data) {
     uint8_t l, r, g, b, a;
     switch (format) {
     case TXP_RGB8:
@@ -459,7 +459,7 @@ static void dds_reverse_rgb(txp_format format, ssize_t size, uint8_t* data) {
     }
 }
 
-static bool dds_check_is_dxt1a(ssize_t size, uint8_t* data) {
+static bool dds_check_is_dxt1a(int64_t size, uint8_t* data) {
     while (size > 0) {
         if (*(uint16_t*)data <= *(uint16_t*)(data + 2))
             return true;

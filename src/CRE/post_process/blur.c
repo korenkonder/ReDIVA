@@ -4,9 +4,9 @@
 */
 
 #include "blur.h"
-#include "../fbo.h"
+#include "../fbo.hpp"
 #include "../gl_state.h"
-#include "../post_process.h"
+#include "../post_process.hpp"
 #include "../shader_ft.h"
 
 static void post_process_blur_free_fbo(post_process_blur* blur);
@@ -110,7 +110,7 @@ void post_process_get_blur(post_process_blur* blur, render_texture* rt) {
     render_texture_bind(&blur->tex[0], 0);
     gl_state_active_bind_texture_2d(0, blur->tex[1].color_texture->tex);
     render_texture_draw_params(&shaders_ft, 128, 72, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-    fbo_blit(blur->tex[0].fbos[0], blur->tex[1].fbos[0],
+    fbo::blit(blur->tex[0].fbos[0], blur->tex[1].fbos[0],
         0, 0, 128, 72,
         0, 0, 128, 72, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
@@ -118,7 +118,7 @@ void post_process_get_blur(post_process_blur* blur, render_texture* rt) {
     render_texture_bind(&blur->tex[0], 0);
     gl_state_active_bind_texture_2d(0, blur->tex[2].color_texture->tex);
     render_texture_draw_params(&shaders_ft, 64, 36, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-    fbo_blit(blur->tex[0].fbos[0], blur->tex[2].fbos[0],
+    fbo::blit(blur->tex[0].fbos[0], blur->tex[2].fbos[0],
         0, 0, 64, 36,
         0, 0, 64, 36, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
@@ -126,7 +126,7 @@ void post_process_get_blur(post_process_blur* blur, render_texture* rt) {
     render_texture_bind(&blur->tex[0], 0);
     gl_state_active_bind_texture_2d(0, blur->tex[3].color_texture->tex);
     render_texture_draw_params(&shaders_ft, 32, 18, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-    fbo_blit(blur->tex[0].fbos[0], blur->tex[3].fbos[0],
+    fbo::blit(blur->tex[0].fbos[0], blur->tex[3].fbos[0],
         0, 0, 32, 18,
         0, 0, 32, 18, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
@@ -136,16 +136,15 @@ void post_process_get_blur(post_process_blur* blur, render_texture* rt) {
     render_texture_bind(&blur->tex[0], 0);
     gl_state_active_bind_texture_2d(0, blur->tex[1].color_texture->tex);
     render_texture_draw_params(&shaders_ft, 128, 72, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-    fbo_blit(blur->tex[0].fbos[0], blur->tex[1].fbos[0],
+    fbo::blit(blur->tex[0].fbos[0], blur->tex[1].fbos[0],
         0, 0, 128, 72,
         0, 0, 128, 72, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
 
     glViewport(0, 0, 64, 36);
     render_texture_bind(&blur->tex[0], 0);
     gl_state_active_bind_texture_2d(0, blur->tex[2].color_texture->tex);
     render_texture_draw_params(&shaders_ft, 64, 36, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-    fbo_blit(blur->tex[0].fbos[0], blur->tex[2].fbos[0],
+    fbo::blit(blur->tex[0].fbos[0], blur->tex[2].fbos[0],
         0, 0, 64, 36,
         0, 0, 64, 36, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
@@ -153,7 +152,7 @@ void post_process_get_blur(post_process_blur* blur, render_texture* rt) {
     render_texture_bind(&blur->tex[0], 0);
     gl_state_active_bind_texture_2d(0, blur->tex[3].color_texture->tex);
     render_texture_draw_params(&shaders_ft, 32, 18, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-    fbo_blit(blur->tex[0].fbos[0], blur->tex[3].fbos[0],
+    fbo::blit(blur->tex[0].fbos[0], blur->tex[3].fbos[0],
         0, 0, 32, 18,
         0, 0, 32, 18, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 

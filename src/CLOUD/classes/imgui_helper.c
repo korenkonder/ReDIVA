@@ -5,7 +5,7 @@
 
 #include "imgui_helper.h"
 #include "../../KKdLib/str_utils.h"
-#include "../../CRE/data.h"
+#include "../../CRE/data.hpp"
 
 const float_t imgui_alpha_disabled_scale = 0.5f;
 

@@ -4318,11 +4318,11 @@ static void sub_14047C800(rob_osage* rob_osg, mat4* mat,
             mat4_transpose(&v130, &v130);
 
             float_t v104;
-            vec3_distance(v99->trans, v100->trans, v104);
+            vec3_distance_squared(v99->trans, v100->trans, v104);
             float_t v105 = v25 * v99->length;
 
             bool v106;
-            if (v104 >= fabs(v105)) {
+            if (v104 >= v105 * v105) {
                 v105 = sqrtf(v104);
                 v106 = false;
             }

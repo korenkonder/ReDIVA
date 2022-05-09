@@ -59,15 +59,15 @@ namespace Input {
     bool IsKeyDown(int32_t key, int32_t mods) {
         auto elem = keys.find(key);
         if (elem != keys.end())
-            if (!mods || elem->second.mods == mods)
+            if (elem->second.mods == mods)
                 return elem->second.action != GLFW_RELEASE;
         return false;
     }
-    
+
     bool IsKeyUp(int32_t key, int32_t mods) {
         auto elem = keys.find(key);
         if (elem != keys.end())
-            if (!mods || elem->second.mods == mods)
+            if (elem->second.mods == mods)
                 return elem->second.action == GLFW_RELEASE;
         return false;
     }
@@ -75,13 +75,13 @@ namespace Input {
     bool IsKeyTapped(int32_t key, int32_t mods) {
         auto elem = keys.find(key);
         auto elem_prev = keys_prev.find(key);
-        if (elem != keys.end()) 
+        if (elem != keys.end())
             if (elem_prev != keys_prev.end()) {
-                if (!mods || (elem->second.mods == mods && elem_prev->second.mods == mods))
+                if (elem->second.mods == mods && elem_prev->second.mods == mods)
                     return elem->second.action != GLFW_RELEASE && elem_prev->second.action == GLFW_RELEASE;
             }
             else {
-                if (!mods || elem->second.mods == mods)
+                if (elem->second.mods == mods)
                     return elem->second.action != GLFW_RELEASE;
             }
         return false;
@@ -92,11 +92,11 @@ namespace Input {
         auto elem_prev = keys_prev.find(key);
         if (elem != keys.end())
             if (elem_prev != keys_prev.end()) {
-                if (!mods || (elem->second.mods == mods && elem_prev->second.mods == mods))
+                if (elem->second.mods == mods && elem_prev->second.mods == mods)
                     return elem->second.action == GLFW_RELEASE && elem_prev->second.action != GLFW_RELEASE;
             }
             else {
-                if (!mods || elem->second.mods == mods)
+                if (elem->second.mods == mods)
                     return elem->second.action == GLFW_RELEASE;
             }
         return false;
@@ -105,15 +105,15 @@ namespace Input {
     bool IsMouseButtonDown(int32_t button, int32_t mods) {
         auto elem = mouse_buttons.find(button);
         if (elem != mouse_buttons.end())
-            if (!mods || elem->second.mods == mods)
+            if (elem->second.mods == mods)
                 return elem->second.action != GLFW_RELEASE;
         return false;
     }
-    
+
     bool IsMouseButtonUp(int32_t button, int32_t mods) {
         auto elem = mouse_buttons.find(button);
         if (elem != mouse_buttons.end())
-            if (!mods || elem->second.mods == mods)
+            if (elem->second.mods == mods)
                 return elem->second.action == GLFW_RELEASE;
         return false;
     }
@@ -123,11 +123,11 @@ namespace Input {
         auto elem_prev = mouse_buttons_prev.find(button);
         if (elem != mouse_buttons.end())
             if (elem_prev != mouse_buttons_prev.end()) {
-                if (!mods || (elem->second.mods == mods && elem_prev->second.mods == mods))
+                if (elem->second.mods == mods && elem_prev->second.mods == mods)
                     return elem->second.action != GLFW_RELEASE && elem_prev->second.action == GLFW_RELEASE;
             }
             else {
-                if (!mods || elem->second.mods == mods)
+                if (elem->second.mods == mods)
                     return elem->second.action != GLFW_RELEASE;
             }
         return false;
@@ -138,11 +138,11 @@ namespace Input {
         auto elem_prev = mouse_buttons_prev.find(button);
         if (elem != mouse_buttons.end())
             if (elem_prev != mouse_buttons_prev.end()) {
-                if (!mods || (elem->second.mods == mods && elem_prev->second.mods == mods))
+                if (elem->second.mods == mods && elem_prev->second.mods == mods)
                     return elem->second.action == GLFW_RELEASE && elem_prev->second.action != GLFW_RELEASE;
             }
             else {
-                if (!mods || elem->second.mods == mods)
+                if (elem->second.mods == mods)
                     return elem->second.action == GLFW_RELEASE;
             }
         return true;
@@ -151,7 +151,7 @@ namespace Input {
     bool WasKeyDown(int32_t key, int32_t mods) {
         auto elem_prev = keys_prev.find(key);
         if (elem_prev != keys_prev.end())
-            if (!mods || elem_prev->second.mods == mods)
+            if (elem_prev->second.mods == mods)
                 return elem_prev->second.action != GLFW_RELEASE;
         return false;
     }
@@ -159,7 +159,7 @@ namespace Input {
     bool WasKeyUp(int32_t key, int32_t mods) {
         auto elem_prev = keys_prev.find(key);
         if (elem_prev != keys_prev.end())
-            if (!mods || elem_prev->second.mods == mods)
+            if (elem_prev->second.mods == mods)
                 return elem_prev->second.action == GLFW_RELEASE;
         return true;
     }
@@ -167,7 +167,7 @@ namespace Input {
     bool WasMouseButtonDown(int32_t button, int32_t mods) {
         auto elem_prev = mouse_buttons_prev.find(button);
         if (elem_prev != mouse_buttons_prev.end())
-            if (!mods || elem_prev->second.mods == mods)
+            if (elem_prev->second.mods == mods)
                 return elem_prev->second.action != GLFW_RELEASE;
         return true;
     }
@@ -175,7 +175,7 @@ namespace Input {
     bool WasMouseButtonUp(int32_t button, int32_t mods) {
         auto elem_prev = mouse_buttons_prev.find(button);
         if (elem_prev != mouse_buttons_prev.end())
-            if (!mods || elem_prev->second.mods == mods)
+            if (elem_prev->second.mods == mods)
                 return elem_prev->second.action == GLFW_RELEASE;
         return true;
     }
@@ -212,54 +212,100 @@ namespace Input {
         classes_process_input(classes, classes_count);
 
         if (!input_locked) {
-            double_t speed;
-            if (IsKeyDown(GLFW_KEY_LEFT_SHIFT) || IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-                speed = input_movement_speed * 10.0;
-            else if (IsKeyDown(GLFW_KEY_LEFT_CONTROL) || IsKeyDown(GLFW_KEY_RIGHT_CONTROL))
-                speed = input_movement_speed / 10.0;
-            else
-                speed = input_movement_speed;
+            double_t speed = input_movement_speed;
+            double_t speed_fast = input_movement_speed * 10.0;
+            double_t speed_slow = input_movement_speed / 10.0;
             speed *= frame_speed;
+            speed_fast *= frame_speed;
+            speed_slow *= frame_speed;
 
-            if (IsKeyDown(GLFW_KEY_W))
+            if (IsKeyDown(GLFW_KEY_W) || IsKeyDown(GLFW_KEY_W, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
                 input_move.x += speed;
-            if (IsKeyDown(GLFW_KEY_S))
+            else if (IsKeyDown(GLFW_KEY_W, GLFW_MOD_SHIFT))
+                input_move.x += speed_fast;
+            else if (IsKeyDown(GLFW_KEY_W, GLFW_MOD_CONTROL))
+                input_move.x += speed_slow;
+
+            if (IsKeyDown(GLFW_KEY_S) || IsKeyDown(GLFW_KEY_S, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
                 input_move.x -= speed;
+            else if (IsKeyDown(GLFW_KEY_S, GLFW_MOD_SHIFT))
+                input_move.x -= speed_fast;
+            else if (IsKeyDown(GLFW_KEY_S, GLFW_MOD_CONTROL))
+                input_move.x -= speed_slow;
 
-            if (IsKeyDown(GLFW_KEY_A))
+            if (IsKeyDown(GLFW_KEY_A) || IsKeyDown(GLFW_KEY_A, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
                 input_move.y -= speed;
-            if (IsKeyDown(GLFW_KEY_D))
+            else if (IsKeyDown(GLFW_KEY_A, GLFW_MOD_SHIFT))
+                input_move.y -= speed_fast;
+            else if (IsKeyDown(GLFW_KEY_A, GLFW_MOD_CONTROL))
+                input_move.y -= speed_slow;
+
+            if (IsKeyDown(GLFW_KEY_D) || IsKeyDown(GLFW_KEY_D, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
                 input_move.y += speed;
+            else if (IsKeyDown(GLFW_KEY_D, GLFW_MOD_SHIFT))
+                input_move.y += speed_fast;
+            else if (IsKeyDown(GLFW_KEY_D, GLFW_MOD_CONTROL))
+                input_move.y += speed_slow;
 
-            if (IsKeyDown(GLFW_KEY_LEFT_SHIFT) || IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-                speed = input_movement_speed * 2.0;
-            else if (IsKeyDown(GLFW_KEY_LEFT_CONTROL) || IsKeyDown(GLFW_KEY_RIGHT_CONTROL))
-                speed = input_movement_speed / 2.0;
-            else
-                speed = input_movement_speed;
+            speed = input_movement_speed;
+            speed_fast = input_movement_speed * 2.0;
+            speed_slow = input_movement_speed / 2.0;
+            speed *= frame_speed;
+            speed_fast *= frame_speed;
+            speed_slow *= frame_speed;
             speed *= freq / freq_hist;
+            speed_fast *= freq / freq_hist;
+            speed_slow *= freq / freq_hist;
             speed *= 10.0;
+            speed_fast *= 10.0;
+            speed_slow *= 10.0;
 
-            if (IsKeyDown(GLFW_KEY_UP))
+            if (IsKeyDown(GLFW_KEY_UP) || IsKeyDown(GLFW_KEY_UP, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
                 input_rotate.y += speed;
-            if (IsKeyDown(GLFW_KEY_DOWN))
+            else if (IsKeyDown(GLFW_KEY_UP, GLFW_MOD_SHIFT))
+                input_rotate.y += speed_fast;
+            else if (IsKeyDown(GLFW_KEY_UP, GLFW_MOD_CONTROL))
+                input_rotate.y += speed_slow;
+
+            if (IsKeyDown(GLFW_KEY_DOWN) || IsKeyDown(GLFW_KEY_DOWN, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
                 input_rotate.y -= speed;
+            else if (IsKeyDown(GLFW_KEY_DOWN, GLFW_MOD_SHIFT))
+                input_rotate.y -= speed_fast;
+            else if (IsKeyDown(GLFW_KEY_DOWN, GLFW_MOD_CONTROL))
+                input_rotate.y -= speed_slow;
 
-            if (IsKeyDown(GLFW_KEY_LEFT))
+            if (IsKeyDown(GLFW_KEY_LEFT) || IsKeyDown(GLFW_KEY_LEFT, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
                 input_rotate.x -= speed;
-            if (IsKeyDown(GLFW_KEY_RIGHT))
+            else if (IsKeyDown(GLFW_KEY_LEFT, GLFW_MOD_SHIFT))
+                input_rotate.x -= speed_fast;
+            else if (IsKeyDown(GLFW_KEY_LEFT, GLFW_MOD_CONTROL))
+                input_rotate.x -= speed_slow;
+
+            if (IsKeyDown(GLFW_KEY_RIGHT) || IsKeyDown(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
                 input_rotate.x += speed;
+            else if (IsKeyDown(GLFW_KEY_RIGHT, GLFW_MOD_SHIFT))
+                input_rotate.x += speed_fast;
+            else if (IsKeyDown(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL))
+                input_rotate.x += speed_slow;
 
-            if (IsKeyDown(GLFW_KEY_Q))
-                input_roll -= speed;
-            if (IsKeyDown(GLFW_KEY_E))
+            if (IsKeyDown(GLFW_KEY_Q) || IsKeyDown(GLFW_KEY_Q, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
                 input_roll += speed;
+            else if (IsKeyDown(GLFW_KEY_Q, GLFW_MOD_SHIFT))
+                input_roll += speed_fast;
+            else if (IsKeyDown(GLFW_KEY_Q, GLFW_MOD_CONTROL))
+                input_roll += speed_slow;
 
-            if (IsKeyDown(GLFW_KEY_R))
-                if (IsKeyDown(GLFW_KEY_LEFT_CONTROL) || IsKeyDown(GLFW_KEY_RIGHT_CONTROL))
-                    input_shaders_reload = true;
-                else
-                    input_reset = true;
+            if (IsKeyDown(GLFW_KEY_E) || IsKeyDown(GLFW_KEY_E, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
+                input_roll += speed;
+            else if (IsKeyDown(GLFW_KEY_E, GLFW_MOD_SHIFT))
+                input_roll += speed_fast;
+            else if (IsKeyDown(GLFW_KEY_E, GLFW_MOD_CONTROL))
+                input_roll += speed_slow;
+
+            if (IsKeyDown(GLFW_KEY_R, GLFW_MOD_CONTROL))
+                input_shaders_reload = true;
+            else if (IsKeyDown(GLFW_KEY_R))
+                input_reset = true;
         }
 
         lock_lock(&imgui_context_lock);

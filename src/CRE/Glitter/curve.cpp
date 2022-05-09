@@ -161,7 +161,6 @@ namespace Glitter {
         return rand + key->value;
     }
 
-
     void Curve::GetKeyIndices(std::vector<Curve::Key>* keys,
         float_t frame, size_t* curr, size_t* next) {
         size_t count = keys->size();

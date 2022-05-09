@@ -32,7 +32,7 @@ float_t half_to_float(half_t h) {
     if (exponent == 0x1F)
         si32 |= 0x7F800000;
     else if (exponent != 0x00)
-        si32 |= ((int32_t)exponent - 15 + 127) << 23;
+        si32 |= ((int32_t)exponent - 0x0F + 0x7F) << 23;
     si32 |= (int32_t)mantissa << 13;
     return *(float_t*)&si32;
 }
@@ -49,13 +49,13 @@ half_t float_to_half(float_t val) {
     int16_t mantissa = (int16_t)((si32 >> 13) & 0x3FF);
 
     if (exponent == 0xFF)
-        exponent = 31;
+        exponent = 0x1F;
     else if (exponent != 0x00) {
-        exponent -= 127 - 15;
-        if (exponent < 0)
+        exponent -= 0x7F - 0x0F;
+        if (exponent < 0x00)
             exponent = mantissa = 0;
-        else if (exponent > 30)
-            exponent = 31;
+        else if (exponent >= 0x1F)
+            exponent = 0x1F;
     }
     return (half_t)((sign << 15) | (exponent << 10) | mantissa);
 }
@@ -70,7 +70,7 @@ double_t half_to_double(half_t h) {
     if (exponent == 0x1F)
         si64 |= 0x7FF0000000000000;
     else if (exponent != 0x00)
-        si64 |= ((int64_t)exponent - 15 + 1023) << 52;
+        si64 |= ((int64_t)exponent - 0x0F + 0x3FF) << 52;
     si64 |= (int64_t)mantissa << 42;
     return *(double_t*)&si64;
 }
@@ -87,13 +87,13 @@ half_t double_to_half(double_t val) {
     int16_t mantissa = (int16_t)((si64 >> 42) & 0x3FF);
 
     if (exponent == 0x7FF)
-        exponent = 31;
+        exponent = 0x1F;
     else if (exponent != 0x00) {
-        exponent -= 1023 - 15;
-        if (exponent < 0)
+        exponent -= 0x3FF - 0x0F;
+        if (exponent < 0x00)
             exponent = mantissa = 0;
-        else if (exponent > 30)
-            exponent = 31;
+        else if (exponent >= 0x1F)
+            exponent = 0x1F;
     }
     return (half_t)((sign << 15) | (exponent << 10) | mantissa);
 }

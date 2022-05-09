@@ -204,21 +204,21 @@ inline double_t reverse_endianness_double_t(double_t value) {
     return *(double_t*)&v;
 }
 
-inline ssize_t utf8_length(const char* s) {
+inline size_t utf8_length(const char* s) {
     if (!s)
         return 0;
 
-    ssize_t len = 0;
+    size_t len = 0;
     while (*s++)
         len++;
     return len;
 }
 
-inline ssize_t utf16_length(const wchar_t* s) {
+inline size_t utf16_length(const wchar_t* s) {
     if (!s)
         return 0;
 
-    ssize_t len = 0;
+    size_t len = 0;
     while (*s++)
         len++;
     return len;
@@ -339,13 +339,13 @@ inline bool utf8_check_for_ascii_only(const char* s) {
     return true;
 }
 
-ssize_t utf8_to_utf16_length(const char* s) {
+size_t utf8_to_utf16_length(const char* s) {
     if (!s)
         return 0;
 
     uint32_t c = 0;
-    ssize_t length = 0;
-    ssize_t l = 0;
+    size_t length = 0;
+    size_t l = 0;
 
     while (*s) {
         char t = *s++;
@@ -387,9 +387,9 @@ ssize_t utf8_to_utf16_length(const char* s) {
     return length;
 }
 
-ssize_t utf16_to_utf8_length(const wchar_t* s) {
+size_t utf16_to_utf8_length(const wchar_t* s) {
     uint32_t c = 0;
-    ssize_t length = 0;
+    size_t length = 0;
     while (*s) {
         c = *s++;
         if ((c & 0xFC00) == 0xD800) {

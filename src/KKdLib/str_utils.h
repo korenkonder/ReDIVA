@@ -48,5 +48,5 @@ extern size_t str_utils_get_substring_offset(const char* str0, size_t str0_len,
     size_t str0_off, const char* str1, size_t str1_len);
 extern size_t str_utils_get_substring_offset(const wchar_t* str0, size_t str0_len,
     size_t str0_off, const wchar_t* str1, size_t str1_len);
-extern bool str_utils_text_file_parse(void* data, size_t length,
+extern bool str_utils_text_file_parse(void* data, size_t size,
     char** buf, char*** lines, size_t* count);

@@ -4,8 +4,8 @@
 */
 
 #include "glitter.hpp"
-#include "../object.h"
-#include "../texture.h"
+#include "../object.hpp"
+#include "../texture.hpp"
 
 namespace Glitter {
     EffectGroup::EffectGroup(GLT) : effects(), load_count(), hash(), scene(),
@@ -55,9 +55,9 @@ namespace Glitter {
                 if (!set)
                     continue;
 
-                for (int32_t i = 0; i < set->objects_count; i++) {
+                for (uint32_t i = 0; i < set->objects_count; i++) {
                     obj* obj = &set->objects[i];
-                    for (int32_t j = 0; j < obj->materials_count; j++) {
+                    for (uint32_t j = 0; j < obj->materials_count; j++) {
                         obj_material* mat = &obj->materials[j].material;
                         if (!memcmp(&mat->emission, &vec3_null, sizeof(vec3)) && mat->emission.w == 1.0f)
                             mat->emission = vec4u_identity;

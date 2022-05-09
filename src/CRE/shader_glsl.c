@@ -4,7 +4,7 @@
 */
 
 #include "shader_glsl.h"
-#include "../KKdLib/hash.h"
+#include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.h"
 #include "gl_state.h"
 #include "static_var.h"

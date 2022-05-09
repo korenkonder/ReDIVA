@@ -8,7 +8,7 @@
 #include "shared.h"
 #include "shader.h"
 #include "shader_glsl.h"
-#include "texture.h"
+#include "texture.hpp"
 
 struct render_texture {
     texture* color_texture;

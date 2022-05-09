@@ -120,7 +120,7 @@ namespace Glitter {
             return (particle->data.effect->flags & EFFECT_INST_HAS_EXT_ANIM_NON_INIT) != 0;
         return true;
     }
-    
+
     void F2RenderGroup::Copy(F2RenderGroup* dst) {
         dst->flags = flags;
         dst->type = type;
@@ -232,7 +232,7 @@ namespace Glitter {
         if (particle->data.data.flags & PARTICLE_LOOP && rend_elem->frame >= rend_elem->life_time)
             rend_elem->frame -= rend_elem->life_time;
     }
-    
+
     void F2RenderGroup::DeleteBuffers(bool free) {
         if (particle) {
             if (!free)
@@ -257,7 +257,7 @@ namespace Glitter {
         }
     }
 
-    void F2RenderGroup::Emit(GPM, GLT, F2ParticleInst::Data* ptcl_inst,
+    void F2RenderGroup::Emit(GPM, GLT, F2ParticleInst::Data* ptcl_inst_data,
         F2EmitterInst* emit_inst, int32_t dup_count, int32_t count) {
         RenderElement* element = 0;
         for (int32_t i = 0; i < dup_count; i++)
@@ -267,10 +267,10 @@ namespace Glitter {
                     break;
 
                 particle->EmitParticle(GPM_VAL, GLT_VAL,
-                    element, emit_inst, ptcl_inst, index, random_ptr);
+                    element, emit_inst, ptcl_inst_data, index, random_ptr);
             }
     }
-    
+
     void F2RenderGroup::Free() {
         if (count <= 0) {
             ctrl = 0;
@@ -287,11 +287,11 @@ namespace Glitter {
         }
         ctrl = 0;
     }
-    
+
     void F2RenderGroup::FreeData() {
         DeleteBuffers(true);
     }
-    
+
     bool F2RenderGroup::GetExtAnimScale(vec3* ext_anim_scale) {
         if (!particle)
             return false;

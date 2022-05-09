@@ -8,13 +8,13 @@
 #include "light_param/fog.h"
 #include "light_param/light.h"
 #include "gl_state.h"
-#include "post_process.h"
-#include "rob.h"
+#include "post_process.hpp"
+#include "rob.hpp"
 #include "render_texture.h"
 #include "shader_ft.h"
 #include "shader_glsl.h"
 #include "static_var.h"
-#include "texture.h"
+#include "texture.hpp"
 
 struct draw_preprocess {
     int32_t field_0;
@@ -700,7 +700,6 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     render_texture_draw_params(&shaders_ft, 320, 180, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
     gl_state_bind_texture_2d(0);
 }
-
 
 static void draw_pass_reflect(render_context* rctx, draw_pass* a1) {
     render_texture* reflect_texture = &rctx->draw_pass.reflect_texture;

@@ -9,8 +9,8 @@
 #include "../KKdLib/mat.h"
 #include "../KKdLib/vec.h"
 #include "../KKdLib/vector.h"
-#include "object.h"
-#include "render_context.h"
+#include "object.hpp"
+#include "render_context.hpp"
 
 struct texture_data_struct {
     int32_t field_0;

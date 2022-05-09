@@ -6,7 +6,7 @@
 #include "glitter.hpp"
 #include "../draw_task.h"
 #include "../gl_state.h"
-#include "../render_context.h"
+#include "../render_context.hpp"
 #include "../shader.h"
 #include "../shader_ft.h"
 #include "../static_var.h"
@@ -232,7 +232,6 @@ namespace Glitter {
         glUnmapBuffer(GL_ARRAY_BUFFER);
         gl_state_bind_array_buffer(0);
     }
-
 
     void F2RenderScene::Ctrl(GLT, float_t delta_frame) {
         ctrl_quad = 0;
@@ -1123,7 +1122,6 @@ namespace Glitter {
                     if (rend_group->particle == particle)
                         CalcDisp(GPM_VAL, rend_group);
 
-
                     for (XParticleInst*& j : particle->data.children)
                         if (j && rend_group->particle == j)
                             CalcDisp(GPM_VAL, rend_group);
@@ -1131,7 +1129,7 @@ namespace Glitter {
 #endif
         }
     }
-    
+
     void XRenderScene::CalcDisp(GPM, XRenderGroup* rend_group) {
         disp_mesh = 0;
 
@@ -1516,14 +1514,15 @@ namespace Glitter {
                 object_data->texture_pattern_count = 0;
                 int32_t ttc = 0;
                 texture_transform_struct* tt = object_data->texture_transform_array;
-                for (int32_t i = 0; i < obj->meshes_count; i++) {
+                for (uint32_t i = 0; i < obj->meshes_count; i++) {
                     obj_mesh* mesh = &obj->meshes[i];
-                    for (int32_t j = 0; j < mesh->sub_meshes_count; j++) {
+                    for (uint32_t j = 0; j < mesh->sub_meshes_count; j++) {
                         obj_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
                         obj_material* material = &obj->materials[sub_mesh->material_index].material;
 
-                        for (int32_t k = 0, l = 0; k < 8; k++) {
-                            obj_material_texture* texture = &material->textures[k];
+                        int32_t l = 0;
+                        for (obj_material_texture& k : material->textures) {
+                            obj_material_texture* texture = &k;
                             if (texture->texture_flags.type != OBJ_MATERIAL_TEXTURE_COLOR)
                                 continue;
 

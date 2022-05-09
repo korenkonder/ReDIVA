@@ -16,27 +16,26 @@
 #include <imgui/imgui_impl_opengl3.h>
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/camera.h"
-#include "../CRE/data.h"
-#include "../CRE/fbo.h"
-#include "../CRE/file_handler.h"
+#include "../CRE/data.hpp"
+#include "../CRE/fbo.hpp"
+#include "../CRE/file_handler.hpp"
 #include "../CRE/gl_state.h"
-#include "../CRE/light_param.h"
+#include "../CRE/light_param.hpp"
 #include "../CRE/lock.h"
-#include "../CRE/object.h"
-#include "../CRE/random.h"
-#include "../CRE/rob.h"
+#include "../CRE/object.hpp"
+#include "../CRE/rob.hpp"
 #include "../CRE/shader.h"
 #include "../CRE/shader_ft.h"
 #include "../CRE/shader_glsl.h"
-#include "../CRE/stage.h"
+#include "../CRE/stage.hpp"
 #include "../CRE/static_var.h"
-#include "../CRE/task.h"
-#include "../CRE/texture.h"
+#include "../CRE/task.hpp"
+#include "../CRE/texture.hpp"
 #include "../CRE/timer.h"
-#include "../CRE/post_process.h"
+#include "../CRE/post_process.hpp"
 #include "../KKdLib/io/path.h"
-#include "../KKdLib/database/item_table.h"
-#include "../KKdLib/sort.h"
+#include "../KKdLib/database/item_table.hpp"
+#include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.h"
 #include "classes/imgui_helper.h"
 #include "input.hpp"
@@ -388,6 +387,8 @@ static render_context* render_load() {
     render_texture_data_init();
 
     motion_storage_init();
+    mothead_storage_init();
+    osage_setting_data_init();
 
     Glitter::glt_particle_manager.rctx = rctx;
 
@@ -407,7 +408,7 @@ static render_context* render_load() {
     object_storage_init(aft_obj_db);
     item_table_array_init();
     task_work_init();
-    rob_chara_array_init();
+    rob_init();
     auth_3d_data_init();
     light_param_storage_data_init();
 
@@ -583,10 +584,8 @@ static render_context* render_load() {
 
     aft_data->load_file(aft_data, "rom/", "chritm_prop.farc", item_table_array_load_file);
     aft_data->load_file(aft_data, "rom/", "mdata_chritm_prop.farc", item_table_array_load_file);
-
-    rob_mot_tbl_init();
-    rob_thread_handler_init();
-    pv_osage_manager_array_ptr_init();
+    aft_data->load_file(aft_data, "rom/skin_param/", "osage_setting.txt", osage_setting_data_load_file);
+    aft_data->load_file(aft_data, "rom/skin_param/", "mdata_osage_setting.txt", osage_setting_data_load_file);
 
     light_param_data_storage::load(aft_data);
     auth_3d_data_load_auth_3d_db(aft_auth_3d_db);
@@ -736,7 +735,22 @@ static render_context* render_load() {
     clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
     set_clear_color = true;
 
-    x_pv_game_data.Load(826, 26);
+    chara_index charas[6];
+    charas[5] = CHARA_MIKU;
+    charas[1] = CHARA_RIN;
+    charas[2] = CHARA_LEN;
+    charas[3] = CHARA_LUKA;
+    charas[4] = CHARA_KAITO;
+    charas[0] = CHARA_MEIKO;
+
+    int32_t modules[6];
+    modules[5] = 186;
+    modules[1] = 46;
+    modules[2] = 39;
+    modules[3] = 41;
+    modules[4] = 40;
+    modules[0] = 31;
+    x_pv_game_data.Load(822, 22, charas, modules);
 
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
     shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
@@ -749,6 +763,8 @@ extern vec2d input_rotate;
 extern double_t input_roll;
 extern bool input_reset;
 extern bool input_shaders_reload;
+
+int32_t global_ctrl_frames = 0;
 
 static void render_ctrl(render_context* rctx) {
     camera* cam = rctx->camera;
@@ -819,7 +835,10 @@ static void render_ctrl(render_context* rctx) {
 
     classes_process_ctrl(classes, classes_count);
 
-    rctx->ctrl();
+    do {
+        rctx->ctrl();
+    } while (--global_ctrl_frames >= 0);
+    global_ctrl_frames = 0;
 
     ImGui::Render();
 
@@ -890,6 +909,8 @@ static int cube_line_points_sort(void const* src1, void const* src2) {
     return d1 > d2 ? -1 : (d1 < d2 ? 1 : 0);
 }
 
+static bool rob_draw = false;
+
 static void render_draw(render_context* rctx) {
     static const GLfloat color_clear[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     static const GLfloat depth_clear = 1.0f;
@@ -939,8 +960,6 @@ static void render_draw(render_context* rctx) {
     gl_state_bind_uniform_buffer_base(0, common_data_ubo);
     classes_process_draw(classes, classes_count);
 
-    static bool rob_draw = false;
-
     gl_state_disable_cull_face();
     vec4 bone_color = { 1.0f, 0.0f, 0.0f, 1.0f };
     vec4 cns_color = { 1.0f, 1.0f, 0.0f, 1.0f };
@@ -951,9 +970,12 @@ static void render_draw(render_context* rctx) {
         if (rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
             continue;
 
+        rob_chara* rob_chr = &rob_chara_array[i];
+        if (~rob_chr->data.field_0 & 1)
+            continue;
+
         gl_state_bind_vertex_array(cube_line_vao);
         gl_state_bind_array_buffer(cube_line_vbo);
-        rob_chara* rob_chr = &rob_chara_array[i];
         rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
         size_t object_bone_count = rob_bone_data->object_bone_count;
         size_t total_bone_count = rob_bone_data->total_bone_count;
@@ -970,79 +992,6 @@ static void render_draw(render_context* rctx) {
             if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
                 cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &bone_color);
         }
-
-        rob_chara_item_equip* rob_item_equip = rob_chr->item_equip;
-        for (int32_t j = rob_item_equip->first_item_equip_object;
-            j < rob_item_equip->max_item_equip_object; j++) {
-            rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
-
-            for (ExExpressionBlock*& k : itm_eq_obj->expression_blocks) {
-                ExExpressionBlock* exp = k;
-                if (!exp || !exp->bone_node_ptr || !exp->parent_bone_node)
-                    continue;
-
-                vec3 trans[2];
-                mat4_get_translation(exp->parent_bone_node->mat, &trans[0]);
-                mat4_get_translation(exp->bone_node_ptr->mat, &trans[1]);
-
-                if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                    cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &cns_color);
-            }
-
-            for (ExConstraintBlock*& k : itm_eq_obj->constraint_blocks) {
-                ExConstraintBlock* cns = k;
-                if (!cns || !cns->bone_node_ptr || !cns->parent_bone_node)
-                    continue;
-
-                vec3 trans[2];
-                mat4_get_translation(cns->parent_bone_node->mat, &trans[0]);
-                mat4_get_translation(cns->bone_node_ptr->mat, &trans[1]);
-
-                if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                    cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &exp_color);
-            }
-
-            for (ExOsageBlock*& k : itm_eq_obj->osage_blocks) {
-                ExOsageBlock* osg = k;
-                if (!osg || !osg->bone_node_ptr || !osg->parent_bone_node)
-                    continue;
-
-                vec3 trans[2];
-                mat4_get_translation(osg->parent_bone_node->mat, &trans[0]);
-                mat4_get_translation(osg->bone_node_ptr->mat, &trans[1]);
-
-                if (!memcmp(&trans[0], &trans[1], sizeof(vec3))) {
-                    mat4_get_translation(osg->parent_bone_node->parent->mat, &trans[0]);
-                    if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                        continue;
-                }
-
-                cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &osg_color);
-
-                rob_osage* rob_osg = &osg->rob;
-                rob_osage_node* parent_node = &osg->rob.node;
-                for (rob_osage_node& l : osg->rob.nodes) {
-                    if (!l.bone_node_ptr || !parent_node->bone_node_ptr) {
-                        parent_node = &l;
-                        continue;
-                    }
-
-                    vec3 trans[2];
-                    mat4_get_translation(parent_node->bone_node_ptr->mat, &trans[0]);
-                    mat4_get_translation(l.bone_node_ptr->mat, &trans[1]);
-
-                    if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                        cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &osg_node_color);
-                    else {
-                        mat4_get_translation(parent_node->bone_node_ptr->parent->mat, &trans[0]);
-                        if (!memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                            continue;
-                        cube_line_draw(&cube_line_shader, cam, trans, CUBE_LINE_SIZE, &osg_node_color);
-                    }
-                    parent_node = &l;
-                }
-            }
-        }
         gl_state_bind_array_buffer(0);
 
         std::vector<std::pair<vec3, float_t>> cube_line_points;
@@ -1052,54 +1001,12 @@ static void render_draw(render_context* rctx) {
             cube_line_points.push_back({ trans, 0.0f });
         }
 
-        for (int32_t j = rob_item_equip->first_item_equip_object;
-            j < rob_item_equip->max_item_equip_object; j++) {
-            rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
-
-            for (ExExpressionBlock*& k : itm_eq_obj->expression_blocks) {
-                ExExpressionBlock* exp = k;
-                if (!exp || !exp->bone_node_ptr)
-                    continue;
-
-                vec3 trans;
-                mat4_get_translation(exp->bone_node_ptr->mat, &trans);
-                cube_line_points.push_back({ trans, 0.0f });
-            }
-
-            for (ExConstraintBlock*& k : itm_eq_obj->constraint_blocks) {
-                ExConstraintBlock* cns = k;
-                if (!cns || !cns->bone_node_ptr)
-                    continue;
-
-                vec3 trans;
-                mat4_get_translation(cns->bone_node_ptr->mat, &trans);
-                cube_line_points.push_back({ trans, 0.0f });
-            }
-
-            for (ExOsageBlock*& k : itm_eq_obj->osage_blocks) {
-                ExOsageBlock* osg = k;
-                if (!osg || !osg->bone_node_ptr)
-                    continue;
-
-                vec3 trans;
-                mat4_get_translation(osg->bone_node_ptr->mat, &trans);
-                cube_line_points.push_back({ trans, 0.0f });
-
-                rob_osage* rob_osg = &osg->rob;
-                rob_osage_node* parent_node = &osg->rob.node;
-                for (rob_osage_node& l : osg->rob.nodes) {
-                    if (!l.bone_node_ptr) {
-                        parent_node = &l;
-                        continue;
-                    }
-
-                    vec3 trans;
-                    mat4_get_translation(l.bone_node_ptr->mat, &trans);
-                    cube_line_points.push_back({ trans, 0.0f });
-                    parent_node = &l;
-                }
-            }
-        }
+        motion_blend_mot* mot = rob_chr->bone_data->motion_loaded.front();
+        mot_key_set* key_set = mot->mot_key_data.mot.key_sets;
+        for (bone_data& j :mot->bone_data.bones)
+            if (j.type >= BONE_DATABASE_BONE_HEAD_IK_ROTATION
+                && j.type <= BONE_DATABASE_BONE_LEGS_IK_ROTATION)
+                cube_line_points.push_back({ j.ik_target, 0.0f });
 
         for (std::pair<vec3, float_t>& i : cube_line_points) {
             vec3 trans;
@@ -1147,7 +1054,7 @@ static void render_draw(render_context* rctx) {
     gl_state_bind_framebuffer(0);
 
     if (rctx->draw_pass.enable[DRAW_PASS_POST_PROCESS])
-        fbo_blit(rctx->post_process.screen_texture.fbos[0], 0,
+        fbo::blit(rctx->post_process.screen_texture.fbos[0], 0,
             0, 0, width, height,
             0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
@@ -1181,7 +1088,7 @@ static void render_dispose(render_context* rctx) {
 
     light_param_storage_data_free();
     auth_3d_data_free();
-    rob_chara_array_free();
+    rob_free();
     task_work_free();
     item_table_array_free();
     object_storage_free();
@@ -1200,11 +1107,9 @@ static void render_dispose(render_context* rctx) {
     glDeleteBuffers(1, &cube_line_vbo);
     glDeleteVertexArrays(1, &cube_line_vao);
 
-    pv_osage_manager_array_ptr_free();
-    rob_thread_handler_free();
-    rob_mot_tbl_free();
-
     motion_storage_free();
+    mothead_storage_free();
+    osage_setting_data_free();
 
     render_texture_data_free();
     delete rctx;

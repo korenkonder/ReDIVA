@@ -10,13 +10,14 @@
 #include <map>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
-#include "../KKdLib/dsc.h"
-#include "../KKdLib/pvpp.h"
-#include "../KKdLib/pvsr.h"
-#include "../CRE/auth_3d.h"
-#include "../CRE/rob.h"
-#include "../CRE/task.h"
+#include "../KKdLib/dsc.hpp"
+#include "../KKdLib/pvpp.hpp"
+#include "../KKdLib/pvsr.hpp"
+#include "../CRE/auth_3d.hpp"
+#include "../CRE/rob.hpp"
+#include "../CRE/task.hpp"
 #include "classes.h"
 
 struct x_pv_game_glitter {
@@ -104,6 +105,46 @@ struct x_pv_game_stage_effect_init {
     int32_t bar;
 };
 
+struct x_pv_game_a3da_to_mot {
+    int32_t auth_3d_id;
+    int32_t gblctr;
+    int32_t n_hara;
+    int32_t n_hara_y;
+    int32_t j_hara_wj;
+    int32_t n_kosi;
+    int32_t j_mune_wj;
+    int32_t n_mune_kl;
+    int32_t j_mune_b_wj;
+    int32_t j_kubi_wj;
+    int32_t n_kao;
+    int32_t j_kao_wj;
+    int32_t j_eye_r_wj;
+    int32_t j_eye_l_wj;
+    int32_t n_waki_l;
+    int32_t j_waki_l_wj;
+    int32_t n_kata_l;
+    int32_t j_kata_l_wj;
+    int32_t j_ude_l_wj;
+    int32_t j_te_l_wj;
+    int32_t n_waki_r;
+    int32_t j_waki_r_wj;
+    int32_t n_kata_r;
+    int32_t j_kata_r_wj;
+    int32_t j_ude_r_wj;
+    int32_t j_te_r_wj;
+    int32_t j_kosi_wj;
+    int32_t n_momo_l;
+    int32_t j_momo_l_wj;
+    int32_t j_sune_l_wj;
+    int32_t j_asi_l_wj;
+    int32_t n_momo_r;
+    int32_t j_momo_r_wj;
+    int32_t j_sune_r_wj;
+    int32_t j_asi_r_wj;
+
+    x_pv_game_a3da_to_mot(int32_t auth_3d_id);
+};
+
 class x_pv_game : public TaskWindow {
 public:
     int32_t pv_id;
@@ -114,6 +155,8 @@ public:
     uint32_t effpv_objset;
     uint32_t stgpv_objset;
     uint32_t stgpvhrc_objset;
+
+    std::vector<uint32_t> objset_load;
 
     int32_t state;
     int32_t frame;
@@ -140,13 +183,24 @@ public:
     uint32_t stage_category_hash;
     uint32_t camera_category_hash;
 
+    std::vector<std::pair<std::string, uint32_t>> category_load;
+
     std::set<std::string> pv_auth_3d_names;
     std::set<std::string> stage_auth_3d_names;
+    std::unordered_map<std::string, std::pair<uint32_t, std::string>> effchrpv_auth_3d_names;
+    std::unordered_map<std::string, std::pair<uint32_t, std::string>> effchrpv_auth_3d_mot_names;
 
     std::map<uint32_t, int32_t> pv_auth_3d_ids;
     std::map<uint32_t, int32_t> stage_auth_3d_ids;
     int32_t light_auth_3d_id;
     int32_t camera_auth_3d_id;
+    std::map<uint32_t, int32_t> effchrpv_auth_3d_ids;
+    std::map<uint32_t, int32_t> effchrpv_auth_3d_mot_ids;
+
+    std::vector<int32_t> effchrpv_rob_mot_ids;
+    std::map<int32_t, x_pv_game_a3da_to_mot> effchrpv_auth_3d_rob_mot_ids;
+
+    std::map<uint32_t, uint32_t> effchrpv_auth_3d_hashes;
 
     dsc dsc_m;
     dsc_data* dsc_data_ptr;
@@ -184,7 +238,7 @@ public:
     virtual void Disp() override;
     virtual void Window() override;
 
-    void Load(int32_t pv_id, int32_t stage_id);
+    void Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]);
     void Unload();
 };
 

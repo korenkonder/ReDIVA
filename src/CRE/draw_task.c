@@ -4,10 +4,10 @@
 */
 
 #include "draw_task.h"
-#include "../KKdLib/sort.h"
+#include "../KKdLib/sort.hpp"
 #include "camera.h"
-#include "fbo.h"
-#include "post_process.h"
+#include "fbo.hpp"
+#include "post_process.hpp"
 #include "shader_ft.h"
 
 static void draw_task_add(render_context* rctx, draw_object_type type, draw_task* task);
@@ -236,7 +236,7 @@ void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaqu
         alpha_array, opaque, transparent, translucent);
     for (int32_t i = 0; i < count; i++) {
         int32_t alpha = alpha_array[i];
-        fbo_blit(rctx->post_process.rend_texture.fbos[0],
+        fbo::blit(rctx->post_process.rend_texture.fbos[0],
             rctx->post_process.alpha_layer_texture.fbos[0],
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
@@ -259,7 +259,7 @@ void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaqu
         glUniform1f(0, (float_t)(alpha * (1.0 / 255.0)));
         render_texture_draw_custom_glsl();
 
-        fbo_blit(rctx->post_process.buf_texture.fbos[0],
+        fbo::blit(rctx->post_process.buf_texture.fbos[0],
             rctx->post_process.rend_texture.fbos[0],
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
@@ -285,7 +285,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
     }
     object_data->passed.objects++;
 
-    for (int32_t i = 0; i < object->meshes_count; i++) {
+    for (uint32_t i = 0; i < object->meshes_count; i++) {
         obj_mesh* mesh = &object->meshes[i];
         obj_mesh* mesh_morph = 0;
         if (obj_vertex_buf && obj_morph_vertex_buf) {
@@ -309,7 +309,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
         draw_object* translucent_priority[40];
         int32_t translucent_priority_count = 0;
 
-        for (int32_t j = 0; j < mesh->sub_meshes_count; j++) {
+        for (uint32_t j = 0; j < mesh->sub_meshes_count; j++) {
             obj_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
             obj_sub_mesh* sub_mesh_morph = 0;
             if (sub_mesh->flags & OBJ_SUB_MESH_FLAG_8)
@@ -693,7 +693,7 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
                     mat4_mult_vec3_trans(&mat, &sub_mesh->bounding_sphere.center, &center);
                 else {
                     vec3 center_sum = vec3_null;
-                    for (int32_t j = 0; j < sub_mesh->bone_indices_count; j++) {
+                    for (uint32_t j = 0; j < sub_mesh->bone_indices_count; j++) {
                         center = sub_mesh->bounding_sphere.center;
                         mat = task->data.object.mats[j];
                         mat4_mult_vec3_trans(&mat, &center, &center);

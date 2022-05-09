@@ -5,7 +5,7 @@
 
 #include "glitter.h"
 #include "../../../CRE/Glitter/glitter.hpp"
-#include "../../../CRE/render_context.h"
+#include "../../../CRE/render_context.hpp"
 #include "../imgui_helper.h"
 
 struct data_view_glitter {

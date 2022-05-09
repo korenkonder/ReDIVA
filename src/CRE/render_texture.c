@@ -5,7 +5,7 @@
 
 #include "render_texture.h"
 #include "gl_state.h"
-#include "texture.h"
+#include "texture.hpp"
 
 static shader_glsl render_texture_shader;
 static GLuint render_texture_vao, render_texture_vbo;

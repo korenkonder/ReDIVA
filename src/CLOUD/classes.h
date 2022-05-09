@@ -7,8 +7,8 @@
 
 #include "../KKdLib/default.h"
 #include "../CRE/lock.h"
-#include "../CRE/render_context.h"
-#include "../CRE/task.h"
+#include "../CRE/render_context.hpp"
+#include "../CRE/task.hpp"
 
 #define CLASS_DATA_NO_DATA (0)
 #define CLASSES_DATA_NO_FUNC (0)

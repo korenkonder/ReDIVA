@@ -1395,7 +1395,7 @@ namespace Glitter {
             return 0x100;
         }
     }
-    
+
     int32_t Random::XGetMax() {
         return 0x169;
     }

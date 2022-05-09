@@ -7,7 +7,7 @@
 #include "light_param/light.h"
 #include "shader_ft.h"
 #include "static_var.h"
-#include "texture.h"
+#include "texture.hpp"
 
 #define enable_vertex_attrib_array(index) \
 glEnableVertexAttribArray(index); \

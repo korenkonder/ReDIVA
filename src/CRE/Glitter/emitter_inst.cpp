@@ -364,7 +364,7 @@ namespace Glitter {
         } break;
         }
     }
-    
+
     void F2EmitterInst::Reset() {
         loop = data.flags & EMITTER_LOOP ? true : false;
         frame = -(float_t)data.start_time;
@@ -433,8 +433,8 @@ namespace Glitter {
         } break;
         case EMITTER_POLYGON: {
             float_t radius = data.polygon.size * scale->x;
-            float_t angle = (float_t)index * 360.0f
-                / (float_t)data.polygon.count * DEG_TO_RAD_FLOAT + (float_t)M_PI_2;
+            float_t angle = ((float_t)index * 360.0f
+                / (float_t)data.polygon.count + 90.0f) * DEG_TO_RAD_FLOAT;
 
             vec3 dir;
             dir.x = cosf(angle);
@@ -449,7 +449,6 @@ namespace Glitter {
         } break;
         }
     }
-
 
     XEmitterInst::XEmitterInst(Emitter* emit,
         XEffectInst* eff_inst, float_t emission) : EmitterInst(emit, &eff_inst->random_shared) {

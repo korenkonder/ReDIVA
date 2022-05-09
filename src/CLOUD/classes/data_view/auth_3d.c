@@ -4,7 +4,7 @@
 */
 
 #include "auth_3d.h"
-#include "../../../CRE/auth_3d.h"
+#include "../../../CRE/auth_3d.hpp"
 #include "../../input.hpp"
 #include "../imgui_helper.h"
 
@@ -696,7 +696,6 @@ static void data_view_auth_3d_imgui_auth_3d_object(auth_3d_object* o) {
             data_view_auth_3d_imgui_auth_3d_object_texture_transform(&i);
         ImGui::TreePop();
     }
-
 
     tree_node_flags = tree_node_base_flags;
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
