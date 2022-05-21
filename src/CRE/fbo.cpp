@@ -6,12 +6,13 @@
 #include "fbo.hpp"
 #include "gl_state.h"
 
-fbo::fbo() {
+fbo::fbo() : flags(), width(), height(), buffer(), count(), textures() {
 
 }
 
 fbo::fbo(int32_t width, int32_t height,
-    GLuint* color_textures, int32_t count, GLuint depth_texture) : fbo() {
+    GLuint* color_textures, int32_t count, GLuint depth_texture) : flags(),
+    width(), height(), buffer(), count(), textures() {
     if (buffer) {
         glDeleteFramebuffers(1, &buffer);
         buffer = 0;
@@ -56,8 +57,11 @@ fbo::~fbo() {
         glDeleteFramebuffers(1, &buffer);
         buffer = 0;
     }
-    free(textures);
-    textures = 0;
+
+    if (textures) {
+        free(textures);
+        textures = 0;
+    }
 }
 
 void fbo::blit(GLuint src_fbo, GLuint dst_fbo,

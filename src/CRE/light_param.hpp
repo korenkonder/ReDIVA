@@ -25,7 +25,7 @@ struct light_param_data {
     std::string name;
     std::string paths[6];
     std::string files[6];
-    bool not_loaded;
+    bool pv;
     light_param_light light;
     light_param_fog fog;
     light_param_glow glow;
@@ -66,6 +66,9 @@ extern void light_param_storage_data_load_stage(uint32_t stage_hash, stage_datab
 extern void light_param_storage_data_load_stages(std::vector<int32_t>* stage_indices);
 extern void light_param_storage_data_load_stages(
     std::vector<uint32_t>* stage_hashes, stage_database* stage_data);
+extern void light_param_storage_data_reset();
 extern void light_param_storage_data_set_default_light_param();
+extern void light_param_storage_data_set_pv_id(int32_t pv_id);
+extern void light_param_storage_data_set_pv_cut(int32_t cut_id);
 extern void light_param_storage_data_set_stage(int32_t stage_id);
 extern void light_param_storage_data_free();

@@ -9,6 +9,7 @@
 #include "../KKdLib/str_utils.h"
 #include "draw_task.h"
 #include "object.hpp"
+#include "rob.hpp"
 
 namespace auth_3d_detail {
     class TaskAuth3d : public Task {
@@ -1187,7 +1188,7 @@ void auth_3d_object::reset() {
     children_object_hrc.shrink_to_fit();
     model_transform.reset();
     morph.reset();
-    object_info = ::object_info();
+    object_info = {};
     object_hash = (uint32_t)-1;
     name.clear();
     name.shrink_to_fit();
@@ -1256,7 +1257,7 @@ void auth_3d_object_hrc::reset() {
         i.reset();
     node.clear();
     node.shrink_to_fit();
-    object_info = ::object_info();
+    object_info = {};
     object_hash = (uint32_t)-1;
     parent_name.clear();
     parent_name.shrink_to_fit();
@@ -1285,7 +1286,7 @@ void auth_3d_object_instance::reset() {
     name.shrink_to_fit();
     object_bone_indices.clear();
     object_bone_indices.shrink_to_fit();
-    object_info = ::object_info();
+    object_info = {};
     object_hash = (uint32_t)-1;
     shadow = false;
     uid_name.clear();
@@ -1366,7 +1367,7 @@ auth_3d_object_texture_transform::~auth_3d_object_texture_transform() {
 }
 
 void auth_3d_object_texture_transform::reset() {
-    flags = (auth_3d_object_texture_transform_flags)0;;
+    flags = (auth_3d_object_texture_transform_flags)0;
     coverage_u.reset();
     coverage_v.reset();
     mat = mat4u_identity;
@@ -2229,10 +2230,6 @@ void auth_3d_data_unload_category(uint32_t category_hash) {
     auth_3d_data_struct_unload_category(auth_3d_data, category_hash);
 }
 
-void task_auth_3d_append_task() {
-    TaskWork::AppendTask(&task_auth_3d, "AUTH_3D");
-}
-
 void auth_3d_data_unload_id(int32_t id, render_context* rctx) {
     if (id < 0 || (id & 0x7FFF) >= AUTH_3D_DATA_COUNT)
         return;
@@ -2255,6 +2252,14 @@ void auth_3d_data_unload_id(int32_t id, render_context* rctx) {
 
 void auth_3d_data_free() {
     delete auth_3d_data;
+}
+
+void task_auth_3d_append_task() {
+    TaskWork::AppendTask(&task_auth_3d, "AUTH_3D");
+}
+
+void task_auth_3d_free_task() {
+    task_auth_3d.SetDest();
 }
 
 auth_3d_detail::TaskAuth3d::TaskAuth3d() {
@@ -3324,7 +3329,7 @@ static void auth_3d_material_list_load(auth_3d* auth, auth_3d_material_list* ml,
 static void auth_3d_material_list_restore_prev_value(auth_3d_material_list* ml) {
     if (ml->flags_init & AUTH_3D_MATERIAL_LIST_INCANDESCENCE) {
         if (ml->material)
-            ml->material->emission = ml->incandescence_init;
+            ml->material->color.emission = ml->incandescence_init;
     }
     material_change_storage_unload(ml->name.c_str());
 }
@@ -3350,7 +3355,7 @@ static void auth_3d_material_list_set(auth_3d_material_list* ml) {
     if (ml->flags & AUTH_3D_MATERIAL_LIST_INCANDESCENCE) {
         if (~ml->flags_init & AUTH_3D_MATERIAL_LIST_INCANDESCENCE) {
             if (ml->material)
-                ml->incandescence_init = ml->material->emission;
+                ml->incandescence_init = ml->material->color.emission;
             else
                 ml->incandescence_init = vec4_identity;
             enum_or(ml->flags_init, AUTH_3D_MATERIAL_LIST_INCANDESCENCE);
@@ -3366,7 +3371,7 @@ static void auth_3d_material_list_set(auth_3d_material_list* ml) {
         if (ml->incandescence.flags & AUTH_3D_RGBA_A)
             incandescence.w = ml->incandescence.value.w;
         if (ml->material)
-            ml->material->emission = incandescence;
+            ml->material->color.emission = incandescence;
     }
 
     material_change* mat_chg = material_change_storage_get(ml->name.c_str());
@@ -3446,14 +3451,32 @@ static void auth_3d_object_curve_load(auth_3d* auth, auth_3d_object_curve* oc,
 }
 
 static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context* rctx) {
-    if (!auth->visible || !o->model_transform.visible)
+    if (!o->model_transform.visible)
         return;
+
+    if (!auth->visible) {
+        for (auth_3d_object*& i : o->children_object)
+            auth_3d_object_disp(i, auth, rctx);
+        for (auth_3d_object_hrc*& i : o->children_object_hrc)
+            auth_3d_object_hrc_disp(i, auth, rctx);
+        return;
+    }
 
     mat4 mat = o->model_transform.mat;
 
     object_data* object_data = &rctx->object_data;
     object_database* obj_db = auth->obj_db;
     texture_database* tex_db = auth->tex_db;
+
+    if (auth->chara_id >= 0 && auth->chara_id < ROB_CHARA_COUNT)
+        if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
+            rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
+            mat4 m;
+            mat4_mult(&rob_chr->data.miku_rot.field_6C,
+                &rob_chr->data.adjust_data.mat, (mat4u*)&m);
+            mat4_mult(&m, &mat, &mat);
+            object_data->set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
+        }
 
     draw_task_flags flags = (draw_task_flags)0;
     if (auth->shadow)
@@ -3642,11 +3665,20 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
     if (auth->alpha < 1.0f)
         enum_or(flags, auth->draw_task_flags);
 
-    object_data->set_draw_task_flags((draw_task_flags)flags);
+    object_data->set_draw_task_flags(flags);
     object_data->set_shadow_type(SHADOW_CHARA);
 
-    shadow* shad = rctx->draw_pass.shadow_ptr;
-    if (shad && flags & DRAW_TASK_SHADOW) {
+    mat4 mat = mat4_identity;
+    if (auth->chara_id >= 0 && auth->chara_id < ROB_CHARA_COUNT) {
+        if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
+            rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
+            mat4_mult(&rob_chr->data.miku_rot.field_6C,
+                &rob_chr->data.adjust_data.mat, (mat4u*)&mat);
+            if (auth->chara_id)
+                object_data->set_shadow_type(SHADOW_STAGE);
+        }
+    }
+    else if (flags & DRAW_TASK_SHADOW) {
         object_data->set_shadow_type(SHADOW_STAGE);
 
         mat4u* m = &oh->node[0].model_transform.mat;
@@ -3656,16 +3688,17 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
                 break;
             }
 
-        vec3 pos = *(vec3*)&m->row3;
-        pos.y -= 0.2f;
-        shad->field_1D0[SHADOW_STAGE].push_back(pos);
+        shadow* shad = rctx->draw_pass.shadow_ptr;
+        if (shad) {
+            vec3 pos = *(vec3*)&m->row3;
+            pos.y -= 0.2f;
+            shad->field_1D0[SHADOW_STAGE].push_back(pos);
+        }
     }
 
-    if (oh->mats.size() > 0) {
-        mat4 mat = mat4_identity;
+    if (oh->mats.size() > 0)
         draw_task_add_draw_object_by_object_info_object_skin(rctx,
             oh->object_info, 0, 0, auth->alpha, oh->mats.data(), 0, 0, &mat);
-    }
 
     object_data->set_draw_task_flags();
     object_data->set_shadow_type(SHADOW_CHARA);
@@ -4276,7 +4309,8 @@ static void auth_3d_data_struct_unload_category(
         return;
 
     auth_3d_farc_unload(&elem->second);
-    auth_3d_data->farcs_modern.erase(elem);
+    if (elem->second.load_count <= 0)
+        auth_3d_data->farcs_modern.erase(elem);
 }
 
 static void auth_3d_farc_free_data(auth_3d_farc* a3da_farc) {
@@ -4330,7 +4364,7 @@ static void auth_3d_farc_read_file(auth_3d_farc* a3da_farc, const char* mdata_di
     a3da_farc->file = a3da_farc->name + ".farc";
 
     if (a3da_farc->file_handler.read_file(rctx_ptr->data, a3da_farc->path.c_str(), a3da_farc->file.c_str()))
-        a3da_farc->file_handler.set_read_free_func_data(0,
+        a3da_farc->file_handler.set_callback_data(0,
             (void(*)(void*, void*, size_t))auth_3d_farc_read_func, a3da_farc);
     else
         a3da_farc->state = 2;
@@ -4347,7 +4381,7 @@ static void auth_3d_farc_read_file_modern(auth_3d_farc* a3da_farc, void* data) {
     a3da_farc->file = a3da_farc->name + ".farc";
 
     if (a3da_farc->file_handler.read_file(data, a3da_farc->path.c_str(), a3da_farc->file.c_str()))
-        a3da_farc->file_handler.set_read_free_func_data(0,
+        a3da_farc->file_handler.set_callback_data(0,
             (void(*)(void*, void*, size_t))auth_3d_farc_read_func, a3da_farc);
     else
         a3da_farc->state = 2;

@@ -88,33 +88,33 @@ static bool glitter_particle_pack_file(GLT,
     enrs_entry ee;
 
     ee = { 0, 1, 204, 1 };
-    ee.sub.push_back({ 0, 51, ENRS_DWORD });
+    ee.append(0, 51, ENRS_DWORD);
     e.vec.push_back(ee);
     l += o = 204;
 
     if (a3->version == 3) {
         ee = { o, 1, 8, 1 };
-        ee.sub.push_back({ 0, 2, ENRS_DWORD });
+        ee.append(0, 2, ENRS_DWORD);
         e.vec.push_back(ee);
         l += o = 8;
     }
 
     if (a3->data.type == PARTICLE_LOCUS || a3->data.type == PARTICLE_MESH) {
         ee = { o, 1, 4, 1 };
-        ee.sub.push_back({ 0, 2, ENRS_WORD });
+        ee.append(0, 2, ENRS_WORD);
         e.vec.push_back(ee);
         l += o = 4;
     }
 
     ee = { o, 4, 44, 1 };
-    ee.sub.push_back({ 0, 1, ENRS_QWORD });
-    ee.sub.push_back({ 4, 5, ENRS_DWORD });
-    ee.sub.push_back({ 0, 2, ENRS_WORD });
-    ee.sub.push_back({ 0, 2, ENRS_DWORD });
+    ee.append(0, 1, ENRS_QWORD);
+    ee.append(4, 5, ENRS_DWORD);
+    ee.append(0, 2, ENRS_WORD);
+    ee.append(0, 2, ENRS_DWORD);
     if (a1->version >= 7) {
         ee.count++;
         ee.size += 4;
-        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.append.push_back(0, 1, ENRS_DWORD);
         e.vec.push_back(ee);
         l += o = 48;
     }
@@ -124,8 +124,8 @@ static bool glitter_particle_pack_file(GLT,
     }
 
     ee = { o, 2, 12, 1 };
-    ee.sub.push_back({ 0, 1, ENRS_QWORD });
-    ee.sub.push_back({ 0, 1, ENRS_DWORD });
+    ee.append.push_back(0, 1, ENRS_QWORD);
+    ee.append.push_back(0, 1, ENRS_DWORD);
     e.vec.push_back(ee);
     l += o = 12;
 

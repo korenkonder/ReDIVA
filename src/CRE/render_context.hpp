@@ -410,7 +410,7 @@ struct object_data_buffer {
 struct object_data_culling_info {
     int32_t objects;
     int32_t meshes;
-    int32_t sub_meshes;
+    int32_t submesh_array;
 };
 
 struct object_data {
@@ -507,8 +507,8 @@ struct render_context {
 struct shadow {
     render_texture field_8[7];
     render_texture* field_158[3];
-    float_t field_170;
-    float_t field_174;
+    float_t view_region;
+    float_t range;
     vec3 view_point[2];
     vec3 interest[2];
     vec3 field_1A8[2];

@@ -281,9 +281,9 @@ namespace Glitter {
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         if (rend_group->flags & PARTICLE_LOCAL) {
             mat4 mat;
-            mat4_mult(&GPM_VAL->cam_inv_view, &rend_group->mat, &mat);
-            mat4_mult(&GPM_VAL->cam_view, &mat, &mat);
-            mat4_mult(&mat, &GPM_VAL->cam_inv_view, &rend_group->mat_draw);
+            mat4_mult(&((render_context*)GPM_VAL->rctx)->camera->inv_view, &rend_group->mat, &mat);
+            mat4_mult(&((render_context*)GPM_VAL->rctx)->camera->view, &mat, &mat);
+            mat4_mult(&mat, &((render_context*)GPM_VAL->rctx)->camera->inv_view, &rend_group->mat_draw);
         }
         else
             rend_group->mat_draw = mat4_identity;
@@ -311,7 +311,7 @@ namespace Glitter {
         else
             model_mat = mat3_identity;
 
-        mat3_mult_vec(&GPM_VAL->cam_inv_view_mat3, &x_vec, &x_vec);
+        mat3_mult_vec(&((render_context*)GPM_VAL->rctx)->camera->inv_view_mat3, &x_vec, &x_vec);
 
         gl_state_bind_array_buffer(rend_group->vbo);
         Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
@@ -411,13 +411,13 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             model_mat = rend_group->mat;
             mat4_normalize_rotation(&model_mat, &view_mat);
-            mat4_mult(&view_mat, &GPM_VAL->cam_view, &view_mat);
+            mat4_mult(&view_mat, &((render_context*)GPM_VAL->rctx)->camera->view, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
         }
         else {
             model_mat = mat4_identity;
-            view_mat = GPM_VAL->cam_view;
-            inv_view_mat = GPM_VAL->cam_inv_view;
+            view_mat = ((render_context*)GPM_VAL->rctx)->camera->view;
+            inv_view_mat = ((render_context*)GPM_VAL->rctx)->camera->inv_view;
         }
 
         if (rend_group->flags & PARTICLE_LOCAL) {
@@ -426,7 +426,7 @@ namespace Glitter {
             mat4_inverse(&view_mat, &inv_view_mat);
         }
 
-        mat4_mult(&view_mat, &GPM_VAL->cam_inv_view, &rend_group->mat_draw);
+        mat4_mult(&view_mat, &((render_context*)GPM_VAL->rctx)->camera->inv_view, &rend_group->mat_draw);
 
         mat4 dir_mat;
         switch (rend_group->draw_type) {
@@ -456,7 +456,7 @@ namespace Glitter {
             mat4_rotate_z((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(GPM_VAL->cam_rotation_y, &dir_mat);
+            mat4_rotate_y(((render_context*)GPM_VAL->rctx)->camera->rotation.y, &dir_mat);
             break;
         default:
             dir_mat = mat4_identity;
@@ -607,7 +607,7 @@ namespace Glitter {
         if (fabsf(rend_group->z_offset) > 0.000001f) {
             use_z_offset = true;
             mat4_get_translation(model_mat, &dist_to_cam);
-            vec3_sub(GPM_VAL->cam_view_point, dist_to_cam, dist_to_cam);
+            vec3_sub(((render_context*)GPM_VAL->rctx)->camera->view_point, dist_to_cam, dist_to_cam);
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
                 mat4_inverse(&z_offset_inv_mat, &z_offset_inv_mat);
@@ -1007,7 +1007,8 @@ namespace Glitter {
 
         shader_state_material_set_emission(&shaders_ft, false, emission, emission, emission, 1.0f);
         shader_state_matrix_set_mvp_separate(&shaders_ft,
-            &rend_group->mat_draw, &GPM_VAL->cam_view, &GPM_VAL->cam_projection);
+            &rend_group->mat_draw, &((render_context*)GPM_VAL->rctx)->camera->view,
+            &((render_context*)GPM_VAL->rctx)->camera->projection);
         shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
         shader_state_matrix_set_texture(&shaders_ft, 1, (mat4*)&mat4_identity);
         shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
@@ -1254,9 +1255,9 @@ namespace Glitter {
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         if (rend_group->flags & PARTICLE_LOCAL) {
             mat4 mat;
-            mat4_mult(&GPM_VAL->cam_inv_view, &rend_group->mat, &mat);
-            mat4_mult(&GPM_VAL->cam_view, &mat, &mat);
-            mat4_mult(&mat, &GPM_VAL->cam_inv_view, &rend_group->mat_draw);
+            mat4_mult(&((render_context*)GPM_VAL->rctx)->camera->inv_view, &rend_group->mat, &mat);
+            mat4_mult(&((render_context*)GPM_VAL->rctx)->camera->view, &mat, &mat);
+            mat4_mult(&mat, &((render_context*)GPM_VAL->rctx)->camera->inv_view, &rend_group->mat_draw);
         }
         else
             rend_group->mat_draw = mat4_identity;
@@ -1282,7 +1283,7 @@ namespace Glitter {
         else
             model_mat = mat3_identity;
 
-        mat3_mult_vec(&GPM_VAL->cam_inv_view_mat3, &x_vec, &x_vec);
+        mat3_mult_vec(&((render_context*)GPM_VAL->rctx)->camera->inv_view_mat3, &x_vec, &x_vec);
 
         gl_state_bind_array_buffer(rend_group->vbo);
         Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
@@ -1385,7 +1386,7 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             model_mat = rend_group->mat;
             mat4_normalize_rotation(&model_mat, &view_mat);
-            mat4_mult(&view_mat, &GPM_VAL->cam_view, &view_mat);
+            mat4_mult(&view_mat, &((render_context*)GPM_VAL->rctx)->camera->view, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
 
             emitter_local = true;
@@ -1398,8 +1399,8 @@ namespace Glitter {
         }
         else {
             model_mat = mat4_identity;
-            view_mat = GPM_VAL->cam_view;
-            inv_view_mat = GPM_VAL->cam_inv_view;
+            view_mat = ((render_context*)GPM_VAL->rctx)->camera->view;
+            inv_view_mat = ((render_context*)GPM_VAL->rctx)->camera->inv_view;
         }
 
         bool draw_local = false;
@@ -1409,7 +1410,7 @@ namespace Glitter {
             mat4_inverse(&view_mat, &inv_view_mat);
             draw_local = true;
         }
-        mat4_mult(&view_mat, &GPM_VAL->cam_inv_view, &rend_group->mat_draw);
+        mat4_mult(&view_mat, &((render_context*)GPM_VAL->rctx)->camera->inv_view, &rend_group->mat_draw);
 
         mat4 dir_mat = mat4_identity;
         vec3 up_vec = { 0.0f, 0.0f, 1.0f };
@@ -1440,7 +1441,7 @@ namespace Glitter {
             mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(GPM_VAL->cam_rotation_y, &dir_mat);
+            mat4_rotate_y(((render_context*)GPM_VAL->rctx)->camera->rotation.y, &dir_mat);
             break;
         case DIRECTION_EMITTER_ROTATION:
             emitter_rotation = true;
@@ -1514,19 +1515,19 @@ namespace Glitter {
                 object_data->texture_pattern_count = 0;
                 int32_t ttc = 0;
                 texture_transform_struct* tt = object_data->texture_transform_array;
-                for (uint32_t i = 0; i < obj->meshes_count; i++) {
-                    obj_mesh* mesh = &obj->meshes[i];
-                    for (uint32_t j = 0; j < mesh->sub_meshes_count; j++) {
-                        obj_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
-                        obj_material* material = &obj->materials[sub_mesh->material_index].material;
+                for (uint32_t i = 0; i < obj->num_mesh; i++) {
+                    obj_mesh* mesh = &obj->mesh_array[i];
+                    for (uint32_t j = 0; j < mesh->num_submesh; j++) {
+                        obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
+                        obj_material* material = &obj->material_array[sub_mesh->material_index].material;
 
                         int32_t l = 0;
-                        for (obj_material_texture& k : material->textures) {
-                            obj_material_texture* texture = &k;
-                            if (texture->texture_flags.type != OBJ_MATERIAL_TEXTURE_COLOR)
+                        for (obj_material_texture_data& k : material->texdata) {
+                            obj_material_texture_data* texture = &k;
+                            if (texture->shader_info.m.tex_type != OBJ_MATERIAL_TEXTURE_COLOR)
                                 continue;
 
-                            tt->id = texture->texture_id;
+                            tt->id = texture->tex_index;
                             tt->mat = uv_mat[l];
                             ttc++;
                             tt++;
@@ -1545,7 +1546,7 @@ namespace Glitter {
                 object_data->texture_transform_count = ttc;
 
                 if (rend_group->flags & PARTICLE_LOCAL)
-                    mat4_mult(&mat, &GPM_VAL->cam_inv_view, &mat);
+                    mat4_mult(&mat, &((render_context*)GPM_VAL->rctx)->camera->inv_view, &mat);
 
                 vec4u color = elem->color;
                 if (draw_task_add_draw_object_by_object_info_color(rctx, &mat,
@@ -1576,13 +1577,13 @@ namespace Glitter {
                 mat4_clear_rot(&rend_group->mat, &view_mat);
             else
                 mat4_normalize_rotation(&rend_group->mat, &view_mat);
-            mat4_mult(&view_mat, &GPM_VAL->cam_view, &view_mat);
+            mat4_mult(&view_mat, &((render_context*)GPM_VAL->rctx)->camera->view, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
         }
         else {
             model_mat = mat4_identity;
-            view_mat = GPM_VAL->cam_view;
-            inv_view_mat = GPM_VAL->cam_inv_view;
+            view_mat = ((render_context*)GPM_VAL->rctx)->camera->view;
+            inv_view_mat = ((render_context*)GPM_VAL->rctx)->camera->inv_view;
         }
 
         if (rend_group->flags & PARTICLE_LOCAL) {
@@ -1590,7 +1591,7 @@ namespace Glitter {
             mat4_mult(&view_mat, &inv_view_mat, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
         }
-        mat4_mult(&view_mat, &GPM_VAL->cam_inv_view, &rend_group->mat_draw);
+        mat4_mult(&view_mat, &((render_context*)GPM_VAL->rctx)->camera->inv_view, &rend_group->mat_draw);
 
         switch (rend_group->draw_type) {
         case DIRECTION_BILLBOARD:
@@ -1608,7 +1609,7 @@ namespace Glitter {
             mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(GPM_VAL->cam_rotation_y, &dir_mat);
+            mat4_rotate_y(((render_context*)GPM_VAL->rctx)->camera->rotation.y, &dir_mat);
             break;
         default:
             dir_mat = mat4_identity;
@@ -1760,7 +1761,7 @@ namespace Glitter {
         if (fabsf(rend_group->z_offset) > 0.000001f) {
             use_z_offset = true;
             mat4_get_translation(model_mat, &dist_to_cam);
-            vec3_sub(GPM_VAL->cam_view_point, dist_to_cam, dist_to_cam);
+            vec3_sub(((render_context*)GPM_VAL->rctx)->camera->view_point, dist_to_cam, dist_to_cam);
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
                 mat4_inverse(&z_offset_inv_mat, &z_offset_inv_mat);
@@ -2153,7 +2154,8 @@ namespace Glitter {
 
         shader_state_material_set_emission(&shaders_ft, false, emission, emission, emission, 1.0f);
         shader_state_matrix_set_mvp_separate(&shaders_ft,
-            &rend_group->mat_draw, &GPM_VAL->cam_view, &GPM_VAL->cam_projection);
+            &rend_group->mat_draw, &((render_context*)GPM_VAL->rctx)->camera->view,
+            &((render_context*)GPM_VAL->rctx)->camera->projection);
         shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
         shader_state_matrix_set_texture(&shaders_ft, 1, (mat4*)&mat4_identity);
 

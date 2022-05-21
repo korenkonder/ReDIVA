@@ -747,7 +747,7 @@ struct auth_3d_farc {
     size_t size;
 
     auth_3d_farc();
-    ~auth_3d_farc();
+    virtual ~auth_3d_farc();
 };
 
 struct auth_3d_uid_file {
@@ -839,3 +839,4 @@ extern void auth_3d_data_unload_id(int32_t id, render_context* rctx);
 extern void auth_3d_data_free();
 
 extern void task_auth_3d_append_task();
+extern void task_auth_3d_free_task();

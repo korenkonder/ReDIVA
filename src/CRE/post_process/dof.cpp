@@ -620,7 +620,8 @@ static void post_process_dof_update_data(post_process_dof* dof, float_t min_dist
 static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat);
 
 
-post_process_dof::post_process_dof() {
+post_process_dof::post_process_dof() : data(), width(),
+height(), textures(), fbo(), vao(), program(), ubo() {
     post_process_dof_load_shaders(this);
 }
 
@@ -959,11 +960,6 @@ static void post_process_dof_calculate_texcoords(vec2* data, float_t size) {
 }
 
 static void post_process_dof_free_fbo(post_process_dof* dof) {
-    dof->fbo[0];
-    dof->fbo[1];
-    dof->fbo[2];
-    dof->fbo[3];
-
     if (dof->vao) {
         glDeleteVertexArrays(1, &dof->vao);
         dof->vao = 0;

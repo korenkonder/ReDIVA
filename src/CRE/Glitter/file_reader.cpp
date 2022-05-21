@@ -292,8 +292,8 @@ namespace Glitter {
         enrs_entry ee;
 
         ee = { 0, 2, 32, 1 };
-        ee.sub.push_back({ 0, 4, ENRS_DWORD });
-        ee.sub.push_back({ 0, 3, ENRS_WORD });
+        ee.append(0, 4, ENRS_DWORD);
+        ee.append(0, 3, ENRS_WORD);
         e.vec.push_back(ee);
         l += o = 32;
 
@@ -1123,14 +1123,14 @@ namespace Glitter {
             key_type = keys->front().type;
             if (key_type == KEY_HERMITE) {
                 ee = { 0, 2, 20, 1 };
-                ee.sub.push_back({ 0, 2, ENRS_WORD });
-                ee.sub.push_back({ 0, 4, ENRS_DWORD });
+                ee.append(0, 2, ENRS_WORD);
+                ee.append(0, 4, ENRS_DWORD);
                 l = 20;
             }
             else {
                 ee = { 0, 2, 12, 1 };
-                ee.sub.push_back({ 0, 2, ENRS_WORD });
-                ee.sub.push_back({ 0, 2, ENRS_DWORD });
+                ee.append(0, 2, ENRS_WORD);
+                ee.append(0, 2, ENRS_DWORD);
                 l = 12;
             }
 
@@ -1151,13 +1151,13 @@ namespace Glitter {
                 o = (uint32_t)((key_type == KEY_HERMITE ? 20 : 12) * count);
                 if (i->type == KEY_HERMITE) {
                     ee = { o, 2, 20, 1 };
-                    ee.sub.push_back({ 0, 2, ENRS_WORD });
-                    ee.sub.push_back({ 0, 4, ENRS_DWORD });
+                    ee.append(0, 2, ENRS_WORD);
+                    ee.append(0, 4, ENRS_DWORD);
                 }
                 else {
                     ee = { o, 2, 12, 1 };
-                    ee.sub.push_back({ 0, 2, ENRS_WORD });
-                    ee.sub.push_back({ 0, 2, ENRS_DWORD });
+                    ee.append(0, 2, ENRS_WORD);
+                    ee.append(0, 2, ENRS_DWORD);
                 }
                 key_type = i->type;
             }
@@ -1166,14 +1166,14 @@ namespace Glitter {
             key_type = keys->front().type;
             if (key_type == KEY_HERMITE) {
                 ee = { 0, 2, 16, 1 };
-                ee.sub.push_back({ 0, 2, ENRS_WORD });
-                ee.sub.push_back({ 0, 3, ENRS_DWORD });
+                ee.append(0, 2, ENRS_WORD);
+                ee.append(0, 3, ENRS_DWORD);
                 l = 16;
             }
             else {
                 ee = { 0, 2, 8, 1 };
-                ee.sub.push_back({ 0, 2, ENRS_WORD });
-                ee.sub.push_back({ 0, 1, ENRS_DWORD });
+                ee.append(0, 2, ENRS_WORD);
+                ee.append(0, 1, ENRS_DWORD);
                 l = 8;
             }
 
@@ -1194,13 +1194,13 @@ namespace Glitter {
                 o = (uint32_t)((key_type == KEY_HERMITE ? 16 : 8) * count);
                 if (i->type == KEY_HERMITE) {
                     ee = { o, 2, 16, 1 };
-                    ee.sub.push_back({ 0, 2, ENRS_WORD });
-                    ee.sub.push_back({ 0, 3, ENRS_DWORD });
+                    ee.append(0, 2, ENRS_WORD);
+                    ee.append(0, 3, ENRS_DWORD);
                 }
                 else {
                     ee = { o, 2, 8, 1 };
-                    ee.sub.push_back({ 0, 2, ENRS_WORD });
-                    ee.sub.push_back({ 0, 1, ENRS_DWORD });
+                    ee.append(0, 2, ENRS_WORD);
+                    ee.append(0, 1, ENRS_DWORD);
                 }
                 key_type = i->type;
             }
@@ -1354,7 +1354,7 @@ namespace Glitter {
         enrs_entry ee;
 
         ee = { 0, 1, 4, 1 };
-        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.append(0, 1, ENRS_DWORD);
         e.vec.push_back(ee);
 
         length = 0;
@@ -1511,8 +1511,8 @@ namespace Glitter {
         enrs_entry ee;
 
         ee = { 0, 2, (uint32_t)(8 + count * 8), 1 };
-        ee.sub.push_back({ 0, 1, ENRS_DWORD });
-        ee.sub.push_back({ 4, (uint32_t)count, ENRS_QWORD });
+        ee.append(0, 1, ENRS_DWORD);
+        ee.append(4, (uint32_t)count, ENRS_QWORD);
         e.vec.push_back(ee);
         l += 8 + count * 8;
 

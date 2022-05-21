@@ -242,14 +242,16 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
         }
         else
             shader_state_light_set_ambient(&shaders_ft, i, 0.0f, 0.0f, 0.0f, 1.0f);
+
         vec4 diffuse = light->diffuse;
         vec4 specular = light->specular;
         shader_state_light_set_diffuse_ptr(&shaders_ft, i, &diffuse);
         shader_state_light_set_specular_ptr(&shaders_ft, i, &specular);
 
-        vec4 light_direction = light->position;
-        light_get_direction_from_position(&light_direction, light, 0);
-        shader_state_light_set_position_ptr(&shaders_ft, i, &light_direction);
+        vec4 light_position = light->position;
+        if (light->type == LIGHT_PARALLEL)
+            light_get_direction_from_position(&light_position, 0, true);
+        shader_state_light_set_position_ptr(&shaders_ft, i, &light_position);
 
         shader_state_light_set_attenuation(&shaders_ft, i,
             light->constant, light->linear, light->quadratic, light->spot_exponent);
@@ -271,7 +273,7 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     vec4 ibl_direction;
     vec4 temp;
     light_get_position_vec4(&set->lights[LIGHT_CHARA], &position);
-    light_get_direction_from_position(&position, &set->lights[LIGHT_CHARA], 0);
+    light_get_direction_from_position(&position, &set->lights[LIGHT_CHARA], false);
     light_get_ibl_specular(&set->lights[LIGHT_CHARA], &ibl_specular);
     light_get_ibl_back(&set->lights[LIGHT_CHARA], &ibl_back);
     light_get_diffuse(&set->lights[LIGHT_CHARA], &diffuse);
@@ -299,7 +301,7 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     shader_env_frag_set_ptr(&shaders_ft, 9, &temp);
 
     light_get_position_vec4(&set->lights[LIGHT_STAGE], &position);
-    light_get_direction_from_position(&position, &set->lights[LIGHT_STAGE], 0);
+    light_get_direction_from_position(&position, &set->lights[LIGHT_STAGE], false);
     light_get_ibl_specular(&set->lights[LIGHT_STAGE], &ibl_specular);
     light_get_diffuse(&set->lights[LIGHT_STAGE], &diffuse);
     light_get_specular(&set->lights[LIGHT_STAGE], &specular);
@@ -348,7 +350,7 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     if (light_get_type(&set->lights[LIGHT_TONE_CURVE]) == LIGHT_PARALLEL) {
         uniform_value[U_TONE_CURVE] = 1;
         light_get_position_vec4(&set->lights[LIGHT_TONE_CURVE], &position);
-        light_get_direction_from_position(&position, &set->lights[LIGHT_TONE_CURVE], 0);
+        light_get_direction_from_position(&position, &set->lights[LIGHT_TONE_CURVE], false);
         light_get_ambient(&set->lights[LIGHT_TONE_CURVE], &ambient);
         light_get_diffuse(&set->lights[LIGHT_TONE_CURVE], &diffuse);
         light_get_specular(&set->lights[LIGHT_TONE_CURVE], &specular);
@@ -392,7 +394,7 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
         vec4 spot_direction;
         light_get_spot_direction(&set->lights[LIGHT_REFLECT], (vec3*)&spot_direction);
         vec3_negate(*(vec3*)&spot_direction, *(vec3*)&spot_direction);
-        light_get_direction_from_position(&spot_direction, &set->lights[LIGHT_REFLECT], 1);
+        light_get_direction_from_position(&spot_direction, &set->lights[LIGHT_REFLECT], true);
         light_get_position_vec4(&set->lights[LIGHT_REFLECT], &position);
         vec3_dot(*(vec3*)&position, *(vec3*)&spot_direction, spot_direction.w);
         spot_direction.w = -spot_direction.w;

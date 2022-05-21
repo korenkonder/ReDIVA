@@ -211,7 +211,7 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
             glScissor(1, 1, tex->width - 2, tex->height - 2);
 
             float_t v15 = 0.0f;
-            float_t v16 = shad->field_170 * shad->field_174;
+            float_t v16 = shad->view_region * shad->range;
             vec3* interest;
             vec3* view_point;
             if (shad->field_2F5) {
@@ -992,7 +992,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
         rctx->draw_state.light = true;
         uniform_value[U_LIGHT_1] = shad->field_2EC > 1 ? 1 : 0;
 
-        float_t v7 = shad->field_170 * shad->field_174;
+        float_t v7 = shad->view_region * shad->range;
         for (int32_t i = 0; i < 2; i++) {
             float_t v6 = 0.0f;
             vec3* interest;

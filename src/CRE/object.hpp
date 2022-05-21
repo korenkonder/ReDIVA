@@ -33,13 +33,13 @@ struct obj_mesh_vertex_buffer {
 };
 
 struct obj_index_buffer {
-    uint32_t meshes_count;
-    obj_mesh_index_buffer* meshes;
+    uint32_t mesh_num;
+    obj_mesh_index_buffer* mesh_data;
 };
 
 struct obj_vertex_buffer {
-    uint32_t meshes_count;
-    obj_mesh_vertex_buffer* meshes;
+    uint32_t mesh_num;
+    obj_mesh_vertex_buffer* mesh_data;
 };
 
 struct obj_set_handler {
@@ -48,16 +48,16 @@ struct obj_set_handler {
     p_file_handler tex_file_handler;
     bool tex_loaded;
     obj_set* obj_set;
-    std::vector<std::pair<uint32_t, uint32_t>> object_ids;
-    uint32_t textures_count;
-    std::vector<GLuint> textures;
-    std::vector<std::pair<uint32_t, uint32_t>> texture_ids;
-    texture** texture_data;
+    std::vector<std::pair<uint32_t, uint32_t>> obj_id_data;
+    uint32_t tex_num;
+    std::vector<GLuint> gentex;
+    std::vector<std::pair<uint32_t, uint32_t>> tex_id_data;
+    texture** tex_data;
     int32_t set_id;
-    uint32_t vertex_buffers_count;
-    obj_vertex_buffer* vertex_buffers;
-    uint32_t index_buffers_count;
-    obj_index_buffer* index_buffers;
+    uint32_t vertex_buffer_num;
+    obj_vertex_buffer* vertex_buffer_data;
+    uint32_t index_buffer_num;
+    obj_index_buffer* index_buffer_data;
     uint32_t load_count;
     std::string name;
     p_file_handler farc_file_handler;
@@ -67,9 +67,6 @@ struct obj_set_handler {
     virtual ~obj_set_handler();
 };
 
-extern obj_material_shader_lighting_type obj_material_shader_get_lighting_type(
-    obj_material_shader_flags* flags);
-extern int32_t obj_material_texture_get_blend(obj_material_texture* tex);
 extern int32_t obj_material_texture_type_get_texcoord_index(
     obj_material_texture_type type, int32_t index);
 extern int32_t obj_material_texture_type_get_texture_index(

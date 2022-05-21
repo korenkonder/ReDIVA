@@ -383,21 +383,21 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
 
     if (!is_x) {
         ee = { 0, 2, 8, textures_count };
-        ee.sub.push_back({ 0, 9, ENRS_DWORD });
+        ee.append(0, 9, ENRS_DWORD);
         e.vec.push_back(ee);
         off = 8;
         off = align_val(off, 0x10);
 
         ee = { off, 2, 8, textures_count };
-        ee.sub.push_back({ 0, 2, ENRS_DWORD });
+        ee.append(0, 2, ENRS_DWORD);
         e.vec.push_back(ee);
         off = (uint32_t)(textures_count * 16ULL);
     }
     else {
         textures_count++;
         ee = { 0, 2, 16, textures_count };
-        ee.sub.push_back({ 0, 1, ENRS_DWORD });
-        ee.sub.push_back({ 4, 1, ENRS_QWORD });
+        ee.append(0, 1, ENRS_DWORD);
+        ee.append(4, 1, ENRS_QWORD);
         e.vec.push_back(ee);
         off = (uint32_t)(textures_count * 16ULL);
         textures_count--;

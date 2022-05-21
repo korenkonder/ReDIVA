@@ -490,12 +490,6 @@ void render_context::ctrl() {
         rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
     }*/
 
-    Glitter::glt_particle_manager.cam_projection = camera->projection;
-    Glitter::glt_particle_manager.cam_view = camera->view;
-    Glitter::glt_particle_manager.cam_inv_view = camera->inv_view;
-    Glitter::glt_particle_manager.cam_inv_view_mat3 = camera->inv_view_mat3;
-    Glitter::glt_particle_manager.cam_view_point = camera->view_point;
-    Glitter::glt_particle_manager.cam_rotation_y = camera->rotation.y;
     Glitter::glt_particle_manager.rctx = this;
 
     rctx_ptr = this;
@@ -645,7 +639,7 @@ void render_context::light_param_data_glow_set(light_param_glow* glow) {
 }
 
 void render_context::light_param_data_ibl_set(
-    light_param_ibl * ibl, light_param_data_storage * storage) {
+    light_param_ibl * ibl, light_param_data_storage* storage) {
     if (!ibl->ready)
         return;
 
@@ -742,8 +736,8 @@ void render_context::light_param_data_face_set(light_param_face* face) {
 
 shadow::shadow() : field_8(), field_158(), view_point(), interest(),
 field_1A8(), view_point_shared(), interest_shared(), field_2F0() {
-    field_170 = 1.2f;
-    field_174 = 1.0f;
+    view_region = 1.2f;
+    range = 1.0f;
     for (int32_t i = 0; i < 2; i++) {
         view_point[i] = vec3_identity;
         field_1C0[i] = 0.0f;
@@ -799,9 +793,9 @@ void shadow::ctrl(render_context* rctx) {
         vec3_negate(direction, direction);
         vec3_length(direction, length);
         if (length < 0.000001)
-            direction = { 0.0f, 1.0f, 0.0f };
+            this->direction = { 0.0f, 1.0f, 0.0f };
         else
-            vec3_mult_scalar(direction, 1.0f / length, direction);
+            vec3_mult_scalar(direction, 1.0f / length, this->direction);
 
         for (int32_t i = 0; i < 2; i++)
             if (draw_task_get_count(rctx, (draw_object_type)((int32_t)DRAW_OBJECT_SHADOW_CHARA + i)))
@@ -884,7 +878,7 @@ void shadow::ctrl(render_context* rctx) {
 
         float_t v2 = max(field_1C8[0], field_1C8[1]);
         field_2F5 = false;
-        field_170 = v2 + 1.2f;
+        view_region = v2 + 1.2f;
         field_200[0] = 0;
         field_200[1] = 1;
         if (field_2EC >= 2) {
@@ -908,11 +902,11 @@ void shadow::ctrl(render_context* rctx) {
                 v16 = 0.0f;
 
             if (v16 > 1.2f) {
-                field_170 = v2 + 2.4f;
+                view_region = v2 + 2.4f;
                 field_2F5 = true;
             }
             else
-                field_170 = v2 + 1.2f + v16;
+                view_region = v2 + 1.2f + v16;
 
             float_t t3;
             float_t t4;
@@ -996,7 +990,7 @@ void shadow::ctrl(render_context* rctx) {
 
             vec3 view_point = vec3_null;
             vec3 interest = vec3_null;
-            int32_t count = 0;;
+            int32_t count = 0;
             for (int32_t i = 0; i < 2; i++) {
                 int32_t c = (int32_t)field_1D0[i].size();
                 vec3 view_point_temp;
@@ -1015,7 +1009,7 @@ void shadow::ctrl(render_context* rctx) {
         float_t v2 = 0.0;
         float_t v67 = max(field_1C8[0], field_1C8[1]);
         field_2F5 = false;
-        field_170 = v67 + 1.2f;
+        view_region = v67 + 1.2f;
         field_200[0] = 0;
         field_200[1] = 1;
         if (field_2EC >= 2) {
@@ -1055,11 +1049,11 @@ void shadow::ctrl(render_context* rctx) {
                 v79 = v70;
 
             if (v79 > v67 + 1.2f) {
-                field_170 = v67 + 2.4f;
+                view_region = v67 + 2.4f;
                 field_2F5 = true;
             }
             else
-                field_170 = v79 + 1.2f;
+                view_region = v79 + 1.2f;
 
             vec3 interest_chara;
             vec3 interest_stage;
@@ -1076,7 +1070,7 @@ void shadow::ctrl(render_context* rctx) {
         }
     }
 
-    for (std::vector<vec3> i : field_1D0)
+    for (std::vector<vec3>& i : field_1D0)
         i.clear();
 }
 

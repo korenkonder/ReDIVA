@@ -10,6 +10,7 @@
 #include "x_pv_game.hpp"
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/light_param/light.h"
+#include "../CRE/light_param.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/object.hpp"
 #include "../CRE/stage_modern.hpp"
@@ -193,8 +194,10 @@ static int32_t expression_id_to_mottbl_index(int32_t expression_id);
 static int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id);
 static int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
 static int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);
+static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_time, int64_t curr_time);
 static bool x_pv_game_dsc_process(x_pv_game* xpvgm, int64_t curr_time);
 static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm);
+static void x_pv_game_reset_field(x_pv_game* xpvgm);
 static void x_pv_game_stage_effect_ctrl(x_pv_game* xpvgm);
 static void x_pv_game_stage_effect_start(x_pv_game* xpvgm, pvsr_stage_effect* stage_effect);
 static void x_pv_game_stage_effect_stop(x_pv_game* xpvgm,
@@ -275,9 +278,10 @@ bool x_pv_game::Init() {
 }
 
 bool x_pv_game::Ctrl() {
-    if (state == 0)
+    switch (state) {
+    case 0:
         return false;
-    else if (state == 1) {
+    case 1: {
         bool wait_load = false;
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
             if (rob_chara_ids[i] != -1)
@@ -285,80 +289,11 @@ bool x_pv_game::Ctrl() {
 
         if (!wait_load)
             state = 2;
-    }
-    else if (state == 2) {
-        bool pv_glt = pv_glitter->hash != hash_murmurhash_empty;
-        bool stg_glt = stage_glitter->hash != hash_murmurhash_empty;
-        if ((!pv_glt || Glitter::glt_particle_manager.CheckNoFileReaders(pv_glitter->hash))
-            && (!stg_glt || Glitter::glt_particle_manager.CheckNoFileReaders(stage_glitter->hash))) {
-            data_struct* x_data = &data_list[DATA_X];
-
-            bool wait_load = false;
-            if (pv_glt) {
-                Glitter::EffectGroup* pv_eff_group
-                    = Glitter::glt_particle_manager.GetEffectGroup(pv_glitter->hash);
-                if (pv_eff_group && pv_eff_group->CheckModel()) {
-                    pv_eff_group->LoadModel(x_data);
-                    wait_load = true;
-                }
-            }
-
-            if (stg_glt) {
-                Glitter::EffectGroup* stage_eff_group
-                    = Glitter::glt_particle_manager.GetEffectGroup(stage_glitter->hash);
-                if (stage_eff_group && stage_eff_group->CheckModel()) {
-                    stage_eff_group->LoadModel(x_data);
-                    wait_load = true;
-                }
-            }
-
-            state = wait_load ? 3 : 4;
-        }
-    }
-    else if (state == 3) {
-        bool wait_load = false;
-        Glitter::EffectGroup* pv_eff_group
-            = Glitter::glt_particle_manager.GetEffectGroup(pv_glitter->hash);
-        if (pv_eff_group && pv_eff_group->CheckLoadModel())
-            wait_load = true;
-
-        Glitter::EffectGroup* stage_eff_group
-            = Glitter::glt_particle_manager.GetEffectGroup(stage_glitter->hash);
-        if (stage_eff_group && stage_eff_group->CheckLoadModel())
-            wait_load = true;
-
-        if (!wait_load)
-            state = 4;
-    }
-    else if (state == 4) {
-        for (uint32_t& i : objset_load)
-            if (object_storage_get_obj_set_handler(i)
-                && object_storage_load_obj_set_check_not_read(i, &obj_db, &tex_db))
-                return false;
-
-        state = 8;
-    }
-    else if (state == 8) {
-        for (uint32_t& i : objset_load) {
-            obj_set* set = object_storage_get_obj_set(i);
-            if (!set)
-                continue;
-
-            for (uint32_t i = 0; i < set->objects_count; i++) {
-                obj* obj = &set->objects[i];
-                for (uint32_t j = 0; j < obj->materials_count; j++) {
-                    obj_material* material = &obj->materials[j].material;
-                    vec3 spec = { 0.5f, 0.5f, 0.5f };
-                    if (!memcmp(&material->specular, &spec, sizeof(vec3)))
-                        *(vec3*)&material->specular = vec3_null;
-                    else if (memcmp(&material->specular, &vec3_null, sizeof(vec3)))
-                        *(vec3*)&material->specular = { 0.1f, 0.1f, 0.1f };
-                }
-            }
-        }
-
+    } break;
+    case 2: {
         data_struct* x_data = &data_list[DATA_X];
 
+        light_param_storage_data_set_pv_id(pv_id);
         task_stage_modern_set_data(x_data, &obj_db, &tex_db, &stage_data);
         task_stage_modern_set_stage_hashes(&stage_hashes, &stages_data);
 
@@ -371,17 +306,75 @@ bool x_pv_game::Ctrl() {
             if (i.chara_effect_init)
                 for (pvpp_chara_effect_a3da& j : i.chara_effect.effect_a3da)
                     auth_3d_data_load_category(x_data, camera_category.c_str(), camera_category_hash);
-        state = 9;
-    }
-    else if (state == 9) {
+
+        bool pv_glt = pv_glitter->hash != hash_murmurhash_empty;
+        bool stg_glt = stage_glitter->hash != hash_murmurhash_empty;
+        if (pv_glt && Glitter::glt_particle_manager.CheckNoFileReaders(pv_glitter->hash)
+            || stg_glt && Glitter::glt_particle_manager.CheckNoFileReaders(stage_glitter->hash)) {
+            if (pv_glt) {
+                Glitter::EffectGroup* pv_eff_group
+                    = Glitter::glt_particle_manager.GetEffectGroup(pv_glitter->hash);
+                if (pv_eff_group && pv_eff_group->CheckModel())
+                    pv_eff_group->LoadModel(x_data);
+            }
+
+            if (stg_glt) {
+                Glitter::EffectGroup* stage_eff_group
+                    = Glitter::glt_particle_manager.GetEffectGroup(stage_glitter->hash);
+                if (stage_eff_group && stage_eff_group->CheckModel())
+                    stage_eff_group->LoadModel(x_data);
+            }
+        }
+        state = 3;
+    } break;
+    case 3: {
+        bool wait_load = task_stage_modern_check_not_loaded();
+
+        for (uint32_t& i : objset_load)
+            if (object_storage_get_obj_set_handler(i)
+                && object_storage_load_obj_set_check_not_read(i, &obj_db, &tex_db))
+                wait_load = true;
+
         for (std::pair<std::string, uint32_t>& i : category_load)
             if (!auth_3d_data_check_category_loaded(i.second))
-                return false;
+                wait_load = true;
 
         if (!auth_3d_data_check_category_loaded(light_category.c_str()))
-            return false;
+            wait_load = true;
 
+        Glitter::EffectGroup* pv_eff_group
+            = Glitter::glt_particle_manager.GetEffectGroup(pv_glitter->hash);
+        if (pv_eff_group && pv_eff_group->CheckLoadModel())
+            wait_load = true;
+
+        Glitter::EffectGroup* stage_eff_group
+            = Glitter::glt_particle_manager.GetEffectGroup(stage_glitter->hash);
+        if (stage_eff_group && stage_eff_group->CheckLoadModel())
+            wait_load = true;
+
+        if (!wait_load)
+            state = 9;
+    } break;
+    case 9: {
         data_struct* x_data = &data_list[DATA_X];
+
+        for (uint32_t& i : objset_load) {
+            obj_set* set = object_storage_get_obj_set(i);
+            if (!set)
+                continue;
+
+            for (uint32_t i = 0; i < set->obj_num; i++) {
+                obj* obj = &set->obj_data[i];
+                for (uint32_t j = 0; j < obj->num_material; j++) {
+                    obj_material* material = &obj->material_array[j].material;
+                    vec3 spec = { 0.5f, 0.5f, 0.5f };
+                    if (!memcmp(&material->color.specular, &spec, sizeof(vec3)))
+                        *(vec3*)&material->color.specular = vec3_null;
+                    else if (memcmp(&material->color.specular, &vec3_null, sizeof(vec3)))
+                        *(vec3*)&material->color.specular = { 0.1f, 0.1f, 0.1f };
+                }
+            }
+        }
 
         for (std::string i : pv_auth_3d_names) {
             uint32_t hash = hash_string_murmurhash(&i);
@@ -584,6 +577,15 @@ bool x_pv_game::Ctrl() {
                         stage_effect, bar_count + bar_count_change, bar });
                     prev_stage_effect = stage_effect;
                 } break;
+                case DSC_X_SONG_EFFECT_ATTACH: {
+                    int32_t effect_id = (int32_t)data[0];
+                    int32_t chara_id = (int32_t)data[1];
+
+                    auto elem = pv_auth_3d_chara_count.find(effect_id);
+                    if (elem == pv_auth_3d_chara_count.end())
+                        elem = pv_auth_3d_chara_count.insert({ effect_id, {} }).first;
+                    elem->second.insert(chara_id);
+                } break;
                 }
             }
 
@@ -649,7 +651,7 @@ bool x_pv_game::Ctrl() {
             if (rob_chr) {
                 playdata[i].rob_chr = rob_chr;
                 rob_chr->frame_speed = anim_frame_speed;
-                rob_chr->data.adjust.step_data.step = anim_frame_speed;
+                rob_chr->data.motion.step_data.step = anim_frame_speed;
                 //sub_1404F3000(i, rob_chr, anim_frame_speed);
             }
             sub_140122770(this, i);
@@ -663,6 +665,8 @@ bool x_pv_game::Ctrl() {
         stage_effects_ptr_end = stage_effects_ptr + stage_effects.size();
 
         state = 10;
+
+        x_pv_game_change_field(this, 1, -1, -1);
 
         Glitter::glt_particle_manager.SetPause(false);
         extern float_t frame_speed;
@@ -736,6 +740,7 @@ bool x_pv_game::Ctrl() {
                 auth_3d_data_set_enable(&id, true);
                 auth_3d_data_set_paused(&id, false);
                 auth_3d_data_set_visibility(&id, false);
+                auth_3d_data_set_req_frame(&id, -1.0f);
                 auth_3d_data_set_frame_rate(&id, &diva_pv_frame_rate);
             }
         }
@@ -746,8 +751,8 @@ bool x_pv_game::Ctrl() {
         }
         else
             pause = true;
-    }
-    else if (state == 10) {
+    } break;
+    case 10: {
         if (step_frame)
             if (pause)
                 pause = false;
@@ -783,10 +788,11 @@ bool x_pv_game::Ctrl() {
 
         if (!play || pv_end)
             state = 11;
-    }
-    else if (state == 11) {
+    } break;
+    case 11: {
         Glitter::glt_particle_manager.FreeScenes();
         SetDest();
+    } break;
     }
     return false;
 }
@@ -800,6 +806,14 @@ void x_pv_game::Disp() {
 bool x_pv_game::Dest() {
     Unload();
     task_stage_modern_unload();
+
+    light_param_storage_data_reset();
+    post_process_tone_map_set_saturate_coeff(rctx_ptr->post_process.tone_map, 1.0f);
+    post_process_tone_map_set_scene_fade(rctx_ptr->post_process.tone_map, (vec4*)&vec4_null);
+    post_process_tone_map_set_scene_fade_blend_func(rctx_ptr->post_process.tone_map, 0);
+    rctx_ptr->post_process.dof->data.pv.enable = false;
+    rctx_ptr->object_data.object_culling = true;
+    rctx_ptr->draw_pass.shadow_ptr->range = 1.0f;
 
     Glitter::glt_particle_manager.SetPause(false);
     extern float_t frame_speed;
@@ -1050,6 +1064,7 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     for (pvpp_chara& i : pp->chara) {
         if (i.motion.size()) {
             rob_chara_pv_data pv_data;
+            pv_data.chara_size_index = chara_init_data_get_chara_size_index(charas[chara_index]);
             int32_t chara_id = rob_chara_array_init_chara_index(
                 charas[chara_index], &pv_data, modules[chara_index], true);
             if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
@@ -1063,6 +1078,7 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     if (pv_id == 826)
         for (int32_t i = (int32_t)pp->chara.size(); i < ROB_CHARA_COUNT; i++) {
             rob_chara_pv_data pv_data;
+            pv_data.chara_size_index = chara_init_data_get_chara_size_index(charas[i]);
             int32_t chara_id = rob_chara_array_init_chara_index(charas[i], &pv_data, modules[i], true);
             if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
                 rob_chara_ids[i] = chara_id;
@@ -1136,6 +1152,8 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     stage_effects.shrink_to_fit();
     stage_effects_ptr = 0;
     stage_effects_ptr_end = 0;
+
+    pv_auth_3d_chara_count.clear();
 
     dsc_time = 0;
     dsc_data_ptr = 0;
@@ -1280,6 +1298,8 @@ void x_pv_game::Unload() {
     stage_effects.shrink_to_fit();
     stage_effects_ptr = 0;
     stage_effects_ptr_end = 0;
+
+    pv_auth_3d_chara_count.clear();
 
     dsc_time = 0;
     dsc_data_ptr = 0;
@@ -1431,6 +1451,10 @@ static void sub_140122B60(x_pv_game* a1, int32_t chara_id, int32_t motion_index,
     }
 }
 
+static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_time, int64_t curr_time) {
+    light_param_storage_data_set_pv_cut(field);
+}
+
 static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     dsc_x_func func = (dsc_x_func)a1->dsc_data_ptr->func;
     uint32_t* data = a1->dsc_m.get_func_data(a1->dsc_data_ptr);
@@ -1522,8 +1546,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
                 bool v45 = rob_chr->set_motion_id(i.motion_id, i.frame,
                     i.duration, i.field_10, 0, i.blend_type, aft_bone_data, aft_mot_db);
                 rob_chr->set_motion_reset_data(i.motion_id, i.dsc_frame);
-                rob_chr->bone_data->field_758 = i.field_18;
-                rob_chr->data.adjust.step_data.step = i.frame_speed;
+                rob_chr->bone_data->disable_eye_motion = i.disable_eye_motion;
+                rob_chr->data.motion.step_data.step = i.frame_speed;
                 //if (v45)
                 //    pv_expression_array_set_motion(a1->chara_id, i.motion_id);
                 //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
@@ -1658,7 +1682,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         v519.duration = duration;
         v519.field_10 = v11;
         v519.blend_type = MOTION_BLEND_CROSS;
-        v519.field_18 = true;
+        v519.disable_eye_motion = true;
         v519.motion_index = motion_index;
         v519.dsc_time = v56 ? v56->time : a1->dsc_time;
         v519.dsc_frame = dsc_frame;
@@ -1670,8 +1694,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
                 v11, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
             rob_chr->set_motion_reset_data(motion_id, dsc_frame);
             rob_chr->set_motion_skin_param(motion_id, dsc_frame);
-            rob_chr->bone_data->field_758 = true;
-            rob_chr->data.adjust.step_data.step = v519.frame_speed;
+            rob_chr->bone_data->disable_eye_motion = true;
+            rob_chr->data.motion.step_data.step = v519.frame_speed;
             //if (v84)
             //    pv_expression_array_set_motion(a1->chara_id, motion_id);
             //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
@@ -1680,7 +1704,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         else {
             playdata->set_motion.clear();
             playdata->set_motion.push_back(v519);
-            rob_chr->data.adjust.step_data.step = v519.frame_speed;
+            rob_chr->data.motion.step_data.step = v519.frame_speed;
         }
     } break;
     case DSC_X_SET_PLAYDATA: {
@@ -1729,7 +1753,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_CHANGE_FIELD: {
-
+        int32_t field = (int32_t)data[0];
+        if (field > 0)
+            x_pv_game_change_field(a1, field, a1->dsc_time, curr_time);
+        else
+            x_pv_game_reset_field(a1);
     } break;
     case DSC_X_HIDE_FIELD: {
 
@@ -2221,9 +2249,16 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t chara_size_index;
         if (chara_size == 0)
             chara_size_index = chara_init_data_get_chara_size_index(rob_chr->chara_index);
-        else if (chara_size == 1)
-            chara_size_index = chara_init_data_get_chara_size_index(rob_chr->chara_index
-                /*pv_db_pv_get_performer_chara(a1->pv_game->data.pv, a1->chara_id)*/);
+        else if (chara_size == 1) {
+            chara_index chara_index = CHARA_MIKU;
+            if (a1->chara_id < a1->pp->chara.size())
+                chara_index = (::chara_index)a1->pp->chara[a1->chara_id].chara_effect.base_chara;
+            else if (a1->pv_id == 826)
+                chara_index = rob_chara_array_get(a1->chara_id)->chara_index;
+
+            //chara_index chara_index = pv_db_pv::get_performer_chara(a1->pv_game->data.pv, a1->chara_id);
+            chara_size_index = chara_init_data_get_chara_size_index(chara_index);
+        }
         else if (chara_size == 2)
             chara_size_index = 1;
         else if (chara_size == 3)
@@ -2496,7 +2531,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
             for (pvsr_glitter& i : effect.glitter) {
                 uint32_t effect_hash = hash_string_murmurhash(&i.name);
-                Glitter::glt_particle_manager.LoadScene(hash_murmurhash_empty, effect_hash, true);
+                Glitter::glt_particle_manager.LoadScene(hash_murmurhash_empty, effect_hash);
                 Glitter::glt_particle_manager.SetSceneName(hash, a1->stage_glitter->name.c_str());
                 Glitter::glt_particle_manager.SetSceneEffectName(
                     hash_murmurhash_empty, effect_hash, i.name.c_str());
@@ -2531,7 +2566,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
             for (pvpp_glitter& i : effect.glitter) {
                 uint32_t effect_hash = hash_string_murmurhash(&i.name);
-                Glitter::glt_particle_manager.LoadScene(hash_murmurhash_empty, effect_hash, true);
+                Glitter::glt_particle_manager.LoadScene(hash_murmurhash_empty, effect_hash);
                 Glitter::glt_particle_manager.SetSceneName(hash, a1->pv_glitter->name.c_str());
                 Glitter::glt_particle_manager.SetSceneEffectName(
                     hash_murmurhash_empty, effect_hash, i.name.c_str());
@@ -2557,7 +2592,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (effect_id >= a1->pp->effect.size())
             break;
 
-        uint32_t hash = a1->pv_glitter->hash;
+        auto elem = a1->pv_auth_3d_chara_count.find(effect_id);
+        if (elem != a1->pv_auth_3d_chara_count.end() && elem->second.size())
+            chara_id = -1;
 
         pvpp_effect& effect = a1->pp->effect[effect_id];
         for (pvpp_a3da& i : effect.a3da) {
@@ -2999,9 +3036,13 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm) {
         mat4_get_translation(&oh->node[a2m.j_asi_r_wj].model_transform.mat, &data[0]);
         data[1] = vec3_null;
         set_bone_key_set_data(bone_data, MOTION_BONE_CL_MOMO_R, key_set, data, 2);
-
-        printf("");
     }
+}
+
+static void x_pv_game_reset_field(x_pv_game* xpvgm) {
+    task_stage_modern_info v14;
+    task_stage_modern_set_stage(&v14);
+    Glitter::glt_particle_manager.FreeScenes();
 }
 
 static void x_pv_game_stage_effect_ctrl(x_pv_game* xpvgm) {
@@ -3088,7 +3129,7 @@ static void x_pv_game_stage_effect_start(x_pv_game* xpvgm, pvsr_stage_effect* st
 
     for (pvsr_glitter& i : stage_effect->glitter) {
         uint32_t effect_hash = hash_string_murmurhash(&i.name);
-        Glitter::glt_particle_manager.LoadScene(hash_murmurhash_empty, effect_hash, true);
+        Glitter::glt_particle_manager.LoadScene(hash_murmurhash_empty, effect_hash);
         Glitter::glt_particle_manager.SetSceneName(hash, xpvgm->stage_glitter->name.c_str());
         Glitter::glt_particle_manager.SetSceneEffectName(
             hash_murmurhash_empty, effect_hash, i.name.c_str());

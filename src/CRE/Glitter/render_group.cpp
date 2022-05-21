@@ -205,25 +205,15 @@ namespace Glitter {
         vec2_add(rend_elem->uv_scroll, uv_scroll, rend_elem->uv_scroll);
 
         particle->StepUVParticle(GLT_VAL, rend_elem, delta_frame, random_ptr);
-        rend_elem->color = { -1.0f, -1.0f, -1.0f, -1.0f };
         rend_elem->disp = true;
+        rend_elem->color = { -1.0f, -1.0f, -1.0f, -1.0f };
 
+        bool disp = true;
         if (particle->data.data.sub_flags & PARTICLE_SUB_USE_CURVE)
-            particle->GetValue(GLT_VAL, rend_elem, rend_elem->frame, random_ptr);
+            disp = particle->GetValue(GLT_VAL, rend_elem, rend_elem->frame, random_ptr);
 
-        if (rend_elem->disp) {
-            if (rend_elem->color.x < 0.0f)
-                rend_elem->color.x = particle->data.data.color.x;
-            if (rend_elem->color.y < 0.0f)
-                rend_elem->color.y = particle->data.data.color.y;
-            if (rend_elem->color.z < 0.0f)
-                rend_elem->color.z = particle->data.data.color.z;
-            if (rend_elem->color.w < 0.0f)
-                rend_elem->color.w = particle->data.data.color.w;
-
-            if (rend_elem->color.w < 0.01f)
-                rend_elem->disp = false;
-        }
+        if (disp)
+            particle->GetColor(rend_elem);
 
         if (particle->data.data.type == PARTICLE_LOCUS)
             rend_elem->locus_history->Append(rend_elem, particle);
@@ -559,35 +549,16 @@ namespace Glitter {
         }
 
         particle->StepUVParticle(rend_elem, delta_frame, random_ptr);
-        rend_elem->color = { -1.0f, -1.0f, -1.0f, -1.0f };
         rend_elem->disp = true;
+        rend_elem->color = { -1.0f, -1.0f, -1.0f, -1.0f };
 
+        bool disp = true;
         float_t color_scale = -1.0f;
         if (particle->data.data.sub_flags & PARTICLE_SUB_USE_CURVE)
-            particle->GetValue(rend_elem, rend_elem->frame, random_ptr, &color_scale);
+            disp = particle->GetValue(rend_elem, rend_elem->frame, random_ptr, &color_scale);
 
-        if (rend_elem->disp) {
-            if (rend_elem->color.x < 0.0f)
-                rend_elem->color.x = particle->data.data.color.x;
-            if (rend_elem->color.y < 0.0f)
-                rend_elem->color.y = particle->data.data.color.y;
-            if (rend_elem->color.z < 0.0f)
-                rend_elem->color.z = particle->data.data.color.z;
-            if (rend_elem->color.w < 0.0f)
-                rend_elem->color.w = particle->data.data.color.w;
-
-            if (color_scale >= 0.0f)
-                vec3_mult_scalar(*(vec3*)&rend_elem->color, color_scale, *(vec3*)&rend_elem->color);
-
-            if (rend_elem->fade_out_frames > 0.0
-                && (rend_elem->life_time - rend_elem->frame) < rend_elem->fade_out_frames)
-                rend_elem->color.w *= (rend_elem->life_time - rend_elem->frame) / rend_elem->fade_out_frames;
-            else if (rend_elem->fade_in_frames > 0.0 && rend_elem->frame < rend_elem->fade_in_frames)
-                rend_elem->color.w *= rend_elem->frame / rend_elem->fade_in_frames;
-
-            if (rend_elem->color.w < 0.01f)
-                rend_elem->disp = false;
-        }
+        if (disp)
+            particle->GetColor(rend_elem, color_scale);
 
         if (particle->data.data.type == PARTICLE_LOCUS)
             rend_elem->locus_history->Append(rend_elem, particle);

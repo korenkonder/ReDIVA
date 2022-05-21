@@ -39,6 +39,211 @@ enum eyes_base_adjust_type {
     EYES_BASE_ADJUST_OFF       = 2,
 };
 
+enum mot_bone_index {
+    MOT_BONE_N_HARA_CP               = 0x00,
+    MOT_BONE_KG_HARA_Y               = 0x01,
+    MOT_BONE_KL_HARA_XZ              = 0x02,
+    MOT_BONE_KL_HARA_ETC             = 0x03,
+    MOT_BONE_N_HARA                  = 0x04,
+    MOT_BONE_CL_MUNE                 = 0x05,
+    MOT_BONE_J_MUNE_WJ               = 0x06,
+    MOT_BONE_E_MUNE_CP               = 0x07,
+    MOT_BONE_N_MUNE_B                = 0x08,
+    MOT_BONE_KL_MUNE_B_WJ            = 0x09,
+    MOT_BONE_KL_KUBI                 = 0x0A,
+    MOT_BONE_N_KAO                   = 0x0B,
+    MOT_BONE_CL_KAO                  = 0x0C,
+    MOT_BONE_J_KAO_WJ                = 0x0D,
+    MOT_BONE_E_KAO_CP                = 0x0E,
+    MOT_BONE_FACE_ROOT               = 0x0F,
+    MOT_BONE_N_AGO                   = 0x10,
+    MOT_BONE_KL_AGO_WJ               = 0x11,
+    MOT_BONE_N_TOOTH_UNDER           = 0x12,
+    MOT_BONE_TL_TOOTH_UNDER_WJ       = 0x13,
+    MOT_BONE_N_EYE_L                 = 0x14,
+    MOT_BONE_KL_EYE_L                = 0x15,
+    MOT_BONE_N_EYE_L_WJ_EX           = 0x16,
+    MOT_BONE_KL_HIGHLIGHT_L_WJ       = 0x17,
+    MOT_BONE_N_EYE_R                 = 0x18,
+    MOT_BONE_KL_EYE_R                = 0x19,
+    MOT_BONE_N_EYE_R_WJ_EX           = 0x1A,
+    MOT_BONE_KL_HIGHLIGHT_R_WJ       = 0x1B,
+    MOT_BONE_N_EYELID_L_A            = 0x1C,
+    MOT_BONE_TL_EYELID_L_A_WJ        = 0x1D,
+    MOT_BONE_N_EYELID_L_B            = 0x1E,
+    MOT_BONE_TL_EYELID_L_B_WJ        = 0x1F,
+    MOT_BONE_N_EYELID_R_A            = 0x20,
+    MOT_BONE_TL_EYELID_R_A_WJ        = 0x21,
+    MOT_BONE_N_EYELID_R_B            = 0x22,
+    MOT_BONE_TL_EYELID_R_B_WJ        = 0x23,
+    MOT_BONE_N_KUTI_D                = 0x24,
+    MOT_BONE_TL_KUTI_D_WJ            = 0x25,
+    MOT_BONE_N_KUTI_D_L              = 0x26,
+    MOT_BONE_TL_KUTI_D_L_WJ          = 0x27,
+    MOT_BONE_N_KUTI_D_R              = 0x28,
+    MOT_BONE_TL_KUTI_D_R_WJ          = 0x29,
+    MOT_BONE_N_KUTI_DS_L             = 0x2A,
+    MOT_BONE_TL_KUTI_DS_L_WJ         = 0x2B,
+    MOT_BONE_N_KUTI_DS_R             = 0x2C,
+    MOT_BONE_TL_KUTI_DS_R_WJ         = 0x2D,
+    MOT_BONE_N_KUTI_L                = 0x2E,
+    MOT_BONE_TL_KUTI_L_WJ            = 0x2F,
+    MOT_BONE_N_KUTI_M_L              = 0x30,
+    MOT_BONE_TL_KUTI_M_L_WJ          = 0x31,
+    MOT_BONE_N_KUTI_M_R              = 0x32,
+    MOT_BONE_TL_KUTI_M_R_WJ          = 0x33,
+    MOT_BONE_N_KUTI_R                = 0x34,
+    MOT_BONE_TL_KUTI_R_WJ            = 0x35,
+    MOT_BONE_N_KUTI_U                = 0x36,
+    MOT_BONE_TL_KUTI_U_WJ            = 0x37,
+    MOT_BONE_N_KUTI_U_L              = 0x38,
+    MOT_BONE_TL_KUTI_U_L_WJ          = 0x39,
+    MOT_BONE_N_KUTI_U_R              = 0x3A,
+    MOT_BONE_TL_KUTI_U_R_WJ          = 0x3B,
+    MOT_BONE_N_MABU_L_D_A            = 0x3C,
+    MOT_BONE_TL_MABU_L_D_A_WJ        = 0x3D,
+    MOT_BONE_N_MABU_L_D_B            = 0x3E,
+    MOT_BONE_TL_MABU_L_D_B_WJ        = 0x3F,
+    MOT_BONE_N_MABU_L_D_C            = 0x40,
+    MOT_BONE_TL_MABU_L_D_C_WJ        = 0x41,
+    MOT_BONE_N_MABU_L_U_A            = 0x42,
+    MOT_BONE_TL_MABU_L_U_A_WJ        = 0x43,
+    MOT_BONE_N_MABU_L_U_B            = 0x44,
+    MOT_BONE_TL_MABU_L_U_B_WJ        = 0x45,
+    MOT_BONE_N_EYELASHES_L           = 0x46,
+    MOT_BONE_TL_EYELASHES_L_WJ       = 0x47,
+    MOT_BONE_N_MABU_L_U_C            = 0x48,
+    MOT_BONE_TL_MABU_L_U_C_WJ        = 0x49,
+    MOT_BONE_N_MABU_R_D_A            = 0x4A,
+    MOT_BONE_TL_MABU_R_D_A_WJ        = 0x4B,
+    MOT_BONE_N_MABU_R_D_B            = 0x4C,
+    MOT_BONE_TL_MABU_R_D_B_WJ        = 0x4D,
+    MOT_BONE_N_MABU_R_D_C            = 0x4E,
+    MOT_BONE_TL_MABU_R_D_C_WJ        = 0x4F,
+    MOT_BONE_N_MABU_R_U_A            = 0x50,
+    MOT_BONE_TL_MABU_R_U_A_WJ        = 0x51,
+    MOT_BONE_N_MABU_R_U_B            = 0x52,
+    MOT_BONE_TL_MABU_R_U_B_WJ        = 0x53,
+    MOT_BONE_N_EYELASHES_R           = 0x54,
+    MOT_BONE_TL_EYELASHES_R_WJ       = 0x55,
+    MOT_BONE_N_MABU_R_U_C            = 0x56,
+    MOT_BONE_TL_MABU_R_U_C_WJ        = 0x57,
+    MOT_BONE_N_MAYU_L                = 0x58,
+    MOT_BONE_TL_MAYU_L_WJ            = 0x59,
+    MOT_BONE_N_MAYU_L_B              = 0x5A,
+    MOT_BONE_TL_MAYU_L_B_WJ          = 0x5B,
+    MOT_BONE_N_MAYU_L_C              = 0x5C,
+    MOT_BONE_TL_MAYU_L_C_WJ          = 0x5D,
+    MOT_BONE_N_MAYU_R                = 0x5E,
+    MOT_BONE_TL_MAYU_R_WJ            = 0x5F,
+    MOT_BONE_N_MAYU_R_B              = 0x60,
+    MOT_BONE_TL_MAYU_R_B_WJ          = 0x61,
+    MOT_BONE_N_MAYU_R_C              = 0x62,
+    MOT_BONE_TL_MAYU_R_C_WJ          = 0x63,
+    MOT_BONE_N_TOOTH_UPPER           = 0x64,
+    MOT_BONE_TL_TOOTH_UPPER_WJ       = 0x65,
+    MOT_BONE_N_KUBI_WJ_EX            = 0x66,
+    MOT_BONE_N_WAKI_L                = 0x67,
+    MOT_BONE_KL_WAKI_L_WJ            = 0x68,
+    MOT_BONE_TL_UP_KATA_L            = 0x69,
+    MOT_BONE_C_KATA_L                = 0x6A,
+    MOT_BONE_J_KATA_L_WJ_CU          = 0x6B,
+    MOT_BONE_J_UDE_L_WJ              = 0x6C,
+    MOT_BONE_E_UDE_L_CP              = 0x6D,
+    MOT_BONE_KL_TE_L_WJ              = 0x6E,
+    MOT_BONE_N_HITO_L_EX             = 0x6F,
+    MOT_BONE_NL_HITO_L_WJ            = 0x70,
+    MOT_BONE_NL_HITO_B_L_WJ          = 0x71,
+    MOT_BONE_NL_HITO_C_L_WJ          = 0x72,
+    MOT_BONE_N_KO_L_EX               = 0x73,
+    MOT_BONE_NL_KO_L_WJ              = 0x74,
+    MOT_BONE_NL_KO_B_L_WJ            = 0x75,
+    MOT_BONE_NL_KO_C_L_WJ            = 0x76,
+    MOT_BONE_N_KUSU_L_EX             = 0x77,
+    MOT_BONE_NL_KUSU_L_WJ            = 0x78,
+    MOT_BONE_NL_KUSU_B_L_WJ          = 0x79,
+    MOT_BONE_NL_KUSU_C_L_WJ          = 0x7A,
+    MOT_BONE_N_NAKA_L_EX             = 0x7B,
+    MOT_BONE_NL_NAKA_L_WJ            = 0x7C,
+    MOT_BONE_NL_NAKA_B_L_WJ          = 0x7D,
+    MOT_BONE_NL_NAKA_C_L_WJ          = 0x7E,
+    MOT_BONE_N_OYA_L_EX              = 0x7F,
+    MOT_BONE_NL_OYA_L_WJ             = 0x80,
+    MOT_BONE_NL_OYA_B_L_WJ           = 0x81,
+    MOT_BONE_NL_OYA_C_L_WJ           = 0x82,
+    MOT_BONE_N_STE_L_WJ_EX           = 0x83,
+    MOT_BONE_N_SUDE_L_WJ_EX          = 0x84,
+    MOT_BONE_N_SUDE_B_L_WJ_EX        = 0x85,
+    MOT_BONE_N_HIJI_L_WJ_EX          = 0x86,
+    MOT_BONE_N_UP_KATA_L_EX          = 0x87,
+    MOT_BONE_N_SKATA_L_WJ_CD_EX      = 0x88,
+    MOT_BONE_N_SKATA_B_L_WJ_CD_CU_EX = 0x89,
+    MOT_BONE_N_SKATA_C_L_WJ_CD_CU_EX = 0x8A,
+    MOT_BONE_N_WAKI_R                = 0x8B,
+    MOT_BONE_KL_WAKI_R_WJ            = 0x8C,
+    MOT_BONE_TL_UP_KATA_R            = 0x8D,
+    MOT_BONE_C_KATA_R                = 0x8E,
+    MOT_BONE_J_KATA_R_WJ_CU          = 0x8F,
+    MOT_BONE_J_UDE_R_WJ              = 0x90,
+    MOT_BONE_E_UDE_R_CP              = 0x91,
+    MOT_BONE_KL_TE_R_WJ              = 0x92,
+    MOT_BONE_N_HITO_R_EX             = 0x93,
+    MOT_BONE_NL_HITO_R_WJ            = 0x94,
+    MOT_BONE_NL_HITO_B_R_WJ          = 0x95,
+    MOT_BONE_NL_HITO_C_R_WJ          = 0x96,
+    MOT_BONE_N_KO_R_EX               = 0x97,
+    MOT_BONE_NL_KO_R_WJ              = 0x98,
+    MOT_BONE_NL_KO_B_R_WJ            = 0x99,
+    MOT_BONE_NL_KO_C_R_WJ            = 0x9A,
+    MOT_BONE_N_KUSU_R_EX             = 0x9B,
+    MOT_BONE_NL_KUSU_R_WJ            = 0x9C,
+    MOT_BONE_NL_KUSU_B_R_WJ          = 0x9D,
+    MOT_BONE_NL_KUSU_C_R_WJ          = 0x9E,
+    MOT_BONE_N_NAKA_R_EX             = 0x9F,
+    MOT_BONE_NL_NAKA_R_WJ            = 0xA0,
+    MOT_BONE_NL_NAKA_B_R_WJ          = 0xA1,
+    MOT_BONE_NL_NAKA_C_R_WJ          = 0xA2,
+    MOT_BONE_N_OYA_R_EX              = 0xA3,
+    MOT_BONE_NL_OYA_R_WJ             = 0xA4,
+    MOT_BONE_NL_OYA_B_R_WJ           = 0xA5,
+    MOT_BONE_NL_OYA_C_R_WJ           = 0xA6,
+    MOT_BONE_N_STE_R_WJ_EX           = 0xA7,
+    MOT_BONE_N_SUDE_R_WJ_EX          = 0xA8,
+    MOT_BONE_N_SUDE_B_R_WJ_EX        = 0xA9,
+    MOT_BONE_N_HIJI_R_WJ_EX          = 0xAA,
+    MOT_BONE_N_UP_KATA_R_EX          = 0xAB,
+    MOT_BONE_N_SKATA_R_WJ_CD_EX      = 0xAC,
+    MOT_BONE_N_SKATA_B_R_WJ_CD_CU_EX = 0xAD,
+    MOT_BONE_N_SKATA_C_R_WJ_CD_CU_EX = 0xAE,
+    MOT_BONE_KL_KOSI_Y               = 0xAF,
+    MOT_BONE_KL_KOSI_XZ              = 0xB0,
+    MOT_BONE_KL_KOSI_ETC_WJ          = 0xB1,
+    MOT_BONE_CL_MOMO_L               = 0xB2,
+    MOT_BONE_J_MOMO_L_WJ             = 0xB3,
+    MOT_BONE_J_SUNE_L_WJ             = 0xB4,
+    MOT_BONE_E_SUNE_L_CP             = 0xB5,
+    MOT_BONE_KL_ASI_L_WJ_CO          = 0xB6,
+    MOT_BONE_KL_TOE_L_WJ             = 0xB7,
+    MOT_BONE_N_HIZA_L_WJ_EX          = 0xB8,
+    MOT_BONE_CL_MOMO_R               = 0xB9,
+    MOT_BONE_J_MOMO_R_WJ             = 0xBA,
+    MOT_BONE_J_SUNE_R_WJ             = 0xBB,
+    MOT_BONE_E_SUNE_R_CP             = 0xBC,
+    MOT_BONE_KL_ASI_R_WJ_CO          = 0xBD,
+    MOT_BONE_KL_TOE_R_WJ             = 0xBE,
+    MOT_BONE_N_HIZA_R_WJ_EX          = 0xBF,
+    MOT_BONE_N_MOMO_A_L_WJ_CD_EX     = 0xC0,
+    MOT_BONE_N_MOMO_B_L_WJ_EX        = 0xC1,
+    MOT_BONE_N_MOMO_C_L_WJ_EX        = 0xC2,
+    MOT_BONE_N_MOMO_A_R_WJ_CD_EX     = 0xC3,
+    MOT_BONE_N_MOMO_B_R_WJ_EX        = 0xC4,
+    MOT_BONE_N_MOMO_C_R_WJ_EX        = 0xC5,
+    MOT_BONE_N_HARA_CD_EX            = 0xC6,
+    MOT_BONE_N_HARA_B_WJ_EX          = 0xC7,
+    MOT_BONE_N_HARA_C_WJ_EX          = 0xC8,
+    MOT_BONE_MAX                     = 0xC9,
+};
+
 enum mothead_data_type {
     MOTHEAD_DATA_TYPE_0                      = 0x00,
     MOTHEAD_DATA_TYPE_1                      = 0x01,
@@ -113,11 +318,11 @@ enum mothead_data_type {
     MOTHEAD_DATA_TYPE_70                     = 0x46,
     MOTHEAD_DATA_OSAGE_MOVE_CANCEL           = 0x47,
     MOTHEAD_DATA_TYPE_72                     = 0x48,
-    MOTHEAD_DATA_HAND_ADJUST                 = 0x49,
+    MOTHEAD_DATA_ROB_HAND_ADJUST             = 0x49,
     MOTHEAD_DATA_TYPE_74                     = 0x4A,
-    MOTHEAD_DATA_TYPE_75                     = 0x4B,
-    MOTHEAD_DATA_TYPE_76                     = 0x4C,
-    MOTHEAD_DATA_TYPE_77                     = 0x4D,
+    MOTHEAD_DATA_ROB_ADJUST_GLOBAL           = 0x4B,
+    MOTHEAD_DATA_ROB_ARM_ADJUST              = 0x4C,
+    MOTHEAD_DATA_DISABLE_EYE_MOTION          = 0x4D,
     MOTHEAD_DATA_TYPE_78                     = 0x4E,
     MOTHEAD_DATA_ROB_CHARA_COLI_RING         = 0x4F,
     MOTHEAD_DATA_ADJUST_GET_GLOBAL_TRANS     = 0x50,
@@ -700,7 +905,7 @@ struct bone_data {
     bone_node* node;
     float_t ik_segment_length[2];
     float_t ik_2nd_segment_length[2];
-    float_t field_2E0;
+    float_t arm_length;
     float_t eyes_xrot_adjust_neg;
     float_t eyes_xrot_adjust_pos;
 
@@ -737,6 +942,8 @@ struct mot_play_frame_data {
     float_t field_24;
     bool field_28;
     int32_t field_2C;
+
+    void reset();
 };
 
 struct mot_play_data {
@@ -746,6 +953,8 @@ struct mot_play_data {
     float_t field_38;
     float_t* field_40;
     float_t* field_48;
+
+    void reset();
 };
 
 struct struc_308 {
@@ -890,6 +1099,8 @@ struct motion_blend_mot {
 
     motion_blend_mot();
     virtual ~motion_blend_mot();
+
+    void reset();
 };
 
 struct rob_chara_bone_data_ik_scale {
@@ -910,6 +1121,8 @@ struct mot_blend {
 
     mot_blend();
     ~mot_blend();
+
+    void reset();
 };
 
 struct struc_241 {
@@ -1004,9 +1217,7 @@ struct struc_242 {
     float_t field_10;
     float_t field_14;
     float_t field_18;
-    int32_t field_1C;
-    float_t field_20;
-    float_t field_24;
+    vec3 field_1C;
     float_t field_28;
 };
 
@@ -1020,8 +1231,8 @@ struct struc_312 {
     vec3 field_74;
     vec3 field_80;
     float_t field_8C;
-    std::vector<bone_data>* field_90;
-    float_t field_98;
+    std::vector<bone_data>* bones;
+    float_t step;
 };
 
 struct rob_chara_bone_data {
@@ -1047,16 +1258,17 @@ struct rob_chara_bone_data {
     mot_blend mouth;
     mot_blend eyes;
     mot_blend eyelid;
-    bool field_758;
+    bool disable_eye_motion;
     rob_chara_bone_data_ik_scale ik_scale;
-    vec3 field_76C;
-    vec3 field_778;
+    vec3 field_76C[2];
     int32_t field_784;
     struc_258 field_788;
     struc_312 field_958;
 
     rob_chara_bone_data();
     virtual ~rob_chara_bone_data();
+
+    void reset();
 };
 
 union rob_chara_pv_data_customize_items {
@@ -1080,7 +1292,7 @@ struct rob_chara_pv_data {
     struc_242 field_18;
     struc_242 field_44;
     int32_t field_70;
-    int32_t field_74[10];
+    int32_t motion_face_ids[10];
     int32_t chara_size_index;
     bool height_adjust;
     rob_chara_pv_data_customize_items customize_items;
@@ -1459,6 +1671,8 @@ struct rob_osage {
 
     rob_osage();
     ~rob_osage();
+
+    void reset();
 };
 
 class ExOsageBlock : public ExNodeBlock {
@@ -1673,7 +1887,7 @@ struct rob_chara_item_equip {
     std::vector<texture_pattern_struct> texture_pattern;
     object_info field_D0;
     int32_t field_D4;
-    bool field_D8;
+    bool disable_update;
     int32_t field_DC;
     vec4u texture_color_coeff;
     float_t wet;
@@ -1715,6 +1929,8 @@ struct rob_chara_item_equip {
 
     rob_chara_item_equip();
     virtual ~rob_chara_item_equip();
+
+    void reset();
 };
 
 struct item_cos_texture_change_tex {
@@ -2111,7 +2327,7 @@ struct struc_405 {
     void Reset();
 };
 
-struct rob_chara_data_parts_adjust {
+struct rob_chara_data_adjust {
     bool enable;
     float_t frame;
     float_t transition_frame;
@@ -2124,9 +2340,9 @@ struct rob_chara_data_parts_adjust {
     int32_t type;
     int32_t cycle_type;
     bool ignore_gravity;
-    vec3 external_force_min;
-    vec3 external_force_strength;
     vec3 external_force;
+    vec3 external_force_cycle_strength;
+    vec3 external_force_cycle;
     float_t cycle;
     float_t phase;
     float_t force;
@@ -2142,32 +2358,34 @@ struct rob_chara_data_hand_adjust {
     rob_chara_data_hand_adjust_type type;
     float_t current_scale;
     float_t scale;
-    float_t transition_time;
+    float_t duration;
     float_t current_time;
     float_t rotation_blend;
-    float_t offset_blend;
+    float_t scale_blend;
     bool enable_scale;
     bool disable_x;
     bool disable_y;
     bool disable_z;
     vec3 offset;
     vec3 field_30;
-    float_t field_3C;
+    float_t arm_length;
     int32_t field_40;
 
     void reset();
 };
 
-struct struc_222 {
-    bool field_0;
-    float_t field_4;
-    float_t field_8;
-    float_t field_C;
+struct rob_chara_data_arm_adjust {
+    bool enable;
+    float_t value;
+    float_t prev_value;
+    float_t next_value;
     float_t duration;
     float_t frame;
+
+    void reset();
 };
 
-struct rob_chara_adjust {
+struct rob_chara_motion {
     int32_t motion_id;
     int32_t prev_motion_id;
     struc_389 frame_data;
@@ -2194,15 +2412,18 @@ struct rob_chara_adjust {
     object_info hand_l_object;
     object_info hand_r_object;
     struc_405 field_3B0;
-    rob_chara_data_parts_adjust parts_adjust[13];
-    rob_chara_data_parts_adjust parts_adjust_prev[13];
-    rob_chara_data_parts_adjust field_10D8[2];
+    rob_chara_data_adjust parts_adjust[13];
+    rob_chara_data_adjust parts_adjust_prev[13];
+    rob_chara_data_adjust adjust_global;
+    rob_chara_data_adjust adjust_global_prev;
     rob_chara_data_hand_adjust hand_adjust[2];
     rob_chara_data_hand_adjust hand_adjust_prev[2];
-    struc_222 field_12C8[2];
+    rob_chara_data_arm_adjust arm_adjust[2];
 
-    rob_chara_adjust();
-    ~rob_chara_adjust();
+    rob_chara_motion();
+    ~rob_chara_motion();
+
+    void reset();
 };
 
 struct struc_228 {
@@ -2472,6 +2693,8 @@ struct rob_chara_data_miku_rot {
     int32_t field_64;
     int32_t field_68;
     mat4u field_6C;
+
+    void reset();
 };
 
 struct rob_chara_adjust_data {
@@ -2490,6 +2713,8 @@ struct rob_chara_adjust_data {
     float_t right_hand_scale;
     float_t left_hand_scale_default;
     float_t right_hand_scale_default;
+
+    void reset();
 };
 
 struct struc_195 {
@@ -2647,7 +2872,7 @@ struct rob_chara_data {
     int32_t field_4;
     struc_264 field_8;
     RobSubAction rob_sub_action;
-    rob_chara_adjust adjust;
+    rob_chara_motion motion;
     struc_223 field_1588;
     rob_chara_data_miku_rot miku_rot;
     rob_chara_adjust_data adjust_data;
@@ -2676,6 +2901,8 @@ struct rob_chara_data {
 
     rob_chara_data();
     ~rob_chara_data();
+
+    void reset();
 };
 
 struct struc_307 {
@@ -2772,8 +2999,8 @@ extern rob_chara_pv_data* rob_chara_pv_data_array;
 extern const chara_init_data* chara_init_data_get(chara_index chara_index);
 extern int32_t chara_init_data_get_chara_size_index(chara_index chara_index);
 
-extern float_t chara_pos_adjust_y_table_get_value(uint32_t a1);
-extern float_t chara_size_table_get_value(uint32_t a1);
+extern float_t chara_pos_adjust_y_table_get_value(uint32_t index);
+extern float_t chara_size_table_get_value(uint32_t index);
 
 extern void motion_set_load_mothead(uint32_t set, std::string* mdata_dir, motion_database* mot_db);
 extern void motion_set_load_motion(uint32_t set, std::string* mdata_dir, motion_database* mot_db);
@@ -2798,6 +3025,7 @@ extern bool pv_osage_manager_array_ptr_get_disp();
 
 extern void task_rob_manager_append_task();
 extern bool task_rob_manager_check_chara_loaded(int32_t chara_id);
+extern void task_rob_manager_free_task();
 
 extern void motion_storage_init();
 extern bool motion_storage_check_mot_file_not_ready(uint32_t set_id);

@@ -920,13 +920,13 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
     if (!is_x) {
         uint32_t pos;
         ee = { 0, 1, 16, 1 };
-        ee.sub.push_back({ 0, 4, ENRS_DWORD });
+        ee.append(0, 4, ENRS_DWORD);
         e.vec.push_back(ee);
         pos = off = 16;
 
         skeleton_count *= 2;
         ee = { off, 1, (uint32_t)(skeleton_count * 4ULL), 1 };
-        ee.sub.push_back({ 0, skeleton_count, ENRS_DWORD });
+        ee.append(0, skeleton_count, ENRS_DWORD);
         e.vec.push_back(ee);
         pos += off = (uint32_t)(skeleton_count * 4ULL);
         skeleton_count /= 2;
@@ -940,7 +940,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             uint32_t motion_bone_count = (uint32_t)skel->motion_bone.size();
 
             ee = { off, 1, 56, 1 };
-            ee.sub.push_back({ 0, 14, ENRS_DWORD });
+            ee.append(0, 14, ENRS_DWORD);
             e.vec.push_back(ee);
             pos += off = 56;
 
@@ -948,7 +948,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             off += 8;
             pos += 8;
             ee = { off, 1, 12, bone_count };
-            ee.sub.push_back({ 0, 1, ENRS_DWORD });
+            ee.append(0, 1, ENRS_DWORD);
             e.vec.push_back(ee);
             off = (uint32_t)(bone_count * 12ULL);
             if (pos + off % 0x10)
@@ -957,25 +957,25 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             bone_count--;
 
             ee = { off, 1, 12, position_count };
-            ee.sub.push_back({ 0, 3, ENRS_DWORD });
+            ee.append(0, 3, ENRS_DWORD);
             e.vec.push_back(ee);
             off = (uint32_t)(position_count * 12ULL);
             pos += off = align_val(off, 0x10);
 
             ee = { off, 1, 4, 1 };
-            ee.sub.push_back({ 0, 1, ENRS_DWORD });
+            ee.append(0, 1, ENRS_DWORD);
             e.vec.push_back(ee);
             pos += off = 4;
 
             object_bone_count += motion_bone_count;
             ee = { off, 1, (uint32_t)(object_bone_count * 4ULL), 1 };
-            ee.sub.push_back({ 0, object_bone_count, ENRS_DWORD });
+            ee.append(0, object_bone_count, ENRS_DWORD);
             e.vec.push_back(ee);
             pos += off = (uint32_t)(object_bone_count * 4ULL);
             object_bone_count -= motion_bone_count;
 
             ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1 };
-            ee.sub.push_back({ 0, motion_bone_count, ENRS_WORD });
+            ee.append(0, motion_bone_count, ENRS_WORD);
             e.vec.push_back(ee);
             off = (uint32_t)(motion_bone_count * 2ULL);
             pos += off = align_val(off, 0x04);
@@ -983,21 +983,21 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
     }
     else {
         ee = { 0, 2, 24, 1 };
-        ee.sub.push_back({ 0, 2, ENRS_DWORD });
-        ee.sub.push_back({ 0, 2, ENRS_QWORD });
+        ee.append(0, 2, ENRS_DWORD);
+        ee.append(0, 2, ENRS_QWORD);
         e.vec.push_back(ee);
         off = 24;
         off = align_val(off, 0x10);
 
         if (skeleton_count % 2) {
             ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1 };
-            ee.sub.push_back({ 0, skeleton_count, ENRS_QWORD });
+            ee.append(0, skeleton_count, ENRS_QWORD);
             e.vec.push_back(ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
 
             ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1 };
-            ee.sub.push_back({ 0, skeleton_count, ENRS_QWORD });
+            ee.append(0, skeleton_count, ENRS_QWORD);
             e.vec.push_back(ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
@@ -1005,7 +1005,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
         else {
             skeleton_count *= 2;
             ee = { off, 1, (uint32_t)(skeleton_count * 8ULL), 1 };
-            ee.sub.push_back({ 0, skeleton_count, ENRS_QWORD });
+            ee.append(0, skeleton_count, ENRS_QWORD);
             e.vec.push_back(ee);
             off = (uint32_t)(skeleton_count * 8ULL);
             off = align_val(off, 0x10);
@@ -1013,13 +1013,13 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
         }
 
         ee = { off, 7, 112, skeleton_count };
-        ee.sub.push_back({ 0, 1, ENRS_QWORD });
-        ee.sub.push_back({ 0, 1, ENRS_DWORD });
-        ee.sub.push_back({ 4, 2, ENRS_QWORD });
-        ee.sub.push_back({ 0, 1, ENRS_DWORD });
-        ee.sub.push_back({ 4, 1, ENRS_QWORD });
-        ee.sub.push_back({ 0, 1, ENRS_DWORD });
-        ee.sub.push_back({ 4, 7, ENRS_QWORD });
+        ee.append(0, 1, ENRS_QWORD);
+        ee.append(0, 1, ENRS_DWORD);
+        ee.append(4, 2, ENRS_QWORD);
+        ee.append(0, 1, ENRS_DWORD);
+        ee.append(4, 1, ENRS_QWORD);
+        ee.append(0, 1, ENRS_DWORD);
+        ee.append(4, 7, ENRS_QWORD);
         e.vec.push_back(ee);
         off = (uint32_t)(skeleton_count * 112ULL);
         off = align_val(off, 0x10);
@@ -1035,26 +1035,26 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             bone_count++;
             off += 8;
             ee = { off, 1, 16, bone_count };
-            ee.sub.push_back({ 0, 1, ENRS_QWORD });
+            ee.append(0, 1, ENRS_QWORD);
             e.vec.push_back(ee);
             off = (uint32_t)(bone_count * 16ULL);
             bone_count--;
 
             ee = { off, 1, 12, position_count };
-            ee.sub.push_back({ 0, 3, ENRS_DWORD });
+            ee.append(0, 3, ENRS_DWORD);
             e.vec.push_back(ee);
             off = (uint32_t)(position_count * 12ULL);
             off = align_val(off, 0x10);
 
             ee = { off, 1, 4, 1 };
-            ee.sub.push_back({ 0, 1, ENRS_DWORD });
+            ee.append(0, 1, ENRS_DWORD);
             e.vec.push_back(ee);
             off = 4;
             off = align_val(off, 0x10);
 
             if (object_bone_count % 1) {
                 ee = { off, 1, 12, position_count };
-                ee.sub.push_back({ 0, 3, ENRS_DWORD });
+                ee.append(0, 3, ENRS_DWORD);
                 e.vec.push_back(ee);
                 off = (uint32_t)(position_count * 12ULL);
                 off = align_val(off, 0x10);
@@ -1062,13 +1062,13 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
 
             if (skeleton_count % 2) {
                 ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1 };
-                ee.sub.push_back({ 0, object_bone_count, ENRS_QWORD });
+                ee.append(0, object_bone_count, ENRS_QWORD);
                 e.vec.push_back(ee);
                 off = (uint32_t)(object_bone_count * 8ULL);
                 off = align_val(off, 0x10);
 
                 ee = { off, 1, (uint32_t)(motion_bone_count * 8ULL), 1 };
-                ee.sub.push_back({ 0, motion_bone_count, ENRS_QWORD });
+                ee.append(0, motion_bone_count, ENRS_QWORD);
                 e.vec.push_back(ee);
                 off = (uint32_t)(motion_bone_count * 8ULL);
                 off = align_val(off, 0x10);
@@ -1076,7 +1076,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             else {
                 object_bone_count += motion_bone_count;
                 ee = { off, 1, (uint32_t)(object_bone_count * 8ULL), 1 };
-                ee.sub.push_back({ 0, object_bone_count, ENRS_QWORD });
+                ee.append(0, object_bone_count, ENRS_QWORD);
                 e.vec.push_back(ee);
                 off = (uint32_t)(object_bone_count * 8ULL);
                 off = align_val(off, 0x10);
@@ -1084,7 +1084,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
             }
 
             ee = { off, 1, (uint32_t)(motion_bone_count * 2ULL), 1 };
-            ee.sub.push_back({ 0, motion_bone_count, ENRS_WORD });
+            ee.append(0, motion_bone_count, ENRS_WORD);
             e.vec.push_back(ee);
             off = (uint32_t)(motion_bone_count * 2ULL);
             off = align_val(off, 0x10);

@@ -6,6 +6,7 @@
 #include "draw_task.h"
 #include "../../../CRE/render_context.hpp"
 #include "../../../KKdLib/hash.hpp"
+#include "../../../KKdLib/sort.hpp"
 #include "../imgui_helper.h"
 
 static const char* draw_object_type_name[] = {
@@ -63,6 +64,7 @@ extern int32_t height;
 
 const char* data_view_draw_task_window_title = "Draw Task##Data Viewer";
 
+static int draw_task_sort_sort(void const* src1, void const* src2);
 static void data_view_draw_task_imgui_draw_object(draw_object* object);
 
 bool data_view_draw_task_init(class_data* data, render_context* rctx) {
@@ -134,18 +136,13 @@ void data_view_draw_task_imgui(class_data* data) {
         for (draw_task*& j : draw_tasks) {
             draw_task_sort draw_task;
             draw_task.first = j;
-            draw_task.second.first = hash_murmurhash((void*)j, 8, 0, true);
+            draw_task.second.first = hash_murmurhash(&j, 8, 0, true);
             draw_task.second.second = (uint32_t)(&j - draw_tasks.data());
             draw_tasks_sort.push_back(draw_task);
         }
 
-        for (auto i = draw_tasks_sort.begin(); i != draw_tasks_sort.end() - 1; i++)
-            for (auto j = i + 1; j != draw_tasks_sort.end(); j++)
-                if (*i > *j) {
-                    draw_task_sort temp = *i;
-                    *i = *j;
-                    *j = temp;
-                }
+        quicksort_custom(draw_tasks_sort.data(), draw_tasks_sort.size(),
+            sizeof(draw_task_sort), draw_task_sort_sort);
 
         ImGui::Text("       Hash;    Index; Type");
 
@@ -229,7 +226,13 @@ data_view_draw_task::~data_view_draw_task() {
 
 }
 
+static int draw_task_sort_sort(void const* src1, void const* src2) {
+    float_t d1 = ((draw_task_sort*)src1)->first->depth;
+    float_t d2 = ((draw_task_sort*)src2)->first->depth;
+    return d1 > d2 ? -1 : (d1 < d2 ? 1 : 0);
+}
+
 static void data_view_draw_task_imgui_draw_object(draw_object* object) {
     ImGui::Text("Mesh Name: %s", object->mesh->name);
-    ImGui::Text("Sub Mesh Index: %lld", object->sub_mesh - object->mesh->sub_meshes);
+    ImGui::Text("Sub Mesh Index: %lld", object->sub_mesh - object->mesh->submesh_array);
 }

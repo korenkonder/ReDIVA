@@ -327,14 +327,11 @@ void key_val::get_lexicographic_order(std::vector<int32_t>* vec, int32_t length)
 }
 
 bool key_val::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    string s;
-    string_init(&s, path);
-    string_add(&s, file);
+    std::string s = path + std::string(file);
 
     key_val* kv = (key_val*)data;
-    kv->file_read(string_data(&s));
+    kv->file_read(s.c_str());
 
-    string_free(&s);
     return kv->buf ? true : false;
 }
 

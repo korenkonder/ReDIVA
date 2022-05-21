@@ -424,7 +424,7 @@ wchar_t* str_utils_copy(const wchar_t* str) {
 }
 
 inline int32_t str_utils_compare(const char* str0, const char* str1) {
-    int32_t diff = 0;;
+    int32_t diff = 0;
     char c0;
     char c1;
     do
@@ -438,7 +438,7 @@ inline int32_t str_utils_compare(const char* str0, const char* str1) {
 }
 
 inline int32_t str_utils_compare(const wchar_t* str0, const wchar_t* str1) {
-    int32_t diff = 0;;
+    int32_t diff = 0;
     wchar_t c0;
     wchar_t c1;
     do
@@ -457,7 +457,7 @@ inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, const
     else if (!str1_len)
         return *str0;
 
-    int32_t diff = 0;;
+    int32_t diff = 0;
     char c0;
     char c1;
     do
@@ -476,7 +476,7 @@ inline int32_t str_utils_compare_length(const wchar_t* str0, size_t str0_len, co
     else if (!str1_len)
         return *str0;
 
-    int32_t diff = 0;;
+    int32_t diff = 0;
     wchar_t c0;
     wchar_t c1;
     do

@@ -55,12 +55,13 @@ namespace Glitter {
                 if (!set)
                     continue;
 
-                for (uint32_t i = 0; i < set->objects_count; i++) {
-                    obj* obj = &set->objects[i];
-                    for (uint32_t j = 0; j < obj->materials_count; j++) {
-                        obj_material* mat = &obj->materials[j].material;
-                        if (!memcmp(&mat->emission, &vec3_null, sizeof(vec3)) && mat->emission.w == 1.0f)
-                            mat->emission = vec4u_identity;
+                for (uint32_t i = 0; i < set->obj_num; i++) {
+                    obj* obj = &set->obj_data[i];
+                    for (uint32_t j = 0; j < obj->num_material; j++) {
+                        obj_material* mat = &obj->material_array[j].material;
+                        if (!memcmp(&mat->color.emission, &vec3_null, sizeof(vec3))
+                            && mat->color.emission.w == 1.0f)
+                            mat->color.emission = vec4u_identity;
                     }
                 }
             }

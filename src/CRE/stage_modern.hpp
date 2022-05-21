@@ -68,6 +68,8 @@ namespace stage_detail {
 struct task_stage_modern_info {
     int16_t load_index;
     uint16_t load_counter;
+
+    task_stage_modern_info();
 };
 
 extern bool task_stage_modern_check_not_loaded();

@@ -2744,7 +2744,7 @@ static void key_val_write_a3da_key(stream* s, char* buf,
     }
 
     if (value.type == A3DA_KEY_NONE) {
-        key_val::write_int32_t(s, buf, offset, ".type", 6, 0);;
+        key_val::write_int32_t(s, buf, offset, ".type", 6, 0);
         return;
     }
     else if (value.type == A3DA_KEY_STATIC) {

@@ -51,7 +51,7 @@ static void file_handler_storage_ctrl_list();
 static void file_handler_storage_thread_ctrl();
 
 file_handler::file_handler() : count(), not_ready(true),
-reading(), cache(), read_free_func(), size(), data(), ds() {
+reading(), cache(), callback(), size(), data(), ds() {
 
 }
 
@@ -59,20 +59,20 @@ file_handler::~file_handler() {
     free(data);
 }
 
-void file_handler::call_read_free_func(int32_t index) {
+void file_handler::call_callback(int32_t index) {
     if (index >= 2)
         return;
 
     std::unique_lock<std::mutex> u_lock(mtx);
     void* data = this->data;
-    void(*read_free_func_func)(void*, void*, size_t) = this->read_free_func[index].func;
-    void* read_free_func_data = this->read_free_func[index].data;
-    bool ready = this->read_free_func[index].ready;
-    this->read_free_func[index].ready = true;
+    void(*callback_func)(void*, void*, size_t) = this->callback[index].func;
+    void* callback_data = this->callback[index].data;
+    bool ready = this->callback[index].ready;
+    this->callback[index].ready = true;
     u_lock.unlock();
 
-    if (!ready && read_free_func_func)
-        read_free_func_func(read_free_func_data, data, this->size);
+    if (!ready && callback_func)
+        callback_func(callback_data, data, this->size);
 }
 
 void file_handler::set_file(const char* file) {
@@ -94,12 +94,12 @@ void file_handler::set_path(const char* path) {
     u_lock.unlock();
 }
 
-void file_handler::set_read_free_func_data(int32_t index, void(* func)(void*, void*, size_t), void* data) {
+void file_handler::set_callback_data(int32_t index, void(* func)(void*, void*, size_t), void* data) {
     std::unique_lock<std::mutex> u_lock(mtx);
     if (index < 2) {
-        read_free_func[index].func = func;
-        read_free_func[index].data = data;
-        read_free_func[index].ready = false;
+        callback[index].func = func;
+        callback[index].data = data;
+        callback[index].ready = false;
     }
     u_lock.unlock();
 }
@@ -287,8 +287,8 @@ static void file_handler_storage_ctrl_list() {
             i = file_handler_storage_data->list.erase(i);
         }
         else {
-            if (!pfhndl->not_ready && !pfhndl->read_free_func[0].ready)
-                pfhndl->call_read_free_func(0);
+            if (!pfhndl->not_ready && !pfhndl->callback[0].ready)
+                pfhndl->call_callback(0);
             i++;
         }
     }
@@ -339,7 +339,7 @@ p_file_handler::~p_file_handler() {
 
 void p_file_handler::call_free_func_free_data() {
     if (ptr)
-        ptr->call_read_free_func(1);
+        ptr->call_callback(1);
     free_data();
 }
 
@@ -349,7 +349,7 @@ bool p_file_handler::check_not_ready() {
     else if (ptr->not_ready)
         return true;
     else
-        return !ptr->read_free_func[0].ready;
+        return !ptr->callback[0].ready;
 }
 
 void p_file_handler::free_data() {
@@ -358,7 +358,7 @@ void p_file_handler::free_data() {
 
     if (ptr->mtx.try_lock()) {
         for (int32_t i = 0; i < 2; i++)
-            ptr->read_free_func[i] = {};
+            ptr->callback[i] = {};
         ptr->mtx.unlock();
     }
     ptr->free_data_lock();
@@ -479,7 +479,7 @@ void p_file_handler::read_now() {
     }
 }
 
-void p_file_handler::set_read_free_func_data(int32_t index, void(*func)(void*, void*, size_t), void* data) {
+void p_file_handler::set_callback_data(int32_t index, void(*func)(void*, void*, size_t), void* data) {
     if (ptr)
-        ptr->set_read_free_func_data(index, func, data);
+        ptr->set_callback_data(index, func, data);
 }

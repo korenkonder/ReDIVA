@@ -4046,9 +4046,9 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
         obj* obj = 0;
         if (handler && handler->obj_set) {
             obj_set* set = handler->obj_set;
-            for (uint32_t i = 0; i < set->objects_count; i++)
-                if (set->objects[i].id == obj_id) {
-                    obj = &set->objects[i];
+            for (uint32_t i = 0; i < set->obj_num; i++)
+                if (set->obj_data[i].id == obj_id) {
+                    obj = &set->obj_data[i];
                     break;
                 }
         }
@@ -4058,8 +4058,8 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
             if (set_id != -1 && handler && handler->set_id == set_id && handler->obj_set) {
                 obj_set* set = handler->obj_set;
                 ssize_t obj_index = -1;
-                for (uint32_t i = 0; i < set->objects_count; i++)
-                    if (set->objects[i].id == obj_id) {
+                for (uint32_t i = 0; i < set->obj_num; i++)
+                    if (set->obj_data[i].id == obj_id) {
                         obj_index = i;
                         break;
                     }
@@ -4071,9 +4071,9 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
                     obj_index = -1;
                 ImGui::PopID();
 
-                for (uint32_t i = 0; i < set->objects_count; i++) {
+                for (uint32_t i = 0; i < set->obj_num; i++) {
                     ImGui::PushID(i);
-                    ::obj* obj = &set->objects[i];
+                    ::obj* obj = &set->obj_data[i];
                     if (ImGui::Selectable(string_data(&obj->name), obj->id == obj_id)
                         || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                         || (ImGui::IsItemFocused() && obj->id != obj_id))
@@ -4081,10 +4081,10 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
                     ImGui::PopID();
                 }
 
-                if (obj_index == -1 || obj_index >= set->objects_count)
+                if (obj_index == -1 || obj_index >= set->obj_num)
                     obj_id = -1;
                 else
-                    obj_id = set->objects[obj_index].id;
+                    obj_id = set->obj_data[obj_index].id;
 
                 if (mesh->object_name_hash != obj_id) {
                     mesh->object_name_hash = obj_id;
@@ -6869,24 +6869,23 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
 
             int32_t ttc = 0;
             texture_transform_struct* tt = object_data->texture_transform_array;
-            for (uint32_t i = 0; i < obj->meshes_count; i++) {
-                obj_mesh* mesh = &obj->meshes[i];
+            for (uint32_t i = 0; i < obj->num_mesh; i++) {
+                obj_mesh* mesh = &obj->mesh_array[i];
 
                 if (object_data->object_culling && !object_bounding_sphere_check_visibility(
                     &mesh->bounding_sphere, object_data, rctx->camera, &mat))
                     continue;
 
-                for (uint32_t j = 0; j < mesh->sub_meshes_count; j++) {
-                    obj_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
+                for (uint32_t j = 0; j < mesh->num_submesh; j++) {
+                    obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
 
-                    if (sub_mesh->flags & OBJ_SUB_MESH_FLAG_8)
+                    if (sub_mesh->attrib.m.flag_3)
                         continue;
 
                     if (object_data->object_culling) {
                         int32_t v32 = object_bounding_sphere_check_visibility(
                             &sub_mesh->bounding_sphere, object_data, rctx->camera, &mat);
-                        if (v32 != 2 || (~mesh->flags & OBJ_MESH_BILLBOARD &&
-                            ~mesh->flags & OBJ_MESH_BILLBOARD_Y_AXIS)) {
+                        if (v32 != 2 || (!mesh->attrib.m.billboard && !mesh->attrib.m.billboard_y_axis)) {
                             if (v32 == 2) {
                                 if (object_data->object_bounding_sphere_check_func)
                                     v32 = 1;
@@ -6922,7 +6921,7 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
                     GLuint array_buffer = obj_mesh_vertex_buffer_get_buffer(&obj_vertex_buffer[i]);
                     gl_state_bind_array_buffer(array_buffer);
                     glEnableVertexAttribArray(0);
-                    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, mesh->vertex_size, (void*)0);
+                    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, mesh->size_vertex, (void*)0);
                     gl_state_bind_array_buffer(0);
 
                     GLuint element_array_buffer = obj_index_buffer[i].buffer;

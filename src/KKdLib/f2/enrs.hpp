@@ -32,6 +32,9 @@ struct enrs_entry {
     enrs_entry();
     enrs_entry(uint32_t offset, uint32_t count, uint32_t size, uint32_t repeat_count);
     ~enrs_entry();
+
+    void append(uint32_t skip_bytes, uint32_t repeat_count, enrs_type type);
+    void append(enrs_sub_entry&& data);
 };
 
 struct enrs {

@@ -2907,7 +2907,7 @@ void dsc::unparse(void** data, size_t* size) {
         enrs_entry ee;
 
         ee = { 0, 1, 4, (uint32_t)s };
-        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.append(0, 1, ENRS_DWORD);
         e.vec.push_back(ee);
 
         st.enrs = e;

@@ -285,16 +285,16 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
     }
     object_data->passed.objects++;
 
-    for (uint32_t i = 0; i < object->meshes_count; i++) {
-        obj_mesh* mesh = &object->meshes[i];
+    for (uint32_t i = 0; i < object->num_mesh; i++) {
+        obj_mesh* mesh = &object->mesh_array[i];
         obj_mesh* mesh_morph = 0;
         if (obj_vertex_buf && obj_morph_vertex_buf) {
             if (obj_mesh_vertex_buffer_get_size(&obj_vertex_buf[i])
                 != obj_mesh_vertex_buffer_get_size(&obj_morph_vertex_buf[i]))
                 continue;
 
-            if (object_morph && i < object_morph->meshes_count)
-                mesh_morph = &object_morph->meshes[i];
+            if (object_morph && i < object_morph->num_mesh)
+                mesh_morph = &object_morph->mesh_array[i];
         }
 
         if (object_data->object_culling && !instances_count && !bone_mat
@@ -309,17 +309,16 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
         draw_object* translucent_priority[40];
         int32_t translucent_priority_count = 0;
 
-        for (uint32_t j = 0; j < mesh->sub_meshes_count; j++) {
-            obj_sub_mesh* sub_mesh = &mesh->sub_meshes[j];
+        for (uint32_t j = 0; j < mesh->num_submesh; j++) {
+            obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
             obj_sub_mesh* sub_mesh_morph = 0;
-            if (sub_mesh->flags & OBJ_SUB_MESH_FLAG_8)
+            if (sub_mesh->attrib.m.flag_3)
                 continue;
 
             if (object_data->object_culling && !instances_count && !bone_mat) {
                 int32_t v32 = object_bounding_sphere_check_visibility(
                     &sub_mesh->bounding_sphere, object_data, rctx->camera, mat);
-                if (v32 != 2 || (~mesh->flags & OBJ_MESH_BILLBOARD &&
-                    ~mesh->flags & OBJ_MESH_BILLBOARD_Y_AXIS)) {
+                if (v32 != 2 || (!mesh->attrib.m.billboard && !mesh->attrib.m.billboard_y_axis)) {
                     if (v32 == 2) {
                         if (object_data->object_bounding_sphere_check_func)
                             v32 = 1;
@@ -329,14 +328,14 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                     }
 
                     if (!v32) {
-                        if (!mesh_morph || j >= mesh_morph->sub_meshes_count) {
-                            object_data->culled.sub_meshes++;
+                        if (!mesh_morph || j >= mesh_morph->num_submesh) {
+                            object_data->culled.submesh_array++;
                             continue;
                         }
 
-                        sub_mesh_morph = &mesh_morph->sub_meshes[j];
+                        sub_mesh_morph = &mesh_morph->submesh_array[j];
                         if (!sub_mesh_morph) {
-                            object_data->culled.sub_meshes++;
+                            object_data->culled.submesh_array++;
                             continue;
                         }
 
@@ -351,13 +350,13 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                         }
 
                         if (!v32) {
-                            object_data->culled.sub_meshes++;
+                            object_data->culled.submesh_array++;
                             continue;
                         }
                     }
                 }
             }
-            object_data->passed.sub_meshes++;
+            object_data->passed.submesh_array++;
 
             int32_t bone_indices_count = sub_mesh->bone_indices_count;
             uint16_t* bone_indices = sub_mesh->bone_indices;
@@ -377,7 +376,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                 bone_indices_count = 0;
             }
 
-            obj_material_data* material = &object->materials[sub_mesh->material_index];
+            obj_material_data* material = &object->material_array[sub_mesh->material_index];
             draw_task* task = rctx->object_data.buffer.add_draw_task(DRAW_TASK_TYPE_OBJECT);
             if (!task)
                 continue;
@@ -412,14 +411,14 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                 continue;
             }
 
-            obj_material_blend_flags blend_flags = material->material.blend_flags;
+            obj_material_attrib_member attrib = material->material.attrib.m;
             if (draw_task_flags & (DRAW_TASK_10000 | DRAW_TASK_20000 | DRAW_TASK_40000)
                 && task->data.object.blend_color.w < 1.0f) {
                 if (~draw_task_flags | DRAW_TASK_NO_TRANSLUCENCY) {
-                    if (blend_flags.flag_28 || (blend_flags.punch_through
-                        || !(blend_flags.alpha_texture | blend_flags.alpha_material))
-                        && ~sub_mesh->flags & OBJ_SUB_MESH_TRANSPARENT) {
-                        if (!blend_flags.punch_through) {
+                    if (attrib.flag_28 || (attrib.punch_through
+                        || !(attrib.alpha_texture | attrib.alpha_material))
+                        && !sub_mesh->attrib.m.transparent) {
+                        if (!attrib.punch_through) {
                             if (draw_task_flags & DRAW_TASK_10000)
                                 draw_task_add(rctx, DRAW_OBJECT_OPAQUE_TYPE_20, task);
                             else if (draw_task_flags & DRAW_TASK_20000)
@@ -449,9 +448,9 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                 }
             }
             else {
-                if (blend_flags.flag_28 || task->data.object.blend_color.w >= 1.0f
-                    && (blend_flags.punch_through || !(blend_flags.alpha_texture | blend_flags.alpha_material))
-                    && ~sub_mesh->flags & OBJ_SUB_MESH_TRANSPARENT) {
+                if (attrib.flag_28 || task->data.object.blend_color.w >= 1.0f
+                    && (attrib.punch_through || !(attrib.alpha_texture | attrib.alpha_material))
+                    && !sub_mesh->attrib.m.transparent) {
                     if (draw_task_flags & DRAW_TASK_SHADOW)
                         draw_task_add(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_CHARA
                             + object_data->shadow_type), task);
@@ -459,7 +458,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                     if (draw_task_flags & DRAW_TASK_SSS)
                         draw_task_add(rctx, DRAW_OBJECT_SSS, task);
 
-                    if (material->material.blend_flags.punch_through) {
+                    if (material->material.attrib.m.punch_through) {
                         if (~draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY)
                             draw_task_add(rctx, DRAW_OBJECT_TRANSPARENT, task);
 
@@ -494,8 +493,8 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                     continue;
                 }
                 else if (~draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY) {
-                    if (!blend_flags.translucent_priority)
-                        if (mesh->flags & OBJ_MESH_TRANSLUCENT_NO_SHADOW
+                    if (!attrib.translucent_priority)
+                        if (mesh->attrib.m.translucent_no_shadow
                             || draw_task_flags & DRAW_TASK_TRANSLUCENT_NO_SHADOW)
                             draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_NO_SHADOW, task);
                         else
@@ -532,7 +531,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
         for (int32_t j = 62; j; j--)
             for (int32_t k = 0; k < translucent_priority_count; k++) {
                 draw_object* object = translucent_priority[k];
-                if (object->material->material.blend_flags.translucent_priority != j)
+                if (object->material->material.attrib.m.translucent_priority != j)
                     continue;
 
                 object_translucent.objects[object_translucent.count] = object;
@@ -682,10 +681,9 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
         vec3 center;
         mat4_get_translation(&mat, &center);
         if (task->type == DRAW_TASK_TYPE_OBJECT) {
-            obj_mesh_flags mesh_flags = task->data.object.mesh->flags;
-            if (mesh_flags & OBJ_MESH_BILLBOARD) {
+            if (task->data.object.mesh->attrib.m.billboard) {
                 model_mat_face_camera_view(&rctx->camera->view, &mat, &mat);}
-            else if (mesh_flags & OBJ_MESH_BILLBOARD_Y_AXIS)
+            else if (task->data.object.mesh->attrib.m.billboard_y_axis)
                 model_mat_face_camera_position(&rctx->camera->view, &mat, &mat);
             else {
                 obj_sub_mesh* sub_mesh = task->data.object.sub_mesh;

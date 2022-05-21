@@ -744,12 +744,12 @@ static render_context* render_load() {
     charas[0] = CHARA_MEIKO;
 
     int32_t modules[6];
-    modules[5] = 186;
-    modules[1] = 46;
-    modules[2] = 39;
+    modules[5] = 168;
+    modules[1] = 0;//46;
+    modules[2] = 0;//39;
     modules[3] = 41;
     modules[4] = 40;
-    modules[0] = 31;
+    modules[0] = 0;//31;
     x_pv_game_data.Load(822, 22, charas, modules);
 
     shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
@@ -831,7 +831,6 @@ static void render_ctrl(render_context* rctx) {
             camera_roll(cam, input_roll);
         }
     }
-    camera_update(cam);
 
     classes_process_ctrl(classes, classes_count);
 
@@ -903,7 +902,6 @@ static void cube_line_draw(shader_glsl* shader, camera* cam, vec3* trans, float_
 }
 
 static int cube_line_points_sort(void const* src1, void const* src2) {
-    std::pair<vec3, float_t>* t2 = (std::pair<vec3, float_t>*)src2;
     float_t d1 = ((std::pair<vec3, float_t>*)src1)->second;
     float_t d2 = ((std::pair<vec3, float_t>*)src2)->second;
     return d1 > d2 ? -1 : (d1 < d2 ? 1 : 0);
@@ -950,6 +948,8 @@ static void render_draw(render_context* rctx) {
         color.w = 1.0f;
         glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
     }
+
+    camera_update(cam);
 
     rctx->disp();
 
@@ -1070,8 +1070,10 @@ static void render_dispose(render_context* rctx) {
     ImGui::DestroyContext(imgui_context);
     lock_free(&imgui_context_lock);
 
+    task_rob_manager_free_task();
     x_pv_game_data.SetDest();
     Glitter::glt_particle_manager.SetDest();
+    task_auth_3d_free_task();
 
     //rob_chara_array_free_chara_id(0);
     timer_reset(&render_timer);
@@ -1127,15 +1129,12 @@ static void render_imgui(render_context* rctx) {
 }
 
 static bool render_load_shaders(void* data, const char* path, const char* file, uint32_t hash) {
-    string s;
-    string_init(&s, path);
-    string_add(&s, file);
+    std::string s = path + std::string(file);
 
     farc f;
-    f.read(string_data(&s), true, false);
+    f.read(s.c_str(), true, false);
     shader_ft_load((shader_set_data*)data, &f, false);
 
-    string_free(&s);
     return true;
 }
 

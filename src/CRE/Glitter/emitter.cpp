@@ -72,36 +72,36 @@ static bool glitter_emitter_pack_file(GLT, f2_struct* st, glitter_emitter* a2) {
     enrs_entry ee;
 
     ee = { 0, 5, 96, 1 };
-    ee.sub.push_back({ 0, 5, ENRS_DWORD });
-    ee.sub.push_back({ 0, 2, ENRS_WORD });
-    ee.sub.push_back({ 0, 2, ENRS_DWORD });
-    ee.sub.push_back({ 0, 2, ENRS_WORD });
-    ee.sub.push_back({ 0, 15, ENRS_DWORD });
+    ee.append(0, 5, ENRS_DWORD);
+    ee.append(0, 2, ENRS_WORD);
+    ee.append(0, 2, ENRS_DWORD);
+    ee.append(0, 2, ENRS_WORD);
+    ee.append(0, 15, ENRS_DWORD);
     e.vec.push_back(ee);
     l += o = 96;
 
     switch (a2->data.type) {
     case EMITTER_BOX:
         ee = { o, 1, 12, 1 };
-        ee.sub.push_back({ 0, 3, ENRS_DWORD });
+        ee.append(0, 3, ENRS_DWORD);
         e.vec.push_back(ee);
         l += o = 12;
         break;
     case EMITTER_CYLINDER:
         ee = { o, 1, 20, 1 };
-        ee.sub.push_back({ 0, 5, ENRS_DWORD });
+        ee.append(0, 5, ENRS_DWORD);
         e.vec.push_back(ee);
         l += o = 20;
         break;
     case EMITTER_SPHERE:
         ee = { o, 1, 16, 1 };
-        ee.sub.push_back({ 0, 4, ENRS_DWORD });
+        ee.append(0, 4, ENRS_DWORD);
         e.vec.push_back(ee);
         l += o = 16;
         break;
     case EMITTER_POLYGON:
         ee = { o, 1, 8, 1 };
-        ee.sub.push_back({ 0, 2, ENRS_DWORD });
+        ee.append(0, 2, ENRS_DWORD);
         e.vec.push_back(ee);
         l += o = 8;
         break;

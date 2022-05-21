@@ -772,6 +772,7 @@ namespace Glitter {
         EffectInstFlag flags;
         size_t id;
         uint32_t random;
+        vec4u min_color;
 
         EffectInst(GPM, GLT, Effect* eff,
             size_t id, float_t emission, bool appear_now);
@@ -837,6 +838,7 @@ namespace Glitter {
         void CtrlInit(GPM, GLT, float_t emission);
         void GetExtAnim();
         void GetValue(GLT);
+        void SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a);
     };
 
     class XEffectInst : public EffectInst {
@@ -890,6 +892,7 @@ namespace Glitter {
         void GetExtAnim();
         void GetValue();
         void SetExtAnim(mat4* a2, mat4* a3, vec3* trans, bool set_flags);
+        void SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a);
     };
 
     class Emitter : public Node {
@@ -1191,10 +1194,12 @@ namespace Glitter {
         void Emit(GPM, GLT, int32_t dup_count, int32_t count, float_t emission);
         void EmitParticle(GPM, GLT, RenderElement* rend_elem, F2EmitterInst* emit_inst,
             F2ParticleInst::Data* ptcl_inst_data, int32_t index, Random* random);
-        void GetValue(GLT, RenderElement* rend_elem, float_t frame, Random* random);
+        void GetColor(Glitter::RenderElement* rend_elem);
+        bool GetValue(GLT, RenderElement* rend_elem, float_t frame, Random* random);
         void Free(bool free);
         bool HasEnded(bool a2);
         void Reset();
+        void SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a);
         void StepUVParticle(GLT, RenderElement* rend_elem, float_t delta_frame, Random* random);
     };
 
@@ -1226,10 +1231,12 @@ namespace Glitter {
         void Emit(int32_t dup_count, int32_t count, float_t emission);
         void EmitParticle(RenderElement* rend_elem, XEmitterInst* emit_inst,
             XParticleInst::Data* ptcl_inst_data, int32_t index, uint8_t step, Random* random);
-        void GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale);
+        void GetColor(Glitter::RenderElement* rend_elem, float_t color_scale);
+        bool GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale);
         void Free(bool free);
         bool HasEnded(bool a2);
         void Reset();
+        void SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a);
         void StepUVParticle(RenderElement* rend_elem, float_t delta_frame, Random* random);
     };
 
@@ -1404,12 +1411,6 @@ namespace Glitter {
         uint32_t texture_counter;
         Random random;
         uint32_t counter;
-        mat4 cam_projection;
-        mat4 cam_view;
-        mat4 cam_inv_view;
-        mat3 cam_inv_view_mat3;
-        vec3 cam_view_point;
-        float_t cam_rotation_y;
         bool draw_all;
         bool draw_all_mesh;
         bool draw_selected;

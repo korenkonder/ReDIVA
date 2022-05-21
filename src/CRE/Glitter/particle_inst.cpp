@@ -130,6 +130,13 @@ namespace Glitter {
         }
     }
 
+    void F2ParticleInst::SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+        if (data.effect)
+            data.effect->SetMinColor(r, g, b, a);
+        else if (data.parent && data.parent->data.effect)
+            data.parent->data.effect->SetMinColor(r, g, b, a);
+    }
+
     void F2ParticleInst::Copy(F2ParticleInst* dst, float_t emission) {
         dst->data.flags = data.flags;
         if (data.render_group && dst->data.render_group)
@@ -289,7 +296,35 @@ namespace Glitter {
             i->Free(free);
     }
 
-    void F2ParticleInst::GetValue(GLT, RenderElement* rend_elem, float_t frame, Random* random) {
+    void F2ParticleInst::GetColor(Glitter::RenderElement* rend_elem) {
+        float_t r = rend_elem->color.x;
+        if (r < 0.0f)
+            r = data.data.color.x;
+
+        float_t g = rend_elem->color.y;
+        if (g < 0.0f)
+            g = data.data.color.y;
+
+        float_t b = rend_elem->color.z;
+        if (b < 0.0f)
+            b = data.data.color.z;
+
+        float_t a = rend_elem->color.w;
+        if (a < 0.0f)
+            a = data.data.color.w;
+
+        SetMinColor(r, g, b, a);
+
+        rend_elem->color.x = r;
+        rend_elem->color.y = g;
+        rend_elem->color.z = b;
+        rend_elem->color.w = a;
+
+        if (a < 0.01f)
+            rend_elem->disp = false;
+    }
+
+    bool F2ParticleInst::GetValue(GLT, RenderElement* rend_elem, float_t frame, Random* random) {
         float_t value = 0.0f;
         bool has_translation = false;
         vec3 translation = vec3_null;
@@ -349,7 +384,7 @@ namespace Glitter {
                 rend_elem->color.w = value;
                 if (value < 0.01f) {
                     rend_elem->disp = false;
-                    return;
+                    return false;
                 }
                 break;
             case CURVE_U_SCROLL:
@@ -367,6 +402,7 @@ namespace Glitter {
                 mat4_mult_vec3_trans(&rend_elem->mat, &translation, &translation);
             rend_elem->translation = translation;
         }
+        return true;
     }
 
     bool F2ParticleInst::HasEnded(bool a2) {
@@ -552,8 +588,31 @@ namespace Glitter {
         rend_elem->speed = max(speed, 0.0f);
     }
 
-    void XParticleInst::Copy(XParticleInst* dst, float_t emission) {
+    void XParticleInst::SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+        if (data.effect)
+            data.effect->SetMinColor(r, g, b, a);
+        else if (data.parent && data.parent->data.effect)
+            data.parent->data.effect->SetMinColor(r, g, b, a);
+    }
 
+    void XParticleInst::Copy(XParticleInst* dst, float_t emission) {
+        dst->data.flags = data.flags;
+        if (data.render_group && dst->data.render_group)
+            data.render_group->Copy(dst->data.render_group);
+
+        for (XParticleInst*& i : dst->data.children)
+            if (i) {
+                delete i;
+                i = 0;
+            }
+        dst->data.children.clear();
+
+        for (XParticleInst*& i : data.children)
+            if (i) {
+                XParticleInst* child = new XParticleInst(this, emission);
+                dst->data.children.push_back(child);
+                i->Copy(child, emission);
+            }
     }
 
     void XParticleInst::Emit(int32_t dup_count, int32_t count, float_t emission) {
@@ -706,7 +765,47 @@ namespace Glitter {
         random->XStepValue();
     }
 
-    void XParticleInst::GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale) {
+    void XParticleInst::GetColor(Glitter::RenderElement* rend_elem, float_t color_scale) {
+        float_t r = rend_elem->color.x;
+        if (r < 0.0f)
+            r = data.data.color.x;
+
+        float_t g = rend_elem->color.y;
+        if (g < 0.0f)
+            g = data.data.color.y;
+
+        float_t b = rend_elem->color.z;
+        if (b < 0.0f)
+            b = data.data.color.z;
+
+        float_t a = rend_elem->color.w;
+        if (a < 0.0f)
+            a = data.data.color.w;
+
+        if (color_scale >= 0.0f) {
+            r *= color_scale;
+            g *= color_scale;
+            b *= color_scale;
+        }
+
+        if (rend_elem->fade_out_frames > 0.0f
+            && rend_elem->life_time < (rend_elem->frame + rend_elem->fade_out_frames))
+            a *= (rend_elem->life_time - rend_elem->frame) / rend_elem->fade_out_frames;
+        else if (rend_elem->fade_in_frames > 0.0f && rend_elem->frame < rend_elem->fade_in_frames)
+            a *= rend_elem->frame / rend_elem->fade_in_frames;
+
+        SetMinColor(r, g, b, a);
+
+        rend_elem->color.x = r;
+        rend_elem->color.y = g;
+        rend_elem->color.z = b;
+        rend_elem->color.w = a;
+
+        if (a < 0.01f)
+            rend_elem->disp = false;
+    }
+
+    bool XParticleInst::GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale) {
         float_t value = 0.0f;
         vec3 translation = vec3_null;
         bool has_translation = false;
@@ -742,15 +841,31 @@ namespace Glitter {
                 break;
             case CURVE_SCALE_X:
                 rend_elem->scale.x = value;
+                if (fabsf(value) <= 0.000001f) {
+                    rend_elem->disp = false;
+                    return false;
+                }
                 break;
             case CURVE_SCALE_Y:
                 rend_elem->scale.y = value;
+                if (fabsf(value) <= 0.000001f) {
+                    rend_elem->disp = false;
+                    return false;
+                }
                 break;
             case CURVE_SCALE_Z:
                 rend_elem->scale.z = value;
+                if (fabsf(value) <= 0.000001f) {
+                    rend_elem->disp = false;
+                    return false;
+                }
                 break;
             case CURVE_SCALE_ALL:
                 rend_elem->scale_all = value;
+                if (fabsf(value) <= 0.000001f) {
+                    rend_elem->disp = false;
+                    return false;
+                }
                 break;
             case CURVE_COLOR_R:
                 rend_elem->color.x = value;
@@ -763,8 +878,10 @@ namespace Glitter {
                 break;
             case CURVE_COLOR_A:
                 rend_elem->color.w = value;
-                if (value < 0.01f)
+                if (value < 0.01f) {
                     rend_elem->disp = false;
+                    return false;
+                }
                 break;
             case CURVE_COLOR_RGB_SCALE:
                 *color_scale = value;
@@ -790,6 +907,7 @@ namespace Glitter {
                 mat4_mult_vec3_trans(&rend_elem->mat, &translation, &translation);
             rend_elem->translation = translation;
         }
+        return true;
     }
 
     void XParticleInst::Free(bool free) {

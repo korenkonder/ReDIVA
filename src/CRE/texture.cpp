@@ -200,7 +200,7 @@ inline texture* texture_storage_create_texture(texture_id id) {
             return i;
         }
 
-    texture* tex = new texture();;
+    texture* tex = new texture();
     tex->init_count = 1;
     tex->id = id;
     texture_storage.push_back(tex);

@@ -8,8 +8,7 @@
 namespace Glitter {
     GltParticleManager::GltParticleManager() :scene(), effect(), emitter(), particle(), rctx(),
     bone_data(), frame_rate(), flags(), scene_load_counter(), emission(1.5f), delta_frame(2.0f),
-    texture_counter(), random(), counter(), cam_projection(), cam_view(), cam_inv_view(), cam_inv_view_mat3(),
-    cam_view_point(), cam_rotation_y(), draw_all(true), draw_all_mesh(true), draw_selected() {
+    texture_counter(), random(), counter(), draw_all(true), draw_all_mesh(true), draw_selected() {
         scenes.reserve(0x100);
         file_readers.reserve(0x100);
     }

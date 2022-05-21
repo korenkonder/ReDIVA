@@ -287,24 +287,24 @@ bool txp_set::produce_enrs(enrs* enrs) {
     enrs_entry ee;
 
     ee = { 0, 1, 12, 1 };
-    ee.sub.push_back({ 0, 3, ENRS_DWORD });
+    ee.append(0, 3, ENRS_DWORD);
     enrs->vec.push_back(ee);
     l += o = 12;
 
     ee = { o, 1, (uint32_t)(count * 4), 1 };
-    ee.sub.push_back({ 0, (uint32_t)count, ENRS_DWORD });
+    ee.append(0, (uint32_t)count, ENRS_DWORD);
     enrs->vec.push_back(ee);
     l += (size_t)(o = (uint32_t)(count * 4ULL));
 
     tex = textures.data();
     for (size_t i = 0; i < count; i++, tex++) {
         ee = { o, 1, 12, 1 };
-        ee.sub.push_back({ 0, 3, ENRS_DWORD });
+        ee.append(0, 3, ENRS_DWORD);
         enrs->vec.push_back(ee);
         l += o = 12;
 
         ee = { o, 1, tex->array_size * 4, tex->mipmaps_count };
-        ee.sub.push_back({ 0, tex->array_size, ENRS_DWORD });
+        ee.append(0, tex->array_size, ENRS_DWORD);
         enrs->vec.push_back(ee);
         l += (size_t)(o = (uint32_t)((size_t)tex->array_size * tex->mipmaps_count * 4));
 
@@ -312,7 +312,7 @@ bool txp_set::produce_enrs(enrs* enrs) {
         for (size_t j = 0; j < tex->array_size; j++) {
             for (size_t k = 0; k < tex->mipmaps_count; k++, tex_mipmap++) {
                 ee = { o, 1, 24, 1 };
-                ee.sub.push_back({ 0, 6, ENRS_DWORD });
+                ee.append(0, 6, ENRS_DWORD);
                 enrs->vec.push_back(ee);
                 l += (size_t)(o = (uint32_t)(24 + tex_mipmap->size));
             }

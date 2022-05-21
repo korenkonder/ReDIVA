@@ -93,34 +93,34 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
     enrs_entry ee;
 
     ee = { 0, 2, 56, 1 };
-    ee.sub.push_back({ 0, 1, ENRS_QWORD });
-    ee.sub.push_back({ 0, 12, ENRS_DWORD });
+    ee.append(0, 1, ENRS_QWORD);
+    ee.append(0, 12, ENRS_DWORD);
     e.vec.push_back(ee);
     l += o = 56;
 
     if (a2->version == 7) {
         ee = { 0, 1, 4, 1 };
-        ee.sub.push_back({ 0, 1, ENRS_DWORD });
+        ee.append(0, 1, ENRS_DWORD);
         e.vec.push_back(ee);
         l += o = 4;
     }
 
     ee = { 0, 1, 4, 1 };
-    ee.sub.push_back({ 0, 1, ENRS_DWORD });
+    ee.append(0, 1, ENRS_DWORD);
     e.vec.push_back(ee);
     l += o = 4;
 
     if (~a2->data.flags & EFFECT_LOCAL && ext_anim)
         if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA_ANIM) {
             ee = { 0, 1, 12, 1 };
-            ee.sub.push_back({ 0, 3, ENRS_DWORD });
+            ee.append(0, 3, ENRS_DWORD);
             e.vec.push_back(ee);
             l += o = 12;
         }
         else {
             ee = { 0, 2, 140, 1 };
-            ee.sub.push_back({ 0, 1, ENRS_QWORD });
-            ee.sub.push_back({ 0, 1, ENRS_DWORD });
+            ee.append(0, 1, ENRS_QWORD);
+            ee.append(0, 1, ENRS_DWORD);
             e.vec.push_back(ee);
             l += o = 140;
         }
@@ -144,7 +144,7 @@ static bool glitter_effect_pack_file(GLT, f2_struct* st, glitter_effect* a2) {
 
     *(uint64_t*)d = GLT_VAL != Glitter::FT
         ? hash_utf8_murmurhash(a2->name)
-        : hash_utf8_fnv1a64m(a2->name);;
+        : hash_utf8_fnv1a64m(a2->name);
     *(int32_t*)(d + 8) = a2->data.appear_time;
     *(int32_t*)(d + 12) = a2->data.life_time;
     *(int32_t*)(d + 16) = a2->data.start_time;

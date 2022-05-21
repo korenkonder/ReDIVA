@@ -187,7 +187,7 @@ static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h) {
             st->enrs.read(s);
             io_set_position(s, pos + l, SEEK_SET);
         }
-        else if ((sig & 0xF0FFFFFF) == 'POF0') {
+        else if ((sig & 0xFFFFFFF0) == 'POF0') {
             size_t pos = io_get_position(s);
             st->pof.read(s, sig == 'POF1');
             io_set_position(s, pos + l, SEEK_SET);

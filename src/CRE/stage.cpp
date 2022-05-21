@@ -50,8 +50,6 @@ static void task_stage_set_ring(task_stage_info* stg_info, bool value);
 static void task_stage_set_sky(task_stage_info* stg_info, bool value);
 static void task_stage_set_stage_display(task_stage_info* stg_info, bool value);
 
-const task_stage_info task_stage_info_null = { -1, 0 };
-
 stage_detail::TaskStage task_stage;
 DtmStg dtm_stg;
 
@@ -218,12 +216,26 @@ static void stage_detail::TaskStage_CtrlInner(stage_detail::TaskStage* a1) {
     else if (a1->state == 5/* && !sub_1403446E0()*/) {
         std::vector<task_stage_info> vec;
         stage_detail::TaskStage_GetLoadedStageInfos(a1, &vec);
-        if (vec.size())
+        if (vec.size()) {
             stage_detail::TaskStage_SetStage(a1, vec[0]);
+
+            stage* s = stage_detail::TaskStage_GetStage(a1, vec[0]);
+            data_struct* data = rctx_ptr->data;
+            auth_3d_database* auth_3d_db = &data->data_ft.auth_3d_db;
+            for (int32_t& i : s->stage_data->auth_3d_ids) {
+                int32_t id = auth_3d_data_load_uid(i, auth_3d_db);
+                if (id == -1)
+                    continue;
+
+                auth_3d_data_read_file(&id, auth_3d_db);
+                s->auth_3d_ids.push_back(id);
+            }
+        }
         a1->state = 6;
     }
-    else if (a1->state >= 7 && a1->state <= 9)
+    else if (a1->state >= 7 && a1->state <= 9) {
         stage_detail::TaskStage_Unload(a1);
+    }
 }
 
 static void stage_detail::TaskStage_DispShadow(stage_detail::TaskStage* a1) {
@@ -249,7 +261,7 @@ static stage* stage_detail::TaskStage_GetStage(stage_detail::TaskStage* a1, task
 
 static void stage_detail::TaskStage_GetTaskStageInfo(stage_detail::TaskStage* a1,
     task_stage_info* stg_info, size_t index) {
-    *stg_info = task_stage_info_null;
+    *stg_info = {};
     if (index >= 0 && index < TASK_STAGE_STAGE_COUNT) {
         stg_info->load_index = (int16_t)index;
         stg_info->load_counter = a1->stages[index].counter;
@@ -325,7 +337,7 @@ static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {
     }
     else if (a1->state == 5 || a1->state == 6) {
         if (a1->state == 6)
-            stage_detail::TaskStage_SetStage(a1, task_stage_info_null);
+            stage_detail::TaskStage_SetStage(a1, {});
 
         for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
             stage_free(&a1->stages[i]);
@@ -364,7 +376,7 @@ static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* 
     float_t radius = sphere->radius;
 
     shadow* shad = rctx_ptr->draw_pass.shadow_ptr;
-    float_t v9 = shad->field_170 * shad->field_174;
+    float_t v9 = shad->view_region * shad->range;
     if ((center.x + radius) < -v9
         || (center.x - radius) > v9
         || (center.y + radius) < -v9
@@ -401,6 +413,7 @@ static bool stage_ctrl(stage* s) {
 
     for (int32_t& i : s->auth_3d_ids) {
         auth_3d_data_set_enable(&i, true);
+        auth_3d_data_set_paused(&i, false);
         auth_3d_data_set_visibility(&i, s->effect_display);
         auth_3d_data_set_frame_rate(&i, 0);
     }
@@ -569,17 +582,6 @@ static void stage_load(stage* s) {
             rctx_ptr->post_process.movie_texture_set(
                 texture_storage_get_texture(s->stage_data->movie_texture));
         s->state = 6;
-
-        data_struct* data = rctx_ptr->data;
-        auth_3d_database* auth_3d_db = &data->data_ft.auth_3d_db;
-        for (int32_t& i : s->stage_data->auth_3d_ids) {
-            int32_t id = auth_3d_data_load_uid(i, auth_3d_db);
-            if (id == -1)
-                continue;
-
-            auth_3d_data_read_file(&id, auth_3d_db);
-            s->auth_3d_ids.push_back(id);
-        }
     }
 }
 
@@ -804,6 +806,11 @@ void stage_detail::TaskStage::Disp() {
     stage* s = stage_detail::TaskStage_GetCurrentStage(this);
     if (s)
         stage_disp(s);
+}
+
+task_stage_info::task_stage_info() {
+    load_index = -1;
+    load_counter = 0;
 }
 
 DtmStg::DtmStg() : stage_index(), load_stage_index() {

@@ -308,8 +308,8 @@ static void mot_modern_read_inner(mot_set* ms, stream* s) {
     }
 
     mot_data* m = &ms->vec[0];
-    m->div_frames = io_read_uint16_t_stream_reverse_endianness(&s_motc);;
-    m->div_count = io_read_uint8_t(&s_motc);;
+    m->div_frames = io_read_uint16_t_stream_reverse_endianness(&s_motc);
+    m->div_count = io_read_uint8_t(&s_motc);
 
     io_read_string_null_terminated_offset(&s_motc, mh.name_offset, &m->name);
 
@@ -414,28 +414,28 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
 
         if (!ms->is_x) {
             ee = { 0, 3, 48, 1 };
-            ee.sub.push_back({ 0, 1, ENRS_QWORD });
-            ee.sub.push_back({ 0, 7, ENRS_DWORD });
-            ee.sub.push_back({ 0, 1, ENRS_WORD });
+            ee.append(0, 1, ENRS_QWORD);
+            ee.append(0, 7, ENRS_DWORD);
+            ee.append(0, 1, ENRS_WORD);
             e.vec.push_back(ee);
             o = 48;
         }
         else {
             ee = { 0, 3, 64, 1 };
-            ee.sub.push_back({ 0, 7, ENRS_QWORD });
-            ee.sub.push_back({ 0, 1, ENRS_DWORD });
-            ee.sub.push_back({ 0, 1, ENRS_WORD });
+            ee.append(0, 7, ENRS_QWORD);
+            ee.append(0, 1, ENRS_DWORD);
+            ee.append(0, 1, ENRS_WORD);
             e.vec.push_back(ee);
             o = 64;
         };
 
         ee = { o, 1, 4, 1 };
-        ee.sub.push_back({ 0, 2, ENRS_WORD });
+        ee.append(0, 2, ENRS_WORD);
         e.vec.push_back(ee);
         o = 4;
 
         ee = { o, 1, (uint32_t)((m->key_set_count + 3ULL) / 4), 1 };
-        ee.sub.push_back({ 0, (uint32_t)((m->key_set_count + 7ULL) / 8), ENRS_WORD });
+        ee.append(0, (uint32_t)((m->key_set_count + 7ULL) / 8), ENRS_WORD);
         e.vec.push_back(ee);
         o = (m->key_set_count + 3) / 4;
         o = align_val(o, 4);
@@ -444,7 +444,7 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
             mot_key_set_data* mks = &m->key_set[j];
             if (mks->type == MOT_KEY_SET_STATIC) {
                 ee = { o, 1, 4, 1 };
-                ee.sub.push_back({ 0, 1, ENRS_DWORD });
+                ee.append(0, 1, ENRS_DWORD);
                 e.vec.push_back(ee);
                 o = 4;
             }
@@ -469,16 +469,16 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
                 o = align_val(o, 4);
                 ee.size = o;
 
-                ee.sub.push_back({ 0, 2, ENRS_WORD });
+                ee.append(0, 2, ENRS_WORD);
                 if (has_tangents)
-                    ee.sub.push_back({ 0, keys_count, ENRS_DWORD });
+                    ee.append(0, keys_count, ENRS_DWORD);
                 if (data_type == MOT_KEY_SET_DATA_F16) {
-                    ee.sub.push_back({ 0, keys_count, ENRS_WORD });
-                    ee.sub.push_back({ keys_count % 2 == 1 ? 2u : 0u, keys_count, ENRS_WORD });
+                    ee.append(0, keys_count, ENRS_WORD);
+                    ee.append(keys_count % 2 == 1 ? 2u : 0u, keys_count, ENRS_WORD);
                 }
                 else {
-                    ee.sub.push_back({ 0, keys_count, ENRS_DWORD });
-                    ee.sub.push_back({ 0, keys_count, ENRS_WORD });
+                    ee.append(0, keys_count, ENRS_DWORD);
+                    ee.append(0, keys_count, ENRS_WORD);
                 }
                 e.vec.push_back(ee);
             }
@@ -487,20 +487,20 @@ static void mot_modern_write_inner(mot_set* ms, stream* s) {
 
         if (!ms->is_x) {
             ee = { o, 1, (uint32_t)(m->bone_info_count * 4ULL), 1 };
-            ee.sub.push_back({ 0, (uint32_t)m->bone_info_count, ENRS_DWORD });
+            ee.append(0, (uint32_t)m->bone_info_count, ENRS_DWORD);
             e.vec.push_back(ee);
             o = m->bone_info_count * 4;
         }
         else {
             ee = { o, 1, (uint32_t)(m->bone_info_count * 8ULL), 1 };
-            ee.sub.push_back({ 0, (uint32_t)m->bone_info_count, ENRS_QWORD });
+            ee.append(0, (uint32_t)m->bone_info_count, ENRS_QWORD);
             e.vec.push_back(ee);
             o = m->bone_info_count * 8;
         }
         o = align_val(o, 16);
 
         ee = { o, 1,(uint32_t)(m->bone_info_count * 8ULL), 1 };
-        ee.sub.push_back({ 0, (uint32_t)m->bone_info_count, ENRS_QWORD });
+        ee.append(0, (uint32_t)m->bone_info_count, ENRS_QWORD);
         e.vec.push_back(ee);
         o = m->bone_info_count * 8;
 

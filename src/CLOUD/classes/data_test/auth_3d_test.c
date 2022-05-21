@@ -237,34 +237,31 @@ void data_test_auth_3d_test_ctrl(class_data* data) {
                 }
             }
 
-            string obj = string_empty;
+            std::string obj;
             for (size_t i = 0; i < name_len && name_len - i >= 8; i++)
                 if (!memcmp(&name_str[i], "STGPV", 5)) {
-                    string_free(&obj);
-                    string_init_length(&obj, &name_str[i], 8);
+                    obj = std::string(&name_str[i], 8);
                     break;
                 }
 
             for (size_t i = 0; i < name_len && name_len - i >= 10; i++)
                 if (!memcmp(&name_str[i], "STGD2PV", 7)) {
-                    string_free(&obj);
-                    string_init_length(&obj, &name_str[i], 10);
+                    obj = std::string(&name_str[i], 10);
                     break;
                 }
 
-            uint32_t set_id = obj_db->get_object_set_id(string_data(&obj));
+            uint32_t set_id = obj_db->get_object_set_id(obj.c_str());
             if (set_id != (uint32_t)-1) {
                 object_storage_load_set(aft_data, obj_db, set_id);
                 vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &set_id);
             }
 
-            string_add_length(&obj, "HRC", 3);
-            uint32_t hrc_set_id = obj_db->get_object_set_id(string_data(&obj));
+            obj += "HRC";
+            uint32_t hrc_set_id = obj_db->get_object_set_id(obj.c_str());
             if (hrc_set_id != (uint32_t)-1) {
                 object_storage_load_set(aft_data, obj_db, hrc_set_id);
                 vector_old_uint32_t_push_back(&auth_3d_test->obj_set_id, &hrc_set_id);
             }
-            string_free(&obj);
         }
 
         auth_3d_data_load_category(cat->name);

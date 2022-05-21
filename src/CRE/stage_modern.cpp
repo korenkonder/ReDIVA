@@ -50,8 +50,6 @@ static void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool 
 static void task_stage_modern_set_sky(task_stage_modern_info* stg_info, bool value);
 static void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value);
 
-const task_stage_modern_info task_stage_modern_info_null = { -1, 0 };
-
 stage_detail::TaskStageModern task_stage_modern;
 
 extern render_context* rctx_ptr;
@@ -208,12 +206,28 @@ static void stage_detail::TaskStageModern_CtrlInner(stage_detail::TaskStageModer
     else if (a1->state == 5/* && !sub_1403446E0()*/) {
         std::vector<task_stage_modern_info> vec;
         stage_detail::TaskStageModern_GetLoadedStageInfos(a1, &vec);
-        if (vec.size())
+        if (vec.size()) {
             stage_detail::TaskStageModern_SetStage(a1, vec[0]);
+
+            stage_modern* s = stage_detail::TaskStageModern_GetStage(a1, vec[0]);
+            for (uint32_t& i : s->stage_data->auth_3d_ids) {
+                int32_t id = auth_3d_data_load_hash(i, s->stage_data->auth_3d_name_hash,
+                    s->stage_data->auth_3d_name.c_str(), a1->data, a1->obj_db, a1->tex_db);
+                if (id == -1)
+                    continue;
+
+                auth_3d_data_read_file_modern(&id);
+                auth_3d_data_set_enable(&id, true);
+                auth_3d_data_set_paused(&id, false);
+                auth_3d_data_set_frame_rate(&id, 0);
+                s->auth_3d_ids.push_back(id);
+            }
+        }
         a1->state = 6;
     }
-    else if (a1->state >= 7 && a1->state <= 9)
+    else if (a1->state >= 7 && a1->state <= 9) {
         stage_detail::TaskStageModern_Unload(a1);
+    }
 }
 
 static void stage_detail::TaskStageModern_DispShadow(stage_detail::TaskStageModern* a1) {
@@ -240,7 +254,7 @@ static stage_modern* stage_detail::TaskStageModern_GetStage(stage_detail::TaskSt
 
 static void stage_detail::TaskStageModern_GetTaskStageModernInfo(stage_detail::TaskStageModern* a1,
     task_stage_modern_info* stg_info, size_t index) {
-    *stg_info = task_stage_modern_info_null;
+    *stg_info = {};
     if (index >= 0 && index < TASK_STAGE_STAGE_COUNT) {
         stg_info->load_index = (int16_t)index;
         stg_info->load_counter = a1->stages[index].counter;
@@ -317,7 +331,7 @@ static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* 
     }
     else if (a1->state == 5 || a1->state == 6) {
         if (a1->state == 6)
-            stage_detail::TaskStageModern_SetStage(a1, task_stage_modern_info_null);
+            stage_detail::TaskStageModern_SetStage(a1, {});
 
         for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
             stage_modern_free(&a1->stages[i]);
@@ -356,7 +370,7 @@ static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* 
     float_t radius = sphere->radius;
 
     shadow* shad = rctx_ptr->draw_pass.shadow_ptr;
-    float_t v9 = shad->field_170 * shad->field_174;
+    float_t v9 = shad->view_region * shad->range;
     if ((center.x + radius) < -v9
         || (center.x - radius) > v9
         || (center.y + radius) < -v9
@@ -539,18 +553,6 @@ static void stage_modern_load(stage_modern* s, void* data, object_database* obj_
             rctx_ptr->post_process.movie_texture_set(
                 texture_storage_get_texture(s->stage_data->movie_texture));
         s->state = 6;
-
-        for (uint32_t& i : s->stage_data->auth_3d_ids) {
-            int32_t id = auth_3d_data_load_hash(i, s->stage_data->auth_3d_name_hash,
-                s->stage_data->auth_3d_name.c_str(), data, obj_db, tex_db);
-            if (id == -1)
-                continue;
-
-            auth_3d_data_read_file_modern(&id);
-            auth_3d_data_set_enable(&id, true);
-            auth_3d_data_set_frame_rate(&id, 0);
-            s->auth_3d_ids.push_back(id);
-        }
     }
 }
 
@@ -730,4 +732,9 @@ void stage_detail::TaskStageModern::Disp() {
     stage_modern* s = stage_detail::TaskStageModern_GetCurrentStage(this);
     if (s)
         stage_modern_disp(s);
+}
+
+task_stage_modern_info::task_stage_modern_info() {
+    load_index = -1;
+    load_counter = 0;
 }

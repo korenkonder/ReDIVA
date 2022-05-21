@@ -138,7 +138,7 @@ extern void mat4_scale_x_mult(const mat4* x, float_t y, mat4* z);
 extern void mat4_scale_y_mult(const mat4* x, float_t y, mat4* z);
 extern void mat4_scale_z_mult(const mat4* x, float_t y, mat4* z);
 extern void mat4_scale_w_mult(const mat4* x, float_t y, mat4* z);
-extern void mat4_scale_rot(const mat4* s, float_t x, float_t y, float_t z, mat4* d);;
+extern void mat4_scale_rot(const mat4* s, float_t x, float_t y, float_t z, mat4* d);
 extern void mat4_scale_x_rot(const mat4* x, float_t y, mat4* z);
 extern void mat4_scale_y_rot(const mat4* x, float_t y, mat4* z);
 extern void mat4_scale_z_rot(const mat4* x, float_t y, mat4* z);

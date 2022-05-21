@@ -24,6 +24,7 @@ namespace Glitter {
         mat = mat4_identity;
         flags = (EffectInstFlag)0;
         random = 0;
+        min_color = vec4u_null;
 
         if (appear_now)
             data.appear_time = 0;
@@ -313,7 +314,7 @@ namespace Glitter {
         mat4 mat;
         int32_t chara_id;
 
-        if (this->flags & EFFECT_INST_CHARA_ANIM) {
+        if (flags & EFFECT_INST_CHARA_ANIM) {
             rob_chara* rob_chr = rob_chara_array_get(ext_anim->chara_index);
             if (!rob_chr)
                 return;
@@ -322,13 +323,13 @@ namespace Glitter {
 
             vec3 scale;
             mat4_get_scale(&mat, &scale);
-            vec3_sub_scalar(scale, 1.0f, this->ext_anim_scale);
-            this->ext_anim_scale.z = 0.0f;
-            enum_or(this->flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
+            vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
+            ext_anim_scale.z = 0.0f;
+            enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
 
             int32_t bone_index = ext_anim->bone_index;
             if (bone_index == -1) {
-                if (this->flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
+                if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
                     ext_anim->mat = mat4_identity;
                     mat4_get_translation(&mat, &ext_anim->translation);
                 }
@@ -341,7 +342,7 @@ namespace Glitter {
                     return;
 
                 mat4_mult(bone_mat, &mat, &mat);
-                if (this->flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
+                if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
                     ext_anim->mat = mat4_identity;
                     mat4_get_translation(&mat, &ext_anim->translation);
                 }
@@ -351,7 +352,7 @@ namespace Glitter {
             goto SetFlags;
         }
 
-        if (~this->flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
+        if (~flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
             if (ext_anim->mesh_index == -1) {
                 if (!ext_anim->mesh_name)
                     return;
@@ -397,9 +398,9 @@ namespace Glitter {
 
                 vec3 scale;
                 mat4_get_scale(&mat, &scale);
-                vec3_sub_scalar(scale, 1.0f, this->ext_anim_scale);
-                this->ext_anim_scale.z = 0.0f;
-                enum_or(this->flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
+                vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
+                ext_anim_scale.z = 0.0f;
+                enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
             }
         }
 
@@ -421,7 +422,7 @@ namespace Glitter {
         }
         else {
             mat4_mult(obj_mat, &mat, &mat);
-            if (this->flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
+            if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
                 ext_anim->mat = mat4_identity;
                 mat4_get_translation(&mat, &ext_anim->translation);
             }
@@ -432,9 +433,9 @@ namespace Glitter {
         return;
 
     SetFlags:
-        if (this->flags & EFFECT_INST_HAS_EXT_ANIM_NON_INIT) {
-            enum_and(this->flags, ~EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
-            enum_or(this->flags, EFFECT_INST_HAS_EXT_ANIM_TRANS);
+        if (flags & EFFECT_INST_HAS_EXT_ANIM_NON_INIT) {
+            enum_and(flags, ~EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
+            enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_TRANS);
         }
     }
 
@@ -450,49 +451,80 @@ namespace Glitter {
 
             switch (curve->type) {
             case CURVE_TRANSLATION_X:
-                this->translation.x = value;
+                translation.x = value;
                 break;
             case CURVE_TRANSLATION_Y:
-                this->translation.y = value;
+                translation.y = value;
                 break;
             case CURVE_TRANSLATION_Z:
-                this->translation.z = value;
+                translation.z = value;
                 break;
             case CURVE_ROTATION_X:
-                this->rotation.x = value;
+                rotation.x = value;
                 break;
             case CURVE_ROTATION_Y:
-                this->rotation.y = value;
+                rotation.y = value;
                 break;
             case CURVE_ROTATION_Z:
-                this->rotation.z = value;
+                rotation.z = value;
                 break;
             case CURVE_SCALE_X:
-                this->scale.x = value;
+                scale.x = value;
                 break;
             case CURVE_SCALE_Y:
-                this->scale.y = value;
+                scale.y = value;
                 break;
             case CURVE_SCALE_Z:
-                this->scale.z = value;
+                scale.z = value;
                 break;
             case CURVE_SCALE_ALL:
-                this->scale_all = value;
+                scale_all = value;
                 break;
             //case CURVE_COLOR_R:
-            //    this->color.x = value;
+            //    color.x = value;
             //    break;
             //case CURVE_COLOR_G:
-            //    this->color.y = value;
+            //    color.y = value;
             //    break;
             //case CURVE_COLOR_B:
-            //    this->color.z = value;
+            //    color.z = value;
             //    break;
             //case CURVE_COLOR_A:
-            //    this->color.w = value;
+            //    color.w = value;
             //    break;
             }
         }
+    }
+
+    void F2EffectInst::SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+        if (~flags & EFFECT_INST_SET_ADD_MIN_COLOR)
+            return;
+
+        if (flags & EFFECT_INST_SET_MIN_COLOR) {
+            if (min_color.x >= 0.0f)
+                r = min_color.x;
+            if (min_color.y >= 0.0f)
+                g = min_color.y;
+            if (min_color.z >= 0.0f)
+                b = min_color.z;
+            if (min_color.w >= 0.0f)
+                a = min_color.w;
+        }
+        else {
+            r = min_color.x + r;
+            g = min_color.y + g;
+            b = min_color.z + b;
+            a = min_color.w + a;
+        }
+
+        if (r < 0.0f)
+            r = 0.0f;
+        if (g < 0.0f)
+            g = 0.0f;
+        if (b < 0.0f)
+            b = 0.0f;
+        if (a < 0.0f)
+            a = 0.0f;
     }
 
     int32_t EffectInst::GetExtAnimBoneIndex(EffectExtAnimCharaNode node) {
@@ -527,9 +559,9 @@ namespace Glitter {
             "kl_toe_r_wj"
         };
 
-        const char* bone_name = bone_names[node];
+        uint64_t bone_name_hash = hash_utf8_fnv1a64m(bone_names[node]);
         for (std::string& i : *motion_bone_names)
-            if (!str_utils_compare(bone_name, i.c_str()))
+            if (bone_name_hash == hash_string_fnv1a64m(&i))
                 return (int32_t)(&i - motion_bone_names->data());
         return -1;
     }
@@ -1025,5 +1057,40 @@ namespace Glitter {
         }
         enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_TRANS);
         this->flags = flags;
+    }
+
+    void XEffectInst::SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+        if (~flags & EFFECT_INST_SET_ADD_MIN_COLOR)
+            return;
+
+        if (flags & EFFECT_INST_SET_MIN_COLOR) {
+            if (min_color.x >= 0.0f)
+                r = min_color.x;
+            if (min_color.y >= 0.0f)
+                g = min_color.y;
+            if (min_color.z >= 0.0f)
+                b = min_color.z;
+            if (min_color.w >= 0.0f)
+                a = min_color.w;
+        }
+        else {
+            if (min_color.x >= 0.0f)
+                r *= min_color.x;
+            if (min_color.y >= 0.0f)
+                g *= min_color.y;
+            if (min_color.z >= 0.0f)
+                b *= min_color.z;
+            if (min_color.w >= 0.0f)
+                a *= min_color.w;
+        }
+
+        if (r < 0.0f)
+            r = 0.0f;
+        if (g < 0.0f)
+            g = 0.0f;
+        if (b < 0.0f)
+            b = 0.0f;
+        if (a < 0.0f)
+            a = 0.0f;
     }
 }

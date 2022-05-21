@@ -35,7 +35,7 @@ struct pv_play_data_set_motion {
     float_t duration;
     bool field_10;
     MotionBlendType blend_type;
-    bool field_18;
+    bool disable_eye_motion;
     int32_t motion_index;
     int64_t dsc_time;
     float_t dsc_frame;
@@ -209,6 +209,8 @@ public:
     std::vector<x_pv_game_stage_effect_init> stage_effects;
     x_pv_game_stage_effect_init* stage_effects_ptr;
     x_pv_game_stage_effect_init* stage_effects_ptr_end;
+
+    std::map<int32_t, std::set<int32_t>> pv_auth_3d_chara_count;
 
     bool play;
     bool success;

@@ -59,14 +59,9 @@ bool item_table_array_load_file(void* data, const char* path, const char* file, 
     if (t)
         file_len = t - file;
 
-    string s;
-    string_init(&s, path);
-    string_add_length(&s, file, file_len);
+    std::string s = path + std::string(file, file_len);
 
-    bool ret = item_table_array_read((data_struct*)data, string_data(&s));
-
-    string_free(&s);
-    return ret;
+    return item_table_array_read((data_struct*)data, s.c_str());
 }
 
 void item_table_array_free() {

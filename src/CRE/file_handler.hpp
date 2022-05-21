@@ -28,7 +28,7 @@ struct file_handler {
     std::string farc_file;
     std::string file;
     bool cache;
-    file_handler_read_func_data read_free_func[2];
+    file_handler_read_func_data callback[2];
     ssize_t size;
     void* data;
     void* ds;
@@ -36,12 +36,12 @@ struct file_handler {
     file_handler();
     virtual ~file_handler();
 
-    void call_read_free_func(int32_t index);
+    void call_callback(int32_t index);
     void free_data_lock();
     void set_file(const char* file);
     void set_farc_file(const char* farc_file, bool cache);
     void set_path(const char* path);
-    void set_read_free_func_data(int32_t index, void(*func)(void*, void*, size_t), void* data);
+    void set_callback_data(int32_t index, void(*func)(void*, void*, size_t), void* data);
 };
 
 struct p_file_handler {
@@ -59,7 +59,7 @@ struct p_file_handler {
     bool read_file(void* data, const char* path, const char* file);
     bool read_file(void* data, const char* path, uint32_t hash, const char* ext);
     void read_now();
-    void set_read_free_func_data(int32_t index, void(* func)(void*, void*, size_t), void* data);
+    void set_callback_data(int32_t index, void(* func)(void*, void*, size_t), void* data);
 };
 
 extern void file_handler_storage_init();

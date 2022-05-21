@@ -918,7 +918,7 @@ static void data_view_auth_3d_imgui_auth_3d_object_texture_transform(auth_3d_obj
     if (ott->flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_U)
         data_view_auth_3d_imgui_auth_3d_key(&ott->translate_frame_u, "Translate Frame U:", false);
     if (ott->flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_V)
-        data_view_auth_3d_imgui_auth_3d_key(&ott->translate_frame_v, "Translate Frame V:", false);;
+        data_view_auth_3d_imgui_auth_3d_key(&ott->translate_frame_v, "Translate Frame V:", false);
     ImGui::TreePop();
 }
 

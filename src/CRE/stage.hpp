@@ -64,6 +64,8 @@ namespace stage_detail {
 struct task_stage_info {
     int16_t load_index;
     uint16_t load_counter;
+
+    task_stage_info();
 };
 
 class DtmStg : public Task {

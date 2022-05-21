@@ -117,27 +117,6 @@ bool itm_table::load_file(void* data, const char* path, const char* file, uint32
     return itm_tbl->ready;
 }
 
-const char* chara_index_get_name(chara_index chara_index) {
-    if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
-        return 0;
-
-    const char* chara_names[] = {
-        "MIKU",
-        "RIN",
-        "LEN",
-        "LUKA",
-        "NERU",
-        "HAKU",
-        "KAITO",
-        "MEIKO",
-        "SAKINE",
-        "TETO",
-        "EXTRA",
-    };
-
-    return chara_names[chara_index];
-}
-
 const char* chara_index_get_auth_3d_name(chara_index chara_index) {
     if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
         return 0;
@@ -154,6 +133,69 @@ const char* chara_index_get_auth_3d_name(chara_index chara_index) {
         "SAK",
         "TET",
         "EXT",
+    };
+
+    return chara_names[chara_index];
+}
+
+const char* chara_index_get_chara_name(chara_index chara_index) {
+    if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
+        return 0;
+
+    const char* chara_names[] = {
+        "MIK",
+        "RIN",
+        "LEN",
+        "LUK",
+        "NER",
+        "HAK",
+        "KAI",
+        "MEI",
+        "SAK",
+        "TET",
+        "EXT",
+    };
+
+    return chara_names[chara_index];
+}
+
+const char* chara_index_get_face_mot_name(chara_index chara_index) {
+    if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
+        return 0;
+
+    const char* chara_names[] = {
+        "MIK",
+        "RIN",
+        "LEN",
+        "LUK",
+        "NER",
+        "HAK",
+        "KAI",
+        "MEI",
+        "SAK",
+        "TET",
+        "EXT",
+    };
+
+    return chara_names[chara_index];
+}
+
+const char* chara_index_get_name(chara_index chara_index) {
+    if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
+        return 0;
+
+    const char* chara_names[] = {
+        "MIKU",
+        "RIN",
+        "LEN",
+        "LUKA",
+        "NERU",
+        "HAKU",
+        "KAITO",
+        "MEIKO",
+        "SAKINE",
+        "TETO",
+        "EXTRA",
     };
 
     return chara_names[chara_index];

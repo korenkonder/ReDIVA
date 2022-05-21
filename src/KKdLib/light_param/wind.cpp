@@ -98,14 +98,11 @@ bool light_param_wind::load_file(void* data, const char* path, const char* file,
     if (t)
         file_len = t - file;
 
-    string s;
-    string_init(&s, path);
-    string_add_length(&s, file, file_len);
+    std::string s = path + std::string(file, file_len);
 
     light_param_wind* wind = (light_param_wind*)data;
-    wind->read(string_data(&s));
+    wind->read(s.c_str());
 
-    string_free(&s);
     return wind->ready;
 }
 

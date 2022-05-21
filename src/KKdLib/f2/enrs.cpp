@@ -34,6 +34,14 @@ enrs_entry::~enrs_entry() {
 
 }
 
+void enrs_entry::append(uint32_t skip_bytes, uint32_t repeat_count, enrs_type type) {
+    sub.push_back({ skip_bytes, repeat_count, type });
+}
+
+void enrs_entry::append(enrs_sub_entry&& data) {
+    sub.push_back(data);
+}
+
 enrs::enrs() {
 
 }

@@ -1821,7 +1821,7 @@ static void sub_140505C90(struc_264* a1) {
     a1->field_94 = 0;
     a1->field_98 = 0;
     a1->field_9C = 0;
-    a1->field_A0 = 0;;
+    a1->field_A0 = 0;
     a1->field_A4 = 0;
     a1->field_A5 = 0;
     a1->field_A8 = 0;
