@@ -1833,6 +1833,15 @@ bool auth_3d_data_check_category_loaded(uint32_t category_hash) {
     return auth_3d_data_struct_check_category_loaded(auth_3d_data, category_hash);
 }
 
+bool auth_3d_data_check_id_loaded(int32_t* id) {
+    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
+        if (auth->id == *id)
+            return auth->state == 2;
+    }
+    return true;
+}
+
 auth_3d* auth_3d_data_get_auth_3d(int32_t id) {
     int32_t index = 0;
     while (auth_3d_data->data[index].id != id)
@@ -1882,18 +1891,14 @@ int32_t auth_3d_data_get_auth_3d_id(uint32_t file_name_hash, uint32_t object_has
             continue;
 
         auth_3d* auth = &auth_3d_data->data[i & 0x7FFF];
-        if (auth->id != i || !auth->enable
-            || (file_name_hash != hash_murmurhash_empty && auth->hash != file_name_hash))
+        if (auth->id != i || !auth->enable)
             continue;
 
-        int32_t obj_hrc_index = auth_3d_get_auth_3d_object_hrc_index_by_hash(
-            auth, object_hash, instance);
-        if (obj_hrc_index >= 0) {
-            if (object_index)
-                *object_index = obj_hrc_index;
-            if (hrc)
-                *hrc = true;
-            return i;
+        bool ret = false;
+        if (file_name_hash != hash_murmurhash_empty) {
+            if (auth->hash != file_name_hash)
+                continue;
+            ret = true;
         }
 
         int32_t obj_index = auth_3d_get_auth_3d_object_index_by_hash(
@@ -1905,6 +1910,19 @@ int32_t auth_3d_data_get_auth_3d_id(uint32_t file_name_hash, uint32_t object_has
                 *hrc = false;
             return i;
         }
+
+        int32_t obj_hrc_index = auth_3d_get_auth_3d_object_hrc_index_by_hash(
+            auth, object_hash, instance);
+        if (obj_hrc_index >= 0) {
+            if (object_index)
+                *object_index = obj_hrc_index;
+            if (hrc)
+                *hrc = true;
+            return i;
+        }
+
+        if (ret)
+            return -1;
     }
     return -1;
 }

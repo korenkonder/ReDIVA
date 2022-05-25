@@ -796,6 +796,7 @@ extern void auth_3d_data_init();
 extern bool auth_3d_data_check_id_not_empty(int32_t* id);
 extern bool auth_3d_data_check_category_loaded(const char* category_name);
 extern bool auth_3d_data_check_category_loaded(uint32_t category_hash);
+extern bool auth_3d_data_check_id_loaded(int32_t* id);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t id);
 extern int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
     int32_t* object_index, bool* hrc, int32_t instance);

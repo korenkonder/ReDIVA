@@ -635,8 +635,12 @@ namespace Glitter {
         }
 
         vec3 ext_anim_scale;
-        if (rend_group->GetExtAnimScale(&ext_anim_scale)) {
-            vec2_add(*(vec2*)&ext_anim_scale, vec2_identity, *(vec2*)&ext_anim_scale);
+        float_t some_scale = 0.0f;
+        if (rend_group->GetExtAnimScale(&ext_anim_scale, &some_scale)) {
+            if (some_scale <= 0.0f)
+                some_scale = 1.0f;
+
+            vec2_add_scalar(*(vec2*)&ext_anim_scale, some_scale, *(vec2*)&ext_anim_scale);
             x_vec.x *= ext_anim_scale.x;
             y_vec.y *= ext_anim_scale.y;
         }
@@ -1449,12 +1453,19 @@ namespace Glitter {
         }
 
         vec3 ext_anim_scale;
-        if (rend_group->GetExtAnimScale(&ext_anim_scale)) {
+        float_t some_scale = 0.0f;
+        if (rend_group->GetExtAnimScale(&ext_anim_scale, &some_scale)) {
             if (!has_scale) {
                 emit_scale = vec3_identity;
                 has_scale = true;
             }
-            vec3_add(emit_scale, ext_anim_scale, emit_scale);
+
+            if (some_scale >= 0.0f) {
+                vec3_add_scalar(ext_anim_scale, some_scale, ext_anim_scale);
+                vec3_mult(emit_scale, ext_anim_scale, emit_scale);
+            }
+            else
+                vec3_add(emit_scale, ext_anim_scale, emit_scale);
         }
 
         render_context* rctx = (render_context*)GPM_VAL->rctx;
@@ -1786,11 +1797,15 @@ namespace Glitter {
             emitter_local = true;
         }
 
-        vec3 ext_scale;
-        if (rend_group->GetExtAnimScale(&ext_scale)) {
-            vec2_add(*(vec2*)&ext_scale, vec2_identity, *(vec2*)&ext_scale);
-            x_vec.x *= ext_scale.x;
-            y_vec.y *= ext_scale.y;
+        vec3 ext_anim_scale;
+        float_t some_scale = 0.0f;
+        if (rend_group->GetExtAnimScale(&ext_anim_scale, &some_scale)) {
+            if (some_scale <= 0.0f)
+                some_scale = 1.0f;
+
+            vec2_add_scalar(*(vec2*)&ext_anim_scale, some_scale, *(vec2*)&ext_anim_scale);
+            x_vec.x *= ext_anim_scale.x;
+            y_vec.y *= ext_anim_scale.y;
         }
 
         if (rend_group->draw_type != DIRECTION_BILLBOARD) {

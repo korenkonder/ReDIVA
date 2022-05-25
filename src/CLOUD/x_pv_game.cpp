@@ -353,9 +353,9 @@ bool x_pv_game::Ctrl() {
             wait_load = true;
 
         if (!wait_load)
-            state = 9;
+            state = 7;
     } break;
-    case 9: {
+    case 7: {
         data_struct* x_data = &data_list[DATA_X];
 
         for (uint32_t& i : objset_load) {
@@ -409,10 +409,8 @@ bool x_pv_game::Ctrl() {
                     light_auth_3d_id = auth_3d_data_load_uid(
                         (int32_t)(&i - auth_3d_db->uid.data()), auth_3d_db);
                     auth_3d_data_read_file(&light_auth_3d_id, auth_3d_db);
-                    auth_3d_data_set_camera_root_update(&light_auth_3d_id, false);
-                    auth_3d_data_set_enable(&light_auth_3d_id, true);
-                    auth_3d_data_set_paused(&light_auth_3d_id, false);
-                    auth_3d_data_set_visibility(&light_auth_3d_id, true);
+                    auth_3d_data_set_enable(&light_auth_3d_id, false);
+                    auth_3d_data_set_visibility(&light_auth_3d_id, false);
                     break;
                 }
         }
@@ -428,10 +426,8 @@ bool x_pv_game::Ctrl() {
             camera_auth_3d_id = auth_3d_data_load_hash(camera_auth_3d_hash,
                 camera_category_hash, camera_category.c_str(), x_data, &obj_db, &tex_db);
             auth_3d_data_read_file_modern(&camera_auth_3d_id);
-            auth_3d_data_set_repeat(&camera_auth_3d_id, false);
-            auth_3d_data_set_enable(&camera_auth_3d_id, true);
-            auth_3d_data_set_paused(&camera_auth_3d_id, false);
-            auth_3d_data_set_visibility(&camera_auth_3d_id, true);
+            auth_3d_data_set_enable(&camera_auth_3d_id, false);
+            auth_3d_data_set_visibility(&camera_auth_3d_id, false);
         }
 
         for (auto i : effchrpv_auth_3d_names) {
@@ -454,7 +450,44 @@ bool x_pv_game::Ctrl() {
             effchrpv_auth_3d_mot_ids.insert({ hash, id });
         }
 
+        state = 8;
+    } break;
+    case 8: {
+        bool wait_load = false;
+
+        for (auto i : pv_auth_3d_ids)
+            if (!auth_3d_data_check_id_loaded(&i.second))
+                wait_load = true;
+
+        for (auto i : stage_auth_3d_ids)
+            if (!auth_3d_data_check_id_loaded(&i.second))
+                wait_load = true;
+
+        if (!auth_3d_data_check_id_loaded(&light_auth_3d_id))
+            wait_load = true;
+
+        if (!auth_3d_data_check_id_loaded(&camera_auth_3d_id))
+            wait_load = true;
+
+        for (auto i : effchrpv_auth_3d_ids)
+            if (!auth_3d_data_check_id_loaded(&i.second))
+                wait_load = true;
+
+        for (auto i : stage_auth_3d_ids)
+            if (!auth_3d_data_check_id_loaded(&i.second))
+                wait_load = true;
+
+        for (auto i : effchrpv_auth_3d_mot_ids)
+            if (!auth_3d_data_check_id_loaded(&i.second))
+                wait_load = true;
+
+        if (!wait_load)
+            state = 9;
+    } break;
+    case 9: {
         {
+            data_struct* x_data = &data_list[DATA_X];
+
             dsc dsc_mouth;
             dsc dsc_scene;
             dsc dsc_system;
@@ -697,6 +730,18 @@ bool x_pv_game::Ctrl() {
 
         x_pv_game_stage_effect_ctrl(this);
 
+        auth_3d_data_set_enable(&light_auth_3d_id, true);
+        auth_3d_data_set_camera_root_update(&light_auth_3d_id, false);
+        auth_3d_data_set_paused(&light_auth_3d_id, false);
+        auth_3d_data_set_repeat(&camera_auth_3d_id, false);
+        auth_3d_data_set_visibility(&light_auth_3d_id, true);
+
+        auth_3d_data_set_enable(&camera_auth_3d_id, true);
+        auth_3d_data_set_camera_root_update(&light_auth_3d_id, true);
+        auth_3d_data_set_paused(&camera_auth_3d_id, false);
+        auth_3d_data_set_repeat(&camera_auth_3d_id, false);
+        auth_3d_data_set_visibility(&camera_auth_3d_id, true);
+
         if (pv_id == 826) {
             data_struct* aft_data = &data_list[DATA_AFT];
             bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
@@ -745,11 +790,15 @@ bool x_pv_game::Ctrl() {
             }
         }
 
-        if (pv_id == 826) {
+        /*if (pv_id == 826) {
             extern int32_t global_ctrl_frames;
-            global_ctrl_frames = 10;
+            global_ctrl_frames = 5110;
         }
-        else
+        else if (pv_id == 822) {
+            extern int32_t global_ctrl_frames;
+            global_ctrl_frames = 2600;
+        }
+        else*/
             pause = true;
     } break;
     case 10: {
@@ -769,8 +818,10 @@ bool x_pv_game::Ctrl() {
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
-        if (pv_id == 826 && frame == 10)
+        /*if (pv_id == 826 && frame == 5110)
             pause = true;
+        else if (pv_id == 822 && frame == 2600)
+            pause = true;*/
 
         while (dsc_data_ptr != dsc_data_ptr_end
             && x_pv_game_dsc_process(this, time))

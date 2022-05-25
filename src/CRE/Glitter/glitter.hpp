@@ -773,6 +773,8 @@ namespace Glitter {
         size_t id;
         uint32_t random;
         vec4u min_color;
+        vec3 ext_anim_scale;
+        float_t some_scale;
 
         EffectInst(GPM, GLT, Effect* eff,
             size_t id, float_t emission, bool appear_now);
@@ -820,7 +822,6 @@ namespace Glitter {
         std::vector<F2EmitterInst*> emitters;
         Random* random_ptr;
         ExtAnim* ext_anim;
-        vec3 ext_anim_scale;
         F2RenderScene render_scene;
 
         F2EffectInst(GPM, GLT, Effect* eff, size_t id, float_t emission, bool appear_now);
@@ -872,7 +873,6 @@ namespace Glitter {
         mat4 mat_rot_eff_rot;
         Random random_shared;
         ExtAnim* ext_anim;
-        vec3 ext_anim_scale;
         XRenderScene render_scene;
 
         XEffectInst(GPM, Effect* eff, size_t id, float_t emission, bool appear_now);
@@ -1256,7 +1256,7 @@ namespace Glitter {
             F2EmitterInst* emit_inst, int32_t dup_count, int32_t count);
         void Free();
         void FreeData();
-        bool GetExtAnimScale(vec3* ext_anim_scale);
+        bool GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale);
 
         static mat4 RotateToEmitPosition(F2RenderGroup* rend_group,
             RenderElement* rend_elem, vec3* vec);
@@ -1283,7 +1283,7 @@ namespace Glitter {
         void Free();
         void FreeData();
         bool GetEmitterScale(vec3* emitter_scale);
-        bool GetExtAnimScale(vec3* ext_anim_scale);
+        bool GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale);
 
         static mat4 RotateMeshToEmitPosition(XRenderGroup* rend_group,
             RenderElement* rend_elem, vec3* vec, vec3* trans);

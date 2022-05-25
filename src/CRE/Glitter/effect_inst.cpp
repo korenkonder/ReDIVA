@@ -25,6 +25,8 @@ namespace Glitter {
         flags = (EffectInstFlag)0;
         random = 0;
         min_color = vec4u_null;
+        ext_anim_scale = vec3_null;
+        some_scale = -1.0f;
 
         if (appear_now)
             data.appear_time = 0;
@@ -68,7 +70,6 @@ namespace Glitter {
         : EffectInst(GPM_VAL, GLT_VAL, eff, id, emission, appear_now) {
         random_ptr = &GPM_VAL->random;
         ext_anim = 0;
-        ext_anim_scale = vec3_null;
 
         if (~eff->data.flags & EFFECT_LOCAL && data.ext_anim) {
             F2EffectInst::ExtAnim* inst_ext_anim = new F2EffectInst::ExtAnim;
@@ -394,10 +395,8 @@ namespace Glitter {
         if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
             rob_chara* rob_chr = rob_chara_array_get(chara_id);
             if (rob_chr) {
-                mat = rob_chr->data.adjust_data.mat;
-
                 vec3 scale;
-                mat4_get_scale(&mat, &scale);
+                mat4_get_scale(&rob_chr->data.adjust_data.mat, &scale);
                 vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
                 ext_anim_scale.z = 0.0f;
                 enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
@@ -590,7 +589,6 @@ namespace Glitter {
         mat_rot_eff_rot = mat4_identity;
         random_shared.XReset();
         ext_anim = 0;
-        ext_anim_scale = vec3_null;
         render_scene = {};
 
         if (data.flags & EFFECT_USE_SEED)
@@ -680,37 +678,37 @@ namespace Glitter {
     }
 
     void XEffectInst::Ctrl(GPM, GLT, float_t delta_frame, float_t emission) {
-        mat4 mat;
-        vec3 trans;
-        vec3 rot;
-        vec3 scale;
-
         GetExtAnim();
         if (flags & EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE && !GPM_VAL->draw_all)
             return;
 
         GetValue();
-        trans = translation;
-        rot = rotation;
-        vec3_mult_scalar(this->scale, scale_all, scale);
 
+        mat4 mat;
         if (flags & EFFECT_INST_HAS_EXT_ANIM_TRANS && ext_anim) {
-            vec3 ext_trans;
-            ext_trans = ext_anim->translation;
-            mat4_translate_mult(&ext_anim->mat, ext_trans.x, ext_trans.y, ext_trans.z, &mat);
-            mat4_normalize_rotation(&mat, &mat_rot);
+            mat4_normalize_rotation(&ext_anim->mat, &mat_rot);
             mat4_clear_trans(&mat_rot, &mat_rot);
-            mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &mat_rot_eff_rot);
+
+            vec3 ext_trans = ext_anim->translation;
+            mat4_translate_mult(&ext_anim->mat, ext_trans.x, ext_trans.y, ext_trans.z, &mat);
+            vec3 trans = translation;
             mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
         }
         else {
             mat_rot = mat4_identity;
-            mat4_rotate(rot.x, rot.y, rot.z, &mat_rot_eff_rot);
+            vec3 trans = translation;
             mat4_translate(trans.x, trans.y, trans.z, &mat);
         }
 
+        vec3 rot = rotation;
+        vec3 scale;
+        vec3_mult_scalar(this->scale, scale_all, scale);
+
+        mat4_rotate(rot.x, rot.y, rot.z, &mat_rot_eff_rot);
+
         mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &this->mat);
+
         for (XEmitterInst*& i : emitters)
             if (i)
                 i->Ctrl(GPM_VAL, this, delta_frame);
@@ -894,6 +892,7 @@ namespace Glitter {
                 SetExtAnim(&temp, 0, 0, set_flags);
         }
         else if (flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
+            mat4 m = mat4_identity ;
             mat4 temp;
             mat4* mat = 0;
             if (ext_anim->a3da_id != -1)
@@ -914,10 +913,17 @@ namespace Glitter {
                     return;
             }
 
-            mat4_get_scale(mat, &scale);
-            vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
-            ext_anim_scale.z = 0.0f;
-            enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
+            int32_t chara_id = auth_3d_data_get_chara_id(ext_anim->a3da_id);
+            if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
+                rob_chara* rob_chr = rob_chara_array_get(ext_anim->chara_index);
+                if (rob_chr) {
+                    vec3 scale;
+                    mat4_get_scale(&rob_chr->data.adjust_data.mat, &scale);
+                    vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
+                    ext_anim_scale.z = 0.0f;
+                    enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
+                }
+            }
 
             if (ext_anim->mesh_name) {
                 if (ext_anim->mesh_index == -1)
@@ -929,12 +935,12 @@ namespace Glitter {
                         ext_anim->object_hash, ext_anim->mesh_index);
                     if (mesh) {
                         vec3* trans = &mesh->bounding_sphere.center;
-                        SetExtAnim(mat, 0, trans, true);
+                        SetExtAnim(&m, mat, trans, true);
                     }
                 }
             }
             else
-                SetExtAnim(mat, 0, 0, true);
+                SetExtAnim(&m, mat, 0, true);
 
         }
         else if (ext_anim->object_hash != hash_murmurhash_empty) {
@@ -1012,7 +1018,7 @@ namespace Glitter {
             }
         }
     }
-
+    
     void XEffectInst::SetExtAnim(mat4* a2, mat4* a3, vec3* trans, bool set_flags) {
         EffectInstFlag flags = this->flags;
         if (a2) {
@@ -1022,7 +1028,7 @@ namespace Glitter {
 
             if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
                 ext_anim->mat = mat4_identity;
-                ext_anim->translation = *(vec3*)&mat.row3;
+                mat4_get_translation(&mat, &ext_anim->translation);
             }
             else
                 ext_anim->mat = mat;

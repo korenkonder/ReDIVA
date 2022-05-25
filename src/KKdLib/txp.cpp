@@ -322,7 +322,7 @@ bool txp_set::produce_enrs(enrs* enrs) {
 }
 
 bool txp_set::unpack_file(void* data, bool big_endian) {
-    uint32_t sign;
+    uint32_t signature;
     uint32_t tex_count;
     txp* tex;
     txp_mipmap* tex_mipmap;
@@ -336,11 +336,11 @@ bool txp_set::unpack_file(void* data, bool big_endian) {
         return false;
 
     if (big_endian)
-        sign = load_reverse_endianness_uint32_t((void*)data);
+        signature = load_reverse_endianness_uint32_t((void*)data);
     else
-        sign = *(uint32_t*)data;
+        signature = *(uint32_t*)data;
 
-    if (sign != 0x03505854)
+    if (signature != 0x03505854)
         return false;
 
     set_d = (size_t)data;
@@ -353,14 +353,14 @@ bool txp_set::unpack_file(void* data, bool big_endian) {
     for (size_t i = 0; i < tex_count; i++) {
         if (big_endian) {
             d = set_d + (size_t)load_reverse_endianness_uint32_t((uint32_t*)(set_d + 12) + i);
-            sign = load_reverse_endianness_uint32_t((void*)d);
+            signature = load_reverse_endianness_uint32_t((void*)d);
         }
         else {
             d = set_d + (size_t)((uint32_t*)(set_d + 12))[i];
-            sign = *(uint32_t*)d;
+            signature = *(uint32_t*)d;
         }
 
-        if (sign != 0x04505854 && sign != 0x05505854) {
+        if (signature != 0x04505854 && signature != 0x05505854) {
             textures.pop_back();
             continue;
         }
@@ -375,7 +375,7 @@ bool txp_set::unpack_file(void* data, bool big_endian) {
         }
 
         tex = &textures[i - (tex_count - textures.size())];
-        tex->has_cube_map = sign == 0x05505854;
+        tex->has_cube_map = signature == 0x05505854;
         tex->mipmaps_count = info & 0xFF;
         tex->array_size = (info >> 8) & 0xFF;
 
@@ -389,11 +389,11 @@ bool txp_set::unpack_file(void* data, bool big_endian) {
             for (size_t k = 0; k < tex->mipmaps_count; k++, tex_mipmap++) {
                 if (big_endian) {
                     mipmap_d = d + (size_t)load_reverse_endianness_uint32_t((uint32_t*)(d + 12) + j * mipmaps_count + k);
-                    sign = load_reverse_endianness_uint32_t((void*)mipmap_d);
+                    signature = load_reverse_endianness_uint32_t((void*)mipmap_d);
                 }
                 else {
                     mipmap_d = d + (size_t)((uint32_t*)(d + 12))[j * mipmaps_count + k];
-                    sign = *(uint32_t*)mipmap_d;
+                    signature = *(uint32_t*)mipmap_d;
                 }
 
                 if (big_endian) {

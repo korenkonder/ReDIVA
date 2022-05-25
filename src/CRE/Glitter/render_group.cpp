@@ -282,7 +282,7 @@ namespace Glitter {
         DeleteBuffers(true);
     }
 
-    bool F2RenderGroup::GetExtAnimScale(vec3* ext_anim_scale) {
+    bool F2RenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
         if (!particle)
             return false;
 
@@ -303,6 +303,8 @@ namespace Glitter {
 
         if (ext_anim_scale)
             *ext_anim_scale = effect_inst->ext_anim_scale;
+        if (some_scale)
+            *some_scale = effect_inst->some_scale;
         return true;
     }
 
@@ -625,7 +627,7 @@ namespace Glitter {
         return true;
     }
 
-    bool XRenderGroup::GetExtAnimScale(vec3* ext_anim_scale) {
+    bool XRenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
         if (!particle)
             return false;
 
@@ -646,6 +648,8 @@ namespace Glitter {
 
         if (ext_anim_scale)
             *ext_anim_scale = effect_inst->ext_anim_scale;
+        if (some_scale)
+            *some_scale = effect_inst->some_scale;
         return true;
     }
 

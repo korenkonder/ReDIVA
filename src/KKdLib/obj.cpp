@@ -64,7 +64,7 @@ struct obj_mesh_header {
     obj_vertex_format_file format;
     uint32_t size_vertex;
     uint32_t num_vertex;
-    int64_t vertex_array[20];
+    int64_t vertex[20];
     uint32_t vertex_flags;
 };
 
@@ -166,9 +166,9 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
     stream* s, char** str);
 static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
     stream* s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, int64_t* nodes_offset);
-static void obj_classic_read_vertex(obj* obj, stream* s, int64_t* vertex_array, obj_mesh* mesh,
+static void obj_classic_read_vertex(obj* obj, stream* s, int64_t* vertex, obj_mesh* mesh,
     int64_t base_offset, uint32_t num_vertex, obj_vertex_format_file vertex_format_file);
-static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array, obj_mesh* mesh,
+static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex, obj_mesh* mesh,
     int64_t base_offset, uint32_t* num_vertex, obj_vertex_format_file* vertex_format_file, uint32_t* size_vertex);
 static void obj_set_modern_read_inner(obj_set* os, stream* s);
 static void obj_set_modern_write_inner(obj_set* os, stream* s);
@@ -228,10 +228,10 @@ static void obj_modern_read_skin_block_osage(obj_skin_block_osage* b,
     stream* s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_osage(obj_skin_block_osage* b,
     stream* s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x);
-static void obj_modern_read_vertex(obj* obj, stream* s, int64_t* vertex_array, obj_mesh* mesh,
+static void obj_modern_read_vertex(obj* obj, stream* s, int64_t* vertex, obj_mesh* mesh,
     const uint32_t attrib_flags, uint32_t num_vertex, uint32_t size_vertex);
 static void obj_modern_write_vertex(obj* obj, stream* s, bool is_x,
-    int64_t* vertex_array, obj_mesh* mesh, uint32_t* attrib_flags,
+    int64_t* vertex, obj_mesh* mesh, uint32_t* attrib_flags,
     uint32_t* num_vertex, uint32_t* size_vertex, f2_struct* ovtx);
 static void obj_skin_block_node_free(obj_skin_block_node* b);
 static uint32_t obj_skin_strings_get_string_index(std::vector<std::string>& vec, const char* str);
@@ -673,7 +673,7 @@ static void obj_classic_read_model(obj* obj, stream* s, int64_t base_offset) {
             mh.num_vertex = io_read_int32_t(s);
 
             for (uint32_t j = 0; j < 20; j++)
-                mh.vertex_array[j] = io_read_int32_t(s);
+                mh.vertex[j] = io_read_int32_t(s);
 
             mesh->attrib.w = io_read_uint32_t(s);
             mh.vertex_flags = io_read_uint32_t(s);
@@ -727,7 +727,7 @@ static void obj_classic_read_model(obj* obj, stream* s, int64_t base_offset) {
                 }
             }
 
-            obj_classic_read_vertex(obj, s, mh.vertex_array, mesh,
+            obj_classic_read_vertex(obj, s, mh.vertex, mesh,
                 base_offset, mh.num_vertex, mh.format);
         }
     }
@@ -820,7 +820,7 @@ static void obj_classic_write_model(obj* obj, stream* s, int64_t base_offset) {
                 }
             }
 
-            obj_classic_write_vertex(obj, s, mh->vertex_array,
+            obj_classic_write_vertex(obj, s, mh->vertex,
                 mesh, base_offset, &mh->num_vertex, &mh->format, &mh->size_vertex);
 
             for (uint32_t j = 0; j < mesh->num_submesh; j++) {
@@ -875,7 +875,7 @@ static void obj_classic_write_model(obj* obj, stream* s, int64_t base_offset) {
             io_write_int32_t(s, mh->num_vertex);
 
             for (uint32_t j = 0; j < 20; j++)
-                io_write_int32_t(s, (int32_t)mh->vertex_array[j]);
+                io_write_int32_t(s, (int32_t)mh->vertex[j]);
 
             io_write_uint32_t(s, mesh->attrib.w);
             io_write_uint32_t(s, mh->vertex_flags);
@@ -2641,7 +2641,7 @@ static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
     }
 }
 
-static void obj_classic_read_vertex(obj* obj, stream* s, int64_t* vertex_array, obj_mesh* mesh,
+static void obj_classic_read_vertex(obj* obj, stream* s, int64_t* vertex, obj_mesh* mesh,
     int64_t base_offset, uint32_t num_vertex, obj_vertex_format_file vertex_format_file) {
     obj_vertex_format vertex_format = OBJ_VERTEX_FORMAT_NONE;
     if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_POSITION)
@@ -2689,7 +2689,7 @@ static void obj_classic_read_vertex(obj* obj, stream* s, int64_t* vertex_array, 
         if (~vertex_format_file & attribute)
             continue;
 
-        io_set_position(s, base_offset + vertex_array[i], SEEK_SET);
+        io_set_position(s, base_offset + vertex[i], SEEK_SET);
         switch (attribute) {
         case OBJ_VERTEX_FORMAT_FILE_POSITION:
             for (uint32_t j = 0; j < num_vertex; j++) {
@@ -2791,7 +2791,7 @@ static void obj_classic_read_vertex(obj* obj, stream* s, int64_t* vertex_array, 
     mesh->vertex_format = vertex_format;
 }
 
-static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array, obj_mesh* mesh,
+static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex, obj_mesh* mesh,
     int64_t base_offset, uint32_t* num_vertex, obj_vertex_format_file* vertex_format_file, uint32_t* size_vertex) {
     obj_vertex_data* vtx = mesh->vertex;
     uint32_t _num_vertex = mesh->num_vertex;
@@ -2863,7 +2863,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     *size_vertex = _size_vertex;
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_POSITION) {
-        vertex_array[0] = io_get_position(s) - base_offset;
+        vertex[0] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].position.x);
             io_write_float_t(s, vtx[i].position.y);
@@ -2872,7 +2872,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_NORMAL) {
-        vertex_array[1] = io_get_position(s) - base_offset;
+        vertex[1] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].normal.x);
             io_write_float_t(s, vtx[i].normal.y);
@@ -2881,7 +2881,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TANGENT) {
-        vertex_array[2] = io_get_position(s) - base_offset;
+        vertex[2] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].tangent.x);
             io_write_float_t(s, vtx[i].tangent.y);
@@ -2891,7 +2891,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_BINORMAL) {
-        vertex_array[3] = io_get_position(s) - base_offset;
+        vertex[3] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].binormal.x);
             io_write_float_t(s, vtx[i].binormal.y);
@@ -2900,7 +2900,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD0) {
-        vertex_array[4] = io_get_position(s) - base_offset;
+        vertex[4] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].texcoord0.x);
             io_write_float_t(s, vtx[i].texcoord0.y);
@@ -2908,7 +2908,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_BONE_WEIGHT) {
-        vertex_array[10] = io_get_position(s) - base_offset;
+        vertex[10] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].bone_weight.x);
             io_write_float_t(s, vtx[i].bone_weight.y);
@@ -2918,7 +2918,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_BONE_INDEX) {
-        vertex_array[11] = io_get_position(s) - base_offset;
+        vertex[11] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, (float_t)vtx[i].bone_index.x);
             io_write_float_t(s, (float_t)vtx[i].bone_index.y);
@@ -2928,7 +2928,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD1) {
-        vertex_array[5] = io_get_position(s) - base_offset;
+        vertex[5] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].texcoord1.x);
             io_write_float_t(s, vtx[i].texcoord1.y);
@@ -2936,7 +2936,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD2) {
-        vertex_array[6] = io_get_position(s) - base_offset;
+        vertex[6] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].texcoord2.x);
             io_write_float_t(s, vtx[i].texcoord2.y);
@@ -2944,7 +2944,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD3) {
-        vertex_array[7] = io_get_position(s) - base_offset;
+        vertex[7] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].texcoord3.x);
             io_write_float_t(s, vtx[i].texcoord3.y);
@@ -2952,7 +2952,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_COLOR0) {
-        vertex_array[8] = io_get_position(s) - base_offset;
+        vertex[8] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].color0.x);
             io_write_float_t(s, vtx[i].color0.y);
@@ -2962,7 +2962,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_COLOR1) {
-        vertex_array[9] = io_get_position(s) - base_offset;
+        vertex[9] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].color1.x);
             io_write_float_t(s, vtx[i].color1.y);
@@ -2972,7 +2972,7 @@ static void obj_classic_write_vertex(obj* obj, stream* s, int64_t* vertex_array,
     }
 
     if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_UNKNOWN) {
-        vertex_array[12] = io_get_position(s) - base_offset;
+        vertex[12] = io_get_position(s) - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             io_write_float_t(s, vtx[i].unknown.x);
             io_write_float_t(s, vtx[i].unknown.y);
@@ -3562,10 +3562,10 @@ static void obj_modern_read_model(obj* obj, stream* s, int64_t base_offset,
 
             if (!is_x)
                 for (uint32_t j = 0; j < 20; j++)
-                    mh.vertex_array[j] = io_read_offset_f2(s, 0);
+                    mh.vertex[j] = io_read_offset_f2(s, 0);
             else
                 for (uint32_t j = 0; j < 20; j++)
-                    mh.vertex_array[j] = io_read_offset_x(s);
+                    mh.vertex[j] = io_read_offset_x(s);
 
             mesh->attrib.w = io_read_uint32_t_stream_reverse_endianness(s);
             mh.vertex_flags = io_read_uint32_t_stream_reverse_endianness(s);
@@ -3630,7 +3630,7 @@ static void obj_modern_read_model(obj* obj, stream* s, int64_t base_offset,
                 }
             }
 
-            obj_modern_read_vertex(obj, s_ovtx, mh.vertex_array, mesh,
+            obj_modern_read_vertex(obj, s_ovtx, mh.vertex, mesh,
                 mh.vertex_flags, mh.num_vertex, mh.size_vertex);
         }
     }
@@ -3897,7 +3897,7 @@ static void obj_modern_write_model(obj* obj, stream* s,
                 }
             }
 
-            obj_modern_write_vertex(obj, &s_ovtx, is_x, mh->vertex_array, mesh,
+            obj_modern_write_vertex(obj, &s_ovtx, is_x, mh->vertex, mesh,
                 &mh->vertex_flags, &mh->num_vertex, &mh->size_vertex, ovtx);
         }
 
@@ -4005,10 +4005,10 @@ static void obj_modern_write_model(obj* obj, stream* s,
 
             if (!is_x)
                 for (uint32_t j = 0; j < 20; j++)
-                    io_write_offset_f2(s, mh->vertex_array[j], 0);
+                    io_write_offset_f2(s, mh->vertex[j], 0);
             else
                 for (uint32_t j = 0; j < 20; j++)
-                    io_write_offset_x(s, mh->vertex_array[j]);
+                    io_write_offset_x(s, mh->vertex[j]);
 
             io_write_uint32_t(s, mesh->attrib.w);
             io_write_uint32_t(s, mh->vertex_flags);
@@ -6549,7 +6549,7 @@ static void obj_modern_write_skin_block_osage(obj_skin_block_osage* b,
     }
 }
 
-static void obj_modern_read_vertex(obj* obj, stream* s, int64_t* vertex_array, obj_mesh* mesh,
+static void obj_modern_read_vertex(obj* obj, stream* s, int64_t* vertex, obj_mesh* mesh,
     const uint32_t vertex_flags, uint32_t num_vertex, uint32_t size_vertex) {
     obj_vertex_format vertex_format = (obj_vertex_format)(OBJ_VERTEX_FORMAT_POSITION
         | OBJ_VERTEX_FORMAT_NORMAL
@@ -6565,7 +6565,7 @@ static void obj_modern_read_vertex(obj* obj, stream* s, int64_t* vertex_array, o
     else if (vertex_flags == 0x04)
         enum_or(vertex_format, OBJ_VERTEX_FORMAT_BONE_DATA);
 
-    int64_t vtx_offset = vertex_array[13];
+    int64_t vtx_offset = vertex[13];
 
     bool has_tangents = false;
     obj_vertex_data* vtx = force_malloc_s(obj_vertex_data, num_vertex);
@@ -6666,7 +6666,7 @@ static void obj_modern_read_vertex(obj* obj, stream* s, int64_t* vertex_array, o
 }
 
 static void obj_modern_write_vertex(obj* obj, stream* s, bool is_x,
-    int64_t* vertex_array, obj_mesh* mesh, uint32_t* vertex_flags,
+    int64_t* vertex, obj_mesh* mesh, uint32_t* vertex_flags,
     uint32_t* num_vertex, uint32_t* size_vertex, f2_struct* ovtx) {
 
     obj_vertex_data* vtx = mesh->vertex;
@@ -6714,7 +6714,7 @@ static void obj_modern_write_vertex(obj* obj, stream* s, bool is_x,
     }
 
     bool has_tangents = false;
-    vertex_array[13] = io_get_position(s);
+    vertex[13] = io_get_position(s);
     for (uint32_t i = 0; i < _num_vertex; i++) {
         vec3 position = vtx[i].position;
         io_write_float_t(s, position.x);
