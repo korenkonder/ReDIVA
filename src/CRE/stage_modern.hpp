@@ -58,6 +58,7 @@ namespace stage_detail {
 
         TaskStageModern();
         virtual ~TaskStageModern() override;
+
         virtual bool Init() override;
         virtual bool Ctrl() override;
         virtual bool Dest() override;

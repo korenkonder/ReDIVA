@@ -45,7 +45,6 @@ static void obj_skin_block_node_free(obj_skin_block_node* node);
 static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
 static size_t obj_vertex_format_get_vertex_size_comp(obj_vertex_format format);
 
-std::map<uint32_t, material_change_handler> material_change_storage_data;
 std::vector<obj_set_handler> object_storage_data;
 std::list<obj_set_handler> object_storage_data_modern;
 
@@ -143,45 +142,7 @@ void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
         }
 }
 
-void material_change_storage_load(const char* material_name) {
-    uint32_t name_hash = hash_utf8_murmurhash(material_name);
-    auto elem = material_change_storage_data.find(name_hash);
-    if (elem != material_change_storage_data.end()) {
-        elem->second.load_count++;
-        return;
-    }
-
-    elem = material_change_storage_data.insert({ name_hash, { } }).first;
-
-    material_change_handler* handler = &elem->second;
-    handler->data.blend_color = vec4u_identity;
-    handler->data.glow_intensity = 1.0f;
-    handler->data.incandescence = vec4u_identity;
-}
-
-material_change* material_change_storage_get(const char* material_name) {
-    uint32_t name_hash = hash_utf8_murmurhash(material_name);
-    auto elem = material_change_storage_data.find(name_hash);
-    if (elem != material_change_storage_data.end())
-        return &elem->second.data;
-    return 0;
-}
-
-void material_change_storage_unload(const char* material_name) {
-    uint32_t name_hash = hash_utf8_murmurhash(material_name);
-    auto elem = material_change_storage_data.find(name_hash);
-    if (elem == material_change_storage_data.end())
-        return;
-
-    material_change_handler* handler = &elem->second;
-    if (--handler->load_count > 0)
-        return;
-
-    material_change_storage_data.erase(elem);
-}
-
 inline void object_storage_init(object_database* obj_db) {
-    material_change_storage_data.clear();
     object_set_info* obj_set = obj_db->object_set.data();
     size_t count = obj_db->object_set.size();
     object_storage_data.resize(count);
@@ -193,29 +154,33 @@ inline void object_storage_init(object_database* obj_db) {
 }
 
 inline obj* object_storage_get_obj(object_info obj_info) {
-    for (obj_set_handler& i : object_storage_data)
-        if (i.set_id == obj_info.set_id) {
-            obj_set* set = i.obj_set;
-            if (!set)
-                return 0;
+    for (obj_set_handler& i : object_storage_data) {
+        if (i.set_id != obj_info.set_id)
+            continue;
 
-            for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j].id == obj_info.id)
-                    return &set->obj_data[j];
+        obj_set* set = i.obj_set;
+        if (!set)
             return 0;
-        }
 
-    for (obj_set_handler& i : object_storage_data_modern)
-        if (i.set_id == obj_info.set_id) {
-            obj_set* set = i.obj_set;
-            if (!set)
-                return 0;
+        for (uint32_t j = 0; j < set->obj_num; j++)
+            if (set->obj_data[j].id == obj_info.id)
+                return &set->obj_data[j];
+        return 0;
+    }
 
-            for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j].id == obj_info.id)
-                    return &set->obj_data[j];
+    for (obj_set_handler& i : object_storage_data_modern) {
+        if (i.set_id != obj_info.set_id)
+            continue;
+
+        obj_set* set = i.obj_set;
+        if (!set)
             return 0;
-        }
+
+        for (uint32_t j = 0; j < set->obj_num; j++)
+            if (set->obj_data[j].id == obj_info.id)
+                return &set->obj_data[j];
+        return 0;
+    }
     return 0;
 }
 
@@ -243,36 +208,6 @@ inline obj_set_handler* object_storage_get_obj_set_handler_by_index(size_t index
     return 0;
 }
 
-inline obj_material* object_storage_get_material(const char* name) {
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (obj_set_handler& i : object_storage_data) {
-        obj_set* set = i.obj_set;
-        if (!set)
-            continue;
-
-        for (uint32_t j = 0; j < set->obj_num; j++) {
-            obj* obj = &set->obj_data[j];
-            for (uint32_t k = 0; k < obj->num_material; k++)
-                if (hash_utf8_murmurhash(obj->material_array[k].material.name) == name_hash)
-                    return &obj->material_array[k].material;
-        }
-    }
-
-    for (obj_set_handler& i : object_storage_data_modern) {
-        obj_set* set = i.obj_set;
-        if (!set)
-            continue;
-
-        for (uint32_t j = 0; j < set->obj_num; j++) {
-            obj* obj = &set->obj_data[j];
-            for (uint32_t k = 0; k < obj->num_material; k++)
-                if (hash_utf8_murmurhash(obj->material_array[k].material.name) == name_hash)
-                    return &obj->material_array[k].material;
-        }
-    }
-    return 0;
-}
-
 inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* mesh_name) {
     for (obj_set_handler& i : object_storage_data) {
         if (i.set_id != obj_info.set_id)
@@ -282,15 +217,17 @@ inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* m
         if (!set)
             return 0;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id) {
-                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
-                obj* obj = &set->obj_data[j];
-                for (uint32_t k = 0; k < obj->num_mesh; k++)
-                    if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
-                        return &obj->mesh_array[k];
-                return 0;
-            }
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].id != obj_info.id)
+                continue;
+
+            uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
+            obj* obj = &set->obj_data[j];
+            for (uint32_t k = 0; k < obj->num_mesh; k++)
+                if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
+                    return &obj->mesh_array[k];
+            return 0;
+        }
         return 0;
     }
 
@@ -302,15 +239,17 @@ inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* m
         if (!set)
             return 0;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id) {
-                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
-                obj* obj = &set->obj_data[j];
-                for (uint32_t k = 0; k < obj->num_mesh; k++)
-                    if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
-                        return &obj->mesh_array[k];
-                return 0;
-            }
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].id != obj_info.id)
+                continue;
+
+            uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
+            obj* obj = &set->obj_data[j];
+            for (uint32_t k = 0; k < obj->num_mesh; k++)
+                if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
+                    return &obj->mesh_array[k];
+            return 0;
+        }
         return 0;
     }
     return 0;
@@ -325,13 +264,15 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
         if (!set)
             return 0;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id) {
-                obj* obj = &set->obj_data[j];
-                if (index >= 0 && index < obj->num_mesh)
-                    return &obj->mesh_array[index];
-                return 0;
-            }
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].id != obj_info.id)
+                continue;
+
+            obj* obj = &set->obj_data[j];
+            if (index >= 0 && index < obj->num_mesh)
+                return &obj->mesh_array[index];
+            return 0;
+        }
         return 0;
     }
 
@@ -343,13 +284,15 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
         if (!set)
             return 0;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id) {
-                obj* obj = &set->obj_data[j];
-                if (index >= 0 && index < obj->num_mesh)
-                    return &obj->mesh_array[index];
-                return 0;
-            }
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].id != obj_info.id)
+                continue;
+
+            obj* obj = &set->obj_data[j];
+            if (index >= 0 && index < obj->num_mesh)
+                return &obj->mesh_array[index];
+            return 0;
+        }
         return 0;
     }
     return 0;
@@ -359,35 +302,37 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
     for (obj_set_handler& i : object_storage_data) {
         obj_set* set = i.obj_set;
         if (!set)
-            return 0;
+            continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash) {
-                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
-                obj* obj = &set->obj_data[j];
-                for (uint32_t k = 0; k < obj->num_mesh; k++)
-                    if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
-                        return &obj->mesh_array[k];
-                return 0;
-            }
-        return 0;
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].hash != hash)
+                continue;
+
+            uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
+            obj* obj = &set->obj_data[j];
+            for (uint32_t k = 0; k < obj->num_mesh; k++)
+                if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
+                    return &obj->mesh_array[k];
+            return 0;
+        }
     }
 
     for (obj_set_handler& i : object_storage_data_modern) {
         obj_set* set = i.obj_set;
         if (!set)
-            return 0;
+            continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash) {
-                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
-                obj* obj = &set->obj_data[j];
-                for (uint32_t k = 0; k < obj->num_mesh; k++)
-                    if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
-                        return &obj->mesh_array[k];
-                return 0;
-            }
-        return 0;
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].hash == hash)
+                continue;
+
+            uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
+            obj* obj = &set->obj_data[j];
+            for (uint32_t k = 0; k < obj->num_mesh; k++)
+                if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
+                    return &obj->mesh_array[k];
+            return 0;
+        }
     }
     return 0;
 }
@@ -396,29 +341,33 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash,
     for (obj_set_handler& i : object_storage_data) {
         obj_set* set = i.obj_set;
         if (!set)
-            return 0;
+            continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash) {
-                obj* obj = &set->obj_data[j];
-                if (index >= 0 && index < obj->num_mesh)
-                    return &obj->mesh_array[index];
-                return 0;
-            }
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].hash != hash)
+                continue;
+
+            obj* obj = &set->obj_data[j];
+            if (index >= 0 && index < obj->num_mesh)
+                return &obj->mesh_array[index];
+            return 0;
+        }
     }
 
     for (obj_set_handler& i : object_storage_data_modern) {
         obj_set* set = i.obj_set;
         if (!set)
-            return 0;
+            continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash) {
-                obj* obj = &set->obj_data[j];
-                if (index >= 0 && index < obj->num_mesh)
-                    return &obj->mesh_array[index];
-                return 0;
-            }
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].hash != hash)
+                continue;
+
+            obj* obj = &set->obj_data[j];
+            if (index >= 0 && index < obj->num_mesh)
+                return &obj->mesh_array[index];
+            return 0;
+        }
     }
     return 0;
 }
@@ -432,16 +381,17 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
         if (!set)
             return -1;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id) {
-                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
-                obj* obj = &set->obj_data[j];
-                for (uint32_t k = 0; k < obj->num_mesh; k++)
-                    if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
-                        return k;
-                return -1;
-            }
-        return -1;
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].id != obj_info.id)
+                continue;
+
+            uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
+            obj* obj = &set->obj_data[j];
+            for (uint32_t k = 0; k < obj->num_mesh; k++)
+                if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
+                    return k;
+            return -1;
+        }
     }
 
     for (obj_set_handler& i : object_storage_data_modern) {
@@ -452,16 +402,17 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
         if (!set)
             return -1;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id) {
-                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
-                obj* obj = &set->obj_data[j];
-                for (uint32_t k = 0; k < obj->num_mesh; k++)
-                    if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
-                        return k;
-                return -1;
-            }
-        return -1;
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].id != obj_info.id)
+                continue;
+
+            uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
+            obj* obj = &set->obj_data[j];
+            for (uint32_t k = 0; k < obj->num_mesh; k++)
+                if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
+                    return k;
+            return -1;
+        }
     }
     return -1;
 }
@@ -470,33 +421,37 @@ inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const c
     for (obj_set_handler& i : object_storage_data) {
         obj_set* set = i.obj_set;
         if (!set)
-            return -1;
+            continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash) {
-                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
-                obj* obj = &set->obj_data[j];
-                for (uint32_t k = 0; k < obj->num_mesh; k++)
-                    if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
-                        return k;
-                return -1;
-            }
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].hash != hash)
+                continue;
+
+            uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
+            obj* obj = &set->obj_data[j];
+            for (uint32_t k = 0; k < obj->num_mesh; k++)
+                if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
+                    return k;
+            return -1;
+        }
     }
 
     for (obj_set_handler& i : object_storage_data_modern) {
         obj_set* set = i.obj_set;
         if (!set)
-            return -1;
+            continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash) {
-                uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
-                obj* obj = &set->obj_data[j];
-                for (uint32_t k = 0; k < obj->num_mesh; k++)
-                    if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
-                        return k;
-                return -1;
-            }
+        for (uint32_t j = 0; j < set->obj_num; j++) {
+            if (set->obj_data[j].hash != hash)
+                continue;
+
+            uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh_name);
+            obj* obj = &set->obj_data[j];
+            for (uint32_t k = 0; k < obj->num_mesh; k++)
+                if (hash_utf8_murmurhash(obj->mesh_array[k].name) == mesh_name_hash)
+                    return k;
+            return -1;
+        }
     }
     return -1;
 }
@@ -958,7 +913,6 @@ inline void object_storage_unload_set(uint32_t set_id) {
 }
 
 inline void object_storage_free() {
-    material_change_storage_data.clear();
     object_storage_data.clear();
     object_storage_data.shrink_to_fit();
     object_storage_data_modern.clear();

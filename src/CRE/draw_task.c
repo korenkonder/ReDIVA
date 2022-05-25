@@ -4,6 +4,7 @@
 */
 
 #include "draw_task.h"
+#include "../KKdLib/hash.hpp"
 #include "../KKdLib/sort.hpp"
 #include "camera.h"
 #include "fbo.hpp"
@@ -14,7 +15,7 @@ static void draw_task_add(render_context* rctx, draw_object_type type, draw_task
 static void draw_task_object_init(draw_task* task, object_data* object_data, mat4* mat,
     float_t bounding_radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
     std::vector<GLuint>* textures, int32_t mat_count, mat4u* mats, GLuint array_buffer,
-    GLuint element_array_buffer, vec4* blend_color, int32_t morph_array_buffer,
+    GLuint element_array_buffer, vec4* blend_color, vec4* emission, int32_t morph_array_buffer,
     int32_t instances_count, mat4* instances_mat, void(*draw_object_func)(draw_object*));
 static void draw_task_object_translucent_init(draw_task* task, mat4* mat,
     draw_task_object_translucent* object);
@@ -363,7 +364,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
 
             mat4u* mats;
             if (bone_indices_count && enable_bone_mat) {
-                mats = rctx->object_data.buffer.add_mat4(bone_indices_count);
+                mats = object_data->buffer.add_mat4(bone_indices_count);
                 if (bone_mat)
                     for (int32_t k = 0; k < bone_indices_count; k++)
                         mats[k] = bone_mat[*bone_indices++];
@@ -377,7 +378,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             }
 
             obj_material_data* material = &object->material_array[sub_mesh->material_index];
-            draw_task* task = rctx->object_data.buffer.add_draw_task(DRAW_TASK_TYPE_OBJECT);
+            draw_task* task = object_data->buffer.add_draw_task(DRAW_TASK_TYPE_OBJECT);
             if (!task)
                 continue;
 
@@ -393,15 +394,80 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             if (obj_vertex_buf)
                 array_buffer = obj_mesh_vertex_buffer_get_buffer(&obj_vertex_buf[i]);
 
-            vec4 local_blend_color = blend_color ? *blend_color : vec4_identity;
-            material_change* mat_chng = material_change_storage_get(material->material.name);
-            if (mat_chng)
-                local_blend_color = mat_chng->blend_color;
+            uint32_t material_hash = hash_utf8_murmurhash(material->material.name);
 
-            draw_task_object_init(task, object_data, mat, object->bounding_sphere.radius,
-                sub_mesh, mesh, material, textures, bone_indices_count, mats, array_buffer,
-                element_array_buffer, blend_color || mat_chng ? &local_blend_color : 0,
-                morph_array_buffer, instances_count, instances_mat, draw_object_func);
+            material_list_struct* mat_list = 0;
+            for (int32_t k = 0; k < object_data->material_list_count; k++)
+                if (object_data->material_list_array[k].hash == material_hash) {
+                    mat_list = &object_data->material_list_array[k];
+                    break;
+                }
+
+            vec4 _blend_color = vec4_identity;
+            vec4 _emission = vec4_null;
+
+            if (mat_list) {
+                bool has_blend_color = false;
+                if (mat_list->has_blend_color.x) {
+                    _blend_color.x = mat_list->blend_color.x;
+                    has_blend_color = true;
+                }
+
+                if (mat_list->has_blend_color.y) {
+                    _blend_color.y = mat_list->blend_color.y;
+                    has_blend_color = true;
+                }
+
+                if (mat_list->has_blend_color.z) {
+                    _blend_color.z = mat_list->blend_color.z;
+                    has_blend_color = true;
+                }
+
+                if (mat_list->has_blend_color.w) {
+                    _blend_color.w = mat_list->blend_color.w;
+                    has_blend_color = true;
+                }
+
+                if (blend_color) {
+                    if (!has_blend_color)
+                        _blend_color = *blend_color;
+                    else
+                        vec4_mult(_blend_color, *blend_color, _blend_color);
+                }
+
+                bool has_emission = false;
+                if (mat_list->has_emission.x) {
+                    _emission.x = mat_list->emission.x;
+                    has_emission = true;
+                }
+
+                if (mat_list->has_emission.y) {
+                    _emission.y = mat_list->emission.y;
+                    has_emission = true;
+                }
+
+                if (mat_list->has_emission.z) {
+                    _emission.z = mat_list->emission.z;
+                    has_emission = true;
+                }
+
+                if (mat_list->has_emission.w) {
+                    _emission.w = mat_list->emission.w;
+                    has_emission = true;
+                }
+
+                if (!has_emission)
+                    _emission = material->material.color.emission;
+            }
+            else {
+                if (blend_color)
+                    _blend_color = *blend_color;
+                _emission = material->material.color.emission;
+            }
+
+            draw_task_object_init(task, object_data, mat, object->bounding_sphere.radius, sub_mesh,
+                mesh, material, textures, bone_indices_count, mats, array_buffer, element_array_buffer,
+                &_blend_color, &_emission, morph_array_buffer, instances_count, instances_mat, draw_object_func);
 
             if (draw_task_flags & DRAW_TASK_SHADOW_OBJECT) {
                 draw_task_add(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_OBJECT_CHARA
@@ -834,7 +900,7 @@ inline static void draw_task_add(render_context* rctx, draw_object_type type, dr
 inline static void draw_task_object_init(draw_task* task, object_data* object_data, mat4* mat,
     float_t bounding_radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
     std::vector<GLuint>* textures, int32_t mat_count, mat4u* mats, GLuint array_buffer,
-    GLuint element_array_buffer, vec4* blend_color, int32_t morph_array_buffer,
+    GLuint element_array_buffer, vec4* blend_color, vec4* emission, int32_t morph_array_buffer,
     int32_t instances_count, mat4* instances_mat, void(*draw_object_func)(draw_object*)) {
     task->type = DRAW_TASK_TYPE_OBJECT;
     task->mat = *mat;
@@ -867,6 +933,8 @@ inline static void draw_task_object_init(draw_task* task, object_data* object_da
         draw->set_blend_color = false;
         draw->blend_color = vec4u_identity;
     }
+
+    draw->emission = *emission;
 
     draw->chara_color = object_data->chara_color;
     draw->self_shadow = object_data->draw_task_flags & (DRAW_TASK_8 | DRAW_TASK_4) ? 1 : 0;

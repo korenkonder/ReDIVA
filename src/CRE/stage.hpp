@@ -54,6 +54,7 @@ namespace stage_detail {
 
         TaskStage();
         virtual ~TaskStage() override;
+
         virtual bool Init() override;
         virtual bool Ctrl() override;
         virtual bool Dest() override;
@@ -75,6 +76,7 @@ public:
 
     DtmStg();
     virtual ~DtmStg() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;

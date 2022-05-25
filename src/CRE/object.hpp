@@ -76,15 +76,10 @@ extern int32_t obj_mesh_vertex_buffer_get_size(obj_mesh_vertex_buffer* buffer);
 extern void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
     mat4* ex_data_matrices, mat4* matrix_buffer, mat4* global_mat, mat4* mat);
 
-extern void material_change_storage_load(const char* material_name);
-extern material_change* material_change_storage_get(const char* material_name);
-extern void material_change_storage_unload(const char* material_name);
-
 extern void object_storage_init(object_database* obj_db);
 extern obj* object_storage_get_obj(object_info obj_info);
 extern obj_set_handler* object_storage_get_obj_set_handler(uint32_t set_id);
 extern obj_set_handler* object_storage_get_obj_set_handler_by_index(size_t index);
-extern obj_material* object_storage_get_material(const char* name);
 extern obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* mesh_name);
 extern obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint32_t index);
 extern obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const char* mesh_name);

@@ -127,8 +127,8 @@ static void post_process_tone_map_free_fbo(post_process_tone_map* tm) {
 
 void post_process_tone_map_initialize_data(post_process_tone_map* tm, float_t exposure, bool auto_exposure,
     float_t gamma, int32_t saturate_power, float_t saturate_coeff,
-    vec3* scene_fade, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    vec3* tone_trans_start, vec3* tone_trans_end, tone_map_method tone_map_method) {
+    const vec3* scene_fade, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
+    const vec3* tone_trans_start, const vec3* tone_trans_end, tone_map_method tone_map_method) {
     post_process_tone_map_initialize_rate(tm, exposure, auto_exposure, 1.0f,
         gamma, saturate_power, saturate_coeff, scene_fade, scene_fade_alpha, scene_fade_blend_func,
         tone_trans_start, tone_trans_end, tone_map_method);
@@ -136,8 +136,8 @@ void post_process_tone_map_initialize_data(post_process_tone_map* tm, float_t ex
 
 void post_process_tone_map_initialize_rate(post_process_tone_map* tm, float_t exposure, bool auto_exposure,
     float_t gamma, float_t gamma_rate, int32_t saturate_power, float_t saturate_coeff,
-    vec3* scene_fade, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    vec3* tone_trans_start, vec3* tone_trans_end, tone_map_method tone_map_method) {
+    const vec3* scene_fade, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
+    const vec3* tone_trans_start, const vec3* tone_trans_end, tone_map_method tone_map_method) {
     tm->data.exposure = clamp(exposure, 0.0f, 4.0f);
     tm->data.auto_exposure = auto_exposure;
     tm->data.gamma = clamp(gamma, 0.2f, 2.2f);
@@ -239,7 +239,7 @@ inline void post_process_tone_map_get_scene_fade(post_process_tone_map* tm, vec4
     *value = tm->data.scene_fade;
 }
 
-inline void post_process_tone_map_set_scene_fade(post_process_tone_map* tm, vec4* value) {
+inline void post_process_tone_map_set_scene_fade(post_process_tone_map* tm, const vec4* value) {
     vec4 temp;
     temp.x = clamp(value->x, 0.0f, 1.0f);
     temp.y = clamp(value->y, 0.0f, 1.0f);
@@ -258,7 +258,7 @@ inline void post_process_tone_map_get_scene_fade_color(post_process_tone_map* tm
     *value = *(vec3*)&tm->data.scene_fade;
 }
 
-inline void post_process_tone_map_set_scene_fade_color(post_process_tone_map* tm, vec3* value) {
+inline void post_process_tone_map_set_scene_fade_color(post_process_tone_map* tm, const vec3* value) {
     vec3 temp;
     temp.x = clamp(value->x, 0.0f, 1.0f);
     temp.y = clamp(value->y, 0.0f, 1.0f);
@@ -299,7 +299,7 @@ inline void post_process_tone_map_get_tone_trans_start(post_process_tone_map* tm
     *value = tm->data.tone_trans_start;
 }
 
-inline void post_process_tone_map_set_tone_trans_start(post_process_tone_map* tm, vec3* value) {
+inline void post_process_tone_map_set_tone_trans_start(post_process_tone_map* tm, const vec3* value) {
     vec3 temp;
     temp.x = clamp(value->x, 0.0f, 1.0f);
     temp.y = clamp(value->y, 0.0f, 1.0f);
@@ -316,7 +316,7 @@ inline void post_process_tone_map_get_tone_trans_end(post_process_tone_map* tm, 
     *value = tm->data.tone_trans_end;
 }
 
-inline void post_process_tone_map_set_tone_trans_end(post_process_tone_map* tm, vec3* value) {
+inline void post_process_tone_map_set_tone_trans_end(post_process_tone_map* tm, const vec3* value) {
     vec3 temp;
     temp.x = clamp(value->x, 0.009999999776f, 1.0f);
     temp.y = clamp(value->y, 0.009999999776f, 1.0f);

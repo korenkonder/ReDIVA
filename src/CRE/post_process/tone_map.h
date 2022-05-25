@@ -61,12 +61,12 @@ extern void post_process_tone_map_dispose(post_process_tone_map* tm);
 
 extern void post_process_tone_map_initialize_data(post_process_tone_map* tm, float_t exposure, bool auto_exposure,
     float_t gamma, int32_t saturate_power, float_t saturate_coeff,
-    vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    vec3* tone_trans_start, vec3* tone_trans_end, tone_map_method tone_map_method);
+    const vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
+    const vec3* tone_trans_start, const vec3* tone_trans_end, tone_map_method tone_map_method);
 extern void post_process_tone_map_initialize_rate(post_process_tone_map* tm, float_t exposure, bool auto_exposure,
     float_t gamma, float_t gamma_rate, int32_t saturate_power, float_t saturate_coeff,
-    vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    vec3* tone_trans_start, vec3* tone_trans_end, tone_map_method tone_map_method);
+    const vec3* scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
+    const vec3* tone_trans_start, const vec3* tone_trans_end, tone_map_method tone_map_method);
 extern float_t post_process_tone_map_get_exposure(post_process_tone_map* tm);
 extern void post_process_tone_map_set_exposure(post_process_tone_map* tm, float_t value);
 extern bool post_process_tone_map_get_auto_exposure(post_process_tone_map* tm);
@@ -80,17 +80,17 @@ extern void post_process_tone_map_set_saturate_power(post_process_tone_map* tm, 
 extern float_t post_process_tone_map_get_saturate_coeff(post_process_tone_map* tm);
 extern void post_process_tone_map_set_saturate_coeff(post_process_tone_map* tm, float_t value);
 extern void post_process_tone_map_get_scene_fade(post_process_tone_map* tm, vec4* value);
-extern void post_process_tone_map_set_scene_fade(post_process_tone_map* tm, vec4* value);
+extern void post_process_tone_map_set_scene_fade(post_process_tone_map* tm, const vec4* value);
 extern void post_process_tone_map_get_scene_fade_color(post_process_tone_map* tm, vec3* value);
-extern void post_process_tone_map_set_scene_fade_color(post_process_tone_map* tm, vec3* value);
+extern void post_process_tone_map_set_scene_fade_color(post_process_tone_map* tm, const vec3* value);
 extern float_t post_process_tone_map_get_scene_fade_alpha(post_process_tone_map* tm);
 extern void post_process_tone_map_set_scene_fade_alpha(post_process_tone_map* tm, float_t value);
 extern int32_t post_process_tone_map_get_scene_fade_blend_func(post_process_tone_map* tm);
 extern void post_process_tone_map_set_scene_fade_blend_func(post_process_tone_map* tm, int32_t value);
 extern void post_process_tone_map_get_tone_trans_start(post_process_tone_map* tm, vec3* value);
-extern void post_process_tone_map_set_tone_trans_start(post_process_tone_map* tm, vec3* value);
+extern void post_process_tone_map_set_tone_trans_start(post_process_tone_map* tm, const vec3* value);
 extern void post_process_tone_map_get_tone_trans_end(post_process_tone_map* tm, vec3* value);
-extern void post_process_tone_map_set_tone_trans_end(post_process_tone_map* tm, vec3* value);
+extern void post_process_tone_map_set_tone_trans_end(post_process_tone_map* tm, const vec3* value);
 extern tone_map_method post_process_tone_map_get_tone_map_method(post_process_tone_map* tm);
 extern void post_process_tone_map_set_tone_map_method(post_process_tone_map* tm, tone_map_method value);
 extern float_t post_process_tone_map_get_lens_flare(post_process_tone_map* tm);

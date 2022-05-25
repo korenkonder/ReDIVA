@@ -3015,9 +3015,11 @@ extern void rob_free();
 extern mat4* rob_chara_bone_data_get_mats_mat(rob_chara_bone_data* rob_bone_data, size_t index);
 
 extern rob_chara* rob_chara_array_get(int32_t chara_id);
+extern rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id);
 extern int32_t rob_chara_array_init_chara_index(chara_index chara_index,
     rob_chara_pv_data* pv_data, int32_t module_index, bool can_set_default);
 extern void rob_chara_array_free_chara_id(int32_t chara_id);
+extern void rob_chara_array_set_alpha_draw_task_flags(int32_t chara_id, float_t alpha, draw_task_flags flags);
 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
 

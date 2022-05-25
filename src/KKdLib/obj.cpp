@@ -450,8 +450,12 @@ static void obj_set_classic_read_inner(obj_set* os, stream* s) {
             if (osh.obj_skin_data && obj_skin_datas[i])
                 obj_classic_read_skin(obj, s, obj_skin_datas[i]);
 
-            if (osh.obj_name_data && obj_name_datas[i])
+            if (osh.obj_name_data && obj_name_datas[i]) {
                 io_read_string_null_terminated_offset(s, obj_name_datas[i], &obj->name);
+                obj->hash = hash_string_murmurhash(&obj->name);
+            }
+            else
+                obj->hash = hash_murmurhash_empty;
         }
 
         io_set_position(s, osh.obj_id_data, SEEK_SET);
@@ -3080,9 +3084,13 @@ static void obj_set_modern_read_inner(obj_set* os, stream* s) {
     if (osh.obj_data)
         for (uint32_t i = 0; i < os->obj_num; i++) {
             obj* obj = &os->obj_data[i];
-            if (osh.obj_name_data && obj_name_datas[i])
+            if (osh.obj_name_data && obj_name_datas[i]) {
                 io_read_string_null_terminated_offset(&s_mosd,
                     obj_name_datas[i], &obj->name);
+                obj->hash = hash_string_murmurhash(&obj->name);
+            }
+            else
+                obj->hash = hash_murmurhash_empty;
         }
 
     if (osh.obj_id_data) {

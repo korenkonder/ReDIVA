@@ -38,6 +38,7 @@ public:
 
     Task();
     virtual ~Task();
+
     virtual bool Init();
     virtual bool Ctrl();
     virtual bool Dest();

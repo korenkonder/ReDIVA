@@ -269,7 +269,7 @@ static void post_process_blur_free_fbo(post_process_blur* blur) {
     free(blur->width_down);
 }
 
-void post_process_blur_initialize_data(post_process_blur* blur, vec3* radius, vec3* intensity) {
+void post_process_blur_initialize_data(post_process_blur* blur, const vec3* radius, const vec3* intensity) {
     blur->data.radius.x = clamp(radius->x, 0.0f, 3.0f);
     blur->data.radius.y = clamp(radius->y, 0.0f, 3.0f);
     blur->data.radius.z = clamp(radius->z, 0.0f, 3.0f);
@@ -283,7 +283,7 @@ inline void post_process_blur_get_radius(post_process_blur* blur, vec3* value) {
     *value = blur->data.radius;
 }
 
-inline void post_process_blur_set_radius(post_process_blur* blur, vec3* value) {
+inline void post_process_blur_set_radius(post_process_blur* blur, const vec3* value) {
     vec3 temp;
     temp.x = clamp(value->x, 0.0f, 3.0f);
     temp.y = clamp(value->y, 0.0f, 3.0f);
@@ -299,7 +299,7 @@ inline void post_process_blur_get_intensity(post_process_blur* blur, vec3* value
     *value = blur->data.intensity;
 }
 
-inline void post_process_blur_set_intensity(post_process_blur* blur, vec3* value) {
+inline void post_process_blur_set_intensity(post_process_blur* blur, const vec3* value) {
     blur->data.intensity.x = clamp(value->x, 0.0f, 2.0f);
     blur->data.intensity.y = clamp(value->y, 0.0f, 2.0f);
     blur->data.intensity.z = clamp(value->z, 0.0f, 2.0f);

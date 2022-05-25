@@ -26,6 +26,7 @@
 #include "static_var.h"
 
 #define MATRIX_BUFFER_COUNT 320
+#define MATERIAL_LIST_COUNT 24
 #define TEXTURE_PATTERN_COUNT 24
 #define TEXTURE_TRANSFORM_COUNT 24
 
@@ -226,6 +227,18 @@ struct draw_state {
     float_t fresnel;
 };
 
+struct material_list_struct {
+    uint32_t hash;
+    vec4u blend_color;
+    vec4u8 has_blend_color;
+    vec4u emission;
+    vec4u8 has_emission;
+
+    material_list_struct();
+    material_list_struct(uint32_t hash, vec4u& blend_color,
+        vec4u8& has_blend_color, vec4u& emission, vec4u8& has_emission);
+};
+
 struct texture_pattern_struct {
     texture_id src;
     texture_id dst;
@@ -235,8 +248,11 @@ struct texture_pattern_struct {
 };
 
 struct texture_transform_struct {
-    int32_t id;
+    uint32_t id;
     mat4u mat;
+
+    texture_transform_struct();
+    texture_transform_struct(uint32_t id, mat4u& mat);
 };
 
 struct draw_object;
@@ -253,6 +269,7 @@ struct draw_object {
     bool set_blend_color;
     bool chara_color;
     vec4u blend_color;
+    vec4u emission;
     bool self_shadow;
     shadow_type_enum shadow;
     GLuint morph_array_buffer;
@@ -440,6 +457,8 @@ struct object_data {
     float_t wet_param;
     int32_t texture_transform_count;
     texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
+    int32_t material_list_count;
+    material_list_struct material_list_array[MATERIAL_LIST_COUNT];
     bool(*object_bounding_sphere_check_func)(obj_bounding_sphere*, camera*);
 
     object_data();
@@ -447,6 +466,7 @@ struct object_data {
 
     bool get_chara_color();
     ::draw_task_flags get_draw_task_flags();
+    void get_material_list(int32_t* count, material_list_struct* value);
     void get_morph(object_info* object, float_t* value);
     shadow_type_enum get_shadow_type();
     void get_texture_color_coeff(vec4* value);
@@ -459,6 +479,7 @@ struct object_data {
     void reset();
     void set_chara_color(bool value = false);
     void set_draw_task_flags(::draw_task_flags flags = (::draw_task_flags)0);
+    void set_material_list(int32_t count = 0, material_list_struct* value = 0);
     void set_morph(object_info object = {}, float_t value = 0.0f);
     void set_object_bounding_sphere_check_func(bool(*func)(obj_bounding_sphere*, camera*) = 0);
     void set_shadow_type(shadow_type_enum type = SHADOW_CHARA);

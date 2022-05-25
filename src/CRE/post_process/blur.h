@@ -35,8 +35,8 @@ extern void post_process_blur_init_fbo(post_process_blur* blur,
     int32_t width, int32_t height);
 extern void post_process_blur_dispose(post_process_blur* blur);
 
-extern void post_process_blur_initialize_data(post_process_blur* blur, vec3* radius, vec3* intensity);
+extern void post_process_blur_initialize_data(post_process_blur* blur, const vec3* radius, const vec3* intensity);
 extern void post_process_blur_get_radius(post_process_blur* blur, vec3* value);
-extern void post_process_blur_set_radius(post_process_blur* blur, vec3* value);
+extern void post_process_blur_set_radius(post_process_blur* blur, const vec3* value);
 extern void post_process_blur_get_intensity(post_process_blur* blur, vec3* value);
-extern void post_process_blur_set_intensity(post_process_blur* blur, vec3* value);
+extern void post_process_blur_set_intensity(post_process_blur* blur, const vec3* value);

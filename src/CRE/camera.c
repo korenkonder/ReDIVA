@@ -40,7 +40,7 @@ void camera_initialize(camera* c, double_t aspect, int32_t width, int32_t height
     camera_set_roll(c, 0.0);
     camera_set_fov(c, 32.2673416137695);
     camera_calculate_forward(c);
-    camera_set_position(c, (vec3*)&vec3_null);
+    camera_set_position(c, &vec3_null);
     camera_update(c);
 }
 
@@ -131,7 +131,7 @@ void camera_get_view_point(camera* c, vec3* value) {
     *value = c->view_point;
 }
 
-void camera_set_view_point(camera* c, vec3* value) {
+void camera_set_view_point(camera* c, const vec3* value) {
     if (c->view_point.x != value->x
         || c->view_point.y != value->y
         || c->view_point.z != value->z) {
@@ -144,7 +144,7 @@ void camera_get_interest(camera* c, vec3* value) {
     *value = c->interest;
 }
 
-void camera_set_interest(camera* c, vec3* value) {
+void camera_set_interest(camera* c, const vec3* value) {
     if (c->interest.x != value->x
         || c->interest.y != value->y
         || c->interest.z != value->z) {
@@ -224,8 +224,8 @@ void camera_roll(camera* c, double_t roll) {
         camera_set_roll(c, -camera_get_roll(c) - roll);
 }
 
-void camera_set(camera* c, vec3* view_point, vec3* interest,
-    vec3* trans, vec3* rot, vec3* scale, double_t roll, double_t fov) {
+void camera_set(camera* c, const vec3* view_point, const vec3* interest,
+    const vec3* trans, const vec3* rot, const vec3* scale, double_t roll, double_t fov) {
     vec3 _vp;
     vec3 _int;
     double_t _roll;
@@ -249,7 +249,7 @@ void camera_set(camera* c, vec3* view_point, vec3* interest,
     camera_set_fov(c, _fov);
 }
 
-void camera_set_position(camera* c, vec3* pos) {
+void camera_set_position(camera* c, const vec3* pos) {
     vec3 interest;
     vec3_add(*pos, c->forward, interest);
     camera_set_view_point(c, pos);

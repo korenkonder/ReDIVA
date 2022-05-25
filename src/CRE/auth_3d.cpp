@@ -16,6 +16,7 @@ namespace auth_3d_detail {
     public:
         TaskAuth3d();
         virtual ~TaskAuth3d() override;
+
         virtual bool Init() override;
         virtual bool Ctrl() override;
         virtual void Disp() override;
@@ -57,7 +58,7 @@ static void auth_3d_key_load(auth_3d* auth, auth_3d_key* k, auth_3d_key_file* kf
 static void auth_3d_rgba_load(auth_3d* auth, auth_3d_rgba* rgba, auth_3d_rgba_file* rgbaf);
 static void auth_3d_vec3_load(auth_3d* auth, auth_3d_vec3* vec, auth_3d_vec3_file* vecf);
 static void auth_3d_model_transform_load(auth_3d* auth, auth_3d_model_transform* mt, auth_3d_model_transform_file* mtf);
-static void auth_3d_model_transform_set_mat(auth_3d_model_transform* mt, mat4* parent_mat);
+static void auth_3d_model_transform_set_mat(auth_3d_model_transform* mt, const mat4* parent_mat);
 
 static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth,
     object_info obj_info, int32_t instance);
@@ -70,6 +71,7 @@ static int32_t auth_3d_get_auth_3d_object_hrc_index_by_hash(auth_3d* auth,
     uint32_t object_hash, int32_t instance);
 static void auth_3d_read_file(auth_3d* auth, auth_3d_database* auth_3d_db);
 static void auth_3d_read_file_modern(auth_3d* auth);
+static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx);
 
 static void auth_3d_ambient_ctrl(auth_3d_ambient* a, float_t frame);
 static void auth_3d_ambient_load(auth_3d* auth, auth_3d_ambient* a, auth_3d_ambient_file* af);
@@ -109,8 +111,6 @@ static void auth_3d_m_object_hrc_list_ctrl(auth_3d_m_object_hrc* moh, mat4* pare
 static void auth_3d_m_object_hrc_nodes_mat_mult(auth_3d_m_object_hrc* moh);
 static void auth_3d_material_list_ctrl(auth_3d_material_list* ml, float_t frame);
 static void auth_3d_material_list_load(auth_3d* auth, auth_3d_material_list* ml, auth_3d_material_list_file* mlf);
-static void auth_3d_material_list_restore_prev_value(auth_3d_material_list* ml);
-static void auth_3d_material_list_set(auth_3d_material_list* ml);
 static void auth_3d_object_ctrl(auth_3d_object* o, float_t frame);
 static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context* rctx);
 static void auth_3d_object_load(auth_3d* auth, auth_3d_object* o,
@@ -279,6 +279,9 @@ void auth_3d::ctrl(render_context* rctx) {
         for (auth_3d_chara& i : chara)
             auth_3d_chara_ctrl(&i, frame);
 
+        for (auth_3d_material_list& i : material_list)
+            auth_3d_material_list_ctrl(&i, frame);
+
         for (auth_3d_object& i : object)
             auth_3d_object_ctrl(&i, frame);
 
@@ -314,11 +317,6 @@ void auth_3d::ctrl(render_context* rctx) {
 
         auth_3d_post_process_ctrl(&post_process, frame);
         auth_3d_post_process_set(&post_process, rctx);
-
-        for (auth_3d_material_list& i : material_list) {
-            auth_3d_material_list_ctrl(&i, frame);
-            auth_3d_material_list_set(&i);
-        }
 
         auth_3d_camera_auxiliary_set(&camera_auxiliary, rctx);
         auth_3d_camera_auxiliary_ctrl(&camera_auxiliary, frame);
@@ -375,6 +373,8 @@ void auth_3d::disp(render_context* rctx) {
 
     mat4 mat = this->mat;
 
+    auth_3d_set_material_list(this, rctx);
+
     for (auth_3d_point& i : point)
         auth_3d_point_disp(&i, &mat, rctx);
 
@@ -389,6 +389,8 @@ void auth_3d::disp(render_context* rctx) {
 
     for (auth_3d_m_object_hrc*& i : m_object_hrc_list)
         auth_3d_m_object_hrc_disp(i, this, rctx);
+
+    rctx->object_data.set_material_list(0, 0);
 }
 
 void auth_3d::load(a3da* auth_file,
@@ -704,8 +706,6 @@ void auth_3d::unload(render_context* rctx) {
     for (auth_3d_fog& i : fog)
         auth_3d_fog_restore_prev_value(&i, rctx);
     auth_3d_dof_restore_prev_value(&dof, rctx);
-    for (auth_3d_material_list& i : material_list)
-        auth_3d_material_list_restore_prev_value(&i);
     auth_3d_post_process_restore_prev_value(&post_process, rctx);
 
     if (state)
@@ -1147,8 +1147,7 @@ void auth_3d_m_object_hrc::reset() {
     node.shrink_to_fit();
 }
 
-auth_3d_material_list::auth_3d_material_list() : flags(), flags_init(),
-material(), glow_intensity_value(), incandescence_init() {
+auth_3d_material_list::auth_3d_material_list() : flags(), glow_intensity_value() {
     reset();
 }
 
@@ -1158,15 +1157,12 @@ auth_3d_material_list::~auth_3d_material_list() {
 
 void auth_3d_material_list::reset() {
     flags = (auth_3d_material_list_flags)0;
-    flags_init = (auth_3d_material_list_flags)0;
     blend_color.reset();
     glow_intensity.reset();
     incandescence.reset();
     name.clear();
     name.shrink_to_fit();
-    material = 0;
     glow_intensity_value = 0.0f;
-    incandescence_init = vec4u_null;
 }
 
 auth_3d_object::auth_3d_object() : object_info(), object_hash(), reflect(), refract() {
@@ -2521,7 +2517,7 @@ static void auth_3d_model_transform_load(auth_3d* auth, auth_3d_model_transform*
     auth_3d_key_load(auth, &mt->visibility, &mtf->visibility);
 }
 
-static void auth_3d_model_transform_set_mat(auth_3d_model_transform* mt, mat4* parent_mat) {
+static void auth_3d_model_transform_set_mat(auth_3d_model_transform* mt, const mat4* parent_mat) {
     mat4 mat;
     mat4_translate_mult(parent_mat, mt->translation_value.x,
         mt->translation_value.y, mt->translation_value.z, &mat);
@@ -2608,6 +2604,52 @@ static void auth_3d_read_file_modern(auth_3d* auth) {
         auth_3d_uid_file_modern_load_file(uid_file);
         auth->state = 1;
     }
+}
+
+static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx) {
+    object_data* object_data = &rctx->object_data;
+
+    int32_t mat_list_count = 0;
+    material_list_struct mat_list[TEXTURE_PATTERN_COUNT];
+    for (auth_3d_material_list& i : auth->material_list) {
+        if (i.blend_color.flags) {
+            vec4u& blend_color = mat_list[mat_list_count].blend_color;
+            vec4u8& has_blend_color = mat_list[mat_list_count].has_blend_color;
+
+            blend_color = i.blend_color.value;
+            has_blend_color.x = !!(i.blend_color.flags & AUTH_3D_RGBA_R);
+            has_blend_color.y = !!(i.blend_color.flags & AUTH_3D_RGBA_B);
+            has_blend_color.z = !!(i.blend_color.flags & AUTH_3D_RGBA_G);
+            has_blend_color.w = !!(i.blend_color.flags & AUTH_3D_RGBA_A);
+        }
+        else {
+            mat_list[mat_list_count].blend_color = {};
+            mat_list[mat_list_count].has_blend_color = {};
+        }
+
+        if (i.incandescence.flags) {
+            vec4u& emission = mat_list[mat_list_count].emission;
+            vec4u8& has_emission = mat_list[mat_list_count].has_emission;
+
+            emission = i.incandescence.value;
+            has_emission.x = !!(i.incandescence.flags & AUTH_3D_RGBA_R);
+            has_emission.y = !!(i.incandescence.flags & AUTH_3D_RGBA_B);
+            has_emission.z = !!(i.incandescence.flags & AUTH_3D_RGBA_G);
+            has_emission.w = !!(i.incandescence.flags & AUTH_3D_RGBA_A);
+        }
+        else {
+            mat_list[mat_list_count].emission = {};
+            mat_list[mat_list_count].has_emission = {};
+        }
+
+        if (!i.blend_color.flags && !i.incandescence.flags)
+            continue;
+
+        mat_list[mat_list_count].hash = i.hash;
+        mat_list_count++;
+    }
+
+    object_data->set_material_list(mat_list_count, mat_list);
 }
 
 static void auth_3d_ambient_ctrl(auth_3d_ambient* a, float_t frame) {
@@ -2742,7 +2784,7 @@ static void auth_3d_camera_root_ctrl(auth_3d_camera_root* cr,
     }
 
     cr->model_transform.interpolate(frame);
-    auth_3d_model_transform_set_mat(&cr->model_transform, (mat4*)&mat4_identity);
+    auth_3d_model_transform_set_mat(&cr->model_transform, &mat4_identity);
 
     mat4 cr_mat = cr->model_transform.mat;
 
@@ -2853,7 +2895,7 @@ static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx) {
 
     dof_pv pv;
     pv.enable = fabsf(d->model_transform.rotation_value.z) > 0.000001f;
-    pv.f2.distance_to_focus = focus;
+    pv.f2.focus = focus;
     pv.f2.focus_range = d->model_transform.scale_value.y;
     pv.f2.fuzzing_range = d->model_transform.rotation_value.y;
     pv.f2.ratio = d->model_transform.rotation_value.z;
@@ -3338,18 +3380,7 @@ static void auth_3d_material_list_load(auth_3d* auth, auth_3d_material_list* ml,
     }
 
     ml->name = mlf->name;
-
-    ml->material = object_storage_get_material(ml->name.c_str());
-
-    material_change_storage_load(ml->name.c_str());
-}
-
-static void auth_3d_material_list_restore_prev_value(auth_3d_material_list* ml) {
-    if (ml->flags_init & AUTH_3D_MATERIAL_LIST_INCANDESCENCE) {
-        if (ml->material)
-            ml->material->color.emission = ml->incandescence_init;
-    }
-    material_change_storage_unload(ml->name.c_str());
+    ml->hash = hash_string_murmurhash(&ml->name);
 }
 
 static void auth_3d_material_list_set(auth_3d_material_list* ml) {
@@ -3371,15 +3402,6 @@ static void auth_3d_material_list_set(auth_3d_material_list* ml) {
 
     vec4 incandescence = vec4_identity;
     if (ml->flags & AUTH_3D_MATERIAL_LIST_INCANDESCENCE) {
-        if (~ml->flags_init & AUTH_3D_MATERIAL_LIST_INCANDESCENCE) {
-            if (ml->material)
-                ml->incandescence_init = ml->material->color.emission;
-            else
-                ml->incandescence_init = vec4_identity;
-            enum_or(ml->flags_init, AUTH_3D_MATERIAL_LIST_INCANDESCENCE);
-        }
-
-        incandescence = ml->incandescence_init;
         if (ml->incandescence.flags & AUTH_3D_RGBA_R)
             incandescence.x = ml->incandescence.value.x;
         if (ml->incandescence.flags & AUTH_3D_RGBA_G)
@@ -3388,15 +3410,6 @@ static void auth_3d_material_list_set(auth_3d_material_list* ml) {
             incandescence.z = ml->incandescence.value.z;
         if (ml->incandescence.flags & AUTH_3D_RGBA_A)
             incandescence.w = ml->incandescence.value.w;
-        if (ml->material)
-            ml->material->color.emission = incandescence;
-    }
-
-    material_change* mat_chg = material_change_storage_get(ml->name.c_str());
-    if (mat_chg) {
-        mat_chg->blend_color = blend_color;
-        mat_chg->glow_intensity = glow_intensity;
-        mat_chg->incandescence = incandescence;
     }
 }
 

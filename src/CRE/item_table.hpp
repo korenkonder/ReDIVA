@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "../KKdLib/database/item_table.hpp"
 #include "../KKdLib/default.h"
+#include "../KKdLib/database/item_table.hpp"
 #include "file_handler.hpp"
 #include "object.hpp"
 #include "texture.hpp"

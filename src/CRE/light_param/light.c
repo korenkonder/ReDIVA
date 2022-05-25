@@ -48,7 +48,7 @@ void light_set_init(light_set* set) {
     light_set_diffuse(&set->lights[LIGHT_CHARA], &tv4);
     tv4 = { 1.0f, 1.0f, 1.0f, 1.0f };
     light_set_specular(&set->lights[LIGHT_CHARA], &tv4);
-    light_set_set_irradiance(set, (mat4*)&mat4_identity, (mat4*)&mat4_identity, (mat4*)&mat4_identity);
+    light_set_set_irradiance(set, &mat4_identity, &mat4_identity, &mat4_identity);
 }
 
 inline light_type light_get_type(light_data* light) {
@@ -67,7 +67,7 @@ inline void light_get_ambient(light_data* light, vec4* value) {
     *value = light->ambient;
 }
 
-inline void light_set_ambient(light_data* light, vec4* value) {
+inline void light_set_ambient(light_data* light, const vec4* value) {
     light->ambient = *value;
 }
 
@@ -75,7 +75,7 @@ inline void light_get_diffuse(light_data* light, vec4* value) {
     *value = light->diffuse;
 }
 
-inline void light_set_diffuse(light_data* light, vec4* value) {
+inline void light_set_diffuse(light_data* light, const vec4* value) {
     light->diffuse = *value;
 }
 
@@ -83,7 +83,7 @@ inline void light_get_specular(light_data* light, vec4* value) {
     *value = light->specular;
 }
 
-inline void light_set_specular(light_data* light, vec4* value) {
+inline void light_set_specular(light_data* light, const vec4* value) {
     light->specular = *value;
 }
 
@@ -91,7 +91,7 @@ inline void light_get_position(light_data* light, vec3* value) {
     *value = *(vec3*)&light->position;
 }
 
-inline void light_set_position(light_data* light, vec3* value) {
+inline void light_set_position(light_data* light, const  vec3* value) {
     *(vec3*)&light->position = *value;
 }
 
@@ -99,7 +99,7 @@ inline void light_get_position_vec4(light_data* light, vec4* value) {
     *value = light->position;
 }
 
-inline void light_set_position_vec4(light_data* light, vec4* value) {
+inline void light_set_position_vec4(light_data* light, const  vec4* value) {
     light->position = *value;
 }
 
@@ -107,7 +107,7 @@ inline void light_get_spot_direction(light_data* light, vec3* value) {
     *value = light->spot_direction;
 }
 
-inline void light_set_spot_direction(light_data* light, vec3* value) {
+inline void light_set_spot_direction(light_data* light, const vec3* value) {
     light->spot_direction = *value;
 }
 
@@ -157,7 +157,7 @@ inline void light_get_attenuation(light_data* light, vec3* value) {
     value->z = light->quadratic;
 }
 
-inline void light_set_attenuation(light_data* light, vec3* value) {
+inline void light_set_attenuation(light_data* light, const vec3* value) {
     light->constant = value->x;
     light->linear = value->y;
     light->quadratic = value->z;
@@ -167,7 +167,7 @@ inline void light_get_ibl_specular(light_data* light, vec4* value) {
     *value = light->ibl_specular;
 }
 
-inline void light_set_ibl_specular(light_data* light, vec4* value) {
+inline void light_set_ibl_specular(light_data* light, const vec4* value) {
     light->ibl_specular = *value;
 }
 
@@ -175,7 +175,7 @@ inline void light_get_ibl_back(light_data* light, vec4* value) {
     *value = light->ibl_back;
 }
 
-inline void light_set_ibl_back(light_data* light, vec4* value) {
+inline void light_set_ibl_back(light_data* light, const vec4* value) {
     light->ibl_back = *value;
 }
 
@@ -183,7 +183,7 @@ inline void light_get_ibl_direction(light_data* light, vec4* value) {
     *value = light->ibl_direction;
 }
 
-inline void light_set_ibl_direction(light_data* light, vec4* value) {
+inline void light_set_ibl_direction(light_data* light, const vec4* value) {
     light->ibl_direction = *value;
 }
 
@@ -191,7 +191,7 @@ inline void light_get_tone_curve(light_data* light, vec3* value) {
     *value = light->tone_curve;
 }
 
-inline void light_set_tone_curve(light_data* light, vec3* value) {
+inline void light_set_tone_curve(light_data* light, const vec3* value) {
     light->tone_curve = *value;
 }
 
@@ -202,7 +202,7 @@ inline void light_get_clip_plane(light_data* light, bool value[4]) {
     value[3] = light->clip_plane[3];
 }
 
-inline void light_set_clip_plane(light_data* light, bool value[4]) {
+inline void light_set_clip_plane(light_data* light, const bool value[4]) {
     light->clip_plane[0] = value[0];
     light->clip_plane[1] = value[1];
     light->clip_plane[2] = value[2];
@@ -213,7 +213,7 @@ inline void light_set_get_ambient_intensity(light_set* set, vec4* value) {
     *value = set->ambient_intensity;
 }
 
-inline void light_set_set_ambient_intensity(light_set* set, vec4* value) {
+inline void light_set_set_ambient_intensity(light_set* set, const vec4* value) {
     set->ambient_intensity = *value;
 }
 
@@ -223,7 +223,7 @@ inline void light_set_get_irradiance(light_set* set, mat4* r, mat4* g, mat4* b) 
     *b = set->irradiance_b;
 }
 
-inline void light_set_set_irradiance(light_set* set, mat4* r, mat4* g, mat4* b) {
+inline void light_set_set_irradiance(light_set* set, const mat4* r, const mat4* g, const mat4* b) {
     set->irradiance_r = *r;
     set->irradiance_g = *g;
     set->irradiance_b = *b;
@@ -342,9 +342,9 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
         shader_env_frag_set_ptr(&shaders_ft, 35, &specular);
     }
     else {
-        shader_env_frag_set_ptr(&shaders_ft, 33, (vec4*)&vec4_null);
-        shader_env_frag_set_ptr(&shaders_ft, 34, (vec4*)&vec4_null);
-        shader_env_frag_set_ptr(&shaders_ft, 35, (vec4*)&vec4_null);
+        shader_env_frag_set_ptr(&shaders_ft, 33, &vec4_null);
+        shader_env_frag_set_ptr(&shaders_ft, 34, &vec4_null);
+        shader_env_frag_set_ptr(&shaders_ft, 35, &vec4_null);
     }
 
     if (light_get_type(&set->lights[LIGHT_TONE_CURVE]) == LIGHT_PARALLEL) {

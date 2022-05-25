@@ -197,7 +197,7 @@ void graphics_post_process_imgui(class_data* data) {
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
         imguiColumnSliderFloat("distance to focus[m]",
-            &dof->data.debug.distance_to_focus, 0.01f, 0.01f, 30.0f, "%.2f", 0, true);
+            &dof->data.debug.focus, 0.01f, 0.01f, 30.0f, "%.2f", 0, true);
 
         float_t focal_length = dof->data.debug.focal_length * 1000.0f;
         imguiColumnSliderFloat("focal length[mm]",
@@ -216,7 +216,7 @@ void graphics_post_process_imgui(class_data* data) {
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
         imguiColumnSliderFloat("f2 distance to focus[m]",
-            &dof->data.debug.f2.distance_to_focus, 0.01f, 0.01f, 30.0f, "%.2f", 0, true);
+            &dof->data.debug.f2.focus, 0.01f, 0.01f, 30.0f, "%.2f", 0, true);
         imguiColumnSliderFloat("f2 focus range[m]",
             &dof->data.debug.f2.focus_range, 0.01f, 0.0f, 10.0f, "%.2f", 0, true);
         imguiColumnSliderFloat("f2 fuzzing range[m]",

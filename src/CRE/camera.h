@@ -64,9 +64,9 @@ extern void camera_set_yaw(camera* c, double_t value);
 extern double_t camera_get_roll(camera* c);
 extern void camera_set_roll(camera* c, double_t value);
 extern void camera_get_view_point(camera* c, vec3* value);
-extern void camera_set_view_point(camera* c, vec3* value);
+extern void camera_set_view_point(camera* c, const vec3* value);
 extern void camera_get_interest(camera* c, vec3* value);
-extern void camera_set_interest(camera* c, vec3* value);
+extern void camera_set_interest(camera* c, const vec3* value);
 extern void camera_get_res(camera* c, int32_t* width, int32_t* height);
 extern void camera_set_res(camera* c, int32_t width, int32_t height);
 extern void camera_set_fast_change(camera* c, bool value);
@@ -75,8 +75,8 @@ extern void camera_reset(camera* c);
 extern void camera_move(camera* c, vec2d* move);
 extern void camera_rotate(camera* c, vec2d* rotate);
 extern void camera_roll(camera* c, double_t roll);
-extern void camera_set(camera* c, vec3* view_point, vec3* interest,
-    vec3* trans, vec3* rot, vec3* scale, double_t roll, double_t fov);
-extern void camera_set_position(camera* c, vec3* pos);
+extern void camera_set(camera* c, const vec3* view_point, const vec3* interest,
+    const vec3* trans, const vec3* rot, const vec3* scale, double_t roll, double_t fov);
+extern void camera_set_position(camera* c, const vec3* pos);
 extern void camera_update(camera* c);
 extern void camera_dispose(camera* c);

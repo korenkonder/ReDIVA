@@ -752,8 +752,8 @@ static render_context* render_load() {
     modules[0] = 0;//31;
     x_pv_game_data.Load(822, 22, charas, modules);
 
-    shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
-    shader_env_vert_set_ptr(&shaders_ft, 4, (vec4*)&vec4_null);
+    shader_env_vert_set_ptr(&shaders_ft, 3, &vec4_identity);
+    shader_env_vert_set_ptr(&shaders_ft, 4, &vec4_null);
     classes_process_init(classes, classes_count, rctx);
     return rctx;
 }

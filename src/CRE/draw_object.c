@@ -45,13 +45,17 @@ void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
         }
 
         for (int32_t i = 0; i < draw->mat_count; i++, mats++) {
-            mat4 mat = *mats;
-            mat4_transpose(&mat, &mat);
-            shader_buffer_set_ptr_array(&shaders_ft, (size_t)i * 3, 3, (vec4*)&mat);
+            union {
+                mat4 m;
+                vec4 v[4];
+            } mat;
+
+            mat4_transpose(mats, &mat.m);
+            shader_buffer_set_ptr_array(&shaders_ft, (size_t)i * 3, 3, mat.v);
         }
 
         shader_state_matrix_set_modelview(&shaders_ft, 0, &rctx->view_mat, true);
-        shader_state_matrix_set_program(&shaders_ft, 6, (mat4*)&mat4_identity);
+        shader_state_matrix_set_program(&shaders_ft, 6, &mat4_identity);
         uniform_value[U_BONE_MAT] = 1;
     }
     else {
@@ -226,7 +230,7 @@ void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
     obj_material_data* material = draw->material;
     std::vector<GLuint>* textures = draw->textures;
     if (rctx->draw_state.shader_index != -1) {
-        vec4 emission = material->material.color.emission;
+        vec4 emission = draw->emission;
         shader_state_material_set_emission_ptr(&shaders_ft, false, &emission);
         draw_object_material_set_uniform(rctx, material, 0);
         if (material->material.attrib.m.alpha_texture)
@@ -313,7 +317,8 @@ inline void draw_object_model_mat_load(render_context* rctx, mat4* mat) {
 
 inline void model_mat_face_camera_position(mat4* view, mat4* src, mat4* dst) {
     vec3 trans;
-    mat4_mult_vec3_inv_trans(view, (vec3*)&view->row3, &trans);
+    mat4_get_translation(view, &trans);
+    mat4_mult_vec3_inv_trans(view, &trans, &trans);
     vec3_negate(trans, trans);
 
     vec3 dir;
@@ -603,7 +608,7 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
         ambient.w = 1.0f;
 
     vec4 diffuse = material->material.color.diffuse;
-    vec4 emission = material->material.color.emission;
+    vec4 emission = draw->emission;
     draw_object_chara_color_fog_set(rctx, draw, disable_fog);
     shader_state_material_set_ambient_ptr(&shaders_ft, false, &ambient);
     shader_state_material_set_diffuse_ptr(&shaders_ft, false, &diffuse);
@@ -798,7 +803,7 @@ static void draw_object_material_set_reflect(render_context* rctx, draw_object* 
     else {
         ambient = material->material.color.ambient;
         diffuse = material->material.color.diffuse;
-        emission = material->material.color.emission;
+        emission = draw->emission;
         specular = material->material.color.specular;
     }
 
@@ -889,8 +894,8 @@ static void draw_object_vertex_attrib_reset_default(draw_object* draw) {
     uniform_value[U_INSTANCE] = 0;
 
     gl_state_bind_element_array_buffer(0);
-    shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
-    shader_state_matrix_set_texture(&shaders_ft, 1, (mat4*)&mat4_identity);
+    shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
+    shader_state_matrix_set_texture(&shaders_ft, 1, &mat4_identity);
     gl_state_active_texture(0);
 }
 
@@ -914,8 +919,8 @@ static void draw_object_vertex_attrib_reset_default_compressed(draw_object* draw
     uniform_value[U_INSTANCE] = 0;
 
     gl_state_bind_element_array_buffer(0);
-    shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
-    shader_state_matrix_set_texture(&shaders_ft, 1, (mat4*)&mat4_identity);
+    shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
+    shader_state_matrix_set_texture(&shaders_ft, 1, &mat4_identity);
     gl_state_active_texture(0);
 }
 
@@ -943,7 +948,7 @@ static void draw_object_vertex_attrib_reset_reflect(draw_object* draw) {
     }
 
     gl_state_bind_element_array_buffer(0);
-    shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
+    shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
     gl_state_active_texture(0);
 }
 
@@ -966,7 +971,7 @@ inline static void draw_object_vertex_attrib_reset_reflect_compressed(draw_objec
     }
 
     gl_state_bind_element_array_buffer(0);
-    shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
+    shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
     gl_state_active_texture(0);
 }
 

@@ -267,7 +267,7 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
                     shader_local_frag_set(&shaders_ft, 0, 1.0f / (float_t)tex_params[1].width,
                         1.0f / (float_t)tex_params[1].height, 0.0f, 0.0f);
                     gl_state_active_bind_texture_2d(0, v7);
-                    shader_state_matrix_set_mvp(&shaders_ft, (mat4*)&mat4_identity);
+                    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
                     render_texture_draw_custom(&shaders_ft);
 
                     render_texture_bind(&shad->field_8[5], 0);
@@ -276,7 +276,7 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
                     shader_local_frag_set(&shaders_ft, 0, 0.75f / (float_t)tex_params[2].width,
                         0.75f / (float_t)tex_params[2].height, 0.0f, 0.0f);
                     gl_state_active_bind_texture_2d(0, v6);
-                    shader_state_matrix_set_mvp(&shaders_ft, (mat4*)&mat4_identity);
+                    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
                     render_texture_draw_custom(&shaders_ft);
                     texture_params_restore(&tex_params[0], &tex_params[1], &tex_params[2]);
                 }
@@ -292,17 +292,17 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
                 texture_params_get(v11, &tex_params[0], v12, &tex_params[1], 0, 0);
                 uniform_value[U_IMAGE_FILTER] = 5;
                 shader_set(&shaders_ft, SHADER_FT_IMGFILT);
-                shader_local_frag_set_ptr(&shaders_ft, 0, (vec4*)&vec4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 1, (mat4*)&mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 2, (mat4*)&mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 3, (mat4*)&mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 4, (mat4*)&mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 5, (mat4*)&mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 6, (mat4*)&mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 7, (mat4*)&mat4_identity);
+                shader_local_frag_set_ptr(&shaders_ft, 0, &vec4_identity);
+                shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
+                shader_state_matrix_set_texture(&shaders_ft, 1, &mat4_identity);
+                shader_state_matrix_set_texture(&shaders_ft, 2, &mat4_identity);
+                shader_state_matrix_set_texture(&shaders_ft, 3, &mat4_identity);
+                shader_state_matrix_set_texture(&shaders_ft, 4, &mat4_identity);
+                shader_state_matrix_set_texture(&shaders_ft, 5, &mat4_identity);
+                shader_state_matrix_set_texture(&shaders_ft, 6, &mat4_identity);
+                shader_state_matrix_set_texture(&shaders_ft, 7, &mat4_identity);
                 gl_state_active_bind_texture_2d(0, v12);
-                shader_state_matrix_set_mvp(&shaders_ft, (mat4*)&mat4_identity);
+                shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
                 render_texture_draw_custom(&shaders_ft);
                 texture_params_restore(&tex_params[0], &tex_params[1], 0);
             }
@@ -382,7 +382,7 @@ static void draw_pass_shadow_filter(render_texture* a1, render_texture* a2,
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     }
     gl_state_active_bind_texture_2d(0, v11);
-    shader_state_matrix_set_mvp(&shaders_ft, (mat4*)&mat4_identity);
+    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
     render_texture_draw_custom(&shaders_ft);
 
     render_texture_bind(a1, 0);
@@ -391,7 +391,7 @@ static void draw_pass_shadow_filter(render_texture* a1, render_texture* a2,
     shader_local_frag_set_ptr(&shaders_ft, 2, &v15[1]);
     shader_local_frag_set(&shaders_ft, 3, far_texel_offset, far_texel_offset, 0.0f, 0.0f);
     gl_state_active_bind_texture_2d(0, v9);
-    shader_state_matrix_set_mvp(&shaders_ft, (mat4*)&mat4_identity);
+    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
     render_texture_draw_custom(&shaders_ft);
     shader_unbind();
     texture_params_restore(&tex_params[0], &tex_params[1], 0);
@@ -507,8 +507,8 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
 
 static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
     render_texture_bind(&pp->sss_contour_texture, 0);
-    shader_state_matrix_set_modelview(&shaders_ft, 0, (mat4*)&mat4_identity, false);
-    shader_state_matrix_set_projection(&shaders_ft, (mat4*)&mat4_identity, true);
+    shader_state_matrix_set_modelview(&shaders_ft, 0, &mat4_identity, false);
+    shader_state_matrix_set_projection(&shaders_ft, &mat4_identity, true);
     gl_state_enable_depth_test();
     gl_state_set_depth_func(GL_ALWAYS);
     gl_state_set_depth_mask(GL_TRUE);
@@ -650,8 +650,8 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
 
     shader_env_frag_set(&shaders_ft, 25, v33, 0.0f, 0.0f, 0.0f);
 
-    shader_state_matrix_set_projection(&shaders_ft, (mat4*)&mat4_identity, false);
-    shader_state_matrix_set_modelview(&shaders_ft, 0, (mat4*)&mat4_identity, true);
+    shader_state_matrix_set_projection(&shaders_ft, &mat4_identity, false);
+    shader_state_matrix_set_modelview(&shaders_ft, 0, &mat4_identity, true);
 
     gl_state_active_texture(0);
     if (a1->npr_contour) {
@@ -662,7 +662,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
         uniform_value[U_REDUCE] = 0;
         shader_set(&shaders_ft, SHADER_FT_REDUCE);
 
-        shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
+        shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
         render_texture_draw_params(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
     render_texture_bind(&a1->textures[2], 0);
@@ -970,8 +970,8 @@ static int32_t draw_pass_3d_get_translucent_count(render_context* rctx) {
 static void draw_pass_3d_shadow_reset(render_context* rctx) {
     gl_state_active_bind_texture_2d(6, 0);
     gl_state_active_bind_texture_2d(7, 0);
-    shader_state_matrix_set_texture(&shaders_ft, 6, (mat4*)&mat4_identity);
-    shader_state_matrix_set_texture(&shaders_ft, 7, (mat4*)&mat4_identity);
+    shader_state_matrix_set_texture(&shaders_ft, 6, &mat4_identity);
+    shader_state_matrix_set_texture(&shaders_ft, 7, &mat4_identity);
     rctx->draw_state.self_shadow = false;
     rctx->draw_state.light = false;
 }
@@ -1057,8 +1057,8 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
             gl_state_active_bind_texture_2d(6 + i, shad->field_158[1 + i]->color_texture->tex);
         gl_state_active_texture(0);
 
-        shader_env_frag_set_ptr(&shaders_ft, 12, (vec4*)&vec4_identity);
-        shader_env_frag_set_ptr(&shaders_ft, 13, (vec4*)&vec4_null);
+        shader_env_frag_set_ptr(&shaders_ft, 12, &vec4_identity);
+        shader_env_frag_set_ptr(&shaders_ft, 13, &vec4_null);
     }
 }
 
@@ -1197,7 +1197,7 @@ static void texture_params_get(GLuint tex_0, texture_param* tex_0_param,
         mat4_ortho(0.0f, (float_t)tex_0_param->width,
             0.0f, (float_t)tex_0_param->height, -1.0f, 1.0f, &mat);
         shader_state_matrix_set_projection(&shaders_ft, &mat, false);
-        shader_state_matrix_set_modelview(&shaders_ft, 0, (mat4*)&mat4_identity, true);
+        shader_state_matrix_set_modelview(&shaders_ft, 0, &mat4_identity, true);
         glViewport(0, 0, tex_0_param->width, tex_0_param->height);
     }
 }
@@ -1277,7 +1277,7 @@ static void blur_filter_apply(GLuint tex_0, GLuint tex_1, blur_filter_mode filte
     } break;
     }
     gl_state_active_bind_texture_2d(0, tex_1);
-    shader_state_matrix_set_mvp(&shaders_ft, (mat4*)&mat4_identity);
+    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
     render_texture_draw_custom(&shaders_ft);
     texture_params_restore(&tex_params[0], &tex_params[1], 0);
 }

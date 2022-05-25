@@ -173,6 +173,7 @@ public:
 
     PvOsageManager();
     virtual ~PvOsageManager() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
@@ -256,6 +257,7 @@ struct SkinParamManager : public Task {
 
     SkinParamManager();
     virtual ~SkinParamManager() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
@@ -283,6 +285,7 @@ public:
 
     TaskRobLoad();
     virtual ~TaskRobLoad() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
@@ -328,10 +331,12 @@ public:
 
     RobImplTask();
     virtual ~RobImplTask() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
+
     virtual bool CheckType(rob_chara_type type) = 0;
     virtual bool IsFrameDependent() = 0;
 
@@ -350,9 +355,11 @@ class TaskRobPrepareControl : public RobImplTask {
 public:
     TaskRobPrepareControl();
     virtual ~TaskRobPrepareControl() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
+
     virtual bool CheckType(rob_chara_type type) override;
     virtual bool IsFrameDependent() override;
 };
@@ -361,9 +368,11 @@ class TaskRobPrepareAction : public RobImplTask {
 public:
     TaskRobPrepareAction();
     virtual ~TaskRobPrepareAction() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
+
     virtual bool CheckType(rob_chara_type type) override;
     virtual bool IsFrameDependent() override;
 };
@@ -372,9 +381,11 @@ class TaskRobBase : public RobImplTask {
 public:
     TaskRobBase();
     virtual ~TaskRobBase() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
+
     virtual bool CheckType(rob_chara_type type) override;
     virtual bool IsFrameDependent() override;
 };
@@ -394,9 +405,11 @@ class TaskRobInfo : public RobImplTask {
 public:
     TaskRobInfo();
     virtual ~TaskRobInfo() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
+
     virtual bool CheckType(rob_chara_type type) override;
     virtual bool IsFrameDependent() override;
 };
@@ -405,9 +418,11 @@ class TaskRobMotionModifier : public RobImplTask {
 public:
     TaskRobMotionModifier();
     virtual ~TaskRobMotionModifier() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
+
     virtual bool CheckType(rob_chara_type type) override;
     virtual bool IsFrameDependent() override;
 };
@@ -416,10 +431,12 @@ class TaskRobDisp : public RobImplTask {
 public:
     TaskRobDisp();
     virtual ~TaskRobDisp() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
+
     virtual bool CheckType(rob_chara_type type) override;
     virtual bool IsFrameDependent() override;
 };
@@ -442,6 +459,7 @@ public:
 
     TaskRobManager();
     virtual ~TaskRobManager() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
@@ -763,7 +781,6 @@ static void rob_disp_rob_chara_free(rob_chara* rob_chr);
 static void rob_motion_modifier_rob_chara_ctrl(rob_chara* rob_chr);
 
 static float_t rob_chara_array_get_data_adjust_scale(int32_t chara_id);
-static rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id);
 static void rob_chara_bone_data_calculate_bones(rob_chara_bone_data* rob_bone_data,
     std::vector<bone_database_bone>* bones);
 static void rob_chara_bone_data_eyes_xrot_adjust(rob_chara_bone_data* rob_bone_data,
@@ -892,6 +909,8 @@ static void rob_chara_item_equip_object_load_ex_data(rob_chara_item_equip_object
 static void rob_chara_item_equip_object_load_object_info_ex_data(
     rob_chara_item_equip_object* itm_eq_obj, object_info object_info, bone_node* bone_nodes,
     bool osage_reset, bone_database* bone_data, void* data, object_database* obj_db);
+static void rob_chara_item_equip_object_set_alpha_draw_task_flags(
+    rob_chara_item_equip_object* itm_eq_obj, float_t alpha, draw_task_flags flags);
 static bool rob_chara_item_equip_object_set_boc(rob_chara_item_equip_object* itm_eq_obj,
     skin_param_osage_root* skp_root, ExOsageBlock* osg);
 static void rob_chara_item_equip_object_set_collision_target_osage(
@@ -914,6 +933,8 @@ static void rob_chara_item_equip_object_skp_load_file(
     rob_chara_item_equip_object* itm_eq_obj, void* data, bone_database* bone_data, object_database* obj_db);
 static void rob_chara_item_equip_reset_init_data(rob_chara_item_equip* rob_itm_equip,
     bone_node* bone_nodes);
+static void rob_chara_item_equip_set_alpha_draw_task_flags(
+    rob_chara_item_equip* rob_itm_equip, float_t alpha, draw_task_flags flags);
 static void rob_chara_item_equip_set_item_equip_range(rob_chara_item_equip* rob_itm_equip, bool value);
 static void rob_chara_item_equip_set_motion_reset_data(
     rob_chara_item_equip* rob_itm_equip, int32_t motion_id, float_t frame);
@@ -10581,10 +10602,6 @@ static float_t rob_chara_array_get_data_adjust_scale(int32_t chara_id) {
     return 1.0f;
 }
 
-static rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id) {
-    return rob_chara_array[chara_id].item_equip;
-}
-
 static void rob_chara_bone_data_calculate_bones(rob_chara_bone_data* rob_bone_data,
     std::vector<bone_database_bone>* bones) {
     bone_database_bones_calculate_count(bones, &rob_bone_data->object_bone_count,
@@ -13316,6 +13333,12 @@ static void rob_chara_item_equip_object_load_object_info_ex_data(
         itm_eq_obj->osage_iterations = 60;
 }
 
+static void rob_chara_item_equip_object_set_alpha_draw_task_flags(
+    rob_chara_item_equip_object* itm_eq_obj, float_t alpha, draw_task_flags flags) {
+    itm_eq_obj->draw_task_flags = flags;
+    itm_eq_obj->alpha = clamp(alpha, 0.0f, 1.0f);
+}
+
 static bool rob_chara_item_equip_object_set_boc(rob_chara_item_equip_object* itm_eq_obj,
     skin_param_osage_root* skp_root, ExOsageBlock* osg) {
     rob_osage* rob_osg = &osg->rob;
@@ -13496,6 +13519,19 @@ static void rob_chara_item_equip_reset_init_data(rob_chara_item_equip* rob_itm_e
     rob_itm_equip->chara_color = true;
     rob_itm_equip->npr_flag = false;
     rob_itm_equip->mat = mat4u_identity;
+}
+
+static void rob_chara_item_equip_set_alpha_draw_task_flags(
+    rob_chara_item_equip* rob_itm_equip, float_t alpha, draw_task_flags flags) {
+    if (rob_itm_equip->item_equip_range)
+        for (int32_t i = rob_itm_equip->first_item_equip_object;
+            i < rob_itm_equip->max_item_equip_object; i++)
+            rob_chara_item_equip_object_set_alpha_draw_task_flags(
+                &rob_itm_equip->item_equip_object[i], alpha, flags);
+    else
+        for (int32_t i = ITEM_ATAMA; i < ITEM_MAX; i++)
+            rob_chara_item_equip_object_set_alpha_draw_task_flags(
+                &rob_itm_equip->item_equip_object[i], alpha, flags);
 }
 
 static void rob_chara_item_equip_set_item_equip_range(rob_chara_item_equip* rob_itm_equip, bool value) {
@@ -14303,6 +14339,10 @@ rob_chara* rob_chara_array_get(int32_t chara_id) {
     return 0;
 }
 
+rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id) {
+    return rob_chara_array[chara_id].item_equip;
+}
+
 int32_t rob_chara_array_init_chara_index(chara_index chara_index,
     rob_chara_pv_data* pv_data, int32_t module_index, bool can_set_default) {
     if (!TaskWork::CheckTaskReady(&task_rob_manager)
@@ -14330,6 +14370,19 @@ void rob_chara_array_free_chara_id(int32_t chara_id) {
 
     task_rob_manager.AppendFreeCharaList(&rob_chara_array[chara_id]);
     rob_chara_pv_data_array[chara_id].type = ROB_CHARA_TYPE_NONE;
+}
+
+void rob_chara_array_set_alpha_draw_task_flags(int32_t chara_id, float_t alpha, draw_task_flags flags) {
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return;
+
+    rob_chara_item_equip_set_alpha_draw_task_flags(rob_chr->item_equip, alpha, flags);
+
+    /*if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
+        sub_140543120(chara_id, 1, alpha);
+        sub_140543120(chara_id, 2, alpha);
+    }*/
 }
 
 bool pv_osage_manager_array_ptr_get_disp() {

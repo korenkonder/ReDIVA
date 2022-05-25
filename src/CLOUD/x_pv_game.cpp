@@ -13,6 +13,7 @@
 #include "../CRE/light_param.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/object.hpp"
+#include "../CRE/pv_param_task.hpp"
 #include "../CRE/stage_modern.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/sort.hpp"
@@ -353,9 +354,9 @@ bool x_pv_game::Ctrl() {
             wait_load = true;
 
         if (!wait_load)
-            state = 7;
+            state = 6;
     } break;
-    case 7: {
+    case 6: {
         data_struct* x_data = &data_list[DATA_X];
 
         for (uint32_t& i : objset_load) {
@@ -450,9 +451,9 @@ bool x_pv_game::Ctrl() {
             effchrpv_auth_3d_mot_ids.insert({ hash, id });
         }
 
-        state = 8;
+        state = 7;
     } break;
-    case 8: {
+    case 7: {
         bool wait_load = false;
 
         for (auto i : pv_auth_3d_ids)
@@ -482,7 +483,12 @@ bool x_pv_game::Ctrl() {
                 wait_load = true;
 
         if (!wait_load)
-            state = 9;
+            state = 8;
+    } break;
+    case 8: {
+        TaskWork::AppendTask(&pv_param_task::post_process_task, "PV POST PROCESS TASK");
+
+        state = 9;
     } break;
     case 9: {
         {
@@ -790,15 +796,15 @@ bool x_pv_game::Ctrl() {
             }
         }
 
-        /*if (pv_id == 826) {
+        if (pv_id == 826) {
             extern int32_t global_ctrl_frames;
             global_ctrl_frames = 5110;
         }
-        else if (pv_id == 822) {
+        else if (pv_id == 830) {
             extern int32_t global_ctrl_frames;
-            global_ctrl_frames = 2600;
+            global_ctrl_frames = 11000;
         }
-        else*/
+        else
             pause = true;
     } break;
     case 10: {
@@ -818,10 +824,10 @@ bool x_pv_game::Ctrl() {
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
-        /*if (pv_id == 826 && frame == 5110)
+        if (pv_id == 826 && frame == 5110)
             pause = true;
-        else if (pv_id == 822 && frame == 2600)
-            pause = true;*/
+        else if (pv_id == 830 && frame == 11000)
+            pause = true;
 
         while (dsc_data_ptr != dsc_data_ptr_end
             && x_pv_game_dsc_process(this, time))
@@ -860,7 +866,7 @@ bool x_pv_game::Dest() {
 
     light_param_storage_data_reset();
     post_process_tone_map_set_saturate_coeff(rctx_ptr->post_process.tone_map, 1.0f);
-    post_process_tone_map_set_scene_fade(rctx_ptr->post_process.tone_map, (vec4*)&vec4_null);
+    post_process_tone_map_set_scene_fade(rctx_ptr->post_process.tone_map, &vec4_null);
     post_process_tone_map_set_scene_fade_blend_func(rctx_ptr->post_process.tone_map, 0);
     rctx_ptr->post_process.dof->data.pv.enable = false;
     rctx_ptr->object_data.object_culling = true;
@@ -1369,6 +1375,7 @@ void x_pv_game::Unload() {
     branch_mode = 0;
 
     Glitter::glt_particle_manager.draw_all = true;
+    pv_param_task::post_process_task.SetDest();
 }
 
 x_pv_game_glitter::x_pv_game_glitter(const char* name) {
@@ -2515,6 +2522,20 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_CHARA_ALPHA: {
+        a1->chara_id = (int32_t)data[0];
+
+        float_t alpha = (float_t)(int32_t)data[1] * 0.001f;
+        float_t duration = (float_t)(int32_t)data[2];
+        int32_t type = (int32_t)data[3];
+
+        if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT) {
+            pv_param_chara_alpha& chara_alpha
+                = pv_param_task::post_process_task.chara_alpha.data.data[a1->chara_id];
+            chara_alpha.type = type;
+            chara_alpha.frame = 0.0f;
+            chara_alpha.alpha = alpha;
+            chara_alpha.duration = duration;
+        }
 
     } break;
     case DSC_X_AUTO_CAPTURE_BEGIN: {
@@ -2530,7 +2551,20 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_ITEM_ALPHA: {
+        a1->chara_id = (int32_t)data[0];
 
+        float_t alpha = (float_t)(int32_t)data[1] * 0.001f;
+        float_t duration = (float_t)(int32_t)data[2];
+        int32_t type = (int32_t)data[3];
+
+        if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT) {
+            pv_param_chara_alpha& chara_item_alpha
+                = pv_param_task::post_process_task.chara_item_alpha.data.data[a1->chara_id];
+            chara_item_alpha.type = type;
+            chara_item_alpha.frame = 0.0f;
+            chara_item_alpha.alpha = alpha;
+            chara_item_alpha.duration = duration;
+        }
     } break;
     case DSC_X_MOVIE_CUT: {
 
@@ -3190,12 +3224,14 @@ static void x_pv_game_stage_effect_start(x_pv_game* xpvgm, pvsr_stage_effect* st
 
 static void x_pv_game_stage_effect_stop(x_pv_game* xpvgm,
     pvsr_stage_effect* stage_effect, bool stop_a3da, bool stop_glitter) {
+    if (stop_a3da)
         for (pvsr_a3da& i : stage_effect->a3da) {
             int32_t& id = xpvgm->stage_auth_3d_ids[i.hash];
             auth_3d_data_set_visibility(&id, false);
             auth_3d_data_set_enable(&id, false);
         }
 
+    if (stop_glitter)
         for (pvsr_glitter& i : stage_effect->glitter)
             Glitter::glt_particle_manager.FreeSceneEffect(
                 0, hash_string_murmurhash(&i.name), false);

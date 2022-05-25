@@ -892,7 +892,7 @@ namespace Glitter {
                 SetExtAnim(&temp, 0, 0, set_flags);
         }
         else if (flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
-            mat4 m = mat4_identity ;
+            mat4 m = mat4_identity;
             mat4 temp;
             mat4* mat = 0;
             if (ext_anim->a3da_id != -1)
@@ -915,8 +915,11 @@ namespace Glitter {
 
             int32_t chara_id = auth_3d_data_get_chara_id(ext_anim->a3da_id);
             if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
-                rob_chara* rob_chr = rob_chara_array_get(ext_anim->chara_index);
+                rob_chara* rob_chr = rob_chara_array_get(chara_id);
                 if (rob_chr) {
+                    vec3 trans = rob_chr->data.adjust_data.trans;
+                    mat4_translate(trans.x, trans.y + rob_chr->data.adjust_data.pos_adjust_y, trans.z, &m);
+
                     vec3 scale;
                     mat4_get_scale(&rob_chr->data.adjust_data.mat, &scale);
                     vec3_sub_scalar(scale, 1.0f, ext_anim_scale);

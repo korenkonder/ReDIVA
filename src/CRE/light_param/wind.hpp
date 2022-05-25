@@ -52,6 +52,7 @@ public:
 
     TaskWind();
     virtual ~TaskWind() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;

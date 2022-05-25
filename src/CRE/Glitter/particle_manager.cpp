@@ -6,6 +6,8 @@
 #include "glitter.hpp"
 
 namespace Glitter {
+    GltParticleManager glt_particle_manager;
+
     GltParticleManager::GltParticleManager() :scene(), effect(), emitter(), particle(), rctx(),
     bone_data(), frame_rate(), flags(), scene_load_counter(), emission(1.5f), delta_frame(2.0f),
     texture_counter(), random(), counter(), draw_all(true), draw_all_mesh(true), draw_selected() {
@@ -759,7 +761,5 @@ namespace Glitter {
         //if (a2 <= 0.0)
         //    field_D4 = -1.0;
     }
-
-    GltParticleManager glt_particle_manager;
 }
 

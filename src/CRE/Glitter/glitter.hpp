@@ -630,6 +630,7 @@ namespace Glitter {
         uint8_t step;
 
         Random();
+
         float_t F2GetFloat(GLT, float_t value);
         float_t F2GetFloat(GLT, float_t min, float_t max);
         int32_t F2GetInt(GLT, int32_t value);
@@ -1293,7 +1294,6 @@ namespace Glitter {
             RenderElement* rend_elem, vec3* vec);
         static mat4 RotateToPrevPosition(XRenderGroup* rend_group,
             RenderElement* rend_elem, vec3* vec);
-
     };
 
     struct RenderElement {
@@ -1417,6 +1417,7 @@ namespace Glitter {
 
         GltParticleManager();
         virtual ~GltParticleManager() override;
+
         virtual bool Init() override;
         virtual bool Ctrl() override;
         virtual bool Dest() override;

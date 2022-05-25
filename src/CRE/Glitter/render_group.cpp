@@ -657,7 +657,7 @@ namespace Glitter {
         RenderElement* rend_elem, vec3* vec, vec3* trans) {
         vec3 vec2;
         mat4_get_translation(&rend_group->mat, &vec2);
-        vec3_sub(*trans, vec2, vec2);
+        vec3_sub(vec2, *trans, vec2);
 
         float_t length;
         vec3_length_squared(vec2, length);
@@ -672,7 +672,7 @@ namespace Glitter {
         axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
 
         mat4 mat;
-        mat4_mult_axis_angle((mat4*)&mat4_identity, &mat, &axis, angle);
+        mat4_mult_axis_angle(&mat4_identity, &mat, &axis, angle);
         return mat;
     }
 
@@ -694,7 +694,7 @@ namespace Glitter {
         axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
 
         mat4 mat;
-        mat4_mult_axis_angle((mat4*)&mat4_identity, &mat, &axis, angle);
+        mat4_mult_axis_angle(&mat4_identity, &mat, &axis, angle);
         return mat;
     }
 
@@ -702,7 +702,7 @@ namespace Glitter {
         RenderElement* rend_elem, vec3* vec) {
         vec3 vec2;
         mat4_get_translation(&rend_elem->mat, &vec2);
-        vec3_sub(rend_elem->translation, vec2, vec2);
+        vec3_sub(vec2, rend_elem->translation, vec2);
 
         float_t length;
         vec3_length_squared(vec2, length);
@@ -717,7 +717,7 @@ namespace Glitter {
         axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
 
         mat4 mat;
-        mat4_mult_axis_angle((mat4*)&mat3_identity, &mat, &axis, angle);
+        mat4_mult_axis_angle(&mat4_identity, &mat, &axis, angle);
         return mat;
     }
 
@@ -739,7 +739,7 @@ namespace Glitter {
         axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
 
         mat4 mat;
-        mat4_mult_axis_angle((mat4*)&mat3_identity, &mat, &axis, angle);
+        mat4_mult_axis_angle(&mat4_identity, &mat, &axis, angle);
         return mat;
     }
 }

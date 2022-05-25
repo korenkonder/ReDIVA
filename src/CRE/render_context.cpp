@@ -68,11 +68,31 @@ draw_pass::~draw_pass() {
     delete shadow_ptr;
 }
 
+material_list_struct::material_list_struct() : blend_color(),
+has_blend_color(), emission(), has_emission() {
+    hash = (uint32_t)-1;
+}
+
+material_list_struct::material_list_struct(uint32_t hash, vec4u& blend_color,
+    vec4u8& has_blend_color, vec4u& emission, vec4u8& has_emission) : hash(hash), blend_color(blend_color),
+    has_blend_color(has_blend_color), emission(emission), has_emission(has_emission) {
+
+}
+
 texture_pattern_struct::texture_pattern_struct() : src(), dst() {
 
 }
 
 texture_pattern_struct::texture_pattern_struct(texture_id src, texture_id dst) : src(src), dst(dst) {
+
+}
+
+texture_transform_struct::texture_transform_struct() {
+    id = (uint32_t)-1;
+    mat = mat4u_identity;
+}
+
+texture_transform_struct::texture_transform_struct(uint32_t id, mat4u& mat) : id(id), mat(mat) {
 
 }
 
@@ -178,9 +198,13 @@ bool light_proj::set_mat(render_context* rctx, bool set_mat) {
     vec3 interest;
     vec3_add(position, spot_direction, interest);
     if (set_mat) {
-        mat4 mat;
-        get_proj_mat(&position, &interest, fov, &mat);
-        shader_env_vert_set_ptr_array(&shaders_ft, 24, 4, (vec4*)&mat);
+        union {
+            mat4 m;
+            vec4 v[4];
+        } mat;
+
+        get_proj_mat(&position, &interest, fov, &mat.m);
+        shader_env_vert_set_ptr_array(&shaders_ft, 24, 4, mat.v);
     }
     else
         get_proj_mat(&position, &interest, fov, 0);
@@ -253,36 +277,18 @@ void object_data_buffer::reset() {
     offset = 0;
 }
 
-object_data::object_data() {
-    draw_task_flags = (::draw_task_flags)0;
-    shadow_type = (shadow_type_enum)0;
-    field_8 = 0;
-    field_C = 0;
+object_data::object_data() : draw_task_flags(), shadow_type(), field_8(), field_C(), passed(), culled(),
+passed_prev(), culled_prev(), show_alpha_center(), show_mat_center(), buffer(), texture_pattern_count(),
+texture_pattern_array(), wet_param(), texture_transform_count(), texture_transform_array(),
+material_list_count(), material_list_array(), object_bounding_sphere_check_func() {
     field_230 = -1;
-    memset(&passed, 0, sizeof(object_data_culling_info));
-    memset(&culled, 0, sizeof(object_data_culling_info));
-    memset(&passed_prev, 0, sizeof(object_data_culling_info));
-    memset(&culled_prev, 0, sizeof(object_data_culling_info));
-    show_alpha_center = false;
-    show_mat_center = false;
     object_culling = true;
     object_sort = true;
     chara_color = true;
-    morph.value = 0.0f;
-    morph.object = object_info();
-    object_bounding_sphere_check_func = 0;
-
-    if (buffer.data) {
-        texture_pattern_count = 0;
-        memset(texture_pattern_array, 0, sizeof(texture_pattern_array));
-        texture_transform_count = 0;
-        memset(texture_transform_array, 0, sizeof(texture_transform_array));
-        texture_color_coeff = vec4_identity;
-        texture_color_offset = vec4_null;
-        texture_specular_coeff = vec4_identity;
-        texture_specular_offset = vec4_null;
-        wet_param = 0.0f;
-    }
+    texture_color_coeff = vec4_identity;
+    texture_color_offset = vec4_null;
+    texture_specular_coeff = vec4_identity;
+    texture_specular_offset = vec4_null;
 }
 
 object_data::~object_data() {
@@ -295,6 +301,13 @@ bool object_data::get_chara_color() {
 
 ::draw_task_flags object_data::get_draw_task_flags() {
     return draw_task_flags;
+}
+
+void object_data::get_material_list(int32_t* count, material_list_struct* value) {
+    *count = material_list_count;
+
+    for (int32_t i = 0; i < *count; i++)
+        value[i] = material_list_array[i];
 }
 
 void object_data::get_morph(object_info* object, float_t* value) {
@@ -371,6 +384,20 @@ void object_data::set_draw_task_flags(::draw_task_flags flags) {
     draw_task_flags = flags;
 }
 
+void object_data::set_material_list(int32_t count, material_list_struct* value) {
+    if (count > MATERIAL_LIST_COUNT)
+        return;
+
+    material_list_count = count;
+
+    if (count)
+        for (int32_t i = 0; i < count; i++)
+            material_list_array[i] = value[i];
+    else
+        for (int32_t i = 0; i < MATERIAL_LIST_COUNT; i++)
+            material_list_array[i] = {};
+}
+
 void object_data::set_morph(object_info object, float_t value) {
     morph.value = value;
     morph.object = object;
@@ -405,7 +432,7 @@ void object_data::set_texture_pattern(int32_t count, texture_pattern_struct* val
             texture_pattern_array[i] = value[i];
     else
         for (int32_t i = 0; i < TEXTURE_PATTERN_COUNT; i++)
-            texture_pattern_array[i] = texture_pattern_struct();
+            texture_pattern_array[i] = {};
 }
 
 void object_data::set_texture_specular_coeff(vec4* value) {
@@ -427,7 +454,7 @@ void object_data::set_texture_transform(int32_t count, texture_transform_struct*
             texture_transform_array[i] = value[i];
     else
         for (int32_t i = count; i < TEXTURE_TRANSFORM_COUNT; i++)
-            texture_transform_array[i] = { -1, mat4u_identity };
+            texture_transform_array[i] = {};
 }
 
 void object_data::set_wet_param(float_t value) {
@@ -591,10 +618,10 @@ void render_context::light_param_data_glow_set(light_param_glow* glow) {
     post_process_tone_map_set_auto_exposure(tone_map, true);
     post_process_tone_map_set_tone_map_method(tone_map, TONE_MAP_YCC_EXPONENT);
     post_process_tone_map_set_saturate_coeff(tone_map, 1.0f);
-    post_process_tone_map_set_scene_fade(tone_map, (vec4*)&vec4_null);
+    post_process_tone_map_set_scene_fade(tone_map, &vec4_null);
     post_process_tone_map_set_scene_fade_blend_func(tone_map, 0);
-    post_process_tone_map_set_tone_trans_start(tone_map, (vec3*)&vec3_null);
-    post_process_tone_map_set_tone_trans_end(tone_map, (vec3*)&vec3_identity);
+    post_process_tone_map_set_tone_trans_start(tone_map, &vec3_null);
+    post_process_tone_map_set_tone_trans_end(tone_map, &vec3_identity);
 
     if (glow->has_exposure)
         post_process_tone_map_set_exposure(tone_map, glow->exposure);

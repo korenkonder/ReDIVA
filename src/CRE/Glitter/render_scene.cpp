@@ -1013,9 +1013,9 @@ namespace Glitter {
         shader_state_matrix_set_mvp_separate(&shaders_ft,
             &rend_group->mat_draw, &((render_context*)GPM_VAL->rctx)->camera->view,
             &((render_context*)GPM_VAL->rctx)->camera->projection);
-        shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
-        shader_state_matrix_set_texture(&shaders_ft, 1, (mat4*)&mat4_identity);
-        shader_env_vert_set_ptr(&shaders_ft, 3, (vec4*)&vec4_identity);
+        shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
+        shader_state_matrix_set_texture(&shaders_ft, 1, &mat4_identity);
+        shader_env_vert_set_ptr(&shaders_ft, 3, &vec4_identity);
 
         shader_set(&shaders_ft, SHADER_FT_GLITTER_PT);
         switch (rend_group->type) {
@@ -1507,9 +1507,9 @@ namespace Glitter {
                 else
                     mat = dir_mat;
 
-                mat4_set_translation(&mat, &trans);
-                mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+                mat4_rotate(rot.x, rot.y, rot.z, &mat);
                 mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+                mat4_set_translation(&mat, &trans);
 
                 mat4 uv_mat[2];
                 mat4_translate(elem->uv_scroll.x, -elem->uv_scroll.y, 0.0f, &uv_mat[0]);
@@ -2171,8 +2171,8 @@ namespace Glitter {
         shader_state_matrix_set_mvp_separate(&shaders_ft,
             &rend_group->mat_draw, &((render_context*)GPM_VAL->rctx)->camera->view,
             &((render_context*)GPM_VAL->rctx)->camera->projection);
-        shader_state_matrix_set_texture(&shaders_ft, 0, (mat4*)&mat4_identity);
-        shader_state_matrix_set_texture(&shaders_ft, 1, (mat4*)&mat4_identity);
+        shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
+        shader_state_matrix_set_texture(&shaders_ft, 1, &mat4_identity);
 
         shader_set(&shaders_ft, SHADER_FT_GLITTER_PT);
         switch (rend_group->type) {

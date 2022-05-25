@@ -20,7 +20,7 @@ enum dof_debug_flags {
 };
 
 struct dof_f2 {
-    float_t distance_to_focus;
+    float_t focus;
     float_t focus_range;
     float_t fuzzing_range;
     float_t ratio;
@@ -28,7 +28,7 @@ struct dof_f2 {
 
 struct dof_debug {
     dof_debug_flags flags;
-    float_t distance_to_focus;
+    float_t focus;
     float_t focal_length;
     float_t f_number;
     dof_f2 f2;

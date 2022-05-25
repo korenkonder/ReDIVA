@@ -477,16 +477,13 @@ struct auth_3d_m_object_hrc {
 
 struct auth_3d_material_list {
     auth_3d_material_list_flags flags;
-    auth_3d_material_list_flags flags_init;
     auth_3d_rgba blend_color;
     auth_3d_key glow_intensity;
     auth_3d_rgba incandescence;
     std::string name;
-    obj_material* material;
+    uint32_t hash;
 
     float_t glow_intensity_value;
-
-    vec4u incandescence_init;
 
     auth_3d_material_list();
     ~auth_3d_material_list();

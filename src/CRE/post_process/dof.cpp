@@ -595,11 +595,11 @@ static const dof_pv dof_pv_default = {
 
 static void post_process_apply_dof_f2(post_process_dof* dof, render_texture* rt,
     GLuint* samplers, GLuint color_texture, GLuint depth_texture,
-    float_t min_dist_to_focus, float_t max_dist_to_focus, float_t fov, float_t dist_to_focus,
+    float_t min_distance, float_t max_distance, float_t fov, float_t focus,
     float_t focus_range, float_t fuzzing_range, float_t ratio);
 static void post_process_apply_dof_physical(post_process_dof* dof, render_texture* rt,
     GLuint* samplers, GLuint color_texture, GLuint depth_texture,
-    float_t min_dist_to_focus, float_t max_dist_to_focus, float_t dist_to_focus,
+    float_t min_distance, float_t max_distance, float_t focus,
     float_t focal_length, float_t fov, float_t f_number);
 static void post_process_apply_dof_steps_1_2(post_process_dof* dof,
     GLuint* samplers, GLuint depth_texture, bool f2);
@@ -645,7 +645,7 @@ void post_process_dof::apply(render_texture* rt, GLuint* samplers, camera* cam) 
     if (data.debug.flags & DOF_DEBUG_USE_UI_PARAMS) {
         if (data.debug.flags & DOF_DEBUG_ENABLE_DOF) {
             if (data.debug.flags & DOF_DEBUG_ENABLE_PHYS_DOF) {
-                float_t dist_to_focus = data.debug.distance_to_focus;
+                float_t focus = data.debug.focus;
                 if (data.debug.flags & DOF_DEBUG_AUTO_FOCUS) {
                     rob_chara* rob_chr = 0;
                     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
@@ -661,16 +661,16 @@ void post_process_dof::apply(render_texture* rt, GLuint* samplers, camera* cam) 
 
                         mat4 view_transpose;
                         mat4_transpose(&cam->view, &view_transpose);
-                        vec3_dot(*(vec3*)&view_transpose.row2, chara_trans, dist_to_focus);
-                        dist_to_focus = -dist_to_focus - view_transpose.row2.w - 0.1f;
+                        vec3_dot(*(vec3*)&view_transpose.row2, chara_trans, focus);
+                        focus = -focus - view_transpose.row2.w - 0.1f;
                         break;
                     }
                 }
 
-                dist_to_focus = max(dist_to_focus, (float_t)cam->min_distance);
+                focus = max(focus, (float_t)cam->min_distance);
                 post_process_apply_dof_physical(this, rt, samplers,
                     rt->color_texture->tex, rt->depth_texture->tex,
-                    (float_t)cam->min_distance, (float_t)cam->max_distance, dist_to_focus,
+                    (float_t)cam->min_distance, (float_t)cam->max_distance, focus,
                     data.debug.focal_length, (float_t)cam->fov_rad, data.debug.f_number);
             }
             else {
@@ -678,8 +678,7 @@ void post_process_dof::apply(render_texture* rt, GLuint* samplers, camera* cam) 
                 post_process_apply_dof_f2(this, rt, samplers,
                     rt->color_texture->tex, rt->depth_texture->tex,
                     (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
-                    data.debug.f2.distance_to_focus, data.debug.f2.focus_range,
-                    fuzzing_range, data.debug.f2.ratio);
+                    data.debug.f2.focus, data.debug.f2.focus_range, fuzzing_range, data.debug.f2.ratio);
                 use_dof_f2 = true;
             }
         }
@@ -689,8 +688,7 @@ void post_process_dof::apply(render_texture* rt, GLuint* samplers, camera* cam) 
         post_process_apply_dof_f2(this, rt, samplers,
             rt->color_texture->tex, rt->depth_texture->tex,
             (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
-            data.pv.f2.distance_to_focus, data.pv.f2.focus_range,
-            fuzzing_range, data.pv.f2.ratio);
+            data.pv.f2.focus, data.pv.f2.focus_range, fuzzing_range, data.pv.f2.ratio);
         enum_or(data.debug.flags, DOF_DEBUG_ENABLE_DOF);
         data.debug.f2 = data.pv.f2;
         use_dof_f2 = true;
@@ -785,13 +783,13 @@ void post_process_dof::set_dof_pv(dof_pv* pv) {
 
 static void post_process_apply_dof_f2(post_process_dof* dof, render_texture* rt,
     GLuint* samplers, GLuint color_texture, GLuint depth_texture,
-    float_t min_dist_to_focus, float_t max_dist_to_focus, float_t fov, float_t dist_to_focus,
+    float_t min_distance, float_t max_distance, float_t fov, float_t focus,
     float_t focus_range, float_t fuzzing_range, float_t ratio) {
     gl_state_disable_blend();
     gl_state_set_depth_mask(GL_FALSE);
     gl_state_set_depth_func(GL_ALWAYS);
-    post_process_dof_update_data(dof, min_dist_to_focus, max_dist_to_focus,
-        fov, dist_to_focus, 0.0f, 1.0f, focus_range, fuzzing_range, ratio);
+    post_process_dof_update_data(dof, min_distance, max_distance,
+        fov, focus, 0.0f, 1.0f, focus_range, fuzzing_range, ratio);
 
     gl_state_bind_vertex_array(dof->vao);
     post_process_apply_dof_steps_1_2(dof, samplers, depth_texture, true);
@@ -809,13 +807,13 @@ static void post_process_apply_dof_f2(post_process_dof* dof, render_texture* rt,
 
 static void post_process_apply_dof_physical(post_process_dof* dof, render_texture* rt,
     GLuint* samplers, GLuint color_texture, GLuint depth_texture,
-    float_t min_dist_to_focus, float_t max_dist_to_focus, float_t dist_to_focus,
+    float_t min_distance, float_t max_distance, float_t focus,
     float_t focal_length, float_t fov, float_t f_number) {
     gl_state_disable_blend();
     gl_state_set_depth_mask(GL_FALSE);
     gl_state_set_depth_func(GL_ALWAYS);
-    post_process_dof_update_data(dof, min_dist_to_focus, max_dist_to_focus,
-        fov, dist_to_focus, focal_length, f_number, 0.0f, 0.1f, 0.0f);
+    post_process_dof_update_data(dof, min_distance, max_distance,
+        fov, focus, focal_length, f_number, 0.0f, 0.1f, 0.0f);
 
     gl_state_bind_vertex_array(dof->vao);
     post_process_apply_dof_steps_1_2(dof, samplers, depth_texture, false);
