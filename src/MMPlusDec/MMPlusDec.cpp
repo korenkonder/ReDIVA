@@ -30,7 +30,7 @@ bool aes_ni;
 
 int32_t wmain(int32_t argc, wchar_t** argv) {
     if (argc < 2) {
-        printf("MMPlusDec v0.1.0.0 by korenkonder\n");
+        printf("MMPlusDec v0.1.0.0 by korenkonder. Key provided by Skyth\n");
         printf("Usage: MMPlusDec indir [outdir]\n");
         return 0;
     }
