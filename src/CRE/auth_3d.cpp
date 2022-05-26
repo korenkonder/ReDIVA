@@ -883,7 +883,7 @@ void auth_3d_model_transform::interpolate(float_t frame) {
     scale_value = scale.interpolate(frame);
     rotation_value = rotation.interpolate(frame);
     translation_value = translation.interpolate(frame);
-    visible = visibility.interpolate(frame) >= 0.99900001f;
+    visible = visibility.interpolate(frame) >= 0.999f;
     if (visible && (scale_value.x == 0.0f || scale_value.y == 0.0f || scale_value.z == 0.0f))
         visible = false;
 }

@@ -152,7 +152,7 @@ union vec4i {
     operator vec4iu() const;
 };
 
-struct vec2d {
+union vec2d {
     struct {
         double_t x;
         double_t y;

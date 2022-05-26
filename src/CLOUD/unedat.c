@@ -1,39 +1,40 @@
 ﻿#include "unedat.h"
+#define AES128
 #include "../KKdLib/aes.h"
 #include "lz.h"
 #include <math.h>
 
 void aescbc128_decrypt(uint8_t* key, uint8_t* iv, uint8_t* in, uint8_t* out, int len) {
-    struct aes_ctx ctx;
-    aes_init_ctx_iv(&ctx, key, iv);
+    aes128_ctx ctx;
+    aes128_init_ctx_iv(&ctx, key, iv);
     memcpy(out, in, len);
-    aes_cbc_decrypt_buffer(&ctx, out, len);
+    aes128_cbc_decrypt_buffer(&ctx, out, len);
 
     // Reset the IV.
     memset(iv, 0, 0x10);
 }
 
 void aescbc128_encrypt(uint8_t* key, uint8_t* iv, uint8_t* in, uint8_t* out, int len) {
-    struct aes_ctx ctx;
-    aes_init_ctx_iv(&ctx, key, iv);
+    aes128_ctx ctx;
+    aes128_init_ctx_iv(&ctx, key, iv);
     memcpy(out, in, len);
-    aes_cbc_encrypt_buffer(&ctx, out, len);
+    aes128_cbc_encrypt_buffer(&ctx, out, len);
 
     // Reset the IV.
     memset(iv, 0, 0x10);
 }
 
 void aesecb128_encrypt(uint8_t* key, uint8_t* in, uint8_t* out) {
-    struct aes_ctx ctx;
-    aes_init_ctx(&ctx, key);
+    aes128_ctx ctx;
+    aes128_init_ctx(&ctx, key);
     memcpy(out, in, 0x10);
-    aes_ecb_encrypt(&ctx, out);
+    aes128_ecb_encrypt(&ctx, out);
 }
 
 void rap_to_rif(uint8_t* rap, uint8_t* rif) {
     int i;
     int round;
-    struct aes_ctx ctx;
+    aes128_ctx ctx;
 
     uint8_t key[0x10];
     uint8_t iv[0x10];
@@ -41,8 +42,8 @@ void rap_to_rif(uint8_t* rap, uint8_t* rif) {
     memset(iv, 0, 0x10);
 
     // Initial decrypt.
-    aes_init_ctx_iv(&ctx, RAP_KEY, iv);
-    aes_cbc_decrypt_buffer(&ctx, key, 0x10);
+    aes128_init_ctx_iv(&ctx, RAP_KEY, iv);
+    aes128_cbc_decrypt_buffer(&ctx, key, 0x10);
 
     // rap2rifkey round.
     for (round = 0; round < 5; ++round) {

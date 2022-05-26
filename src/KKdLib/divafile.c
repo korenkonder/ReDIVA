@@ -30,9 +30,9 @@ void divafile_decrypt(const wchar_t* path) {
             void* data = force_malloc(stream_length);
             io_read(&s_enc, data, stream_length);
 
-            struct aes_ctx ctx;
-            aes_init_ctx(&ctx, key);
-            aes_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
+            aes128_ctx ctx;
+            aes128_init_ctx(&ctx, key);
+            aes128_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
 
             stream s_dec;
             io_open(&s_dec, file_temp, L"wb");
@@ -63,9 +63,9 @@ void divafile_decrypt(void* enc_data, void** dec_data, size_t* dec_size) {
     void* data = force_malloc(stream_length);
     memcpy(data, (void*)(d + 16), stream_length);
 
-    struct aes_ctx ctx;
-    aes_init_ctx(&ctx, key);
-    aes_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
+    aes128_ctx ctx;
+    aes128_init_ctx(&ctx, key);
+    aes128_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
 
     *dec_data = data;
     *dec_size = file_length;
@@ -87,9 +87,9 @@ void divafile_decrypt(stream* s) {
     void* data = force_malloc(stream_length);
     io_read(s, data, stream_length);
 
-    struct aes_ctx ctx;
-    aes_init_ctx(&ctx, key);
-    aes_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
+    aes128_ctx ctx;
+    aes128_init_ctx(&ctx, key);
+    aes128_ecb_decrypt_buffer(&ctx, (uint8_t*)data, stream_length);
 
     io_free(s);
     io_open(s, data, file_length);
@@ -113,9 +113,9 @@ void divafile_encrypt(const wchar_t* path) {
         void* data = force_malloc(len_align);
         io_read(&s_dec, data, len);
 
-        struct aes_ctx ctx;
-        aes_init_ctx(&ctx, key);
-        aes_ecb_encrypt_buffer(&ctx, (uint8_t*)data, len_align);
+        aes128_ctx ctx;
+        aes128_init_ctx(&ctx, key);
+        aes128_ecb_encrypt_buffer(&ctx, (uint8_t*)data, len_align);
 
         stream s_enc;
         io_open(&s_enc, file_temp, L"wb");
@@ -141,9 +141,9 @@ void divafile_encrypt(void* dec_data, size_t dec_size, void** enc_data, size_t* 
     size_t d = (size_t)data;
     memcpy((void*)(d + 16), dec_data, len);
 
-    struct aes_ctx ctx;
-    aes_init_ctx(&ctx, key);
-    aes_ecb_encrypt_buffer(&ctx, (uint8_t*)(d + 16), len_align);
+    aes128_ctx ctx;
+    aes128_init_ctx(&ctx, key);
+    aes128_ecb_encrypt_buffer(&ctx, (uint8_t*)(d + 16), len_align);
 
     *(uint64_t*)d = 0x454C494641564944;
     *(uint32_t*)(d + 8) = (uint32_t)len_align;

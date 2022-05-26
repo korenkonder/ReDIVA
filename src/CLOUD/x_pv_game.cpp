@@ -800,9 +800,9 @@ bool x_pv_game::Ctrl() {
             extern int32_t global_ctrl_frames;
             global_ctrl_frames = 5110;
         }
-        else if (pv_id == 830) {
+        else if (pv_id == 822) {
             extern int32_t global_ctrl_frames;
-            global_ctrl_frames = 11000;
+            global_ctrl_frames = 3600;
         }
         else
             pause = true;
@@ -826,7 +826,7 @@ bool x_pv_game::Ctrl() {
 
         if (pv_id == 826 && frame == 5110)
             pause = true;
-        else if (pv_id == 830 && frame == 11000)
+        else if (pv_id == 822 && frame == 3600)
             pause = true;
 
         while (dsc_data_ptr != dsc_data_ptr_end
@@ -2678,7 +2678,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
 
         auto elem = a1->pv_auth_3d_chara_count.find(effect_id);
-        if (elem != a1->pv_auth_3d_chara_count.end() && elem->second.size())
+        if (elem != a1->pv_auth_3d_chara_count.end() && elem->second.size() > 1)
             chara_id = -1;
 
         pvpp_effect& effect = a1->pp->effect[effect_id];

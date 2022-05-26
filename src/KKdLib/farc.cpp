@@ -404,9 +404,9 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode, bool ge
     io_set_position(s, align_val(align, 0x10), SEEK_SET);
     size_t dir_len = f->directory_path.size();
 
-    struct aes_ctx ctx;
+    aes128_ctx ctx;
     if (mode == FARC_COMPRESS_FARC_AES || mode == FARC_COMPRESS_FARC_GZIP_AES)
-        aes_init_ctx(&ctx, key);
+        aes128_init_ctx(&ctx, key);
 
     f->compression_level = clamp(f->compression_level, 0, 12);
     if (get_files) {
@@ -458,7 +458,7 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode, bool ge
                 for (size_t j = 0; j < a; j++)
                     ((uint8_t*)t2)[t1_len + j] = 0x78;
 
-                aes_ecb_encrypt_buffer(&ctx, (uint8_t*)t2, t2_len);
+                aes128_ecb_encrypt_buffer(&ctx, (uint8_t*)t2, t2_len);
 
                 io_write(s, t2, t2_len);
                 i.size_compressed = t1_len;
@@ -520,7 +520,7 @@ static void farc_pack_files(farc* f, stream* s, farc_compress_mode mode, bool ge
                 for (size_t j = 0; j < a; j++)
                     ((uint8_t*)t2)[t1_len + j] = 0x78;
 
-                aes_ecb_encrypt_buffer(&ctx, (uint8_t*)t2, t2_len);
+                aes128_ecb_encrypt_buffer(&ctx, (uint8_t*)t2, t2_len);
 
                 io_write(s, t2, t2_len);
                 free(t2);
@@ -640,10 +640,10 @@ static errno_t farc_read_header(farc* f, stream* s) {
     dt = d_t = force_malloc_s(uint8_t, header_length);
     io_read(s, d_t, header_length);
     if (f->ft) {
-        struct aes_ctx ctx;
-        aes_init_ctx_iv(&ctx, key_ft, dt);
+        aes128_ctx ctx;
+        aes128_init_ctx_iv(&ctx, key_ft, dt);
         dt += 0x10;
-        aes_cbc_decrypt_buffer(&ctx, dt, (size_t)header_length - 0x10);
+        aes128_cbc_decrypt_buffer(&ctx, dt, (size_t)header_length - 0x10);
         dt += sizeof(int32_t);
     }
 
@@ -802,14 +802,14 @@ static void farc_unpack_file(farc* f, stream* s, farc_file* ff) {
                     temp_s -= 0x10;
                     t = (void*)((uint64_t)t + 0x10);
 
-                    struct aes_ctx ctx;
-                    aes_init_ctx_iv(&ctx, key_ft, (uint8_t*)temp);
-                    aes_cbc_decrypt_buffer(&ctx, (uint8_t*)t, temp_s);
+                    aes128_ctx ctx;
+                    aes128_init_ctx_iv(&ctx, key_ft, (uint8_t*)temp);
+                    aes128_cbc_decrypt_buffer(&ctx, (uint8_t*)t, temp_s);
                 }
                 else {
-                    struct aes_ctx ctx;
-                    aes_init_ctx(&ctx, key);
-                    aes_ecb_decrypt_buffer(&ctx, (uint8_t*)t, temp_s);
+                    aes128_ctx ctx;
+                    aes128_init_ctx(&ctx, key);
+                    aes128_ecb_decrypt_buffer(&ctx, (uint8_t*)t, temp_s);
                 }
 
             if (!gzip) {

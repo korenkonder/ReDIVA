@@ -46,16 +46,12 @@ NOTE:   String length must be evenly divisible by 16byte (str_len % 16 == 0)
 // The number of columns comprising a state in AES. This is a constant in AES. Value=4
 #define Nb 4
 
-#if defined(AES256) && (AES256 == 1)
-        #define Nk 8
-        #define Nr 14
-#elif defined(AES192) && (AES192 == 1)
-        #define Nk 6
-        #define Nr 12
-#else
-        #define Nk 4        // The number of 32 bit words in a key.
-        #define Nr 10       // The number of rounds in AES Cipher.
-#endif
+#define Nk128 4        // The number of 32 bit words in a key.
+#define Nr128 10       // The number of rounds in AES Cipher.
+#define Nk192 6
+#define Nr192 12
+#define Nk256 8
+#define Nr256 14
 
 // jcallan@github points out that declaring Multiply as a function
 // reduces code size considerably with the Keil ARM compiler.
@@ -131,12 +127,12 @@ static const uint8_t Rcon[11] = {
 extern bool aes_ni;
 
 // This function produces Nb(Nr+1) round keys. The round keys are used in each round to decrypt the states.
-static void key_expansion(uint8_t* RoundKey, const uint8_t* Key) {
+static void key_expansion_aes128(uint8_t* RoundKey, const uint8_t* Key) {
     unsigned i, j, k;
     uint8_t tempa[4]; // Used for the column/row operations
 
     // The first round key is the key itself.
-    for (i = 0; i < Nk; ++i) {
+    for (i = 0; i < Nk128; ++i) {
         RoundKey[(i * 4) + 0] = Key[(i * 4) + 0];
         RoundKey[(i * 4) + 1] = Key[(i * 4) + 1];
         RoundKey[(i * 4) + 2] = Key[(i * 4) + 2];
@@ -144,7 +140,7 @@ static void key_expansion(uint8_t* RoundKey, const uint8_t* Key) {
     }
 
     // All other round keys are found from the previous round keys.
-    for (i = Nk; i < Nb * (Nr + 1); ++i) {
+    for (i = Nk128; i < Nb * (Nr128 + 1); ++i) {
         {
             k = (i - 1) * 4;
             tempa[0] = RoundKey[k + 0];
@@ -153,7 +149,7 @@ static void key_expansion(uint8_t* RoundKey, const uint8_t* Key) {
             tempa[3] = RoundKey[k + 3];
         }
 
-        if (i % Nk == 0) {
+        if (i % Nk128 == 0) {
             // This function shifts the 4 bytes in a word to the left once.
             // [a0,a1,a2,a3] becomes [a1,a2,a3,a0]
 
@@ -177,10 +173,121 @@ static void key_expansion(uint8_t* RoundKey, const uint8_t* Key) {
                 tempa[3] = sbox[tempa[3]];
             }
 
-            tempa[0] = tempa[0] ^ Rcon[i/Nk];
+            tempa[0] = tempa[0] ^ Rcon[i / Nk128];
         }
-#if defined(AES256) && (AES256 == 1)
-        if (i % Nk == 4) {
+        j = i * 4; k = (i - Nk128) * 4;
+        RoundKey[j + 0] = RoundKey[k + 0] ^ tempa[0];
+        RoundKey[j + 1] = RoundKey[k + 1] ^ tempa[1];
+        RoundKey[j + 2] = RoundKey[k + 2] ^ tempa[2];
+        RoundKey[j + 3] = RoundKey[k + 3] ^ tempa[3];
+    }
+}
+
+static void key_expansion_aes192(uint8_t* RoundKey, const uint8_t* Key) {
+    unsigned i, j, k;
+    uint8_t tempa[4]; // Used for the column/row operations
+
+    // The first round key is the key itself.
+    for (i = 0; i < Nk192; ++i) {
+        RoundKey[(i * 4) + 0] = Key[(i * 4) + 0];
+        RoundKey[(i * 4) + 1] = Key[(i * 4) + 1];
+        RoundKey[(i * 4) + 2] = Key[(i * 4) + 2];
+        RoundKey[(i * 4) + 3] = Key[(i * 4) + 3];
+    }
+
+    // All other round keys are found from the previous round keys.
+    for (i = Nk192; i < Nb * (Nr192 + 1); ++i) {
+        {
+            k = (i - 1) * 4;
+            tempa[0] = RoundKey[k + 0];
+            tempa[1] = RoundKey[k + 1];
+            tempa[2] = RoundKey[k + 2];
+            tempa[3] = RoundKey[k + 3];
+        }
+
+        if (i % Nk192 == 0) {
+            // This function shifts the 4 bytes in a word to the left once.
+            // [a0,a1,a2,a3] becomes [a1,a2,a3,a0]
+
+            // Function RotWord()
+            {
+                const uint8_t u8tmp = tempa[0];
+                tempa[0] = tempa[1];
+                tempa[1] = tempa[2];
+                tempa[2] = tempa[3];
+                tempa[3] = u8tmp;
+            }
+
+            // SubWord() is a function that takes a four-byte input word and
+            // applies the S-box to each of the four bytes to produce an output word.
+
+            // Function Subword()
+            {
+                tempa[0] = sbox[tempa[0]];
+                tempa[1] = sbox[tempa[1]];
+                tempa[2] = sbox[tempa[2]];
+                tempa[3] = sbox[tempa[3]];
+            }
+
+            tempa[0] = tempa[0] ^ Rcon[i / Nk192];
+        }
+        j = i * 4; k = (i - Nk192) * 4;
+        RoundKey[j + 0] = RoundKey[k + 0] ^ tempa[0];
+        RoundKey[j + 1] = RoundKey[k + 1] ^ tempa[1];
+        RoundKey[j + 2] = RoundKey[k + 2] ^ tempa[2];
+        RoundKey[j + 3] = RoundKey[k + 3] ^ tempa[3];
+    }
+}
+
+static void key_expansion_aes256(uint8_t* RoundKey, const uint8_t* Key) {
+    unsigned i, j, k;
+    uint8_t tempa[4]; // Used for the column/row operations
+
+    // The first round key is the key itself.
+    for (i = 0; i < Nk256; ++i) {
+        RoundKey[(i * 4) + 0] = Key[(i * 4) + 0];
+        RoundKey[(i * 4) + 1] = Key[(i * 4) + 1];
+        RoundKey[(i * 4) + 2] = Key[(i * 4) + 2];
+        RoundKey[(i * 4) + 3] = Key[(i * 4) + 3];
+    }
+
+    // All other round keys are found from the previous round keys.
+    for (i = Nk256; i < Nb * (Nr256 + 1); ++i) {
+        {
+            k = (i - 1) * 4;
+            tempa[0] = RoundKey[k + 0];
+            tempa[1] = RoundKey[k + 1];
+            tempa[2] = RoundKey[k + 2];
+            tempa[3] = RoundKey[k + 3];
+        }
+
+        if (i % Nk256 == 0) {
+            // This function shifts the 4 bytes in a word to the left once.
+            // [a0,a1,a2,a3] becomes [a1,a2,a3,a0]
+
+            // Function RotWord()
+            {
+                const uint8_t u8tmp = tempa[0];
+                tempa[0] = tempa[1];
+                tempa[1] = tempa[2];
+                tempa[2] = tempa[3];
+                tempa[3] = u8tmp;
+            }
+
+            // SubWord() is a function that takes a four-byte input word and
+            // applies the S-box to each of the four bytes to produce an output word.
+
+            // Function Subword()
+            {
+                tempa[0] = sbox[tempa[0]];
+                tempa[1] = sbox[tempa[1]];
+                tempa[2] = sbox[tempa[2]];
+                tempa[3] = sbox[tempa[3]];
+            }
+
+            tempa[0] = tempa[0] ^ Rcon[i / Nk256];
+        }
+        if (i % Nk256 == 4) {
             // Function Subword()
             {
                 tempa[0] = sbox[tempa[0]];
@@ -189,8 +296,7 @@ static void key_expansion(uint8_t* RoundKey, const uint8_t* Key) {
                 tempa[3] = sbox[tempa[3]];
             }
         }
-#endif
-        j = i * 4; k=(i - Nk) * 4;
+        j = i * 4; k = (i - Nk256) * 4;
         RoundKey[j + 0] = RoundKey[k + 0] ^ tempa[0];
         RoundKey[j + 1] = RoundKey[k + 1] ^ tempa[1];
         RoundKey[j + 2] = RoundKey[k + 2] ^ tempa[2];
@@ -198,61 +304,258 @@ static void key_expansion(uint8_t* RoundKey, const uint8_t* Key) {
     }
 }
 
-static void key_expansion_aes_ni(__m128i* round_key) {
-#if defined(AES256) && (AES256 == 1)
-    round_key[11] = _mm_aesimc_si128(round_key[13]);
-    round_key[12] = _mm_aesimc_si128(round_key[12]);
-    round_key[13] = _mm_aesimc_si128(round_key[11]);
-    round_key[14] = _mm_aesimc_si128(round_key[10]);
-    round_key[15] = _mm_aesimc_si128(round_key[9]);
-    round_key[16] = _mm_aesimc_si128(round_key[8]);
-    round_key[17] = _mm_aesimc_si128(round_key[7]);
-    round_key[18] = _mm_aesimc_si128(round_key[6]);
-    round_key[19] = _mm_aesimc_si128(round_key[5]);
-    round_key[20] = _mm_aesimc_si128(round_key[4]);
-    round_key[21] = _mm_aesimc_si128(round_key[3]);
-    round_key[22] = _mm_aesimc_si128(round_key[2]);
-    round_key[23] = _mm_aesimc_si128(round_key[1]);
-#elif defined(AES192) && (AES192 == 1)
-    round_key[11] = _mm_aesimc_si128(round_key[11]);
-    round_key[12] = _mm_aesimc_si128(round_key[10]);
-    round_key[13] = _mm_aesimc_si128(round_key[9]);
-    round_key[14] = _mm_aesimc_si128(round_key[8]);
-    round_key[15] = _mm_aesimc_si128(round_key[7]);
-    round_key[16] = _mm_aesimc_si128(round_key[6]);
-    round_key[17] = _mm_aesimc_si128(round_key[5]);
-    round_key[18] = _mm_aesimc_si128(round_key[4]);
-    round_key[19] = _mm_aesimc_si128(round_key[3]);
-    round_key[20] = _mm_aesimc_si128(round_key[2]);
-    round_key[21] = _mm_aesimc_si128(round_key[1]);
-#else
-    round_key[11] = _mm_aesimc_si128(round_key[9]);
-    round_key[12] = _mm_aesimc_si128(round_key[8]);
-    round_key[13] = _mm_aesimc_si128(round_key[7]);
-    round_key[14] = _mm_aesimc_si128(round_key[6]);
-    round_key[15] = _mm_aesimc_si128(round_key[5]);
-    round_key[16] = _mm_aesimc_si128(round_key[4]);
-    round_key[17] = _mm_aesimc_si128(round_key[3]);
-    round_key[18] = _mm_aesimc_si128(round_key[2]);
-    round_key[19] = _mm_aesimc_si128(round_key[1]);
-#endif
+inline static __m128i key_expansion_aes128_ni_assist(__m128i temp1, __m128i temp2) {
+    __m128i temp3;
+    temp2 = _mm_shuffle_epi32(temp2, 0xff);
+    temp3 = _mm_slli_si128(temp1, 0x4);
+    temp1 = _mm_xor_si128(temp1, temp3);
+    temp3 = _mm_slli_si128(temp3, 0x4);
+    temp1 = _mm_xor_si128(temp1, temp3);
+    temp3 = _mm_slli_si128(temp3, 0x4);
+    temp1 = _mm_xor_si128(temp1, temp3);
+    temp1 = _mm_xor_si128(temp1, temp2);
+    return temp1;
 }
 
-void aes_init_ctx(struct aes_ctx* ctx, const uint8_t* key) {
-    key_expansion(ctx->RoundKey, key);
+static void key_expansion_aes128_ni(__m128i* RoundKey, const uint8_t* Key) {
+    __m128i temp1, temp2;
+    temp1 = _mm_loadu_si128((__m128i*)&Key[0]);
+    RoundKey[0] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x1);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[1] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x2);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[2] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x4);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[3] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x8);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[4] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x10);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[5] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x20);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[6] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x40);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[7] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x80);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[8] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x1b);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[9] = temp1;
+    temp2 = _mm_aeskeygenassist_si128(temp1, 0x36);
+    temp1 = key_expansion_aes128_ni_assist(temp1, temp2);
+    RoundKey[10] = temp1;
+    RoundKey[11] = _mm_aesimc_si128(RoundKey[9]);
+    RoundKey[12] = _mm_aesimc_si128(RoundKey[8]);
+    RoundKey[13] = _mm_aesimc_si128(RoundKey[7]);
+    RoundKey[14] = _mm_aesimc_si128(RoundKey[6]);
+    RoundKey[15] = _mm_aesimc_si128(RoundKey[5]);
+    RoundKey[16] = _mm_aesimc_si128(RoundKey[4]);
+    RoundKey[17] = _mm_aesimc_si128(RoundKey[3]);
+    RoundKey[18] = _mm_aesimc_si128(RoundKey[2]);
+    RoundKey[19] = _mm_aesimc_si128(RoundKey[1]);
+}
+
+inline static void key_expansion_aes192_ni_assist(__m128i* temp1, __m128i* temp2, __m128i* temp3) {
+    __m128i temp4;
+    *temp2 = _mm_shuffle_epi32(*temp2, 0x55);
+    temp4 = _mm_slli_si128(*temp1, 0x4);
+    *temp1 = _mm_xor_si128(*temp1, temp4);
+    temp4 = _mm_slli_si128(temp4, 0x4);
+    *temp1 = _mm_xor_si128(*temp1, temp4);
+    temp4 = _mm_slli_si128(temp4, 0x4);
+    *temp1 = _mm_xor_si128(*temp1, temp4);
+    *temp1 = _mm_xor_si128(*temp1, *temp2);
+    *temp2 = _mm_shuffle_epi32(*temp1, 0xff);
+    temp4 = _mm_slli_si128(*temp3, 0x4);
+    *temp3 = _mm_xor_si128(*temp3, temp4);
+    *temp3 = _mm_xor_si128(*temp3, *temp2);
+}
+
+static void key_expansion_aes192_ni(__m128i* RoundKey, const uint8_t* Key) {
+    __m128i temp1, temp2, temp3;
+    temp1 = _mm_loadu_si128((__m128i*)&Key[0]);
+    temp3 = _mm_loadu_si128((__m128i*)&Key[16]);
+    RoundKey[0] = temp1;
+    RoundKey[1] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x1);
+    key_expansion_aes192_ni_assist(&temp1, &temp2, &temp3);
+    *(__m128d*)& RoundKey[1] = _mm_shuffle_pd(*(__m128d*)&RoundKey[1], *(__m128d*)&temp1, 0);
+    *(__m128d*)& RoundKey[2] = _mm_shuffle_pd(*(__m128d*)&temp1, *(__m128d*)&temp3, 1);
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x2);
+    key_expansion_aes192_ni_assist(&temp1, &temp2, &temp3);
+    RoundKey[3] = temp1;
+    RoundKey[4] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x4);
+    key_expansion_aes192_ni_assist(&temp1, &temp2, &temp3);
+    *(__m128d*)& RoundKey[4] = _mm_shuffle_pd(*(__m128d*)&RoundKey[4], *(__m128d*)&temp1, 0);
+    *(__m128d*)& RoundKey[5] = _mm_shuffle_pd(*(__m128d*)&temp1, *(__m128d*)&temp3, 1);
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x8);
+    key_expansion_aes192_ni_assist(&temp1, &temp2, &temp3);
+    RoundKey[6] = temp1;
+    RoundKey[7] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x10);
+    key_expansion_aes192_ni_assist(&temp1, &temp2, &temp3);
+    *(__m128d*)& RoundKey[7] = _mm_shuffle_pd(*(__m128d*)&RoundKey[7], *(__m128d*)&temp1, 0);
+    *(__m128d*)& RoundKey[8] = _mm_shuffle_pd(*(__m128d*)&temp1, *(__m128d*)&temp3, 1);
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x20);
+    key_expansion_aes192_ni_assist(&temp1, &temp2, &temp3);
+    RoundKey[9] = temp1;
+    RoundKey[10] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x40);
+    key_expansion_aes192_ni_assist(&temp1, &temp2, &temp3);
+    *(__m128d*)& RoundKey[10] = _mm_shuffle_pd(*(__m128d*)&RoundKey[10], *(__m128d*)&temp1, 0);
+    *(__m128d*)& RoundKey[11] = _mm_shuffle_pd(*(__m128d*)&temp1, *(__m128d*)&temp3, 1);
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x80);
+    key_expansion_aes192_ni_assist(&temp1, &temp2, &temp3);
+    RoundKey[12] = temp1;
+    RoundKey[13] = _mm_aesimc_si128(RoundKey[11]);
+    RoundKey[14] = _mm_aesimc_si128(RoundKey[10]);
+    RoundKey[15] = _mm_aesimc_si128(RoundKey[9]);
+    RoundKey[16] = _mm_aesimc_si128(RoundKey[8]);
+    RoundKey[17] = _mm_aesimc_si128(RoundKey[7]);
+    RoundKey[18] = _mm_aesimc_si128(RoundKey[6]);
+    RoundKey[19] = _mm_aesimc_si128(RoundKey[5]);
+    RoundKey[20] = _mm_aesimc_si128(RoundKey[4]);
+    RoundKey[21] = _mm_aesimc_si128(RoundKey[3]);
+    RoundKey[22] = _mm_aesimc_si128(RoundKey[2]);
+    RoundKey[23] = _mm_aesimc_si128(RoundKey[1]);
+}
+
+inline static void key_expansion_aes256_ni_assist_1(__m128i* temp1, __m128i* temp2) {
+    __m128i temp4;
+    *temp2 = _mm_shuffle_epi32(*temp2, 0xff);
+    temp4 = _mm_slli_si128(*temp1, 0x4);
+    *temp1 = _mm_xor_si128(*temp1, temp4);
+    temp4 = _mm_slli_si128(temp4, 0x4);
+    *temp1 = _mm_xor_si128(*temp1, temp4);
+    temp4 = _mm_slli_si128(temp4, 0x4);
+    *temp1 = _mm_xor_si128(*temp1, temp4);
+    *temp1 = _mm_xor_si128(*temp1, *temp2);
+}
+
+inline static void key_expansion_aes256_ni_assist_2(__m128i* temp1, __m128i* temp3) {
+    __m128i temp2, temp4;
+    temp4 = _mm_aeskeygenassist_si128(*temp1, 0x0);
+    temp2 = _mm_shuffle_epi32(temp4, 0xaa);
+    temp4 = _mm_slli_si128(*temp3, 0x4);
+    *temp3 = _mm_xor_si128(*temp3, temp4);
+    temp4 = _mm_slli_si128(temp4, 0x4);
+    *temp3 = _mm_xor_si128(*temp3, temp4);
+    temp4 = _mm_slli_si128(temp4, 0x4);
+    *temp3 = _mm_xor_si128(*temp3, temp4);
+    *temp3 = _mm_xor_si128(*temp3, temp2);
+}
+
+static void key_expansion_aes256_ni(__m128i* RoundKey, const uint8_t* Key) {
+    __m128i temp1, temp2, temp3;
+    temp1 = _mm_loadu_si128((__m128i*)&Key[0]);
+    temp3 = _mm_loadu_si128((__m128i*)&Key[16]);
+    RoundKey[0] = temp1;
+    RoundKey[1] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x01);
+    key_expansion_aes256_ni_assist_1(&temp1, &temp2);
+    RoundKey[2] = temp1;
+    key_expansion_aes256_ni_assist_2(&temp1, &temp3);
+    RoundKey[3] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x02);
+    key_expansion_aes256_ni_assist_1(&temp1, &temp2);
+    RoundKey[4] = temp1;
+    key_expansion_aes256_ni_assist_2(&temp1, &temp3);
+    RoundKey[5] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x04);
+    key_expansion_aes256_ni_assist_1(&temp1, &temp2);
+    RoundKey[6] = temp1;
+    key_expansion_aes256_ni_assist_2(&temp1, &temp3);
+    RoundKey[7] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x08);
+    key_expansion_aes256_ni_assist_1(&temp1, &temp2);
+    RoundKey[8] = temp1;
+    key_expansion_aes256_ni_assist_2(&temp1, &temp3);
+    RoundKey[9] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x10);
+    key_expansion_aes256_ni_assist_1(&temp1, &temp2);
+    RoundKey[10] = temp1;
+    key_expansion_aes256_ni_assist_2(&temp1, &temp3);
+    RoundKey[11] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x20);
+    key_expansion_aes256_ni_assist_1(&temp1, &temp2);
+    RoundKey[12] = temp1;
+    key_expansion_aes256_ni_assist_2(&temp1, &temp3);
+    RoundKey[13] = temp3;
+    temp2 = _mm_aeskeygenassist_si128(temp3, 0x40);
+    key_expansion_aes256_ni_assist_1(&temp1, &temp2);
+    RoundKey[14] = temp1;
+    RoundKey[15] = _mm_aesimc_si128(RoundKey[13]);
+    RoundKey[16] = _mm_aesimc_si128(RoundKey[12]);
+    RoundKey[17] = _mm_aesimc_si128(RoundKey[11]);
+    RoundKey[18] = _mm_aesimc_si128(RoundKey[10]);
+    RoundKey[19] = _mm_aesimc_si128(RoundKey[9]);
+    RoundKey[20] = _mm_aesimc_si128(RoundKey[8]);
+    RoundKey[21] = _mm_aesimc_si128(RoundKey[7]);
+    RoundKey[22] = _mm_aesimc_si128(RoundKey[6]);
+    RoundKey[23] = _mm_aesimc_si128(RoundKey[5]);
+    RoundKey[24] = _mm_aesimc_si128(RoundKey[4]);
+    RoundKey[25] = _mm_aesimc_si128(RoundKey[3]);
+    RoundKey[26] = _mm_aesimc_si128(RoundKey[2]);
+    RoundKey[27] = _mm_aesimc_si128(RoundKey[1]);
+}
+
+void aes128_init_ctx(aes128_ctx* ctx, const uint8_t* key) {
+    key_expansion_aes128(ctx->RoundKey, key);
     if (aes_ni)
-        key_expansion_aes_ni(ctx->RoundKeyNI);
+        key_expansion_aes128_ni(ctx->RoundKeyNI, key);
+}
+
+void aes192_init_ctx(aes192_ctx* ctx, const uint8_t* key) {
+    key_expansion_aes192(ctx->RoundKey, key);
+    if (aes_ni)
+        key_expansion_aes192_ni(ctx->RoundKeyNI, key);
+}
+
+void aes256_init_ctx(aes256_ctx* ctx, const uint8_t* key) {
+    key_expansion_aes256(ctx->RoundKey, key);
+    if (aes_ni)
+        key_expansion_aes256_ni(ctx->RoundKeyNI, key);
 }
 
 #if (defined(CBC) && (CBC == 1)) || (defined(CTR) && (CTR == 1))
-void aes_init_ctx_iv(struct aes_ctx* ctx, const uint8_t* key, const uint8_t* iv) {
-    key_expansion(ctx->RoundKey, key);
+void aes128_init_ctx_iv(aes128_ctx* ctx, const uint8_t* key, const uint8_t* iv) {
+    key_expansion_aes128(ctx->RoundKey, key);
     if (aes_ni)
-        key_expansion_aes_ni(ctx->RoundKeyNI);
+        key_expansion_aes128_ni(ctx->RoundKeyNI, key);
     memcpy(ctx->Iv, iv, AES_BLOCKLEN);
 }
 
-void aes_ctx_set_iv(struct aes_ctx* ctx, const uint8_t* iv) {
+void aes192_init_ctx_iv(aes192_ctx* ctx, const uint8_t* key, const uint8_t* iv) {
+    key_expansion_aes192(ctx->RoundKey, key);
+    if (aes_ni)
+        key_expansion_aes192_ni(ctx->RoundKeyNI, key);
+    memcpy(ctx->Iv, iv, AES_BLOCKLEN);
+}
+
+void aes256_init_ctx_iv(aes256_ctx* ctx, const uint8_t* key, const uint8_t* iv) {
+    key_expansion_aes256(ctx->RoundKey, key);
+    if (aes_ni)
+        key_expansion_aes256_ni(ctx->RoundKeyNI, key);
+    memcpy(ctx->Iv, iv, AES_BLOCKLEN);
+}
+
+void aes128_ctx_set_iv(aes128_ctx* ctx, const uint8_t* iv) {
+    memcpy(ctx->Iv, iv, AES_BLOCKLEN);
+}
+
+void aes192_ctx_set_iv(aes192_ctx* ctx, const uint8_t* iv) {
+    memcpy(ctx->Iv, iv, AES_BLOCKLEN);
+}
+
+void aes256_ctx_set_iv(aes256_ctx* ctx, const uint8_t* iv) {
     memcpy(ctx->Iv, iv, AES_BLOCKLEN);
 }
 #endif
@@ -388,7 +691,7 @@ inline static void inv_shift_rows(state_t* state) {
 #endif // #if (defined(CBC) && CBC == 1) || (defined(ECB) && ECB == 1)
 
 // Cipher is the main function that encrypts the PlainText.
-inline static void cipher(state_t* state, const uint8_t* RoundKey) {
+inline static void cipher_aes128(state_t* state, const uint8_t* RoundKey) {
     uint8_t round = 0;
 
     // Add the First round key to the state before starting the rounds.
@@ -401,19 +704,98 @@ inline static void cipher(state_t* state, const uint8_t* RoundKey) {
     for (round = 1; ; ++round) {
         sub_bytes(state);
         shift_rows(state);
-        if (round == Nr)
+        if (round == Nr128)
             break;
 
         mix_columns(state);
         add_round_key(round, state, RoundKey);
     }
     // Add round key to last round
-    add_round_key(Nr, state, RoundKey);
+    add_round_key(Nr128, state, RoundKey);
 }
 
-inline static void cipher_aes_ni(void* state, __m128i* round_key) {
+inline static void cipher_aes192(state_t* state, const uint8_t* RoundKey) {
+    uint8_t round = 0;
+
+    // Add the First round key to the state before starting the rounds.
+    add_round_key(0, state, RoundKey);
+
+    // There will be Nr rounds.
+    // The first Nr-1 rounds are identical.
+    // These Nr rounds are executed in the loop below.
+    // Last one without MixColumns()
+    for (round = 1; ; ++round) {
+        sub_bytes(state);
+        shift_rows(state);
+        if (round == Nr192)
+            break;
+
+        mix_columns(state);
+        add_round_key(round, state, RoundKey);
+    }
+    // Add round key to last round
+    add_round_key(Nr192, state, RoundKey);
+}
+
+inline static void cipher_aes256(state_t* state, const uint8_t* RoundKey) {
+    uint8_t round = 0;
+
+    // Add the First round key to the state before starting the rounds.
+    add_round_key(0, state, RoundKey);
+
+    // There will be Nr rounds.
+    // The first Nr-1 rounds are identical.
+    // These Nr rounds are executed in the loop below.
+    // Last one without MixColumns()
+    for (round = 1; ; ++round) {
+        sub_bytes(state);
+        shift_rows(state);
+        if (round == Nr256)
+            break;
+
+        mix_columns(state);
+        add_round_key(round, state, RoundKey);
+    }
+    // Add round key to last round
+    add_round_key(Nr256, state, RoundKey);
+}
+
+inline static void cipher_aes128_ni(void* state, __m128i* round_key) {
     __m128i m = _mm_loadu_si128((__m128i*)state);
-#if defined(AES256) && (AES256 == 1)
+    m = _mm_xor_si128(m, round_key[0]);
+    m = _mm_aesenc_si128(m, round_key[1]);
+    m = _mm_aesenc_si128(m, round_key[2]);
+    m = _mm_aesenc_si128(m, round_key[3]);
+    m = _mm_aesenc_si128(m, round_key[4]);
+    m = _mm_aesenc_si128(m, round_key[5]);
+    m = _mm_aesenc_si128(m, round_key[6]);
+    m = _mm_aesenc_si128(m, round_key[7]);
+    m = _mm_aesenc_si128(m, round_key[8]);
+    m = _mm_aesenc_si128(m, round_key[9]);
+    m = _mm_aesenclast_si128(m, round_key[10]);
+    _mm_storeu_si128((__m128i*)state, m);
+}
+
+inline static void cipher_aes192_ni(void* state, __m128i* round_key) {
+    __m128i m = _mm_loadu_si128((__m128i*)state);
+    m = _mm_xor_si128(m, round_key[0]);
+    m = _mm_aesenc_si128(m, round_key[1]);
+    m = _mm_aesenc_si128(m, round_key[2]);
+    m = _mm_aesenc_si128(m, round_key[3]);
+    m = _mm_aesenc_si128(m, round_key[4]);
+    m = _mm_aesenc_si128(m, round_key[5]);
+    m = _mm_aesenc_si128(m, round_key[6]);
+    m = _mm_aesenc_si128(m, round_key[7]);
+    m = _mm_aesenc_si128(m, round_key[8]);
+    m = _mm_aesenc_si128(m, round_key[9]);
+    m = _mm_aesenc_si128(m, round_key[10]);
+    m = _mm_aesenc_si128(m, round_key[11]);
+    m = _mm_aesenclast_si128(m, round_key[12]);
+    _mm_storeu_si128((__m128i*)state, m);
+}
+
+inline static void cipher_aes256_ni(void* state, __m128i* round_key) {
+    __m128i m = _mm_loadu_si128((__m128i*)state);
     m = _mm_xor_si128(m, round_key[0]);
     m = _mm_aesenc_si128(m, round_key[1]);
     m = _mm_aesenc_si128(m, round_key[2]);
@@ -429,48 +811,21 @@ inline static void cipher_aes_ni(void* state, __m128i* round_key) {
     m = _mm_aesenc_si128(m, round_key[12]);
     m = _mm_aesenc_si128(m, round_key[13]);
     m = _mm_aesenclast_si128(m, round_key[14]);
-#elif defined(AES192) && (AES192 == 1)
-    m = _mm_xor_si128(m, round_key[0]);
-    m = _mm_aesenc_si128(m, round_key[1]);
-    m = _mm_aesenc_si128(m, round_key[2]);
-    m = _mm_aesenc_si128(m, round_key[3]);
-    m = _mm_aesenc_si128(m, round_key[4]);
-    m = _mm_aesenc_si128(m, round_key[5]);
-    m = _mm_aesenc_si128(m, round_key[6]);
-    m = _mm_aesenc_si128(m, round_key[7]);
-    m = _mm_aesenc_si128(m, round_key[8]);
-    m = _mm_aesenc_si128(m, round_key[9]);
-    m = _mm_aesenc_si128(m, round_key[10]);
-    m = _mm_aesenc_si128(m, round_key[11]);
-    m = _mm_aesenclast_si128(m, round_key[12]);
-#else
-    m = _mm_xor_si128(m, round_key[0]);
-    m = _mm_aesenc_si128(m, round_key[1]);
-    m = _mm_aesenc_si128(m, round_key[2]);
-    m = _mm_aesenc_si128(m, round_key[3]);
-    m = _mm_aesenc_si128(m, round_key[4]);
-    m = _mm_aesenc_si128(m, round_key[5]);
-    m = _mm_aesenc_si128(m, round_key[6]);
-    m = _mm_aesenc_si128(m, round_key[7]);
-    m = _mm_aesenc_si128(m, round_key[8]);
-    m = _mm_aesenc_si128(m, round_key[9]);
-    m = _mm_aesenclast_si128(m, round_key[10]);
-#endif
     _mm_storeu_si128((__m128i*)state, m);
 }
 
 #if (defined(CBC) && CBC == 1) || (defined(ECB) && ECB == 1)
-inline static void inv_cipher(state_t* state, const uint8_t* RoundKey) {
+inline static void inv_cipher_aes128(state_t* state, const uint8_t* RoundKey) {
     uint8_t round = 0;
 
     // Add the First round key to the state before starting the rounds.
-    add_round_key(Nr, state, RoundKey);
+    add_round_key(Nr128, state, RoundKey);
 
     // There will be Nr rounds.
     // The first Nr-1 rounds are identical.
     // These Nr rounds are executed in the loop below.
     // Last one without InvMixColumn()
-    for (round = (Nr - 1); ; --round) {
+    for (round = (Nr128 - 1); ; --round) {
         inv_shift_rows(state);
         inv_sub_bytes(state);
         add_round_key(round, state, RoundKey);
@@ -482,33 +837,52 @@ inline static void inv_cipher(state_t* state, const uint8_t* RoundKey) {
 
 }
 
-inline static void inv_cipher_aes_ni(void* state, __m128i* round_key) {
+inline static void inv_cipher_aes192(state_t* state, const uint8_t* RoundKey) {
+    uint8_t round = 0;
+
+    // Add the First round key to the state before starting the rounds.
+    add_round_key(Nr192, state, RoundKey);
+
+    // There will be Nr rounds.
+    // The first Nr-1 rounds are identical.
+    // These Nr rounds are executed in the loop below.
+    // Last one without InvMixColumn()
+    for (round = (Nr192 - 1); ; --round) {
+        inv_shift_rows(state);
+        inv_sub_bytes(state);
+        add_round_key(round, state, RoundKey);
+        if (round == 0)
+            break;
+
+        inv_mix_columns(state);
+    }
+
+}
+
+inline static void inv_cipher_aes256(state_t* state, const uint8_t* RoundKey) {
+    uint8_t round = 0;
+
+    // Add the First round key to the state before starting the rounds.
+    add_round_key(Nr256, state, RoundKey);
+
+    // There will be Nr rounds.
+    // The first Nr-1 rounds are identical.
+    // These Nr rounds are executed in the loop below.
+    // Last one without InvMixColumn()
+    for (round = (Nr256 - 1); ; --round) {
+        inv_shift_rows(state);
+        inv_sub_bytes(state);
+        add_round_key(round, state, RoundKey);
+        if (round == 0)
+            break;
+
+        inv_mix_columns(state);
+    }
+
+}
+
+inline static void inv_cipher_aes128_ni(void* state, __m128i* round_key) {
     __m128i m = _mm_loadu_si128((__m128i*)state);
-#if defined(AES256) && (AES256 == 1)
-    m = _mm_xor_si128(m, round_key[14]);
-    m = _mm_aesdec_si128(m, round_key[15]);
-    m = _mm_aesdec_si128(m, round_key[16]);
-    m = _mm_aesdec_si128(m, round_key[17]);
-    m = _mm_aesdec_si128(m, round_key[18]);
-    m = _mm_aesdec_si128(m, round_key[19]);
-    m = _mm_aesdec_si128(m, round_key[20]);
-    m = _mm_aesdec_si128(m, round_key[21]);
-    m = _mm_aesdec_si128(m, round_key[22]);
-    m = _mm_aesdec_si128(m, round_key[23]);
-    m = _mm_aesdeclast_si128(m, round_key[0]);
-#elif defined(AES192) && (AES192 == 1)
-    m = _mm_xor_si128(m, round_key[12]);
-    m = _mm_aesdec_si128(m, round_key[13]);
-    m = _mm_aesdec_si128(m, round_key[14]);
-    m = _mm_aesdec_si128(m, round_key[15]);
-    m = _mm_aesdec_si128(m, round_key[16]);
-    m = _mm_aesdec_si128(m, round_key[17]);
-    m = _mm_aesdec_si128(m, round_key[18]);
-    m = _mm_aesdec_si128(m, round_key[19]);
-    m = _mm_aesdec_si128(m, round_key[20]);
-    m = _mm_aesdec_si128(m, round_key[21]);
-    m = _mm_aesdeclast_si128(m, round_key[0]);
-#else
     m = _mm_xor_si128(m, round_key[10]);
     m = _mm_aesdec_si128(m, round_key[11]);
     m = _mm_aesdec_si128(m, round_key[12]);
@@ -520,7 +894,44 @@ inline static void inv_cipher_aes_ni(void* state, __m128i* round_key) {
     m = _mm_aesdec_si128(m, round_key[18]);
     m = _mm_aesdec_si128(m, round_key[19]);
     m = _mm_aesdeclast_si128(m, round_key[0]);
-#endif
+    _mm_storeu_si128((__m128i*)state, m);
+}
+
+inline static void inv_cipher_aes192_ni(void* state, __m128i* round_key) {
+    __m128i m = _mm_loadu_si128((__m128i*)state);
+    m = _mm_xor_si128(m, round_key[12]);
+    m = _mm_aesdec_si128(m, round_key[13]);
+    m = _mm_aesdec_si128(m, round_key[14]);
+    m = _mm_aesdec_si128(m, round_key[15]);
+    m = _mm_aesdec_si128(m, round_key[16]);
+    m = _mm_aesdec_si128(m, round_key[17]);
+    m = _mm_aesdec_si128(m, round_key[18]);
+    m = _mm_aesdec_si128(m, round_key[19]);
+    m = _mm_aesdec_si128(m, round_key[20]);
+    m = _mm_aesdec_si128(m, round_key[21]);
+    m = _mm_aesdec_si128(m, round_key[22]);
+    m = _mm_aesdec_si128(m, round_key[23]);
+    m = _mm_aesdeclast_si128(m, round_key[0]);
+    _mm_storeu_si128((__m128i*)state, m);
+}
+
+inline static void inv_cipher_aes256_ni(void* state, __m128i* round_key) {
+    __m128i m = _mm_loadu_si128((__m128i*)state);
+    m = _mm_xor_si128(m, round_key[14]);
+    m = _mm_aesdec_si128(m, round_key[15]);
+    m = _mm_aesdec_si128(m, round_key[16]);
+    m = _mm_aesdec_si128(m, round_key[17]);
+    m = _mm_aesdec_si128(m, round_key[18]);
+    m = _mm_aesdec_si128(m, round_key[19]);
+    m = _mm_aesdec_si128(m, round_key[20]);
+    m = _mm_aesdec_si128(m, round_key[21]);
+    m = _mm_aesdec_si128(m, round_key[22]);
+    m = _mm_aesdec_si128(m, round_key[23]);
+    m = _mm_aesdec_si128(m, round_key[24]);
+    m = _mm_aesdec_si128(m, round_key[25]);
+    m = _mm_aesdec_si128(m, round_key[26]);
+    m = _mm_aesdec_si128(m, round_key[27]);
+    m = _mm_aesdeclast_si128(m, round_key[0]);
     _mm_storeu_si128((__m128i*)state, m);
 }
 
@@ -530,38 +941,106 @@ inline static void inv_cipher_aes_ni(void* state, __m128i* round_key) {
 /* Public functions:                                                         */
 /*****************************************************************************/
 #if defined(ECB) && (ECB == 1)
-void aes_ecb_encrypt(struct aes_ctx* ctx, uint8_t* buf) {
+void aes128_ecb_encrypt(aes128_ctx* ctx, uint8_t* buf) {
     // The next function call encrypts the PlainText with the Key using AES algorithm.
     if (aes_ni)
-        cipher_aes_ni(buf, ctx->RoundKeyNI);
+        cipher_aes128_ni(buf, ctx->RoundKeyNI);
     else
-        cipher((state_t*)buf, ctx->RoundKey);
+        cipher_aes128((state_t*)buf, ctx->RoundKey);
 }
 
-void aes_ecb_decrypt(struct aes_ctx* ctx, uint8_t* buf) {
+void aes192_ecb_encrypt(aes192_ctx* ctx, uint8_t* buf) {
+    // The next function call encrypts the PlainText with the Key using AES algorithm.
+    if (aes_ni)
+        cipher_aes192_ni(buf, ctx->RoundKeyNI);
+    else
+        cipher_aes192((state_t*)buf, ctx->RoundKey);
+}
+
+void aes256_ecb_encrypt(aes256_ctx* ctx, uint8_t* buf) {
+    // The next function call encrypts the PlainText with the Key using AES algorithm.
+    if (aes_ni)
+        cipher_aes256_ni(buf, ctx->RoundKeyNI);
+    else
+        cipher_aes256((state_t*)buf, ctx->RoundKey);
+}
+
+void aes128_ecb_decrypt(aes128_ctx* ctx, uint8_t* buf) {
     // The next function call decrypts the PlainText with the Key using AES algorithm.
     if (aes_ni)
-        inv_cipher_aes_ni(buf, ctx->RoundKeyNI);
+        inv_cipher_aes128_ni(buf, ctx->RoundKeyNI);
     else
-        inv_cipher((state_t*)buf, ctx->RoundKey);
+        inv_cipher_aes128((state_t*)buf, ctx->RoundKey);
 }
 
-void aes_ecb_encrypt_buffer(struct aes_ctx* ctx, uint8_t* buf, size_t length) {
+void aes192_ecb_decrypt(aes192_ctx* ctx, uint8_t* buf) {
+    // The next function call decrypts the PlainText with the Key using AES algorithm.
     if (aes_ni)
-        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
-            cipher_aes_ni(buf, ctx->RoundKeyNI);
+        inv_cipher_aes192_ni(buf, ctx->RoundKeyNI);
     else
-        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
-            cipher((state_t*)buf, ctx->RoundKey);
+        inv_cipher_aes192((state_t*)buf, ctx->RoundKey);
 }
 
-void aes_ecb_decrypt_buffer(struct aes_ctx* ctx, uint8_t* buf, size_t length) {
+void aes256_ecb_decrypt(aes256_ctx* ctx, uint8_t* buf) {
+    // The next function call decrypts the PlainText with the Key using AES algorithm.
+    if (aes_ni)
+        inv_cipher_aes256_ni(buf, ctx->RoundKeyNI);
+    else
+        inv_cipher_aes256((state_t*)buf, ctx->RoundKey);
+}
+
+void aes128_ecb_encrypt_buffer(aes128_ctx* ctx, uint8_t* buf, size_t length) {
     if (aes_ni)
         for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
-            inv_cipher_aes_ni(buf, ctx->RoundKeyNI);
+            cipher_aes128_ni(buf, ctx->RoundKeyNI);
     else
         for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
-            inv_cipher((state_t*)buf, ctx->RoundKey);
+            cipher_aes128((state_t*)buf, ctx->RoundKey);
+}
+
+void aes192_ecb_encrypt_buffer(aes192_ctx* ctx, uint8_t* buf, size_t length) {
+    if (aes_ni)
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            cipher_aes192_ni(buf, ctx->RoundKeyNI);
+    else
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            cipher_aes192((state_t*)buf, ctx->RoundKey);
+}
+
+void aes256_ecb_encrypt_buffer(aes256_ctx* ctx, uint8_t* buf, size_t length) {
+    if (aes_ni)
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            cipher_aes256_ni(buf, ctx->RoundKeyNI);
+    else
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            cipher_aes256((state_t*)buf, ctx->RoundKey);
+}
+
+void aes128_ecb_decrypt_buffer(aes128_ctx* ctx, uint8_t* buf, size_t length) {
+    if (aes_ni)
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            inv_cipher_aes128_ni(buf, ctx->RoundKeyNI);
+    else
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            inv_cipher_aes128((state_t*)buf, ctx->RoundKey);
+}
+
+void aes192_ecb_decrypt_buffer(aes192_ctx* ctx, uint8_t* buf, size_t length) {
+    if (aes_ni)
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            inv_cipher_aes192_ni(buf, ctx->RoundKeyNI);
+    else
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            inv_cipher_aes192((state_t*)buf, ctx->RoundKey);
+}
+
+void aes256_ecb_decrypt_buffer(aes256_ctx* ctx, uint8_t* buf, size_t length) {
+    if (aes_ni)
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            inv_cipher_aes256_ni(buf, ctx->RoundKeyNI);
+    else
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN)
+            inv_cipher_aes256((state_t*)buf, ctx->RoundKey);
 }
 #endif // #if defined(ECB) && (ECB == 1)
 
@@ -575,37 +1054,205 @@ inline static void XorWithIv(uint8_t* buf, const uint8_t* Iv) {
     );
 }
 
-void aes_cbc_encrypt_buffer(struct aes_ctx *ctx, uint8_t* buf, size_t length) {
+void aes128_cbc_encrypt(aes128_ctx* ctx, uint8_t buf[AES_BLOCKLEN]) {
+    uint8_t* Iv = ctx->Iv;
+    if (aes_ni) {
+        XorWithIv(buf, Iv);
+        cipher_aes128_ni(buf, ctx->RoundKeyNI);
+        Iv = buf;
+    }
+    else {
+        XorWithIv(buf, Iv);
+        cipher_aes128((state_t*)buf, ctx->RoundKey);
+        Iv = buf;
+    }
+    /* store Iv in ctx for next call */
+    memcpy(ctx->Iv, Iv, AES_BLOCKLEN);
+}
+
+void aes192_cbc_encrypt(aes192_ctx* ctx, uint8_t buf[AES_BLOCKLEN]) {
+    uint8_t* Iv = ctx->Iv;
+    if (aes_ni) {
+        XorWithIv(buf, Iv);
+        cipher_aes192_ni(buf, ctx->RoundKeyNI);
+        Iv = buf;
+    }
+    else {
+        XorWithIv(buf, Iv);
+        cipher_aes192((state_t*)buf, ctx->RoundKey);
+        Iv = buf;
+    }
+    /* store Iv in ctx for next call */
+    memcpy(ctx->Iv, Iv, AES_BLOCKLEN);
+}
+
+void aes256_cbc_encrypt(aes256_ctx* ctx, uint8_t buf[AES_BLOCKLEN]) {
+    uint8_t* Iv = ctx->Iv;
+    if (aes_ni) {
+        XorWithIv(buf, Iv);
+        cipher_aes256_ni(buf, ctx->RoundKeyNI);
+        Iv = buf;
+    }
+    else {
+        XorWithIv(buf, Iv);
+        cipher_aes256((state_t*)buf, ctx->RoundKey);
+        Iv = buf;
+    }
+    /* store Iv in ctx for next call */
+    memcpy(ctx->Iv, Iv, AES_BLOCKLEN);
+}
+
+void aes128_cbc_decrypt(aes128_ctx* ctx, uint8_t buf[AES_BLOCKLEN]) {
+    uint8_t storeNextIv[AES_BLOCKLEN];
+    if (aes_ni) {
+        memcpy(storeNextIv, buf, AES_BLOCKLEN);
+        inv_cipher_aes128_ni(buf, ctx->RoundKeyNI);
+        XorWithIv(buf, ctx->Iv);
+        memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+    }
+    else {
+        memcpy(storeNextIv, buf, AES_BLOCKLEN);
+        inv_cipher_aes128((state_t*)buf, ctx->RoundKey);
+        XorWithIv(buf, ctx->Iv);
+        memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+    }
+}
+
+void aes192_cbc_decrypt(aes192_ctx* ctx, uint8_t buf[AES_BLOCKLEN]) {
+    uint8_t storeNextIv[AES_BLOCKLEN];
+    if (aes_ni) {
+        memcpy(storeNextIv, buf, AES_BLOCKLEN);
+        inv_cipher_aes192_ni(buf, ctx->RoundKeyNI);
+        XorWithIv(buf, ctx->Iv);
+        memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+    }
+    else {
+        memcpy(storeNextIv, buf, AES_BLOCKLEN);
+        inv_cipher_aes192((state_t*)buf, ctx->RoundKey);
+        XorWithIv(buf, ctx->Iv);
+        memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+    }
+}
+
+void aes256_cbc_decrypt(aes256_ctx* ctx, uint8_t buf[AES_BLOCKLEN]) {
+    uint8_t storeNextIv[AES_BLOCKLEN];
+    if (aes_ni) {
+        memcpy(storeNextIv, buf, AES_BLOCKLEN);
+        inv_cipher_aes256_ni(buf, ctx->RoundKeyNI);
+        XorWithIv(buf, ctx->Iv);
+        memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+    }
+    else {
+        memcpy(storeNextIv, buf, AES_BLOCKLEN);
+        inv_cipher_aes256((state_t*)buf, ctx->RoundKey);
+        XorWithIv(buf, ctx->Iv);
+        memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+    }
+}
+
+void aes128_cbc_encrypt_buffer(aes128_ctx *ctx, uint8_t* buf, size_t length) {
     uint8_t* Iv = ctx->Iv;
     if (aes_ni)
         for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
             XorWithIv(buf, Iv);
-            cipher_aes_ni(buf, ctx->RoundKeyNI);
+            cipher_aes128_ni(buf, ctx->RoundKeyNI);
             Iv = buf;
         }
     else
         for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
             XorWithIv(buf, Iv);
-            cipher((state_t*)buf, ctx->RoundKey);
+            cipher_aes128((state_t*)buf, ctx->RoundKey);
             Iv = buf;
         }
     /* store Iv in ctx for next call */
     memcpy(ctx->Iv, Iv, AES_BLOCKLEN);
 }
 
-void aes_cbc_decrypt_buffer(struct aes_ctx* ctx, uint8_t* buf, size_t length) {
+void aes192_cbc_encrypt_buffer(aes192_ctx *ctx, uint8_t* buf, size_t length) {
+    uint8_t* Iv = ctx->Iv;
+    if (aes_ni)
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
+            XorWithIv(buf, Iv);
+            cipher_aes192_ni(buf, ctx->RoundKeyNI);
+            Iv = buf;
+        }
+    else
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
+            XorWithIv(buf, Iv);
+            cipher_aes192((state_t*)buf, ctx->RoundKey);
+            Iv = buf;
+        }
+    /* store Iv in ctx for next call */
+    memcpy(ctx->Iv, Iv, AES_BLOCKLEN);
+}
+
+void aes256_cbc_encrypt_buffer(aes256_ctx *ctx, uint8_t* buf, size_t length) {
+    uint8_t* Iv = ctx->Iv;
+    if (aes_ni)
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
+            XorWithIv(buf, Iv);
+            cipher_aes256_ni(buf, ctx->RoundKeyNI);
+            Iv = buf;
+        }
+    else
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
+            XorWithIv(buf, Iv);
+            cipher_aes256((state_t*)buf, ctx->RoundKey);
+            Iv = buf;
+        }
+    /* store Iv in ctx for next call */
+    memcpy(ctx->Iv, Iv, AES_BLOCKLEN);
+}
+
+void aes128_cbc_decrypt_buffer(aes128_ctx* ctx, uint8_t* buf, size_t length) {
     uint8_t storeNextIv[AES_BLOCKLEN];
     if (aes_ni)
         for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
             memcpy(storeNextIv, buf, AES_BLOCKLEN);
-            inv_cipher_aes_ni(buf, ctx->RoundKeyNI);
+            inv_cipher_aes128_ni(buf, ctx->RoundKeyNI);
             XorWithIv(buf, ctx->Iv);
             memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
         }
     else
         for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
             memcpy(storeNextIv, buf, AES_BLOCKLEN);
-            inv_cipher((state_t*)buf, ctx->RoundKey);
+            inv_cipher_aes128((state_t*)buf, ctx->RoundKey);
+            XorWithIv(buf, ctx->Iv);
+            memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+        }
+}
+
+void aes192_cbc_decrypt_buffer(aes192_ctx* ctx, uint8_t* buf, size_t length) {
+    uint8_t storeNextIv[AES_BLOCKLEN];
+    if (aes_ni)
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
+            memcpy(storeNextIv, buf, AES_BLOCKLEN);
+            inv_cipher_aes192_ni(buf, ctx->RoundKeyNI);
+            XorWithIv(buf, ctx->Iv);
+            memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+        }
+    else
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
+            memcpy(storeNextIv, buf, AES_BLOCKLEN);
+            inv_cipher_aes192((state_t*)buf, ctx->RoundKey);
+            XorWithIv(buf, ctx->Iv);
+            memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+        }
+}
+
+void aes256_cbc_decrypt_buffer(aes256_ctx* ctx, uint8_t* buf, size_t length) {
+    uint8_t storeNextIv[AES_BLOCKLEN];
+    if (aes_ni)
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
+            memcpy(storeNextIv, buf, AES_BLOCKLEN);
+            inv_cipher_aes256_ni(buf, ctx->RoundKeyNI);
+            XorWithIv(buf, ctx->Iv);
+            memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+        }
+    else
+        for (size_t i = 0; i < length; i += AES_BLOCKLEN, buf += AES_BLOCKLEN) {
+            memcpy(storeNextIv, buf, AES_BLOCKLEN);
+            inv_cipher_aes256((state_t*)buf, ctx->RoundKey);
             XorWithIv(buf, ctx->Iv);
             memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
         }
@@ -615,7 +1262,7 @@ void aes_cbc_decrypt_buffer(struct aes_ctx* ctx, uint8_t* buf, size_t length) {
 
 #if defined(CTR) && (CTR == 1)
 /* Symmetrical operation: same function for encrypting as for decrypting. Note any IV/nonce should never be reused with the same key */
-void aes_ctr_xcrypt_buffer(struct aes_ctx* ctx, uint8_t* buf, uint32_t length) {
+void aes128_ctr_xcrypt_buffer(aes128_ctx* ctx, uint8_t* buf, uint32_t length) {
     uint8_t buffer[AES_BLOCKLEN];
 
     int32_t bi;
@@ -624,9 +1271,69 @@ void aes_ctr_xcrypt_buffer(struct aes_ctx* ctx, uint8_t* buf, uint32_t length) {
         if (bi == AES_BLOCKLEN) { /* we need to regen xor compliment in buffer */
             memcpy(buffer, ctx->Iv, AES_BLOCKLEN);
             if (aes_ni)
-                cipher_aes_ni(buffer, ctx->RoundKeyNI);
+                cipher_aes128_ni(buffer, ctx->RoundKeyNI);
             else
-                cipher((state_t*)buffer, ctx->RoundKey);
+                cipher_aes128((state_t*)buffer, ctx->RoundKey);
+
+            /* Increment Iv and handle overflow */
+            for (bi = (AES_BLOCKLEN - 1); bi >= 0; bi--) {
+                /* inc will overflow */
+                if (ctx->Iv[bi] == 255) {
+                    ctx->Iv[bi] = 0;
+                    continue;
+                }
+                ctx->Iv[bi]++;
+                break;
+            }
+            bi = 0;
+        }
+
+        buf[i] ^= buffer[bi];
+    }
+}
+
+void aes192_ctr_xcrypt_buffer(aes192_ctx* ctx, uint8_t* buf, uint32_t length) {
+    uint8_t buffer[AES_BLOCKLEN];
+
+    int32_t bi;
+    size_t i;
+    for (i = 0, bi = AES_BLOCKLEN; i < length; i++, bi++) {
+        if (bi == AES_BLOCKLEN) { /* we need to regen xor compliment in buffer */
+            memcpy(buffer, ctx->Iv, AES_BLOCKLEN);
+            if (aes_ni)
+                cipher_aes192_ni(buffer, ctx->RoundKeyNI);
+            else
+                cipher_aes192((state_t*)buffer, ctx->RoundKey);
+
+            /* Increment Iv and handle overflow */
+            for (bi = (AES_BLOCKLEN - 1); bi >= 0; bi--) {
+                /* inc will overflow */
+                if (ctx->Iv[bi] == 255) {
+                    ctx->Iv[bi] = 0;
+                    continue;
+                }
+                ctx->Iv[bi]++;
+                break;
+            }
+            bi = 0;
+        }
+
+        buf[i] ^= buffer[bi];
+    }
+}
+
+void aes256_ctr_xcrypt_buffer(aes256_ctx* ctx, uint8_t* buf, uint32_t length) {
+    uint8_t buffer[AES_BLOCKLEN];
+
+    int32_t bi;
+    size_t i;
+    for (i = 0, bi = AES_BLOCKLEN; i < length; i++, bi++) {
+        if (bi == AES_BLOCKLEN) { /* we need to regen xor compliment in buffer */
+            memcpy(buffer, ctx->Iv, AES_BLOCKLEN);
+            if (aes_ni)
+                cipher_aes256_ni(buffer, ctx->RoundKeyNI);
+            else
+                cipher_aes256((state_t*)buffer, ctx->RoundKey);
 
             /* Increment Iv and handle overflow */
             for (bi = (AES_BLOCKLEN - 1); bi >= 0; bi--) {

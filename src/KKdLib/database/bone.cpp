@@ -459,7 +459,7 @@ const char* bone_database_skeleton_type_to_string(bone_database_skeleton_type ty
 }
 
 bone_database_bone::bone_database_bone() : type(),
-has_parent(), parent(), pole_target(), mirror(), flags() {
+has_parent(), parent(), pole_target(), mirror(), disable_mot_anim() {
 
 }
 
@@ -525,7 +525,7 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream* s
             bone->parent = io_read_uint8_t(s);
             bone->pole_target = io_read_uint8_t(s);
             bone->mirror = io_read_uint8_t(s);
-            bone->flags = io_read_uint8_t(s);
+            bone->disable_mot_anim = io_read_uint8_t(s);
             io_read(s, 0x02);
             io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &bone->name);
         }
@@ -645,7 +645,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream* 
             io_write_uint8_t(s, j.parent);
             io_write_uint8_t(s, j.pole_target);
             io_write_uint8_t(s, j.mirror);
-            io_write_uint8_t(s, j.flags);
+            io_write_uint8_t(s, j.disable_mot_anim);
             io_write(s, 0x02);
             io_write_uint32_t(s, (uint32_t)bone_database_strings_get_string_offset(strings,
                 string_offsets, j.name.c_str()));
@@ -810,7 +810,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
                 bone->parent = io_read_uint8_t(s);
                 bone->pole_target = io_read_uint8_t(s);
                 bone->mirror = io_read_uint8_t(s);
-                bone->flags = io_read_uint8_t(s);
+                bone->disable_mot_anim = io_read_uint8_t(s);
                 io_read(s, 0x02);
                 io_read_string_null_terminated_offset(s, io_read_offset_f2(s, header_length), &bone->name);
             }
@@ -822,7 +822,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream* s,
                 bone->parent = io_read_uint8_t(s);
                 bone->pole_target = io_read_uint8_t(s);
                 bone->mirror = io_read_uint8_t(s);
-                bone->flags = io_read_uint8_t(s);
+                bone->disable_mot_anim = io_read_uint8_t(s);
                 io_read(s, 0x02);
                 io_read_string_null_terminated_offset(s, io_read_offset_x(s), &bone->name);
             }
@@ -1321,7 +1321,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
                 io_write_uint8_t(&s_bone, j.parent);
                 io_write_uint8_t(&s_bone, j.pole_target);
                 io_write_uint8_t(&s_bone, j.mirror);
-                io_write_uint8_t(&s_bone, j.flags);
+                io_write_uint8_t(&s_bone, j.disable_mot_anim);
                 io_write(&s_bone, 0x02);
                 io_write_offset_f2(&s_bone, bone_database_strings_get_string_offset(strings,
                     string_offsets, j.name.c_str()), 0x40);
@@ -1333,7 +1333,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream* s
                 io_write_uint8_t(&s_bone, j.parent);
                 io_write_uint8_t(&s_bone, j.pole_target);
                 io_write_uint8_t(&s_bone, j.mirror);
-                io_write_uint8_t(&s_bone, j.flags);
+                io_write_uint8_t(&s_bone, j.disable_mot_anim);
                 io_write(&s_bone, 0x02);
                 io_write_offset_x(&s_bone, bone_database_strings_get_string_offset(strings,
                     string_offsets, j.name.c_str()));

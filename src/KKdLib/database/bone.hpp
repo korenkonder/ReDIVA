@@ -41,7 +41,7 @@ struct bone_database_bone {
     uint8_t parent;
     uint8_t pole_target;
     uint8_t mirror;
-    uint8_t flags;
+    uint8_t disable_mot_anim;
     std::string name;
 
     bone_database_bone();

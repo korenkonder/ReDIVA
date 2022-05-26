@@ -500,7 +500,7 @@ void path_get_directories_recursive(std::vector<std::wstring>* directories,
 
     size_t path_length = utf16_length(path);
     wchar_t* path_temp = force_malloc_s(wchar_t, path_length + max_len + 2);
-    memcpy(path_temp, path, path_length);
+    memcpy(path_temp, path, sizeof(wchar_t) * path_length);
     path_temp[path_length] = '\\';
     for (std::wstring& i : temp_vec) {
         memcpy(&path_temp[path_length + 1], i.c_str(), sizeof(wchar_t) * (i.size() + 1));
@@ -523,7 +523,7 @@ void path_get_directories_recursive(std::vector<std::wstring>* directories,
         size_t sub_path_length = i.size();
         wchar_t* sub_path_temp = force_malloc_s(wchar_t, sub_path_length + max_len + 1);
         if (sub_path_temp) {
-            memcpy(sub_path_temp, i.c_str(), sub_path_length);
+            memcpy(sub_path_temp, i.c_str(), sizeof(wchar_t) * sub_path_length);
             sub_path_temp[sub_path_length] = '\\';
             for (std::wstring& j : temp) {
                 memcpy(&sub_path_temp[sub_path_length + 1], j.c_str(), sizeof(wchar_t) * j.size());

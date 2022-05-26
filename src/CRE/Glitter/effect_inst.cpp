@@ -684,27 +684,30 @@ namespace Glitter {
 
         GetValue();
 
+        vec3 rot = rotation;
+
         mat4 mat;
         if (flags & EFFECT_INST_HAS_EXT_ANIM_TRANS && ext_anim) {
             mat4_normalize_rotation(&ext_anim->mat, &mat_rot);
             mat4_clear_trans(&mat_rot, &mat_rot);
+            mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot_eff_rot);
 
             vec3 ext_trans = ext_anim->translation;
             mat4_translate_mult(&ext_anim->mat, ext_trans.x, ext_trans.y, ext_trans.z, &mat);
-            vec3 trans = translation;
+
+            vec3& trans = translation;
             mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
         }
         else {
             mat_rot = mat4_identity;
-            vec3 trans = translation;
+            mat4_rotate(rot.x, rot.y, rot.z, &mat_rot_eff_rot);
+
+            vec3& trans = translation;
             mat4_translate(trans.x, trans.y, trans.z, &mat);
         }
 
-        vec3 rot = rotation;
         vec3 scale;
         vec3_mult_scalar(this->scale, scale_all, scale);
-
-        mat4_rotate(rot.x, rot.y, rot.z, &mat_rot_eff_rot);
 
         mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &this->mat);
