@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "../../KKdLib/default.h"
-#include "../../KKdLib/string.h"
-#include "../../KKdLib/vec.h"
+#include <string>
+#include "../../KKdLib/default.hpp"
+#include "../../KKdLib/vec.hpp"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -54,9 +54,9 @@ extern bool imguiComboBox(const char* label, const char** items, const size_t si
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiComboBox(const char* label, const char** items, const size_t size,
     size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
-extern bool imguiComboBoxString(const char* label, string* items, const size_t size,
+extern bool imguiComboBoxString(const char* label, std::string* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
-extern bool imguiComboBoxString(const char* label, string* items, const size_t size,
+extern bool imguiComboBoxString(const char* label, std::string* items, const size_t size,
     size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiComboBoxConfigFile(const char* label, void* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
@@ -68,9 +68,9 @@ extern bool imguiColumnComboBox(const char* label, const char** items, const siz
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnComboBox(const char* label, const char** items, const size_t size,
     size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
-extern bool imguiColumnComboBoxString(const char* label, string* items, const size_t size,
+extern bool imguiColumnComboBoxString(const char* label, std::string* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
-extern bool imguiColumnComboBoxString(const char* label, string* items, const size_t size,
+extern bool imguiColumnComboBoxString(const char* label, std::string* items, const size_t size,
     size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);
 extern bool imguiColumnComboBoxConfigFile(const char* label, void* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus);

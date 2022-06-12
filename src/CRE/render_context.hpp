@@ -5,12 +5,11 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
-#include "../KKdLib/vec.h"
-#include "../KKdLib/vector.h"
-#include "light_param/face.h"
-#include "light_param/fog.h"
-#include "light_param/light.h"
+#include "../KKdLib/default.hpp"
+#include "../KKdLib/vec.hpp"
+#include "light_param/face.hpp"
+#include "light_param/fog.hpp"
+#include "light_param/light.hpp"
 #include "light_param/wind.hpp"
 #include "light_param.hpp"
 #include "camera.h"
@@ -66,13 +65,13 @@ enum draw_object_type {
 
 enum draw_pass_type {
     DRAW_PASS_SHADOW       = 0x00,
-    DRAW_PASS_SSS          = 0x01,
+    DRAW_PASS_SS_SSS       = 0x01,
     DRAW_PASS_TYPE_2       = 0x02,
     DRAW_PASS_REFLECT      = 0x03,
     DRAW_PASS_REFRACT      = 0x04,
-    DRAW_PASS_PREPROCESS   = 0x05,
-    DRAW_PASS_TYPE_6       = 0x06,
-    DRAW_PASS_TYPE_7       = 0x07,
+    DRAW_PASS_PRE_PROCESS  = 0x05,
+    DRAW_PASS_CLEAR        = 0x06,
+    DRAW_PASS_PRE_SPRITE   = 0x07,
     DRAW_PASS_3D           = 0x08,
     DRAW_PASS_SHOW_VECTOR  = 0x09,
     DRAW_PASS_POST_PROCESS = 0x0A,
@@ -81,7 +80,7 @@ enum draw_pass_type {
     DRAW_PASS_MAX          = 0x0D,
 };
 
-enum draw_task_flags {
+enum draw_task_flags : uint32_t {
     DRAW_TASK_SHADOW                = 0x00000001,
     DRAW_TASK_2                     = 0x00000002,
     DRAW_TASK_4                     = 0x00000004,

@@ -28,7 +28,7 @@ struct x_pv_game_glitter {
     ~x_pv_game_glitter();
 };
 
-struct pv_play_data_set_motion {
+struct x_pv_play_data_set_motion {
     float_t frame_speed;
     int32_t motion_id;
     float_t frame;
@@ -41,25 +41,25 @@ struct pv_play_data_set_motion {
     float_t dsc_frame;
 };
 
-struct pv_play_data_motion {
+struct x_pv_play_data_motion {
     bool enable;
     int32_t motion_index;
     int64_t time;
 };
 
-struct dsc_set_item {
+struct x_dsc_set_item {
     int32_t time;
     int32_t item_index;
     int32_t pv_branch_mode;
 };
 
-struct dsc_set_motion {
+struct x_dsc_set_motion {
     int32_t time;
     int32_t motion_index;
     int32_t pv_branch_mode;
 };
 
-struct struc_104 {
+struct x_struc_104 {
     rob_chara* rob_chr;
     float_t current_time;
     float_t duration;
@@ -68,24 +68,24 @@ struct struc_104 {
     float_t start_rot;
     float_t end_rot;
     float_t mot_smooth_len;
-    std::vector<dsc_set_motion> set_motion;
-    std::vector<dsc_set_item> set_item;
+    std::vector<x_dsc_set_motion> set_motion;
+    std::vector<x_dsc_set_item> set_item;
 
-    struc_104();
-    ~struc_104();
+    x_struc_104();
+    ~x_struc_104();
 
     void reset();
 };
 
-struct pv_play_data {
-    std::vector<pv_play_data_motion> motion;
+struct x_pv_play_data {
+    std::vector<x_pv_play_data_motion> motion;
     rob_chara* rob_chr;
-    std::list<pv_play_data_set_motion> set_motion;
+    std::list<x_pv_play_data_set_motion> set_motion;
     bool disp;
-    struc_104 field_38;
+    x_struc_104 field_38;
 
-    pv_play_data();
-    ~pv_play_data();
+    x_pv_play_data();
+    ~x_pv_play_data();
 
     void reset();
 };
@@ -105,6 +105,15 @@ struct x_pv_game_stage_effect_init {
     int32_t bar;
 };
 
+struct x_pv_game_a3da_to_mot_keys {
+    std::vector<float_t> x;
+    std::vector<float_t> y;
+    std::vector<float_t> z;
+
+    x_pv_game_a3da_to_mot_keys();
+    ~x_pv_game_a3da_to_mot_keys();
+};
+
 struct x_pv_game_a3da_to_mot {
     int32_t auth_3d_id;
     int32_t gblctr;
@@ -118,6 +127,15 @@ struct x_pv_game_a3da_to_mot {
     int32_t j_kubi_wj;
     int32_t n_kao;
     int32_t j_kao_wj;
+    int32_t j_kao_normal_wj;
+    int32_t j_kao_close_wj;
+    int32_t j_kao_smile_wj;
+    int32_t j_kao_close_half_wj;
+    int32_t j_kao_smile_half_wj;
+    int32_t j_kuti_l_wj;
+    int32_t j_kuti_u_wj;
+    int32_t j_kuti_d_wj;
+    int32_t j_kuti_r_wj;
     int32_t j_eye_r_wj;
     int32_t j_eye_l_wj;
     int32_t n_waki_l;
@@ -126,12 +144,19 @@ struct x_pv_game_a3da_to_mot {
     int32_t j_kata_l_wj;
     int32_t j_ude_l_wj;
     int32_t j_te_l_wj;
+    int32_t j_te_sizen2_l_wj;
+    int32_t j_te_close_l_wj;
+    int32_t j_te_reset_l_wj;
     int32_t n_waki_r;
     int32_t j_waki_r_wj;
     int32_t n_kata_r;
     int32_t j_kata_r_wj;
     int32_t j_ude_r_wj;
     int32_t j_te_r_wj;
+    int32_t j_te_sizen2_r_wj;
+    int32_t j_te_close_r_wj;
+    int32_t j_te_reset_r_wj;
+    int32_t j_te_one_r_wj;
     int32_t j_kosi_wj;
     int32_t n_momo_l;
     int32_t j_momo_l_wj;
@@ -141,11 +166,16 @@ struct x_pv_game_a3da_to_mot {
     int32_t j_momo_r_wj;
     int32_t j_sune_r_wj;
     int32_t j_asi_r_wj;
+    std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys> bone_keys;
+    std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys> sec_bone_keys;
 
     x_pv_game_a3da_to_mot(int32_t auth_3d_id);
+    ~x_pv_game_a3da_to_mot();
+
+    void get_bone_indices(auth_3d_object_hrc* oh);
 };
 
-class x_pv_game : public TaskWindow {
+class x_pv_game : public app::TaskWindow {
 public:
     int32_t pv_id;
     int32_t stage_id;
@@ -184,6 +214,7 @@ public:
     uint32_t camera_category_hash;
 
     std::vector<std::pair<std::string, uint32_t>> category_load;
+    std::vector<std::pair<std::string, uint32_t>> effchrpv_category_load;
 
     std::set<std::string> pv_auth_3d_names;
     std::set<std::string> stage_auth_3d_names;
@@ -219,7 +250,7 @@ public:
     float_t anim_frame_speed;
     int64_t dsc_time;
     bool pv_end;
-    pv_play_data playdata[ROB_CHARA_COUNT];
+    x_pv_play_data playdata[ROB_CHARA_COUNT];
     float_t scene_rot_y;
     mat4u scene_rot_mat;
     int32_t branch_mode;

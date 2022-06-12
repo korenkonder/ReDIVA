@@ -7,8 +7,8 @@
 
 #include <string>
 #include <vector>
-#include "default.h"
-#include "vec.h"
+#include "default.hpp"
+#include "vec.hpp"
 
 enum pvpp_chara_index {
     PVPP_CHARA_1P = 0,

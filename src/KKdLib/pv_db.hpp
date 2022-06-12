@@ -7,7 +7,7 @@
 
 #include <string>
 #include <vector>
-#include "default.h"
+#include "default.hpp"
 #include "database/item_table.hpp"
 
 enum pv_db_chreff_type {

@@ -4,17 +4,17 @@
 */
 
 #include "data.hpp"
-#include "../KKdLib/io/path.h"
-#include "../KKdLib/io/stream.h"
+#include "../KKdLib/io/path.hpp"
+#include "../KKdLib/io/stream.hpp"
 #include "../KKdLib/hash.hpp"
-#include "../KKdLib/str_utils.h"
+#include "../KKdLib/str_utils.hpp"
 
 data_struct* data_list;
 
 static char default_config[] = "#AFT\n\n\n";
 
 static void data_free_inner(data_struct* ds);
-static void data_load_inner(stream* s);
+static void data_load_inner(stream& s);
 #if defined(CRE_DEV)
 static void data_load_glitter_list(data_struct* ds, const char* path);
 #endif
@@ -27,28 +27,26 @@ void data_struct_init() {
 
 void data_struct_load(const char* path) {
     stream s;
-    io_open(&s, path, "rb");
+    s.open(path, "rb");
     if (s.io.stream)
-        data_load_inner(&s);
+        data_load_inner(s);
     else {
-        io_free(&s);
-        io_open(&s, default_config, 7);
-        data_load_inner(&s);
+        s.close();
+        s.open(default_config, 7);
+        data_load_inner(s);
     }
-    io_free(&s);
 }
 
 void data_struct_load(const wchar_t* path) {
     stream s;
-    io_open(&s, path, L"rb");
+    s.open(path, L"rb");
     if (s.io.stream)
-        data_load_inner(&s);
+        data_load_inner(s);
     else {
-        io_free(&s);
-        io_open(&s, default_config, 7);
-        data_load_inner(&s);
+        s.close();
+        s.open(default_config, 7);
+        data_load_inner(s);
     }
-    io_free(&s);
 }
 
 void data_struct_free() {
@@ -96,6 +94,21 @@ void data_struct_free() {
     for (int32_t i = DATA_AFT; i < DATA_MAX; i++)
         data_free_inner(&data_list[i]);
     delete[] data_list;
+}
+
+bool data_struct::check_file_exists(const char* path) {
+    const char* t = strrchr(path, '/');
+    if (t) {
+        std::string dir = std::string(path, t - path + 1);
+        return check_file_exists(dir.c_str(), t + 1);
+    }
+
+    t = strrchr(path, '\\');
+    if (t) {
+        std::string dir = std::string(path, t - path + 1);
+        return check_file_exists(dir.c_str(), t + 1);
+    }
+    return false;
 }
 
 bool data_struct::check_file_exists(const char* dir, const char* file) {
@@ -259,9 +272,9 @@ bool data_struct::check_file_exists(const char* dir, uint32_t hash) {
     return false;
 }
 
-void data_struct::get_directory_files(const char* dir, std::vector<data_struct_file>* data_files) {
-    data_files->clear();
-    data_files->shrink_to_fit();
+void data_struct::get_directory_files(const char* dir, std::vector<data_struct_file>& data_files) {
+    data_files.clear();
+    data_files.shrink_to_fit();
 
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
@@ -318,7 +331,7 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
 
             for (std::string& k : files) {
                 bool found = false;
-                for (data_struct_file& l : *data_files)
+                for (data_struct_file& l : data_files)
                     if (k == l.name) {
                         found = true;
                         break;
@@ -330,7 +343,7 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
                 data_struct_file f;
                 f.path = temp;
                 f.name = k;
-                data_files->push_back(f);
+                data_files.push_back(f);
             }
         }
 
@@ -338,7 +351,7 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
     free(temp);
 }
 
-bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std::string* file) {
+bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std::string& file) {
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
         dir += 2;
@@ -403,7 +416,7 @@ bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std:
                 t = l.c_str();
 
                 if (hash_murmurhash(t, t_len) == hash) {
-                    *file = l;
+                    file = l;
                     free(dir_temp);
                     free(temp);
                     return true;
@@ -416,6 +429,22 @@ bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std:
 
     if (f2)
         return get_file("rom/data/", hash, ext, file);
+    return false;
+}
+
+bool data_struct::load_file(void* data, const char* path,
+    bool (*load_func)(void* data, const char* path, const  char* file, uint32_t hash)) {
+    const char* t = strrchr(path, '/');
+    if (t) {
+        std::string dir = std::string(path, t - path + 1);
+        return load_file(data, dir.c_str(), t + 1, load_func);
+    }
+
+    t = strrchr(path, '\\');
+    if (t) {
+        std::string dir = std::string(path, t - path + 1);
+        return load_file(data, dir.c_str(), t + 1, load_func);
+    }
     return false;
 }
 
@@ -680,10 +709,10 @@ static void data_free_inner(data_struct* ds) {
     ds->ready = false;
 }
 
-static void data_load_inner(stream* s) {
-    size_t length = s->length;
+static void data_load_inner(stream& s) {
+    size_t length = s.length;
     void* data = force_malloc(length);
-    io_read(s, data, length);
+    s.read(data, length);
 
     char* buf;
     char** lines;
@@ -815,7 +844,7 @@ static void data_load_inner(stream* s) {
             data_struct_path data_path;
             t -= t_len[count - j - 1] + 1;
             data_path.path = std::string(t, t_len[count - j - 1]);
-            data_path.data = vector_old_empty(data_struct_directory);
+            data_path.data = {};
             ds->data_paths.push_back(data_path);
         }
         free(t_len);
@@ -1050,11 +1079,11 @@ static void data_load_inner(stream* s) {
 #if defined(CRE_DEV)
 static void data_load_glitter_list(data_struct* ds, const char* path) {
     stream s;
-    io_open(&s, path, "rb");
+    s.open(path, "rb");
     size_t length = s.length;
     uint8_t* data = force_malloc_s(uint8_t, length);
-    io_read(&s, data, length);
-    io_free(&s);
+    s.read(data, length);
+    s.close();
 
     char* buf;
     char** lines;

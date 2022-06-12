@@ -4,7 +4,7 @@
 */
 
 #include "texture.hpp"
-#include "../KKdLib/mat.h"
+#include "../KKdLib/mat.hpp"
 #include "../KKdLib/txp.hpp"
 #include "gl_state.h"
 #include "static_var.h"

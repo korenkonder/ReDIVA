@@ -4,15 +4,15 @@
 */
 
 #include "struct.hpp"
-#include "../io/path.h"
-#include "../io/stream.h"
-#include "../divafile.h"
+#include "../io/path.hpp"
+#include "../io/stream.hpp"
+#include "../divafile.hpp"
 
-static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h);
-static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool use_depth, bool shift_x);
+static void f2_struct_read_data(stream& s, f2_struct* st, f2_header* h);
+static void f2_struct_write_inner(stream& s, f2_struct* st, uint32_t depth, bool use_depth, bool shift_x);
 static void f2_struct_get_length(f2_struct* s, bool shift_x);
-static void f2_struct_write_pof(stream* s, pof* pof, uint32_t depth, bool shift_x);
-static void f2_struct_write_enrs(stream* s, enrs* enrs, uint32_t depth);
+static void f2_struct_write_pof(stream& s, pof* pof, uint32_t depth, bool shift_x);
+static void f2_struct_write_enrs(stream& s, enrs* enrs, uint32_t depth);
 
 f2_struct::f2_struct() : header() {
 
@@ -27,55 +27,9 @@ void f2_struct::read(const char* path) {
         return;
 
     stream s;
-    io_open(&s, path, "rb");
+    s.open(path, "rb");
     if (&s.io.stream) {
-        divafile_decrypt(&s);
-
-        f2_header h;
-        f2_header_read(&s, &h);
-        f2_struct_read_data(&s, this, &h);
-    }
-    io_free(&s);
-}
-
-void f2_struct::read(const wchar_t* path) {
-    if (!path)
-        return;
-
-    stream s;
-    io_open(&s, path, L"rb");
-    if (&s.io.stream) {
-        divafile_decrypt(&s);
-
-        f2_header h;
-        f2_header_read(&s, &h);
-        f2_struct_read_data(&s, this, &h);
-    }
-    io_free(&s);
-}
-
-void f2_struct::read(const void* data, size_t size) {
-    if (!data || !size)
-        return;
-
-    stream s;
-    io_open(&s, data, size);
-    if (&s.io.data.data) {
-        divafile_decrypt(&s);
-
-        f2_header h;
-        f2_header_read(&s, &h);
-        f2_struct_read_data(&s, this, &h);
-    }
-    io_free(&s);
-}
-
-void f2_struct::read(stream* s) {
-    if (!s)
-        return;
-
-    if (s->io.stream || s->io.data.data) {
-        divafile_decrypt(s);
+        divafile::decrypt(s);
 
         f2_header h;
         f2_header_read(s, &h);
@@ -83,17 +37,57 @@ void f2_struct::read(stream* s) {
     }
 }
 
+void f2_struct::read(const wchar_t* path) {
+    if (!path)
+        return;
+
+    stream s;
+    s.open(path, L"rb");
+    if (&s.io.stream) {
+        divafile::decrypt(s);
+
+        f2_header h;
+        f2_header_read(s, &h);
+        f2_struct_read_data(s, this, &h);
+    }
+}
+
+void f2_struct::read(const void* data, size_t size) {
+    if (!data || !size)
+        return;
+
+    stream s;
+    s.open(data, size);
+    if (&s.io.data.data) {
+        divafile::decrypt(s);
+
+        f2_header h;
+        f2_header_read(s, &h);
+        f2_struct_read_data(s, this, &h);
+    }
+}
+
+void f2_struct::read(stream& s) {
+    if (s.io.check_null())
+        return;
+
+    divafile::decrypt(s);
+
+    f2_header h;
+    f2_header_read(s, &h);
+    f2_struct_read_data(s, this, &h);
+}
+
 void f2_struct::write(const char* path, bool use_depth, bool shift_x) {
     if (!path)
         return;
 
     stream s;
-    io_open(&s, path, "wb");
+    s.open(path, "wb");
     if (s.io.stream) {
         f2_struct_get_length(this, shift_x);
-        f2_struct_write_inner(&s, this, 0, use_depth, shift_x);
+        f2_struct_write_inner(s, this, 0, use_depth, shift_x);
     }
-    io_free(&s);
 }
 
 void f2_struct::write(const wchar_t* path, bool use_depth, bool shift_x) {
@@ -101,12 +95,11 @@ void f2_struct::write(const wchar_t* path, bool use_depth, bool shift_x) {
         return;
 
     stream s;
-    io_open(&s, path, L"wb");
+    s.open(path, L"wb");
     if (s.io.stream) {
         f2_struct_get_length(this, shift_x);
-        f2_struct_write_inner(&s, this, 0, use_depth, shift_x);
+        f2_struct_write_inner(s, this, 0, use_depth, shift_x);
     }
-    io_free(&s);
 }
 
 void f2_struct::write(void** data, size_t* size, bool use_depth, bool shift_x) {
@@ -115,18 +108,17 @@ void f2_struct::write(void** data, size_t* size, bool use_depth, bool shift_x) {
 
     f2_struct_get_length(this, shift_x);
     stream s;
-    io_open(&s, 0, header.data_size + 0x40ULL);
-    f2_struct_write_inner(&s, this, 0, use_depth, shift_x);
+    s.open(0, header.data_size + 0x40ULL);
+    f2_struct_write_inner(s, this, 0, use_depth, shift_x);
 
-    io_copy(&s, data, size);
-    io_free(&s);
+    s.copy(data, size);
 }
 
-void f2_struct::write(stream* s, bool use_depth, bool shift_x) {
-    if (!s)
+void f2_struct::write(stream& s, bool use_depth, bool shift_x) {
+    if (s.io.check_null())
         return;
 
-    if (s->io.stream || s->type == STREAM_MEMORY) {
+    if (s.io.stream || s.type == STREAM_MEMORY) {
         f2_struct_get_length(this, shift_x);
         f2_struct_write_inner(s, this, 0, use_depth, shift_x);
     }
@@ -163,13 +155,13 @@ static void f2_struct_get_length(f2_struct* s, bool shift_x) {
     s->header.data_size = l;
 }
 
-static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h) {
+static void f2_struct_read_data(stream& s, f2_struct* st, f2_header* h) {
     uint32_t l = h->use_section_size ? h->section_size : h->data_size;
     uint32_t depth = h->depth;
     st->header = *h;
     if (l) {
         st->data.resize(l);
-        io_read(s, st->data.data(), l);
+        s.read(st->data.data(), l);
     }
 
     uint32_t sig;
@@ -183,14 +175,14 @@ static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h) {
         if (sig == 'EOFC')
             break;
         else if (sig == 'ENRS') {
-            size_t pos = io_get_position(s);
+            size_t pos = s.get_position();
             st->enrs.read(s);
-            io_set_position(s, pos + l, SEEK_SET);
+            s.set_position(pos + l, SEEK_SET);
         }
         else if ((sig & 0xFFFFFFF0) == 'POF0') {
-            size_t pos = io_get_position(s);
+            size_t pos = s.get_position();
             st->pof.read(s, sig == 'POF1');
-            io_set_position(s, pos + l, SEEK_SET);
+            s.set_position(pos + l, SEEK_SET);
         }
         else {
             st->sub_structs.push_back({});
@@ -199,7 +191,7 @@ static void f2_struct_read_data(stream* s, f2_struct* st, f2_header* h) {
     }
 }
 
-static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool use_depth, bool shift_x) {
+static void f2_struct_write_inner(stream& s, f2_struct* st, uint32_t depth, bool use_depth, bool shift_x) {
     bool has_pof = st->pof.vec.size() > 0 ? true : false;
     bool has_enrs = st->enrs.vec.size() > 0 ? true : false;
     bool has_sub_structs = st->sub_structs.size() > 0 ? true : false;
@@ -207,7 +199,7 @@ static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool
     st->header.depth = use_depth ? depth : 0;
     f2_header_write(s, &st->header, st->header.length == 0x40);
     if (st->data.size())
-        io_write(s, st->data.data(), st->data.size());
+        s.write(st->data.data(), st->data.size());
     if (has_enrs)
         f2_struct_write_enrs(s, &st->enrs, use_depth ? depth + 1 : 0);
     if (has_pof)
@@ -221,7 +213,7 @@ static void f2_struct_write_inner(stream* s, f2_struct* st, uint32_t depth, bool
         f2_header_write_end_of_container(s, 0);
 }
 
-static void f2_struct_write_pof(stream* s, pof* pof, uint32_t depth, bool shift_x) {
+static void f2_struct_write_pof(stream& s, pof* pof, uint32_t depth, bool shift_x) {
     size_t len = pof->length(shift_x);
     f2_header h;
     memset(&h, 0, sizeof(f2_header));
@@ -234,7 +226,7 @@ static void f2_struct_write_pof(stream* s, pof* pof, uint32_t depth, bool shift_
     pof->write(s, shift_x);
 }
 
-static void f2_struct_write_enrs(stream* s, enrs* enrs, uint32_t depth) {
+static void f2_struct_write_enrs(stream& s, enrs* enrs, uint32_t depth) {
     size_t len = enrs->length();
     f2_header h;
     memset(&h, 0, sizeof(f2_header));

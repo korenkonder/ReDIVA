@@ -1,6 +1,6 @@
 ﻿#include "unedat.h"
 #define AES128
-#include "../KKdLib/aes.h"
+#include "../KKdLib/aes.hpp"
 #include "lz.h"
 #include <math.h>
 
@@ -150,7 +150,7 @@ void get_block_key(int block, NPD_HEADER* npd, uint8_t* dest_key) {
 // Also, set 'in file' to the beginning of the encrypted data, which may be offset
 // if inside another file, but normally just reset to beginning of file
 // returns number of bytes written, -1 for error
-int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
+int decrypt_block(stream& in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
     uint8_t* crypt_key, uint32_t block_num, uint32_t total_blocks, int64_t size_left) {
     // Get metadata info and setup buffers.
     const int64_t metadata_section_size = edat->flags & (EDAT_COMPRESSED_FLAG | EDAT_FLAG_0x20) ? 0x20 : 0x10;
@@ -165,17 +165,17 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
     uint8_t empty_iv[0x10];
     memset(empty_iv, 0, 0x10);
 
-    size_t file_offset = io_get_position(in);
+    size_t file_offset = in.get_position();
 
     // Decrypt the metadata.
     if (edat->flags & EDAT_COMPRESSED_FLAG) {
         metadata_sec_offset = metadata_offset + block_num * metadata_section_size;
 
-        io_set_position(in, file_offset + metadata_sec_offset, SEEK_SET);
+        in.set_position(file_offset + metadata_sec_offset, SEEK_SET);
 
         uint8_t metadata[0x20];
         memset(metadata, 0, 0x20);
-        io_read(in, metadata,  0x20);
+        in.read(metadata,  0x20);
 
         // If the data is compressed, decrypt the metadata.
         // NOTE: For NPD version 1 the metadata is not encrypted.
@@ -212,11 +212,11 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
         // If FLAG 0x20, the metadata precedes each data block.
         metadata_sec_offset = metadata_offset + block_num * (metadata_section_size + edat->block_size);
 
-        io_set_position(in, file_offset + metadata_sec_offset, SEEK_SET);
+        in.set_position(file_offset + metadata_sec_offset, SEEK_SET);
 
         uint8_t metadata[0x20];
         memset(metadata, 0, 0x20);
-        io_read(in, metadata, 0x20);
+        in.read(metadata, 0x20);
 
         offset = metadata_sec_offset + 0x20;
         length = edat->block_size;
@@ -226,7 +226,7 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
     }
     else {
         metadata_sec_offset = metadata_offset + (uint64_t)block_num * metadata_section_size;
-        io_set_position(in, file_offset + metadata_sec_offset, SEEK_SET);
+        in.set_position(file_offset + metadata_sec_offset, SEEK_SET);
         offset = metadata_offset + (uint64_t)block_num * edat->block_size + total_blocks * metadata_section_size;
         length = edat->block_size;
 
@@ -243,8 +243,8 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
 
     uint8_t* enc_data = force_malloc_s(uint8_t, length);
     uint8_t* dec_data = force_malloc_s(uint8_t, length);
-    io_set_position(in, file_offset + offset, 0);
-    io_read(in, enc_data, length);
+    in.set_position(file_offset + offset, 0);
+    in.read(enc_data, length);
 
     // Generate a key for the current block.
     uint8_t b_key[16];
@@ -289,31 +289,31 @@ int decrypt_block(stream* in, uint8_t* out, EDAT_HEADER* edat, NPD_HEADER* npd,
 
 // EDAT/SDAT decryption.
 // reset file to beginning of data before calling
-int decrypt_data(stream* in, stream* out, EDAT_HEADER* edat, NPD_HEADER* npd, unsigned char* crypt_key) {
+int decrypt_data(stream& in, stream& out, EDAT_HEADER* edat, NPD_HEADER* npd, unsigned char* crypt_key) {
     const int total_blocks = (int)((edat->file_size + edat->block_size - 1) / edat->block_size);
     int64_t size_left = edat->file_size;
     uint8_t* data = force_malloc_s(uint8_t, edat->block_size);
 
     for (int i = 0; i < total_blocks; i++) {
-        io_set_position(in, 0, 0);
+        in.set_position(0, 0);
         memset(data, 0, edat->block_size);
         int res = decrypt_block(in, data, edat, npd, crypt_key, i, total_blocks, size_left);
         if (res == -1)
             return 1;
 
         size_left -= res;
-        io_write(out, data, res);
+        out.write(data, res);
     }
     free(data);
 
     return 0;
 }
 
-void read_npd_edat_header(stream* input, NPD_HEADER* NPD, EDAT_HEADER* EDAT) {
+void read_npd_edat_header(stream& input, NPD_HEADER* NPD, EDAT_HEADER* EDAT) {
     char npd_header[0x80];
     char edat_header[0x10];
-    io_read(input, npd_header, sizeof(npd_header));
-    io_read(input, edat_header, sizeof(edat_header));
+    input.read(npd_header, sizeof(npd_header));
+    input.read(edat_header, sizeof(edat_header));
 
     memcpy(&NPD->magic, npd_header, 0x04);
     NPD->version = load_reverse_endianness_int32_t(&npd_header[0x04]);
@@ -331,7 +331,7 @@ void read_npd_edat_header(stream* input, NPD_HEADER* NPD, EDAT_HEADER* EDAT) {
     EDAT->file_size = load_reverse_endianness_int64_t(&edat_header[0x08]);
 }
 
-bool extract_all_data(stream* input, stream* output, uint8_t* devKlic, uint8_t* rifKey) {
+bool extract_all_data(stream& input, stream& output, uint8_t* devKlic, uint8_t* rifKey) {
     // Setup NPD and EDAT/SDAT structs.
     NPD_HEADER NPD;
     EDAT_HEADER EDAT;
@@ -358,26 +358,26 @@ bool extract_all_data(stream* input, stream* output, uint8_t* devKlic, uint8_t* 
     else if (NPD.license == 0x1) // Type 1: Use network activation.
         memcpy(key, rifKey, 0x10);
 
-    io_set_position(input, 0, 0);
+    input.set_position(0, 0);
     if (decrypt_data(input, output, &EDAT, &NPD, key))
         return 1;
 
     return 0;
 }
 
-void GetEdatRifKeyFromRapFile(stream* rap_file, uint8_t* rifKey) {
+void GetEdatRifKeyFromRapFile(stream& rap_file, uint8_t* rifKey) {
     uint8_t rapKey[0x10];
-    io_read(rap_file, rapKey, 0x10);
+    rap_file.read(rapKey, 0x10);
     rap_to_rif(rapKey, rifKey);
 }
 
 // Decrypts full file
-void DecryptEDAT(stream* input, stream* output, int mode, const char* rap_file_name, uint8_t* custom_klic) {
-    if (!input || !output || !rap_file_name)
+void DecryptEDAT(stream& input, stream& output, int mode, const char* rap_file_name, uint8_t* custom_klic) {
+    if (!rap_file_name)
         return;
 
     // Prepare the files.
-    io_set_position(input, 0, 0);
+    input.set_position(0, 0);
 
     // Set keys (RIF and DEVKLIC).
     uint8_t rifKey[16];
@@ -417,10 +417,9 @@ void DecryptEDAT(stream* input, stream* output, int mode, const char* rap_file_n
     // Read the RAP file, if provided.
     if (*rap_file_name) {
         stream rap;
-        io_open(&rap, rap_file_name, "rb");
+        rap.open(rap_file_name, "rb");
         if (rap.io.stream)
-            GetEdatRifKeyFromRapFile(&rap, rifKey);
-        io_free(&rap);
+            GetEdatRifKeyFromRapFile(rap, rifKey);
     }
 
     extract_all_data(input, output, devklic, rifKey);

@@ -5,13 +5,13 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/database/texture.hpp"
-#include "../KKdLib/mat.h"
+#include "../KKdLib/mat.hpp"
 #include "../KKdLib/obj.hpp"
 #include "../KKdLib/txp.hpp"
-#include "../KKdLib/vec.h"
+#include "../KKdLib/vec.hpp"
 #include "file_handler.hpp"
 #include "static_var.h"
 #include "texture.hpp"

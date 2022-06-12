@@ -5,8 +5,7 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
-#include "../KKdLib/mat.h"
-#include "../KKdLib/vec.h"
-#include "../KKdLib/vector.h"
+#include "../KKdLib/default.hpp"
+#include "../KKdLib/mat.hpp"
+#include "../KKdLib/vec.hpp"
 #include "gl_state.h"

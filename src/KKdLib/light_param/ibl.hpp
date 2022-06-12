@@ -6,10 +6,10 @@
 #pragma once
 
 #include <vector>
-#include "../default.h"
-#include "../half_t.h"
-#include "../mat.h"
-#include "../vec.h"
+#include "../default.hpp"
+#include "../half_t.hpp"
+#include "../mat.hpp"
+#include "../vec.hpp"
 
 struct light_param_ibl_diffuse {
     std::vector<half_t> data;

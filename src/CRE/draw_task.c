@@ -133,7 +133,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
     default:
         break;
     }
-    shader_env_frag_set(&shaders_ft, 21, 0.0f, 0.0f, 0.0f, min_alpha);
+    shaders_ft.env_frag_set(21, 0.0f, 0.0f, 0.0f, min_alpha);
     uniform_value[U_ALPHA_TEST] = alpha_test;
 
     std::vector<draw_task*>& vec = rctx->object_data.draw_task_array[type];
@@ -218,7 +218,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
     }
 
     uniform_value_reset();
-    shader_unbind();
+    shader::unbind();
     gl_state_set_blend_func(GL_ONE, GL_ZERO);
 }
 
@@ -480,7 +480,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             obj_material_attrib_member attrib = material->material.attrib.m;
             if (draw_task_flags & (DRAW_TASK_10000 | DRAW_TASK_20000 | DRAW_TASK_40000)
                 && task->data.object.blend_color.w < 1.0f) {
-                if (~draw_task_flags | DRAW_TASK_NO_TRANSLUCENCY) {
+                if (~draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY) {
                     if (attrib.flag_28 || (attrib.punch_through
                         || !(attrib.alpha_texture | attrib.alpha_material))
                         && !sub_mesh->attrib.m.transparent) {
@@ -525,7 +525,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                         draw_task_add(rctx, DRAW_OBJECT_SSS, task);
 
                     if (material->material.attrib.m.punch_through) {
-                        if (~draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY)
+                        if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY))
                             draw_task_add(rctx, DRAW_OBJECT_TRANSPARENT, task);
 
                         if (draw_task_flags & DRAW_TASK_CHARA_REFLECT)
@@ -538,7 +538,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                             draw_task_add(rctx, DRAW_OBJECT_REFRACT_TRANSPARENT, task);
                     }
                     else {
-                        if (~draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY)
+                        if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY))
                             draw_task_add(rctx, DRAW_OBJECT_OPAQUE, task);
 
                         if (draw_task_flags & DRAW_TASK_20)
@@ -558,7 +558,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                         draw_task_add(rctx, DRAW_OBJECT_RIPPLE, task);
                     continue;
                 }
-                else if (~draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY) {
+                else if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY)) {
                     if (!attrib.translucent_priority)
                         if (mesh->attrib.m.translucent_no_shadow
                             || draw_task_flags & DRAW_TASK_TRANSLUCENT_NO_SHADOW)

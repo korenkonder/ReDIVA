@@ -5,7 +5,7 @@
 
 #include "txp.hpp"
 #include "f2/struct.hpp"
-#include "io/stream.h"
+#include "io/stream.hpp"
 
 txp_mipmap::txp_mipmap() : width(), height(), format(), size() {
 
@@ -117,45 +117,44 @@ bool txp_set::pack_file(void** data, size_t* size, bool big_endian) {
     }
 
     stream s;
-    io_open(&s, 0, l);
+    s.open(0, l);
     s.is_big_endian = big_endian;
-    io_write_uint32_t_stream_reverse_endianness(&s, 0x03505854);
-    io_write_uint32_t_stream_reverse_endianness(&s, (uint32_t)count);
-    io_write_uint32_t_stream_reverse_endianness(&s, (uint8_t)count | 0x01010100);
+    s.write_uint32_t_reverse_endianness(0x03505854);
+    s.write_uint32_t_reverse_endianness((uint32_t)count);
+    s.write_uint32_t_reverse_endianness((uint8_t)count | 0x01010100);
     for (size_t i = 0; i < count; i++)
-        io_write_uint32_t_stream_reverse_endianness(&s, (uint32_t)txp4_offset[i]);
+        s.write_uint32_t_reverse_endianness((uint32_t)txp4_offset[i]);
 
     tex = textures.data();
     for (size_t i = 0; i < count; i++, tex++) {
-        io_set_position(&s, txp4_offset[i], SEEK_SET);
-        io_write_uint32_t_stream_reverse_endianness(&s, tex->array_size > 1 ? 0x05505854 : 0x04505854);
-        io_write_uint32_t_stream_reverse_endianness(&s, tex->mipmaps_count * tex->array_size);
-        io_write_uint32_t_stream_reverse_endianness(&s, (uint8_t)tex->mipmaps_count
+        s.set_position(txp4_offset[i], SEEK_SET);
+        s.write_uint32_t_reverse_endianness(tex->array_size > 1 ? 0x05505854 : 0x04505854);
+        s.write_uint32_t_reverse_endianness(tex->mipmaps_count * tex->array_size);
+        s.write_uint32_t_reverse_endianness((uint8_t)tex->mipmaps_count
             | ((uint8_t)tex->array_size << 8) | 0x01010000);
         for (size_t j = 0; j < tex->array_size; j++)
             for (size_t k = 0; k < tex->mipmaps_count; k++)
-                io_write_uint32_t_stream_reverse_endianness(&s,
+                s.write_uint32_t_reverse_endianness(
                     (uint32_t)(txp2_offset[i][j * tex->mipmaps_count + k] - txp4_offset[i]));
 
         tex_mipmap = tex->mipmaps.data();
         for (size_t j = 0; j < tex->array_size; j++)
             for (size_t k = 0; k < tex->mipmaps_count; k++, tex_mipmap++) {
-                io_set_position(&s, txp2_offset[i][j * tex->mipmaps_count + k], SEEK_SET);
-                io_write_uint32_t_stream_reverse_endianness(&s, 0x02505854);
-                io_write_uint32_t_stream_reverse_endianness(&s, tex_mipmap->width);
-                io_write_uint32_t_stream_reverse_endianness(&s, tex_mipmap->height);
-                io_write_uint32_t_stream_reverse_endianness(&s, tex_mipmap->format);
-                io_write_uint32_t_stream_reverse_endianness(&s, (uint32_t)(j * tex->mipmaps_count + k));
-                io_write_uint32_t_stream_reverse_endianness(&s, tex_mipmap->size);
-                io_write(&s, tex_mipmap->data.data(), tex_mipmap->size);
-                io_align_write(&s, 0x04);
+                s.set_position(txp2_offset[i][j * tex->mipmaps_count + k], SEEK_SET);
+                s.write_uint32_t_reverse_endianness(0x02505854);
+                s.write_uint32_t_reverse_endianness(tex_mipmap->width);
+                s.write_uint32_t_reverse_endianness(tex_mipmap->height);
+                s.write_uint32_t_reverse_endianness(tex_mipmap->format);
+                s.write_uint32_t_reverse_endianness((uint32_t)(j * tex->mipmaps_count + k));
+                s.write_uint32_t_reverse_endianness(tex_mipmap->size);
+                s.write(tex_mipmap->data.data(), tex_mipmap->size);
+                s.align_write(0x04);
             }
     }
-    io_set_position(&s, 0, SEEK_END);
+    s.set_position(0, SEEK_END);
 
-    io_align_write(&s, 0x10);
-    io_copy(&s, data, size);
-    io_free(&s);
+    s.align_write(0x10);
+    s.copy(data, size);
 
     for (size_t i = 0; i < count; i++)
         free(txp2_offset[i]);
@@ -164,16 +163,13 @@ bool txp_set::pack_file(void** data, size_t* size, bool big_endian) {
     return true;
 }
 
-bool txp_set::pack_file(std::vector<uint8_t>* data, bool big_endian) {
+bool txp_set::pack_file(std::vector<uint8_t>& data, bool big_endian) {
     size_t l;
     txp* tex;
     txp_mipmap* tex_mipmap;
 
-    if (!data)
-        return false;
-
-    data->clear();
-    data->shrink_to_fit();
+    data.clear();
+    data.shrink_to_fit();
 
     size_t count = textures.size();
     if (count < 1)
@@ -203,45 +199,44 @@ bool txp_set::pack_file(std::vector<uint8_t>* data, bool big_endian) {
     }
 
     stream s;
-    io_open(&s, 0, l);
+    s.open(0, l);
     s.is_big_endian = big_endian;
-    io_write_uint32_t_stream_reverse_endianness(&s, 0x03505854);
-    io_write_uint32_t_stream_reverse_endianness(&s, (uint32_t)count);
-    io_write_uint32_t_stream_reverse_endianness(&s, (uint8_t)count | 0x01010100);
+    s.write_uint32_t_reverse_endianness(0x03505854);
+    s.write_uint32_t_reverse_endianness((uint32_t)count);
+    s.write_uint32_t_reverse_endianness((uint8_t)count | 0x01010100);
     for (size_t i = 0; i < count; i++)
-        io_write_uint32_t_stream_reverse_endianness(&s, (uint32_t)txp4_offset[i]);
+        s.write_uint32_t_reverse_endianness((uint32_t)txp4_offset[i]);
 
     tex = textures.data();
     for (size_t i = 0; i < count; i++, tex++) {
-        io_set_position(&s, txp4_offset[i], SEEK_SET);
-        io_write_uint32_t_stream_reverse_endianness(&s, tex->array_size > 1 ? 0x05505854 : 0x04505854);
-        io_write_uint32_t_stream_reverse_endianness(&s, tex->mipmaps_count * tex->array_size);
-        io_write_uint32_t_stream_reverse_endianness(&s, (uint8_t)tex->mipmaps_count
+        s.set_position(txp4_offset[i], SEEK_SET);
+        s.write_uint32_t_reverse_endianness(tex->array_size > 1 ? 0x05505854 : 0x04505854);
+        s.write_uint32_t_reverse_endianness(tex->mipmaps_count * tex->array_size);
+        s.write_uint32_t_reverse_endianness((uint8_t)tex->mipmaps_count
             | ((uint8_t)tex->array_size << 8) | 0x01010000);
         for (size_t j = 0; j < tex->array_size; j++)
             for (size_t k = 0; k < tex->mipmaps_count; k++)
-                io_write_uint32_t_stream_reverse_endianness(&s,
+                s.write_uint32_t_reverse_endianness(
                     (uint32_t)(txp2_offset[i][j * tex->mipmaps_count + k] - txp4_offset[i]));
 
         tex_mipmap = tex->mipmaps.data();
         for (size_t j = 0; j < tex->array_size; j++)
             for (size_t k = 0; k < tex->mipmaps_count; k++, tex_mipmap++) {
-                io_set_position(&s, txp2_offset[i][j * tex->mipmaps_count + k], SEEK_SET);
-                io_write_uint32_t_stream_reverse_endianness(&s, 0x02505854);
-                io_write_uint32_t_stream_reverse_endianness(&s, tex_mipmap->width);
-                io_write_uint32_t_stream_reverse_endianness(&s, tex_mipmap->height);
-                io_write_uint32_t_stream_reverse_endianness(&s, tex_mipmap->format);
-                io_write_uint32_t_stream_reverse_endianness(&s, (uint32_t)(j * tex->mipmaps_count + k));
-                io_write_uint32_t_stream_reverse_endianness(&s, tex_mipmap->size);
-                io_write(&s, tex_mipmap->data.data(), tex_mipmap->size);
-                io_align_write(&s, 0x04);
+                s.set_position(txp2_offset[i][j * tex->mipmaps_count + k], SEEK_SET);
+                s.write_uint32_t_reverse_endianness(0x02505854);
+                s.write_uint32_t_reverse_endianness(tex_mipmap->width);
+                s.write_uint32_t_reverse_endianness(tex_mipmap->height);
+                s.write_uint32_t_reverse_endianness(tex_mipmap->format);
+                s.write_uint32_t_reverse_endianness((uint32_t)(j * tex->mipmaps_count + k));
+                s.write_uint32_t_reverse_endianness(tex_mipmap->size);
+                s.write(tex_mipmap->data.data(), tex_mipmap->size);
+                s.align_write(0x04);
             }
     }
-    io_set_position(&s, 0, SEEK_END);
+    s.set_position(0, SEEK_END);
 
-    io_align_write(&s, 0x10);
-    io_copy(&s, data);
-    io_free(&s);
+    s.align_write(0x10);
+    s.copy(data);
 
     for (size_t i = 0; i < count; i++)
         free(txp2_offset[i]);
@@ -252,7 +247,7 @@ bool txp_set::pack_file(std::vector<uint8_t>* data, bool big_endian) {
 
 bool txp_set::pack_file_modern(void** data, size_t* size, bool big_endian) {
     f2_struct st;
-    if (!pack_file(&st.data, big_endian)) {
+    if (!pack_file(st.data, big_endian)) {
         *data = 0;
         *size = 0;
         return false;
@@ -321,7 +316,7 @@ bool txp_set::produce_enrs(enrs* enrs) {
     return true;
 }
 
-bool txp_set::unpack_file(void* data, bool big_endian) {
+bool txp_set::unpack_file(const void* data, bool big_endian) {
     uint32_t signature;
     uint32_t tex_count;
     txp* tex;
@@ -420,7 +415,7 @@ bool txp_set::unpack_file(void* data, bool big_endian) {
     return true;
 }
 
-bool txp_set::unpack_file_modern(void* data, size_t size) {
+bool txp_set::unpack_file_modern(const void* data, size_t size) {
     bool ret = false;
     f2_struct st;
     st.read(data, size);

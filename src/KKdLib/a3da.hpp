@@ -7,12 +7,12 @@
 
 #include <string>
 #include <vector>
-#include "default.h"
+#include "default.hpp"
 #include "light_param/fog.hpp"
 #include "light_param/light.hpp"
-#include "kf.h"
-#include "mat.h"
-#include "vec.h"
+#include "kf.hpp"
+#include "mat.hpp"
+#include "vec.hpp"
 
 enum a3da_ambient_flags {
     A3DA_AMBIENT_LIGHT_DIFFUSE     = 0x01,

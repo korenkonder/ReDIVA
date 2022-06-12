@@ -5,8 +5,8 @@
 
 #include "stage.hpp"
 #include "../KKdLib/hash.hpp"
-#include "../KKdLib/str_utils.h"
-#include "../KKdLib/vec.h"
+#include "../KKdLib/str_utils.hpp"
+#include "../KKdLib/vec.hpp"
 #include "draw_task.h"
 #include "light_param.hpp"
 #include "render_context.hpp"
@@ -61,14 +61,14 @@ extern vec4 npr_spec_color;
 static uint16_t stage_counter;
 
 void dtm_stg_load(int32_t stage_index) {
-    if (TaskWork::CheckTaskReady(&dtm_stg))
+    if (app::TaskWork::CheckTaskReady(&dtm_stg))
         return;
 
-    if (TaskWork::CheckTaskReady(&dtm_stg)) {
+    if (app::TaskWork::CheckTaskReady(&dtm_stg)) {
         dtm_stg.stage_index = stage_index;
         dtm_stg.load_stage_index = stage_index;
     }
-    TaskWork::AppendTask(&dtm_stg, "DATA_TEST_STAGE");
+    app::TaskWork::AppendTask(&dtm_stg, "DATA_TEST_STAGE");
 }
 
 bool dtm_stg_unload() {
@@ -286,13 +286,13 @@ static void stage_detail::TaskStage_GetLoadedStageInfos(stage_detail::TaskStage*
 }
 
 static bool stage_detail::TaskStage_Load(stage_detail::TaskStage* a1, const char* name) {
-    if (TaskWork::AppendTask(a1, name)) {
+    if (app::TaskWork::AppendTask(a1, name)) {
         stage_detail::TaskStage_Reset(a1);
         stage_detail::TaskStage_TaskWindAppend(a1);
         return false;
     }
     else {
-        if (!TaskWork::HasTaskDest(a1))
+        if (!app::TaskWork::HasTaskDest(a1))
             a1->SetDest();
         return true;
     }
@@ -323,7 +323,7 @@ static void stage_detail::TaskStage_SetStage(stage_detail::TaskStage* a1, task_s
 }
 
 static void stage_detail::TaskStage_TaskWindAppend(stage_detail::TaskStage* a1) {
-    TaskWork::AppendTask(&task_wind, a1, "CHARA WIND");
+    app::TaskWork::AppendTask(&task_wind, a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {

@@ -5,15 +5,15 @@
 
 #include "stage.hpp"
 #include "../f2/struct.hpp"
-#include "../io/path.h"
-#include "../io/stream.h"
+#include "../io/path.hpp"
+#include "../io/stream.hpp"
 #include "../hash.hpp"
-#include "../str_utils.h"
+#include "../str_utils.hpp"
 
-static void stage_database_classic_read_inner(stage_database* stage_data, stream* s);
-static void stage_database_classic_write_inner(stage_database* stage_data, stream* s);
-static void stage_database_modern_read_inner(stage_database* stage_data, stream* s, uint32_t header_length);
-static void stage_database_modern_write_inner(stage_database* stage_data, stream* s);
+static void stage_database_classic_read_inner(stage_database* stage_data, stream& s);
+static void stage_database_classic_write_inner(stage_database* stage_data, stream& s);
+static void stage_database_modern_read_inner(stage_database* stage_data, stream& s, uint32_t header_length);
+static void stage_database_modern_write_inner(stage_database* stage_data, stream& s);
 
 stage_data::stage_data() : id(), object_set_id(), lens_flare_texture(), lens_shaft_texture(),
 lens_ghost_texture(), unknown(), render_texture(), movie_texture(), reflect_type(), refract_enable(),
@@ -57,17 +57,15 @@ void stage_database::read(const char* path, bool modern) {
         char* path_bin = str_utils_add(path, ".bin");
         if (path_check_file_exists(path_bin)) {
             stream s;
-            io_open(&s, path_bin, "rb");
+            s.open(path_bin, "rb");
             if (s.io.stream) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
-                io_read(&s, data, s.length);
+                s.read(data, s.length);
                 stream s_bin;
-                io_open(&s_bin, data, s.length);
-                stage_database_classic_read_inner(this, &s_bin);
-                io_free(&s_bin);
+                s_bin.open(data, s.length);
+                stage_database_classic_read_inner(this, s_bin);
                 free(data);
             }
-            io_free(&s);
         }
         free(path_bin);
     }
@@ -78,10 +76,9 @@ void stage_database::read(const char* path, bool modern) {
             st.read(path_stg);
             if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
                 stream s_stgc;
-                io_open(&s_stgc, &st.data);
+                s_stgc.open(st.data);
                 s_stgc.is_big_endian = st.header.use_big_endian;
-                stage_database_modern_read_inner(this, &s_stgc, st.header.length);
-                io_free(&s_stgc);
+                stage_database_modern_read_inner(this, s_stgc, st.header.length);
             }
         }
         free(path_stg);
@@ -96,17 +93,15 @@ void stage_database::read(const wchar_t* path, bool modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
         if (path_check_file_exists(path_bin)) {
             stream s;
-            io_open(&s, path_bin, L"rb");
+            s.open(path_bin, L"rb");
             if (s.io.stream) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
-                io_read(&s, data, s.length);
+                s.read(data, s.length);
                 stream s_bin;
-                io_open(&s_bin, data, s.length);
-                stage_database_classic_read_inner(this, &s_bin);
-                io_free(&s_bin);
+                s_bin.open(data, s.length);
+                stage_database_classic_read_inner(this, s_bin);
                 free(data);
             }
-            io_free(&s);
         }
         free(path_bin);
     }
@@ -117,10 +112,9 @@ void stage_database::read(const wchar_t* path, bool modern) {
             st.read(path_stg);
             if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
                 stream s_stgc;
-                io_open(&s_stgc, &st.data);
+                s_stgc.open(st.data);
                 s_stgc.is_big_endian = st.header.use_big_endian;
-                stage_database_modern_read_inner(this, &s_stgc, st.header.length);
-                io_free(&s_stgc);
+                stage_database_modern_read_inner(this, s_stgc, st.header.length);
             }
         }
         free(path_stg);
@@ -133,19 +127,17 @@ void stage_database::read(const void* data, size_t size, bool modern) {
 
     if (!modern) {
         stream s;
-        io_open(&s, data, size);
-        stage_database_classic_read_inner(this, &s);
-        io_free(&s);
+        s.open(data, size);
+        stage_database_classic_read_inner(this, s);
     }
     else {
         f2_struct st;
         st.read(data, size);
         if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
             stream s_stgc;
-            io_open(&s_stgc, &st.data);
+            s_stgc.open(st.data);
             s_stgc.is_big_endian = st.header.use_big_endian;
-            stage_database_modern_read_inner(this, &s_stgc, st.header.length);
-            io_free(&s_stgc);
+            stage_database_modern_read_inner(this, s_stgc, st.header.length);
         }
     }
 }
@@ -157,19 +149,17 @@ void stage_database::write(const char* path) {
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
         stream s;
-        io_open(&s, path_bin, "wb");
+        s.open(path_bin, "wb");
         if (s.io.stream)
-            stage_database_classic_write_inner(this, &s);
-        io_free(&s);
+            stage_database_classic_write_inner(this, s);
         free(path_bin);
     }
     else {
         char* path_stg = str_utils_add(path, ".stg");
         stream s;
-        io_open(&s, path_stg, "wb");
+        s.open(path_stg, "wb");
         if (s.io.stream)
-            stage_database_modern_write_inner(this, &s);
-        io_free(&s);
+            stage_database_modern_write_inner(this, s);
         free(path_stg);
     }
 }
@@ -181,19 +171,17 @@ void stage_database::write(const wchar_t* path) {
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
         stream s;
-        io_open(&s, path_bin, L"wb");
+        s.open(path_bin, L"wb");
         if (s.io.stream)
-            stage_database_classic_write_inner(this, &s);
-        io_free(&s);
+            stage_database_classic_write_inner(this, s);
         free(path_bin);
     }
     else {
         wchar_t* path_stg = str_utils_add(path, L".stg");
         stream s;
-        io_open(&s, path_stg, L"wb");
+        s.open(path_stg, L"wb");
         if (s.io.stream)
-            stage_database_modern_write_inner(this, &s);
-        io_free(&s);
+            stage_database_modern_write_inner(this, s);
         free(path_stg);
     }
 }
@@ -203,14 +191,13 @@ void stage_database::write(void** data, size_t* size) {
         return;
 
     stream s;
-    io_open(&s);
+    s.open();
     if (!modern)
-        stage_database_classic_write_inner(this, &s);
+        stage_database_classic_write_inner(this, s);
     else
-        stage_database_modern_write_inner(this, &s);
-    io_align_write(&s, 0x10);
-    io_copy(&s, data, size);
-    io_free(&s);
+        stage_database_modern_write_inner(this, s);
+    s.align_write(0x10);
+    s.copy(data, size);
 }
 
 bool stage_database::load_file(void* data, const char* path, const char* file, uint32_t hash) {
@@ -226,6 +213,14 @@ bool stage_database::load_file(void* data, const char* path, const char* file, u
     stage_data->read(s.c_str(), stage_data->modern);
 
     return stage_data->ready;
+}
+
+int32_t stage_database::get_stage_index(const char* name) {
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    for (::stage_data& i : stage_data)
+        if (name_hash == i.name_hash)
+            return (int32_t)(&i - stage_data.data());
+    return -1;
 }
 
 void stage_database::merge_mdata(stage_database* base_stage_data, stage_database* mdata_stage_data) {
@@ -281,12 +276,12 @@ void stage_database::split_mdata(stage_database* base_stage_data, stage_database
 
 }
 
-static void stage_database_classic_read_inner(stage_database* stage_data, stream* s) {
-    int32_t count = io_read_int32_t(s);
-    int32_t stages_offset = io_read_int32_t(s);
-    int32_t stage_effects_offset = io_read_int32_t(s);
-    int32_t auth3d_id_counts_offset = io_read_int32_t(s);
-    int32_t auth3d_ids_offsets_offset = io_read_int32_t(s);
+static void stage_database_classic_read_inner(stage_database* stage_data, stream& s) {
+    int32_t count = s.read_int32_t();
+    int32_t stages_offset = s.read_int32_t();
+    int32_t stage_effects_offset = s.read_int32_t();
+    int32_t auth3d_id_counts_offset = s.read_int32_t();
+    int32_t auth3d_ids_offsets_offset = s.read_int32_t();
 
     int32_t size = (stage_effects_offset - stages_offset) / count;
     stage_data->format = size == 104 ? STAGE_DATA_AC
@@ -302,74 +297,74 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
 
     stage_data->stage_data.resize(count);
 
-    io_position_push(s, stages_offset, SEEK_SET);
+    s.position_push(stages_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
         ::stage_data* stage = &stage_data->stage_data[i];
 
         stage->id = i;
-        io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &stage->name);
+        stage->name = s.read_string_null_terminated_offset(s.read_uint32_t());
         stage->name_hash = hash_string_murmurhash(&stage->name);
-        io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &stage->auth_3d_name);
-        stage->object_set_id = (uint16_t)io_read_uint32_t(s); // Crutch to remove higher bits
-        stage->object_ground.id = io_read_uint16_t(s);
-        stage->object_ground.set_id = io_read_uint16_t(s);
-        stage->object_ring.id = io_read_uint16_t(s);
-        stage->object_ring.set_id = io_read_uint16_t(s);
-        stage->object_sky.id = io_read_uint16_t(s);
-        stage->object_sky.set_id = io_read_uint16_t(s);
-        stage->object_shadow.id = io_read_uint16_t(s);
-        stage->object_shadow.set_id = io_read_uint16_t(s);
-        stage->object_reflect.id = io_read_uint16_t(s);
-        stage->object_reflect.set_id = io_read_uint16_t(s);
-        stage->object_refract.id = io_read_uint16_t(s);
-        stage->object_refract.set_id = io_read_uint16_t(s);
-        stage->lens_flare_texture = io_read_uint32_t(s);
-        stage->lens_shaft_texture = io_read_uint32_t(s);
-        stage->lens_ghost_texture = io_read_uint32_t(s);
-        stage->lens_shaft_inv_scale = io_read_float_t(s);
-        stage->unknown = io_read_uint32_t(s);
-        stage->render_texture = io_read_uint32_t(s);
+        stage->auth_3d_name = s.read_string_null_terminated_offset(s.read_uint32_t());
+        stage->object_set_id = (uint16_t)s.read_uint32_t(); // Crutch to remove higher bits
+        stage->object_ground.id = s.read_uint16_t();
+        stage->object_ground.set_id = s.read_uint16_t();
+        stage->object_ring.id = s.read_uint16_t();
+        stage->object_ring.set_id = s.read_uint16_t();
+        stage->object_sky.id = s.read_uint16_t();
+        stage->object_sky.set_id = s.read_uint16_t();
+        stage->object_shadow.id = s.read_uint16_t();
+        stage->object_shadow.set_id = s.read_uint16_t();
+        stage->object_reflect.id = s.read_uint16_t();
+        stage->object_reflect.set_id = s.read_uint16_t();
+        stage->object_refract.id = s.read_uint16_t();
+        stage->object_refract.set_id = s.read_uint16_t();
+        stage->lens_flare_texture = s.read_uint32_t();
+        stage->lens_shaft_texture = s.read_uint32_t();
+        stage->lens_ghost_texture = s.read_uint32_t();
+        stage->lens_shaft_inv_scale = s.read_float_t();
+        stage->unknown = s.read_uint32_t();
+        stage->render_texture = s.read_uint32_t();
 
         if (stage_data->format > STAGE_DATA_AC)
-            stage->movie_texture = io_read_uint32_t(s);
+            stage->movie_texture = s.read_uint32_t();
         else
             stage->movie_texture = -1;
 
-        io_read_string_null_terminated_offset(s, io_read_uint32_t(s), &stage->collision_file_path);
-        stage->reflect_type = (stage_data_reflect_type)io_read_uint32_t(s);
-        stage->refract_enable = io_read_uint32_t(s) ? true : false;
+        stage->collision_file_path = s.read_string_null_terminated_offset(s.read_uint32_t());
+        stage->reflect_type = (stage_data_reflect_type)s.read_uint32_t();
+        stage->refract_enable = s.read_uint32_t() ? true : false;
 
-        int32_t reflect_offset = io_read_uint32_t(s);
+        int32_t reflect_offset = s.read_uint32_t();
         if (reflect_offset) {
-            io_position_push(s, reflect_offset, SEEK_SET);
+            s.position_push(reflect_offset, SEEK_SET);
             stage->reflect = true;
-            stage->reflect_data.mode = (stage_data_reflect_resolution_mode)io_read_uint32_t(s);
-            stage->reflect_data.blur_num = io_read_uint32_t(s);
-            stage->reflect_data.blur_filter = (stage_data_blur_filter_mode)io_read_uint32_t(s);
-            io_position_pop(s);
+            stage->reflect_data.mode = (stage_data_reflect_resolution_mode)s.read_uint32_t();
+            stage->reflect_data.blur_num = s.read_uint32_t();
+            stage->reflect_data.blur_filter = (stage_data_blur_filter_mode)s.read_uint32_t();
+            s.position_pop();
         }
         else
             stage->reflect = false;
 
-        int32_t refract_offset = io_read_uint32_t(s);
+        int32_t refract_offset = s.read_uint32_t();
         if (refract_offset) {
-            io_position_push(s, refract_offset, SEEK_SET);
+            s.position_push(refract_offset, SEEK_SET);
             stage->refract = true;
-            stage->refract_data.mode = (stage_data_refract_resolution_mode)io_read_uint32_t(s);
-            io_position_pop(s);
+            stage->refract_data.mode = (stage_data_refract_resolution_mode)s.read_uint32_t();
+            s.position_pop();
         }
         else
             stage->refract = false;
 
         if (stage_data->format > STAGE_DATA_F)
-            stage->flags = (stage_data_flags)io_read_uint32_t(s);
+            stage->flags = (stage_data_flags)s.read_uint32_t();
 
-        stage->ring_rectangle_x = io_read_float_t(s);
-        stage->ring_rectangle_y = io_read_float_t(s);
-        stage->ring_rectangle_width = io_read_float_t(s);
-        stage->ring_rectangle_height = io_read_float_t(s);
-        stage->ring_height = io_read_float_t(s);
-        stage->ring_out_height = io_read_float_t(s);
+        stage->ring_rectangle_x = s.read_float_t();
+        stage->ring_rectangle_y = s.read_float_t();
+        stage->ring_rectangle_width = s.read_float_t();
+        stage->ring_rectangle_height = s.read_float_t();
+        stage->ring_height = s.read_float_t();
+        stage->ring_out_height = s.read_float_t();
 
         if (stage->object_ground.id == 0xFFFF)
             stage->object_ground.id = -1;
@@ -401,152 +396,150 @@ static void stage_database_classic_read_inner(stage_database* stage_data, stream
         if (stage->object_refract.set_id == 0xFFFF)
             stage->object_refract.set_id = -1;
     }
-    io_position_pop(s);
+    s.position_pop();
 
-    io_position_push(s, stage_effects_offset, SEEK_SET);
+    s.position_push(stage_effects_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
         ::stage_data* stage = &stage_data->stage_data[i];
         stage_effects* effects = &stage->effects;
 
         for (int32_t j = 0; j < 8; j++)
-            effects->field_0[j] = io_read_uint32_t(s);
+            effects->field_0[j] = s.read_uint32_t();
 
         for (int32_t j = 0; j < 16; j++)
-            effects->field_20[j] = io_read_uint32_t(s);
+            effects->field_20[j] = s.read_uint32_t();
     }
-    io_position_pop(s);
+    s.position_pop();
 
-    io_position_push(s, auth3d_id_counts_offset, SEEK_SET);
+    s.position_push(auth3d_id_counts_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
         ::stage_data* stage = &stage_data->stage_data[i];
 
-        stage->auth_3d_ids.resize(io_read_int32_t(s));
+        stage->auth_3d_ids.resize(s.read_int32_t());
     }
-    io_position_pop(s);
+    s.position_pop();
 
-    io_position_push(s, auth3d_ids_offsets_offset, SEEK_SET);
+    s.position_push(auth3d_ids_offsets_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
         ::stage_data* stage = &stage_data->stage_data[i];
 
-        uint32_t id = io_read_uint32_t(s);
-        uint32_t offset = io_read_uint32_t(s);
+        uint32_t id = s.read_uint32_t();
+        uint32_t offset = s.read_uint32_t();
         if (!offset) {
             stage->auth_3d_ids.clear();
             stage->auth_3d_ids.shrink_to_fit();
             continue;
         }
 
-        io_position_push(s, offset, SEEK_SET);
+        s.position_push(offset, SEEK_SET);
         int32_t auth_3d_count = (int32_t)stage->auth_3d_ids.size();
         for (int32_t j = 0; j < auth_3d_count; j++)
-            if (io_read_int32_t(s) == -1) {
+            if (s.read_int32_t() == -1) {
                 stage->auth_3d_ids.resize(j);
                 stage->auth_3d_ids.shrink_to_fit();
                 break;
             }
-        io_position_pop(s);
+        s.position_pop();
 
         if (stage->auth_3d_ids.size()) {
-            io_position_push(s, offset, SEEK_SET);
+            s.position_push(offset, SEEK_SET);
             for (int32_t& j : stage->auth_3d_ids)
-                j = io_read_int32_t(s);
-            io_position_pop(s);
+                j = s.read_int32_t();
+            s.position_pop();
         }
 
     }
-    io_position_pop(s);
+    s.position_pop();
 
     stage_data->ready = true;
     stage_data->modern = false;
     stage_data->is_x = false;
 }
 
-static void stage_database_classic_write_inner(stage_database* stage_data, stream* s) {
+static void stage_database_classic_write_inner(stage_database* stage_data, stream& s) {
 
 }
 
-static void stage_database_modern_read_inner(stage_database* stage_data, stream* s, uint32_t header_length) {
+static void stage_database_modern_read_inner(stage_database* stage_data, stream& s, uint32_t header_length) {
     bool is_x = true;
 
-    io_set_position(s, 0x04, SEEK_SET);
-    is_x &= io_read_uint32_t_stream_reverse_endianness(s) == 0;
+    s.set_position(0x04, SEEK_SET);
+    is_x &= s.read_uint32_t_reverse_endianness() == 0;
 
-    io_set_position(s, 0x00, SEEK_SET);
+    s.set_position(0x00, SEEK_SET);
 
-    int32_t count = io_read_int32_t(s);
-    int64_t stages_offset = io_read_offset(s, header_length, is_x);
+    int32_t count = s.read_int32_t();
+    int64_t stages_offset = s.read_offset(header_length, is_x);
 
     stage_data->stage_modern.resize(count);
 
-    io_position_push(s, stages_offset, SEEK_SET);
+    s.position_push(stages_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
         stage_data_modern* stage = &stage_data->stage_modern[i];
-        stage->hash = (uint32_t)io_read_uint64_t_stream_reverse_endianness(s);
-        io_read_string_null_terminated_offset(s,
-            io_read_offset(s, header_length, is_x), &stage->name);
-        io_read_string_null_terminated_offset(s,
-            io_read_offset(s, header_length, is_x), &stage->auth_3d_name);
+        stage->hash = (uint32_t)s.read_uint64_t_reverse_endianness();
+        stage->name = s.read_string_null_terminated_offset(s.read_offset(header_length, is_x));
+        stage->auth_3d_name = s.read_string_null_terminated_offset(s.read_offset(header_length, is_x));
         stage->auth_3d_name_hash = hash_string_murmurhash(&stage->auth_3d_name);
-        stage->object_ground.set_id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->object_ground.id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->object_sky.id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->object_sky.set_id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->object_shadow.id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->object_shadow.set_id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->object_reflect.id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->object_reflect.set_id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->object_refract.id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->object_refract.set_id = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->lens_shaft_inv_scale = io_read_float_t_stream_reverse_endianness(s);
-        stage->unknown = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->render_texture = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->render_texture_flag = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->movie_texture = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->movie_texture_flag = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_04 = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_04_flag = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_05 = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_05_flag = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_06 = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_06_flag = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_07 = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_07_flag = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_08 = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_09 = io_read_uint32_t_stream_reverse_endianness(s);
-        stage->field_10 = io_read_uint32_t_stream_reverse_endianness(s);
+        stage->object_ground.set_id = s.read_uint32_t_reverse_endianness();
+        stage->object_ground.id = s.read_uint32_t_reverse_endianness();
+        stage->object_sky.id = s.read_uint32_t_reverse_endianness();
+        stage->object_sky.set_id = s.read_uint32_t_reverse_endianness();
+        stage->object_shadow.id = s.read_uint32_t_reverse_endianness();
+        stage->object_shadow.set_id = s.read_uint32_t_reverse_endianness();
+        stage->object_reflect.id = s.read_uint32_t_reverse_endianness();
+        stage->object_reflect.set_id = s.read_uint32_t_reverse_endianness();
+        stage->object_refract.id = s.read_uint32_t_reverse_endianness();
+        stage->object_refract.set_id = s.read_uint32_t_reverse_endianness();
+        stage->lens_shaft_inv_scale = s.read_float_t_reverse_endianness();
+        stage->unknown = s.read_uint32_t_reverse_endianness();
+        stage->render_texture = s.read_uint32_t_reverse_endianness();
+        stage->render_texture_flag = s.read_uint32_t_reverse_endianness();
+        stage->movie_texture = s.read_uint32_t_reverse_endianness();
+        stage->movie_texture_flag = s.read_uint32_t_reverse_endianness();
+        stage->field_04 = s.read_uint32_t_reverse_endianness();
+        stage->field_04_flag = s.read_uint32_t_reverse_endianness();
+        stage->field_05 = s.read_uint32_t_reverse_endianness();
+        stage->field_05_flag = s.read_uint32_t_reverse_endianness();
+        stage->field_06 = s.read_uint32_t_reverse_endianness();
+        stage->field_06_flag = s.read_uint32_t_reverse_endianness();
+        stage->field_07 = s.read_uint32_t_reverse_endianness();
+        stage->field_07_flag = s.read_uint32_t_reverse_endianness();
+        stage->field_08 = s.read_uint32_t_reverse_endianness();
+        stage->field_09 = s.read_uint32_t_reverse_endianness();
+        stage->field_10 = s.read_uint32_t_reverse_endianness();
 
         if (is_x)
-            io_read_uint32_t_stream_reverse_endianness(s);
+            s.read_uint32_t_reverse_endianness();
 
-        stage->field_11 = io_read_offset(s, header_length, is_x);
-        stage->field_12 = io_read_offset(s, header_length, is_x);
+        stage->field_11 = s.read_offset(header_length, is_x);
+        stage->field_12 = s.read_offset(header_length, is_x);
 
-        stage->ring_rectangle_x = io_read_float_t_stream_reverse_endianness(s);
-        stage->ring_rectangle_y = io_read_float_t_stream_reverse_endianness(s);
-        stage->ring_rectangle_width = io_read_float_t_stream_reverse_endianness(s);
-        stage->ring_rectangle_height = io_read_float_t_stream_reverse_endianness(s);
-        stage->ring_height = io_read_float_t_stream_reverse_endianness(s);
-        stage->ring_out_height = io_read_float_t_stream_reverse_endianness(s);
+        stage->ring_rectangle_x = s.read_float_t_reverse_endianness();
+        stage->ring_rectangle_y = s.read_float_t_reverse_endianness();
+        stage->ring_rectangle_width = s.read_float_t_reverse_endianness();
+        stage->ring_rectangle_height = s.read_float_t_reverse_endianness();
+        stage->ring_height = s.read_float_t_reverse_endianness();
+        stage->ring_out_height = s.read_float_t_reverse_endianness();
 
         if (is_x)
-            stage->field_13 = io_read_uint32_t_stream_reverse_endianness(s);
+            stage->field_13 = s.read_uint32_t_reverse_endianness();
 
         stage_effects* effects = &stage->effects;
 
         for (int32_t j = 0; j < 8; j++)
-            effects->field_0[j] = io_read_uint32_t_stream_reverse_endianness(s);
+            effects->field_0[j] = s.read_uint32_t_reverse_endianness();
 
         for (int32_t j = 0; j < 16; j++)
-            effects->field_20[j] = io_read_uint32_t_stream_reverse_endianness(s);
+            effects->field_20[j] = s.read_uint32_t_reverse_endianness();
 
         if (is_x)
-            io_read_uint32_t_stream_reverse_endianness(s);
+            s.read_uint32_t_reverse_endianness();
 
-        int32_t auth3d_ids_count = io_read_int32_t_stream_reverse_endianness(s);
-        int64_t auth3d_ids_offset = io_read_offset(s, header_length, is_x);
+        int32_t auth3d_ids_count = s.read_int32_t_reverse_endianness();
+        int64_t auth3d_ids_offset = s.read_offset(header_length, is_x);
 
         if (is_x)
-            io_read_uint32_t_stream_reverse_endianness(s);
+            s.read_uint32_t_reverse_endianness();
 
         if (!auth3d_ids_offset) {
             stage->auth_3d_ids.clear();
@@ -554,23 +547,23 @@ static void stage_database_modern_read_inner(stage_database* stage_data, stream*
             continue;
         }
 
-        io_position_push(s, auth3d_ids_offset, SEEK_SET);
+        s.position_push(auth3d_ids_offset, SEEK_SET);
         for (int32_t j = 0; j < auth3d_ids_count; j++)
-            if (io_read_uint32_t(s) == hash_murmurhash_empty) {
+            if (s.read_uint32_t() == hash_murmurhash_empty) {
                 stage->auth_3d_ids.resize(j);
                 stage->auth_3d_ids.shrink_to_fit();
                 break;
             }
-        io_position_pop(s);
+        s.position_pop();
 
         if (stage->auth_3d_ids.size()) {
-            io_position_push(s, auth3d_ids_offset, SEEK_SET);
+            s.position_push(auth3d_ids_offset, SEEK_SET);
             for (uint32_t& j : stage->auth_3d_ids)
-                j = io_read_int32_t(s);
-            io_position_pop(s);
+                j = s.read_int32_t();
+            s.position_pop();
         }
     }
-    io_position_pop(s);
+    s.position_pop();
 
     stage_data->ready = true;
     stage_data->modern = true;
@@ -578,7 +571,7 @@ static void stage_database_modern_read_inner(stage_database* stage_data, stream*
     stage_data->format = STAGE_DATA_UNK;
 }
 
-static void stage_database_modern_write_inner(stage_database* stage_data, stream* s) {
+static void stage_database_modern_write_inner(stage_database* stage_data, stream& s) {
 
 }
 

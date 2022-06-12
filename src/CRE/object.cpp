@@ -11,7 +11,7 @@
 #include "gl_state.h"
 #include "shader_ft.h"
 #include "../KKdLib/hash.hpp"
-#include "../KKdLib/str_utils.h"
+#include "../KKdLib/str_utils.hpp"
 
 struct material_change_handler {
     int32_t load_count;
@@ -29,8 +29,8 @@ static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* hand
 static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* handler);
 static bool obj_set_handler_index_buffer_load(obj_set_handler* handler);
 static void obj_set_handler_index_buffer_free(obj_set_handler* handler);
-static bool obj_set_handler_load_textures(obj_set_handler* handler, void* data, bool big_endian);
-static bool obj_set_handler_load_textures_modern(obj_set_handler* handler, void* data, size_t size);
+static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* data, bool big_endian);
+static bool obj_set_handler_load_textures_modern(obj_set_handler* handler, const void* data, size_t size);
 static bool obj_set_handler_vertex_buffer_load(obj_set_handler* handler);
 static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler);
 static void obj_skin_block_constraint_attach_point_load(
@@ -702,7 +702,7 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
         return 1;
 
     std::string file;
-    if (!((data_struct*)data)->get_file("root+/objset/", hash, ".farc", &file))
+    if (!((data_struct*)data)->get_file("root+/objset/", hash, ".farc", file))
         return 1;
 
     obj_set_handler* handler = object_storage_get_obj_set_handler(hash);
@@ -735,7 +735,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
 
     if (!handler->modern) {
         if (!handler->obj_loaded && !handler->obj_file_handler.check_not_ready()) {
-            void* data = handler->obj_file_handler.get_data();
+            const void* data = handler->obj_file_handler.get_data();
             size_t size = handler->obj_file_handler.get_size();
             if (!data || !size)
                 return false;
@@ -775,7 +775,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         }
     }
     else if (!handler->obj_loaded && !handler->farc_file_handler.check_not_ready()) {
-        void* data = handler->farc_file_handler.get_data();
+        const void* data = handler->farc_file_handler.get_data();
         size_t size = handler->farc_file_handler.get_size();
         if (!data || !size)
             return false;
@@ -1212,7 +1212,7 @@ static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* hand
             obj_material* material = &material_data->material;
 
             if (*(int32_t*)&material->shader.name[4] != 0xDEADFF) {
-                material->shader.index = shader_get_index_by_name(&shaders_ft, material->shader.name);
+                material->shader.index = shaders_ft.get_index_by_name(material->shader.name);
                 *(int32_t*)&material->shader.name[4] = 0xDEADFF;
             }
 
@@ -1280,7 +1280,7 @@ static int32_t obj_set_tex_id_data_sort(void const* src1, void const* src2) {
     return p1->first - p2->first;
 }
 
-static bool obj_set_handler_load_textures(obj_set_handler* handler, void* data, bool big_endian) {
+static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* data, bool big_endian) {
     obj_set* set = handler->obj_set;
     if (!set || !data)
         return true;
@@ -1306,7 +1306,7 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, void* data, 
     return false;
 }
 
-static bool obj_set_handler_load_textures_modern(obj_set_handler* handler, void* data, size_t size) {
+static bool obj_set_handler_load_textures_modern(obj_set_handler* handler, const void* data, size_t size) {
     obj_set* set = handler->obj_set;
     if (!set || !data || !size)
         return true;
@@ -1385,19 +1385,19 @@ inline static void obj_skin_block_constraint_up_vector_load(
     up_vector->roll = up_vector_file->roll;
     up_vector->affected_axis = up_vector_file->affected_axis;
     up_vector->point_at = up_vector_file->point_at;
-    string_copy(&up_vector_file->name, &up_vector->name);
+    up_vector->name = str_utils_copy(up_vector_file->name);
 }
 
 inline static void obj_skin_block_node_load(obj_skin_block_node* node,
     obj_skin_block_node* node_file) {
-    string_copy(&node_file->parent_name, &node->parent_name);
+    node->parent_name = str_utils_copy(node_file->parent_name);
     node->position = node_file->position;
     node->rotation = node_file->rotation;
     node->scale = node_file->scale;
 }
 
 inline static void obj_skin_block_node_free(obj_skin_block_node* node) {
-    string_free(&node->parent_name);
+    free(node->parent_name);
 }
 
 inline static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format) {

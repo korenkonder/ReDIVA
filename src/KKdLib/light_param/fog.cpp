@@ -4,15 +4,15 @@
 */
 
 #include "fog.hpp"
-#include "../io/path.h"
-#include "../io/stream.h"
-#include "../str_utils.h"
+#include "../io/path.hpp"
+#include "../io/stream.hpp"
+#include "../str_utils.hpp"
 
-static void light_param_fog_read_inner(light_param_fog* fog, stream* s);
-static void light_param_fog_write_inner(light_param_fog* fog, stream* s);
+static void light_param_fog_read_inner(light_param_fog* fog, stream& s);
+static void light_param_fog_write_inner(light_param_fog* fog, stream& s);
 static const char* light_param_fog_read_line(char* buf, int32_t size, const char* src);
-static void light_param_fog_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
-static void light_param_fog_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
+static void light_param_fog_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value);
+static void light_param_fog_write_float_t(stream& s, char* buf, size_t buf_size, float_t value);
 
 light_param_fog::light_param_fog() : ready() {
 
@@ -26,10 +26,9 @@ void light_param_fog::read(const char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
-        io_open(&s, path_txt, "rb");
+        s.open(path_txt, "rb");
         if (s.io.stream)
-            light_param_fog_read_inner(this, &s);
-        io_free(&s);
+            light_param_fog_read_inner(this, s);
     }
     free(path_txt);
 }
@@ -38,19 +37,17 @@ void light_param_fog::read(const wchar_t* path) {
     wchar_t* path_txt = str_utils_add(path, L".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
-        io_open(&s, path_txt, L"rb");
+        s.open(path_txt, L"rb");
         if (s.io.stream)
-            light_param_fog_read_inner(this, &s);
-        io_free(&s);
+            light_param_fog_read_inner(this, s);
     }
     free(path_txt);
 }
 
 void light_param_fog::read(const void* data, size_t size) {
     stream s;
-    io_open(&s, data, size);
-    light_param_fog_read_inner(this, &s);
-    io_free(&s);
+    s.open(data, size);
+    light_param_fog_read_inner(this, s);
 }
 
 void light_param_fog::write(const char* path) {
@@ -59,10 +56,9 @@ void light_param_fog::write(const char* path) {
 
     char* path_txt = str_utils_add(path, ".txt");
     stream s;
-    io_open(&s, path_txt, "wb");
+    s.open(path_txt, "wb");
     if (s.io.stream)
-        light_param_fog_write_inner(this, &s);
-    io_free(&s);
+        light_param_fog_write_inner(this, s);
     free(path_txt);
 }
 
@@ -72,10 +68,9 @@ void light_param_fog::write(const wchar_t* path) {
 
     wchar_t* path_txt = str_utils_add(path, L".txt");
     stream s;
-    io_open(&s, path_txt, L"wb");
+    s.open(path_txt, L"wb");
     if (s.io.stream)
-        light_param_fog_write_inner(this, &s);
-    io_free(&s);
+        light_param_fog_write_inner(this, s);
     free(path_txt);
 }
 
@@ -84,10 +79,9 @@ void light_param_fog::write(void** data, size_t* size) {
         return;
 
     stream s;
-    io_open(&s);
-    light_param_fog_write_inner(this, &s);
-    io_copy(&s, data, size);
-    io_free(&s);
+    s.open();
+    light_param_fog_write_inner(this, s);
+    s.copy(data, size);
 }
 
 bool light_param_fog::load_file(void* data, const char* path, const char* file, uint32_t hash) {
@@ -114,10 +108,10 @@ light_param_fog_group::~light_param_fog_group() {
 
 }
 
-static void light_param_fog_read_inner(light_param_fog* fog, stream* s) {
-    char* data = force_malloc_s(char, s->length + 1);
-    io_read(s, data, s->length);
-    data[s->length] = 0;
+static void light_param_fog_read_inner(light_param_fog* fog, stream& s) {
+    char* data = force_malloc_s(char, s.length + 1);
+    s.read(data, s.length);
+    data[s.length] = 0;
 
     char buf[0x100];
     const char* d = data;
@@ -191,51 +185,51 @@ End:
     free(data);
 }
 
-static void light_param_fog_write_inner(light_param_fog* fog, stream* s) {
+static void light_param_fog_write_inner(light_param_fog* fog, stream& s) {
     char buf[0x100];
 
     for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++) {
         light_param_fog_group* group = &fog->group[i];
-        io_write(s, "group_start", 11);
+        s.write("group_start", 11);
         light_param_fog_write_int32_t(s, buf, sizeof(buf), i);
-        io_write_char(s, '\n');
+        s.write_char('\n');
 
         if (group->has_type) {
-            io_write(s, "type", 4);
+            s.write("type", 4);
             light_param_fog_write_int32_t(s, buf, sizeof(buf), (int32_t)group->type);
-            io_write_char(s, '\n');
+            s.write_char('\n');
         }
 
         if (group->has_density) {
-            io_write(s, "density", 7);
+            s.write("density", 7);
             light_param_fog_write_float_t(s, buf, sizeof(buf), group->density);
-            io_write_char(s, '\n');
+            s.write_char('\n');
         }
 
         if (group->has_linear) {
-            io_write(s, "linear", 6);
+            s.write("linear", 6);
             light_param_fog_write_float_t(s, buf, sizeof(buf), group->linear_start);
             light_param_fog_write_float_t(s, buf, sizeof(buf), group->linear_end);
-            io_write_char(s, '\n');
+            s.write_char('\n');
         }
 
         if (group->has_color) {
             vec4u* color = &group->color;
-            io_write(s, "color", 5);
+            s.write("color", 5);
             light_param_fog_write_float_t(s, buf, sizeof(buf), color->x);
             light_param_fog_write_float_t(s, buf, sizeof(buf), color->y);
             light_param_fog_write_float_t(s, buf, sizeof(buf), color->z);
             light_param_fog_write_float_t(s, buf, sizeof(buf), color->w);
-            io_write_char(s, '\n');
+            s.write_char('\n');
         }
 
-        io_write(s, "group_end", 9);
+        s.write("group_end", 9);
         light_param_fog_write_int32_t(s, buf, sizeof(buf), i);
-        io_write_char(s, '\n');
+        s.write_char('\n');
     }
 
-    io_write(s, "EOF", 3);
-    io_write_char(s, '\n');
+    s.write("EOF", 3);
+    s.write_char('\n');
 }
 
 static const char* light_param_fog_read_line(char* buf, int32_t size, const char* src) {
@@ -265,12 +259,12 @@ static const char* light_param_fog_read_line(char* buf, int32_t size, const char
     return src;
 }
 
-inline static void light_param_fog_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value) {
+inline static void light_param_fog_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value) {
     sprintf_s(buf, buf_size, " %d", value);
-    io_write_utf8_string(s, buf);
+    s.write_utf8_string(buf);
 }
 
-inline static void light_param_fog_write_float_t(stream* s, char* buf, size_t buf_size, float_t value) {
+inline static void light_param_fog_write_float_t(stream& s, char* buf, size_t buf_size, float_t value) {
     sprintf_s(buf, buf_size, " %#.6g", value);
-    io_write_utf8_string(s, buf);
+    s.write_utf8_string(buf);
 }

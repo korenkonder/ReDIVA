@@ -7,11 +7,11 @@
 
 #include <map>
 #include <vector>
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/database/texture.hpp"
 #include "../KKdLib/a3da.hpp"
-#include "../KKdLib/kf.h"
+#include "../KKdLib/kf.hpp"
 #include "frame_rate_control.hpp"
 #include "render_context.hpp"
 #include "task.hpp"
@@ -740,7 +740,7 @@ struct auth_3d_farc {
     std::string file;
     p_file_handler file_handler;
     farc* farc;
-    void* data;
+    const void* data;
     size_t size;
 
     auth_3d_farc();
@@ -787,12 +787,66 @@ struct auth_3d_data_struct {
     virtual ~auth_3d_data_struct();
 };
 
+class Auth3dTestTask : public app::Task {
+public:
+    int32_t field_1C0;
+    int32_t field_1C4;
+    int32_t field_1C8;
+    int32_t field_1CC;
+    bool field_1D0;
+    int32_t field_1D4;
+    int32_t auth_3d_id;
+    int32_t auth_3d_uid;
+    bool repeat;
+    bool left_right_reverse;
+    bool field_1E3;
+    int32_t field_1E4;
+    bool field_1E8;
+    bool field_1E9;
+    bool black_mask_listener;
+    bool field_1EB;
+    int32_t field_1EC;
+    uint32_t effcmn_obj_set;
+    int32_t field_210;
+    bool field_328;
+    bool field_329;
+    bool field_32A;
+    int32_t stage_index;
+    int32_t load_stage_index;
+    vec3 trans_value;
+    float_t rot_y_value;
+    std::vector<std::pair<std::string, std::string>> field_348;
+    bool field_388;
+    int32_t field_38C;
+    bool field_390;
+    int32_t field_394;
+    std::string category;
+    std::string load_category;
+    std::vector<uint32_t> obj_sets;
+
+    struct Window {
+        bool stage_link_change;
+        bool obj_link;
+
+        Window();
+    } window;
+
+    Auth3dTestTask();
+    virtual ~Auth3dTestTask();
+
+    virtual bool Init();
+    virtual bool Ctrl();
+    virtual bool Dest();
+};
+
 extern auth_3d_data_struct* auth_3d_data;
+extern Auth3dTestTask auth_3d_test_task;
 
 extern void auth_3d_data_init();
 extern bool auth_3d_data_check_id_not_empty(int32_t* id);
 extern bool auth_3d_data_check_category_loaded(const char* category_name);
 extern bool auth_3d_data_check_category_loaded(uint32_t category_hash);
+extern bool auth_3d_data_check_id_loading(int32_t* id);
 extern bool auth_3d_data_check_id_loaded(int32_t* id);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t id);
 extern int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
@@ -810,6 +864,7 @@ extern float_t auth_3d_data_get_play_control_begin(int32_t* id);
 extern float_t auth_3d_data_get_play_control_size(int32_t* id);
 extern bool auth_3d_data_get_repeat(int32_t* id);
 extern int32_t auth_3d_data_get_uid(int32_t* id);
+extern const char* auth_3d_data_get_uid_name(int32_t uid, auth_3d_database* auth_3d_db);
 extern void auth_3d_data_load_auth_3d_db(auth_3d_database* auth_3d_db);
 extern void auth_3d_data_load_category(const char* category_name, const char* mdata_dir = 0);
 extern void auth_3d_data_load_category(void* data, const char* category_name, uint32_t category_hash);
@@ -820,6 +875,7 @@ extern void auth_3d_data_read_file(int32_t* id, auth_3d_database* auth_3d_db);
 extern void auth_3d_data_read_file_modern(int32_t* id);
 extern void auth_3d_data_set_camera_root_update(int32_t* id, bool value);
 extern void auth_3d_data_set_chara_id(int32_t* id, int32_t value);
+extern void auth_3d_data_set_draw_task_flags_alpha(int32_t* id, draw_task_flags draw_task_flags, float_t alpha);
 extern void auth_3d_data_set_enable(int32_t* id, bool value);
 extern void auth_3d_data_set_frame_rate(int32_t* id, FrameRateControl* value);
 extern void auth_3d_data_set_last_frame(int32_t* id, float_t value);

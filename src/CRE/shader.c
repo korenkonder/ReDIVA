@@ -4,9 +4,9 @@
 */
 
 #include "shader.h"
-#include "../KKdLib/io/path.h"
+#include "../KKdLib/io/path.hpp"
 #include "../KKdLib/hash.hpp"
-#include "../KKdLib/str_utils.h"
+#include "../KKdLib/str_utils.hpp"
 #include "gl_state.h"
 #include <shlobj_core.h>
 
@@ -27,23 +27,21 @@ static bool shader_parse_define(const char* data, int32_t num_uniform,
 static char* shader_parse_include(char* data, farc* f);
 static void shader_update_data(shader_set_data* set);
 
-int32_t shader_bind(shader* shader, uint32_t sub_index) {
-    int32_t num_sub = shader->num_sub;
+int32_t shader::bind(uint32_t sub_index) {
     int32_t sub_shader_index = 0;
     if (num_sub < 1)
         return -1;
 
-    for (shader_sub* i = shader->sub; i->sub_index != sub_index; i++) {
+    for (shader_sub* i = sub; i->sub_index != sub_index; i++) {
         sub_shader_index++;
         if (sub_shader_index >= num_sub)
             return -1;
     }
 
-    shader_sub* sub_shader = &shader->sub[sub_shader_index];
+    shader_sub* sub_shader = &sub[sub_shader_index];
     if (!sub_shader)
         return -1;
 
-    int32_t num_uniform = shader->num_uniform;
     int32_t unival_curr = 1;
     int32_t unival = 0;
     GLint uniform_val[16];
@@ -53,13 +51,13 @@ int32_t shader_bind(shader* shader, uint32_t sub_index) {
 
         int32_t i = 0;
         for (i = 0; i < num_uniform && i < 16; i++) {
-            int32_t unival_max = shader->use_permut[i]
+            int32_t unival_max = use_permut[i]
                 ? max(vp_unival_max[i], fp_unival_max[i]) : 0;
-            unival += unival_curr * min(uniform_value[(int32_t)shader->use_uniform[i]], unival_max);
+            unival += unival_curr * min(uniform_value[(int32_t)use_uniform[i]], unival_max);
             unival_curr *= unival_max + 1;
 
             int32_t unival_max_glsl = max(vp_unival_max[i], fp_unival_max[i]);
-            uniform_val[i] = min(uniform_value[shader->use_uniform[i]], unival_max_glsl);
+            uniform_val[i] = min(uniform_value[use_uniform[i]], unival_max_glsl);
         }
 
         for (; i < 16; i++)
@@ -71,36 +69,42 @@ int32_t shader_bind(shader* shader, uint32_t sub_index) {
     return 0;
 }
 
-inline void shader_draw_arrays(shader_set_data* set,
-    GLenum mode, GLint first, GLsizei count) {
-    shader_update_data(set);
+void shader::unbind() {
+    gl_state_use_program(0);
+    gl_state_bind_uniform_buffer_base(0, 0);
+    gl_state_bind_uniform_buffer_base(1, 0);
+    gl_state_bind_uniform_buffer_base(2, 0);
+    gl_state_bind_uniform_buffer_base(3, 0);
+}
+
+void shader_set_data::draw_arrays(GLenum mode, GLint first, GLsizei count) {
+    shader_update_data(this);
     glDrawArrays(mode, first, count);
 }
 
-inline void shader_draw_elements(shader_set_data* set,
-    GLenum mode, GLsizei count, GLenum type, const void* indices) {
-    shader_update_data(set);
+void shader_set_data::draw_elements(GLenum mode,
+    GLsizei count, GLenum type, const void* indices) {
+    shader_update_data(this);
     glDrawElements(mode, count, type, indices);
 }
 
-inline void shader_draw_range_elements(shader_set_data* set,
-    GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void* indices) {
-    shader_update_data(set);
+void shader_set_data::draw_range_elements(GLenum mode,
+    GLuint start, GLuint end, GLsizei count, GLenum type, const void* indices) {
+    shader_update_data(this);
     glDrawRangeElements(mode, start, end, count, type, indices);
 }
 
-int32_t shader_get_index_by_name(shader_set_data* set, const char* name) {
-    shader* shaders = set->shaders;
-    for (size_t i = 0; i < set->size; i++)
+int32_t shader_set_data::get_index_by_name(const char* name) {
+    for (size_t i = 0; i < size; i++)
         if (!str_utils_compare(shaders[i].name, name))
             return (int32_t)shaders[i].index;
     return -1;
 }
 
-void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load_cache,
+void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
     const char* name, const shader_table* shaders_table, const size_t size,
     const shader_bind_func* bind_func_table, const size_t bind_func_table_size) {
-    if (!set || !f || !shaders_table || !size)
+    if (!this || !f || !shaders_table || !size)
         return;
 
     bool shader_cache_changed = false;
@@ -128,10 +132,10 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
     std::vector<int32_t> vec_vert;
     std::vector<int32_t> vec_frag;
     std::vector<program_binary> program_data_binary;
-    set->shaders = force_malloc_s(shader, size);
-    set->size = size;
+    shaders = force_malloc_s(shader, size);
+    this->size = size;
     for (size_t i = 0; i < size; i++) {
-        shader* shader = &set->shaders[i];
+        shader* shader = &shaders[i];
         shader->name = shaders_table[i].name;
         shader->index = shaders_table[i].index;
         shader->num_sub = shaders_table[i].num_sub;
@@ -404,42 +408,54 @@ void shader_load(shader_set_data* set, farc* f, bool ignore_cache, bool not_load
     if (shader_cache_changed)
         shader_cache_farc.write(temp_buf, FARC_COMPRESS_FArC, false);
 
-    memset(&set->data, 0, sizeof(set->data));
-    glGenBuffers(1, &set->data.state_ubo);
-    gl_state_bind_uniform_buffer(set->data.state_ubo);
-    glBufferData(GL_UNIFORM_BUFFER,
-        sizeof(set->data.state), (void*)&set->data.state, GL_DYNAMIC_DRAW);
+    memset(&data, 0, sizeof(data));
+    glGenBuffers(1, &data.state_ubo);
+    gl_state_bind_uniform_buffer(data.state_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(data.state), (void*)&data.state, GL_DYNAMIC_DRAW);
     gl_state_bind_uniform_buffer(0);
 
-    glGenBuffers(1, &set->data.state_matrix_ubo);
-    gl_state_bind_uniform_buffer(set->data.state_matrix_ubo);
-    glBufferData(GL_UNIFORM_BUFFER,
-        sizeof(set->data.state_matrix), (void*)&set->data.state_matrix, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &data.state_matrix_ubo);
+    gl_state_bind_uniform_buffer(data.state_matrix_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(data.state_matrix), (void*)&data.state_matrix, GL_DYNAMIC_DRAW);
     gl_state_bind_uniform_buffer(0);
 
-    glGenBuffers(1, &set->data.env_ubo);
-    gl_state_bind_uniform_buffer(set->data.env_ubo);
-    glBufferData(GL_UNIFORM_BUFFER,
-        sizeof(set->data.env), (void*)&set->data.env, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &data.env_ubo);
+    gl_state_bind_uniform_buffer(data.env_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(data.env), (void*)&data.env, GL_DYNAMIC_DRAW);
     gl_state_bind_uniform_buffer(0);
 
-    glGenBuffers(1, &set->data.buffer_ubo);
-    gl_state_bind_uniform_buffer(set->data.buffer_ubo);
-    glBufferData(GL_UNIFORM_BUFFER,
-        sizeof(set->data.buffer), (void*)&set->data.buffer, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &data.buffer_ubo);
+    gl_state_bind_uniform_buffer(data.buffer_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(data.buffer), (void*)&data.buffer, GL_DYNAMIC_DRAW);
     gl_state_bind_uniform_buffer(0);
 }
 
-void shader_free(shader_set_data* set) {
-    glDeleteBuffers(1, &set->data.state_ubo);
-    glDeleteBuffers(1, &set->data.state_matrix_ubo);
-    glDeleteBuffers(1, &set->data.env_ubo);
-    glDeleteBuffers(1, &set->data.buffer_ubo);
-    memset(&set->data, 0, sizeof(set->data));
+void shader_set_data::set(uint32_t index) {
+    if (this && index && shaders && index != -1) {
+        env_frag_set(0x18, (float_t)uniform_value[U_TEXTURE_BLEND], 0.0, 0.0, 0.0);
+        shader* shader = &shaders[index];
+        if (shader->bind_func)
+            shader->bind_func(this, shader);
+        else
+            shader->bind(shader->sub[0].sub_index);
+        gl_state_bind_uniform_buffer_base(0, data.state_ubo);
+        gl_state_bind_uniform_buffer_base(1, data.state_matrix_ubo);
+        gl_state_bind_uniform_buffer_base(2, data.env_ubo);
+        gl_state_bind_uniform_buffer_base(3, data.buffer_ubo);
+    }
+    else
+        shader::unbind();
+}
 
-    size_t size = set->size;
+void shader_set_data::unload() {
+    glDeleteBuffers(1, &data.state_ubo);
+    glDeleteBuffers(1, &data.state_matrix_ubo);
+    glDeleteBuffers(1, &data.env_ubo);
+    glDeleteBuffers(1, &data.buffer_ubo);
+    memset(&data, 0, sizeof(data));
+
     for (size_t i = 0; i < size; i++) {
-        shader* shader = &set->shaders[i];
+        shader* shader = &shaders[i];
         int32_t num_sub = shader->num_sub;
         shader_sub* sub = shader->sub;
         for (size_t j = 0; j < num_sub; j++, sub++) {
@@ -469,55 +485,26 @@ void shader_free(shader_set_data* set) {
         }
         free(shader->sub);
     }
-    free(set->shaders);
+    free(shaders);
 }
 
-void shader_set(shader_set_data* set, uint32_t index) {
-    if (set && index && set->shaders && index != -1) {
-        shader_env_frag_set(set, 0x18,
-            (float_t)uniform_value[U_TEXTURE_BLEND], 0.0, 0.0, 0.0);
-        shader* shader = &set->shaders[index];
-        if (shader->bind_func)
-            shader->bind_func(set, shader);
-        else
-            shader_bind(shader, shader->sub[0].sub_index);
-        gl_state_bind_uniform_buffer_base(0, set->data.state_ubo);
-        gl_state_bind_uniform_buffer_base(1, set->data.state_matrix_ubo);
-        gl_state_bind_uniform_buffer_base(2, set->data.env_ubo);
-        gl_state_bind_uniform_buffer_base(3, set->data.buffer_ubo);
-    }
-    else
-        shader_unbind();
-}
-
-inline void shader_unbind() {
-    gl_state_use_program(0);
-    gl_state_bind_uniform_buffer_base(0, 0);
-    gl_state_bind_uniform_buffer_base(1, 0);
-    gl_state_bind_uniform_buffer_base(2, 0);
-    gl_state_bind_uniform_buffer_base(3, 0);
-}
-
-inline void shader_buffer_get_ptr(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_BUFFER_PARAMETERS || !data)
+void shader_set_data::buffer_get(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_BUFFER_PARAMETERS)
         return;
 
-    memcpy(data, &set->data.buffer.buffer[index], sizeof(vec4));
+    data = this->data.buffer.buffer[index];
 }
 
-inline void shader_buffer_get_ptr_array(shader_set_data* set,
-    size_t index, size_t count, vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_BUFFER_PARAMETERS
+void shader_set_data::buffer_get(size_t index, size_t count, vec4* data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_BUFFER_PARAMETERS
         || index + count > SHADER_MAX_PROGRAM_BUFFER_PARAMETERS || !data)
         return;
 
-    memcpy(data, &set->data.buffer.buffer[index], sizeof(vec4) * count);
+    memcpy(data, &this->data.buffer.buffer[index], sizeof(vec4) * count);
 }
 
-inline void shader_local_frag_get(shader_set_data* set,
-    size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !x || !y || !z || !w)
+void shader_set_data::local_frag_get(size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !x || !y || !z || !w)
         return;
 
     GLfloat temp[4];
@@ -528,22 +515,17 @@ inline void shader_local_frag_get(shader_set_data* set,
     *w = temp[3];
 }
 
-inline void shader_local_frag_get_ptr(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+void shader_set_data::local_frag_get(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
     GLfloat temp[4];
     glGetUniformfv(gl_state_get_program(), (GLint)(index + SHADER_MAX_PROGRAM_LOCAL_PARAMETERS), temp);
-    data->x = temp[0];
-    data->y = temp[1];
-    data->z = temp[2];
-    data->w = temp[3];
+    data = { temp[0], temp[1], temp[2], temp[3] };
 }
 
-inline void shader_local_vert_get(shader_set_data* set,
-    size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !x || !y || !z || !w)
+void shader_set_data::local_vert_get(size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !x || !y || !z || !w)
         return;
 
     GLfloat temp[4];
@@ -554,431 +536,378 @@ inline void shader_local_vert_get(shader_set_data* set,
     *w = temp[3];
 }
 
-inline void shader_local_vert_get_ptr(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+void shader_set_data::local_vert_get(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
     GLfloat temp[4];
     glGetUniformfv(gl_state_get_program(), (GLint)index, temp);
-    data->x = temp[0];
-    data->y = temp[1];
-    data->z = temp[2];
-    data->w = temp[3];
+    data = { temp[0], temp[1], temp[2], temp[3] };
 }
 
-inline void shader_env_frag_get(shader_set_data* set,
-    size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS || !x || !y || !z || !w)
+void shader_set_data::env_frag_get(size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS || !x || !y || !z || !w)
         return;
 
-    vec4 data = set->data.env.frag[index];
+    vec4& data = this->data.env.frag[index];
     *x = data.x;
     *y = data.y;
     *z = data.z;
     *w = data.w;
 }
 
-inline void shader_env_frag_get_ptr(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS || !data)
+void shader_set_data::env_frag_get(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS)
         return;
 
-    *data = set->data.env.frag[index];
+    data = this->data.env.frag[index];
 }
 
-inline void shader_env_frag_get_ptr_array(shader_set_data* set,
-    size_t index, size_t count, vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS
+void shader_set_data::env_frag_get(size_t index, size_t count, vec4* data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS
         || index + count > SHADER_MAX_PROGRAM_ENV_PARAMETERS || !data)
         return;
 
-    memcpy(data, &set->data.env.frag[index], sizeof(vec4) * count);
+    memcpy(data, &this->data.env.frag[index], sizeof(vec4) * count);
 }
 
-inline void shader_env_vert_get(shader_set_data* set,
-    size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS || !x || !y || !z || !w)
+void shader_set_data::env_vert_get(size_t index, float_t* x, float_t* y, float_t* z, float_t* w) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS || !x || !y || !z || !w)
         return;
 
-    vec4 data = set->data.env.vert[index];
+    vec4 data = this->data.env.vert[index];
     *x = data.x;
     *y = data.y;
     *z = data.z;
     *w = data.w;
 }
 
-inline void shader_env_vert_get_ptr(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS || !data)
+void shader_set_data::env_vert_get(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS)
         return;
 
-    *data = set->data.env.vert[index];
+    data = this->data.env.vert[index];
 }
 
-inline void shader_env_vert_get_ptr_array(shader_set_data* set,
-    size_t index, size_t count, vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS
+void shader_set_data::env_vert_get(size_t index, size_t count, vec4* data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS
         || index + count > SHADER_MAX_PROGRAM_ENV_PARAMETERS || !data)
         return;
 
-    memcpy(data, &set->data.env.vert[index], sizeof(vec4) * count);
+    memcpy(data, &this->data.env.vert[index], sizeof(vec4) * count);
 }
 
-inline void shader_state_clip_get_plane(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_CLIP_PLANES || !data)
+void shader_set_data::state_clip_get_plane(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_CLIP_PLANES)
         return;
 
-    *data = set->data.state.clip[index].plane;
+    data = this->data.state.clip[index].plane;
 }
 
-inline void shader_state_depth_get_range(shader_set_data* set,
-    vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_depth_get_range(vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.depth.range;
+    data = this->data.state.depth.range;
 }
 
-inline void shader_state_fog_get_color(shader_set_data* set,
-    vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_fog_get_color(vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.fog.color;
+    data = this->data.state.fog.color;
 }
 
-inline void shader_state_fog_get_params(shader_set_data* set,
-    vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_fog_get_params(vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.fog.params;
+    data = this->data.state.fog.params;
 }
 
-inline void shader_state_light_get_ambient(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_get_ambient(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    *data = set->data.state.light[index].ambient;
+    data = this->data.state.light[index].ambient;
 }
 
-inline void shader_state_light_get_diffuse(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_get_diffuse(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    *data = set->data.state.light[index].ambient;
+    data = this->data.state.light[index].ambient;
 }
 
-inline void shader_state_light_get_specular(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_get_specular(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    *data = set->data.state.light[index].ambient;
+    data = this->data.state.light[index].ambient;
 }
 
-inline void shader_state_light_get_position(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_get_position(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    *data = set->data.state.light[index].ambient;
+    data = this->data.state.light[index].ambient;
 }
 
-inline void shader_state_light_get_attenuation(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_get_attenuation(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    *data = set->data.state.light[index].ambient;
+    data = this->data.state.light[index].ambient;
 }
 
-inline void shader_state_light_get_spot_direction(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_get_spot_direction(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    *data = set->data.state.light[index].ambient;
+    data = this->data.state.light[index].ambient;
 }
 
-inline void shader_state_light_get_half(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_get_half(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    *data = set->data.state.light[index].ambient;
+    data = this->data.state.light[index].ambient;
 }
 
-inline void shader_state_lightmodel_get_ambient(shader_set_data* set,
-    bool back, vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_lightmodel_get_ambient(bool back, vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.lightmodel[back ? 1 : 0].ambient;
+    data = this->data.state.lightmodel[back ? 1 : 0].ambient;
 }
 
-inline void shader_state_lightmodel_get_scene_color(shader_set_data* set,
-    bool back, vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_lightmodel_get_scene_color(bool back, vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.lightmodel[back ? 1 : 0].scene_color;
+    data = this->data.state.lightmodel[back ? 1 : 0].scene_color;
 }
 
-inline void shader_state_lightprod_get_ambient(shader_set_data* set,
-    bool back, size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_lightprod_get_ambient(bool back, size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     shader_state_lightprod* lightprod = back
-        ? set->data.state.lightprod_back : set->data.state.lightprod_front;
-    *data = lightprod[index].ambient;
+        ? this->data.state.lightprod_back : this->data.state.lightprod_front;
+    data = lightprod[index].ambient;
 }
 
-inline void shader_state_lightprod_get_diffuse(shader_set_data* set,
-    bool back, size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_lightprod_get_diffuse(bool back, size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     shader_state_lightprod* lightprod = back
-        ? set->data.state.lightprod_back : set->data.state.lightprod_front;
-    *data = lightprod[index].diffuse;
+        ? this->data.state.lightprod_back : this->data.state.lightprod_front;
+    data = lightprod[index].diffuse;
 }
 
-inline void shader_state_lightprod_get_specular(shader_set_data* set,
-    bool back, size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_lightprod_get_specular(bool back, size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     shader_state_lightprod* lightprod = back
-        ? set->data.state.lightprod_back : set->data.state.lightprod_front;
-    *data = lightprod[index].specular;
+        ? this->data.state.lightprod_back : this->data.state.lightprod_front;
+    data = lightprod[index].specular;
 }
 
-inline void shader_state_material_get_ambient(shader_set_data* set,
-    bool back, vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_get_ambient(bool back, vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.material[back ? 1 : 0].ambient;
+    data = this->data.state.material[back ? 1 : 0].ambient;
 }
 
-inline void shader_state_material_get_diffuse(shader_set_data* set,
-    bool back, vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_get_diffuse(bool back, vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.material[back ? 1 : 0].diffuse;
+    data = this->data.state.material[back ? 1 : 0].diffuse;
 }
 
-inline void shader_state_material_get_specular(shader_set_data* set,
-    bool back, vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_get_specular(bool back, vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.material[back ? 1 : 0].specular;
+    data = this->data.state.material[back ? 1 : 0].specular;
 }
 
-inline void shader_state_material_get_emission(shader_set_data* set,
-    bool back, vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_get_emission(bool back, vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.material[back ? 1 : 0].emission;
+    data = this->data.state.material[back ? 1 : 0].emission;
 }
 
-inline void shader_state_material_get_shininess(shader_set_data* set,
-    bool back, vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_get_shininess(bool back, vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.material[back ? 1 : 0].shininess;
+    data = this->data.state.material[back ? 1 : 0].shininess;
 }
 
-inline void shader_state_matrix_get_modelview(shader_set_data* set,
-    size_t index, mat4* data) {
-    if (!set || index >= SHADER_MAX_VERTEX_UNITS || !data)
+void shader_set_data::state_matrix_get_modelview(size_t index, mat4& data) {
+    if (!this || index >= SHADER_MAX_VERTEX_UNITS)
         return;
 
-    *data = set->data.state_matrix.modelview[index].mat;
+    data = this->data.state_matrix.modelview[index].mat;
 }
 
-inline void shader_state_matrix_get_projection(shader_set_data* set,
-    mat4* data) {
-    if (!set || !data)
+void shader_set_data::state_matrix_get_projection(mat4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state_matrix.projection.mat;
+    data = this->data.state_matrix.projection.mat;
 }
 
-inline void shader_state_matrix_get_mvp(shader_set_data* set,
-    mat4* data) {
-    if (!set || !data)
+void shader_set_data::state_matrix_get_mvp(mat4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state_matrix.mvp.mat;
+    data = this->data.state_matrix.mvp.mat;
 }
 
-inline void shader_state_matrix_get_texture(shader_set_data* set,
-    size_t index, mat4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_COORDS || !data)
+void shader_set_data::state_matrix_get_texture(size_t index, mat4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_COORDS)
         return;
 
-    *data = set->data.state_matrix.texture[index].mat;
+    data = this->data.state_matrix.texture[index].mat;
 }
 
-inline void shader_state_matrix_get_palette(shader_set_data* set,
-    size_t index, mat4* data) {
-    if (!set || index >= SHADER_MAX_PALETTE_MATRICES || !data)
+void shader_set_data::state_matrix_get_palette(size_t index, mat4& data) {
+    if (!this || index >= SHADER_MAX_PALETTE_MATRICES)
         return;
 
-    *data = set->data.state_matrix.palette[index].mat;
+    data = this->data.state_matrix.palette[index].mat;
 }
 
-inline void shader_state_matrix_get_program(shader_set_data* set,
-    size_t index, mat4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_MATRICES || !data)
+void shader_set_data::state_matrix_get_program(size_t index, mat4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_MATRICES)
         return;
 
-    *data = set->data.state_matrix.program[index].mat;
+    data = this->data.state_matrix.program[index].mat;
 }
 
-inline void shader_state_point_get_size(shader_set_data* set,
-    vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_point_get_size(vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.point.size;
+    data = this->data.state.point.size;
 }
 
-inline void shader_state_point_get_attenuation(shader_set_data* set,
-    vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_point_get_attenuation(vec4& data) {
+    if (!this)
         return;
 
-    *data = set->data.state.point.attenuation;
+    data = this->data.state.point.attenuation;
 }
 
-inline void shader_state_texgen_get_eye_s(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_get_eye_s(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    *data = set->data.state.texgen[index].eye_s;
+    data = this->data.state.texgen[index].eye_s;
 }
 
-inline void shader_state_texgen_get_eye_t(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_get_eye_t(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    *data = set->data.state.texgen[index].eye_t;
+    data = this->data.state.texgen[index].eye_t;
 }
 
-inline void shader_state_texgen_get_eye_r(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_get_eye_r(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    *data = set->data.state.texgen[index].eye_r;
+    data = this->data.state.texgen[index].eye_r;
 }
 
-inline void shader_state_texgen_get_eye_q(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_get_eye_q(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    *data = set->data.state.texgen[index].eye_q;
+    data = this->data.state.texgen[index].eye_q;
 }
 
-inline void shader_state_texgen_get_object_s(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_get_object_s(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    *data = set->data.state.texgen[index].object_s;
+    data = this->data.state.texgen[index].object_s;
 }
 
-inline void shader_state_texgen_get_object_t(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_get_object_t(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    *data = set->data.state.texgen[index].object_t;
+    data = this->data.state.texgen[index].object_t;
 }
 
-inline void shader_state_texgen_get_object_r(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_get_object_r(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    *data = set->data.state.texgen[index].object_r;
+    data = this->data.state.texgen[index].object_r;
 }
 
-inline void shader_state_texgen_get_object_q(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_get_object_q(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    *data = set->data.state.texgen[index].object_q;
+    data = this->data.state.texgen[index].object_q;
 }
 
-inline void shader_state_texenv_get_color(shader_set_data* set,
-    size_t index, vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texenv_get_color(size_t index, vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    *data = set->data.state.texenv[index].color;
+    data = this->data.state.texenv[index].color;
 }
 
-inline void shader_buffer_set_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_BUFFER_PARAMETERS || !data)
+void shader_set_data::buffer_set(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_BUFFER_PARAMETERS)
         return;
 
-    if (!memcmp(&set->data.buffer.buffer[index], data, sizeof(vec4)))
+    if (!memcmp(&this->data.buffer.buffer[index], &data, sizeof(vec4)))
         return;
 
-    set->data.buffer.buffer[index] = *data;
-    set->data.buffer_update_data = true;
+    this->data.buffer.buffer[index] = data;
+    this->data.buffer_update_data = true;
 }
 
-inline void shader_buffer_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_BUFFER_PARAMETERS
+void shader_set_data::buffer_set(size_t index, size_t count, const vec4* data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_BUFFER_PARAMETERS
         || index + count > SHADER_MAX_PROGRAM_BUFFER_PARAMETERS || !data)
         return;
 
-    if (!memcmp(&set->data.buffer.buffer[index], data, sizeof(vec4) * count))
+    if (!memcmp(&this->data.buffer.buffer[index], data, sizeof(vec4) * count))
         return;
 
-    memcpy(&set->data.buffer.buffer[index], data, sizeof(vec4) * count);
-    set->data.buffer_update_data = true;
+    memcpy(&this->data.buffer.buffer[index], data, sizeof(vec4) * count);
+    this->data.buffer_update_data = true;
 }
 
-inline void shader_local_frag_set(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
+void shader_set_data::local_frag_set(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
     glUniform4f((GLint)(index + SHADER_MAX_PROGRAM_LOCAL_PARAMETERS), x, y, z, w);
 }
 
-inline void shader_local_frag_set_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+void shader_set_data::local_frag_set(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
-    glUniform4f((GLint)(index + SHADER_MAX_PROGRAM_LOCAL_PARAMETERS), data->x, data->y, data->z, data->w);
+    glUniform4f((GLint)(index + SHADER_MAX_PROGRAM_LOCAL_PARAMETERS), data.x, data.y, data.z, data.w);
 }
 
-inline void shader_local_frag_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS
+void shader_set_data::local_frag_set(size_t index, size_t count, const vec4* data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS
         || index + count > SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
         return;
 
@@ -986,820 +915,762 @@ inline void shader_local_frag_set_ptr_array(shader_set_data* set,
         (GLsizei)count, (const GLfloat*)data);
 }
 
-inline void shader_local_vert_set(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
+void shader_set_data::local_vert_set(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
     glUniform4f((GLint)index, x, y, z, w);
 }
 
-inline void shader_local_vert_set_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
+void shader_set_data::local_vert_set(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
-    glUniform4f((GLint)index, data->x, data->y, data->z, data->w);
+    glUniform4f((GLint)index, data.x, data.y, data.z, data.w);
 }
 
-inline void shader_local_vert_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS
+void shader_set_data::local_vert_set(size_t index, size_t count, const vec4* data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS
         || index + count > SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
         return;
 
     glUniform4fv((GLint)index, (GLsizei)count, (const GLfloat*)data);
 }
 
-inline void shader_env_frag_set(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS)
+void shader_set_data::env_frag_set(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS)
         return;
 
-    vec4 data;
-    data.x = x;
-    data.y = y;
-    data.z = z;
-    data.w = w;
-    if (!memcmp(&set->data.env.frag[index], &data, sizeof(vec4)))
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.env.frag[index], &data, sizeof(vec4)))
         return;
 
-    set->data.env.frag[index] = data;
-    set->data.env_update_data = true;
+    this->data.env.frag[index] = data;
+    this->data.env_update_data = true;
 }
 
-inline void shader_env_frag_set_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS || !data)
+void shader_set_data::env_frag_set(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS)
         return;
 
-    if (!memcmp(&set->data.env.frag[index], data, sizeof(vec4)))
+    if (!memcmp(&this->data.env.frag[index], &data, sizeof(vec4)))
         return;
 
-    set->data.env.frag[index] = *data;
-    set->data.env_update_data = true;
+    this->data.env.frag[index] = data;
+    this->data.env_update_data = true;
 }
 
-inline void shader_env_frag_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS
+void shader_set_data::env_frag_set(size_t index, size_t count, const vec4* data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS
+        || index + count > SHADER_MAX_PROGRAM_ENV_PARAMETERS)
+        return;
+
+    if (!memcmp(&this->data.env.frag[index], data, sizeof(vec4) * count))
+        return;
+
+    memcpy(&this->data.env.frag[index], data, sizeof(vec4) * count);
+    this->data.env_update_data = true;
+}
+
+void shader_set_data::env_vert_set(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS)
+        return;
+
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.env.vert[index], &data, sizeof(vec4)))
+        return;
+
+    this->data.env.vert[index] = data;
+    this->data.env_update_data = true;
+}
+
+void shader_set_data::env_vert_set(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS)
+        return;
+
+    if (!memcmp(&this->data.env.vert[index], &data, sizeof(vec4)))
+        return;
+
+    this->data.env.vert[index] = data;
+    this->data.env_update_data = true;
+}
+
+void shader_set_data::env_vert_set(size_t index, size_t count, const vec4* data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS
         || index + count > SHADER_MAX_PROGRAM_ENV_PARAMETERS || !data)
         return;
 
-    if (!memcmp(&set->data.env.frag[index], data, sizeof(vec4) * count))
+    if (!memcmp(&this->data.env.vert[index], data, sizeof(vec4) * count))
         return;
 
-    memcpy(&set->data.env.frag[index], data, sizeof(vec4) * count);
-    set->data.env_update_data = true;
+    memcpy(&this->data.env.vert[index], data, sizeof(vec4) * count);
+    this->data.env_update_data = true;
 }
 
-inline void shader_env_vert_set(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS)
-        return;
-
-    vec4 data;
-    data.x = x;
-    data.y = y;
-    data.z = z;
-    data.w = w;
-    if (!memcmp(&set->data.env.vert[index], &data, sizeof(vec4)))
-        return;
-
-    set->data.env.vert[index] = data;
-    set->data.env_update_data = true;
-}
-
-inline void shader_env_vert_set_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS || !data)
-        return;
-
-    if (!memcmp(&set->data.env.vert[index], data, sizeof(vec4)))
-        return;
-
-    set->data.env.vert[index] = *data;
-    set->data.env_update_data = true;
-}
-
-inline void shader_env_vert_set_ptr_array(shader_set_data* set,
-    size_t index, size_t count, const vec4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_ENV_PARAMETERS
-        || index + count > SHADER_MAX_PROGRAM_ENV_PARAMETERS || !data)
-        return;
-
-    if (!memcmp(&set->data.env.vert[index], data, sizeof(vec4) * count))
-        return;
-
-    memcpy(&set->data.env.vert[index], data, sizeof(vec4) * count);
-    set->data.env_update_data = true;
-}
-
-inline void shader_state_clip_set_plane(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_CLIP_PLANES)
+void shader_set_data::state_clip_set_plane(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_CLIP_PLANES)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.clip[index].plane, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.clip[index].plane, &data, sizeof(vec4)))
         return;
 
-    set->data.state.clip[index].plane = data;
-    set->data.state_update_data = true;
+    this->data.state.clip[index].plane = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_clip_set_plane_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_CLIP_PLANES || !data)
+void shader_set_data::state_clip_set_plane(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_CLIP_PLANES)
         return;
 
-    if (!memcmp(&set->data.state.clip[index].plane, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.clip[index].plane, &data, sizeof(vec4)))
         return;
 
-    set->data.state.clip[index].plane = *data;
-    set->data.state_update_data = true;
+    this->data.state.clip[index].plane = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_depth_set_range(shader_set_data* set,
-    float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_depth_set_range(float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.depth.range, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.depth.range, &data, sizeof(vec4)))
         return;
 
-    set->data.state.depth.range = data;
-    set->data.state_update_data = true;
+    this->data.state.depth.range = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_depth_set_range_ptr(shader_set_data* set,
-    const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_depth_set_range(const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state.depth.range, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.depth.range, &data, sizeof(vec4)))
         return;
 
-    set->data.state.depth.range = *data;
-    set->data.state_update_data = true;
+    this->data.state.depth.range = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_fog_set_color(shader_set_data* set,
-    float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_fog_set_color(float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.fog.color, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.fog.color, &data, sizeof(vec4)))
         return;
 
-    set->data.state.fog.color = data;
-    set->data.state_update_data = true;
+    this->data.state.fog.color = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_fog_set_color_ptr(shader_set_data* set,
-    const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_fog_set_color(const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state.fog.color, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.fog.color, &data, sizeof(vec4)))
         return;
 
-    set->data.state.fog.color = *data;
-    set->data.state_update_data = true;
+    this->data.state.fog.color = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_fog_set_params(shader_set_data* set,
-    float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_fog_set_params(float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.fog.params, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.fog.params, &data, sizeof(vec4)))
         return;
 
-    set->data.state.fog.params = data;
-    set->data.state_update_data = true;
+    this->data.state.fog.params = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_fog_set_params_ptr(shader_set_data* set,
-    const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_fog_set_params(const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state.fog.params, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.fog.params, &data, sizeof(vec4)))
         return;
 
-    set->data.state.fog.params = *data;
-    set->data.state_update_data = true;
+    this->data.state.fog.params = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_light_set_ambient(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
+void shader_set_data::state_light_set_ambient(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.light[index].ambient, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.light[index].ambient, &data, sizeof(vec4)))
         return;
 
-    set->data.state.light[index].ambient = data;
-    set->data.state_update_data = true;
+    this->data.state.light[index].ambient = data;
+    this->data.state_update_data = true;
 
     vec4 lightprod_front;
     vec4 lightprod_back;
-    vec4_mult(set->data.state.light[index].ambient,
-        set->data.state.material[0].ambient, lightprod_front);
-    vec4_mult(set->data.state.light[index].ambient,
-        set->data.state.material[1].ambient, lightprod_back);
-    shader_state_lightprod_set_ambient_ptr(set, false, index, &lightprod_front);
-    shader_state_lightprod_set_ambient_ptr(set, true, index, &lightprod_back);
+    vec4_mult(this->data.state.light[index].ambient,
+        this->data.state.material[0].ambient, lightprod_front);
+    vec4_mult(this->data.state.light[index].ambient,
+        this->data.state.material[1].ambient, lightprod_back);
+    state_lightprod_set_ambient(false, index, lightprod_front);
+    state_lightprod_set_ambient(true, index, lightprod_back);
 }
 
-inline void shader_state_light_set_ambient_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_set_ambient(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    if (!memcmp(&set->data.state.light[index].ambient, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.light[index].ambient, &data, sizeof(vec4)))
         return;
 
-    set->data.state.light[index].ambient = *data;
-    set->data.state_update_data = true;
+    this->data.state.light[index].ambient = data;
+    this->data.state_update_data = true;
 
     vec4 lightprod_front;
     vec4 lightprod_back;
-    vec4_mult(set->data.state.light[index].ambient,
-        set->data.state.material[0].ambient, lightprod_front);
-    vec4_mult(set->data.state.light[index].ambient,
-        set->data.state.material[1].ambient, lightprod_back);
-    shader_state_lightprod_set_ambient_ptr(set, false, index, &lightprod_front);
-    shader_state_lightprod_set_ambient_ptr(set, true, index, &lightprod_back);
+    vec4_mult(this->data.state.light[index].ambient,
+        this->data.state.material[0].ambient, lightprod_front);
+    vec4_mult(this->data.state.light[index].ambient,
+        this->data.state.material[1].ambient, lightprod_back);
+    state_lightprod_set_ambient(false, index, lightprod_front);
+    state_lightprod_set_ambient(true, index, lightprod_back);
 }
 
-inline void shader_state_light_set_diffuse(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
+void shader_set_data::state_light_set_diffuse(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.light[index].diffuse, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.light[index].diffuse, &data, sizeof(vec4)))
         return;
 
-    set->data.state.light[index].diffuse = data;
-    set->data.state_update_data = true;
+    this->data.state.light[index].diffuse = data;
+    this->data.state_update_data = true;
 
     vec4 lightprod_front;
     vec4 lightprod_back;
-    vec4_mult(set->data.state.light[index].diffuse,
-        set->data.state.material[0].diffuse, lightprod_front);
-    vec4_mult(set->data.state.light[index].diffuse,
-        set->data.state.material[1].diffuse, lightprod_back);
-    shader_state_lightprod_set_diffuse_ptr(set, false, index, &lightprod_front);
-    shader_state_lightprod_set_diffuse_ptr(set, true, index, &lightprod_back);
+    vec4_mult(this->data.state.light[index].diffuse,
+        this->data.state.material[0].diffuse, lightprod_front);
+    vec4_mult(this->data.state.light[index].diffuse,
+        this->data.state.material[1].diffuse, lightprod_back);
+    state_lightprod_set_diffuse(false, index, lightprod_front);
+    state_lightprod_set_diffuse(true, index, lightprod_back);
 }
 
-inline void shader_state_light_set_diffuse_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_set_diffuse(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    if (!memcmp(&set->data.state.light[index].diffuse, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.light[index].diffuse, &data, sizeof(vec4)))
         return;
 
-    set->data.state.light[index].diffuse = *data;
-    set->data.state_update_data = true;
+    this->data.state.light[index].diffuse = data;
+    this->data.state_update_data = true;
 
     vec4 lightprod_front;
     vec4 lightprod_back;
-    vec4_mult(set->data.state.light[index].diffuse,
-        set->data.state.material[0].diffuse, lightprod_front);
-    vec4_mult(set->data.state.light[index].diffuse,
-        set->data.state.material[1].diffuse, lightprod_back);
-    shader_state_lightprod_set_diffuse_ptr(set, false, index, &lightprod_front);
-    shader_state_lightprod_set_diffuse_ptr(set, true, index, &lightprod_back);
+    vec4_mult(this->data.state.light[index].diffuse,
+        this->data.state.material[0].diffuse, lightprod_front);
+    vec4_mult(this->data.state.light[index].diffuse,
+        this->data.state.material[1].diffuse, lightprod_back);
+    state_lightprod_set_diffuse(false, index, lightprod_front);
+    state_lightprod_set_diffuse(true, index, lightprod_back);
 }
 
-inline void shader_state_light_set_specular(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
+void shader_set_data::state_light_set_specular(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.light[index].specular, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.light[index].specular, &data, sizeof(vec4)))
         return;
 
-    set->data.state.light[index].specular = data;
-    set->data.state_update_data = true;
+    this->data.state.light[index].specular = data;
+    this->data.state_update_data = true;
 
     vec4 lightprod_front;
     vec4 lightprod_back;
-    vec4_mult(set->data.state.light[index].specular,
-        set->data.state.material[0].specular, lightprod_front);
-    vec4_mult(set->data.state.light[index].specular,
-        set->data.state.material[1].specular, lightprod_back);
-    shader_state_lightprod_set_specular_ptr(set, false, index, &lightprod_front);
-    shader_state_lightprod_set_specular_ptr(set, true, index, &lightprod_back);
+    vec4_mult(this->data.state.light[index].specular,
+        this->data.state.material[0].specular, lightprod_front);
+    vec4_mult(this->data.state.light[index].specular,
+        this->data.state.material[1].specular, lightprod_back);
+    state_lightprod_set_specular(false, index, lightprod_front);
+    state_lightprod_set_specular(true, index, lightprod_back);
 }
 
-inline void shader_state_light_set_specular_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_light_set_specular(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
-    if (!memcmp(&set->data.state.light[index].specular, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.light[index].specular, &data, sizeof(vec4)))
         return;
 
-    set->data.state.light[index].specular = *data;
-    set->data.state_update_data = true;
+    this->data.state.light[index].specular = data;
+    this->data.state_update_data = true;
 
     vec4 lightprod_front;
     vec4 lightprod_back;
-    vec4_mult(set->data.state.light[index].specular,
-        set->data.state.material[0].specular, lightprod_front);
-    vec4_mult(set->data.state.light[index].specular,
-        set->data.state.material[1].specular, lightprod_back);
-    shader_state_lightprod_set_specular_ptr(set, false, index, &lightprod_front);
-    shader_state_lightprod_set_specular_ptr(set, true, index, &lightprod_back);
+    vec4_mult(this->data.state.light[index].specular,
+        this->data.state.material[0].specular, lightprod_front);
+    vec4_mult(this->data.state.light[index].specular,
+        this->data.state.material[1].specular, lightprod_back);
+    state_lightprod_set_specular(false, index, lightprod_front);
+    state_lightprod_set_specular(true, index, lightprod_back);
 }
 
-inline void shader_state_light_set_position(shader_set_data* set,
+void shader_set_data::state_light_set_position(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
+        return;
+
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.state.light[index].position, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.light[index].position = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_light_set_position(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
+        return;
+
+    if (!memcmp(&this->data.state.light[index].position, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.light[index].position = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_light_set_attenuation(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
+        return;
+
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.state.light[index].attenuation, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.light[index].attenuation = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_light_set_attenuation(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
+        return;
+
+    if (!memcmp(&this->data.state.light[index].attenuation, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.light[index].attenuation = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_light_set_spot_direction(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
+        return;
+
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.state.light[index].spot_direction, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.light[index].spot_direction = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_light_set_spot_direction(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
+        return;
+
+    if (!memcmp(&this->data.state.light[index].spot_direction, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.light[index].spot_direction = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_light_set_half(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
+        return;
+
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.state.light[index].half, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.light[index].half = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_light_set_half(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
+        return;
+
+    if (!memcmp(&this->data.state.light[index].half, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.light[index].half = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_lightmodel_set_ambient(bool back, float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
+        return;
+
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.state.lightmodel[back ? 1 : 0].ambient, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.lightmodel[back ? 1 : 0].ambient = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_lightmodel_set_ambient(bool back, const vec4& data) {
+    if (!this)
+        return;
+
+    if (!memcmp(&this->data.state.lightmodel[back ? 1 : 0].ambient, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.lightmodel[back ? 1 : 0].ambient = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_lightmodel_set_scene_color(bool back, float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
+        return;
+
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.state.lightmodel[back ? 1 : 0].scene_color, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.lightmodel[back ? 1 : 0].scene_color = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_lightmodel_set_scene_color(bool back, const vec4& data) {
+    if (!this)
+        return;
+
+    if (!memcmp(&this->data.state.lightmodel[back ? 1 : 0].scene_color, &data, sizeof(vec4)))
+        return;
+
+    this->data.state.lightmodel[back ? 1 : 0].scene_color = data;
+    this->data.state_update_data = true;
+}
+
+void shader_set_data::state_lightprod_set_ambient(bool back,
     size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
-        return;
-
-    vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.light[index].position, &data, sizeof(vec4)))
-        return;
-
-    set->data.state.light[index].position = data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_light_set_position_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
-        return;
-
-    if (!memcmp(&set->data.state.light[index].position, data, sizeof(vec4)))
-        return;
-
-    set->data.state.light[index].position = *data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_light_set_attenuation(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
-        return;
-
-    vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.light[index].attenuation, &data, sizeof(vec4)))
-        return;
-
-    set->data.state.light[index].attenuation = data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_light_set_attenuation_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
-        return;
-
-    if (!memcmp(&set->data.state.light[index].attenuation, data, sizeof(vec4)))
-        return;
-
-    set->data.state.light[index].attenuation = *data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_light_set_spot_direction(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
-        return;
-
-    vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.light[index].spot_direction, &data, sizeof(vec4)))
-        return;
-
-    set->data.state.light[index].spot_direction = data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_light_set_spot_direction_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
-        return;
-
-    if (!memcmp(&set->data.state.light[index].spot_direction, data, sizeof(vec4)))
-        return;
-
-    set->data.state.light[index].spot_direction = *data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_light_set_half(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
-        return;
-
-    vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.light[index].half, &data, sizeof(vec4)))
-        return;
-
-    set->data.state.light[index].half = data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_light_set_half_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
-        return;
-
-    if (!memcmp(&set->data.state.light[index].half, data, sizeof(vec4)))
-        return;
-
-    set->data.state.light[index].half = *data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_lightmodel_set_ambient(shader_set_data* set,
-    bool back, float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
-        return;
-
-    vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.lightmodel[back ? 1 : 0].ambient, &data, sizeof(vec4)))
-        return;
-
-    set->data.state.lightmodel[back ? 1 : 0].ambient = data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_lightmodel_set_ambient_ptr(shader_set_data* set,
-    bool back, const vec4* data) {
-    if (!set || !data)
-        return;
-
-    if (!memcmp(&set->data.state.lightmodel[back ? 1 : 0].ambient, data, sizeof(vec4)))
-        return;
-
-    set->data.state.lightmodel[back ? 1 : 0].ambient = *data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_lightmodel_set_scene_color(shader_set_data* set,
-    bool back, float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
-        return;
-
-    vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.lightmodel[back ? 1 : 0].scene_color, &data, sizeof(vec4)))
-        return;
-
-    set->data.state.lightmodel[back ? 1 : 0].scene_color = data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_lightmodel_set_scene_color_ptr(shader_set_data* set,
-    bool back, const vec4* data) {
-    if (!set || !data)
-        return;
-
-    if (!memcmp(&set->data.state.lightmodel[back ? 1 : 0].scene_color, data, sizeof(vec4)))
-        return;
-
-    set->data.state.lightmodel[back ? 1 : 0].scene_color = *data;
-    set->data.state_update_data = true;
-}
-
-inline void shader_state_lightprod_set_ambient(shader_set_data* set,
-    bool back, size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     shader_state_lightprod* lightprod = back
-        ? set->data.state.lightprod_back : set->data.state.lightprod_front;
+        ? data.state.lightprod_back : data.state.lightprod_front;
 
     vec4 data = { x, y, z, w };
     if (!memcmp(&lightprod[index].ambient, &data, sizeof(vec4)))
         return;
 
     lightprod[index].ambient = data;
-    set->data.state_update_data = true;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_lightprod_set_ambient_ptr(shader_set_data* set,
-    bool back, size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_lightprod_set_ambient(bool back, size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     shader_state_lightprod* lightprod = back
-        ? set->data.state.lightprod_back : set->data.state.lightprod_front;
+        ? this->data.state.lightprod_back : this->data.state.lightprod_front;
 
-    if (!memcmp(&lightprod[index].ambient, data, sizeof(vec4)))
+    if (!memcmp(&lightprod[index].ambient, &data, sizeof(vec4)))
         return;
 
-    lightprod[index].ambient = *data;
-    set->data.state_update_data = true;
+    lightprod[index].ambient = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_lightprod_set_diffuse(shader_set_data* set,
-    bool back, size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
+void shader_set_data::state_lightprod_set_diffuse(bool back,
+    size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     shader_state_lightprod* lightprod = back
-        ? set->data.state.lightprod_back : set->data.state.lightprod_front;
+        ? data.state.lightprod_back : data.state.lightprod_front;
 
     vec4 data = { x, y, z, w };
     if (!memcmp(&lightprod[index].diffuse, &data, sizeof(vec4)))
         return;
 
     lightprod[index].diffuse = data;
-    set->data.state_update_data = true;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_lightprod_set_diffuse_ptr(shader_set_data* set,
-    bool back, size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_lightprod_set_diffuse(bool back, size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     shader_state_lightprod* lightprod = back
-        ? set->data.state.lightprod_back : set->data.state.lightprod_front;
+        ? this->data.state.lightprod_back : this->data.state.lightprod_front;
 
-    if (!memcmp(&lightprod[index].diffuse, data, sizeof(vec4)))
+    if (!memcmp(&lightprod[index].diffuse, &data, sizeof(vec4)))
         return;
 
-    lightprod[index].diffuse = *data;
-    set->data.state_update_data = true;
+    lightprod[index].diffuse = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_lightprod_set_specular(shader_set_data* set,
-    bool back, size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_LIGHTS)
+void shader_set_data::state_lightprod_set_specular(bool back,
+    size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     shader_state_lightprod* lightprod = back
-        ? set->data.state.lightprod_back : set->data.state.lightprod_front;
+        ? data.state.lightprod_back : data.state.lightprod_front;
 
     vec4 data = { x, y, z, w };
     if (!memcmp(&lightprod[index].specular, &data, sizeof(vec4)))
         return;
 
     lightprod[index].specular = data;
-    set->data.state_update_data = true;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_lightprod_set_specular_ptr(shader_set_data* set,
-    bool back, size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_LIGHTS || !data)
+void shader_set_data::state_lightprod_set_specular(bool back,
+    size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_LIGHTS)
         return;
 
     shader_state_lightprod* lightprod = back
-        ? set->data.state.lightprod_back : set->data.state.lightprod_front;
+        ? this->data.state.lightprod_back : this->data.state.lightprod_front;
 
-    if (!memcmp(&lightprod[index].specular, data, sizeof(vec4)))
+    if (!memcmp(&lightprod[index].specular, &data, sizeof(vec4)))
         return;
 
-    lightprod[index].specular = *data;
-    set->data.state_update_data = true;
+    lightprod[index].specular = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_material_set_ambient(shader_set_data* set,
-    bool back, float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_material_set_ambient(bool back, float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.material[back ? 1 : 0].ambient, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.material[back ? 1 : 0].ambient, &data, sizeof(vec4)))
         return;
 
-    set->data.state.material[back ? 1 : 0].ambient = data;
-    set->data.state_update_data = true;
+    this->data.state.material[back ? 1 : 0].ambient = data;
+    this->data.state_update_data = true;
 
-    vec4 lightprod;
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4_mult(set->data.state.light[index].ambient,
-            set->data.state.material[back ? 1 : 0].ambient, lightprod);
-        shader_state_lightprod_set_ambient_ptr(set, back, index, &lightprod);
+        vec4 lightprod;
+        vec4_mult(this->data.state.light[index].ambient,
+            this->data.state.material[back ? 1 : 0].ambient, lightprod);
+        state_lightprod_set_ambient(back, index, lightprod);
     }
 }
 
-inline void shader_state_material_set_ambient_ptr(shader_set_data* set,
-    bool back, const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_set_ambient(bool back, const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state.material[back ? 1 : 0].ambient, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.material[back ? 1 : 0].ambient, &data, sizeof(vec4)))
         return;
 
-    set->data.state.material[back ? 1 : 0].ambient = *data;
-    set->data.state_update_data = true;
+    this->data.state.material[back ? 1 : 0].ambient = data;
+    this->data.state_update_data = true;
 
-    vec4 lightprod;
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4_mult(set->data.state.light[index].ambient,
-            set->data.state.material[back ? 1 : 0].ambient, lightprod);
-        shader_state_lightprod_set_ambient_ptr(set, back, index, &lightprod);
+        vec4 lightprod;
+        vec4_mult(this->data.state.light[index].ambient,
+            this->data.state.material[back ? 1 : 0].ambient, lightprod);
+        state_lightprod_set_ambient(back, index, lightprod);
     }
 }
 
-inline void shader_state_material_set_diffuse(shader_set_data* set,
-    bool back, float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_material_set_diffuse(bool back, float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.material[back ? 1 : 0].diffuse, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.material[back ? 1 : 0].diffuse, &data, sizeof(vec4)))
         return;
 
-    set->data.state.material[back ? 1 : 0].diffuse = data;
-    set->data.state_update_data = true;
-
+    this->data.state.material[back ? 1 : 0].diffuse = data;
+    this->data.state_update_data = true;
     vec4 lightprod;
+
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4_mult(set->data.state.light[index].diffuse,
-            set->data.state.material[back ? 1 : 0].diffuse, lightprod);
-        shader_state_lightprod_set_diffuse_ptr(set, back, index, &lightprod);
+        vec4_mult(this->data.state.light[index].diffuse,
+            this->data.state.material[back ? 1 : 0].diffuse, lightprod);
+        state_lightprod_set_diffuse(back, index, lightprod);
     }
 }
 
-inline void shader_state_material_set_diffuse_ptr(shader_set_data* set,
-    bool back, const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_set_diffuse(bool back, const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state. material[back ? 1 : 0].diffuse, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state. material[back ? 1 : 0].diffuse, &data, sizeof(vec4)))
         return;
 
-    set->data.state. material[back ? 1 : 0].diffuse = *data;
-    set->data.state_update_data = true;
+    this->data.state. material[back ? 1 : 0].diffuse = data;
+    this->data.state_update_data = true;
 
-    vec4 lightprod;
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4_mult(set->data.state.light[index].diffuse,
-            set->data.state.material[back ? 1 : 0].diffuse, lightprod);
-        shader_state_lightprod_set_diffuse_ptr(set, back, index, &lightprod);
+        vec4 lightprod;
+        vec4_mult(this->data.state.light[index].diffuse,
+            this->data.state.material[back ? 1 : 0].diffuse, lightprod);
+        state_lightprod_set_diffuse(back, index, lightprod);
     }
 }
 
-inline void shader_state_material_set_specular(shader_set_data* set,
-    bool back, float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_material_set_specular(bool back, float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.material[back ? 1 : 0].specular, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.material[back ? 1 : 0].specular, &data, sizeof(vec4)))
         return;
 
-    set->data.state.material[back ? 1 : 0].specular = data;
-    set->data.state_update_data = true;
+    this->data.state.material[back ? 1 : 0].specular = data;
+    this->data.state_update_data = true;
 
-    vec4 lightprod;
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4_mult(set->data.state.light[index].specular,
-            set->data.state.material[back ? 1 : 0].specular, lightprod);
-        shader_state_lightprod_set_specular_ptr(set, back, index, &lightprod);
+        vec4 lightprod;
+        vec4_mult(this->data.state.light[index].specular,
+            this->data.state.material[back ? 1 : 0].specular, lightprod);
+        state_lightprod_set_specular(back, index, lightprod);
     }
 }
 
-inline void shader_state_material_set_specular_ptr(shader_set_data* set,
-    bool back, const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_set_specular(bool back, const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state.material[back ? 1 : 0].specular, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.material[back ? 1 : 0].specular, &data, sizeof(vec4)))
         return;
 
-    set->data.state.material[back ? 1 : 0].specular = *data;
-    set->data.state_update_data = true;
+    this->data.state.material[back ? 1 : 0].specular = data;
+    this->data.state_update_data = true;
 
-    vec4 lightprod;
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4_mult(set->data.state.light[index].specular,
-            set->data.state.material[back ? 1 : 0].specular, lightprod);
-        shader_state_lightprod_set_specular_ptr(set, back, index, &lightprod);
+        vec4 lightprod;
+        vec4_mult(this->data.state.light[index].specular,
+            this->data.state.material[back ? 1 : 0].specular, lightprod);
+        state_lightprod_set_specular(back, index, lightprod);
     }
 }
 
-inline void shader_state_material_set_emission(shader_set_data* set,
-    bool back, float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_material_set_emission(bool back, float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.material[back ? 1 : 0].emission, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.material[back ? 1 : 0].emission, &data, sizeof(vec4)))
         return;
 
-    set->data.state.material[back ? 1 : 0].emission = data;
-    set->data.state_update_data = true;
+    this->data.state.material[back ? 1 : 0].emission = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_material_set_emission_ptr(shader_set_data* set,
-    bool back, const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_set_emission(bool back, const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state.material[back ? 1 : 0].emission, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.material[back ? 1 : 0].emission, &data, sizeof(vec4)))
         return;
 
-    set->data.state.material[back ? 1 : 0].emission = *data;
-    set->data.state_update_data = true;
+    this->data.state.material[back ? 1 : 0].emission = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_material_set_shininess(shader_set_data* set,
-    bool back, float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_material_set_shininess(bool back, float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.material[back ? 1 : 0].shininess, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.material[back ? 1 : 0].shininess, &data, sizeof(vec4)))
         return;
 
-    set->data.state.material[back ? 1 : 0].shininess = data;
-    set->data.state_update_data = true;
+    this->data.state.material[back ? 1 : 0].shininess = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_material_set_shininess_ptr(shader_set_data* set,
-    bool back, const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_material_set_shininess(bool back, const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state.material[back ? 1 : 0].shininess, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.material[back ? 1 : 0].shininess, &data, sizeof(vec4)))
         return;
 
-    set->data.state.material[back ? 1 : 0].shininess = *data;
-    set->data.state_update_data = true;
+    this->data.state.material[back ? 1 : 0].shininess = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_matrix_set_modelview(shader_set_data* set,
-    size_t index, const mat4* data, bool mult) {
-    if (!set || index >= SHADER_MAX_VERTEX_UNITS || !data)
+void shader_set_data::state_matrix_set_modelview(size_t index, const mat4& data, bool mult) {
+    if (!this || index >= SHADER_MAX_VERTEX_UNITS)
         return;
 
-    if (memcmp(&set->data.state_matrix.modelview[index].mat, data, sizeof(mat4))) {
+    if (memcmp(&this->data.state_matrix.modelview[index].mat, &data, sizeof(mat4))) {
         mat4 mat;
         mat4 mat_inv;
         mat4 mat_trans;
         mat4 mat_invtrans;
 
-        mat = *data;
+        mat = data;
         mat4_inverse(&mat, &mat_inv);
         mat4_transpose(&mat, &mat_trans);
         mat4_transpose(&mat_inv, &mat_invtrans);
-        set->data.state_matrix.modelview[index].mat = mat;
-        set->data.state_matrix.modelview[index].inv = mat_inv;
-        set->data.state_matrix.modelview[index].trans = mat_trans;
-        set->data.state_matrix.modelview[index].invtrans = mat_invtrans;
-        set->data.state_matrix_update_data = true;
+        this->data.state_matrix.modelview[index].mat = mat;
+        this->data.state_matrix.modelview[index].inv = mat_inv;
+        this->data.state_matrix.modelview[index].trans = mat_trans;
+        this->data.state_matrix.modelview[index].invtrans = mat_invtrans;
+        this->data.state_matrix_update_data = true;
     }
 
     if (mult && index == 0) {
         mat4 mat;
-        mat4_mult(&set->data.state_matrix.modelview[0].mat,
-            &set->data.state_matrix.projection.mat, &mat);
-        shader_state_matrix_set_mvp(set, &mat);
+        mat4_mult(&this->data.state_matrix.modelview[0].mat,
+            &this->data.state_matrix.projection.mat, &mat);
+        state_matrix_set_mvp(mat);
     }
 }
 
-inline void shader_state_matrix_set_projection(shader_set_data* set,
-    const mat4* data, bool mult) {
-    if (!set || !data)
+void shader_set_data::state_matrix_set_projection(const mat4& data, bool mult) {
+    if (!this)
         return;
 
-    if (memcmp(&set->data.state_matrix.projection.mat, data, sizeof(mat4))) {
+    if (memcmp(&this->data.state_matrix.projection.mat, &data, sizeof(mat4))) {
         mat4 mat;
         mat4 mat_inv;
         mat4 mat_trans;
         mat4 mat_invtrans;
 
-        mat = *data;
+        mat = data;
         mat4_inverse(&mat, &mat_inv);
         mat4_transpose(&mat, &mat_trans);
         mat4_transpose(&mat_inv, &mat_invtrans);
-        set->data.state_matrix.projection.mat = mat;
-        set->data.state_matrix.projection.inv = mat_inv;
-        set->data.state_matrix.projection.trans = mat_trans;
-        set->data.state_matrix.projection.invtrans = mat_invtrans;
-        set->data.state_matrix_update_data = true;
+        this->data.state_matrix.projection.mat = mat;
+        this->data.state_matrix.projection.inv = mat_inv;
+        this->data.state_matrix.projection.trans = mat_trans;
+        this->data.state_matrix.projection.invtrans = mat_invtrans;
+        this->data.state_matrix_update_data = true;
     }
 
     if (mult) {
         mat4 mat;
-        mat4_mult(&set->data.state_matrix.modelview[0].mat,
-            &set->data.state_matrix.projection.mat, &mat);
-        shader_state_matrix_set_mvp(set, &mat);
+        mat4_mult(&this->data.state_matrix.modelview[0].mat,
+            &this->data.state_matrix.projection.mat, &mat);
+        state_matrix_set_mvp(mat);
     }
 }
 
-inline void shader_state_matrix_set_mvp(shader_set_data* set,
-    const mat4* data) {
-    if (!set || !data)
+void shader_set_data::state_matrix_set_mvp(const mat4& data) {
+    if (!this )
         return;
 
-    if (!memcmp(&set->data.state_matrix.mvp.mat, data, sizeof(mat4)))
+    if (!memcmp(&this->data.state_matrix.mvp.mat, &data, sizeof(mat4)))
         return;
 
     mat4 mat;
@@ -1807,38 +1678,35 @@ inline void shader_state_matrix_set_mvp(shader_set_data* set,
     mat4 mat_trans;
     mat4 mat_invtrans;
 
-    mat = *data;
+    mat = data;
     mat4_inverse(&mat, &mat_inv);
     mat4_transpose(&mat, &mat_trans);
     mat4_transpose(&mat_inv, &mat_invtrans);
-    set->data.state_matrix.mvp.mat = mat;
-    set->data.state_matrix.mvp.inv = mat_inv;
-    set->data.state_matrix.mvp.trans = mat_trans;
-    set->data.state_matrix.mvp.invtrans = mat_invtrans;
-    set->data.state_matrix_update_data = true;
+    this->data.state_matrix.mvp.mat = mat;
+    this->data.state_matrix.mvp.inv = mat_inv;
+    this->data.state_matrix.mvp.trans = mat_trans;
+    this->data.state_matrix.mvp.invtrans = mat_invtrans;
+    this->data.state_matrix_update_data = true;
 }
 
-inline void shader_state_matrix_set_modelview_separate(shader_set_data* set,
-    size_t index, const mat4* model, const mat4* view, bool mult) {
+void shader_set_data::state_matrix_set_modelview(size_t index, const mat4& model, const mat4& view, bool mult) {
     mat4 mv;
-    mat4_mult(model, view, &mv);
-    shader_state_matrix_set_modelview(set, index, &mv, true);
+    mat4_mult(&model, &view, &mv);
+    state_matrix_set_modelview(index, mv, true);
 }
 
-inline void shader_state_matrix_set_mvp_separate(shader_set_data* set,
-    const mat4* model, const mat4* view, const mat4* projection) {
+void shader_set_data::state_matrix_set_mvp(const mat4& model, const mat4& view, const mat4& projection) {
     mat4 mv;
-    mat4_mult(model, view, &mv);
-    shader_state_matrix_set_modelview(set, 0, &mv, false);
-    shader_state_matrix_set_projection(set, projection, true);
+    mat4_mult(&model, &view, &mv);
+    state_matrix_set_modelview(0, mv, false);
+    state_matrix_set_projection(projection, true);
 }
 
-inline void shader_state_matrix_set_texture(shader_set_data* set,
-    size_t index, const mat4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_COORDS || !data)
+void shader_set_data::state_matrix_set_texture(size_t index, const mat4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_COORDS)
         return;
 
-    if (!memcmp(&set->data.state_matrix.texture[index].mat, data, sizeof(mat4)))
+    if (!memcmp(&this->data.state_matrix.texture[index].mat, &data, sizeof(mat4)))
         return;
 
     mat4 mat;
@@ -1846,23 +1714,22 @@ inline void shader_state_matrix_set_texture(shader_set_data* set,
     mat4 mat_trans;
     mat4 mat_invtrans;
 
-    mat = *data;
+    mat = data;
     mat4_inverse(&mat, &mat_inv);
     mat4_transpose(&mat, &mat_trans);
     mat4_transpose(&mat_inv, &mat_invtrans);
-    set->data.state_matrix.texture[index].mat = mat;
-    set->data.state_matrix.texture[index].inv = mat_inv;
-    set->data.state_matrix.texture[index].trans = mat_trans;
-    set->data.state_matrix.texture[index].invtrans = mat_invtrans;
-    set->data.state_matrix_update_data = true;
+    this->data.state_matrix.texture[index].mat = mat;
+    this->data.state_matrix.texture[index].inv = mat_inv;
+    this->data.state_matrix.texture[index].trans = mat_trans;
+    this->data.state_matrix.texture[index].invtrans = mat_invtrans;
+    this->data.state_matrix_update_data = true;
 }
 
-inline void shader_state_matrix_set_palette(shader_set_data* set,
-    size_t index, const mat4* data) {
-    if (!set || index >= SHADER_MAX_PALETTE_MATRICES || !data)
+void shader_set_data::state_matrix_set_palette(size_t index, const mat4& data) {
+    if (!this || index >= SHADER_MAX_PALETTE_MATRICES)
         return;
 
-    if (!memcmp(&set->data.state_matrix.palette[index].mat, data, sizeof(mat4)))
+    if (!memcmp(&this->data.state_matrix.palette[index].mat, &data, sizeof(mat4)))
         return;
 
     mat4 mat;
@@ -1870,23 +1737,22 @@ inline void shader_state_matrix_set_palette(shader_set_data* set,
     mat4 mat_trans;
     mat4 mat_invtrans;
 
-    mat = *data;
+    mat = data;
     mat4_inverse(&mat, &mat_inv);
     mat4_transpose(&mat, &mat_trans);
     mat4_transpose(&mat_inv, &mat_invtrans);
-    set->data.state_matrix.palette[index].mat = mat;
-    set->data.state_matrix.palette[index].inv = mat_inv;
-    set->data.state_matrix.palette[index].trans = mat_trans;
-    set->data.state_matrix.palette[index].invtrans = mat_invtrans;
-    set->data.state_matrix_update_data = true;
+    this->data.state_matrix.palette[index].mat = mat;
+    this->data.state_matrix.palette[index].inv = mat_inv;
+    this->data.state_matrix.palette[index].trans = mat_trans;
+    this->data.state_matrix.palette[index].invtrans = mat_invtrans;
+    this->data.state_matrix_update_data = true;
 }
 
-inline void shader_state_matrix_set_program(shader_set_data* set,
-    size_t index, const mat4* data) {
-    if (!set || index >= SHADER_MAX_PROGRAM_MATRICES || !data)
+void shader_set_data::state_matrix_set_program(size_t index, const mat4& data) {
+    if (!this || index >= SHADER_MAX_PROGRAM_MATRICES)
         return;
 
-    if (!memcmp(&set->data.state_matrix.program[index].mat, data, sizeof(mat4)))
+    if (!memcmp(&this->data.state_matrix.program[index].mat, &data, sizeof(mat4)))
         return;
 
     mat4 mat;
@@ -1894,290 +1760,268 @@ inline void shader_state_matrix_set_program(shader_set_data* set,
     mat4 mat_trans;
     mat4 mat_invtrans;
 
-    mat = *data;
+    mat = data;
     mat4_inverse(&mat, &mat_inv);
     mat4_transpose(&mat, &mat_trans);
     mat4_transpose(&mat_inv, &mat_invtrans);
-    set->data.state_matrix.program[index].mat = mat;
-    set->data.state_matrix.program[index].inv = mat_inv;
-    set->data.state_matrix.program[index].trans = mat_trans;
-    set->data.state_matrix.program[index].invtrans = mat_invtrans;
-    set->data.state_matrix_update_data = true;
+    this->data.state_matrix.program[index].mat = mat;
+    this->data.state_matrix.program[index].inv = mat_inv;
+    this->data.state_matrix.program[index].trans = mat_trans;
+    this->data.state_matrix.program[index].invtrans = mat_invtrans;
+    this->data.state_matrix_update_data = true;
 }
 
-inline void shader_state_point_set_size(shader_set_data* set,
-    float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_point_set_size(float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.point.size, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.point.size, &data, sizeof(vec4)))
         return;
 
-    set->data.state.point.size = data;
-    set->data.state_update_data = true;
+    this->data.state.point.size = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_point_set_size_ptr(shader_set_data* set,
-    const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_point_set_size(const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state.point.size, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.point.size, &data, sizeof(vec4)))
         return;
 
-    set->data.state.point.size = *data;
-    set->data.state_update_data = true;
+    this->data.state.point.size = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_point_set_attenuation(shader_set_data* set,
-    float_t x, float_t y, float_t z, float_t w) {
-    if (!set)
+void shader_set_data::state_point_set_attenuation(float_t x, float_t y, float_t z, float_t w) {
+    if (!this)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.point.attenuation, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.point.attenuation, &data, sizeof(vec4)))
         return;
 
-    set->data.state.point.attenuation = data;
-    set->data.state_update_data = true;
+    this->data.state.point.attenuation = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_point_set_attenuation_ptr(shader_set_data* set,
-    const vec4* data) {
-    if (!set || !data)
+void shader_set_data::state_point_set_attenuation(const vec4& data) {
+    if (!this)
         return;
 
-    if (!memcmp(&set->data.state.point.attenuation, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.point.attenuation, &data, sizeof(vec4)))
         return;
 
-    set->data.state.point.attenuation = *data;
-    set->data.state_update_data = true;
+    this->data.state.point.attenuation = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_eye_s(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS)
+void shader_set_data::state_texgen_set_eye_s(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.texgen[index].eye_s, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye_s, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].eye_s = data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].eye_s = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_eye_s_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_set_eye_s(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&set->data.state.texgen[index].eye_s, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye_s, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].eye_s = *data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].eye_s = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_eye_t(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS)
+void shader_set_data::state_texgen_set_eye_t(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.texgen[index].eye_t, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye_t, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].eye_t = data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].eye_t = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_eye_t_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_set_eye_t(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&set->data.state.texgen[index].eye_t, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye_t, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].eye_t = *data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].eye_t = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_eye_r(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS)
+void shader_set_data::state_texgen_set_eye_r(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.texgen[index].eye_r, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye_r, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].eye_r = data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].eye_r = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_eye_r_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_set_eye_r(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&set->data.state.texgen[index].eye_r, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye_r, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].eye_r = *data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].eye_r = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_eye_q(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS)
+void shader_set_data::state_texgen_set_eye_q(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.texgen[index].eye_q, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye_q, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].eye_q = data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].eye_q = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_eye_q_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_set_eye_q(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&set->data.state.texgen[index].eye_q, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye_q, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].eye_q = *data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].eye_q = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_object_s(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS)
+void shader_set_data::state_texgen_set_object_s(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.texgen[index].object_s, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object_s, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].object_s = data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].object_s = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_object_s_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_set_object_s(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&set->data.state.texgen[index].object_s, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object_s, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].object_s = *data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].object_s = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_object_t(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS)
+void shader_set_data::state_texgen_set_object_t(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.texgen[index].object_t, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object_t, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].object_t = data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].object_t = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_object_t_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_set_object_t(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&set->data.state.texgen[index].object_t, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object_t, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].object_t = *data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].object_t = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_object_r(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS)
+void shader_set_data::state_texgen_set_object_r(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.texgen[index].object_r, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object_r, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].object_r = data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].object_r = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_object_r_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_set_object_r(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&set->data.state.texgen[index].object_r, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object_r, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].object_r = *data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].object_r = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_object_q(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS)
+void shader_set_data::state_texgen_set_object_q(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.texgen[index].object_q, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object_q, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].object_q = data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].object_q = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texgen_set_object_q_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texgen_set_object_q(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&set->data.state.texgen[index].object_q, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object_q, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texgen[index].object_q = *data;
-    set->data.state_update_data = true;
+    this->data.state.texgen[index].object_q = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texenv_set_color(shader_set_data* set,
-    size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS)
+void shader_set_data::state_texenv_set_color(size_t index, float_t x, float_t y, float_t z, float_t w) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&set->data.state.texenv[index].color, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texenv[index].color, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texenv[index].color = data;
-    set->data.state_update_data = true;
+    this->data.state.texenv[index].color = data;
+    this->data.state_update_data = true;
 }
 
-inline void shader_state_texenv_set_color_ptr(shader_set_data* set,
-    size_t index, const vec4* data) {
-    if (!set || index >= SHADER_MAX_TEXTURE_UNITS || !data)
+void shader_set_data::state_texenv_set_color(size_t index, const vec4& data) {
+    if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&set->data.state.texenv[index].color, data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texenv[index].color, &data, sizeof(vec4)))
         return;
 
-    set->data.state.texenv[index].color = *data;
-    set->data.state_update_data = true;
+    this->data.state.texenv[index].color = data;
+    this->data.state_update_data = true;
 }
 
 static GLuint shader_compile_shader(GLenum type, const char* data, const char* file) {
@@ -2218,9 +2062,8 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
             buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
 
             stream s;
-            io_open(&s, buf, L"wb");
-            io_write(&s, data, utf8_length(data));
-            io_free(&s);
+            s.open(buf, L"wb");
+            s.write(data, utf8_length(data));
         }
 #endif
         return 0;

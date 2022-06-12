@@ -4,15 +4,15 @@
 */
 
 #include "light.hpp"
-#include "../io/path.h"
-#include "../io/stream.h"
-#include "../str_utils.h"
+#include "../io/path.hpp"
+#include "../io/stream.hpp"
+#include "../str_utils.hpp"
 
-static void light_param_light_read_inner(light_param_light* light, stream* s);
-static void light_param_light_write_inner(light_param_light* light, stream* s);
+static void light_param_light_read_inner(light_param_light* light, stream& s);
+static void light_param_light_write_inner(light_param_light* light, stream& s);
 static const char* light_param_light_read_line(char* buf, int32_t size, const char* src);
-static void light_param_light_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
-static void light_param_light_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
+static void light_param_light_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value);
+static void light_param_light_write_float_t(stream& s, char* buf, size_t buf_size, float_t value);
 
 light_param_light::light_param_light() : ready() {
 
@@ -26,10 +26,9 @@ void light_param_light::read(const char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
-        io_open(&s, path_txt, "rb");
+        s.open(path_txt, "rb");
         if (s.io.stream)
-            light_param_light_read_inner(this, &s);
-        io_free(&s);
+            light_param_light_read_inner(this, s);
     }
     free(path_txt);
 }
@@ -38,19 +37,17 @@ void light_param_light::read(const wchar_t* path) {
     wchar_t* path_txt = str_utils_add(path, L".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
-        io_open(&s, path_txt, L"rb");
+        s.open(path_txt, L"rb");
         if (s.io.stream)
-            light_param_light_read_inner(this, &s);
-        io_free(&s);
+            light_param_light_read_inner(this, s);
     }
     free(path_txt);
 }
 
 void light_param_light::read(const void* data, size_t size) {
     stream s;
-    io_open(&s, data, size);
-    light_param_light_read_inner(this, &s);
-    io_free(&s);
+    s.open(data, size);
+    light_param_light_read_inner(this, s);
 }
 
 void light_param_light::write(const char* path) {
@@ -59,10 +56,9 @@ void light_param_light::write(const char* path) {
 
     char* path_txt = str_utils_add(path, ".txt");
     stream s;
-    io_open(&s, path_txt, "wb");
+    s.open(path_txt, "wb");
     if (s.io.stream)
-        light_param_light_write_inner(this, &s);
-    io_free(&s);
+        light_param_light_write_inner(this, s);
     free(path_txt);
 }
 
@@ -72,10 +68,9 @@ void light_param_light::write(const wchar_t* path) {
 
     wchar_t* path_txt = str_utils_add(path, L".txt");
     stream s;
-    io_open(&s, path_txt, L"wb");
+    s.open(path_txt, L"wb");
     if (s.io.stream)
-        light_param_light_write_inner(this, &s);
-    io_free(&s);
+        light_param_light_write_inner(this, s);
     free(path_txt);
 }
 
@@ -84,10 +79,9 @@ void light_param_light::write(void** data, size_t* size) {
         return;
 
     stream s;
-    io_open(&s);
-    light_param_light_write_inner(this, &s);
-    io_copy(&s, data, size);
-    io_free(&s);
+    s.open();
+    light_param_light_write_inner(this, s);
+    s.copy(data, size);
 }
 
 bool light_param_light::load_file(void* data, const char* path, const char* file, uint32_t hash) {
@@ -124,10 +118,10 @@ light_param_light_group::~light_param_light_group() {
 
 }
 
-static void light_param_light_read_inner(light_param_light* light, stream* s) {
-    char* data = force_malloc_s(char, s->length + 1);
-    io_read(s, data, s->length);
-    data[s->length] = 0;
+static void light_param_light_read_inner(light_param_light* light, stream& s) {
+    char* data = force_malloc_s(char, s.length + 1);
+    s.read(data, s.length);
+    data[s.length] = 0;
 
     char buf[0x100];
     const char* d = data;
@@ -288,130 +282,130 @@ End:
     free(data);
 }
 
-static void light_param_light_write_inner(light_param_light* light, stream* s) {
+static void light_param_light_write_inner(light_param_light* light, stream& s) {
     char buf[0x100];
 
     for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++) {
         light_param_light_group* group = &light->group[i];
-        io_write(s, "group_start", 11);
+        s.write("group_start", 11);
         light_param_light_write_int32_t(s, buf, sizeof(buf), i);
-        io_write_char(s, '\n');
+        s.write_char('\n');
 
         for (int32_t j = LIGHT_CHARA; j < LIGHT_MAX; j++) {
             light_param_light_data* light = &group->data[j];
-            io_write(s, "id_start", 8);
+            s.write("id_start", 8);
             light_param_light_write_int32_t(s, buf, sizeof(buf), j);
-            io_write_char(s, '\n');
+            s.write_char('\n');
 
             if (light->has_type) {
-                io_write(s, "type", 4);
+                s.write("type", 4);
                 light_param_light_write_int32_t(s, buf, sizeof(buf), (int32_t)light->type);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_ambient) {
                 vec4u* ambient = &light->ambient;
-                io_write(s, "ambient", 7);
+                s.write("ambient", 7);
                 light_param_light_write_float_t(s, buf, sizeof(buf), ambient->x);
                 light_param_light_write_float_t(s, buf, sizeof(buf), ambient->y);
                 light_param_light_write_float_t(s, buf, sizeof(buf), ambient->z);
                 light_param_light_write_float_t(s, buf, sizeof(buf), ambient->w);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_diffuse) {
                 vec4u* diffuse = &light->diffuse;
-                io_write(s, "diffuse", 7);
+                s.write("diffuse", 7);
                 light_param_light_write_float_t(s, buf, sizeof(buf), diffuse->x);
                 light_param_light_write_float_t(s, buf, sizeof(buf), diffuse->y);
                 light_param_light_write_float_t(s, buf, sizeof(buf), diffuse->z);
                 light_param_light_write_float_t(s, buf, sizeof(buf), diffuse->w);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_specular) {
                 vec4u* specular = &light->specular;
-                io_write(s, "specular", 8);
+                s.write("specular", 8);
                 light_param_light_write_float_t(s, buf, sizeof(buf), specular->x);
                 light_param_light_write_float_t(s, buf, sizeof(buf), specular->y);
                 light_param_light_write_float_t(s, buf, sizeof(buf), specular->z);
                 light_param_light_write_float_t(s, buf, sizeof(buf), specular->w);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_position) {
                 vec3* position = &light->position;
-                io_write(s, "position", 8);
+                s.write("position", 8);
                 light_param_light_write_float_t(s, buf, sizeof(buf), position->x);
                 light_param_light_write_float_t(s, buf, sizeof(buf), position->y);
                 light_param_light_write_float_t(s, buf, sizeof(buf), position->z);
                 light_param_light_write_float_t(s, buf, sizeof(buf), 0.0f);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_spot_direction) {
                 vec3* spot_direction = &light->spot_direction;
-                io_write(s, "spot_direction", 14);
+                s.write("spot_direction", 14);
                 light_param_light_write_float_t(s, buf, sizeof(buf), spot_direction->x);
                 light_param_light_write_float_t(s, buf, sizeof(buf), spot_direction->y);
                 light_param_light_write_float_t(s, buf, sizeof(buf), spot_direction->z);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_spot_exponent) {
                 float_t spot_exponent = light->spot_exponent;
-                io_write(s, "spot_exponent", 13);
+                s.write("spot_exponent", 13);
                 light_param_light_write_float_t(s, buf, sizeof(buf), spot_exponent);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_spot_cutoff) {
                 float_t spot_cutoff = light->spot_cutoff;
-                io_write(s, "spot_cutoff", 11);
+                s.write("spot_cutoff", 11);
                 light_param_light_write_float_t(s, buf, sizeof(buf), spot_cutoff);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_attenuation) {
                 vec3* attenuation = &light->attenuation;
-                io_write(s, "attenuation", 11);
+                s.write("attenuation", 11);
                 light_param_light_write_float_t(s, buf, sizeof(buf), attenuation->x);
                 light_param_light_write_float_t(s, buf, sizeof(buf), attenuation->y);
                 light_param_light_write_float_t(s, buf, sizeof(buf), attenuation->z);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_clip_plane) {
                 bool* clip_plane = light->clip_plane;
-                io_write(s, "clipplane", 10);
+                s.write("clipplane", 10);
                 light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane[0] ? 1 : 0);
                 light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane[1] ? 1 : 0);
                 light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane[2] ? 1 : 0);
                 light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane[3] ? 1 : 0);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
             if (light->has_tone_curve) {
                 vec3* tone_curve = &light->tone_curve;
-                io_write(s, "tonecurve", 10);
+                s.write("tonecurve", 10);
                 light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve->x);
                 light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve->y);
                 light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve->z);
-                io_write_char(s, '\n');
+                s.write_char('\n');
             }
 
-            io_write(s, "id_end", 6);
+            s.write("id_end", 6);
             light_param_light_write_int32_t(s, buf, sizeof(buf), j);
-            io_write_char(s, '\n');
+            s.write_char('\n');
         }
 
-        io_write(s, "group_end", 9);
+        s.write("group_end", 9);
         light_param_light_write_int32_t(s, buf, sizeof(buf), i);
-        io_write_char(s, '\n');
+        s.write_char('\n');
     }
 
-    io_write(s, "EOF", 3);
-    io_write_char(s, '\n');
+    s.write("EOF", 3);
+    s.write_char('\n');
 }
 
 static const char* light_param_light_read_line(char* buf, int32_t size, const char* src) {
@@ -441,12 +435,12 @@ static const char* light_param_light_read_line(char* buf, int32_t size, const ch
     return src;
 }
 
-inline static void light_param_light_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value) {
+inline static void light_param_light_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value) {
     sprintf_s(buf, buf_size, " %d", value);
-    io_write_utf8_string(s, buf);
+    s.write_utf8_string(buf);
 }
 
-inline static void light_param_light_write_float_t(stream* s, char* buf, size_t buf_size, float_t value) {
+inline static void light_param_light_write_float_t(stream& s, char* buf, size_t buf_size, float_t value) {
     sprintf_s(buf, buf_size, " %#.6g", value);
-    io_write_utf8_string(s, buf);
+    s.write_utf8_string(buf);
 }

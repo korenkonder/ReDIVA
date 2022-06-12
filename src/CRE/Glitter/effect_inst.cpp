@@ -4,7 +4,7 @@
 */
 
 #include "glitter.hpp"
-#include "../../KKdLib/str_utils.h"
+#include "../../KKdLib/str_utils.hpp"
 #include "../auth_3d.hpp"
 #include "../rob.hpp"
 
@@ -329,27 +329,20 @@ namespace Glitter {
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
 
             int32_t bone_index = ext_anim->bone_index;
-            if (bone_index == -1) {
-                if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
-                    ext_anim->mat = mat4_identity;
-                    mat4_get_translation(&mat, &ext_anim->translation);
-                }
-                else
-                    ext_anim->mat = mat;
-            }
-            else {
+            if (bone_index != -1) {
                 mat4* bone_mat = rob_chr->get_bone_data_mat(bone_index);
                 if (!bone_mat)
                     return;
 
                 mat4_mult(bone_mat, &mat, &mat);
-                if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
-                    ext_anim->mat = mat4_identity;
-                    mat4_get_translation(&mat, &ext_anim->translation);
-                }
-                else
-                    ext_anim->mat = mat;
             }
+
+            if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
+                ext_anim->mat = mat4_identity;
+                mat4_get_translation(&mat, &ext_anim->translation);
+            }
+            else
+                ext_anim->mat = mat;
             goto SetFlags;
         }
 
@@ -395,8 +388,10 @@ namespace Glitter {
         if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
             rob_chara* rob_chr = rob_chara_array_get(chara_id);
             if (rob_chr) {
+                mat = rob_chr->data.adjust_data.mat;
+
                 vec3 scale;
-                mat4_get_scale(&rob_chr->data.adjust_data.mat, &scale);
+                mat4_get_scale(&mat, &scale);
                 vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
                 ext_anim_scale.z = 0.0f;
                 enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
@@ -872,10 +867,10 @@ namespace Glitter {
             if (!rob_chr)
                 return;
 
-            mat4 temp = rob_chr->data.adjust_data.mat;
+            mat4 mat = rob_chr->data.adjust_data.mat;
 
             vec3 scale;
-            mat4_get_scale(&temp, &scale);
+            mat4_get_scale(&rob_chr->data.adjust_data.mat, &scale);
             vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
             ext_anim_scale.z = 0.0f;
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
@@ -889,10 +884,10 @@ namespace Glitter {
             if (bone_index != -1) {
                 mat4* bone_mat = rob_chr->get_bone_data_mat(bone_index);
                 if (bone_mat)
-                    SetExtAnim(&temp, bone_mat, 0, set_flags);
+                    SetExtAnim(&mat, bone_mat, 0, set_flags);
             }
             else
-                SetExtAnim(&temp, 0, 0, set_flags);
+                SetExtAnim(&mat, 0, 0, set_flags);
         }
         else if (flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
             mat4 m = mat4_identity;
@@ -1024,7 +1019,7 @@ namespace Glitter {
             }
         }
     }
-    
+
     void XEffectInst::SetExtAnim(mat4* a2, mat4* a3, vec3* trans, bool set_flags) {
         EffectInstFlag flags = this->flags;
         if (a2) {

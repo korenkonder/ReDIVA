@@ -7,14 +7,14 @@
 
 #include <string>
 #include <vector>
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/database/auth_3d.hpp"
 #include "../KKdLib/database/bone.hpp"
 #include "../KKdLib/database/motion.hpp"
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/database/stage.hpp"
 #include "../KKdLib/database/texture.hpp"
-#include "../KKdLib/vec.h"
+#include "../KKdLib/vec.hpp"
 
 enum data_type {
     DATA_AFT = 0,
@@ -110,12 +110,15 @@ struct data_struct {
     data_struct();
     virtual ~data_struct();
 
+    bool check_file_exists(const char* path);
     bool check_file_exists(const char* dir, const char* file);
     bool check_file_exists(const char* dir, uint32_t hash);
-    void get_directory_files(const char* dir, std::vector<data_struct_file>* data_files);
-    bool get_file(const char* dir, uint32_t hash, const char* ext, std::string* file);
+    void get_directory_files(const char* dir, std::vector<data_struct_file>& data_files);
+    bool get_file(const char* dir, uint32_t hash, const char* ext, std::string& file);
+    bool load_file(void* data, const char* path,
+        bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash));
     bool load_file(void* data, const char* dir, const char* file,
-        bool (*load_func)(void* data, const char* path, const  char* file, uint32_t hash));
+        bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash));
     bool load_file(void* data, const char* dir, uint32_t hash, const char* ext,
         bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash));
 };

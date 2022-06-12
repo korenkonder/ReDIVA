@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/database/bone.hpp"
 #include "../KKdLib/database/motion.hpp"
-#include "../KKdLib/mat.h"
+#include "../KKdLib/mat.hpp"
 #include "../KKdLib/mot.hpp"
-#include "../KKdLib/vec.h"
+#include "../KKdLib/vec.hpp"
 #include "draw_object.h"
 #include "item_table.hpp"
 #include "object.hpp"
@@ -34,9 +34,11 @@ enum ex_node_type {
 };
 
 enum eyes_base_adjust_type {
-    EYES_BASE_ADJUST_DIRECTION = 0,
-    EYES_BASE_ADJUST_CLEARANCE = 1,
-    EYES_BASE_ADJUST_OFF       = 2,
+    EYES_BASE_ADJUST_NONE      = -1,
+    EYES_BASE_ADJUST_DIRECTION = 0x00,
+    EYES_BASE_ADJUST_CLEARANCE = 0x01,
+    EYES_BASE_ADJUST_OFF       = 0x02,
+    EYES_BASE_ADJUST_MAX       = 0x03,
 };
 
 enum mot_bone_index {
@@ -923,7 +925,7 @@ struct bone_data_parent {
     vec3 global_rotation;
     uint32_t bone_key_set_count;
     uint32_t global_key_set_count;
-    float_t rotation_y;
+    float_t rot_y;
 
     bone_data_parent();
     ~bone_data_parent();
@@ -967,8 +969,8 @@ struct struc_308 {
     vec3 field_90;
     vec3 field_9C;
     vec3 field_A8;
-    float_t eyes_adjust;
-    float_t prev_eyes_adjust;
+    float_t rot_y;
+    float_t prev_rot_y;
     uint8_t field_BC;
     uint8_t field_BD;
     float_t field_C0;
@@ -983,14 +985,14 @@ struct struc_400 {
     bool field_3;
     bool field_4;
     float_t frame;
-    float_t eyes_adjust;
-    float_t prev_eyes_adjust;
+    float_t rot_y;
+    float_t prev_rot_y;
 };
 
 class MotionBlend {
 public:
     bool field_8;
-    bool field_9;
+    bool rot_y;
     float_t duration;
     float_t frame;
     float_t step;
@@ -1001,7 +1003,7 @@ public:
     virtual ~MotionBlend();
     virtual void Reset();
     virtual void Field_10(float_t a2, float_t a3, int32_t a4) = 0;
-    virtual void Field_18(struc_400*) = 0;
+    virtual void Step(struc_400*) = 0;
     virtual void Field_20(std::vector<bone_data>*, std::vector<bone_data>*) = 0;
     virtual void Blend(bone_data*, bone_data*) = 0;
     virtual bool Field_30();
@@ -1013,7 +1015,7 @@ class MotionBlendCross : public MotionBlend {
 public:
     bool field_20;
     bool field_21;
-    mat4u field_24;
+    mat4u rot_y_mat;
     mat4u field_64;
     mat4u field_A4;
     mat4u field_E4;
@@ -1022,7 +1024,7 @@ public:
     virtual ~MotionBlendCross() override;
     virtual void Reset() override;
     virtual void Field_10(float_t a2, float_t a3, int32_t a4) override;
-    virtual void Field_18(struc_400*) override;
+    virtual void Step(struc_400*) override;
     virtual void Field_20(std::vector<bone_data>*, std::vector<bone_data>*) override;
     virtual void Blend(bone_data*, bone_data*) override;
 };
@@ -1031,7 +1033,7 @@ class MotionBlendCombine : public MotionBlendCross {
 public:
     MotionBlendCombine();
     virtual ~MotionBlendCombine() override;
-    virtual void Field_18(struc_400*) override;
+    virtual void Step(struc_400*) override;
     virtual bool Field_30() override;
 };
 
@@ -1043,7 +1045,7 @@ public:
     float_t field_28;
     float_t field_2C;
     int32_t field_30;
-    mat4u field_34;
+    mat4u rot_y_mat;
     mat4u field_74;
     mat4u field_B4;
     mat4u field_F4;
@@ -1052,7 +1054,7 @@ public:
     virtual ~MotionBlendFreeze() override;
     virtual void Reset() override;
     virtual void Field_10(float_t a2, float_t a3, int32_t a4) override;
-    virtual void Field_18(struc_400*) override;
+    virtual void Step(struc_400*) override;
     virtual void Field_20(std::vector<bone_data>*, std::vector<bone_data>*) override;
     virtual void Blend(bone_data*, bone_data*) override;
 };
@@ -1063,7 +1065,7 @@ public:
     virtual ~PartialMotionBlendFreeze() override;
     virtual void Reset() override;
     virtual void Field_10(float_t a2, float_t a3, int32_t a4) override;
-    virtual void Field_18(struc_400*) override;
+    virtual void Step(struc_400*) override;
     virtual void Field_20(std::vector<bone_data>*, std::vector<bone_data>*) override;
     virtual void Blend(bone_data*, bone_data*) override;
 };
@@ -1883,7 +1885,7 @@ struct rob_chara_item_equip {
     int32_t field_A0;
     shadow_type_enum shadow_type;
     vec3 position;
-    int32_t eyes_adjust;
+    int32_t field_B4;
     std::vector<texture_pattern_struct> texture_pattern;
     object_info field_D0;
     int32_t field_D4;
@@ -2035,7 +2037,7 @@ struct struc_264 {
     int32_t field_A8;
     int32_t field_AC;
     int32_t field_B0;
-    bool eyes_adjust;
+    bool field_B4;
     struc_523 field_B8;
     int32_t field_140;
     int8_t field_144;
@@ -2593,7 +2595,7 @@ struct struc_652 {
     int64_t field_260;
     int64_t field_268;
     int32_t field_270;
-    uint16_t field_274;
+    int16_t field_274;
     int16_t field_276;
     int32_t field_278;
     int32_t field_27C;
@@ -2941,6 +2943,7 @@ struct rob_chara {
     mat4* get_bone_data_mat(size_t index);
     float_t get_frame();
     float_t get_frame_count();
+    float_t get_max_face_depth();
     int32_t get_rob_cmn_mottbl_motion_id(int32_t id);
     void load_motion(int32_t motion_id, bool a3, float_t frame,
         MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);

@@ -13,36 +13,36 @@ struct io_json_read_buffer {
     int32_t length;
 };
 
-static int32_t io_json_read_char(stream* s, io_json_read_buffer* buf);
-static void io_json_seek(stream* s, io_json_read_buffer* buf, int64_t offset);
-static void io_json_seek_one(stream* s, io_json_read_buffer* buf);
-static void io_json_read_inner(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
-static void io_json_read_digit(stream* s, io_json_read_buffer* buf, int32_t* c, char** dig_buf, char* dig_buf_end);
-static void io_json_read_float(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static int32_t io_json_read_char(stream& s, io_json_read_buffer* buf);
+static void io_json_seek(stream& s, io_json_read_buffer* buf, int64_t offset);
+static void io_json_seek_one(stream& s, io_json_read_buffer* buf);
+static void io_json_read_inner(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_read_digit(stream& s, io_json_read_buffer* buf, int32_t* c, char** dig_buf, char* dig_buf_end);
+static void io_json_read_float(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
 static uint8_t io_json_read_string_hex(int32_t c);
-static char* io_json_read_string_inner(stream* s, io_json_read_buffer* buf, msgpack* msg, int32_t* c);
-static void io_json_read_string(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
-static void io_json_read_map(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
-static void io_json_read_array(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
-static void io_json_read_bool(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
-static void io_json_read_null(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
-static void io_json_write_inner(stream* s, msgpack* msg, size_t tabs);
-static void io_json_write_null(stream* s);
-static void io_json_write_bool(stream* s, bool val);
-static void io_json_write_int8_t(stream* s, int8_t val);
-static void io_json_write_uint8_t(stream* s, uint8_t val);
-static void io_json_write_int16_t(stream* s, int16_t val);
-static void io_json_write_uint16_t(stream* s, uint16_t val);
-static void io_json_write_int32_t(stream* s, int32_t val);
-static void io_json_write_uint32_t(stream* s, uint32_t val);
-static void io_json_write_int64_t(stream* s, int64_t val);
-static void io_json_write_uint64_t(stream* s, uint64_t val);
-static void io_json_write_float_t(stream* s, float_t val);
-static void io_json_write_double_t(stream* s, double_t val);
-static void io_json_write_string(stream* s, std::string* val);
+static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c);
+static void io_json_read_string(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_read_map(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_read_array(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_read_bool(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_read_null(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c);
+static void io_json_write_inner(stream& s, msgpack* msg, size_t tabs);
+static void io_json_write_null(stream& s);
+static void io_json_write_bool(stream& s, bool val);
+static void io_json_write_int8_t(stream& s, int8_t val);
+static void io_json_write_uint8_t(stream& s, uint8_t val);
+static void io_json_write_int16_t(stream& s, int16_t val);
+static void io_json_write_uint16_t(stream& s, uint16_t val);
+static void io_json_write_int32_t(stream& s, int32_t val);
+static void io_json_write_uint32_t(stream& s, uint32_t val);
+static void io_json_write_int64_t(stream& s, int64_t val);
+static void io_json_write_uint64_t(stream& s, uint64_t val);
+static void io_json_write_float_t(stream& s, float_t val);
+static void io_json_write_double_t(stream& s, double_t val);
+static void io_json_write_string(stream& s, std::string* val);
 
-void io_json_read(stream* s, msgpack* msg) {
-    if (!msg || !s->io.stream)
+void io_json_read(stream& s, msgpack* msg) {
+    if (!msg || !s.io.stream)
         return;
 
     io_json_read_buffer buf;
@@ -56,11 +56,11 @@ void io_json_read(stream* s, msgpack* msg) {
 
 #define CHECK_WHITESPACE(c) (c == 0x20 || c == 0x0A || c == 0x0D || c == 0x09)
 
-static int32_t io_json_read_char(stream* s, io_json_read_buffer* buf) {
+static int32_t io_json_read_char(stream& s, io_json_read_buffer* buf) {
     if (buf->length == 0) {
         buf->first = 1;
         buf->data[0] = buf->data[IO_JSON_READ_BUF_SIZE - 1];
-        buf->length = (int32_t)io_read(s, &buf->data[0x01], IO_JSON_READ_BUF_SIZE - 1);
+        buf->length = (int32_t)s.read(&buf->data[0x01], IO_JSON_READ_BUF_SIZE - 1);
     }
 
     if (buf->length < 1)
@@ -72,21 +72,21 @@ static int32_t io_json_read_char(stream* s, io_json_read_buffer* buf) {
     return c;
 }
 
-static void io_json_seek(stream* s, io_json_read_buffer* buf, int64_t offset) {
+static void io_json_seek(stream& s, io_json_read_buffer* buf, int64_t offset) {
     if (buf->first < offset || offset >= buf->length - 1LL) {
-        int64_t pos = io_get_position(s) - buf->length - offset;
+        int64_t pos = s.get_position() - buf->length - offset;
         int64_t off = pos % IO_JSON_READ_BUF_SIZE;
         pos -= off;
         if (pos > 1) {
-            io_set_position(s, pos, SEEK_SET);
+            s.set_position(pos, SEEK_SET);
             buf->first = (int32_t)off;
-            buf->length = (int32_t)io_read(s, &buf->data[0x00], IO_JSON_READ_BUF_SIZE);
+            buf->length = (int32_t)s.read(&buf->data[0x00], IO_JSON_READ_BUF_SIZE);
         }
         else {
-            io_set_position(s, pos, SEEK_SET);
+            s.set_position(pos, SEEK_SET);
             buf->first = (int32_t)(off + 1);
             buf->data[0] = 0;
-            buf->length = (int32_t)io_read(s, &buf->data[0x01], IO_JSON_READ_BUF_SIZE - 1);
+            buf->length = (int32_t)s.read(&buf->data[0x01], IO_JSON_READ_BUF_SIZE - 1);
         }
         buf->length -= (int32_t)off;
     }
@@ -96,12 +96,12 @@ static void io_json_seek(stream* s, io_json_read_buffer* buf, int64_t offset) {
     }
 }
 
-inline static void io_json_seek_one(stream* s, io_json_read_buffer* buf) {
+inline static void io_json_seek_one(stream& s, io_json_read_buffer* buf) {
     buf->first--;
     buf->length++;
 }
 
-static void io_json_read_inner(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_inner(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     *msg = msgpack(name);
     while (*c != EOF) {
         if (CHECK_WHITESPACE(*c))
@@ -139,7 +139,7 @@ static void io_json_read_inner(stream* s, io_json_read_buffer* buf, const char* 
     }
 }
 
-inline static void io_json_read_digit(stream* s, io_json_read_buffer* buf, int32_t* c, char** dig_buf, char* dig_buf_end) {
+inline static void io_json_read_digit(stream& s, io_json_read_buffer* buf, int32_t* c, char** dig_buf, char* dig_buf_end) {
     char* b = *dig_buf;
     while (isdigit(*c) && b < dig_buf_end) {
         *b++ = *c;
@@ -149,7 +149,7 @@ inline static void io_json_read_digit(stream* s, io_json_read_buffer* buf, int32
     *dig_buf = b;
 }
 
-static void io_json_read_float(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_float(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     char dig_buf[0x100];
     char* t_buf = dig_buf;
     char* buf_end = dig_buf + 0x100;
@@ -250,11 +250,11 @@ inline static uint8_t io_json_read_string_hex(int32_t c) {
         return 0;
 }
 
-static char* io_json_read_string_inner(stream* s, io_json_read_buffer* buf, msgpack* msg, int32_t* c) {
+static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c) {
     if (*c != '"')
         return 0;
 
-    int64_t pos = io_get_position(s) - buf->length;
+    int64_t pos = s.get_position() - buf->length;
     size_t len = 0;
     while (*c != EOF) {
         *c = io_json_read_char(s, buf);
@@ -307,7 +307,7 @@ static char* io_json_read_string_inner(stream* s, io_json_read_buffer* buf, msgp
     }
     if (*c == EOF)
         return 0;
-    int64_t pos_end = io_get_position(s) - buf->length;
+    int64_t pos_end = s.get_position() - buf->length;
 
     io_json_seek(s, buf, pos_end - pos);
     char* temp = force_malloc_s(char, len + 1);
@@ -374,13 +374,13 @@ static char* io_json_read_string_inner(stream* s, io_json_read_buffer* buf, msgp
     return temp;
 }
 
-inline static void io_json_read_string(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
+inline static void io_json_read_string(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     char* temp = io_json_read_string_inner(s, buf, msg, c);
     *msg = msgpack(name, temp);
     free(temp);
 }
 
-inline static void io_json_read_skip_whitespace(stream* s, io_json_read_buffer* buf, int32_t* c) {
+inline static void io_json_read_skip_whitespace(stream& s, io_json_read_buffer* buf, int32_t* c) {
     while ((*c = io_json_read_char(s, buf)) != EOF) {
         if (CHECK_WHITESPACE(*c))
             continue;
@@ -388,7 +388,7 @@ inline static void io_json_read_skip_whitespace(stream* s, io_json_read_buffer* 
     }
 }
 
-static void io_json_read_map(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_map(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     size_t i = 0;
     msgpack m;
     msgpack_array map;
@@ -426,7 +426,7 @@ static void io_json_read_map(stream* s, io_json_read_buffer* buf, const char* na
     *msg = msgpack(name, false, map);
 }
 
-static void io_json_read_array(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
+static void io_json_read_array(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     size_t i = 0;
     msgpack m;
     msgpack_array array;
@@ -452,7 +452,7 @@ static void io_json_read_array(stream* s, io_json_read_buffer* buf, const char* 
     *msg = msgpack(name, true, array);
 }
 
-inline static void io_json_read_bool(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
+inline static void io_json_read_bool(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     if (*c != 't') {
         if ((*c = io_json_read_char(s, buf)) == EOF || *c != 'a')
             return;
@@ -475,7 +475,7 @@ inline static void io_json_read_bool(stream* s, io_json_read_buffer* buf, const 
     }
 }
 
-inline static void io_json_read_null(stream* s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
+inline static void io_json_read_null(stream& s, io_json_read_buffer* buf, const char* name, msgpack* msg, int32_t* c) {
     if ((*c = io_json_read_char(s, buf)) == EOF || *c != 'u')
         return;
     if ((*c = io_json_read_char(s, buf)) == EOF || *c != 'l')
@@ -486,20 +486,20 @@ inline static void io_json_read_null(stream* s, io_json_read_buffer* buf, const 
     *msg = msgpack(name);
 }
 
-void io_json_write(stream* s, msgpack* msg) {
-    if (!s->io.stream || !msg)
+void io_json_write(stream& s, msgpack* msg) {
+    if (!s.io.stream || !msg)
         return;
 
     io_json_write_inner(s, msg, 0);
 }
 
-void io_json_write_inner(stream* s, msgpack* msg, size_t tabs) {
+void io_json_write_inner(stream& s, msgpack* msg, size_t tabs) {
     for (size_t i = 0; i < tabs; i++)
-        io_write(s, "  ", 2);
+        s.write("  ", 2);
 
     if (msg->name.size()) {
         io_json_write_string(s, &msg->name);
-        io_write(s, ": ", 2);
+        s.write(": ", 2);
     }
 
     switch (msg->type) {
@@ -544,110 +544,110 @@ void io_json_write_inner(stream* s, msgpack* msg, size_t tabs) {
         break;
     case MSGPACK_ARRAY: {
         msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-        io_write(s, "[\n", 2);
+        s.write("[\n", 2);
 
         for (msgpack& i : *ptr) {
             io_json_write_inner(s, &i, tabs + 1);
             if (&i + 1 != ptr->data() + ptr->size())
-                io_write_char(s, ',');
-            io_write_char(s, '\n');
+                s.write_char(',');
+            s.write_char('\n');
         }
 
         for (size_t i = 0; i < tabs; i++)
-            io_write(s, "  ", 2);
-        io_write_char(s, ']');
+            s.write("  ", 2);
+        s.write_char(']');
     } break;
     case MSGPACK_MAP: {
         msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, msg);
-        io_write(s, "{\n", 2);
+        s.write("{\n", 2);
 
         for (msgpack& i : *ptr) {
             io_json_write_inner(s, &i, tabs + 1);
             if (&i + 1 != ptr->data() + ptr->size())
-                io_write_char(s, ',');
-            io_write_char(s, '\n');
+                s.write_char(',');
+            s.write_char('\n');
         }
 
         for (size_t i = 0; i < tabs; i++)
-            io_write(s, "  ", 2);
-        io_write_char(s, '}');
+            s.write("  ", 2);
+        s.write_char('}');
     } break;
     }
 }
 
-inline static void io_json_write_null(stream* s) {
-    io_write(s, "null", 4);
+inline static void io_json_write_null(stream& s) {
+    s.write("null", 4);
 }
 
-inline static void io_json_write_bool(stream* s, bool val) {
+inline static void io_json_write_bool(stream& s, bool val) {
     if (val)
-        io_write(s, "true", 4);
+        s.write("true", 4);
     else
-        io_write(s, "false", 4);
+        s.write("false", 4);
 }
 
-inline static void io_json_write_int8_t(stream* s, int8_t val) {
+inline static void io_json_write_int8_t(stream& s, int8_t val) {
     char temp[0x20];
     size_t len = sprintf_s(temp, 0x20, "%hhi", val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_uint8_t(stream* s, uint8_t val) {
+inline static void io_json_write_uint8_t(stream& s, uint8_t val) {
     char temp[0x20];
     size_t len = sprintf_s(temp, 0x20, "%hhu", val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_int16_t(stream* s, int16_t val) {
+inline static void io_json_write_int16_t(stream& s, int16_t val) {
     char temp[0x20];
     size_t len = sprintf_s(temp, 0x20, "%hi", val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_uint16_t(stream* s, uint16_t val) {
+inline static void io_json_write_uint16_t(stream& s, uint16_t val) {
     char temp[0x20];
     size_t len = sprintf_s(temp, 0x20, "%hu", val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_int32_t(stream* s, int32_t val) {
+inline static void io_json_write_int32_t(stream& s, int32_t val) {
     char temp[0x20];
     size_t len = sprintf_s(temp, 0x20, "%i", val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_uint32_t(stream* s, uint32_t val) {
+inline static void io_json_write_uint32_t(stream& s, uint32_t val) {
     char temp[0x20];
     size_t len = sprintf_s(temp, 0x20, "%u", val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_int64_t(stream* s, int64_t val) {
+inline static void io_json_write_int64_t(stream& s, int64_t val) {
     char temp[0x20];
     size_t len = sprintf_s(temp, 0x20, "%lli", val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_uint64_t(stream* s, uint64_t val) {
+inline static void io_json_write_uint64_t(stream& s, uint64_t val) {
     char temp[0x20];
     size_t len = sprintf_s(temp, 0x20, "%llu", val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_float_t(stream* s, float_t val) {
+inline static void io_json_write_float_t(stream& s, float_t val) {
     char temp[0x40];
     size_t len = sprintf_s(temp, 0x40, "%.15lg", (double_t)val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_double_t(stream* s, double_t val) {
+inline static void io_json_write_double_t(stream& s, double_t val) {
     char temp[0x40];
     size_t len = sprintf_s(temp, 0x40, "%.15lg", val);
-    io_write(s, temp, len);
+    s.write(temp, len);
 }
 
-inline static void io_json_write_string(stream* s, std::string* val) {
-    io_write_char(s, '\"');
+inline static void io_json_write_string(stream& s, std::string* val) {
+    s.write_char('\"');
     const char* str = val->c_str();
     size_t len = val->size();
     for (size_t i = len; i; i--, str++)
@@ -679,38 +679,38 @@ inline static void io_json_write_string(stream* s, std::string* val) {
         case 0x1D:
         case 0x1E:
         case 0x1F: {
-            io_write(s, "\\u", 2);
+            s.write("\\u", 2);
 
             char t[5];
             size_t len = sprintf_s(t, 5, "%04x", (wchar_t)*str);
-            io_write(s, t, len);
+            s.write(t, len);
         } break;
         case 0x08:
-            io_write(s, "\\b", 2);
+            s.write("\\b", 2);
             break;
         case 0x09:
-            io_write(s, "\\t", 2);
+            s.write("\\t", 2);
             break;
         case 0x0A:
-            io_write(s, "\\n", 2);
+            s.write("\\n", 2);
             break;
         case 0x0C:
-            io_write(s, "\\f", 2);
+            s.write("\\f", 2);
             break;
         case 0x0D:
-            io_write(s, "\\r", 2);
+            s.write("\\r", 2);
             break;
         case 0x22:
-            io_write(s, "\\\"", 2);
+            s.write("\\\"", 2);
             break;
         case 0x5C:
-            io_write(s, "\\\\", 2);
+            s.write("\\\\", 2);
             break;
         case 0x2F:
-            io_write(s, "\\/", 2);
+            s.write("\\/", 2);
             break;
         default:
-            io_write_char(s, *str);
+            s.write_char(*str);
         }
-    io_write_char(s, '\"');
+    s.write_char('\"');
 }

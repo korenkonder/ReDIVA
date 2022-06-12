@@ -5,14 +5,14 @@
 
 #include "draw_pass.h"
 #include "Glitter/glitter.hpp"
-#include "light_param/fog.h"
-#include "light_param/light.h"
+#include "light_param/fog.hpp"
+#include "light_param/light.hpp"
 #include "gl_state.h"
 #include "post_process.hpp"
 #include "rob.hpp"
 #include "render_texture.h"
 #include "shader_ft.h"
-#include "shader_glsl.h"
+#include "shader_glsl.hpp"
 #include "static_var.h"
 #include "texture.hpp"
 
@@ -38,7 +38,7 @@ static void draw_pass_sss_contour(render_context* rctx, post_process* pp);
 static void draw_pass_sss_filter(render_context* rctx, sss_data* a1);
 static void draw_pass_reflect(render_context* rctx, draw_pass* a1);
 static void draw_pass_refract(render_context* rctx, draw_pass* a1);
-static void draw_pass_preprocess(render_context* rctx, draw_pass* a1);
+static void draw_pass_pre_process(render_context* rctx, draw_pass* a1);
 static void draw_pass_3d(render_context* rctx, draw_pass* a1);
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx);
 static void draw_pass_3d_shadow_reset(render_context* rctx);
@@ -58,7 +58,7 @@ extern bool draw_grid_3d;
 extern shader_glsl grid_shader;
 extern GLuint grid_vbo;
 extern size_t grid_vertex_count;
-extern vec3 clear_color;
+extern vec4u8 clear_color;
 extern light_param_data_storage* light_param_data_storage_data;
 
 void draw_pass_main(render_context* rctx) {
@@ -72,7 +72,7 @@ void draw_pass_main(render_context* rctx) {
         gl_state_active_bind_texture_cube_map(ibl_texture_index[i],
             light_param_data_storage_data->textures[i]);
 
-    shader_env_frag_set(&shaders_ft, 0,
+    shaders_ft.env_frag_set(0,
         1.0f / (float_t)rctx->post_process.render_width,
         1.0f / (float_t)rctx->post_process.render_height,
         (float_t)rctx->post_process.render_width,
@@ -94,7 +94,7 @@ void draw_pass_main(render_context* rctx) {
         case DRAW_PASS_SHADOW:
             draw_pass_shadow(rctx, &rctx->draw_pass);
             break;
-        case DRAW_PASS_SSS:
+        case DRAW_PASS_SS_SSS:
             draw_pass_sss(rctx, &rctx->draw_pass);
             break;
         case DRAW_PASS_REFLECT:
@@ -103,18 +103,18 @@ void draw_pass_main(render_context* rctx) {
         case DRAW_PASS_REFRACT:
             draw_pass_refract(rctx, &rctx->draw_pass);
             break;
-        case DRAW_PASS_PREPROCESS:
-            draw_pass_preprocess(rctx, &rctx->draw_pass);
+        case DRAW_PASS_PRE_PROCESS:
+            draw_pass_pre_process(rctx, &rctx->draw_pass);
             break;
-        case DRAW_PASS_TYPE_6: {
+        case DRAW_PASS_CLEAR: {
             render_texture_bind(&rctx->post_process.rend_texture, 0);
-            vec4 color;
-            *(vec3*)&color = clear_color;
-            color.w = 1.0f;
-            glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
+            vec4 _clear_color;
+            vec4u8_to_vec4(clear_color, _clear_color);
+            vec4_mult_scalar(_clear_color, (float_t)(1.0 / 255.0), _clear_color);
+            glClearBufferfv(GL_COLOR, 0, (GLfloat*)&_clear_color);
             //sub_140501470(rctx, &rctx->draw_pass);
         } break;
-        case DRAW_PASS_TYPE_7:
+        case DRAW_PASS_PRE_SPRITE:
             //sub_140501600(rctx, &rctx->draw_pass);
             break;
         case DRAW_PASS_3D:
@@ -153,7 +153,7 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
         rctx->draw_state.shader_index = -1;
         uniform_value[U0A] = 0;
         draw_pass_shadow_filter(&rctx->litproj->shadow_texture[0],
-            &rctx->litproj->shadow_texture[1], 0, 1.5f, 0.0099999998f, true);
+            &rctx->litproj->shadow_texture[1], 0, 1.5f, 0.01f, true);
 
         if (draw_pass_shadow_litproj(rctx, rctx->litproj)) {
             draw_pass_set_camera(rctx->camera);
@@ -233,7 +233,7 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
             mat4 proj;
             mat4_ortho(-v16, v16, -v16, v16, shad->z_near, shad->z_far, &proj);
             mat4_mult(&proj, &temp, &proj);
-            shader_state_matrix_set_projection(&shaders_ft, &proj, false);
+            shaders_ft.state_matrix_set_projection(proj, false);
 
             mat4_look_at(view_point, interest, &rctx->view_mat);
 
@@ -263,20 +263,20 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
                     texture_params_get(v5, &tex_params[0], v7, &tex_params[1], v6, &tex_params[2]);
                     render_texture_bind(&shad->field_8[6], 0);
                     uniform_value[U_ESM_FILTER] = 0;
-                    shader_set(&shaders_ft, SHADER_FT_ESMFILT);
-                    shader_local_frag_set(&shaders_ft, 0, 1.0f / (float_t)tex_params[1].width,
+                    shaders_ft.set(SHADER_FT_ESMFILT);
+                    shaders_ft.local_frag_set(0, 1.0f / (float_t)tex_params[1].width,
                         1.0f / (float_t)tex_params[1].height, 0.0f, 0.0f);
                     gl_state_active_bind_texture_2d(0, v7);
-                    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
+                    shaders_ft.state_matrix_set_mvp(mat4_identity);
                     render_texture_draw_custom(&shaders_ft);
 
                     render_texture_bind(&shad->field_8[5], 0);
                     uniform_value[U_ESM_FILTER] = 1;
-                    shader_set(&shaders_ft, SHADER_FT_ESMFILT);
-                    shader_local_frag_set(&shaders_ft, 0, 0.75f / (float_t)tex_params[2].width,
+                    shaders_ft.set(SHADER_FT_ESMFILT);
+                    shaders_ft.local_frag_set(0, 0.75f / (float_t)tex_params[2].width,
                         0.75f / (float_t)tex_params[2].height, 0.0f, 0.0f);
                     gl_state_active_bind_texture_2d(0, v6);
-                    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
+                    shaders_ft.state_matrix_set_mvp(mat4_identity);
                     render_texture_draw_custom(&shaders_ft);
                     texture_params_restore(&tex_params[0], &tex_params[1], &tex_params[2]);
                 }
@@ -291,18 +291,18 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
                 texture_param tex_params[3];
                 texture_params_get(v11, &tex_params[0], v12, &tex_params[1], 0, 0);
                 uniform_value[U_IMAGE_FILTER] = 5;
-                shader_set(&shaders_ft, SHADER_FT_IMGFILT);
-                shader_local_frag_set_ptr(&shaders_ft, 0, &vec4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 1, &mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 2, &mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 3, &mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 4, &mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 5, &mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 6, &mat4_identity);
-                shader_state_matrix_set_texture(&shaders_ft, 7, &mat4_identity);
+                shaders_ft.set(SHADER_FT_IMGFILT);
+                shaders_ft.local_frag_set(0, vec4_identity);
+                shaders_ft.state_matrix_set_texture(0, mat4_identity);
+                shaders_ft.state_matrix_set_texture(1, mat4_identity);
+                shaders_ft.state_matrix_set_texture(2, mat4_identity);
+                shaders_ft.state_matrix_set_texture(3, mat4_identity);
+                shaders_ft.state_matrix_set_texture(4, mat4_identity);
+                shaders_ft.state_matrix_set_texture(5, mat4_identity);
+                shaders_ft.state_matrix_set_texture(6, mat4_identity);
+                shaders_ft.state_matrix_set_texture(7, mat4_identity);
                 gl_state_active_bind_texture_2d(0, v12);
-                shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
+                shaders_ft.state_matrix_set_mvp(mat4_identity);
                 render_texture_draw_custom(&shaders_ft);
                 texture_params_restore(&tex_params[0], &tex_params[1], 0);
             }
@@ -364,11 +364,11 @@ static void draw_pass_shadow_filter(render_texture* a1, render_texture* a2,
 
     render_texture_bind(a2, 0);
     uniform_value[U_LIGHT_PROJ] = enable_lit_proj ? 1 : 0;
-    shader_set(&shaders_ft, SHADER_FT_ESMGAUSS);
-    shader_local_frag_set(&shaders_ft, 0, 1.0f / (float_t)tex_params[0].width, 0.0f, 0.0f, 0.0f);
-    shader_local_frag_set_ptr(&shaders_ft, 1, &v15[0]);
-    shader_local_frag_set_ptr(&shaders_ft, 2, &v15[1]);
-    shader_local_frag_set(&shaders_ft, 3, far_texel_offset, far_texel_offset, 0.0f, 0.0f);
+    shaders_ft.set(SHADER_FT_ESMGAUSS);
+    shaders_ft.local_frag_set(0, 1.0f / (float_t)tex_params[0].width, 0.0f, 0.0f, 0.0f);
+    shaders_ft.local_frag_set(1, v15[0]);
+    shaders_ft.local_frag_set(2, v15[1]);
+    shaders_ft.local_frag_set(3, far_texel_offset, far_texel_offset, 0.0f, 0.0f);
 
     gl_state_active_bind_texture_2d(0, v11);
     glActiveTexture(GL_TEXTURE0);
@@ -382,18 +382,18 @@ static void draw_pass_shadow_filter(render_texture* a1, render_texture* a2,
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     }
     gl_state_active_bind_texture_2d(0, v11);
-    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
+    shaders_ft.state_matrix_set_mvp(mat4_identity);
     render_texture_draw_custom(&shaders_ft);
 
     render_texture_bind(a1, 0);
-    shader_local_frag_set(&shaders_ft, 0, 0.0f, 1.0f / (float_t)tex_params[0].height, 0.0f, 0.0f);
-    shader_local_frag_set_ptr(&shaders_ft, 1, &v15[0]);
-    shader_local_frag_set_ptr(&shaders_ft, 2, &v15[1]);
-    shader_local_frag_set(&shaders_ft, 3, far_texel_offset, far_texel_offset, 0.0f, 0.0f);
+    shaders_ft.local_frag_set(0, 0.0f, 1.0f / (float_t)tex_params[0].height, 0.0f, 0.0f);
+    shaders_ft.local_frag_set(1, v15[0]);
+    shaders_ft.local_frag_set(2, v15[1]);
+    shaders_ft.local_frag_set(3, far_texel_offset, far_texel_offset, 0.0f, 0.0f);
     gl_state_active_bind_texture_2d(0, v9);
-    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
+    shaders_ft.state_matrix_set_mvp(mat4_identity);
     render_texture_draw_custom(&shaders_ft);
-    shader_unbind();
+    shader::unbind();
     texture_params_restore(&tex_params[0], &tex_params[1], 0);
 }
 
@@ -438,7 +438,7 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
         return;
 
     if (!sss->enable) {
-        shader_env_frag_set(&shaders_ft, 25, 0.0f, 0.0f, 0.0f, 0.0f);
+        shaders_ft.env_frag_set(25, 0.0f, 0.0f, 0.0f, 0.0f);
         return;
     }
 
@@ -507,8 +507,8 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
 
 static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
     render_texture_bind(&pp->sss_contour_texture, 0);
-    shader_state_matrix_set_modelview(&shaders_ft, 0, &mat4_identity, false);
-    shader_state_matrix_set_projection(&shaders_ft, &mat4_identity, true);
+    shaders_ft.state_matrix_set_modelview(0, mat4_identity, false);
+    shaders_ft.state_matrix_set_projection(mat4_identity, true);
     gl_state_enable_depth_test();
     gl_state_set_depth_func(GL_ALWAYS);
     gl_state_set_depth_mask(GL_TRUE);
@@ -524,7 +524,7 @@ static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     gl_state_active_texture(0);
-    shader_set(&shaders_ft, SHADER_FT_CONTOUR);
+    shaders_ft.set(SHADER_FT_CONTOUR);
 
     camera* cam = rctx->camera;
     float_t v3 = 1.0f / tanf((float_t)(cam->fov_rad * 0.5));
@@ -542,7 +542,7 @@ static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
     if (v9 < 0.0f)
         v9 = 0.0f;
 
-    shader_local_frag_set(&shaders_ft, 4, v9 * 0.004f + 0.0027f, 0.003f, v3 * 0.35f, 0.0008f);
+    shaders_ft.local_frag_set(4, v9 * 0.004f + 0.0027f, 0.003f, v3 * 0.35f, 0.0008f);
     render_texture_draw_params(&shaders_ft, pp->render_width, pp->render_height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 }
 
@@ -593,7 +593,7 @@ static void draw_pass_sss_filter_calc_coef(double_t a1, size_t a2, double_t a3, 
         a7++;
         a8++;
     }
-    shader_local_frag_set_ptr_array(&shaders_ft, 4, a2 * a2, params);
+    shaders_ft.local_frag_set(4, a2 * a2, params);
 }
 
 static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
@@ -601,35 +601,35 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     vec3 interest = rctx->camera->interest;
     vec3 view_point = rctx->camera->view_point;
 
-    vec3 v46[2];
-    v46[0] = vec3_null;
-    v46[1] = vec3_null;
-    float_t v14[2];
+    vec3 chara_position[2];
+    chara_position[0] = vec3_null;
+    chara_position[1] = vec3_null;
+    float_t chara_distance[2];
     for (int32_t i = 0; i < 2; i++) {
-        v46[i] = interest;
-        v14[i] = 999999.0f;
+        chara_position[i] = interest;
+        chara_distance[i] = 999999.0f;
         rob_chara_bone_data* v16 = rob_chara_array[i].bone_data;
         if (rob_chara_pv_data_array[i].type != ROB_CHARA_TYPE_NONE && rob_chara_array[i].data.field_0 & 1) {
-            mat4* v17 = rob_chara_bone_data_get_mats_mat(v16, MOTION_BONE_N_HARA_CP);
-            if (v17) {
-                mat4_get_translation(v17, &v46[i]);
-                vec3_distance(view_point, v46[i], v14[i]);
+            mat4* mat = rob_chara_bone_data_get_mats_mat(v16, MOTION_BONE_N_HARA_CP);
+            if (mat) {
+                mat4_get_translation(mat, &chara_position[i]);
+                vec3_distance(view_point, chara_position[i], chara_distance[i]);
             }
         }
     }
 
-    vec3 v24;
-    if (v14[0] > v14[1]) {
-        v24 = v46[1];
-        v46[0] = v46[1];
+    vec3 closest_chara_position;
+    if (chara_distance[0] > chara_distance[1]) {
+        closest_chara_position = chara_position[1];
+        chara_position[0] = chara_position[1];
     }
     else
-        v24 = v46[0];
+        closest_chara_position = chara_position[0];
 
     float_t length;
-    vec3_distance(interest, v24, length);
+    vec3_distance(interest, closest_chara_position, length);
     if (length > 1.25f)
-        interest = v46[0];
+        interest = chara_position[0];
 
     float_t v29;
     vec3_distance(view_point, interest, v29);
@@ -648,10 +648,10 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
         v33 = (v36 * 8.0f) * 0.6f;
     }
 
-    shader_env_frag_set(&shaders_ft, 25, v33, 0.0f, 0.0f, 0.0f);
+    shaders_ft.env_frag_set(25, v33, 0.0f, 0.0f, 0.0f);
 
-    shader_state_matrix_set_projection(&shaders_ft, &mat4_identity, false);
-    shader_state_matrix_set_modelview(&shaders_ft, 0, &mat4_identity, true);
+    shaders_ft.state_matrix_set_projection(mat4_identity, false);
+    shaders_ft.state_matrix_set_modelview(0, mat4_identity, true);
 
     gl_state_active_texture(0);
     if (a1->npr_contour) {
@@ -660,21 +660,21 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
         post_process* pp = &rctx->post_process;
         gl_state_bind_texture_2d(pp->rend_texture.color_texture->tex);
         uniform_value[U_REDUCE] = 0;
-        shader_set(&shaders_ft, SHADER_FT_REDUCE);
+        shaders_ft.set(SHADER_FT_REDUCE);
 
-        shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
+        shaders_ft.state_matrix_set_texture(0, mat4_identity);
         render_texture_draw_params(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
     render_texture_bind(&a1->textures[2], 0);
     glViewport(0, 0, 320, 180);
     gl_state_bind_texture_2d(a1->textures[0].color_texture->tex);
     uniform_value[U_SSS_FILTER] = 0;
-    shader_set(&shaders_ft, SHADER_FT_SSS_FILT);
+    shaders_ft.set(SHADER_FT_SSS_FILT);
     render_texture_draw_params(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     render_texture_bind(&a1->textures[1], 0);
     uniform_value[U_SSS_FILTER] = 3;
-    shader_set(&shaders_ft, SHADER_FT_SSS_FILT);
-    shader_local_frag_set(&shaders_ft, 1, 5.0f, 0.0f, 0.0f, 0.0f);
+    shaders_ft.set(SHADER_FT_SSS_FILT);
+    shaders_ft.local_frag_set(1, 5.0f, 0.0f, 0.0f, 0.0f);
 
     double_t a5[3];
     double_t a6[3];
@@ -694,7 +694,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     a8[2] = 2.0;
     draw_pass_sss_filter_calc_coef(1.0, sss_count, v34, 3, a5, a6, a7, a8);
 
-    shader_local_frag_set(&shaders_ft, 1, (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f);
+    shaders_ft.local_frag_set(1, (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f);
     glViewport(0, 0, 320, 180);
     gl_state_bind_texture_2d(a1->textures[2].color_texture->tex);
     render_texture_draw_params(&shaders_ft, 320, 180, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
@@ -807,7 +807,7 @@ static void draw_pass_refract(render_context* rctx, draw_pass* a1) {
     }
 }
 
-static void draw_pass_preprocess(render_context* rctx, draw_pass* a1) {
+static void draw_pass_pre_process(render_context* rctx, draw_pass* a1) {
 
 }
 
@@ -874,10 +874,13 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     if (a1->draw_pass_3d[DRAW_PASS_3D_TRANSPARENT])
         draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TRANSPARENT, 0, 0, 1, -1);
     /*if (rctx->draw_pass.field_120)
-        draw_task_draw_objects_by_type(DRAW_OBJECT_TYPE_7, 0, 0, 1, -1);*/
+        draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TYPE_7, 0, 0, 1, -1);*/
+
+    rctx->post_process.exposure->get_exposure_chara_data(&rctx->post_process, rctx->camera);
+    gl_state_bind_vertex_array(rctx->vao);
 
     //post_process_draw_lens_flare(a1->post_process);
-    //draw_stars();
+    //draw_stars(&stars);
 
     draw_task_draw_objects_by_type_translucent(rctx,
         a1->draw_pass_3d[DRAW_PASS_3D_OPAQUE],
@@ -950,7 +953,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
         gl_state_active_bind_texture_2d(15, 0);
     /*if (a1->shadow)
         draw_pass_3d_shadow_reset();*/
-    shader_unbind();
+    shader::unbind();
 }
 
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx) {
@@ -970,8 +973,8 @@ static int32_t draw_pass_3d_get_translucent_count(render_context* rctx) {
 static void draw_pass_3d_shadow_reset(render_context* rctx) {
     gl_state_active_bind_texture_2d(6, 0);
     gl_state_active_bind_texture_2d(7, 0);
-    shader_state_matrix_set_texture(&shaders_ft, 6, &mat4_identity);
-    shader_state_matrix_set_texture(&shaders_ft, 7, &mat4_identity);
+    shaders_ft.state_matrix_set_texture(6, mat4_identity);
+    shaders_ft.state_matrix_set_texture(7, mat4_identity);
     rctx->draw_state.self_shadow = false;
     rctx->draw_state.light = false;
 }
@@ -981,7 +984,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
         gl_state_active_bind_texture_2d(19, shad->field_8[3].color_texture->tex);
         gl_state_active_bind_texture_2d(20, shad->field_8[5].color_texture->tex);
         gl_state_active_texture(0);
-        shader_env_frag_set(&shaders_ft, 23,
+        shaders_ft.env_frag_set(23,
             ((shad->field_2D8 * shad->field_208) * 2.0f) * 1.442695f, 0.0f, 0.0f, 0.0f);
         rctx->draw_state.self_shadow = true;
     }
@@ -1022,7 +1025,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
             mat4 view;
             mat4_look_at(view_point, interest, &view);
             mat4_mult(&view, &proj, &view);
-            shader_state_matrix_set_texture(&shaders_ft, 6ULL + i, &view);
+            shaders_ft.state_matrix_set_texture(6ULL + i, view);
         }
 
         for (int32_t i = 0, j = 0; i < 2; i++) {
@@ -1047,8 +1050,8 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
             ambient.z = shad->ambient;
         }
 
-        shader_env_frag_set(&shaders_ft, 12, ambient.x, ambient.y, ambient.z, 1.0f);
-        shader_env_frag_set(&shaders_ft, 13, 1.0f - ambient.x, 1.0f - ambient.y, 1.0f - ambient.z, 0.0f);
+        shaders_ft.env_frag_set(12, ambient.x, ambient.y, ambient.z, 1.0f);
+        shaders_ft.env_frag_set(13, 1.0f - ambient.x, 1.0f - ambient.y, 1.0f - ambient.z, 0.0f);
     }
     else {
         rctx->draw_state.light = false;
@@ -1057,8 +1060,8 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
             gl_state_active_bind_texture_2d(6 + i, shad->field_158[1 + i]->color_texture->tex);
         gl_state_active_texture(0);
 
-        shader_env_frag_set_ptr(&shaders_ft, 12, &vec4_identity);
-        shader_env_frag_set_ptr(&shaders_ft, 13, &vec4_null);
+        shaders_ft.env_frag_set(12, vec4_identity);
+        shaders_ft.env_frag_set(13, vec4_null);
     }
 }
 
@@ -1071,7 +1074,7 @@ static void draw_pass_show_vector(render_context* rctx, draw_pass* a1) {
     glViewport(0, 0, rctx->post_process.render_width, rctx->post_process.render_height);
     draw_pass_set_camera(rctx->camera);
 
-    shader_env_vert_set(&shaders_ft, 20, a1->show_vector_length, a1->show_vector_z_offset, 0.0f, 0.0f);
+    shaders_ft.env_vert_set(20, a1->show_vector_length, a1->show_vector_z_offset, 0.0f, 0.0f);
     for (int32_t i = 1; i < 4; i++) {
         if (~a1->show_vector_flags & (1 << (i - 1)))
             continue;
@@ -1124,7 +1127,7 @@ static void draw_pass_3d_grid(render_context* rctx) {
     gl_state_set_depth_mask(GL_TRUE);
 
     grid_shader.use();
-    shader_glsl_set_mat4(&grid_shader, "vp", GL_FALSE, rctx->camera->view_projection);
+    grid_shader.set("vp", false, rctx->camera->view_projection);
     gl_state_bind_array_buffer(grid_vbo);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
@@ -1144,15 +1147,15 @@ static void draw_pass_3d_grid(render_context* rctx) {
 }
 
 static void draw_pass_set_camera(camera* cam) {
-    shader_state_matrix_set_modelview(&shaders_ft, 0, &cam->view, false);
-    shader_state_matrix_set_projection(&shaders_ft, &cam->projection, true);
-    shader_state_matrix_set_program(&shaders_ft, 5, &cam->view);
+    shaders_ft.state_matrix_set_modelview(0, cam->view, false);
+    shaders_ft.state_matrix_set_projection(cam->projection, true);
+    shaders_ft.state_matrix_set_program(5, cam->view);
 
-    shader_env_frag_set(&shaders_ft, 20,
+    shaders_ft.env_frag_set(20,
         (float_t)(0.5 / (cam->fov_rad * cam->aspect)),
         (float_t)(0.5 / cam->fov_rad),
         0.0f, 0.0f);
-    shader_env_frag_set(&shaders_ft, 32,
+    shaders_ft.env_frag_set(32,
         (float_t)(cam->max_distance / (cam->max_distance - cam->min_distance)),
         (float_t)(-(cam->max_distance * cam->min_distance) / (cam->max_distance - cam->min_distance)),
         0.0f, 0.0f);
@@ -1196,8 +1199,8 @@ static void texture_params_get(GLuint tex_0, texture_param* tex_0_param,
         mat4 mat;
         mat4_ortho(0.0f, (float_t)tex_0_param->width,
             0.0f, (float_t)tex_0_param->height, -1.0f, 1.0f, &mat);
-        shader_state_matrix_set_projection(&shaders_ft, &mat, false);
-        shader_state_matrix_set_modelview(&shaders_ft, 0, &mat4_identity, true);
+        shaders_ft.state_matrix_set_projection(mat, false);
+        shaders_ft.state_matrix_set_modelview(0, mat4_identity, true);
         glViewport(0, 0, tex_0_param->width, tex_0_param->height);
     }
 }
@@ -1215,11 +1218,11 @@ static void blur_filter_apply(GLuint tex_0, GLuint tex_1, blur_filter_mode filte
     texture_param tex_params[2];
     texture_params_get(tex_0, &tex_params[0], tex_1, &tex_params[1], 0, 0);
     uniform_value[U_IMAGE_FILTER] = filter == BLUR_FILTER_32 ? 1 : 0;
-    shader_set(&shaders_ft, SHADER_FT_IMGFILT);
+    shaders_ft.set(SHADER_FT_IMGFILT);
 
     float_t scale = filter == BLUR_FILTER_32 ? (float_t)(1.0 / 8.0) : (float_t)(1.0 / 4.0);
-    shader_local_frag_set(&shaders_ft, 0, scale, scale, scale, scale);
-    shader_local_frag_set(&shaders_ft, 1, 0.0f, 0.0f, 0.0f, 0.0f);
+    shaders_ft.local_frag_set(0, scale, scale, scale, scale);
+    shaders_ft.local_frag_set(1, 0.0f, 0.0f, 0.0f, 0.0f);
     float_t w = 1.0f / (float_t)tex_params[1].width;
     float_t h = 1.0f / (float_t)tex_params[1].height;
     switch (filter) {
@@ -1229,10 +1232,10 @@ static void blur_filter_apply(GLuint tex_0, GLuint tex_1, blur_filter_mode filte
         mat4_translate( 0.0f * w,  1.0f * h, 0.0f, &m[1]);
         mat4_translate( 1.0f * w, -1.0f * h, 0.0f, &m[2]);
         mat4_translate( 0.0f * w, -1.0f * h, 0.0f, &m[3]);
-        shader_state_matrix_set_texture(&shaders_ft, 0, &m[0]);
-        shader_state_matrix_set_texture(&shaders_ft, 1, &m[1]);
-        shader_state_matrix_set_texture(&shaders_ft, 2, &m[2]);
-        shader_state_matrix_set_texture(&shaders_ft, 3, &m[3]);
+        shaders_ft.state_matrix_set_texture(0, m[0]);
+        shaders_ft.state_matrix_set_texture(1, m[1]);
+        shaders_ft.state_matrix_set_texture(2, m[2]);
+        shaders_ft.state_matrix_set_texture(3, m[3]);
     } break;
     case BLUR_FILTER_9: {
         mat4 m[4];
@@ -1240,10 +1243,10 @@ static void blur_filter_apply(GLuint tex_0, GLuint tex_1, blur_filter_mode filte
         mat4_translate( 0.5f * w,  0.5f * h, 0.0f, &m[1]);
         mat4_translate(-0.5f * w, -0.5f * h, 0.0f, &m[2]);
         mat4_translate( 0.5f * w, -0.5f * h, 0.0f, &m[3]);
-        shader_state_matrix_set_texture(&shaders_ft, 0, &m[0]);
-        shader_state_matrix_set_texture(&shaders_ft, 1, &m[1]);
-        shader_state_matrix_set_texture(&shaders_ft, 2, &m[2]);
-        shader_state_matrix_set_texture(&shaders_ft, 3, &m[3]);
+        shaders_ft.state_matrix_set_texture(0, m[0]);
+        shaders_ft.state_matrix_set_texture(1, m[1]);
+        shaders_ft.state_matrix_set_texture(2, m[2]);
+        shaders_ft.state_matrix_set_texture(3, m[3]);
     } break;
     case BLUR_FILTER_16: {
         mat4 m[4];
@@ -1251,10 +1254,10 @@ static void blur_filter_apply(GLuint tex_0, GLuint tex_1, blur_filter_mode filte
         mat4_translate(-1.5f * w,  0.5f * h, 0.0f, &m[1]);
         mat4_translate( 1.5f * w, -0.5f * h, 0.0f, &m[2]);
         mat4_translate(-0.5f * w,  1.5f * h, 0.0f, &m[3]);
-        shader_state_matrix_set_texture(&shaders_ft, 0, &m[0]);
-        shader_state_matrix_set_texture(&shaders_ft, 1, &m[1]);
-        shader_state_matrix_set_texture(&shaders_ft, 2, &m[2]);
-        shader_state_matrix_set_texture(&shaders_ft, 3, &m[3]);
+        shaders_ft.state_matrix_set_texture(0, m[0]);
+        shaders_ft.state_matrix_set_texture(1, m[1]);
+        shaders_ft.state_matrix_set_texture(2, m[2]);
+        shaders_ft.state_matrix_set_texture(3, m[3]);
     } break;
     case BLUR_FILTER_32: {
         mat4 m[8];
@@ -1266,18 +1269,18 @@ static void blur_filter_apply(GLuint tex_0, GLuint tex_1, blur_filter_mode filte
         mat4_translate( 1.5f * w,  1.5f * h, 0.0f, &m[5]);
         mat4_translate( 1.5f * w,  3.5f * h, 0.0f, &m[6]);
         mat4_translate(-3.5f * w,  3.5f * h, 0.0f, &m[7]);
-        shader_state_matrix_set_texture(&shaders_ft, 0, &m[0]);
-        shader_state_matrix_set_texture(&shaders_ft, 1, &m[1]);
-        shader_state_matrix_set_texture(&shaders_ft, 2, &m[2]);
-        shader_state_matrix_set_texture(&shaders_ft, 3, &m[3]);
-        shader_state_matrix_set_texture(&shaders_ft, 4, &m[4]);
-        shader_state_matrix_set_texture(&shaders_ft, 5, &m[5]);
-        shader_state_matrix_set_texture(&shaders_ft, 6, &m[6]);
-        shader_state_matrix_set_texture(&shaders_ft, 7, &m[7]);
+        shaders_ft.state_matrix_set_texture(0, m[0]);
+        shaders_ft.state_matrix_set_texture(1, m[1]);
+        shaders_ft.state_matrix_set_texture(2, m[2]);
+        shaders_ft.state_matrix_set_texture(3, m[3]);
+        shaders_ft.state_matrix_set_texture(4, m[4]);
+        shaders_ft.state_matrix_set_texture(5, m[5]);
+        shaders_ft.state_matrix_set_texture(6, m[6]);
+        shaders_ft.state_matrix_set_texture(7, m[7]);
     } break;
     }
     gl_state_active_bind_texture_2d(0, tex_1);
-    shader_state_matrix_set_mvp(&shaders_ft, &mat4_identity);
+    shaders_ft.state_matrix_set_mvp(mat4_identity);
     render_texture_draw_custom(&shaders_ft);
     texture_params_restore(&tex_params[0], &tex_params[1], 0);
 }

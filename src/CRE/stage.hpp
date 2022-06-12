@@ -6,7 +6,7 @@
 #pragma once
 
 #include <vector>
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/database/stage.hpp"
 #include "render_context.hpp"
 #include "auth_3d.hpp"
@@ -37,7 +37,7 @@ struct stage {
 #define TASK_STAGE_STAGE_COUNT 37
 
 namespace stage_detail {
-    class TaskStage : public Task {
+    class TaskStage : public app::Task {
     public:
         int32_t state;
         stage stages[TASK_STAGE_STAGE_COUNT];
@@ -69,7 +69,7 @@ struct task_stage_info {
     task_stage_info();
 };
 
-class DtmStg : public Task {
+class DtmStg : public app::Task {
 public:
     int32_t stage_index;
     int32_t load_stage_index;

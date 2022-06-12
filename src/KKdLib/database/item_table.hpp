@@ -9,9 +9,9 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "../default.h"
-#include "../image.h"
-#include "../vec.h"
+#include "../default.hpp"
+#include "../image.hpp"
+#include "../vec.hpp"
 
 enum chara_index {
     CHARA_NONE   = -1,
@@ -196,4 +196,5 @@ struct itm_table {
 extern const char* chara_index_get_auth_3d_name(chara_index chara_index);
 extern const char* chara_index_get_chara_name(chara_index chara_index);
 extern const char* chara_index_get_face_mot_name(chara_index chara_index);
+extern chara_index chara_index_get_from_chara_name(const char* str);
 extern const char* chara_index_get_name(chara_index chara_index);

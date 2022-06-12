@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include <glad/glad.h>
 
 struct gl_state_struct {

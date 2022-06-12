@@ -69,27 +69,24 @@ void graphics_post_process_imgui(class_data* data) {
 
     imguiSetColumnSpace(1.0f / 4.0f);
     if (ImGui::TreeNode("Tone Trans")) {
-        vec3 tone_trans_start;
-        post_process_tone_map_get_tone_trans_start(tone_map, &tone_trans_start);
+        vec3 tone_trans_start = tone_map->get_tone_trans_start();
         imguiColumnSliderVec3("Start", &tone_trans_start, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
-        post_process_tone_map_set_tone_trans_start(tone_map, &tone_trans_start);
+        tone_map->set_tone_trans_start(tone_trans_start);
 
-        vec3 tone_trans_end;
-        post_process_tone_map_get_tone_trans_end(tone_map, &tone_trans_end);
+        vec3 tone_trans_end = tone_map->get_tone_trans_end();
         imguiColumnSliderVec3("End", &tone_trans_end, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
-        post_process_tone_map_set_tone_trans_end(tone_map, &tone_trans_end);
+        tone_map->set_tone_trans_end(tone_trans_end);
         ImGui::TreePop();
     }
 
     if (ImGui::TreeNode("Scene Fade")) {
-        float_t scene_fade_alpha = post_process_tone_map_get_scene_fade_alpha(tone_map);
+        float_t scene_fade_alpha = tone_map->get_scene_fade_alpha();
         imguiColumnSliderFloat("Alpha", &scene_fade_alpha, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
-        post_process_tone_map_set_scene_fade_alpha(tone_map, scene_fade_alpha);
+        tone_map->set_scene_fade_alpha(scene_fade_alpha);
 
-        vec3 scene_fade_color;
-        post_process_tone_map_get_scene_fade_color(tone_map, &scene_fade_color);
+        vec3 scene_fade_color = tone_map->get_scene_fade_color();
         imguiColumnSliderVec3("Color", &scene_fade_color, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
-        post_process_tone_map_set_scene_fade_color(tone_map, &scene_fade_color);
+        tone_map->set_scene_fade_color(scene_fade_color);
 
         const char* scene_fade_blend_func_labels[] = {
             "0: OVER",
@@ -97,10 +94,10 @@ void graphics_post_process_imgui(class_data* data) {
             "2: PLUS",
         };
 
-        int32_t scene_fade_blend_func = post_process_tone_map_get_scene_fade_blend_func(tone_map);
+        int32_t scene_fade_blend_func = tone_map->get_scene_fade_blend_func();
         imguiColumnComboBox("Blend Func", scene_fade_blend_func_labels, 3,
             &scene_fade_blend_func, 0, false, &data->imgui_focus);
-        post_process_tone_map_set_scene_fade_blend_func(tone_map, scene_fade_blend_func);
+        tone_map->set_scene_fade_blend_func(scene_fade_blend_func);
         ImGui::TreePop();
     }
 
@@ -111,48 +108,46 @@ void graphics_post_process_imgui(class_data* data) {
             "RGB LINEAR2",
         };
 
-        int32_t _tone_map_method = post_process_tone_map_get_tone_map_method(tone_map);
+        int32_t _tone_map_method = tone_map->get_tone_map_method();
         imguiColumnComboBox("Tone Map", tone_map_method_labels, 3,
             &_tone_map_method, 0, false, &data->imgui_focus);
-        post_process_tone_map_set_tone_map_method(tone_map, (tone_map_method)_tone_map_method);
+        tone_map->set_tone_map_method((tone_map_method)_tone_map_method);
 
-        float_t exposure = post_process_tone_map_get_exposure(tone_map);
+        float_t exposure = tone_map->get_exposure();
         imguiColumnSliderFloat("Exposure", &exposure, 0.02f, 0.0f, 4.0f, "%.2f", 0, true);
         exposure = roundf(exposure / 0.02f) * 0.02f;
-        post_process_tone_map_set_exposure(tone_map, exposure);
+        tone_map->set_exposure(exposure);
 
-        bool auto_exposure = post_process_tone_map_get_auto_exposure(tone_map);
+        bool auto_exposure = tone_map->get_auto_exposure();
         imguiCheckbox("Auto Exposure", &auto_exposure);
-        post_process_tone_map_set_auto_exposure(tone_map, auto_exposure);
+        tone_map->set_auto_exposure(auto_exposure);
 
-        float_t gamma = post_process_tone_map_get_gamma(tone_map);
+        float_t gamma = tone_map->get_gamma();
         imguiColumnSliderFloat("Gamma", &gamma, 0.01f, 0.2f, 2.2f, "%.2f", 0, true);
-        post_process_tone_map_set_gamma(tone_map, gamma);
+        tone_map->set_gamma(gamma);
 
-        int32_t saturate1 = post_process_tone_map_get_saturate_power(tone_map);
+        int32_t saturate1 = tone_map->get_saturate_power();
         imguiColumnSliderInt("Saturate 1", &saturate1, 1, 6, "%d", 0, true);
-        post_process_tone_map_set_saturate_power(tone_map, saturate1);
+        tone_map->set_saturate_power(saturate1);
 
-        float_t saturate2 = post_process_tone_map_get_saturate_coeff(tone_map);
+        float_t saturate2 = tone_map->get_saturate_coeff();
         imguiColumnSliderFloat("Saturate 2", &saturate2, 0.01f, 0.0f, 1.0f, "%.2f", 0, true);
-        post_process_tone_map_set_saturate_coeff(tone_map, saturate2);
+        tone_map->set_saturate_coeff(saturate2);
         ImGui::TreePop();
     }
 
     if (ImGui::TreeNodeEx("Glare", ImGuiTreeNodeFlags_DefaultOpen)) {
-        vec3 radius;
-        post_process_blur_get_radius(blur, &radius);
+        vec3 radius = blur->get_radius();
         imguiColumnSliderFloat("Radius R", &radius.x, 0.1f, 1.0f, 3.0f, "%.2f", 0, true);
         imguiColumnSliderFloat("Radius G", &radius.y, 0.1f, 1.0f, 3.0f, "%.2f", 0, true);
         imguiColumnSliderFloat("Radius B", &radius.z, 0.1f, 1.0f, 3.0f, "%.2f", 0, true);
-        post_process_blur_set_radius(blur, &radius);
+        blur->set_radius(radius);
 
-        vec3 intensity;
-        post_process_blur_get_intensity(blur, &intensity);
+        vec3 intensity = blur->get_intensity();
         imguiColumnSliderFloat("Inten  R", &intensity.x, 0.05f, 0.0f, 2.0f, "%.2f", 0, true);
         imguiColumnSliderFloat("Inten  G", &intensity.y, 0.05f, 0.0f, 2.0f, "%.2f", 0, true);
         imguiColumnSliderFloat("Inten  B", &intensity.z, 0.05f, 0.0f, 2.0f, "%.2f", 0, true);
-        post_process_blur_set_intensity(blur, &intensity);
+        blur->set_intensity(intensity);
         ImGui::TreePop();
     }
     imguiSetDefaultColumnSpace();

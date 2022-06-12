@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "default.h"
-#include "quat.h"
-#include "vec.h"
+#include "default.hpp"
+#include "quat.hpp"
+#include "vec.hpp"
 
 struct quat_trans {
     quat quat;

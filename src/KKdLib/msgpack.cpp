@@ -16,7 +16,7 @@ msgpack::msgpack() : data() {
     type = MSGPACK_NULL;
 }
 
-msgpack::msgpack(const msgpack& m) {
+msgpack::msgpack(const msgpack& m) : type(), data() {
     if (this == &m)
         return;
 
@@ -105,7 +105,7 @@ msgpack::msgpack(const msgpack& m) {
     name = m.name;
 }
 
-msgpack::msgpack(const char* name, bool array, size_t length) {
+msgpack::msgpack(const char* name, bool array, size_t length) : data() {
     type = array ? MSGPACK_ARRAY : MSGPACK_MAP;
     MSGPACK_ALLOCATE_PTR(msgpack_array, this);
     if (name)
@@ -116,7 +116,7 @@ msgpack::msgpack(const char* name, bool array, size_t length) {
     ptr->resize(length);
 }
 
-msgpack::msgpack(const char* name, bool array, msgpack_array& val) {
+msgpack::msgpack(const char* name, bool array, msgpack_array& val) : data() {
     type = array ? MSGPACK_ARRAY : MSGPACK_MAP;
     MSGPACK_ALLOCATE_PTR(msgpack_array, this);
     if (name)
@@ -126,13 +126,13 @@ msgpack::msgpack(const char* name, bool array, msgpack_array& val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name) {
+msgpack::msgpack(const char* name) : data() {
     type = MSGPACK_NULL;
     if (name)
         this->name = std::string(name);
 }
 
-msgpack::msgpack(const char* name, bool val) {
+msgpack::msgpack(const char* name, bool val) : data() {
     type = MSGPACK_BOOL;
     MSGPACK_ALLOCATE_PTR(bool, this);
     if (name)
@@ -142,7 +142,7 @@ msgpack::msgpack(const char* name, bool val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, int8_t val) {
+msgpack::msgpack(const char* name, int8_t val) : data() {
     type = MSGPACK_INT8;
     MSGPACK_ALLOCATE_PTR(int8_t, this);
     if (name)
@@ -152,7 +152,7 @@ msgpack::msgpack(const char* name, int8_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, uint8_t val) {
+msgpack::msgpack(const char* name, uint8_t val) : data() {
     type = MSGPACK_UINT8;
     MSGPACK_ALLOCATE_PTR(uint8_t, this);
     if (name)
@@ -162,7 +162,7 @@ msgpack::msgpack(const char* name, uint8_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, int16_t val) {
+msgpack::msgpack(const char* name, int16_t val) : data() {
     type = MSGPACK_INT16;
     MSGPACK_ALLOCATE_PTR(int16_t, this);
     if (name)
@@ -172,7 +172,7 @@ msgpack::msgpack(const char* name, int16_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, uint16_t val) {
+msgpack::msgpack(const char* name, uint16_t val) : data() {
     type = MSGPACK_UINT16;
     MSGPACK_ALLOCATE_PTR(uint16_t, this);
     if (name)
@@ -182,7 +182,7 @@ msgpack::msgpack(const char* name, uint16_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, int32_t val) {
+msgpack::msgpack(const char* name, int32_t val) : data() {
     type = MSGPACK_INT32;
     MSGPACK_ALLOCATE_PTR(int32_t, this);
     if (name)
@@ -192,7 +192,7 @@ msgpack::msgpack(const char* name, int32_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, uint32_t val) {
+msgpack::msgpack(const char* name, uint32_t val) : data() {
     type = MSGPACK_UINT32;
     MSGPACK_ALLOCATE_PTR(uint32_t, this);
     if (name)
@@ -202,7 +202,7 @@ msgpack::msgpack(const char* name, uint32_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, int64_t val) {
+msgpack::msgpack(const char* name, int64_t val) : data() {
     type = MSGPACK_INT64;
     MSGPACK_ALLOCATE_PTR(int64_t, this);
     if (name)
@@ -212,7 +212,7 @@ msgpack::msgpack(const char* name, int64_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, uint64_t val) {
+msgpack::msgpack(const char* name, uint64_t val) : data() {
     type = MSGPACK_UINT64;
     MSGPACK_ALLOCATE_PTR(uint64_t, this);
     if (name)
@@ -222,7 +222,7 @@ msgpack::msgpack(const char* name, uint64_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, float_t val) {
+msgpack::msgpack(const char* name, float_t val) : data() {
     type = MSGPACK_FLOAT;
     MSGPACK_ALLOCATE_PTR(float_t, this);
     if (name)
@@ -232,7 +232,7 @@ msgpack::msgpack(const char* name, float_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, double_t val) {
+msgpack::msgpack(const char* name, double_t val) : data() {
     type = MSGPACK_DOUBLE;
     MSGPACK_ALLOCATE_PTR(double_t, this);
     if (name)
@@ -242,7 +242,7 @@ msgpack::msgpack(const char* name, double_t val) {
     *ptr = val;
 }
 
-msgpack::msgpack(const char* name, const char* val) {
+msgpack::msgpack(const char* name, const char* val) : data() {
     type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(std::string, this);
     if (name)
@@ -253,7 +253,7 @@ msgpack::msgpack(const char* name, const char* val) {
         *ptr = std::string(val);
 }
 
-msgpack::msgpack(const char* name, const wchar_t* val) {
+msgpack::msgpack(const char* name, const wchar_t* val) : data() {
     char* temp = utf16_to_utf8(val);
     type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(std::string, this);
@@ -266,43 +266,19 @@ msgpack::msgpack(const char* name, const wchar_t* val) {
     free(temp);
 }
 
-msgpack::msgpack(const char* name, string* val) {
+msgpack::msgpack(const char* name, std::string& val) : data() {
     type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(std::string, this);
     if (name)
         this->name = std::string(name);
     std::string* ptr = MSGPACK_SELECT_PTR(std::string, this);
     *ptr = {};
-    if (val)
-        *ptr = std::string(string_data(val), val->length);
+    if (val.size())
+        *ptr = val;
 }
 
-msgpack::msgpack(const char* name, std::string* val) {
-    type = MSGPACK_STRING;
-    MSGPACK_ALLOCATE_PTR(std::string, this);
-    if (name)
-        this->name = std::string(name);
-    std::string* ptr = MSGPACK_SELECT_PTR(std::string, this);
-    *ptr = {};
-    if (val)
-        *ptr = *val;
-}
-
-msgpack::msgpack(const char* name, wstring* val) {
-    char* temp = utf16_to_utf8(wstring_data(val));
-    type = MSGPACK_STRING;
-    MSGPACK_ALLOCATE_PTR(std::string, this);
-    if (name)
-        this->name = std::string(name);
-    std::string* ptr = MSGPACK_SELECT_PTR(std::string, this);
-    *ptr = {};
-    if (temp)
-        *ptr = std::string(temp);
-    free(temp)
-}
-
-msgpack::msgpack(const char* name, std::wstring* val) {
-    char* temp = utf16_to_utf8(val->c_str());
+msgpack::msgpack(const char* name, std::wstring& val) : data() {
+    char* temp = utf16_to_utf8(val.c_str());
     type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(std::string, this);
     if (name)
@@ -786,9 +762,9 @@ wchar_t* msgpack::read_utf16_string(const char* name) {
     return 0;
 }
 
-void msgpack::read_string(const char* name, string* str) {
+void msgpack::read_string(const char* name, std::string& str) {
     if (!this) {
-        *str = string_empty;
+        str = {};
         return;
     }
 
@@ -796,15 +772,15 @@ void msgpack::read_string(const char* name, string* str) {
 
     if (m && m->type == MSGPACK_STRING) {
         std::string* ptr = MSGPACK_SELECT_PTR(std::string, m);
-        string_init_length(str, ptr->c_str(), ptr->size());
+        str = *ptr;
     }
     else
-        *str = string_empty;
+        str = {};
 }
 
-void msgpack::read_string(const char* name, wstring* str) {
+void msgpack::read_string(const char* name, std::wstring& str) {
     if (!this) {
-        *str = wstring_empty;
+        str = {};
         return;
     }
 
@@ -813,11 +789,11 @@ void msgpack::read_string(const char* name, wstring* str) {
     if (m && m->type == MSGPACK_STRING) {
         std::string* ptr = MSGPACK_SELECT_PTR(std::string, m);
         wchar_t* temp = utf8_to_utf16(ptr->c_str());
-        wstring_init(str, temp);
+        str = temp;
         free(temp);
     }
     else
-        *str = wstring_empty;
+        str = {};
 }
 
 msgpack& msgpack::operator=(const msgpack& m) {

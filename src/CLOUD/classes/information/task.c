@@ -5,7 +5,7 @@
 
 #include "task.h"
 #include "../../../KKdLib/sort.hpp"
-#include "../../../KKdLib/str_utils.h"
+#include "../../../KKdLib/str_utils.hpp"
 #include "../../../CRE/task.hpp"
 #include "../imgui_helper.h"
 
@@ -58,9 +58,9 @@ void information_task_imgui(class_data* data) {
         return;
     }
 
-    std::vector<Task*> vec;
+    std::vector<app::Task*> vec;
     for (int32_t i = 0; ; i++) {
-        Task* t = TaskWork::GetTaskByIndex(i);
+        app::Task* t = app::TaskWork::GetTaskByIndex(i);
         if (!t)
             break;
 
@@ -69,13 +69,13 @@ void information_task_imgui(class_data* data) {
 
     switch (task_sort) {
     case 2:
-        quicksort_custom(vec.data(), vec.size(), sizeof(Task*), task_sort_by_name);
+        quicksort_custom(vec.data(), vec.size(), sizeof(app::Task*), task_sort_by_name);
         break;
     case 3:
-        quicksort_custom(vec.data(), vec.size(), sizeof(Task*), task_sort_by_calc);
+        quicksort_custom(vec.data(), vec.size(), sizeof(app::Task*), task_sort_by_calc);
         break;
     case 4:
-        quicksort_custom(vec.data(), vec.size(), sizeof(Task*), task_sort_by_disp);
+        quicksort_custom(vec.data(), vec.size(), sizeof(app::Task*), task_sort_by_disp);
         break;
     }
 
@@ -84,13 +84,13 @@ void information_task_imgui(class_data* data) {
     ImGui::BeginListBox("#Tasks", size);
     char buf[0x100];
     if (show_priority)
-        for (Task*& i : vec) {
+        for (app::Task*& i : vec) {
             sprintf_s(buf, sizeof(buf), "%1d %-30s % 7d(% 7d) % 7d(% 7d)", i->priority,
                 i->GetName(), i->GetCalcTime(), i->GetCalcTimeMax(), i->GetDispTime(), i->GetDispTimeMax());
             ImGui::Selectable(buf);
         }
     else
-        for (Task*& i : vec) {
+        for (app::Task*& i : vec) {
             sprintf_s(buf, sizeof(buf), "%-32s % 7d(% 7d) % 7d(% 7d)",
                 i->GetName(), i->GetCalcTime(), i->GetCalcTimeMax(), i->GetDispTime(), i->GetDispTimeMax());
             ImGui::Selectable(buf);
@@ -149,19 +149,19 @@ bool information_task_dispose(class_data* data) {
 }
 
 static int32_t task_sort_by_calc(void const* src1, void const* src2) {
-    Task* t1 = *(Task**)src1;
-    Task* t2 = *(Task**)src2;
+    app::Task* t1 = *(app::Task**)src1;
+    app::Task* t2 = *(app::Task**)src2;
     return t2->calc_time - t1->calc_time;
 }
 
 static int32_t task_sort_by_disp(void const* src1, void const* src2) {
-    Task* t1 = *(Task**)src1;
-    Task* t2 = *(Task**)src2;
+    app::Task* t1 = *(app::Task**)src1;
+    app::Task* t2 = *(app::Task**)src2;
     return t2->disp_time - t1->disp_time;
 }
 
 static int32_t task_sort_by_name(void const* src1, void const* src2) {
-    Task* t1 = *(Task**)src1;
-    Task* t2 = *(Task**)src2;
+    app::Task* t1 = *(app::Task**)src1;
+    app::Task* t2 = *(app::Task**)src2;
     return str_utils_compare(t1->name, t2->name);
 }

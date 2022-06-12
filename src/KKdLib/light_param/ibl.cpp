@@ -4,11 +4,11 @@
 */
 
 #include "ibl.hpp"
-#include "../io/path.h"
-#include "../io/stream.h"
-#include "../str_utils.h"
+#include "../io/path.hpp"
+#include "../io/stream.hpp"
+#include "../str_utils.hpp"
 
-static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s);
+static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s);
 static const char* light_param_ibl_read_line(char* buf, int32_t size, const char* src);
 static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* specular);
 static void light_param_ibl_specular_generate_mipmap(float_t* src, float_t* dst, size_t size);
@@ -25,10 +25,9 @@ void light_param_ibl::read(const char* path) {
     char* path_ibl = str_utils_add(path, ".ibl");
     if (path_check_file_exists(path_ibl)) {
         stream s;
-        io_open(&s, path_ibl, "rb");
+        s.open(path_ibl, "rb");
         if (s.io.stream)
-            light_param_ibl_read_inner(this, &s);
-        io_free(&s);
+            light_param_ibl_read_inner(this, s);
     }
     free(path_ibl);
 }
@@ -37,19 +36,17 @@ void light_param_ibl::read(const wchar_t* path) {
     wchar_t* path_ibl = str_utils_add(path, L".ibl");
     if (path_check_file_exists(path_ibl)) {
         stream s;
-        io_open(&s, path_ibl, L"rb");
+        s.open(path_ibl, L"rb");
         if (s.io.stream)
-            light_param_ibl_read_inner(this, &s);
-        io_free(&s);
+            light_param_ibl_read_inner(this, s);
     }
     free(path_ibl);
 }
 
 void light_param_ibl::read(const void* data, size_t size) {
     stream s;
-    io_open(&s, data, size);
-    light_param_ibl_read_inner(this, &s);
-    io_free(&s);
+    s.open(data, size);
+    light_param_ibl_read_inner(this, s);
 }
 
 bool light_param_ibl::load_file(void* data, const char* path, const char* file, uint32_t hash) {
@@ -83,10 +80,10 @@ light_param_ibl_specular::~light_param_ibl_specular() {
 
 }
 
-static void light_param_ibl_read_inner(light_param_ibl* ibl, stream* s) {
-    char* data = force_malloc_s(char, s->length + 1);
-    io_read(s, data, s->length);
-    data[s->length] = 0;
+static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
+    char* data = force_malloc_s(char, s.length + 1);
+    s.read(data, s.length);
+    data[s.length] = 0;
 
     char buf[0x100];
     const char* d = light_param_ibl_read_line(buf, sizeof(buf), data);

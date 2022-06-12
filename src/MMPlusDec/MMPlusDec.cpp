@@ -7,11 +7,11 @@
 
 #include <string>
 #include <vector>
-#include "../KKdLib/default.h"
-#include "../KKdLib/io/path.h"
-#include "../KKdLib/io/stream.h"
-#include "../KKdLib/aes.h"
-#include "../KKdLib/str_utils.h"
+#include "../KKdLib/default.hpp"
+#include "../KKdLib/io/path.hpp"
+#include "../KKdLib/io/stream.hpp"
+#include "../KKdLib/aes.hpp"
+#include "../KKdLib/str_utils.hpp"
 #include <intrin.h>
 
 static const uint8_t mmplus_key[] = {
@@ -30,7 +30,7 @@ bool aes_ni;
 
 int32_t wmain(int32_t argc, wchar_t** argv) {
     if (argc < 2) {
-        printf("MMPlusDec v0.1.1.0 by korenkonder. Key provided by Skyth\n");
+        printf("MMPlusDec v0.1.2.0 by korenkonder. Key provided by Skyth\n");
         printf("Usage: MMPlusDec indir [outdir] [-e]\n");
         return 0;
     }
@@ -79,40 +79,46 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
             stream in_file;
             stream out_file;
-            io_open(&in_file, infile.c_str(), L"rb");
-            io_open(&out_file, outfile.c_str(), L"wb");
+            in_file.open(infile.c_str(), L"rb");
+            out_file.open(outfile.c_str(), L"wb");
 
             if (in_file.io.stream && out_file.io.stream) {
                 printf(encrypt ? "Encrypting %ls\n" : "Decrypting %ls\n", i.c_str());
 
                 aes256_ctx_set_iv(&ctx, mmplus_iv);
 
+                size_t length = in_file.get_length();
+
                 uint8_t buf[0x400];
                 size_t size;
                 if (encrypt) {
-                    while (size = io_read(&in_file, buf, sizeof(buf))) {
-                        if (size % 0x10) {
-                            size_t align = align_val(size, 0x10) - size;
-                            buf[size] = '\n';
-                            for (size_t i = 1; i < align; i++)
-                                buf[size + i] = '\t';
+                    while (length && (size = in_file.read(buf, sizeof(buf)))) {
+                        if (length == size) {
+                            uint8_t align = (uint8_t)(0x10 - size % 0x10);
+                            for (uint8_t i = 0; i < align; i++)
+                                buf[size + i] = align;
                             size += align;
                         }
 
                         aes256_cbc_encrypt_buffer(&ctx, buf, size);
-                        io_write(&out_file, buf, size);
+                        out_file.write(buf, size);
+
+                        length -= size;
                     }
                 }
                 else {
-                    while (size = io_read(&in_file, buf, sizeof(buf))) {
+                    while (length && (size = in_file.read(buf, sizeof(buf)))) {
                         aes256_cbc_decrypt_buffer(&ctx, buf, size);
-                        io_write(&out_file, buf, size);
+
+                        if (length == size)
+                            size -= buf[size - 1];
+
+                        out_file.write(buf, size);
+
+                        length -= size;
                     }
                 }
             }
-
-            io_free(&in_file);
-            io_free(&out_file);
         }
     }
 
@@ -135,40 +141,46 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
             stream in_file;
             stream out_file;
-            io_open(&in_file, infile.c_str(), L"rb");
-            io_open(&out_file, outfile.c_str(), L"wb");
+            in_file.open(infile.c_str(), L"rb");
+            out_file.open(outfile.c_str(), L"wb");
 
             if (in_file.io.stream && out_file.io.stream) {
                 printf(encrypt ? "Encrypting %ls\\%ls\n" : "Decrypting %ls\\%ls\n", i.c_str(), j.c_str());
 
                 aes256_ctx_set_iv(&ctx, mmplus_iv);
 
+                size_t length = in_file.get_length();
+
                 uint8_t buf[0x400];
                 size_t size;
                 if (encrypt) {
-                    while (size = io_read(&in_file, buf, sizeof(buf))) {
-                        if (size % 0x10) {
-                            size_t align = align_val(size, 0x10) - size;
-                            buf[size] = '\n';
-                            for (size_t i = 1; i < align; i++)
-                                buf[size + i] = '\t';
+                    while (length && (size = in_file.read(buf, sizeof(buf)))) {
+                        if (length == size) {
+                            uint8_t align = (uint8_t)(0x10 - size % 0x10);
+                            for (uint8_t i = 0; i < align; i++)
+                                buf[size + i] = align;
                             size += align;
                         }
 
                         aes256_cbc_encrypt_buffer(&ctx, buf, size);
-                        io_write(&out_file, buf, size);
+                        out_file.write(buf, size);
+
+                        length -= size;
                     }
                 }
                 else {
-                    while (size = io_read(&in_file, buf, sizeof(buf))) {
+                    while (length && (size = in_file.read(buf, sizeof(buf)))) {
                         aes256_cbc_decrypt_buffer(&ctx, buf, size);
-                        io_write(&out_file, buf, size);
+
+                        if (length == size)
+                            size -= buf[size - 1];
+
+                        out_file.write(buf, size);
+
+                        length -= size;
                     }
                 }
             }
-
-            io_free(&in_file);
-            io_free(&out_file);
         }
     }
     return 0;

@@ -4,20 +4,13 @@
 */
 
 #include "glitter.hpp"
-#include "../../KKdLib/io/path.h"
+#include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/interpolation.h"
 #include "../../KKdLib/farc.hpp"
-#include "../../KKdLib/str_utils.h"
+#include "../../KKdLib/str_utils.hpp"
 #include "../data.hpp"
 
 namespace Glitter {
-#if defined(CRE_DEV)
-    static float_t glitter_curve_key_add_key(bool has_error,
-        bool has_error_lerp, bool has_error_hermite, float_t* a, float_t* b, int32_t frame,
-        const uint8_t step, size_t i, float_t t1, float_t t2, float_t t2_old,
-        std::vector<Curve::Key>* keys_rev);
-#endif
-
     FileReader::FileReader(GLT) : file_handler(), farc(), effect_group(),
         load_count(), type(), path(), file(), state(), init_scene(), obj_db() {
         emission = -1.0f;
@@ -838,55 +831,56 @@ namespace Glitter {
         }
 
         if (c->flags & CURVE_KEY_RANDOM_RANGE && keys.size()) {
+            Curve::Key* keys_data = keys.data();
             if (type == Glitter::X && c->flags & CURVE_BAKED)
                 if (c->flags & CURVE_RANDOM_RANGE_NEGATE)
                     for (size_t i = 0; i < count; i++) {
-                        float_t max = keys.data()[i].value;
-                        float_t min = keys.data()[i].random_range;
+                        float_t max = keys_data[i].value;
+                        float_t min = keys_data[i].random_range;
                         if (*(uint32_t*)&min != *(uint32_t*)&max) {
-                            keys.data()[i].value = (float_t)(((double_t)min + (double_t)max) * 0.5);
-                            keys.data()[i].random_range = (float_t)((double_t)max
+                            keys_data[i].value = (float_t)(((double_t)min + (double_t)max) * 0.5);
+                            keys_data[i].random_range = (float_t)((double_t)max
                                 - ((double_t)min + (double_t)max) * 0.5);
                         }
                         else
-                            keys.data()[i].random_range = 0.0f;
+                            keys_data[i].random_range = 0.0f;
                     }
                 else
                     for (size_t i = 0; i < count; i++) {
-                        float_t max = keys.data()[i].value;
-                        float_t min = keys.data()[i].random_range;
+                        float_t max = keys_data[i].value;
+                        float_t min = keys_data[i].random_range;
                         if (*(uint32_t*)&min != *(uint32_t*)&max) {
-                            keys.data()[i].value = min;
-                            keys.data()[i].random_range = (float_t)((double_t)max - (double_t)min);
+                            keys_data[i].value = min;
+                            keys_data[i].random_range = (float_t)((double_t)max - (double_t)min);
                         }
                         else
-                            keys.data()[i].random_range = 0.0f;
+                            keys_data[i].random_range = 0.0f;
                     }
 
             bool has_key_random_range = false;
             if (type == Glitter::F2) {
-                if (count > 1 && keys.data()[0].random_range != 0.0f
-                    && keys.data()[1].random_range != 0.0f)
+                if (count > 1 && keys_data[0].random_range != 0.0f
+                    && keys_data[1].random_range != 0.0f)
                     has_key_random_range = true;
-                else if (count > 1 && keys.data()[0].random_range != 0.0f
-                    && keys.data()[1].random_range == 0.0f) {
-                    keys.data()[0].value += keys.data()[0].random_range * 10.0f;
-                    keys.data()[0].random_range = 0.0f;
+                else if (count > 1 && keys_data[0].random_range != 0.0f
+                    && keys_data[1].random_range == 0.0f) {
+                    keys_data[0].value += keys_data[0].random_range * 10.0f;
+                    keys_data[0].random_range = 0.0f;
                 }
 
-                if (count > 1 && keys.data()[count - 2].random_range != 0.0f
-                    && keys.data()[count - 1].random_range != 0.0f)
+                if (count > 1 && keys_data[count - 2].random_range != 0.0f
+                    && keys_data[count - 1].random_range != 0.0f)
                     has_key_random_range = true;
-                else if (count > 1 && keys.data()[count - 2].random_range == 0.0f
-                    && keys.data()[count - 1].random_range != 0.0f) {
-                    keys.data()[count - 1].value += keys.data()[count - 1].random_range * 10.0f;
-                    keys.data()[count - 1].random_range = 0.0f;
+                else if (count > 1 && keys_data[count - 2].random_range == 0.0f
+                    && keys_data[count - 1].random_range != 0.0f) {
+                    keys_data[count - 1].value += keys_data[count - 1].random_range * 10.0f;
+                    keys_data[count - 1].random_range = 0.0f;
                 }
             }
 
             if (!has_key_random_range)
                 for (size_t i = 0; i < count; i++)
-                    if (keys.data()[i].random_range != 0.0f) {
+                    if (keys_data[i].random_range != 0.0f) {
                         has_key_random_range = true;
                         break;
                     }
@@ -896,204 +890,7 @@ namespace Glitter {
         }
 
 #if defined(CRE_DEV)
-        c->keys_rev = vector_old_empty(Curve::Key);
-        if (~c->flags & CURVE_BAKED) {
-            c->keys_rev.insert(c->keys_rev.end(), keys.begin(), keys.end());
-            return;
-        }
-        else if (count == 1) {
-            keys.data()[0].frame = c->start_time;
-            c->keys_rev.push_back(keys.data()[0]);
-            return;
-        }
-
-        bool curve_baked_half = false;
-        if (type == Glitter::F2 || (type == Glitter::X && ~c->flags & CURVE_BAKED_FULL))
-            curve_baked_half = true;
-
-        const uint8_t step = curve_baked_half ? 2 : 1;
-
-        int32_t start_time = c->start_time;
-        int32_t end_time = c->start_time + (int32_t)((count - 1) * step);
-        c->end_time = end_time;
-        float_t* arr_a = force_malloc_s(float_t, count);
-        float_t* arr_b = force_malloc_s(float_t, count);
-        for (size_t i = 0; i < count; i++) {
-            keys.data()[i].frame = start_time + (int32_t)(i * step);
-            arr_a[i] = keys.data()[i].value;
-            arr_b[i] = keys.data()[i].random_range;
-        }
-
-        static const float_t curve_baked_reverse_bias[] = {
-            0.00001f,
-            0.0001f,
-            0.001f,
-        };
-
-        static const float_t curve_baked_half_reverse_bias[] = {
-            0.000001f,
-            0.00001f,
-            0.0001f,
-        };
-
-        const float_t* reverse_bias = curve_baked_half
-            ? curve_baked_half_reverse_bias : curve_baked_reverse_bias;
-        const size_t reverse_min_count = curve_baked_half ? 5 : 4;
-
-        std::vector<Curve::Key> keys_rev = vector_old_empty(Curve::Key);
-        float_t* a = arr_a;
-        float_t* b = arr_b;
-        size_t left_count = count;
-        int32_t frame = start_time;
-        int32_t prev_frame = start_time;
-        float_t t2_old = 0.0f;
-        float_t* val_arr = force_malloc_s(float_t, count);
-        while (left_count > 0) {
-            int32_t c = 0;
-            if (left_count < reverse_min_count) {
-                Curve::Key key;
-                if (left_count == 1) {
-                    key.type = KEY_CONSTANT;
-                    key.frame = frame;
-                    key.value = a[0];
-                    key.tangent1 = t2_old;
-                    key.tangent2 = 0.0f;
-                    key.random_range = b[0];
-                    keys_rev.push_back(key);
-                    t2_old = 0.0f;
-                }
-                else {
-                    bool has_error = false;
-                    bool has_error_lerp = false;
-                    for (size_t j = 1; j < left_count; j++) {
-                        float_t val = lerp(a[0], a[left_count - 1], (float_t)j / (float_t)left_count);
-                        if (fabsf(val - a[0]) > reverse_bias[0]) {
-                            has_error = true;
-                            if (fabsf(val - a[j]) > reverse_bias[1]) {
-                                has_error_lerp = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    t2_old = glitter_curve_key_add_key(has_error, has_error_lerp, true,
-                        a, b, frame, step, left_count, 0.0f, 0.0f, t2_old, &keys_rev);
-                }
-                break;
-            }
-
-            float_t t1 = 0.0f;
-            float_t t2 = 0.0f;
-            float_t t1_prev = 0.0f;
-            float_t t2_prev = 0.0f;
-            bool has_prev_succeded = false;
-            bool constant = false;
-            bool prev_constant = false;
-            bool has_error = false;
-            bool has_error_lerp = false;
-            bool has_error_hermite = false;
-            bool has_prev_error = false;
-            bool has_prev_error_lerp = false;
-            bool has_prev_error_hermite = false;
-
-            size_t i;
-            for (i = reverse_min_count - 1; i < left_count; i++) {
-                double_t tt1 = 0.0;
-                double_t tt2 = 0.0;
-                for (size_t j = 1; j < i - 1; j++) {
-                    float_t _t1 = 0.0f;
-                    float_t _t2 = 0.0f;
-                    interpolate_chs_reverse_step_value(a, left_count, &_t1, &_t2, 0, i, j, step);
-                    tt1 += _t1;
-                    tt2 += _t2;
-                }
-                t1 = (float_t)(tt1 / (double_t)(i - 2));
-                t2 = (float_t)(tt2 / (double_t)(i - 2));
-
-                constant = false;
-                has_error = false;
-                has_error_lerp = false;
-                has_error_hermite = false;
-                for (size_t j = 1; j < i; j++) {
-                    float_t val = interpolate_chs_value(a[0], a[i], t1, t2, 0.0f,
-                        (float_t)(i * step), (float_t)(j * step));
-                    float_t val_lerp = lerp(a[0], a[i], (float_t)j / (float_t)i);
-                    if (fabsf(val - a[0]) > reverse_bias[0]) {
-                        has_error = true;
-                        constant = false;
-                        if (fabsf(val_lerp - a[j]) > reverse_bias[1]) {
-                            has_error_lerp = true;
-                            if (fabsf(val - a[j]) > reverse_bias[2]) {
-                                has_error_hermite = true;
-                                break;
-                            }
-                        }
-                    }
-                    else
-                        constant = true;
-                }
-
-                if (!has_error_hermite) {
-                    t1_prev = t1;
-                    t2_prev = t2;
-                    prev_constant = constant;
-                    has_prev_succeded = true;
-                    has_prev_error = has_error;
-                    has_prev_error_lerp = has_error_lerp;
-                    has_prev_error_hermite = has_error_hermite;
-                    if (i < left_count)
-                        continue;
-                }
-
-                if (has_prev_succeded) {
-                    if (prev_constant && ((i < left_count - 1 && a[i] == a[i + 1]) || (frame + i == end_time)))
-                        c = (int32_t)i;
-                    else
-                        c = (int32_t)(i - 1);
-                    t1 = t1_prev;
-                    t2 = t2_prev;
-                    has_error = has_prev_error;
-                    has_error_lerp = has_prev_error_lerp;
-                    has_error_hermite = has_prev_error_hermite;
-                }
-                else
-                    c = (int32_t)i;
-
-                if (has_error_hermite)
-                    c = 1;
-
-                t2_old = glitter_curve_key_add_key(has_error, has_error_lerp, has_error_hermite,
-                    a, b, frame, step, c, t1, t2, t2_old, &keys_rev);
-                prev_constant = false;
-                has_prev_succeded = false;
-                break;
-            }
-
-            if (has_prev_succeded) {
-                t2_old = glitter_curve_key_add_key(has_prev_error, has_prev_error_lerp, has_prev_error_hermite,
-                    a, b, frame, step, i, t1_prev, t2_prev, t2_old, &keys_rev);
-                c = (int32_t)i;
-            }
-            prev_frame = frame;
-            frame += c * step;
-            a += c;
-            b += c;
-            left_count -= c;
-        }
-        free(val_arr);
-
-        key.type = KEY_CONSTANT;
-        key.frame = start_time + (count - 1) * step;
-        key.value = arr_a[count - 1];
-        key.tangent1 = t2_old;
-        key.tangent2 = 0.0f;
-        key.random_range = arr_b[count - 1];
-        keys_rev.push_back(key);
-        free(arr_a);
-        free(arr_b);
-        c->keys_rev = keys_rev;
-
-        c->Recalculate(type);
+        c->FitKeysIntoCurve(type);
 #endif
     }
 
@@ -2606,55 +2403,4 @@ namespace Glitter {
             ptcl->data.uv_index_count = 0;
         return true;
     }
-
-#if defined(CRE_DEV)
-    static float_t glitter_curve_key_add_key(bool has_error,
-        bool has_error_lerp, bool has_error_hermite, float_t* a, float_t* b, int32_t frame,
-        const uint8_t step, size_t i, float_t t1, float_t t2, float_t t2_old,
-        std::vector<Curve::Key>* keys_rev) {
-        Curve::Key key;
-        if (has_error && has_error_lerp && has_error_hermite) {
-            float_t _t2 = t2_old;
-            for (size_t j = 0; j < i; j++) {
-                key.type = KEY_CONSTANT;
-                key.frame = (int32_t)(frame + j * step);
-                key.value = a[j];
-                key.tangent1 = _t2;
-                key.tangent2 = 0.0f;
-                key.random_range = b[j];
-                keys_rev->push_back(key);
-                _t2 = 0.0f;
-            }
-        }
-        else if (has_error && has_error_lerp) {
-            key.type = KEY_HERMITE;
-            key.frame = frame;
-            key.value = a[0];
-            key.tangent1 = t2_old;
-            key.tangent2 = t1;
-            key.random_range = b[0];
-            keys_rev->push_back(key);
-            return t2;
-        }
-        else if (has_error || (i > 1 && b[0] != b[1])) {
-            key.type = KEY_LINEAR;
-            key.frame = frame;
-            key.value = a[0];
-            key.tangent1 = 0.0f;
-            key.tangent2 = 0.0f;
-            key.random_range = b[0];
-            keys_rev->push_back(key);
-        }
-        else {
-            key.type = KEY_CONSTANT;
-            key.frame = frame;
-            key.value = a[0];
-            key.tangent1 = 0.0f;
-            key.tangent2 = 0.0f;
-            key.random_range = b[0];
-            keys_rev->push_back(key);
-        }
-        return 0.0f;
-    }
-#endif
 }

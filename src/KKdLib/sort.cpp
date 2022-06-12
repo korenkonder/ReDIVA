@@ -7,7 +7,7 @@
 
 #include "sort.hpp"
 #include <stdlib.h>
-#include "str_utils.h"
+#include "str_utils.hpp"
 
 #define RADIX_BASE 8
 #define RADIX (1 << RADIX_BASE)
@@ -24,9 +24,7 @@ static int quicksort_ssize_t_compare(void const* src1, void const* src2);
 static int quicksort_size_t_compare(void const* src1, void const* src2);
 static int quicksort_char_ptr_compare(void const* src1, void const* src2);
 static int quicksort_wchar_t_ptr_compare(void const* src1, void const* src2);
-static int quicksort_string_compare(void const* src1, void const* src2);
 static int quicksort_std_string_compare(void const* src1, void const* src2);
-static int quicksort_wstring_compare(void const* src1, void const* src2);
 static int quicksort_std_wstring_compare(void const* src1, void const* src2);
 
 inline void radix_sort_int8_t(int8_t* arr, size_t n) {
@@ -357,20 +355,12 @@ void quicksort_wchar_t_ptr(wchar_t** arr, size_t n) {
     qsort(arr, n, sizeof(wchar_t*), quicksort_wchar_t_ptr_compare);
 }
 
-inline void quicksort_string(string* arr, size_t n) {
-    qsort(arr, n, sizeof(string), quicksort_string_compare);
-}
-
 inline void quicksort_string(std::string* arr, size_t n) {
-    qsort(arr, n, sizeof(string), quicksort_std_string_compare);
-}
-
-inline void quicksort_wstring(wstring* arr, size_t n) {
-    qsort(arr, n, sizeof(wstring), quicksort_wstring_compare);
+    qsort(arr, n, sizeof(std::string), quicksort_std_string_compare);
 }
 
 inline void quicksort_wstring(std::wstring* arr, size_t n) {
-    qsort(arr, n, sizeof(wstring), quicksort_std_wstring_compare);
+    qsort(arr, n, sizeof(std::wstring), quicksort_std_wstring_compare);
 }
 
 inline void quicksort_custom(void* arr, size_t n, size_t s, quicksort_compare_func comp_finc) {
@@ -449,25 +439,11 @@ static int quicksort_wchar_t_ptr_compare(void const* src1, void const* src2) {
     return str_utils_compare(str1, str2);
 }
 
-static int quicksort_string_compare(void const* src1, void const* src2) {
-    string* str1 = (string*)src1;
-    string* str2 = (string*)src2;
-    return str_utils_compare_length(string_data(str1), str1->length,
-        string_data(str2), str2->length);
-}
-
 static int quicksort_std_string_compare(void const* src1, void const* src2) {
     std::string* str1 = (std::string*)src1;
     std::string* str2 = (std::string*)src2;
     return str_utils_compare_length(str1->c_str(), str1->size(),
         str2->c_str(), str2->size());
-}
-
-static int quicksort_wstring_compare(void const* src1, void const* src2) {
-    wstring* str1 = (wstring*)src1;
-    wstring* str2 = (wstring*)src2;
-    return str_utils_compare_length(wstring_data(str1), str1->length,
-        wstring_data(str2), str2->length);
 }
 
 static int quicksort_std_wstring_compare(void const* src1, void const* src2) {

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "../default.h"
-#include "../vec.h"
+#include "../default.hpp"
+#include "../vec.hpp"
 
 enum tone_map_method {
     TONE_MAP_YCC_EXPONENT = 0,

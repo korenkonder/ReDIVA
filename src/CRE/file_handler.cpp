@@ -45,8 +45,8 @@ struct file_handler_storage {
 
 file_handler_storage* file_handler_storage_data;
 
-static bool file_handler_load_file(void* data, const char* path, const char* file, uint32_t hash);
-static bool file_handler_load_farc_file(void* data, const char* path, const char* file, uint32_t hash);
+static bool file_handler_load_file(void* data, const char* dir, const char* file, uint32_t hash);
+static bool file_handler_load_farc_file(void* data, const char* dir, const char* file, uint32_t hash);
 static void file_handler_storage_ctrl_list();
 static void file_handler_storage_thread_ctrl();
 
@@ -64,8 +64,8 @@ void file_handler::call_callback(int32_t index) {
         return;
 
     std::unique_lock<std::mutex> u_lock(mtx);
-    void* data = this->data;
-    void(*callback_func)(void*, void*, size_t) = this->callback[index].func;
+    const void* data = this->data;
+    void(*callback_func)(void*, const void*, size_t) = this->callback[index].func;
     void* callback_data = this->callback[index].data;
     bool ready = this->callback[index].ready;
     this->callback[index].ready = true;
@@ -88,13 +88,14 @@ void file_handler::set_farc_file(const char* farc_file, bool cache) {
     u_lock.unlock();
 }
 
-void file_handler::set_path(const char* path) {
+void file_handler::set_dir(const char* dir) {
     std::unique_lock<std::mutex> u_lock(mtx);
-    this->path = path;
+    this->dir = dir;
     u_lock.unlock();
 }
 
-void file_handler::set_callback_data(int32_t index, void(* func)(void*, void*, size_t), void* data) {
+void file_handler::set_callback_data(int32_t index,
+    void(*func)(void*, const void*, size_t), void* data) {
     std::unique_lock<std::mutex> u_lock(mtx);
     if (index < 2) {
         callback[index].func = func;
@@ -219,8 +220,8 @@ void file_handler_storage_free() {
     delete file_handler_storage_data;
 }
 
-static bool file_handler_load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    std::string file_path = path;
+static bool file_handler_load_file(void* data, const char* dir, const char* file, uint32_t hash) {
+    std::string file_path = dir;
     file_path += file;
 
     struct stat st;
@@ -234,16 +235,15 @@ static bool file_handler_load_file(void* data, const char* path, const char* fil
         return false;
 
     stream s;
-    io_open(&s, file_path.c_str(), "rb");
-    bool ret = s.io.stream && io_read(&s, fhndl->data, fhndl->size);
-    io_free(&s);
+    s.open(file_path.c_str(), "rb");
+    bool ret = s.io.stream && s.read(fhndl->data, fhndl->size);
     if (!ret)
         free(fhndl->data);
     return ret;
 }
 
-static bool file_handler_load_farc_file(void* data, const char* path, const char* file, uint32_t hash) {
-    std::string file_path = path;
+static bool file_handler_load_farc_file(void* data, const char* dir, const char* file, uint32_t hash) {
+    std::string file_path = dir;
     file_path += file;
 
     file_handler* fhndl = (file_handler*)data;
@@ -308,10 +308,10 @@ static void file_handler_storage_thread_ctrl() {
                 if (i->not_ready) {
                     if (i->farc_file.size())
                         i->not_ready = !((data_struct*)i->ds)->load_file(i,
-                            i->path.c_str(), i->farc_file.c_str(), file_handler_load_farc_file);
+                            i->dir.c_str(), i->farc_file.c_str(), file_handler_load_farc_file);
                     else
                         i->not_ready = !((data_struct*)i->ds)->load_file(i,
-                            i->path.c_str(), i->file.c_str(), file_handler_load_file);
+                            i->dir.c_str(), i->file.c_str(), file_handler_load_file);
                 }
                 i->reading = false;
                 u_lock.unlock();
@@ -365,7 +365,7 @@ void p_file_handler::free_data() {
     ptr = 0;
 }
 
-void* p_file_handler::get_data() {
+const void* p_file_handler::get_data() {
     if (!ptr || ptr->not_ready)
         return 0;
     return ptr->data;
@@ -377,9 +377,24 @@ ssize_t p_file_handler::get_size() {
     return ptr->size;
 }
 
-bool p_file_handler::read_file(void* data, const char* path,
+bool p_file_handler::read_file(void* data, const char* path) {
+    const char* t = strrchr(path, '/');
+    if (t) {
+        std::string dir = std::string(path, t - path + 1);
+        return read_file(data, dir.c_str(), 0, t + 1, false);
+    }
+
+    t = strrchr(path, '\\');
+    if (t) {
+        std::string dir = std::string(path, t - path + 1);
+        return read_file(data, dir.c_str(), 0, t + 1, false);
+    }
+    return false;
+}
+
+bool p_file_handler::read_file(void* data, const char* dir,
     const char* farc_file, const char* file, bool cache) {
-    if (!path || !file)
+    if (!dir || !file)
         return false;
 
     if (ptr) {
@@ -388,7 +403,7 @@ bool p_file_handler::read_file(void* data, const char* path,
         free_data();
     }
 
-    if (!((data_struct*)data)->check_file_exists(path, farc_file ? farc_file : file))
+    if (!((data_struct*)data)->check_file_exists(dir, farc_file ? farc_file : file))
         return false;
 
     ptr = new file_handler;
@@ -401,7 +416,7 @@ bool p_file_handler::read_file(void* data, const char* path,
     ptr->count++;
     u_lock.unlock();
 
-    ptr->set_path(path);
+    ptr->set_dir(dir);
     if (farc_file)
         ptr->set_farc_file(farc_file, cache);
     ptr->set_file(file);
@@ -413,12 +428,12 @@ bool p_file_handler::read_file(void* data, const char* path,
     return true;
 }
 
-bool p_file_handler::read_file(void* data, const char* path, const char* file) {
-    return read_file(data, path, 0, file, false);
+bool p_file_handler::read_file(void* data, const char* dir, const char* file) {
+    return read_file(data, dir, 0, file, false);
 }
 
-bool p_file_handler::read_file(void* data, const char* path, uint32_t hash, const char* ext) {
-    if (!path || !hash || hash == hash_murmurhash_empty)
+bool p_file_handler::read_file(void* data, const char* dir, uint32_t hash, const char* ext) {
+    if (!dir || !hash || hash == hash_murmurhash_empty)
         return false;
 
     if (ptr) {
@@ -428,7 +443,7 @@ bool p_file_handler::read_file(void* data, const char* path, uint32_t hash, cons
     }
 
     std::string file;
-    if (!((data_struct*)data)->get_file(path, hash, ext, &file))
+    if (!((data_struct*)data)->get_file(dir, hash, ext, file))
         return false;
 
     ptr = new file_handler;
@@ -441,7 +456,7 @@ bool p_file_handler::read_file(void* data, const char* path, uint32_t hash, cons
     ptr->count++;
     u_lock.unlock();
 
-    ptr->set_path(path);
+    ptr->set_dir(dir);
     ptr->set_file(file.c_str());
 
     std::unique_lock<std::mutex> u_lock1(ptr->mtx);
@@ -463,10 +478,10 @@ void p_file_handler::read_now() {
                 bool ret;
                 if (ptr->farc_file.size())
                     ret = ((data_struct*)ptr->ds)->load_file(
-                        ptr, ptr->path.c_str(), ptr->farc_file.c_str(), file_handler_load_farc_file);
+                        ptr, ptr->dir.c_str(), ptr->farc_file.c_str(), file_handler_load_farc_file);
                 else
                     ret = ((data_struct*)ptr->ds)->load_file(
-                        ptr, ptr->path.c_str(), ptr->file.c_str(), file_handler_load_file);
+                        ptr, ptr->dir.c_str(), ptr->file.c_str(), file_handler_load_file);
 
                 if (ret)
                     ptr->not_ready = false;
@@ -479,7 +494,8 @@ void p_file_handler::read_now() {
     }
 }
 
-void p_file_handler::set_callback_data(int32_t index, void(*func)(void*, void*, size_t), void* data) {
+void p_file_handler::set_callback_data(int32_t index,
+    void(*func)(void*, const void*, size_t), void* data) {
     if (ptr)
         ptr->set_callback_data(index, func, data);
 }

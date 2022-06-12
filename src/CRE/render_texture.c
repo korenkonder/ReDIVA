@@ -103,7 +103,7 @@ inline void render_texture_draw(render_texture* rt, bool depth) {
 
 inline void render_texture_draw_custom(shader_set_data* set) {
     gl_state_bind_vertex_array(render_texture_vao);
-    shader_draw_arrays(set, GL_TRIANGLE_STRIP, 0, 3);
+    set->draw_arrays(GL_TRIANGLE_STRIP, 0, 3);
     gl_state_bind_vertex_array(0);
 }
 
@@ -117,13 +117,13 @@ void render_texture_draw_params(shader_set_data* set, int32_t width, int32_t hei
     float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
     float_t w = (float_t)max(width, 1);
     float_t h = (float_t)max(height, 1);
-    shader_local_vert_set(set, 0, scale / w, scale / h, w, h);
-    shader_local_frag_set(set, 0, scale / w, scale / h, w, h);
-    shader_local_vert_set(set, 3, param_x, param_y, param_z, param_w);
-    shader_local_frag_set(set, 3, param_x, param_y, param_z, param_w);
+    set->local_vert_set(0, scale / w, scale / h, w, h);
+    set->local_frag_set(0, scale / w, scale / h, w, h);
+    set->local_vert_set(3, param_x, param_y, param_z, param_w);
+    set->local_frag_set(3, param_x, param_y, param_z, param_w);
 
     gl_state_bind_vertex_array(render_texture_vao);
-    shader_draw_arrays(set, GL_TRIANGLE_STRIP, 0, 3);
+    set->draw_arrays(GL_TRIANGLE_STRIP, 0, 3);
     gl_state_bind_vertex_array(0);
 }
 
@@ -139,7 +139,7 @@ int32_t render_texture_set_color_depth_textures(render_texture* rt,
 
 inline void render_texture_shader_set(shader_set_data* set, uint32_t index) {
     if (set && index)
-        shader_set(set, index);
+        set->set(index);
     else
         render_texture_shader.use();
 }
@@ -209,8 +209,7 @@ void render_texture_data_init() {
             "    result = texture(g_color, frg.texcoord); \n"
             "}\n";
 
-        shader_glsl_param param;
-        memset(&param, 0, sizeof(shader_glsl_param));
+        shader_glsl_param param = {};
         param.name = "Render Texture";
         render_texture_shader.load(render_texture_vert_shader,
             render_texture_frag_shader, 0, &param);
@@ -221,8 +220,8 @@ void render_texture_data_init() {
              3.0f,  1.0f,  2.0f,  1.0f,
         };
 
-        glGenBuffers(1, &render_texture_vbo);
         glGenVertexArrays(1, &render_texture_vao);
+        glGenBuffers(1, &render_texture_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, render_texture_vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(verts_quad), verts_quad, GL_STATIC_DRAW);
 

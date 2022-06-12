@@ -6,7 +6,7 @@
 #pragma once
 
 #include <vector>
-#include "default.h"
+#include "default.hpp"
 
 enum dsc_diff {
     DSC_DIFF_EASY    = 0,

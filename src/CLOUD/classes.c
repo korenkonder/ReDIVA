@@ -9,37 +9,39 @@ bool data_test_shared_lock;
 
 extern bool input_locked;
 
-static void TaskWindow_do_disp(TaskWindow* t);
+namespace app {
+    static void TaskWindow_do_disp(TaskWindow* t);
 
-TaskWindow::TaskWindow() : show_window(), window_focus() {
+    TaskWindow::TaskWindow() : show_window(), window_focus() {
 
-}
+    }
 
-TaskWindow::~TaskWindow() {
+    TaskWindow::~TaskWindow() {
 
-}
+    }
 
-void TaskWindow::Window() {
-    if (!show_window)
-        return;
-}
+    void TaskWindow::Window() {
+        if (!show_window)
+            return;
+    }
 
-void TaskWork_Window() {
-    task_work->disp = true;
-    for (int32_t i = 0; i < 3; i++)
-        for (Task*& j : task_work->tasks) {
-            Task* tsk = j;
-            TaskWindow* tsk_w = dynamic_cast<TaskWindow*>(tsk);
-            if (tsk_w && tsk_w->priority == i)
-                TaskWindow_do_disp(tsk_w);
-        }
-    task_work->disp = false;
-}
+    void TaskWork_Window() {
+        task_work->disp = true;
+        for (int32_t i = 0; i < 3; i++)
+            for (Task*& j : task_work->tasks) {
+                Task* tsk = j;
+                TaskWindow* tsk_w = dynamic_cast<TaskWindow*>(tsk);
+                if (tsk_w && tsk_w->priority == i)
+                    TaskWindow_do_disp(tsk_w);
+            }
+        task_work->disp = false;
+    }
 
-static void TaskWindow_do_disp(TaskWindow* t) {
-    if ((t->field_1C == 1 || t->field_1C == 2)
-        && t->field_18 != TASK_INIT && t->field_18 != TASK_DEST)
-        t->Window();
+    static void TaskWindow_do_disp(TaskWindow* t) {
+        if ((t->field_1C == 1 || t->field_1C == 2)
+            && t->field_18 != Task::Enum::Init && t->field_18 != Task::Enum::Dest)
+            t->Window();
+    }
 }
 
 void classes_process_init(classes_data* classes, const size_t classes_count, render_context* rctx) {
@@ -202,11 +204,11 @@ void classes_process_input(classes_data* classes, const size_t classes_count) {
         classes_process_input(c->sub_classes, c->sub_classes_count);
     }
 
-    if (task_work)
+    if (app::task_work)
         for (int32_t i = 0; i < 3; i++)
-            for (Task*& j : task_work->tasks) {
-                Task* tsk = j;
-                TaskWindow* tsk_w = dynamic_cast<TaskWindow*>(tsk);
+            for (app::Task*& j : app::task_work->tasks) {
+                app::Task* tsk = j;
+                app::TaskWindow* tsk_w = dynamic_cast<app::TaskWindow*>(tsk);
                 if (tsk_w && tsk_w->priority == i)
                     input_locked |= tsk_w->window_focus;
             }

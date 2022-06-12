@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "../default.h"
+#include "../default.hpp"
 #include "../msgpack.hpp"
-#include "stream.h"
+#include "stream.hpp"
 
-extern void io_json_read(stream* s, msgpack* msg);
-extern void io_json_write(stream* s, msgpack* msg);
+extern void io_json_read(stream& s, msgpack* msg);
+extern void io_json_write(stream& s, msgpack* msg);

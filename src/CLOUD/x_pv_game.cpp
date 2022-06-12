@@ -9,11 +9,11 @@
 #include <set>
 #include "x_pv_game.hpp"
 #include "../CRE/Glitter/glitter.hpp"
-#include "../CRE/light_param/light.h"
+#include "../CRE/light_param/light.hpp"
 #include "../CRE/light_param.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/object.hpp"
-#include "../CRE/pv_param_task.hpp"
+#include "../CRE/pv_param.hpp"
 #include "../CRE/stage_modern.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/sort.hpp"
@@ -197,7 +197,7 @@ static int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
 static int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);
 static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_time, int64_t curr_time);
 static bool x_pv_game_dsc_process(x_pv_game* xpvgm, int64_t curr_time);
-static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm);
+static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys);
 static void x_pv_game_reset_field(x_pv_game* xpvgm);
 static void x_pv_game_stage_effect_ctrl(x_pv_game* xpvgm);
 static void x_pv_game_stage_effect_start(x_pv_game* xpvgm, pvsr_stage_effect* stage_effect);
@@ -210,42 +210,130 @@ static dsc_data* sub_1401216D0(x_pv_game* a1, dsc_x_func func_name,
 static void sub_140121A80(x_pv_game* a1, int32_t chara_id);
 static void sub_140122770(x_pv_game* a1, int32_t chara_id);
 
+x_pv_game_a3da_to_mot_keys::x_pv_game_a3da_to_mot_keys() {
+
+}
+
+x_pv_game_a3da_to_mot_keys::~x_pv_game_a3da_to_mot_keys() {
+
+}
+
 x_pv_game_a3da_to_mot::x_pv_game_a3da_to_mot(int32_t auth_3d_id) {
     this->auth_3d_id = auth_3d_id;
-    gblctr = -2;
-    n_hara = -2;
-    n_hara_y = -2;
-    j_hara_wj = -2;
-    n_kosi = -2;
-    j_mune_wj = -2;
-    n_mune_kl = -2;
-    j_mune_b_wj = -2;
-    j_kubi_wj = -2;
-    n_kao = -2;
-    j_kao_wj = -2;
-    j_eye_r_wj = -2;
-    j_eye_l_wj = -2;
-    n_waki_l = -2;
-    j_waki_l_wj = -2;
-    n_kata_l = -2;
-    j_kata_l_wj = -2;
-    j_ude_l_wj = -2;
-    j_te_l_wj = -2;
-    n_waki_r = -2;
-    j_waki_r_wj = -2;
-    n_kata_r = -2;
-    j_kata_r_wj = -2;
-    j_ude_r_wj = -2;
-    j_te_r_wj = -2;
-    j_kosi_wj = -2;
-    n_momo_l = -2;
-    j_momo_l_wj = -2;
-    j_sune_l_wj = -2;
-    j_asi_l_wj = -2;
-    n_momo_r = -2;
-    j_momo_r_wj = -2;
-    j_sune_r_wj = -2;
-    j_asi_r_wj = -2;
+    gblctr = -1;
+    n_hara = -1;
+    n_hara_y = -1;
+    j_hara_wj = -1;
+    n_kosi = -1;
+    j_mune_wj = -1;
+    n_mune_kl = -1;
+    j_mune_b_wj = -1;
+    j_kubi_wj = -1;
+    n_kao = -1;
+    j_kao_wj = -1;
+    j_kao_normal_wj = -1;
+    j_kao_close_wj = -1;
+    j_kao_smile_wj = -1;
+    j_kao_close_half_wj = -1;
+    j_kao_smile_half_wj = -1;
+    j_kuti_l_wj = -1;
+    j_kuti_u_wj = -1;
+    j_kuti_d_wj = -1;
+    j_kuti_r_wj = -1;
+    j_eye_r_wj = -1;
+    j_eye_l_wj = -1;
+    n_waki_l = -1;
+    j_waki_l_wj = -1;
+    n_kata_l = -1;
+    j_kata_l_wj = -1;
+    j_ude_l_wj = -1;
+    j_te_l_wj = -1;
+    j_te_sizen2_l_wj = -1;
+    j_te_close_l_wj = -1;
+    j_te_reset_l_wj = -1;
+    n_waki_r = -1;
+    j_waki_r_wj = -1;
+    n_kata_r = -1;
+    j_kata_r_wj = -1;
+    j_ude_r_wj = -1;
+    j_te_r_wj = -1;
+    j_te_sizen2_r_wj = -1;
+    j_te_close_r_wj = -1;
+    j_te_reset_r_wj = -1;
+    j_te_one_r_wj = -1;
+    j_kosi_wj = -1;
+    n_momo_l = -1;
+    j_momo_l_wj = -1;
+    j_sune_l_wj = -1;
+    j_asi_l_wj = -1;
+    n_momo_r = -1;
+    j_momo_r_wj = -1;
+    j_sune_r_wj = -1;
+    j_asi_r_wj = -1;
+}
+
+x_pv_game_a3da_to_mot::~x_pv_game_a3da_to_mot() {
+
+}
+static int32_t get_bone_index(auth_3d_object_hrc* oh, const char* name) {
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    for (auth_3d_object_node& i : oh->node)
+        if (hash_string_murmurhash(&i.name) == name_hash)
+            return (int32_t)(&i - oh->node.data());
+    return -1;
+}
+
+void x_pv_game_a3da_to_mot::get_bone_indices(auth_3d_object_hrc* oh) {
+    gblctr = get_bone_index(oh, "gblctr");
+    n_hara = get_bone_index(oh, "n_hara");
+    n_hara_y = get_bone_index(oh, "n_hara_y");
+    j_hara_wj = get_bone_index(oh, "j_hara_wj");
+    n_kosi = get_bone_index(oh, "n_kosi");
+    j_mune_wj = get_bone_index(oh, "j_mune_wj");
+    n_mune_kl = get_bone_index(oh, "n_mune_kl");
+    j_mune_b_wj = get_bone_index(oh, "j_mune_b_wj");
+    j_kubi_wj = get_bone_index(oh, "j_kubi_wj");
+    n_kao = get_bone_index(oh, "n_kao");
+    j_kao_wj = get_bone_index(oh, "j_kao_wj");
+    j_kao_normal_wj = get_bone_index(oh, "j_kao_normal_wj");
+    j_kao_close_wj = get_bone_index(oh, "j_kao_close_wj");
+    j_kao_smile_wj = get_bone_index(oh, "j_kao_smile_wj");
+    j_kao_close_half_wj = get_bone_index(oh, "j_kao_close_half_wj");
+    j_kao_smile_half_wj = get_bone_index(oh, "j_kao_smile_half_wj");
+    j_kuti_l_wj = get_bone_index(oh, "j_kuti_l_wj");
+    j_kuti_u_wj = get_bone_index(oh, "j_kuti_u_wj");
+    j_kuti_d_wj = get_bone_index(oh, "j_kuti_d_wj");
+    j_kuti_r_wj = get_bone_index(oh, "j_kuti_r_wj");
+    j_eye_r_wj = get_bone_index(oh, "j_eye_r_wj");
+    j_eye_l_wj = get_bone_index(oh, "j_eye_l_wj");
+    n_waki_l = get_bone_index(oh, "n_waki_l");
+    j_waki_l_wj = get_bone_index(oh, "j_waki_l_wj");
+    n_kata_l = get_bone_index(oh, "n_kata_l");
+    j_kata_l_wj = get_bone_index(oh, "j_kata_l_wj");
+    j_ude_l_wj = get_bone_index(oh, "j_ude_l_wj");
+    j_te_l_wj = get_bone_index(oh, "j_te_l_wj");
+    j_te_sizen2_l_wj = get_bone_index(oh, "j_te_sizen2_l_wj");
+    j_te_close_l_wj = get_bone_index(oh, "j_te_close_l_wj");
+    j_te_reset_l_wj = get_bone_index(oh, "j_te_reset_l_wj");
+    n_waki_r = get_bone_index(oh, "n_waki_r");
+    j_waki_r_wj = get_bone_index(oh, "j_waki_r_wj");
+    n_kata_r = get_bone_index(oh, "n_kata_r");
+    j_kata_r_wj = get_bone_index(oh, "j_kata_r_wj");
+    j_ude_r_wj = get_bone_index(oh, "j_ude_r_wj");
+    j_te_r_wj = get_bone_index(oh, "j_te_r_wj");
+    j_te_sizen2_r_wj = get_bone_index(oh, "j_te_sizen2_r_wj");
+    j_te_close_r_wj = get_bone_index(oh, "j_te_close_r_wj");
+    j_te_reset_r_wj = get_bone_index(oh, "j_te_reset_r_wj");
+    j_te_one_r_wj = get_bone_index(oh, "j_te_one_r_wj");
+    j_kosi_wj = get_bone_index(oh, "j_kosi_wj");
+    n_momo_l = get_bone_index(oh, "n_momo_l");
+    j_momo_l_wj = get_bone_index(oh, "j_momo_l_wj");
+    j_sune_l_wj = get_bone_index(oh, "j_sune_l_wj");
+    j_asi_l_wj = get_bone_index(oh, "j_asi_l_wj");
+    n_momo_r = get_bone_index(oh, "n_momo_r");
+    j_momo_r_wj = get_bone_index(oh, "j_momo_r_wj");
+    j_sune_r_wj = get_bone_index(oh, "j_sune_r_wj");
+    j_asi_r_wj = get_bone_index(oh, "j_asi_r_wj");
 }
 
 x_pv_game::x_pv_game() : pp(), sr(), state(), frame(), frame_float(), time(),
@@ -293,6 +381,7 @@ bool x_pv_game::Ctrl() {
     } break;
     case 2: {
         data_struct* x_data = &data_list[DATA_X];
+        data_struct* xhd_data = &data_list[DATA_XHD];
 
         light_param_storage_data_set_pv_id(pv_id);
         task_stage_modern_set_data(x_data, &obj_db, &tex_db, &stage_data);
@@ -300,6 +389,9 @@ bool x_pv_game::Ctrl() {
 
         for (std::pair<std::string, uint32_t>& i : category_load)
             auth_3d_data_load_category(x_data, i.first.c_str(), i.second);
+
+        for (std::pair<std::string, uint32_t>& i : effchrpv_category_load)
+            auth_3d_data_load_category(xhd_data, i.first.c_str(), i.second);
 
         auth_3d_data_load_category(light_category.c_str());
 
@@ -337,6 +429,10 @@ bool x_pv_game::Ctrl() {
                 wait_load = true;
 
         for (std::pair<std::string, uint32_t>& i : category_load)
+            if (!auth_3d_data_check_category_loaded(i.second))
+                wait_load = true;
+
+        for (std::pair<std::string, uint32_t>& i : effchrpv_category_load)
             if (!auth_3d_data_check_category_loaded(i.second))
                 wait_load = true;
 
@@ -486,7 +582,7 @@ bool x_pv_game::Ctrl() {
             state = 8;
     } break;
     case 8: {
-        TaskWork::AppendTask(&pv_param_task::post_process_task, "PV POST PROCESS TASK");
+        app::TaskWork::AppendTask(&pv_param_task::post_process_task, "PV POST PROCESS TASK");
 
         state = 9;
     } break;
@@ -675,9 +771,8 @@ bool x_pv_game::Ctrl() {
             size_t size = 0;
             dsc_m.unparse(&data, &size);
             stream s;
-            io_open(&s, file_buf, "wb");
-            io_write(&s, data, size);
-            io_free(&s);
+            s.open(file_buf, "wb");
+            s.write(data, size);
             free(data);*/
         }
 
@@ -723,9 +818,9 @@ bool x_pv_game::Ctrl() {
         stage_effect.stage_effect = -1;
         stage_effect.next_stage_effect = -1;
 
-        frame_float = 0.0;
-        this->frame = 0;
-        this->time = 0;
+        frame_float = -1.0f;
+        this->frame = -1;
+        this->time = (int64_t)round(-(100000.0 / 60.0) * 10000.0);
         while (dsc_data_ptr != dsc_data_ptr_end
             && x_pv_game_dsc_process(this, this->time))
             dsc_data_ptr++;
@@ -783,6 +878,11 @@ bool x_pv_game::Ctrl() {
                         break;
                     }
             }
+            for (auto& i : effchrpv_auth_3d_rob_mot_ids) {
+                x_pv_game_a3da_to_mot& a2m = i.second;
+                auth_3d* auth = auth_3d_data_get_auth_3d(a2m.auth_3d_id);
+                a2m.get_bone_indices(&auth->object_hrc[0]);
+            }
 
             for (auto& i : effchrpv_auth_3d_mot_ids) {
                 int32_t& id = i.second;
@@ -790,15 +890,15 @@ bool x_pv_game::Ctrl() {
                 auth_3d_data_set_camera_root_update(&id, false);
                 auth_3d_data_set_enable(&id, true);
                 auth_3d_data_set_paused(&id, false);
-                auth_3d_data_set_visibility(&id, false);
-                auth_3d_data_set_req_frame(&id, -1.0f);
+                auth_3d_data_set_visibility(&id, true);
+                auth_3d_data_set_req_frame(&id, -2.0f);
                 auth_3d_data_set_frame_rate(&id, &diva_pv_frame_rate);
             }
         }
 
         if (pv_id == 826) {
             extern int32_t global_ctrl_frames;
-            global_ctrl_frames = 5110;
+            global_ctrl_frames = 5111;
         }
         else if (pv_id == 822) {
             extern int32_t global_ctrl_frames;
@@ -820,7 +920,8 @@ bool x_pv_game::Ctrl() {
         extern float_t frame_speed;
         frame_speed = pause ? 0.0f : 1.0f;
 
-        frame_float += get_delta_frame();
+        float_t delta_frame = get_delta_frame();
+        frame_float += delta_frame;
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
@@ -841,7 +942,7 @@ bool x_pv_game::Ctrl() {
         x_pv_game_stage_effect_ctrl(this);
 
         if (pv_id == 826)
-            x_pv_game_map_auth_3d_to_mot(this);
+            x_pv_game_map_auth_3d_to_mot(this, delta_frame != 0.0f && frame > 0);
 
         if (!play || pv_end)
             state = 11;
@@ -865,9 +966,9 @@ bool x_pv_game::Dest() {
     task_stage_modern_unload();
 
     light_param_storage_data_reset();
-    post_process_tone_map_set_saturate_coeff(rctx_ptr->post_process.tone_map, 1.0f);
-    post_process_tone_map_set_scene_fade(rctx_ptr->post_process.tone_map, &vec4_null);
-    post_process_tone_map_set_scene_fade_blend_func(rctx_ptr->post_process.tone_map, 0);
+    rctx_ptr->post_process.tone_map->set_saturate_coeff(1.0f);
+    rctx_ptr->post_process.tone_map->set_scene_fade(vec4_null);
+    rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(0);
     rctx_ptr->post_process.dof->data.pv.enable = false;
     rctx_ptr->object_data.object_culling = true;
     rctx_ptr->draw_pass.shadow_ptr->range = 1.0f;
@@ -1083,7 +1184,7 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
                 std::string category = "A3D_" + name;
                 uint32_t category_hash = hash_string_murmurhash(&category);
 
-                category_load.push_back({ category, category_hash });
+                effchrpv_category_load.push_back({ category, category_hash });
                 effchrpv_auth_3d_mot_names.insert({ name, { category_hash, category } });
             }
         }
@@ -1102,7 +1203,7 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     target_anim_fps = get_target_anim_fps();
     anim_frame_speed = get_anim_frame_speed();
     pv_end = false;
-    for (pv_play_data& i : playdata)
+    for (x_pv_play_data& i : playdata)
         i.reset();
     scene_rot_y = 0.0f;
     scene_rot_mat = mat4u_identity;
@@ -1146,32 +1247,30 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     objset_load.push_back(stgpv_objset);
     objset_load.push_back(stgpvhrc_objset);
 
-    if (pv_id != 826) {
-        int32_t chara_index = 0;
-        for (pvpp_chara& i : pp->chara) {
-            if (!i.chara_effect_init) {
-                chara_index++;
-                continue;
+    chara_index = 0;
+    for (pvpp_chara& i : pp->chara) {
+        if (!i.chara_effect_init) {
+            chara_index++;
+            continue;
+        }
+
+        const char* src_name = chara_index_get_auth_3d_name((::chara_index)i.chara_effect.base_chara);
+        const char* dst_name = chara_index_get_auth_3d_name(charas[chara_index++]);
+
+        for (pvpp_chara_effect_a3da& j : i.chara_effect.effect_a3da) {
+            std::string name = j.has_object_set ? j.object_set.name : j.a3da.name;
+            if (name.find(src_name) == std::string::npos) {
+                size_t pos = name.find(dst_name);
+                if (pos != std::string::npos)
+                    name.replace(pos, utf8_length(dst_name), src_name, utf8_length(src_name));
             }
 
-            const char* src_name = chara_index_get_auth_3d_name((::chara_index)i.chara_effect.base_chara);
-            const char* dst_name = chara_index_get_auth_3d_name(charas[chara_index++]);
+            objset_load.push_back(hash_string_murmurhash(&name));
 
-            for (pvpp_chara_effect_a3da& j : i.chara_effect.effect_a3da) {
-                std::string name = j.has_object_set ? j.object_set.name : j.a3da.name;
-                if (name.find(src_name) == std::string::npos) {
-                    size_t pos = name.find(dst_name);
-                    if (pos != std::string::npos)
-                        name.replace(pos, utf8_length(dst_name), src_name, utf8_length(src_name));
-                }
-
-                objset_load.push_back(hash_string_murmurhash(&name));
-
-                std::string nam = j.has_object_set ? j.object_set.name : j.a3da.name;
-                nam.replace(utf8_length(buf), utf8_length(dst_name), dst_name, utf8_length(dst_name));
-                if (nam != name)
-                    objset_load.push_back(hash_string_murmurhash(&nam));
-            }
+            std::string nam = j.has_object_set ? j.object_set.name : j.a3da.name;
+            nam.replace(utf8_length(buf), utf8_length(dst_name), dst_name, utf8_length(dst_name));
+            if (nam != name)
+                objset_load.push_back(hash_string_murmurhash(&nam));
         }
     }
 
@@ -1219,7 +1318,221 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     Glitter::glt_particle_manager.draw_all = false;
 }
 
+bool mot_write_motion(void* data, const char* path, const char* file, uint32_t hash) {
+    x_pv_game* xpvgm = (x_pv_game*)data;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "PV%03d", xpvgm->pv_id);
+    motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
+    if (!set_info)
+        return true;
+
+    std::string mot_file = "mot_" + set_info->name + ".bin";
+
+    mot_set* mot_set = new ::mot_set;
+    {
+        farc f;
+        farc::load_file(&f, path, file, hash);
+
+        farc_file* ff = f.read_file(mot_file.c_str());
+        if (!ff) {
+            delete mot_set;
+            return true;
+        }
+
+        mot_set->unpack_file(ff->data, ff->size, false);
+    }
+
+    if (!mot_set->ready) {
+        delete mot_set;
+        return true;
+    }
+
+    for (auto& i : xpvgm->effchrpv_auth_3d_rob_mot_ids) {
+        char buf[0x100];
+        sprintf_s(buf, sizeof(buf), "PV826_OST_P%d_00", i.first + 1);
+
+        int32_t motion_id = aft_mot_db->get_motion_id(buf);
+
+        size_t motion_index = -1;
+        for (motion_info& j : set_info->motion)
+            if (j.id == motion_id) {
+                motion_index = &j - set_info->motion.data();
+                break;
+            }
+
+        mot_data* mot_data = &mot_set->vec[motion_index];
+
+        uint16_t key_set_count = mot_data->key_set_count - 1;
+        if (!key_set_count)
+            continue;
+
+        const char* name = bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON);
+        std::string* bone_names = aft_mot_db->bone_name.data();
+        std::vector<bone_database_bone>* bones = 0;
+        if (!aft_bone_data->get_skeleton_bones(name, &bones))
+            continue;
+
+        x_pv_game_a3da_to_mot& a2m = i.second;
+        const mot_bone_info* bone_info = mot_data->bone_info.data();
+        for (size_t key_set_offset = 0, i = 0; key_set_offset < key_set_count; i++) {
+            motion_bone_index bone_index = (motion_bone_index)aft_bone_data->get_skeleton_bone_index(
+                name, bone_names[bone_info[i].index].c_str());
+            if (bone_index == -1) {
+                i++;
+                bone_index = (motion_bone_index)aft_bone_data->get_skeleton_bone_index(
+                    name, bone_names[bone_info[i].index].c_str());
+                if (bone_index == -1)
+                    break;
+            }
+
+            bone_database_bone* bone = &(*bones)[bone_index];
+
+            auto elem = a2m.bone_keys.find(bone_index);
+            if (elem != a2m.bone_keys.end()) {
+                x_pv_game_a3da_to_mot_keys& keys = elem->second;
+
+                mot_key_set_data& key_set_data_x = mot_data->key_set[key_set_offset];
+                key_set_data_x.frames.clear();
+                key_set_data_x.values.clear();
+                key_set_data_x.type = mot_set::fit_keys_into_curve(keys.x,
+                    key_set_data_x.frames, key_set_data_x.values);
+                key_set_data_x.keys_count = (uint16_t)key_set_data_x.frames.size();
+                key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
+
+                mot_key_set_data& key_set_data_y = mot_data->key_set[key_set_offset + 1];
+                key_set_data_y.frames.clear();
+                key_set_data_y.values.clear();
+                key_set_data_y.type = mot_set::fit_keys_into_curve(keys.y,
+                    key_set_data_y.frames, key_set_data_y.values);
+                key_set_data_y.keys_count = (uint16_t)key_set_data_y.frames.size();
+                key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
+
+                mot_key_set_data& key_set_data_z = mot_data->key_set[key_set_offset + 2];
+                key_set_data_z.frames.clear();
+                key_set_data_z.values.clear();
+                key_set_data_z.type = mot_set::fit_keys_into_curve(keys.z,
+                    key_set_data_z.frames, key_set_data_z.values);
+                key_set_data_z.keys_count = (uint16_t)key_set_data_z.frames.size();
+                key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
+            }
+
+            elem = a2m.sec_bone_keys.find(bone_index);
+            if (elem != a2m.sec_bone_keys.end()) {
+                x_pv_game_a3da_to_mot_keys& keys = elem->second;
+
+                mot_key_set_data& key_set_data_x = mot_data->key_set[key_set_offset + 3];
+                key_set_data_x.frames.clear();
+                key_set_data_x.values.clear();
+                key_set_data_x.type = mot_set::fit_keys_into_curve(keys.x,
+                    key_set_data_x.frames, key_set_data_x.values);
+                key_set_data_x.keys_count = (uint16_t)key_set_data_x.frames.size();
+                key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
+
+                mot_key_set_data& key_set_data_y = mot_data->key_set[key_set_offset + 4];
+                key_set_data_y.frames.clear();
+                key_set_data_y.values.clear();
+                key_set_data_y.type = mot_set::fit_keys_into_curve(keys.y,
+                    key_set_data_y.frames, key_set_data_y.values);
+                key_set_data_y.keys_count = (uint16_t)key_set_data_y.frames.size();
+                key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
+
+                mot_key_set_data& key_set_data_z = mot_data->key_set[key_set_offset + 5];
+                key_set_data_z.frames.clear();
+                key_set_data_z.values.clear();
+                key_set_data_z.type = mot_set::fit_keys_into_curve(keys.z,
+                    key_set_data_z.frames, key_set_data_z.values);
+                key_set_data_z.keys_count = (uint16_t)key_set_data_z.frames.size();
+                key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
+            }
+
+            if (bone_index == MOTION_BONE_KL_AGO_WJ) {
+                mot_key_set_data& key_set_data_x = mot_data->key_set[key_set_offset];
+                key_set_data_x.frames.clear();
+                key_set_data_x.values.clear();
+                key_set_data_x.values.push_back(0.0491406508f);
+                key_set_data_x.type = MOT_KEY_SET_STATIC;
+                key_set_data_x.keys_count = 1;
+                key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
+
+                mot_key_set_data& key_set_data_y = mot_data->key_set[key_set_offset + 1];
+                key_set_data_y.frames.clear();
+                key_set_data_y.values.clear();
+                key_set_data_y.type = MOT_KEY_SET_NONE;
+                key_set_data_y.keys_count = 0;
+                key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
+
+                mot_key_set_data& key_set_data_z = mot_data->key_set[key_set_offset + 2];
+                key_set_data_z.frames.clear();
+                key_set_data_z.values.clear();
+                key_set_data_z.type = MOT_KEY_SET_NONE;
+                key_set_data_z.keys_count = 0;
+                key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
+            }
+            else if (bone_index == MOTION_BONE_N_KUBI_WJ_EX) {
+                mot_key_set_data& key_set_data_x = mot_data->key_set[key_set_offset];
+                key_set_data_x.frames.clear();
+                key_set_data_x.values.clear();
+                key_set_data_x.type = MOT_KEY_SET_NONE;
+                key_set_data_x.keys_count = 1;
+                key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
+
+                mot_key_set_data& key_set_data_y = mot_data->key_set[key_set_offset + 1];
+                key_set_data_y.frames.clear();
+                key_set_data_y.values.clear();
+                key_set_data_y.values.push_back(0.0331281610f);
+                key_set_data_y.type = MOT_KEY_SET_STATIC;
+                key_set_data_y.keys_count = 0;
+                key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
+
+                mot_key_set_data& key_set_data_z = mot_data->key_set[key_set_offset + 2];
+                key_set_data_z.frames.clear();
+                key_set_data_z.values.clear();
+                key_set_data_z.type = MOT_KEY_SET_NONE;
+                key_set_data_z.keys_count = 0;
+                key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
+            }
+
+            if (bone->type >= BONE_DATABASE_BONE_POSITION_ROTATION)
+                key_set_offset += 6;
+            else
+                key_set_offset += 3;
+        }
+    }
+
+    {
+        farc f;
+
+        f.add_file(mot_file.c_str());
+        farc_file* ff = &f.files.back();
+        mot_set->pack_file(&ff->data, &ff->size);
+
+        std::string mot_farc = "mot_" + set_info->name;
+        f.write(mot_farc.c_str(), FARC_COMPRESS_FArC, false);
+    }
+
+    delete mot_set;
+    return true;
+}
+
 void x_pv_game::Unload() {
+    if (pv_id == 826) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "PV%03d", pv_id);
+        motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
+        if (set_info) {
+            std::string farc_file = "mot_" + set_info->name + ".farc";
+            aft_data->load_file(this, "rom/rob/", farc_file.c_str(), mot_write_motion);
+        }
+    }
+
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -1308,10 +1621,15 @@ void x_pv_game::Unload() {
     for (std::pair<std::string, uint32_t>& i : category_load)
         auth_3d_data_unload_category(i.second);
 
+    for (std::pair<std::string, uint32_t>& i : effchrpv_category_load)
+        auth_3d_data_unload_category(i.second);
+
     auth_3d_data_unload_category(light_category.c_str());
 
     category_load.clear();
     category_load.shrink_to_fit();
+    effchrpv_category_load.clear();
+    effchrpv_category_load.shrink_to_fit();
 
     pv_category_hash = hash_murmurhash_empty;
     stage_category_hash = hash_murmurhash_empty;
@@ -1368,7 +1686,7 @@ void x_pv_game::Unload() {
     target_anim_fps = get_target_anim_fps();
     anim_frame_speed = get_anim_frame_speed();
     pv_end = false;
-    for (pv_play_data& i : playdata)
+    for (x_pv_play_data& i : playdata)
         i.reset();
     scene_rot_y = 0.0f;
     scene_rot_mat = mat4u_identity;
@@ -1388,16 +1706,16 @@ x_pv_game_glitter::~x_pv_game_glitter() {
     Glitter::glt_particle_manager.UnloadEffectGroup(hash);
 }
 
-struc_104::struc_104() : rob_chr(), current_time(),
+x_struc_104::x_struc_104() : rob_chr(), current_time(),
 duration(), start_pos(), end_pos(), start_rot(), end_rot() {
     mot_smooth_len = 12.0f;
 }
 
-struc_104::~struc_104() {
+x_struc_104::~x_struc_104() {
 
 }
 
-void struc_104::reset() {
+void x_struc_104::reset() {
     rob_chr = 0;
     current_time = 0.0f;
     duration = 0.0f;
@@ -1410,15 +1728,15 @@ void struc_104::reset() {
     set_item.clear();
 }
 
-pv_play_data::pv_play_data() : rob_chr(), disp() {
+x_pv_play_data::x_pv_play_data() : rob_chr(), disp() {
 
 }
 
-pv_play_data::~pv_play_data() {
+x_pv_play_data::~x_pv_play_data() {
 
 }
 
-void pv_play_data::reset() {
+void x_pv_play_data::reset() {
     motion.clear();
     rob_chr = 0;
     set_motion.clear();
@@ -1495,9 +1813,9 @@ static void sub_140122B60(x_pv_game* a1, int32_t chara_id, int32_t motion_index,
     if (chara_id < 0 || chara_id > ROB_CHARA_COUNT || motion_index < 0)
         return;
 
-    pv_play_data* playdata = &a1->playdata[chara_id];
+    x_pv_play_data* playdata = &a1->playdata[chara_id];
     int64_t dsc_time = a1->dsc_time;
-    for (dsc_set_motion& i : playdata->field_38.set_motion) {
+    for (x_dsc_set_motion& i : playdata->field_38.set_motion) {
         int64_t time = (int64_t)i.time * 10000;
         if (time > dsc_time && i.motion_index == motion_index
             && (!a1->branch_mode || a1->branch_mode == i.pv_branch_mode)) {
@@ -1546,7 +1864,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     } break;
     case DSC_X_MIKU_MOVE: {
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         vec3 trans;
         trans.x = (float_t)(int32_t)data[1] * 0.001f;
@@ -1564,7 +1882,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     } break;
     case DSC_X_MIKU_ROT: {
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         float_t rot_y = (float_t)(int32_t)data[0] * 0.001f;
 
@@ -1582,7 +1900,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t disp = (int32_t)data[1];
 
@@ -1600,7 +1918,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             }*/
 
             //pv_game::set_data_itmpv_visibility(a1->pv_game, a1->chara_id, true);
-            for (pv_play_data_set_motion& i : playdata->set_motion) {
+            for (x_pv_play_data_set_motion& i : playdata->set_motion) {
                 bool v45 = rob_chr->set_motion_id(i.motion_id, i.frame,
                     i.duration, i.field_10, 0, i.blend_type, aft_bone_data, aft_mot_db);
                 rob_chr->set_motion_reset_data(i.motion_id, i.dsc_frame);
@@ -1630,7 +1948,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         rob_chara* rob_chr = playdata->rob_chr;
         if (!rob_chr)
@@ -1662,8 +1980,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         float_t dsc_frame = 0.0f;
 
         bool v11 = false;
-        pv_play_data_motion* v56 = 0;
-        for (pv_play_data_motion& i : playdata->motion)
+        x_pv_play_data_motion* v56 = 0;
+        for (x_pv_play_data_motion& i : playdata->motion)
             if (i.motion_index == motion_index) {
                 v56 = &i;
                 break;
@@ -1733,7 +2051,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (v11)
             duration = 0.0f;
 
-        pv_play_data_set_motion v519;
+        x_pv_play_data_set_motion v519;
         v519.frame_speed = frame_speed * a1->anim_frame_speed;
         v519.motion_id = motion_id;
         v519.frame = frame;
@@ -1767,7 +2085,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     } break;
     case DSC_X_SET_PLAYDATA: {
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t motion_index = (int32_t)data[1];
         if (motion_index < 0) {
@@ -1775,20 +2093,20 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
         }
 
-        pv_play_data_motion* v92 = 0;
-        for (pv_play_data_motion& i : playdata->motion)
+        x_pv_play_data_motion* motion = 0;
+        for (x_pv_play_data_motion& i : playdata->motion)
             if (i.motion_index == motion_index) {
-                v92 = &i;
+                motion = &i;
                 break;
             }
 
-        if (v92) {
-            v92->enable = true;
-            v92->motion_index = motion_index;
-            v92->time = a1->dsc_time;
+        if (motion) {
+            motion->enable = true;
+            motion->motion_index = motion_index;
+            motion->time = a1->dsc_time;
         }
         else {
-            pv_play_data_motion v531;
+            x_pv_play_data_motion v531;
             v531.enable = true;
             v531.motion_index = motion_index;
             v531.time = a1->dsc_time;
@@ -1831,7 +2149,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t v115 = (int32_t)data[1];
         int32_t duration_int = (int32_t)data[2];
@@ -1859,7 +2177,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t mouth_anim_id = (int32_t)data[2];
         int32_t duration_int = (int32_t)data[3];
@@ -1937,7 +2255,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t hand_index = (int32_t)data[1];
         int32_t hand_anim_id = (int32_t)data[2];
@@ -1989,7 +2307,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t look_anim_id = (int32_t)data[1];
         int32_t duration_int = (int32_t)data[2];
@@ -2033,7 +2351,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t expression_id = (int32_t)data[1];
         int32_t duration_int = (int32_t)data[2];
@@ -2105,7 +2423,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         data_struct* aft_data = &data_list[DATA_AFT];
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t expression_id = (int32_t)data[0];
 
@@ -2167,7 +2485,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t mouth_anim_id = (int32_t)data[1];
         float_t duration = 0.1f;
@@ -2236,7 +2554,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         float_t value = (float_t)(int32_t)data[1] * 0.001f;
 
@@ -2261,16 +2579,15 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         end.x = (float_t)(int32_t)data[3] * 0.001f;
         end.y = (float_t)(int32_t)data[4] * 0.001f;
         end.z = (float_t)(int32_t)data[5] * 0.001f;
-        post_process_tone_map_set_tone_trans_start(rctx_ptr->post_process.tone_map, &start);
-        post_process_tone_map_set_tone_trans_start(rctx_ptr->post_process.tone_map, &end);
+        rctx_ptr->post_process.tone_map->set_tone_trans(start, end);
     } break;
     case DSC_X_SATURATE: {
         float_t value = (float_t)(int32_t)data[0] * 0.001f;
-        post_process_tone_map_set_saturate_coeff(rctx_ptr->post_process.tone_map, value);
+        rctx_ptr->post_process.tone_map->set_saturate_coeff(value);
     } break;
     case DSC_X_FADE_MODE: {
         int32_t value = data[0];
-        post_process_tone_map_set_scene_fade_blend_func(rctx_ptr->post_process.tone_map, value);
+        rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(value);
     } break;
     case DSC_X_AUTO_BLINK: {
 
@@ -2280,7 +2597,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         item_id id = (item_id)data[1];
         int32_t disp = (int32_t)data[2];
@@ -2296,7 +2613,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     } break;
     case DSC_X_CHARA_SIZE: {
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t chara_size = (int32_t)data[1];
 
@@ -2334,7 +2651,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     } break;
     case DSC_X_CHARA_HEIGHT_ADJUST: {
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t height_adjust = (int32_t)data[1];
 
@@ -2347,7 +2664,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     } break;
     case DSC_X_CHARA_POS_ADJUST: {
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         vec3 pos;
         pos.x = (float_t)(int32_t)data[2] * 0.001f;
@@ -2398,7 +2715,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         float_t wind_strength_kami = (float_t)(int32_t)data[1] * 0.001f;
         float_t wind_strength_outer = (float_t)(int32_t)data[2] * 0.001f;
@@ -2414,7 +2731,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         float_t osage_step_kami = (float_t)(int32_t)data[1] * 0.001f;
         float_t osage_step_outer = (float_t)(int32_t)data[2] * 0.001f;
@@ -2430,7 +2747,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         float_t osage_mv_ccl_kami = (float_t)(int32_t)data[1] * 0.001f;
         float_t osage_mv_ccl_outer = (float_t)(int32_t)data[2] * 0.001f;
@@ -2529,7 +2846,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t type = (int32_t)data[3];
 
         if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT) {
-            pv_param_chara_alpha& chara_alpha
+            pv_param::chara_alpha& chara_alpha
                 = pv_param_task::post_process_task.chara_alpha.data.data[a1->chara_id];
             chara_alpha.type = type;
             chara_alpha.frame = 0.0f;
@@ -2558,7 +2875,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t type = (int32_t)data[3];
 
         if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT) {
-            pv_param_chara_alpha& chara_item_alpha
+            pv_param::chara_alpha& chara_item_alpha
                 = pv_param_task::post_process_task.chara_item_alpha.data.data[a1->chara_id];
             chara_item_alpha.type = type;
             chara_item_alpha.frame = 0.0f;
@@ -2723,7 +3040,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         a1->chara_id = (int32_t)data[0];
-        pv_play_data* playdata = &a1->playdata[a1->chara_id];
+        x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         bool enable = data[1] ? true : false;
         int32_t chara_effect_id = (int32_t)data[2];
@@ -2872,16 +3189,32 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     return true;
 }
 
-static int32_t get_bone_index(auth_3d_object_hrc* oh, const char* name) {
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (auth_3d_object_node& i : oh->node)
-        if (hash_string_murmurhash(&i.name) == name_hash)
-            return (int32_t)(&i - oh->node.data());
-    return -1;
-}
-
 static void set_bone_key_set_data(bone_data* bone_data,
+    std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys>& bone_keys,
+    std::map<motion_bone_index, x_pv_game_a3da_to_mot_keys>& second_bone_keys, bool add_keys,
     motion_bone_index motion_bone_index, mot_key_set* key_set, vec3* data, int32_t count = 1) {
+    if (add_keys) {
+        auto elem = bone_keys.find(motion_bone_index);
+        if (elem == bone_keys.end())
+            elem = bone_keys.insert({ motion_bone_index, {} }).first;
+
+        x_pv_game_a3da_to_mot_keys& keys = elem->second;
+        keys.x.push_back(data[0].x);
+        keys.y.push_back(data[0].y);
+        keys.z.push_back(data[0].z);
+
+        if (count == 2) {
+            auto elem = second_bone_keys.find(motion_bone_index);
+            if (elem == second_bone_keys.end())
+                elem = second_bone_keys.insert({ motion_bone_index, {} }).first;
+
+            x_pv_game_a3da_to_mot_keys& keys = elem->second;
+            keys.x.push_back(data[1].x);
+            keys.y.push_back(data[1].y);
+            keys.z.push_back(data[1].z);
+        }
+    }
+
     bone_data += motion_bone_index;
     key_set += bone_data->key_set_offset;
     while (count > 0) {
@@ -2897,81 +3230,12 @@ static void set_bone_key_set_data(bone_data* bone_data,
     }
 }
 
-static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm) {
+static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
     for (auto& i : xpvgm->effchrpv_auth_3d_rob_mot_ids) {
         rob_chara* rob_chr = rob_chara_array_get(xpvgm->rob_chara_ids[i.first]);
         x_pv_game_a3da_to_mot& a2m = i.second;
         auth_3d* auth = auth_3d_data_get_auth_3d(a2m.auth_3d_id);
         auth_3d_object_hrc* oh = &auth->object_hrc[0];
-
-        if (a2m.gblctr == -2)
-            a2m.gblctr = get_bone_index(oh, "gblctr");
-        if (a2m.n_hara == -2)
-            a2m.n_hara = get_bone_index(oh, "n_hara");
-        if (a2m.n_hara_y == -2)
-            a2m.n_hara_y = get_bone_index(oh, "n_hara_y");
-        if (a2m.j_hara_wj == -2)
-            a2m.j_hara_wj = get_bone_index(oh, "j_hara_wj");
-        if (a2m.n_kosi == -2)
-            a2m.n_kosi = get_bone_index(oh, "n_kosi");
-        if (a2m.j_mune_wj == -2)
-            a2m.j_mune_wj = get_bone_index(oh, "j_mune_wj");
-        if (a2m.n_mune_kl == -2)
-            a2m.n_mune_kl = get_bone_index(oh, "n_mune_kl");
-        if (a2m.j_mune_b_wj == -2)
-            a2m.j_mune_b_wj = get_bone_index(oh, "j_mune_b_wj");
-        if (a2m.j_kubi_wj == -2)
-            a2m.j_kubi_wj = get_bone_index(oh, "j_kubi_wj");
-        if (a2m.n_kao == -2)
-            a2m.n_kao = get_bone_index(oh, "n_kao");
-        if (a2m.j_kao_wj == -2)
-            a2m.j_kao_wj = get_bone_index(oh, "j_kao_wj");
-        if (a2m.j_eye_r_wj == -2)
-            a2m.j_eye_r_wj = get_bone_index(oh, "j_eye_r_wj");
-        if (a2m.j_eye_l_wj == -2)
-            a2m.j_eye_l_wj = get_bone_index(oh, "j_eye_l_wj");
-        if (a2m.n_waki_l == -2)
-            a2m.n_waki_l = get_bone_index(oh, "n_waki_l");
-        if (a2m.j_waki_l_wj == -2)
-            a2m.j_waki_l_wj = get_bone_index(oh, "j_waki_l_wj");
-        if (a2m.n_kata_l == -2)
-            a2m.n_kata_l = get_bone_index(oh, "n_kata_l");
-        if (a2m.j_kata_l_wj == -2)
-            a2m.j_kata_l_wj = get_bone_index(oh, "j_kata_l_wj");
-        if (a2m.j_ude_l_wj == -2)
-            a2m.j_ude_l_wj = get_bone_index(oh, "j_ude_l_wj");
-        if (a2m.j_te_l_wj == -2)
-            a2m.j_te_l_wj = get_bone_index(oh, "j_te_l_wj");
-        if (a2m.n_waki_r == -2)
-            a2m.n_waki_r = get_bone_index(oh, "n_waki_r");
-        if (a2m.j_waki_r_wj == -2)
-            a2m.j_waki_r_wj = get_bone_index(oh, "j_waki_r_wj");
-        if (a2m.n_kata_r == -2)
-            a2m.n_kata_r = get_bone_index(oh, "n_kata_r");
-        if (a2m.j_kata_r_wj == -2)
-            a2m.j_kata_r_wj = get_bone_index(oh, "j_kata_r_wj");
-        if (a2m.j_ude_r_wj == -2)
-            a2m.j_ude_r_wj = get_bone_index(oh, "j_ude_r_wj");
-        if (a2m.j_te_r_wj == -2)
-            a2m.j_te_r_wj = get_bone_index(oh, "j_te_r_wj");
-        if (a2m.j_kosi_wj == -2)
-            a2m.j_kosi_wj = get_bone_index(oh, "j_kosi_wj");
-        if (a2m.n_momo_l == -2)
-            a2m.n_momo_l = get_bone_index(oh, "n_momo_l");
-        if (a2m.j_momo_l_wj == -2)
-            a2m.j_momo_l_wj = get_bone_index(oh, "j_momo_l_wj");
-        if (a2m.j_sune_l_wj == -2)
-            a2m.j_sune_l_wj = get_bone_index(oh, "j_sune_l_wj");
-        if (a2m.j_asi_l_wj == -2)
-            a2m.j_asi_l_wj = get_bone_index(oh, "j_asi_l_wj");
-        if (a2m.n_momo_r == -2)
-            a2m.n_momo_r = get_bone_index(oh, "n_momo_r");
-        if (a2m.j_momo_r_wj == -2)
-            a2m.j_momo_r_wj = get_bone_index(oh, "j_momo_r_wj");
-        if (a2m.j_sune_r_wj == -2)
-            a2m.j_sune_r_wj = get_bone_index(oh, "j_sune_r_wj");
-        if (a2m.j_asi_r_wj == -2)
-            a2m.j_asi_r_wj = get_bone_index(oh, "j_asi_r_wj");
 
         rob_chr->set_visibility(oh->node[0].model_transform.visible);
 
@@ -2985,16 +3249,20 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm) {
         data[0].y = oh->node[a2m.n_hara].model_transform.translation_value.y;
         data[0].z = oh->node[a2m.gblctr].model_transform.translation_value.z;
         data[1] = vec3_null;
-        set_bone_key_set_data(bone_data, MOTION_BONE_N_HARA_CP, key_set, data, 2);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_N_HARA_CP, key_set, data, 2);
 
         data[0] = oh->node[a2m.n_hara_y].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_KG_HARA_Y, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KG_HARA_Y, key_set, data);
 
         data[0] = oh->node[a2m.j_hara_wj].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_KL_HARA_XZ, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_HARA_XZ, key_set, data);
 
         data[0] = oh->node[a2m.n_kosi].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_N_HARA, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_N_HARA, key_set, data);
 
         mat = oh->node[a2m.j_mune_wj].model_transform.mat;
         data[0] = { 0.0f, 0.945f, 0.0f };
@@ -3002,17 +3270,21 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm) {
         mat4_get_translation(&mat, &data[0]);
         vec3_add(data[0], data[1], data[0]);
         data[1] = vec3_null;
-        set_bone_key_set_data(bone_data, MOTION_BONE_CL_MUNE, key_set, data, 2);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_CL_MUNE, key_set, data, 2);
 
         data[0] = oh->node[a2m.j_mune_b_wj].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_KL_MUNE_B_WJ, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_MUNE_B_WJ, key_set, data);
 
         data[0] = oh->node[a2m.j_kubi_wj].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_KL_KUBI, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_KUBI, key_set, data);
 
         data[0] = oh->node[a2m.n_kao].model_transform.rotation_value;
         data[0].z -= (float_t)M_PI;
-        set_bone_key_set_data(bone_data, MOTION_BONE_N_KAO, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_N_KAO, key_set, data);
 
         mat = oh->node[a2m.j_kao_wj].model_transform.mat;
         data[0] = { 0.0f, 0.40f, 0.0f };
@@ -3020,14 +3292,33 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm) {
         mat4_get_translation(&mat, &data[0]);
         vec3_add(data[0], data[1], data[0]);
         data[1] = vec3_null;
-        data[1].z = (float_t)M_PI;
-        set_bone_key_set_data(bone_data, MOTION_BONE_CL_KAO, key_set, data, 2);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_CL_KAO, key_set, data, 2);
+
+        data[0] = oh->node[a2m.j_eye_r_wj].model_transform.rotation_value;
+        data[0].x += (float_t)(M_PI / 2.0);
+        data[0].y = -data[0].z;
+        data[0].z = 0.0f;
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_EYE_R, key_set, data);
+
+        data[0] = oh->node[a2m.j_eye_l_wj].model_transform.rotation_value;
+        data[0].x += (float_t)(M_PI / 2.0);
+        data[0].y = -data[0].z;
+        data[0].z = 0.0f;
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_EYE_L, key_set, data);
 
         data[0] = oh->node[a2m.n_waki_l].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_N_WAKI_L, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_N_WAKI_L, key_set, data);
 
-        data[0] = oh->node[a2m.j_waki_l_wj].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_KL_WAKI_L_WJ, key_set, data);
+        data[1] = oh->node[a2m.j_waki_l_wj].model_transform.rotation_value;
+        data[0].x = data[1].x;
+        data[0].y = data[1].z;
+        data[0].z = -data[1].y;
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_WAKI_L_WJ, key_set, data);
 
         {
             vec3 pos_j_kata_l_wj;
@@ -3058,21 +3349,31 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm) {
 
             mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
             mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
-            set_bone_key_set_data(bone_data, MOTION_BONE_TL_UP_KATA_L, key_set, data);
+            set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+                MOTION_BONE_TL_UP_KATA_L, key_set, data);
         }
 
         mat4_get_translation(&oh->node[a2m.j_te_l_wj].model_transform.mat, &data[0]);
-        mat4_get_rotation(&oh->node[a2m.j_kata_l_wj].model_transform.mat, &data[1]);
-        set_bone_key_set_data(bone_data, MOTION_BONE_C_KATA_L, key_set, data, 2);
+        data[1].x = -(float_t)(M_PI / 2.0);
+        data[1].y = -(float_t)(M_PI / 2.0);
+        data[1].z = -(float_t)(M_PI / 2.0);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_C_KATA_L, key_set, data, 2);
 
         data[0] = oh->node[a2m.j_te_l_wj].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_KL_TE_L_WJ, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_TE_L_WJ, key_set, data);
 
         data[0] = oh->node[a2m.n_waki_r].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_N_WAKI_R, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_N_WAKI_R, key_set, data);
 
-        data[0] = oh->node[a2m.j_waki_r_wj].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_KL_WAKI_R_WJ, key_set, data);
+        data[1] = oh->node[a2m.j_waki_l_wj].model_transform.rotation_value;
+        data[0].x = data[1].x;
+        data[0].y = data[1].z;
+        data[0].z = data[1].y;
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_WAKI_R_WJ, key_set, data);
 
         {
             vec3 pos_j_kata_r_wj;
@@ -3103,24 +3404,38 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm) {
 
             mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
             mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
-            set_bone_key_set_data(bone_data, MOTION_BONE_TL_UP_KATA_R, key_set, data);
+            set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+                MOTION_BONE_TL_UP_KATA_R, key_set, data);
         }
 
         mat4_get_translation(&oh->node[a2m.j_te_r_wj].model_transform.mat, &data[0]);
-        data[1] = vec3_null;
-        mat4_get_rotation(&oh->node[a2m.j_kata_r_wj].model_transform.mat, &data[1]);
-        set_bone_key_set_data(bone_data, MOTION_BONE_C_KATA_R, key_set, data, 2);
+        data[1].x = -(float_t)(M_PI / 2.0);
+        data[1].y = (float_t)(M_PI / 2.0);
+        data[1].z = (float_t)(M_PI / 2.0);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_C_KATA_R, key_set, data, 2);
 
         data[0] = oh->node[a2m.j_te_r_wj].model_transform.rotation_value;
-        set_bone_key_set_data(bone_data, MOTION_BONE_KL_TE_R_WJ, key_set, data);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_TE_R_WJ, key_set, data);
 
         mat4_get_translation(&oh->node[a2m.j_asi_l_wj].model_transform.mat, &data[0]);
         data[1] = vec3_null;
-        set_bone_key_set_data(bone_data, MOTION_BONE_CL_MOMO_L, key_set, data, 2);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_CL_MOMO_L, key_set, data, 2);
 
         mat4_get_translation(&oh->node[a2m.j_asi_r_wj].model_transform.mat, &data[0]);
         data[1] = vec3_null;
-        set_bone_key_set_data(bone_data, MOTION_BONE_CL_MOMO_R, key_set, data, 2);
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_CL_MOMO_R, key_set, data, 2);
+
+        data[0] = { 0.0491406508f, 0.0f, 0.0f };
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_AGO_WJ, key_set, data);
+
+        data[0] = { 0.0f, 0.0331281610f, 0.0f };
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_N_KUBI_WJ_EX, key_set, data);
     }
 }
 
@@ -3297,11 +3612,11 @@ static void sub_140121A80(x_pv_game* a1, int32_t chara_id) {
 
         uint32_t* data = a1->dsc_m.get_func_data(i);
         if (chara_id == data[0] && data[2] == 2) {
-            dsc_set_item v14;
-            v14.item_index = data[1];
-            v14.time = time;
-            v14.pv_branch_mode = pv_branch_mode;
-            a1->playdata[chara_id].field_38.set_item.push_back(v14);
+            x_dsc_set_item item;
+            item.item_index = data[1];
+            item.time = time;
+            item.pv_branch_mode = pv_branch_mode;
+            a1->playdata[chara_id].field_38.set_item.push_back(item);
         }
         prev_time = time;
         i++;
@@ -3332,11 +3647,11 @@ static void sub_140122770(x_pv_game* a1, int32_t chara_id) {
 
         uint32_t* data = a1->dsc_m.get_func_data(i);
         if (chara_id == data[0]) {
-            dsc_set_motion v14;
-            v14.motion_index = data[1];
-            v14.time = time;
-            v14.pv_branch_mode = pv_branch_mode;
-            a1->playdata[chara_id].field_38.set_motion.push_back(v14);
+            x_dsc_set_motion motion;
+            motion.motion_index = data[1];
+            motion.time = time;
+            motion.pv_branch_mode = pv_branch_mode;
+            a1->playdata[chara_id].field_38.set_motion.push_back(motion);
         }
         prev_time = time;
         i++;

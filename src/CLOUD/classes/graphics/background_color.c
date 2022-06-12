@@ -4,12 +4,12 @@
 */
 
 #include "background_color.h"
-#include "../../../KKdLib/vec.h"
+#include "../../../KKdLib/vec.hpp"
 #include "../imgui_helper.h"
 
 extern int32_t width;
 extern int32_t height;
-extern vec3 clear_color;
+extern vec4u8 clear_color;
 extern bool set_clear_color;
 
 static const char* graphics_background_color_window_title = "Background Color##Graphics";
@@ -52,11 +52,18 @@ void graphics_background_color_imgui(class_data* data) {
     color_edit_flags |= ImGuiColorEditFlags_NoDragDrop;
 
     imguiGetContentRegionAvailSetNextItemWidth();
-    ImGui::ColorEdit3("##Background Color", (float_t*)&clear_color, color_edit_flags);
+    vec4 _clear_color;
+    vec4u8_to_vec4(clear_color, _clear_color);
+    vec4_mult_scalar(_clear_color, (float_t)(1.0 / 255.0), _clear_color);
+    if (ImGui::ColorEdit4("##Background Color", (float_t*)&_clear_color, color_edit_flags)) {
+        vec4_clamp_scalar(_clear_color, 0.0f, 1.0f, _clear_color);
+        vec4_mult_scalar(_clear_color, 255.0f, _clear_color);
+        vec4_to_vec4u8(_clear_color, clear_color);
+    }
     ImGui::Checkbox("Set Clear Color", &set_clear_color);
 
     if (imguiButton("Reset Color")) {
-        clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
+        clear_color = { 0x60, 0x60, 0x60, 0xFF };
         set_clear_color = true;
     }
 

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "shader.h"
 
 enum shader_ft_enum {

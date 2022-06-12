@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "../../KKdLib/default.h"
-#include "../../KKdLib/vec.h"
+#include "../../KKdLib/default.hpp"
+#include "../../KKdLib/vec.hpp"
 #include "../camera.h"
 #include "../fbo.hpp"
 #include "../render_texture.h"
@@ -60,6 +60,7 @@ struct post_process_dof {
     void apply(render_texture* rt, GLuint* samplers, camera* cam);
     void init_fbo(int32_t width, int32_t height);
     void initialize_data(dof_debug* debug, dof_pv* pv);
+
     void get_dof_debug(dof_debug* debug);
     void set_dof_debug(dof_debug* debug);
     void get_dof_pv(dof_pv* pv);

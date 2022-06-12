@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "../default.h"
-#include "../vec.h"
+#include "../default.hpp"
+#include "../vec.hpp"
 
 struct light_param_face {
     bool ready;

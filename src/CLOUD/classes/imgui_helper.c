@@ -4,7 +4,7 @@
 */
 
 #include "imgui_helper.h"
-#include "../../KKdLib/str_utils.h"
+#include "../../KKdLib/str_utils.hpp"
 #include "../../CRE/data.hpp"
 
 const float_t imgui_alpha_disabled_scale = 0.5f;
@@ -463,7 +463,7 @@ bool imguiComboBox(const char* label, const char** items, const size_t size,
     return prev_selected_idx != *selected_idx;
 }
 
-bool imguiComboBoxString(const char* label, string* items, const size_t size,
+bool imguiComboBoxString(const char* label, std::string* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus) {
     int32_t prev_selected_idx = *selected_idx;
 
@@ -478,11 +478,11 @@ bool imguiComboBoxString(const char* label, string* items, const size_t size,
         return false;
     }
 
-    if (ImGui::BeginCombo(label, *selected_idx != -1 ? string_data(&items[*selected_idx]) : 0, flags)) {
+    if (ImGui::BeginCombo(label, *selected_idx != -1 ? items[*selected_idx].c_str() : 0, flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {
                 ImGui::PushID((int32_t)n);
-                if (ImGui::Selectable(string_data(&items[n]), *selected_idx == n)
+                if (ImGui::Selectable(items[n].c_str(), *selected_idx == n)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (ImGui::IsItemFocused() && *selected_idx != n))
                     *selected_idx = (int32_t)n;
@@ -494,7 +494,7 @@ bool imguiComboBoxString(const char* label, string* items, const size_t size,
         else
             for (size_t n = 0; n < size; n++) {
                 ImGui::PushID((int32_t)n);
-                if (ImGui::Selectable(string_data(&items[n]), *selected_idx == n)
+                if (ImGui::Selectable(items[n].c_str(), *selected_idx == n)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (ImGui::IsItemFocused() && *selected_idx != n))
                     *selected_idx = (int32_t)n;
@@ -511,7 +511,7 @@ bool imguiComboBoxString(const char* label, string* items, const size_t size,
     return prev_selected_idx != *selected_idx;
 }
 
-bool imguiComboBoxString(const char* label, string* items, const size_t size,
+bool imguiComboBoxString(const char* label, std::string* items, const size_t size,
     size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus) {
     size_t prev_selected_idx = *selected_idx;
 
@@ -526,11 +526,11 @@ bool imguiComboBoxString(const char* label, string* items, const size_t size,
         return false;
     }
 
-    if (ImGui::BeginCombo(label, *selected_idx != -1 ? string_data(&items[*selected_idx]) : 0, flags)) {
+    if (ImGui::BeginCombo(label, *selected_idx != -1 ? items[*selected_idx].c_str() : 0, flags)) {
         if (include_last)
             for (size_t n = 0; n <= size; n++) {
                 ImGui::PushID((void*)n);
-                if (ImGui::Selectable(string_data(&items[n]), *selected_idx == n)
+                if (ImGui::Selectable(items[n].c_str(), *selected_idx == n)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (ImGui::IsItemFocused() && *selected_idx != n))
                     *selected_idx = n;
@@ -542,7 +542,7 @@ bool imguiComboBoxString(const char* label, string* items, const size_t size,
         else
             for (size_t n = 0; n < size; n++) {
                 ImGui::PushID((void*)n);
-                if (ImGui::Selectable(string_data(&items[n]), *selected_idx == n)
+                if (ImGui::Selectable(items[n].c_str(), *selected_idx == n)
                     || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (ImGui::IsItemFocused() && *selected_idx != n))
                     *selected_idx = n;
@@ -695,7 +695,7 @@ bool imguiColumnComboBox(const char* label, const char** items, const size_t siz
     return res;
 }
 
-bool imguiColumnComboBoxString(const char* label, string* items, const size_t size,
+bool imguiColumnComboBoxString(const char* label, std::string* items, const size_t size,
     int32_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus) {
     imguiStartPropertyColumn(label);
     bool res = imguiComboBoxString("", items, size, selected_idx, flags, include_last, focus);
@@ -703,7 +703,7 @@ bool imguiColumnComboBoxString(const char* label, string* items, const size_t si
     return res;
 }
 
-bool imguiColumnComboBoxString(const char* label, string* items, const size_t size,
+bool imguiColumnComboBoxString(const char* label, std::string* items, const size_t size,
     size_t* selected_idx, ImGuiComboFlags flags, bool include_last, bool* focus) {
     imguiStartPropertyColumn(label);
     bool res = imguiComboBoxString("", items, size, selected_idx, flags, include_last, focus);

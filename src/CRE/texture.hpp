@@ -6,8 +6,8 @@
 #pragma once
 
 #include <vector>
-#include "../KKdLib/default.h"
-#include "../KKdLib/image.h"
+#include "../KKdLib/default.hpp"
+#include "../KKdLib/image.hpp"
 #include "../KKdLib/txp.hpp"
 #include <glad/glad.h>
 

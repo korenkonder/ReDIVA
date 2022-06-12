@@ -4,9 +4,9 @@
 */
 
 #include "data_test.h"
-#include "data_test/auth_3d_test.h"
-#include "data_test/glitter_test.h"
-#include "data_test/stage_test.h"
+#include "data_test/auth_3d_test.hpp"
+#include "data_test/glitter_test.hpp"
+#include "data_test/stage_test.hpp"
 
 classes_data data_test_classes[] = {
     {

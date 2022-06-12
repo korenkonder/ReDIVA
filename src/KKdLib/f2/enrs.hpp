@@ -6,8 +6,8 @@
 #pragma once
 
 #include <vector>
-#include "../default.h"
-#include "../io/stream.h"
+#include "../default.hpp"
+#include "../io/stream.hpp"
 
 enum enrs_type {
     ENRS_WORD    = 0x0,
@@ -45,6 +45,6 @@ struct enrs {
 
     void apply(void* data);
     uint32_t length();
-    void read(stream* s);
-    void write(stream* s);
+    void read(stream& s);
+    void write(stream& s);
 };

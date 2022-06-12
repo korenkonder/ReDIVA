@@ -5,8 +5,8 @@
 
 #include "stage_modern.hpp"
 #include "../KKdLib/hash.hpp"
-#include "../KKdLib/str_utils.h"
-#include "../KKdLib/vec.h"
+#include "../KKdLib/str_utils.hpp"
+#include "../KKdLib/vec.hpp"
 #include "draw_task.h"
 #include "light_param.hpp"
 #include "render_context.hpp"
@@ -279,13 +279,13 @@ static void stage_detail::TaskStageModern_GetLoadedStageInfos(stage_detail::Task
 }
 
 static bool stage_detail::TaskStageModern_Load(stage_detail::TaskStageModern* a1, const char* name) {
-    if (TaskWork::AppendTask(a1, name)) {
+    if (app::TaskWork::AppendTask(a1, name)) {
         stage_detail::TaskStageModern_Reset(a1);
         stage_detail::TaskStageModern_TaskWindAppend(a1);
         return false;
     }
     else {
-        if (!TaskWork::HasTaskDest(a1))
+        if (!app::TaskWork::HasTaskDest(a1))
             a1->SetDest();
         return true;
     }
@@ -317,7 +317,7 @@ static void stage_detail::TaskStageModern_SetStage(stage_detail::TaskStageModern
 }
 
 static void stage_detail::TaskStageModern_TaskWindAppend(stage_detail::TaskStageModern* a1) {
-    TaskWork::AppendTask(&task_wind, a1, "CHARA WIND");
+    app::TaskWork::AppendTask(&task_wind, a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* a1) {

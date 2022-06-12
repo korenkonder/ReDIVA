@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "default.h"
-#include "vec.h"
+#include "default.hpp"
+#include "vec.hpp"
 
 extern float_t interpolate_linear_value(float_t p1, float_t p2, float_t f1, float_t f2, float_t f);
 extern void interpolate_linear_value_vec2(vec2* p1, vec2* p2, vec2* f1, vec2* f2, vec2* f, vec2* value);

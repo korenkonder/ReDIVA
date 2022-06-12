@@ -2283,8 +2283,8 @@ static void shader_bind_blinn(shader_set_data* set, shader* shad);
 static void shader_bind_cloth(shader_set_data* set, shader* shad);
 static void shader_bind_hair(shader_set_data* set, shader* shad);
 static void shader_bind_membrane(shader_set_data* set, shader* shad);
-static void shader_bind_eye_ball(shader_set_data* set, shader* shader);
-static void shader_bind_tone_map(shader_set_data* set, shader* shader);
+static void shader_bind_eye_ball(shader_set_data* set, shader* shad);
+static void shader_bind_tone_map(shader_set_data* set, shader* shad);
 
 static const shader_bind_func shader_ft_bind_func_table[] = {
     {
@@ -2348,7 +2348,7 @@ glass_eye_struct glass_eye = {
 };
 
 void shader_ft_load(shader_set_data* set, farc* f, bool ignore_cache) {
-    shader_load(set, f, false, false, "ft", shader_ft_table, shader_ft_table_size,
+    set->load(f, false, false, "ft", shader_ft_table, shader_ft_table_size,
         shader_ft_bind_func_table, shader_ft_bind_func_table_size);
 }
 
@@ -2389,82 +2389,82 @@ static void glass_eye_set(glass_eye_struct* glass_eye, shader_set_data* set) {
     vec3_mult(glass_eye->field_68, glass_eye->field_68, *(vec3*)&temp);
     temp.w = temp.z;
     vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
-    shader_local_vert_set_ptr(set, 0x0A, &temp);
-    shader_local_frag_set_ptr(set, 0x0A, &temp);
+    set->local_vert_set(0x0A, temp);
+    set->local_frag_set(0x0A, temp);
 
     *(vec3*)&temp = glass_eye->field_68;
     temp.w = 1.0f;
-    shader_local_vert_set_ptr(set, 0x0B, &temp);
-    shader_local_frag_set_ptr(set, 0x0B, &temp);
+    set->local_vert_set(0x0B, temp);
+    set->local_frag_set(0x0B, temp);
 
     temp = glass_eye->field_0;
-    shader_local_vert_set_ptr(set, 0x0C, &temp);
+    set->local_vert_set(0x0C, temp);
     temp = glass_eye->field_A0;
-    shader_local_vert_set_ptr(set, 0x0D, &temp);
+    set->local_vert_set(0x0D, temp);
 
     vec3_mult(glass_eye->field_90, glass_eye->field_90, *(vec3*)&temp);
     temp.w = temp.z;
     vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
-    shader_local_vert_set_ptr(set, 0x0E, &temp);
+    set->local_vert_set(0x0E, temp);
 
     temp = glass_eye->field_10;
-    shader_local_vert_set_ptr(set, 0x0F, &temp);
+    set->local_vert_set(0x0F, temp);
 
     vec3_mult(glass_eye->field_68, glass_eye->field_68, *(vec3*)&temp);
     temp.w = temp.z;
     vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
-    shader_local_vert_set_ptr(set, 0x0E, &temp);
+    set->local_vert_set(0x0E, temp);
 
     float_t v2 = (glass_eye->field_20 - glass_eye->field_24) / (glass_eye->field_20 + glass_eye->field_24);
     v2 *= v2;
-    shader_local_frag_set(set, 0x0C, 1.0f - v2, v2, 0.0f, 0.0f);
+    set->local_frag_set(0x0C, 1.0f - v2, v2, 0.0f, 0.0f);
 
     float_t v3 = (glass_eye->field_20 * glass_eye->field_20) / (glass_eye->field_24 * glass_eye->field_24);
-    shader_local_frag_set(set, 0x0D, v3, 1.0f - v3, glass_eye->field_20 / glass_eye->field_24, 0.0f);
+    set->local_frag_set(0x0D, v3, 1.0f - v3, glass_eye->field_20 / glass_eye->field_24, 0.0f);
 
     float_t v4 = (glass_eye->field_24 * glass_eye->field_24) / (glass_eye->field_20 * glass_eye->field_20);
-    shader_local_frag_set(set, 0x0E, 1.0f - v4, v4, glass_eye->field_24 / glass_eye->field_20, 0.0f);
+    set->local_frag_set(0x0E, 1.0f - v4, v4, glass_eye->field_24 / glass_eye->field_20, 0.0f);
 
     vec3_mult(glass_eye->field_74, glass_eye->field_74, *(vec3*)&temp);
     temp.w = -1.0f;
     vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
-    shader_local_frag_set_ptr(set, 0x0F, &temp);
+    set->local_frag_set(0x0F, temp);
 
     vec3_mult(glass_eye->field_68, glass_eye->field_68, *(vec3*)&temp);
     temp.w = -1.0f;
     vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
-    shader_local_frag_set_ptr(set, 0x10, &temp);
+    set->local_frag_set(0x10, temp);
 
     vec3_mult(glass_eye->field_80, glass_eye->field_80, *(vec3*)&temp);
     temp.w = -1.0f;
     vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
-    shader_local_frag_set_ptr(set, 0x11, &temp);
+    set->local_frag_set(0x11, temp);
 
     vec2_mult(*(vec2*)&glass_eye->field_0, *(vec2*)&glass_eye->field_74, *(vec2*)&temp);
     temp.z = glass_eye->field_64 * 1.442695f;
     temp.w = glass_eye->field_8C;
     vec2_div(vec2_identity, *(vec2*)&temp, *(vec2*)&temp);
-    shader_local_frag_set_ptr(set, 0x12, &temp);
+    set->local_frag_set(0x12, temp);
 }
 
 static void shader_bind_blinn(shader_set_data* set, shader* shad) {
-    shader_bind(shad, uniform_value[U_NORMAL]
+    shad->bind(uniform_value[U_NORMAL]
         ? SHADER_FT_SUB_BLINN_FRAG : SHADER_FT_SUB_BLINN_VERT);
 }
 
 static void shader_bind_cloth(shader_set_data* set, shader* shad) {
-    shader_bind(shad, uniform_value[U_NPR] ? SHADER_FT_SUB_CLOTH_NPR1
+    shad->bind(uniform_value[U_NPR] ? SHADER_FT_SUB_CLOTH_NPR1
         : (uniform_value[U_ANISO] ? SHADER_FT_SUB_CLOTH_ANISO : SHADER_FT_SUB_CLOTH_DEFAULT));
 }
 
 static void shader_bind_hair(shader_set_data* set, shader* shad) {
-    shader_bind(shad, uniform_value[U_NPR] ? SHADER_FT_SUB_HAIR_NPR1
+    shad->bind(uniform_value[U_NPR] ? SHADER_FT_SUB_HAIR_NPR1
         : (uniform_value[U_ANISO] ? SHADER_FT_SUB_HAIR_ANISO : SHADER_FT_SUB_HAIR_DEFAULT));
 }
 
 static void shader_bind_membrane(shader_set_data* set, shader* shad) {
     uniform_value[U_MEMBRANE] = 3;
-    if (shader_bind(shad, SHADER_FT_SUB_MEMBRANE) < 0)
+    if (shad->bind(SHADER_FT_SUB_MEMBRANE) < 0)
         return;
 
     /*uint32_t(* sub_140192E00)() = (void*)0x0000000140192E00;
@@ -2476,18 +2476,18 @@ static void shader_bind_membrane(shader_set_data* set, shader* shad) {
     //vec4 vec = (vec4){ 1.0f, 0.0f, 0.0f, 0.0f };
     //mat4_mult_vec(&mat, &vec, &vec);
 
-    //shader_local_frag_set(set, 10, vec.x, vec.y, vec.z, 0.0f);
+    //set->local_frag_set(10, vec.x, vec.y, vec.z, 0.0f);
 }
 
-static void shader_bind_eye_ball(shader_set_data* set, shader* shader) {
+static void shader_bind_eye_ball(shader_set_data* set, shader* shad) {
     uniform_value[U18] = 0;
-    if (shader_bind(&set->shaders[SHADER_FT_GLASEYE], SHADER_FT_SUB_GLASS_EYE) >= 0) {
+    if (set->shaders[SHADER_FT_GLASEYE].bind(SHADER_FT_SUB_GLASS_EYE) >= 0) {
         glass_eye_calc(&glass_eye);
         glass_eye_set(&glass_eye, set);
     }
 }
 
-static void shader_bind_tone_map(shader_set_data* set, shader* shader) {
-    shader_bind(shader, uniform_value[U_NPR] == 1
+static void shader_bind_tone_map(shader_set_data* set, shader* shad) {
+    shad->bind(uniform_value[U_NPR] == 1
         ? SHADER_FT_SUB_TONE_MAP_NPR1 : SHADER_FT_SUB_TONE_MAP);
 }

@@ -3,8 +3,8 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "../KKdLib/io/path.h"
-#include "../KKdLib/str_utils.h"
+#include "../KKdLib/io/path.hpp"
+#include "../KKdLib/str_utils.hpp"
 #include "data.hpp"
 #include "item_table.hpp"
 
@@ -156,12 +156,11 @@ static bool item_table_array_read(data_struct* data, const char* path) {
         farc_file* ff = f.read_file(file);
         if (ff) {
             stream s;
-            io_open(&s, ff->data, ff->size);
+            s.open(ff->data, ff->size);
             itm_table itm;
             itm.read(ff->data, ff->size);
             if (itm.ready)
                 item_table_load(data, &item_table_array[i], &itm);
-            io_free(&s);
         }
     }
     free(path_farc);

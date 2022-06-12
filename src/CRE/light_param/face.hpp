@@ -1,0 +1,29 @@
+/*
+    by korenkonder
+    GitHub/GitLab: korenkonder
+*/
+
+#pragma once
+
+#include "../../KKdLib/default.hpp"
+#include "../../KKdLib/light_param/face.hpp"
+#include "../../KKdLib/vec.hpp"
+#include "../static_var.h"
+
+struct face {
+    float_t offset;
+    float_t scale;
+    vec3 position;
+    vec3 direction;
+
+    face();
+};
+
+extern float_t face_get_offset(face* face);
+extern void face_set_offset(face* face, float_t value);
+extern float_t face_get_scale(face* face);
+extern void face_set_scale(face* face, float_t value);
+extern void face_get_position(face* face, vec3* value);
+extern void face_set_position(face* face, vec3* value);
+extern void face_get_direction(face* face, vec3* value);
+extern void face_set_direction(face* face, vec3* value);

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../../../KKdLib/default.h"
+#include "../../../KKdLib/default.hpp"
 #include "../../classes.h"
 
 extern bool graphics_background_color_init(class_data* data, render_context* rctx);

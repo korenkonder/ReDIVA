@@ -9,15 +9,14 @@
 #include <map>
 #include <vector>
 #include "../../KKdLib/database/object.hpp"
-#include "../../KKdLib/f2/header.h"
+#include "../../KKdLib/f2/header.hpp"
 #include "../../KKdLib/f2/struct.hpp"
-#include "../../KKdLib/default.h"
+#include "../../KKdLib/default.hpp"
 #include "../../KKdLib/farc.hpp"
 #include "../../KKdLib/hash.hpp"
-#include "../../KKdLib/mat.h"
+#include "../../KKdLib/mat.hpp"
 #include "../../KKdLib/txp.hpp"
-#include "../../KKdLib/vec.h"
-#include "../../KKdLib/vector.h"
+#include "../../KKdLib/vec.hpp"
 #include "../file_handler.hpp"
 #include "../frame_rate_control.hpp"
 #include "../static_var.h"
@@ -502,6 +501,7 @@ namespace Glitter {
         float_t F2Randomize(GLT, float_t value, Random* random);
         float_t F2RandomizeKey(GLT, Curve::Key* key, Random* random);
 #if defined(CRE_DEV) || defined(CLOUD_DEV)
+        void FitKeysIntoCurve(GLT);
         void Recalculate(GLT);
 #endif
         bool XGetValue(float_t frame,
@@ -1392,7 +1392,7 @@ namespace Glitter {
 #endif
     };
 
-    class GltParticleManager : public Task {
+    class GltParticleManager : public app::Task {
     public:
         std::vector<Scene*> scenes;
         std::vector<FileReader*> file_readers;

@@ -7,7 +7,7 @@
 
 #include <string>
 #include <vector>
-#include "../default.h"
+#include "../default.hpp"
 #include "object.hpp"
 
 enum stage_data_format {
@@ -166,6 +166,7 @@ struct stage_database {
     void write(const wchar_t* path);
     void write(void** data, size_t* size);
 
+    int32_t get_stage_index(const char* name);
     void merge_mdata(stage_database* base_stage_data, stage_database* mdata_stage_data);
     void split_mdata(stage_database* base_stage_data, stage_database* mdata_stage_data);
 

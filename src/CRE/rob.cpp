@@ -7,12 +7,9 @@
 #include "data.hpp"
 #include "draw_task.h"
 #include "../KKdLib/key_val.hpp"
-#include "../KKdLib/str_utils.h"
+#include "../KKdLib/str_utils.hpp"
 #include "random.hpp"
 #include "stage.hpp"
-
-#define OSG_SET_TEXT_BUF_SIZE 0x400
-#define SKP_TEXT_BUF_SIZE 0x400
 
 struct MotFile {
     motion_set_info* mot_set_info;
@@ -26,10 +23,10 @@ struct MotFile {
     bool CheckNotReady();
     void FreeData();
     void LoadFile(std::string* mdata_dir, uint32_t set);
-    void ParseFile(void* data, size_t size);
+    void ParseFile(const void* data, size_t size);
     bool Unload();
 
-    static void ParseFileParent(void* data, void* file_data, size_t size);
+    static void ParseFileParent(void* data, const void* file_data, size_t size);
 };
 
 struct MhdFile {
@@ -45,12 +42,12 @@ struct MhdFile {
     bool CheckNotReady();
     void FreeData();
     void LoadFile(const char* path, const char* file, uint32_t set);
-    void ParseFile(void* data);
+    void ParseFile(const void* data);
     mothead* ParseMothead(mothead_file* mhdsf, size_t data);
     mothead_mot* ParseMotheadMot(mothead_mot_file* mhdsf, size_t data);
     bool Unload();
 
-    static void ParseFileParent(void* data, void* file_data, size_t size);
+    static void ParseFileParent(void* data, const void* file_data, size_t size);
 };
 
 struct osage_setting {
@@ -149,7 +146,7 @@ struct pv_data_set_motion {
     ~pv_data_set_motion();
 };
 
-class PvOsageManager : public Task {
+class PvOsageManager : app::Task {
 public:
     int32_t state;
     int32_t chara_id;
@@ -246,7 +243,7 @@ struct struc_462 {
     ~struc_462();
 };
 
-struct SkinParamManager : public Task {
+struct SkinParamManager : public app::Task {
     int32_t state;
     uint8_t index;
     std::vector<struc_462> field_70;
@@ -269,7 +266,7 @@ struct SkinParamManager : public Task {
     bool sub_1406112F0();
 };
 
-class TaskRobLoad : public Task {
+class TaskRobLoad : public app::Task {
 public:
     bool field_68;
     int32_t field_6C;
@@ -323,7 +320,7 @@ public:
     void UnloadLoadedChara();
 };
 
-class RobImplTask : public Task {
+class RobImplTask : public app::Task {
 public:
     std::list<rob_chara*> init_chara;
     std::list<rob_chara*> ctrl_chara;
@@ -441,7 +438,7 @@ public:
     virtual bool IsFrameDependent() override;
 };
 
-class TaskRobManager : public Task {
+class TaskRobManager : public app::Task {
 public:
     int32_t ctrl_state;
     int32_t dest_state;
@@ -505,7 +502,7 @@ static void bone_node_expression_data_reset_scale(bone_node_expression_data* dat
 static void bone_node_expression_data_set_position_rotation(bone_node_expression_data* data,
     float_t position_x, float_t position_y, float_t position_z,
     float_t rotation_x, float_t rotation_y, float_t rotation_z);
-static void bone_node_expression_data_set_position_rotation_vec3(bone_node_expression_data* data,
+static void bone_node_expression_data_set_position_rotation(bone_node_expression_data* data,
     vec3* position, vec3* rotation);
 
 static bool check_module_index_is_501(int32_t module_index);
@@ -527,9 +524,9 @@ static float_t exp_eq(float_t v1, float_t v2);
 static float_t exp_exp(float_t v1);
 static float_t exp_floor(float_t v1);
 static float_t exp_fmod(float_t v1, float_t v2);
-static const exp_func_op1* exp_func_op1_find_func(string* name, const exp_func_op1* array);
-static const exp_func_op2* exp_func_op2_find_func(string* name, const exp_func_op2* array);
-static const exp_func_op3* exp_func_op3_find_func(string* name, const exp_func_op3* array);
+static const exp_func_op1* exp_func_op1_find_func(std::string& name, const exp_func_op1* array);
+static const exp_func_op2* exp_func_op2_find_func(std::string& name, const exp_func_op2* array);
+static const exp_func_op3* exp_func_op3_find_func(std::string& name, const exp_func_op3* array);
 static float_t exp_ge(float_t v1, float_t v2);
 static float_t exp_gt(float_t v1, float_t v2);
 static float_t exp_le(float_t v1, float_t v2);
@@ -853,12 +850,13 @@ static void rob_chara_bone_data_set_mouth_frame(rob_chara_bone_data* rob_bone_da
 static void rob_chara_bone_data_set_mouth_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step);
 static void rob_chara_bone_data_set_parent_mats(rob_chara_bone_data* rob_bone_data,
     uint16_t* parent_indices);
-static void rob_chara_bone_data_set_rotation_y(rob_chara_bone_data* rob_bone_data, float_t rotation_y);
+static void rob_chara_bone_data_set_rot_y(rob_chara_bone_data* rob_bone_data, float_t rot_y);
 static void rob_chara_bone_data_update(rob_chara_bone_data* rob_bone_data, mat4* mat);
 
 static bool rob_chara_item_cos_data_check_for_npr_flag(rob_chara_item_cos_data* itm_cos_data);
 static object_info rob_chara_item_cos_data_get_head_object_replace(
     rob_chara_item_cos_data* item_cos_data, int32_t head_object_id);
+static float_t rob_chara_item_cos_data_get_max_face_depth(rob_chara_item_cos_data* item_cos_data);
 static void rob_chara_item_cos_data_reload_items(rob_chara_item_cos_data* itm_cos_data,
     int32_t chara_id, bone_database* bone_data, void* data, object_database* obj_db);
 static void rob_chara_item_cos_data_set_chara_index(
@@ -967,7 +965,7 @@ static void rob_chara_set_adjust(rob_chara* rob_chr, rob_chara_data_adjust* adju
 static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
     chara_index chara_index, int32_t module_index, rob_chara_pv_data* pv_data);
 
-static void rob_cmn_mottbl_read(void* a1, void* data, size_t size);
+static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size);
 
 static rob_manager_rob_impl* rob_manager_rob_impls1_get(TaskRobManager* rob_mgr);
 static rob_manager_rob_impl* rob_manager_rob_impls2_get(TaskRobManager* rob_mgr);
@@ -987,7 +985,7 @@ static void rob_osage_set_force(rob_osage* rob_osg, float_t force, float_t force
 static void rob_osage_set_hinge(rob_osage* rob_osg, float_t hinge_y, float_t hinge_z);
 static void rob_osage_set_init_rot(rob_osage* rob_osg, float_t init_rot_y, float_t init_rot_z);
 static void rob_osage_set_motion_reset_data(rob_osage* rob_osg, int32_t motion_id, float_t frame);
-static void rob_osage_set_rot(rob_osage* rob_osg, float_t rotation_y, float_t rotation_z);
+static void rob_osage_set_rot(rob_osage* rob_osg, float_t rot_y, float_t rot_z);
 static void rob_osage_set_skin_param_osage_root(rob_osage* rob_osg, skin_param_osage_root* skp_root);
 static void rob_osage_set_skp_osg_nodes(rob_osage* rob_osg,
     std::vector<skin_param_osage_node>* skp_osg_nodes);
@@ -2418,6 +2416,10 @@ float_t rob_chara::get_frame_count() {
     return rob_chara_bone_data_get_frame_count(bone_data);
 }
 
+float_t rob_chara::get_max_face_depth() {
+    return rob_chara_item_cos_data_get_max_face_depth(&item_cos_data);
+}
+
 static int16_t sub_14054FE90(rob_chara* rob_chr, bool a3) {
     int16_t v3 = rob_chr->data.miku_rot.rot_y_int16;
     if (!a3 || ~rob_chr->data.field_0 & 0x10) {
@@ -2616,17 +2618,17 @@ static void sub_14041D340(rob_chara_bone_data* rob_bone_data, bool a2) {
         v2->field_0 &= ~0x20;
 }
 
-static void sub_140414F00(struc_308* a1, float_t a2) {
-    a1->prev_eyes_adjust = a1->eyes_adjust;
-    a1->eyes_adjust = a2;
+static void sub_140414F00(struc_308* a1, float_t rot_y) {
+    a1->prev_rot_y = a1->rot_y;
+    a1->rot_y = rot_y;
 }
 
-static void sub_14041D270(rob_chara_bone_data* rob_bone_data, float_t a2) {
-    sub_140414F00(&rob_bone_data->motion_loaded.front()->field_4F8, a2);
+static void sub_14041D270(rob_chara_bone_data* rob_bone_data, float_t rot_y) {
+    sub_140414F00(&rob_bone_data->motion_loaded.front()->field_4F8, rot_y);
 }
 
-static void sub_14041D2A0(rob_chara_bone_data* rob_bone_data, float_t a2) {
-    rob_bone_data->motion_loaded.front()->field_4F8.prev_eyes_adjust = a2;
+static void sub_14041D2A0(rob_chara_bone_data* rob_bone_data, float_t rot_y) {
+    rob_bone_data->motion_loaded.front()->field_4F8.prev_rot_y = rot_y;
 }
 
 static void sub_140555B00(rob_chara* rob_chr, bool a2) {
@@ -2877,7 +2879,7 @@ static void sub_14053A9C0(struc_223* a1, rob_chara* rob_chr,
     a1->field_0.field_20 = v7->field_0;
     a1->field_0.field_20.field_0 &= ~0x4000;
     if (a1->field_0.field_10.field_0 & 0x100)
-        a1->field_0.field_274 = 0x8000;
+        a1->field_0.field_274 = (int16_t)0x8000;
     if (a1->field_0.field_10.field_0 & 0x200000)
         a1->field_0.field_2B8 = (int16_t)0x8000;
 
@@ -3019,7 +3021,7 @@ void rob_chara::load_motion(int32_t motion_id, bool a3, float_t frame,
         sub_14041C990(this->bone_data, data.field_1588.field_0.field_70,
             data.field_1588.field_0.field_6C, -1.0f);
     }
-    rob_chara_bone_data_set_rotation_y(this->bone_data,
+    rob_chara_bone_data_set_rot_y(this->bone_data,
         (float_t)((double_t)data.field_1588.field_0.field_2B8 * M_PI * (1.0 / 32768.0)));
     sub_14041BC40(this->bone_data, !!(data.field_1588.field_0.field_20.field_8 & 0x20000000));
     sub_14041B9D0(this->bone_data);
@@ -3796,7 +3798,6 @@ static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
 
 static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool solve_ik) {
     mat4 mat;
-    mat4 rot_mat;
     if (a1->has_parent)
         mat = *a1->parent_mat;
     else
@@ -3809,12 +3810,11 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
         mat4_translate_mult(&mat, a1->trans.x, a1->trans.y, a1->trans.z, &mat);
         if (solve_ik) {
             a1->node[0].exp_data.rotation = vec3_null;
-            if (!a1->disable_mot_anim) {
-                rot_mat = a1->rot_mat[0];
-                mat4_get_rotation(&rot_mat, &a1->node[0].exp_data.rotation);
-            }
+            if (!a1->disable_mot_anim)
+                mat4_get_rotation(&a1->rot_mat[0], &a1->node[0].exp_data.rotation);
             else if (bone_data_mult_1_exp_data(a1, &a1->node[0].exp_data, a3)) {
                 vec3 rotation = a1->node[0].exp_data.rotation;
+                mat4 rot_mat;
                 mat4_rotate(rotation.x, rotation.y, rotation.z, &rot_mat);
                 a1->rot_mat[0] = rot_mat;
             }
@@ -3822,6 +3822,7 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
                 *a1->node[0].mat = mat;
 
                 if (bone_data_mult_1_ik(a1, a3)) {
+                    mat4 rot_mat;
                     mat4_invrot_normalized(&mat, &rot_mat);
                     mat4_mult(a1->node[0].mat, &rot_mat, &rot_mat);
                     mat4_clear_trans(&rot_mat, &rot_mat);
@@ -3833,7 +3834,7 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
             }
         }
 
-        rot_mat = a1->rot_mat[0];
+        mat4 rot_mat = a1->rot_mat[0];
         mat4_mult(&rot_mat, &mat, &mat);
     }
     else {
@@ -3851,40 +3852,38 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
     if (a1->type < BONE_DATABASE_BONE_HEAD_IK_ROTATION)
         return;
 
-    rot_mat = a1->rot_mat[1];
+    mat4 rot_mat = a1->rot_mat[1];
     mat4_mult(&rot_mat, &mat, &mat);
     *a1->node[1].mat = mat;
-    mat4_translate_mult(&mat, a1->ik_segment_length[1], 0.0f, 0.0f, &mat);
 
     if (a1->type == BONE_DATABASE_BONE_HEAD_IK_ROTATION) {
+        mat4_translate_mult(&mat, a1->ik_segment_length[1], 0.0f, 0.0f, &mat);
         *a1->node[2].mat = mat;
         if (!solve_ik)
             return;
 
         a1->node[1].exp_data.position = vec3_null;
-        rot_mat = a1->rot_mat[1];
-        mat4_get_rotation(&rot_mat, &a1->node[1].exp_data.rotation);
+        mat4_get_rotation(&a1->rot_mat[1], &a1->node[1].exp_data.rotation);
         bone_node_expression_data_reset_scale(&a1->node[1].exp_data);
         bone_node_expression_data_set_position_rotation(&a1->node[2].exp_data,
             a1->ik_segment_length[1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     }
     else {
-        rot_mat = a1->rot_mat[2];
+        mat4_translate_mult(&mat, a1->ik_segment_length[1], 0.0f, 0.0f, &mat);
+        mat4 rot_mat = a1->rot_mat[2];
         mat4_mult(&rot_mat, &mat, &mat);
         *a1->node[2].mat = mat;
+
         mat4_translate_mult(&mat, a1->ik_2nd_segment_length[1], 0.0f, 0.0f, &mat);
         *a1->node[3].mat = mat;
         if (!solve_ik)
             return;
 
         a1->node[1].exp_data.position = vec3_null;
-        rot_mat = a1->rot_mat[1];
-        mat4_get_rotation(&rot_mat, &a1->node[1].exp_data.rotation);
+        mat4_get_rotation(&a1->rot_mat[1], &a1->node[1].exp_data.rotation);
         bone_node_expression_data_reset_scale(&a1->node[1].exp_data);
-        a1->node[2].exp_data.position.x = a1->ik_segment_length[1];
-        *(vec2*)&a1->node[2].exp_data.position.y = vec2_null;
-        rot_mat = a1->rot_mat[2];
-        mat4_get_rotation(&rot_mat, &a1->node[2].exp_data.rotation);
+        a1->node[2].exp_data.position = { a1->ik_segment_length[1], 0.0f, 0.0f };
+        mat4_get_rotation(&a1->rot_mat[2], &a1->node[2].exp_data.rotation);
         bone_node_expression_data_reset_scale(&a1->node[2].exp_data);
         bone_node_expression_data_set_position_rotation(&a1->node[3].exp_data,
             a1->ik_2nd_segment_length[1], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
@@ -4398,11 +4397,12 @@ static void bone_data_parent_load_bone_indices_from_mot(bone_data_parent* a1,
 
     const mot_bone_info* bone_info = a2->bone_info.data();
     for (size_t key_set_offset = 0, i = 0; key_set_offset < key_set_count; i++) {
-        int32_t bone_index = bone_data->get_skeleton_bone_index(skeleton_type_string,
-            bone_names[bone_info[i].index].c_str());
+        motion_bone_index bone_index = (motion_bone_index)bone_data->get_skeleton_bone_index(
+            skeleton_type_string, bone_names[bone_info[i].index].c_str());
         if (bone_index == -1) {
-            bone_index = bone_data->get_skeleton_bone_index(skeleton_type_string,
-                bone_names[bone_info[++i].index].c_str());
+            i++;
+            bone_index = (motion_bone_index)bone_data->get_skeleton_bone_index(
+                skeleton_type_string, bone_names[bone_info[i].index].c_str());
             if (bone_index == -1)
                 break;
         }
@@ -4497,7 +4497,7 @@ static void bone_node_expression_data_set_position_rotation(bone_node_expression
     data->parent_scale = vec3_identity;
 }
 
-static void bone_node_expression_data_set_position_rotation_vec3(bone_node_expression_data* data,
+static void bone_node_expression_data_set_position_rotation(bone_node_expression_data* data,
     vec3* position, vec3* rotation) {
     data->position = *position;
     data->rotation = *rotation;
@@ -5872,7 +5872,7 @@ static void rob_osage_init_data(rob_osage* rob_osg,
     obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
     bone_node* ex_data_bone_nodes, obj_skin* skin) {
     rob_osg->reset();
-    bone_node_expression_data_set_position_rotation_vec3(
+    bone_node_expression_data_set_position_rotation(
         &rob_osg->exp_data,
         &osg_data->base.position,
         &osg_data->base.rotation);
@@ -6059,8 +6059,8 @@ static float_t exp_fmod(float_t v1, float_t v2) {
     return fmodf(v1, v2);
 }
 
-static const exp_func_op1* exp_func_op1_find_func(string* name, const exp_func_op1* array) {
-    char* name_str = string_data(name);
+static const exp_func_op1* exp_func_op1_find_func(std::string& name, const exp_func_op1* array) {
+    const char* name_str = name.c_str();
     while (array->name) {
         if (!str_utils_compare(name_str, array->name))
             return array;
@@ -6069,8 +6069,8 @@ static const exp_func_op1* exp_func_op1_find_func(string* name, const exp_func_o
     return 0;
 }
 
-static const exp_func_op2* exp_func_op2_find_func(string* name, const exp_func_op2* array) {
-    char* name_str = string_data(name);
+static const exp_func_op2* exp_func_op2_find_func(std::string& name, const exp_func_op2* array) {
+    const char* name_str = name.c_str();
     while (array->name) {
         if (!str_utils_compare(name_str, array->name))
             return array;
@@ -6079,8 +6079,8 @@ static const exp_func_op2* exp_func_op2_find_func(string* name, const exp_func_o
     return 0;
 }
 
-static const exp_func_op3* exp_func_op3_find_func(string* name, const exp_func_op3* array) {
-    char* name_str = string_data(name);
+static const exp_func_op3* exp_func_op3_find_func(std::string& name, const exp_func_op3* array) {
+    const char* name_str = name.c_str();
     while (array->name) {
         if (!str_utils_compare(name_str, array->name))
             return array;
@@ -6349,7 +6349,7 @@ static void mot_key_frame_interpolate(mot* a1, float_t frame, float_t* value,
         }
         else {
             const uint16_t* key = &frames[current_key];
-            for (const uint16_t* v17 = &frames[keys_count]; key != v17; key++)
+            for (const uint16_t* key_end = &frames[keys_count]; key != key_end; key++)
                 if (frame_int < *key)
                     break;
             key_index = key - frames;
@@ -6380,7 +6380,8 @@ static void mot_key_frame_interpolate(mot* a1, float_t frame, float_t* value,
                     float_t p2 = values[2];
                     float_t t1 = values[1];
                     float_t t2 = values[3];
-                    *value = ((t - 1.0f) * t1 + t * t2) * (t - 1.0f) * (frame - curr_frame)
+                    float_t t_1 = t - 1.0f;
+                    *value = (t_1 * t1 + t * t2) * t_1 * (frame - curr_frame)
                         + (t * 2.0f - 3.0f) * (t * t) * (p1 - p2) + p1;
                 }
                 a4->current_key = (int32_t)key_index;
@@ -7638,9 +7639,9 @@ static void motion_blend_mot_interpolate(motion_blend_mot* a1) {
     a1->bone_data.global_trans = global_trans;
     a1->bone_data.global_rotation = global_rotation;
 
-    float_t rotation_y = a1->bone_data.rotation_y;
+    float_t rot_y = a1->bone_data.rot_y;
     mat4 mat;
-    mat4_rotate_y(rotation_y, &mat);
+    mat4_rotate_y(rot_y, &mat);
     mat4_translate_mult(&mat, global_trans.x, global_trans.y, global_trans.z, &mat);
     mat4_rotate_mult(&mat, global_rotation.x, global_rotation.y, global_rotation.z, &mat);
     for (bone_data& i : a1->bone_data.bones)
@@ -9016,7 +9017,7 @@ static void sub_1405508F0(rob_chara* rob_chr, motion_database* mot_db) {
 }
 
 static bool sub_1404190E0(rob_chara_bone_data* rob_bone_data) {
-    return rob_bone_data->eyelid.blend.field_8 || rob_bone_data->eyelid.blend.field_9;
+    return rob_bone_data->eyelid.blend.field_8 || rob_bone_data->eyelid.blend.rot_y;
 }
 
 static void sub_140555F70(rob_chara* rob_chr, motion_database* mot_db) {
@@ -9354,17 +9355,17 @@ static void sub_140504AC0(rob_chara* rob_chr) {
 }
 
 static void rob_base_rob_chara_ctrl_thread_main(rob_chara* rob_chr) {
-    data_struct* data = rctx_ptr->data;
-    bone_database* bone_data = &data->data_ft.bone_data;
-    motion_database* mot_db = &data->data_ft.mot_db;
-    object_database* obj_db = &data->data_ft.obj_db;
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    sub_140514520(rob_chr, bone_data, mot_db);
+    sub_140514520(rob_chr, aft_bone_data, aft_mot_db);
     sub_14054CC80(rob_chr);
-    sub_1405077D0(rob_chr, bone_data, mot_db);
-    sub_1405070E0(rob_chr, bone_data, mot_db);
+    sub_1405077D0(rob_chr, aft_bone_data, aft_mot_db);
+    sub_1405070E0(rob_chr, aft_bone_data, aft_mot_db);
     rob_chara_arm_adjust_ctrl(rob_chr);
-    sub_140504710(rob_chr, mot_db, bone_data, data, obj_db);
+    sub_140504710(rob_chr, aft_mot_db, aft_bone_data, aft_data, aft_obj_db);
     sub_140504AC0(rob_chr);
 }
 
@@ -9431,7 +9432,7 @@ static MotionBlendType motion_blend_mot_get_type(motion_blend_mot* a1) {
 
 static bool sub_140413810(motion_blend_mot* a1) {
     if (a1->blend && a1->blend->Field_30())
-        return a1->blend->field_9;
+        return a1->blend->rot_y;
     return false;
 }
 
@@ -9742,7 +9743,7 @@ static void sub_140406A70(vec3* a1, std::vector<bone_data>* bones, mat4* a3, vec
         mat4_clear_trans(v25->node->mat, &v39);
         mat4_transpose(&v38, &v38);
         mat4_mult(&v39, &v38, &v38);
-        if (rotation_blend < 1.0) {
+        if (rotation_blend < 1.0f) {
             mat4 rot_mat = v25->rot_mat[0];
             mat4_lerp_rotation(&rot_mat, &v38, &v38, rotation_blend);
         }
@@ -10526,7 +10527,7 @@ static void rob_chara_bone_data_left_hand_scale(rob_chara_bone_data* rob_bone_da
         if (m)
             mat4_mult(m, &mat, m);
     }
-    
+
     for (int32_t i = MOT_BONE_KL_TE_L_WJ; i <= MOT_BONE_NL_OYA_C_L_WJ; i++) {
         bone_node* node = rob_chara_bone_data_get_node(rob_bone_data, i);
         if (node)
@@ -10556,7 +10557,7 @@ static void rob_chara_bone_data_right_hand_scale(rob_chara_bone_data* rob_bone_d
         if (m)
             mat4_mult(m, &mat, m);
     }
-    
+
     for (int32_t i = MOT_BONE_KL_TE_R_WJ; i <= MOT_BONE_NL_OYA_C_R_WJ; i++) {
         bone_node* node = rob_chara_bone_data_get_node(rob_bone_data, i);
         if (node)
@@ -10972,13 +10973,13 @@ static void sub_140415A10(motion_blend_mot* a1) {
         v7.field_2 = !sub_140413790(&a1->field_4F8);
     v7.field_1 = sub_1404137A0(&a1->field_4F8);
     v7.frame = a1->mot_key_data.frame;
-    v7.eyes_adjust = a1->field_4F8.eyes_adjust;
-    v7.prev_eyes_adjust = a1->field_4F8.prev_eyes_adjust;
-    a1->blend->Field_18(&v7);
+    v7.rot_y = a1->field_4F8.rot_y;
+    v7.prev_rot_y = a1->field_4F8.prev_rot_y;
+    a1->blend->Step(&v7);
 }
 
 static bool sub_140410A20(motion_blend_mot* a1) {
-    return !a1->blend || !a1->blend->field_9;
+    return !a1->blend || !a1->blend->rot_y;
 }
 
 static void sub_140415B30(mot_blend* a1) {
@@ -10989,9 +10990,9 @@ static void sub_140415B30(mot_blend* a1) {
     v3.field_3 = false;
     v3.field_4 = false;
     v3.frame = 0.0f;
-    v3.eyes_adjust = 0.0f;
-    v3.prev_eyes_adjust = 0.0f;
-    a1->blend.Field_18(&v3);
+    v3.rot_y = 0.0f;
+    v3.prev_rot_y = 0.0f;
+    a1->blend.Step(&v3);
 }
 
 static void sub_14041DAC0(rob_chara_bone_data* a1) {
@@ -11529,8 +11530,8 @@ static void rob_chara_bone_data_set_parent_mats(rob_chara_bone_data* rob_bone_da
         i->parent = &rob_bone_data->nodes[*parent_indices++];
 }
 
-static void rob_chara_bone_data_set_rotation_y(rob_chara_bone_data* rob_bone_data, float_t rotation_y) {
-    rob_bone_data->motion_loaded.front()->bone_data.rotation_y = rotation_y;
+static void rob_chara_bone_data_set_rot_y(rob_chara_bone_data* rob_bone_data, float_t rot_y) {
+    rob_bone_data->motion_loaded.front()->bone_data.rot_y = rot_y;
 }
 
 static void sub_140413EB0(struc_308* a1) {
@@ -11592,7 +11593,7 @@ static void sub_14040FBF0(motion_blend_mot* a1, float_t a2) {
 
 static void sub_140410A40(motion_blend_mot* a1, std::vector<bone_data>* a2, std::vector<bone_data>* a3) {
     MotionBlend* v4 = a1->blend;
-    if (!v4 || !v4->field_9)
+    if (!v4 || !v4->rot_y)
         return;
 
     v4->Field_20(a2, a3);
@@ -11610,7 +11611,7 @@ static void sub_140410A40(motion_blend_mot* a1, std::vector<bone_data>* a2, std:
 
 static void sub_140410B70(motion_blend_mot* a1, std::vector<bone_data>* a2) {
     MotionBlend* v3 = a1->blend;
-    if (!v3 || !v3->field_9)
+    if (!v3 || !v3->rot_y)
         return;
 
     v3->Field_20(&a1->bone_data.bones, a2);
@@ -11626,7 +11627,7 @@ static void sub_140410B70(motion_blend_mot* a1, std::vector<bone_data>* a2) {
 }
 
 static void sub_140410CB0(mot_blend* a1, std::vector<bone_data>* a2) {
-    if (!a1->blend.field_9)
+    if (!a1->blend.rot_y)
         return;
 
     for (bone_data& i : *a2) {
@@ -11758,7 +11759,7 @@ static void sub_140505C90(struc_264* a1) {
     a1->field_A8 = 0;
     a1->field_AC = 0;
     a1->field_B0 = 0;
-    a1->eyes_adjust = 0;
+    a1->field_B4 = 0;
     sub_140506C20(&a1->field_B8);
     a1->field_140 = 0;
     a1->field_144 = 0;
@@ -12144,6 +12145,17 @@ static object_info rob_chara_item_cos_data_get_head_object_replace(
     if (elem != item_cos_data->head_replace.end())
         return elem->second;
     return object_info();
+}
+
+static float_t rob_chara_item_cos_data_get_max_face_depth(rob_chara_item_cos_data* item_cos_data) {
+    float_t max_face_depth = 0.0f;
+    for (int32_t i = ITEM_SUB_ZUJO; i < ITEM_SUB_MAX; i++) {
+        int32_t item_no = item_cos_data->cos.arr[i];
+        item_table_item* item = item_table_array_get_item(item_cos_data->chara_index, item_no);
+        if (item && max_face_depth < item->face_depth)
+            max_face_depth = item->face_depth;
+    }
+    return max_face_depth;
 }
 
 static int32_t item_cos_tex_chg_counter = 0;
@@ -13225,10 +13237,10 @@ static void rob_chara_item_equip_object_load_ex_data(rob_chara_item_equip_object
         exp_data.rotation = v54->rotation;
         exp_data.scale = v54->scale;
         exp_data.parent_scale = vec3_identity;
-        node->parent_name = std::string(string_data(&v54->parent_name), v54->parent_name.length);
+        node->parent_name = std::string(v54->parent_name);
 
         bone_node* parent_bone_node = rob_chara_item_equip_object_get_bone_node_by_name(itm_eq_obj,
-            string_data(&v54->parent_name), bone_data);
+            v54->parent_name, bone_data);
         node->parent_bone_node = parent_bone_node;
         if (node->bone_node_ptr) {
             node->bone_node_ptr->exp_data = exp_data;
@@ -13453,9 +13465,132 @@ static void rob_chara_item_equip_object_set_texture_pattern(
             itm_eq_obj->texture_pattern.push_back(tex_pat[i]);
 }
 
+static rob_osage_node* sub_1405FAB90(rob_chara_item_equip_object* a1, std::string* a2, size_t* a3) {
+    if (!a2->size())
+        return 0;
+
+    size_t v8 = a2->find(',', 0);
+    if (v8 == -1)
+        return 0;
+
+    std::string v22 = a2->substr(0, v8);
+    std::string v23 = a2->substr(v8 + 1);
+    size_t v11 = atoi(v23.c_str());
+    if (a3)
+        *a3 = v11;
+
+    rob_osage_node* node = 0;
+    for (ExOsageBlock*& i : a1->osage_blocks)
+        if (!v22.compare(i->name)) {
+            if (v11 + 1 < i->rob.nodes.size())
+                node = rob_osage_get_node(&i->rob, v11 + 1);
+            break;
+        }
+    return node;
+}
+
+static bool sub_14053E690(rob_osage_node_data_normal_ref* normal_ref) {
+    normal_ref->field_0 = false;
+    if (normal_ref->n == 0)
+        return normal_ref->field_0;
+
+    if (normal_ref->u && !memcmp(&normal_ref->u->mat, &mat4u_null, sizeof(mat4u)))
+        normal_ref->u = 0;
+
+    if (normal_ref->d && !memcmp(&normal_ref->d->mat, &mat4u_null, sizeof(mat4u)))
+        normal_ref->d = 0;
+
+    if (normal_ref->l && !memcmp(&normal_ref->l->mat, &mat4u_null, sizeof(mat4u)))
+        normal_ref->l = 0;
+
+    if (normal_ref->r && !memcmp(&normal_ref->r->mat, &mat4u_null, sizeof(mat4u)))
+        normal_ref->r = 0;
+
+    if ((normal_ref->u || normal_ref->d) && (normal_ref->l || normal_ref->r)) {
+        if (!normal_ref->u)
+            normal_ref->u = normal_ref->n;
+        if (!normal_ref->d)
+            normal_ref->d = normal_ref->n;
+        if (!normal_ref->l)
+            normal_ref->l = normal_ref->n;
+        if (!normal_ref->r)
+            normal_ref->r = normal_ref->n;
+        normal_ref->field_0 = true;
+    }
+    return normal_ref->field_0;
+}
+
+static void sub_14053CAC0(rob_osage_node_data_normal_ref* normal_ref) {
+    if (!normal_ref->field_0)
+        return;
+
+    vec3 n_trans;
+    vec3 u_trans;
+    vec3 d_trans;
+    vec3 l_trans;
+    vec3 r_trans;
+    mat4_get_translation(&normal_ref->n->mat, &n_trans);
+    mat4_get_translation(&normal_ref->u->mat, &u_trans);
+    mat4_get_translation(&normal_ref->d->mat, &d_trans);
+    mat4_get_translation(&normal_ref->l->mat, &l_trans);
+    mat4_get_translation(&normal_ref->r->mat, &r_trans);
+
+    vec3 v21;
+    vec3 v22;
+    vec3 v23;
+    if (sub_14053D1B0(&l_trans, &r_trans, &u_trans, &d_trans, &v22, &v21, &v23)) {
+        mat4u mat;
+        mat.row0.x = v23.x;
+        mat.row0.y = v21.x;
+        mat.row0.z = v22.x;
+        mat.row0.w = 0.0f;
+        mat.row1.x = v23.y;
+        mat.row1.y = v21.y;
+        mat.row1.z = v22.y;
+        mat.row1.w = 0.0f;
+        mat.row2.x = v23.z;
+        mat.row2.y = v21.z;
+        mat.row2.z = v22.z;
+        mat.row2.w = 0.0f;
+        vec3_dot(n_trans, v23, mat.row3.x);
+        vec3_dot(n_trans, v21, mat.row3.y);
+        vec3_dot(n_trans, v22, mat.row3.z);
+        vec3_negate(*(vec3*)&mat.row3, *(vec3*)&mat.row3);
+        mat.row3.w = 1.0f;
+        mat4_mult(&normal_ref->n->mat, &mat, &normal_ref->mat);
+    }
+}
+
+static bool sub_1405FAA30(rob_chara_item_equip_object* a1,
+    skin_param_osage_root* a2, std::vector<rob_osage_node_data>* a3) {
+    if (!a2->normal_ref.size())
+        return true;
+
+    for (skin_param_osage_root_normal_ref& i : a2->normal_ref) {
+        size_t v12 = 0;
+        rob_osage_node* v8 = sub_1405FAB90(a1, &i.n, &v12);
+        if (!v8)
+            continue;
+
+        rob_osage_node_data* v10;
+        if (a3)
+            v10 = &(*a3)[v12];
+        else
+            v10 = v8->data_ptr;
+
+        v10->normal_ref.n = v8;
+        v10->normal_ref.u = sub_1405FAB90(a1, &i.u, 0);
+        v10->normal_ref.d = sub_1405FAB90(a1, &i.d, 0);
+        v10->normal_ref.l = sub_1405FAB90(a1, &i.l, 0);
+        v10->normal_ref.r = sub_1405FAB90(a1, &i.r, 0);
+        sub_14053CAC0(&v10->normal_ref);
+    }
+    return true;
+}
+
 static void rob_chara_item_equip_object_skp_load(
     rob_chara_item_equip_object* itm_eq_obj, key_val* kv, bone_database* bone_data) {
-    if (kv->key_hash.size() < 1)
+    if (kv->key.size() < 1)
         return;
 
     itm_eq_obj->field_1B8 = 0;
@@ -13467,8 +13602,9 @@ static void rob_chara_item_equip_object_skp_load(
         rob_chara_item_equip_object_set_collision_target_osage(itm_eq_obj, &root, osg->rob.skin_param_ptr);
         itm_eq_obj->field_1B8 |= rob_chara_item_equip_object_set_boc(itm_eq_obj, &root, osg);
         itm_eq_obj->field_1B8 |= root.coli_type != 0;
-        //itm_eq_obj->field_1B8 |= sub_1405FAA30(itm_eq_obj, &root, 0);
+        itm_eq_obj->field_1B8 |= sub_1405FAA30(itm_eq_obj, &root, 0);
     }
+
     for (ExClothBlock*& i : itm_eq_obj->cloth_blocks) {
         ExClothBlock* cls = i;
         skin_param_osage_root root;
@@ -13736,7 +13872,7 @@ static void rob_chara_load_default_motion_sub(rob_chara* rob_chr, int32_t skelet
     sub_14041BC40(rob_chr->bone_data, false);
     sub_14041D270(rob_chr->bone_data, 0.0f);
     sub_14041D2A0(rob_chr->bone_data, 0.0f);
-    rob_chara_bone_data_set_rotation_y(rob_chr->bone_data, 0.0f);
+    rob_chara_bone_data_set_rot_y(rob_chr->bone_data, 0.0f);
     rob_chara_bone_data_set_motion_duration(rob_chr->bone_data, 0.0f, 1.0f, 1.0f);
     sub_14041D310(rob_chr->bone_data, 0.0f, 0.0f, 2);
     rob_chara_bone_data_interpolate(rob_chr->bone_data);
@@ -13789,7 +13925,7 @@ static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
     rob_chara_item_cos_data_set_customize_items(&rob_chr->item_cos_data, &pv_data->customize_items);
 }
 
-static void rob_cmn_mottbl_read(void* a1, void* data, size_t size) {
+static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size) {
     free(rob_cmn_mottbl_data);
 
     farc f;
@@ -13937,9 +14073,9 @@ static void rob_osage_set_motion_reset_data(rob_osage* rob_osg, int32_t motion_i
         rob_osg->reset_data_list = &v6->second;
 }
 
-static void rob_osage_set_rot(rob_osage* rob_osg, float_t rotation_y, float_t rotation_z) {
-    rob_osg->skin_param_ptr->rot.y = rotation_y * DEG_TO_RAD_FLOAT;
-    rob_osg->skin_param_ptr->rot.z = rotation_z * DEG_TO_RAD_FLOAT;
+static void rob_osage_set_rot(rob_osage* rob_osg, float_t rot_y, float_t rot_z) {
+    rob_osg->skin_param_ptr->rot.y = rot_y * DEG_TO_RAD_FLOAT;
+    rob_osg->skin_param_ptr->rot.z = rot_z * DEG_TO_RAD_FLOAT;
 }
 
 static void rob_osage_set_skin_param_osage_root(rob_osage* rob_osg, skin_param_osage_root* skp_root) {
@@ -13988,292 +14124,222 @@ static void rob_osage_free(rob_osage* rob_osg) {
 
 static void skin_param_osage_node_parse(key_val* kv, const char* name,
     std::vector<skin_param_osage_node>* vec, skin_param_osage_root* skp_root) {
-    char buf[SKP_TEXT_BUF_SIZE];
-    int32_t count;
-    size_t len;
-    size_t len1;
-    size_t len2;
-    size_t off;
-
-    key_val lkv;
-    if (!kv->get_local_key_val(name, &lkv))
+    if (!kv->open_scope(name))
         return;
 
-    len = utf8_length(name);
-    memcpy(buf, name, len);
-    off = len;
-
-    len1 = 5;
-    memcpy(&buf[len], ".node", 5);
-    off = len + len1;
-
-    buf[off] = 0;
-    key_val sub_local_key_val;
-    if (lkv.get_local_key_val(buf, &sub_local_key_val)) {
-        if (lkv.read_int32_t(buf, off, ".length", 8, &count)) {
-            size_t c = vec->size();
-            if (c < count)
-                vec->resize(count);
-        }
-        else
-            vec->clear();
-
-        int32_t j = 0;
-        for (auto i = vec->begin(); i != vec->end(); i++, j++) {
-            len2 = sprintf_s(buf + len + len1,
-                SKP_TEXT_BUF_SIZE - len - len1, ".%d", j);
-            off = len + len1 + len2;
-
-            *i = skin_param_osage_node();
-
-            float_t coli_r = 0;
-            if (sub_local_key_val.read_float_t(
-                buf, off, ".coli_r", 8, &coli_r))
-                i->coli_r = coli_r;
-
-            float_t weight = 0;
-            if (sub_local_key_val.read_float_t(
-                buf, off, ".weight", 8, &weight))
-                i->weight = weight;
-
-            float_t inertial_cancel = 0;
-            if (sub_local_key_val.read_float_t(
-                buf, off, ".inertial_cancel", 17, &inertial_cancel))
-                i->inertial_cancel = inertial_cancel;
-
-            i->hinge.ymin = -skp_root->hinge_y;
-            i->hinge.ymax = skp_root->hinge_y;
-            i->hinge.zmin = -skp_root->hinge_z;
-            i->hinge.zmax = skp_root->hinge_z;
-
-            float_t hinge_ymax = 0.0f;
-            if (sub_local_key_val.read_float_t(
-                buf, off, ".hinge_ymax", 12, &hinge_ymax))
-                i->hinge.ymax = hinge_ymax;
-
-            float_t hinge_ymin = 0.0f;
-            if (sub_local_key_val.read_float_t(
-                buf, off, ".hinge_ymin", 12, &hinge_ymin))
-                i->hinge.ymin = hinge_ymin;
-
-            float_t hinge_zmax = 0.0f;
-            if (sub_local_key_val.read_float_t(
-                buf, off, ".hinge_zmax", 12, &hinge_zmax))
-                i->hinge.zmax = hinge_zmax;
-
-            float_t hinge_zmin = 0.0f;
-            if (sub_local_key_val.read_float_t(
-                buf, off, ".hinge_zmin", 12, &hinge_zmin))
-                i->hinge.zmin = hinge_zmin;
-        }
+    if (!kv->open_scope("node")) {
+        kv->close_scope();
+        return;
     }
+
+    int32_t count;
+    if (kv->read("length", count)) {
+        size_t c = vec->size();
+        if (c < count)
+            vec->resize(count);
+    }
+    else
+        vec->clear();
+
+    int32_t j = 0;
+    for (auto i = vec->begin(); i != vec->end(); i++, j++) {
+        if (!kv->open_scope(j))
+            continue;
+
+        *i = skin_param_osage_node();
+
+        float_t coli_r = 0.0f;
+        if (kv->read("coli_r", coli_r))
+            i->coli_r = coli_r;
+
+        float_t weight = 0.0f;
+        if (kv->read("weight", weight))
+            i->weight = weight;
+
+        float_t inertial_cancel = 0.0f;
+        if (kv->read("inertial_cancel", inertial_cancel))
+            i->inertial_cancel = inertial_cancel;
+
+        i->hinge.ymin = -skp_root->hinge_y;
+        i->hinge.ymax = skp_root->hinge_y;
+        i->hinge.zmin = -skp_root->hinge_z;
+        i->hinge.zmax = skp_root->hinge_z;
+
+        float_t hinge_ymax = 0.0f;
+        if (kv->read("hinge_ymax", hinge_ymax))
+            i->hinge.ymax = hinge_ymax;
+
+        float_t hinge_ymin = 0.0f;
+        if (kv->read("hinge_ymin", hinge_ymin))
+            i->hinge.ymin = hinge_ymin;
+
+        float_t hinge_zmax = 0.0f;
+        if (kv->read("hinge_zmax", hinge_zmax))
+            i->hinge.zmax = hinge_zmax;
+
+        float_t hinge_zmin = 0.0f;
+        if (kv->read("hinge_zmin", hinge_zmin))
+            i->hinge.zmin = hinge_zmin;
+        kv->close_scope();
+    }
+
+    kv->close_scope();
+    kv->close_scope();
 }
 
 static void skin_param_osage_root_parse(key_val* kv, const char* name,
     skin_param_osage_root* skp_root, bone_database* bone_data) {
-    char buf[SKP_TEXT_BUF_SIZE];
-    int32_t count;
-    size_t len;
-    size_t len1;
-    size_t len2;
-    size_t len3;
-    size_t off;
-
-    key_val lkv;
-    if (!kv->get_local_key_val(name, &lkv))
+    if (!kv->open_scope(name))
         return;
 
-    len = utf8_length(name);
-    memcpy(buf, name, len);
-    off = len;
-
     int32_t node_length = 0;
-    lkv.read_int32_t(
-        buf, off, ".node.length", 13, &node_length);
+    kv->read("node.length", node_length);
 
-    len1 = 5;
-    memcpy(&buf[len], ".root", 5);
-    off = len + len1;
+    if (!kv->open_scope("root")) {
+        kv->close_scope();
+        return;
+    }
 
     float_t force = 0.0f;
     float_t force_gain = 0.0f;
-    if (lkv.read_float_t(
-        buf, off, ".force", 7, &force)
-        && lkv.read_float_t(
-            buf, off, ".force_gain", 12, &force_gain)) {
+    if (kv->read("force", force)
+        && kv->read("force_gain", force_gain)) {
         skp_root->force = force;
         skp_root->force_gain = force_gain;
     }
 
     float_t air_res = 0.0f;
-    if (lkv.read_float_t(
-        buf, off, ".air_res", 9, &air_res))
+    if (kv->read("air_res", air_res))
         skp_root->air_res = min(air_res, 0.9f);
 
     float_t rot_y = 0.0f;
     float_t rot_z = 0.0f;
-    if (lkv.read_float_t(
-        buf, off, ".rot_y", 7, &rot_y)
-        && lkv.read_float_t(
-            buf, off, ".rot_z", 7, &rot_z)) {
+    if (kv->read("rot_y", rot_y)
+        && kv->read("rot_z", rot_z)) {
         skp_root->rot_y = rot_y;
         skp_root->rot_z = rot_z;
     }
 
     float_t friction = 0.0f;
-    if (lkv.read_float_t(
-        buf, off, ".friction", 10, &friction))
+    if (kv->read("friction", friction))
         skp_root->friction = friction;
 
     float_t wind_afc = 0;
-    if (lkv.read_float_t(
-        buf, off, ".wind_afc", 10, &wind_afc)) {
+    if (kv->read("wind_afc", wind_afc)) {
         skp_root->wind_afc = wind_afc;
         if (!str_utils_compare_length(name, utf8_length(name), "c_opa", 5))
             skp_root->wind_afc = 0.0f;
     }
 
     int32_t coli_type = 0;
-    if (lkv.read_int32_t(
-        buf, off, ".coli_type", 11, &coli_type))
+    if (kv->read("coli_type", coli_type))
         skp_root->coli_type = coli_type;
 
     float_t init_rot_y = 0.0f;
     float_t init_rot_z = 0.0f;
-    if (lkv.read_float_t(
-        buf, off, ".init_rot_y", 12, &init_rot_y)
-        && lkv.read_float_t(
-            buf, off, ".init_rot_z", 12, &init_rot_z)) {
+    if (kv->read("init_rot_y", init_rot_y)
+        && kv->read("init_rot_z", init_rot_z)) {
         skp_root->init_rot_y = init_rot_y;
         skp_root->init_rot_z = init_rot_z;
     }
 
     float_t hinge_y = 0.0f;
     float_t hinge_z = 0.0f;
-    if (lkv.read_float_t(
-        buf, off, ".hinge_y", 9, &hinge_y)
-        && lkv.read_float_t(
-            buf, off, ".hinge_z", 9, &hinge_z)) {
+    if (kv->read("hinge_y", hinge_y)
+        && kv->read("hinge_z", hinge_z)) {
         skp_root->hinge_y = hinge_y;
         skp_root->hinge_z = hinge_z;
     }
 
     float_t coli_r = 0.0f;
-    if (lkv.read_float_t(
-        buf, off, ".coli_r", 8, &coli_r))
+    if (kv->read("coli_r", coli_r))
         skp_root->coli_r = coli_r;
 
     float_t stiffness = 0.0f;
-    if (lkv.read_float_t(
-        buf, off, ".stiffness", 11, &stiffness))
+    if (kv->read("stiffness", stiffness))
         skp_root->stiffness = stiffness;
 
     float_t move_cancel = 0.0f;
-    if (lkv.read_float_t(
-        buf, off, ".move_cancel", 13, &move_cancel))
+    if (kv->read("move_cancel", move_cancel))
         skp_root->move_cancel = move_cancel;
 
-    len2 = 5;
-    memcpy(buf + len + len1, ".coli", 5);
-    off = len + len1 + len2;
-
-    buf[off] = 0;
-    key_val sub_local_key_val;
-    if (lkv.read_int32_t(buf, off, ".length", 8, &count)
-        && lkv.get_local_key_val(buf, &sub_local_key_val)) {
+    int32_t count;
+    if (kv->read("coli", "length", count)) {
         std::vector<skin_param_osage_root_coli>& vc = skp_root->coli;
         for (int32_t i = 0; i < count; i++) {
-            skin_param_osage_root_coli* c = &vc[i];
-            len3 = sprintf_s(buf + len + len1 + len2,
-                SKP_TEXT_BUF_SIZE - len - len1 - len2, ".%d", i);
-            off = len + len1 + len2 + len3;
+            if (!kv->open_scope(i))
+                continue;
 
-            skin_param_osage_root_coli_type type = SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_NONE;
-            if (!sub_local_key_val.read_int32_t(
-                buf, off, ".type", 6, (int32_t*)&type))
+            skin_param_osage_root_coli* c = &vc[i];
+
+            int32_t type = 0;
+            if (!kv->read("type", type)) {
+                kv->close_scope();
                 break;
-            c->type = type;
+            }
+            c->type = (skin_param_osage_root_coli_type)type;
 
             float_t radius = 0;
-            if (!sub_local_key_val.read_float_t(
-                buf, off, ".radius", 8, &radius))
+            if (!kv->read("radius", radius)) {
+                kv->close_scope();
                 break;
+            }
             c->radius = radius;
 
-            const char* bone0_name = 0;
-            if (!sub_local_key_val.read_string(
-                buf, off, ".bone.0.name", 13, &bone0_name))
+            const char* bone0_name;
+            if (!kv->read("bone.0.name", bone0_name)) {
+                kv->close_scope();
                 break;
+            }
 
             c->bone0_index = bone_data->get_skeleton_object_bone_index(
                 bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone0_name);
 
             vec3 bone0_pos = vec3_null;
-            if (!sub_local_key_val.read_float_t(
-                buf, off, ".bone.0.posx", 13, &bone0_pos.x))
+            if (!kv->read("bone.0.posx", bone0_pos.x)
+                || !kv->read("bone.0.posy", bone0_pos.y)
+                || !kv->read("bone.0.posz", bone0_pos.z)) {
+                kv->close_scope();
                 break;
-
-            if (!sub_local_key_val.read_float_t(
-                buf, off, ".bone.0.posy", 13, &bone0_pos.y))
-                break;
-
-            if (!sub_local_key_val.read_float_t(
-                buf, off, ".bone.0.posz", 13, &bone0_pos.z))
-                break;
+            }
 
             c->bone0_pos = bone0_pos;
 
-            const char* bone1_name = 0;
-            if (sub_local_key_val.read_string(
-                buf, off, ".bone.1.name", 13, &bone1_name)) {
-
+            const char* bone1_name;
+            if (kv->read("bone.1.name", bone1_name)) {
                 c->bone1_index = bone_data->get_skeleton_object_bone_index(
                     bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
 
                 vec3 bone1_pos = vec3_null;
-                if (!sub_local_key_val.read_float_t(
-                    buf, off, ".bone.1.posx", 13, &bone1_pos.x))
+                if (!kv->read("bone.1.posx", bone1_pos.x)
+                    || !kv->read("bone.1.posy", bone1_pos.y)
+                    || !kv->read("bone.1.posz", bone1_pos.z)) {
+                    kv->close_scope();
                     break;
-
-                if (!sub_local_key_val.read_float_t(
-                    buf, off, ".bone.1.posy", 13, &bone1_pos.y))
-                    break;
-
-                if (!sub_local_key_val.read_float_t(
-                    buf, off, ".bone.1.posz", 13, &bone1_pos.z))
-                    break;
+                }
 
                 c->bone1_pos = bone1_pos;
-
             }
+            kv->close_scope();
         }
+        kv->close_scope();
     }
 
-    len2 = 4;
-    memcpy(buf + len + len1, ".boc", 4);
-    off = len + len1 + len2;
-
-    buf[off] = 0;
-    if (lkv.read_int32_t(buf, off, ".length", 8, &count)
-        && lkv.get_local_key_val(buf, &sub_local_key_val)) {
+    if (kv->read("boc", "length", count)) {
         std::vector<skin_param_osage_root_boc>* vb = &skp_root->boc;
 
         vb->resize(count);
         for (int32_t i = 0; i < count; i++) {
-            len3 = sprintf_s(buf + len + len1 + len2,
-                SKP_TEXT_BUF_SIZE - len - len1 - len2, ".%d", i);
-            off = len + len1 + len2 + len3;
+            if (!kv->open_scope(i))
+                continue;
 
             int32_t st_node = 0;
             std::string ed_root;
             int32_t ed_node = 0;
-            if (sub_local_key_val.read_int32_t(
-                buf, off, ".st_node", 9, &st_node)
+            if (kv->read("st_node", st_node)
                 && st_node < node_length
-                && sub_local_key_val.read_string(
-                    buf, off, ".ed_root", 9, &ed_root)
-                && sub_local_key_val.read_int32_t(
-                    buf, off, ".ed_node", 9, &ed_node)
+                && kv->read("ed_root", ed_root)
+                && kv->read("ed_node", ed_node)
                 && ed_node < node_length) {
                 skin_param_osage_root_boc b;
                 b.st_node = st_node;
@@ -14281,47 +14347,40 @@ static void skin_param_osage_root_parse(key_val* kv, const char* name,
                 b.ed_node = ed_node;
                 vb->push_back(b);
             }
+            kv->close_scope();
         }
+        kv->close_scope();
     }
 
-    off = len + len1;
     std::string colli_tgt_osg;
-    if (lkv.read_string(
-        buf, off, ".colli_tgt_osg", 15, &colli_tgt_osg))
+    if (kv->read("colli_tgt_osg", colli_tgt_osg))
         skp_root->colli_tgt_osg = colli_tgt_osg;
 
-    len2 = 11;
-    memcpy(buf + len + len1, ".normal_ref", 11);
-    off = len + len1 + len2;
-
-    buf[off] = 0;
-    if (lkv.read_int32_t(buf, off, ".length", 8, &count)
-        && lkv.get_local_key_val(buf, &sub_local_key_val)) {
+    if (kv->read("normal_ref", "length", count)) {
         std::vector<skin_param_osage_root_normal_ref>* vnr = &skp_root->normal_ref;
 
         vnr->resize(count);
         for (int32_t i = 0; i < count; i++) {
-            len3 = sprintf_s(buf + len + len1 + len2,
-                SKP_TEXT_BUF_SIZE - len - len1 - len2, ".%d", i);
-            off = len + len1 + len2 + len3;
+            if (!kv->open_scope(i))
+                continue;
 
             std::string n;
-            if (sub_local_key_val.read_string(
-                buf, off, ".N", 3, &n)) {
+            if (kv->read("N", n)) {
                 skin_param_osage_root_normal_ref nr;
                 nr.n = n;
-                sub_local_key_val.read_string(
-                    buf, off, ".U", 3, &nr.u);
-                sub_local_key_val.read_string(
-                    buf, off, ".D", 3, &nr.d);
-                sub_local_key_val.read_string(
-                    buf, off, ".L", 3, &nr.l);
-                sub_local_key_val.read_string(
-                    buf, off, ".R", 3, &nr.r);
+                kv->read("U", nr.u);
+                kv->read("D", nr.d);
+                kv->read("L", nr.l);
+                kv->read("R", nr.r);
                 vnr->push_back(nr);
             }
+            kv->close_scope();
         }
+        kv->close_scope();
     }
+
+    kv->close_scope();
+    kv->close_scope();
 }
 
 static bool task_rob_load_check_load_req_data() {
@@ -14345,7 +14404,7 @@ rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id) {
 
 int32_t rob_chara_array_init_chara_index(chara_index chara_index,
     rob_chara_pv_data* pv_data, int32_t module_index, bool can_set_default) {
-    if (!TaskWork::CheckTaskReady(&task_rob_manager)
+    if (!app::TaskWork::CheckTaskReady(&task_rob_manager)
         || pv_data->type < ROB_CHARA_TYPE_0|| pv_data->type > ROB_CHARA_TYPE_3)
         return -1;
 
@@ -14425,7 +14484,7 @@ int32_t rob_chara::get_rob_cmn_mottbl_motion_id(int32_t id) {
 }
 
 void task_rob_manager_append_task() {
-    TaskWork::AppendTask(&task_rob_manager, "ROB_MANAGER TASK");
+    app::TaskWork::AppendTask(&task_rob_manager, "ROB_MANAGER TASK");
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         rob_chara_pv_data_array[i].type = ROB_CHARA_TYPE_NONE;
 }
@@ -14471,7 +14530,7 @@ parent_mat(), node(), ik_segment_length(), ik_2nd_segment_length(), arm_length()
 
 bone_data_parent::bone_data_parent() : rob_bone_data(),
 motion_bone_count(), ik_bone_count(), chain_pos(), global_trans(),
-global_rotation(), bone_key_set_count(), global_key_set_count(), rotation_y() {
+global_rotation(), bone_key_set_count(), global_key_set_count(), rot_y() {
 
 }
 
@@ -14503,7 +14562,7 @@ void mot_play_data::reset() {
     field_48 = 0;
 }
 
-MotionBlend::MotionBlend() : field_8(), field_9(),
+MotionBlend::MotionBlend() : field_8(), rot_y(),
 duration(), frame(), step(1.0f), offset(), blend() {
 
 }
@@ -14514,7 +14573,7 @@ MotionBlend::~MotionBlend() {
 
 void MotionBlend::Reset() {
     field_8 = false;
-    field_9 = false;
+    rot_y = false;
     duration = 0.0f;
     frame = 0.0f;
     step = 1.0f;
@@ -14541,7 +14600,8 @@ void MotionBlend::SetDuration(float_t duration, float_t step, float_t offset) {
 }
 
 MotionBlendCross::MotionBlendCross() : field_20(), field_21(),
-field_24(mat4u_identity), field_64(mat4u_identity), field_A4(mat4u_identity), field_E4(mat4u_identity) {
+rot_y_mat(mat4u_identity), field_64(mat4u_identity),
+field_A4(mat4u_identity), field_E4(mat4u_identity) {
 
 }
 
@@ -14553,7 +14613,7 @@ void MotionBlendCross::Reset() {
     MotionBlend::Reset();
     field_20 = false;
     field_21 = false;
-    field_24 = mat4u_identity;
+    rot_y_mat = mat4u_identity;
     field_64 = mat4u_identity;
     field_A4 = mat4u_identity;
     field_E4 = mat4u_identity;
@@ -14563,26 +14623,26 @@ void MotionBlendCross::Field_10(float_t a2, float_t a3, int32_t a4) {
 
 }
 
-void MotionBlendCross::Field_18(struc_400* a2) {
+void MotionBlendCross::Step(struc_400* a2) {
     field_20 = a2->field_0;
     field_21 = true;
     if (duration <= 0.0f || duration <= frame || fabsf(duration - frame) <= 0.000001f) {
         field_8 = false;
-        field_9 = false;
+        rot_y = false;
     }
     else {
-        field_9 = true;
+        rot_y = true;
         blend = (frame + offset) / (duration + offset);
         frame += step;
     }
 
-    if (field_9) {
+    if (rot_y) {
         mat4 mat;
-        mat4_rotate_y(-a2->prev_eyes_adjust, &mat);
-        field_24 = mat;
+        mat4_rotate_y(-a2->prev_rot_y, &mat);
+        rot_y_mat = mat;
     }
     else
-        field_24 = mat4u_identity;
+        rot_y_mat = mat4u_identity;
 }
 
 void MotionBlendCross::Field_20(std::vector<bone_data>* a2, std::vector<bone_data>* a3) {
@@ -14593,7 +14653,7 @@ void MotionBlendCross::Field_20(std::vector<bone_data>* a2, std::vector<bone_dat
     bone_data* v7 = a3->data();
 
     mat4_mult(&v4[4].rot_mat[0], &v4[0].rot_mat[0], &field_64);
-    mat4_mult(&v7[0].rot_mat[0], &field_24, &field_A4);
+    mat4_mult(&v7[0].rot_mat[0], &rot_y_mat, &field_A4);
     mat4_blend_rotation(&v4[0].rot_mat[0], &field_A4, &v4[0].rot_mat[0], blend);
     mat4_mult(&v7[4].rot_mat[0], &field_A4, &field_A4);
     mat4_blend_rotation(&v4[4].rot_mat[0], &v7[4].rot_mat[0], &v4[4].rot_mat[0], blend);
@@ -14668,16 +14728,16 @@ MotionBlendCombine::~MotionBlendCombine() {
 
 }
 
-void MotionBlendCombine::Field_18(struc_400* a2) {
+void MotionBlendCombine::Step(struc_400* a2) {
     field_20 = a2->field_0;
     field_21 = true;
-    if (field_9) {
+    if (rot_y) {
         mat4 mat;
-        mat4_rotate_y(-a2->prev_eyes_adjust, &mat);
-        field_24 = mat;
+        mat4_rotate_y(-a2->prev_rot_y, &mat);
+        rot_y_mat = mat;
     }
     else
-        field_24 = mat4u_identity;
+        rot_y_mat = mat4u_identity;
 }
 
 bool MotionBlendCombine::Field_30() {
@@ -14685,7 +14745,8 @@ bool MotionBlendCombine::Field_30() {
 }
 
 MotionBlendFreeze::MotionBlendFreeze() : field_20(),field_21(), field_24(), field_28(), field_2C(), field_30(),
-field_34(mat4u_identity), field_74(mat4u_identity), field_B4(mat4u_identity), field_F4(mat4u_identity) {
+rot_y_mat(mat4u_identity), field_74(mat4u_identity),
+field_B4(mat4u_identity), field_F4(mat4u_identity) {
 
 }
 
@@ -14701,7 +14762,7 @@ void MotionBlendFreeze::Reset() {
     field_28 = 0.0f;
     field_2C = 0.0f;
     field_30 = 2;
-    field_34 = mat4u_identity;
+    rot_y_mat = mat4u_identity;
     field_74 = mat4u_identity;
     field_B4 = mat4u_identity;
     field_F4 = mat4u_identity;
@@ -14716,7 +14777,7 @@ void MotionBlendFreeze::Field_10(float_t a2, float_t a3, int32_t a4) {
         field_28 = a2;
 }
 
-void MotionBlendFreeze::Field_18(struc_400* a2) {
+void MotionBlendFreeze::Step(struc_400* a2) {
     field_24 = 2;
     if (duration <= 0.0f || duration <= frame || fabsf(duration - frame) <= 0.000001f) {
         float_t v7 = a2->frame;
@@ -14724,10 +14785,10 @@ void MotionBlendFreeze::Field_18(struc_400* a2) {
         float_t v9 = v7 - v8;
         if (v7 < v8 || field_28 <= 0.0f || field_28 <= v9 || fabsf(field_28 - v9) <= 0.000001f) {
             field_8 = false;
-            field_9 = false;
+            rot_y = false;
         }
         else {
-            field_9 = true;
+            rot_y = true;
             field_24 = field_30;
             blend = 1.0f - (v9 + offset) / (field_28 + offset);
             if (a2->field_4)
@@ -14737,7 +14798,7 @@ void MotionBlendFreeze::Field_18(struc_400* a2) {
         }
     }
     else {
-        field_9 = true;
+        rot_y = true;
         field_24 = 0;
         blend = (frame + offset) / (duration + offset);
         frame += step;
@@ -14745,16 +14806,16 @@ void MotionBlendFreeze::Field_18(struc_400* a2) {
         field_21 = a2->field_1;
     }
 
-    if (field_9) {
+    if (rot_y) {
         mat4 mat;
         if (field_24)
-            mat4_rotate_y(a2->eyes_adjust, &mat);
+            mat4_rotate_y(a2->rot_y, &mat);
         else
-            mat4_rotate_y(-a2->prev_eyes_adjust, &mat);
-        field_34 = mat;
+            mat4_rotate_y(-a2->prev_rot_y, &mat);
+        rot_y_mat = mat;
     }
     else
-        field_34 = mat4u_identity;
+        rot_y_mat = mat4u_identity;
 }
 
 void MotionBlendFreeze::Field_20(std::vector<bone_data>* a2, std::vector<bone_data>* a3) {
@@ -14763,7 +14824,7 @@ void MotionBlendFreeze::Field_20(std::vector<bone_data>* a2, std::vector<bone_da
 
     bone_data* v2 = a2->data();
     mat4_mult(&v2[4].rot_mat[0], &v2->rot_mat[0], &field_74);
-    mat4_mult(&v2->rot_mat_prev[0][field_24], &field_34, &field_B4);
+    mat4_mult(&v2->rot_mat_prev[0][field_24], &rot_y_mat, &field_B4);
     mat4_blend_rotation(v2->rot_mat, &field_B4, v2->rot_mat, blend);
     mat4_mult(&v2[4].rot_mat_prev[0][field_24], &field_B4, &field_B4);
     mat4_blend_rotation(&v2[4].rot_mat[0], &v2[4].rot_mat_prev[0][field_24], &v2[4].rot_mat[0], blend);
@@ -14845,13 +14906,13 @@ void PartialMotionBlendFreeze::Field_10(float_t a2, float_t a3, int32_t a4) {
 
 }
 
-void PartialMotionBlendFreeze::Field_18(struc_400* a1) {
+void PartialMotionBlendFreeze::Step(struc_400* a1) {
     if (duration <= 0.0f || duration <= frame || fabsf(duration - frame) <= 0.000001f) {
         field_8 = false;
-        field_9 = false;
+        rot_y = false;
     }
     else {
-        field_9 = true;
+        rot_y = true;
         frame += step;
         blend = (offset + frame) / (offset + duration);
     }
@@ -14928,8 +14989,8 @@ void motion_blend_mot::reset() {
     field_4F8.mat = mat4u_identity;
     field_4F8.field_4C = mat4u_identity;
     field_4F8.field_8C = false;
-    field_4F8.eyes_adjust = 0.0f;
-    field_4F8.prev_eyes_adjust = 0.0f;
+    field_4F8.rot_y = 0.0f;
+    field_4F8.prev_rot_y = 0.0f;
     field_4F8.field_90 = vec3_identity;
     field_4F8.field_9C = vec3_identity;
     field_4F8.field_A8 = vec3_identity;
@@ -15389,21 +15450,21 @@ void ExConstraintBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     item_equip_object = itm_eq_obj;
 
     source_node_bone_node = rob_chara_item_equip_object_get_bone_node_by_name(
-        itm_eq_obj, string_data(&cns_data->source_node_name), bone_data);
+        itm_eq_obj, cns_data->source_node_name, bone_data);
 
     obj_skin_block_constraint_type type = cns_data->type;
-    char* up_vector_name;
+    const char* up_vector_name;
     if (type == OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION) {
         constraint_type = OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION;
-        up_vector_name = string_data(&cns_data->direction.up_vector.name);
+        up_vector_name = cns_data->direction.up_vector.name;
     }
     else if (type == OBJ_SKIN_BLOCK_CONSTRAINT_POSITION) {
         constraint_type = OBJ_SKIN_BLOCK_CONSTRAINT_POSITION;
-        up_vector_name = string_data(&cns_data->position.up_vector.name);
+        up_vector_name = cns_data->position.up_vector.name;
     }
     else if (type == OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE) {
         constraint_type = OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE;
-        up_vector_name = string_data(&cns_data->distance.up_vector.name);
+        up_vector_name = cns_data->distance.up_vector.name;
     }
     else if (type == OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION) {
         constraint_type = OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION;
@@ -15602,37 +15663,36 @@ void ExExpressionBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     }
 
     for (int32_t i = 0; i < 9; i++) {
-        const char* expression = string_data(&exp_data->expressions[i]);
-        if (!expression || str_utils_compare_length(expression, exp_data->expressions[i].length, "= ", 2))
+        const char* expression = exp_data->expressions[i];
+        if (!expression || str_utils_compare(expression, "= "))
             break;
 
         expression += 2;
 
         int32_t index = 0;
-        expression = str_utils_get_next_int32_t(expression, &index, ' ');
+        expression = str_utils_get_next_int32_t(expression, index, ' ');
         values[i] = bone_node_get_exp_data_component(bone_node_ptr, index, &types[i]);
 
         while (expression) {
-            string v73;
-            expression = str_utils_get_next_string(expression, &v73, ' ');
-            if (!v73.length || !memcmp(string_data(&v73), "error", min(v73.length, 5)) && v73.length == 5) {
-                string_free(&v73);
+            std::string value_type;
+            expression = str_utils_get_next_string(expression, value_type, ' ');
+            if (!value_type.size() || !memcmp(value_type.c_str(), "error",
+                min(value_type.size(), 5)) && value_type.size() == 5)
                 break;
-            }
 
-            if (*string_data(&v73) == 'n') {
+            if (value_type[0] == 'n') {
                 stack_val->type = EX_EXPRESSION_BLOCK_STACK_NUMBER;
-                expression = str_utils_get_next_float_t(expression, &stack_val->number.value, ' ');
+                expression = str_utils_get_next_float_t(expression, stack_val->number.value, ' ');
                 *stack_buf_val++ = stack_val;
             }
-            else if (*string_data(&v73) == 'v') {
-                string func_str;
-                expression = str_utils_get_next_string(expression, &func_str, ' ');
+            else if (value_type[0] == 'v') {
+                std::string func_str;
+                expression = str_utils_get_next_string(expression, func_str, ' ');
                 stack_val->type = EX_EXPRESSION_BLOCK_STACK_VARIABLE;
-                int32_t v40 = *string_data(&func_str) - '0';
+                int32_t v40 = func_str[0] - '0';
                 if (v40 < 9) {
                     bone_node* v42 = rob_chara_item_equip_object_get_bone_node_by_name(itm_eq_obj,
-                        string_data(&func_str) + 2, bone_data);
+                        func_str.c_str() + 2, bone_data);
                     if (v42)
                         stack_val->var.value = bone_node_get_exp_data_component(v42, v40, &stack_val->type);
                     else {
@@ -15643,41 +15703,36 @@ void ExExpressionBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
                 else
                     stack_val->var.value = &frame;
                 *stack_buf_val++ = stack_val;
-                string_free(&func_str);
             }
-            else if (*string_data(&v73) == 'f') {
-                string func_str;
-                expression = str_utils_get_next_string(expression, &func_str, ' ');
+            else if (value_type[0] == 'f') {
+                std::string func_str;
+                expression = str_utils_get_next_string(expression, func_str, ' ');
                 stack_val->type = EX_EXPRESSION_BLOCK_STACK_OP1;
                 stack_val->op1.v1 = stack_buf_val[-1];
-                stack_val->op1.func = exp_func_op1_find_func(&func_str, exp_func_op1_array)->func;
+                stack_val->op1.func = exp_func_op1_find_func(func_str, exp_func_op1_array)->func;
                 stack_buf_val[-1] = stack_val;
-                string_free(&func_str);
             }
-            else if (*string_data(&v73) == 'g') {
-                string func_str;
-                expression = str_utils_get_next_string(expression, &func_str, ' ');
+            else if (value_type[0] == 'g') {
+                std::string func_str;
+                expression = str_utils_get_next_string(expression, func_str, ' ');
                 stack_val->type = EX_EXPRESSION_BLOCK_STACK_OP2;
                 stack_val->op2.v1 = stack_buf_val[-2];
                 stack_val->op2.v2 = stack_buf_val[-1];
-                stack_val->op2.func = exp_func_op2_find_func(&func_str, exp_func_op2_array)->func;
+                stack_val->op2.func = exp_func_op2_find_func(func_str, exp_func_op2_array)->func;
                 stack_buf_val[-2] = stack_val;
                 stack_buf_val--;
-                string_free(&func_str);
             }
-            else if (*string_data(&v73) == 'h') {
-                string func_str;
-                expression = str_utils_get_next_string(expression, &func_str, ' ');
+            else if (value_type[0] == 'h') {
+                std::string func_str;
+                expression = str_utils_get_next_string(expression, func_str, ' ');
                 stack_val->type = EX_EXPRESSION_BLOCK_STACK_OP3;
                 stack_val->op3.v1 = stack_buf_val[-3];
                 stack_val->op3.v2 = stack_buf_val[-2];
                 stack_val->op3.v3 = stack_buf_val[-1];
-                stack_val->op3.func = exp_func_op3_find_func(&func_str, exp_func_op3_array)->func;
+                stack_val->op3.func = exp_func_op3_find_func(func_str, exp_func_op3_array)->func;
                 stack_buf_val[-3] = stack_val;
                 stack_buf_val -= 2;
-                string_free(&func_str);
             }
-            string_free(&v73);
             expressions[i] = stack_buf_val[-1];
             stack_val++;
         }
@@ -16198,7 +16253,7 @@ rob_chara_item_equip_object::~rob_chara_item_equip_object() {
 
 rob_chara_item_equip::rob_chara_item_equip() : bone_nodes(), matrices(), item_equip_object(), field_18(),
 item_equip_range(), first_item_equip_object(), max_item_equip_object(), field_A0(), shadow_type(), position(),
-eyes_adjust(), field_D4(), disable_update(), field_DC(), texture_color_coeff(), wet(), wind_strength(),
+field_B4(), field_D4(), disable_update(), field_DC(), texture_color_coeff(), wet(), wind_strength(),
 chara_color(), npr_flag(), mat(), field_13C(), field_8BC(), field_8C0(), field_8C4(), field_8C8(), field_8CC(),
 field_8D0(), field_8D4(), field_8D8(), field_8DC(), field_8E0(), field_8E4(), field_8E8(), field_8EC(),
 field_8F0(), field_8F4(), field_8F8(), field_8FC(), field_900(), field_908(), field_910(), field_918(),
@@ -16270,7 +16325,7 @@ struc_523::~struc_523() {
 struc_264::struc_264() : field_0(), field_4(), field_18(), field_2C(), field_40(), field_54(), field_68(),
 field_6C(), field_70(), field_74(), field_78(), field_7C(), field_80(), field_84(), field_88(), field_8C(),
 field_90(), field_94(), field_98(), field_9C(), field_A0(), field_A4(), field_A5(), field_A8(), field_AC(),
-field_B0(), eyes_adjust(), field_140(), field_144(), field_145(), field_146(), field_148(), field_150(),
+field_B0(), field_B4(), field_140(), field_144(), field_145(), field_146(), field_148(), field_150(),
 field_152(), field_154(), field_158(), field_15C(), field_160(), field_164(), field_168(), field_16C(),
 field_170(), field_174(), field_178(), field_17C(), field_180(), field_184(), field_188(), field_18C(),
 field_190(), field_194(), field_198(), field_19C(), field_1A0(), field_1A4(), field_1A8(), field_1B0(), field_1B4(),
@@ -17151,7 +17206,7 @@ void MotFile::LoadFile(std::string* mdata_dir, uint32_t set) {
     load_count = 1;
 }
 
-void MotFile::ParseFile(void* data, size_t size) {
+void MotFile::ParseFile(const void* data, size_t size) {
     mot_set = new ::mot_set;
     mot_set->unpack_file(data, size, false);
 }
@@ -17169,7 +17224,7 @@ bool MotFile::Unload() {
         return false;
 }
 
-void MotFile::ParseFileParent(void* data, void* file_data, size_t size) {
+void MotFile::ParseFileParent(void* data, const void* file_data, size_t size) {
     ((MotFile*)data)->ParseFile(file_data, size);
 }
 
@@ -17209,7 +17264,7 @@ void MhdFile::LoadFile(const char* path, const char* file, uint32_t set) {
     load_count = 1;
 }
 
-void MhdFile::ParseFile(void* data) {
+void MhdFile::ParseFile(const void* data) {
     mothead_file* mhdf = (mothead_file*)((size_t)data + ((uint32_t*)data)[1]);
     this->data = MhdFile::ParseMothead(mhdf, (size_t)mhdf);
 }
@@ -17313,7 +17368,7 @@ bool MhdFile::Unload() {
         return false;
 }
 
-void MhdFile::ParseFileParent(void* data, void* file_data, size_t size) {
+void MhdFile::ParseFileParent(void* data, const void* file_data, size_t size) {
     ((MhdFile*)data)->ParseFile(file_data);
 }
 
@@ -17326,98 +17381,64 @@ osage_setting::~osage_setting() {
 }
 
 void osage_setting::parse(key_val* kv) {
-    char buf[OSG_SET_TEXT_BUF_SIZE];
     int32_t count;
-    int32_t count1;
-    size_t len;
-    size_t len1;
-    size_t len2;
-    size_t len3;
-    size_t off;
+    if (kv->read("cat", "length", count)) {
+        for (int32_t i = 0; i < count; i++) {
+            if (!kv->open_scope(i))
+                continue;
 
-    key_val lkv;
-    if (kv->get_local_key_val("cat", &lkv)) {
-        len = 3;
-        memcpy(buf, "cat", 3);
-        off = len;
+            std::string name;
+            kv->read("name", name);
 
-        buf[off] = 0;
-        key_val slkv;
-        if (lkv.read_int32_t(buf, off, ".length", 8, &count)
-            && lkv.get_local_key_val(buf, &slkv))
-            for (int32_t i = 0; i < count; i++) {
-                len1 = sprintf_s(buf + len,
-                    OSG_SET_TEXT_BUF_SIZE - len, ".%d", i);
-                off = len + len1;
+            int32_t count;
+            if (kv->read("osg", "length", count)) {
+                for (int32_t j = 0; j < count; j++) {
+                    if (!kv->open_scope(j))
+                        continue;
 
-                std::string name;
-                lkv.read_string(
-                    buf, off, ".name", 6, &name);
+                    int32_t exf = 0;
+                    kv->read("exf", exf);
 
-                len2 = 4;
-                memcpy(buf + len + len1, ".osg", 4);
-                off = len + len1 + len2;
+                    std::string parts;
+                    kv->read("parts", parts);
 
-                buf[min(off, OSG_SET_TEXT_BUF_SIZE - 1)] = 0;
-                key_val sslkv;
-                if (lkv.read_int32_t(buf, off, ".length", 8, &count1)
-                    && lkv.get_local_key_val(buf, &sslkv))
-                    for (int32_t j = 0; j < count1; j++) {
-                        len3 = sprintf_s(buf + len + len1 + len2,
-                            OSG_SET_TEXT_BUF_SIZE - len - len1 - len2, ".%d", j);
-                        off = len + len1 + len2 + len3;
+                    std::string root;
+                    kv->read("root", root);
 
-                        int32_t exf = 0;
-                        lkv.read_int32_t(
-                            buf, off, ".exf", 5, &exf);
+                    std::pair<std::string, std::string> key = { name, root };
+                    auto elem = cat.find(key);
+                    if (elem == cat.end())
+                        elem = cat.insert({ key, {} }).first;
 
-                        std::string parts;
-                        lkv.read_string(
-                            buf, off, ".parts", 7, &parts);
-
-                        std::string root;
-                        lkv.read_string(
-                            buf, off, ".root", 6, &root);
-
-                        std::pair<std::string, std::string> key = { name, root };
-                        auto elem = cat.find(key);
-                        if (elem == cat.end())
-                            elem = cat.insert({ key, {} }).first;
-
-                        elem->second.exf = exf;
-                        elem->second.parts = parse_parts_string(&parts);
-                    }
+                    elem->second.exf = exf;
+                    elem->second.parts = parse_parts_string(&parts);
+                    kv->close_scope();
+                }
+                kv->close_scope();
             }
+            kv->close_scope();
+        }
+        kv->close_scope();
     }
 
-    data_struct* data = rctx_ptr->data;
-    object_database* obj_db = &data->data_ft.obj_db;
+    data_struct* aft_data = &data_list[DATA_AFT];
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    if (kv->get_local_key_val("obj", &lkv)) {
-        len = 3;
-        memcpy(buf, "obj", 3);
-        off = len;
+    if (kv->read("obj", "length", count)) {
+        for (int32_t i = 0; i < count; i++) {
+            if (!kv->open_scope(i))
+                continue;
 
-        buf[off] = 0;
-        key_val slkv;
-        if (lkv.read_int32_t(buf, off, ".length", 8, &count)
-            && lkv.get_local_key_val(buf, &slkv)) {
-            for (int32_t i = 0; i < count; i++) {
-                len1 = sprintf_s(buf + len,
-                    OSG_SET_TEXT_BUF_SIZE - len, ".%d", i);
-                off = len + len1;
+            std::string cat;
+            kv->read("cat", cat);
 
-                std::string cat;
-                lkv.read_string(
-                    buf, off, ".cat", 5, &cat);
+            std::string name;
+            kv->read("name", name);
 
-                std::string name;
-                lkv.read_string(
-                    buf, off, ".name", 6, &name);
-
-                obj.insert_or_assign(obj_db->get_object_info(name.c_str()), cat);
-            }
+            obj.insert_or_assign(aft_obj_db->get_object_info(name.c_str()), cat);
+            kv->close_scope();
         }
+        kv->close_scope();
     }
 }
 
@@ -17558,18 +17579,18 @@ bool PvOsageManager::sub_1404F7AF0() {
 
 void PvOsageManager::sub_1404F7BD0(bool not_reset) {
     if (reset && !not_reset) {
-        data_struct* data = rctx_ptr->data;
-        bone_database* bone_data = &data->data_ft.bone_data;
-        motion_database* mot_db = &data->data_ft.mot_db;
+        data_struct* aft_data = &data_list[DATA_AFT];
+        bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
         rob_chara* rob_chr = rob_chara_array_get(chara_id);
         rob_chr->set_motion_id(rob_chr->get_rob_cmn_mottbl_motion_id(0),
-            0.0f, 0.0f, 1, 0, MOTION_BLEND_CROSS, bone_data, mot_db);
-        rob_chr->set_face_mottbl_motion(0, 6, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, true, mot_db);
-        rob_chr->set_hand_l_mottbl_motion(0, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
-        rob_chr->set_hand_r_mottbl_motion(0, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
-        rob_chr->set_mouth_mottbl_motion(0, 131, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
-        rob_chr->set_eyes_mottbl_motion(0, 165, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
-        rob_chr->set_eyelid_mottbl_motion_from_face(0, 0.0f, -1.0f, 0.0f, mot_db);
+            0.0f, 0.0f, 1, 0, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+        rob_chr->set_face_mottbl_motion(0, 6, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
+        rob_chr->set_hand_l_mottbl_motion(0, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_hand_r_mottbl_motion(0, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_mouth_mottbl_motion(0, 131, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_eyes_mottbl_motion(0, 165, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_eyelid_mottbl_motion_from_face(0, 0.0f, -1.0f, 0.0f, aft_mot_db);
     }
     Reset();
 }
@@ -17902,8 +17923,8 @@ void SkinParamManager::sub_14060FBD0() {
     if (!field_70.size())
         return;
 
-    data_struct* data = rctx_ptr->data;
-    object_database* obj_db = &data->data_ft.obj_db;
+    data_struct* aft_data = &data_list[DATA_AFT];
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     field_B8.clear();
     for (struc_462& i : field_70) {
@@ -17913,7 +17934,7 @@ void SkinParamManager::sub_14060FBD0() {
             if (!v9.is_null())
                 continue;
 
-            const char* v11 = obj_db->get_object_name(v9);
+            const char* v11 = aft_obj_db->get_object_name(v9);
             if (!v11)
                 continue;
 
@@ -18155,11 +18176,11 @@ bool TaskRobDisp::Ctrl() {
     if (pv_osage_manager_array_ptr_get_disp())
         return false;
 
-    data_struct* data = rctx_ptr->data;
-    bone_database* bone_data = &data->data_ft.bone_data;
-    object_database* obj_db = &data->data_ft.obj_db;
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
     for (rob_chara*& i : init_chara) {
-        rob_disp_rob_chara_init(i, bone_data, data, obj_db);
+        rob_disp_rob_chara_init(i, aft_bone_data, aft_data, aft_obj_db);
         AppendCtrlCharaList(i);
     }
     init_chara.clear();
@@ -18448,14 +18469,14 @@ int32_t TaskRobLoad::CtrlFunc3() {
         free_req_data.clear();
     }
 
-    data_struct* data = rctx_ptr->data;
-    motion_database* mot_db = &data->data_ft.mot_db;
-    object_database* obj_db = &data->data_ft.obj_db;
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     if (load_req_data_obj.size()) {
         for (ReqDataObj& i : load_req_data_obj) {
             AppendLoadedReqDataObj(&i);
-            LoadCharaItemsParent(i.chara_index, &i.cos, data, obj_db);
+            LoadCharaItemsParent(i.chara_index, &i.cos, aft_data, aft_obj_db);
             load_item_req_data_obj.push_back(i);
         }
         load_req_data_obj.clear();
@@ -18465,7 +18486,7 @@ int32_t TaskRobLoad::CtrlFunc3() {
     if (load_req_data.size()) {
         for (ReqData& i : load_req_data) {
             AppendLoadedReqData(&i);
-            LoadCharaObjSetMotionSet(i.chara_index, data, obj_db, mot_db);
+            LoadCharaObjSetMotionSet(i.chara_index, aft_data, aft_obj_db, aft_mot_db);
             load_item_req_data.push_back(i);
         }
         load_req_data.clear();
@@ -18664,11 +18685,11 @@ TaskRobManager::~TaskRobManager() {
 }
 
 bool TaskRobManager::Init() {
-    TaskWork::AppendTask(&task_rob_load, 0, "ROB_LOAD", 0);
+    app::TaskWork::AppendTask(&task_rob_load, 0, "ROB_LOAD", 0);
     rob_manager_rob_impl* rob_impls1 = rob_manager_rob_impls1_get(this);
     for (; rob_impls1->task; rob_impls1++) {
         RobImplTask* task = rob_impls1->task;
-        TaskWork::AppendTask(task, rob_impls1->name);
+        app::TaskWork::AppendTask(task, rob_impls1->name);
         task->is_frame_dependent = task->IsFrameDependent();
         task->FreeCharaLists();
     }
@@ -18676,7 +18697,7 @@ bool TaskRobManager::Init() {
     rob_manager_rob_impl* rob_impls2 = rob_manager_rob_impls2_get(this);
     for (; rob_impls2->task; rob_impls2++) {
         RobImplTask* task = rob_impls2->task;
-        TaskWork::AppendTask(task, rob_impls2->name);
+        app::TaskWork::AppendTask(task, rob_impls2->name);
         task->is_frame_dependent = task->IsFrameDependent();
         task->FreeCharaLists();
     }
@@ -18691,12 +18712,12 @@ bool TaskRobManager::Ctrl() {
         if (task_rob_load_check_load_req_data())
             return false;
         if (load_chara.size()) {
-            data_struct* data = rctx_ptr->data;
-            bone_database* bone_data = &data->data_ft.bone_data;
-            motion_database* mot_db = &data->data_ft.mot_db;
+            data_struct* aft_data = &data_list[DATA_AFT];
+            bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+            motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
             for (rob_chara*& i : load_chara) {
-                i->reset_data(&i->pv_data, bone_data, mot_db);
+                i->reset_data(&i->pv_data, aft_bone_data, aft_mot_db);
                 AppendLoadedCharaList(i);
             }
             CheckTypeAppendInitCharaLists(&load_chara);
@@ -18873,7 +18894,7 @@ void TaskRobManager::AppendLoadedCharaList(rob_chara* rob_chr) {
 }
 
 bool TaskRobManager::CheckCharaLoaded(rob_chara* rob_chr) {
-    if (!TaskWork::CheckTaskReady(this)
+    if (!app::TaskWork::CheckTaskReady(this)
         || rob_chr->chara_id < 0 || rob_chr->chara_id >= ROB_CHARA_COUNT)
         return false;
 

@@ -4,15 +4,15 @@
 */
 
 #include "wind.hpp"
-#include "../io/path.h"
-#include "../io/stream.h"
-#include "../str_utils.h"
+#include "../io/path.hpp"
+#include "../io/stream.hpp"
+#include "../str_utils.hpp"
 
-static void light_param_wind_read_inner(light_param_wind* wind, stream* s);
-static void light_param_wind_write_inner(light_param_wind* wind, stream* s);
+static void light_param_wind_read_inner(light_param_wind* wind, stream& s);
+static void light_param_wind_write_inner(light_param_wind* wind, stream& s);
 static const char* light_param_wind_read_line(char* buf, int32_t size, const char* src);
-static void light_param_wind_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
-static void light_param_wind_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
+static void light_param_wind_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value);
+static void light_param_wind_write_float_t(stream& s, char* buf, size_t buf_size, float_t value);
 
 light_param_wind::light_param_wind() : ready(), has_scale(), scale(), has_cycle(),
 cycle(), has_rot(), rot_y(), rot_z(), has_bias(), bias(), has_spc(), spc() {
@@ -27,10 +27,9 @@ void light_param_wind::read(const char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
-        io_open(&s, path_txt, "rb");
+        s.open(path_txt, "rb");
         if (s.io.stream)
-            light_param_wind_read_inner(this, &s);
-        io_free(&s);
+            light_param_wind_read_inner(this, s);
     }
     free(path_txt);
 }
@@ -39,19 +38,17 @@ void light_param_wind::read(const wchar_t* path) {
     wchar_t* path_txt = str_utils_add(path, L".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
-        io_open(&s, path_txt, L"rb");
+        s.open(path_txt, L"rb");
         if (s.io.stream)
-            light_param_wind_read_inner(this, &s);
-        io_free(&s);
+            light_param_wind_read_inner(this, s);
     }
     free(path_txt);
 }
 
 void light_param_wind::read(const void* data, size_t size) {
     stream s;
-    io_open(&s, data, size);
-    light_param_wind_read_inner(this, &s);
-    io_free(&s);
+    s.open(data, size);
+    light_param_wind_read_inner(this, s);
 }
 
 void light_param_wind::write(const char* path) {
@@ -60,10 +57,9 @@ void light_param_wind::write(const char* path) {
 
     char* path_txt = str_utils_add(path, ".txt");
     stream s;
-    io_open(&s, path_txt, "wb");
+    s.open(path_txt, "wb");
     if (s.io.stream)
-        light_param_wind_write_inner(this, &s);
-    io_free(&s);
+        light_param_wind_write_inner(this, s);
     free(path_txt);
 }
 
@@ -73,10 +69,9 @@ void light_param_wind::write(const wchar_t* path) {
 
     wchar_t* path_txt = str_utils_add(path, L".txt");
     stream s;
-    io_open(&s, path_txt, L"wb");
+    s.open(path_txt, L"wb");
     if (s.io.stream)
-        light_param_wind_write_inner(this, &s);
-    io_free(&s);
+        light_param_wind_write_inner(this, s);
     free(path_txt);
 }
 
@@ -85,10 +80,9 @@ void light_param_wind::write(void** data, size_t* size) {
         return;
 
     stream s;
-    io_open(&s);
-    light_param_wind_write_inner(this, &s);
-    io_copy(&s, data, size);
-    io_free(&s);
+    s.open();
+    light_param_wind_write_inner(this, s);
+    s.copy(data, size);
 }
 
 bool light_param_wind::load_file(void* data, const char* path, const char* file, uint32_t hash) {
@@ -114,10 +108,10 @@ light_param_wind_spc::~light_param_wind_spc() {
 
 }
 
-static void light_param_wind_read_inner(light_param_wind* wind, stream* s) {
-    char* data = force_malloc_s(char, s->length + 1);
-    io_read(s, data, s->length);
-    data[s->length] = 0;
+static void light_param_wind_read_inner(light_param_wind* wind, stream& s) {
+    char* data = force_malloc_s(char, s.length + 1);
+    s.read(data, s.length);
+    data[s.length] = 0;
 
     char buf[0x100];
     const char* d = data;
@@ -170,41 +164,41 @@ End:
     free(data);
 }
 
-static void light_param_wind_write_inner(light_param_wind* wind, stream* s) {
+static void light_param_wind_write_inner(light_param_wind* wind, stream& s) {
     char buf[0x100];
 
     if (wind->has_scale) {
-        io_write(s, "scale", 5);
+        s.write("scale", 5);
         light_param_wind_write_float_t(s, buf, sizeof(buf), wind->scale);
-        io_write_char(s, '\n');
+        s.write_char('\n');
     }
 
     if (wind->has_cycle) {
-        io_write(s, "cycle", 5);
+        s.write("cycle", 5);
         light_param_wind_write_float_t(s, buf, sizeof(buf), wind->cycle);
-        io_write_char(s, '\n');
+        s.write_char('\n');
     }
 
     if (wind->has_rot) {
-        io_write(s, "rot", 3);
+        s.write("rot", 3);
         light_param_wind_write_float_t(s, buf, sizeof(buf), wind->rot_y);
         light_param_wind_write_float_t(s, buf, sizeof(buf), wind->rot_z);
-        io_write_char(s, '\n');
+        s.write_char('\n');
     }
 
     if (wind->has_bias) {
-        io_write(s, "bias", 4);
+        s.write("bias", 4);
         light_param_wind_write_float_t(s, buf, sizeof(buf), wind->bias);
-        io_write_char(s, '\n');
+        s.write_char('\n');
     }
 
     for (int32_t i = 0; i < 16; i++)
         if (wind->has_spc[i]) {
-            io_write(s, "spc", 3);
+            s.write("spc", 3);
             light_param_wind_write_int32_t(s, buf, sizeof(buf), i);
             light_param_wind_write_float_t(s, buf, sizeof(buf), wind->spc[i].cos);
             light_param_wind_write_float_t(s, buf, sizeof(buf), wind->spc[i].sin);
-            io_write_char(s, '\n');
+            s.write_char('\n');
         }
 }
 
@@ -235,12 +229,12 @@ static const char* light_param_wind_read_line(char* buf, int32_t size, const cha
     return src;
 }
 
-inline static void light_param_wind_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value) {
+inline static void light_param_wind_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value) {
     sprintf_s(buf, buf_size, " %d", value);
-    io_write_utf8_string(s, buf);
+    s.write_utf8_string(buf);
 }
 
-inline static void light_param_wind_write_float_t(stream* s, char* buf, size_t buf_size, float_t value) {
+inline static void light_param_wind_write_float_t(stream& s, char* buf, size_t buf_size, float_t value) {
     sprintf_s(buf, buf_size, " %g", value);
-    io_write_utf8_string(s, buf);
+    s.write_utf8_string(buf);
 }

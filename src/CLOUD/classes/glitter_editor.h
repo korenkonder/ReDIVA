@@ -6,7 +6,7 @@
 #pragma once
 
 #if defined(CLOUD_DEV)
-#include "../../KKdLib/default.h"
+#include "../../KKdLib/default.hpp"
 #include "../classes.h"
 
 extern bool glitter_editor_init(class_data* data, render_context* rctx);

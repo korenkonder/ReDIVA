@@ -6,8 +6,7 @@
 #pragma once
 
 #include "shared.h"
-#include "../KKdLib/vec.h"
-#include "../KKdLib/vector.h"
+#include "../KKdLib/vec.hpp"
 
 struct render_init_struct {
     vec2i res;

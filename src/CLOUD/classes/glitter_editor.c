@@ -7,20 +7,20 @@
 
 #if defined(CLOUD_DEV)
 #include "glitter_editor.h"
-#include "../../KKdLib/io/path.h"
-#include "../../KKdLib/io/stream.h"
-#include "../../KKdLib/dds.h"
+#include "../../KKdLib/io/path.hpp"
+#include "../../KKdLib/io/stream.hpp"
+#include "../../KKdLib/dds.hpp"
 #include "../../KKdLib/interpolation.h"
-#include "../../KKdLib/str_utils.h"
+#include "../../KKdLib/str_utils.hpp"
 #include "../../KKdLib/txp.hpp"
-#include "../../KKdLib/vec.h"
+#include "../../KKdLib/vec.hpp"
 #include "../../CRE/Glitter/glitter.hpp"
 #include "../../CRE/camera.h"
 #include "../../CRE/data.hpp"
 #include "../../CRE/draw_task.h"
 #include "../../CRE/gl_state.h"
 #include "../../CRE/render_context.hpp"
-#include "../../CRE/shader_glsl.h"
+#include "../../CRE/shader_glsl.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/static_var.h"
 #include "../input.hpp"
@@ -322,11 +322,11 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
     GlitterFileReader* fr = 0;
     if (files_x.begin) {
         stream s;
-        io_open(&s, L"name_VRFL.glitter.txt", L"rb");
+        s.open(L"name_VRFL.glitter.txt", L"rb");
         size_t length = s.length;
         uint8_t* data = force_malloc(length);
-        io_read(&s, data, length);
-        io_free(&s);
+        s.read(data, length);
+        s.close();
 
         char* buf;
         char** lines;
@@ -470,11 +470,11 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
         }
 
     stream s;
-    io_open(&s, L"name_F2.glitter.txt", L"rb");
+    s.open(L"name_F2.glitter.txt", L"rb");
     size_t length = s.length;
     uint8_t* data = force_malloc(length);
-    io_read(&s, data, length);
-    io_free(&s);
+    s.read(data, length);
+    s.close();
 
     char* buf;
     char** lines;
@@ -1725,16 +1725,15 @@ static void glitter_editor_save_file(glitter_editor_struct* glt_edt, const char*
     if (glt_type != Glitter::FT) {
         char* list_temp = str_utils_add(temp, ".glitter.txt");
         stream s;
-        io_open(&s, list_temp, "wb");
+        s.open(list_temp, "wb");
         if (s.io.stream) {
             Glitter::EffectGroup* eg = glt_edt->effect_group;
             for (Glitter::Effect*& i : eg->effects)
                 if (i) {
-                    io_write_string(&s, &i->name);
-                    io_write_char(&s, '\n');
+                    s.write_string(i->name);
+                    s.write_char('\n');
                 }
         }
-        io_free(&s);
         free(list_temp);
     }
     f.write(temp, mode, false);
@@ -1759,11 +1758,11 @@ static bool glitter_editor_list_open_window(Glitter::EffectGroup* eg) {
     ofn.lpstrTitle = L"File to Open";
     if (GetOpenFileNameW(&ofn)) {
         stream s;
-        io_open(&s, file, L"rb");
+        s.open(file, L"rb");
         size_t length = s.length;
         uint8_t* data = force_malloc_s(uint8_t, length);
-        io_read(&s, data, length);
-        io_free(&s);
+        s.read(data, length);
+        s.close();
 
         char* buf;
         char** lines;
@@ -1841,7 +1840,6 @@ static bool glitter_editor_resource_import(glitter_editor_struct* glt_edt) {
     if (GetOpenFileNameW(&ofn)) {
         wchar_t* f = str_utils_get_without_extension(file);
         wchar_t* p = str_utils_split_right_get_left(file, L'.');
-        dds* d = dds_init();
 
         uint64_t hash_ft = hash_utf16_fnv1a64m(f);
         uint64_t hash_f2 = hash_utf16_murmurhash(f);
@@ -1855,44 +1853,45 @@ static bool glitter_editor_resource_import(glitter_editor_struct* glt_edt) {
         for (int32_t i = 0; i < rc; i++)
             if (rh[i] == hash_ft || rh[i] == hash_f2)
                 goto DDSEnd;
+        {
+            dds d;
+            d.read(p);
+            if (d.width == 0 || d.height == 0 || d.mipmaps_count == 0 || d.data.size() < 1)
+                goto DDSEnd;
 
-        dds_read(d, p);
-        if (d->width == 0 || d->height == 0 || d->mipmaps_count == 0 || vector_old_length(d->data) < 1)
-            goto DDSEnd;
+            eg->resources_tex.textures.push_back({});
+            tex = &eg->resources_tex.textures.back();
+            tex->array_size = d.has_cube_map ? 6 : 1;
+            tex->has_cube_map = d.has_cube_map;
+            tex->mipmaps_count = d.mipmaps_count;
 
-        eg->resources_tex.textures.push_back({});
-        tex = &eg->resources_tex.textures.back();
-        tex->array_size = d->has_cube_map ? 6 : 1;
-        tex->has_cube_map = d->has_cube_map;
-        tex->mipmaps_count = d->mipmaps_count;
+            tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
+            index = 0;
+            do
+                for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
+                    txp_mipmap tex_mip;
+                    memset(&tex_mip, 0, sizeof(txp_mipmap));
+                    tex_mip.width = max(d.width >> i, 1);
+                    tex_mip.height = max(d.height >> i, 1);
+                    tex_mip.format = d.format;
 
-        tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
-        index = 0;
-        do
-            for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
-                txp_mipmap tex_mip;
-                memset(&tex_mip, 0, sizeof(txp_mipmap));
-                tex_mip.width = max(d->width >> i, 1);
-                tex_mip.height = max(d->height >> i, 1);
-                tex_mip.format = d->format;
+                    uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
+                    tex_mip.size = size;
+                    tex_mip.data.resize(size);
+                    memcpy(tex_mip.data.data(), d.data[index], size);
+                    tex->mipmaps.push_back(tex_mip);
+                    index++;
+                }
+            while (index / tex->mipmaps_count < tex->array_size);
 
-                uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
-                tex_mip.size = size;
-                tex_mip.data.resize(size);
-                memcpy(tex_mip.data.data(), d->data.begin[index], size);
-                tex->mipmaps.push_back(tex_mip);
-                index++;
-            }
-        while (index / tex->mipmaps_count < tex->array_size);
-
-        eg->resources_count++;
-        if (eg->type == Glitter::FT)
-            eg->resource_hashes.push_back(hash_ft);
-        else
-            eg->resource_hashes.push_back(hash_f2);
-        ret = true;
+            eg->resources_count++;
+            if (eg->type == Glitter::FT)
+                eg->resource_hashes.push_back(hash_ft);
+            else
+                eg->resource_hashes.push_back(hash_f2);
+            ret = true;
+        }
     DDSEnd:
-        dds_dispose(d);
         free(f);
         free(p);
     }
@@ -1921,7 +1920,6 @@ static bool glitter_editor_resource_export(glitter_editor_struct* glt_edt) {
     ofn.Flags = OFN_NONETWORKBUTTON;
     if (GetSaveFileNameW(&ofn)) {
         wchar_t* p = str_utils_split_right_get_left(file, L'.');
-        dds* d = dds_init();
 
         Glitter::EffectGroup* eg = glt_edt->effect_group;
         txp& tex = eg->resources_tex.textures[sel_rsrc];
@@ -1930,27 +1928,25 @@ static bool glitter_editor_resource_export(glitter_editor_struct* glt_edt) {
         uint32_t width = tex.mipmaps[0].width;
         uint32_t height = tex.mipmaps[0].height;
 
-        d->format = format;
-        d->width = width;
-        d->height = height;
-        d->mipmaps_count = tex.mipmaps_count;
-        d->has_cube_map = tex.has_cube_map;
-        d->data = vector_old_ptr_empty(void);
-
-        vector_old_ptr_void_reserve(&d->data, (tex.has_cube_map ? 6LL : 1LL) * tex.mipmaps_count);
+        dds d;
+        d.format = format;
+        d.width = width;
+        d.height = height;
+        d.mipmaps_count = tex.mipmaps_count;
+        d.has_cube_map = tex.has_cube_map;
+        d.data.reserve((tex.has_cube_map ? 6LL : 1LL) * tex.mipmaps_count);
         uint32_t index = 0;
         do
             for (uint32_t i = 0; i < tex.mipmaps_count; i++) {
                 uint32_t size = txp::get_size(format, max(width >> i, 1), max(height >> i, 1));
                 void* data = force_malloc(size);
                 memcpy(data, tex.mipmaps[index].data.data(), size);
-                vector_old_ptr_void_push_back(&d->data, &data);
+                d.data.push_back(data);
                 index++;
             }
         while (index / tex.mipmaps_count < tex.array_size);
-        dds_write(d, p);
+        d.write(p);
         ret = true;
-        dds_dispose(d);
         free(p);
     }
     CoUninitialize();
@@ -4054,7 +4050,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
         }
 
         imguiStartPropertyColumn("Object");
-        if (ImGui::BeginCombo("##Object", obj ? string_data(&obj->name) : "None", 0)) {
+        if (ImGui::BeginCombo("##Object", obj ? obj->name : "None", 0)) {
             if (set_id != -1 && handler && handler->set_id == set_id && handler->obj_set) {
                 obj_set* set = handler->obj_set;
                 ssize_t obj_index = -1;
@@ -4074,7 +4070,7 @@ static void glitter_editor_property_particle(glitter_editor_struct* glt_edt, cla
                 for (uint32_t i = 0; i < set->obj_num; i++) {
                     ImGui::PushID(i);
                     ::obj* obj = &set->obj_data[i];
-                    if (ImGui::Selectable(string_data(&obj->name), obj->id == obj_id)
+                    if (ImGui::Selectable(obj->name, obj->id == obj_id)
                         || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
                         || (ImGui::IsItemFocused() && obj->id != obj_id))
                         obj_index = i;
@@ -6529,8 +6525,7 @@ static void glitter_editor_gl_load(glitter_editor_struct* glt_edt) {
         "    result = color;\n"
         "}\n";
 
-    shader_glsl_param param;
-    memset(&param, 0, sizeof(shader_glsl_param));
+    shader_glsl_param param = {};
     param.name = "Glitter Editor Wireframe";
     glt_edt->gl_data.wireframe.shader.load(glitter_editor_wireframe_vert,
         glitter_editor_wireframe_frag, 0, &param);
@@ -6716,7 +6711,7 @@ static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt
 
     gl_state_bind_vertex_array(glt_edt->vao);
     glt_edt->gl_data.wireframe.shader.use();
-    shader_glsl_set_vec4_value(&glt_edt->gl_data.wireframe.shader, "color", 1.0f, 1.0f, 0.0f, 1.0f);
+    glt_edt->gl_data.wireframe.shader.set("color", 1.0f, 1.0f, 0.0f, 1.0f);
     for (Glitter::F2RenderGroup*& i : eff->render_scene.groups) {
         if (!i)
             continue;
@@ -6727,7 +6722,7 @@ static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt
         else if (rg->disp < 1)
             continue;
 
-        shader_glsl_set_mat4(&glt_edt->gl_data.wireframe.shader, "model", false, rg->mat_draw);
+        glt_edt->gl_data.wireframe.shader.set("model", false, rg->mat_draw);
 
         switch (rg->type) {
         case Glitter::PARTICLE_QUAD: {
@@ -6778,7 +6773,7 @@ static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt
 
     gl_state_bind_vertex_array(glt_edt->vao);
     glt_edt->gl_data.wireframe.shader.use();
-    shader_glsl_set_vec4_value(&glt_edt->gl_data.wireframe.shader, "color", 1.0f, 1.0f, 0.0f, 1.0f);
+    glt_edt->gl_data.wireframe.shader.set("color", 1.0f, 1.0f, 0.0f, 1.0f);
     for (Glitter::XRenderGroup*& i : eff->render_scene.groups) {
         if (!i)
             continue;
@@ -6789,7 +6784,7 @@ static void glitter_editor_gl_draw_wireframe_draw(glitter_editor_struct* glt_edt
         else if (rg->disp < 1)
             continue;
 
-        shader_glsl_set_mat4(&glt_edt->gl_data.wireframe.shader, "model", false, rg->mat_draw);
+        glt_edt->gl_data.wireframe.shader.set("model", false, rg->mat_draw);
 
         switch (rg->type) {
         case Glitter::PARTICLE_QUAD: {
@@ -6865,7 +6860,7 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
                     object_data, rctx->camera, &mat)))
                 continue;
 
-            shader_glsl_set_mat4(&glt_edt->gl_data.wireframe.shader, "model", false, mat);
+            glt_edt->gl_data.wireframe.shader.set("model", false, mat);
 
             int32_t ttc = 0;
             texture_transform_struct* tt = object_data->texture_transform_array;

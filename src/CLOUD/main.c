@@ -37,12 +37,10 @@ static void decrypt_edat() {
 
     stream f0;
     stream f1;
-    io_open(&f0, "misc\\shader_ps3.edat", "rb");
-    io_open(&f1, "misc\\shader_ps3.dat", "wb");
+    f0.open("misc\\shader_ps3.edat", "rb");
+    f1.open("misc\\shader_ps3.dat", "wb");
     if (f0.io.stream && f1.io.stream)
-        DecryptEDAT(&f0, &f1, 8, "misc\\EP0177-NPEB02013_00-PJDF2MOMJTNSDAYO.rap", klic);
-    io_free(&f0);
-    io_free(&f1);
+        DecryptEDAT(f0, f1, 8, "misc\\EP0177-NPEB02013_00-PJDF2MOMJTNSDAYO.rap", klic);
 }
 
 struct dof_data {
@@ -133,12 +131,12 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
 
     sprintf_s(buf, sizeof(buf), "DOF\\script\\pv_%03d_hard.dsc", pv_id);
     stream s_src_dsc;
-    io_open(&s_src_dsc, buf, "rb");
+    s_src_dsc.open(buf, "rb");
 
-    size_t src_dsc_length = io_get_length(&s_src_dsc);
+    size_t src_dsc_length = s_src_dsc.get_length();
     void* src_dsc_data = force_malloc(src_dsc_length);
-    io_read(&s_src_dsc, src_dsc_data, src_dsc_length);
-    io_free(&s_src_dsc);
+    s_src_dsc.read(src_dsc_data, src_dsc_length);
+    s_src_dsc.close();
 
     dsc d_src = dsc();
     d_src.parse(src_dsc_data, src_dsc_length, DSC_FT);
@@ -268,14 +266,14 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
 
     sprintf_s(buf, sizeof(buf), "DOF\\pv_script\\pv_%03d_dof.dsc", pv_id);
     stream s_dsc;
-    io_open(&s_dsc, buf, "wb");
-    io_write(&s_dsc, dsc_data, dsc_length);
-    io_free(&s_dsc);
+    s_dsc.open(buf, "wb");
+    s_dsc.write(dsc_data, dsc_length);
+    s_dsc.close();
 
     free(dsc_data);
 
     stream s_dft;
-    io_open(&s_dft);
+    s_dft.open();
     uint32_t off;
     enrs e;
     enrs_entry ee;
@@ -293,15 +291,15 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     off = (uint32_t)(dft_data.dof.size() * 24ULL);
     off = align_val(off, 0x10);
 
-    io_write_uint32_t(&s_dft, (int32_t)dft_data.dof.size());
-    io_write_offset_f2_pof_add(&s_dft, 0x10, 0x40, &pof);
-    io_align_write(&s_dft, 0x10);
-    io_write(&s_dft, dft_data.dof.data(), sizeof(dof_data) * dft_data.dof.size());
+    s_dft.write_uint32_t((int32_t)dft_data.dof.size());
+    io_write_offset_f2_pof_add(s_dft, 0x10, 0x40, &pof);
+    s_dft.align_write(0x10);
+    s_dft.write(dft_data.dof.data(), sizeof(dof_data) * dft_data.dof.size());
 
     f2_struct st;
-    io_align_write(&s_dft, 0x10);
-    io_copy(&s_dft, &st.data);
-    io_free(&s_dft);
+    s_dft.align_write(0x10);
+    s_dft.copy(st.data);
+    s_dft.close();
 
     st.enrs = e;
     st.pof = pof;

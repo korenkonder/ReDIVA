@@ -4,14 +4,44 @@
 */
 
 #include "key_val.hpp"
-#include "io/path.h"
+#include "io/path.hpp"
 #include "hash.hpp"
-#include "str_utils.h"
+#include "str_utils.hpp"
 
-static int64_t key_val_get_key_index(key_val* kv, char* str, size_t length);
+static int64_t key_val_get_key_index(key_val* kv, std::string& str);
+static int64_t key_val_get_key_index(key_val* kv, std::string&& str);
 static void key_val_sort(key_val* kv);
 
-key_val::key_val() : buf() {
+key_val_hash_index_pair::key_val_hash_index_pair() {
+    hash = hash_fnv1a64m_empty;
+    index = 0;
+}
+
+key_val_hash_index_pair::key_val_hash_index_pair(uint64_t hash, size_t index) : hash(hash), index(index) {
+
+}
+
+key_val_scope::key_val_scope() : index(), count() {
+
+}
+
+key_val_scope::~key_val_scope() {
+
+}
+
+key_val_pair::key_val_pair() : str(), length() {
+
+}
+
+key_val_pair::key_val_pair(const char* str, size_t length) : str(str), length(length) {
+
+}
+
+key_val_pair::~key_val_pair() {
+
+}
+
+key_val::key_val() : curr_scope(), buf() {
 
 }
 
@@ -19,19 +49,26 @@ key_val::~key_val() {
     free(buf);
 }
 
+void key_val::close_scope() {
+    if (scope.size() <= 1)
+        return;
+
+    scope.pop_back();
+    curr_scope = &scope[scope.size() - 1];
+}
+
 void key_val::file_read(const char* path) {
     if (!path || !path_check_file_exists(path))
         return;
 
     stream s;
-    io_open(&s, path, "rb");
+    s.open(path, "rb");
     if (s.io.stream) {
         char* d = force_malloc_s(char, s.length);
-        io_read(&s, d, s.length);
+        s.read(d, s.length);
         parse((uint8_t*)d, s.length);
         free(d);
     }
-    io_free(&s);
 }
 
 void key_val::file_read(const wchar_t* path) {
@@ -39,74 +76,133 @@ void key_val::file_read(const wchar_t* path) {
         return;
 
     stream s;
-    io_open(&s, path, L"rb");
+    s.open(path, L"rb");
     if (s.io.stream) {
         char* d = force_malloc_s(char, s.length);
-        io_read(&s, d, s.length);
+        s.read(d, s.length);
         parse((uint8_t*)d, s.length);
         free(d);
     }
-    io_free(&s);
 }
 
-bool key_val::get_local_key_val(const char* str, key_val* lkv) {
-    lkv->buf = 0;
-    lkv->key.clear();
-    lkv->key_len.clear();
-    lkv->val.clear();
-    lkv->key_hash.clear();
-    lkv->key_index.clear();
+bool key_val::has_key(const char* str) {
+    size_t offset = curr_scope->key.size();
+    if (offset)
+        offset++;
 
-    if (!str)
-        return false;
+    const char* s = str;
+    size_t s_len = utf8_length(str);
 
-    char** first = 0;
-    char** last = 0;
-    size_t str_length = utf8_length(str);
+    key_val_pair* i = key.data() + curr_scope->index;
+    size_t j = curr_scope->count;
+    int32_t res = 0;
+    for (; j; i++, j--) {
+        if (i->length > offset && s_len <= i->length - offset
+            && !(res = memcmp(s, i->str + offset, s_len)))
+            return true;
+        else if (res < 0)
+            return false;
+    }
+    return false;
+}
 
-    char** i = key.data();
-    size_t* i_len = key_len.data();
-    size_t j = key.size();
-    for (; j; i++, i_len++, j--)
-        if (str_length <= *i_len && !memcmp(str, (char*)*i, str_length)) {
+bool key_val::has_key(std::string& str) {
+    size_t offset = curr_scope->key.size();
+    if (offset)
+        offset++;
+
+    const char* s = str.c_str();
+    size_t s_len = str.size();
+
+    key_val_pair* i = key.data() + curr_scope->index;
+    size_t j = curr_scope->count;
+    int32_t res = 0;
+    for (; j; i++, j--) {
+        if (i->length > offset && s_len <= i->length - offset
+            && !(res = memcmp(s, i->str + offset, s_len)))
+            return true;
+        else if (res < 0)
+            return false;
+    }
+    return false;
+}
+
+bool key_val::open_scope(std::string& str) {
+    if (!str.size()) {
+        scope.push_back(*curr_scope);
+        curr_scope = &scope[scope.size() - 1];
+        return true;
+    }
+
+    ssize_t offset = curr_scope->key.size();
+    if (offset)
+        offset++;
+
+    key_val_pair* first = 0;
+    key_val_pair* last = 0;
+    const char* s = str.c_str();
+    ssize_t s_len = str.size();
+
+    key_val_pair* i = key.data() + curr_scope->index;
+    size_t j = curr_scope->count;
+    int32_t res = 0;
+    for (; j; i++, j--) {
+        if (i->length > offset && s_len <= i->length - offset
+            && !(res = memcmp(s, i->str + offset, s_len))) {
             if (!first)
                 first = i;
             last = i + 1;
         }
         else if (first)
             break;
+        else if (res < 0)
+            return false;
+    }
 
     if (!first)
         return false;
 
-    size_t index = first - key.data();
-    size_t count = last - first;
-    lkv->key = std::vector<char*>(key.begin() + index, key.begin() + index + count);
-    lkv->key_len = std::vector<size_t>(key_len.begin() + index, key_len.begin() + index + count);
-    lkv->val = std::vector<char*>(val.begin() + index, val.begin() + index + count);
-    lkv->val_len = std::vector<size_t>(val_len.begin() + index, val_len.begin() + index + count);
+    scope.push_back({});
+    curr_scope = &scope[scope.size() - 1];
+    curr_scope->key = curr_scope[-1].key.size() ? curr_scope[-1].key + '.' + str : str;
+    curr_scope->index = first - key.data();
+    curr_scope->count = last - first;
 
-    key_val_sort(lkv);
+    key_val_sort(this);
     return true;
 }
 
-bool key_val::has_key(const char* str) {
-    size_t str_length = utf8_length(str);
-
-    char** i = key.data();
-    size_t* i_len = key_len.data();
-    size_t j = key.size();
-    for (; j; i++, i_len++, j--) {
-        size_t len = min(str_length, *i_len);
-        if (len && str_length <= *i_len && !memcmp(str, *i, len))
-            return true;
-    }
-    return false;
+bool key_val::open_scope(std::string&& key) {
+    return open_scope(*(std::string*)&key);
 }
 
-void key_val::parse(void* data, size_t size) {
+bool key_val::open_scope(int32_t i) {
+    char buf[0x100];
+    size_t len = sprintf_s(buf, sizeof(buf), "%d", i);
+    return open_scope(std::string(buf, len));
+}
+
+bool key_val::open_scope(uint32_t i) {
+    char buf[0x100];
+    size_t len = sprintf_s(buf, sizeof(buf), "%u", i);
+    return open_scope(std::string(buf, len));
+}
+
+bool key_val::open_scope(const char* fmt, ...) {
+    char buf[0x200];
+    va_list args;
+    va_start(args, fmt);
+    size_t len = vsprintf_s(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    return open_scope(std::string(buf, len));
+}
+
+void key_val::parse(const void* data, size_t size) {
     if (!data || !size)
         return;
+
+    curr_scope = 0;
+    scope.clear();
 
     char** lines;
     size_t count;
@@ -114,9 +210,7 @@ void key_val::parse(void* data, size_t size) {
         return;
 
     key.reserve(count);
-    key_len.reserve(count);
     val.reserve(count);
-    val_len.reserve(count);
 
     for (size_t i = 0, j = 0; i < count; i++) {
         char* s = lines[i];
@@ -138,139 +232,521 @@ void key_val::parse(void* data, size_t size) {
 
         uint64_t key_hash = hash_fnv1a64m(key_str_data, key_length);
 
-        key.push_back(key_str_data);
-        key_len.push_back(key_length);
-        val.push_back(val_str_data);
-        val_len.push_back(val_length);
+        key.push_back({ key_str_data, key_length });
+        val.push_back({ val_str_data, val_length });
         j++;
     }
+
+    scope.resize(1);
+    curr_scope = &scope[0];
+    curr_scope->key = {};
+    curr_scope->index = 0;
+    curr_scope->count = key.size();
+
     key_val_sort(this);
     free(lines)
 }
 
-bool key_val::read_bool(char* buf, size_t offset,
-    const char* str_add, size_t str_add_len, bool* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    int64_t index = key_val_get_key_index(this, buf, offset);
-    buf[offset - (str_add_len - 1)] = 0;
+bool key_val::read(bool& value) {
+    int64_t index = curr_scope->index;
     if (index == -1) {
-        *value = false;
+        value = false;
         return false;
     }
-    *value = atoi(val[index]) ? true : false;
+    value = atoi(val[index].str) ? true : false;
     return true;
 }
 
-bool key_val::read_float_t(char* buf, size_t offset,
-    const char* str_add, size_t str_add_len, float_t* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    int64_t index = key_val_get_key_index(this, buf, offset);
-    buf[offset - (str_add_len - 1)] = 0;
+bool key_val::read(float_t& value) {
+    int64_t index = curr_scope->index;
     if (index == -1) {
-        *value = 0.0f;
+        value = 0.0f;
         return false;
     }
-    *value = (float_t)atof(val[index]);
+    value = (float_t)atof(val[index].str);
     return true;
 }
 
-bool key_val::read_int32_t(char* buf, size_t offset,
-    const char* str_add, size_t str_add_len, int32_t* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    int64_t index = key_val_get_key_index(this, buf, offset);
-    buf[offset - (str_add_len - 1)] = 0;
+bool key_val::read(int32_t& value) {
+    int64_t index = curr_scope->index;
     if (index == -1) {
-        *value = 0;
+        value = 0;
         return false;
     }
-    *value = atoi(val[index]);
+    value = atoi(val[index].str);
     return true;
 }
 
-bool key_val::read_uint32_t(char* buf, size_t offset,
-    const char* str_add, size_t str_add_len, uint32_t* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    int64_t index = key_val_get_key_index(this, buf, offset);
-    buf[offset - (str_add_len - 1)] = 0;
+bool key_val::read(uint32_t& value) {
+    int64_t index = curr_scope->index;
     if (index == -1) {
-        *value = 0;
+        value = 0;
         return false;
     }
-    *value = atoi(val[index]);
+    value = (uint32_t)atoll(val[index].str);
     return true;
 }
 
-bool key_val::read_string(char* buf, size_t offset,
-    const char* str_add, size_t str_add_len, string* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    int64_t index = key_val_get_key_index(this, buf, offset);
-    buf[offset - (str_add_len - 1)] = 0;
+bool key_val::read(const char*& value) {
+    int64_t index = curr_scope->index;
     if (index == -1) {
-        *value = string_empty;
+        value = 0;
         return false;
     }
-    string_init_length(value, val[index], val_len[index]);
+    value = val[index].str;
     return true;
 }
 
-bool key_val::read_string(char* buf, size_t offset,
-    const char* str_add, size_t str_add_len, std::string* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    int64_t index = key_val_get_key_index(this, buf, offset);
-    buf[offset - (str_add_len - 1)] = 0;
+bool key_val::read(std::string& value) {
+    int64_t index = curr_scope->index;
     if (index == -1) {
-        *value = {};
+        value = {};
         return false;
     }
-    *value = std::string(val[index], val_len[index]);
+    value = std::string(val[index].str, val[index].length);
     return true;
 }
 
-bool key_val::read_string(char* buf, size_t offset,
-    const char* str_add, size_t str_add_len, const char** value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
+bool key_val::read(vec3& value) {
+    read("x", value.x);
+    read("y", value.y);
+    read("z", value.z);
+    return true;
+}
 
-    int64_t index = key_val_get_key_index(this, buf, offset);
-    buf[offset - (str_add_len - 1)] = 0;
+bool key_val::read(std::string& key, bool& value) {
+    int64_t index = key_val_get_key_index(this,
+        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
     if (index == -1) {
-        *value = 0;
+        value = false;
         return false;
     }
-    *value = val[index];
+    value = atoi(val[index].str) ? true : false;
     return true;
 }
 
-bool key_val::read_vec3(char* buf, size_t offset,
-    const char* str_add, size_t str_add_len, vec3* value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
+bool key_val::read(std::string&& key, bool& value) {
+    return read(*(std::string*)&key, value);
+}
 
-    key_val lkv;
-    if (!get_local_key_val(buf, &lkv)) {
-        memset(value, 0, sizeof(vec3));
+bool key_val::read(std::string& key, float_t& value) {
+    int64_t index = key_val_get_key_index(this,
+        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+    if (index == -1) {
+        value = 0.0f;
         return false;
     }
-
-    lkv.read_float_t(buf, offset, ".x", 3, &value->x);
-    lkv.read_float_t(buf, offset, ".y", 3, &value->y);
-    lkv.read_float_t(buf, offset, ".z", 3, &value->z);
+    value = (float_t)atof(val[index].str);
     return true;
 }
 
-void key_val::get_lexicographic_order(std::vector<int32_t>* vec, int32_t length) {
+bool key_val::read(std::string&& key, float_t& value) {
+    return read(*(std::string*)&key, value);
+}
+
+bool key_val::read(std::string& key, int32_t& value) {
+    int64_t index = key_val_get_key_index(this,
+        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+    if (index == -1) {
+        value = 0;
+        return false;
+    }
+    value = atoi(val[index].str);
+    return true;
+}
+
+bool key_val::read(std::string&& key, int32_t& value) {
+    return read(*(std::string*)&key, value);
+}
+
+bool key_val::read(std::string& key, uint32_t& value) {
+    int64_t index = key_val_get_key_index(this,
+        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+    if (index == -1) {
+        value = 0;
+        return false;
+    }
+    value = (uint32_t)atoll(val[index].str);
+    return true;
+}
+
+bool key_val::read(std::string&& key, uint32_t& value) {
+    return read(*(std::string*)&key, value);
+}
+
+bool key_val::read(std::string& key, const char*& value) {
+    int64_t index = key_val_get_key_index(this,
+        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+    if (index == -1) {
+        value = 0;
+        return false;
+    }
+    value = val[index].str;
+    return true;
+}
+
+bool key_val::read(std::string&& key, const char*& value) {
+    return read(*(std::string*)&key, value);
+}
+
+bool key_val::read(std::string& key, std::string& value) {
+    int64_t index = key_val_get_key_index(this,
+        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+    if (index == -1) {
+        value = {};
+        return false;
+    }
+    value = std::string(val[index].str, val[index].length);
+    return true;
+}
+
+bool key_val::read(std::string&& key, std::string& value) {
+    return read(*(std::string*)&key, value);
+}
+
+bool key_val::read(std::string& key, vec3& value) {
+    if (open_scope(key)) {
+        read("x", value.x);
+        read("y", value.y);
+        read("z", value.z);
+        close_scope();
+        return true;
+    }
+    return false;
+}
+
+bool key_val::read(std::string&& key, vec3& value) {
+    return read(*(std::string*)&key, value);
+}
+
+bool key_val::read(std::string& key0, std::string& key1, bool& value) {
+    if (!open_scope(key0)) {
+        value = false;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
+}
+
+bool key_val::read(std::string&& key0, std::string&& key1, bool& value) {
+    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+}
+
+bool key_val::read(std::string& key0, std::string& key1, float_t& value) {
+    if (!open_scope(key0)) {
+        value = 0.0f;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
+}
+
+bool key_val::read(std::string&& key0, std::string&& key1, float_t& value) {
+    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+}
+
+bool key_val::read(std::string& key0, std::string& key1, int32_t& value) {
+    if (!open_scope(key0)) {
+        value = 0;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
+}
+
+bool key_val::read(std::string&& key0, std::string&& key1, int32_t& value) {
+    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+}
+
+bool key_val::read(std::string& key0, std::string& key1, uint32_t& value) {
+    if (!open_scope(key0)) {
+        value = 0;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
+}
+
+bool key_val::read(std::string&& key0, std::string&& key1, uint32_t& value) {
+    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+}
+
+bool key_val::read(std::string& key0, std::string& key1, const char*& value) {
+    if (!open_scope(key0)) {
+        value = {};
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
+}
+
+bool key_val::read(std::string&& key0, std::string&& key1, const char*& value) {
+    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+}
+
+bool key_val::read(std::string& key0, std::string& key1, std::string& value) {
+    if (!open_scope(key0)) {
+        value = {};
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
+}
+
+bool key_val::read(std::string&& key0, std::string&& key1, std::string& value) {
+    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+}
+
+bool key_val::read(std::string& key0, std::string& key1, vec3& value) {
+    if (!open_scope(key0)) {
+        value = vec3_null;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
+}
+
+bool key_val::read(std::string&& key0, std::string&& key1, vec3& value) {
+    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+}
+
+bool key_val::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+    std::string s = path + std::string(file);
+
+    key_val* kv = (key_val*)data;
+    kv->file_read(s.c_str());
+
+    return kv->buf ? true : false;
+}
+
+key_val_out::key_val_out() : curr_scope() {
+
+}
+
+key_val_out::~key_val_out() {
+
+}
+
+void key_val_out::close_scope() {
+    if (scope.size() <= 1)
+        return;
+
+    scope.pop_back();
+    curr_scope = &scope[scope.size() - 1];
+}
+
+void key_val_out::open_scope(std::string& str) {
+    if (!str.size()) {
+        scope.push_back(*curr_scope);
+        curr_scope = &scope[scope.size() - 1];
+        return;
+    }
+
+    scope.push_back(curr_scope->size() ? *curr_scope + '.' + str : str);
+    curr_scope = &scope[scope.size() - 1];
+}
+
+void key_val_out::open_scope(std::string&& key) {
+    open_scope(*(std::string*)&key);
+}
+
+void key_val_out::open_scope(int32_t i) {
+    char buf[0x100];
+    size_t len = sprintf_s(buf, sizeof(buf), "%d", i);
+    open_scope(std::string(buf, len));
+}
+
+void key_val_out::open_scope(uint32_t i) {
+    char buf[0x100];
+    size_t len = sprintf_s(buf, sizeof(buf), "%u", i);
+    open_scope(std::string(buf, len));
+}
+
+void key_val_out::write(stream& s, bool value) {
+    if (!value)
+        return;
+
+    s.write_string(*curr_scope);
+    s.write("=1\n", 3);
+}
+
+void key_val_out::write(stream& s, float_t value) {
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%g", value);
+
+    s.write_string(*curr_scope);
+    s.write_char('=');
+    s.write_utf8_string(val_buf);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, int32_t value) {
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%d", value);
+
+    s.write_string(*curr_scope);
+    s.write_char('=');
+    s.write_utf8_string(val_buf);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, uint32_t value) {
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%u", value);
+
+    s.write_string(*curr_scope);
+    s.write_char('=');
+    s.write_utf8_string(val_buf);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, const char* value) {
+    s.write_string(*curr_scope);
+    s.write_char('=');
+    s.write_utf8_string(value);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, std::string& value) {
+    s.write_string(*curr_scope);
+    s.write_char('=');
+    s.write_string(value);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, vec3& value) {
+    write(s, "x", value.x);
+    write(s, "y", value.y);
+    write(s, "z", value.z);
+}
+
+void key_val_out::write(stream& s, vec3&& value) {
+    write(s, *(vec3*)&value);
+}
+
+void key_val_out::write(stream& s, std::string& key, bool value) {
+    if (!value)
+        return;
+
+    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    s.write("=1\n", 3);
+}
+
+void key_val_out::write(stream& s, std::string&& key, bool value) {
+    write(s, *(std::string*)&key, value);
+}
+
+void key_val_out::write(stream& s, std::string& key, float_t value) {
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%g", value);
+
+    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    s.write_char('=');
+    s.write_utf8_string(val_buf);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, std::string&& key, float_t value) {
+    write(s, *(std::string*)&key, value);
+}
+
+void key_val_out::write(stream& s, std::string& key, int32_t value) {
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%d", value);
+
+    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    s.write_char('=');
+    s.write_utf8_string(val_buf);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, std::string&& key, int32_t value) {
+    write(s, *(std::string*)&key, value);
+}
+
+void key_val_out::write(stream& s, std::string& key, uint32_t value) {
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%u", value);
+
+    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    s.write_char('=');
+    s.write_utf8_string(val_buf);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, std::string&& key, uint32_t value) {
+    write(s, *(std::string*)&key, value);
+}
+
+void key_val_out::write(stream& s, std::string& key, const char* value) {
+    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    s.write_char('=');
+    s.write_utf8_string(value);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, std::string&& key, const char* value) {
+    write(s, *(std::string*)&key, value);
+}
+
+void key_val_out::write(stream& s, std::string& key, std::string& value) {
+    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    s.write_char('=');
+    s.write_string(value);
+    s.write_char('\n');
+}
+
+void key_val_out::write(stream& s, std::string&& key, std::string& value) {
+    write(s, *(std::string*)&key, value);
+}
+
+void key_val_out::write(stream& s, std::string& key, vec3& value) {
+    write(s, "x", value.x);
+    write(s, "y", value.y);
+    write(s, "z", value.z);
+}
+
+void key_val_out::write(stream& s, std::string&& key, vec3& value) {
+    write(s, *(std::string*)&key, value);
+}
+
+void key_val_out::write(stream& s, std::string& key, vec3&& value) {
+    write(s, key, *(vec3*)&value);
+}
+
+void key_val_out::write(stream& s, std::string&& key, vec3&& value) {
+    write(s, *(std::string*)&key, *(vec3*)&value);
+}
+
+void key_val_out::get_lexicographic_order(std::vector<int32_t>* vec, int32_t length) {
     vec->clear();
 
     int32_t i, j, m;
@@ -326,129 +802,19 @@ void key_val::get_lexicographic_order(std::vector<int32_t>* vec, int32_t length)
     }
 }
 
-bool key_val::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    std::string s = path + std::string(file);
+static int64_t key_val_get_key_index(key_val* kv, std::string& str) {
+    key_val_scope* curr_scope = kv->curr_scope;
 
-    key_val* kv = (key_val*)data;
-    kv->file_read(s.c_str());
-
-    return kv->buf ? true : false;
-}
-
-void key_val::write_bool(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, bool value) {
-    if (!value)
-        return;
-
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    io_write_utf8_string(s, buf);
-    io_write(s, "=1\n", 3);
-}
-
-void key_val::write_float_t(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, float_t value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    char val_buf[0x100];
-    sprintf_s(val_buf, 0x100, "%g", value);
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, val_buf);
-    io_write_char(s, '\n');
-}
-
-void key_val::write_int32_t(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, int32_t value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    char val_buf[0x100];
-    sprintf_s(val_buf, 0x100, "%d", value);
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, val_buf);
-    io_write_char(s, '\n');
-}
-
-void key_val::write_uint32_t(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, uint32_t value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    char val_buf[0x100];
-    sprintf_s(val_buf, 0x100, "%u", value);
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, val_buf);
-    io_write_char(s, '\n');
-}
-
-void key_val::write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, string& value) {
-    if (!string_data(&value))
-        return;
-
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write(s, string_data(&value), value.length);
-    io_write_char(s, '\n');
-}
-
-void key_val::write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, std::string& value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write(s, value.c_str(), value.size());
-    io_write_char(s, '\n');
-}
-
-void key_val::write_string(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, const char* value) {
-    if (!value)
-        return;
-
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    io_write_utf8_string(s, buf);
-    io_write_char(s, '=');
-    io_write_utf8_string(s, value);
-    io_write_char(s, '\n');
-}
-
-void key_val::write_vec3(stream* s, char* buf,
-    size_t offset, const char* str_add, size_t str_add_len, vec3& value) {
-    memcpy(buf + offset, str_add, str_add_len);
-    offset += str_add_len - 1;
-
-    write_float_t(s, buf, offset, ".x", 3, value.x);
-    write_float_t(s, buf, offset, ".y", 3, value.y);
-    write_float_t(s, buf, offset, ".z", 3, value.z);
-}
-
-static int64_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
-    if (kv->key_hash.size() < 1)
+    if (curr_scope->key_hash_index.size() < 1)
         return -1;
 
-    uint64_t hash = hash_fnv1a64m(str, length);
+    uint64_t hash = hash_string_fnv1a64m(&str);
 
-    std::vector<uint64_t>::iterator key = kv->key_hash.begin();
-    size_t len = kv->key.size();
+    std::vector<key_val_hash_index_pair>::iterator key = curr_scope->key_hash_index.begin();
+    size_t len = curr_scope->count;
     size_t temp;
     while (len > 0) {
-        if (hash < key[temp = len / 2])
+        if (hash < key[temp = len / 2].hash)
             len = temp;
         else {
             key += temp + 1;
@@ -456,86 +822,82 @@ static int64_t key_val_get_key_index(key_val* kv, char* str, size_t length) {
         }
     }
 
-    if (key - kv->key_hash.begin() == 0)
-        if (key[0] == hash)
-            return kv->key_index[key - kv->key_hash.begin()];
+    if (key - curr_scope->key_hash_index.begin() == 0)
+        if (key[0].hash == hash)
+            return key[0].index;
         else
             return -1;
-    else if (key[-1] == hash)
-        return kv->key_index[key - kv->key_hash.begin() - 1];
-    else if (key == kv->key_hash.end())
+    else if (key[-1].hash == hash)
+        return key[-1].index;
+    else if (key == curr_scope->key_hash_index.end())
         return -1;
-    else if (key[0] == hash)
-        return kv->key_index[key - kv->key_hash.begin()];
+    else if (key[0].hash == hash)
+        return key[0].index;
     return -1;
 }
 
-#define RADIX_BASE 8
+static int64_t key_val_get_key_index(key_val* kv, std::string&& str) {
+    return key_val_get_key_index(kv, *(std::string*)&str);
+}
+
+#define RADIX_BASE 4
 #define RADIX (1 << RADIX_BASE)
 
 static void key_val_sort(key_val* kv) {
-    size_t count = kv->key.size();
+    if (!kv->key.size())
+        return;
 
-    kv->key_hash.resize(count);
-    kv->key_index.resize(count);
+    key_val_scope* curr_scope = kv->curr_scope;
 
-    char** key = kv->key.data();
-    size_t* key_len = kv->key_len.data();
-    uint64_t* key_hash = kv->key_hash.data();
-    size_t* key_index = kv->key_index.data();
+    size_t index = curr_scope->index;
+    size_t count = curr_scope->count;
+
+    curr_scope->key_hash_index.resize(count);
+
+    key_val_pair* key = kv->key.data() + index;
+    key_val_hash_index_pair* key_hash_index = curr_scope->key_hash_index.data();
     for (size_t i = 0; i < count; i++) {
-        *key_index++ = i;
-        *key_hash++ = hash_fnv1a64m((uint8_t*)*key++, *key_len++);
+        key_hash_index->index = index + i;
+        key_hash_index->hash = hash_fnv1a64m(key->str, key->length);
+        key++;
+        key_hash_index++;
     }
 
     if (count < 2)
         return;
 
-    uint64_t* o_key_hash = (uint64_t*)force_malloc_s(uint64_t, count);
-    size_t* o_key_index = (size_t*)force_malloc_s(size_t, count);
+    key_val_hash_index_pair* o_key_hash_index = new key_val_hash_index_pair[count];
     size_t* c = (size_t*)force_malloc_s(size_t, (1 << 8));
-    uint64_t* arr_key_hash = kv->key_hash.data();
-    size_t* arr_key_index = kv->key_index.data();
-    uint64_t* org_arr = arr_key_hash;
+    key_val_hash_index_pair* arr_key_hash_index = curr_scope->key_hash_index.data();
+    key_val_hash_index_pair* org_arr = arr_key_hash_index;
 
     for (size_t shift = 0, s = 0; shift < sizeof(uint64_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
         memset(c, 0, sizeof(size_t) * RADIX);
 
         for (size_t i = 0; i < count; i++)
-            c[(arr_key_hash[i] >> s) & (RADIX - 1)]++;
+            c[(arr_key_hash_index[i].hash >> s) & (RADIX - 1)]++;
 
         for (size_t i = 1; i < RADIX; i++)
             c[i] += c[i - 1];
 
         for (int64_t i = count - 1; i >= 0; i--) {
-            size_t index = --c[(arr_key_hash[i] >> s) & (RADIX - 1)];
-            o_key_hash[index] = arr_key_hash[i];
-            o_key_index[index] = arr_key_index[i];
+            size_t index = --c[(arr_key_hash_index[i].hash >> s) & (RADIX - 1)];
+            o_key_hash_index[index] = arr_key_hash_index[i];
         }
 
-        uint64_t* t_key_hash = arr_key_hash;
-        arr_key_hash = o_key_hash;
-        o_key_hash = t_key_hash;
-
-        size_t* t_key_index = arr_key_index;
-        arr_key_index = o_key_index;
-        o_key_index = t_key_index;
+        key_val_hash_index_pair* t_key_hash = arr_key_hash_index;
+        arr_key_hash_index = o_key_hash_index;
+        o_key_hash_index = t_key_hash;
     }
 
-    if (org_arr == o_key_hash) {
-        uint64_t* t_key_hash = arr_key_hash;
-        arr_key_hash = o_key_hash;
-        o_key_hash = t_key_hash;
+    if (org_arr == o_key_hash_index) {
+        key_val_hash_index_pair* t_key_hash_index = arr_key_hash_index;
+        arr_key_hash_index = o_key_hash_index;
+        o_key_hash_index = t_key_hash_index;
 
-        size_t* t_key_index = arr_key_index;
-        arr_key_index = o_key_index;
-        o_key_index = t_key_index;
-
-        memmove(arr_key_hash, o_key_hash, sizeof(uint64_t) * count);
-        memmove(arr_key_index, o_key_index, sizeof(size_t) * count);
+        memmove(arr_key_hash_index, o_key_hash_index, sizeof(key_val_hash_index_pair) * count);
     }
 
-    free(o_key_hash);
-    free(o_key_index);
+    delete[] o_key_hash_index;
     free(c);
 }

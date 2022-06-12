@@ -5,11 +5,9 @@
 
 #pragma once
 
-#include "default.h"
-#include "kf.h"
-#include "mat.h"
-#include "string.h"
-#include "vec.h"
+#include "default.hpp"
+#include "mat.hpp"
+#include "vec.hpp"
 
 enum obj_index_format : uint32_t {
     OBJ_INDEX_U8  = 0x00,
@@ -395,7 +393,7 @@ struct obj_mesh {
 };
 
 struct obj_skin_block_cloth_field_1C_sub {
-    string bone_name;
+    char* bone_name;
     float_t weight;
     uint32_t matrix_index;
     uint32_t field_C;
@@ -434,15 +432,15 @@ struct obj_skin_block_cloth_field_20 {
 };
 
 struct obj_skin_block_node {
-    string parent_name;
+    char* parent_name;
     vec3 position;
     vec3 rotation;
     vec3 scale;
 };
 
 struct obj_skin_block_cloth {
-    string mesh_name;
-    string backface_mesh_name;
+    char* mesh_name;
+    char* backface_mesh_name;
     uint32_t field_8;
     uint32_t count;
     uint32_t field_10;
@@ -469,7 +467,7 @@ struct obj_skin_block_constraint_up_vector {
     float_t roll;
     vec3 affected_axis;
     vec3 point_at;
-    string name;
+    char* name;
 };
 
 struct obj_skin_block_constraint_direction {
@@ -498,7 +496,7 @@ struct obj_skin_block_constraint_position {
 struct obj_skin_block_constraint {
     obj_skin_block_node base;
     uint32_t name_index;
-    string source_node_name;
+    char* source_node_name;
     obj_skin_block_constraint_coupling coupling;
     obj_skin_block_constraint_type type;
     union {
@@ -513,7 +511,7 @@ struct obj_skin_block_expression {
     obj_skin_block_node base;
     uint32_t name_index;
     uint32_t expressions_count;
-    string expressions[9];
+    char* expressions[9];
 };
 
 struct obj_skin_motion_node {
@@ -524,7 +522,7 @@ struct obj_skin_motion_node {
 struct obj_skin_block_motion {
     obj_skin_block_node base;
     union {
-        string name;
+        char* name;
         uint32_t name_index;
     };
     obj_skin_motion_node* nodes;
@@ -555,7 +553,7 @@ struct obj_skin_osage_root_node {
     float_t rot_z;
     float_t hinge_y;
     float_t hinge_z;
-    string name;
+    char* name;
     obj_skin_osage_root_coli* coli;
     int32_t coli_count;
     float_t coli_r;
@@ -574,7 +572,7 @@ struct obj_skin_block_osage {
     bool root_init;
     uint32_t external_name_index;
     uint32_t name_index;
-    string motion_node_name;
+    char* motion_node_name;
 };
 
 struct obj_skin_block {
@@ -612,7 +610,7 @@ struct obj_skin_bone {
     uint32_t id;
     uint32_t parent;
     mat4u inv_bind_pose_mat;
-    string name;
+    char* name;
 };
 
 struct obj_skin {
@@ -632,7 +630,7 @@ struct obj {
     uint32_t reserved[10];
     obj_skin skin;
     bool skin_init;
-    string name;
+    char* name;
     uint32_t id;
     uint32_t hash;
 };
@@ -652,5 +650,5 @@ struct obj_set {
     virtual ~obj_set();
 
     void pack_file(void** data, size_t* size);
-    void unpack_file(void* data, size_t size, bool modern);
+    void unpack_file(const void* data, size_t size, bool modern);
 };

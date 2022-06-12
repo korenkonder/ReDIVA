@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../../../KKdLib/default.h"
+#include "../../../KKdLib/default.hpp"
 #include "../../classes.h"
 
 extern bool data_view_auth_3d_init(class_data* data, render_context* rctx);

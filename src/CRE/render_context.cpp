@@ -167,12 +167,12 @@ void light_proj::get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat
     else {
         mat4 proj;
         mat4_persp(fov, 4.0, 0.1000000014901161, 10.0, &proj);
-        shader_state_matrix_set_projection(&shaders_ft, &proj, false);
+        shaders_ft.state_matrix_set_projection(proj, false);
 
         mat4 view;
         vec3 up = { 0.0f, 1.0f, 0.0f };
         mat4_look_at(view_point, interest, &up, &view);
-        shader_state_matrix_set_modelview(&shaders_ft, 0, &view, true);
+        shaders_ft.state_matrix_set_modelview(0, view, true);
     }
 }
 
@@ -204,7 +204,7 @@ bool light_proj::set_mat(render_context* rctx, bool set_mat) {
         } mat;
 
         get_proj_mat(&position, &interest, fov, &mat.m);
-        shader_env_vert_set_ptr_array(&shaders_ft, 24, 4, mat.v);
+        shaders_ft.env_vert_set(24, 4, mat.v);
     }
     else
         get_proj_mat(&position, &interest, fov, 0);
@@ -469,12 +469,6 @@ chara_reflect(), chara_refract(), view_mat(), matrix_buffer()  {
     camera = camera_init();
     draw_state_init(&draw_state);
     glGenVertexArrays(1, &vao);
-
-    face_init(&face);
-    for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++)
-        fog_init(&fog_data[i]);
-    for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
-        light_set_init(&light_set_data[i]);
 }
 
 render_context::~render_context() {
@@ -520,7 +514,7 @@ void render_context::ctrl() {
     Glitter::glt_particle_manager.rctx = this;
 
     rctx_ptr = this;
-    TaskWork::Ctrl();
+    app::TaskWork::Ctrl();
 
     file_handler_storage_ctrl();
 
@@ -531,11 +525,11 @@ void render_context::ctrl() {
 
 void render_context::disp() {
     rctx_ptr = this;
-    TaskWork::Disp();
+    app::TaskWork::Disp();
 
     post_process.ctrl(camera);
     draw_pass_main(this);
-    TaskWork::Basic();
+    app::TaskWork::Basic();
 }
 
 void render_context::light_param_data_light_set(light_param_light * light) {
@@ -615,54 +609,52 @@ void render_context::light_param_data_glow_set(light_param_glow* glow) {
     post_process_blur* blur = post_process.blur;
     post_process_tone_map* tone_map = post_process.tone_map;
 
-    post_process_tone_map_set_auto_exposure(tone_map, true);
-    post_process_tone_map_set_tone_map_method(tone_map, TONE_MAP_YCC_EXPONENT);
-    post_process_tone_map_set_saturate_coeff(tone_map, 1.0f);
-    post_process_tone_map_set_scene_fade(tone_map, &vec4_null);
-    post_process_tone_map_set_scene_fade_blend_func(tone_map, 0);
-    post_process_tone_map_set_tone_trans_start(tone_map, &vec3_null);
-    post_process_tone_map_set_tone_trans_end(tone_map, &vec3_identity);
+    tone_map->set_auto_exposure(true);
+    tone_map->set_tone_map_method(TONE_MAP_YCC_EXPONENT);
+    tone_map->set_saturate_coeff(1.0f);
+    tone_map->set_scene_fade(vec4_null);
+    tone_map->set_scene_fade_blend_func(0);
+    tone_map->set_tone_trans_start(vec3_null);
+    tone_map->set_tone_trans_end(vec3_identity);
 
     if (glow->has_exposure)
-        post_process_tone_map_set_exposure(tone_map, glow->exposure);
+        tone_map->set_exposure(glow->exposure);
 
     if (glow->has_gamma)
-        post_process_tone_map_set_gamma(tone_map, glow->gamma);
+        tone_map->set_gamma(glow->gamma);
 
     if (glow->has_saturate_power)
-        post_process_tone_map_set_saturate_power(tone_map, glow->saturate_power);
+        tone_map->set_saturate_power(glow->saturate_power);
 
     if (glow->has_saturate_coef)
-        post_process_tone_map_set_saturate_coeff(tone_map, glow->saturate_coef);
+        tone_map->set_saturate_coeff(glow->saturate_coef);
 
     if (glow->has_flare) {
-        post_process_tone_map_set_lens_flare(tone_map, glow->flare.x);
-        post_process_tone_map_set_lens_shaft(tone_map, glow->flare.x);
-        post_process_tone_map_set_lens_ghost(tone_map, glow->flare.x);
+        tone_map->set_lens_flare(glow->flare.x);
+        tone_map->set_lens_shaft(glow->flare.y);
+        tone_map->set_lens_ghost(glow->flare.z);
     }
 
     if (glow->has_sigma)
-        post_process_blur_set_radius(blur, &glow->sigma);
+        blur->set_radius(glow->sigma);
 
     if (glow->has_intensity)
-        post_process_blur_set_intensity(blur, &glow->intensity);
+        blur->set_intensity(glow->intensity);
 
     if (glow->has_auto_exposure)
-        post_process_tone_map_set_auto_exposure(tone_map, glow->auto_exposure);
+        tone_map->set_auto_exposure(glow->auto_exposure);
 
     if (glow->has_tone_map_method)
-        post_process_tone_map_set_tone_map_method(tone_map, glow->tone_map_method);
+        tone_map->set_tone_map_method(glow->tone_map_method);
 
     if (glow->has_fade_color) {
         vec4 fade_color = glow->fade_color;
-        post_process_tone_map_set_scene_fade(tone_map, &fade_color);
-        post_process_tone_map_set_scene_fade_blend_func(tone_map, glow->fade_color_blend_func);
+        tone_map->set_scene_fade(fade_color);
+        tone_map->set_scene_fade_blend_func(glow->fade_color_blend_func);
     }
 
-    if (glow->has_tone_transform) {
-        post_process_tone_map_set_tone_trans_start(tone_map, &glow->tone_transform_start);
-        post_process_tone_map_set_tone_trans_end(tone_map, &glow->tone_transform_end);
-    }
+    if (glow->has_tone_transform)
+        tone_map->set_tone_trans(glow->tone_transform_start, glow->tone_transform_end);
 }
 
 void render_context::light_param_data_ibl_set(

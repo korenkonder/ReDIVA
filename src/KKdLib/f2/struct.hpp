@@ -5,10 +5,9 @@
 
 #pragma once
 
-#include "../default.h"
-#include "../vector.h"
+#include "../default.hpp"
 #include "enrs.hpp"
-#include "header.h"
+#include "header.hpp"
 #include "pof.hpp"
 
 struct f2_struct;
@@ -27,9 +26,9 @@ struct f2_struct {
     void read(const char* path);
     void read(const wchar_t* path);
     void read(const void* data, size_t size);
-    void read(stream* s);
+    void read(stream& s);
     void write(const char* path, bool use_depth = true, bool shift_x = false);
     void write(const wchar_t* path, bool use_depth = true, bool shift_x = false);
     void write(void** data, size_t* size, bool use_depth = true, bool shift_x = false);
-    void write(stream* s, bool use_depth = true, bool shift_x = false);
+    void write(stream& s, bool use_depth = true, bool shift_x = false);
 };

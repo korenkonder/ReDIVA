@@ -6,7 +6,7 @@
 #pragma once
 
 #include <vector>
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/database/stage.hpp"
 #include "render_context.hpp"
 #include "auth_3d.hpp"
@@ -35,7 +35,7 @@ struct stage_modern {
 #define TASK_STAGE_STAGE_COUNT 37
 
 namespace stage_detail {
-    class TaskStageModern : public Task {
+    class TaskStageModern : public app::Task {
     public:
         int32_t state;
         stage_modern stages[TASK_STAGE_STAGE_COUNT];

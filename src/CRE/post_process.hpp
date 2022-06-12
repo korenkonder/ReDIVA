@@ -5,13 +5,13 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
-#include "../KKdLib/vec.h"
-#include "post_process/aa.h"
-#include "post_process/blur.h"
+#include "../KKdLib/default.hpp"
+#include "../KKdLib/vec.hpp"
+#include "post_process/aa.hpp"
+#include "post_process/blur.hpp"
 #include "post_process/dof.hpp"
-#include "post_process/exposure.h"
-#include "post_process/tone_map.h"
+#include "post_process/exposure.hpp"
+#include "post_process/tone_map.hpp"
 #include "camera.h"
 
 enum post_process_mag_filter_type {
@@ -46,6 +46,9 @@ struct post_process {
     post_process_exposure* exposure;
     post_process_tone_map* tone_map;
     GLuint samplers[2];
+    shader_glsl query_shader;
+    GLuint query_vao;
+    GLuint query_vbo;
     shader_glsl alpha_layer_shader;
     GLuint lens_flare_texture;
     GLuint lens_shaft_texture;
@@ -79,6 +82,7 @@ struct post_process {
 
     void apply(camera* cam, texture* light_proj_tex, int32_t npr_param);
     void ctrl(camera* cam);
+    void draw_query_samples(GLuint query, float_t scale, mat4& mat);
     void init_fbo(int32_t render_width, int32_t render_height,
         int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height);
     int32_t movie_texture_set(texture* movie_texture);

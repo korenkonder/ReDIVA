@@ -4,7 +4,7 @@
 */
 
 #include "dof.hpp"
-#include "../../KKdLib/str_utils.h"
+#include "../../KKdLib/str_utils.hpp"
 #include "../gl_state.h"
 #include "../rob.hpp"
 
@@ -30,7 +30,7 @@ static const char* dof_vert_shader =
 
 static const char* dof_frag_shader_version = "#version 430 core\n";
 
-static const char* dof_frag_shader_step_2 =
+static const char* dof_frag_shader_render_tiles_part_2 =
 "#version 430 core\n"
 "layout(binding = 0) uniform sampler2D g_tile; //r=min_depth_m, g=max_coc_pixel\n"
 "\n"
@@ -150,7 +150,7 @@ static const char* dof_frag_shader_shared =
 "}\n"
 "\n";
 
-static const char* dof_frag_shader_step_1 =
+static const char* dof_frag_shader_render_tiles_part_1 =
 "layout(binding = 0) uniform sampler2D g_depth;\n"
 "\n"
 "layout(location = 0) out vec4 result; //r=min_depth_m, g=max_coc_pixel\n"
@@ -240,7 +240,7 @@ static const char* dof_frag_shader_step_1 =
 "}\n"
 "#endif\n";
 
-static const char* dof_frag_shader_step_3 =
+static const char* dof_frag_shader_downsample =
 "layout(binding = 0) uniform sampler2D g_depth_point_sampler;\n"
 "layout(binding = 1) uniform sampler2D g_color_linear_sampler;\n"
 "layout(binding = 2) uniform sampler2D g_tile_sampler;\n"
@@ -400,7 +400,7 @@ static const char* dof_frag_shader_step_3 =
 "    result_presort = presort(coc_center_pixel, depth_center);\n"
 "}\n";
 
-static const char* dof_frag_shader_step_4 =
+static const char* dof_frag_shader_apply_main_filter =
 "layout(binding = 0) uniform sampler2D g_presort; //r=coc[sample],"
 " g=background_weight(=depth_cmp*sample_alpha), b=foreground_weight(=depth_cmp*sample_alpha)\n"
 "layout(binding = 1) uniform sampler2D g_color;\n"
@@ -465,7 +465,7 @@ static const char* dof_frag_shader_step_4 =
 "    result_alpha = alpha;\n"
 "}\n";
 
-static const char* dof_frag_shader_step_5 =
+static const char* dof_frag_shader_upsample =
 "layout(binding = 0) uniform sampler2D g_filtered_rgb_sampler;\n"
 "layout(binding = 1) uniform sampler2D g_filtered_a_sampler;\n"
 "layout(binding = 2) uniform sampler2D g_tile_sampler;\n"
@@ -593,29 +593,36 @@ static const dof_pv dof_pv_default = {
     },
 };
 
-static void post_process_apply_dof_f2(post_process_dof* dof, render_texture* rt,
-    GLuint* samplers, GLuint color_texture, GLuint depth_texture,
-    float_t min_distance, float_t max_distance, float_t fov, float_t focus,
-    float_t focus_range, float_t fuzzing_range, float_t ratio);
-static void post_process_apply_dof_physical(post_process_dof* dof, render_texture* rt,
-    GLuint* samplers, GLuint color_texture, GLuint depth_texture,
-    float_t min_distance, float_t max_distance, float_t focus,
-    float_t focal_length, float_t fov, float_t f_number);
-static void post_process_apply_dof_steps_1_2(post_process_dof* dof,
-    GLuint* samplers, GLuint depth_texture, bool f2);
-static void post_process_apply_dof_step_3(post_process_dof* dof,
-    GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2);
-static void post_process_apply_dof_step_4(post_process_dof* dof, GLuint* samplers, bool f2);
-static void post_process_apply_dof_step_5(post_process_dof* dof, render_texture* rt,
-    GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2);
+namespace renderer {
+    struct DOF3 {
+        static void apply_f2(post_process_dof* dof, render_texture* rt,
+            GLuint* samplers, GLuint color_texture, GLuint depth_texture,
+            float_t min_distance, float_t max_distance, float_t fov, float_t focus,
+            float_t focus_range, float_t fuzzing_range, float_t ratio);
+        static void apply_physical(post_process_dof* dof, render_texture* rt,
+            GLuint* samplers, GLuint color_texture, GLuint depth_texture,
+            float_t min_distance, float_t max_distance, float_t focus,
+            float_t focal_length, float_t fov, float_t f_number);
+
+        static void render_tiles(post_process_dof* dof,
+            GLuint* samplers, GLuint depth_texture, bool f2);
+        static void downsample(post_process_dof* dof,
+            GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2);
+        static void apply_main_filter(post_process_dof* dof, GLuint* samplers, bool f2);
+        static void upsample(post_process_dof* dof, render_texture* rt,
+            GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2);
+
+        static void update_data(post_process_dof* dof, float_t min_dist,
+            float_t max_dist, float_t fov, float_t dist, float_t focal_length,
+            float_t f_number, float_t focus_range, float_t fuzzing_range, float_t ratio);
+    };
+}
+
 static void post_process_dof_calculate_texcoords(vec2* data, float_t size);
 static void post_process_dof_free_fbo(post_process_dof* dof);
 static void post_process_dof_load_shaders(post_process_dof* dof);
 static GLuint post_process_dof_program_link(GLuint vert_shad, GLuint frag_shad);
 static GLuint post_process_dof_shader_compile(GLenum type, const char* data);
-static void post_process_dof_update_data(post_process_dof* dof, float_t min_dist,
-    float_t max_dist, float_t fov, float_t dist, float_t focal_length,
-    float_t f_number, float_t focus_range, float_t fuzzing_range, float_t ratio);
 
 static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat);
 
@@ -668,14 +675,14 @@ void post_process_dof::apply(render_texture* rt, GLuint* samplers, camera* cam) 
                 }
 
                 focus = max(focus, (float_t)cam->min_distance);
-                post_process_apply_dof_physical(this, rt, samplers,
+                renderer::DOF3::apply_physical(this, rt, samplers,
                     rt->color_texture->tex, rt->depth_texture->tex,
                     (float_t)cam->min_distance, (float_t)cam->max_distance, focus,
                     data.debug.focal_length, (float_t)cam->fov_rad, data.debug.f_number);
             }
             else {
                 float_t fuzzing_range = max(data.debug.f2.fuzzing_range, 0.01f);
-                post_process_apply_dof_f2(this, rt, samplers,
+                renderer::DOF3::apply_f2(this, rt, samplers,
                     rt->color_texture->tex, rt->depth_texture->tex,
                     (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
                     data.debug.f2.focus, data.debug.f2.focus_range, fuzzing_range, data.debug.f2.ratio);
@@ -685,7 +692,7 @@ void post_process_dof::apply(render_texture* rt, GLuint* samplers, camera* cam) 
     }
     else if (data.pv.enable && data.pv.f2.ratio > 0.0f) {
         float_t fuzzing_range = max(data.pv.f2.fuzzing_range, 0.01f);
-        post_process_apply_dof_f2(this, rt, samplers,
+        renderer::DOF3::apply_f2(this, rt, samplers,
             rt->color_texture->tex, rt->depth_texture->tex,
             (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
             data.pv.f2.focus, data.pv.f2.focus_range, fuzzing_range, data.pv.f2.ratio);
@@ -781,134 +788,6 @@ void post_process_dof::set_dof_pv(dof_pv* pv) {
         data.pv = dof_pv_default;
 }
 
-static void post_process_apply_dof_f2(post_process_dof* dof, render_texture* rt,
-    GLuint* samplers, GLuint color_texture, GLuint depth_texture,
-    float_t min_distance, float_t max_distance, float_t fov, float_t focus,
-    float_t focus_range, float_t fuzzing_range, float_t ratio) {
-    gl_state_disable_blend();
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_set_depth_func(GL_ALWAYS);
-    post_process_dof_update_data(dof, min_distance, max_distance,
-        fov, focus, 0.0f, 1.0f, focus_range, fuzzing_range, ratio);
-
-    gl_state_bind_vertex_array(dof->vao);
-    post_process_apply_dof_steps_1_2(dof, samplers, depth_texture, true);
-    post_process_apply_dof_step_3(dof, samplers, color_texture, depth_texture, true);
-    post_process_apply_dof_step_4(dof, samplers, true);
-    post_process_apply_dof_step_5(dof, rt, samplers, color_texture, depth_texture, true);
-
-    gl_state_use_program(0);
-    for (int32_t i = 0; i < 8; i++) {
-        gl_state_bind_sampler(i, 0);
-        gl_state_active_bind_texture_2d(i, 0);
-    }
-    gl_state_bind_vertex_array(0);
-}
-
-static void post_process_apply_dof_physical(post_process_dof* dof, render_texture* rt,
-    GLuint* samplers, GLuint color_texture, GLuint depth_texture,
-    float_t min_distance, float_t max_distance, float_t focus,
-    float_t focal_length, float_t fov, float_t f_number) {
-    gl_state_disable_blend();
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_set_depth_func(GL_ALWAYS);
-    post_process_dof_update_data(dof, min_distance, max_distance,
-        fov, focus, focal_length, f_number, 0.0f, 0.1f, 0.0f);
-
-    gl_state_bind_vertex_array(dof->vao);
-    post_process_apply_dof_steps_1_2(dof, samplers, depth_texture, false);
-    post_process_apply_dof_step_3(dof, samplers, color_texture, depth_texture, false);
-    post_process_apply_dof_step_4(dof, samplers, false);
-    post_process_apply_dof_step_5(dof, rt, samplers, color_texture, depth_texture, false);
-
-    gl_state_use_program(0);
-    for (int32_t i = 0; i < 8; i++) {
-        gl_state_bind_sampler(i, 0);
-        gl_state_active_bind_texture_2d(i, 0);
-    }
-    gl_state_bind_vertex_array(0);
-}
-
-static void post_process_apply_dof_steps_1_2(post_process_dof* dof,
-    GLuint* samplers, GLuint depth_texture, bool f2) {
-    gl_state_bind_framebuffer(dof->fbo[0].buffer);
-    glViewport(0, 0, dof->fbo[0].width, dof->fbo[0].height);
-    if (f2)
-        gl_state_use_program(dof->program[5]);
-    else
-        gl_state_use_program(dof->program[1]);
-    gl_state_bind_uniform_buffer_base(0, dof->ubo[0]);
-    gl_state_active_bind_texture_2d(0, depth_texture);
-    gl_state_bind_sampler(0, samplers[1]);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
-
-    gl_state_bind_framebuffer(dof->fbo[1].buffer);
-    glViewport(0, 0, dof->fbo[1].width, dof->fbo[1].height);
-    gl_state_use_program(dof->program[0]);
-    gl_state_active_bind_texture_2d(0, dof->textures[0]);
-    gl_state_bind_sampler(0, samplers[1]);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
-}
-
-static void post_process_apply_dof_step_3(post_process_dof* dof,
-    GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2) {
-    gl_state_bind_framebuffer(dof->fbo[2].buffer);
-    glViewport(0, 0, dof->fbo[2].width, dof->fbo[2].height);
-    if (f2)
-        gl_state_use_program(dof->program[6]);
-    else
-        gl_state_use_program(dof->program[2]);
-    gl_state_bind_uniform_buffer_base(0, dof->ubo[0]);
-    gl_state_active_bind_texture_2d(0, depth_texture);
-    gl_state_bind_sampler(0, samplers[1]);
-    gl_state_active_bind_texture_2d(1, color_texture);
-    gl_state_bind_sampler(1, samplers[0]);
-    gl_state_active_bind_texture_2d(2, dof->textures[1]);
-    gl_state_bind_sampler(2, samplers[1]);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
-}
-
-static void post_process_apply_dof_step_4(post_process_dof* dof, GLuint* samplers, bool f2) {
-    gl_state_bind_framebuffer(dof->fbo[3].buffer);
-    glViewport(0, 0, dof->fbo[3].width, dof->fbo[3].height);
-    if (f2)
-        gl_state_use_program(dof->program[7]);
-    else
-        gl_state_use_program(dof->program[3]);
-    gl_state_bind_uniform_buffer_base(0, dof->ubo[0]);
-    gl_state_bind_uniform_buffer_base(1, dof->ubo[1]);
-    gl_state_active_bind_texture_2d(0, dof->textures[3]);
-    gl_state_bind_sampler(0, samplers[1]);
-    gl_state_active_bind_texture_2d(1, dof->textures[2]);
-    gl_state_bind_sampler(1, samplers[1]);
-    gl_state_active_bind_texture_2d(2, dof->textures[1]);
-    gl_state_bind_sampler(2, samplers[1]);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
-}
-
-static void post_process_apply_dof_step_5(post_process_dof* dof, render_texture* rt,
-    GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2) {
-    render_texture_bind(rt, 0);
-    glViewport(0, 0, dof->width, dof->height);
-    if (f2)
-        gl_state_use_program(dof->program[8]);
-    else
-        gl_state_use_program(dof->program[4]);
-    gl_state_bind_uniform_buffer_base(0, dof->ubo[0]);
-    gl_state_bind_uniform_buffer_base(1, dof->ubo[1]);
-    gl_state_active_bind_texture_2d(0, dof->textures[4]);
-    gl_state_bind_sampler(0, samplers[1]);
-    gl_state_active_bind_texture_2d(1, dof->textures[5]);
-    gl_state_bind_sampler(1, samplers[1]);
-    gl_state_active_bind_texture_2d(2, dof->textures[1]);
-    gl_state_bind_sampler(2, samplers[1]);
-    gl_state_active_bind_texture_2d(3, color_texture);
-    gl_state_bind_sampler(3, samplers[1]);
-    gl_state_active_bind_texture_2d(4, depth_texture);
-    gl_state_bind_sampler(4, samplers[1]);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
-}
-
 static void post_process_dof_calculate_texcoords(vec2* data, float_t size) {
     size_t i;
     size_t j;
@@ -976,7 +855,7 @@ static void post_process_dof_free_fbo(post_process_dof* dof) {
 
 static void post_process_dof_load_shaders(post_process_dof* dof) {
     char* frag_shader_string[9];
-    frag_shader_string[0] = str_utils_copy(dof_frag_shader_step_2);
+    frag_shader_string[0] = str_utils_copy(dof_frag_shader_render_tiles_part_2);
     for (int32_t i = 0; i < 2; i++) {
         char* t0;
         char* t1;
@@ -985,25 +864,25 @@ static void post_process_dof_load_shaders(post_process_dof* dof) {
 
         t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
-        frag_shader_string[1 + i * 4] = str_utils_add(t1, dof_frag_shader_step_1);
+        frag_shader_string[1 + i * 4] = str_utils_add(t1, dof_frag_shader_render_tiles_part_1);
         free(t0);
         free(t1);
 
         t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
-        frag_shader_string[2 + i * 4] = str_utils_add(t1, dof_frag_shader_step_3);
+        frag_shader_string[2 + i * 4] = str_utils_add(t1, dof_frag_shader_downsample);
         free(t0);
         free(t1);
 
         t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
-        frag_shader_string[3 + i * 4] = str_utils_add(t1, dof_frag_shader_step_4);
+        frag_shader_string[3 + i * 4] = str_utils_add(t1, dof_frag_shader_apply_main_filter);
         free(t0);
         free(t1);
 
         t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
-        frag_shader_string[4 + i * 4] = str_utils_add(t1, dof_frag_shader_step_5);
+        frag_shader_string[4 + i * 4] = str_utils_add(t1, dof_frag_shader_upsample);
         free(t0);
         free(t1);
         free(shared);
@@ -1063,34 +942,164 @@ static GLuint post_process_dof_program_link(GLuint vert_shad, GLuint frag_shad) 
     return program;
 };
 
-static void post_process_dof_update_data(post_process_dof* dof, float_t min_dist,
-    float_t max_dist, float_t fov, float_t dist, float_t focal_length,
-    float_t f_number, float_t focus_range, float_t fuzzing_range, float_t ratio) {
-    float_t fl = focal_length;
-    if (dist <= focal_length)
-        fl = dist + 0.1f;
-    fl = fl / (dist - fl) * fl / f_number;
-
-    post_process_dof_shader_data data;
-    data.g_depth_params.x = 1.0f / (min_dist * max_dist) * (min_dist - max_dist);
-    data.g_depth_params.y = 1.0f / min_dist;
-    data.g_depth_params.z = -((fl * dist * (min_dist - max_dist)) * (1.0f / (min_dist * max_dist)));
-    data.g_depth_params.w = (1.0f - 1.0f / min_dist * dist) * fl;
-    data.g_spread_scale.x = 720.0f / (tanf(fov * 0.5f) * (min_dist * 2.0f));
-    data.g_spread_scale.y = data.g_spread_scale.x * (float_t)(1.0 / 3.0);
-    data.g_spread_scale.z = (float_t)(1.0 / 3.0);
-    data.g_spread_scale.w = 3.0f;
-    data.g_depth_params2.x = dist;
-    data.g_depth_params2.y = focus_range;
-    data.g_depth_params2.z = -4.5f / (fuzzing_range * fuzzing_range);
-    data.g_depth_params2.w = ratio * 8.0f;
-
-    gl_state_bind_uniform_buffer(dof->ubo[0]);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(post_process_dof_shader_data), &data);
-}
-
 static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat) {
     if (a2 >= 0 && a2 <= 26)
         *mat = rob_chr->data.field_1E68.field_78[a2];
 }
 
+namespace renderer {
+    void DOF3::apply_f2(post_process_dof* dof, render_texture* rt,
+        GLuint* samplers, GLuint color_texture, GLuint depth_texture,
+        float_t min_distance, float_t max_distance, float_t fov, float_t focus,
+        float_t focus_range, float_t fuzzing_range, float_t ratio) {
+        gl_state_disable_blend();
+        gl_state_set_depth_mask(GL_FALSE);
+        gl_state_set_depth_func(GL_ALWAYS);
+        update_data(dof, min_distance, max_distance,
+            fov, focus, 0.0f, 1.0f, focus_range, fuzzing_range, ratio);
+
+        gl_state_bind_vertex_array(dof->vao);
+        render_tiles(dof, samplers, depth_texture, true);
+        downsample(dof, samplers, color_texture, depth_texture, true);
+        apply_main_filter(dof, samplers, true);
+        upsample(dof, rt, samplers, color_texture, depth_texture, true);
+
+        gl_state_use_program(0);
+        for (int32_t i = 0; i < 8; i++) {
+            gl_state_bind_sampler(i, 0);
+            gl_state_active_bind_texture_2d(i, 0);
+        }
+        gl_state_bind_vertex_array(0);
+    }
+
+    void DOF3::apply_physical(post_process_dof* dof, render_texture* rt,
+        GLuint* samplers, GLuint color_texture, GLuint depth_texture,
+        float_t min_distance, float_t max_distance, float_t focus,
+        float_t focal_length, float_t fov, float_t f_number) {
+        gl_state_disable_blend();
+        gl_state_set_depth_mask(GL_FALSE);
+        gl_state_set_depth_func(GL_ALWAYS);
+        update_data(dof, min_distance, max_distance,
+            fov, focus, focal_length, f_number, 0.0f, 0.1f, 0.0f);
+
+        gl_state_bind_vertex_array(dof->vao);
+        render_tiles(dof, samplers, depth_texture, false);
+        downsample(dof, samplers, color_texture, depth_texture, false);
+        apply_main_filter(dof, samplers, false);
+        upsample(dof, rt, samplers, color_texture, depth_texture, false);
+
+        gl_state_use_program(0);
+        for (int32_t i = 0; i < 8; i++) {
+            gl_state_bind_sampler(i, 0);
+            gl_state_active_bind_texture_2d(i, 0);
+        }
+        gl_state_bind_vertex_array(0);
+    }
+
+    void DOF3::render_tiles(post_process_dof* dof,
+        GLuint* samplers, GLuint depth_texture, bool f2) {
+        gl_state_bind_framebuffer(dof->fbo[0].buffer);
+        glViewport(0, 0, dof->fbo[0].width, dof->fbo[0].height);
+        if (f2)
+            gl_state_use_program(dof->program[5]);
+        else
+            gl_state_use_program(dof->program[1]);
+        gl_state_bind_uniform_buffer_base(0, dof->ubo[0]);
+        gl_state_active_bind_texture_2d(0, depth_texture);
+        gl_state_bind_sampler(0, samplers[1]);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
+
+        gl_state_bind_framebuffer(dof->fbo[1].buffer);
+        glViewport(0, 0, dof->fbo[1].width, dof->fbo[1].height);
+        gl_state_use_program(dof->program[0]);
+        gl_state_active_bind_texture_2d(0, dof->textures[0]);
+        gl_state_bind_sampler(0, samplers[1]);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
+
+    }
+
+    void DOF3::downsample(post_process_dof* dof,
+        GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2) {
+        gl_state_bind_framebuffer(dof->fbo[2].buffer);
+        glViewport(0, 0, dof->fbo[2].width, dof->fbo[2].height);
+        if (f2)
+            gl_state_use_program(dof->program[6]);
+        else
+            gl_state_use_program(dof->program[2]);
+        gl_state_bind_uniform_buffer_base(0, dof->ubo[0]);
+        gl_state_active_bind_texture_2d(0, depth_texture);
+        gl_state_bind_sampler(0, samplers[1]);
+        gl_state_active_bind_texture_2d(1, color_texture);
+        gl_state_bind_sampler(1, samplers[0]);
+        gl_state_active_bind_texture_2d(2, dof->textures[1]);
+        gl_state_bind_sampler(2, samplers[1]);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
+    }
+
+    void DOF3::apply_main_filter(post_process_dof* dof, GLuint* samplers, bool f2) {
+        gl_state_bind_framebuffer(dof->fbo[3].buffer);
+        glViewport(0, 0, dof->fbo[3].width, dof->fbo[3].height);
+        if (f2)
+            gl_state_use_program(dof->program[7]);
+        else
+            gl_state_use_program(dof->program[3]);
+        gl_state_bind_uniform_buffer_base(0, dof->ubo[0]);
+        gl_state_bind_uniform_buffer_base(1, dof->ubo[1]);
+        gl_state_active_bind_texture_2d(0, dof->textures[3]);
+        gl_state_bind_sampler(0, samplers[1]);
+        gl_state_active_bind_texture_2d(1, dof->textures[2]);
+        gl_state_bind_sampler(1, samplers[1]);
+        gl_state_active_bind_texture_2d(2, dof->textures[1]);
+        gl_state_bind_sampler(2, samplers[1]);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
+    }
+
+    void DOF3::upsample(post_process_dof* dof, render_texture* rt,
+        GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2) {
+        render_texture_bind(rt, 0);
+        glViewport(0, 0, dof->width, dof->height);
+        if (f2)
+            gl_state_use_program(dof->program[8]);
+        else
+            gl_state_use_program(dof->program[4]);
+        gl_state_bind_uniform_buffer_base(0, dof->ubo[0]);
+        gl_state_bind_uniform_buffer_base(1, dof->ubo[1]);
+        gl_state_active_bind_texture_2d(0, dof->textures[4]);
+        gl_state_bind_sampler(0, samplers[1]);
+        gl_state_active_bind_texture_2d(1, dof->textures[5]);
+        gl_state_bind_sampler(1, samplers[1]);
+        gl_state_active_bind_texture_2d(2, dof->textures[1]);
+        gl_state_bind_sampler(2, samplers[1]);
+        gl_state_active_bind_texture_2d(3, color_texture);
+        gl_state_bind_sampler(3, samplers[1]);
+        gl_state_active_bind_texture_2d(4, depth_texture);
+        gl_state_bind_sampler(4, samplers[1]);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
+    }
+
+    void DOF3::update_data(post_process_dof* dof, float_t min_dist,
+        float_t max_dist, float_t fov, float_t dist, float_t focal_length,
+        float_t f_number, float_t focus_range, float_t fuzzing_range, float_t ratio) {
+        float_t fl = focal_length;
+        if (dist <= focal_length)
+            fl = dist + 0.1f;
+        fl = fl / (dist - fl) * fl / f_number;
+
+        post_process_dof_shader_data data;
+        data.g_depth_params.x = 1.0f / (min_dist * max_dist) * (min_dist - max_dist);
+        data.g_depth_params.y = 1.0f / min_dist;
+        data.g_depth_params.z = -((fl * dist * (min_dist - max_dist)) * (1.0f / (min_dist * max_dist)));
+        data.g_depth_params.w = (1.0f - 1.0f / min_dist * dist) * fl;
+        data.g_spread_scale.x = 720.0f / (tanf(fov * 0.5f) * (min_dist * 2.0f));
+        data.g_spread_scale.y = data.g_spread_scale.x * (float_t)(1.0 / 3.0);
+        data.g_spread_scale.z = (float_t)(1.0 / 3.0);
+        data.g_spread_scale.w = 3.0f;
+        data.g_depth_params2.x = dist;
+        data.g_depth_params2.y = focus_range;
+        data.g_depth_params2.z = -4.5f / (fuzzing_range * fuzzing_range);
+        data.g_depth_params2.w = ratio * 8.0f;
+
+        gl_state_bind_uniform_buffer(dof->ubo[0]);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(post_process_dof_shader_data), &data);
+    }
+}

@@ -10,11 +10,11 @@
 #include <mutex>
 #include <string>
 #include <thread>
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/farc.hpp"
 
-struct file_handler_read_func_data {
-    void(*func)(void*, void*, size_t);
+struct file_handler_callback_func {
+    void(*func)(void*, const void*, size_t);
     void* data;
     bool ready;
 };
@@ -24,11 +24,11 @@ struct file_handler {
     std::mutex mtx;
     bool not_ready;
     bool reading;
-    std::string path;
+    std::string dir;
     std::string farc_file;
     std::string file;
     bool cache;
-    file_handler_read_func_data callback[2];
+    file_handler_callback_func callback[2];
     ssize_t size;
     void* data;
     void* ds;
@@ -40,8 +40,8 @@ struct file_handler {
     void free_data_lock();
     void set_file(const char* file);
     void set_farc_file(const char* farc_file, bool cache);
-    void set_path(const char* path);
-    void set_callback_data(int32_t index, void(*func)(void*, void*, size_t), void* data);
+    void set_dir(const char* dir);
+    void set_callback_data(int32_t index, void(*func)(void*, const void*, size_t), void* data);
 };
 
 struct p_file_handler {
@@ -53,13 +53,14 @@ struct p_file_handler {
     void call_free_func_free_data();
     bool check_not_ready();
     void free_data();
-    void* get_data();
+    const void* get_data();
     ssize_t get_size();
-    bool read_file(void* data, const char* path, const char* farc_file, const char* file, bool cache);
-    bool read_file(void* data, const char* path, const char* file);
-    bool read_file(void* data, const char* path, uint32_t hash, const char* ext);
+    bool read_file(void* data, const char* path);
+    bool read_file(void* data, const char* dir, const char* farc_file, const char* file, bool cache);
+    bool read_file(void* data, const char* dir, const char* file);
+    bool read_file(void* data, const char* dir, uint32_t hash, const char* ext);
     void read_now();
-    void set_callback_data(int32_t index, void(* func)(void*, void*, size_t), void* data);
+    void set_callback_data(int32_t index, void(* func)(void*, const void*, size_t), void* data);
 };
 
 extern void file_handler_storage_init();

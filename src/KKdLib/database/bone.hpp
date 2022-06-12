@@ -7,8 +7,8 @@
 
 #include <string>
 #include <vector>
-#include "../default.h"
-#include "../vec.h"
+#include "../default.hpp"
+#include "../vec.hpp"
 
 enum bone_database_bone_type {
     BONE_DATABASE_BONE_ROTATION          = 0x00,

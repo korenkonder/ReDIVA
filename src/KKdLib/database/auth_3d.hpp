@@ -7,7 +7,7 @@
 
 #include <string>
 #include <vector>
-#include "../default.h"
+#include "../default.hpp"
 
 enum auth_3d_database_uid_flags {
     AUTH_3D_DATABASE_UID_ORG_UID = 0x01,
@@ -73,6 +73,8 @@ struct auth_3d_database {
     auth_3d_database();
     ~auth_3d_database();
 
+    int32_t get_category_index(const char* name);
+    int32_t get_uid(const char* name);
     void merge_mdata(auth_3d_database_file* base_auth_3d_db,
         auth_3d_database_file* mdata_auth_3d_db);
     void split_mdata(auth_3d_database_file* base_auth_3d_db,

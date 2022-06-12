@@ -7,10 +7,9 @@
 
 #include <map>
 #include <map>
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/farc.hpp"
-#include "../KKdLib/mat.h"
-#include "../KKdLib/vector.h"
+#include "../KKdLib/mat.hpp"
 #include "../KKdLib/light_param/face.hpp"
 #include "../KKdLib/light_param/fog.hpp"
 #include "../KKdLib/light_param/glow.hpp"

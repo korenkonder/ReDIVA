@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
-#include "../KKdLib/mat.h"
-#include "../KKdLib/vec.h"
+#include "../KKdLib/default.hpp"
+#include "../KKdLib/mat.hpp"
+#include "../KKdLib/vec.hpp"
 #include "static_var.h"

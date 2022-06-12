@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "../../KKdLib/default.h"
+#include "../../KKdLib/default.hpp"
 #include "../../KKdLib/light_param/wind.hpp"
-#include "../../KKdLib/vec.h"
+#include "../../KKdLib/vec.hpp"
 #include "../static_var.h"
 #include "../task.hpp"
 
@@ -46,7 +46,7 @@ struct wind {
     void reset();
 };
 
-class TaskWind : public Task {
+class TaskWind : public app::Task {
 public:
     wind* ptr;
 

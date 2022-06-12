@@ -7,7 +7,7 @@
 #include "f2/struct.hpp"
 #include "hash.hpp"
 #include "sort.hpp"
-#include "str_utils.h"
+#include "str_utils.hpp"
 
 static const dsc_func dsc_ac101_func[] = {
     { 0, 0, "END" },
@@ -2932,15 +2932,14 @@ bool dsc::load_file(void* data, const char* path, const char* file, uint32_t has
     std::string s = path + std::string(file);
 
     stream dsc_s;
-    io_open(&dsc_s, s.c_str(), "rb");
+    dsc_s.open(s.c_str(), "rb");
     void* dsc_data = force_malloc(dsc_s.length);
     size_t dsc_length = dsc_s.length;
-    io_read(&dsc_s, dsc_data, dsc_length);
+    dsc_s.read(dsc_data, dsc_length);
 
     dsc* d = (dsc*)data;
     bool ret = d->parse(dsc_data, dsc_length, d->type);
 
-    io_free(&dsc_s);
     free(dsc_data);
     return ret;
 }

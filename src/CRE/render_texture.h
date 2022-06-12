@@ -7,7 +7,7 @@
 
 #include "shared.h"
 #include "shader.h"
-#include "shader_glsl.h"
+#include "shader_glsl.hpp"
 #include "texture.hpp"
 
 struct render_texture {

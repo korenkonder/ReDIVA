@@ -1009,15 +1009,15 @@ namespace Glitter {
             || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
             emission = rend_group->emission;
 
-        shader_state_material_set_emission(&shaders_ft, false, emission, emission, emission, 1.0f);
-        shader_state_matrix_set_mvp_separate(&shaders_ft,
-            &rend_group->mat_draw, &((render_context*)GPM_VAL->rctx)->camera->view,
-            &((render_context*)GPM_VAL->rctx)->camera->projection);
-        shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
-        shader_state_matrix_set_texture(&shaders_ft, 1, &mat4_identity);
-        shader_env_vert_set_ptr(&shaders_ft, 3, &vec4_identity);
+        shaders_ft.state_material_set_emission(false, emission, emission, emission, 1.0f);
+        shaders_ft.state_matrix_set_mvp(rend_group->mat_draw,
+            ((render_context*)GPM_VAL->rctx)->camera->view,
+            ((render_context*)GPM_VAL->rctx)->camera->projection);
+        shaders_ft.state_matrix_set_texture(0, mat4_identity);
+        shaders_ft.state_matrix_set_texture(1, mat4_identity);
+        shaders_ft.env_vert_set(3, vec4_identity);
 
-        shader_set(&shaders_ft, SHADER_FT_GLITTER_PT);
+        shaders_ft.set(SHADER_FT_GLITTER_PT);
         switch (rend_group->type) {
         case PARTICLE_QUAD: {
             static const GLsizei buffer_size = sizeof(Buffer);
@@ -1038,8 +1038,7 @@ namespace Glitter {
             gl_state_bind_array_buffer(0);
 
             gl_state_bind_element_array_buffer(rend_group->ebo);
-            shader_draw_elements(&shaders_ft,
-                GL_TRIANGLES, (GLsizei)(6 * rend_group->disp), GL_UNSIGNED_INT, 0);
+            shaders_ft.draw_elements(GL_TRIANGLES, (GLsizei)(6 * rend_group->disp), GL_UNSIGNED_INT, 0);
             gl_state_bind_element_array_buffer(0);
 
             glDisableVertexAttribArray(0);
@@ -1069,7 +1068,7 @@ namespace Glitter {
 
             const GLenum mode = rend_group->type == PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
             for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                shader_draw_arrays(&shaders_ft, mode, i.first, i.second);
+                shaders_ft.draw_arrays(mode, i.first, i.second);
 
             glDisableVertexAttribArray(0);
             glDisableVertexAttribArray(3);
@@ -2167,14 +2166,15 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
             emission = rend_group->emission;
 
-        shader_state_material_set_emission(&shaders_ft, false, emission, emission, emission, 1.0f);
-        shader_state_matrix_set_mvp_separate(&shaders_ft,
-            &rend_group->mat_draw, &((render_context*)GPM_VAL->rctx)->camera->view,
-            &((render_context*)GPM_VAL->rctx)->camera->projection);
-        shader_state_matrix_set_texture(&shaders_ft, 0, &mat4_identity);
-        shader_state_matrix_set_texture(&shaders_ft, 1, &mat4_identity);
+        shaders_ft.state_material_set_emission(false, emission, emission, emission, 1.0f);
+        shaders_ft.state_matrix_set_mvp(rend_group->mat_draw,
+            ((render_context*)GPM_VAL->rctx)->camera->view,
+            ((render_context*)GPM_VAL->rctx)->camera->projection);
+        shaders_ft.state_matrix_set_texture(0, mat4_identity);
+        shaders_ft.state_matrix_set_texture(1, mat4_identity);
+        shaders_ft.env_vert_set(3, vec4_identity);
 
-        shader_set(&shaders_ft, SHADER_FT_GLITTER_PT);
+        shaders_ft.set(SHADER_FT_GLITTER_PT);
         switch (rend_group->type) {
         case PARTICLE_QUAD: {
             static const GLsizei buffer_size = sizeof(Buffer);
@@ -2195,8 +2195,7 @@ namespace Glitter {
             gl_state_bind_array_buffer(0);
 
             gl_state_bind_element_array_buffer(rend_group->ebo);
-            shader_draw_elements(&shaders_ft,
-                GL_TRIANGLES, (GLsizei)(6 * rend_group->disp), GL_UNSIGNED_INT, 0);
+            shaders_ft.draw_elements(GL_TRIANGLES, (GLsizei)(6 * rend_group->disp), GL_UNSIGNED_INT, 0);
             gl_state_bind_element_array_buffer(0);
 
             glDisableVertexAttribArray(0);
@@ -2225,7 +2224,7 @@ namespace Glitter {
 
             const GLenum mode = rend_group->type == PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
             for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                shader_draw_arrays(&shaders_ft, mode, i.first, i.second);
+                shaders_ft.draw_arrays(mode, i.first, i.second);
 
             glDisableVertexAttribArray(0);
             glDisableVertexAttribArray(3);

@@ -4,15 +4,15 @@
 */
 
 #include "face.hpp"
-#include "../io/path.h"
-#include "../io/stream.h"
-#include "../str_utils.h"
+#include "../io/path.hpp"
+#include "../io/stream.hpp"
+#include "../str_utils.hpp"
 
-static void light_param_face_read_inner(light_param_face* face, stream* s);
-static void light_param_face_write_inner(light_param_face* face, stream* s);
+static void light_param_face_read_inner(light_param_face* face, stream& s);
+static void light_param_face_write_inner(light_param_face* face, stream& s);
 static const char* light_param_face_read_line(char* buf, int32_t size, const char* src);
-static void light_param_face_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value);
-static void light_param_face_write_float_t(stream* s, char* buf, size_t buf_size, float_t value);
+static void light_param_face_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value);
+static void light_param_face_write_float_t(stream& s, char* buf, size_t buf_size, float_t value);
 
 light_param_face::light_param_face() : ready(), offset(), scale(), position(), direction() {
 
@@ -22,10 +22,9 @@ void light_param_face::read(const char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
-        io_open(&s, path_txt, "rb");
+        s.open(path_txt, "rb");
         if (s.io.stream)
-            light_param_face_read_inner(this, &s);
-        io_free(&s);
+            light_param_face_read_inner(this, s);
     }
     free(path_txt);
 }
@@ -34,19 +33,17 @@ void light_param_face::read(const wchar_t* path) {
     wchar_t* path_txt = str_utils_add(path, L".txt");
     if (path_check_file_exists(path_txt)) {
         stream s;
-        io_open(&s, path_txt, L"rb");
+        s.open(path_txt, L"rb");
         if (s.io.stream)
-            light_param_face_read_inner(this, &s);
-        io_free(&s);
+            light_param_face_read_inner(this, s);
     }
     free(path_txt);
 }
 
 void light_param_face::read(const void* data, size_t size) {
     stream s;
-    io_open(&s, data, size);
-    light_param_face_read_inner(this, &s);
-    io_free(&s);
+    s.open(data, size);
+    light_param_face_read_inner(this, s);
 }
 
 void light_param_face::write(const char* path) {
@@ -55,10 +52,9 @@ void light_param_face::write(const char* path) {
 
     char* path_txt = str_utils_add(path, ".txt");
     stream s;
-    io_open(&s, path_txt, "wb");
+    s.open(path_txt, "wb");
     if (s.io.stream)
-        light_param_face_write_inner(this, &s);
-    io_free(&s);
+        light_param_face_write_inner(this, s);
     free(path_txt);
 }
 
@@ -68,10 +64,9 @@ void light_param_face::write(const wchar_t* path) {
 
     wchar_t* path_txt = str_utils_add(path, L".txt");
     stream s;
-    io_open(&s, path_txt, L"wb");
+    s.open(path_txt, L"wb");
     if (s.io.stream)
-        light_param_face_write_inner(this, &s);
-    io_free(&s);
+        light_param_face_write_inner(this, s);
     free(path_txt);
 }
 
@@ -80,10 +75,9 @@ void light_param_face::write(void** data, size_t* size) {
         return;
 
     stream s;
-    io_open(&s);
-    light_param_face_write_inner(this, &s);
-    io_copy(&s, data, size);
-    io_free(&s);
+    s.open();
+    light_param_face_write_inner(this, s);
+    s.copy(data, size);
 }
 
 light_param_face::~light_param_face() {
@@ -105,10 +99,10 @@ bool light_param_face::load_file(void* data, const char* path, const char* file,
     return face->ready;
 }
 
-static void light_param_face_read_inner(light_param_face* face, stream* s) {
-    char* data = force_malloc_s(char, s->length + 1);
-    io_read(s, data, s->length);
-    data[s->length] = 0;
+static void light_param_face_read_inner(light_param_face* face, stream& s) {
+    char* data = force_malloc_s(char, s.length + 1);
+    s.read(data, s.length);
+    data[s.length] = 0;
 
     char buf[0x100];
     const char* d = data;
@@ -144,33 +138,33 @@ End:
     free(data);
 }
 
-static void light_param_face_write_inner(light_param_face* face, stream* s) {
+static void light_param_face_write_inner(light_param_face* face, stream& s) {
     char buf[0x100];
 
-    io_write(s, "offset", 6);
+    s.write("offset", 6);
     light_param_face_write_float_t(s, buf, sizeof(buf), face->offset);
-    io_write_char(s, '\n');
+    s.write_char('\n');
 
-    io_write(s, "scale", 5);
+    s.write("scale", 5);
     light_param_face_write_float_t(s, buf, sizeof(buf), face->scale);
-    io_write_char(s, '\n');
+    s.write_char('\n');
 
     vec3* position = &face->position;
-    io_write(s, "position", 8);
+    s.write("position", 8);
     light_param_face_write_float_t(s, buf, sizeof(buf), position->x);
     light_param_face_write_float_t(s, buf, sizeof(buf), position->y);
     light_param_face_write_float_t(s, buf, sizeof(buf), position->z);
-    io_write_char(s, '\n');
+    s.write_char('\n');
 
     vec3* direction = &face->direction;
-    io_write(s, "direction", 9);
+    s.write("direction", 9);
     light_param_face_write_float_t(s, buf, sizeof(buf), direction->x);
     light_param_face_write_float_t(s, buf, sizeof(buf), direction->y);
     light_param_face_write_float_t(s, buf, sizeof(buf), direction->z);
-    io_write_char(s, '\n');
+    s.write_char('\n');
 
-    io_write(s, "EOF", 3);
-    io_write_char(s, '\n');
+    s.write("EOF", 3);
+    s.write_char('\n');
 }
 
 static const char* light_param_face_read_line(char* buf, int32_t size, const char* src) {
@@ -200,12 +194,12 @@ static const char* light_param_face_read_line(char* buf, int32_t size, const cha
     return src;
 }
 
-inline static void light_param_face_write_int32_t(stream* s, char* buf, size_t buf_size, int32_t value) {
+inline static void light_param_face_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value) {
     sprintf_s(buf, buf_size, " %d", value);
-    io_write_utf8_string(s, buf);
+    s.write_utf8_string(buf);
 }
 
-inline static void light_param_face_write_float_t(stream* s, char* buf, size_t buf_size, float_t value) {
+inline static void light_param_face_write_float_t(stream& s, char* buf, size_t buf_size, float_t value) {
     sprintf_s(buf, buf_size, " %g", value);
-    io_write_utf8_string(s, buf);
+    s.write_utf8_string(buf);
 }

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../CRE/lock.h"
 #include "../CRE/render_context.hpp"
 #include "../CRE/task.hpp"
@@ -13,17 +13,19 @@
 #define CLASS_DATA_NO_DATA (0)
 #define CLASSES_DATA_NO_FUNC (0)
 
-class TaskWindow : public Task {
-public:
-    bool show_window;
-    bool window_focus;
+namespace app {
+    class TaskWindow : public Task {
+    public:
+        bool show_window;
+        bool window_focus;
 
-    TaskWindow();
-    ~TaskWindow();
-    virtual void Window() = 0;
-};
+        TaskWindow();
+        ~TaskWindow();
+        virtual void Window() = 0;
+    };
 
-extern void TaskWork_Window();
+    extern void TaskWork_Window();
+}
 
 enum class_flags {
     CLASS_INIT        = 0x01,

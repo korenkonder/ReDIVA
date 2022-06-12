@@ -7,8 +7,7 @@
 
 #include <string>
 #include <vector>
-#include "default.h"
-#include "string.h"
+#include "default.hpp"
 
 enum msgpack_type : uint32_t {
     MSGPACK_NONE = 0,
@@ -65,10 +64,8 @@ struct msgpack {
     msgpack(const char* name, double_t val);
     msgpack(const char* name, const char* val);
     msgpack(const char* name, const wchar_t* val);
-    msgpack(const char* name, string* val);
-    msgpack(const char* name, std::string* val);
-    msgpack(const char* name, wstring* val);
-    msgpack(const char* name, std::wstring* val);
+    msgpack(const char* name, std::string& val);
+    msgpack(const char* name, std::wstring& val);
     ~msgpack();
 
     bool check_null();
@@ -94,10 +91,8 @@ struct msgpack {
     double_t read_double_t(const char* name);
     char* read_utf8_string(const char* name);
     wchar_t* read_utf16_string(const char* name);
-    void read_string(const char* name, string* str);
-    void read_string(const char* name, std::string* str);
-    void read_string(const char* name, wstring* str);
-    void read_string(const char* name, std::wstring* str);
+    void read_string(const char* name, std::string& str);
+    void read_string(const char* name, std::wstring& str);
 
     msgpack& operator=(const msgpack& m);
 };

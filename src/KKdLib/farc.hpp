@@ -7,8 +7,8 @@
 
 #include <string>
 #include <vector>
-#include "default.h"
-#include "io/stream.h"
+#include "default.hpp"
+#include "io/stream.hpp"
 
 enum farc_signature {
     FARC_FArc = 'FArc',

@@ -7,7 +7,7 @@
 
 #include <string>
 #include <vector>
-#include "../default.h"
+#include "../default.hpp"
 
 struct motion_info {
     std::string name;

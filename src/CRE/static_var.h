@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include "../KKdLib/default.h"
+#include "../KKdLib/default.hpp"
 #include "../KKdLib/light_param/fog.hpp"
 #include "../KKdLib/light_param/light.hpp"
-#include "../KKdLib/mat.h"
-#include "../KKdLib/vec.h"
-#include "../KKdLib/vec.h"
+#include "../KKdLib/mat.hpp"
+#include "../KKdLib/vec.hpp"
+#include "../KKdLib/vec.hpp"
 #include <glad/glad.h>
 
 enum draw_pass_3d_type {

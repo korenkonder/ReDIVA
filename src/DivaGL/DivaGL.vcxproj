@@ -494,22 +494,26 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="bone_data.c" />
-    <ClCompile Include="dllmain.c" />
-    <ClCompile Include="gl.c" />
-    <ClCompile Include="inject.c" />
-    <ClCompile Include="print.c" />
-    <ClCompile Include="shader_table.c" />
+    <ClCompile Include="bone_data.cpp" />
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="gl.cpp" />
+    <ClCompile Include="inject.cpp" />
+    <ClCompile Include="print.cpp" />
+    <ClCompile Include="shader_table.cpp" />
+    <ClCompile Include="string.cpp" />
+    <ClCompile Include="vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DivaGL.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="bone_data.h" />
-    <ClInclude Include="gl.h" />
-    <ClInclude Include="inject.h" />
-    <ClInclude Include="print.h" />
-    <ClInclude Include="shader_table.h" />
+    <ClInclude Include="bone_data.hpp" />
+    <ClInclude Include="gl.hpp" />
+    <ClInclude Include="inject.hpp" />
+    <ClInclude Include="print.hpp" />
+    <ClInclude Include="shader_table.hpp" />
+    <ClInclude Include="string.hpp" />
+    <ClInclude Include="vector.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

@@ -23,22 +23,24 @@
 #include "../CRE/light_param.hpp"
 #include "../CRE/lock.h"
 #include "../CRE/object.hpp"
+#include "../CRE/pv_db.hpp"
 #include "../CRE/rob.hpp"
 #include "../CRE/shader.h"
 #include "../CRE/shader_ft.h"
-#include "../CRE/shader_glsl.h"
+#include "../CRE/shader_glsl.hpp"
 #include "../CRE/stage.hpp"
 #include "../CRE/static_var.h"
 #include "../CRE/task.hpp"
 #include "../CRE/texture.hpp"
 #include "../CRE/timer.h"
 #include "../CRE/post_process.hpp"
-#include "../KKdLib/io/path.h"
+#include "../KKdLib/io/path.hpp"
 #include "../KKdLib/database/item_table.hpp"
 #include "../KKdLib/sort.hpp"
-#include "../KKdLib/str_utils.h"
+#include "../KKdLib/str_utils.hpp"
 #include "classes/imgui_helper.h"
 #include "input.hpp"
+#include "pv_game.hpp"
 #include "x_pv_game.hpp"
 #include <timeapi.h>
 
@@ -103,7 +105,7 @@ int32_t width;
 int32_t height;
 
 static const double_t aspect = 16.0 / 9.0;
-vec3 clear_color;
+vec4u8 clear_color;
 bool set_clear_color;
 
 bool light_chara_ambient;
@@ -407,7 +409,7 @@ static render_context* render_load() {
 
     object_storage_init(aft_obj_db);
     item_table_array_init();
-    task_work_init();
+    app::task_work_init();
     rob_init();
     auth_3d_data_init();
     light_param_storage_data_init();
@@ -557,16 +559,15 @@ static render_context* render_load() {
         "    gl_FragDepth = texelFetch(g_depth, ivec2(gl_FragCoord.xy), 0).r;\n"
         "}\n";
 
-    shader_glsl_param param;
-    memset(&param, 0, sizeof(shader_glsl_param));
+    shader_glsl_param param = {};
     param.name = "Cube Line";
     cube_line_shader.load(cube_line_vert_shader, cube_line_frag_shader, 0, &param);
 
-    memset(&param, 0, sizeof(shader_glsl_param));
+    param = {};
     param.name = "Cube Line Point";
     cube_line_point_shader.load(cube_line_point_vert_shader, cube_line_point_frag_shader, 0, &param);
 
-    memset(&param, 0, sizeof(shader_glsl_param));
+    param = {};
     param.name = "Grid";
     grid_shader.load(grid_vert_shader, grid_frag_shader, 0, &param);
 
@@ -577,9 +578,11 @@ static render_context* render_load() {
 
     render_resize_fb(rctx, true);
 
+    task_pv_db_append_task();
     task_auth_3d_append_task();
-    TaskWork::AppendTask(&Glitter::glt_particle_manager, "GLITTER_TASK", 2);
-    TaskWork::AppendTask(&x_pv_game_data, "X_PV_GAME", 0);
+    app::TaskWork::AppendTask(&Glitter::glt_particle_manager, "GLITTER_TASK", 2);
+    //app::TaskWork::AppendTask(&pv_game_data, "PV_GAME", 0);
+    app::TaskWork::AppendTask(&x_pv_game_data, "X_PV_GAME", 0);
     task_rob_manager_append_task();
 
     aft_data->load_file(aft_data, "rom/", "chritm_prop.farc", item_table_array_load_file);
@@ -603,7 +606,7 @@ static render_context* render_load() {
     for (int32_t i = 0; i < 30; i++) {
         timer_start_of_cycle(&render_timer);
         lock_lock(&render_lock);
-        TaskWork::Ctrl();
+        app::TaskWork::Ctrl();
         file_handler_storage_ctrl();
         lock_unlock(&render_lock);
         timer_end_of_cycle(&render_timer);
@@ -732,28 +735,45 @@ static render_context* render_load() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
 
-    clear_color = { (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0), (float_t)(96.0 / 255.0) };
+    clear_color = { 0x60, 0x60, 0x60, 0xFF };
     set_clear_color = true;
 
-    chara_index charas[6];
-    charas[5] = CHARA_MIKU;
-    charas[1] = CHARA_RIN;
-    charas[2] = CHARA_LEN;
-    charas[3] = CHARA_LUKA;
-    charas[4] = CHARA_KAITO;
-    charas[0] = CHARA_MEIKO;
+    /*chara_index charas[6];
+    charas[0] = CHARA_MIKU;
+    charas[1] = CHARA_MIKU;//CHARA_RIN;
+    charas[2] = CHARA_MIKU;//CHARA_LEN;
+    charas[3] = CHARA_MIKU;//CHARA_LUKA;
+    charas[4] = CHARA_MIKU;//CHARA_KAITO;
+    charas[5] = CHARA_MIKU;//CHARA_MEIKO;
 
     int32_t modules[6];
-    modules[5] = 168;
+    modules[0] = 0;//168;
     modules[1] = 0;//46;
     modules[2] = 0;//39;
-    modules[3] = 41;
-    modules[4] = 40;
-    modules[0] = 0;//31;
-    x_pv_game_data.Load(822, 22, charas, modules);
+    modules[3] = 0;//41;
+    modules[4] = 0;//40;
+    modules[5] = 0;//31;
+    pv_game_data.Load(739, charas, modules);*/
 
-    shader_env_vert_set_ptr(&shaders_ft, 3, &vec4_identity);
-    shader_env_vert_set_ptr(&shaders_ft, 4, &vec4_null);
+    chara_index charas[6];
+    charas[0] = CHARA_MIKU;
+    charas[1] = CHARA_MIKU;//CHARA_RIN;
+    charas[2] = CHARA_MIKU;//CHARA_LEN;
+    charas[3] = CHARA_MIKU;//CHARA_LUKA;
+    charas[4] = CHARA_MIKU;//CHARA_KAITO;
+    charas[5] = CHARA_MIKU;//CHARA_MEIKO;
+
+    int32_t modules[6];
+    modules[0] = 0;//168;
+    modules[1] = 0;//46;
+    modules[2] = 0;//39;
+    modules[3] = 0;//41;
+    modules[4] = 0;//40;
+    modules[5] = 0;//31;
+    x_pv_game_data.Load(826, 26, charas, modules);
+
+    shaders_ft.env_vert_set(3, vec4_identity);
+    shaders_ft.env_vert_set(4, vec4_null);
     classes_process_init(classes, classes_count, rctx);
     return rctx;
 }
@@ -781,7 +801,7 @@ static void render_ctrl(render_context* rctx) {
     global_context_menu = true;
     lock_lock(&imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
-    TaskWork_Window();
+    app::TaskWork_Window();
     classes_process_imgui(classes, classes_count);
     lock_unlock(&imgui_context_lock);
 
@@ -862,8 +882,8 @@ static void render_ctrl(render_context* rctx) {
     glBufferSubData(GL_UNIFORM_BUFFER, 0, COMMON_DATA_SIZE, &common_data);
     gl_state_bind_uniform_buffer(0);
 
-    shader_glsl_set_mat4(&cube_line_shader, "vp", false, cam->view_projection);
-    shader_glsl_set_mat4(&cube_line_point_shader, "vp", false, cam->view_projection);
+    cube_line_shader.set("vp", false, cam->view_projection);
+    cube_line_point_shader.set("vp", false, cam->view_projection);
 }
 
 static void cube_line_draw(shader_glsl* shader, camera* cam, vec3* trans, float_t line_size, vec4* color) {
@@ -895,7 +915,7 @@ static void cube_line_draw(shader_glsl* shader, camera* cam, vec3* trans, float_
     vec3_add(trans[1], norm[0], vert_trans[2]);
     vec3_add(trans[1], norm[1], vert_trans[3]);
 
-    shader_glsl_set_vec4(shader, "color", *color);
+    shader->set("color", *color);
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vert_trans), vert_trans);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -943,10 +963,10 @@ static void render_draw(render_context* rctx) {
     gl_state_set_depth_mask(GL_FALSE);
 
     if (set_clear_color) {
-        vec4 color;
-        *(vec3*)&color = clear_color;
-        color.w = 1.0f;
-        glClearBufferfv(GL_COLOR, 0, (GLfloat*)&color);
+        vec4 _clear_color;
+        vec4u8_to_vec4(clear_color, _clear_color);
+        vec4_mult_scalar(_clear_color, (float_t)(1.0 / 255.0), _clear_color);
+        glClearBufferfv(GL_COLOR, 0, (GLfloat*)&_clear_color);
     }
 
     camera_update(cam);
@@ -1040,10 +1060,10 @@ static void render_draw(render_context* rctx) {
 
         gl_state_bind_vertex_array(cube_line_point_vao);
         cube_line_point_shader.use();
-        shader_glsl_set_vec3_array(&cube_line_point_shader, "trans", 4, trans);
-        shader_glsl_set_float(&cube_line_point_shader, "dark_border_end",
+        cube_line_point_shader.set("trans", 4, trans);
+        cube_line_point_shader.set("dark_border_end",
             ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
-        shader_glsl_set_float(&cube_line_point_shader, "dark_border_start",
+        cube_line_point_shader.set("dark_border_start",
             (1.0f - ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE))));
         glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)cube_line_points.size());
         cube_line_points.clear();
@@ -1071,16 +1091,18 @@ static void render_dispose(render_context* rctx) {
     lock_free(&imgui_context_lock);
 
     task_rob_manager_free_task();
+    //pv_game_data.SetDest();
     x_pv_game_data.SetDest();
     Glitter::glt_particle_manager.SetDest();
     task_auth_3d_free_task();
+    task_pv_db_free_task();
 
     //rob_chara_array_free_chara_id(0);
     timer_reset(&render_timer);
     for (int32_t i = 0; i < 30; i++) {
         timer_start_of_cycle(&render_timer);
         lock_lock(&render_lock);
-        TaskWork::Ctrl();
+        app::TaskWork::Ctrl();
         file_handler_storage_ctrl();
         lock_unlock(&render_lock);
         timer_end_of_cycle(&render_timer);
@@ -1091,7 +1113,7 @@ static void render_dispose(render_context* rctx) {
     light_param_storage_data_free();
     auth_3d_data_free();
     rob_free();
-    task_work_free();
+    app::task_work_free();
     item_table_array_free();
     object_storage_free();
     data_struct_free();
@@ -1252,7 +1274,7 @@ inline static void render_shaders_load() {
 }
 
 inline static void render_shaders_free() {
-    shader_free(&shaders_ft);
+    shaders_ft.unload();
 }
 
 #if defined (DEBUG) && OPENGL_DEBUG

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "../default.h"
-#include "../vec.h"
+#include "../default.hpp"
+#include "../vec.hpp"
 
 enum fog_id {
     FOG_DEPTH  = 0x00,

@@ -7,7 +7,7 @@
 
 #include "input.hpp"
 #include <map>
-#include "../KKdLib/vec.h"
+#include "../KKdLib/vec.hpp"
 #include "../CRE/timer.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <timeapi.h>

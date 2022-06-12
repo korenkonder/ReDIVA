@@ -5,7 +5,7 @@
 
 #include "light_param.hpp"
 #include "../KKdLib/hash.hpp"
-#include "../KKdLib/str_utils.h"
+#include "../KKdLib/str_utils.hpp"
 #include "render_context.hpp"
 
 static void light_param_data_get_stage_name_string(std::string* str, int32_t stage_index);
