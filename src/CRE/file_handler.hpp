@@ -50,7 +50,7 @@ struct p_file_handler {
     p_file_handler();
     virtual ~p_file_handler();
 
-    void call_free_func_free_data();
+    void call_free_callback();
     bool check_not_ready();
     void free_data();
     const void* get_data();

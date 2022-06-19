@@ -73,6 +73,7 @@ struct task_stage_modern_info {
     task_stage_modern_info();
 };
 
+extern void task_stage_modern_init();
 extern bool task_stage_modern_check_not_loaded();
 extern void task_stage_modern_current_set_effect_display(bool value);
 extern void task_stage_modern_current_set_ground(bool value);
@@ -80,9 +81,11 @@ extern void task_stage_modern_current_set_sky(bool value);
 extern void task_stage_modern_current_set_stage_display(bool value);
 extern void task_stage_modern_disp_shadow();
 extern stage_modern* task_stage_modern_get_current_stage();
+extern uint32_t task_stage_modern_get_current_stage_hash();
 extern void task_stage_modern_get_current_stage_info(task_stage_modern_info* stg_info);
 extern void task_stage_modern_get_loaded_stage_infos(std::vector<task_stage_modern_info>* vec);
 extern stage_modern* task_stage_modern_get_stage(task_stage_modern_info stg_info);
+extern uint32_t task_stage_modern_get_stage_hash(task_stage_modern_info* stg_info);
 extern bool task_stage_modern_has_stage_info(task_stage_modern_info* stg_info);
 extern bool task_stage_modern_load(const char* name);
 extern void task_stage_modern_set_data(void* data,
@@ -94,3 +97,4 @@ extern void task_stage_modern_set_stage_hash(uint32_t stage_hash, stage_data_mod
 extern void task_stage_modern_set_stage_hashes(std::vector<uint32_t>* stage_hashes,
     std::vector<stage_data_modern*>* load_stage_data);
 extern bool task_stage_modern_unload();
+extern void task_stage_modern_free();

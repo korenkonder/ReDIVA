@@ -331,13 +331,13 @@ p_file_handler::p_file_handler() {
 p_file_handler::~p_file_handler() {
     if (ptr) {
         if (check_not_ready())
-            call_free_func_free_data();
+            call_free_callback();
         else
             free_data();
     }
 }
 
-void p_file_handler::call_free_func_free_data() {
+void p_file_handler::call_free_callback() {
     if (ptr)
         ptr->call_callback(1);
     free_data();

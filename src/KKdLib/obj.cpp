@@ -14,20 +14,20 @@
 #include "str_utils.hpp"
 
 enum obj_vertex_format_file {
-    OBJ_VERTEX_FORMAT_FILE_POSITION       = 0x00000001,
-    OBJ_VERTEX_FORMAT_FILE_NORMAL         = 0x00000002,
-    OBJ_VERTEX_FORMAT_FILE_TANGENT        = 0x00000004,
-    OBJ_VERTEX_FORMAT_FILE_BINORMAL       = 0x00000008,
-    OBJ_VERTEX_FORMAT_FILE_TEXCOORD0      = 0x00000010,
-    OBJ_VERTEX_FORMAT_FILE_TEXCOORD1      = 0x00000020,
-    OBJ_VERTEX_FORMAT_FILE_TEXCOORD2      = 0x00000040,
-    OBJ_VERTEX_FORMAT_FILE_TEXCOORD3      = 0x00000080,
-    OBJ_VERTEX_FORMAT_FILE_COLOR0         = 0x00000100,
-    OBJ_VERTEX_FORMAT_FILE_COLOR1         = 0x00000200,
-    OBJ_VERTEX_FORMAT_FILE_BONE_WEIGHT    = 0x00000400,
-    OBJ_VERTEX_FORMAT_FILE_BONE_INDEX     = 0x00000800,
-    OBJ_VERTEX_FORMAT_FILE_UNKNOWN        = 0x00001000,
-    OBJ_VERTEX_FORMAT_FILE_MODERN_STORAGE = 0x80000000,
+    OBJ_VERTEX_FILE_POSITION       = 0x00000001,
+    OBJ_VERTEX_FILE_NORMAL         = 0x00000002,
+    OBJ_VERTEX_FILE_TANGENT        = 0x00000004,
+    OBJ_VERTEX_FILE_BINORMAL       = 0x00000008,
+    OBJ_VERTEX_FILE_TEXCOORD0      = 0x00000010,
+    OBJ_VERTEX_FILE_TEXCOORD1      = 0x00000020,
+    OBJ_VERTEX_FILE_TEXCOORD2      = 0x00000040,
+    OBJ_VERTEX_FILE_TEXCOORD3      = 0x00000080,
+    OBJ_VERTEX_FILE_COLOR0         = 0x00000100,
+    OBJ_VERTEX_FILE_COLOR1         = 0x00000200,
+    OBJ_VERTEX_FILE_BONE_WEIGHT    = 0x00000400,
+    OBJ_VERTEX_FILE_BONE_INDEX     = 0x00000800,
+    OBJ_VERTEX_FILE_UNKNOWN        = 0x00001000,
+    OBJ_VERTEX_FILE_MODERN_STORAGE = 0x80000000,
 };
 
 struct obj_skin_block_header {
@@ -127,15 +127,11 @@ static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
     stream& s, char** str);
 static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
-    int64_t* field_18_offset, int64_t* field_1C_offset, int64_t* field_20_offset,
-    int64_t* field_24_offset, int64_t* field_28_offset);
-static void obj_classic_read_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
+    int64_t* mats_offset, int64_t* root_offset, int64_t* nodes_offset,
+    int64_t* mesh_indices_offset, int64_t* backface_mesh_indices_offset);
+static void obj_classic_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, char** str);
-static void obj_classic_write_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets);
-static void obj_classic_read_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream& s, char** str);
-static void obj_classic_write_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
+static void obj_classic_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     stream& s, char** str);
@@ -166,6 +162,10 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
     stream& s, char** str);
 static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, int64_t* nodes_offset);
+static void obj_classic_read_skin_param(obj_skin_skin_param* skp,
+    stream& s, char** str);
+static void obj_classic_write_skin_param(obj_skin_skin_param* skp,
+    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mesh* mesh,
     int64_t base_offset, uint32_t num_vertex, obj_vertex_format_file vertex_format_file);
 static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_mesh* mesh,
@@ -188,15 +188,11 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x,
-    int64_t* field_18_offset, int64_t* field_1C_offset, int64_t* field_20_offset,
-    int64_t* field_24_offset, int64_t* field_28_offset);
-static void obj_modern_read_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
+    int64_t* mats_offset, int64_t* root_offset, int64_t* nodes_offset,
+    int64_t* mesh_indices_offset, int64_t* backface_mesh_indices_offset);
+static void obj_modern_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, uint32_t header_length, char** str, bool is_x);
-static void obj_modern_write_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x);
-static void obj_modern_read_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream& s, uint32_t header_length, char** str, bool is_x);
-static void obj_modern_write_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
+static void obj_modern_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     stream& s, uint32_t header_length, char** str, bool is_x);
@@ -243,6 +239,10 @@ static void obj_skin_strings_push_back_check(std::vector<std::string>& vec, cons
 static void obj_skin_strings_push_back_check_by_index(std::vector<std::string>& vec,
     char** strings, uint32_t index);
 
+obj_bounding_sphere::obj_bounding_sphere() : radius() {
+
+}
+
 obj_material_shader_lighting_type obj_material_shader_attrib::get_lighting_type() {
     if (!m.is_lgt_diffuse && !m.is_lgt_specular)
         return OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT;
@@ -265,6 +265,28 @@ int32_t obj_texture_attrib::get_blend() {
     }
 }
 
+obj_sub_mesh::obj_sub_mesh() : flags(), bounding_sphere(), material_index(), uv_index(), bone_indices(),
+bone_indices_count(), bones_per_vertex(), primitive_type(), index_format(), indices(), indices_count(),
+attrib(), axis_aligned_bounding_box(), first_index(), last_index(), indices_offset() {
+
+}
+
+obj_mesh* obj::get_obj_mesh(const char* name) {
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    for (uint32_t k = 0; k < num_mesh; k++)
+        if (hash_utf8_murmurhash(mesh_array[k].name) == name_hash)
+            return &mesh_array[k];
+    return 0;
+}
+
+ uint32_t obj::get_obj_mesh_index(const char* name) {
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    for (uint32_t k = 0; k < num_mesh; k++)
+        if (hash_utf8_murmurhash(mesh_array[k].name) == name_hash)
+            return k;
+    return -1;
+}
+
 obj_set::obj_set() : ready(), modern(), is_x(), obj_data(),
 obj_num(), tex_id_data(), tex_id_num(), reserved() {
 
@@ -285,15 +307,16 @@ obj_set::~obj_set() {
                 free(cloth->mesh_name);
                 free(cloth->backface_mesh_name);
 
-                for (uint32_t k = 0; k < cloth->count; k++) {
-                    obj_skin_block_cloth_field_1C* sub = &cloth->field_1C[k];
+                for (uint32_t k = 0; k < cloth->root_count; k++) {
+                    obj_skin_block_cloth_root* sub = &cloth->root[k];
                     for (uint32_t l = 0; l < 4; l++)
-                        free(sub->sub_data[l].bone_name);
+                        free(sub->bone_weights[l].bone_name);
                 }
-                free(cloth->field_1C);
-                free(cloth->field_20);
-                free(cloth->field_24);
-                free(cloth->field_28);
+                free(cloth->root);
+                free(cloth->nodes);
+                free(cloth->mesh_indices);
+                free(cloth->backface_mesh_indices);
+                free(cloth->skin_param.coli);
             } break;
             case OBJ_SKIN_BLOCK_CONSTRAINT: {
                 obj_skin_block_constraint* constraint = &block->constraint;
@@ -316,7 +339,7 @@ obj_set::~obj_set() {
             case OBJ_SKIN_BLOCK_OSAGE: {
                 obj_skin_block_osage* osage = &block->osage;
                 obj_skin_block_node_free(&osage->base);
-                free(osage->root.coli);
+                free(osage->skin_param.coli);
                 free(osage->nodes);
             } break;
             }
@@ -411,35 +434,35 @@ static void obj_set_classic_read_inner(obj_set* os, stream& s) {
     os->reserved[0] = s.read_uint32_t();
     os->reserved[1] = s.read_uint32_t();
 
-    uint32_t count = os->obj_num;
+    uint32_t obj_num = os->obj_num;
     os->obj_data = force_malloc_s(obj, os->obj_num);
 
     int32_t* obj_datas = 0;
     if (osh.obj_data) {
-        obj_datas = force_malloc_s(int32_t, count);
+        obj_datas = force_malloc_s(int32_t, obj_num);
         s.set_position(osh.obj_data, SEEK_SET);
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             obj_datas[i] = s.read_int32_t();
     }
 
     int32_t* obj_skin_datas = 0;
     if (osh.obj_skin_data) {
-        obj_skin_datas = force_malloc_s(int32_t, count);
+        obj_skin_datas = force_malloc_s(int32_t, obj_num);
         s.set_position(osh.obj_skin_data, SEEK_SET);
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             obj_skin_datas[i] = s.read_int32_t();
     }
 
     int32_t* obj_name_datas = 0;
     if (osh.obj_name_data) {
-        obj_name_datas = force_malloc_s(int32_t, count);
+        obj_name_datas = force_malloc_s(int32_t, obj_num);
         s.set_position(osh.obj_name_data, SEEK_SET);
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             obj_name_datas[i] = s.read_int32_t();
     }
 
     if (osh.obj_data) {
-        for (uint32_t i = 0; i < count; i++) {
+        for (uint32_t i = 0; i < obj_num; i++) {
             obj* obj = &os->obj_data[i];
             if (obj_datas[i])
                 obj_classic_read_model(obj, s, obj_datas[i]);
@@ -456,7 +479,7 @@ static void obj_set_classic_read_inner(obj_set* os, stream& s) {
         }
 
         s.set_position(osh.obj_id_data, SEEK_SET);
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             os->obj_data[i].id = s.read_uint32_t();
     }
 
@@ -495,28 +518,28 @@ static void obj_set_classic_write_inner(obj_set* os, stream& s) {
     obj_set_header osh = {};
     osh.last_obj_id = -1;
 
-    uint32_t count = os->obj_num;
+    uint32_t obj_num = os->obj_num;
 
     osh.obj_data = s.get_position();
-    for (uint32_t i = 0; i < count; i++)
+    for (uint32_t i = 0; i < obj_num; i++)
         s.write_int32_t(0);
     s.align_write(0x10);
 
-    int32_t* obj_datas = force_malloc_s(int32_t, count);
-    for (uint32_t i = 0; i < count; i++) {
-        obj_datas[i] = (int32_t)s.get_position();
+    uint32_t* obj_datas = force_malloc_s(uint32_t, obj_num);
+    for (uint32_t i = 0; i < obj_num; i++) {
+        obj_datas[i] = (uint32_t)s.get_position();
         obj_classic_write_model(&os->obj_data[i], s, obj_datas[i]);
     }
     s.align_write(0x10);
 
     s.position_push(osh.obj_data, SEEK_SET);
-    for (uint32_t i = 0; i < count; i++)
-        s.write_int32_t((int32_t)obj_datas[i]);
+    for (uint32_t i = 0; i < obj_num; i++)
+        s.write_uint32_t(obj_datas[i]);
     s.position_pop();
     free(obj_datas);
 
     osh.obj_id_data = s.get_position();
-    for (uint32_t i = 0; i < count; i++) {
+    for (uint32_t i = 0; i < obj_num; i++) {
         int32_t object_id = os->obj_data[i].id;
         s.write_uint32_t(object_id);
         if (osh.last_obj_id < object_id)
@@ -524,15 +547,15 @@ static void obj_set_classic_write_inner(obj_set* os, stream& s) {
     }
     s.align_write(0x10);
 
-    int32_t* obj_name_datas = force_malloc_s(int32_t, count);
-    for (uint32_t i = 0; i < count; i++) {
+    int32_t* obj_name_datas = force_malloc_s(int32_t, obj_num);
+    for (uint32_t i = 0; i < obj_num; i++) {
         obj_name_datas[i] = (int32_t)s.get_position();
         s.write_utf8_string_null_terminated(os->obj_data[i].name);
     }
     s.align_write(0x10);
 
     osh.obj_name_data = s.get_position();
-    for (uint32_t i = 0; i < count; i++)
+    for (uint32_t i = 0; i < obj_num; i++)
         s.write_int32_t(obj_name_datas[i]);
     s.align_write(0x10);
     free(obj_name_datas);
@@ -543,12 +566,12 @@ static void obj_set_classic_write_inner(obj_set* os, stream& s) {
     s.align_write(0x10);
 
     osh.obj_skin_data = s.get_position();
-    for (uint32_t i = 0; i < count; i++)
+    for (uint32_t i = 0; i < obj_num; i++)
         s.write_int32_t(0);
     s.align_write(0x10);
 
-    int32_t* obj_skin_datas = force_malloc_s(int32_t, count);
-    for (uint32_t i = 0; i < count; i++) {
+    int32_t* obj_skin_datas = force_malloc_s(int32_t, obj_num);
+    for (uint32_t i = 0; i < obj_num; i++) {
         if (!os->obj_data[i].skin_init) {
             obj_skin_datas[i] = 0;
             continue;
@@ -560,7 +583,7 @@ static void obj_set_classic_write_inner(obj_set* os, stream& s) {
     s.align_write(0x10);
 
     s.position_push(osh.obj_skin_data, SEEK_SET);
-    for (uint32_t i = 0; i < count; i++)
+    for (uint32_t i = 0; i < obj_num; i++)
         s.write_int32_t(obj_skin_datas[i]);
     s.position_pop();
     free(obj_skin_datas);
@@ -569,11 +592,11 @@ static void obj_set_classic_write_inner(obj_set* os, stream& s) {
     s.write_uint32_t(0x05062500);
     s.write_int32_t(os->obj_num);
     s.write_uint32_t(osh.last_obj_id);
-    s.write_int32_t((int32_t)osh.obj_data);
-    s.write_int32_t((int32_t)osh.obj_skin_data);
-    s.write_int32_t((int32_t)osh.obj_name_data);
-    s.write_int32_t((int32_t)osh.obj_id_data);
-    s.write_int32_t((int32_t)osh.tex_id_data);
+    s.write_uint32_t((uint32_t)osh.obj_data);
+    s.write_uint32_t((uint32_t)osh.obj_skin_data);
+    s.write_uint32_t((uint32_t)osh.obj_name_data);
+    s.write_uint32_t((uint32_t)osh.obj_id_data);
+    s.write_uint32_t((uint32_t)osh.tex_id_data);
     s.write_int32_t(os->tex_id_num);
     s.write_uint32_t(os->reserved[0]);
     s.write_uint32_t(os->reserved[1]);
@@ -703,12 +726,12 @@ static void obj_classic_read_model(obj* obj, stream& s, int64_t base_offset) {
                     sub_mesh->material_index = s.read_uint32_t();
                     s.read(&sub_mesh->uv_index, 0x08);
                     sub_mesh->bone_indices_count = s.read_int32_t();
-                    smh.bone_indices_offset = s.read_int32_t();
+                    smh.bone_indices_offset = s.read_uint32_t();
                     sub_mesh->bones_per_vertex = s.read_uint32_t();
                     sub_mesh->primitive_type = (obj_primitive_type)s.read_uint32_t();
                     sub_mesh->index_format = (obj_index_format)s.read_uint32_t();
                     sub_mesh->indices_count = s.read_int32_t();
-                    smh.indices_offset = s.read_int32_t();
+                    smh.indices_offset = s.read_uint32_t();
                     sub_mesh->attrib.w = s.read_uint32_t();
                     sub_mesh->bounding_box.center = sub_mesh->bounding_sphere.center;
                     sub_mesh->bounding_box.size.x = sub_mesh->bounding_sphere.radius * 2.0f;
@@ -846,12 +869,12 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
                 s.write_uint32_t(sub_mesh->material_index);
                 s.write(&sub_mesh->uv_index, 0x08);
                 s.write_int32_t(sub_mesh->bone_indices_count);
-                s.write_int32_t((int32_t)smh.bone_indices_offset);
+                s.write_uint32_t((uint32_t)smh.bone_indices_offset);
                 s.write_uint32_t(sub_mesh->bones_per_vertex);
                 s.write_uint32_t(sub_mesh->primitive_type);
                 s.write_uint32_t(sub_mesh->index_format);
                 s.write_int32_t(sub_mesh->indices_count);
-                s.write_int32_t((int32_t)smh.indices_offset);
+                s.write_uint32_t((uint32_t)smh.indices_offset);
                 s.write_uint32_t(sub_mesh->attrib.w);
                 s.write(0x18);
                 s.write_uint32_t(sub_mesh->indices_offset);
@@ -870,13 +893,13 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
             s.write_float_t(mesh->bounding_sphere.center.z);
             s.write_float_t(mesh->bounding_sphere.radius);
             s.write_int32_t(mesh->num_submesh);
-            s.write_int32_t((int32_t)mh->submesh_array);
+            s.write_uint32_t((uint32_t)mh->submesh_array);
             s.write_uint32_t(mh->format);
             s.write_int32_t(mh->size_vertex);
             s.write_int32_t(mh->num_vertex);
 
             for (uint32_t j = 0; j < 20; j++)
-                s.write_int32_t((int32_t)mh->vertex[j]);
+                s.write_uint32_t((uint32_t)mh->vertex[j]);
 
             s.write_uint32_t(mesh->attrib.w);
             s.write_uint32_t(mh->vertex_flags);
@@ -907,9 +930,9 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
     s.write_float_t(obj->bounding_sphere.center.z);
     s.write_float_t(obj->bounding_sphere.radius);
     s.write_int32_t(obj->num_mesh);
-    s.write_int32_t((int32_t)oh.mesh_array);
+    s.write_uint32_t((uint32_t)oh.mesh_array);
     s.write_int32_t(obj->num_material);
-    s.write_int32_t((int32_t)oh.material_array);
+    s.write_uint32_t((uint32_t)oh.material_array);
     s.write_uint32_t(obj->reserved[0]);
     s.write_uint32_t(obj->reserved[1]);
     s.write_uint32_t(obj->reserved[2]);
@@ -929,12 +952,12 @@ static void obj_classic_read_skin(obj* obj, stream& s, int64_t base_offset) {
     s.set_position(base_offset, SEEK_SET);
 
     obj_skin_header sh = {};
-    sh.bone_ids_offset = s.read_int32_t();
-    sh.bone_matrices_offset = s.read_int32_t();
-    sh.bone_names_offset = s.read_int32_t();
-    sh.ex_data_offset = s.read_int32_t();
+    sh.bone_ids_offset = s.read_uint32_t();
+    sh.bone_matrices_offset = s.read_uint32_t();
+    sh.bone_names_offset = s.read_uint32_t();
+    sh.ex_data_offset = s.read_uint32_t();
     sk->bones_count = s.read_int32_t();
-    sh.bone_parent_ids_offset = s.read_int32_t();
+    sh.bone_parent_ids_offset = s.read_uint32_t();
     s.read(0, 0x0C);
 
     if (sh.bone_ids_offset) {
@@ -999,12 +1022,12 @@ static void obj_classic_read_skin(obj* obj, stream& s, int64_t base_offset) {
         exh.osage_count = s.read_int32_t();
         ex->osage_nodes_count = s.read_int32_t();
         s.read(0, 0x04);
-        exh.osage_nodes_offset = s.read_int32_t();
-        exh.osage_names_offset = s.read_int32_t();
-        exh.blocks_offset = s.read_int32_t();
+        exh.osage_nodes_offset = s.read_uint32_t();
+        exh.osage_names_offset = s.read_uint32_t();
+        exh.blocks_offset = s.read_uint32_t();
         exh.bone_names_count = s.read_int32_t();
-        exh.bone_names_offset = s.read_int32_t();
-        exh.osage_sibling_infos_offset = s.read_int32_t();
+        exh.bone_names_offset = s.read_uint32_t();
+        exh.osage_sibling_infos_offset = s.read_uint32_t();
         exh.cloth_count = s.read_uint32_t();
         ex->reserved[0] = s.read_uint32_t();
         ex->reserved[1] = s.read_uint32_t();
@@ -1084,8 +1107,8 @@ static void obj_classic_read_skin(obj* obj, stream& s, int64_t base_offset) {
             obj_skin_block_header* bhs = force_malloc_s(obj_skin_block_header, ex->blocks_count);
             s.set_position(exh.blocks_offset, SEEK_SET);
             for (uint32_t i = 0; i < ex->blocks_count; i++) {
-                bhs[i].block_signature_offset = s.read_int32_t();
-                bhs[i].block_offset = s.read_int32_t();
+                bhs[i].block_signature_offset = s.read_uint32_t();
+                bhs[i].block_offset = s.read_uint32_t();
             }
 
             ex->blocks = force_malloc_s(obj_skin_block, ex->blocks_count);
@@ -1239,11 +1262,11 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
     int64_t osage_block_node = 0;
     int64_t motion_block_node_mats = 0;
     int64_t motion_block_node_name_offset = 0;
-    int64_t field_18 = 0;
-    int64_t field_1C = 0;
-    int64_t field_20 = 0;
-    int64_t field_24 = 0;
-    int64_t field_28 = 0;
+    int64_t cloth_mats = 0;
+    int64_t cloth_root = 0;
+    int64_t cloth_nodes = 0;
+    int64_t cloth_mesh_indices = 0;
+    int64_t cloth_backface_mesh_indices = 0;
 
     obj_skin_ex_data_header exh = {};
     if (sk->ex_data_init) {
@@ -1312,11 +1335,14 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
                 obj_skin_block_cloth* cloth = &block->cloth;
                 obj_skin_strings_push_back_check(strings, cloth->mesh_name);
                 obj_skin_strings_push_back_check(strings, cloth->backface_mesh_name);
-                for (uint32_t k = 0; k < cloth->count; k++) {
-                    obj_skin_block_cloth_field_1C* sub = &cloth->field_1C[k];
+                for (uint32_t k = 0; k < cloth->root_count; k++) {
+                    obj_skin_block_cloth_root* sub = &cloth->root[k];
                     for (uint32_t l = 0; l < 4; l++)
-                        obj_skin_strings_push_back_check(strings, sub->sub_data[l].bone_name);
+                        obj_skin_strings_push_back_check(strings, sub->bone_weights[l].bone_name);
                 }
+
+                if (cloth->skin_param_init)
+                    obj_skin_strings_push_back_check(strings, cloth->skin_param.name);
                 obj_skin_strings_push_back_check(strings, "CLS");
             } break;
             case OBJ_SKIN_BLOCK_CONSTRAINT: {
@@ -1396,6 +1422,9 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
                         osage_sibling_infos++;
                     }
                 }
+
+                if (osage->skin_param_init)
+                    obj_skin_strings_push_back_check(strings, osage->skin_param.name);
                 obj_skin_strings_push_back_check(strings, "OSG");
 
                 obj_skin_strings_push_back_check_by_index(bone_names,
@@ -1437,8 +1466,8 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
                 obj_skin_strings_push_back_check_by_index(bone_names,
                     bone_names_ptr, osage->name_index);
 
-                if (osage->root_init)
-                    obj_skin_strings_push_back_check(strings, osage->root.name);
+                if (osage->skin_param_init)
+                    obj_skin_strings_push_back_check(strings, osage->skin_param.name);
             } break;
             }
         }
@@ -1466,10 +1495,10 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
                     continue;
 
                 obj_skin_block_osage* osage = &block->osage;
-                if (osage->root_init) {
-                    obj_skin_osage_root_node* root = &osage->root;
-                    if (root->coli) {
-                        s.write(0x28LL * root->coli_count);
+                if (osage->skin_param_init) {
+                    obj_skin_skin_param* skin_param = &osage->skin_param;
+                    if (skin_param->coli) {
+                        s.write(0x28ULL * skin_param->coli_count);
                         s.align_write(0x10);
                     }
                     s.write(0x38);
@@ -1498,6 +1527,17 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
                 obj_skin_block* block = &ex->blocks[i];
                 if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                     continue;
+
+                obj_skin_block_cloth* cloth = &block->cloth;
+                if (cloth->skin_param_init) {
+                    obj_skin_skin_param* skin_param = &cloth->skin_param;
+                    if (skin_param->coli) {
+                        s.write(0x28ULL * skin_param->coli_count);
+                        s.align_write(0x10);
+                    }
+                    s.write(0x38);
+                    s.align_write(0x10);
+                }
 
                 bhs[i].block_offset = s.get_position();
                 s.write(0x34);
@@ -1586,61 +1626,60 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
             }
 
             if (exh.cloth_count) {
-                field_18 = s.get_position();
+                cloth_mats = s.get_position();
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    for (uint32_t j = 0; j < 32; j++)
-                        if (cloth->field_10 & (1 << j))
-                            s.write(sizeof(mat4));
+                    for (uint32_t j = 0; j < 3; j++)
+                        s.write(sizeof(mat4));
                 }
                 s.align_write(0x10);
 
-                field_1C = s.get_position();
+                cloth_root = s.get_position();
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    s.write((10 * sizeof(int32_t)
-                        + 4 * (sizeof(int32_t) + 3 * sizeof(int32_t))) * cloth->count);
+                    s.write((sizeof(int32_t) + 4 * (sizeof(int32_t) + 3 * sizeof(int32_t)))
+                        * cloth->root_count * (cloth->nodes_count - 1ULL));
                 }
                 s.align_write(0x10);
 
-                field_20 = s.get_position();
+                cloth_nodes = s.get_position();
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    s.write(10 * (11 * sizeof(int32_t)) * cloth->count);
+                    s.write((11 * sizeof(int32_t)) * cloth->root_count * (cloth->nodes_count - 1ULL));
                 }
                 s.align_write(0x10);
 
-                field_24 = s.get_position();
+                cloth_mesh_indices = s.get_position();
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    s.write(sizeof(uint16_t) + cloth->field_24_count * sizeof(uint16_t));
+                    s.write(sizeof(uint16_t) + cloth->mesh_indices_count * sizeof(uint16_t));
                 }
                 s.align_write(0x10);
 
-                field_28 = s.get_position();
+                cloth_backface_mesh_indices = s.get_position();
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    s.write(sizeof(uint16_t) + cloth->field_28_count * sizeof(uint16_t));
+                    s.write(sizeof(uint16_t) + cloth->backface_mesh_indices_count * sizeof(uint16_t));
                 }
                 s.align_write(0x10);
             }
@@ -1675,7 +1714,8 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
 
                 s.position_push(bhs[i].block_offset, SEEK_SET);
                 obj_classic_write_skin_block_cloth(&block->cloth,
-                    s, strings, string_offsets, &field_18, &field_1C, &field_20, &field_24, &field_28);
+                    s, strings, string_offsets, &cloth_mats, &cloth_root,
+                    &cloth_nodes, &cloth_mesh_indices, &cloth_backface_mesh_indices);
                 s.position_pop();
             }
 
@@ -1753,28 +1793,28 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
                 obj_skin_block* block = &ex->blocks[i];
                 switch (block->type) {
                 case OBJ_SKIN_BLOCK_CLOTH:
-                    s.write_int32_t((int32_t)cls_offset);
-                    s.write_int32_t((int32_t)bhs[i].block_offset);
+                    s.write_uint32_t((uint32_t)cls_offset);
+                    s.write_uint32_t((uint32_t)bhs[i].block_offset);
                     break;
                 case OBJ_SKIN_BLOCK_CONSTRAINT:
-                    s.write_int32_t((int32_t)cns_offset);
-                    s.write_int32_t((int32_t)bhs[i].block_offset);
+                    s.write_uint32_t((uint32_t)cns_offset);
+                    s.write_uint32_t((uint32_t)bhs[i].block_offset);
                     break;
                 case OBJ_SKIN_BLOCK_EXPRESSION:
-                    s.write_int32_t((int32_t)exp_offset);
-                    s.write_int32_t((int32_t)bhs[i].block_offset);
+                    s.write_uint32_t((uint32_t)exp_offset);
+                    s.write_uint32_t((uint32_t)bhs[i].block_offset);
                     break;
                 case OBJ_SKIN_BLOCK_MOTION:
-                    s.write_int32_t((int32_t)mot_offset);
-                    s.write_int32_t((int32_t)bhs[i].block_offset);
+                    s.write_uint32_t((uint32_t)mot_offset);
+                    s.write_uint32_t((uint32_t)bhs[i].block_offset);
                     break;
                 case OBJ_SKIN_BLOCK_OSAGE:
-                    s.write_int32_t((int32_t)osg_offset);
-                    s.write_int32_t((int32_t)bhs[i].block_offset);
+                    s.write_uint32_t((uint32_t)osg_offset);
+                    s.write_uint32_t((uint32_t)bhs[i].block_offset);
                     break;
                 default:
-                    s.write_int32_t(0);
-                    s.write_int32_t(0);
+                    s.write_uint32_t(0);
+                    s.write_uint32_t(0);
                     break;
                 }
             }
@@ -1790,7 +1830,7 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
         for (uint32_t i = 0; i < sk->bones_count; i++) {
             size_t str_offset = obj_skin_strings_get_string_offset(
                 strings, string_offsets, sk->bones[i].name);
-            s.write_int32_t((int32_t)str_offset);
+            s.write_uint32_t((uint32_t)str_offset);
         }
         s.position_pop();
     }
@@ -1803,7 +1843,7 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
             for (std::string& i : bone_names) {
                 size_t str_offset = obj_skin_strings_get_string_offset(strings,
                     string_offsets, i.c_str());
-                s.write_int32_t((int32_t)str_offset);
+                s.write_uint32_t((uint32_t)str_offset);
             }
             s.position_pop();
 
@@ -1834,7 +1874,7 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
             for (std::string& i : osage_names) {
                 size_t str_offset = obj_skin_strings_get_string_offset(strings,
                     string_offsets, i.c_str());
-                s.write_int32_t((int32_t)str_offset);
+                s.write_uint32_t((uint32_t)str_offset);
             }
             s.position_pop();
         }
@@ -1861,41 +1901,38 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
     }
 
     s.position_push(base_offset, SEEK_SET);
-    s.write_int32_t((int32_t)sh.bone_ids_offset);
-    s.write_int32_t((int32_t)sh.bone_matrices_offset);
-    s.write_int32_t((int32_t)sh.bone_names_offset);
-    s.write_int32_t((int32_t)sh.ex_data_offset);
+    s.write_uint32_t((uint32_t)sh.bone_ids_offset);
+    s.write_uint32_t((uint32_t)sh.bone_matrices_offset);
+    s.write_uint32_t((uint32_t)sh.bone_names_offset);
+    s.write_uint32_t((uint32_t)sh.ex_data_offset);
     s.write_int32_t(sk->bones_count);
-    s.write_int32_t((int32_t)sh.bone_parent_ids_offset);
+    s.write_uint32_t((uint32_t)sh.bone_parent_ids_offset);
     s.write(0x0C);
     s.position_pop();
 }
 
 static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
     stream& s, char** str) {
-    int32_t mesh_name_offset = s.read_int32_t();
-    int32_t backface_mesh_name_offset = s.read_int32_t();
+    uint32_t mesh_name_offset = s.read_uint32_t();
+    uint32_t backface_mesh_name_offset = s.read_uint32_t();
     b->field_8 = s.read_int32_t();
-    b->count = s.read_int32_t();
-    b->field_10 = s.read_int32_t();
+    b->root_count = s.read_int32_t();
+    b->nodes_count = s.read_int32_t();
     b->field_14 = s.read_int32_t();
-    int32_t field_18_offset = s.read_int32_t();
-    int32_t field_1C_offset = s.read_int32_t();
-    int32_t field_20_offset = s.read_int32_t();
-    int32_t field_24_offset = s.read_int32_t();
-    int32_t field_28_offset = s.read_int32_t();
-    b->field_2C = s.read_uint32_t();
-    b->field_30 = s.read_uint32_t();
+    uint32_t mats_offset = s.read_uint32_t();
+    uint32_t root_offset = s.read_uint32_t();
+    uint32_t nodes_offset = s.read_uint32_t();
+    uint32_t mesh_indices_offset = s.read_uint32_t();
+    uint32_t backface_mesh_indices_offset = s.read_uint32_t();
+    uint32_t skin_param_offset = s.read_uint32_t();
+    b->reserved = s.read_uint32_t();
 
     b->mesh_name = s.read_utf8_string_null_terminated_offset(mesh_name_offset);
     b->backface_mesh_name = s.read_utf8_string_null_terminated_offset(backface_mesh_name_offset);
 
-    if (field_18_offset) {
-        s.position_push(field_18_offset, SEEK_SET);
-        for (uint32_t i = 0; i < 32; i++) {
-            if (~b->field_10 & (1 << i))
-                continue;
-
+    if (mats_offset) {
+        s.position_push(mats_offset, SEEK_SET);
+        for (uint32_t i = 0; i < 3; i++) {
             mat4 mat;
             mat.row0.x = s.read_float_t();
             mat.row0.y = s.read_float_t();
@@ -1914,91 +1951,112 @@ static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
             mat.row3.z = s.read_float_t();
             mat.row3.w = s.read_float_t();
             mat4_transpose(&mat, &mat);
-            b->field_18[i] = mat;
+            b->mats[i] = mat;
         }
         s.position_pop();
     }
 
-    if (field_1C_offset) {
-        s.position_push(field_1C_offset, SEEK_SET);
-        b->field_1C = force_malloc_s(obj_skin_block_cloth_field_1C, b->count);
-        for (uint32_t i = 0; i < b->count; i++) {
-            obj_skin_block_cloth_field_1C* f = &b->field_1C[i];
-            f->field_0 = s.read_float_t();
-            f->field_4 = s.read_float_t();
-            f->field_8 = s.read_float_t();
-            f->field_C = s.read_float_t();
-            f->field_10 = s.read_float_t();
-            f->field_14 = s.read_float_t();
+    if (root_offset) {
+        s.position_push(root_offset, SEEK_SET);
+        b->root = force_malloc_s(obj_skin_block_cloth_root, b->root_count);
+        for (uint32_t i = 0; i < b->root_count; i++) {
+            obj_skin_block_cloth_root* f = &b->root[i];
+            f->trans.x = s.read_float_t();
+            f->trans.y = s.read_float_t();
+            f->trans.z = s.read_float_t();
+            f->normal.x = s.read_float_t();
+            f->normal.y = s.read_float_t();
+            f->normal.z = s.read_float_t();
             f->field_18 = s.read_float_t();
-            f->field_1C = s.read_uint32_t();
-            f->field_20 = s.read_uint32_t();
-            f->field_24 = s.read_uint32_t();
+            f->field_1C = s.read_int32_t();
+            f->field_20 = s.read_int32_t();
+            f->field_24 = s.read_int32_t();
 
             for (uint32_t j = 0; j < 4; j++)
-                obj_classic_read_skin_block_cloth_field_1C_sub(&f->sub_data[j], s, str);
+                obj_classic_read_skin_block_cloth_root_bone_weight(&f->bone_weights[j], s, str);
         }
         s.position_pop();
     }
 
-    if (field_20_offset) {
-        s.position_push(field_20_offset, SEEK_SET);
-        b->field_20 = force_malloc_s(obj_skin_block_cloth_field_20, b->count);
-        for (uint32_t i = 0; i < b->count; i++) {
-            obj_skin_block_cloth_field_20* f = &b->field_20[i];
-            for (uint32_t j = 0; j < 10; j++)
-                obj_classic_read_skin_block_cloth_field_20_sub(&f->sub_data[j], s, str);
-        }
+    if (nodes_offset) {
+        s.position_push(nodes_offset, SEEK_SET);
+        b->nodes = force_malloc_s(obj_skin_block_cloth_node,
+            b->root_count * (b->nodes_count - 1ULL));
+        for (uint32_t i = 0; i < b->nodes_count - 1; i++)
+            for (uint32_t j = 0; j < b->root_count; j++) {
+                obj_skin_block_cloth_node* f = &b->nodes[i * b->root_count + j];
+                f->flags = s.read_uint32_t();
+                f->trans.x = s.read_float_t();
+                f->trans.y = s.read_float_t();
+                f->trans.z = s.read_float_t();
+                f->trans_diff.x = s.read_float_t();
+                f->trans_diff.y = s.read_float_t();
+                f->trans_diff.z = s.read_float_t();
+                f->length = s.read_float_t();
+                f->field_20 = s.read_float_t();
+                f->field_24 = s.read_float_t();
+                f->field_28 = s.read_float_t();
+            }
         s.position_pop();
     }
 
-    if (field_24_offset) {
-        s.position_push(field_24_offset, SEEK_SET);
-        b->field_24_count = s.read_uint16_t_reverse_endianness();
-        b->field_24 = force_malloc_s(uint16_t, b->field_24_count);
-        s.read(b->field_24, b->field_24_count * sizeof(uint16_t));
+    if (mesh_indices_offset) {
+        s.position_push(mesh_indices_offset, SEEK_SET);
+        b->mesh_indices_count = s.read_uint16_t_reverse_endianness();
+        b->mesh_indices = force_malloc_s(uint16_t, b->mesh_indices_count);
+        s.read(b->mesh_indices, b->mesh_indices_count * sizeof(uint16_t));
         s.position_pop();
     }
 
-    if (field_28_offset) {
-        s.position_push(field_28_offset, SEEK_SET);
-        b->field_28_count = s.read_uint16_t_reverse_endianness();
-        b->field_28 = force_malloc_s(uint16_t, b->field_28_count);
-        s.read(b->field_28, b->field_28_count * sizeof(uint16_t));
+    if (backface_mesh_indices_offset) {
+        s.position_push(backface_mesh_indices_offset, SEEK_SET);
+        b->backface_mesh_indices_count = s.read_uint16_t_reverse_endianness();
+        b->backface_mesh_indices = force_malloc_s(uint16_t, b->backface_mesh_indices_count);
+        s.read(b->backface_mesh_indices, b->backface_mesh_indices_count * sizeof(uint16_t));
         s.position_pop();
     }
+
+    if (skin_param_offset) {
+        obj_classic_read_skin_param(&b->skin_param, s, str);
+        b->skin_param_init = true;
+    }
+    else
+        b->skin_param_init = false;
 }
 
 static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
-    int64_t* field_18_offset, int64_t* field_1C_offset, int64_t* field_20_offset,
-    int64_t* field_24_offset, int64_t* field_28_offset) {
+    int64_t* mats_offset, int64_t* root_offset, int64_t* nodes_offset,
+    int64_t* mesh_indices_offset, int64_t* backface_mesh_indices_offset) {
+    int64_t skin_param_offset = 0;
+    if (b->skin_param_init) {
+        skin_param_offset = s.get_position();
+        obj_classic_write_skin_param(&b->skin_param, s, strings, string_offsets);
+    }
+
     int64_t mesh_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, b->mesh_name);
     int64_t backface_mesh_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, b->backface_mesh_name);
 
-    s.write_int32_t((int32_t)mesh_name_offset);
-    s.write_int32_t((int32_t)backface_mesh_name_offset);
+    s.write_uint32_t((uint32_t)mesh_name_offset);
+    s.write_uint32_t((uint32_t)backface_mesh_name_offset);
     s.write_int32_t(b->field_8);
-    s.write_int32_t(b->count);
-    s.write_int32_t(b->field_10);
+    s.write_int32_t(b->root_count);
+    s.write_int32_t(b->nodes_count);
     s.write_int32_t(b->field_14);
-    s.write_int32_t((int32_t)*field_18_offset);
-    s.write_int32_t((int32_t)*field_1C_offset);
-    s.write_int32_t((int32_t)*field_20_offset);
-    s.write_int32_t((int32_t)*field_24_offset);
-    s.write_int32_t((int32_t)*field_28_offset);
-    s.write_uint32_t(b->field_2C);
-    s.write_uint32_t(b->field_30);
+    s.write_uint32_t((uint32_t)*mats_offset);
+    s.write_uint32_t((uint32_t)*root_offset);
+    s.write_uint32_t((uint32_t)*nodes_offset);
+    s.write_uint32_t((uint32_t)*mesh_indices_offset);
+    s.write_uint32_t((uint32_t)*backface_mesh_indices_offset);
+    s.write_uint32_t((uint32_t)skin_param_offset);
+    s.write_uint32_t(b->reserved);
 
-    if (b->field_10) {
-        s.position_push(*field_18_offset, SEEK_SET);
-        for (uint32_t i = 0; i < 32; i++) {
-            if (~b->field_10 & (1 << i))
-                continue;
-
-            mat4u& mat = b->field_18[i];
+    if (b->nodes_count) {
+        s.position_push(*mats_offset, SEEK_SET);
+        for (uint32_t i = 0; i < 3; i++) {
+            mat4u& mat = b->mats[i];
             s.write_float_t(mat.row0.x);
             s.write_float_t(mat.row1.x);
             s.write_float_t(mat.row2.x);
@@ -2015,121 +2073,100 @@ static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
             s.write_float_t(mat.row1.w);
             s.write_float_t(mat.row2.w);
             s.write_float_t(mat.row3.w);
-            *field_18_offset += sizeof(mat4);
+            *mats_offset += sizeof(mat4);
         }
         s.position_pop();
     }
 
-    if (b->field_1C) {
-        s.position_push(*field_1C_offset, SEEK_SET);
-        for (uint32_t i = 0; i < b->count; i++) {
-            obj_skin_block_cloth_field_1C* f = &b->field_1C[i];
-            s.write_float_t(f->field_0);
-            s.write_float_t(f->field_4);
-            s.write_float_t(f->field_8);
-            s.write_float_t(f->field_C);
-            s.write_float_t(f->field_10);
-            s.write_float_t(f->field_14);
+    if (b->root) {
+        s.position_push(*root_offset, SEEK_SET);
+        for (uint32_t i = 0; i < b->root_count; i++) {
+            obj_skin_block_cloth_root* f = &b->root[i];
+            s.write_float_t(f->trans.x);
+            s.write_float_t(f->trans.y);
+            s.write_float_t(f->trans.z);
+            s.write_float_t(f->normal.x);
+            s.write_float_t(f->normal.y);
+            s.write_float_t(f->normal.z);
             s.write_float_t(f->field_18);
-            s.write_uint32_t(f->field_1C);
-            s.write_uint32_t(f->field_20);
-            s.write_uint32_t(f->field_24);
+            s.write_int32_t(f->field_1C);
+            s.write_int32_t(f->field_20);
+            s.write_int32_t(f->field_24);
 
             for (uint32_t j = 0; j < 4; j++)
-                obj_classic_write_skin_block_cloth_field_1C_sub(&f->sub_data[j],
+                obj_classic_write_skin_block_cloth_root_bone_weight(&f->bone_weights[j],
                     s, strings, string_offsets);
         }
         s.position_pop();
-        *field_1C_offset += (10 * sizeof(int32_t)
-            + 4 * (sizeof(int32_t) + 3 * sizeof(int32_t))) * b->count;
+        *root_offset += (sizeof(int32_t) + 4 * (sizeof(int32_t) + 3 * sizeof(int32_t)))
+            * b->root_count * (b->nodes_count - 1ULL);
     }
 
-    if (b->field_20) {
-        s.position_push(*field_20_offset, SEEK_SET);
-        for (uint32_t i = 0; i < b->count; i++) {
-            obj_skin_block_cloth_field_20* f = &b->field_20[i];
-            for (uint32_t j = 0; j < 10; j++)
-                obj_classic_write_skin_block_cloth_field_20_sub(&f->sub_data[j],
-                    s, strings, string_offsets);
-        }
+    if (b->nodes) {
+        s.position_push(*nodes_offset, SEEK_SET);
+        for (uint32_t i = 0; i < b->nodes_count - 1; i++)
+            for (uint32_t j = 0; j < b->root_count; j++) {
+                obj_skin_block_cloth_node* f = &b->nodes[i * b->root_count + j];
+                s.write_uint32_t(f->flags);
+                s.write_float_t(f->trans.x);
+                s.write_float_t(f->trans.y);
+                s.write_float_t(f->trans.z);
+                s.write_float_t(f->trans_diff.x);
+                s.write_float_t(f->trans_diff.y);
+                s.write_float_t(f->trans_diff.z);
+                s.write_float_t(f->length);
+                s.write_float_t(f->field_20);
+                s.write_float_t(f->field_24);
+                s.write_float_t(f->field_24);
+            }
         s.position_pop();
-        *field_20_offset += 10 * (11 * sizeof(int32_t)) * b->count;
+        *nodes_offset += (11 * sizeof(int32_t)) * b->root_count * (b->nodes_count - 1ULL);
     }
 
-    if (b->field_24) {
-        s.position_push(*field_24_offset, SEEK_SET);
-        s.write_uint16_t((uint16_t)b->field_24_count);
-        s.write(b->field_24, b->field_24_count * sizeof(uint16_t));
+    if (b->mesh_indices) {
+        s.position_push(*mesh_indices_offset, SEEK_SET);
+        s.write_uint16_t((uint16_t)b->mesh_indices_count);
+        s.write(b->mesh_indices, b->mesh_indices_count * sizeof(uint16_t));
         s.position_pop();
-        *field_28_offset += sizeof(uint16_t) + b->field_24_count * sizeof(uint16_t);
+        *mesh_indices_offset += sizeof(uint16_t) + b->mesh_indices_count * sizeof(uint16_t);
     }
 
-    if (b->field_28) {
-        s.position_push(*field_28_offset, SEEK_SET);
-        s.write_uint16_t((uint16_t)b->field_28_count);
-        s.write(b->field_28, b->field_28_count * sizeof(uint16_t));
+    if (b->backface_mesh_indices) {
+        s.position_push(*backface_mesh_indices_offset, SEEK_SET);
+        s.write_uint16_t((uint16_t)b->backface_mesh_indices_count);
+        s.write(b->backface_mesh_indices, b->backface_mesh_indices_count * sizeof(uint16_t));
         s.position_pop();
-        *field_28_offset += sizeof(uint16_t) + b->field_28_count * sizeof(uint16_t);
+        *backface_mesh_indices_offset += sizeof(uint16_t) + b->backface_mesh_indices_count * sizeof(uint16_t);
     }
 }
 
-static void obj_classic_read_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
+static void obj_classic_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, char** str) {
-    int32_t bone_name_offset = s.read_int32_t();
+    int32_t bone_name_offset = s.read_uint32_t();
     sub->bone_name = s.read_utf8_string_null_terminated_offset(bone_name_offset);
     sub->weight = s.read_float_t();
     sub->matrix_index = s.read_uint32_t();
-    sub->field_C = s.read_uint32_t();
+    sub->reserved = s.read_uint32_t();
 }
 
-static void obj_classic_write_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
+static void obj_classic_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets) {
     int64_t bone_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, sub->bone_name);
-    s.write_int32_t((int32_t)bone_name_offset);
+    s.write_uint32_t((uint32_t)bone_name_offset);
     s.write_float_t(sub->weight);
     s.write_uint32_t(sub->matrix_index);
-    s.write_uint32_t(sub->field_C);
-}
-
-static void obj_classic_read_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream& s, char** str) {
-    sub->field_0 = s.read_uint32_t();
-    sub->field_4 = s.read_float_t();
-    sub->field_8 = s.read_float_t();
-    sub->field_C = s.read_float_t();
-    sub->field_10 = s.read_float_t();
-    sub->field_14 = s.read_float_t();
-    sub->field_18 = s.read_float_t();
-    sub->field_1C = s.read_float_t();
-    sub->field_20 = s.read_float_t();
-    sub->field_24 = s.read_float_t();
-    sub->field_28 = s.read_float_t();
-}
-
-static void obj_classic_write_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets) {
-    s.write_uint32_t(sub->field_0);
-    s.write_float_t(sub->field_4);
-    s.write_float_t(sub->field_8);
-    s.write_float_t(sub->field_C);
-    s.write_float_t(sub->field_10);
-    s.write_float_t(sub->field_14);
-    s.write_float_t(sub->field_18);
-    s.write_float_t(sub->field_1C);
-    s.write_float_t(sub->field_20);
-    s.write_float_t(sub->field_24);
-    s.write_float_t(sub->field_28);
+    s.write_uint32_t(sub->reserved);
 }
 
 static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     stream& s, char** str) {
     obj_classic_read_skin_block_node(&b->base, s, str);
 
-    int32_t type_offset = s.read_int32_t();
+    uint32_t type_offset = s.read_uint32_t();
     char* type = s.read_utf8_string_null_terminated_offset(type_offset);
 
-    int32_t name_offset = s.read_int32_t();
+    uint32_t name_offset = s.read_uint32_t();
     char* name = s.read_utf8_string_null_terminated_offset(name_offset);
 
     b->name_index = 0;
@@ -2142,7 +2179,7 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
 
     b->coupling = (obj_skin_block_constraint_coupling)s.read_int32_t();
 
-    int32_t source_node_name_offset = s.read_int32_t();
+    uint32_t source_node_name_offset = s.read_uint32_t();
     b->source_node_name = s.read_utf8_string_null_terminated_offset(source_node_name_offset);
 
     if (!str_utils_compare(type, "Orientation")) {
@@ -2205,17 +2242,17 @@ static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b
         type_offset = offsets[3];
         break;
     }
-    s.write_int32_t((int32_t)type_offset);
+    s.write_uint32_t((uint32_t)type_offset);
 
     int64_t name_offset = obj_skin_strings_get_string_offset_by_index(strings,
         string_offsets, bone_names, b->name_index);
-    s.write_int32_t((int32_t)name_offset);
+    s.write_uint32_t((uint32_t)name_offset);
 
     s.write_int32_t(b->coupling);
 
     int64_t source_node_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, b->source_node_name);
-    s.write_int32_t((int32_t)source_node_name_offset);
+    s.write_uint32_t((uint32_t)source_node_name_offset);
 
     switch (b->type) {
     case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION:
@@ -2282,7 +2319,7 @@ static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_
     up->point_at.y = s.read_float_t();
     up->point_at.z = s.read_float_t();
 
-    int32_t name_offset = s.read_int32_t();
+    uint32_t name_offset = s.read_uint32_t();
     up->name = s.read_utf8_string_null_terminated_offset(name_offset);
 }
 
@@ -2299,14 +2336,14 @@ static void obj_classic_write_skin_block_constraint_up_vector_old(obj_skin_block
 
     int64_t name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, up->name);
-    s.write_int32_t((int32_t)name_offset);
+    s.write_uint32_t((uint32_t)name_offset);
 }
 
 static void obj_classic_read_skin_block_expression(obj_skin_block_expression* b,
     stream& s, char** str) {
     obj_classic_read_skin_block_node(&b->base, s, str);
 
-    int32_t name_offset = s.read_int32_t();
+    uint32_t name_offset = s.read_uint32_t();
     char* name = s.read_utf8_string_null_terminated_offset(name_offset);
 
     b->name_index = 0;
@@ -2320,7 +2357,7 @@ static void obj_classic_read_skin_block_expression(obj_skin_block_expression* b,
     b->expressions_count = s.read_int32_t();
     b->expressions_count = min(b->expressions_count, 9);
     for (uint32_t i = 0; i < b->expressions_count; i++) {
-        int32_t expression_offset = s.read_int32_t();
+        uint32_t expression_offset = s.read_uint32_t();
         if (expression_offset)
             b->expressions[i] = s.read_utf8_string_null_terminated_offset(expression_offset);
     }
@@ -2335,13 +2372,13 @@ static void obj_classic_write_skin_block_expression(obj_skin_block_expression* b
 
     int64_t name_offset = obj_skin_strings_get_string_offset_by_index(strings,
         string_offsets, bone_names, b->name_index);
-    s.write_int32_t((int32_t)name_offset);
+    s.write_uint32_t((uint32_t)name_offset);
 
     s.write_int32_t(min(b->expressions_count, 9));
     for (uint32_t i = 0; i < b->expressions_count && i < 9; i++) {
         int64_t expression_offset = obj_skin_strings_get_string_offset(strings,
             string_offsets, b->expressions[i]);
-        s.write_int32_t((int32_t)expression_offset);
+        s.write_uint32_t((uint32_t)expression_offset);
     }
 
     for (uint32_t i = b->expressions_count; i < 9; i++)
@@ -2352,10 +2389,10 @@ static void obj_classic_read_skin_block_motion(obj_skin_block_motion* b,
     stream& s, char** str) {
     obj_classic_read_skin_block_node(&b->base, s, str);
 
-    int32_t name_offset = s.read_int32_t();
+    uint32_t name_offset = s.read_uint32_t();
     b->nodes_count = s.read_int32_t();
-    int32_t bone_names_offset = s.read_int32_t();
-    int32_t bone_matrices_offset = s.read_int32_t();
+    uint32_t bone_names_offset = s.read_uint32_t();
+    uint32_t bone_matrices_offset = s.read_uint32_t();
 
     char* name = s.read_utf8_string_null_terminated_offset(name_offset);
 
@@ -2413,10 +2450,10 @@ static void obj_classic_write_skin_block_motion(obj_skin_block_motion* b,
 
     int64_t name_offset = obj_skin_strings_get_string_offset_by_index(strings,
         string_offsets, bone_names, b->name_index);
-    s.write_int32_t((int32_t)name_offset);
+    s.write_uint32_t((uint32_t)name_offset);
     s.write_int32_t(b->nodes_count);
-    s.write_int32_t((int32_t)*bone_names_offset);
-    s.write_int32_t((int32_t)*bone_matrices_offset);
+    s.write_uint32_t((uint32_t)*bone_names_offset);
+    s.write_uint32_t((uint32_t)*bone_matrices_offset);
 
     if (b->nodes) {
         s.position_push(*bone_names_offset, SEEK_SET);
@@ -2452,7 +2489,7 @@ static void obj_classic_write_skin_block_motion(obj_skin_block_motion* b,
 
 static void obj_classic_read_skin_block_node(obj_skin_block_node* b,
     stream& s, char** str) {
-    int32_t parent_name_offset = s.read_int32_t();
+    uint32_t parent_name_offset = s.read_uint32_t();
     b->parent_name = s.read_utf8_string_null_terminated_offset(parent_name_offset);
 
     b->position.x = s.read_float_t();
@@ -2470,7 +2507,7 @@ static void obj_classic_write_skin_block_node(obj_skin_block_node* b,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets) {
     int64_t parent_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, b->parent_name);
-    s.write_int32_t((int32_t)parent_name_offset);
+    s.write_uint32_t((uint32_t)parent_name_offset);
 
     s.write_float_t(b->position.x);
     s.write_float_t(b->position.y);
@@ -2505,52 +2542,8 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
 
     s.position_push(offset, SEEK_SET);
     if (~s.read_uint32_t() & 0x8000) {
-        obj_skin_osage_root_node* root = &b->root;
-        root->coli = 0;
-        root->coli_count = 0;
-
-        root->unk0 = s.read_int32_t();
-        root->force = s.read_float_t();
-        root->force_gain = s.read_float_t();
-        root->air_res = s.read_float_t();
-        root->rot_y = s.read_float_t();
-        root->rot_z = s.read_float_t();
-        root->hinge_y = s.read_float_t();
-        root->hinge_z = s.read_float_t();
-        root->name = s.read_utf8_string_null_terminated();
-        int32_t coli_offset = s.read_int32_t();
-        root->coli_r = s.read_float_t();
-        root->friction = s.read_float_t();
-        root->wind_afc = s.read_float_t();
-        root->unk44 = s.read_int32_t();
-
-        if (coli_offset) {
-            s.set_position(coli_offset, SEEK_SET);
-            int32_t coli_count = 0;
-            while (s.read_int32_t()) {
-                s.read(44);
-                coli_count++;
-            }
-
-            root->coli = force_malloc_s(obj_skin_osage_root_coli, coli_count);
-            root->coli_count = coli_count;
-
-            s.set_position(coli_offset, SEEK_SET);
-            for (int32_t i = 0; i < root->coli_count; i++) {
-                obj_skin_osage_root_coli* coli = &root->coli[i];
-                coli->type = (obj_skin_osage_root_coli_type)s.read_int32_t();
-                coli->bone0_index = s.read_int32_t();
-                coli->bone1_index = s.read_int32_t();
-                coli->radius = s.read_float_t();
-                coli->bone0_pos.x = s.read_float_t();
-                coli->bone0_pos.y = s.read_float_t();
-                coli->bone0_pos.z = s.read_float_t();
-                coli->bone1_pos.x = s.read_float_t();
-                coli->bone1_pos.y = s.read_float_t();
-                coli->bone1_pos.z = s.read_float_t();
-            }
-        }
-        b->root_init = true;
+        obj_classic_read_skin_param(&b->skin_param, s, str);
+        b->skin_param_init = true;
     }
     else {
         s.set_position(offset, SEEK_SET);
@@ -2562,52 +2555,17 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
             node->rotation.y = s.read_float_t();
             node->rotation.z = s.read_float_t();
         }
-        b->root_init = false;
+        b->skin_param_init = false;
     }
     s.position_pop();
 }
 
 static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, int64_t* nodes_offset) {
-    int32_t nodes_offset_i32 = (int32_t)*nodes_offset;
-    if (b->root_init) {
-        nodes_offset_i32 = (int32_t)s.get_position();
-
-        obj_skin_osage_root_node* root = &b->root;
-        int32_t coli_offset = 0;
-        if (root->coli) {
-            coli_offset = (int32_t)s.get_position();
-            for (int32_t i = 0; i < root->coli_count; i++) {
-                obj_skin_osage_root_coli* coli = &root->coli[i];
-                s.write_int32_t(coli->type);
-                s.write_int32_t(coli->bone0_index);
-                s.write_int32_t(coli->bone1_index);
-                s.write_float_t(coli->radius);
-                s.write_float_t(coli->bone0_pos.x);
-                s.write_float_t(coli->bone0_pos.y);
-                s.write_float_t(coli->bone0_pos.z);
-                s.write_float_t(coli->bone1_pos.x);
-                s.write_float_t(coli->bone1_pos.y);
-                s.write_float_t(coli->bone1_pos.z);
-            }
-            s.align_write(0x10);
-        }
-
-        s.write_int32_t(root->unk0);
-        s.write_float_t(root->force);
-        s.write_float_t(root->force_gain);
-        s.write_float_t(root->air_res);
-        s.write_float_t(root->rot_y);
-        s.write_float_t(root->rot_z);
-        s.write_float_t(root->hinge_y);
-        s.write_float_t(root->hinge_z);
-        s.write_utf8_string_null_terminated(root->name);
-        s.write_int32_t(coli_offset);
-        s.write_float_t(root->coli_r);
-        s.write_float_t(root->friction);
-        s.write_float_t(root->wind_afc);
-        s.write_int32_t(root->unk44);
-        s.write(0x08);
+    int64_t skin_param_offset = 0;
+    if (b->skin_param_init) {
+        skin_param_offset = s.get_position();
+        obj_classic_write_skin_param(&b->skin_param, s, strings, string_offsets);
     }
 
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
@@ -2617,10 +2575,13 @@ static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
     s.write_uint32_t(b->external_name_index);
     s.write_uint32_t(b->name_index);
 
-    s.write_int32_t(nodes_offset_i32);
+    if (b->skin_param_init)
+        s.write_uint32_t((uint32_t)skin_param_offset);
+    else
+        s.write_uint32_t((uint32_t)*nodes_offset);
     s.write(0x14);
 
-    if (!b->root_init && b->nodes) {
+    if (!b->skin_param_init && b->nodes) {
         s.position_push(*nodes_offset, SEEK_SET);
         for (uint32_t i = 0; i < b->nodes_count; i++) {
             obj_skin_osage_node* node = &b->nodes[i];
@@ -2635,47 +2596,138 @@ static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
     }
 }
 
+static void obj_classic_read_skin_param(obj_skin_skin_param* skp,
+    stream& s, char** str) {
+    skp->coli = 0;
+    skp->coli_count = 0;
+
+    skp->unk0 = s.read_int32_t();
+    skp->force = s.read_float_t();
+    skp->force_gain = s.read_float_t();
+    skp->air_res = s.read_float_t();
+    skp->rot_y = s.read_float_t();
+    skp->rot_z = s.read_float_t();
+    skp->hinge_y = s.read_float_t();
+    skp->hinge_z = s.read_float_t();
+    uint32_t name_offset = s.read_uint32_t();
+    uint32_t coli_offset = s.read_uint32_t();
+    skp->coli_r = s.read_float_t();
+    skp->friction = s.read_float_t();
+    skp->wind_afc = s.read_float_t();
+    skp->unk44 = s.read_int32_t();
+
+    skp->name = s.read_utf8_string_null_terminated_offset(name_offset);
+
+    if (coli_offset) {
+        s.set_position(coli_offset, SEEK_SET);
+        int32_t coli_count = 0;
+        while (s.read_int32_t()) {
+            s.read(44);
+            coli_count++;
+        }
+
+        skp->coli = force_malloc_s(obj_skin_skin_param_coli, coli_count);
+        skp->coli_count = coli_count;
+
+        s.set_position(coli_offset, SEEK_SET);
+        for (int32_t i = 0; i < skp->coli_count; i++) {
+            obj_skin_skin_param_coli* coli = &skp->coli[i];
+            coli->type = (obj_skin_skin_param_coli_type)s.read_int32_t();
+            coli->bone0_index = s.read_int32_t();
+            coli->bone1_index = s.read_int32_t();
+            coli->radius = s.read_float_t();
+            coli->bone0_pos.x = s.read_float_t();
+            coli->bone0_pos.y = s.read_float_t();
+            coli->bone0_pos.z = s.read_float_t();
+            coli->bone1_pos.x = s.read_float_t();
+            coli->bone1_pos.y = s.read_float_t();
+            coli->bone1_pos.z = s.read_float_t();
+        }
+    }
+}
+
+static void obj_classic_write_skin_param(obj_skin_skin_param* skp,
+    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets) {
+    int64_t coli_offset = 0;
+    if (skp->coli) {
+        coli_offset = s.get_position();
+        for (int32_t i = 0; i < skp->coli_count; i++) {
+            obj_skin_skin_param_coli* coli = &skp->coli[i];
+            s.write_int32_t(coli->type);
+            s.write_int32_t(coli->bone0_index);
+            s.write_int32_t(coli->bone1_index);
+            s.write_float_t(coli->radius);
+            s.write_float_t(coli->bone0_pos.x);
+            s.write_float_t(coli->bone0_pos.y);
+            s.write_float_t(coli->bone0_pos.z);
+            s.write_float_t(coli->bone1_pos.x);
+            s.write_float_t(coli->bone1_pos.y);
+            s.write_float_t(coli->bone1_pos.z);
+        }
+        s.align_write(0x10);
+    }
+
+    int64_t name_offset = obj_skin_strings_get_string_offset(strings,
+        string_offsets, skp->name);
+
+    s.write_int32_t(skp->unk0);
+    s.write_float_t(skp->force);
+    s.write_float_t(skp->force_gain);
+    s.write_float_t(skp->air_res);
+    s.write_float_t(skp->rot_y);
+    s.write_float_t(skp->rot_z);
+    s.write_float_t(skp->hinge_y);
+    s.write_float_t(skp->hinge_z);
+    s.write_uint32_t((uint32_t)name_offset);
+    s.write_uint32_t((uint32_t)coli_offset);
+    s.write_float_t(skp->coli_r);
+    s.write_float_t(skp->friction);
+    s.write_float_t(skp->wind_afc);
+    s.write_int32_t(skp->unk44);
+    s.write(0x08);
+}
+
 static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mesh* mesh,
     int64_t base_offset, uint32_t num_vertex, obj_vertex_format_file vertex_format_file) {
-    obj_vertex_format vertex_format = OBJ_VERTEX_FORMAT_NONE;
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_POSITION)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_POSITION);
+    obj_vertex_format vertex_format = OBJ_VERTEX_NONE;
+    if (vertex_format_file & OBJ_VERTEX_FILE_POSITION)
+        enum_or(vertex_format, OBJ_VERTEX_POSITION);
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_NORMAL)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_NORMAL);
+    if (vertex_format_file & OBJ_VERTEX_FILE_NORMAL)
+        enum_or(vertex_format, OBJ_VERTEX_NORMAL);
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TANGENT)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_TANGENT);
+    if (vertex_format_file & OBJ_VERTEX_FILE_TANGENT)
+        enum_or(vertex_format, OBJ_VERTEX_TANGENT);
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_BINORMAL)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_BINORMAL);
+    if (vertex_format_file & OBJ_VERTEX_FILE_BINORMAL)
+        enum_or(vertex_format, OBJ_VERTEX_BINORMAL);
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD0)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_TEXCOORD0);
+    if (vertex_format_file & OBJ_VERTEX_FILE_TEXCOORD0)
+        enum_or(vertex_format, OBJ_VERTEX_TEXCOORD0);
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD1)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_TEXCOORD1);
+    if (vertex_format_file & OBJ_VERTEX_FILE_TEXCOORD1)
+        enum_or(vertex_format, OBJ_VERTEX_TEXCOORD1);
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD2)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_TEXCOORD2);
+    if (vertex_format_file & OBJ_VERTEX_FILE_TEXCOORD2)
+        enum_or(vertex_format, OBJ_VERTEX_TEXCOORD2);
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD3)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_TEXCOORD3);
+    if (vertex_format_file & OBJ_VERTEX_FILE_TEXCOORD3)
+        enum_or(vertex_format, OBJ_VERTEX_TEXCOORD3);
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_COLOR0)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_COLOR0);
+    if (vertex_format_file & OBJ_VERTEX_FILE_COLOR0)
+        enum_or(vertex_format, OBJ_VERTEX_COLOR0);
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_COLOR1)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_COLOR1);
+    if (vertex_format_file & OBJ_VERTEX_FILE_COLOR1)
+        enum_or(vertex_format, OBJ_VERTEX_COLOR1);
 
-    if ((vertex_format_file & (OBJ_VERTEX_FORMAT_FILE_BONE_WEIGHT | OBJ_VERTEX_FORMAT_FILE_BONE_INDEX))
-        == (OBJ_VERTEX_FORMAT_FILE_BONE_WEIGHT | OBJ_VERTEX_FORMAT_FILE_BONE_INDEX))
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_BONE_DATA);
+    if ((vertex_format_file & (OBJ_VERTEX_FILE_BONE_WEIGHT | OBJ_VERTEX_FILE_BONE_INDEX))
+        == (OBJ_VERTEX_FILE_BONE_WEIGHT | OBJ_VERTEX_FILE_BONE_INDEX))
+        enum_or(vertex_format, OBJ_VERTEX_BONE_DATA);
     else
-        enum_and(vertex_format_file, ~(OBJ_VERTEX_FORMAT_FILE_BONE_WEIGHT | OBJ_VERTEX_FORMAT_FILE_BONE_INDEX));
+        enum_and(vertex_format_file, ~(OBJ_VERTEX_FILE_BONE_WEIGHT | OBJ_VERTEX_FILE_BONE_INDEX));
 
-    if (vertex_format_file & OBJ_VERTEX_FORMAT_FILE_UNKNOWN)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_UNKNOWN);
+    if (vertex_format_file & OBJ_VERTEX_FILE_UNKNOWN)
+        enum_or(vertex_format, OBJ_VERTEX_UNKNOWN);
 
     obj_vertex_data* vtx = force_malloc_s(obj_vertex_data, num_vertex);
     for (uint32_t i = 0; i < 20; i++) {
@@ -2685,21 +2737,21 @@ static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_me
 
         s.set_position(base_offset + vertex[i], SEEK_SET);
         switch (attribute) {
-        case OBJ_VERTEX_FORMAT_FILE_POSITION:
+        case OBJ_VERTEX_FILE_POSITION:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].position.x = s.read_float_t();
                 vtx[j].position.y = s.read_float_t();
                 vtx[j].position.z = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_NORMAL:
+        case OBJ_VERTEX_FILE_NORMAL:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].normal.x = s.read_float_t();
                 vtx[j].normal.y = s.read_float_t();
                 vtx[j].normal.z = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_TANGENT:
+        case OBJ_VERTEX_FILE_TANGENT:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].tangent.x = s.read_float_t();
                 vtx[j].tangent.y = s.read_float_t();
@@ -2707,38 +2759,38 @@ static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_me
                 vtx[j].tangent.w = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_BINORMAL:
+        case OBJ_VERTEX_FILE_BINORMAL:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].binormal.x = s.read_float_t();
                 vtx[j].binormal.y = s.read_float_t();
                 vtx[j].binormal.z = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_TEXCOORD0:
+        case OBJ_VERTEX_FILE_TEXCOORD0:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].texcoord0.x = s.read_float_t();
                 vtx[j].texcoord0.y = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_TEXCOORD1:
+        case OBJ_VERTEX_FILE_TEXCOORD1:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].texcoord1.x = s.read_float_t();
                 vtx[j].texcoord1.y = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_TEXCOORD2:
+        case OBJ_VERTEX_FILE_TEXCOORD2:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].texcoord2.x = s.read_float_t();
                 vtx[j].texcoord2.y = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_TEXCOORD3:
+        case OBJ_VERTEX_FILE_TEXCOORD3:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].texcoord3.x = s.read_float_t();
                 vtx[j].texcoord3.y = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_COLOR0:
+        case OBJ_VERTEX_FILE_COLOR0:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].color0.x = s.read_float_t();
                 vtx[j].color0.y = s.read_float_t();
@@ -2746,7 +2798,7 @@ static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_me
                 vtx[j].color0.w = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_COLOR1:
+        case OBJ_VERTEX_FILE_COLOR1:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].color1.x = s.read_float_t();
                 vtx[j].color1.y = s.read_float_t();
@@ -2754,7 +2806,7 @@ static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_me
                 vtx[j].color1.w = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_BONE_WEIGHT:
+        case OBJ_VERTEX_FILE_BONE_WEIGHT:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].bone_weight.x = s.read_float_t();
                 vtx[j].bone_weight.y = s.read_float_t();
@@ -2762,7 +2814,7 @@ static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_me
                 vtx[j].bone_weight.w = s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_BONE_INDEX:
+        case OBJ_VERTEX_FILE_BONE_INDEX:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].bone_index.x = (int32_t)s.read_float_t();
                 vtx[j].bone_index.y = (int32_t)s.read_float_t();
@@ -2770,7 +2822,7 @@ static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_me
                 vtx[j].bone_index.w = (int32_t)s.read_float_t();
             }
             break;
-        case OBJ_VERTEX_FORMAT_FILE_UNKNOWN:
+        case OBJ_VERTEX_FILE_UNKNOWN:
             for (uint32_t j = 0; j < num_vertex; j++) {
                 vtx[j].unknown.x = s.read_float_t();
                 vtx[j].unknown.y = s.read_float_t();
@@ -2793,70 +2845,70 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
 
     obj_vertex_format_file _vertex_format_file = (obj_vertex_format_file)0;
     uint32_t _size_vertex = 0;
-    if (vertex_format & OBJ_VERTEX_FORMAT_POSITION) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_POSITION);
+    if (vertex_format & OBJ_VERTEX_POSITION) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_POSITION);
         _size_vertex += 0x0C;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_NORMAL) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_NORMAL);
+    if (vertex_format & OBJ_VERTEX_NORMAL) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_NORMAL);
         _size_vertex += 0x0C;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_TANGENT) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_TANGENT);
+    if (vertex_format & OBJ_VERTEX_TANGENT) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_TANGENT);
         _size_vertex += 0x10;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_BINORMAL) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_BINORMAL);
+    if (vertex_format & OBJ_VERTEX_BINORMAL) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_BINORMAL);
         _size_vertex += 0x0C;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_TEXCOORD0) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_TEXCOORD0);
+    if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_TEXCOORD0);
         _size_vertex += 0x08;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_TEXCOORD1) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_TEXCOORD1);
+    if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_TEXCOORD1);
         _size_vertex += 0x08;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_TEXCOORD2) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_TEXCOORD2);
+    if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_TEXCOORD2);
         _size_vertex += 0x08;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_TEXCOORD3) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_TEXCOORD3);
+    if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_TEXCOORD3);
         _size_vertex += 0x08;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_COLOR0) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_COLOR0);
+    if (vertex_format & OBJ_VERTEX_COLOR0) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_COLOR0);
         _size_vertex += 0x10;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_COLOR1) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_COLOR1);
+    if (vertex_format & OBJ_VERTEX_COLOR1) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_COLOR1);
         _size_vertex += 0x10;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_BONE_DATA) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_BONE_WEIGHT | OBJ_VERTEX_FORMAT_FILE_BONE_INDEX);
+    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_BONE_WEIGHT | OBJ_VERTEX_FILE_BONE_INDEX);
         _size_vertex += 0x20;
     }
 
-    if (vertex_format & OBJ_VERTEX_FORMAT_UNKNOWN) {
-        enum_or(_vertex_format_file, OBJ_VERTEX_FORMAT_FILE_UNKNOWN);
+    if (vertex_format & OBJ_VERTEX_UNKNOWN) {
+        enum_or(_vertex_format_file, OBJ_VERTEX_FILE_UNKNOWN);
         _size_vertex += 0x10;
     }
     *num_vertex = _num_vertex;
     *vertex_format_file = _vertex_format_file;
     *size_vertex = _size_vertex;
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_POSITION) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_POSITION) {
         vertex[0] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].position.x);
@@ -2865,7 +2917,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_NORMAL) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_NORMAL) {
         vertex[1] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].normal.x);
@@ -2874,7 +2926,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TANGENT) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_TANGENT) {
         vertex[2] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].tangent.x);
@@ -2884,7 +2936,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_BINORMAL) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_BINORMAL) {
         vertex[3] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].binormal.x);
@@ -2893,7 +2945,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD0) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_TEXCOORD0) {
         vertex[4] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].texcoord0.x);
@@ -2901,7 +2953,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_BONE_WEIGHT) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_BONE_WEIGHT) {
         vertex[10] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].bone_weight.x);
@@ -2911,7 +2963,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_BONE_INDEX) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_BONE_INDEX) {
         vertex[11] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t((float_t)vtx[i].bone_index.x);
@@ -2921,7 +2973,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD1) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_TEXCOORD1) {
         vertex[5] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].texcoord1.x);
@@ -2929,7 +2981,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD2) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_TEXCOORD2) {
         vertex[6] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].texcoord2.x);
@@ -2937,7 +2989,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_TEXCOORD3) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_TEXCOORD3) {
         vertex[7] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].texcoord3.x);
@@ -2945,7 +2997,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_COLOR0) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_COLOR0) {
         vertex[8] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].color0.x);
@@ -2955,7 +3007,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_COLOR1) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_COLOR1) {
         vertex[9] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].color1.x);
@@ -2965,7 +3017,7 @@ static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_m
         }
     }
 
-    if (_vertex_format_file & OBJ_VERTEX_FORMAT_FILE_UNKNOWN) {
+    if (_vertex_format_file & OBJ_VERTEX_FILE_UNKNOWN) {
         vertex[12] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
             s.write_float_t(vtx[i].unknown.x);
@@ -3169,7 +3221,7 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
     obj_set_header osh = {};
     osh.last_obj_id = -1;
 
-    uint32_t count = os->obj_num;
+    uint32_t obj_num = os->obj_num;
 
     if (!is_x) {
         ee = { 0, 1, 44, 1 };
@@ -3188,35 +3240,35 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
     }
 
     if (!is_x)
-        off += (uint32_t)(count * 4ULL);
+        off += (uint32_t)(obj_num * 4ULL);
     else
-        off += (uint32_t)(count * 8ULL);
+        off += (uint32_t)(obj_num * 8ULL);
     off = align_val(off, 0x10);
 
     if (!is_x)
-        off += (uint32_t)(count * 4ULL);
+        off += (uint32_t)(obj_num * 4ULL);
     else
-        off += (uint32_t)(count * 8ULL);
+        off += (uint32_t)(obj_num * 8ULL);
     off = align_val(off, 0x10);
 
     if (!is_x) {
-        ee = { off, 1, 4, (uint32_t)count };
+        ee = { off, 1, 4, (uint32_t)obj_num };
         ee.append(0, 1, ENRS_DWORD);
         e.vec.push_back(ee);
-        off = (uint32_t)(count * 4ULL);
+        off = (uint32_t)(obj_num * 4ULL);
     }
     else {
-        ee = { off, 1, 8, (uint32_t)count };
+        ee = { off, 1, 8, (uint32_t)obj_num };
         ee.append(0, 1, ENRS_QWORD);
         e.vec.push_back(ee);
-        off = (uint32_t)(count * 8ULL);
+        off = (uint32_t)(obj_num * 8ULL);
     }
     off = align_val(off, 0x10);
 
-    ee = { off, 1, 4, (uint32_t)count };
+    ee = { off, 1, 4, (uint32_t)obj_num };
     ee.append(0, 1, ENRS_DWORD);
     e.vec.push_back(ee);
-    off = (uint32_t)(count * 4ULL);
+    off = (uint32_t)(obj_num * 4ULL);
     off = align_val(off, 0x10);
 
     ee = { off, 1, 4, (uint32_t)os->tex_id_num };
@@ -3255,33 +3307,33 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
 
     osh.obj_data = s_mosd.get_position();
     if (!is_x)
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             s_mosd.write_offset_f2(0, 0x20);
     else
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             s_mosd.write_offset_x(0);
     s_mosd.align_write(0x10);
 
     osh.obj_skin_data = s_mosd.get_position();
     if (!is_x)
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             s_mosd.write_offset_f2(0, 0x20);
     else
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             s_mosd.write_offset_x(0);
     s_mosd.align_write(0x10);
 
     osh.obj_name_data = s_mosd.get_position();
     if (!is_x)
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             io_write_offset_f2_pof_add(s_mosd, 0, 0x20, &pof);
     else
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             io_write_offset_x_pof_add(s_mosd, 0, &pof);
     s_mosd.align_write(0x10);
 
     osh.obj_id_data = s_mosd.get_position();
-    for (uint32_t i = 0; i < count; i++)
+    for (uint32_t i = 0; i < obj_num; i++)
         s_mosd.write_uint32_t(os->obj_data[i].id);
     s_mosd.align_write(0x10);
 
@@ -3290,8 +3342,8 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
         s_mosd.write_uint32_t(os->tex_id_data[i]);
     s_mosd.align_write(0x10);
 
-    int64_t* obj_name_datas = force_malloc_s(int64_t, count);
-    for (uint32_t i = 0; i < count; i++) {
+    int64_t* obj_name_datas = force_malloc_s(int64_t, obj_num);
+    for (uint32_t i = 0; i < obj_num; i++) {
         obj_name_datas[i] = (int32_t)s_mosd.get_position();
         s_mosd.write_utf8_string_null_terminated(os->obj_data[i].name);
     }
@@ -3299,10 +3351,10 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
 
     s_mosd.position_push(osh.obj_name_data, SEEK_SET);
     if (!is_x)
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             s_mosd.write_offset_f2(obj_name_datas[i], 0x20);
     else
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < obj_num; i++)
             s_mosd.write_offset_x(obj_name_datas[i]);
     s_mosd.position_pop();
     free(obj_name_datas);
@@ -3337,7 +3389,7 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
     s_mosd.position_pop();
 
     f2_struct st;
-    for (uint32_t i = 0; i < count; i++) {
+    for (uint32_t i = 0; i < obj_num; i++) {
         obj* obj = &os->obj_data[i];
 
         st.sub_structs.push_back({});
@@ -3851,7 +3903,7 @@ static void obj_modern_write_model(obj* obj, stream& s,
             obj_mesh* mesh = &obj->mesh_array[i];
             obj_mesh_header* mh = &mhs[i];
 
-            mh->format = OBJ_VERTEX_FORMAT_FILE_MODERN_STORAGE;
+            mh->format = OBJ_VERTEX_FILE_MODERN_STORAGE;
             if (mesh->num_submesh) {
                 mh->submesh_array = s.get_position() - base_offset;
                 for (uint32_t j = 0; j < mesh->num_submesh; j++) {
@@ -4455,11 +4507,11 @@ static void obj_modern_write_skin(obj* obj, stream& s,
     obj_skin_block_header* bhs = 0;
     int64_t motion_block_node_mats = 0;
     int64_t motion_block_node_name_offset = 0;
-    int64_t field_18 = 0;
-    int64_t field_1C = 0;
-    int64_t field_20 = 0;
-    int64_t field_24 = 0;
-    int64_t field_28 = 0;
+    int64_t cloth_mats = 0;
+    int64_t cloth_root = 0;
+    int64_t cloth_nodes = 0;
+    int64_t cloth_mesh_indices = 0;
+    int64_t cloth_backface_mesh_indices = 0;
     int32_t expressions_count = 0;
     int32_t motion_count = 0;
     int32_t motion_nodes_count = 0;
@@ -4476,10 +4528,10 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                 obj_skin_strings_push_back_check(strings, cloth->mesh_name);
                 obj_skin_strings_push_back_check(strings, cloth->backface_mesh_name);
 
-                for (uint32_t k = 0; k < cloth->count; k++) {
-                    obj_skin_block_cloth_field_1C* sub = &cloth->field_1C[k];
+                for (uint32_t k = 0; k < cloth->root_count; k++) {
+                    obj_skin_block_cloth_root* sub = &cloth->root[k];
                     for (uint32_t l = 0; l < 4; l++)
-                        obj_skin_strings_push_back_check(strings, sub->sub_data[l].bone_name);
+                        obj_skin_strings_push_back_check(strings, sub->bone_weights[l].bone_name);
                 }
                 obj_skin_strings_push_back_check(strings, "CLS");
             } break;
@@ -4874,42 +4926,41 @@ static void obj_modern_write_skin(obj* obj, stream& s,
             }
 
             if (exh.cloth_count) {
-                int32_t field_18_count = 0;
-                int32_t field_1C_count = 0;
-                int32_t field_20_count = 0;
-                int32_t field_24_count = 0;
-                int32_t field_28_count = 0;
+                int32_t mats_count = 0;
+                int32_t root_count = 0;
+                int32_t nodes_count = 0;
+                int32_t mesh_indices_count = 0;
+                int32_t backface_mesh_indices_count = 0;
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type == OBJ_SKIN_BLOCK_CLOTH) {
-                        for (uint32_t j = 0; j < 32; j++)
-                            if (block->cloth.field_10 & (1 << j))
-                                field_18_count++;
+                        for (uint32_t j = 0; j < 3; j++)
+                            mats_count++;
 
-                        field_1C_count += block->cloth.field_1C ? block->cloth.count : 0;
-                        field_20_count += block->cloth.field_20 ? block->cloth.count : 0;
-                        field_24_count += block->cloth.field_24 ? block->cloth.field_24_count + 1 : 0;
-                        field_28_count += block->cloth.field_28 ? block->cloth.field_28_count + 1 : 0;
+                        root_count += block->cloth.root ? block->cloth.root_count : 0;
+                        nodes_count += block->cloth.nodes ? block->cloth.root_count * (block->cloth.nodes_count - 1) : 0;
+                        mesh_indices_count += block->cloth.mesh_indices ? block->cloth.mesh_indices_count + 1 : 0;
+                        backface_mesh_indices_count += block->cloth.backface_mesh_indices ? block->cloth.backface_mesh_indices_count + 1 : 0;
                     }
                 }
 
-                if (field_18_count) {
-                    ee = { off, 1, 64, (uint32_t)field_18_count };
+                if (mats_count) {
+                    ee = { off, 1, 64, (uint32_t)mats_count };
                     ee.append(0, 16, ENRS_DWORD);
                     e.vec.push_back(ee);
-                    off = (uint32_t)(field_18_count * 64ULL);
+                    off = (uint32_t)(mats_count * 64ULL);
                     off = align_val(off, 0x10);
                 }
 
-                if (field_1C_count) {
+                if (root_count) {
                     if (!is_x) {
-                        ee = { off, 1, 104, (uint32_t)field_1C_count };
+                        ee = { off, 1, 104, (uint32_t)root_count };
                         ee.append(0, 26, ENRS_DWORD);
                         e.vec.push_back(ee);
-                        off = (uint32_t)(field_1C_count * 104ULL);
+                        off = (uint32_t)(root_count * 104ULL);
                     }
                     else {
-                        ee = { off, 9, 136, (uint32_t)field_1C_count };
+                        ee = { off, 9, 136, (uint32_t)root_count };
                         ee.append(0, 10, ENRS_DWORD);
                         ee.append(0, 1, ENRS_QWORD);
                         ee.append(0, 3, ENRS_DWORD);
@@ -4920,32 +4971,32 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                         ee.append(4, 1, ENRS_QWORD);
                         ee.append(0, 3, ENRS_DWORD);
                         e.vec.push_back(ee);
-                        off = (uint32_t)(field_1C_count * 136ULL);
+                        off = (uint32_t)(root_count * 136ULL);
                     }
                     off = align_val(off, 0x10);
                 }
 
-                if (field_20_count) {
-                    ee = { off, 1, 440, (uint32_t)field_20_count };
-                    ee.append(0, 110, ENRS_DWORD);
+                if (nodes_count) {
+                    ee = { off, 1, 44, (uint32_t)nodes_count };
+                    ee.append(0, 11, ENRS_DWORD);
                     e.vec.push_back(ee);
-                    off = (uint32_t)(field_20_count * 440ULL);
+                    off = (uint32_t)(nodes_count * 44ULL);
                     off = align_val(off, 0x10);
                 }
 
-                if (field_24_count) {
-                    ee = { off, 1, 2, (uint32_t)field_24_count };
+                if (mesh_indices_count) {
+                    ee = { off, 1, 2, (uint32_t)mesh_indices_count };
                     ee.append(0, 1, ENRS_WORD);
                     e.vec.push_back(ee);
-                    off = (uint32_t)(field_24_count * 2ULL);
+                    off = (uint32_t)(mesh_indices_count * 2ULL);
                     off = align_val(off, 0x10);
                 }
 
-                if (field_28_count) {
-                    ee = { off, 1, 2, (uint32_t)field_28_count };
+                if (backface_mesh_indices_count) {
+                    ee = { off, 1, 2, (uint32_t)backface_mesh_indices_count };
                     ee.append(0, 1, ENRS_WORD);
                     e.vec.push_back(ee);
-                    off = (uint32_t)(field_28_count * 2ULL);
+                    off = (uint32_t)(backface_mesh_indices_count * 2ULL);
                     off = align_val(off, 0x10);
                 }
             }
@@ -5219,24 +5270,24 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                     io_write_offset_f2_pof_add(s, 0, 0x20, &pof);
                     s.write(0x10);
 
-                    if (cloth->field_10)
+                    if (cloth->nodes_count)
                         io_write_offset_f2_pof_add(s, 0, 0x20, &pof);
                     else
                         s.write(0x04);
 
-                    if (cloth->count) {
+                    if (cloth->root_count) {
                         io_write_offset_f2_pof_add(s, 0, 0x20, &pof);
                         io_write_offset_f2_pof_add(s, 0, 0x20, &pof);
                     }
                     else
                         s.write(0x08);
 
-                    if (cloth->field_24_count)
+                    if (cloth->mesh_indices_count)
                         io_write_offset_f2_pof_add(s, 0, 0x20, &pof);
                     else
                         s.write(0x04);
 
-                    if (cloth->field_28_count)
+                    if (cloth->backface_mesh_indices_count)
                         io_write_offset_f2_pof_add(s, 0, 0x20, &pof);
                     else
                         s.write(0x04);
@@ -5256,24 +5307,24 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                     io_write_offset_x_pof_add(s, 0, &pof);
                     s.write(0x10);
 
-                    if (cloth->field_10)
+                    if (cloth->nodes_count)
                         io_write_offset_x_pof_add(s, 0, &pof);
                     else
                         s.write(0x08);
 
-                    if (cloth->count) {
+                    if (cloth->root_count) {
                         io_write_offset_x_pof_add(s, 0, &pof);
                         io_write_offset_x_pof_add(s, 0, &pof);
                     }
                     else
                         s.write(0x10);
 
-                    if (cloth->field_24_count)
+                    if (cloth->mesh_indices_count)
                         io_write_offset_x_pof_add(s, 0, &pof);
                     else
                         s.write(0x08);
 
-                    if (cloth->field_28_count)
+                    if (cloth->backface_mesh_indices_count)
                         io_write_offset_x_pof_add(s, 0, &pof);
                     else
                         s.write(0x08);
@@ -5415,20 +5466,19 @@ static void obj_modern_write_skin(obj* obj, stream& s,
             }
 
             if (exh.cloth_count) {
-                field_18 = s.get_position();
+                cloth_mats = s.get_position();
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    for (uint32_t j = 0; j < 32; j++)
-                        if (cloth->field_10 & (1 << j))
-                            s.write(sizeof(mat4));
+                    for (uint32_t j = 0; j < 3; j++)
+                        s.write(sizeof(mat4));
                 }
                 s.align_write(0x10);
 
-                field_1C = s.get_position();
+                cloth_root = s.get_position();
                 if (!is_x)
                     for (uint32_t i = 0; i < ex->blocks_count; i++) {
                         obj_skin_block* block = &ex->blocks[i];
@@ -5436,8 +5486,8 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                             continue;
 
                         obj_skin_block_cloth* cloth = &block->cloth;
-                        s.write((10 * sizeof(int32_t)
-                            + 4 * (sizeof(int32_t) + 3 * sizeof(int32_t))) * cloth->count);
+                        s.write((sizeof(int32_t) + 4 * (sizeof(int32_t) + 3 * sizeof(int32_t)))
+                            * cloth->root_count * (cloth->nodes_count - 1ULL));
                     }
                 else
                     for (uint32_t i = 0; i < ex->blocks_count; i++) {
@@ -5446,41 +5496,41 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                             continue;
 
                         obj_skin_block_cloth* cloth = &block->cloth;
-                        s.write((10 * sizeof(int32_t) + 4 * (sizeof(int64_t)
-                            + 4 * sizeof(int32_t))) * cloth->count);
+                        s.write((sizeof(int32_t) + 4 * (sizeof(int64_t) + 4 * sizeof(int32_t)))
+                            * cloth->root_count* (cloth->nodes_count - 1ULL));
                     }
                 s.align_write(0x10);
 
-                field_20 = s.get_position();
+                cloth_nodes = s.get_position();
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    s.write(10 * (11 * sizeof(int32_t)) * cloth->count);
+                    s.write((11 * sizeof(int32_t)) * cloth->root_count * (cloth->nodes_count - 1ULL));
                 }
                 s.align_write(0x10);
 
-                field_24 = s.get_position();
+                cloth_mesh_indices = s.get_position();
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    s.write(sizeof(uint16_t) + cloth->field_24_count * sizeof(uint16_t));
+                    s.write(sizeof(uint16_t) + cloth->mesh_indices_count * sizeof(uint16_t));
                 }
                 s.align_write(0x10);
 
-                field_28 = s.get_position();
+                cloth_backface_mesh_indices = s.get_position();
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type != OBJ_SKIN_BLOCK_CLOTH)
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    s.write(sizeof(uint16_t) + cloth->field_28_count * sizeof(uint16_t));
+                    s.write(sizeof(uint16_t) + cloth->backface_mesh_indices_count * sizeof(uint16_t));
                 }
                 s.align_write(0x10);
             }
@@ -5514,8 +5564,9 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                     continue;
 
                 s.position_push(bhs[i].block_offset, SEEK_SET);
-                obj_modern_write_skin_block_cloth(&block->cloth, s, strings, string_offsets,
-                    is_x, &field_18, &field_1C, &field_20, &field_24, &field_28);
+                obj_modern_write_skin_block_cloth(&block->cloth,
+                    s, strings, string_offsets, is_x, &cloth_mats, &cloth_root,
+                    &cloth_nodes, &cloth_mesh_indices, &cloth_backface_mesh_indices);
                 s.position_pop();
             }
 
@@ -5811,29 +5862,26 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
     b->backface_mesh_name = s.read_utf8_string_null_terminated_offset(backface_mesh_name_offset);
 
     b->field_8 = s.read_int32_t_reverse_endianness();
-    b->count = s.read_int32_t_reverse_endianness();
-    b->field_10 = s.read_int32_t_reverse_endianness();
+    b->root_count = s.read_int32_t_reverse_endianness();
+    b->nodes_count = s.read_int32_t_reverse_endianness();
     b->field_14 = s.read_int32_t_reverse_endianness();
-    int64_t field_18_offset = s.read_offset(header_length, is_x);
-    int64_t field_1C_offset = s.read_offset(header_length, is_x);
+    int64_t mats_offset = s.read_offset(header_length, is_x);
+    int64_t root_offset = s.read_offset(header_length, is_x);
 
-    b->field_1C = 0;
-    b->field_20 = 0;
-    b->field_24 = 0;
-    b->field_28 = 0;
-    int64_t field_20_offset = s.read_offset(header_length, is_x);
-    int64_t field_24_offset = s.read_offset(header_length, is_x);
-    int64_t field_28_offset = s.read_offset(header_length, is_x);
-    b->field_2C = s.read_uint32_t_reverse_endianness();
-    b->field_30 = s.read_uint32_t_reverse_endianness();
+    b->root = 0;
+    b->nodes = 0;
+    b->mesh_indices = 0;
+    b->backface_mesh_indices = 0;
+    int64_t nodes_offset = s.read_offset(header_length, is_x);
+    int64_t mesh_indices_offset = s.read_offset(header_length, is_x);
+    int64_t backface_mesh_indices_offset = s.read_offset(header_length, is_x);
+    int64_t skp_root_offset = s.read_uint32_t_reverse_endianness();
+    b->reserved = s.read_uint32_t_reverse_endianness();
 
-    if (field_18_offset) {
-        s.position_push(field_18_offset, SEEK_SET);
-        for (uint32_t i = 0; i < 32; i++) {
-            if (~b->field_10 & (1 << i))
-                continue;
-
-            mat4u& mat = b->field_18[i];
+    if (mats_offset) {
+        s.position_push(mats_offset, SEEK_SET);
+        for (uint32_t i = 0; i < 3; i++) {
+            mat4u& mat = b->mats[i];
             mat.row0.x = s.read_float_t_reverse_endianness();
             mat.row1.x = s.read_float_t_reverse_endianness();
             mat.row2.x = s.read_float_t_reverse_endianness();
@@ -5854,63 +5902,73 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
         s.position_pop();
     }
 
-    if (field_1C_offset) {
-        s.position_push(field_1C_offset, SEEK_SET);
-        b->field_1C = force_malloc_s(obj_skin_block_cloth_field_1C, b->count);
-        for (uint32_t i = 0; i < b->count; i++) {
-            obj_skin_block_cloth_field_1C* f = &b->field_1C[i];
-            f->field_0 = s.read_float_t_reverse_endianness();
-            f->field_4 = s.read_float_t_reverse_endianness();
-            f->field_8 = s.read_float_t_reverse_endianness();
-            f->field_C = s.read_float_t_reverse_endianness();
-            f->field_10 = s.read_float_t_reverse_endianness();
-            f->field_14 = s.read_float_t_reverse_endianness();
+    if (root_offset) {
+        s.position_push(root_offset, SEEK_SET);
+        b->root = force_malloc_s(obj_skin_block_cloth_root, b->root_count);
+        for (uint32_t i = 0; i < b->root_count; i++) {
+            obj_skin_block_cloth_root* f = &b->root[i];
+            f->trans.x = s.read_float_t_reverse_endianness();
+            f->trans.y = s.read_float_t_reverse_endianness();
+            f->trans.z = s.read_float_t_reverse_endianness();
+            f->normal.x = s.read_float_t_reverse_endianness();
+            f->normal.y = s.read_float_t_reverse_endianness();
+            f->normal.z = s.read_float_t_reverse_endianness();
             f->field_18 = s.read_float_t_reverse_endianness();
-            f->field_1C = s.read_uint32_t_reverse_endianness();
-            f->field_20 = s.read_uint32_t_reverse_endianness();
-            f->field_24 = s.read_uint32_t_reverse_endianness();
+            f->field_1C = s.read_int32_t_reverse_endianness();
+            f->field_20 = s.read_int32_t_reverse_endianness();
+            f->field_24 = s.read_int32_t_reverse_endianness();
 
             for (uint32_t j = 0; j < 4; j++)
-                obj_modern_read_skin_block_cloth_field_1C_sub(&f->sub_data[j],
+                obj_modern_read_skin_block_cloth_root_bone_weight(&f->bone_weights[j],
                     s, header_length, str, is_x);
         }
         s.position_pop();
     }
 
-    if (field_20_offset) {
-        s.position_push(field_20_offset, SEEK_SET);
-        b->field_20 = force_malloc_s(obj_skin_block_cloth_field_20, b->count);
-        for (uint32_t i = 0; i < b->count; i++) {
-            obj_skin_block_cloth_field_20* f = &b->field_20[i];
-            for (uint32_t j = 0; j < 10; j++)
-                obj_modern_read_skin_block_cloth_field_20_sub(&f->sub_data[j],
-                    s, header_length, str, is_x);
+    if (nodes_offset) {
+        s.position_push(nodes_offset, SEEK_SET);
+        b->nodes = force_malloc_s(obj_skin_block_cloth_node,
+            b->root_count * (b->nodes_count - 1ULL));
+        for (uint32_t i = 0; i < b->nodes_count - 1; i++)
+            for (uint32_t j = 0; j < b->root_count; j++) {
+                obj_skin_block_cloth_node* f = &b->nodes[i * b->root_count + j];
+                f->flags = s.read_uint32_t_reverse_endianness();
+                f->trans.x = s.read_float_t_reverse_endianness();
+                f->trans.y = s.read_float_t_reverse_endianness();
+                f->trans.z = s.read_float_t_reverse_endianness();
+                f->trans_diff.x = s.read_float_t_reverse_endianness();
+                f->trans_diff.y = s.read_float_t_reverse_endianness();
+                f->trans_diff.z = s.read_float_t_reverse_endianness();
+                f->length = s.read_float_t_reverse_endianness();
+                f->field_20 = s.read_float_t_reverse_endianness();
+                f->field_24 = s.read_float_t_reverse_endianness();
+                f->field_28 = s.read_float_t_reverse_endianness();
+            }
+        s.position_pop();
+    }
+
+    if (mesh_indices_offset) {
+        s.position_push(mesh_indices_offset, SEEK_SET);
+        b->mesh_indices_count = s.read_uint16_t_reverse_endianness();
+        b->mesh_indices = force_malloc_s(uint16_t, b->mesh_indices_count);
+        s.read(b->mesh_indices, b->mesh_indices_count * sizeof(uint16_t));
+        if (s.is_big_endian) {
+            uint16_t* mesh_indices = b->mesh_indices;
+            for (int32_t i = 0; i < b->mesh_indices_count; i++)
+                mesh_indices[i] = reverse_endianness_uint16_t(mesh_indices[i]);
         }
         s.position_pop();
     }
 
-    if (field_24_offset) {
-        s.position_push(field_24_offset, SEEK_SET);
-        b->field_24_count = s.read_uint16_t_reverse_endianness();
-        b->field_24 = force_malloc_s(uint16_t, b->field_24_count);
-        s.read(b->field_24, b->field_24_count * sizeof(uint16_t));
+    if (backface_mesh_indices_offset) {
+        s.position_push(backface_mesh_indices_offset, SEEK_SET);
+        b->backface_mesh_indices_count = s.read_uint16_t_reverse_endianness();
+        b->backface_mesh_indices = force_malloc_s(uint16_t, b->backface_mesh_indices_count);
+        s.read(b->backface_mesh_indices, b->backface_mesh_indices_count * sizeof(uint16_t));
         if (s.is_big_endian) {
-            uint16_t* field_24 = b->field_24;
-            for (int32_t i = 0; i < b->field_24_count; i++)
-                field_24[i] = reverse_endianness_uint16_t(field_24[i]);
-        }
-        s.position_pop();
-    }
-
-    if (field_28_offset) {
-        s.position_push(field_28_offset, SEEK_SET);
-        b->field_28_count = s.read_uint16_t_reverse_endianness();
-        b->field_28 = force_malloc_s(uint16_t, b->field_28_count);
-        s.read(b->field_28, b->field_28_count * sizeof(uint16_t));
-        if (s.is_big_endian) {
-            uint16_t* field_28 = b->field_28;
-            for (int32_t i = 0; i < b->field_28_count; i++)
-                field_28[i] = reverse_endianness_uint16_t(field_28[i]);
+            uint16_t* backface_mesh_indices = b->backface_mesh_indices;
+            for (int32_t i = 0; i < b->backface_mesh_indices_count; i++)
+                backface_mesh_indices[i] = reverse_endianness_uint16_t(backface_mesh_indices[i]);
         }
         s.position_pop();
     }
@@ -5919,8 +5977,8 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
 
 static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x,
-    int64_t* field_18_offset, int64_t* field_1C_offset, int64_t* field_20_offset,
-    int64_t* field_24_offset, int64_t* field_28_offset) {
+    int64_t* mats_offset, int64_t* root_offset, int64_t* nodes_offset,
+    int64_t* mesh_indices_offset, int64_t* backface_mesh_indices_offset) {
     int64_t mesh_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, b->mesh_name);
     int64_t backface_mesh_name_offset = obj_skin_strings_get_string_offset(strings,
@@ -5930,40 +5988,37 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
         s.write_offset_f2(mesh_name_offset, 0x20);
         s.write_offset_f2(backface_mesh_name_offset, 0x20);
         s.write_int32_t(b->field_8);
-        s.write_int32_t(b->count);
-        s.write_int32_t(b->field_10);
+        s.write_int32_t(b->root_count);
+        s.write_int32_t(b->nodes_count);
         s.write_int32_t(b->field_14);
-        s.write_offset_f2(b->field_10 ? *field_18_offset : 0, 0x20);
-        s.write_offset_f2(b->field_1C ? *field_1C_offset : 0, 0x20);
-        s.write_offset_f2(b->field_20 ? *field_20_offset : 0, 0x20);
-        s.write_offset_f2(b->field_24 ? *field_24_offset : 0, 0x20);
-        s.write_offset_f2(b->field_28 ? *field_28_offset : 0, 0x20);
-        s.write_uint32_t(b->field_2C);
-        s.write_uint32_t(b->field_30);
+        s.write_offset_f2(b->nodes_count ? *mats_offset : 0, 0x20);
+        s.write_offset_f2(b->root ? *root_offset : 0, 0x20);
+        s.write_offset_f2(b->nodes ? *nodes_offset : 0, 0x20);
+        s.write_offset_f2(b->mesh_indices ? *mesh_indices_offset : 0, 0x20);
+        s.write_offset_f2(b->backface_mesh_indices ? *backface_mesh_indices_offset : 0, 0x20);
+        s.write_uint32_t(0);
+        s.write_uint32_t(b->reserved);
     }
     else {
         s.write_offset_x(mesh_name_offset);
         s.write_offset_x(backface_mesh_name_offset);
         s.write_int32_t(b->field_8);
-        s.write_int32_t(b->count);
-        s.write_int32_t(b->field_10);
+        s.write_int32_t(b->root_count);
+        s.write_int32_t(b->nodes_count);
         s.write_int32_t(b->field_14);
-        s.write_offset_x(b->field_10 ? *field_18_offset : 0);
-        s.write_offset_x(b->field_1C ? *field_1C_offset : 0);
-        s.write_offset_x(b->field_20 ? *field_20_offset : 0);
-        s.write_offset_x(b->field_24 ? *field_24_offset : 0);
-        s.write_offset_x(b->field_28 ? *field_28_offset : 0);
-        s.write_uint32_t(b->field_2C);
-        s.write_uint32_t(b->field_30);
+        s.write_offset_x(b->nodes_count ? *mats_offset : 0);
+        s.write_offset_x(b->root ? *root_offset : 0);
+        s.write_offset_x(b->nodes ? *nodes_offset : 0);
+        s.write_offset_x(b->mesh_indices ? *mesh_indices_offset : 0);
+        s.write_offset_x(b->backface_mesh_indices ? *backface_mesh_indices_offset : 0);
+        s.write_uint32_t(0);
+        s.write_uint32_t(b->reserved);
     }
 
-    if (b->field_10) {
-        s.position_push(*field_18_offset, SEEK_SET);
-        for (uint32_t i = 0; i < 32; i++) {
-            if (~b->field_10 & (1 << i))
-                continue;
-
-            mat4u& mat = b->field_18[i];
+    if (b->nodes_count) {
+        s.position_push(*mats_offset, SEEK_SET);
+        for (uint32_t i = 0; i < 3; i++) {
+            mat4u& mat = b->mats[i];
             s.write_float_t(mat.row0.x);
             s.write_float_t(mat.row1.x);
             s.write_float_t(mat.row2.x);
@@ -5980,119 +6035,98 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
             s.write_float_t(mat.row1.w);
             s.write_float_t(mat.row2.w);
             s.write_float_t(mat.row3.w);
-            *field_18_offset += sizeof(mat4);
+            *mats_offset += sizeof(mat4);
         }
         s.position_pop();
     }
 
-    if (b->field_1C) {
-        s.position_push(*field_1C_offset, SEEK_SET);
-        for (uint32_t i = 0; i < b->count; i++) {
-            obj_skin_block_cloth_field_1C* f = &b->field_1C[i];
-            s.write_float_t(f->field_0);
-            s.write_float_t(f->field_4);
-            s.write_float_t(f->field_8);
-            s.write_float_t(f->field_C);
-            s.write_float_t(f->field_10);
-            s.write_float_t(f->field_14);
+    if (b->root) {
+        s.position_push(*root_offset, SEEK_SET);
+        for (uint32_t i = 0; i < b->root_count; i++) {
+            obj_skin_block_cloth_root* f = &b->root[i];
+            s.write_float_t(f->trans.x);
+            s.write_float_t(f->trans.y);
+            s.write_float_t(f->trans.z);
+            s.write_float_t(f->normal.x);
+            s.write_float_t(f->normal.y);
+            s.write_float_t(f->normal.z);
             s.write_float_t(f->field_18);
-            s.write_uint32_t(f->field_1C);
-            s.write_uint32_t(f->field_20);
-            s.write_uint32_t(f->field_24);
+            s.write_int32_t(f->field_1C);
+            s.write_int32_t(f->field_20);
+            s.write_int32_t(f->field_24);
 
             for (uint32_t j = 0; j < 4; j++)
-                obj_modern_write_skin_block_cloth_field_1C_sub(&f->sub_data[j],
+                obj_modern_write_skin_block_cloth_root_bone_weight(&f->bone_weights[j],
                     s, strings, string_offsets, is_x);
         }
         s.position_pop();
         if (!is_x)
-            *field_1C_offset += (10 * sizeof(int32_t)
-                + 4 * (sizeof(int64_t) + 4 * sizeof(int32_t))) * b->count;
+            *root_offset += (sizeof(int32_t) + 4 * (sizeof(int64_t) + 4 * sizeof(int32_t)))
+                * b->root_count * (b->nodes_count - 1ULL);
         else
-            *field_1C_offset += (10 * sizeof(int32_t)
-                + 4 * (sizeof(int32_t) + 3 * sizeof(int32_t))) * b->count;
+            *root_offset += (sizeof(int32_t) + 4 * (sizeof(int32_t) + 3 * sizeof(int32_t)))
+                * b->root_count * (b->nodes_count - 1ULL);
     }
 
-    if (b->field_20) {
-        s.position_push(*field_20_offset, SEEK_SET);
-        for (uint32_t i = 0; i < b->count; i++) {
-            obj_skin_block_cloth_field_20* f = &b->field_20[i];
-            for (uint32_t j = 0; j < 10; j++)
-                obj_modern_write_skin_block_cloth_field_20_sub(&f->sub_data[j],
-                    s, strings, string_offsets, is_x);
-        }
+    if (b->nodes) {
+        s.position_push(*nodes_offset, SEEK_SET);
+        for (uint32_t i = 0; i < b->nodes_count - 1; i++)
+            for (uint32_t j = 0; j < b->root_count; j++) {
+                obj_skin_block_cloth_node* f = &b->nodes[i * b->root_count + j];
+                s.write_uint32_t(f->flags);
+                s.write_float_t(f->trans.x);
+                s.write_float_t(f->trans.y);
+                s.write_float_t(f->trans.z);
+                s.write_float_t(f->trans_diff.x);
+                s.write_float_t(f->trans_diff.y);
+                s.write_float_t(f->trans_diff.z);
+                s.write_float_t(f->length);
+                s.write_float_t(f->field_20);
+                s.write_float_t(f->field_24);
+                s.write_float_t(f->field_28);
+            }
         s.position_pop();
-        *field_20_offset += 10 * (11 * sizeof(int32_t)) * b->count;
+        *nodes_offset += (11 * sizeof(int32_t)) * b->root_count * (b->nodes_count - 1ULL);
     }
 
-    if (b->field_24) {
-        s.position_push(*field_24_offset, SEEK_SET);
-        s.write_uint16_t((uint16_t)b->field_24_count);
-        s.write(b->field_24, b->field_24_count * sizeof(uint16_t));
+    if (b->mesh_indices) {
+        s.position_push(*mesh_indices_offset, SEEK_SET);
+        s.write_uint16_t((uint16_t)b->mesh_indices_count);
+        s.write(b->mesh_indices, b->mesh_indices_count * sizeof(uint16_t));
         s.position_pop();
-        *field_28_offset += sizeof(uint16_t) + b->field_24_count * sizeof(uint16_t);
+        *mesh_indices_offset += sizeof(uint16_t) + b->mesh_indices_count * sizeof(uint16_t);
     }
 
-    if (b->field_28) {
-        s.position_push(*field_28_offset, SEEK_SET);
-        s.write_uint16_t((uint16_t)b->field_28_count);
-        s.write(b->field_28, b->field_28_count * sizeof(uint16_t));
+    if (b->backface_mesh_indices) {
+        s.position_push(*backface_mesh_indices_offset, SEEK_SET);
+        s.write_uint16_t((uint16_t)b->backface_mesh_indices_count);
+        s.write(b->backface_mesh_indices, b->backface_mesh_indices_count * sizeof(uint16_t));
         s.position_pop();
-        *field_28_offset += sizeof(uint16_t) + b->field_28_count * sizeof(uint16_t);
+        *backface_mesh_indices_offset += sizeof(uint16_t) + b->backface_mesh_indices_count * sizeof(uint16_t);
     }
 }
 
-static void obj_modern_read_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
+static void obj_modern_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, uint32_t header_length, char** str, bool is_x) {
     int64_t bone_name_offset = s.read_offset(header_length, is_x);
     sub->bone_name = s.read_utf8_string_null_terminated_offset(bone_name_offset);
     sub->weight = s.read_float_t_reverse_endianness();
     sub->matrix_index = s.read_uint32_t_reverse_endianness();
-    sub->field_C = s.read_uint32_t_reverse_endianness();
+    sub->reserved = s.read_uint32_t_reverse_endianness();
     if (is_x)
         s.read(0, 0x04);
 }
 
-static void obj_modern_write_skin_block_cloth_field_1C_sub(obj_skin_block_cloth_field_1C_sub* sub,
+static void obj_modern_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
     int64_t bone_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, sub->bone_name);
     s.write_offset(bone_name_offset, 0x20, is_x);
     s.write_float_t(sub->weight);
     s.write_uint32_t(sub->matrix_index);
-    s.write_uint32_t(sub->field_C);
+    s.write_uint32_t(sub->reserved);
     if (is_x)
         s.write(0x04);
-}
-
-static void obj_modern_read_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream& s, uint32_t header_length, char** str, bool is_x) {
-    sub->field_0 = s.read_uint32_t_reverse_endianness();
-    sub->field_4 = s.read_float_t_reverse_endianness();
-    sub->field_8 = s.read_float_t_reverse_endianness();
-    sub->field_C = s.read_float_t_reverse_endianness();
-    sub->field_10 = s.read_float_t_reverse_endianness();
-    sub->field_14 = s.read_float_t_reverse_endianness();
-    sub->field_18 = s.read_float_t_reverse_endianness();
-    sub->field_1C = s.read_float_t_reverse_endianness();
-    sub->field_20 = s.read_float_t_reverse_endianness();
-    sub->field_24 = s.read_float_t_reverse_endianness();
-    sub->field_28 = s.read_float_t_reverse_endianness();
-}
-
-static void obj_modern_write_skin_block_cloth_field_20_sub(obj_skin_block_cloth_field_20_sub* sub,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
-    s.write_uint32_t(sub->field_0);
-    s.write_float_t(sub->field_4);
-    s.write_float_t(sub->field_8);
-    s.write_float_t(sub->field_C);
-    s.write_float_t(sub->field_10);
-    s.write_float_t(sub->field_14);
-    s.write_float_t(sub->field_18);
-    s.write_float_t(sub->field_1C);
-    s.write_float_t(sub->field_20);
-    s.write_float_t(sub->field_24);
-    s.write_float_t(sub->field_28);
 }
 
 static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
@@ -6532,19 +6566,19 @@ static void obj_modern_write_skin_block_osage(obj_skin_block_osage* b,
 
 static void obj_modern_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mesh* mesh,
     const uint32_t vertex_flags, uint32_t num_vertex, uint32_t size_vertex) {
-    obj_vertex_format vertex_format = (obj_vertex_format)(OBJ_VERTEX_FORMAT_POSITION
-        | OBJ_VERTEX_FORMAT_NORMAL
-        | OBJ_VERTEX_FORMAT_TANGENT
-        | OBJ_VERTEX_FORMAT_TEXCOORD0
-        | OBJ_VERTEX_FORMAT_TEXCOORD1
-        | OBJ_VERTEX_FORMAT_COLOR0);
+    obj_vertex_format vertex_format = (obj_vertex_format)(OBJ_VERTEX_POSITION
+        | OBJ_VERTEX_NORMAL
+        | OBJ_VERTEX_TANGENT
+        | OBJ_VERTEX_TEXCOORD0
+        | OBJ_VERTEX_TEXCOORD1
+        | OBJ_VERTEX_COLOR0);
 
     if (vertex_flags == 0x06)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_TEXCOORD2);
+        enum_or(vertex_format, OBJ_VERTEX_TEXCOORD2);
     else if (vertex_flags == 0x0A)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_TEXCOORD2 | OBJ_VERTEX_FORMAT_TEXCOORD3);
+        enum_or(vertex_format, OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_TEXCOORD3);
     else if (vertex_flags == 0x04)
-        enum_or(vertex_format, OBJ_VERTEX_FORMAT_BONE_DATA);
+        enum_or(vertex_format, OBJ_VERTEX_BONE_DATA);
 
     int64_t vtx_offset = vertex[13];
 
@@ -6639,7 +6673,7 @@ static void obj_modern_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mes
     }
 
     if (!has_tangents)
-        enum_and(vertex_format, ~OBJ_VERTEX_FORMAT_TANGENT);
+        enum_and(vertex_format, ~OBJ_VERTEX_TANGENT);
 
     mesh->vertex = vtx;
     mesh->num_vertex = num_vertex;
@@ -6657,18 +6691,18 @@ static void obj_modern_write_vertex(obj* obj, stream& s, bool is_x,
     uint32_t _vertex_flags = 0x02;
     uint32_t _size_vertex = 0x2C;
     uint32_t enrs_se3_rc = 12;
-    if (vertex_format & OBJ_VERTEX_FORMAT_BONE_DATA) {
+    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
         _vertex_flags = 0x04;
         _size_vertex += 0x0C;
         enrs_se3_rc += 4;
     }
-    else if ((vertex_format & (OBJ_VERTEX_FORMAT_TEXCOORD2 & OBJ_VERTEX_FORMAT_TEXCOORD3))
-        == (OBJ_VERTEX_FORMAT_TEXCOORD2 | OBJ_VERTEX_FORMAT_TEXCOORD3)) {
+    else if ((vertex_format & (OBJ_VERTEX_TEXCOORD2 & OBJ_VERTEX_TEXCOORD3))
+        == (OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_TEXCOORD3)) {
         _vertex_flags = 0x0A;
         _size_vertex += 0x08;
         enrs_se3_rc += 4;
     }
-    else if (vertex_format & OBJ_VERTEX_FORMAT_TEXCOORD2) {
+    else if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
         _vertex_flags = 0x06;
         _size_vertex += 0x04;
         enrs_se3_rc += 2;

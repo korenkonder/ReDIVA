@@ -8,8 +8,8 @@
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/light_param/glow.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../shared.h"
-#include "../render_texture.h"
+#include "../shared.hpp"
+#include "../render_texture.hpp"
 
 #define POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES 32
 

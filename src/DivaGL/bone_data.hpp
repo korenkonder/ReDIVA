@@ -3634,7 +3634,7 @@ struct obj_sub_mesh_attrib_member {
     uint32_t recieve_shadow : 1;
     uint32_t cast_shadow : 1;
     uint32_t transparent : 1;
-    uint32_t flag_3 : 1;
+    uint32_t cloth : 1;
     uint32_t dummy : 28;
 };
 
@@ -3697,7 +3697,7 @@ union obj_mesh_vertex_array_union {
 };
 
 struct obj_mesh_attrib_member {
-    uint32_t flag_0 : 1;
+    uint32_t double_buffer : 1;
     uint32_t billboard_y_axis : 1;
     uint32_t translucent_no_shadow : 1;
     uint32_t billboard : 1;

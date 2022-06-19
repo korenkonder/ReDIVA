@@ -12,8 +12,16 @@
 #include <vector>
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/key_val.hpp"
-#include "rob.hpp"
+#include "rob/rob.hpp"
 #include "task.hpp"
+
+enum pv_aet {
+    PV_AET_FRONT         = 0x00,
+    PV_AET_FRONT_LOW     = 0x01,
+    PV_AET_FRONT_3D_SURF = 0x02,
+    PV_AET_BACK          = 0x03,
+    PV_AET_MAX           = 0x04,
+};
 
 enum pv_attribute_type {
     PV_ATTRIBUTE_ORIGINAL = 0x00,
@@ -71,6 +79,14 @@ enum pv_level {
     PV_LV_MAX  = 0x15,
 };
 
+enum pv_performer_item {
+    PV_PERFORMER_ITEM_ZUJO = 0x00,
+    PV_PERFORMER_ITEM_FACE = 0x01,
+    PV_PERFORMER_ITEM_NECK = 0x02,
+    PV_PERFORMER_ITEM_BACK = 0x03,
+    PV_PERFORMER_ITEM_MAX  = 0x04,
+};
+
 enum pv_performer_size {
     PV_PERFORMER_NORMAL     = 0x00,
     PV_PERFORMER_PLAY_CHARA = 0x01,
@@ -106,12 +122,12 @@ struct pv_db_pv_performer {
     pv_performer_type type;
     int32_t chara;
     int32_t costume;
-    int32_t pv_costume[5];
+    int32_t pv_costume[PV_DIFFICULTY_MAX];
     bool fixed;
     int32_t exclude;
     pv_performer_size size;
     int32_t pseudo_same_id;
-    int32_t item[4];
+    int32_t item[PV_PERFORMER_ITEM_MAX];
 
     pv_db_pv_performer();
 
@@ -137,6 +153,17 @@ struct pv_db_pv_motion {
     ~pv_db_pv_motion();
 };
 
+struct pv_db_pv_field_aet {
+    std::vector<std::string> name[PV_AET_MAX];
+    std::vector<std::string> id[PV_AET_MAX];
+    std::vector<int32_t> frame[PV_AET_MAX];
+
+    pv_db_pv_field_aet();
+    ~pv_db_pv_field_aet();
+
+    void reset();
+};
+
 struct pv_db_pv_field {
     int32_t index;
     int32_t stage_index;
@@ -147,9 +174,7 @@ struct pv_db_pv_field {
     std::string light;
     int32_t light_frame;
     bool light_frame_set;
-    std::vector<std::string> aet[4];
-    std::vector<std::string> aet_id[4];
-    std::vector<int32_t> aet_frame[4];
+    pv_db_pv_field_aet aet;
     std::string spr_set_back;
     bool stage_flag;
     int32_t npr_type;
@@ -263,9 +288,6 @@ struct pv_db_pv_difficulty {
     pv_db_pv_field_parent field;
     std::vector<pv_db_pv_item> pv_item;
     std::vector<pv_db_pv_hand_item> hand_item;
-    std::vector<struc_426> field_228;
-    std::vector<void*> field_240;
-    std::vector<void*> field_258;
     std::vector<pv_db_pv_edit_effect> edit_effect;
     pv_db_pv_title_image title_image;
     pv_db_pv_songinfo songinfo;
@@ -506,6 +528,7 @@ namespace pv_db {
     };
 }
 
+extern void task_pv_db_init();
 extern bool task_pv_db_append_task();
 extern void task_pv_db_free_task();
 extern pv_db::TaskPvDB* task_pv_db_get();
@@ -516,3 +539,4 @@ extern pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
 extern pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
     int32_t difficulty, int32_t edition);
 extern bool task_pv_db_is_paths_empty();
+extern void task_pv_db_free();

@@ -215,6 +215,19 @@ bool stage_database::load_file(void* data, const char* path, const char* file, u
     return stage_data->ready;
 }
 
+::stage_data* stage_database::get_stage_data(int32_t stage_index) {
+    if (stage_index >= 0 && stage_index < stage_data.size())
+        return &stage_data[stage_index];
+    return 0;
+}
+
+::stage_data_modern* stage_database::get_stage_data_modern(uint32_t stage_hash) {
+    for (::stage_data_modern& i : stage_modern)
+        if (stage_hash == i.hash)
+            return &i;
+    return 0;
+}
+
 int32_t stage_database::get_stage_index(const char* name) {
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (::stage_data& i : stage_data)

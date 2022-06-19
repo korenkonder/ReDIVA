@@ -74,6 +74,7 @@ struct auth_3d_database {
     ~auth_3d_database();
 
     int32_t get_category_index(const char* name);
+    void get_category_uids(const char* name, std::vector<int32_t>& uid);
     int32_t get_uid(const char* name);
     void merge_mdata(auth_3d_database_file* base_auth_3d_db,
         auth_3d_database_file* mdata_auth_3d_db);

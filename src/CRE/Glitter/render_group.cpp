@@ -4,7 +4,7 @@
 */
 
 #include "glitter.hpp"
-#include "../gl_state.h"
+#include "../gl_state.hpp"
 
 namespace Glitter {
     RenderGroup::RenderGroup() : flags(), type(), draw_type(), pivot(),

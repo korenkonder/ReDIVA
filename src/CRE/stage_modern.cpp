@@ -7,10 +7,10 @@
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "../KKdLib/vec.hpp"
-#include "draw_task.h"
+#include "rob/rob.hpp"
+#include "draw_task.hpp"
 #include "light_param.hpp"
 #include "render_context.hpp"
-#include "rob.hpp"
 
 namespace stage_detail {
     static void TaskStageModern_CtrlInner(stage_detail::TaskStageModern* a1);
@@ -50,17 +50,22 @@ static void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool 
 static void task_stage_modern_set_sky(task_stage_modern_info* stg_info, bool value);
 static void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value);
 
-stage_detail::TaskStageModern task_stage_modern;
+stage_detail::TaskStageModern* task_stage_modern;
 
 extern render_context* rctx_ptr;
+extern bool task_stage_is_modern;
 
 extern bool light_chara_ambient;
 extern vec4 npr_spec_color;
 
 static uint16_t stage_counter;
 
+void task_stage_modern_init() {
+    task_stage_modern = new stage_detail::TaskStageModern;
+}
+
 bool task_stage_modern_check_not_loaded() {
-    return task_stage_modern.load_stage_hashes.size() || task_stage_modern.state != 6;
+    return task_stage_modern->load_stage_hashes.size() || task_stage_modern->state != 6;
 }
 
 void task_stage_modern_current_set_effect_display(bool value) {
@@ -92,23 +97,38 @@ void task_stage_modern_current_set_stage_display(bool value) {
 }
 
 void task_stage_modern_disp_shadow() {
-    stage_detail::TaskStageModern_DispShadow(&task_stage_modern);
+    stage_detail::TaskStageModern_DispShadow(task_stage_modern);
 }
 
 stage_modern* task_stage_modern_get_current_stage() {
-    return stage_detail::TaskStageModern_GetCurrentStage(&task_stage_modern);
+    return stage_detail::TaskStageModern_GetCurrentStage(task_stage_modern);
+}
+
+uint32_t task_stage_modern_get_current_stage_hash() {
+    task_stage_modern_info stg_info;
+    task_stage_modern_get_current_stage_info(&stg_info);
+    if (task_stage_modern_has_stage_info(&stg_info))
+        return task_stage_modern_get_stage_hash(&stg_info);
+    return hash_murmurhash_empty;
 }
 
 void task_stage_modern_get_current_stage_info(task_stage_modern_info* stg_info) {
-    stage_detail::TaskStageModern_GetCurrentStageInfo(&task_stage_modern, stg_info);
+    stage_detail::TaskStageModern_GetCurrentStageInfo(task_stage_modern, stg_info);
 }
 
 void task_stage_modern_get_loaded_stage_infos(std::vector<task_stage_modern_info>* vec) {
-    stage_detail::TaskStageModern_GetLoadedStageInfos(&task_stage_modern, vec);
+    stage_detail::TaskStageModern_GetLoadedStageInfos(task_stage_modern, vec);
 }
 
 stage_modern* task_stage_modern_get_stage(task_stage_modern_info stg_info) {
-    return stage_detail::TaskStageModern_GetStage(&task_stage_modern, stg_info);
+    return stage_detail::TaskStageModern_GetStage(task_stage_modern, stg_info);
+}
+
+uint32_t task_stage_modern_get_stage_hash(task_stage_modern_info* stg_info) {
+    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
+    if (stg)
+        return stg->hash;
+    return -1;
 }
 
 bool task_stage_modern_has_stage_info(task_stage_modern_info* stg_info) {
@@ -116,51 +136,56 @@ bool task_stage_modern_has_stage_info(task_stage_modern_info* stg_info) {
 }
 
 bool task_stage_modern_load(const char* name) {
-    return stage_detail::TaskStageModern_Load(&task_stage_modern, name);
+    task_stage_is_modern = true;
+    return stage_detail::TaskStageModern_Load(task_stage_modern, name);
 }
 
 void task_stage_modern_set_data(void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data) {
-    task_stage_modern.data = data;
-    task_stage_modern.obj_db = obj_db;
-    task_stage_modern.tex_db = tex_db;
-    task_stage_modern.stage_data = stage_data;
+    task_stage_modern->data = data;
+    task_stage_modern->obj_db = obj_db;
+    task_stage_modern->tex_db = tex_db;
+    task_stage_modern->stage_data = stage_data;
 }
 
 void task_stage_modern_set_mat(mat4* mat) {
-    task_stage_modern.mat = *mat;
+    task_stage_modern->mat = *mat;
 }
 
 void task_stage_modern_set_mat(mat4u* mat) {
-    task_stage_modern.mat = *mat;
+    task_stage_modern->mat = *mat;
 }
 
 void task_stage_modern_set_stage(task_stage_modern_info* stg_info) {
-    stage_detail::TaskStageModern_SetStage(&task_stage_modern, *stg_info);
+    stage_detail::TaskStageModern_SetStage(task_stage_modern, *stg_info);
 }
 
 void task_stage_modern_set_stage_hash(uint32_t stage_hash, stage_data_modern* stg_data) {
     std::vector<uint32_t> stage_hashes;
     stage_hashes.push_back(stage_hash);
-    task_stage_modern.load_stage_hashes.insert(task_stage_modern.load_stage_hashes.end(),
+    task_stage_modern->load_stage_hashes.insert(task_stage_modern->load_stage_hashes.end(),
         stage_hashes.begin(), stage_hashes.end());
 
     std::vector<stage_data_modern*> stages_data;
     stages_data.push_back(stg_data);
-    task_stage_modern.load_stages_data.insert(task_stage_modern.load_stages_data.end(),
+    task_stage_modern->load_stages_data.insert(task_stage_modern->load_stages_data.end(),
         stages_data.begin(), stages_data.end());
 }
 
 void task_stage_modern_set_stage_hashes(std::vector<uint32_t>* stage_hashes,
     std::vector<stage_data_modern*>* load_stage_data) {
-    task_stage_modern.load_stage_hashes.insert(task_stage_modern.load_stage_hashes.end(),
+    task_stage_modern->load_stage_hashes.insert(task_stage_modern->load_stage_hashes.end(),
         stage_hashes->begin(), stage_hashes->end());
-    task_stage_modern.load_stages_data.insert(task_stage_modern.load_stages_data.end(),
+    task_stage_modern->load_stages_data.insert(task_stage_modern->load_stages_data.end(),
         load_stage_data->begin(), load_stage_data->end());
 }
 
 bool task_stage_modern_unload() {
-    return task_stage_modern.SetDest();
+    return task_stage_modern->SetDest();
+}
+
+void task_stage_modern_free() {
+    delete task_stage_modern;
 }
 
 static void stage_detail::TaskStageModern_CtrlInner(stage_detail::TaskStageModern* a1) {

@@ -5,8 +5,8 @@
 
 #include "dof.hpp"
 #include "../../KKdLib/str_utils.hpp"
-#include "../gl_state.h"
-#include "../rob.hpp"
+#include "../rob/rob.hpp"
+#include "../gl_state.hpp"
 
 struct post_process_dof_shader_data {
     vec4 g_depth_params;
@@ -1056,7 +1056,7 @@ namespace renderer {
 
     void DOF3::upsample(post_process_dof* dof, render_texture* rt,
         GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2) {
-        render_texture_bind(rt, 0);
+        rt->bind();
         glViewport(0, 0, dof->width, dof->height);
         if (f2)
             gl_state_use_program(dof->program[8]);

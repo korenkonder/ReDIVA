@@ -121,28 +121,28 @@ enum obj_skin_block_type : uint32_t {
     OBJ_SKIN_BLOCK_OSAGE,
 };
 
-enum obj_skin_osage_root_coli_type {
-    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_NONE     = 0x00,
-    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_BALL     = 0x01,
-    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_CYLINDER = 0x02,
-    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_PLANE    = 0x03,
-    OBJ_SKIN_OSAGE_ROOT_COLI_TYPE_ELLIPSE  = 0x04,
+enum obj_skin_skin_param_coli_type {
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_NONE     = 0x00,
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_BALL     = 0x01,
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_CYLINDER = 0x02,
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_PLANE    = 0x03,
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_ELLIPSE  = 0x04,
 };
 
 enum obj_vertex_format : uint32_t {
-    OBJ_VERTEX_FORMAT_NONE      = 0x000,
-    OBJ_VERTEX_FORMAT_POSITION  = 0x001,
-    OBJ_VERTEX_FORMAT_NORMAL    = 0x002,
-    OBJ_VERTEX_FORMAT_TANGENT   = 0x004,
-    OBJ_VERTEX_FORMAT_BINORMAL  = 0x008,
-    OBJ_VERTEX_FORMAT_TEXCOORD0 = 0x010,
-    OBJ_VERTEX_FORMAT_TEXCOORD1 = 0x020,
-    OBJ_VERTEX_FORMAT_TEXCOORD2 = 0x040,
-    OBJ_VERTEX_FORMAT_TEXCOORD3 = 0x080,
-    OBJ_VERTEX_FORMAT_COLOR0    = 0x100,
-    OBJ_VERTEX_FORMAT_COLOR1    = 0x200,
-    OBJ_VERTEX_FORMAT_BONE_DATA = 0x400,
-    OBJ_VERTEX_FORMAT_UNKNOWN   = 0x800,
+    OBJ_VERTEX_NONE      = 0x000,
+    OBJ_VERTEX_POSITION  = 0x001,
+    OBJ_VERTEX_NORMAL    = 0x002,
+    OBJ_VERTEX_TANGENT   = 0x004,
+    OBJ_VERTEX_BINORMAL  = 0x008,
+    OBJ_VERTEX_TEXCOORD0 = 0x010,
+    OBJ_VERTEX_TEXCOORD1 = 0x020,
+    OBJ_VERTEX_TEXCOORD2 = 0x040,
+    OBJ_VERTEX_TEXCOORD3 = 0x080,
+    OBJ_VERTEX_COLOR0    = 0x100,
+    OBJ_VERTEX_COLOR1    = 0x200,
+    OBJ_VERTEX_BONE_DATA = 0x400,
+    OBJ_VERTEX_UNKNOWN   = 0x800,
 };
 
 struct obj_axis_aligned_bounding_box {
@@ -158,6 +158,8 @@ struct obj_bounding_box {
 struct obj_bounding_sphere {
     vec3 center;
     float_t radius;
+
+    obj_bounding_sphere();
 };
 
 struct obj_shader_compo_member {
@@ -317,7 +319,7 @@ struct obj_sub_mesh_attrib_member {
     uint32_t recieve_shadow : 1;
     uint32_t cast_shadow : 1;
     uint32_t transparent : 1;
-    uint32_t flag_3 : 1;
+    uint32_t cloth : 1;
     uint32_t dummy : 28;
 };
 
@@ -346,6 +348,8 @@ struct obj_sub_mesh {
     uint16_t first_index;
     uint16_t last_index;
     uint32_t indices_offset;
+
+    obj_sub_mesh();
 };
 
 struct obj_vertex_data {
@@ -365,7 +369,7 @@ struct obj_vertex_data {
 };
 
 struct obj_mesh_attrib_member {
-    uint32_t flag_0 : 1;
+    uint32_t double_buffer : 1;
     uint32_t billboard_y_axis : 1;
     uint32_t translucent_no_shadow : 1;
     uint32_t billboard : 1;
@@ -392,43 +396,31 @@ struct obj_mesh {
     char name[0x40];
 };
 
-struct obj_skin_block_cloth_field_1C_sub {
+struct obj_skin_block_cloth_root_bone_weight {
     char* bone_name;
     float_t weight;
-    uint32_t matrix_index;
-    uint32_t field_C;
+    int32_t matrix_index;
+    int32_t reserved;
 };
 
-struct obj_skin_block_cloth_field_1C {
-    float_t field_0;
-    float_t field_4;
-    float_t field_8;
-    float_t field_C;
-    float_t field_10;
-    float_t field_14;
+struct obj_skin_block_cloth_root {
+    vec3 trans;
+    vec3 normal;
     float_t field_18;
-    uint32_t field_1C;
-    uint32_t field_20;
-    uint32_t field_24;
-    obj_skin_block_cloth_field_1C_sub sub_data[4];
+    int32_t field_1C;
+    int32_t field_20;
+    int32_t field_24;
+    obj_skin_block_cloth_root_bone_weight bone_weights[4];
 };
 
-struct obj_skin_block_cloth_field_20_sub {
-    uint32_t field_0;
-    float_t field_4;
-    float_t field_8;
-    float_t field_C;
-    float_t field_10;
-    float_t field_14;
-    float_t field_18;
-    float_t field_1C;
+struct obj_skin_block_cloth_node {
+    uint32_t flags;
+    vec3 trans;
+    vec3 trans_diff;
+    float_t length;
     float_t field_20;
     float_t field_24;
     float_t field_28;
-};
-
-struct obj_skin_block_cloth_field_20 {
-    obj_skin_block_cloth_field_20_sub sub_data[10];
 };
 
 struct obj_skin_block_node {
@@ -438,22 +430,49 @@ struct obj_skin_block_node {
     vec3 scale;
 };
 
+struct obj_skin_skin_param_coli {
+    obj_skin_skin_param_coli_type type;
+    int32_t bone0_index;
+    int32_t bone1_index;
+    float_t radius;
+    vec3 bone0_pos;
+    vec3 bone1_pos;
+};
+
+struct obj_skin_skin_param {
+    int32_t unk0;
+    float_t force;
+    float_t force_gain;
+    float_t air_res;
+    float_t rot_y;
+    float_t rot_z;
+    float_t hinge_y;
+    float_t hinge_z;
+    char* name;
+    obj_skin_skin_param_coli* coli;
+    int32_t coli_count;
+    float_t coli_r;
+    float_t friction;
+    float_t wind_afc;
+    int32_t unk44;
+};
 struct obj_skin_block_cloth {
     char* mesh_name;
     char* backface_mesh_name;
     uint32_t field_8;
-    uint32_t count;
-    uint32_t field_10;
+    uint32_t root_count;
+    uint32_t nodes_count;
     uint32_t field_14;
-    mat4u field_18[32];
-    obj_skin_block_cloth_field_1C* field_1C;
-    obj_skin_block_cloth_field_20* field_20;
-    uint16_t* field_24;
-    int32_t field_24_count;
-    uint16_t* field_28;
-    int32_t field_28_count;
-    uint32_t field_2C;
-    uint32_t field_30;
+    mat4u mats[3];
+    obj_skin_block_cloth_root* root;
+    obj_skin_block_cloth_node* nodes;
+    uint16_t* mesh_indices;
+    int32_t mesh_indices_count;
+    uint16_t* backface_mesh_indices;
+    int32_t backface_mesh_indices_count;
+    obj_skin_skin_param skin_param;
+    bool skin_param_init;
+    uint32_t reserved;
 };
 
 struct obj_skin_block_constraint_attach_point {
@@ -535,41 +554,14 @@ struct obj_skin_osage_node {
     vec3 rotation;
 };
 
-struct obj_skin_osage_root_coli {
-    obj_skin_osage_root_coli_type type;
-    int32_t bone0_index;
-    int32_t bone1_index;
-    float_t radius;
-    vec3 bone0_pos;
-    vec3 bone1_pos;
-};
-
-struct obj_skin_osage_root_node {
-    int32_t unk0;
-    float_t force;
-    float_t force_gain;
-    float_t air_res;
-    float_t rot_y;
-    float_t rot_z;
-    float_t hinge_y;
-    float_t hinge_z;
-    char* name;
-    obj_skin_osage_root_coli* coli;
-    int32_t coli_count;
-    float_t coli_r;
-    float_t friction;
-    float_t wind_afc;
-    int32_t unk44;
-};
-
 struct obj_skin_block_osage {
     obj_skin_block_node base;
     uint32_t start_index;
     uint32_t count;
     obj_skin_osage_node* nodes;
     uint32_t nodes_count;
-    obj_skin_osage_root_node root;
-    bool root_init;
+    obj_skin_skin_param skin_param;
+    bool skin_param_init;
     uint32_t external_name_index;
     uint32_t name_index;
     char* motion_node_name;
@@ -633,6 +625,9 @@ struct obj {
     char* name;
     uint32_t id;
     uint32_t hash;
+
+    obj_mesh* get_obj_mesh(const char* name);
+    uint32_t get_obj_mesh_index(const char* name);
 };
 
 struct obj_set {

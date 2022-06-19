@@ -4,12 +4,12 @@
 */
 
 #include "glitter.hpp"
-#include "../draw_task.h"
-#include "../gl_state.h"
+#include "../draw_task.hpp"
+#include "../gl_state.hpp"
 #include "../render_context.hpp"
-#include "../shader.h"
-#include "../shader_ft.h"
-#include "../static_var.h"
+#include "../shader.hpp"
+#include "../shader_ft.hpp"
+#include "../static_var.hpp"
 
 namespace Glitter {
     RenderScene::RenderScene() : ctrl_quad(), ctrl_line(), ctrl_locus(),

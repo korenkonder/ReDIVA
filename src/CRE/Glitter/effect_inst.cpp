@@ -5,8 +5,8 @@
 
 #include "glitter.hpp"
 #include "../../KKdLib/str_utils.hpp"
+#include "../rob/rob.hpp"
 #include "../auth_3d.hpp"
-#include "../rob.hpp"
 
 namespace Glitter {
     EffectInst::EffectInst(GPM, GLT, Effect* eff,

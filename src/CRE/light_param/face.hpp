@@ -8,7 +8,7 @@
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/light_param/face.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../static_var.h"
+#include "../static_var.hpp"
 
 struct face {
     float_t offset;
@@ -17,13 +17,15 @@ struct face {
     vec3 direction;
 
     face();
-};
 
-extern float_t face_get_offset(face* face);
-extern void face_set_offset(face* face, float_t value);
-extern float_t face_get_scale(face* face);
-extern void face_set_scale(face* face, float_t value);
-extern void face_get_position(face* face, vec3* value);
-extern void face_set_position(face* face, vec3* value);
-extern void face_get_direction(face* face, vec3* value);
-extern void face_set_direction(face* face, vec3* value);
+    float_t get_offset();
+    void set_offset(float_t value);
+    float_t get_scale();
+    void set_scale(float_t value);
+    void get_position(vec3& value);
+    void set_position(vec3& value);
+    void set_position(vec3&& value);
+    void get_direction(vec3& value);
+    void set_direction(vec3& value);
+    void set_direction(vec3&& value);
+};

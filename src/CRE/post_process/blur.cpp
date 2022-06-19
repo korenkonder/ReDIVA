@@ -5,9 +5,9 @@
 
 #include "blur.hpp"
 #include "../fbo.hpp"
-#include "../gl_state.h"
+#include "../gl_state.hpp"
 #include "../post_process.hpp"
-#include "../shader_ft.h"
+#include "../shader_ft.hpp"
 
 static void post_process_blur_radius_calculate(post_process_blur* blur);
 static void post_process_blur_radius_calculate_gaussian_kernel(float_t* gaussian_kernel,
@@ -15,7 +15,12 @@ static void post_process_blur_radius_calculate_gaussian_kernel(float_t* gaussian
 
 post_process_blur::post_process_blur() : data(),
 width(), height(), width_down(), height_down(), tex_down(), count_down() {
-
+    tex[0].init(256, 144, 0, GL_RGBA16F, 0);
+    tex[1].init(128, 72, 0, GL_RGBA16F, 0);
+    tex[2].init(64, 36, 0, GL_RGBA16F, 0);
+    tex[3].init(32, 18, 0, GL_RGBA16F, 0);
+    tex[4].init(8, 8, 0, GL_R32F, 0);
+    tex[5].init(256, 144, 0, GL_RGBA16F, 0);
 }
 
 post_process_blur:: ~post_process_blur() {
@@ -23,9 +28,7 @@ post_process_blur:: ~post_process_blur() {
         return;
 
     for (int32_t i = 0; i < count_down; i++)
-        render_texture_free(&tex_down[i]);
-    for (int32_t i = 0; i < 6; i++)
-        render_texture_free(&tex[i]);
+        tex_down[i].free_data();
     free(tex_down);
     free(height_down);
     free(width_down);
@@ -37,70 +40,70 @@ void post_process_blur::get_blur(render_texture* rt) {
     int32_t i = 0;
     if (count_down > 0) {
         uniform_value[U_REDUCE] = 1;
-        render_texture_shader_set(&shaders_ft, SHADER_FT_REDUCE);
+        render_texture::shader_set(&shaders_ft, SHADER_FT_REDUCE);
         for (; i < count_down; i++) {
             glViewport(0, 0, width_down[i], height_down[i]);
-            render_texture_bind(&tex_down[i], 0);
+            tex_down[i].bind();
             gl_state_active_bind_texture_2d(0, i
                 ? tex_down[i - 1].color_texture->tex
                 : rt->color_texture->tex);
-            render_texture_draw_params(&shaders_ft,
+            render_texture::draw_params(&shaders_ft,
                 width_down[i], height_down[i], 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         }
         i--;
     }
 
     uniform_value[U_REDUCE] = 3;
-    render_texture_shader_set(&shaders_ft, SHADER_FT_REDUCE);
+    render_texture::shader_set(&shaders_ft, SHADER_FT_REDUCE);
     shaders_ft.local_frag_set(2, 1.1f, 1.1f, 1.1f, 0.0f);
 
     glViewport(0, 0, 256, 144);
-    render_texture_bind(&tex[0], 0);
+    tex[0].bind();
     gl_state_active_bind_texture_2d(0, count_down > 0
         ? tex_down[i].color_texture->tex
         : rt->color_texture->tex);
-    render_texture_draw_params(&shaders_ft, width, height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, width, height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
     uniform_value[U_GAUSS] = 1;
-    render_texture_shader_set(&shaders_ft, SHADER_FT_GAUSS);
+    render_texture::shader_set(&shaders_ft, SHADER_FT_GAUSS);
 
     glViewport(0, 0, 256, 144);
-    render_texture_bind(&tex[5], 0);
+    tex[5].bind();
     gl_state_active_bind_texture_2d(0, tex[0].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 256, 144,
+    render_texture::draw_params(&shaders_ft, 256, 144,
         1.0f, data.intensity.x * 0.5f, data.intensity.y * 0.5f, data.intensity.z * 0.5f, 1.0f);
 
     uniform_value[U_REDUCE] = 1;
-    render_texture_shader_set(&shaders_ft, SHADER_FT_REDUCE);
+    render_texture::shader_set(&shaders_ft, SHADER_FT_REDUCE);
 
     glViewport(0, 0, 128, 72);
-    render_texture_bind(&tex[1], 0);
+    tex[1].bind();
     gl_state_active_bind_texture_2d(0, tex[0].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 256, 144, 0.75f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 256, 144, 0.75f, 1.0f, 1.0f, 1.0f, 1.0f);
 
     uniform_value[U_REDUCE] = 1;
-    render_texture_shader_set(&shaders_ft, SHADER_FT_REDUCE);
+    render_texture::shader_set(&shaders_ft, SHADER_FT_REDUCE);
 
     glViewport(0, 0, 64, 36);
-    render_texture_bind(&tex[2], 0);
+    tex[2].bind();
     gl_state_active_bind_texture_2d(0, tex[1].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 128, 72, 0.75f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 128, 72, 0.75f, 1.0f, 1.0f, 1.0f, 1.0f);
 
     uniform_value[U_REDUCE] = 1;
-    render_texture_shader_set(&shaders_ft, SHADER_FT_REDUCE);
+    render_texture::shader_set(&shaders_ft, SHADER_FT_REDUCE);
 
     glViewport(0, 0, 32, 18);
-    render_texture_bind(&tex[3], 0);
+    tex[3].bind();
     gl_state_active_bind_texture_2d(0, tex[2].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 64, 36, 0.75f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 64, 36, 0.75f, 1.0f, 1.0f, 1.0f, 1.0f);
 
     uniform_value[U_EXPOSURE] = 0;
-    render_texture_shader_set(&shaders_ft, SHADER_FT_EXPOSURE);
+    render_texture::shader_set(&shaders_ft, SHADER_FT_EXPOSURE);
 
     glViewport(0, 0, 8, 8);
-    render_texture_bind(&tex[4], 0);
+    tex[4].bind();
     gl_state_active_bind_texture_2d(0, tex[3].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 32, 18, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 32, 18, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
     vec3 intensity = data.intensity;
     vec3* gauss = data.gauss;
@@ -110,31 +113,31 @@ void post_process_blur::get_blur(render_texture* rt) {
         vec3_mult(gauss[i], intensity, v[i]);
 
     uniform_value[U_GAUSS] = 0;
-    render_texture_shader_set(&shaders_ft, SHADER_FT_GAUSS);
+    render_texture::shader_set(&shaders_ft, SHADER_FT_GAUSS);
     shaders_ft.local_frag_set(1, 1.0f, 0.0f, 1.0f, 0.0f);
     for (int32_t i = 0; i < POST_PROCESS_BLUR_GAUSSIAN_KERNEL_SIZE; i++)
         shaders_ft.local_frag_set(4ULL + i, v[i].x, v[i].y, v[i].z, 0.0f);
 
     glViewport(0, 0, 128, 72);
-    render_texture_bind(&tex[0], 0);
+    tex[0].bind();
     gl_state_active_bind_texture_2d(0, tex[1].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 128, 72, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 128, 72, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     fbo::blit(tex[0].fbos[0], tex[1].fbos[0],
         0, 0, 128, 72,
         0, 0, 128, 72, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
     glViewport(0, 0, 64, 36);
-    render_texture_bind(&tex[0], 0);
+    tex[0].bind();
     gl_state_active_bind_texture_2d(0, tex[2].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 64, 36, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 64, 36, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     fbo::blit(tex[0].fbos[0], tex[2].fbos[0],
         0, 0, 64, 36,
         0, 0, 64, 36, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
     glViewport(0, 0, 32, 18);
-    render_texture_bind(&tex[0], 0);
+    tex[0].bind();
     gl_state_active_bind_texture_2d(0, tex[3].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 32, 18, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 32, 18, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     fbo::blit(tex[0].fbos[0], tex[3].fbos[0],
         0, 0, 32, 18,
         0, 0, 32, 18, GL_COLOR_BUFFER_BIT, GL_LINEAR);
@@ -142,57 +145,44 @@ void post_process_blur::get_blur(render_texture* rt) {
     shaders_ft.local_frag_set(1, 0.0f, 1.0f, 0.0f, 1.0f);
 
     glViewport(0, 0, 128, 72);
-    render_texture_bind(&tex[0], 0);
+    tex[0].bind();
     gl_state_active_bind_texture_2d(0, tex[1].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 128, 72, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 128, 72, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     fbo::blit(tex[0].fbos[0], tex[1].fbos[0],
         0, 0, 128, 72,
         0, 0, 128, 72, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
     glViewport(0, 0, 64, 36);
-    render_texture_bind(&tex[0], 0);
+    tex[0].bind();
     gl_state_active_bind_texture_2d(0, tex[2].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 64, 36, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 64, 36, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     fbo::blit(tex[0].fbos[0], tex[2].fbos[0],
         0, 0, 64, 36,
         0, 0, 64, 36, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
     glViewport(0, 0, 32, 18);
-    render_texture_bind(&tex[0], 0);
+    tex[0].bind();
     gl_state_active_bind_texture_2d(0, tex[3].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 32, 18, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, 32, 18, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     fbo::blit(tex[0].fbos[0], tex[3].fbos[0],
         0, 0, 32, 18,
         0, 0, 32, 18, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
     uniform_value[U_REDUCE] = 7;
-    render_texture_shader_set(&shaders_ft, SHADER_FT_REDUCE);
+    render_texture::shader_set(&shaders_ft, SHADER_FT_REDUCE);
 
     glViewport(0, 0, 256, 144);
-    render_texture_bind(&tex[0], 0);
+    tex[0].bind();
     gl_state_active_bind_texture_2d(0, tex[5].color_texture->tex);
     gl_state_active_bind_texture_2d(1, tex[1].color_texture->tex);
     gl_state_active_bind_texture_2d(2, tex[2].color_texture->tex);
     gl_state_active_bind_texture_2d(3, tex[3].color_texture->tex);
-    render_texture_draw_params(&shaders_ft, 32, 18, 0.25f, 0.15f, 0.25f, 0.25f, 0.25f);
+    render_texture::draw_params(&shaders_ft, 32, 18, 0.25f, 0.15f, 0.25f, 0.25f, 0.25f);
 }
 
 void post_process_blur::init_fbo(int32_t width, int32_t height) {
     if (!this || (this->width == width && this->height == height))
         return;
-
-    if (!tex[0].color_texture)
-        render_texture_init(&tex[0], 256, 144, 0, GL_RGBA16F, 0);
-    if (!tex[1].color_texture)
-        render_texture_init(&tex[1], 128, 72, 0, GL_RGBA16F, 0);
-    if (!tex[2].color_texture)
-        render_texture_init(&tex[2], 64, 36, 0, GL_RGBA16F, 0);
-    if (!tex[3].color_texture)
-        render_texture_init(&tex[3], 32, 18, 0, GL_RGBA16F, 0);
-    if (!tex[4].color_texture)
-        render_texture_init(&tex[4], 8, 8, 0, GL_R32F, 0);
-    if (!tex[5].color_texture)
-        render_texture_init(&tex[5], 256, 144, 0, GL_RGBA16F, 0);
 
     this->width = width > 1 ? width : 1;
     this->height = height > 1 ? height : 1;
@@ -249,7 +239,7 @@ void post_process_blur::init_fbo(int32_t width, int32_t height) {
     }
 
     for (i = 0; i < count_down; i++)
-        render_texture_init(&tex_down[i], width_down[i], height_down[i], 0, GL_RGBA16F, 0);
+        tex_down[i].init(width_down[i], height_down[i], 0, GL_RGBA16F, 0);
 
     gl_state_bind_framebuffer(0);
 

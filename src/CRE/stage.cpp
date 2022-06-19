@@ -7,10 +7,10 @@
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "../KKdLib/vec.hpp"
-#include "draw_task.h"
+#include "rob/rob.hpp"
+#include "draw_task.hpp"
 #include "light_param.hpp"
 #include "render_context.hpp"
-#include "rob.hpp"
 
 namespace stage_detail {
     static void TaskStage_CtrlInner(stage_detail::TaskStage* a1);
@@ -50,33 +50,46 @@ static void task_stage_set_ring(task_stage_info* stg_info, bool value);
 static void task_stage_set_sky(task_stage_info* stg_info, bool value);
 static void task_stage_set_stage_display(task_stage_info* stg_info, bool value);
 
-stage_detail::TaskStage task_stage;
-DtmStg dtm_stg;
+stage_detail::TaskStage* task_stage;
+DtmStg* dtm_stg;
 
 extern render_context* rctx_ptr;
+extern bool task_stage_is_modern;
 
 extern bool light_chara_ambient;
 extern vec4 npr_spec_color;
 
 static uint16_t stage_counter;
 
+void dtm_stg_init() {
+    dtm_stg = new DtmStg;
+}
+
 void dtm_stg_load(int32_t stage_index) {
-    if (app::TaskWork::CheckTaskReady(&dtm_stg))
+    if (app::TaskWork::CheckTaskReady(dtm_stg))
         return;
 
-    if (app::TaskWork::CheckTaskReady(&dtm_stg)) {
-        dtm_stg.stage_index = stage_index;
-        dtm_stg.load_stage_index = stage_index;
+    if (app::TaskWork::CheckTaskReady(dtm_stg)) {
+        dtm_stg->stage_index = stage_index;
+        dtm_stg->load_stage_index = stage_index;
     }
-    app::TaskWork::AppendTask(&dtm_stg, "DATA_TEST_STAGE");
+    app::TaskWork::AppendTask(dtm_stg, "DATA_TEST_STAGE");
 }
 
 bool dtm_stg_unload() {
-    return dtm_stg.SetDest();
+    return dtm_stg->SetDest();
+}
+
+void dtm_stg_free() {
+    delete dtm_stg;
+}
+
+void task_stage_init() {
+    task_stage = new stage_detail::TaskStage;
 }
 
 bool task_stage_check_not_loaded() {
-    return task_stage.load_stage_indices.size() || task_stage.state != 6;
+    return task_stage->load_stage_indices.size() || task_stage->state != 6;
 }
 
 void task_stage_current_set_effect_display(bool value) {
@@ -115,23 +128,38 @@ void task_stage_current_set_stage_display(bool value) {
 }
 
 void task_stage_disp_shadow() {
-    stage_detail::TaskStage_DispShadow(&task_stage);
+    stage_detail::TaskStage_DispShadow(task_stage);
 }
 
 stage* task_stage_get_current_stage() {
-    return stage_detail::TaskStage_GetCurrentStage(&task_stage);
+    return stage_detail::TaskStage_GetCurrentStage(task_stage);
+}
+
+int32_t task_stage_get_current_stage_index() {
+    task_stage_info stg_info;
+    task_stage_get_current_stage_info(&stg_info);
+    if (task_stage_has_stage_info(&stg_info))
+        return task_stage_get_stage_index(&stg_info);
+    return -1;
 }
 
 void task_stage_get_current_stage_info(task_stage_info* stg_info) {
-    stage_detail::TaskStage_GetCurrentStageInfo(&task_stage, stg_info);
+    stage_detail::TaskStage_GetCurrentStageInfo(task_stage, stg_info);
 }
 
 void task_stage_get_loaded_stage_infos(std::vector<task_stage_info>* vec) {
-    stage_detail::TaskStage_GetLoadedStageInfos(&task_stage, vec);
+    stage_detail::TaskStage_GetLoadedStageInfos(task_stage, vec);
 }
 
 stage* task_stage_get_stage(task_stage_info stg_info) {
-    return stage_detail::TaskStage_GetStage(&task_stage, stg_info);
+    return stage_detail::TaskStage_GetStage(task_stage, stg_info);
+}
+
+int32_t task_stage_get_stage_index(task_stage_info* stg_info) {
+    stage* stg = task_stage_get_stage(*stg_info);
+    if (stg)
+        return stg->index;
+    return -1;
 }
 
 bool task_stage_has_stage_info(task_stage_info* stg_info) {
@@ -139,19 +167,20 @@ bool task_stage_has_stage_info(task_stage_info* stg_info) {
 }
 
 bool task_stage_load(const char* name) {
-    return stage_detail::TaskStage_Load(&task_stage, name);
+    task_stage_is_modern = false;
+    return stage_detail::TaskStage_Load(task_stage, name);
 }
 
 void task_stage_set_mat(mat4* mat) {
-    task_stage.mat = *mat;
+    task_stage->mat = *mat;
 }
 
 void task_stage_set_mat(mat4u* mat) {
-    task_stage.mat = *mat;
+    task_stage->mat = *mat;
 }
 
 void task_stage_set_stage(task_stage_info* stg_info) {
-    stage_detail::TaskStage_SetStage(&task_stage, *stg_info);
+    stage_detail::TaskStage_SetStage(task_stage, *stg_info);
 }
 
 void task_stage_set_stage_index(int32_t stage_index) {
@@ -163,17 +192,21 @@ void task_stage_set_stage_index(int32_t stage_index) {
 
     std::vector<int32_t> stage_indices;
     stage_indices.push_back(stage_index);
-    task_stage.load_stage_indices.insert(task_stage.load_stage_indices.end(),
+    task_stage->load_stage_indices.insert(task_stage->load_stage_indices.end(),
         stage_indices.begin(), stage_indices.end());
 }
 
 void task_stage_set_stage_indices(std::vector<int32_t>* stage_indices) {
-    task_stage.load_stage_indices.insert(task_stage.load_stage_indices.end(),
+    task_stage->load_stage_indices.insert(task_stage->load_stage_indices.end(),
         stage_indices->begin(), stage_indices->end());
 }
 
 bool task_stage_unload() {
-    return task_stage.SetDest();
+    return task_stage->SetDest();
+}
+
+void task_stage_free() {
+    delete task_stage;
 }
 
 static void stage_detail::TaskStage_CtrlInner(stage_detail::TaskStage* a1) {
@@ -412,8 +445,9 @@ static bool stage_ctrl(stage* s) {
     }
 
     for (int32_t& i : s->auth_3d_ids) {
-        auth_3d_data_set_enable(&i, true);
+        auth_3d_data_set_repeat(&i, true);
         auth_3d_data_set_paused(&i, false);
+        auth_3d_data_set_enable(&i, true);
         auth_3d_data_set_visibility(&i, s->effect_display);
         auth_3d_data_set_frame_rate(&i, 0);
     }

@@ -82,11 +82,14 @@ public:
     virtual bool Dest() override;
 };
 
-extern DtmStg dtm_stg;
+extern DtmStg* dtm_stg;
 
+extern void dtm_stg_init();
 extern void dtm_stg_load(int32_t stage_index);
 extern bool dtm_stg_unload();
+extern void dtm_stg_free();
 
+extern void task_stage_init();
 extern bool task_stage_check_not_loaded();
 extern void task_stage_current_set_effect_display(bool value);
 extern void task_stage_current_set_ground(bool value);
@@ -95,9 +98,11 @@ extern void task_stage_current_set_sky(bool value);
 extern void task_stage_current_set_stage_display(bool value);
 extern void task_stage_disp_shadow();
 extern stage* task_stage_get_current_stage();
+int32_t task_stage_get_current_stage_index();
 extern void task_stage_get_current_stage_info(task_stage_info* stg_info);
 extern void task_stage_get_loaded_stage_infos(std::vector<task_stage_info>* vec);
 extern stage* task_stage_get_stage(task_stage_info stg_info);
+int32_t task_stage_get_stage_index(task_stage_info* stg_info);
 extern bool task_stage_has_stage_info(task_stage_info* stg_info);
 extern bool task_stage_load(const char* name);
 extern void task_stage_set_mat(mat4* mat);
@@ -106,3 +111,4 @@ extern void task_stage_set_stage(task_stage_info* stg_info);
 extern void task_stage_set_stage_index(int32_t stage_index);
 extern void task_stage_set_stage_indices(std::vector<int32_t>* stage_indices);
 extern bool task_stage_unload();
+extern void task_stage_free();

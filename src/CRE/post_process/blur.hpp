@@ -7,8 +7,8 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../shared.h"
-#include "../render_texture.h"
+#include "../shared.hpp"
+#include "../render_texture.hpp"
 
 #define POST_PROCESS_BLUR_GAUSSIAN_KERNEL_SIZE 7
 

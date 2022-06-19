@@ -1056,10 +1056,10 @@ void stream::write_utf16_string_null_terminated(const wchar_t* str) {
     write_uint16_t(0);
 }
 
-int64_t stream::read_offset(int32_t offset, bool is_x) {
+int64_t stream::read_offset(int64_t offset, bool is_x) {
     int64_t val;
     if (!is_x) {
-        val = read_int32_t_reverse_endianness();
+        val = read_uint32_t_reverse_endianness();
         if (val)
             val -= offset;
     }
@@ -1070,8 +1070,8 @@ int64_t stream::read_offset(int32_t offset, bool is_x) {
     return val;
 }
 
-int64_t stream::read_offset_f2(int32_t offset) {
-    int64_t val = read_int32_t_reverse_endianness();
+int64_t stream::read_offset_f2(int64_t offset) {
+    int64_t val = read_uint32_t_reverse_endianness();
     if (val)
         val -= offset;
     return val;
@@ -1083,11 +1083,11 @@ int64_t stream::read_offset_x() {
     return val;
 }
 
-void stream::write_offset(int64_t val, int32_t offset, bool is_x) {
+void stream::write_offset(int64_t val, int64_t offset, bool is_x) {
     if (!is_x) {
         if (val)
             val += offset;
-        write_int32_t_reverse_endianness((int32_t)val);
+        write_uint32_t_reverse_endianness((uint32_t)val);
     }
     else {
         align_write(0x08);
@@ -1095,10 +1095,10 @@ void stream::write_offset(int64_t val, int32_t offset, bool is_x) {
     }
 }
 
-void stream::write_offset_f2(int64_t val, int32_t offset) {
+void stream::write_offset_f2(int64_t val, int64_t offset) {
     if (val)
         val += offset;
-    write_int32_t_reverse_endianness((int32_t)val);
+    write_uint32_t_reverse_endianness((uint32_t)val);
 }
 
 void stream::write_offset_x(int64_t val) {

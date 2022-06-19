@@ -5,9 +5,9 @@
 
 #include "aa.hpp"
 #include "../fbo.hpp"
-#include "../gl_state.h"
+#include "../gl_state.hpp"
 #include "../post_process.hpp"
-#include "../shader_ft.h"
+#include "../shader_ft.hpp"
 
 static void post_process_aa_calculate_area_texture_data(uint8_t* a1, int32_t a2, int32_t a3);
 static void post_process_aa_calculate_area_texture_data_sub(float_t* a1,
@@ -32,21 +32,19 @@ post_process_aa::~post_process_aa() {
     if (!this)
         return;
 
-    render_texture_free(&mlaa_buffer[0]);
-    render_texture_free(&mlaa_buffer[1]);
     glDeleteTextures(1, &mlaa_area_texture);
 }
 
 void post_process_aa::apply_mlaa(render_texture* rt,
     render_texture* buf_rt, GLuint* samplers, int32_t a4) {
-    render_texture_bind(mlaa_buffer, 0);
+    mlaa_buffer->bind();
     gl_state_active_bind_texture_2d(0, rt->color_texture->tex);
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 0;
     shaders_ft.set(SHADER_FT_MLAA);
-    render_texture_draw_params(&shaders_ft, width, height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, width, height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
-    render_texture_bind(&mlaa_buffer[1], 0);
+    mlaa_buffer[1].bind();
     gl_state_active_bind_texture_2d(0, mlaa_buffer[0].color_texture->tex);
     gl_state_active_bind_texture_2d(1, mlaa_area_texture);
     gl_state_bind_sampler(0, samplers[0]);
@@ -54,16 +52,16 @@ void post_process_aa::apply_mlaa(render_texture* rt,
     uniform_value[U20] = 2;
     uniform_value[U_MLAA] = 1;
     shaders_ft.set(SHADER_FT_MLAA);
-    render_texture_draw_params(&shaders_ft, width, height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, width, height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
-    render_texture_bind(buf_rt, 0);
+    buf_rt->bind();
     gl_state_active_bind_texture_2d(0, rt->color_texture->tex);
     gl_state_active_bind_texture_2d(1, mlaa_buffer[1].color_texture->tex);
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 2;
     uniform_value[U01] = a4 ? 1 : 0;
     shaders_ft.set(SHADER_FT_MLAA);
-    render_texture_draw_params(&shaders_ft, width, height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    render_texture::draw_params(&shaders_ft, width, height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     uniform_value[U01] = 0;
     gl_state_active_bind_texture_2d(0, 0);
     gl_state_active_bind_texture_2d(1, 0);
@@ -77,11 +75,11 @@ void post_process_aa::init_fbo(int32_t width, int32_t height) {
     if (!this || (this->width == width && this->height == height))
         return;
 
-    this->width = width > 1 ? width : 1;
-    this->height = height > 1 ? height : 1;
+    this->width = max(width, 1);
+    this->height = max(height, 1);
 
-    render_texture_init(&mlaa_buffer[0], this->width, this->height, 0, GL_RGBA8, 0);
-    render_texture_init(&mlaa_buffer[1], this->width, this->height, 0, GL_RGBA8, 0);
+    mlaa_buffer[0].init(this->width, this->height, 0, GL_RGBA8, 0);
+    mlaa_buffer[1].init(this->width, this->height, 0, GL_RGBA8, 0);
 }
 
 static void post_process_aa_calculate_area_texture_data(uint8_t* a1, int32_t a2, int32_t a3) {

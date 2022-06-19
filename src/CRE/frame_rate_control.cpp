@@ -4,7 +4,7 @@
 */
 
 #include "frame_rate_control.hpp"
-#include "static_var.h"
+#include "static_var.hpp"
 
 SysFrameRate sys_frame_rate;
 DivaPvFrameRate diva_pv_frame_rate;

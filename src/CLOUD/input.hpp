@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "shared.h"
+#include "shared.hpp"
 #include <GLFW/glfw3.h>
 
 namespace Input {

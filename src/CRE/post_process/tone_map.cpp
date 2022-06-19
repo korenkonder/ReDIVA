@@ -5,9 +5,9 @@
 
 #include "tone_map.hpp"
 #include "../fbo.hpp"
-#include "../gl_state.h"
+#include "../gl_state.hpp"
 #include "../post_process.hpp"
-#include "../shader_ft.h"
+#include "../shader_ft.hpp"
 
 static void post_process_tone_map_calculate_data(post_process_tone_map* tm);
 static void post_process_tone_map_calculate_tex(post_process_tone_map* tm);
@@ -67,7 +67,7 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
     uniform_value[U25] = 0;
 
     glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
-    render_texture_bind(buf_rt, 0);
+    buf_rt->bind();
     shaders_ft.set(SHADER_FT_TONEMAP);
     shaders_ft.state_matrix_set_texture(4, lens_flare_mat);
     shaders_ft.state_matrix_set_texture(5, lens_shaft_mat);
@@ -99,7 +99,7 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
-    render_texture_draw_custom(&shaders_ft);
+    render_texture::draw_custom(&shaders_ft);
     gl_state_active_texture(2);
     glBindTexture(GL_TEXTURE_1D, 0);
     uniform_value[U16] = 1;

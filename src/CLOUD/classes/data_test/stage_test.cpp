@@ -11,8 +11,8 @@
 #include "../../../CRE/render_context.hpp"
 #include "../../../CRE/stage.hpp"
 #include "../../input.hpp"
-#include "../data_test.h"
-#include "../imgui_helper.h"
+#include "../data_test.hpp"
+#include "../imgui_helper.hpp"
 
 struct data_test_stage_test_stage_pv {
     int32_t pv_id;
@@ -121,7 +121,7 @@ void data_test_stage_test_imgui(class_data* data) {
             ImGui::PushID(&i);
             sprintf_s(buf, sizeof(buf), "%03d", i.pv_id);
             if (ImGui::Selectable(buf, pv_id == i.pv_id)
-                || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (ImGui::IsItemFocused() && pv_id != i.pv_id))
                 pv_id = i.pv_id;
             ImGui::PopID();
@@ -155,7 +155,7 @@ void data_test_stage_test_imgui(class_data* data) {
 
                 ImGui::PushID(j);
                 if (ImGui::Selectable(stg_data[j].name.c_str(), pv_index == pv_idx)
-                    || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
+                    || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (ImGui::IsItemFocused() && pv_index != pv_idx)) {
                     dtw_stg->pv_index = -1;
                     pv_index = pv_idx;
@@ -195,7 +195,7 @@ void data_test_stage_test_imgui(class_data* data) {
 
             ImGui::PushID(i);
             if (ImGui::Selectable(stg_data[stage_ns[i]].name.c_str(), ns_index == ns_idx)
-                || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (ImGui::IsItemFocused() && ns_index != ns_idx)) {
                 dtw_stg->ns_index = -1;
                 ns_index = ns_idx;
@@ -228,7 +228,7 @@ void data_test_stage_test_imgui(class_data* data) {
 
             ImGui::PushID(i);
             if (ImGui::Selectable(stg_data[i].name.c_str(), other_index == other_idx)
-                || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (ImGui::IsItemFocused() && other_index != other_idx)) {
                 dtw_stg->other_index = -1;
                 other_index = other_idx;
@@ -251,7 +251,7 @@ void data_test_stage_test_imgui(class_data* data) {
 
     int32_t stage_index = dtw_stg->stage_index;
 
-    imguiGetContentRegionAvailSetNextItemWidth();
+    ImGui::GetContentRegionAvailSetNextItemWidth();
     if (ImGui::BeginCombo("##Stage Index", stage_index > -1
         ? stg_data[stage_index].name.c_str() : "", 0)) {
         for (stage_data& i : stg_data) {
@@ -259,7 +259,7 @@ void data_test_stage_test_imgui(class_data* data) {
 
             ImGui::PushID(&i);
             if (ImGui::Selectable(i.name.c_str(), stage_index == stage_idx)
-                || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (ImGui::IsItemFocused() && stage_index != stage_idx)) {
                 dtw_stg->stage_index = -1;
                 stage_index = stage_idx;
@@ -329,12 +329,10 @@ static bool stage_test_load() {
     clear_color = { 96, 96, 96, 255 };
 
     camera* cam = rctx_ptr->camera;
-    camera_reset(cam);
-    vec3 view_point = { 0.0f, 0.88f, 4.3f };
-    camera_set_view_point(cam, &view_point);
-    vec3 interest = { 0.0f, 1.0f, 0.0f };
-    camera_set_interest(cam, &interest);
-    app::TaskWork::AppendTask(&dtm_stg, "DATA_TEST_STAGE");
+    cam->reset();
+    cam->set_view_point({ 0.0f, 0.88f, 4.3f });
+    cam->set_interest({ 0.0f, 1.0f, 0.0f });
+    app::TaskWork::AppendTask(dtm_stg, "DATA_TEST_STAGE");
 
     if (!dtw_stg)
         dtw_stg = new DtwStg();
@@ -344,7 +342,7 @@ static bool stage_test_load() {
 }
 
 static bool stage_test_unload() {
-    dtm_stg.SetDest();
+    dtm_stg->SetDest();
 
     classes_data* c = &data_test_classes[DATA_TEST_STAGE_TEST];
     enum_or(c->data.flags, CLASS_HIDE);

@@ -46,6 +46,34 @@ const mat4u mat4u_null = {
     { 0.0f, 0.0f, 0.0f, 0.0f },
 };
 
+
+mat3::mat3() : row0(), row1(), row2() {
+
+}
+
+mat3::mat3(vec3 row0, vec3 row1, vec3 row2) :
+    row0(row0), row1(row1), row2(row2) {
+
+}
+
+mat4::mat4() : row0(), row1(), row2(), row3() {
+
+}
+
+mat4::mat4(vec4 row0, vec4 row1, vec4 row2, vec4 row3) :
+    row0(row0), row1(row1), row2(row2), row3(row3) {
+
+}
+
+mat4u::mat4u() : row0(), row1(), row2(), row3() {
+
+}
+
+mat4u::mat4u(vec4u row0, vec4u row1, vec4u row2, vec4u row3) :
+    row0(row0), row1(row1), row2(row2), row3(row3) {
+
+}
+
 inline void mat3_add(const mat3* x, const mat3* y, mat3* z) {
     __m128 xt;
     __m128 yt;
@@ -1478,12 +1506,12 @@ inline void mat4_scale_z(float_t x, mat4* y) {
 
 inline void mat4_scale_mult(const mat4* s, float_t x, float_t y, float_t z, float_t w, mat4* d) {
     mat4 dt;
-    if (x != 1.0f || y != 1.0f || z != 1.0f) {
+    if (x != 1.0f || y != 1.0f || z != 1.0f || w != 1.0f) {
         dt = mat4_identity;
         dt.row0.x = x;
         dt.row1.y = y;
         dt.row2.z = z;
-        dt.row3.z = w;
+        dt.row3.w = w;
         mat4_mult(s, &dt, d);
     }
     else if (s != d)

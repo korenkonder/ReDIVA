@@ -4,7 +4,7 @@
 */
 
 #include "fbo.hpp"
-#include "gl_state.h"
+#include "gl_state.hpp"
 
 fbo::fbo() : flags(), width(), height(), buffer(), count(), textures() {
 

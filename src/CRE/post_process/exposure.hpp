@@ -7,9 +7,9 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../camera.h"
-#include "../render_texture.h"
-#include "../shared.h"
+#include "../camera.hpp"
+#include "../render_texture.hpp"
+#include "../shared.hpp"
 
 struct post_process_exposure_chara_data {
     vec4 field_0[8];

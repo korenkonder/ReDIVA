@@ -12,8 +12,8 @@
 #include "../../../CRE/render_context.hpp"
 #include "../../../CRE/stage.hpp"
 #include "../../input.hpp"
-#include "../data_test.h"
-#include "../imgui_helper.h"
+#include "../data_test.hpp"
+#include "../imgui_helper.hpp"
 
 struct data_test_auth_3d_test_uid {
     const char* name;
@@ -148,7 +148,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
 
     int32_t auth_3d_category_index = auth_3d_test_window->auth_3d_category_index;
 
-    imguiGetContentRegionAvailSetNextItemWidth();
+    ImGui::GetContentRegionAvailSetNextItemWidth();
     if (ImGui::BeginCombo("##Auth 3D Category Index", auth_3d_category_index > -1
         ? auth_3d_db_cat[auth_3d_category_index].name : "", 0)) {
         for (data_test_auth_3d_test_category& i : auth_3d_db_cat) {
@@ -156,7 +156,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
 
             ImGui::PushID(&i);
             if (ImGui::Selectable(i.name, auth_3d_category_index == auth_3d_category_idx)
-                || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
                 || (ImGui::IsItemFocused() && auth_3d_category_index != auth_3d_category_idx)) {
                 auth_3d_category_index = auth_3d_category_idx;
             }
@@ -195,7 +195,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
 
     ImGui::Checkbox("OBJ Link", &auth_3d_test_task.window.obj_link);
 
-    imguiGetContentRegionAvailSetNextItemWidth();
+    ImGui::GetContentRegionAvailSetNextItemWidth();
     bool auth_3d_category_found = false;
     for (data_test_auth_3d_test_category& i : auth_3d_db_cat) {
         if (auth_3d_category_index != &i - auth_3d_db_cat.data())
@@ -208,7 +208,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
 
                 ImGui::PushID(&j);
                 if (ImGui::Selectable(j.name, auth_3d_index == auth_3d_idx)
-                    || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
+                    || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (ImGui::IsItemFocused() && auth_3d_index != auth_3d_idx)) {
                     auth_3d_test_window->auth_3d_index = -1;
                     auth_3d_index = auth_3d_idx;
@@ -241,8 +241,8 @@ void data_test_auth_3d_test_imgui(class_data* data) {
     float_t frame = auth_3d_test_window->frame;
     ImGui::Text("frame[ 0,%4.0f)", auth_3d_test_window->last_frame);
 
-    imguiGetContentRegionAvailSetNextItemWidth();
-    igSliderFloatButton("##frame slider", &frame, 1.0f,
+    ImGui::GetContentRegionAvailSetNextItemWidth();
+    ImGui::SliderFloatButton("##frame slider", &frame, 1.0f,
         0.0f, auth_3d_test_window->last_frame, "%5.0f", 0);
     if (ImGui::IsItemActivated())
          auth_3d_test_window->paused = true;
@@ -268,23 +268,21 @@ void data_test_auth_3d_test_imgui(class_data* data) {
         auth_3d_test_window->frame = frame;
     }
 
-    imguiColumnSliderFloat("transX", &auth_3d_test_task.trans_value.x, 0.1f, -5.0f, 5.0f, "%.2f", 0, true);
-    imguiColumnSliderFloat("transZ", &auth_3d_test_task.trans_value.z, 0.1f, -5.0f, 5.0f, "%.2f", 0, true);
-    imguiColumnSliderFloat("rotY", &auth_3d_test_task.rot_y_value, 1.0f, -360.0f, 360.0f, "%.0f", 0, true);
+    ImGui::ColumnSliderFloat("transX", &auth_3d_test_task.trans_value.x, 0.1f, -5.0f, 5.0f, "%.2f", 0, true);
+    ImGui::ColumnSliderFloat("transZ", &auth_3d_test_task.trans_value.z, 0.1f, -5.0f, 5.0f, "%.2f", 0, true);
+    ImGui::ColumnSliderFloat("rotY", &auth_3d_test_task.rot_y_value, 1.0f, -360.0f, 360.0f, "%.0f", 0, true);
 
     if (ImGui::Button("cam reset", { 72.0f, 0.0f }) && rctx_ptr && rctx_ptr->camera) {
         camera* cam = rctx_ptr->camera;
-        camera_set_fov(cam, 32.2673416137695);
-        camera_set_roll(cam, 0.0);
-        vec3 view_point = { 0.0f, 1.0f, 6.0f };
-        camera_set_view_point(cam, &view_point);
-        vec3 interest = { 0.0f, 1.0f, 0.0f };
-        camera_set_interest(cam, &interest);
+        cam->set_fov(32.2673416137695);
+        cam->set_roll(0.0);
+        cam->set_view_point({ 0.0f, 1.0f, 6.0f });
+        cam->set_interest({ 0.0f, 1.0f, 0.0f });
     }
 
     ImGui::Separator();
 
-    imguiColumnSliderFloat("Frame Speed", &frame_speed, 0.01f, 0.0f, 3.0f, "%.2f", 0, true);
+    ImGui::ColumnSliderFloat("Frame Speed", &frame_speed, 0.01f, 0.0f, 3.0f, "%.2f", 0, true);
 
     data->imgui_focus |= ImGui::IsWindowFocused();
     ImGui::End();
@@ -318,7 +316,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
 
         int32_t stage_index = auth_3d_test_task.stage_index;
 
-        imguiGetContentRegionAvailSetNextItemWidth();
+        ImGui::GetContentRegionAvailSetNextItemWidth();
         if (ImGui::BeginCombo("##Stage Index", stage_index > -1
             ? auth_3d_test_window->stage[stage_index] : "", 0)) {
             for (const char*& i : auth_3d_test_window->stage) {
@@ -326,7 +324,7 @@ void data_test_auth_3d_test_imgui(class_data* data) {
 
                 ImGui::PushID(i);
                 if (ImGui::Selectable(i, stage_index == stage_idx)
-                    || imguiItemKeyPressed(GLFW_KEY_ENTER, true)
+                    || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
                     || (ImGui::IsItemFocused() && stage_index != stage_idx))
                     stage_index = stage_idx;
                 ImGui::PopID();

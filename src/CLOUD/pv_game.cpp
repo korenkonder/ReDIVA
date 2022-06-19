@@ -17,7 +17,7 @@
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/sort.hpp"
 #include "input.hpp"
-#include "classes/imgui_helper.h"
+#include "classes/imgui_helper.hpp"
 
 enum dsc_ft_func {
     DSC_FT_END,
@@ -129,7 +129,7 @@ enum dsc_ft_func {
     DSC_FT_MAX,
 };
 
-pv_game pv_game_data;
+pv_game_old pv_game_old_data;
 
 extern render_context* rctx_ptr;
 
@@ -138,16 +138,176 @@ static int32_t expression_id_to_mottbl_index(int32_t expression_id);
 static int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id);
 static int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
 static int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);
-static void pv_game_change_field(pv_game* pvgm, int32_t field, int64_t dsc_time, int64_t curr_time);
-static bool pv_game_dsc_process(pv_game* pvgm, int64_t curr_time);
-static void pv_game_reset_field(pv_game* pvgm);
+static void pv_game_change_field(pv_game_old* pvgm, int32_t field, int64_t dsc_time, int64_t curr_time);
+static bool pv_game_dsc_process(pv_game_old* pvgm, int64_t curr_time);
+static void pv_game_reset_field(pv_game_old* pvgm);
 
-static dsc_data* sub_1401216D0(pv_game* a1, dsc_ft_func func_name,
+static dsc_data* sub_1401216D0(pv_game_old* a1, dsc_ft_func func_name,
     int32_t* time, int32_t* pv_branch_mode, dsc_data* start, dsc_data* end);
-static void sub_140121A80(pv_game* a1, int32_t chara_id);
-static void sub_140122770(pv_game* a1, int32_t chara_id);
+static void sub_140121A80(pv_game_old* a1, int32_t chara_id);
+static void sub_140122770(pv_game_old* a1, int32_t chara_id);
 
-pv_game::pv_game() : state(), frame(), frame_float(), time(), rob_chara_ids(),
+pv_play_data_motion_data::pv_play_data_motion_data() : rob_chr(), current_time(),
+duration(), start_pos(), end_pos(), start_rot(), end_rot() {
+    mot_smooth_len = 12.0f;
+}
+
+pv_play_data_motion_data::~pv_play_data_motion_data() {
+
+}
+
+void pv_play_data_motion_data::reset() {
+    rob_chr = 0;
+    current_time = 0.0f;
+    duration = 0.0f;
+    start_pos = vec3_null;
+    end_pos = vec3_null;
+    start_rot = 0.0f;
+    end_rot = 0.0f;
+    mot_smooth_len = 12.0f;
+    set_motion.clear();
+    set_motion.shrink_to_fit();
+    set_item.clear();
+    set_item.shrink_to_fit();
+}
+
+pv_play_data::pv_play_data() : rob_chr(), disp() {
+
+}
+
+pv_play_data::~pv_play_data() {
+
+}
+
+void pv_play_data::reset() {
+    motion.clear();
+    motion.shrink_to_fit();
+    rob_chr = 0;
+    set_motion.clear();
+    disp = true;
+    motion_data.reset();
+}
+
+pv_disp2d::pv_disp2d() : pv_id(), title_start_2d_field(), title_end_2d_field(),
+title_start_2d_low_field(), title_end_2d_low_field(), title_start_3d_field(), title_end_3d_field(),
+target_shadow_type(), pv_spr_set_id(), pv_aet_set_id(), pv_main_aet_id() {
+
+}
+
+pv_disp2d::~pv_disp2d() {
+
+}
+
+pv_game_dsc_data::pv_game_dsc_data() {
+
+}
+
+pv_game_dsc_data::~pv_game_dsc_data() {
+
+}
+
+pv_game_data_chara::pv_game_data_chara() {
+
+}
+
+pv_game_data_chara::~pv_game_data_chara() {
+
+}
+
+pv_game_data_field::pv_game_data_field() {
+
+}
+
+pv_game_data_field::~pv_game_data_field() {
+
+}
+
+struc_78::struc_78() {
+
+}
+
+struc_78::~struc_78() {
+
+}
+
+pv_game_data_chreff::pv_game_data_chreff() {
+
+}
+
+pv_game_data_chreff::~pv_game_data_chreff() {
+
+}
+
+pv_effect_resource::pv_effect_resource() {
+
+}
+
+pv_effect_resource::~pv_effect_resource() {
+
+}
+
+pv_game_data::pv_game_data() {
+
+}
+
+pv_game_data::~pv_game_data() {
+
+}
+
+pv_game::pv_game() {
+
+}
+
+pv_game::~pv_game() {
+
+}
+
+TaskPvGame::Data::Data() {
+
+}
+
+TaskPvGame::Data::~Data() {
+
+}
+
+TaskPvGame::TaskPvGame() {
+
+}
+
+TaskPvGame::~TaskPvGame() {
+
+}
+
+bool TaskPvGame::Init() {
+    TaskPvGame::Load(&data);
+    return true;
+}
+
+bool TaskPvGame::Ctrl() {
+    return false;
+}
+
+bool TaskPvGame::Dest() {
+    return true;
+}
+
+void TaskPvGame::Disp() {
+
+}
+
+void TaskPvGame::Window() {
+
+}
+
+void TaskPvGame::Load(TaskPvGame::Data* data) {
+
+}
+
+void TaskPvGame::Unload() {
+
+}
+
+pv_game_old::pv_game_old() : state(), frame(), frame_float(), time(), rob_chara_ids(),
 dsc_time(), dsc_data_ptr(), dsc_data_ptr_end(), play(), success(), chara_id(),
 pv_end(), playdata(), scene_rot_y(), branch_mode(), pause(), step_frame() {
     pv_id = -1;
@@ -158,16 +318,16 @@ pv_end(), playdata(), scene_rot_y(), branch_mode(), pause(), step_frame() {
     scene_rot_mat = mat4u_identity;
 }
 
-pv_game::~pv_game() {
+pv_game_old::~pv_game_old() {
 
 }
 
-bool pv_game::Init() {
+bool pv_game_old::Init() {
     task_stage_load("PV_GAME_STAGE");
     return true;
 }
 
-bool pv_game::Ctrl() {
+bool pv_game_old::Ctrl() {
     switch (state) {
     case 0:
         return false;
@@ -415,13 +575,13 @@ bool pv_game::Ctrl() {
     return false;
 }
 
-void pv_game::Disp() {
+void pv_game_old::Disp() {
     if (state != 10)
         return;
 
 }
 
-bool pv_game::Dest() {
+bool pv_game_old::Dest() {
     Unload();
     task_stage_unload();
 
@@ -439,7 +599,7 @@ bool pv_game::Dest() {
     return true;
 }
 
-void pv_game::Window() {
+void pv_game_old::Window() {
     if (state != 10)
         return;
 
@@ -476,35 +636,35 @@ void pv_game::Window() {
         return;
     }
 
-    w = imguiGetContentRegionAvailWidth();
+    w = ImGui::GetContentRegionAvailWidth();
     if (ImGui::BeginTable("buttons", 2)) {
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.5f);
 
         ImGui::TableNextColumn();
-        w = imguiGetContentRegionAvailWidth();
-        if (imguiButton(pause || (!pause && step_frame) ? "Play (K)" : "Pause (K)", { w, 0.0f }))
+        w = ImGui::GetContentRegionAvailWidth();
+        if (ImGui::ButtonEnterKeyPressed(pause || (!pause && step_frame) ? "Play (K)" : "Pause (K)", { w, 0.0f }))
             pause ^= true;
 
         ImGui::TableNextColumn();
-        w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Step Frame (L)", { w, 0.0f })) {
+        w = ImGui::GetContentRegionAvailWidth();
+        if (ImGui::ButtonEnterKeyPressed("Step Frame (L)", { w, 0.0f })) {
             pause = true;
             step_frame = true;
         }
 
         ImGui::TableNextColumn();
-        w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Stop (Ctrl+K)", { w, 0.0f }))
+        w = ImGui::GetContentRegionAvailWidth();
+        if (ImGui::ButtonEnterKeyPressed("Stop (Ctrl+K)", { w, 0.0f }))
             state = 11;
 
         ImGui::TableNextColumn();
-        w = imguiGetContentRegionAvailWidth();
+        w = ImGui::GetContentRegionAvailWidth();
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "%d", frame);
         ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
-        imguiButtonEx(buf, { w, 0.0f }, ImGuiButtonFlags_DontClosePopups
+        ImGui::ButtonExEnterKeyPressed(buf, { w, 0.0f }, ImGuiButtonFlags_DontClosePopups
             | ImGuiButtonFlags_NoNavFocus | ImGuiButtonFlags_NoHoveredOnFocus);
         ImGui::PopStyleColor(3);
         ImGui::EndTable();
@@ -515,7 +675,7 @@ void pv_game::Window() {
     ImGui::End();
 }
 
-void pv_game::Load(int32_t pv_id, chara_index charas[6], int32_t modules[6]) {
+void pv_game_old::Load(int32_t pv_id, chara_index charas[6], int32_t modules[6]) {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
@@ -580,7 +740,7 @@ void pv_game::Load(int32_t pv_id, chara_index charas[6], int32_t modules[6]) {
     Glitter::glt_particle_manager.draw_all = false;
 }
 
-void pv_game::Unload() {
+void pv_game_old::Unload() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -662,54 +822,6 @@ void pv_game::Unload() {
     pv_param_task::post_process_task.SetDest();
 }
 
-struc_104::struc_104() : rob_chr(), current_time(),
-duration(), start_pos(), end_pos(), start_rot(), end_rot() {
-    mot_smooth_len = 12.0f;
-}
-
-struc_104::~struc_104() {
-
-}
-
-void struc_104::reset() {
-    rob_chr = 0;
-    current_time = 0.0f;
-    duration = 0.0f;
-    start_pos = vec3_null;
-    end_pos = vec3_null;
-    start_rot = 0.0f;
-    end_rot = 0.0f;
-    mot_smooth_len = 12.0f;
-    set_motion.clear();
-    set_item.clear();
-}
-
-pv_play_data::pv_play_data() : rob_chr(), disp() {
-
-}
-
-pv_play_data::~pv_play_data() {
-
-}
-
-void pv_play_data::reset() {
-    motion.clear();
-    rob_chr = 0;
-    set_motion.clear();
-    disp = true;
-    field_38.reset();
-}
-
-pv_disp2d::pv_disp2d() : pv_id(), title_start_2d_field(), title_end_2d_field(),
-title_start_2d_low_field(), title_end_2d_low_field(), title_start_3d_field(), title_end_3d_field(),
-target_shadow_type(), pv_spr_set_id(), pv_aet_set_id(), pv_main_aet_id() {
-
-}
-
-pv_disp2d::~pv_disp2d() {
-
-}
-
 static float_t dsc_time_to_frame(int64_t time) {
     return (float_t)time / 1000000000.0f * 60.0f;
 }
@@ -775,13 +887,13 @@ static int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id) {
     return 131;
 }
 
-static void sub_140122B60(pv_game* a1, int32_t chara_id, int32_t motion_index, int64_t disp_time) {
+static void sub_140122B60(pv_game_old* a1, int32_t chara_id, int32_t motion_index, int64_t disp_time) {
     if (chara_id < 0 || chara_id > ROB_CHARA_COUNT || motion_index < 0)
         return;
 
     pv_play_data* playdata = &a1->playdata[chara_id];
     int64_t dsc_time = a1->dsc_time;
-    for (dsc_set_motion& i : playdata->field_38.set_motion) {
+    for (dsc_set_motion& i : playdata->motion_data.set_motion) {
         int64_t time = (int64_t)i.time * 10000;
         if (time > dsc_time && i.motion_index == motion_index
             && (!a1->branch_mode || a1->branch_mode == i.pv_branch_mode)) {
@@ -793,11 +905,11 @@ static void sub_140122B60(pv_game* a1, int32_t chara_id, int32_t motion_index, i
     }
 }
 
-static void pv_game_change_field(pv_game* pvgm, int32_t field, int64_t dsc_time, int64_t curr_time) {
+static void pv_game_change_field(pv_game_old* pvgm, int32_t field, int64_t dsc_time, int64_t curr_time) {
     light_param_storage_data_set_pv_cut(field);
 }
 
-static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
+static bool pv_game_dsc_process(pv_game_old* a1, int64_t curr_time) {
     dsc_ft_func func = (dsc_ft_func)a1->dsc_data_ptr->func;
     uint32_t* data = a1->dsc_m.get_func_data(a1->dsc_data_ptr);
     if (a1->branch_mode) {
@@ -885,7 +997,7 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
                 sub_1405430F0(chara_id, 2);
             }*/
 
-            //pv_game::set_data_itmpv_visibility(a1->pv_game, a1->chara_id, true);
+            //pv_game_old::set_data_itmpv_visibility(a1->pv_game_old, a1->chara_id, true);
             for (pv_play_data_set_motion& i : playdata->set_motion) {
                 bool v45 = rob_chr->set_motion_id(i.motion_id, i.frame,
                     i.duration, i.field_10, 0, i.blend_type, aft_bone_data, aft_mot_db);
@@ -894,14 +1006,14 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
                 rob_chr->data.motion.step_data.step = i.frame_speed;
                 //if (v45)
                 //    pv_expression_array_set_motion(a1->chara_id, i.motion_id);
-                //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
+                //if (!a1->pv_game_old->data.pv->disable_calc_motfrm_limit)
                 sub_140122B60(a1, a1->chara_id, i.motion_index, i.dsc_time);
             }
             playdata->set_motion.clear();
         }
         else {
             rob_chr->set_visibility(false);
-            //pv_game::set_data_itmpv_visibility(a1->pv_game, a1->chara_id, false);
+            //pv_game_old::set_data_itmpv_visibility(a1->pv_game_old, a1->chara_id, false);
         }
     } break;
     case DSC_FT_MIKU_SHADOW: {
@@ -1027,7 +1139,7 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
             rob_chr->data.motion.step_data.step = v519.frame_speed;
             //if (v84)
             //    pv_expression_array_set_motion(a1->chara_id, motion_id);
-            //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
+            //if (!a1->pv_game_old->data.pv->disable_calc_motfrm_limit)
                 sub_140122B60(a1, a1->chara_id, motion_index, v56 ? v56->time : 0);
         }
         else {
@@ -1120,7 +1232,7 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
         duration /= a1->anim_frame_speed;
 
         float_t offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
+        //if (a1->pv_game_old->data.pv->is_old_pv)
         //    offset = 1.0f;
 
         rob_chr->set_eyelid_mottbl_motion_from_face(v115, duration, -1.0f, offset, aft_mot_db);
@@ -1193,11 +1305,11 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
         int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
         duration /= a1->anim_frame_speed;
 
-        //if (a1->pv_game->data.field_2D090 && mottbl_index != 144)
+        //if (a1->pv_game_old->data.field_2D090 && mottbl_index != 144)
         //    value = 0.0f;
 
         float_t offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
+        //if (a1->pv_game_old->data.pv->is_old_pv)
         //    offset = 1.0f;
 
         rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
@@ -1241,7 +1353,7 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
         duration /= a1->anim_frame_speed;
 
         float_t offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
+        //if (a1->pv_game_old->data.pv->is_old_pv)
         //    offset = 1.0f;
 
         switch (hand_index) {
@@ -1292,7 +1404,7 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
         duration /= a1->anim_frame_speed;
 
         float_t offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
+        //if (a1->pv_game_old->data.pv->is_old_pv)
         //    offset = 1.0f;
 
         rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value,
@@ -1336,11 +1448,11 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
         duration /= a1->anim_frame_speed;
 
         bool v168 = true;
-        //if (a1->has_perf_id && (a1->pv_game->data.pv->edit - 1) <= 1)
+        //if (a1->has_perf_id && (a1->pv_game_old->data.pv->edit - 1) <= 1)
         //    v168 = false;
 
         float_t offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
+        //if (a1->pv_game_old->data.pv->is_old_pv)
         //    offset = 1.0f;
 
         rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214
@@ -1393,10 +1505,10 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
 
         bool v237 = true;
         //if (a1->has_perf_id)
-        //    v237 = (a1->pv_game->data.pv->edit - 1) > 1;
+        //    v237 = (a1->pv_game_old->data.pv->edit - 1) > 1;
 
         float_t offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
+        //if (a1->pv_game_old->data.pv->is_old_pv)
         //    offset = 1.0f;
 
         rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, mottbl_index >= 214
@@ -1406,7 +1518,7 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
             int32_t mottbl_index = mouth_anim_id_to_mottbl_index(v234);
 
             float_t value = 1.0f;
-            //if (a1->pv_game->data.field_2D090 && mottbl_index != 144)
+            //if (a1->pv_game_old->data.field_2D090 && mottbl_index != 144)
             //    value = 0.0f;
 
             rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0,
@@ -1448,11 +1560,11 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
         duration *= a1->target_anim_fps;
 
         float_t value = 1.0f;
-        //if (a1->pv_game->data.field_2D090 && mottbl_index != 144)
+        //if (a1->pv_game_old->data.field_2D090 && mottbl_index != 144)
         //    value = 0.0f;
 
         float_t offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
+        //if (a1->pv_game_old->data.pv->is_old_pv)
         //    offset = 1.0f;
 
         rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
@@ -1577,7 +1689,7 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
             //if (a1->chara_id < a1->pp->chara.size())
             //    chara_index = (::chara_index)a1->pp->chara[a1->chara_id].chara_effect.base_chara;
 
-            //chara_index chara_index = pv_db_pv::get_performer_chara(a1->pv_game->data.pv, a1->chara_id);
+            //chara_index chara_index = pv_db_pv::get_performer_chara(a1->pv_game_old->data.pv, a1->chara_id);
             chara_size_index = chara_init_data_get_chara_size_index(chara_index);
         }
         else if (chara_size == 2)
@@ -1833,13 +1945,13 @@ static bool pv_game_dsc_process(pv_game* a1, int64_t curr_time) {
     return true;
 }
 
-static void pv_game_reset_field(pv_game* pvgm) {
+static void pv_game_reset_field(pv_game_old* pvgm) {
     task_stage_info v14;
     task_stage_set_stage(&v14);
     Glitter::glt_particle_manager.FreeScenes();
 }
 
-static dsc_data* sub_1401216D0(pv_game* a1, dsc_ft_func func_name,
+static dsc_data* sub_1401216D0(pv_game_old* a1, dsc_ft_func func_name,
     int32_t* time, int32_t* pv_branch_mode, dsc_data* start, dsc_data* end) {
     int32_t _time = -1;
     for (dsc_data* i = start; i != end; i++)
@@ -1865,14 +1977,14 @@ static dsc_data* sub_1401216D0(pv_game* a1, dsc_ft_func func_name,
     return 0;
 }
 
-static void sub_140121A80(pv_game* a1, int32_t chara_id) {
+static void sub_140121A80(pv_game_old* a1, int32_t chara_id) {
     if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
         return;
 
     int32_t pv_branch_mode = 0;
     int32_t time = -1;
     int32_t prev_time = -1;
-    a1->playdata[chara_id].field_38.set_item.clear();
+    a1->playdata[chara_id].motion_data.set_item.clear();
 
     dsc_data* i = a1->dsc_m.data.data();
     dsc_data* i_end = a1->dsc_m.data.data() + a1->dsc_m.data.size();
@@ -1893,21 +2005,21 @@ static void sub_140121A80(pv_game* a1, int32_t chara_id) {
             v14.item_index = data[1];
             v14.time = time;
             v14.pv_branch_mode = pv_branch_mode;
-            a1->playdata[chara_id].field_38.set_item.push_back(v14);
+            a1->playdata[chara_id].motion_data.set_item.push_back(v14);
         }
         prev_time = time;
         i++;
     }
 }
 
-static void sub_140122770(pv_game* a1, int32_t chara_id) {
+static void sub_140122770(pv_game_old* a1, int32_t chara_id) {
     if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
         return;
 
     int32_t pv_branch_mode = 0;
     int32_t time = -1;
     int32_t prev_time = -1;
-    a1->playdata[chara_id].field_38.set_motion.clear();
+    a1->playdata[chara_id].motion_data.set_motion.clear();
 
     dsc_data* i = a1->dsc_m.data.data();
     dsc_data* i_end = a1->dsc_m.data.data() + a1->dsc_m.data.size();
@@ -1928,7 +2040,7 @@ static void sub_140122770(pv_game* a1, int32_t chara_id) {
             v14.motion_index = data[1];
             v14.time = time;
             v14.pv_branch_mode = pv_branch_mode;
-            a1->playdata[chara_id].field_38.set_motion.push_back(v14);
+            a1->playdata[chara_id].motion_data.set_motion.push_back(v14);
         }
         prev_time = time;
         i++;

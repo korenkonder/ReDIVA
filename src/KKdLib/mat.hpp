@@ -13,6 +13,9 @@ struct mat3 {
     vec3 row0;
     vec3 row1;
     vec3 row2;
+
+    mat3();
+    mat3(vec3 row0, vec3 row1, vec3 row2);
 };
 
 struct mat4;
@@ -24,6 +27,9 @@ struct mat4 {
     vec4 row2;
     vec4 row3;
 
+    mat4();
+    mat4(vec4 row0, vec4 row1, vec4 row2, vec4 row3);
+
     operator mat4u() const;
 };
 
@@ -32,6 +38,9 @@ struct mat4u {
     vec4u row1;
     vec4u row2;
     vec4u row3;
+
+    mat4u();
+    mat4u(vec4u row0, vec4u row1, vec4u row2, vec4u row3);
 
     operator mat4() const;
 };

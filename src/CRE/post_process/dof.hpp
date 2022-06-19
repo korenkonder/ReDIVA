@@ -7,10 +7,10 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../camera.h"
+#include "../camera.hpp"
 #include "../fbo.hpp"
-#include "../render_texture.h"
-#include "../shared.h"
+#include "../render_texture.hpp"
+#include "../shared.hpp"
 
 enum dof_debug_flags {
     DOF_DEBUG_USE_UI_PARAMS   = 0x01,

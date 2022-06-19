@@ -6,10 +6,12 @@
 #include "auth_3d.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/interpolation.h"
+#include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
-#include "draw_task.h"
+#include "rob/rob.hpp"
+#include "draw_task.hpp"
 #include "object.hpp"
-#include "rob.hpp"
+#include "pv_db.hpp"
 #include "stage.hpp"
 
 namespace auth_3d_detail {
@@ -347,10 +349,10 @@ void auth_3d::ctrl(render_context* rctx) {
                 mat4_mult_vec3_trans(&mat, &view_point, &view_point);
 
                 camera* cam = rctx->camera;
-                camera_set_interest(cam, &interest);
-                camera_set_view_point(cam, &view_point);
-                camera_set_fov(cam, fov * RAD_TO_DEG);
-                camera_set_roll(cam, roll * RAD_TO_DEG);
+                cam->set_interest(interest);
+                cam->set_view_point(view_point);
+                cam->set_fov(fov * RAD_TO_DEG);
+                cam->set_roll(roll * RAD_TO_DEG);
                 break;
             }
 
@@ -1605,344 +1607,6 @@ bool Auth3dTestTask::Dest() {
     return true;
 }
 
-/*
-void __fastcall sub_140248480(string *a1, list_int32_t *a2)
-{
-    list_int32_t_node *v4; // rcx
-    list_int32_t_node *v5; // rbx
-    char *v6; // rcx
-    int32_t *i; // rbx
-    const char *v8; // rax
-    size_t v9; // r8
-    size_t v10; // rsi
-    char *v11; // rdi
-    _BYTE *v12; // rax
-    _BYTE *v13; // r9
-    int v14; // ecx
-    char *v15; // rax
-    ssize_t v16; // r9
-    char *v17; // rcx
-    list_int32_t_node *v18; // rdi
-    list_int32_t_node *v19; // rax
-    size_t v20; // rdx
-    int32_t v21; // eax
-    pv_db_pv *v22; // rax
-    pv_db_pv_difficulty *v23; // rcx
-    string_union v24; // kr00_16
-    pv_item *__shifted(pv_item,8) v25; // rbx
-    const char *v26; // rcx
-    object_info v27; // eax
-    list_int32_t_node *v28; // rdi
-    list_int32_t_node *v29; // rax
-    size_t v30; // rdx
-    pv_item *__shifted(pv_item,0x20) v31; // rbx
-    char *v32; // rcx
-    list_int32_t_node *v33; // rbx
-    list_int32_t_node *v34; // rdx
-    size_t v35; // rax
-    ssize_t v36; // rax
-    string *v37; // rbx
-    ssize_t v38; // rax
-    string *v39; // rbx
-    char *v40; // rcx
-    list_int32_t_node *v41; // rbx
-    list_int32_t_node *v42; // rdx
-    size_t v43; // rax
-    char *v44; // rcx
-    list_int32_t_node *v45; // rbx
-    list_int32_t_node *v46; // rcx
-    size_t v47; // rax
-    int32_t a4; // [rsp+20h] [rbp-49h] BYREF
-    __int64 v49; // [rsp+28h] [rbp-41h]
-    string Dst; // [rsp+30h] [rbp-39h] BYREF
-    string v51; // [rsp+30h] [rbp-39h] FORCED BYREF
-    string Memory; // [rsp+50h] [rbp-19h] BYREF
-    vector_int32_t uids; // [rsp+70h] [rbp+7h] BYREF
-
-    v49 = -2i64;
-    v4 = a2->head->next;
-    a2->head->next = a2->head;
-    a2->head->prev = a2->head;
-    a2->size = 0i64;
-    if ( v4 != a2->head )
-    {
-        do
-        {
-            v5 = v4->next;
-            operator delete(v4);
-            v4 = v5;
-        }
-        while ( v5 != a2->head );
-    }
-    uids.begin = 0i64;
-    uids.end = 0i64;
-    uids.capacity_end = 0i64;
-    if ( a1->capacity < 0x10 )
-        v6 = (char *)a1;
-    else
-        v6 = a1->data.ptr;
-    auth_3d_data_get_category_uids(v6, &uids);
-    for ( i = uids.begin; i != uids.end; ++i )
-    {
-        v8 = auth_3d_data_get_uid_name(*i);
-        Dst.capacity = 15i64;
-        Dst.length = 0i64;
-        Dst.data.data[0] = 0;
-        if ( *v8 )
-        {
-            v9 = -1i64;
-            do
-                ++v9;
-            while ( v8[v9] );
-        }
-        else
-        {
-            v9 = 0i64;
-        }
-        string_assign_char_str(&Dst, v8, v9);
-        v10 = Dst.length;
-        if ( Dst.length )
-        {
-            v11 = (char *)&Dst;
-            if ( Dst.capacity >= 0x10 )
-                v11 = Dst.data.ptr;
-            while ( v10 )
-            {
-                v12 = memchr(v11, '_', v10);
-                v13 = v12;
-                if ( !v12 )
-                    break;
-                if ( *v12 == asc_14096CDF0[0] )
-                    v14 = 0;
-                else
-                    v14 = *v12 < asc_14096CDF0[0] ? -1 : 1;
-                if ( !v14 )
-                {
-                    v15 = (char *)&Dst;
-                    if ( Dst.capacity >= 0x10 )
-                        v15 = Dst.data.ptr;
-                    v16 = v13 - v15;
-                    if ( v16 != -1 )
-                    {
-                        sub_1400215A0(&Dst, &Memory, 0i64, v16);
-                        v17 = (char *)&Memory;
-                        if ( Memory.capacity >= 0x10 )
-                            v17 = Memory.data.ptr;
-                        a4 = obj_database_get_object_set(v17);
-                        if ( a4 != -1 )
-                        {
-                            v18 = a2->head;
-                            v19 = list_int32_t_buy_node(a2, a2->head, a2->head->prev, &a4);
-                            v20 = a2->size;
-                            if ( v20 == 0xAAAAAAAAAAAAAA9i64 )
-                                ThrowException("list<T> too long");
-                            a2->size = v20 + 1;
-                            v18->prev = v19;
-                            v19->prev->next = v19;
-                        }
-                        if ( Memory.capacity >= 0x10 )
-                            operator delete(Memory.data.ptr);
-                    }
-                    break;
-                }
-                v10 += v11 - v12 - 1;
-                v11 = v12 + 1;
-            }
-        }
-        if ( Dst.capacity >= 0x10 )
-            operator delete(Dst.data.ptr);
-    }
-    if ( !string::find(a1, "ITMPV", 0i64, 5ui64) )
-    {
-        sub_1400215A0(a1, &Memory, 5i64, -1i64);
-        v21 = sub_1400D29A0(&Memory, 0xAu);
-        v22 = task_pv_db_get_pv(v21);
-        if ( v22 )
-        {
-            v23 = v22->difficulty[2].begin;
-            if ( v22->difficulty[2].end - v23 )
-            {
-                v51.data = 0ui64;
-                v51.length = 0i64;
-                sub_14023FDE0((vector_pv_item *)&v51, &v23->pv_item);
-                v24 = v51.data;
-                if ( v51.data.ptr != *(char **)&v51.data.data[8] )
-                {
-                    v25 = (pv_item *__shifted(pv_item,8))(v51.data.ptr + 8);
-                    do
-                    {
-                        if ( ADJ(v25)->index > 0 )
-                        {
-                            if ( ADJ(v25)->name.capacity < 0x10 )
-                                v26 = (const char *)v25;
-                            else
-                                v26 = ADJ(v25)->name.data.ptr;
-                            v27 = obj_database_get_object_info(v26);
-                            if ( v27 != -1 )
-                            {
-                                a4 = HIWORD(*(unsigned int *)&v27);
-                                v28 = a2->head;
-                                v29 = sub_14023B3E0(a2, a2->head, a2->head->prev, &a4);
-                                v30 = a2->size;
-                                if ( v30 == 0xAAAAAAAAAAAAAA9i64 )
-                                    ThrowException("list<T> too long");
-                                a2->size = v30 + 1;
-                                v28->prev = v29;
-                                v29->prev->next = v29;
-                            }
-                        }
-                        ++v25;
-                    }
-                    while ( ADJ(v25) != *(pv_item *__shifted(pv_item,8) *)&v24.data[8] );
-                }
-                if ( v24.ptr )
-                {
-                    if ( v24.ptr != *(char **)&v24.data[8] )
-                    {
-                        v31 = (pv_item *__shifted(pv_item,0x20))(v24.ptr + 32);
-                        do
-                        {
-                            if ( ADJ(v31)->name.capacity >= 0x10 )
-                                operator delete(ADJ(v31)->name.data.ptr);
-                            ADJ(v31)->name.capacity = 15i64;
-                            ADJ(v31)->name.length = 0i64;
-                            ADJ(v31++)->name.data.data[0] = 0;
-                        }
-                        while ( ADJ(v31) != *(pv_item *__shifted(pv_item,0x20) *)&v24.data[8] );
-                    }
-                    operator delete(v24.ptr);
-                }
-            }
-        }
-        if ( Memory.capacity >= 0x10 )
-            operator delete(Memory.data.ptr);
-    }
-    if ( !string::find(a1, "EFFCHRPV", 0i64, 8ui64) )
-    {
-        if ( a1->capacity < 0x10 )
-            v32 = (char *)a1;
-        else
-            v32 = a1->data.ptr;
-        a4 = obj_database_get_object_set(v32);
-        if ( a4 != -1 )
-        {
-            v33 = a2->head;
-            v34 = list_int32_t_buy_node(a2, a2->head, a2->head->prev, &a4);
-            v35 = a2->size;
-            if ( v35 == 0xAAAAAAAAAAAAAA9i64 )
-                ThrowException("list<T> too long");
-            a2->size = v35 + 1;
-            v33->prev = v34;
-            v34->prev->next = v34;
-        }
-    }
-    sub_14023EF10(a2);
-    sub_14023F860(a2);
-    v51.capacity = 15i64;
-    v51.length = 0i64;
-    v51.data.data[0] = 0;
-    string_assign_char_str(&v51, null_string, 0i64);
-    v36 = string::find(a1, "STGPV", 0i64, 5ui64);
-    if ( v36 != -1 )
-    {
-        v37 = sub_1400215A0(a1, &Memory, v36, 8i64);
-        if ( &v51 != v37 )
-        {
-            if ( v51.capacity >= 0x10 )
-                operator delete(v51.data.ptr);
-            v51.capacity = 15i64;
-            v51.length = 0i64;
-            v51.data.data[0] = 0;
-            if ( v37->capacity >= 0x10 )
-            {
-                v51.data.ptr = v37->data.ptr;
-                v37->data.ptr = 0i64;
-            }
-            else if ( v37->length != -1i64 )
-            {
-                memmove(&v51, v37, v37->length + 1);
-            }
-            v51.length = v37->length;
-            v51.capacity = v37->capacity;
-            v37->capacity = 15i64;
-            v37->length = 0i64;
-            v37->data.data[0] = 0;
-        }
-        if ( Memory.capacity >= 0x10 )
-            operator delete(Memory.data.ptr);
-    }
-    v38 = string::find(a1, "STGD2PV", 0i64, 7ui64);
-    if ( v38 != -1 )
-    {
-        v39 = sub_1400215A0(a1, &Memory, v38, 10i64);
-        if ( &v51 != v39 )
-        {
-            if ( v51.capacity >= 0x10 )
-                operator delete(v51.data.ptr);
-            v51.capacity = 15i64;
-            v51.length = 0i64;
-            v51.data.data[0] = 0;
-            if ( v39->capacity >= 0x10 )
-            {
-                v51.data.ptr = v39->data.ptr;
-                v39->data.ptr = 0i64;
-            }
-            else if ( v39->length != -1i64 )
-            {
-                memmove(&v51, v39, v39->length + 1);
-            }
-            v51.length = v39->length;
-            v51.capacity = v39->capacity;
-            v39->capacity = 15i64;
-            v39->length = 0i64;
-            v39->data.data[0] = 0;
-        }
-        if ( Memory.capacity >= 0x10 )
-            operator delete(Memory.data.ptr);
-    }
-    if ( v51.length )
-    {
-        v40 = (char *)&v51;
-        if ( v51.capacity >= 0x10 )
-            v40 = v51.data.ptr;
-        a4 = obj_database_get_object_set(v40);
-        if ( a4 != -1 )
-        {
-            v41 = a2->head->next;
-            v42 = list_int32_t_buy_node(a2, v41, v41->prev, &a4);
-            v43 = a2->size;
-            if ( v43 == 0xAAAAAAAAAAAAAA9i64 )
-                ThrowException("list<T> too long");
-            a2->size = v43 + 1;
-            v41->prev = v42;
-            v42->prev->next = v42;
-        }
-    }
-    sub_14000BF30(&Memory, &v51, "HRC");
-    v44 = (char *)&Memory;
-    if ( Memory.capacity >= 0x10 )
-        v44 = Memory.data.ptr;
-    a4 = obj_database_get_object_set(v44);
-    if ( a4 != -1 )
-    {
-        v45 = a2->head;
-        v46 = list_int32_t_buy_node(a2, a2->head, a2->head->prev, &a4);
-        v47 = a2->size;
-        if ( 0xAAAAAAAAAAAAAA9i64 == v47 )
-            ThrowException("list<T> too long");
-        a2->size = v47 + 1;
-        v45->prev = v46;
-        v46->prev->next = v46;
-    }
-    if ( Memory.capacity >= 0x10 )
-        operator delete(Memory.data.ptr);
-    if ( v51.capacity >= 0x10 )
-        operator delete(v51.data.ptr);
-    if ( uids.begin )
-        operator delete(uids.begin);
-}
-*/
-
 void auth_3d_data_init() {
     auth_3d_data = new auth_3d_data_struct;
 }
@@ -2128,24 +1792,6 @@ bool auth_3d_data_get_left_right_reverse(int32_t* id) {
     return true;
 }
 
-bool auth_3d_data_get_paused(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
-            return auth->paused;
-    }
-    return true;
-}
-
-bool auth_3d_data_get_repeat(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
-            return auth->repeat;
-    }
-    return true;
-}
-
 float_t auth_3d_data_get_play_control_begin(int32_t* id) {
     if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
         auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
@@ -2164,20 +1810,96 @@ float_t auth_3d_data_get_play_control_size(int32_t* id) {
     return 0.0f;
 }
 
-void auth_3d_data_load_auth_3d_db(auth_3d_database* auth_3d_db) {
-    auth_3d_data->farcs.clear();
-    auth_3d_data->farcs.resize(auth_3d_db->category.size());
+bool auth_3d_data_get_paused(int32_t* id) {
+    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
+        if (auth->id == *id)
+            return auth->paused;
+    }
+    return true;
+}
 
-    size_t cat_index = 0;
-    for (auth_3d_farc& i : auth_3d_data->farcs)
-        i.name = auth_3d_db->category[cat_index++].name;
+bool auth_3d_data_get_repeat(int32_t* id) {
+    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
+        if (auth->id == *id)
+            return auth->repeat;
+    }
+    return true;
+}
 
-    auth_3d_data->uid_files.clear();
-    auth_3d_data->uid_files.resize(auth_3d_db->uid.size());
+void auth_3d_data_get_obj_sets_from_category(std::string& name, std::vector<uint32_t>& obj_sets,
+    auth_3d_database* auth_3d_db, object_database* obj_db) {
+    obj_sets.clear();
 
-    size_t uid_index = 0;
-    for (auth_3d_uid_file& i : auth_3d_data->uid_files)
-        i.uid = (int32_t)(uid_index++);
+    std::vector<int32_t> uid;
+    auth_3d_db->get_category_uids(name.c_str(), uid);
+    for (int32_t& i : uid) {
+        const char* uid_name = auth_3d_data_get_uid_name(i, auth_3d_db);
+        if (!uid_name)
+            continue;
+
+        const char* s = strchr(uid_name, '_');
+        if (!s)
+            break;
+
+        uint32_t obj_set = obj_db->get_object_set_id(std::string(uid_name, s - uid_name).c_str());
+        if (obj_set != -1)
+            obj_sets.push_back(obj_set);
+        break;
+    }
+
+    if (!name.find("ITMPV")) {
+        int32_t pv_id = atoi(name.substr(5, 3).c_str());
+        pv_db_pv* pv = task_pv_db_get_pv(pv_id);
+        if (pv && pv->difficulty[PV_DIFFICULTY_HARD].size()) {
+            pv_db_pv_difficulty& diff = pv->difficulty[PV_DIFFICULTY_HARD][0];
+
+            for (pv_db_pv_item& i : diff.pv_item) {
+                if (i.index <= 0)
+                    continue;
+
+                object_info info = obj_db->get_object_info(i.name.c_str());
+                if (info.not_null())
+                    obj_sets.push_back(info.set_id);
+            }
+        }
+    }
+
+    if (!name.find("EFFCHRPV")) {
+        uint32_t obj_set = obj_db->get_object_set_id(name.c_str());
+        if (obj_set != -1)
+            obj_sets.push_back(obj_set);
+    }
+
+    uint32_t prev_obj_set = -1;
+    radix_sort_uint32_t(obj_sets.data(), obj_sets.size());
+    for (std::vector<uint32_t>::iterator i = obj_sets.begin(); i != obj_sets.end();)
+        if (*i != prev_obj_set)
+            prev_obj_set = *i++;
+        else
+            i = obj_sets.erase(i);
+
+    std::string stgpv;
+    size_t stgpv_offset = name.find("STGPV");
+    if (stgpv_offset != -1)
+        stgpv = name.substr(stgpv_offset, 8);
+
+    size_t stgd2pv_offset = name.find("STGD2PV");
+    if (stgd2pv_offset != -1)
+        stgpv = name.substr(stgd2pv_offset, 10);
+
+    if (stgpv.size()) {
+        uint32_t obj_set = obj_db->get_object_set_id(stgpv.c_str());
+        if (obj_set != -1)
+            obj_sets.push_back(obj_set);
+    }
+
+    stgpv += "HRC";
+
+    uint32_t obj_set = obj_db->get_object_set_id(stgpv.c_str());
+    if (obj_set != -1)
+        obj_sets.push_back(obj_set);
 }
 
 int32_t auth_3d_data_get_uid(int32_t* id) {
@@ -2197,6 +1919,22 @@ const char* auth_3d_data_get_uid_name(int32_t uid, auth_3d_database* auth_3d_db)
     if (db_uid->enabled)
         return db_uid->name.c_str();
     return 0;
+}
+
+void auth_3d_data_load_auth_3d_db(auth_3d_database* auth_3d_db) {
+    auth_3d_data->farcs.clear();
+    auth_3d_data->farcs.resize(auth_3d_db->category.size());
+
+    size_t cat_index = 0;
+    for (auth_3d_farc& i : auth_3d_data->farcs)
+        i.name = auth_3d_db->category[cat_index++].name;
+
+    auth_3d_data->uid_files.clear();
+    auth_3d_data->uid_files.resize(auth_3d_db->uid.size());
+
+    size_t uid_index = 0;
+    for (auth_3d_uid_file& i : auth_3d_data->uid_files)
+        i.uid = (int32_t)(uid_index++);
 }
 
 void auth_3d_data_load_category(const char* category_name, const char* mdata_dir) {
@@ -2434,6 +2172,10 @@ void auth_3d_data_free() {
 
 void task_auth_3d_append_task() {
     app::TaskWork::AppendTask(&task_auth_3d, "AUTH_3D");
+}
+
+bool task_auth_3d_check_task_ready() {
+    return app::TaskWork::CheckTaskReady(&task_auth_3d);
 }
 
 void task_auth_3d_free_task() {
@@ -2931,7 +2673,7 @@ static void auth_3d_camera_root_ctrl(auth_3d_camera_root* cr,
         || auth_3d_key_detect_fast_change(&cr->interest.translation.y, frame, 0.3f)
         || auth_3d_key_detect_fast_change(&cr->interest.translation.z, frame, 0.3f)) {
         frame = (float_t)(int32_t)frame;
-        camera_set_fast_change(cam, true);
+        cam->set_fast_change(true);
     }
     else {
         float_t frame_prev = frame - get_delta_frame();
@@ -2943,7 +2685,7 @@ static void auth_3d_camera_root_ctrl(auth_3d_camera_root* cr,
                 || auth_3d_key_detect_fast_change(&cr->interest.translation.x, frame_prev, 0.3f)
                 || auth_3d_key_detect_fast_change(&cr->interest.translation.y, frame_prev, 0.3f)
                 || auth_3d_key_detect_fast_change(&cr->interest.translation.z, frame_prev, 0.3f))
-                camera_set_fast_change_hist0(cam, true);
+                cam->set_fast_change_hist0(true);
         }
     }
 
@@ -3052,7 +2794,7 @@ static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx) {
         return;
 
     vec3 view_point;
-    camera_get_view_point(rctx->camera, &view_point);
+    rctx->camera->get_view_point(view_point);
 
     float_t focus;
     vec3_distance(d->model_transform.translation_value, view_point, focus);
@@ -3132,20 +2874,18 @@ static void auth_3d_fog_restore_prev_value(auth_3d_fog* f, render_context* rctx)
     if (id < FOG_DEPTH || id > FOG_BUMP)
         return;
 
-    fog* data = &rctx->fog_data[id];
-    if (f->flags_init & AUTH_3D_FOG_COLOR) {
-        vec4 color = f->color_init;
-        fog_set_color(data, &color);
-    }
+    fog* data = &rctx->fog[id];
+    if (f->flags_init & AUTH_3D_FOG_COLOR)
+        data->set_color(f->color_init);
 
     if (f->flags_init & AUTH_3D_FOG_DENSITY)
-        fog_set_density(data, f->density_value);
+        data->set_density(f->density_value);
 
     if (f->flags_init & AUTH_3D_FOG_END)
-        fog_set_end(data, f->end_value);
+        data->set_end(f->end_value);
 
     if (f->flags_init & AUTH_3D_FOG_START)
-        fog_set_start(data, f->start_value);
+        data->set_start(f->start_value);
 }
 
 static void auth_3d_fog_set(auth_3d_fog* f, render_context* rctx) {
@@ -3153,44 +2893,43 @@ static void auth_3d_fog_set(auth_3d_fog* f, render_context* rctx) {
     if (id < FOG_DEPTH || id > FOG_BUMP)
         return;
 
-    fog* data = &rctx->fog_data[id];
+    fog* data = &rctx->fog[id];
     if (f->flags & AUTH_3D_FOG_COLOR) {
         if (~f->flags_init & AUTH_3D_FOG_COLOR) {
             vec4 color_init;
-            fog_get_color(data, &color_init);
+            data->get_color(color_init);
             f->color_init = color_init;
             enum_or(f->flags_init, AUTH_3D_FOG_COLOR);
         }
 
-        vec4 color = f->color.value;
-        fog_set_color(data, &color);
+        data->set_color(f->color.value);
     }
 
     if (f->flags & AUTH_3D_FOG_DENSITY) {
         if (~f->flags_init & AUTH_3D_FOG_DENSITY) {
-            f->density_init = fog_get_density(data);
+            f->density_init = data->get_density();
             enum_or(f->flags_init, AUTH_3D_FOG_DENSITY);
         }
 
-        fog_set_density(data, f->density_value);
+        data->set_density(f->density_value);
     }
 
     if (f->flags & AUTH_3D_FOG_END) {
         if (~f->flags_init & AUTH_3D_FOG_END) {
-            f->end_init = fog_get_end(data);
+            f->end_init = data->get_end();
             enum_or(f->flags_init, AUTH_3D_FOG_END);
         }
 
-        fog_set_end(data, f->end_value);
+        data->set_end(f->end_value);
     }
 
     if (f->flags & AUTH_3D_FOG_START) {
         if (~f->flags_init & AUTH_3D_FOG_START) {
-            f->start_init = fog_get_start(data);
+            f->start_init = data->get_start();
             enum_or(f->flags_init, AUTH_3D_FOG_START);
         }
 
-        fog_set_start(data, f->start_value);
+        data->set_start(f->start_value);
     }
 }
 
@@ -3296,34 +3035,28 @@ static void auth_3d_light_load(auth_3d* auth, auth_3d_light* l, auth_3d_light_fi
 }
 
 static void auth_3d_light_restore_prev_value(auth_3d_light* l, render_context* rctx) {
-    light_set* set_data = &rctx->light_set_data[LIGHT_SET_MAIN];
+    light_set* set_data = &rctx->light_set[LIGHT_SET_MAIN];
 
     light_id id = l->id;
     if (id < LIGHT_CHARA || id > LIGHT_PROJECTION)
         return;
 
     light_data* data = &set_data->lights[id];
-    if (l->flags_init & AUTH_3D_LIGHT_AMBIENT) {
-        vec4 ambient_init = l->ambient_init;
-        light_set_ambient(data, &ambient_init);
-    }
+    if (l->flags_init & AUTH_3D_LIGHT_AMBIENT)
+        data->set_ambient(l->ambient_init);
 
-    if (l->flags_init & AUTH_3D_LIGHT_DIFFUSE) {
-        vec4 diffuse_init = l->diffuse_init;
-        light_set_diffuse(data, &diffuse_init);
-    }
+    if (l->flags_init & AUTH_3D_LIGHT_DIFFUSE)
+        data->set_diffuse(l->diffuse_init);
 
-    if (l->flags_init & AUTH_3D_LIGHT_SPECULAR) {
-        vec4 specular_init = l->specular_init;
-        light_set_specular(data, &specular_init);
-    }
+    if (l->flags_init & AUTH_3D_LIGHT_SPECULAR)
+        data->set_specular(l->specular_init);
 
     if (l->flags_init & AUTH_3D_LIGHT_TONE_CURVE)
-        light_set_tone_curve(data, &l->tone_curve_init);
+        data->set_tone_curve(l->tone_curve_init);
 }
 
 static void auth_3d_light_set(auth_3d_light* l, render_context* rctx) {
-    light_set* set_data = &rctx->light_set_data[LIGHT_SET_MAIN];
+    light_set* set_data = &rctx->light_set[LIGHT_SET_MAIN];
 
     light_id id = l->id;
     if (id < LIGHT_CHARA || id > LIGHT_PROJECTION)
@@ -3333,52 +3066,49 @@ static void auth_3d_light_set(auth_3d_light* l, render_context* rctx) {
     if (l->flags & AUTH_3D_LIGHT_AMBIENT) {
         if (~l->flags_init & AUTH_3D_LIGHT_AMBIENT) {
             vec4 ambient_init;
-            light_get_ambient(data, &ambient_init);
+            data->get_ambient(ambient_init);
             l->ambient_init = ambient_init;
             enum_or(l->flags_init, AUTH_3D_LIGHT_AMBIENT);
         }
 
-        vec4 ambient = l->ambient.value;
-        light_set_ambient(data, &ambient);
+        data->set_ambient(l->ambient.value);
     }
 
     if (l->flags & AUTH_3D_LIGHT_DIFFUSE) {
         if (~l->flags_init & AUTH_3D_LIGHT_DIFFUSE) {
             vec4 diffuse_init;
-            light_get_diffuse(data, &diffuse_init);
+            data->get_diffuse(diffuse_init);
             l->diffuse_init = diffuse_init;
             enum_or(l->flags_init, AUTH_3D_LIGHT_DIFFUSE);
         }
 
-        vec4 diffuse = l->diffuse.value;
-        light_set_diffuse(data, &diffuse);
+        data->set_diffuse(l->diffuse.value);
     }
 
     if (l->flags & AUTH_3D_LIGHT_POSITION)
-        light_set_position(data, &l->position.translation_value);
+        data->set_position(l->position.translation_value);
 
     if (l->flags & AUTH_3D_LIGHT_SPECULAR) {
         if (~l->flags_init & AUTH_3D_LIGHT_SPECULAR) {
             vec4 specular_init;
-            light_get_specular(data, &specular_init);
+            data->get_specular(specular_init);
             l->specular_init = specular_init;
             enum_or(l->flags_init, AUTH_3D_LIGHT_SPECULAR);
         }
 
-        vec4 specular = l->specular.value;
-        light_set_specular(data, &specular);
+        data->set_specular(l->specular.value);
     }
 
     if (l->flags & AUTH_3D_LIGHT_SPOT_DIRECTION)
-        light_set_spot_direction(data, &l->spot_direction.translation_value);
+        data->set_spot_direction(l->spot_direction.translation_value);
 
     if (l->flags & AUTH_3D_LIGHT_TONE_CURVE) {
         if (~l->flags_init & AUTH_3D_LIGHT_TONE_CURVE) {
-            light_get_tone_curve(data, &l->tone_curve_init);
+            data->get_tone_curve(l->tone_curve_init);
             enum_or(l->flags_init, AUTH_3D_LIGHT_TONE_CURVE);
         }
 
-        light_set_tone_curve(data, (vec3*)&l->tone_curve.value);
+        data->set_tone_curve(*(vec3*)&l->tone_curve.value);
     }
 }
 
@@ -4508,7 +4238,7 @@ static void auth_3d_data_struct_unload_category(
 
 static void auth_3d_farc_free_data(auth_3d_farc* a3da_farc) {
     if (a3da_farc->state == 1)
-        a3da_farc->file_handler.call_free_func_free_data();
+        a3da_farc->file_handler.call_free_callback();
     else if (a3da_farc->state == 2) {
         delete a3da_farc->farc;
         a3da_farc->farc = 0;
@@ -4719,53 +4449,10 @@ static void Auth3dTestTask__SetAuth3dId(Auth3dTestTask* tt) {
 
     if (tt->field_394 == 1) {
         data_struct* data = rctx_ptr->data;
+        auth_3d_database* auth_3d_db = &data->data_ft.auth_3d_db;
         object_database* obj_db = &data->data_ft.obj_db;
 
-        const char* cat_str = tt->category.c_str();
-        size_t cat_len = tt->category.size();
-
-        if (!memcmp(cat_str, "ITMPV", 5)) {
-            uint32_t set_id = obj_db->get_object_set_id(cat_str);
-            if (set_id != (uint32_t)-1) {
-                object_storage_load_set(data, obj_db, set_id);
-                tt->obj_sets.push_back(set_id);
-            }
-        }
-
-        if (!memcmp(cat_str, "EFFCHRPV", 8)) {
-            uint32_t set_id = obj_db->get_object_set_id(cat_str);
-            if (set_id != (uint32_t)-1) {
-                object_storage_load_set(data, obj_db, set_id);
-                tt->obj_sets.push_back(set_id);
-            }
-        }
-
-        size_t off;
-        std::string obj;
-        if ((off = tt->category.find("STGNS", 0)) != -1)
-            obj = std::string(&cat_str[off], 8);
-
-        if ((off = tt->category.find("STGD2NS", 0)) != -1)
-            obj = std::string(&cat_str[off], 10);
-
-        if ((off = tt->category.find("STGPV", 0)) != -1)
-            obj = std::string(&cat_str[off], 8);
-
-        if ((off = tt->category.find("STGD2PV", 0)) != -1)
-            obj = std::string(&cat_str[off], 10);
-
-        uint32_t set_id = obj_db->get_object_set_id(obj.c_str());
-        if (set_id != (uint32_t)-1) {
-            object_storage_load_set(data, obj_db, set_id);
-            tt->obj_sets.push_back(set_id);
-        }
-
-        obj += "HRC";
-        uint32_t hrc_set_id = obj_db->get_object_set_id(obj.c_str());
-        if (hrc_set_id != (uint32_t)-1) {
-            object_storage_load_set(data, obj_db, hrc_set_id);
-            tt->obj_sets.push_back(hrc_set_id);
-        }
+        auth_3d_data_get_obj_sets_from_category(tt->category, tt->obj_sets, auth_3d_db, obj_db);
 
         for (uint32_t& i : tt->obj_sets)
             object_storage_load_set(data, obj_db, i);

@@ -8,7 +8,7 @@
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/light_param/light.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../static_var.h"
+#include "../static_var.hpp"
 #include "face.hpp"
 
 struct light_data {
@@ -30,6 +30,54 @@ struct light_data {
     bool clip_plane[4];
 
     light_data();
+
+    light_type get_type();
+    void set_type(light_type value);
+    void get_ambient(vec4& value);
+    void set_ambient(const vec4& value);
+    void set_ambient(const vec4&& value);
+    void get_diffuse(vec4& value);
+    void set_diffuse(const vec4& value);
+    void set_diffuse(const vec4&& value);
+    void get_specular(vec4& value);
+    void set_specular(const vec4& value);
+    void set_specular(const vec4&& value);
+    void get_position(vec3& value);
+    void set_position(const vec3& value);
+    void set_position(const vec3&& value);
+    void get_position(vec4& value);
+    void set_position(const vec4& value);
+    void set_position(const vec4&& value);
+    void get_spot_direction(vec3& value);
+    void set_spot_direction(const vec3& value);
+    void set_spot_direction(const vec3&& value);
+    float_t get_spot_exponent();
+    void set_spot_exponent(float_t value);
+    float_t get_spot_cutoff();
+    void set_spot_cutoff(float_t value);
+    float_t get_constant();
+    void set_constant(float_t value);
+    float_t get_linear();
+    void set_linear(float_t value);
+    float_t get_quadratic();
+    void set_quadratic(float_t value);
+    void get_attenuation(vec3& value);
+    void set_attenuation(const vec3& value);
+    void set_attenuation(const vec3&& value);
+    void get_ibl_specular(vec4& value);
+    void set_ibl_specular(const vec4& value);
+    void set_ibl_specular(const vec4&& value);
+    void get_ibl_back(vec4& value);
+    void set_ibl_back(const vec4& value);
+    void set_ibl_back(const vec4&& value);
+    void get_ibl_direction(vec4& value);
+    void set_ibl_direction(const vec4& value);
+    void set_ibl_direction(const vec4&& value);
+    void get_tone_curve(vec3& value);
+    void set_tone_curve(const vec3& value);
+    void set_tone_curve(const vec3&& value);
+    void get_clip_plane(bool value[4]);
+    void set_clip_plane(const bool value[4]);
 };
 
 struct light_set {
@@ -40,45 +88,12 @@ struct light_set {
     mat4u irradiance_b;
 
     light_set();
+
+    void get_ambient_intensity(vec4& value);
+    void set_ambient_intensity(const vec4& value);
+    void set_ambient_intensity(const vec4&& value);
+    void get_irradiance(mat4& r, mat4& g, mat4& b);
+    void set_irradiance(const mat4& r, const mat4& g, const mat4& b);
+    void set_irradiance(const mat4&& r, const mat4&& g, const mat4&& b);
+    void data_set(face& face, light_set_id id);
 };
-extern light_type light_get_type(light_data* light);
-extern void light_set_type(light_data* light, light_type value);
-extern void light_get_ambient(light_data* light, vec4* value);
-extern void light_set_ambient(light_data* light, const vec4* value);
-extern void light_get_diffuse(light_data* light, vec4* value);
-extern void light_set_diffuse(light_data* light, const vec4* value);
-extern void light_get_specular(light_data* light, vec4* value);
-extern void light_set_specular(light_data* light, const vec4* value);
-extern void light_get_position(light_data* light, vec3* value);
-extern void light_set_position(light_data* light, const vec3* value);
-extern void light_get_position_vec4(light_data* light, vec4* value);
-extern void light_set_position_vec4(light_data* light, const vec4* value);
-extern void light_get_spot_direction(light_data* light, vec3* value);
-extern void light_set_spot_direction(light_data* light, const vec3* value);
-extern float_t light_get_spot_exponent(light_data* light);
-extern void light_set_spot_exponent(light_data* light, float_t value);
-extern float_t light_get_spot_cutoff(light_data* light);
-extern void light_set_spot_cutoff(light_data* light, float_t value);
-extern float_t light_get_constant(light_data* light);
-extern void light_set_constant(light_data* light, float_t value);
-extern float_t light_get_linear(light_data* light);
-extern void light_set_linear(light_data* light, float_t value);
-extern float_t light_get_quadratic(light_data* light);
-extern void light_set_quadratic(light_data* light, float_t value);
-extern void light_get_attenuation(light_data* light, vec3* value);
-extern void light_set_attenuation(light_data* light, const vec3* value);
-extern void light_get_ibl_specular(light_data* light, vec4* value);
-extern void light_set_ibl_specular(light_data* light, const vec4* value);
-extern void light_get_ibl_back(light_data* light, vec4* value);
-extern void light_set_ibl_back(light_data* light, const vec4* value);
-extern void light_get_ibl_direction(light_data* light, vec4* value);
-extern void light_set_ibl_direction(light_data* light, const  vec4* value);
-extern void light_get_tone_curve(light_data* light, vec3* value);
-extern void light_set_tone_curve(light_data* light, const vec3* value);
-extern void light_get_clip_plane(light_data* light, bool value[4]);
-extern void light_set_clip_plane(light_data* light, const bool value[4]);
-extern void light_set_get_ambient_intensity(light_set* set, vec4* value);
-extern void light_set_set_ambient_intensity(light_set* set, const vec4* value);
-extern void light_set_get_irradiance(light_set* set, mat4* r, mat4* g, mat4* b);
-extern void light_set_set_irradiance(light_set* set, const mat4* r, const mat4* g, const mat4* b);
-extern void light_set_data_set(light_set* set, face* face, light_set_id id);

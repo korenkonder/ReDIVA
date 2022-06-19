@@ -9,7 +9,7 @@
 
 extern render_context* rctx_ptr;
 
-pv_db::TaskPvDB task_pv_db;
+pv_db::TaskPvDB* task_pv_db;
 
 pv_db_pv_lyric::pv_db_pv_lyric() : index() {
 
@@ -68,6 +68,31 @@ pv_db_pv_motion::~pv_db_pv_motion() {
 
 }
 
+pv_db_pv_field_aet::pv_db_pv_field_aet() {
+
+}
+
+pv_db_pv_field_aet::~pv_db_pv_field_aet() {
+
+}
+
+void pv_db_pv_field_aet::reset() {
+    for (std::vector<std::string>& i : name) {
+        i.clear();
+        i.shrink_to_fit();
+    }
+
+    for (std::vector<std::string>& i : id) {
+        i.clear();
+        i.shrink_to_fit();
+    }
+
+    for (std::vector<int32_t>& i : frame) {
+        i.clear();
+        i.shrink_to_fit();
+    }
+}
+
 pv_db_pv_field::pv_db_pv_field() : index(), stage_index(), ex_stage_index(),
 light_frame(), light_frame_set(), stage_flag(), npr_type(), cam_blur(), sdw_off() {
     reset();
@@ -91,22 +116,7 @@ void pv_db_pv_field::reset() {
     light.shrink_to_fit();
     light_frame = -3;
     light_frame_set = false;
-
-    for (int32_t i = 0; i < 4; i++) {
-        aet[i].clear();
-        aet[i].shrink_to_fit();
-    }
-
-    for (int32_t i = 0; i < 4; i++) {
-        aet_id[i].clear();
-        aet_id[i].shrink_to_fit();
-    }
-
-    for (int32_t i = 0; i < 4; i++) {
-        aet_frame[i].clear();
-        aet_frame[i].shrink_to_fit();
-    }
-
+    aet.reset();
     spr_set_back.clear();
     spr_set_back.shrink_to_fit();
     stage_flag = true;
@@ -264,12 +274,12 @@ void pv_db_pv_difficulty::reset() {
     pv_item.shrink_to_fit();
     hand_item.clear();
     hand_item.shrink_to_fit();
-    field_228.clear();
-    field_228.shrink_to_fit();
-    field_240.clear();
-    field_240.shrink_to_fit();
-    field_258.clear();
-    field_258.shrink_to_fit();
+
+    for (std::vector<pv_db_pv_motion>& i : motion) {
+        i.clear();
+        i.shrink_to_fit();
+    }
+
     edit_effect.clear();
     edit_effect.shrink_to_fit();
     title_image.reset();
@@ -935,7 +945,7 @@ namespace pv_db {
                         performer.size = elem->second;
                 }
                 
-                for (int32_t j = 0; j < 4; j++) {
+                for (int32_t j = 0; j < PV_PERFORMER_ITEM_MAX; j++) {
                     int32_t item;
                     if (kv.read(performer_item_names[j], item))
                         performer.item[j] = item;
@@ -1119,18 +1129,18 @@ namespace pv_db {
                 kv.read("attribute.extra", attribute_extra);
                 kv.read("attribute.slide", attribute_slide);
 
-                diff.resize(count);
+                diff.reserve(count);
                 for (int32_t j = 0; j < count; j++) {
                     if (!kv.open_scope("%d", j))
                         continue;
 
-                    pv_db_pv_difficulty diff;
+                    pv_db_pv_difficulty d;
 
-                    diff.difficulty = (pv_difficulty)i;
+                    d.difficulty = (pv_difficulty)i;
 
                     int32_t edition;
                     if (kv.read("edition", edition))
-                        diff.edition = edition;
+                        d.edition = edition;
 
                     const char* _attribute_original;
                     if (!kv.read("attribute.original", _attribute_original)) {
@@ -1141,8 +1151,8 @@ namespace pv_db {
                     }
 
                     if (_attribute_original) {
-                        diff.attribute.type = PV_ATTRIBUTE_ORIGINAL;
-                        diff.attribute.bitset.set(0, atoi(_attribute_original) > 0);
+                        d.attribute.type = PV_ATTRIBUTE_ORIGINAL;
+                        d.attribute.bitset.set(0, atoi(_attribute_original) > 0);
                     }
 
                     const char* _attribute_extra;
@@ -1154,8 +1164,8 @@ namespace pv_db {
                     }
 
                     if (_attribute_extra) {
-                        diff.attribute.type = PV_ATTRIBUTE_EXTRA;
-                        diff.attribute.bitset.set(1, atoi(_attribute_extra) > 0);
+                        d.attribute.type = PV_ATTRIBUTE_EXTRA;
+                        d.attribute.bitset.set(1, atoi(_attribute_extra) > 0);
                     }
 
                     const char* _attribute_slide;
@@ -1167,7 +1177,7 @@ namespace pv_db {
                     }
 
                     if (_attribute_slide)
-                        diff.attribute.bitset.set(2, atoi(_attribute_slide) > 0);
+                        d.attribute.bitset.set(2, atoi(_attribute_slide) > 0);
 
                     std::string script_file_name;
                     if (!kv.read("script_file_name", script_file_name)
@@ -1176,19 +1186,19 @@ namespace pv_db {
                         continue;
                     }
 
-                    diff.script_file_name = script_file_name;
+                    d.script_file_name = script_file_name;
 
                     const char* level;
                     if (kv.read("level", level))
                         for (int32_t k = PV_LV_00_0; k < PV_LV_MAX; k++)
                             if (!str_utils_compare(level, pv_level_names[k])) {
-                                diff.level = (pv_level)k;
+                                d.level = (pv_level)k;
                                 break;
                             }
 
                     int32_t level_sort_index;
                     if (kv.read("level_sort_index", level_sort_index))
-                        diff.level_sort_index = level_sort_index;
+                        d.level_sort_index = level_sort_index;
 
                     key_val_scope diff_scope = *kv.curr_scope;
                     for (int32_t k = 0; k < 2; k++) {
@@ -1196,35 +1206,35 @@ namespace pv_db {
 
                         std::string se_name;
                         if (kv.read("se_name", se_name))
-                            diff.se_name = se_name;
+                            d.se_name = se_name;
 
                         std::string pvbranch_success_se_name;
                         if (kv.read("pvbranch_success_se_name", pvbranch_success_se_name))
-                            diff.pvbranch_success_se_name = pvbranch_success_se_name;
+                            d.pvbranch_success_se_name = pvbranch_success_se_name;
 
                         std::string slide_name;
                         if (kv.read("slide_name", slide_name))
-                            diff.slide_name = slide_name;
+                            d.slide_name = slide_name;
 
                         std::string chainslide_first_name;
                         if (kv.read("chainslide_first_name", chainslide_first_name))
-                            diff.chainslide_first_name = chainslide_first_name;
+                            d.chainslide_first_name = chainslide_first_name;
 
                         std::string chainslide_sub_name;
                         if (kv.read("chainslide_sub_name", chainslide_sub_name))
-                            diff.chainslide_sub_name = chainslide_sub_name;
+                            d.chainslide_sub_name = chainslide_sub_name;
 
                         std::string chainslide_success_name;
                         if (kv.read("chainslide_success_name", chainslide_success_name))
-                            diff.chainslide_success_name = chainslide_success_name;
+                            d.chainslide_success_name = chainslide_success_name;
 
                         std::string chainslide_failure_name;
                         if (kv.read("chainslide_failure_name", chainslide_failure_name))
-                            diff.chainslide_failure_name = chainslide_failure_name;
+                            d.chainslide_failure_name = chainslide_failure_name;
 
                         std::string slidertouch_name;
                         if (kv.read("slidertouch_name", slidertouch_name))
-                            diff.slidertouch_name = slidertouch_name;
+                            d.slidertouch_name = slidertouch_name;
 
                         for (size_t l = 0; l < ROB_CHARA_COUNT; l++) {
                             if (l)
@@ -1234,17 +1244,15 @@ namespace pv_db {
                                 continue;
 
                             for (size_t m = 0; m < 100; m++) {
-                                sprintf_s(buf, sizeof(buf), "%02zu", (size_t)m);
-
-                                if (!kv.open_scope(buf))
+                                if (!kv.open_scope("%02zu", m))
                                     continue;
 
                                 const char* motion_name;
-                                if (kv.read(buf, motion_name)) {
+                                if (kv.read(motion_name)) {
                                     pv_db_pv_motion motion;
                                     motion.index = (int32_t)m;
                                     motion.id = aft_mot_db->get_motion_id(motion_name);
-                                    diff.motion[l].push_back(motion);
+                                    d.motion[l].push_back(motion);
                                 }
 
                                 kv.close_scope();
@@ -1253,7 +1261,7 @@ namespace pv_db {
                         }
 
                         if (kv.open_scope("pv_item")) {
-                            for (int32_t k = 0; k < 10; k++) {
+                            for (size_t k = 0; k < 10; k++) {
                                 if (!kv.open_scope("%02zu", k))
                                     continue;
 
@@ -1262,16 +1270,16 @@ namespace pv_db {
                                     continue;
 
                                 pv_db_pv_item item;
-                                item.index = k;
+                                item.index = (int32_t)k;
                                 item.name = name;
-                                diff.pv_item.push_back(item);
+                                d.pv_item.push_back(item);
                                 kv.close_scope();
                             }
                             kv.close_scope();
                         }
 
                         if (kv.open_scope("hand_item")) {
-                            for (int32_t k = 0; k < 20; k++) {
+                            for (size_t k = 0; k < 20; k++) {
                                 if (!kv.open_scope("%02zu", k))
                                     continue;
 
@@ -1280,17 +1288,17 @@ namespace pv_db {
                                     continue;
 
                                 pv_db_pv_hand_item hand_item;
-                                hand_item.index = k;
+                                hand_item.index = (int32_t)k;
                                 hand_item.id = -1;
                                 hand_item.name = name;
-                                diff.hand_item.push_back(hand_item);
+                                d.hand_item.push_back(hand_item);
                                 kv.close_scope();
                             }
                             kv.close_scope();
                         }
 
                         if (kv.open_scope("edit_effect")) {
-                            for (int32_t k = 0; k < 0x200; k++) {
+                            for (size_t k = 0; k < 0x200; k++) {
                                 if (!kv.open_scope("%02zu", k))
                                     continue;
 
@@ -1301,14 +1309,14 @@ namespace pv_db {
                                 pv_db_pv_edit_effect edit_effect;
                                 edit_effect.index = atoi(name.c_str());
                                 edit_effect.name = name;
-                                diff.edit_effect.push_back(edit_effect);
+                                d.edit_effect.push_back(edit_effect);
                                 kv.close_scope();
                             }
                             kv.close_scope();
                         }
 
                         if (kv.open_scope("edit_effect_low_field")) {
-                            for (int32_t k = 0; k < 0x200; k++) {
+                            for (size_t k = 0; k < 0x200; k++) {
                                 if (!kv.open_scope("%02zu", k))
                                     continue;
 
@@ -1316,15 +1324,15 @@ namespace pv_db {
                                 if (!kv.read(index))
                                     continue;
 
-                                if (index < diff.edit_effect.size())
-                                    diff.edit_effect[index].low_field = true;
+                                if (index < d.edit_effect.size())
+                                    d.edit_effect[index].low_field = true;
                                 kv.close_scope();
                             }
                             kv.close_scope();
                         }
 
                         if (kv.open_scope("title_image")) {
-                            pv_db_pv_title_image& title_image = diff.title_image;
+                            pv_db_pv_title_image& title_image = d.title_image;
 
                             float_t time;
                             if (kv.read("time", time))
@@ -1342,7 +1350,7 @@ namespace pv_db {
                         }
 
                         if (kv.open_scope("songinfo")) {
-                            pv_db_pv_songinfo& songinfo = diff.songinfo;
+                            pv_db_pv_songinfo& songinfo = d.songinfo;
 
                             std::string music;
                             if (kv.read("music", music))
@@ -1393,7 +1401,7 @@ namespace pv_db {
 
                         int32_t count;
                         if (!k && kv.read("movie_list", "length", count)) {
-                            diff.movie_list.reserve(count);
+                            d.movie_list.reserve(count);
                             for (int32_t l = 0; l < count; l++) {
                                 if (!kv.open_scope(l))
                                     continue;
@@ -1401,7 +1409,7 @@ namespace pv_db {
                                 pv_db_pv_movie movie;
                                 if (kv.read("name", movie.name)) {
                                     movie.index = l;
-                                    diff.movie_list.push_back(movie);
+                                    d.movie_list.push_back(movie);
                                 }
                                 kv.close_scope();
                             }
@@ -1413,29 +1421,29 @@ namespace pv_db {
                             pv_db_pv_movie movie;
                             movie.index = 0;
                             movie.name = movie_file_name;
-                            diff.movie_list.push_back(movie);
+                            d.movie_list.push_back(movie);
                         }
 
                         std::string movie_surface;
                         if (kv.read("movie_surface", movie_surface)) {
                             auto elem = movie_surfaces.find(movie_surface);
                             if (elem != movie_surfaces.end())
-                                diff.movie_surface = elem->second;
+                                d.movie_surface = elem->second;
                         }
 
                         std::string effect_se_file_name;
                         if (kv.read("effect_se_file_name", effect_se_file_name))
-                            diff.effect_se_file_name = effect_se_file_name;
+                            d.effect_se_file_name = effect_se_file_name;
 
                         if (!k && kv.read("effect_se_name_list", "length", count)) {
-                            diff.effect_se_name_list.reserve(count);
+                            d.effect_se_name_list.reserve(count);
                             for (int32_t l = 0; l < count; l++) {
                                 if (!kv.open_scope(l))
                                     continue;
 
                                 std::string effect_se_name;
                                 if (kv.read(effect_se_name))
-                                    diff.effect_se_name_list.push_back(effect_se_name);
+                                    d.effect_se_name_list.push_back(effect_se_name);
                                 kv.close_scope();
                             }
                             kv.close_scope();
@@ -1444,28 +1452,28 @@ namespace pv_db {
                         if (k) {
                             int32_t version;
                             if (kv.read("version", version))
-                                diff.version = version;
+                                d.version = version;
 
                             int32_t script_format;
                             if (kv.read("version", script_format))
-                                diff.script_format = script_format;
+                                d.script_format = script_format;
                         }
 
                         int32_t high_speed_rate;
                         if (kv.read("high_speed_rate", high_speed_rate))
-                            diff.high_speed_rate = high_speed_rate;
+                            d.high_speed_rate = high_speed_rate;
 
                         float_t hidden_timing;
                         if (kv.read("hidden_timing", hidden_timing))
-                            diff.hidden_timing = hidden_timing;
+                            d.hidden_timing = hidden_timing;
 
                         float_t sudden_timing;
                         if (kv.read("sudden_timing", sudden_timing))
-                            diff.sudden_timing = sudden_timing;
+                            d.sudden_timing = sudden_timing;
 
                         int32_t edit_chara_scale;
                         if (kv.read("edit_chara_scale", edit_chara_scale))
-                            diff.edit_chara_scale = edit_chara_scale == 1;
+                            d.edit_chara_scale = edit_chara_scale == 1;
 
                         for (int32_t l = 0; l < ROB_CHARA_COUNT; l++) {
                             if (!kv.open_scope("performer.%d.pv_costume", l))
@@ -1473,12 +1481,12 @@ namespace pv_db {
 
                             int32_t pv_costume;
                             if (kv.read(pv_costume))
-                                pv_costumes[l][diff.difficulty] = pv_costume - 1;
+                                pv_costumes[l][d.difficulty] = pv_costume - 1;
                             kv.close_scope();
                         }
                     }
 
-                    pv->difficulty[i].push_back(diff);
+                    diff.push_back(d);
 
                     kv.close_scope();
                 }
@@ -1849,63 +1857,63 @@ namespace pv_db {
                     if (kv.read("light_frame", field.light_frame))
                         field.light_frame_set = true;
 
-                    for (int32_t l = 0; l < 4; l++) {
+                    for (int32_t l = 0; l < PV_AET_MAX; l++) {
                         std::string aet;
                         if (kv.read(aet_names[l], aet))
-                            field.aet[l].push_back(aet);
+                            field.aet.name[l].push_back(aet);
 
                         int32_t count;
                         if (kv.read(aet_list_names[l], "length", count)) {
-                            field.aet[l].reserve(count);
+                            field.aet.name[l].reserve(count);
                             for (int32_t m = 0; m < count; m++) {
                                 if (!kv.open_scope(m))
                                     continue;
 
                                 std::string aet;
                                 if (kv.read(aet))
-                                    field.aet[l].push_back(aet);
+                                    field.aet.name[l].push_back(aet);
                                 kv.close_scope();
                             }
                             kv.close_scope();
                         }
                     }
 
-                    for (int32_t l = 0; l < 4; l++) {
+                    for (int32_t l = 0; l < PV_AET_MAX; l++) {
                         std::string aet_id;
                         if (kv.read(aet_id_names[l], aet_id))
-                            field.aet_id[l].push_back(aet_id);
+                            field.aet.id[l].push_back(aet_id);
 
                         int32_t count;
                         if (kv.read(aet_id_list_names[l], "length", count)) {
-                            field.aet_id[l].reserve(count);
+                            field.aet.id[l].reserve(count);
                             for (int32_t m = 0; m < count; m++) {
                                 if (!kv.open_scope(m))
                                     continue;
 
                                 std::string aet_id;
                                 if (kv.read(aet_id))
-                                    field.aet[l].push_back(aet_id);
+                                    field.aet.id[l].push_back(aet_id);
                                 kv.close_scope();
                             }
                             kv.close_scope();
                         }
                     }
 
-                    for (int32_t l = 0; l < 4; l++) {
+                    for (int32_t l = 0; l < PV_AET_MAX; l++) {
                         int32_t aet_frame;
                         if (kv.read(aet_id_names[l], aet_frame))
-                            field.aet_frame[l].push_back(aet_frame);
+                            field.aet.frame[l].push_back(aet_frame);
 
                         int32_t count;
                         if (kv.read(aet_id_list_names[l], "length", count)) {
-                            field.aet_frame[l].reserve(count);
+                            field.aet.frame[l].reserve(count);
                             for (int32_t m = 0; m < count; m++) {
                                 if (!kv.open_scope(m))
                                     continue;
 
                                 int32_t aet_frame;
                                 if (kv.read(aet_frame))
-                                    field.aet_frame[l].push_back(aet_frame);
+                                    field.aet.frame[l].push_back(aet_frame);
                                 kv.close_scope();
                             }
                             kv.close_scope();
@@ -1986,6 +1994,10 @@ namespace pv_db {
     }
 }
 
+void task_pv_db_init() {
+    task_pv_db = new pv_db::TaskPvDB;
+}
+
 bool task_pv_db_append_task() {
     return app::TaskWork::AppendTask(task_pv_db_get(), "PV DB");
 }
@@ -1995,7 +2007,7 @@ void task_pv_db_free_task() {
 }
 
 pv_db::TaskPvDB* task_pv_db_get() {
-    return &task_pv_db;
+    return task_pv_db;
 }
 
 uint32_t task_pv_db_get_paths_count() {
@@ -2030,4 +2042,8 @@ pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
 
 bool task_pv_db_is_paths_empty() {
     return !task_pv_db_get()->paths.size();
+}
+
+void task_pv_db_free() {
+    delete task_pv_db;
 }

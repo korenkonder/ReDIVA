@@ -863,6 +863,8 @@ extern bool auth_3d_data_get_paused(int32_t* id);
 extern float_t auth_3d_data_get_play_control_begin(int32_t* id);
 extern float_t auth_3d_data_get_play_control_size(int32_t* id);
 extern bool auth_3d_data_get_repeat(int32_t* id);
+void auth_3d_data_get_obj_sets_from_category(std::string& name, std::vector<uint32_t>& obj_sets,
+    auth_3d_database* auth_3d_db, object_database* obj_db);
 extern int32_t auth_3d_data_get_uid(int32_t* id);
 extern const char* auth_3d_data_get_uid_name(int32_t uid, auth_3d_database* auth_3d_db);
 extern void auth_3d_data_load_auth_3d_db(auth_3d_database* auth_3d_db);
@@ -893,4 +895,5 @@ extern void auth_3d_data_unload_id(int32_t id, render_context* rctx);
 extern void auth_3d_data_free();
 
 extern void task_auth_3d_append_task();
+extern bool task_auth_3d_check_task_ready();
 extern void task_auth_3d_free_task();

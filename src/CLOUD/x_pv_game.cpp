@@ -18,7 +18,7 @@
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/sort.hpp"
 #include "input.hpp"
-#include "classes/imgui_helper.h"
+#include "classes/imgui_helper.hpp"
 
 enum dsc_x_func {
     DSC_X_END = 0,
@@ -395,10 +395,7 @@ bool x_pv_game::Ctrl() {
 
         auth_3d_data_load_category(light_category.c_str());
 
-        for (pvpp_chara& i : pp->chara)
-            if (i.chara_effect_init)
-                for (pvpp_chara_effect_a3da& j : i.chara_effect.effect_a3da)
-                    auth_3d_data_load_category(x_data, camera_category.c_str(), camera_category_hash);
+        auth_3d_data_load_category(camera_category.c_str());
 
         bool pv_glt = pv_glitter->hash != hash_murmurhash_empty;
         bool stg_glt = stage_glitter->hash != hash_murmurhash_empty;
@@ -1016,35 +1013,35 @@ void x_pv_game::Window() {
         return;
     }
 
-    w = imguiGetContentRegionAvailWidth();
+    w = ImGui::GetContentRegionAvailWidth();
     if (ImGui::BeginTable("buttons", 2)) {
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.5f);
 
         ImGui::TableNextColumn();
-        w = imguiGetContentRegionAvailWidth();
-        if (imguiButton(pause || (!pause && step_frame) ? "Play (K)" : "Pause (K)", { w, 0.0f }))
+        w = ImGui::GetContentRegionAvailWidth();
+        if (ImGui::ButtonEnterKeyPressed(pause || (!pause && step_frame) ? "Play (K)" : "Pause (K)", { w, 0.0f }))
             pause ^= true;
 
         ImGui::TableNextColumn();
-        w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Step Frame (L)", { w, 0.0f })) {
+        w = ImGui::GetContentRegionAvailWidth();
+        if (ImGui::ButtonEnterKeyPressed("Step Frame (L)", { w, 0.0f })) {
             pause = true;
             step_frame = true;
         }
 
         ImGui::TableNextColumn();
-        w = imguiGetContentRegionAvailWidth();
-        if (imguiButton("Stop (Ctrl+K)", { w, 0.0f }))
+        w = ImGui::GetContentRegionAvailWidth();
+        if (ImGui::ButtonEnterKeyPressed("Stop (Ctrl+K)", { w, 0.0f }))
             state = 11;
 
         ImGui::TableNextColumn();
-        w = imguiGetContentRegionAvailWidth();
+        w = ImGui::GetContentRegionAvailWidth();
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "%d", frame);
         ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
-        imguiButtonEx(buf, { w, 0.0f }, ImGuiButtonFlags_DontClosePopups
+        ImGui::ButtonExEnterKeyPressed(buf, { w, 0.0f }, ImGuiButtonFlags_DontClosePopups
             | ImGuiButtonFlags_NoNavFocus | ImGuiButtonFlags_NoHoveredOnFocus);
         ImGui::PopStyleColor(3);
         ImGui::EndTable();
@@ -1520,7 +1517,7 @@ bool mot_write_motion(void* data, const char* path, const char* file, uint32_t h
 }
 
 void x_pv_game::Unload() {
-    if (pv_id == 826) {
+    if (false && pv_id == 826) {
         data_struct* aft_data = &data_list[DATA_AFT];
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -1626,6 +1623,8 @@ void x_pv_game::Unload() {
 
     auth_3d_data_unload_category(light_category.c_str());
 
+    auth_3d_data_unload_category(camera_category.c_str());
+
     category_load.clear();
     category_load.shrink_to_fit();
     effchrpv_category_load.clear();
@@ -1725,7 +1724,9 @@ void x_struc_104::reset() {
     end_rot = 0.0f;
     mot_smooth_len = 12.0f;
     set_motion.clear();
+    set_motion.shrink_to_fit();
     set_item.clear();
+    set_item.shrink_to_fit();
 }
 
 x_pv_play_data::x_pv_play_data() : rob_chr(), disp() {
@@ -1738,6 +1739,7 @@ x_pv_play_data::~x_pv_play_data() {
 
 void x_pv_play_data::reset() {
     motion.clear();
+    motion.shrink_to_fit();
     rob_chr = 0;
     set_motion.clear();
     disp = true;
@@ -3627,10 +3629,12 @@ static void sub_140122770(x_pv_game* a1, int32_t chara_id) {
     if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
         return;
 
+    x_pv_play_data* playdata = &a1->playdata[chara_id];
+
     int32_t pv_branch_mode = 0;
     int32_t time = -1;
     int32_t prev_time = -1;
-    a1->playdata[chara_id].field_38.set_motion.clear();
+    playdata->field_38.set_motion.clear();
 
     dsc_data* i = a1->dsc_m.data.data();
     dsc_data* i_end = a1->dsc_m.data.data() + a1->dsc_m.data.size();
@@ -3651,7 +3655,7 @@ static void sub_140122770(x_pv_game* a1, int32_t chara_id) {
             motion.motion_index = data[1];
             motion.time = time;
             motion.pv_branch_mode = pv_branch_mode;
-            a1->playdata[chara_id].field_38.set_motion.push_back(motion);
+            playdata->field_38.set_motion.push_back(motion);
         }
         prev_time = time;
         i++;

@@ -162,10 +162,10 @@ struct stream {
     void write_utf8_string_null_terminated(const char* str);
     void write_utf16_string_null_terminated(const wchar_t* str);
 
-    int64_t read_offset(int32_t offset, bool is_x);
-    int64_t read_offset_f2(int32_t offset);
+    int64_t read_offset(int64_t offset, bool is_x);
+    int64_t read_offset_f2(int64_t offset);
     int64_t read_offset_x();
-    void write_offset(int64_t val, int32_t offset, bool is_x);
-    void write_offset_f2(int64_t val, int32_t offset);
+    void write_offset(int64_t val, int64_t offset, bool is_x);
+    void write_offset_f2(int64_t val, int64_t offset);
     void write_offset_x(int64_t val);
 };

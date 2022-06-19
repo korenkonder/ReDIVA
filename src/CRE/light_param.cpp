@@ -152,7 +152,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
 
         if (load_error) {
             for (int32_t i = 0; i < 6; i++)
-                a1->file_handlers[i].call_free_func_free_data();
+                a1->file_handlers[i].call_free_callback();
             a1->state = 0;
             return 0;
         }
@@ -507,7 +507,7 @@ static void light_param_storage_load_stages(light_param_data_storage* a1, std::v
     if (a1->state)
         for (int32_t i = 0; i < 6; ++i)
             if (a1->file_handlers[i].check_not_ready())
-                a1->file_handlers[i].call_free_func_free_data();
+                a1->file_handlers[i].call_free_callback();
 
     a1->stage_index = -1;
     a1->stage.clear();
@@ -537,7 +537,7 @@ static void light_param_storage_load_stages(light_param_data_storage* a1,
     if (a1->state)
         for (int32_t i = 0; i < 6; ++i)
             if (a1->file_handlers[i].check_not_ready())
-                a1->file_handlers[i].call_free_func_free_data();
+                a1->file_handlers[i].call_free_callback();
 
     a1->stage_index = -1;
     a1->stage.clear();

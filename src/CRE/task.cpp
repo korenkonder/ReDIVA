@@ -4,7 +4,7 @@
 */
 
 #include "task.hpp"
-#include "time.h"
+#include "time.hpp"
 
 extern float_t get_delta_frame();
 extern uint32_t get_frame_counter();
@@ -133,8 +133,10 @@ namespace app {
         for (Task* i : tasks)
             i->SetDest();
 
-        while (tasks.size())
+        while (tasks.size()) {
             Ctrl();
+            Basic();
+        }
     }
 
     bool TaskWork::AppendTask(Task* t, const char* name, int32_t priority) {
@@ -186,11 +188,10 @@ namespace app {
                     continue;
 
                 time_struct t;
-                time_struct_init(&t);
                 task_work->current = tsk;
                 Task_do_ctrl(tsk);
                 task_work->current = 0;
-                Task_add_base_calc_time(tsk, (uint32_t)(time_struct_calc_time(&t) * 1000.0));
+                Task_add_base_calc_time(tsk, (uint32_t)(t.calc_time() * 1000.0));
             }
 
         for (std::list<Task*>::iterator i = task_work->tasks.begin(); i != task_work->tasks.end(); ) {
@@ -222,9 +223,8 @@ namespace app {
                     continue;
 
                 time_struct t;
-                time_struct_init(&t);
                 Task_do_disp(tsk);
-                Task_set_disp_time(tsk, (uint32_t)(time_struct_calc_time(&t) * 1000.0));
+                Task_set_disp_time(tsk, (uint32_t)(t.calc_time() * 1000.0));
             }
         task_work->disp = false;
     }
@@ -322,11 +322,10 @@ namespace app {
                     continue;
 
                 time_struct t;
-                time_struct_init(&t);
                 task_work->current = tsk;
                 Task_do_ctrl(tsk);
                 task_work->current = 0;
-                Task_add_base_calc_time(tsk, (uint32_t)(time_struct_calc_time(&t) * 1000.0));
+                Task_add_base_calc_time(tsk, (uint32_t)(t.calc_time() * 1000.0));
             }
     }
 

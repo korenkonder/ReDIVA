@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../../../KKdLib/default.hpp"
-#include "../../classes.h"
+#include "../../classes.hpp"
 
 extern bool data_test_auth_3d_test_init(class_data* data, render_context* rctx);
 extern void data_test_auth_3d_test_ctrl(class_data* data);

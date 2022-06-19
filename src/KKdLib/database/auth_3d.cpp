@@ -131,6 +131,17 @@ int32_t auth_3d_database::get_category_index(const char* name) {
     return -1;
 }
 
+void auth_3d_database::get_category_uids(const char* name, std::vector<int32_t>& uid) {
+    uid.clear();
+
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    for (auth_3d_database_category& i : category)
+        if (hash_string_murmurhash(&i.name) == name_hash) {
+            uid = i.uid;
+            return;
+        }
+}
+
 int32_t auth_3d_database::get_uid(const char* name) {
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (auth_3d_database_uid& i : uid)

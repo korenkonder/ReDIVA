@@ -8,7 +8,7 @@
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/light_param/wind.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../static_var.h"
+#include "../static_var.hpp"
 #include "../task.hpp"
 
 struct wind_spc {

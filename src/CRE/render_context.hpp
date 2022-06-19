@@ -12,17 +12,16 @@
 #include "light_param/light.hpp"
 #include "light_param/wind.hpp"
 #include "light_param.hpp"
-#include "camera.h"
+#include "camera.hpp"
 #include "data.hpp"
-#include "gl_state.h"
+#include "gl_state.hpp"
 #include "light_param.hpp"
 #include "object.hpp"
 #include "post_process.hpp"
-#include "render_texture.h"
+#include "render_texture.hpp"
 #include "task.hpp"
-#include "time.h"
-#include "timer.h"
-#include "static_var.h"
+#include "time.hpp"
+#include "static_var.hpp"
 
 #define MATRIX_BUFFER_COUNT 320
 #define MATERIAL_LIST_COUNT 24
@@ -499,9 +498,9 @@ struct render_context {
     GLuint vao;
 
     face face;
-    fog fog_data[FOG_MAX];
+    fog fog[FOG_MAX];
     light_proj* litproj;
-    light_set light_set_data[LIGHT_SET_MAX];
+    light_set light_set[LIGHT_SET_MAX];
 
     data_struct* data;
     post_process post_process;

@@ -13,7 +13,7 @@
 #include "../KKdLib/txp.hpp"
 #include "../KKdLib/vec.hpp"
 #include "file_handler.hpp"
-#include "static_var.h"
+#include "static_var.hpp"
 #include "texture.hpp"
 
 struct material_change {
@@ -24,22 +24,49 @@ struct material_change {
 
 struct obj_mesh_index_buffer {
     GLuint buffer;
+    GLsizeiptr size;
+
+    obj_mesh_index_buffer();
+
+    bool load(obj_mesh& mesh);
+    bool load_data(size_t size, const void* data);
+    void unload();
 };
 
 struct obj_mesh_vertex_buffer {
     uint32_t count;
     GLuint buffers[3];
+    GLsizeiptr size;
     uint32_t index;
+
+    obj_mesh_vertex_buffer();
+
+    void cycle_index();
+    GLuint get_buffer();
+    GLsizeiptr get_size();
+    bool load(obj_mesh& mesh);
+    bool load_data(size_t size, const void* data, int32_t count);
+    void unload();
 };
 
 struct obj_index_buffer {
     uint32_t mesh_num;
     obj_mesh_index_buffer* mesh_data;
+
+    obj_index_buffer();
+
+    bool load(obj& obj);
+    void unload();
 };
 
 struct obj_vertex_buffer {
     uint32_t mesh_num;
     obj_mesh_vertex_buffer* mesh_data;
+
+    obj_vertex_buffer();
+
+    bool load(obj& obj);
+    void unload();
 };
 
 struct obj_set_handler {
@@ -71,8 +98,6 @@ extern int32_t obj_material_texture_type_get_texcoord_index(
     obj_material_texture_type type, int32_t index);
 extern int32_t obj_material_texture_type_get_texture_index(
     obj_material_texture_type type, int32_t base_index);
-extern GLuint obj_mesh_vertex_buffer_get_buffer(obj_mesh_vertex_buffer* buffer);
-extern int32_t obj_mesh_vertex_buffer_get_size(obj_mesh_vertex_buffer* buffer);
 extern void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
     mat4* ex_data_matrices, mat4* matrix_buffer, mat4* global_mat, mat4* mat);
 
@@ -104,5 +129,6 @@ extern int32_t object_storage_load_set(void* data, object_database* obj_db, uint
 extern int32_t object_storage_load_set_hash(void* data, uint32_t hash);
 extern bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
     object_database* obj_db = 0, texture_database* tex_db = 0);
+extern void object_storage_unload_set(object_database* obj_db, const char* name);
 extern void object_storage_unload_set(uint32_t set_id);
 extern void object_storage_free();

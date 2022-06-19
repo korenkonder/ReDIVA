@@ -741,7 +741,7 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
             kv.read("ref", e->ref);
             kv.read("time_ref_scale", e->time_ref_scale);
 
-            int32_t type = 0;
+            int32_t type;
             if (kv.read("type", type))
                 e->type = (a3da_event_type)type;
 
@@ -808,7 +808,7 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
             if (key_val_read(&kv, "FAR", l->_far))
                 enum_or(l->flags, A3DA_LIGHT_FAR);
 
-            int32_t id = 0;
+            int32_t id;
             if (kv.read("id", id))
                 l->id = (light_id)id;
 
@@ -2266,25 +2266,28 @@ static bool key_val_read(key_val* kv,
         return true;
     }
 
-    int32_t type = 0;
+    int32_t type;
     if (!kv->read("type", type)) {
         kv->close_scope();
         return false;
     }
     value.type = (a3da_key_type)type;
 
-    if (value.type == A3DA_KEY_NONE)
+    if (value.type == A3DA_KEY_NONE) {
+        kv->close_scope();
         return true;
+    }
     else if (value.type == A3DA_KEY_STATIC) {
         kv->read("value", value.value);
+        kv->close_scope();
         return true;
     }
 
-    int32_t ep_type_post = 0;
+    int32_t ep_type_post;
     if (kv->read("ep_type_post", ep_type_post))
         value.ep_type_post = (a3da_ep_type)ep_type_post;
 
-    int32_t ep_type_pre = 0;
+    int32_t ep_type_pre;
     if (kv->read("ep_type_pre", ep_type_pre))
         value.ep_type_pre = (a3da_ep_type)ep_type_pre;
 
@@ -2293,7 +2296,7 @@ static bool key_val_read(key_val* kv,
     if (key_val_read_raw_data(kv, value))
         return true;
 
-    int32_t length = 0;
+    int32_t length;
     if (!kv->read("key", "length", length)) {
         kv->close_scope();
         return false;
@@ -2305,10 +2308,12 @@ static bool key_val_read(key_val* kv,
     for (int32_t i = 0; i < length; i++) {
         kv->open_scope(i);
 
-        const char* data = 0;
-        int32_t type = 0;
-        kv->read("data", data);
-        kv->read("type", type);
+        const char* data;
+        int32_t type;
+        if (!kv->read("data", data) || !kv->read("type", type)) {
+            kv->close_scope();
+            continue;
+        }
 
         switch (type) {
         case 0: {
@@ -2448,7 +2453,7 @@ static void key_val_out_write(key_val_out* kv, stream& s,
 
 static bool key_val_read_raw_data(key_val* kv,
     a3da_key& value) {
-    int32_t key_type = 0;
+    int32_t key_type;
     if (!kv->read("raw_data_key_type", key_type))
         return false;
 
@@ -2457,10 +2462,10 @@ static bool key_val_read_raw_data(key_val* kv,
     if (str_utils_compare(value_type, "float"))
         return false;
 
-    int32_t value_list_size = 0;
+    int32_t value_list_size;
     kv->read("raw_data.value_list_size", value_list_size);
 
-    int32_t value_list_offset = 0;
+    int32_t value_list_offset;
     if (kv->read( "raw_data.value_list_offset", value_list_offset)) {
         if (key_type != 3)
             return false;
@@ -2472,7 +2477,7 @@ static bool key_val_read_raw_data(key_val* kv,
         return true;
     }
 
-    const char* value_list = 0;
+    const char* value_list;
     if (!kv->read("raw_data.value_list", value_list))
         return false;
 

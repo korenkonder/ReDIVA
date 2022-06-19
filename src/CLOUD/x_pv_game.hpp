@@ -15,10 +15,10 @@
 #include "../KKdLib/dsc.hpp"
 #include "../KKdLib/pvpp.hpp"
 #include "../KKdLib/pvsr.hpp"
+#include "../CRE/rob/rob.hpp"
 #include "../CRE/auth_3d.hpp"
-#include "../CRE/rob.hpp"
 #include "../CRE/task.hpp"
-#include "classes.h"
+#include "classes.hpp"
 
 struct x_pv_game_glitter {
     std::string name;
@@ -265,6 +265,7 @@ public:
 
     x_pv_game();
     virtual ~x_pv_game() override;
+
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;

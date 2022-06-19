@@ -5,11 +5,11 @@
 
 #include "render_context.hpp"
 #include "Glitter/glitter.hpp"
-#include "draw_pass.h"
-#include "draw_task.h"
+#include "rob/rob.hpp"
+#include "draw_pass.hpp"
+#include "draw_task.hpp"
 #include "file_handler.hpp"
-#include "rob.hpp"
-#include "shader_ft.h"
+#include "shader_ft.hpp"
 #include "stage.hpp"
 
 float_t delta_frame_history = 0;
@@ -27,22 +27,19 @@ sss_data::sss_data() : init(), enable(), npr_contour(), param() {
     npr_contour = true;
     param = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    render_texture_init(&textures[0], 640, 360, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
-    render_texture_init(&textures[1], 320, 180, 0, GL_RGBA16F, GL_ZERO);
-    render_texture_init(&textures[2], 320, 180, 0, GL_RGBA16F, GL_ZERO);
-    render_texture_init(&textures[3], 320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[0].init(640, 360, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
+    textures[1].init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[2].init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[3].init(320, 180, 0, GL_RGBA16F, GL_ZERO);
 }
 
 sss_data::~sss_data() {
-    render_texture_free(&textures[0]);
-    render_texture_free(&textures[1]);
-    render_texture_free(&textures[2]);
-    render_texture_free(&textures[3]);
+
 }
 
-draw_pass::draw_pass() : reflect_blur_num(), reflect_blur_filter(), wait_for_gpu(), time(),
-reflect_type(), show_vector_flags(), show_vector_length(), show_vector_z_offset(), field_2F8(),
-sss_texture(), npr_param(), field_31C(), field_31E(), field_31F(), field_320(), npr() {
+draw_pass::draw_pass() :enable(), reflect_blur_num(), reflect_blur_filter(), wait_for_gpu(), cpu_time(), gpu_time(),
+time(), draw_pass_3d(), reflect_type(), show_vector_flags(), show_vector_length(), show_vector_z_offset(),
+field_2F8(), sss_texture(), npr_param(), field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr() {
     for (bool& i : enable)
         i = true;
     reflect = true;
@@ -52,19 +49,14 @@ sss_texture(), npr_param(), field_31C(), field_31E(), field_31F(), field_320(), 
     alpha_z_sort = true;
     for (bool& i : draw_pass_3d)
         i = true;
-    render_texture_init(&reflect_texture, 512, 256, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
-    render_texture_init(&refract_texture, 512, 256, 0, GL_RGBA8, GL_DEPTH24_STENCIL8);
-    memset(cpu_time, 0, sizeof(cpu_time));
-    memset(gpu_time, 0, sizeof(gpu_time));
-    time_struct_init(&time);
+    reflect_texture.init(512, 256, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
+    refract_texture.init(512, 256, 0, GL_RGBA8, GL_DEPTH24_STENCIL8);
     shadow_ptr = new ::shadow;
     if (shadow_ptr)
         shadow_ptr->init_data();
 }
 
 draw_pass::~draw_pass() {
-    render_texture_free(&reflect_texture);
-    render_texture_free(&refract_texture);
     delete shadow_ptr;
 }
 
@@ -97,26 +89,20 @@ texture_transform_struct::texture_transform_struct(uint32_t id, mat4u& mat) : id
 }
 
 light_proj::light_proj(int32_t width, int32_t height) : enable(), texture_id() {
-    render_texture_init(&shadow_texture[0],
-        2048, 512, 0, GL_R32F, GL_DEPTH24_STENCIL8);
-    render_texture_init(&shadow_texture[1],
-        2048, 512, 0, GL_R32F, GL_ZERO);
-    render_texture_init(&draw_texture,
-        width, height, 0, GL_RGBA8, GL_DEPTH24_STENCIL8);
+    shadow_texture[0].init(2048, 512, 0, GL_R32F, GL_DEPTH24_STENCIL8);
+    shadow_texture[1].init(2048, 512, 0, GL_R32F, GL_ZERO);
+    draw_texture.init(width, height, 0, GL_RGBA8, GL_DEPTH24_STENCIL8);
 }
 
 light_proj::~light_proj() {
-    render_texture_free(&shadow_texture[0]);
-    render_texture_free(&shadow_texture[1]);
-    render_texture_free(&draw_texture);
+
 }
 
 void light_proj::resize(int32_t width, int32_t height) {
     if (!this)
         return;
 
-    render_texture_init(&draw_texture,
-        width, height, 0, GL_RGBA8, GL_DEPTH24_STENCIL8);
+    draw_texture.init(width, height, 0, GL_RGBA8, GL_DEPTH24_STENCIL8);
 }
 
 bool light_proj::set(render_context* rctx) {
@@ -125,7 +111,7 @@ bool light_proj::set(render_context* rctx) {
 
     static const GLfloat depth_clear = 1.0f;
 
-    render_texture_bind(&shadow_texture[0], 0);
+    shadow_texture[0].bind();
     glViewport(0, 0, 2048, 512);
     gl_state_enable_depth_test();
     gl_state_set_depth_mask(GL_TRUE);
@@ -138,7 +124,7 @@ bool light_proj::set(render_context* rctx) {
         return true;
     }
     else {
-        render_texture_bind(&draw_texture, 0);
+        draw_texture.bind();
         glViewport(0, 0, draw_texture.color_texture->width,
             draw_texture.color_texture->height);
         gl_state_enable_depth_test();
@@ -177,34 +163,30 @@ void light_proj::get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat
 }
 
 bool light_proj::set_mat(render_context* rctx, bool set_mat) {
-    light_set* set = &rctx->light_set_data[LIGHT_SET_MAIN];
+    light_set* set = &rctx->light_set[LIGHT_SET_MAIN];
     light_data* data = &set->lights[LIGHT_PROJECTION];
-    if (light_get_type(data) != LIGHT_SPOT)
+    if (data->get_type() != LIGHT_SPOT)
         return false;
 
     vec3 position;
     vec3 spot_direction;
-    light_get_position(data, &position);
-    light_get_spot_direction(data, &spot_direction);
+    data->get_position(position);
+    data->get_spot_direction(spot_direction);
 
     float_t length;
     vec3_length_squared(spot_direction, length);
     if (length <= 0.000001f)
         return false;
 
-    float_t spot_cutoff = light_get_spot_cutoff(data);
+    float_t spot_cutoff = data->get_spot_cutoff();
     float_t fov = atanf(tanf(spot_cutoff * DEG_TO_RAD_FLOAT) * 0.25f) * (RAD_TO_DEG_FLOAT * 2.0f);
 
     vec3 interest;
     vec3_add(position, spot_direction, interest);
     if (set_mat) {
-        union {
-            mat4 m;
-            vec4 v[4];
-        } mat;
-
-        get_proj_mat(&position, &interest, fov, &mat.m);
-        shaders_ft.env_vert_set(24, 4, mat.v);
+        mat4 mat;
+        get_proj_mat(&position, &interest, fov, &mat);
+        shaders_ft.env_vert_set(24, 4, &mat.row0);
     }
     else
         get_proj_mat(&position, &interest, fov, 0);
@@ -466,13 +448,16 @@ extern render_context* rctx_ptr;
 
 render_context::render_context() : litproj(), data(),
 chara_reflect(), chara_refract(), view_mat(), matrix_buffer()  {
-    camera = camera_init();
+    camera = new ::camera;
     draw_state_init(&draw_state);
     glGenVertexArrays(1, &vao);
 }
 
 render_context::~render_context() {
-    camera_dispose(camera);
+    if (camera) {
+        delete camera;
+        camera = 0;
+    }
     glDeleteVertexArrays(1, &vao);
 }
 
@@ -535,49 +520,43 @@ void render_context::disp() {
 void render_context::light_param_data_light_set(light_param_light * light) {
     for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++) {
         light_param_light_group* group = &light->group[i];
-        light_set* set = &light_set_data[i];
+        ::light_set* set = &light_set[i];
 
         for (int32_t j = LIGHT_CHARA; j < LIGHT_MAX; j++) {
             light_param_light_data* data = &group->data[j];
             light_data* light = &set->lights[j];
 
             if (data->has_type)
-                light_set_type(light, data->type);
+                light->set_type(data->type);
 
-            if (data->has_ambient) {
-                vec4 ambient = data->ambient;
-                light_set_ambient(light, &ambient);
-            }
+            if (data->has_ambient)
+                light->set_ambient(data->ambient);
 
-            if (data->has_diffuse) {
-                vec4 diffuse = data->diffuse;
-                light_set_diffuse(light, &diffuse);
-            }
+            if (data->has_diffuse)
+                light->set_diffuse(data->diffuse);
 
-            if (data->has_specular) {
-                vec4 specular = data->specular;
-                light_set_specular(light, &specular);
-            }
+            if (data->has_specular)
+                light->set_specular(data->specular);
 
             if (data->has_position)
-                light_set_position(light, &data->position);
+                light->set_position(data->position);
 
             if (data->has_spot_direction)
-                light_set_spot_direction(light, &data->spot_direction);
+                light->set_spot_direction(data->spot_direction);
 
             if (data->has_spot_exponent)
-                light_set_spot_exponent(light, data->spot_exponent);
+                light->set_spot_exponent(data->spot_exponent);
 
             if (data->has_spot_cutoff)
-                light_set_spot_cutoff(light, data->spot_cutoff);
+                light->set_spot_cutoff(data->spot_cutoff);
 
             if (data->has_attenuation)
-                light_set_attenuation(light, &data->attenuation);
+                light->set_attenuation(data->attenuation);
 
-            light_set_clip_plane(light, data->clip_plane);
+            light->set_clip_plane(data->clip_plane);
 
             if (data->has_tone_curve)
-                light_set_tone_curve(light, &data->tone_curve);
+                light->set_tone_curve(data->tone_curve);
         }
     }
 }
@@ -585,23 +564,21 @@ void render_context::light_param_data_light_set(light_param_light * light) {
 void render_context::light_param_data_fog_set(light_param_fog* f) {
     for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++) {
         light_param_fog_group* group = &f->group[i];
-        fog* fog = &fog_data[i];
+        ::fog* fog = &this->fog[i];
 
         if (group->has_type)
-            fog_set_type(fog, group->type);
+            fog->set_type(group->type);
 
         if (group->has_density)
-            fog_set_density(fog, group->density);
+            fog->set_density(group->density);
 
         if (group->has_linear) {
-            fog_set_start(fog, group->linear_start);
-            fog_set_end(fog, group->linear_end);
+            fog->set_start(group->linear_start);
+            fog->set_end(group->linear_end);
         }
 
-        if (group->has_color) {
-            vec4 color = group->color;
-            fog_set_color(fog, &color);
-        }
+        if (group->has_color)
+            fog->set_color(group->color);
     }
 }
 
@@ -684,43 +661,30 @@ void render_context::light_param_data_ibl_set(
     }
     gl_state_bind_texture_cube_map(0);
 
-    light_set* set = &light_set_data[LIGHT_SET_MAIN];
-    mat4 irradiance[3];
-    irradiance[0] = ibl->diff_coef[1][0];
-    irradiance[1] = ibl->diff_coef[1][1];
-    irradiance[2] = ibl->diff_coef[1][2];
-    light_set_set_irradiance(set, &irradiance[0], &irradiance[1], &irradiance[2]);
+    ::light_set* set = &light_set[LIGHT_SET_MAIN];
+    set->set_irradiance(ibl->diff_coef[1][0], ibl->diff_coef[1][1], ibl->diff_coef[1][2]);
 
     float_t len;
     vec3 pos;
 
     light_data* l = &set->lights[LIGHT_CHARA];
-    light_get_position(l, &pos);
+    l->get_position(pos);
     vec3_length(pos, len);
-    if (fabsf(len - 1.0f) < 0.02f) {
-        vec4 position = ibl->lit_dir[0];
-        light_set_position_vec4(l, &position);
-    }
+    if (fabsf(len - 1.0f) < 0.02f)
+        l->set_position(ibl->lit_dir[0]);
 
-    vec4 ibl_specular = ibl->lit_col[0];
-    light_set_ibl_specular(l, &ibl_specular);
-    vec4 ibl_back = ibl->lit_col[2];
-    light_set_ibl_back(l, &ibl_back);
-    vec4 ibl_direction = ibl->lit_dir[0];
-    light_set_ibl_direction(l, &ibl_direction);
+    l->set_ibl_specular(ibl->lit_col[0]);
+    l->set_ibl_back(ibl->lit_col[2]);
+    l->set_ibl_direction(ibl->lit_dir[0]);
 
     l = &set->lights[LIGHT_STAGE];
-    light_get_position(l, &pos);
+    l->get_position(pos);
     vec3_length(pos, len);
-    if (fabsf(len - 1.0f) < 0.02f) {
-        vec4 position = ibl->lit_dir[1];
-        light_set_position_vec4(l, &position);
-    }
+    if (fabsf(len - 1.0f) < 0.02f)
+        l->set_position(ibl->lit_dir[1]);
 
-    ibl_specular = ibl->lit_col[1];
-    light_set_ibl_specular(l, &ibl_specular);
-    ibl_direction = ibl->lit_dir[1];
-    light_set_ibl_direction(l, &ibl_specular);
+    l->set_ibl_specular(ibl->lit_col[1]);
+    l->set_ibl_direction(ibl->lit_dir[1]);
 }
 
 void render_context::light_param_data_wind_set(light_param_wind* w) {
@@ -791,8 +755,7 @@ field_1A8(), view_point_shared(), interest_shared(), field_2F0() {
 }
 
 shadow::~shadow() {
-    for (render_texture& i : field_8)
-        render_texture_free(&i);
+
 }
 
 void shadow::ctrl(render_context* rctx) {
@@ -803,18 +766,18 @@ void shadow::ctrl(render_context* rctx) {
         view_mat[0] = rctx->camera->view;
         view_mat[1] = rctx->camera->inv_view;
 
-        light_set* set = &rctx->light_set_data[LIGHT_SET_MAIN];
+        ::light_set* set = &rctx->light_set[LIGHT_SET_MAIN];
         light_data* data = &set->lights[LIGHT_CHARA];
 
-        vec3 direction;
+        vec3 position;
         float_t length;
-        light_get_position(data, &direction);
-        vec3_negate(direction, direction);
-        vec3_length(direction, length);
+        data->get_position(position);
+        vec3_negate(position, position);
+        vec3_length(position, length);
         if (length < 0.000001)
-            this->direction = { 0.0f, 1.0f, 0.0f };
+            direction = { 0.0f, 1.0f, 0.0f };
         else
-            vec3_mult_scalar(direction, 1.0f / length, this->direction);
+            vec3_mult_scalar(position, 1.0f / length, direction);
 
         for (int32_t i = 0; i < 2; i++)
             if (draw_task_get_count(rctx, (draw_object_type)((int32_t)DRAW_OBJECT_SHADOW_CHARA + i)))
@@ -1112,7 +1075,7 @@ int32_t shadow::init_data() {
 
     shadow_texture_init_params* v3 = init_params;
     for (int32_t i = 0; i < 7; i++, v3++)
-        if (render_texture_init(&field_8[i], v3->width, v3->height,
+        if (field_8[i].init(v3->width, v3->height,
             v3->max_level, v3->color_format, v3->depth_format) < 0)
             return -1;
 

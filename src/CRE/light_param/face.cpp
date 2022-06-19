@@ -12,34 +12,42 @@ face::face() {
     direction = vec3_null;
 }
 
-inline float_t face_get_offset(face* face) {
-    return face->offset;
+float_t face::get_offset() {
+    return offset;
 }
 
-inline void face_set_offset(face* face, float_t value) {
-    face->scale = value;
+void face::set_offset(float_t value) {
+    scale = value;
 }
 
-inline float_t face_get_scale(face* face) {
-    return face->scale;
+float_t face::get_scale() {
+    return scale;
 }
 
-inline void face_set_scale(face* face, float_t value) {
-    face->scale = value;
+void face::set_scale(float_t value) {
+    scale = value;
 }
 
-inline void face_get_position(face* face, vec3* value) {
-    *value = face->position;
+void face::get_position(vec3& value) {
+    value = position;
 }
 
-inline void face_set_position(face* face, vec3* value) {
-    face->position = *value;
+void face::set_position(vec3& value) {
+    position = value;
 }
 
-inline void face_get_direction(face* face, vec3* value) {
-    *value = face->direction;
+void face::set_position(vec3&& value) {
+    position = value;
 }
 
-inline void face_set_direction(face* face, vec3* value) {
-    face->direction = *value;
+void face::get_direction(vec3& value) {
+    value = direction;
+}
+
+void face::set_direction(vec3& value) {
+    direction = value;
+}
+
+void face::set_direction(vec3&& value) {
+    direction = value;
 }

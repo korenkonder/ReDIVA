@@ -6,8 +6,8 @@
 #include "shader_glsl.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
-#include "gl_state.h"
-#include "static_var.h"
+#include "gl_state.hpp"
+#include "static_var.hpp"
 
 static const char* common_data_string =
 "layout (binding = 0, std140) uniform common_data {\n"
@@ -39,7 +39,7 @@ shader_glsl::shader_glsl() : program() {
 }
 
 shader_glsl::~shader_glsl() {
-
+    unload();
 }
 
 GLint shader_glsl::get_uniform_location(const char* name) {

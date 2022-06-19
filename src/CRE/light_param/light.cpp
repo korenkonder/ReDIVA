@@ -5,7 +5,7 @@
 
 #include "light.hpp"
 #include "../../KKdLib/mat.hpp"
-#include "../shader_ft.h"
+#include "../shader_ft.hpp"
 
 extern bool light_chara_ambient;
 extern vec4 npr_spec_color;
@@ -15,231 +15,272 @@ static void light_get_direction_from_position(vec4* pos_dir, light_data* light, 
 light_data::light_data() : type(), ambient(), diffuse(), specular(), position(),
 spot_direction(), spot_exponent(), spot_cutoff(), constant(), linear(), quadratic(),
 ibl_specular(), ibl_back(), ibl_direction(), tone_curve(),clip_plane() {
-    vec3 temp3;
-    vec4 temp4;
-    light_set_type(this, LIGHT_OFF);
-    temp4 = { 0.0f, 0.0, 0.0f, 1.0f };
-    light_set_ambient(this, &temp4);
-    temp4 = { 1.0f, 1.0, 1.0f, 0.0f };
-    light_set_diffuse(this, &temp4);
-    temp4 = { 1.0f, 1.0f, 1.0f, 0.0f };
-    light_set_specular(this, &temp4);
-    temp3 = { 0.0f, 1.0f, 1.0f };
-    light_set_position(this, &temp3);
-    temp3 = { 0.0f, 0.0f, -1.0f };
-    light_set_spot_direction(this, &temp3);
-    light_set_spot_exponent(this, 0.0f);
-    light_set_spot_cutoff(this, 45.0f);
-    light_set_constant(this, 1.0f);
-    light_set_linear(this, 0.0f);
-    light_set_quadratic(this, 0.0f);
-    temp4 = { 0.0f, 0.0f, 0.0f, 0.0f };
-    light_set_ibl_specular(this, &temp4);
-    temp4 = { 0.0f, 0.0f, 0.0f, 0.0f };
-    light_set_ibl_back(this, &temp4);
-    temp4 = { 0.0f, 0.0f, 0.0f, 0.0f };
-    light_set_ibl_direction(this, &temp4);
-    temp3 = { 0.0f, 0.0f, 0.0f };
-    light_set_tone_curve(this, &temp3);
+    set_type(LIGHT_OFF);
+    set_ambient({ 0.0f, 0.0, 0.0f, 1.0f });
+    set_diffuse({ 1.0f, 1.0, 1.0f, 0.0f });
+    set_specular({ 1.0f, 1.0f, 1.0f, 0.0f });
+    set_position({ 0.0f, 1.0f, 1.0f, 0.0f });
+    set_spot_direction({ 0.0f, 0.0f, -1.0f });
+    set_spot_exponent(0.0f);
+    set_spot_cutoff(45.0f);
+    set_constant(1.0f);
+    set_linear(0.0f);
+    set_quadratic(0.0f);
+    set_ibl_specular({ 0.0f, 0.0f, 0.0f, 0.0f });
+    set_ibl_back({ 0.0f, 0.0f, 0.0f, 0.0f });
+    set_ibl_direction({ 0.0f, 0.0f, 0.0f, 0.0f });
+    set_tone_curve({ 0.0f, 0.0f, 0.0f });
 }
 
 light_set::light_set() : ambient_intensity(),
 irradiance_r(), irradiance_g(), irradiance_b() {
-    vec4 temp;
-    temp = { 0.2f, 0.2f, 0.2f, 1.0f };
-    light_set_set_ambient_intensity(this, &temp);
-    temp = { 1.0f, 1.0f, 1.0f, 1.0f };
-    light_set_diffuse(&lights[LIGHT_CHARA], &temp);
-    temp = { 1.0f, 1.0f, 1.0f, 1.0f };
-    light_set_specular(&lights[LIGHT_CHARA], &temp);
-    light_set_set_irradiance(this, &mat4_identity, &mat4_identity, &mat4_identity);
+    set_ambient_intensity({ 0.2f, 0.2f, 0.2f, 1.0f });
+    lights[LIGHT_CHARA].set_diffuse({ 1.0f, 1.0f, 1.0f, 1.0f });
+    lights[LIGHT_CHARA].set_specular({ 1.0f, 1.0f, 1.0f, 1.0f });
+    set_irradiance(mat4_identity, mat4_identity, mat4_identity);
 }
 
-inline light_type light_get_type(light_data* light) {
-    return light->type;
+light_type light_data::get_type() {
+    return type;
 }
 
-inline void light_set_type(light_data* light, light_type value) {
-    light->type = value;
+void light_data::set_type(light_type value) {
+    type = value;
     if (value < LIGHT_POINT)
-        light->position.w = 0.0f;
+        position.w = 0.0f;
     else
-        light->position.w = 1.0f;
+        position.w = 1.0f;
 }
 
-inline void light_get_ambient(light_data* light, vec4* value) {
-    *value = light->ambient;
+void light_data::get_ambient(vec4& value) {
+    value = ambient;
 }
 
-inline void light_set_ambient(light_data* light, const vec4* value) {
-    light->ambient = *value;
+void light_data::set_ambient(const vec4& value) {
+    ambient = value;
 }
 
-inline void light_get_diffuse(light_data* light, vec4* value) {
-    *value = light->diffuse;
+void light_data::set_ambient(const vec4&& value) {
+    ambient = value;
 }
 
-inline void light_set_diffuse(light_data* light, const vec4* value) {
-    light->diffuse = *value;
+void light_data::get_diffuse(vec4& value) {
+    value = diffuse;
 }
 
-inline void light_get_specular(light_data* light, vec4* value) {
-    *value = light->specular;
+void light_data::set_diffuse(const vec4& value) {
+    diffuse = value;
 }
 
-inline void light_set_specular(light_data* light, const vec4* value) {
-    light->specular = *value;
+void light_data::set_diffuse(const vec4&& value) {
+    diffuse = value;
 }
 
-inline void light_get_position(light_data* light, vec3* value) {
-    *value = *(vec3*)&light->position;
+void light_data::get_specular(vec4& value) {
+    value = specular;
 }
 
-inline void light_set_position(light_data* light, const  vec3* value) {
-    *(vec3*)&light->position = *value;
+void light_data::set_specular(const vec4& value) {
+    specular = value;
 }
 
-inline void light_get_position_vec4(light_data* light, vec4* value) {
-    *value = light->position;
+void light_data::set_specular(const vec4&& value) {
+    specular = value;
 }
 
-inline void light_set_position_vec4(light_data* light, const  vec4* value) {
-    light->position = *value;
+void light_data::get_position(vec3& value) {
+    value = *(vec3*)&position;
 }
 
-inline void light_get_spot_direction(light_data* light, vec3* value) {
-    *value = light->spot_direction;
+void light_data::set_position(const vec3& value) {
+    *(vec3*)&position = value;
 }
 
-inline void light_set_spot_direction(light_data* light, const vec3* value) {
-    light->spot_direction = *value;
+void light_data::set_position(const vec3&& value) {
+    *(vec3*)&position = value;
 }
 
-inline float_t light_get_spot_exponent(light_data* light) {
-    return light->spot_exponent;
+void light_data::get_position(vec4& value) {
+    value = position;
 }
 
-inline void light_set_spot_exponent(light_data* light, float_t value) {
-    light->spot_exponent = value;
+void light_data::set_position(const vec4& value) {
+    position = value;
 }
 
-inline float_t light_get_spot_cutoff(light_data* light) {
-    return light->spot_cutoff;
+void light_data::set_position(const vec4&& value) {
+    position = value;
 }
 
-inline void light_set_spot_cutoff(light_data* light, float_t value) {
-    light->spot_cutoff = value;
+void light_data::get_spot_direction(vec3& value) {
+    value = spot_direction;
 }
 
-inline float_t light_get_constant(light_data* light) {
-    return light->constant;
+void light_data::set_spot_direction(const vec3& value) {
+    spot_direction = value;
 }
 
-inline void light_set_constant(light_data* light, float_t value) {
-    light->constant = value;
+void light_data::set_spot_direction(const vec3&& value) {
+    spot_direction = value;
 }
 
-inline float_t light_get_linear(light_data* light) {
-    return light->linear;
+float_t light_data::get_spot_exponent() {
+    return spot_exponent;
 }
 
-inline void light_set_linear(light_data* light, float_t value) {
-    light->linear = value;
+void light_data::set_spot_exponent(float_t value) {
+    spot_exponent = value;
 }
 
-inline float_t light_get_quadratic(light_data* light) {
-    return light->quadratic;
+float_t light_data::get_spot_cutoff() {
+    return spot_cutoff;
 }
 
-inline void light_set_quadratic(light_data* light, float_t value) {
-    light->quadratic = value;
+void light_data::set_spot_cutoff(float_t value) {
+    spot_cutoff = value;
 }
 
-inline void light_get_attenuation(light_data* light, vec3* value) {
-    value->x = light->constant;
-    value->y = light->linear;
-    value->z = light->quadratic;
+float_t light_data::get_constant() {
+    return constant;
 }
 
-inline void light_set_attenuation(light_data* light, const vec3* value) {
-    light->constant = value->x;
-    light->linear = value->y;
-    light->quadratic = value->z;
+void light_data::set_constant(float_t value) {
+    constant = value;
 }
 
-inline void light_get_ibl_specular(light_data* light, vec4* value) {
-    *value = light->ibl_specular;
+float_t light_data::get_linear() {
+    return linear;
 }
 
-inline void light_set_ibl_specular(light_data* light, const vec4* value) {
-    light->ibl_specular = *value;
+void light_data::set_linear(float_t value) {
+    linear = value;
 }
 
-inline void light_get_ibl_back(light_data* light, vec4* value) {
-    *value = light->ibl_back;
+float_t light_data::get_quadratic() {
+    return quadratic;
 }
 
-inline void light_set_ibl_back(light_data* light, const vec4* value) {
-    light->ibl_back = *value;
+void light_data::set_quadratic(float_t value) {
+    quadratic = value;
 }
 
-inline void light_get_ibl_direction(light_data* light, vec4* value) {
-    *value = light->ibl_direction;
+void light_data::get_attenuation(vec3& value) {
+    value.x = constant;
+    value.y = linear;
+    value.z = quadratic;
 }
 
-inline void light_set_ibl_direction(light_data* light, const vec4* value) {
-    light->ibl_direction = *value;
+void light_data::set_attenuation(const vec3& value) {
+    constant = value.x;
+    linear = value.y;
+    quadratic = value.z;
 }
 
-inline void light_get_tone_curve(light_data* light, vec3* value) {
-    *value = light->tone_curve;
+void light_data::set_attenuation(const vec3&& value) {
+    constant = value.x;
+    linear = value.y;
+    quadratic = value.z;
 }
 
-inline void light_set_tone_curve(light_data* light, const vec3* value) {
-    light->tone_curve = *value;
+void light_data::get_ibl_specular(vec4& value) {
+    value = ibl_specular;
 }
 
-inline void light_get_clip_plane(light_data* light, bool value[4]) {
-    value[0] = light->clip_plane[0];
-    value[1] = light->clip_plane[1];
-    value[2] = light->clip_plane[2];
-    value[3] = light->clip_plane[3];
+void light_data::set_ibl_specular(const vec4& value) {
+    ibl_specular = value;
 }
 
-inline void light_set_clip_plane(light_data* light, const bool value[4]) {
-    light->clip_plane[0] = value[0];
-    light->clip_plane[1] = value[1];
-    light->clip_plane[2] = value[2];
-    light->clip_plane[3] = value[3];
+void light_data::set_ibl_specular(const vec4&& value) {
+    ibl_specular = value;
 }
 
-inline void light_set_get_ambient_intensity(light_set* set, vec4* value) {
-    *value = set->ambient_intensity;
+void light_data::get_ibl_back(vec4& value) {
+    value = ibl_back;
 }
 
-inline void light_set_set_ambient_intensity(light_set* set, const vec4* value) {
-    set->ambient_intensity = *value;
+void light_data::set_ibl_back(const vec4& value) {
+    ibl_back = value;
 }
 
-inline void light_set_get_irradiance(light_set* set, mat4* r, mat4* g, mat4* b) {
-    *r = set->irradiance_r;
-    *g = set->irradiance_g;
-    *b = set->irradiance_b;
+void light_data::set_ibl_back(const vec4&& value) {
+    ibl_back = value;
 }
 
-inline void light_set_set_irradiance(light_set* set, const mat4* r, const mat4* g, const mat4* b) {
-    set->irradiance_r = *r;
-    set->irradiance_g = *g;
-    set->irradiance_b = *b;
+void light_data::get_ibl_direction(vec4& value) {
+    value = ibl_direction;
 }
 
-void light_set_data_set(light_set* set, face* face, light_set_id id) {
+void light_data::set_ibl_direction(const vec4& value) {
+    ibl_direction = value;
+}
+
+void light_data::set_ibl_direction(const vec4&& value) {
+    ibl_direction = value;
+}
+
+void light_data::get_tone_curve(vec3& value) {
+    value = tone_curve;
+}
+
+void light_data::set_tone_curve(const vec3& value) {
+    tone_curve = value;
+}
+
+void light_data::set_tone_curve(const vec3&& value) {
+    tone_curve = value;
+}
+
+void light_data::get_clip_plane(bool value[4]) {
+    value[0] = clip_plane[0];
+    value[1] = clip_plane[1];
+    value[2] = clip_plane[2];
+    value[3] = clip_plane[3];
+}
+
+void light_data::set_clip_plane(const bool value[4]) {
+    clip_plane[0] = value[0];
+    clip_plane[1] = value[1];
+    clip_plane[2] = value[2];
+    clip_plane[3] = value[3];
+}
+
+void light_set::get_ambient_intensity(vec4& value) {
+    value = ambient_intensity;
+}
+
+void light_set::set_ambient_intensity(const vec4& value) {
+    ambient_intensity = value;
+}
+
+void light_set::set_ambient_intensity(const vec4&& value) {
+    ambient_intensity = value;
+}
+
+void light_set::get_irradiance(mat4& r, mat4& g, mat4& b) {
+    r = irradiance_r;
+    g = irradiance_g;
+    b = irradiance_b;
+}
+
+void light_set::set_irradiance(const mat4& r, const mat4& g, const mat4& b) {
+    irradiance_r = r;
+    irradiance_g = g;
+    irradiance_b = b;
+}
+
+void light_set::set_irradiance(const mat4&& r, const mat4&& g, const mat4&& b) {
+    irradiance_r = r;
+    irradiance_g = g;
+    irradiance_b = b;
+}
+
+void light_set::data_set(face& face, light_set_id id) {
     vec4 ambient_intensity;
-    light_set_get_ambient_intensity(set, &ambient_intensity);
+    get_ambient_intensity(ambient_intensity);
     shaders_ft.state_lightmodel_set_ambient(false, ambient_intensity);
 
     for (int32_t i = LIGHT_CHARA; i <= LIGHT_PROJECTION; i++) {
-        light_data* light = &set->lights[i];
+        light_data* light = &lights[i];
         if (light_chara_ambient || i != LIGHT_CHARA) {
             vec4 ambient = light->ambient;
             shaders_ft.state_light_set_ambient(i, ambient);
@@ -276,12 +317,12 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     vec4 ibl_back;
     vec4 ibl_direction;
     vec4 temp;
-    light_get_position_vec4(&set->lights[LIGHT_CHARA], &position);
-    light_get_direction_from_position(&position, &set->lights[LIGHT_CHARA], false);
-    light_get_ibl_specular(&set->lights[LIGHT_CHARA], &ibl_specular);
-    light_get_ibl_back(&set->lights[LIGHT_CHARA], &ibl_back);
-    light_get_diffuse(&set->lights[LIGHT_CHARA], &diffuse);
-    light_get_specular(&set->lights[LIGHT_CHARA], &specular);
+    lights[LIGHT_CHARA].get_position(position);
+    light_get_direction_from_position(&position, &lights[LIGHT_CHARA], false);
+    lights[LIGHT_CHARA].get_ibl_specular(ibl_specular);
+    lights[LIGHT_CHARA].get_ibl_back(ibl_back);
+    lights[LIGHT_CHARA].get_diffuse(diffuse);
+    lights[LIGHT_CHARA].get_specular(specular);
 
     shaders_ft.env_vert_set(5, position);
     shaders_ft.env_frag_set(5, position);
@@ -304,11 +345,11 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     shaders_ft.env_vert_set(9, temp);
     shaders_ft.env_frag_set(9, temp);
 
-    light_get_position_vec4(&set->lights[LIGHT_STAGE], &position);
-    light_get_direction_from_position(&position, &set->lights[LIGHT_STAGE], false);
-    light_get_ibl_specular(&set->lights[LIGHT_STAGE], &ibl_specular);
-    light_get_diffuse(&set->lights[LIGHT_STAGE], &diffuse);
-    light_get_specular(&set->lights[LIGHT_STAGE], &specular);
+    lights[LIGHT_STAGE].get_position(position);
+    light_get_direction_from_position(&position, &lights[LIGHT_STAGE], false);
+    lights[LIGHT_STAGE].get_ibl_specular(ibl_specular);
+    lights[LIGHT_STAGE].get_diffuse(diffuse);
+    lights[LIGHT_STAGE].get_specular(specular);
 
     shaders_ft.env_vert_set(10, position);
     shaders_ft.env_frag_set(14, position);
@@ -325,20 +366,20 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     mat4 irradiance_r;
     mat4 irradiance_g;
     mat4 irradiance_b;
-    light_set_get_irradiance(set, &irradiance_r, &irradiance_g, &irradiance_b);
+    get_irradiance(irradiance_r, irradiance_g, irradiance_b);
     shaders_ft.state_matrix_set_program(0, irradiance_r);
     shaders_ft.state_matrix_set_program(1, irradiance_g);
     shaders_ft.state_matrix_set_program(2, irradiance_b);
 
-    float_t offset = face_get_offset(face);
+    float_t offset = face.get_offset();
     float_t v28 = (float_t)(1.0 - exp(offset * -0.44999999)) * 2.0f;
     offset = max(offset, 0.0f);
     shaders_ft.env_vert_set(0x11, v28 * 0.1f, offset * 0.06f, 1.0, 1.0);
 
-    if (light_get_type(&set->lights[LIGHT_CHARA_COLOR]) == LIGHT_PARALLEL) {
-        light_get_ambient(&set->lights[LIGHT_CHARA_COLOR], &ambient);
-        light_get_diffuse(&set->lights[LIGHT_CHARA_COLOR], &diffuse);
-        light_get_specular(&set->lights[LIGHT_CHARA_COLOR], &specular);
+    if (lights[LIGHT_CHARA_COLOR].get_type() == LIGHT_PARALLEL) {
+        lights[LIGHT_CHARA_COLOR].get_ambient(ambient);
+        lights[LIGHT_CHARA_COLOR].get_diffuse(diffuse);
+        lights[LIGHT_CHARA_COLOR].get_specular(specular);
         if (specular.w > 1.0)
             specular.w = 1.0;
         shaders_ft.env_frag_set(33, ambient);
@@ -351,15 +392,16 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
         shaders_ft.env_frag_set(35, vec4_null);
     }
 
-    if (light_get_type(&set->lights[LIGHT_TONE_CURVE]) == LIGHT_PARALLEL) {
+    if (lights[LIGHT_TONE_CURVE].get_type() == LIGHT_PARALLEL) {
         uniform_value[U_TONE_CURVE] = 1;
-        light_get_position_vec4(&set->lights[LIGHT_TONE_CURVE], &position);
-        light_get_direction_from_position(&position, &set->lights[LIGHT_TONE_CURVE], false);
-        light_get_ambient(&set->lights[LIGHT_TONE_CURVE], &ambient);
-        light_get_diffuse(&set->lights[LIGHT_TONE_CURVE], &diffuse);
-        light_get_specular(&set->lights[LIGHT_TONE_CURVE], &specular);
+        lights[LIGHT_TONE_CURVE].get_position(position);
+        light_get_direction_from_position(&position, &lights[LIGHT_TONE_CURVE], false);
+        lights[LIGHT_TONE_CURVE].get_ambient(ambient);
+        lights[LIGHT_TONE_CURVE].get_diffuse(diffuse);
+        lights[LIGHT_TONE_CURVE].get_specular(specular);
+
         vec3 tone_curve;
-        light_get_tone_curve(&set->lights[LIGHT_TONE_CURVE], &tone_curve);
+        lights[LIGHT_TONE_CURVE].get_tone_curve(tone_curve);
         tone_curve.y = min(tone_curve.y, 1.0f) - tone_curve.x;
         if (tone_curve.y > 0.0f)
             tone_curve.y = 1.0f / tone_curve.y;
@@ -381,7 +423,7 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
         shaders_ft.env_frag_set(40, 0.0f, 0.0f, 0.0f, 0.0f);
     }
 
-    light_get_position_vec4(&set->lights[LIGHT_CHARA], &position);
+    lights[LIGHT_CHARA].get_position(position);
     if (fabs(position.x) <= 0.000001f && fabs(position.z) <= 0.000001f && fabs(position.z) <= 0.000001f)
         position = { 0.0f, 1.0f, 0.0f, 1.0f };
     else {
@@ -394,19 +436,19 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     shaders_ft.env_vert_set(15, position.x, position.y, position.z, 1.0f);
     shaders_ft.env_vert_set(16, -position.x, -position.y, -position.z, 1.0f);
 
-    if (light_get_type(&set->lights[LIGHT_REFLECT]) == LIGHT_SPOT) {
+    if (lights[LIGHT_REFLECT].get_type() == LIGHT_SPOT) {
         vec4 spot_direction;
-        light_get_spot_direction(&set->lights[LIGHT_REFLECT], (vec3*)&spot_direction);
+        lights[LIGHT_REFLECT].get_spot_direction(*(vec3*)&spot_direction);
         vec3_negate(*(vec3*)&spot_direction, *(vec3*)&spot_direction);
-        light_get_direction_from_position(&spot_direction, &set->lights[LIGHT_REFLECT], true);
-        light_get_position_vec4(&set->lights[LIGHT_REFLECT], &position);
+        light_get_direction_from_position(&spot_direction, &lights[LIGHT_REFLECT], true);
+        lights[LIGHT_REFLECT].get_position(position);
         vec3_dot(*(vec3*)&position, *(vec3*)&spot_direction, spot_direction.w);
         spot_direction.w = -spot_direction.w;
 
         shaders_ft.env_vert_set(28, spot_direction);
         shaders_ft.env_frag_set(22, spot_direction);
     }
-    else if (light_get_type(&set->lights[LIGHT_REFLECT]) == LIGHT_POINT) {
+    else if (lights[LIGHT_REFLECT].get_type() == LIGHT_POINT) {
         shaders_ft.env_vert_set(28, 0.0f, -1.0f, 0.0f, 9999.0f);
         shaders_ft.env_frag_set(22, 0.0f, -1.0f, 0.0f, 9999.0f);
     }
@@ -418,8 +460,8 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
     mat4 v63 = mat4_identity;
     mat4 v64 = mat4_identity;
 
-    light_get_ibl_direction(&set->lights[LIGHT_CHARA], &ibl_direction);
-    light_get_position_vec4(&set->lights[LIGHT_CHARA], &position);
+    lights[LIGHT_CHARA].get_ibl_direction(ibl_direction);
+    lights[LIGHT_CHARA].get_position(position);
 
     float_t length;
     vec3_length(*(vec3*)&ibl_direction, length);
@@ -457,7 +499,7 @@ void light_set_data_set(light_set* set, face* face, light_set_id id) {
 }
 
 static void light_get_direction_from_position(vec4* pos_dir, light_data* light, bool force) {
-    if (force || light_get_type(light) == LIGHT_PARALLEL) {
+    if (force || light->get_type() == LIGHT_PARALLEL) {
         float_t length;
         vec3_length(*(vec3*)pos_dir, length);
         if (length <= 0.000001)

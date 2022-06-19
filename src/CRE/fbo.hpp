@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "shared.h"
+#include "shared.hpp"
 
 enum fbo_flags {
     FBO_DEPTH_ATTACHMENT = 0x01,

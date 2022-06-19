@@ -6,8 +6,8 @@
 #include "texture.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/txp.hpp"
-#include "gl_state.h"
-#include "static_var.h"
+#include "gl_state.hpp"
+#include "static_var.hpp"
 
 static void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type);
 static uint32_t texture_get_height_align_mip_level(texture* tex, int32_t mip_level);

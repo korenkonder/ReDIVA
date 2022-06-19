@@ -7,8 +7,8 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../shared.h"
-#include "../render_texture.h"
+#include "../shared.hpp"
+#include "../render_texture.hpp"
 
 struct post_process_aa {
     int32_t width;

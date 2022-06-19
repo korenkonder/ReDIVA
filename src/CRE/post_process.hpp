@@ -12,7 +12,7 @@
 #include "post_process/dof.hpp"
 #include "post_process/exposure.hpp"
 #include "post_process/tone_map.hpp"
-#include "camera.h"
+#include "camera.hpp"
 
 enum post_process_mag_filter_type {
     POST_PROCESS_MAG_FILTER_NEAREST       = 0,

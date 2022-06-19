@@ -19,7 +19,7 @@
 #include "../../KKdLib/vec.hpp"
 #include "../file_handler.hpp"
 #include "../frame_rate_control.hpp"
-#include "../static_var.h"
+#include "../static_var.hpp"
 #include "../task.hpp"
 #include "../texture.hpp"
 

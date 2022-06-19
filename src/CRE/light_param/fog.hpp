@@ -8,7 +8,7 @@
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/light_param/fog.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../static_var.h"
+#include "../static_var.hpp"
 
 struct fog {
     fog_type type;
@@ -19,18 +19,19 @@ struct fog {
     vec4 color;
 
     fog();
-};
 
-extern fog_type fog_get_type(fog* fog);
-extern void fog_set_type(fog* fog, fog_type value);
-extern float_t fog_get_density(fog* fog);
-extern void fog_set_density(fog* fog, float_t value);
-extern float_t fog_get_start(fog* fog);
-extern void fog_set_start(fog* fog, float_t value);
-extern float_t fog_get_end(fog* fog);
-extern void fog_set_end(fog* fog, float_t value);
-extern int32_t fog_get_index(fog* fog);
-extern void fog_set_index(fog* fog, int32_t value);
-extern void fog_get_color(fog* fog, vec4* value);
-extern void fog_set_color(fog* fog, vec4* value);
-extern void fog_data_set(fog* fog, fog_id id);
+    fog_type get_type();
+    void set_type(fog_type value);
+    float_t get_density();
+    void set_density(float_t value);
+    float_t get_start();
+    void set_start(float_t value);
+    float_t get_end();
+    void set_end(float_t value);
+    int32_t get_index();
+    void set_index(int32_t value);
+    void get_color(vec4& value);
+    void set_color(vec4& value);
+    void set_color(vec4&& value);
+    void data_set(fog_id id);
+};

@@ -29,7 +29,7 @@ struct shader_glsl {
     std::vector<std::pair<uint64_t, GLint>> uniform_block;
 
     shader_glsl();
-    ~shader_glsl();
+    virtual ~shader_glsl();
 
     GLint get_uniform_location(const char* name);
     void load(const char* vert_data, const char* frag_data,

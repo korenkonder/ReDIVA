@@ -4,7 +4,7 @@
 */
 
 #include "fog.hpp"
-#include "../shader_ft.h"
+#include "../shader_ft.hpp"
 
 fog::fog() {
     type = FOG_NONE;
@@ -15,62 +15,66 @@ fog::fog() {
     color = { 1.0f, 1.0f, 1.0f, 0.0f };
 }
 
-inline fog_type fog_get_type(fog* fog) {
-    return fog->type;
+fog_type fog::get_type() {
+    return type;
 }
 
-inline void fog_set_type(fog* fog, fog_type value) {
-    fog->type = value;
+void fog::set_type(fog_type value) {
+    type = value;
 }
 
-inline float_t fog_get_density(fog* fog) {
-    return fog->density;
+float_t fog::get_density() {
+    return density;
 }
 
-inline void fog_set_density(fog* fog, float_t value) {
-    fog->density = value;
+void fog::set_density(float_t value) {
+    density = value;
 }
 
-inline float_t fog_get_start(fog* fog) {
-    return fog->start;
+float_t fog::get_start() {
+    return start;
 }
 
-inline void fog_set_start(fog* fog, float_t value) {
-    fog->start = value;
+void fog::set_start(float_t value) {
+    start = value;
 }
 
-inline float_t fog_get_end(fog* fog) {
-    return fog->end;
+float_t fog::get_end() {
+    return end;
 }
 
-inline void fog_set_end(fog* fog, float_t value) {
-    fog->end = value;
+void fog::set_end(float_t value) {
+    end = value;
 }
 
-inline int32_t fog_get_index(fog* fog) {
-    return fog->index;
+int32_t fog::get_index() {
+    return index;
 }
 
-inline void fog_set_index(fog* fog, int32_t value) {
-    fog->index = value;
+void fog::set_index(int32_t value) {
+    index = value;
 }
 
-inline void fog_get_color(fog* fog, vec4* value) {
-    *value = fog->color;
+void fog::get_color(vec4& value) {
+    value = color;
 }
 
-inline void fog_set_color(fog* fog, vec4* value) {
-    fog->color = *value;
+void fog::set_color(vec4& value) {
+    color = value;
 }
 
-void fog_data_set(fog* fog, fog_id id) {
-    fog_type type = fog_get_type(fog);
+void fog::set_color(vec4&& value) {
+    color = value;
+}
+
+void fog::data_set(fog_id id) {
+    fog_type type = get_type();
     if (type == FOG_NONE)
         return;
 
-    float_t density = fog_get_density(fog);
-    float_t start = fog_get_start(fog);
-    float_t end = fog_get_end(fog);
+    float_t density = get_density();
+    float_t start = get_start();
+    float_t end = get_end();
     if (start >= end)
         start = end - 0.01f;
 
@@ -83,7 +87,7 @@ void fog_data_set(fog* fog, fog_id id) {
     switch (id) {
     case FOG_DEPTH: {
         vec4 color;
-        fog_get_color(fog, &color);
+        get_color(color);
         shaders_ft.env_vert_set(29, color);
         shaders_ft.env_frag_set(4, color);
 
@@ -93,7 +97,7 @@ void fog_data_set(fog* fog, fog_id id) {
     } break;
     case FOG_HEIGHT: {
         vec4 color;
-        fog_get_color(fog, &color);
+        get_color(color);
         shaders_ft.env_vert_set(30, color);
         shaders_ft.env_frag_set(11, color);
         shaders_ft.env_vert_set(14, params);

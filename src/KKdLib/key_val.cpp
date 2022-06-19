@@ -134,14 +134,14 @@ bool key_val::open_scope(std::string& str) {
         return true;
     }
 
-    ssize_t offset = curr_scope->key.size();
+    size_t offset = curr_scope->key.size();
     if (offset)
         offset++;
 
     key_val_pair* first = 0;
     key_val_pair* last = 0;
     const char* s = str.c_str();
-    ssize_t s_len = str.size();
+    size_t s_len = str.size();
 
     key_val_pair* i = key.data() + curr_scope->index;
     size_t j = curr_scope->count;

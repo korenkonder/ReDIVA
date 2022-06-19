@@ -11,8 +11,8 @@
 #include "../../../CRE/render_context.hpp"
 #include "../../../CRE/stage.hpp"
 #include "../../input.hpp"
-#include "../data_test.h"
-#include "../imgui_helper.h"
+#include "../data_test.hpp"
+#include "../imgui_helper.hpp"
 #include "stage_test.hpp"
 
 class TaskDataTestGlitterParticle : public app::TaskWindow {
@@ -109,11 +109,9 @@ bool TaskDataTestGlitterParticle::Init() {
     clear_color = { 0x60, 0x60, 0x60, 0xFF };
 
     camera* cam = rctx_ptr->camera;
-    camera_reset(cam);
-    vec3 view_point = { 0.0f, 0.88f, 4.3f };
-    camera_set_view_point(cam, &view_point);
-    vec3 interest = { 0.0f, 1.0f, 0.0f };
-    camera_set_interest(cam, &interest);
+    cam->reset();
+    cam->set_view_point({ 0.0f, 0.88f, 4.3f });
+    cam->set_interest({ 0.0f, 1.0f, 0.0f });
 
     hash = hash_fnv1a64m_empty;
     scene_counter = 0;
@@ -206,47 +204,47 @@ void TaskDataTestGlitterParticle::Window() {
         return;
     }
 
-    if (imguiColumnComboBoxConfigFile("File", files.data(),
+    if (ImGui::ColumnComboBoxConfigFile("File", files.data(),
         files.size(), &file_index, 0, false, &window_focus)) {
         load_file = true;
         input_stop = true;
     }
 
-    if (imguiButton("Reset Camera (R)"))
+    if (ImGui::ButtonEnterKeyPressed("Reset Camera (R)"))
         input_reset = true;
 
-    w = imguiGetContentRegionAvailWidth();
-    if (imguiButton("Play (F)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_F))
+    w = ImGui::GetContentRegionAvailWidth();
+    if (ImGui::ButtonEnterKeyPressed("Play (F)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_F))
         input_play = true;
 
-    w = imguiGetContentRegionAvailWidth();
-    if (imguiButton("Stop (V)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_V))
+    w = ImGui::GetContentRegionAvailWidth();
+    if (ImGui::ButtonEnterKeyPressed("Stop (V)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_V))
         input_stop = true;
 
     bool pause = Glitter::glt_particle_manager.GetPause();
-    imguiCheckbox("Pause (G)", &pause);
+    ImGui::CheckboxEnterKeyPressed("Pause (G)", &pause);
     if (ImGui::IsKeyPressed(GLFW_KEY_G))
         pause ^= true;
     Glitter::glt_particle_manager.SetPause(pause);
 
-    imguiCheckbox("Auto (T)", &auto_and_repeat);
+    ImGui::CheckboxEnterKeyPressed("Auto (T)", &auto_and_repeat);
     if (ImGui::IsKeyPressed(GLFW_KEY_T))
         auto_and_repeat ^= true;
 
-    imguiCheckbox("PV Mode (P)", &pv_mode);
+    ImGui::CheckboxEnterKeyPressed("PV Mode (P)", &pv_mode);
     if (ImGui::IsKeyPressed(GLFW_KEY_P))
         pv_mode ^= true;
 
     ImGui::Separator();
 
-    imguiColumnSliderFloat("Emission", &Glitter::glt_particle_manager.emission, 0.01f, 1.0f, 2.0f, "%.2f", 0, true);
+    ImGui::ColumnSliderFloat("Emission", &Glitter::glt_particle_manager.emission, 0.01f, 1.0f, 2.0f, "%.2f", 0, true);
 
     ImGui::Separator();
 
-    imguiCheckbox("Show Grid", &draw_grid_3d);
+    ImGui::CheckboxEnterKeyPressed("Show Grid", &draw_grid_3d);
 
-    w = imguiGetContentRegionAvailWidth();
-    if (imguiButton("Stage", { w, 0.0f }))
+    w = ImGui::GetContentRegionAvailWidth();
+    if (ImGui::ButtonEnterKeyPressed("Stage", { w, 0.0f }))
         stage_test = true;
 
     window_focus |= ImGui::IsWindowFocused();
