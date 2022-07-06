@@ -92,9 +92,8 @@ const double_t render_scale_table[] = {
      8.0 / 4.0, // 200%
 };
 
-size_t render_scale_table_count = sizeof(render_scale_table) / sizeof(double_t);
-
-static float_t old_scale, scale;
+static int32_t old_scale_index;
+static int32_t scale_index;
 
 static vec2i old_internal_2d_res;
 static vec2i old_internal_3d_res;
@@ -146,6 +145,10 @@ bool global_context_menu;
 extern size_t frame_counter;
 render_context* rctx_ptr;
 bool task_stage_is_modern;
+
+render_init_struct::render_init_struct() : scale_index() {
+
+}
 
 int32_t render_main(void* arg) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
@@ -234,7 +237,9 @@ int32_t render_main(void* arg) {
     width = window_rect.right;
     height = window_rect.bottom;
 
-    old_scale = scale = ris->scale > 0 ? ris->scale : 1.0f;
+    scale_index = ris->scale_index > 0 && ris->scale_index < RENDER_SCALE_MAX
+        ? ris->scale_index : RENDER_SCALE_100;
+    old_scale_index = scale_index;
 #pragma endregion
 
 #if defined(DEBUG) && OPENGL_DEBUG
@@ -333,47 +338,15 @@ int32_t render_main(void* arg) {
 }
 
 double_t render_get_scale() {
-    return scale;
-}
-
-void render_set_scale(double_t value) {
-    size_t i;
-    for (i = 0; i < render_scale_table_count; i++)
-        if (value <= render_scale_table[i]) break;
-
-    if (i < render_scale_table_count)
-        value = render_scale_table[i];
-    else if (render_scale_table_count - 1 > -1)
-        value = render_scale_table[render_scale_table_count - 1];
-    else
-        value = 1.0;
-
-    scale = (float_t)value;
+    return render_scale_table[scale_index];
 }
 
 int32_t render_get_scale_index() {
-    size_t i;
-    for (i = 0; i < render_scale_table_count; i++)
-        if (scale <= render_scale_table[i]) break;
-
-    int32_t index;
-    if (i < render_scale_table_count)
-        index = (int32_t)i;
-    else
-        index = (int32_t)(render_scale_table_count - 1);
-    return index;
+    return scale_index;
 }
 
 void render_set_scale_index(int32_t index) {
-    double_t value;
-    if (index < 0)
-        value = render_scale_table[0];
-    else if (index < render_scale_table_count)
-        value = render_scale_table[index];
-    else
-        value = render_scale_table[render_scale_table_count - 1];
-
-    scale = (float_t)value;
+     scale_index = index >= 0 && index < RENDER_SCALE_MAX ? index : RENDER_SCALE_100;
 }
 
 float_t rob_frame = 0.0f;
@@ -393,10 +366,10 @@ static render_context* render_load() {
     mothead_storage_init();
     osage_setting_data_init();
 
-    Glitter::glt_particle_manager.rctx = rctx;
-
     data_struct_init();
     data_struct_load("CLOUD_data.txt");
+
+    render_shaders_load();
 
     data_struct* aft_data = &data_list[DATA_AFT];
     auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
@@ -429,8 +402,6 @@ static render_context* render_load() {
     gl_state_bind_uniform_buffer(0);
 
     uniform_value[U16] = 1;
-
-    render_shaders_load();
 
     const char* cube_line_vert_shader =
         "#version 430 core\n"
@@ -764,9 +735,9 @@ static render_context* render_load() {
     modules[5] = 0;//31;
     //pv_game_data.Load(739, charas, modules);
 
-    charas[0] = CHARA_LUKA;
-    charas[1] = CHARA_LUKA;//CHARA_RIN;
-    charas[2] = CHARA_LUKA;//CHARA_LEN;
+    charas[0] = CHARA_KAITO;
+    charas[1] = CHARA_MIKU;//CHARA_RIN;
+    charas[2] = CHARA_MEIKO;//CHARA_LEN;
     charas[3] = CHARA_LUKA;//CHARA_LUKA;
     charas[4] = CHARA_LUKA;//CHARA_KAITO;
     charas[5] = CHARA_LUKA;//CHARA_MEIKO;
@@ -785,8 +756,10 @@ static render_context* render_load() {
     return rctx;
 }
 
-extern vec2d input_move;
-extern vec2d input_rotate;
+extern double_t input_move_x;
+extern double_t input_move_y;
+extern double_t input_rotate_x;
+extern double_t input_rotate_y;
 extern double_t input_roll;
 extern bool input_reset;
 
@@ -811,13 +784,13 @@ static void render_ctrl(render_context* rctx) {
     classes_process_imgui(classes, classes_count);
     lock_unlock(&imgui_context_lock);
 
-    if (old_width != width || old_height != height || old_scale != scale) {
+    if (old_width != width || old_height != height || old_scale_index != scale_index) {
         render_resize_fb(rctx, true);
         cam->set_res(internal_3d_res.x, internal_3d_res.y);
     }
     old_width = width;
     old_height = height;
-    old_scale = scale;
+    old_scale_index = scale_index;
 
     lock_lock(&imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
@@ -845,8 +818,8 @@ static void render_ctrl(render_context* rctx) {
             cam->set_fast_change_hist0(true);
         }
         else {
-            cam->rotate(input_rotate);
-            cam->move(input_move);
+            cam->rotate(input_rotate_x, input_rotate_y);
+            cam->move(input_move_x, input_move_y);
             if (input_roll != 0.0)
                 cam->set_roll(cam->get_roll() + input_roll);
         }
@@ -1145,8 +1118,6 @@ static void render_dispose(render_context* rctx) {
     object_storage_free();
     data_struct_free();
 
-    render_shaders_free();
-
     glDeleteBuffers(1, &common_data_ubo);
     glDeleteBuffers(1, &grid_vbo);
     glDeleteBuffers(1, &cube_line_point_instance_vbo);
@@ -1164,6 +1135,8 @@ static void render_dispose(render_context* rctx) {
     file_handler_storage_free();
 
     texture_storage_free();
+
+    render_shaders_free();
 }
 
 static void render_imgui(render_context* rctx) {
@@ -1222,8 +1195,8 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
 
     internal_2d_res.x = clamp(internal_res.x, 1, sv_max_texture_size);
     internal_2d_res.y = clamp(internal_res.y, 1, sv_max_texture_size);
-    internal_3d_res.x = (int32_t)roundf((float_t)internal_res.x * scale);
-    internal_3d_res.y = (int32_t)roundf((float_t)internal_res.y * scale);
+    internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * render_scale_table[scale_index]));
+    internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * render_scale_table[scale_index]));
     internal_3d_res.x = clamp(internal_3d_res.x, 1, sv_max_texture_size);
     internal_3d_res.y = clamp(internal_3d_res.y, 1, sv_max_texture_size);
 

@@ -345,7 +345,7 @@ void TaskEffectFogAnim::Data::Reset() {
     field_28 = 0;
     field_2C = 0;
     field_30 = 0;
-    field_34 = vec4u_identity;
+    field_34 = vec4_identity;
 }
 
 TaskEffectFogAnim::TaskEffectFogAnim() {

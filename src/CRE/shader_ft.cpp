@@ -37,8 +37,8 @@ enum shader_ft_sub_enum {
     SHADER_FT_SUB_LAMBERT              = 0x1B,
     SHADER_FT_SUB_CONSTANT             = 0x1C,
     SHADER_FT_SUB_PEEL                 = 0x1D,
-    SHADER_FT_SUB_TONE_MAP             = 0x1E,
-    SHADER_FT_SUB_TONE_MAP_NPR1        = 0x1F,
+    SHADER_FT_SUB_TONEMAP              = 0x1E,
+    SHADER_FT_SUB_TONEMAP_NPR1         = 0x1F,
     SHADER_FT_SUB_REDUCE_TEX           = 0x20,
     SHADER_FT_SUB_MAGNIFY              = 0x21,
     SHADER_FT_SUB_MLAA                 = 0x22,
@@ -310,19 +310,19 @@ static const int32_t peel_fpt_unival_max[] = {
     1, 0,
 };
 
-static const int32_t tone_map_vpt_unival_max[] = {
+static const int32_t tonemap_vpt_unival_max[] = {
     0, 0, 0, 0, 1, 0, 0, 0,
 };
 
-static const int32_t tone_map_fpt_unival_max[] = {
+static const int32_t tonemap_fpt_unival_max[] = {
     0, 2, 2, 1, 1, 1, 0, 0,
 };
 
-static const int32_t tone_map_npr1_vpt_unival_max[] = {
+static const int32_t tonemap_npr1_vpt_unival_max[] = {
     0, 0, 0, 0, 1, 0, 0, 0,
 };
 
-static const int32_t tone_map_npr1_fpt_unival_max[] = {
+static const int32_t tonemap_npr1_fpt_unival_max[] = {
     1, 0, 0, 1, 1, 0, 0, 1,
 };
 
@@ -891,16 +891,16 @@ static const shader_sub_table PEEL_table[] = {
 
 static const shader_sub_table TONEMAP_table[] = {
     {
-        SHADER_FT_SUB_TONE_MAP,
-        tone_map_vpt_unival_max,
-        tone_map_fpt_unival_max,
+        SHADER_FT_SUB_TONEMAP,
+        tonemap_vpt_unival_max,
+        tonemap_fpt_unival_max,
         "tone_map",
         "tone_map",
     },
     {
-        SHADER_FT_SUB_TONE_MAP_NPR1,
-        tone_map_npr1_vpt_unival_max,
-        tone_map_npr1_fpt_unival_max,
+        SHADER_FT_SUB_TONEMAP_NPR1,
+        tonemap_npr1_vpt_unival_max,
+        tonemap_npr1_fpt_unival_max,
         "tone_map",
         "tone_map_npr1",
     },
@@ -2160,8 +2160,8 @@ static const bool SPRITE_permut[] = {
 };
 
 struct glass_eye_struct {
-    vec4u field_0;
-    vec4u field_10;
+    vec4 field_0;
+    vec4 field_10;
     float_t field_20;
     float_t field_24;
     float_t field_28;
@@ -2178,7 +2178,7 @@ struct glass_eye_struct {
     float_t field_8C;
     vec3 field_90;
     uint32_t frame;
-    vec4u field_A0;
+    vec4 field_A0;
     bool field_B0;
     bool field_B1;
     bool field_B2;
@@ -2328,7 +2328,7 @@ glass_eye_struct glass_eye = {
     { 1.0f, 1.2f, 0.45f },
     { 1.0f, 1.2f, 0.25f },
     { 0.5f, 0.6f, 0.4f },
-    0.2f,
+    -0.2f,
     { 1.0f, 1.0f, 1.0f },
     0.0f,
     { 0.0f, 0.0f, 0.0f },
@@ -2361,7 +2361,7 @@ static void glass_eye_calc(glass_eye_struct* glass_eye) {
     vec3_mult_scalar(glass_eye->field_48, v2, glass_eye->field_80);
     glass_eye->field_8C = glass_eye->field_54 * v2;
     if (glass_eye->field_B0 == 0) {
-        glass_eye->field_A0 = vec4u_null;
+        glass_eye->field_A0 = vec4_null;
         return;
     }
 
@@ -2423,7 +2423,7 @@ static void glass_eye_set(glass_eye_struct* glass_eye, shader_set_data* set) {
     set->local_frag_set(0x0D, v3, 1.0f - v3, glass_eye->field_20 / glass_eye->field_24, 0.0f);
 
     float_t v4 = (glass_eye->field_24 * glass_eye->field_24) / (glass_eye->field_20 * glass_eye->field_20);
-    set->local_frag_set(0x0E, 1.0f - v4, v4, glass_eye->field_24 / glass_eye->field_20, 0.0f);
+    set->local_frag_set(0x0E, v4, 1.0f - v4, glass_eye->field_24 / glass_eye->field_20, 0.0f);
 
     vec3_mult(glass_eye->field_74, glass_eye->field_74, *(vec3*)&temp);
     temp.w = -1.0f;
@@ -2489,5 +2489,5 @@ static void shader_bind_eye_ball(shader_set_data* set, shader* shad) {
 
 static void shader_bind_tone_map(shader_set_data* set, shader* shad) {
     shad->bind(uniform_value[U_NPR] == 1
-        ? SHADER_FT_SUB_TONE_MAP_NPR1 : SHADER_FT_SUB_TONE_MAP);
+        ? SHADER_FT_SUB_TONEMAP_NPR1 : SHADER_FT_SUB_TONEMAP);
 }

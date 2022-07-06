@@ -67,6 +67,14 @@ shader_state_point::shader_state_point() {
 
 }
 
+shader_state_texgen::eye::eye() {
+
+}
+
+shader_state_texgen::object::object() {
+
+}
+
 shader_state_texgen::shader_state_texgen() {
 
 }
@@ -166,7 +174,7 @@ void shader_set_data::draw_range_elements(GLenum mode,
 int32_t shader_set_data::get_index_by_name(const char* name) {
     for (size_t i = 0; i < size; i++)
         if (!str_utils_compare(shaders[i].name, name))
-            return (int32_t)shaders[i].index;
+            return (int32_t)shaders[i].name_index;
     return -1;
 }
 
@@ -206,7 +214,7 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
     for (size_t i = 0; i < size; i++) {
         shader* shader = &shaders[i];
         shader->name = shaders_table[i].name;
-        shader->index = shaders_table[i].index;
+        shader->name_index = shaders_table[i].name_index;
         shader->num_sub = shaders_table[i].num_sub;
         shader->sub = force_malloc_s(shader_sub, shader->num_sub);
         shader->num_uniform = shaders_table[i].num_uniform;
@@ -465,7 +473,7 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
         vec_frag.clear();
 
         for (size_t j = 0; j < bind_func_table_size; j++)
-            if (shader->index == bind_func_table[j].index) {
+            if (shader->name_index == bind_func_table[j].index) {
                 shader->bind_func = bind_func_table[j].bind_func;
                 break;
             }
@@ -879,56 +887,56 @@ void shader_set_data::state_texgen_get_eye_s(size_t index, vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    data = this->data.state.texgen[index].eye_s;
+    data = this->data.state.texgen[index].eye.s;
 }
 
 void shader_set_data::state_texgen_get_eye_t(size_t index, vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    data = this->data.state.texgen[index].eye_t;
+    data = this->data.state.texgen[index].eye.t;
 }
 
 void shader_set_data::state_texgen_get_eye_r(size_t index, vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    data = this->data.state.texgen[index].eye_r;
+    data = this->data.state.texgen[index].eye.r;
 }
 
 void shader_set_data::state_texgen_get_eye_q(size_t index, vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    data = this->data.state.texgen[index].eye_q;
+    data = this->data.state.texgen[index].eye.q;
 }
 
 void shader_set_data::state_texgen_get_object_s(size_t index, vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    data = this->data.state.texgen[index].object_s;
+    data = this->data.state.texgen[index].object.s;
 }
 
 void shader_set_data::state_texgen_get_object_t(size_t index, vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    data = this->data.state.texgen[index].object_t;
+    data = this->data.state.texgen[index].object.t;
 }
 
 void shader_set_data::state_texgen_get_object_r(size_t index, vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    data = this->data.state.texgen[index].object_r;
+    data = this->data.state.texgen[index].object.r;
 }
 
 void shader_set_data::state_texgen_get_object_q(size_t index, vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    data = this->data.state.texgen[index].object_q;
+    data = this->data.state.texgen[index].object.q;
 }
 
 void shader_set_data::state_texenv_get_color(size_t index, vec4& data) {
@@ -1891,10 +1899,10 @@ void shader_set_data::state_texgen_set_eye_s(size_t index, float_t x, float_t y,
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&this->data.state.texgen[index].eye_s, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye.s, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].eye_s = data;
+    this->data.state.texgen[index].eye.s = data;
     this->data.state_update_data = true;
 }
 
@@ -1902,10 +1910,10 @@ void shader_set_data::state_texgen_set_eye_s(size_t index, const vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&this->data.state.texgen[index].eye_s, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye.s, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].eye_s = data;
+    this->data.state.texgen[index].eye.s = data;
     this->data.state_update_data = true;
 }
 
@@ -1914,10 +1922,10 @@ void shader_set_data::state_texgen_set_eye_t(size_t index, float_t x, float_t y,
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&this->data.state.texgen[index].eye_t, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye.t, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].eye_t = data;
+    this->data.state.texgen[index].eye.t = data;
     this->data.state_update_data = true;
 }
 
@@ -1925,10 +1933,10 @@ void shader_set_data::state_texgen_set_eye_t(size_t index, const vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&this->data.state.texgen[index].eye_t, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye.t, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].eye_t = data;
+    this->data.state.texgen[index].eye.t = data;
     this->data.state_update_data = true;
 }
 
@@ -1937,10 +1945,10 @@ void shader_set_data::state_texgen_set_eye_r(size_t index, float_t x, float_t y,
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&this->data.state.texgen[index].eye_r, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye.r, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].eye_r = data;
+    this->data.state.texgen[index].eye.r = data;
     this->data.state_update_data = true;
 }
 
@@ -1948,10 +1956,10 @@ void shader_set_data::state_texgen_set_eye_r(size_t index, const vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&this->data.state.texgen[index].eye_r, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye.r, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].eye_r = data;
+    this->data.state.texgen[index].eye.r = data;
     this->data.state_update_data = true;
 }
 
@@ -1960,10 +1968,10 @@ void shader_set_data::state_texgen_set_eye_q(size_t index, float_t x, float_t y,
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&this->data.state.texgen[index].eye_q, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye.q, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].eye_q = data;
+    this->data.state.texgen[index].eye.q = data;
     this->data.state_update_data = true;
 }
 
@@ -1971,10 +1979,10 @@ void shader_set_data::state_texgen_set_eye_q(size_t index, const vec4& data) {
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&this->data.state.texgen[index].eye_q, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].eye.q, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].eye_q = data;
+    this->data.state.texgen[index].eye.q = data;
     this->data.state_update_data = true;
 }
 
@@ -1983,10 +1991,10 @@ void shader_set_data::state_texgen_set_object_s(size_t index, float_t x, float_t
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&this->data.state.texgen[index].object_s, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object.s, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].object_s = data;
+    this->data.state.texgen[index].object.s = data;
     this->data.state_update_data = true;
 }
 
@@ -1994,10 +2002,10 @@ void shader_set_data::state_texgen_set_object_s(size_t index, const vec4& data) 
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&this->data.state.texgen[index].object_s, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object.s, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].object_s = data;
+    this->data.state.texgen[index].object.s = data;
     this->data.state_update_data = true;
 }
 
@@ -2006,10 +2014,10 @@ void shader_set_data::state_texgen_set_object_t(size_t index, float_t x, float_t
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&this->data.state.texgen[index].object_t, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object.t, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].object_t = data;
+    this->data.state.texgen[index].object.t = data;
     this->data.state_update_data = true;
 }
 
@@ -2017,10 +2025,10 @@ void shader_set_data::state_texgen_set_object_t(size_t index, const vec4& data) 
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&this->data.state.texgen[index].object_t, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object.t, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].object_t = data;
+    this->data.state.texgen[index].object.t = data;
     this->data.state_update_data = true;
 }
 
@@ -2029,10 +2037,10 @@ void shader_set_data::state_texgen_set_object_r(size_t index, float_t x, float_t
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&this->data.state.texgen[index].object_r, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object.r, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].object_r = data;
+    this->data.state.texgen[index].object.r = data;
     this->data.state_update_data = true;
 }
 
@@ -2040,10 +2048,10 @@ void shader_set_data::state_texgen_set_object_r(size_t index, const vec4& data) 
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&this->data.state.texgen[index].object_r, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object.r, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].object_r = data;
+    this->data.state.texgen[index].object.r = data;
     this->data.state_update_data = true;
 }
 
@@ -2052,10 +2060,10 @@ void shader_set_data::state_texgen_set_object_q(size_t index, float_t x, float_t
         return;
 
     vec4 data = { x, y, z, w };
-    if (!memcmp(&this->data.state.texgen[index].object_q, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object.q, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].object_q = data;
+    this->data.state.texgen[index].object.q = data;
     this->data.state_update_data = true;
 }
 
@@ -2063,10 +2071,10 @@ void shader_set_data::state_texgen_set_object_q(size_t index, const vec4& data) 
     if (!this || index >= SHADER_MAX_TEXTURE_UNITS)
         return;
 
-    if (!memcmp(&this->data.state.texgen[index].object_q, &data, sizeof(vec4)))
+    if (!memcmp(&this->data.state.texgen[index].object.q, &data, sizeof(vec4)))
         return;
 
-    this->data.state.texgen[index].object_q = data;
+    this->data.state.texgen[index].object.q = data;
     this->data.state_update_data = true;
 }
 

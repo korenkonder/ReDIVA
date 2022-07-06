@@ -10,7 +10,7 @@
 #include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/io/stream.hpp"
 #include "../../KKdLib/dds.hpp"
-#include "../../KKdLib/interpolation.h"
+#include "../../KKdLib/interpolation.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../../KKdLib/txp.hpp"
 #include "../../KKdLib/vec.hpp"
@@ -195,6 +195,8 @@ extern bool close;
 extern bool global_context_menu;
 
 extern float_t rob_frame;
+
+extern render_context* rctx_ptr;
 
 static const char* glitter_editor_window_title = "Glitter Editor";
 
@@ -1276,7 +1278,6 @@ static void glitter_editor_windows(glitter_editor_struct* glt_edt, class_data* d
                 enum_or(data->flags, CLASS_DISPOSE);
             if (ImGui::MenuItem("Quit", "Ctrl+Q"))
                 close = true;
-            ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu("Edit", false)) {
@@ -1499,9 +1500,9 @@ static void glitter_editor_reload(glitter_editor_struct* glt_edt) {
 
         Glitter::Effect* effect = i;
         if (eg->type != Glitter::FT)
-            effect->data.name_hash = hash_string_murmurhash(&effect->name);
+            effect->data.name_hash = hash_string_murmurhash(effect->name);
         else
-            effect->data.name_hash = hash_string_fnv1a64m(&effect->name);
+            effect->data.name_hash = hash_string_fnv1a64m(effect->name);
 
         for (Glitter::Curve*& c : effect->animation.curves)
             if (c)
@@ -1664,7 +1665,7 @@ static void glitter_editor_load_file(glitter_editor_struct* glt_edt, const char*
                             continue;
 
                         Glitter::Effect* e = i;
-                        if (e->data.name_hash != hash_string_fnv1a64m(&e->name)) {
+                        if (e->data.name_hash != hash_string_fnv1a64m(e->name)) {
                             lst_not_valid = true;
                             break;
                         }
@@ -1985,7 +1986,7 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
     float_t y;
 
     float_t w = 280.0f;
-    float_t h = 326.0f;
+    float_t h = 352.0f;
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -2057,6 +2058,16 @@ static void glitter_editor_test_window(glitter_editor_struct* glt_edt, class_dat
         (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DRAW_SELECTED);
     ImGui::CheckboxFlagsEnterKeyPressed("No Draw",
         (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DRAW_NO_DRAW);
+
+    ImGui::Separator();
+
+    camera* cam = rctx_ptr->camera;
+
+    static const double_t fov_min = 0.0;
+    static const double_t fov_max = 180.0;
+    double_t fov = cam->get_fov();
+    if (ImGui::SliderScalar("Camera FOV", ImGuiDataType_Double, &fov, &fov_min, &fov_max, "%g"))
+        cam->set_fov(fov);
 
     data->imgui_focus |= ImGui::IsWindowFocused();
     ImGui::End();
@@ -2725,6 +2736,17 @@ static void glitter_editor_play_manager(glitter_editor_struct* glt_edt) {
     ImGui::DisableElementPush(Glitter::glt_particle_manager.draw_all && eg && eg->type == Glitter::X);
     ImGui::CheckboxEnterKeyPressed("Draw All Mesh", &Glitter::glt_particle_manager.draw_all_mesh);
     ImGui::DisableElementPop(Glitter::glt_particle_manager.draw_all && eg && eg->type == Glitter::X);
+
+    ImGui::Separator();
+
+    camera* cam = rctx_ptr->camera;
+
+    static const double_t fov_min = 0.0;
+    static const double_t fov_max = 180.0;
+    double_t fov = cam->get_fov();
+    if (ImGui::SliderScalar("Camera FOV", ImGuiDataType_Double, &fov, &fov_min, &fov_max, "%g"))
+        cam->set_fov(fov);
+
 }
 
 static void glitter_editor_property(glitter_editor_struct* glt_edt, class_data* data) {
@@ -2761,7 +2783,7 @@ static void glitter_editor_property_effect(glitter_editor_struct* glt_edt, class
     name.assign(effect->name.c_str());
     if (ImGui::ColumnInputText("Name", (char*)name.c_str(), name.capacity(), 0, 0, 0)) {
         effect->data.name_hash = eg->type != Glitter::FT
-            ? hash_string_murmurhash(&name) : hash_string_fnv1a64m(&name);
+            ? hash_string_murmurhash(name) : hash_string_fnv1a64m(name);
         effect->name.assign(name.c_str());
         changed = true;
     }
@@ -6868,8 +6890,7 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
             if (!elem->disp)
                 continue;
 
-            render_context* rctx = (render_context*)Glitter::glt_particle_manager.rctx;
-            object_data* object_data = &rctx->object_data;
+            object_data* object_data = &rctx_ptr->object_data;
 
             Glitter::Particle* particle = rg->particle->data.particle;
             object_info object_info;
@@ -6881,10 +6902,10 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
             obj_mesh_index_buffer* obj_index_buffer
                 = object_storage_get_obj_mesh_index_buffer(object_info);
 
-            mat4 mat = elem->mat_draw;
+            mat4& mat = elem->mat_draw;
             if (!obj || !obj_vertex_buffer || !obj_index_buffer || (object_data->object_culling
                 && !object_bounding_sphere_check_visibility(&obj->bounding_sphere,
-                    object_data, rctx->camera, &mat)))
+                    object_data, rctx_ptr->camera, &mat)))
                 continue;
 
             glt_edt->gl_data->wireframe.shader.set("model", false, mat);
@@ -6895,7 +6916,7 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
                 obj_mesh* mesh = &obj->mesh_array[i];
 
                 if (object_data->object_culling && !object_bounding_sphere_check_visibility(
-                    &mesh->bounding_sphere, object_data, rctx->camera, &mat))
+                    &mesh->bounding_sphere, object_data, rctx_ptr->camera, &mat))
                     continue;
 
                 for (uint32_t j = 0; j < mesh->num_submesh; j++) {
@@ -6906,14 +6927,14 @@ static void glitter_editor_gl_draw_wireframe_draw_mesh(glitter_editor_struct* gl
 
                     if (object_data->object_culling) {
                         int32_t v32 = object_bounding_sphere_check_visibility(
-                            &sub_mesh->bounding_sphere, object_data, rctx->camera, &mat);
+                            &sub_mesh->bounding_sphere, object_data, rctx_ptr->camera, &mat);
                         if (v32 != 2 || (!mesh->attrib.m.billboard && !mesh->attrib.m.billboard_y_axis)) {
                             if (v32 == 2) {
                                 if (object_data->object_bounding_sphere_check_func)
                                     v32 = 1;
                                 else
                                     v32 = obj_axis_aligned_bounding_box_check_visibility(
-                                        &sub_mesh->axis_aligned_bounding_box, rctx->camera, &mat);
+                                        &sub_mesh->axis_aligned_bounding_box, rctx_ptr->camera, &mat);
                             }
 
                             if (!v32)

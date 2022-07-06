@@ -15,17 +15,17 @@
 
 enum chara_index {
     CHARA_NONE   = -1,
-    CHARA_MIKU   =  0,
-    CHARA_RIN    =  1,
-    CHARA_LEN    =  2,
-    CHARA_LUKA   =  3,
-    CHARA_NERU   =  4,
-    CHARA_HAKU   =  5,
-    CHARA_KAITO  =  6,
-    CHARA_MEIKO  =  7,
-    CHARA_SAKINE =  8,
-    CHARA_TETO   =  9,
-    CHARA_MAX    = 10,
+    CHARA_MIKU   = 0x00,
+    CHARA_RIN    = 0x01,
+    CHARA_LEN    = 0x02,
+    CHARA_LUKA   = 0x03,
+    CHARA_NERU   = 0x04,
+    CHARA_HAKU   = 0x05,
+    CHARA_KAITO  = 0x06,
+    CHARA_MEIKO  = 0x07,
+    CHARA_SAKINE = 0x08,
+    CHARA_TETO   = 0x09,
+    CHARA_MAX    = 0x0A,
 };
 
 enum item_id {
@@ -181,7 +181,7 @@ struct itm_table {
     std::vector<itm_table_dbgset> dbgset;
 
     itm_table();
-    ~itm_table();
+    virtual ~itm_table();
 
     void read(const char* path);
     void read(const wchar_t* path);

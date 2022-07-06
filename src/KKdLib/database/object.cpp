@@ -11,10 +11,10 @@
 #include "../sort.hpp"
 #include "../str_utils.hpp"
 
-static void object_database_classic_read_inner(object_database* obj_db, stream& s);
-static void object_database_classic_write_inner(object_database* obj_db, stream& s);
-static void object_database_modern_read_inner(object_database* obj_db, stream& s, uint32_t header_length);
-static void object_database_modern_write_inner(object_database* obj_db, stream& s);
+static void object_database_file_classic_read_inner(object_database_file* obj_db, stream& s);
+static void object_database_file_classic_write_inner(object_database_file* obj_db, stream& s);
+static void object_database_file_modern_read_inner(object_database_file* obj_db, stream& s, uint32_t header_length);
+static void object_database_file_modern_write_inner(object_database_file* obj_db, stream& s);
 static int64_t object_database_strings_get_string_offset(std::vector<std::string>& vec,
     std::vector<int64_t>& vec_off, std::string& str);
 static void object_database_strings_push_back_check(std::vector<std::string>& vec, std::string& str);
@@ -29,15 +29,48 @@ object_info::object_info(uint32_t id, uint32_t set_id) {
     this->set_id = set_id;
 }
 
-object_database::object_database() : ready(), modern(), is_x() {
+object_set_info_file::object_set_info_file() : id() {
 
 }
 
-object_database::~object_database() {
+object_set_info_file::~object_set_info_file() {
 
 }
 
-void object_database::read(const char* path, bool modern) {
+object_info_data_file::object_info_data_file() : id() {
+}
+
+object_info_data_file::~object_info_data_file() {
+
+}
+
+object_set_info::object_set_info() : name_hash(), id() {
+    name_hash = hash_murmurhash_empty;
+}
+
+object_set_info::~object_set_info() {
+
+}
+
+object_info_data::object_info_data() : id() {
+    name_hash_fnv1a64m = hash_fnv1a64m_empty;
+    name_hash_fnv1a64m_upper = hash_fnv1a64m_empty;
+    name_hash_murmurhash = hash_murmurhash_empty;
+}
+
+object_info_data::~object_info_data() {
+
+}
+
+object_database_file::object_database_file() : ready(), modern(), is_x() {
+
+}
+
+object_database_file::~object_database_file() {
+
+}
+
+void object_database_file::read(const char* path, bool modern) {
     if (!path)
         return;
 
@@ -51,7 +84,7 @@ void object_database::read(const char* path, bool modern) {
                 s.read(data, s.length);
                 stream s_bin;
                 s_bin.open(data, s.length);
-                object_database_classic_read_inner(this, s_bin);
+                object_database_file_classic_read_inner(this, s_bin);
                 free(data);
             }
         }
@@ -66,14 +99,14 @@ void object_database::read(const char* path, bool modern) {
                 stream s_mosi;
                 s_mosi.open(st.data);
                 s_mosi.is_big_endian = st.header.use_big_endian;
-                object_database_modern_read_inner(this, s_mosi, st.header.length);
+                object_database_file_modern_read_inner(this, s_mosi, st.header.length);
             }
         }
         free(path_osi);
     }
 }
 
-void object_database::read(const wchar_t* path, bool modern) {
+void object_database_file::read(const wchar_t* path, bool modern) {
     if (!path)
         return;
 
@@ -87,7 +120,7 @@ void object_database::read(const wchar_t* path, bool modern) {
                 s.read(data, s.length);
                 stream s_bin;
                 s_bin.open(data, s.length);
-                object_database_classic_read_inner(this, s_bin);
+                object_database_file_classic_read_inner(this, s_bin);
                 free(data);
             }
         }
@@ -102,21 +135,21 @@ void object_database::read(const wchar_t* path, bool modern) {
                 stream s_mosi;
                 s_mosi.open(st.data);
                 s_mosi.is_big_endian = st.header.use_big_endian;
-                object_database_modern_read_inner(this, s_mosi, st.header.length);
+                object_database_file_modern_read_inner(this, s_mosi, st.header.length);
             }
         }
         free(path_osi);
     }
 }
 
-void object_database::read(const void* data, size_t size, bool modern) {
+void object_database_file::read(const void* data, size_t size, bool modern) {
     if (!data || !size)
         return;
 
     if (!modern) {
         stream s;
         s.open(data, size);
-        object_database_classic_read_inner(this, s);
+        object_database_file_classic_read_inner(this, s);
     }
     else {
         f2_struct st;
@@ -125,12 +158,12 @@ void object_database::read(const void* data, size_t size, bool modern) {
             stream s_mosi;
             s_mosi.open(st.data);
             s_mosi.is_big_endian = st.header.use_big_endian;
-            object_database_modern_read_inner(this, s_mosi, st.header.length);
+            object_database_file_modern_read_inner(this, s_mosi, st.header.length);
         }
     }
 }
 
-void object_database::write(const char* path) {
+void object_database_file::write(const char* path) {
     if (!path || !ready)
         return;
 
@@ -139,7 +172,7 @@ void object_database::write(const char* path) {
         stream s;
         s.open(path_bin, "wb");
         if (s.io.stream)
-            object_database_classic_write_inner(this, s);
+            object_database_file_classic_write_inner(this, s);
         free(path_bin);
     }
     else {
@@ -147,12 +180,12 @@ void object_database::write(const char* path) {
         stream s;
         s.open(path_osi, "wb");
         if (s.io.stream)
-            object_database_modern_write_inner(this, s);
+            object_database_file_modern_write_inner(this, s);
         free(path_osi);
     }
 }
 
-void object_database::write(const wchar_t* path) {
+void object_database_file::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
@@ -161,7 +194,7 @@ void object_database::write(const wchar_t* path) {
         stream s;
         s.open(path_bin, L"wb");
         if (s.io.stream)
-            object_database_classic_write_inner(this, s);
+            object_database_file_classic_write_inner(this, s);
         free(path_bin);
     }
     else {
@@ -169,58 +202,89 @@ void object_database::write(const wchar_t* path) {
         stream s;
         s.open(path_osi, L"wb");
         if (s.io.stream)
-            object_database_modern_write_inner(this, s);
+            object_database_file_modern_write_inner(this, s);
         free(path_osi);
     }
 }
 
-void object_database::write(void** data, size_t* size) {
+void object_database_file::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
     stream s;
     s.open();
     if (!modern)
-        object_database_classic_write_inner(this, s);
+        object_database_file_classic_write_inner(this, s);
     else
-        object_database_modern_write_inner(this, s);
+        object_database_file_modern_write_inner(this, s);
     s.align_write(0x10);
     s.copy(data, size);
 }
 
-void object_database::merge_mdata(object_database* base_obj_db, object_database* mdata_obj_db) {
-    if (!base_obj_db || !mdata_obj_db || !base_obj_db->ready || !mdata_obj_db->ready)
+bool object_database_file::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+    size_t file_len = utf8_length(file);
+
+    const char* t = strrchr(file, '.');
+    if (t)
+        file_len = t - file;
+
+    std::string s = path + std::string(file, file_len);
+
+    object_database_file* obj_db = (object_database_file*)data;
+    obj_db->read(s.c_str(), obj_db->modern);
+
+    return obj_db->ready;
+}
+
+object_database::object_database() {
+
+}
+
+object_database::~object_database() {
+
+}
+
+void object_database::add(object_database_file* obj_db_file) {
+    if (!obj_db_file || !obj_db_file->ready)
         return;
 
-    if (this != base_obj_db)
-        object_set = base_obj_db->object_set;
+    object_set.reserve(obj_db_file->object_set.size());
 
-    for (object_set_info& i : mdata_obj_db->object_set) {
-        uint32_t name_hash = i.name_hash;
+    for (object_set_info_file& i : obj_db_file->object_set) {
+        uint32_t name_hash = hash_string_murmurhash(i.name);
 
-        object_set_info* info = 0;
+        object_set_info* set_info = 0;
         for (object_set_info& j : object_set)
             if (name_hash == j.name_hash) {
-                info = &j;
+                set_info = &j;
                 break;
             }
 
-        if (info)
-            *info = i;
-        else
-            object_set.push_back(i);
-    }
+        if (!set_info) {
+            object_set.push_back({});
+            set_info = &object_set.back();
+        }
 
-    if (this != base_obj_db) {
-        ready = true;
-        modern = base_obj_db->modern;
-        is_x = base_obj_db->is_x;
-    }
-}
+        set_info->id = i.id;
+        set_info->name = i.name;
+        set_info->name_hash = hash_string_murmurhash(i.name);
+        set_info->object_file_name = i.object_file_name;
+        set_info->texture_file_name = i.texture_file_name;
+        set_info->archive_file_name = i.archive_file_name;
 
-void object_database::split_mdata(object_database* base_obj_db, object_database* mdata_obj_db) {
-    if (!base_obj_db || !mdata_obj_db || !ready || !base_obj_db->ready)
-        return;
+        set_info->object.clear();
+        set_info->object.reserve(i.object.size());
+
+        for (object_info_data_file& j : i.object) {
+            object_info_data info;
+            info.id = j.id;
+            info.name = j.name;
+            info.name_hash_fnv1a64m = hash_string_fnv1a64m(info.name);
+            info.name_hash_fnv1a64m_upper = hash_string_fnv1a64m(info.name, true);
+            info.name_hash_murmurhash = hash_string_murmurhash(info.name);
+            set_info->object.push_back(info);
+        }
+    }
 }
 
 bool object_database::get_object_set_info(const char* name, object_set_info** set_info) {
@@ -379,38 +443,7 @@ const char* object_database::get_object_name(object_info obj_info) {
     return 0;
 }
 
-bool object_database::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    size_t file_len = utf8_length(file);
-
-    const char* t = strrchr(file, '.');
-    if (t)
-        file_len = t - file;
-
-    std::string s = path + std::string(file, file_len);
-
-    object_database* obj_db = (object_database*)data;
-    obj_db->read(s.c_str(), obj_db->modern);
-
-    return obj_db->ready;
-}
-
-object_set_info::object_set_info() : name_hash(), id() {
-
-}
-
-object_set_info::~object_set_info() {
-
-}
-
-object_info_data::object_info_data() : id(), name_hash_fnv1a64m(),
-name_hash_fnv1a64m_upper(), name_hash_murmurhash() {
-}
-
-object_info_data::~object_info_data() {
-
-}
-
-static void object_database_classic_read_inner(object_database* obj_db, stream& s) {
+static void object_database_file_classic_read_inner(object_database_file* obj_db, stream& s) {
     uint32_t object_set_count = s.read_uint32_t();
     uint32_t max_object_set_id = s.read_uint32_t();
     uint32_t object_sets_offset = s.read_uint32_t();
@@ -421,9 +454,8 @@ static void object_database_classic_read_inner(object_database* obj_db, stream& 
 
     s.position_push(object_sets_offset, SEEK_SET);
     for (uint32_t i = 0; i < object_set_count; i++) {
-        object_set_info* set_info = &obj_db->object_set[i];
+        object_set_info_file* set_info = &obj_db->object_set[i];
         set_info->name = s.read_string_null_terminated_offset(s.read_uint32_t());
-        set_info->name_hash = hash_string_murmurhash(&set_info->name);
         set_info->id = s.read_uint32_t();
         set_info->object_file_name = s.read_string_null_terminated_offset(s.read_uint32_t());
         set_info->texture_file_name = s.read_string_null_terminated_offset(s.read_uint32_t());
@@ -434,13 +466,10 @@ static void object_database_classic_read_inner(object_database* obj_db, stream& 
 
     s.position_push(objects_offset, SEEK_SET);
     for (uint32_t i = 0; i < object_count; i++) {
-        object_info_data info;
+        object_info_data_file info;
         info.id = s.read_uint16_t();
         uint32_t set_id = s.read_uint16_t();
         info.name = s.read_string_null_terminated_offset(s.read_uint32_t());
-        info.name_hash_fnv1a64m = hash_string_fnv1a64m(&info.name);
-        info.name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info.name, true);
-        info.name_hash_murmurhash = hash_string_murmurhash(&info.name);
 
         if (info.id == 0xFFFF)
             info.id = -1;
@@ -460,7 +489,7 @@ static void object_database_classic_read_inner(object_database* obj_db, stream& 
     obj_db->ready = true;
 }
 
-static void object_database_classic_write_inner(object_database* obj_db, stream& s) {
+static void object_database_file_classic_write_inner(object_database_file* obj_db, stream& s) {
     s.write_uint32_t(0x90669066);
     s.write_uint32_t(0x90669066);
     s.write_uint32_t(0x90669066);
@@ -482,7 +511,7 @@ static void object_database_classic_write_inner(object_database* obj_db, stream&
     size_t off_idx = 0;
     int64_t objects_offset = 0;
     if (string_offsets.size()) {
-        for (object_set_info& i : obj_db->object_set) {
+        for (object_set_info_file& i : obj_db->object_set) {
             string_offsets.push_back(s.get_position());
             s.write_string_null_terminated(i.name);
             string_offsets.push_back(s.get_position());
@@ -495,7 +524,7 @@ static void object_database_classic_write_inner(object_database* obj_db, stream&
         s.align_write(0x20);
 
         object_sets_offset = s.get_position();
-        for (object_set_info& i : obj_db->object_set) {
+        for (object_set_info_file& i : obj_db->object_set) {
             s.write_uint32_t((uint32_t)string_offsets[off_idx++]);
             s.write_uint32_t(i.id);
             s.write_uint32_t((uint32_t)string_offsets[off_idx++]);
@@ -510,8 +539,8 @@ static void object_database_classic_write_inner(object_database* obj_db, stream&
         string_offsets.clear();
         string_offsets.reserve(object_count);
 
-        for (object_set_info& i : obj_db->object_set)
-            for (object_info_data& j : i.object) {
+        for (object_set_info_file& i : obj_db->object_set)
+            for (object_info_data_file& j : i.object) {
                 string_offsets.push_back(s.get_position());
                 s.write_string_null_terminated(j.name);
             }
@@ -519,9 +548,9 @@ static void object_database_classic_write_inner(object_database* obj_db, stream&
 
         objects_offset = s.get_position();
         off_idx = 0;
-        for (object_set_info& i : obj_db->object_set) {
+        for (object_set_info_file& i : obj_db->object_set) {
             uint16_t set_id = (uint16_t)i.id;
-            for (object_info_data& j : i.object) {
+            for (object_info_data_file& j : i.object) {
                 s.write_uint16_t((uint16_t)j.id);
                 s.write_uint16_t(set_id);
                 s.write_uint32_t((uint32_t)string_offsets[off_idx++]);
@@ -540,7 +569,7 @@ static void object_database_classic_write_inner(object_database* obj_db, stream&
     s.position_pop();
 }
 
-static void object_database_modern_read_inner(object_database* obj_db, stream& s, uint32_t header_length) {
+static void object_database_file_modern_read_inner(object_database_file* obj_db, stream& s, uint32_t header_length) {
     bool is_x = true;
 
     s.set_position(0x0C, SEEK_SET);
@@ -562,9 +591,8 @@ static void object_database_modern_read_inner(object_database* obj_db, stream& s
     s.position_push(object_sets_offset, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < object_set_count; i++) {
-            object_set_info* set_info = &obj_db->object_set[i];
+            object_set_info_file* set_info = &obj_db->object_set[i];
             set_info->name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
-            set_info->name_hash = hash_string_murmurhash(&set_info->name);
             set_info->id = s.read_uint32_t_reverse_endianness();
             set_info->object_file_name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
             set_info->texture_file_name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
@@ -573,9 +601,8 @@ static void object_database_modern_read_inner(object_database* obj_db, stream& s
         }
     else
         for (uint32_t i = 0; i < object_set_count; i++) {
-            object_set_info* set_info = &obj_db->object_set[i];
+            object_set_info_file* set_info = &obj_db->object_set[i];
             set_info->name = s.read_string_null_terminated_offset(s.read_offset_x());
-            set_info->name_hash = hash_string_murmurhash(&set_info->name);
             set_info->id = s.read_uint32_t_reverse_endianness();
             set_info->object_file_name = s.read_string_null_terminated_offset(s.read_offset_x());
             set_info->texture_file_name = s.read_string_null_terminated_offset(s.read_offset_x());
@@ -587,13 +614,10 @@ static void object_database_modern_read_inner(object_database* obj_db, stream& s
     s.position_push(objects_offset, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < object_count; i++) {
-            object_info_data info;
+            object_info_data_file info;
             info.id = s.read_uint32_t_reverse_endianness();
             uint32_t set_id = s.read_uint32_t_reverse_endianness();
             info.name =  s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
-            info.name_hash_fnv1a64m = hash_string_fnv1a64m(&info.name);
-            info.name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info.name, true);
-            info.name_hash_murmurhash = hash_string_murmurhash(&info.name);
 
             for (uint32_t i = 0; i < object_set_count; i++)
                 if (set_id == obj_db->object_set[i].id) {
@@ -603,13 +627,10 @@ static void object_database_modern_read_inner(object_database* obj_db, stream& s
         }
     else
         for (uint32_t i = 0; i < object_count; i++) {
-            object_info_data info;
+            object_info_data_file info;
             info.id = s.read_uint32_t_reverse_endianness();
             uint32_t set_id = s.read_uint32_t_reverse_endianness();
             info.name = s.read_string_null_terminated_offset(s.read_offset_x());
-            info.name_hash_fnv1a64m = hash_string_fnv1a64m(&info.name);
-            info.name_hash_fnv1a64m_upper = hash_string_fnv1a64m(&info.name, true);
-            info.name_hash_murmurhash = hash_string_murmurhash(&info.name);
 
             for (uint32_t i = 0; i < object_set_count; i++)
                 if (set_id == obj_db->object_set[i].id) {
@@ -624,7 +645,7 @@ static void object_database_modern_read_inner(object_database* obj_db, stream& s
     obj_db->ready = true;
 }
 
-static void object_database_modern_write_inner(object_database* obj_db, stream& s) {
+static void object_database_file_modern_write_inner(object_database_file* obj_db, stream& s) {
     stream s_mosi;
     s_mosi.open();
     uint32_t off;
@@ -637,7 +658,7 @@ static void object_database_modern_write_inner(object_database* obj_db, stream& 
     uint32_t object_set_count = (uint32_t)obj_db->object_set.size();
 
     uint32_t object_count = 0;
-    for (object_set_info& i : obj_db->object_set)
+    for (object_set_info_file& i : obj_db->object_set)
         object_count += (uint32_t)i.object.size();
 
     if (!is_x) {
@@ -704,12 +725,12 @@ static void object_database_modern_write_inner(object_database* obj_db, stream& 
 
     strings.reserve((int64_t)object_set_count + object_count);
 
-    for (object_set_info& i : obj_db->object_set) {
+    for (object_set_info_file& i : obj_db->object_set) {
         object_database_strings_push_back_check(strings, i.name);
         object_database_strings_push_back_check(strings, i.object_file_name);
         object_database_strings_push_back_check(strings, i.texture_file_name);
         object_database_strings_push_back_check(strings, i.archive_file_name);
-        for (object_info_data& j : i.object)
+        for (object_info_data_file& j : i.object)
             object_database_strings_push_back_check(strings, j.name);
     }
 
@@ -732,7 +753,7 @@ static void object_database_modern_write_inner(object_database* obj_db, stream& 
     s_mosi.align_write(0x10);
 
     if (!is_x)
-        for (object_set_info& i : obj_db->object_set) {
+        for (object_set_info_file& i : obj_db->object_set) {
             io_write_offset_f2_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
                 string_offsets, i.name), 0x20, &pof);
             s_mosi.write_uint32_t(i.id);
@@ -745,7 +766,7 @@ static void object_database_modern_write_inner(object_database* obj_db, stream& 
             s_mosi.write(0x10);
         }
     else
-        for (object_set_info& i : obj_db->object_set) {
+        for (object_set_info_file& i : obj_db->object_set) {
             io_write_offset_x_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
                 string_offsets, i.name), &pof);
             s_mosi.write_uint32_t(i.id);
@@ -760,9 +781,9 @@ static void object_database_modern_write_inner(object_database* obj_db, stream& 
     s_mosi.align_write(0x10);
 
     if (!is_x)
-        for (object_set_info& i : obj_db->object_set) {
+        for (object_set_info_file& i : obj_db->object_set) {
             uint32_t set_id = i.id;
-            for (object_info_data& j : i.object) {
+            for (object_info_data_file& j : i.object) {
                 s_mosi.write_uint32_t(j.id);
                 s_mosi.write_uint32_t(set_id);
                 io_write_offset_f2_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
@@ -770,9 +791,9 @@ static void object_database_modern_write_inner(object_database* obj_db, stream& 
             }
         }
     else
-        for (object_set_info& i : obj_db->object_set) {
+        for (object_set_info_file& i : obj_db->object_set) {
             uint32_t set_id = i.id;
-            for (object_info_data& j : i.object) {
+            for (object_info_data_file& j : i.object) {
                 s_mosi.write_uint32_t(j.id);
                 s_mosi.write_uint32_t(set_id);
                 io_write_offset_x_pof_add(s_mosi, object_database_strings_get_string_offset(strings,

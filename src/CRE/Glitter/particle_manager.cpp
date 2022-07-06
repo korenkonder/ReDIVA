@@ -4,13 +4,24 @@
 */
 
 #include "glitter.hpp"
+#include "../render_context.hpp"
+
+extern render_context* rctx_ptr;
 
 namespace Glitter {
     GltParticleManager glt_particle_manager;
 
-    GltParticleManager::GltParticleManager() :scene(), effect(), emitter(), particle(), rctx(),
-    bone_data(), frame_rate(), flags(), scene_load_counter(), emission(1.5f), delta_frame(2.0f),
-    texture_counter(), random(), counter(), draw_all(true), draw_all_mesh(true), draw_selected() {
+    Camera::Camera() : rotation_y() {
+
+    }
+
+    GltParticleManager::GltParticleManager() :scene(), effect(), emitter(), particle(),
+        bone_data(), frame_rate(), cam(), flags(), scene_load_counter(),
+        texture_counter(), random(), counter(), draw_selected() {
+        emission = 1.5f;
+        delta_frame = 2.0f;
+        draw_all = true;
+        draw_all_mesh = true;
         scenes.reserve(0x100);
         file_readers.reserve(0x100);
     }
@@ -43,6 +54,16 @@ namespace Glitter {
                 delta_frame = frame_rate->GetDeltaFrame();
             else
                 delta_frame = get_delta_frame();
+
+            camera* c = rctx_ptr->camera;
+            c->update();
+            cam.projection = c->projection;
+            cam.view = c->view;
+            cam.inv_view = c->inv_view;
+            cam.inv_view_mat3 = c->inv_view_mat3;
+            cam.view_point = c->view_point;
+            cam.rotation_y = c->rotation.y;
+
             CtrlScenes();
         }
         return false;
@@ -157,7 +178,7 @@ namespace Glitter {
         }
     }
 
-    void GltParticleManager::Disp(draw_pass_3d_type draw_pass_type) {
+    void GltParticleManager::DispScenes(DispType disp_type) {
         if (flags & PARTICLE_MANAGER_NOT_DISP)
             return;
 
@@ -169,7 +190,7 @@ namespace Glitter {
             if (draw_selected && scene && scene != i)
                 continue;
     #endif
-            i->Disp(this, draw_pass_type);
+            i->Disp(this, disp_type);
         }
     }
 

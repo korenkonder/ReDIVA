@@ -14,7 +14,7 @@
 static void draw_task_add(render_context* rctx, draw_object_type type, draw_task* task);
 static void draw_task_object_init(draw_task* task, object_data* object_data, mat4* mat,
     float_t bounding_radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
-    std::vector<GLuint>* textures, int32_t mat_count, mat4u* mats, GLuint array_buffer,
+    std::vector<GLuint>* textures, int32_t mat_count, mat4* mats, GLuint array_buffer,
     GLuint element_array_buffer, vec4* blend_color, vec4* emission, int32_t morph_array_buffer,
     int32_t instances_count, mat4* instances_mat, void(*draw_object_func)(draw_object*));
 static void draw_task_object_translucent_init(draw_task* task, mat4* mat,
@@ -142,25 +142,21 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
             draw_task* task = i;
             switch (task->type) {
             case DRAW_TASK_TYPE_OBJECT: {
-                mat4 mat = task->mat;
                 draw_object_draw(rctx, &task->data.object,
-                    &mat, draw_object_func, show_vector);
+                    &task->mat, draw_object_func, show_vector);
             } break;
             case DRAW_TASK_TYPE_PRIMITIVE: {
-                mat4 mat = task->mat;
-                draw_object_model_mat_load(rctx, &mat);
+                draw_object_model_mat_load(rctx, &task->mat);
                 //draw_primitive_draw(&task->data.primitive);
             } break;
             case DRAW_TASK_TYPE_PREPROCESS: {
-                mat4 mat = task->mat;
-                draw_object_model_mat_load(rctx, &mat);
+                draw_object_model_mat_load(rctx, &task->mat);
                 task->data.preprocess.func(rctx, task->data.preprocess.data);
             } break;
             case DRAW_TASK_TYPE_OBJECT_TRANSLUCENT: {
-                mat4 mat = task->mat;
                 for (int32_t j = 0; j < task->data.object_translucent.count; j++)
                     draw_object_draw(rctx, task->data.object_translucent.objects[j],
-                        &mat, draw_object_func, show_vector);
+                        &task->mat, draw_object_func, show_vector);
             } break;
             }
         }
@@ -172,20 +168,18 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
                 int32_t a = (int32_t)(task->data.object.blend_color.w * 255.0f);
                 a = clamp(a, 0, 255);
                 if (a == alpha) {
-                    mat4 mat = task->mat;
                     draw_object_draw(rctx, &task->data.object,
-                        &mat, draw_object_func, show_vector);
+                        &task->mat, draw_object_func, show_vector);
                 }
             } break;
             case DRAW_TASK_TYPE_OBJECT_TRANSLUCENT: {
-                mat4 mat = task->mat;
                 for (int32_t j = 0; j < task->data.object_translucent.count; j++) {
                     draw_object* object = task->data.object_translucent.objects[j];
                     int32_t a = (int32_t)(object->blend_color.w * 255.0f);
                     a = clamp(a, 0, 255);
                     if (a == alpha)
                         draw_object_draw(rctx, object,
-                            &mat, draw_object_func, show_vector);
+                            &task->mat, draw_object_func, show_vector);
                 }
             } break;
             }
@@ -361,7 +355,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             int32_t bone_indices_count = sub_mesh->bone_indices_count;
             uint16_t* bone_indices = sub_mesh->bone_indices;
 
-            mat4u* mats;
+            mat4* mats;
             if (bone_indices_count && enable_bone_mat) {
                 mats = object_data->buffer.add_mat4(bone_indices_count);
                 if (bone_mat)
@@ -703,25 +697,25 @@ void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, 
     object_data* object_data = &rctx->object_data;
     if (texture_data && !texture_data->field_0) {
         vec4 value;
-        object_data->get_texture_color_coeff(&texture_color_coeff);
+        object_data->get_texture_color_coeff(texture_color_coeff);
         vec3_mult(texture_data->texture_color_coeff, *(vec3*)&texture_color_coeff, *(vec3*)&value);
         value.w = 0.0f;
-        object_data->set_texture_color_coeff(&value);
+        object_data->set_texture_color_coeff(value);
 
-        object_data->get_texture_color_offset(&texture_color_offset);
+        object_data->get_texture_color_offset(texture_color_offset);
         *(vec3*)&value = texture_data->texture_color_offset;
         value.w = 0.0f;
-        object_data->set_texture_color_offset(&value);
+        object_data->set_texture_color_offset(value);
 
-        object_data->get_texture_specular_coeff(&texture_specular_coeff);
+        object_data->get_texture_specular_coeff(texture_specular_coeff);
         vec3_mult(texture_data->texture_specular_coeff, *(vec3*)&texture_specular_coeff, *(vec3*)&value);
         value.w = 0.0f;
-        object_data->set_texture_specular_coeff(&value);
+        object_data->set_texture_specular_coeff(value);
 
-        object_data->get_texture_specular_offset(&texture_specular_offset);
+        object_data->get_texture_specular_offset(texture_specular_offset);
         *(vec3*)&value = texture_data->texture_specular_offset;
         value.w = 0.0f;
-        object_data->set_texture_specular_offset(&value);
+        object_data->set_texture_specular_offset(value);
     }
 
     size_t texture_pattern_count = texture_pattern ? texture_pattern->size() : 0;
@@ -739,10 +733,10 @@ void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, 
         object_data->set_texture_pattern();
 
     if (texture_data && !texture_data->field_0) {
-        object_data->set_texture_color_coeff(&texture_color_coeff);
-        object_data->set_texture_color_offset(&texture_color_offset);
-        object_data->set_texture_specular_coeff(&texture_specular_coeff);
-        object_data->set_texture_specular_offset(&texture_specular_offset);
+        object_data->set_texture_color_coeff(texture_color_coeff);
+        object_data->set_texture_color_offset(texture_color_offset);
+        object_data->set_texture_specular_coeff(texture_specular_coeff);
+        object_data->set_texture_specular_offset(texture_specular_offset);
     }
 }
 
@@ -754,28 +748,26 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
     object_data* object_data = &rctx->object_data;
     for (draw_task*& i : vec) {
         draw_task* task = i;
-        mat4 mat = task->mat;
         vec3 center;
-        mat4_get_translation(&mat, &center);
+        mat4_get_translation(&task->mat, &center);
         if (task->type == DRAW_TASK_TYPE_OBJECT) {
-            if (task->data.object.mesh->attrib.m.billboard) {
-                model_mat_face_camera_view(&rctx->camera->view, &mat, &mat);}
+            mat4 mat = task->mat;
+            if (task->data.object.mesh->attrib.m.billboard)
+                model_mat_face_camera_view(&rctx->camera->view, &mat, &mat);
             else if (task->data.object.mesh->attrib.m.billboard_y_axis)
                 model_mat_face_camera_position(&rctx->camera->view, &mat, &mat);
+
+            obj_sub_mesh* sub_mesh = task->data.object.sub_mesh;
+            if (task->data.object.mat_count < 1 || !sub_mesh->bone_indices_count)
+                mat4_mult_vec3_trans(&mat, &sub_mesh->bounding_sphere.center, &center);
             else {
-                obj_sub_mesh* sub_mesh = task->data.object.sub_mesh;
-                if (task->data.object.mat_count < 1 || !sub_mesh->bone_indices_count)
-                    mat4_mult_vec3_trans(&mat, &sub_mesh->bounding_sphere.center, &center);
-                else {
-                    vec3 center_sum = vec3_null;
-                    for (uint32_t j = 0; j < sub_mesh->bone_indices_count; j++) {
-                        center = sub_mesh->bounding_sphere.center;
-                        mat = task->data.object.mats[j];
-                        mat4_mult_vec3_trans(&mat, &center, &center);
-                        vec3_add(center_sum, center, center_sum);
-                    }
-                    vec3_mult_scalar(center_sum, 1.0f / (float_t)sub_mesh->bone_indices_count, center);
+                vec3 center_sum = vec3_null;
+                for (uint32_t j = 0; j < sub_mesh->bone_indices_count; j++) {
+                    center = sub_mesh->bounding_sphere.center;
+                    mat4_mult_vec3_trans(&task->data.object.mats[j], &center, &center);
+                    vec3_add(center_sum, center, center_sum);
                 }
+                vec3_mult_scalar(center_sum, 1.0f / (float_t)sub_mesh->bone_indices_count, center);
             }
             task->bounding_radius = task->data.object.mesh->bounding_sphere.radius;
         }
@@ -910,7 +902,7 @@ inline static void draw_task_add(render_context* rctx, draw_object_type type, dr
 
 inline static void draw_task_object_init(draw_task* task, object_data* object_data, mat4* mat,
     float_t bounding_radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
-    std::vector<GLuint>* textures, int32_t mat_count, mat4u* mats, GLuint array_buffer,
+    std::vector<GLuint>* textures, int32_t mat_count, mat4* mats, GLuint array_buffer,
     GLuint element_array_buffer, vec4* blend_color, vec4* emission, int32_t morph_array_buffer,
     int32_t instances_count, mat4* instances_mat, void(*draw_object_func)(draw_object*)) {
     task->type = DRAW_TASK_TYPE_OBJECT;
@@ -942,7 +934,7 @@ inline static void draw_task_object_init(draw_task* task, object_data* object_da
     }
     else {
         draw->set_blend_color = false;
-        draw->blend_color = vec4u_identity;
+        draw->blend_color = vec4_identity;
     }
 
     draw->emission = *emission;

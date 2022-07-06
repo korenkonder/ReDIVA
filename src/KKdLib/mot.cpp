@@ -7,7 +7,7 @@
 #include "f2/struct.hpp"
 #include "io/path.hpp"
 #include "io/stream.hpp"
-#include "interpolation.h"
+#include "interpolation.hpp"
 #include "half_t.hpp"
 #include "hash.hpp"
 #include "str_utils.hpp"
@@ -485,13 +485,13 @@ static void mot_classic_write_inner(mot_set* ms, stream& s) {
 }
 
 static void mot_modern_read_inner(mot_set* ms, stream& s) {
-    bool ret = false;
     f2_struct st;
     st.read(s);
     if (st.header.signature != reverse_endianness_uint32_t('MOTC') || !st.data.size()) {
         ms->ready = false;
         ms->modern = false;
         ms->is_x = false;
+        return;
     }
 
     stream s_motc;
@@ -619,6 +619,7 @@ static void mot_modern_read_inner(mot_set* ms, stream& s) {
 static void mot_modern_write_inner(mot_set* ms, stream& s) {
     stream s_motc;
     s_motc.open();
+
     uint32_t o;
     enrs e;
     enrs_entry ee;
@@ -748,7 +749,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
         s_motc.write_uint8_t(0);
         s_motc.align_write(0x10);
 
-        mh.hash = hash_string_murmurhash(&m->name);
+        mh.hash = hash_string_murmurhash(m->name);
 
         mh.key_set_count_offset = s_motc.get_position();
         s_motc.write_uint16_t(m->info);
@@ -823,7 +824,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
 
         mh.bone_hash_offset = s_motc.get_position();
         for (int32_t j = 0; j < m->bone_info_count; j++)
-            s_motc.write_uint64_t(hash_string_murmurhash(&m->bone_info[j].name));
+            s_motc.write_uint64_t(hash_string_murmurhash(m->bone_info[j].name));
         s_motc.align_write(0x10);
 
         mh.name_offset = s_motc.get_position();

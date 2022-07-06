@@ -108,7 +108,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
 
             d = light_param_ibl_read_line(buf, sizeof(buf), d);
 
-            vec4u dir;
+            vec4 dir;
             if (sscanf_s(buf, "%f %f %f", &dir.x, &dir.y, &dir.z) != 3)
                 goto End;
 
@@ -124,7 +124,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
 
             d = light_param_ibl_read_line(buf, sizeof(buf), d);
 
-            vec4u col;
+            vec4 col;
             if (sscanf_s(buf, "%f %f %f", &col.x, &col.y, &col.z) != 3)
                 goto End;
 
@@ -141,23 +141,23 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
             for (int32_t i = 0; i < 3; i++) {
                 d = light_param_ibl_read_line(buf, sizeof(buf), d);
 
-                mat4u* mat = &ibl->diff_coef[index][i];
-                if (sscanf_s(buf, "%f %f %f %f", &mat->row0.x, &mat->row1.x, &mat->row2.x, &mat->row3.x) != 4)
+                mat4& mat = ibl->diff_coef[index][i];
+                if (sscanf_s(buf, "%f %f %f %f", &mat.row0.x, &mat.row1.x, &mat.row2.x, &mat.row3.x) != 4)
                     goto End;
 
                 d = light_param_ibl_read_line(buf, sizeof(buf), d);
 
-                if (sscanf_s(buf, "%f %f %f %f", &mat->row0.y, &mat->row1.y, &mat->row2.y, &mat->row3.y) != 4)
+                if (sscanf_s(buf, "%f %f %f %f", &mat.row0.y, &mat.row1.y, &mat.row2.y, &mat.row3.y) != 4)
                     goto End;
 
                 d = light_param_ibl_read_line(buf, sizeof(buf), d);
 
-                if (sscanf_s(buf, "%f %f %f %f", &mat->row0.z, &mat->row1.z, &mat->row2.z, &mat->row3.z) != 4)
+                if (sscanf_s(buf, "%f %f %f %f", &mat.row0.z, &mat.row1.z, &mat.row2.z, &mat.row3.z) != 4)
                     goto End;
 
                 d = light_param_ibl_read_line(buf, sizeof(buf), d);
 
-                if (sscanf_s(buf, "%f %f %f %f", &mat->row0.w, &mat->row1.w, &mat->row2.w, &mat->row3.w) != 4)
+                if (sscanf_s(buf, "%f %f %f %f", &mat.row0.w, &mat.row1.w, &mat.row2.w, &mat.row3.w) != 4)
                     goto End;
             }
         }

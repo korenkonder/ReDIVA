@@ -71,12 +71,6 @@ struct data_ft {
     stage_database stage_data;
     texture_database tex_db;
 
-    auth_3d_database_file base_auth_3d_db;
-    motion_database base_mot_db;
-    object_database base_obj_db;
-    stage_database base_stage_data;
-    texture_database base_tex_db;
-
     data_ft();
     ~data_ft();
 };

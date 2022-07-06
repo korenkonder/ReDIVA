@@ -10,14 +10,21 @@ fbo::fbo() : flags(), width(), height(), buffer(), count(), textures() {
 
 }
 
-fbo::fbo(int32_t width, int32_t height,
-    GLuint* color_textures, int32_t count, GLuint depth_texture) : flags(),
-    width(), height(), buffer(), count(), textures() {
+fbo::~fbo() {
+    free_data();
+}
+
+void fbo::init_data(int32_t width, int32_t height,
+    GLuint* color_textures, int32_t count, GLuint depth_texture) {
     if (buffer) {
         glDeleteFramebuffers(1, &buffer);
         buffer = 0;
     }
-    free(textures);
+
+    if (textures) {
+        delete[] textures;
+        textures = 0;
+    }
 
     count = min(count, 8);
 
@@ -30,7 +37,7 @@ fbo::fbo(int32_t width, int32_t height,
         this->count++;
     }
 
-    textures = force_malloc_s(GLuint, this->count);
+    textures = new GLuint[this->count];
     for (int32_t i = 0; i < count; i++)
         textures[i] = color_textures[i];
 
@@ -52,14 +59,14 @@ fbo::fbo(int32_t width, int32_t height,
     glCheckFramebufferStatus(GL_FRAMEBUFFER);
 }
 
-fbo::~fbo() {
+void fbo::free_data() {
     if (buffer) {
         glDeleteFramebuffers(1, &buffer);
         buffer = 0;
     }
 
     if (textures) {
-        free(textures);
+        delete[] textures;
         textures = 0;
     }
 }

@@ -37,8 +37,10 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
     int32_t render_height, bool reset_exposure, GLuint in_tex_0, GLuint in_tex_1) {
     bool v2 = false;
     if (!reset_exposure) {
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-            memset(&chara_data[i], 0, sizeof(post_process_exposure_chara_data));
+        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+            memset(&chara_data[i].field_0, 0, sizeof(chara_data[i].field_0));
+            chara_data[i].field_80 = 0.0f;
+        }
 
         post_process_exposure_chara_data* v6 = chara_data;
         float_t v18 = (float_t)render_height / (float_t)render_width;

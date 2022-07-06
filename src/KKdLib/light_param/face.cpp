@@ -18,6 +18,10 @@ light_param_face::light_param_face() : ready(), offset(), scale(), position(), d
 
 }
 
+light_param_face::~light_param_face() {
+
+}
+
 void light_param_face::read(const char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
@@ -78,10 +82,6 @@ void light_param_face::write(void** data, size_t* size) {
     s.open();
     light_param_face_write_inner(this, s);
     s.copy(data, size);
-}
-
-light_param_face::~light_param_face() {
-
 }
 
 bool light_param_face::load_file(void* data, const char* path, const char* file, uint32_t hash) {

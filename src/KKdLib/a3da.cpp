@@ -1535,7 +1535,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
                 key_val_out_write(&kv, s, "blend_color", ml->blend_color);
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
                 key_val_out_write(&kv, s, "glow_intensity", ml->glow_intensity);
-            kv.write(s, "hash_name", hash_string_murmurhash(&ml->name));
+            kv.write(s, "hash_name", hash_string_murmurhash(ml->name));
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
                 key_val_out_write(&kv, s, "incandescence", ml->incandescence);
             kv.write(s, "name", ml->name);

@@ -11,23 +11,40 @@
 #include "../sort.hpp"
 #include "../str_utils.hpp"
 
-static void texture_database_classic_read_inner(texture_database* tex_db, stream& s);
-static void texture_database_classic_write_inner(texture_database* tex_db, stream& s);
-static void texture_database_modern_read_inner(texture_database* tex_db, stream& s, uint32_t header_length);
-static void texture_database_modern_write_inner(texture_database* tex_db, stream& s);
-static int64_t texture_database_strings_get_string_offset(std::vector<std::string>& vec,
+static void texture_database_file_classic_read_inner(texture_database_file* tex_db, stream& s);
+static void texture_database_file_classic_write_inner(texture_database_file* tex_db, stream& s);
+static void texture_database_file_modern_read_inner(texture_database_file* tex_db, stream& s, uint32_t header_length);
+static void texture_database_file_modern_write_inner(texture_database_file* tex_db, stream& s);
+static int64_t texture_database_file_strings_get_string_offset(std::vector<std::string>& vec,
     std::vector<int64_t>& vec_off, std::string& str);
-static void texture_database_strings_push_back_check(std::vector<std::string>& vec, std::string& str);
+static void texture_database_file_strings_push_back_check(std::vector<std::string>& vec, std::string& str);
 
-texture_database::texture_database() : ready(), modern(), is_x() {
+texture_info_file::texture_info_file() {
+    id = (uint32_t)-1;
+}
+
+texture_info_file::~texture_info_file() {
 
 }
 
-texture_database::~texture_database() {
+texture_info::texture_info() {
+    name_hash = hash_murmurhash_empty;
+    id = (uint32_t)-1;
+}
+
+texture_info::~texture_info() {
 
 }
 
-void texture_database::read(const char* path, bool modern) {
+texture_database_file::texture_database_file() : ready(), modern(), is_x() {
+
+}
+
+texture_database_file::~texture_database_file() {
+
+}
+
+void texture_database_file::read(const char* path, bool modern) {
     if (!path)
         return;
 
@@ -41,7 +58,7 @@ void texture_database::read(const char* path, bool modern) {
                 s.read(data, s.length);
                 stream s_bin;
                 s_bin.open(data, s.length);
-                texture_database_classic_read_inner(this, s_bin);
+                texture_database_file_classic_read_inner(this, s_bin);
                 free(data);
             }
         }
@@ -56,14 +73,14 @@ void texture_database::read(const char* path, bool modern) {
                 stream s_mtxi;
                 s_mtxi.open(st.data);
                 s_mtxi.is_big_endian = st.header.use_big_endian;
-                texture_database_modern_read_inner(this, s_mtxi, st.header.length);
+                texture_database_file_modern_read_inner(this, s_mtxi, st.header.length);
             }
         }
         free(path_txi);
     }
 }
 
-void texture_database::read(const wchar_t* path, bool modern) {
+void texture_database_file::read(const wchar_t* path, bool modern) {
     if (!path)
         return;
 
@@ -77,7 +94,7 @@ void texture_database::read(const wchar_t* path, bool modern) {
                 s.read(data, s.length);
                 stream s_bin;
                 s_bin.open(data, s.length);
-                texture_database_classic_read_inner(this, s_bin);
+                texture_database_file_classic_read_inner(this, s_bin);
                 free(data);
             }
         }
@@ -92,21 +109,21 @@ void texture_database::read(const wchar_t* path, bool modern) {
                 stream s_mtxi;
                 s_mtxi.open(st.data);
                 s_mtxi.is_big_endian = st.header.use_big_endian;
-                texture_database_modern_read_inner(this, s_mtxi, st.header.length);
+                texture_database_file_modern_read_inner(this, s_mtxi, st.header.length);
             }
         }
         free(path_txi);
     }
 }
 
-void texture_database::read(const void* data, size_t size, bool modern) {
+void texture_database_file::read(const void* data, size_t size, bool modern) {
     if (!data || !size)
         return;
 
     if (!modern) {
         stream s;
         s.open(data, size);
-        texture_database_classic_read_inner(this, s);
+        texture_database_file_classic_read_inner(this, s);
     }
     else {
         f2_struct st;
@@ -115,12 +132,12 @@ void texture_database::read(const void* data, size_t size, bool modern) {
             stream s_mtxi;
             s_mtxi.open(st.data);
             s_mtxi.is_big_endian = st.header.use_big_endian;
-            texture_database_modern_read_inner(this, s_mtxi, st.header.length);
+            texture_database_file_modern_read_inner(this, s_mtxi, st.header.length);
         }
     }
 }
 
-void texture_database::write(const char* path) {
+void texture_database_file::write(const char* path) {
     if (!path || !ready)
         return;
 
@@ -129,7 +146,7 @@ void texture_database::write(const char* path) {
         stream s;
         s.open(path_bin, "wb");
         if (s.io.stream)
-            texture_database_classic_write_inner(this, s);
+            texture_database_file_classic_write_inner(this, s);
         free(path_bin);
     }
     else {
@@ -137,12 +154,12 @@ void texture_database::write(const char* path) {
         stream s;
         s.open(path_txi, "wb");
         if (s.io.stream)
-            texture_database_modern_write_inner(this, s);
+            texture_database_file_modern_write_inner(this, s);
         free(path_txi);
     }
 }
 
-void texture_database::write(const wchar_t* path) {
+void texture_database_file::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
@@ -151,7 +168,7 @@ void texture_database::write(const wchar_t* path) {
         stream s;
         s.open(path_bin, L"wb");
         if (s.io.stream)
-            texture_database_classic_write_inner(this, s);
+            texture_database_file_classic_write_inner(this, s);
         free(path_bin);
     }
     else {
@@ -159,35 +176,55 @@ void texture_database::write(const wchar_t* path) {
         stream s;
         s.open(path_txi, L"wb");
         if (s.io.stream)
-            texture_database_modern_write_inner(this, s);
+            texture_database_file_modern_write_inner(this, s);
         free(path_txi);
     }
 }
 
-void texture_database::write(void** data, size_t* size) {
+void texture_database_file::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
     stream s;
     s.open();
     if (!modern)
-        texture_database_classic_write_inner(this, s);
+        texture_database_file_classic_write_inner(this, s);
     else
-        texture_database_modern_write_inner(this, s);
+        texture_database_file_modern_write_inner(this, s);
     s.align_write(0x10);
     s.copy(data, size);
 }
 
-void texture_database::merge_mdata(texture_database* base_tex_db,
-    texture_database* mdata_tex_db) {
-    if (!base_tex_db || !mdata_tex_db
-        || !base_tex_db->ready || !mdata_tex_db->ready)
+bool texture_database_file::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+    size_t file_len = utf8_length(file);
+
+    const char* t = strrchr(file, '.');
+    if (t)
+        file_len = t - file;
+
+    std::string s = path + std::string(file, file_len);
+
+    texture_database_file* tex_db = (texture_database_file*)data;
+    tex_db->read(s.c_str(), tex_db->modern);
+
+    return tex_db->ready;
+}
+
+texture_database::texture_database() {
+
+}
+
+texture_database::~texture_database() {
+
+}
+
+void texture_database::add(texture_database_file* tex_db_file) {
+    if (!tex_db_file || !tex_db_file->ready)
         return;
 
-    if (this != base_tex_db)
-        texture = base_tex_db->texture;
+    texture.reserve(tex_db_file->texture.size());
 
-    for (texture_info& i : mdata_tex_db->texture) {
+    for (texture_info_file& i : tex_db_file->texture) {
         uint32_t id = i.id;
 
         texture_info* info = 0;
@@ -197,25 +234,15 @@ void texture_database::merge_mdata(texture_database* base_tex_db,
                 break;
             }
 
-        if (info)
-            *info = i;
-        else
-            texture.push_back(i);
+        if (!info) {
+            texture.push_back({});
+            info = &texture.back();
+        }
+
+        info->id = i.id;
+        info->name = i.name;
+        info->name_hash = hash_string_murmurhash(info->name);
     }
-
-    if (this != base_tex_db) {
-        ready = true;
-        modern = base_tex_db->modern;
-        is_x = base_tex_db->is_x;
-    }
-}
-
-void texture_database::split_mdata(texture_database* base_tex_db,
-    texture_database* mdata_tex_db) {
-    if (!base_tex_db || !mdata_tex_db
-        || !ready || !mdata_tex_db->ready)
-        return;
-
 }
 
 uint32_t texture_database::get_texture_id(const char* name) {
@@ -240,30 +267,7 @@ const char* texture_database::get_texture_name(uint32_t id) {
     return 0;
 }
 
-bool texture_database::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    size_t file_len = utf8_length(file);
-
-    const char* t = strrchr(file, '.');
-    if (t)
-        file_len = t - file;
-
-    std::string s = path + std::string(file, file_len);
-
-    texture_database* tex_db = (texture_database*)data;
-    tex_db->read(s.c_str(), tex_db->modern);
-
-    return tex_db->ready;
-}
-
-texture_info::texture_info() : name_hash(hash_murmurhash_empty), id((uint32_t)-1) {
-
-}
-
-texture_info::~texture_info() {
-
-}
-
-static void texture_database_classic_read_inner(texture_database* tex_db, stream& s) {
+static void texture_database_file_classic_read_inner(texture_database_file* tex_db, stream& s) {
     uint32_t textures_count = s.read_uint32_t();
     uint32_t textures_offset = s.read_uint32_t();
 
@@ -271,10 +275,9 @@ static void texture_database_classic_read_inner(texture_database* tex_db, stream
 
     s.position_push(textures_offset, SEEK_SET);
     for (uint32_t i = 0; i < textures_count; i++) {
-        texture_info& info = tex_db->texture[i];
+        texture_info_file& info = tex_db->texture[i];
         info.id = s.read_uint32_t();
         info.name = s.read_string_null_terminated_offset(s.read_uint32_t());
-        info.name_hash = hash_string_murmurhash(&info.name);
     }
     s.position_pop();
 
@@ -283,7 +286,7 @@ static void texture_database_classic_read_inner(texture_database* tex_db, stream
     tex_db->ready = true;
 }
 
-static void texture_database_classic_write_inner(texture_database* tex_db, stream& s) {
+static void texture_database_file_classic_write_inner(texture_database_file* tex_db, stream& s) {
     s.write_uint32_t(0x90669066);
     s.write_uint32_t(0x90669066);
     s.write_uint32_t(0x90669066);
@@ -299,7 +302,7 @@ static void texture_database_classic_write_inner(texture_database* tex_db, strea
     std::vector<int64_t> string_offsets;
     string_offsets.reserve(textures_count);
 
-    for (texture_info& i : tex_db->texture) {
+    for (texture_info_file& i : tex_db->texture) {
         string_offsets.push_back(s.get_position());
         s.write_string_null_terminated(i.name);
     }
@@ -308,7 +311,7 @@ static void texture_database_classic_write_inner(texture_database* tex_db, strea
     int64_t textures_offset = s.get_position();
     if (string_offsets.size()) {
         size_t off_idx = 0;
-        for (texture_info& i : tex_db->texture) {
+        for (texture_info_file& i : tex_db->texture) {
             s.write_uint32_t(i.id);
             s.write_uint32_t((uint32_t)string_offsets[off_idx++]);
         }
@@ -321,7 +324,7 @@ static void texture_database_classic_write_inner(texture_database* tex_db, strea
     s.position_pop();
 }
 
-static void texture_database_modern_read_inner(texture_database* tex_db, stream& s, uint32_t header_length) {
+static void texture_database_file_modern_read_inner(texture_database_file* tex_db, stream& s, uint32_t header_length) {
     bool is_x = true;
 
     s.set_position(0x04, SEEK_SET);
@@ -337,17 +340,15 @@ static void texture_database_modern_read_inner(texture_database* tex_db, stream&
     s.position_push(textures_offset, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < textures_count; i++) {
-            texture_info& info = tex_db->texture[i];
+            texture_info_file& info = tex_db->texture[i];
             info.id = s.read_uint32_t_reverse_endianness();
             info.name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
-            info.name_hash = hash_string_murmurhash(&info.name);
         }
     else
         for (uint32_t i = 0; i < textures_count; i++) {
-            texture_info& info = tex_db->texture[i];
+            texture_info_file& info = tex_db->texture[i];
             info.id = s.read_uint32_t_reverse_endianness();
             info.name = s.read_string_null_terminated_offset(s.read_offset_x());
-            info.name_hash = hash_string_murmurhash(&info.name);
         }
     s.position_pop();
 
@@ -356,7 +357,7 @@ static void texture_database_modern_read_inner(texture_database* tex_db, stream&
     tex_db->ready = true;
 }
 
-static void texture_database_modern_write_inner(texture_database* tex_db, stream& s) {
+static void texture_database_file_modern_write_inner(texture_database_file* tex_db, stream& s) {
     stream s_mtxi;
     s_mtxi.open();
     uint32_t off;
@@ -403,8 +404,8 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
 
     strings.reserve(textures_count);
 
-    for (texture_info& i : tex_db->texture)
-        texture_database_strings_push_back_check(strings, i.name);
+    for (texture_info_file& i : tex_db->texture)
+        texture_database_file_strings_push_back_check(strings, i.name);
 
     quicksort_string(strings.data(), strings.size());
     string_offsets.reserve(strings.size());
@@ -420,16 +421,16 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     s_mtxi.align_write(0x10);
 
     if (!is_x)
-        for (texture_info& i : tex_db->texture) {
+        for (texture_info_file& i : tex_db->texture) {
             s_mtxi.write_uint32_t(i.id);
-            int64_t offset = texture_database_strings_get_string_offset(strings,
+            int64_t offset = texture_database_file_strings_get_string_offset(strings,
                 string_offsets, i.name);
             io_write_offset_f2_pof_add(s_mtxi, offset, 0x20, &pof);
         }
     else
-        for (texture_info& i : tex_db->texture) {
+        for (texture_info_file& i : tex_db->texture) {
             s_mtxi.write_uint32_t(i.id);
-            int64_t offset = texture_database_strings_get_string_offset(strings,
+            int64_t offset = texture_database_file_strings_get_string_offset(strings,
                 string_offsets, i.name);
             io_write_offset_x_pof_add(s_mtxi, offset, &pof);
         }
@@ -451,7 +452,7 @@ static void texture_database_modern_write_inner(texture_database* tex_db, stream
     st.write(s, true, tex_db->is_x);
 }
 
-inline static int64_t texture_database_strings_get_string_offset(std::vector<std::string>& vec,
+inline static int64_t texture_database_file_strings_get_string_offset(std::vector<std::string>& vec,
     std::vector<int64_t>& vec_off, std::string& str) {
     for (std::string& i : vec)
         if (str == i)
@@ -459,7 +460,7 @@ inline static int64_t texture_database_strings_get_string_offset(std::vector<std
     return 0;
 }
 
-inline static void texture_database_strings_push_back_check(std::vector<std::string>& vec, std::string& str) {
+inline static void texture_database_file_strings_push_back_check(std::vector<std::string>& vec, std::string& str) {
     for (std::string& i : vec)
         if (str == i)
             return;

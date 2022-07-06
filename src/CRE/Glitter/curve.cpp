@@ -4,7 +4,7 @@
 */
 
 #include "glitter.hpp"
-#include "../../KKdLib/interpolation.h"
+#include "../../KKdLib/interpolation.hpp"
 
 namespace Glitter {
 #if defined(CRE_DEV)

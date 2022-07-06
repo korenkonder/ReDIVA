@@ -9,14 +9,14 @@
 namespace Glitter {
     RenderGroup::RenderGroup() : flags(), type(), draw_type(), pivot(),
         z_offset(), count(), ctrl(), disp(), texture(), mask_texture(), frame(),
-        elements(), max_count(), random_ptr(), alpha(), fog(), vbo(), ebo() {
+        elements(), max_count(), random_ptr(), disp_type(), fog_type(), vbo(), ebo() {
         split_u = 1;
         split_v = 1;
         split_uv = vec2_identity;
         mat = mat4_identity;
         mat_rot = mat4_identity;
         mat_draw = mat4_identity;
-        alpha = DRAW_PASS_3D_TRANSLUCENT;
+        disp_type = DISP_NORMAL;
         emission = 1.0f;
         blend_mode = PARTICLE_BLEND_TYPICAL;
         mask_blend_mode = PARTICLE_BLEND_TYPICAL;
@@ -611,20 +611,17 @@ namespace Glitter {
         DeleteBuffers(true);
     }
 
-    bool XRenderGroup::GetEmitterScale(vec3* emitter_scale) {
-        *emitter_scale = vec3_identity;
-
+    bool XRenderGroup::GetEmitterScale(vec3& emitter_scale) {
         if (particle) {
-            XEmitterInst* emitter = particle->data.emitter;
-            if (emitter) {
-                vec3_mult_scalar(emitter->scale, emitter->scale_all, *emitter_scale);
-
-                float_t length;
-                vec3_length(*emitter_scale, length);
-                return length > 0.000001f;
+            Glitter::EmitterInst* emit_inst = particle->data.emitter;
+            if (emit_inst) {
+                vec3_mult_scalar(emit_inst->scale, emit_inst->scale_all, emitter_scale);
+                return emitter_scale.x > 0.000001f || emitter_scale.y > 0.000001f || emitter_scale.z > 0.000001f;
             }
         }
-        return true;
+
+        emitter_scale = vec3_identity;
+        return false;
     }
 
     bool XRenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {

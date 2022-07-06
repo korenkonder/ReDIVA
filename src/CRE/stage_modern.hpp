@@ -20,7 +20,7 @@ struct stage_modern {
     bool ground;
     bool sky;
     bool auth_3d_loaded;
-    mat4u mat;
+    mat4 mat;
     float_t rot_y;
     uint32_t obj_set_hash;
 
@@ -48,7 +48,7 @@ namespace stage_detail {
         bool field_FB2;
         bool field_FB3;
         bool field_FB4;
-        mat4u mat;
+        mat4 mat;
         float_t field_FF8;
 
         void* data;
@@ -91,7 +91,6 @@ extern bool task_stage_modern_load(const char* name);
 extern void task_stage_modern_set_data(void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data);
 extern void task_stage_modern_set_mat(mat4* mat);
-extern void task_stage_modern_set_mat(mat4u* mat);
 extern void task_stage_modern_set_stage(task_stage_modern_info* stg_info);
 extern void task_stage_modern_set_stage_hash(uint32_t stage_hash, stage_data_modern* stg_data);
 extern void task_stage_modern_set_stage_hashes(std::vector<uint32_t>* stage_hashes,

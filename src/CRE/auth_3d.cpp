@@ -5,7 +5,7 @@
 
 #include "auth_3d.hpp"
 #include "../KKdLib/hash.hpp"
-#include "../KKdLib/interpolation.h"
+#include "../KKdLib/interpolation.hpp"
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "rob/rob.hpp"
@@ -262,8 +262,6 @@ void auth_3d::ctrl(render_context* rctx) {
     if (state != 2 || !enable)
         return;
 
-    mat4 mat = this->mat;
-
     bool set = false;
     while (true) {
         if (frame_changed) {
@@ -379,8 +377,6 @@ void auth_3d::ctrl(render_context* rctx) {
 void auth_3d::disp(render_context* rctx) {
     if (state != 2 || !enable)
         return;
-
-    mat4 mat = this->mat;
 
     auth_3d_set_material_list(this, rctx);
 
@@ -646,7 +642,7 @@ void auth_3d::load_from_farc(farc* f, const char* file,
 void auth_3d::reset() {
     uid = -1;
     id = -1;
-    mat = mat4u_identity;
+    mat = mat4_identity;
     enable = false;
     camera_root_update = true;
     visible = true;
@@ -854,7 +850,7 @@ void auth_3d_rgba::reset() {
     g.reset();
     b.reset();
     a.reset();
-    value = vec4u_null;
+    value = vec4_null;
 }
 
 auth_3d_vec3::auth_3d_vec3() {
@@ -898,7 +894,7 @@ void auth_3d_model_transform::interpolate(float_t frame) {
 }
 
 void auth_3d_model_transform::reset() {
-    mat = mat4u_identity;
+    mat = mat4_identity;
     scale.reset();
     rotation.reset();
     translation.reset();
@@ -1078,7 +1074,7 @@ void auth_3d_fog::reset() {
     end_value = 0.0f;
     start_value = 0.0f;
 
-    color_init = vec4u_null;
+    color_init = vec4_null;
     density_init = 0.0f;
     end_init = 0.0f;
     start_init = 0.0f;
@@ -1121,16 +1117,16 @@ void auth_3d_light::reset() {
     intensity_value = 0.0f;
     linear_value = 0.0f;
     quadratic_value = 0.0f;
-    ambient_init = vec4u_null;
+    ambient_init = vec4_null;
     cone_angle_init = 0.0f;
     constant_init = 0.0f;
-    diffuse_init = vec4u_null;
+    diffuse_init = vec4_null;
     drop_off_init = 0.0f;
     far_init = 0.0f;
     intensity_init = 0.0f;
     linear_init = 0.0f;
     quadratic_init = 0.0f;
-    specular_init = vec4u_null;
+    specular_init = vec4_null;
     tone_curve_init = vec3_null;
 }
 
@@ -1309,9 +1305,9 @@ auth_3d_object_model_transform::~auth_3d_object_model_transform() {
 }
 
 void auth_3d_object_model_transform::reset() {
-    mat = mat4u_identity;
-    mat_inner = mat4u_identity;
-    mat_rot = mat4u_identity;
+    mat = mat4_identity;
+    mat_inner = mat4_identity;
+    mat_rot = mat4_identity;
     translation.reset();
     rotation.reset();
     scale.reset();
@@ -1340,7 +1336,7 @@ void auth_3d_object_node::reset() {
     flags = (auth_3d_object_node_flags)0;
     bone_id = -1;
     joint_orient = vec3_null;
-    joint_orient_mat = mat4u_identity;
+    joint_orient_mat = mat4_identity;
     mat = 0;
     model_transform.reset();
     name.clear();
@@ -1375,7 +1371,7 @@ void auth_3d_object_texture_transform::reset() {
     flags = (auth_3d_object_texture_transform_flags)0;
     coverage_u.reset();
     coverage_v.reset();
-    mat = mat4u_identity;
+    mat = mat4_identity;
     name.clear();
     name.shrink_to_fit();
     offset_u.reset();
@@ -1448,7 +1444,7 @@ void auth_3d_post_process::reset() {
     lens_ghost_init = 1.0f;
     lens_shaft_init = 1.0f;
     radius_init = vec3_null;
-    scene_fade_init = vec4u_null;
+    scene_fade_init = vec4_null;
 }
 
 auth_3d_farc::auth_3d_farc() : load_count(), name(), state(), farc(), data(), size() {
@@ -2519,7 +2515,7 @@ static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx) {
     material_list_struct mat_list[TEXTURE_PATTERN_COUNT];
     for (auth_3d_material_list& i : auth->material_list) {
         if (i.blend_color.flags) {
-            vec4u& blend_color = mat_list[mat_list_count].blend_color;
+            vec4& blend_color = mat_list[mat_list_count].blend_color;
             vec4u8& has_blend_color = mat_list[mat_list_count].has_blend_color;
 
             blend_color = i.blend_color.value;
@@ -2534,7 +2530,7 @@ static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx) {
         }
 
         if (i.incandescence.flags) {
-            vec4u& emission = mat_list[mat_list_count].emission;
+            vec4& emission = mat_list[mat_list_count].emission;
             vec4u8& has_emission = mat_list[mat_list_count].has_emission;
 
             emission = i.incandescence.value;
@@ -2692,7 +2688,7 @@ static void auth_3d_camera_root_ctrl(auth_3d_camera_root* cr,
     cr->model_transform.interpolate(frame);
     auth_3d_model_transform_set_mat(&cr->model_transform, &mat4_identity);
 
-    mat4 cr_mat = cr->model_transform.mat;
+    mat4& cr_mat = cr->model_transform.mat;
 
     vec3 view_point = cr->view_point.model_transform.translation.interpolate(frame);
     mat4_mult_vec3_trans(&cr_mat, &view_point, &cr->view_point_value);
@@ -3183,10 +3179,10 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
         if (shad && flags & DRAW_TASK_SHADOW) {
             object_data->set_shadow_type(SHADOW_STAGE);
 
-            mat4u* m = &moh->model_transform.mat;
+            mat4* m = &moh->model_transform.mat;
             for (auth_3d_object_node& j : moh->node)
                 if (j.mat) {
-                    m = (mat4u*)j.mat;
+                    m = j.mat;
                     break;
                 }
 
@@ -3199,11 +3195,9 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
             shad->field_1D0[shadow_type].push_back(pos);
         }
 
-        if (i.mats.size() > 0) {
-            mat4 mat = i.model_transform.mat;
+        if (i.mats.size() > 0)
             draw_task_add_draw_object_by_object_info_object_skin(rctx,
-                i.object_info, 0, 0, auth->alpha, i.mats.data(), 0, 0, &mat);
-        }
+                i.object_info, 0, 0, auth->alpha, i.mats.data(), 0, 0, &i.model_transform.mat);
     }
 
     object_data->set_draw_task_flags();
@@ -3221,7 +3215,7 @@ static void auth_3d_m_object_hrc_list_ctrl(auth_3d_m_object_hrc* moh, mat4* pare
 
     auth_3d_object_model_transform_mat_mult(&moh->model_transform, parent_mat);
 
-    mat4 mat =  moh->model_transform.mat;
+    mat4& mat = moh->model_transform.mat;
 
     for (auth_3d_object_instance& i : moh->instance) {
         //if (!i.model_transform.visible)
@@ -3240,10 +3234,9 @@ static void auth_3d_m_object_hrc_nodes_mat_mult(auth_3d_m_object_hrc* moh) {
     auth_3d_object_node* node = moh->node.data();
 
     for (auth_3d_object_node& i : moh->node)
-        if (i.parent >= 0) {
-            mat4 mat = node[i.parent].model_transform.mat;
-            auth_3d_object_model_transform_mat_mult(&i.model_transform, &mat);
-        }
+        if (i.parent >= 0)
+            auth_3d_object_model_transform_mat_mult(
+                &i.model_transform, &node[i.parent].model_transform.mat);
         else
             i.model_transform.mat = i.model_transform.mat_inner;
 }
@@ -3274,7 +3267,7 @@ static void auth_3d_material_list_load(auth_3d* auth, auth_3d_material_list* ml,
     }
 
     ml->name = mlf->name;
-    ml->hash = hash_string_murmurhash(&ml->name);
+    ml->hash = hash_string_murmurhash(ml->name);
 }
 
 static void auth_3d_material_list_set(auth_3d_material_list* ml) {
@@ -3344,7 +3337,7 @@ static void auth_3d_object_load(auth_3d* auth, auth_3d_object* o,
     o->refract = strstr(o->uid_name.c_str(), "_REFRACT") ? true : false;
 
     o->object_info = obj_db->get_object_info(o->uid_name.c_str());
-    o->object_hash = hash_string_murmurhash(&o->uid_name);
+    o->object_hash = hash_string_murmurhash(o->uid_name);
 }
 
 static void auth_3d_object_curve_ctrl(auth_3d_object_curve* oc, float_t frame) {
@@ -3398,7 +3391,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
             mat4 m;
             mat4_mult(&rob_chr->data.miku_rot.field_6C,
-                &rob_chr->data.adjust_data.mat, (mat4u*)&m);
+                &rob_chr->data.adjust_data.mat, &m);
             mat4_mult(&m, &mat, &mat);
             object_data->set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
         }
@@ -3517,7 +3510,7 @@ static void auth_3d_object_list_ctrl(auth_3d_object* o, mat4* parent_mat) {
 
     auth_3d_model_transform_set_mat(&o->model_transform, parent_mat);
 
-    mat4 mat = o->model_transform.mat;
+    mat4& mat = o->model_transform.mat;
 
     for (auth_3d_object*& i : o->children_object)
         auth_3d_object_list_ctrl(i, &mat);
@@ -3549,7 +3542,7 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
     oh->refract = strstr(oh->uid_name.c_str(), "_REFRACT") ? true : false;
 
     oh->object_info = obj_db->get_object_info(oh->uid_name.c_str());
-    oh->object_hash = hash_string_murmurhash(&oh->uid_name);
+    oh->object_hash = hash_string_murmurhash(oh->uid_name);
 
     obj_skin* skin = object_storage_get_obj_skin(oh->object_info);
     if (!skin)
@@ -3560,7 +3553,7 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
 
     for (auth_3d_object_node& i : oh->node) {
         i.bone_id = -1;
-        uint64_t name_hash = hash_string_fnv1a64m(&i.name);
+        uint64_t name_hash = hash_string_fnv1a64m(i.name);
         for (uint32_t j = 0; j < skin->bones_count; j++)
             if (hash_utf8_fnv1a64m(skin->bones[j].name) == name_hash) {
                 i.bone_id = skin->bones[j].id;
@@ -3598,7 +3591,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
         if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
             mat4_mult(&rob_chr->data.miku_rot.field_6C,
-                &rob_chr->data.adjust_data.mat, (mat4u*)&mat);
+                &rob_chr->data.adjust_data.mat, &mat);
             if (auth->chara_id)
                 object_data->set_shadow_type(SHADOW_STAGE);
         }
@@ -3606,10 +3599,10 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
     else if (flags & DRAW_TASK_SHADOW) {
         object_data->set_shadow_type(SHADOW_STAGE);
 
-        mat4u* m = &oh->node[0].model_transform.mat;
+        mat4* m = &oh->node[0].model_transform.mat;
         for (auth_3d_object_node& i : oh->node)
             if (i.mat) {
-                m = (mat4u*)i.mat;
+                m = i.mat;
                 break;
             }
 
@@ -3643,17 +3636,15 @@ static void auth_3d_object_hrc_list_ctrl(auth_3d_object_hrc* oh, mat4* mat) {
 
     int32_t* childer_object_parent_node = oh->childer_object_parent_node.data();
     size_t children_object_count = oh->children_object.size();
-    for (size_t i = 0; i < children_object_count; i++) {
-        mat4 mat = oh->node[childer_object_parent_node[i]].model_transform.mat;
-        auth_3d_object_list_ctrl(oh->children_object[i], &mat);
-    }
+    for (size_t i = 0; i < children_object_count; i++)
+        auth_3d_object_list_ctrl(oh->children_object[i],
+            &oh->node[childer_object_parent_node[i]].model_transform.mat);
 
     int32_t* childer_object_hrc_parent_node = oh->childer_object_hrc_parent_node.data();
     size_t children_object_hrc_count = oh->children_object_hrc.size();
-    for (size_t i = 0; i < children_object_hrc_count; i++) {
-        mat4 mat = oh->node[childer_object_hrc_parent_node[i]].model_transform.mat;
-        auth_3d_object_hrc_list_ctrl(oh->children_object_hrc[i], &mat);
-    }
+    for (size_t i = 0; i < children_object_hrc_count; i++)
+        auth_3d_object_hrc_list_ctrl(oh->children_object_hrc[i],
+            &oh->node[childer_object_hrc_parent_node[i]].model_transform.mat);
 }
 
 static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, mat4* mat) {
@@ -3666,8 +3657,7 @@ static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, mat4* mat)
         else
             m = *mat;
 
-        mat4 joint_orient = i.joint_orient_mat;
-        mat4_mult(&joint_orient, &m, &m);
+        mat4_mult(&i.joint_orient_mat, &m, &m);
         auth_3d_object_model_transform_mat_mult(&i.model_transform, &m);
 
         if (i.mat)
@@ -3683,7 +3673,7 @@ static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance*
     oi->uid_name = oif->uid_name;
 
     oi->object_info = obj_db->get_object_info(oi->uid_name.c_str());
-    oi->object_hash = hash_string_murmurhash(&oi->uid_name);
+    oi->object_hash = hash_string_murmurhash(oi->uid_name);
 
     obj_skin* skin = object_storage_get_obj_skin(oi->object_info);
     if (!skin)
@@ -3698,7 +3688,7 @@ static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance*
     for (uint32_t i = 0; i < skin->bones_count; i++) {
         uint64_t name_hash = hash_utf8_fnv1a64m(skin->bones[i].name);
         for (auth_3d_object_node& j : moh->node)
-            if (hash_string_fnv1a64m(&j.name) == name_hash) {
+            if (hash_string_fnv1a64m(j.name) == name_hash) {
                 int32_t bone_id = skin->bones[i].id;
                 if (~bone_id & 0x8000)
                     object_bone_indices[bone_id] = (int32_t)(&j - moh->node.data());
@@ -3720,10 +3710,8 @@ static void auth_3d_object_model_transform_ctrl(auth_3d_object_model_transform* 
     if (obj_mt->has_visibility)
         obj_mt->visible = obj_mt->visibility.interpolate(frame) >= 0.99900001f;
 
-    mat4 mat_rot;
-    vec3 rotation = obj_mt->rotation_value;
-    mat4_rotate(rotation.x, rotation.y, rotation.z, &mat_rot);
-    obj_mt->mat_rot = mat_rot;
+    vec3& rotation = obj_mt->rotation_value;
+    mat4_rotate(rotation.x, rotation.y, rotation.z, &obj_mt->mat_rot);
     obj_mt->frame = frame;
     obj_mt->has_rotation = false;
     obj_mt->has_translation = false;
@@ -3731,9 +3719,9 @@ static void auth_3d_object_model_transform_ctrl(auth_3d_object_model_transform* 
 
 static void auth_3d_object_model_transform_load(auth_3d* auth,
     auth_3d_object_model_transform* omt, auth_3d_model_transform_file* mtf) {
-    omt->mat = mat4u_identity;
-    omt->mat_inner = mat4u_identity;
-    omt->mat_rot = mat4u_identity;
+    omt->mat = mat4_identity;
+    omt->mat_inner = mat4_identity;
+    omt->mat_rot = mat4_identity;
     omt->translation_value = vec3_null;
     omt->rotation_value = vec3_null;
     omt->scale_value = vec3_identity;
@@ -3767,9 +3755,7 @@ static void auth_3d_object_model_transform_load(auth_3d* auth,
 }
 
 static void auth_3d_object_model_transform_mat_mult(auth_3d_object_model_transform* obj_mt, mat4* mat) {
-    mat4 obj_mt_mat = obj_mt->mat_inner;
-    mat4_mult(&obj_mt_mat, mat, &obj_mt_mat);
-    obj_mt->mat = obj_mt_mat;
+    mat4_mult(&obj_mt->mat_inner, mat, &obj_mt->mat);
 }
 
 static void auth_3d_object_model_transform_set_mat_inner(auth_3d_object_model_transform* obj_mt) {
@@ -3777,11 +3763,10 @@ static void auth_3d_object_model_transform_set_mat_inner(auth_3d_object_model_tr
         return;
 
     mat4 mat;
-    vec3 translation = obj_mt->translation_value;
+    vec3& translation = obj_mt->translation_value;
     mat4_translate(translation.x, translation.y, translation.z, &mat);
 
-    mat4 mat_rot = obj_mt->mat_rot;
-    mat4_mult(&mat_rot, &mat, &mat);
+    mat4_mult(&obj_mt->mat_rot, &mat, &mat);
     if (obj_mt->has_scale) {
         vec3 scale = obj_mt->scale_value;
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
@@ -3793,16 +3778,15 @@ static void auth_3d_object_model_transform_set_mat_inner(auth_3d_object_model_tr
 static void auth_3d_object_node_load(auth_3d* auth,
     auth_3d_object_node* on, auth_3d_object_node_file* onf) {
     if (onf->flags & A3DA_OBJECT_NODE_JOINT_ORIENT) {
-        vec3 rot = onf->joint_orient;
-        mat4 mat;
-        mat4_rotate(rot.x, rot.y, rot.z, &mat);
+        vec3& rot = onf->joint_orient;
         on->joint_orient = rot;
-        on->joint_orient_mat = mat;
+        mat4 mat;
+        mat4_rotate(rot.x, rot.y, rot.z, &on->joint_orient_mat);
         enum_or(on->flags, AUTH_3D_OBJECT_NODE_JOINT_ORIENT);
     }
     else {
         on->joint_orient = vec3_null;
-        on->joint_orient_mat = mat4u_identity;
+        on->joint_orient_mat = mat4_identity;
     }
 
     auth_3d_object_model_transform_load(auth, &on->model_transform, &onf->model_transform);
@@ -4059,10 +4043,8 @@ static void auth_3d_post_process_restore_prev_value(auth_3d_post_process* pp, re
     if (pp->flags_init & AUTH_3D_POST_PROCESS_RADIUS)
         blur->set_radius(pp->radius_init);
 
-    if (pp->flags_init & AUTH_3D_POST_PROCESS_SCENE_FADE) {
-        vec4 scene_fade_init = pp->scene_fade_init;
-        tm->set_scene_fade(scene_fade_init);
-    }
+    if (pp->flags_init & AUTH_3D_POST_PROCESS_SCENE_FADE)
+        tm->set_scene_fade(pp->scene_fade_init);
 }
 
 static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* rctx) {
@@ -4120,8 +4102,7 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_SCENE_FADE);
         }
 
-        vec4 scene_fade = pp->scene_fade.value;
-        tm->set_scene_fade(scene_fade);
+        tm->set_scene_fade(pp->scene_fade.value);
     }
 }
 
@@ -4180,7 +4161,7 @@ static auth_3d_farc* auth_3d_data_struct_get_farc(
 
     uint64_t name_hash = hash_utf8_fnv1a64m(category_name);
     for (auth_3d_farc& i : auth_3d_data->farcs)
-        if (hash_string_fnv1a64m(&i.name) == name_hash)
+        if (hash_string_fnv1a64m(i.name) == name_hash)
             return &i;
     return 0;
 }

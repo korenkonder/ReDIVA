@@ -126,6 +126,12 @@ namespace Glitter {
         DIRECTION_PARTICLE_ROTATION = 11,
     };
 
+    enum DispType {
+        DISP_OPAQUE = 0,
+        DISP_NORMAL,
+        DISP_ALPHA,
+    };
+
     enum EffectExtAnimFlag {
         EFFECT_EXT_ANIM_SET_ONCE            = 0x00001,
         EFFECT_EXT_ANIM_TRANS_ONLY          = 0x00002,
@@ -248,6 +254,12 @@ namespace Glitter {
         EMITTER_POLYGON  = 4,
     };
 
+    enum FogType {
+        FOG_NONE = 0,
+        FOG_DEPTH,
+        FOG_HEIGHT,
+    };
+
     enum KeyType {
         KEY_CONSTANT = 0,
         KEY_LINEAR   = 1,
@@ -351,7 +363,7 @@ namespace Glitter {
         SCENE_NONE     = 0x00,
         SCENE_FLAG_1   = 0x01,
         SCENE_NOT_DISP = 0x02,
-        SCENE_FLAG_4   = 0x04,
+        SCENE_FLAG_3   = 0x04,
 #if defined(CRE_DEV) || defined(CLOUD_DEV)
         SCENE_EDITOR   = 0x80,
 #endif
@@ -376,6 +388,7 @@ namespace Glitter {
 
     struct Animation;
     struct Buffer;
+    struct Camera;
     struct Curve;
     class Effect;
     class Emitter;
@@ -460,7 +473,18 @@ namespace Glitter {
     struct Buffer {
         vec3 position;
         vec2 uv;
-        vec4u color;
+        vec4 color;
+    };
+
+    struct Camera {
+        mat4 projection;
+        mat4 view;
+        mat4 inv_view;
+        mat3 inv_view_mat3;
+        vec3 view_point;
+        float_t rotation_y;
+
+        Camera();
     };
 
     struct Curve {
@@ -635,7 +659,7 @@ namespace Glitter {
         float_t F2GetFloat(GLT, float_t min, float_t max);
         int32_t F2GetInt(GLT, int32_t value);
         int32_t F2GetInt(GLT, int32_t min, int32_t max);
-        void F2GetVec3(GLT, vec3* src, vec3* dst);
+        void F2GetVec3(GLT, vec3& src, vec3& dst);
         void F2StepValue();
         int32_t GetValue();
         void SetValue(int32_t value);
@@ -643,7 +667,7 @@ namespace Glitter {
         float_t XGetFloat(float_t min, float_t max);
         int32_t XGetInt(int32_t value);
         int32_t XGetInt(int32_t min, int32_t max);
-        void XGetVec3(vec3* src, vec3* dst);
+        void XGetVec3(vec3& src, vec3& dst);
         void XReset();
         void XSetStep(uint8_t step);
         void XStepValue();
@@ -676,8 +700,8 @@ namespace Glitter {
         RenderElement* elements;
         size_t max_count;
         Random* random_ptr;
-        draw_pass_3d_type alpha;
-        fog_id fog;
+        DispType disp_type;
+        FogType fog_type;
         GLuint vbo;
         GLuint ebo;
         float_t emission;
@@ -728,7 +752,7 @@ namespace Glitter {
         void CalcDispQuadNormal(GPM,
             F2RenderGroup* rend_group, mat4* model_mat, mat4* dir_mat);
         void Ctrl(GLT, float_t delta_frame);
-        void Disp(GPM, draw_pass_3d_type alpha);
+        void Disp(GPM, DispType disp_type);
         void Disp(GPM, F2RenderGroup* rend_group);
     };
 
@@ -751,7 +775,7 @@ namespace Glitter {
         void CalcDispQuadNormal(GPM,
             XRenderGroup* rend_group, mat4* model_mat, mat4* dir_mat);
         void Ctrl(float_t delta_frame, bool copy_mats);
-        void Disp(GPM, draw_pass_3d_type alpha);
+        void Disp(GPM, DispType disp_type);
         void Disp(GPM, XRenderGroup* rend_group);
     };
 
@@ -764,7 +788,7 @@ namespace Glitter {
         Effect::Data data;
         float_t frame0;
         float_t frame1;
-        vec4u color;
+        vec4 color;
         vec3 translation;
         vec3 rotation;
         vec3 scale;
@@ -773,7 +797,7 @@ namespace Glitter {
         EffectInstFlag flags;
         size_t id;
         uint32_t random;
-        vec4u min_color;
+        vec4 min_color;
         vec3 ext_anim_scale;
         float_t some_scale;
 
@@ -783,15 +807,12 @@ namespace Glitter {
 
         virtual void Copy(EffectInst* dst, float_t emission) = 0;
         virtual void Ctrl(GPM, GLT, float_t delta_frame, float_t emission) = 0;
-        virtual void Disp(GPM, draw_pass_3d_type alpha) = 0;
+        virtual void Disp(GPM, DispType disp_type) = 0;
         virtual void Free(GPM, GLT, float_t emission, bool free) = 0;
         virtual size_t GetCtrlCount(ParticleType type) = 0;
         virtual size_t GetDispCount(ParticleType type) = 0;
         virtual bool HasEnded(bool a2) = 0;
         virtual void Reset(GPM, GLT, float_t emission) = 0;
-
-        draw_pass_3d_type GetAlpha();
-        fog_id GetFog();
 
         static int32_t GetExtAnimBoneIndex(EffectExtAnimCharaNode node);
     };
@@ -830,7 +851,7 @@ namespace Glitter {
 
         virtual void Copy(EffectInst* dst, float_t emission) override;
         virtual void Ctrl(GPM, GLT, float_t delta_frame, float_t emission) override;
-        virtual void Disp(GPM, draw_pass_3d_type alpha) override;
+        virtual void Disp(GPM, DispType disp_type) override;
         virtual void Free(GPM, GLT, float_t emission, bool free) override;
         virtual size_t GetCtrlCount(ParticleType type) override;
         virtual size_t GetDispCount(ParticleType type) override;
@@ -838,7 +859,11 @@ namespace Glitter {
         virtual void Reset(GPM, GLT, float_t emission) override;
 
         void CtrlInit(GPM, GLT, float_t emission);
+        void CtrlMat(GPM, GLT);
+        DispType GetDispType();
         void GetExtAnim();
+        bool GetExtAnimMat(mat4* mat);
+        FogType GetFog();
         void GetValue(GLT);
         void SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a);
     };
@@ -881,7 +906,7 @@ namespace Glitter {
 
         virtual void Copy(EffectInst* dst, float_t emission) override;
         virtual void Ctrl(GPM, GLT, float_t delta_frame, float_t emission) override;
-        virtual void Disp(GPM, draw_pass_3d_type alpha) override;
+        virtual void Disp(GPM, DispType disp_type) override;
         virtual void Free(GPM, GLT, float_t emission, bool free) override;
         virtual size_t GetCtrlCount(ParticleType type) override;
         virtual size_t GetDispCount(ParticleType type) override;
@@ -889,8 +914,12 @@ namespace Glitter {
         virtual void Reset(GPM, GLT, float_t emission) override;
 
         void CalcDisp(GPM);
-        void CtrlInit(float_t emission);
+        void CtrlInit(GPM, float_t emission);
+        void CtrlMat(GPM);
+        DispType GetDispType();
         void GetExtAnim();
+        bool GetExtAnimMat(mat4* mat);
+        FogType GetFog();
         void GetValue();
         void SetExtAnim(mat4* a2, mat4* a3, vec3* trans, bool set_flags);
         void SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a);
@@ -900,6 +929,8 @@ namespace Glitter {
     public:
         struct Box {
             vec3 size;
+
+            Box();
         };
 
         struct Cylinder {
@@ -909,12 +940,16 @@ namespace Glitter {
             float_t end_angle;
             bool on_edge;
             EmitterEmissionDirection direction;
+
+            Cylinder();
         };
 
         struct Polygon {
             float_t size;
             int32_t count;
             EmitterEmissionDirection direction;
+
+            Polygon();
         };
 
         struct Sphere {
@@ -923,6 +958,8 @@ namespace Glitter {
             float_t longitude;
             bool on_edge;
             EmitterEmissionDirection direction;
+
+            Sphere();
         };
 
         struct Data {
@@ -943,6 +980,8 @@ namespace Glitter {
             Emitter::Sphere sphere;
             Emitter::Polygon polygon;
             int32_t seed;
+
+            Data();
         };
 
         Emitter::Data data;
@@ -993,8 +1032,8 @@ namespace Glitter {
         void Free(GPM, GLT, float_t emission, bool free);
         void GetValue(GLT);
         bool HasEnded(bool a2);
-        void InitMesh(GLT, int32_t index, vec3* scale,
-            vec3* position, vec3* direction, Random* random);
+        void InitMesh(GLT, int32_t index, vec3& scale,
+            vec3& position, vec3& direction, Random* random);
         void Reset();
     };
 
@@ -1010,13 +1049,14 @@ namespace Glitter {
         void Copy(XEmitterInst* dst, float_t emission);
         void Ctrl(GPM, XEffectInst* eff_inst, float_t delta_frame);
         void CtrlInit(XEffectInst* eff_inst, float_t delta_frame);
+        void CtrlMat(GPM, XEffectInst* eff_inst);
         void Emit(float_t delta_frame, float_t emission);
         void EmitParticle(float_t emission);
         void Free(float_t emission, bool free);
         void GetValue();
         bool HasEnded(bool a2);
-        void InitMesh(int32_t index, vec3* scale,
-            vec3* position, vec3* direction, Random* random);
+        void InitMesh(int32_t index, vec3& scale,
+            vec3& position, vec3& direction, Random* random);
         uint8_t RandomGetStep();
         void RandomStepValue();
         void Reset();
@@ -1068,7 +1108,7 @@ namespace Glitter {
 
     struct LocusHistory {
         struct Data {
-            vec4u color;
+            vec4 color;
             vec3 translation;
             float_t scale;
         };
@@ -1121,7 +1161,7 @@ namespace Glitter {
             float_t reflection_coeff;
             float_t reflection_coeff_random;
             float_t rebound_plane_y;
-            vec4u color;
+            vec4 color;
             UVIndexType uv_index_type;
             int32_t uv_index;
             int32_t frame_step_uv;
@@ -1283,7 +1323,7 @@ namespace Glitter {
             XEmitterInst* emit_inst, int32_t dup_count, int32_t count);
         void Free();
         void FreeData();
-        bool GetEmitterScale(vec3* emitter_scale);
+        bool GetEmitterScale(vec3& emitter_scale);
         bool GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale);
 
         static mat4 RotateMeshToEmitPosition(XRenderGroup* rend_group,
@@ -1308,7 +1348,7 @@ namespace Glitter {
         float_t speed;
         float_t deceleration;
         vec2 uv;
-        vec4u color;
+        vec4 color;
         vec3 base_translation;
         vec3 base_direction;
         vec3 translation;
@@ -1329,6 +1369,8 @@ namespace Glitter {
         LocusHistory* locus_history;
         uint32_t random;
         uint8_t step;
+
+        RenderElement();
 
         void InitLocusHistory(GLT, F2ParticleInst* ptcl_inst, Random* random);
         void InitLocusHistory(XParticleInst* ptcl_inst, Random* random);
@@ -1378,7 +1420,7 @@ namespace Glitter {
 #endif
         bool Copy(Glitter::EffectInst* eff_inst, Glitter::Scene* dst);
         void Ctrl(GPM, float_t delta_frame);
-        void Disp(GPM, draw_pass_3d_type alpha);
+        void Disp(GPM, DispType disp_type);
         size_t GetCtrlCount(ParticleType ptcl_type);
         size_t GetDispCount(ParticleType ptcl_type);
         void GetFrame(float_t* frame, int32_t* life_time);
@@ -1401,9 +1443,9 @@ namespace Glitter {
         EffectInst* effect;
         EmitterInst* emitter;
         ParticleInst* particle;
-        void* rctx;
         void* bone_data;
         FrameRateControl* frame_rate;
+        Camera cam;
         ParticleManagerFlag flags;
         int32_t scene_load_counter;
         float_t emission;
@@ -1433,7 +1475,7 @@ namespace Glitter {
         int32_t CounterGet();
         void CounterIncrement();
         void CtrlScenes();
-        void Disp(draw_pass_3d_type draw_pass_type);
+        void DispScenes(DispType disp_type);
         void FreeEffects();
         void FreeSceneEffect(SceneCounter scene_counter, uint64_t hash, bool force_kill);
         void FreeScenes();
@@ -1471,8 +1513,6 @@ namespace Glitter {
     };
 
     extern void axis_angle_from_vectors(vec3* axis, float_t* angle, const vec3* vec0, const vec3* vec1);
-    extern void mat3_mult_axis_angle(const mat3* src, mat3* dst, const vec3* axis, const float_t angle);
-    extern void mat4_mult_axis_angle(const mat4* src, mat4* dst, const vec3* axis, const float_t angle);
 
     extern GltParticleManager glt_particle_manager;
 }

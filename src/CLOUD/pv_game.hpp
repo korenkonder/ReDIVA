@@ -241,7 +241,7 @@ struct pv_game_dsc_data {
 
 struct pv_game_data_chara {
     chara_index chara_index;
-    int32_t module_index;
+    int32_t cos;
     int32_t chara_id;
     rob_chara_pv_data pv_data;
     rob_chara* rob_chr;
@@ -304,7 +304,7 @@ struct struc_78 {
 struct pv_game_data_chreff {
     chara_index src_chara_index;
     chara_index dst_chara_index;
-    std::bitset<128>* type;
+    std::bitset<128> type;
     std::string src_auth_3d;
     std::string dst_auth_3d;
     std::string src_auth_3d_category;
@@ -390,7 +390,7 @@ struct pv_game_data {
     uint32_t score_hold;
     int32_t score_slide;
     uint8_t field_2D04C;
-    uint8_t chance_time_endede;
+    uint8_t chance_time_ended;
     pv_disp2d* pv_disp2d;
     int32_t life_gauge_final;
     bool hit_border;
@@ -603,7 +603,7 @@ public:
     bool pv_end;
     pv_play_data playdata[ROB_CHARA_COUNT];
     float_t scene_rot_y;
-    mat4u scene_rot_mat;
+    mat4 scene_rot_mat;
     int32_t branch_mode;
 
     bool pause;
@@ -616,6 +616,7 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
+    virtual void Basic() override;
     virtual void Window() override;
 
     void Load(int32_t pv_id, chara_index charas[6], int32_t modules[6]);

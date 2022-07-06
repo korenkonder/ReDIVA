@@ -137,25 +137,25 @@ static void light_param_glow_read_inner(light_param_glow* glow, stream& s) {
             glow->has_saturate_coef = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "flare", 5)) {
-            vec3* flare = &glow->flare;
+            vec3& flare = glow->flare;
             if (buf[5] != ' ' || sscanf_s(buf + 6, "%f %f %f",
-                &flare->x, &flare->y, &flare->z) != 3)
+                &flare.x, &flare.y, &flare.z) != 3)
                 goto End;
 
             glow->has_flare = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "sigma", 5)) {
-            vec3* sigma = &glow->sigma;
+            vec3& sigma = glow->sigma;
             if (buf[5] != ' ' || sscanf_s(buf + 6, "%f %f %f",
-                &sigma->x, &sigma->y, &sigma->z) != 3)
+                &sigma.x, &sigma.y, &sigma.z) != 3)
                 goto End;
 
             glow->has_sigma = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "intensity", 9)) {
-            vec3* intensity = &glow->intensity;
+            vec3& intensity = glow->intensity;
             if (buf[9] != ' ' || sscanf_s(buf + 10, "%f %f %f",
-                &intensity->x, &intensity->y, &intensity->z) != 3)
+                &intensity.x, &intensity.y, &intensity.z) != 3)
                 goto End;
 
             glow->has_intensity = true;
@@ -175,19 +175,19 @@ static void light_param_glow_read_inner(light_param_glow* glow, stream& s) {
             glow->has_tone_map_method = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "fade_color", 10)) {
-            vec4u* fade_color = &glow->fade_color;
+            vec4& fade_color = glow->fade_color;
             int32_t* blend_func = &glow->fade_color_blend_func;
             if (buf[10] != ' ' || sscanf_s(buf + 11, "%f %f %f %f %d",
-                &fade_color->x, &fade_color->y, &fade_color->z, &fade_color->w, blend_func) != 5)
+                &fade_color.x, &fade_color.y, &fade_color.z, &fade_color.w, blend_func) != 5)
                 goto End;
 
             glow->has_fade_color = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "tone_transform", 14)) {
-            vec3* start = &glow->tone_transform_start;
-            vec3* end = &glow->tone_transform_end;
+            vec3& start = glow->tone_transform_start;
+            vec3& end = glow->tone_transform_end;
             if (buf[14] != ' ' || sscanf_s(buf + 15, "%f %f %f %f %f %f",
-                &start->x, &start->y, &start->z, &end->x, &end->y, &end->z) != 6)
+                &start.x, &start.y, &start.z, &end.x, &end.y, &end.z) != 6)
                 goto End;
 
             glow->has_tone_transform = true;
@@ -230,29 +230,29 @@ static void light_param_glow_write_inner(light_param_glow* glow, stream& s) {
     }
 
     if (glow->has_flare) {
-        vec3* flare = &glow->flare;
+        vec3& flare = glow->flare;
         s.write("flare", 5);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), flare->x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), flare->y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), flare->z);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), flare.x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), flare.y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), flare.z);
         s.write_char('\n');
     }
 
     if (glow->has_sigma) {
-        vec3* sigma = &glow->sigma;
+        vec3& sigma = glow->sigma;
         s.write("sigma", 5);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma->x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma->y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma->z);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma.x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma.y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma.z);
         s.write_char('\n');
     }
 
     if (glow->has_intensity) {
-        vec3* intensity = &glow->intensity;
+        vec3& intensity = glow->intensity;
         s.write("intensity", 9);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity->x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity->y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity->z);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity.x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity.y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity.z);
         s.write_char('\n');
     }
 
@@ -269,27 +269,27 @@ static void light_param_glow_write_inner(light_param_glow* glow, stream& s) {
     }
 
     if (glow->has_fade_color) {
-        vec4u* fade_color = &glow->fade_color;
+        vec4& fade_color = glow->fade_color;
         int32_t blend_func = glow->fade_color_blend_func;
         s.write("fade_color", 10);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color->x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color->y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color->z);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color->w);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color.x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color.y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color.z);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color.w);
         light_param_glow_write_int32_t(s, buf, sizeof(buf), blend_func);
         s.write_char('\n');
     }
 
     if (glow->has_tone_transform) {
-        vec3* start = &glow->tone_transform_start;
-        vec3* end = &glow->tone_transform_end;
+        vec3& start = glow->tone_transform_start;
+        vec3& end = glow->tone_transform_end;
         s.write("tone_transform", 14);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), start->x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), start->y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), start->z);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), end->x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), end->y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), end->z);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), start.x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), start.y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), start.z);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), end.x);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), end.y);
+        light_param_glow_write_float_t(s, buf, sizeof(buf), end.z);
         s.write_char('\n');
     }
 

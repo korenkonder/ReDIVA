@@ -26,16 +26,6 @@ const vec2i vec2i_null = { 0, 0 };
 const vec3i vec3i_null = { 0, 0, 0 };
 const vec4i vec4i_null = { 0, 0, 0, 0 };
 
-const vec2d vec2d_identity = { 1.0f, 1.0f };
-
-const vec2d vec2d_null = { 0.0f, 0.0f };
-
-const vec4u vec4u_identity = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-const vec4u vec4u_null = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-const vec4iu vec4iu_null = { 0, 0, 0, 0 };
-
 vec2i8::vec2i8() : x(), y() {
 
 }
@@ -286,56 +276,4 @@ vec4i::vec4i(int32_t value) : x(value), y(value), z(value), w(value) {
 
 vec4i::vec4i(int32_t x, int32_t y, int32_t z, int32_t w) : x(x), y(y), z(z), w(w) {
 
-}
-
-vec2d::vec2d() : x(), y() {
-
-}
-
-vec2d::vec2d(double_t value) : x(value), y(value) {
-
-}
-
-vec2d::vec2d(double_t x, double_t y) : x(x), y(y) {
-
-}
-
-vec4u::vec4u() : x(), y(), z(), w() {
-
-}
-
-vec4u::vec4u(float_t value) : x(value), y(value), z(value), w(value) {
-
-}
-
-vec4u::vec4u(float_t x, float_t y, float_t z, float_t w) : x(x), y(y), z(z), w(w) {
-
-}
-
-vec4iu::vec4iu() : x(), y(), z(), w() {
-
-}
-
-vec4iu::vec4iu(int32_t value) : x(value), y(value), z(value), w(value) {
-
-}
-
-vec4iu::vec4iu(int32_t x, int32_t y, int32_t z, int32_t w) : x(x), y(y), z(z), w(w) {
-
-}
-
-vec4::operator vec4u() const {
-    return { x, y, z, w };
-}
-
-vec4u::operator vec4() const {
-    return { x, y, z, w };
-}
-
-vec4i::operator vec4iu() const {
-    return { x, y, z, w };
-}
-
-vec4iu::operator vec4i() const {
-    return { x, y, z, w };
 }

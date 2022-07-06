@@ -205,17 +205,17 @@ void camera::reset() {
     update();
 }
 
-void camera::move(vec2d& move) {
-    if (memcmp(&move, &vec2d_null, sizeof(vec2d))) {
+void camera::move(double_t move_x, double_t move_y) {
+    if (move_x != 0.0 || move_y != 0.0) {
         vec3 temp;
         vec3 view_point;
         vec3 interest;
         vec3 up = { 0.0f, 1.0f, 0.0f };
         vec3_cross(forward, up, temp);
         vec3_normalize(temp, temp);
-        vec3_mult_scalar(temp, (float_t)move.y, temp);
+        vec3_mult_scalar(temp, (float_t)move_y, temp);
         vec3_add(this->view_point, temp, view_point);
-        vec3_mult_scalar(forward, (float_t)move.x, temp);
+        vec3_mult_scalar(forward, (float_t)move_x, temp);
         vec3_add(view_point, temp, view_point);
 
         vec3_add(view_point, forward, interest);
@@ -224,28 +224,20 @@ void camera::move(vec2d& move) {
     }
 }
 
-void camera::move(vec2d&& move) {
-    this->move(*(vec2d*)&move);
-}
+void camera::rotate(double_t rotate_x, double_t rotate_y) {
+    if (rotate_x != 0.0)
+        set_yaw(get_yaw() + rotate_x);
 
-void camera::rotate(vec2d& rotate) {
-    if (rotate.x != 0.0)
-        set_yaw(get_yaw() + rotate.x);
+    if (rotate_y != 0.0)
+        set_pitch(get_pitch() + rotate_y);
 
-    if (rotate.y != 0.0)
-        set_pitch(get_pitch() + rotate.y);
-
-    if (memcmp(&rotate, &vec2d_null, sizeof(vec2d))) {
+    if (rotate_x != 0.0 || rotate_y != 0.0) {
         camera_calculate_forward(this);
 
         vec3 interest;
         vec3_add(view_point, forward, interest);
         set_interest(interest);
     }
-}
-
-void camera::rotate(vec2d&& rotate) {
-    this->rotate(*(vec2d*)&rotate);
 }
 
 void camera::set(const vec3& view_point, const vec3& interest,

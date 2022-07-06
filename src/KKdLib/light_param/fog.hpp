@@ -31,7 +31,7 @@ struct light_param_fog_group {
     float_t linear_start;
     float_t linear_end;
     bool has_color;
-    vec4u color;
+    vec4 color;
 
     light_param_fog_group();
     ~light_param_fog_group();
@@ -43,7 +43,7 @@ struct light_param_fog {
     light_param_fog_group group[FOG_MAX];
 
     light_param_fog();
-    ~light_param_fog();
+    virtual ~light_param_fog();
 
     void read(const char* path);
     void read(const wchar_t* path);

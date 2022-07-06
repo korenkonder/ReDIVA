@@ -197,7 +197,7 @@ bool bone_database::get_skeleton(const char* name, bone_database_skeleton** skel
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (bone_database_skeleton& i : this->skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             *skeleton = &i;
             return true;
         }
@@ -211,9 +211,9 @@ int32_t bone_database::get_skeleton_bone_index(const char* name, const char* bon
     uint32_t name_hash = hash_utf8_murmurhash(name);
     uint32_t bone_name_hash = hash_utf8_murmurhash(bone_name);
     for (bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             for (bone_database_bone& j : i.bone)
-                if (hash_string_murmurhash(&j.name) == bone_name_hash)
+                if (hash_string_murmurhash(j.name) == bone_name_hash)
                     return (int32_t)(&j - i.bone.data());
             return -1;
         }
@@ -230,7 +230,7 @@ bool bone_database::get_skeleton_bones(const char* name, std::vector<bone_databa
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             *bone = &i.bone;
             return true;
         }
@@ -247,7 +247,7 @@ bool bone_database::get_skeleton_positions(const char* name, std::vector<vec3>**
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             *positions = &i.position;
             return true;
         }
@@ -261,9 +261,9 @@ int32_t bone_database::get_skeleton_object_bone_index(const char* name, const ch
     uint32_t name_hash = hash_utf8_murmurhash(name);
     uint32_t bone_name_hash = hash_utf8_murmurhash(bone_name);
     for (bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             for (std::string& j : i.object_bone)
-                if (hash_string_murmurhash(&j) == bone_name_hash)
+                if (hash_string_murmurhash(j) == bone_name_hash)
                     return (int32_t)(&j - i.object_bone.data());
             return -1;
         }
@@ -280,7 +280,7 @@ bool bone_database::get_skeleton_object_bones(const char* name, std::vector<std:
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             *object_bones = &i.object_bone;
             return true;
         }
@@ -294,9 +294,9 @@ int32_t bone_database::get_skeleton_motion_bone_index(const char* name, const ch
     uint32_t name_hash = hash_utf8_murmurhash(name);
     uint32_t bone_name_hash = hash_utf8_murmurhash(bone_name);
     for (bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             for (std::string& j : i.motion_bone)
-                if (hash_string_murmurhash(&j) == bone_name_hash)
+                if (hash_string_murmurhash(j) == bone_name_hash)
                     return (int32_t)(&j - i.motion_bone.data());
             return -1;
         }
@@ -313,7 +313,7 @@ bool bone_database::get_skeleton_motion_bones(const char* name, std::vector<std:
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             *motion_bones = &i.motion_bone;
             return true;
         }
@@ -330,7 +330,7 @@ bool bone_database::get_skeleton_parent_indices(const char* name, std::vector<st
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             *parent_indices = &i.parent_index;
             return true;
         }
@@ -347,7 +347,7 @@ bool bone_database::get_skeleton_heel_height(const char* name, float_t** unknown
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (hash_string_murmurhash(i.name) == name_hash) {
             *unknown_value = &i.heel_height;
             return true;
         }

@@ -705,7 +705,7 @@ void post_process_dof::apply(render_texture* rt, GLuint* samplers, camera* cam) 
 }
 
 void post_process_dof::init_fbo(int32_t width, int32_t height) {
-    if (!this || (width == width && height == height))
+    if (!this || (this->width == width && this->height == height))
         return;
 
     if (textures[0]) {
@@ -732,20 +732,20 @@ void post_process_dof::init_fbo(int32_t width, int32_t height) {
     glGenTextures(6, textures);
     gl_state_bind_texture_2d(textures[0]);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, w20, h20);
-    fbo[0] = ::fbo(w20, h20, &textures[0], 1, 0);
+    fbo[0].init_data(w20, h20, &textures[0], 1, 0);
     gl_state_bind_texture_2d(textures[1]);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, w20, h20);
-    fbo[1] = ::fbo(w20, h20, &textures[1], 1, 0);
+    fbo[1].init_data(w20, h20, &textures[1], 1, 0);
     gl_state_bind_texture_2d(textures[2]);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, w2, h2);
     gl_state_bind_texture_2d(textures[3]);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, w2, h2);
-    fbo[2] = ::fbo(w2, h2, &textures[2], 2, 0);
+    fbo[2].init_data(w2, h2, &textures[2], 2, 0);
     gl_state_bind_texture_2d(textures[4]);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, w2, h2);
     gl_state_bind_texture_2d(textures[5]);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, w2, h2);
-    fbo[3] = ::fbo(w2, h2, &textures[4], 2, 0);
+    fbo[3].init_data(w2, h2, &textures[4], 2, 0);
 
     glGenBuffers(2, ubo);
     gl_state_bind_uniform_buffer(ubo[0]);

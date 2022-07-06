@@ -34,7 +34,7 @@ struct pv_exp {
     std::vector<pv_exp_mot> motion_data;
 
     pv_exp();
-    ~pv_exp();
+    virtual ~pv_exp();
 
     void read(const char* path, bool modern);
     void read(const wchar_t* path, bool modern);

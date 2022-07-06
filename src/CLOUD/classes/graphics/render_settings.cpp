@@ -7,6 +7,7 @@
 #include "../../../CRE/lock.hpp"
 #include "../../../CRE/static_var.hpp"
 #include "../../../CRE/timer.hpp"
+#include "../../render.hpp"
 #include "../imgui_helper.hpp"
 
 extern int32_t width;
@@ -14,12 +15,6 @@ extern int32_t height;
 
 extern timer* render_timer;
 extern timer* sound_timer;
-
-extern size_t render_scale_table_count;
-extern double_t render_get_scale();
-extern void render_set_scale(double_t value);
-extern int32_t render_get_scale_index();
-extern void render_set_scale_index(int32_t index);
 
 const char* graphics_render_settings_window_title = "Render Settings##Graphics";
 
@@ -75,7 +70,7 @@ void graphics_render_settings_imgui(class_data* data) {
     char buf[0x80];
     sprintf_s(buf, sizeof(buf), "%g%%%%", scale);
     if (ImGui::ColumnSliderInt("Scale", &scale_index, 0,
-        (int32_t)render_scale_table_count, buf, ImGuiSliderFlags_NoInput, true))
+        RENDER_SCALE_MAX - 1, buf, ImGuiSliderFlags_NoInput, true))
         render_set_scale_index(scale_index);
 
 #if defined(CLOUD_DEV)
@@ -118,7 +113,7 @@ void graphics_render_settings_imgui(class_data* data) {
     ImGui::Separator();
 
     if (ImGui::ButtonEnterKeyPressed("Reset Render Settings"))
-        render_set_scale(1.0);
+        render_set_scale_index(6);
 
     data->imgui_focus |= ImGui::IsWindowFocused();
     ImGui::End();

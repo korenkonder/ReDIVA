@@ -20,9 +20,11 @@ struct fbo {
     GLuint* textures;
 
     fbo();
-    fbo(int32_t width, int32_t height,
-        GLuint* color_textures, int32_t count, GLuint depth_texture);
     ~fbo();
+
+    void init_data(int32_t width, int32_t height,
+        GLuint* color_textures, int32_t count, GLuint depth_texture);
+    void free_data();
 
     static void blit(GLuint src_fbo, GLuint dst_fbo,
         GLint src_x0, GLint src_y0, GLint src_x1, GLint src_y1,

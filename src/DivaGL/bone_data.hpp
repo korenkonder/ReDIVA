@@ -1745,7 +1745,7 @@ struct rob_chara_data_miku_rot {
     vec3 field_48;
     vec3 field_54;
     vec3 field_60;
-    mat4u field_6C;
+    mat4 field_6C;
 };
 
 struct rob_chara_adjust_data {
@@ -1759,7 +1759,7 @@ struct rob_chara_adjust_data {
     bool offset_z;
     bool get_global_trans;
     vec3 trans;
-    mat4u mat;
+    mat4 mat;
     float_t left_hand_scale;
     float_t right_hand_scale;
     float_t left_hand_scale_default;
@@ -1827,8 +1827,8 @@ struct struc_209 {
     int32_t field_6C;
     int32_t field_70;
     int32_t field_74;
-    mat4u field_78[27];
-    mat4u field_738[27];
+    mat4 field_78[27];
+    mat4 field_738[27];
     struc_195 field_DF8[27];
     struc_195 field_1230[27];
     struc_195 field_1668[27];
@@ -2701,9 +2701,9 @@ struct bone_data {
     vec3 rotation;
     vec3 ik_target;
     vec3 trans;
-    mat4u rot_mat[3];
+    mat4 rot_mat[3];
     vec3 trans_prev[2];
-    mat4u rot_mat_prev[3][2];
+    mat4 rot_mat_prev[3][2];
     mat4* pole_target_mat;
     mat4* parent_mat;
     bone_node* node;
@@ -2758,10 +2758,10 @@ struct MotionBlendCross {
     MotionBlend base;
     bool field_20;
     bool field_21;
-    mat4u field_24;
-    mat4u field_64;
-    mat4u field_A4;
-    mat4u field_E4;
+    mat4 field_24;
+    mat4 field_64;
+    mat4 field_A4;
+    mat4 field_E4;
 };
 
 struct MotionBlendFreeze {
@@ -2772,10 +2772,10 @@ struct MotionBlendFreeze {
     float_t field_28;
     float_t field_2C;
     int32_t field_30;
-    mat4u field_34;
-    mat4u field_74;
-    mat4u rot_y;
-    mat4u field_F4;
+    mat4 field_34;
+    mat4 field_74;
+    mat4 rot_y;
+    mat4 field_F4;
 };
 
 struct MotionBlendCombine {
@@ -2855,7 +2855,7 @@ struct struc_243 {
 
 struct struc_258 {
     vector_old_bone_data* field_0;
-    mat4u field_8;
+    mat4 field_8;
     struc_241 field_48;
     uint8_t field_8C;
     uint8_t field_8D;
@@ -2873,8 +2873,8 @@ struct struc_258 {
     float_t field_B0;
     vec3 field_B4;
     vec3 field_C0;
-    mat4u field_CC;
-    mat4u field_10C;
+    mat4 field_CC;
+    mat4 field_10C;
     bool field_14C;
     float_t field_150;
     float_t field_154;
@@ -2939,8 +2939,8 @@ struct struc_308 {
     int32_t field_0;
     int32_t field_4;
     uint8_t field_8;
-    mat4u mat;
-    mat4u field_4C;
+    mat4 mat;
+    mat4 field_4C;
     bool field_8C;
     vec3 field_90;
     vec3 field_9C;
@@ -3148,7 +3148,7 @@ struct obj_skin_block_cloth {
     uint32_t count;
     uint32_t field_10;
     int32_t field_14;
-    mat4u* field_18;
+    mat4* field_18;
     struc_230* field_1C;
     struc_251* field_20;
     uint16_t* field_24;
@@ -3269,7 +3269,7 @@ struct rob_osage_node_data_normal_ref {
     rob_osage_node* d;
     rob_osage_node* l;
     rob_osage_node* r;
-    mat4u mat;
+    mat4 mat;
 };
 
 struct skin_param_hinge {
@@ -3329,7 +3329,7 @@ struct rob_osage_node {
     float_t child_length;
     bone_node* bone_node_ptr;
     mat4* bone_node_mat;
-    mat4u mat;
+    mat4 mat;
     rob_osage_node* sibling_node;
     float_t distance;
     vec3 field_94;
@@ -3426,7 +3426,7 @@ struct rob_osage {
     int32_t yz_order;
     int32_t field_1EBC;
     mat4* parent_mat_ptr;
-    mat4u parent_mat;
+    mat4 parent_mat;
     float_t move_cancel;
     bool field_1F0C;
     bool osage_reset;
@@ -3726,7 +3726,7 @@ struct obj_mesh {
 
 union obj_material_shader {
     char name[8];
-    aft_shader_enum index;
+    shader_enum index;
 };
 
 struct obj_material_shader_flags {
@@ -3751,7 +3751,7 @@ struct obj_material_texture {
     int32_t texture_flags;
     char shader_name[8];
     float_t weight;
-    mat4u tex_coord_mat;
+    mat4 tex_coord_mat;
     float_t unk[8];
 };
 
@@ -3764,10 +3764,10 @@ struct obj_material {
     };
     obj_material_texture textures[8];
     int32_t blend_flags;
-    vec4u diffuse;
-    vec4u ambient;
-    vec4u specular;
-    vec4u emission;
+    vec4 diffuse;
+    vec4 ambient;
+    vec4 specular;
+    vec4 emission;
     float_t shininess;
     float_t intensity;
     obj_bounding_sphere reserved_sphere;
@@ -3781,7 +3781,7 @@ struct obj_material_data {
     obj_material material;
 };
 
-struct aft_obj {
+struct obj {
     uint32_t field_0;
     uint32_t field_4;
     obj_bounding_sphere bounding_sphere;
@@ -3848,7 +3848,7 @@ struct obj_skin_ex_data {
 
 struct obj_skin {
     uint32_t* bone_ids;
-    mat4u* bone_matrices;
+    mat4* bone_matrices;
     const char** bone_names;
     obj_skin_ex_data* ex_data;
     uint32_t bone_count;
@@ -3884,7 +3884,7 @@ struct obj_set {
     uint32_t signature;
     uint32_t objects_count;
     uint32_t max_object_id;
-    aft_obj** objects;
+    obj** objects;
     obj_skin** object_skins;
     const char** object_names;
     uint32_t* object_ids;
@@ -4082,13 +4082,13 @@ struct rob_chara_item_equip {
     item_id field_D4;
     bool disable_update;
     int32_t field_DC;
-    vec4u texture_color_coeff;
+    vec4 texture_color_coeff;
     float_t wet;
     float_t wind_strength;
     bool chara_color;
     bool npr_flag;
-    mat4u mat;
-    mat4u field_13C[30];
+    mat4 mat;
+    mat4 field_13C[30];
     int32_t field_8BC;
     int32_t field_8C0;
     int32_t field_8C4;

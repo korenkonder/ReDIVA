@@ -22,7 +22,7 @@ namespace Glitter {
             effects.reserve(eff_group->effects.size());
             emission = eff_group->emission;
             if (a5)
-                enum_or(flags, SCENE_FLAG_4);
+                enum_or(flags, SCENE_FLAG_3);
         }
     }
 
@@ -32,7 +32,7 @@ namespace Glitter {
     }
 
     bool Scene::Copy(Glitter::EffectInst* eff_inst, Glitter::Scene* dst) {
-        if (~flags & SCENE_FLAG_4)
+        if (~flags & SCENE_FLAG_3)
             return flags;
 
         for (SceneEffect& i : effects)
@@ -63,7 +63,7 @@ namespace Glitter {
                 i.ptr->Ctrl(GPM_VAL, type, delta_frame, emission);
     }
 
-    void Scene::Disp(GPM, draw_pass_3d_type alpha) {
+    void Scene::Disp(GPM, DispType disp_type) {
         if (flags & SCENE_NOT_DISP)
             return;
 
@@ -73,7 +73,7 @@ namespace Glitter {
                 if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != i.ptr)
                     continue;
 #endif
-                i.ptr->Disp(GPM_VAL, alpha);
+                i.ptr->Disp(GPM_VAL, disp_type);
             }
     }
 

@@ -63,9 +63,9 @@ uint64_t inject_uint64_t(void* address, uint64_t data) {
 }
 
 static patch_struct patch_data[] = {
-    { (void*)0x00000001405E4CE0, (uint64_t)&aft_shader_set, },
-    { (void*)0x00000001405E4FC0, (uint64_t)&aft_shader_load_all_shaders, },
-    { (void*)0x00000001405E4B50, (uint64_t)&aft_shader_bind, },
+    { (void*)0x00000001405E4CE0, (uint64_t)&shader_set, },
+    { (void*)0x00000001405E4FC0, (uint64_t)&shader_load_all_shaders, },
+    { (void*)0x00000001405E4B50, (uint64_t)&shader_bind, },
     { (void*)0x00000001401D3860, (uint64_t)&printf_proxy, },
     { (void*)0x00000001400DE640, (uint64_t)&printf_proxy, },
     //{ (void*)0x0000000140507210, (uint64_t)&rob_chara_reset_data, },
@@ -91,9 +91,6 @@ static patch_struct patch_data[] = {
 
 static uint64_t shader_bind_func_orig_data[6];
 
-extern bool toggle1[10];
-extern bool toggle2[10];
-
 void inject_patches() {
     uint8_t buf[12];
     buf[0] = 0x48;
@@ -111,17 +108,17 @@ void inject_patches() {
     glutMainLoop = (void (*)())inject_uint64_t((void*)0x0000000140966008, (uint64_t)&gl_get_func_pointers);
 
     shader_bind_func_orig_data[0] = inject_uint64_t(
-        (void*)&shader_name_bind_func_table[0].bind_func, (uint64_t)&aft_shader_bind_blinn);
+        (void*)&shader_name_bind_func_table[0].bind_func, (uint64_t)&shader_bind_blinn);
     shader_bind_func_orig_data[1] = inject_uint64_t(
-        (void*)&shader_name_bind_func_table[1].bind_func, (uint64_t)&aft_shader_bind_cloth);
+        (void*)&shader_name_bind_func_table[1].bind_func, (uint64_t)&shader_bind_cloth);
     shader_bind_func_orig_data[2] = inject_uint64_t(
-        (void*)&shader_name_bind_func_table[2].bind_func, (uint64_t)&aft_shader_bind_hair);
+        (void*)&shader_name_bind_func_table[2].bind_func, (uint64_t)&shader_bind_hair);
     shader_bind_func_orig_data[3] = inject_uint64_t(
-        (void*)&shader_name_bind_func_table[3].bind_func, (uint64_t)&aft_shader_bind_membrane);
+        (void*)&shader_name_bind_func_table[3].bind_func, (uint64_t)&shader_bind_membrane);
     shader_bind_func_orig_data[4] = inject_uint64_t(
-        (void*)&shader_name_bind_func_table[4].bind_func, (uint64_t)&aft_shader_bind_eye_ball);
+        (void*)&shader_name_bind_func_table[4].bind_func, (uint64_t)&shader_bind_eye_ball);
     shader_bind_func_orig_data[5] = inject_uint64_t(
-        (void*)&shader_name_bind_func_table[5].bind_func, (uint64_t)&aft_shader_bind_tone_map);
+        (void*)&shader_name_bind_func_table[5].bind_func, (uint64_t)&shader_bind_tone_map);
 }
 
 void inject_restore() {
@@ -131,8 +128,8 @@ void inject_restore() {
             free(data);
         }
 
-     inject_uint64_t((void*)0x0000000140966008, (uint64_t)glutMainLoop);
+    inject_uint64_t((void*)0x0000000140966008, (uint64_t)glutMainLoop);
 
-     for (int32_t i = 0; i < 6; i++)
-         inject_uint64_t(shader_name_bind_func_table[i].bind_func, shader_bind_func_orig_data[i]);
+    for (int32_t i = 0; i < 6; i++)
+        inject_uint64_t(shader_name_bind_func_table[i].bind_func, shader_bind_func_orig_data[i]);
 }

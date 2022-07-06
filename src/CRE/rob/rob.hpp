@@ -909,9 +909,9 @@ struct bone_data {
     vec3 rotation;
     vec3 ik_target;
     vec3 trans;
-    mat4u rot_mat[3];
+    mat4 rot_mat[3];
     vec3 trans_prev[2];
-    mat4u rot_mat_prev[3][2];
+    mat4 rot_mat_prev[3][2];
     mat4* pole_target_mat;
     mat4* parent_mat;
     bone_node* node;
@@ -973,8 +973,8 @@ struct struc_308 {
     int32_t field_0;
     int32_t field_4;
     uint8_t field_8;
-    mat4u mat;
-    mat4u field_4C;
+    mat4 mat;
+    mat4 field_4C;
     bool field_8C;
     vec3 field_90;
     vec3 field_9C;
@@ -1025,10 +1025,10 @@ class MotionBlendCross : public MotionBlend {
 public:
     bool field_20;
     bool field_21;
-    mat4u rot_y_mat;
-    mat4u field_64;
-    mat4u field_A4;
-    mat4u field_E4;
+    mat4 rot_y_mat;
+    mat4 field_64;
+    mat4 field_A4;
+    mat4 field_E4;
 
     MotionBlendCross();
     virtual ~MotionBlendCross() override;
@@ -1055,10 +1055,10 @@ public:
     float_t field_28;
     float_t field_2C;
     int32_t field_30;
-    mat4u rot_y_mat;
-    mat4u field_74;
-    mat4u field_B4;
-    mat4u field_F4;
+    mat4 rot_y_mat;
+    mat4 field_74;
+    mat4 field_B4;
+    mat4 field_F4;
 
     MotionBlendFreeze();
     virtual ~MotionBlendFreeze() override;
@@ -1088,8 +1088,10 @@ struct struc_313 {
     ~struc_313();
 };
 
+typedef bool(* PFNMOTIONBONECHECKFUNC)(motion_bone_index bone_index);
+
 struct struc_240 {
-    bool(*bone_check_func)(motion_bone_index bone_index);
+    PFNMOTIONBONECHECKFUNC bone_check_func;
     struc_313 field_8;
     size_t motion_bone_count;
 
@@ -1146,15 +1148,18 @@ struct struc_241 {
     float_t field_14;
     float_t field_18;
     float_t field_1C;
-    float_t field_20;
-    float_t field_24;
-    float_t field_28;
+    vec3 field_20;
     float_t field_2C;
     float_t field_30;
     float_t field_34;
     float_t field_38;
     float_t field_3C;
     float_t field_40;
+
+    struc_241();
+    struc_241(float_t field_0, float_t field_4, float_t field_8, float_t field_C, float_t field_10,
+        float_t field_14, float_t field_18, float_t field_1C, vec3 field_20, float_t field_2C,
+        float_t field_30, float_t field_34, float_t field_38, float_t field_3C, float_t field_40);
 };
 
 struct struc_243 {
@@ -1172,7 +1177,7 @@ struct struc_243 {
 
 struct struc_258 {
     std::vector<bone_data>* field_0;
-    mat4u field_8;
+    mat4 field_8;
     struc_241 field_48;
     bool field_8C;
     bool field_8D;
@@ -1190,16 +1195,14 @@ struct struc_258 {
     float_t field_B0;
     vec3 field_B4;
     vec3 field_C0;
-    mat4u field_CC;
-    mat4u field_10C;
+    mat4 field_CC;
+    mat4 field_10C;
     bool field_14C;
     float_t field_150;
     float_t field_154;
     float_t field_158;
     struc_243 field_15C;
-    float_t field_184;
-    float_t field_188;
-    float_t field_18C;
+    vec3 field_184;
     bool field_190;
     bool field_191;
     bool field_192;
@@ -1219,32 +1222,40 @@ struct struc_258 {
     bool field_1C4;
     int32_t field_1C8;
     int32_t field_1CC;
+
+    struc_258();
 };
 
-struct struc_242 {
-    float_t field_0;
-    float_t field_4;
-    float_t field_8;
-    float_t field_C;
-    float_t field_10;
-    float_t field_14;
-    float_t field_18;
-    vec3 field_1C;
-    float_t field_28;
+struct sleeve_data {
+    float_t radius;
+    float_t cyofs;
+    float_t czofs;
+    float_t ymin;
+    float_t ymax;
+    float_t zmin;
+    float_t zmax;
+    float_t mune_xofs;
+    float_t mune_yofs;
+    float_t mune_zofs;
+    float_t mune_rad;
 };
 
-struct struc_312 {
-    struc_242 field_0;
-    struc_242 field_2C;
-    bool field_58;
-    bool field_59;
+struct rob_chara_bone_data_sleeve_adjust {
+    sleeve_data sleeve_l;
+    sleeve_data sleeve_r;
+    bool enable1;
+    bool enable2;
     vec3 field_5C;
     vec3 field_68;
     vec3 field_74;
     vec3 field_80;
-    float_t field_8C;
+    float_t radius;
     std::vector<bone_data>* bones;
     float_t step;
+
+    rob_chara_bone_data_sleeve_adjust();
+
+    void reset();
 };
 
 struct rob_chara_bone_data {
@@ -1275,7 +1286,7 @@ struct rob_chara_bone_data {
     vec3 field_76C[2];
     int32_t field_784;
     struc_258 field_788;
-    struc_312 field_958;
+    rob_chara_bone_data_sleeve_adjust sleeve_adjust;
 
     rob_chara_bone_data();
     virtual ~rob_chara_bone_data();
@@ -1301,8 +1312,8 @@ struct rob_chara_pv_data {
     vec3 field_8;
     int16_t rot_y_int16;
     int16_t field_16;
-    struc_242 field_18;
-    struc_242 field_44;
+    sleeve_data sleeve_l;
+    sleeve_data sleeve_r;
     int32_t field_70;
     int32_t motion_face_ids[10];
     int32_t chara_size_index;
@@ -1324,14 +1335,15 @@ struct struc_218 {
 struct struc_344 {
     int32_t chara_size_index;
     int32_t field_4;
-    int32_t field_8;
-    int32_t field_C;
+    int32_t swim_costume;
+    int32_t swim_s_costume;
 };
 
 struct chara_init_data {
     int32_t object_set;
     bone_database_skeleton_type skeleton_type;
-    object_info field_7E0[15];
+    object_info field_7E0;
+    object_info field_7E4[14];
     uint32_t motion_set;
     const struc_218* field_828;
     const struc_218* field_830;
@@ -1404,7 +1416,7 @@ struct RobOsageNodeDataNormalRef {
     RobOsageNode* d;
     RobOsageNode* l;
     RobOsageNode* r;
-    mat4u mat;
+    mat4 mat;
 
     void GetMat();
 };
@@ -1475,7 +1487,7 @@ struct RobOsageNode {
     float_t child_length;
     bone_node* bone_node_ptr;
     mat4* bone_node_mat;
-    mat4u mat;
+    mat4 mat;
     RobOsageNode* sibling_node;
     float_t max_distance;
     vec3 field_94;
@@ -1660,7 +1672,7 @@ struct CLOTH {
     osage_coli coli[64];
     osage_coli coli_ring[64];
     osage_ring_data ring;
-    mat4u* mats;
+    mat4* mats;
 
     CLOTH();
     virtual ~CLOTH();
@@ -1680,14 +1692,14 @@ struct CLOTH {
 struct RobClothRoot {
     vec3 trans;
     vec3 normal;
-    vec4u tangent;
+    vec4 tangent;
     bone_node* node[4];
     mat4* node_mat[4];
-    mat4u* mat[4];
+    mat4* mat[4];
     float_t weight[4];
-    mat4u field_98;
-    mat4u field_D8;
-    mat4u field_118;
+    mat4 field_98;
+    mat4 field_D8;
+    mat4 field_118;
 };
 
 struct RobClothSubMeshArray {
@@ -1728,7 +1740,7 @@ struct RobCloth : public CLOTH {
     void ColiSet(mat4* mats);
     void Disp(mat4* mat, render_context* rctx);
     void InitData(size_t root_count, size_t nodes_count, obj_skin_block_cloth_root* root,
-        obj_skin_block_cloth_node* nodes, mat4u* mats, int32_t a7,
+        obj_skin_block_cloth_node* nodes, mat4* mats, int32_t a7,
         rob_chara_item_equip_object* itm_eq_obj, bone_database* bone_data);
     void InitDataParent(obj_skin_block_cloth* cls_data,
         rob_chara_item_equip_object* itm_eq_obj, bone_database* bone_data);
@@ -1809,7 +1821,7 @@ struct RobOsage {
     int32_t yz_order;
     int32_t field_1EBC;
     mat4* parent_mat_ptr;
-    mat4u parent_mat;
+    mat4 parent_mat;
     float_t move_cancel;
     bool field_1F0C;
     bool osage_reset;
@@ -2024,7 +2036,7 @@ struct rob_chara_item_equip_object {
     std::vector<ExExpressionBlock*> expression_blocks;
     std::vector<ExClothBlock*> cloth_blocks;
     bool field_1B8;
-    int64_t field_1C0;
+    size_t osage_nodes_count;
     bool use_opd;
     obj_skin_ex_data* skin_ex_data;
     obj_skin* skin;
@@ -2079,13 +2091,13 @@ struct rob_chara_item_equip {
     int32_t field_D4;
     bool disable_update;
     int32_t field_DC;
-    vec4u texture_color_coeff;
+    vec4 texture_color_coeff;
     float_t wet;
     float_t wind_strength;
     bool chara_color;
     bool npr_flag;
-    mat4u mat;
-    mat4u field_13C[30];
+    mat4 mat;
+    mat4 field_13C[30];
     int32_t field_8BC;
     int32_t field_8C0;
     int32_t field_8C4;
@@ -2120,6 +2132,7 @@ struct rob_chara_item_equip {
     rob_chara_item_equip();
     virtual ~rob_chara_item_equip();
 
+    rob_chara_item_equip_object* get_item_equip_object(item_id id);
     void reset();
 };
 
@@ -2602,8 +2615,8 @@ struct rob_chara_motion {
     object_info hand_l_object;
     object_info hand_r_object;
     struc_405 field_3B0;
-    rob_chara_data_adjust parts_adjust[13];
-    rob_chara_data_adjust parts_adjust_prev[13];
+    rob_chara_data_adjust parts_adjust[ROB_OSAGE_PARTS_MAX];
+    rob_chara_data_adjust parts_adjust_prev[ROB_OSAGE_PARTS_MAX];
     rob_chara_data_adjust adjust_global;
     rob_chara_data_adjust adjust_global_prev;
     rob_chara_data_hand_adjust hand_adjust[2];
@@ -2882,7 +2895,7 @@ struct rob_chara_data_miku_rot {
     int32_t field_60;
     int32_t field_64;
     int32_t field_68;
-    mat4u field_6C;
+    mat4 field_6C;
 
     void reset();
 };
@@ -2898,7 +2911,7 @@ struct rob_chara_adjust_data {
     bool offset_z;
     bool get_global_trans;
     vec3 trans;
-    mat4u mat;
+    mat4 mat;
     float_t left_hand_scale;
     float_t right_hand_scale;
     float_t left_hand_scale_default;
@@ -2960,8 +2973,8 @@ struct struc_209 {
     int32_t field_6C;
     int32_t field_70;
     int32_t field_74;
-    mat4u field_78[27];
-    mat4u field_738[27];
+    mat4 field_78[27];
+    mat4 field_738[27];
     struc_195 field_DF8[27];
     struc_195 field_1230[27];
     struc_195 field_1668[27];
@@ -3128,6 +3141,8 @@ struct rob_chara {
     rob_chara();
     virtual ~rob_chara();
 
+    void autoblink_disable();
+    void autoblink_enable();
     mat4* get_bone_data_mat(size_t index);
     float_t get_frame();
     float_t get_frame_count();
@@ -3244,3 +3259,8 @@ extern void skin_param_osage_node_parse(void* kv, const char* name,
 
 extern void skin_param_osage_root_parse(void* kv, const char* name,
     skin_param_osage_root& skp_root, bone_database* bone_data);
+
+extern int32_t expression_id_to_mottbl_index(int32_t expression_id);
+extern int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id);
+extern int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
+extern int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);

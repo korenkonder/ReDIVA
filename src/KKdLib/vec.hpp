@@ -179,25 +179,15 @@ struct vec3 {
     vec3(float_t x, float_t y, float_t z);
 };
 
-union vec4;
-union vec4i;
-struct vec4u;
-struct vec4iu;
-
-union vec4 {
-    struct {
-        float_t x;
-        float_t y;
-        float_t z;
-        float_t w;
-    };
-    __m128 data;
+struct vec4 {
+    float_t x;
+    float_t y;
+    float_t z;
+    float_t w;
 
     vec4();
     vec4(float_t value);
     vec4(float_t x, float_t y, float_t z, float_t w);
-
-    operator vec4u() const;
 };
 
 struct vec2i {
@@ -219,58 +209,15 @@ struct vec3i {
     vec3i(int32_t x, int32_t y, int32_t z);
 };
 
-union vec4i {
-    struct {
-        int32_t x;
-        int32_t y;
-        int32_t z;
-        int32_t w;
-    };
-    __m128 data;
-
-    vec4i();
-    vec4i(int32_t value);
-    vec4i(int32_t x, int32_t y, int32_t z, int32_t w);
-
-    operator vec4iu() const;
-};
-
-union vec2d {
-    struct {
-        double_t x;
-        double_t y;
-    };
-    __m128d data;
-
-    vec2d();
-    vec2d(double_t value);
-    vec2d(double_t x, double_t y);
-};
-
-struct vec4u {
-    float_t x;
-    float_t y;
-    float_t z;
-    float_t w;
-
-    vec4u();
-    vec4u(float_t value);
-    vec4u(float_t x, float_t y, float_t z, float_t w);
-
-    operator vec4() const;
-};
-
-struct vec4iu {
+struct vec4i {
     int32_t x;
     int32_t y;
     int32_t z;
     int32_t w;
 
-    vec4iu();
-    vec4iu(int32_t value);
-    vec4iu(int32_t x, int32_t y, int32_t z, int32_t w);
-
-    operator vec4i() const;
+    vec4i();
+    vec4i(int32_t value);
+    vec4i(int32_t x, int32_t y, int32_t z, int32_t w);
 };
 
 extern const __m128 vec2_negate;
@@ -293,17 +240,6 @@ extern const vec4 vec4_null;
 extern const vec2i vec2i_null;
 extern const vec3i vec3i_null;
 extern const vec4i vec4i_null;
-
-extern const vec2d vec2d_identity;
-
-extern const vec2d vec2d_null;
-
-extern const vec4u vec4u_identity;
-
-extern const vec4u vec4u_null;
-
-extern const vec4iu vec4iu_null;
-
 #define vec2i8_to_vec2(src, dst) \
 (dst).x = (float_t)(src).x; \
 (dst).y = (float_t)(src).y;
@@ -883,8 +819,8 @@ extern const vec4iu vec4iu_null;
     *(vec2*)&yt = (y); \
     *(vec2*)&zt = (z); \
     yt = _mm_xor_ps(yt, vec2_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
     wt = _mm_mul_ps(xt, wt); \
     (w) = *(vec2*)&wt; \
 }
@@ -901,8 +837,8 @@ extern const vec4iu vec4iu_null;
     zt = _mm_set_ss(z); \
     zt = _mm_shuffle_ps(zt, zt, 0); \
     yt = _mm_xor_ps(yt, vec2_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
     wt = _mm_mul_ps(xt, wt); \
     (w) = *(vec2*)&wt; \
 }
@@ -917,8 +853,8 @@ extern const vec4iu vec4iu_null;
     *(vec2*)&yt = (y); \
     *(vec2*)&zt = (z); \
     yt = _mm_xor_ps(yt, vec2_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
     wt = _mm_div_ps(xt, wt); \
     (w) = *(vec2*)&wt; \
 }
@@ -935,8 +871,8 @@ extern const vec4iu vec4iu_null;
     zt = _mm_set_ss(z); \
     zt = _mm_shuffle_ps(zt, zt, 0); \
     yt = _mm_xor_ps(yt, vec2_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
     wt = _mm_div_ps(xt, wt); \
     (w) = *(vec2*)&wt; \
 }
@@ -1088,9 +1024,9 @@ extern const vec4iu vec4iu_null;
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
+    xt = _mm_and_ps(xt, _mm_loadu_ps((float*)&(vec4_mask_vec3))); \
     *(vec3*)&yt = (y); \
-    yt = _mm_and_ps(yt, vec4_mask_vec3.data); \
+    yt = _mm_and_ps(yt, _mm_loadu_ps((float*)&(vec4_mask_vec3))); \
     zt = _mm_mul_ps(xt, yt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_hadd_ps(zt, zt)); \
@@ -1101,7 +1037,7 @@ extern const vec4iu vec4iu_null;
     __m128 xt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
+    xt = _mm_and_ps(xt, _mm_loadu_ps((float*)&(vec4_mask_vec3))); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_sqrt_ss(_mm_hadd_ps(zt, zt))); \
@@ -1112,7 +1048,7 @@ extern const vec4iu vec4iu_null;
     __m128 xt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
+    xt = _mm_and_ps(xt, _mm_loadu_ps((float*)&(vec4_mask_vec3))); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_hadd_ps(zt, zt)); \
@@ -1124,9 +1060,9 @@ extern const vec4iu vec4iu_null;
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
+    xt = _mm_and_ps(xt, _mm_loadu_ps((float*)&(vec4_mask_vec3))); \
     *(vec3*)&yt = (y); \
-    yt = _mm_and_ps(yt, vec4_mask_vec3.data); \
+    yt = _mm_and_ps(yt, _mm_loadu_ps((float*)&(vec4_mask_vec3))); \
     zt = _mm_sub_ps(xt, yt); \
     zt = _mm_mul_ps(zt, zt); \
     zt = _mm_hadd_ps(zt, zt); \
@@ -1139,9 +1075,9 @@ extern const vec4iu vec4iu_null;
     __m128 yt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
+    xt = _mm_and_ps(xt, _mm_loadu_ps((float*)&(vec4_mask_vec3))); \
     *(vec3*)&yt = (y); \
-    yt = _mm_and_ps(yt, vec4_mask_vec3.data); \
+    yt = _mm_and_ps(yt, _mm_loadu_ps((float*)&(vec4_mask_vec3))); \
     zt = _mm_sub_ps(xt, yt); \
     zt = _mm_mul_ps(zt, zt); \
     zt = _mm_hadd_ps(zt, zt); \
@@ -1186,7 +1122,7 @@ extern const vec4iu vec4iu_null;
     __m128 xt; \
     __m128 zt; \
     *(vec3*)&xt = (x); \
-    xt = _mm_and_ps(xt, vec4_mask_vec3.data); \
+    xt = _mm_and_ps(xt, _mm_loadu_ps((float*)&(vec4_mask_vec3))); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt)); \
@@ -1265,8 +1201,8 @@ extern const vec4iu vec4iu_null;
     *(vec3*)&yt = (y); \
     *(vec3*)&zt = (z); \
     yt = _mm_xor_ps(yt, vec3_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
     wt = _mm_mul_ps(xt, wt); \
     (w) = *(vec3*)&wt; \
 }
@@ -1283,8 +1219,8 @@ extern const vec4iu vec4iu_null;
     zt = _mm_set_ss(z); \
     zt = _mm_shuffle_ps(zt, zt, 0); \
     yt = _mm_xor_ps(yt, vec3_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
     wt = _mm_mul_ps(xt, wt); \
     (w) = *(vec3*)&wt; \
 }
@@ -1299,8 +1235,8 @@ extern const vec4iu vec4iu_null;
     *(vec3*)&yt = (y); \
     *(vec3*)&zt = (z); \
     yt = _mm_xor_ps(yt, vec3_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
     wt = _mm_div_ps(xt, wt); \
     (w) = *(vec3*)&wt; \
 }
@@ -1317,8 +1253,8 @@ extern const vec4iu vec4iu_null;
     zt = _mm_set_ss(z); \
     zt = _mm_shuffle_ps(zt, zt, 0); \
     yt = _mm_xor_ps(yt, vec3_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4_null.data))); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
     wt = _mm_div_ps(xt, wt); \
     (w) = *(vec3*)&wt; \
 }
@@ -1340,85 +1276,85 @@ extern const vec4iu vec4iu_null;
 
 #define vec4_add(x, y, z) \
 { \
-    (z).data = _mm_add_ps((x).data, (y).data); \
+    _mm_storeu_ps((float*)&(z), _mm_add_ps(_mm_loadu_ps((float*)&(x)), _mm_loadu_ps((float*)&(y)))); \
 }
 
 #define vec4_add_scalar(x, y, z) \
 { \
     __m128 yt; \
     yt = _mm_set_ss(y); \
-    (z).data = _mm_add_ps((x).data, _mm_shuffle_ps(yt, yt, 0)); \
+    _mm_storeu_ps((float*)&(z), _mm_add_ps(_mm_loadu_ps((float*)&(x)), _mm_shuffle_ps(yt, yt, 0))); \
 }
 
 #define vec4_sub(x, y, z) \
 { \
-    (z).data = _mm_sub_ps((x).data, (y).data); \
+    _mm_storeu_ps((float*)&(z), _mm_sub_ps(_mm_loadu_ps((float*)&(x)), _mm_loadu_ps((float*)&(y)))); \
 }
 
 #define vec4_sub_scalar(x, y, z) \
 { \
     __m128 yt; \
     yt = _mm_set_ss(y); \
-    (z).data = _mm_sub_ps((x).data, _mm_shuffle_ps(yt, yt, 0)); \
+    _mm_storeu_ps((float*)&(z), _mm_sub_ps(_mm_loadu_ps((float*)&(x)), _mm_shuffle_ps(yt, yt, 0))); \
 }
 
 #define vec4_mult(x, y, z) \
 { \
-    (z).data = _mm_mul_ps((x).data, (y).data); \
+    _mm_storeu_ps((float*)&(z), _mm_mul_ps(_mm_loadu_ps((float*)&(x)), _mm_loadu_ps((float*)&(y)))); \
 }
 
 #define vec4_mult_scalar(x, y, z) \
 { \
     __m128 yt; \
     yt = _mm_set_ss(y); \
-    (z).data = _mm_mul_ps((x).data, _mm_shuffle_ps(yt, yt, 0)); \
+    _mm_storeu_ps((float*)&(z), _mm_mul_ps(_mm_loadu_ps((float*)&(x)), _mm_shuffle_ps(yt, yt, 0))); \
 }
 
 #define vec4_div(x, y, z) \
 { \
-    (z).data = _mm_div_ps((x).data, (y).data); \
+    _mm_storeu_ps((float*)&(z), _mm_div_ps(_mm_loadu_ps((float*)&(x)), _mm_loadu_ps((float*)&(y)))); \
 }
 
 #define vec4_div_scalar(x, y, z) \
 { \
     __m128 yt; \
     yt = _mm_set_ss(y); \
-    (z).data = _mm_div_ps((x).data, _mm_shuffle_ps(yt, yt, 0)); \
+    _mm_storeu_ps((float*)&(z), _mm_div_ps(_mm_loadu_ps((float*)&(x)), _mm_shuffle_ps(yt, yt, 0))); \
 }
 
 #define vec4_and(x, y, z) \
 { \
-    (z).data = _mm_and_ps((x).data, (y).data); \
+    _mm_storeu_ps((float*)&(z), _mm_and_ps(_mm_loadu_ps((float*)&(x)), _mm_loadu_ps((float*)&(y)))); \
 }
 
 #define vec4_and_scalar(x, y, z) \
 { \
     __m128 yt; \
     yt = _mm_set_ss(y); \
-    (z).data = _mm_and_ps((x).data, _mm_shuffle_ps(yt, yt, 0)); \
+    _mm_storeu_ps((float*)&(z), _mm_and_ps(_mm_loadu_ps((float*)&(x)), _mm_shuffle_ps(yt, yt, 0))); \
 }
 
 #define vec4_xor(x, y, z) \
 { \
-    (z).data = _mm_xor_ps((x).data, (y).data); \
+    _mm_storeu_ps((float*)&(z), _mm_xor_ps(_mm_loadu_ps((float*)&(x)), _mm_loadu_ps((float*)&(y)))); \
 }
 
 #define vec4_xor_scalar(x, y, z) \
 { \
     __m128 yt; \
     yt = _mm_set_ss(y); \
-    (z).data = _mm_xor_ps((x).data, _mm_shuffle_ps(yt, yt, 0)); \
+    _mm_storeu_ps((float*)&(z), _mm_xor_ps(_mm_loadu_ps((float*)&(x)), _mm_shuffle_ps(yt, yt, 0))); \
 }
 
 #define vec4_negate(x, z) \
 { \
-    (z).data = _mm_xor_ps((x).data, vec4_negate); \
+    _mm_storeu_ps((float*)&(z), _mm_xor_ps(_mm_loadu_ps((float*)&(x)), vec4_negate)); \
 }
 
 #define vec4_dot(x, y, z) \
 { \
     __m128 zt; \
-    zt = _mm_mul_ps((x).data, (y).data); \
+    zt = _mm_mul_ps(_mm_loadu_ps((float*)&(x)), _mm_loadu_ps((float*)&(y))); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_hadd_ps(zt, zt)); \
 }
@@ -1427,7 +1363,7 @@ extern const vec4iu vec4iu_null;
 { \
     __m128 xt; \
     __m128 zt; \
-    xt = (x).data; \
+    xt = _mm_loadu_ps((float*)&(x)); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_sqrt_ss(_mm_hadd_ps(zt, zt))); \
@@ -1437,7 +1373,7 @@ extern const vec4iu vec4iu_null;
 { \
     __m128 xt; \
     __m128 zt; \
-    xt = (x).data; \
+    xt = _mm_loadu_ps((float*)&(x)); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_hadd_ps(zt, zt)); \
@@ -1446,7 +1382,7 @@ extern const vec4iu vec4iu_null;
 #define vec4_distance(x, y, z) \
 { \
     __m128 zt; \
-    zt = _mm_sub_ps((x).data, (y).data); \
+    zt = _mm_sub_ps(_mm_loadu_ps((float*)&(x)), _mm_loadu_ps((float*)&(y))); \
     zt = _mm_mul_ps(zt, zt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_sqrt_ss(_mm_hadd_ps(zt, zt))); \
@@ -1455,7 +1391,7 @@ extern const vec4iu vec4iu_null;
 #define vec4_distance_squared(x, y, z) \
 { \
     __m128 zt; \
-    zt = _mm_sub_ps((x).data, (y).data); \
+    zt = _mm_sub_ps(_mm_loadu_ps((float*)&(x)), _mm_loadu_ps((float*)&(y))); \
     zt = _mm_mul_ps(zt, zt); \
     zt = _mm_hadd_ps(zt, zt); \
     (z) = _mm_cvtss_f32(_mm_hadd_ps(zt, zt)); \
@@ -1465,9 +1401,10 @@ extern const vec4iu vec4iu_null;
 { \
     __m128 b1; \
     __m128 b2; \
-    b1 = (blend).data; \
-    b2 = _mm_sub_ps(vec4_identity.data, b1); \
-    (z).data = _mm_add_ps(_mm_mul_ps((x).data, b2), _mm_mul_ps((y).data, b1)); \
+    b1 = _mm_loadu_ps((float*)&(blend)); \
+    b2 = _mm_sub_ps(_mm_loadu_ps((float*)&(vec4_identity)), b1); \
+    _mm_storeu_ps((float*)&(z), _mm_add_ps(_mm_mul_ps(_mm_loadu_ps((float*)&(x)), b2), \
+        _mm_mul_ps(_mm_loadu_ps((float*)&(y)), b1))); \
 }
 
 #define vec4_lerp_scalar(x, y, z, blend) \
@@ -1476,41 +1413,42 @@ extern const vec4iu vec4iu_null;
     __m128 b2; \
     b1 = _mm_set_ss(blend); \
     b1 = _mm_shuffle_ps(b1, b1, 0); \
-    b2 = _mm_sub_ps(vec4_identity.data, b1); \
-    (z).data = _mm_add_ps(_mm_mul_ps((x).data, b2), _mm_mul_ps((y).data, b1)); \
+    b2 = _mm_sub_ps(_mm_loadu_ps((float*)&(vec4_identity)), b1); \
+    _mm_storeu_ps((float*)&(z), _mm_add_ps(_mm_mul_ps(_mm_loadu_ps((float*)&(x)), b2), \
+        _mm_mul_ps(_mm_loadu_ps((float*)&(y)), b1))); \
 }
 
 #define vec4_normalize(x, z) \
 { \
     __m128 xt; \
     __m128 zt; \
-    xt = (x).data; \
+    xt = _mm_loadu_ps((float*)&(x)); \
     zt = _mm_mul_ps(xt, xt); \
     zt = _mm_hadd_ps(zt, zt); \
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt)); \
     if (zt.m128_f32[0] != 0.0f) \
         zt.m128_f32[0] = 1.0f / zt.m128_f32[0]; \
-    (z).data = _mm_mul_ps(xt, _mm_shuffle_ps(zt, zt, 0)); \
+    _mm_storeu_ps((float*)&(z), _mm_mul_ps(xt, _mm_shuffle_ps(zt, zt, 0))); \
 }
 
 #define vec4_rcp(x, z) \
 { \
-    (z).data = _mm_div_ps(vec4_identity.data, (x).data); \
+    _mm_storeu_ps((float*)&(z), _mm_div_ps(_mm_loadu_ps((float*)&(vec4_identity)), _mm_loadu_ps((float*)&(x)))); \
 }
 
 #define vec4_min(x, y, z) \
 { \
-    (z).data = _mm_min_ps((x).data, (y).data); \
+    _mm_storeu_ps((float*)&(z), _mm_min_ps(_mm_loadu_ps((float*)&(x)), yt)); \
 }
 
 #define vec4_max(x, y, z) \
 { \
-    (z).data = _mm_max_ps((x).data, (y).data); \
+    _mm_storeu_ps((float*)&(z), _mm_max_ps(_mm_loadu_ps((float*)&(x)), yt)); \
 }
 
 #define vec4_clamp(x, y, z, w) \
 { \
-    (w).data = _mm_min_ps(_mm_max_ps((x).data, (y).data), (z).data); \
+    _mm_storeu_ps((float*)&(w), _mm_min_ps(_mm_max_ps(_mm_loadu_ps((float*)&(x)), yt), zt)); \
 }
 
 #define vec4_clamp_scalar(x, y, z, w) \
@@ -1519,59 +1457,66 @@ extern const vec4iu vec4iu_null;
     __m128 zt; \
     yt = _mm_set_ss(y); \
     zt = _mm_set_ss(z); \
-    (w).data = _mm_min_ps(_mm_max_ps((x).data, _mm_shuffle_ps(yt, yt, 0)), _mm_shuffle_ps(zt, zt, 0)); \
+    _mm_storeu_ps((float*)&(w), _mm_min_ps(_mm_max_ps(_mm_loadu_ps((float*)&(x)), \
+        _mm_shuffle_ps(yt, yt, 0)), _mm_shuffle_ps(zt, zt, 0))); \
 }
 
 #define vec4_mult_min_max(x, y, z, w) \
 { \
+    __m128 xt; \
     __m128 yt; \
-    __m128 zt; \
     __m128 wt; \
-    yt = _mm_xor_ps((y).data, vec4_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps((x).data, vec4_null.data)), \
-        _mm_and_ps((z).data, _mm_cmpge_ps((x).data, vec4_null.data))); \
-    (w).data = _mm_mul_ps((x).data, wt); \
+    xt = _mm_loadu_ps((float*)&(x)); \
+    yt = _mm_xor_ps(_mm_loadu_ps((float*)&(y)), vec4_negate); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(_mm_loadu_ps((float*)&(z)), _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
+    _mm_storeu_ps((float*)&(w), _mm_mul_ps(xt, wt)); \
 }
 
 #define vec4_mult_min_max_scalar(x, y, z, w) \
 { \
+    __m128 xt; \
     __m128 yt; \
     __m128 zt; \
     __m128 wt; \
+    xt = _mm_loadu_ps((float*)&(xt)); \
     yt = _mm_set_ss(y); \
     yt = _mm_shuffle_ps(yt, yt, 0); \
     zt = _mm_set_ss(z); \
     zt = _mm_shuffle_ps(zt, zt, 0); \
     yt = _mm_xor_ps(yt, vec4_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps((x).data, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps((x).data, vec4_null.data))); \
-    (w).data = _mm_mul_ps((x).data, wt); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
+    _mm_storeu_ps((float*)&(w), _mm_mul_ps(xt, wt)); \
 }
 
 #define vec4_div_min_max(x, y, z, w) \
 { \
+    __m128 xt; \
     __m128 yt; \
-    __m128 zt; \
     __m128 wt; \
-    yt = _mm_xor_ps((y).data, vec4_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps((x).data, vec4_null.data)), \
-        _mm_and_ps((z).data, _mm_cmpge_ps((x).data, vec4_null.data))); \
-    (w).data = _mm_div_ps((x).data, wt); \
+    xt = _mm_loadu_ps((float*)&(x)); \
+    yt = _mm_xor_ps(_mm_loadu_ps((float*)&(y)), vec4_negate); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(_mm_loadu_ps((float*)&(z)), _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
+    _mm_storeu_ps((float*)&(w), _mm_div_ps(xt, wt)); \
 }
 
 #define vec4_div_min_max_scalar(x, y, z, w) \
 { \
+    __m128 xt; \
     __m128 yt; \
     __m128 zt; \
     __m128 wt; \
+    xt = _mm_loadu_ps((float*)&(x)); \
     yt = _mm_set_ss(y); \
     yt = _mm_shuffle_ps(yt, yt, 0); \
     zt = _mm_set_ss(z); \
     zt = _mm_shuffle_ps(zt, zt, 0); \
     yt = _mm_xor_ps(yt, vec4_negate); \
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps((x).data, vec4_null.data)), \
-        _mm_and_ps(zt, _mm_cmpge_ps((x).data, vec4_null.data))); \
-    (w).data = _mm_div_ps((x).data, wt); \
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((float*)&(vec4_null)))), \
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((float*)&(vec4_null))))); \
+    _mm_storeu_ps((float*)&(w), _mm_div_ps(xt, wt)); \
 }
 
 #define vec2i_add(x, y, z) \
@@ -1700,264 +1645,58 @@ extern const vec4iu vec4iu_null;
 
 #define vec4i_add(x, y, z) \
 { \
-    (z).data = _mm_add_epi32((x).data, (y).data); \
+    __m128i xt; \
+    __m128i yt; \
+    __m128i zt; \
+    *(vec4i*)&xt = (x); \
+    *(vec4i*)&yt = (y); \
+    zt = _mm_add_epi32(xt, yt); \
+    (z) = *(vec4i*)&zt; \
 }
 
 #define vec4i_add_scalar(x, y, z) \
 { \
+    __m128i xt; \
     __m128i yt; \
+    __m128i zt; \
+    *(vec4i*)&xt = (x); \
     yt = _mm_set1_epi32(y); \
-    (z).data = _mm_add_epi32((x).data, _mm_shuffle_epi32(yt, yt, 0)); \
+    zt = _mm_add_epi32(xt, _mm_shuffle_epi32(yt, yt, 0)); \
+    (z) = *(vec4i*)&zt; \
 }
 
 #define vec4i_sub(x, y, z) \
 { \
-    (z).data = _mm_sub_epi32((x).data, (y).data); \
+    __m128i xt; \
+    __m128i yt; \
+    __m128i zt; \
+    *(vec4i*)&xt = (x); \
+    *(vec4i*)&yt = (y); \
+    zt = _mm_sub_epi32(xt, yt); \
+    (z) = *(vec4i*)&zt; \
 }
 
 #define vec4i_sub_scalar(x, y, z) \
 { \
+    __m128i xt; \
     __m128i yt; \
+    __m128i zt; \
+    *(vec4i*)&xt = (x); \
     yt = _mm_set1_epi32(y); \
-    (z).data = _mm_sub_epi32((x).data, _mm_shuffle_epi32(yt, yt, 0)); \
+    zt = _mm_sub_epi32(xt, _mm_shuffle_epi32(yt, yt, 0)); \
+    (z) = *(vec4i*)&zt; \
 }
 
 #define vec4_to_vec4i(x, z) \
 { \
-    (z).data = _mm_cvtps_epi32((x).data); \
+    __m128i zt; \
+    zt = _mm_cvtps_epi32(_mm_loadu_ps((float*)&(x))); \
+    (z) = *(vec4i*)&zt; \
 }
 
 #define vec4i_to_vec4(x, z) \
 { \
-    (z).data = _mm_cvtepi32_ps((x).data); \
-}
-
-#define vec2d_add(x, y, z) \
-{ \
-    (z).data = _mm_add_pd((x).data, (y).data); \
-}
-
-#define vec2d_add_scalar(x, y, z) \
-{ \
-    __m128d yt; \
-    yt = _mm_set_sd(y); \
-    (z).data = _mm_add_pd((x).data, _mm_shuffle_pd(yt, yt, 0)); \
-}
-
-#define vec2d_sub(x, y, z) \
-{ \
-    (z).data = _mm_sub_pd((x).data, (y).data); \
-}
-
-#define vec2d_sub_scalar(x, y, z) \
-{ \
-    __m128d yt; \
-    yt = _mm_set_sd(y); \
-    (z).data = _mm_sub_pd((x).data, _mm_shuffle_pd(yt, yt, 0)); \
-}
-
-#define vec2d_mult(x, y, z) \
-{ \
-    (z).data = _mm_mul_pd((x).data, (y).data); \
-}
-
-#define vec2d_mult_scalar(x, y, z) \
-{ \
-    __m128d yt; \
-    yt = _mm_set_sd(y); \
-    (z).data = _mm_mul_pd((x).data, _mm_shuffle_pd(yt, yt, 0)); \
-}
-
-#define vec2d_div(x, y, z) \
-{ \
-    (z).data = _mm_div_pd((x).data, (y).data); \
-}
-
-#define vec2d_div_scalar(x, y, z) \
-{ \
-    __m128d yt; \
-    yt = _mm_set_sd(y); \
-    (z).data = _mm_div_pd((x).data, _mm_shuffle_pd(yt, yt, 0)); \
-}
-
-#define vec2d_and(x, y, z) \
-{ \
-    (z).data = _mm_and_pd((x).data, (y).data); \
-}
-
-#define vec2d_and_scalar(x, y, z) \
-{ \
-    __m128d yt; \
-    yt = _mm_set_sd(y); \
-    (z).data = _mm_and_pd((x).data, _mm_shuffle_pd(yt, yt, 0)); \
-}
-
-#define vec2d_xor(x, y, z) \
-{ \
-    (z).data = _mm_xor_pd((x).data, (y).data); \
-}
-
-#define vec2d_xor_scalar(x, y, z) \
-{ \
-    __m128d yt; \
-    yt = _mm_set_sd(y); \
-    (z).data = _mm_xor_pd((x).data, _mm_shuffle_pd(yt, yt, 0)); \
-}
-
-#define vec2d_negate(x, z) \
-{ \
-    (z).data = _mm_xor_pd((x).data, vec2d_negate); \
-}
-
-#define vec2d_dot(x, y, z) \
-{ \
-    __m128d zt; \
-    zt = _mm_mul_pd((x).data, (y).data); \
-    (z) = _mm_cvtsd_f64(_mm_hadd_pd(zt, zt)); \
-}
-
-#define vec2d_length(x, z) \
-{ \
-    __m128d zt; \
-    zt = _mm_mul_pd((x).data, (x).data); \
-    (z) = _mm_cvtsd_f64(_mm_sqrt_sd(_mm_hadd_pd(zt, zt))); \
-}
-
-#define vec2d_length_squared(x, z) \
-{ \
-    __m128d zt; \
-    zt = _mm_mul_pd((x).data, (x).data); \
-    (z) = _mm_cvtsd_f64(_mm_hadd_pd(zt, zt)); \
-}
-
-#define vec2d_distance(x, y, z) \
-{ \
-    __m128d zt; \
-    zt = _mm_sub_pd((x).data, (y).data); \
-    zt = _mm_mul_pd(zt, zt); \
-    (z) = _mm_cvtsd_f64(_mm_sqrt_sd(_mm_hadd_pd(zt, zt))); \
-}
-
-#define vec2d_distance_squared(x, y, z) \
-{ \
-    __m128d zt; \
-    zt = _mm_sub_pd((x).data, (y).data); \
-    zt = _mm_mul_pd(zt, zt); \
-    (z) = _mm_cvtsd_f64(_mm_hadd_pd(zt, zt)); \
-}
-
-#define vec2d_lerp(x, y, z, blend) \
-{ \
-    __m128d b1; \
-    __m128d b2; \
-    b1 = (blend).data; \
-    b2 = _mm_sub_pd(vec2d_identity.data, b1); \
-    (z).data = _mm_add_pd(_mm_mul_pd((x).data, b2), _mm_mul_pd((y).data, b1)); \
-}
-
-#define vec2d_lerp_scalar(x, y, z, blend) \
-{ \
-    __m128d b1; \
-    __m128d b2; \
-    b1 = _mm_set_sd(blend); \
-    b1 = _mm_shuffle_pd(b1, b1, 0); \
-    b2 = _mm_sub_pd(vec2d_identity.data, b1); \
-    (z).data = _mm_add_pd(_mm_mul_pd((x).data, b2), _mm_mul_pd((y).data, b1)); \
-}
-
-#define vec2d_normalize(x, z) \
-{ \
-    __m128d zt; \
-    zt = _mm_mul_pd((x).data, (x).data); \
-    zt = _mm_sqrt_sd(_mm_hadd_pd(zt, zt)); \
-    if (zt.m128d_f64[0] != 0.0) \
-        zt.m128d_f64[0] = 1.0 / zt.m128d_f64[0]; \
-    (z).data = _mm_mul_pd((x).data, _mm_shuffle_pd(zt, zt, 0)); \
-}
-
-#define vec2d_rcp(x, z) \
-{ \
-    (z).data = _mm_div_pd(vec2d_identity.data, (x).data); \
-}
-
-#define vec2d_min(x, y, z) \
-{ \
-    (z).data = _mm_min_pd((x).data, (y).data); \
-}
-
-#define vec2d_max(x, y, z) \
-{ \
-    (z).data = _mm_max_pd((x).data, (y).data); \
-}
-
-#define vec2d_clamp(x, y, z, w) \
-{ \
-    (w).data = _mm_min_pd(_mm_max_pd((x).data, (y).data), (z).data); \
-}
-
-#define vec2d_clamp_scalar(x, y, z, w) \
-{ \
-    __m128d yt; \
-    __m128d zt; \
-    __m128d wt; \
-    yt = _mm_set_sd(y); \
-    zt = _mm_set_sd(z); \
-    wt = _mm_min_pd(_mm_max_pd((x).data, _mm_shuffle_pd(yt, yt, 0)), _mm_shuffle_pd(zt, zt, 0)); \
-    (w) = *(vec2d*)&wt; \
-}
-
-#define vec2d_mult_min_max(x, y, z, w) \
-{ \
-    __m128d yt; \
-    __m128d zt; \
-    __m128d wt; \
-    yt = (y).data; \
-    zt = (z).data; \
-    yt = _mm_xor_pd(yt, vec2d_negate); \
-    wt = _mm_or_pd(_mm_and_pd(yt, _mm_cmplt_pd((x).data, vec2d_null.data)), \
-        _mm_and_pd(zt, _mm_cmpgt_pd((x).data, vec2d_null.data))); \
-    (w).data = _mm_mul_pd((x).data, wt); \
-}
-
-#define vec2d_mult_min_max_scalar(x, y, z, w) \
-{ \
-    __m128d yt; \
-    __m128d zt; \
-    __m128d wt; \
-    yt = _mm_set_sd(y); \
-    yt = _mm_shuffle_pd(yt, yt, 0); \
-    zt = _mm_set_sd(z); \
-    zt = _mm_shuffle_pd(zt, zt, 0); \
-    yt = _mm_xor_pd(yt, vec2d_negate); \
-    wt = _mm_or_pd(_mm_and_pd(yt, _mm_cmplt_pd((x).data, vec2d_null.data)), \
-        _mm_and_pd(zt, _mm_cmpgt_pd((x).data, vec2d_null.data))); \
-    (w).data = _mm_mul_pd((x).data, wt); \
-}
-
-#define vec2d_div_min_max(x, y, z, w) \
-{ \
-    __m128d yt; \
-    __m128d zt; \
-    __m128d wt; \
-    yt = (y).data; \
-    zt = (z).data; \
-    yt = _mm_xor_pd(yt, vec2d_negate); \
-    wt = _mm_or_pd(_mm_and_pd(yt, _mm_cmplt_pd((x).data, vec2d_null.data)), \
-        _mm_and_pd(zt, _mm_cmpgt_pd((x).data, vec2d_null.data))); \
-    (w).data = _mm_div_pd((x).data, wt); \
-}
-
-#define vec2d_div_min_max_scalar(x, y, z, w) \
-{ \
-    __m128d yt; \
-    __m128d zt; \
-    __m128d wt; \
-    yt = _mm_set_sd(y); \
-    yt = _mm_shuffle_pd(yt, yt, 0); \
-    zt = _mm_set_sd(z); \
-    zt = _mm_shuffle_pd(zt, zt, 0); \
-    yt = _mm_xor_pd(yt, vec2d_negate); \
-    wt = _mm_or_pd(_mm_and_pd(yt, _mm_cmplt_pd((x).data, vec2d_null.data)), \
-        _mm_and_pd(zt, _mm_cmpgt_pd((x).data, vec2d_null.data))); \
-    (w).data = _mm_div_pd((x).data, wt); \
+    __m128i xt; \
+    *(vec4i*)&xt = (x); \
+    _mm_storeu_ps((float*)&(z), _mm_cvtepi32_ps(xt)); \
 }

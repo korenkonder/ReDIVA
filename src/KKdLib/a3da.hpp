@@ -508,7 +508,7 @@ struct a3da {
     a3da_post_process post_process;
 
     a3da();
-    ~a3da();
+    virtual ~a3da();
 
     void read(const char* path);
     void read(const wchar_t* path);

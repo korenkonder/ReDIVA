@@ -34,11 +34,12 @@ namespace Glitter {
         if (data.data.type != PARTICLE_LOCUS) {
             F2RenderGroup* rend_group = new F2RenderGroup(this);
             if (rend_group) {
-                rend_group->alpha = eff_inst->GetAlpha();
-                rend_group->fog = eff_inst->GetFog();
+                rend_group->disp_type = eff_inst->GetDispType();
+                rend_group->fog_type = eff_inst->GetFog();
+
                 if (data.data.type == PARTICLE_QUAD
                     && data.data.blend_mode == PARTICLE_BLEND_PUNCH_THROUGH)
-                    rend_group->alpha = DRAW_PASS_3D_OPAQUE;
+                    rend_group->disp_type = DISP_OPAQUE;
 
                 if (data.data.emission >= min_emission)
                     rend_group->emission = data.data.emission;
@@ -46,6 +47,7 @@ namespace Glitter {
                     rend_group->emission = eff_inst->data.emission;
                 else
                     rend_group->emission = emission;
+
                 data.render_group = rend_group;
                 eff_inst->render_scene.Append(rend_group);
             }
@@ -68,15 +70,18 @@ namespace Glitter {
         F2RenderGroup* rend_group = new F2RenderGroup(this);
         if (rend_group) {
             F2EffectInst* effect = parent->data.effect;
-            rend_group->alpha = effect->GetAlpha();
-            rend_group->fog = effect->GetFog();
+            rend_group->disp_type = effect->GetDispType();
+            rend_group->fog_type = effect->GetFog();
+
             if (data.data.blend_mode == PARTICLE_BLEND_PUNCH_THROUGH
                 && data.data.type == PARTICLE_QUAD)
-                rend_group->alpha = DRAW_PASS_3D_OPAQUE;
+                rend_group->disp_type = DISP_OPAQUE;
+
             if (effect->data.emission >= min_emission)
                 rend_group->emission = effect->data.emission;
             else
                 rend_group->emission = emission;
+
             data.render_group = rend_group;
             effect->render_scene.Append(rend_group);
         }
@@ -485,8 +490,8 @@ namespace Glitter {
         if (data.data.type == PARTICLE_QUAD || data.data.type == PARTICLE_MESH) {
             XRenderGroup* rend_group = new XRenderGroup(this);
             if (rend_group) {
-                rend_group->alpha = eff_inst->GetAlpha();
-                rend_group->fog = eff_inst->GetFog();
+                rend_group->disp_type = eff_inst->GetDispType();
+                rend_group->fog_type = eff_inst->GetFog();
 
                 if (data.data.draw_flags & PARTICLE_DRAW_NO_BILLBOARD_CULL)
                     rend_group->use_culling = false;
@@ -499,6 +504,7 @@ namespace Glitter {
                     rend_group->emission = eff_inst->data.emission;
                 else
                     rend_group->emission = emission;
+
                 data.render_group = rend_group;
                 eff_inst->render_scene.Append(rend_group);
             }
@@ -521,12 +527,14 @@ namespace Glitter {
         XRenderGroup* rend_group = new XRenderGroup(this);
         if (rend_group) {
             XEffectInst* effect = (XEffectInst*)parent->data.effect;
-            rend_group->alpha = effect->GetAlpha();
-            rend_group->fog = effect->GetFog();
+            rend_group->disp_type = effect->GetDispType();
+            rend_group->fog_type = effect->GetFog();
+
             if (effect->data.emission >= min_emission)
                 rend_group->emission = effect->data.emission;
             else
                 rend_group->emission = emission;
+
             data.render_group = rend_group;
             effect->render_scene.Append(rend_group);
         }

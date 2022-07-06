@@ -40,8 +40,13 @@ static const uint16_t hash_crc16_ccitt_table[] = {
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0,
 };
 
+// Empty string
 const uint64_t hash_fnv1a64m_empty = 0xCBF29CE44FD0BFC1;
+// Empty string
 const uint32_t hash_murmurhash_empty = 0x0CAD3078;
+// "NULL" string
+const uint32_t hash_murmurhash_null = 0x5A009B23;
+// Empty string
 const uint32_t hash_crc16_ccitt_empty = 0xFFFF;
 
 // FNV 1a 64-bit Modified
@@ -78,8 +83,8 @@ inline uint64_t hash_utf16_fnv1a64m(const wchar_t* data, bool make_upper) {
     return hash;
 }
 
-inline uint64_t hash_string_fnv1a64m(const std::string* data, bool make_upper) {
-    return hash_fnv1a64m(data->c_str(), data->size(), make_upper);
+inline uint64_t hash_string_fnv1a64m(const std::string& data, bool make_upper) {
+    return hash_fnv1a64m(data.c_str(), data.size(), make_upper);
 }
 
 // MurmurHash
@@ -226,8 +231,8 @@ inline uint32_t hash_utf16_murmurhash(const wchar_t* data, uint32_t seed, bool u
     return hash;
 }
 
-inline uint32_t hash_string_murmurhash(const std::string* data, uint32_t seed, bool upper) {
-    return hash_murmurhash(data->c_str(), data->size(), seed, upper);
+inline uint32_t hash_string_murmurhash(const std::string& data, uint32_t seed, bool upper) {
+    return hash_murmurhash(data.c_str(), data.size(), seed, upper);
 }
 
 // CRC16-CCITT
@@ -260,6 +265,6 @@ inline uint16_t hash_utf16_crc16_ccitt(const wchar_t* data, bool make_upper) {
     return hash;
 }
 
-inline uint16_t hash_string_crc16_ccitt(const std::string* data, bool make_upper) {
-    return hash_crc16_ccitt(data->c_str(), data->size(), make_upper);
+inline uint16_t hash_string_crc16_ccitt(const std::string& data, bool make_upper) {
+    return hash_crc16_ccitt(data.c_str(), data.size(), make_upper);
 }

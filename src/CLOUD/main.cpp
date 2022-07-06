@@ -14,6 +14,7 @@
 #include <timeapi.h>
 
 bool aes_ni;
+bool f16c;
 
 inline static void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
     if (!arr || length < 1)
@@ -312,16 +313,14 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     timeBeginPeriod(1);
     SetProcessDPIAware();
 
-    int32_t cpuid_data[4];
+    int32_t cpuid_data[4] = {};
     __cpuid(cpuid_data, 1);
-    aes_ni = cpuid_data[2] & 0x2000000 ? true : false;
+    aes_ni = (cpuid_data[2] & (1 << 25)) ? true : false;
+    f16c = (cpuid_data[2] & (1 << 29)) ? true : false;
 
     //a3da_to_dft_dsc(269);
 
     render_init_struct ris;
-    ris.res.x = 0;
-    ris.res.y = 0;
-    ris.scale = 0.0f;
 
     thread render, sound;
     HANDLE h[2];

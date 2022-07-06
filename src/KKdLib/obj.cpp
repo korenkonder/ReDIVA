@@ -136,7 +136,8 @@ static void obj_classic_write_skin_block_cloth_root_bone_weight(obj_skin_block_c
 static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     stream& s, char** str);
 static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, char** bone_names, int64_t* offsets);
+    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
+    char** bone_names, int64_t* offsets);
 static void obj_classic_read_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
     stream& s, char** str);
 static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
@@ -759,7 +760,14 @@ static void obj_classic_read_model(obj* obj, stream& s, int64_t base_offset) {
     if (oh.material_array > 0) {
         s.set_position(base_offset + oh.material_array, SEEK_SET);
         obj->material_array = force_malloc_s(obj_material_data, obj->num_material);
-        s.read(obj->material_array, obj->num_material * sizeof(obj_material_data));
+        for (uint32_t i = 0; i < obj->num_material; i++) {
+            obj_material_data mat_data;
+            s.read(&mat_data, sizeof(obj_material_data));
+
+            for (obj_material_texture_data& j : mat_data.material.texdata)
+                mat4_transpose(&j.tex_coord_mat, &j.tex_coord_mat);
+            obj->material_array[i] = mat_data;
+        }
     }
 }
 
@@ -918,7 +926,12 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
 
     if (obj->num_material) {
         oh.material_array = s.get_position() - base_offset;
-        s.write(obj->material_array, obj->num_material * sizeof(obj_material_data));
+        for (uint32_t i = 0; i < obj->num_material; i++) {
+            obj_material_data mat_data = obj->material_array[i];
+            for (obj_material_texture_data& j : mat_data.material.texdata)
+                mat4_transpose(&j.tex_coord_mat, &j.tex_coord_mat);
+            s.write(&mat_data, sizeof(obj_material_data));
+        }
     }
     s.align_write(0x10);
 
@@ -979,7 +992,7 @@ static void obj_classic_read_skin(obj* obj, stream& s, int64_t base_offset) {
             if (sh.bone_matrices_offset) {
                 s.set_position(sh.bone_matrices_offset, SEEK_SET);
                 for (uint32_t i = 0; i < sk->bones_count; i++) {
-                    mat4u& mat = sk->bones[i].inv_bind_pose_mat;
+                    mat4& mat = sk->bones[i].inv_bind_pose_mat;
                     mat.row0.x = s.read_float_t();
                     mat.row1.x = s.read_float_t();
                     mat.row2.x = s.read_float_t();
@@ -1237,7 +1250,7 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
 
         sh.bone_matrices_offset = s.get_position();
         for (uint32_t i = 0; i < sk->bones_count; i++) {
-            mat4u& mat = sk->bones[i].inv_bind_pose_mat;
+            mat4& mat = sk->bones[i].inv_bind_pose_mat;
             s.write_float_t(mat.row0.x);
             s.write_float_t(mat.row1.x);
             s.write_float_t(mat.row2.x);
@@ -1633,8 +1646,8 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    for (uint32_t j = 0; j < 3; j++)
-                        s.write(sizeof(mat4));
+                    if (cloth->mats)
+                        s.write(cloth->mats_count * sizeof(mat4));
                 }
                 s.align_write(0x10);
 
@@ -1931,27 +1944,43 @@ static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
     b->backface_mesh_name = s.read_utf8_string_null_terminated_offset(backface_mesh_name_offset);
 
     if (mats_offset) {
+        int32_t max_matrix_index = -1;
+
+        s.position_push(root_offset, SEEK_SET);
+        for (uint32_t i = 0; i < b->root_count; i++) {
+            s.read(0x28);
+            for (uint32_t j = 0; j < 4; j++) {
+                uint32_t name_offset = s.read_uint32_t();
+                s.read(0x04);
+                int32_t matrix_index = s.read_int32_t();
+                s.read(0x04);
+                if (name_offset && max_matrix_index < matrix_index)
+                    max_matrix_index = matrix_index;
+            }
+        }
+        s.position_pop();
+
+        b->mats_count = max_matrix_index > -1 ? max_matrix_index + 1 : 0;
+        b->mats = force_malloc_s(mat4, b->mats_count);
         s.position_push(mats_offset, SEEK_SET);
-        for (uint32_t i = 0; i < 3; i++) {
-            mat4 mat;
+        for (uint32_t i = 0; i < b->mats_count; i++) {
+            mat4& mat = b->mats[i];
             mat.row0.x = s.read_float_t();
-            mat.row0.y = s.read_float_t();
-            mat.row0.z = s.read_float_t();
-            mat.row0.w = s.read_float_t();
             mat.row1.x = s.read_float_t();
-            mat.row1.y = s.read_float_t();
-            mat.row1.z = s.read_float_t();
-            mat.row1.w = s.read_float_t();
             mat.row2.x = s.read_float_t();
-            mat.row2.y = s.read_float_t();
-            mat.row2.z = s.read_float_t();
-            mat.row2.w = s.read_float_t();
             mat.row3.x = s.read_float_t();
+            mat.row0.y = s.read_float_t();
+            mat.row1.y = s.read_float_t();
+            mat.row2.y = s.read_float_t();
             mat.row3.y = s.read_float_t();
+            mat.row0.z = s.read_float_t();
+            mat.row1.z = s.read_float_t();
+            mat.row2.z = s.read_float_t();
             mat.row3.z = s.read_float_t();
+            mat.row0.w = s.read_float_t();
+            mat.row1.w = s.read_float_t();
+            mat.row2.w = s.read_float_t();
             mat.row3.w = s.read_float_t();
-            mat4_transpose(&mat, &mat);
-            b->mats[i] = mat;
         }
         s.position_pop();
     }
@@ -2053,10 +2082,10 @@ static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
     s.write_uint32_t((uint32_t)skin_param_offset);
     s.write_uint32_t(b->reserved);
 
-    if (b->nodes_count) {
+    if (b->mats) {
         s.position_push(*mats_offset, SEEK_SET);
-        for (uint32_t i = 0; i < 3; i++) {
-            mat4u& mat = b->mats[i];
+        for (uint32_t i = 0; i < b->mats_count; i++) {
+            mat4& mat = b->mats[i];
             s.write_float_t(mat.row0.x);
             s.write_float_t(mat.row1.x);
             s.write_float_t(mat.row2.x);
@@ -2224,7 +2253,8 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
 }
 
 static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, char** bone_names, int64_t* offsets) {
+    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
+    char** bone_names, int64_t* offsets) {
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
 
     int64_t type_offset = 0;
@@ -2421,7 +2451,7 @@ static void obj_classic_read_skin_block_motion(obj_skin_block_motion* b,
     if (bone_matrices_offset) {
         s.position_push(bone_matrices_offset, SEEK_SET);
         for (uint32_t i = 0; i < b->nodes_count; i++) {
-            mat4u& mat = b->nodes[i].transformation;
+            mat4& mat = b->nodes[i].inv_bind_pose_mat;
             mat.row0.x = s.read_float_t();
             mat.row1.x = s.read_float_t();
             mat.row2.x = s.read_float_t();
@@ -2464,7 +2494,7 @@ static void obj_classic_write_skin_block_motion(obj_skin_block_motion* b,
 
         s.position_push(*bone_matrices_offset, SEEK_SET);
         for (uint32_t i = 0; i < b->nodes_count; i++) {
-            mat4u& mat = b->nodes[i].transformation;
+            mat4& mat = b->nodes[i].inv_bind_pose_mat;
             s.write_float_t(mat.row0.x);
             s.write_float_t(mat.row1.x);
             s.write_float_t(mat.row2.x);
@@ -3680,10 +3710,17 @@ static void obj_modern_read_model(obj* obj, stream& s, int64_t base_offset,
 
         s.set_position(base_offset + oh.material_array, SEEK_SET);
         obj->material_array = force_malloc_s(obj_material_data, obj->num_material);
-        s.read(obj->material_array, obj->num_material * sizeof(obj_material_data));
-        if (s.is_big_endian)
-            for (uint32_t i = 0; i < obj->num_material; i++)
-                obj_material_texture_enrs_table.apply(&obj->material_array[i]);
+        for (uint32_t i = 0; i < obj->num_material; i++) {
+            obj_material_data mat_data;
+            s.read(&mat_data, sizeof(obj_material_data));
+
+            if (s.is_big_endian)
+                obj_material_texture_enrs_table.apply(&mat_data);
+
+            for (obj_material_texture_data& j : mat_data.material.texdata)
+                mat4_transpose(&j.tex_coord_mat, &j.tex_coord_mat);
+            obj->material_array[i] = mat_data;
+        }
     }
 }
 
@@ -4068,8 +4105,12 @@ static void obj_modern_write_model(obj* obj, stream& s,
 
     if (obj->material_array) {
         oh.material_array = s.get_position() - base_offset;
-        for (uint32_t i = 0; i < obj->num_material; i++)
-            s.write(&obj->material_array[i], sizeof(obj_material_data));
+        for (uint32_t i = 0; i < obj->num_material; i++) {
+            obj_material_data mat_data = obj->material_array[i];
+            for (obj_material_texture_data& j : mat_data.material.texdata)
+                mat4_transpose(&j.tex_coord_mat, &j.tex_coord_mat);
+            s.write(&mat_data, sizeof(obj_material_data));
+        }
     }
     s.align_write(0x10);
 
@@ -4194,7 +4235,7 @@ static void obj_modern_read_skin(obj* obj, stream& s, int64_t base_offset,
             if (sh.bone_matrices_offset) {
                 s.set_position(sh.bone_matrices_offset, SEEK_SET);
                 for (uint32_t i = 0; i < sk->bones_count; i++) {
-                    mat4u& mat = sk->bones[i].inv_bind_pose_mat;
+                    mat4& mat = sk->bones[i].inv_bind_pose_mat;
                     mat.row0.x = s.read_float_t_reverse_endianness();
                     mat.row1.x = s.read_float_t_reverse_endianness();
                     mat.row2.x = s.read_float_t_reverse_endianness();
@@ -4934,21 +4975,22 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                 for (uint32_t i = 0; i < ex->blocks_count; i++) {
                     obj_skin_block* block = &ex->blocks[i];
                     if (block->type == OBJ_SKIN_BLOCK_CLOTH) {
-                        for (uint32_t j = 0; j < 3; j++)
-                            mats_count++;
-
+                        mats_count += block->cloth.mats ? block->cloth.mats_count : 0;
                         root_count += block->cloth.root ? block->cloth.root_count : 0;
-                        nodes_count += block->cloth.nodes ? block->cloth.root_count * (block->cloth.nodes_count - 1) : 0;
-                        mesh_indices_count += block->cloth.mesh_indices ? block->cloth.mesh_indices_count + 1 : 0;
-                        backface_mesh_indices_count += block->cloth.backface_mesh_indices ? block->cloth.backface_mesh_indices_count + 1 : 0;
+                        nodes_count += block->cloth.nodes
+                            ? block->cloth.root_count * (block->cloth.nodes_count - 1) : 0;
+                        mesh_indices_count += block->cloth.mesh_indices
+                            ? block->cloth.mesh_indices_count + 1 : 0;
+                        backface_mesh_indices_count += block->cloth.backface_mesh_indices
+                            ? block->cloth.backface_mesh_indices_count + 1 : 0;
                     }
                 }
 
                 if (mats_count) {
-                    ee = { off, 1, 64, (uint32_t)mats_count };
+                    ee = { off, 1, sizeof(mat4), (uint32_t)mats_count };
                     ee.append(0, 16, ENRS_DWORD);
                     e.vec.push_back(ee);
-                    off = (uint32_t)(mats_count * 64ULL);
+                    off = (uint32_t)(mats_count * sizeof(mat4));
                     off = align_val(off, 0x10);
                 }
 
@@ -5049,7 +5091,7 @@ static void obj_modern_write_skin(obj* obj, stream& s,
 
         sh.bone_matrices_offset = s.get_position();
         for (uint32_t i = 0; i < sk->bones_count; i++) {
-            mat4u& mat = sk->bones[i].inv_bind_pose_mat;
+            mat4& mat = sk->bones[i].inv_bind_pose_mat;
             s.write_float_t(mat.row0.x);
             s.write_float_t(mat.row1.x);
             s.write_float_t(mat.row2.x);
@@ -5473,8 +5515,8 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                         continue;
 
                     obj_skin_block_cloth* cloth = &block->cloth;
-                    for (uint32_t j = 0; j < 3; j++)
-                        s.write(sizeof(mat4));
+                    if (cloth->mats)
+                        s.write(cloth->mats_count * sizeof(mat4));
                 }
                 s.align_write(0x10);
 
@@ -5879,9 +5921,25 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
     b->reserved = s.read_uint32_t_reverse_endianness();
 
     if (mats_offset) {
+        int32_t max_matrix_index = -1;
+
+        s.position_push(root_offset, SEEK_SET);
+        for (uint32_t i = 0; i < b->root_count; i++) {
+            s.read(0x28);
+            for (uint32_t j = 0; j < 4; j++) {
+                uint32_t name_offset = s.read_uint32_t();
+                int32_t matrix_index = s.read_int32_t();
+                if (name_offset&& max_matrix_index < matrix_index)
+                    max_matrix_index = matrix_index;
+            }
+        }
+        s.position_pop();
+
+        b->mats_count = max_matrix_index > -1 ? max_matrix_index + 1 : 0;
+        b->mats = force_malloc_s(mat4, b->mats_count);
         s.position_push(mats_offset, SEEK_SET);
-        for (uint32_t i = 0; i < 3; i++) {
-            mat4u& mat = b->mats[i];
+        for (uint32_t i = 0; i < b->mats_count; i++) {
+            mat4& mat = b->mats[i];
             mat.row0.x = s.read_float_t_reverse_endianness();
             mat.row1.x = s.read_float_t_reverse_endianness();
             mat.row2.x = s.read_float_t_reverse_endianness();
@@ -6015,10 +6073,10 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
         s.write_uint32_t(b->reserved);
     }
 
-    if (b->nodes_count) {
+    if (b->mats) {
         s.position_push(*mats_offset, SEEK_SET);
-        for (uint32_t i = 0; i < 3; i++) {
-            mat4u& mat = b->mats[i];
+        for (uint32_t i = 0; i < b->mats_count; i++) {
+            mat4& mat = b->mats[i];
             s.write_float_t(mat.row0.x);
             s.write_float_t(mat.row1.x);
             s.write_float_t(mat.row2.x);
@@ -6414,7 +6472,7 @@ static void obj_modern_read_skin_block_motion(obj_skin_block_motion* b,
     if (bone_matrices_offset) {
         s.position_push(bone_matrices_offset, SEEK_SET);
         for (uint32_t i = 0; i < b->nodes_count; i++) {
-            mat4u& mat = b->nodes[i].transformation;
+            mat4& mat = b->nodes[i].inv_bind_pose_mat;
             mat.row0.x = s.read_float_t_reverse_endianness();
             mat.row1.x = s.read_float_t_reverse_endianness();
             mat.row2.x = s.read_float_t_reverse_endianness();
@@ -6462,7 +6520,7 @@ static void obj_modern_write_skin_block_motion(obj_skin_block_motion* b,
 
         s.position_push(*bone_matrices_offset, SEEK_SET);
         for (uint32_t i = 0; i < b->nodes_count; i++) {
-            mat4u& mat = b->nodes[i].transformation;
+            mat4& mat = b->nodes[i].inv_bind_pose_mat;
             s.write_float_t(mat.row0.x);
             s.write_float_t(mat.row1.x);
             s.write_float_t(mat.row2.x);

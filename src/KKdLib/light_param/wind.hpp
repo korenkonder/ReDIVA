@@ -32,7 +32,7 @@ struct light_param_wind {
     light_param_wind_spc spc[16];
 
     light_param_wind();
-    ~light_param_wind();
+    virtual ~light_param_wind();
 
     void read(const char* path);
     void read(const wchar_t* path);

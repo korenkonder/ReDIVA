@@ -61,7 +61,7 @@ namespace Glitter {
                         obj_material* mat = &obj->material_array[j].material;
                         if (!memcmp(&mat->color.emission, &vec3_null, sizeof(vec3))
                             && mat->color.emission.w == 1.0f)
-                            mat->color.emission = vec4u_identity;
+                            mat->color.emission = vec4_identity;
                     }
                 }
             }

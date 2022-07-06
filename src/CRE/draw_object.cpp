@@ -38,11 +38,9 @@ static void draw_object_vertex_attrib_set_reflect_compressed(draw_object* draw);
 void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
     void(*draw_object_func)(render_context* rctx, draw_object* draw), int32_t show_vector) {
     if (draw->mats) {
-        mat4u* mats = draw->mats;
-        if (draw->mat_count == 2) {
-            mat4 mat = *mats;
-            shaders_ft.state_matrix_set_program(7, mat);
-        }
+        mat4* mats = draw->mats;
+        if (draw->mat_count == 2)
+            shaders_ft.state_matrix_set_program(7, *mats);
 
         mat4 mat;
         for (int32_t i = 0; i < draw->mat_count; i++, mats++) {
@@ -74,8 +72,7 @@ void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
 
 void draw_object_draw_default(render_context* rctx, draw_object* draw) {
     if (draw->set_blend_color) {
-        vec4 blend_color = draw->blend_color;
-        shaders_ft.env_vert_set(3, blend_color);
+        shaders_ft.env_vert_set(3, draw->blend_color);
         shaders_ft.env_vert_set(4, vec4_null);
     }
 
@@ -91,9 +88,9 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
             draw->sub_mesh->last_index,
             draw->sub_mesh->index_format,
             draw->sub_mesh->indices_offset);
-    else
+    else {
+        mat4 mat;
         for (int32_t i = 0; i < draw->instances_count; i++) {
-            mat4 mat;
             mat4_transpose(&draw->instances_mat[i], &mat);
             glVertexAttrib4fv(12, (const GLfloat*)&mat.row0);
             glVertexAttrib4fv(13, (const GLfloat*)&mat.row1);
@@ -107,6 +104,7 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
                 draw->sub_mesh->index_format,
                 draw->sub_mesh->indices_offset);
         }
+    }
 
     draw_object_material_reset_default(draw->material);
     if (!draw->draw_object_func)
@@ -154,7 +152,7 @@ void draw_object_draw_sss(render_context* rctx, draw_object* draw) {
         uniform_value[U37] = 1;
     }
     else {
-        vec4 sss_param = rctx->draw_pass.sss_data.param;
+        vec4& sss_param = rctx->draw_pass.sss_data.param;
         shaders_ft.env_frag_set(25, sss_param.x, sss_param.y, sss_param.z, 0.5f);
         uniform_value[U37] = 0;
     }
@@ -226,8 +224,7 @@ void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
     obj_material_data* material = draw->material;
     std::vector<GLuint>* textures = draw->textures;
     if (rctx->draw_state.shader_index != -1) {
-        vec4 emission = draw->emission;
-        shaders_ft.state_material_set_emission(false, emission);
+        shaders_ft.state_material_set_emission(false, draw->emission);
         draw_object_material_set_uniform(rctx, material, 0);
         if (material->material.attrib.m.alpha_texture)
             uniform_value[U_TEXTURE_COUNT] = 0;
@@ -1038,13 +1035,13 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
 
         int32_t texture_id = material->material.texdata[i].tex_index;
 
-        mat4 mat = material->material.texdata[i].tex_coord_mat;
-        shaders_ft.state_matrix_set_texture(texcoord_index, mat);
+        shaders_ft.state_matrix_set_texture(texcoord_index,
+            material->material.texdata[i].tex_coord_mat);
         if (material->material.texdata[i].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t k = 0; k < draw->texture_transform_count; k++)
                 if (draw->texture_transform_array[k].id == texture_id) {
-                    mat4 mat = draw->texture_transform_array[k].mat;
-                    shaders_ft.state_matrix_set_texture(texcoord_index, mat);
+                    shaders_ft.state_matrix_set_texture(texcoord_index,
+                        draw->texture_transform_array[k].mat);
                     texcoord_mat_set[texcoord_index] = true;
                     break;
                 }
@@ -1240,13 +1237,12 @@ inline static void draw_object_vertex_attrib_set_default_compressed(draw_object*
 
         int32_t tex_index = material->material.texdata[i].tex_index;
 
-        mat4 mat = material->material.texdata[i].tex_coord_mat;
-        shaders_ft.state_matrix_set_texture(texcoord_index, mat);
+        shaders_ft.state_matrix_set_texture(texcoord_index,
+            material->material.texdata[i].tex_coord_mat);
         if (material->material.texdata[i].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t k = 0; k < draw->texture_transform_count; k++)
                 if (draw->texture_transform_array[k].id == tex_index) {
-                    mat4 mat = draw->texture_transform_array[k].mat;
-                    shaders_ft.state_matrix_set_texture(texcoord_index, mat);
+                    shaders_ft.state_matrix_set_texture(texcoord_index, draw->texture_transform_array[k].mat);
                     texcoord_mat_set[texcoord_index] = true;
                     break;
                 }
@@ -1411,13 +1407,13 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
 
         int32_t tex_index = material->material.texdata[0].tex_index;
 
-        mat4 mat = material->material.texdata[0].tex_coord_mat;
-        shaders_ft.state_matrix_set_texture(0, mat);
+        shaders_ft.state_matrix_set_texture(0,
+            material->material.texdata[0].tex_coord_mat);
         if (material->material.texdata[0].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t j = 0; j < draw->texture_transform_count; j++)
                 if (draw->texture_transform_array[j].id == tex_index) {
-                    mat4 mat = draw->texture_transform_array[j].mat;
-                    shaders_ft.state_matrix_set_texture(0, mat);
+                    shaders_ft.state_matrix_set_texture(0,
+                        draw->texture_transform_array[j].mat);
                     break;
                 }
     }
@@ -1584,13 +1580,13 @@ inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object*
 
         int32_t tex_index = material->material.texdata[0].tex_index;
 
-        mat4 mat = material->material.texdata[0].tex_coord_mat;
-        shaders_ft.state_matrix_set_texture(0, mat);
+        shaders_ft.state_matrix_set_texture(0,
+            material->material.texdata[0].tex_coord_mat);
         if (material->material.texdata[0].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
             for (int32_t j = 0; j < draw->texture_transform_count; j++)
                 if (draw->texture_transform_array[j].id == tex_index) {
-                    mat4 mat = draw->texture_transform_array[j].mat;
-                    shaders_ft.state_matrix_set_texture(0, mat);
+                    shaders_ft.state_matrix_set_texture(0,
+                        draw->texture_transform_array[j].mat);
                     break;
                 }
     }

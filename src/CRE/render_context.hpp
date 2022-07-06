@@ -159,7 +159,7 @@ struct sss_data {
     bool enable;
     bool npr_contour;
     render_texture textures[4];
-    vec4u param;
+    vec4 param;
 
     sss_data();
     ~sss_data();
@@ -227,14 +227,14 @@ struct draw_state {
 
 struct material_list_struct {
     uint32_t hash;
-    vec4u blend_color;
+    vec4 blend_color;
     vec4u8 has_blend_color;
-    vec4u emission;
+    vec4 emission;
     vec4u8 has_emission;
 
     material_list_struct();
-    material_list_struct(uint32_t hash, vec4u& blend_color,
-        vec4u8& has_blend_color, vec4u& emission, vec4u8& has_emission);
+    material_list_struct(uint32_t hash, vec4& blend_color,
+        vec4u8& has_blend_color, vec4& emission, vec4u8& has_emission);
 };
 
 struct texture_pattern_struct {
@@ -247,10 +247,10 @@ struct texture_pattern_struct {
 
 struct texture_transform_struct {
     uint32_t id;
-    mat4u mat;
+    mat4 mat;
 
     texture_transform_struct();
-    texture_transform_struct(uint32_t id, mat4u& mat);
+    texture_transform_struct(uint32_t id, mat4& mat);
 };
 
 struct draw_object;
@@ -261,23 +261,23 @@ struct draw_object {
     obj_material_data* material;
     std::vector<GLuint>* textures;
     int32_t mat_count;
-    mat4u* mats;
+    mat4* mats;
     GLuint array_buffer;
     GLuint element_array_buffer;
     bool set_blend_color;
     bool chara_color;
-    vec4u blend_color;
-    vec4u emission;
+    vec4 blend_color;
+    vec4 emission;
     bool self_shadow;
     shadow_type_enum shadow;
     GLuint morph_array_buffer;
     float_t morph_value;
     int32_t texture_pattern_count;
     texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
-    vec4u texture_color_coeff;
-    vec4u texture_color_offset;
-    vec4u texture_specular_coeff;
-    vec4u texture_specular_offset;
+    vec4 texture_color_coeff;
+    vec4 texture_color_offset;
+    vec4 texture_specular_coeff;
+    vec4 texture_specular_offset;
     int32_t texture_transform_count;
     texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
     int32_t instances_count;
@@ -356,7 +356,7 @@ union draw_primitive_union {
 struct draw_primitive {
     draw_primitive_type type;
     bool fog;
-    vec4u color;
+    vec4 color;
     draw_primitive_union data;
 };
 
@@ -379,7 +379,7 @@ union draw_task_union {
 
 struct draw_task {
     draw_task_type type;
-    mat4u mat;
+    mat4 mat;
     float_t depth;
     float_t bounding_radius;
     draw_task_union data;
@@ -418,7 +418,7 @@ struct object_data_buffer {
     ~object_data_buffer();
 
     draw_task* add_draw_task(draw_task_type type);
-    mat4u* add_mat4(int32_t count);
+    mat4* add_mat4(int32_t count);
     void reset();
 };
 
@@ -448,10 +448,10 @@ struct object_data {
     morph_struct morph;
     int32_t texture_pattern_count;
     texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
-    vec4u texture_color_coeff;
-    vec4u texture_color_offset;
-    vec4u texture_specular_coeff;
-    vec4u texture_specular_offset;
+    vec4 texture_color_coeff;
+    vec4 texture_color_offset;
+    vec4 texture_specular_coeff;
+    vec4 texture_specular_offset;
     float_t wet_param;
     int32_t texture_transform_count;
     texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
@@ -464,15 +464,15 @@ struct object_data {
 
     bool get_chara_color();
     ::draw_task_flags get_draw_task_flags();
-    void get_material_list(int32_t* count, material_list_struct* value);
+    void get_material_list(int32_t& count, material_list_struct*& value);
     void get_morph(object_info* object, float_t* value);
     shadow_type_enum get_shadow_type();
-    void get_texture_color_coeff(vec4* value);
-    void get_texture_color_offset(vec4* value);
-    void get_texture_pattern(int32_t* count, texture_pattern_struct* value);
-    void get_texture_specular_coeff(vec4* value);
-    void get_texture_specular_offset(vec4* value);
-    void get_texture_transform(int32_t* count, texture_transform_struct* value);
+    void get_texture_color_coeff(vec4& value);
+    void get_texture_color_offset(vec4& value);
+    void get_texture_pattern(int32_t& count, texture_pattern_struct*& value);
+    void get_texture_specular_coeff(vec4& value);
+    void get_texture_specular_offset(vec4& value);
+    void get_texture_transform(int32_t& count, texture_transform_struct*& value);
     float_t get_wet_param();
     void reset();
     void set_chara_color(bool value = false);
@@ -481,11 +481,11 @@ struct object_data {
     void set_morph(object_info object = {}, float_t value = 0.0f);
     void set_object_bounding_sphere_check_func(bool(*func)(obj_bounding_sphere*, camera*) = 0);
     void set_shadow_type(shadow_type_enum type = SHADOW_CHARA);
-    void set_texture_color_coeff(vec4* value);
-    void set_texture_color_offset(vec4* value);
+    void set_texture_color_coeff(vec4& value);
+    void set_texture_color_offset(vec4& value);
     void set_texture_pattern(int32_t count = 0, texture_pattern_struct* value = 0);
-    void set_texture_specular_coeff(vec4* value);
-    void set_texture_specular_offset(vec4* value);
+    void set_texture_specular_coeff(vec4& value);
+    void set_texture_specular_offset(vec4& value);
     void set_texture_transform(int32_t count = 0, texture_transform_struct* value = 0);
     void set_wet_param(float_t value = 0.0f);
 };

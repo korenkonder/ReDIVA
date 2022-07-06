@@ -808,7 +808,7 @@ static int64_t key_val_get_key_index(key_val* kv, std::string& str) {
     if (curr_scope->key_hash_index.size() < 1)
         return -1;
 
-    uint64_t hash = hash_string_fnv1a64m(&str);
+    uint64_t hash = hash_string_fnv1a64m(str);
 
     std::vector<key_val_hash_index_pair>::iterator key = curr_scope->key_hash_index.begin();
     size_t len = curr_scope->count;

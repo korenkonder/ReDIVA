@@ -7,7 +7,7 @@
 
 #include "default.hpp"
 #include "quat.hpp"
-#include "quat_trans.h"
+#include "quat_trans.hpp"
 #include "vec.hpp"
 
 struct enb_track {

@@ -13,19 +13,19 @@
 
 struct light_data {
     light_type type;
-    vec4u ambient;
-    vec4u diffuse;
-    vec4u specular;
-    vec4u position;
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
+    vec4 position;
     vec3 spot_direction;
     float_t spot_exponent;
     float_t spot_cutoff;
     float_t constant;
     float_t linear;
     float_t quadratic;
-    vec4u ibl_specular;
-    vec4u ibl_back;
-    vec4u ibl_direction;
+    vec4 ibl_specular;
+    vec4 ibl_back;
+    vec4 ibl_direction;
     vec3 tone_curve;
     bool clip_plane[4];
 
@@ -82,10 +82,10 @@ struct light_data {
 
 struct light_set {
     light_data lights[LIGHT_MAX];
-    vec4u ambient_intensity;
-    mat4u irradiance_r;
-    mat4u irradiance_g;
-    mat4u irradiance_b;
+    vec4 ambient_intensity;
+    mat4 irradiance_r;
+    mat4 irradiance_g;
+    mat4 irradiance_b;
 
     light_set();
 

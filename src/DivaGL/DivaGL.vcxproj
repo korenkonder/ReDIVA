@@ -259,7 +259,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <CallingConvention>FastCall</CallingConvention>
       <CompileAs>CompileAsCpp</CompileAs>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -297,7 +297,7 @@ del "$(SolutionDir)bin\$(TargetName).lib"</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <CallingConvention>FastCall</CallingConvention>
       <CompileAs>CompileAsCpp</CompileAs>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/Gw %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/%(RelativeDir)</ObjectFileName>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>

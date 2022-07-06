@@ -69,7 +69,7 @@ struct bone_database {
     std::vector<bone_database_skeleton> skeleton;
 
     bone_database();
-    ~bone_database();
+    virtual ~bone_database();
 
     void read(const char* path, bool modern);
     void read(const wchar_t* path, bool modern);

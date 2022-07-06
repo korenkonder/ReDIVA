@@ -205,17 +205,356 @@ bool pv_exp::load_file(void* data, const char* path, const char* file, uint32_t 
 }
 
 static void pv_exp_classic_read_inner(pv_exp* exp, stream& s) {
+    if (s.read_uint32_t() != 0x64) {
+        exp->ready = false;
+        exp->modern = false;
+        exp->is_x = false;
+        return;
+    }
 
+    exp->motion_data.resize(0);
+    exp->motion_data.resize(s.read_int32_t());
+
+    int64_t motion_offsets_offset = s.read_int32_t();
+    int64_t name_offsets_offset = s.read_uint32_t();
+
+    int64_t* face_offset = force_malloc_s(int64_t, exp->motion_data.size());
+    int64_t* face_cl_offset = force_malloc_s(int64_t, exp->motion_data.size());
+    int64_t* name_offset = force_malloc_s(int64_t, exp->motion_data.size());
+
+    s.position_push(motion_offsets_offset, SEEK_SET);
+    for (pv_exp_mot& i : exp->motion_data) {
+        face_offset[&i - exp->motion_data.data()] = s.read_uint32_t();
+        face_cl_offset[&i - exp->motion_data.data()] = s.read_uint32_t();
+    }
+    s.position_pop();
+
+    s.position_push(name_offsets_offset, SEEK_SET);
+    for (pv_exp_mot& i : exp->motion_data)
+        name_offset[&i - exp->motion_data.data()] = s.read_uint32_t();
+    s.position_pop();
+
+    for (pv_exp_mot& i : exp->motion_data) {
+        if (face_offset[&i - exp->motion_data.data()]) {
+            size_t face_count = 0;
+            s.position_push(face_offset[&i - exp->motion_data.data()], SEEK_SET);
+            s.read(0x04);
+            while (s.read_int16_t() != -1) {
+                s.read(0x0C);
+                face_count++;
+            }
+            face_count++;
+            s.position_pop();
+
+            i.face_data = new pv_exp_data[face_count];
+            s.position_push(face_offset[&i - exp->motion_data.data()], SEEK_SET);
+            s.read(i.face_data, sizeof(pv_exp_data) * face_count);
+            s.position_pop();
+        }
+
+        if (face_cl_offset[&i - exp->motion_data.data()]) {
+            size_t face_cl_count = 0;
+            s.position_push(face_cl_offset[&i - exp->motion_data.data()], SEEK_SET);
+            s.read(0x04);
+            while (s.read_int16_t() != -1) {
+                s.read(0x0C);
+                face_cl_count++;
+            }
+            face_cl_count++;
+            s.position_pop();
+
+            i.face_cl_data = new pv_exp_data[face_cl_count];
+            s.position_push(face_cl_offset[&i - exp->motion_data.data()], SEEK_SET);
+            s.read(i.face_cl_data, sizeof(pv_exp_data) * face_cl_count);
+            s.position_pop();
+        }
+
+        if (name_offset[&i - exp->motion_data.data()])
+            i.name = s.read_string_null_terminated_offset(name_offset[&i - exp->motion_data.data()]);
+    }
+
+    free(face_offset);
+    free(face_cl_offset);
+    free(name_offset);
+
+    exp->ready = true;
+    exp->modern = false;
+    exp->is_x = false;
 }
 
 static void pv_exp_classic_write_inner(pv_exp* exp, stream& s) {
+    s.write_uint32_t(0x64);
+    s.write_uint32_t((uint32_t)exp->motion_data.size());
+    s.write_uint32_t(0x20);
 
+    s.position_push(s.get_position(), SEEK_SET);
+    s.write_uint32_t(0x00);
+
+    s.write_uint32_t(0x00);
+    s.write_uint32_t(0x00);
+
+    for (pv_exp_mot& i : exp->motion_data) {
+        s.write_uint32_t(0x00);
+        s.write_uint32_t(0x00);
+        s.write_uint32_t(0x00);
+    }
+    s.align_write(0x20);
+
+    int64_t* face_offset = force_malloc_s(int64_t, exp->motion_data.size());
+    int64_t* face_cl_offset = force_malloc_s(int64_t, exp->motion_data.size());
+    int64_t* name_offset = force_malloc_s(int64_t, exp->motion_data.size());
+
+    for (pv_exp_mot& i : exp->motion_data) {
+        face_offset[&i - exp->motion_data.data()] = s.get_position();
+
+        pv_exp_data* face_data = i.face_data;
+        while (face_data->type != -1) {
+            s.write_float_t(face_data->frame);
+            s.write_int16_t(face_data->type);
+            s.write_int16_t(face_data->id);
+            s.write_float_t(face_data->value);
+            s.write_float_t(face_data->trans);
+            face_data++;
+        }
+        s.align_write(0x20);
+
+        face_cl_offset[&i - exp->motion_data.data()] = s.get_position();
+
+        pv_exp_data* face_cl_data = i.face_cl_data;
+        while (face_cl_data->type != -1) {
+            s.write_float_t(face_cl_data->frame);
+            s.write_int16_t(face_cl_data->type);
+            s.write_int16_t(face_cl_data->id);
+            s.write_float_t(face_cl_data->value);
+            s.write_float_t(face_cl_data->trans);
+            face_cl_data++;
+        }
+        s.align_write(0x20);
+    }
+
+    for (pv_exp_mot& i : exp->motion_data) {
+        name_offset[&i - exp->motion_data.data()] = s.get_position();
+        s.write_string_null_terminated(i.name);
+    }
+    s.align_write(0x10);
+
+    s.set_position(exp->is_x ? 0x28 : 0x20, SEEK_SET);
+    for (pv_exp_mot& i : exp->motion_data) {
+        s.write_uint32_t((uint32_t)face_offset[&i - exp->motion_data.data()]);
+        s.write_uint32_t((uint32_t)face_cl_offset[&i - exp->motion_data.data()]);
+    }
+
+    int64_t name_offsets_offset = s.get_position();
+    for (pv_exp_mot& i : exp->motion_data)
+        s.write_uint32_t((uint32_t)name_offset[&i - exp->motion_data.data()]);
+
+    free(face_offset);
+    free(face_cl_offset);
+    free(name_offset);
+    s.position_pop();
+
+    s.write_uint32_t((uint32_t)name_offsets_offset);
 }
 
 static void pv_exp_modern_read_inner(pv_exp* exp, stream& s, uint32_t header_length) {
+    if (s.read_uint32_t() != 0x64) {
+        exp->ready = false;
+        exp->modern = false;
+        exp->is_x = false;
+        return;
+    }
 
+    bool is_x = false;
+
+    exp->motion_data.resize(0);
+    exp->motion_data.resize(s.read_int32_t());
+
+    int64_t motion_offsets_offset = s.read_int32_t();
+    int64_t name_offsets_offset = s.read_offset_f2(header_length);
+    if (name_offsets_offset == 0x00) {
+        is_x = true;
+        name_offsets_offset = (int)s.read_offset_x();
+    }
+
+    int64_t* face_offset = force_malloc_s(int64_t, exp->motion_data.size());
+    int64_t* face_cl_offset = force_malloc_s(int64_t, exp->motion_data.size());
+    int64_t* name_offset = force_malloc_s(int64_t, exp->motion_data.size());
+
+    s.position_push(motion_offsets_offset, SEEK_SET);
+    if (!is_x)
+        for (pv_exp_mot& i : exp->motion_data) {
+            face_offset[&i - exp->motion_data.data()] = s.read_offset_f2(header_length);
+            face_cl_offset[&i - exp->motion_data.data()] = s.read_offset_f2(header_length);
+        }
+    else
+        for (pv_exp_mot& i : exp->motion_data) {
+            face_offset[&i - exp->motion_data.data()] = s.read_offset_x();
+            face_cl_offset[&i - exp->motion_data.data()] = s.read_offset_x();
+        }
+    s.position_pop();
+
+    s.position_push(name_offsets_offset, SEEK_SET);
+    if (!is_x)
+        for (pv_exp_mot& i : exp->motion_data)
+            name_offset[&i - exp->motion_data.data()] = s.read_offset_f2(header_length);
+    else
+        for (pv_exp_mot& i : exp->motion_data)
+            name_offset[&i - exp->motion_data.data()] = s.read_offset_x();
+    s.position_pop();
+
+    for (pv_exp_mot& i : exp->motion_data) {
+        if (face_offset[&i - exp->motion_data.data()]) {
+            size_t face_count = 0;
+            s.position_push(face_offset[&i - exp->motion_data.data()], SEEK_SET);
+            s.read(0x04);
+            while (s.read_int16_t() != -1) {
+                s.read(0x0E);
+                face_count++;
+            }
+            face_count++;
+            s.position_pop();
+
+            i.face_data = new pv_exp_data[face_count];
+            s.position_push(face_offset[&i - exp->motion_data.data()], SEEK_SET);
+            s.read(i.face_data, sizeof(pv_exp_data) * face_count);
+            s.position_pop();
+        }
+
+        if (face_cl_offset[&i - exp->motion_data.data()]) {
+            size_t face_cl_count = 0;
+            s.position_push(face_cl_offset[&i - exp->motion_data.data()], SEEK_SET);
+            s.read(0x04);
+            while (s.read_int16_t() != -1) {
+                s.read(0x0E);
+                face_cl_count++;
+            }
+            face_cl_count++;
+            s.position_pop();
+
+            i.face_cl_data = new pv_exp_data[face_cl_count];
+            s.position_push(face_cl_offset[&i - exp->motion_data.data()], SEEK_SET);
+            s.read(i.face_cl_data, sizeof(pv_exp_data) * face_cl_count);
+            s.position_pop();
+        }
+
+        if (name_offset[&i - exp->motion_data.data()])
+            i.name = s.read_string_null_terminated_offset(name_offset[&i - exp->motion_data.data()]);
+    }
+
+    free(face_offset);
+    free(face_cl_offset);
+    free(name_offset);
+
+    exp->ready = true;
+    exp->modern = true;
+    exp->is_x = is_x;
 }
 
 static void pv_exp_modern_write_inner(pv_exp* exp, stream& s) {
+    stream s_expc;
+    s_expc.open();
 
+    bool is_x = exp->is_x;
+
+    s_expc.write_uint32_t(0x64);
+    s_expc.write_int32_t((int32_t)exp->motion_data.size());
+    s_expc.write_offset(is_x ? 0x28 : 0x20, 0x20, is_x);
+
+    s_expc.position_push(s_expc.get_position(), SEEK_SET);
+    s_expc.write_offset(0x00, 0x20, is_x);
+
+    s_expc.write_offset(0x00, 0x20, is_x);
+    s_expc.write_offset(0x00, 0x20, is_x);
+
+    if (!is_x)
+        for (pv_exp_mot& i : exp->motion_data) {
+            s_expc.write_offset_f2(0x00, 0x20);
+            s_expc.write_offset_f2(0x00, 0x20);
+            s_expc.write_offset_f2(0x00, 0x20);
+        }
+    else
+        for (pv_exp_mot& i : exp->motion_data) {
+            s_expc.write_offset_x(0x00);
+            s_expc.write_offset_x(0x00);
+            s_expc.write_offset_x(0x00);
+        }
+    s_expc.align_write(0x20);
+
+    int64_t* face_offset = force_malloc_s(int64_t, exp->motion_data.size());
+    int64_t* face_cl_offset = force_malloc_s(int64_t, exp->motion_data.size());
+    int64_t* name_offset = force_malloc_s(int64_t, exp->motion_data.size());
+
+    for (pv_exp_mot& i : exp->motion_data) {
+        face_offset[&i - exp->motion_data.data()] = s_expc.get_position();
+
+        pv_exp_data* face_data = i.face_data;
+        while (face_data->type != -1) {
+            s_expc.write_float_t(face_data->frame);
+            s_expc.write_int16_t(face_data->type);
+            s_expc.write_int16_t(face_data->id);
+            s_expc.write_float_t(face_data->value);
+            s_expc.write_float_t(face_data->trans);
+            face_data++;
+        }
+        s_expc.align_write(0x20);
+
+        face_cl_offset[&i - exp->motion_data.data()] = s_expc.get_position();
+
+        pv_exp_data* face_cl_data = i.face_cl_data;
+        while (face_cl_data->type != -1) {
+            s_expc.write_float_t(face_cl_data->frame);
+            s_expc.write_int16_t(face_cl_data->type);
+            s_expc.write_int16_t(face_cl_data->id);
+            s_expc.write_float_t(face_cl_data->value);
+            s_expc.write_float_t(face_cl_data->trans);
+            face_cl_data++;
+        }
+        s_expc.align_write(0x20);
+    }
+
+    for (pv_exp_mot& i : exp->motion_data) {
+        name_offset[&i - exp->motion_data.data()] = s_expc.get_position();
+        s_expc.write_string_null_terminated(i.name);
+    }
+    s_expc.align_write(0x10);
+
+    s_expc.set_position(is_x ? 0x28 : 0x20, SEEK_SET);
+    if (!is_x)
+        for (pv_exp_mot& i : exp->motion_data) {
+            s_expc.write_offset_f2(face_offset[&i - exp->motion_data.data()], 0x20);
+            s_expc.write_offset_f2(face_cl_offset[&i - exp->motion_data.data()], 0x20);
+        }
+    else
+        for (pv_exp_mot& i : exp->motion_data) {
+            s_expc.write_offset_x(face_offset[&i - exp->motion_data.data()]);
+            s_expc.write_offset_x(face_cl_offset[&i - exp->motion_data.data()]);
+        }
+
+    int64_t name_offsets_offset = s_expc.get_position();
+    if (!is_x)
+        for (pv_exp_mot& i : exp->motion_data)
+            s_expc.write_offset_f2(name_offset[&i - exp->motion_data.data()], 0x20);
+    else
+        for (pv_exp_mot& i : exp->motion_data)
+            s_expc.write_offset_x(name_offset[&i - exp->motion_data.data()]);
+
+    free(face_offset);
+    free(face_cl_offset);
+    free(name_offset);
+
+    s_expc.position_pop();
+
+    s_expc.write_offset(name_offsets_offset, 0x20, is_x);
+
+    f2_struct st;
+    s_expc.align_write(0x10);
+    s_expc.copy(st.data);
+    s_expc.close();
+
+    st.header.signature = reverse_endianness_uint32_t('EXPC');
+    st.header.length = 0x20;
+    st.header.use_big_endian = false;
+    st.header.use_section_size = true;
+
+    st.write(s, true, exp->is_x);
 }

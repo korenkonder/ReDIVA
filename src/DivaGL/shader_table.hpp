@@ -7,7 +7,7 @@
 
 #include "../KKdLib/default.hpp"
 
-typedef enum aft_shader_sub_enum {
+typedef enum shader_sub_enum {
     SHADER_SUB_FFP       = 0,
     BLINN_VERT           = 1,
     BLINN_FRAG           = 2,
@@ -76,9 +76,9 @@ typedef enum aft_shader_sub_enum {
     MOVIE                = 65,
     IMGFILTER            = 66,
     SPRITE               = 67,
-} aft_shader_sub_enum;
+} shader_sub_enum;
 
-typedef enum aft_shader_enum {
+typedef enum shader_enum {
     SHADER_FFP  = 0,
     _BLINN      = 1,
     _ITEM       = 2,
@@ -142,10 +142,10 @@ typedef enum aft_shader_enum {
     _IMGFILT    = 60,
     _SPRITE     = 61,
     SHADER_END  = 62,
-} aft_shader_enum;
+} shader_enum;
 
-typedef struct aft_shader_sub_table_struct {
-    aft_shader_sub_enum sub_name;
+typedef struct shader_sub_table_struct {
+    shader_sub_enum sub_name;
     int32_t padding;
     const int32_t* vp_unival_max;
     const int32_t* fp_unival_max;
@@ -153,20 +153,20 @@ typedef struct aft_shader_sub_table_struct {
     int32_t num_fp;
     const char** vp;
     const char** fp;
-} aft_shader_sub_table_struct;
+} shader_sub_table_struct;
 
-typedef struct aft_shader_table_struct {
+typedef struct shader_table_struct {
     const char* name;
-    aft_shader_enum name_enum;
+    shader_enum name_enum;
     int32_t num_sub;
-    const aft_shader_sub_table_struct* sub;
+    const shader_sub_table_struct* sub;
     int32_t num_uniform;
     int32_t padding;
     int32_t* use_uniform;
-} aft_shader_table_struct;
+} shader_table_struct;
 
-typedef struct aft_shader_sub {
-    aft_shader_sub_enum sub_name;
+typedef struct shader_sub {
+    shader_sub_enum sub_name;
     int32_t padding;
     int32_t* vp_unival_max;
     int32_t* fp_unival_max;
@@ -174,38 +174,38 @@ typedef struct aft_shader_sub {
     int32_t num_fp;
     int32_t* vp;
     int32_t* fp;
-} aft_shader_sub;
+} shader_sub;
 
-typedef struct aft_shader {
+typedef struct shader {
     const char* name;
-    aft_shader_enum name_enum;
+    shader_enum name_enum;
     int32_t num_sub;
-    aft_shader_sub* subs;
+    shader_sub* subs;
     int32_t num_uniform;
     int32_t padding;
     int32_t* use_uniform;
     void* bind_func;
-} aft_shader;
+} shader;
 
-typedef struct aft_shader_bind_func {
-    aft_shader_enum name;
+typedef struct shader_bind_func {
+    shader_enum name;
     int32_t padding;
     void* bind_func;
-} aft_shader_bind_func;
+} shader_bind_func;
 
-extern aft_shader* shaders;
-extern aft_shader_table_struct* aft_shader_table;
-extern aft_shader_bind_func* shader_name_bind_func_table;
+extern shader* shaders;
+extern shader_table_struct* shader_table;
+extern shader_bind_func* shader_name_bind_func_table;
 extern int32_t* current_vp;
 extern int32_t* current_fp;
 
-extern void FASTCALL aft_shader_set(aft_shader_enum name);                             // 0x00000001405E4CE0
-extern void FASTCALL aft_shader_bind_blinn(aft_shader* shader);                        // 0x00000001405E4320
-extern void FASTCALL aft_shader_bind_cloth(aft_shader* shader);                        // 0x00000001405E4340
-extern void FASTCALL aft_shader_bind_hair(aft_shader* shader);                         // 0x00000001405E4370
-extern void FASTCALL aft_shader_bind_membrane(aft_shader* shader);                     // 0x00000001405E43A0
-extern void FASTCALL aft_shader_bind_eye_ball(aft_shader* shader);                     // 0x00000001405E4530
-extern void FASTCALL aft_shader_bind_tone_map(aft_shader* shader);                     // 0x00000001405E4580
-extern int32_t FASTCALL aft_shader_bind(aft_shader* shader, aft_shader_sub_enum name); // 0x00000001405E4B50
-extern void FASTCALL aft_shader_unbind();                                              // 0x00000001405E5660
-extern void FASTCALL aft_shader_load_all_shaders();                                    // 0x00000001405E4FC0
+extern void FASTCALL shader_set(shader_enum name);                             // 0x00000001405E4CE0
+extern void FASTCALL shader_bind_blinn(shader* shader);                        // 0x00000001405E4320
+extern void FASTCALL shader_bind_cloth(shader* shader);                        // 0x00000001405E4340
+extern void FASTCALL shader_bind_hair(shader* shader);                         // 0x00000001405E4370
+extern void FASTCALL shader_bind_membrane(shader* shader);                     // 0x00000001405E43A0
+extern void FASTCALL shader_bind_eye_ball(shader* shader);                     // 0x00000001405E4530
+extern void FASTCALL shader_bind_tone_map(shader* shader);                     // 0x00000001405E4580
+extern int32_t FASTCALL shader_bind(shader* shader, shader_sub_enum name); // 0x00000001405E4B50
+extern void FASTCALL shader_unbind();                                              // 0x00000001405E5660
+extern void FASTCALL shader_load_all_shaders();                                    // 0x00000001405E4FC0

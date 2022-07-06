@@ -11,7 +11,7 @@ namespace Glitter {
         data.pivot = PIVOT_MIDDLE_CENTER;
         data.scale = vec3_identity;
         data.reflection_coeff = 1.0f;
-        data.color = vec4u_identity;
+        data.color = vec4_identity;
         data.uv_index = 0;
         data.uv_index_start = 0;
         data.uv_index_end = 1;

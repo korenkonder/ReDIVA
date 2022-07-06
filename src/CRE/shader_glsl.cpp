@@ -295,14 +295,6 @@ void shader_glsl::set(const char* name, vec4i& value) {
     }
 }
 
-void shader_glsl::set(const char* name, vec4iu& value) {
-    int32_t location = get_uniform_location(name);
-    if (location != GL_INVALID_INDEX) {
-        use();
-        glUniform4i(location, value.x, value.y, value.z, value.w);
-    }
-}
-
 void shader_glsl::set(const char* name, int32_t x, int32_t y, int32_t z, int32_t w) {
     int32_t location = get_uniform_location(name);
     if (location != GL_INVALID_INDEX) {
@@ -312,14 +304,6 @@ void shader_glsl::set(const char* name, int32_t x, int32_t y, int32_t z, int32_t
 }
 
 void shader_glsl::set(const char* name, vec4& value) {
-    int32_t location = get_uniform_location(name);
-    if (location != GL_INVALID_INDEX) {
-        use();
-        glUniform4f(location, value.x, value.y, value.z, value.w);
-    }
-}
-
-void shader_glsl::set(const char* name, vec4u& value) {
     int32_t location = get_uniform_location(name);
     if (location != GL_INVALID_INDEX) {
         use();
@@ -344,14 +328,6 @@ void shader_glsl::set(const char* name, bool transpose, mat3& value) {
 }
 
 void shader_glsl::set(const char* name, bool transpose, mat4& value) {
-    int32_t location = get_uniform_location(name);
-    if (location != GL_INVALID_INDEX) {
-        use();
-        glUniformMatrix4fv(location, 1, transpose, (GLfloat*)&value);
-    }
-}
-
-void shader_glsl::set(const char* name, bool transpose, mat4u& value) {
     int32_t location = get_uniform_location(name);
     if (location != GL_INVALID_INDEX) {
         use();
@@ -415,23 +391,7 @@ void shader_glsl::set(const char* name, size_t count, vec4i* value) {
     }
 }
 
-void shader_glsl::set(const char* name, size_t count, vec4iu* value) {
-    int32_t location = get_uniform_location(name);
-    if (location != GL_INVALID_INDEX) {
-        use();
-        glUniform4iv(location, (GLsizei)count, (GLint*)value);
-    }
-}
-
 void shader_glsl::set(const char* name, size_t count, vec4* value) {
-    int32_t location = get_uniform_location(name);
-    if (location != GL_INVALID_INDEX) {
-        use();
-        glUniform4fv(location, (GLsizei)count, (GLfloat*)value);
-    }
-}
-
-void shader_glsl::set(const char* name, size_t count, vec4u* value) {
     int32_t location = get_uniform_location(name);
     if (location != GL_INVALID_INDEX) {
         use();
@@ -448,14 +408,6 @@ void shader_glsl::set(const char* name, size_t count, bool transpose, mat3* valu
 }
 
 void shader_glsl::set(const char* name, size_t count, bool transpose, mat4* value) {
-    int32_t location = get_uniform_location(name);
-    if (location != GL_INVALID_INDEX) {
-        use();
-        glUniformMatrix4fv(location, (GLsizei)count, transpose, (GLfloat*)value);
-    }
-}
-
-void shader_glsl::set(const char* name, size_t count, bool transpose, mat4u* value) {
     int32_t location = get_uniform_location(name);
     if (location != GL_INVALID_INDEX) {
         use();

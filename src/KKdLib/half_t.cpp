@@ -4,6 +4,9 @@
 */
 
 #include "half_t.hpp"
+#include <immintrin.h>
+
+extern bool f16c;
 
 inline half_t load_reverse_endianness_half_t(void* ptr) {
     return (half_t)_byteswap_ushort(*(uint16_t*)ptr);
@@ -18,6 +21,9 @@ inline half_t reverse_endianness_half_t(half_t value) {
 }
 
 float_t half_to_float(half_t h) {
+    if (f16c)
+        return _mm_cvtss_f32( _mm_cvtph_ps(_mm_cvtsi32_si128((uint16_t)h)));
+
     int32_t si32;
     uint16_t sign = (h >> 15) & 0x001;
     uint16_t exponent = (h >> 10) & 0x01F;
@@ -33,6 +39,9 @@ float_t half_to_float(half_t h) {
 }
 
 half_t float_to_half(float_t val) {
+    if (f16c)
+        return (half_t)_mm_cvtsi128_si32(_mm_cvtps_ph(_mm_set_ss(val), _MM_FROUND_CUR_DIRECTION));
+
     int32_t si32 = *(int32_t*)&val;
     if (si32 == 0x00000000)
         return FLOAT16_POSITIVE_ZERO;
@@ -56,6 +65,9 @@ half_t float_to_half(float_t val) {
 }
 
 double_t half_to_double(half_t h) {
+    if (f16c)
+        return _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128((uint16_t)h)));
+
     int64_t si64;
     uint16_t sign = (h >> 15) & 0x001;
     uint16_t exponent = (h >> 10) & 0x01F;
@@ -71,6 +83,9 @@ double_t half_to_double(half_t h) {
 }
 
 half_t double_to_half(double_t val) {
+    if (f16c)
+        return (half_t)_mm_cvtsi128_si32(_mm_cvtps_ph(_mm_cvtpd_ps(_mm_set_sd(val)), _MM_FROUND_CUR_DIRECTION));
+
     int64_t si64 = *(int64_t*)&val;
     if (si64 == 0x0000000000000000)
         return FLOAT16_POSITIVE_ZERO;

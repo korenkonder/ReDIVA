@@ -5,7 +5,7 @@
 
 #include "glitter.hpp"
 #include "../../KKdLib/io/path.hpp"
-#include "../../KKdLib/interpolation.h"
+#include "../../KKdLib/interpolation.hpp"
 #include "../../KKdLib/farc.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../data.hpp"
@@ -2365,10 +2365,7 @@ namespace Glitter {
         ptcl->data.unk1 = unk1;
 
         vec2_rcp(ptcl->data.split_uv, ptcl->data.split_uv);
-
-        vec4 color = ptcl->data.color;
-        vec4_mult_scalar(color, (float_t)(1.0 / 255.0), color);
-        ptcl->data.color = color;
+        vec4_mult_scalar(ptcl->data.color, (float_t)(1.0 / 255.0), ptcl->data.color);
 
         int32_t uv_max_count = (int32_t)(split_u * split_v);
         if (uv_max_count)

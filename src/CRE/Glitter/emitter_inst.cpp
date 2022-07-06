@@ -143,7 +143,7 @@ namespace Glitter {
         mat4 dir_mat;
         switch (data.direction) {
         case DIRECTION_BILLBOARD:
-            mat4_from_mat3(&((render_context*)GPM_VAL->rctx)->camera->inv_view_mat3, &dir_mat);
+            mat4_from_mat3(&GPM_VAL->cam.inv_view_mat3, &dir_mat);
             mat4_mult(&eff_inst->mat, &dir_mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
             break;
@@ -157,7 +157,7 @@ namespace Glitter {
             mat4_rotate_z((float_t)-M_PI_2, &dir_mat);
             break;
         case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(((render_context*)GPM_VAL->rctx)->camera->rotation.y, &dir_mat);
+            mat4_rotate_y(GPM_VAL->cam.rotation_y, &dir_mat);
             break;
         default:
             mult = false;
@@ -304,17 +304,17 @@ namespace Glitter {
         return true;
     }
 
-    void F2EmitterInst::InitMesh(GLT, int32_t index, vec3* scale,
-        vec3* position, vec3* direction, Random* random) {
+    void F2EmitterInst::InitMesh(GLT, int32_t index, vec3& scale,
+        vec3& position, vec3& direction, Random* random) {
         switch (data.type) {
         case EMITTER_BOX: {
             vec3 dir;
-            vec3_mult(data.box.size, *scale, dir);
+            vec3_mult(data.box.size, scale, dir);
             vec3_mult_scalar(dir, 0.5f, dir);
-            random->F2GetVec3(GLT_VAL, &dir, position);
+            random->F2GetVec3(GLT_VAL, dir, position);
         } break;
         case EMITTER_CYLINDER: {
-            float_t radius = data.cylinder.radius * scale->x;
+            float_t radius = data.cylinder.radius * scale.x;
             if (!data.cylinder.on_edge)
                 radius = random->F2GetFloat(GLT_VAL, 0.0f, radius);
 
@@ -325,19 +325,19 @@ namespace Glitter {
             dir.y = 0.0f;
             dir.z = sinf(angle);
 
-            position->x = dir.x * radius;
-            position->y = random->F2GetFloat(GLT_VAL, data.cylinder.height * scale->y * 0.5f);
-            position->z = dir.z * radius;
+            position.x = dir.x * radius;
+            position.y = random->F2GetFloat(GLT_VAL, data.cylinder.height * scale.y * 0.5f);
+            position.z = dir.z * radius;
 
             if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
-                *direction = dir;
+                direction = dir;
             else if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_INWARD) {
                 const vec3 reverse_xz_dir = { -0.0f, 0.0f, -0.0f };
-                vec3_xor(dir, reverse_xz_dir, *direction);
+                vec3_xor(dir, reverse_xz_dir, direction);
             }
         } break;
         case EMITTER_SPHERE: {
-            float_t radius = data.sphere.radius * scale->x;
+            float_t radius = data.sphere.radius * scale.x;
             if (!data.sphere.on_edge)
                 radius = random->F2GetFloat(GLT_VAL, 0.0f, radius);
 
@@ -349,19 +349,19 @@ namespace Glitter {
             dir.y = sinf(latitude);
             dir.z = cosf(longitude) * cosf(latitude);
 
-            vec3_mult_scalar(dir, radius, *position);
+            vec3_mult_scalar(dir, radius, position);
             if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
-                *direction = dir;
+                direction = dir;
             else if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_INWARD)
-                vec3_negate(dir, *direction);
+                vec3_negate(dir, direction);
         } break;
         case EMITTER_POLYGON: {
-            float_t radius = data.polygon.size * scale->x;
+            float_t radius = data.polygon.size * scale.x;
             float_t angle = (float_t)index * 360.0f
                 / (float_t)data.polygon.count * DEG_TO_RAD_FLOAT + (float_t)M_PI_2;
 
-            position->x = sinf(angle) * radius;
-            position->y = 0.0f;
+            position.x = sinf(angle) * radius;
+            position.y = 0.0f;
         } break;
         }
     }
@@ -381,17 +381,17 @@ namespace Glitter {
             i->Reset();
     }
 
-    void XEmitterInst::InitMesh(int32_t index, vec3* scale,
-        vec3* position, vec3* direction, Random* random) {
+    void XEmitterInst::InitMesh(int32_t index, vec3& scale,
+        vec3& position, vec3& direction, Random* random) {
         switch (emitter->data.type) {
         case EMITTER_BOX: {
             vec3 dir;
-            vec3_mult(data.box.size, *scale, dir);
+            vec3_mult(data.box.size, scale, dir);
             vec3_mult_scalar(dir, 0.5f, dir);
-            random->XGetVec3(&dir, position);
+            random->XGetVec3(dir, position);
         } break;
         case EMITTER_CYLINDER: {
-            float_t radius = data.cylinder.radius * scale->x;
+            float_t radius = data.cylinder.radius * scale.x;
             if (!data.cylinder.on_edge)
                 radius = random->XGetFloat(0.0f, radius);
 
@@ -402,19 +402,19 @@ namespace Glitter {
             dir.y = 0.0f;
             dir.z = sinf(angle);
 
-            position->x = dir.x * radius;
-            position->y = random->XGetFloat(data.cylinder.height * scale->y * 0.5f);
-            position->z = dir.z * radius;
+            position.x = dir.x * radius;
+            position.y = random->XGetFloat(data.cylinder.height * scale.y * 0.5f);
+            position.z = dir.z * radius;
 
             if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
-                *direction = dir;
+                direction = dir;
             else if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_INWARD) {
                 const vec3 reverse_xz_dir = { -0.0f, 0.0f, -0.0f };
-                vec3_xor(dir, reverse_xz_dir, *direction);
+                vec3_xor(dir, reverse_xz_dir, direction);
             }
         } break;
         case EMITTER_SPHERE: {
-            float_t radius = data.sphere.radius * scale->x;
+            float_t radius = data.sphere.radius * scale.x;
             if (!data.sphere.on_edge)
                 radius = random->XGetFloat(0.0f, radius);
 
@@ -426,14 +426,14 @@ namespace Glitter {
             dir.y = sinf(latitude);
             dir.z = cosf(longitude) * cosf(latitude);
 
-            vec3_mult_scalar(dir, radius, *position);
+            vec3_mult_scalar(dir, radius, position);
             if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
-                *direction = dir;
+                direction = dir;
             else if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_INWARD)
-                vec3_negate(dir, *direction);
+                vec3_negate(dir, direction);
         } break;
         case EMITTER_POLYGON: {
-            float_t radius = data.polygon.size * scale->x;
+            float_t radius = data.polygon.size * scale.x;
             float_t angle = ((float_t)index * 360.0f
                 / (float_t)data.polygon.count + 90.0f) * DEG_TO_RAD_FLOAT;
 
@@ -442,11 +442,11 @@ namespace Glitter {
             dir.y = 0.0f;
             dir.z = sinf(angle);
 
-            vec3_mult_scalar(dir, radius, *position);
+            vec3_mult_scalar(dir, radius, position);
             if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
-                *direction = dir;
+                direction = dir;
             else if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_INWARD)
-                vec3_negate(dir, *direction);
+                vec3_negate(dir, direction);
         } break;
         }
     }
@@ -547,11 +547,6 @@ namespace Glitter {
         vec3_mult_scalar(data.rotation_add, delta_frame, rotation_add);
         vec3_add(rotation, rotation_add, rotation);
 
-        vec3 trans = translation;
-        vec3 rot = rotation;
-        vec3 scale;
-        vec3_mult_scalar(this->scale, scale_all, scale);
-
         vec3 trans_prev = vec3_null;
         bool has_dist = false;
         if (data.timer == EMITTER_TIMER_BY_DISTANCE && flags & EMITTER_INST_HAS_DISTANCE) {
@@ -559,61 +554,10 @@ namespace Glitter {
             has_dist = true;
         }
 
-        mat4 mat = eff_inst->mat;
-        mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
-        mat4_normalize_rotation(&mat, &mat);
-
-        mat4 mat_rot;
-        if (data.direction == DIRECTION_EFFECT_ROTATION)
-            mat_rot = eff_inst->mat_rot_eff_rot;
-        else {
-            mat4_clear_rot(&mat, &mat);
-            mat_rot = eff_inst->mat_rot;
-        }
-
-        bool mult = true;
-        mat4 dir_mat;
-        switch (data.direction) {
-        case DIRECTION_BILLBOARD: {
-            if (eff_inst->data.flags & EFFECT_LOCAL) {
-                dir_mat = ((render_context*)GPM_VAL->rctx)->camera->view;
-                mat4_clear_trans(&dir_mat, &dir_mat);
-                mat4_mult(&dir_mat, &mat, &dir_mat);
-            }
-            else
-                dir_mat = mat;
-
-            mat4 inv_view_mat;
-            mat4_from_mat3(&((render_context*)GPM_VAL->rctx)->camera->inv_view_mat3, &inv_view_mat);
-            mat4_mult(&dir_mat, &inv_view_mat, &dir_mat);
-            mat4_clear_trans(&dir_mat, &dir_mat);
-        } break;
-        case DIRECTION_Y_AXIS:
-            mat4_rotate_y((float_t)M_PI_2, &dir_mat);
-            break;
-        case DIRECTION_X_AXIS:
-            mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
-            break;
-        case DIRECTION_BILLBOARD_Y_AXIS:
-            mat4_rotate_y(((render_context*)GPM_VAL->rctx)->camera->rotation.y, &dir_mat);
-            break;
-        default:
-            mult = false;
-            break;
-        }
-
-        if (mult) {
-            mat4_mult(&dir_mat, &mat, &mat);
-            mat4_mult(&dir_mat, &mat_rot, &mat_rot);
-        }
-
-        mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
-        this->mat = mat;
-        this->mat_rot = mat_rot;
+        CtrlMat(GPM_VAL, eff_inst);
 
         if (has_dist) {
+            vec3 trans;
             mat4_get_translation(&mat, &trans);
 
             float_t trans_dist;
@@ -680,6 +624,68 @@ namespace Glitter {
             emission_timer -= trans_dist;
         }
         enum_or(flags, EMITTER_INST_HAS_DISTANCE);
+    }
+
+    void XEmitterInst::CtrlMat(GPM, XEffectInst* eff_inst) {
+        vec3 trans = translation;
+        vec3 rot = rotation;
+        vec3 scale;
+        vec3_mult_scalar(this->scale, scale_all, scale);
+
+        mat4 mat = eff_inst->mat;
+        mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
+
+        mat4 mat_rot;
+        if (data.direction == DIRECTION_EFFECT_ROTATION) {
+            mat4_normalize_rotation(&mat, &mat);
+            mat_rot = eff_inst->mat_rot_eff_rot;
+        }
+        else {
+            mat4_clear_rot(&mat, &mat);
+            mat_rot = eff_inst->mat_rot;
+        }
+
+        bool mult = true;
+        mat4 dir_mat;
+        switch (data.direction) {
+        case DIRECTION_BILLBOARD: {
+            if (eff_inst->data.flags & EFFECT_LOCAL) {
+                dir_mat = GPM_VAL->cam.view;
+                mat4_clear_trans(&dir_mat, &dir_mat);
+                mat4_mult(&dir_mat, &mat, &dir_mat);
+            }
+            else
+                dir_mat = mat;
+
+            mat4 inv_view_mat;
+            mat4_from_mat3(&GPM_VAL->cam.inv_view_mat3, &inv_view_mat);
+            mat4_mult(&dir_mat, &inv_view_mat, &dir_mat);
+            mat4_clear_trans(&dir_mat, &dir_mat);
+        } break;
+        case DIRECTION_Y_AXIS:
+            mat4_rotate_y((float_t)M_PI_2, &dir_mat);
+            break;
+        case DIRECTION_X_AXIS:
+            mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
+            break;
+        case DIRECTION_BILLBOARD_Y_AXIS:
+            mat4_rotate_y(GPM_VAL->cam.rotation_y, &dir_mat);
+            break;
+        default:
+            mult = false;
+            break;
+        }
+
+        if (mult) {
+            mat4_mult(&dir_mat, &mat, &mat);
+            mat4_mult(&dir_mat, &mat_rot, &mat_rot);
+        }
+
+        mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+        mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
+        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+        this->mat = mat;
+        this->mat_rot = mat_rot;
     }
 
     void XEmitterInst::Emit(float_t delta_frame, float_t emission) {

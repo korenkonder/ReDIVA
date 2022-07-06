@@ -10,18 +10,18 @@
 #include "../hash.hpp"
 #include "../str_utils.hpp"
 
-static void motion_database_read_inner(motion_database* mot_db, stream& s);
-static void motion_database_write_inner(motion_database* mot_db, stream& s);
+static void motion_database_file_read_inner(motion_database_file* mot_db, stream& s);
+static void motion_database_file_write_inner(motion_database_file* mot_db, stream& s);
 
-motion_database::motion_database() : ready() {
-
-}
-
-motion_database::~motion_database() {
+motion_database_file::motion_database_file() : ready() {
 
 }
 
-void motion_database::read(const char* path) {
+motion_database_file::~motion_database_file() {
+
+}
+
+void motion_database_file::read(const char* path) {
     if (!path)
         return;
 
@@ -34,13 +34,13 @@ void motion_database::read(const char* path) {
         if (ff) {
             stream s;
             s.open(ff->data, ff->size);
-            motion_database_read_inner(this, s);
+            motion_database_file_read_inner(this, s);
         }
     }
     free(path_farc);
 }
 
-void motion_database::read(const wchar_t* path) {
+void motion_database_file::read(const wchar_t* path) {
     if (!path)
         return;
 
@@ -53,22 +53,22 @@ void motion_database::read(const wchar_t* path) {
         if (ff) {
             stream s;
             s.open(ff->data, ff->size);
-            motion_database_read_inner(this, s);
+            motion_database_file_read_inner(this, s);
         }
     }
     free(path_farc);
 }
 
-void motion_database::read(const void* data, size_t size) {
+void motion_database_file::read(const void* data, size_t size) {
     if (!data || !size)
         return;
 
     stream s;
     s.open(data, size);
-    motion_database_read_inner(this, s);
+    motion_database_file_read_inner(this, s);
 }
 
-void motion_database::write(const char* path) {
+void motion_database_file::write(const char* path) {
     if (!path || !ready)
         return;
 
@@ -79,13 +79,13 @@ void motion_database::write(const char* path) {
 
     stream s;
     s.open();
-    motion_database_write_inner(this, s);
+    motion_database_file_write_inner(this, s);
     s.copy(&ff->data, &ff->size);
 
     f.write(path, FARC_COMPRESS_FArC, false);
 }
 
-void motion_database::write(const wchar_t* path) {
+void motion_database_file::write(const wchar_t* path) {
     if (!path || !ready)
         return;
 
@@ -96,91 +96,82 @@ void motion_database::write(const wchar_t* path) {
 
     stream s;
     s.open();
-    motion_database_write_inner(this, s);
+    motion_database_file_write_inner(this, s);
     s.copy(&ff->data, &ff->size);
 
     f.write(path, FARC_COMPRESS_FArC, false);
 }
 
-void motion_database::write(void** data, size_t* size) {
+void motion_database_file::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
     stream s;
     s.open();
-    motion_database_write_inner(this, s);
+    motion_database_file_write_inner(this, s);
     s.copy(data, size);
 }
 
-void motion_database::merge_mdata(motion_database* base_mot_db,
-    motion_database* mdata_mot_db) {
-    if (!base_mot_db || !mdata_mot_db
-        || !base_mot_db->ready || !mdata_mot_db->ready)
+bool motion_database_file::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+    size_t file_len = utf8_length(file);
+
+    const char* t = strrchr(file, '.');
+    if (t)
+        file_len = t - file;
+
+    std::string s = path + std::string(file, file_len);
+
+    motion_database_file* mot_db = (motion_database_file*)data;
+    mot_db->read(s.c_str());
+
+    return mot_db->ready;
+}
+
+motion_database::motion_database() {
+
+}
+
+motion_database::~motion_database() {
+
+}
+
+void motion_database::add(motion_database_file* mot_db_file) {
+    if (!mot_db_file || !mot_db_file->ready)
         return;
 
-    bone_name = base_mot_db->bone_name;
+    bone_name = mot_db_file->bone_name;
 
-    motion_set.reserve(base_mot_db->motion_set.size());
+    motion_set.reserve(mot_db_file->motion_set.size());
 
-    for (motion_set_info& i : base_mot_db->motion_set) {
-        motion_set_info set_info;
-        set_info.id = i.id;
-        set_info.name = i.name;
-        set_info.name_hash = hash_string_murmurhash(&i.name);
+    for (motion_set_info_file& i : mot_db_file->motion_set) {
+        uint32_t name_hash = hash_string_murmurhash(i.name);
 
-        set_info.motion.reserve(i.motion.size());
-
-        for (motion_info& j : i.motion) {
-            motion_info info;
-            info.id = j.id;
-            info.name = j.name;
-            info.name_hash = hash_string_murmurhash(&j.name);
-            set_info.motion.push_back(info);
-        }
-        motion_set.push_back(set_info);
-    }
-
-    for (motion_set_info& i : mdata_mot_db->motion_set) {
-        const char* name_str = i.name.c_str();
-        size_t name_len = i.name.size();
-
-        motion_set_info* set_info_ptr = 0;
+        motion_set_info* set_info = 0;
         for (motion_set_info& j : motion_set)
-            if (!memcmp(name_str, j.name.c_str(), min(name_len, j.name.size()) + 1)) {
-                set_info_ptr = &j;
+            if (name_hash == j.name_hash) {
+                set_info = &j;
                 break;
             }
 
-        motion_set_info set_info;
-        set_info.id = i.id;
-        set_info.name = i.name;
-        set_info.name_hash = hash_string_murmurhash(&i.name);
+        if (!set_info) {
+            motion_set.push_back({});
+            set_info = &motion_set.back();
+        }
 
-        set_info.motion.reserve(i.motion.size());
+        set_info->id = i.id;
+        set_info->name = i.name;
+        set_info->name_hash = hash_string_murmurhash(set_info->name);
 
-        for (motion_info& j : i.motion) {
+        set_info->motion.reserve(i.motion.size());
+
+        for (motion_info_file& j : i.motion) {
             motion_info info;
             info.id = j.id;
             info.name = j.name;
-            info.name_hash = hash_string_murmurhash(&j.name);
-            set_info.motion.push_back(info);
+            info.name_hash = hash_string_murmurhash(info.name);
+            set_info->motion.push_back(info);
         }
-
-        if (set_info_ptr)
-            *set_info_ptr = set_info;
-        else
-            motion_set.push_back(set_info);
     }
-
-    ready = true;
-}
-
-void motion_database::split_mdata(motion_database* base_mot_db,
-    motion_database* mdata_mot_db) {
-    if (!base_mot_db || !mdata_mot_db
-        || !ready || !base_mot_db->ready)
-        return;
-
 }
 
 motion_set_info* motion_database::get_motion_set_by_id(uint32_t id) {
@@ -323,38 +314,41 @@ const char* motion_database::get_motion_name(uint32_t id) {
     return 0;
 }
 
-bool motion_database::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    size_t file_len = utf8_length(file);
-
-    const char* t = strrchr(file, '.');
-    if (t)
-        file_len = t - file;
-
-    std::string s = path + std::string(file, file_len);
-
-    motion_database* mot_db = (motion_database*)data;
-    mot_db->read(s.c_str());
-
-    return mot_db->ready;
+motion_info_file::motion_info_file() {
+    id = (uint32_t)-1;
 }
 
-motion_info::motion_info() : name_hash(hash_murmurhash_empty), id((uint32_t)-1) {
+motion_info_file::~motion_info_file() {
 
+}
+
+motion_set_info_file::motion_set_info_file() {
+    id = (uint32_t)-1;
+}
+
+motion_set_info_file::~motion_set_info_file() {
+
+}
+
+motion_info::motion_info() {
+    name_hash = hash_murmurhash_empty;
+    id = (uint32_t)-1;
 }
 
 motion_info::~motion_info() {
 
 }
 
-motion_set_info::motion_set_info() : name_hash(hash_murmurhash_empty), id((uint32_t)-1) {
-
+motion_set_info::motion_set_info() {
+    name_hash = hash_murmurhash_empty;
+    id = (uint32_t)-1;
 }
 
 motion_set_info::~motion_set_info() {
 
 }
 
-static void motion_database_read_inner(motion_database* mot_db, stream& s) {
+static void motion_database_file_read_inner(motion_database_file* mot_db, stream& s) {
    if (s.read_uint32_t() != 0x01)
         return;
 
@@ -368,7 +362,7 @@ static void motion_database_read_inner(motion_database* mot_db, stream& s) {
 
    s.position_push(motion_sets_offset, SEEK_SET);
    for (uint32_t i = 0; i < motion_set_count; i++) {
-       motion_set_info& set_info = mot_db->motion_set[i];
+       motion_set_info_file& set_info = mot_db->motion_set[i];
 
        uint32_t name_offset = s.read_uint32_t();
        uint32_t motion_name_offsets_offset = s.read_uint32_t();
@@ -376,15 +370,12 @@ static void motion_database_read_inner(motion_database* mot_db, stream& s) {
        uint32_t motion_ids_offset = s.read_uint32_t();
 
        set_info.name = s.read_string_null_terminated_offset(name_offset);
-       set_info.name_hash = hash_string_murmurhash(&set_info.name);
 
        set_info.motion.resize(motion_count);
 
        s.position_push(motion_name_offsets_offset, SEEK_SET);
-       for (uint32_t j = 0; j < motion_count; j++) {
+       for (uint32_t j = 0; j < motion_count; j++)
            set_info.motion[j].name = s.read_string_null_terminated_offset(s.read_uint32_t());
-           set_info.motion[j].name_hash = hash_string_murmurhash(&set_info.motion[j].name);
-       }
        s.position_pop();
 
        s.position_push(motion_ids_offset, SEEK_SET);
@@ -409,7 +400,7 @@ static void motion_database_read_inner(motion_database* mot_db, stream& s) {
    mot_db->ready = true;
 }
 
-static void motion_database_write_inner(motion_database* mot_db, stream& s) {
+static void motion_database_file_write_inner(motion_database_file* mot_db, stream& s) {
     s.write_int32_t(0);
     s.write_int32_t(0);
     s.write_int32_t(0);
@@ -426,15 +417,15 @@ static void motion_database_write_inner(motion_database* mot_db, stream& s) {
     s.align_write(0x20);
 
     size_t size = 0;
-    for (motion_set_info& i : mot_db->motion_set)
+    for (motion_set_info_file& i : mot_db->motion_set)
         size += i.name.size() + 1;
 
     int64_t motion_set_name_offset = s.get_position();
     s.write(size);
 
     size = 0;
-    for (motion_set_info& i : mot_db->motion_set)
-        for (motion_info& j : i.motion)
+    for (motion_set_info_file& i : mot_db->motion_set)
+        for (motion_info_file& j : i.motion)
             size += j.name.size() + 1;
 
     int64_t motion_name_offset = s.get_position();
@@ -443,19 +434,19 @@ static void motion_database_write_inner(motion_database* mot_db, stream& s) {
 
     int64_t motion_names_offset = s.get_position();
     size = 0;
-    for (motion_set_info& i : mot_db->motion_set)
+    for (motion_set_info_file& i : mot_db->motion_set)
         size += 0x04 * i.motion.size();
     s.write(size);
     s.align_write(0x20);
 
     int64_t motion_ids_offset = s.get_position();
-    for (motion_set_info& i : mot_db->motion_set)
-        for (motion_info& j : i.motion)
+    for (motion_set_info_file& i : mot_db->motion_set)
+        for (motion_info_file& j : i.motion)
             s.write_uint32_t(j.id);
     s.align_write(0x20);
 
     int64_t motion_set_ids_offset = s.get_position();
-    for (motion_set_info& i : mot_db->motion_set)
+    for (motion_set_info_file& i : mot_db->motion_set)
         s.write_uint32_t(i.id);
 
     int64_t bone_name_offset = s.get_position();
@@ -466,13 +457,13 @@ static void motion_database_write_inner(motion_database* mot_db, stream& s) {
     s.align_write(0x20);
 
     s.position_push(motion_set_name_offset, SEEK_SET);
-    for (motion_set_info& i : mot_db->motion_set)
+    for (motion_set_info_file& i : mot_db->motion_set)
         s.write_string_null_terminated(i.name);
     s.position_pop();
 
     s.position_push(motion_name_offset, SEEK_SET);
-    for (motion_set_info& i : mot_db->motion_set)
-        for (motion_info& j : i.motion)
+    for (motion_set_info_file& i : mot_db->motion_set)
+        for (motion_info_file& j : i.motion)
             s.write_string_null_terminated(j.name);
     s.position_pop();
 
@@ -486,15 +477,15 @@ static void motion_database_write_inner(motion_database* mot_db, stream& s) {
     s.align_write(0x20);
 
     s.position_push(motion_names_offset, SEEK_SET);
-    for (motion_set_info& i : mot_db->motion_set)
-        for (motion_info& j : i.motion) {
+    for (motion_set_info_file& i : mot_db->motion_set)
+        for (motion_info_file& j : i.motion) {
             s.write_uint32_t((uint32_t)motion_name_offset);
             motion_name_offset += j.name.size() + 1;
         }
     s.position_pop();
 
     s.position_push(motion_sets_offset, SEEK_SET);
-    for (motion_set_info& i : mot_db->motion_set) {
+    for (motion_set_info_file& i : mot_db->motion_set) {
         s.write_uint32_t((uint32_t)motion_set_name_offset);
         s.write_uint32_t((uint32_t)motion_names_offset);
         s.write_uint32_t((uint32_t)i.motion.size());

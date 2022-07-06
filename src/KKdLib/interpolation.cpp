@@ -3,7 +3,7 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "interpolation.h"
+#include "interpolation.hpp"
 
 inline float_t interpolate_linear_value(float_t p1, float_t p2, float_t f1, float_t f2, float_t f) {
     float_t t = (f - f1) / (f2 - f1);
@@ -58,18 +58,18 @@ inline void interpolate_linear_value_vec4(vec4* p1, vec4* p2, vec4* f1, vec4* f2
     __m128 _f1;
     __m128 _f2;
     __m128 _f;
-    _p1 = p1->data;
-    _p2 = p2->data;
-    _f1 = f1->data;
-    _f2 = f2->data;
-    _f = f->data;
+    _p1 = _mm_loadu_ps((float*)p1);
+    _p2 = _mm_loadu_ps((float*)p2);
+    _f1 = _mm_loadu_ps((float*)f1);
+    _f2 = _mm_loadu_ps((float*)f2);
+    _f = _mm_loadu_ps((float*)f);
 
     const __m128 _1 = _mm_set_ps1(1.0f);
 
     __m128 df = _mm_sub_ps(_f2, _f1);
     __m128 t = _mm_div_ps(_mm_sub_ps(_f, _f1), df);
     __m128 t1 = _mm_sub_ps(_1, t);
-    value->data = _mm_add_ps(_mm_mul_ps(_p1, t1), _mm_mul_ps(_p2, t));
+    _mm_storeu_ps((float*)value, _mm_add_ps(_mm_mul_ps(_p1, t1), _mm_mul_ps(_p2, t)));
 }
 
 inline void interpolate_linear(float_t p1, float_t p2,
@@ -163,13 +163,13 @@ inline void interpolate_chs_value_vec4(vec4* p1, vec4* p2,
     __m128 _f1;
     __m128 _f2;
     __m128 _f;
-    _p1 = p1->data;
-    _p2 = p2->data;
-    _t1 = t1->data;
-    _t2 = t2->data;
-    _f1 = f1->data;
-    _f2 = f2->data;
-    _f = f->data;
+    _p1 = _mm_loadu_ps((float*)p1);
+    _p2 = _mm_loadu_ps((float*)p2);
+    _t1 = _mm_loadu_ps((float*)t1);
+    _t2 = _mm_loadu_ps((float*)t2);
+    _f1 = _mm_loadu_ps((float*)f1);
+    _f2 = _mm_loadu_ps((float*)f2);
+    _f = _mm_loadu_ps((float*)f);
 
     const __m128 _1 = _mm_set_ps1(1.0f);
     const __m128 _2 = _mm_set_ps1(2.0f);
@@ -181,7 +181,7 @@ inline void interpolate_chs_value_vec4(vec4* p1, vec4* p2,
 
     __m128 delta = _mm_mul_ps(_mm_mul_ps(_mm_mul_ps(t, t), _mm_sub_ps(_3, _mm_mul_ps(_2, t))), _mm_sub_ps(_p2, _p1));
     __m128 tangent = _mm_mul_ps(_mm_add_ps(_mm_mul_ps(t_1, _t1), _mm_mul_ps(t, _t2)), _mm_mul_ps(df, t_1));
-    value->data = _mm_add_ps(_mm_add_ps(_p1, delta), tangent);
+    _mm_storeu_ps((float*)value, _mm_add_ps(_mm_add_ps(_p1, delta), tangent));
 }
 
 inline void interpolate_chs(float_t p1, float_t p2,

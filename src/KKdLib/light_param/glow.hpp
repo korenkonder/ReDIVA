@@ -36,14 +36,14 @@ struct light_param_glow {
     bool has_tone_map_method;
     tone_map_method tone_map_method;
     bool has_fade_color;
-    vec4u fade_color;
+    vec4 fade_color;
     int32_t fade_color_blend_func;
     bool has_tone_transform;
     vec3 tone_transform_start;
     vec3 tone_transform_end;
 
     light_param_glow();
-    ~light_param_glow();
+    virtual ~light_param_glow();
 
     void read(const char* path);
     void read(const wchar_t* path);

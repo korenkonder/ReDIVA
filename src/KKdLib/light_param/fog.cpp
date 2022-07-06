@@ -168,9 +168,9 @@ static void light_param_fog_read_inner(light_param_fog* fog, stream& s) {
             group->has_linear = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "color", 5)) {
-            vec4u* color = &group->color;
+            vec4& color = group->color;
             if (buf[5] != ' ' || sscanf_s(buf + 6, "%f %f %f %f",
-                &color->x, &color->y, &color->z, &color->w) != 4)
+                &color.x, &color.y, &color.z, &color.w) != 4)
                 goto End;
 
             group->has_color = true;
@@ -214,12 +214,12 @@ static void light_param_fog_write_inner(light_param_fog* fog, stream& s) {
         }
 
         if (group->has_color) {
-            vec4u* color = &group->color;
+            vec4& color = group->color;
             s.write("color", 5);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), color->x);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), color->y);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), color->z);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), color->w);
+            light_param_fog_write_float_t(s, buf, sizeof(buf), color.x);
+            light_param_fog_write_float_t(s, buf, sizeof(buf), color.y);
+            light_param_fog_write_float_t(s, buf, sizeof(buf), color.z);
+            light_param_fog_write_float_t(s, buf, sizeof(buf), color.w);
             s.write_char('\n');
         }
 

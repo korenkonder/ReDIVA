@@ -175,10 +175,6 @@ void task_stage_set_mat(mat4* mat) {
     task_stage->mat = *mat;
 }
 
-void task_stage_set_mat(mat4u* mat) {
-    task_stage->mat = *mat;
-}
-
 void task_stage_set_stage(task_stage_info* stg_info) {
     stage_detail::TaskStage_SetStage(task_stage, *stg_info);
 }
@@ -343,7 +339,7 @@ static void stage_detail::TaskStage_Reset(stage_detail::TaskStage* a1) {
     a1->field_FB2 = true;
     a1->field_FB3 = true;
     a1->field_FB4 = true;
-    a1->mat = mat4u_identity;
+    a1->mat = mat4_identity;
     a1->field_FF8 = 0.0f;
 }
 
@@ -630,7 +626,7 @@ static void stage_reset(stage* s) {
     s->ring = true;
     s->sky = true;
     s->auth_3d_loaded = 0;
-    s->mat = mat4u_identity;
+    s->mat = mat4_identity;
     s->rot_y = 0.0;
     s->obj_set = -1;
 

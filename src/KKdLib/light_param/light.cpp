@@ -192,42 +192,42 @@ static void light_param_light_read_inner(light_param_light* light, stream& s) {
             light->has_type = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "ambient", 7)) {
-            vec4u* ambient = &light->ambient;
+            vec4& ambient = light->ambient;
             if (buf[7] != ' ' || sscanf_s(buf + 8, "%f %f %f %f",
-                &ambient->x, &ambient->y, &ambient->z, &ambient->w) != 4)
+                &ambient.x, &ambient.y, &ambient.z, &ambient.w) != 4)
                 goto End;
 
             light->has_ambient = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "diffuse", 7)) {
-            vec4u* diffuse = &light->diffuse;
+            vec4& diffuse = light->diffuse;
             if (buf[7] != ' ' || sscanf_s(buf + 8, "%f %f %f %f",
-                &diffuse->x, &diffuse->y, &diffuse->z, &diffuse->w) != 4)
+                &diffuse.x, &diffuse.y, &diffuse.z, &diffuse.w) != 4)
                 goto End;
 
             light->has_diffuse = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "specular", 8)) {
-            vec4u* specular = &light->specular;
+            vec4& specular = light->specular;
             if (buf[8] != ' ' || sscanf_s(buf + 9, "%f %f %f %f",
-                &specular->x, &specular->y, &specular->z, &specular->w) != 4)
+                &specular.x, &specular.y, &specular.z, &specular.w) != 4)
                 goto End;
 
             light->has_specular = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "position", 8)) {
-            vec3* position = &light->position;
+            vec3& position = light->position;
             float_t position_w = 0.0f;
             if (buf[8] != ' ' || sscanf_s(buf + 9, "%f %f %f %f",
-                &position->x, &position->y, &position->z, &position_w) != 4)
+                &position.x, &position.y, &position.z, &position_w) != 4)
                 goto End;
 
             light->has_position = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "spot_direction", 14)) {
-            vec3* spot_direction = &light->spot_direction;
+            vec3& spot_direction = light->spot_direction;
             if (buf[14] != ' ' || sscanf_s(buf + 15, "%f %f %f",
-                &spot_direction->x, &spot_direction->y, &spot_direction->z) != 3)
+                &spot_direction.x, &spot_direction.y, &spot_direction.z) != 3)
                 goto End;
 
             light->has_spot_direction = true;
@@ -245,9 +245,9 @@ static void light_param_light_read_inner(light_param_light* light, stream& s) {
             light->has_spot_cutoff = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "attenuation", 11)) {
-            vec3* attenuation = &light->attenuation;
+            vec3& attenuation = light->attenuation;
             if (buf[11] != ' ' || sscanf_s(buf + 12, "%f %f %f",
-                &attenuation->x, &attenuation->y, &attenuation->z) != 3)
+                &attenuation.x, &attenuation.y, &attenuation.z) != 3)
                 goto End;
 
             light->has_attenuation = true;
@@ -265,9 +265,9 @@ static void light_param_light_read_inner(light_param_light* light, stream& s) {
             light->has_clip_plane = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "tonecurve", 9)) {
-            vec3* tone_curve = &light->tone_curve;
+            vec3& tone_curve = light->tone_curve;
             if (buf[9] != ' ' || sscanf_s(buf + 10, "%f %f %f",
-                &tone_curve->x, &tone_curve->y, &tone_curve->z) != 3)
+                &tone_curve.x, &tone_curve.y, &tone_curve.z) != 3)
                 goto End;
 
             light->has_tone_curve = true;
@@ -304,51 +304,51 @@ static void light_param_light_write_inner(light_param_light* light, stream& s) {
             }
 
             if (light->has_ambient) {
-                vec4u* ambient = &light->ambient;
+                vec4& ambient = light->ambient;
                 s.write("ambient", 7);
-                light_param_light_write_float_t(s, buf, sizeof(buf), ambient->x);
-                light_param_light_write_float_t(s, buf, sizeof(buf), ambient->y);
-                light_param_light_write_float_t(s, buf, sizeof(buf), ambient->z);
-                light_param_light_write_float_t(s, buf, sizeof(buf), ambient->w);
+                light_param_light_write_float_t(s, buf, sizeof(buf), ambient.x);
+                light_param_light_write_float_t(s, buf, sizeof(buf), ambient.y);
+                light_param_light_write_float_t(s, buf, sizeof(buf), ambient.z);
+                light_param_light_write_float_t(s, buf, sizeof(buf), ambient.w);
                 s.write_char('\n');
             }
 
             if (light->has_diffuse) {
-                vec4u* diffuse = &light->diffuse;
+                vec4& diffuse = light->diffuse;
                 s.write("diffuse", 7);
-                light_param_light_write_float_t(s, buf, sizeof(buf), diffuse->x);
-                light_param_light_write_float_t(s, buf, sizeof(buf), diffuse->y);
-                light_param_light_write_float_t(s, buf, sizeof(buf), diffuse->z);
-                light_param_light_write_float_t(s, buf, sizeof(buf), diffuse->w);
+                light_param_light_write_float_t(s, buf, sizeof(buf), diffuse.x);
+                light_param_light_write_float_t(s, buf, sizeof(buf), diffuse.y);
+                light_param_light_write_float_t(s, buf, sizeof(buf), diffuse.z);
+                light_param_light_write_float_t(s, buf, sizeof(buf), diffuse.w);
                 s.write_char('\n');
             }
 
             if (light->has_specular) {
-                vec4u* specular = &light->specular;
+                vec4& specular = light->specular;
                 s.write("specular", 8);
-                light_param_light_write_float_t(s, buf, sizeof(buf), specular->x);
-                light_param_light_write_float_t(s, buf, sizeof(buf), specular->y);
-                light_param_light_write_float_t(s, buf, sizeof(buf), specular->z);
-                light_param_light_write_float_t(s, buf, sizeof(buf), specular->w);
+                light_param_light_write_float_t(s, buf, sizeof(buf), specular.x);
+                light_param_light_write_float_t(s, buf, sizeof(buf), specular.y);
+                light_param_light_write_float_t(s, buf, sizeof(buf), specular.z);
+                light_param_light_write_float_t(s, buf, sizeof(buf), specular.w);
                 s.write_char('\n');
             }
 
             if (light->has_position) {
-                vec3* position = &light->position;
+                vec3& position = light->position;
                 s.write("position", 8);
-                light_param_light_write_float_t(s, buf, sizeof(buf), position->x);
-                light_param_light_write_float_t(s, buf, sizeof(buf), position->y);
-                light_param_light_write_float_t(s, buf, sizeof(buf), position->z);
+                light_param_light_write_float_t(s, buf, sizeof(buf), position.x);
+                light_param_light_write_float_t(s, buf, sizeof(buf), position.y);
+                light_param_light_write_float_t(s, buf, sizeof(buf), position.z);
                 light_param_light_write_float_t(s, buf, sizeof(buf), 0.0f);
                 s.write_char('\n');
             }
 
             if (light->has_spot_direction) {
-                vec3* spot_direction = &light->spot_direction;
+                vec3& spot_direction = light->spot_direction;
                 s.write("spot_direction", 14);
-                light_param_light_write_float_t(s, buf, sizeof(buf), spot_direction->x);
-                light_param_light_write_float_t(s, buf, sizeof(buf), spot_direction->y);
-                light_param_light_write_float_t(s, buf, sizeof(buf), spot_direction->z);
+                light_param_light_write_float_t(s, buf, sizeof(buf), spot_direction.x);
+                light_param_light_write_float_t(s, buf, sizeof(buf), spot_direction.y);
+                light_param_light_write_float_t(s, buf, sizeof(buf), spot_direction.z);
                 s.write_char('\n');
             }
 
@@ -367,11 +367,11 @@ static void light_param_light_write_inner(light_param_light* light, stream& s) {
             }
 
             if (light->has_attenuation) {
-                vec3* attenuation = &light->attenuation;
+                vec3& attenuation = light->attenuation;
                 s.write("attenuation", 11);
-                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation->x);
-                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation->y);
-                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation->z);
+                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation.x);
+                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation.y);
+                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation.z);
                 s.write_char('\n');
             }
 
@@ -386,11 +386,11 @@ static void light_param_light_write_inner(light_param_light* light, stream& s) {
             }
 
             if (light->has_tone_curve) {
-                vec3* tone_curve = &light->tone_curve;
+                vec3& tone_curve = light->tone_curve;
                 s.write("tonecurve", 10);
-                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve->x);
-                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve->y);
-                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve->z);
+                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve.x);
+                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve.y);
+                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve.z);
                 s.write_char('\n');
             }
 

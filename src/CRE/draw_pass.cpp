@@ -80,6 +80,7 @@ void draw_pass_main(render_context* rctx) {
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     gl_state_enable_depth_test();
+    gl_state_set_depth_func(GL_LEQUAL);
     gl_state_set_depth_mask(GL_TRUE);
     for (int32_t i = DRAW_PASS_SHADOW; i < DRAW_PASS_MAX; i++) {
         rctx->draw_pass.cpu_time[i] = 0.0;
@@ -863,7 +864,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
         gl_state_disable_depth_test();
     }
 
-    Glitter::glt_particle_manager.Disp(DRAW_PASS_3D_OPAQUE);
+    Glitter::glt_particle_manager.DispScenes(Glitter::DISP_OPAQUE);
 
     if (draw_grid_3d)
         draw_pass_3d_grid(rctx);
@@ -897,7 +898,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     gl_state_disable_depth_test();
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-    Glitter::glt_particle_manager.Disp(DRAW_PASS_3D_TRANSPARENT);
+    Glitter::glt_particle_manager.DispScenes(Glitter::DISP_ALPHA);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     if (a1->npr_param == 1) {
@@ -930,7 +931,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     gl_state_disable_depth_test();
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-    Glitter::glt_particle_manager.Disp(DRAW_PASS_3D_TRANSLUCENT);
+    Glitter::glt_particle_manager.DispScenes(Glitter::DISP_NORMAL);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     gl_state_enable_depth_test();

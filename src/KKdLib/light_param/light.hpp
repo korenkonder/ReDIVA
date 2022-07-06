@@ -36,11 +36,11 @@ struct light_param_light_data {
     bool has_type;
     light_type type;
     bool has_ambient;
-    vec4u ambient;
+    vec4 ambient;
     bool has_diffuse;
-    vec4u diffuse;
+    vec4 diffuse;
     bool has_specular;
-    vec4u specular;
+    vec4 specular;
     bool has_position;
     vec3 position;
     bool has_spot_direction;
@@ -73,7 +73,7 @@ struct light_param_light {
     light_param_light_group group[LIGHT_SET_MAX];
 
     light_param_light();
-    ~light_param_light();
+    virtual ~light_param_light();
 
     void read(const char* path);
     void read(const wchar_t* path);

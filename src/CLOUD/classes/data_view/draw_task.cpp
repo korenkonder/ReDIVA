@@ -155,17 +155,15 @@ void data_view_draw_task_imgui(class_data* data) {
                 continue;
             }
 
-            mat4 mat = task->mat;
-
             vec3 trans;
-            mat4_get_translation(&mat, &trans);
+            mat4_get_translation(&task->mat, &trans);
 
             vec3 rot;
-            mat4_get_rotation(&mat, &rot);
+            mat4_get_rotation(&task->mat, &rot);
             vec3_mult_scalar(rot, RAD_TO_DEG_FLOAT, rot);
 
             vec3 scale;
-            mat4_get_scale(&mat, &scale);
+            mat4_get_scale(&task->mat, &scale);
 
             ImGui::Text("Trans: %9.4f %9.4f %9.4f", trans.x, trans.y, trans.z);
             ImGui::Text("  Rot: %9.4f %9.4f %9.4f", rot.x, rot.y, rot.z);

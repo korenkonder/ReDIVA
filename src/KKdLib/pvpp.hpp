@@ -10,34 +10,35 @@
 #include "default.hpp"
 #include "vec.hpp"
 
-enum pvpp_chara_index {
-    PVPP_CHARA_1P = 0,
-    PVPP_CHARA_2P = 1,
-    PVPP_CHARA_3P = 2,
-    PVPP_CHARA_4P = 3,
+enum pvpp_chara_id : uint8_t {
+    PVPP_CHARA_1P    = 0x00,
+    PVPP_CHARA_2P    = 0x01,
+    PVPP_CHARA_3P    = 0x02,
+    PVPP_CHARA_4P    = 0x03,
+    PVPP_CHARA_PNONE = 0xFF,
 };
 
-enum pvpp_chara_type {
-    PVPP_CHARA_MIKU   = 0,
-    PVPP_CHARA_RIN    = 1,
-    PVPP_CHARA_LEN    = 2,
-    PVPP_CHARA_LUKA   = 3,
-    PVPP_CHARA_NERU   = 4,
-    PVPP_CHARA_HAKU   = 5,
-    PVPP_CHARA_KAITO  = 6,
-    PVPP_CHARA_MEIKO  = 7,
-    PVPP_CHARA_SAKINE = 8,
-    PVPP_CHARA_TETO   = 9,
-    PVPP_CHARA_EXTRA  = 10,
-    PVPP_CHARA_STAGE  = 255,
+enum pvpp_chara_index : uint8_t {
+    PVPP_CHARA_MIKU   = 0x00,
+    PVPP_CHARA_RIN    = 0x01,
+    PVPP_CHARA_LEN    = 0x02,
+    PVPP_CHARA_LUKA   = 0x03,
+    PVPP_CHARA_NERU   = 0x04,
+    PVPP_CHARA_HAKU   = 0x05,
+    PVPP_CHARA_KAITO  = 0x06,
+    PVPP_CHARA_MEIKO  = 0x07,
+    PVPP_CHARA_SAKINE = 0x08,
+    PVPP_CHARA_TETO   = 0x09,
+    PVPP_CHARA_EXTRA  = 0x0A,
+    PVPP_CHARA_NONE   = 0xFF,
 };
 
-struct pvpp_a3da {
+struct pvpp_auth_3d {
     uint32_t hash;
     std::string name;
 
-    pvpp_a3da();
-    ~pvpp_a3da();
+    pvpp_auth_3d();
+    ~pvpp_auth_3d();
 };
 
 struct pvpp_object_set {
@@ -48,8 +49,8 @@ struct pvpp_object_set {
     ~pvpp_object_set();
 };
 
-struct pvpp_chara_effect_a3da {
-    pvpp_a3da a3da;
+struct pvpp_chara_effect_auth_3d {
+    pvpp_auth_3d auth_3d;
     pvpp_object_set object_set;
     bool has_object_set;
     uint8_t u00;
@@ -61,23 +62,23 @@ struct pvpp_chara_effect_a3da {
     uint8_t u06;
     uint8_t u07;
 
-    pvpp_chara_effect_a3da();
-    ~pvpp_chara_effect_a3da();
+    pvpp_chara_effect_auth_3d();
+    ~pvpp_chara_effect_auth_3d();
 };
 
 struct pvpp_chara_effect {
-    pvpp_chara_type base_chara;
-    pvpp_chara_index chara_index;
-    std::vector<pvpp_chara_effect_a3da> effect_a3da;
+    pvpp_chara_index base_chara;
+    pvpp_chara_id chara_id;
+    std::vector<pvpp_chara_effect_auth_3d> effect_auth_3d;
 
     pvpp_chara_effect();
     ~pvpp_chara_effect();
 };
 
 struct pvpp_chara_item {
-    std::vector<pvpp_a3da> a3da;
+    std::vector<pvpp_auth_3d> auth_3d;
     std::string bone;
-    vec4u u18;
+    vec4 u18;
 
     pvpp_chara_item();
     ~pvpp_chara_item();
@@ -101,8 +102,8 @@ struct pvpp_motion {
 };
 
 struct pvpp_effect {
-    std::vector<pvpp_a3da> a3da;
-    pvpp_chara_type chara_index;
+    std::vector<pvpp_auth_3d> auth_3d;
+    pvpp_chara_id chara_id;
     std::vector<pvpp_glitter> glitter;
 
     pvpp_effect();
@@ -110,7 +111,7 @@ struct pvpp_effect {
 };
 
 struct pvpp_chara {
-    std::vector<pvpp_a3da> a3da;
+    std::vector<pvpp_auth_3d> auth_3d;
     std::vector<pvpp_chara_item> item;
     pvpp_chara_effect chara_effect;
     bool chara_effect_init;

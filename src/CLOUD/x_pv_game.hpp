@@ -17,8 +17,56 @@
 #include "../KKdLib/pvsr.hpp"
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/auth_3d.hpp"
+#include "../CRE/frame_rate_control.hpp"
 #include "../CRE/task.hpp"
 #include "classes.hpp"
+
+struct x_pv_bar_beat_data {
+    int32_t bar;
+    float_t bar_time;
+    int32_t beat_count;
+    int32_t beat_counter;
+    float_t beat_time[16];
+
+    bool compare_bar_time_less(float_t time);
+};
+
+struct x_pv_bar_beat {
+    float_t curr_time;
+    float_t delta_time;
+    float_t next_bar_time;
+    float_t curr_bar_time;
+    float_t next_beat_time;
+    float_t curr_beat_time;
+    float_t divisor;
+    int32_t bar;
+    int32_t field_20;
+    std::vector<x_pv_bar_beat_data> data;
+
+    x_pv_bar_beat();
+    ~x_pv_bar_beat();
+
+    float_t get_bar_current_frame();
+    float_t get_delta_frame();
+    float_t get_next_beat_time(float_t time);
+    int32_t get_time_bar_beat(int32_t* beat, float_t time);
+    void reset();
+    void reset_time();
+    void set_frame(float_t curr_frame, float_t delta_frame);
+    void set_time(float_t curr_time, float_t delta_time);
+};
+
+class BPMFrameRateControl : public FrameRateControl {
+public:
+    x_pv_bar_beat* bar_beat;
+
+    BPMFrameRateControl();
+    virtual ~BPMFrameRateControl() override;
+
+    virtual float_t GetDeltaFrame() override;
+
+    void Reset();
+};
 
 struct x_pv_game_glitter {
     std::string name;
@@ -96,6 +144,7 @@ struct x_pv_game_stage_effect {
     int32_t prev_stage_effect;
     int32_t stage_effect;
     int32_t next_stage_effect;
+    int32_t bar_count;
 };
 
 struct x_pv_game_stage_effect_init {
@@ -237,6 +286,9 @@ public:
     dsc_data* dsc_data_ptr;
     dsc_data* dsc_data_ptr_end;
 
+    x_pv_bar_beat bar_beat;
+    BPMFrameRateControl frame_rate_control;
+
     std::vector<x_pv_game_stage_effect_init> stage_effects;
     x_pv_game_stage_effect_init* stage_effects_ptr;
     x_pv_game_stage_effect_init* stage_effects_ptr_end;
@@ -252,11 +304,8 @@ public:
     bool pv_end;
     x_pv_play_data playdata[ROB_CHARA_COUNT];
     float_t scene_rot_y;
-    mat4u scene_rot_mat;
+    mat4 scene_rot_mat;
     int32_t branch_mode;
-
-    int64_t prev_bar_point_time;
-    int32_t prev_bpm;
 
     bool pause;
     bool step_frame;
@@ -270,6 +319,7 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
+    virtual void Basic() override;
     virtual void Window() override;
 
     void Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]);

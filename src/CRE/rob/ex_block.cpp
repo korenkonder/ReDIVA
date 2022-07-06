@@ -299,7 +299,7 @@ void RobOsageNodeDataNormalRef::GetMat() {
     vec3 v22;
     vec3 v23;
     if (sub_14053D1B0(&l_trans, &r_trans, &u_trans, &d_trans, &v22, &v21, &v23)) {
-        mat4u mat;
+        mat4 mat;
         mat.row0.x = v23.x;
         mat.row0.y = v21.x;
         mat.row0.z = v22.x;
@@ -364,7 +364,7 @@ void RobOsageNodeData::Reset() {
     normal_ref.d = 0;
     normal_ref.l = 0;
     normal_ref.r = 0;
-    normal_ref.mat = mat4u_identity;
+    normal_ref.mat = mat4_identity;
     skp_osg_node.weight = 1.0f;
     skp_osg_node.inertial_cancel = 0.0f;
     skp_osg_node.coli_r = 0.0f;
@@ -407,7 +407,7 @@ void RobOsageNode::Reset() {
     data_ptr = &data;
     opd_data.clear();
     opd_data.resize(3);
-    mat = mat4u_null;
+    mat = mat4_null;
 }
 
 skin_param_osage_root_coli::skin_param_osage_root_coli() : type(),
@@ -489,12 +489,12 @@ void osage_coli::set(osage_coli* coli, skin_param_osage_root_coli* skp_root_coli
     for (; skp_root_coli->type; coli++, skp_root_coli++) {
         coli->type = skp_root_coli->type;
         coli->radius = skp_root_coli->radius;
-        mat4 mat = mats[skp_root_coli->bone0_index];
-        mat4_mult_vec3_trans(&mat, &skp_root_coli->bone0_pos, &coli->bone0_pos);
+        mat4_mult_vec3_trans(&mats[skp_root_coli->bone0_index],
+            &skp_root_coli->bone0_pos, &coli->bone0_pos);
         if (skp_root_coli->type == SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_CYLINDER
             || skp_root_coli->type == SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_ELLIPSE) {
-            mat = mats[skp_root_coli->bone1_index];
-            mat4_mult_vec3_trans(&mat, &skp_root_coli->bone1_pos, &coli->bone1_pos);
+            mat4_mult_vec3_trans(&mats[skp_root_coli->bone1_index],
+                &skp_root_coli->bone1_pos, &coli->bone1_pos);
             vec3_sub(coli->bone1_pos, coli->bone0_pos, coli->bone_pos_diff);
             vec3_length_squared(coli->bone_pos_diff, coli->bone_pos_diff_length_squared);
             coli->bone_pos_diff_length = sqrtf(coli->bone_pos_diff_length_squared);
@@ -502,7 +502,8 @@ void osage_coli::set(osage_coli* coli, skin_param_osage_root_coli* skp_root_coli
                 coli->type = SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL;
         }
         else if (skp_root_coli->type == SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_PLANE)
-            mat4_mult_vec3(&mat, &skp_root_coli->bone1_pos, &coli->bone1_pos);
+            mat4_mult_vec3(&mats[skp_root_coli->bone0_index],
+                &skp_root_coli->bone1_pos, &coli->bone1_pos);
     }
     coli->type = (skin_param_osage_root_coli_type)0;
 }
@@ -721,7 +722,7 @@ void RobCloth::Disp(mat4* mat, render_context* rctx) {
 }
 
 void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cloth_root* root,
-    obj_skin_block_cloth_node* nodes, mat4u* mats, int32_t a7,
+    obj_skin_block_cloth_node* nodes, mat4* mats, int32_t a7,
     rob_chara_item_equip_object* itm_eq_obj, bone_database* bone_data) {
     this->itm_eq_obj = itm_eq_obj;
     obj* obj = object_storage_get_obj(itm_eq_obj->obj_info);
@@ -1403,9 +1404,7 @@ void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg
             obj_skin_bone* v36 = skin->bones;
             for (uint32_t j = 0; j < skin->bones_count; j++, v36++)
                 if (v36->id == osg_nodes->name_index) {
-                    mat4 mat = skin->bones[j].inv_bind_pose_mat;
-                    mat4_inverse_normalized(&mat, &mat);
-                    v26[i].mat = mat;
+                    mat4_inverse_normalized(&skin->bones[j].inv_bind_pose_mat, &v26[i].mat);
                     break;
                 }
 
@@ -1414,11 +1413,8 @@ void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg
     }
 
     RobOsageNode* v38 = &nodes.back();
-    if (memcmp(&v38->mat, &mat4_null, sizeof(mat4))) {
-        mat4 mat = v38->mat;
-        mat4_translate_mult(&mat, node.length, 0.0f, 0.0f, &mat);
-        node.mat = mat;
-    }
+    if (memcmp(&v38->mat, &mat4_null, sizeof(mat4)))
+        mat4_translate_mult(&v38->mat, node.length, 0.0f, 0.0f, &node.mat);
 }
 
 float_t* RobOsage::LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count) {
@@ -1482,7 +1478,7 @@ void RobOsage::Reset() {
     set_external_force = false;
     external_force = vec3_null;
     parent_mat_ptr = 0;
-    parent_mat = mat4u_null;
+    parent_mat = mat4_null;
 }
 
 void RobOsage::SetAirRes(float_t air_res) {
@@ -2356,7 +2352,7 @@ void ExExpressionBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
 
     for (int32_t i = 0; i < 9; i++) {
         const char* expression = exp_data->expressions[i];
-        if (!expression || str_utils_compare(expression, "= "))
+        if (!expression || str_utils_compare_length(expression, utf8_length(expression), "= ", 2))
             break;
 
         expression += 2;
@@ -2716,6 +2712,67 @@ void skin_param_osage_root_parse(void* kv, const char* name,
 
     _kv->close_scope();
     _kv->close_scope();
+}
+
+int32_t expression_id_to_mottbl_index(int32_t expression_id) {
+    static const int32_t expression_id_to_mottbl_index_table[] = {
+         11,  15,  57,  19,  23,  25,  29,  33,
+         37,  41,  45,  49,  53,  65,   7,  69,
+         73,  77,  81,  85,  89,   7,  61,   6,
+        214, 215, 216, 217, 218, 219, 220, 221,
+        222, 223,  93,  95,  97,  99, 101, 103,
+        105, 107, 109, 111, 113, 115, 117, 119,
+        121, 123, 125, 127,  13,  21,  31,  39,
+         43,  47,  51,  55,  67,  71,  79,  83,
+        129,  59,  17,  91,  27,  87,  35,  75,
+          9,  63, 236, 238, 240, 242,
+    };
+
+    if (expression_id >= 0 && expression_id
+        < sizeof(expression_id_to_mottbl_index_table) / sizeof(int32_t))
+        return expression_id_to_mottbl_index_table[expression_id];
+    return 6;
+}
+
+int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id) {
+    static const int32_t hand_anim_id_to_mottbl_index_table[] = {
+        195, 196, 194, 197, 201, 198, 199, 202,
+        203, 192, 200, 204, 204, 204, 193,
+    };
+
+    if (hand_anim_id >= 0 && hand_anim_id
+        < sizeof(hand_anim_id_to_mottbl_index_table) / sizeof(int32_t))
+        return hand_anim_id_to_mottbl_index_table[hand_anim_id];
+    return 192;
+}
+
+int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id) {
+    static const int32_t look_anim_id_to_mottbl_index_table[] = {
+        168, 170, 174, 172, 178, 176, 182, 180,
+        166, 165, 224, 169, 171, 175, 173, 179,
+        177, 183, 181, 167,
+    };
+
+    if (look_anim_id >= 0 && look_anim_id
+        < sizeof(look_anim_id_to_mottbl_index_table) / sizeof(int32_t))
+        return look_anim_id_to_mottbl_index_table[look_anim_id];
+    return 165;
+}
+
+int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id) {
+    static const int32_t mouth_anim_id_to_mottbl_index_table[] = {
+        134, 140, 142, 146, 144, 148, 150, 152,
+        132, 131, 136, 138, 154, 155, 156, 157,
+        158, 159, 160, 161, 162, 163, 164, 151,
+        135, 143, 147, 145, 133, 137, 139, 141,
+        149, 153, 244, 245, 246, 247, 248, 249,
+        250, 251, 252,
+    };
+
+    if (mouth_anim_id >= 0 && mouth_anim_id
+        < sizeof(mouth_anim_id_to_mottbl_index_table) / sizeof(int32_t))
+        return mouth_anim_id_to_mottbl_index_table[mouth_anim_id];
+    return 131;
 }
 
 osage_setting::osage_setting() {
@@ -3120,9 +3177,8 @@ static void sub_1402196D0(RobCloth* rob_cls) {
     for (size_t i = 0; i < root_count; i++, root++) {
         CLOTHNode* node = &rob_cls->nodes.data()[i + root_count];
         for (size_t j = 1; j < nodes_count; j++, node += root_count) {
-            mat4 mat = root->field_D8;
-            mat4_mult_vec3_trans(&mat, &node->reset_data.trans, &node->trans);
-            mat4_mult_vec3(&mat, &node->reset_data.trans_diff, &node->trans_diff);
+            mat4_mult_vec3_trans(&root->field_D8, &node->reset_data.trans, &node->trans);
+            mat4_mult_vec3(&root->field_D8, &node->reset_data.trans_diff, &node->trans_diff);
         }
     }
 }
@@ -3391,7 +3447,7 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
             vec3_mult_scalar(v44, v10, node->trans_diff);
 
             if (!a3) {
-                mat4 v49 = rob_cls->root.data()[j].field_118;
+                mat4& v49 = rob_cls->root.data()[j].field_118;
                 mat4_mult_vec3_trans(&v49, &node->trans, &node->reset_data.trans);
                 mat4_mult_vec3(&v49, &node->trans_diff, &node->reset_data.trans_diff);
             }

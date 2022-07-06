@@ -111,25 +111,23 @@ struct shader_state_point {
 };
 
 struct shader_state_texgen {
-    union {
-        vec4 eye[4];
-        struct {
-            vec4 eye_s;
-            vec4 eye_t;
-            vec4 eye_r;
-            vec4 eye_q;
-        };
-    };
+    struct eye {
+        vec4 s;
+        vec4 t;
+        vec4 r;
+        vec4 q;
 
-    union {
-        vec4 object[4];
-        struct {
-            vec4 object_s;
-            vec4 object_t;
-            vec4 object_r;
-            vec4 object_q;
-        };
-    };
+        eye();
+    } eye;
+
+    struct object {
+        vec4 s;
+        vec4 t;
+        vec4 r;
+        vec4 q;
+
+        object();
+    } object;
 
     shader_state_texgen();
 };
@@ -189,11 +187,11 @@ struct shader_data {
 struct shader;
 struct shader_set_data;
 
-typedef void (*PFNSHADERPERMUTBINDFUNCPROC)(shader_set_data* set, shader* shad);
+typedef void (*PFNSHADERBINDFUNCPROC)(shader_set_data* set, shader* shad);
 
 struct shader_bind_func {
     uint32_t index;
-    PFNSHADERPERMUTBINDFUNCPROC bind_func;
+    PFNSHADERBINDFUNCPROC bind_func;
 };
 
 struct shader_sub {
@@ -213,7 +211,7 @@ struct shader_sub_table {
 
 struct shader_table {
     const char* name;
-    uint32_t index;
+    uint32_t name_index;
     int32_t num_sub;
     const shader_sub_table* sub;
     int32_t num_uniform;
@@ -223,13 +221,13 @@ struct shader_table {
 
 struct shader {
     const char* name;
-    uint32_t index;
+    uint32_t name_index;
     int32_t num_sub;
     shader_sub* sub;
     int32_t num_uniform;
     const uniform_name* use_uniform;
     const bool* use_permut;
-    PFNSHADERPERMUTBINDFUNCPROC bind_func;
+    PFNSHADERBINDFUNCPROC bind_func;
 
     int32_t bind(uint32_t sub_index);
     static void unbind();

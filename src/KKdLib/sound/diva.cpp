@@ -8,6 +8,12 @@
 #include "../io/stream.hpp"
 #include "../str_utils.hpp"
 
+struct ima_storage {
+    int32_t step_index;
+    int32_t current;
+    int32_t current_clamp;
+};
+
 static const int8_t ima_index_table[] = {
     -1, -1, -1, -1, 2, 4, 6, 8,
 };
@@ -29,8 +35,8 @@ static const int16_t ima_step_table[] = {
 
 static void diva_read_wav(diva* d, const wchar_t* path, float_t** data);
 static void diva_write_wav(diva* d, const wchar_t* path, float_t* data);
-static void ima_decode(uint8_t value, int32_t* current, int32_t* current_clamp, int8_t* step_index);
-static uint8_t ima_encode(int32_t sample, int32_t* current, int32_t* current_clamp, int8_t* step_index);
+static void ima_decode(uint8_t value, ima_storage* storage);
+static uint8_t ima_encode(int32_t sample, ima_storage* storage);
 
 diva* diva_init() {
     diva* d = force_malloc_s(diva, 1);
@@ -68,9 +74,7 @@ void diva_read(diva* d, const wchar_t* path) {
         size_t samples_count = d->samples_count;
 
         float_t* data = force_malloc_s(float_t, samples_count * ch);
-        int32_t* current = force_malloc_s(int32_t, ch);
-        int32_t* current_clamp = force_malloc_s(int32_t, ch);
-        int8_t* step_index = force_malloc_s(int8_t, ch);
+        ima_storage* storage = force_malloc_s(ima_storage, ch);
 
         float_t* temp_data = data;
         for (size_t i = 0; i < samples_count; i++)
@@ -79,12 +83,10 @@ void diva_read(diva* d, const wchar_t* path) {
                     value = s.read_uint8_t();
 
                 nibble = (current_sample & 1 ? value : value >> 4) & 0x0F;
-                ima_decode(nibble, current + c, current_clamp + c, step_index + c);
-                *temp_data++ = (float_t)(current[c] / 32768.0);
+                ima_decode(nibble, &storage[c]);
+                *temp_data++ = (float_t)(storage[c].current / 32768.0);
             }
-        free(step_index);
-        free(current_clamp);
-        free(current);
+        free(storage);
 
         diva_write_wav(d, path, data);
         free(data);
@@ -129,15 +131,12 @@ void diva_write(diva* d, const wchar_t* path) {
         size_t ch = d->channels;
         size_t samples_count = d->samples_count;
 
-        int32_t* current = force_malloc_s(int32_t, ch);
-        int32_t* current_clamp = force_malloc_s(int32_t, ch);
-        int8_t* step_index = force_malloc_s(int8_t, ch);
+        ima_storage* storage = force_malloc_s(ima_storage, ch);
 
         float_t* temp_data = data;
         for (size_t i = 0; i < samples_count; i++)
             for (size_t c = 0; c < ch; c++, current_sample++) {
-                nibble = ima_encode((int32_t)round(*temp_data++ * 32768.0),
-                    current + c, current_clamp + c, step_index + c);
+                nibble = ima_encode((int32_t)round(*temp_data++ * 32768.0), &storage[c]);
                 value |= current_sample & 1 ? nibble : nibble << 4;
                 if (current_sample & 1) {
                     s.write_uint8_t(value);
@@ -147,9 +146,7 @@ void diva_write(diva* d, const wchar_t* path) {
 
         if (current_sample & 1)
             s.write_uint8_t(value);
-        free(step_index);
-        free(current_clamp);
-        free(current);
+        free(storage);
     }
     free(path_diva);
     free(data);
@@ -184,10 +181,10 @@ static void diva_write_wav(diva* d, const wchar_t* path, float_t* data) {
     free(path_av);
 }
 
-static void ima_decode(uint8_t value, int32_t* current, int32_t* current_clamp, int8_t* step_index) {
-    int32_t c = *current;
-    int32_t cc = *current_clamp;
-    int32_t si = *step_index;
+static void ima_decode(uint8_t value, ima_storage* storage) {
+    int32_t c = storage->current;
+    int32_t cc = storage->current_clamp;
+    int32_t si = storage->step_index;
     int16_t step = ima_step_table[si];
 
     int32_t diff = step >> 3;
@@ -213,15 +210,15 @@ static void ima_decode(uint8_t value, int32_t* current, int32_t* current_clamp, 
         si = 0;
     if (si > 88)
         si = 88;
-    *current = c;
-    *current_clamp = cc;
-    *step_index = si;
+    storage->current = c;
+    storage->current_clamp = cc;
+    storage->step_index = si;
 }
 
-static uint8_t ima_encode(int32_t sample, int32_t* current, int32_t* current_clamp, int8_t* step_index) {
-    int32_t c = *current;
-    int32_t cc = *current_clamp;
-    int32_t si = *step_index;
+static uint8_t ima_encode(int32_t sample, ima_storage* storage) {
+    int32_t c = storage->current;
+    int32_t cc = storage->current_clamp;
+    int32_t si = storage->step_index;
     uint8_t value = 0;
     int16_t step = ima_step_table[si];
 
@@ -270,8 +267,8 @@ static uint8_t ima_encode(int32_t sample, int32_t* current, int32_t* current_cla
         si = 0;
     if (si > 88)
         si = 88;
-    *current = c;
-    *current_clamp = cc;
-    *step_index = si;
+    storage->current = c;
+    storage->current_clamp = cc;
+    storage->step_index = si;
     return value;
 }

@@ -115,7 +115,7 @@ bool auth_3d_database_file::load_file(void* data, const char* path, const char* 
     return auth_3d_db->ready;
 }
 
-auth_3d_database::auth_3d_database() : ready() {
+auth_3d_database::auth_3d_database() {
 
 }
 
@@ -123,10 +123,18 @@ auth_3d_database::~auth_3d_database() {
 
 }
 
+void auth_3d_database::add(auth_3d_database_file* auth_3d_db_file) {
+    if (!auth_3d_db_file || !auth_3d_db_file->ready )
+        return;
+
+    auth_3d_database_load_categories(this, auth_3d_db_file, false);
+    auth_3d_database_load_uids(this, auth_3d_db_file, false);
+}
+
 int32_t auth_3d_database::get_category_index(const char* name) {
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (auth_3d_database_category i : category)
-        if (hash_string_murmurhash(&i.name) == name_hash)
+        if (i.name_hash == name_hash)
             return (int32_t)(&i - category.data());
     return -1;
 }
@@ -136,7 +144,7 @@ void auth_3d_database::get_category_uids(const char* name, std::vector<int32_t>&
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (auth_3d_database_category& i : category)
-        if (hash_string_murmurhash(&i.name) == name_hash) {
+        if (i.name_hash == name_hash) {
             uid = i.uid;
             return;
         }
@@ -145,36 +153,14 @@ void auth_3d_database::get_category_uids(const char* name, std::vector<int32_t>&
 int32_t auth_3d_database::get_uid(const char* name) {
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (auth_3d_database_uid& i : uid)
-        if (hash_string_murmurhash(&i.name) == name_hash)
+        if (i.name_hash == name_hash)
             return (int32_t)(&i - uid.data());
     return -1;
 }
 
-void auth_3d_database::merge_mdata(auth_3d_database_file* base_auth_3d_db,
-    auth_3d_database_file* mdata_auth_3d_db) {
-    if (!base_auth_3d_db || !mdata_auth_3d_db
-        || !base_auth_3d_db->ready || !mdata_auth_3d_db->ready)
-        return;
-
-    auth_3d_database_load_categories(this, base_auth_3d_db, false);
-    auth_3d_database_load_uids(this, base_auth_3d_db, false);
-
-    auth_3d_database_load_categories(this, mdata_auth_3d_db, true);
-    auth_3d_database_load_uids(this, mdata_auth_3d_db, true);
-
-    ready = true;
-}
-
-void auth_3d_database::split_mdata(auth_3d_database_file* base_auth_3d_db,
-    auth_3d_database_file* mdata_auth_3d_db) {
-    if (!base_auth_3d_db || !mdata_auth_3d_db
-        || !ready || !base_auth_3d_db->ready)
-        return;
-
-}
-
 auth_3d_database_uid::auth_3d_database_uid() : enabled(), org_uid(), size() {
-
+    category_hash = hash_murmurhash_empty;
+    name_hash = hash_murmurhash_empty;
 }
 
 auth_3d_database_uid::~auth_3d_database_uid() {
@@ -190,7 +176,7 @@ auth_3d_database_uid_file::~auth_3d_database_uid_file() {
 }
 
 auth_3d_database_category::auth_3d_database_category() {
-
+    name_hash = hash_murmurhash_empty;
 }
 
 auth_3d_database_category::~auth_3d_database_category() {
@@ -219,6 +205,7 @@ static void auth_3d_database_load_categories(auth_3d_database* auth_3d_db,
 
         auth_3d_database_category cat;
         cat.name = category_file[i];
+        cat.name_hash = hash_string_murmurhash(cat.name);
         category.push_back(cat);
     }
 }
@@ -263,7 +250,9 @@ static void auth_3d_database_load_uids(auth_3d_database* auth_3d_db,
                 uid->enabled = true;
 
             uid->name = uid_file->value.substr(2, uid_file->value.size() - 2);
+            uid->name_hash = hash_string_murmurhash(uid->name);
             uid->category = uid_file->category;
+            uid->category_hash = hash_string_murmurhash(uid->category);
         }
 
         if (uid->enabled) {

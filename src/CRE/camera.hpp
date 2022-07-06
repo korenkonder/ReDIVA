@@ -76,10 +76,8 @@ struct camera {
     void set_fast_change_hist0(bool value);
     void set_fast_change_hist1(bool value);
     void reset();
-    void move(vec2d& move);
-    void move(vec2d&& move);
-    void rotate(vec2d& rotate);
-    void rotate(vec2d&& rotate);
+    void move(double_t move_x, double_t move_y);
+    void rotate(double_t rotate_x, double_t rotate_y);
     void set(const vec3& view_point, const vec3& interest,
         const vec3& trans, const vec3& rot, const vec3& scale, double_t roll, double_t fov);
     void set(const vec3&& view_point, const vec3&& interest,

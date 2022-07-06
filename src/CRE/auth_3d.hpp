@@ -214,7 +214,7 @@ struct auth_3d_rgba {
     auth_3d_key b;
     auth_3d_key a;
 
-    vec4u value;
+    vec4 value;
 
     auth_3d_rgba();
     ~auth_3d_rgba();
@@ -236,7 +236,7 @@ struct auth_3d_vec3 {
 };
 
 struct auth_3d_model_transform {
-    mat4u mat;
+    mat4 mat;
     auth_3d_vec3 scale;
     auth_3d_vec3 rotation;
     auth_3d_vec3 translation;
@@ -382,7 +382,7 @@ struct auth_3d_fog {
     float_t end_value;
     float_t start_value;
 
-    vec4u color_init;
+    vec4 color_init;
     float_t density_init;
     float_t end_init;
     float_t start_init;
@@ -420,16 +420,16 @@ struct auth_3d_light {
     float_t linear_value;
     float_t quadratic_value;
 
-    vec4u ambient_init;
+    vec4 ambient_init;
     float_t cone_angle_init;
     float_t constant_init;
-    vec4u diffuse_init;
+    vec4 diffuse_init;
     float_t drop_off_init;
     float_t far_init;
     float_t intensity_init;
     float_t linear_init;
     float_t quadratic_init;
-    vec4u specular_init;
+    vec4 specular_init;
     vec3 tone_curve_init;
 
     auth_3d_light();
@@ -439,9 +439,9 @@ struct auth_3d_light {
 };
 
 struct auth_3d_object_model_transform {
-    mat4u mat;
-    mat4u mat_inner;
-    mat4u mat_rot;
+    mat4 mat;
+    mat4 mat_inner;
+    mat4 mat_rot;
     auth_3d_vec3 translation;
     auth_3d_vec3 rotation;
     auth_3d_vec3 scale;
@@ -569,7 +569,7 @@ struct auth_3d_object_node {
     auth_3d_object_node_flags flags;
     int32_t bone_id;
     vec3 joint_orient;
-    mat4u joint_orient_mat;
+    mat4 joint_orient_mat;
     mat4* mat;
     auth_3d_object_model_transform model_transform;
     std::string name;
@@ -596,7 +596,7 @@ struct auth_3d_object_texture_transform {
     auth_3d_object_texture_transform_flags flags;
     auth_3d_key coverage_u;
     auth_3d_key coverage_v;
-    mat4u mat;
+    mat4 mat;
     std::string name;
     auth_3d_key offset_u;
     auth_3d_key offset_v;
@@ -657,7 +657,7 @@ struct auth_3d_post_process {
     float_t lens_ghost_init;
     float_t lens_shaft_init;
     vec3 radius_init;
-    vec4u scene_fade_init;
+    vec4 scene_fade_init;
 
     auth_3d_post_process();
     ~auth_3d_post_process();
@@ -675,7 +675,7 @@ struct auth_3d {
     bool ended;
     bool left_right_reverse;
     bool once;
-    mat4u mat;
+    mat4 mat;
     float_t alpha;
     draw_task_flags draw_task_flags;
     int32_t chara_id;

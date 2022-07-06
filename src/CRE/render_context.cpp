@@ -65,8 +65,8 @@ has_blend_color(), emission(), has_emission() {
     hash = (uint32_t)-1;
 }
 
-material_list_struct::material_list_struct(uint32_t hash, vec4u& blend_color,
-    vec4u8& has_blend_color, vec4u& emission, vec4u8& has_emission) : hash(hash), blend_color(blend_color),
+material_list_struct::material_list_struct(uint32_t hash, vec4& blend_color,
+    vec4u8& has_blend_color, vec4& emission, vec4u8& has_emission) : hash(hash), blend_color(blend_color),
     has_blend_color(has_blend_color), emission(emission), has_emission(has_emission) {
 
 }
@@ -81,10 +81,10 @@ texture_pattern_struct::texture_pattern_struct(texture_id src, texture_id dst) :
 
 texture_transform_struct::texture_transform_struct() {
     id = (uint32_t)-1;
-    mat = mat4u_identity;
+    mat = mat4_identity;
 }
 
-texture_transform_struct::texture_transform_struct(uint32_t id, mat4u& mat) : id(id), mat(mat) {
+texture_transform_struct::texture_transform_struct(uint32_t id, mat4& mat) : id(id), mat(mat) {
 
 }
 
@@ -212,7 +212,7 @@ draw_task* object_data_buffer::add_draw_task(draw_task_type type) {
     if (!data)
         return 0;
 
-    int32_t size = align_val(sizeof(draw_task_type) + sizeof(mat4u) + sizeof(float_t) * 2, 0x08);
+    int32_t size = align_val(sizeof(draw_task_type) + sizeof(mat4) + sizeof(float_t) * 2, 0x08);
     switch (type) {
     case DRAW_TASK_TYPE_OBJECT:
         size += sizeof(draw_object);
@@ -240,15 +240,15 @@ draw_task* object_data_buffer::add_draw_task(draw_task_type type) {
     return task;
 }
 
-mat4u* object_data_buffer::add_mat4(int32_t count) {
+mat4* object_data_buffer::add_mat4(int32_t count) {
     if (!data)
         return 0;
 
-    int32_t size = sizeof(mat4u) * count;
+    int32_t size = sizeof(mat4) * count;
     if (offset + size > this->size)
         return 0;
 
-    mat4u* mats = (mat4u*)((size_t)data + offset);
+    mat4* mats = (mat4*)((size_t)data + offset);
     offset += size;
     if (max_offset < offset)
         max_offset = offset;
@@ -285,10 +285,10 @@ bool object_data::get_chara_color() {
     return draw_task_flags;
 }
 
-void object_data::get_material_list(int32_t* count, material_list_struct* value) {
-    *count = material_list_count;
+void object_data::get_material_list(int32_t& count, material_list_struct*& value) {
+    count = material_list_count;
 
-    for (int32_t i = 0; i < *count; i++)
+    for (int32_t i = 0; i < count; i++)
         value[i] = material_list_array[i];
 }
 
@@ -301,33 +301,33 @@ shadow_type_enum object_data::get_shadow_type() {
     return shadow_type;
 }
 
-void object_data::get_texture_color_coeff(vec4* value) {
-    *value = texture_color_coeff;
+void object_data::get_texture_color_coeff(vec4& value) {
+    value = texture_color_coeff;
 }
 
-void object_data::get_texture_color_offset(vec4* value) {
-    *value = texture_color_offset;
+void object_data::get_texture_color_offset(vec4& value) {
+    value = texture_color_offset;
 }
 
-void object_data::get_texture_pattern(int32_t* count, texture_pattern_struct* value) {
-    *count = texture_pattern_count;
+void object_data::get_texture_pattern(int32_t& count, texture_pattern_struct*& value) {
+    count = texture_pattern_count;
 
-    for (int32_t i = 0; i < *count; i++)
+    for (int32_t i = 0; i < count; i++)
         value[i] = texture_pattern_array[i];
 }
 
-void object_data::get_texture_specular_coeff(vec4* value) {
-    *value = texture_specular_coeff;
+void object_data::get_texture_specular_coeff(vec4& value) {
+    value = texture_specular_coeff;
 }
 
-void object_data::get_texture_specular_offset(vec4* value) {
-    *value = texture_specular_offset;
+void object_data::get_texture_specular_offset(vec4& value) {
+    value = texture_specular_offset;
 }
 
-void object_data::get_texture_transform(int32_t* count, texture_transform_struct* value) {
-    *count = texture_transform_count;
+void object_data::get_texture_transform(int32_t& count, texture_transform_struct*& value) {
+    count = texture_transform_count;
 
-    for (int32_t i = 0; i < *count; i++)
+    for (int32_t i = 0; i < count; i++)
         value[i] = texture_transform_array[i];
 }
 
@@ -395,12 +395,12 @@ void object_data::set_shadow_type(shadow_type_enum type) {
         shadow_type = type;
 }
 
-void object_data::set_texture_color_coeff(vec4* value) {
-    texture_color_coeff = *value;
+void object_data::set_texture_color_coeff(vec4& value) {
+    texture_color_coeff = value;
 }
 
-void object_data::set_texture_color_offset(vec4* value) {
-    texture_color_offset = *value;
+void object_data::set_texture_color_offset(vec4& value) {
+    texture_color_offset = value;
 }
 
 void object_data::set_texture_pattern(int32_t count, texture_pattern_struct* value) {
@@ -417,12 +417,12 @@ void object_data::set_texture_pattern(int32_t count, texture_pattern_struct* val
             texture_pattern_array[i] = {};
 }
 
-void object_data::set_texture_specular_coeff(vec4* value) {
-    texture_specular_coeff = *value;
+void object_data::set_texture_specular_coeff(vec4& value) {
+    texture_specular_coeff = value;
 }
 
-void object_data::set_texture_specular_offset(vec4* value) {
-    texture_specular_offset = *value;
+void object_data::set_texture_specular_offset(vec4& value) {
+    texture_specular_offset = value;
 }
 
 void object_data::set_texture_transform(int32_t count, texture_transform_struct* value) {
@@ -495,8 +495,6 @@ void render_context::ctrl() {
         rob_chara_set_frame(&rob_chara_array[i], rob_frame);
         rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
     }*/
-
-    Glitter::glt_particle_manager.rctx = this;
 
     rctx_ptr = this;
     app::TaskWork::Ctrl();

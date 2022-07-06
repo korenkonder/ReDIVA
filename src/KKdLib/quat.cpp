@@ -114,7 +114,7 @@ void quat_from_mat3(float_t m00, float_t m01, float_t m02, float_t m10,
     }
 }
 
-void quat_from_axis_angle(const vec3* axis, const float_t angle, quat* quat) {
+inline void quat_from_axis_angle(const vec3* axis, const float_t angle, quat* quat) {
     float_t angle_sin;
     float_t angle_cos;
     vec3 _axis;

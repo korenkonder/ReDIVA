@@ -9,6 +9,23 @@
 #include <vector>
 #include "../default.hpp"
 
+struct motion_info_file {
+    std::string name;
+    uint32_t id;
+
+    motion_info_file();
+    ~motion_info_file();
+};
+
+struct motion_set_info_file {
+    std::string name;
+    uint32_t id;
+    std::vector<motion_info_file> motion;
+
+    motion_set_info_file();
+    ~motion_set_info_file();
+};
+
 struct motion_info {
     std::string name;
     uint32_t name_hash;
@@ -28,14 +45,14 @@ struct motion_set_info {
     ~motion_set_info();
 };
 
-struct motion_database {
+struct motion_database_file {
     bool ready;
 
     std::vector<std::string> bone_name;
-    std::vector<motion_set_info> motion_set;
+    std::vector<motion_set_info_file> motion_set;
 
-    motion_database();
-    ~motion_database();
+    motion_database_file();
+    virtual ~motion_database_file();
 
     void read(const char* path);
     void read(const wchar_t* path);
@@ -44,8 +61,17 @@ struct motion_database {
     void write(const wchar_t* path);
     void write(void** data, size_t* size);
 
-    void merge_mdata(motion_database* base_mot_db, motion_database* mdata_mot_db);
-    void split_mdata(motion_database* base_mot_db, motion_database* mdata_mot_db);
+    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+};
+
+struct motion_database {
+    std::vector<std::string> bone_name;
+    std::vector<motion_set_info> motion_set;
+
+    motion_database();
+    virtual ~motion_database();
+
+    void add(motion_database_file* mot_db_file);
 
     motion_set_info* get_motion_set_by_id(uint32_t id);
     motion_set_info* get_motion_set_by_name(const char* name);
@@ -59,6 +85,4 @@ struct motion_database {
     motion_info* get_motion_by_name(const char* name);
     uint32_t get_motion_id(const char* name);
     const char* get_motion_name(uint32_t id);
-
-    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };

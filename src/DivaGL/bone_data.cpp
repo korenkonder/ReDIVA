@@ -93,14 +93,14 @@ static bone_data* bone_data_init(bone_data* bone) {
     bone->ik_target = vec3_null;
     bone->trans = vec3_null;
     for (int32_t i = 0; i < 2; i++)
-        bone->rot_mat[i] = mat4u_null;
+        bone->rot_mat[i] = mat4_null;
 
     for (int32_t i = 0; i < 2; i++)
         bone->trans_prev[i] = vec3_null;
 
     for (int32_t i = 0; i < 2; i++)
         for (int32_t j = 0; j < 3; j++)
-            bone->rot_mat_prev[i][j] = mat4u_null;
+            bone->rot_mat_prev[i][j] = mat4_null;
 
     bone->pole_target_mat = 0;
     bone->parent_mat = 0;
@@ -816,7 +816,7 @@ static void sub_140414900(struc_308* a1, mat4* mat) {
         a1->field_8C = true;
     }
     else {
-        a1->mat = mat4u_identity;
+        a1->mat = mat4_identity;
         a1->field_8C = false;
     }
 }
@@ -1234,12 +1234,12 @@ static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
 
     if (a1->type == BONE_DATABASE_BONE_POSITION) {
         mat4_translate_mult(&mat, a1->trans.x, a1->trans.y, a1->trans.z, &mat);
-        a1->rot_mat[0] = mat4u_identity;
+        a1->rot_mat[0] = mat4_identity;
     }
     else if (a1->type == BONE_DATABASE_BONE_TYPE_1) {
         mat4_mult_vec3_inv_trans(&mat, &a1->trans, &a1->trans);
         mat4_translate_mult(&mat, a1->trans.x, a1->trans.y, a1->trans.z, &mat);
-        a1->rot_mat[0] = mat4u_identity;
+        a1->rot_mat[0] = mat4_identity;
     }
     else {
         mat4 rot_mat;
@@ -1310,7 +1310,7 @@ void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool a4) {
                     mat4_transpose(&rot_mat, &a1->rot_mat[0]);
                 }
                 else
-                    a1->rot_mat[0] = mat4u_identity;
+                    a1->rot_mat[0] = mat4_identity;
             }
         }
 
@@ -1382,7 +1382,7 @@ void bone_data_mult_2(rob_chara_bone_data* rob_bone_data, mat4* mat) {
 static void sub_140413EB0(struc_308* a1) {
     a1->field_8C = false;
     a1->field_4C = a1->mat;
-    a1->mat = mat4u_identity;
+    a1->mat = mat4_identity;
 }
 
 static void sub_1404117F0(motion_blend_mot* a1) {
@@ -1409,9 +1409,9 @@ static void sub_14040FBF0(motion_blend_mot* a1, float_t a2) {
     mat4_transpose(&b_kl_hara_etc->rot_mat[0], &mat);
     mat4_mult(&mat, &rot_mat, &rot_mat);
     mat4_transpose(&rot_mat, &b_n_hara_cp->rot_mat[0]);
-    b_kg_hara_y->rot_mat[0] = mat4u_identity;
-    b_kl_hara_xz->rot_mat[0] = mat4u_identity;
-    b_kl_hara_etc->rot_mat[0] = mat4u_identity;
+    b_kg_hara_y->rot_mat[0] = mat4_identity;
+    b_kl_hara_xz->rot_mat[0] = mat4_identity;
+    b_kl_hara_etc->rot_mat[0] = mat4_identity;
 
     float_t v8 = a1->field_4F8.field_C0;
     float_t v9 = a1->field_4F8.field_C4;
@@ -2128,8 +2128,8 @@ static void bone_data_parent_reset(bone_data_parent* a1) {
 static void sub_140413470(struc_308* a1) {
     a1->field_0 = 0;
     a1->field_8 = 0;
-    a1->mat = mat4u_identity;
-    a1->field_4C = mat4u_identity;
+    a1->mat = mat4_identity;
+    a1->field_4C = mat4_identity;
     a1->field_8C = false;
     a1->rot_y = 0.0f;
     a1->prev_rot_y = 0.0f;
@@ -2221,7 +2221,7 @@ static void mot_blend_reset(mot_blend* a1) {
 
 static void sub_1404198D0(struc_258* a1) {
     a1->field_0 = 0;
-    a1->field_8 = mat4u_identity;
+    a1->field_8 = mat4_identity;
     a1->field_48.field_0 = 0.0f;
     a1->field_48.field_4 = 0.0f;
     a1->field_48.field_8 = 0.0f;
@@ -2255,8 +2255,8 @@ static void sub_1404198D0(struc_258* a1) {
     a1->field_B0 = 0.0f;
     a1->field_B4 = vec3_null;
     a1->field_C0 = vec3_null;
-    a1->field_CC = mat4u_identity;
-    a1->field_10C = mat4u_identity;
+    a1->field_CC = mat4_identity;
+    a1->field_10C = mat4_identity;
     a1->field_14C = 0;
     a1->field_150 = 0;
     a1->field_158 = 0.0f;
@@ -3083,7 +3083,7 @@ static void bone_data_parent_load_bone_indices_from_mot(bone_data_parent* a1, mo
 static void sub_140413C30(struc_308* a1) {
     a1->field_8C = false;
     a1->field_4C = a1->mat;
-    a1->mat = mat4u_identity;
+    a1->mat = mat4_identity;
 }
 
 static void motion_blend_mot_load_file(motion_blend_mot* a1,
@@ -3709,7 +3709,7 @@ static void rob_osage_node_data_init(rob_osage_node_data *node_data) {
     node_data->normal_ref.d = 0;
     node_data->normal_ref.l = 0;
     node_data->normal_ref.r = 0;
-    node_data->normal_ref.mat = mat4u_identity;
+    node_data->normal_ref.mat = mat4_identity;
 }
 
 static void rob_osage_node_init(rob_osage_node* node) {
@@ -3738,7 +3738,7 @@ static void rob_osage_node_init(rob_osage_node* node) {
     node->data_ptr = &node->data;
     node->opd_data.end = node->opd_data.begin;
     sub_14021DCC0(&node->opd_data, 3);
-    node->mat = mat4u_null;
+    node->mat = mat4_null;
 }
 
 static void skin_param_init(skin_param* skp) {
@@ -3788,7 +3788,7 @@ static void rob_osage_init(rob_osage* rob_osg) {
     rob_osg->set_external_force = false;
     rob_osg->external_force = vec3_null;
     rob_osg->parent_mat_ptr = 0;
-    rob_osg->parent_mat = mat4u_null;
+    rob_osg->parent_mat = mat4_null;
 }
 
 static void rob_osage_node_free(rob_osage_node* node) {

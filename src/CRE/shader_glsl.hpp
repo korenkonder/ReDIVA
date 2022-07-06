@@ -50,14 +50,11 @@ struct shader_glsl {
     void set(const char* name, vec3& value);
     void set(const char* name, float_t x, float_t y, float_t z);
     void set(const char* name, vec4i& value);
-    void set(const char* name, vec4iu& value);
     void set(const char* name, int32_t x, int32_t y, int32_t z, int32_t w);
     void set(const char* name, vec4& value);
-    void set(const char* name, vec4u& value);
     void set(const char* name, float_t x, float_t y, float_t z, float_t w);
     void set(const char* name, bool transpose, mat3& value);
     void set(const char* name, bool transpose, mat4& value);
-    void set(const char* name, bool transpose, mat4u& value);
     void set(const char* name, size_t count, int32_t* value);
     void set(const char* name, size_t count, float_t* value);
     void set(const char* name, size_t count, vec2i* value);
@@ -65,12 +62,9 @@ struct shader_glsl {
     void set(const char* name, size_t count, vec3i* value);
     void set(const char* name, size_t count, vec3* value);
     void set(const char* name, size_t count, vec4i* value);
-    void set(const char* name, size_t count, vec4iu* value);
     void set(const char* name, size_t count, vec4* value);
-    void set(const char* name, size_t count, vec4u* value);
     void set(const char* name, size_t count, bool transpose, mat3* value);
     void set(const char* name, size_t count, bool transpose, mat4* value);
-    void set(const char* name, size_t count, bool transpose, mat4u* value);
     void set_uniform_block_binding(GLchar* name, GLint binding);
     void unload();
     void use();

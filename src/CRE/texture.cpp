@@ -36,6 +36,7 @@ texture_id::texture_id(uint8_t id, uint32_t index) : id(id), index(index) {
 
 texture::texture() : init_count(), flags(), width(), height(),
 tex(), target(), internal_format(), max_mipmap_level(), size() {
+
 }
 
 texture* texture_init(texture_id id) {

@@ -27,6 +27,7 @@ static const uint8_t mmplus_iv[] = {
 };
 
 bool aes_ni;
+bool f16c;
 
 int32_t wmain(int32_t argc, wchar_t** argv) {
     if (argc < 2) {
@@ -63,7 +64,8 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     int32_t cpuid_data[4];
     __cpuid(cpuid_data, 1);
-    aes_ni = cpuid_data[2] & 0x2000000 ? true : false;
+    aes_ni = (cpuid_data[2] & (1 << 25)) ? true : false;
+    f16c = (cpuid_data[2] & (1 << 29)) ? true : false;
 
     aes256_ctx ctx;
     aes256_init_ctx(&ctx, mmplus_key);
@@ -93,7 +95,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                 size_t size;
                 if (encrypt) {
                     while (length && (size = in_file.read(buf, sizeof(buf)))) {
-                        if (length == size) {
+                        if (length == size) { // PKCS7 Padding
                             uint8_t align = (uint8_t)(0x10 - size % 0x10);
                             for (uint8_t i = 0; i < align; i++)
                                 buf[size + i] = align;
@@ -110,7 +112,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                     while (length && (size = in_file.read(buf, sizeof(buf)))) {
                         aes256_cbc_decrypt_buffer(&ctx, buf, size);
 
-                        if (length == size)
+                        if (length == size) // PKCS7 Padding
                             size -= buf[size - 1];
 
                         out_file.write(buf, size);
@@ -155,7 +157,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                 size_t size;
                 if (encrypt) {
                     while (length && (size = in_file.read(buf, sizeof(buf)))) {
-                        if (length == size) {
+                        if (length == size) { // PKCS7 Padding
                             uint8_t align = (uint8_t)(0x10 - size % 0x10);
                             for (uint8_t i = 0; i < align; i++)
                                 buf[size + i] = align;
@@ -172,7 +174,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                     while (length && (size = in_file.read(buf, sizeof(buf)))) {
                         aes256_cbc_decrypt_buffer(&ctx, buf, size);
 
-                        if (length == size)
+                        if (length == size) // PKCS7 Padding
                             size -= buf[size - 1];
 
                         out_file.write(buf, size);

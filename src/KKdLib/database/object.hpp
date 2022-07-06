@@ -51,6 +51,26 @@ inline bool operator !=(const object_info& left, const object_info& right) {
     return left.set_id != right.set_id || left.id != right.id;
 }
 
+struct object_info_data_file {
+    uint32_t id;
+    std::string name;
+
+    object_info_data_file();
+    ~object_info_data_file();
+};
+
+struct object_set_info_file {
+    std::string name;
+    uint32_t id;
+    std::string object_file_name;
+    std::string texture_file_name;
+    std::string archive_file_name;
+    std::vector<object_info_data_file> object;
+
+    object_set_info_file();
+    ~object_set_info_file();
+};
+
 struct object_info_data {
     uint32_t id;
     std::string name;
@@ -75,15 +95,15 @@ struct object_set_info {
     ~object_set_info();
 };
 
-struct object_database {
+struct object_database_file {
     bool ready;
     bool modern;
     bool is_x;
 
-    std::vector<object_set_info> object_set;
+    std::vector<object_set_info_file> object_set;
 
-    object_database();
-    ~object_database();
+    object_database_file();
+    virtual ~object_database_file();
 
     void read(const char* path, bool modern);
     void read(const wchar_t* path, bool modern);
@@ -92,8 +112,16 @@ struct object_database {
     void write(const wchar_t* path);
     void write(void** data, size_t* size);
 
-    void merge_mdata(object_database* base_obj_db, object_database* mdata_obj_db);
-    void split_mdata(object_database* base_obj_db, object_database* mdata_obj_db);
+    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+};
+
+struct object_database {
+    std::vector<object_set_info> object_set;
+
+    object_database();
+    virtual ~object_database();
+
+    void add(object_database_file* obj_db_file);
 
     bool get_object_set_info(const char* name, object_set_info** set_info);
     bool get_object_set_info(uint32_t set_id, object_set_info** set_info);
@@ -104,6 +132,4 @@ struct object_database {
     uint32_t get_object_set_id(const char* name);
     object_info get_object_info(const char* name);
     const char* get_object_name(object_info obj_info);
-
-    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };

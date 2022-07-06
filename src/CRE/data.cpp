@@ -664,7 +664,7 @@ data_f2::~data_f2() {
 }
 #endif
 
-data_ft::data_ft() : obj_db(),  stage_data(), base_obj_db(), base_stage_data() {
+data_ft::data_ft() {
 
 }
 
@@ -935,17 +935,18 @@ static void data_load_inner(stream& s) {
         data_struct* ds = &data_list[DATA_AFT];
         data_ft* d = &ds->data_ft;
 
-        {
-            auth_3d_database_file* base_auth_3d_db = &d->base_auth_3d_db;
-            *base_auth_3d_db = auth_3d_database_file();
-            ds->load_file(base_auth_3d_db, "rom/auth_3d/",
-                "auth_3d_db.bin", auth_3d_database_file::load_file);
+        static const char* prefixes[] = {
+            "",
+            "mdata_",
+        };
 
-            auth_3d_database_file mdata_auth_3d_db;
-            ds->load_file(&mdata_auth_3d_db, "rom/auth_3d/",
-                "mdata_auth_3d_db.bin", auth_3d_database_file::load_file);
+        for (const char* i : prefixes) {
+            std::string file = std::string(i) + "auth_3d_db.bin";
 
-            d->auth_3d_db.merge_mdata(base_auth_3d_db, &mdata_auth_3d_db);
+            auth_3d_database_file auth_3d_db_file;
+            ds->load_file(&auth_3d_db_file, "rom/auth_3d/", file.c_str(),
+                auth_3d_database_file::load_file);
+            d->auth_3d_db.add(&auth_3d_db_file);
         }
 
         {
@@ -956,65 +957,43 @@ static void data_load_inner(stream& s) {
                 "bone_data.bin", bone_database::load_file);
         }
 
-        {
-            motion_database* base_mot_db = &d->base_mot_db;
-            ds->load_file(base_mot_db, "rom/rob/",
-                "mot_db.farc", motion_database::load_file);
+        for (const char* i : prefixes) {
+            std::string file = std::string(i) + "mot_db.farc";
 
-            motion_database mdata_mot_db;
-            ds->load_file(&mdata_mot_db, "rom/rob/",
-                "mdata_mot_db.farc", motion_database::load_file);
-
-            d->mot_db.merge_mdata(base_mot_db, &mdata_mot_db);
+            motion_database_file mot_db_file;
+            ds->load_file(&mot_db_file, "rom/rob/", file.c_str(),
+                motion_database_file::load_file);
+            d->mot_db.add(&mot_db_file);
         }
 
-        {
-            object_database* base_obj_db = &d->base_obj_db;
-            *base_obj_db = object_database();
-            base_obj_db->modern = false;
-            ds->load_file(base_obj_db, "rom/objset/",
-                "obj_db.bin", object_database::load_file);
+        for (const char* i : prefixes) {
+            std::string file = std::string(i) + "obj_db.bin";
 
-            object_database mdata_obj_db;
-            mdata_obj_db.modern = false;
-            ds->load_file(&mdata_obj_db, "rom/objset/",
-                "mdata_obj_db.bin", object_database::load_file);
-
-            object_database* obj_db = &d->obj_db;
-            *obj_db = object_database();
-            obj_db->merge_mdata(base_obj_db, &mdata_obj_db);
+            object_database_file obj_db_file;
+            obj_db_file.modern = false;
+            ds->load_file(&obj_db_file, "rom/objset/", file.c_str(),
+                object_database_file::load_file);
+            d->obj_db.add(&obj_db_file);
         }
 
-        {
-            stage_database* base_stage_data = &d->base_stage_data;
-            *base_stage_data = stage_database();
-            base_stage_data->modern = false;
-            ds->load_file(base_stage_data, "rom/",
-                "stage_data.bin", stage_database::load_file);
+        for (const char* i : prefixes) {
+            std::string file = std::string(i) + "stage_data.bin";
 
-            stage_database mdata_stage_data;
-            mdata_stage_data.modern = false;
-            ds->load_file(&mdata_stage_data, "rom/",
-                "mdata_stage_data.bin", stage_database::load_file);
-
-            stage_database* stage_data = &d->stage_data;
-            *stage_data = stage_database();
-            stage_data->merge_mdata(base_stage_data, &mdata_stage_data);
+            stage_database_file stage_data_file;
+            stage_data_file.modern = false;
+            ds->load_file(&stage_data_file, "rom/", file.c_str(),
+                stage_database_file::load_file);
+            d->stage_data.add(&stage_data_file);
         }
 
-        {
-            texture_database* base_tex_db = &d->base_tex_db;
-            *base_tex_db = texture_database();
-            base_tex_db->modern = false;
-            ds->load_file(base_tex_db, "rom/objset/",
-                "tex_db.bin", texture_database::load_file);
+        for (const char* i : prefixes) {
+            std::string file = std::string(i) + "tex_db.bin";
 
-            texture_database mdata_tex_db;
-            mdata_tex_db.modern = false;
-            ds->load_file(&mdata_tex_db, "rom/objset/",
-                "mdata_tex_db.bin", texture_database::load_file);
-
-            d->tex_db.merge_mdata(base_tex_db, &mdata_tex_db);
+            texture_database_file tex_db_file;
+            tex_db_file.modern = false;
+            ds->load_file(&tex_db_file, "rom/objset/", file.c_str(),
+                texture_database_file::load_file);
+            d->tex_db.add(&tex_db_file);
         }
     }
 
@@ -1111,7 +1090,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
         case DATA_XHD:
             ds->glitter_list_murmurhash.reserve(count);
             for (size_t i = 0; i < count; i++) {
-                uint32_t hash = hash_string_murmurhash(&ds->glitter_list_names[i]);
+                uint32_t hash = hash_string_murmurhash(ds->glitter_list_names[i]);
                 ds->glitter_list_murmurhash.push_back(hash);
             }
             break;
@@ -1120,7 +1099,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
         case DATA_M39:
             ds->glitter_list_fnv1a64m.reserve(count);
             for (size_t i = 0; i < count; i++) {
-                uint64_t hash = hash_string_fnv1a64m(&ds->glitter_list_names[i]);
+                uint64_t hash = hash_string_fnv1a64m(ds->glitter_list_names[i]);
                 ds->glitter_list_fnv1a64m.push_back(hash);
             }
             break;

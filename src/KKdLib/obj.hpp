@@ -253,7 +253,7 @@ struct obj_material_texture_data {
     obj_texture_shader_attrib shader_info;
     char ex_shader[8];
     float_t weight;
-    mat4u tex_coord_mat;
+    mat4 tex_coord_mat;
     union {
         uint32_t reserved[8];
         int32_t texture_index;
@@ -285,10 +285,10 @@ union obj_material_attrib {
 };
 
 struct obj_material_color {
-    vec4u diffuse;
-    vec4u ambient;
-    vec4u specular;
-    vec4u emission;
+    vec4 diffuse;
+    vec4 ambient;
+    vec4 specular;
+    vec4 emission;
     float_t shininess;
     float_t intensity;
 };
@@ -355,17 +355,17 @@ struct obj_sub_mesh {
 struct obj_vertex_data {
     vec3 position;
     vec3 normal;
-    vec4u tangent;
+    vec4 tangent;
     vec3 binormal;
     vec2 texcoord0;
     vec2 texcoord1;
     vec2 texcoord2;
     vec2 texcoord3;
-    vec4u color0;
-    vec4u color1;
-    vec4u bone_weight;
-    vec4iu bone_index;
-    vec4u unknown;
+    vec4 color0;
+    vec4 color1;
+    vec4 bone_weight;
+    vec4i bone_index;
+    vec4 unknown;
 };
 
 struct obj_mesh_attrib_member {
@@ -463,7 +463,8 @@ struct obj_skin_block_cloth {
     uint32_t root_count;
     uint32_t nodes_count;
     uint32_t field_14;
-    mat4u mats[3];
+    mat4* mats;
+    uint32_t mats_count;
     obj_skin_block_cloth_root* root;
     obj_skin_block_cloth_node* nodes;
     uint16_t* mesh_indices;
@@ -535,7 +536,7 @@ struct obj_skin_block_expression {
 
 struct obj_skin_motion_node {
     uint32_t name_index;
-    mat4u transformation;
+    mat4 inv_bind_pose_mat;
 };
 
 struct obj_skin_block_motion {
@@ -601,7 +602,7 @@ struct obj_skin_ex_data {
 struct obj_skin_bone {
     uint32_t id;
     uint32_t parent;
-    mat4u inv_bind_pose_mat;
+    mat4 inv_bind_pose_mat;
     char* name;
 };
 

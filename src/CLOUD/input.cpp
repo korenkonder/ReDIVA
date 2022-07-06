@@ -14,8 +14,10 @@
 
 double_t input_movement_speed = 0.1;
 double_t input_rotation_sensitivity = 0.5;
-vec2d input_move;
-vec2d input_rotate;
+double_t input_move_x;
+double_t input_move_y;
+double_t input_rotate_x;
+double_t input_rotate_y;
 double_t input_roll;
 bool input_reset;
 bool input_reset_mouse_position;
@@ -189,10 +191,10 @@ namespace Input {
             ScreenToClient(window_handle, &pos);
         }
 
-        input_move.x = 0.0;
-        input_move.y = 0.0;
-        input_rotate.x = 0.0;
-        input_rotate.y = 0.0;
+        input_move_x = 0.0;
+        input_move_y = 0.0;
+        input_rotate_x = 0.0;
+        input_rotate_y = 0.0;
         input_roll = 0.0;
 
         if (!window_handle || window_handle != GetForegroundWindow())
@@ -218,40 +220,40 @@ namespace Input {
         speed_slow *= frame_speed;
 
         if (IsKeyDown(GLFW_KEY_W) || IsKeyDown(GLFW_KEY_W, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_move.x += speed;
+            input_move_x += speed;
         else if (IsKeyDown(GLFW_KEY_W, GLFW_MOD_SHIFT))
-            input_move.x += speed_fast;
+            input_move_x += speed_fast;
         else if (IsKeyDown(GLFW_KEY_W, GLFW_MOD_CONTROL))
-            input_move.x += speed_slow;
+            input_move_x += speed_slow;
         else if (IsKeyDown(GLFW_KEY_W, -1))
-            input_move.x += speed;
+            input_move_x += speed;
 
         if (IsKeyDown(GLFW_KEY_S) || IsKeyDown(GLFW_KEY_S, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_move.x -= speed;
+            input_move_x -= speed;
         else if (IsKeyDown(GLFW_KEY_S, GLFW_MOD_SHIFT))
-            input_move.x -= speed_fast;
+            input_move_x -= speed_fast;
         else if (IsKeyDown(GLFW_KEY_S, GLFW_MOD_CONTROL))
-            input_move.x -= speed_slow;
+            input_move_x -= speed_slow;
         else if (IsKeyDown(GLFW_KEY_S, -1))
-            input_move.x -= speed;
+            input_move_x -= speed;
 
         if (IsKeyDown(GLFW_KEY_A) || IsKeyDown(GLFW_KEY_A, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_move.y -= speed;
+            input_move_y -= speed;
         else if (IsKeyDown(GLFW_KEY_A, GLFW_MOD_SHIFT))
-            input_move.y -= speed_fast;
+            input_move_y -= speed_fast;
         else if (IsKeyDown(GLFW_KEY_A, GLFW_MOD_CONTROL))
-            input_move.y -= speed_slow;
+            input_move_y -= speed_slow;
         else if (IsKeyDown(GLFW_KEY_A, -1))
-            input_move.y -= speed;
+            input_move_y -= speed;
 
         if (IsKeyDown(GLFW_KEY_D) || IsKeyDown(GLFW_KEY_D, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_move.y += speed;
+            input_move_y += speed;
         else if (IsKeyDown(GLFW_KEY_D, GLFW_MOD_SHIFT))
-            input_move.y += speed_fast;
+            input_move_y += speed_fast;
         else if (IsKeyDown(GLFW_KEY_D, GLFW_MOD_CONTROL))
-            input_move.y += speed_slow;
+            input_move_y += speed_slow;
         else if (IsKeyDown(GLFW_KEY_D, -1))
-            input_move.y += speed;
+            input_move_y += speed;
 
         speed = input_movement_speed;
         speed_fast = input_movement_speed * 2.0;
@@ -267,40 +269,40 @@ namespace Input {
         speed_slow *= 10.0;
 
         if (IsKeyDown(GLFW_KEY_UP) || IsKeyDown(GLFW_KEY_UP, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_rotate.y += speed;
+            input_rotate_y += speed;
         else if (IsKeyDown(GLFW_KEY_UP, GLFW_MOD_SHIFT))
-            input_rotate.y += speed_fast;
+            input_rotate_y += speed_fast;
         else if (IsKeyDown(GLFW_KEY_UP, GLFW_MOD_CONTROL))
-            input_rotate.y += speed_slow;
+            input_rotate_y += speed_slow;
         else if (IsKeyDown(GLFW_KEY_UP, -1))
-            input_rotate.y += speed;
+            input_rotate_y += speed;
 
         if (IsKeyDown(GLFW_KEY_DOWN) || IsKeyDown(GLFW_KEY_DOWN, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_rotate.y -= speed;
+            input_rotate_y -= speed;
         else if (IsKeyDown(GLFW_KEY_DOWN, GLFW_MOD_SHIFT))
-            input_rotate.y -= speed_fast;
+            input_rotate_y -= speed_fast;
         else if (IsKeyDown(GLFW_KEY_DOWN, GLFW_MOD_CONTROL))
-            input_rotate.y -= speed_slow;
+            input_rotate_y -= speed_slow;
         else if (IsKeyDown(GLFW_KEY_DOWN, -1))
-            input_rotate.y -= speed;
+            input_rotate_y -= speed;
 
         if (IsKeyDown(GLFW_KEY_LEFT) || IsKeyDown(GLFW_KEY_LEFT, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_rotate.x -= speed;
+            input_rotate_x -= speed;
         else if (IsKeyDown(GLFW_KEY_LEFT, GLFW_MOD_SHIFT))
-            input_rotate.x -= speed_fast;
+            input_rotate_x -= speed_fast;
         else if (IsKeyDown(GLFW_KEY_LEFT, GLFW_MOD_CONTROL))
-            input_rotate.x -= speed_slow;
+            input_rotate_x -= speed_slow;
         else if (IsKeyDown(GLFW_KEY_LEFT, -1))
-            input_rotate.x -= speed;
+            input_rotate_x -= speed;
 
         if (IsKeyDown(GLFW_KEY_RIGHT) || IsKeyDown(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
-            input_rotate.x += speed;
+            input_rotate_x += speed;
         else if (IsKeyDown(GLFW_KEY_RIGHT, GLFW_MOD_SHIFT))
-            input_rotate.x += speed_fast;
+            input_rotate_x += speed_fast;
         else if (IsKeyDown(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL))
-            input_rotate.x += speed_slow;
+            input_rotate_x += speed_slow;
         else if (IsKeyDown(GLFW_KEY_RIGHT, -1))
-            input_rotate.x += speed;
+            input_rotate_x += speed;
 
         if (IsKeyDown(GLFW_KEY_Q) || IsKeyDown(GLFW_KEY_Q, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
             input_roll += speed;
@@ -325,8 +327,8 @@ namespace Input {
 
         if (IsMouseButtonDown(GLFW_MOUSE_BUTTON_MIDDLE, -1)) {
             if (!input_reset_mouse_position) {
-                input_rotate.y += ((double_t)pos_prev.y - (double_t)pos.y) * input_rotation_sensitivity;
-                input_rotate.x += ((double_t)pos.x - (double_t)pos_prev.x) * input_rotation_sensitivity;
+                input_rotate_y += ((double_t)pos_prev.y - (double_t)pos.y) * input_rotation_sensitivity;
+                input_rotate_x += ((double_t)pos.x - (double_t)pos_prev.x) * input_rotation_sensitivity;
             }
             input_reset_mouse_position = false;
         }

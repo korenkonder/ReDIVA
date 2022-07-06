@@ -22,7 +22,7 @@ struct stage {
     bool ring;
     bool sky;
     bool auth_3d_loaded;
-    mat4u mat;
+    mat4 mat;
     float_t rot_y;
     uint32_t obj_set;
 
@@ -49,7 +49,7 @@ namespace stage_detail {
         bool field_FB2;
         bool field_FB3;
         bool field_FB4;
-        mat4u mat;
+        mat4 mat;
         float_t field_FF8;
 
         TaskStage();
@@ -106,7 +106,6 @@ int32_t task_stage_get_stage_index(task_stage_info* stg_info);
 extern bool task_stage_has_stage_info(task_stage_info* stg_info);
 extern bool task_stage_load(const char* name);
 extern void task_stage_set_mat(mat4* mat);
-extern void task_stage_set_mat(mat4u* mat);
 extern void task_stage_set_stage(task_stage_info* stg_info);
 extern void task_stage_set_stage_index(int32_t stage_index);
 extern void task_stage_set_stage_indices(std::vector<int32_t>* stage_indices);

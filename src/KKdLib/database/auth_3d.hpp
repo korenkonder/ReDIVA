@@ -17,7 +17,9 @@ enum auth_3d_database_uid_flags {
 struct auth_3d_database_uid {
     bool enabled;
     std::string category;
+    uint32_t category_hash;
     std::string name;
+    uint32_t name_hash;
     int32_t org_uid;
     float_t size;
 
@@ -38,6 +40,7 @@ struct auth_3d_database_uid_file {
 
 struct auth_3d_database_category {
     std::string name;
+    uint32_t name_hash;
     std::vector<int32_t> uid;
 
     auth_3d_database_category();
@@ -52,7 +55,7 @@ struct auth_3d_database_file {
     int32_t uid_max;
 
     auth_3d_database_file();
-    ~auth_3d_database_file();
+    virtual ~auth_3d_database_file();
 
     void read(const char* path);
     void read(const wchar_t* path);
@@ -65,19 +68,14 @@ struct auth_3d_database_file {
 };
 
 struct auth_3d_database {
-    bool ready;
-
     std::vector<auth_3d_database_category> category;
     std::vector<auth_3d_database_uid> uid;
 
     auth_3d_database();
-    ~auth_3d_database();
+    virtual ~auth_3d_database();
 
+    void add(auth_3d_database_file* auth_3d_db_file);
     int32_t get_category_index(const char* name);
     void get_category_uids(const char* name, std::vector<int32_t>& uid);
     int32_t get_uid(const char* name);
-    void merge_mdata(auth_3d_database_file* base_auth_3d_db,
-        auth_3d_database_file* mdata_auth_3d_db);
-    void split_mdata(auth_3d_database_file* base_auth_3d_db,
-        auth_3d_database_file* mdata_auth_3d_db);
 };

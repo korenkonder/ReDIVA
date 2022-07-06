@@ -126,8 +126,6 @@ bool TaskDataTestGlitterParticle::Init() {
 }
 
 bool TaskDataTestGlitterParticle::Ctrl() {
-    Glitter::glt_particle_manager.rctx = rctx_ptr;
-
     if (load_file && file_index < files.size())
         LoadFile(files[file_index].name.c_str());
     load_file = false;
@@ -152,7 +150,7 @@ bool TaskDataTestGlitterParticle::Ctrl() {
     }
 
     if (Glitter::glt_particle_manager.SceneHasNotEnded(scene_counter) && !Glitter::glt_particle_manager.GetPause())
-        frame += sys_frame_rate.frame_speed;
+        frame += sys_frame_rate.GetDeltaFrame();
 
     if (reload || auto_and_repeat && !Glitter::glt_particle_manager.SceneHasNotEnded(scene_counter)) {
         Glitter::glt_particle_manager.FreeSceneEffect(scene_counter, hash_fnv1a64m_empty, true);

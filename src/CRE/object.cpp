@@ -142,7 +142,7 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
         return false;
 
     {
-        const vec4u attib_default = { 0.0f, 0.0f, 0.0f, 1.0f };
+        const vec4 attib_default = { 0.0f, 0.0f, 0.0f, 1.0f };
 
         obj_vertex_format vertex_format = mesh.vertex_format;
         obj_vertex_data* vertex_file = mesh.vertex;
@@ -168,20 +168,20 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
                 enum_or(_vertex_format, OBJ_VERTEX_TEXCOORD3);
 
             if (~_vertex_format & OBJ_VERTEX_COLOR0 && vertex_format & OBJ_VERTEX_COLOR0
-                && memcmp(&vertex_file[i].normal, &vec4u_identity, sizeof(vec4u)))
+                && memcmp(&vertex_file[i].normal, &vec4_identity, sizeof(vec4)))
                 enum_or(_vertex_format, OBJ_VERTEX_COLOR0);
 
             if (~_vertex_format & OBJ_VERTEX_COLOR1 && vertex_format & OBJ_VERTEX_COLOR1
-                && memcmp(&vertex_file[i].normal, &vec4u_identity, sizeof(vec4u)))
+                && memcmp(&vertex_file[i].normal, &vec4_identity, sizeof(vec4)))
                 enum_or(_vertex_format, OBJ_VERTEX_COLOR1);
 
             if (~_vertex_format & OBJ_VERTEX_BONE_DATA && vertex_format & OBJ_VERTEX_BONE_DATA
-                && memcmp(&vertex_file[i].bone_index, &vec4iu_null, sizeof(vec4iu))
-                && memcmp(&vertex_file[i].bone_weight, &vec4u_null, sizeof(vec4u)))
+                && memcmp(&vertex_file[i].bone_index, &vec4i_null, sizeof(vec4i))
+                && memcmp(&vertex_file[i].bone_weight, &vec4_null, sizeof(vec4)))
                 enum_or(_vertex_format, OBJ_VERTEX_BONE_DATA);
 
             if (~_vertex_format & OBJ_VERTEX_UNKNOWN && vertex_format & OBJ_VERTEX_UNKNOWN
-                && memcmp(&vertex_file[i].unknown, &attib_default, sizeof(vec4u)))
+                && memcmp(&vertex_file[i].unknown, &attib_default, sizeof(vec4)))
                 enum_or(_vertex_format, OBJ_VERTEX_UNKNOWN);
         }
 
@@ -214,7 +214,7 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
                 }
 
                 if (vertex_format & OBJ_VERTEX_TANGENT) {
-                    *(vec4u*)d = vertex_file[i].tangent;
+                    *(vec4*)d = vertex_file[i].tangent;
                     d += 16;
                 }
 
@@ -244,24 +244,24 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
                 }
 
                 if (vertex_format & OBJ_VERTEX_COLOR0) {
-                    *(vec4u*)d = vertex_file[i].color0;
+                    *(vec4*)d = vertex_file[i].color0;
                     d += 16;
                 }
 
                 if (vertex_format & OBJ_VERTEX_COLOR1) {
-                    *(vec4u*)d = vertex_file[i].color1;
+                    *(vec4*)d = vertex_file[i].color1;
                     d += 16;
                 }
 
                 if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-                    *(vec4u*)d = vertex_file[i].bone_weight;
+                    *(vec4*)d = vertex_file[i].bone_weight;
                     d += 16;
-                    *(vec4iu*)d = vertex_file[i].bone_index;
+                    *(vec4i*)d = vertex_file[i].bone_index;
                     d += 16;
                 }
 
                 if (vertex_format & OBJ_VERTEX_UNKNOWN) {
-                    *(vec4u*)d = vertex_file[i].unknown;
+                    *(vec4*)d = vertex_file[i].unknown;
                     d += 16;
                 }
             }
@@ -488,10 +488,7 @@ void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
                 mat4_mult(mat, &matrices[bone_id], &temp);
 
             mat4_mult(&temp, global_mat, &temp);
-
-            mat4 inv_bind_pose_mat = s->bones[i].inv_bind_pose_mat;
-            mat4_mult(&inv_bind_pose_mat, &temp, &temp);
-            matrix_buffer[i] = temp;
+            mat4_mult(&s->bones[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
         }
     else
         for (uint32_t i = 0; i < s->bones_count; i++) {
@@ -503,10 +500,7 @@ void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
                 temp = matrices[bone_id];
 
             mat4_mult(&temp, global_mat, &temp);
-
-            mat4 inv_bind_pose_mat = s->bones[i].inv_bind_pose_mat;
-            mat4_mult(&inv_bind_pose_mat, &temp, &temp);
-            matrix_buffer[i] = temp;
+            mat4_mult(&s->bones[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
         }
 }
 
@@ -1122,25 +1116,25 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         if (!txi)
             return false;
 
-        object_database local_obj_db;
+        object_database_file local_obj_db;
         local_obj_db.read(osi->data, osi->size, true);
 
-        texture_database local_tex_db;
+        texture_database_file local_tex_db;
         local_tex_db.read(txi->data, txi->size, true);
 
         std::string name;
         if (local_obj_db.ready)
-            for (object_set_info& m : local_obj_db.object_set)
+            for (object_set_info_file& m : local_obj_db.object_set)
                 if (m.id == handler->set_id) {
                     name = m.name;
                     break;
                 }
 
         if (obj_db)
-            obj_db->merge_mdata(obj_db, &local_obj_db);
+            obj_db->add(&local_obj_db);
 
         if (tex_db)
-            tex_db->merge_mdata(tex_db, &local_tex_db);
+            tex_db->add(&local_tex_db);
 
         if (!name.size())
             return false;

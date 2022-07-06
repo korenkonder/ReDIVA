@@ -3,8 +3,7 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "math.h"
-#include "quat_trans.h"
+#include "quat_trans.hpp"
 
 void lerp_quat_trans(quat_trans* x, quat_trans* y, quat_trans* z, float_t blend) {
     if (blend > 1.0f)

@@ -10,17 +10,85 @@
 #include "hash.hpp"
 #include "str_utils.hpp"
 
-static void pvsr_a3da_read(pvsr_a3da* a3d, stream& s);
-static void pvsr_aet_read(pvsr_aet* aet_entry, stream& s);
+static void pvsr_auth_3d_read(pvsr_auth_3d* a3d, stream& s);
+static void pvsr_auth_2d_read(pvsr_auth_2d* aet_entry, stream& s);
 static void pvsr_effect_read(pvsr_effect* eff, stream& s);
 static void pvsr_glitter_read(pvsr_glitter* glt, stream& s);
 static void pvsr_read_inner(pvsr* sr, stream& s);
+static void pvsr_stage_change_effect_read(pvsr_stage_change_effect* stg_chg_eff, stream& s);
 static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream& s);
 static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream& s, int32_t x00);
 static bool pvsr_stage_effect_env_sub1_read(pvsr_stage_effect_env_sub1* aet_sub1, stream& s, int64_t offset);
 static bool pvsr_stage_effect_env_sub2_read(pvsr_stage_effect_env_sub2* aet_sub2, stream& s, int64_t offset);
 
-pvsr::pvsr() : ready(), stage_change_effect_init() {
+pvsr_auth_2d::pvsr_auth_2d() {
+    bright_scale = 1.0f;
+    hash = hash_murmurhash_empty;
+}
+
+pvsr_auth_2d::~pvsr_auth_2d() {
+
+}
+
+pvsr_auth_3d::pvsr_auth_3d() : hash(hash_murmurhash_empty), flags() {
+
+}
+
+pvsr_auth_3d::~pvsr_auth_3d() {
+
+}
+
+pvsr_effect::pvsr_effect() {
+    emission = 1.0f;
+}
+
+pvsr_effect::~pvsr_effect() {
+
+}
+
+pvsr_glitter::pvsr_glitter() : unk1(), flags() {
+
+}
+
+pvsr_glitter::~pvsr_glitter() {
+
+}
+
+pvsr_stage_change_effect::pvsr_stage_change_effect() : enable(), bar_count() {
+
+}
+
+pvsr_stage_change_effect::~pvsr_stage_change_effect() {
+
+}
+
+pvsr_stage_effect::pvsr_stage_effect() {
+
+}
+
+pvsr_stage_effect::~pvsr_stage_effect() {
+
+}
+
+pvsr_stage_effect_env_sub1::pvsr_stage_effect_env_sub1() : stage_light() {
+    hash = hash_murmurhash_empty;
+}
+
+pvsr_stage_effect_env_sub1::~pvsr_stage_effect_env_sub1() {
+
+}
+
+pvsr_stage_effect_env::pvsr_stage_effect_env() : u48(), u4a(), u4c(), u4e(), u50(), u52(), u54(), u56(), u58(), u5a(),
+u5c(), u5e(), u60(), sub1_data(), sub1_data_init(), sub2a_data(), sub2a_data_init(),
+sub2b_data(), sub2b_data_init(), sub2c_data(), sub2c_data_init(), sub2d_data(), sub2d_data_init() {
+
+}
+
+pvsr_stage_effect_env::~pvsr_stage_effect_env() {
+
+}
+
+pvsr::pvsr() : ready() {
 
 }
 
@@ -71,74 +139,17 @@ bool pvsr::load_file(void* data, const char* path, const char* file, uint32_t ha
     return sr->ready;
 }
 
-pvsr_a3da::pvsr_a3da() : hash(hash_murmurhash_empty) {
-
-}
-
-pvsr_a3da::~pvsr_a3da() {
-
-}
-
-pvsr_aet::pvsr_aet() : bright_scale(1.0f), hash(hash_murmurhash_empty) {
-
-}
-
-pvsr_aet::~pvsr_aet() {
-
-}
-
-pvsr_effect::pvsr_effect() : emission(1.0f) {
-
-}
-
-pvsr_effect::~pvsr_effect() {
-
-}
-
-pvsr_glitter::pvsr_glitter() : unk1() {
-
-}
-
-pvsr_glitter::~pvsr_glitter() {
-
-}
-
-pvsr_stage_effect::pvsr_stage_effect() : bar_count() {
-
-}
-
-pvsr_stage_effect::~pvsr_stage_effect() {
-
-}
-
-pvsr_stage_effect_env_sub1::pvsr_stage_effect_env_sub1() : hash(hash_murmurhash_empty), unk2() {
-
-}
-
-pvsr_stage_effect_env_sub1::~pvsr_stage_effect_env_sub1() {
-
-}
-
-pvsr_stage_effect_env::pvsr_stage_effect_env() : u48(), u4a(), u4c(), u4e(), u50(), u52(), u54(), u56(), u58(), u5a(),
-u5c(), u5e(), u60(), sub1_data(), sub1_data_init(), sub2a_data(), sub2a_data_init(),
-sub2b_data(), sub2b_data_init(), sub2c_data(), sub2c_data_init(), sub2d_data(), sub2d_data_init() {
-
-}
-
-pvsr_stage_effect_env::~pvsr_stage_effect_env() {
-
-}
-
-static void pvsr_a3da_read(pvsr_a3da* a3d, stream& s) {
-    a3d->name = s.read_string_null_terminated_offset(s.read_offset_x());
-    a3d->hash = s.read_uint32_t_reverse_endianness();
-    s.align_read(0x08);
-}
-
-static void pvsr_aet_read(pvsr_aet* aet_entry, stream& s) {
+static void pvsr_auth_2d_read(pvsr_auth_2d* aet_entry, stream& s) {
     aet_entry->name = s.read_string_null_terminated_offset(s.read_offset_x());
     aet_entry->hash = s.read_uint32_t_reverse_endianness();
     aet_entry->bright_scale = s.read_float_t_reverse_endianness();
+}
+
+static void pvsr_auth_3d_read(pvsr_auth_3d* a3d, stream& s) {
+    a3d->name = s.read_string_null_terminated_offset(s.read_offset_x());
+    a3d->hash = s.read_uint32_t_reverse_endianness();
+    a3d->flags = (pvsr_auth_3d_flags)s.read_uint8_t();
+    s.align_read(0x08);
 }
 
 static void pvsr_effect_read(pvsr_effect* eff, stream& s) {
@@ -149,7 +160,8 @@ static void pvsr_effect_read(pvsr_effect* eff, stream& s) {
 
 static void pvsr_glitter_read(pvsr_glitter* glt, stream& s) {
     glt->name = s.read_string_null_terminated_offset(s.read_offset_x());
-    glt->unk1 = s.read_uint8_t();
+    glt->unk1 = s.read_int8_t();
+    glt->flags = (pvsr_glitter_flags)s.read_uint8_t();
     s.align_read(0x08);
 }
 
@@ -181,105 +193,156 @@ static void pvsr_read_inner(pvsr* sr, stream& s) {
     int64_t stage_change_effect_offset = s_pvsr.read_offset_x();
     int64_t stage_effect_env_offset = s_pvsr.read_offset_x();
 
-    s_pvsr.position_push(x10, SEEK_SET);
-    int8_t unknown_count = s_pvsr.read_int8_t();
-    int8_t effect_count = s_pvsr.read_int8_t();
-    int8_t emcs_count = s_pvsr.read_int8_t();
-    int64_t unknown_offset = s_pvsr.read_offset_x();
-    int64_t effect_offset = s_pvsr.read_offset_x();
-    int64_t emcs_offset = s_pvsr.read_offset_x();
-    s_pvsr.position_pop();
+    int8_t unknown_count = 0;
+    int8_t effect_count = 0;
+    int8_t emcs_count = 0;
+    int64_t unknown_offset = 0;
+    int64_t effect_offset = 0;
+    int64_t emcs_offset = 0;
+    if (x10) {
+        s_pvsr.position_push(x10, SEEK_SET);
+        unknown_count = s_pvsr.read_int8_t();
+        effect_count = s_pvsr.read_int8_t();
+        emcs_count = s_pvsr.read_int8_t();
+        unknown_offset = s_pvsr.read_offset_x();
+        effect_offset = s_pvsr.read_offset_x();
+        emcs_offset = s_pvsr.read_offset_x();
+        s_pvsr.position_pop();
+    }
 
-    sr->effect.resize(effect_count);
+    if (effect_offset > 0) {
+        sr->effect.resize(effect_count);
 
-    s_pvsr.position_push(effect_offset, SEEK_SET);
-    for (pvsr_effect& i : sr->effect)
-        pvsr_effect_read(&i, s_pvsr);
-    s_pvsr.position_pop();
+        s_pvsr.position_push(effect_offset, SEEK_SET);
+        for (pvsr_effect& i : sr->effect)
+            pvsr_effect_read(&i, s_pvsr);
+        s_pvsr.position_pop();
+    }
 
-    sr->emcs.resize(emcs_count);
+    if (emcs_offset > 0) {
+        sr->emcs.resize(emcs_count);
 
-    s_pvsr.position_push(emcs_offset, SEEK_SET);
-    for (std::string& i : sr->emcs)
-        i = s_pvsr.read_string_null_terminated_offset(s_pvsr.read_offset_x());
-    s_pvsr.position_pop();
+        s_pvsr.position_push(emcs_offset, SEEK_SET);
+        for (std::string& i : sr->emcs)
+            i = s_pvsr.read_string_null_terminated_offset(s_pvsr.read_offset_x());
+        s_pvsr.position_pop();
+    }
 
-    sr->stage_effect.resize(stage_effect_count);
+    if (stage_effect_offset > 0) {
+        sr->stage_effect.resize(stage_effect_count);
 
-    s_pvsr.position_push(stage_effect_offset, SEEK_SET);
-    for (pvsr_stage_effect& i : sr->stage_effect)
-        pvsr_stage_effect_read(&i, s_pvsr);
-    s_pvsr.position_pop();
+        s_pvsr.position_push(stage_effect_offset, SEEK_SET);
+        for (pvsr_stage_effect& i : sr->stage_effect)
+            pvsr_stage_effect_read(&i, s_pvsr);
+        s_pvsr.position_pop();
+    }
 
     for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
         for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++)
-            sr->stage_change_effect_init[i][j] = false;
+            sr->stage_change_effect[i][j].enable = false;
 
-    s_pvsr.position_push(stage_change_effect_offset, SEEK_SET);
-    for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
-        for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++) {
-            int64_t offset = s_pvsr.read_offset_x();
-            if (offset <= 0)
-                continue;
+    if (stage_change_effect_offset > 0) {
+        s_pvsr.position_push(stage_change_effect_offset, SEEK_SET);
+        for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
+            for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++) {
+                int64_t offset = s_pvsr.read_offset_x();
+                if (offset <= 0)
+                    continue;
 
-            s_pvsr.position_push(offset, SEEK_SET);
-            pvsr_stage_effect_read(&sr->stage_change_effect[i][j], s_pvsr);
-            sr->stage_change_effect_init[i][j] = true;
-            s_pvsr.position_pop();
-        }
-    s_pvsr.position_pop();
+                s_pvsr.position_push(offset, SEEK_SET);
+                pvsr_stage_change_effect_read(&sr->stage_change_effect[i][j], s_pvsr);
+                s_pvsr.position_pop();
+            }
+        s_pvsr.position_pop();
+    }
 
-    sr->stage_effect_env.resize(stage_effect_envs_count);
+    if (stage_effect_env_offset > 0) {
+        sr->stage_effect_env.resize(stage_effect_envs_count);
 
-    s_pvsr.position_push(stage_effect_env_offset, SEEK_SET);
-    for (pvsr_stage_effect_env& i : sr->stage_effect_env)
-        pvsr_stage_effect_env_read(&i, s_pvsr, x00);
-    s_pvsr.position_pop();
+        s_pvsr.position_push(stage_effect_env_offset, SEEK_SET);
+        for (pvsr_stage_effect_env& i : sr->stage_effect_env)
+            pvsr_stage_effect_env_read(&i, s_pvsr, x00);
+        s_pvsr.position_pop();
+    }
 
     sr->ready = true;
 }
 
-static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream& s) {
-    uint8_t u00 = s.read_uint8_t();
-    uint8_t u01 = s.read_uint8_t();
-    uint8_t u02 = s.read_uint8_t();
-    uint8_t u03 = s.read_uint8_t();
-    stg_eff->bar_count = s.read_uint8_t();
-    int64_t a3da_offset = s.read_offset_x();
+static void pvsr_stage_change_effect_read(pvsr_stage_change_effect* stg_chg_eff, stream& s) {
+    int8_t enable = s.read_int8_t();
+    int8_t auth_3d_count = s.read_int8_t();
+    int8_t glitter_count = s.read_int8_t();
+    int8_t u03 = s.read_int8_t();
+    int8_t bar_count = s.read_int8_t();
+    int64_t auth_3d_offset = s.read_offset_x();
     int64_t glitter_offset = s.read_offset_x();
     s.read_offset_x();
 
-    uint8_t a3da_count;
-    uint8_t glitter_count;
-    if (stg_eff->bar_count != 0xFF) {
-        a3da_count = u00;
-        glitter_count = u01;
-    }
-    else {
-        a3da_count = u01;
-        glitter_count = u02;
+    if (!enable) {
+        stg_chg_eff->enable = false;
+        return;
     }
 
-    stg_eff->a3da.resize(a3da_count);
+    stg_chg_eff->enable = true;
 
-    s.position_push(a3da_offset, SEEK_SET);
-    for (pvsr_a3da& i : stg_eff->a3da)
-        pvsr_a3da_read(&i, s);
-    s.position_pop();
+    if (bar_count > 0)
+        stg_chg_eff->bar_count = bar_count;
+    else
+        stg_chg_eff->bar_count = 0;
 
-    stg_eff->glitter.resize(glitter_count);
+    if (auth_3d_offset > 0) {
+        stg_chg_eff->auth_3d.resize(auth_3d_count);
 
-    s.position_push(glitter_offset, SEEK_SET);
-    for (pvsr_glitter& i : stg_eff->glitter)
-        pvsr_glitter_read(&i, s);
-    s.position_pop();
+        s.position_push(auth_3d_offset, SEEK_SET);
+        for (pvsr_auth_3d& i : stg_chg_eff->auth_3d)
+            pvsr_auth_3d_read(&i, s);
+        s.position_pop();
+    }
+
+    if (glitter_offset > 0) {
+        stg_chg_eff->glitter.resize(glitter_count);
+
+        s.position_push(glitter_offset, SEEK_SET);
+        for (pvsr_glitter& i : stg_chg_eff->glitter)
+            pvsr_glitter_read(&i, s);
+        s.position_pop();
+    }
+}
+
+static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream& s) {
+    int8_t auth_3d_count = s.read_int8_t();
+    int8_t glitter_count = s.read_int8_t();
+    int8_t u02 = s.read_int8_t();
+    int8_t u03 = s.read_int8_t();
+    int8_t u04 = s.read_int8_t();
+    int64_t auth_3d_offset = s.read_offset_x();
+    int64_t glitter_offset = s.read_offset_x();
+    s.read_offset_x();
+
+    if (auth_3d_offset > 0) {
+        stg_eff->auth_3d.resize(auth_3d_count);
+
+        s.position_push(auth_3d_offset, SEEK_SET);
+        for (pvsr_auth_3d& i : stg_eff->auth_3d)
+            pvsr_auth_3d_read(&i, s);
+        s.position_pop();
+    }
+
+    if (glitter_offset > 0) {
+        stg_eff->glitter.resize(glitter_count);
+
+        s.position_push(glitter_offset, SEEK_SET);
+        for (pvsr_glitter& i : stg_eff->glitter)
+            pvsr_glitter_read(&i, s);
+        s.position_pop();
+    }
 }
 
 static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream& s, int32_t x00) {
     int64_t set_name_offset = s.read_offset_x();
-    int64_t front_offset = s.read_offset_x();
-    int64_t front_low_offset = s.read_offset_x();
-    int64_t back_offset = s.read_offset_x();
+    int64_t aet_front_offset = s.read_offset_x();
+    int64_t aet_front_low_offset = s.read_offset_x();
+    int64_t aet_back_offset = s.read_offset_x();
     int64_t sub1_offset = s.read_offset_x();
     int64_t sub2a_offset = s.read_offset_x();
     int64_t sub2b_offset = s.read_offset_x();
@@ -298,9 +361,9 @@ static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream& s, in
     aet->u5c = s.read_uint16_t_reverse_endianness();
     aet->u5e = s.read_uint16_t_reverse_endianness();
     aet->u60 = s.read_uint16_t_reverse_endianness();
-    int8_t front_count = s.read_int8_t();
-    int8_t front_low_count = s.read_int8_t();
-    int8_t back_count = s.read_int8_t();
+    int8_t aet_front_count = s.read_int8_t();
+    int8_t aet_front_low_count = s.read_int8_t();
+    int8_t aet_back_count = s.read_int8_t();
     s.align_read(0x08);
     int64_t o68 = 0;
     int64_t o70 = 0;
@@ -316,26 +379,32 @@ static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream& s, in
 
     aet->set_name = s.read_string_null_terminated_offset(set_name_offset);
 
-    aet->aet_front.resize(front_count);
+    if (aet_front_offset > 0) {
+        aet->aet_front.resize(aet_front_count);
 
-    s.position_push(front_offset, SEEK_SET);
-    for (pvsr_aet& i : aet->aet_front)
-        pvsr_aet_read(&i, s);
-    s.position_pop();
+        s.position_push(aet_front_offset, SEEK_SET);
+        for (pvsr_auth_2d& i : aet->aet_front)
+            pvsr_auth_2d_read(&i, s);
+        s.position_pop();
+    }
 
-    aet->aet_front_low.resize(front_low_count);
+    if (aet_front_low_offset > 0) {
+        aet->aet_front_low.resize(aet_front_low_count);
 
-    s.position_push(front_low_offset, SEEK_SET);
-    for (pvsr_aet& i : aet->aet_front_low)
-        pvsr_aet_read(&i, s);
-    s.position_pop();
+        s.position_push(aet_front_low_offset, SEEK_SET);
+        for (pvsr_auth_2d& i : aet->aet_front_low)
+            pvsr_auth_2d_read(&i, s);
+        s.position_pop();
+    }
 
-    aet->aet_back.resize(back_count);
+    if (aet_back_offset > 0) {
+        aet->aet_back.resize(aet_back_count);
 
-    s.position_push(back_offset, SEEK_SET);
-    for (pvsr_aet& i : aet->aet_back)
-        pvsr_aet_read(&i, s);
-    s.position_pop();
+        s.position_push(aet_back_offset, SEEK_SET);
+        for (pvsr_auth_2d& i : aet->aet_back)
+            pvsr_auth_2d_read(&i, s);
+        s.position_pop();
+    }
 
     aet->sub1_data_init = pvsr_stage_effect_env_sub1_read(&aet->sub1_data, s, sub1_offset);
     aet->sub2a_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2a_data, s, sub2a_offset);
@@ -344,19 +413,23 @@ static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream& s, in
     aet->sub2d_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2d_data, s, sub2d_offset);
 
     if (x00 & 0x100) {
-        aet->unk03.resize(u78);
+        if (aet_back_offset > 0) {
+            aet->unk03.resize(u78);
 
-        s.position_push(o68, SEEK_SET);
-        for (pvsr_aet& i : aet->unk03)
-            pvsr_aet_read(&i, s);
-        s.position_pop();
+            s.position_push(o68, SEEK_SET);
+            for (pvsr_auth_2d& i : aet->unk03)
+                pvsr_auth_2d_read(&i, s);
+            s.position_pop();
+        }
 
-        aet->unk04.resize(u79);
+        if (o70 > 0) {
+            aet->unk04.resize(u79);
 
-        s.position_push(o70, SEEK_SET);
-        for (pvsr_aet& i : aet->unk04)
-            pvsr_aet_read(&i, s);
-        s.position_pop();
+            s.position_push(o70, SEEK_SET);
+            for (pvsr_auth_2d& i : aet->unk04)
+                pvsr_auth_2d_read(&i, s);
+            s.position_pop();
+        }
     }
 }
 
@@ -367,7 +440,7 @@ static bool pvsr_stage_effect_env_sub1_read(pvsr_stage_effect_env_sub1* aet_sub1
     s.position_push(offset, SEEK_SET);
     aet_sub1->name = s.read_string_null_terminated_offset(s.read_offset_x());
     aet_sub1->hash = s.read_uint32_t_reverse_endianness();
-    aet_sub1->unk2 = s.read_uint16_t_reverse_endianness();
+    aet_sub1->stage_light = s.read_uint16_t_reverse_endianness();
     s.align_read(0x08);
     s.position_pop();
     return true;

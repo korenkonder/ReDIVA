@@ -1298,7 +1298,7 @@ namespace Glitter {
         return val % (max - min) + min;
     }
 
-    void Random::F2GetVec3(GLT, vec3* src, vec3* dst) {
+    void Random::F2GetVec3(GLT, vec3& src, vec3& dst) {
         vec3 val;
         switch (GLT_VAL) {
         default:
@@ -1315,9 +1315,9 @@ namespace Glitter {
         }
 
         vec3 t;
-        vec3_add(*src, *src, t);
+        vec3_add(src, src, t);
         vec3_mult(val, t, val);
-        vec3_sub(val, *src, *dst);
+        vec3_sub(val, src, dst);
     }
 
     void Random::F2StepValue() {
@@ -1358,7 +1358,7 @@ namespace Glitter {
         return val % (max - min) + min;
     }
 
-    void Random::XGetVec3(vec3* src, vec3* dst) {
+    void Random::XGetVec3(vec3& src, vec3& dst) {
         vec3 val;
         val.x = *(float_t*)&x_float_table[value % 0x169];
         value += step;
@@ -1368,9 +1368,9 @@ namespace Glitter {
         value += step;
 
         vec3 t;
-        vec3_add(*src, *src, t);
+        vec3_add(src, src, t);
         vec3_mult(val, t, val);
-        vec3_sub(val, *src, *dst);
+        vec3_sub(val, src, dst);
     }
 
     void Random::XReset() {

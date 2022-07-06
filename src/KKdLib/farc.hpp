@@ -31,13 +31,14 @@ enum farc_compress_mode {
 };
 
 struct farc_file {
+    std::string name;
     size_t offset;
     size_t size;
     size_t size_compressed;
-    std::string name;
     void* data;
     void* data_compressed;
-    farc_flags flags;
+    bool compressed;
+    bool encrypted;
     bool data_changed;
 
     farc_file();
