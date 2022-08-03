@@ -8,9 +8,10 @@
 #include <string>
 #include <vector>
 #include "default.hpp"
+#include "hash.hpp"
 
 enum pvsr_auth_3d_flags : uint8_t {
-    PVSR_AUTH_3D_FINAL          = 0x01,
+    PVSR_AUTH_3D_REPEAT         = 0x01,
     PVSR_AUTH_3D_MOVIE_TEXTURE  = 0x02,
     PVSR_AUTH_3D_RENDER_TEXTURE = 0x04,
     PVSR_AUTH_3D_MAIN           = 0x08,
@@ -21,8 +22,7 @@ enum pvsr_glitter_flags : uint8_t {
 };
 
 struct pvsr_auth_2d {
-    std::string name;
-    std::uint32_t hash;
+    string_hash name;
     float_t bright_scale;
 
     pvsr_auth_2d();
@@ -30,8 +30,7 @@ struct pvsr_auth_2d {
 };
 
 struct pvsr_auth_3d {
-    std::string name;
-    uint32_t hash;
+    string_hash name;
     pvsr_auth_3d_flags flags;
 
     pvsr_auth_3d();
@@ -39,7 +38,7 @@ struct pvsr_auth_3d {
 };
 
 struct pvsr_effect {
-    std::string name;
+    string_hash name;
     float_t emission;
 
     pvsr_effect();
@@ -47,8 +46,8 @@ struct pvsr_effect {
 };
 
 struct pvsr_glitter {
-    std::string name;
-    int8_t unk1;
+    string_hash name;
+    int8_t fade_time;
     pvsr_glitter_flags flags;
 
     pvsr_glitter();
@@ -74,8 +73,7 @@ struct pvsr_stage_effect {
 };
 
 struct pvsr_stage_effect_env_sub1 {
-    std::string name;
-    uint32_t hash;
+    string_hash name;
     uint16_t stage_light;
 
     pvsr_stage_effect_env_sub1();
@@ -128,14 +126,14 @@ struct pvsr_stage_effect_env {
     ~pvsr_stage_effect_env();
 };
 
-#define PVSR_STAGE_CHANGE_EFFECT_COUNT 0x10
+#define PVSR_STAGE_EFFECT_COUNT 0x10
 
 struct pvsr {
     bool ready;
 
     std::vector<pvsr_effect> effect;
     std::vector<std::string> emcs;
-    pvsr_stage_change_effect stage_change_effect[PVSR_STAGE_CHANGE_EFFECT_COUNT][PVSR_STAGE_CHANGE_EFFECT_COUNT];
+    pvsr_stage_change_effect stage_change_effect[PVSR_STAGE_EFFECT_COUNT][PVSR_STAGE_EFFECT_COUNT];
     std::vector<pvsr_stage_effect> stage_effect;
     std::vector<pvsr_stage_effect_env> stage_effect_env;
 
@@ -144,6 +142,7 @@ struct pvsr {
 
     void read(const char* path);
     void read(const wchar_t* path);
+    void read(const void* data, size_t size);
 
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };

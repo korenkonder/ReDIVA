@@ -266,23 +266,23 @@ void object_database::add(object_database_file* obj_db_file) {
         }
 
         set_info->id = i.id;
-        set_info->name = i.name;
+        set_info->name.assign(i.name);
         set_info->name_hash = hash_string_murmurhash(i.name);
-        set_info->object_file_name = i.object_file_name;
-        set_info->texture_file_name = i.texture_file_name;
-        set_info->archive_file_name = i.archive_file_name;
+        set_info->object_file_name.assign(i.object_file_name);
+        set_info->texture_file_name.assign(i.texture_file_name);
+        set_info->archive_file_name.assign(i.archive_file_name);
 
         set_info->object.clear();
         set_info->object.reserve(i.object.size());
 
         for (object_info_data_file& j : i.object) {
-            object_info_data info;
+            set_info->object.push_back({});
+            object_info_data& info = set_info->object.back();
             info.id = j.id;
-            info.name = j.name;
+            info.name.assign(j.name);
             info.name_hash_fnv1a64m = hash_string_fnv1a64m(info.name);
             info.name_hash_fnv1a64m_upper = hash_string_fnv1a64m(info.name, true);
             info.name_hash_murmurhash = hash_string_murmurhash(info.name);
-            set_info->object.push_back(info);
         }
     }
 }
@@ -410,6 +410,17 @@ uint32_t object_database::get_object_set_id(const char* name) {
     return (uint32_t)-1;
 }
 
+const char* object_database::get_object_set_name(uint32_t set_id) {
+    if (set_id == -1)
+        return 0;
+
+    for (object_set_info& i : object_set)
+        if (set_id == i.id)
+            return i.name.c_str();
+
+    return 0;
+}
+
 object_info object_database::get_object_info(const char* name) {
     if (!name)
         return object_info();
@@ -452,33 +463,56 @@ static void object_database_file_classic_read_inner(object_database_file* obj_db
 
     obj_db->object_set.resize(object_set_count);
 
+    object_set_info_file* object_set = obj_db->object_set.data();
+
     s.position_push(object_sets_offset, SEEK_SET);
     for (uint32_t i = 0; i < object_set_count; i++) {
-        object_set_info_file* set_info = &obj_db->object_set[i];
-        set_info->name = s.read_string_null_terminated_offset(s.read_uint32_t());
+        object_set_info_file* set_info = &object_set[i];
+        set_info->name.assign(s.read_string_null_terminated_offset(s.read_uint32_t()));
         set_info->id = s.read_uint32_t();
-        set_info->object_file_name = s.read_string_null_terminated_offset(s.read_uint32_t());
-        set_info->texture_file_name = s.read_string_null_terminated_offset(s.read_uint32_t());
-        set_info->archive_file_name = s.read_string_null_terminated_offset(s.read_uint32_t());
+        set_info->object_file_name.assign(s.read_string_null_terminated_offset(s.read_uint32_t()));
+        set_info->texture_file_name.assign(s.read_string_null_terminated_offset(s.read_uint32_t()));
+        set_info->archive_file_name.assign(s.read_string_null_terminated_offset(s.read_uint32_t()));
         s.read(0x10);
     }
     s.position_pop();
 
+    size_t* object_set_object_count = force_malloc_s(size_t, object_set_count);
     s.position_push(objects_offset, SEEK_SET);
     for (uint32_t i = 0; i < object_count; i++) {
-        object_info_data_file info;
-        info.id = s.read_uint16_t();
+        uint32_t id = s.read_uint16_t();
         uint32_t set_id = s.read_uint16_t();
-        info.name = s.read_string_null_terminated_offset(s.read_uint32_t());
+        uint32_t name_offset = s.read_uint32_t();
 
-        if (info.id == 0xFFFF)
-            info.id = -1;
+        for (uint32_t j = 0; j < object_set_count; j++)
+            if (set_id == object_set[j].id) {
+                object_set_object_count[j]++;
+                break;
+            }
+    }
+    s.position_pop();
+
+    for (uint32_t i = 0; i < object_set_count; i++)
+        object_set[i].object.reserve(object_set_object_count[i]);
+    free(object_set_object_count);
+
+    s.position_push(objects_offset, SEEK_SET);
+    for (uint32_t i = 0; i < object_count; i++) {
+        uint32_t id = s.read_uint16_t();
+        uint32_t set_id = s.read_uint16_t();
+        uint32_t name_offset = s.read_uint32_t();
+
+        if (id == 0xFFFF)
+            id = -1;
         if (set_id == 0xFFFF)
             set_id = -1;
 
-        for (uint32_t i = 0; i < object_set_count; i++)
-            if (set_id == obj_db->object_set[i].id) {
-                obj_db->object_set[i].object.push_back(info);
+        for (uint32_t j = 0; j < object_set_count; j++)
+            if (set_id == object_set[j].id) {
+                object_set[j].object.push_back({});
+                object_info_data_file& info = object_set[j].object.back();
+                info.id = id;
+                info.name.assign(s.read_string_null_terminated_offset(name_offset));
                 break;
             }
     }
@@ -588,53 +622,91 @@ static void object_database_file_modern_read_inner(object_database_file* obj_db,
 
     obj_db->object_set.resize(object_set_count);
 
+    object_set_info_file* object_set = obj_db->object_set.data();
+
     s.position_push(object_sets_offset, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < object_set_count; i++) {
-            object_set_info_file* set_info = &obj_db->object_set[i];
-            set_info->name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
+            object_set_info_file* set_info = &object_set[i];
+            set_info->name.assign(s.read_string_null_terminated_offset(s.read_offset_f2(header_length)));
             set_info->id = s.read_uint32_t_reverse_endianness();
-            set_info->object_file_name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
-            set_info->texture_file_name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
-            set_info->archive_file_name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
+            set_info->object_file_name.assign(s.read_string_null_terminated_offset(s.read_offset_f2(header_length)));
+            set_info->texture_file_name.assign(s.read_string_null_terminated_offset(s.read_offset_f2(header_length)));
+            set_info->archive_file_name.assign(s.read_string_null_terminated_offset(s.read_offset_f2(header_length)));
             s.read(0x10);
         }
     else
         for (uint32_t i = 0; i < object_set_count; i++) {
-            object_set_info_file* set_info = &obj_db->object_set[i];
-            set_info->name = s.read_string_null_terminated_offset(s.read_offset_x());
+            object_set_info_file* set_info = &object_set[i];
+            set_info->name.assign(s.read_string_null_terminated_offset(s.read_offset_x()));
             set_info->id = s.read_uint32_t_reverse_endianness();
-            set_info->object_file_name = s.read_string_null_terminated_offset(s.read_offset_x());
-            set_info->texture_file_name = s.read_string_null_terminated_offset(s.read_offset_x());
-            set_info->archive_file_name = s.read_string_null_terminated_offset(s.read_offset_x());
+            set_info->object_file_name.assign(s.read_string_null_terminated_offset(s.read_offset_x()));
+            set_info->texture_file_name.assign(s.read_string_null_terminated_offset(s.read_offset_x()));
+            set_info->archive_file_name.assign(s.read_string_null_terminated_offset(s.read_offset_x()));
             s.read(0x10);
         }
     s.position_pop();
 
+    size_t* object_set_object_count = force_malloc_s(size_t, object_set_count);
     s.position_push(objects_offset, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < object_count; i++) {
-            object_info_data_file info;
-            info.id = s.read_uint32_t_reverse_endianness();
-            uint32_t set_id = s.read_uint32_t_reverse_endianness();
-            info.name =  s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
+            uint32_t id = s.read_uint16_t();
+            uint32_t set_id = s.read_uint16_t();
+            int64_t name_offset = s.read_offset_f2(header_length);
 
-            for (uint32_t i = 0; i < object_set_count; i++)
-                if (set_id == obj_db->object_set[i].id) {
-                    obj_db->object_set[i].object.push_back(info);
+            for (uint32_t j = 0; j < object_set_count; j++)
+                if (set_id == object_set[j].id) {
+                    object_set_object_count[j]++;
                     break;
                 }
         }
     else
         for (uint32_t i = 0; i < object_count; i++) {
-            object_info_data_file info;
-            info.id = s.read_uint32_t_reverse_endianness();
-            uint32_t set_id = s.read_uint32_t_reverse_endianness();
-            info.name = s.read_string_null_terminated_offset(s.read_offset_x());
+            uint32_t id = s.read_uint16_t();
+            uint32_t set_id = s.read_uint16_t();
+            int64_t name_offset = s.read_offset_x();
 
-            for (uint32_t i = 0; i < object_set_count; i++)
-                if (set_id == obj_db->object_set[i].id) {
-                    obj_db->object_set[i].object.push_back(info);
+            for (uint32_t j = 0; j < object_set_count; j++)
+                if (set_id == object_set[j].id) {
+                    object_set_object_count[j]++;
+                    break;
+                }
+        }
+    s.position_pop();
+
+    for (uint32_t i = 0; i < object_set_count; i++)
+        object_set[i].object.reserve(object_set_object_count[i]);
+    free(object_set_object_count);
+
+    s.position_push(objects_offset, SEEK_SET);
+    if (!is_x)
+        for (uint32_t i = 0; i < object_count; i++) {
+            uint32_t id = s.read_uint32_t_reverse_endianness();
+            uint32_t set_id = s.read_uint32_t_reverse_endianness();
+            int64_t name_offset = s.read_offset_f2(header_length);
+
+            for (uint32_t j = 0; j < object_set_count; j++)
+                if (set_id == object_set[j].id) {
+                    object_set[j].object.push_back({});
+                    object_info_data_file& info = object_set[j].object.back();
+                    info.id = id;
+                    info.name.assign(s.read_string_null_terminated_offset(name_offset));
+                    break;
+                }
+        }
+    else
+        for (uint32_t i = 0; i < object_count; i++) {
+            uint32_t id = s.read_uint32_t_reverse_endianness();
+            uint32_t set_id = s.read_uint32_t_reverse_endianness();
+            int64_t name_offset = s.read_offset_x();
+
+            for (uint32_t j = 0; j < object_set_count; j++)
+                if (set_id == object_set[j].id) {
+                    object_set[j].object.push_back({});
+                    object_info_data_file& info = object_set[j].object.back();
+                    info.id = id;
+                    info.name.assign(s.read_string_null_terminated_offset(name_offset));
                     break;
                 }
         }

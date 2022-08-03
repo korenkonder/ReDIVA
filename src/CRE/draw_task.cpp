@@ -48,9 +48,11 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
     switch (type) {
     case DRAW_OBJECT_TRANSLUCENT:
     case DRAW_OBJECT_TRANSLUCENT_NO_SHADOW:
-    case DRAW_OBJECT_TRANSLUCENT_TYPE_22:
-    case DRAW_OBJECT_TRANSLUCENT_TYPE_25:
-    case DRAW_OBJECT_TRANSLUCENT_TYPE_28:
+    case DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_1:
+    case DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2:
+    case DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3:
+    case DRAW_OBJECT_TRANSLUCENT_LOCAL:
+    case DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2_LOCAL:
         if (a2)
             draw_object_func = draw_object_draw_translucent;
         else
@@ -58,9 +60,11 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
         min_alpha = 0.0;
         break;
     case DRAW_OBJECT_TRANSPARENT:
-    case DRAW_OBJECT_TRANSPARENT_TYPE_21:
-    case DRAW_OBJECT_TRANSPARENT_TYPE_24:
-    case DRAW_OBJECT_TRANSPARENT_TYPE_27:
+    case DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_1:
+    case DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2:
+    case DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_3:
+    case DRAW_OBJECT_TRANSPARENT_LOCAL:
+    case DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2_LOCAL:
         alpha_test = 1;
         min_alpha = 0.1f;
         break;
@@ -127,7 +131,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
     case DRAW_OBJECT_SSS:
         draw_object_func = draw_object_draw_sss;
         break;
-    case DRAW_OBJECT_RIPPLE:
+    case DRAW_OBJECT_PREPROCESS:
         draw_object_func = draw_object_draw_translucent;
         break;
     default:
@@ -141,19 +145,19 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
         for (draw_task*& i : vec) {
             draw_task* task = i;
             switch (task->type) {
-            case DRAW_TASK_TYPE_OBJECT: {
+            case DRAW_TASK_OBJECT: {
                 draw_object_draw(rctx, &task->data.object,
                     &task->mat, draw_object_func, show_vector);
             } break;
-            case DRAW_TASK_TYPE_PRIMITIVE: {
+            case DRAW_TASK_OBJECT_PRIMITIVE: {
                 draw_object_model_mat_load(rctx, &task->mat);
                 //draw_primitive_draw(&task->data.primitive);
             } break;
-            case DRAW_TASK_TYPE_PREPROCESS: {
+            case DRAW_TASK_OBJECT_PREPROCESS: {
                 draw_object_model_mat_load(rctx, &task->mat);
                 task->data.preprocess.func(rctx, task->data.preprocess.data);
             } break;
-            case DRAW_TASK_TYPE_OBJECT_TRANSLUCENT: {
+            case DRAW_TASK_OBJECT_TRANSLUCENT: {
                 for (int32_t j = 0; j < task->data.object_translucent.count; j++)
                     draw_object_draw(rctx, task->data.object_translucent.objects[j],
                         &task->mat, draw_object_func, show_vector);
@@ -164,7 +168,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
         for (draw_task*& i : vec) {
             draw_task* task = i;
             switch (task->type) {
-            case DRAW_TASK_TYPE_OBJECT: {
+            case DRAW_TASK_OBJECT: {
                 int32_t a = (int32_t)(task->data.object.blend_color.w * 255.0f);
                 a = clamp(a, 0, 255);
                 if (a == alpha) {
@@ -172,7 +176,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
                         &task->mat, draw_object_func, show_vector);
                 }
             } break;
-            case DRAW_TASK_TYPE_OBJECT_TRANSLUCENT: {
+            case DRAW_TASK_OBJECT_TRANSLUCENT: {
                 for (int32_t j = 0; j < task->data.object_translucent.count; j++) {
                     draw_object* object = task->data.object_translucent.objects[j];
                     int32_t a = (int32_t)(object->blend_color.w * 255.0f);
@@ -190,9 +194,9 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
     case DRAW_OBJECT_TRANSLUCENT_NO_SHADOW:
     case DRAW_OBJECT_REFLECT_TRANSLUCENT:
     case DRAW_OBJECT_REFRACT_TRANSLUCENT:
-    case DRAW_OBJECT_TRANSLUCENT_TYPE_22:
-    case DRAW_OBJECT_TRANSLUCENT_TYPE_25:
-    case DRAW_OBJECT_TRANSLUCENT_TYPE_28:
+    case DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_1:
+    case DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2:
+    case DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3:
         if (!a2)
             gl_state_set_depth_mask(GL_TRUE);
         break;
@@ -204,9 +208,9 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
     case DRAW_OBJECT_REFLECT_CHARA_OPAQUE:
     case DRAW_OBJECT_REFLECT_CHARA_TRANSLUCENT:
     case DRAW_OBJECT_REFLECT_CHARA_TRANSPARENT:
-    case DRAW_OBJECT_TRANSPARENT_TYPE_21:
-    case DRAW_OBJECT_TRANSPARENT_TYPE_24:
-    case DRAW_OBJECT_TRANSPARENT_TYPE_27:
+    case DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_1:
+    case DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2:
+    case DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_3:
         gl_state_set_cull_face_mode(GL_BACK);
         break;
     }
@@ -219,11 +223,9 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
 void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaque_enable,
     bool transparent_enable, bool translucent_enable, draw_object_type opaque,
     draw_object_type transparent, draw_object_type translucent) {
-    if (draw_task_get_count(rctx, opaque) < 1)
-        return;
-    else if (draw_task_get_count(rctx, transparent) < 1)
-        return;
-    else if (draw_task_get_count(rctx, translucent) < 1)
+    if (draw_task_get_count(rctx, opaque) < 1
+        && draw_task_get_count(rctx, transparent) < 1
+        && draw_task_get_count(rctx, translucent) < 1)
         return;
 
     int32_t alpha_array[256];
@@ -235,7 +237,7 @@ void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaqu
             rctx->post_process.alpha_layer_texture.fbos[0],
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
-            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_LINEAR);
+            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
         if (opaque_enable && draw_task_get_count(rctx, opaque))
             draw_task_draw_objects_by_type(rctx, opaque, 0, 0, 1, alpha);
@@ -257,7 +259,8 @@ void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaqu
         fbo::blit(rctx->post_process.buf_texture.fbos[0],
             rctx->post_process.rend_texture.fbos[0],
             0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
-            0, 0, rctx->post_process.render_width, rctx->post_process.render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
+            GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
 }
 
@@ -269,11 +272,13 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
     obj_mesh_vertex_buffer* obj_vertex_buf, obj_mesh_index_buffer* obj_index_buf, mat4* mat,
     std::vector<GLuint>* textures, vec4* blend_color, mat4* bone_mat, obj* object_morph,
     obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
-    mat4* instances_mat, void(*draw_object_func)(draw_object*), bool enable_bone_mat) {
+    mat4* instances_mat, void(*draw_object_func)(draw_object*), bool enable_bone_mat, bool local) {
     object_data* object_data = &rctx->object_data;
     draw_task_flags draw_task_flags = object_data->draw_task_flags;
 
-    if (object_data->object_culling && !instances_count && !bone_mat && (!object
+    rctx->camera->update_data();
+
+    if (!local && object_data->object_culling && !instances_count && !bone_mat && (!object
         || !object_bounding_sphere_check_visibility(&object->bounding_sphere, object_data, rctx->camera, mat))) {
         object_data->culled.objects++;
         return false;
@@ -291,7 +296,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                 mesh_morph = &object_morph->mesh_array[i];
         }
 
-        if (object_data->object_culling && !instances_count && !bone_mat
+        if (!local && object_data->object_culling && !instances_count && !bone_mat
             && !object_bounding_sphere_check_visibility(&mesh->bounding_sphere, object_data, rctx->camera, mat)
             && (!mesh_morph || !object_bounding_sphere_check_visibility(
                 &mesh_morph->bounding_sphere, object_data, rctx->camera, mat))) {
@@ -309,7 +314,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             if (sub_mesh->attrib.m.cloth)
                 continue;
 
-            if (object_data->object_culling && !instances_count && !bone_mat) {
+            if (!local && object_data->object_culling && !instances_count && !bone_mat) {
                 int32_t v32 = object_bounding_sphere_check_visibility(
                     &sub_mesh->bounding_sphere, object_data, rctx->camera, mat);
                 if (v32 != 2 || (!mesh->attrib.m.billboard && !mesh->attrib.m.billboard_y_axis)) {
@@ -371,7 +376,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             }
 
             obj_material_data* material = &object->material_array[sub_mesh->material_index];
-            draw_task* task = object_data->buffer.add_draw_task(DRAW_TASK_TYPE_OBJECT);
+            draw_task* task = object_data->buffer.add_draw_task(DRAW_TASK_OBJECT);
             if (!task)
                 continue;
 
@@ -465,45 +470,48 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             if (draw_task_flags & DRAW_TASK_SHADOW_OBJECT) {
                 draw_task_add(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_OBJECT_CHARA
                     + object_data->shadow_type), task);
-                if (draw_task_flags & DRAW_TASK_RIPPLE)
-                    draw_task_add(rctx, DRAW_OBJECT_RIPPLE, task);
+                if (draw_task_flags & DRAW_TASK_PREPROCESS)
+                    draw_task_add(rctx, DRAW_OBJECT_PREPROCESS, task);
                 continue;
             }
 
             obj_material_attrib_member attrib = material->material.attrib.m;
-            if (draw_task_flags & (DRAW_TASK_10000 | DRAW_TASK_20000 | DRAW_TASK_40000)
+            if (draw_task_flags & (DRAW_TASK_ALPHA_ORDER_1 | DRAW_TASK_ALPHA_ORDER_2 | DRAW_TASK_ALPHA_ORDER_3)
                 && task->data.object.blend_color.w < 1.0f) {
                 if (~draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY) {
                     if (attrib.flag_28 || (attrib.punch_through
                         || !(attrib.alpha_texture | attrib.alpha_material))
                         && !sub_mesh->attrib.m.transparent) {
                         if (!attrib.punch_through) {
-                            if (draw_task_flags & DRAW_TASK_10000)
-                                draw_task_add(rctx, DRAW_OBJECT_OPAQUE_TYPE_20, task);
-                            else if (draw_task_flags & DRAW_TASK_20000)
-                                draw_task_add(rctx, DRAW_OBJECT_OPAQUE_TYPE_23, task);
+                            if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_1)
+                                draw_task_add(rctx, DRAW_OBJECT_OPAQUE_ALPHA_ORDER_1, task);
+                            else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_2)
+                                draw_task_add(rctx, local ? DRAW_OBJECT_OPAQUE_ALPHA_ORDER_2_LOCAL
+                                    : DRAW_OBJECT_OPAQUE_ALPHA_ORDER_2, task);
                             else
-                                draw_task_add(rctx, DRAW_OBJECT_OPAQUE_TYPE_26, task);
+                                draw_task_add(rctx, DRAW_OBJECT_OPAQUE_ALPHA_ORDER_3, task);
                         }
                         else {
-                            if (draw_task_flags & DRAW_TASK_10000)
-                                draw_task_add(rctx, DRAW_OBJECT_TRANSPARENT_TYPE_21, task);
-                            else if (draw_task_flags & DRAW_TASK_20000)
-                                draw_task_add(rctx, DRAW_OBJECT_TRANSPARENT_TYPE_24, task);
+                            if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_1)
+                                draw_task_add(rctx, DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_1, task);
+                            else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_2)
+                                draw_task_add(rctx, local ? DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2_LOCAL
+                                    : DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2, task);
                             else
-                                draw_task_add(rctx, DRAW_OBJECT_TRANSPARENT_TYPE_27, task);
+                                draw_task_add(rctx, DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_3, task);
                         }
 
                         if (draw_task_flags & DRAW_TASK_SSS)
                             draw_task_add(rctx, DRAW_OBJECT_SSS, task);
                     }
 
-                    if (draw_task_flags & DRAW_TASK_10000)
-                        draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_22, task);
-                    else if (draw_task_flags & DRAW_TASK_20000)
-                        draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_25, task);
+                    if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_1)
+                        draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_1, task);
+                    else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_2)
+                        draw_task_add(rctx, local ? DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
+                            : DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2, task);
                     else
-                        draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_28, task);
+                        draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3, task);
                 }
             }
             else {
@@ -517,9 +525,10 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                     if (draw_task_flags & DRAW_TASK_SSS)
                         draw_task_add(rctx, DRAW_OBJECT_SSS, task);
 
-                    if (material->material.attrib.m.punch_through) {
+                    if (attrib.punch_through) {
                         if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY))
-                            draw_task_add(rctx, DRAW_OBJECT_TRANSPARENT, task);
+                            draw_task_add(rctx, local ? DRAW_OBJECT_TRANSPARENT_LOCAL
+                                : DRAW_OBJECT_TRANSPARENT, task);
 
                         if (draw_task_flags & DRAW_TASK_CHARA_REFLECT)
                             draw_task_add(rctx, DRAW_OBJECT_REFLECT_CHARA_OPAQUE, task);
@@ -532,7 +541,8 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                     }
                     else {
                         if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY))
-                            draw_task_add(rctx, DRAW_OBJECT_OPAQUE, task);
+                            draw_task_add(rctx, local ? DRAW_OBJECT_OPAQUE_LOCAL
+                                : DRAW_OBJECT_OPAQUE, task);
 
                         if (draw_task_flags & DRAW_TASK_20)
                             draw_task_add(rctx, DRAW_OBJECT_TYPE_6, task);
@@ -547,13 +557,15 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                             draw_task_add(rctx, DRAW_OBJECT_REFRACT_OPAQUE, task);
                     }
 
-                    if (draw_task_flags & DRAW_TASK_RIPPLE)
-                        draw_task_add(rctx, DRAW_OBJECT_RIPPLE, task);
+                    if (draw_task_flags & DRAW_TASK_PREPROCESS)
+                        draw_task_add(rctx, DRAW_OBJECT_PREPROCESS, task);
                     continue;
                 }
                 else if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY)) {
                     if (!attrib.translucent_priority)
-                        if (mesh->attrib.m.translucent_no_shadow
+                        if (local)
+                            draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_LOCAL, task);
+                        else if (mesh->attrib.m.translucent_no_shadow
                             || draw_task_flags & DRAW_TASK_TRANSLUCENT_NO_SHADOW)
                             draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_NO_SHADOW, task);
                         else
@@ -578,8 +590,8 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             }
             if (draw_task_flags & DRAW_TASK_REFRACT)
                 draw_task_add(rctx, DRAW_OBJECT_REFRACT_TRANSLUCENT, task);
-            if (draw_task_flags & DRAW_TASK_RIPPLE)
-                draw_task_add(rctx, DRAW_OBJECT_RIPPLE, task);
+            if (draw_task_flags & DRAW_TASK_PREPROCESS)
+                draw_task_add(rctx, DRAW_OBJECT_PREPROCESS, task);
         }
 
         if (!translucent_priority_count)
@@ -597,19 +609,20 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                 object_translucent.count++;
             }
 
-        draw_task* task = rctx->object_data.buffer.add_draw_task(DRAW_TASK_TYPE_OBJECT_TRANSLUCENT);
+        draw_task* task = rctx->object_data.buffer.add_draw_task(DRAW_TASK_OBJECT_TRANSLUCENT);
         if (!task)
             continue;
 
         draw_task_object_translucent_init(task, mat, &object_translucent);
-        if (draw_task_flags & DRAW_TASK_10000)
-            draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_22, task);
-        else if (draw_task_flags & DRAW_TASK_20000)
-            draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_25, task);
-        else if (draw_task_flags & DRAW_TASK_40000)
-            draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_28, task);
+        if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_1)
+            draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_1, task);
+        else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_2)
+            draw_task_add(rctx, local ? DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
+                : DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2, task);
+        else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_3)
+            draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3, task);
         else
-            draw_task_add(rctx, DRAW_OBJECT_TRANSLUCENT, task);
+            draw_task_add(rctx, local ? DRAW_OBJECT_TRANSLUCENT_LOCAL : DRAW_OBJECT_TRANSLUCENT, task);
     }
     return true;
 }
@@ -635,7 +648,7 @@ inline bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4*
 
 bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
     object_info obj_info, vec4* blend_color, mat4* bone_mat, int32_t instances_count,
-    mat4* instances_mat, void(*draw_object_func)(draw_object*), bool enable_bone_mat) {
+    mat4* instances_mat, void(*draw_object_func)(draw_object*), bool enable_bone_mat, bool local) {
     if (obj_info.id == -1 && obj_info.set_id == -1)
         return false;
 
@@ -657,10 +670,10 @@ bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
 
     return draw_task_add_draw_object(rctx, object, obj_vertex_buffer, obj_index_buffer,
         mat, textures, blend_color, bone_mat, obj_morph, obj_morph_vertex_buffer,
-        instances_count, instances_mat, draw_object_func, enable_bone_mat);
+        instances_count, instances_mat, draw_object_func, enable_bone_mat, local);
 }
 
-inline bool draw_task_add_draw_object_by_object_info_alpha(render_context* rctx, mat4* mat,
+inline bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
     object_info obj_info, float_t alpha, mat4* bone_mat) {
     vec4 blend_color = vec4_identity;
     blend_color.w = alpha;
@@ -668,17 +681,17 @@ inline bool draw_task_add_draw_object_by_object_info_alpha(render_context* rctx,
         mat, obj_info, &blend_color, bone_mat, 0, 0, 0, true);
 }
 
-inline bool draw_task_add_draw_object_by_object_info_color(render_context* rctx, mat4* mat,
-    object_info obj_info, float_t r, float_t g, float_t b, float_t a, mat4* bone_mat) {
+inline bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
+    object_info obj_info, float_t r, float_t g, float_t b, float_t a, mat4* bone_mat, bool local) {
     vec4 blend_color = { r, g, b, a };
     return draw_task_add_draw_object_by_object_info(rctx,
-        mat, obj_info, &blend_color, bone_mat, 0, 0, 0, false);
+        mat, obj_info, &blend_color, bone_mat, 0, 0, 0, true, local);
 }
 
-inline bool draw_task_add_draw_object_by_object_info_color_vec4(render_context* rctx, mat4* mat,
-    object_info obj_info, vec4* blend_color, mat4* bone_mat) {
+inline bool draw_task_add_draw_object_by_object_info(render_context* rctx, mat4* mat,
+    object_info obj_info, vec4* blend_color, mat4* bone_mat, bool local) {
     return draw_task_add_draw_object_by_object_info(rctx,
-        mat, obj_info, blend_color, 0, 0, 0, 0, false);
+        mat, obj_info, blend_color, 0, 0, 0, 0, false, local);
 }
 
 void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, object_info obj_info,
@@ -723,7 +736,7 @@ void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, 
         object_data->set_texture_pattern((int32_t)texture_pattern_count, texture_pattern->data());
 
     if (fabsf(alpha - 1.0f) > 0.000001f)
-        draw_task_add_draw_object_by_object_info_alpha(rctx,
+        draw_task_add_draw_object_by_object_info(rctx,
             global_mat, obj_info, alpha, rctx->matrix_buffer);
     else
         draw_task_add_draw_object_by_object_info(rctx,
@@ -750,7 +763,7 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
         draw_task* task = i;
         vec3 center;
         mat4_get_translation(&task->mat, &center);
-        if (task->type == DRAW_TASK_TYPE_OBJECT) {
+        if (task->type == DRAW_TASK_OBJECT) {
             mat4 mat = task->mat;
             if (task->data.object.mesh->attrib.m.billboard)
                 model_mat_face_camera_view(&rctx->camera->view, &mat, &mat);
@@ -905,7 +918,7 @@ inline static void draw_task_object_init(draw_task* task, object_data* object_da
     std::vector<GLuint>* textures, int32_t mat_count, mat4* mats, GLuint array_buffer,
     GLuint element_array_buffer, vec4* blend_color, vec4* emission, int32_t morph_array_buffer,
     int32_t instances_count, mat4* instances_mat, void(*draw_object_func)(draw_object*)) {
-    task->type = DRAW_TASK_TYPE_OBJECT;
+    task->type = DRAW_TASK_OBJECT;
     task->mat = *mat;
     task->bounding_radius = bounding_radius;
     task->data.object.mesh = mesh;
@@ -950,11 +963,13 @@ inline static void draw_task_object_init(draw_task* task, object_data* object_da
     draw->instances_count = instances_count;
     draw->instances_mat = instances_mat;
     draw->draw_object_func = draw_object_func;
+
+    object_data->add_vertex_array(&task->data.object);
 }
 
 inline static void draw_task_object_translucent_init(draw_task* task, mat4* mat,
     draw_task_object_translucent* object) {
-    task->type = DRAW_TASK_TYPE_OBJECT_TRANSLUCENT;
+    task->type = DRAW_TASK_OBJECT_TRANSLUCENT;
     task->mat = *mat;
     task->data.object_translucent = *object;
 }
@@ -974,7 +989,7 @@ static int draw_task_sort_quicksort_compare1(void const* src1, void const* src2)
 static int draw_task_sort_quicksort_compare2(void const* src1, void const* src2) {
     float_t r1 = (*(draw_task**)src1)->bounding_radius;
     float_t r2 = (*(draw_task**)src2)->bounding_radius;
-    return r1 < r2 ? 1 : (r1 > r2 ? -1 : 0);
+    return r1 > r2 ? -1 : (r1 < r2 ? 1 : 0);
 }
 
 inline static int32_t draw_task_translucent_sort_count_layers(render_context* rctx,
@@ -999,7 +1014,7 @@ inline static void draw_task_translucent_sort_has_objects(render_context* rctx, 
     std::vector<draw_task*>& vec = rctx->object_data.draw_task_array[type];
     for (draw_task*& i : vec) {
         draw_task* task = i;
-        if (task->type != DRAW_TASK_TYPE_OBJECT)
+        if (task->type != DRAW_TASK_OBJECT)
             continue;
 
         int32_t alpha = (int32_t)(task->data.object.blend_color.w * 255.0f);

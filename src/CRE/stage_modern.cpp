@@ -45,11 +45,6 @@ static void stage_modern_set(stage_modern* s, stage_modern* other);
 static void stage_modern_set_by_stage_hash(stage_modern* s, int32_t stage_hash,
     uint16_t stage_counter, stage_data_modern* stage_data);
 
-static void task_stage_modern_set_effect_display(task_stage_modern_info* stg_info, bool value);
-static void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool value);
-static void task_stage_modern_set_sky(task_stage_modern_info* stg_info, bool value);
-static void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value);
-
 stage_detail::TaskStageModern* task_stage_modern;
 
 extern render_context* rctx_ptr;
@@ -148,12 +143,36 @@ void task_stage_modern_set_data(void* data,
     task_stage_modern->stage_data = stage_data;
 }
 
+void task_stage_modern_set_effect_display(task_stage_modern_info* stg_info, bool value) {
+    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
+    if (stg)
+        stg->effect_display = value;
+}
+
+void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool value) {
+    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
+    if (stg)
+        stg->ground = value;
+}
+
 void task_stage_modern_set_mat(mat4* mat) {
     task_stage_modern->mat = *mat;
 }
 
+void task_stage_modern_set_sky(task_stage_modern_info* stg_info, bool value) {
+    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
+    if (stg)
+        stg->sky = value;
+}
+
 void task_stage_modern_set_stage(task_stage_modern_info* stg_info) {
     stage_detail::TaskStageModern_SetStage(task_stage_modern, *stg_info);
+}
+
+void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value) {
+    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
+    if (stg)
+        stg->stage_display = value;
 }
 
 void task_stage_modern_set_stage_hash(uint32_t stage_hash, stage_data_modern* stg_data) {
@@ -205,10 +224,10 @@ static void stage_detail::TaskStageModern_CtrlInner(stage_detail::TaskStageModer
 
     if (a1->state == 3) {
         //sub_140229F30("rom/STGTST_COLI.000.bin");
-        light_param_storage_data_load_stages(&a1->stage_hashes, a1->stage_data);
+        light_param_data_storage_data_load_stages(&a1->stage_hashes, a1->stage_data);
         a1->state = 4;
     }
-    else if (a1->state == 4 && !light_param_storage_data_load_file()/* && !sub_14022A380()*/) {
+    else if (a1->state == 4 && !light_param_data_storage_data_load_file()/* && !sub_14022A380()*/) {
         bool v5 = 0;
         for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
             if (a1->stages[i].hash != -1 && a1->stages[i].hash != hash_murmurhash_empty
@@ -232,8 +251,7 @@ static void stage_detail::TaskStageModern_CtrlInner(stage_detail::TaskStageModer
 
             stage_modern* s = stage_detail::TaskStageModern_GetStage(a1, vec[0]);
             for (uint32_t& i : s->stage_data->auth_3d_ids) {
-                int32_t id = auth_3d_data_load_hash(i, s->stage_data->auth_3d_name_hash,
-                    s->stage_data->auth_3d_name.c_str(), a1->data, a1->obj_db, a1->tex_db);
+                int32_t id = auth_3d_data_load_hash(i, a1->data, a1->obj_db, a1->tex_db);
                 if (id == -1)
                     continue;
 
@@ -338,7 +356,7 @@ static void stage_detail::TaskStageModern_SetStage(stage_detail::TaskStageModern
 }
 
 static void stage_detail::TaskStageModern_TaskWindAppend(stage_detail::TaskStageModern* a1) {
-    app::TaskWork::AppendTask(&task_wind, a1, "CHARA WIND");
+    app::TaskWork::AppendTask(task_wind, a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* a1) {
@@ -377,7 +395,7 @@ static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* 
 
         if (!v5) {
             //sub_140228ED0();
-            light_param_storage_data_free_file_handlers();
+            light_param_data_storage_data_free_file_handlers();
             a1->stage_hashes.clear();
             a1->state = 0;
         }
@@ -427,6 +445,8 @@ static bool stage_modern_ctrl(stage_modern* s, void* data, object_database* obj_
     }
 
     for (int32_t& i : s->auth_3d_ids) {
+        auth_3d_data_set_repeat(&i, true);
+        auth_3d_data_set_paused(&i, false);
         auth_3d_data_set_enable(&i, true);
         auth_3d_data_set_visibility(&i, s->effect_display);
         auth_3d_data_set_frame_rate(&i, 0);
@@ -550,7 +570,7 @@ static void stage_modern_load(stage_modern* s, void* data, object_database* obj_
     }
     else if (s->state == 2) {
         if (s->obj_set_hash == -1 || s->obj_set_hash == hash_murmurhash_empty
-            || !object_storage_load_obj_set_check_not_read(s->obj_set_hash))
+            || !object_storage_load_obj_set_check_not_read(s->obj_set_hash, obj_db, tex_db))
             s->state = 3;
     }
     else if (s->state == 3) {
@@ -631,9 +651,9 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
         //sub_140344160(-1);
 
     if (other)
-        light_param_storage_data_set_stage(other->hash);
+        light_param_data_storage_data_set_stage(other->hash);
     else
-        light_param_storage_data_set_default_light_param();
+        light_param_data_storage_data_set_default_light_param();
 
     if (s)
         for (int32_t& i : s->auth_3d_ids)
@@ -645,7 +665,7 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
 
     //sub_140344180(0);
 
-    if (pv_osage_manager_array_ptr_get_disp() && other)
+    if (pv_osage_manager_array_get_disp() && other)
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
             rob_chara* rob_chr = rob_chara_array_get(i);
             //if (rob_chr)
@@ -667,11 +687,11 @@ static void stage_modern_set_by_stage_hash(stage_modern* s, int32_t stage_hash,
 
     char set_name[11];
     set_name[0] = 0;
-    if (!str_utils_compare_length(name, name_len, "STGPV", 5)) {
+    if (!strncmp(name, "STGPV", min(name_len, 5))) {
         memcpy(set_name, name, 8);
         set_name[8] = 0;
     }
-    else if (!str_utils_compare_length(name, name_len, "STGD2PV", 7)) {
+    else if (!strncmp(name, "STGD2PV", min(name_len, 7))) {
         memcpy(set_name, name, 10);
         set_name[10] = 0;
     }
@@ -679,30 +699,6 @@ static void stage_modern_set_by_stage_hash(stage_modern* s, int32_t stage_hash,
     s->obj_set_hash = hash_murmurhash_empty;
     if (set_name[0])
         s->obj_set_hash = hash_utf8_murmurhash(set_name);
-}
-
-static void task_stage_modern_set_effect_display(task_stage_modern_info* stg_info, bool value) {
-    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg)
-        stg->effect_display = value;
-}
-
-static void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool value) {
-    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg)
-        stg->ground = value;
-}
-
-static void task_stage_modern_set_sky(task_stage_modern_info* stg_info, bool value) {
-    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg)
-        stg->sky = value;
-}
-
-static void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value) {
-    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg)
-        stg->stage_display = value;
 }
 
 stage_modern::stage_modern() : counter(), state(), stage_data(), stage_display(),

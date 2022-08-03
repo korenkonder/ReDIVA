@@ -247,27 +247,6 @@ stage_database::~stage_database() {
 
 }
 
-::stage_data* stage_database::get_stage_data(int32_t stage_index) {
-    if (stage_index >= 0 && stage_index < stage_data.size())
-        return &stage_data[stage_index];
-    return 0;
-}
-
-::stage_data_modern* stage_database::get_stage_data_modern(uint32_t stage_hash) {
-    for (::stage_data_modern& i : stage_modern)
-        if (stage_hash == i.hash)
-            return &i;
-    return 0;
-}
-
-int32_t stage_database::get_stage_index(const char* name) {
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (::stage_data& i : stage_data)
-        if (name_hash == i.name_hash)
-            return (int32_t)(&i - stage_data.data());
-    return -1;
-}
-
 void stage_database::add(stage_database_file* stage_data_file) {
     if (!stage_data_file || !stage_data_file->ready)
         return;
@@ -393,6 +372,27 @@ void stage_database::add(stage_database_file* stage_data_file) {
     }
 }
 
+::stage_data* stage_database::get_stage_data(int32_t stage_index) {
+    if (stage_index >= 0 && stage_index < stage_data.size())
+        return &stage_data[stage_index];
+    return 0;
+}
+
+::stage_data_modern* stage_database::get_stage_data_modern(uint32_t stage_hash) {
+    for (::stage_data_modern& i : stage_modern)
+        if (stage_hash == i.hash)
+            return &i;
+    return 0;
+}
+
+int32_t stage_database::get_stage_index(const char* name) {
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    for (::stage_data& i : stage_data)
+        if (name_hash == i.name_hash)
+            return (int32_t)(&i - stage_data.data());
+    return -1;
+}
+
 static void stage_database_file_classic_read_inner(stage_database_file* stage_data, stream& s) {
     int32_t count = s.read_int32_t();
     int32_t stages_offset = s.read_int32_t();
@@ -414,9 +414,11 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
 
     stage_data->stage_data.resize(count);
 
+    stage_data_file* _stage_data = stage_data->stage_data.data();
+
     s.position_push(stages_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_data_file* stage = &stage_data->stage_data[i];
+        stage_data_file* stage = &_stage_data[i];
 
         stage->id = i;
         stage->name = s.read_string_null_terminated_offset(s.read_uint32_t());
@@ -589,9 +591,11 @@ static void stage_database_file_modern_read_inner(stage_database_file* stage_dat
 
     stage_data->stage_modern.resize(count);
 
+    stage_data_modern_file* _stage_modern = stage_data->stage_modern.data();
+
     s.position_push(stages_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_data_modern_file* stage = &stage_data->stage_modern[i];
+        stage_data_modern_file* stage = &_stage_modern[i];
         stage->hash = (uint32_t)s.read_uint64_t_reverse_endianness();
         stage->name = s.read_string_null_terminated_offset(s.read_offset(header_length, is_x));
         stage->auth_3d_name = s.read_string_null_terminated_offset(s.read_offset(header_length, is_x));

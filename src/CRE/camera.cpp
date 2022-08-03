@@ -42,6 +42,9 @@ void camera::initialize(double_t aspect, int32_t width, int32_t height) {
     max_distance = 6000.0;
     changed_proj = true;
     changed_view = true;
+    fast_change = false;
+    fast_change_hist0 = false;
+    fast_change_hist1 = false;
     set_pitch(0.0);
     set_yaw(0.0);
     set_roll(0.0);
@@ -200,9 +203,14 @@ void camera::reset() {
     set_yaw(0.0);
     set_roll(0.0);
     set_fov(32.2673416137695);
+    min_distance = 0.05;
+    max_distance = 6000.0;
+    fast_change = false;
+    fast_change_hist0 = false;
+    fast_change_hist1 = false;
     camera_calculate_forward(this);
     set_position(vec3_null);
-    update();
+    update_data();
 }
 
 void camera::move(double_t move_x, double_t move_y) {
@@ -285,6 +293,14 @@ void camera::set_position(const vec3&& pos) {
 }
 
 void camera::update() {
+    update_data();
+
+    fast_change_hist1 = fast_change_hist0;
+    fast_change_hist0 = fast_change;
+    fast_change = false;
+}
+
+void camera::update_data() {
     if (changed_proj)
         camera_calculate_projection(this);
 
@@ -298,10 +314,6 @@ void camera::update() {
 
     changed_proj = false;
     changed_view = false;
-
-    fast_change_hist1 = fast_change_hist0;
-    fast_change_hist0 = fast_change;
-    fast_change = false;
 }
 
 static void camera_calculate_forward(camera* c) {
@@ -337,12 +349,12 @@ static void camera_calculate_projection(camera* c) {
 }
 
 static void camera_calculate_view(camera* c) {
-    vec3 dist;
-    vec3_sub(c->view_point, c->interest, dist);
+    vec3 direction;
+    vec3_sub(c->view_point, c->interest, direction);
 
     vec3 rotation;
-    rotation.x = atan2f(-dist.y, sqrtf(dist.x * dist.x + dist.z * dist.z));
-    rotation.y = atan2f(dist.x, dist.z);
+    rotation.x = atan2f(-direction.y, sqrtf(direction.x * direction.x + direction.z * direction.z));
+    rotation.y = atan2f(direction.x, direction.z);
     rotation.z = (float_t)(c->roll * DEG_TO_RAD);
 
     c->rotation = rotation;
@@ -351,10 +363,9 @@ static void camera_calculate_view(camera* c) {
     vec3 view_point;
     vec3_negate(c->view_point, view_point);
 
-    c->view = mat4_identity;
-    mat4_rot_z(&c->view, rotation.z, &c->view);
-    mat4_rot_x(&c->view, rotation.x, &c->view);
-    mat4_rot_y(&c->view, rotation.y, &c->view);
+    mat4_rotate_z(rotation.z, &c->view);
+    mat4_rotate_x_mult(&c->view, rotation.x, &c->view);
+    mat4_rotate_y_mult(&c->view, rotation.y, &c->view);
     mat4_translate_mult(&c->view, view_point.x, view_point.y, view_point.z, &c->view);
 
     mat4_inverse(&c->view, &c->inv_view);

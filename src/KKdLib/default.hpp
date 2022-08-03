@@ -14,6 +14,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <fileapi.h>
+#include <string>
 
 #pragma warning( push )
 #pragma warning( disable: 26812 )
@@ -153,10 +154,12 @@ extern size_t reverse_endianness_size_t(size_t value);
 extern float_t reverse_endianness_float_t(float_t value);
 extern double_t reverse_endianness_double_t(double_t value);
 
-extern size_t utf8_length(const char* s);
-extern size_t utf16_length(const wchar_t* s);
+extern constexpr size_t utf8_length(const char* s);
+extern constexpr size_t utf16_length(const wchar_t* s);
 extern wchar_t* utf8_to_utf16(const char* s);
 extern char* utf16_to_utf8(const wchar_t* s);
-extern bool utf8_check_for_ascii_only(const char* s);
-extern size_t utf8_to_utf16_length(const char* s);
-extern size_t utf16_to_utf8_length(const wchar_t* s);
+extern constexpr bool utf8_check_for_ascii_only(const char* s);
+extern constexpr size_t utf8_to_utf16_length(const char* s);
+extern constexpr size_t utf16_to_utf8_length(const wchar_t* s);
+extern std::wstring utf8_to_utf16(const std::string& s);
+extern std::string utf16_to_utf8(const std::wstring& s);

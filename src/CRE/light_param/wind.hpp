@@ -59,4 +59,7 @@ public:
     virtual void Disp() override;
 };
 
-extern TaskWind task_wind;
+extern TaskWind* task_wind;
+
+void task_wind_init();
+void task_wind_free();

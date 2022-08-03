@@ -125,6 +125,22 @@ namespace app {
         this->priority = priority;
     }
 
+    bool Task::sub_14019C3B0() {
+        if (!app::TaskWork::HasTask(this) || !Task_sub_14019B810(this, 5))
+            return false;
+
+        Task_sub_14019C480(this, 5);
+        return true;
+    }
+
+    bool Task::sub_14019C540() {
+        if (!app::TaskWork::HasTask(this) || !Task_sub_14019B810(this, 4))
+            return false;
+
+        Task_sub_14019C480(this, 4);
+        return true;
+    }
+
     TaskWork::TaskWork() : current(), disp() {
 
     }
@@ -162,7 +178,6 @@ namespace app {
     }
 
     void TaskWork::Basic() {
-        std::list<Task*>* tasks = &task_work->tasks;
         for (int32_t i = 0; i < 3; i++)
             for (Task*& j : task_work->tasks)
                 if (j->priority == i)
@@ -174,7 +189,6 @@ namespace app {
     }
 
     void TaskWork::Ctrl() {
-        std::list<Task*>* tasks = &task_work->tasks;
         for (Task*& i : task_work->tasks) {
             Task_sub_14019C5A0(i);
             Task_set_base_calc_time(i, 0);
@@ -213,9 +227,13 @@ namespace app {
             Task_set_calc_time(i);
     }
 
+    void TaskWork::Dest() {
+        for (Task*& i : task_work->tasks)
+            i->SetDest();
+    }
+    
     void TaskWork::Disp() {
         task_work->disp = true;
-        std::list<Task*>* tasks = &task_work->tasks;
         for (int32_t i = 0; i < 3; i++)
             for (Task*& j : task_work->tasks) {
                 Task* tsk = j;
@@ -266,6 +284,13 @@ namespace app {
             return t->field_18 == Task::Enum::Dest;
         else
             return false;
+    }
+
+    bool TaskWork::HasTasksDest() {
+        for (Task*& i : task_work->tasks)
+            if (TaskWork::HasTaskDest(i))
+                return true;
+        return false;
     }
 
     extern void task_work_init() {

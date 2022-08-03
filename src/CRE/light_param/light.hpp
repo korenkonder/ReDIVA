@@ -36,12 +36,18 @@ struct light_data {
     void get_ambient(vec4& value);
     void set_ambient(const vec4& value);
     void set_ambient(const vec4&& value);
+    void set_ambient(const vec4& value, bool set[4]);
+    void set_ambient(const vec4&& value, bool set[4]);
     void get_diffuse(vec4& value);
     void set_diffuse(const vec4& value);
     void set_diffuse(const vec4&& value);
+    void set_diffuse(const vec4& value, bool set[4]);
+    void set_diffuse(const vec4&& value, bool set[4]);
     void get_specular(vec4& value);
     void set_specular(const vec4& value);
     void set_specular(const vec4&& value);
+    void set_specular(const vec4& value, bool set[4]);
+    void set_specular(const vec4&& value, bool set[4]);
     void get_position(vec3& value);
     void set_position(const vec3& value);
     void set_position(const vec3&& value);

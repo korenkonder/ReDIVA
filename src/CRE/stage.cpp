@@ -44,12 +44,6 @@ static void stage_reset(stage* s);
 static void stage_set(stage* s, stage* other);
 static void stage_set_by_stage_index(stage* s, int32_t stage_index, uint16_t stage_counter);
 
-static void task_stage_set_effect_display(task_stage_info* stg_info, bool value);
-static void task_stage_set_ground(task_stage_info* stg_info, bool value);
-static void task_stage_set_ring(task_stage_info* stg_info, bool value);
-static void task_stage_set_sky(task_stage_info* stg_info, bool value);
-static void task_stage_set_stage_display(task_stage_info* stg_info, bool value);
-
 stage_detail::TaskStage* task_stage;
 DtmStg* dtm_stg;
 
@@ -81,7 +75,10 @@ bool dtm_stg_unload() {
 }
 
 void dtm_stg_free() {
-    delete dtm_stg;
+    if (dtm_stg) {
+        delete dtm_stg;
+        dtm_stg = 0;
+    }
 }
 
 void task_stage_init() {
@@ -171,19 +168,49 @@ bool task_stage_load(const char* name) {
     return stage_detail::TaskStage_Load(task_stage, name);
 }
 
+void task_stage_set_effect_display(task_stage_info* stg_info, bool value) {
+    stage* stg = task_stage_get_stage(*stg_info);
+    if (stg)
+        stg->effect_display = value;
+}
+
+void task_stage_set_ground(task_stage_info* stg_info, bool value) {
+    stage* stg = task_stage_get_stage(*stg_info);
+    if (stg)
+        stg->ground = value;
+}
+
 void task_stage_set_mat(mat4* mat) {
     task_stage->mat = *mat;
+}
+
+void task_stage_set_ring(task_stage_info* stg_info, bool value) {
+    stage* stg = task_stage_get_stage(*stg_info);
+    if (stg)
+        stg->ring = value;
+}
+
+void task_stage_set_sky(task_stage_info* stg_info, bool value) {
+    stage* stg = task_stage_get_stage(*stg_info);
+    if (stg)
+        stg->sky = value;
 }
 
 void task_stage_set_stage(task_stage_info* stg_info) {
     stage_detail::TaskStage_SetStage(task_stage, *stg_info);
 }
 
-void task_stage_set_stage_index(int32_t stage_index) {
-    data_struct* data = rctx_ptr->data;
-    stage_database* stage_data = &data->data_ft.stage_data;
+void task_stage_set_stage_display(task_stage_info* stg_info, bool value) {
+    stage* stg = task_stage_get_stage(*stg_info);
+    if (stg)
+        stg->stage_display = value;
+}
 
-    if (stage_index >= stage_data->stage_data.size())
+void task_stage_set_stage_index(int32_t stage_index) {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
+
+    if (stage_index >= aft_stage_data->stage_data.size())
         return;
 
     std::vector<int32_t> stage_indices;
@@ -224,10 +251,10 @@ static void stage_detail::TaskStage_CtrlInner(stage_detail::TaskStage* a1) {
 
     if (a1->state == 3) {
         //sub_140229F30("rom/STGTST_COLI.000.bin");
-        light_param_storage_data_load_stages(&a1->stage_indices);
+        light_param_data_storage_data_load_stages(&a1->stage_indices);
         a1->state = 4;
     }
-    else if (a1->state == 4 && !light_param_storage_data_load_file()/* && !sub_14022A380()*/) {
+    else if (a1->state == 4 && !light_param_data_storage_data_load_file()/* && !sub_14022A380()*/) {
         bool v5 = 0;
         for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
             if (a1->stages[i].index != -1 && a1->stages[i].state != 6) {
@@ -249,14 +276,14 @@ static void stage_detail::TaskStage_CtrlInner(stage_detail::TaskStage* a1) {
             stage_detail::TaskStage_SetStage(a1, vec[0]);
 
             stage* s = stage_detail::TaskStage_GetStage(a1, vec[0]);
-            data_struct* data = rctx_ptr->data;
-            auth_3d_database* auth_3d_db = &data->data_ft.auth_3d_db;
+            data_struct* aft_data = &data_list[DATA_AFT];
+            auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
             for (int32_t& i : s->stage_data->auth_3d_ids) {
-                int32_t id = auth_3d_data_load_uid(i, auth_3d_db);
+                int32_t id = auth_3d_data_load_uid(i, aft_auth_3d_db);
                 if (id == -1)
                     continue;
 
-                auth_3d_data_read_file(&id, auth_3d_db);
+                auth_3d_data_read_file(&id, aft_auth_3d_db);
                 s->auth_3d_ids.push_back(id);
             }
         }
@@ -352,7 +379,7 @@ static void stage_detail::TaskStage_SetStage(stage_detail::TaskStage* a1, task_s
 }
 
 static void stage_detail::TaskStage_TaskWindAppend(stage_detail::TaskStage* a1) {
-    app::TaskWork::AppendTask(&task_wind, a1, "CHARA WIND");
+    app::TaskWork::AppendTask(task_wind, a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {
@@ -391,7 +418,7 @@ static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {
 
         if (!v5) {
             //sub_140228ED0();
-            light_param_storage_data_free_file_handlers();
+            light_param_data_storage_data_free_file_handlers();
             a1->stage_indices.clear();
             a1->state = 0;
         }
@@ -469,7 +496,7 @@ static void stage_disp(stage* s) {
 
     if (s->stage_data->object_reflect.not_null()) {
         object_data->set_draw_task_flags(
-            (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
+            (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFLECT));
         draw_task_add_draw_object_by_object_info(rctx_ptr,
             &mat, s->stage_data->object_reflect, 0, 0, 0, 0, 0, 0);
         object_data->set_draw_task_flags();
@@ -579,9 +606,9 @@ static void stage_free(stage* s) {
 
 static void stage_load(stage* s) {
     if (s->state == 1) {
-        data_struct* data = rctx_ptr->data;
-        object_database* obj_db = &data->data_ft.obj_db;
-        object_storage_load_set(data, obj_db, s->obj_set);
+        data_struct* aft_data = &data_list[DATA_AFT];
+        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+        object_storage_load_set(aft_data, aft_obj_db, s->obj_set);
         s->state = 2;
     }
     else if (s->state == 2) {
@@ -589,9 +616,9 @@ static void stage_load(stage* s) {
             s->state = 3;
     }
     else if (s->state == 3) {
-        data_struct* data = rctx_ptr->data;
-        object_database* obj_db = &data->data_ft.obj_db;
-        object_storage_load_set(data, obj_db, s->stage_data->object_set_id);
+        data_struct* aft_data = &data_list[DATA_AFT];
+        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+        object_storage_load_set(aft_data, aft_obj_db, s->stage_data->object_set_id);
 
         auth_3d_data_load_category(s->stage_data->name.c_str());
         auth_3d_data_load_category(s->stage_data->auth_3d_name.c_str());
@@ -702,9 +729,9 @@ static void stage_set(stage* s, stage* other) {
         //sub_140344160(-1);
 
     if (other)
-        light_param_storage_data_set_stage(other->index);
+        light_param_data_storage_data_set_stage(other->index);
     else
-        light_param_storage_data_set_default_light_param();
+        light_param_data_storage_data_set_default_light_param();
 
     if (s)
         for (int32_t& i : s->auth_3d_ids)
@@ -716,7 +743,7 @@ static void stage_set(stage* s, stage* other) {
 
     //sub_140344180(0);
 
-    if (pv_osage_manager_array_ptr_get_disp() && other)
+    if (pv_osage_manager_array_get_disp() && other)
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
             rob_chara* rob_chr = rob_chara_array_get(i);
             //if (rob_chr)
@@ -725,21 +752,21 @@ static void stage_set(stage* s, stage* other) {
 }
 
 static void stage_set_by_stage_index(stage* s, int32_t stage_index, uint16_t stage_counter) {
-    data_struct* data = rctx_ptr->data;
-    object_database* obj_db = &data->data_ft.obj_db;
-    stage_database* stage_data = &data->data_ft.stage_data;
+    data_struct* aft_data = &data_list[DATA_AFT];
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+    stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
     stage_reset(s);
     s->index = stage_index;
     s->counter = stage_counter;
     s->state = 1;
 
-    if (stage_index >= stage_data->stage_data.size()) {
+    if (stage_index >= aft_stage_data->stage_data.size()) {
         s->stage_data = 0;
         return;
     }
 
-    s->stage_data = &stage_data->stage_data[stage_index];
+    s->stage_data = &aft_stage_data->stage_data[stage_index];
 
     const char* name = s->stage_data->name.c_str();
     size_t name_len = s->stage_data->name.size();
@@ -757,37 +784,7 @@ static void stage_set_by_stage_index(stage* s, int32_t stage_index, uint16_t sta
 
     s->obj_set = -1;
     if (set_name[0])
-        s->obj_set = obj_db->get_object_set_id(set_name);
-}
-
-static void task_stage_set_effect_display(task_stage_info* stg_info, bool value) {
-    stage* stg = task_stage_get_stage(*stg_info);
-    if (stg)
-        stg->effect_display = value;
-}
-
-static void task_stage_set_ground(task_stage_info* stg_info, bool value) {
-    stage* stg = task_stage_get_stage(*stg_info);
-    if (stg)
-        stg->ground = value;
-}
-
-static void task_stage_set_ring(task_stage_info* stg_info, bool value) {
-    stage* stg = task_stage_get_stage(*stg_info);
-    if (stg)
-        stg->ring = value;
-}
-
-static void task_stage_set_sky(task_stage_info* stg_info, bool value) {
-    stage* stg = task_stage_get_stage(*stg_info);
-    if (stg)
-        stg->sky = value;
-}
-
-static void task_stage_set_stage_display(task_stage_info* stg_info, bool value) {
-    stage* stg = task_stage_get_stage(*stg_info);
-    if (stg)
-        stg->stage_display = value;
+        s->obj_set = aft_obj_db->get_object_set_id(set_name);
 }
 
 stage::stage() : index(), counter(), state(), stage_data(), stage_display(), lens_flare(),

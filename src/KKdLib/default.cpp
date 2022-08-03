@@ -204,7 +204,7 @@ inline double_t reverse_endianness_double_t(double_t value) {
     return *(double_t*)&v;
 }
 
-inline size_t utf8_length(const char* s) {
+constexpr size_t utf8_length(const char* s) {
     if (!s)
         return 0;
 
@@ -214,7 +214,7 @@ inline size_t utf8_length(const char* s) {
     return len;
 }
 
-inline size_t utf16_length(const wchar_t* s) {
+constexpr size_t utf16_length(const wchar_t* s) {
     if (!s)
         return 0;
 
@@ -331,15 +331,15 @@ char* utf16_to_utf8(const wchar_t* s) {
     return str;
 }
 
-inline bool utf8_check_for_ascii_only(const char* s) {
-    char c;
+constexpr bool utf8_check_for_ascii_only(const char* s) {
+    char c = 0;
     while (c = *s++)
         if (c & 0x80)
             return false;
     return true;
 }
 
-size_t utf8_to_utf16_length(const char* s) {
+constexpr size_t utf8_to_utf16_length(const char* s) {
     if (!s)
         return 0;
 
@@ -387,7 +387,7 @@ size_t utf8_to_utf16_length(const char* s) {
     return length;
 }
 
-size_t utf16_to_utf8_length(const wchar_t* s) {
+constexpr size_t utf16_to_utf8_length(const wchar_t* s) {
     uint32_t c = 0;
     size_t length = 0;
     while (*s) {
@@ -418,4 +418,112 @@ size_t utf16_to_utf8_length(const wchar_t* s) {
             length += 4;
     }
     return length;
+}
+
+std::wstring utf8_to_utf16(const std::string& s) {
+    if (!s.size())
+        return {};
+
+    uint32_t c = 0;
+    size_t length = utf8_to_utf16_length(s.c_str());
+
+    std::wstring str;
+    str.resize(length);
+
+    char* _s = (char*)s.data();
+    wchar_t* _str = (wchar_t*)str.data();
+
+    size_t l = 0;
+    while (*_s) {
+        char t = *_s++;
+        if (~t & 0x80) {
+            l = 0;
+            *_str++ = t;
+            c = 0;
+            continue;
+        }
+        else if ((t & 0xFC) == 0xF8)
+            continue;
+        else if ((t & 0xF8) == 0xF0) {
+            c = t & 0x07;
+            l = 3;
+        }
+        else if ((t & 0xF0) == 0xE0) {
+            c = t & 0x0F;
+            l = 2;
+        }
+        else if ((t & 0xE0) == 0xC0) {
+            c = t & 0x1F;
+            l = 1;
+        }
+        else if ((t & 0xC0) == 0x80) {
+            c = (c << 6) | (t & 0x3F);
+            l--;
+        }
+
+        if (!l) {
+            if (c <= 0xD7FF || (c >= 0xE000 && c <= 0xFFFF))
+                *_str++ = c;
+            else if (c >= 0x10000 && c <= 0x10FFFF) {
+                c -= 0x10000;
+                *_str++ = 0xD800 | ((c >> 10) & 0x3FF);
+            }
+            c = 0;
+        }
+    }
+    *_str++ = 0;
+    return str;
+}
+
+std::string utf16_to_utf8(const std::wstring& s) {
+    if (!s.size())
+        return {};
+
+    uint32_t c = 0;
+    size_t length = utf16_to_utf8_length(s.c_str());
+
+    std::string str;
+    str.resize(length);
+
+    wchar_t* _s = (wchar_t*)s.data();
+    char* _str = (char*)str.data();
+
+    while (*_s) {
+        c = *_s++;
+        if ((c & 0xFC00) == 0xD800) {
+            if (!*_s)
+                break;
+
+            wchar_t _c = *_s++;
+            if ((_c & 0xFC00) != 0xDC00)
+                continue;
+
+            c &= 0x3FF;
+            c <<= 10;
+            c |= _c & 0x3FF;
+            c += 0x10000;
+        }
+        else if ((c & 0xFC00) == 0xDC00)
+            continue;
+
+        if (c <= 0x7F)
+            *_str++ = (uint8_t)c;
+        else if (c <= 0x7FF) {
+            *_str++ = (uint8_t)(0xC0 | ((c >> 6) & 0x1F));
+            *_str++ = (uint8_t)(0x80 | (c & 0x3F));
+        }
+        else if ((c >= 0x800 && c <= 0xD7FF) || (c >= 0xE000 && c <= 0xFFFF)) {
+            *_str++ = (uint8_t)(0xE0 | ((c >> 12) & 0xF));
+            *_str++ = (uint8_t)(0x80 | ((c >> 6) & 0x3F));
+            *_str++ = (uint8_t)(0x80 | (c & 0x3F));
+        }
+        else if (c >= 0x10000 && c <= 0x10FFFF) {
+            *_str++ = (uint8_t)(0xF0 | ((c >> 18) & 0x7));
+            *_str++ = (uint8_t)(0x80 | ((c >> 12) & 0x3F));
+            *_str++ = (uint8_t)(0x80 | ((c >> 6) & 0x3F));
+            *_str++ = (uint8_t)(0x80 | (c & 0x3F));
+        }
+    }
+    *_str++ = 0;
+    return str;
 }

@@ -17,7 +17,7 @@ float_t face::get_offset() {
 }
 
 void face::set_offset(float_t value) {
-    scale = value;
+    offset = value;
 }
 
 float_t face::get_scale() {

@@ -4,11 +4,12 @@
 */
 
 #include "wind.hpp"
+#include "../rob/rob.hpp"
 
 static float_t wind_apply_spc(wind* w, float_t frame);
 static void wind_ctrl(wind* w);
 
-TaskWind task_wind;
+TaskWind* task_wind;
 
 wind::wind() : scale(), cycle(), rot_y(), rot_z(),
 bias(), spc(), wind_direction(), frame(), strength() {
@@ -118,7 +119,7 @@ bool TaskWind::Init() {
 }
 
 bool TaskWind::Ctrl() {
-    //if (!pv_osage_manager_array_ptr_get_disp())
+    if (!pv_osage_manager_array_get_disp())
         wind_ctrl(ptr);
     return false;
 }
@@ -129,5 +130,16 @@ bool TaskWind::Dest() {
 }
 
 void TaskWind::Disp() {
-    //pv_osage_manager_array_ptr_get_disp();
+    pv_osage_manager_array_get_disp();
+}
+
+void task_wind_init() {
+    task_wind = new TaskWind;
+}
+
+void task_wind_free() {
+    if (task_wind) {
+        delete task_wind;
+        task_wind = 0;
+    }
 }

@@ -93,225 +93,6 @@ void mot_set::unpack_file(const void* data, size_t size, bool modern) {
         mot_modern_read_inner(this, s);
 }
 
-inline static float_t interpolate_mot_value(float_t p1, float_t p2,
-    float_t t1, float_t t2, float_t f1, float_t f2, float_t f) {
-    float_t df = f - f1;
-    float_t t = df / (f2 - f1);
-    float_t t_1 = t - 1.0f;
-    return (t_1 * t1 + t * t2) * t_1 * df + (t * 2.0f - 3.0f) * (t * t) * (p1 - p2) + p1;
-}
-
-inline static void interpolate_mot_reverse_value(float_t* arr, size_t length,
-    float_t* t1, float_t* t2, size_t f1, size_t f2, size_t f) {
-    *t2 = 0.0f;
-
-    if (!arr || length < 2 || f - f1 + 1 >= length || f < 1 || f < f1 || f + 2 > f2)
-        return;
-
-    float_t df_1 = (float_t)(f - f1);
-    float_t df_2 = (float_t)(f - f1 + 1);
-    float_t _t1 = df_1 / (float_t)(f2 - f1);
-    float_t _t2 = df_2 / (float_t)(f2 - f1);
-    float_t t1_1 = _t1 - 1.0f;
-    float_t t2_1 = _t2 - 1.0f;
-
-    float_t t1_t2_1 = arr[f] - arr[f1] - (_t1 * 2.0f - 3.0f) * (_t1 * _t1) * (arr[f1] - arr[f2]);
-    float_t t1_t2_2 = arr[f + 1] - arr[f1] - (_t2 * 2.0f - 3.0f) * (_t2 * _t2) * (arr[f1] - arr[f2]);
-    t1_t2_1 /= df_1 * t1_1;
-    t1_t2_2 /= df_2 * t2_1;
-
-    *t1 = (t1_t2_1 * _t2 - t1_t2_2 * _t1) / (_t1 - _t2);
-    *t2 = (-t1_t2_1 * t2_1 + t1_t2_2 * t1_1) / (_t1 - _t2);
-}
-
-inline static void mot_set_add_key(uint16_t frame, float_t v, float_t t,
-    std::vector<uint16_t>& frames, std::vector<float_t>& values) {
-    frames.push_back(frame);
-    values.push_back(v);
-    values.push_back(t);
-}
-
-inline static float_t mot_set_add_key(bool has_error, float_t* a, int32_t frame,
-    size_t i, float_t t1, float_t t2, float_t t2_old,
-    std::vector<uint16_t>& frames, std::vector<float_t>& values) {
-    if (has_error) {
-        float_t _t2 = t2_old;
-        for (size_t j = 0; j < i; j++) {
-            mot_set_add_key((uint16_t)(frame + j), a[j], _t2, frames, values);
-            _t2 = 0.0f;
-            mot_set_add_key((uint16_t)(frame + j), a[j], 0.0f, frames, values);
-        }
-        return 0.0f;
-    }
-    else {
-        mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
-        if (t2_old == 0.0f)
-            mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
-        if (t1 != t2_old) {
-            mot_set_add_key((uint16_t)frame, a[0], t1, frames, values);
-            if (t1 == 0.0f)
-                mot_set_add_key((uint16_t)frame, a[0], t1, frames, values);
-        }
-        return t2;
-    }
-}
-
-mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
-    std::vector<uint16_t>& frames, std::vector<float_t>& values) {
-    size_t count = values_src.size();
-    if (!count)
-        return MOT_KEY_SET_NONE;
-    else if (count == 1) {
-        if (values_src[0] != 0.0f) {
-            values.push_back(values_src[0]);
-            return MOT_KEY_SET_STATIC;
-        }
-        else
-            return MOT_KEY_SET_NONE;
-    }
-    else {
-        uint32_t val = *(uint32_t*)&values_src.data()[0];
-        uint32_t* arr = (uint32_t*)&values_src.data()[1];
-        for (size_t i = count - 1; i; i--)
-            if (val != *arr++)
-                break;
-
-        if (arr == (uint32_t*)(values_src.data() + count))
-            if (values_src[0] != 0.0f) {
-                values.push_back(values_src[0]);
-                return MOT_KEY_SET_STATIC;
-            }
-            else
-                return MOT_KEY_SET_NONE;
-    }
-
-    int32_t start_time = 0;
-    int32_t end_time = (int32_t)(count - 1);
-
-    float_t* arr = values_src.data();
-
-    const float_t reverse_bias = 0.0001f;
-    const int32_t reverse_min_count = 4;
-
-    float_t* a = arr;
-    size_t left_count = count;
-    int32_t frame = start_time;
-    int32_t prev_frame = start_time;
-    float_t t2_old = 0.0f;
-    while (left_count > 0) {
-        if (left_count < reverse_min_count) {
-            if (left_count > 1)
-                t2_old = mot_set_add_key(true, a, frame, left_count - 1, 0.0f, 0.0f, t2_old, frames, values);
-            break;
-        }
-
-        size_t i = 0;
-        size_t i_prev = 0;
-        float_t t1 = 0.0f;
-        float_t t2 = 0.0f;
-        float_t t1_prev = 0.0f;
-        float_t t2_prev = 0.0f;
-        bool has_prev_succeded = false;
-        bool has_error = false;
-        bool has_prev_error = false;
-
-        int32_t c = 0;
-        for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
-            double_t tt1 = 0.0;
-            double_t tt2 = 0.0;
-            for (size_t j = 1; j < i; j++) {
-                float_t _t1 = 0.0f;
-                float_t _t2 = 0.0f;
-                interpolate_mot_reverse_value(a, left_count, &_t1, &_t2, 0, i, j);
-                tt1 += _t1;
-                tt2 += _t2;
-            }
-            t1 = (float_t)(tt1 / (double_t)(i - 2));
-            t2 = (float_t)(tt2 / (double_t)(i - 2));
-
-            has_error = false;
-            for (size_t j = 1; j < i - 1; j++) {
-                float_t val = interpolate_mot_value(a[0], a[i], t1, t2, 0.0f, (float_t)i, (float_t)j);
-                if (fabsf(val - a[j]) > reverse_bias) {
-                    has_error = true;
-                    break;
-                }
-            }
-
-            if (!has_error) {
-                i_prev = i;
-                t1_prev = t1;
-                t2_prev = t2;
-                has_prev_succeded = true;
-                has_prev_error = has_error;
-                if (i < left_count)
-                    continue;
-            }
-
-            if (has_prev_succeded) {
-                i = i_prev;
-                t1 = t1_prev;
-                t2 = t2_prev;
-                has_error = has_prev_error;
-            }
-
-            if (!has_error)
-                c = (int32_t)i;
-            else
-                c = 1;
-
-            t2_old = mot_set_add_key(has_error, a, frame, c, t1, t2, t2_old, frames, values);
-            has_prev_succeded = false;
-            break;
-
-            if (!has_error) {
-                i_prev = i;
-                t1_prev = t1;
-                t2_prev = t2;
-                has_prev_succeded = true;
-                has_prev_error = has_error;
-                if (i < left_count)
-                    continue;
-            }
-            break;
-        }
-
-        if (has_prev_succeded) {
-            t2_old = mot_set_add_key(has_error, a, frame, c, t1_prev, t2_prev, t2_old, frames, values);
-            c = (int32_t)i;
-        }
-
-        prev_frame = frame;
-        frame += c;
-        a += c;
-        left_count -= c;
-    }
-
-    mot_set_add_key((uint16_t)(start_time + (count - 1)), arr[count - 1], t2_old, frames, values);
-    if (t2_old != 0.0f)
-        mot_set_add_key((uint16_t)(start_time + (count - 1)), arr[count - 1], 0.0f, frames, values);
-
-
-    count = values.size() / 2;
-    arr = values.data();
-    for (size_t i = count; i; i--)
-        if (*arr++ != 0.0f)
-            break;
-
-    if (arr != values.data() + count)
-        return MOT_KEY_SET_HERMITE_TANGENT;
-
-    float_t* arr_src = values.data();
-    float_t* arr_dst = values.data();
-    for (size_t i = count; i; i--) {
-        *arr_dst = *arr_src;
-        arr_src++;
-        arr_dst += 2;
-    }
-    values.resize(count);
-    return MOT_KEY_SET_HERMITE;
-}
-
 static void mot_classic_read_inner(mot_set* ms, stream& s) {
     size_t count = 0;
     while (s.read_uint64_t() != 0) {
@@ -620,6 +401,8 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
     stream s_motc;
     s_motc.open();
 
+    bool is_x = ms->is_x;
+
     uint32_t o;
     enrs e;
     enrs_entry ee;
@@ -630,7 +413,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
         memset(&mh, 0, sizeof(mot_header_modern));
         mot_data* m = &ms->vec[0];
 
-        if (!ms->is_x) {
+        if (!is_x) {
             ee = { 0, 3, 48, 1 };
             ee.append(0, 1, ENRS_QWORD);
             ee.append(0, 7, ENRS_DWORD);
@@ -645,7 +428,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
             ee.append(0, 1, ENRS_WORD);
             e.vec.push_back(ee);
             o = 64;
-        };
+        }
 
         ee = { o, 1, 4, 1 };
         ee.append(0, 2, ENRS_WORD);
@@ -705,7 +488,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
         }
         o = align_val(o, 16);
 
-        if (!ms->is_x) {
+        if (!is_x) {
             ee = { o, 1, (uint32_t)(m->bone_info_count * 4ULL), 1 };
             ee.append(0, (uint32_t)m->bone_info_count, ENRS_DWORD);
             e.vec.push_back(ee);
@@ -724,7 +507,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
         e.vec.push_back(ee);
         o = m->bone_info_count * 8;
 
-        if (!ms->is_x) {
+        if (!is_x) {
             s_motc.write_uint64_t(0);
             io_write_offset_f2_pof_add(s_motc, 0, 0x40, &pof);
             io_write_offset_f2_pof_add(s_motc, 0, 0x40, &pof);
@@ -814,7 +597,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
 
         size_t* bone_info_offsets = force_malloc_s(size_t, m->bone_info_count);
         mh.bone_info_offset = s_motc.get_position();
-        if (!ms->is_x)
+        if (!is_x)
             for (int32_t j = 0; j < m->bone_info_count; j++)
                 io_write_offset_f2_pof_add(s_motc, 0, 0x40, &pof);
         else
@@ -838,7 +621,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
 
         s_motc.set_position(mh.bone_info_offset, SEEK_SET);
         mh.bone_info_count = m->bone_info_count;
-        if (!ms->is_x)
+        if (!is_x)
             for (int32_t j = 0; j < m->bone_info_count; j++)
                 s_motc.write_offset_f2(bone_info_offsets[j], 0x40);
         else
@@ -847,7 +630,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
         free(bone_info_offsets);
 
         s_motc.set_position(0x00, SEEK_SET);
-        if (!ms->is_x) {
+        if (!is_x) {
             s_motc.write_uint64_t((uint64_t)mh.hash);
             s_motc.write_offset_f2(mh.name_offset, 0x40);
             s_motc.write_offset_f2(mh.key_set_count_offset, 0x40);
@@ -895,5 +678,5 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
     st.header.murmurhash = murmurhash;
     st.header.inner_signature = 0xFF010008;
 
-    st.write(s, true, ms->is_x);
+    st.write(s, true, is_x);
 }

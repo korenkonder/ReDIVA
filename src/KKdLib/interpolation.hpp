@@ -6,7 +6,9 @@
 #pragma once
 
 #include "default.hpp"
+#include "kf.hpp"
 #include "vec.hpp"
+#include <vector>
 
 extern float_t interpolate_linear_value(float_t p1, float_t p2, float_t f1, float_t f2, float_t f);
 extern void interpolate_linear_value_vec2(vec2* p1, vec2* p2, vec2* f1, vec2* f2, vec2* f, vec2* value);
@@ -31,3 +33,4 @@ extern void interpolate_chs_reverse_step_value(float_t* arr, size_t length,
     float_t* t1, float_t* t2, size_t f1, size_t f2, size_t f, uint8_t step);
 extern void interpolate_chs_reverse_step(float_t* arr, size_t length,
     float_t* t1, float_t* t2, size_t f1, size_t f2, uint8_t step);
+extern int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::vector<kft3>& values);

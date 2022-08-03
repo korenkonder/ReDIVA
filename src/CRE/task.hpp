@@ -61,6 +61,9 @@ namespace app {
         bool SetDest();
         void SetName(const char* name);
         void SetPriority(int32_t priority);
+
+        bool sub_14019C3B0();
+        bool sub_14019C540();
     };
 
     struct TaskWork;
@@ -82,12 +85,14 @@ namespace app {
         static void Basic();
         static bool CheckTaskReady(Task* t);
         static void Ctrl();
+        static void Dest();
         static void Disp();
         static Task* GetTaskByIndex(int32_t index);
         static bool HasTask(Task* t);
         static bool HasTaskInit(Task* t);
         static bool HasTaskCtrl(Task* t);
         static bool HasTaskDest(Task* t);
+        static bool HasTasksDest();
     };
 
     extern void task_work_init();

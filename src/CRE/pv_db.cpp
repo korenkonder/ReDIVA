@@ -4,7 +4,9 @@
 */
 
 #include "pv_db.hpp"
+#include "mdata_manager.hpp"
 #include "render_context.hpp"
+#include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 
 extern render_context* rctx_ptr;
@@ -603,7 +605,7 @@ namespace pv_db {
         "frame_texture_d",
         "frame_texture_e",
     };
-    
+
     static const char* frame_texture_type_names[] = {
         "frame_texture_type",
         "frame_texture_a_type",
@@ -619,7 +621,7 @@ namespace pv_db {
         "item_neck",
         "item_back",
     };
-    
+
     static const char* pv_level_names[] = {
         "PV_LV_00_0",
         "PV_LV_00_5",
@@ -659,11 +661,6 @@ namespace pv_db {
         InitPerformerSizes();
         InitChrEffDataTypes();
         InitMovieSurfaces();
-
-        paths.push_back({ "rom/", "pv_db.txt" });
-        paths.push_back({ "rom/", "pv_field.txt" });
-        paths.push_back({ "rom/", "mdata_pv_db.txt" });
-        paths.push_back({ "rom/", "mdata_pv_field.txt" });
         return true;
     }
 
@@ -678,7 +675,7 @@ namespace pv_db {
 
             if (paths.size()) {
                 std::pair<std::string, std::string>& path = paths.front();
-                file_handler.read_file(rctx_ptr->data, path.first.c_str(), path.second.c_str());
+                file_handler.read_file(&data_list[DATA_AFT], path.first.c_str(), path.second.c_str());
                 state = 2;
             }
             else
@@ -812,10 +809,7 @@ namespace pv_db {
 
         bool unsupported_script_format = false;
         for (int32_t i = 0; i < PV_DIFFICULTY_MAX; i++) {
-            char buf[0x200];
-            sprintf_s(buf, sizeof(buf), "difficulty.%s.0", difficulty_names[i]);
-
-            if (!kv.open_scope(buf))
+            if (!kv.open_scope_fmt("difficulty.%s.0", difficulty_names[i]))
                 continue;
 
             if (!kv.has_key("script_file_name")) {
@@ -862,7 +856,7 @@ namespace pv_db {
 
         if (kv.open_scope("lyric")) {
             for (int32_t i = 0; i < 1000; i++) {
-                if (!kv.open_scope("%03zu", i))
+                if (!kv.open_scope_fmt("%03zu", i))
                     continue;
 
                 pv_db_pv_lyric lyric;
@@ -896,7 +890,7 @@ namespace pv_db {
         if (kv.read("performer", "num", count)) {
             pv->performer.resize(count);
             for (int32_t i = 0; i < count; i++) {
-                if (!kv.open_scope("%zu", i))
+                if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
                 pv_db_pv_performer& performer = pv->performer[i];
@@ -907,7 +901,7 @@ namespace pv_db {
                     if (elem != performer_types.end())
                         performer.type = elem->second;
                 }
-                
+
                 const char* chara;
                 if (kv.read("chara", chara)) {
                     chara_index chara_index = chara_index_get_from_chara_name(chara);
@@ -944,7 +938,7 @@ namespace pv_db {
                     if (elem != performer_sizes.end())
                         performer.size = elem->second;
                 }
-                
+
                 for (int32_t j = 0; j < PV_PERFORMER_ITEM_MAX; j++) {
                     int32_t item;
                     if (kv.read(performer_item_names[j], item))
@@ -959,7 +953,7 @@ namespace pv_db {
         if (kv.read("chrcam", "length", count)) {
             pv->chrcam.resize(count);
             for (int32_t i = 0; i < count; i++) {
-                if (!kv.open_scope("%zu", i))
+                if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
                 pv_db_pv_chrcam& chrcam = pv->chrcam[i];
@@ -988,7 +982,7 @@ namespace pv_db {
         if (kv.read("chrmot", "length", count)) {
             pv->chrmot.resize(count);
             for (int32_t i = 0; i < count; i++) {
-                if (!kv.open_scope("%zu", i))
+                if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
                 pv_db_pv_chrmot& chrmot = pv->chrmot[i];
@@ -1017,7 +1011,7 @@ namespace pv_db {
         if (kv.read("chreff", "length", count)) {
             pv->chreff.resize(count);
             for (int32_t i = 0; i < count; i++) {
-                if (!kv.open_scope("%zu", i))
+                if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
                 pv_db_pv_chreff& chreff = pv->chreff[i];
@@ -1034,7 +1028,7 @@ namespace pv_db {
                 if (kv.read("data", "length", count)) {
                     chreff.data.resize(count);
                     for (int32_t j = 0; j < count; j++) {
-                        if (!kv.open_scope("%zu", j))
+                        if (!kv.open_scope_fmt("%zu", j))
                             continue;
 
                         pv_db_pv_chreff_data& data = chreff.data[j];
@@ -1062,23 +1056,23 @@ namespace pv_db {
 
         if (kv.has_key("eyes_xrot_adjust"))
             pv->eyes_xrot_adjust = true;
-        
+
         if (kv.has_key("is_old_pv"))
             pv->is_old_pv = true;
-        
+
         pv->eyes_base_adjust_type = EYES_BASE_ADJUST_NONE;
 
         const char* eyes_base_adjust_type;
         if (kv.read("eyes_base_adjust_type", eyes_base_adjust_type))
             for (int32_t i = EYES_BASE_ADJUST_NONE; i < EYES_BASE_ADJUST_MAX; i++)
-                if (!str_utils_compare(eyes_base_adjust_type, eyes_base_adjust_type_names[i])) {
+                if (!strcmp(eyes_base_adjust_type, eyes_base_adjust_type_names[i])) {
                     pv->eyes_base_adjust_type = (::eyes_base_adjust_type)i;
                     break;
                 }
 
         if (kv.read("eyes_rot_rate", "length", count)) {
             for (int32_t i = 0; i < count; i++) {
-                if (!kv.open_scope("%zu", i))
+                if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
                 const char* chr;
@@ -1131,7 +1125,7 @@ namespace pv_db {
 
                 diff.reserve(count);
                 for (int32_t j = 0; j < count; j++) {
-                    if (!kv.open_scope("%d", j))
+                    if (!kv.open_scope_fmt("%d", j))
                         continue;
 
                     pv_db_pv_difficulty d;
@@ -1191,7 +1185,7 @@ namespace pv_db {
                     const char* level;
                     if (kv.read("level", level))
                         for (int32_t k = PV_LV_00_0; k < PV_LV_MAX; k++)
-                            if (!str_utils_compare(level, pv_level_names[k])) {
+                            if (!strcmp(level, pv_level_names[k])) {
                                 d.level = (pv_level)k;
                                 break;
                             }
@@ -1240,11 +1234,11 @@ namespace pv_db {
                             if (l)
                                 sprintf_s(buf, sizeof(buf), "motion%zuP", l);
 
-                            if (!kv.open_scope(l ? buf : "motion"))
+                            if (!kv.open_scope_fmt(l ? buf : "motion"))
                                 continue;
 
                             for (size_t m = 0; m < 100; m++) {
-                                if (!kv.open_scope("%02zu", m))
+                                if (!kv.open_scope_fmt("%02zu", m))
                                     continue;
 
                                 const char* motion_name;
@@ -1262,7 +1256,7 @@ namespace pv_db {
 
                         if (kv.open_scope("pv_item")) {
                             for (size_t k = 0; k < 10; k++) {
-                                if (!kv.open_scope("%02zu", k))
+                                if (!kv.open_scope_fmt("%02zu", k))
                                     continue;
 
                                 std::string name;
@@ -1280,7 +1274,7 @@ namespace pv_db {
 
                         if (kv.open_scope("hand_item")) {
                             for (size_t k = 0; k < 20; k++) {
-                                if (!kv.open_scope("%02zu", k))
+                                if (!kv.open_scope_fmt("%02zu", k))
                                     continue;
 
                                 std::string name;
@@ -1299,7 +1293,7 @@ namespace pv_db {
 
                         if (kv.open_scope("edit_effect")) {
                             for (size_t k = 0; k < 0x200; k++) {
-                                if (!kv.open_scope("%02zu", k))
+                                if (!kv.open_scope_fmt("%02zu", k))
                                     continue;
 
                                 std::string name;
@@ -1317,7 +1311,7 @@ namespace pv_db {
 
                         if (kv.open_scope("edit_effect_low_field")) {
                             for (size_t k = 0; k < 0x200; k++) {
-                                if (!kv.open_scope("%02zu", k))
+                                if (!kv.open_scope_fmt("%02zu", k))
                                     continue;
 
                                 int32_t index;
@@ -1403,7 +1397,7 @@ namespace pv_db {
                         if (!k && kv.read("movie_list", "length", count)) {
                             d.movie_list.reserve(count);
                             for (int32_t l = 0; l < count; l++) {
-                                if (!kv.open_scope(l))
+                                if (!kv.open_scope_fmt(l))
                                     continue;
 
                                 pv_db_pv_movie movie;
@@ -1438,7 +1432,7 @@ namespace pv_db {
                         if (!k && kv.read("effect_se_name_list", "length", count)) {
                             d.effect_se_name_list.reserve(count);
                             for (int32_t l = 0; l < count; l++) {
-                                if (!kv.open_scope(l))
+                                if (!kv.open_scope_fmt(l))
                                     continue;
 
                                 std::string effect_se_name;
@@ -1476,7 +1470,7 @@ namespace pv_db {
                             d.edit_chara_scale = edit_chara_scale == 1;
 
                         for (int32_t l = 0; l < ROB_CHARA_COUNT; l++) {
-                            if (!kv.open_scope("performer.%d.pv_costume", l))
+                            if (!kv.open_scope_fmt("performer.%d.pv_costume", l))
                                 continue;
 
                             int32_t pv_costume;
@@ -1503,7 +1497,7 @@ namespace pv_db {
 
             pv->ex_song.data.reserve(count);
             for (int32_t i = 0; i < count; i++) {
-                if (!kv.open_scope(i))
+                if (!kv.open_scope_fmt(i))
                     continue;
 
                 const char* chara;
@@ -1542,7 +1536,7 @@ namespace pv_db {
                 if (kv.read("ex_auth", "length", count)) {
                     ex_song.ex_auth.reserve(count);
                     for (int32_t j = 0; j < count; j++) {
-                        if (!kv.open_scope(j))
+                        if (!kv.open_scope_fmt(j))
                             continue;
 
                         std::string org_name;
@@ -1580,7 +1574,7 @@ namespace pv_db {
         if (kv.read("osage_init", "length", count)) {
             pv->osage_init.reserve(count);
             for (int32_t i = 0; i < count; i++) {
-                if (!kv.open_scope(i))
+                if (!kv.open_scope_fmt(i))
                     continue;
 
                 std::string motion;
@@ -1600,11 +1594,11 @@ namespace pv_db {
             }
             kv.close_scope();
         }
-        
+
         if (kv.read("stage_param", "length", count)) {
             pv->stage_param.reserve(count);
             for (int32_t i = 0; i < count; i++) {
-                if (!kv.open_scope(i))
+                if (!kv.open_scope_fmt(i))
                     continue;
 
                 pv_db_pv_stage_param stage_param;
@@ -1624,7 +1618,7 @@ namespace pv_db {
                 std::string collision_file;
                 if (kv.read("collision_file", collision_file))
                     stage_param.collision_file = collision_file;
-                
+
                 std::string wind_file;
                 if (kv.read("collision_file", wind_file))
                     stage_param.wind_file = wind_file;
@@ -1638,11 +1632,11 @@ namespace pv_db {
 
         if (kv.open_scope("disp2d")) {
             pv_db_pv_disp2d& disp2d = pv->disp2d;
-            
+
             std::string set_name;
             if (kv.read("set_name", set_name))
                 disp2d.set_name = set_name;
-            
+
             int32_t target_shadow_type;
             if (kv.read("target_shadow_type", target_shadow_type))
                 disp2d.target_shadow_type = target_shadow_type > 0;
@@ -1654,7 +1648,7 @@ namespace pv_db {
                 disp2d.title_start_2d_field = title_start_2d_field;
                 disp2d.title_end_2d_field = title_end_2d_field;
             }
-            
+
             int32_t title_start_2d_low_field;
             int32_t title_end_2d_low_field;
             if (kv.read("title_start_2d_low_field", title_start_2d_low_field)
@@ -1662,7 +1656,7 @@ namespace pv_db {
                 disp2d.title_start_2d_low_field = title_start_2d_low_field;
                 disp2d.title_end_2d_low_field = title_end_2d_low_field;
             }
-            
+
             int32_t title_start_3d_field;
             int32_t title_end_3d_field;
             if (kv.read("title_start_3d_field", title_start_3d_field)
@@ -1681,7 +1675,7 @@ namespace pv_db {
         std::string use_osage_play_data;
         if (kv.read("use_osage_play_data", use_osage_play_data))
             pv->use_osage_play_data = !use_osage_play_data.compare("false");
-        
+
         std::string pv_expression_file_name;
         if (kv.read("pv_expression.file_name", pv_expression_file_name))
             pv->pv_expression_file_name = pv_expression_file_name;
@@ -1689,7 +1683,7 @@ namespace pv_db {
         if (kv.read("another_song", "length", count)) {
             pv->another_song.reserve(count);
             for (int32_t i = 0; i < count; i++) {
-                if (!kv.open_scope(i))
+                if (!kv.open_scope_fmt(i))
                     continue;
 
                 pv_db_pv_another_song another_song;
@@ -1697,7 +1691,7 @@ namespace pv_db {
                 std::string name;
                 if (kv.read("name", name))
                     another_song.name = name;
-                
+
                 std::string song_file_name;
                 if (kv.read("song_file_name", song_file_name))
                     another_song.song_file_name = song_file_name;
@@ -1721,16 +1715,16 @@ namespace pv_db {
 
             const char* type;
             if (kv.read(frame_texture_type_names[i], type)) {
-                if (!str_utils_compare(type, "PRE_PP"))
+                if (!strcmp(type, "PRE_PP"))
                     frame_texture.type = PV_FRAME_TEXTURE_PRE_PP;
-                else if (!str_utils_compare(type, "POST_PP"))
+                else if (!strcmp(type, "POST_PP"))
                     frame_texture.type = PV_FRAME_TEXTURE_POST_PP;
-                else if (!str_utils_compare(type, "FB"))
+                else if (!strcmp(type, "FB"))
                     frame_texture.type = PV_FRAME_TEXTURE_FB;
                 else
                     frame_texture.type = PV_FRAME_TEXTURE_POST_PP;
             }
-            else 
+            else
                 frame_texture.type = PV_FRAME_TEXTURE_POST_PP;
         }
 
@@ -1780,7 +1774,7 @@ namespace pv_db {
 
                 j.field.data.reserve(count);
                 for (int32_t k = 0; k < count; k++) {
-                    if (!kv.open_scope("%02d", k))
+                    if (!kv.open_scope_fmt("%02d", k))
                         continue;
 
                     pv_db_pv_field field;;
@@ -1804,7 +1798,7 @@ namespace pv_db {
                     if (kv.read("auth_3d_list", "length", count)) {
                         field.auth_3d_list.reserve(count);
                         for (int32_t l = 0; l < count; l++) {
-                            if (!kv.open_scope(l))
+                            if (!kv.open_scope_fmt(l))
                                 continue;
 
                             std::string auth_3d;
@@ -1820,10 +1814,10 @@ namespace pv_db {
                         field.ex_auth_3d_list.push_back(ex_auth_3d);
 
                     count;
-                    if (kv.read("auth_3d_list", "length", count)) {
+                    if (kv.read("ex_auth_3d_list", "length", count)) {
                         field.ex_auth_3d_list.reserve(count);
                         for (int32_t l = 0; l < count; l++) {
-                            if (!kv.open_scope(l))
+                            if (!kv.open_scope_fmt(l))
                                 continue;
 
                             std::string ex_auth_3d;
@@ -1842,7 +1836,7 @@ namespace pv_db {
                     if (kv.read("auth_3d_frame_list", "length", count)) {
                         field.auth_3d_frame_list.reserve(count);
                         for (int32_t l = 0; l < count; l++) {
-                            if (!kv.open_scope(l))
+                            if (!kv.open_scope_fmt(l))
                                 continue;
 
                             int32_t auth_3d_frame;
@@ -1866,7 +1860,7 @@ namespace pv_db {
                         if (kv.read(aet_list_names[l], "length", count)) {
                             field.aet.name[l].reserve(count);
                             for (int32_t m = 0; m < count; m++) {
-                                if (!kv.open_scope(m))
+                                if (!kv.open_scope_fmt(m))
                                     continue;
 
                                 std::string aet;
@@ -1887,7 +1881,7 @@ namespace pv_db {
                         if (kv.read(aet_id_list_names[l], "length", count)) {
                             field.aet.id[l].reserve(count);
                             for (int32_t m = 0; m < count; m++) {
-                                if (!kv.open_scope(m))
+                                if (!kv.open_scope_fmt(m))
                                     continue;
 
                                 std::string aet_id;
@@ -1908,7 +1902,7 @@ namespace pv_db {
                         if (kv.read(aet_id_list_names[l], "length", count)) {
                             field.aet.frame[l].reserve(count);
                             for (int32_t m = 0; m < count; m++) {
-                                if (!kv.open_scope(m))
+                                if (!kv.open_scope_fmt(m))
                                     continue;
 
                                 int32_t aet_frame;
@@ -1929,7 +1923,7 @@ namespace pv_db {
                     if (kv.read("play_eff_list", "length", count)) {
                         field.play_eff_list.reserve(count);
                         for (int32_t l = 0; l < count; l++) {
-                            if (!kv.open_scope(l))
+                            if (!kv.open_scope_fmt(l))
                                 continue;
 
                             std::string play_eff;
@@ -1943,7 +1937,7 @@ namespace pv_db {
                     if (kv.read("stop_eff_list", "length", count)) {
                         field.stop_eff_list.reserve(count);
                         for (int32_t l = 0; l < count; l++) {
-                            if (!kv.open_scope(l))
+                            if (!kv.open_scope_fmt(l))
                                 continue;
 
                             std::string stop_eff;
@@ -1957,7 +1951,7 @@ namespace pv_db {
                     if (kv.read("effect_rs_list", "length", count)) {
                         field.effect_rs_list.reserve(count);
                         for (int32_t l = 0; l < count; l++) {
-                            if (!kv.open_scope(l))
+                            if (!kv.open_scope_fmt(l))
                                 continue;
 
                             std::string effect_rs;
@@ -1971,7 +1965,7 @@ namespace pv_db {
                     if (kv.read("effect_emision_rs_list", "length", count)) {
                         field.effect_rs_list.reserve(count);
                         for (int32_t l = 0; l < count; l++) {
-                            if (!kv.open_scope(l))
+                            if (!kv.open_scope_fmt(l))
                                 continue;
 
                             float_t effect_emision_rs;
@@ -1998,12 +1992,30 @@ void task_pv_db_init() {
     task_pv_db = new pv_db::TaskPvDB;
 }
 
+void task_pv_db_add_paths() {
+    pv_db::TaskPvDB* task_pv_db = task_pv_db_get();
+    std::list<std::string>& prefixes = mdata_manager_get()->prefixes;
+    for (std::string& i : prefixes) {
+        std::string pv_db_file = i + "pv_db.txt";
+        if (data_list[DATA_AFT].check_file_exists("rom/", pv_db_file.c_str()))
+            task_pv_db->paths.push_back({ "rom/", pv_db_file });
+
+        std::string pv_field_file = i + "pv_field.txt";
+        if (data_list[DATA_AFT].check_file_exists("rom/", pv_field_file.c_str()))
+            task_pv_db->paths.push_back({ "rom/", pv_field_file });
+    }
+}
+
 bool task_pv_db_append_task() {
     return app::TaskWork::AppendTask(task_pv_db_get(), "PV DB");
 }
 
-void task_pv_db_free_task() {
-    task_pv_db_get()->SetDest();
+void task_pv_db_free_pv_data() {
+    task_pv_db_get()->pv_data.clear();
+}
+
+bool task_pv_db_free_task() {
+    return task_pv_db_get()->SetDest();
 }
 
 pv_db::TaskPvDB* task_pv_db_get() {

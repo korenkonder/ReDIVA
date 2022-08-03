@@ -95,12 +95,30 @@ void farc::add_file(const wchar_t* name) {
     free(data_temp);
 }
 
+const char* farc::get_file_name(uint32_t hash) {
+    if (!hash || hash == hash_murmurhash_empty)
+        return 0;
+
+    for (farc_file& i : files) {
+        const char* l_str = i.name.c_str();
+        const char* t = strrchr(l_str, '.');
+        size_t l_len = i.name.size();
+        if (t)
+            l_len = t - l_str;
+
+        if (hash_murmurhash(l_str, l_len) == hash)
+            return l_str;
+    }
+    return 0;
+}
+
 size_t farc::get_file_size(const char* name) {
     if (!name)
         return 0;
 
+    uint32_t name_hash = hash_utf8_murmurhash(name);
     for (farc_file& i : files)
-        if (!str_utils_compare(i.name.c_str(), name))
+        if (hash_string_murmurhash(i.name) == name_hash)
             return i.size;
     return 0;
 }
@@ -109,14 +127,50 @@ size_t farc::get_file_size(const wchar_t* name) {
     if (!name)
         return 0;
 
-    char* name_temp = utf16_to_utf8(name);
+    uint32_t name_hash = hash_utf16_murmurhash(name);
     for (farc_file& i : files)
-        if (!str_utils_compare(i.name.c_str(), name_temp)) {
-            free(name_temp);
+        if (hash_string_murmurhash(i.name) == name_hash)
             return i.size;
-        }
-    free(name_temp);
     return 0;
+}
+
+bool farc::has_file(const char* name) {
+    if (!name)
+        return false;
+
+    uint32_t name_hash = hash_utf8_murmurhash(name);
+    for (farc_file& i : files)
+        if (hash_string_murmurhash(i.name) == name_hash)
+            return true;
+    return false;
+}
+
+bool farc::has_file(const wchar_t* name) {
+    if (!name)
+        return false;
+
+    uint32_t name_hash = hash_utf16_murmurhash(name);
+    for (farc_file& i : files)
+        if (hash_string_murmurhash(i.name) == name_hash)
+            return true;
+    return false;
+}
+
+bool farc::has_file(uint32_t hash) {
+    if (!hash || hash == hash_murmurhash_empty)
+        return false;
+
+    for (farc_file& i : files) {
+        const char* l_str = i.name.c_str();
+        const char* t = strrchr(l_str, '.');
+        size_t l_len = i.name.size();
+        if (t)
+            l_len = t - l_str;
+
+        if (hash_murmurhash(l_str, l_len) == hash)
+            return true;
+    }
+    return false;
 }
 
 void farc::read(const char* path, bool unpack, bool save) {
@@ -591,7 +645,7 @@ static void farc_pack_files(farc* f, stream& s, farc_compress_mode mode, bool ge
         for (farc_file& i : f->files) {
             s.write_string_null_terminated(i.name);
             s.write_int32_t_reverse_endianness((int32_t)i.offset, true);
-            s.write_int32_t_reverse_endianness((int32_t)(compressed ? i.size : i.size_compressed), true);
+            s.write_int32_t_reverse_endianness((int32_t)(compressed ? i.size_compressed : i.size), true);
             s.write_int32_t_reverse_endianness((int32_t)(compressed ? i.size : 0), true);
         }
 
@@ -690,36 +744,48 @@ static errno_t farc_read_header(farc* f, stream& s) {
         length = (int32_t)count;
     }
 
-    f->files = std::vector<farc_file>(length);
+    bool encrypted = !!(f->flags & FARC_AES);
+
+    f->files.clear();
+    f->files.resize(length);
     if (has_per_file_flags)
         for (farc_file& i : f->files) {
-            i.name = (char*)dt;
-            dt += i.name.size() + 1;
+            size_t length = 0;
+            while (dt[length])
+                length++;
+            i.name = std::string((const char*)dt, length);
+            dt += length + 1;
             i.offset = (size_t)load_reverse_endianness_int32_t((void*)dt);
             i.size_compressed = (size_t)load_reverse_endianness_int32_t((void*)(dt + 4));
             i.size = (size_t)load_reverse_endianness_int32_t((void*)(dt + 8));
             farc_flags flags = (farc_flags)load_reverse_endianness_int32_t((void*)(dt + 12));
 
-            i.compressed = i.size || flags & FARC_GZIP ? true : false;
-            i.encrypted = (f->flags | flags) & FARC_AES ? true : false;
+            i.compressed = !!i.size || !!(flags & FARC_GZIP);
+            i.encrypted = encrypted || !!(flags & FARC_AES);
             dt += sizeof(int32_t) * 4;
         }
     else if (f->signature != FARC_FArc)
         for (farc_file& i : f->files) {
-            i.name = (char*)dt;
-            dt += i.name.size() + 1;
+            size_t length = 0;
+            while (dt[length])
+                length++;
+            i.name = std::string((const char*)dt, length);
+            dt += length + 1;
             i.offset = (size_t)load_reverse_endianness_int32_t((void*)dt);
             i.size_compressed = (size_t)load_reverse_endianness_int32_t((void*)(dt + 4));
             i.size = (size_t)load_reverse_endianness_int32_t((void*)(dt + 8));
 
-            i.compressed = i.size ? true : false;
-            i.encrypted = f->flags & FARC_AES ? true : false;
+            i.compressed = !!i.size;
+            i.encrypted = encrypted;
             dt += sizeof(int32_t) * 3;
         }
     else
         for (farc_file& i : f->files) {
-            i.name = (char*)dt;
-            dt += i.name.size() + 1;
+            size_t length = 0;
+            while (dt[length])
+                length++;
+            i.name = std::string((const char*)dt, length);
+            dt += length + 1;
             i.offset = (size_t)load_reverse_endianness_int32_t((void*)dt);
             i.size = (size_t)load_reverse_endianness_int32_t((void*)(dt + 4));
 
@@ -744,9 +810,11 @@ static void farc_unpack_files(farc* f, stream& s, bool save) {
             max_path_len = path_len;
     }
 
-    wchar_t* dir_temp = utf8_to_utf16(f->directory_path.c_str());
-    CreateDirectoryW(dir_temp, 0);
-    free(dir_temp);
+    if (save) {
+        wchar_t* dir_temp = utf8_to_utf16(f->directory_path.c_str());
+        CreateDirectoryW(dir_temp, 0);
+        free(dir_temp);
+    }
 
     char* temp_path = force_malloc_s(char, max_path_len + 1);
     memcpy(temp_path, f->directory_path.c_str(), sizeof(char) * dir_len);
@@ -758,7 +826,7 @@ static void farc_unpack_files(farc* f, stream& s, bool save) {
     free(temp_path);
 }
 
-static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char* temp_path, size_t dir_len ) {
+static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char* temp_path, size_t dir_len) {
     if (!f || s.io.check_null())
         return;
 

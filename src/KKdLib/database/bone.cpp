@@ -504,9 +504,11 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream& s
 
         skel->bone.resize(bone_count);
 
+        bone_database_bone* _bone = skel->bone.data();
+
         s.position_push(bones_offset, SEEK_SET);
         for (uint32_t j = 0; j < bone_count; j++) {
-            bone_database_bone* bone = &skel->bone[j];
+            bone_database_bone* bone = &_bone[j];
             bone->type = (bone_database_bone_type)s.read_uint8_t();
             bone->has_parent = s.read_uint8_t() ? true : false;
             bone->parent = s.read_uint8_t();
@@ -520,9 +522,11 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream& s
 
         skel->position.resize(position_count);
 
+        vec3* _position = skel->position.data();
+
         s.position_push(positions_offset, SEEK_SET);
         for (uint32_t j = 0; j < position_count; j++) {
-            vec3* position = &skel->position[j];
+            vec3* position = &_position[j];
             position->x = s.read_float_t();
             position->y = s.read_float_t();
             position->z = s.read_float_t();
@@ -535,16 +539,20 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream& s
 
         skel->object_bone.resize(object_bone_count);
 
+        std::string* object_bone = skel->object_bone.data();
+
         s.position_push(object_bone_names_offset, SEEK_SET);
         for (uint32_t j = 0; j < object_bone_count; j++)
-            skel->object_bone[j] = s.read_string_null_terminated_offset(s.read_uint32_t());
+            object_bone[j] = s.read_string_null_terminated_offset(s.read_uint32_t());
         s.position_pop();
 
         skel->motion_bone.resize(motion_bone_count);
 
+        std::string* motion_bone = skel->motion_bone.data();
+
         s.position_push(motion_bone_names_offset, SEEK_SET);
         for (uint32_t j = 0; j < motion_bone_count; j++)
-            skel->motion_bone[j] = s.read_string_null_terminated_offset(s.read_uint32_t());
+            motion_bone[j] = s.read_string_null_terminated_offset(s.read_uint32_t());
         s.position_pop();
 
         skel->parent_index.resize(motion_bone_count);
@@ -782,10 +790,12 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
 
         skel->bone.resize(bone_count);
 
+        bone_database_bone* _bone = skel->bone.data();
+
         s.position_push(bones_offset, SEEK_SET);
         if (!is_x)
             for (uint32_t j = 0; j < bone_count; j++) {
-                bone_database_bone* bone = &skel->bone[j];
+                bone_database_bone* bone = &_bone[j];
                 bone->type = (bone_database_bone_type)s.read_uint8_t();
                 bone->has_parent = s.read_uint8_t() ? true : false;
                 bone->parent = s.read_uint8_t();
@@ -797,7 +807,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
             }
         else
             for (uint32_t j = 0; j < bone_count; j++) {
-                bone_database_bone* bone = &skel->bone[j];
+                bone_database_bone* bone = &_bone[j];
                 bone->type = (bone_database_bone_type)s.read_uint8_t();
                 bone->has_parent = s.read_uint8_t() ? true : false;
                 bone->parent = s.read_uint8_t();
@@ -811,9 +821,11 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
 
         skel->position.resize(position_count);
 
+        vec3* _position = skel->position.data();
+
         s.position_push(positions_offset, SEEK_SET);
         for (uint32_t j = 0; j < position_count; j++) {
-            vec3* position = &skel->position[j];
+            vec3* position = &_position[j];
             position->x = s.read_float_t_reverse_endianness();
             position->y = s.read_float_t_reverse_endianness();
             position->z = s.read_float_t_reverse_endianness();
@@ -826,27 +838,31 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
 
         skel->object_bone.resize(object_bone_count);
 
+        std::string* object_bone = skel->object_bone.data();
+
         s.position_push(object_bone_names_offset, SEEK_SET);
         if (!is_x)
             for (uint32_t j = 0; j < object_bone_count; j++)
-                skel->object_bone[j] = s.read_string_null_terminated_offset(
+                object_bone[j] = s.read_string_null_terminated_offset(
                     s.read_offset_f2(header_length));
         else
             for (uint32_t j = 0; j < object_bone_count; j++)
-                skel->object_bone[j] = s.read_string_null_terminated_offset(
+                object_bone[j] = s.read_string_null_terminated_offset(
                     s.read_offset_x());
         s.position_pop();
 
         skel->motion_bone.resize(motion_bone_count);
 
+        std::string* motion_bone = skel->motion_bone.data();
+
         s.position_push(motion_bone_names_offset, SEEK_SET);
         if (!is_x)
             for (uint32_t j = 0; j < motion_bone_count; j++)
-                skel->motion_bone[j] = s.read_string_null_terminated_offset(
+                motion_bone[j] = s.read_string_null_terminated_offset(
                     s.read_offset_f2(header_length));
         else
             for (uint32_t j = 0; j < motion_bone_count; j++)
-                skel->motion_bone[j] = s.read_string_null_terminated_offset(
+                motion_bone[j] = s.read_string_null_terminated_offset(
                     s.read_offset_x());
         s.position_pop();
 
@@ -855,9 +871,9 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
         s.position_push(parent_indices_offset, SEEK_SET);
         s.read(skel->parent_index.data(), motion_bone_count * sizeof(uint16_t));
         if (s.is_big_endian) {
-            uint16_t* parent_indices = skel->parent_index.data();
+            uint16_t* parent_index = skel->parent_index.data();
             for (uint32_t j = 0; j < motion_bone_count; j++)
-                parent_indices[j] = reverse_endianness_uint16_t(parent_indices[j]);
+                parent_index[j] = reverse_endianness_uint16_t(parent_index[j]);
         }
         s.position_pop();
         s.position_pop();

@@ -90,8 +90,12 @@ extern bool task_stage_modern_has_stage_info(task_stage_modern_info* stg_info);
 extern bool task_stage_modern_load(const char* name);
 extern void task_stage_modern_set_data(void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data);
+extern void task_stage_modern_set_effect_display(task_stage_modern_info* stg_info, bool value);
+extern void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool value);
 extern void task_stage_modern_set_mat(mat4* mat);
+extern void task_stage_modern_set_sky(task_stage_modern_info* stg_info, bool value);
 extern void task_stage_modern_set_stage(task_stage_modern_info* stg_info);
+extern void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value);
 extern void task_stage_modern_set_stage_hash(uint32_t stage_hash, stage_data_modern* stg_data);
 extern void task_stage_modern_set_stage_hashes(std::vector<uint32_t>* stage_hashes,
     std::vector<stage_data_modern*>* load_stage_data);

@@ -40,9 +40,25 @@ inline void gl_state_active_texture(size_t index) {
 }
 
 inline void gl_state_bind_framebuffer(GLuint framebuffer) {
-    if (gl_state.framebuffer_binding != framebuffer) {
+    if (gl_state.read_framebuffer_binding != framebuffer
+        || gl_state.draw_framebuffer_binding != framebuffer) {
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-        gl_state.framebuffer_binding = framebuffer;
+        gl_state.read_framebuffer_binding = framebuffer;
+        gl_state.draw_framebuffer_binding = framebuffer;
+    }
+}
+
+inline void gl_state_bind_read_framebuffer(GLuint framebuffer) {
+    if (gl_state.read_framebuffer_binding != framebuffer) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+        gl_state.read_framebuffer_binding = framebuffer;
+    }
+}
+
+inline void gl_state_bind_draw_framebuffer(GLuint framebuffer) {
+    if (gl_state.draw_framebuffer_binding != framebuffer) {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+        gl_state.draw_framebuffer_binding = framebuffer;
     }
 }
 
@@ -280,7 +296,8 @@ void gl_state_get() {
     glGetIntegerv(GL_BLEND_EQUATION_RGB, (GLint*)&gl_state.blend_mode_rgb);
     glGetIntegerv(GL_BLEND_EQUATION_ALPHA, (GLint*)&gl_state.blend_mode_alpha);
 
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint*)&gl_state.framebuffer_binding);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, (GLint*)&gl_state.read_framebuffer_binding);
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&gl_state.draw_framebuffer_binding);
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, (GLint*)&gl_state.vertex_array_binding);
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint*)&gl_state.array_buffer_binding);
     glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&gl_state.element_array_buffer_binding);

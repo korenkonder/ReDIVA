@@ -49,9 +49,51 @@ const uint32_t hash_murmurhash_null = 0x5A009B23;
 // Empty string
 const uint32_t hash_crc16_ccitt_empty = 0xFFFF;
 
+string_hash::string_hash() {
+    hash = hash_murmurhash_empty;
+}
+
+string_hash::string_hash(const char* str) {
+    this->str = str;
+    this->hash = hash_string_murmurhash(this->str);
+}
+
+string_hash::string_hash(const char* str, uint32_t hash) {
+    this->str = str;
+    this->hash = hash;
+}
+
+string_hash::string_hash(std::string& str) {
+    this->str = str;
+    this->hash = hash_string_murmurhash(this->str);
+}
+
+string_hash::string_hash(std::string&& str) {
+    this->str = str;
+    this->hash = hash_string_murmurhash(this->str);
+}
+
+string_hash::string_hash(std::string& str, uint32_t hash) {
+    this->str = str;
+    this->hash = hash;
+}
+
+string_hash::string_hash(std::string&& str, uint32_t hash) {
+    this->str = str;
+    this->hash = hash;
+}
+
+string_hash::~string_hash() {
+
+}
+
+const char* string_hash::c_str() {
+    return str.c_str();
+}
+
 // FNV 1a 64-bit Modified
 // 0x1403B04D0 in SBZV_7.10
-inline uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper) {
+constexpr uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper) {
     const uint8_t* d = (const uint8_t*)data;
 
     uint64_t hash = 0xCBF29CE484222325;
@@ -72,7 +114,7 @@ inline uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper) {
     return (hash >> 32) ^ hash; // Actual Modification
 }
 
-inline uint64_t hash_utf8_fnv1a64m(const char* data, bool make_upper) {
+constexpr uint64_t hash_utf8_fnv1a64m(const char* data, bool make_upper) {
     return hash_fnv1a64m(data, utf8_length(data), make_upper);
 }
 
@@ -83,7 +125,7 @@ inline uint64_t hash_utf16_fnv1a64m(const wchar_t* data, bool make_upper) {
     return hash;
 }
 
-inline uint64_t hash_string_fnv1a64m(const std::string& data, bool make_upper) {
+constexpr uint64_t hash_string_fnv1a64m(const std::string& data, bool make_upper) {
     return hash_fnv1a64m(data.c_str(), data.size(), make_upper);
 }
 
@@ -91,12 +133,14 @@ inline uint64_t hash_string_fnv1a64m(const std::string& data, bool make_upper) {
 // 0x814D7A9C in PCSB00554
 // 0x8134C304 in PCSB01007
 // 0x0069CEA4 in NPEB02013
-uint32_t hash_murmurhash(const void* data, size_t size,
+constexpr uint32_t hash_murmurhash(const void* data, size_t size,
     uint32_t seed, bool upper, bool big_endian) {
     const uint8_t* d = (const uint8_t*)data;
 
-    uint32_t a, b, hash;
-    size_t i;
+    uint32_t a = 0;
+    uint32_t b = 0;
+    uint32_t hash = 0;
+    size_t i = 0;
 
     const uint32_t m = 0x7FD652AD;
     const int32_t r = 16;
@@ -220,7 +264,7 @@ uint32_t hash_murmurhash(const void* data, size_t size,
     return hash;
 }
 
-inline uint32_t hash_utf8_murmurhash(const char* data, uint32_t seed, bool upper) {
+constexpr uint32_t hash_utf8_murmurhash(const char* data, uint32_t seed, bool upper) {
     return hash_murmurhash(data, utf8_length(data), seed, upper);
 }
 
@@ -231,13 +275,13 @@ inline uint32_t hash_utf16_murmurhash(const wchar_t* data, uint32_t seed, bool u
     return hash;
 }
 
-inline uint32_t hash_string_murmurhash(const std::string& data, uint32_t seed, bool upper) {
+constexpr uint32_t hash_string_murmurhash(const std::string& data, uint32_t seed, bool upper) {
     return hash_murmurhash(data.c_str(), data.size(), seed, upper);
 }
 
 // CRC16-CCITT
 // 0x140011A90 in SBZV_7.10
-inline uint16_t hash_crc16_ccitt(const void* data, size_t size, bool make_upper) {
+constexpr uint16_t hash_crc16_ccitt(const void* data, size_t size, bool make_upper) {
     const uint8_t* d = (const uint8_t*)data;
 
     uint16_t hash = 0xFFFF;
@@ -254,7 +298,7 @@ inline uint16_t hash_crc16_ccitt(const void* data, size_t size, bool make_upper)
     return hash;
 }
 
-inline uint16_t hash_utf8_crc16_ccitt(const char* data, bool make_upper) {
+constexpr uint16_t hash_utf8_crc16_ccitt(const char* data, bool make_upper) {
     return hash_crc16_ccitt(data, utf8_length(data), make_upper);
 }
 
@@ -265,6 +309,6 @@ inline uint16_t hash_utf16_crc16_ccitt(const wchar_t* data, bool make_upper) {
     return hash;
 }
 
-inline uint16_t hash_string_crc16_ccitt(const std::string& data, bool make_upper) {
+constexpr uint16_t hash_string_crc16_ccitt(const std::string& data, bool make_upper) {
     return hash_crc16_ccitt(data.c_str(), data.size(), make_upper);
 }

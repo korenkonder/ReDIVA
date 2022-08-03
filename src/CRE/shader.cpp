@@ -188,7 +188,7 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
     farc shader_cache_farc;
     wchar_t temp_buf[MAX_PATH];
     if (!ignore_cache && SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
-        wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\CLOUD");
+        wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
         CreateDirectoryW(temp_buf, 0);
 
         wchar_t buf[MAX_PATH];
@@ -2124,7 +2124,7 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
 #if defined(CRE_DEV)
         wchar_t temp_buf[MAX_PATH];
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
-            wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\CLOUD");
+            wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
             temp_buf[sizeof(temp_buf) / sizeof(wchar_t) - 1] = 0;
             CreateDirectoryW(temp_buf, 0);
 

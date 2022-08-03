@@ -17,6 +17,8 @@ struct texture_data_struct {
     vec3 texture_color_offset;
     vec3 texture_specular_coeff;
     vec3 texture_specular_offset;
+
+    texture_data_struct();
 };
 
 extern void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,

@@ -101,6 +101,13 @@ extern int32_t obj_material_texture_type_get_texture_index(
 extern void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
     mat4* ex_data_matrices, mat4* matrix_buffer, mat4* global_mat, mat4* mat);
 
+extern void object_material_msgpack_read(const char* path, const char* set_name,
+    obj_set* obj_set, object_database* obj_db);
+extern void object_material_msgpack_read(const char* path, const char* set_name,
+    txp_set* txp_set, texture_database* tex_db, obj_set_handler* handler);
+extern void object_material_msgpack_write(const char* path, const char* set_name, uint32_t set_id,
+    obj_set* obj_set, txp_set* txp_set, object_database* obj_db, texture_database* tex_db);
+
 extern void object_storage_init(object_database* obj_db);
 extern obj* object_storage_get_obj(object_info obj_info);
 extern obj_set_handler* object_storage_get_obj_set_handler(uint32_t set_id);

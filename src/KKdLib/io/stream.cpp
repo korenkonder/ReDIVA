@@ -6,7 +6,6 @@
 #include "stream.hpp"
 #include <share.h>
 
-
 stream::io::io() : stream(), data() {
 
 }
@@ -398,7 +397,7 @@ int32_t stream::read_char() {
     case STREAM_MEMORY:
         if (io.data.data >= io.data.vec.end())
             return EOF;
-        return *(io.data.data++)._Ptr;
+        return *(io.data.data++);
     default:
         return EOF;
     }
@@ -415,7 +414,7 @@ int32_t stream::write_char(char c) {
             io.data.vec.resize(pos + 1);
             io.data.data = io.data.vec.begin() + pos;
         }
-        *(io.data.data++)._Ptr = c;
+        *(io.data.data++) = c;
         return 0;
     }
     default:
@@ -1009,7 +1008,7 @@ void stream::write_string(std::string& str) {
 }
 
 void stream::write_string(std::string&& str) {
-    write_string(*(std::string*)&str);
+    write(str.c_str(), str.size());
 }
 
 void stream::write_wstring(std::wstring& str) {
@@ -1017,7 +1016,7 @@ void stream::write_wstring(std::wstring& str) {
 }
 
 void stream::write_wstring(std::wstring&& str) {
-    write_wstring(*(std::wstring*)&str);
+    write(str.c_str(), sizeof(wchar_t) * str.size());
 }
 
 void stream::write_string_null_terminated(std::string& str) {

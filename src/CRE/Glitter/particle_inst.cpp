@@ -135,13 +135,6 @@ namespace Glitter {
         }
     }
 
-    void F2ParticleInst::SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a) {
-        if (data.effect)
-            data.effect->SetMinColor(r, g, b, a);
-        else if (data.parent && data.parent->data.effect)
-            data.parent->data.effect->SetMinColor(r, g, b, a);
-    }
-
     void F2ParticleInst::Copy(F2ParticleInst* dst, float_t emission) {
         dst->data.flags = data.flags;
         if (data.render_group && dst->data.render_group)
@@ -318,7 +311,7 @@ namespace Glitter {
         if (a < 0.0f)
             a = data.data.color.w;
 
-        SetMinColor(r, g, b, a);
+        GetExtColor(r, g, b, a);
 
         rend_elem->color.x = r;
         rend_elem->color.y = g;
@@ -327,6 +320,13 @@ namespace Glitter {
 
         if (a < 0.01f)
             rend_elem->disp = false;
+    }
+
+    void F2ParticleInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+        if (data.effect)
+            data.effect->GetExtColor(r, g, b, a);
+        else if (data.parent && data.parent->data.effect)
+            data.parent->data.effect->GetExtColor(r, g, b, a);
     }
 
     bool F2ParticleInst::GetValue(GLT, RenderElement* rend_elem, float_t frame, Random* random) {
@@ -596,13 +596,6 @@ namespace Glitter {
         rend_elem->speed = max(speed, 0.0f);
     }
 
-    void XParticleInst::SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a) {
-        if (data.effect)
-            data.effect->SetMinColor(r, g, b, a);
-        else if (data.parent && data.parent->data.effect)
-            data.parent->data.effect->SetMinColor(r, g, b, a);
-    }
-
     void XParticleInst::Copy(XParticleInst* dst, float_t emission) {
         dst->data.flags = data.flags;
         if (data.render_group && dst->data.render_group)
@@ -802,7 +795,7 @@ namespace Glitter {
         else if (rend_elem->fade_in_frames > 0.0f && rend_elem->frame < rend_elem->fade_in_frames)
             a *= rend_elem->frame / rend_elem->fade_in_frames;
 
-        SetMinColor(r, g, b, a);
+        GetExtColor(r, g, b, a);
 
         rend_elem->color.x = r;
         rend_elem->color.y = g;
@@ -811,6 +804,13 @@ namespace Glitter {
 
         if (a < 0.01f)
             rend_elem->disp = false;
+    }
+
+    void XParticleInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+        if (data.effect)
+            data.effect->GetExtColor(r, g, b, a);
+        else if (data.parent && data.parent->data.effect)
+            data.parent->data.effect->GetExtColor(r, g, b, a);
     }
 
     bool XParticleInst::GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale) {

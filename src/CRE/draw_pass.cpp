@@ -8,6 +8,7 @@
 #include "light_param/fog.hpp"
 #include "light_param/light.hpp"
 #include "rob/rob.hpp"
+#include "clear_color.hpp"
 #include "gl_state.hpp"
 #include "post_process.hpp"
 #include "render_texture.hpp"
@@ -58,7 +59,6 @@ extern bool draw_grid_3d;
 extern shader_glsl* grid_shader;
 extern GLuint grid_vbo;
 extern size_t grid_vertex_count;
-extern vec4u8 clear_color;
 extern light_param_data_storage* light_param_data_storage_data;
 
 void draw_pass_main(render_context* rctx) {
@@ -134,6 +134,7 @@ void draw_pass_main(render_context* rctx) {
         draw_pass_end(&rctx->draw_pass, (draw_pass_type)i);
         glGetError();
     }
+    rctx->object_data.check_vertex_arrays();
     gl_state_bind_vertex_array(0);
 }
 
@@ -144,9 +145,9 @@ inline static void draw_pass_begin(draw_pass* a1) {
 }
 
 static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
+    rctx->camera->update_data();
     rctx->view_mat = rctx->camera->view;
     if (rctx->litproj->set(rctx)) {
-        gl_state_bind_vertex_array(rctx->vao);
         draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_OPAQUE, 0, 0, true, -1);
         draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TRANSPARENT, 0, 0, true, -1);
         draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TRANSLUCENT, 0, 0, true, -1);
@@ -160,7 +161,6 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
             draw_pass_set_camera(rctx->camera);
             for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
                 rctx->light_set[i].data_set(rctx->face, (light_set_id)i);
-            gl_state_bind_vertex_array(rctx->vao);
             draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_OPAQUE, 0, 0, true, -1);
             draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TRANSPARENT, 0, 0, true, -1);
             draw_task_sort(rctx, DRAW_OBJECT_TRANSLUCENT, 1);
@@ -241,7 +241,6 @@ static void draw_pass_shadow(render_context* rctx, draw_pass* a1) {
             rctx->draw_state.shader_index = SHADER_FT_SIL;
             uniform_value[U0A] = 0;
 
-            gl_state_bind_vertex_array(rctx->vao);
             draw_task_draw_objects_by_type(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_CHARA + v11[i]), 0, 0, 1, -1);
             if (draw_task_get_count(rctx, (draw_object_type)(DRAW_OBJECT_SHADOW_OBJECT_CHARA + v11[i])) > 0) {
                 glColorMask(a1->field_2F8 != 0 ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -372,8 +371,6 @@ static void draw_pass_shadow_filter(render_texture* a1, render_texture* a2,
     shaders_ft.local_frag_set(3, far_texel_offset, far_texel_offset, 0.0f, 0.0f);
 
     gl_state_active_bind_texture_2d(0, v11);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, v11);
     if (a3) {
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
@@ -382,7 +379,6 @@ static void draw_pass_shadow_filter(render_texture* a1, render_texture* a2,
         GLint swizzle[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     }
-    gl_state_active_bind_texture_2d(0, v11);
     shaders_ft.state_matrix_set_mvp(mat4_identity);
     render_texture::draw_custom(&shaders_ft);
 
@@ -443,6 +439,7 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
         return;
     }
 
+    rctx->camera->update_data();
     rctx->view_mat = rctx->camera->view;
     post_process* pp = &rctx->post_process;
     //if (pp->render_width > 1280.0)
@@ -470,7 +467,6 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
         draw_pass_3d_shadow_reset(rctx);
 
     rctx->draw_state.shader_index = SHADER_FT_SSS_SKIN;
-    gl_state_bind_vertex_array(rctx->vao);
     gl_state_enable_depth_test();
     gl_state_set_depth_func(GL_LEQUAL);
     gl_state_set_depth_mask(GL_TRUE);
@@ -490,9 +486,7 @@ static void draw_pass_sss(render_context* rctx, draw_pass* a1) {
             glViewport(0, 0, pp->render_width, pp->render_height);
             glClear(GL_DEPTH_BUFFER_BIT);
             rctx->draw_state.shader_index = SHADER_FT_SSS_SKIN;
-            gl_state_bind_vertex_array(rctx->vao);
             gl_state_enable_depth_test();
-            gl_state_set_depth_func(GL_LEQUAL);
             gl_state_set_depth_mask(GL_TRUE);
             draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_SSS, 1, 0, 1, -1);
             gl_state_disable_depth_test();
@@ -511,7 +505,6 @@ static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
     shaders_ft.state_matrix_set_modelview(0, mat4_identity, false);
     shaders_ft.state_matrix_set_projection(mat4_identity, true);
     gl_state_enable_depth_test();
-    gl_state_set_depth_func(GL_ALWAYS);
     gl_state_set_depth_mask(GL_TRUE);
     glViewport(0, 0, pp->render_width, pp->render_height);
     gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->tex);
@@ -730,7 +723,6 @@ static void draw_pass_reflect(render_context* rctx, draw_pass* a1) {
         set->lights[LIGHT_SPOT].get_clip_plane(clip_plane);
         uniform_value[U_REFLECT] = 2;
         uniform_value[U_CLIP_PLANE] = clip_plane[1];
-        gl_state_bind_vertex_array(rctx->vao);
         gl_state_enable_depth_test();
         gl_state_set_depth_func(GL_LEQUAL);
         gl_state_set_depth_mask(GL_TRUE);
@@ -789,7 +781,6 @@ static void draw_pass_refract(render_context* rctx, draw_pass* a1) {
         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 
         rctx->draw_state.shader_index = SHADER_FT_S_REFR;
-        gl_state_bind_vertex_array(rctx->vao);
         gl_state_enable_depth_test();
         gl_state_set_depth_func(GL_LEQUAL);
         gl_state_set_depth_mask(GL_TRUE);
@@ -813,6 +804,7 @@ static void draw_pass_pre_process(render_context* rctx, draw_pass* a1) {
 }
 
 static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
+    rctx->camera->update_data();
     rctx->view_mat = rctx->camera->view;
     rctx->post_process.rend_texture.bind();
     glViewport(0, 0, rctx->post_process.render_width, rctx->post_process.render_height);
@@ -820,7 +812,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     if (!a1->sss_data.enable || !a1->sss_data.npr_contour || draw_pass_3d_get_translucent_count(rctx))
         glClear(GL_DEPTH_BUFFER_BIT);
 
-    gl_state_bind_vertex_array(rctx->vao);
+    gl_state_set_depth_func(GL_LEQUAL);
 
     for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
         rctx->light_set[i].data_set(rctx->face, (light_set_id)i);
@@ -848,9 +840,9 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     if (a1->alpha_z_sort) {
         draw_task_sort(rctx, DRAW_OBJECT_TRANSLUCENT, 1);
         draw_task_sort(rctx, DRAW_OBJECT_TRANSLUCENT_NO_SHADOW, 2);
-        draw_task_sort(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_22, 1);
-        draw_task_sort(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_25, 1);
-        draw_task_sort(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_28, 1);
+        draw_task_sort(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_1, 1);
+        draw_task_sort(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2, 1);
+        draw_task_sort(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3, 1);
     }
 
     if (a1->opaque_z_sort)
@@ -858,19 +850,17 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
 
     if (a1->draw_pass_3d[DRAW_PASS_3D_OPAQUE]) {
         gl_state_enable_depth_test();
-        gl_state_set_depth_func(GL_LEQUAL);
         gl_state_set_depth_mask(GL_TRUE);
         draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_OPAQUE, 0, 0, 1, -1);
         gl_state_disable_depth_test();
     }
 
-    Glitter::glt_particle_manager.DispScenes(Glitter::DISP_OPAQUE);
+    Glitter::glt_particle_manager->DispScenes(Glitter::DISP_OPAQUE);
 
     if (draw_grid_3d)
         draw_pass_3d_grid(rctx);
 
     gl_state_enable_depth_test();
-    gl_state_set_depth_func(GL_LEQUAL);
     gl_state_set_depth_mask(GL_TRUE);
     if (a1->draw_pass_3d[DRAW_PASS_3D_TRANSPARENT])
         draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TRANSPARENT, 0, 0, 1, -1);
@@ -878,7 +868,6 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
         draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TYPE_7, 0, 0, 1, -1);*/
 
     rctx->post_process.exposure->get_exposure_chara_data(&rctx->post_process, rctx->camera);
-    gl_state_bind_vertex_array(rctx->vao);
 
     //post_process_draw_lens_flare(a1->post_process);
     //draw_stars(&stars);
@@ -887,9 +876,9 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
         a1->draw_pass_3d[DRAW_PASS_3D_OPAQUE],
         a1->draw_pass_3d[DRAW_PASS_3D_TRANSPARENT],
         a1->draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT],
-        DRAW_OBJECT_OPAQUE_TYPE_26,
-        DRAW_OBJECT_TRANSPARENT_TYPE_27,
-        DRAW_OBJECT_TRANSLUCENT_TYPE_28);
+        DRAW_OBJECT_OPAQUE_ALPHA_ORDER_3,
+        DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_3,
+        DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3);
 
     //draw_snow_particle();
     //draw_rain();
@@ -898,7 +887,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     gl_state_disable_depth_test();
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-    Glitter::glt_particle_manager.DispScenes(Glitter::DISP_ALPHA);
+    Glitter::glt_particle_manager->DispScenes(Glitter::DISP_ALPHA);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     if (a1->npr_param == 1) {
@@ -909,7 +898,6 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     }
 
     gl_state_enable_depth_test();
-    gl_state_set_depth_func(GL_LEQUAL);
 
     if (a1->draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT]) {
         gl_state_enable_blend();
@@ -920,30 +908,60 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
         gl_state_disable_blend();
     }
 
+    gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
+    Glitter::glt_particle_manager->DispScenes(Glitter::DISP_TYPE_2);
+    gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
     gl_state_set_depth_mask(GL_TRUE);
     draw_task_draw_objects_by_type_translucent(rctx,
         a1->draw_pass_3d[DRAW_PASS_3D_OPAQUE],
         a1->draw_pass_3d[DRAW_PASS_3D_TRANSPARENT],
         a1->draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT],
-        DRAW_OBJECT_OPAQUE_TYPE_23,
-        DRAW_OBJECT_TRANSPARENT_TYPE_24,
-        DRAW_OBJECT_TRANSLUCENT_TYPE_25);
+        DRAW_OBJECT_OPAQUE_ALPHA_ORDER_2,
+        DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2,
+        DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2);
     gl_state_disable_depth_test();
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-    Glitter::glt_particle_manager.DispScenes(Glitter::DISP_NORMAL);
+    Glitter::glt_particle_manager->DispScenes(Glitter::DISP_NORMAL);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
     gl_state_enable_depth_test();
-    gl_state_set_depth_func(GL_LEQUAL);
     gl_state_set_depth_mask(GL_TRUE);
     draw_task_draw_objects_by_type_translucent(rctx,
         a1->draw_pass_3d[DRAW_PASS_3D_OPAQUE],
         a1->draw_pass_3d[DRAW_PASS_3D_TRANSPARENT],
         a1->draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT],
-        DRAW_OBJECT_OPAQUE_TYPE_20,
-        DRAW_OBJECT_TRANSPARENT_TYPE_21,
-        DRAW_OBJECT_TRANSLUCENT_TYPE_22);
+        DRAW_OBJECT_OPAQUE_ALPHA_ORDER_1,
+        DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_1,
+        DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_1);
+
+    if (Glitter::glt_particle_manager->CheckHasLocalEffect()) { // X
+        camera* cam = rctx->camera;
+        double_t fov = cam->get_fov();
+        cam->set_fov(32.2673416137695);
+        draw_pass_set_camera(cam);
+
+        draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_OPAQUE_LOCAL, 0, 0, 1, -1);
+        draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TRANSPARENT_LOCAL, 0, 0, 1, -1);
+        gl_state_enable_blend();
+        draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_TRANSLUCENT_LOCAL, 0, 0, 1, -1);
+        gl_state_disable_blend();
+
+        draw_task_draw_objects_by_type_translucent(rctx,
+            a1->draw_pass_3d[DRAW_PASS_3D_OPAQUE],
+            a1->draw_pass_3d[DRAW_PASS_3D_TRANSPARENT],
+            a1->draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT],
+            DRAW_OBJECT_OPAQUE_ALPHA_ORDER_2_LOCAL,
+            DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2_LOCAL,
+            DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2_LOCAL);
+
+        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+        Glitter::glt_particle_manager->DispScenes(Glitter::DISP_LOCAL);
+        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        cam->set_fov(fov);
+        draw_pass_set_camera(cam);
+    }
 
     if (a1->sss_texture)
         gl_state_active_bind_texture_2d(14, 0);
@@ -959,15 +977,15 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
 
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx) {
     int32_t count = 0;
-    count += draw_task_get_count(rctx, DRAW_OBJECT_OPAQUE_TYPE_20);
-    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSPARENT_TYPE_21);
-    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_22);
-    count += draw_task_get_count(rctx, DRAW_OBJECT_OPAQUE_TYPE_23);
-    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSPARENT_TYPE_24);
-    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_25);
-    count += draw_task_get_count(rctx, DRAW_OBJECT_OPAQUE_TYPE_26);
-    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSPARENT_TYPE_27);
-    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSLUCENT_TYPE_28);
+    count += draw_task_get_count(rctx, DRAW_OBJECT_OPAQUE_ALPHA_ORDER_1);
+    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_1);
+    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_1);
+    count += draw_task_get_count(rctx, DRAW_OBJECT_OPAQUE_ALPHA_ORDER_2);
+    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2);
+    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2);
+    count += draw_task_get_count(rctx, DRAW_OBJECT_OPAQUE_ALPHA_ORDER_3);
+    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_3);
+    count += draw_task_get_count(rctx, DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3);
     return count;
 }
 
@@ -1070,6 +1088,7 @@ static void draw_pass_show_vector(render_context* rctx, draw_pass* a1) {
     if (!a1->show_vector_flags)
         return;
 
+    rctx->camera->update_data();
     rctx->view_mat = rctx->camera->view;
     rctx->post_process.rend_texture.bind();
     glViewport(0, 0, rctx->post_process.render_width, rctx->post_process.render_height);
@@ -1092,6 +1111,8 @@ static void draw_pass_show_vector(render_context* rctx, draw_pass* a1) {
 }
 
 static void draw_pass_post_process(render_context* rctx, draw_pass* a1) {
+    rctx->camera->update_data();
+
     texture* light_proj_tex = 0;
     light_proj* litproj = rctx->litproj;
     if (litproj && litproj->enable) {
@@ -1119,11 +1140,12 @@ inline static void draw_pass_end(draw_pass* pass, draw_pass_type type) {
 }
 
 static void draw_pass_3d_grid(render_context* rctx) {
+    rctx->camera->update_data();
+
     gl_state_enable_blend();
     gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     gl_state_set_blend_equation(GL_FUNC_ADD);
     gl_state_enable_depth_test();
-    gl_state_set_depth_func(GL_LEQUAL);
     gl_state_set_depth_mask(GL_TRUE);
 
     grid_shader->use();
@@ -1147,6 +1169,7 @@ static void draw_pass_3d_grid(render_context* rctx) {
 }
 
 static void draw_pass_set_camera(camera* cam) {
+    cam->update_data();
     shaders_ft.state_matrix_set_modelview(0, cam->view, false);
     shaders_ft.state_matrix_set_projection(cam->projection, true);
     shaders_ft.state_matrix_set_program(5, cam->view);

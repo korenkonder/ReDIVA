@@ -591,16 +591,9 @@ static texture* texture_load_tex(texture_id id, GLenum target,
     case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
     case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
     case GL_COMPRESSED_RED_RGTC1_EXT:
-    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT: {
-        int32_t flags = (int32_t)tex->flags;
-        flags |= TEXTURE_BLOCK_COMPRESSION;
-        tex->flags = (texture_flags)flags;
-    } break;
-    default: {
-        int32_t flags = (int32_t)tex->flags;
-        flags |= TEXTURE_BLOCK_COMPRESSION;
-        tex->flags = (texture_flags)flags;
-    } break;
+    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
+        enum_or(tex->flags, TEXTURE_BLOCK_COMPRESSION);
+        break;
     }
     return tex;
 

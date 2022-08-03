@@ -74,7 +74,7 @@ struct auth_3d_database {
     auth_3d_database();
     virtual ~auth_3d_database();
 
-    void add(auth_3d_database_file* auth_3d_db_file);
+    void add(auth_3d_database_file* auth_3d_db_file, bool mdata);
     int32_t get_category_index(const char* name);
     void get_category_uids(const char* name, std::vector<int32_t>& uid);
     int32_t get_uid(const char* name);

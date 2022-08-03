@@ -277,7 +277,7 @@ static int32_t render_texture_framebuffer_set_texture(render_texture* rt,
     if (level < 0 || level > rt->max_level)
         return -1;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, rt->fbos[level]);
+    gl_state_bind_framebuffer(rt->fbos[level]);
     glGetError();
 
     if (color_texture) {
@@ -327,7 +327,7 @@ static int32_t render_texture_framebuffer_set_texture(render_texture* rt,
     int32_t ret = 0;
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         ret = -1;
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    gl_state_bind_framebuffer(0);
     glGetError();
     return ret;
 }

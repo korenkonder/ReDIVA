@@ -235,30 +235,6 @@ namespace Glitter {
         gl_state_bind_array_buffer(0);
     }
 
-    void F2RenderScene::Ctrl(GLT, float_t delta_frame) {
-        ctrl_quad = 0;
-        ctrl_line = 0;
-        ctrl_locus = 0;
-        ctrl_mesh = 0;
-
-        for (F2RenderGroup*& i : groups)
-            if (i) {
-                switch (i->type) {
-                case PARTICLE_QUAD:
-                    ctrl_quad += i->ctrl;
-                    break;
-                case PARTICLE_LINE:
-                    ctrl_line += i->ctrl;
-                    break;
-                case PARTICLE_LOCUS:
-                    ctrl_locus += i->ctrl;
-                    break;
-                }
-
-                i->Ctrl(GLT_VAL, delta_frame, true);
-            }
-    }
-
     void F2RenderScene::CalcDispLocus(GPM, F2RenderGroup* rend_group) {
         if (!rend_group->elements || !rend_group->vbo || rend_group->ctrl < 1)
             return;
@@ -832,15 +808,41 @@ namespace Glitter {
         gl_state_bind_array_buffer(0);
     }
 
+    void F2RenderScene::Ctrl(GLT, float_t delta_frame) {
+        ctrl_quad = 0;
+        ctrl_line = 0;
+        ctrl_locus = 0;
+        ctrl_mesh = 0;
+
+        for (F2RenderGroup*& i : groups) {
+            if (!i)
+                continue;
+
+            switch (i->type) {
+            case PARTICLE_QUAD:
+                ctrl_quad += i->ctrl;
+                break;
+            case PARTICLE_LINE:
+                ctrl_line += i->ctrl;
+                break;
+            case PARTICLE_LOCUS:
+                ctrl_locus += i->ctrl;
+                break;
+            }
+
+            i->Ctrl(GLT_VAL, delta_frame, true);
+        }
+    }
+
     void F2RenderScene::Disp(GPM, DispType disp_type) {
         disp_quad = 0;
         disp_line = 0;
         disp_locus = 0;
         disp_mesh = 0;
 
-        F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->effect);
-        F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->emitter);
-        F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->particle);
+        F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->selected_effect);
+        F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->selected_emitter);
+        F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->selected_particle);
         for (F2RenderGroup*& i : groups) {
             if (!i)
                 continue;
@@ -968,13 +970,11 @@ namespace Glitter {
             if (rend_group->blend_mode == PARTICLE_BLEND_PUNCH_THROUGH) {
                 uniform_value[U_ALPHA_BLEND] = 1;
                 gl_state_enable_depth_test();
-                gl_state_set_depth_func(GL_LESS);
                 gl_state_set_depth_mask(GL_TRUE);
             }
             else {
                 uniform_value[U_ALPHA_BLEND] = rend_group->disp_type ? 2 : 0;
                 gl_state_enable_depth_test();
-                gl_state_set_depth_func(GL_LESS);
                 gl_state_set_depth_mask(GL_FALSE);
             }
 
@@ -990,7 +990,6 @@ namespace Glitter {
             uniform_value[U_ALPHA_BLEND] = 2;
 
             gl_state_enable_depth_test();
-            gl_state_set_depth_func(GL_LESS);
             gl_state_set_depth_mask(GL_FALSE);
             gl_state_enable_cull_face();
             gl_state_set_cull_face_mode(GL_BACK);
@@ -1000,7 +999,6 @@ namespace Glitter {
             uniform_value[U_ALPHA_BLEND] = 2;
 
             gl_state_enable_depth_test();
-            gl_state_set_depth_func(GL_LESS);
             gl_state_set_depth_mask(GL_FALSE);
             gl_state_disable_cull_face();
             break;
@@ -1020,60 +1018,18 @@ namespace Glitter {
         shaders_ft.set(SHADER_FT_GLITTER_PT);
         switch (rend_group->type) {
         case PARTICLE_QUAD: {
-            static const GLsizei buffer_size = sizeof(Buffer);
-
-            gl_state_bind_array_buffer(rend_group->vbo);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, position)); // Pos
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, color));    // Color
-            glEnableVertexAttribArray(8);
-            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord0
-            glEnableVertexAttribArray(9);
-            glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord1
-            gl_state_bind_array_buffer(0);
-
-            gl_state_bind_element_array_buffer(rend_group->ebo);
+            gl_state_bind_vertex_array(rend_group->vao);
             shaders_ft.draw_elements(GL_TRIANGLES, (GLsizei)(6 * rend_group->disp), GL_UNSIGNED_INT, 0);
-            gl_state_bind_element_array_buffer(0);
-
-            glDisableVertexAttribArray(0);
-            glDisableVertexAttribArray(3);
-            glDisableVertexAttribArray(8);
-            glDisableVertexAttribArray(9);
+            gl_state_bind_vertex_array(0);
 
         } break;
         case PARTICLE_LINE:
         case PARTICLE_LOCUS: {
-            static const GLsizei buffer_size = sizeof(Buffer);
-
-            gl_state_bind_array_buffer(rend_group->vbo);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, position)); // Pos
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, color));    // Color
-            glEnableVertexAttribArray(8);
-            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord0
-            glEnableVertexAttribArray(9);
-            glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord1
-            gl_state_bind_array_buffer(0);
-
+            gl_state_bind_vertex_array(rend_group->vao);
             const GLenum mode = rend_group->type == PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
             for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
                 shaders_ft.draw_arrays(mode, i.first, i.second);
-
-            glDisableVertexAttribArray(0);
-            glDisableVertexAttribArray(3);
-            glDisableVertexAttribArray(8);
-            glDisableVertexAttribArray(9);
+            gl_state_bind_vertex_array(0);
 
         } break;
         }
@@ -1096,9 +1052,9 @@ namespace Glitter {
     }
 
     void XRenderScene::CalcDisp(GPM) {
-        XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->effect);
-        XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->emitter);
-        XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->particle);
+        XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->selected_effect);
+        XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->selected_emitter);
+        XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->selected_particle);
         for (XRenderGroup*& i : groups) {
             if (!i)
                 continue;
@@ -1533,10 +1489,10 @@ namespace Glitter {
                 else if (emitter_rotation)
                     mat = elem->mat;
                 else
-                    mat = mat4_identity;
+                    mat = dir_mat;
 
                 mat4_set_translation(&mat, &trans);
-                mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+                mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
                 mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
 
 
@@ -1557,9 +1513,8 @@ namespace Glitter {
                 if (local)
                     mat4_mult(&mat, &GPM_VAL->cam.inv_view, &mat);
 
-                vec4& color = elem->color;
-                if (draw_task_add_draw_object_by_object_info_color(rctx_ptr, &mat,
-                    object_info, color.x, color.y, color.z, color.w))
+                if (draw_task_add_draw_object_by_object_info(rctx_ptr,
+                    &mat, object_info, &elem->color, 0, local))
                     disp++;
                 elem->mat_draw = mat;
 
@@ -1571,13 +1526,13 @@ namespace Glitter {
     }
 
     void XRenderScene::CalcDispQuad(GPM, XRenderGroup* rend_group) {
+        if (!rend_group->elements || !rend_group->vbo || rend_group->ctrl < 1)
+            return;
+
         mat4 model_mat;
         mat4 dir_mat;
         mat4 view_mat;
         mat4 inv_view_mat;
-
-        if (!rend_group->elements || !rend_group->vbo || rend_group->ctrl < 1)
-            return;
 
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             model_mat = rend_group->mat;
@@ -1596,7 +1551,8 @@ namespace Glitter {
         }
 
         if (rend_group->flags & PARTICLE_LOCAL) {
-            mat4_mult(&inv_view_mat, &rend_group->mat, &inv_view_mat);
+            if (rend_group->flags & PARTICLE_EMITTER_LOCAL)
+                mat4_mult(&inv_view_mat, &rend_group->mat, &inv_view_mat);
             mat4_mult(&view_mat, &inv_view_mat, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
         }
@@ -1609,6 +1565,8 @@ namespace Glitter {
             mat4_clear_trans(&dir_mat, &dir_mat);
             break;
         case DIRECTION_EMITTER_DIRECTION:
+        case DIRECTION_EMITTER_ROTATION:
+        case DIRECTION_PARTICLE_ROTATION:
             dir_mat = rend_group->mat_rot;
             break;
         case DIRECTION_Y_AXIS:
@@ -1632,13 +1590,12 @@ namespace Glitter {
             CalcDispQuadDirectionRotation(rend_group, &model_mat);
             break;
         default:
-            CalcDispQuadNormal(GPM_VAL, rend_group, &model_mat, &dir_mat);
+            CalcDispQuadNormal(rend_group, &model_mat, &dir_mat);
             break;
         }
     }
 
-    void XRenderScene::CalcDispQuadDirectionRotation(
-        XRenderGroup* rend_group, mat4* model_mat) {
+    void XRenderScene::CalcDispQuadDirectionRotation(XRenderGroup* rend_group, mat4* model_mat) {
         mat4 inv_model_mat;
         mat4_inverse(model_mat, &inv_model_mat);
         mat4_clear_trans(&inv_model_mat, &inv_model_mat);
@@ -1756,8 +1713,7 @@ namespace Glitter {
         gl_state_bind_array_buffer(0);
     }
 
-    void XRenderScene::CalcDispQuadNormal(GPM,
-        XRenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
+    void XRenderScene::CalcDispQuadNormal(XRenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
         mat4 inv_model_mat;
         mat4_inverse(model_mat, &inv_model_mat);
         mat4_clear_trans(&inv_model_mat, &inv_model_mat);
@@ -1981,31 +1937,40 @@ namespace Glitter {
         gl_state_bind_array_buffer(0);
     }
 
+    bool XRenderScene::CanDisp(DispType disp_type, bool a3) {
+        for (XRenderGroup*& i : groups)
+            if (!i->CannotDisp() && i->disp_type == disp_type && (!a3 || !i->HasEnded()))
+                return true;
+        return false;
+    }
+
     void XRenderScene::Ctrl(float_t delta_frame, bool copy_mats) {
         ctrl_quad = 0;
         ctrl_line = 0;
         ctrl_locus = 0;
         ctrl_mesh = 0;
 
-        for (XRenderGroup*& i : groups)
-            if (i) {
-                switch (i->type) {
-                case PARTICLE_QUAD:
-                    ctrl_quad += i->ctrl;
-                    break;
-                case PARTICLE_LINE:
-                    ctrl_line += i->ctrl;
-                    break;
-                case PARTICLE_LOCUS:
-                    ctrl_locus += i->ctrl;
-                    break;
-                case PARTICLE_MESH:
-                    ctrl_mesh += i->ctrl;
-                    break;
-                }
+        for (XRenderGroup*& i : groups) {
+            if (!i)
+                continue;
 
-                i->Ctrl(delta_frame, copy_mats);
+            switch (i->type) {
+            case PARTICLE_QUAD:
+                ctrl_quad += i->ctrl;
+                break;
+            case PARTICLE_LINE:
+                ctrl_line += i->ctrl;
+                break;
+            case PARTICLE_LOCUS:
+                ctrl_locus += i->ctrl;
+                break;
+            case PARTICLE_MESH:
+                ctrl_mesh += i->ctrl;
+                break;
             }
+
+            i->Ctrl(delta_frame, copy_mats);
+        }
     }
 
     void XRenderScene::Disp(GPM, DispType disp_type) {
@@ -2013,9 +1978,9 @@ namespace Glitter {
         disp_line = 0;
         disp_locus = 0;
 
-        XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->effect);
-        XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->emitter);
-        XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->particle);
+        XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->selected_effect);
+        XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->selected_emitter);
+        XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->selected_particle);
         for (XRenderGroup* i : groups) {
             if (!i)
                 continue;
@@ -2142,10 +2107,8 @@ namespace Glitter {
         else
             uniform_value[U_ALPHA_BLEND] = rend_group->disp_type ? 2 : 0;
 
-        if (~rend_group->particle->data.flags & PARTICLE_DEPTH_TEST) {
+        if (~rend_group->flags & PARTICLE_DEPTH_TEST)
             gl_state_enable_depth_test();
-            gl_state_set_depth_func(GL_LESS);
-        }
         else
             gl_state_disable_depth_test();
 
@@ -2174,87 +2137,21 @@ namespace Glitter {
         shaders_ft.set(SHADER_FT_GLITTER_PT);
         switch (rend_group->type) {
         case PARTICLE_QUAD: {
-            static const GLsizei buffer_size = sizeof(Buffer);
-
-            gl_state_bind_array_buffer(rend_group->vbo);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, position)); // Pos
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, color));    // Color
-            glEnableVertexAttribArray(8);
-            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord0
-            glEnableVertexAttribArray(9);
-            glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord1
-            gl_state_bind_array_buffer(0);
-
-            gl_state_bind_element_array_buffer(rend_group->ebo);
+            gl_state_bind_vertex_array(rend_group->vao);
             shaders_ft.draw_elements(GL_TRIANGLES, (GLsizei)(6 * rend_group->disp), GL_UNSIGNED_INT, 0);
-            gl_state_bind_element_array_buffer(0);
-
-            glDisableVertexAttribArray(0);
-            glDisableVertexAttribArray(3);
-            glDisableVertexAttribArray(8);
-            glDisableVertexAttribArray(9);
+            gl_state_bind_vertex_array(0);
         } break;
         case PARTICLE_LINE:
         case PARTICLE_LOCUS: {
-            static const GLsizei buffer_size = sizeof(Buffer);
-
-            gl_state_bind_array_buffer(rend_group->vbo);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, position)); // Pos
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, color));    // Color
-            glEnableVertexAttribArray(8);
-            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord0
-            glEnableVertexAttribArray(9);
-            glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord1
-            gl_state_bind_array_buffer(0);
-
+            gl_state_bind_vertex_array(rend_group->vao);
             const GLenum mode = rend_group->type == PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
             for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
                 shaders_ft.draw_arrays(mode, i.first, i.second);
-
-            glDisableVertexAttribArray(0);
-            glDisableVertexAttribArray(3);
-            glDisableVertexAttribArray(8);
-            glDisableVertexAttribArray(9);
-
+            gl_state_bind_vertex_array(0);
         } break;
         }
         gl_state_disable_blend();
-        gl_state_disable_cull_face();
+        gl_state_enable_cull_face();
         gl_state_disable_depth_test();
-    }
-
-    void XRenderGroup::DeleteBuffers(bool a2) {
-        if (particle) {
-            if (!a2)
-                particle->data.render_group = 0;
-            particle = 0;
-        }
-
-        if (ebo) {
-            glDeleteBuffers(1, &ebo);
-            ebo = 0;
-        }
-
-        if (vbo) {
-            glDeleteBuffers(1, &vbo);
-            vbo = 0;
-        }
-
-        if (!a2 && elements) {
-            Free();
-            free(elements);
-        }
     }
 }

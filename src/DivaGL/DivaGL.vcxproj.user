@@ -42,7 +42,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArguments>--launch -w</LocalDebuggerCommandArguments>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDevLTCG|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLTCGDev|x64'">
     <LocalDebuggerCommand>N:\DUMP\diva.exe</LocalDebuggerCommand>
     <LocalDebuggerWorkingDirectory>N:\DUMP</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>

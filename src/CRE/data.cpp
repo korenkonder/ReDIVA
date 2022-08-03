@@ -8,6 +8,7 @@
 #include "../KKdLib/io/stream.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "mdata_manager.hpp"
 
 data_struct* data_list;
 
@@ -47,6 +48,128 @@ void data_struct_load(const wchar_t* path) {
         s.open(default_config, 7);
         data_load_inner(s);
     }
+}
+
+void data_struct_load_db() {
+    if (data_list[DATA_AFT].ready) {
+        data_struct* ds = &data_list[DATA_AFT];
+        data_ft* d = &ds->data_ft;
+
+        std::list<std::string>& prefixes = mdata_manager_get()->prefixes;
+
+        for (std::string& i : prefixes) {
+            std::string file = i + "auth_3d_db.bin";
+
+            auth_3d_database_file auth_3d_db_file;
+            ds->load_file(&auth_3d_db_file, "rom/auth_3d/", file.c_str(),
+                auth_3d_database_file::load_file);
+            d->auth_3d_db.add(&auth_3d_db_file, !!i.size());
+        }
+
+        {
+            bone_database* bone_data = &d->bone_data;
+            *bone_data = bone_database();
+            bone_data->modern = false;
+            ds->load_file(bone_data, "rom/",
+                "bone_data.bin", bone_database::load_file);
+        }
+
+        for (std::string& i : prefixes) {
+            std::string file = i + "mot_db.farc";
+
+            motion_database_file mot_db_file;
+            ds->load_file(&mot_db_file, "rom/rob/", file.c_str(),
+                motion_database_file::load_file);
+            d->mot_db.add(&mot_db_file);
+        }
+
+        for (std::string& i : prefixes) {
+            std::string file = i + "obj_db.bin";
+
+            object_database_file obj_db_file;
+            obj_db_file.modern = false;
+            ds->load_file(&obj_db_file, "rom/objset/", file.c_str(),
+                object_database_file::load_file);
+            d->obj_db.add(&obj_db_file);
+        }
+
+        for (std::string& i : prefixes) {
+            std::string file = i + "stage_data.bin";
+
+            stage_database_file stage_data_file;
+            stage_data_file.modern = false;
+            ds->load_file(&stage_data_file, "rom/", file.c_str(),
+                stage_database_file::load_file);
+            d->stage_data.add(&stage_data_file);
+        }
+
+        for (std::string& i : prefixes) {
+            std::string file = i + "tex_db.bin";
+
+            texture_database_file tex_db_file;
+            tex_db_file.modern = false;
+            ds->load_file(&tex_db_file, "rom/objset/", file.c_str(),
+                texture_database_file::load_file);
+            d->tex_db.add(&tex_db_file);
+        }
+    }
+
+#if defined(CRE_DEV)
+    if (data_list[DATA_F2BE].ready) {
+        data_struct* ds = &data_list[DATA_F2BE];
+    }
+
+    if (data_list[DATA_F2LE].ready) {
+        data_struct* ds = &data_list[DATA_F2LE];
+    }
+
+    if (data_list[DATA_FT].ready) {
+        data_struct* ds = &data_list[DATA_FT];
+    }
+
+    if (data_list[DATA_M39].ready) {
+        data_struct* ds = &data_list[DATA_M39];
+    }
+
+    if (data_list[DATA_VRFL].ready) {
+        data_struct* ds = &data_list[DATA_VRFL];
+        data_f2* d = &ds->data_f2;
+
+        {
+            bone_database* bone_data = &d->bone_data;
+            *bone_data = bone_database();
+            bone_data->modern = true;
+            ds->load_file(bone_data, "root+/",
+                "bone_data.bon", bone_database::load_file);
+        }
+    }
+
+    if (data_list[DATA_X].ready) {
+        data_struct* ds = &data_list[DATA_X];
+        data_f2* d = &ds->data_f2;
+
+        {
+            bone_database* bone_data = &d->bone_data;
+            *bone_data = bone_database();
+            bone_data->modern = true;
+            ds->load_file(bone_data, "root+/",
+                "bone_data.bon", bone_database::load_file);
+        }
+    }
+
+    if (data_list[DATA_XHD].ready) {
+        data_struct* ds = &data_list[DATA_XHD];
+        data_f2* d = &ds->data_f2;
+
+        {
+            bone_database* bone_data = &d->bone_data;
+            *bone_data = bone_database();
+            bone_data->modern = true;
+            ds->load_file(bone_data, "root+/",
+                "bone_data.bon", bone_database::load_file);
+        }
+    }
+#endif
 }
 
 void data_struct_free() {
@@ -96,35 +219,9 @@ void data_struct_free() {
     delete[] data_list;
 }
 
-bool data_struct::check_file_exists(const char* path) {
-    const char* t = strrchr(path, '/');
-    if (t) {
-        std::string dir = std::string(path, t - path + 1);
-        return check_file_exists(dir.c_str(), t + 1);
-    }
-
-    t = strrchr(path, '\\');
-    if (t) {
-        std::string dir = std::string(path, t - path + 1);
-        return check_file_exists(dir.c_str(), t + 1);
-    }
-    return false;
-}
-
-bool data_struct::check_file_exists(const char* dir, const char* file) {
-    if (path_check_directory_exists(dir)) {
-        const char* t = strrchr(file, '.');
-        size_t t_len;
-        if (t)
-            t_len = t - file;
-        else
-            t_len = utf8_length(file);
-
-        uint32_t h = hash_murmurhash(file, t_len, 0, false, false);
-        std::string path = std::string(dir) + file;
-        if (path_check_file_exists(path.c_str()))
-            return true;
-    }
+bool data_struct::check_directory_exists(const char* dir) {
+    if (path_check_directory_exists(dir))
+        return true;
 
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
@@ -174,8 +271,103 @@ bool data_struct::check_file_exists(const char* dir, const char* file) {
             if (dir_len)
                 memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
 
-            std::string path_temp = std::string(temp) + file;
-            if (path_check_file_exists(path_temp.c_str())) {
+            if (path_check_directory_exists(temp)) {
+                free(dir_temp);
+                free(temp);
+                return true;
+            }
+        }
+
+    free(dir_temp);
+    free(temp);
+    return false;
+}
+
+bool data_struct::check_file_exists(const char* path) {
+    const char* t = strrchr(path, '/');
+    if (t) {
+        std::string dir = std::string(path, t - path + 1);
+        return check_file_exists(dir.c_str(), t + 1);
+    }
+
+    t = strrchr(path, '\\');
+    if (t) {
+        std::string dir = std::string(path, t - path + 1);
+        return check_file_exists(dir.c_str(), t + 1);
+    }
+    return false;
+}
+
+bool data_struct::check_file_exists(const char* dir, const char* file) {
+    size_t file_len = utf8_length(file);
+
+    if (path_check_directory_exists(dir)) {
+        const char* t = strrchr(file, '.');
+        size_t t_len;
+        if (t)
+            t_len = t - file;
+        else
+            t_len = file_len;
+
+        uint32_t h = hash_murmurhash(file, t_len, 0, false, false);
+        std::string path = std::string(dir) + file;
+        if (path_check_file_exists(path.c_str()))
+            return true;
+    }
+
+    size_t dir_len = utf8_length(dir);
+    if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
+        dir += 2;
+        dir_len -= 2;
+    }
+
+    bool f2 = false;
+    if (dir_len >= 5 && !memcmp(dir, "root+", 5)) {
+        dir += 5;
+        dir_len -= 5;
+        f2 = true;
+    }
+    else if (dir_len >= 3 && !memcmp(dir, "rom", 3)) {
+        dir += 3;
+        dir_len -= 3;
+    }
+    else
+        return false;
+
+    while (*dir == '/' || *dir == '\\') {
+        dir++;
+        dir_len--;
+    }
+
+    size_t max_len = 0;
+    for (data_struct_path& i : data_paths)
+        for (data_struct_directory& j : i.data)
+            if (max_len < j.path.size())
+                max_len = j.path.size();
+
+    char* dir_temp = force_malloc_s(char, dir_len + 1);
+    memcpy(dir_temp, dir, dir_len + 1);
+
+    char* t = dir_temp;
+    while (t = strchr(t, '/'))
+        *t = '\\';
+
+    char* temp = force_malloc_s(char, max_len + dir_len + file_len + 2);
+    for (data_struct_path& i : data_paths)
+        for (data_struct_directory& j : i.data) {
+            const char* path = j.path.c_str();
+            size_t path_len = j.path.size();
+
+            memcpy(temp, path, path_len);
+            memcpy(&temp[path_len], "\\", 2);
+            if (dir_len) {
+                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
+                memcpy(&temp[path_len + dir_len + 1], file, file_len + 1);
+            }
+            else
+                memcpy(&temp[path_len + 1], file, file_len + 1);
+
+            if (path_check_file_exists(temp)) {
                 free(dir_temp);
                 free(temp);
                 return true;
@@ -450,13 +642,15 @@ bool data_struct::load_file(void* data, const char* path,
 
 bool data_struct::load_file(void* data, const char* dir, const char* file,
     bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
+    size_t file_len = utf8_length(file);
+
     if (path_check_directory_exists(dir)) {
         const char* t = strrchr(file, '.');
         size_t t_len;
         if (t)
             t_len = t - file;
         else
-            t_len = utf8_length(file);
+            t_len = file_len;
 
         uint32_t h = hash_murmurhash(file, t_len);
         bool ret = load_func(data, dir, file, h);
@@ -501,7 +695,7 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
     while(t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc_s(char, max_len + dir_len + 2);
+    char* temp = force_malloc_s(char, max_len + dir_len + file_len + 2);
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             const char* path = j.path.c_str();
@@ -509,16 +703,26 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
 
             memcpy(temp, path, path_len);
             memcpy(&temp[path_len], "\\", 2);
-            if (dir_len)
+            if (dir_len) {
                 memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
+                memcpy(&temp[path_len + dir_len + 1], file, file_len + 1);
+            }
+            else
+                memcpy(&temp[path_len + 1], file, file_len + 1);
 
-            std::string path_temp = std::string(temp) + file;
-            if (path_check_file_exists(path_temp.c_str())) {
+            if (path_check_file_exists(temp)) {
+                if (dir_len)
+                    temp[path_len + dir_len + 1] = 0;
+                else
+                    temp[path_len + 1] = 0;
+
                 const char* l_str = file;
                 const char* t = strrchr(l_str, '.');
-                size_t l_len = utf8_length(file);
+                size_t l_len;
                 if (t)
                     l_len = t - l_str;
+                else
+                    l_len = file_len;
 
                 uint32_t h = hash_murmurhash(l_str, l_len);
                 if (load_func(data, temp, l_str, h)) {
@@ -557,9 +761,6 @@ bool data_struct::load_file(void* data, const char* dir, uint32_t hash, const ch
     }
     else
         return false;
-
-    dir += 3;
-    dir_len -= 3;
 
     while (*dir == '/' || *dir == '\\') {
         dir++;
@@ -930,129 +1131,6 @@ static void data_load_inner(stream& s) {
     }
     free(buf);
     free(lines);
-
-    if (data_list[DATA_AFT].ready) {
-        data_struct* ds = &data_list[DATA_AFT];
-        data_ft* d = &ds->data_ft;
-
-        static const char* prefixes[] = {
-            "",
-            "mdata_",
-        };
-
-        for (const char* i : prefixes) {
-            std::string file = std::string(i) + "auth_3d_db.bin";
-
-            auth_3d_database_file auth_3d_db_file;
-            ds->load_file(&auth_3d_db_file, "rom/auth_3d/", file.c_str(),
-                auth_3d_database_file::load_file);
-            d->auth_3d_db.add(&auth_3d_db_file);
-        }
-
-        {
-            bone_database* bone_data = &d->bone_data;
-            *bone_data = bone_database();
-            bone_data->modern = false;
-            ds->load_file(bone_data, "rom/",
-                "bone_data.bin", bone_database::load_file);
-        }
-
-        for (const char* i : prefixes) {
-            std::string file = std::string(i) + "mot_db.farc";
-
-            motion_database_file mot_db_file;
-            ds->load_file(&mot_db_file, "rom/rob/", file.c_str(),
-                motion_database_file::load_file);
-            d->mot_db.add(&mot_db_file);
-        }
-
-        for (const char* i : prefixes) {
-            std::string file = std::string(i) + "obj_db.bin";
-
-            object_database_file obj_db_file;
-            obj_db_file.modern = false;
-            ds->load_file(&obj_db_file, "rom/objset/", file.c_str(),
-                object_database_file::load_file);
-            d->obj_db.add(&obj_db_file);
-        }
-
-        for (const char* i : prefixes) {
-            std::string file = std::string(i) + "stage_data.bin";
-
-            stage_database_file stage_data_file;
-            stage_data_file.modern = false;
-            ds->load_file(&stage_data_file, "rom/", file.c_str(),
-                stage_database_file::load_file);
-            d->stage_data.add(&stage_data_file);
-        }
-
-        for (const char* i : prefixes) {
-            std::string file = std::string(i) + "tex_db.bin";
-
-            texture_database_file tex_db_file;
-            tex_db_file.modern = false;
-            ds->load_file(&tex_db_file, "rom/objset/", file.c_str(),
-                texture_database_file::load_file);
-            d->tex_db.add(&tex_db_file);
-        }
-    }
-
-#if defined(CRE_DEV)
-    if (data_list[DATA_F2BE].ready) {
-        data_struct* ds = &data_list[DATA_F2BE];
-    }
-
-    if (data_list[DATA_F2LE].ready) {
-        data_struct* ds = &data_list[DATA_F2LE];
-    }
-
-    if (data_list[DATA_FT].ready) {
-        data_struct* ds = &data_list[DATA_FT];
-    }
-
-    if (data_list[DATA_M39].ready) {
-        data_struct* ds = &data_list[DATA_M39];
-    }
-
-    if (data_list[DATA_VRFL].ready) {
-        data_struct* ds = &data_list[DATA_VRFL];
-        data_f2* d = &ds->data_f2;
-
-        {
-            bone_database* bone_data = &d->bone_data;
-            *bone_data = bone_database();
-            bone_data->modern = true;
-            ds->load_file(bone_data, "root+/",
-                "bone_data.bon", bone_database::load_file);
-        }
-    }
-
-    if (data_list[DATA_X].ready) {
-        data_struct* ds = &data_list[DATA_X];
-        data_f2* d = &ds->data_f2;
-
-        {
-            bone_database* bone_data = &d->bone_data;
-            *bone_data = bone_database();
-            bone_data->modern = true;
-            ds->load_file(bone_data, "root+/",
-                "bone_data.bon", bone_database::load_file);
-        }
-    }
-
-    if (data_list[DATA_XHD].ready) {
-        data_struct* ds = &data_list[DATA_XHD];
-        data_f2* d = &ds->data_f2;
-
-        {
-            bone_database* bone_data = &d->bone_data;
-            *bone_data = bone_database();
-            bone_data->modern = true;
-            ds->load_file(bone_data, "root+/",
-                "bone_data.bon", bone_database::load_file);
-        }
-    }
-#endif
 }
 
 #if defined(CRE_DEV)

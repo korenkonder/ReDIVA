@@ -16,6 +16,8 @@ namespace Glitter {
         delta_frame_history = 0.0f;
         skip = false;
 #if defined(CRE_DEV)
+        fade_frame = -1.0f;
+        fade_frame_left = -1.0f;
         frame_rate = 0;
 #endif
         if (eff_group) {
@@ -48,19 +50,65 @@ namespace Glitter {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {
                 XEffectInst* eff_x = dynamic_cast<XEffectInst*>(i.ptr);
-                if (!eff_x || GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != i.ptr)
+                if (!eff_x || GPM_VAL->draw_selected && GPM_VAL->selected_effect
+                    && GPM_VAL->selected_effect != i.ptr)
                     continue;
 
                 eff_x->CalcDisp(GPM_VAL);
             }
     }
+
+    bool Scene::CanDisp(DispType disp_type, bool a3) {
+        for (SceneEffect& i : effects)
+            if (i.ptr && i.disp) {
+                XEffectInst* eff_x = dynamic_cast<XEffectInst*>(i.ptr);
+                if (eff_x && eff_x->render_scene.CanDisp(disp_type, a3))
+                    return true;
+            }
+        return false;
+    }
 #endif
 
     void Scene::Ctrl(GPM, float_t delta_frame) {
         static int32_t call_count;
-        for (SceneEffect& i : effects)
-            if (i.ptr && i.disp)
-                i.ptr->Ctrl(GPM_VAL, type, delta_frame, emission);
+        for (SceneEffect& i : effects) {
+            if (!i.ptr || !i.disp)
+                continue;
+
+            EffectInst* eff = i.ptr;
+            
+            bool v13 = false;
+            bool v14 = false;
+            if (v14)
+                v13 = true;
+
+            float_t v15 = 0.0f;
+            if (!v14)
+                v15 = delta_frame;
+
+            float_t req_frame = eff->req_frame;
+            eff->req_frame = 0.0f;
+
+            float_t v17 = req_frame - v15;
+            while (true) {
+                while (true) {
+                    if (v15 > 0.0f)
+                        eff->Ctrl(GPM_VAL, type, v15, emission);
+
+                    if (v17 <= 10.0f)
+                        break;
+
+                    v15 = 10.0f;
+                    v17 -= 10.0f;
+                }
+
+                if (v17 <= 0.0)
+                    break;
+
+                v15 = v17;
+                v17 = -1.0f;
+            }
+        }
     }
 
     void Scene::Disp(GPM, DispType disp_type) {
@@ -70,7 +118,8 @@ namespace Glitter {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {
 #if defined(CRE_DEV)
-                if (GPM_VAL->draw_selected && GPM_VAL->effect && GPM_VAL->effect != i.ptr)
+                if (GPM_VAL->draw_selected && GPM_VAL->selected_effect
+                    && GPM_VAL->selected_effect != i.ptr)
                     continue;
 #endif
                 i.ptr->Disp(GPM_VAL, disp_type);
@@ -93,16 +142,34 @@ namespace Glitter {
         return disp;
     }
 
-    void Scene::GetFrame(float_t* frame, int32_t* life_time) {
-        for (SceneEffect& i : effects)
-            if (i.ptr && i.disp) {
-                EffectInst* effect = i.ptr;
-                if (effect && frame && life_time && effect->data.life_time > *life_time) {
-                    if (*frame < effect->frame0)
-                        *frame = effect->frame0;
-                    *life_time = effect->data.life_time;
-                }
+    float_t Scene::GeFrameLifeTime(int32_t* life_time, size_t id) {
+        float_t frame = 0.0f;
+        if (!id)
+            for (SceneEffect& i : effects) {
+                if (!i.disp || !i.ptr)
+                    continue;
+
+                EffectInst* eff_inst = i.ptr;
+                if (frame < eff_inst->frame0)
+                    frame = eff_inst->frame0;
+
+                if (life_time && *life_time < eff_inst->data.life_time)
+                    *life_time = eff_inst->data.life_time;
             }
+        else
+            for (SceneEffect& i : effects) {
+                if (!i.disp || !i.ptr || !i.ptr->id == id)
+                    continue;
+
+                EffectInst* eff_inst = i.ptr;
+                if (frame < eff_inst->frame0)
+                    frame = eff_inst->frame0;
+
+                if (life_time && *life_time < eff_inst->data.life_time)
+                    *life_time = eff_inst->data.life_time;
+                break;
+            }
+        return frame;
     }
 
     void Scene::GetStartEndFrame(int32_t* start_frame, int32_t* end_frame) {
@@ -170,9 +237,32 @@ namespace Glitter {
         return false;
     }
 
+    bool Scene::FreeEffectByID(GPM, size_t id, bool free) {
+        if (!id) {
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr)
+                    i.ptr->Free(GPM_VAL, type, emission, free);
+            return true;
+        }
+
+        for (SceneEffect& i : effects)
+            if (i.disp && i.ptr && i.ptr->id == id) {
+                i.ptr->Free(GPM_VAL, type, emission, free);
+                return true;
+            }
+        return false;
+    }
+
     bool Scene::HasEnded(bool a2) {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp && !i.ptr->HasEnded(a2))
+                return false;
+        return true;
+    }
+    
+    bool Scene::HasEnded(size_t id, bool a3) {
+        for (SceneEffect& i : effects)
+            if (i.ptr && i.disp && i.ptr->id == id && !i.ptr->HasEnded(a3))
                 return false;
         return true;
     }
@@ -194,9 +284,43 @@ namespace Glitter {
             effect.ptr = new XEffectInst(GPM_VAL, eff, id, emission, appear_now);
         effect.disp = true;
         effects.push_back(effect);
+
+#if defined(CRE_DEV)
+        if (type == Glitter::X)
+            enum_and(flags, ~SCENE_ENDED);
+#endif
     }
 
-    bool Scene::ResetEffect(GPM, uint64_t effect_hash) {
+    bool Scene::ResetEffect(GPM, uint64_t effect_hash, size_t* id) {
+#if defined(CRE_DEV)
+        if (type == Glitter::X) {
+            if (effect_hash == hash_murmurhash_empty) {
+                for (SceneEffect& i : effects)
+                    if (i.ptr)
+                        delete i.ptr;
+                effects.clear();
+            }
+            else {
+                for (std::vector<SceneEffect>::iterator i = effects.begin(); i != effects.end();)
+                    if (!i->ptr) {
+                        delete i->ptr;
+                        i = effects.erase(i);
+                    }
+                    else if (i->ptr->data.name_hash == effect_hash) {
+                        if (id)
+                            *id = i->ptr->id;
+
+                        delete i->ptr;
+                        i = effects.erase(i);
+                        break;
+                    }
+                    else
+                        i++;
+            }
+            return false;
+        }
+#endif
+        
         if (type == Glitter::FT && effect_hash == hash_fnv1a64m_empty
             || type != Glitter::FT && effect_hash == hash_murmurhash_empty) {
             for (SceneEffect& i : effects)
@@ -208,6 +332,43 @@ namespace Glitter {
             for (SceneEffect& i : effects)
                 if (i.disp && i.ptr && i.ptr->data.name_hash == effect_hash) {
                     i.ptr->Reset(GPM_VAL, type, emission);
+
+#if defined(CRE_DEV)
+                    enum_and(flags, ~SCENE_ENDED);
+#endif
+                    return true;
+                }
+        return false;
+    }
+
+    bool Scene::SetExtColor(bool set, uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a) {
+        if (type == Glitter::FT && effect_hash == hash_fnv1a64m_empty
+            || type != Glitter::FT && effect_hash == hash_murmurhash_empty) {
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr)
+                    i.ptr->SetExtColor(set, r, g, b, a);
+            return true;
+        }
+        else
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr && i.ptr->data.name_hash == effect_hash) {
+                    i.ptr->SetExtColor(set, r, g, b, a);
+                    return true;
+                }
+        return false;
+    }
+
+    bool Scene::SetExtColorByID(bool set, size_t id, float_t r, float_t g, float_t b, float_t a) {
+        if (!id) {
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr)
+                    i.ptr->SetExtColor(set, r, g, b, a);
+            return true;
+        }
+        else
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr && i.ptr->id == id) {
+                    i.ptr->SetExtColor(set, r, g, b, a);
                     return true;
                 }
         return false;
@@ -216,6 +377,20 @@ namespace Glitter {
 #if defined(CRE_DEV)
     void Scene::SetFrameRate(FrameRateControl* frame_rate) {
         this->frame_rate = frame_rate;
+    }
+
+    void Scene::SetReqFrame(size_t id, float_t req_frame) {
+        if (!id) {
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr)
+                    i.ptr->req_frame = req_frame;
+        }
+        else
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr && i.ptr->id == id) {
+                    i.ptr->req_frame = req_frame;
+                    break;
+                }
     }
 #endif
 

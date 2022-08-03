@@ -342,6 +342,9 @@ namespace Glitter {
                         constant = true;
                 }
 
+                if (fabsf(t1) > 1.0f || fabsf(t2) > 1.0f)
+                    has_error_hermite = true;
+
                 if (!has_error_hermite) {
                     t1_prev = t1;
                     t2_prev = t2;

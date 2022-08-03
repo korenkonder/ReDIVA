@@ -6,9 +6,8 @@
 #include <string>
 #include <vector>
 #include "pv_expression.hpp"
-#include "../KKdLib/pv_exp.hpp"
+#include "../KKdLib/hash.hpp"
 #include "rob/rob.hpp"
-#include "file_handler.hpp"
 #include "render_context.hpp"
 
 struct pv_expression {
@@ -34,24 +33,27 @@ struct pv_expression {
     void face_set_frame(float_t frame);
     void reset();
     void reset_data();
-    bool set_motion(int32_t motion_id);
+    bool set_motion(const char* file, int32_t motion_id);
+    bool set_motion(uint32_t, int32_t motion_id);
 };
 
-struct pv_expression_file_handler {
-    p_file_handler file_handler;
-    pv_exp* data;
-    int32_t load_count;
-    
-    pv_expression_file_handler();
-    ~pv_expression_file_handler();
-
-    static void load_file(pv_expression_file_handler* handler, const void* data, size_t size);
-};
-
-pv_expression_file_handler pv_expression_file_handler_data;
 pv_expression pv_expression_array[6];
 
 extern render_context* rctx_ptr;
+
+std::vector<pv_expression_file*> pv_expression_file_storage;
+
+pv_expression_file::pv_expression_file() : data(), load_count() {
+    hash = hash_murmurhash_empty;
+}
+
+pv_expression_file::~pv_expression_file() {
+
+}
+
+void pv_expression_file::load_file(pv_expression_file* exp_file, const void* data, size_t size) {
+    exp_file->data->read(data, size, exp_file->data->modern);
+}
 
 void pv_expression_array_ctrl(void* rob_chr) {
     for (pv_expression& i : pv_expression_array)
@@ -87,65 +89,133 @@ void pv_expression_array_reset_motion(size_t chara_id) {
     exp.reset();
 }
 
-bool pv_expression_array_set_motion(size_t chara_id, int32_t motion_id) {
+bool pv_expression_array_set_motion(const char* file, size_t chara_id, int32_t motion_id) {
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
-        return pv_expression_array[chara_id].set_motion(motion_id);
+        return pv_expression_array[chara_id].set_motion(file, motion_id);
     return false;
 }
 
-bool pv_expression_file_check_not_ready() {
-    return pv_expression_file_handler_data.file_handler.check_not_ready();
+bool pv_expression_array_set_motion(uint32_t hash, size_t chara_id, int32_t motion_id) {
+    if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
+        return pv_expression_array[chara_id].set_motion(hash, motion_id);
+    return false;
+}
+
+
+bool pv_expression_file_check_not_ready(const char* file) {
+    uint32_t hash = hash_utf8_murmurhash(file);
+    for (pv_expression_file*& i : pv_expression_file_storage)
+        if (i && i->hash == hash)
+            return i->file_handler.check_not_ready();
+    return true;
+}
+
+bool pv_expression_file_check_not_ready(uint32_t hash) {
+    for (pv_expression_file*& i : pv_expression_file_storage)
+        if (i && i->hash == hash)
+            return i->file_handler.check_not_ready();
+    return true;
 }
 
 void pv_expression_file_load(void* data, const char* path, const char* file) {
-    if (pv_expression_file_handler_data.load_count > 0)
-        pv_expression_file_handler_data.load_count++;
-    else if (pv_expression_file_handler_data.file_handler.read_file(data, path, file)) {
-        if (pv_expression_file_handler_data.data)
-            delete pv_expression_file_handler_data.data;
+    uint32_t hash = hash_utf8_murmurhash(file);
+    for (pv_expression_file*& i : pv_expression_file_storage)
+        if (i && i->hash == hash) {
+            i->load_count++;
+            return;
+        }
 
-        pv_expression_file_handler_data.data = new pv_exp;
-        pv_expression_file_handler_data.data->modern = false;
+    pv_expression_file* pv_exp_file = new pv_expression_file;
+    if (pv_exp_file->file_handler.read_file(data, path, file)) {
+        pv_exp_file->data = new pv_exp;
+        pv_exp_file->data->modern = false;
 
-        pv_expression_file_handler_data.file_handler.set_callback_data(0,
-            (void(*)(void*, const void*, size_t))pv_expression_file_handler::load_file,
-            &pv_expression_file_handler_data);
-        pv_expression_file_handler_data.load_count = 1;
+        pv_exp_file->file_handler.set_callback_data(0,
+            (PFNFILEHANDLERCALLBACK*)pv_expression_file::load_file, pv_exp_file);
+        pv_exp_file->load_count = 1;
     }
     else
-        pv_expression_file_handler_data.load_count = 0;
+        pv_exp_file->load_count = 0;
+    pv_exp_file->hash = hash;
+    pv_expression_file_storage.push_back(pv_exp_file);
 }
 
 void pv_expression_file_load(void* data, const char* path, uint32_t hash) {
-    if (pv_expression_file_handler_data.load_count > 0)
-        pv_expression_file_handler_data.load_count++;
-    else if (pv_expression_file_handler_data.file_handler.read_file(data, path, hash, ".dex")) {
-        if (pv_expression_file_handler_data.data)
-            delete pv_expression_file_handler_data.data;
-
-        pv_expression_file_handler_data.data = new pv_exp;
-        pv_expression_file_handler_data.data->modern = true;
-
-        pv_expression_file_handler_data.file_handler.set_callback_data(0,
-            (void(*)(void*, const void*, size_t))pv_expression_file_handler::load_file,
-            &pv_expression_file_handler_data);
-        pv_expression_file_handler_data.load_count = 1;
-    }
-    else
-        pv_expression_file_handler_data.load_count = 0;
-}
-
-void pv_expression_file_unload() {
-    if (--pv_expression_file_handler_data.load_count < 0)
-        pv_expression_file_handler_data.load_count = 0;
-    else if (!pv_expression_file_handler_data.load_count) {
-        if (pv_expression_file_handler_data.data) {
-            delete pv_expression_file_handler_data.data;
-            pv_expression_file_handler_data.data = 0;
+    for (pv_expression_file*& i : pv_expression_file_storage)
+        if (i && i->hash == hash) {
+            i->load_count++;
+            return;
         }
 
-        pv_expression_file_handler_data.file_handler.free_data();
+    pv_expression_file* pv_exp_file = new pv_expression_file;
+    if (pv_exp_file->file_handler.read_file(data, path, hash, ".dex")) {
+        pv_exp_file->data = new pv_exp;
+        pv_exp_file->data->modern = true;
+
+        pv_exp_file->file_handler.set_callback_data(0,
+            (PFNFILEHANDLERCALLBACK*)pv_expression_file::load_file, pv_exp_file);
+        pv_exp_file->load_count = 1;
     }
+    else
+        pv_exp_file->load_count = 0;
+    pv_exp_file->hash = hash;
+    pv_expression_file_storage.push_back(pv_exp_file);
+}
+
+void pv_expression_file_unload(const char* file) {
+    uint32_t hash = hash_utf8_murmurhash(file);
+    for (pv_expression_file*& i : pv_expression_file_storage) {
+        if (!i || i->hash != hash)
+            continue;
+
+        if (--i->load_count < 0)
+            i->load_count = 0;
+        else if (!i->load_count) {
+            if (i->data) {
+                delete i->data;
+                i->data = 0;
+            }
+
+            i->file_handler.free_data();
+        }
+
+        pv_expression_file_storage.erase(pv_expression_file_storage.begin()
+            + (&i - pv_expression_file_storage.data()));
+        return;
+    }
+}
+
+void pv_expression_file_unload(uint32_t hash) {
+    for (pv_expression_file*& i : pv_expression_file_storage) {
+        if (!i || i->hash != hash)
+            continue;
+
+        if (--i->load_count < 0)
+            i->load_count = 0;
+        else if (!i->load_count) {
+            if (i->data) {
+                delete i->data;
+                i->data = 0;
+            }
+
+            i->file_handler.free_data();
+        }
+
+        pv_expression_file_storage.erase(pv_expression_file_storage.begin()
+            + (&i - pv_expression_file_storage.data()));
+        return;
+    }
+}
+
+void pv_expression_file_storage_init() {
+    pv_expression_file_storage = {};
+}
+
+void pv_expression_file_storage_free() {
+    for (pv_expression_file*& i : pv_expression_file_storage)
+        delete i;
+    pv_expression_file_storage.clear();
+    pv_expression_file_storage.shrink_to_fit();
 }
 
 pv_expression::pv_expression() : rob_chr(), face_data(), face_data_curr(), face_data_prev(),
@@ -228,8 +298,12 @@ void pv_expression::face_cl_set_data(float_t frame) {
         v3 = v2++;
     }
 
-    if (id != 4 && rob_chr)
-        rob_chr->set_eyelid_mottbl_motion_from_face(id, duration, value, offset, &rctx_ptr->data->data_ft.mot_db);
+    if (id != 4 && rob_chr) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+        rob_chr->set_eyelid_mottbl_motion_from_face(id, duration, value, offset, aft_mot_db);
+    }
 
     face_cl_data_curr = v2;
     face_cl_data_prev = v3;
@@ -312,9 +386,12 @@ void pv_expression::face_set_data(float_t frame) {
     }
 
     if (expression_id != 78 && rob_chr) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
         int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
         rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214 && mottbl_index <= 223 ? 1 : 0,
-            duration, 0.0f, 1.0f, -1, offset, false, &rctx_ptr->data->data_ft.mot_db);
+            duration, 0.0f, 1.0f, -1, offset, false, aft_mot_db);
     }
 
     face_data_prev = v3;
@@ -371,17 +448,31 @@ void pv_expression::reset_data() {
     face_cl_data_update = false;
 }
 
-bool pv_expression::set_motion(int32_t motion_id) {
-    if (!pv_expression_file_handler_data.data)
+bool pv_expression::set_motion(const char* file, int32_t motion_id) {
+    return set_motion(hash_utf8_murmurhash(file), motion_id);
+}
+
+bool pv_expression::set_motion(uint32_t hash, int32_t motion_id) {
+    pv_expression_file* pv_exp_file = 0;
+    for (pv_expression_file*& i : pv_expression_file_storage)
+        if (i && i->hash == hash) {
+            pv_exp_file = i;
+            break;
+        }
+
+    if (!pv_exp_file || !pv_exp_file->data)
         return false;
 
-    pv_exp* exp = pv_expression_file_handler_data.data;
+    pv_exp* exp = pv_exp_file->data;
     if (!exp->motion_data.size()) {
         reset_data();
         return false;
     }
 
-    const char* motion_name = rctx_ptr->data->data_ft.mot_db.get_motion_name(motion_id);
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    const char* motion_name = aft_mot_db->get_motion_name(motion_id);
 
     size_t motion_index = -1;
     for (pv_exp_mot& i : exp->motion_data)
@@ -413,16 +504,4 @@ bool pv_expression::set_motion(int32_t motion_id) {
             rob_chr->autoblink_disable();
     }
     return true;
-}
-
-pv_expression_file_handler::pv_expression_file_handler() : data(), load_count() {
-
-}
-
-pv_expression_file_handler::~pv_expression_file_handler() {
-
-}
-
-void pv_expression_file_handler::load_file(pv_expression_file_handler* handler, const void* data, size_t size) {
-    handler->data->read(data, size, handler->data->modern);
 }

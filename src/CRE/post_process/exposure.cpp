@@ -195,7 +195,7 @@ void post_process_exposure::get_exposure_chara_data(void* pp, camera* cam) {
         mat4_mult(&mat, &cam->view, &mat);
         mat4_translate_mult(&mat, max_face_depth + 0.1f, 0.0f, -0.06f, &mat);
         mat4_clear_rot(&mat, &mat);
-        mat4_mult( &mat, &cam->projection,&mat);
+        mat4_mult(&mat, &cam->projection, &mat);
 
         ((post_process*)pp)->draw_query_samples(v3->query[v7], 0.0035f, mat);
 

@@ -54,38 +54,38 @@ enum chara_index {
 };
 
 enum draw_task_flags {
-    DRAW_TASK_SHADOW          = 0x00000001,
-    DRAW_TASK_2               = 0x00000002,
-    DRAW_TASK_4               = 0x00000004,
-    DRAW_TASK_SELF_SHADOW     = 0x00000008,
-    DRAW_TASK_10              = 0x00000010,
-    DRAW_TASK_20              = 0x00000020,
-    DRAW_TASK_40              = 0x00000040,
-    DRAW_TASK_SHADOW_OBJECT   = 0x00000080,
-    DRAW_TASK_CHARA_REFLECT   = 0x00000100,
-    DRAW_TASK_REFLECT         = 0x00000200,
-    DRAW_TASK_REFRACT         = 0x00000400,
-    DRAW_TASK_800             = 0x00000800,
-    DRAW_TASK_1000            = 0x00001000,
-    DRAW_TASK_SSS             = 0x00002000,
-    DRAW_TASK_4000            = 0x00004000,
-    DRAW_TASK_8000            = 0x00008000,
-    DRAW_TASK_10000           = 0x00010000,
-    DRAW_TASK_20000           = 0x00020000,
-    DRAW_TASK_40000           = 0x00040000,
-    DRAW_TASK_80000           = 0x00080000,
-    DRAW_TASK_100000          = 0x00100000,
-    DRAW_TASK_200000          = 0x00200000,
-    DRAW_TASK_400000          = 0x00400000,
-    DRAW_TASK_800000          = 0x00800000,
-    DRAW_TASK_RIPPLE          = 0x01000000,
-    DRAW_TASK_2000000         = 0x02000000,
-    DRAW_TASK_4000000         = 0x04000000,
-    DRAW_TASK_8000000         = 0x08000000,
-    DRAW_TASK_10000000        = 0x10000000,
-    DRAW_TASK_20000000        = 0x20000000,
-    DRAW_TASK_40000000        = 0x40000000,
-    DRAW_TASK_NO_TRANSLUCENCY = 0x80000000,
+    DRAW_TASK_SHADOW                = 0x00000001,
+    DRAW_TASK_2                     = 0x00000002,
+    DRAW_TASK_4                     = 0x00000004,
+    DRAW_TASK_SELF_SHADOW           = 0x00000008,
+    DRAW_TASK_10                    = 0x00000010,
+    DRAW_TASK_20                    = 0x00000020,
+    DRAW_TASK_40                    = 0x00000040,
+    DRAW_TASK_SHADOW_OBJECT         = 0x00000080,
+    DRAW_TASK_CHARA_REFLECT         = 0x00000100,
+    DRAW_TASK_REFLECT               = 0x00000200,
+    DRAW_TASK_REFRACT               = 0x00000400,
+    DRAW_TASK_800                   = 0x00000800,
+    DRAW_TASK_TRANSLUCENT_NO_SHADOW = 0x00001000,
+    DRAW_TASK_SSS                   = 0x00002000,
+    DRAW_TASK_4000                  = 0x00004000,
+    DRAW_TASK_8000                  = 0x00008000,
+    DRAW_TASK_ALPHA_ORDER_1         = 0x00010000,
+    DRAW_TASK_ALPHA_ORDER_2         = 0x00020000,
+    DRAW_TASK_ALPHA_ORDER_3         = 0x00040000,
+    DRAW_TASK_80000                 = 0x00080000,
+    DRAW_TASK_100000                = 0x00100000,
+    DRAW_TASK_200000                = 0x00200000,
+    DRAW_TASK_400000                = 0x00400000,
+    DRAW_TASK_800000                = 0x00800000,
+    DRAW_TASK_PREPROCESS            = 0x01000000,
+    DRAW_TASK_2000000               = 0x02000000,
+    DRAW_TASK_4000000               = 0x04000000,
+    DRAW_TASK_8000000               = 0x08000000,
+    DRAW_TASK_10000000              = 0x10000000,
+    DRAW_TASK_20000000              = 0x20000000,
+    DRAW_TASK_40000000              = 0x40000000,
+    DRAW_TASK_NO_TRANSLUCENCY       = 0x80000000,
 };
 
 enum ex_expression_block_stack_type {
@@ -469,6 +469,126 @@ enum motion_bone_index {
     MOTION_BONE_MAX                     = 0xB9,
 };
 
+enum obj_index_format : uint32_t {
+    OBJ_INDEX_U8  = 0x00,
+    OBJ_INDEX_U16 = 0x01,
+    OBJ_INDEX_U32 = 0x02,
+};
+
+enum obj_material_aniso_direction : uint32_t {
+    OBJ_MATERIAL_ANISO_DIRECTION_NORMAL = 0,
+    OBJ_MATERIAL_ANISO_DIRECTION_U      = 1,
+    OBJ_MATERIAL_ANISO_DIRECTION_V      = 2,
+    OBJ_MATERIAL_ANISO_DIRECTION_RADIAL = 3,
+};
+
+enum obj_material_blend_factor : uint32_t {
+    OBJ_MATERIAL_BLEND_ZERO              = 0,
+    OBJ_MATERIAL_BLEND_ONE               = 1,
+    OBJ_MATERIAL_BLEND_SRC_COLOR         = 2,
+    OBJ_MATERIAL_BLEND_INVERSE_SRC_COLOR = 3,
+    OBJ_MATERIAL_BLEND_SRC_ALPHA         = 4,
+    OBJ_MATERIAL_BLEND_INVERSE_SRC_ALPHA = 5,
+    OBJ_MATERIAL_BLEND_DST_ALPHA         = 6,
+    OBJ_MATERIAL_BLEND_INVERSE_DST_ALPHA = 7,
+    OBJ_MATERIAL_BLEND_DST_COLOR         = 8,
+    OBJ_MATERIAL_BLEND_INVERSE_DST_COLOR = 9,
+    OBJ_MATERIAL_BLEND_ALPHA_SATURATE = 10,
+};
+
+enum obj_material_bump_map_type : uint32_t {
+    OBJ_MATERIAL_BUMP_MAP_NONE = 0,
+    OBJ_MATERIAL_BUMP_MAP_DOT  = 1,
+    OBJ_MATERIAL_BUMP_MAP_ENV  = 2,
+};
+
+enum obj_material_color_source_type : uint32_t {
+    OBJ_MATERIAL_COLOR_SOURCE_MATERIAL_COLOR = 0,
+    OBJ_MATERIAL_COLOR_SOURCE_VERTEX_COLOR   = 1,
+    OBJ_MATERIAL_COLOR_SOURCE_VERTEX_MORPH   = 2,
+};
+
+enum obj_material_shader_lighting_type : uint32_t {
+    OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT  = 0x00,
+    OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT = 0x01,
+    OBJ_MATERIAL_SHADER_LIGHTING_PHONG    = 0x02,
+};
+
+enum obj_material_specular_quality : uint32_t {
+    OBJ_MATERIAL_SPECULAR_QUALITY_LOW  = 0,
+    OBJ_MATERIAL_SPECULAR_QUALITY_HIGH = 1,
+};
+
+enum obj_material_texture_type : uint32_t {
+    OBJ_MATERIAL_TEXTURE_NONE               = 0x00,
+    OBJ_MATERIAL_TEXTURE_COLOR              = 0x01,
+    OBJ_MATERIAL_TEXTURE_NORMAL             = 0x02,
+    OBJ_MATERIAL_TEXTURE_SPECULAR           = 0x03,
+    OBJ_MATERIAL_TEXTURE_HEIGHT             = 0x04,
+    OBJ_MATERIAL_TEXTURE_REFLECTION         = 0x05,
+    OBJ_MATERIAL_TEXTURE_TRANSLUCENCY       = 0x06,
+    OBJ_MATERIAL_TEXTURE_TRANSPARENCY       = 0x07,
+    OBJ_MATERIAL_TEXTURE_ENVIRONMENT_SPHERE = 0x08,
+    OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE   = 0x09,
+};
+
+enum obj_material_texture_coordinate_translation_type : uint32_t {
+    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_NONE   = 0x00,
+    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_UV     = 0x01,
+    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_SPHERE = 0x02,
+    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_CUBE   = 0x03
+};
+
+enum obj_material_vertex_translation_type : uint32_t {
+    OBJ_MATERIAL_VERTEX_TRANSLATION_DEFAULT  = 0,
+    OBJ_MATERIAL_VERTEX_TRANSLATION_ENVELOPE = 1,
+    OBJ_MATERIAL_VERTEX_TRANSLATION_MORPHING = 2,
+};
+
+enum obj_primitive_type : uint32_t {
+    OBJ_PRIMITIVE_POINTS         = 0x00,
+    OBJ_PRIMITIVE_LINES          = 0x01,
+    OBJ_PRIMITIVE_LINE_STRIP     = 0x02,
+    OBJ_PRIMITIVE_LINE_LOOP      = 0x03,
+    OBJ_PRIMITIVE_TRIANGLES      = 0x04,
+    OBJ_PRIMITIVE_TRIANGLE_STRIP = 0x05,
+    OBJ_PRIMITIVE_TRIANGLE_FAN   = 0x06,
+    OBJ_PRIMITIVE_QUADS          = 0x07,
+    OBJ_PRIMITIVE_QUAD_STRIP     = 0x08,
+    OBJ_PRIMITIVE_POLYGON        = 0x09,
+};
+
+enum obj_skin_block_constraint_type : uint32_t {
+    OBJ_SKIN_BLOCK_CONSTRAINT_NONE = 0,
+    OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION,
+    OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION,
+    OBJ_SKIN_BLOCK_CONSTRAINT_POSITION,
+    OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE,
+};
+
+enum obj_skin_block_constraint_coupling : uint32_t {
+    OBJ_SKIN_BLOCK_CONSTRAINT_COUPLING_RIGID = 0x01,
+    OBJ_SKIN_BLOCK_CONSTRAINT_COUPLING_SOFT  = 0x03,
+};
+
+enum obj_skin_block_type : uint32_t {
+    OBJ_SKIN_BLOCK_NONE = 0,
+    OBJ_SKIN_BLOCK_CLOTH,
+    OBJ_SKIN_BLOCK_CONSTRAINT,
+    OBJ_SKIN_BLOCK_EXPRESSION,
+    OBJ_SKIN_BLOCK_ITEM,
+    OBJ_SKIN_BLOCK_MOTION,
+    OBJ_SKIN_BLOCK_OSAGE,
+};
+
+enum obj_skin_skin_param_coli_type {
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_NONE     = 0x00,
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_BALL     = 0x01,
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_CYLINDER = 0x02,
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_PLANE    = 0x03,
+    OBJ_SKIN_SKIN_PARAM_COLI_TYPE_ELLIPSE  = 0x04,
+};
+
 enum obj_vertex_format : uint32_t {
     OBJ_VERTEX_NONE        = 0x0000,
     OBJ_VERTEX_POSITION    = 0x0001,
@@ -484,159 +604,6 @@ enum obj_vertex_format : uint32_t {
     OBJ_VERTEX_BONE_WEIGHT = 0x0400,
     OBJ_VERTEX_BONE_INDEX  = 0x0800,
     OBJ_VERTEX_UNK_1000    = 0x1000,
-};
-
-enum obj_mesh_flags {
-    OBJ_MESH_1                     = 0x01,
-    OBJ_MESH_FACE_CAMERA_POSITION  = 0x02,
-    OBJ_MESH_TRANSLUCENT_NO_SHADOW = 0x04,
-    OBJ_MESH_FACE_CAMERA_VIEW      = 0x08,
-};
-
-enum obj_material_flags {
-    OBJ_MATERIAL_COLOR          = 0x0001,
-    OBJ_MATERIAL_COLOR_ALPHA    = 0x0002,
-    OBJ_MATERIAL_COLOR_L1       = 0x0004,
-    OBJ_MATERIAL_COLOR_L1_ALPHA = 0x0008,
-    OBJ_MATERIAL_COLOR_L2       = 0x0010,
-    OBJ_MATERIAL_COLOR_L2_ALPHA = 0x0020,
-    OBJ_MATERIAL_TRANSPARENCY   = 0x0040,
-    OBJ_MATERIAL_SPECULAR       = 0x0080,
-    OBJ_MATERIAL_NORMAL         = 0x0100,
-    OBJ_MATERIAL_NORMALALT      = 0x0200,
-    OBJ_MATERIAL_ENVIRONMENT    = 0x0400,
-    OBJ_MATERIAL_COLOR_L3       = 0x0800,
-    OBJ_MATERIAL_COLOR_L3_ALPHA = 0x1000,
-    OBJ_MATERIAL_TRANSLUCENCY   = 0x2000,
-    OBJ_MATERIAL_FLAG_14        = 0x4000,
-    OBJ_MATERIAL_OVERRIDE_IBL   = 0x8000,
-};
-
-enum obj_material_texture_sampler_flags {
-    OBJ_MATERIAL_TEXTURE_SAMPLER_REPEAT_U      = 0x00001,
-    OBJ_MATERIAL_TEXTURE_SAMPLER_REPEAT_V      = 0x00002,
-    OBJ_MATERIAL_TEXTURE_SAMPLER_MIRROR_U      = 0x00004,
-    OBJ_MATERIAL_TEXTURE_SAMPLER_MIRROR_V      = 0x00008,
-    OBJ_MATERIAL_TEXTURE_SAMPLER_IGNORE_ALPHA  = 0x00010,
-    OBJ_MATERIAL_TEXTURE_SAMPLER_BORDER        = 0x08000,
-    OBJ_MATERIAL_TEXTURE_SAMPLER_CLAMP_TO_EDGE = 0x10000,
-};
-
-enum obj_primitive_type {
-    OBJ_PRIMITIVE_POINTS         = 0x00,
-    OBJ_PRIMITIVE_LINES          = 0x01,
-    OBJ_PRIMITIVE_LINE_STRIP     = 0x02,
-    OBJ_PRIMITIVE_LINE_LOOP      = 0x03,
-    OBJ_PRIMITIVE_TRIANGLES      = 0x04,
-    OBJ_PRIMITIVE_TRIANGLE_STRIP = 0x05,
-    OBJ_PRIMITIVE_TRIANGLE_FAN   = 0x06,
-    OBJ_PRIMITIVE_QUADS          = 0x07,
-    OBJ_PRIMITIVE_QUAD_STRIP     = 0x08,
-    OBJ_PRIMITIVE_POLYGON        = 0x09,
-};
-
-enum obj_index_format {
-    OBJ_INDEX_U8  = 0x00,
-    OBJ_INDEX_U16 = 0x01,
-    OBJ_INDEX_U32 = 0x02,
-};
-
-enum obj_sub_mesh_flags {
-    OBJ_SUB_MESH_RECIEVE_SHADOW = 0x01,
-    OBJ_SUB_MESH_CAST_SHADOW    = 0x02,
-    OBJ_SUB_MESH_TRANSPARENT    = 0x04,
-    OBJ_SUB_MESH_FLAG_8         = 0x08,
-    OBJ_SUB_MESH_FLAG_10        = 0x10,
-    OBJ_SUB_MESH_FLAG_20        = 0x20,
-    OBJ_SUB_MESH_FLAG_40        = 0x40,
-    OBJ_SUB_MESH_FLAG_80        = 0x80,
-};
-
-enum obj_skin_block_constraint_type {
-    OBJ_SKIN_BLOCK_CONSTRAINT_NONE        = 0x00,
-    OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION = 0x01,
-    OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION   = 0x02,
-    OBJ_SKIN_BLOCK_CONSTRAINT_POSITION    = 0x03,
-    OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE    = 0x04,
-};
-
-enum obj_database_string_type {
-    OBJ_DATABASE_STRING_OBJECT_FILE_NAME  = 0x00,
-    OBJ_DATABASE_STRING_TEXTURE_FILE_NAME = 0x01,
-    OBJ_DATABASE_STRING_ARCHIVE_FILE_NAME = 0x02,
-};
-
-enum obj_material_texture_type {
-    OBJ_MATERIAL_TEXTURE_NONE               = 0x0,
-    OBJ_MATERIAL_TEXTURE_COLOR              = 0x01,
-    OBJ_MATERIAL_TEXTURE_NORMAL             = 0x02,
-    OBJ_MATERIAL_TEXTURE_SPECULAR           = 0x03,
-    OBJ_MATERIAL_TEXTURE_HEIGHT             = 0x04,
-    OBJ_MATERIAL_TEXTURE_REFLECTION         = 0x05,
-    OBJ_MATERIAL_TEXTURE_TRANSLUCENCY       = 0x06,
-    OBJ_MATERIAL_TEXTURE_TRANSPARENCY       = 0x07,
-    OBJ_MATERIAL_TEXTURE_ENVIRONMENT_SPHERE = 0x08,
-    OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE   = 0x09,
-};
-
-enum obj_material_shader_vertex_tranlsation_type {
-    OBJ_MATERIAL_SHADER_VERTEX_TRANLSATION_DEFAULT  = 0x00,
-    OBJ_MATERIAL_SHADER_VERTEX_TRANLSATION_ENVELOPE = 0x01,
-    OBJ_MATERIAL_SHADER_VERTEX_TRANLSATION_MORPHING = 0x02,
-};
-
-enum obj_material_shader_color_source_type {
-    OBJ_MATERIAL_SHADER_COLOR_SOURCE_MATERIAL_COLOR = 0x00,
-    OBJ_MATERIAL_SHADER_COLOR_SOURCE_VERTEX_COLOR   = 0x01,
-    OBJ_MATERIAL_SHADER_COLOR_SOURCE_VERTEX_MORPH   = 0x02,
-};
-
-enum obj_material_shader_bump_map_type {
-    OBJ_MATERIAL_SHADER_BUMP_MAP_NONE = 0x00,
-    OBJ_MATERIAL_SHADER_BUMP_MAP_DOT  = 0x01,
-    OBJ_MATERIAL_SHADER_BUMP_MAP_ENV  = 0x02,
-};
-
-enum obj_material_shader_specular_quality {
-    OBJ_MATERIAL_SHADER_SPECULAR_QUALITY_LOW  = 0x00,
-    OBJ_MATERIAL_SHADER_SPECULAR_QUALITY_HIGH = 0x01,
-};
-
-enum obj_material_shader_aniso_direction {
-    OBJ_MATERIAL_SHADER_ANISO_DIRECTION_NORMAL = 0x00,
-    OBJ_MATERIAL_SHADER_ANISO_DIRECTION_U      = 0x01,
-    OBJ_MATERIAL_SHADER_ANISO_DIRECTION_V      = 0x02,
-    OBJ_MATERIAL_SHADER_ANISO_DIRECTION_RADIAL = 0x03,
-};
-
-enum obj_material_shader_blend_factor {
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_ZERO              = 0x0,
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_ONE               = 0x1,
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_SRC_COLOR         = 0x2,
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_INVERSE_SRC_COLOR = 0x3,
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_SRC_ALPHA         = 0x4,
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_INVERSE_SRC_ALPHA = 0x5,
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_DST_ALPHA         = 0x6,
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_INVERSE_DST_ALPHA = 0x7,
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_DST_COLOR         = 0x8,
-    OBJ_MATERIAL_SHADER_BLEND_FACTOR_INVERSE_DST_COLOR = 0x9,
-};
-
-enum obj_material_specular_quality {
-    OBJ_MATERIAL_SPECULAR_QUALITY_LOW  = 0x00,
-    OBJ_MATERIAL_SPECULAR_QUALITY_HIGH = 0x01,
-};
-
-enum obj_material_vertex_translation_type {
-    OBJ_MATERIAL_VERTEX_TRANSLATION_DEFAULT  = 0x00,
-    OBJ_MATERIAL_VERTEX_TRANSLATION_ENVELOPE = 0x01,
-    OBJ_MATERIAL_VERTEX_TRANSLATION_MORPHING = 0x02,
-};
-
-enum obj_material_shader_lighting_type {
-    OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT  = 0x00,
-    OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT = 0x01,
-    OBJ_MATERIAL_SHADER_LIGHTING_PHONG    = 0x02,
 };
 
 enum rob_bone_index {
@@ -3055,36 +3022,32 @@ struct obj_skin_block_expression {
     const char* expressions[9];
 };
 
-struct struc_231 {
-    uint8_t* bone_name;
+struct obj_skin_block_cloth_root_bone_weight {
+    const char* bone_name;
     float_t weight;
     uint32_t matrix_index;
-    uint32_t field_10;
-    int32_t field_14;
+    uint32_t reserved;
 };
 
-struct struc_230 {
-    vec3 field_0;
-    vec3 field_C;
+struct obj_skin_block_cloth_root {
+    vec3 trans;
+    vec3 normal;
     float_t field_18;
     int32_t field_1C;
     int32_t field_20;
     int32_t field_24;
-    struc_231 field_28[4];
+    obj_skin_block_cloth_root_bone_weight field_28[4];
 };
 
-struct struc_251 {
-    uint32_t field_0;
-    float_t field_4;
-    float_t field_8;
-    float_t field_C;
-    float_t field_10;
-    float_t field_14;
-    float_t field_18;
-    float_t field_1C;
-    float_t field_20;
-    float_t field_24;
-    float_t field_28;
+
+struct obj_skin_block_cloth_node {
+    uint32_t flags;
+    vec3 trans;
+    vec3 trans_prev;
+    float_t dist_top;
+    float_t dist_bottom;
+    float_t dist_right;
+    float_t dist_left;
 };
 
 struct skin_param_osage_root_coli {
@@ -3144,25 +3107,24 @@ struct skin_param_osage_root {
 struct obj_skin_block_cloth {
     const char* mesh_name;
     const char* backface_mesh_name;
-    uint32_t field_8;
-    uint32_t count;
-    uint32_t field_10;
+    int32_t field_8;
+    uint32_t root_count;
+    uint32_t nodes_count;
     int32_t field_14;
-    mat4* field_18;
-    struc_230* field_1C;
-    struc_251* field_20;
-    uint16_t* field_24;
-    uint16_t* field_28;
+    mat4* mats;
+    obj_skin_block_cloth_root* root;
+    obj_skin_block_cloth_node* nodes;
+    uint16_t* mesh_indices;
+    uint16_t* backface_mesh_indices;
     skin_param_osage_root* skp_root;
-    uint32_t field_30;
-    uint32_t field_54;
+    uint32_t reserved;
 };
 
 struct obj_skin_block_constraint_orientation {
     vec3 offset;
 };
 
-struct obj_skin_block_constraint_up_vector_old {
+struct obj_skin_block_constraint_up_vector {
     bool active;
     float_t roll;
     vec3 affected_axis;
@@ -3171,7 +3133,7 @@ struct obj_skin_block_constraint_up_vector_old {
 };
 
 struct obj_skin_block_constraint_direction {
-    obj_skin_block_constraint_up_vector_old up_vector;
+    obj_skin_block_constraint_up_vector up_vector;
     vec3 align_axis;
     vec3 target_offset;
 };
@@ -3183,13 +3145,13 @@ struct obj_skin_block_constraint_attach_point {
 };
 
 struct obj_skin_block_constraint_position {
-    obj_skin_block_constraint_up_vector_old up_vector;
+    obj_skin_block_constraint_up_vector up_vector;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
 };
 
 struct obj_skin_block_constraint_distance {
-    obj_skin_block_constraint_up_vector_old up_vector;
+    obj_skin_block_constraint_up_vector up_vector;
     float_t distance;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
@@ -3313,7 +3275,7 @@ struct struc_476 {
     struc_477 field_10;
 };
 
-struct rob_osage_node_reset_data {
+struct RobOsageNodeResetData {
     vec3 trans;
     vec3 trans_diff;
     vec3 rotation;
@@ -3333,7 +3295,7 @@ struct rob_osage_node {
     rob_osage_node* sibling_node;
     float_t distance;
     vec3 field_94;
-    rob_osage_node_reset_data reset_data;
+    RobOsageNodeResetData reset_data;
     float_t field_C8;
     float_t field_CC;
     vec3 external_force;
@@ -3393,14 +3355,14 @@ struct pair_int32_t_int32_t {
     int32_t value;
 };
 
-list(rob_osage_node_reset_data)
+list(RobOsageNodeResetData)
 
-struct pair_pair_int32_t_int32_t_list_rob_osage_node_reset_data {
+struct pair_pair_int32_t_int32_t_list_RobOsageNodeResetData {
     pair_int32_t_int32_t key;
-    list_rob_osage_node_reset_data value;
+    list_RobOsageNodeResetData value;
 };
 
-typedef pair_pair_int32_t_int32_t_list_rob_osage_node_reset_data motion_reset_data;
+typedef pair_pair_int32_t_int32_t_list_RobOsageNodeResetData motion_reset_data;
 
 tree_def(motion_reset_data)
 
@@ -3434,7 +3396,7 @@ struct rob_osage {
     bool field_1F0F;
     osage_ring_data ring;
     tree_motion_reset_data motion_reset_data;
-    list_rob_osage_node_reset_data* reset_data_list;
+    list_RobOsageNodeResetData* reset_data_list;
     bool set_external_force;
     vec3 external_force;
 };
@@ -3522,23 +3484,6 @@ struct ExExpressionBlock {
     bool init;
 };
 
-struct cloth;
-
-struct cloth_vtbl {
-    void* (*dispose)(cloth*, bool dispose);
-    void(*field_8)(cloth*);
-    void(*set_skin_param_coli_r)(cloth*, float_t coli_r);
-    void(*set_skin_param_friction)(cloth*, float_t friction);
-    void(*set_skin_param_wind_afc)(cloth*, float_t wind_afc);
-    void(*set_wind_direction)(cloth*, vec3* wind_direction);
-    void(*field_30)(cloth*);
-    void(*set_skin_param_hinge)(cloth* cls, float_t hinge_y, float_t hinge_z);
-    void(*field_40)(cloth*);
-    void(*field_48)(cloth*);
-    void(*field_50)(cloth*);
-    void(*field_58)(cloth*);
-};
-
 struct struc_342 {
     int32_t field_0;
     vec3 field_4;
@@ -3571,31 +3516,48 @@ struct struc_342 {
     int64_t field_E8;
 };
 
-struct rob_cloth_node {
-    int field_0;
-    vec3 position;
-    vec3 field_10;
+struct CLOTHNode {
+    uint32_t flags;
+    vec3 trans;
+    vec3 trans_orig;
     vec3 field_1C;
-    vec3 field_28;
+    vec3 trans_diff;
     vec3 normal;
     vec3 tangent;
     vec3 binormal;
     float_t tangent_sign;
-    vec2 field_5C;
+    vec2 texcoord;
     vec3 field_64;
-    float_t field_70;
-    int field_74;
-    int field_78;
-    int field_7C;
+    float_t dist_top;
+    float_t dist_bottom;
+    float_t dist_right;
+    float_t dist_left;
     __int64 field_80;
     int field_88;
-    rob_osage_node_reset_data reset_data;
+    RobOsageNodeResetData reset_data;
     int field_B4;
     vector_old_opd_vec3_data opd_data;
     struc_476 field_D0;
 };
 
-vector_old(rob_cloth_node)
+struct CLOTH;
+
+struct CLOTH_vtbl {
+    CLOTH* (*Init)(CLOTH*);
+    CLOTH* (*Dispose)(CLOTH*, bool dispose);
+    void(*SetSkinParamColiR)(CLOTH*, float_t coli_r);
+    void(*SetSkinParamFriction)(CLOTH*, float_t friction);
+    void(*SetSkinParamWindAfc)(CLOTH*, float_t wind_afc);
+    void(*SetWindDirection)(CLOTH*, vec3* wind_direction);
+    void(*Field_30)(CLOTH*, float_t a2);
+    void(*SetSkinParamHinge)(CLOTH*, float_t hinge_y, float_t hinge_z);
+    CLOTHNode* (*GetNodes)(CLOTH*);
+    void(*Reset)(CLOTH*);
+    void(*Field_50)(CLOTH*);
+    void(*ResetData)(CLOTH*);
+};
+
+vector_old(CLOTHNode)
 
 struct struc_341 {
     size_t field_0;
@@ -3606,12 +3568,12 @@ struct struc_341 {
 
 vector_old(struc_341)
 
-struct cloth {
-    cloth_vtbl* __vftable;
+struct CLOTH {
+    CLOTH_vtbl* __vftable;
     int32_t field_8;
-    size_t first_node;
-    size_t field_18;
-    vector_old_rob_cloth_node nodes;
+    size_t root_count;
+    size_t nodes_count;
+    vector_old_CLOTHNode nodes;
     vec3 wind_direction;
     float_t field_44;
     bool set_external_force;
@@ -3622,7 +3584,7 @@ struct cloth {
     osage_coli coli[64];
     osage_coli coli_ring[64];
     osage_ring_data ring;
-    mat4* field_1D38;
+    mat4* mats;
 };
 
 struct obj_bounding_sphere {
@@ -3634,7 +3596,7 @@ struct obj_sub_mesh_attrib_member {
     uint32_t recieve_shadow : 1;
     uint32_t cast_shadow : 1;
     uint32_t transparent : 1;
-    uint32_t cloth : 1;
+    uint32_t CLOTH : 1;
     uint32_t dummy : 28;
 };
 
@@ -3724,81 +3686,164 @@ struct obj_mesh {
     char name[64];
 };
 
-union obj_material_shader {
-    char name[8];
-    shader_enum index;
+struct obj_shader_compo_member {
+    uint32_t color : 1;
+    uint32_t color_a : 1;
+    uint32_t color_l1 : 1;
+    uint32_t color_l1_a : 1;
+    uint32_t color_l2 : 1;
+    uint32_t color_l2_a : 1;
+    uint32_t transparency : 1;
+    uint32_t specular : 1;
+    uint32_t normal_01 : 1;
+    uint32_t normal_02 : 1;
+    uint32_t envmap : 1;
+    uint32_t color_l3 : 1;
+    uint32_t color_l3_a : 1;
+    uint32_t translucency : 1;
+    uint32_t flag_14 : 1;
+    uint32_t override_ibl : 1;
+    uint32_t dummy : 16;
 };
 
-struct obj_material_shader_flags {
-    uint32_t vertex_translation_type : 2;
-    uint32_t color_source_type : 2;
-    uint32_t lambert_shading : 1;
-    uint32_t phong_shading : 1;
-    uint32_t per_pixel_shading : 1;
-    uint32_t double_shading : 1;
-    uint32_t bump_map_type : 2;
-    uint32_t fresnel : 4;
+union obj_shader_compo {
+    obj_shader_compo_member m;
+    uint32_t w;
+};
+
+struct obj_material_shader_attrib_member {
+    obj_material_vertex_translation_type vtx_trans_type : 2;
+    obj_material_color_source_type col_src : 2;
+    uint32_t is_lgt_diffuse : 1;
+    uint32_t is_lgt_specular : 1;
+    uint32_t is_lgt_per_pixel : 1;
+    uint32_t is_lgt_double : 1;
+    obj_material_bump_map_type bump_map_type : 2;
+    uint32_t fresnel_type : 4;
     uint32_t line_light : 4;
     uint32_t recieve_shadow : 1;
     uint32_t cast_shadow : 1;
-    uint32_t specular_quality : 1;
-    uint32_t aniso_direction : 3;
+    obj_material_specular_quality specular_quality : 1;
+    obj_material_aniso_direction aniso_direction : 2;
+    uint32_t dummy : 9;
 };
 
-struct obj_material_texture {
-    obj_material_texture_sampler_flags sampler_flags;
-    uint32_t texture_id;
-    int32_t texture_flags;
-    char shader_name[8];
+union obj_material_shader_attrib {
+    obj_material_shader_attrib_member m;
+    uint32_t w;
+};
+
+struct obj_texture_attrib_member {
+    uint32_t repeat_u : 1;
+    uint32_t repeat_v : 1;
+    uint32_t mirror_u : 1;
+    uint32_t mirror_v : 1;
+    uint32_t ignore_alpha : 1;
+    uint32_t blend : 5;
+    uint32_t alpha_blend : 5;
+    uint32_t border : 1;
+    uint32_t clamp2edge : 1;
+    uint32_t filter : 3;
+    uint32_t mipmap : 2;
+    uint32_t mipmap_bias : 7;
+    uint32_t flag_29 : 1;
+    uint32_t anisotropic_filter : 2;
+};
+
+union obj_texture_attrib {
+    obj_texture_attrib_member m;
+    uint32_t w;
+};
+
+struct obj_texture_shader_attrib_member {
+    obj_material_texture_type tex_type : 4;
+    int32_t uv_idx : 4;
+    obj_material_texture_coordinate_translation_type texcoord_trans : 3;
+    uint32_t dummy : 21;
+};
+
+union obj_texture_shader_attrib {
+    obj_texture_shader_attrib_member m;
+    uint32_t w;
+};
+
+struct obj_material_texture_data {
+    obj_texture_attrib attrib;
+    uint32_t tex_index;
+    obj_texture_shader_attrib shader_info;
+    char ex_shader[8];
     float_t weight;
     mat4 tex_coord_mat;
-    float_t unk[8];
+    union {
+        uint32_t reserved[8];
+        int32_t texture_index;
+    };
 };
 
-struct obj_material {
-    obj_material_flags material_flags;
-    obj_material_shader shader;
-    union {
-        uint32_t shader_flags;
-        obj_material_shader_flags shader_flags_data;
-    };
-    obj_material_texture textures[8];
-    int32_t blend_flags;
+struct obj_material_attrib_member {
+    uint32_t alpha_texture : 1;
+    uint32_t alpha_material : 1;
+    uint32_t punch_through : 1;
+    uint32_t double_sided : 1;
+    uint32_t normal_dir_light : 1;
+    obj_material_blend_factor src_blend_factor : 4;
+    obj_material_blend_factor dst_blend_factor : 4;
+    uint32_t blend_operation : 3;
+    uint32_t zbias : 4;
+    uint32_t no_fog : 1;
+    uint32_t translucent_priority : 6;
+    uint32_t has_fog_height : 1;
+    uint32_t flag_28 : 1;
+    uint32_t fog_height : 1;
+    uint32_t flag_30 : 1;
+    uint32_t flag_31 : 1;
+};
+
+union obj_material_attrib {
+    obj_material_attrib_member m;
+    uint32_t w;
+};
+
+struct obj_material_color {
     vec4 diffuse;
     vec4 ambient;
     vec4 specular;
     vec4 emission;
     float_t shininess;
     float_t intensity;
-    obj_bounding_sphere reserved_sphere;
+};
+
+struct obj_material {
+    obj_shader_compo shader_compo;
+    union {
+        char name[8];
+        int32_t index;
+    } shader;
+    obj_material_shader_attrib shader_info;
+    obj_material_texture_data texdata[8];
+    obj_material_attrib attrib;
+    obj_material_color color;
+    vec3 center;
+    float_t radius;
     char name[64];
     float_t bump_depth;
-    float_t unk[15];
+    uint32_t reserved[15];
 };
 
 struct obj_material_data {
-    int32_t texture_count;
+    uint32_t num_of_textures;
     obj_material material;
 };
 
 struct obj {
-    uint32_t field_0;
-    uint32_t field_4;
+    uint32_t version;
+    uint32_t flags;
     obj_bounding_sphere bounding_sphere;
-    uint32_t meshes_count;
-    obj_mesh* meshes;
-    uint32_t materials_count;
-    obj_material_data* materials;
-    uint32_t field_38;
-    uint32_t field_3C;
-    uint32_t field_40;
-    uint32_t field_44;
-    uint32_t field_48;
-    uint32_t field_4C;
-    uint32_t field_50;
-    uint32_t field_54;
-    uint32_t field_58;
-    uint32_t field_5C;
+    uint32_t num_mesh;
+    obj_mesh* mesh_array;
+    uint32_t num_material;
+    obj_material_data* material_array;
+    uint32_t reserved[10];
 };
 
 struct obj_mesh_vertex_buffer {
@@ -3912,50 +3957,8 @@ struct texture {
     int32_t size;
 };
 
-struct struc_332 {
-    obj_sub_mesh field_0;
-    int64_t field_70;
-    int64_t field_78;
-    int64_t field_80;
-    int64_t field_88;
-    int64_t field_90;
-    int64_t field_98;
-    int64_t field_A0;
-    int64_t field_A8;
-    int64_t field_B0;
-    int64_t field_B8;
-    int64_t field_C0;
-    int64_t field_C8;
-    int64_t field_D0;
-    int64_t field_D8;
-    int64_t field_E0;
-    int64_t field_E8;
-    int64_t field_F0;
-    int64_t field_F8;
-    int64_t field_100;
-    int64_t field_108;
-    int64_t field_110;
-    int64_t field_118;
-    int64_t field_120;
-    int64_t field_128;
-    int64_t field_130;
-    int64_t field_138;
-    int64_t field_140;
-    int64_t field_148;
-    int64_t field_150;
-    int64_t field_158;
-    int64_t field_160;
-    int64_t field_168;
-    int64_t field_170;
-    int64_t field_178;
-    int64_t field_180;
-    int64_t field_188;
-    int64_t field_190;
-    int64_t field_198;
-    int64_t field_1A0;
-    int64_t field_1A8;
-    int64_t field_1B0;
-    int64_t field_1B8;
+struct RobClothSubMeshArray {
+    obj_sub_mesh arr[4];
 };
 
 struct struc_295 {
@@ -3967,45 +3970,44 @@ struct struc_295 {
 
 vector_old(struc_295)
 
-struct struc_469 {
-    vec3 field_0;
-    vec3 field_C;
+struct RobClothRoot {
+    vec3 trans;
+    vec3 normal;
     vec4 tangent;
-    bone_node* field_28[4];
-    mat4* field_48[4];
-    mat4* field_68[4];
+    bone_node* node[4];
+    mat4* node_mat[4];
+    mat4* mat[4];
     float_t weight[4];
     mat4 field_98;
     mat4 field_D8;
     mat4 field_118;
 };
 
-vector_old(struc_469)
+vector_old(RobClothRoot)
 
-struct rob_cloth {
-    cloth base;
-    vector_old_struc_469 field_1D40;
+struct RobCloth {
+    CLOTH base;
+    vector_old_RobClothRoot root;
     rob_chara_item_equip_object* itm_eq_obj;
-    struc_230* field_1D60;
+    obj_skin_block_cloth_root* cls_root;
     obj_skin_block_cloth* cls_data;
     float_t move_cancel;
     bool osage_reset;
-    obj_mesh field_1D78[2];
-    struc_332 field_1FD8[2];
-    obj_axis_aligned_bounding_box field_2358;
-    obj_mesh_vertex_buffer field_2370[2];
-    GLuint mesh_buffer;
-    int32_t field_23A4;
+    obj_mesh mesh[2];
+    RobClothSubMeshArray submesh[2];
+    obj_axis_aligned_bounding_box axis_aligned_bounding_box;
+    obj_mesh_vertex_buffer vertex_buffer[2];
+    GLuint index_buffer[2];
     tree_motion_reset_data motion_reset_data;
-    list_rob_osage_node_reset_data* reset_data_list;
+    list_RobOsageNodeResetData* reset_data_list;
 };
 
 struct ExClothBlock {
     ExNodeBlock base;
-    rob_cloth rob;
+    RobCloth rob;
     obj_skin_block_cloth* cls_data;
-    mat4* field_2428;
-    int64_t field_2430;
+    mat4* mats;
+    size_t index;
 };
 
 vector_old_ptr(ExNodeBlock)
@@ -4130,16 +4132,16 @@ extern void rob_chara_bone_data_interpolate(rob_chara_bone_data* a1);
 extern void rob_chara_bone_data_update(rob_chara_bone_data* a1, mat4* a2);
 extern void rob_chara_reset_data(rob_chara* a1, rob_chara_pv_data* a2);
 
-extern void ExNodeBlock_field_10(ExNodeBlock* node);
+extern void ExNodeBlock__Field_10(ExNodeBlock* node);
 
-extern ExOsageBlock* ExOsageBlock_dispose(ExOsageBlock* osg, bool dispose);
-extern void ExOsageBlock_init(ExOsageBlock* osg);
-extern void ExOsageBlock_field_18(ExOsageBlock* osg, int32_t a2, bool a3);
-extern void ExOsageBlock_field_20(ExOsageBlock* osg);
-extern void ExOsageBlock_set_osage_play_data(ExOsageBlock* osg);
-extern void ExOsageBlock_disp(ExOsageBlock* osg);
-extern void ExOsageBlock_reset(ExOsageBlock* osg);
-extern void ExOsageBlock_field_40(ExOsageBlock* osg);
-extern void ExOsageBlock_field_48(ExOsageBlock* osg);
-extern void ExOsageBlock_field_50(ExOsageBlock* osg);
-extern void ExOsageBlock_field_58(ExOsageBlock* osg);
+extern ExOsageBlock* ExOsageBlock__Dispose(ExOsageBlock* osg, bool dispose);
+extern void ExOsageBlock__Init(ExOsageBlock* osg);
+extern void ExOsageBlock__Field_18(ExOsageBlock* osg, int32_t a2, bool a3);
+extern void ExOsageBlock__Field_20(ExOsageBlock* osg);
+extern void ExOsageBlock__SetOsagePlayData(ExOsageBlock* osg);
+extern void ExOsageBlock__Disp(ExOsageBlock* osg);
+extern void ExOsageBlock__Reset(ExOsageBlock* osg);
+extern void ExOsageBlock__Field_40(ExOsageBlock* osg);
+extern void ExOsageBlock__Field_48(ExOsageBlock* osg);
+extern void ExOsageBlock__Field_50(ExOsageBlock* osg);
+extern void ExOsageBlock__Field_58(ExOsageBlock* osg);

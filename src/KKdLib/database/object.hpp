@@ -130,6 +130,7 @@ struct object_database {
     bool get_object_info_data_by_fnv1a64m_hash_upper(uint64_t hash, object_info_data** info);
     bool get_object_info_data_by_murmurhash(uint32_t hash, object_info_data** info);
     uint32_t get_object_set_id(const char* name);
+    const char* get_object_set_name(uint32_t set_id);
     object_info get_object_info(const char* name);
     const char* get_object_name(object_info obj_info);
 };

@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/post_process_table/dof.hpp"
 #include "../KKdLib/vec.hpp"
 #include "rob/rob.hpp"
 #include "light_param.hpp"
@@ -31,6 +32,7 @@ namespace pv_param {
         float_t fuzzing_range;
         float_t ratio;
         float_t quality;
+        int32_t chara_id;
 
         dof();
     };
@@ -57,6 +59,39 @@ namespace pv_param {
         color_correction();
     };
 
+    struct file_data_struct {
+        std::vector<dof> dof_default;
+        std::vector<color_correction> cc_default;
+        std::vector<bloom> bloom_default;
+        std::map<std::string, std::vector<dof>> dof;
+        std::map<std::string, std::vector<color_correction>> cc;
+        std::map<std::string, std::vector<bloom>> bloom;
+
+        file_data_struct();
+        ~file_data_struct();
+
+        std::vector<pv_param::bloom>& get_bloom_data(std::string& file);
+        std::vector<pv_param::color_correction>& get_color_correction_data(std::string& file);
+        std::vector<pv_param::dof>& get_dof_data(std::string& file);
+        bool load_bloom_file(std::string& file);
+        bool load_color_correction_file(std::string& file);
+        bool load_dof_file(std::string& file);
+        void unload_bloom_file(std::string& file);
+        void unload_color_correction_file(std::string& file);
+        void unload_dof_file(std::string& file);
+    };
+
+    struct light_data_struct {
+        light_param_light_data light_default;
+        std::string chara_light_file;
+        std::string stage_light_file;
+        std::map<int32_t, light_param_light_data> chara_light;
+        std::map<int32_t, light_param_light_data> stage_light;
+
+        light_data_struct();
+        ~light_data_struct();
+    };
+
     struct post_process_data_struct {
         dof dof_default;
         color_correction cc_default;
@@ -70,30 +105,19 @@ namespace pv_param {
 
         post_process_data_struct();
         ~post_process_data_struct();
+
+        void clear_data();
+        bool load_files(std::string& path);
+        void set_dof(::dof& d);
     };
 
-    struct file_data_struct {
-        std::vector<dof> dof_default;
-        std::vector<color_correction> cc_default;
-        std::vector<bloom> bloom_default;
-        std::map<std::string, std::vector<dof>> dof;
-        std::map<std::string, std::vector<color_correction>> cc;
-        std::map<std::string, std::vector<bloom>> bloom;
-
-        file_data_struct();
-        ~file_data_struct();
-    };
-
-    struct light_data_struct {
-        light_param_light_data light_default;
-        std::string chara_light_file;
-        std::string stage_light_file;
-        std::map<int32_t, light_param_light_data> chara_light;
-        std::map<int32_t, light_param_light_data> stage_light;
-
-        light_data_struct();
-        ~light_data_struct();
-    };
+    void post_process_data_clear_data();
+    pv_param::bloom& post_process_data_get_bloom_data(int32_t id);
+    pv_param::color_correction& post_process_data_get_color_correction_data(int32_t id);
+    pv_param::dof& post_process_data_get_dof_data(int32_t id);
+    bool post_process_data_load_files(int32_t pv_id);
+    bool post_process_data_load_files(int32_t pv_id, std::string& mdata_dir);
+    void post_process_data_set_dof(::dof& d);
 }
 
 namespace pv_param_task {
@@ -160,9 +184,15 @@ namespace pv_param_task {
 
     class PostProcessCtrlCharaItemAlpha : public PostProcessCtrlCharaAlpha {
     public:
+        typedef void (*Callback)(void* data, int32_t chara_id, int32_t type, float_t alpha);
+
+        Callback callback[ROB_CHARA_COUNT];
+        void* callback_data[ROB_CHARA_COUNT];
+
         PostProcessCtrlCharaItemAlpha();
         ~PostProcessCtrlCharaItemAlpha();
 
+        virtual void Reset() override;
         virtual void Set() override;
     };
 

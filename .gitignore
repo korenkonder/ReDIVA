@@ -2,6 +2,8 @@
 bin
 lib
 obj
+src/ReDIVA/imgui
+src/ReDIVA/lodepng
 *.aps
 *.cs
 *.rc

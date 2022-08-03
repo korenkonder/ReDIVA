@@ -64,6 +64,28 @@ void light_data::set_ambient(const vec4&& value) {
     ambient = value;
 }
 
+void light_data::set_ambient(const vec4& value, bool set[4]) {
+    if (set[0])
+        ambient.x = value.x;
+    if (set[1])
+        ambient.y = value.y;
+    if (set[2])
+        ambient.z = value.z;
+    if (set[3])
+        ambient.w = value.w;
+}
+
+void light_data::set_ambient(const vec4&& value, bool set[4]) {
+    if (set[0])
+        ambient.x = value.x;
+    if (set[1])
+        ambient.y = value.y;
+    if (set[2])
+        ambient.z = value.z;
+    if (set[3])
+        ambient.w = value.w;
+}
+
 void light_data::get_diffuse(vec4& value) {
     value = diffuse;
 }
@@ -76,6 +98,28 @@ void light_data::set_diffuse(const vec4&& value) {
     diffuse = value;
 }
 
+void light_data::set_diffuse(const vec4& value, bool set[4]) {
+    if (set[0])
+        diffuse.x = value.x;
+    if (set[1])
+        diffuse.y = value.y;
+    if (set[2])
+        diffuse.z = value.z;
+    if (set[3])
+        diffuse.w = value.w;
+}
+
+void light_data::set_diffuse(const vec4&& value, bool set[4]) {
+    if (set[0])
+        diffuse.x = value.x;
+    if (set[1])
+        diffuse.y = value.y;
+    if (set[2])
+        diffuse.z = value.z;
+    if (set[3])
+        diffuse.w = value.w;
+}
+
 void light_data::get_specular(vec4& value) {
     value = specular;
 }
@@ -86,6 +130,28 @@ void light_data::set_specular(const vec4& value) {
 
 void light_data::set_specular(const vec4&& value) {
     specular = value;
+}
+
+void light_data::set_specular(const vec4& value, bool set[4]) {
+    if (set[0])
+        specular.x = value.x;
+    if (set[1])
+        specular.y = value.y;
+    if (set[2])
+        specular.z = value.z;
+    if (set[3])
+        specular.w = value.w;
+}
+
+void light_data::set_specular(const vec4&& value, bool set[4]) {
+    if (set[0])
+        specular.x = value.x;
+    if (set[1])
+        specular.y = value.y;
+    if (set[2])
+        specular.z = value.z;
+    if (set[3])
+        specular.w = value.w;
 }
 
 void light_data::get_position(vec3& value) {

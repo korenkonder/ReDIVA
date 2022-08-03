@@ -7,27 +7,19 @@
 #include "f2/struct.hpp"
 #include "io/path.hpp"
 #include "io/stream.hpp"
-#include "hash.hpp"
 #include "str_utils.hpp"
 
-static void pvpp_auth_3d_read(pvpp_auth_3d* a3d, stream& s);
+static void pvpp_auth_3d_read(string_hash* a3d, stream& s);
 static void pvpp_chara_read(pvpp_chara* chr, stream& s);
 static void pvpp_chara_effect_read(pvpp_chara_effect* chr_eff, stream& s);
 static void pvpp_chara_effect_auth_3d_read(pvpp_chara_effect_auth_3d* chr_pv_eff, stream& s);
 static void pvpp_chara_item_read(pvpp_chara_item* chr_itm, stream& s);
+static void pvpp_chara_item_auth_3d_read(string_hash* a3d, stream& s);
 static void pvpp_effect_read(pvpp_effect* eff, stream& s);
 static void pvpp_glitter_read(pvpp_glitter* glt, stream& s);
-static void pvpp_motion_read(pvpp_motion* mot, stream& s);
-static void pvpp_object_set_read(pvpp_object_set* objset, stream& s);
+static void pvpp_motion_read(string_hash* mot, stream& s);
+static void pvpp_object_set_read(string_hash* objset, stream& s);
 static void pvpp_read_inner(pvpp* pp, stream& s);
-
-pvpp_auth_3d::pvpp_auth_3d() {
-    hash = hash_murmurhash_empty;
-}
-
-pvpp_auth_3d::~pvpp_auth_3d() {
-
-}
 
 pvpp_chara::pvpp_chara() : chara_effect_init() {
 
@@ -54,7 +46,7 @@ pvpp_chara_effect_auth_3d::~pvpp_chara_effect_auth_3d() {
 
 }
 
-pvpp_chara_item::pvpp_chara_item() : u18() {
+pvpp_chara_item::pvpp_chara_item() : type(), u18() {
 
 }
 
@@ -75,22 +67,6 @@ pvpp_glitter::pvpp_glitter() : unk2() {
 }
 
 pvpp_glitter::~pvpp_glitter() {
-
-}
-
-pvpp_motion::pvpp_motion() {
-    hash = hash_murmurhash_empty;
-}
-
-pvpp_motion::~pvpp_motion() {
-
-}
-
-pvpp_object_set::pvpp_object_set() {
-    hash = hash_murmurhash_empty;
-}
-
-pvpp_object_set::~pvpp_object_set() {
 
 }
 
@@ -154,9 +130,9 @@ bool pvpp::load_file(void* data, const char* path, const char* file, uint32_t ha
     return pp->ready;
 }
 
-static void pvpp_auth_3d_read(pvpp_auth_3d* a3d, stream& s) {
-    a3d->name = s.read_string_null_terminated_offset(s.read_offset_x());
-    a3d->hash = s.read_uint32_t_reverse_endianness();
+static void pvpp_auth_3d_read(string_hash* a3d, stream& s) {
+    *a3d = s.read_string_null_terminated_offset(s.read_offset_x());
+    s.read_uint32_t_reverse_endianness();
     s.align_read(0x08);
 }
 
@@ -169,12 +145,12 @@ static void pvpp_chara_read(pvpp_chara* chr, stream& s) {
     int8_t u05 = s.read_int8_t();
     int8_t glitter_count = s.read_int8_t();
     int8_t u07 = s.read_int8_t();
-    size_t chr_eff_offset = s.read_offset_x();
-    size_t motion_offset = s.read_offset_x();
-    size_t auth_3d_offset = s.read_offset_x();
-    size_t item_offset = s.read_offset_x();
-    size_t glitter_offset = s.read_offset_x();
-    size_t o30 = s.read_offset_x();
+    int64_t chr_eff_offset = s.read_offset_x();
+    int64_t motion_offset = s.read_offset_x();
+    int64_t auth_3d_offset = s.read_offset_x();
+    int64_t item_offset = s.read_offset_x();
+    int64_t glitter_offset = s.read_offset_x();
+    int64_t o30 = s.read_offset_x();
 
     chr->chara_effect_init = false;
     if (chr_eff_offset > 0) {
@@ -188,7 +164,7 @@ static void pvpp_chara_read(pvpp_chara* chr, stream& s) {
         chr->motion.resize(motion_count);
 
         s.position_push(motion_offset, SEEK_SET);
-        for (pvpp_motion& i : chr->motion) {
+        for (string_hash& i : chr->motion) {
             s.position_push(s.read_offset_x(), SEEK_SET);
             pvpp_motion_read(&i, s);
             s.position_pop();
@@ -200,7 +176,7 @@ static void pvpp_chara_read(pvpp_chara* chr, stream& s) {
         chr->auth_3d.resize(auth_3d_count);
 
         s.position_push(auth_3d_offset, SEEK_SET);
-        for (pvpp_auth_3d& i : chr->auth_3d)
+        for (string_hash& i : chr->auth_3d)
             pvpp_auth_3d_read(&i, s);
         s.position_pop();
     }
@@ -226,15 +202,15 @@ static void pvpp_chara_read(pvpp_chara* chr, stream& s) {
 
 static void pvpp_chara_effect_read(pvpp_chara_effect* chr_eff, stream& s) {
     chr_eff->base_chara = (pvpp_chara_index)s.read_uint8_t();
-    int8_t pv_effects_count = s.read_int8_t();
+    int8_t auth_3d_count = s.read_int8_t();
     chr_eff->chara_id = (pvpp_chara_id)s.read_uint8_t();
-    size_t pv_effects_offstet = s.read_offset_x();
+    int64_t auth_3d_offstet = s.read_offset_x();
 
-    if (pv_effects_offstet > 0) {
-        chr_eff->effect_auth_3d.resize(pv_effects_count);
+    if (auth_3d_offstet > 0) {
+        chr_eff->auth_3d.resize(auth_3d_count);
 
-        s.position_push(pv_effects_offstet, SEEK_SET);
-        for (pvpp_chara_effect_auth_3d& i : chr_eff->effect_auth_3d)
+        s.position_push(auth_3d_offstet, SEEK_SET);
+        for (pvpp_chara_effect_auth_3d& i : chr_eff->auth_3d)
             pvpp_chara_effect_auth_3d_read(&i, s);
         s.position_pop();
     }
@@ -249,8 +225,8 @@ static void pvpp_chara_effect_auth_3d_read(pvpp_chara_effect_auth_3d* chr_eff_au
     chr_eff_auth_3d->u05 = s.read_uint8_t();
     chr_eff_auth_3d->u06 = s.read_uint8_t();
     chr_eff_auth_3d->u07 = s.read_uint8_t();
-    size_t auth_3d_offset = s.read_offset_x();
-    size_t source_auth_3d_offset = s.read_offset_x();
+    int64_t auth_3d_offset = s.read_offset_x();
+    int64_t source_auth_3d_offset = s.read_offset_x();
 
     if (auth_3d_offset > 0) {
         s.position_push(auth_3d_offset, SEEK_SET);
@@ -268,25 +244,28 @@ static void pvpp_chara_effect_auth_3d_read(pvpp_chara_effect_auth_3d* chr_eff_au
 }
 
 static void pvpp_chara_item_read(pvpp_chara_item* chr_itm, stream& s) {
-    int8_t auth_3ds_count = s.read_int8_t();
-    size_t auth_3ds_offset = s.read_offset_x();
-    size_t bone_offset = s.read_offset_x();
+    chr_itm->type = (pvpp_chara_item_type)s.read_int8_t();
+    int64_t auth_3ds_offset = s.read_offset_x();
+    int64_t node_offset = s.read_offset_x();
     chr_itm->u18.x = s.read_float_t_reverse_endianness();
     chr_itm->u18.y = s.read_float_t_reverse_endianness();
     chr_itm->u18.z = s.read_float_t_reverse_endianness();
     chr_itm->u18.w = s.read_float_t_reverse_endianness();
 
     if (auth_3ds_offset > 0) {
-        chr_itm->auth_3d.resize(auth_3ds_count);
-
         s.position_push(auth_3ds_offset, SEEK_SET);
-        for (pvpp_auth_3d& i : chr_itm->auth_3d)
-            pvpp_auth_3d_read(&i, s);
+        pvpp_chara_item_auth_3d_read(&chr_itm->auth_3d, s);
         s.position_pop();
     }
 
-    if (bone_offset > 0)
-        chr_itm->bone = s.read_string_null_terminated_offset(bone_offset);
+    if (node_offset > 0)
+        chr_itm->node = s.read_string_null_terminated_offset(node_offset);
+}
+
+static void pvpp_chara_item_auth_3d_read(string_hash* a3d, stream& s) {
+    *a3d = s.read_string_null_terminated_offset(s.read_offset_x());
+    s.read_uint32_t_reverse_endianness();
+    s.align_read(0x08);
 }
 
 static void pvpp_effect_read(pvpp_effect* eff, stream& s) {
@@ -300,7 +279,7 @@ static void pvpp_effect_read(pvpp_effect* eff, stream& s) {
         eff->auth_3d.resize(auth_3ds_count);
 
         s.position_push(auth_3ds_offset, SEEK_SET);
-        for (pvpp_auth_3d& i : eff->auth_3d)
+        for (string_hash& i : eff->auth_3d)
             pvpp_auth_3d_read(&i, s);
         s.position_pop();
     }
@@ -322,15 +301,15 @@ static void pvpp_glitter_read(pvpp_glitter* glt, stream& s) {
     s.align_read(0x08);
 }
 
-static void pvpp_motion_read(pvpp_motion* mot, stream& s) {
-    mot->name = s.read_string_null_terminated_offset(s.read_offset_x());
-    mot->hash = s.read_uint32_t_reverse_endianness();
+static void pvpp_motion_read(string_hash* mot, stream& s) {
+    *mot = s.read_string_null_terminated_offset(s.read_offset_x());
+    s.read_uint32_t_reverse_endianness();
     s.align_read(0x08);
 }
 
-static void pvpp_object_set_read(pvpp_object_set* objset, stream& s) {
-    objset->name = s.read_string_null_terminated_offset(s.read_offset_x());
-    objset->hash = s.read_uint32_t_reverse_endianness();
+static void pvpp_object_set_read(string_hash* objset, stream& s) {
+    *objset = s.read_string_null_terminated_offset(s.read_offset_x());
+    s.read_uint32_t_reverse_endianness();
     s.align_read(0x08);
 }
 

@@ -7,7 +7,6 @@
 #include "f2/struct.hpp"
 #include "io/path.hpp"
 #include "io/stream.hpp"
-#include "hash.hpp"
 #include "str_utils.hpp"
 
 static void pvsr_auth_3d_read(pvsr_auth_3d* a3d, stream& s);
@@ -23,14 +22,13 @@ static bool pvsr_stage_effect_env_sub2_read(pvsr_stage_effect_env_sub2* aet_sub2
 
 pvsr_auth_2d::pvsr_auth_2d() {
     bright_scale = 1.0f;
-    hash = hash_murmurhash_empty;
 }
 
 pvsr_auth_2d::~pvsr_auth_2d() {
 
 }
 
-pvsr_auth_3d::pvsr_auth_3d() : hash(hash_murmurhash_empty), flags() {
+pvsr_auth_3d::pvsr_auth_3d() : flags() {
 
 }
 
@@ -46,7 +44,7 @@ pvsr_effect::~pvsr_effect() {
 
 }
 
-pvsr_glitter::pvsr_glitter() : unk1(), flags() {
+pvsr_glitter::pvsr_glitter() : fade_time(), flags() {
 
 }
 
@@ -71,7 +69,7 @@ pvsr_stage_effect::~pvsr_stage_effect() {
 }
 
 pvsr_stage_effect_env_sub1::pvsr_stage_effect_env_sub1() : stage_light() {
-    hash = hash_murmurhash_empty;
+
 }
 
 pvsr_stage_effect_env_sub1::~pvsr_stage_effect_env_sub1() {
@@ -124,6 +122,15 @@ void pvsr::read(const wchar_t* path) {
     free(path_pvsr);
 }
 
+void pvsr::read(const void* data, size_t size) {
+    if (!data || !size)
+        return;
+
+    stream s;
+    s.open(data, size);
+    pvsr_read_inner(this, s);
+}
+
 bool pvsr::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
@@ -141,13 +148,13 @@ bool pvsr::load_file(void* data, const char* path, const char* file, uint32_t ha
 
 static void pvsr_auth_2d_read(pvsr_auth_2d* aet_entry, stream& s) {
     aet_entry->name = s.read_string_null_terminated_offset(s.read_offset_x());
-    aet_entry->hash = s.read_uint32_t_reverse_endianness();
+    s.read_uint32_t_reverse_endianness();
     aet_entry->bright_scale = s.read_float_t_reverse_endianness();
 }
 
 static void pvsr_auth_3d_read(pvsr_auth_3d* a3d, stream& s) {
     a3d->name = s.read_string_null_terminated_offset(s.read_offset_x());
-    a3d->hash = s.read_uint32_t_reverse_endianness();
+    s.read_uint32_t_reverse_endianness();
     a3d->flags = (pvsr_auth_3d_flags)s.read_uint8_t();
     s.align_read(0x08);
 }
@@ -160,7 +167,7 @@ static void pvsr_effect_read(pvsr_effect* eff, stream& s) {
 
 static void pvsr_glitter_read(pvsr_glitter* glt, stream& s) {
     glt->name = s.read_string_null_terminated_offset(s.read_offset_x());
-    glt->unk1 = s.read_int8_t();
+    glt->fade_time = s.read_int8_t();
     glt->flags = (pvsr_glitter_flags)s.read_uint8_t();
     s.align_read(0x08);
 }
@@ -237,14 +244,14 @@ static void pvsr_read_inner(pvsr* sr, stream& s) {
         s_pvsr.position_pop();
     }
 
-    for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
-        for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++)
+    for (int32_t i = 0; i < PVSR_STAGE_EFFECT_COUNT; i++)
+        for (int32_t j = 0; j < PVSR_STAGE_EFFECT_COUNT; j++)
             sr->stage_change_effect[i][j].enable = false;
 
     if (stage_change_effect_offset > 0) {
         s_pvsr.position_push(stage_change_effect_offset, SEEK_SET);
-        for (int32_t i = 0; i < PVSR_STAGE_CHANGE_EFFECT_COUNT; i++)
-            for (int32_t j = 0; j < PVSR_STAGE_CHANGE_EFFECT_COUNT; j++) {
+        for (int32_t i = 0; i < PVSR_STAGE_EFFECT_COUNT; i++)
+            for (int32_t j = 0; j < PVSR_STAGE_EFFECT_COUNT; j++) {
                 int64_t offset = s_pvsr.read_offset_x();
                 if (offset <= 0)
                     continue;
@@ -439,7 +446,7 @@ static bool pvsr_stage_effect_env_sub1_read(pvsr_stage_effect_env_sub1* aet_sub1
 
     s.position_push(offset, SEEK_SET);
     aet_sub1->name = s.read_string_null_terminated_offset(s.read_offset_x());
-    aet_sub1->hash = s.read_uint32_t_reverse_endianness();
+    s.read_uint32_t_reverse_endianness();
     aet_sub1->stage_light = s.read_uint16_t_reverse_endianness();
     s.align_read(0x08);
     s.position_pop();

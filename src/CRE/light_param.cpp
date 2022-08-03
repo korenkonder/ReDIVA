@@ -14,7 +14,8 @@ static void light_param_data_load_file_pv_cut(std::map<int32_t, light_param_data
     farc* f, light_param_data* default_light_param, int32_t pv_id);
 static void light_param_data_load_pv_cut_file_names(light_param_data* light_param, int32_t cut_id, std::string* name);
 static void light_param_data_load_stage_file_names(light_param_data* light_param, std::string* name);
-static void light_param_data_set(light_param_data* a1, light_param_data_storage* storage);
+static void light_param_data_set(light_param_data* a1, light_param_data_storage* storage,
+    light_param_data_storage_flags flags = LIGHT_PARAM_DATA_STORAGE_ALL);
 static void light_param_storage_free_file_handlers(light_param_data_storage* a1);
 static void light_param_storage_load_stages(light_param_data_storage* a1, std::vector<int32_t>* stage_indices);
 static void light_param_storage_load_stages(light_param_data_storage* a1,
@@ -23,9 +24,11 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
 static void light_param_storage_reset(light_param_data_storage* a1);
 static void light_param_storage_set_default_light_param(light_param_data_storage* a1, int32_t stage_index);
 static void light_param_storage_set_pv_cut(light_param_data_storage* a1,
-    std::map<int32_t, light_param_data>::iterator* elem, int32_t cut_id);
+    std::map<int32_t, light_param_data>::iterator* elem, int32_t cut_id,
+    light_param_data_storage_flags flags = LIGHT_PARAM_DATA_STORAGE_ALL);
 static void light_param_storage_set_stage(light_param_data_storage* a1,
-    std::map<int32_t, light_param_data>::iterator* elem, int32_t stage_index);
+    std::map<int32_t, light_param_data>::iterator* elem, int32_t stage_index,
+    light_param_data_storage_flags flags = LIGHT_PARAM_DATA_STORAGE_ALL);
 
 light_param_data_storage* light_param_data_storage_data;
 
@@ -54,7 +57,7 @@ light_param_data_storage::~light_param_data_storage() {
 
 void light_param_data_storage::load(data_struct* data) {
     glGenTextures(5, light_param_data_storage_data->textures);
-    light_param_storage_data_load_stage(0);
+    light_param_data_storage_data_load_stage(0);
     while (light_param_storage_load_file(light_param_data_storage_data, true));
     light_param_storage_set_default_light_param(light_param_data_storage_data, 0);
 }
@@ -63,61 +66,64 @@ void light_param_data_storage::unload() {
     glDeleteTextures(5, light_param_data_storage_data->textures);
 }
 
-void light_param_storage_data_init() {
+void light_param_data_storage_data_init() {
     light_param_data_storage_data = new light_param_data_storage;
 }
 
-void light_param_storage_data_free_file_handlers() {
+void light_param_data_storage_data_free_file_handlers() {
     light_param_storage_free_file_handlers(light_param_data_storage_data);
 }
 
-int32_t light_param_storage_data_load_file() {
+int32_t light_param_data_storage_data_load_file() {
     return light_param_storage_load_file(light_param_data_storage_data, false);
 }
 
-void light_param_storage_data_load_stage(int32_t stage_index) {
+void light_param_data_storage_data_load_stage(int32_t stage_index) {
     std::vector<int32_t> stage_indices = { stage_index };
     light_param_storage_load_stages(light_param_data_storage_data, &stage_indices);
 }
 
-void light_param_storage_data_load_stage(
+void light_param_data_storage_data_load_stage(
     uint32_t stage_hash, stage_database* stage_data) {
     std::vector<uint32_t> stage_hashes = { stage_hash };
     light_param_storage_load_stages(light_param_data_storage_data, &stage_hashes, stage_data);
 }
 
-void light_param_storage_data_load_stages(std::vector<int32_t>* stage_indices) {
+void light_param_data_storage_data_load_stages(std::vector<int32_t>* stage_indices) {
     light_param_storage_load_stages(light_param_data_storage_data, stage_indices);
 }
 
-void light_param_storage_data_load_stages(
+void light_param_data_storage_data_load_stages(
     std::vector<uint32_t>* stage_hashes, stage_database* stage_data) {
     light_param_storage_load_stages(light_param_data_storage_data, stage_hashes, stage_data);
 }
 
-void light_param_storage_data_reset() {
+void light_param_data_storage_data_reset() {
     light_param_storage_reset(light_param_data_storage_data);
 }
 
-void light_param_storage_data_set_default_light_param() {
-    light_param_data_set(&light_param_data_storage_data->default_light_param, light_param_data_storage_data);
+void light_param_data_storage_data_set_default_light_param(light_param_data_storage_flags flags) {
+    light_param_data_set(&light_param_data_storage_data->default_light_param,
+        light_param_data_storage_data, flags);
 }
 
-void light_param_storage_data_set_pv_id(int32_t pv_id) {
+void light_param_data_storage_data_set_pv_id(int32_t pv_id) {
     light_param_data_storage_data->pv_id = pv_id;
 }
 
-void light_param_storage_data_set_pv_cut(int32_t cut_id) {
+void light_param_data_storage_data_set_pv_cut(int32_t cut_id,
+    light_param_data_storage_flags flags) {
     std::map<int32_t, light_param_data>::iterator elem;
     light_param_storage_set_pv_cut(light_param_data_storage_data, &elem, cut_id);
 }
 
-void light_param_storage_data_set_stage(int32_t stage_id) {
+void light_param_data_storage_data_set_stage(int32_t stage_id,
+    light_param_data_storage_flags flags) {
     std::map<int32_t, light_param_data>::iterator elem;
     light_param_storage_set_stage(light_param_data_storage_data, &elem, stage_id);
 }
 
-void light_param_storage_data_free() {
+void light_param_data_storage_data_free() {
     delete light_param_data_storage_data;
 }
 
@@ -127,7 +133,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
         std::string* paths = light_param->paths;
         std::string* files = light_param->files;
         for (int32_t i = 0; i < 6; i++)
-            a1->file_handlers[i].read_file(rctx_ptr->data, paths[i].c_str(), files[i].c_str());
+            a1->file_handlers[i].read_file(&data_list[DATA_AFT], paths[i].c_str(), files[i].c_str());
         a1->state = 2;
         return 1;
     }
@@ -161,7 +167,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
     else if (a1->state == 3) {
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "light_pv%03d.farc", a1->pv_id);
-        if (a1->farc_file_handler.read_file(rctx_ptr->data, "rom/light_param/", buf))
+        if (a1->farc_file_handler.read_file(&data_list[DATA_AFT], "rom/light_param/", buf))
             a1->state = 4;
         else {
             a1->farc_file_handler.free_data();
@@ -189,9 +195,12 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
 static void light_param_data_get_stage_name_string(std::string* str, int32_t stage_index) {
     str->clear();
     str->shrink_to_fit();
-    stage_database* data = &rctx_ptr->data->data_ft.stage_data;
-    const char* stage_name = stage_index < data->stage_data.size()
-        ? data->stage_data[stage_index].name.c_str() : 0;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
+
+    const char* stage_name = stage_index < aft_stage_data->stage_data.size()
+        ? aft_stage_data->stage_data[stage_index].name.c_str() : 0;
     if (!stage_name)
         return;
 
@@ -309,27 +318,27 @@ static void light_param_data_load_file_pv_cut(std::map<int32_t, light_param_data
         size_t name_len = i.name.size();
 
         int32_t type = 0;
-        if (!str_utils_compare_length(name, name_len, "light", 5) && name_len > 6 && name[5] == '_') {
+        if (!strncmp(name, "light", min(name_len, 5)) && name_len > 6 && name[5] == '_') {
             type = 1;
             name += 6;
             name_len -= 6;
         }
-        else if (!str_utils_compare_length(name, name_len, "fog", 3) && name_len > 4 && name[3] == '_') {
+        else if (!strncmp(name, "fog", min(name_len, 3)) && name_len > 4 && name[3] == '_') {
             type = 2;
             name += 4;
             name_len -= 4;
         }
-        else if (!str_utils_compare_length(name, name_len, "glow", 4) && name_len > 5 && name[4] == '_') {
+        else if (!strncmp(name, "glow", min(name_len, 4)) && name_len > 5 && name[4] == '_') {
             type = 3;
             name += 5;
             name_len -= 5;
         }
-        else if (!str_utils_compare_length(name, name_len, "wind", 4) && name_len > 5 && name[4] == '_') {
+        else if (!strncmp(name, "wind", min(name_len, 4)) && name_len > 5 && name[4] == '_') {
             type = 4;
             name += 5;
             name_len -= 5;
         }
-        else if (!str_utils_compare_length(name, name_len, "face", 4) && name_len > 5 && name[4] == '_') {
+        else if (!strncmp(name, "face", min(name_len, 4)) && name_len > 5 && name[4] == '_') {
             type = 5;
             name += 5;
             name_len -= 5;
@@ -497,6 +506,24 @@ void light_param_data_load_stage_file_names(light_param_data* light_param, std::
     light_param->files[5] = buf;
 }
 
+static void light_param_data_set(light_param_data* a1, light_param_data_storage* storage,
+    light_param_data_storage_flags flags) {
+    if ((!a1->pv || a1->light.ready) && (flags & LIGHT_PARAM_DATA_STORAGE_LIGHT))
+        rctx_ptr->light_param_data_light_set(&a1->light);
+    if ((!a1->pv || a1->fog.ready) && (flags & LIGHT_PARAM_DATA_STORAGE_FOG))
+        rctx_ptr->light_param_data_fog_set(&a1->fog);
+    if ((!a1->pv || a1->glow.ready) && (flags & LIGHT_PARAM_DATA_STORAGE_GLOW))
+        rctx_ptr->light_param_data_glow_set(&a1->glow);
+    if ((!a1->pv || a1->ibl.ready) && (flags & LIGHT_PARAM_DATA_STORAGE_IBL))
+        rctx_ptr->light_param_data_ibl_set(&a1->ibl, storage);
+    if (!a1->pv) {
+        if (flags & LIGHT_PARAM_DATA_STORAGE_WIND)
+            rctx_ptr->light_param_data_wind_set(&a1->wind);
+        if (a1->face.ready && (flags & LIGHT_PARAM_DATA_STORAGE_FACE))
+            rctx_ptr->light_param_data_face_set(&a1->face);
+    }
+}
+
 static void light_param_storage_free_file_handlers(light_param_data_storage* a1) {
     for (int32_t i = 0; i < 6; ++i)
         a1->file_handlers[i].free_data();
@@ -548,7 +575,8 @@ static void light_param_storage_load_stages(light_param_data_storage* a1,
         if (!name.size())
             continue;
 
-        if (!str_utils_compare_length(name.c_str(), name.size(), "pv0", 3))
+        size_t name_len = name.size();
+        if (!strncmp(name.c_str(), "pv0", min(name_len, 3)))
             name[2] = '8';
 
         std::map<int32_t, light_param_data>::iterator elem = a1->stage.find(i);
@@ -581,31 +609,17 @@ static void light_param_storage_set_default_light_param(light_param_data_storage
         a1->default_light_param = elem->second;
 }
 
-static void light_param_data_set(light_param_data* a1, light_param_data_storage* storage) {
-    if (!a1->pv || a1->light.ready)
-        rctx_ptr->light_param_data_light_set(&a1->light);
-    if (!a1->pv || a1->fog.ready)
-        rctx_ptr->light_param_data_fog_set(&a1->fog);
-    if (!a1->pv || a1->glow.ready)
-        rctx_ptr->light_param_data_glow_set(&a1->glow);
-    if (!a1->pv || a1->ibl.ready)
-        rctx_ptr->light_param_data_ibl_set(&a1->ibl, storage);
-    if (!a1->pv) {
-        rctx_ptr->light_param_data_wind_set(&a1->wind);
-        if (a1->face.ready)
-            rctx_ptr->light_param_data_face_set(&a1->face);
-    }
-}
-
 static void light_param_storage_set_pv_cut(light_param_data_storage* a1,
-    std::map<int32_t, light_param_data>::iterator* elem, int32_t cut_id) {
+    std::map<int32_t, light_param_data>::iterator* elem, int32_t cut_id,
+    light_param_data_storage_flags flags) {
     *elem = a1->pv_cut.find(cut_id);
     if (*elem != a1->pv_cut.end())
         light_param_data_set(&(*elem)->second, a1);
 }
 
 static void light_param_storage_set_stage(light_param_data_storage* a1,
-    std::map<int32_t, light_param_data>::iterator* elem, int32_t stage_index) {
+    std::map<int32_t, light_param_data>::iterator* elem, int32_t stage_index,
+    light_param_data_storage_flags flags) {
     *elem = a1->stage.find(stage_index);
     if (*elem != a1->stage.end()) {
         a1->stage_index = stage_index;

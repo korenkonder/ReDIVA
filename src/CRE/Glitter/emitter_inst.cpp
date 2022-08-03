@@ -169,7 +169,7 @@ namespace Glitter {
         mat4_normalize_rotation(&mat, &mat);
         if (mult)
             mat4_mult(&dir_mat, &mat, &mat);
-        mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
         mat4_clear_trans(&mat, &mat_rot);
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &this->mat);
     }
@@ -184,18 +184,18 @@ namespace Glitter {
             if (this->emission == EMITTER_EMISSION_ON_TIMER) {
                 if (emission_timer >= 0.0f || emission_interval >= 0.0f) {
                     emission_timer -= delta_frame;
-                    if (emission_timer <= 0.0) {
+                    if (emission_timer <= 0.0f) {
                         EmitParticle(GPM_VAL, GLT_VAL, emission);
                         if (emission_interval > 0.0f)
                             emission_timer += emission_interval;
                         else
-                            emission_timer = -1.0;
+                            emission_timer = -1.0f;
                     }
                 }
             }
             else if (this->emission == EMITTER_EMISSION_ON_START) {
                 emission_timer -= delta_frame;
-                if (emission_timer <= 0.0) {
+                if (emission_timer <= 0.0f) {
                     EmitParticle(GPM_VAL, GLT_VAL, emission);
                     this->emission = EMITTER_EMISSION_EMITTED;
                 }
@@ -521,24 +521,29 @@ namespace Glitter {
             return;
 
         if (loop) {
-            float_t loop_time = (float_t)(data.loop_end_time - data.loop_start_time);
-            if (data.loop_end_time < 0.0f || frame < data.loop_end_time) {
-                if (frame >= data.life_time) {
-                    if (data.life_time > 0.0f)
-                        while (frame >= data.life_time)
-                            frame -= data.life_time;
-                    else
+            if ((float_t)data.loop_end_time < 0.0f || frame < (float_t)data.loop_end_time) {
+                float_t life_time = (float_t)data.life_time;
+                if (frame >= life_time) {
+                    if (life_time <= 0.0f)
                         frame = 0.0f;
+                    else
+                        while (frame >= life_time)
+                            frame -= life_time;
 
                     if (emission == EMITTER_EMISSION_EMITTED && emission_interval > 0.0f)
                         emission = EMITTER_EMISSION_ON_TIMER;
                 }
             }
-            else if (loop_time > 0.0f)
-                while (frame >= data.loop_end_time)
-                    frame -= loop_time;
-            else
-                frame = 0.0f;
+            else {
+                float_t loop_time = (float_t)(data.loop_end_time - data.loop_start_time);
+                if (loop_time > 0.0f) {
+                    float_t loop_end_time = (float_t)data.loop_end_time;
+                    while (frame >= loop_end_time)
+                        frame -= loop_time;
+                }
+                else
+                    frame = 0.0f;
+            }
         }
 
         GetValue();
@@ -550,83 +555,10 @@ namespace Glitter {
         vec3 trans_prev = vec3_null;
         bool has_dist = false;
         if (data.timer == EMITTER_TIMER_BY_DISTANCE && flags & EMITTER_INST_HAS_DISTANCE) {
-            mat4_get_translation(&this->mat, &trans_prev);
+            mat4_get_translation(&mat, &trans_prev);
             has_dist = true;
         }
 
-        CtrlMat(GPM_VAL, eff_inst);
-
-        if (has_dist) {
-            vec3 trans;
-            mat4_get_translation(&mat, &trans);
-
-            float_t trans_dist;
-            vec3_distance(trans, trans_prev, trans_dist);
-            emission_timer -= trans_dist;
-        }
-
-        enum_or(flags, EMITTER_INST_HAS_DISTANCE);
-    }
-
-    void XEmitterInst::CtrlInit(XEffectInst* eff_inst, float_t delta_frame) {
-        if (frame < 0.0f)
-            return;
-
-        if (loop) {
-            float_t loop_time = (float_t)(data.loop_end_time - data.loop_start_time);
-            if (data.loop_end_time < 0.0f || frame < data.loop_end_time) {
-                if (frame >= data.life_time) {
-                    if (data.life_time > 0.0f)
-                        while (frame >= data.life_time)
-                            frame -= data.life_time;
-                    else
-                        frame = 0.0f;
-
-                    if (emission == EMITTER_EMISSION_EMITTED && emission_interval > 0.0f)
-                        emission = EMITTER_EMISSION_ON_TIMER;
-                }
-            }
-            else if (loop_time > 0.0f)
-                while (frame >= data.loop_end_time)
-                    frame -= loop_time;
-            else
-                frame = 0.0f;
-        }
-
-        GetValue();
-
-        vec3 rotation_add;
-        vec3_mult_scalar(data.rotation_add, delta_frame, rotation_add);
-        vec3_add(rotation, rotation_add, rotation);
-        if (data.timer == EMITTER_TIMER_BY_DISTANCE && flags & EMITTER_INST_HAS_DISTANCE) {
-            vec3 trans_prev;
-            mat4 mat;
-            mat4 mat_rot;
-
-            if (data.direction == DIRECTION_EFFECT_ROTATION)
-                mat_rot = eff_inst->mat_rot_eff_rot;
-            else
-                mat_rot = eff_inst->mat_rot;
-
-            mat4_get_translation(&mat, &trans_prev);
-            vec3 trans = translation;
-            vec3 rot = rotation;
-            mat = eff_inst->mat;
-            mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
-            mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
-            mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
-            this->mat = mat;
-            this->mat_rot = mat_rot;
-
-            float_t trans_dist;
-            mat4_get_translation(&mat, &trans);
-            vec3_distance(trans, trans_prev, trans_dist);
-            emission_timer -= trans_dist;
-        }
-        enum_or(flags, EMITTER_INST_HAS_DISTANCE);
-    }
-
-    void XEmitterInst::CtrlMat(GPM, XEffectInst* eff_inst) {
         vec3 trans = translation;
         vec3 rot = rotation;
         vec3 scale;
@@ -634,16 +566,13 @@ namespace Glitter {
 
         mat4 mat = eff_inst->mat;
         mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
-
         mat4 mat_rot;
         if (data.direction == DIRECTION_EFFECT_ROTATION) {
             mat4_normalize_rotation(&mat, &mat);
-            mat_rot = eff_inst->mat_rot_eff_rot;
-        }
-        else {
-            mat4_clear_rot(&mat, &mat);
             mat_rot = eff_inst->mat_rot;
         }
+        else
+            mat_rot = eff_inst->mat_rot_eff_rot;
 
         bool mult = true;
         mat4 dir_mat;
@@ -681,8 +610,132 @@ namespace Glitter {
             mat4_mult(&dir_mat, &mat_rot, &mat_rot);
         }
 
-        mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_rot(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
+        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
+        mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
+        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+        this->mat = mat;
+        this->mat_rot = mat_rot;
+
+        if (has_dist) {
+            vec3 trans;
+            mat4_get_translation(&mat, &trans);
+
+            float_t trans_dist;
+            vec3_distance(trans, trans_prev, trans_dist);
+            emission_timer -= trans_dist;
+        }
+
+        if (~flags & EMITTER_INST_HAS_DISTANCE)
+            enum_or(flags, EMITTER_INST_HAS_DISTANCE);
+    }
+
+    void XEmitterInst::CtrlInit(XEffectInst* eff_inst, float_t delta_frame) {
+        if (frame < 0.0f)
+            return;
+
+        if (loop) {
+            if (data.loop_end_time < 0.0f || frame < data.loop_end_time) {
+                if (frame >= data.life_time) {
+                    if (data.life_time > 0.0f)
+                        while (frame >= data.life_time)
+                            frame -= data.life_time;
+                    else
+                        frame = 0.0f;
+
+                    if (emission == EMITTER_EMISSION_EMITTED && emission_interval > 0.0f)
+                        emission = EMITTER_EMISSION_ON_TIMER;
+                }
+            }
+            else {
+                float_t loop_time = (float_t)(data.loop_end_time - data.loop_start_time);
+                if (loop_time > 0.0f) {
+                    float_t loop_end_time = (float_t)data.loop_end_time;
+                    while (frame >= loop_end_time)
+                        frame -= loop_time;
+                }
+                else
+                    frame = 0.0f;
+            }
+        }
+
+        GetValue();
+
+        vec3 rotation_add;
+        vec3_mult_scalar(data.rotation_add, delta_frame, rotation_add);
+        vec3_add(rotation, rotation_add, rotation);
+        if (data.timer == EMITTER_TIMER_BY_DISTANCE && flags & EMITTER_INST_HAS_DISTANCE) {
+            vec3 trans_prev;
+            mat4 mat;
+            mat4 mat_rot;
+
+            if (data.direction == DIRECTION_EFFECT_ROTATION)
+                mat_rot = eff_inst->mat_rot_eff_rot;
+            else
+                mat_rot = eff_inst->mat_rot;
+
+            mat4_get_translation(&mat, &trans_prev);
+            vec3 trans = translation;
+            vec3 rot = rotation;
+            mat = eff_inst->mat;
+            mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
+            mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
+            mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
+            this->mat = mat;
+            this->mat_rot = mat_rot;
+
+            float_t trans_dist;
+            mat4_get_translation(&mat, &trans);
+            vec3_distance(trans, trans_prev, trans_dist);
+            emission_timer -= trans_dist;
+        }
+        enum_or(flags, EMITTER_INST_HAS_DISTANCE);
+    }
+
+    void XEmitterInst::CtrlMat(GPM, XEffectInst* eff_inst) {
+        vec3 trans = translation;
+        vec3 rot = rotation;
+        vec3 scale;
+        vec3_mult_scalar(this->scale, scale_all, scale);
+
+        mat4 mat = eff_inst->mat;
+        mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
+        mat4 mat_rot;
+        if (data.direction == DIRECTION_EFFECT_ROTATION) {
+            mat4_normalize_rotation(&mat, &mat);
+            mat_rot = eff_inst->mat_rot;
+        }
+        else
+            mat_rot = eff_inst->mat_rot_eff_rot;
+
+        bool mult = true;
+        mat4 dir_mat;
+        switch (data.direction) {
+        case DIRECTION_BILLBOARD: {
+            mat4_from_mat3(&GPM_VAL->cam.inv_view_mat3, &dir_mat);
+            mat4_mult(&dir_mat, &mat, &dir_mat);
+            mat4_clear_trans(&dir_mat, &dir_mat);
+        } break;
+        case DIRECTION_Y_AXIS:
+            mat4_rotate_y((float_t)M_PI_2, &dir_mat);
+            break;
+        case DIRECTION_X_AXIS:
+            mat4_rotate_x((float_t)-M_PI_2, &dir_mat);
+            break;
+        case DIRECTION_BILLBOARD_Y_AXIS:
+            mat4_rotate_y(GPM_VAL->cam.rotation_y, &dir_mat);
+            break;
+        default:
+            mult = false;
+            break;
+        }
+
+        if (mult) {
+            mat4_mult(&dir_mat, &mat, &mat);
+            mat4_mult(&dir_mat, &mat_rot, &mat_rot);
+        }
+
+        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
+        mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
         this->mat = mat;
         this->mat_rot = mat_rot;
@@ -713,7 +766,7 @@ namespace Glitter {
                         emission_timer -= delta_frame;
                         if (emission_timer <= 0.0f) {
                             EmitParticle(emission);
-                            if (emission_interval > 0.0)
+                            if (emission_interval > 0.0f)
                                 emission_timer += emission_interval;
                             else
                                 emission_timer = -1.0f;
@@ -723,7 +776,7 @@ namespace Glitter {
             else if (this->emission == EMITTER_EMISSION_ON_START
                 && data.timer == EMITTER_TIMER_BY_TIME) {
                 emission_timer -= delta_frame;
-                if (emission_timer <= 0.0) {
+                if (emission_timer <= 0.0f) {
                     EmitParticle(emission);
                     this->emission = EMITTER_EMISSION_EMITTED;
                 }

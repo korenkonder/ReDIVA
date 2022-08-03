@@ -4,6 +4,7 @@
 */
 
 #include "msgpack.hpp"
+#include "str_utils.hpp"
 
 #define MSGPACK_ALLOCATE(a, b) \
 if (MSGPACK_CHECK(a)) \
@@ -254,16 +255,14 @@ msgpack::msgpack(const char* name, const char* val) : data() {
 }
 
 msgpack::msgpack(const char* name, const wchar_t* val) : data() {
-    char* temp = utf16_to_utf8(val);
     type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(std::string, this);
     if (name)
         this->name = std::string(name);
     std::string* ptr = MSGPACK_SELECT_PTR(std::string, this);
     *ptr = {};
-    if (temp)
-        *ptr = std::string(temp);
-    free(temp);
+    if (val)
+        *ptr = utf16_to_utf8(val);
 }
 
 msgpack::msgpack(const char* name, std::string& val) : data() {
@@ -278,16 +277,14 @@ msgpack::msgpack(const char* name, std::string& val) : data() {
 }
 
 msgpack::msgpack(const char* name, std::wstring& val) : data() {
-    char* temp = utf16_to_utf8(val.c_str());
     type = MSGPACK_STRING;
     MSGPACK_ALLOCATE_PTR(std::string, this);
     if (name)
         this->name = std::string(name);
     std::string* ptr = MSGPACK_SELECT_PTR(std::string, this);
     *ptr = {};
-    if (temp)
-        *ptr = std::string(temp);
-    free(temp)
+    if (val.size())
+        *ptr = utf16_to_utf8(val);
 }
 
 msgpack::~msgpack() {
@@ -751,49 +748,35 @@ wchar_t* msgpack::read_utf16_string(const char* name) {
 
     if (m && m->type == MSGPACK_STRING) {
         std::string* ptr = MSGPACK_SELECT_PTR(std::string, m);
-        wchar_t* temp = utf8_to_utf16(ptr->c_str());
-        size_t length = utf16_length(temp);
-        wchar_t* val = force_malloc_s(wchar_t, length + 1);
-        memcpy(val, temp, sizeof(wchar_t) * length);
-        val[length] = 0;
-        free(temp);
-        return val;
+        return utf8_to_utf16(ptr->c_str());
     }
     return 0;
 }
 
-void msgpack::read_string(const char* name, std::string& str) {
-    if (!this) {
-        str = {};
-        return;
-    }
+std::string msgpack::read_string(const char* name) {
+    if (!this)
+        return {};
 
     msgpack* m = name ? get_by_name(name) : this;
 
     if (m && m->type == MSGPACK_STRING) {
         std::string* ptr = MSGPACK_SELECT_PTR(std::string, m);
-        str = *ptr;
+        return *ptr;
     }
-    else
-        str = {};
+    return {};
 }
 
-void msgpack::read_string(const char* name, std::wstring& str) {
-    if (!this) {
-        str = {};
-        return;
-    }
+std::wstring msgpack::read_wstring(const char* name) {
+    if (!this)
+        return {};
 
     msgpack* m = name ? get_by_name(name) : this;
 
     if (m && m->type == MSGPACK_STRING) {
         std::string* ptr = MSGPACK_SELECT_PTR(std::string, m);
-        wchar_t* temp = utf8_to_utf16(ptr->c_str());
-        str = temp;
-        free(temp);
+        return utf8_to_utf16(*ptr);
     }
-    else
-        str = {};
+    return {};
 }
 
 msgpack& msgpack::operator=(const msgpack& m) {

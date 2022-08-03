@@ -106,6 +106,9 @@ namespace Glitter {
     }
 
     void EffectGroup::FreeModel() {
+        if (type != Glitter::X)
+            return;
+
         for (uint32_t& i : object_set_ids)
             object_storage_unload_set(i);
         object_set_ids.clear();

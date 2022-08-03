@@ -240,7 +240,7 @@ void texture_database::add(texture_database_file* tex_db_file) {
         }
 
         info->id = i.id;
-        info->name = i.name;
+        info->name.assign(i.name);
         info->name_hash = hash_string_murmurhash(info->name);
     }
 }
@@ -273,9 +273,11 @@ static void texture_database_file_classic_read_inner(texture_database_file* tex_
 
     tex_db->texture.resize(textures_count);
 
+    texture_info_file* texture = tex_db->texture.data();
+
     s.position_push(textures_offset, SEEK_SET);
     for (uint32_t i = 0; i < textures_count; i++) {
-        texture_info_file& info = tex_db->texture[i];
+        texture_info_file& info = texture[i];
         info.id = s.read_uint32_t();
         info.name = s.read_string_null_terminated_offset(s.read_uint32_t());
     }
@@ -337,16 +339,18 @@ static void texture_database_file_modern_read_inner(texture_database_file* tex_d
 
     tex_db->texture.resize(textures_count);
 
+    texture_info_file* texture = tex_db->texture.data();
+
     s.position_push(textures_offset, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < textures_count; i++) {
-            texture_info_file& info = tex_db->texture[i];
+            texture_info_file& info = texture[i];
             info.id = s.read_uint32_t_reverse_endianness();
             info.name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
         }
     else
         for (uint32_t i = 0; i < textures_count; i++) {
-            texture_info_file& info = tex_db->texture[i];
+            texture_info_file& info = texture[i];
             info.id = s.read_uint32_t_reverse_endianness();
             info.name = s.read_string_null_terminated_offset(s.read_offset_x());
         }

@@ -159,7 +159,7 @@ void motion_database::add(motion_database_file* mot_db_file) {
         }
 
         set_info->id = i.id;
-        set_info->name = i.name;
+        set_info->name.assign(i.name);
         set_info->name_hash = hash_string_murmurhash(set_info->name);
 
         set_info->motion.reserve(i.motion.size());
@@ -167,7 +167,7 @@ void motion_database::add(motion_database_file* mot_db_file) {
         for (motion_info_file& j : i.motion) {
             motion_info info;
             info.id = j.id;
-            info.name = j.name;
+            info.name.assign(j.name);
             info.name_hash = hash_string_murmurhash(info.name);
             set_info->motion.push_back(info);
         }
@@ -360,22 +360,24 @@ static void motion_database_file_read_inner(motion_database_file* mot_db, stream
 
    mot_db->motion_set.resize(motion_set_count);
 
+   motion_set_info_file* motion_set = mot_db->motion_set.data();
+
    s.position_push(motion_sets_offset, SEEK_SET);
    for (uint32_t i = 0; i < motion_set_count; i++) {
-       motion_set_info_file& set_info = mot_db->motion_set[i];
+       motion_set_info_file& set_info = motion_set[i];
 
        uint32_t name_offset = s.read_uint32_t();
        uint32_t motion_name_offsets_offset = s.read_uint32_t();
        uint32_t motion_count = s.read_uint32_t();
        uint32_t motion_ids_offset = s.read_uint32_t();
 
-       set_info.name = s.read_string_null_terminated_offset(name_offset);
+       set_info.name.assign(s.read_string_null_terminated_offset(name_offset));
 
        set_info.motion.resize(motion_count);
 
        s.position_push(motion_name_offsets_offset, SEEK_SET);
        for (uint32_t j = 0; j < motion_count; j++)
-           set_info.motion[j].name = s.read_string_null_terminated_offset(s.read_uint32_t());
+           set_info.motion[j].name.assign(s.read_string_null_terminated_offset(s.read_uint32_t()));
        s.position_pop();
 
        s.position_push(motion_ids_offset, SEEK_SET);
@@ -387,14 +389,16 @@ static void motion_database_file_read_inner(motion_database_file* mot_db, stream
 
    s.position_push(motion_set_ids_offset, SEEK_SET);
    for (uint32_t i = 0; i < motion_set_count; i++)
-       mot_db->motion_set[i].id = s.read_uint32_t();
+       motion_set[i].id = s.read_uint32_t();
    s.position_pop();
 
    mot_db->bone_name.resize(bone_name_count);
 
+   std::string* bone_name = mot_db->bone_name.data();
+
    s.position_push(bone_name_offsets_offset, SEEK_SET);
    for (uint32_t i = 0; i < bone_name_count; i++)
-       mot_db->bone_name[i] = s.read_string_null_terminated_offset(s.read_uint32_t());
+       bone_name[i].assign(s.read_string_null_terminated_offset(s.read_uint32_t()));
    s.position_pop();
 
    mot_db->ready = true;

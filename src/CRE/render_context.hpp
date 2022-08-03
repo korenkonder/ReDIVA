@@ -13,7 +13,6 @@
 #include "light_param/wind.hpp"
 #include "light_param.hpp"
 #include "camera.hpp"
-#include "data.hpp"
 #include "gl_state.hpp"
 #include "light_param.hpp"
 #include "object.hpp"
@@ -29,37 +28,43 @@
 #define TEXTURE_TRANSFORM_COUNT 24
 
 enum draw_object_type {
-    DRAW_OBJECT_OPAQUE                    = 0x00,
-    DRAW_OBJECT_TRANSLUCENT               = 0x01,
-    DRAW_OBJECT_TRANSLUCENT_NO_SHADOW     = 0x02,
-    DRAW_OBJECT_TRANSPARENT               = 0x03,
-    DRAW_OBJECT_SHADOW_CHARA              = 0x04,
-    DRAW_OBJECT_SHADOW_STAGE              = 0x05,
-    DRAW_OBJECT_TYPE_6                    = 0x06,
-    DRAW_OBJECT_TYPE_7                    = 0x07,
-    DRAW_OBJECT_SHADOW_OBJECT_CHARA       = 0x08,
-    DRAW_OBJECT_SHADOW_OBJECT_STAGE       = 0x09,
-    DRAW_OBJECT_REFLECT_CHARA_OPAQUE      = 0x0A,
-    DRAW_OBJECT_REFLECT_CHARA_TRANSLUCENT = 0x0B,
-    DRAW_OBJECT_REFLECT_CHARA_TRANSPARENT = 0x0C,
-    DRAW_OBJECT_REFLECT_OPAQUE            = 0x0D,
-    DRAW_OBJECT_REFLECT_TRANSLUCENT       = 0x0E,
-    DRAW_OBJECT_REFLECT_TRANSPARENT       = 0x0F,
-    DRAW_OBJECT_REFRACT_OPAQUE            = 0x10,
-    DRAW_OBJECT_REFRACT_TRANSLUCENT       = 0x11,
-    DRAW_OBJECT_REFRACT_TRANSPARENT       = 0x12,
-    DRAW_OBJECT_SSS                       = 0x13,
-    DRAW_OBJECT_OPAQUE_TYPE_20            = 0x14,
-    DRAW_OBJECT_TRANSPARENT_TYPE_21       = 0x15,
-    DRAW_OBJECT_TRANSLUCENT_TYPE_22       = 0x16,
-    DRAW_OBJECT_OPAQUE_TYPE_23            = 0x17,
-    DRAW_OBJECT_TRANSPARENT_TYPE_24       = 0x18,
-    DRAW_OBJECT_TRANSLUCENT_TYPE_25       = 0x19,
-    DRAW_OBJECT_OPAQUE_TYPE_26            = 0x1A,
-    DRAW_OBJECT_TRANSPARENT_TYPE_27       = 0x1B,
-    DRAW_OBJECT_TRANSLUCENT_TYPE_28       = 0x1C,
-    DRAW_OBJECT_RIPPLE                    = 0x1D,
-    DRAW_OBJECT_MAX                       = 0x1E,
+    DRAW_OBJECT_OPAQUE                          = 0x00,
+    DRAW_OBJECT_TRANSLUCENT                     = 0x01,
+    DRAW_OBJECT_TRANSLUCENT_NO_SHADOW           = 0x02,
+    DRAW_OBJECT_TRANSPARENT                     = 0x03,
+    DRAW_OBJECT_SHADOW_CHARA                    = 0x04,
+    DRAW_OBJECT_SHADOW_STAGE                    = 0x05,
+    DRAW_OBJECT_TYPE_6                          = 0x06,
+    DRAW_OBJECT_TYPE_7                          = 0x07,
+    DRAW_OBJECT_SHADOW_OBJECT_CHARA             = 0x08,
+    DRAW_OBJECT_SHADOW_OBJECT_STAGE             = 0x09,
+    DRAW_OBJECT_REFLECT_CHARA_OPAQUE            = 0x0A,
+    DRAW_OBJECT_REFLECT_CHARA_TRANSLUCENT       = 0x0B,
+    DRAW_OBJECT_REFLECT_CHARA_TRANSPARENT       = 0x0C,
+    DRAW_OBJECT_REFLECT_OPAQUE                  = 0x0D,
+    DRAW_OBJECT_REFLECT_TRANSLUCENT             = 0x0E,
+    DRAW_OBJECT_REFLECT_TRANSPARENT             = 0x0F,
+    DRAW_OBJECT_REFRACT_OPAQUE                  = 0x10,
+    DRAW_OBJECT_REFRACT_TRANSLUCENT             = 0x11,
+    DRAW_OBJECT_REFRACT_TRANSPARENT             = 0x12,
+    DRAW_OBJECT_SSS                             = 0x13,
+    DRAW_OBJECT_OPAQUE_ALPHA_ORDER_1            = 0x14,
+    DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_1       = 0x15,
+    DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_1       = 0x16,
+    DRAW_OBJECT_OPAQUE_ALPHA_ORDER_2            = 0x17,
+    DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2       = 0x18,
+    DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2       = 0x19,
+    DRAW_OBJECT_OPAQUE_ALPHA_ORDER_3            = 0x1A,
+    DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_3       = 0x1B,
+    DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3       = 0x1C,
+    DRAW_OBJECT_PREPROCESS                      = 0x1D,
+    DRAW_OBJECT_OPAQUE_LOCAL                    = 0x1E, // X
+    DRAW_OBJECT_TRANSLUCENT_LOCAL               = 0x1F,
+    DRAW_OBJECT_TRANSPARENT_LOCAL               = 0x20,
+    DRAW_OBJECT_OPAQUE_ALPHA_ORDER_2_LOCAL      = 0x21,
+    DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2_LOCAL = 0x22,
+    DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2_LOCAL = 0x23,
+    DRAW_OBJECT_MAX                             = 0x24,
 };
 
 enum draw_pass_type {
@@ -96,15 +101,15 @@ enum draw_task_flags : uint32_t {
     DRAW_TASK_SSS                   = 0x00002000,
     DRAW_TASK_4000                  = 0x00004000,
     DRAW_TASK_8000                  = 0x00008000,
-    DRAW_TASK_10000                 = 0x00010000,
-    DRAW_TASK_20000                 = 0x00020000,
-    DRAW_TASK_40000                 = 0x00040000,
+    DRAW_TASK_ALPHA_ORDER_1         = 0x00010000,
+    DRAW_TASK_ALPHA_ORDER_2         = 0x00020000,
+    DRAW_TASK_ALPHA_ORDER_3         = 0x00040000,
     DRAW_TASK_80000                 = 0x00080000,
     DRAW_TASK_100000                = 0x00100000,
     DRAW_TASK_200000                = 0x00200000,
     DRAW_TASK_400000                = 0x00400000,
     DRAW_TASK_800000                = 0x00800000,
-    DRAW_TASK_RIPPLE                = 0x01000000,
+    DRAW_TASK_PREPROCESS            = 0x01000000,
     DRAW_TASK_2000000               = 0x02000000,
     DRAW_TASK_4000000               = 0x04000000,
     DRAW_TASK_8000000               = 0x08000000,
@@ -115,10 +120,10 @@ enum draw_task_flags : uint32_t {
 };
 
 enum draw_task_type {
-    DRAW_TASK_TYPE_OBJECT             = 0x00,
-    DRAW_TASK_TYPE_PRIMITIVE          = 0x01,
-    DRAW_TASK_TYPE_PREPROCESS         = 0x02,
-    DRAW_TASK_TYPE_OBJECT_TRANSLUCENT = 0x03,
+    DRAW_TASK_OBJECT             = 0x00,
+    DRAW_TASK_OBJECT_PRIMITIVE   = 0x01,
+    DRAW_TASK_OBJECT_PREPROCESS  = 0x02,
+    DRAW_TASK_OBJECT_TRANSLUCENT = 0x03,
 };
 
 enum reflect_refract_resolution_mode {
@@ -218,11 +223,13 @@ struct draw_state {
     int32_t field_50;
     float_t bump_depth;
     float_t intensity;
-    float_t specular_alpha;
+    float_t reflectivity;
     float_t reflect_uv_scale;
     float_t refract_uv_scale;
     int32_t field_68;
     float_t fresnel;
+
+    draw_state();
 };
 
 struct material_list_struct {
@@ -262,6 +269,7 @@ struct draw_object {
     std::vector<GLuint>* textures;
     int32_t mat_count;
     mat4* mats;
+    GLuint vertex_array;
     GLuint array_buffer;
     GLuint element_array_buffer;
     bool set_blend_color;
@@ -428,6 +436,13 @@ struct object_data_culling_info {
     int32_t submesh_array;
 };
 
+struct object_data_vertex_array {
+    GLuint array_buffer;
+    GLuint morph_array_buffer;
+    int32_t alive_time;
+    GLuint vertex_array;
+};
+
 struct object_data {
     draw_task_flags draw_task_flags;
     shadow_type_enum shadow_type;
@@ -458,10 +473,14 @@ struct object_data {
     int32_t material_list_count;
     material_list_struct material_list_array[MATERIAL_LIST_COUNT];
     bool(*object_bounding_sphere_check_func)(obj_bounding_sphere*, camera*);
+    std::vector<object_data_vertex_array> vertex_array_cache;
 
     object_data();
     ~object_data();
 
+    void add_vertex_array(draw_object* draw);
+    void check_vertex_arrays();
+    GLuint get_vertex_array(GLuint array_buffer, GLuint morph_array_buffer);
     bool get_chara_color();
     ::draw_task_flags get_draw_task_flags();
     void get_material_list(int32_t& count, material_list_struct*& value);
@@ -491,18 +510,16 @@ struct object_data {
 };
 
 struct render_context {
-    camera* camera;
+    ::camera* camera;
     draw_state draw_state;
     object_data object_data;
     draw_pass draw_pass;
-    GLuint vao;
 
     face face;
     fog fog[FOG_MAX];
     light_proj* litproj;
     light_set light_set[LIGHT_SET_MAX];
 
-    data_struct* data;
     post_process post_process;
     bool chara_reflect;
     bool chara_refract;

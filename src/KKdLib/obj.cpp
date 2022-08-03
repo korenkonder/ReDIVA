@@ -115,6 +115,9 @@ static bool obj_material_texture_enrs_table_initialized;
 
 static void obj_material_texture_enrs_table_init();
 static void obj_material_texture_enrs_table_free(void);
+static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i& bone_index, int32_t index, float_t weight);
+static void obj_vertex_generate_tangents(obj* obj, obj_mesh* mesh);
+static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i& bone_index);
 static void obj_set_classic_read_inner(obj_set* os, stream& s);
 static void obj_set_classic_write_inner(obj_set* os, stream& s);
 static void obj_classic_read_index(obj* obj, stream& s, obj_sub_mesh* sub_mesh);
@@ -266,6 +269,23 @@ int32_t obj_texture_attrib::get_blend() {
     }
 }
 
+obj_material_texture_data::obj_material_texture_data() : attrib(),
+tex_index(), shader_info(), ex_shader(), weight(), reserved() {
+
+}
+
+obj_material_color::obj_material_color() : shininess(), intensity() {
+
+}
+
+obj_material::obj_material() : shader_compo(), shader(), shader_info(),
+attrib(), center(), radius(), name(), bump_depth(), reserved() {
+}
+
+obj_material_data::obj_material_data() : num_of_textures() {
+
+}
+
 obj_sub_mesh::obj_sub_mesh() : flags(), bounding_sphere(), material_index(), uv_index(), bone_indices(),
 bone_indices_count(), bones_per_vertex(), primitive_type(), index_format(), indices(), indices_count(),
 attrib(), axis_aligned_bounding_box(), first_index(), last_index(), indices_offset() {
@@ -412,6 +432,243 @@ static void obj_material_texture_enrs_table_free(void) {
     obj_material_texture_enrs_table.vec.clear();
     obj_material_texture_enrs_table.vec.shrink_to_fit();
     obj_material_texture_enrs_table_initialized = false;
+}
+
+static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i& bone_index, int32_t index, float_t weight) {
+    if (bone_index.x < 0) {
+        bone_index.x = index;
+        bone_weight.x = weight;
+    }
+    else if (bone_index.y < 0) {
+        bone_index.y = index;
+        bone_weight.y = weight;
+    }
+    else if (bone_index.z < 0) {
+        bone_index.z = index;
+        bone_weight.z = weight;
+    }
+    else if (bone_index.w < 0) {
+        bone_index.w = index;
+        bone_weight.w = weight;
+    }
+}
+
+static void calculate_tangent(obj_vertex_data* vtx,
+    vec3* tangents, vec3* bitangents, uint32_t a, uint32_t b, uint32_t c) {
+    obj_vertex_data* vtx_a = &vtx[a];
+    obj_vertex_data* vtx_b = &vtx[b];
+    obj_vertex_data* vtx_c = &vtx[c];
+
+    vec3 pos_a;
+    vec3 pos_b;
+    vec3_sub(vtx_c->position, vtx_a->position, pos_a);
+    vec3_sub(vtx_b->position, vtx_a->position, pos_b);
+
+    vec2 uv_a;
+    vec2 uv_b;
+    vec2_sub(vtx_c->texcoord0, vtx_a->texcoord0, uv_a);
+    vec2_sub(vtx_b->texcoord0, vtx_a->texcoord0, uv_b);
+
+    vec3 tangent;
+    vec3 bitangent;
+
+    vec3 temp1;
+    vec3 temp2;
+    vec3_mult_scalar(pos_a, uv_b.y, temp1);
+    vec3_mult_scalar(pos_b, uv_a.y, temp2);
+    vec3_sub(temp1, temp2, tangent);
+
+    vec3_mult_scalar(pos_b, uv_a.x, temp1);
+    vec3_mult_scalar(pos_a, uv_b.x, temp2);
+    vec3_sub(temp1, temp2, bitangent);
+
+    if (uv_a.x * uv_b.y - uv_a.y * uv_b.x <= 0.0f) {
+        vec3_negate(tangent, tangent);
+        vec3_negate(bitangent, bitangent);
+    }
+
+    vec3_add(tangents[a], tangent, tangents[a]);
+    vec3_add(tangents[b], tangent, tangents[b]);
+    vec3_add(tangents[c], tangent, tangents[c]);
+    
+    vec3_add(bitangents[a], bitangent, bitangents[a]);
+    vec3_add(bitangents[b], bitangent, bitangents[b]);
+    vec3_add(bitangents[c], bitangent, bitangents[c]);
+}
+
+static void obj_vertex_generate_tangents(obj* obj, obj_mesh* mesh) {
+    if (~mesh->vertex_format & OBJ_VERTEX_NORMAL
+        || mesh->vertex_format & OBJ_VERTEX_TANGENT
+        || ~mesh->vertex_format & OBJ_VERTEX_TEXCOORD0)
+        return;
+
+    uint32_t num_vertex = mesh->num_vertex;
+
+    vec3* tangents = force_malloc_s(vec3, num_vertex);
+    vec3* bitangents = force_malloc_s(vec3, num_vertex);
+
+    obj_vertex_data* vtx = mesh->vertex;
+    for (uint32_t i = 0; i < mesh->num_submesh; i++) {
+        obj_sub_mesh* sub_mesh = &mesh->submesh_array[i];
+        if (!sub_mesh->indices || !sub_mesh->indices_count
+            || (sub_mesh->primitive_type != OBJ_PRIMITIVE_TRIANGLES
+                && sub_mesh->primitive_type != OBJ_PRIMITIVE_TRIANGLE_STRIP))
+            continue;
+
+        uint32_t* start = sub_mesh->indices;
+        uint32_t* end = sub_mesh->indices + sub_mesh->indices_count;
+
+        bool triangle_strip = sub_mesh->primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP;
+        if (!triangle_strip) {
+            while (start < end) {
+                uint32_t a = *start++;
+                uint32_t b = *start++;
+                uint32_t c = *start++;
+                calculate_tangent(vtx, tangents, bitangents, a, b, c);
+            }
+        }
+        else {
+            bool direction = true;
+
+            uint32_t a = *start++;
+            uint32_t b = *start++;
+
+            while (start < end) {
+                uint32_t c = *start++;
+
+                if (c == -1) {
+                    a = *start++;
+                    b = *start++;
+                    direction = true;
+                }
+                else {
+                    direction ^= true;
+                    if (a != b && b != c && c != a) {
+                        if (!direction)
+                            calculate_tangent(vtx, tangents, bitangents, a, b, c);
+                        else
+                            calculate_tangent(vtx, tangents, bitangents, a, c, b);
+                    }
+
+                    a = b;
+                    b = c;
+                }
+            }
+        }
+    }
+
+    for (uint32_t i = 0; i < num_vertex; i++) {
+        vec3 normal = vtx[i].normal;
+
+        vec3 tangent;
+        vec3 bitangent;
+        vec3_normalize(tangents[i], tangent);
+        vec3_normalize(bitangents[i], bitangent);
+
+        float_t temp1;
+        vec3 temp2;
+        vec3_dot(tangent, normal, temp1);
+        vec3_mult_scalar(normal, temp1, temp2);
+        vec3_sub(tangent, temp2, tangent);
+        vec3_normalize(tangent, tangent);
+
+        vec3_dot(bitangent, normal, temp1);
+        vec3_mult_scalar(normal, temp1, temp2);
+        vec3_sub(bitangent, temp2, bitangent);
+        vec3_normalize(bitangent, bitangent);
+
+        vec3 binormal;
+        vec3_cross(normal, tangent, binormal);
+        vec3_normalize(binormal, binormal);
+
+        float_t dir_check;
+        vec3_dot(binormal, bitangent, dir_check);
+
+        *(vec3*)&vtx[i].tangent = tangent;
+        vtx[i].tangent.w = dir_check > 0.0f ? 1.0f : -1.0f;
+        tangents[i] = tangent;
+        bitangents[i] = bitangent;
+    }
+
+    for (uint32_t i = 0; i < num_vertex; i++) {
+        vec3 position = vtx[i].position;
+        vec3 tangent = tangents[i];
+
+        if (memcmp(&tangent, &vec3_null, sizeof(vec3)))
+            continue;
+
+        int32_t nearest_vtx_idx = -1;
+        float_t current_distance = 3.40282346638529e38f;
+
+        for (uint32_t j = 0; j < num_vertex; j++) {
+            vec3 position_to_compare = vtx[j].position;
+            vec3 tangent_to_compare = tangents[j];
+
+            if (i == j || !memcmp(&tangent_to_compare, &vec3_null, sizeof(vec3)))
+                continue;
+
+            float_t distance;
+            vec3_distance_squared(position, position_to_compare, distance);
+
+            if (current_distance >= distance) {
+                nearest_vtx_idx = j;
+                current_distance = distance;
+            }
+        }
+
+        if (nearest_vtx_idx != -1)
+            vtx[i].tangent = vtx[nearest_vtx_idx].tangent;
+        else {
+            vec3 normal = vtx[i].normal;
+
+            const vec3 up = { 0.0f, 1.0f, 0.0f };
+            const vec3 left = { 1.0f, 0.0f, 0.0f };
+            vec3 temp1;
+            vec3 temp2;
+            vec3_cross(normal, up, temp1);
+            vec3_cross(normal, left, temp2);
+
+            float_t temp3;
+            float_t temp4;
+            vec3_length_squared(temp1, temp3);
+            vec3_length_squared(temp2, temp4);
+
+            vec3 tangent = temp3 > temp4 ? temp1 : temp2;
+            vec3_normalize(tangent, tangent);
+
+            *(vec3*)&vtx[i].tangent = tangent;
+            vtx[i].tangent.w = 1.0f;
+        }
+    }
+
+    free(tangents);
+    free(bitangents);
+
+    enum_or(mesh->vertex_format, OBJ_VERTEX_TANGENT);
+}
+
+static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i& bone_index) {
+    vec4 _bone_weight = { 0.0f, 0.0f, 0.0f, 0.0f };
+    vec4i _bone_index = { -1, -1, -1, -1 };
+
+    if (bone_weight.x > 0)
+        obj_vertex_add_bone_weight(_bone_weight, _bone_index, bone_index.x, bone_weight.x);
+
+    if (bone_weight.y > 0)
+        obj_vertex_add_bone_weight(_bone_weight, _bone_index, bone_index.y, bone_weight.y);
+
+    if (bone_weight.z > 0)
+        obj_vertex_add_bone_weight(_bone_weight, _bone_index, bone_index.z, bone_weight.z);
+
+    if (bone_weight.w > 0)
+        obj_vertex_add_bone_weight(_bone_weight, _bone_index, bone_index.w, bone_weight.w);
+
+    float_t sum = _bone_weight.x + _bone_weight.y + _bone_weight.z + _bone_weight.w;
+    if (sum > 0.0f && fabsf(sum - 1.0f) > 0.000001f)
+        vec4_div_scalar(_bone_weight, sum, _bone_weight);
+
+    bone_weight = _bone_weight;
+    bone_index = _bone_index;
 }
 
 static void obj_set_classic_read_inner(obj_set* os, stream& s) {
@@ -754,6 +1011,7 @@ static void obj_classic_read_model(obj* obj, stream& s, int64_t base_offset) {
 
             obj_classic_read_vertex(obj, s, mh.vertex, mesh,
                 base_offset, mh.num_vertex, mh.format);
+            obj_vertex_generate_tangents(obj, mesh);
         }
     }
 
@@ -2021,10 +2279,10 @@ static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
                 f->trans_diff.x = s.read_float_t();
                 f->trans_diff.y = s.read_float_t();
                 f->trans_diff.z = s.read_float_t();
-                f->length = s.read_float_t();
-                f->field_20 = s.read_float_t();
-                f->field_24 = s.read_float_t();
-                f->field_28 = s.read_float_t();
+                f->dist_top = s.read_float_t();
+                f->dist_bottom = s.read_float_t();
+                f->dist_right = s.read_float_t();
+                f->dist_left = s.read_float_t();
             }
         s.position_pop();
     }
@@ -2143,10 +2401,10 @@ static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
                 s.write_float_t(f->trans_diff.x);
                 s.write_float_t(f->trans_diff.y);
                 s.write_float_t(f->trans_diff.z);
-                s.write_float_t(f->length);
-                s.write_float_t(f->field_20);
-                s.write_float_t(f->field_24);
-                s.write_float_t(f->field_24);
+                s.write_float_t(f->dist_top);
+                s.write_float_t(f->dist_bottom);
+                s.write_float_t(f->dist_right);
+                s.write_float_t(f->dist_left);
             }
         s.position_pop();
         *nodes_offset += (11 * sizeof(int32_t)) * b->root_count * (b->nodes_count - 1ULL);
@@ -2862,6 +3120,11 @@ static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_me
             break;
         }
     }
+
+    if (vertex_format_file & (OBJ_VERTEX_FILE_BONE_WEIGHT | OBJ_VERTEX_FILE_BONE_INDEX))
+        for (uint32_t i = 0; i < num_vertex; i++)
+            obj_vertex_validate_bone_data(vtx[i].bone_weight, vtx[i].bone_index);
+
     mesh->vertex = vtx;
     mesh->num_vertex = num_vertex;
     mesh->vertex_format = vertex_format;
@@ -3702,6 +3965,7 @@ static void obj_modern_read_model(obj* obj, stream& s, int64_t base_offset,
 
             obj_modern_read_vertex(obj, *s_ovtx, mh.vertex, mesh,
                 mh.vertex_flags, mh.num_vertex, mh.size_vertex);
+            obj_vertex_generate_tangents(obj, mesh);
         }
     }
 
@@ -5997,10 +6261,10 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
                 f->trans_diff.x = s.read_float_t_reverse_endianness();
                 f->trans_diff.y = s.read_float_t_reverse_endianness();
                 f->trans_diff.z = s.read_float_t_reverse_endianness();
-                f->length = s.read_float_t_reverse_endianness();
-                f->field_20 = s.read_float_t_reverse_endianness();
-                f->field_24 = s.read_float_t_reverse_endianness();
-                f->field_28 = s.read_float_t_reverse_endianness();
+                f->dist_top = s.read_float_t_reverse_endianness();
+                f->dist_bottom = s.read_float_t_reverse_endianness();
+                f->dist_right = s.read_float_t_reverse_endianness();
+                f->dist_left = s.read_float_t_reverse_endianness();
             }
         s.position_pop();
     }
@@ -6138,10 +6402,10 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
                 s.write_float_t(f->trans_diff.x);
                 s.write_float_t(f->trans_diff.y);
                 s.write_float_t(f->trans_diff.z);
-                s.write_float_t(f->length);
-                s.write_float_t(f->field_20);
-                s.write_float_t(f->field_24);
-                s.write_float_t(f->field_28);
+                s.write_float_t(f->dist_top);
+                s.write_float_t(f->dist_bottom);
+                s.write_float_t(f->dist_right);
+                s.write_float_t(f->dist_left);
             }
         s.position_pop();
         *nodes_offset += (11 * sizeof(int32_t)) * b->root_count * (b->nodes_count - 1ULL);
@@ -6708,7 +6972,6 @@ static void obj_modern_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mes
             bone_weight.z = (float_t)s.read_int16_t_reverse_endianness();
             bone_weight.w = (float_t)s.read_int16_t_reverse_endianness();
             vec4_div_min_max_scalar(bone_weight, -32768.0f, 32767.0f, bone_weight);
-            vtx[i].bone_weight = bone_weight;
 
             vec4i bone_index;
             bone_index.x = (int32_t)s.read_uint8_t();
@@ -6723,6 +6986,10 @@ static void obj_modern_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mes
                 bone_index.z = -1;
             if (bone_index.w == 0xFF)
                 bone_index.w = -1;
+
+            obj_vertex_validate_bone_data(bone_weight, bone_index);
+
+            vtx[i].bone_weight = bone_weight;
             vtx[i].bone_index = bone_index;
         }
 

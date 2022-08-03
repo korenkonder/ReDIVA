@@ -77,7 +77,4 @@ struct mot_set {
 
     void pack_file(void** data, size_t* size);
     void unpack_file(const void* data, size_t size, bool modern);
-
-    static mot_key_set_type fit_keys_into_curve(std::vector<float_t>& values_src,
-        std::vector<uint16_t>& frames, std::vector<float_t>& values);
 };

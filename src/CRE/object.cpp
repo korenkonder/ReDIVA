@@ -10,7 +10,11 @@
 #include "data.hpp"
 #include "gl_state.hpp"
 #include "shader_ft.hpp"
+#include "../KKdLib/io/json.hpp"
+#include "../KKdLib/io/path.hpp"
+#include "../KKdLib/dds.hpp"
 #include "../KKdLib/hash.hpp"
+#include "../KKdLib/msgpack.hpp"
 #include "../KKdLib/str_utils.hpp"
 
 static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* handler);
@@ -18,7 +22,8 @@ static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* hand
 static bool obj_set_handler_index_buffer_load(obj_set_handler* handler);
 static void obj_set_handler_index_buffer_free(obj_set_handler* handler);
 static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* data, bool big_endian);
-static bool obj_set_handler_load_textures_modern(obj_set_handler* handler, const void* data, size_t size);
+static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
+    const void* data, size_t size, const char* file, texture_database* tex_db);
 static bool obj_set_handler_vertex_buffer_load(obj_set_handler* handler);
 static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler);
 static void obj_skin_block_constraint_attach_point_load(
@@ -168,11 +173,11 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
                 enum_or(_vertex_format, OBJ_VERTEX_TEXCOORD3);
 
             if (~_vertex_format & OBJ_VERTEX_COLOR0 && vertex_format & OBJ_VERTEX_COLOR0
-                && memcmp(&vertex_file[i].normal, &vec4_identity, sizeof(vec4)))
+                && memcmp(&vertex_file[i].color0, &vec4_identity, sizeof(vec4)))
                 enum_or(_vertex_format, OBJ_VERTEX_COLOR0);
 
             if (~_vertex_format & OBJ_VERTEX_COLOR1 && vertex_format & OBJ_VERTEX_COLOR1
-                && memcmp(&vertex_file[i].normal, &vec4_identity, sizeof(vec4)))
+                && memcmp(&vertex_file[i].color1, &vec4_identity, sizeof(vec4)))
                 enum_or(_vertex_format, OBJ_VERTEX_COLOR1);
 
             if (~_vertex_format & OBJ_VERTEX_BONE_DATA && vertex_format & OBJ_VERTEX_BONE_DATA
@@ -190,7 +195,7 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
     }
 
     size_t size_vertex;
-    if (~mesh.attrib.m.compressed)
+    if (!mesh.attrib.m.compressed)
         size_vertex = obj_vertex_format_get_vertex_size(mesh.vertex_format);
     else
         size_vertex = obj_vertex_format_get_vertex_size_comp(mesh.vertex_format);
@@ -201,7 +206,7 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
         obj_vertex_data* vertex_file = mesh.vertex;
         int32_t num_vertex = mesh.num_vertex;
         size_t d = (size_t)vertex;
-        if (~mesh.attrib.m.compressed) {
+        if (!mesh.attrib.m.compressed) {
             for (int32_t i = 0; i < num_vertex; i++) {
                 if (vertex_format & OBJ_VERTEX_POSITION) {
                     *(vec3*)d = vertex_file[i].position;
@@ -502,6 +507,847 @@ void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
             mat4_mult(&temp, global_mat, &temp);
             mat4_mult(&s->bones[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
         }
+}
+
+void object_material_msgpack_read(const char* path, const char* set_name,
+    obj_set* obj_set, object_database* obj_db) {
+    if (!path_check_directory_exists(path))
+        return;
+
+    char set_name_buf[0x80];
+    for (const char* i = set_name; *i && *i != '.'; i++) {
+        char c = *i;
+        if (c >= 'a' && c <= 'z')
+            c -= 0x20;
+        set_name_buf[i - set_name] = c;
+        set_name_buf[i - set_name + 1] = 0;
+    }
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "%s\\%s\\", path, set_name_buf);
+    if (!path_check_directory_exists(buf))
+        return;
+
+    sprintf_s(buf, sizeof(buf), "%s\\%s\\config.json", path, set_name_buf);
+    if (!path_check_file_exists(buf))
+        return;
+
+    msgpack msg;
+
+    stream s;
+    s.open(buf, "rb");
+    io_json_read(s, &msg);
+    s.close();
+
+    if (msg.type != MSGPACK_ARRAY)
+        return;
+
+    msgpack_array* ptr = MSGPACK_SELECT(msgpack_array, msg);
+    for (msgpack& i : *ptr) {
+        msgpack& object = i;
+
+        std::string name = object.read_string("name");
+        uint32_t name_hash = hash_string_murmurhash(name);
+
+        for (uint32_t i = 0; i < obj_set->obj_num; i++) {
+            obj& obj = obj_set->obj_data[i];
+
+            if (name_hash != hash_string_murmurhash(obj.name))
+                continue;
+
+            msgpack* materials = object.read("material");
+            if (materials) {
+                msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, materials);
+                for (msgpack& j : *ptr) {
+                    msgpack& material = j;
+
+                    std::string name = material.read_string("name");
+                    uint32_t name_hash = hash_string_murmurhash(name);
+
+                    for (size_t k = 0; k < obj.num_material; k++) {
+                        obj_material& mat = obj.material_array[k].material;
+
+                        if (name_hash != hash_string_murmurhash(mat.name))
+                            continue;
+
+                        msgpack* shader_compo = material.read("shader_compo");
+                        if (shader_compo) {
+                            mat.shader_compo.m.color = shader_compo->read_bool("color") ? 1 : 0;
+                            mat.shader_compo.m.color_a = shader_compo->read_bool("color_a") ? 1 : 0;
+                            mat.shader_compo.m.color_l1 = shader_compo->read_bool("color_l1") ? 1 : 0;
+                            mat.shader_compo.m.color_l1_a = shader_compo->read_bool("color_l1_a") ? 1 : 0;
+                            mat.shader_compo.m.color_l2 = shader_compo->read_bool("color_l2") ? 1 : 0;
+                            mat.shader_compo.m.color_l2_a = shader_compo->read_bool("color_l2_a") ? 1 : 0;
+                            mat.shader_compo.m.transparency = shader_compo->read_bool("transparency") ? 1 : 0;
+                            mat.shader_compo.m.specular = shader_compo->read_bool("specular") ? 1 : 0;
+                            mat.shader_compo.m.normal_01 = shader_compo->read_bool("normal_01") ? 1 : 0;
+                            mat.shader_compo.m.normal_02 = shader_compo->read_bool("normal_02") ? 1 : 0;
+                            mat.shader_compo.m.envmap = shader_compo->read_bool("envmap") ? 1 : 0;
+                            mat.shader_compo.m.color_l3 = shader_compo->read_bool("color_l3") ? 1 : 0;
+                            mat.shader_compo.m.color_l3_a = shader_compo->read_bool("color_l3_a") ? 1 : 0;
+                            mat.shader_compo.m.translucency = shader_compo->read_bool("translucency") ? 1 : 0;
+                            mat.shader_compo.m.flag_14 = shader_compo->read_bool("flag_14") ? 1 : 0;
+                            mat.shader_compo.m.override_ibl = shader_compo->read_bool("override_ibl") ? 1 : 0;
+                            mat.shader_compo.m.dummy = shader_compo->read_uint32_t("dummy");
+                        }
+
+                        msgpack* _shader_name = material.read("shader_name");
+                        if (_shader_name) {
+                            std::string shader_name = _shader_name->read_string();
+                            size_t name_length = min(sizeof(mat.shader.name) - 1, shader_name.size());
+                            memcpy_s(mat.shader.name, sizeof(mat.shader.name) - 1, shader_name.c_str(), name_length);
+                            mat.shader.name[name_length] = 0;
+                        }
+
+                        msgpack* shader_info = material.read("shader_info");
+                        if (shader_info) {
+                            mat.shader_info.m.vtx_trans_type = (obj_material_vertex_translation_type)
+                                shader_info->read_uint32_t("vtx_trans_type");
+                            mat.shader_info.m.col_src = (obj_material_color_source_type)shader_info->read_uint32_t("col_src");
+                            mat.shader_info.m.is_lgt_diffuse = shader_info->read_bool("is_lgt_diffuse") ? 1 : 0;
+                            mat.shader_info.m.is_lgt_specular = shader_info->read_bool("is_lgt_specular") ? 1 : 0;
+                            mat.shader_info.m.is_lgt_per_pixel = shader_info->read_bool("is_lgt_per_pixel") ? 1 : 0;
+                            mat.shader_info.m.is_lgt_double = shader_info->read_bool("is_lgt_double") ? 1 : 0;
+                            mat.shader_info.m.bump_map_type = (obj_material_bump_map_type)
+                                shader_info->read_uint32_t("bump_map_type");
+                            mat.shader_info.m.fresnel_type = shader_info->read_uint32_t("fresnel_type");
+                            mat.shader_info.m.line_light = shader_info->read_uint32_t("line_light");
+                            mat.shader_info.m.recieve_shadow = shader_info->read_bool("recieve_shadow") ? 1 : 0;
+                            mat.shader_info.m.cast_shadow = shader_info->read_bool("cast_shadow") ? 1 : 0;
+                            mat.shader_info.m.specular_quality = (obj_material_specular_quality)
+                                shader_info->read_uint32_t("specular_quality");
+                            mat.shader_info.m.aniso_direction = (obj_material_aniso_direction)
+                                shader_info->read_uint32_t("aniso_direction");
+                            mat.shader_info.m.dummy = shader_info->read_uint32_t("dummy");
+                        }
+
+                        int32_t num_of_textures = 0;
+                        msgpack* texdata = material.read("texdata");
+                        if (texdata) {
+                            for (obj_material_texture_data& l : mat.texdata) {
+                                sprintf_s(buf, sizeof(buf), "%d", (int32_t)(&l - mat.texdata));
+                                msgpack* tex = texdata->read(buf);
+
+                                l.tex_index = -1;
+                                if (!tex)
+                                    continue;
+
+                                msgpack* attrib = tex->read("attrib");
+                                if (attrib) {
+                                    l.attrib.m.repeat_u = attrib->read_bool("repeat_u") ? 1 : 0;
+                                    l.attrib.m.repeat_v = attrib->read_bool("repeat_v") ? 1 : 0;
+                                    l.attrib.m.mirror_u = attrib->read_bool("mirror_u") ? 1 : 0;
+                                    l.attrib.m.mirror_v = attrib->read_bool("mirror_v") ? 1 : 0;
+                                    l.attrib.m.ignore_alpha = attrib->read_bool("ignore_alpha") ? 1 : 0;
+                                    l.attrib.m.blend = attrib->read_uint32_t("blend");
+                                    l.attrib.m.alpha_blend = attrib->read_uint32_t("alpha_blend");
+                                    l.attrib.m.border = attrib->read_bool("border") ? 1 : 0;
+                                    l.attrib.m.clamp2edge = attrib->read_bool("clamp2edge") ? 1 : 0;
+                                    l.attrib.m.filter = attrib->read_uint32_t("filter");
+                                    l.attrib.m.mipmap = attrib->read_uint32_t("mipmap");
+                                    l.attrib.m.mipmap_bias = attrib->read_uint32_t("mipmap_bias");
+                                    l.attrib.m.flag_29 = attrib->read_bool("flag_29") ? 1 : 0;
+                                    l.attrib.m.anisotropic_filter = attrib->read_uint32_t("anisotropic_filter");
+                                }
+
+                                msgpack* _tex_name = tex->read("tex_name");
+                                if (_tex_name) {
+                                    std::string tex_name = _tex_name->read_string();
+                                    l.tex_index = hash_string_murmurhash(tex_name);
+                                }
+
+                                msgpack* shader_info = tex->read("shader_info");
+                                if (shader_info) {
+                                    l.shader_info.m.tex_type = (obj_material_texture_type)
+                                        shader_info->read_uint32_t("tex_type");
+                                    l.shader_info.m.uv_idx = shader_info->read_uint32_t("uv_idx");
+                                    l.shader_info.m.texcoord_trans = (obj_material_texture_coordinate_translation_type)
+                                        shader_info->read_uint32_t("texcoord_trans");
+                                    l.shader_info.m.dummy = shader_info->read_uint32_t("dummy");
+                                }
+
+                                msgpack* _ex_shader = material.read("ex_shader");
+                                if (_ex_shader) {
+                                    std::string shader_name = _ex_shader->read_string();
+                                    size_t name_length = min(sizeof(l.ex_shader) - 1, shader_name.size());
+                                    memcpy_s(l.ex_shader, sizeof(l.ex_shader) - 1, shader_name.c_str(), name_length);
+                                    l.ex_shader[name_length] = 0;
+                                }
+
+                                msgpack* weight = tex->read("weight");
+                                if (weight)
+                                    l.weight = weight->read_float_t();
+
+                                msgpack* tex_coord_mat = tex->read("tex_coord_mat");
+                                if (tex_coord_mat) {
+                                    msgpack_array* tex_coord_mat_ptr = MSGPACK_SELECT_PTR(msgpack_array, tex_coord_mat);
+
+                                    {
+                                        msgpack& row0 = tex_coord_mat_ptr->data()[0];
+                                        msgpack_array* row0_ptr = MSGPACK_SELECT(msgpack_array, row0);
+                                        l.tex_coord_mat.row0.x = row0_ptr->data()[0].read_float_t();
+                                        l.tex_coord_mat.row0.y = row0_ptr->data()[1].read_float_t();
+                                        l.tex_coord_mat.row0.z = row0_ptr->data()[2].read_float_t();
+                                        l.tex_coord_mat.row0.w = row0_ptr->data()[3].read_float_t();
+                                    }
+
+                                    {
+                                        msgpack& row1 = tex_coord_mat_ptr->data()[1];
+                                        msgpack_array* row1_ptr = MSGPACK_SELECT(msgpack_array, row1);
+                                        l.tex_coord_mat.row1.x = row1_ptr->data()[0].read_float_t();
+                                        l.tex_coord_mat.row1.y = row1_ptr->data()[1].read_float_t();
+                                        l.tex_coord_mat.row1.z = row1_ptr->data()[2].read_float_t();
+                                        l.tex_coord_mat.row1.w = row1_ptr->data()[3].read_float_t();
+                                    }
+
+                                    {
+                                        msgpack& row2 = tex_coord_mat_ptr->data()[2];
+                                        msgpack_array* row2_ptr = MSGPACK_SELECT(msgpack_array, row2);
+                                        l.tex_coord_mat.row2.x = row2_ptr->data()[0].read_float_t();
+                                        l.tex_coord_mat.row2.y = row2_ptr->data()[1].read_float_t();
+                                        l.tex_coord_mat.row2.z = row2_ptr->data()[2].read_float_t();
+                                        l.tex_coord_mat.row2.w = row2_ptr->data()[3].read_float_t();
+                                    }
+
+                                    {
+                                        msgpack& row3 = tex_coord_mat_ptr->data()[3];
+                                        msgpack_array* row3_ptr = MSGPACK_SELECT(msgpack_array, row3);
+                                        l.tex_coord_mat.row3.x = row3_ptr->data()[0].read_float_t();
+                                        l.tex_coord_mat.row3.y = row3_ptr->data()[1].read_float_t();
+                                        l.tex_coord_mat.row3.z = row3_ptr->data()[2].read_float_t();
+                                        l.tex_coord_mat.row3.w = row3_ptr->data()[3].read_float_t();
+                                    }
+                                }
+
+                                msgpack* reserved = tex->read("reserved");
+                                if (reserved) {
+                                    msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, reserved);
+                                    for (int32_t m = 0; m < 8; m++)
+                                        l.reserved[m] = ptr->data()[m].read_uint32_t();
+                                }
+                                num_of_textures++;
+                            }
+                        }
+
+                        obj.material_array[k].num_of_textures = num_of_textures;
+
+                        msgpack* attrib = material.read("attrib");
+                        if (attrib) {
+                            mat.attrib.m.alpha_texture = attrib->read_bool("alpha_texture") ? 1 : 0;
+                            mat.attrib.m.alpha_material = attrib->read_bool("alpha_material") ? 1 : 0;
+                            mat.attrib.m.punch_through = attrib->read_bool("punch_through") ? 1 : 0;
+                            mat.attrib.m.double_sided = attrib->read_bool("double_sided") ? 1 : 0;
+                            mat.attrib.m.normal_dir_light = attrib->read_bool("normal_dir_light") ? 1 : 0;
+                            mat.attrib.m.src_blend_factor = (obj_material_blend_factor)
+                                attrib->read_uint32_t("src_blend_factor");
+                            mat.attrib.m.dst_blend_factor = (obj_material_blend_factor)
+                                attrib->read_uint32_t("dst_blend_factor");
+                            mat.attrib.m.blend_operation = attrib->read_uint32_t("blend_operation");
+                            mat.attrib.m.zbias = attrib->read_uint32_t("zbias");
+                            mat.attrib.m.no_fog = attrib->read_bool("no_fog") ? 1 : 0;
+                            mat.attrib.m.translucent_priority = attrib->read_uint32_t("translucent_priority");
+                            mat.attrib.m.has_fog_height = attrib->read_bool("has_fog_height") ? 1 : 0;
+                            mat.attrib.m.flag_28 = attrib->read_bool("flag_28") ? 1 : 0;
+                            mat.attrib.m.fog_height = attrib->read_bool("fog_height") ? 1 : 0;
+                            mat.attrib.m.flag_30 = attrib->read_bool("flag_30") ? 1 : 0;
+                            mat.attrib.m.flag_31 = attrib->read_bool("flag_31") ? 1 : 0;
+                        }
+
+                        msgpack* color = material.read("color");
+                        if (color) {
+                            msgpack* diffuse = color->read("diffuse");
+                            if (diffuse) {
+                                mat.color.diffuse.x = diffuse->read_float_t("r");
+                                mat.color.diffuse.y = diffuse->read_float_t("g");
+                                mat.color.diffuse.z = diffuse->read_float_t("b");
+                                mat.color.diffuse.w = diffuse->read_float_t("a");
+                            }
+
+                            msgpack* ambient = color->read("ambient");
+                            if (ambient) {
+                                mat.color.ambient.x = ambient->read_float_t("r");
+                                mat.color.ambient.y = ambient->read_float_t("g");
+                                mat.color.ambient.z = ambient->read_float_t("b");
+                                mat.color.ambient.w = ambient->read_float_t("a");
+                            }
+
+                            msgpack* specular = color->read("specular");
+                            if (specular) {
+                                mat.color.specular.x = specular->read_float_t("r");
+                                mat.color.specular.y = specular->read_float_t("g");
+                                mat.color.specular.z = specular->read_float_t("b");
+                                mat.color.specular.w = specular->read_float_t("a");
+                            }
+
+                            msgpack* emission = color->read("emission");
+                            if (emission) {
+                                mat.color.emission.x = emission->read_float_t("r");
+                                mat.color.emission.y = emission->read_float_t("g");
+                                mat.color.emission.z = emission->read_float_t("b");
+                                mat.color.emission.w = emission->read_float_t("a");
+                            }
+
+                            msgpack* shininess = color->read("shininess");
+                            if (shininess)
+                                mat.color.shininess = shininess->read_float_t();
+
+                            msgpack* intensity = color->read("intensity");
+                            if (intensity)
+                                mat.color.intensity = intensity->read_float_t();
+                        }
+
+                        msgpack* center = material.read("center");
+                        if (center) {
+                            mat.center.x = center->read_float_t("x");
+                            mat.center.y = center->read_float_t("y");
+                            mat.center.z = center->read_float_t("z");
+                        }
+
+                        msgpack* radius = material.read("radius");
+                        if (radius)
+                            mat.radius = radius->read_float_t();
+
+                        msgpack* bump_depth = material.read("bump_depth");
+                        if (bump_depth)
+                            mat.radius = bump_depth->read_float_t();
+
+                        msgpack* reserved = material.read("reserved");
+                        if (reserved) {
+                            msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, reserved);
+                            for (int32_t m = 0; m < 15; m++)
+                                mat.reserved[m] = ptr->data()[m].read_uint32_t();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            msgpack* meshes = object.read("mesh");
+            if (meshes) {
+                msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, meshes);
+                for (msgpack& j : *ptr) {
+                    msgpack& _mesh = j;
+
+                    std::string name = _mesh.read_string("name");
+                    uint32_t name_hash = hash_string_murmurhash(name);
+
+                    for (size_t k = 0; k < obj.num_mesh; k++) {
+                        obj_mesh& mesh = obj.mesh_array[k];
+
+                        if (name_hash != hash_string_murmurhash(mesh.name))
+                            continue;
+
+                        msgpack* sub_meshes = _mesh.read("sub_mesh");
+                        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, sub_meshes);
+                        for (size_t l = 0; l < mesh.num_submesh; l++) {
+                            obj_sub_mesh& sub_mesh = mesh.submesh_array[l];
+                            msgpack& _sub_mesh = ptr->data()[l];
+
+                            msgpack* attrib = _sub_mesh.read("attrib");
+                            if (attrib) {
+                                msgpack* recieve_shadow = attrib->read("recieve_shadow");
+                                msgpack* cast_shadow = attrib->read("cast_shadow");
+                                if (recieve_shadow)
+                                    sub_mesh.attrib.m.recieve_shadow = recieve_shadow->read_bool();
+                                if (cast_shadow)
+                                    sub_mesh.attrib.m.cast_shadow = cast_shadow->read_bool();
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            break;
+        }
+    }
+}
+
+void object_material_msgpack_read(const char* path, const char* set_name,
+    txp_set* txp_set, texture_database* tex_db, obj_set_handler* handler) {
+    if (!tex_db || !path_check_directory_exists(path))
+        return;
+
+    char set_name_buf[0x80];
+    for (const char* i = set_name; *i && *i != '.'; i++) {
+        char c = *i;
+        if (c >= 'a' && c <= 'z')
+            c -= 0x20;
+        set_name_buf[i - set_name] = c;
+        set_name_buf[i - set_name + 1] = 0;
+    }
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "%s\\%s\\", path, set_name_buf);
+    if (!path_check_directory_exists(buf))
+        return;
+
+    sprintf_s(buf, sizeof(buf), "%s\\%s\\config_tex.json", path, set_name_buf);
+    if (!path_check_file_exists(buf))
+        return;
+    
+    msgpack msg;
+
+    stream s;
+    s.open(buf, "rb");
+    io_json_read(s, &msg);
+    s.close();
+
+    if (msg.type != MSGPACK_MAP)
+        return;
+
+    msgpack* add = msg.read("Add");
+    if (add) {
+        std::vector<uint32_t> ids;
+        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, add);
+        for (msgpack& i : *ptr) {
+            std::string name = i.read_string();
+            if (!name.size())
+                continue;
+
+            sprintf_s(buf, sizeof(buf), "%s\\%s\\%s.dds", path, set_name_buf, name.c_str());
+            if (!path_check_file_exists(buf))
+                continue;
+
+            dds d;
+            sprintf_s(buf, sizeof(buf), "%s\\%s\\%s", path, set_name_buf, name.c_str());
+            d.read(buf);
+            if (!d.width || !d.height || !d.mipmaps_count || d.data.size() < 1)
+                continue;
+
+            uint32_t id = hash_string_murmurhash(name);
+            ids.push_back(id);
+
+            tex_db->texture.push_back({});
+            texture_info* info = &tex_db->texture.back();
+            info->name = name;
+            info->name_hash = hash_string_murmurhash(info->name);
+            info->id = id;
+
+            txp_set->textures.push_back({});
+            txp* tex = &txp_set->textures.back();
+            tex->array_size = d.has_cube_map ? 6 : 1;
+            tex->has_cube_map = d.has_cube_map;
+            tex->mipmaps_count = d.mipmaps_count;
+
+            tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
+            int32_t index = 0;
+            do
+                for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
+                    txp_mipmap tex_mip;
+                    tex_mip.width = max(d.width >> i, 1);
+                    tex_mip.height = max(d.height >> i, 1);
+                    tex_mip.format = d.format;
+
+                    uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
+                    tex_mip.size = size;
+                    tex_mip.data.resize(size);
+                    memcpy(tex_mip.data.data(), d.data[index], size);
+                    tex->mipmaps.push_back(tex_mip);
+                    index++;
+                }
+            while (index / tex->mipmaps_count < tex->array_size);
+        }
+
+        obj_set* set = handler->obj_set;
+
+        size_t tex_id_num = txp_set->textures.size();
+        if (set->tex_id_num != tex_id_num) {
+            uint32_t* tex_id_data = force_malloc_s(uint32_t, tex_id_num);
+            memmove(tex_id_data, set->tex_id_data, sizeof(uint32_t) * set->tex_id_num);
+            free(set->tex_id_data);
+
+            memmove(&tex_id_data[set->tex_id_num], ids.data(), sizeof(uint32_t) * (tex_id_num - set->tex_id_num));
+
+            set->tex_id_data = tex_id_data;
+            set->tex_id_num = (uint32_t)tex_id_num;
+            handler->tex_num = (uint32_t)tex_id_num;
+        }
+
+    }
+
+    msgpack* replace = msg.read("Replace");
+    if (replace) {
+        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, replace);
+        for (msgpack& i : *ptr) {
+            std::string name = i.read_string();
+            if (!name.size())
+                continue;
+
+            sprintf_s(buf, sizeof(buf), "%s\\%s\\%s.dds", path, set_name_buf, name.c_str());
+            if (!path_check_file_exists(buf))
+                continue;
+
+            dds d;
+            sprintf_s(buf, sizeof(buf), "%s\\%s\\%s", path, set_name_buf, name.c_str());
+            d.read(buf);
+            if (!d.width || !d.height || !d.mipmaps_count || d.data.size() < 1)
+                continue;
+
+            uint32_t id = hash_string_murmurhash(name);
+
+            txp* tex = 0;
+            for (texture_info& info : tex_db->texture)
+                if (id == info.id) {
+                    tex = &txp_set->textures[&info - tex_db->texture.data()];
+                    break;
+                }
+
+            if (!tex)
+                continue;
+
+            tex->array_size = d.has_cube_map ? 6 : 1;
+            tex->has_cube_map = d.has_cube_map;
+            tex->mipmaps_count = d.mipmaps_count;
+
+            tex->mipmaps.resize(0);
+            tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
+            int32_t index = 0;
+            do
+                for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
+                    txp_mipmap tex_mip;
+                    tex_mip.width = max(d.width >> i, 1);
+                    tex_mip.height = max(d.height >> i, 1);
+                    tex_mip.format = d.format;
+
+                    uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
+                    tex_mip.size = size;
+                    tex_mip.data.resize(size);
+                    memcpy(tex_mip.data.data(), d.data[index], size);
+                    tex->mipmaps.push_back(tex_mip);
+                    index++;
+                }
+            while (index / tex->mipmaps_count < tex->array_size);
+        }
+    }
+}
+
+void object_material_msgpack_write(const char* path, const char* set_name, uint32_t set_id,
+    obj_set* obj_set, txp_set* txp_set, object_database* obj_db, texture_database* tex_db) {
+    if (!path_check_directory_exists(path) && !CreateDirectoryA(path, 0))
+        return;
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "%s\\%s\\", path, set_name);
+    if (!path_check_directory_exists(buf) && !CreateDirectoryA(buf, 0))
+        return;
+
+    msgpack_array objects;
+    objects.resize(obj_set->obj_num);
+    for (uint32_t i = 0; i < obj_set->obj_num; i++) {
+        obj& obj = obj_set->obj_data[i];
+
+        msgpack& object = objects.data()[i];
+        object = msgpack(0, false, 0);
+        object.append(msgpack("name", obj.name));
+        object.append(msgpack("material", true, obj.num_material));
+        object.append(msgpack("mesh", true, obj.num_mesh));
+
+        msgpack* materials = object.get_by_name("material");
+        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, materials);
+        for (size_t j = 0; j < obj.num_material; j++) {
+            obj_material& mat = obj.material_array[j].material;
+            msgpack& material = ptr->data()[j];
+            material = msgpack(0, false, 0);
+
+            {
+                msgpack shader_compo = msgpack("shader_compo", false, 0);
+                shader_compo.append({ "color", (bool)mat.shader_compo.m.color });
+                shader_compo.append({ "color_a", (bool)mat.shader_compo.m.color_a });
+                shader_compo.append({ "color_l1", (bool)mat.shader_compo.m.color_l1 });
+                shader_compo.append({ "color_l1_a", (bool)mat.shader_compo.m.color_l1_a });
+                shader_compo.append({ "color_l2", (bool)mat.shader_compo.m.color_l2 });
+                shader_compo.append({ "color_l2_a", (bool)mat.shader_compo.m.color_l2_a });
+                shader_compo.append({ "transparency", (bool)mat.shader_compo.m.transparency });
+                shader_compo.append({ "specular", (bool)mat.shader_compo.m.specular });
+                shader_compo.append({ "normal_01", (bool)mat.shader_compo.m.normal_01 });
+                shader_compo.append({ "normal_02", (bool)mat.shader_compo.m.normal_02 });
+                shader_compo.append({ "envmap", (bool)mat.shader_compo.m.envmap });
+                shader_compo.append({ "color_l3", (bool)mat.shader_compo.m.color_l3 });
+                shader_compo.append({ "color_l3_a", (bool)mat.shader_compo.m.color_l3_a });
+                shader_compo.append({ "translucency", (bool)mat.shader_compo.m.translucency });
+                shader_compo.append({ "flag_14", (bool)mat.shader_compo.m.flag_14 });
+                shader_compo.append({ "override_ibl", (bool)mat.shader_compo.m.override_ibl });
+                shader_compo.append({ "dummy", mat.shader_compo.m.dummy });
+                material.append(shader_compo);
+            }
+
+            material.append({ "shader_name", mat.shader.name });
+
+            {
+                msgpack shader_info = msgpack("shader_info", false, 0);
+                shader_info.append({ "vtx_trans_type", mat.shader_info.m.vtx_trans_type });
+                shader_info.append({ "col_src", mat.shader_info.m.col_src });
+                shader_info.append({ "is_lgt_diffuse", (bool)mat.shader_info.m.is_lgt_diffuse });
+                shader_info.append({ "is_lgt_specular", (bool)mat.shader_info.m.is_lgt_specular });
+                shader_info.append({ "is_lgt_per_pixel",(bool)mat.shader_info.m.is_lgt_per_pixel });
+                shader_info.append({ "is_lgt_double", (bool)mat.shader_info.m.is_lgt_double });
+                shader_info.append({ "bump_map_type", mat.shader_info.m.bump_map_type });
+                shader_info.append({ "fresnel_type", mat.shader_info.m.fresnel_type });
+                shader_info.append({ "line_light", mat.shader_info.m.line_light });
+                shader_info.append({ "recieve_shadow", (bool)mat.shader_info.m.recieve_shadow });
+                shader_info.append({ "cast_shadow", (bool)mat.shader_info.m.cast_shadow });
+                shader_info.append({ "specular_quality", mat.shader_info.m.specular_quality });
+                shader_info.append({ "aniso_direction", mat.shader_info.m.aniso_direction });
+                shader_info.append({ "dummy", mat.shader_info.m.dummy });
+                material.append(shader_info);
+            }
+
+            {
+                msgpack texdata = msgpack("texdata", false, 0);
+                for (obj_material_texture_data& k : mat.texdata) {
+                    if (!k.tex_index || k.tex_index == -1
+                        || k.tex_index == hash_murmurhash_empty || k.tex_index == hash_murmurhash_null)
+                        continue;
+
+                    sprintf_s(buf, sizeof(buf), "%d", (int32_t)(&k - mat.texdata));
+                    msgpack tex = msgpack(buf, false, 0);
+
+                    {
+                        msgpack attrib = msgpack("attrib", false, 0);
+                        attrib.append({ "repeat_u", (bool)k.attrib.m.repeat_u });
+                        attrib.append({ "repeat_v", (bool)k.attrib.m.repeat_v });
+                        attrib.append({ "mirror_u", (bool)k.attrib.m.mirror_u });
+                        attrib.append({ "mirror_v", (bool)k.attrib.m.mirror_v });
+                        attrib.append({ "ignore_alpha", (bool)k.attrib.m.ignore_alpha });
+                        attrib.append({ "blend", k.attrib.m.blend });
+                        attrib.append({ "alpha_blend", k.attrib.m.alpha_blend });
+                        attrib.append({ "border", (bool)k.attrib.m.border });
+                        attrib.append({ "clamp2edge", (bool)k.attrib.m.clamp2edge });
+                        attrib.append({ "filter", k.attrib.m.filter });
+                        attrib.append({ "mipmap", k.attrib.m.mipmap });
+                        attrib.append({ "mipmap_bias", k.attrib.m.mipmap_bias });
+                        attrib.append({ "flag_29", (bool)k.attrib.m.flag_29 });
+                        attrib.append({ "anisotropic_filter", k.attrib.m.anisotropic_filter });
+                        tex.append(attrib);
+                    }
+
+                    tex.append({ "tex_name", tex_db->get_texture_name(k.tex_index) });
+
+                    {
+                        msgpack shader_info = msgpack("shader_info", false, 0);
+                        shader_info.append({ "tex_type", k.shader_info.m.tex_type });
+                        shader_info.append({ "uv_idx", k.shader_info.m.uv_idx });
+                        shader_info.append({ "texcoord_trans", k.shader_info.m.texcoord_trans });
+                        shader_info.append({ "dummy", k.shader_info.m.dummy });
+                        tex.append(shader_info);
+                    }
+
+                    tex.append({ "ex_shader", k.ex_shader });
+                    tex.append({ "weight", k.weight });
+
+                    {
+                        msgpack tex_coord_mat = msgpack("tex_coord_mat", true, 4);
+                        msgpack_array* tex_coord_mat_ptr = MSGPACK_SELECT(msgpack_array, tex_coord_mat);
+
+                        {
+                            msgpack& row0 = tex_coord_mat_ptr->data()[0];
+                            row0 = msgpack(0, true, 4);
+                            msgpack_array* row0_ptr = MSGPACK_SELECT(msgpack_array, row0);
+                            row0_ptr->data()[0] = { 0, k.tex_coord_mat.row0.x };
+                            row0_ptr->data()[1] = { 0, k.tex_coord_mat.row0.y };
+                            row0_ptr->data()[2] = { 0, k.tex_coord_mat.row0.z };
+                            row0_ptr->data()[3] = { 0, k.tex_coord_mat.row0.w };
+                        }
+
+                        {
+                            msgpack& row1 = tex_coord_mat_ptr->data()[1];
+                            row1 = msgpack(0, true, 4);
+                            msgpack_array* row1_ptr = MSGPACK_SELECT(msgpack_array, row1);
+                            row1_ptr->data()[0] = { 0, k.tex_coord_mat.row1.x };
+                            row1_ptr->data()[1] = { 0, k.tex_coord_mat.row1.y };
+                            row1_ptr->data()[2] = { 0, k.tex_coord_mat.row1.z };
+                            row1_ptr->data()[3] = { 0, k.tex_coord_mat.row1.w };
+                        }
+
+                        {
+                            msgpack& row2 = tex_coord_mat_ptr->data()[2];
+                            row2 = msgpack(0, true, 4);
+                            msgpack_array* row2_ptr = MSGPACK_SELECT(msgpack_array, row2);
+                            row2_ptr->data()[0] = { 0, k.tex_coord_mat.row2.x };
+                            row2_ptr->data()[1] = { 0, k.tex_coord_mat.row2.y };
+                            row2_ptr->data()[2] = { 0, k.tex_coord_mat.row2.z };
+                            row2_ptr->data()[3] = { 0, k.tex_coord_mat.row2.w };
+                        }
+
+                        {
+                            msgpack& row3 = tex_coord_mat_ptr->data()[3];
+                            row3 = msgpack(0, true, 4);
+                            msgpack_array* row3_ptr = MSGPACK_SELECT(msgpack_array, row3);
+                            row3_ptr->data()[0] = { 0, k.tex_coord_mat.row3.x };
+                            row3_ptr->data()[1] = { 0, k.tex_coord_mat.row3.y };
+                            row3_ptr->data()[2] = { 0, k.tex_coord_mat.row3.z };
+                            row3_ptr->data()[3] = { 0, k.tex_coord_mat.row3.w };
+                        }
+
+                        tex.append(tex_coord_mat);
+                    }
+
+                    {
+                        msgpack reserved = msgpack("reserved", true, 8);
+                        msgpack_array* ptr = MSGPACK_SELECT(msgpack_array, reserved);
+                        for (int32_t l = 0; l < 8; l++)
+                            ptr->data()[l] = { 0, k.reserved[l] };
+                        tex.append(reserved);
+                    }
+
+                    texdata.append(tex);
+                }
+
+                material.append(texdata);
+            }
+
+            {
+                msgpack attrib = msgpack("attrib", false, 0);
+                attrib.append({ "alpha_texture", (bool)mat.attrib.m.alpha_texture });
+                attrib.append({ "alpha_material", (bool)mat.attrib.m.alpha_material });
+                attrib.append({ "punch_through", (bool)mat.attrib.m.punch_through });
+                attrib.append({ "double_sided", (bool)mat.attrib.m.double_sided });
+                attrib.append({ "normal_dir_light", (bool)mat.attrib.m.normal_dir_light });
+                attrib.append({ "src_blend_factor", mat.attrib.m.src_blend_factor });
+                attrib.append({ "dst_blend_factor", mat.attrib.m.dst_blend_factor });
+                attrib.append({ "blend_operation", mat.attrib.m.blend_operation });
+                attrib.append({ "zbias", mat.attrib.m.zbias });
+                attrib.append({ "no_fog", (bool)mat.attrib.m.no_fog });
+                attrib.append({ "translucent_priority", mat.attrib.m.translucent_priority });
+                attrib.append({ "has_fog_height", (bool)mat.attrib.m.has_fog_height });
+                attrib.append({ "flag_28", (bool)mat.attrib.m.flag_28 });
+                attrib.append({ "fog_height", (bool)mat.attrib.m.fog_height });
+                attrib.append({ "flag_30", (bool)mat.attrib.m.flag_30 });
+                attrib.append({ "flag_31", (bool)mat.attrib.m.flag_31 });
+                material.append(attrib);
+            }
+
+            {
+                msgpack color = msgpack("color", false, 0);
+
+                {
+                    msgpack diffuse = msgpack("diffuse", false, 0);
+                    diffuse.append({ "r", mat.color.diffuse.x });
+                    diffuse.append({ "g", mat.color.diffuse.y });
+                    diffuse.append({ "b", mat.color.diffuse.z });
+                    diffuse.append({ "a", mat.color.diffuse.w });
+                    color.append(diffuse);
+                }
+
+                {
+                    msgpack ambient = msgpack("ambient", false, 0);
+                    ambient.append({ "r", mat.color.ambient.x });
+                    ambient.append({ "g", mat.color.ambient.y });
+                    ambient.append({ "b", mat.color.ambient.z });
+                    ambient.append({ "a", mat.color.ambient.w });
+                    color.append(ambient);
+                }
+
+                {
+                    msgpack specular = msgpack("specular", false, 0);
+                    specular.append({ "r", mat.color.specular.x });
+                    specular.append({ "g", mat.color.specular.y });
+                    specular.append({ "b", mat.color.specular.z });
+                    specular.append({ "a", mat.color.specular.w });
+                    color.append(specular);
+                }
+
+                {
+                    msgpack emission = msgpack("emission", false, 0);
+                    emission.append({ "r", mat.color.emission.x });
+                    emission.append({ "g", mat.color.emission.y });
+                    emission.append({ "b", mat.color.emission.z });
+                    emission.append({ "a", mat.color.emission.w });
+                    color.append(emission);
+                }
+
+                color.append({ "shininess", mat.color.shininess });
+                color.append({ "intensity", mat.color.intensity });
+
+                material.append(color);
+            }
+
+            {
+                msgpack center = msgpack("center", false, 0);
+                center.append({ "x", mat.center.x });
+                center.append({ "y", mat.center.y });
+                center.append({ "z", mat.center.z });
+                material.append(center);
+            }
+
+            material.append({ "radius", mat.radius });
+            material.append({ "name", mat.name });
+            material.append({ "bump_depth", mat.bump_depth });
+
+            {
+                msgpack reserved = msgpack("reserved", true, 15);
+                msgpack_array* ptr = MSGPACK_SELECT(msgpack_array, reserved);
+                for (int32_t k = 0; k < 15; k++)
+                    ptr->data()[k] = { 0, mat.reserved[k] };
+                material.append(reserved);
+            }
+        }
+
+        msgpack* meshes = object.get_by_name("mesh");
+        ptr = MSGPACK_SELECT_PTR(msgpack_array, meshes);
+        for (size_t j = 0; j < obj.num_mesh; j++) {
+            obj_mesh& mesh = obj.mesh_array[j];
+            msgpack& _mesh = ptr->data()[j];
+            _mesh = msgpack(0, false, 0);
+
+            _mesh.append(msgpack("name", mesh.name));
+            _mesh.append(msgpack("sub_mesh", true, mesh.num_submesh));
+
+            msgpack* sub_meshes = _mesh.get_by_name("sub_mesh");
+            msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, sub_meshes);
+            for (size_t k = 0; k < mesh.num_submesh; k++) {
+                obj_sub_mesh& sub_mesh = mesh.submesh_array[k];
+                msgpack& _sub_mesh = ptr->data()[k];
+                _sub_mesh = msgpack(0, false, 0);
+
+                {
+                    msgpack attrib = msgpack("attrib", false, 0);
+                    attrib.append({ "recieve_shadow", (bool)sub_mesh.attrib.m.recieve_shadow });
+                    attrib.append({ "cast_shadow", (bool)sub_mesh.attrib.m.cast_shadow });
+                    _sub_mesh.append(attrib);
+                }
+            }
+        }
+    }
+
+    msgpack msg = msgpack(0, true, objects);
+
+    sprintf_s(buf, sizeof(buf), "%s\\%s\\config.json", path, set_name);
+
+    stream s;
+    s.open(buf, "wb");
+    io_json_write(s, &msg);
+    s.close();
+
+    for (uint32_t i = 0; i < obj_set->tex_id_num; i++) {
+        const char* texture_name = tex_db->get_texture_name(obj_set->tex_id_data[i]);
+
+        txp& tex = txp_set->textures[i];
+
+        txp_format format = tex.mipmaps[0].format;
+        uint32_t width = tex.mipmaps[0].width;
+        uint32_t height = tex.mipmaps[0].height;
+
+        dds d;
+        d.format = format;
+        d.width = width;
+        d.height = height;
+        d.mipmaps_count = tex.mipmaps_count;
+        d.has_cube_map = tex.has_cube_map;
+        d.data.reserve((tex.has_cube_map ? 6LL : 1LL) * tex.mipmaps_count);
+        uint32_t index = 0;
+        do
+            for (uint32_t j = 0; j < tex.mipmaps_count; j++) {
+                uint32_t size = txp::get_size(format, max(width >> j, 1), max(height >> j, 1));
+                void* data = force_malloc(size);
+                memcpy(data, tex.mipmaps[index].data.data(), size);
+                d.data.push_back(data);
+                index++;
+            }
+        while (index / tex.mipmaps_count < tex.array_size);
+        sprintf_s(buf, sizeof(buf), "%s\\%s\\%s", path, set_name, texture_name);
+        d.write(buf);
+    }
 }
 
 inline void object_storage_init(object_database* obj_db) {
@@ -1084,7 +1930,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         std::string& file = handler->farc_file_handler.ptr->file;
 
         size_t file_len = file.size();
-        if (file_len >= 0x100)
+        if (file_len >= 0x100 - 4)
             return false;
 
         const char* t = strrchr(file.c_str(), '.');
@@ -1116,25 +1962,33 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         if (!txi)
             return false;
 
-        object_database_file local_obj_db;
-        local_obj_db.read(osi->data, osi->size, true);
+        object_database_file obj_db_file;
+        obj_db_file.read(osi->data, osi->size, true);
 
-        texture_database_file local_tex_db;
-        local_tex_db.read(txi->data, txi->size, true);
+        texture_database_file tex_db_file;
+        tex_db_file.read(txi->data, txi->size, true);
 
         std::string name;
-        if (local_obj_db.ready)
-            for (object_set_info_file& m : local_obj_db.object_set)
+        if (obj_db_file.ready)
+            for (object_set_info_file& m : obj_db_file.object_set)
                 if (m.id == handler->set_id) {
                     name = m.name;
                     break;
                 }
 
-        if (obj_db)
-            obj_db->add(&local_obj_db);
+        object_database local_obj_db;
+        if (obj_db_file.ready) {
+            if (obj_db)
+                obj_db->add(&obj_db_file);
+            local_obj_db.add(&obj_db_file);
+        }
 
-        if (tex_db)
-            tex_db->add(&local_tex_db);
+        texture_database local_tex_db;
+        if (tex_db_file.ready) {
+            if (tex_db)
+                tex_db->add(&tex_db_file);
+            local_tex_db.add(&tex_db_file);
+        }
 
         if (!name.size())
             return false;
@@ -1146,6 +2000,8 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         set->unpack_file(osd->data, osd->size, true);
         if (!set->ready)
             return false;
+
+        object_material_msgpack_read("patch\\AFT\\objset", file.c_str(), set, &local_obj_db);
 
         handler->obj_file_handler.free_data();
         handler->obj_id_data.reserve(set->obj_num);
@@ -1159,7 +2015,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         obj_set_handler_calc_axis_aligned_bounding_box(handler);
         handler->obj_loaded = true;
 
-        if (obj_set_handler_load_textures_modern(handler, txd->data, txd->size))
+        if (obj_set_handler_load_textures_modern(handler, txd->data, txd->size, file.c_str(), &local_tex_db))
             return false;
 
         obj_set_handler_get_shader_index_texture_index(handler);
@@ -1386,7 +2242,8 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* 
     return false;
 }
 
-static bool obj_set_handler_load_textures_modern(obj_set_handler* handler, const void* data, size_t size) {
+static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
+    const void* data, size_t size, const char* file, texture_database* tex_db) {
     obj_set* set = handler->obj_set;
     if (!set || !data || !size)
         return true;
@@ -1397,6 +2254,7 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler, const
         txp_set txp;
         txp.unpack_file_modern(data, size);
         handler->tex_num = (int32_t)txp.textures.size();
+        object_material_msgpack_read("patch\\AFT\\objset", file, &txp, tex_db, handler);
         texture_txp_set_load(&txp, &handler->tex_data, set->tex_id_data);
     }
 

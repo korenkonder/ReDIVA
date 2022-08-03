@@ -94,8 +94,7 @@ void file_handler::set_dir(const char* dir) {
     u_lock.unlock();
 }
 
-void file_handler::set_callback_data(int32_t index,
-    void(*func)(void*, const void*, size_t), void* data) {
+void file_handler::set_callback_data(int32_t index, PFNFILEHANDLERCALLBACK* func, void* data) {
     std::unique_lock<std::mutex> u_lock(mtx);
     if (index < 2) {
         callback[index].func = func;
@@ -356,11 +355,10 @@ void p_file_handler::free_data() {
     if (!ptr)
         return;
 
-    if (ptr->mtx.try_lock()) {
-        for (int32_t i = 0; i < 2; i++)
-            ptr->callback[i] = {};
-        ptr->mtx.unlock();
-    }
+    std::unique_lock<std::mutex> u_lock(ptr->mtx);
+    for (int32_t i = 0; i < 2; i++)
+        ptr->callback[i] = {};
+    u_lock.unlock();
     ptr->free_data_lock();
     ptr = 0;
 }
@@ -494,8 +492,7 @@ void p_file_handler::read_now() {
     }
 }
 
-void p_file_handler::set_callback_data(int32_t index,
-    void(*func)(void*, const void*, size_t), void* data) {
+void p_file_handler::set_callback_data(int32_t index, PFNFILEHANDLERCALLBACK* func, void* data) {
     if (ptr)
         ptr->set_callback_data(index, func, data);
 }

@@ -59,8 +59,12 @@ struct farc {
 
     void add_file(const char* name = 0);
     void add_file(const wchar_t* name);
+    const char* get_file_name(uint32_t hash);
     size_t get_file_size(const char* name);
     size_t get_file_size(const wchar_t* name);
+    bool has_file(const char* name);
+    bool has_file(const wchar_t* name);
+    bool has_file(uint32_t hash);
     void read(const char* path, bool unpack, bool save);
     void read(const wchar_t* path, bool unpack, bool save);
     void read(const void* data, size_t size, bool unpack);

@@ -15,9 +15,6 @@
 float_t delta_frame_history = 0;
 int32_t delta_frame_history_int = 0;
 
-static void draw_state_init(draw_state* draw_state);
-static void draw_state_stats_update(draw_state* draw_state);
-
 static void render_context_light_param_data_ibl_set_diffuse(light_param_ibl_diffuse* diffuse, int32_t level);
 static void render_context_light_param_data_ibl_set_specular(light_param_ibl_specular* specular);
 
@@ -58,6 +55,19 @@ field_2F8(), sss_texture(), npr_param(), field_31C(), field_31D(), field_31E(), 
 
 draw_pass::~draw_pass() {
     delete shadow_ptr;
+}
+
+draw_state::draw_state() : stats(), stats_prev(), wireframe(), wireframe_overlay(), light(),
+self_shadow(), field_45(), use_global_material(), fog_height(), ex_data_mat(), field_68() {
+    shader = true;
+    shader_index = -1;
+    field_50 = -1;
+    bump_depth = 1.0f;
+    intensity = 1.0f;
+    reflectivity = 1.0f;
+    reflect_uv_scale = 0.1f;
+    refract_uv_scale = 0.1f;
+    fresnel = 7.0f;
 }
 
 material_list_struct::material_list_struct() : blend_color(),
@@ -214,16 +224,16 @@ draw_task* object_data_buffer::add_draw_task(draw_task_type type) {
 
     int32_t size = align_val(sizeof(draw_task_type) + sizeof(mat4) + sizeof(float_t) * 2, 0x08);
     switch (type) {
-    case DRAW_TASK_TYPE_OBJECT:
+    case DRAW_TASK_OBJECT:
         size += sizeof(draw_object);
         break;
-    case DRAW_TASK_TYPE_PRIMITIVE:
+    case DRAW_TASK_OBJECT_PRIMITIVE:
         size += sizeof(draw_primitive);
         break;
-    case DRAW_TASK_TYPE_PREPROCESS:
+    case DRAW_TASK_OBJECT_PREPROCESS:
         size += sizeof(draw_task_preprocess);
         break;
-    case DRAW_TASK_TYPE_OBJECT_TRANSLUCENT:
+    case DRAW_TASK_OBJECT_TRANSLUCENT:
         size += sizeof(draw_task_object_translucent);
         break;
     default:
@@ -274,7 +284,338 @@ material_list_count(), material_list_array(), object_bounding_sphere_check_func(
 }
 
 object_data::~object_data() {
+    for (object_data_vertex_array& i : vertex_array_cache)
+        glDeleteVertexArrays(1, &i.vertex_array);
+    vertex_array_cache.clear();
+}
 
+void object_data::add_vertex_array(draw_object* draw) {
+    obj_mesh* mesh = draw->mesh;
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
+    obj_material_data* material = draw->material;
+
+    GLuint array_buffer = draw->array_buffer;
+    GLuint morph_array_buffer = draw->morph_array_buffer;
+
+    object_data_vertex_array* vertex_array_data = 0;
+    for (object_data_vertex_array& i : vertex_array_cache)
+        if (i.alive_time >= 0 && i.array_buffer == array_buffer && i.morph_array_buffer == morph_array_buffer) {
+            if (!i.vertex_array) {
+                vertex_array_data = &i;
+                break;
+            }
+
+            i.alive_time = 60;
+            return;
+        }
+
+    if (!vertex_array_data)
+        for (object_data_vertex_array& i : vertex_array_cache)
+            if (i.alive_time <= 0) {
+                vertex_array_data = &i;
+                break;
+            }
+
+    if (!vertex_array_data) {
+        vertex_array_cache.push_back({});
+        vertex_array_data = &vertex_array_cache.back();
+        *vertex_array_data = {};
+    }
+
+    if (!vertex_array_data->vertex_array)
+        glGenVertexArrays(1, &vertex_array_data->vertex_array);
+
+    vertex_array_data->array_buffer = array_buffer;
+    vertex_array_data->morph_array_buffer = morph_array_buffer;
+    vertex_array_data->alive_time = 60;
+
+    bool compressed = mesh->attrib.m.compressed;
+    GLsizei size_vertex = (GLsizei)mesh->size_vertex;
+    obj_vertex_format vertex_format = mesh->vertex_format;
+
+    gl_state_bind_vertex_array(vertex_array_data->vertex_array);
+    gl_state_bind_array_buffer(draw->array_buffer);
+    gl_state_bind_element_array_buffer(draw->element_array_buffer);
+
+    size_t offset = 0;
+    if (vertex_format & OBJ_VERTEX_POSITION) {
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+        offset += 12;
+    }
+    else
+        glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    if (vertex_format & OBJ_VERTEX_NORMAL) {
+        glEnableVertexAttribArray(2);
+        if (!compressed) {
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            offset += 12;
+        }
+        else {
+            glVertexAttribPointer(2, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
+            offset += 8;
+        }
+    }
+    else
+        glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    if (vertex_format & OBJ_VERTEX_TANGENT) {
+        glEnableVertexAttribArray(6);
+        if (!compressed) {
+            glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            offset += 16;
+        }
+        else {
+            glVertexAttribPointer(6, 4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
+            offset += 8;
+        }
+    }
+    else
+        glVertexAttrib4f(5, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    if (!compressed && vertex_format & OBJ_VERTEX_BINORMAL)
+        offset += 12;
+
+    bool texture_vertex_attrib_array_set[4] = { false };
+    for (int32_t i = 0, j = 0, l = 0; i < 4; i++) {
+        if (material->material.texdata[i].tex_index == -1)
+            continue;
+
+        int32_t texcoord_index = obj_material_texture_type_get_texcoord_index(
+            material->material.texdata[i].shader_info.m.tex_type, j);
+        if (texcoord_index < 0)
+            continue;
+
+        if (material->material.texdata[i].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
+            j++;
+
+        if (vertex_format & (OBJ_VERTEX_TEXCOORD0 << sub_mesh->uv_index[l])
+            && !texture_vertex_attrib_array_set[sub_mesh->uv_index[l]]) {
+            glEnableVertexAttribArray(8 + texcoord_index);
+            if (!compressed)
+                glVertexAttribPointer(8 + texcoord_index, 2, GL_FLOAT, GL_FALSE,
+                    size_vertex, (void*)(offset + 8ULL * sub_mesh->uv_index[l]));
+            else
+                glVertexAttribPointer(8 + texcoord_index, 2, GL_HALF_FLOAT, GL_FALSE,
+                    size_vertex, (void*)(offset + 4ULL * sub_mesh->uv_index[l]));
+            texture_vertex_attrib_array_set[sub_mesh->uv_index[l]] = true;
+        }
+        l++;
+    }
+
+    for (int32_t i = 0; i < 4; i++)
+        if (!texture_vertex_attrib_array_set[i])
+            glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    if (!compressed) {
+        if (vertex_format & OBJ_VERTEX_TEXCOORD0)
+            offset += 8;
+        if (vertex_format & OBJ_VERTEX_TEXCOORD1)
+            offset += 8;
+        if (vertex_format & OBJ_VERTEX_TEXCOORD2)
+            offset += 8;
+        if (vertex_format & OBJ_VERTEX_TEXCOORD3)
+            offset += 8;
+    }
+    else {
+        if (vertex_format & OBJ_VERTEX_TEXCOORD0)
+            offset += 4;
+        if (vertex_format & OBJ_VERTEX_TEXCOORD1)
+            offset += 4;
+        if (vertex_format & OBJ_VERTEX_TEXCOORD2)
+            offset += 4;
+        if (vertex_format & OBJ_VERTEX_TEXCOORD3)
+            offset += 4;
+    }
+
+    if (vertex_format & OBJ_VERTEX_COLOR0) {
+        glEnableVertexAttribArray(3);
+        if (!compressed) {
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            offset += 16;
+        }
+        else {
+            glVertexAttribPointer(3, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            offset += 8;
+        }
+    }
+    else
+        glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
+
+    if (vertex_format & OBJ_VERTEX_COLOR1)
+        offset += 16;
+
+    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+        glEnableVertexAttribArray(1);
+        if (!compressed) {
+            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            offset += 16;
+        }
+        else {
+            glVertexAttribPointer(1, 4, GL_UNSIGNED_SHORT, GL_TRUE, size_vertex, (void*)offset);
+            offset += 8;
+        }
+
+        glEnableVertexAttribArray(15);
+        if (!compressed) {
+            glVertexAttribPointer(15, 4, GL_INT, GL_FALSE, size_vertex, (void*)offset);
+            offset += 16;
+        }
+        else {
+            glVertexAttribPointer(15, 4, GL_UNSIGNED_SHORT, GL_FALSE, size_vertex, (void*)offset);
+            offset += 8;
+        }
+    }
+    else {
+        glVertexAttrib4f(1, 0.0f, 0.0f, 0.0f, 0.0f);
+        glVertexAttrib4f(15, 0.0f, 0.0f, 0.0f, 0.0f);
+    }
+
+    if (!compressed && vertex_format & OBJ_VERTEX_UNKNOWN) {
+        glEnableVertexAttribArray(7);
+        glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+        offset += 16;
+    }
+    else
+        glVertexAttrib4f(7, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    if (draw->morph_array_buffer) {
+        gl_state_bind_array_buffer(draw->morph_array_buffer);
+
+        offset = 0;
+        if (vertex_format & OBJ_VERTEX_POSITION) {
+            glEnableVertexAttribArray(10);
+            glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            offset += 12;
+        }
+        else
+            glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
+
+        if (vertex_format & OBJ_VERTEX_NORMAL) {
+            glEnableVertexAttribArray(11);
+            if (!compressed) {
+                glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                offset += 12;
+            }
+            else {
+                glVertexAttribPointer(11, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
+                offset += 8;
+            }
+        }
+        else
+            glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
+
+        if (vertex_format & OBJ_VERTEX_TANGENT) {
+            glEnableVertexAttribArray(12);
+            if (!compressed) {
+                glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                offset += 16;
+            }
+            else {
+                glVertexAttribPointer(12, 4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
+                offset += 8;
+            }
+        }
+        else
+            glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
+
+        if (!compressed && vertex_format & OBJ_VERTEX_BINORMAL)
+            offset += 12;
+
+        if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
+            glEnableVertexAttribArray(13);
+            if (!compressed) {
+                glVertexAttribPointer(13, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                offset += 8;
+            }
+            else {
+                glVertexAttribPointer(13, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                offset += 4;
+            }
+        }
+        else
+            glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
+
+        if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
+            glEnableVertexAttribArray(14);
+            if (!compressed) {
+                glVertexAttribPointer(14, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                offset += 8;
+            }
+            else {
+                glVertexAttribPointer(14, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                offset += 4;
+            }
+        }
+        else
+            glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
+
+        if (!compressed) {
+            if (vertex_format & OBJ_VERTEX_TEXCOORD2)
+                offset += 8;
+            if (vertex_format & OBJ_VERTEX_TEXCOORD3)
+                offset += 8;
+        }
+        else {
+            if (vertex_format & OBJ_VERTEX_TEXCOORD2)
+                offset += 4;
+            if (vertex_format & OBJ_VERTEX_TEXCOORD3)
+                offset += 4;
+        }
+
+        if (vertex_format & OBJ_VERTEX_COLOR0) {
+            uniform_value[U_MORPH_COLOR] = 1;
+
+            glEnableVertexAttribArray(5);
+            if (!compressed) {
+                glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                offset += 16;
+            }
+            else {
+                glVertexAttribPointer(5, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                offset += 8;
+            }
+        }
+        else
+            glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
+
+        if (!compressed) {
+            if (vertex_format & OBJ_VERTEX_COLOR1)
+                offset += 16;
+
+            if (vertex_format & OBJ_VERTEX_BONE_DATA)
+                offset += 32;
+
+            if (vertex_format & OBJ_VERTEX_UNKNOWN)
+                offset += 16;
+        }
+        else {
+            if (vertex_format & OBJ_VERTEX_BONE_DATA)
+                offset += 16;
+        }
+
+        shaders_ft.env_vert_set(13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
+    }
+    gl_state_bind_array_buffer(0);
+    gl_state_bind_vertex_array(0);
+    gl_state_bind_element_array_buffer(0);
+
+}
+
+void object_data::check_vertex_arrays() {
+    for (object_data_vertex_array& i : vertex_array_cache)
+        if (i.alive_time > 0 && --i.alive_time <= 0) {
+            i.array_buffer = 0;
+            i.morph_array_buffer = 0;
+        }
+}
+
+GLuint object_data::get_vertex_array(GLuint array_buffer, GLuint morph_array_buffer) {
+    for (object_data_vertex_array& i : vertex_array_cache)
+        if (i.alive_time > 0 && i.array_buffer == array_buffer && i.morph_array_buffer == morph_array_buffer)
+            return i.vertex_array;
+    return 0;
 }
 
 bool object_data::get_chara_color() {
@@ -446,11 +787,9 @@ void object_data::set_wet_param(float_t value) {
 extern float_t rob_frame;
 extern render_context* rctx_ptr;
 
-render_context::render_context() : litproj(), data(),
+render_context::render_context() : litproj(),
 chara_reflect(), chara_refract(), view_mat(), matrix_buffer()  {
     camera = new ::camera;
-    draw_state_init(&draw_state);
-    glGenVertexArrays(1, &vao);
 }
 
 render_context::~render_context() {
@@ -458,7 +797,6 @@ render_context::~render_context() {
         delete camera;
         camera = 0;
     }
-    glDeleteVertexArrays(1, &vao);
 }
 
 void render_context::ctrl() {
@@ -502,7 +840,8 @@ void render_context::ctrl() {
     file_handler_storage_ctrl();
 
     draw_pass.shadow_ptr->ctrl(this);
-    draw_state_stats_update(&draw_state);
+    draw_state.stats_prev = draw_state.stats;
+    draw_state.stats = {};
     object_data.reset();
 }
 
@@ -686,7 +1025,7 @@ void render_context::light_param_data_ibl_set(
 }
 
 void render_context::light_param_data_wind_set(light_param_wind* w) {
-    wind* wind = task_wind.ptr;
+    wind* wind = task_wind->ptr;
     if (w->has_scale)
         wind->scale = w->scale;
 
@@ -1086,30 +1425,6 @@ int32_t shadow::init_data() {
     gl_state_bind_texture_2d(0);
     glGetError();
     return 0;
-}
-
-static void draw_state_init(draw_state* draw_state) {
-    memset(draw_state, 0, sizeof(*draw_state));
-    draw_state->self_shadow = false;
-    draw_state->field_45 = false;
-    draw_state->use_global_material = false;
-    draw_state->fog_height = false;
-    draw_state->ex_data_mat = false;
-    draw_state->shader = true;
-    draw_state->shader_index = -1;
-    draw_state->field_50 = -1;
-    draw_state->bump_depth = 1.0f;
-    draw_state->intensity = 1.0f;
-    draw_state->specular_alpha = 1.0f;
-    draw_state->reflect_uv_scale = 0.1f;
-    draw_state->refract_uv_scale = 0.1f;
-    draw_state->field_68 = 0;
-    draw_state->fresnel = 7.0f;
-}
-
-static void draw_state_stats_update(draw_state* draw_state) {
-    draw_state->stats_prev = draw_state->stats;
-    memset(&draw_state->stats, 0, sizeof(draw_state_stats));
 }
 
 static void render_context_light_param_data_ibl_set_diffuse(light_param_ibl_diffuse* diffuse, int32_t level) {

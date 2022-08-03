@@ -24,7 +24,8 @@ namespace Glitter {
         mat = mat4_identity;
         flags = (EffectInstFlag)0;
         random = 0;
-        min_color = vec4_null;
+        req_frame = 0.0f;
+        ext_color = vec4_null;
         ext_anim_scale = vec3_null;
         some_scale = -1.0f;
 
@@ -36,6 +37,57 @@ namespace Glitter {
 
     EffectInst::~EffectInst() {
 
+    }
+
+    void EffectInst::SetExtColor(bool set, float_t r, float_t g, float_t b, float_t a) {
+        ext_color.x = r;
+        ext_color.y = g;
+        ext_color.z = b;
+        ext_color.w = a;
+        if (set)
+            enum_or(flags, EFFECT_INST_SET_EXT_COLOR);
+        else
+            enum_and(flags, ~EFFECT_INST_SET_EXT_COLOR);
+        enum_or(flags, EFFECT_INST_EXT_COLOR);
+    }
+
+    int32_t EffectInst::GetExtAnimBoneIndex(GPM, EffectExtAnimCharaNode node) {
+        if (node < EFFECT_EXT_ANIM_CHARA_HEAD || node > EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
+            return -1;
+
+        bone_database* bone_data = (bone_database*)GPM_VAL->bone_data;
+        std::vector<std::string>* motion_bone_names = 0;
+        if (!bone_data || bone_data->skeleton.size() < 1
+            || !bone_data->get_skeleton_motion_bones(
+                bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), &motion_bone_names))
+            return -1;
+
+        static const char* bone_names[] = {
+            "face_root",
+            "n_kuti_u",
+            "n_hara_cp",
+            "e_mune_cp",
+            "c_kata_l",
+            "j_ude_l_wj",
+            "e_ude_l_cp",
+            "n_naka_l_ex",
+            "c_kata_r",
+            "j_ude_r_wj",
+            "e_ude_r_cp",
+            "n_naka_r_ex",
+            "n_momo_c_l_wj_ex",
+            "n_hiza_l_wj_ex",
+            "kl_toe_l_wj",
+            "n_momo_c_r_wj_ex",
+            "n_hiza_r_wj_ex",
+            "kl_toe_r_wj"
+        };
+
+        uint64_t bone_name_hash = hash_utf8_fnv1a64m(bone_names[node]);
+        for (std::string& i : *motion_bone_names)
+            if (bone_name_hash == hash_string_fnv1a64m(i))
+                return (int32_t)(&i - motion_bone_names->data());
+        return -1;
     }
 
     F2EffectInst::ExtAnim::ExtAnim() {
@@ -69,7 +121,7 @@ namespace Glitter {
 
                 if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA_ANIM) {
                     inst_ext_anim->chara_index = ext_anim->chara_index;
-                    inst_ext_anim->bone_index = GetExtAnimBoneIndex(ext_anim->node_index);
+                    inst_ext_anim->bone_index = GetExtAnimBoneIndex(GPM_VAL, ext_anim->node_index);
                     enum_or(flags, EFFECT_INST_CHARA_ANIM);
                     inst_ext_anim->mesh_name = 0;
                 }
@@ -146,7 +198,7 @@ namespace Glitter {
         vec3 scale;
         vec3_mult_scalar(this->scale, scale_all, scale);
 
-        mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &this->mat);
 
         for (F2EmitterInst*& i : emitters)
@@ -248,7 +300,7 @@ namespace Glitter {
                 vec3 scale;
                 vec3_mult_scalar(this->scale, scale_all, scale);
 
-                mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+                mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
                 mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
                 for (F2EmitterInst*& i : emitters)
                     if (i)
@@ -286,7 +338,7 @@ namespace Glitter {
 
         mat4 mat;
         mat4_translate(trans.x, trans.y, trans.z, &mat);
-        mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
         this->mat = mat;
 
@@ -443,6 +495,37 @@ namespace Glitter {
         return true;
     }
 
+    void F2EffectInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+        if (~flags & EFFECT_INST_EXT_COLOR)
+            return;
+
+        if (flags & EFFECT_INST_SET_EXT_COLOR) {
+            if (ext_color.x >= 0.0f)
+                r = ext_color.x;
+            if (ext_color.y >= 0.0f)
+                g = ext_color.y;
+            if (ext_color.z >= 0.0f)
+                b = ext_color.z;
+            if (ext_color.w >= 0.0f)
+                a = ext_color.w;
+        }
+        else {
+            r = ext_color.x + r;
+            g = ext_color.y + g;
+            b = ext_color.z + b;
+            a = ext_color.w + a;
+        }
+
+        if (r < 0.0f)
+            r = 0.0f;
+        if (g < 0.0f)
+            g = 0.0f;
+        if (b < 0.0f)
+            b = 0.0f;
+        if (a < 0.0f)
+            a = 0.0f;
+    }
+
     FogType F2EffectInst::GetFog() {
         if (data.flags & EFFECT_FOG)
             return Glitter::FOG_DEPTH;
@@ -508,76 +591,6 @@ namespace Glitter {
         }
     }
 
-    void F2EffectInst::SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a) {
-        if (~flags & EFFECT_INST_SET_ADD_MIN_COLOR)
-            return;
-
-        if (flags & EFFECT_INST_SET_MIN_COLOR) {
-            if (min_color.x >= 0.0f)
-                r = min_color.x;
-            if (min_color.y >= 0.0f)
-                g = min_color.y;
-            if (min_color.z >= 0.0f)
-                b = min_color.z;
-            if (min_color.w >= 0.0f)
-                a = min_color.w;
-        }
-        else {
-            r = min_color.x + r;
-            g = min_color.y + g;
-            b = min_color.z + b;
-            a = min_color.w + a;
-        }
-
-        if (r < 0.0f)
-            r = 0.0f;
-        if (g < 0.0f)
-            g = 0.0f;
-        if (b < 0.0f)
-            b = 0.0f;
-        if (a < 0.0f)
-            a = 0.0f;
-    }
-
-    int32_t EffectInst::GetExtAnimBoneIndex(EffectExtAnimCharaNode node) {
-        if (node < EFFECT_EXT_ANIM_CHARA_HEAD || node > EFFECT_EXT_ANIM_CHARA_RIGHT_TOE)
-            return -1;
-
-        bone_database* bone_data = (bone_database*)GPM_VAL.bone_data;
-        std::vector<std::string>* motion_bone_names = 0;
-        if (!bone_data || bone_data->skeleton.size() < 1
-            || !bone_data->get_skeleton_motion_bones(
-                bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), &motion_bone_names))
-            return -1;
-
-        static const char* bone_names[] = {
-            "face_root",
-            "n_kuti_u",
-            "n_hara_cp",
-            "e_mune_cp",
-            "c_kata_l",
-            "j_ude_l_wj",
-            "e_ude_l_cp",
-            "n_naka_l_ex",
-            "c_kata_r",
-            "j_ude_r_wj",
-            "e_ude_r_cp",
-            "n_naka_r_ex",
-            "n_momo_c_l_wj_ex",
-            "n_hiza_l_wj_ex",
-            "kl_toe_l_wj",
-            "n_momo_c_r_wj_ex",
-            "n_hiza_r_wj_ex",
-            "kl_toe_r_wj"
-        };
-
-        uint64_t bone_name_hash = hash_utf8_fnv1a64m(bone_names[node]);
-        for (std::string& i : *motion_bone_names)
-            if (bone_name_hash == hash_string_fnv1a64m(i))
-                return (int32_t)(&i - motion_bone_names->data());
-        return -1;
-    }
-
     XEffectInst::ExtAnim::ExtAnim() {
         object_index = -1;
         mesh_index = -1;
@@ -629,7 +642,7 @@ namespace Glitter {
 
                 if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA_ANIM) {
                     inst_ext_anim->chara_index = ext_anim->chara_index;
-                    inst_ext_anim->bone_index = GetExtAnimBoneIndex(ext_anim->node_index);
+                    inst_ext_anim->bone_index = GetExtAnimBoneIndex(GPM_VAL, ext_anim->node_index);
                     enum_or(flags, EFFECT_INST_CHARA_ANIM);
                 }
                 else {
@@ -703,14 +716,17 @@ namespace Glitter {
         if (GetExtAnimMat(&mat)) {
             mat4_normalize_rotation(&mat, &mat_rot);
             mat4_clear_trans(&mat_rot, &mat_rot);
-            mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot_eff_rot);
+
+            mat_rot_eff_rot = mat_rot;
+            mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
 
             vec3 trans = translation;
             mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
         }
         else {
             mat_rot = mat4_identity;
-            mat4_rotate(rot.x, rot.y, rot.z, &mat_rot_eff_rot);
+            mat_rot_eff_rot = mat4_identity;
+            mat4_rotate(rot.x, rot.y, rot.z, &mat_rot);
 
             vec3 trans = translation;
             mat4_translate(trans.x, trans.y, trans.z, &mat);
@@ -719,7 +735,7 @@ namespace Glitter {
         vec3 scale;
         vec3_mult_scalar(this->scale, scale_all, scale);
 
-        mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &this->mat);
 
         for (XEmitterInst*& i : emitters)
@@ -735,7 +751,7 @@ namespace Glitter {
             else if (data.flags & EFFECT_LOOP)
                 frame0 -= (float_t)data.life_time;
             else
-                Free(GPM_VAL, GLT_VAL, emission, false);
+                Free(GPM_VAL, Glitter::X, emission, false);
 
         render_scene.Ctrl(delta_frame, true);
         frame0 += delta_frame;
@@ -832,7 +848,7 @@ namespace Glitter {
 
                 mat4 mat;
                 mat4_translate(trans.x, trans.y, trans.z, &mat);
-                mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+                mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
                 mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
                 for (XEmitterInst*& i : emitters)
                     if (i)
@@ -845,12 +861,8 @@ namespace Glitter {
                 }
                 else if (data.flags & EFFECT_LOOP)
                     frame0 -= (float_t)data.life_time;
-                else {
-                    enum_or(flags, EFFECT_INST_FREE);
-                    for (XEmitterInst*& i : emitters)
-                        if (i)
-                            i->Emit(emission, false);
-                }
+                else
+                    Free(GPM_VAL, Glitter::X, emission, false);
 
                 render_scene.Ctrl(delta_frame, false);
             }
@@ -874,7 +886,7 @@ namespace Glitter {
 
         mat4 mat;
         mat4_translate(trans.x, trans.y, trans.z, &mat);
-        mat4_rot(&mat, rot.x, rot.y, rot.z, &mat);
+        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
         this->mat = mat;
 
@@ -886,8 +898,12 @@ namespace Glitter {
     }
 
     DispType XEffectInst::GetDispType() {
-        if (data.flags & EFFECT_ALPHA)
+        if (data.flags & EFFECT_LOCAL)
+            return DISP_LOCAL;
+        else if (data.flags & EFFECT_ALPHA)
             return DISP_ALPHA;
+        else if (flags & EFFECT_INST_FLAG_23)
+            return DISP_TYPE_2;
         return DISP_NORMAL;
     }
 
@@ -912,7 +928,7 @@ namespace Glitter {
             mat4& mat = rob_chr->data.adjust_data.mat;
 
             vec3 scale;
-            mat4_get_scale(&rob_chr->data.adjust_data.mat, &scale);
+            mat4_get_scale(&mat, &scale);
             vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
             ext_anim_scale.z = 0.0f;
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
@@ -932,7 +948,6 @@ namespace Glitter {
                 SetExtAnim(&mat, 0, 0, set_flags);
         }
         else if (flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
-            mat4 m = mat4_identity;
             mat4 temp;
             mat4* mat = 0;
             if (ext_anim->a3da_id != -1)
@@ -957,9 +972,6 @@ namespace Glitter {
             if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
                 rob_chara* rob_chr = rob_chara_array_get(chara_id);
                 if (rob_chr) {
-                    vec3 trans = rob_chr->data.adjust_data.trans;
-                    mat4_translate(trans.x, trans.y, trans.z, &m);
-
                     vec3 scale;
                     mat4_get_scale(&rob_chr->data.adjust_data.mat, &scale);
                     vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
@@ -978,12 +990,12 @@ namespace Glitter {
                         ext_anim->object_hash, ext_anim->mesh_index);
                     if (mesh) {
                         vec3* trans = &mesh->bounding_sphere.center;
-                        SetExtAnim(&m, mat, trans, true);
+                        SetExtAnim(mat, 0, trans, true);
                     }
                 }
             }
             else
-                SetExtAnim(&m, mat, 0, true);
+                SetExtAnim(mat, 0, 0, true);
 
         }
         else if (ext_anim->object_hash != hash_murmurhash_empty) {
@@ -1015,6 +1027,40 @@ namespace Glitter {
         return true;
     }
 
+    void XEffectInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
+        if (~flags & EFFECT_INST_EXT_COLOR)
+            return;
+
+        if (flags & EFFECT_INST_SET_EXT_COLOR) {
+            if (ext_color.x >= 0.0f)
+                r = ext_color.x;
+            if (ext_color.y >= 0.0f)
+                g = ext_color.y;
+            if (ext_color.z >= 0.0f)
+                b = ext_color.z;
+            if (ext_color.w >= 0.0f)
+                a = ext_color.w;
+        }
+        else {
+            if (ext_color.x >= 0.0f)
+                r *= ext_color.x;
+            if (ext_color.y >= 0.0f)
+                g *= ext_color.y;
+            if (ext_color.z >= 0.0f)
+                b *= ext_color.z;
+            if (ext_color.w >= 0.0f)
+                a *= ext_color.w;
+        }
+
+        if (r < 0.0f)
+            r = 0.0f;
+        if (g < 0.0f)
+            g = 0.0f;
+        if (b < 0.0f)
+            b = 0.0f;
+        if (a < 0.0f)
+            a = 0.0f;
+    }
     FogType XEffectInst::GetFog() {
         if (data.flags & EFFECT_FOG)
             return Glitter::FOG_DEPTH;
@@ -1123,40 +1169,5 @@ namespace Glitter {
         }
         enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_TRANS);
         this->flags = flags;
-    }
-
-    void XEffectInst::SetMinColor(float_t& r, float_t& g, float_t& b, float_t& a) {
-        if (~flags & EFFECT_INST_SET_ADD_MIN_COLOR)
-            return;
-
-        if (flags & EFFECT_INST_SET_MIN_COLOR) {
-            if (min_color.x >= 0.0f)
-                r = min_color.x;
-            if (min_color.y >= 0.0f)
-                g = min_color.y;
-            if (min_color.z >= 0.0f)
-                b = min_color.z;
-            if (min_color.w >= 0.0f)
-                a = min_color.w;
-        }
-        else {
-            if (min_color.x >= 0.0f)
-                r *= min_color.x;
-            if (min_color.y >= 0.0f)
-                g *= min_color.y;
-            if (min_color.z >= 0.0f)
-                b *= min_color.z;
-            if (min_color.w >= 0.0f)
-                a *= min_color.w;
-        }
-
-        if (r < 0.0f)
-            r = 0.0f;
-        if (g < 0.0f)
-            g = 0.0f;
-        if (b < 0.0f)
-            b = 0.0f;
-        if (a < 0.0f)
-            a = 0.0f;
     }
 }

@@ -32,6 +32,7 @@ typedef struct struc_404 {
     int32_t field_4;
 } struc_404;
 
+ExNodeBlock_vtbl* ExClothBlock_vftable = (ExNodeBlock_vtbl*)0x0000000140A82FF0;
 ExNodeBlock_vtbl* ExOsageBlock_vftable = (ExNodeBlock_vtbl*)0x0000000140A82F88;
 ExNodeBlock_vtbl* ExNodeBlock_vftable = (ExNodeBlock_vtbl*)0x0000000140A82DC8;
 
@@ -43,7 +44,7 @@ static void* (*HeapCMallocAllocate)(HeapCMallocType type, size_t size, const cha
     = (void* (*)(HeapCMallocType, size_t, const char*))0x00000001403F2A00;
 static void(*HeapCMallocFree)(HeapCMallocType type, void* data)
     = (void(*)(HeapCMallocType, void*))0x00000001403F2960;
-static void(*operator_new)(void*) = (void(*)(void*))0x0000000140845378;
+static void* (*operator_new)(size_t) = (void* (*)(size_t))0x000000014084530C;
 static void(*operator_delete)(void*) = (void(*)(void*))0x0000000140845378;
 
 static const float_t get_osage_gravity_const() {
@@ -3855,13 +3856,13 @@ static void rob_osage_free(rob_osage* rob_osg) {
     }
 }
 
-void ExNodeBlock_field_10(ExNodeBlock* node) {
+void ExNodeBlock__Field_10(ExNodeBlock* node) {
     node->field_59 = false;
 }
 
-ExOsageBlock* ExOsageBlock_dispose(ExOsageBlock* osg, bool dispose) {
+ExOsageBlock* ExOsageBlock__Dispose(ExOsageBlock* osg, bool dispose) {
     osg->base.__vftable = ExOsageBlock_vftable;
-    ExOsageBlock_reset(osg);
+    ExOsageBlock__Reset(osg);
     rob_osage_free(&osg->rob);
     osg->base.__vftable = ExNodeBlock_vftable;
     if (osg->base.parent_name.capacity > 0x0F)
@@ -3872,13 +3873,13 @@ ExOsageBlock* ExOsageBlock_dispose(ExOsageBlock* osg, bool dispose) {
     return osg;
 }
 
-void ExOsageBlock_init(ExOsageBlock* osg) {
+void ExOsageBlock__Init(ExOsageBlock* osg) {
     osg->base.__vftable->Reset(&osg->base);
 }
 
 static void sub_14047EE90(rob_osage* rob_osg, mat4* mat) {
     if (rob_osg->reset_data_list) {
-        list_rob_osage_node_reset_data_node* v5 = rob_osg->reset_data_list->head->next;
+        list_RobOsageNodeResetData_node* v5 = rob_osg->reset_data_list->head->next;
         for (rob_osage_node* v6 = rob_osg->nodes.begin + 1; v6 != rob_osg->nodes.end; v6++) {
             v6->reset_data = v5->value;
             v5 = v5->next;
@@ -4060,7 +4061,7 @@ static void rob_osage_set_wind_direction(rob_osage* osg_block_data, vec3* wind_d
         osg_block_data->wind_direction = vec3_null;
 }
 
-static void ExOsageBlock_set_wind_direction(ExOsageBlock* osg) {
+static void ExOsageBlock__SetWindDirection(ExOsageBlock* osg) {
     vec3* (*wind_task_struct_get_wind_direction)() = (vec3 * (*)())0x000000014053D560;
 
     vec3 wind_direction = *wind_task_struct_get_wind_direction();
@@ -4946,11 +4947,11 @@ static void sub_140480F40(rob_osage* rob_osg, vec3* external_force, float_t a3) 
     else
         v4 = vec3_null;
 
-    size_t v7 = rob_osg->osage_setting.parts;
-    size_t v8 = 0;
+    ssize_t v7 = rob_osg->osage_setting.parts;
+    ssize_t v8 = 0;
     if (v7 >= 4) {
         float_t v9 = a3 * a3 * a3 * a3;
-        size_t v10 = ((v7 - 4ULL) >> 2) + 1;
+        ssize_t v10 = ((v7 - 4ULL) >> 2) + 1;
         v8 = 4 * v10;
         for (; v10; v10--)
             vec3_mult_scalar(v4, v9, v4);
@@ -4993,7 +4994,7 @@ static void sub_140480260(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, flo
     rob_osg->parent_mat = *rob_osg->parent_mat_ptr;
 }
 
-void ExOsageBlock_field_18(ExOsageBlock* osg, int32_t a2, bool a3) {
+void ExOsageBlock__Field_18(ExOsageBlock* osg, int32_t a2, bool a3) {
     float_t(*get_delta_frame)() = (float_t(*)())0x0000000140192D50;
 
     rob_chara_item_equip* rob_item_equip = osg->base.item_equip_object->item_equip;
@@ -5012,7 +5013,7 @@ void ExOsageBlock_field_18(ExOsageBlock* osg, int32_t a2, bool a3) {
     case 1:
     case 2:
         if ((a2 == 1 && osg->base.field_58) || (a2 == 2 && osg->rob.field_2A0)) {
-            ExOsageBlock_set_wind_direction(osg);
+            ExOsageBlock__SetWindDirection(osg);
             sub_14047C800(&osg->rob, parent_node_mat, &parent_scale, step, a3, true, osg->base.field_5A);
         }
         break;
@@ -5041,7 +5042,7 @@ static void sub_14047C750(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, flo
     sub_14047C770(rob_osg, mat, parent_scale, step, 0);
 }
 
-void ExOsageBlock_field_20(ExOsageBlock* osg) {
+void ExOsageBlock__Field_20(ExOsageBlock* osg) {
     osg->field_1FF8 &= ~2;
     if (osg->base.field_59) {
         osg->base.field_59 = false;
@@ -5067,7 +5068,7 @@ void ExOsageBlock_field_20(ExOsageBlock* osg) {
         mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
         mat4_transpose(&mat, &mat);
     }
-    ExOsageBlock_set_wind_direction(osg);
+    ExOsageBlock__SetWindDirection(osg);
 
     rob_osage_coli_set(&osg->rob, osg->mat);
     sub_14047C750(&osg->rob, &mat, &parent_scale, step);
@@ -5220,7 +5221,7 @@ void sub_14047E240(rob_osage* rob_osg, mat4* a2, vec3* a3, vector_old_opd_blend_
     }
 }
 
-void ExOsageBlock_set_osage_play_data(ExOsageBlock* osg) {
+void ExOsageBlock__SetOsagePlayData(ExOsageBlock* osg) {
     rob_chara_item_equip* rob_itm_equip = osg->base.item_equip_object->item_equip;
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
@@ -5228,11 +5229,11 @@ void ExOsageBlock_set_osage_play_data(ExOsageBlock* osg) {
         &parent_scale, &rob_itm_equip->opd_blend_data);
 }
 
-void ExOsageBlock_disp(ExOsageBlock* osg) {
+void ExOsageBlock__Disp(ExOsageBlock* osg) {
 
 }
 
-void ExOsageBlock_reset(ExOsageBlock* osg) {
+void ExOsageBlock__Reset(ExOsageBlock* osg) {
     osg->index = 0;
     rob_osage_init(&osg->rob);
     osg->field_1FF8 &= ~3;
@@ -5241,16 +5242,16 @@ void ExOsageBlock_reset(ExOsageBlock* osg) {
     osg->base.bone_node_ptr = 0;
 }
 
-void ExOsageBlock_field_40(ExOsageBlock* osg) {
+void ExOsageBlock__Field_40(ExOsageBlock* osg) {
 
 }
 
-void ExOsageBlock_field_48(ExOsageBlock* osg) {
+void ExOsageBlock__Field_48(ExOsageBlock* osg) {
     void (*sub_14047F990) (rob_osage * a1, mat4 * a2, vec3 * a3, bool a4)
         = (void (*) (rob_osage*, mat4*, vec3*, bool))0x000000014047F990;
 
     osg->step = 4.0f;
-    ExOsageBlock_set_wind_direction(osg);
+    ExOsageBlock__SetWindDirection(osg);
     rob_osage_coli_set(&osg->rob, osg->mat);
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
@@ -5259,17 +5260,13 @@ void ExOsageBlock_field_48(ExOsageBlock* osg) {
     osg->field_1FF8 &= ~2;
 }
 
-void ExOsageBlock_field_50(ExOsageBlock* osg) {
+void ExOsageBlock__Field_50(ExOsageBlock* osg) {
     if (osg->base.field_59) {
         osg->base.field_59 = 0;
         return;
     }
 
-    void (*_sub_14047C770) (rob_osage * rob_osg, mat4 * mat,
-        vec3 * parent_scale, float_t step, bool a5)
-        = (void(*) (rob_osage*, mat4*, vec3*, float_t, bool))0x000000014047C770;
-
-    ExOsageBlock_set_wind_direction(osg);
+    ExOsageBlock__SetWindDirection(osg);
 
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
@@ -5355,10 +5352,7 @@ void sub_14047E1C0(rob_osage* rob_osg, vec3* a2) {
     }
 }
 
-void ExOsageBlock_field_58(ExOsageBlock* osg) {
-    void (*_sub_14047E1C0) (rob_osage * a1, vec3 * a2)
-        = (void (*) (rob_osage*, vec3*))0x000000014047E1C0;
-
+void ExOsageBlock__Field_58(ExOsageBlock* osg) {
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
     sub_14047E1C0(&osg->rob, &parent_scale);

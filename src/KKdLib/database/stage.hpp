@@ -257,8 +257,9 @@ struct stage_database {
     stage_database();
     virtual ~stage_database();
 
+    void add(stage_database_file* stage_data_file);
+
     ::stage_data* get_stage_data(int32_t stage_index);
     ::stage_data_modern* get_stage_data_modern(uint32_t stage_hash);
     int32_t get_stage_index(const char* name);
-    void add(stage_database_file* stage_data_file);
 };

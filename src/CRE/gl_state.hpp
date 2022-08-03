@@ -22,7 +22,8 @@ struct gl_state_struct {
     GLenum blend_dst_alpha;
     GLenum blend_mode_rgb;
     GLenum blend_mode_alpha;
-    GLuint framebuffer_binding;
+    GLuint read_framebuffer_binding;
+    GLuint draw_framebuffer_binding;
     GLuint vertex_array_binding;
     GLuint array_buffer_binding;
     GLuint element_array_buffer_binding;
@@ -54,6 +55,8 @@ extern void gl_state_active_bind_texture_2d(int32_t index, GLuint texture);
 extern void gl_state_active_bind_texture_cube_map(int32_t index, GLuint texture);
 extern void gl_state_active_texture(size_t index);
 extern void gl_state_bind_framebuffer(GLuint framebuffer);
+extern void gl_state_bind_read_framebuffer(GLuint framebuffer);
+extern void gl_state_bind_draw_framebuffer(GLuint framebuffer);
 extern void gl_state_bind_vertex_array(GLuint array);
 extern void gl_state_bind_array_buffer(GLuint buffer);
 extern void gl_state_bind_element_array_buffer(GLuint buffer);

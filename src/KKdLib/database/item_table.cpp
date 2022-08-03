@@ -10,6 +10,62 @@
 #include "../sort.hpp"
 #include "../str_utils.hpp"
 
+const char* chara_auth_3d_names[] = {
+    "MIK",
+    "RIN",
+    "LEN",
+    "LUK",
+    "NER",
+    "HAK",
+    "KAI",
+    "MEI",
+    "SAK",
+    "TET",
+    "EXT",
+};
+
+const char* chara_face_mot_names[] = {
+    "MIK",
+    "RIN",
+    "LEN",
+    "LUK",
+    "NER",
+    "HAK",
+    "KAI",
+    "MEI",
+    "SAK",
+    "TET",
+    "EXT",
+};
+
+const char* chara_full_names[] = {
+    "MIKU",
+    "RIN",
+    "LEN",
+    "LUKA",
+    "NERU",
+    "HAKU",
+    "KAITO",
+    "MEIKO",
+    "SAKINE",
+    "TETO",
+    "EXTRA",
+};
+
+const char* chara_names[] = {
+    "MIK",
+    "RIN",
+    "LEN",
+    "LUK",
+    "NER",
+    "HAK",
+    "KAI",
+    "MEI",
+    "SAK",
+    "TET",
+    "EXT",
+};
+
 static void itm_table_read_inner(itm_table* itm_tbl, stream& s);
 static void itm_table_write_inner(itm_table* itm_tbl, stream& s);
 static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size);
@@ -110,85 +166,26 @@ bool itm_table::load_file(void* data, const char* path, const char* file, uint32
 }
 
 const char* chara_index_get_auth_3d_name(chara_index chara_index) {
-    if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
-        return 0;
-
-    static const char* chara_names[] = {
-        "MIK",
-        "RIN",
-        "LEN",
-        "LUK",
-        "NER",
-        "HAK",
-        "KAI",
-        "MEI",
-        "SAK",
-        "TET",
-        "EXT",
-    };
-
-    return chara_names[chara_index];
+    if (chara_index >= CHARA_MIKU && chara_index <= CHARA_TETO)
+        return chara_auth_3d_names[chara_index];
+    return 0;
 }
 
 const char* chara_index_get_chara_name(chara_index chara_index) {
-    if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
-        return 0;
-
-    static const char* chara_names[] = {
-        "MIK",
-        "RIN",
-        "LEN",
-        "LUK",
-        "NER",
-        "HAK",
-        "KAI",
-        "MEI",
-        "SAK",
-        "TET",
-        "EXT",
-    };
-
-    return chara_names[chara_index];
+    if (chara_index >= CHARA_MIKU && chara_index <= CHARA_TETO)
+        return chara_names[chara_index];
+    return 0;
 }
 
 const char* chara_index_get_face_mot_name(chara_index chara_index) {
-    if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
-        return 0;
-
-    static const char* chara_names[] = {
-        "MIK",
-        "RIN",
-        "LEN",
-        "LUK",
-        "NER",
-        "HAK",
-        "KAI",
-        "MEI",
-        "SAK",
-        "TET",
-        "EXT",
-    };
-
-    return chara_names[chara_index];
+    if (chara_index >= CHARA_MIKU && chara_index <= CHARA_TETO)
+        return chara_face_mot_names[chara_index];
+    return 0;
 }
 
 chara_index chara_index_get_from_chara_name(const char* str) {
     if (!str)
         return CHARA_MAX;
-
-    static const char* chara_names[] = {
-        "MIK",
-        "RIN",
-        "LEN",
-        "LUK",
-        "NER",
-        "HAK",
-        "KAI",
-        "MEI",
-        "SAK",
-        "TET",
-        "EXT",
-    };
 
     for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
         if (!str_utils_compare(str, chara_names[i]))
@@ -197,24 +194,13 @@ chara_index chara_index_get_from_chara_name(const char* str) {
 }
 
 const char* chara_index_get_name(chara_index chara_index) {
-    if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
-        return 0;
+    if (chara_index >= CHARA_MIKU && chara_index <= CHARA_TETO)
+        return chara_full_names[chara_index];
+    return 0;
+}
 
-    static const char* chara_names[] = {
-        "MIKU",
-        "RIN",
-        "LEN",
-        "LUKA",
-        "NERU",
-        "HAKU",
-        "KAITO",
-        "MEIKO",
-        "SAKINE",
-        "TETO",
-        "EXTRA",
-    };
+itm_table_item_data_ofs::itm_table_item_data_ofs() : sub_id(), no() {
 
-    return chara_names[chara_index];
 }
 
 itm_table_item_data_tex::itm_table_item_data_tex() {
@@ -302,7 +288,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
         vc.resize(count);
         for (int32_t i = 0; i < count; i++) {
-            if (!kv.open_scope(i))
+            if (!kv.open_scope_fmt(i))
                 continue;
 
             itm_table_cos* c = &vc[i];
@@ -315,7 +301,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
                 vci.resize(count);
                 for (int32_t j = 0; j < count; j++) {
-                    if (!kv.open_scope(j))
+                    if (!kv.open_scope_fmt(j))
                         continue;
 
                     kv.read(vci[j]);
@@ -334,7 +320,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
         vd.resize(count);
         for (int32_t i = 0; i < count; i++) {
-            if (!kv.open_scope(i))
+            if (!kv.open_scope_fmt(i))
                 continue;
 
             itm_table_dbgset* d = &vd[i];
@@ -345,7 +331,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
                 vdi.resize(count);
                 for (int32_t j = 0; j < count; j++) {
-                    if (!kv.open_scope(j))
+                    if (!kv.open_scope_fmt(j))
                         continue;
 
                     kv.read(vdi[j]);
@@ -366,7 +352,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
         vi.reserve(count);
         for (int32_t i = 0; i < count; i++) {
-            if (!kv.open_scope(i))
+            if (!kv.open_scope_fmt(i))
                 continue;
 
             itm_table_item itm;
@@ -387,7 +373,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
                 vio.resize(count);
                 for (int32_t j = 0; j < count; j++) {
-                    if (!kv.open_scope(j))
+                    if (!kv.open_scope_fmt(j))
                         continue;
 
                     kv.read(vio[j]);
@@ -413,7 +399,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
                     vido.reserve(count);
                     for (int32_t j = 0; j < count; j++) {
-                        if (!kv.open_scope(j))
+                        if (!kv.open_scope_fmt(j))
                             continue;
 
                         itm_table_item_data_obj obj;
@@ -433,7 +419,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
                     vido.reserve(count);
                     for (int32_t j = 0; j < count; j++) {
-                        if (!kv.open_scope(j))
+                        if (!kv.open_scope_fmt(j))
                             continue;
 
                         itm_table_item_data_ofs ofs;
@@ -463,7 +449,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
                     vidt.reserve(count);
                     for (int32_t j = 0; j < count; j++) {
-                        if (!kv.open_scope(j))
+                        if (!kv.open_scope_fmt(j))
                             continue;
 
                         itm_table_item_data_tex tex;
@@ -481,7 +467,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 
                     vidc.reserve(count);
                     for (int32_t j = 0; j < count; j++) {
-                        if (!kv.open_scope(j))
+                        if (!kv.open_scope_fmt(j))
                             continue;
 
                         itm_table_item_data_col col;
@@ -544,7 +530,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
         std::vector<int32_t> sort_index;
         key_val_out::get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
-            kv.open_scope(sort_index[i]);
+            kv.open_scope_fmt(sort_index[i]);
             itm_table_cos* c = &vc[sort_index[i]];
 
             kv.write(s, "id",  c->id);
@@ -556,7 +542,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
             std::vector<int32_t> sort_index1;
             key_val_out::get_lexicographic_order(&sort_index1, count);
             for (int32_t j = 0; j < count; j++) {
-                kv.open_scope(sort_index1[j]);
+                kv.open_scope_fmt(sort_index1[j]);
                 kv.write(s, vci[sort_index1[j]]);
                 kv.close_scope();
             }
@@ -579,7 +565,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
         std::vector<int32_t> sort_index;
         key_val_out::get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
-            kv.open_scope(sort_index[i]);
+            kv.open_scope_fmt(sort_index[i]);
 
             itm_table_dbgset* d = &vd[sort_index[i]];
 
@@ -590,7 +576,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
             std::vector<int32_t> sort_index1;
             key_val_out::get_lexicographic_order(&sort_index1, count);
             for (int32_t j = 0; j < count; j++) {
-                kv.open_scope(sort_index1[j]);
+                kv.open_scope_fmt(sort_index1[j]);
                 kv.write(s, vdi[sort_index1[j]]);
                 kv.close_scope();
             }
@@ -614,7 +600,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
         std::vector<int32_t> sort_index;
         key_val_out::get_lexicographic_order(&sort_index, count);
         for (int32_t i = 0; i < count; i++) {
-            kv.open_scope(sort_index[i]);
+            kv.open_scope_fmt(sort_index[i]);
 
             itm_table_item* itm = &vi[sort_index[i]];
             kv.write(s, "attr", itm->attr);
@@ -631,7 +617,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
                     std::vector<int32_t> sort_index;
                     key_val_out::get_lexicographic_order(&sort_index, count);
                     for (int32_t j = 0; j < count; j++) {
-                        kv.open_scope(sort_index[j]);
+                        kv.open_scope_fmt(sort_index[j]);
 
                         itm_table_item_data_col* col = &vidc[sort_index[j]];
                         if (col->flag & 0x01) {
@@ -672,7 +658,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
                     std::vector<int32_t> sort_index;
                     key_val_out::get_lexicographic_order(&sort_index, count);
                     for (int32_t j = 0; j < count; j++) {
-                        kv.open_scope(sort_index[j]);
+                        kv.open_scope_fmt(sort_index[j]);
 
                         itm_table_item_data_obj* obj = &vido[sort_index[j]];
                         kv.write(s, "rpk", obj->rpk);
@@ -693,7 +679,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
                     std::vector<int32_t> sort_index;
                     key_val_out::get_lexicographic_order(&sort_index, count);
                     for (int32_t j = 0; j < count; j++) {
-                        kv.open_scope(sort_index[j]);
+                        kv.open_scope_fmt(sort_index[j]);
 
                         itm_table_item_data_ofs* ofs = &vidof[sort_index[j]];
                         kv.write(s, "no", ofs->no);
@@ -723,7 +709,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
                     std::vector<int32_t> sort_index;
                     key_val_out::get_lexicographic_order(&sort_index, count);
                     for (int32_t j = 0; j < count; j++) {
-                        kv.open_scope(sort_index[j]);
+                        kv.open_scope_fmt(sort_index[j]);
 
                         itm_table_item_data_tex* tex = &vidt[sort_index[j]];
                         kv.write(s, "chg", tex->chg);
@@ -755,7 +741,7 @@ static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) 
                 std::vector<int32_t> sort_index;
                 key_val_out::get_lexicographic_order(&sort_index, count);
                 for (int32_t j = 0; j < count; j++) {
-                    kv.open_scope(sort_index[j]);
+                    kv.open_scope_fmt(sort_index[j]);
                     kv.write(s, vio[sort_index[j]]);
                     kv.close_scope();
                 }

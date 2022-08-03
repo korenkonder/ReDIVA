@@ -986,6 +986,8 @@ struct struc_308 {
     float_t field_C0;
     float_t field_C4;
     vec3 field_C8;
+
+    struc_308();
 };
 
 struct struc_400 {
@@ -1291,7 +1293,10 @@ struct rob_chara_bone_data {
     rob_chara_bone_data();
     virtual ~rob_chara_bone_data();
 
+    float_t get_frame();
+    float_t get_frame_count();
     void reset();
+    void set_frame(float_t frame);
 };
 
 union rob_chara_pv_data_item {
@@ -1418,6 +1423,8 @@ struct RobOsageNodeDataNormalRef {
     RobOsageNode* r;
     mat4 mat;
 
+    RobOsageNodeDataNormalRef();
+
     void GetMat();
 };
 
@@ -1448,6 +1455,8 @@ struct RobOsageNodeResetData {
     vec3 trans_diff;
     vec3 rotation;
     float_t length;
+
+    RobOsageNodeResetData();
 };
 
 struct RobOsageNodeData {
@@ -1471,11 +1480,15 @@ struct opd_vec3_data {
 struct struc_477 {
     float_t length;
     vec3 rotation;
+
+    struc_477();
 };
 
 struct struc_476 {
     struc_477 field_0;
     struc_477 field_10;
+
+    struc_476();
 };
 
 struct RobOsageNode {
@@ -1636,10 +1649,10 @@ struct CLOTHNode {
     float_t tangent_sign;
     vec2 texcoord;
     vec3 field_64;
-    float_t length;
-    float_t field_74;
-    float_t field_78;
-    float_t field_7C;
+    float_t dist_top;
+    float_t dist_bottom;
+    float_t dist_right;
+    float_t dist_left;
     int64_t field_80;
     int32_t field_88;
     RobOsageNodeResetData reset_data;
@@ -1746,9 +1759,11 @@ struct RobCloth : public CLOTH {
         rob_chara_item_equip_object* itm_eq_obj, bone_database* bone_data);
     float_t* LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count);
     void LoadSkinParam(void* kv, const char* name, bone_database* bone_data);
+    void ResetExtrenalForce();
     void SetForceAirRes(float_t force, float_t force_gain, float_t air_res);
     void SetMotionResetData(int32_t motion_id, float_t frame);
     void SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data);
+    float_t* SetOsagePlayDataInit(float_t* opdi_data);
     void SetSkinParamOsageRoot(skin_param_osage_root& skp_root);
     void UpdateDisp();
     void UpdateNormals();
@@ -1783,6 +1798,7 @@ public:
         skin_param_osage_root* skp_root, bone_database* bone_data);
     float_t* LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count);
     void SetMotionResetData(int32_t motion_id, float_t frame);
+    float_t* SetOsagePlayDataInit(float_t* opdi_data);
     void SetOsageReset();
     void SetSkinParam(struc_571* skp);
     void SetSkinParamOsageRoot(skin_param_osage_root* skp_root);
@@ -1846,6 +1862,7 @@ struct RobOsage {
     void LoadSkinParam(void* kv, const char* name,
         skin_param_osage_root& skp_root, object_info* obj_info, bone_database* bone_data);
     void Reset();
+    void ResetExtrenalForce();
     void SetAirRes(float_t air_res);
     void SetColiR(float_t coli_r);
     void SetForce(float_t force, float_t force_gain);
@@ -1856,6 +1873,7 @@ struct RobOsage {
     void SetNodesForce(float_t force);
     void SetOsagePlayData(mat4* parent_mat,
         vec3& parent_scale, std::vector<opd_blend_data>& opd_blend_data);
+    float_t* SetOsagePlayDataInit(float_t* opdi_data);
     void SetRot(float_t rot_y, float_t rot_z);
     void SetSkinParamOsageRoot(skin_param_osage_root& skp_root);
     void SetSkpOsgNodes(std::vector<skin_param_osage_node>* skp_osg_nodes);
@@ -1890,6 +1908,7 @@ public:
         bone_node* ex_data_bone_nodes, obj_skin* skin);
     float_t* LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count);
     void SetMotionResetData(int32_t motion_id, float_t frame);
+    float_t* SetOsagePlayDataInit(float_t* opdi_data);
     void SetOsageReset();
     void SetSkinParam(struc_571* skp);
     void SetWindDirection();
@@ -2060,12 +2079,14 @@ struct rob_chara_item_equip_object {
         bone_database* bone_data, void* data, object_database* obj_db);
     void load_object_info_ex_data(object_info object_info, bone_node* bone_nodes,
         bool osage_reset, bone_database* bone_data, void* data, object_database* obj_db);
+    void reset_external_force();
     void set_alpha_draw_task_flags(float_t alpha, int32_t flags);
     bool set_boc(skin_param_osage_root& skp_root, ExOsageBlock* osg);
     void set_collision_target_osage(skin_param_osage_root& skp_root, skin_param* skp);
     void set_motion_reset_data(int32_t motion_id, float_t frame);
     void set_motion_skin_param(int8_t chara_id, int32_t motion_id, int32_t frame);
     void set_null_blocks_expression_data(vec3* position, vec3* rotation, vec3* scale);
+    void set_osage_play_data_init(float_t* opdi_data);
     void set_osage_reset();
     void set_osage_move_cancel(float_t value);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
@@ -2134,6 +2155,8 @@ struct rob_chara_item_equip {
 
     rob_chara_item_equip_object* get_item_equip_object(item_id id);
     void reset();
+    void reset_external_force();
+    void set_osage_play_data_init(item_id id, float_t* opdi_data);
 };
 
 struct item_cos_texture_change_tex {
@@ -2552,6 +2575,8 @@ struct rob_chara_data_adjust {
     float_t strength;
     float_t strength_transition;
 
+    rob_chara_data_adjust();
+
     void reset();
 };
 
@@ -2573,6 +2598,8 @@ struct rob_chara_data_hand_adjust {
     vec3 field_30;
     float_t arm_length;
     int32_t field_40;
+
+    rob_chara_data_hand_adjust();
 
     void reset();
 };
@@ -2711,11 +2738,11 @@ struct struc_226 {
 };
 
 struct struc_225 {
-    float field_0[27];
+    float_t field_0[27];
 };
 
 struct struc_224 {
-    int32_t field_0[27];
+    float_t field_0[27];
 };
 
 struct struc_306 {
@@ -2733,6 +2760,9 @@ struct struc_306 {
     int32_t field_40;
     int32_t field_44;
     int32_t field_48;
+
+    struc_306();
+    struc_306(int16_t field_0, float_t frame, float_t field_8);
 };
 
 struct struc_652 {
@@ -2865,6 +2895,8 @@ struct struc_651 {
     float_t field_334;
     int8_t field_338;
     struc_306 field_33C[4];
+
+    struc_651();
 };
 
 struct struc_223 {
@@ -2897,6 +2929,8 @@ struct rob_chara_data_miku_rot {
     int32_t field_68;
     mat4 field_6C;
 
+    rob_chara_data_miku_rot();
+
     void reset();
 };
 
@@ -2917,6 +2951,8 @@ struct rob_chara_adjust_data {
     float_t left_hand_scale_default;
     float_t right_hand_scale_default;
 
+    rob_chara_adjust_data();
+
     void reset();
 };
 
@@ -2927,11 +2963,15 @@ struct struc_195 {
     float_t field_1C;
     float_t field_20;
     float_t field_24;
+
+    struc_195();
 };
 
 struct struc_210 {
     vec2 field_0;
     float_t scale;
+
+    struc_210();
 };
 
 struct struc_267 {
@@ -3152,6 +3192,7 @@ struct rob_chara {
         MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
     void reset_data(rob_chara_pv_data* pv_data,
         bone_database* bone_data, motion_database* mot_db);
+    void reset_osage();
     void set_bone_data_frame(float_t frame);
     void set_chara_height_adjust(bool value);
     void set_chara_pos_adjust(vec3* value);
@@ -3190,11 +3231,9 @@ struct rob_chara {
     void set_visibility(bool value);
 };
 
-struct skeleton_rotation_offset {
-    bool x;
-    bool y;
-    bool z;
-    vec3 rotation;
+struct pv_data_set_motion {
+    int32_t motion_id;
+    std::pair<float_t, int32_t> frame_stage_index;
 };
 
 #define ROB_CHARA_COUNT 6
@@ -3215,6 +3254,8 @@ extern void motion_set_load_motion(uint32_t set, std::string* mdata_dir, motion_
 extern void motion_set_unload_mothead(uint32_t set);
 extern void motion_set_unload_motion(uint32_t set);
 
+extern bool opd_make_manager_task_free();
+
 extern void pv_osage_manager_array_reset(int32_t chara_id);
 
 extern void rob_init();
@@ -3231,11 +3272,14 @@ extern void rob_chara_array_set_alpha_draw_task_flags(int32_t chara_id, float_t 
 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
 
-extern bool pv_osage_manager_array_ptr_get_disp();
+extern bool pv_osage_manager_array_get_disp();
+extern void pv_osage_manager_array_set_pv_id(int32_t chara_id, int32_t pv_id, bool reset);
+extern void pv_osage_manager_array_set_pv_set_motion(
+    int32_t chara_id, std::vector<pv_data_set_motion>& set_motion);
 
-extern void task_rob_manager_append_task();
+extern bool task_rob_manager_append_task();
 extern bool task_rob_manager_check_chara_loaded(int32_t chara_id);
-extern void task_rob_manager_free_task();
+extern bool task_rob_manager_free_task();
 
 extern void motion_storage_init();
 extern bool motion_storage_check_mot_file_not_ready(uint32_t set_id);
@@ -3253,6 +3297,8 @@ extern void osage_setting_data_init();
 extern bool osage_setting_data_load_file(void* data, const char* path, const char* file, uint32_t hash);
 extern bool osage_setting_data_obj_has_key(object_info key);
 extern void osage_setting_data_free();
+
+extern bool skin_param_manager_array_check_task_ready();
 
 extern void skin_param_osage_node_parse(void* kv, const char* name,
     std::vector<skin_param_osage_node>* a3, skin_param_osage_root& skp_root);

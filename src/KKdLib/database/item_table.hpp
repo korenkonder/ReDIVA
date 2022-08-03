@@ -108,6 +108,8 @@ struct itm_table_item_data_ofs {
     vec3 position;
     vec3 rotation;
     vec3 scale;
+
+    itm_table_item_data_ofs();
 };
 
 struct itm_table_item_data_tex {
@@ -192,6 +194,11 @@ struct itm_table {
 
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };
+
+extern const char* chara_auth_3d_names[];
+extern const char* chara_face_mot_names[];
+extern const char* chara_full_names[];
+extern const char* chara_names[];
 
 extern const char* chara_index_get_auth_3d_name(chara_index chara_index);
 extern const char* chara_index_get_chara_name(chara_index chara_index);

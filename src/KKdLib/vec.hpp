@@ -14,9 +14,17 @@ struct vec2i8 {
     int8_t x;
     int8_t y;
 
-    vec2i8();
-    vec2i8(int8_t value);
-    vec2i8(int8_t x, int8_t y);
+    inline vec2i8() : x(), y() {
+
+    }
+
+    inline vec2i8(int8_t value) : x(value), y(value) {
+
+    }
+
+    inline vec2i8(int8_t x, int8_t y) : x(x), y(y) {
+
+    }
 };
 
 struct vec3i8 {
@@ -24,9 +32,17 @@ struct vec3i8 {
     int8_t y;
     int8_t z;
 
-    vec3i8();
-    vec3i8(int8_t value);
-    vec3i8(int8_t x, int8_t y, int8_t z);
+    inline vec3i8() : x(), y(), z() {
+
+    }
+
+    inline vec3i8(int8_t value) : x(value), y(value), z(value) {
+
+    }
+
+    inline vec3i8(int8_t x, int8_t y, int8_t z) : x(x), y(y), z(z) {
+
+    }
 };
 
 struct vec4i8 {
@@ -35,18 +51,34 @@ struct vec4i8 {
     int8_t z;
     int8_t w;
 
-    vec4i8();
-    vec4i8(int8_t value);
-    vec4i8(int8_t x, int8_t y, int8_t z, int8_t w);
+    inline vec4i8() : x(), y(), z(), w() {
+
+    }
+
+    inline vec4i8(int8_t value) : x(value), y(value), z(value), w(value) {
+
+    }
+
+    inline vec4i8(int8_t x, int8_t y, int8_t z, int8_t w) : x(x), y(y), z(z), w(w) {
+
+    }
 };
 
 struct vec2u8 {
     uint8_t x;
     uint8_t y;
 
-    vec2u8();
-    vec2u8(uint8_t value);
-    vec2u8(uint8_t x, uint8_t y);
+    inline vec2u8() : x(), y() {
+
+    }
+
+    inline vec2u8(uint8_t value) : x(value), y(value) {
+
+    }
+
+    inline vec2u8(uint8_t x, uint8_t y) : x(x), y(y) {
+
+    }
 };
 
 struct vec3u8 {
@@ -54,9 +86,17 @@ struct vec3u8 {
     uint8_t y;
     uint8_t z;
 
-    vec3u8();
-    vec3u8(uint8_t value);
-    vec3u8(uint8_t x, uint8_t y, uint8_t z);
+    inline vec3u8() : x(), y(), z() {
+
+    }
+
+    inline vec3u8(uint8_t value) : x(value), y(value), z(value) {
+
+    }
+
+    inline vec3u8(uint8_t x, uint8_t y, uint8_t z) : x(x), y(y), z(z) {
+
+    }
 };
 
 struct vec4u8 {
@@ -65,18 +105,34 @@ struct vec4u8 {
     uint8_t z;
     uint8_t w;
 
-    vec4u8();
-    vec4u8(uint8_t value);
-    vec4u8(uint8_t x, uint8_t y, uint8_t z, uint8_t w);
+    inline vec4u8() : x(), y(), z(), w() {
+
+    }
+
+    inline vec4u8(uint8_t value) : x(value), y(value), z(value), w(value) {
+
+    }
+
+    inline vec4u8(uint8_t x, uint8_t y, uint8_t z, uint8_t w) : x(x), y(y), z(z), w(w) {
+
+    }
 };
 
 struct vec2i16 {
     int16_t x;
     int16_t y;
 
-    vec2i16();
-    vec2i16(int16_t value);
-    vec2i16(int16_t x, int16_t y);
+    inline vec2i16() : x(), y() {
+
+    }
+
+    inline vec2i16(int16_t value) : x(value), y(value) {
+
+    }
+
+    inline vec2i16(int16_t x, int16_t y) : x(x), y(y) {
+
+    }
 };
 
 struct vec3i16 {
@@ -84,9 +140,17 @@ struct vec3i16 {
     int16_t y;
     int16_t z;
 
-    vec3i16();
-    vec3i16(int16_t value);
-    vec3i16(int16_t x, int16_t y, int16_t z);
+    inline vec3i16() : x(), y(), z() {
+
+    }
+
+    inline vec3i16(int16_t value) : x(value), y(value), z(value) {
+
+    }
+
+    inline vec3i16(int16_t x, int16_t y, int16_t z) : x(x), y(y), z(z) {
+
+    }
 };
 
 struct vec4i16 {
@@ -95,18 +159,34 @@ struct vec4i16 {
     int16_t z;
     int16_t w;
 
-    vec4i16();
-    vec4i16(int16_t value);
-    vec4i16(int16_t x, int16_t y, int16_t z, int16_t w);
+    inline vec4i16() : x(), y(), z(), w() {
+
+    }
+
+    inline vec4i16(int16_t value) : x(value), y(value), z(value), w(value) {
+
+    }
+
+    inline vec4i16(int16_t x, int16_t y, int16_t z, int16_t w) : x(x), y(y), z(z), w(w) {
+
+    }
 };
 
 struct vec2u16 {
     uint16_t x;
     uint16_t y;
 
-    vec2u16();
-    vec2u16(uint16_t value);
-    vec2u16(uint16_t x, uint16_t y);
+    inline vec2u16() : x(), y() {
+
+    }
+
+    inline vec2u16(uint16_t value) : x(value), y(value) {
+
+    }
+
+    inline vec2u16(uint16_t x, uint16_t y) : x(x), y(y) {
+
+    }
 };
 
 struct vec3u16 {
@@ -114,9 +194,17 @@ struct vec3u16 {
     uint16_t y;
     uint16_t z;
 
-    vec3u16();
-    vec3u16(uint16_t value);
-    vec3u16(uint16_t x, uint16_t y, uint16_t z);
+    inline vec3u16() : x(), y(), z() {
+
+    }
+
+    inline vec3u16(uint16_t value) : x(value), y(value), z(value) {
+
+    }
+
+    inline vec3u16(uint16_t x, uint16_t y, uint16_t z) : x(x), y(y), z(z) {
+
+    }
 };
 
 struct vec4u16 {
@@ -125,18 +213,34 @@ struct vec4u16 {
     uint16_t z;
     uint16_t w;
 
-    vec4u16();
-    vec4u16(uint16_t value);
-    vec4u16(uint16_t x, uint16_t y, uint16_t z, uint16_t w);
+    inline vec4u16() : x(), y(), z(), w() {
+
+    }
+
+    inline vec4u16(uint16_t value) : x(value), y(value), z(value), w(value) {
+
+    }
+
+    inline vec4u16(uint16_t x, uint16_t y, uint16_t z, uint16_t w) : x(x), y(y), z(z), w(w) {
+
+    }
 };
 
 struct vec2h {
     half_t x;
     half_t y;
 
-    vec2h();
-    vec2h(half_t value);
-    vec2h(half_t x, half_t y);
+    inline vec2h() : x(), y() {
+
+    }
+
+    inline vec2h(half_t value) : x(value), y(value) {
+
+    }
+
+    inline vec2h(half_t x, half_t y) : x(x), y(y) {
+
+    }
 };
 
 struct vec3h {
@@ -144,9 +248,17 @@ struct vec3h {
     half_t y;
     half_t z;
 
-    vec3h();
-    vec3h(half_t value);
-    vec3h(half_t x, half_t y, half_t z);
+    inline vec3h() : x(), y(), z() {
+
+    }
+
+    inline vec3h(half_t value) : x(value), y(value), z(value) {
+
+    }
+
+    inline vec3h(half_t x, half_t y, half_t z) : x(x), y(y), z(z) {
+
+    }
 };
 
 struct vec4h {
@@ -155,18 +267,34 @@ struct vec4h {
     half_t z;
     half_t w;
 
-    vec4h();
-    vec4h(half_t value);
-    vec4h(half_t x, half_t y, half_t z, half_t w);
+    inline vec4h() : x(), y(), z(), w() {
+
+    }
+
+    inline vec4h(half_t value) : x(value), y(value), z(value), w(value) {
+
+    }
+
+    inline vec4h(half_t x, half_t y, half_t z, half_t w) : x(x), y(y), z(z), w(w) {
+
+    }
 };
 
 struct vec2 {
     float_t x;
     float_t y;
 
-    vec2();
-    vec2(float_t value);
-    vec2(float_t x, float_t y);
+    inline vec2() : x(), y() {
+
+    }
+
+    inline vec2(float_t value) : x(value), y(value) {
+
+    }
+
+    inline vec2(float_t x, float_t y) : x(x), y(y) {
+
+    }
 };
 
 struct vec3 {
@@ -174,9 +302,17 @@ struct vec3 {
     float_t y;
     float_t z;
 
-    vec3();
-    vec3(float_t value);
-    vec3(float_t x, float_t y, float_t z);
+    inline vec3() : x(), y(), z() {
+
+    }
+
+    inline vec3(float_t value) : x(value), y(value), z(value) {
+
+    }
+
+    inline vec3(float_t x, float_t y, float_t z) : x(x), y(y), z(z) {
+
+    }
 };
 
 struct vec4 {
@@ -185,18 +321,34 @@ struct vec4 {
     float_t z;
     float_t w;
 
-    vec4();
-    vec4(float_t value);
-    vec4(float_t x, float_t y, float_t z, float_t w);
+    inline vec4() : x(), y(), z(), w() {
+
+    }
+
+    inline vec4(float_t value) : x(value), y(value), z(value), w(value) {
+
+    }
+
+    inline vec4(float_t x, float_t y, float_t z, float_t w) : x(x), y(y), z(z), w(w) {
+
+    }
 };
 
 struct vec2i {
     int32_t x;
     int32_t y;
 
-    vec2i();
-    vec2i(int32_t value);
-    vec2i(int32_t x, int32_t y);
+    inline vec2i() : x(), y() {
+
+    }
+
+    inline vec2i(int32_t value) : x(value), y(value) {
+
+    }
+
+    inline vec2i(int32_t x, int32_t y) : x(x), y(y) {
+
+    }
 };
 
 struct vec3i {
@@ -204,9 +356,17 @@ struct vec3i {
     int32_t y;
     int32_t z;
 
-    vec3i();
-    vec3i(int32_t value);
-    vec3i(int32_t x, int32_t y, int32_t z);
+    inline vec3i() : x(), y(), z() {
+
+    }
+
+    inline vec3i(int32_t value) : x(value), y(value), z(value) {
+
+    }
+
+    inline vec3i(int32_t x, int32_t y, int32_t z) : x(x), y(y), z(z) {
+
+    }
 };
 
 struct vec4i {
@@ -215,9 +375,17 @@ struct vec4i {
     int32_t z;
     int32_t w;
 
-    vec4i();
-    vec4i(int32_t value);
-    vec4i(int32_t x, int32_t y, int32_t z, int32_t w);
+    inline vec4i() : x(), y(), z(), w() {
+
+    }
+
+    inline vec4i(int32_t value) : x(value), y(value), z(value), w(value) {
+
+    }
+
+    inline vec4i(int32_t x, int32_t y, int32_t z, int32_t w) : x(x), y(y), z(z), w(w) {
+
+    }
 };
 
 extern const __m128 vec2_negate;

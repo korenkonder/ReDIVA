@@ -9,7 +9,7 @@
 namespace Glitter {
     RenderGroup::RenderGroup() : flags(), type(), draw_type(), pivot(),
         z_offset(), count(), ctrl(), disp(), texture(), mask_texture(), frame(),
-        elements(), max_count(), random_ptr(), disp_type(), fog_type(), vbo(), ebo() {
+        elements(), max_count(), random_ptr(), disp_type(), fog_type(), vao(), vbo(), ebo() {
         split_u = 1;
         split_v = 1;
         split_uv = vec2_identity;
@@ -79,10 +79,12 @@ namespace Glitter {
 
         bool is_quad = a1->data.data.type == PARTICLE_QUAD;
 
+        glGenVertexArrays(1, &vao);
+        gl_state_bind_vertex_array(vao);
+
         glGenBuffers(1, &vbo);
         gl_state_bind_array_buffer(vbo);
         glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(Buffer) * max_count), 0, GL_DYNAMIC_DRAW);
-        gl_state_bind_array_buffer(0);
 
         if (is_quad) {
             size_t count = max_count / 4 * 6;
@@ -98,10 +100,29 @@ namespace Glitter {
 
             glGenBuffers(1, &ebo);
             gl_state_bind_element_array_buffer(ebo);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);
-            gl_state_bind_element_array_buffer(0);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);;
             free(ebo_data);
         }
+
+        static const GLsizei buffer_size = sizeof(Buffer);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, position)); // Pos
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, color));    // Color
+        glEnableVertexAttribArray(8);
+        glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv));       // TexCoord0
+        glEnableVertexAttribArray(9);
+        glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv));       // TexCoord1
+
+        gl_state_bind_array_buffer(0);
+        gl_state_bind_vertex_array(0);
+        if (is_quad)
+            gl_state_bind_element_array_buffer(0);
 
         if (!is_quad)
             draw_list.reserve(count);
@@ -238,6 +259,11 @@ namespace Glitter {
         if (vbo) {
             glDeleteBuffers(1, &vbo);
             vbo = 0;
+        }
+
+        if (vao) {
+            glDeleteVertexArrays(1, &vao);
+            vao = 0;
         }
 
         if (!free && elements) {
@@ -402,15 +428,16 @@ namespace Glitter {
             return;
 
         bool is_quad = a1->data.data.type == PARTICLE_QUAD;
+        bool is_mesh = a1->data.data.type == PARTICLE_MESH;
 
-        if (a1->data.data.type != PARTICLE_MESH) {
+        if (!is_mesh) {
+            glGenVertexArrays(1, &vao);
+            gl_state_bind_vertex_array(vao);
+
             glGenBuffers(1, &vbo);
             gl_state_bind_array_buffer(vbo);
             glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(Buffer) * max_count), 0, GL_DYNAMIC_DRAW);
-            gl_state_bind_array_buffer(vbo);
         }
-        else
-            vbo = 0;
 
         if (is_quad) {
             size_t count = max_count / 4 * 6;
@@ -426,9 +453,30 @@ namespace Glitter {
 
             glGenBuffers(1, &ebo);
             gl_state_bind_element_array_buffer(ebo);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);
-            gl_state_bind_element_array_buffer(0);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);;
             free(ebo_data);
+        }
+
+        if (!is_mesh) {
+            static const GLsizei buffer_size = sizeof(Buffer);
+
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(Buffer, position)); // Pos
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(Buffer, color));    // Color
+            glEnableVertexAttribArray(8);
+            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(Buffer, uv));       // TexCoord0
+            glEnableVertexAttribArray(9);
+            glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(Buffer, uv));       // TexCoord1
+
+            gl_state_bind_array_buffer(0);
+            gl_state_bind_vertex_array(0);
+            if (is_quad)
+                gl_state_bind_element_array_buffer(0);
         }
 
         if (!is_quad)
@@ -570,6 +618,33 @@ namespace Glitter {
             rend_elem->frame -= rend_elem->life_time;
     }
 
+    void XRenderGroup::DeleteBuffers(bool a2) {
+        if (particle) {
+            if (!a2)
+                particle->data.render_group = 0;
+            particle = 0;
+        }
+
+        if (ebo) {
+            glDeleteBuffers(1, &ebo);
+            ebo = 0;
+        }
+
+        if (vbo) {
+            glDeleteBuffers(1, &vbo);
+            vbo = 0;
+        }
+
+        if (vao) {
+            glDeleteVertexArrays(1, &vao);
+            vao = 0;
+        }
+
+        if (!a2 && elements) {
+            Free();
+            free(elements);
+        }
+    }
     void XRenderGroup::Emit(XParticleInst::Data* ptcl_inst_data,
         XEmitterInst* emit_inst, int32_t dup_count, int32_t count) {
         RenderElement* element;
@@ -647,6 +722,12 @@ namespace Glitter {
             *ext_anim_scale = effect_inst->ext_anim_scale;
         if (some_scale)
             *some_scale = effect_inst->some_scale;
+        return true;
+    }
+
+    bool XRenderGroup::HasEnded() {
+        if (particle)
+            return particle->HasEnded(true);
         return true;
     }
 

@@ -14,8 +14,14 @@ struct mat3 {
     vec3 row1;
     vec3 row2;
 
-    mat3();
-    mat3(vec3 row0, vec3 row1, vec3 row2);
+    inline mat3() : row0(), row1(), row2() {
+
+    }
+
+    inline mat3(vec3 row0, vec3 row1, vec3 row2) :
+        row0(row0), row1(row1), row2(row2) {
+
+    }
 };
 
 struct mat4 {
@@ -24,8 +30,14 @@ struct mat4 {
     vec4 row2;
     vec4 row3;
 
-    mat4();
-    mat4(vec4 row0, vec4 row1, vec4 row2, vec4 row3);
+    inline mat4() : row0(), row1(), row2(), row3() {
+
+    }
+
+    inline mat4(vec4 row0, vec4 row1, vec4 row2, vec4 row3) :
+        row0(row0), row1(row1), row2(row2), row3(row3) {
+
+    }
 };
 
 extern const mat3 mat3_identity;
@@ -108,13 +120,6 @@ extern void mat4_rotate_z_sin_cos(float_t sin_val, float_t cos_val, mat4* y);
 extern void mat4_rotate_x_mult_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z);
 extern void mat4_rotate_y_mult_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z);
 extern void mat4_rotate_z_mult_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z);
-extern void mat4_rot(const mat4* s, float_t x, float_t y, float_t z, mat4* d);
-extern void mat4_rot_x(const mat4* x, float_t y, mat4* z);
-extern void mat4_rot_y(const mat4* x, float_t y, mat4* z);
-extern void mat4_rot_z(const mat4* x, float_t y, mat4* z);
-extern void mat4_rot_x_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z);
-extern void mat4_rot_y_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z);
-extern void mat4_rot_z_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z);
 extern void mat4_scale(float_t x, float_t y, float_t z, mat4* d);
 extern void mat4_scale_x(float_t x, mat4* y);
 extern void mat4_scale_y(float_t x, mat4* y);

@@ -7,12 +7,12 @@
 #include <libdeflate.h>
 
 namespace deflate {
-    static size_t compress_static(struct libdeflate_compressor* c, void* src, size_t src_length,
+    static int32_t compress_static(struct libdeflate_compressor* c, const void* src, size_t src_length,
         void** dst, size_t* dst_length, int32_t compression_level, mode mode);
-    static size_t decompress_static(struct libdeflate_decompressor* d, void* src, size_t src_length,
+    static int32_t decompress_static(struct libdeflate_decompressor* d, const void* src, size_t src_length,
         void** dst, size_t* dst_length, mode mode);
 
-    size_t compress(void* src, size_t src_length, void** dst,
+    int32_t compress(const void* src, size_t src_length, void** dst,
         size_t* dst_length, int32_t compression_level, mode mode) {
         if (!src_length)
             return -1;
@@ -29,12 +29,12 @@ namespace deflate {
         if (!c)
             return -5;
 
-        size_t result = compress_static(c, src, src_length, dst, dst_length, compression_level, mode);
+        int32_t result = compress_static(c, src, src_length, dst, dst_length, compression_level, mode);
         libdeflate_free_compressor(c);
         return result >= 0 ? result : result - 0x10;
     }
 
-    size_t decompress(void* src, size_t src_length, void** dst,
+    int32_t decompress(const void* src, size_t src_length, void** dst,
         size_t* dst_length, mode mode) {
         if (!src_length)
             return -1;
@@ -50,12 +50,12 @@ namespace deflate {
         if (!*dst_length)
             *dst_length = 1;
         struct libdeflate_decompressor* d = libdeflate_alloc_decompressor();
-        size_t result = decompress_static(d, src, src_length, dst, dst_length, mode);
+        int32_t result = decompress_static(d, src, src_length, dst, dst_length, mode);
         libdeflate_free_decompressor(d);
         return result >= 0 ? result : result - 0x10;
     }
 
-    static size_t compress_static(struct libdeflate_compressor* c, void* src, size_t src_length,
+    static int32_t compress_static(struct libdeflate_compressor* c, const void* src, size_t src_length,
         void** dst, size_t* dst_length, int32_t compression_level, mode mode) {
         size_t dst_max_length;
         switch (mode) {
@@ -104,7 +104,7 @@ namespace deflate {
         return 0;
     }
 
-    static size_t decompress_static(struct libdeflate_decompressor* d, void* src, size_t src_length,
+    static int32_t decompress_static(struct libdeflate_decompressor* d, const void* src, size_t src_length,
         void** dst, size_t* dst_length, mode mode) {
         *dst = force_malloc(*dst_length);
         if (!*dst)

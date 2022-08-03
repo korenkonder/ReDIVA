@@ -583,7 +583,7 @@ inline static void io_json_write_bool(stream& s, bool val) {
     if (val)
         s.write("true", 4);
     else
-        s.write("false", 4);
+        s.write("false", 5);
 }
 
 inline static void io_json_write_int8_t(stream& s, int8_t val) {

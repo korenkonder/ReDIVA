@@ -8,8 +8,13 @@
 #include "hash.hpp"
 #include "str_utils.hpp"
 
-static int64_t key_val_get_key_index(key_val* kv, std::string& str);
-static int64_t key_val_get_key_index(key_val* kv, std::string&& str);
+static int64_t key_val_find_first_key(key_val* kv, int64_t low, int64_t high,
+    const char* s, size_t s_len, size_t offset);
+static int64_t key_val_find_last_key(key_val* kv, int64_t low, int64_t high,
+    const char* s, size_t s_len, size_t offset);
+static int64_t key_val_get_key_index(key_val* kv, const char* key);
+static int64_t key_val_get_key_index(key_val* kv, std::string& key);
+static int64_t key_val_get_key_index(key_val* kv, const char* str, size_t size);
 static void key_val_sort(key_val* kv);
 
 key_val_hash_index_pair::key_val_hash_index_pair() {
@@ -37,11 +42,7 @@ key_val_pair::key_val_pair(const char* str, size_t length) : str(str), length(le
 
 }
 
-key_val_pair::~key_val_pair() {
-
-}
-
-key_val::key_val() : curr_scope(), buf() {
+key_val::key_val() : curr_scope(), buf(), scope_size() {
 
 }
 
@@ -50,11 +51,16 @@ key_val::~key_val() {
 }
 
 void key_val::close_scope() {
-    if (scope.size() <= 1)
+    if (scope_size <= 0)
         return;
 
-    scope.pop_back();
-    curr_scope = &scope[scope.size() - 1];
+    curr_scope->key.clear();
+    curr_scope->index = 0;
+    curr_scope->count = 0;
+    curr_scope->key_hash_index.clear();
+
+    scope_size--;
+    curr_scope = &scope[scope_size];
 }
 
 void key_val::file_read(const char* path) {
@@ -93,17 +99,9 @@ bool key_val::has_key(const char* str) {
     const char* s = str;
     size_t s_len = utf8_length(str);
 
-    key_val_pair* i = key.data() + curr_scope->index;
-    size_t j = curr_scope->count;
-    int32_t res = 0;
-    for (; j; i++, j--) {
-        if (i->length > offset && s_len <= i->length - offset
-            && !(res = memcmp(s, i->str + offset, s_len)))
-            return true;
-        else if (res < 0)
-            return false;
-    }
-    return false;
+    int64_t index = key_val_find_first_key(this, curr_scope->index,
+        curr_scope->index + curr_scope->count - 1, s, s_len, offset);
+    return index != -1;
 }
 
 bool key_val::has_key(std::string& str) {
@@ -114,23 +112,25 @@ bool key_val::has_key(std::string& str) {
     const char* s = str.c_str();
     size_t s_len = str.size();
 
-    key_val_pair* i = key.data() + curr_scope->index;
-    size_t j = curr_scope->count;
-    int32_t res = 0;
-    for (; j; i++, j--) {
-        if (i->length > offset && s_len <= i->length - offset
-            && !(res = memcmp(s, i->str + offset, s_len)))
-            return true;
-        else if (res < 0)
-            return false;
-    }
-    return false;
+    int64_t index = key_val_find_first_key(this, curr_scope->index,
+        curr_scope->index + curr_scope->count - 1, s, s_len, offset);
+    return index != -1;
 }
 
-bool key_val::open_scope(std::string& str) {
-    if (!str.size()) {
-        scope.push_back(*curr_scope);
-        curr_scope = &scope[scope.size() - 1];
+bool key_val::open_scope(const char* str) {
+    if (!str || !*str) {
+        scope_size++;
+        if ((size_t)scope_size > scope.size())
+            scope.resize(scope_size + (scope_size >> 1) + 1);;
+
+        curr_scope = &scope[scope_size];
+        key_val_scope* prev_scope = curr_scope - 1;
+        curr_scope->key.assign(prev_scope->key);
+        curr_scope->index = prev_scope->index;
+        curr_scope->count = prev_scope->count;
+        curr_scope->key_hash_index.resize(prev_scope->key_hash_index.size());
+        memmove(curr_scope->key_hash_index.data(), prev_scope->key_hash_index.data(),
+            sizeof(key_val_hash_index_pair) * prev_scope->key_hash_index.size());
         return true;
     }
 
@@ -138,63 +138,118 @@ bool key_val::open_scope(std::string& str) {
     if (offset)
         offset++;
 
-    key_val_pair* first = 0;
-    key_val_pair* last = 0;
-    const char* s = str.c_str();
-    size_t s_len = str.size();
+    const char* s = str;
+    size_t s_len = utf8_length(str);
 
-    key_val_pair* i = key.data() + curr_scope->index;
-    size_t j = curr_scope->count;
-    int32_t res = 0;
-    for (; j; i++, j--) {
-        if (i->length > offset && s_len <= i->length - offset
-            && !(res = memcmp(s, i->str + offset, s_len))) {
-            if (!first)
-                first = i;
-            last = i + 1;
-        }
-        else if (first)
-            break;
-        else if (res < 0)
-            return false;
-    }
-
-    if (!first)
+    int64_t first_idx = key_val_find_first_key(this, curr_scope->index,
+        curr_scope->index + curr_scope->count - 1, s, s_len, offset);
+    if (first_idx == -1)
         return false;
 
-    scope.push_back({});
-    curr_scope = &scope[scope.size() - 1];
-    curr_scope->key = curr_scope[-1].key.size() ? curr_scope[-1].key + '.' + str : str;
-    curr_scope->index = first - key.data();
-    curr_scope->count = last - first;
+    int64_t last_idx = key_val_find_last_key(this, first_idx,
+        curr_scope->index + curr_scope->count - 1, s, s_len, offset);
+    if (last_idx == -1)
+        return false;
+
+    scope_size++;
+    if ((size_t)scope_size >= scope.size())
+        scope.resize(scope_size + (scope_size >> 1) + 1);;
+
+    curr_scope = &scope[scope_size];
+    if (curr_scope[-1].key.size()) {
+        std::string& new_key = curr_scope->key;
+        new_key.clear();
+        new_key.reserve(curr_scope[-1].key.size() + s_len + 1);
+        new_key.assign(curr_scope[-1].key);
+        new_key.append(1, '.');
+        new_key.append(str, s_len);
+    }
+    else
+        curr_scope->key.assign(str, s_len);
+    curr_scope->index = first_idx;
+    curr_scope->count = last_idx - first_idx + 1;
+    curr_scope->key_hash_index.clear();
 
     key_val_sort(this);
     return true;
 }
 
-bool key_val::open_scope(std::string&& key) {
-    return open_scope(*(std::string*)&key);
+bool key_val::open_scope(std::string& str) {
+    if (!str.size()) {
+        scope_size++;
+        if ((size_t)scope_size >= scope.size())
+            scope.resize(scope_size + (scope_size >> 1) + 1);;
+
+        curr_scope = &scope[scope_size];
+        key_val_scope* prev_scope = curr_scope - 1;
+        curr_scope->key.assign(prev_scope->key);
+        curr_scope->index = prev_scope->index;
+        curr_scope->count = prev_scope->count;
+        curr_scope->key_hash_index.resize(prev_scope->key_hash_index.size());
+        memmove(curr_scope->key_hash_index.data(), prev_scope->key_hash_index.data(),
+            sizeof(key_val_hash_index_pair) * prev_scope->key_hash_index.size());
+        return true;
+    }
+
+    size_t offset = curr_scope->key.size();
+    if (offset)
+        offset++;
+
+    const char* s = str.c_str();
+    size_t s_len = str.size();
+
+    int64_t first_idx = key_val_find_first_key(this, curr_scope->index,
+        curr_scope->index + curr_scope->count - 1, s, s_len, offset);
+    if (first_idx == -1)
+        return false;
+
+    int64_t last_idx = key_val_find_last_key(this, first_idx,
+        curr_scope->index + curr_scope->count - 1, s, s_len, offset);
+    if (last_idx == -1)
+        return false;
+
+    scope_size++;
+    if ((size_t)scope_size >= scope.size())
+        scope.resize(scope_size + (scope_size >> 1) + 1);;
+
+    curr_scope = &scope[scope_size];
+    if (curr_scope[-1].key.size()) {
+        std::string& new_key = curr_scope->key;
+        new_key.clear();
+        new_key.reserve(curr_scope[-1].key.size() + str.size() + 1);
+        new_key.assign(curr_scope[-1].key);
+        new_key.append(1, '.');
+        new_key.append(str);
+    }
+    else
+        curr_scope->key.assign(str);
+    curr_scope->index = first_idx;
+    curr_scope->count = last_idx - first_idx + 1;
+    curr_scope->key_hash_index.clear();
+
+    key_val_sort(this);
+    return true;
 }
 
-bool key_val::open_scope(int32_t i) {
+bool key_val::open_scope_fmt(int32_t i) {
     char buf[0x100];
-    size_t len = sprintf_s(buf, sizeof(buf), "%d", i);
-    return open_scope(std::string(buf, len));
+    sprintf_s(buf, sizeof(buf), "%d", i);
+    return open_scope(buf);
 }
 
-bool key_val::open_scope(uint32_t i) {
+bool key_val::open_scope_fmt(uint32_t i) {
     char buf[0x100];
-    size_t len = sprintf_s(buf, sizeof(buf), "%u", i);
-    return open_scope(std::string(buf, len));
+    sprintf_s(buf, sizeof(buf), "%u", i);
+    return open_scope(buf);
 }
 
-bool key_val::open_scope(const char* fmt, ...) {
+bool key_val::open_scope_fmt(const char* fmt, ...) {
     char buf[0x200];
     va_list args;
     va_start(args, fmt);
-    size_t len = vsprintf_s(buf, sizeof(buf), fmt, args);
+    vsprintf_s(buf, sizeof(buf), fmt, args);
     va_end(args);
-    return open_scope(std::string(buf, len));
+    return open_scope(buf);
 }
 
 void key_val::parse(const void* data, size_t size) {
@@ -239,7 +294,7 @@ void key_val::parse(const void* data, size_t size) {
 
     scope.resize(1);
     curr_scope = &scope[0];
-    curr_scope->key = {};
+    curr_scope->key.clear();
     curr_scope->index = 0;
     curr_scope->count = key.size();
 
@@ -300,10 +355,10 @@ bool key_val::read(const char*& value) {
 bool key_val::read(std::string& value) {
     int64_t index = curr_scope->index;
     if (index == -1) {
-        value = {};
+        value.clear();
         return false;
     }
-    value = std::string(val[index].str, val[index].length);
+    value.assign(val[index].str, val[index].length);
     return true;
 }
 
@@ -314,9 +369,8 @@ bool key_val::read(vec3& value) {
     return true;
 }
 
-bool key_val::read(std::string& key, bool& value) {
-    int64_t index = key_val_get_key_index(this,
-        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+bool key_val::read(const char* key, bool& value) {
+    int64_t index = key_val_get_key_index(this, key);
     if (index == -1) {
         value = false;
         return false;
@@ -325,13 +379,18 @@ bool key_val::read(std::string& key, bool& value) {
     return true;
 }
 
-bool key_val::read(std::string&& key, bool& value) {
-    return read(*(std::string*)&key, value);
+bool key_val::read(std::string& key, bool& value) {
+    int64_t index = key_val_get_key_index(this, key);
+    if (index == -1) {
+        value = false;
+        return false;
+    }
+    value = atoi(val[index].str) ? true : false;
+    return true;
 }
 
-bool key_val::read(std::string& key, float_t& value) {
-    int64_t index = key_val_get_key_index(this,
-        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+bool key_val::read(const char* key, float_t& value) {
+    int64_t index = key_val_get_key_index(this, key);
     if (index == -1) {
         value = 0.0f;
         return false;
@@ -340,13 +399,18 @@ bool key_val::read(std::string& key, float_t& value) {
     return true;
 }
 
-bool key_val::read(std::string&& key, float_t& value) {
-    return read(*(std::string*)&key, value);
+bool key_val::read(std::string& key, float_t& value) {
+    int64_t index = key_val_get_key_index(this, key);
+    if (index == -1) {
+        value = 0.0f;
+        return false;
+    }
+    value = (float_t)atof(val[index].str);
+    return true;
 }
 
-bool key_val::read(std::string& key, int32_t& value) {
-    int64_t index = key_val_get_key_index(this,
-        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+bool key_val::read(const char* key, int32_t& value) {
+    int64_t index = key_val_get_key_index(this, key);
     if (index == -1) {
         value = 0;
         return false;
@@ -355,13 +419,18 @@ bool key_val::read(std::string& key, int32_t& value) {
     return true;
 }
 
-bool key_val::read(std::string&& key, int32_t& value) {
-    return read(*(std::string*)&key, value);
+bool key_val::read(std::string& key, int32_t& value) {
+    int64_t index = key_val_get_key_index(this, key);
+    if (index == -1) {
+        value = 0;
+        return false;
+    }
+    value = atoi(val[index].str);
+    return true;
 }
 
-bool key_val::read(std::string& key, uint32_t& value) {
-    int64_t index = key_val_get_key_index(this,
-        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+bool key_val::read(const char* key, uint32_t& value) {
+    int64_t index = key_val_get_key_index(this, key);
     if (index == -1) {
         value = 0;
         return false;
@@ -370,13 +439,18 @@ bool key_val::read(std::string& key, uint32_t& value) {
     return true;
 }
 
-bool key_val::read(std::string&& key, uint32_t& value) {
-    return read(*(std::string*)&key, value);
+bool key_val::read(std::string& key, uint32_t& value) {
+    int64_t index = key_val_get_key_index(this, key);
+    if (index == -1) {
+        value = 0;
+        return false;
+    }
+    value = (uint32_t)atoll(val[index].str);
+    return true;
 }
 
-bool key_val::read(std::string& key, const char*& value) {
-    int64_t index = key_val_get_key_index(this,
-        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+bool key_val::read(const char* key, const char*& value) {
+    int64_t index = key_val_get_key_index(this, key);
     if (index == -1) {
         value = 0;
         return false;
@@ -385,23 +459,46 @@ bool key_val::read(std::string& key, const char*& value) {
     return true;
 }
 
-bool key_val::read(std::string&& key, const char*& value) {
-    return read(*(std::string*)&key, value);
-}
-
-bool key_val::read(std::string& key, std::string& value) {
-    int64_t index = key_val_get_key_index(this,
-        curr_scope->key.size() ? curr_scope->key + '.' + key : key);
+bool key_val::read(std::string& key, const char*& value) {
+    int64_t index = key_val_get_key_index(this, key);
     if (index == -1) {
-        value = {};
+        value = 0;
         return false;
     }
-    value = std::string(val[index].str, val[index].length);
+    value = val[index].str;
     return true;
 }
 
-bool key_val::read(std::string&& key, std::string& value) {
-    return read(*(std::string*)&key, value);
+bool key_val::read(const char* key, std::string& value) {
+    int64_t index = key_val_get_key_index(this, key);
+    if (index == -1) {
+        value.clear();
+        return false;
+    }
+    value.assign(val[index].str, val[index].length);
+    return true;
+}
+
+bool key_val::read(std::string& key, std::string& value) {
+    int64_t index = key_val_get_key_index(this, key);
+    if (index == -1) {
+        value.clear();
+        return false;
+    }
+    value.assign(val[index].str, val[index].length);
+    return true;
+}
+
+bool key_val::read(const char* key, vec3& value) {
+    if (open_scope(key)) {
+        read("x", value.x);
+        read("y", value.y);
+        read("z", value.z);
+        close_scope();
+        return true;
+    }
+    value = vec3_null;
+    return false;
 }
 
 bool key_val::read(std::string& key, vec3& value) {
@@ -412,11 +509,8 @@ bool key_val::read(std::string& key, vec3& value) {
         close_scope();
         return true;
     }
+    value = vec3_null;
     return false;
-}
-
-bool key_val::read(std::string&& key, vec3& value) {
-    return read(*(std::string*)&key, value);
 }
 
 bool key_val::read(std::string& key0, std::string& key1, bool& value) {
@@ -432,8 +526,17 @@ bool key_val::read(std::string& key0, std::string& key1, bool& value) {
     return false;
 }
 
-bool key_val::read(std::string&& key0, std::string&& key1, bool& value) {
-    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+bool key_val::read(const char* key0, const char* key1, bool& value) {
+    if (!open_scope(key0)) {
+        value = false;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
 }
 
 bool key_val::read(std::string& key0, std::string& key1, float_t& value) {
@@ -449,8 +552,17 @@ bool key_val::read(std::string& key0, std::string& key1, float_t& value) {
     return false;
 }
 
-bool key_val::read(std::string&& key0, std::string&& key1, float_t& value) {
-    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+bool key_val::read(const char* key0, const char* key1, float_t& value) {
+    if (!open_scope(key0)) {
+        value = 0.0f;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
 }
 
 bool key_val::read(std::string& key0, std::string& key1, int32_t& value) {
@@ -466,8 +578,17 @@ bool key_val::read(std::string& key0, std::string& key1, int32_t& value) {
     return false;
 }
 
-bool key_val::read(std::string&& key0, std::string&& key1, int32_t& value) {
-    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+bool key_val::read(const char* key0, const char* key1, int32_t& value) {
+    if (!open_scope(key0)) {
+        value = 0;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
 }
 
 bool key_val::read(std::string& key0, std::string& key1, uint32_t& value) {
@@ -483,13 +604,22 @@ bool key_val::read(std::string& key0, std::string& key1, uint32_t& value) {
     return false;
 }
 
-bool key_val::read(std::string&& key0, std::string&& key1, uint32_t& value) {
-    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+bool key_val::read(const char* key0, const char* key1, uint32_t& value) {
+    if (!open_scope(key0)) {
+        value = 0;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
 }
 
 bool key_val::read(std::string& key0, std::string& key1, const char*& value) {
     if (!open_scope(key0)) {
-        value = {};
+        value = 0;
         return false;
     }
 
@@ -500,13 +630,22 @@ bool key_val::read(std::string& key0, std::string& key1, const char*& value) {
     return false;
 }
 
-bool key_val::read(std::string&& key0, std::string&& key1, const char*& value) {
-    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+bool key_val::read(const char* key0, const char* key1, const char*& value) {
+    if (!open_scope(key0)) {
+        value = 0;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
 }
 
 bool key_val::read(std::string& key0, std::string& key1, std::string& value) {
     if (!open_scope(key0)) {
-        value = {};
+        value.clear();
         return false;
     }
 
@@ -517,8 +656,17 @@ bool key_val::read(std::string& key0, std::string& key1, std::string& value) {
     return false;
 }
 
-bool key_val::read(std::string&& key0, std::string&& key1, std::string& value) {
-    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+bool key_val::read(const char* key0, const char* key1, std::string& value) {
+    if (!open_scope(key0)) {
+        value.clear();
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
 }
 
 bool key_val::read(std::string& key0, std::string& key1, vec3& value) {
@@ -534,8 +682,17 @@ bool key_val::read(std::string& key0, std::string& key1, vec3& value) {
     return false;
 }
 
-bool key_val::read(std::string&& key0, std::string&& key1, vec3& value) {
-    return read(*(std::string*)&key0, *(std::string*)&key1, value);
+bool key_val::read(const char* key0, const char* key1, vec3& value) {
+    if (!open_scope(key0)) {
+        value = vec3_null;
+        return false;
+    }
+
+    if (read(key1, value))
+        return true;
+
+    close_scope();
+    return false;
 }
 
 bool key_val::load_file(void* data, const char* path, const char* file, uint32_t hash) {
@@ -548,7 +705,8 @@ bool key_val::load_file(void* data, const char* path, const char* file, uint32_t
 }
 
 key_val_out::key_val_out() : curr_scope() {
-
+    scope.push_back("");
+    curr_scope = &scope[scope.size() - 1];
 }
 
 key_val_out::~key_val_out() {
@@ -570,24 +728,50 @@ void key_val_out::open_scope(std::string& str) {
         return;
     }
 
-    scope.push_back(curr_scope->size() ? *curr_scope + '.' + str : str);
+    if (curr_scope->size()) {
+        temp_key.clear();
+        temp_key.reserve(curr_scope->size() + str.size() + 1);
+        temp_key.assign(*curr_scope);
+        temp_key += '.';
+        temp_key += str;
+        scope.push_back(temp_key);
+    }
+    else
+        scope.push_back(str);
     curr_scope = &scope[scope.size() - 1];
 }
 
-void key_val_out::open_scope(std::string&& key) {
-    open_scope(*(std::string*)&key);
+void key_val_out::open_scope(const char* str) {
+    if (!str || !*str) {
+        scope.push_back(*curr_scope);
+        curr_scope = &scope[scope.size() - 1];
+        return;
+    }
+
+    if (curr_scope->size()) {
+        size_t str_len = utf8_length(str);
+        temp_key.clear();
+        temp_key.reserve(curr_scope->size() + str_len + 1);
+        temp_key.assign(*curr_scope);
+        temp_key += '.';
+        temp_key.append(str, str_len);
+        scope.push_back(temp_key);
+    }
+    else
+        scope.push_back(str);
+    curr_scope = &scope[scope.size() - 1];
 }
 
-void key_val_out::open_scope(int32_t i) {
+void key_val_out::open_scope_fmt(int32_t i) {
     char buf[0x100];
-    size_t len = sprintf_s(buf, sizeof(buf), "%d", i);
-    open_scope(std::string(buf, len));
+    sprintf_s(buf, sizeof(buf), "%d", i);
+    open_scope(buf);
 }
 
-void key_val_out::open_scope(uint32_t i) {
+void key_val_out::open_scope_fmt(uint32_t i) {
     char buf[0x100];
-    size_t len = sprintf_s(buf, sizeof(buf), "%u", i);
-    open_scope(std::string(buf, len));
+    sprintf_s(buf, sizeof(buf), "%u", i);
+    open_scope(buf);
 }
 
 void key_val_out::write(stream& s, bool value) {
@@ -652,98 +836,180 @@ void key_val_out::write(stream& s, vec3&& value) {
     write(s, *(vec3*)&value);
 }
 
+void key_val_out::write(stream& s, const char* key, bool value) {
+    if (!value)
+        return;
+
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_utf8_string(key);
+    s.write("=1\n", 3);
+}
+
 void key_val_out::write(stream& s, std::string& key, bool value) {
     if (!value)
         return;
 
-    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_string(key);
     s.write("=1\n", 3);
 }
 
-void key_val_out::write(stream& s, std::string&& key, bool value) {
-    write(s, *(std::string*)&key, value);
+void key_val_out::write(stream& s, const char* key, float_t value) {
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%g", value);
+
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_utf8_string(key);
+    s.write_char('=');
+    s.write_utf8_string(val_buf);
+    s.write_char('\n');
 }
 
 void key_val_out::write(stream& s, std::string& key, float_t value) {
     char val_buf[0x100];
     sprintf_s(val_buf, 0x100, "%g", value);
 
-    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_string(key);
     s.write_char('=');
     s.write_utf8_string(val_buf);
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string&& key, float_t value) {
-    write(s, *(std::string*)&key, value);
+void key_val_out::write(stream& s, const char* key, int32_t value) {
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%d", value);
+
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_utf8_string(key);
+    s.write_char('=');
+    s.write_utf8_string(val_buf);
+    s.write_char('\n');
 }
 
 void key_val_out::write(stream& s, std::string& key, int32_t value) {
     char val_buf[0x100];
     sprintf_s(val_buf, 0x100, "%d", value);
 
-    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_string(key);
     s.write_char('=');
     s.write_utf8_string(val_buf);
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string&& key, int32_t value) {
-    write(s, *(std::string*)&key, value);
+void key_val_out::write(stream& s, const char* key, uint32_t value) {
+    char val_buf[0x100];
+    sprintf_s(val_buf, 0x100, "%u", value);
+
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_utf8_string(key);
+    s.write_char('=');
+    s.write_utf8_string(val_buf);
+    s.write_char('\n');
 }
 
 void key_val_out::write(stream& s, std::string& key, uint32_t value) {
     char val_buf[0x100];
     sprintf_s(val_buf, 0x100, "%u", value);
 
-    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_string(key);
     s.write_char('=');
     s.write_utf8_string(val_buf);
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string&& key, uint32_t value) {
-    write(s, *(std::string*)&key, value);
-}
-
-void key_val_out::write(stream& s, std::string& key, const char* value) {
-    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+void key_val_out::write(stream& s, const char* key, const char* value) {
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_utf8_string(key);
     s.write_char('=');
     s.write_utf8_string(value);
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string&& key, const char* value) {
-    write(s, *(std::string*)&key, value);
+void key_val_out::write(stream& s, std::string& key, const char* value) {
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_string(key);
+    s.write_char('=');
+    s.write_utf8_string(value);
+    s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string& key, std::string& value) {
-    s.write_string(curr_scope->size() ? *curr_scope + '.' + key : key);
+void key_val_out::write(stream& s, const char* key, std::string& value) {
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_utf8_string(key);
     s.write_char('=');
     s.write_string(value);
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string&& key, std::string& value) {
-    write(s, *(std::string*)&key, value);
+void key_val_out::write(stream& s, std::string& key, std::string& value) {
+    if (curr_scope->size()) {
+        s.write_string(*curr_scope);
+        s.write_char('.');
+    }
+    s.write_string(key);
+    s.write_char('=');
+    s.write_string(value);
+    s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string& key, vec3& value) {
+void key_val_out::write(stream& s, const char* key, vec3& value) {
+    open_scope(key);
     write(s, "x", value.x);
     write(s, "y", value.y);
     write(s, "z", value.z);
+    close_scope();
 }
 
-void key_val_out::write(stream& s, std::string&& key, vec3& value) {
-    write(s, *(std::string*)&key, value);
+void key_val_out::write(stream& s, std::string& key, vec3& value) {
+    open_scope(key);
+    write(s, "x", value.x);
+    write(s, "y", value.y);
+    write(s, "z", value.z);
+    close_scope();
+}
+
+void key_val_out::write(stream& s, const char* key, vec3&& value) {
+    write(s, key, *(vec3*)&value);
 }
 
 void key_val_out::write(stream& s, std::string& key, vec3&& value) {
     write(s, key, *(vec3*)&value);
-}
-
-void key_val_out::write(stream& s, std::string&& key, vec3&& value) {
-    write(s, *(std::string*)&key, *(vec3*)&value);
 }
 
 void key_val_out::get_lexicographic_order(std::vector<int32_t>* vec, int32_t length) {
@@ -802,15 +1068,106 @@ void key_val_out::get_lexicographic_order(std::vector<int32_t>* vec, int32_t len
     }
 }
 
-static int64_t key_val_get_key_index(key_val* kv, std::string& str) {
+static int64_t key_val_find_first_key(key_val* kv, int64_t low, int64_t high,
+    const char* s, size_t s_len, size_t offset) {
+    key_val_pair* k = kv->key.data();
+
+    int64_t first_idx = -1;
+    int64_t mid;
+    int32_t res;
+    bool full;
+    while (low <= high) {
+        key_val_pair* l = &k[mid = (low + high) / 2];
+        if (l->length > offset && s_len <= l->length - offset) {
+            res = memcmp(s, l->str + offset, s_len);
+            full = true;
+        }
+        else {
+            res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
+            full = false;
+        }
+
+        if (res > 0)
+            low = mid + 1;
+        else if (res < 0)
+            high = mid - 1;
+        else {
+            if (full)
+                first_idx = mid;
+            high = mid - 1;
+        }
+    }
+    return first_idx;
+}
+
+static int64_t key_val_find_last_key(key_val* kv, int64_t low, int64_t high,
+    const char* s, size_t s_len, size_t offset) {
+    key_val_pair* k = kv->key.data();
+
+    int64_t last_idx = -1;
+    int64_t mid;
+    int32_t res;
+    bool full;
+    while (low <= high) {
+        key_val_pair* l = &k[mid = (low + high) / 2];
+        if (l->length > offset && s_len <= l->length - offset) {
+            res = memcmp(s, l->str + offset, s_len);
+            full = true;
+        }
+        else {
+            res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
+            full = false;
+        }
+
+        if (res > 0)
+            low = mid + 1;
+        else if (res < 0)
+            high = mid - 1;
+        else {
+            if (full)
+                last_idx = mid;
+            low = mid + 1;
+        }
+    }
+    return last_idx;
+}
+
+static int64_t key_val_get_key_index(key_val* kv, const char* key) {
+    size_t str_len = utf8_length(key);
+    if (kv->curr_scope->key.size()) {
+        kv->temp_key.clear();
+        kv->temp_key.reserve(kv->curr_scope->key.size() + str_len + 1);
+        kv->temp_key.assign(kv->curr_scope->key);
+        kv->temp_key += '.';
+        kv->temp_key.append(key, str_len);
+        return key_val_get_key_index(kv, kv->temp_key.c_str(), kv->temp_key.size());
+    }
+    else
+        return key_val_get_key_index(kv, key, str_len);
+}
+
+static int64_t key_val_get_key_index(key_val* kv, std::string& key) {
+    if (kv->curr_scope->key.size()) {
+        kv->temp_key.clear();
+        kv->temp_key.reserve(kv->curr_scope->key.size() + key.size() + 1);
+        kv->temp_key.assign(kv->curr_scope->key);
+        kv->temp_key += '.';
+        kv->temp_key.append(key);
+        return key_val_get_key_index(kv, kv->temp_key.c_str(), kv->temp_key.size());
+    }
+    else
+        return key_val_get_key_index(kv, key.c_str(), key.size());
+}
+
+static int64_t key_val_get_key_index(key_val* kv, const char* str, size_t size) {
     key_val_scope* curr_scope = kv->curr_scope;
 
     if (curr_scope->key_hash_index.size() < 1)
         return -1;
 
-    uint64_t hash = hash_string_fnv1a64m(str);
+    uint64_t hash = hash_fnv1a64m(str, size);
 
-    std::vector<key_val_hash_index_pair>::iterator key = curr_scope->key_hash_index.begin();
+    key_val_hash_index_pair* key = curr_scope->key_hash_index.data();
     size_t len = curr_scope->count;
     size_t temp;
     while (len > 0) {
@@ -822,22 +1179,18 @@ static int64_t key_val_get_key_index(key_val* kv, std::string& str) {
         }
     }
 
-    if (key - curr_scope->key_hash_index.begin() == 0)
+    if (key == curr_scope->key_hash_index.data())
         if (key[0].hash == hash)
             return key[0].index;
         else
             return -1;
     else if (key[-1].hash == hash)
         return key[-1].index;
-    else if (key == curr_scope->key_hash_index.end())
+    else if (key == curr_scope->key_hash_index.data() + curr_scope->key_hash_index.size())
         return -1;
     else if (key[0].hash == hash)
         return key[0].index;
     return -1;
-}
-
-static int64_t key_val_get_key_index(key_val* kv, std::string&& str) {
-    return key_val_get_key_index(kv, *(std::string*)&str);
 }
 
 #define RADIX_BASE 4
@@ -852,6 +1205,7 @@ static void key_val_sort(key_val* kv) {
     size_t index = curr_scope->index;
     size_t count = curr_scope->count;
 
+    curr_scope->key_hash_index.clear();
     curr_scope->key_hash_index.resize(count);
 
     key_val_pair* key = kv->key.data() + index;
@@ -866,8 +1220,10 @@ static void key_val_sort(key_val* kv) {
     if (count < 2)
         return;
 
-    key_val_hash_index_pair* o_key_hash_index = new key_val_hash_index_pair[count];
-    size_t* c = (size_t*)force_malloc_s(size_t, (1 << 8));
+    size_t c[RADIX];
+    kv->temp_key_hash_index.clear();
+    kv->temp_key_hash_index.reserve(count);
+    key_val_hash_index_pair* o_key_hash_index = kv->temp_key_hash_index.data();
     key_val_hash_index_pair* arr_key_hash_index = curr_scope->key_hash_index.data();
     key_val_hash_index_pair* org_arr = arr_key_hash_index;
 
@@ -897,7 +1253,4 @@ static void key_val_sort(key_val* kv) {
 
         memmove(arr_key_hash_index, o_key_hash_index, sizeof(key_val_hash_index_pair) * count);
     }
-
-    delete[] o_key_hash_index;
-    free(c);
 }

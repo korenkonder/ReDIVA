@@ -27,13 +27,13 @@ static void draw_object_material_set_reflect(render_context* rctx, draw_object* 
 static void draw_object_material_set_uniform(render_context* rctx,
     obj_material_data* mat_data, bool disable_color_l);
 static void draw_object_vertex_attrib_reset_default(draw_object* draw);
-static void draw_object_vertex_attrib_reset_default_compressed(draw_object* draw);
 static void draw_object_vertex_attrib_reset_reflect(draw_object* draw);
-static void draw_object_vertex_attrib_reset_reflect_compressed(draw_object* draw);
 static void draw_object_vertex_attrib_set_default(draw_object* draw);
-static void draw_object_vertex_attrib_set_default_compressed(draw_object* draw);
 static void draw_object_vertex_attrib_set_reflect(draw_object* draw);
-static void draw_object_vertex_attrib_set_reflect_compressed(draw_object* draw);
+
+texture_data_struct::texture_data_struct() : field_0() {
+
+}
 
 void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
     void(*draw_object_func)(render_context* rctx, draw_object* draw), int32_t show_vector) {
@@ -65,8 +65,11 @@ void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
     }
 
 
-    if (!show_vector)
+    if (!show_vector) {
+        gl_state_bind_vertex_array(rctx->object_data.get_vertex_array(
+            draw->array_buffer, draw->morph_array_buffer));
         draw_object_func(rctx, draw);
+    }
     uniform_value[U_BONE_MAT] = 0;
 }
 
@@ -490,7 +493,7 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
     if (!rctx->draw_state.light)
         uniform_value[U_LIGHT_0] = 0;
     else if (draw->self_shadow)
-        uniform_value[U_LIGHT_0] = draw->self_shadow ? 1 : 1;
+        uniform_value[U_LIGHT_0] = 1;
     else
         uniform_value[U_LIGHT_0] = draw->sub_mesh->attrib.m.recieve_shadow ? 1 : 0;
     uniform_value[U_SHADOW] = 0;
@@ -710,7 +713,7 @@ static void draw_object_material_set_parameter(render_context* rctx, obj_materia
         inv_bump_depth = (1.0f - rctx->draw_state.bump_depth) * 64.0f + 1.0f;
 
         vec4 specular = mat_data->material.color.specular;
-        specular.w = rctx->draw_state.specular_alpha;
+        specular.w = rctx->draw_state.reflectivity;
         shaders_ft.state_material_set_specular(false, specular);
     }
     else {
@@ -866,17 +869,6 @@ static void draw_object_vertex_attrib_reset_default(draw_object* draw) {
     obj_mesh* mesh = draw->mesh;
     obj_vertex_format vertex_format = mesh->vertex_format;
 
-    if (mesh->attrib.m.compressed) {
-        draw_object_vertex_attrib_reset_default_compressed(draw);
-        return;
-    }
-
-    for (int32_t i = 0; i < 16; i++) {
-        if (draw->vertex_attrib_array[i])
-            glDisableVertexAttribArray(i);
-        draw->vertex_attrib_array[i] = false;
-    }
-
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 0;
 
@@ -886,32 +878,6 @@ static void draw_object_vertex_attrib_reset_default(draw_object* draw) {
     }
     uniform_value[U_INSTANCE] = 0;
 
-    gl_state_bind_element_array_buffer(0);
-    shaders_ft.state_matrix_set_texture(0, mat4_identity);
-    shaders_ft.state_matrix_set_texture(1, mat4_identity);
-    gl_state_active_texture(0);
-}
-
-static void draw_object_vertex_attrib_reset_default_compressed(draw_object* draw) {
-    obj_mesh* mesh = draw->mesh;
-    obj_vertex_format vertex_format = mesh->vertex_format;
-
-    for (int32_t i = 0; i < 16; i++) {
-        if (draw->vertex_attrib_array[i])
-            glDisableVertexAttribArray(i);
-        draw->vertex_attrib_array[i] = false;
-    }
-
-    if (vertex_format & OBJ_VERTEX_BONE_DATA)
-        uniform_value[U_BONE_MAT] = 0;
-
-    if (draw->morph_array_buffer) {
-        uniform_value[U_MORPH] = 0;
-        uniform_value[U_MORPH_COLOR] = 0;
-    }
-    uniform_value[U_INSTANCE] = 0;
-
-    gl_state_bind_element_array_buffer(0);
     shaders_ft.state_matrix_set_texture(0, mat4_identity);
     shaders_ft.state_matrix_set_texture(1, mat4_identity);
     gl_state_active_texture(0);
@@ -921,17 +887,6 @@ static void draw_object_vertex_attrib_reset_reflect(draw_object* draw) {
     obj_mesh* mesh = draw->mesh;
     obj_vertex_format vertex_format = mesh->vertex_format;
 
-    if (mesh->attrib.m.compressed) {
-        draw_object_vertex_attrib_reset_reflect_compressed(draw);
-        return;
-    }
-
-    for (int32_t i = 0; i < 16; i++) {
-        if (draw->vertex_attrib_array[i])
-            glDisableVertexAttribArray(i);
-        draw->vertex_attrib_array[i] = false;
-    }
-
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 0;
 
@@ -940,30 +895,6 @@ static void draw_object_vertex_attrib_reset_reflect(draw_object* draw) {
         uniform_value[U_MORPH_COLOR] = 0;
     }
 
-    gl_state_bind_element_array_buffer(0);
-    shaders_ft.state_matrix_set_texture(0, mat4_identity);
-    gl_state_active_texture(0);
-}
-
-inline static void draw_object_vertex_attrib_reset_reflect_compressed(draw_object* draw) {
-    obj_mesh* mesh = draw->mesh;
-    obj_vertex_format vertex_format = mesh->vertex_format;
-
-    for (int32_t i = 0; i < 16; i++) {
-        if (draw->vertex_attrib_array[i])
-            glDisableVertexAttribArray(i);
-        draw->vertex_attrib_array[i] = false;
-    }
-
-    if (vertex_format & OBJ_VERTEX_BONE_DATA)
-        uniform_value[U_BONE_MAT] = 0;
-
-    if (draw->morph_array_buffer) {
-        uniform_value[U_MORPH] = 0;
-        uniform_value[U_MORPH_COLOR] = 0;
-    }
-
-    gl_state_bind_element_array_buffer(0);
     shaders_ft.state_matrix_set_texture(0, mat4_identity);
     gl_state_active_texture(0);
 }
@@ -973,41 +904,6 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
     obj_sub_mesh* sub_mesh = draw->sub_mesh;
     GLsizei size_vertex = (GLsizei)mesh->size_vertex;
     obj_vertex_format vertex_format = mesh->vertex_format;
-
-    if (mesh->attrib.m.compressed) {
-        draw_object_vertex_attrib_set_default_compressed(draw);
-        return;
-    }
-
-    gl_state_bind_array_buffer(draw->array_buffer);
-
-    size_t offset = 0;
-    if (vertex_format & OBJ_VERTEX_POSITION) {
-        enable_vertex_attrib_array(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 12;
-    }
-    else
-        glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_NORMAL) {
-        enable_vertex_attrib_array(2);
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 12;
-    }
-    else
-        glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_TANGENT) {
-        enable_vertex_attrib_array(6);
-        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 16;
-    }
-    else
-        glVertexAttrib4f(5, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_BINORMAL)
-        offset += 12;
 
     bool texcoord_mat_set[4] = { false };
     obj_material_data* material = draw->material;
@@ -1023,11 +919,6 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
         if (material->material.texdata[i].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
             j++;
 
-        if (vertex_format & (OBJ_VERTEX_TEXCOORD0 << sub_mesh->uv_index[l])) {
-            enable_vertex_attrib_array(8 + texcoord_index);
-            glVertexAttribPointer(8 + texcoord_index, 2, GL_FLOAT, GL_FALSE,
-                size_vertex, (void*)(offset + 8ULL * sub_mesh->uv_index[l]));
-        }
         l++;
 
         if (texcoord_mat_set[texcoord_index])
@@ -1047,313 +938,17 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
                 }
     }
 
-    for (int32_t i = 0; i < 4; i++)
-        if (!draw->vertex_attrib_array[8 + i])
-            glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_TEXCOORD0)
-        offset += 8;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD1)
-        offset += 8;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD2)
-        offset += 8;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD3)
-        offset += 8;
-
-    if (vertex_format & OBJ_VERTEX_COLOR0) {
-        enable_vertex_attrib_array(3);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 16;
-    }
-    else
-        glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_COLOR1)
-        offset += 16;
-
-    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+    if (vertex_format & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 1;
-
-        enable_vertex_attrib_array(1);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 16;
-
-        enable_vertex_attrib_array(15);
-        glVertexAttribPointer(15, 4, GL_INT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 16;
-    }
-    else {
-        glVertexAttrib4f(1, 0.0f, 0.0f, 0.0f, 0.0f);
-        glVertexAttrib4f(15, 0.0f, 0.0f, 0.0f, 0.0f);
-    }
-
-    if (vertex_format & OBJ_VERTEX_UNKNOWN) {
-        enable_vertex_attrib_array(7);
-        glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 16;
-    }
-    else
-        glVertexAttrib4f(7, 0.0f, 0.0f, 0.0f, 1.0f);
 
     if (draw->morph_array_buffer) {
         uniform_value[U_MORPH] = 1;
 
-        gl_state_bind_array_buffer(draw->morph_array_buffer);
-
-        offset = 0;
-        if (vertex_format & OBJ_VERTEX_POSITION) {
-            enable_vertex_attrib_array(10);
-            glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 12;
-        }
-        else
-            glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_NORMAL) {
-            enable_vertex_attrib_array(11);
-            glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 12;
-        }
-        else
-            glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TANGENT) {
-            enable_vertex_attrib_array(12);
-            glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 16;
-        }
-        else
-            glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_BINORMAL)
-            offset += 12;
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-            enable_vertex_attrib_array(13);
-            glVertexAttribPointer(13, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-            enable_vertex_attrib_array(14);
-            glVertexAttribPointer(14, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD2)
-            offset += 8;
-        if (vertex_format & OBJ_VERTEX_TEXCOORD3)
-            offset += 8;
-
-        if (vertex_format & OBJ_VERTEX_COLOR0) {
+        if (vertex_format & OBJ_VERTEX_COLOR0)
             uniform_value[U_MORPH_COLOR] = 1;
-
-            enable_vertex_attrib_array(5);
-            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 16;
-        }
-        else
-            glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_COLOR1)
-            offset += 16;
-
-        if (vertex_format & OBJ_VERTEX_BONE_DATA)
-            offset += 32;
-
-        if (vertex_format & OBJ_VERTEX_UNKNOWN)
-            offset += 16;
 
         shaders_ft.env_vert_set(13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
     }
-    gl_state_bind_array_buffer(0);
-
-    gl_state_bind_element_array_buffer(draw->element_array_buffer);
-
-    if (draw->instances_count)
-        uniform_value[U_INSTANCE] = 1;
-}
-
-inline static void draw_object_vertex_attrib_set_default_compressed(draw_object* draw) {
-    obj_mesh* mesh = draw->mesh;
-    obj_sub_mesh* sub_mesh = draw->sub_mesh;
-    GLsizei size_vertex = (GLsizei)mesh->size_vertex;
-    obj_vertex_format vertex_format = mesh->vertex_format;
-
-    gl_state_bind_array_buffer(draw->array_buffer);
-
-    size_t offset = 0;
-    if (vertex_format & OBJ_VERTEX_POSITION) {
-        enable_vertex_attrib_array(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 12;
-    }
-    else
-        glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_NORMAL) {
-        enable_vertex_attrib_array(2);
-        glVertexAttribPointer(2, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
-        offset += 8;
-    }
-    else
-        glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_TANGENT) {
-        enable_vertex_attrib_array(6);
-        glVertexAttribPointer(6, 4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
-        offset += 8;
-    }
-    else
-        glVertexAttrib4f(6, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    bool texcoord_mat_set[4] = { false };
-    obj_material_data* material = draw->material;
-    for (int32_t i = 0, j = 0, l = 0; i < 4; i++) {
-        if (material->material.texdata[i].tex_index == -1)
-            continue;
-
-        int32_t texcoord_index = obj_material_texture_type_get_texcoord_index(
-            material->material.texdata[i].shader_info.m.tex_type, j);
-        if (texcoord_index < 0)
-            continue;
-
-        if (material->material.texdata[i].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
-            j++;
-
-        if (vertex_format & (OBJ_VERTEX_TEXCOORD0 << sub_mesh->uv_index[l])) {
-            enable_vertex_attrib_array(8 + texcoord_index);
-            glVertexAttribPointer(8 + texcoord_index, 2, GL_HALF_FLOAT, GL_FALSE,
-                size_vertex, (void*)(offset + 4ULL * sub_mesh->uv_index[l]));
-        }
-        l++;
-
-        if (texcoord_mat_set[texcoord_index])
-            continue;
-
-        int32_t tex_index = material->material.texdata[i].tex_index;
-
-        shaders_ft.state_matrix_set_texture(texcoord_index,
-            material->material.texdata[i].tex_coord_mat);
-        if (material->material.texdata[i].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
-            for (int32_t k = 0; k < draw->texture_transform_count; k++)
-                if (draw->texture_transform_array[k].id == tex_index) {
-                    shaders_ft.state_matrix_set_texture(texcoord_index, draw->texture_transform_array[k].mat);
-                    texcoord_mat_set[texcoord_index] = true;
-                    break;
-                }
-    }
-
-    for (int32_t i = 0; i < 4; i++)
-        if (!draw->vertex_attrib_array[8 + i])
-            glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_TEXCOORD0)
-        offset += 4;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD1)
-        offset += 4;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD2)
-        offset += 4;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD3)
-        offset += 4;
-
-    if (vertex_format & OBJ_VERTEX_COLOR0) {
-        enable_vertex_attrib_array(3);
-        glVertexAttribPointer(3, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 8;
-    }
-    else
-        glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-        uniform_value[U_BONE_MAT] = 1;
-
-        enable_vertex_attrib_array(1);
-        glVertexAttribPointer(1, 4, GL_UNSIGNED_SHORT, GL_TRUE, size_vertex, (void*)offset);
-        offset += 8;
-
-        enable_vertex_attrib_array(15);
-        glVertexAttribPointer(15, 4, GL_UNSIGNED_SHORT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 8;
-    }
-    else {
-        glVertexAttrib4f(1, 0.0f, 0.0f, 0.0f, 0.0f);
-        glVertexAttrib4f(15, 0.0f, 0.0f, 0.0f, 0.0f);
-    }
-
-    if (draw->morph_array_buffer) {
-        uniform_value[U_MORPH] = 1;
-
-        gl_state_bind_array_buffer(draw->morph_array_buffer);
-
-        offset = 0;
-        if (vertex_format & OBJ_VERTEX_POSITION) {
-            enable_vertex_attrib_array(10);
-            glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 12;
-        }
-        else
-            glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_NORMAL) {
-            enable_vertex_attrib_array(11);
-            glVertexAttribPointer(11, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TANGENT) {
-            enable_vertex_attrib_array(12);
-            glVertexAttribPointer(12, 4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-            enable_vertex_attrib_array(13);
-            glVertexAttribPointer(13, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 4;
-        }
-        else
-            glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-            enable_vertex_attrib_array(14);
-            glVertexAttribPointer(14, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 4;
-        }
-        else
-            glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD2)
-            offset += 4;
-        if (vertex_format & OBJ_VERTEX_TEXCOORD3)
-            offset += 4;
-
-        if (vertex_format & OBJ_VERTEX_COLOR0) {
-            uniform_value[U_MORPH_COLOR] = 1;
-
-            enable_vertex_attrib_array(5);
-            glVertexAttribPointer(5, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_BONE_DATA)
-            offset += 16;
-
-        shaders_ft.env_vert_set(13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
-    }
-    gl_state_bind_array_buffer(0);
-
-    gl_state_bind_element_array_buffer(draw->element_array_buffer);
 
     if (draw->instances_count)
         uniform_value[U_INSTANCE] = 1;
@@ -1365,46 +960,8 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
     GLsizei size_vertex = (GLsizei)mesh->size_vertex;
     obj_vertex_format vertex_format = mesh->vertex_format;
 
-    if (mesh->attrib.m.compressed) {
-        draw_object_vertex_attrib_set_reflect_compressed(draw);
-        return;
-    }
-
-    gl_state_bind_array_buffer(draw->array_buffer);
-
-    size_t offset = 0;
-    if (vertex_format & OBJ_VERTEX_POSITION) {
-        enable_vertex_attrib_array(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 12;
-    }
-    else
-        glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_NORMAL) {
-        enable_vertex_attrib_array(2);
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 12;
-    }
-    else
-        glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_TANGENT)
-        offset += 16;
-
-    if (vertex_format & OBJ_VERTEX_BINORMAL)
-        offset += 12;
-
     obj_material_data* material = draw->material;
     if (material->material.texdata[0].tex_index != -1) {
-        if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-            enable_vertex_attrib_array(8);
-            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE,
-                size_vertex, (void*)(offset + 8ULL * sub_mesh->uv_index[0]));
-        }
-        else
-            glVertexAttrib4f(8, 0.0f, 0.0f, 0.0f, 1.0f);
-
         int32_t tex_index = material->material.texdata[0].tex_index;
 
         shaders_ft.state_matrix_set_texture(0,
@@ -1418,282 +975,15 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
                 }
     }
 
-    for (int32_t i = 1; i < 4; i++)
-        glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_TEXCOORD0)
-        offset += 8;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD1)
-        offset += 8;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD2)
-        offset += 8;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD3)
-        offset += 8;
-
-    if (vertex_format & OBJ_VERTEX_COLOR0) {
-        enable_vertex_attrib_array(3);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 16;
-    }
-    else
-        glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_COLOR1)
-        offset += 16;
-
-    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+    if (vertex_format & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 1;
-
-        enable_vertex_attrib_array(1);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 16;
-
-        enable_vertex_attrib_array(15);
-        glVertexAttribPointer(15, 4, GL_INT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 16;
-    }
-    else {
-        glVertexAttrib4f(1, 0.0f, 0.0f, 0.0f, 0.0f);
-        glVertexAttrib4f(15, 0.0f, 0.0f, 0.0f, 0.0f);
-    }
-
-    if (vertex_format & OBJ_VERTEX_UNKNOWN)
-        offset += 16;
 
     if (draw->morph_array_buffer) {
         uniform_value[U_MORPH] = 1;
 
-        gl_state_bind_array_buffer(draw->morph_array_buffer);
-
-        offset = 0;
-        if (vertex_format & OBJ_VERTEX_POSITION) {
-            enable_vertex_attrib_array(10);
-            glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 12;
-        }
-        else
-            glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_NORMAL) {
-            enable_vertex_attrib_array(11);
-            glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 12;
-        }
-        else
-            glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TANGENT) {
-            enable_vertex_attrib_array(12);
-            glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 16;
-        }
-        else
-            glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_BINORMAL)
-            offset += 12;
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-            enable_vertex_attrib_array(13);
-            glVertexAttribPointer(13, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-            enable_vertex_attrib_array(14);
-            glVertexAttribPointer(14, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD2)
-            offset += 8;
-        if (vertex_format & OBJ_VERTEX_TEXCOORD3)
-            offset += 8;
-
-        if (vertex_format & OBJ_VERTEX_COLOR0) {
+        if (vertex_format & OBJ_VERTEX_COLOR0)
             uniform_value[U_MORPH_COLOR] = 1;
-
-            enable_vertex_attrib_array(5);
-            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 16;
-        }
-        else
-            glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_COLOR1)
-            offset += 16;
-
-        if (vertex_format & OBJ_VERTEX_BONE_DATA)
-            offset += 32;
-
-        if (vertex_format & OBJ_VERTEX_UNKNOWN)
-            offset += 16;
 
         shaders_ft.env_vert_set(13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
     }
-    gl_state_bind_array_buffer(0);
-
-    gl_state_bind_element_array_buffer(draw->element_array_buffer);
-}
-
-inline static void draw_object_vertex_attrib_set_reflect_compressed(draw_object* draw) {
-    obj_mesh* mesh = draw->mesh;
-    obj_sub_mesh* sub_mesh = draw->sub_mesh;
-    GLsizei size_vertex = (GLsizei)mesh->size_vertex;
-    obj_vertex_format vertex_format = mesh->vertex_format;
-
-    gl_state_bind_array_buffer(draw->array_buffer);
-
-    size_t offset = 0;
-    if (vertex_format & OBJ_VERTEX_POSITION) {
-        enable_vertex_attrib_array(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 12;
-    }
-    else
-        glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_NORMAL) {
-        enable_vertex_attrib_array(2);
-        glVertexAttribPointer(2, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
-        offset += 8;
-    }
-    else
-        glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_TANGENT)
-        offset += 8;
-
-    obj_material_data* material = draw->material;
-    if (material->material.texdata[0].tex_index != -1) {
-        if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-            enable_vertex_attrib_array(8);
-            glVertexAttribPointer(8, 2, GL_HALF_FLOAT, GL_FALSE,
-                size_vertex, (void*)(offset + 4ULL * sub_mesh->uv_index[0]));
-        }
-        else
-            glVertexAttrib4f(8, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        int32_t tex_index = material->material.texdata[0].tex_index;
-
-        shaders_ft.state_matrix_set_texture(0,
-            material->material.texdata[0].tex_coord_mat);
-        if (material->material.texdata[0].shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR)
-            for (int32_t j = 0; j < draw->texture_transform_count; j++)
-                if (draw->texture_transform_array[j].id == tex_index) {
-                    shaders_ft.state_matrix_set_texture(0,
-                        draw->texture_transform_array[j].mat);
-                    break;
-                }
-    }
-
-    for (int32_t i = 1; i < 4; i++)
-        glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_TEXCOORD0)
-        offset += 4;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD1)
-        offset += 4;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD2)
-        offset += 4;
-    if (vertex_format & OBJ_VERTEX_TEXCOORD3)
-        offset += 4;
-
-    if (vertex_format & OBJ_VERTEX_COLOR0) {
-        enable_vertex_attrib_array(3);
-        glVertexAttribPointer(3, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 8;
-    }
-    else
-        glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
-
-    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-        uniform_value[U_BONE_MAT] = 1;
-
-        enable_vertex_attrib_array(1);
-        glVertexAttribPointer(1, 4, GL_UNSIGNED_SHORT, GL_TRUE, size_vertex, (void*)offset);
-        offset += 8;
-
-        enable_vertex_attrib_array(15);
-        glVertexAttribPointer(15, 4, GL_UNSIGNED_SHORT, GL_FALSE, size_vertex, (void*)offset);
-        offset += 8;
-    }
-    else {
-        glVertexAttrib4f(1, 0.0f, 0.0f, 0.0f, 0.0f);
-        glVertexAttrib4f(15, 0.0f, 0.0f, 0.0f, 0.0f);
-    }
-
-    if (draw->morph_array_buffer) {
-        uniform_value[U_MORPH] = 1;
-
-        gl_state_bind_array_buffer(draw->morph_array_buffer);
-
-        offset = 0;
-        if (vertex_format & OBJ_VERTEX_POSITION) {
-            enable_vertex_attrib_array(10);
-            glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 12;
-        }
-        else
-            glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_NORMAL) {
-            enable_vertex_attrib_array(11);
-            glVertexAttribPointer(11, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TANGENT) {
-            enable_vertex_attrib_array(12);
-            glVertexAttribPointer(12, 4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-            enable_vertex_attrib_array(13);
-            glVertexAttribPointer(13, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 4;
-        }
-        else
-            glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-            enable_vertex_attrib_array(14);
-            glVertexAttribPointer(14, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 4;
-        }
-        else
-            glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_TEXCOORD2)
-            offset += 4;
-        if (vertex_format & OBJ_VERTEX_TEXCOORD3)
-            offset += 4;
-
-        if (vertex_format & OBJ_VERTEX_COLOR0) {
-            uniform_value[U_MORPH_COLOR] = 1;
-
-            enable_vertex_attrib_array(5);
-            glVertexAttribPointer(5, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
-            offset += 8;
-        }
-        else
-            glVertexAttrib4f(5, 0.0f, 0.0f, 0.0f, 1.0f);
-
-        if (vertex_format & OBJ_VERTEX_BONE_DATA)
-            offset += 16;
-
-        shaders_ft.env_vert_set(13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
-    }
-    gl_state_bind_array_buffer(0);
-
-    gl_state_bind_element_array_buffer(draw->element_array_buffer);
 }

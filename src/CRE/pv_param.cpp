@@ -6,10 +6,16 @@
 #include "pv_param.hpp"
 #include "post_process.hpp"
 #include "render_context.hpp"
+#include "../KKdLib/str_utils.hpp"
 
 extern render_context* rctx_ptr;
 
 namespace pv_param {
+    static bool load_text_file(void* data, const char* path, const char* file, uint32_t hash);
+
+    file_data_struct file_data;
+    post_process_data_struct post_process_data;
+
     bloom::bloom() {
         id = -1;
         color = vec3_null;
@@ -24,6 +30,7 @@ namespace pv_param {
         fuzzing_range = 2.0f;
         ratio = 0.0f;
         quality = 1.0f;
+        chara_id = -1;
     }
 
     chara_alpha::chara_alpha() {
@@ -44,14 +51,6 @@ namespace pv_param {
         contrast = 1.0f;
     }
 
-    post_process_data_struct::post_process_data_struct() {
-
-    }
-
-    post_process_data_struct::~post_process_data_struct() {
-
-    }
-
     file_data_struct::file_data_struct() {
 
     }
@@ -60,12 +59,365 @@ namespace pv_param {
 
     }
 
+    std::vector<pv_param::bloom>& file_data_struct::get_bloom_data(std::string& file) {
+        if (!file.size())
+            return bloom_default;
+
+        auto elem = bloom.find(file);
+        if (elem != bloom.end())
+            return elem->second;
+
+        return bloom_default;
+    }
+
+    std::vector<pv_param::color_correction>& file_data_struct::get_color_correction_data(std::string& file) {
+        if (!file.size())
+            return cc_default;
+
+        auto elem = cc.find(file);
+        if (elem != cc.end())
+            return elem->second;
+
+        return cc_default;
+    }
+
+    std::vector<pv_param::dof>& file_data_struct::get_dof_data(std::string& file) {
+        if (!file.size())
+            return dof_default;
+
+        auto elem = dof.find(file);
+        if (elem != dof.end())
+            return elem->second;
+
+        return dof_default;
+    }
+
+    bool file_data_struct::load_bloom_file(std::string& file) {
+        std::string data;
+        if (!data_list[DATA_AFT].load_file(&data, file.c_str(), load_text_file))
+            return false;
+
+        char* buf;
+        char** lines;
+        size_t count;
+        if (!str_utils_text_file_parse(data.c_str(), data.size(), &buf, &lines, &count))
+            return false;
+
+        if (count <= 1 || str_utils_compare(lines[0],
+            "ID,ColorR,ColorG,ColorB,BrightpassR,BrightpassG,BrightpassB,Range")) {
+            free(buf);
+            free(lines);
+            return false;
+        }
+
+        lines++;
+        count--;
+
+        std::vector<pv_param::bloom> bloom;
+        bloom.reserve(count);
+
+        for (size_t i = 0; i < count; i++) {
+            pv_param::bloom bloom_data;
+            if (sscanf_s(lines[i], "%d,%g,%g,%g,%g,%g,%g,%g",
+                &bloom_data.id, &bloom_data.color.x, &bloom_data.color.y, &bloom_data.color.z,
+                &bloom_data.brightpass.x, &bloom_data.brightpass.y, &bloom_data.brightpass.z, &bloom_data.range) == 8)
+                bloom.push_back(bloom_data);
+        }
+
+        this->bloom.insert_or_assign(file, bloom);
+
+        lines--;
+
+        free(buf);
+        free(lines);
+        return true;
+    }
+
+    bool file_data_struct::load_color_correction_file(std::string& file) {
+        std::string data;
+        if (!data_list[DATA_AFT].load_file(&data, file.c_str(), load_text_file))
+            return false;
+
+        char* buf;
+        char** lines;
+        size_t count;
+        if (!str_utils_text_file_parse(data.c_str(), data.size(), &buf, &lines, &count))
+            return false;
+
+        if (count <= 1 || str_utils_compare(lines[0],
+            "ID,Hue,Saturation,Lightness,Exposure,GammaR,GammaG,GammaB,Contrast")) {
+            free(buf);
+            free(lines);
+            return false;
+        }
+
+        lines++;
+        count--;
+
+        std::vector<pv_param::color_correction> cc;
+        cc.reserve(count);
+
+        for (size_t i = 0; i < count; i++) {
+            pv_param::color_correction cc_data;
+            if (sscanf_s(lines[i], "%d,%g,%g,%g,%g,%g,%g,%g,%g",
+                &cc_data.id, &cc_data.hue, &cc_data.saturation, &cc_data.lightness,
+                &cc_data.exposure, &cc_data.gamma.x, &cc_data.gamma.y, &cc_data.gamma.z, &cc_data.contrast) == 9)
+                cc.push_back(cc_data);
+        }
+
+        this->cc.insert_or_assign(file, cc);
+
+        lines--;
+
+        free(buf);
+        free(lines);
+        return true;
+    }
+
+    bool file_data_struct::load_dof_file(std::string& file) {
+        std::string data;
+        if (!data_list[DATA_AFT].load_file(&data, file.c_str(), load_text_file))
+            return false;
+
+        char* buf;
+        char** lines;
+        size_t count;
+        if (!str_utils_text_file_parse(data.c_str(), data.size(), &buf, &lines, &count))
+            return false;
+
+        if (count <= 1 || str_utils_compare(lines[0],
+            "ID,Focus,FocusRange,FuzzingRange,Ratio,Quality")) {
+            free(buf);
+            free(lines);
+            return false;
+        }
+
+        lines++;
+        count--;
+
+        std::vector<pv_param::dof> dof;
+        dof.reserve(count);
+
+        for (size_t i = 0; i < count; i++) {
+            pv_param::dof dof_data;
+            if (sscanf_s(lines[i], "%d,%g,%g,%g,%g,%g",
+                &dof_data.id, &dof_data.focus, &dof_data.focus_range,
+                &dof_data.fuzzing_range, &dof_data.ratio, &dof_data.quality) == 6)
+                dof.push_back(dof_data);
+        }
+
+        this->dof.insert_or_assign(file, dof);
+
+        lines--;
+
+        free(buf);
+        free(lines);
+        return true;
+    }
+
+    void file_data_struct::unload_bloom_file(std::string& file) {
+        auto elem = bloom.find(file);
+        if (elem != bloom.end())
+            bloom.erase(elem);
+    }
+
+    void file_data_struct::unload_color_correction_file(std::string& file) {
+        auto elem = cc.find(file);
+        if (elem != cc.end())
+            cc.erase(elem);
+    }
+
+    void file_data_struct::unload_dof_file(std::string& file) {
+        auto elem = dof.find(file);
+        if (elem != dof.end())
+            dof.erase(elem);
+    }
+
     light_data_struct::light_data_struct() {
 
     }
 
     light_data_struct::~light_data_struct() {
 
+    }
+
+    post_process_data_struct::post_process_data_struct() {
+
+    }
+
+    post_process_data_struct::~post_process_data_struct() {
+
+    }
+
+    void post_process_data_struct::clear_data() {
+        if (dof_file.size()) {
+            file_data.unload_dof_file(dof_file);
+            dof_file.clear();
+        }
+
+        if (dof.size())
+            dof.clear();
+
+        if (cc_file.size()) {
+            file_data.unload_color_correction_file(cc_file);
+            cc_file.clear();
+        }
+
+        if (cc.size())
+            cc.clear();
+
+        if (bloom_file.size()) {
+            file_data.unload_bloom_file(bloom_file);
+            bloom_file.clear();
+        }
+
+        if (bloom.size())
+            bloom.clear();
+    }
+
+    bool post_process_data_struct::load_files(std::string& path) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+
+        if (!aft_data->check_directory_exists(path.c_str()))
+            return false;
+
+        if (aft_data->check_file_exists(path.c_str(), "dof.txt"))
+            dof_file = path + "dof.txt";
+        else {
+            dof_file.clear();
+            dof_file.shrink_to_fit();
+        }
+
+        if (aft_data->check_file_exists(path.c_str(), "cc.txt"))
+            cc_file = path + "cc.txt";
+        else {
+            cc_file.clear();
+            cc_file.shrink_to_fit();
+        }
+
+        if (aft_data->check_file_exists(path.c_str(), "bloom.txt"))
+            bloom_file = path + "bloom.txt";
+        else {
+            bloom_file.clear();
+            bloom_file.shrink_to_fit();
+        }
+
+        if ((!dof_file.size() || file_data.load_dof_file(dof_file))
+            && (!cc_file.size() || file_data.load_color_correction_file(cc_file))
+            && (!bloom_file.size() || file_data.load_bloom_file(bloom_file))) {
+            dof = file_data.get_dof_data(dof_file);
+            cc = file_data.get_color_correction_data(cc_file);
+            bloom = file_data.get_bloom_data(bloom_file);
+            return true;
+        }
+        return false;
+    }
+
+    void post_process_data_struct::set_dof(::dof& d) {
+        if (!d.ready)
+            return;
+
+        if (dof_file.size()) {
+            file_data.unload_dof_file(dof_file);
+            dof_file.clear();
+        }
+
+        dof.resize(0);
+        dof.reserve(d.data.size());
+
+        int32_t id = 0;
+        for (dof_data& i : d.data) {
+            pv_param::dof d;
+            d.id = id++;
+            if (i.flags & DOF_FOCUS)
+                d.focus = i.focus;
+            if (i.flags & DOF_FOCUS_RANGE)
+                d.focus_range = i.focus_range;
+            if (i.flags & DOF_FUZZING_RANGE)
+                d.fuzzing_range = i.fuzzing_range;
+            if (i.flags & DOF_RATIO)
+                d.ratio = i.ratio;
+            if (i.flags & DOF_QUALITY)
+                d.quality = i.quality;
+            if (i.flags & DOF_AUTO_FOCUS)
+                d.chara_id = i.chara_id;
+            dof.push_back(d);
+        }
+    }
+
+    void post_process_data_clear_data() {
+        post_process_data.clear_data();
+    }
+
+    pv_param::bloom& post_process_data_get_bloom_data(int32_t id) {
+        for (pv_param::bloom& i : post_process_data.bloom)
+            if (i.id == id)
+                return i;
+
+        return post_process_data.bloom_default;
+    }
+
+    pv_param::color_correction& post_process_data_get_color_correction_data(int32_t id) {
+        for (pv_param::color_correction& i : post_process_data.cc)
+            if (i.id == id)
+                return i;
+
+        return post_process_data.cc_default;
+    }
+
+    pv_param::dof& post_process_data_get_dof_data(int32_t id) {
+        for (pv_param::dof& i : post_process_data.dof)
+            if (i.id == id)
+                return i;
+
+        return post_process_data.dof_default;
+    }
+
+    bool post_process_data_load_files(int32_t pv_id) {
+        std::string path = "rom/pv_param/";
+
+        char buf[0x100];
+        sprintf_s(buf, sizeof(buf), "pv%03d/", pv_id);
+
+        path += buf;
+
+        if (data_list[DATA_AFT].check_directory_exists(path.c_str()))
+            return post_process_data.load_files(path);
+        return false;
+    }
+
+    bool post_process_data_load_files(int32_t pv_id, std::string& mdata_dir) {
+        std::string path = "rom/pv_param/";
+
+        char buf[0x100];
+        sprintf_s(buf, sizeof(buf), "pv%03d/", pv_id);
+
+        path += buf;
+
+        if (mdata_dir.size()) {
+            std::string temp_path = mdata_dir + path;
+            if (data_list[DATA_AFT].check_directory_exists(temp_path.c_str()))
+                path = temp_path;
+        }
+
+        if (data_list[DATA_AFT].check_directory_exists(path.c_str()))
+            return post_process_data.load_files(path);
+        return false;
+    }
+
+    void post_process_data_set_dof(::dof& d) {
+        post_process_data.set_dof(d);
+    }
+
+    static bool load_text_file(void* data, const char* path, const char* file, uint32_t hash) {
+        stream s;
+        s.open((std::string(path) + file).c_str(), "rb");
+        if (!s.io.stream)
+            return false;
+
+        *(std::string*)data = s.read_string(s.length);
+        s.close();
+        return true;
     }
 }
 
@@ -111,7 +463,7 @@ namespace pv_param_task {
 
         rctx_ptr->post_process.blur->set_intensity(value);
 
-        frame += 1.0f;
+        frame += get_delta_frame();
         if (frame > duration) {
             frame = -1.0f;
             duration = -1.0f;
@@ -175,7 +527,7 @@ namespace pv_param_task {
 
         tone_map->set_tone_trans(tone_trans_start, tone_trans_end);
 
-        frame += 1.0f;
+        frame += get_delta_frame();
         if (frame > duration) {
             frame = -1.0f;
             duration = -1.0f;
@@ -236,19 +588,19 @@ namespace pv_param_task {
             switch (i.type) {
             case 0:
             default:
-                draw_task_flags = DRAW_TASK_10000;
+                draw_task_flags = DRAW_TASK_ALPHA_ORDER_1;
                 break;
             case 1:
-                draw_task_flags = DRAW_TASK_20000;
+                draw_task_flags = DRAW_TASK_ALPHA_ORDER_2;
                 break;
             case 2:
-                draw_task_flags = DRAW_TASK_40000;
+                draw_task_flags = DRAW_TASK_ALPHA_ORDER_3;
                 break;
             }
 
             rob_chara_array_set_alpha_draw_task_flags(index, value, draw_task_flags);
 
-            i.frame += 1.0f;
+            i.frame += get_delta_frame();
             if (i.frame > i.duration) {
                 i.frame = -1.0f;
                 i.prev_alpha = i.alpha;
@@ -257,12 +609,23 @@ namespace pv_param_task {
         }
     }
 
-    PostProcessCtrlCharaItemAlpha::PostProcessCtrlCharaItemAlpha() {
+    PostProcessCtrlCharaItemAlpha::PostProcessCtrlCharaItemAlpha() : callback(), callback_data() {
 
     }
 
     PostProcessCtrlCharaItemAlpha::~PostProcessCtrlCharaItemAlpha() {
 
+    }
+
+    void PostProcessCtrlCharaItemAlpha::Reset() {
+        for (pv_param::chara_alpha& i : data.data)
+            i = {};
+
+        for (PostProcessCtrlCharaItemAlpha::Callback& i : callback)
+            i = 0;
+
+        for (void*& i : callback_data)
+            i = 0;
     }
 
     void PostProcessCtrlCharaItemAlpha::Set() {
@@ -281,11 +644,13 @@ namespace pv_param_task {
             else
                 value = lerp(i.prev_alpha, i.alpha, i.frame / i.duration);
 
+            if (callback)
+                callback[index](callback_data[index], index, i.type, value);
             /*pv_game* v5 = pv_game_data_get();
             if (v5)
                 sub_140115EC0(v5, index, i.type, value);*/
 
-            i.frame += 1.0f;
+            i.frame += get_delta_frame();
             if (i.frame > i.duration) {
                 i.frame = -1.0f;
                 i.prev_alpha = i.alpha;
@@ -310,16 +675,91 @@ namespace pv_param_task {
         frame = -1.0f;
     }
 
+#define DOF_FIX 1
+
     void PostProcessCtrlDof::Set() {
-        if (frame < 0.0f)
-            return;
-
-
         float_t focus;
         float_t focus_range;
         float_t fuzzing_range;
         float_t ratio;
-        if (fabsf(duration) <= 0.000001f) {
+#if DOF_FIX
+        float_t auto_focus;
+        float_t auto_focus_range;
+#endif
+        bool autofocus = data.data.chara_id != -1;
+#if DOF_FIX
+        if (true) {
+#else
+        if (autofocus) {
+#endif
+            vec3 trans = vec3_null;
+            rob_chara* rob_chr = rob_chara_array_get(autofocus ? data.data.chara_id : 0);
+            if (rob_chr) {
+                motion_blend_mot* mot = rob_chr->bone_data->motion_loaded.front();
+                ::bone_data* bone_data = mot->bone_data.bones.data();
+
+                mat4_get_translation(bone_data[MOTION_BONE_CL_KAO].node->mat, &trans);
+            }
+
+            camera* cam = rctx_ptr->camera;
+
+            vec3 view_point;
+            cam->get_view_point(view_point);
+            float_t fov = (float_t)cam->get_fov();
+
+            vec3_distance(trans, view_point, focus);
+
+            float_t v5 = tanf(fov * DEG_TO_RAD_FLOAT * 0.5f);
+            float_t v6 = focus * 1000.0f;
+            float_t v7 = 36.0f / (v5 * 2.0f);
+            v7 *= v7;
+            float_t v8 = v6 * 0.36608f * v6 / (v7 - v6 * 0.36608f) * 0.001f;
+            if (v8 >= 0.0f) {
+                float_t v9 = v7 - (v6 * 3.6608f);
+                float_t v10 = 20.0f;
+                float_t v11 = (v7 * 20000.0f) / (v6 * 220000.0f + v6 * 11.0f * v6);
+                focus_range = (v8 + v8) * 0.5f;
+                float_t v13 = (v6 * 3.6608f * v6) / v9 * 0.001f;
+                if (v11 >= 0.3328f)
+                    v10 = v13;
+                if (v10 <= 0.2f)
+                    v10 = 0.2f;
+                if (focus_range <= 0.2f)
+                    focus_range = 0.2f;
+                if (v11 >= 0.3328f)
+                    ratio = 1.0f;
+                else
+                    ratio = v11 * 3.004807711f;
+
+                fuzzing_range = v10 - focus_range;
+                if (fuzzing_range <= 0.01f)
+                    fuzzing_range = 0.01f;
+            }
+            else {
+                focus = 0.0f;
+                focus_range = 0.0f;
+                fuzzing_range = 0.0f;
+                ratio = 0.0f;
+            }
+
+            if (autofocus) {
+                data.data.focus = focus;
+                data.data.focus_range = focus_range;
+                data.data.fuzzing_range = fuzzing_range;
+                data.data.ratio = ratio;
+            }
+
+#if DOF_FIX
+            auto_focus = focus;
+            auto_focus_range = focus_range;
+        }
+#else
+        }
+        else if (frame < 0.0f)
+            return;
+#endif
+
+        if (fabsf(duration) <= 0.000001f || autofocus && duration < 0.0f) {
             focus = data.data.focus;
             focus_range = data.data.focus_range;
             fuzzing_range = data.data.fuzzing_range;
@@ -339,6 +779,23 @@ namespace pv_param_task {
             ratio = lerp(data.data_prev.ratio, data.data.ratio, t);
         }
 
+#if DOF_FIX
+        bool ret = true;
+        if (ratio > 0.0f) {
+            if (focus == 0.0f && auto_focus >= 0.0f) {
+                focus = auto_focus;
+                ret = false;
+            }
+            if (focus_range == 0.0f && auto_focus_range >= 0.0f) {
+                focus_range = auto_focus_range;
+                ret = false;
+            }
+        }
+
+        if (!autofocus && ret && frame < 0.0f)
+            return;
+#endif
+
         post_process_dof* dof = rctx_ptr->post_process.dof;
         dof_pv pv;
         dof->get_dof_pv(&pv);
@@ -348,7 +805,7 @@ namespace pv_param_task {
         pv.f2.ratio = ratio;
         dof->set_dof_pv(&pv);
 
-        frame += 1.0f;
+        frame += get_delta_frame();
         if (frame > duration) {
             frame = -1.0f;
             duration = -1.0f;

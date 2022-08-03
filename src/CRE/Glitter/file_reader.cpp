@@ -82,73 +82,6 @@ namespace Glitter {
             ParseCurve(&i, anim);
     }
 
-    /*
-    bool glitter_animation_unparse_file(GLT, f2_struct* st,
-        Animation* anim, glitter_curve_type_flags flags) {
-        if (anim->curves.size() < 1)
-            return false;
-
-        static const glitter_curve_type order[] = {
-            CURVE_COLOR_A,
-            CURVE_COLOR_R,
-            CURVE_COLOR_G,
-            CURVE_COLOR_B,
-            CURVE_COLOR_RGB_SCALE,
-            CURVE_COLOR_A_2ND,
-            CURVE_COLOR_R_2ND,
-            CURVE_COLOR_G_2ND,
-            CURVE_COLOR_B_2ND,
-            CURVE_COLOR_RGB_SCALE_2ND,
-            CURVE_TRANSLATION_X,
-            CURVE_TRANSLATION_Y,
-            CURVE_TRANSLATION_Z,
-            CURVE_ROTATION_X,
-            CURVE_ROTATION_Y,
-            CURVE_ROTATION_Z,
-            CURVE_SCALE_X,
-            CURVE_SCALE_Y,
-            CURVE_SCALE_Z,
-            CURVE_SCALE_ALL,
-            CURVE_EMISSION_INTERVAL,
-            CURVE_PARTICLES_PER_EMISSION,
-            CURVE_U_SCROLL,
-            CURVE_V_SCROLL,
-            CURVE_U_SCROLL_ALPHA,
-            CURVE_V_SCROLL_ALPHA,
-            CURVE_U_SCROLL_2ND,
-            CURVE_V_SCROLL_2ND,
-            CURVE_U_SCROLL_ALPHA_2ND,
-            CURVE_V_SCROLL_ALPHA_2ND,
-        };
-
-        for (int32_t i = CURVE_TRANSLATION_X; i <= CURVE_V_SCROLL_ALPHA_2ND; i++) {
-            if (~flags & (1 << (size_t)order[i]))
-                continue;
-
-            for (Curve*& j : anim->curves) {
-                Curve* c = j;
-                if (!c || c->type != order[i])
-                    continue;
-
-                f2_struct s;
-                if (glitter_curve_unparse_file(GLT_VAL, &s, c)) {
-                    st->sub_structs.push_back(s);
-                    break;
-                }
-            }
-        }
-
-        if (st->sub_structs.size() < 1)
-            return false;
-
-        st->header.signature = reverse_endianness_uint32_t('ANIM');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
-        return true;
-    }
-    */
-
     void FileReader::ParseCurve(f2_struct* st, Animation* anim) {
         if (!st || !st->header.data_size
             || st->header.signature != reverse_endianness_uint32_t('CURV'))
@@ -242,84 +175,6 @@ namespace Glitter {
         anim->curves.push_back(c);
     }
 
-    /*
-    bool glitter_curve_unparse_file(GLT, f2_struct* st, Curve* c) {
-    #if !defined(CRE_DEV)
-        std::vector<Curve::Key> keys = c->keys;
-        if (vector_old_length(keys) < 1)
-            return false;
-    #else
-        std::vector<Curve::Key> keys = c->keys;
-        if (c->keys_rev.size() < 1)
-            return false;
-
-        c->keys.clear();
-        glitter_curve_recalculate(GLT_VAL, c);
-        if (!c->keys.size()) {
-            c->keys = keys;
-            return false;
-        }
-    #endif
-        glitter_curve_pack_file(GLT_VAL, st, c, c->keys.size());
-
-        f2_struct s;
-        glitter_curve_key_pack_file(GLT_VAL, &s, c, &c->keys);
-        st->sub_structs.push_back(s);
-    #if defined(CRE_DEV)
-        c->keys.clear();
-    #endif
-        c->keys = keys;
-        return true;
-    }
-    */
-
-    /*
-    static void glitter_curve_pack_file(GLT,
-        f2_struct* st, Curve* c, size_t keys_count) {
-        size_t l;
-        size_t d;
-        l = 0;
-
-        uint32_t o;
-        enrs e;
-        enrs_entry ee;
-
-        ee = { 0, 2, 32, 1 };
-        ee.append(0, 4, ENRS_DWORD);
-        ee.append(0, 3, ENRS_WORD);
-        e.vec.push_back(ee);
-        l += o = 32;
-
-        st->data.resize(l);
-        d = (size_t)st->data.data();
-        st->enrs = e;
-
-        float_t random_range = c->random_range;
-        if (c->version == 0)
-            switch (c->type) {
-            case CURVE_ROTATION_X:
-            case CURVE_ROTATION_Y:
-            case CURVE_ROTATION_Z:
-                random_range = 0.0f;
-                break;
-            }
-
-        *(uint32_t*)d = c->type;
-        *(uint32_t*)(d + 4) = c->repeat ? 1 : 0;
-        *(uint32_t*)(d + 8) = c->flags;
-        *(float_t*)(d + 12) = random_range;
-        *(int16_t*)(d + 16) = (int16_t)keys_count;
-        *(int16_t*)(d + 18) = (int16_t)c->start_time;
-        *(int16_t*)(d + 20) = (int16_t)c->end_time;
-
-        st->header.signature = reverse_endianness_uint32_t('CURV');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
-        st->header.version = c->version;
-    }
-    */
-
     bool FileReader::ParseDivaEffect(GPM, f2_struct* st, object_database* obj_db) {
         if (!st || !st->header.data_size
             || st->header.signature != reverse_endianness_uint32_t('DVEF'))
@@ -363,12 +218,6 @@ namespace Glitter {
         return false;
     }
 
-    /*
-    bool glitter_diva_effect_unparse_file(GLT, EffectGroup* a1, f2_struct* st) {
-        return a1->UnparseFile(GLT_VAL, st);
-    }
-    */
-
     bool FileReader::ParseDivaList(f2_struct* st, EffectGroup* eff_group) {
         if (!st || !st->header.data_size
             || st->header.signature != reverse_endianness_uint32_t('LIST'))
@@ -380,25 +229,6 @@ namespace Glitter {
         return true;
     }
 
-    /*
-    bool glitter_diva_list_parse_file(EffectGroup* a1, f2_struct* st) {
-    }
-
-    bool glitter_diva_list_unparse_file(EffectGroup* a1, f2_struct* st) {
-        f2_struct s;
-        if (!glitter_list_pack_file(a1, &s))
-            return false;
-
-        st->sub_structs.push_back(s);
-
-        st->header.signature = reverse_endianness_uint32_t('LIST');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
-        return true;
-    }
-    */
-
     bool FileReader::ParseDivaResource(GPM, f2_struct* st, EffectGroup* eff_group) {
         if (!st || !st->header.data_size)
             return false;
@@ -408,27 +238,6 @@ namespace Glitter {
                 break;
         return true;
     }
-
-    /*
-    bool glitter_diva_resource_parse_file(GPM, EffectGroup* a1, f2_struct* st) {
-
-    }
-
-    bool glitter_diva_resource_unparse_file(EffectGroup* a1, f2_struct* st) {
-        f2_struct s;
-        if (!glitter_texture_resource_pack_file(a1, &s))
-            return false;
-
-        st->sub_structs.push_back(s);
-
-        st->header.signature = reverse_endianness_uint32_t('DVRS');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
-        st->header.version = 1;
-        return true;
-    }
-    */
 
     bool FileReader::ParseEffect(f2_struct* st,
         EffectGroup* eff_group, object_database* obj_db) {
@@ -894,216 +703,6 @@ namespace Glitter {
 #endif
     }
 
-    /*
-    static void glitter_curve_key_pack_file(GLT, f2_struct* st,
-        Curve* c, std::vector<Curve::Key>* keys) {
-        size_t l;
-        size_t d;
-        glitter_key_type key_type;
-        size_t count;
-        l = 0;
-
-        uint32_t o;
-        enrs e;
-        enrs_entry ee;
-
-        if (!keys->size()) {
-            st->header.signature = reverse_endianness_uint32_t('KEYS');
-            st->header.length = 0x20;
-            st->header.use_big_endian = false;
-            st->header.use_section_size = true;
-            st->header.version = c->keys_version;
-            return;
-        }
-
-        if (c->flags & CURVE_KEY_RANDOM_RANGE) {
-            key_type = keys->front().type;
-            if (key_type == KEY_HERMITE) {
-                ee = { 0, 2, 20, 1 };
-                ee.append(0, 2, ENRS_WORD);
-                ee.append(0, 4, ENRS_DWORD);
-                l = 20;
-            }
-            else {
-                ee = { 0, 2, 12, 1 };
-                ee.append(0, 2, ENRS_WORD);
-                ee.append(0, 2, ENRS_DWORD);
-                l = 12;
-            }
-
-            count = 1;
-            Curve::Key* i_begin = keys->data() + 1;
-            Curve::Key* i_end = keys->data() + keys->size();
-            for (Curve::Key* i = i_begin; i != i_end;
-                i++, count++, l += key_type == KEY_HERMITE ? 20 : 12) {
-                if (i->type == key_type)
-                    continue;
-
-                if (count > 0) {
-                    ee.repeat_count = (uint32_t)count;
-                    e.vec.push_back(ee);
-                }
-
-                count = 1;
-                o = (uint32_t)((key_type == KEY_HERMITE ? 20 : 12) * count);
-                if (i->type == KEY_HERMITE) {
-                    ee = { o, 2, 20, 1 };
-                    ee.append(0, 2, ENRS_WORD);
-                    ee.append(0, 4, ENRS_DWORD);
-                }
-                else {
-                    ee = { o, 2, 12, 1 };
-                    ee.append(0, 2, ENRS_WORD);
-                    ee.append(0, 2, ENRS_DWORD);
-                }
-                key_type = i->type;
-            }
-        }
-        else {
-            key_type = keys->front().type;
-            if (key_type == KEY_HERMITE) {
-                ee = { 0, 2, 16, 1 };
-                ee.append(0, 2, ENRS_WORD);
-                ee.append(0, 3, ENRS_DWORD);
-                l = 16;
-            }
-            else {
-                ee = { 0, 2, 8, 1 };
-                ee.append(0, 2, ENRS_WORD);
-                ee.append(0, 1, ENRS_DWORD);
-                l = 8;
-            }
-
-            count = 1;
-            Curve::Key* i_begin = keys->data() + 1;
-            Curve::Key* i_end = keys->data() + keys->size();
-            for (Curve::Key* i = i_begin; i != i_end;
-                i++, count++, l += key_type == KEY_HERMITE ? 16 : 8) {
-                if (i->type == key_type)
-                    continue;
-
-                if (count > 0) {
-                    ee.repeat_count = (uint32_t)count;
-                    e.vec.push_back(ee);
-                }
-
-                count = 1;
-                o = (uint32_t)((key_type == KEY_HERMITE ? 16 : 8) * count);
-                if (i->type == KEY_HERMITE) {
-                    ee = { o, 2, 16, 1 };
-                    ee.append(0, 2, ENRS_WORD);
-                    ee.append(0, 3, ENRS_DWORD);
-                }
-                else {
-                    ee = { o, 2, 8, 1 };
-                    ee.append(0, 2, ENRS_WORD);
-                    ee.append(0, 1, ENRS_DWORD);
-                }
-                key_type = i->type;
-            }
-        }
-
-        if (count > 0) {
-            ee.repeat_count = (uint32_t)count;
-            e.vec.push_back(ee);
-        }
-
-        float_t scale = 1.0f;
-        if (c->keys_version == 0)
-            switch (c->type) {
-            case CURVE_ROTATION_X:
-            case CURVE_ROTATION_Y:
-            case CURVE_ROTATION_Z:
-                scale = RAD_TO_DEG_FLOAT;
-                break;
-            case CURVE_COLOR_R:
-            case CURVE_COLOR_G:
-            case CURVE_COLOR_B:
-            case CURVE_COLOR_A:
-                scale = 255.0f;
-                break;
-            }
-
-        l = align_val(l, 0x10);
-        st->data.resize(l);
-        d = (size_t)st->data.data();
-        st->enrs = e;
-
-        if (scale == 1.0f)
-            if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                for (Curve::Key& i : *keys) {
-                    *(int16_t*)d = (int16_t)i.type;
-                    *(int16_t*)(d + 2) = (int16_t)i.frame;
-                    if (i.type == KEY_HERMITE) {
-                        *(float_t*)(d + 4) = i.tangent1;
-                        *(float_t*)(d + 8) = i.tangent2;
-                        *(float_t*)(d + 12) = i.random_range;
-                        *(float_t*)(d + 16) = i.value;
-                        d += 20;
-                    }
-                    else {
-                        *(float_t*)(d + 4) = i.random_range;
-                        *(float_t*)(d + 8) = i.value;
-                        d += 12;
-                    }
-                }
-            else
-                for (Curve::Key& i : *keys) {
-                    *(int16_t*)d = (int16_t)i.type;
-                    *(int16_t*)(d + 2) = (int16_t)i.frame;
-                    if (i.type == KEY_HERMITE) {
-                        *(float_t*)(d + 4) = i.tangent1;
-                        *(float_t*)(d + 8) = i.tangent2;
-                        *(float_t*)(d + 12) = i.value;
-                        d += 16;
-                    }
-                    else {
-                        *(float_t*)(d + 4) = i.value;
-                        d += 8;
-                    }
-                }
-        else
-            if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                for (Curve::Key& i : *keys) {
-                    *(int16_t*)d = (int16_t)i.type;
-                    *(int16_t*)(d + 2) = (int16_t)i.frame;
-                    if (i.type == KEY_HERMITE) {
-                        *(float_t*)(d + 4) = i.tangent1 * scale;
-                        *(float_t*)(d + 8) = i.tangent2 * scale;
-                        *(float_t*)(d + 12) = i.random_range * scale;
-                        *(float_t*)(d + 16) = i.value * scale;
-                        d += 20;
-                    }
-                    else {
-                        *(float_t*)(d + 4) = i.random_range * scale;
-                        *(float_t*)(d + 8) = i.value * scale;
-                        d += 12;
-                    }
-                }
-            else
-                for (Curve::Key& i : *keys) {
-                    *(int16_t*)d = (int16_t)i.type;
-                    *(int16_t*)(d + 2) = (int16_t)i.frame;
-                    if (i.type == KEY_HERMITE) {
-                        *(float_t*)(d + 4) = i.tangent1 * scale;
-                        *(float_t*)(d + 8) = i.tangent2 * scale;
-                        *(float_t*)(d + 12) = i.value * scale;
-                        d += 16;
-                    }
-                    else {
-                        *(float_t*)(d + 4) = i.value * scale;
-                        d += 8;
-                    }
-                }
-
-        st->header.signature = reverse_endianness_uint32_t('KEYS');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
-        st->header.version = c->keys_version;
-    }
-    */
-
     bool FileReader::UnpackDivaList(f2_struct* st, EffectGroup* eff_group) {
         if (!st || !st->header.data_size
             || st->header.signature != reverse_endianness_uint32_t('GEFF'))
@@ -1138,47 +737,6 @@ namespace Glitter {
         }
         return true;
     }
-
-    /*
-    bool glitter_list_pack_file(EffectGroup* a1, f2_struct* st) {
-        size_t data;
-        size_t length;
-
-        if (!a1->effects.size())
-            return false;
-
-        enrs e;
-        enrs_entry ee;
-
-        ee = { 0, 1, 4, 1 };
-        ee.append(0, 1, ENRS_DWORD);
-        e.vec.push_back(ee);
-
-        length = 0;
-        for (glitter_effect*& i : a1->effects)
-            if (i)
-                length++;
-
-        st->data.resize(0x10 + 0x80 * length);
-        data = (size_t)st->data.data();
-        st->enrs = e;
-
-        *(uint32_t*)data = (uint32_t)length;
-        data += 4;
-
-        for (glitter_effect*& i : a1->effects)
-            if (i) {
-                memcpy((void*)data, i->name, 0x80);
-                data += 0x80;
-            }
-
-        st->header.signature = reverse_endianness_uint32_t('GEFF');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
-        return true;
-    }
-    */
 
     bool FileReader::UnpackDivaResource(GPM, f2_struct* st, EffectGroup* eff_group) {
         if (!st || !st->header.data_size
@@ -1238,24 +796,6 @@ namespace Glitter {
         return true;
     }
 
-    /*
-    bool glitter_texture_resource_pack_file(EffectGroup* a1, f2_struct* st) {
-        if (a1->resources_tex.textures.size() < 1)
-            return false;
-
-        if (!a1->resources_tex.produce_enrs(&st->enrs))
-            return false;
-
-        a1->resources_tex.pack_file(&st->data, false);
-
-        st->header.signature = reverse_endianness_uint32_t('TXPC');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
-        return true;
-    }
-    */
-
     bool FileReader::UnpackDivaResourceHashes(f2_struct* st, EffectGroup* eff_group) {
         if (eff_group->resources_count && eff_group->resource_hashes.size() > 0)
             return true;
@@ -1289,48 +829,6 @@ namespace Glitter {
         }
         return true;
     }
-
-    /*
-    bool glitter_texture_hashes_pack_file(EffectGroup* a1, f2_struct* st) {
-        size_t l;
-        size_t d;
-        size_t count;
-
-        if (a1->effects.size() < 1 || !a1->resources_count
-            || a1->resource_hashes.size() < 1)
-            return false;
-
-        count = a1->resources_count;
-
-        l = 0;
-
-        enrs e;
-        enrs_entry ee;
-
-        ee = { 0, 2, (uint32_t)(8 + count * 8), 1 };
-        ee.append(0, 1, ENRS_DWORD);
-        ee.append(4, (uint32_t)count, ENRS_QWORD);
-        e.vec.push_back(ee);
-        l += 8 + count * 8;
-
-        l = align_val(l, 0x10);
-        st->data.resize(l);
-        d = (size_t)st->data.data();
-        st->enrs = e;
-
-        *(int32_t*)d = (int32_t)count;
-        *(int32_t*)(d + 4) = 0;
-        d += 8;
-
-        memcpy((void*)d, a1->resource_hashes.data(), sizeof(uint64_t) * count);
-
-        st->header.signature = reverse_endianness_uint32_t('DVRS');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
-        return true;
-    }
-    */
 
     bool FileReader::UnpackEffect(void* data, Effect* eff,
         int32_t efct_version, bool big_endian, object_database* obj_db) {
@@ -2199,7 +1697,7 @@ namespace Glitter {
             if (eff->data.flags & EFFECT_LOCAL)
                 enum_or(ptcl->data.flags, PARTICLE_LOCAL);
             if (eff->data.flags & EFFECT_EMISSION)
-                enum_or(ptcl->data.flags, EFFECT_EMISSION);
+                enum_or(ptcl->data.flags, PARTICLE_EMISSION);
 
             if (big_endian) {
                 ptcl->data.speed = load_reverse_endianness_float_t((void*)(d + 96));

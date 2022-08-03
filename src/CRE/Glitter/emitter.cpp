@@ -9,20 +9,20 @@ namespace Glitter {
     Emitter::Box::Box() {
 
     }
-    
+
     Emitter::Cylinder::Cylinder() : radius(), height(),
         start_angle(), end_angle(), on_edge(), direction() {
 
     }
-    
+
     Emitter::Polygon::Polygon() : size(), count(), direction() {
 
     }
-    
+
     Emitter::Sphere::Sphere() : radius(), latitude(), longitude(), on_edge(), direction() {
 
     }
-    
+
     Emitter::Data::Data() : start_time(), life_time(),
         flags(), timer(), emission_interval(), type(), seed() {
         loop_start_time = 0;

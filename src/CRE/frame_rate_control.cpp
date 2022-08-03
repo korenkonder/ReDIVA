@@ -21,7 +21,7 @@ void FrameRateControl::SetFrameSpeed(float_t frame_speed) {
 }
 
 SysFrameRate::SysFrameRate() {
-    frame_speed = 1.0f;
+
 }
 
 SysFrameRate::~SysFrameRate() {

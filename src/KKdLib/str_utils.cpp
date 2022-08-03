@@ -420,31 +420,11 @@ wchar_t* str_utils_copy(const wchar_t* str) {
 }
 
 inline int32_t str_utils_compare(const char* str0, const char* str1) {
-    int32_t diff = 0;
-    char c0;
-    char c1;
-    do
-    {
-        c0 = *str0++;
-        c1 = *str1++;
-        if (!c0 || !c1)
-            return c0 - c1;
-    } while (c0 == c1);
-    return c0 - c1;
+    return strcmp(str0, str1);
 }
 
 inline int32_t str_utils_compare(const wchar_t* str0, const wchar_t* str1) {
-    int32_t diff = 0;
-    wchar_t c0;
-    wchar_t c1;
-    do
-    {
-        c0 = *str0++;
-        c1 = *str1++;
-        if (!c0 || !c1)
-            return c0 - c1;
-    } while (c0 == c1);
-    return c0 - c1;
+    return wcscmp(str0, str1);
 }
 
 inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, const char* str1, size_t str1_len) {
@@ -452,6 +432,25 @@ inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, const
         return -*str1;
     else if (!str1_len)
         return *str0;
+
+    size_t str0_len_act = str0_len;
+    const char* i0 = str0;
+    for (size_t i = str0_len; i; i--)
+        if (!*i0++) {
+            str0_len_act = i + 1;
+            break;
+        }
+
+    size_t str1_len_act = str1_len;
+    const char* i1 = str1;
+    for (size_t i = str1_len; i; i--)
+        if (!*i1++) {
+            str1_len_act = i + 1;
+            break;
+        }
+
+    str0_len = str0_len_act;
+    str1_len = str1_len_act;
 
     int32_t diff = 0;
     char c0;
@@ -471,6 +470,25 @@ inline int32_t str_utils_compare_length(const wchar_t* str0, size_t str0_len, co
         return -*str1;
     else if (!str1_len)
         return *str0;
+
+    size_t str0_len_act = str0_len;
+    const wchar_t* i0 = str0;
+    for (size_t i = str0_len; i; i--)
+        if (!*i0++) {
+            str0_len_act = i + 1;
+            break;
+        }
+
+    size_t str1_len_act = str1_len;
+    const wchar_t* i1 = str1;
+    for (size_t i = str1_len; i; i--)
+        if (!*i1++) {
+            str1_len_act = i + 1;
+            break;
+        }
+
+    str0_len = str0_len_act;
+    str1_len = str1_len_act;
 
     int32_t diff = 0;
     wchar_t c0;

@@ -70,7 +70,7 @@ uint32_t txp::get_size(txp_format format, uint32_t width, uint32_t height) {
     return 0;
 }
 
-txp_set::txp_set() : ready() {
+txp_set::txp_set() {
 
 }
 

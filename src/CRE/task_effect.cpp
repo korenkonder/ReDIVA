@@ -459,7 +459,7 @@ void draw_fog_particle(TaskEffectFogRing::Data* data) {
 
 void TaskEffectFogRing::Disp() {
     //if (data.enable && data.disp)
-    //    draw_task_preprocess_append((void(*)(void*))draw_fog_particle, &data, DRAW_OBJECT_RIPPLE);
+    //    draw_task_preprocess_append((void(*)(void*))draw_fog_particle, &data, DRAW_OBJECT_PREPROCESS);
 }
 
 void TaskEffectFogRing::PreInit(int32_t stage_index) {

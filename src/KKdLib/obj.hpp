@@ -258,6 +258,8 @@ struct obj_material_texture_data {
         uint32_t reserved[8];
         int32_t texture_index;
     };
+
+    obj_material_texture_data();
 };
 
 struct obj_material_attrib_member {
@@ -291,6 +293,8 @@ struct obj_material_color {
     vec4 emission;
     float_t shininess;
     float_t intensity;
+
+    obj_material_color();
 };
 
 struct obj_material {
@@ -308,11 +312,15 @@ struct obj_material {
     char name[64];
     float_t bump_depth;
     uint32_t reserved[15];
+
+    obj_material();
 };
 
 struct obj_material_data {
-    uint32_t num_of_texture;
+    uint32_t num_of_textures;
     obj_material material;
+
+    obj_material_data();
 };
 
 struct obj_sub_mesh_attrib_member {
@@ -417,10 +425,10 @@ struct obj_skin_block_cloth_node {
     uint32_t flags;
     vec3 trans;
     vec3 trans_diff;
-    float_t length;
-    float_t field_20;
-    float_t field_24;
-    float_t field_28;
+    float_t dist_top;
+    float_t dist_bottom;
+    float_t dist_right;
+    float_t dist_left;
 };
 
 struct obj_skin_block_node {
