@@ -419,14 +419,6 @@ wchar_t* str_utils_copy(const wchar_t* str) {
     return p;
 }
 
-inline int32_t str_utils_compare(const char* str0, const char* str1) {
-    return strcmp(str0, str1);
-}
-
-inline int32_t str_utils_compare(const wchar_t* str0, const wchar_t* str1) {
-    return wcscmp(str0, str1);
-}
-
 inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, const char* str1, size_t str1_len) {
     if (!str0_len)
         return -*str1;
@@ -550,16 +542,16 @@ size_t str_utils_get_substring_offset(const wchar_t* str0, size_t str0_len,
 }
 
 bool str_utils_text_file_parse(const void* data, size_t size,
-    char** buf, char*** lines, size_t* count) {
-    if (!data || !size || !buf || !lines || !count)
+    char*& buf, char**& lines, size_t& count) {
+    if (!data || !size)
         return false;
 
     const char* d = (const char*)data;
     bool del = false;
     size_t c;
-    *buf = 0;
-    *lines = 0;
-    *count = 0;
+    buf = 0;
+    lines = 0;
+    count = 0;
     if ((uint8_t)d[0] == 0x00)
         return false;
     else if (d[0] == 0xFF) {
@@ -584,7 +576,7 @@ bool str_utils_text_file_parse(const void* data, size_t size,
         d = utf16_to_utf8(w_d);
         size = utf8_length(d);
         del = true;
-        free(w_d);
+        free_def(w_d);
         goto decode_utf8_ansi;
     }
     else if ((uint8_t)d[0] == 0xEF) {
@@ -681,14 +673,14 @@ bool str_utils_text_file_parse(const void* data, size_t size,
             }
         }
 
-        *buf = temp_buf;
-        *lines = temp_lines;
-        *count = c;
+        buf = temp_buf;
+        lines = temp_lines;
+        count = c;
     }
 
     if (del) {
         void* data = (void*)d;
-        free(data);
+        free_def(data);
     }
     return true;
 }

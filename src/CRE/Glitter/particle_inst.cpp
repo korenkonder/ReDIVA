@@ -236,7 +236,7 @@ namespace Glitter {
                     + random->F2GetInt(GLT_VAL, ptcl_inst_data->data.uv_index_count);
                 break;
             }
-            rend_elem->uv_index = min(rend_elem->uv_index, ptcl_inst_data->data.uv_index_end);
+            rend_elem->uv_index = min_def(rend_elem->uv_index, ptcl_inst_data->data.uv_index_end);
             rend_elem->uv.x = (float_t)(rend_elem->uv_index
                 % ptcl_inst_data->data.split_u) * ptcl_inst_data->data.split_uv.x;
             rend_elem->uv.y = (float_t)(rend_elem->uv_index
@@ -559,7 +559,7 @@ namespace Glitter {
         float_t time = rend_elem->frame * (float_t)(1.0 / 60.0);
         float_t diff_time = time - rend_elem->rebound_time - (float_t)(1.0 / 60.0);
         float_t speed = rend_elem->speed * delta_frame;
-        diff_time = max(diff_time, 0.0f) * (float_t)(1.0 / 60.0);
+        diff_time = max_def(diff_time, 0.0f) * (float_t)(1.0 / 60.0);
 
         vec3 acceleration;
         vec3_mult_scalar(rend_elem->acceleration,
@@ -593,7 +593,7 @@ namespace Glitter {
 
         speed = rend_elem->base_speed + (float_t)(1.0 / 7200.0)
             * rend_elem->deceleration - diff_time * rend_elem->deceleration;
-        rend_elem->speed = max(speed, 0.0f);
+        rend_elem->speed = max_def(speed, 0.0f);
     }
 
     void XParticleInst::Copy(XParticleInst* dst, float_t emission) {
@@ -711,7 +711,7 @@ namespace Glitter {
                     + random->XGetInt(ptcl_inst_data->data.uv_index_count);
                 break;
             }
-            rend_elem->uv_index = min(rend_elem->uv_index, ptcl_inst_data->data.uv_index_end);
+            rend_elem->uv_index = min_def(rend_elem->uv_index, ptcl_inst_data->data.uv_index_end);
             rend_elem->uv.x = (float_t)(rend_elem->uv_index
                 % ptcl_inst_data->data.split_u) * ptcl_inst_data->data.split_uv.x;
             rend_elem->uv.y = (float_t)(rend_elem->uv_index

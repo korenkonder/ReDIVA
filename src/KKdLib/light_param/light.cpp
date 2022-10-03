@@ -4,8 +4,9 @@
 */
 
 #include "light.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../str_utils.hpp"
 
 static void light_param_light_read_inner(light_param_light* light, stream& s);
@@ -25,27 +26,27 @@ light_param_light::~light_param_light() {
 void light_param_light::read(const char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
-        stream s;
+        file_stream s;
         s.open(path_txt, "rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             light_param_light_read_inner(this, s);
     }
-    free(path_txt);
+    free_def(path_txt);
 }
 
 void light_param_light::read(const wchar_t* path) {
     wchar_t* path_txt = str_utils_add(path, L".txt");
     if (path_check_file_exists(path_txt)) {
-        stream s;
+        file_stream s;
         s.open(path_txt, L"rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             light_param_light_read_inner(this, s);
     }
-    free(path_txt);
+    free_def(path_txt);
 }
 
 void light_param_light::read(const void* data, size_t size) {
-    stream s;
+    memory_stream s;
     s.open(data, size);
     light_param_light_read_inner(this, s);
 }
@@ -55,11 +56,11 @@ void light_param_light::write(const char* path) {
         return;
 
     char* path_txt = str_utils_add(path, ".txt");
-    stream s;
+    file_stream s;
     s.open(path_txt, "wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         light_param_light_write_inner(this, s);
-    free(path_txt);
+    free_def(path_txt);
 }
 
 void light_param_light::write(const wchar_t* path) {
@@ -67,18 +68,18 @@ void light_param_light::write(const wchar_t* path) {
         return;
 
     wchar_t* path_txt = str_utils_add(path, L".txt");
-    stream s;
+    file_stream s;
     s.open(path_txt, L"wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         light_param_light_write_inner(this, s);
-    free(path_txt);
+    free_def(path_txt);
 }
 
 void light_param_light::write(void** data, size_t* size) {
     if (!data || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     light_param_light_write_inner(this, s);
     s.copy(data, size);
@@ -245,9 +246,9 @@ static void light_param_light_read_inner(light_param_light* light, stream& s) {
             light->has_spot_cutoff = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "attenuation", 11)) {
-            vec3& attenuation = light->attenuation;
+            light_attenuation& attenuation = light->attenuation;
             if (buf[11] != ' ' || sscanf_s(buf + 12, "%f %f %f",
-                &attenuation.x, &attenuation.y, &attenuation.z) != 3)
+                &attenuation.constant, &attenuation.linear, &attenuation.quadratic) != 3)
                 goto End;
 
             light->has_attenuation = true;
@@ -258,28 +259,28 @@ static void light_param_light_read_inner(light_param_light* light, stream& s) {
                 &clip_plane[0], &clip_plane[1], &clip_plane[2], &clip_plane[3]) != 4)
                 goto End;
 
-            light->clip_plane[0] = clip_plane[0] ? true : false;
-            light->clip_plane[1] = clip_plane[1] ? true : false;
-            light->clip_plane[2] = clip_plane[2] ? true : false;
-            light->clip_plane[3] = clip_plane[3] ? true : false;
+            light->clip_plane.data[0] = clip_plane[0] ? true : false;
+            light->clip_plane.data[1] = clip_plane[1] ? true : false;
+            light->clip_plane.data[2] = clip_plane[2] ? true : false;
+            light->clip_plane.data[3] = clip_plane[3] ? true : false;
             light->has_clip_plane = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "tonecurve", 9)) {
-            vec3& tone_curve = light->tone_curve;
+            light_tone_curve& tone_curve = light->tone_curve;
             if (buf[9] != ' ' || sscanf_s(buf + 10, "%f %f %f",
-                &tone_curve.x, &tone_curve.y, &tone_curve.z) != 3)
+                &tone_curve.start_point, &tone_curve.end_point, &tone_curve.coefficient) != 3)
                 goto End;
 
             light->has_tone_curve = true;
         }
     }
 
-    free(data);
+    free_def(data);
     light->ready = true;
     return;
 
 End:
-    free(data);
+    free_def(data);
 }
 
 static void light_param_light_write_inner(light_param_light* light, stream& s) {
@@ -367,30 +368,30 @@ static void light_param_light_write_inner(light_param_light* light, stream& s) {
             }
 
             if (light->has_attenuation) {
-                vec3& attenuation = light->attenuation;
+                light_attenuation& attenuation = light->attenuation;
                 s.write("attenuation", 11);
-                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation.x);
-                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation.y);
-                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation.z);
+                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation.constant);
+                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation.linear);
+                light_param_light_write_float_t(s, buf, sizeof(buf), attenuation.quadratic);
                 s.write_char('\n');
             }
 
             if (light->has_clip_plane) {
-                bool* clip_plane = light->clip_plane;
+                light_clip_plane& clip_plane = light->clip_plane;
                 s.write("clipplane", 10);
-                light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane[0] ? 1 : 0);
-                light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane[1] ? 1 : 0);
-                light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane[2] ? 1 : 0);
-                light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane[3] ? 1 : 0);
+                light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane.data[0] ? 1 : 0);
+                light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane.data[1] ? 1 : 0);
+                light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane.data[2] ? 1 : 0);
+                light_param_light_write_int32_t(s, buf, sizeof(buf), clip_plane.data[3] ? 1 : 0);
                 s.write_char('\n');
             }
 
             if (light->has_tone_curve) {
-                vec3& tone_curve = light->tone_curve;
+                light_tone_curve& tone_curve = light->tone_curve;
                 s.write("tonecurve", 10);
-                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve.x);
-                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve.y);
-                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve.z);
+                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve.start_point);
+                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve.end_point);
+                light_param_light_write_float_t(s, buf, sizeof(buf), tone_curve.coefficient);
                 s.write_char('\n');
             }
 

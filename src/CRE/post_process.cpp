@@ -15,7 +15,7 @@
 
 extern bool task_stage_is_modern;
 
-post_process::post_process() : ssaa(), mlaa(), parent_bone_node(), render_textures_data(),
+post_process::post_process() : ssaa(), mlaa(), ss_alpha_mask(), render_textures_data(),
 movie_textures_data(), lens_flare_texture(), lens_shaft_texture(), lens_ghost_texture(),
 lens_flare_count(), lens_flare_pos(), lens_shaft_scale(), lens_shaft_inv_scale(),
 lens_flare_power(), field_A10(), lens_flare_appear_power(), render_width(), render_height(),
@@ -39,7 +39,7 @@ sprite_height(), screen_x_offset(), screen_y_offset(), screen_width(), screen_he
         "layout(location = 0) out vec4 result;\n"
         "\n"
         "void main() {\n"
-        "    result = vec4(0.0); \n"
+        "    result = vec4(0.0);\n"
         "}\n";
 
     static const char* alpha_layer_vert_shader =
@@ -86,12 +86,12 @@ sprite_height(), screen_x_offset(), screen_y_offset(), screen_width(), screen_he
     glGenSamplers(2, samplers);
     glSamplerParameteri(samplers[0], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glSamplerParameteri(samplers[1], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glSamplerParameteri(samplers[1], GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     const float_t verts_quad[] = {
         -1.0f,  1.0f, 0.15f, 0.85f,
@@ -192,7 +192,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         blur->tex[0].color_texture->tex,
         exposure->exposure.color_texture->tex, npr_param);
     if (mlaa)
-        aa->apply_mlaa(&rend_texture, &buf_texture, samplers, parent_bone_node);
+        aa->apply_mlaa(&rend_texture, &buf_texture, samplers, ss_alpha_mask);
 
     for (int32_t i = 0; i < 16; i++) {
         if (!render_textures_data[i])
@@ -223,12 +223,12 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
     if (ssaa) {
         gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
         gl_state_bind_sampler(0, samplers[0]);
-        uniform_value[U01] = parent_bone_node ? 1 : 0;
+        uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
         uniform_value[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
         render_texture::draw_params(&shaders_ft, render_width,
             render_height, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-        uniform_value[U01] = 0;
+        uniform_value[U_ALPHA_MASK] = 0;
     }
     else {
         gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
@@ -279,19 +279,12 @@ void post_process::ctrl(camera* cam) {
 
     reset_exposure = cam->fast_change_hist1 && !cam->fast_change_hist0;
     if (reset_exposure) {
-        float_t view_point_dist;
-        vec3_distance(view_point, view_point_prev, view_point_dist);
+        float_t view_point_dist = vec3::distance(view_point, view_point_prev);
 
-        vec3 dir;
-        vec3_sub(interest, view_point, dir);
-        vec3_normalize(dir, dir);
+        vec3 dir = vec3::normalize(interest - view_point);
+        vec3 dir_prev = vec3::normalize(interest_prev - view_point_prev);
 
-        vec3 dir_prev;
-        vec3_sub(interest_prev, view_point_prev, dir_prev);
-        vec3_normalize(dir_prev, dir_prev);
-
-        float_t dir_diff_angle;
-        vec3_dot(dir, dir_prev, dir_diff_angle);
+        float_t dir_diff_angle = vec3::dot(dir, dir_prev);
         if (dir_diff_angle < 0.5f)
             dir_diff_angle = 0.0f;
         if (view_point_dist < dir_diff_angle * 0.4f)
@@ -310,7 +303,6 @@ void post_process::draw_query_samples(GLuint query, float_t scale, mat4& mat) {
     gl_state_bind_vertex_array(0);
     glEndQuery(GL_SAMPLES_PASSED);
 }
-
 void post_process::init_fbo(int32_t render_width, int32_t render_height,
     int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height) {
     if (this->render_width == render_width && this->render_height == render_height
@@ -323,12 +315,12 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
         dof->init_fbo(render_width, render_height);
         exposure->init_fbo();
         tone_map->init_fbo();
-        rend_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
+        rend_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
         buf_texture.init(render_width, render_height, 0, GL_RGBA16F, 0);
-        sss_contour_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
+        sss_contour_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
         pre_texture.init(render_width, render_height, 0, GL_RGBA16F, 0);
         post_texture.init(render_width, render_height, 0, GL_RGBA16F, 0);
-        alpha_layer_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8);
+        alpha_layer_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
         gl_state_bind_texture_2d(rend_texture.depth_texture->tex);
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
@@ -347,7 +339,7 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
 
     if (this->screen_width != screen_width || this->screen_height != screen_height) {
         fbo_texture.init(screen_width, screen_height, 0, GL_RGBA16F, 0);
-        screen_texture.init(screen_width, screen_height, 0, GL_R11F_G11F_B10F, 0);
+        screen_texture.init(screen_width, screen_height, 0, GL_RGBA16F, 0); // Was GL_R11F_G11F_B10F
         this->screen_width = screen_width;
         this->screen_height = screen_height;
     }

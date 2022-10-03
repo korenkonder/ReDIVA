@@ -78,7 +78,7 @@ int32_t render_texture::init(int32_t width, int32_t height,
     if (max_level < 0)
         return -1;
 
-    max_level = min(max_level, 15);
+    max_level = min_def(max_level, 15);
     if (max_level < 0)
         return 0;
     free_data();
@@ -158,8 +158,8 @@ void render_texture::draw_custom_glsl() {
 
 void render_texture::draw_params(shader_set_data* set, int32_t width, int32_t height,
     float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
-    float_t w = (float_t)max(width, 1);
-    float_t h = (float_t)max(height, 1);
+    float_t w = (float_t)max_def(width, 1);
+    float_t h = (float_t)max_def(height, 1);
     set->local_vert_set(0, scale / w, scale / h, w, h);
     set->local_frag_set(0, scale / w, scale / h, w, h);
     set->local_vert_set(3, param_x, param_y, param_z, param_w);
@@ -211,7 +211,7 @@ void render_texture_data_init() {
             "layout(binding = 0) uniform sampler2D g_color;\n"
             "\n"
             "void main() {\n"
-            "    result = texture(g_color, frg.texcoord); \n"
+            "    result = texture(g_color, frg.texcoord);\n"
             "}\n";
 
         shader_glsl_param param = {};

@@ -91,8 +91,7 @@ void fog::data_set(fog_id id) {
         shaders_ft.env_vert_set(29, color);
         shaders_ft.env_frag_set(4, color);
 
-        vec4_mult_scalar(color, (float_t)(1.0 / 8.0), color);
-        shaders_ft.state_fog_set_color(color);
+        shaders_ft.state_fog_set_color(color * (float_t)(1.0 / 8.0));
         shaders_ft.state_fog_set_params(params);
     } break;
     case FOG_HEIGHT: {

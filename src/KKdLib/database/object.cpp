@@ -5,8 +5,9 @@
 
 #include "object.hpp"
 #include "../f2/struct.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../hash.hpp"
 #include "../sort.hpp"
 #include "../str_utils.hpp"
@@ -62,7 +63,7 @@ object_info_data::~object_info_data() {
 
 }
 
-object_database_file::object_database_file() : ready(), modern(), is_x() {
+object_database_file::object_database_file() : ready(), modern(), big_endian(), is_x() {
 
 }
 
@@ -77,18 +78,18 @@ void object_database_file::read(const char* path, bool modern) {
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
         if (path_check_file_exists(path_bin)) {
-            stream s;
+            file_stream s;
             s.open(path_bin, "rb");
-            if (s.io.stream) {
+            if (s.check_not_null()) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 s.read(data, s.length);
-                stream s_bin;
+                memory_stream s_bin;
                 s_bin.open(data, s.length);
                 object_database_file_classic_read_inner(this, s_bin);
-                free(data);
+                free_def(data);
             }
         }
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         char* path_osi = str_utils_add(path, ".osi");
@@ -96,13 +97,13 @@ void object_database_file::read(const char* path, bool modern) {
             f2_struct st;
             st.read(path_osi);
             if (st.header.signature == reverse_endianness_uint32_t('MOSI')) {
-                stream s_mosi;
+                memory_stream s_mosi;
                 s_mosi.open(st.data);
-                s_mosi.is_big_endian = st.header.use_big_endian;
+                s_mosi.big_endian = st.header.use_big_endian;
                 object_database_file_modern_read_inner(this, s_mosi, st.header.length);
             }
         }
-        free(path_osi);
+        free_def(path_osi);
     }
 }
 
@@ -113,18 +114,18 @@ void object_database_file::read(const wchar_t* path, bool modern) {
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
         if (path_check_file_exists(path_bin)) {
-            stream s;
+            file_stream s;
             s.open(path_bin, L"rb");
-            if (s.io.stream) {
+            if (s.check_not_null()) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 s.read(data, s.length);
-                stream s_bin;
+                memory_stream s_bin;
                 s_bin.open(data, s.length);
                 object_database_file_classic_read_inner(this, s_bin);
-                free(data);
+                free_def(data);
             }
         }
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         wchar_t* path_osi = str_utils_add(path, L".osi");
@@ -132,13 +133,13 @@ void object_database_file::read(const wchar_t* path, bool modern) {
             f2_struct st;
             st.read(path_osi);
             if (st.header.signature == reverse_endianness_uint32_t('MOSI')) {
-                stream s_mosi;
+                memory_stream s_mosi;
                 s_mosi.open(st.data);
-                s_mosi.is_big_endian = st.header.use_big_endian;
+                s_mosi.big_endian = st.header.use_big_endian;
                 object_database_file_modern_read_inner(this, s_mosi, st.header.length);
             }
         }
-        free(path_osi);
+        free_def(path_osi);
     }
 }
 
@@ -147,7 +148,7 @@ void object_database_file::read(const void* data, size_t size, bool modern) {
         return;
 
     if (!modern) {
-        stream s;
+        memory_stream s;
         s.open(data, size);
         object_database_file_classic_read_inner(this, s);
     }
@@ -155,9 +156,9 @@ void object_database_file::read(const void* data, size_t size, bool modern) {
         f2_struct st;
         st.read(data, size);
         if (st.header.signature == reverse_endianness_uint32_t('MOSI')) {
-            stream s_mosi;
+            memory_stream s_mosi;
             s_mosi.open(st.data);
-            s_mosi.is_big_endian = st.header.use_big_endian;
+            s_mosi.big_endian = st.header.use_big_endian;
             object_database_file_modern_read_inner(this, s_mosi, st.header.length);
         }
     }
@@ -169,19 +170,19 @@ void object_database_file::write(const char* path) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
-        stream s;
+        file_stream s;
         s.open(path_bin, "wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             object_database_file_classic_write_inner(this, s);
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         char* path_osi = str_utils_add(path, ".osi");
-        stream s;
+        file_stream s;
         s.open(path_osi, "wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             object_database_file_modern_write_inner(this, s);
-        free(path_osi);
+        free_def(path_osi);
     }
 }
 
@@ -191,19 +192,19 @@ void object_database_file::write(const wchar_t* path) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
-        stream s;
+        file_stream s;
         s.open(path_bin, L"wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             object_database_file_classic_write_inner(this, s);
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         wchar_t* path_osi = str_utils_add(path, L".osi");
-        stream s;
+        file_stream s;
         s.open(path_osi, L"wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             object_database_file_modern_write_inner(this, s);
-        free(path_osi);
+        free_def(path_osi);
     }
 }
 
@@ -211,7 +212,7 @@ void object_database_file::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     if (!modern)
         object_database_file_classic_write_inner(this, s);
@@ -494,7 +495,7 @@ static void object_database_file_classic_read_inner(object_database_file* obj_db
 
     for (uint32_t i = 0; i < object_set_count; i++)
         object_set[i].object.reserve(object_set_object_count[i]);
-    free(object_set_object_count);
+    free_def(object_set_object_count);
 
     s.position_push(objects_offset, SEEK_SET);
     for (uint32_t i = 0; i < object_count; i++) {
@@ -518,9 +519,10 @@ static void object_database_file_classic_read_inner(object_database_file* obj_db
     }
     s.position_pop();
 
-    obj_db->is_x = false;
-    obj_db->modern = false;
     obj_db->ready = true;
+    obj_db->modern = false;
+    obj_db->big_endian = false;
+    obj_db->is_x = false;
 }
 
 static void object_database_file_classic_write_inner(object_database_file* obj_db, stream& s) {
@@ -532,7 +534,6 @@ static void object_database_file_classic_write_inner(object_database_file* obj_d
     s.write_uint32_t(0x90669066);
     s.write_uint32_t(0x90669066);
     s.write_uint32_t(0x90669066);
-    s.align_write(0x20);
 
     uint32_t object_set_count = (uint32_t)obj_db->object_set.size();
 
@@ -585,8 +586,7 @@ static void object_database_file_classic_write_inner(object_database_file* obj_d
         for (object_set_info_file& i : obj_db->object_set) {
             uint16_t set_id = (uint16_t)i.id;
             for (object_info_data_file& j : i.object) {
-                s.write_uint16_t((uint16_t)j.id);
-                s.write_uint16_t(set_id);
+                s.write_uint32_t((uint32_t)((set_id << 16) | (uint16_t)j.id));
                 s.write_uint32_t((uint32_t)string_offsets[off_idx++]);
             }
         }
@@ -604,6 +604,7 @@ static void object_database_file_classic_write_inner(object_database_file* obj_d
 }
 
 static void object_database_file_modern_read_inner(object_database_file* obj_db, stream& s, uint32_t header_length) {
+    bool big_endian = s.big_endian;
     bool is_x = true;
 
     s.set_position(0x0C, SEEK_SET);
@@ -677,7 +678,7 @@ static void object_database_file_modern_read_inner(object_database_file* obj_db,
 
     for (uint32_t i = 0; i < object_set_count; i++)
         object_set[i].object.reserve(object_set_object_count[i]);
-    free(object_set_object_count);
+    free_def(object_set_object_count);
 
     s.position_push(objects_offset, SEEK_SET);
     if (!is_x)
@@ -712,20 +713,24 @@ static void object_database_file_modern_read_inner(object_database_file* obj_db,
         }
     s.position_pop();
 
-    obj_db->is_x = is_x;
-    obj_db->modern = true;
     obj_db->ready = true;
+    obj_db->modern = true;
+    obj_db->big_endian = big_endian;
+    obj_db->is_x = is_x;
 }
 
 static void object_database_file_modern_write_inner(object_database_file* obj_db, stream& s) {
-    stream s_mosi;
+    bool big_endian = obj_db->big_endian;
+    bool is_x = obj_db->is_x;
+
+    memory_stream s_mosi;
     s_mosi.open();
+    s_mosi.big_endian = big_endian;
+
     uint32_t off;
     enrs e;
     enrs_entry ee;
     pof pof;
-
-    bool is_x = obj_db->is_x;
 
     uint32_t object_set_count = (uint32_t)obj_db->object_set.size();
 
@@ -828,7 +833,7 @@ static void object_database_file_modern_write_inner(object_database_file* obj_db
         for (object_set_info_file& i : obj_db->object_set) {
             io_write_offset_f2_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
                 string_offsets, i.name), 0x20, &pof);
-            s_mosi.write_uint32_t(i.id);
+            s_mosi.write_uint32_t_reverse_endianness(i.id);
             io_write_offset_f2_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
                 string_offsets, i.object_file_name), 0x20, &pof);
             io_write_offset_f2_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
@@ -841,7 +846,7 @@ static void object_database_file_modern_write_inner(object_database_file* obj_db
         for (object_set_info_file& i : obj_db->object_set) {
             io_write_offset_x_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
                 string_offsets, i.name), &pof);
-            s_mosi.write_uint32_t(i.id);
+            s_mosi.write_uint32_t_reverse_endianness(i.id);
             io_write_offset_x_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
                 string_offsets, i.object_file_name), &pof);
             io_write_offset_x_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
@@ -856,8 +861,8 @@ static void object_database_file_modern_write_inner(object_database_file* obj_db
         for (object_set_info_file& i : obj_db->object_set) {
             uint32_t set_id = i.id;
             for (object_info_data_file& j : i.object) {
-                s_mosi.write_uint32_t(j.id);
-                s_mosi.write_uint32_t(set_id);
+                s_mosi.write_uint32_t_reverse_endianness(j.id);
+                s_mosi.write_uint32_t_reverse_endianness(set_id);
                 io_write_offset_f2_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
                     string_offsets, j.name), 0x20, &pof);
             }
@@ -866,8 +871,8 @@ static void object_database_file_modern_write_inner(object_database_file* obj_db
         for (object_set_info_file& i : obj_db->object_set) {
             uint32_t set_id = i.id;
             for (object_info_data_file& j : i.object) {
-                s_mosi.write_uint32_t(j.id);
-                s_mosi.write_uint32_t(set_id);
+                s_mosi.write_uint32_t_reverse_endianness(j.id);
+                s_mosi.write_uint32_t_reverse_endianness(set_id);
                 io_write_offset_x_pof_add(s_mosi, object_database_strings_get_string_offset(strings,
                     string_offsets, j.name), &pof);
             }
@@ -884,7 +889,7 @@ static void object_database_file_modern_write_inner(object_database_file* obj_db
 
     st.header.signature = reverse_endianness_uint32_t('MOSI');
     st.header.length = 0x20;
-    st.header.use_big_endian = false;
+    st.header.use_big_endian = big_endian;
     st.header.use_section_size = true;
 
     st.write(s, true, is_x);

@@ -14,7 +14,7 @@
 #include "../random.hpp"
 #include "../pv_expression.hpp"
 #include "../stage.hpp"
-#include "../timer.hpp"
+#include "../waitable_timer.hpp"
 
 struct MotFile {
     motion_set_info* mot_set_info;
@@ -249,6 +249,7 @@ public:
     ReqData();
     ReqData(::chara_index chara_index, int32_t count);
     virtual ~ReqData();
+
     virtual void Reset();
 };
 
@@ -259,6 +260,7 @@ public:
     ReqDataObj();
     ReqDataObj(::chara_index chara_index, int32_t count);
     virtual ~ReqDataObj() override;
+
     virtual void Reset() override;
 };
 
@@ -845,7 +847,6 @@ static void osage_play_data_manager_get_opd_file_data(object_info obj_info,
 
 static bool pv_osage_manager_array_get_disp(int32_t* chara_id);
 static PvOsageManager* pv_osage_manager_array_get(int32_t chara_id);
-static void pv_osage_manager_array_set_not_reset_true();
 
 static int pv_data_set_motion_quicksort_compare_func(void const* src1, void const* src2);
 
@@ -2219,7 +2220,7 @@ void rob_free() {
         rob_chara_pv_data_array = 0;
     }
 
-    free(rob_cmn_mottbl_data);
+    free_def(rob_cmn_mottbl_data);
 
     if (rob_thread_handler) {
         delete rob_thread_handler;
@@ -3197,15 +3198,21 @@ static void rob_chara_set_face_motion(rob_chara* rob_chr,
 
 static void rob_chara_set_hand_l_motion(rob_chara* rob_chr,
     RobHandMotion* motion, int32_t type, motion_database* mot_db) {
-    if (type == 2)
+    if (type == 2) {
         rob_chr->data.motion.field_3B0.hand_l.data = motion->data;
-    else if (type == 1)
+        if (!(rob_chr->data.motion.field_29 & 0x08) || (rob_chr->data.motion.field_2A & 0x04))
+            return;
+    }
+    else if (type == 1) {
+        rob_chr->data.motion.hand_r.data = motion->data;
+        if ((rob_chr->data.motion.field_29 & 0x08) || !(rob_chr->data.motion.field_2A & 0x04))
+            return;
+    }
+    else {
         rob_chr->data.motion.field_150.hand_l.data = motion->data;
-    else
-        rob_chr->data.motion.hand_l.data = motion->data;
-
-    if (!(rob_chr->data.motion.field_29 & 0x08) || rob_chr->data.motion.field_2A & 0x04)
-        return;
+        if ((rob_chr->data.motion.field_29 & 0x08) || (rob_chr->data.motion.field_2A & 0x04))
+            return;
+    }
 
     rob_chara_bone_data_load_hand_l_motion(rob_chr->bone_data, motion->data.motion_id, mot_db);
     rob_chara_bone_data_set_hand_l_frame(rob_chr->bone_data, motion->data.frame);
@@ -3216,15 +3223,21 @@ static void rob_chara_set_hand_l_motion(rob_chara* rob_chr,
 
 static void rob_chara_set_hand_r_motion(rob_chara* rob_chr,
     RobHandMotion* motion, int32_t type, motion_database* mot_db) {
-    if (type == 2)
+    if (type == 2) {
         rob_chr->data.motion.field_3B0.hand_r.data = motion->data;
-    else if (type == 1)
-        rob_chr->data.motion.field_150.hand_r.data = motion->data;
-    else
+        if (!(rob_chr->data.motion.field_29 & 0x10) || (rob_chr->data.motion.field_2A & 0x08))
+            return;
+    }
+    else if (type == 1) {
         rob_chr->data.motion.hand_r.data = motion->data;
-
-    if (!(rob_chr->data.motion.field_29 & 0x10) || rob_chr->data.motion.field_2A & 0x08)
-        return;
+        if ((rob_chr->data.motion.field_29 & 0x10) || !(rob_chr->data.motion.field_2A & 0x08))
+            return;
+    }
+    else {
+        rob_chr->data.motion.field_150.hand_r.data = motion->data;
+        if ((rob_chr->data.motion.field_29 & 0x10) || (rob_chr->data.motion.field_2A & 0x08))
+            return;
+    }
 
     rob_chara_bone_data_load_hand_r_motion(rob_chr->bone_data, motion->data.motion_id, mot_db);
     rob_chara_bone_data_set_hand_r_frame(rob_chr->bone_data, motion->data.frame);
@@ -3468,10 +3481,10 @@ void rob_chara::set_eyes_mottbl_motion(int32_t type,
 }
 
 static void sub_140553970(rob_chara* rob_chr, object_info a2, int32_t type) {
-    if (type == 1)
-        rob_chr->data.motion.field_150.head_object = a2;
-    else
+    if (type != 1 && type == 2)
         rob_chr->data.motion.field_3B0.head_object = a2;
+    else
+        rob_chr->data.motion.field_150.head_object = a2;
 }
 
 void rob_chara::set_face_mottbl_motion(int32_t type,
@@ -4224,8 +4237,8 @@ static void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select) {
         rot_cos = (v28 + ik_segment_length) / (2.0f * v10);
         rot_2nd_cos = (v28 - ik_segment_length) / (2.0f * ik_2nd_segment_length);
 
-        rot_cos = clamp(rot_cos, -1.0f, 1.0f);
-        rot_2nd_cos = clamp(rot_2nd_cos, -1.0f, 1.0f);
+        rot_cos = clamp_def(rot_cos, -1.0f, 1.0f);
+        rot_2nd_cos = clamp_def(rot_2nd_cos, -1.0f, 1.0f);
 
         rot_sin = sqrtf(1.0f - rot_cos * rot_cos);
         rot_2nd_sin = sqrtf(1.0f - rot_2nd_cos * rot_2nd_cos);
@@ -6192,7 +6205,7 @@ static void motion_blend_mot_set_blend(motion_blend_mot* a1,
     case MOTION_BLEND_COMBINE:
         a1->blend = &a1->combine;
         a1->combine.Reset();
-        a1->combine.blend = clamp(blend, 0.0f, 1.0f);
+        a1->combine.blend = clamp_def(blend, 0.0f, 1.0f);
         break;
     }
 }
@@ -6237,11 +6250,6 @@ static PvOsageManager* pv_osage_manager_array_get(int32_t chara_id) {
     if (chara_id >= ROB_CHARA_COUNT)
         chara_id = 0;
     return &pv_osage_manager_array[chara_id];
-}
-
-static void pv_osage_manager_array_set_not_reset_true() {
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-        pv_osage_manager_array_get(i)->SetNotReset(true);
 }
 
 static int pv_data_set_motion_quicksort_compare_func(void const* src1, void const* src2) {
@@ -6375,13 +6383,13 @@ void rob_chara_data_adjust_ctrl(rob_chara* rob_chr, rob_chara_data_adjust* adjus
         float_t blend = (adjust->transition_frame + 1.0f) / (adjust->force_duration + 1.0f);
         vec3_lerp_scalar(adjust_prev->curr_external_force,
             adjust->curr_external_force, adjust->curr_external_force, blend);
-        adjust->curr_force = lerp(adjust_prev->curr_force, adjust->curr_force, blend);
+        adjust->curr_force = lerp_def(adjust_prev->curr_force, adjust->curr_force, blend);
     }
 
     if (adjust->strength_transition > adjust->transition_frame
         && fabsf(adjust->strength_transition - adjust->transition_frame) > 0.000001f) {
         float_t blend = (adjust->transition_frame + 1.0f) / (adjust->strength_transition + 1.0f);
-        adjust->curr_strength = lerp(adjust_prev->curr_strength, adjust->curr_strength, blend);
+        adjust->curr_strength = lerp_def(adjust_prev->curr_strength, adjust->curr_strength, blend);
     }
     else if (!transition_frame_step)
         return;
@@ -7831,7 +7839,6 @@ static void sub_140407280(struc_258* a1, std::vector<bone_data>* a2, mat4* mat, 
 
     vec3_normalize(v67, v67);
     vec3_mult_scalar(v67, v28, v68);
-
     float_t v39;
     vec2_length(*(vec2*)&v67, v39);
 
@@ -8300,7 +8307,6 @@ static void rob_chara_set_hand_adjust(rob_chara* rob_chr,
 
     switch (adjust->type) {
     case ROB_CHARA_DATA_HAND_ADJUST_NORMAL:
-    case 15:
         adjust->scale = chara_size_table_get_value(1);
         break;
     case ROB_CHARA_DATA_HAND_ADJUST_SHORT:
@@ -8310,10 +8316,10 @@ static void rob_chara_set_hand_adjust(rob_chara* rob_chr,
         adjust->scale = chara_size_table_get_value(0);
         break;
     case ROB_CHARA_DATA_HAND_ADJUST_MIN:
-        adjust->scale = min(opposite_chara_scale, chara_scale);
+        adjust->scale = min_def(opposite_chara_scale, chara_scale);
         break;
     case ROB_CHARA_DATA_HAND_ADJUST_MAX:
-        adjust->scale = max(opposite_chara_scale, chara_scale);
+        adjust->scale = max_def(opposite_chara_scale, chara_scale);
         break;
     case ROB_CHARA_DATA_HAND_ADJUST_OPPOSITE_CHARA:
         adjust->scale = opposite_chara_scale;
@@ -8355,7 +8361,7 @@ static void rob_chara_set_hand_adjust(rob_chara* rob_chr,
 
     if (fabsf(prev_scale - scale * adjust->scale_blend) <= 0.000001f || adjust->duration <= adjust->current_time
         || fabsf(adjust->duration - adjust->current_time) <= 0.000001f) {
-        adjust->current_scale = lerp(prev_scale, scale, adjust->scale_blend);
+        adjust->current_scale = lerp_def(prev_scale, scale, adjust->scale_blend);
         if (fabsf(adjust->current_scale - chara_scale) <= 0.000001f) {
             adjust->current_scale = chara_scale;
             adjust->enable = false;
@@ -8363,7 +8369,7 @@ static void rob_chara_set_hand_adjust(rob_chara* rob_chr,
     }
     else {
         float_t t = (adjust->current_time + 1.0f) / (adjust->duration + 1.0f);
-        adjust->current_scale = lerp(prev_scale, scale, t * adjust->scale_blend);
+        adjust->current_scale = lerp_def(prev_scale, scale, t * adjust->scale_blend);
         adjust->current_time += rob_chr->data.motion.step_data.frame;
     }
 }
@@ -8640,7 +8646,7 @@ static bool sub_14053B580(rob_chara* rob_chr, int32_t a2) {
     float_t v32 = v0.field_8 - v30 + 1.0f;
     if (fabsf(v32) > 0.000001f) {
         v31 = (v0.field_8 - v29) / v32;
-        v31 = clamp(v31, 0.0f, 1.0f);
+        v31 = clamp_def(v31, 0.0f, 1.0f);
     }
 
     int32_t v33 = v0.field_0;
@@ -8786,7 +8792,7 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
             if (fabsf(v16.z) > 0.000001f) {
                 vec3_normalize(v16, v16);
                 vec3_mult_scalar(v16, a2, v16);
-                v16.z = clamp(v16.z, zmin, zmax);
+                v16.z = clamp_def(v16.z, zmin, zmax);
             }
             goto LABEL_66;
         }
@@ -8838,7 +8844,7 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
             if (fabsf(v16.y) > 0.000001f) {
                 vec3_normalize(v16, v16);
                 vec3_mult_scalar(v16, a2, v16);
-                v16.y = clamp(v16.y, ymin, ymax);
+                v16.y = clamp_def(v16.y, ymin, ymax);
             }
             goto LABEL_66;
         }
@@ -9141,7 +9147,7 @@ static void sub_140406920(vec3* a1, bone_data* a2, bone_data* a3, float_t heel_h
         v12 = 0.0f;
 
     a2->ik_target.x = v18.x;
-    a2->ik_target.y = v18.y + lerp(v12, v11, a5->z);
+    a2->ik_target.y = v18.y + lerp_def(v12, v11, a5->z);
     a2->ik_target.z = v18.z;
 }
 
@@ -9723,10 +9729,11 @@ static void rob_chara_bone_data_interpolate(rob_chara_bone_data* rob_bone_data) 
 }
 
 static void rob_chara_bone_data_motion_blend_mot_free(rob_chara_bone_data* rob_bone_data) {
-    rob_bone_data->motion_indices.clear();
+    rob_chara_bone_data_motion_blend_mot_list_free(rob_bone_data, 0);
     for (motion_blend_mot*& i : rob_bone_data->motions)
         delete i;
     rob_bone_data->motions.clear();
+    rob_bone_data->motion_indices.clear();
 }
 
 static void rob_chara_bone_data_motion_blend_mot_init(rob_chara_bone_data* rob_bone_data) {
@@ -11925,7 +11932,7 @@ static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
 }
 
 static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size) {
-    free(rob_cmn_mottbl_data);
+    free_def(rob_cmn_mottbl_data);
 
     farc f;
     f.read(data, size, true);
@@ -12040,6 +12047,11 @@ bool pv_osage_manager_array_get_disp() {
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         disp |= pv_osage_manager_array_get(i)->GetDisp();
     return disp;
+}
+
+void pv_osage_manager_array_set_not_reset_true() {
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        pv_osage_manager_array_get(i)->SetNotReset(true);
 }
 
 void pv_osage_manager_array_set_pv_id(int32_t chara_id, int32_t pv_id, bool reset) {
@@ -12350,11 +12362,11 @@ void MotionBlendCross::Blend(bone_data* a2, bone_data* a3) {
         break;
     case BONE_DATABASE_BONE_POSITION_ROTATION:
         if (field_21) {
-            a2->trans.x = lerp(a3->trans.x, a2->trans.x, blend);
-            a2->trans.z = lerp(a3->trans.z, a2->trans.z, blend);
+            a2->trans.x = lerp_def(a3->trans.x, a2->trans.x, blend);
+            a2->trans.z = lerp_def(a3->trans.z, a2->trans.z, blend);
         }
         if (field_20)
-            a2->trans.y = lerp(a3->trans.y, a2->trans.y, blend);
+            a2->trans.y = lerp_def(a3->trans.y, a2->trans.y, blend);
         break;
     case BONE_DATABASE_BONE_HEAD_IK_ROTATION:
         if (a2->motion_bone_index == MOTION_BONE_CL_MUNE) {
@@ -12520,11 +12532,11 @@ void MotionBlendFreeze::Blend(bone_data* a2, bone_data* a3) {
         break;
     case BONE_DATABASE_BONE_POSITION_ROTATION:
         if (field_21) {
-            a2->trans.x = lerp(a2->trans_prev[field_24].x, a2->trans.x, blend);
-            a2->trans.z = lerp(a2->trans_prev[field_24].z, a2->trans.z, blend);
+            a2->trans.x = lerp_def(a2->trans_prev[field_24].x, a2->trans.x, blend);
+            a2->trans.z = lerp_def(a2->trans_prev[field_24].z, a2->trans.z, blend);
         }
         if (field_20)
-            a2->trans.y = lerp(a2->trans_prev[field_24].y, a2->trans.y, blend);
+            a2->trans.y = lerp_def(a2->trans_prev[field_24].y, a2->trans.y, blend);
         break;
     case BONE_DATABASE_BONE_HEAD_IK_ROTATION:
         if (a2->motion_bone_index == MOTION_BONE_CL_MUNE) {
@@ -13248,7 +13260,7 @@ void rob_chara_item_equip_object::reset_external_force() {
 
 void rob_chara_item_equip_object::set_alpha_draw_task_flags(float_t alpha, int32_t flags) {
     draw_task_flags = (::draw_task_flags)flags;
-    this->alpha = clamp(alpha, 0.0f, 1.0f);
+    this->alpha = clamp_def(alpha, 0.0f, 1.0f);
 }
 
 bool rob_chara_item_equip_object::set_boc(
@@ -14412,6 +14424,21 @@ int32_t expression_id_to_mottbl_index(int32_t expression_id) {
     return 6;
 }
 
+/*
+195 CMN_HAND_OPEN   0
+196 CMN_HAND_CLOSE  1
+194 CMN_HAND_NORMAL 2
+197 CMN_HAND_PEACE  3
+201 CMN_HAND_NEGI   4
+198 CMN_HAND_MIC    5
+199 CMN_HAND_ONE    6
+202 CMN_HAND_SIZEN  7
+203 CMN_HAND_PICK   8
+192 (null)          9
+200 CMN_HAND_THREE  10
+204 CMN_HAND_MIC    11,12,13
+193 CMN_HAND_RESET  14*/
+
 int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id) {
     static const int32_t hand_anim_id_to_mottbl_index_table[] = {
         195, 196, 194, 197, 201, 198, 199, 202,
@@ -15562,9 +15589,7 @@ bool OpdMaker::InitThread(rob_chara* rob_chr, std::vector<int32_t>* motion_ids, 
 
 bool OpdMaker::IsWaiting() {
     std::unique_lock<std::mutex> u_lock(waiting_mtx);
-    bool ret = waiting;
-    u_lock.unlock();
-    return ret;
+    return waiting;
 }
 
 void OpdMaker::Reset() {
@@ -15594,20 +15619,16 @@ bool OpdMaker::SetOsagePlayInitData(int32_t motion_id) {
 void OpdMaker::SetWaiting(bool value) {
     std::unique_lock<std::mutex> u_lock(waiting_mtx);
     waiting = value;
-    u_lock.unlock();
 }
 
 void OpdMaker::sub_140475AE0() {
     std::unique_lock<std::mutex> u_lock(field_40);
     field_18 = true;
-    u_lock.unlock();
 }
 
 bool OpdMaker::sub_140478330() {
     std::unique_lock<std::mutex> u_lock(field_40);
-    bool ret = field_18;
-    u_lock.unlock();
-    return ret;
+    return field_18;
 }
 
 void OpdMaker::ThreadMain(OpdMaker* opd_maker) {
@@ -16191,15 +16212,21 @@ PvOsageManager::PvOsageManager() : state(), chara_id(), reset(), field_74(),
 motion_index(), pv(), thread(), disp(), not_reset(), exit(), field_D4() {
     Reset();
 
-    std::unique_lock<std::mutex> u_disp_mtx_lock(disp_mtx);
-    disp = false;
-    u_disp_mtx_lock.unlock();
-    std::unique_lock<std::mutex> u_not_reset_mtx_lock(not_reset_mtx);
-    not_reset = false;
-    u_not_reset_mtx_lock.unlock();
-    std::unique_lock<std::mutex> u_exit_mtx_lock(exit_mtx);
-    exit = false;
-    u_exit_mtx_lock.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(disp_mtx);
+        disp = false;
+    }
+
+    {
+        std::unique_lock<std::mutex> u_lock(not_reset_mtx);
+        not_reset = false;
+    }
+
+    {
+        std::unique_lock<std::mutex> u_lock(exit_mtx);
+        exit = false;
+    }
+
 
     thread = new std::thread(PvOsageManager::ThreadMain, this);
     if (thread) {
@@ -16210,9 +16237,11 @@ motion_index(), pv(), thread(), disp(), not_reset(), exit(), field_D4() {
 }
 
 PvOsageManager::~PvOsageManager() {
-    std::unique_lock<std::mutex> u_lock(exit_mtx);
-    exit = true;
-    u_lock.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(exit_mtx);
+        exit = true;
+    }
+
     cnd.notify_one();
     thread->join();
     delete thread;
@@ -16275,45 +16304,38 @@ void PvOsageManager::AddMotionFrameResetData(int32_t stage_index, int32_t motion
 }
 
 bool PvOsageManager::CheckResetFrameNotFound(int32_t motion_id, float_t frame) {
-    return  reset_frames_list.find(frame) == reset_frames_list.end();
+    return reset_frames_list.find(frame) == reset_frames_list.end();
 }
 
 bool PvOsageManager::GetDisp() {
     std::unique_lock<std::mutex> u_lock(disp_mtx);
-    bool disp = this->disp;
-    u_lock.unlock();
     return disp;
 }
 
 bool PvOsageManager::GetNotReset() {
     std::unique_lock<std::mutex> u_lock(not_reset_mtx);
-    bool not_reset = this->not_reset;
-    u_lock.unlock();
     return not_reset;
 }
 
 void PvOsageManager::SetDisp(bool value) {
     std::unique_lock<std::mutex> u_lock(disp_mtx);
     disp = value;
-    u_lock.unlock();
 }
 
 void PvOsageManager::SetNotReset(bool value) {
     std::unique_lock<std::mutex> u_lock(not_reset_mtx);
     not_reset = value;
-    u_lock.unlock();
 }
 
 void PvOsageManager::SetPvId(int32_t pv_id, int32_t chara_id, bool reset) {
     if (!pv_set_motion.size())
         return;
 
-    HANDLE timer = timer_handle_init();
+    waitable_timer timer;
     while (GetDisp()) {
         SetNotReset(true);
-        timer_handle_sleep(timer, 1.0);
+        timer.sleep(1);
     }
-    timer_handle_dispose(timer);
 
     SetDisp(true);
     SetNotReset(false);
@@ -16329,7 +16351,7 @@ void PvOsageManager::SetPvId(int32_t pv_id, int32_t chara_id, bool reset) {
 }
 
 void PvOsageManager::SetPvSetMotion(std::vector<pv_data_set_motion>& set_motion) {
-    pv_set_motion = set_motion;
+    pv_set_motion.assign(set_motion.begin(), set_motion.end());
 }
 
 void PvOsageManager::sub_1404F77E0() {
@@ -16343,6 +16365,7 @@ void PvOsageManager::sub_1404F77E0() {
             && i->frame_stage_index.first == i_next->frame_stage_index.first) {
             memmove(i, i_next, sizeof(pv_data_set_motion) * (i_end - i_next));
             pv_set_motion.pop_back();
+            i_end--;
             continue;
         }
         else {
@@ -16406,18 +16429,21 @@ void PvOsageManager::Reset() {
 
 void PvOsageManager::sub_1404F82F0() {
     do {
-        std::unique_lock<std::mutex> u_not_reset_lock(not_reset_mtx);
-        bool not_reset = this->not_reset;
-        u_not_reset_lock.unlock();
-        if (not_reset)
-            break;
+        {
+            std::unique_lock<std::mutex> u_lock(not_reset_mtx);
+            if (not_reset)
+                break;
+        }
 
         sub_1404F8AA0();
     } while (sub_1404F7AF0());
 
-    std::unique_lock<std::mutex> u_not_reset_lock(not_reset_mtx);
-    bool not_reset = this->not_reset;
-    u_not_reset_lock.unlock();
+    bool not_reset = false;
+    {
+        std::unique_lock<std::mutex> u_lock(not_reset_mtx);
+        not_reset = this->not_reset;
+    }
+
     sub_1404F7BD0(not_reset);
 }
 
@@ -16618,26 +16644,29 @@ void PvOsageManager::ThreadMain(PvOsageManager* pv_osg_mgr) {
     std::unique_lock<std::mutex> u_lock(pv_osg_mgr->mtx);
     while (true) {
         pv_osg_mgr->cnd.wait(u_lock);
-        std::unique_lock<std::mutex> u_exit_lock(pv_osg_mgr->exit_mtx);
-        bool exit = pv_osg_mgr->exit;
-        u_exit_lock.unlock();
-        if (exit)
-            break;
+
+        {
+            std::unique_lock<std::mutex> u_lock(pv_osg_mgr->exit_mtx);
+            if (pv_osg_mgr->exit)
+                break;
+        }
 
         pv_osg_mgr->sub_1404F82F0();
 
-        std::unique_lock<std::mutex> u_not_reset_lock(pv_osg_mgr->not_reset_mtx);
-        u_not_reset_lock.unlock();
+        {
+            std::unique_lock<std::mutex> u_lock(pv_osg_mgr->not_reset_mtx);
+        }
 
-        std::unique_lock<std::mutex> u_disp_lock(pv_osg_mgr->disp_mtx);
-        pv_osg_mgr->disp = false;
-        u_disp_lock.unlock();
+        {
+            std::unique_lock<std::mutex> u_lock(pv_osg_mgr->disp_mtx);
+            pv_osg_mgr->disp = false;
+        }
     }
 
-    std::unique_lock<std::mutex> u_disp_lock(pv_osg_mgr->disp_mtx);
-    pv_osg_mgr->disp = false;
-    u_disp_lock.unlock();
-    u_lock.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(pv_osg_mgr->disp_mtx);
+        pv_osg_mgr->disp = false;
+    }
 }
 
 RobThreadParent::RobThreadParent() : exit(), thread() {
@@ -16650,9 +16679,11 @@ RobThreadParent::RobThreadParent() : exit(), thread() {
 }
 
 RobThreadParent::~RobThreadParent() {
-    std::unique_lock<std::mutex> u_lock(mtx);
-    exit = true;
-    u_lock.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(mtx);
+        exit = true;
+    }
+
     cnd.notify_one();
     thread->join();
     delete thread;
@@ -16666,7 +16697,6 @@ void RobThreadParent::AppendRobCharaFunc(rob_chara* rob_chr, void(*rob_chr_func)
     thrd.func = rob_chr_func;
     AppendRobThread(&thrd);
     cnd.notify_one();
-    u_lock.unlock();
 }
 
 void RobThreadHandler::sub_14054E3F0() {
@@ -16677,26 +16707,24 @@ void RobThreadHandler::sub_14054E3F0() {
 void RobThreadParent::AppendRobThread(RobThread* thread) {
     std::unique_lock<std::mutex> u_lock(threads_mtx);
     threads.push_back(*thread);
-    u_lock.unlock();
 }
 
 bool RobThreadParent::CheckThreadsNotNull() {
     std::unique_lock<std::mutex> u_lock(threads_mtx);
-    bool not_null = !!threads.size();
-    u_lock.unlock();
-    return not_null;
+    return !!threads.size();
 }
 
 void RobThreadParent::sub_14054E0D0() {
-    std::unique_lock<std::mutex> u_lock(threads_mtx);
-    threads.pop_front();
-    bool v5 = this->threads.size() == 0;
-    u_lock.unlock();
+    bool threads_null = false;
+    {
+        std::unique_lock<std::mutex> u_lock(threads_mtx);
+        threads.pop_front();
+        threads_null = threads.size() == 0;
+    }
 
-    if (v5) {
+    if (threads_null) {
         std::unique_lock<std::mutex> u_lock(field_28);
         field_30.notify_one();
-        u_lock.unlock();
     }
 }
 
@@ -16704,7 +16732,6 @@ void RobThreadParent::sub_14054E370() {
     std::unique_lock<std::mutex> u_lock(field_28);
     if (CheckThreadsNotNull())
         field_30.wait(u_lock);
-    u_lock.unlock();
 }
 
 void RobThreadParent::ThreadMain(RobThreadParent* rob_thrd_parent) {
@@ -16719,7 +16746,6 @@ void RobThreadParent::ThreadMain(RobThreadParent* rob_thrd_parent) {
         else
             rob_thrd_parent->cnd.wait(u_lock);
     }
-    u_lock.unlock();
 }
 
 RobThreadHandler::RobThreadHandler() {
@@ -18063,7 +18089,7 @@ static void sub_1404156B0(mot_play_data* a1) {
         switch (frame_data->field_1C) {
         case 0:
         default:
-            frame_data->frame = min(frame_data->frame, frame_data->frame_count);
+            frame_data->frame = min_def(frame_data->frame, frame_data->frame_count);
             break;
         case 1: {
             if (frame_data->field_24 >= 0.0f && frame_data->field_24 <= last_frame)

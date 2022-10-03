@@ -75,7 +75,7 @@ namespace Glitter {
         float_t deceleration = random->F2GetFloat(GLT_VAL,
             ptcl_inst_data->data.deceleration_random) + ptcl_inst_data->data.deceleration;
         this->speed = speed * 60.0f;
-        this->deceleration = max(deceleration * 60.0f, 0.0f);
+        this->deceleration = max_def(deceleration * 60.0f, 0.0f);
 
         vec3 acceleration;
         random->F2GetVec3(GLT_VAL, ptcl_inst_data->data.acceleration_random, acceleration);
@@ -123,7 +123,7 @@ namespace Glitter {
             ptcl_inst_data->data.deceleration_random) + ptcl_inst_data->data.deceleration;
         base_speed = speed;
         this->speed = speed;
-        this->deceleration = max(deceleration, 0.0f);
+        this->deceleration = max_def(deceleration, 0.0f);
 
         vec3 acceleration;
         random->XGetVec3(ptcl_inst_data->data.acceleration_random, acceleration);

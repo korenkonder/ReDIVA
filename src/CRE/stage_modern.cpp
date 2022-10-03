@@ -208,7 +208,7 @@ static void stage_detail::TaskStageModern_CtrlInner(stage_detail::TaskStageModer
         if (!a1->state) {
             a1->state = 3;
             int32_t stage_count = (int32_t)a1->load_stage_hashes.size();
-            stage_count = min(stage_count, TASK_STAGE_STAGE_COUNT);
+            stage_count = min_def(stage_count, TASK_STAGE_STAGE_COUNT);
             for (int32_t i = 0; i < stage_count; i++)
                 if (a1->stages[i].hash == -1 || a1->stages[i].hash == hash_murmurhash_empty)
                     stage_modern_set_by_stage_hash(&a1->stages[i],
@@ -687,11 +687,11 @@ static void stage_modern_set_by_stage_hash(stage_modern* s, int32_t stage_hash,
 
     char set_name[11];
     set_name[0] = 0;
-    if (!strncmp(name, "STGPV", min(name_len, 5))) {
+    if (!strncmp(name, "STGPV", min_def(name_len, 5))) {
         memcpy(set_name, name, 8);
         set_name[8] = 0;
     }
-    else if (!strncmp(name, "STGD2PV", min(name_len, 7))) {
+    else if (!strncmp(name, "STGD2PV", min_def(name_len, 7))) {
         memcpy(set_name, name, 10);
         set_name[10] = 0;
     }

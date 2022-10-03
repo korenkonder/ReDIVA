@@ -300,7 +300,7 @@ void TaskEffectFogAnim::Data::Ctrl() {
 
     float_t v4 = field_C[0] * DEG_TO_RAD_FLOAT;
     float_t v7 = (sinf(v4 - 1.5f) + 1.0f) * 0.5f + field_34.x;
-    v7 = min(v7, 1.0f) * field_24;
+    v7 = min_def(v7, 1.0f) * field_24;
     float_t v8 = sinf(v4) * v7;
     float_t v9 = cosf(v4);
 
@@ -309,7 +309,7 @@ void TaskEffectFogAnim::Data::Ctrl() {
     color.y = (float_t)(1.0 - v8 * 0.345686 - ((double_t)v9 * v7) * 0.714486);
     color.z = (float_t)(v8 * 1.771 + 1.0);
     color.w = 1.0f;
-    vec3_max(*(vec3*)&color, vec3_null, *(vec3*)&color);
+    *(vec3*)&color = vec3::max(*(vec3*)&color, vec3_null);
 
     for (int32_t i = 0; i < 3; i++) {
         float_t v20 = (field_18[i] * 10.0f) + field_C[i];
@@ -321,8 +321,7 @@ void TaskEffectFogAnim::Data::Ctrl() {
     fog& fog = rctx_ptr->fog[FOG_DEPTH];
     fog.set_color(color);
 
-    vec3_add_scalar(*(vec3*)&color, 1.0f, *(vec3*)&color);
-    vec3_mult_scalar(*(vec3*)&color, 0.8f, *(vec3*)&color);
+    *(vec3*)&color = (*(vec3*)&color + 1.0f) * 0.8f;
 
     light_set& light_set = rctx_ptr->light_set[LIGHT_SET_MAIN];
     light_set.lights[LIGHT_CHARA].set_diffuse(color);
@@ -415,7 +414,7 @@ bool TaskEffectFogRing::Init() {
 
 bool TaskEffectFogRing::Ctrl() {
     data.delta_frame = data.frame_rate_control->GetDeltaFrame();
-    data.Ctrl();;
+    data.Ctrl();
     return 0;
 }
 

@@ -30,7 +30,7 @@ enum classes_enum {
 };
 
 struct class_data {
-    lock lock;
+    lock* lock;
     class_flags flags;
     bool imgui_focus;
     void* data;

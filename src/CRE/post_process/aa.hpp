@@ -20,6 +20,6 @@ struct post_process_aa {
     virtual ~post_process_aa();
 
     void apply_mlaa(render_texture* rt,
-        render_texture* buf_rt, GLuint* samplers, int32_t a4);
+        render_texture* buf_rt, GLuint* samplers, int32_t ss_alpha_mask);
     void init_fbo(int32_t width, int32_t height);
 };

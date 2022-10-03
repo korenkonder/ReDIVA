@@ -23,8 +23,8 @@ void graphics_background_color_imgui(class_data* data) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
 
-    float_t w = min((float_t)width, 360.0f);
-    float_t h = min((float_t)height, 100.0f);
+    float_t w = min_def((float_t)width, 360.0f);
+    float_t h = min_def((float_t)height, 100.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -53,10 +53,9 @@ void graphics_background_color_imgui(class_data* data) {
     ImGui::GetContentRegionAvailSetNextItemWidth();
     vec4 _clear_color;
     vec4u8_to_vec4(clear_color, _clear_color);
-    vec4_mult_scalar(_clear_color, (float_t)(1.0 / 255.0), _clear_color);
+    _clear_color *= (float_t)(1.0 / 255.0);
     if (ImGui::ColorEdit4("##Background Color", (float_t*)&_clear_color, color_edit_flags)) {
-        vec4_clamp_scalar(_clear_color, 0.0f, 1.0f, _clear_color);
-        vec4_mult_scalar(_clear_color, 255.0f, _clear_color);
+        _clear_color = vec4::clamp(_clear_color, 0.0f, 1.0f) * 255.0f;
         vec4_to_vec4u8(_clear_color, clear_color);
     }
     ImGui::Checkbox("Set Clear Color", &set_clear_color);

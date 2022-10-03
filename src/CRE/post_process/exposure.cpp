@@ -12,15 +12,14 @@
 
 static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat);
 
+post_process_exposure_chara_data::post_process_exposure_chara_data() : field_80(), query(), query_data() {
+    for (GLuint& i : query_data)
+        i = -1;
+}
+
 post_process_exposure::post_process_exposure() : exposure_history_counter(),
 chara_data(), query_index() {
     chara_data = new post_process_exposure_chara_data[ROB_CHARA_COUNT];
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        memset(&chara_data[i], 0, sizeof(post_process_exposure_chara_data));
-        chara_data[i].query_data[0] = -1;
-        chara_data[i].query_data[1] = -1;
-        chara_data[i].query_data[2] = -1;
-    }
 }
 
 post_process_exposure::~post_process_exposure() {

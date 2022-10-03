@@ -64,6 +64,7 @@ struct bone_database_skeleton {
 struct bone_database {
     bool ready;
     bool modern;
+    bool big_endian;
     bool is_x;
 
     std::vector<bone_database_skeleton> skeleton;

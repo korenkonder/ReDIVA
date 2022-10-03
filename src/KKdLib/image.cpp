@@ -4,11 +4,15 @@
 */
 
 #include "image.hpp"
-;
+
 static rgb565 rgb565_apply_color_tone(rgb565 col, color_tone* col_tone);
 static void rgb_to_ycc(vec3& rgb, vec3& ycc);
 static void ycc_apply_col_tone_hue(vec3& ycc, color_tone* col_tone);
 static void ycc_to_rgb(vec3& ycc, vec3& rgb);
+
+color_tone::color_tone() : hue(), saturation(), value(), contrast(), inverse() {
+
+}
 
 void dxt1_image_apply_color_tone(int32_t width, int32_t height,
     int32_t size, dxt1_block* data, color_tone* col_tone) {
@@ -71,24 +75,20 @@ static rgb565 rgb565_apply_color_tone(rgb565 col, color_tone* col_tone) {
         rgb.z = (float_t)col.b;
     }
 
-    vec3_mult(rgb, inv_scale, rgb);
-    vec3_mult(rgb, col_tone->blend, rgb);
-    vec3_add(rgb, col_tone->offset, rgb);
-    vec3_clamp_scalar(rgb, 0.0f, 1.0f, rgb);
+    rgb = vec3::clamp(rgb * inv_scale * col_tone->blend + col_tone->offset, 0.0f, 1.0f);
 
     vec3 ycc;
     rgb_to_ycc(rgb, ycc);
 
-    vec2_mult_scalar(*(vec2*)&ycc.y, col_tone->saturation, *(vec2*)&ycc.y);
+    *(vec2*)&ycc.y = *(vec2*)&ycc.y * col_tone->saturation;
     ycc_apply_col_tone_hue(ycc, col_tone);
     ycc.x = (ycc.x + col_tone->value - 0.5f) * col_tone->contrast + 0.5f;
-    ycc.x = clamp(ycc.x, 0.0f, 1.0f);
-    vec2_clamp_scalar(*(vec2*)&ycc.y, -0.5f, 0.5f, *(vec2*)&ycc.y);
+    ycc.x = clamp_def(ycc.x, 0.0f, 1.0f);
+    *(vec2*)&ycc.y = vec2::clamp(*(vec2*)&ycc.y, -0.5f, 0.5f);
 
     ycc_to_rgb(ycc, rgb);
 
-    vec3_clamp_scalar(rgb, 0.0f, 1.0f, rgb);
-    vec3_mult(rgb, scale, rgb);
+    rgb = vec3::clamp(rgb, 0.0f, 1.0f) * scale;
 
     col.r = (uint8_t)rgb.x;
     col.g = (uint8_t)rgb.y;
@@ -101,9 +101,9 @@ inline static void rgb_to_ycc(vec3& rgb, vec3& ycc) {
     const vec3 _cb_coef_601 = { -0.16874f, -0.33126f, 0.5f };
     const vec3 _cr_coef_601 = { 0.5f, -0.41869f, -0.08131f };
 
-    vec3_dot(rgb, _y_coef_601, ycc.x);
-    vec3_dot(rgb, _cb_coef_601, ycc.y);
-    vec3_dot(rgb, _cr_coef_601, ycc.z);
+    ycc.x = vec3::dot(rgb, _y_coef_601);
+    ycc.y = vec3::dot(rgb, _cb_coef_601);
+    ycc.z = vec3::dot(rgb, _cr_coef_601);
 }
 
 inline static void ycc_apply_col_tone_hue(vec3& ycc, color_tone* col_tone) {
@@ -119,7 +119,7 @@ inline static void ycc_to_rgb(vec3& ycc, vec3& rgb) {
     const vec3 _grn_coef_601 = { 1.0f, -0.34414f, -0.71414f };
     const vec3 _blu_coef_601 = { 1.0f, 1.772f, 0.0f };
 
-    vec3_dot(ycc, _red_coef_601, rgb.x);
-    vec3_dot(ycc, _grn_coef_601, rgb.y);
-    vec3_dot(ycc, _blu_coef_601, rgb.z);
+    rgb.x = vec3::dot(ycc, _red_coef_601);
+    rgb.y = vec3::dot(ycc, _grn_coef_601);
+    rgb.z = vec3::dot(ycc, _blu_coef_601);
 }

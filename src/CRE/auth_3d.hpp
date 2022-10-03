@@ -430,7 +430,7 @@ struct auth_3d_light {
     float_t linear_init;
     float_t quadratic_init;
     vec4 specular_init;
-    vec3 tone_curve_init;
+    light_tone_curve tone_curve_init;
 
     auth_3d_light();
     ~auth_3d_light();
@@ -852,9 +852,9 @@ extern bool auth_3d_data_check_id_loaded(int32_t* id);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t id);
 extern int32_t auth_3d_data_get_auth_3d_id(const char* object_name);
 extern int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
-    int32_t* object_index, bool* hrc, int32_t instance);
+    int32_t* object_index, bool* hrc, int32_t instance = -1);
 extern int32_t auth_3d_data_get_auth_3d_id(uint32_t file_name_hash, uint32_t object_hash,
-    int32_t* object_index, bool* hrc, int32_t instance);
+    int32_t* object_index, bool* hrc, int32_t instance = -1);
 extern mat4* auth_3d_data_get_auth_3d_object_mat(int32_t id, size_t index, bool hrc, mat4* mat);
 extern int32_t auth_3d_data_get_chara_id(int32_t id);
 extern bool auth_3d_data_get_enable(int32_t* id);

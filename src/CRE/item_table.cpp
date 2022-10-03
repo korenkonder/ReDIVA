@@ -3,6 +3,7 @@
     GitHub/GitLab: korenkonder
 */
 
+#include "../KKdLib/io/memory_stream.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data.hpp"
@@ -72,6 +73,19 @@ item_table_item_data_obj::item_table_item_data_obj() : rpk() {
 
 }
 
+item_table_item_data_ofs::item_table_item_data_ofs() : sub_id(), no() {
+
+}
+
+item_table_item_data_tex::item_table_item_data_tex() {
+    org = -1;
+    chg = -1;
+}
+
+item_table_item_data_col::item_table_item_data_col() : flag() {
+    tex_id = -1;
+}
+
 item_table_item_data::item_table_item_data() {
 
 }
@@ -111,7 +125,7 @@ static bool item_table_array_read(data_struct* data, const char* path) {
 
     char* path_farc = str_utils_add(path, ".farc");
     if (!path_check_file_exists(path_farc)) {
-        free(path_farc);
+        free_def(path_farc);
         return false;
     }
 
@@ -155,7 +169,7 @@ static bool item_table_array_read(data_struct* data, const char* path) {
 
         farc_file* ff = f.read_file(file);
         if (ff) {
-            stream s;
+            memory_stream s;
             s.open(ff->data, ff->size);
             itm_table itm;
             itm.read(ff->data, ff->size);
@@ -163,7 +177,7 @@ static bool item_table_array_read(data_struct* data, const char* path) {
                 item_table_load(data, &item_table_array[i], &itm);
         }
     }
-    free(path_farc);
+    free_def(path_farc);
     return true;
 }
 

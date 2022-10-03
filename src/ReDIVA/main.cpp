@@ -3,6 +3,9 @@
     GitHub/GitLab: korenkonder
 */
 
+#include "../KKdLib/database/sprite.hpp"
+#include "../KKdLib/io/file_stream.hpp"
+#include "../KKdLib/io/memory_stream.hpp"
 #include "../KKdLib/f2/struct.hpp"
 #include "../KKdLib/a3da.hpp"
 #include "../KKdLib/dsc.hpp"
@@ -86,8 +89,7 @@ static bool a3da_to_dof_data(const char* a3da_path, dft_dsc_data& data) {
             continue;
         }
 
-        float_t focus;
-        vec3_distance(cam_a3da.dof.model_transform.translation_value, cr->view_point_value, focus);
+        float_t focus = vec3::distance(cam_a3da.dof.model_transform.translation_value, cr->view_point_value);
 
         dof_data d;
         d.flags = 0x1F;
@@ -118,7 +120,7 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     char buf[0x100];
 
     sprintf_s(buf, sizeof(buf), "DOF\\script\\pv_%03d_hard.dsc", pv_id);
-    stream s_src_dsc;
+    file_stream s_src_dsc;
     s_src_dsc.open(buf, "rb");
 
     size_t src_dsc_length = s_src_dsc.get_length();
@@ -128,7 +130,8 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
 
     dsc d_src = dsc();
     d_src.parse(src_dsc_data, src_dsc_length, DSC_FT);
-    free(src_dsc_data);
+    if (src_dsc_data)
+        free(src_dsc_data);
     d_src.rebuild();
 
     dsc_get_func_id src_get_func_id = dsc_type_get_dsc_get_func_id(d_src.type);
@@ -253,15 +256,17 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     d.unparse(&dsc_data, &dsc_length);
 
     sprintf_s(buf, sizeof(buf), "DOF\\pv_script\\pv_%03d_dof.dsc", pv_id);
-    stream s_dsc;
+    file_stream s_dsc;
     s_dsc.open(buf, "wb");
     s_dsc.write(dsc_data, dsc_length);
     s_dsc.close();
 
-    free(dsc_data);
+    if (dsc_data)
+        free(dsc_data);
 
-    stream s_dft;
+    memory_stream s_dft;
     s_dft.open();
+
     uint32_t off;
     enrs e;
     enrs_entry ee;
@@ -304,11 +309,6 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
 
 bool close;
 
-struct thread {
-    HANDLE handle;
-    DWORD id;
-};
-
 int32_t wmain(int32_t argc, wchar_t** argv) {
     //ShowWindow(GetConsoleWindow(), SW_HIDE);
     timeBeginPeriod(1);
@@ -323,26 +323,8 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     render_init_struct ris;
 
-    thread render, sound;
-    HANDLE h[2];
-    h[0] = render.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)render_main, &ris, 0, &render.id);
-    h[1] = sound.handle = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)sound_main, 0, 0, &sound.id);
+    render_main(&ris);
 
-    if (render.handle)
-        SetThreadDescription(render.handle, L"Render Thread");
-    if (sound.handle)
-        SetThreadDescription(sound.handle, L"Sound Thread");
-
-    lock_init(&state_lock);
-    state = RENDER_UNINITIALIZED;
-    if (render.handle && sound.handle)
-        WaitForMultipleObjects(2, h, true, INFINITE);
-    lock_free(&state_lock);
-
-    if (render.handle)
-        CloseHandle(render.handle);
-    if (sound.handle)
-        CloseHandle(sound.handle);
     timeEndPeriod(1);
     return 0;
 }

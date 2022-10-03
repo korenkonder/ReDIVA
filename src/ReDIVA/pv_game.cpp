@@ -11,6 +11,7 @@
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/light_param/light.hpp"
 #include "../CRE/light_param.hpp"
+#include "../CRE/rob/rob.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/object.hpp"
 #include "../CRE/pv_param.hpp"
@@ -135,10 +136,6 @@ TaskPvGame task_pv_game;
 extern render_context* rctx_ptr;
 
 static float_t dsc_time_to_frame(int64_t time);
-static int32_t expression_id_to_mottbl_index(int32_t expression_id);
-static int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id);
-static int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
-static int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);
 static void pv_game_change_field(pv_game_old* pvgm, int32_t field, int64_t dsc_time, int64_t curr_time);
 static bool pv_game_dsc_process(pv_game_old* pvgm, int64_t curr_time);
 static void pv_game_reset_field(pv_game_old* pvgm);
@@ -969,67 +966,6 @@ static float_t dsc_time_to_frame(int64_t time) {
     return (float_t)time / 1000000000.0f * 60.0f;
 }
 
-static int32_t expression_id_to_mottbl_index(int32_t expression_id) {
-    static const int32_t expression_id_to_mottbl_index_table[] = {
-         11,  15,  57,  19,  23,  25,  29,  33,
-         37,  41,  45,  49,  53,  65,   7,  69,
-         73,  77,  81,  85,  89,   7,  61,   6,
-        214, 215, 216, 217, 218, 219, 220, 221,
-        222, 223,  93,  95,  97,  99, 101, 103,
-        105, 107, 109, 111, 113, 115, 117, 119,
-        121, 123, 125, 127,  13,  21,  31,  39,
-         43,  47,  51,  55,  67,  71,  79,  83,
-        129,  59,  17,  91,  27,  87,  35,  75,
-          9,  63, 236, 238, 240, 242,
-    };
-
-    if (expression_id >= 0 && expression_id
-        < sizeof(expression_id_to_mottbl_index_table) / sizeof(int32_t))
-        return expression_id_to_mottbl_index_table[expression_id];
-    return 6;
-}
-
-static int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id) {
-    static const int32_t hand_anim_id_to_mottbl_index_table[] = {
-        195, 196, 194, 197, 201, 198, 199, 202,
-        203, 192, 200, 204, 204, 204, 193,
-    };
-
-    if (hand_anim_id >= 0 && hand_anim_id
-        < sizeof(hand_anim_id_to_mottbl_index_table) / sizeof(int32_t))
-        return hand_anim_id_to_mottbl_index_table[hand_anim_id];
-    return 192;
-}
-
-static int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id) {
-    static const int32_t look_anim_id_to_mottbl_index_table[] = {
-        168, 170, 174, 172, 178, 176, 182, 180,
-        166, 165, 224, 169, 171, 175, 173, 179,
-        177, 183, 181, 167,
-    };
-
-    if (look_anim_id >= 0 && look_anim_id
-        < sizeof(look_anim_id_to_mottbl_index_table) / sizeof(int32_t))
-        return look_anim_id_to_mottbl_index_table[look_anim_id];
-    return 165;
-}
-
-static int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id) {
-    static const int32_t mouth_anim_id_to_mottbl_index_table[] = {
-        134, 140, 142, 146, 144, 148, 150, 152,
-        132, 131, 136, 138, 154, 155, 156, 157,
-        158, 159, 160, 161, 162, 163, 164, 151,
-        135, 143, 147, 145, 133, 137, 139, 141,
-        149, 153, 244, 245, 246, 247, 248, 249,
-        250, 251, 252,
-    };
-
-    if (mouth_anim_id >= 0 && mouth_anim_id
-        < sizeof(mouth_anim_id_to_mottbl_index_table) / sizeof(int32_t))
-        return mouth_anim_id_to_mottbl_index_table[mouth_anim_id];
-    return 131;
-}
-
 static void sub_140122B60(pv_game_old* a1, int32_t chara_id, int32_t motion_index, int64_t disp_time) {
     if (chara_id < 0 || chara_id > ROB_CHARA_COUNT || motion_index < 0)
         return;
@@ -1764,7 +1700,7 @@ static bool pv_game_dsc_process(pv_game_old* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        rob_chr->item_equip->wet = clamp(value, 0.0f, 1.0f);
+        rob_chr->item_equip->wet = clamp_def(value, 0.0f, 1.0f);
     } break;
     case DSC_FT_LIGHT_ROT: {
 

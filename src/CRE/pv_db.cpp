@@ -775,7 +775,7 @@ namespace pv_db {
         if (!kv.has_key(buf) || !kv.open_scope(buf))
             return false;
 
-        size_t base_scope_index = kv.curr_scope - kv.scope.data();;
+        size_t base_scope_index = kv.curr_scope - kv.scope.data();
 
         std::string song_name;
         if (!kv.read("song_name", song_name)) {
@@ -1777,7 +1777,7 @@ namespace pv_db {
                     if (!kv.open_scope_fmt("%02d", k))
                         continue;
 
-                    pv_db_pv_field field;;
+                    pv_db_pv_field field;
 
                     const char* stage;
                     if (kv.read("stage", stage))

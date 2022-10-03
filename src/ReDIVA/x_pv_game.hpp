@@ -493,6 +493,7 @@ struct x_pv_game_stage {
 
     object_database obj_db;
     texture_database tex_db;
+    std::map<uint32_t, int32_t> auth_3d_ids;
 
     x_pv_game_stage();
     ~x_pv_game_stage();
@@ -504,7 +505,8 @@ struct x_pv_game_stage {
     void load_change_effect(int32_t curr_stage_effect, int32_t next_stage_effect);
     void reset();
     void reset_stage_effect();
-    bool set_change_effect_frame(float_t frame);
+    bool set_change_effect_frame_part_1();
+    void set_change_effect_frame_part_2(float_t frame);
     void set_stage_effect(int32_t stage_effect);
     void set_stage_effect_auth_3d_frame(int32_t stage_effect, float_t frame);
     void set_stage_effect_glitter_frame(int32_t stage_effect, float_t frame);
@@ -525,8 +527,6 @@ public:
     XPVFrameRateControl field_7198C;
     XPVFrameRateControl field_71994;
 
-    //std::vector<uint32_t> objset_load;
-
     int32_t state_old;
     int32_t frame;
     double_t frame_float;
@@ -543,8 +543,6 @@ public:
     //std::map<uint32_t, uint32_t> effchrpv_auth_3d_hashes;
 
     std::vector<pv_data_set_motion> set_motion[ROB_CHARA_COUNT];
-
-    //std::map<int32_t, std::set<int32_t>> pv_auth_3d_chara_count;
 
     bool play;
     bool success;
@@ -576,7 +574,7 @@ public:
     virtual void Window() override;
 
     void Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]);
-    void Unload();
+    bool Unload();
 
     void ctrl(float_t curr_time, float_t delta_time);
     void stop_current_pv();
@@ -604,6 +602,6 @@ public:
 extern x_pv_game* x_pv_game_ptr;
 extern XPVGameSelector x_pv_game_selector;
 
-extern void x_pv_game_init();
-extern void x_pv_game_free();
+extern bool x_pv_game_init();
+extern bool x_pv_game_free();
 #endif

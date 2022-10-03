@@ -5,8 +5,9 @@
 
 #include "bone.hpp"
 #include "../f2/struct.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../hash.hpp"
 #include "../str_utils.hpp"
 
@@ -28,7 +29,7 @@ static int64_t bone_database_strings_get_string_offset(std::vector<std::string>&
     std::vector<int64_t>& vec_off, const char* str);
 static bool bone_database_strings_push_back_check(std::vector<std::string>& vec, const char* str);
 
-bone_database::bone_database() : ready(), modern(), is_x() {
+bone_database::bone_database() : ready(), modern(), big_endian(), is_x() {
 
 }
 
@@ -43,18 +44,18 @@ void bone_database::read(const char* path, bool modern) {
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
         if (path_check_file_exists(path_bin)) {
-            stream s;
+            file_stream s;
             s.open(path_bin, "rb");
-            if (s.io.stream) {
+            if (s.check_not_null()) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 s.read(data, s.length);
-                stream s_bin;
+                memory_stream s_bin;
                 s_bin.open(data, s.length);
                 bone_database_classic_read_inner(this, s_bin);
-                free(data);
+                free_def(data);
             }
         }
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         char* path_bon = str_utils_add(path, ".bon");
@@ -62,13 +63,13 @@ void bone_database::read(const char* path, bool modern) {
             f2_struct st;
             st.read(path_bon);
             if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
-                stream s_bone;
+                memory_stream s_bone;
                 s_bone.open(st.data);
-                s_bone.is_big_endian = st.header.use_big_endian;
+                s_bone.big_endian = st.header.use_big_endian;
                 bone_database_modern_read_inner(this, s_bone, st.header.length);
             }
         }
-        free(path_bon);
+        free_def(path_bon);
     }
 }
 
@@ -79,18 +80,18 @@ void bone_database::read(const wchar_t* path, bool modern) {
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
         if (path_check_file_exists(path_bin)) {
-            stream s;
+            file_stream s;
             s.open(path_bin, L"rb");
-            if (s.io.stream) {
+            if (s.check_not_null()) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 s.read(data, s.length);
-                stream s_bin;
+                memory_stream s_bin;
                 s_bin.open(data, s.length);
                 bone_database_classic_read_inner(this, s_bin);
-                free(data);
+                free_def(data);
             }
         }
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         wchar_t* path_bon = str_utils_add(path, L".bon");
@@ -98,13 +99,13 @@ void bone_database::read(const wchar_t* path, bool modern) {
             f2_struct st;
             st.read(path_bon);
             if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
-                stream s_bone;
+                memory_stream s_bone;
                 s_bone.open(st.data);
-                s_bone.is_big_endian = st.header.use_big_endian;
+                s_bone.big_endian = st.header.use_big_endian;
                 bone_database_modern_read_inner(this, s_bone, st.header.length);
             }
         }
-        free(path_bon);
+        free_def(path_bon);
     }
 }
 
@@ -113,7 +114,7 @@ void bone_database::read(const void* data, size_t size, bool modern) {
         return;
 
     if (!modern) {
-        stream s;
+        memory_stream s;
         s.open(data, size);
         bone_database_classic_read_inner(this, s);
     }
@@ -121,9 +122,9 @@ void bone_database::read(const void* data, size_t size, bool modern) {
         f2_struct st;
         st.read(data, size);
         if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
-            stream s_bone;
+            memory_stream s_bone;
             s_bone.open(st.data);
-            s_bone.is_big_endian = st.header.use_big_endian;
+            s_bone.big_endian = st.header.use_big_endian;
             bone_database_modern_read_inner(this, s_bone, st.header.length);
         }
     }
@@ -135,19 +136,19 @@ void bone_database::write(const char* path) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
-        stream s;
+        file_stream s;
         s.open(path_bin, "wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             bone_database_classic_write_inner(this, s);
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         char* path_bon = str_utils_add(path, ".bon");
-        stream s;
+        file_stream s;
         s.open(path_bon, "wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             bone_database_modern_write_inner(this, s);
-        free(path_bon);
+        free_def(path_bon);
     }
 }
 
@@ -157,19 +158,19 @@ void bone_database::write(const wchar_t* path) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
-        stream s;
+        file_stream s;
         s.open(path_bin, L"wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             bone_database_classic_write_inner(this, s);
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         wchar_t* path_bon = str_utils_add(path, L".bon");
-        stream s;
+        file_stream s;
         s.open(path_bon, L"wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             bone_database_modern_write_inner(this, s);
-        free(path_bon);
+        free_def(path_bon);
     }
 }
 
@@ -177,7 +178,7 @@ void bone_database::write(void** data, size_t* size) {
     if (!data || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     if (!modern)
         bone_database_classic_write_inner(this, s);
@@ -569,9 +570,10 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream& s
         bone_data->skeleton[i].name =  s.read_string_null_terminated_offset(s.read_uint32_t());
     s.position_pop();
 
-    bone_data->is_x = false;
-    bone_data->modern = false;
     bone_data->ready = true;
+    bone_data->modern = false;
+    bone_data->big_endian = false;
+    bone_data->is_x = false;
 }
 
 static void bone_database_classic_write_inner(bone_database* bone_data, stream& s) {
@@ -707,7 +709,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream& 
     for (uint32_t i = 0; i < skeleton_count; i++)
         s.write_uint32_t((uint32_t)skeleton_offsets[i]);
     s.position_pop();
-    free(skeleton_offsets);
+    free_def(skeleton_offsets);
 }
 
 static void bone_database_modern_read_inner(bone_database* bone_data, stream& s, uint32_t header_length) {
@@ -715,6 +717,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
     if (signature != 0x09102720)
         return;
 
+    bool big_endian = s.big_endian;
     bool is_x = true;
 
     s.set_position(0x0C, SEEK_SET);
@@ -870,7 +873,7 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
 
         s.position_push(parent_indices_offset, SEEK_SET);
         s.read(skel->parent_index.data(), motion_bone_count * sizeof(uint16_t));
-        if (s.is_big_endian) {
+        if (big_endian) {
             uint16_t* parent_index = skel->parent_index.data();
             for (uint32_t j = 0; j < motion_bone_count; j++)
                 parent_index[j] = reverse_endianness_uint16_t(parent_index[j]);
@@ -891,20 +894,24 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
                 s.read_offset_x());
     s.position_pop();
 
-    bone_data->is_x = is_x;
-    bone_data->modern = true;
     bone_data->ready = true;
+    bone_data->modern = true;
+    bone_data->big_endian = big_endian;
+    bone_data->is_x = is_x;
 }
 
 static void bone_database_modern_write_inner(bone_database* bone_data, stream& s) {
-    stream s_bone;
+    bool big_endian = bone_data->big_endian;
+    bool is_x = bone_data->is_x;
+
+    memory_stream s_bone;
     s_bone.open();
+    s_bone.big_endian = big_endian;
+
     uint32_t off;
     enrs e;
     enrs_entry ee;
     pof pof;
-
-    bool is_x = bone_data->is_x;
 
     uint32_t skeleton_count = (uint32_t)bone_data->skeleton.size();
 
@@ -1280,24 +1287,24 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
         s_bone.position_push(skh[i].offset, SEEK_SET);
         if (!is_x) {
             s_bone.write_offset_f2(skh[i].bones_offset, 0x40);
-            s_bone.write_uint32_t(position_count);
+            s_bone.write_uint32_t_reverse_endianness(position_count);
             s_bone.write_offset_f2(skh[i].positions_offset, 0x40);
             s_bone.write_offset_f2(skh[i].unknown_value_offset, 0x40);
-            s_bone.write_uint32_t(object_bone_count);
+            s_bone.write_uint32_t_reverse_endianness(object_bone_count);
             s_bone.write_offset_f2(skh[i].object_bone_names_offset, 0x40);
-            s_bone.write_uint32_t(motion_bone_count);
+            s_bone.write_uint32_t_reverse_endianness(motion_bone_count);
             s_bone.write_offset_f2(skh[i].motion_bone_names_offset, 0x40);
             s_bone.write_offset_f2(skh[i].parent_indices_offset, 0x40);
             s_bone.write(0x14);
         }
         else {
             s_bone.write_offset_x(skh[i].bones_offset);
-            s_bone.write_uint32_t(position_count);
+            s_bone.write_uint32_t_reverse_endianness(position_count);
             s_bone.write_offset_x(skh[i].positions_offset);
             s_bone.write_offset_x(skh[i].unknown_value_offset);
-            s_bone.write_uint32_t(object_bone_count);
+            s_bone.write_uint32_t_reverse_endianness(object_bone_count);
             s_bone.write_offset_x(skh[i].object_bone_names_offset);
-            s_bone.write_uint32_t(motion_bone_count);
+            s_bone.write_uint32_t_reverse_endianness(motion_bone_count);
             s_bone.write_offset_x(skh[i].motion_bone_names_offset);
             s_bone.write_offset_x(skh[i].parent_indices_offset);
             s_bone.write(0x28);
@@ -1345,11 +1352,15 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
         s_bone.position_pop();
 
         s_bone.position_push(skh[i].positions_offset, SEEK_SET);
-        s_bone.write(skel->position.data(), sizeof(vec3)* position_count);
+        for (vec3& j : skel->position) {
+            s_bone.write_float_t_reverse_endianness(j.x);
+            s_bone.write_float_t_reverse_endianness(j.y);
+            s_bone.write_float_t_reverse_endianness(j.z);
+        }
         s_bone.position_pop();
 
         s_bone.position_push(skh[i].unknown_value_offset, SEEK_SET);
-        s_bone.write_float_t(skel->heel_height);
+        s_bone.write_float_t_reverse_endianness(skel->heel_height);
         s_bone.position_pop();
 
         s_bone.position_push(skh[i].object_bone_names_offset, SEEK_SET);
@@ -1374,13 +1385,14 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
         s_bone.position_pop();
 
         s_bone.position_push(skh[i].parent_indices_offset, SEEK_SET);
-        s_bone.write(skel->parent_index.data(), sizeof(uint16_t) * motion_bone_count);
+        for (uint16_t& j : skel->parent_index)
+            s_bone.write_uint16_t_reverse_endianness(j);
         s_bone.position_pop();
     }
 
     s_bone.position_push(0x00, SEEK_SET);
-    s_bone.write_uint32_t(0x09102720);
-    s_bone.write_uint32_t(skeleton_count);
+    s_bone.write_uint32_t_reverse_endianness(0x09102720);
+    s_bone.write_uint32_t_reverse_endianness(skeleton_count);
     s_bone.write_offset(skeleton_offsets_offset, 0x40, is_x);
     s_bone.write_offset(skeleton_name_offsets_offset, 0x40, is_x);
     s_bone.position_pop();
@@ -1405,7 +1417,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
                 string_offsets, i.name.c_str()));
     s_bone.position_pop();
 
-    free(skh);
+    free_def(skh);
 
     f2_struct st;
     s_bone.align_write(0x10);
@@ -1417,7 +1429,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
 
     st.header.signature = reverse_endianness_uint32_t('BONE');
     st.header.length = is_x ? 0x20 : 0x40;
-    st.header.use_big_endian = false;
+    st.header.use_big_endian = big_endian;
     st.header.use_section_size = true;
 
     st.write(s, true, is_x);
@@ -1427,7 +1439,7 @@ inline static int64_t bone_database_strings_get_string_offset(std::vector<std::s
     std::vector<int64_t>& vec_off, const char* str) {
     size_t len = utf8_length(str);
     for (std::string& i : vec)
-        if (!memcmp(str, i.c_str(), min(len, i.size()) + 1))
+        if (!memcmp(str, i.c_str(), min_def(len, i.size()) + 1))
             return vec_off[&i - vec.data()];
     return 0;
 }
@@ -1435,7 +1447,7 @@ inline static int64_t bone_database_strings_get_string_offset(std::vector<std::s
 inline static bool bone_database_strings_push_back_check(std::vector<std::string>& vec, const char* str) {
     size_t len = utf8_length(str);
     for (std::string& i : vec)
-        if (!memcmp(str, i.c_str(), min(len, i.size()) + 1))
+        if (!memcmp(str, i.c_str(), min_def(len, i.size()) + 1))
             return false;
 
     vec.push_back(std::string(str, len));

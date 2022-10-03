@@ -4,8 +4,9 @@
 */
 
 #include "struct.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../divafile.hpp"
 
 static void f2_struct_read_data(stream& s, f2_struct* st, f2_header* h);
@@ -26,14 +27,15 @@ void f2_struct::read(const char* path) {
     if (!path)
         return;
 
-    stream s;
+    file_stream s;
     s.open(path, "rb");
-    if (&s.io.stream) {
-        divafile::decrypt(s);
+    if (s.check_not_null()) {
+        memory_stream ms;
+        divafile::decrypt(s, ms);
 
         f2_header h;
-        f2_header_read(s, &h);
-        f2_struct_read_data(s, this, &h);
+        f2_header_read(ms, &h);
+        f2_struct_read_data(ms, this, &h);
     }
 }
 
@@ -41,14 +43,15 @@ void f2_struct::read(const wchar_t* path) {
     if (!path)
         return;
 
-    stream s;
+    file_stream s;
     s.open(path, L"rb");
-    if (&s.io.stream) {
-        divafile::decrypt(s);
+    if (s.check_not_null()) {
+        memory_stream ms;
+        divafile::decrypt(s, ms);
 
         f2_header h;
-        f2_header_read(s, &h);
-        f2_struct_read_data(s, this, &h);
+        f2_header_read(ms, &h);
+        f2_struct_read_data(ms, this, &h);
     }
 }
 
@@ -56,35 +59,37 @@ void f2_struct::read(const void* data, size_t size) {
     if (!data || !size)
         return;
 
-    stream s;
+    memory_stream s;
     s.open(data, size);
-    if (&s.io.data.data) {
-        divafile::decrypt(s);
+    if (s.check_not_null()) {
+        memory_stream ms;
+        divafile::decrypt(s, ms);
 
         f2_header h;
-        f2_header_read(s, &h);
-        f2_struct_read_data(s, this, &h);
+        f2_header_read(ms, &h);
+        f2_struct_read_data(ms, this, &h);
     }
 }
 
 void f2_struct::read(stream& s) {
-    if (s.io.check_null())
+    if (s.check_null())
         return;
 
-    divafile::decrypt(s);
+    memory_stream ms;
+    divafile::decrypt(s, ms);
 
     f2_header h;
-    f2_header_read(s, &h);
-    f2_struct_read_data(s, this, &h);
+    f2_header_read(ms, &h);
+    f2_struct_read_data(ms, this, &h);
 }
 
 void f2_struct::write(const char* path, bool use_depth, bool shift_x) {
     if (!path)
         return;
 
-    stream s;
+    file_stream s;
     s.open(path, "wb");
-    if (s.io.stream) {
+    if (s.check_not_null()) {
         f2_struct_get_length(this, shift_x);
         f2_struct_write_inner(s, this, 0, use_depth, shift_x);
     }
@@ -94,9 +99,9 @@ void f2_struct::write(const wchar_t* path, bool use_depth, bool shift_x) {
     if (!path)
         return;
 
-    stream s;
+    file_stream s;
     s.open(path, L"wb");
-    if (s.io.stream) {
+    if (s.check_not_null()) {
         f2_struct_get_length(this, shift_x);
         f2_struct_write_inner(s, this, 0, use_depth, shift_x);
     }
@@ -107,7 +112,7 @@ void f2_struct::write(void** data, size_t* size, bool use_depth, bool shift_x) {
         return;
 
     f2_struct_get_length(this, shift_x);
-    stream s;
+    memory_stream s;
     s.open(0, header.data_size + 0x40ULL);
     f2_struct_write_inner(s, this, 0, use_depth, shift_x);
 
@@ -115,13 +120,13 @@ void f2_struct::write(void** data, size_t* size, bool use_depth, bool shift_x) {
 }
 
 void f2_struct::write(stream& s, bool use_depth, bool shift_x) {
-    if (s.io.check_null())
+    if (s.check_null())
         return;
 
-    if (s.io.stream || s.type == STREAM_MEMORY) {
-        f2_struct_get_length(this, shift_x);
-        f2_struct_write_inner(s, this, 0, use_depth, shift_x);
-    }
+
+    f2_struct_get_length(this, shift_x);
+    f2_struct_write_inner(s, this, 0, use_depth, shift_x);
+
 }
 
 static void f2_struct_get_length(f2_struct* s, bool shift_x) {

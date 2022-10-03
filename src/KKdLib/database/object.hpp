@@ -98,6 +98,7 @@ struct object_set_info {
 struct object_database_file {
     bool ready;
     bool modern;
+    bool big_endian;
     bool is_x;
 
     std::vector<object_set_info_file> object_set;

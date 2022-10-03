@@ -22,12 +22,16 @@ struct camera {
     mat3 inv_view_mat3;
     mat4 view_rot;
     mat4 inv_view_rot;
+    mat4 projection_aet_2d;
+    mat4 projection_aet_3d;
     vec3 forward;
     vec3 rotation;
     vec3 view_point;
     vec3 interest;
-    int32_t width;
-    int32_t height;
+    int32_t render_width;
+    int32_t render_height;
+    int32_t sprite_width;
+    int32_t sprite_height;
     vec3 field_1E4;
     vec3 field_1F0;
     vec3 field_1FC;
@@ -42,6 +46,7 @@ struct camera {
     double_t min_distance;
     bool changed_view;
     bool changed_proj;
+    bool changed_proj_aet;
     bool fast_change;
     bool fast_change_hist0;
     bool fast_change_hist1;
@@ -49,7 +54,8 @@ struct camera {
     camera();
     virtual ~camera();
 
-    void initialize(double_t aspect, int32_t width, int32_t height);
+    void initialize(double_t aspect, int32_t render_width, int32_t render_height,
+        int32_t sprite_width, int32_t sprite_height);
     double_t get_min_distance();
     void set_min_distance(double_t value);
     double_t get_max_distance();
@@ -70,8 +76,10 @@ struct camera {
     void get_interest(vec3& value);
     void set_interest(const vec3& value);
     void set_interest(const vec3&& value);
-    void get_res(int32_t& width, int32_t& height);
-    void set_res(int32_t width, int32_t height);
+    void get_res(int32_t& render_width, int32_t& render_height,
+        int32_t& sprite_width, int32_t& sprite_height);
+    void set_res(int32_t render_width, int32_t render_height,
+        int32_t sprite_width, int32_t sprite_height);
     void set_fast_change(bool value);
     void set_fast_change_hist0(bool value);
     void set_fast_change_hist1(bool value);

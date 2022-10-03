@@ -566,8 +566,14 @@ static const char* dof_frag_shader_upsample =
 " is thinly combined with the actual resolution because it's not good\n"
 "    combined_factor = clamp(combined_factor, 0.0, 1.0);\n"
 "#endif\n"
+"#if 1\n"
+"    // Fix alpha\n"
+"    result.rgb = max(tone_map(mix(half_res.rgb, full_res.rgb, combined_factor), 1.0), vec3(0.0));\n"
+"    result.a = full_res.a;\n"
+"#else\n"
 "    result = mix(half_res, full_res, combined_factor);\n"
 "    result.rgb = max(tone_map(result.rgb, 1.0), vec3(0.0));\n"
+"#endif\n"
 "}\n";
 
 static const dof_debug dof_debug_default = {
@@ -668,20 +674,20 @@ void post_process_dof::apply(render_texture* rt, GLuint* samplers, camera* cam) 
 
                         mat4 view_transpose;
                         mat4_transpose(&cam->view, &view_transpose);
-                        vec3_dot(*(vec3*)&view_transpose.row2, chara_trans, focus);
-                        focus = -focus - view_transpose.row2.w - 0.1f;
+                        focus = -vec3::dot(*(vec3*)&view_transpose.row2, chara_trans)
+                            - view_transpose.row2.w - 0.1f;
                         break;
                     }
                 }
 
-                focus = max(focus, (float_t)cam->min_distance);
+                focus = max_def(focus, (float_t)cam->min_distance);
                 renderer::DOF3::apply_physical(this, rt, samplers,
                     rt->color_texture->tex, rt->depth_texture->tex,
                     (float_t)cam->min_distance, (float_t)cam->max_distance, focus,
                     data.debug.focal_length, (float_t)cam->fov_rad, data.debug.f_number);
             }
             else {
-                float_t fuzzing_range = max(data.debug.f2.fuzzing_range, 0.01f);
+                float_t fuzzing_range = max_def(data.debug.f2.fuzzing_range, 0.01f);
                 renderer::DOF3::apply_f2(this, rt, samplers,
                     rt->color_texture->tex, rt->depth_texture->tex,
                     (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
@@ -691,7 +697,7 @@ void post_process_dof::apply(render_texture* rt, GLuint* samplers, camera* cam) 
         }
     }
     else if (data.pv.enable && data.pv.f2.ratio > 0.0f) {
-        float_t fuzzing_range = max(data.pv.f2.fuzzing_range, 0.01f);
+        float_t fuzzing_range = max_def(data.pv.f2.fuzzing_range, 0.01f);
         renderer::DOF3::apply_f2(this, rt, samplers,
             rt->color_texture->tex, rt->depth_texture->tex,
             (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
@@ -725,10 +731,10 @@ void post_process_dof::init_fbo(int32_t width, int32_t height) {
 
     this->width = width;
     this->height = height;
-    int32_t w20 = max(width / 20, 1);
-    int32_t h20 = max(height / 20, 1);
-    int32_t w2 = max(width / 2, 1);
-    int32_t h2 = max(height / 2, 1);
+    int32_t w20 = max_def(width / 20, 1);
+    int32_t h20 = max_def(height / 20, 1);
+    int32_t w2 = max_def(width / 2, 1);
+    int32_t h2 = max_def(height / 2, 1);
     glGenTextures(6, textures);
     gl_state_bind_texture_2d(textures[0]);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, w20, h20);
@@ -828,10 +834,7 @@ static void post_process_dof_calculate_texcoords(vec2* data, float_t size) {
             v8 *= size;
             v11 = v9 * (float_t)(M_PI * 0.25);
 
-            vec2 t;
-            t.x = cosf(v11);
-            t.y = sinf(v11);
-            vec2_mult_scalar(t, v8, *data++);
+            *data++ = vec2(cosf(v11), sinf(v11)) * v8;
         }
     }
 }
@@ -865,27 +868,27 @@ static void post_process_dof_load_shaders(post_process_dof* dof) {
         t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
         frag_shader_string[1 + i * 4] = str_utils_add(t1, dof_frag_shader_render_tiles_part_1);
-        free(t0);
-        free(t1);
+        free_def(t0);
+        free_def(t1);
 
         t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
         frag_shader_string[2 + i * 4] = str_utils_add(t1, dof_frag_shader_downsample);
-        free(t0);
-        free(t1);
+        free_def(t0);
+        free_def(t1);
 
         t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
         frag_shader_string[3 + i * 4] = str_utils_add(t1, dof_frag_shader_apply_main_filter);
-        free(t0);
-        free(t1);
+        free_def(t0);
+        free_def(t1);
 
         t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
         frag_shader_string[4 + i * 4] = str_utils_add(t1, dof_frag_shader_upsample);
-        free(t0);
-        free(t1);
-        free(shared);
+        free_def(t0);
+        free_def(t1);
+        free_def(shared);
     }
 
     GLuint vert_shader = post_process_dof_shader_compile(GL_VERTEX_SHADER, dof_vert_shader);
@@ -893,7 +896,7 @@ static void post_process_dof_load_shaders(post_process_dof* dof) {
         GLuint frag_shader = post_process_dof_shader_compile(GL_FRAGMENT_SHADER, frag_shader_string[i]);
         dof->program[i] = post_process_dof_program_link(vert_shader, frag_shader);
         glDeleteShader(frag_shader);
-        free(frag_shader_string[i]);
+        free_def(frag_shader_string[i]);
     }
     glDeleteShader(vert_shader);
 }
@@ -911,10 +914,10 @@ static GLuint post_process_dof_shader_compile(GLenum type, const char* data) {
     if (!success) {
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetShaderInfoLog(shader, 0x10000, 0, info_log);
-        printf("Shader compile error: ");
+        printf("DOF Shader compile error: ");
         printf(info_log);
         putchar('\n');
-        free(info_log);
+        free_def(info_log);
     }
     return shader;
 }
@@ -932,10 +935,10 @@ static GLuint post_process_dof_program_link(GLuint vert_shad, GLuint frag_shad) 
     if (!success) {
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
-        printf("DOF Program Shader linking error:\n");
+        printf("DOF shader linking error:\n");
         printf(info_log);
         putchar('\n');
-        free(info_log);
+        free_def(info_log);
         glDeleteProgram(program);
         return 0;
     }

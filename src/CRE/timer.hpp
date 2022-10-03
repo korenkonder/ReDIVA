@@ -6,21 +6,22 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
-#include "lock.hpp"
-#include "time.hpp"
+#include "waitable_timer.hpp"
+#include <mutex>
 
 #define HISTORY_COUNT 0x08
 
 struct timer {
     double_t history[HISTORY_COUNT];
     uint8_t history_counter;
-    time_struct curr_time;
-    time_struct prev_time;
+    LARGE_INTEGER curr_time;
+    LARGE_INTEGER prev_time;
+    double_t inv_freq;
     double_t freq;
     double_t freq_hist;
-    lock freq_lock;
-    lock freq_hist_lock;
-    HANDLE timer_handle;
+    std::mutex freq_mtx;
+    std::mutex freq_hist_mtx;
+    waitable_timer wait_timer;
 
     timer(double_t freq);
     virtual ~timer();
@@ -34,9 +35,3 @@ struct timer {
     void reset();
     void sleep(double_t msec);
 };
-
-extern LARGE_INTEGER performance_frequency;
-
-extern HANDLE timer_handle_init();
-extern void timer_handle_sleep(HANDLE timer, double_t msec);
-extern void timer_handle_dispose(HANDLE timer);

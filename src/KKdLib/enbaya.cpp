@@ -44,7 +44,7 @@ int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
 
     code = enb_initialize(data_in, &play_head);
     if (code) {
-        free(*data_out);
+        free_def(*data_out);
         return code - 0x10;
     }
 
@@ -105,7 +105,7 @@ int32_t enb_initialize(uint8_t* data, enb_play_head** play_head) {
     ph->track_data = force_malloc_s(enb_track, head->track_count);
 
     if (!ph->track_data) {
-        free(ph);
+        free_def(ph);
         return -4;
     }
 
@@ -119,8 +119,8 @@ void enb_free(enb_play_head** play_head) {
     if (!play_head || !*play_head)
         return;
 
-    free((*play_head)->track_data);
-    free(*play_head);
+    free_def((*play_head)->track_data);
+    free_def(*play_head);
     *play_head = 0;
 }
 
@@ -670,16 +670,10 @@ static void enb_calc_track_init(enb_play_head* play_head) { // 0x08A086CC in ULJ
         C010 = track_data->quat;
         C020 = track_data->trans;
 
-        C100.x = C010.x * S030;
-        C100.y = C010.y * S030;
-        C100.z = C010.z * S030;
-        C100.w = C010.w * S030;
+        C100 = C010 * S030;
+        C110 = C020 * S030;
 
-        C110.x = C020.x * S030;
-        C110.y = C020.y * S030;
-        C110.z = C020.z * S030;
-
-        vec4_normalize(C100, C100);
+        C100 = quat::normalize(C100);
 
         track_data->qt[0].quat = C100;
         track_data->qt[0].trans = C110;
@@ -723,16 +717,10 @@ static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward)
         C120 = track_data->qt[s0].quat;
         C130 = track_data->qt[s0].trans;
 
-        C100.x = C010.x * S030 + C120.x;
-        C100.y = C010.y * S030 + C120.y;
-        C100.z = C010.z * S030 + C120.z;
-        C100.w = C010.w * S030 + C120.w;
+        C100 = C010 * S030 + C120;
+        C110 = C020 * S030 + C130;
 
-        C110.x = C020.x * S030 + C130.x;
-        C110.y = C020.y * S030 + C130.y;
-        C110.z = C020.z * S030 + C130.z;
-
-        vec4_normalize(C100, C100);
+        C100 = quat::normalize(C100);
 
         track_data->qt[s1].quat = C100;
         track_data->qt[s1].trans = C110;

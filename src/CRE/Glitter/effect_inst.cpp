@@ -110,7 +110,7 @@ namespace Glitter {
         random_ptr = &GPM_VAL->random;
         ext_anim = 0;
 
-        if (~eff->data.flags & EFFECT_LOCAL && data.ext_anim) {
+        if (!(eff->data.flags & EFFECT_LOCAL) && data.ext_anim) {
             F2EffectInst::ExtAnim* inst_ext_anim = new F2EffectInst::ExtAnim;
             if (inst_ext_anim) {
                 Effect::ExtAnim* ext_anim = data.ext_anim;
@@ -240,7 +240,7 @@ namespace Glitter {
     }
 
     bool F2EffectInst::HasEnded(bool a2) {
-        if (~flags & EFFECT_INST_FREE)
+        if (!(flags & EFFECT_INST_FREE))
             return false;
         else if (!a2)
             return true;
@@ -256,7 +256,7 @@ namespace Glitter {
         frame1 = 0.0;
 
         flags = (EffectInstFlag)0;
-        if (~data.flags & EFFECT_LOCAL && data.ext_anim) {
+        if (!(data.flags & EFFECT_LOCAL) && data.ext_anim) {
             if (ext_anim) {
                 Effect::ExtAnim* ext_anim = data.ext_anim;
                 if (ext_anim->flags & EFFECT_EXT_ANIM_SET_ONCE)
@@ -328,7 +328,7 @@ namespace Glitter {
     }
 
     void F2EffectInst::CtrlMat(GPM, GLT) {
-        if (~flags & EFFECT_INST_JUST_INIT)
+        if (!(flags & EFFECT_INST_JUST_INIT))
             return;
 
         vec3 trans = translation;
@@ -359,12 +359,10 @@ namespace Glitter {
         if (!ext_anim || !data.ext_anim)
             return;
 
-        if (~flags & EFFECT_INST_HAS_EXT_ANIM || (flags & EFFECT_INST_SET_EXT_ANIM_ONCE
+        if (!(flags & EFFECT_INST_HAS_EXT_ANIM) || (flags & EFFECT_INST_SET_EXT_ANIM_ONCE
                 && flags & EFFECT_INST_HAS_EXT_ANIM_TRANS))
             return;
 
-        mat4* obj_mat = 0;
-        mat4 temp;
         mat4 mat;
         int32_t chara_id;
 
@@ -398,8 +396,69 @@ namespace Glitter {
                 ext_anim->mat = mat;
             goto SetFlags;
         }
+        else if (flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
+            mat4 temp;
+            mat4* obj_mat = 0;
+            if (ext_anim->a3da_id != -1)
+                obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
+                    ext_anim->object_index, ext_anim->object_is_hrc, &temp);
 
-        if (~flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
+            if (!obj_mat) {
+                ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(ext_anim->object,
+                    &ext_anim->object_index, &ext_anim->object_is_hrc);
+                if (ext_anim->a3da_id == -1)
+                    return;
+
+                ext_anim->mesh_index = -1;
+                obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
+                    ext_anim->object_index, ext_anim->object_is_hrc, &temp);
+                if (!obj_mat)
+                    return;
+            }
+
+            mat = mat4_identity;
+            chara_id = auth_3d_data_get_chara_id(ext_anim->a3da_id);
+            if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
+                rob_chara* rob_chr = rob_chara_array_get(chara_id);
+                if (rob_chr) {
+                    mat = rob_chr->data.adjust_data.mat;
+
+                    vec3 scale;
+                    mat4_get_scale(&mat, &scale);
+                    vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
+                    ext_anim_scale.z = 0.0f;
+                    enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
+                }
+            }
+
+            if (ext_anim->mesh_name) {
+                if (ext_anim->mesh_index == -1)
+                    ext_anim->mesh_index = object_storage_get_obj_mesh_index(
+                        ext_anim->object, ext_anim->mesh_name);
+
+                if (ext_anim->mesh_index != -1) {
+                    obj_mesh* mesh = object_storage_get_obj_mesh_by_index(
+                        ext_anim->object, ext_anim->mesh_index);
+                    if (mesh) {
+                        mat4_mult(obj_mat, &mat, &mat);
+                        ext_anim->mat = mat;
+                        ext_anim->translation = mesh->bounding_sphere.center;
+                        goto SetFlags;
+                    }
+                }
+            }
+            else {
+                mat4_mult(obj_mat, &mat, &mat);
+                if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
+                    ext_anim->mat = mat4_identity;
+                    mat4_get_translation(&mat, &ext_anim->translation);
+                }
+                else
+                    ext_anim->mat = mat;
+                goto SetFlags;
+            }
+        }
+        else {
             if (ext_anim->mesh_index == -1) {
                 if (!ext_anim->mesh_name)
                     return;
@@ -416,66 +475,6 @@ namespace Glitter {
                     goto SetFlags;
                 }
             }
-            return;
-        }
-
-        if (ext_anim->a3da_id != -1)
-            obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
-                ext_anim->object_index, ext_anim->object_is_hrc, &temp);
-
-        if (!obj_mat) {
-            ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(ext_anim->object,
-                &ext_anim->object_index, &ext_anim->object_is_hrc, 0);
-            if (ext_anim->a3da_id == -1)
-                return;
-
-            ext_anim->mesh_index = -1;
-            obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
-                ext_anim->object_index, ext_anim->object_is_hrc, &temp);
-            if (!obj_mat)
-                return;
-        }
-
-        mat = mat4_identity;
-        chara_id = auth_3d_data_get_chara_id(ext_anim->a3da_id);
-        if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
-            rob_chara* rob_chr = rob_chara_array_get(chara_id);
-            if (rob_chr) {
-                mat = rob_chr->data.adjust_data.mat;
-
-                vec3 scale;
-                mat4_get_scale(&mat, &scale);
-                vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
-                ext_anim_scale.z = 0.0f;
-                enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
-            }
-        }
-
-        if (ext_anim->mesh_name) {
-            if (ext_anim->mesh_index == -1)
-                ext_anim->mesh_index = object_storage_get_obj_mesh_index(
-                    ext_anim->object, ext_anim->mesh_name);
-
-            if (ext_anim->mesh_index != -1) {
-                obj_mesh* mesh = object_storage_get_obj_mesh_by_index(
-                    ext_anim->object, ext_anim->mesh_index);
-                if (mesh) {
-                    mat4_mult(obj_mat, &mat, &mat);
-                    ext_anim->mat = mat;
-                    ext_anim->translation = mesh->bounding_sphere.center;
-                    goto SetFlags;
-                }
-            }
-        }
-        else {
-            mat4_mult(obj_mat, &mat, &mat);
-            if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
-                ext_anim->mat = mat4_identity;
-                mat4_get_translation(&mat, &ext_anim->translation);
-            }
-            else
-                ext_anim->mat = mat;
-            goto SetFlags;
         }
         return;
 
@@ -487,7 +486,7 @@ namespace Glitter {
     }
 
     bool F2EffectInst::GetExtAnimMat(mat4* mat) {
-        if (~flags & EFFECT_INST_HAS_EXT_ANIM_TRANS || !ext_anim)
+        if (!(flags & EFFECT_INST_HAS_EXT_ANIM_TRANS) || !ext_anim)
             return false;
 
         vec3 trans = ext_anim->translation;
@@ -496,7 +495,7 @@ namespace Glitter {
     }
 
     void F2EffectInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
-        if (~flags & EFFECT_INST_EXT_COLOR)
+        if (!(flags & EFFECT_INST_EXT_COLOR))
             return;
 
         if (flags & EFFECT_INST_SET_EXT_COLOR) {
@@ -623,7 +622,7 @@ namespace Glitter {
             random = GPM_VAL->CounterGet();
         random_shared.value = random;
 
-        if (~eff->data.flags & EFFECT_LOCAL && data.ext_anim_x) {
+        if (!(eff->data.flags & EFFECT_LOCAL) && data.ext_anim_x) {
             XEffectInst::ExtAnim* inst_ext_anim = new XEffectInst::ExtAnim;
             if (inst_ext_anim) {
                 Effect::ExtAnimX* ext_anim = data.ext_anim_x;
@@ -777,7 +776,7 @@ namespace Glitter {
     }
 
     bool XEffectInst::HasEnded(bool a2) {
-        if (~flags & EFFECT_INST_FREE)
+        if (!(flags & EFFECT_INST_FREE))
             return false;
         else if (!a2)
             return true;
@@ -793,7 +792,7 @@ namespace Glitter {
         frame1 = 0.0;
 
         flags = (EffectInstFlag)0;
-        if (~data.flags & EFFECT_LOCAL && data.ext_anim_x) {
+        if (!(data.flags & EFFECT_LOCAL) && data.ext_anim_x) {
             if (ext_anim) {
                 Effect::ExtAnimX* ext_anim = data.ext_anim_x;
                 if (ext_anim->flags & EFFECT_EXT_ANIM_SET_ONCE)
@@ -876,7 +875,7 @@ namespace Glitter {
     }
 
     void XEffectInst::CtrlMat(GPM) {
-        if (~flags & EFFECT_INST_JUST_INIT)
+        if (!(flags & EFFECT_INST_JUST_INIT))
             return;
 
         vec3 trans = translation;
@@ -911,7 +910,7 @@ namespace Glitter {
         if (!ext_anim || !data.ext_anim_x)
             return;
 
-        if (~flags & EFFECT_INST_HAS_EXT_ANIM || (flags & EFFECT_INST_SET_EXT_ANIM_ONCE
+        if (!(flags & EFFECT_INST_HAS_EXT_ANIM) || (flags & EFFECT_INST_SET_EXT_ANIM_ONCE
                 && flags & EFFECT_INST_HAS_EXT_ANIM_TRANS))
             return;
 
@@ -925,10 +924,10 @@ namespace Glitter {
             if (!rob_chr)
                 return;
 
-            mat4& mat = rob_chr->data.adjust_data.mat;
+            mat4* mat = &rob_chr->data.adjust_data.mat;
 
             vec3 scale;
-            mat4_get_scale(&mat, &scale);
+            mat4_get_scale(mat, &scale);
             vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
             ext_anim_scale.z = 0.0f;
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
@@ -942,19 +941,19 @@ namespace Glitter {
             if (bone_index != -1) {
                 mat4* bone_mat = rob_chr->get_bone_data_mat(bone_index);
                 if (bone_mat)
-                    SetExtAnim(&mat, bone_mat, 0, set_flags);
+                    SetExtAnim(mat, bone_mat, 0, set_flags);
             }
             else
-                SetExtAnim(&mat, 0, 0, set_flags);
+                SetExtAnim(mat, 0, 0, set_flags);
         }
         else if (flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
             mat4 temp;
-            mat4* mat = 0;
+            mat4* obj_mat = 0;
             if (ext_anim->a3da_id != -1)
-                mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
+                obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
                     ext_anim->object_index, ext_anim->object_is_hrc, &temp);
 
-            if (!mat) {
+            if (!obj_mat) {
                 ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(
                     ext_anim->file_name_hash, ext_anim->object_hash,
                     &ext_anim->object_index, &ext_anim->object_is_hrc, ext_anim->instance_id);
@@ -962,18 +961,22 @@ namespace Glitter {
                     return;
 
                 ext_anim->mesh_index = -1;
-                mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
+                obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
                     ext_anim->object_index, ext_anim->object_is_hrc, &temp);
-                if (!mat)
+                if (!obj_mat)
                     return;
             }
+
+            const mat4* mat = &mat4_identity;
 
             int32_t chara_id = auth_3d_data_get_chara_id(ext_anim->a3da_id);
             if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
                 rob_chara* rob_chr = rob_chara_array_get(chara_id);
                 if (rob_chr) {
+                    mat = &rob_chr->data.adjust_data.mat;
+
                     vec3 scale;
-                    mat4_get_scale(&rob_chr->data.adjust_data.mat, &scale);
+                    mat4_get_scale(mat, &scale);
                     vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
                     ext_anim_scale.z = 0.0f;
                     enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
@@ -990,12 +993,12 @@ namespace Glitter {
                         ext_anim->object_hash, ext_anim->mesh_index);
                     if (mesh) {
                         vec3* trans = &mesh->bounding_sphere.center;
-                        SetExtAnim(mat, 0, trans, true);
+                        SetExtAnim(mat, obj_mat, trans, true);
                     }
                 }
             }
             else
-                SetExtAnim(mat, 0, 0, true);
+                SetExtAnim(mat, obj_mat, 0, true);
 
         }
         else if (ext_anim->object_hash != hash_murmurhash_empty) {
@@ -1019,7 +1022,7 @@ namespace Glitter {
     }
 
     bool XEffectInst::GetExtAnimMat(mat4* mat) {
-        if (~flags & EFFECT_INST_HAS_EXT_ANIM_TRANS || !ext_anim)
+        if (!(flags & EFFECT_INST_HAS_EXT_ANIM_TRANS) || !ext_anim)
             return false;
 
         vec3 trans = ext_anim->translation;
@@ -1028,7 +1031,7 @@ namespace Glitter {
     }
 
     void XEffectInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
-        if (~flags & EFFECT_INST_EXT_COLOR)
+        if (!(flags & EFFECT_INST_EXT_COLOR))
             return;
 
         if (flags & EFFECT_INST_SET_EXT_COLOR) {
@@ -1125,7 +1128,7 @@ namespace Glitter {
         }
     }
 
-    void XEffectInst::SetExtAnim(mat4* a2, mat4* a3, vec3* trans, bool set_flags) {
+    void XEffectInst::SetExtAnim(const mat4* a2, const mat4* a3, const vec3* trans, bool set_flags) {
         EffectInstFlag flags = this->flags;
         if (a2) {
             mat4 mat = *a2;

@@ -4,6 +4,7 @@
 */
 
 #include <thread>
+#include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/hash.hpp"
 #include "file_handler.hpp"
 #include "data.hpp"
@@ -56,42 +57,50 @@ reading(), cache(), callback(), size(), data(), ds() {
 }
 
 file_handler::~file_handler() {
-    free(data);
+    if (data) {
+        free(data);
+        data = 0;
+    }
 }
 
 void file_handler::call_callback(int32_t index) {
     if (index >= 2)
         return;
 
-    std::unique_lock<std::mutex> u_lock(mtx);
-    const void* data = this->data;
-    void(*callback_func)(void*, const void*, size_t) = this->callback[index].func;
-    void* callback_data = this->callback[index].data;
-    bool ready = this->callback[index].ready;
-    this->callback[index].ready = true;
-    u_lock.unlock();
+    const void* data = 0;
+    size_t size = 0;
+    void(*callback_func)(void*, const void*, size_t) = 0;
+    void* callback_data = 0;
+    bool ready = false;
+
+    {
+        std::unique_lock<std::mutex> u_lock(mtx);
+        data = this->data;
+        size = this->size;
+        callback_func = this->callback[index].func;
+        callback_data = this->callback[index].data;
+        ready = this->callback[index].ready;
+        this->callback[index].ready = true;
+    }
 
     if (!ready && callback_func)
-        callback_func(callback_data, data, this->size);
+        callback_func(callback_data, data, size);
 }
 
 void file_handler::set_file(const char* file) {
     std::unique_lock<std::mutex> u_lock(mtx);
-    this->file = file;
-    u_lock.unlock();
+    this->file.assign(file);
 }
 
 void file_handler::set_farc_file(const char* farc_file, bool cache) {
     std::unique_lock<std::mutex> u_lock(mtx);
-    this->farc_file = farc_file;
+    this->farc_file.assign(farc_file);
     this->cache = cache;
-    u_lock.unlock();
 }
 
 void file_handler::set_dir(const char* dir) {
     std::unique_lock<std::mutex> u_lock(mtx);
-    this->dir = dir;
-    u_lock.unlock();
+    this->dir.assign(dir);
 }
 
 void file_handler::set_callback_data(int32_t index, PFNFILEHANDLERCALLBACK* func, void* data) {
@@ -101,20 +110,21 @@ void file_handler::set_callback_data(int32_t index, PFNFILEHANDLERCALLBACK* func
         callback[index].data = data;
         callback[index].ready = false;
     }
-    u_lock.unlock();
 }
 
 void file_handler::free_data_lock() {
-    std::unique_lock<std::mutex> u_lock(mtx);
-    if (count > 0) {
-        count--;
-        bool free_fhndl = count == 0;
-        u_lock.unlock();
-        if (free_fhndl)
-            delete this;
+    bool free_fhndl = false;
+
+    {
+        std::unique_lock<std::mutex> u_lock(mtx);
+        if (count <= 0)
+            return;
+
+        free_fhndl = --count == 0;
     }
-    else
-        u_lock.unlock();
+
+    if (free_fhndl)
+        delete this;
 }
 
 farc_read_handler::farc_read_handler() : cache(), farc() {
@@ -159,8 +169,8 @@ bool farc_read_handler::read_data(void* data, size_t size, std::string& file) {
     if (farc) {
         farc_file* ff = farc->read_file(file.c_str());
         if (ff) {
-            memcpy(data, ff->data, min(size, ff->size));
-            if (!cache) {
+            memcpy(data, ff->data, min_def(size, ff->size));
+            if (!cache && ff->data) {
                 free(ff->data);
                 ff->data = 0;
             }
@@ -191,27 +201,30 @@ void file_handler_storage_init() {
 void file_handler_storage_ctrl() {
     file_handler_storage_ctrl_list();
 
-    std::unique_lock<std::mutex> u_lock(file_handler_storage_data->mtx);
-    if (!file_handler_storage_data->deque.size()) {
-        for (file_handler*& i : file_handler_storage_data->list)
-            if (i->not_ready && !i->reading) {
-                std::unique_lock<std::mutex> u_lock(i->mtx);
-                i->count++;
-                u_lock.unlock();
-                file_handler_storage_data->deque.push_back(i);
-            }
+    {
+        std::unique_lock<std::mutex> u_lock(file_handler_storage_data->mtx);
+        if (!file_handler_storage_data->deque.size()) {
+            for (file_handler*& i : file_handler_storage_data->list)
+                if (i->not_ready && !i->reading) {
+                    {
+                        std::unique_lock<std::mutex> u_lock(i->mtx);
+                        i->count++;
+                    }
+                    file_handler_storage_data->deque.push_back(i);
+                }
 
-        if (file_handler_storage_data->deque.size())
-            file_handler_storage_data->cnd.notify_all();
+            if (file_handler_storage_data->deque.size())
+                file_handler_storage_data->cnd.notify_all();
+        }
     }
-    u_lock.unlock();
 }
 
 void file_handler_storage_free() {
-    std::unique_lock<std::mutex> u_lock(file_handler_storage_data->mtx);
-    file_handler_storage_data->exit = true;
-    file_handler_storage_data->cnd.notify_one();
-    u_lock.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(file_handler_storage_data->mtx);
+        file_handler_storage_data->exit = true;
+        file_handler_storage_data->cnd.notify_one();
+    }
 
     file_handler_storage_data->thread->join();
     delete file_handler_storage_data->thread;
@@ -233,11 +246,13 @@ static bool file_handler_load_file(void* data, const char* dir, const char* file
     if (!fhndl->data)
         return false;
 
-    stream s;
+    file_stream s;
     s.open(file_path.c_str(), "rb");
-    bool ret = s.io.stream && s.read(fhndl->data, fhndl->size);
-    if (!ret)
+    bool ret = s.check_not_null() && s.read(fhndl->data, fhndl->size);
+    if (!ret && fhndl->data) {
         free(fhndl->data);
+        fhndl->data = 0;
+    }
     return ret;
 }
 
@@ -266,14 +281,14 @@ static bool file_handler_load_farc_file(void* data, const char* dir, const char*
             fhndl->size = 1;
 
         fhndl->data = malloc(fhndl->size);
-        if (fhndl->data && farc_read_hndl->read_data(fhndl->data, fhndl->size, fhndl->file)) {
-            u_lock.unlock();
+        if (fhndl->data && farc_read_hndl->read_data(fhndl->data, fhndl->size, fhndl->file))
             return true;
-        }
     }
 
-    free(fhndl->data);
-    u_lock.unlock();
+    if (fhndl->data) {
+        free(fhndl->data);
+        fhndl->data = 0;
+    }
     return false;
 }
 
@@ -313,14 +328,12 @@ static void file_handler_storage_thread_ctrl() {
                             i->dir.c_str(), i->file.c_str(), file_handler_load_file);
                 }
                 i->reading = false;
-                u_lock.unlock();
             }
             i->free_data_lock();
         }
         file_handler_storage_data->deque.clear();
     }
     file_handler_storage_data->exit = false;
-    u_lock.unlock();
 }
 
 p_file_handler::p_file_handler() {
@@ -355,10 +368,12 @@ void p_file_handler::free_data() {
     if (!ptr)
         return;
 
-    std::unique_lock<std::mutex> u_lock(ptr->mtx);
-    for (int32_t i = 0; i < 2; i++)
-        ptr->callback[i] = {};
-    u_lock.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(ptr->mtx);
+        for (int32_t i = 0; i < 2; i++)
+            ptr->callback[i] = {};
+    }
+
     ptr->free_data_lock();
     ptr = 0;
 }
@@ -410,18 +425,21 @@ bool p_file_handler::read_file(void* data, const char* dir,
 
     ptr->ds = data;
 
-    std::unique_lock<std::mutex> u_lock(ptr->mtx);
-    ptr->count++;
-    u_lock.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(ptr->mtx);
+        ptr->count++;
+    }
 
     ptr->set_dir(dir);
     if (farc_file)
         ptr->set_farc_file(farc_file, cache);
     ptr->set_file(file);
 
-    std::unique_lock<std::mutex> u_lock1(ptr->mtx);
-    ptr->count++;
-    u_lock1.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(ptr->mtx);
+        ptr->count++;
+    }
+
     file_handler_storage_data->list.push_back(ptr);
     return true;
 }
@@ -450,16 +468,19 @@ bool p_file_handler::read_file(void* data, const char* dir, uint32_t hash, const
 
     ptr->ds = data;
 
-    std::unique_lock<std::mutex> u_lock(ptr->mtx);
-    ptr->count++;
-    u_lock.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(ptr->mtx);
+        ptr->count++;
+    }
 
     ptr->set_dir(dir);
     ptr->set_file(file.c_str());
 
-    std::unique_lock<std::mutex> u_lock1(ptr->mtx);
-    ptr->count++;
-    u_lock1.unlock();
+    {
+        std::unique_lock<std::mutex> u_lock(ptr->mtx);
+        ptr->count++;
+    }
+
     file_handler_storage_data->list.push_back(ptr);
     return true;
 }
@@ -485,7 +506,6 @@ void p_file_handler::read_now() {
                     ptr->not_ready = false;
             }
             ptr->reading = false;
-            u_lock.unlock();
         }
 
         file_handler_storage_ctrl_list();

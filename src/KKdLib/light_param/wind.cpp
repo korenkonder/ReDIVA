@@ -4,8 +4,9 @@
 */
 
 #include "wind.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../str_utils.hpp"
 
 static void light_param_wind_read_inner(light_param_wind* wind, stream& s);
@@ -26,27 +27,27 @@ light_param_wind::~light_param_wind() {
 void light_param_wind::read(const char* path) {
     char* path_txt = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_txt)) {
-        stream s;
+        file_stream s;
         s.open(path_txt, "rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             light_param_wind_read_inner(this, s);
     }
-    free(path_txt);
+    free_def(path_txt);
 }
 
 void light_param_wind::read(const wchar_t* path) {
     wchar_t* path_txt = str_utils_add(path, L".txt");
     if (path_check_file_exists(path_txt)) {
-        stream s;
+        file_stream s;
         s.open(path_txt, L"rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             light_param_wind_read_inner(this, s);
     }
-    free(path_txt);
+    free_def(path_txt);
 }
 
 void light_param_wind::read(const void* data, size_t size) {
-    stream s;
+    memory_stream s;
     s.open(data, size);
     light_param_wind_read_inner(this, s);
 }
@@ -56,11 +57,11 @@ void light_param_wind::write(const char* path) {
         return;
 
     char* path_txt = str_utils_add(path, ".txt");
-    stream s;
+    file_stream s;
     s.open(path_txt, "wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         light_param_wind_write_inner(this, s);
-    free(path_txt);
+    free_def(path_txt);
 }
 
 void light_param_wind::write(const wchar_t* path) {
@@ -68,18 +69,18 @@ void light_param_wind::write(const wchar_t* path) {
         return;
 
     wchar_t* path_txt = str_utils_add(path, L".txt");
-    stream s;
+    file_stream s;
     s.open(path_txt, L"wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         light_param_wind_write_inner(this, s);
-    free(path_txt);
+    free_def(path_txt);
 }
 
 void light_param_wind::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     light_param_wind_write_inner(this, s);
     s.copy(data, size);
@@ -156,12 +157,12 @@ static void light_param_wind_read_inner(light_param_wind* wind, stream& s) {
         }
     }
 
-    free(data);
+    free_def(data);
     wind->ready = true;
     return;
 
 End:
-    free(data);
+    free_def(data);
 }
 
 static void light_param_wind_write_inner(light_param_wind* wind, stream& s) {

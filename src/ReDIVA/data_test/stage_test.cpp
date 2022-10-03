@@ -166,8 +166,8 @@ void DtwStg::Window() {
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
 
-    float_t w = min((float_t)width, 240.0f);
-    float_t h = min((float_t)height, 240.0f);
+    float_t w = min_def((float_t)width, 240.0f);
+    float_t h = min_def((float_t)height, 240.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -180,7 +180,7 @@ void DtwStg::Window() {
         ImGui::End();
         return;
     }
-    
+
     data_struct* aft_data = &data_list[DATA_AFT];
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 

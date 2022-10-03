@@ -32,6 +32,22 @@ enum light_type {
     LIGHT_SPOT     = 0x03,
 };
 
+struct light_attenuation {
+    float_t constant;
+    float_t linear;
+    float_t quadratic;
+};
+
+struct light_clip_plane {
+    bool data[4];
+};
+
+struct light_tone_curve {
+    float_t start_point;
+    float_t end_point;
+    float_t coefficient;
+};
+
 struct light_param_light_data {
     bool has_type;
     light_type type;
@@ -50,11 +66,11 @@ struct light_param_light_data {
     vec3 spot_direction;
     float_t spot_exponent;
     float_t spot_cutoff;
-    vec3 attenuation;
+    light_attenuation attenuation;
     bool has_clip_plane;
-    bool clip_plane[4];
+    light_clip_plane clip_plane;
     bool has_tone_curve;
-    vec3 tone_curve;
+    light_tone_curve tone_curve;
 
     light_param_light_data();
     ~light_param_light_data();

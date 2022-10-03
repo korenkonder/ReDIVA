@@ -14,11 +14,12 @@ struct diva {
     uint32_t loop_start;
     uint32_t loop_end;
     uint32_t channels;
-};
 
-extern diva* diva_init();
-extern void diva_read(diva* d, const char* path);
-extern void diva_read(diva* d, const wchar_t* path);
-extern void diva_write(diva* d, const char* path);
-extern void diva_write(diva* d, const wchar_t* path);
-extern void diva_dispose(diva* d);
+    diva();
+    virtual ~diva();
+
+    void read(const char* path);
+    void read(const wchar_t* path);
+    void write(const char* path);
+    void write(const wchar_t* path);
+};

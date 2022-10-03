@@ -10,61 +10,37 @@
 #include "../default.hpp"
 #include "../half_t.hpp"
 
-enum stream_type {
-    STREAM_NONE = 0,
-    STREAM_FILE,
-    STREAM_MEMORY,
-};
-
-struct stream {
-
+class stream {
+public:
     uint8_t buf[0x100];
-    struct io {
-        FILE* stream;
-        struct data {
-            std::vector<uint8_t>::iterator data;
-            std::vector<uint8_t> vec;
-        } data;
-
-        io();
-        ~io();
-
-        bool check_null();
-        bool check_not_null();
-        void close();
-    } io;
     int64_t length;
-    stream_type type;
-    bool is_big_endian;
+    bool big_endian;
     std::vector<int64_t> position_stack;
 
     stream();
-    ~stream();
+    virtual ~stream();
 
-    void open();
-    void open(const char* path, const char* mode);
-    void open(const wchar_t* path, const wchar_t* mode);
-    void open(const void* data, size_t size);
-    void open(std::vector<uint8_t>& data);
-    void copy(void** data, size_t* size);
-    void copy(std::vector<uint8_t>& data);
-    int flush();
-    void close();
+    virtual int flush() = 0;
+    virtual void close();
+    virtual bool check_null() = 0;
+    virtual bool check_not_null() = 0;
 
-    int64_t get_length();
-    int64_t get_position();
-    int32_t set_position(int64_t pos, int32_t seek);
+    virtual void align_read(size_t align) = 0;
+    virtual void align_write(size_t align) = 0;
+    virtual size_t read(size_t count) = 0;
+    virtual size_t read(void* buf, size_t count) = 0;
+    virtual size_t read(void* buf, size_t size, size_t count) = 0;
+    virtual size_t write(size_t count) = 0;
+    virtual size_t write(const void* buf, size_t count) = 0;
+    virtual size_t write(const void* buf, size_t size, size_t count) = 0;
+    virtual int32_t read_char() = 0;
+    virtual int32_t write_char(char c) = 0;
+    virtual int64_t get_length() = 0;
+    virtual int64_t get_position() = 0;
+    virtual int32_t set_position(int64_t pos, int32_t seek) = 0;
+
     int32_t position_push(int64_t pos, int32_t seek);
     void position_pop();
-
-    void align_read(int64_t align);
-    void align_write(int64_t align);
-    int64_t read(int64_t count);
-    int64_t read(void* buf, int64_t count);
-    int64_t write(int64_t count);
-    int64_t write(const void* buf, int64_t count);
-    int32_t read_char();
-    int32_t write_char(char c);
 
     int8_t read_int8_t();
     uint8_t read_uint8_t();

@@ -5,9 +5,8 @@
 
 #include "obj.hpp"
 #include <vector>
+#include "io/memory_stream.hpp"
 #include "f2/struct.hpp"
-#include "io/path.hpp"
-#include "io/stream.hpp"
 #include "half_t.hpp"
 #include "hash.hpp"
 #include "sort.hpp"
@@ -129,47 +128,47 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset);
 static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
     stream& s, char** str);
 static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     int64_t* mats_offset, int64_t* root_offset, int64_t* nodes_offset,
     int64_t* mesh_indices_offset, int64_t* backface_mesh_indices_offset);
 static void obj_classic_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, char** str);
 static void obj_classic_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     stream& s, char** str);
 static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     char** bone_names, int64_t* offsets);
 static void obj_classic_read_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
     stream& s, char** str);
 static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream& s, char** str);
 static void obj_classic_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_skin_block_expression(obj_skin_block_expression* b,
     stream& s, char** str);
 static void obj_classic_write_skin_block_expression(obj_skin_block_expression* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, char** bone_names);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, char** bone_names);
 static void obj_classic_read_skin_block_motion(obj_skin_block_motion* b,
     stream& s, char** str);
 static void obj_classic_write_skin_block_motion(obj_skin_block_motion* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     char** bone_names, int64_t* bone_names_offset, int64_t* bone_matrices_offset);
 static void obj_classic_read_skin_block_node(obj_skin_block_node* b,
     stream& s, char** str);
 static void obj_classic_write_skin_block_node(obj_skin_block_node* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
     stream& s, char** str);
 static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, int64_t* nodes_offset);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, int64_t* nodes_offset);
 static void obj_classic_read_skin_param(obj_skin_skin_param* skp,
     stream& s, char** str);
 static void obj_classic_write_skin_param(obj_skin_skin_param* skp,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mesh* mesh,
     int64_t base_offset, uint32_t num_vertex, obj_vertex_format_file vertex_format_file);
 static void obj_classic_write_vertex(obj* obj, stream& s, int64_t* vertex, obj_mesh* mesh,
@@ -191,56 +190,56 @@ static void obj_modern_write_skin(obj* obj, stream& s,
 static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x,
     int64_t* mats_offset, int64_t* root_offset, int64_t* nodes_offset,
     int64_t* mesh_indices_offset, int64_t* backface_mesh_indices_offset);
 static void obj_modern_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, char** bone_names,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, char** bone_names,
     bool is_x, int64_t* offsets);
 static void obj_modern_read_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static void obj_modern_read_skin_block_expression(obj_skin_block_expression* b,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_expression(obj_skin_block_expression* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, char** bone_names, bool is_x);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, char** bone_names, bool is_x);
 static void obj_modern_read_skin_block_motion(obj_skin_block_motion* b,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_motion(obj_skin_block_motion* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x,
     char** bone_names, int64_t* bone_names_offset, int64_t* bone_matrices_offset);
 static void obj_modern_read_skin_block_node(obj_skin_block_node* b,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_node(obj_skin_block_node* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static void obj_modern_read_skin_block_osage(obj_skin_block_osage* b,
     stream& s, uint32_t header_length, char** str, bool is_x);
 static void obj_modern_write_skin_block_osage(obj_skin_block_osage* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static void obj_modern_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mesh* mesh,
     const uint32_t attrib_flags, uint32_t num_vertex, uint32_t size_vertex);
 static void obj_modern_write_vertex(obj* obj, stream& s, bool is_x,
     int64_t* vertex, obj_mesh* mesh, uint32_t* attrib_flags,
     uint32_t* num_vertex, uint32_t* size_vertex, f2_struct* ovtx);
 static void obj_skin_block_node_free(obj_skin_block_node* b);
-static uint32_t obj_skin_strings_get_string_index(std::vector<std::string>& vec, const char* str);
-static int64_t obj_skin_strings_get_string_offset(std::vector<std::string>& vec,
+static uint32_t obj_skin_strings_get_string_index(std::vector<string_hash>& vec, const char* str);
+static int64_t obj_skin_strings_get_string_offset(std::vector<string_hash>& vec,
     std::vector<int64_t>& vec_off, const char* str);
-static int64_t obj_skin_strings_get_string_offset_by_index(std::vector<std::string>& vec,
+static int64_t obj_skin_strings_get_string_offset_by_index(std::vector<string_hash>& vec,
     std::vector<int64_t>& vec_off, char** strings, uint32_t index);
-static void obj_skin_strings_push_back_check(std::vector<std::string>& vec, const char* str);
-static void obj_skin_strings_push_back_check_by_index(std::vector<std::string>& vec,
+static void obj_skin_strings_push_back_check(std::vector<string_hash>& vec, const char* str);
+static void obj_skin_strings_push_back_check_by_index(std::vector<string_hash>& vec,
     char** strings, uint32_t index);
 
 obj_bounding_sphere::obj_bounding_sphere() : radius() {
@@ -308,7 +307,7 @@ obj_mesh* obj::get_obj_mesh(const char* name) {
     return -1;
 }
 
-obj_set::obj_set() : ready(), modern(), is_x(), obj_data(),
+obj_set::obj_set() : ready(), modern(), big_endian(), is_x(), obj_data(),
 obj_num(), tex_id_data(), tex_id_num(), reserved() {
 
 }
@@ -317,59 +316,59 @@ obj_set::~obj_set() {
     for (uint32_t i = 0; i < obj_num; i++) {
         obj* obj = &obj_data[i];
         for (uint32_t j = 0; j < obj->skin.bones_count; j++)
-            free(obj->skin.bones[j].name);
-        free(obj->skin.bones);
+            free_def(obj->skin.bones[j].name);
+        free_def(obj->skin.bones);
 
         for (uint32_t j = 0; j < obj->skin.ex_data.blocks_count; j++) {
             obj_skin_block* block = &obj->skin.ex_data.blocks[j];
             switch (block->type) {
             case OBJ_SKIN_BLOCK_CLOTH: {
                 obj_skin_block_cloth* cloth = &block->cloth;
-                free(cloth->mesh_name);
-                free(cloth->backface_mesh_name);
+                free_def(cloth->mesh_name);
+                free_def(cloth->backface_mesh_name);
 
                 for (uint32_t k = 0; k < cloth->root_count; k++) {
                     obj_skin_block_cloth_root* sub = &cloth->root[k];
                     for (uint32_t l = 0; l < 4; l++)
-                        free(sub->bone_weights[l].bone_name);
+                        free_def(sub->bone_weights[l].bone_name);
                 }
-                free(cloth->root);
-                free(cloth->nodes);
-                free(cloth->mesh_indices);
-                free(cloth->backface_mesh_indices);
-                free(cloth->skin_param.coli);
+                free_def(cloth->root);
+                free_def(cloth->nodes);
+                free_def(cloth->mesh_indices);
+                free_def(cloth->backface_mesh_indices);
+                free_def(cloth->skin_param.coli);
             } break;
             case OBJ_SKIN_BLOCK_CONSTRAINT: {
                 obj_skin_block_constraint* constraint = &block->constraint;
                 obj_skin_block_node_free(&constraint->base);
-                free(constraint->source_node_name);
+                free_def(constraint->source_node_name);
             } break;
             case OBJ_SKIN_BLOCK_EXPRESSION: {
                 obj_skin_block_expression* expression = &block->expression;
                 obj_skin_block_node_free(&expression->base);
                 for (uint32_t k = 0; k < 9; k++)
-                    free(expression->expressions[k]);
+                    free_def(expression->expressions[k]);
             } break;
             case OBJ_SKIN_BLOCK_MOTION: {
                 obj_skin_block_motion* motion = &block->motion;
                 obj_skin_block_node_free(&motion->base);
                 if (is_x)
-                    free(motion->name);
-                free(motion->nodes);
+                    free_def(motion->name);
+                free_def(motion->nodes);
             } break;
             case OBJ_SKIN_BLOCK_OSAGE: {
                 obj_skin_block_osage* osage = &block->osage;
                 obj_skin_block_node_free(&osage->base);
-                free(osage->skin_param.coli);
-                free(osage->nodes);
+                free_def(osage->skin_param.coli);
+                free_def(osage->nodes);
             } break;
             }
         }
-        free(obj->skin.ex_data.blocks);
-        free(obj->skin.ex_data.osage_nodes);
-        free(obj->skin.ex_data.bone_names_buf);
-        free(obj->skin.ex_data.bone_names);
-        free(obj->skin.ex_data.osage_sibling_infos);
+        free_def(obj->skin.ex_data.blocks);
+        free_def(obj->skin.ex_data.osage_nodes);
+        free_def(obj->skin.ex_data.bone_names_buf);
+        free_def(obj->skin.ex_data.bone_names);
+        free_def(obj->skin.ex_data.osage_sibling_infos);
 
         if (obj->mesh_array)
             for (uint32_t j = 0; j < obj->num_mesh; j++) {
@@ -377,25 +376,25 @@ obj_set::~obj_set() {
                 if (mesh->submesh_array)
                     for (uint32_t k = 0; k < mesh->num_submesh; k++) {
                         obj_sub_mesh* sub_mesh = &mesh->submesh_array[k];
-                        free(sub_mesh->bone_indices);
-                        free(sub_mesh->indices);
+                        free_def(sub_mesh->bone_indices);
+                        free_def(sub_mesh->indices);
                     }
-                free(mesh->vertex);
-                free(mesh->submesh_array);
+                free_def(mesh->vertex);
+                free_def(mesh->submesh_array);
             }
-        free(obj->mesh_array);
-        free(obj->material_array);
-        free(obj->name);
+        free_def(obj->mesh_array);
+        free_def(obj->material_array);
+        free_def(obj->name);
     }
-    free(obj_data);
-    free(tex_id_data);
+    free_def(obj_data);
+    free_def(tex_id_data);
 }
 
 void obj_set::pack_file(void** data, size_t* size) {
     if (!data || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     if (!modern)
         obj_set_classic_write_inner(this, s);
@@ -409,7 +408,7 @@ void obj_set::unpack_file(const void* data, size_t size, bool modern) {
     if (!data || !size)
         return;
 
-    stream s;
+    memory_stream s;
     s.open(data, size);
     if (!modern)
         obj_set_classic_read_inner(this, s);
@@ -419,7 +418,7 @@ void obj_set::unpack_file(const void* data, size_t size, bool modern) {
 
 static void obj_material_texture_enrs_table_init() {
     if (!obj_material_texture_enrs_table_initialized) {
-        stream s;
+        memory_stream s;
         s.open((void*)&obj_material_texture_enrs_table_bin,
             sizeof(obj_material_texture_enrs_table_bin));
         obj_material_texture_enrs_table.read(s);
@@ -459,41 +458,27 @@ static void calculate_tangent(obj_vertex_data* vtx,
     obj_vertex_data* vtx_b = &vtx[b];
     obj_vertex_data* vtx_c = &vtx[c];
 
-    vec3 pos_a;
-    vec3 pos_b;
-    vec3_sub(vtx_c->position, vtx_a->position, pos_a);
-    vec3_sub(vtx_b->position, vtx_a->position, pos_b);
+    vec3 pos_a = vtx_c->position - vtx_a->position;
+    vec3 pos_b = vtx_b->position - vtx_a->position;
 
-    vec2 uv_a;
-    vec2 uv_b;
-    vec2_sub(vtx_c->texcoord0, vtx_a->texcoord0, uv_a);
-    vec2_sub(vtx_b->texcoord0, vtx_a->texcoord0, uv_b);
+    vec2 uv_a = vtx_c->texcoord0 - vtx_a->texcoord0;
+    vec2 uv_b = vtx_b->texcoord0 - vtx_a->texcoord0;
 
-    vec3 tangent;
-    vec3 bitangent;
-
-    vec3 temp1;
-    vec3 temp2;
-    vec3_mult_scalar(pos_a, uv_b.y, temp1);
-    vec3_mult_scalar(pos_b, uv_a.y, temp2);
-    vec3_sub(temp1, temp2, tangent);
-
-    vec3_mult_scalar(pos_b, uv_a.x, temp1);
-    vec3_mult_scalar(pos_a, uv_b.x, temp2);
-    vec3_sub(temp1, temp2, bitangent);
+    vec3 tangent = pos_a * uv_b.y - pos_b * uv_a.y;
+    vec3 bitangent = pos_b * uv_a.x - pos_a * uv_b.x;
 
     if (uv_a.x * uv_b.y - uv_a.y * uv_b.x <= 0.0f) {
-        vec3_negate(tangent, tangent);
-        vec3_negate(bitangent, bitangent);
+        tangent = -tangent;
+        bitangent = -bitangent;
     }
 
-    vec3_add(tangents[a], tangent, tangents[a]);
-    vec3_add(tangents[b], tangent, tangents[b]);
-    vec3_add(tangents[c], tangent, tangents[c]);
-    
-    vec3_add(bitangents[a], bitangent, bitangents[a]);
-    vec3_add(bitangents[b], bitangent, bitangents[b]);
-    vec3_add(bitangents[c], bitangent, bitangents[c]);
+    tangents[a] += tangent;
+    tangents[b] += tangent;
+    tangents[c] += tangent;
+
+    bitangents[a] += bitangent;
+    bitangents[b] += bitangent;
+    bitangents[c] += bitangent;
 }
 
 static void obj_vertex_generate_tangents(obj* obj, obj_mesh* mesh) {
@@ -560,29 +545,15 @@ static void obj_vertex_generate_tangents(obj* obj, obj_mesh* mesh) {
     for (uint32_t i = 0; i < num_vertex; i++) {
         vec3 normal = vtx[i].normal;
 
-        vec3 tangent;
-        vec3 bitangent;
-        vec3_normalize(tangents[i], tangent);
-        vec3_normalize(bitangents[i], bitangent);
+        vec3 tangent = vec3::normalize(tangents[i]);
+        vec3 bitangent = vec3::normalize(bitangents[i]);
 
-        float_t temp1;
-        vec3 temp2;
-        vec3_dot(tangent, normal, temp1);
-        vec3_mult_scalar(normal, temp1, temp2);
-        vec3_sub(tangent, temp2, tangent);
-        vec3_normalize(tangent, tangent);
+        tangent = vec3::normalize(tangent - normal * vec3::dot(tangent, normal));
+        bitangent = vec3::normalize(bitangent - normal * vec3::dot(bitangent, normal));
 
-        vec3_dot(bitangent, normal, temp1);
-        vec3_mult_scalar(normal, temp1, temp2);
-        vec3_sub(bitangent, temp2, bitangent);
-        vec3_normalize(bitangent, bitangent);
+        vec3 binormal = vec3::normalize(vec3::cross(normal, tangent));
 
-        vec3 binormal;
-        vec3_cross(normal, tangent, binormal);
-        vec3_normalize(binormal, binormal);
-
-        float_t dir_check;
-        vec3_dot(binormal, bitangent, dir_check);
+        float_t dir_check = vec3::dot(binormal, bitangent);
 
         *(vec3*)&vtx[i].tangent = tangent;
         vtx[i].tangent.w = dir_check > 0.0f ? 1.0f : -1.0f;
@@ -607,8 +578,7 @@ static void obj_vertex_generate_tangents(obj* obj, obj_mesh* mesh) {
             if (i == j || !memcmp(&tangent_to_compare, &vec3_null, sizeof(vec3)))
                 continue;
 
-            float_t distance;
-            vec3_distance_squared(position, position_to_compare, distance);
+            float_t distance = vec3::distance_squared(position, position_to_compare);
 
             if (current_distance >= distance) {
                 nearest_vtx_idx = j;
@@ -623,26 +593,21 @@ static void obj_vertex_generate_tangents(obj* obj, obj_mesh* mesh) {
 
             const vec3 up = { 0.0f, 1.0f, 0.0f };
             const vec3 left = { 1.0f, 0.0f, 0.0f };
-            vec3 temp1;
-            vec3 temp2;
-            vec3_cross(normal, up, temp1);
-            vec3_cross(normal, left, temp2);
+            vec3 temp1 = vec3::cross(normal, up);
+            vec3 temp2 = vec3::cross(normal, left);
 
-            float_t temp3;
-            float_t temp4;
-            vec3_length_squared(temp1, temp3);
-            vec3_length_squared(temp2, temp4);
+            float_t temp3 = vec3::length_squared(temp1);
+            float_t temp4 = vec3::length_squared(temp2);
 
-            vec3 tangent = temp3 > temp4 ? temp1 : temp2;
-            vec3_normalize(tangent, tangent);
+            vec3 tangent = vec3::normalize(temp3 > temp4 ? temp1 : temp2);
 
             *(vec3*)&vtx[i].tangent = tangent;
             vtx[i].tangent.w = 1.0f;
         }
     }
 
-    free(tangents);
-    free(bitangents);
+    free_def(tangents);
+    free_def(bitangents);
 
     enum_or(mesh->vertex_format, OBJ_VERTEX_TANGENT);
 }
@@ -665,7 +630,7 @@ static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i& bone_index) 
 
     float_t sum = _bone_weight.x + _bone_weight.y + _bone_weight.z + _bone_weight.w;
     if (sum > 0.0f && fabsf(sum - 1.0f) > 0.000001f)
-        vec4_div_scalar(_bone_weight, sum, _bone_weight);
+        _bone_weight *= 1.0f / sum;
 
     bone_weight = _bone_weight;
     bone_index = _bone_index;
@@ -674,9 +639,10 @@ static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i& bone_index) 
 static void obj_set_classic_read_inner(obj_set* os, stream& s) {
     uint32_t version = s.read_uint32_t();
     if (version != 0x05062500) {
-        os->is_x = false;
-        os->modern = false;
         os->ready = false;
+        os->modern = false;
+        os->big_endian = false;
+        os->is_x = false;
         return;
     }
 
@@ -748,13 +714,14 @@ static void obj_set_classic_read_inner(obj_set* os, stream& s) {
             os->tex_id_data[i] = s.read_uint32_t();
     }
 
-    free(obj_datas);
-    free(obj_skin_datas);
-    free(obj_name_datas);
+    free_def(obj_datas);
+    free_def(obj_skin_datas);
+    free_def(obj_name_datas);
 
-    os->is_x = false;
-    os->modern = false;
     os->ready = true;
+    os->modern = false;
+    os->big_endian = false;
+    os->is_x = false;
 }
 
 static void obj_set_classic_write_inner(obj_set* os, stream& s) {
@@ -794,7 +761,7 @@ static void obj_set_classic_write_inner(obj_set* os, stream& s) {
     for (uint32_t i = 0; i < obj_num; i++)
         s.write_uint32_t(obj_datas[i]);
     s.position_pop();
-    free(obj_datas);
+    free_def(obj_datas);
 
     osh.obj_id_data = s.get_position();
     for (uint32_t i = 0; i < obj_num; i++) {
@@ -816,7 +783,7 @@ static void obj_set_classic_write_inner(obj_set* os, stream& s) {
     for (uint32_t i = 0; i < obj_num; i++)
         s.write_int32_t(obj_name_datas[i]);
     s.align_write(0x10);
-    free(obj_name_datas);
+    free_def(obj_name_datas);
 
     osh.tex_id_data = s.get_position();
     for (uint32_t i = 0; i < os->tex_id_num; i++)
@@ -844,7 +811,7 @@ static void obj_set_classic_write_inner(obj_set* os, stream& s) {
     for (uint32_t i = 0; i < obj_num; i++)
         s.write_int32_t(obj_skin_datas[i]);
     s.position_pop();
-    free(obj_skin_datas);
+    free_def(obj_skin_datas);
 
     s.position_push(0x00, SEEK_SET);
     s.write_uint32_t(0x05062500);
@@ -1179,7 +1146,7 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
             s.write_char('\0');
         }
         s.position_pop();
-        free(mhs);
+        free_def(mhs);
     }
 
     if (obj->num_material) {
@@ -1281,7 +1248,7 @@ static void obj_classic_read_skin(obj* obj, stream& s, int64_t base_offset) {
                     sk->bones[i].parent = s.read_uint32_t();
             }
         }
-        free(bone_names_offsets);
+        free_def(bone_names_offsets);
     }
 
     if (sh.ex_data_offset) {
@@ -1325,7 +1292,7 @@ static void obj_classic_read_skin(obj* obj, stream& s, int64_t base_offset) {
                     bone_names.push_back({});
                 buf_size += bone_names.back().size() + 1;
             }
-            free(strings_offsets);
+            free_def(strings_offsets);
 
             if (bone_names.size()) {
                 ex->bone_names_buf = force_malloc_s(char, buf_size);
@@ -1425,7 +1392,7 @@ static void obj_classic_read_skin(obj* obj, stream& s, int64_t base_offset) {
                     break;
                 }
             }
-            free(bhs);
+            free_def(bhs);
         }
 
         if (exh.osage_sibling_infos_offset) {
@@ -1485,9 +1452,9 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
     s.write(0x0C);
     s.align_write(0x10);
 
-    std::vector<std::string> strings;
+    std::vector<string_hash> strings;
     std::vector<int64_t> string_offsets;
-    std::vector<std::string> bone_names;
+    std::vector<string_hash> bone_names;
     if (sk->bones) {
         sh.bone_ids_offset = s.get_position();
         for (uint32_t i = 0; i < sk->bones_count; i++)
@@ -1745,7 +1712,7 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
 
         exh.bone_names_count = (int32_t)bone_names.size();
         exh.bone_names_offset = s.get_position();
-        for (std::string& i : bone_names)
+        for (string_hash& i : bone_names)
             s.write_int32_t(0);
         s.align_write(0x10);
 
@@ -1958,16 +1925,16 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
     }
 
     if (sk->bones || sk->ex_data_init) {
-        quicksort_string(strings.data(), strings.size());
+        quicksort_string_hash(strings.data(), strings.size());
         string_offsets.reserve(strings.size());
-        for (std::string& i : strings) {
+        for (string_hash& i : strings) {
             string_offsets.push_back(s.get_position());
-            s.write_string_null_terminated(i);
+            s.write_string_null_terminated(i.str);
         }
     }
     s.align_write(0x10);
 
-    std::vector<std::string> osage_names;
+    std::vector<string_hash> osage_names;
     if (sk->ex_data_init) {
         obj_skin_ex_data* ex = &sk->ex_data;
 
@@ -2092,7 +2059,7 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
             s.write_int32_t(0);
             s.write_int32_t(0);
             s.position_pop();
-            free(bhs);
+            free_def(bhs);
         }
     }
 
@@ -2111,7 +2078,7 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
 
         if (ex->blocks_count > 0) {
             s.position_push(exh.bone_names_offset, SEEK_SET);
-            for (std::string& i : bone_names) {
+            for (string_hash& i : bone_names) {
                 size_t str_offset = obj_skin_strings_get_string_offset(strings,
                     string_offsets, i.c_str());
                 s.write_uint32_t((uint32_t)str_offset);
@@ -2142,7 +2109,7 @@ static void obj_classic_write_skin(obj* obj, stream& s, int64_t base_offset) {
             exh.osage_count = (int32_t)osage_names.size();
             exh.osage_count -= exh.cloth_count;
             s.position_push(exh.osage_names_offset, SEEK_SET);
-            for (std::string& i : osage_names) {
+            for (string_hash& i : osage_names) {
                 size_t str_offset = obj_skin_strings_get_string_offset(strings,
                     string_offsets, i.c_str());
                 s.write_uint32_t((uint32_t)str_offset);
@@ -2312,7 +2279,7 @@ static void obj_classic_read_skin_block_cloth(obj_skin_block_cloth* b,
 }
 
 static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     int64_t* mats_offset, int64_t* root_offset, int64_t* nodes_offset,
     int64_t* mesh_indices_offset, int64_t* backface_mesh_indices_offset) {
     int64_t skin_param_offset = 0;
@@ -2437,7 +2404,7 @@ static void obj_classic_read_skin_block_cloth_root_bone_weight(obj_skin_block_cl
 }
 
 static void obj_classic_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets) {
     int64_t bone_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, sub->bone_name);
     s.write_uint32_t((uint32_t)bone_name_offset);
@@ -2462,7 +2429,7 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
             b->name_index = 0x8000 | (int32_t)(i - str);
             break;
         }
-    free(name);
+    free_def(name);
 
     b->coupling = (obj_skin_block_constraint_coupling)s.read_int32_t();
 
@@ -2507,11 +2474,11 @@ static void obj_classic_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_NONE;
-    free(type);
+    free_def(type);
 }
 
 static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     char** bone_names, int64_t* offsets) {
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
 
@@ -2588,7 +2555,7 @@ static void obj_classic_read_skin_block_constraint_attach_point(obj_skin_block_c
 }
 
 static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets) {
     s.write_int32_t(ap->affected_by_orientation ? 1 : 0);
     s.write_int32_t(ap->affected_by_scaling ? 1 : 0);
     s.write_float_t(ap->offset.x);
@@ -2612,7 +2579,7 @@ static void obj_classic_read_skin_block_constraint_up_vector_old(obj_skin_block_
 }
 
 static void obj_classic_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets) {
     s.write_int32_t(up->active ? 1 : 0);
     s.write_float_t(up->roll);
     s.write_float_t(up->affected_axis.x);
@@ -2640,10 +2607,10 @@ static void obj_classic_read_skin_block_expression(obj_skin_block_expression* b,
             b->name_index = 0x8000 | (int32_t)(i - str);
             break;
         }
-    free(name);
+    free_def(name);
 
     b->expressions_count = s.read_int32_t();
-    b->expressions_count = min(b->expressions_count, 9);
+    b->expressions_count = min_def(b->expressions_count, 9);
     for (uint32_t i = 0; i < b->expressions_count; i++) {
         uint32_t expression_offset = s.read_uint32_t();
         if (expression_offset)
@@ -2655,14 +2622,14 @@ static void obj_classic_read_skin_block_expression(obj_skin_block_expression* b,
 }
 
 static void obj_classic_write_skin_block_expression(obj_skin_block_expression* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, char** bone_names) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, char** bone_names) {
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
 
     int64_t name_offset = obj_skin_strings_get_string_offset_by_index(strings,
         string_offsets, bone_names, b->name_index);
     s.write_uint32_t((uint32_t)name_offset);
 
-    s.write_int32_t(min(b->expressions_count, 9));
+    s.write_int32_t(min_def(b->expressions_count, 9));
     for (uint32_t i = 0; i < b->expressions_count && i < 9; i++) {
         int64_t expression_offset = obj_skin_strings_get_string_offset(strings,
             string_offsets, b->expressions[i]);
@@ -2690,7 +2657,7 @@ static void obj_classic_read_skin_block_motion(obj_skin_block_motion* b,
             b->name_index = 0x8000 | (int32_t)(i - str);
             break;
         }
-    free(name);
+    free_def(name);
 
     b->nodes = 0;
 
@@ -2732,7 +2699,7 @@ static void obj_classic_read_skin_block_motion(obj_skin_block_motion* b,
 }
 
 static void obj_classic_write_skin_block_motion(obj_skin_block_motion* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     char** bone_names, int64_t* bone_names_offset, int64_t* bone_matrices_offset) {
     obj_classic_write_skin_block_node(&b->base, s, strings, string_offsets);
 
@@ -2792,7 +2759,7 @@ static void obj_classic_read_skin_block_node(obj_skin_block_node* b,
 }
 
 static void obj_classic_write_skin_block_node(obj_skin_block_node* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets) {
     int64_t parent_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, b->parent_name);
     s.write_uint32_t((uint32_t)parent_name_offset);
@@ -2829,7 +2796,7 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
     b->nodes = force_malloc_s(obj_skin_osage_node, b->count);
 
     s.position_push(offset, SEEK_SET);
-    if (~s.read_uint32_t() & 0x8000) {
+    if (!(s.read_uint32_t() & 0x8000)) {
         obj_classic_read_skin_param(&b->skin_param, s, str);
         b->skin_param_init = true;
     }
@@ -2849,7 +2816,7 @@ static void obj_classic_read_skin_block_osage(obj_skin_block_osage* b,
 }
 
 static void obj_classic_write_skin_block_osage(obj_skin_block_osage* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, int64_t* nodes_offset) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, int64_t* nodes_offset) {
     int64_t skin_param_offset = 0;
     if (b->skin_param_init) {
         skin_param_offset = s.get_position();
@@ -2935,7 +2902,7 @@ static void obj_classic_read_skin_param(obj_skin_skin_param* skp,
 }
 
 static void obj_classic_write_skin_param(obj_skin_skin_param* skp,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets) {
     int64_t coli_offset = 0;
     if (skp->coli) {
         coli_offset = s.get_position();
@@ -3020,7 +2987,7 @@ static void obj_classic_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_me
     obj_vertex_data* vtx = force_malloc_s(obj_vertex_data, num_vertex);
     for (uint32_t i = 0; i < 20; i++) {
         obj_vertex_format_file attribute = (obj_vertex_format_file)(1 << i);
-        if (~vertex_format_file & attribute)
+        if (!(vertex_format_file & attribute))
             continue;
 
         s.set_position(base_offset + vertex[i], SEEK_SET);
@@ -3327,15 +3294,18 @@ static void obj_set_modern_read_inner(obj_set* os, stream& s) {
     if (st.header.signature != reverse_endianness_uint32_t('MOSD') || !st.data.size())
         return;
 
-    stream s_mosd;
+    bool big_endian = st.header.use_big_endian;
+
+    memory_stream s_mosd;
     s_mosd.open(st.data);
-    s_mosd.is_big_endian = st.header.use_big_endian;
+    s_mosd.big_endian = big_endian;
 
     uint32_t version = s_mosd.read_uint32_t_reverse_endianness();
     if (version != 0x05062501) {
-        os->is_x = false;
-        os->modern = false;
         os->ready = false;
+        os->modern = false;
+        os->big_endian = false;
+        os->is_x = false;
         return;
     }
 
@@ -3433,9 +3403,9 @@ static void obj_set_modern_read_inner(obj_set* os, stream& s) {
             os->obj_data[i].id = s_mosd.read_uint32_t_reverse_endianness();
     }
 
-    free(obj_datas);
-    free(obj_skin_datas);
-    free(obj_name_datas);
+    free_def(obj_datas);
+    free_def(obj_skin_datas);
+    free_def(obj_name_datas);
 
     if (osh.tex_id_data) {
         s_mosd.set_position(osh.tex_id_data, SEEK_SET);
@@ -3460,34 +3430,34 @@ static void obj_set_modern_read_inner(obj_set* os, stream& s) {
             else if (!ovtx && j.header.signature == reverse_endianness_uint32_t('OVTX'))
                 ovtx = &j;
 
-        stream s_oskn;
-        stream s_oidx;
-        stream s_ovtx;
+        memory_stream s_oskn;
+        memory_stream s_oidx;
+        memory_stream s_ovtx;
         stream* s_oskn_ptr = 0;
         stream* s_oidx_ptr = 0;
         stream* s_ovtx_ptr = 0;
         if (oskn) {
             s_oskn.open(oskn->data);
-            s_oskn.is_big_endian = oskn->header.use_big_endian;
+            s_oskn.big_endian = oskn->header.use_big_endian;
             s_oskn_ptr = &s_oskn;
         }
 
         if (oidx) {
             s_oidx.open(oidx->data);
-            s_oidx.is_big_endian = oidx->header.use_big_endian;
+            s_oidx.big_endian = oidx->header.use_big_endian;
             s_oidx_ptr = &s_oidx;
         }
 
         if (ovtx) {
             s_ovtx.open(ovtx->data);
-            s_ovtx.is_big_endian = ovtx->header.use_big_endian;
+            s_ovtx.big_endian = ovtx->header.use_big_endian;
             s_ovtx_ptr = &s_ovtx;
         }
 
         obj* obj = &os->obj_data[omdl_index];
-        stream s_omdl;
+        memory_stream s_omdl;
         s_omdl.open(i.data);
-        s_omdl.is_big_endian = i.header.use_big_endian;
+        s_omdl.big_endian = i.header.use_big_endian;
         obj_modern_read_model(obj, s_omdl, 0, i.header.length, is_x, s_oidx_ptr, s_ovtx_ptr);
         s_omdl.close();
 
@@ -3496,14 +3466,19 @@ static void obj_set_modern_read_inner(obj_set* os, stream& s) {
         omdl_index++;
     }
 
-    os->is_x = is_x;
-    os->modern = true;
     os->ready = true;
+    os->modern = true;
+    os->big_endian = big_endian;
+    os->is_x = is_x;
 }
 
 static void obj_set_modern_write_inner(obj_set* os, stream& s) {
-    stream s_mosd;
+    bool big_endian = s.big_endian;
+
+    memory_stream s_mosd;
     s_mosd.open();
+    s_mosd.big_endian = big_endian;
+
     uint32_t off;
     enrs e;
     enrs_entry ee;
@@ -3627,12 +3602,12 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
 
     osh.obj_id_data = s_mosd.get_position();
     for (uint32_t i = 0; i < obj_num; i++)
-        s_mosd.write_uint32_t(os->obj_data[i].id);
+        s_mosd.write_uint32_t_reverse_endianness(os->obj_data[i].id);
     s_mosd.align_write(0x10);
 
     osh.tex_id_data = s_mosd.get_position();
     for (uint32_t i = 0; i < os->tex_id_num; i++)
-        s_mosd.write_uint32_t(os->tex_id_data[i]);
+        s_mosd.write_uint32_t_reverse_endianness(os->tex_id_data[i]);
     s_mosd.align_write(0x10);
 
     int64_t* obj_name_datas = force_malloc_s(int64_t, obj_num);
@@ -3650,34 +3625,34 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
         for (uint32_t i = 0; i < obj_num; i++)
             s_mosd.write_offset_x(obj_name_datas[i]);
     s_mosd.position_pop();
-    free(obj_name_datas);
+    free_def(obj_name_datas);
 
     s_mosd.position_push(0x00, SEEK_SET);
     if (!is_x) {
-        s_mosd.write_uint32_t(0x05062501);
-        s_mosd.write_int32_t(os->obj_num);
-        s_mosd.write_int32_t(-1);
+        s_mosd.write_uint32_t_reverse_endianness(0x05062501);
+        s_mosd.write_int32_t_reverse_endianness(os->obj_num);
+        s_mosd.write_int32_t_reverse_endianness(-1);
         s_mosd.write_offset_f2(osh.obj_data, 0x20);
         s_mosd.write_offset_f2(osh.obj_skin_data, 0x20);
         s_mosd.write_offset_f2(osh.obj_name_data, 0x20);
         s_mosd.write_offset_f2(osh.obj_id_data, 0x20);
         s_mosd.write_offset_f2(osh.tex_id_data, 0x20);
-        s_mosd.write_int32_t(os->tex_id_num);
-        s_mosd.write_uint32_t(os->reserved[0]);
-        s_mosd.write_uint32_t(os->reserved[1]);
+        s_mosd.write_int32_t_reverse_endianness(os->tex_id_num);
+        s_mosd.write_uint32_t_reverse_endianness(os->reserved[0]);
+        s_mosd.write_uint32_t_reverse_endianness(os->reserved[1]);
     }
     else {
-        s_mosd.write_uint32_t(0x05062501);
-        s_mosd.write_int32_t(os->obj_num);
-        s_mosd.write_int32_t(-1);
+        s_mosd.write_uint32_t_reverse_endianness(0x05062501);
+        s_mosd.write_int32_t_reverse_endianness(os->obj_num);
+        s_mosd.write_int32_t_reverse_endianness(-1);
         s_mosd.write_offset_x(osh.obj_data);
         s_mosd.write_offset_x(osh.obj_skin_data);
         s_mosd.write_offset_x(osh.obj_name_data);
         s_mosd.write_offset_x(osh.obj_id_data);
         s_mosd.write_offset_x(osh.tex_id_data);
-        s_mosd.write_int32_t(os->tex_id_num);
-        s_mosd.write_uint32_t(os->reserved[0]);
-        s_mosd.write_uint32_t(os->reserved[1]);
+        s_mosd.write_int32_t_reverse_endianness(os->tex_id_num);
+        s_mosd.write_uint32_t_reverse_endianness(os->reserved[0]);
+        s_mosd.write_uint32_t_reverse_endianness(os->reserved[1]);
     }
     s_mosd.position_pop();
 
@@ -3688,15 +3663,17 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
         st.sub_structs.push_back({});
         f2_struct* omdl = &st.sub_structs.back();
 
-        stream s_omdl;
+        memory_stream s_omdl;
         s_omdl.open();
+        s_omdl.big_endian = big_endian;
 
         if (obj->skin_init) {
             st.sub_structs.push_back({});
             f2_struct* oskn = &st.sub_structs.back();
 
-            stream s_oskn;
+            memory_stream s_oskn;
             s_oskn.open();
+            s_oskn.big_endian = big_endian;
 
             obj_modern_write_skin(obj, s_oskn, 0, is_x, oskn);
 
@@ -3706,7 +3683,7 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
 
             oskn->header.signature = reverse_endianness_uint32_t('OSKN');
             oskn->header.length = 0x20;
-            oskn->header.use_big_endian = false;
+            oskn->header.use_big_endian = big_endian;
             oskn->header.use_section_size = true;
         }
 
@@ -3718,7 +3695,7 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
 
         omdl->header.signature = reverse_endianness_uint32_t('OMDL');
         omdl->header.length = 0x20;
-        omdl->header.use_big_endian = false;
+        omdl->header.use_big_endian = big_endian;
         omdl->header.use_section_size = true;
     }
 
@@ -3731,7 +3708,7 @@ static void obj_set_modern_write_inner(obj_set* os, stream& s) {
 
     st.header.signature = reverse_endianness_uint32_t('MOSD');
     st.header.length = 0x20;
-    st.header.use_big_endian = false;
+    st.header.use_big_endian = big_endian;
     st.header.use_section_size = true;
 
     st.write(s, true, os->is_x);
@@ -3808,11 +3785,11 @@ static void obj_modern_write_index(obj* obj, stream& s, bool is_x,
         break;
     case OBJ_INDEX_U16:
         for (uint32_t i = 0; i < _indices_count; i++)
-            s.write_uint16_t((uint16_t)indices[i]);
+            s.write_uint16_t_reverse_endianness((uint16_t)indices[i]);
         break;
     case OBJ_INDEX_U32:
         for (uint32_t i = 0; i < _indices_count; i++)
-            s.write_uint32_t(indices[i]);
+            s.write_uint32_t_reverse_endianness(indices[i]);
         break;
     }
     s.align_write(0x04);
@@ -3951,7 +3928,7 @@ static void obj_modern_read_model(obj* obj, stream& s, int64_t base_offset,
                         sub_mesh->bone_indices = force_malloc_s(uint16_t, sub_mesh->bone_indices_count);
                         s.set_position(base_offset + smh.bone_indices_offset, SEEK_SET);
                         s.read(sub_mesh->bone_indices, sub_mesh->bone_indices_count * sizeof(uint16_t));
-                        if (s.is_big_endian) {
+                        if (s.big_endian) {
                             uint16_t* bone_indices = sub_mesh->bone_indices;
                             for (uint32_t k = 0; k < sub_mesh->bone_indices_count; k++)
                                 bone_indices[k] = reverse_endianness_uint16_t(bone_indices[k]);
@@ -3978,7 +3955,7 @@ static void obj_modern_read_model(obj* obj, stream& s, int64_t base_offset,
             obj_material_data mat_data;
             s.read(&mat_data, sizeof(obj_material_data));
 
-            if (s.is_big_endian)
+            if (s.big_endian)
                 obj_material_texture_enrs_table.apply(&mat_data);
 
             for (obj_material_texture_data& j : mat_data.material.texdata)
@@ -3990,6 +3967,8 @@ static void obj_modern_read_model(obj* obj, stream& s, int64_t base_offset,
 
 static void obj_modern_write_model(obj* obj, stream& s,
     int64_t base_offset, bool is_x, f2_struct* omdl) {
+    bool big_endian = s.big_endian;
+
     const size_t mesh_size = is_x ? 0x130 : 0xD8;
     const size_t sub_mesh_size = is_x ? 0x80 : 0x70;
 
@@ -3998,10 +3977,12 @@ static void obj_modern_write_model(obj* obj, stream& s,
     f2_struct* oidx = &omdl->sub_structs.end()[-2];
     f2_struct* ovtx = &omdl->sub_structs.back();
 
-    stream s_oidx;
-    stream s_ovtx;
+    memory_stream s_oidx;
+    memory_stream s_ovtx;
     s_oidx.open();
     s_ovtx.open();
+    s_oidx.big_endian = big_endian;
+    s_ovtx.big_endian = big_endian;
 
     uint32_t off;
     enrs e;
@@ -4277,28 +4258,28 @@ static void obj_modern_write_model(obj* obj, stream& s,
                     obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
                     obj_sub_mesh_header* smh = &smhs[j];
 
-                    s.write_uint32_t(sub_mesh->flags);
-                    s.write_float_t(sub_mesh->bounding_sphere.center.x);
-                    s.write_float_t(sub_mesh->bounding_sphere.center.y);
-                    s.write_float_t(sub_mesh->bounding_sphere.center.z);
-                    s.write_float_t(sub_mesh->bounding_sphere.radius);
-                    s.write_uint32_t(sub_mesh->material_index);
+                    s.write_uint32_t_reverse_endianness(sub_mesh->flags);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_sphere.center.x);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_sphere.center.y);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_sphere.center.z);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_sphere.radius);
+                    s.write_uint32_t_reverse_endianness(sub_mesh->material_index);
                     s.write(&sub_mesh->uv_index, 0x08);
-                    s.write_int32_t(sub_mesh->bone_indices_count);
+                    s.write_int32_t_reverse_endianness(sub_mesh->bone_indices_count);
                     s.write_offset(smh->bone_indices_offset, 0x20, is_x);
-                    s.write_uint32_t(sub_mesh->bones_per_vertex);
-                    s.write_uint32_t(sub_mesh->primitive_type);
-                    s.write_uint32_t(sub_mesh->index_format);
-                    s.write_int32_t(sub_mesh->indices_count);
+                    s.write_uint32_t_reverse_endianness(sub_mesh->bones_per_vertex);
+                    s.write_uint32_t_reverse_endianness(sub_mesh->primitive_type);
+                    s.write_uint32_t_reverse_endianness(sub_mesh->index_format);
+                    s.write_int32_t_reverse_endianness(sub_mesh->indices_count);
                     s.write_offset(smh->indices_offset, 0, is_x);
-                    s.write_uint32_t(sub_mesh->attrib.w);
+                    s.write_uint32_t_reverse_endianness(sub_mesh->attrib.w);
                     s.write(0x10);
-                    s.write_float_t(sub_mesh->bounding_box.center.x);
-                    s.write_float_t(sub_mesh->bounding_box.center.y);
-                    s.write_float_t(sub_mesh->bounding_box.center.z);
-                    s.write_float_t(sub_mesh->bounding_box.size.x);
-                    s.write_float_t(sub_mesh->bounding_box.size.y);
-                    s.write_float_t(sub_mesh->bounding_box.size.z);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_box.center.x);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_box.center.y);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_box.center.z);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_box.size.x);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_box.size.y);
+                    s.write_float_t_reverse_endianness(sub_mesh->bounding_box.size.z);
 
                     uint32_t index_max = 0;
                     for (uint32_t k = 0; k < sub_mesh->indices_count; k++)
@@ -4307,23 +4288,23 @@ static void obj_modern_write_model(obj* obj, stream& s,
 
                     switch (sub_mesh->index_format) {
                     case OBJ_INDEX_U8:
-                        s.write_uint32_t(index_max << 24);
+                        s.write_uint32_t_reverse_endianness(index_max << 24);
                         break;
                     case OBJ_INDEX_U16:
-                        s.write_uint32_t(index_max << 16);
+                        s.write_uint32_t_reverse_endianness(index_max << 16);
                         break;
                     case OBJ_INDEX_U32:
-                        s.write_uint32_t(index_max);
+                        s.write_uint32_t_reverse_endianness(index_max);
                         break;
                     }
-                    s.write_uint32_t(sub_mesh->indices_offset);
+                    s.write_uint32_t_reverse_endianness(sub_mesh->indices_offset);
 
                     if (is_x)
                         s.write(0x04);
                 }
                 s.position_pop();
             }
-            free(smhs);
+            free_def(smhs);
         }
 
         s.position_push(base_offset + oh.mesh_array, SEEK_SET);
@@ -4331,18 +4312,18 @@ static void obj_modern_write_model(obj* obj, stream& s,
             obj_mesh* mesh = &obj->mesh_array[i];
             obj_mesh_header* mh = &mhs[i];
 
-            s.write_uint32_t(mesh->flags);
-            s.write_float_t(mesh->bounding_sphere.center.x);
-            s.write_float_t(mesh->bounding_sphere.center.y);
-            s.write_float_t(mesh->bounding_sphere.center.z);
-            s.write_float_t(mesh->bounding_sphere.radius);
-            s.write_int32_t(mesh->num_submesh);
+            s.write_uint32_t_reverse_endianness(mesh->flags);
+            s.write_float_t_reverse_endianness(mesh->bounding_sphere.center.x);
+            s.write_float_t_reverse_endianness(mesh->bounding_sphere.center.y);
+            s.write_float_t_reverse_endianness(mesh->bounding_sphere.center.z);
+            s.write_float_t_reverse_endianness(mesh->bounding_sphere.radius);
+            s.write_int32_t_reverse_endianness(mesh->num_submesh);
             if (mh->submesh_array && !is_x)
                 mh->submesh_array += 0x20;
             s.write_offset(mh->submesh_array, 0, is_x);
-            s.write_uint32_t(mh->format);
-            s.write_int32_t(mh->size_vertex);
-            s.write_int32_t(mh->num_vertex);
+            s.write_uint32_t_reverse_endianness(mh->format);
+            s.write_int32_t_reverse_endianness(mh->size_vertex);
+            s.write_int32_t_reverse_endianness(mh->num_vertex);
 
             if (!is_x)
                 for (uint32_t j = 0; j < 20; j++)
@@ -4351,20 +4332,20 @@ static void obj_modern_write_model(obj* obj, stream& s,
                 for (uint32_t j = 0; j < 20; j++)
                     s.write_offset_x(mh->vertex[j]);
 
-            s.write_uint32_t(mesh->attrib.w);
-            s.write_uint32_t(mh->vertex_flags);
-            s.write_uint32_t(mesh->reserved[0]);
-            s.write_uint32_t(mesh->reserved[1]);
-            s.write_uint32_t(mesh->reserved[2]);
-            s.write_uint32_t(mesh->reserved[3]);
-            s.write_uint32_t(mesh->reserved[4]);
-            s.write_uint32_t(mesh->reserved[5]);
+            s.write_uint32_t_reverse_endianness(mesh->attrib.w);
+            s.write_uint32_t_reverse_endianness(mh->vertex_flags);
+            s.write_uint32_t_reverse_endianness(mesh->reserved[0]);
+            s.write_uint32_t_reverse_endianness(mesh->reserved[1]);
+            s.write_uint32_t_reverse_endianness(mesh->reserved[2]);
+            s.write_uint32_t_reverse_endianness(mesh->reserved[3]);
+            s.write_uint32_t_reverse_endianness(mesh->reserved[4]);
+            s.write_uint32_t_reverse_endianness(mesh->reserved[5]);
             s.write(&mesh->name, sizeof(mesh->name) - 1);
             s.write_char('\0');
         }
         s.position_pop();
-        free(mhs);
-        free(smhss);
+        free_def(mhs);
+        free_def(smhss);
     }
 
     if (obj->material_array) {
@@ -4380,51 +4361,51 @@ static void obj_modern_write_model(obj* obj, stream& s,
 
     s.position_push(base_offset, SEEK_SET);
     if (!is_x) {
-        s.write_uint32_t(0x10000); // version
-        s.write_uint32_t(0x00); // flags
-        s.write_float_t(obj->bounding_sphere.center.x);
-        s.write_float_t(obj->bounding_sphere.center.y);
-        s.write_float_t(obj->bounding_sphere.center.z);
-        s.write_float_t(obj->bounding_sphere.radius);
-        s.write_int32_t(obj->num_mesh);
+        s.write_uint32_t_reverse_endianness(0x10000); // version
+        s.write_uint32_t_reverse_endianness(0x00); // flags
+        s.write_float_t_reverse_endianness(obj->bounding_sphere.center.x);
+        s.write_float_t_reverse_endianness(obj->bounding_sphere.center.y);
+        s.write_float_t_reverse_endianness(obj->bounding_sphere.center.z);
+        s.write_float_t_reverse_endianness(obj->bounding_sphere.radius);
+        s.write_int32_t_reverse_endianness(obj->num_mesh);
         s.write_offset_f2(oh.mesh_array, 0x20);
-        s.write_int32_t(obj->num_material);
+        s.write_int32_t_reverse_endianness(obj->num_material);
         s.write_offset_f2(oh.material_array, 0x20);
-        s.write_uint32_t(obj->reserved[0]);
-        s.write_uint32_t(obj->reserved[1]);
-        s.write_uint32_t(obj->reserved[2]);
-        s.write_uint32_t(obj->reserved[3]);
-        s.write_uint32_t(obj->reserved[4]);
-        s.write_uint32_t(obj->reserved[5]);
-        s.write_uint32_t(obj->reserved[6]);
-        s.write_uint32_t(obj->reserved[7]);
-        s.write_uint32_t(obj->reserved[8]);
-        s.write_uint32_t(obj->reserved[9]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[0]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[1]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[2]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[3]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[4]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[5]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[6]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[7]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[8]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[9]);
     }
     else {
-        s.write_uint32_t(0x10000); // version
-        s.write_uint32_t(0x00); // flags
-        s.write_int32_t(obj->num_mesh);
-        s.write_int32_t(obj->num_material);
-        s.write_float_t(obj->bounding_sphere.center.x);
-        s.write_float_t(obj->bounding_sphere.center.y);
-        s.write_float_t(obj->bounding_sphere.center.z);
-        s.write_float_t(obj->bounding_sphere.radius);
+        s.write_uint32_t_reverse_endianness(0x10000); // version
+        s.write_uint32_t_reverse_endianness(0x00); // flags
+        s.write_int32_t_reverse_endianness(obj->num_mesh);
+        s.write_int32_t_reverse_endianness(obj->num_material);
+        s.write_float_t_reverse_endianness(obj->bounding_sphere.center.x);
+        s.write_float_t_reverse_endianness(obj->bounding_sphere.center.y);
+        s.write_float_t_reverse_endianness(obj->bounding_sphere.center.z);
+        s.write_float_t_reverse_endianness(obj->bounding_sphere.radius);
         s.write_offset_x(oh.mesh_array);
         s.write_offset_x(oh.material_array);
         s.write(0x10);
         s.write_uint8_t(obj->flags);
         s.write(0x07);
-        s.write_uint32_t(obj->reserved[0]);
-        s.write_uint32_t(obj->reserved[1]);
-        s.write_uint32_t(obj->reserved[2]);
-        s.write_uint32_t(obj->reserved[3]);
-        s.write_uint32_t(obj->reserved[4]);
-        s.write_uint32_t(obj->reserved[5]);
-        s.write_uint32_t(obj->reserved[6]);
-        s.write_uint32_t(obj->reserved[7]);
-        s.write_uint32_t(obj->reserved[8]);
-        s.write_uint32_t(obj->reserved[9]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[0]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[1]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[2]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[3]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[4]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[5]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[6]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[7]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[8]);
+        s.write_uint32_t_reverse_endianness(obj->reserved[9]);
     }
     s.position_pop();
 
@@ -4437,7 +4418,7 @@ static void obj_modern_write_model(obj* obj, stream& s,
 
     oidx->header.signature = reverse_endianness_uint32_t('OIDX');
     oidx->header.length = 0x20;
-    oidx->header.use_big_endian = false;
+    oidx->header.use_big_endian = big_endian;
     oidx->header.use_section_size = true;
 
     s_ovtx.align_write(0x10);
@@ -4446,7 +4427,7 @@ static void obj_modern_write_model(obj* obj, stream& s,
 
     ovtx->header.signature = reverse_endianness_uint32_t('OVTX');
     ovtx->header.length = 0x20;
-    ovtx->header.use_big_endian = false;
+    ovtx->header.use_big_endian = big_endian;
     ovtx->header.use_section_size = true;
 }
 
@@ -4530,7 +4511,7 @@ static void obj_modern_read_skin(obj* obj, stream& s, int64_t base_offset,
                     sk->bones[i].parent = s.read_uint32_t_reverse_endianness();
             }
         }
-        free(bone_names_offsets);
+        free_def(bone_names_offsets);
     }
 
     if (sh.ex_data_offset) {
@@ -4595,7 +4576,7 @@ static void obj_modern_read_skin(obj* obj, stream& s, int64_t base_offset,
                     bone_names.push_back({});
                 buf_size += bone_names.back().size() + 1;
             }
-            free(strings_offsets);
+            free_def(strings_offsets);
 
             if (bone_names.size()) {
                 ex->bone_names_buf = force_malloc_s(char, buf_size);
@@ -4709,7 +4690,7 @@ static void obj_modern_read_skin(obj* obj, stream& s, int64_t base_offset,
                     break;
                 }
             }
-            free(bhs);
+            free_def(bhs);
         }
 
         if (exh.osage_sibling_infos_offset) {
@@ -4803,9 +4784,9 @@ static void obj_modern_write_skin(obj* obj, stream& s,
         off = align_val(off, 0x10);
     }
 
-    std::vector<std::string> strings;
+    std::vector<string_hash> strings;
     std::vector<int64_t> string_offsets;
-    std::vector<std::string> bone_names;
+    std::vector<string_hash> bone_names;
 
     obj_skin_ex_data_header exh = {};
 
@@ -5332,12 +5313,12 @@ static void obj_modern_write_skin(obj* obj, stream& s,
     if (sk->bones_count) {
         sh.bone_ids_offset = s.get_position();
         for (uint32_t i = 0; i < sk->bones_count; i++)
-            s.write_int32_t(sk->bones[i].id);
+            s.write_int32_t_reverse_endianness(sk->bones[i].id);
         s.align_write(0x10);
 
         sh.bone_parent_ids_offset = s.get_position();
         for (uint32_t i = 0; i < sk->bones_count; i++)
-            s.write_int32_t(sk->bones[i].parent);
+            s.write_int32_t_reverse_endianness(sk->bones[i].parent);
         s.align_write(0x10);
 
         sh.bone_names_offset = s.get_position();
@@ -5356,22 +5337,22 @@ static void obj_modern_write_skin(obj* obj, stream& s,
         sh.bone_matrices_offset = s.get_position();
         for (uint32_t i = 0; i < sk->bones_count; i++) {
             mat4& mat = sk->bones[i].inv_bind_pose_mat;
-            s.write_float_t(mat.row0.x);
-            s.write_float_t(mat.row1.x);
-            s.write_float_t(mat.row2.x);
-            s.write_float_t(mat.row3.x);
-            s.write_float_t(mat.row0.y);
-            s.write_float_t(mat.row1.y);
-            s.write_float_t(mat.row2.y);
-            s.write_float_t(mat.row3.y);
-            s.write_float_t(mat.row0.z);
-            s.write_float_t(mat.row1.z);
-            s.write_float_t(mat.row2.z);
-            s.write_float_t(mat.row3.z);
-            s.write_float_t(mat.row0.w);
-            s.write_float_t(mat.row1.w);
-            s.write_float_t(mat.row2.w);
-            s.write_float_t(mat.row3.w);
+            s.write_float_t_reverse_endianness(mat.row0.x);
+            s.write_float_t_reverse_endianness(mat.row1.x);
+            s.write_float_t_reverse_endianness(mat.row2.x);
+            s.write_float_t_reverse_endianness(mat.row3.x);
+            s.write_float_t_reverse_endianness(mat.row0.y);
+            s.write_float_t_reverse_endianness(mat.row1.y);
+            s.write_float_t_reverse_endianness(mat.row2.y);
+            s.write_float_t_reverse_endianness(mat.row3.y);
+            s.write_float_t_reverse_endianness(mat.row0.z);
+            s.write_float_t_reverse_endianness(mat.row1.z);
+            s.write_float_t_reverse_endianness(mat.row2.z);
+            s.write_float_t_reverse_endianness(mat.row3.z);
+            s.write_float_t_reverse_endianness(mat.row0.w);
+            s.write_float_t_reverse_endianness(mat.row1.w);
+            s.write_float_t_reverse_endianness(mat.row2.w);
+            s.write_float_t_reverse_endianness(mat.row3.w);
         }
         s.align_write(0x10);
     }
@@ -5462,10 +5443,10 @@ static void obj_modern_write_skin(obj* obj, stream& s,
 
         exh.bone_names_offset = s.get_position();
         if (!is_x)
-            for (std::string& i : bone_names)
+            for (string_hash& i : bone_names)
                 io_write_offset_f2_pof_add(s, 0, 0x20, &pof);
         else
-            for (std::string& i : bone_names)
+            for (string_hash& i : bone_names)
                 io_write_offset_x_pof_add(s, 0, &pof);
         s.align_write(0x10);
 
@@ -5844,16 +5825,16 @@ static void obj_modern_write_skin(obj* obj, stream& s,
     }
 
     if (sk->bones || sk->ex_data_init) {
-        quicksort_string(strings.data(), strings.size());
+        quicksort_string_hash(strings.data(), strings.size());
         string_offsets.reserve(strings.size());
-        for (std::string& i : strings) {
+        for (string_hash& i : strings) {
             string_offsets.push_back(s.get_position());
-            s.write_string_null_terminated(i);
+            s.write_string_null_terminated(i.str);
         }
     }
     s.align_write(0x10);
 
-    std::vector<std::string> osage_names;
+    std::vector<string_hash> osage_names;
     if (sk->ex_data_init) {
         obj_skin_ex_data* ex = &sk->ex_data;
 
@@ -6013,7 +5994,7 @@ static void obj_modern_write_skin(obj* obj, stream& s,
                 s.write_offset_x(0);
             }
             s.position_pop();
-            free(bhs);
+            free_def(bhs);
         }
     }
 
@@ -6040,13 +6021,13 @@ static void obj_modern_write_skin(obj* obj, stream& s,
         if (ex->blocks_count > 0) {
             s.position_push(exh.bone_names_offset, SEEK_SET);
             if (!is_x)
-                for (std::string& i : bone_names) {
+                for (string_hash& i : bone_names) {
                     size_t str_offset = obj_skin_strings_get_string_offset(strings,
                         string_offsets, i.c_str());
                     s.write_offset_f2(str_offset, 0x20);
                 }
             else
-                for (std::string& i : bone_names) {
+                for (string_hash& i : bone_names) {
                     size_t str_offset = obj_skin_strings_get_string_offset(strings,
                         string_offsets, i.c_str());
                     s.write_offset_x(str_offset);
@@ -6056,18 +6037,18 @@ static void obj_modern_write_skin(obj* obj, stream& s,
             s.position_push(exh.osage_nodes_offset, SEEK_SET);
             for (uint32_t i = 0; i < ex->osage_nodes_count; i++) {
                 obj_skin_osage_node* osage_node = &ex->osage_nodes[i];
-                s.write_uint32_t(osage_node->name_index);
-                s.write_float_t(osage_node->length);
-                s.write_uint32_t(0);
+                s.write_uint32_t_reverse_endianness(osage_node->name_index);
+                s.write_float_t_reverse_endianness(osage_node->length);
+                s.write_uint32_t_reverse_endianness(0);
             }
             s.position_pop();
 
             s.position_push(exh.osage_sibling_infos_offset, SEEK_SET);
             for (uint32_t i = 0; i < ex->osage_sibling_infos_count; i++) {
                 obj_skin_osage_sibling_info* osage_sibling_info = &ex->osage_sibling_infos[i];
-                s.write_uint32_t(osage_sibling_info->name_index);
-                s.write_uint32_t(osage_sibling_info->sibling_name_index);
-                s.write_float_t(osage_sibling_info->max_distance);
+                s.write_uint32_t_reverse_endianness(osage_sibling_info->name_index);
+                s.write_uint32_t_reverse_endianness(osage_sibling_info->sibling_name_index);
+                s.write_float_t_reverse_endianness(osage_sibling_info->max_distance);
             }
             s.write_int32_t(0);
             s.write_int32_t(0);
@@ -6078,13 +6059,13 @@ static void obj_modern_write_skin(obj* obj, stream& s,
             exh.osage_count -= exh.cloth_count;
             s.position_push(exh.osage_names_offset, SEEK_SET);
             if (!is_x)
-                for (std::string& i : osage_names) {
+                for (string_hash& i : osage_names) {
                     size_t str_offset = obj_skin_strings_get_string_offset(strings,
                         string_offsets, i.c_str());
                     s.write_offset_f2(str_offset, 0x20);
                 }
             else
-                for (std::string& i : osage_names) {
+                for (string_hash& i : osage_names) {
                     size_t str_offset = obj_skin_strings_get_string_offset(strings,
                         string_offsets, i.c_str());
                     s.write_offset_x(str_offset);
@@ -6094,16 +6075,16 @@ static void obj_modern_write_skin(obj* obj, stream& s,
 
         s.position_push(sh.ex_data_offset, SEEK_SET);
         if (!is_x) {
-            s.write_int32_t(exh.osage_count);
-            s.write_int32_t(ex->osage_nodes_count);
+            s.write_int32_t_reverse_endianness(exh.osage_count);
+            s.write_int32_t_reverse_endianness(ex->osage_nodes_count);
             s.write(0x04);
             s.write_offset_f2(exh.osage_nodes_offset, 0x20);
             s.write_offset_f2(exh.osage_names_offset, 0x20);
             s.write_offset_f2(exh.blocks_offset, 0x20);
-            s.write_int32_t(exh.bone_names_count);
+            s.write_int32_t_reverse_endianness(exh.bone_names_count);
             s.write_offset_f2(exh.bone_names_offset, 0x20);
             s.write_offset_f2(exh.osage_sibling_infos_offset, 0x20);
-            s.write_int32_t(exh.cloth_count);
+            s.write_int32_t_reverse_endianness(exh.cloth_count);
             s.write_offset_f2(ex->reserved[0], 0x20);
             s.write_offset_f2(ex->reserved[1], 0x20);
             s.write_offset_f2(ex->reserved[2], 0x20);
@@ -6113,16 +6094,16 @@ static void obj_modern_write_skin(obj* obj, stream& s,
             s.write_offset_f2(ex->reserved[6], 0x20);
         }
         else {
-            s.write_int32_t(exh.osage_count);
-            s.write_int32_t(ex->osage_nodes_count);
+            s.write_int32_t_reverse_endianness(exh.osage_count);
+            s.write_int32_t_reverse_endianness(ex->osage_nodes_count);
             s.write(0x08);
             s.write_offset_x(exh.osage_nodes_offset);
             s.write_offset_x(exh.osage_names_offset);
             s.write_offset_x(exh.blocks_offset);
-            s.write_int32_t(exh.bone_names_count);
+            s.write_int32_t_reverse_endianness(exh.bone_names_count);
             s.write_offset_x(exh.bone_names_offset);
             s.write_offset_x(exh.osage_sibling_infos_offset);
-            s.write_int32_t(exh.cloth_count);
+            s.write_int32_t_reverse_endianness(exh.cloth_count);
             s.write_offset_x(ex->reserved[0]);
             s.write_offset_x(ex->reserved[1]);
             s.write_offset_x(ex->reserved[2]);
@@ -6140,7 +6121,7 @@ static void obj_modern_write_skin(obj* obj, stream& s,
         s.write_offset_f2(sh.bone_matrices_offset, 0x20);
         s.write_offset_f2(sh.bone_names_offset, 0x20);
         s.write_offset_f2(sh.ex_data_offset, 0x20);
-        s.write_int32_t(sk->bones_count);
+        s.write_int32_t_reverse_endianness(sk->bones_count);
         s.write_offset_f2(sh.bone_parent_ids_offset, 0x20);
         s.write(0x0C);
     }
@@ -6149,7 +6130,7 @@ static void obj_modern_write_skin(obj* obj, stream& s,
         s.write_offset_x(sh.bone_matrices_offset);
         s.write_offset_x(sh.bone_names_offset);
         s.write_offset_x(sh.ex_data_offset);
-        s.write_int32_t(sk->bones_count);
+        s.write_int32_t_reverse_endianness(sk->bones_count);
         s.write_offset_x(sh.bone_parent_ids_offset);
         s.write(0x18);
     }
@@ -6274,7 +6255,7 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
         b->mesh_indices_count = s.read_uint16_t_reverse_endianness();
         b->mesh_indices = force_malloc_s(uint16_t, b->mesh_indices_count);
         s.read(b->mesh_indices, b->mesh_indices_count * sizeof(uint16_t));
-        if (s.is_big_endian) {
+        if (s.big_endian) {
             uint16_t* mesh_indices = b->mesh_indices;
             for (int32_t i = 0; i < b->mesh_indices_count; i++)
                 mesh_indices[i] = reverse_endianness_uint16_t(mesh_indices[i]);
@@ -6287,7 +6268,7 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
         b->backface_mesh_indices_count = s.read_uint16_t_reverse_endianness();
         b->backface_mesh_indices = force_malloc_s(uint16_t, b->backface_mesh_indices_count);
         s.read(b->backface_mesh_indices, b->backface_mesh_indices_count * sizeof(uint16_t));
-        if (s.is_big_endian) {
+        if (s.big_endian) {
             uint16_t* backface_mesh_indices = b->backface_mesh_indices;
             for (int32_t i = 0; i < b->backface_mesh_indices_count; i++)
                 backface_mesh_indices[i] = reverse_endianness_uint16_t(backface_mesh_indices[i]);
@@ -6298,7 +6279,7 @@ static void obj_modern_read_skin_block_cloth(obj_skin_block_cloth* b,
 }
 
 static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x,
     int64_t* mats_offset, int64_t* root_offset, int64_t* nodes_offset,
     int64_t* mesh_indices_offset, int64_t* backface_mesh_indices_offset) {
     int64_t mesh_name_offset = obj_skin_strings_get_string_offset(strings,
@@ -6309,54 +6290,54 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
     if (!is_x) {
         s.write_offset_f2(mesh_name_offset, 0x20);
         s.write_offset_f2(backface_mesh_name_offset, 0x20);
-        s.write_int32_t(b->field_8);
-        s.write_int32_t(b->root_count);
-        s.write_int32_t(b->nodes_count);
-        s.write_int32_t(b->field_14);
+        s.write_int32_t_reverse_endianness(b->field_8);
+        s.write_int32_t_reverse_endianness(b->root_count);
+        s.write_int32_t_reverse_endianness(b->nodes_count);
+        s.write_int32_t_reverse_endianness(b->field_14);
         s.write_offset_f2(b->nodes_count ? *mats_offset : 0, 0x20);
         s.write_offset_f2(b->root ? *root_offset : 0, 0x20);
         s.write_offset_f2(b->nodes ? *nodes_offset : 0, 0x20);
         s.write_offset_f2(b->mesh_indices ? *mesh_indices_offset : 0, 0x20);
         s.write_offset_f2(b->backface_mesh_indices ? *backface_mesh_indices_offset : 0, 0x20);
-        s.write_uint32_t(0);
-        s.write_uint32_t(b->reserved);
+        s.write_uint32_t_reverse_endianness(0);
+        s.write_uint32_t_reverse_endianness(b->reserved);
     }
     else {
         s.write_offset_x(mesh_name_offset);
         s.write_offset_x(backface_mesh_name_offset);
-        s.write_int32_t(b->field_8);
-        s.write_int32_t(b->root_count);
-        s.write_int32_t(b->nodes_count);
-        s.write_int32_t(b->field_14);
+        s.write_int32_t_reverse_endianness(b->field_8);
+        s.write_int32_t_reverse_endianness(b->root_count);
+        s.write_int32_t_reverse_endianness(b->nodes_count);
+        s.write_int32_t_reverse_endianness(b->field_14);
         s.write_offset_x(b->nodes_count ? *mats_offset : 0);
         s.write_offset_x(b->root ? *root_offset : 0);
         s.write_offset_x(b->nodes ? *nodes_offset : 0);
         s.write_offset_x(b->mesh_indices ? *mesh_indices_offset : 0);
         s.write_offset_x(b->backface_mesh_indices ? *backface_mesh_indices_offset : 0);
-        s.write_uint32_t(0);
-        s.write_uint32_t(b->reserved);
+        s.write_uint32_t_reverse_endianness(0);
+        s.write_uint32_t_reverse_endianness(b->reserved);
     }
 
     if (b->mats) {
         s.position_push(*mats_offset, SEEK_SET);
         for (uint32_t i = 0; i < b->mats_count; i++) {
             mat4& mat = b->mats[i];
-            s.write_float_t(mat.row0.x);
-            s.write_float_t(mat.row1.x);
-            s.write_float_t(mat.row2.x);
-            s.write_float_t(mat.row3.x);
-            s.write_float_t(mat.row0.y);
-            s.write_float_t(mat.row1.y);
-            s.write_float_t(mat.row2.y);
-            s.write_float_t(mat.row3.y);
-            s.write_float_t(mat.row0.z);
-            s.write_float_t(mat.row1.z);
-            s.write_float_t(mat.row2.z);
-            s.write_float_t(mat.row3.z);
-            s.write_float_t(mat.row0.w);
-            s.write_float_t(mat.row1.w);
-            s.write_float_t(mat.row2.w);
-            s.write_float_t(mat.row3.w);
+            s.write_float_t_reverse_endianness(mat.row0.x);
+            s.write_float_t_reverse_endianness(mat.row1.x);
+            s.write_float_t_reverse_endianness(mat.row2.x);
+            s.write_float_t_reverse_endianness(mat.row3.x);
+            s.write_float_t_reverse_endianness(mat.row0.y);
+            s.write_float_t_reverse_endianness(mat.row1.y);
+            s.write_float_t_reverse_endianness(mat.row2.y);
+            s.write_float_t_reverse_endianness(mat.row3.y);
+            s.write_float_t_reverse_endianness(mat.row0.z);
+            s.write_float_t_reverse_endianness(mat.row1.z);
+            s.write_float_t_reverse_endianness(mat.row2.z);
+            s.write_float_t_reverse_endianness(mat.row3.z);
+            s.write_float_t_reverse_endianness(mat.row0.w);
+            s.write_float_t_reverse_endianness(mat.row1.w);
+            s.write_float_t_reverse_endianness(mat.row2.w);
+            s.write_float_t_reverse_endianness(mat.row3.w);
             *mats_offset += sizeof(mat4);
         }
         s.position_pop();
@@ -6366,16 +6347,16 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
         s.position_push(*root_offset, SEEK_SET);
         for (uint32_t i = 0; i < b->root_count; i++) {
             obj_skin_block_cloth_root* f = &b->root[i];
-            s.write_float_t(f->trans.x);
-            s.write_float_t(f->trans.y);
-            s.write_float_t(f->trans.z);
-            s.write_float_t(f->normal.x);
-            s.write_float_t(f->normal.y);
-            s.write_float_t(f->normal.z);
-            s.write_float_t(f->field_18);
-            s.write_int32_t(f->field_1C);
-            s.write_int32_t(f->field_20);
-            s.write_int32_t(f->field_24);
+            s.write_float_t_reverse_endianness(f->trans.x);
+            s.write_float_t_reverse_endianness(f->trans.y);
+            s.write_float_t_reverse_endianness(f->trans.z);
+            s.write_float_t_reverse_endianness(f->normal.x);
+            s.write_float_t_reverse_endianness(f->normal.y);
+            s.write_float_t_reverse_endianness(f->normal.z);
+            s.write_float_t_reverse_endianness(f->field_18);
+            s.write_int32_t_reverse_endianness(f->field_1C);
+            s.write_int32_t_reverse_endianness(f->field_20);
+            s.write_int32_t_reverse_endianness(f->field_24);
 
             for (uint32_t j = 0; j < 4; j++)
                 obj_modern_write_skin_block_cloth_root_bone_weight(&f->bone_weights[j],
@@ -6395,17 +6376,17 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
         for (uint32_t i = 0; i < b->nodes_count - 1; i++)
             for (uint32_t j = 0; j < b->root_count; j++) {
                 obj_skin_block_cloth_node* f = &b->nodes[i * b->root_count + j];
-                s.write_uint32_t(f->flags);
-                s.write_float_t(f->trans.x);
-                s.write_float_t(f->trans.y);
-                s.write_float_t(f->trans.z);
-                s.write_float_t(f->trans_diff.x);
-                s.write_float_t(f->trans_diff.y);
-                s.write_float_t(f->trans_diff.z);
-                s.write_float_t(f->dist_top);
-                s.write_float_t(f->dist_bottom);
-                s.write_float_t(f->dist_right);
-                s.write_float_t(f->dist_left);
+                s.write_uint32_t_reverse_endianness(f->flags);
+                s.write_float_t_reverse_endianness(f->trans.x);
+                s.write_float_t_reverse_endianness(f->trans.y);
+                s.write_float_t_reverse_endianness(f->trans.z);
+                s.write_float_t_reverse_endianness(f->trans_diff.x);
+                s.write_float_t_reverse_endianness(f->trans_diff.y);
+                s.write_float_t_reverse_endianness(f->trans_diff.z);
+                s.write_float_t_reverse_endianness(f->dist_top);
+                s.write_float_t_reverse_endianness(f->dist_bottom);
+                s.write_float_t_reverse_endianness(f->dist_right);
+                s.write_float_t_reverse_endianness(f->dist_left);
             }
         s.position_pop();
         *nodes_offset += (11 * sizeof(int32_t)) * b->root_count * (b->nodes_count - 1ULL);
@@ -6413,16 +6394,18 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* b,
 
     if (b->mesh_indices) {
         s.position_push(*mesh_indices_offset, SEEK_SET);
-        s.write_uint16_t((uint16_t)b->mesh_indices_count);
-        s.write(b->mesh_indices, b->mesh_indices_count * sizeof(uint16_t));
+        s.write_uint16_t_reverse_endianness((uint16_t)b->mesh_indices_count);
+        for (size_t i = 0; i < b->mesh_indices_count; i++)
+            s.write_uint16_t_reverse_endianness(b->mesh_indices[i]);
         s.position_pop();
         *mesh_indices_offset += sizeof(uint16_t) + b->mesh_indices_count * sizeof(uint16_t);
     }
 
     if (b->backface_mesh_indices) {
         s.position_push(*backface_mesh_indices_offset, SEEK_SET);
-        s.write_uint16_t((uint16_t)b->backface_mesh_indices_count);
-        s.write(b->backface_mesh_indices, b->backface_mesh_indices_count * sizeof(uint16_t));
+        s.write_uint16_t_reverse_endianness((uint16_t)b->backface_mesh_indices_count);
+        for (size_t i = 0; i < b->backface_mesh_indices_count; i++)
+            s.write_uint16_t_reverse_endianness(b->backface_mesh_indices[i]);
         s.position_pop();
         *backface_mesh_indices_offset += sizeof(uint16_t) + b->backface_mesh_indices_count * sizeof(uint16_t);
     }
@@ -6440,13 +6423,13 @@ static void obj_modern_read_skin_block_cloth_root_bone_weight(obj_skin_block_clo
 }
 
 static void obj_modern_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* sub,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
     int64_t bone_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, sub->bone_name);
     s.write_offset(bone_name_offset, 0x20, is_x);
-    s.write_float_t(sub->weight);
-    s.write_uint32_t(sub->matrix_index);
-    s.write_uint32_t(sub->reserved);
+    s.write_float_t_reverse_endianness(sub->weight);
+    s.write_uint32_t_reverse_endianness(sub->matrix_index);
+    s.write_uint32_t_reverse_endianness(sub->reserved);
     if (is_x)
         s.write(0x04);
 }
@@ -6467,7 +6450,7 @@ static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
             b->name_index = 0x8000 | (int32_t)(i - str);
             break;
         }
-    free(name);
+    free_def(name);
 
     b->coupling = (obj_skin_block_constraint_coupling)s.read_int32_t_reverse_endianness();
 
@@ -6512,11 +6495,11 @@ static void obj_modern_read_skin_block_constraint(obj_skin_block_constraint* b,
     }
     else
         b->type = OBJ_SKIN_BLOCK_CONSTRAINT_NONE;
-    free(type);
+    free_def(type);
 }
 
 static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, char** bone_names,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, char** bone_names,
     bool is_x, int64_t* offsets) {
     obj_modern_write_skin_block_node(&b->base, s, strings, string_offsets, is_x);
 
@@ -6541,7 +6524,7 @@ static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
         string_offsets, bone_names, b->name_index);
     s.write_offset(name_offset, 0x20, is_x);
 
-    s.write_int32_t(b->coupling);
+    s.write_int32_t_reverse_endianness(b->coupling);
 
     int64_t source_node_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, b->source_node_name);
@@ -6549,19 +6532,19 @@ static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
 
     switch (b->type) {
     case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION:
-        s.write_float_t(b->orientation.offset.x);
-        s.write_float_t(b->orientation.offset.y);
-        s.write_float_t(b->orientation.offset.z);
+        s.write_float_t_reverse_endianness(b->orientation.offset.x);
+        s.write_float_t_reverse_endianness(b->orientation.offset.y);
+        s.write_float_t_reverse_endianness(b->orientation.offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION:
         obj_modern_write_skin_block_constraint_up_vector_old(&b->direction.up_vector,
             s, strings, string_offsets, is_x);
-        s.write_float_t(b->direction.align_axis.x);
-        s.write_float_t(b->direction.align_axis.y);
-        s.write_float_t(b->direction.align_axis.z);
-        s.write_float_t(b->direction.target_offset.x);
-        s.write_float_t(b->direction.target_offset.y);
-        s.write_float_t(b->direction.target_offset.z);
+        s.write_float_t_reverse_endianness(b->direction.align_axis.x);
+        s.write_float_t_reverse_endianness(b->direction.align_axis.y);
+        s.write_float_t_reverse_endianness(b->direction.align_axis.z);
+        s.write_float_t_reverse_endianness(b->direction.target_offset.x);
+        s.write_float_t_reverse_endianness(b->direction.target_offset.y);
+        s.write_float_t_reverse_endianness(b->direction.target_offset.z);
         break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION:
         obj_modern_write_skin_block_constraint_up_vector_old(&b->position.up_vector,
@@ -6574,7 +6557,7 @@ static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* b,
     case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
         obj_modern_write_skin_block_constraint_up_vector_old(&b->distance.up_vector,
             s, strings, string_offsets, is_x);
-        s.write_float_t(b->distance.distance);
+        s.write_float_t_reverse_endianness(b->distance.distance);
         obj_modern_write_skin_block_constraint_attach_point(&b->distance.constrained_object,
             s, strings, string_offsets, is_x);
         obj_modern_write_skin_block_constraint_attach_point(&b->distance.constraining_object,
@@ -6593,12 +6576,12 @@ static void obj_modern_read_skin_block_constraint_attach_point(obj_skin_block_co
 }
 
 static void obj_modern_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* ap,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
-    s.write_int32_t(ap->affected_by_orientation ? 1 : 0);
-    s.write_int32_t(ap->affected_by_scaling ? 1 : 0);
-    s.write_float_t(ap->offset.x);
-    s.write_float_t(ap->offset.y);
-    s.write_float_t(ap->offset.z);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
+    s.write_int32_t_reverse_endianness(ap->affected_by_orientation ? 1 : 0);
+    s.write_int32_t_reverse_endianness(ap->affected_by_scaling ? 1 : 0);
+    s.write_float_t_reverse_endianness(ap->offset.x);
+    s.write_float_t_reverse_endianness(ap->offset.y);
+    s.write_float_t_reverse_endianness(ap->offset.z);
 }
 
 static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
@@ -6617,15 +6600,15 @@ static void obj_modern_read_skin_block_constraint_up_vector_old(obj_skin_block_c
 }
 
 static void obj_modern_write_skin_block_constraint_up_vector_old(obj_skin_block_constraint_up_vector* up,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
-    s.write_int32_t(up->active ? 1 : 0);
-    s.write_float_t(up->roll);
-    s.write_float_t(up->affected_axis.x);
-    s.write_float_t(up->affected_axis.y);
-    s.write_float_t(up->affected_axis.z);
-    s.write_float_t(up->point_at.x);
-    s.write_float_t(up->point_at.y);
-    s.write_float_t(up->point_at.z);
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
+    s.write_int32_t_reverse_endianness(up->active ? 1 : 0);
+    s.write_float_t_reverse_endianness(up->roll);
+    s.write_float_t_reverse_endianness(up->affected_axis.x);
+    s.write_float_t_reverse_endianness(up->affected_axis.y);
+    s.write_float_t_reverse_endianness(up->affected_axis.z);
+    s.write_float_t_reverse_endianness(up->point_at.x);
+    s.write_float_t_reverse_endianness(up->point_at.y);
+    s.write_float_t_reverse_endianness(up->point_at.z);
 
     int64_t name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, up->name);
@@ -6645,10 +6628,10 @@ static void obj_modern_read_skin_block_expression(obj_skin_block_expression* b,
             b->name_index = 0x8000 | (int32_t)(i - str);
             break;
         }
-    free(name);
+    free_def(name);
 
     b->expressions_count = s.read_int32_t_reverse_endianness();
-    b->expressions_count = min(b->expressions_count, 9);
+    b->expressions_count = min_def(b->expressions_count, 9);
     if (!is_x)
         for (uint32_t i = 0; i < b->expressions_count; i++) {
             int64_t expression_offset = s.read_offset_f2(header_length);
@@ -6667,14 +6650,14 @@ static void obj_modern_read_skin_block_expression(obj_skin_block_expression* b,
 }
 
 static void obj_modern_write_skin_block_expression(obj_skin_block_expression* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, char** bone_names, bool is_x) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, char** bone_names, bool is_x) {
     obj_modern_write_skin_block_node(&b->base, s, strings, string_offsets, is_x);
 
     int64_t name_offset = obj_skin_strings_get_string_offset_by_index(strings,
         string_offsets, bone_names, b->name_index);
     s.write_offset(name_offset, 0x20, is_x);
 
-    s.write_int32_t(min(b->expressions_count, 9));
+    s.write_int32_t_reverse_endianness(min_def(b->expressions_count, 9));
     if (!is_x) {
         for (uint32_t i = 0; i < b->expressions_count && i < 9; i++) {
             int64_t expression_offset = obj_skin_strings_get_string_offset(strings,
@@ -6714,7 +6697,7 @@ static void obj_modern_read_skin_block_motion(obj_skin_block_motion* b,
                 b->name_index = 0x8000 | (int32_t)(i - str);
                 break;
             }
-        free(name);
+        free_def(name);
     }
     else
         b->name = s.read_utf8_string_null_terminated_offset(name_offset);
@@ -6759,7 +6742,7 @@ static void obj_modern_read_skin_block_motion(obj_skin_block_motion* b,
 }
 
 static void obj_modern_write_skin_block_motion(obj_skin_block_motion* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x,
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x,
     char** bone_names, int64_t* bone_names_offset, int64_t* bone_matrices_offset) {
     obj_modern_write_skin_block_node(&b->base, s, strings, string_offsets, is_x);
 
@@ -6771,36 +6754,36 @@ static void obj_modern_write_skin_block_motion(obj_skin_block_motion* b,
         name_offset = obj_skin_strings_get_string_offset(strings,
             string_offsets, b->name);
     s.write_offset(name_offset, 0x20, is_x);
-    s.write_int32_t(b->nodes_count);
+    s.write_int32_t_reverse_endianness(b->nodes_count);
     s.write_offset(b->nodes ? *bone_names_offset : 0, 0x20, is_x);
     s.write_offset(b->nodes ? *bone_matrices_offset : 0, 0x20, is_x);
 
     if (b->nodes) {
         s.position_push(*bone_names_offset, SEEK_SET);
         for (uint32_t i = 0; i < b->nodes_count; i++)
-            s.write_uint32_t(b->nodes[i].name_index);
+            s.write_uint32_t_reverse_endianness(b->nodes[i].name_index);
         s.position_pop();
         *bone_names_offset += b->nodes_count * sizeof(uint32_t);
 
         s.position_push(*bone_matrices_offset, SEEK_SET);
         for (uint32_t i = 0; i < b->nodes_count; i++) {
             mat4& mat = b->nodes[i].inv_bind_pose_mat;
-            s.write_float_t(mat.row0.x);
-            s.write_float_t(mat.row1.x);
-            s.write_float_t(mat.row2.x);
-            s.write_float_t(mat.row3.x);
-            s.write_float_t(mat.row0.y);
-            s.write_float_t(mat.row1.y);
-            s.write_float_t(mat.row2.y);
-            s.write_float_t(mat.row3.y);
-            s.write_float_t(mat.row0.z);
-            s.write_float_t(mat.row1.z);
-            s.write_float_t(mat.row2.z);
-            s.write_float_t(mat.row3.z);
-            s.write_float_t(mat.row0.w);
-            s.write_float_t(mat.row1.w);
-            s.write_float_t(mat.row2.w);
-            s.write_float_t(mat.row3.w);
+            s.write_float_t_reverse_endianness(mat.row0.x);
+            s.write_float_t_reverse_endianness(mat.row1.x);
+            s.write_float_t_reverse_endianness(mat.row2.x);
+            s.write_float_t_reverse_endianness(mat.row3.x);
+            s.write_float_t_reverse_endianness(mat.row0.y);
+            s.write_float_t_reverse_endianness(mat.row1.y);
+            s.write_float_t_reverse_endianness(mat.row2.y);
+            s.write_float_t_reverse_endianness(mat.row3.y);
+            s.write_float_t_reverse_endianness(mat.row0.z);
+            s.write_float_t_reverse_endianness(mat.row1.z);
+            s.write_float_t_reverse_endianness(mat.row2.z);
+            s.write_float_t_reverse_endianness(mat.row3.z);
+            s.write_float_t_reverse_endianness(mat.row0.w);
+            s.write_float_t_reverse_endianness(mat.row1.w);
+            s.write_float_t_reverse_endianness(mat.row2.w);
+            s.write_float_t_reverse_endianness(mat.row3.w);
         }
         s.position_pop();
         *bone_matrices_offset += b->nodes_count * sizeof(mat4);
@@ -6826,20 +6809,20 @@ static void obj_modern_read_skin_block_node(obj_skin_block_node* b,
 }
 
 static void obj_modern_write_skin_block_node(obj_skin_block_node* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
     int64_t parent_name_offset = obj_skin_strings_get_string_offset(strings,
         string_offsets, b->parent_name);
     s.write_offset(parent_name_offset, 0x20, is_x);
 
-    s.write_float_t(b->position.x);
-    s.write_float_t(b->position.y);
-    s.write_float_t(b->position.z);
-    s.write_float_t(b->rotation.x);
-    s.write_float_t(b->rotation.y);
-    s.write_float_t(b->rotation.z);
-    s.write_float_t(b->scale.x);
-    s.write_float_t(b->scale.y);
-    s.write_float_t(b->scale.z);
+    s.write_float_t_reverse_endianness(b->position.x);
+    s.write_float_t_reverse_endianness(b->position.y);
+    s.write_float_t_reverse_endianness(b->position.z);
+    s.write_float_t_reverse_endianness(b->rotation.x);
+    s.write_float_t_reverse_endianness(b->rotation.y);
+    s.write_float_t_reverse_endianness(b->rotation.z);
+    s.write_float_t_reverse_endianness(b->scale.x);
+    s.write_float_t_reverse_endianness(b->scale.y);
+    s.write_float_t_reverse_endianness(b->scale.z);
     if (is_x)
         s.write(0x04);
 }
@@ -6867,13 +6850,13 @@ static void obj_modern_read_skin_block_osage(obj_skin_block_osage* b,
 }
 
 static void obj_modern_write_skin_block_osage(obj_skin_block_osage* b,
-    stream& s, std::vector<std::string>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
+    stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
     obj_modern_write_skin_block_node(&b->base, s, strings, string_offsets, is_x);
 
-    s.write_int32_t(b->start_index);
-    s.write_int32_t(b->count);
-    s.write_uint32_t(b->external_name_index);
-    s.write_uint32_t(b->name_index);
+    s.write_int32_t_reverse_endianness(b->start_index);
+    s.write_int32_t_reverse_endianness(b->count);
+    s.write_uint32_t_reverse_endianness(b->external_name_index);
+    s.write_uint32_t_reverse_endianness(b->name_index);
 
     if (!is_x)
         s.write(0x14);
@@ -6920,15 +6903,14 @@ static void obj_modern_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mes
         normal.y = (float_t)s.read_int16_t_reverse_endianness();
         normal.z = (float_t)s.read_int16_t_reverse_endianness();
         s.read(0, 0x02);
-        vec3_div_min_max_scalar(normal, -32768.0f, 32767.0f, vtx[i].normal);
+        vtx[i].normal = vec3::div_min_max(normal, -32768.0f, 32767.0f);
 
         vec4 tangent;
         tangent.x = (float_t)s.read_int16_t_reverse_endianness();
         tangent.y = (float_t)s.read_int16_t_reverse_endianness();
         tangent.z = (float_t)s.read_int16_t_reverse_endianness();
         tangent.w = (float_t)s.read_int16_t_reverse_endianness();
-        vec4_div_min_max_scalar(tangent, -32768.0f, 32767.0f, tangent);
-        vtx[i].tangent = tangent;
+        vtx[i].tangent = vec4::div_min_max(tangent, -32768.0f, 32767.0f);
 
         vec2h texcoord0;
         texcoord0.x = s.read_half_t_reverse_endianness();
@@ -6971,7 +6953,7 @@ static void obj_modern_read_vertex(obj* obj, stream& s, int64_t* vertex, obj_mes
             bone_weight.y = (float_t)s.read_int16_t_reverse_endianness();
             bone_weight.z = (float_t)s.read_int16_t_reverse_endianness();
             bone_weight.w = (float_t)s.read_int16_t_reverse_endianness();
-            vec4_div_min_max_scalar(bone_weight, -32768.0f, 32767.0f, bone_weight);
+            bone_weight = vec4::div_min_max(bone_weight, -32768.0f, 32767.0f);
 
             vec4i bone_index;
             bone_index.x = (int32_t)s.read_uint8_t();
@@ -7057,69 +7039,66 @@ static void obj_modern_write_vertex(obj* obj, stream& s, bool is_x,
     vertex[13] = s.get_position();
     for (uint32_t i = 0; i < _num_vertex; i++) {
         vec3 position = vtx[i].position;
-        s.write_float_t(position.x);
-        s.write_float_t(position.y);
-        s.write_float_t(position.z);
+        s.write_float_t_reverse_endianness(position.x);
+        s.write_float_t_reverse_endianness(position.y);
+        s.write_float_t_reverse_endianness(position.z);
 
-        vec3 normal;
-        vec3_mult_min_max_scalar(vtx[i].normal, -32768.0f, 32767.0f, normal);
-        s.write_int16_t((int16_t)roundf(normal.x));
-        s.write_int16_t((int16_t)roundf(normal.y));
-        s.write_int16_t((int16_t)roundf(normal.z));
+        vec3 normal = vec3::mult_min_max(vtx[i].normal, -32768.0f, 32767.0f);
+        s.write_int16_t_reverse_endianness((int16_t)roundf(normal.x));
+        s.write_int16_t_reverse_endianness((int16_t)roundf(normal.y));
+        s.write_int16_t_reverse_endianness((int16_t)roundf(normal.z));
         s.write(0x02);
 
-        vec4 tangent = vtx[i].tangent;
-        vec4_mult_min_max_scalar(tangent, -32768.0f, 32767.0f, tangent);
-        s.write_int16_t((int16_t)roundf(tangent.x));
-        s.write_int16_t((int16_t)roundf(tangent.y));
-        s.write_int16_t((int16_t)roundf(tangent.z));
-        s.write_int16_t((int16_t)roundf(tangent.w));
+        vec4 tangent = vec4::mult_min_max(vtx[i].tangent, -32768.0f, 32767.0f);
+        s.write_int16_t_reverse_endianness((int16_t)roundf(tangent.x));
+        s.write_int16_t_reverse_endianness((int16_t)roundf(tangent.y));
+        s.write_int16_t_reverse_endianness((int16_t)roundf(tangent.z));
+        s.write_int16_t_reverse_endianness((int16_t)roundf(tangent.w));
 
         vec2h texcoord0;
         vec2_to_vec2h(vtx[i].texcoord0, texcoord0);
-        s.write_half_t(texcoord0.x);
-        s.write_half_t(texcoord0.y);
+        s.write_half_t_reverse_endianness(texcoord0.x);
+        s.write_half_t_reverse_endianness(texcoord0.y);
 
         vec2h texcoord1;
         vec2_to_vec2h(vtx[i].texcoord1, texcoord1);
-        s.write_half_t(texcoord1.x);
-        s.write_half_t(texcoord1.y);
+        s.write_half_t_reverse_endianness(texcoord1.x);
+        s.write_half_t_reverse_endianness(texcoord1.y);
 
         if (_vertex_flags == 0x06) {
             vec2h texcoord2;
             vec2_to_vec2h(vtx[i].texcoord2, texcoord2);
-            s.write_half_t(texcoord2.x);
-            s.write_half_t(texcoord2.y);
+            s.write_half_t_reverse_endianness(texcoord2.x);
+            s.write_half_t_reverse_endianness(texcoord2.y);
         }
         else if (_vertex_flags == 0x0A) {
             vec2h texcoord2;
             vec2_to_vec2h(vtx[i].texcoord2, texcoord2);
-            s.write_half_t(texcoord2.x);
-            s.write_half_t(texcoord2.y);
+            s.write_half_t_reverse_endianness(texcoord2.x);
+            s.write_half_t_reverse_endianness(texcoord2.y);
 
             vec2h texcoord3;
             vec2_to_vec2h(vtx[i].texcoord3, texcoord3);
-            s.write_half_t(texcoord3.x);
-            s.write_half_t(texcoord3.y);
+            s.write_half_t_reverse_endianness(texcoord3.x);
+            s.write_half_t_reverse_endianness(texcoord3.y);
         }
 
         vec4h color;
         vec4_to_vec4h(vtx[i].color0, color);
-        s.write_half_t(color.x);
-        s.write_half_t(color.y);
-        s.write_half_t(color.z);
-        s.write_half_t(color.w);
+        s.write_half_t_reverse_endianness(color.x);
+        s.write_half_t_reverse_endianness(color.y);
+        s.write_half_t_reverse_endianness(color.z);
+        s.write_half_t_reverse_endianness(color.w);
 
         if (_vertex_flags == 0x04) {
-            vec4 bone_weight = vtx[i].bone_weight;
-            vec4_mult_min_max_scalar(bone_weight, -32768.0f, 32767.0f, bone_weight);
-            s.write_int16_t((int16_t)bone_weight.x);
-            s.write_int16_t((int16_t)bone_weight.y);
-            s.write_int16_t((int16_t)bone_weight.z);
-            s.write_int16_t((int16_t)bone_weight.w);
+            vec4 bone_weight = vec4::mult_min_max(vtx[i].bone_weight, -32768.0f, 32767.0f);
+            s.write_int16_t_reverse_endianness((int16_t)bone_weight.x);
+            s.write_int16_t_reverse_endianness((int16_t)bone_weight.y);
+            s.write_int16_t_reverse_endianness((int16_t)bone_weight.z);
+            s.write_int16_t_reverse_endianness((int16_t)bone_weight.w);
 
             vec4u8 bone_index;
-            vec4_to_vec4u8(vtx[i].bone_index, bone_index)
+            vec4i_to_vec4u8(vtx[i].bone_index, bone_index);
             s.write_uint8_t(bone_index.x);
             s.write_uint8_t(bone_index.y);
             s.write_uint8_t(bone_index.z);
@@ -7133,58 +7112,68 @@ static void obj_modern_write_vertex(obj* obj, stream& s, bool is_x,
 }
 
 inline static void obj_skin_block_node_free(obj_skin_block_node* b) {
-    free(b->parent_name);
+    free_def(b->parent_name);
 }
 
-inline static uint32_t obj_skin_strings_get_string_index(std::vector<std::string>& vec, const char* str) {
+inline static uint32_t obj_skin_strings_get_string_index(std::vector<string_hash>& vec, const char* str) {
     size_t len = utf8_length(str);
-    for (std::string& i : vec)
-        if (!memcmp(str, i.c_str(), min(len, i.size()) + 1))
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(str);
+    for (string_hash& i : vec)
+        if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
             return (uint32_t)(0x8000 | &i - vec.data());
     return 0x8000;
 }
 
-inline static int64_t obj_skin_strings_get_string_offset(std::vector<std::string>& vec,
+inline static int64_t obj_skin_strings_get_string_offset(std::vector<string_hash>& vec,
     std::vector<int64_t>& vec_off, const char* str) {
     size_t len = utf8_length(str);
-    for (std::string& i : vec)
-        if (!memcmp(str, i.c_str(), min(len, i.size()) + 1))
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(str);
+    for (string_hash& i : vec)
+        if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
             return vec_off[&i - vec.data()];
     return 0;
 }
 
-inline static int64_t obj_skin_strings_get_string_offset_by_index(std::vector<std::string>& vec,
+inline static int64_t obj_skin_strings_get_string_offset_by_index(std::vector<string_hash>& vec,
     std::vector<int64_t>& vec_off, char** strings, uint32_t index) {
     if (~index & 0x8000)
         return 0;
 
     char* str = strings[index & 0x7FFF];
     size_t len = utf8_length(str);
-    for (std::string& i : vec)
-        if (!memcmp(str, i.c_str(), min(len, i.size()) + 1))
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(str);
+    for (string_hash& i : vec)
+        if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
             return vec_off[&i - vec.data()];
     return 0;
 }
 
-inline static void obj_skin_strings_push_back_check(std::vector<std::string>& vec, const char* str) {
+inline static void obj_skin_strings_push_back_check(std::vector<string_hash>& vec, const char* str) {
     size_t len = utf8_length(str);
-    for (std::string& i : vec)
-        if (!memcmp(str, i.c_str(), min(len, i.size()) + 1))
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(str);
+    for (string_hash& i : vec)
+        if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
             return;
 
-    vec.push_back(std::string(str, len));
+    vec.push_back(str);
 }
 
-inline static void obj_skin_strings_push_back_check_by_index(std::vector<std::string>& vec,
+inline static void obj_skin_strings_push_back_check_by_index(std::vector<string_hash>& vec,
     char** strings, uint32_t index) {
     if (~index & 0x8000)
         return;
 
     char* str = strings[index & 0x7FFF];
     size_t len = utf8_length(str);
-    for (std::string& i : vec)
-        if (!memcmp(str, i.c_str(), min(len, i.size()) + 1))
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(str);
+    for (string_hash& i : vec)
+        if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
             return;
 
-    vec.push_back(std::string(str, len));
+    vec.push_back(str);
 }

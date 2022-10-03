@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <vector>
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/image.hpp"
 #include "../KKdLib/txp.hpp"
@@ -83,4 +82,9 @@ extern texture* texture_storage_get_texture(texture_id id);
 extern size_t texture_storage_get_texture_count();
 extern texture* texture_storage_get_texture_by_index(size_t index);
 extern void texture_storage_delete_texture(texture_id id);
+extern void texture_storage_set_texture_wrap(GLuint texture, GLint wrap_s, GLint wrap_t);
+extern void texture_storage_set_texture_wrap(GLuint texture, GLint wrap_s, GLint wrap_t, GLint wrap_r);
+extern void texture_storage_set_texture_wrap_s(GLuint texture, GLint wrap);
+extern void texture_storage_set_texture_wrap_t(GLuint texture, GLint wrap);
+extern void texture_storage_set_texture_wrap_r(GLuint texture, GLint wrap);
 extern void texture_storage_free();

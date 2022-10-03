@@ -109,10 +109,16 @@ void draw_pass_main(render_context* rctx) {
             break;
         case DRAW_PASS_CLEAR: {
             rctx->post_process.rend_texture.bind();
-            vec4 _clear_color;
-            vec4u8_to_vec4(clear_color, _clear_color);
-            vec4_mult_scalar(_clear_color, (float_t)(1.0 / 255.0), _clear_color);
-            glClearBufferfv(GL_COLOR, 0, (GLfloat*)&_clear_color);
+            if (set_clear_color) {
+                vec4 _clear_color;
+                vec4u8_to_vec4(clear_color, _clear_color);
+                _clear_color *= (float_t)(1.0 / 255.0);
+                glClearBufferfv(GL_COLOR, 0, (GLfloat*)&_clear_color);
+            }
+            else {
+                vec4 _clear_color = {};
+                glClearBufferfv(GL_COLOR, 0, (GLfloat*)&_clear_color);
+            }
             //sub_140501470(rctx, &rctx->draw_pass);
         } break;
         case DRAW_PASS_PRE_SPRITE:
@@ -523,11 +529,8 @@ static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
     camera* cam = rctx->camera;
     float_t v3 = 1.0f / tanf((float_t)(cam->fov_rad * 0.5));
 
-    vec3 direction;
-    vec3_sub(cam->interest, cam->view_point, direction);
-    vec3_normalize(direction, direction);
-    float_t length;
-    vec3_length(direction, length);
+    vec3 direction = cam->interest - cam->view_point;
+    float_t length = vec3::length(direction);
     float_t v7 = direction.y;
     if (length != 0.0)
         v7 /= length;
@@ -607,7 +610,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
             mat4* mat = rob_chara_bone_data_get_mats_mat(v16, MOTION_BONE_N_HARA_CP);
             if (mat) {
                 mat4_get_translation(mat, &chara_position[i]);
-                vec3_distance(view_point, chara_position[i], chara_distance[i]);
+                chara_distance[i] = vec3::distance(view_point, chara_position[i]);
             }
         }
     }
@@ -620,13 +623,11 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     else
         closest_chara_position = chara_position[0];
 
-    float_t length;
-    vec3_distance(interest, closest_chara_position, length);
+    float_t length = vec3::distance(interest, closest_chara_position);
     if (length > 1.25f)
         interest = chara_position[0];
 
-    float_t v29;
-    vec3_distance(view_point, interest, v29);
+    float_t v29 = vec3::distance(view_point, interest);
     if (v29 < 0.25f)
         v29 = 0.25f;
     float_t v31 = tanf((float_t)(rctx->camera->fov_rad * 0.5)) * 5.0f;
@@ -634,7 +635,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
         v31 = 0.25f;
     float_t v32 = v31 * v29;
     float_t v33 = 0.6f;
-    float_t v34 = 1.0f / clamp(v32, 0.25f, 100.0f);
+    float_t v34 = 1.0f / clamp_def(v32, 0.25f, 100.0f);
     if (v34 < 0.145) {
         float_t v36 = v34 - 0.02f;
         if (v34 < 0.0f)
@@ -718,11 +719,13 @@ static void draw_pass_reflect(render_context* rctx, draw_pass* a1) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         rctx->draw_state.shader_index = SHADER_FT_S_REFL;
-        bool clip_plane[4];
+
         light_set* set = &rctx->light_set[LIGHT_SET_MAIN];
+        light_clip_plane clip_plane;
         set->lights[LIGHT_SPOT].get_clip_plane(clip_plane);
         uniform_value[U_REFLECT] = 2;
-        uniform_value[U_CLIP_PLANE] = clip_plane[1];
+        uniform_value[U_CLIP_PLANE] = clip_plane.data[1];
+
         gl_state_enable_depth_test();
         gl_state_set_depth_func(GL_LEQUAL);
         gl_state_set_depth_mask(GL_TRUE);
@@ -737,7 +740,7 @@ static void draw_pass_reflect(render_context* rctx, draw_pass* a1) {
 
         if (a1->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP) {
             uniform_value[U_REFLECT] = a1->field_31E;
-            uniform_value[U_CLIP_PLANE] = clip_plane[0];
+            uniform_value[U_CLIP_PLANE] = clip_plane.data[0];
             draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_REFLECT_CHARA_OPAQUE, 0, 0, 1, -1);
         }
         gl_state_disable_depth_test();

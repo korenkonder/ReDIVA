@@ -5,8 +5,9 @@
 
 #include "pvsr.hpp"
 #include "f2/struct.hpp"
+#include "io/file_stream.hpp"
+#include "io/memory_stream.hpp"
 #include "io/path.hpp"
-#include "io/stream.hpp"
 #include "str_utils.hpp"
 
 static void pvsr_auth_3d_read(pvsr_auth_3d* a3d, stream& s);
@@ -86,7 +87,7 @@ pvsr_stage_effect_env::~pvsr_stage_effect_env() {
 
 }
 
-pvsr::pvsr() : ready() {
+pvsr::pvsr() : ready(), big_endian() {
 
 }
 
@@ -100,12 +101,12 @@ void pvsr::read(const char* path) {
 
     char* path_pvsr = str_utils_add(path, ".pvsr");
     if (path_check_file_exists(path_pvsr)) {
-        stream s;
+        file_stream s;
         s.open(path_pvsr, "rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             pvsr_read_inner(this, s);
     }
-    free(path_pvsr);
+    free_def(path_pvsr);
 }
 
 void pvsr::read(const wchar_t* path) {
@@ -114,19 +115,19 @@ void pvsr::read(const wchar_t* path) {
 
     wchar_t* path_pvsr = str_utils_add(path, L".pvsr");
     if (path_check_file_exists(path_pvsr)) {
-        stream s;
+        file_stream s;
         s.open(path_pvsr, L"rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             pvsr_read_inner(this, s);
     }
-    free(path_pvsr);
+    free_def(path_pvsr);
 }
 
 void pvsr::read(const void* data, size_t size) {
     if (!data || !size)
         return;
 
-    stream s;
+    memory_stream s;
     s.open(data, size);
     pvsr_read_inner(this, s);
 }
@@ -175,12 +176,17 @@ static void pvsr_glitter_read(pvsr_glitter* glt, stream& s) {
 static void pvsr_read_inner(pvsr* sr, stream& s) {
     f2_struct st;
     st.read(s);
-    if (st.header.signature != reverse_endianness_uint32_t('PVSR') || !st.data.data())
+    if (st.header.signature != reverse_endianness_uint32_t('PVSR') || !st.data.data()) {
+        sr->ready = false;
+        sr->big_endian = false;
         return;
+    }
 
-    stream s_pvsr;
+    bool big_endian = st.header.use_big_endian;
+
+    memory_stream s_pvsr;
     s_pvsr.open(st.data);
-    s_pvsr.is_big_endian = st.header.use_big_endian;
+    s_pvsr.big_endian = big_endian;
 
     int32_t x00 = s_pvsr.read_int32_t_reverse_endianness();
     uint8_t x04 = s_pvsr.read_uint8_t();
@@ -273,6 +279,7 @@ static void pvsr_read_inner(pvsr* sr, stream& s) {
     }
 
     sr->ready = true;
+    sr->big_endian = big_endian;
 }
 
 static void pvsr_stage_change_effect_read(pvsr_stage_change_effect* stg_chg_eff, stream& s) {

@@ -26,8 +26,9 @@ static int quicksort_char_ptr_compare(void const* src1, void const* src2);
 static int quicksort_wchar_t_ptr_compare(void const* src1, void const* src2);
 static int quicksort_std_string_compare(void const* src1, void const* src2);
 static int quicksort_std_wstring_compare(void const* src1, void const* src2);
+static int quicksort_string_hash_compare(void const* src1, void const* src2);
 
-inline void radix_sort_int8_t(int8_t* arr, size_t n) {
+void radix_sort_int8_t(int8_t* arr, size_t n) {
     if (n <= 1)
         return;
 
@@ -71,10 +72,10 @@ void radix_sort_uint8_t(uint8_t* arr, size_t n) {
         memmove(arr, o, sizeof(uint8_t) * n);
     }
 
-    free(o);
+    free_def(o);
 }
 
-inline void radix_sort_int16_t(int16_t* arr, size_t n) {
+void radix_sort_int16_t(int16_t* arr, size_t n) {
     if (n <= 1)
         return;
 
@@ -118,10 +119,10 @@ void radix_sort_uint16_t(uint16_t* arr, size_t n) {
         memmove(arr, o, sizeof(uint16_t) * n);
     }
 
-    free(o);
+    free_def(o);
 }
 
-inline void radix_sort_int32_t(int32_t* arr, size_t n) {
+void radix_sort_int32_t(int32_t* arr, size_t n) {
     if (n <= 1)
         return;
 
@@ -165,10 +166,10 @@ void radix_sort_uint32_t(uint32_t* arr, size_t n) {
         memmove(arr, o, sizeof(uint32_t) * n);
     }
 
-    free(o);
+    free_def(o);
 }
 
-inline void radix_sort_int64_t(int64_t* arr, size_t n) {
+void radix_sort_int64_t(int64_t* arr, size_t n) {
     if (n <= 1)
         return;
 
@@ -212,10 +213,10 @@ void radix_sort_uint64_t(uint64_t* arr, size_t n) {
         memmove(arr, o, sizeof(uint64_t) * n);
     }
 
-    free(o);
+    free_def(o);
 }
 
-inline void radix_sort_ssize_t(ssize_t* arr, size_t n) {
+void radix_sort_ssize_t(ssize_t* arr, size_t n) {
     if (n <= 1)
         return;
 
@@ -259,7 +260,7 @@ void radix_sort_size_t(size_t* arr, size_t n) {
         memmove(arr, o, sizeof(size_t) * n);
     }
 
-    free(o);
+    free_def(o);
 }
 
 void radix_sort_custom(void* arr, size_t n, size_t size, size_t idx_len, radix_index_func idx_func) {
@@ -298,46 +299,46 @@ void radix_sort_custom(void* arr, size_t n, size_t size, size_t idx_len, radix_i
         memmove(a, o, size * n);
     }
 
-    free(o);
+    free_def(o);
 }
 
-inline void quicksort_int8_t(int8_t* arr, size_t n) {
+void quicksort_int8_t(int8_t* arr, size_t n) {
     qsort(arr, n, sizeof(int8_t), quicksort_int8_t_compare);
 }
 
-inline void quicksort_uint8_t(uint8_t* arr, size_t n) {
+void quicksort_uint8_t(uint8_t* arr, size_t n) {
     qsort(arr, n, sizeof(uint8_t), quicksort_uint8_t_compare);
 }
 
-inline void quicksort_int16_t(int16_t* arr, size_t n) {
+void quicksort_int16_t(int16_t* arr, size_t n) {
     qsort(arr, n, sizeof(int16_t), quicksort_int16_t_compare);
 }
 
-inline void quicksort_uint16_t(uint16_t* arr, size_t n) {
+void quicksort_uint16_t(uint16_t* arr, size_t n) {
     qsort(arr, n, sizeof(uint16_t), quicksort_uint16_t_compare);
 }
 
-inline void quicksort_int32_t(int32_t* arr, size_t n) {
+void quicksort_int32_t(int32_t* arr, size_t n) {
     qsort(arr, n, sizeof(int32_t), quicksort_int32_t_compare);
 }
 
-inline void quicksort_uint32_t(uint32_t* arr, size_t n) {
+void quicksort_uint32_t(uint32_t* arr, size_t n) {
     qsort(arr, n, sizeof(uint32_t), quicksort_uint32_t_compare);
 }
 
-inline void quicksort_int64_t(int64_t* arr, size_t n) {
+void quicksort_int64_t(int64_t* arr, size_t n) {
     qsort(arr, n, sizeof(int64_t), quicksort_int64_t_compare);
 }
 
-inline void quicksort_uint64_t(uint64_t* arr, size_t n) {
+void quicksort_uint64_t(uint64_t* arr, size_t n) {
     qsort(arr, n, sizeof(uint64_t), quicksort_uint64_t_compare);
 }
 
-inline void quicksort_ssize_t(ssize_t* arr, size_t n) {
+void quicksort_ssize_t(ssize_t* arr, size_t n) {
     qsort(arr, n, sizeof(ssize_t), quicksort_ssize_t_compare);
 }
 
-inline void quicksort_size_t(size_t* arr, size_t n) {
+void quicksort_size_t(size_t* arr, size_t n) {
     qsort(arr, n, sizeof(size_t), quicksort_size_t_compare);
 }
 
@@ -349,15 +350,19 @@ void quicksort_wchar_t_ptr(wchar_t** arr, size_t n) {
     qsort(arr, n, sizeof(wchar_t*), quicksort_wchar_t_ptr_compare);
 }
 
-inline void quicksort_string(std::string* arr, size_t n) {
+void quicksort_string(std::string* arr, size_t n) {
     qsort(arr, n, sizeof(std::string), quicksort_std_string_compare);
 }
 
-inline void quicksort_wstring(std::wstring* arr, size_t n) {
+void quicksort_wstring(std::wstring* arr, size_t n) {
     qsort(arr, n, sizeof(std::wstring), quicksort_std_wstring_compare);
 }
 
-inline void quicksort_custom(void* arr, size_t n, size_t s, quicksort_compare_func comp_finc) {
+void quicksort_string_hash(string_hash* arr, size_t n) {
+    qsort(arr, n, sizeof(string_hash), quicksort_string_hash_compare);
+}
+
+void quicksort_custom(void* arr, size_t n, size_t s, quicksort_compare_func comp_finc) {
     qsort(arr, n, s, comp_finc);
 }
 
@@ -436,11 +441,17 @@ static int quicksort_wchar_t_ptr_compare(void const* src1, void const* src2) {
 static int quicksort_std_string_compare(void const* src1, void const* src2) {
     std::string* str1 = (std::string*)src1;
     std::string* str2 = (std::string*)src2;
-    return str_utils_compare_length(str1->c_str(), str1->size(), str2->c_str(), str2->size());
+    return str_utils_compare(str1->c_str(), str2->c_str());
 }
 
 static int quicksort_std_wstring_compare(void const* src1, void const* src2) {
     std::wstring* str1 = (std::wstring*)src1;
     std::wstring* str2 = (std::wstring*)src2;
-    return str_utils_compare_length(str1->c_str(), str1->size(), str2->c_str(), str2->size());
+    return str_utils_compare(str1->c_str(), str2->c_str());
+}
+
+static int quicksort_string_hash_compare(void const* src1, void const* src2) {
+    string_hash* str1 = (string_hash*)src1;
+    string_hash* str2 = (string_hash*)src2;
+    return str_utils_compare(str1->c_str(), str2->c_str());
 }

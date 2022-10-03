@@ -108,6 +108,7 @@ struct pvpp_chara {
 
 struct pvpp {
     bool ready;
+    bool big_endian;
 
     std::vector<pvpp_chara> chara;
     std::vector<pvpp_effect> effect;

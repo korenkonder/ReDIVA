@@ -1193,8 +1193,8 @@ void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select) {
         v23 = (v28 + v21) / (2.0f * v10);
         v22 = (v28 - v21) / (2.0f * v20);
 
-        v23 = clamp(v23, -1.0f, 1.0f);
-        v22 = clamp(v22, -1.0f, 1.0f);
+        v23 = clamp_def(v23, -1.0f, 1.0f);
+        v22 = clamp_def(v22, -1.0f, 1.0f);
 
         v24 = sqrtf(1.0f - v23 * v23);
         v25 = sqrtf(1.0f - v22 * v22);
@@ -2982,7 +2982,7 @@ static void sub_140412BB0(motion_blend_mot* a1, vector_old_bone_data* a2) {
 }
 
 static void sub_1403FBF10(MotionBlend* a1, float_t a2) {
-    a1->blend = clamp(a2, 0.0f, 1.0f);
+    a1->blend = clamp_def(a2, 0.0f, 1.0f);
     a1->field_8 = 1;
     a1->rot_y = true;
 }
@@ -3690,10 +3690,10 @@ void rob_chara_reset_data(rob_chara* a1, rob_chara_pv_data* a2) {
 }
 
 static void skin_param_hinge_limit(skin_param_hinge* hinge) {
-    hinge->ymin = max(hinge->ymin, -179.0f) * DEG_TO_RAD_FLOAT;
-    hinge->ymax = min(hinge->ymax, 179.0f) * DEG_TO_RAD_FLOAT;
-    hinge->zmin = max(hinge->zmin, -179.0f) * DEG_TO_RAD_FLOAT;
-    hinge->zmax = min(hinge->zmax, 179.0f) * DEG_TO_RAD_FLOAT;
+    hinge->ymin = max_def(hinge->ymin, -179.0f) * DEG_TO_RAD_FLOAT;
+    hinge->ymax = min_def(hinge->ymax, 179.0f) * DEG_TO_RAD_FLOAT;
+    hinge->zmin = max_def(hinge->zmin, -179.0f) * DEG_TO_RAD_FLOAT;
+    hinge->zmax = min_def(hinge->zmax, 179.0f) * DEG_TO_RAD_FLOAT;
 }
 
 static void rob_osage_node_data_init(rob_osage_node_data *node_data) {
@@ -4505,7 +4505,7 @@ static int32_t sub_140483EA0(vec3* a1, vec3* a2, osage_coli* a3, float_t radius)
     vec3_dot(v63, a3->bone_pos_diff, v36);
     v36 *= v25;
     float_t v37 = v36 * v36;
-    v37 = min(v37, 1.0f);
+    v37 = min_def(v37, 1.0f);
     v22 *= 0.5f;
     float_t v38 = v22 * v22 - v61;
     if (v38 < 0.0f)
@@ -5075,7 +5075,7 @@ void ExOsageBlock__Field_20(ExOsageBlock* osg) {
 }
 
 void sub_140482DF0(struc_477* dst, struc_477* src0, struc_477* src1, float_t blend) {
-    dst->length = lerp(src0->length, src1->length, blend);
+    dst->length = lerp_def(src0->length, src1->length, blend);
     vec3_lerp_scalar(src0->angle, src1->angle, dst->angle, blend);
 }
 
@@ -5188,8 +5188,8 @@ void sub_14047E240(rob_osage* rob_osg, mat4* a2, vec3* a3, vector_old_opd_blend_
     for (rob_osage_node* i = rob_osg->nodes.begin + 1; i != rob_osg->nodes.end; i++) {
         float_t v54 = i->field_1B0.field_0.angle.y;
         float_t v55 = i->field_1B0.field_0.angle.z;
-        v54 = clamp(v54, (float_t)-M_PI, (float_t)M_PI);
-        v55 = clamp(v55, (float_t)-M_PI, (float_t)M_PI);
+        v54 = clamp_def(v54, (float_t)-M_PI, (float_t)M_PI);
+        v55 = clamp_def(v55, (float_t)-M_PI, (float_t)M_PI);
         mat4_rotate_z_mult(&v85, v55, &v85);
         mat4_rotate_y_mult(&v85, v54, &v85);
         mat4_transpose(&v85, &v85);
@@ -5273,7 +5273,7 @@ void ExOsageBlock__Field_50(ExOsageBlock* osg) {
     rob_osage_coli_set(&osg->rob, osg->mat);
     sub_14047C770(&osg->rob, parent_node->ex_data_mat, &parent_scale, osg->step, 1);
     float_t step = 0.5f * osg->step;
-    osg->step = max(step, 1.0f);
+    osg->step = max_def(step, 1.0f);
 }
 
 bool sub_14053D1B0(vec3* l_trans, vec3* r_trans,

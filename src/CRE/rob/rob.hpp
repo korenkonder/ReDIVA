@@ -3273,6 +3273,7 @@ extern void rob_chara_array_set_alpha_draw_task_flags(int32_t chara_id, float_t 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
 
 extern bool pv_osage_manager_array_get_disp();
+extern void pv_osage_manager_array_set_not_reset_true();
 extern void pv_osage_manager_array_set_pv_id(int32_t chara_id, int32_t pv_id, bool reset);
 extern void pv_osage_manager_array_set_pv_set_motion(
     int32_t chara_id, std::vector<pv_data_set_motion>& set_motion);

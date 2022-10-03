@@ -4,8 +4,9 @@
 */
 
 #include "auth_3d.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../key_val.hpp"
 #include "../hash.hpp"
 #include "../sort.hpp"
@@ -35,12 +36,12 @@ void auth_3d_database_file::read(const char* path) {
 
     char* path_bin = str_utils_add(path, ".bin");
     if (path_check_file_exists(path_bin)) {
-        stream s;
+        file_stream s;
         s.open(path_bin, "rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             auth_3d_database_file_read_inner(this, s);
     }
-    free(path_bin);
+    free_def(path_bin);
 }
 
 void auth_3d_database_file::read(const wchar_t* path) {
@@ -49,19 +50,19 @@ void auth_3d_database_file::read(const wchar_t* path) {
 
     wchar_t* path_bin = str_utils_add(path, L".bin");
     if (path_check_file_exists(path_bin)) {
-        stream s;
+        file_stream s;
         s.open(path_bin, L"rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             auth_3d_database_file_read_inner(this, s);
     }
-    free(path_bin);
+    free_def(path_bin);
 }
 
 void auth_3d_database_file::read(const void* data, size_t size) {
     if (!data || !size)
         return;
 
-    stream s;
+    memory_stream s;
     s.open(data, size);
     auth_3d_database_file_read_inner(this, s);
 }
@@ -71,11 +72,11 @@ void auth_3d_database_file::write(const char* path) {
         return;
 
     char* path_bin = str_utils_add(path, ".bin");
-    stream s;
+    file_stream s;
     s.open(path_bin, "wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         auth_3d_database_file_write_inner(this, s);
-    free(path_bin);
+    free_def(path_bin);
 }
 
 void auth_3d_database_file::write(const wchar_t* path) {
@@ -83,18 +84,18 @@ void auth_3d_database_file::write(const wchar_t* path) {
         return;
 
     wchar_t* path_bin = str_utils_add(path, L".bin");
-    stream s;
+    file_stream s;
     s.open(path_bin, L"wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         auth_3d_database_file_write_inner(this, s);
-    free(path_bin);
+    free_def(path_bin);
 }
 
 void auth_3d_database_file::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     auth_3d_database_file_write_inner(this, s);
     s.copy(data, size);
@@ -304,7 +305,7 @@ static void auth_3d_database_file_read_inner(auth_3d_database_file* auth_3d_db_f
     void* a3da_data = force_malloc(string_length);
     s.read(a3da_data, string_length);
     auth_3d_database_file_read_text(auth_3d_db_file, a3da_data, string_length);
-    free(a3da_data);
+    free_def(a3da_data);
 
     auth_3d_db_file->ready = true;
 }
@@ -314,7 +315,7 @@ static void auth_3d_database_file_write_inner(auth_3d_database_file* auth_3d_db_
     size_t a3da_data_length = 0;
     auth_3d_database_file_write_text(auth_3d_db_file, &a3da_data, &a3da_data_length);
     s.write(a3da_data, a3da_data_length);
-    free(a3da_data);
+    free_def(a3da_data);
 }
 
 static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_file, void* data, size_t size) {
@@ -367,7 +368,7 @@ static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_fi
 }
 
 static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_file, void** data, size_t* size) {
-    stream s;
+    memory_stream s;
     s.open();
 
     s.write("#A3DA__________\n", 16);

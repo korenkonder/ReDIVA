@@ -111,7 +111,7 @@ inline void string_copy(string* src, string* dst) {
 inline void string_copy_wstring(wstring* src, string* dst) {
     char* temp = utf16_to_utf8(wstring_data(src));
     string_init(dst, temp);
-    free(temp);
+    free_def(temp);
 }
 
 inline void string_replace(string* src, string* dst) {
@@ -123,7 +123,7 @@ inline void string_replace_wstring(wstring* src, string* dst) {
     char* temp = utf16_to_utf8(wstring_data(src));
     string_free(dst);
     string_init(dst, temp);
-    free(temp);
+    free_def(temp);
 }
 
 inline bool string_compare(string* str0, string* str1) {
@@ -135,7 +135,7 @@ inline bool string_compare(string* str0, string* str1) {
 
 inline void string_free(string* s) {
     if (s->capacity > STRING_NULL_LENGTH)
-        free(s->ptr);
+        free_def(s->ptr);
     *s = string_empty;
 }
 
@@ -220,7 +220,7 @@ inline void wstring_copy(wstring* src, wstring* dst) {
 inline void wstring_copy_string(string* src, wstring* dst) {
     wchar_t* temp = utf8_to_utf16(string_data(src));
     wstring_init(dst, temp);
-    free(temp);
+    free_def(temp);
 }
 
 inline void wstring_replace(wstring* src, wstring* dst) {
@@ -232,7 +232,7 @@ inline void wstring_replace_string(string* src, wstring* dst) {
     wchar_t* temp = utf8_to_utf16(string_data(src));
     wstring_free(dst);
     wstring_init(dst, temp);
-    free(temp);
+    free_def(temp);
 }
 
 inline bool wstring_compare(wstring* str0, wstring* str1) {
@@ -244,7 +244,7 @@ inline bool wstring_compare(wstring* str0, wstring* str1) {
 
 inline void wstring_free(wstring* s) {
     if (s->capacity > WSTRING_NULL_LENGTH)
-        free(s->ptr);
+        free_def(s->ptr);
     *s = wstring_empty;
 }
 
@@ -257,7 +257,7 @@ static void string_reserve(string* s, ssize_t size) {
         capacity = (capacity >> 1) + capacity;
     else
         capacity = 0;
-    capacity = max(capacity, s->length + size);
+    capacity = max_def(capacity, s->length + size);
     capacity |= STRING_NULL_LENGTH;
 
     char* src = string_data(s);
@@ -274,7 +274,7 @@ static void string_reserve(string* s, ssize_t size) {
         s->ptr = dst;
 
     if (s->capacity > STRING_NULL_LENGTH)
-        free(src);
+        free_def(src);
 
     s->capacity = capacity;
 }
@@ -288,7 +288,7 @@ static void wstring_reserve(wstring* s, ssize_t size) {
         capacity = (capacity >> 1) + capacity;
     else
         capacity = 0;
-    capacity = max(capacity, s->length + size);
+    capacity = max_def(capacity, s->length + size);
     capacity |= WSTRING_NULL_LENGTH;
 
     wchar_t* src = wstring_data(s);
@@ -305,7 +305,7 @@ static void wstring_reserve(wstring* s, ssize_t size) {
         s->ptr = dst;
 
     if (s->capacity > STRING_NULL_LENGTH)
-        free(src);
+        free_def(src);
 
     s->capacity = capacity;
 }

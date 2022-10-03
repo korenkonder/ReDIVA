@@ -70,6 +70,14 @@ void light_param_data_storage_data_init() {
     light_param_data_storage_data = new light_param_data_storage;
 }
 
+int32_t light_param_data_storage_data_get_pv_id() {
+    return light_param_data_storage_data->pv_id;
+}
+
+int32_t light_param_data_storage_data_get_stage_index() {
+    return light_param_data_storage_data->stage_index;
+}
+
 void light_param_data_storage_data_free_file_handlers() {
     light_param_storage_free_file_handlers(light_param_data_storage_data);
 }
@@ -226,7 +234,7 @@ static void light_param_data_get_stage_name_string(std::string* str, int32_t sta
     s[length] = '\0';
 
     *str = std::string(s, length);
-    free(s);
+    free_def(s);
 }
 
 static void light_param_data_get_stage_name_string(std::string* str,
@@ -267,7 +275,7 @@ static void light_param_data_get_stage_name_string(std::string* str,
     s[length] = '\0';
 
     *str = std::string(s, length);
-    free(s);
+    free_def(s);
 }
 
 static int32_t light_param_data_load_file(light_param_data* a1, p_file_handler* a2) {
@@ -318,27 +326,27 @@ static void light_param_data_load_file_pv_cut(std::map<int32_t, light_param_data
         size_t name_len = i.name.size();
 
         int32_t type = 0;
-        if (!strncmp(name, "light", min(name_len, 5)) && name_len > 6 && name[5] == '_') {
+        if (!strncmp(name, "light", min_def(name_len, 5)) && name_len > 6 && name[5] == '_') {
             type = 1;
             name += 6;
             name_len -= 6;
         }
-        else if (!strncmp(name, "fog", min(name_len, 3)) && name_len > 4 && name[3] == '_') {
+        else if (!strncmp(name, "fog", min_def(name_len, 3)) && name_len > 4 && name[3] == '_') {
             type = 2;
             name += 4;
             name_len -= 4;
         }
-        else if (!strncmp(name, "glow", min(name_len, 4)) && name_len > 5 && name[4] == '_') {
+        else if (!strncmp(name, "glow", min_def(name_len, 4)) && name_len > 5 && name[4] == '_') {
             type = 3;
             name += 5;
             name_len -= 5;
         }
-        else if (!strncmp(name, "wind", min(name_len, 4)) && name_len > 5 && name[4] == '_') {
+        else if (!strncmp(name, "wind", min_def(name_len, 4)) && name_len > 5 && name[4] == '_') {
             type = 4;
             name += 5;
             name_len -= 5;
         }
-        else if (!strncmp(name, "face", min(name_len, 4)) && name_len > 5 && name[4] == '_') {
+        else if (!strncmp(name, "face", min_def(name_len, 4)) && name_len > 5 && name[4] == '_') {
             type = 5;
             name += 5;
             name_len -= 5;
@@ -576,7 +584,7 @@ static void light_param_storage_load_stages(light_param_data_storage* a1,
             continue;
 
         size_t name_len = name.size();
-        if (!strncmp(name.c_str(), "pv0", min(name_len, 3)))
+        if (!strncmp(name.c_str(), "pv0", min_def(name_len, 3)))
             name[2] = '8';
 
         std::map<int32_t, light_param_data>::iterator elem = a1->stage.find(i);

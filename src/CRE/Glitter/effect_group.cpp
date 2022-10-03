@@ -23,7 +23,7 @@ namespace Glitter {
         if (resources) {
             for (texture** i = resources; *i; i++)
                 texture_free(*i);
-            free(resources);
+            free_def(resources);
             resources = 0;
         }
 

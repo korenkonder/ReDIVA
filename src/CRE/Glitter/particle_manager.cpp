@@ -761,7 +761,7 @@ namespace Glitter {
                         id++;
                     }
                     CheckSceneHasLocalEffect(j);
-                    
+
                     SceneCounter counter = j->counter;
                     if (j->type == Glitter::X)
                         counter.index = (uint8_t)id;
@@ -789,7 +789,7 @@ namespace Glitter {
             }
             CheckSceneHasLocalEffect(scene);
             scenes.push_back(scene);
-            
+
             if (scene->type == Glitter::X)
                 counter.index = (uint8_t)id;
             return counter;
@@ -922,7 +922,7 @@ namespace Glitter {
                 break;
             }
     }
-        
+
     void GltParticleManager::SetSceneFrameRate(SceneCounter scene_counter, FrameRateControl* frame_rate) {
         for (Scene*& i : scenes)
             if (i && i->counter.counter == scene_counter.counter) {
@@ -930,7 +930,7 @@ namespace Glitter {
                 break;
             }
     }
-    
+
     void GltParticleManager::SetSceneName(uint64_t hash, const char* name) {
         std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(hash);
         if (elem != effect_groups.end())

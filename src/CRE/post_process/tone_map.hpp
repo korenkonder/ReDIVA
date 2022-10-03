@@ -43,6 +43,8 @@ struct post_process_tone_map_data {
     float_t lens_flare_appear_power;
     bool update;
     bool update_tex;
+
+    post_process_tone_map_data();
 };
 
 struct post_process_tone_map {

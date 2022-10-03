@@ -116,7 +116,7 @@ namespace app {
         }
 
         size_t len = utf8_length(name);
-        len = min(len, sizeof(this->name) - 1);
+        len = min_def(len, sizeof(this->name) - 1);
         memmove(&this->name, name, len);
         this->name[len] = 0;
     }
@@ -231,7 +231,7 @@ namespace app {
         for (Task*& i : task_work->tasks)
             i->SetDest();
     }
-    
+
     void TaskWork::Disp() {
         task_work->disp = true;
         for (int32_t i = 0; i < 3; i++)
@@ -369,7 +369,7 @@ namespace app {
         uint32_t frame_counter = get_frame_counter();
         if (frame_counter == (frame_counter / 300) * 300)
             t->calc_time_max = 0;
-        t->calc_time = max(t->calc_time, t->calc_time_max);
+        t->calc_time = max_def(t->calc_time, t->calc_time_max);
     }
 
     static void Task_set_disp_time(Task* t, uint32_t disp_time) {
@@ -377,7 +377,7 @@ namespace app {
         uint32_t frame_counter = get_frame_counter();
         if (frame_counter == (frame_counter / 300) * 300)
             t->disp_time_max = 0;
-        t->disp_time = max(t->disp_time, t->disp_time_max);
+        t->disp_time = max_def(t->disp_time, t->disp_time_max);
     }
 
     static bool Task_sub_14019B810(Task* t, int32_t a2) {

@@ -5,96 +5,154 @@
 
 #include "vag.hpp"
 #include "wav.hpp"
+#include "../io/file_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../str_utils.hpp"
+#include <immintrin.h>
 
 static const int8_t shift_factor_table[] = {
     0, 1, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -1
 };
 
-static const int16_t hevag1_table[] = {
-         0,   7680,  14720,  12544,  15616,  14731,  14507,  13920,
-     13133,  12028,  10764,   9359,   7832,   6201,   4488,   2717,
-       910,   -910,  -2717,  -4488,  -6201,  -7832,  -9359, -10764,
-    -12028, -13133, -13920, -14507, -14731,   5376,  -6400, -10496,
-      -167,  -7430,  -8001,   6018,   3798,  -8237,   9199,  13021,
-     13112,  -1668,   7819,   9571,  10032,  -4745,  -5896,  -1193,
-      2783,  -7334,   6127,   9457,   7876,  -7172,  -7358,  -9170,
-     -2638,   1873,   9214,  13204,  12437,  -2653,   9331,   1642,
-      4246,  -8988,  -2562,   3182,   7937,  10069,   8400,  -8529,
-      9477,     75,  -9143,  -7270,  -2740,   8993,  13101,   9543,
-      5272,  -7696,   7309,  10275,  10940,     24,  -8122,  -8511,
-       326,   8895,  12073,   8729,  12950,  10038,   9385,  -4720,
-      7869,   2450,  10192,  11313,  10154,   9638,   3854,   6699,
-     11082,  -1026,  10396,  10287,   7953,  12689,   6641,  -2348,
-      9290,   4633,  11247,   9807,   9736,   8440,   9307,   1698,
-     10214,   8390,   7201,    -88,   6193,  12325,  13064,   5333,
-};
-
-static const int16_t hevag2_table[] = {
-        0,     0, -6656, -7040, -7680, -7059, -7366, -7522,
-    -7680, -7680, -7680, -7680, -7680, -7680, -7680, -7680,
-    -7680, -7680, -7680, -7680, -7680, -7680, -7680, -7680,
-    -7680, -7680, -7522, -7366, -7059, -9216, -7168, -7424,
-    -2722, -2221, -3166, -4750, -6946, -2596,  1982, -3044,
-    -4487, -3744, -4328, -1336, -2562, -4122,  2378, -9117,
-    -7108, -2062, -2577, -1858, -4483, -1795, -2102, -3509,
-    -2647,  9183,  1859, -3012, -4792, -1144, -1048,  -620,
-    -7585, -3891, -2735,  -483, -3844, -2609, -3297, -2775,
-    -1882, -2241, -4160, -1958,  3745,  1948, -2835, -1961,
-    -4270, -3383,  2523, -2867, -3721,  -310, -2411, -3067,
-    -3846,  2194, -1876, -3423, -3847, -2570, -2757, -5006,
-    -4326, -8597, -2763, -4213, -2716, -1417, -4554, -5659,
-    -3908, -9810, -3746,   988,  3878, -3375,  3166, -7354,
-    -4039, -6403, -4125, -2284, -1536, -3436, -1021, -9025,
-    -2791,  3248,  3316, -7809, -5189, -1290, -4075,  2999,
-};
-
-static const int16_t hevag3_table[] = {
-        0,     0,     0,     0,     0,     0,     0,     0,
-        0,     0,     0,     0,     0,     0,     0,     0,
-        0,     0,     0,     0,     0,     0,     0,     0,
-        0,     0,     0,     0,     0,  3328, -3328, -3584,
-     -494, -2298, -2814,  2649,  3875, -2071, -1382, -3792,
-    -2250, -6456,  2111,  -757,   300, -5486, -4787, -1237,
-    -1575, -2212,  -315,   102,  2126, -2069, -2233, -2674,
-    -1929,  1860, -1124, -4139,  -256, -3182,  -828,  -946,
-     -533, -2807, -1730,  -714,  2821,   314,  1551, -2432,
-      108,  -298, -2963, -2156,  5936,  -683, -3854,   130,
-     3124, -2907,   434,   391,   665, -1262, -2311, -2337,
-      419,  -541, -2017,  1674, -3007,   302,  1008, -2852,
-     2135,  1299,   360,   833,   345,  -737,  2843,  2249,
-      728,  -805,  1367, -1915,  -764, -3354,   231, -1944,
-     1885,  1748,   802,   219,  -706,  1562,  -835,   688,
-      368,  -758,    46,  -538,  2760, -3284, -2824,   775,
-};
-
-static const int16_t hevag4_table[] = {
-        0,     0,     0,     0,     0,     0,     0,     0,
-        0,     0,     0,     0,     0,     0,     0,     0,
-        0,     0,     0,     0,     0,     0,     0,     0,
-        0,     0,     0,     0,     0, -3072, -2304, -1024,
-     -541,   424,   289, -1298, -1216,   227, -2316,  1267,
-     1665,   840,  -506,   487,   199, -1493, -6947, -3114,
-    -1447,   446,   -18,   258,  -538,   482,   440,  -391,
-    -1637, -5746, -2427,  1370,   622, -6878,   507, -4229,
-    -2259,    44, -1899, -1421, -1019,   195,  -155,  -336,
-      256, -6937,     5,   460, -1089, -2704,  1055,   250,
-    -3157,  -456, -2461,   172,    97,   320,  -271,   163,
-     -933, -2880,  -601,  -169,  1946,   198,    41, -1161,
-     -501, -2780,   181,    53,   185,   482, -3397, -1074,
-       80, -3462,   -96, -1437, -3263,  2079, -2089, -4122,
-     -246, -1619,    61,   222,   473,  -176,   509, -3037,
-      179, -2989, -2614, -4571, -1245,   253,  1877, -1132,
+static const int16_t hevag_table[128][4] = {
+    {      0,     0,     0,     0 },
+    {   7680,     0,     0,     0 },
+    {  14720, -6656,     0,     0 },
+    {  12544, -7040,     0,     0 },
+    {  15616, -7680,     0,     0 },
+    {  14731, -7059,     0,     0 },
+    {  14507, -7366,     0,     0 },
+    {  13920, -7522,     0,     0 },
+    {  13133, -7680,     0,     0 },
+    {  12028, -7680,     0,     0 },
+    {  10764, -7680,     0,     0 },
+    {   9359, -7680,     0,     0 },
+    {   7832, -7680,     0,     0 },
+    {   6201, -7680,     0,     0 },
+    {   4488, -7680,     0,     0 },
+    {   2717, -7680,     0,     0 },
+    {    910, -7680,     0,     0 },
+    {   -910, -7680,     0,     0 },
+    {  -2717, -7680,     0,     0 },
+    {  -4488, -7680,     0,     0 },
+    {  -6201, -7680,     0,     0 },
+    {  -7832, -7680,     0,     0 },
+    {  -9359, -7680,     0,     0 },
+    { -10764, -7680,     0,     0 },
+    { -12028, -7680,     0,     0 },
+    { -13133, -7680,     0,     0 },
+    { -13920, -7522,     0,     0 },
+    { -14507, -7366,     0,     0 },
+    { -14731, -7059,     0,     0 },
+    {   5376, -9216,  3328, -3072 },
+    {  -6400, -7168, -3328, -2304 },
+    { -10496, -7424, -3584, -1024 },
+    {   -167, -2722,  -494,  -541 },
+    {  -7430, -2221, -2298,   424 },
+    {  -8001, -3166, -2814,   289 },
+    {   6018, -4750,  2649, -1298 },
+    {   3798, -6946,  3875, -1216 },
+    {  -8237, -2596, -2071,   227 },
+    {   9199,  1982, -1382, -2316 },
+    {  13021, -3044, -3792,  1267 },
+    {  13112, -4487, -2250,  1665 },
+    {  -1668, -3744, -6456,   840 },
+    {   7819, -4328,  2111,  -506 },
+    {   9571, -1336,  -757,   487 },
+    {  10032, -2562,   300,   199 },
+    {  -4745, -4122, -5486, -1493 },
+    {  -5896,  2378, -4787, -6947 },
+    {  -1193, -9117, -1237, -3114 },
+    {   2783, -7108, -1575, -1447 },
+    {  -7334, -2062, -2212,   446 },
+    {   6127, -2577,  -315,   -18 },
+    {   9457, -1858,   102,   258 },
+    {   7876, -4483,  2126,  -538 },
+    {  -7172, -1795, -2069,   482 },
+    {  -7358, -2102, -2233,   440 },
+    {  -9170, -3509, -2674,  -391 },
+    {  -2638, -2647, -1929, -1637 },
+    {   1873,  9183,  1860, -5746 },
+    {   9214,  1859, -1124, -2427 },
+    {  13204, -3012, -4139,  1370 },
+    {  12437, -4792,  -256,   622 },
+    {  -2653, -1144, -3182, -6878 },
+    {   9331, -1048,  -828,   507 },
+    {   1642,  -620,  -946, -4229 },
+    {   4246, -7585,  -533, -2259 },
+    {  -8988, -3891, -2807,    44 },
+    {  -2562, -2735, -1730, -1899 },
+    {   3182,  -483,  -714, -1421 },
+    {   7937, -3844,  2821, -1019 },
+    {  10069, -2609,   314,   195 },
+    {   8400, -3297,  1551,  -155 },
+    {  -8529, -2775, -2432,  -336 },
+    {   9477, -1882,   108,   256 },
+    {     75, -2241,  -298, -6937 },
+    {  -9143, -4160, -2963,     5 },
+    {  -7270, -1958, -2156,   460 },
+    {  -2740,  3745,  5936, -1089 },
+    {   8993,  1948,  -683, -2704 },
+    {  13101, -2835, -3854,  1055 },
+    {   9543, -1961,   130,   250 },
+    {   5272, -4270,  3124, -3157 },
+    {  -7696, -3383, -2907,  -456 },
+    {   7309,  2523,   434, -2461 },
+    {  10275, -2867,   391,   172 },
+    {  10940, -3721,   665,    97 },
+    {     24,  -310, -1262,   320 },
+    {  -8122, -2411, -2311,  -271 },
+    {  -8511, -3067, -2337,   163 },
+    {    326, -3846,   419,  -933 },
+    {   8895,  2194,  -541, -2880 },
+    {  12073, -1876, -2017,  -601 },
+    {   8729, -3423,  1674,  -169 },
+    {  12950, -3847, -3007,  1946 },
+    {  10038, -2570,   302,   198 },
+    {   9385, -2757,  1008,    41 },
+    {  -4720, -5006, -2852, -1161 },
+    {   7869, -4326,  2135,  -501 },
+    {   2450, -8597,  1299, -2780 },
+    {  10192, -2763,   360,   181 },
+    {  11313, -4213,   833,    53 },
+    {  10154, -2716,   345,   185 },
+    {   9638, -1417,  -737,   482 },
+    {   3854, -4554,  2843, -3397 },
+    {   6699, -5659,  2249, -1074 },
+    {  11082, -3908,   728,    80 },
+    {  -1026, -9810,  -805, -3462 },
+    {  10396, -3746,  1367,   -96 },
+    {  10287,   988, -1915, -1437 },
+    {   7953,  3878,  -764, -3263 },
+    {  12689, -3375, -3354,  2079 },
+    {   6641,  3166,   231, -2089 },
+    {  -2348, -7354, -1944, -4122 },
+    {   9290, -4039,  1885,  -246 },
+    {   4633, -6403,  1748, -1619 },
+    {  11247, -4125,   802,    61 },
+    {   9807, -2284,   219,   222 },
+    {   9736, -1536,  -706,   473 },
+    {   8440, -3436,  1562,  -176 },
+    {   9307, -1021,  -835,   509 },
+    {   1698, -9025,   688, -3037 },
+    {  10214, -2791,   368,   179 },
+    {   8390,  3248,  -758, -2989 },
+    {   7201,  3316,    46, -2614 },
+    {    -88, -7809,  -538, -4571 },
+    {   6193, -5189,  2760, -1245 },
+    {  12325, -1290, -3284,   253 },
+    {  13064, -4075, -2824,  1877 },
+    {   5333,  2999,   775, -1132 },
 };
 
 #define BLOCK_SIZE 28
 
-static void vag_read_wav_straight(vag* v, const wchar_t* path, float_t** data, size_t* samples);
-static void vag_read_wav(vag* v, const wchar_t* path, float_t** data, size_t* samples, uint8_t** flags);
-static void vag_write_wav_straight(vag* v, const wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags);
-static void vag_write_wav(vag* v, const wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags);
+static bool vag_read_inner(vag* v, stream& s, float_t*& data, size_t& num_blocks, uint8_t*& flags);
+static void vag_write_inner(vag* v, stream& s, const float_t* data, const uint8_t* flags, vag_option option);
+static void vag_read_wav_straight(vag* v, const wchar_t* path, float_t*& data, size_t& samples);
+static void vag_read_wav(vag* v, const wchar_t* path, float_t*& data, size_t& samples, uint8_t*& flags);
+static void vag_write_wav_straight(vag* v, const wchar_t* path, const float_t* data, size_t num_blocks, const uint8_t* flags);
+static void vag_write_wav(vag* v, const wchar_t* path, const float_t* data, size_t num_blocks, const uint8_t* flags);
 static void calculate_4_bits_vag(int32_t* data, int8_t* four_bit, int32_t* coef_index,
     int32_t* shift_factor, int32_t* v, int32_t* tv, int32_t coef_index_count);
 static void calculate_4_bits_hevag(int32_t* data, int8_t* four_bit, int32_t* coef_index,
@@ -104,297 +162,335 @@ static void calculate_4_bits_vag_inner(int32_t* data, int8_t* four_bit, int32_t 
 static void calculate_4_bits_hevag_inner(int32_t* data, int8_t* four_bit, int32_t coef_index,
     int32_t* shift_factor, int32_t* v, int32_t* tv, int32_t* os, int32_t* ots);
 
-vag* vag_init() {
-    vag* v = force_malloc_s(vag, 1);
-    return v;
+vag::vag() : version(), sample_rate(), channels(), size() {
+
 }
 
-void vag_read(vag* v, const char* path) {
-    wchar_t* path_buf = utf8_to_utf16(path);
-    vag_read(v, path_buf);
-    free(path_buf);
+vag::~vag() {
+
 }
 
-void vag_read(vag* v, const wchar_t* path) {
-    wchar_t* path_vag = str_utils_add(path, L".vag");
-    stream s;
-    s.open(path_vag, L"rb");
-    if (s.io.stream) {
-        uint32_t signature = s.read_uint32_t_reverse_endianness(true);
-        if (signature != 'VAGp')
-            goto End;
-
-        v->version = s.read_uint32_t_reverse_endianness(true);
-        s.read_uint32_t();
-        v->size = s.read_uint32_t_reverse_endianness(true);
-        v->sample_rate = s.read_uint32_t_reverse_endianness(true);
-        s.read_uint32_t();
-        s.read_uint32_t();
-        s.read_uint16_t();
-        v->channels = s.read_uint16_t();
-        if (v->channels < 2)
-            v->channels = 1;
-        s.read_uint64_t();
-        s.read_uint64_t();
-
-        bool hevag = v->version == 0x00020001 || v->version == 0x00030000;
-        if (!hevag)
-            v->channels = 1;
-
-        size_t ch = v->channels;
-        size_t vag_block_size = BLOCK_SIZE * ch;
-
-        size_t num_blocks = (v->size / v->channels) >> 4;
-        int32_t* samp = force_malloc_s(int32_t, ch * 4);
-        float_t* data = force_malloc_s(float_t, num_blocks * vag_block_size);
-        uint8_t* flags = force_malloc_s(uint8_t, num_blocks);
-
-        uint8_t nibble[BLOCK_SIZE];
-        float_t* temp_data = data;
-        int16_t hevag1, hevag2, hevag3, hevag4;
-        int32_t s1, s2, s3, s4, sample;
-        size_t c, i, i1, i2;
-        uint8_t coef_index, d, shift_factor;
-        for (i1 = 0; i1 < num_blocks; i1++, temp_data += vag_block_size)
-            for (c = 0; c < ch; c++) {
-                d = s.read_uint8_t();
-                coef_index = (d & 0xF0) >> 4;
-                shift_factor = d & 0x0F;
-                d = s.read_uint8_t();
-                coef_index = (d & 0xF0) | coef_index;
-                flags[i1] = d & 0x0F;
-
-                if (coef_index > 127)
-                    coef_index = 0;
-
-                for (i = 0, i2 = 1; i < BLOCK_SIZE; i += 2, i2 += 2) {
-                    d = s.read_uint8_t();
-                    nibble[i] = d & 0x0F;
-                    nibble[i2] = (d & 0xF0) >> 4;
-                }
-
-                hevag1 = hevag1_table[coef_index];
-                hevag2 = hevag2_table[coef_index];
-                hevag3 = hevag3_table[coef_index];
-                hevag4 = hevag4_table[coef_index];
-                s1 = samp[c * 4 + 0];
-                s2 = samp[c * 4 + 1];
-                s3 = samp[c * 4 + 2];
-                s4 = samp[c * 4 + 3];
-                shift_factor = 20 - shift_factor;
-                for (i = 0; i < BLOCK_SIZE; i++) {
-                    sample = shift_factor_table[nibble[i]] << shift_factor;
-                    sample += (s1 * hevag1 + s2 * hevag2 + s3 * hevag3 + s4 * hevag4) >> 5;
-                    s4 = s3;
-                    s3 = s2;
-                    s2 = s1;
-                    s1 = sample >> 8;
-                    temp_data[i * ch + c] = (float_t)(sample / 8388608.0);
-                }
-                samp[c * 4 + 0] = s1;
-                samp[c * 4 + 1] = s2;
-                samp[c * 4 + 2] = s3;
-                samp[c * 4 + 3] = s4;
-            }
-        free(samp);
-
-        vag_write_wav(v, path, data, num_blocks, flags);
-        free(flags);
-        free(data);
+void vag::read(const char* path) {
+    char* path_vag = str_utils_add(path, ".vag");
+    file_stream s;
+    s.open(path_vag, "rb");
+    if (s.check_not_null()) {
+        float_t* data;
+        size_t num_blocks;
+        uint8_t* flags;
+        if (vag_read_inner(this, s, data, num_blocks, flags)) {
+            wchar_t* path_temp = utf8_to_utf16(path);
+            vag_write_wav(this, path_temp, data, num_blocks, flags);
+            free_def(path_temp);
+            free_def(flags);
+            free_def(data);
+        }
     }
-End:
-    free(path_vag);
+    free_def(path_vag);
 }
 
-void vag_write(vag* v, const char* path, vag_option option) {
-    wchar_t* path_buf = utf8_to_utf16(path);
-    vag_write(v, path_buf, option);
-    free(path_buf);
+void vag::read(const wchar_t* path) {
+    wchar_t* path_vag = str_utils_add(path, L".vag");
+    file_stream s;
+    s.open(path_vag, L"rb");
+    if (s.check_not_null()) {
+        float_t* data;
+        size_t num_blocks;
+        uint8_t* flags;
+        if (vag_read_inner(this, s, data, num_blocks, flags)) {
+            vag_write_wav(this, path, data, num_blocks, flags);
+            free_def(flags);
+            free_def(data);
+        }
+    }
+    free_def(path_vag);
 }
 
-void vag_write(vag* v, const wchar_t* path, vag_option option) {
-    size_t num_samples;
+void vag::write(const char* path, vag_option option) {
     float_t* data;
+    size_t num_samples;
     uint8_t* flags;
 
-    vag_read_wav(v, path, &data, &num_samples, &flags);
+    wchar_t* path_temp = utf8_to_utf16(path);
+    vag_read_wav(this, path_temp, data, num_samples, flags);
+    free_def(path_temp);
     if (!data || !num_samples)
         return;
 
-    v->size = align_val_divide(num_samples, BLOCK_SIZE, BLOCK_SIZE);
+    size = align_val_divide(num_samples, BLOCK_SIZE, BLOCK_SIZE);
 
-    wchar_t* temp_path = str_utils_get_without_extension(path);
-    wchar_t* path_vag = str_utils_add(temp_path, L".vag");
-    stream s;
+    char* path_vag = str_utils_add(path, ".vag");
+    file_stream s;
+    s.open(path_vag, "wb");
+    if (s.check_not_null())
+        vag_write_inner(this, s, data, flags, option);
+    free_def(path_vag);
+    free_def(flags);
+    free_def(data);
+}
+
+void vag::write(const wchar_t* path, vag_option option) {
+    float_t* data;
+    size_t num_samples;
+    uint8_t* flags;
+
+    vag_read_wav(this, path, data, num_samples, flags);
+    if (!data || !num_samples)
+        return;
+
+    size = align_val_divide(num_samples, BLOCK_SIZE, BLOCK_SIZE);
+
+    wchar_t* path_vag = str_utils_add(path, L".vag");
+    file_stream s;
     s.open(path_vag, L"wb");
-    if (s.io.stream) {
-        int32_t coef_index_count;
-        switch (option) {
-        case VAG_OPTION_HEVAG_FAST:
-            coef_index_count = 16;
-            break;
-        case VAG_OPTION_HEVAG_MEDIUM:
-            coef_index_count = 32;
-            break;
-        case VAG_OPTION_HEVAG_SLOW:
-            coef_index_count = 64;
-            break;
-        case VAG_OPTION_HEVAG_SLOWEST:
-            coef_index_count = 96;
-            break;
-        case VAG_OPTION_HEVAG_SLOWASHELL:
-            coef_index_count = 128;
-            break;
-        default:
-            coef_index_count = 5;
-            break;
-        }
+    if (s.check_not_null())
+        vag_write_inner(this, s, data, flags, option);
+    free_def(path_vag);
+    free_def(flags);
+    free_def(data);
+}
 
-        bool hevag = option != VAG_OPTION_VAG;
-        s.write_uint32_t_reverse_endianness('VAGp', true);
-        s.write_uint32_t_reverse_endianness(hevag ? 0x00020001 : 0x00000020, true);
-        s.write_uint32_t(0);
-        s.write_uint32_t_reverse_endianness((uint32_t)(((v->size + 1) * (hevag ? v->channels : 1)) << 4), true);
-        s.write_uint32_t_reverse_endianness(v->sample_rate, true);
-        s.write_uint32_t(0);
-        s.write_uint32_t(0);
-        s.write_uint16_t(0);
-        s.write_uint16_t(hevag ? v->channels : 1);
-        s.write_uint64_t(0);
-        s.write_uint64_t(0);
+static bool vag_read_inner(vag* v, stream& s, float_t*& data, size_t& num_blocks, uint8_t*& flags) {
+    data = 0;
+    num_blocks = 0;
+    flags = 0;
 
-        size_t c, i, i1, i2;
-        int32_t ch = v->channels;
-        int32_t* samp = force_malloc_s(int32_t, hevag ? v->channels * 8ULL : 4ULL);
-        if (hevag && coef_index_count > 29) {
-            uint8_t flag, sample;
-            int32_t temp_data[BLOCK_SIZE];
-            int8_t four_bit[BLOCK_SIZE];
-            int32_t coef_index, shift_factor;
-            size_t size = v->size;
-            for (i1 = 0; i1 < size; i1++)
-                for (c = 0; c < ch; c++) {
-                    for (i = 0; i < BLOCK_SIZE; i++) {
-                        float_t t_s = data[i1 * BLOCK_SIZE * ch + i * ch + c];
-                        temp_data[i] = (int32_t)round(t_s * 8388608.0);
-                    }
+    uint32_t signature = s.read_uint32_t_reverse_endianness(true);
+    if (signature != 'VAGp')
+        return false;
 
-                    calculate_4_bits_hevag(temp_data, four_bit, &coef_index,
-                        &shift_factor, samp + c * 8, samp + c * 8 + 4, coef_index_count);
+    v->version = s.read_uint32_t_reverse_endianness(true);
+    s.read_uint32_t();
+    v->size = s.read_uint32_t_reverse_endianness(true);
+    v->sample_rate = s.read_uint32_t_reverse_endianness(true);
+    s.read_uint32_t();
+    s.read_uint32_t();
+    s.read_uint16_t();
+    v->channels = s.read_uint16_t();
+    if (v->channels < 2)
+        v->channels = 1;
+    s.read_uint64_t();
+    s.read_uint64_t();
 
-                    flag = flags ? (flags[i1] & 0x0F) : (i1 + 1 == size) ? 0x01 : 0;
-                    sample = ((coef_index & 0x0F) << 4) | (shift_factor & 0x0F);
-                    s.write_uint8_t(sample);
-                    sample = (coef_index & 0xF0) | flag;
-                    s.write_uint8_t(sample);
-                    for (i = 0, i2 = 1; i < BLOCK_SIZE; i += 2, i2 += 2) {
-                        sample = ((four_bit[i2] & 0x0F) << 4) | (four_bit[i] & 0x0F);
-                        s.write_uint8_t(sample);
-                    }
-                }
-            for (c = 0; c < ch; c++) {
-                s.write_uint64_t(0x7777777777770700);
-                s.write_uint64_t(0x7777777777777777);
+    bool is_hevag = v->version == 0x00020001 || v->version == 0x00030000;
+    if (!is_hevag)
+        v->channels = 1;
+
+    size_t ch = v->channels;
+    size_t vag_block_size = BLOCK_SIZE * ch;
+
+    num_blocks = (v->size / v->channels) >> 4;
+    int32_t* samp = force_malloc_s(int32_t, ch * 4);
+    data = force_malloc_s(float_t, num_blocks * vag_block_size);
+    flags = force_malloc_s(uint8_t, num_blocks);
+
+    uint8_t nibble[BLOCK_SIZE];
+    float_t* temp_data = data;
+    int16_t hevag1, hevag2, hevag3, hevag4;
+    int32_t s1, s2, s3, s4, sample;
+    size_t c, i, i1, i2, j;
+    uint8_t coef_index, d, shift_factor;
+    for (i1 = 0; i1 < num_blocks; i1++, temp_data += vag_block_size)
+        for (c = 0; c < ch; c++) {
+            d = s.read_uint8_t();
+            coef_index = (d & 0xF0) >> 4;
+            shift_factor = d & 0x0F;
+            d = s.read_uint8_t();
+            coef_index = (d & 0x70) | coef_index;
+            flags[i1] = d & 0x0F;
+
+            if (coef_index > 127)
+                coef_index = 0;
+
+            for (i = 0, i2 = 1, j = BLOCK_SIZE; j; i += 2, i2 += 2, j -= 2) {
+                d = s.read_uint8_t();
+                nibble[i] = d & 0x0F;
+                nibble[i2] = (d & 0xF0) >> 4;
             }
-        }
-        else if (hevag) {
-            uint8_t flag, sample;
-            int32_t temp_data[BLOCK_SIZE];
-            int8_t four_bit[BLOCK_SIZE];
-            int32_t coef_index, shift_factor;
-            size_t size = v->size;
-            for (i1 = 0; i1 < size; i1++)
-                for (c = 0; c < ch; c++) {
-                    for (i = 0; i < BLOCK_SIZE; i++) {
-                        float_t t_s = data[i1 * BLOCK_SIZE * ch + i * ch + c];
-                        temp_data[i] = (int32_t)round(t_s * 8388608.0);
-                    }
 
-                    calculate_4_bits_vag(temp_data, four_bit, &coef_index,
-                        &shift_factor, samp + c * 4, samp + c * 4 + 2, coef_index_count);
-
-                    flag = flags ? (flags[i1] & 0x0F) : (i1 + 1 == size) ? 0x01 : 0;
-                    sample = ((coef_index & 0x0F) << 4) | (shift_factor & 0x0F);
-                    s.write_uint8_t(sample);
-                    sample = (coef_index & 0xF0) | flag;
-                    s.write_uint8_t(sample);
-                    for (i = 0, i2 = 1; i < BLOCK_SIZE; i += 2, i2 += 2) {
-                        sample = ((four_bit[i2] & 0x0F) << 4) | (four_bit[i] & 0x0F);
-                        s.write_uint8_t(sample);
-                    }
-                }
-
-            for (c = 0; c < ch; c++) {
-                s.write_uint64_t(0x7777777777770700);
-                s.write_uint64_t(0x7777777777777777);
+            hevag1 = hevag_table[coef_index][0];
+            hevag2 = hevag_table[coef_index][1];
+            hevag3 = hevag_table[coef_index][2];
+            hevag4 = hevag_table[coef_index][3];
+            s1 = samp[c * 4 + 0];
+            s2 = samp[c * 4 + 1];
+            s3 = samp[c * 4 + 2];
+            s4 = samp[c * 4 + 3];
+            shift_factor = 20 - shift_factor;
+            for (i = 0, j = BLOCK_SIZE; j; i++, j--) {
+                sample = shift_factor_table[nibble[i]] << shift_factor;
+                sample += (s1 * hevag1 + s2 * hevag2 + s3 * hevag3 + s4 * hevag4) >> 5;
+                s4 = s3;
+                s3 = s2;
+                s2 = s1;
+                s1 = sample >> 8;
+                temp_data[i * ch + c] = (float_t)((double_t)sample / 8388608.0);
             }
-        }
-        else {
-            uint8_t flag, sample;
-            int32_t temp_data[BLOCK_SIZE];
-            int8_t four_bit[BLOCK_SIZE];
-            int32_t coef_index, shift_factor;
-            size_t size = v->size;
-            for (i1 = 0; i1 < size; i1++) {
 
-                for (i = 0; i < BLOCK_SIZE; i++) {
-                    float_t t_s = 0.0f;
-                    for (c = 0; c < ch; c++)
-                        t_s += data[i1 * BLOCK_SIZE * ch + i * ch + c];
-                    t_s /= ch;
+            samp[c * 4 + 0] = s1;
+            samp[c * 4 + 1] = s2;
+            samp[c * 4 + 2] = s3;
+            samp[c * 4 + 3] = s4;
+        }
+    free_def(samp);
+    return true;
+}
+
+static void vag_write_inner(vag* v, stream& s, const float_t* data, const uint8_t* flags, vag_option option) {
+    int32_t coef_index_count;
+    switch (option) {
+    case VAG_OPTION_HEVAG_FAST:
+        coef_index_count = 16;
+        break;
+    case VAG_OPTION_HEVAG_MEDIUM:
+        coef_index_count = 32;
+        break;
+    case VAG_OPTION_HEVAG_SLOW:
+        coef_index_count = 64;
+        break;
+    case VAG_OPTION_HEVAG_SLOWEST:
+        coef_index_count = 96;
+        break;
+    case VAG_OPTION_HEVAG_SLOWASHELL:
+        coef_index_count = 128;
+        break;
+    default:
+        coef_index_count = 5;
+        break;
+    }
+
+    bool hevag = option != VAG_OPTION_VAG;
+    s.write_uint32_t_reverse_endianness('VAGp', true);
+    s.write_uint32_t_reverse_endianness(hevag ? 0x00020001 : 0x00000020, true);
+    s.write_uint32_t(0);
+    s.write_uint32_t_reverse_endianness((uint32_t)(((v->size + 1) * (hevag ? v->channels : 1)) << 4), true);
+    s.write_uint32_t_reverse_endianness(v->sample_rate, true);
+    s.write_uint32_t(0);
+    s.write_uint32_t(0);
+    s.write_uint16_t(0);
+    s.write_uint16_t(hevag ? v->channels : 1);
+    s.write_uint64_t(0);
+    s.write_uint64_t(0);
+
+    size_t c, i, i1, i2, j;
+    int32_t ch = v->channels;
+    int32_t* samp = force_malloc_s(int32_t, hevag ? v->channels * 8ULL : 4ULL);
+    if (hevag && coef_index_count > 29) {
+        uint8_t flag, sample;
+        int32_t temp_data[BLOCK_SIZE];
+        int8_t four_bit[BLOCK_SIZE];
+        int32_t coef_index, shift_factor;
+        size_t size = v->size;
+        for (i1 = 0; i1 < size; i1++)
+            for (c = 0; c < ch; c++) {
+                for (i = 0, j = BLOCK_SIZE; j; i++, j--) {
+                    float_t t_s = data[i1 * BLOCK_SIZE * ch + i * ch + c];
                     temp_data[i] = (int32_t)round(t_s * 8388608.0);
                 }
 
-                calculate_4_bits_vag(temp_data, four_bit, &coef_index,
-                    &shift_factor, samp, samp + 2, coef_index_count);
-
-                for (i = 0, i2 = 0; i < BLOCK_SIZE; i++)
-                    if (!four_bit[i])
-                        i2++;
+                calculate_4_bits_hevag(temp_data, four_bit, &coef_index,
+                    &shift_factor, samp + c * 8, samp + c * 8 + 4, coef_index_count);
 
                 flag = flags ? (flags[i1] & 0x0F) : (i1 + 1 == size) ? 0x01 : 0;
                 sample = ((coef_index & 0x0F) << 4) | (shift_factor & 0x0F);
                 s.write_uint8_t(sample);
                 sample = (coef_index & 0xF0) | flag;
                 s.write_uint8_t(sample);
-                for (i = 0, i2 = 1; i < BLOCK_SIZE; i += 2, i2 += 2) {
+                for (i = 0, i2 = 1, j = BLOCK_SIZE; j; i += 2, i2 += 2, j -= 2) {
                     sample = ((four_bit[i2] & 0x0F) << 4) | (four_bit[i] & 0x0F);
                     s.write_uint8_t(sample);
                 }
             }
+
+        for (c = 0; c < ch; c++) {
             s.write_uint64_t(0x7777777777770700);
             s.write_uint64_t(0x7777777777777777);
         }
-        s.write_uint64_t(0x1010101010101010);
-        s.write_uint64_t(0x1010101010101010);
-        free(samp);
     }
-    free(path_vag);
-    free(temp_path);
-    free(flags);
-    free(data);
+    else if (hevag) {
+        uint8_t flag, sample;
+        int32_t temp_data[BLOCK_SIZE];
+        int8_t four_bit[BLOCK_SIZE];
+        int32_t coef_index, shift_factor;
+        size_t size = v->size;
+        for (i1 = 0; i1 < size; i1++)
+            for (c = 0; c < ch; c++) {
+                for (i = 0, j = BLOCK_SIZE; j; i++, j--) {
+                    float_t t_s = data[i1 * BLOCK_SIZE * ch + i * ch + c];
+                    temp_data[i] = (int32_t)round(t_s * 8388608.0);
+                }
+
+                calculate_4_bits_vag(temp_data, four_bit, &coef_index,
+                    &shift_factor, samp + c * 4, samp + c * 4 + 2, coef_index_count);
+
+                flag = flags ? (flags[i1] & 0x0F) : (i1 + 1 == size) ? 0x01 : 0;
+                sample = ((coef_index & 0x0F) << 4) | (shift_factor & 0x0F);
+                s.write_uint8_t(sample);
+                sample = (coef_index & 0xF0) | flag;
+                s.write_uint8_t(sample);
+                for (i = 0, i2 = 1, j = BLOCK_SIZE; j; i += 2, i2 += 2, j -= 2) {
+                    sample = ((four_bit[i2] & 0x0F) << 4) | (four_bit[i] & 0x0F);
+                    s.write_uint8_t(sample);
+                }
+            }
+
+        for (c = 0; c < ch; c++) {
+            s.write_uint64_t(0x7777777777770700);
+            s.write_uint64_t(0x7777777777777777);
+        }
+    }
+    else {
+        uint8_t flag, sample;
+        int32_t temp_data[BLOCK_SIZE];
+        int8_t four_bit[BLOCK_SIZE];
+        int32_t coef_index, shift_factor;
+        size_t size = v->size;
+        for (i1 = 0; i1 < size; i1++) {
+            for (i = 0, j = BLOCK_SIZE; j; i++, j--) {
+                float_t t_s = 0.0f;
+                for (c = 0; c < ch; c++)
+                    t_s += data[i1 * BLOCK_SIZE * ch + i * ch + c];
+                t_s /= ch;
+                temp_data[i] = (int32_t)round(t_s * 8388608.0);
+            }
+
+            calculate_4_bits_vag(temp_data, four_bit, &coef_index,
+                &shift_factor, samp, samp + 2, coef_index_count);
+
+            flag = flags ? (flags[i1] & 0x0F) : (i1 + 1 == size) ? 0x01 : 0;
+            sample = ((coef_index & 0x0F) << 4) | (shift_factor & 0x0F);
+            s.write_uint8_t(sample);
+            sample = (coef_index & 0xF0) | flag;
+            s.write_uint8_t(sample);
+            for (i = 0, i2 = 1, j = BLOCK_SIZE; j; i += 2, i2 += 2, j -= 2) {
+                sample = ((four_bit[i2] & 0x0F) << 4) | (four_bit[i] & 0x0F);
+                s.write_uint8_t(sample);
+            }
+        }
+        s.write_uint64_t(0x7777777777770700);
+        s.write_uint64_t(0x7777777777777777);
+    }
+    s.write_uint64_t(0x1010101010101010);
+    s.write_uint64_t(0x1010101010101010);
+    free_def(samp);
 }
 
-void vag_dispose(vag* v) {
-    free(v);
+static void vag_read_wav_straight(vag* v, const wchar_t* path, float_t*& data, size_t& samples) {
+    data = 0;
+    samples = 0;
+    wchar_t* path_wav = str_utils_add(path, L".wav");
+    wav w;
+    w.read(path_wav, data, samples);
+    v->channels = w.channels;
+    v->sample_rate = w.sample_rate;
+    free_def(path_wav);
 }
 
-static void vag_read_wav_straight(vag* v, const wchar_t* path, float_t** data, size_t* samples) {
-    *data = 0;
-    *samples = 0;
-    wchar_t* path_av = str_utils_add(path, L".wav");
-    wav* w = wav_init();
-    wav_read(w, path_av, data, samples);
-    v->channels = w->channels;
-    v->sample_rate = w->sample_rate;
-    wav_dispose(w);
-    free(path_av);
-}
+static void vag_read_wav(vag* v, const wchar_t* path, float_t*& data, size_t& samples, uint8_t*& flags) {
+    data = 0;
+    samples = 0;
+    flags = 0;
 
-static void vag_read_wav(vag* v, const wchar_t* path, float_t** data, size_t* samples, uint8_t** flags) {
-    *data = 0;
-    *samples = 0;
-    *flags = 0;
     if (!str_utils_check_ends_with(path, L".0")) {
         vag_read_wav_straight(v, path, data, samples);
         return;
@@ -425,7 +521,7 @@ static void vag_read_wav(vag* v, const wchar_t* path, float_t** data, size_t* sa
     }
 
     if (!count) {
-        free(temp_path);
+        free_def(temp_path);
         return;
     }
 
@@ -433,42 +529,39 @@ static void vag_read_wav(vag* v, const wchar_t* path, float_t** data, size_t* sa
     float_t** wav_data = force_malloc_s(float_t*, count);
     size_t* wav_samples = force_malloc_s(size_t, count);
 
-    wav* w = wav_init();
     for (size_t i = 0; i < count; i++) {
         if (add_loop && i + 1 == count)
             continue;
 
         swprintf_s(temp, MAX_PATH, loop[i] ? L"%ls.%llu.loop.wav" : L"%ls.%llu.wav", temp_path, i);
-        wav_read(w, temp, &wav_data[i], &wav_samples[i]);
+        wav w;
+        w.read(temp, wav_data[i], wav_samples[i]);
         if (i == 0) {
-            v->channels = w->channels;
-            v->sample_rate = w->sample_rate;
+            v->channels = w.channels;
+            v->sample_rate = w.sample_rate;
         }
-        else if (v->channels != w->channels || v->sample_rate != w->sample_rate) {
-            wav_dispose(w);
-
+        else if (v->channels != w.channels || v->sample_rate != w.sample_rate) {
             for (size_t i1 = 0; i1 <= i; i1++)
-                free(wav_data[i1]);
+                free_def(wav_data[i1]);
 
-            free(wav_samples);
-            free(wav_data);
-            free(temp_path);
+            free_def(wav_samples);
+            free_def(wav_data);
+            free_def(temp_path);
             return;
         }
     }
-    wav_dispose(w);
 
-    *samples = 0;
+    samples = 0;
     for (size_t i = 0; i < count; i++)
         if (add_loop && i + 1 == count)
-            *samples += BLOCK_SIZE;
+            samples += BLOCK_SIZE;
         else
-            *samples += align_val(wav_samples[i], BLOCK_SIZE);
+            samples += align_val(wav_samples[i], BLOCK_SIZE);
 
     l = false;
     size_t ch = v->channels;
-    *data = force_malloc_s(float_t, *samples * ch);
-    float_t* data_temp = *data;
+    data = force_malloc_s(float_t, samples * ch);
+    float_t* data_temp = data;
     for (size_t i = 0; i < count; i++) {
         size_t i3;
         if (add_loop && i + 1 == count)
@@ -486,8 +579,8 @@ static void vag_read_wav(vag* v, const wchar_t* path, float_t** data, size_t* sa
     }
 
     l = false;
-    *flags = force_malloc_s(uint8_t, *samples / BLOCK_SIZE);
-    uint8_t* f = *flags;
+    flags = force_malloc_s(uint8_t, samples / BLOCK_SIZE);
+    uint8_t* f = flags;
     for (size_t i = 0; i < count; i++) {
         size_t num_blocks;
         if (add_loop && i + 1 == count)
@@ -521,14 +614,14 @@ static void vag_read_wav(vag* v, const wchar_t* path, float_t** data, size_t* sa
     }
 
     for (size_t i = 0; i < count; i++)
-        free(wav_data[i]);
+        free_def(wav_data[i]);
 
-    free(wav_samples);
-    free(wav_data);
-    free(temp_path);
+    free_def(wav_samples);
+    free_def(wav_data);
+    free_def(temp_path);
 }
 
-static void vag_write_wav_straight(vag* v, const wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags) {
+static void vag_write_wav_straight(vag* v, const wchar_t* path, const float_t* data, size_t num_blocks, const uint8_t* flags) {
     size_t i = 0;
     for (i = 0; i < num_blocks; i++) {
         uint8_t flag = flags[i];
@@ -540,34 +633,28 @@ static void vag_write_wav_straight(vag* v, const wchar_t* path, float_t* data, s
             break;
     }
 
-    wchar_t* path_av = str_utils_add(path, L".wav");
-    wav* w = wav_init();
-    w->bytes = 4;
-    w->channels = v->channels;
-    w->format = 0x03;
-    w->sample_rate = v->sample_rate;
-    wav_write(w, path_av, data, i * BLOCK_SIZE);
-    wav_dispose(w);
-    free(path_av);
+    wchar_t* path_wav = str_utils_add(path, L".wav");
+    wav w;
+    w.bytes = 4;
+    w.channels = v->channels;
+    w.format = 0x03;
+    w.sample_rate = v->sample_rate;
+    w.write(path_wav, data, i * BLOCK_SIZE);
+    free_def(path_wav);
 }
 
-static void vag_write_wav(vag* v, const wchar_t* path, float_t* data, size_t num_blocks, uint8_t* flags) {
+static void vag_write_wav(vag* v, const wchar_t* path, const float_t* data, size_t num_blocks, const uint8_t* flags) {
     uint8_t flag = flags[0];
     if (flag == 5 || flag == 7)
         return;
 
     wchar_t temp[MAX_PATH];
-    wav* w = wav_init();
-    w->bytes = 4;
-    w->channels = v->channels;
-    w->format = 0x03;
-    w->sample_rate = v->sample_rate;
     bool loop = false;
     size_t i = 0, i2 = 0;
     size_t ch = v->channels;
     size_t vag_block_size = BLOCK_SIZE * ch;
-    float_t* temp_data = data;
-    float_t* temp_data_last = data;
+    const float_t* temp_data = data;
+    const float_t* temp_data_last = data;
     for (size_t i1 = 0; i1 < num_blocks; i1++, temp_data += vag_block_size) {
         flag = flags[i1];
         if (flag == 5 || flag == 7)
@@ -575,7 +662,12 @@ static void vag_write_wav(vag* v, const wchar_t* path, float_t* data, size_t num
         else if (flag == 3 || flag == 6) {
             if (i) {
                 swprintf_s(temp, MAX_PATH, loop ? L"%ls.%llu.loop.wav" : L"%ls.%llu.wav", path, i2);
-                wav_write(w, temp, temp_data_last, i * BLOCK_SIZE);
+                wav w;
+                w.bytes = 4;
+                w.channels = v->channels;
+                w.format = 0x03;
+                w.sample_rate = v->sample_rate;
+                w.write(temp, temp_data_last, i * BLOCK_SIZE);
                 i2++;
             }
 
@@ -592,29 +684,34 @@ static void vag_write_wav(vag* v, const wchar_t* path, float_t* data, size_t num
 
     if (i) {
         swprintf_s(temp, MAX_PATH, L"%ls.%llu.wav", path, i2);
-        wav_write(w, temp, temp_data_last, i * BLOCK_SIZE);
+        wav w;
+        w.bytes = 4;
+        w.channels = v->channels;
+        w.format = 0x03;
+        w.sample_rate = v->sample_rate;
+        w.write(temp, temp_data_last, i * BLOCK_SIZE);
     }
-    wav_dispose(w);
 }
 
 static void calculate_4_bits_vag(int32_t* data, int8_t* four_bit, int32_t* coef_index,
     int32_t* shift_factor, int32_t* v, int32_t* tv, int32_t coef_index_count) {
-    int32_t d0, e, g, i, j;
+    int32_t d0, e, g, i, j, k, l;
     int32_t err, min, s1, s2, c_f;
 
     c_f = 0;
     min = 0x7FFFFFFF;
-    for (j = 0; j < coef_index_count; j++) {
+    for (j = 0, l = coef_index_count; l; j++, l--) {
         calculate_4_bits_vag_inner(data, four_bit, j, shift_factor, v, tv, 0, 0);
 
-        int32_t vag1 = hevag1_table[j];
-        int32_t vag2 = hevag2_table[j];
+        int32_t vag1 = hevag_table[j][0];
+        int32_t vag2 = hevag_table[j][1];
+        int32_t _shift_factor = *shift_factor;
 
         s1 = v[0];
         s2 = v[1];
         err = 0;
-        for (i = 0; i < BLOCK_SIZE; i++) {
-            d0 = four_bit[i] << *shift_factor;
+        for (i = 0, k = BLOCK_SIZE; k; i++, k--) {
+            d0 = four_bit[i] << _shift_factor;
 
             g = ((s1 * vag1 + s2 * vag2) >> 5) + d0;
             s2 = s1;
@@ -637,15 +734,15 @@ static void calculate_4_bits_vag(int32_t* data, int8_t* four_bit, int32_t* coef_
 
 static void calculate_4_bits_vag_inner(int32_t* data, int8_t* four_bit, int32_t coef_index,
     int32_t* shift_factor, int32_t* v, int32_t* tv, int32_t* os, int32_t* ots) {
-    int32_t d0, d1, e, g, i, s_f, t_s_f, m, shift_max;
+    int32_t d0, d1, e, g, i, j, s_f, t_s_f, m, shift_max;
     int32_t temp[BLOCK_SIZE];
 
-    int32_t vag1 = hevag1_table[coef_index];
-    int32_t vag2 = hevag2_table[coef_index];
+    int32_t vag1 = hevag_table[coef_index][0];
+    int32_t vag2 = hevag_table[coef_index][1];
 
     int32_t s1 = v[0];
     int32_t s2 = v[1];
-    for (i = 0, m = 0; i < BLOCK_SIZE; i++) {
+    for (i = 0, j = BLOCK_SIZE, m = 0; j; i++, j--) {
         g = data[i];
         e = (s1 * vag1 + s2 * vag2) >> 5;
         e = g - e;
@@ -670,7 +767,7 @@ static void calculate_4_bits_vag_inner(int32_t* data, int8_t* four_bit, int32_t 
         os[1] = s2;
     }
 
-    for (s_f = 12, shift_max = 0x400000; s_f > 0; s_f--, shift_max >>= 1)
+    for (s_f = 12, shift_max = 0x400000; s_f; s_f--, shift_max >>= 1)
         if ((shift_max & (m + (shift_max >> 4))) == shift_max)
             break;
 
@@ -679,7 +776,7 @@ static void calculate_4_bits_vag_inner(int32_t* data, int8_t* four_bit, int32_t 
 
     int32_t ts1 = tv[0];
     int32_t ts2 = tv[1];
-    for (i = 0; i < BLOCK_SIZE; i++) {
+    for (i = 0, j = BLOCK_SIZE; j; i++, j--) {
         g = temp[i];
         e = (ts1 * vag1 + ts2 * vag2) >> 5;
         e = g - e;
@@ -708,26 +805,26 @@ static void calculate_4_bits_vag_inner(int32_t* data, int8_t* four_bit, int32_t 
 
 static void calculate_4_bits_hevag(int32_t* data, int8_t* four_bit, int32_t* coef_index,
     int32_t* shift_factor, int32_t* v, int32_t* tv, int32_t coef_index_count) {
-    int32_t d0, e, g, i, j;
+    int32_t d0, e, g, i, j, k, l;
     int32_t err, min, s1, s2, s3, s4, c_f;
 
     c_f = 0;
     min = 0x7FFFFFFF;
-    for (j = 0; j < coef_index_count; j++) {
+    for (j = 0, l = coef_index_count; l; j++, l--) {
         calculate_4_bits_hevag_inner(data, four_bit, j, shift_factor, v, tv, 0, 0);
 
-        int32_t hevag1 = hevag1_table[j];
-        int32_t hevag2 = hevag2_table[j];
-        int32_t hevag3 = hevag3_table[j];
-        int32_t hevag4 = hevag4_table[j];
-
+        int32_t hevag1 = hevag_table[j][0];
+        int32_t hevag2 = hevag_table[j][1];
+        int32_t hevag3 = hevag_table[j][2];
+        int32_t hevag4 = hevag_table[j][3];
         s1 = v[0];
         s2 = v[1];
         s3 = v[2];
         s4 = v[3];
+        int32_t _shift_factor = *shift_factor;
         err = 0;
-        for (i = 0; i < BLOCK_SIZE; i++) {
-            d0 = four_bit[i] << *shift_factor;
+        for (i = 0, k = BLOCK_SIZE; k; i++, k--) {
+            d0 = four_bit[i] << _shift_factor;
 
             g = ((s1 * hevag1 + s2 * hevag2 + s3 * hevag3 + s4 * hevag4) >> 5) + d0;
             s4 = s3;
@@ -752,22 +849,21 @@ static void calculate_4_bits_hevag(int32_t* data, int8_t* four_bit, int32_t* coe
 
 static void calculate_4_bits_hevag_inner(int32_t* data, int8_t* four_bit, int32_t coef_index,
     int32_t* shift_factor, int32_t* v, int32_t* tv, int32_t* os, int32_t* ots) {
-    int32_t d0, d1, e, g, i, s_f, t_s_f, m, shift_max;
+    int32_t d0, d1, e, g, i, j, s_f, t_s_f, m, shift_max;
     int32_t temp[BLOCK_SIZE];
 
-    int32_t hevag1 = hevag1_table[coef_index];
-    int32_t hevag2 = hevag2_table[coef_index];
-    int32_t hevag3 = hevag3_table[coef_index];
-    int32_t hevag4 = hevag4_table[coef_index];
+    int32_t hevag1 = hevag_table[coef_index][0];
+    int32_t hevag2 = hevag_table[coef_index][1];
+    int32_t hevag3 = hevag_table[coef_index][2];
+    int32_t hevag4 = hevag_table[coef_index][3];
 
     int32_t s1 = v[0];
     int32_t s2 = v[1];
     int32_t s3 = v[2];
     int32_t s4 = v[3];
-    for (i = 0, m = 0; i < BLOCK_SIZE; i++) {
+    for (i = 0, j = BLOCK_SIZE, m = 0; j; i++, j--) {
         g = data[i];
-        e = (s1 * hevag1 + s2 * hevag2 + s3 * hevag3 + s4 * hevag4) >> 5;
-        e = g - e;
+        e = g - ((s1 * hevag1 + s2 * hevag2 + s3 * hevag3 + s4 * hevag4) >> 5);
         s4 = s3;
         s3 = s2;
         s2 = s1;
@@ -793,7 +889,7 @@ static void calculate_4_bits_hevag_inner(int32_t* data, int8_t* four_bit, int32_
         os[3] = s4;
     }
 
-    for (s_f = 12, shift_max = 0x400000; s_f > 0; s_f--, shift_max >>= 1)
+    for (s_f = 12, shift_max = 0x400000; s_f; s_f--, shift_max >>= 1)
         if ((shift_max & (m + (shift_max >> 4))) == shift_max)
             break;
 
@@ -804,10 +900,10 @@ static void calculate_4_bits_hevag_inner(int32_t* data, int8_t* four_bit, int32_
     int32_t ts2 = tv[1];
     int32_t ts3 = tv[2];
     int32_t ts4 = tv[3];
-    for (i = 0; i < BLOCK_SIZE; i++) {
+
+    for (i = 0, j = BLOCK_SIZE; j; i++, j--) {
         g = temp[i];
-        e = (ts1 * hevag1 + ts2 * hevag2 + ts3 * hevag3 + ts4 * hevag4) >> 5;
-        e = g - e;
+        e = g - ((ts1 * hevag1 + ts2 * hevag2 + ts3 * hevag3 + ts4 * hevag4) >> 5);
 
         d1 = e << s_f;
         d0 = (d1 + 0x80000) >> 20;
@@ -825,6 +921,7 @@ static void calculate_4_bits_hevag_inner(int32_t* data, int8_t* four_bit, int32_
         ts2 = ts1;
         ts1 = (d0 - e) >> 8;
     }
+
     *shift_factor = t_s_f;
 
     if (ots) {

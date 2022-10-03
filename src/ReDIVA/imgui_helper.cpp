@@ -65,7 +65,8 @@ namespace ImGui {
         TableNextColumn();
         GetContentRegionAvailSetNextItemWidth();
         Text(label_temp);
-        free(label_temp);
+        if (label_temp)
+            free(label_temp);
 
         TableNextColumn();
         GetContentRegionAvailSetNextItemWidth();
@@ -316,7 +317,8 @@ namespace ImGui {
         DisableElementPush(enable);
         Text(label_temp);
         DisableElementPop(enable);
-        free(label_temp);
+        if (label_temp)
+            free(label_temp);
 
         TableNextColumn();
         GetContentRegionAvailSetNextItemWidth();
@@ -693,7 +695,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -711,8 +713,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -730,9 +732,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -750,10 +752,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -771,7 +773,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -789,8 +791,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -808,9 +810,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -828,10 +830,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -861,7 +863,7 @@ namespace ImGui {
 
         v[0] = roundf(v[0] / step) * step;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -884,8 +886,8 @@ namespace ImGui {
         v[0] = roundf(v[0] / step) * step;
         v[1] = roundf(v[1] / step) * step;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -909,9 +911,9 @@ namespace ImGui {
         v[1] = roundf(v[1] / step) * step;
         v[2] = roundf(v[2] / step) * step;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -936,10 +938,10 @@ namespace ImGui {
         v[2] = roundf(v[2] / step) * step;
         v[3] = roundf(v[3] / step) * step;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -959,7 +961,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -979,8 +981,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -1000,9 +1002,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -1022,17 +1024,17 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
         *val = *(vec4i*)v;
         return true;
     }
-    
+
     bool ColumnSliderFloatButton(const char* label, float_t* val, float_t button_step,
         float_t min, float_t max, float_t step, const char* format, ImGuiSliderFlags flags) {
         float_t v[1];
@@ -1045,9 +1047,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / step) * step;
+        v[0] = roundf(v[0] / button_step) * button_step;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -1075,11 +1077,11 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / step) * step;
-        v[1] = roundf(v[1] / step) * step;
+        v[0] = roundf(v[0] / button_step) * button_step;
+        v[1] = roundf(v[1] / button_step) * button_step;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -1110,13 +1112,13 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / step) * step;
-        v[1] = roundf(v[1] / step) * step;
-        v[2] = roundf(v[2] / step) * step;
+        v[0] = roundf(v[0] / button_step) * button_step;
+        v[1] = roundf(v[1] / button_step) * button_step;
+        v[2] = roundf(v[2] / button_step) * button_step;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -1150,15 +1152,15 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / step) * step;
-        v[1] = roundf(v[1] / step) * step;
-        v[2] = roundf(v[2] / step) * step;
-        v[3] = roundf(v[3] / step) * step;
+        v[0] = roundf(v[0] / button_step) * button_step;
+        v[1] = roundf(v[1] / button_step) * button_step;
+        v[2] = roundf(v[2] / button_step) * button_step;
+        v[3] = roundf(v[3] / button_step) * button_step;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -1178,7 +1180,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -1206,8 +1208,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -1238,9 +1240,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -1274,10 +1276,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -1310,7 +1312,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = 1 << clamp(v[0], min, max);
+        v[0] = 1 << clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -1347,8 +1349,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = 1 << clamp(v[0], min, max);
-        v[1] = 1 << clamp(v[1], min, max);
+        v[0] = 1 << clamp_def(v[0], min, max);
+        v[1] = 1 << clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -1389,9 +1391,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = 1 << clamp(v[0], min, max);
-        v[1] = 1 << clamp(v[1], min, max);
-        v[2] = 1 << clamp(v[2], min, max);
+        v[0] = 1 << clamp_def(v[0], min, max);
+        v[1] = 1 << clamp_def(v[1], min, max);
+        v[2] = 1 << clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -1436,10 +1438,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = 1 << clamp(v[0], min, max);
-        v[1] = 1 << clamp(v[1], min, max);
-        v[2] = 1 << clamp(v[2], min, max);
-        v[3] = 1 << clamp(v[3], min, max);
+        v[0] = 1 << clamp_def(v[0], min, max);
+        v[1] = 1 << clamp_def(v[1], min, max);
+        v[2] = 1 << clamp_def(v[2], min, max);
+        v[3] = 1 << clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -1470,7 +1472,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -1495,8 +1497,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -1523,9 +1525,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -1554,10 +1556,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -1580,7 +1582,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -1605,8 +1607,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -1633,9 +1635,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -1664,10 +1666,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -1690,7 +1692,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -1715,8 +1717,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -1743,9 +1745,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -1774,10 +1776,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -1800,7 +1802,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
+        v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
             return false;
 
@@ -1825,8 +1827,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
         if (v[0] == val->x && v[1] == val->y)
             return false;
 
@@ -1853,9 +1855,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
             return false;
 
@@ -1884,10 +1886,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = clamp(v[0], min, max);
-        v[1] = clamp(v[1], min, max);
-        v[2] = clamp(v[2], min, max);
-        v[3] = clamp(v[3], min, max);
+        v[0] = clamp_def(v[0], min, max);
+        v[1] = clamp_def(v[1], min, max);
+        v[2] = clamp_def(v[2], min, max);
+        v[3] = clamp_def(v[3], min, max);
         if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
             return false;
 
@@ -1895,10 +1897,36 @@ namespace ImGui {
         return true;
     }
 
+    void TextCentered(const char* fmt, ...) {
+        ImGuiContext& g = *GImGui;
+
+        va_list args;
+        va_start(args, fmt);
+        vsprintf_s(g.TempBuffer.Data, g.TempBuffer.Size, fmt, args);
+        va_end(args);
+
+        std::string tex_buf(g.TempBuffer.Data, g.TempBuffer.Size);
+        ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x) * 0.5f);
+        ImGui::Text(tex_buf.c_str());
+    }
+
+    void TextRight(const char* fmt, ...) {
+        ImGuiContext& g = *GImGui;
+
+        va_list args;
+        va_start(args, fmt);
+        vsprintf_s(g.TempBuffer.Data, g.TempBuffer.Size, fmt, args);
+        va_end(args);
+
+        std::string tex_buf(g.TempBuffer.Data, g.TempBuffer.Size);
+        ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x);
+        ImGui::Text(tex_buf.c_str());
+    }
+
     // Taken from ImGui src
     // FIXME: Try to move more of the code into shared SliderBehavior()
     template<typename TYPE, typename SIGNEDTYPE, typename FLOATTYPE>
-    bool SliderBehaviorTA(const ImRect& bb, ImGuiID id, ImGuiDataType data_type, TYPE* v,
+    bool SliderBehaviorStepT(const ImRect& bb, ImGuiID id, ImGuiDataType data_type, TYPE* v,
         const TYPE v_min, const TYPE v_max, const TYPE v_step, const char* format, ImGuiSliderFlags flags, ImRect* out_grab_bb) {
         ImGuiContext& g = *GImGui;
         const ImGuiStyle& style = g.Style;
@@ -1932,8 +1960,26 @@ namespace ImGui {
             zero_deadzone_halfsize = (style.LogSliderDeadzone * 0.5f) / ImMax(slider_usable_sz, 1.0f);
         }
 
+        if (slider_sz < 1.0f)
+            *out_grab_bb = ImRect(bb.Min, bb.Min);
+        else {
+            // Output grab position so it can be displayed by the caller
+            float_t grab_t = ScaleRatioFromValueT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type,
+                *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+            if (axis == ImGuiAxis_Y)
+                grab_t = 1.0f - grab_t;
+            const float_t grab_pos = ImLerp(slider_usable_pos_min, slider_usable_pos_max, grab_t);
+            if (axis == ImGuiAxis_X)
+                *out_grab_bb = ImRect(grab_pos - grab_sz * 0.5f, bb.Min.y + grab_padding,
+                    grab_pos + grab_sz * 0.5f, bb.Max.y - grab_padding);
+            else
+                *out_grab_bb = ImRect(bb.Min.x + grab_padding, grab_pos - grab_sz * 0.5f,
+                    bb.Max.x - grab_padding, grab_pos + grab_sz * 0.5f);
+        }
+
         // Process interacting with the slider
         bool value_changed = false;
+        bool continuos_value_change = false;
         if (g.ActiveId == id) {
             bool set_new_value = false;
             float_t clicked_t = 0.0f;
@@ -1960,7 +2006,15 @@ namespace ImGui {
                             - slider_usable_pos_min) / slider_usable_sz);
                     if (axis == ImGuiAxis_Y)
                         clicked_t = 1.0f - clicked_t;
-                    set_new_value = IsMouseClicked(ImGuiMouseButton_Left, true);
+
+                    float_t diff1 = g.IO.MousePosPrev[axis] - out_grab_bb->Min[axis];
+                    float_t diff2 = out_grab_bb->Max[axis] - g.IO.MousePosPrev[axis];
+                    if (diff1 >= -grab_sz && diff2 >= -grab_sz) {
+                        set_new_value = true;
+                        continuos_value_change = true;
+                    }
+                    else
+                        set_new_value = IsMouseClicked(ImGuiMouseButton_Left, true);
                 }
             }
             else if (g.ActiveIdSource == ImGuiInputSource_Nav) {
@@ -2038,7 +2092,11 @@ namespace ImGui {
                     v_new = RoundScalarWithFormatT<TYPE>(format, data_type, v_new);
 
                 // Apply result
-                if (v_new - *v >= v_step) {
+                if (continuos_value_change) {
+                    *v = v_new;
+                    value_changed = true;
+                }
+                else if (v_new - *v >= v_step) {
                     *v += v_step;
                     value_changed = true;
                 }
@@ -2051,23 +2109,6 @@ namespace ImGui {
                     value_changed = true;
                 }
             }
-        }
-
-        if (slider_sz < 1.0f)
-            *out_grab_bb = ImRect(bb.Min, bb.Min);
-        else {
-            // Output grab position so it can be displayed by the caller
-            float_t grab_t = ScaleRatioFromValueT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type,
-                *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
-            if (axis == ImGuiAxis_Y)
-                grab_t = 1.0f - grab_t;
-            const float_t grab_pos = ImLerp(slider_usable_pos_min, slider_usable_pos_max, grab_t);
-            if (axis == ImGuiAxis_X)
-                *out_grab_bb = ImRect(grab_pos - grab_sz * 0.5f, bb.Min.y + grab_padding,
-                    grab_pos + grab_sz * 0.5f, bb.Max.y - grab_padding);
-            else
-                *out_grab_bb = ImRect(bb.Min.x + grab_padding, grab_pos - grab_sz * 0.5f,
-                    bb.Max.x - grab_padding, grab_pos + grab_sz * 0.5f);
         }
 
         return value_changed;
@@ -2093,7 +2134,7 @@ namespace ImGui {
             const int8_t min = *(const int8_t*)p_min;
             const int8_t max = *(const int8_t*)p_max;
             const int8_t step = *(const int8_t*)p_step;
-            bool r = SliderBehaviorTA<int32_t, int32_t, float_t>(bb, id, ImGuiDataType_S32,
+            bool r = SliderBehaviorStepT<int32_t, int32_t, float_t>(bb, id, ImGuiDataType_S32,
                 &v32, min, max, step, format, flags, out_grab_bb);
             if (r)
                 *(int8_t*)p_v = (int8_t)v32;
@@ -2104,7 +2145,7 @@ namespace ImGui {
             const uint8_t min = *(const uint8_t*)p_min;
             const uint8_t max = *(const uint8_t*)p_max;
             const uint8_t step = *(const uint8_t*)p_step;
-            bool r = SliderBehaviorTA<uint32_t, int32_t, float_t>(bb, id, ImGuiDataType_U32,
+            bool r = SliderBehaviorStepT<uint32_t, int32_t, float_t>(bb, id, ImGuiDataType_U32,
                 &v32, min, max, step, format, flags, out_grab_bb);
             if (r)
                 *(uint8_t*)p_v = (uint8_t)v32;
@@ -2115,7 +2156,7 @@ namespace ImGui {
             const int16_t min = *(const int16_t*)p_min;
             const int16_t max = *(const int16_t*)p_max;
             const int16_t step = *(const int16_t*)p_step;
-            bool r = SliderBehaviorTA<int32_t, int32_t, float_t>(bb, id, ImGuiDataType_S32,
+            bool r = SliderBehaviorStepT<int32_t, int32_t, float_t>(bb, id, ImGuiDataType_S32,
                 &v32, min, max, step, format, flags, out_grab_bb);
             if (r)
                 *(int16_t*)p_v = (int16_t)v32;
@@ -2126,7 +2167,7 @@ namespace ImGui {
             const uint16_t min = *(const uint16_t*)p_min;
             const uint16_t max = *(const uint16_t*)p_max;
             const uint16_t step = *(const uint16_t*)p_step;
-            bool r = SliderBehaviorTA<uint32_t, int32_t, float_t>(bb, id, ImGuiDataType_U32,
+            bool r = SliderBehaviorStepT<uint32_t, int32_t, float_t>(bb, id, ImGuiDataType_U32,
                 &v32, min, max, step, format, flags, out_grab_bb);
             if (r)
                 *(uint16_t*)p_v = (uint16_t)v32;
@@ -2137,7 +2178,7 @@ namespace ImGui {
             const int32_t max = *(const int32_t*)p_max;
             const int32_t step = *(const int32_t*)p_step;
             IM_ASSERT(min >= INT32_MIN / 2 && max <= INT32_MAX / 2);
-            return SliderBehaviorTA<int32_t, int32_t, float_t >(bb, id, data_type,
+            return SliderBehaviorStepT<int32_t, int32_t, float_t >(bb, id, data_type,
                 (int32_t*)p_v, min, max, step, format, flags, out_grab_bb);
         }
         case ImGuiDataType_U32: {
@@ -2145,7 +2186,7 @@ namespace ImGui {
             const uint32_t max = *(const uint32_t*)p_max;
             const uint32_t step = *(const uint32_t*)p_step;
             IM_ASSERT(max <= UINT32_MAX / 2);
-            return SliderBehaviorTA<uint32_t, int32_t, float_t >(bb, id, data_type,
+            return SliderBehaviorStepT<uint32_t, int32_t, float_t >(bb, id, data_type,
                 (uint32_t*)p_v, min, max, step, format, flags, out_grab_bb);
         }
         case ImGuiDataType_S64: {
@@ -2153,7 +2194,7 @@ namespace ImGui {
             const int64_t max = *(const int64_t*)p_max;
             const int64_t step = *(const int64_t*)p_step;
             IM_ASSERT(min >= INT64_MIN / 2 && max <= INT64_MAX / 2);
-            return SliderBehaviorTA<int64_t, int64_t, double_t>(bb, id, data_type,
+            return SliderBehaviorStepT<int64_t, int64_t, double_t>(bb, id, data_type,
                 (int64_t*)p_v, min, max, step, format, flags, out_grab_bb);
         }
         case ImGuiDataType_U64: {
@@ -2161,7 +2202,7 @@ namespace ImGui {
             const uint64_t max = *(const uint64_t*)p_max;
             const uint64_t step = *(const uint64_t*)p_step;
             IM_ASSERT(max <= UINT64_MAX / 2);
-            return SliderBehaviorTA<uint64_t, int64_t, double_t>(bb, id, data_type,
+            return SliderBehaviorStepT<uint64_t, int64_t, double_t>(bb, id, data_type,
                 (uint64_t*)p_v, min, max, step, format, flags, out_grab_bb);
         }
         case ImGuiDataType_Float: {
@@ -2169,7 +2210,7 @@ namespace ImGui {
             const float_t max = *(const float_t*)p_max;
             const float_t step = *(const float_t*)p_step;
             IM_ASSERT(min >= -FLT_MAX / 2.0f && max <= FLT_MAX / 2.0f);
-            return SliderBehaviorTA<float_t, float_t, float_t >(bb, id, data_type,
+            return SliderBehaviorStepT<float_t, float_t, float_t >(bb, id, data_type,
                 (float_t*)p_v, min, max, step, format, flags, out_grab_bb);
         }
         case ImGuiDataType_Double: {
@@ -2177,7 +2218,7 @@ namespace ImGui {
             const double_t max = *(const double_t*)p_max;
             const double_t step = *(const double_t*)p_step;
             IM_ASSERT(min >= -DBL_MAX / 2.0f && max <= DBL_MAX / 2.0f);
-            return SliderBehaviorTA<double_t, double_t, double_t>(bb, id, data_type,
+            return SliderBehaviorStepT<double_t, double_t, double_t>(bb, id, data_type,
                 (double_t*)p_v, min, max, step, format, flags, out_grab_bb);
         }
         case ImGuiDataType_COUNT: break;

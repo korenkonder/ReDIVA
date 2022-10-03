@@ -177,9 +177,8 @@ static const exp_func_op3 exp_func_op3_array[] = {
 
 osage_setting osage_setting_data;
 size_t qword_140FBDF88 = 0;
-
-static const int32_t rob_cloth_update_vertices_flags = 0x03;
-static const bool rob_cloth_update_normals_select = false;
+int32_t rob_cloth_update_vertices_flags = 0x03;
+bool rob_cloth_update_normals_select = false;
 
 ExNodeBlock::ExNodeBlock() : bone_node_ptr(), type(), name(), parent_bone_node(),
 parent_name(), parent_node(), item_equip_object(), field_58(), field_59(), has_children_node() {
@@ -337,10 +336,10 @@ skin_param_hinge::~skin_param_hinge() {
 }
 
 void skin_param_hinge::limit() {
-    ymin = max(ymin, -179.0f) * DEG_TO_RAD_FLOAT;
-    ymax = min(ymax, 179.0f) * DEG_TO_RAD_FLOAT;
-    zmin = max(zmin, -179.0f) * DEG_TO_RAD_FLOAT;
-    zmax = min(zmax, 179.0f) * DEG_TO_RAD_FLOAT;
+    ymin = max_def(ymin, -179.0f) * DEG_TO_RAD_FLOAT;
+    ymax = min_def(ymax, 179.0f) * DEG_TO_RAD_FLOAT;
+    zmin = max_def(zmin, -179.0f) * DEG_TO_RAD_FLOAT;
+    zmax = min_def(zmax, 179.0f) * DEG_TO_RAD_FLOAT;
 }
 
 skin_param_osage_node::skin_param_osage_node() : coli_r(0.0f), weight(1.0f), inertial_cancel(0.0f) {
@@ -1559,8 +1558,8 @@ void RobOsage::SetForce(float_t force, float_t force_gain) {
 }
 
 void RobOsage::SetHinge(float_t hinge_y, float_t hinge_z) {
-    hinge_y = min(hinge_y, 179.0f);
-    hinge_z = min(hinge_z, 179.0f);
+    hinge_y = min_def(hinge_y, 179.0f);
+    hinge_z = min_def(hinge_z, 179.0f);
     hinge_y = hinge_y * DEG_TO_RAD_FLOAT;
     hinge_z = hinge_z * DEG_TO_RAD_FLOAT;
     RobOsageNode* i_begin = nodes.data() + 1;
@@ -1716,8 +1715,8 @@ void RobOsage::SetOsagePlayData(mat4* parent_mat,
     for (RobOsageNode* j = j_begin; j != j_end; j++) {
         float_t rot_y = j->field_1B0.field_0.rotation.y;
         float_t rot_z = j->field_1B0.field_0.rotation.z;
-        rot_y = clamp(rot_y, (float_t)-M_PI, (float_t)M_PI);
-        rot_z = clamp(rot_z, (float_t)-M_PI, (float_t)M_PI);
+        rot_y = clamp_def(rot_y, (float_t)-M_PI, (float_t)M_PI);
+        rot_z = clamp_def(rot_z, (float_t)-M_PI, (float_t)M_PI);
         mat4_rotate_z_mult(&v85, rot_z, &v85);
         mat4_rotate_y_mult(&v85, rot_y, &v85);
         j->bone_node_ptr->exp_data.parent_scale = parent_scale;
@@ -1920,7 +1919,7 @@ void ExOsageBlock::Field_50() {
     rob.ColiSet(mats);
     sub_14047C770(&rob, parent_bone_node->ex_data_mat, &parent_scale, step, 1);
     float_t step = 0.5f * this->step;
-    this->step = max(step, 1.0f);
+    this->step = max_def(step, 1.0f);
 }
 
 void ExOsageBlock::Field_58() {
@@ -2288,11 +2287,11 @@ void ExConstraintBlock::sub_1401EB410(mat4* mat, vec3* a2, vec3* target_offset) 
 
     float_t v18;
     vec3_dot(v3, v4, v18);
-    v18 = clamp(v18, -1.0f, 1.0f);
+    v18 = clamp_def(v18, -1.0f, 1.0f);
     float_t v19 = 1.0f - v18;
 
     float_t v20 = 1.0f - v18 * v18;
-    v20 = sqrtf(clamp(v20, 0.0f, 1.0f));
+    v20 = sqrtf(clamp_def(v20, 0.0f, 1.0f));
 
     sub_1405F10D0(mat, &v13, v18, v20);
 }
@@ -2440,7 +2439,7 @@ void ExExpressionBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
             std::string value_type;
             expression = str_utils_get_next_string(expression, value_type, ' ');
             if (!value_type.size() || !memcmp(value_type.c_str(), "error",
-                min(value_type.size(), 5)) && value_type.size() == 5)
+                min_def(value_type.size(), 5)) && value_type.size() == 5)
                 break;
 
             if (value_type[0] == 'n') {
@@ -2616,7 +2615,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
 
     float_t air_res = 0.0f;
     if (_kv->read("air_res", air_res))
-        skp_root.air_res = min(air_res, 0.9f);
+        skp_root.air_res = min_def(air_res, 0.9f);
 
     float_t rot_y = 0.0f;
     float_t rot_z = 0.0f;
@@ -3016,11 +3015,11 @@ static float_t exp_lt(float_t v1, float_t v2) {
 }
 
 static float_t exp_max(float_t v1, float_t v2) {
-    return max(v1, v2);
+    return max_def(v1, v2);
 }
 
 static float_t exp_min(float_t v1, float_t v2) {
-    return min(v1, v2);
+    return min_def(v1, v2);
 }
 
 static float_t exp_mul(float_t v1, float_t v2) {
@@ -4029,7 +4028,7 @@ static int32_t sub_140483EA0(vec3* a1, vec3* a2, osage_coli* a3, float_t radius)
     vec3_dot(v63, a3->bone_pos_diff, v36);
     v36 *= v25;
     float_t v37 = v36 * v36;
-    v37 = min(v37, 1.0f);
+    v37 = min_def(v37, 1.0f);
     v22 *= 0.5f;
     float_t v38 = v22 * v22 - v61;
     if (v38 < 0.0f)
@@ -4468,7 +4467,7 @@ static void sub_140482100(struc_476* a1, opd_blend_data* a2, struc_477* a3) {
 }
 
 static void sub_140482DF0(struc_477* dst, struc_477* src0, struc_477* src1, float_t blend) {
-    dst->length = lerp(src0->length, src1->length, blend);
+    dst->length = lerp_def(src0->length, src1->length, blend);
     vec3_lerp_scalar(src0->rotation, src1->rotation, dst->rotation, blend);
 }
 

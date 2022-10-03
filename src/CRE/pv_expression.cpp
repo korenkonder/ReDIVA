@@ -37,7 +37,7 @@ struct pv_expression {
     bool set_motion(uint32_t, int32_t motion_id);
 };
 
-pv_expression pv_expression_array[6];
+pv_expression pv_expression_array[ROB_CHARA_COUNT];
 
 extern render_context* rctx_ptr;
 
@@ -178,6 +178,7 @@ void pv_expression_file_unload(const char* file) {
 
             i->file_handler.free_data();
         }
+        delete i;
 
         pv_expression_file_storage.erase(pv_expression_file_storage.begin()
             + (&i - pv_expression_file_storage.data()));

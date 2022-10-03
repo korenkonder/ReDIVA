@@ -22,8 +22,8 @@ void information_frame_speed_imgui(class_data* data) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
 
-    float_t w = min((float_t)width, 240.0f);
-    float_t h = min((float_t)height, 58.0f);
+    float_t w = min_def((float_t)width, 240.0f);
+    float_t h = min_def((float_t)height, 58.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);

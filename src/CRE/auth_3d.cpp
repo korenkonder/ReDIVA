@@ -4,6 +4,7 @@
 */
 
 #include "auth_3d.hpp"
+#include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/json.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/hash.hpp"
@@ -75,9 +76,9 @@ static int32_t auth_3d_get_auth_3d_object_index_by_hash(auth_3d* auth,
     uint32_t object_hash, int32_t instance);
 static mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t index);
 static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth,
-    object_info obj_info, int32_t instance);
+    object_info obj_info, int32_t instance = -1);
 static int32_t auth_3d_get_auth_3d_object_hrc_index_by_hash(auth_3d* auth,
-    uint32_t object_hash, int32_t instance);
+    uint32_t object_hash, int32_t instance = -1);
 static void auth_3d_read_file(auth_3d* auth, auth_3d_database* auth_3d_db);
 static void auth_3d_read_file_modern(auth_3d* auth);
 static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx);
@@ -339,8 +340,8 @@ void auth_3d::ctrl(render_context* rctx) {
         auth_3d_post_process_ctrl(&post_process, frame);
         auth_3d_post_process_set(&post_process, rctx);
 
-        auth_3d_camera_auxiliary_set(&camera_auxiliary, rctx);
         auth_3d_camera_auxiliary_ctrl(&camera_auxiliary, frame);
+        auth_3d_camera_auxiliary_set(&camera_auxiliary, rctx);
 
         if (camera_root_update)
             for (auth_3d_camera_root& i : camera_root) {
@@ -1146,7 +1147,7 @@ void auth_3d_light::reset() {
     linear_init = 0.0f;
     quadratic_init = 0.0f;
     specular_init = vec4_null;
-    tone_curve_init = vec3_null;
+    tone_curve_init = {};
 }
 
 auth_3d_m_object_hrc::auth_3d_m_object_hrc() {
@@ -2303,7 +2304,7 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
 
     msgpack msg;
 
-    stream s;
+    file_stream s;
     s.open(buf, "rb");
     io_json_read(s, &msg);
     s.close();
@@ -2311,9 +2312,9 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
     if (msg.type != MSGPACK_MAP)
         return;
 
-    msgpack* m_objhrcs = msg.read("m_objhrc");
+    msgpack* m_objhrcs = msg.read_array("m_objhrc");
     if (m_objhrcs) {
-        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, m_objhrcs);
+        msgpack_array* ptr = m_objhrcs->data.arr;
         for (msgpack& i : *ptr) {
             msgpack& m_objhrc = i;
 
@@ -2324,9 +2325,9 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
                 if (name_hash != hash_string_murmurhash(j.name))
                     continue;
 
-                msgpack* instances = m_objhrc.read("instance");
+                msgpack* instances = m_objhrc.read_array("instance");
                 if (instances) {
-                    msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, instances);
+                    msgpack_array* ptr =  instances->data.arr;
                     for (msgpack& k : *ptr) {
                         msgpack& instance = k;
 
@@ -2340,9 +2341,9 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
         }
     }
 
-    msgpack* objhrcs = msg.read("objhrc");
+    msgpack* objhrcs = msg.read_array("objhrc");
     if (objhrcs) {
-        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, objhrcs);
+        msgpack_array* ptr = objhrcs->data.arr;
         for (msgpack& i : *ptr) {
             msgpack& objhrc = i;
 
@@ -2364,7 +2365,7 @@ static bool auth_3d_key_detect_fast_change(auth_3d_key* data, float_t frame, flo
     if (data->type < AUTH_3D_KEY_LINEAR || data->type > AUTH_3D_KEY_HOLD)
         return false;
 
-    frame = clamp(frame, 0.0f, data->max_frame);
+    frame = clamp_def(frame, 0.0f, data->max_frame);
     size_t length = data->length;
     if (!length)
         return false;
@@ -2622,25 +2623,39 @@ static mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t inde
 
 static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth,
     object_info obj_info, int32_t instance) {
-    int32_t obj_instance = 0;
-    for (auth_3d_object_hrc& i : auth->object_hrc)
-        if (obj_info == i.object_info) {
-            if (obj_instance == instance)
+    if (instance < 0) {
+        for (auth_3d_object_hrc& i : auth->object_hrc)
+            if (obj_info == i.object_info)
                 return (int32_t)(&i - auth->object_hrc.data());
-            obj_instance++;
-        }
+    }
+    else {
+        int32_t obj_instance = 0;
+        for (auth_3d_object_hrc& i : auth->object_hrc)
+            if (obj_info == i.object_info) {
+                if (obj_instance == instance)
+                    return (int32_t)(&i - auth->object_hrc.data());
+                obj_instance++;
+            }
+    }
     return -1;
 }
 
 static int32_t auth_3d_get_auth_3d_object_hrc_index_by_hash(auth_3d* auth,
     uint32_t object_hash, int32_t instance) {
-    int32_t obj_instance = 0;
-    for (auth_3d_object_hrc& i : auth->object_hrc)
-        if (object_hash == i.object_hash) {
-            if (obj_instance == instance)
+    if (instance < 0) {
+        for (auth_3d_object_hrc& i : auth->object_hrc)
+            if (object_hash == i.object_hash)
                 return (int32_t)(&i - auth->object_hrc.data());
-            obj_instance++;
-        }
+    }
+    else {
+        int32_t obj_instance = 0;
+        for (auth_3d_object_hrc& i : auth->object_hrc)
+            if (object_hash == i.object_hash) {
+                if (obj_instance == instance)
+                    return (int32_t)(&i - auth->object_hrc.data());
+                obj_instance++;
+            }
+    }
     return -1;
 }
 
@@ -2954,8 +2969,7 @@ static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx) {
     vec3 view_point;
     rctx->camera->get_view_point(view_point);
 
-    float_t focus;
-    vec3_distance(d->model_transform.translation_value, view_point, focus);
+    float_t focus = vec3::distance(d->model_transform.translation_value, view_point);
 
     dof_pv pv;
     pv.enable = fabsf(d->model_transform.rotation_value.z) > 0.000001f;
@@ -3281,7 +3295,11 @@ static void auth_3d_light_set(auth_3d_light* l, render_context* rctx) {
             enum_or(l->flags_init, AUTH_3D_LIGHT_TONE_CURVE);
         }
 
-        data->set_tone_curve(*(vec3*)&l->tone_curve.value);
+        light_tone_curve tone_curve;
+        tone_curve.start_point = l->tone_curve.value.x;
+        tone_curve.end_point = l->tone_curve.value.y;
+        tone_curve.coefficient = l->tone_curve.value.z;
+        data->set_tone_curve(tone_curve);
     }
 }
 
@@ -4679,7 +4697,7 @@ static void Auth3dTestTask__SetStage(Auth3dTestTask* tt) {
                 if (!v7)
                     break;
 
-                if (memcmp(v7, "STG", min(v5, 3))) {
+                if (memcmp(v7, "STG", min_def(v5, 3))) {
                     v5 += v6 - v7 - 1;
                     v6 = v7 + 1;
                     continue;

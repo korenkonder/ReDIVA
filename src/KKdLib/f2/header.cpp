@@ -8,18 +8,8 @@
 void f2_header_read(stream& s, f2_header* h) {
     memset(h, 0, sizeof(f2_header));
 
-    switch (s.type) {
-    case STREAM_FILE:
-        if (!s.io.stream)
-            return;
-        break;
-    case STREAM_MEMORY:
-        if (!s.io.data.vec.size())
-            return;
-        break;
-    default:
+    if (s.check_null())
         return;
-    }
 
     s.read(h, 0x20);
     if (h->length == 0x40)
@@ -27,32 +17,16 @@ void f2_header_read(stream& s, f2_header* h) {
 }
 
 void f2_header_write(stream& s, f2_header* h, bool extended) {
-    switch (s.type) {
-    case STREAM_FILE:
-        if (!s.io.stream)
-            return;
-        break;
-    case STREAM_MEMORY:
-        break;
-    default:
+    if (s.check_null())
         return;
-    }
 
     h->length = extended ? 0x40 : 0x20;
     s.write(h, h->length);
 }
 
 void f2_header_write_end_of_container(stream& s, uint32_t depth) {
-    switch (s.type) {
-    case STREAM_FILE:
-        if (!s.io.stream)
-            return;
-        break;
-    case STREAM_MEMORY:
-        break;
-    default:
+    if (s.check_null())
         return;
-    }
 
     f2_header h;
     memset(&h, 0, sizeof(f2_header));

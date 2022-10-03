@@ -9,6 +9,7 @@
 
 #include <string>
 #include "default.hpp"
+#include "hash.hpp"
 
 typedef size_t(*radix_index_func)(void* data, size_t index);
 typedef int(*quicksort_compare_func)(void const* src1, void const* src2);
@@ -77,4 +78,5 @@ extern void quicksort_char_ptr(char** arr, size_t n);
 extern void quicksort_wchar_t_ptr(wchar_t** arr, size_t n);
 extern void quicksort_string(std::string* arr, size_t n);
 extern void quicksort_wstring(std::wstring* arr, size_t n);
+extern void quicksort_string_hash(string_hash* arr, size_t n);
 extern void quicksort_custom(void* arr, size_t n, size_t s, quicksort_compare_func comp_finc);

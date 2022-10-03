@@ -22,7 +22,7 @@ enum draw_pass_3d_type {
 
 enum uniform_name {
     U_NONE          = 0x00,
-    U01             = 0x01,
+    U_ALPHA_MASK    = 0x01,
     U_ALPHA_TEST    = 0x02,
     U_ANISO         = 0x03,
     U_AET_BACK      = 0x04,
@@ -53,7 +53,7 @@ enum uniform_name {
     U_MAGNIFY       = 0x1D,
     U_MEMBRANE      = 0x1E,
     U_MLAA          = 0x1F,
-    U20             = 0x20,
+    U_MLAA_SEARCH   = 0x20,
     U_MORPH_COLOR   = 0x21,
     U_MORPH         = 0x22,
     U_MOVIE         = 0x23,
@@ -102,7 +102,7 @@ extern int32_t sv_max_texture_max_anisotropy;
 extern bool sv_anisotropy_changed;
 extern int32_t sv_anisotropy;
 
-extern int32_t uniform_value[];
+extern int32_t uniform_value[U_MAX];
 
 extern const vec3 sv_rgb_to_luma;
 extern const mat3 sv_rgb_to_ypbpr;

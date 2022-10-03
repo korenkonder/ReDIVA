@@ -292,7 +292,8 @@ struct dsc {
     dsc_get_func_length get_dsc_get_func_length();
     uint32_t* get_func_data(dsc_data* data);
     void merge(int32_t count, ...);
-    bool parse(void* data, size_t size, dsc_type type);
+    bool parse(const void* data, size_t size, dsc_type type);
+    bool parse_text(const void* data, size_t size, dsc_type type);
     void rebuild();
     void unparse(void** data, size_t* size);
 

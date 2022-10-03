@@ -8,4 +8,3 @@
 #include "../KKdLib/default.hpp"
 #include "input.hpp"
 #include "render.hpp"
-#include "sound.hpp"

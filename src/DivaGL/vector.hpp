@@ -65,7 +65,7 @@ void vector_old_##t##_reserve(vector_old_##t* vec, ssize_t size) { \
         capacity = (capacity >> 1) + capacity; \
     else \
         capacity = 0; \
-    capacity = max(capacity, vec->end - vec->begin + size); \
+    capacity = max_def(capacity, vec->end - vec->begin + size); \
 \
     t* temp = 0; \
     if (capacity) \
@@ -76,7 +76,7 @@ void vector_old_##t##_reserve(vector_old_##t* vec, ssize_t size) { \
 \
     memmove(temp, vec->begin, sizeof(t) * (vec->end - vec->begin)); \
     ssize_t length = vec->end - vec->begin; \
-    free(vec->begin); \
+    free_def(vec->begin); \
     vec->capacity_end = &temp[capacity]; \
     vec->end = &temp[length]; \
     vec->begin = temp; \
@@ -182,7 +182,7 @@ void vector_old_##t##_erase_range(vector_old_##t* vec, \
     if (!vec || !last || last - first < 1) \
         return; \
 \
-    ssize_t s = min(last - first, (ssize_t)(vec->end - vec->begin)); \
+    ssize_t s = min_def(last - first, (ssize_t)(vec->end - vec->begin)); \
     if (s < 1) \
         return; \
     \
@@ -214,7 +214,7 @@ void vector_old_##t##_free(vector_old_##t* vec, vector_old_dispose_func(t)) { \
         for (t* i = vec->begin; i != vec->end; i++) \
             dispose_func(i); \
 \
-    free(vec->begin); \
+    free_def(vec->begin); \
     vec->begin = 0; \
     vec->end = 0; \
     vec->capacity_end = 0; \
@@ -230,7 +230,7 @@ void vector_old_ptr_##t##_reserve(vector_old_ptr_##t* vec, ssize_t size) { \
         capacity = (capacity >> 1) + capacity; \
     else \
         capacity = 0; \
-    capacity = max(capacity, vec->end - vec->begin + size); \
+    capacity = max_def(capacity, vec->end - vec->begin + size); \
 \
     t** temp = 0; \
     if (capacity) \
@@ -241,7 +241,7 @@ void vector_old_ptr_##t##_reserve(vector_old_ptr_##t* vec, ssize_t size) { \
 \
     memmove(temp, vec->begin, sizeof(t*) * (vec->end - vec->begin)); \
     ssize_t length = vec->end - vec->begin; \
-    free(vec->begin); \
+    free_def(vec->begin); \
     vec->capacity_end = &temp[capacity]; \
     vec->end = &temp[length]; \
     vec->begin = temp; \
@@ -290,7 +290,7 @@ void vector_old_ptr_##t##_pop_back(vector_old_ptr_##t* vec, vector_old_dispose_f
         if (dispose_func) \
             dispose_func(vec->end[-1]); \
         else \
-            free(vec->end[-1]); \
+            free_def(vec->end[-1]); \
         vec->end--; \
     } \
 } \
@@ -340,7 +340,7 @@ void vector_old_ptr_##t##_erase(vector_old_ptr_##t* vec, \
         if (dispose_func) \
             dispose_func(*t0); \
         else \
-            free(*t0); \
+            free_def(*t0); \
 \
     memmove(t0, t1, sizeof(t*) * (vec->end - t1)); \
     vec->end--; \
@@ -351,7 +351,7 @@ void vector_old_ptr_##t##_erase_range(vector_old_ptr_##t* vec, \
     if (!vec || !last || last - first < 1) \
         return; \
 \
-    ssize_t s = min(last - first, (ssize_t)(vec->end - vec->begin)); \
+    ssize_t s = min_def(last - first, (ssize_t)(vec->end - vec->begin)); \
     if (s < 1) \
         return; \
     \
@@ -366,7 +366,7 @@ void vector_old_ptr_##t##_erase_range(vector_old_ptr_##t* vec, \
     } \
     else \
         for (ssize_t i = 0; i < s; i++) \
-            free(t0[i]); \
+            free_def(t0[i]); \
 \
     memmove(t0, t1, sizeof(t*) * (vec->end - t1)); \
     vec->end -= s; \
@@ -385,7 +385,7 @@ void vector_old_ptr_##t##_clear(vector_old_ptr_##t* vec, vector_old_dispose_func
     } \
     else \
         for (t** i = vec->begin; i != vec->end; i++) \
-            free(*i); \
+            free_def(*i); \
     vec->end = vec->begin; \
 } \
 \
@@ -402,9 +402,9 @@ void vector_old_ptr_##t##_free(vector_old_ptr_##t* vec, vector_old_dispose_func(
     } \
     else \
         for (t** i = vec->begin; i != vec->end; i++) \
-            free(*i); \
+            free_def(*i); \
 \
-    free(vec->begin); \
+    free_def(vec->begin); \
     vec->begin = 0; \
     vec->end = 0; \
     vec->capacity_end = 0; \

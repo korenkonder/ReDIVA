@@ -69,6 +69,8 @@ struct light_param_data_storage {
 
 extern void light_param_data_storage_data_init();
 extern void light_param_data_storage_data_free_file_handlers();
+extern int32_t light_param_data_storage_data_get_pv_id();
+extern int32_t light_param_data_storage_data_get_stage_index();
 extern int32_t light_param_data_storage_data_load_file();
 extern void light_param_data_storage_data_load_stage(int32_t stage_index);
 extern void light_param_data_storage_data_load_stage(uint32_t stage_hash, stage_database* stage_data);

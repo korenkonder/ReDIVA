@@ -24,8 +24,8 @@ void graphics_face_light_imgui(class_data* data) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
 
-    float_t w = min((float_t)width, 200.0f);
-    float_t h = min((float_t)height, 84.0f);
+    float_t w = min_def((float_t)width, 200.0f);
+    float_t h = min_def((float_t)height, 84.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -47,21 +47,22 @@ void graphics_face_light_imgui(class_data* data) {
     }
 
     render_context* rctx = (render_context*)data->data;
-    face* face = &rctx->face;
+    if (!rctx) {
+        ImGui::End();
+        return;
+    }
 
-    ImGuiColorEditFlags color_edit_flags = 0;
-    color_edit_flags |= ImGuiColorEditFlags_NoLabel;
-    color_edit_flags |= ImGuiColorEditFlags_NoSidePreview;
-    color_edit_flags |= ImGuiColorEditFlags_NoDragDrop;
+    face* face = &rctx->face;
 
     w = ImGui::GetContentRegionAvailWidth();
     if (ImGui::ButtonEnterKeyPressed("Reset", { w, 0.0f }))
-        light_param_data_storage_data_set_default_light_param(LIGHT_PARAM_DATA_STORAGE_FACE);
+        light_param_data_storage_data_set_stage(
+            light_param_data_storage_data_get_stage_index(), LIGHT_PARAM_DATA_STORAGE_FACE);
 
     ImGui::GetContentRegionAvailSetNextItemWidth();
     float_t strength = face->get_offset();
     if (ImGui::ColumnSliderFloatButton("Strength",
-        &strength, 0.25f, 0.0f, 10.0f, 1.0f, "%5.2f", color_edit_flags))
+        &strength, 0.25f, 0.0f, 10.0f, 1.0f, "%5.2f", 0))
         face->set_offset(strength);
 
     data->imgui_focus |= ImGui::IsWindowFocused();
@@ -69,5 +70,6 @@ void graphics_face_light_imgui(class_data* data) {
 }
 
 bool graphics_face_light_dispose(class_data* data) {
+    data->data = 0;
     return true;
 }

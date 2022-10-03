@@ -137,8 +137,8 @@ void Auth3dTestWindow::Window() {
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
 
-    float_t w = min((float_t)width, 280.0f);
-    float_t h = min((float_t)height, 324.0f);
+    float_t w = min_def((float_t)width, 280.0f);
+    float_t h = min_def((float_t)height, 324.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -312,8 +312,8 @@ void Auth3dTestWindow::Window() {
     float_t x = w;
     float_t y = 0.0f;
 
-    w = min((float_t)width, 200.0f);
-    h = min((float_t)height, 124.0f);
+    w = min_def((float_t)width, 200.0f);
+    h = min_def((float_t)height, 124.0f);
 
     ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);

@@ -100,7 +100,7 @@ void inject_patches() {
 
     for (int32_t i = 0; i < sizeof(patch_data) / sizeof(patch_struct); i++)
         if (patch_data[i].func_ptr) {
-            free(patch_data[i].orig_data);
+            free_def(patch_data[i].orig_data);
             memcpy(&buf[2], &patch_data[i].func_ptr, sizeof(uint64_t));
             patch_data[i].orig_data = inject_data(patch_data[i].address, buf, 12);
         }
@@ -125,7 +125,7 @@ void inject_restore() {
     for (int32_t i = 0; i < sizeof(patch_data) / sizeof(patch_struct); i++)
         if (patch_data[i].func_ptr) {
             void* data = inject_data(patch_data[i].address, patch_data[i].orig_data, 12);
-            free(data);
+            free_def(data);
         }
 
     inject_uint64_t((void*)0x0000000140966008, (uint64_t)glutMainLoop);

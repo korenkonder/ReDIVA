@@ -231,6 +231,7 @@ struct stage_data_modern {
 struct stage_database_file {
     bool ready;
     bool modern;
+    bool big_endian;
     bool is_x;
     stage_data_format format;
 

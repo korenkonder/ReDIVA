@@ -12,6 +12,7 @@
 #include "../KKdLib/database/bone.hpp"
 #include "../KKdLib/database/motion.hpp"
 #include "../KKdLib/database/object.hpp"
+#include "../KKdLib/database/sprite.hpp"
 #include "../KKdLib/database/stage.hpp"
 #include "../KKdLib/database/texture.hpp"
 #include "../KKdLib/vec.hpp"
@@ -68,6 +69,7 @@ struct data_ft {
     bone_database bone_data;
     motion_database mot_db;
     object_database obj_db;
+    sprite_database spr_db;
     stage_database stage_data;
     texture_database tex_db;
 

@@ -5,15 +5,16 @@
 
 #include "dof.hpp"
 #include "../f2/struct.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../hash.hpp"
 #include "../str_utils.hpp"
 
 static void dof_read_inner(dof* d, stream& s, uint32_t header_length);
 static void dof_write_inner(dof* d, stream& s);
 
-dof::dof() : ready(),  is_x() {
+dof::dof() : ready(), big_endian(), is_x() {
     murmurhash = hash_murmurhash_empty;
 }
 
@@ -30,13 +31,13 @@ void dof::read(const char* path) {
         f2_struct st;
         st.read(path_dft);
         if (st.header.signature == reverse_endianness_uint32_t('DOFT')) {
-            stream s_doft;
+            memory_stream s_doft;
             s_doft.open(st.data);
-            s_doft.is_big_endian = st.header.use_big_endian;
+            s_doft.big_endian = st.header.use_big_endian;
             dof_read_inner(this, s_doft, st.header.length);
         }
     }
-    free(path_dft);
+    free_def(path_dft);
 }
 
 void dof::read(const wchar_t* path) {
@@ -48,13 +49,13 @@ void dof::read(const wchar_t* path) {
         f2_struct st;
         st.read(path_dex);
         if (st.header.signature == reverse_endianness_uint32_t('DOFT')) {
-            stream s_doft;
+            memory_stream s_doft;
             s_doft.open(st.data);
-            s_doft.is_big_endian = st.header.use_big_endian;
+            s_doft.big_endian = st.header.use_big_endian;
             dof_read_inner(this, s_doft, st.header.length);
         }
     }
-    free(path_dex);
+    free_def(path_dex);
 }
 
 void dof::read(const void* data, size_t size) {
@@ -65,9 +66,9 @@ void dof::read(const void* data, size_t size) {
     f2_struct st;
     st.read(data, size);
     if (st.header.signature == reverse_endianness_uint32_t('DOFT')) {
-        stream s_doft;
+        memory_stream s_doft;
         s_doft.open(st.data);
-        s_doft.is_big_endian = st.header.use_big_endian;
+        s_doft.big_endian = st.header.use_big_endian;
         dof_read_inner(this, s_doft, st.header.length);
     }
 }
@@ -77,11 +78,11 @@ void dof::write(const char* path) {
         return;
 
     char* path_dex = str_utils_add(path, ".dft");
-    stream s;
+    file_stream s;
     s.open(path_dex, "wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         dof_write_inner(this, s);
-    free(path_dex);
+    free_def(path_dex);
 }
 
 void dof::write(const wchar_t* path) {
@@ -89,18 +90,18 @@ void dof::write(const wchar_t* path) {
         return;
 
     wchar_t* path_dex = str_utils_add(path, L".dft");
-    stream s;
+    file_stream s;
     s.open(path_dex, L"wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         dof_write_inner(this, s);
-    free(path_dex);
+    free_def(path_dex);
 }
 
 void dof::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     dof_write_inner(this, s);
     s.align_write(0x10);
@@ -132,6 +133,7 @@ static void dof_read_inner(dof* d, stream& s, uint32_t header_length) {
 
     d->data.resize(count);
 
+    bool big_endian = s.big_endian;
     bool is_x = false;
     if (offset) {
         s.position_push(offset, SEEK_SET);
@@ -165,14 +167,17 @@ static void dof_read_inner(dof* d, stream& s, uint32_t header_length) {
     }
 
     d->ready = true;
+    d->big_endian = big_endian;
     d->is_x = is_x;
 }
 
 static void dof_write_inner(dof* d, stream& s) {
-    stream s_motc;
-    s_motc.open();
-
+    bool big_endian = d->big_endian;
     bool is_x = d->is_x;
+
+    memory_stream s_doft;
+    s_doft.open();
+    s_doft.big_endian = big_endian;
 
     uint32_t o;
     enrs e;
@@ -205,35 +210,35 @@ static void dof_write_inner(dof* d, stream& s) {
         }
 
         if (!is_x) {
-            s_motc.write_uint32_t((uint32_t)d->data.size());
+            s_doft.write_uint32_t((uint32_t)d->data.size());
             pof.add(s, 0x40);
             s.write_offset_x(0x50);
             s.align_write(0x10);
 
             for (dof_data& i : d->data) {
-                s.write_uint32_t(i.flags);
-                s.write_float_t(i.focus);
-                s.write_float_t(i.focus_range);
-                s.write_float_t(i.fuzzing_range);
-                s.write_float_t(i.ratio);
-                s.write_float_t(i.quality);
+                s.write_uint32_t_reverse_endianness(i.flags);
+                s.write_float_t_reverse_endianness(i.focus);
+                s.write_float_t_reverse_endianness(i.focus_range);
+                s.write_float_t_reverse_endianness(i.fuzzing_range);
+                s.write_float_t_reverse_endianness(i.ratio);
+                s.write_float_t_reverse_endianness(i.quality);
             }
         }
         else {
-            s_motc.write_uint32_t((uint32_t)d->data.size());
+            s_doft.write_uint32_t((uint32_t)d->data.size());
             s.align_write(0x08);
             pof.add(s, 0x00);
             s.write_offset_x(0x10);
             s.align_write(0x10);
 
             for (dof_data& i : d->data) {
-                s.write_uint32_t(i.flags);
-                s.write_float_t(i.focus);
-                s.write_float_t(i.focus_range);
-                s.write_float_t(i.fuzzing_range);
-                s.write_float_t(i.ratio);
-                s.write_float_t(i.quality);
-                s.write_int32_t(i.chara_id);
+                s.write_uint32_t_reverse_endianness(i.flags);
+                s.write_float_t_reverse_endianness(i.focus);
+                s.write_float_t_reverse_endianness(i.focus_range);
+                s.write_float_t_reverse_endianness(i.fuzzing_range);
+                s.write_float_t_reverse_endianness(i.ratio);
+                s.write_float_t_reverse_endianness(i.quality);
+                s.write_int32_t_reverse_endianness(i.chara_id);
             }
         }
 
@@ -241,16 +246,16 @@ static void dof_write_inner(dof* d, stream& s) {
     }
 
     f2_struct st;
-    s_motc.align_write(0x10);
-    s_motc.copy(st.data);
-    s_motc.close();
+    s_doft.align_write(0x10);
+    s_doft.copy(st.data);
+    s_doft.close();
 
     st.enrs = e;
     st.pof = pof;
 
     st.header.signature = reverse_endianness_uint32_t('DOFT');
     st.header.length = 0x40;
-    st.header.use_big_endian = false;
+    st.header.use_big_endian = big_endian;
     st.header.use_section_size = true;
     st.header.murmurhash = murmurhash;
     st.header.inner_signature = 0x03;

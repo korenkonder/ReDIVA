@@ -642,6 +642,7 @@ struct obj {
 struct obj_set {
     bool ready;
     bool modern;
+    bool big_endian;
     bool is_x;
 
     obj* obj_data;

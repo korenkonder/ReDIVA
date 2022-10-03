@@ -36,7 +36,7 @@ struct render_init_struct {
 
 extern const double_t render_scale_table[];
 
-extern int32_t render_main(void* arg);
+extern int32_t render_main(render_init_struct* ris);
 extern double_t render_get_scale();
 extern int32_t render_get_scale_index();
 extern void render_set_scale_index(int32_t index);

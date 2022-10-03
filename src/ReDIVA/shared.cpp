@@ -103,7 +103,3 @@ classes_data classes[] = {
 };
 
 const size_t classes_count = sizeof(classes) / sizeof(classes_data);
-
-render_state state;
-thread_flag thread_flags;
-lock state_lock;

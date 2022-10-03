@@ -229,7 +229,7 @@ struct shader {
     const bool* use_permut;
     PFNSHADERBINDFUNCPROC bind_func;
 
-    int32_t bind(uint32_t sub_index);
+    int32_t bind(shader_set_data* set, uint32_t sub_index);
     static void unbind();
 };
 

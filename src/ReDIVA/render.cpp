@@ -26,7 +26,9 @@
 #include "../CRE/lock.hpp"
 #include "../CRE/mdata_manager.hpp"
 #include "../CRE/object.hpp"
+#include "../CRE/ogg_vorbis.hpp"
 #include "../CRE/pv_db.hpp"
+#include "../CRE/random.hpp"
 #include "../CRE/shader.hpp"
 #include "../CRE/shader_ft.hpp"
 #include "../CRE/shader_glsl.hpp"
@@ -150,11 +152,11 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
 
 extern bool close;
 bool reload_render;
-lock render_lock;
+lock* render_lock;
 HWND window_handle;
 GLFWwindow* window;
 ImGuiContext* imgui_context;
-lock imgui_context_lock;
+lock* imgui_context_lock;
 bool global_context_menu;
 extern size_t frame_counter;
 render_context* rctx_ptr;
@@ -164,32 +166,21 @@ render_init_struct::render_init_struct() : scale_index() {
 
 }
 
-int32_t render_main(void* arg) {
+int32_t render_main(render_init_struct* ris) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
     timeBeginPeriod(1);
+
+    render_lock = new lock;
+    if (!render_lock)
+        return 0;
+
     render_timer = new timer(60.0);
 
-    state = RENDER_UNINITIALIZED;
-
-    lock_init(&render_lock);
-    if (!lock_check_init(&render_lock)) {
-        delete render_timer;
-        return 0;
-    }
-
-    render_init_struct* ris = (render_init_struct*)arg;
     window_handle = 0;
 
 #pragma region GLFW Init
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
-#if defined(DEBUG) && OPENGL_DEBUG
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-#endif
+    if (!glfwInit())
+        return -1;
 
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -202,6 +193,16 @@ int32_t render_main(void* arg) {
 #if BAKE_PNG || BAKE_VIDEO
     width = 1920;
     height = 1080;
+#endif
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
+    //glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+#if defined(DEBUG) && OPENGL_DEBUG
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 #endif
 
     glfwWindowHint(GLFW_RED_BITS, mode->redBits);
@@ -233,19 +234,21 @@ int32_t render_main(void* arg) {
     window = glfwCreateWindow(width, height, glfw_titlelabel, maximized ? monitor : 0, 0);
     if (!window) {
         glfwTerminate();
-        return -1;
+        return -2;
     }
 
     glfwMakeContextCurrent(window);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         glfwTerminate();
-        return -2;
+        return -3;
     }
+
     glGetError();
     glViewport(0, 0, width, height);
 
     window_handle = glfwGetWin32Window(window);
+    glfwShowWindow(window);
     glfwFocusWindow(window);
     glfwSetDropCallback(window, (GLFWdropfun)render_drop_glfw);
     glfwSetWindowSizeCallback(window, (GLFWwindowsizefun)render_resize_fb_glfw);
@@ -284,11 +287,6 @@ int32_t render_main(void* arg) {
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 
-    lock_lock(&state_lock);
-    state = RENDER_INITIALIZING;
-    enum_or(thread_flags, THREAD_RENDER);
-    lock_unlock(&state_lock);
-
 #if DRAW_PASS_TIME_DISP
     for (std::vector<float_t>& i : draw_pass_cpu_time)
         i.resize(240, 0.0f);
@@ -302,21 +300,24 @@ int32_t render_main(void* arg) {
         reload_render = false;
 
         render_context* rctx = 0;
-        lock_lock(&render_lock);
+        lock_lock(render_lock);
         rctx = render_load();
-        lock_unlock(&render_lock);
+        lock_unlock(render_lock);
 
-        lock_lock(&state_lock);
+        data_struct* aft_data = &data_list[DATA_AFT];
+
+        //OggFileHandler ofh;
+        //aft_data->load_file(&ofh, "rom/sound/bgm/",
+        //    "selector_verB_a_lp.ogg", OggFileHandler::LoadFile);
+
         frame_counter = 0;
-        state = RENDER_INITIALIZED;
-        lock_unlock(&state_lock);
 
 #pragma region GL Init
 #if !(BAKE_PNG || BAKE_VIDEO)
         glfwGetFramebufferSize(window, &width, &height);
 #endif
         glViewport(0, 0, width, height);
-        glfwSwapInterval(0);
+        glfwSwapInterval(1);
 
         gl_state_disable_blend();
         gl_state_disable_depth_test();
@@ -324,7 +325,6 @@ int32_t render_main(void* arg) {
         gl_state_disable_cull_face();
         gl_state_disable_stencil_test();
 #pragma endregion
-
         render_timer->reset();
         while (!close && !reload_render) {
             render_timer->start_of_cycle();
@@ -332,40 +332,24 @@ int32_t render_main(void* arg) {
             ImGui_ImplGlfw_NewFrame();
             ImGui_ImplOpenGL3_NewFrame();
             ImGui::NewFrame();
-            lock_lock(&render_lock);
+            Input::NewFrame();
+            lock_lock(render_lock);
             render_ctrl(rctx);
-            lock_unlock(&render_lock);
+            lock_unlock(render_lock);
             render_disp(rctx);
-            glfwSwapBuffers(window);
             close |= !!glfwWindowShouldClose(window);
             frame_counter++;
             Input::EndFrame();
             render_timer->end_of_cycle();
+            glfwSwapBuffers(window);
         }
 
-        lock_lock(&state_lock);
-        state = RENDER_DISPOSING;
-        lock_unlock(&state_lock);
+        //ofh.~OggFileHandler();
 
-        bool threads_wait = false;
-        render_timer->reset();
-        do {
-            render_timer->start_of_cycle();
-            lock_lock(&state_lock);
-            threads_wait = thread_flags & ~THREAD_RENDER;
-            lock_unlock(&state_lock);
-            render_timer->end_of_cycle();
-        } while (threads_wait);
-
-        lock_lock(&render_lock);
+        lock_lock(render_lock);
         render_dispose(rctx);
-        lock_unlock(&render_lock);
+        lock_unlock(render_lock);
     } while (reload_render);
-
-    lock_lock(&state_lock);
-    state = RENDER_DISPOSED;
-    enum_and(thread_flags, ~THREAD_RENDER);
-    lock_unlock(&state_lock);
 
 #if DRAW_PASS_TIME_DISP
     for (std::vector<float_t>& i : draw_pass_cpu_time) {
@@ -383,8 +367,10 @@ int32_t render_main(void* arg) {
     glfwDestroyWindow(window);
     glfwTerminate();
 #pragma endregion
-    lock_free(&render_lock);
+    delete render_lock;
+    render_lock = 0;
     delete render_timer;
+    render_timer = 0;
     return 0;
 }
 
@@ -437,8 +423,11 @@ static render_context* render_load() {
     }
 
     render_shaders_load();
+    sound_init();
+    wave_audio_storage_init();
     object_storage_init(aft_obj_db);
     item_table_array_init();
+    rand_state_array_init();
 
     app::task_work_init();
 
@@ -475,7 +464,7 @@ static render_context* render_load() {
             sprintf_s(buf, sizeof(buf), i == 815 ? "EFFPV%03d" : "ITMPV%03d", i);
 
             object_set_info* effpv_set_info;
-            if (aft_obj_db->get_object_set_info(buf, &effpv_set_info)){
+            if (aft_obj_db->get_object_set_info(buf, &effpv_set_info)) {
                 obj_set_ids.push_back(effpv_set_info->id);
                 obj_set_id_name.insert({ effpv_set_info->id, buf });
             }
@@ -491,7 +480,7 @@ static render_context* render_load() {
             sprintf_s(buf, sizeof(buf), "STGPV%03dHRC", i);
 
             object_set_info* stgpvhrc_set_info;
-            if (aft_obj_db->get_object_set_info(buf, &stgpvhrc_set_info)){
+            if (aft_obj_db->get_object_set_info(buf, &stgpvhrc_set_info)) {
                 obj_set_ids.push_back(stgpvhrc_set_info->id);
                 obj_set_id_name.insert({ stgpvhrc_set_info->id, buf });
             }
@@ -780,13 +769,15 @@ static render_context* render_load() {
         "    vec2 uv;\n"
         "} frg;\n"
         "\n"
-        "uniform float dark_border_end;\n"
-        "uniform float dark_border_start;\n"
+        "uniform float border_end;\n"
+        "uniform float border_start;\n"
+        "uniform vec3 border_color;"
+        "uniform vec3 center_color;"
         "\n"
         "void main() {\n"
-        "    float blend = step(dark_border_end, frg.uv.x) * (1.0 - step(dark_border_start, frg.uv.x))"
-        " * step(dark_border_end, frg.uv.y) * (1.0 - step(dark_border_start, frg.uv.y));\n"
-        "    result = vec4(blend, blend, blend, 1.0);\n"
+        "    float blend = step(border_end, frg.uv.x) * (1.0 - step(border_start, frg.uv.x))"
+        " * step(border_end, frg.uv.y) * (1.0 - step(border_start, frg.uv.y));\n"
+        "    result = vec4(mix(border_color, center_color, blend), 1.0);\n"
         "}\n";
 
     const char* grid_vert_shader =
@@ -895,12 +886,13 @@ static render_context* render_load() {
     render_timer->reset();
     for (int32_t i = 0; i < 30; i++) {
         render_timer->start_of_cycle();
-        lock_lock(&render_lock);
+        lock_lock(render_lock);
         game_state_ctrl();
         app::TaskWork::Ctrl();
+        sound_ctrl();
         file_handler_storage_ctrl();
         app::TaskWork::Basic();
-        lock_unlock(&render_lock);
+        lock_unlock(render_lock);
         render_timer->end_of_cycle();
     }
 
@@ -965,7 +957,8 @@ static render_context* render_load() {
 
     camera* cam = rctx->camera;
 
-    cam->initialize(aspect, internal_3d_res.x, internal_3d_res.y);
+    cam->initialize(aspect, internal_3d_res.x, internal_3d_res.y,
+        internal_2d_res.x, internal_2d_res.y);
     //cam->set_position(cam, { 1.35542f, 1.41634f, 1.27852f });
     //cam->rotate(cam, { -45.0, -32.5 });
     //cam->set_position(cam, { -6.67555f, 4.68882f, -3.67537f });
@@ -977,14 +970,14 @@ static render_context* render_load() {
     cam->set_interest({ 0.0f, 1.375f, 0.0f });
 
     imgui_context = ImGui::CreateContext();
-    lock_init(&imgui_context_lock);
+    imgui_context_lock = new lock;
 
-    lock_lock(&imgui_context_lock);
+    lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = 0;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    lock_unlock(&imgui_context_lock);
+    lock_unlock(imgui_context_lock);
 
     ImGui::StyleColorsDark(0);
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -1037,15 +1030,15 @@ static void render_ctrl(render_context* rctx) {
     }
 
     global_context_menu = true;
-    lock_lock(&imgui_context_lock);
+    lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
     app::TaskWork_Window();
     classes_process_imgui(classes, classes_count);
 
+#if DRAW_PASS_TIME_DISP
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ 1280, 636 }, ImGuiCond_Appearing);
 
-#if DRAW_PASS_TIME_DISP
     if (ImGui::Begin("CPU/GPU Time")) {
         static const char* draw_pass_names[] = {
             "Shadow",
@@ -1083,7 +1076,7 @@ static void render_ctrl(render_context* rctx) {
             size_t cpu_time_count = draw_pass_cpu_time[i].size();
             if (cpu_time_count)
                 cpu_avg /= (double_t)cpu_time_count;
-            
+
             for (float_t& j : draw_pass_gpu_time[i]) {
                 if (gpu_min > j)
                     gpu_min = j;
@@ -1107,17 +1100,18 @@ static void render_ctrl(render_context* rctx) {
     }
 #endif
 
-    lock_unlock(&imgui_context_lock);
+    lock_unlock(imgui_context_lock);
 
     if (old_width != width || old_height != height || old_scale_index != scale_index) {
         render_resize_fb(rctx, true);
-        cam->set_res(internal_3d_res.x, internal_3d_res.y);
+        cam->set_res(internal_3d_res.x, internal_3d_res.y,
+            internal_2d_res.x, internal_2d_res.y);
     }
     old_width = width;
     old_height = height;
     old_scale_index = scale_index;
 
-    lock_lock(&imgui_context_lock);
+    lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
     if (global_context_menu && ImGui::IsMouseReleased(ImGuiMouseButton_Right)
         && !ImGui::IsItemHovered(0) && imgui_context->OpenPopupStack.Size < 1)
@@ -1127,7 +1121,7 @@ static void render_ctrl(render_context* rctx) {
         render_imgui_context_menu(classes, classes_count, rctx);
         ImGui::EndPopup();
     }
-    lock_unlock(&imgui_context_lock);
+    lock_unlock(imgui_context_lock);
 
     if (window_handle == GetForegroundWindow()) {
         if (input_reset) {
@@ -1212,9 +1206,7 @@ static void cube_line_disp(shader_glsl* shader, camera* cam, vec3* trans, float_
     mat4_get_translation(&mat[1], &t[1]);
 
     vec3 d;
-    vec2_sub(*(vec2*)&t[1], *(vec2*)&t[0], *(vec2*)&d);
-    vec2_normalize(*(vec2*)&d, *(vec2*)&d);
-    vec2_mult_scalar(*(vec2*)&d, line_size, *(vec2*)&d);
+    *(vec2*)&d = vec2::normalize(*(vec2*)&t[1] - *(vec2*)&t[0]) * line_size;
     d.z = 0.0f;
 
     vec3 norm[2];
@@ -1224,10 +1216,10 @@ static void cube_line_disp(shader_glsl* shader, camera* cam, vec3* trans, float_
     mat4_mult_vec3(&cam->inv_view_rot, &norm[1], &norm[1]);
 
     vec3 vert_trans[4];
-    vec3_add(trans[0], norm[0], vert_trans[0]);
-    vec3_add(trans[0], norm[1], vert_trans[1]);
-    vec3_add(trans[1], norm[0], vert_trans[2]);
-    vec3_add(trans[1], norm[1], vert_trans[3]);
+    vert_trans[0] = trans[0] + norm[0];
+    vert_trans[1] = trans[0] + norm[1];
+    vert_trans[2] = trans[1] + norm[0];
+    vert_trans[3] = trans[1] + norm[1];
 
     shader->set("color", *color);
 
@@ -1241,6 +1233,7 @@ static int cube_line_points_sort(void const* src1, void const* src2) {
     return d1 > d2 ? -1 : (d1 < d2 ? 1 : 0);
 }
 
+static bool auth_3d_disp = false;
 static bool rob_disp = false;
 
 static void render_disp(render_context* rctx) {
@@ -1276,13 +1269,6 @@ static void render_disp(render_context* rctx) {
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);
     gl_state_set_depth_mask(GL_FALSE);
 
-    if (set_clear_color) {
-        vec4 _clear_color;
-        vec4u8_to_vec4(clear_color, _clear_color);
-        vec4_mult_scalar(_clear_color, (float_t)(1.0 / 255.0), _clear_color);
-        glClearBufferfv(GL_COLOR, 0, (GLfloat*)&_clear_color);
-    }
-
     cam->update();
 
     rctx->disp();
@@ -1300,89 +1286,201 @@ static void render_disp(render_context* rctx) {
     vec4 exp_color = { 0.0f, 1.0f, 0.0f, 1.0f };
     vec4 osg_color = { 0.0f, 0.0f, 1.0f, 1.0f };
     vec4 osg_node_color = { 1.0f, 0.0f, 1.0f, 1.0f };
-    for (int32_t i = 0; i < ROB_CHARA_COUNT && rob_disp; i++) {
-        if (rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
-            continue;
-
-        rob_chara* rob_chr = &rob_chara_array[i];
-        if (~rob_chr->data.field_0 & 1)
-            continue;
-
-        gl_state_bind_vertex_array(cube_line_vao);
-        gl_state_bind_array_buffer(cube_line_vbo);
-        rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
-        size_t object_bone_count = rob_bone_data->object_bone_count;
-        size_t total_bone_count = rob_bone_data->total_bone_count;
-        size_t ik_bone_count = rob_bone_data->ik_bone_count;
-        cube_line_shader->use();
-        for (bone_node& j : rob_bone_data->nodes) {
-            if (!j.parent)
+    if (rob_disp)
+        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+            if (rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
                 continue;
 
-            vec3 trans[2];
-            mat4_get_translation(j.parent->mat, &trans[0]);
-            mat4_get_translation(j.mat, &trans[1]);
+            rob_chara* rob_chr = &rob_chara_array[i];
+            if (~rob_chr->data.field_0 & 1)
+                continue;
 
-            if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
-                cube_line_disp(cube_line_shader, cam, trans, CUBE_LINE_SIZE, &bone_color);
+            gl_state_bind_vertex_array(cube_line_vao);
+            gl_state_bind_array_buffer(cube_line_vbo);
+            rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
+            size_t object_bone_count = rob_bone_data->object_bone_count;
+            size_t total_bone_count = rob_bone_data->total_bone_count;
+            size_t ik_bone_count = rob_bone_data->ik_bone_count;
+            cube_line_shader->use();
+            for (bone_node& j : rob_bone_data->nodes) {
+                if (!j.parent)
+                    continue;
+
+                vec3 trans[2];
+                mat4_get_translation(j.parent->mat, &trans[0]);
+                mat4_get_translation(j.mat, &trans[1]);
+
+                if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                    cube_line_disp(cube_line_shader, cam, trans, CUBE_LINE_SIZE, &bone_color);
+            }
+            gl_state_bind_array_buffer(0);
+
+            std::vector<std::pair<vec3, float_t>> cube_line_points;
+            for (bone_node& j : rob_bone_data->nodes) {
+                vec3 trans;
+                vec3 vp_trans;
+                mat4_get_translation(j.mat, &trans);
+                mat4_mult_vec3(&cam->view_projection, &trans, &vp_trans);
+                cube_line_points.push_back({ trans, vp_trans.z });
+            }
+
+            quicksort_custom(cube_line_points.data(), cube_line_points.size(),
+                sizeof(std::pair<vec3, float_t>), cube_line_points_sort);
+
+            gl_state_bind_array_buffer(cube_line_point_instance_vbo);
+            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(std::pair<vec3, float_t>)
+                * cube_line_points.size()), cube_line_points.data(), GL_STREAM_DRAW);
+            gl_state_bind_array_buffer(0);
+
+            vec3 trans[4];
+            trans[0] = { -CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
+            trans[1] = {  CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
+            trans[2] = { -CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
+            trans[3] = {  CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
+
+            mat4_mult_vec3(&cam->inv_view_rot, &trans[0], &trans[0]);
+            mat4_mult_vec3(&cam->inv_view_rot, &trans[1], &trans[1]);
+            mat4_mult_vec3(&cam->inv_view_rot, &trans[2], &trans[2]);
+            mat4_mult_vec3(&cam->inv_view_rot, &trans[3], &trans[3]);
+
+            gl_state_bind_vertex_array(cube_line_point_vao);
+            cube_line_point_shader->use();
+            cube_line_point_shader->set("trans", 4, trans);
+            cube_line_point_shader->set("border_end",
+                ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
+            cube_line_point_shader->set("border_start",
+                (1.0f - ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE))));
+            cube_line_point_shader->set("border_color", 0.0f, 0.0f, 0.0f);
+            cube_line_point_shader->set("center_color", 1.0f, 1.0f, 1.0f);
+            glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)cube_line_points.size());
+            gl_state_bind_vertex_array(0);
+            cube_line_points.clear();
+            cube_line_points.shrink_to_fit();
         }
-        gl_state_bind_array_buffer(0);
 
-        std::vector<std::pair<vec3, float_t>> cube_line_points;
-        for (bone_node& j : rob_bone_data->nodes) {
-            vec3 trans;
-            mat4_get_translation(j.mat, &trans);
-            cube_line_points.push_back({ trans, 0.0f });
+    if (auth_3d_disp)
+        for (auth_3d& i : auth_3d_data->data) {
+            if (i.id == -1 || !i.visible)
+                continue;
+
+            for (auth_3d_object_hrc& j : i.object_hrc) {
+                if (!j.node[0].model_transform.visible)
+                    continue;
+
+                gl_state_bind_vertex_array(cube_line_vao);
+                gl_state_bind_array_buffer(cube_line_vbo);
+                cube_line_shader->use();
+                for (auth_3d_object_node& k : j.node) {
+                    if (k.parent == -1 )
+                        continue;
+
+                    vec3 trans[2];
+                    mat4_get_translation(&j.node[k.parent].model_transform.mat, &trans[0]);
+                    mat4_get_translation(&k.model_transform.mat, &trans[1]);
+
+                    if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                        cube_line_disp(cube_line_shader, cam, trans, CUBE_LINE_SIZE, &osg_color);
+                }
+                gl_state_bind_array_buffer(0);
+
+                std::vector<std::pair<vec3, float_t>> cube_line_points;
+                for (auth_3d_object_node& k : j.node) {
+                    vec3 trans;
+                    vec3 vp_trans;
+                    mat4_get_translation(&k.model_transform.mat, &trans);
+                    mat4_mult_vec3(&cam->view_projection, &trans, &vp_trans);
+                    cube_line_points.push_back({ trans, vp_trans.z });
+                }
+
+                quicksort_custom(cube_line_points.data(), cube_line_points.size(),
+                    sizeof(std::pair<vec3, float_t>), cube_line_points_sort);
+
+                gl_state_bind_array_buffer(cube_line_point_instance_vbo);
+                glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(std::pair<vec3, float_t>)
+                    * cube_line_points.size()), cube_line_points.data(), GL_STREAM_DRAW);
+                gl_state_bind_array_buffer(0);
+
+                vec3 trans[4];
+                trans[0] = { -CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
+                trans[1] = {  CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
+                trans[2] = { -CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
+                trans[3] = {  CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
+
+                mat4_mult_vec3(&cam->inv_view_rot, &trans[0], &trans[0]);
+                mat4_mult_vec3(&cam->inv_view_rot, &trans[1], &trans[1]);
+                mat4_mult_vec3(&cam->inv_view_rot, &trans[2], &trans[2]);
+                mat4_mult_vec3(&cam->inv_view_rot, &trans[3], &trans[3]);
+
+                gl_state_bind_vertex_array(cube_line_point_vao);
+                cube_line_point_shader->use();
+                cube_line_point_shader->set("trans", 4, trans);
+                cube_line_point_shader->set("border_end",
+                    ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
+                cube_line_point_shader->set("border_start",
+                    (1.0f - ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE))));
+                cube_line_point_shader->set("border_color", 0.0f, 0.0f, 0.0f);
+                cube_line_point_shader->set("center_color", 1.0f, 1.0f, 1.0f);
+                glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)cube_line_points.size());
+                gl_state_bind_vertex_array(0);
+                cube_line_points.clear();
+                cube_line_points.shrink_to_fit();
+            }
         }
 
-        motion_blend_mot* mot = rob_chr->bone_data->motion_loaded.front();
-        mot_key_set* key_set = mot->mot_key_data.mot.key_sets;
-        for (bone_data& j :mot->bone_data.bones)
-            if (j.type >= BONE_DATABASE_BONE_HEAD_IK_ROTATION
-                && j.type <= BONE_DATABASE_BONE_LEGS_IK_ROTATION)
-                cube_line_points.push_back({ j.ik_target, 0.0f });
+    if (rob_disp)
+        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+            if (rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
+                continue;
 
-        for (std::pair<vec3, float_t>& i : cube_line_points) {
-            vec3 trans;
-            mat4_mult_vec3(&cam->view_projection, &i.first, &trans);
-            i.second = trans.z;
+            rob_chara* rob_chr = &rob_chara_array[i];
+            if (~rob_chr->data.field_0 & 1)
+                continue;
+
+            std::vector<std::pair<vec3, float_t>> cube_line_points;
+            motion_blend_mot* mot = rob_chr->bone_data->motion_loaded.front();
+            mot_key_set* key_set = mot->mot_key_data.mot.key_sets;
+            for (bone_data& j : mot->bone_data.bones)
+                if (j.type >= BONE_DATABASE_BONE_HEAD_IK_ROTATION
+                    && j.type <= BONE_DATABASE_BONE_LEGS_IK_ROTATION) {
+                    vec3 trans;
+                    mat4_mult_vec3(&cam->view_projection, &j.ik_target, &trans);
+                    cube_line_points.push_back({ j.ik_target, trans.z });
+                }
+
+            quicksort_custom(cube_line_points.data(), cube_line_points.size(),
+                sizeof(std::pair<vec3, float_t>), cube_line_points_sort);
+
+            gl_state_bind_array_buffer(cube_line_point_instance_vbo);
+            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(std::pair<vec3, float_t>)
+                * cube_line_points.size()), cube_line_points.data(), GL_STREAM_DRAW);
+            gl_state_bind_array_buffer(0);
+
+            vec3 trans[4];
+            trans[0] = { -CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
+            trans[1] = {  CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
+            trans[2] = { -CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
+            trans[3] = {  CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
+
+            mat4_mult_vec3(&cam->inv_view_rot, &trans[0], &trans[0]);
+            mat4_mult_vec3(&cam->inv_view_rot, &trans[1], &trans[1]);
+            mat4_mult_vec3(&cam->inv_view_rot, &trans[2], &trans[2]);
+            mat4_mult_vec3(&cam->inv_view_rot, &trans[3], &trans[3]);
+
+            gl_state_bind_vertex_array(cube_line_point_vao);
+            cube_line_point_shader->use();
+            cube_line_point_shader->set("trans", 4, trans);
+            cube_line_point_shader->set("border_end",
+                ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
+            cube_line_point_shader->set("border_start",
+                (1.0f - ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE))));
+            cube_line_point_shader->set("border_color", 0.0f, 0.0f, 0.0f);
+            cube_line_point_shader->set("center_color", 0.0f, 1.0f, 0.0f);
+            glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)cube_line_points.size());
+            gl_state_bind_vertex_array(0);
+            cube_line_points.clear();
+            cube_line_points.shrink_to_fit();
         }
 
-        quicksort_custom(cube_line_points.data(), cube_line_points.size(),
-            sizeof(std::pair<vec3, float_t>), cube_line_points_sort);
-
-        gl_state_bind_array_buffer(cube_line_point_instance_vbo);
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(std::pair<vec3, float_t>)
-            * cube_line_points.size()), cube_line_points.data(), GL_STREAM_DRAW);
-        gl_state_bind_array_buffer(0);
-
-        vec3 trans[4];
-        trans[0] = { -1.0,  1.0, 0.0 };
-        trans[1] = {  1.0,  1.0, 0.0 };
-        trans[2] = { -1.0, -1.0, 0.0 };
-        trans[3] = {  1.0, -1.0, 0.0 };
-
-        vec3_mult_scalar(trans[0], CUBE_LINE_POINT_SIZE, trans[0]);
-        vec3_mult_scalar(trans[1], CUBE_LINE_POINT_SIZE, trans[1]);
-        vec3_mult_scalar(trans[2], CUBE_LINE_POINT_SIZE, trans[2]);
-        vec3_mult_scalar(trans[3], CUBE_LINE_POINT_SIZE, trans[3]);
-
-        mat4_mult_vec3(&cam->inv_view_rot, &trans[0], &trans[0]);
-        mat4_mult_vec3(&cam->inv_view_rot, &trans[1], &trans[1]);
-        mat4_mult_vec3(&cam->inv_view_rot, &trans[2], &trans[2]);
-        mat4_mult_vec3(&cam->inv_view_rot, &trans[3], &trans[3]);
-
-        gl_state_bind_vertex_array(cube_line_point_vao);
-        cube_line_point_shader->use();
-        cube_line_point_shader->set("trans", 4, trans);
-        cube_line_point_shader->set("dark_border_end",
-            ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
-        cube_line_point_shader->set("dark_border_start",
-            (1.0f - ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE))));
-        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)cube_line_points.size());
-        cube_line_points.clear();
-        cube_line_points.shrink_to_fit();
-    }
     gl_state_bind_vertex_array(0);
     gl_state_enable_cull_face();
     gl_state_bind_framebuffer(0);
@@ -1420,7 +1518,8 @@ static void render_dispose(render_context* rctx) {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext(imgui_context);
-    lock_free(&imgui_context_lock);
+    delete imgui_context_lock;
+    imgui_context_lock = 0;
 
     //pv_game_data.SetDest();
     Glitter::glt_particle_manager_free_task();
@@ -1433,12 +1532,13 @@ static void render_dispose(render_context* rctx) {
     render_timer->reset();
     while (app::task_work->tasks.size()) {
         render_timer->start_of_cycle();
-        lock_lock(&render_lock);
+        lock_lock(render_lock);
         game_state_ctrl();
         app::TaskWork::Ctrl();
+        sound_ctrl();
         file_handler_storage_ctrl();
         app::TaskWork::Basic();
-        lock_unlock(&render_lock);
+        lock_unlock(render_lock);
         render_timer->end_of_cycle();
     }
 
@@ -1459,6 +1559,15 @@ static void render_dispose(render_context* rctx) {
         cube_line_shader = 0;
     }
 
+    sound_work_unload_farc("rom/sound/se.farc");
+    sound_work_unload_farc("rom/sound/button.farc");
+    sound_work_unload_farc("rom/sound/se_cmn.farc");
+    sound_work_unload_farc("rom/sound/se_sel.farc");
+    sound_work_unload_farc("rom/sound/se_aime.farc");
+    sound_work_unload_farc("rom/sound/pvchange.farc");
+    sound_work_unload_farc("rom/sound/slide_se.farc");
+    sound_work_unload_farc("rom/sound/slide_long.farc");
+
     object_storage_unload_set(dbg_set_id);
 
     task_data_test_glitter_particle_free();
@@ -1477,12 +1586,6 @@ static void render_dispose(render_context* rctx) {
     task_wind_free();
     rob_free();
 
-    app::task_work_free();
-
-    item_table_array_free();
-    object_storage_free();
-    data_struct_free();
-
     glDeleteBuffers(1, &common_data_ubo);
     glDeleteBuffers(1, &grid_vbo);
     glDeleteBuffers(1, &cube_line_point_instance_vbo);
@@ -1490,25 +1593,34 @@ static void render_dispose(render_context* rctx) {
     glDeleteBuffers(1, &cube_line_vbo);
     glDeleteVertexArrays(1, &cube_line_vao);
 
-    motion_storage_free();
-    mothead_storage_free();
+    app::task_work_free();
+
+    rand_state_array_free();
+    item_table_array_free();
+    object_storage_free();
+    wave_audio_storage_free();
+    sound_free();
+    render_shaders_free();
+
     osage_setting_data_free();
 
+    data_struct_free();
+
+    osage_setting_data_free();
+    mothead_storage_free();
+    motion_storage_free();
+
     render_texture_data_free();
-    delete rctx;
 
     file_handler_storage_free();
-
-    texture_storage_free();
-
-    render_shaders_free();
+    delete rctx;
 }
 
 static void render_imgui(render_context* rctx) {
-    lock_lock(&imgui_context_lock);
+    lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    lock_unlock(&imgui_context_lock);
+    lock_unlock(imgui_context_lock);
 }
 
 static bool render_load_shaders(void* data, const char* path, const char* file, uint32_t hash) {
@@ -1560,8 +1672,8 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     internal_res.x = (int32_t)res_width;
     internal_res.y = (int32_t)res_height;
 
-    internal_2d_res.x = clamp(internal_res.x, 1, sv_max_texture_size);
-    internal_2d_res.y = clamp(internal_res.y, 1, sv_max_texture_size);
+    internal_2d_res.x = clamp_def(internal_res.x, 1, sv_max_texture_size);
+    internal_2d_res.y = clamp_def(internal_res.y, 1, sv_max_texture_size);
 #if BAKE_PNG || BAKE_VIDEO
     internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * 2));
     internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * 2));
@@ -1569,8 +1681,8 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * render_scale_table[scale_index]));
     internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * render_scale_table[scale_index]));
 #endif
-    internal_3d_res.x = clamp(internal_3d_res.x, 1, sv_max_texture_size);
-    internal_3d_res.y = clamp(internal_3d_res.y, 1, sv_max_texture_size);
+    internal_3d_res.x = clamp_def(internal_3d_res.x, 1, sv_max_texture_size);
+    internal_3d_res.y = clamp_def(internal_3d_res.y, 1, sv_max_texture_size);
 
     bool fb_changed = old_internal_2d_res.x != internal_2d_res.x
         || old_internal_2d_res.y != internal_2d_res.y
@@ -1580,12 +1692,7 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     old_internal_2d_res = internal_2d_res;
     old_internal_3d_res = internal_3d_res;
 
-    bool st = false;
-    lock_lock(&state_lock);
-    st = state == RENDER_INITIALIZED;
-    lock_unlock(&state_lock);
-
-    if (st && fb_changed && change_fb) {
+    if (fb_changed && change_fb) {
         rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
             internal_2d_res.x, internal_2d_res.y, width, height);
         rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
@@ -1594,6 +1701,8 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
 
 static void render_imgui_context_menu(classes_data* classes,
     const size_t classes_count, render_context* rctx) {
+#pragma warning(disable:26115)
+#pragma warning(disable:26117)
     for (size_t i = 0; i < classes_count; i++) {
         classes_data* c = &classes[i];
         if (!c->name || ~c->flags & CLASSES_IN_CONTEXT_MENU)
@@ -1610,23 +1719,22 @@ static void render_imgui_context_menu(classes_data* classes,
             ImGui::MenuItem(c->name, 0, false, false);
         else if (ImGui::MenuItem(c->name, 0)) {
             if (~c->data.flags & CLASS_INIT) {
-                lock_init(&c->data.lock);
-                if (lock_check_init(&c->data.lock) && c->init) {
-                    lock_lock(&c->data.lock);
+                c->data.lock = new lock;
+                if (c->data.lock->check_init() && c->init) {
+                    lock_lock(c->data.lock);
                     if (c->init(&c->data, rctx))
                         c->data.flags = CLASS_INIT;
                     else
                         c->data.flags = (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN);
-                    lock_unlock(&c->data.lock);
+                    lock_unlock(c->data.lock);
                 }
             }
 
-            if (lock_check_init(&c->data.lock)) {
-                lock_lock(&c->data.lock);
-                if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show)) {
+            if (c->data.lock->check_init()) {
+                lock_lock(c->data.lock);
+                if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show))
                     enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN | CLASS_HIDE_WINDOW));
-                }
-                lock_unlock(&c->data.lock);
+                lock_unlock(c->data.lock);
             }
         }
     }

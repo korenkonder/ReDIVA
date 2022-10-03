@@ -6,6 +6,10 @@
 #include "glitter.hpp"
 
 namespace Glitter {
+    LocusHistory::LocusHistory::Data::Data() :scale() {
+
+    }
+
     LocusHistory::LocusHistory(size_t size) {
         data.reserve(size);
     }
@@ -21,7 +25,7 @@ namespace Glitter {
         if (ptcl_inst->data.data.flags & PARTICLE_EMITTER_LOCAL && ptcl_inst->data.emitter) {
             vec3 emit_trans;
             mat4_get_translation(&ptcl_inst->data.emitter->mat, &emit_trans);
-            vec3_add(temp, emit_trans, temp);
+            temp += emit_trans;
         }
 
         LocusHistory::Data locus_history;
@@ -57,7 +61,7 @@ namespace Glitter {
         if (ptcl_inst->data.data.flags & PARTICLE_EMITTER_LOCAL && ptcl_inst->data.emitter) {
             vec3 emit_trans;
             mat4_get_translation(&ptcl_inst->data.emitter->mat, &emit_trans);
-            vec3_add(temp, emit_trans, temp);
+            temp += emit_trans;
             if (ptcl_inst->data.data.flags & PARTICLE_ROTATE_LOCUS)
                 mat4_mult_vec3(&ptcl_inst->data.emitter->mat_rot, &temp, &temp);
         }

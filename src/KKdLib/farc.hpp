@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 #include "default.hpp"
-#include "io/stream.hpp"
 
 enum farc_signature {
     FARC_FArc = 'FArc',
@@ -37,8 +36,7 @@ struct farc_file {
     size_t size_compressed;
     void* data;
     void* data_compressed;
-    bool compressed;
-    bool encrypted;
+    farc_flags flags;
     bool data_changed;
 
     farc_file();
@@ -52,6 +50,7 @@ struct farc {
     farc_signature signature;
     farc_flags flags;
     int32_t compression_level;
+    uint32_t alignment;
     bool ft;
 
     farc();
@@ -65,14 +64,14 @@ struct farc {
     bool has_file(const char* name);
     bool has_file(const wchar_t* name);
     bool has_file(uint32_t hash);
-    void read(const char* path, bool unpack, bool save);
-    void read(const wchar_t* path, bool unpack, bool save);
-    void read(const void* data, size_t size, bool unpack);
+    void read(const char* path, bool unpack = true, bool save = false);
+    void read(const wchar_t* path, bool unpack = true, bool save = false);
+    void read(const void* data, size_t size, bool unpack = true);
     farc_file* read_file(const char* name);
     farc_file* read_file(const wchar_t* name);
     farc_file* read_file(uint32_t hash);
-    void write(const char* path, farc_compress_mode mode, bool get_files);
-    void write(const wchar_t* path, farc_compress_mode mode, bool get_files);
+    void write(const char* path, farc_compress_mode mode, bool get_files = true);
+    void write(const wchar_t* path, farc_compress_mode mode, bool get_files = true);
     void write(void** data, size_t* size, farc_compress_mode mode);
 
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);

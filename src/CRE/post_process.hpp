@@ -27,7 +27,7 @@ enum post_process_mag_filter_type {
 struct post_process {
     bool ssaa;
     bool mlaa;
-    int32_t parent_bone_node;
+    int32_t ss_alpha_mask;
     render_texture rend_texture;
     render_texture buf_texture;
     render_texture sss_contour_texture;

@@ -29,6 +29,7 @@ struct pv_exp_mot {
 struct pv_exp {
     bool ready;
     bool modern;
+    bool big_endian;
     bool is_x;
 
     std::vector<pv_exp_mot> motion_data;

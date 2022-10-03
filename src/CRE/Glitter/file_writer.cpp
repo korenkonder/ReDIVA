@@ -4,6 +4,7 @@
 */
 
 #include "glitter.hpp"
+#include "../../KKdLib/io/file_stream.hpp"
 #include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/interpolation.hpp"
 #include "../../KKdLib/farc.hpp"
@@ -15,7 +16,7 @@ namespace Glitter {
 
     }
 
-    void FileWriter::PackCurve(f2_struct* st, Curve* c) {
+    void FileWriter::PackCurve(f2_struct* st, Curve* c, bool big_endian) {
         if (!c->keys.size()) {
             st->header.signature = reverse_endianness_uint32_t('KEYS');
             st->header.length = 0x20;
@@ -144,83 +145,153 @@ namespace Glitter {
         st->data.resize(l);
         size_t d = (size_t)st->data.data();
 
-        if (scale == 1.0f)
-            if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                for (Curve::Key& i : c->keys) {
-                    *(int16_t*)d = (int16_t)i.type;
-                    *(int16_t*)(d + 2) = (int16_t)i.frame;
-                    if (i.type == KEY_HERMITE) {
-                        *(float_t*)(d + 4) = i.tangent1;
-                        *(float_t*)(d + 8) = i.tangent2;
-                        *(float_t*)(d + 12) = i.random_range;
-                        *(float_t*)(d + 16) = i.value;
-                        d += 20;
+        if (scale == 1.0f) {
+            if (big_endian)
+                if (c->flags & CURVE_KEY_RANDOM_RANGE)
+                    for (Curve::Key& i : c->keys) {
+                        store_reverse_endianness_int16_t((int16_t*)d, (int16_t)i.type);
+                        store_reverse_endianness_int16_t((int16_t*)(d + 2), (int16_t)i.frame);
+                        if (i.type == KEY_HERMITE) {
+                            store_reverse_endianness_float_t((float_t*)(d + 4), i.tangent1);
+                            store_reverse_endianness_float_t((float_t*)(d + 8), i.tangent2);
+                            store_reverse_endianness_float_t((float_t*)(d + 12), i.random_range);
+                            store_reverse_endianness_float_t((float_t*)(d + 16), i.value);
+                            d += 20;
+                        }
+                        else {
+                            store_reverse_endianness_float_t((float_t*)(d + 4), i.random_range);
+                            store_reverse_endianness_float_t((float_t*)(d + 8), i.value);
+                            d += 12;
+                        }
                     }
-                    else {
-                        *(float_t*)(d + 4) = i.random_range;
-                        *(float_t*)(d + 8) = i.value;
-                        d += 12;
+                else
+                    for (Curve::Key& i : c->keys) {
+                        store_reverse_endianness_int16_t((int16_t*)d, (int16_t)i.type);
+                        store_reverse_endianness_int16_t((int16_t*)(d + 2), (int16_t)i.frame);
+                        if (i.type == KEY_HERMITE) {
+                            store_reverse_endianness_float_t((float_t*)(d + 4), i.tangent1);
+                            store_reverse_endianness_float_t((float_t*)(d + 8), i.tangent2);
+                            store_reverse_endianness_float_t((float_t*)(d + 12), i.value);
+                            d += 16;
+                        }
+                        else {
+                            store_reverse_endianness_float_t((float_t*)(d + 4), i.value);
+                            d += 8;
+                        }
                     }
-                }
             else
-                for (Curve::Key& i : c->keys) {
-                    *(int16_t*)d = (int16_t)i.type;
-                    *(int16_t*)(d + 2) = (int16_t)i.frame;
-                    if (i.type == KEY_HERMITE) {
-                        *(float_t*)(d + 4) = i.tangent1;
-                        *(float_t*)(d + 8) = i.tangent2;
-                        *(float_t*)(d + 12) = i.value;
-                        d += 16;
+                if (c->flags & CURVE_KEY_RANDOM_RANGE)
+                    for (Curve::Key& i : c->keys) {
+                        *(int16_t*)d = (int16_t)i.type;
+                        *(int16_t*)(d + 2) = (int16_t)i.frame;
+                        if (i.type == KEY_HERMITE) {
+                            *(float_t*)(d + 4) = i.tangent1;
+                            *(float_t*)(d + 8) = i.tangent2;
+                            *(float_t*)(d + 12) = i.random_range;
+                            *(float_t*)(d + 16) = i.value;
+                            d += 20;
+                        }
+                        else {
+                            *(float_t*)(d + 4) = i.random_range;
+                            *(float_t*)(d + 8) = i.value;
+                            d += 12;
+                        }
                     }
-                    else {
-                        *(float_t*)(d + 4) = i.value;
-                        d += 8;
+                else
+                    for (Curve::Key& i : c->keys) {
+                        *(int16_t*)d = (int16_t)i.type;
+                        *(int16_t*)(d + 2) = (int16_t)i.frame;
+                        if (i.type == KEY_HERMITE) {
+                            *(float_t*)(d + 4) = i.tangent1;
+                            *(float_t*)(d + 8) = i.tangent2;
+                            *(float_t*)(d + 12) = i.value;
+                            d += 16;
+                        }
+                        else {
+                            *(float_t*)(d + 4) = i.value;
+                            d += 8;
+                        }
                     }
-                }
-        else
-            if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                for (Curve::Key& i : c->keys) {
-                    *(int16_t*)d = (int16_t)i.type;
-                    *(int16_t*)(d + 2) = (int16_t)i.frame;
-                    if (i.type == KEY_HERMITE) {
-                        *(float_t*)(d + 4) = i.tangent1 * scale;
-                        *(float_t*)(d + 8) = i.tangent2 * scale;
-                        *(float_t*)(d + 12) = i.random_range * scale;
-                        *(float_t*)(d + 16) = i.value * scale;
-                        d += 20;
+        }
+        else {
+            if (big_endian)
+                if (c->flags & CURVE_KEY_RANDOM_RANGE)
+                    for (Curve::Key& i : c->keys) {
+                        store_reverse_endianness_int16_t((int16_t*)d, (int16_t)i.type);
+                        store_reverse_endianness_int16_t((int16_t*)(d + 2), (int16_t)i.frame);
+                        if (i.type == KEY_HERMITE) {
+                            store_reverse_endianness_float_t((float_t*)(d + 4), i.tangent1 * scale);
+                            store_reverse_endianness_float_t((float_t*)(d + 8), i.tangent2 * scale);
+                            store_reverse_endianness_float_t((float_t*)(d + 12), i.random_range * scale);
+                            store_reverse_endianness_float_t((float_t*)(d + 16), i.value * scale);
+                            d += 20;
+                        }
+                        else {
+                            store_reverse_endianness_float_t((float_t*)(d + 4), i.random_range * scale);
+                            store_reverse_endianness_float_t((float_t*)(d + 8), i.value * scale);
+                            d += 12;
+                        }
                     }
-                    else {
-                        *(float_t*)(d + 4) = i.random_range * scale;
-                        *(float_t*)(d + 8) = i.value * scale;
-                        d += 12;
+                else
+                    for (Curve::Key& i : c->keys) {
+                        store_reverse_endianness_int16_t((int16_t*)d, (int16_t)i.type);
+                        store_reverse_endianness_int16_t((int16_t*)(d + 2), (int16_t)i.frame);
+                        if (i.type == KEY_HERMITE) {
+                            store_reverse_endianness_float_t((float_t*)(d + 4), i.tangent1 * scale);
+                            store_reverse_endianness_float_t((float_t*)(d + 8), i.tangent2 * scale);
+                            store_reverse_endianness_float_t((float_t*)(d + 12), i.value * scale);
+                            d += 16;
+                        }
+                        else {
+                            store_reverse_endianness_float_t((float_t*)(d + 4), i.value * scale);
+                            d += 8;
+                        }
                     }
-                }
             else
-                for (Curve::Key& i : c->keys) {
-                    *(int16_t*)d = (int16_t)i.type;
-                    *(int16_t*)(d + 2) = (int16_t)i.frame;
-                    if (i.type == KEY_HERMITE) {
-                        *(float_t*)(d + 4) = i.tangent1 * scale;
-                        *(float_t*)(d + 8) = i.tangent2 * scale;
-                        *(float_t*)(d + 12) = i.value * scale;
-                        d += 16;
+                if (c->flags & CURVE_KEY_RANDOM_RANGE)
+                    for (Curve::Key& i : c->keys) {
+                        *(int16_t*)d = (int16_t)i.type;
+                        *(int16_t*)(d + 2) = (int16_t)i.frame;
+                        if (i.type == KEY_HERMITE) {
+                            *(float_t*)(d + 4) = i.tangent1 * scale;
+                            *(float_t*)(d + 8) = i.tangent2 * scale;
+                            *(float_t*)(d + 12) = i.random_range * scale;
+                            *(float_t*)(d + 16) = i.value * scale;
+                            d += 20;
+                        }
+                        else {
+                            *(float_t*)(d + 4) = i.random_range * scale;
+                            *(float_t*)(d + 8) = i.value * scale;
+                            d += 12;
+                        }
                     }
-                    else {
-                        *(float_t*)(d + 4) = i.value * scale;
-                        d += 8;
+                else
+                    for (Curve::Key& i : c->keys) {
+                        *(int16_t*)d = (int16_t)i.type;
+                        *(int16_t*)(d + 2) = (int16_t)i.frame;
+                        if (i.type == KEY_HERMITE) {
+                            *(float_t*)(d + 4) = i.tangent1 * scale;
+                            *(float_t*)(d + 8) = i.tangent2 * scale;
+                            *(float_t*)(d + 12) = i.value * scale;
+                            d += 16;
+                        }
+                        else {
+                            *(float_t*)(d + 4) = i.value * scale;
+                            d += 8;
+                        }
                     }
-                }
+        }
 
         st->enrs = e;
 
         st->header.signature = reverse_endianness_uint32_t('KEYS');
         st->header.length = 0x20;
-        st->header.use_big_endian = false;
+        st->header.use_big_endian = big_endian;
         st->header.use_section_size = true;
         st->header.version = c->keys_version;
     }
 
-    bool FileWriter::PackDivaList(EffectGroup* eff_group, f2_struct* st) {
+    bool FileWriter::PackDivaList(EffectGroup* eff_group, f2_struct* st, bool big_endian) {
         if (!eff_group->effects.size())
             return false;
 
@@ -239,12 +310,15 @@ namespace Glitter {
         st->data.resize(0x10 + 0x80 * length);
         size_t d = (size_t)st->data.data();
 
-        *(uint32_t*)d = (uint32_t)length;
+        if (big_endian)
+            store_reverse_endianness_uint32_t((uint32_t*)d, (uint32_t)length);
+        else
+            *(uint32_t*)d = (uint32_t)length;
         d += 4;
 
         for (Effect*& i : eff_group->effects)
             if (i) {
-                size_t size = min(i->name.size(), 0x7F);
+                size_t size = min_def(i->name.size(), 0x7F);
                 memcpy((void*)d, i->name.c_str(), size);
                 memset((void*)(d + size), 0, 0x80 - size);
                 d += 0x80;
@@ -254,7 +328,7 @@ namespace Glitter {
 
         st->header.signature = reverse_endianness_uint32_t('GEFF');
         st->header.length = 0x20;
-        st->header.use_big_endian = false;
+        st->header.use_big_endian = big_endian;
         st->header.use_section_size = true;
         return true;
     }
@@ -275,7 +349,7 @@ namespace Glitter {
         return true;
     }
 
-    bool FileWriter::PackDivaResourceHashes(EffectGroup* eff_group, f2_struct* st) {
+    bool FileWriter::PackDivaResourceHashes(EffectGroup* eff_group, f2_struct* st, bool big_endian) {
         if (eff_group->effects.size() < 1 || !eff_group->resources_count
             || eff_group->resource_hashes.size() < 1)
             return false;
@@ -297,22 +371,32 @@ namespace Glitter {
         st->data.resize(l);
         size_t d = (size_t)st->data.data();
 
-        *(int32_t*)d = (int32_t)count;
+        if (big_endian)
+            store_reverse_endianness_int32_t((int32_t*)d, (int32_t)count);
+        else
+            *(int32_t*)d = (int32_t)count;
         *(int32_t*)(d + 4) = 0;
         d += 8;
 
-        memcpy((void*)d, eff_group->resource_hashes.data(), sizeof(uint64_t) * count);
+        if (big_endian) {
+            uint64_t* hashes_src = eff_group->resource_hashes.data();
+            uint64_t* hashes_dst = (uint64_t*)(void*)d;
+            for (size_t i = 0; i < count; i++)
+                store_reverse_endianness_uint64_t(hashes_dst++, *hashes_src++);
+        }
+        else
+            memcpy((void*)d, eff_group->resource_hashes.data(), sizeof(uint64_t) * count);
 
         st->enrs = e;
 
         st->header.signature = reverse_endianness_uint32_t('DVRS');
         st->header.length = 0x20;
-        st->header.use_big_endian = false;
+        st->header.use_big_endian = big_endian;
         st->header.use_section_size = true;
         return true;
     }
 
-    bool FileWriter::PackEffect(f2_struct* st, Effect* eff) {
+    bool FileWriter::PackEffect(f2_struct* st, Effect* eff, bool big_endian) {
         if (eff->version != 6 && eff->version != 7)
             return false;
 
@@ -373,45 +457,88 @@ namespace Glitter {
         if (eff->data.flags & EFFECT_EMISSION)
             enum_or(flags, EFFECT_FILE_EMISSION);
 
-        *(uint64_t*)d = type != Glitter::FT
-            ? hash_string_murmurhash(eff->name) : hash_string_fnv1a64m(eff->name);
-        *(int32_t*)(d + 8) = eff->data.appear_time;
-        *(int32_t*)(d + 12) = eff->data.life_time;
-        *(int32_t*)(d + 16) = eff->data.start_time;
-        *(int32_t*)(d + 20) = 0xFFFFFFFF;
-        *(int32_t*)(d + 24) = eff->data.flags & EFFECT_LOOP ? 1 : 0;
-        *(vec3*)(d + 28) = eff->translation;
-        *(vec3*)(d + 40) = eff->rotation;
-        *(int32_t*)(d + 52) = flags;
+        if (big_endian) {
+            store_reverse_endianness_uint64_t((uint64_t*)d, type != Glitter::FT
+                ? hash_string_murmurhash(eff->name) : hash_string_fnv1a64m(eff->name));
+            store_reverse_endianness_int32_t((int32_t*)(d + 8), eff->data.appear_time);
+            store_reverse_endianness_int32_t((int32_t*)(d + 12), eff->data.life_time);
+            store_reverse_endianness_int32_t((int32_t*)(d + 16), eff->data.start_time);
+            store_reverse_endianness_int32_t((int32_t*)(d + 20), 0xFFFFFFFF);
+            store_reverse_endianness_int32_t((int32_t*)(d + 24), eff->data.flags & EFFECT_LOOP ? 1 : 0);
+            store_reverse_endianness_float_t((float_t*)(d + 28), eff->translation.x);
+            store_reverse_endianness_float_t((float_t*)(d + 32), eff->translation.y);
+            store_reverse_endianness_float_t((float_t*)(d + 36), eff->translation.z);
+            store_reverse_endianness_float_t((float_t*)(d + 40), eff->rotation.x);
+            store_reverse_endianness_float_t((float_t*)(d + 40), eff->rotation.y);
+            store_reverse_endianness_float_t((float_t*)(d + 40), eff->rotation.z);
+            store_reverse_endianness_int32_t((int32_t*)(d + 52), flags);
+        }
+        else {
+            *(uint64_t*)d = type != Glitter::FT
+                ? hash_string_murmurhash(eff->name) : hash_string_fnv1a64m(eff->name);
+            *(int32_t*)(d + 8) = eff->data.appear_time;
+            *(int32_t*)(d + 12) = eff->data.life_time;
+            *(int32_t*)(d + 16) = eff->data.start_time;
+            *(int32_t*)(d + 20) = 0xFFFFFFFF;
+            *(int32_t*)(d + 24) = eff->data.flags & EFFECT_LOOP ? 1 : 0;
+            *(vec3*)(d + 28) = eff->translation;
+            *(vec3*)(d + 40) = eff->rotation;
+            *(int32_t*)(d + 52) = flags;
+        }
         d += 56;
 
         if (eff->version == 7) {
-            *(float_t*)d = eff->data.emission;
+            if (big_endian)
+                store_reverse_endianness_float_t((float_t*)d, eff->data.emission);
+            else
+                *(float_t*)d = eff->data.emission;
             d += 4;
         }
 
         if (eff->data.flags & EFFECT_LOCAL) {
-            *(int32_t*)d = 1;
+            if (big_endian)
+                store_reverse_endianness_int32_t((int32_t*)d, 1);
+            else
+                *(int32_t*)d = 1;
             d += 4;
         }
         else if (ext_anim) {
             if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA_ANIM) {
-                *(int32_t*)d = 2;
+                if (big_endian)
+                    store_reverse_endianness_int32_t((int32_t*)d, 2);
+                else
+                    *(int32_t*)d = 2;
                 d += 4;
 
                 EffectExtAnimFlag ext_anim_flag = ext_anim->flags;
                 enum_and(ext_anim_flag, ~EFFECT_EXT_ANIM_CHARA_ANIM);
 
-                *(int32_t*)d = ext_anim->chara_index;
-                *(int32_t*)(d + 4) = ext_anim_flag;
-                *(int32_t*)(d + 8) = ext_anim->node_index;
+                if (big_endian) {
+                    store_reverse_endianness_int32_t((int32_t*)d, ext_anim->chara_index);
+                    store_reverse_endianness_int32_t((int32_t*)(d + 4), ext_anim_flag);
+                    store_reverse_endianness_int32_t((int32_t*)(d + 8), ext_anim->node_index);
+                }
+                else {
+                    *(int32_t*)d = ext_anim->chara_index;
+                    *(int32_t*)(d + 4) = ext_anim_flag;
+                    *(int32_t*)(d + 8) = ext_anim->node_index;
+                }
             }
             else {
-                *(int32_t*)d = 3;
+                if (big_endian)
+                    store_reverse_endianness_int32_t((int32_t*)d, 3);
+                else
+                    *(int32_t*)d = 3;
                 d += 4;
 
-                *(uint64_t*)d = ext_anim->object_hash;
-                *(int32_t*)(d + 8) = ext_anim->flags;
+                if (big_endian) {
+                    store_reverse_endianness_uint64_t((uint64_t*)d, ext_anim->object_hash);
+                    store_reverse_endianness_int32_t((int32_t*)(d + 8), ext_anim->flags);
+                }
+                else {
+                    *(uint64_t*)d = ext_anim->object_hash;
+                    *(int32_t*)(d + 8) = ext_anim->flags;
+                }
                 strncpy_s((char*)(d + 12), 0x80, ext_anim->mesh_name, 0x80);
                 ((char*)(d + 12))[0x7F] = '\0';
             }
@@ -425,13 +552,13 @@ namespace Glitter {
 
         st->header.signature = reverse_endianness_uint32_t('EFCT');
         st->header.length = 0x20;
-        st->header.use_big_endian = false;
+        st->header.use_big_endian = big_endian;
         st->header.use_section_size = true;
         st->header.version = eff->version;
         return true;
     }
 
-    bool FileWriter::PackEmitter(f2_struct* st, Emitter* emit) {
+    bool FileWriter::PackEmitter(f2_struct* st, Emitter* emit, bool big_endian) {
         if (emit->version != 1 && emit->version != 2)
             return false;
 
@@ -491,47 +618,109 @@ namespace Glitter {
         st->data.resize(l);
         size_t d = (size_t)st->data.data();
 
-        *(int32_t*)d = emit->data.start_time;
-        *(int32_t*)(d + 4) = emit->data.life_time;
-        *(int32_t*)(d + 8) = emit->data.loop_start_time;
-        *(int32_t*)(d + 12) = emit->data.loop_end_time;
-        *(int32_t*)(d + 16) = emit->data.flags;
-        *(int16_t*)(d + 20) = (int16_t)emit->data.type;
-        *(int16_t*)(d + 22) = (int16_t)emit->data.direction;
-        *(float_t*)(d + 24) = emit->data.emission_interval;
-        *(float_t*)(d + 28) = emit->data.particles_per_emission;
-        *(int16_t*)(d + 32) = 0;
-        *(int16_t*)(d + 34) = 0;
+        if (big_endian) {
+            store_reverse_endianness_int32_t((int32_t*)d, emit->data.start_time);
+            store_reverse_endianness_int32_t((int32_t*)(d + 4), emit->data.life_time);
+            store_reverse_endianness_int32_t((int32_t*)(d + 8), emit->data.loop_start_time);
+            store_reverse_endianness_int32_t((int32_t*)(d + 12), emit->data.loop_end_time);
+            store_reverse_endianness_int32_t((int32_t*)(d + 16), emit->data.flags);
+            store_reverse_endianness_int32_t((int16_t*)(d + 20), (int16_t)emit->data.type);
+            store_reverse_endianness_int32_t((int16_t*)(d + 22), (int16_t)emit->data.direction);
+            store_reverse_endianness_float_t((float_t*)(d + 24), emit->data.emission_interval);
+            store_reverse_endianness_float_t((float_t*)(d + 28), emit->data.particles_per_emission);
+            store_reverse_endianness_int16_t((int16_t*)(d + 32), (uint16_t)0);
+            store_reverse_endianness_int16_t((int16_t*)(d + 34), (uint16_t)0);
 
-        *(vec3*)(d + 36) = emit->translation;
-        *(vec3*)(d + 48) = emit->rotation;
-        *(vec3*)(d + 60) = emit->scale;
-        *(vec3*)(d + 72) = emit->data.rotation_add;
-        *(vec3*)(d + 84) = emit->data.rotation_add_random;
+            store_reverse_endianness_float_t((float_t*)(d + 36), emit->translation.x);
+            store_reverse_endianness_float_t((float_t*)(d + 40), emit->translation.y);
+            store_reverse_endianness_float_t((float_t*)(d + 44), emit->translation.z);
+            store_reverse_endianness_float_t((float_t*)(d + 48), emit->rotation.x);
+            store_reverse_endianness_float_t((float_t*)(d + 52), emit->rotation.y);
+            store_reverse_endianness_float_t((float_t*)(d + 56), emit->rotation.z);
+            store_reverse_endianness_float_t((float_t*)(d + 60), emit->scale.x);
+            store_reverse_endianness_float_t((float_t*)(d + 64), emit->scale.y);
+            store_reverse_endianness_float_t((float_t*)(d + 68), emit->scale.z);
+            store_reverse_endianness_float_t((float_t*)(d + 72), emit->data.rotation_add.x);
+            store_reverse_endianness_float_t((float_t*)(d + 76), emit->data.rotation_add.y);
+            store_reverse_endianness_float_t((float_t*)(d + 80), emit->data.rotation_add.z);
+            store_reverse_endianness_float_t((float_t*)(d + 84), emit->data.rotation_add_random.x);
+            store_reverse_endianness_float_t((float_t*)(d + 88), emit->data.rotation_add_random.y);
+            store_reverse_endianness_float_t((float_t*)(d + 92), emit->data.rotation_add_random.z);
+        }
+        else {
+            *(int32_t*)d = emit->data.start_time;
+            *(int32_t*)(d + 4) = emit->data.life_time;
+            *(int32_t*)(d + 8) = emit->data.loop_start_time;
+            *(int32_t*)(d + 12) = emit->data.loop_end_time;
+            *(int32_t*)(d + 16) = emit->data.flags;
+            *(int16_t*)(d + 20) = (int16_t)emit->data.type;
+            *(int16_t*)(d + 22) = (int16_t)emit->data.direction;
+            *(float_t*)(d + 24) = emit->data.emission_interval;
+            *(float_t*)(d + 28) = emit->data.particles_per_emission;
+            *(int16_t*)(d + 32) = 0;
+            *(int16_t*)(d + 34) = 0;
+
+            *(vec3*)(d + 36) = emit->translation;
+            *(vec3*)(d + 48) = emit->rotation;
+            *(vec3*)(d + 60) = emit->scale;
+            *(vec3*)(d + 72) = emit->data.rotation_add;
+            *(vec3*)(d + 84) = emit->data.rotation_add_random;
+        }
         d += 96;
 
         switch (emit->data.type) {
         case EMITTER_BOX:
-            *(vec3*)d = emit->data.box.size;
+            if (big_endian) {
+                store_reverse_endianness_float_t((float_t*)d, emit->data.box.size.x);
+                store_reverse_endianness_float_t((float_t*)(d + 4), emit->data.box.size.y);
+                store_reverse_endianness_float_t((float_t*)(d + 8), emit->data.box.size.z);
+            }
+            else
+                *(vec3*)d = emit->data.box.size;
             break;
         case EMITTER_CYLINDER:
-            *(float_t*)d = emit->data.cylinder.radius;
-            *(float_t*)(d + 4) = emit->data.cylinder.height;
-            *(float_t*)(d + 8) = emit->data.cylinder.start_angle;
-            *(float_t*)(d + 12) = emit->data.cylinder.end_angle;
-            *(int32_t*)(d + 16) = ((int32_t)emit->data.cylinder.direction << 1)
-                | (emit->data.cylinder.on_edge ? 1 : 0);
+            if (big_endian) {
+                store_reverse_endianness_float_t((float_t*)d, emit->data.cylinder.radius);
+                store_reverse_endianness_float_t((float_t*)(d + 4), emit->data.cylinder.height);
+                store_reverse_endianness_float_t((float_t*)(d + 8), emit->data.cylinder.start_angle);
+                store_reverse_endianness_float_t((float_t*)(d + 12), emit->data.cylinder.end_angle);
+                store_reverse_endianness_int32_t((int32_t*)(d + 16), ((int32_t)emit->data.cylinder.direction << 1)
+                    | (emit->data.cylinder.on_edge ? 1 : 0));
+            }
+            else {
+                *(float_t*)d = emit->data.cylinder.radius;
+                *(float_t*)(d + 4) = emit->data.cylinder.height;
+                *(float_t*)(d + 8) = emit->data.cylinder.start_angle;
+                *(float_t*)(d + 12) = emit->data.cylinder.end_angle;
+                *(int32_t*)(d + 16) = ((int32_t)emit->data.cylinder.direction << 1)
+                    | (emit->data.cylinder.on_edge ? 1 : 0);
+            }
             break;
         case EMITTER_SPHERE:
-            *(float_t*)d = emit->data.sphere.radius;
-            *(float_t*)(d + 4) = emit->data.sphere.latitude;
-            *(float_t*)(d + 8) = emit->data.sphere.longitude;
-            *(int32_t*)(d + 12) = ((int32_t)emit->data.sphere.direction << 1)
-                | (emit->data.sphere.on_edge ? 1 : 0);
+            if (big_endian) {
+                store_reverse_endianness_float_t((float_t*)d, emit->data.sphere.radius);
+                store_reverse_endianness_float_t((float_t*)(d + 4), emit->data.sphere.latitude);
+                store_reverse_endianness_float_t((float_t*)(d + 8), emit->data.sphere.longitude);
+                store_reverse_endianness_int32_t((int32_t*)(d + 12), ((int32_t)emit->data.sphere.direction << 1)
+                    | (emit->data.sphere.on_edge ? 1 : 0));
+            }
+            else {
+                *(float_t*)d = emit->data.sphere.radius;
+                *(float_t*)(d + 4) = emit->data.sphere.latitude;
+                *(float_t*)(d + 8) = emit->data.sphere.longitude;
+                *(int32_t*)(d + 12) = ((int32_t)emit->data.sphere.direction << 1)
+                    | (emit->data.sphere.on_edge ? 1 : 0);
+            }
             break;
         case EMITTER_POLYGON:
-            *(float_t*)d = emit->data.polygon.size;
-            *(int32_t*)(d + 4) = emit->data.polygon.count;
+            if (big_endian) {
+                store_reverse_endianness_float_t((float_t*)d, emit->data.polygon.size);
+                store_reverse_endianness_int32_t((int32_t*)(d + 4), emit->data.polygon.count);
+            }
+            else {
+                *(float_t*)d = emit->data.polygon.size;
+                *(int32_t*)(d + 4) = emit->data.polygon.count;
+            }
             break;
         }
 
@@ -539,13 +728,14 @@ namespace Glitter {
 
         st->header.signature = reverse_endianness_uint32_t('EMIT');
         st->header.length = 0x20;
-        st->header.use_big_endian = false;
+        st->header.use_big_endian = big_endian;
         st->header.use_section_size = true;
         st->header.version = emit->version;
         return true;
     }
 
-    bool FileWriter::PackParticle(EffectGroup* eff_group, f2_struct* st, Particle* ptcl, Effect* eff) {
+    bool FileWriter::PackParticle(EffectGroup* eff_group,
+        f2_struct* st, Particle* ptcl, Effect* eff, bool big_endian) {
         if (ptcl->version < 2)
             return false;
 
@@ -615,72 +805,164 @@ namespace Glitter {
         else
             type = ptcl->data.type;
 
-        *(int32_t*)d = ptcl->data.life_time;
-        *(int32_t*)(d + 4) = type;
-        *(int32_t*)(d + 8) = ptcl->data.draw_type;
-        *(vec3*)(d + 12) = ptcl->data.rotation;
-        *(vec3*)(d + 24) = ptcl->data.rotation_random;
-        *(vec3*)(d + 36) = ptcl->data.rotation_add;
-        *(vec3*)(d + 48) = ptcl->data.rotation_add_random;
-        *(vec3*)(d + 60) = ptcl->data.scale;
-        *(vec3*)(d + 72) = ptcl->data.scale_random;
-        *(float_t*)(d + 84) = ptcl->data.z_offset;
-        *(int32_t*)(d + 88) = ptcl->data.pivot;
-        *(int32_t*)(d + 92) = flags;
-        *(float_t*)(d + 96) = ptcl->data.speed;
-        *(float_t*)(d + 100) = ptcl->data.speed_random;
-        *(float_t*)(d + 104) = ptcl->data.deceleration;
-        *(float_t*)(d + 108) = ptcl->data.deceleration_random;
-        *(vec3*)(d + 112) = ptcl->data.direction;
-        *(vec3*)(d + 124) = ptcl->data.direction_random;
-        *(vec3*)(d + 136) = ptcl->data.gravity;
-        *(vec3*)(d + 148) = ptcl->data.acceleration;
-        *(vec3*)(d + 160) = ptcl->data.acceleration_random;
-        *(float_t*)(d + 172) = ptcl->data.reflection_coeff;
-        *(float_t*)(d + 176) = ptcl->data.reflection_coeff_random;
-        *(float_t*)(d + 180) = ptcl->data.rebound_plane_y;
-        *(vec2*)(d + 184) = ptcl->data.uv_scroll_add;
-        *(float_t*)(d + 192) = ptcl->data.uv_scroll_add_scale;
-        *(int32_t*)(d + 196) = ptcl->data.sub_flags;
-        *(int32_t*)(d + 200) = ptcl->data.count;
+        if (big_endian) {
+            store_reverse_endianness_int32_t((int32_t*)d, ptcl->data.life_time);
+            store_reverse_endianness_int32_t((int32_t*)(d + 4), type);
+            store_reverse_endianness_int32_t((int32_t*)(d + 8), ptcl->data.draw_type);
+            store_reverse_endianness_float_t((float_t*)(d + 12), ptcl->data.rotation.x);
+            store_reverse_endianness_float_t((float_t*)(d + 16), ptcl->data.rotation.y);
+            store_reverse_endianness_float_t((float_t*)(d + 20), ptcl->data.rotation.z);
+            store_reverse_endianness_float_t((float_t*)(d + 24), ptcl->data.rotation_random.x);
+            store_reverse_endianness_float_t((float_t*)(d + 28), ptcl->data.rotation_random.y);
+            store_reverse_endianness_float_t((float_t*)(d + 32), ptcl->data.rotation_random.z);
+            store_reverse_endianness_float_t((float_t*)(d + 36), ptcl->data.rotation_add.x);
+            store_reverse_endianness_float_t((float_t*)(d + 40), ptcl->data.rotation_add.y);
+            store_reverse_endianness_float_t((float_t*)(d + 44), ptcl->data.rotation_add.z);
+            store_reverse_endianness_float_t((float_t*)(d + 48), ptcl->data.rotation_add_random.x);
+            store_reverse_endianness_float_t((float_t*)(d + 52), ptcl->data.rotation_add_random.y);
+            store_reverse_endianness_float_t((float_t*)(d + 56), ptcl->data.rotation_add_random.z);
+            store_reverse_endianness_float_t((float_t*)(d + 60), ptcl->data.scale.x);
+            store_reverse_endianness_float_t((float_t*)(d + 64), ptcl->data.scale.y);
+            store_reverse_endianness_float_t((float_t*)(d + 68), ptcl->data.scale.z);
+            store_reverse_endianness_float_t((float_t*)(d + 72), ptcl->data.scale_random.x);
+            store_reverse_endianness_float_t((float_t*)(d + 76), ptcl->data.scale_random.y);
+            store_reverse_endianness_float_t((float_t*)(d + 80), ptcl->data.scale_random.z);
+            store_reverse_endianness_float_t((float_t*)(d + 84), ptcl->data.z_offset);
+            store_reverse_endianness_int32_t((int32_t*)(d + 88), ptcl->data.pivot);
+            store_reverse_endianness_int32_t((int32_t*)(d + 92), flags);
+            store_reverse_endianness_float_t((float_t*)(d + 96), ptcl->data.speed);
+            store_reverse_endianness_float_t((float_t*)(d + 100), ptcl->data.speed_random);
+            store_reverse_endianness_float_t((float_t*)(d + 104), ptcl->data.deceleration);
+            store_reverse_endianness_float_t((float_t*)(d + 108), ptcl->data.deceleration_random);
+            store_reverse_endianness_float_t((float_t*)(d + 112), ptcl->data.direction.x);
+            store_reverse_endianness_float_t((float_t*)(d + 116), ptcl->data.direction.y);
+            store_reverse_endianness_float_t((float_t*)(d + 120), ptcl->data.direction.z);
+            store_reverse_endianness_float_t((float_t*)(d + 124), ptcl->data.direction_random.x);
+            store_reverse_endianness_float_t((float_t*)(d + 128), ptcl->data.direction_random.y);
+            store_reverse_endianness_float_t((float_t*)(d + 132), ptcl->data.direction_random.z);
+            store_reverse_endianness_float_t((float_t*)(d + 136), ptcl->data.gravity.x);
+            store_reverse_endianness_float_t((float_t*)(d + 140), ptcl->data.gravity.y);
+            store_reverse_endianness_float_t((float_t*)(d + 144), ptcl->data.gravity.z);
+            store_reverse_endianness_float_t((float_t*)(d + 148), ptcl->data.acceleration.x);
+            store_reverse_endianness_float_t((float_t*)(d + 152), ptcl->data.acceleration.y);
+            store_reverse_endianness_float_t((float_t*)(d + 156), ptcl->data.acceleration.z);
+            store_reverse_endianness_float_t((float_t*)(d + 160), ptcl->data.acceleration_random.x);
+            store_reverse_endianness_float_t((float_t*)(d + 164), ptcl->data.acceleration_random.y);
+            store_reverse_endianness_float_t((float_t*)(d + 168), ptcl->data.acceleration_random.z);
+            store_reverse_endianness_float_t((float_t*)(d + 172), ptcl->data.reflection_coeff);
+            store_reverse_endianness_float_t((float_t*)(d + 176), ptcl->data.reflection_coeff_random);
+            store_reverse_endianness_float_t((float_t*)(d + 180), ptcl->data.rebound_plane_y);
+            store_reverse_endianness_float_t((float_t*)(d + 184), ptcl->data.uv_scroll_add.x);
+            store_reverse_endianness_float_t((float_t*)(d + 188), ptcl->data.uv_scroll_add.y);
+            store_reverse_endianness_float_t((float_t*)(d + 192), ptcl->data.uv_scroll_add_scale);
+            store_reverse_endianness_int32_t((int32_t*)(d + 196), ptcl->data.sub_flags);
+            store_reverse_endianness_int32_t((int32_t*)(d + 200), ptcl->data.count);
+        }
+        else {
+            *(int32_t*)d = ptcl->data.life_time;
+            *(int32_t*)(d + 4) = type;
+            *(int32_t*)(d + 8) = ptcl->data.draw_type;
+            *(vec3*)(d + 12) = ptcl->data.rotation;
+            *(vec3*)(d + 24) = ptcl->data.rotation_random;
+            *(vec3*)(d + 36) = ptcl->data.rotation_add;
+            *(vec3*)(d + 48) = ptcl->data.rotation_add_random;
+            *(vec3*)(d + 60) = ptcl->data.scale;
+            *(vec3*)(d + 72) = ptcl->data.scale_random;
+            *(float_t*)(d + 84) = ptcl->data.z_offset;
+            *(int32_t*)(d + 88) = ptcl->data.pivot;
+            *(int32_t*)(d + 92) = flags;
+            *(float_t*)(d + 96) = ptcl->data.speed;
+            *(float_t*)(d + 100) = ptcl->data.speed_random;
+            *(float_t*)(d + 104) = ptcl->data.deceleration;
+            *(float_t*)(d + 108) = ptcl->data.deceleration_random;
+            *(vec3*)(d + 112) = ptcl->data.direction;
+            *(vec3*)(d + 124) = ptcl->data.direction_random;
+            *(vec3*)(d + 136) = ptcl->data.gravity;
+            *(vec3*)(d + 148) = ptcl->data.acceleration;
+            *(vec3*)(d + 160) = ptcl->data.acceleration_random;
+            *(float_t*)(d + 172) = ptcl->data.reflection_coeff;
+            *(float_t*)(d + 176) = ptcl->data.reflection_coeff_random;
+            *(float_t*)(d + 180) = ptcl->data.rebound_plane_y;
+            *(vec2*)(d + 184) = ptcl->data.uv_scroll_add;
+            *(float_t*)(d + 192) = ptcl->data.uv_scroll_add_scale;
+            *(int32_t*)(d + 196) = ptcl->data.sub_flags;
+            *(int32_t*)(d + 200) = ptcl->data.count;
+        }
         d += 204;
 
         if (ptcl->version == 3) {
             *(int32_t*)d = 0;
-            *(float_t*)(d + 4) = ptcl->data.emission;
+            if (big_endian)
+                store_reverse_endianness_float_t((float_t*)(d + 4), ptcl->data.emission);
+            else
+                *(float_t*)(d + 4) = ptcl->data.emission;
             d += 8;
         }
 
         if (ptcl->data.type == PARTICLE_LOCUS || ptcl->data.type == PARTICLE_MESH) {
-            *(uint16_t*)d = ptcl->data.locus_history_size;
-            *(uint16_t*)(d + 2) = ptcl->data.locus_history_size_random;
+            if (big_endian) {
+                store_reverse_endianness_uint16_t((uint16_t*)d, (uint16_t)ptcl->data.locus_history_size);
+                store_reverse_endianness_uint16_t((uint16_t*)(d + 2), (uint16_t)ptcl->data.locus_history_size_random);
+            }
+            else {
+                *(uint16_t*)d = (uint16_t)ptcl->data.locus_history_size;
+                *(uint16_t*)(d + 2) = (uint16_t)ptcl->data.locus_history_size_random;
+            }
             d += 4;
         }
 
-        *(uint64_t*)d = ptcl->data.tex_hash;
-        *(uint8_t*)(d + 8) = (uint8_t)roundf(clamp(ptcl->data.color.x, 0.0f, 1.0f) * 255.0f);
-        *(uint8_t*)(d + 9) = (uint8_t)roundf(clamp(ptcl->data.color.y, 0.0f, 1.0f) * 255.0f);
-        *(uint8_t*)(d + 10) = (uint8_t)roundf(clamp(ptcl->data.color.z, 0.0f, 1.0f) * 255.0f);
-        *(uint8_t*)(d + 11) = (uint8_t)roundf(clamp(ptcl->data.color.w, 0.0f, 1.0f) * 255.0f);
-        *(int32_t*)(d + 12) = ptcl->data.blend_mode;
-        *(int32_t*)(d + 16) = ptcl->data.unk0;
-        *(int32_t*)(d + 20) = ptcl->data.split_u;
-        *(int32_t*)(d + 24) = ptcl->data.split_v;
-        *(int32_t*)(d + 28) = ptcl->data.uv_index_type;
-        *(int16_t*)(d + 32) = ptcl->data.uv_index;
-        *(int16_t*)(d + 34) = (int16_t)ptcl->data.frame_step_uv;
-        *(int32_t*)(d + 36) = ptcl->data.uv_index_start;
-        *(int32_t*)(d + 40) = ptcl->data.uv_index_end;
+        if (big_endian) {
+            store_reverse_endianness_uint64_t((uint64_t*)d, ptcl->data.tex_hash);
+            *(uint8_t*)(d + 8) = (uint8_t)roundf(clamp_def(ptcl->data.color.x, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 9) = (uint8_t)roundf(clamp_def(ptcl->data.color.y, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 10) = (uint8_t)roundf(clamp_def(ptcl->data.color.z, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 11) = (uint8_t)roundf(clamp_def(ptcl->data.color.w, 0.0f, 1.0f) * 255.0f);
+            store_reverse_endianness_int32_t((int32_t*)(d + 12), ptcl->data.blend_mode);
+            store_reverse_endianness_int32_t((int32_t*)(d + 16), ptcl->data.unk0);
+            store_reverse_endianness_int32_t((int32_t*)(d + 20), ptcl->data.split_u);
+            store_reverse_endianness_int32_t((int32_t*)(d + 24), ptcl->data.split_v);
+            store_reverse_endianness_int32_t((int32_t*)(d + 28), ptcl->data.uv_index_type);
+            store_reverse_endianness_int16_t((int16_t*)(d + 32), (int16_t)ptcl->data.uv_index);
+            store_reverse_endianness_int16_t((int16_t*)(d + 34), (int16_t)ptcl->data.frame_step_uv);
+            store_reverse_endianness_int32_t((int32_t*)(d + 36), ptcl->data.uv_index_start);
+            store_reverse_endianness_int32_t((int32_t*)(d + 40), ptcl->data.uv_index_end);
+        }
+        else {
+            *(uint64_t*)d = ptcl->data.tex_hash;
+            *(uint8_t*)(d + 8) = (uint8_t)roundf(clamp_def(ptcl->data.color.x, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 9) = (uint8_t)roundf(clamp_def(ptcl->data.color.y, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 10) = (uint8_t)roundf(clamp_def(ptcl->data.color.z, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 11) = (uint8_t)roundf(clamp_def(ptcl->data.color.w, 0.0f, 1.0f) * 255.0f);
+            *(int32_t*)(d + 12) = ptcl->data.blend_mode;
+            *(int32_t*)(d + 16) = ptcl->data.unk0;
+            *(int32_t*)(d + 20) = ptcl->data.split_u;
+            *(int32_t*)(d + 24) = ptcl->data.split_v;
+            *(int32_t*)(d + 28) = ptcl->data.uv_index_type;
+            *(int16_t*)(d + 32) = (int16_t)ptcl->data.uv_index;
+            *(int16_t*)(d + 34) = (int16_t)ptcl->data.frame_step_uv;
+            *(int32_t*)(d + 36) = ptcl->data.uv_index_start;
+            *(int32_t*)(d + 40) = ptcl->data.uv_index_end;
+        }
+        d += 44;
+
         if (eff_group->version >= 7) {
-            *(int32_t*)(d + 44) = ptcl->data.unk1;
-            d += 48;
+            if (big_endian)
+                store_reverse_endianness_int32_t((int32_t*)d, ptcl->data.unk1);
+            else
+                *(int32_t*)d = ptcl->data.unk1;
+            d += 4;
         }
         else
-            d += 44;
 
         if (ptcl->data.flags & PARTICLE_TEXTURE_MASK) {
-            *(uint64_t*)d = ptcl->data.mask_tex_hash;
-            *(int32_t*)(d + 8) = ptcl->data.mask_blend_mode;
+            if (big_endian) {
+                store_reverse_endianness_uint64_t((uint64_t*)d, ptcl->data.mask_tex_hash);
+                store_reverse_endianness_int32_t((int32_t*)(d + 8), ptcl->data.mask_blend_mode);
+            }
+            else {
+                *(uint64_t*)d = ptcl->data.mask_tex_hash;
+                *(int32_t*)(d + 8) = ptcl->data.mask_blend_mode;
+            }
             d += 12;
         }
         else {
@@ -693,13 +975,13 @@ namespace Glitter {
 
         st->header.signature = reverse_endianness_uint32_t('PTCL');
         st->header.length = 0x20;
-        st->header.use_big_endian = false;
+        st->header.use_big_endian = big_endian;
         st->header.use_section_size = true;
         st->header.version = ptcl->version;
         return true;
     }
 
-    bool FileWriter::UnparseAnimation(f2_struct* st, Animation* anim, CurveTypeFlags flags) {
+    bool FileWriter::UnparseAnimation(f2_struct* st, Animation* anim, CurveTypeFlags flags, bool big_endian) {
         if (anim->curves.size() < 1)
             return false;
 
@@ -746,7 +1028,7 @@ namespace Glitter {
                     continue;
 
                 f2_struct s;
-                if (UnparseCurve(&s, c)) {
+                if (UnparseCurve(&s, c, big_endian)) {
                     st->sub_structs.push_back(s);
                     break;
                 }
@@ -758,12 +1040,12 @@ namespace Glitter {
 
         st->header.signature = reverse_endianness_uint32_t('ANIM');
         st->header.length = 0x20;
-        st->header.use_big_endian = false;
+        st->header.use_big_endian = big_endian;
         st->header.use_section_size = true;
         return true;
     }
 
-    bool FileWriter::UnparseCurve(f2_struct* st, Curve* c) {
+    bool FileWriter::UnparseCurve(f2_struct* st, Curve* c, bool big_endian) {
 #if !defined(CRE_DEV)
         if (c->keys.size() < 1)
             return false;
@@ -806,24 +1088,35 @@ namespace Glitter {
                 break;
             }
 
-        *(uint32_t*)d = c->type;
-        *(uint32_t*)(d + 4) = c->repeat ? 1 : 0;
-        *(uint32_t*)(d + 8) = c->flags;
-        *(float_t*)(d + 12) = random_range;
-        *(int16_t*)(d + 16) = (int16_t)c->keys.size();
-        *(int16_t*)(d + 18) = (int16_t)c->start_time;
-        *(int16_t*)(d + 20) = (int16_t)c->end_time;
+        if (big_endian) {
+            store_reverse_endianness_uint32_t((uint32_t*)d, c->type);
+            store_reverse_endianness_uint32_t((uint32_t*)(d + 4), c->repeat ? 1 : 0);
+            store_reverse_endianness_uint32_t((uint32_t*)(d + 8), c->flags);
+            store_reverse_endianness_float_t((float_t*)(d + 12), random_range);
+            store_reverse_endianness_int16_t((int16_t*)(d + 16), (int16_t)c->keys.size());
+            store_reverse_endianness_int16_t((int16_t*)(d + 18), (int16_t)c->start_time);
+            store_reverse_endianness_int16_t((int16_t*)(d + 20), (int16_t)c->end_time);
+        }
+        else {
+            *(uint32_t*)d = c->type;
+            *(uint32_t*)(d + 4) = c->repeat ? 1 : 0;
+            *(uint32_t*)(d + 8) = c->flags;
+            *(float_t*)(d + 12) = random_range;
+            *(int16_t*)(d + 16) = (int16_t)c->keys.size();
+            *(int16_t*)(d + 18) = (int16_t)c->start_time;
+            *(int16_t*)(d + 20) = (int16_t)c->end_time;
+        }
 
         st->enrs = e;
 
         st->header.signature = reverse_endianness_uint32_t('CURV');
         st->header.length = 0x20;
-        st->header.use_big_endian = false;
+        st->header.use_big_endian = big_endian;
         st->header.use_section_size = true;
         st->header.version = c->version;
 
         f2_struct s;
-        PackCurve(&s, c);
+        PackCurve(&s, c, big_endian);
         st->sub_structs.push_back(s);
 
 #if defined(CRE_DEV)
@@ -832,8 +1125,8 @@ namespace Glitter {
         return true;
     }
 
-    bool FileWriter::UnparseDivaEffect(EffectGroup* eff_group, f2_struct* st) {
-        UnparseEffectGroup(eff_group, st);
+    bool FileWriter::UnparseDivaEffect(EffectGroup* eff_group, f2_struct* st, bool big_endian) {
+        UnparseEffectGroup(eff_group, st, big_endian);
 
         st->header.signature = reverse_endianness_uint32_t('DVEF');
         st->header.length = 0x20;
@@ -843,16 +1136,16 @@ namespace Glitter {
         return true;
     }
 
-    bool FileWriter::UnparseDivaList(EffectGroup* eff_group, f2_struct* st) {
+    bool FileWriter::UnparseDivaList(EffectGroup* eff_group, f2_struct* st, bool big_endian) {
         f2_struct s;
-        if (!PackDivaList(eff_group, &s))
+        if (!PackDivaList(eff_group, &s, big_endian))
             return false;
 
         st->sub_structs.push_back(s);
 
         st->header.signature = reverse_endianness_uint32_t('LIST');
         st->header.length = 0x20;
-        st->header.use_big_endian = false;
+        st->header.use_big_endian = big_endian;
         st->header.use_section_size = true;
         return true;
     }
@@ -872,12 +1165,12 @@ namespace Glitter {
         return true;
     }
 
-    bool FileWriter::UnparseEffect(EffectGroup* eff_group, f2_struct* st, Effect* eff) {
-        if (!PackEffect(st, eff))
+    bool FileWriter::UnparseEffect(EffectGroup* eff_group, f2_struct* st, Effect* eff, bool big_endian) {
+        if (!PackEffect(st, eff, big_endian))
             return false;
 
         f2_struct s;
-        if (UnparseAnimation(&s, &eff->animation, effect_curve_flags))
+        if (UnparseAnimation(&s, &eff->animation, effect_curve_flags, big_endian))
             st->sub_structs.push_back(s);
 
         for (Emitter*& i : eff->emitters) {
@@ -885,33 +1178,34 @@ namespace Glitter {
                 continue;
 
             f2_struct s;
-            if (UnparseEmitter(eff_group, &s, i, eff))
+            if (UnparseEmitter(eff_group, &s, i, eff, big_endian))
                 st->sub_structs.push_back(s);
         }
         return true;
     }
 
-    void FileWriter::UnparseEffectGroup(EffectGroup* eff_group, f2_struct* st) {
+    void FileWriter::UnparseEffectGroup(EffectGroup* eff_group, f2_struct* st, bool big_endian) {
         for (Effect*& i : eff_group->effects) {
             if (!i)
                 continue;
 
             f2_struct s;
-            if (UnparseEffect(eff_group, &s, i))
+            if (UnparseEffect(eff_group, &s, i, big_endian))
                 st->sub_structs.push_back(s);
         }
 
         f2_struct s;
-        if (PackDivaResourceHashes(eff_group, &s))
+        if (PackDivaResourceHashes(eff_group, &s, big_endian))
             st->sub_structs.push_back(s);
     }
 
-    bool FileWriter::UnparseEmitter(EffectGroup* eff_group, f2_struct* st, Emitter* emit, Effect* eff) {
-        if (!PackEmitter(st, emit))
+    bool FileWriter::UnparseEmitter(EffectGroup* eff_group,
+        f2_struct* st, Emitter* emit, Effect* eff, bool big_endian) {
+        if (!PackEmitter(st, emit, big_endian))
             return false;
 
         f2_struct s;
-        if (UnparseAnimation(&s, &emit->animation, emitter_curve_flags))
+        if (UnparseAnimation(&s, &emit->animation, emitter_curve_flags, big_endian))
             st->sub_structs.push_back(s);
 
         for (Particle*& i : emit->particles) {
@@ -919,14 +1213,15 @@ namespace Glitter {
                 continue;
 
             f2_struct s;
-            if (UnparseParticle(eff_group, &s, i, eff))
+            if (UnparseParticle(eff_group, &s, i, eff, big_endian))
                 st->sub_structs.push_back(s);
         }
         return true;
     }
 
-    bool FileWriter::UnparseParticle(EffectGroup* eff_group, f2_struct* st, Particle* ptcl, Effect* eff) {
-        if (!PackParticle(eff_group, st, ptcl, eff))
+    bool FileWriter::UnparseParticle(EffectGroup* eff_group,
+        f2_struct* st, Particle* ptcl, Effect* eff, bool big_endian) {
+        if (!PackParticle(eff_group, st, ptcl, eff, big_endian))
             return false;
 
         CurveTypeFlags flags;
@@ -942,19 +1237,20 @@ namespace Glitter {
         }
 
         f2_struct s;
-        if (UnparseAnimation(&s, &ptcl->animation, flags))
+        if (UnparseAnimation(&s, &ptcl->animation, flags, big_endian))
             st->sub_structs.push_back(s);
         return true;
     }
 
-    void FileWriter::Write(GLT, EffectGroup* eff_group, const char* path, const char* file, bool compress) {
+    void FileWriter::Write(GLT, EffectGroup* eff_group,
+        const char* path, const char* file, bool compress, bool big_endian) {
         FileWriter fr;
         fr.type = GLT_VAL;
 
         farc f;
         {
             f2_struct st;
-            if (fr.UnparseDivaEffect(eff_group, &st)) {
+            if (fr.UnparseDivaEffect(eff_group, &st, big_endian)) {
                 f.add_file();
                 farc_file& ff_drs = f.files.back();
                 st.write(&ff_drs.data, &ff_drs.size);
@@ -976,7 +1272,7 @@ namespace Glitter {
 
         if (fr.type == Glitter::FT) {
             f2_struct st;
-            if (fr.UnparseDivaList(eff_group, &st)) {
+            if (fr.UnparseDivaList(eff_group, &st, big_endian)) {
                 f.add_file();
                 farc_file& ff_lst = f.files.back();
                 st.write(&ff_lst.data, &ff_lst.size);
@@ -995,18 +1291,18 @@ namespace Glitter {
         char* temp = str_utils_add(path, file);
         if (glt_type != Glitter::FT) {
             char* list_temp = str_utils_add(temp, ".glitter.txt");
-            stream s;
+            file_stream s;
             s.open(list_temp, "wb");
-            if (s.io.stream) {
+            if (s.check_not_null()) {
                 for (Glitter::Effect*& i : eff_group->effects)
                     if (i) {
                         s.write_string(i->name);
                         s.write_char('\n');
                     }
             }
-            free(list_temp);
+            free_def(list_temp);
         }
         f.write(temp, mode, false);
-        free(temp);
+        free_def(temp);
     }
 }

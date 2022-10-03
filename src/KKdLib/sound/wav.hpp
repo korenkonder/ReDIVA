@@ -16,11 +16,12 @@ struct wav {
     uint16_t bytes;
     uint16_t format;
     uint16_t channels;
-};
 
-extern wav* wav_init();
-extern void wav_read(wav* w, const char* path, float_t** data, size_t* samples);
-extern void wav_read(wav* w, const wchar_t* path, float_t** data, size_t* samples);
-extern void wav_write(wav* w, const char* path, float_t* data, size_t samples);
-extern void wav_write(wav* w, const wchar_t* path, float_t* data, size_t samples);
-extern void wav_dispose(wav* w);
+    wav();
+    virtual ~wav();
+
+    void read(const char* path, float_t*& data, size_t& samples);
+    void read(const wchar_t* path, float_t*& data, size_t& samples);
+    void write(const char* path, const float_t* data, size_t samples);
+    void write(const wchar_t* path, const float_t* data, size_t samples);
+};

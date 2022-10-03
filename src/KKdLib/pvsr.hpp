@@ -130,6 +130,7 @@ struct pvsr_stage_effect_env {
 
 struct pvsr {
     bool ready;
+    bool big_endian;
 
     std::vector<pvsr_effect> effect;
     std::vector<std::string> emcs;

@@ -41,8 +41,12 @@ bool TaskDataTestGlitterParticle::Init() {
     for (std::vector<data_struct_file>::iterator i = files.begin(); i != files.end();)
         if (str_utils_check_ends_with(i->name.c_str(), ".farc")) {
             char* temp = str_utils_get_without_extension(i->name.c_str());
-            i->name = temp ? std::string(temp) : std::string();
-            free(temp);
+            if (temp) {
+                i->name.assign(temp);
+                free(temp);
+            }
+            else
+                i->name.clear();
             i++;
         }
         else
@@ -196,8 +200,8 @@ void TaskDataTestGlitterParticle::Window() {
     window_focus |= ImGui::IsWindowFocused();
     ImGui::End();
 
-    float_t win_x = min((float_t)width, 240.0f);
-    float_t win_y = min((float_t)height, 96.0f);
+    float_t win_x = min_def((float_t)width, 240.0f);
+    float_t win_y = min_def((float_t)height, 96.0f);
 
     float_t x = 0.0f;
     float_t y = (float_t)height - win_y;

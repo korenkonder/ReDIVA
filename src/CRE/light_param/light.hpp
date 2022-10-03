@@ -20,14 +20,12 @@ struct light_data {
     vec3 spot_direction;
     float_t spot_exponent;
     float_t spot_cutoff;
-    float_t constant;
-    float_t linear;
-    float_t quadratic;
+    light_attenuation attenuation;
     vec4 ibl_specular;
     vec4 ibl_back;
     vec4 ibl_direction;
-    vec3 tone_curve;
-    bool clip_plane[4];
+    light_tone_curve tone_curve;
+    light_clip_plane clip_plane;
 
     light_data();
 
@@ -67,9 +65,9 @@ struct light_data {
     void set_linear(float_t value);
     float_t get_quadratic();
     void set_quadratic(float_t value);
-    void get_attenuation(vec3& value);
-    void set_attenuation(const vec3& value);
-    void set_attenuation(const vec3&& value);
+    void get_attenuation(light_attenuation& value);
+    void set_attenuation(const light_attenuation& value);
+    void set_attenuation(const light_attenuation&& value);
     void get_ibl_specular(vec4& value);
     void set_ibl_specular(const vec4& value);
     void set_ibl_specular(const vec4&& value);
@@ -79,11 +77,12 @@ struct light_data {
     void get_ibl_direction(vec4& value);
     void set_ibl_direction(const vec4& value);
     void set_ibl_direction(const vec4&& value);
-    void get_tone_curve(vec3& value);
-    void set_tone_curve(const vec3& value);
-    void set_tone_curve(const vec3&& value);
-    void get_clip_plane(bool value[4]);
-    void set_clip_plane(const bool value[4]);
+    void get_tone_curve(light_tone_curve& value);
+    void set_tone_curve(const light_tone_curve& value);
+    void set_tone_curve(const light_tone_curve&& value);
+    void get_clip_plane(light_clip_plane& value);
+    void set_clip_plane(const light_clip_plane& value);
+    void set_clip_plane(const light_clip_plane&& value);
 };
 
 struct light_set {

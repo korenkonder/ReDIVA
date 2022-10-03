@@ -11,7 +11,7 @@ void lerp_quat_trans(quat_trans* x, quat_trans* y, quat_trans* z, float_t blend)
     else if (blend < 0.0f)
         blend = 0.0f;
 
-    quat_slerp(&x->quat, &y->quat, &z->quat, blend);
-    vec3_lerp_scalar(x->trans, y->trans, z->trans, blend);
-    z->time = lerp(x->time, y->time, blend);
+    z->quat = quat::slerp(x->quat, y->quat, blend);
+    z->trans = vec3::lerp(x->trans, y->trans, blend);
+    z->time = lerp_def(x->time, y->time, blend);
 }

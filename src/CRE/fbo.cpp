@@ -26,7 +26,7 @@ void fbo::init_data(int32_t width, int32_t height,
         textures = 0;
     }
 
-    count = min(count, 8);
+    count = min_def(count, 8);
 
     this->width = width;
     this->height = height;

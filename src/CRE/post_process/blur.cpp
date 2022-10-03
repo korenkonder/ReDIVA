@@ -29,13 +29,13 @@ post_process_blur:: ~post_process_blur() {
 
     for (int32_t i = 0; i < count_down; i++)
         tex_down[i].free_data();
-    free(tex_down);
-    free(height_down);
-    free(width_down);
+    free_def(tex_down);
+    free_def(height_down);
+    free_def(width_down);
 }
 
 void post_process_blur::get_blur(render_texture* rt) {
-    uniform_value[U01] = 0;
+    uniform_value[U_ALPHA_MASK] = 0;
 
     int32_t i = 0;
     if (count_down > 0) {
@@ -110,7 +110,7 @@ void post_process_blur::get_blur(render_texture* rt) {
 
     vec3 v[POST_PROCESS_BLUR_GAUSSIAN_KERNEL_SIZE];
     for (int32_t i = 0; i < POST_PROCESS_BLUR_GAUSSIAN_KERNEL_SIZE; i++)
-        vec3_mult(gauss[i], intensity, v[i]);
+        v[i] = gauss[i] * intensity;
 
     uniform_value[U_GAUSS] = 0;
     render_texture::shader_set(&shaders_ft, SHADER_FT_GAUSS);
@@ -205,7 +205,7 @@ void post_process_blur::init_fbo(int32_t width, int32_t height) {
     else if (count_down < i) {
         render_texture* temp = force_malloc_s(render_texture, i);
         memcpy(temp, tex_down, sizeof(render_texture) * count_down);
-        free(tex_down);
+        free_def(tex_down);
         tex_down = temp;
     }
 
@@ -214,7 +214,7 @@ void post_process_blur::init_fbo(int32_t width, int32_t height) {
     else if (count_down < i) {
         int32_t* temp = force_malloc_s(int32_t, i);
         memcpy(temp, width_down, sizeof(int32_t) * count_down);
-        free(width_down);
+        free_def(width_down);
         width_down = temp;
     }
 
@@ -223,7 +223,7 @@ void post_process_blur::init_fbo(int32_t width, int32_t height) {
     else if (count_down < i) {
         int32_t* temp = force_malloc_s(int32_t, i);
         memcpy(temp, height_down, sizeof(int32_t) * count_down);
-        free(height_down);
+        free_def(height_down);
         height_down = temp;
     }
 
@@ -249,12 +249,12 @@ void post_process_blur::init_fbo(int32_t width, int32_t height) {
 }
 
 void post_process_blur::initialize_data(const vec3& radius, const vec3& intensity) {
-    data.radius.x = clamp(radius.x, 1.0f, 3.0f);
-    data.radius.y = clamp(radius.y, 1.0f, 3.0f);
-    data.radius.z = clamp(radius.z, 1.0f, 3.0f);
-    data.intensity.x = clamp(intensity.x, 0.0f, 2.0f);
-    data.intensity.y = clamp(intensity.y, 0.0f, 2.0f);
-    data.intensity.z = clamp(intensity.z, 0.0f, 2.0f);
+    data.radius.x = clamp_def(radius.x, 1.0f, 3.0f);
+    data.radius.y = clamp_def(radius.y, 1.0f, 3.0f);
+    data.radius.z = clamp_def(radius.z, 1.0f, 3.0f);
+    data.intensity.x = clamp_def(intensity.x, 0.0f, 2.0f);
+    data.intensity.y = clamp_def(intensity.y, 0.0f, 2.0f);
+    data.intensity.z = clamp_def(intensity.z, 0.0f, 2.0f);
     post_process_blur_radius_calculate(this);
 }
 
@@ -263,9 +263,9 @@ vec3 post_process_blur::get_intensity() {
 }
 
 void post_process_blur::set_intensity(const vec3& value) {
-    data.intensity.x = clamp(value.x, 0.0f, 2.0f);
-    data.intensity.y = clamp(value.y, 0.0f, 2.0f);
-    data.intensity.z = clamp(value.z, 0.0f, 2.0f);
+    data.intensity.x = clamp_def(value.x, 0.0f, 2.0f);
+    data.intensity.y = clamp_def(value.y, 0.0f, 2.0f);
+    data.intensity.z = clamp_def(value.z, 0.0f, 2.0f);
 }
 
 vec3 post_process_blur::get_radius() {
@@ -274,9 +274,9 @@ vec3 post_process_blur::get_radius() {
 
 void post_process_blur::set_radius(const vec3& value) {
     vec3 temp;
-    temp.x = clamp(value.x, 1.0f, 3.0f);
-    temp.y = clamp(value.y, 1.0f, 3.0f);
-    temp.z = clamp(value.z, 1.0f, 3.0f);
+    temp.x = clamp_def(value.x, 1.0f, 3.0f);
+    temp.y = clamp_def(value.y, 1.0f, 3.0f);
+    temp.z = clamp_def(value.z, 1.0f, 3.0f);
     if (memcmp(&temp, &data.radius, sizeof(vec3))) {
         data.radius = temp;
         post_process_blur_radius_calculate(this);

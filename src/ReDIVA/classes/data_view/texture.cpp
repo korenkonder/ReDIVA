@@ -7,21 +7,13 @@
 #include "../../../CRE/render_context.hpp"
 #include "../../imgui_helper.hpp"
 
-struct data_view_texture {
-    render_context* rctx;
-};
-
 extern int32_t width;
 extern int32_t height;
 
 const char* data_view_texture_window_title = "Texture##Data Viewer";
 
 bool data_view_texture_init(class_data* data, render_context* rctx) {
-    data->data = force_malloc(sizeof(data_view_texture));
-    data_view_texture* data_view = (data_view_texture*)data->data;
-    if (data_view) {
-        data_view->rctx = rctx;
-    }
+    data->data = rctx;
     return true;
 }
 
@@ -30,8 +22,8 @@ void data_view_texture_imgui(class_data* data) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
 
-    float_t w = min((float_t)width, 580.0f);
-    float_t h = min((float_t)height, 480.0f);
+    float_t w = min_def((float_t)width, 580.0f);
+    float_t h = min_def((float_t)height, 480.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
@@ -49,13 +41,11 @@ void data_view_texture_imgui(class_data* data) {
         return;
     }
 
-    data_view_texture* data_view = (data_view_texture*)data->data;
-    if (!data_view) {
+    render_context* rctx = (render_context*)data->data;
+    if (!rctx) {
         ImGui::End();
         return;
     }
-
-    render_context* rctx = data_view->rctx;
 
     size_t count = texture_storage_get_texture_count();
     for (size_t i = 0; i < count; i++) {
@@ -76,9 +66,6 @@ void data_view_texture_imgui(class_data* data) {
 }
 
 bool data_view_texture_dispose(class_data* data) {
-    data_view_texture* data_view = (data_view_texture*)data->data;
-    if (data_view) {
-    }
-    free(data->data);
+    data->data = 0;
     return true;
 }

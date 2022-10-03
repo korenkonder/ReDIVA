@@ -5,8 +5,9 @@
 
 #include "pvpp.hpp"
 #include "f2/struct.hpp"
+#include "io/file_stream.hpp"
+#include "io/memory_stream.hpp"
 #include "io/path.hpp"
-#include "io/stream.hpp"
 #include "str_utils.hpp"
 
 static void pvpp_auth_3d_read(string_hash* a3d, stream& s);
@@ -70,7 +71,7 @@ pvpp_glitter::~pvpp_glitter() {
 
 }
 
-pvpp::pvpp() : ready() {
+pvpp::pvpp() : ready(), big_endian() {
 
 }
 
@@ -84,12 +85,12 @@ void pvpp::read(const char* path) {
 
     char* path_pvpp = str_utils_add(path, ".pvpp");
     if (path_check_file_exists(path_pvpp)) {
-        stream s;
+        file_stream s;
         s.open(path_pvpp, "rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             pvpp_read_inner(this, s);
     }
-    free(path_pvpp);
+    free_def(path_pvpp);
 }
 
 void pvpp::read(const wchar_t* path) {
@@ -98,19 +99,19 @@ void pvpp::read(const wchar_t* path) {
 
     wchar_t* path_pvpp = str_utils_add(path, L".pvpp");
     if (path_check_file_exists(path_pvpp)) {
-        stream s;
+        file_stream s;
         s.open(path_pvpp, L"rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             pvpp_read_inner(this, s);
     }
-    free(path_pvpp);
+    free_def(path_pvpp);
 }
 
 void pvpp::read(const void* data, size_t size) {
     if (!data || !size)
         return;
 
-    stream s;
+    memory_stream s;
     s.open(data, size);
     pvpp_read_inner(this, s);
 }
@@ -316,12 +317,17 @@ static void pvpp_object_set_read(string_hash* objset, stream& s) {
 static void pvpp_read_inner(pvpp* pp, stream& s) {
     f2_struct st;
     st.read(s);
-    if (st.header.signature != reverse_endianness_uint32_t('PVPP') || !st.data.data())
+    if (st.header.signature != reverse_endianness_uint32_t('PVPP') || !st.data.data()) {
+        pp->ready = false;
+        pp->big_endian = false;
         return;
+    }
 
-    stream s_pvpp;
+    bool big_endian = st.header.use_big_endian;
+
+    memory_stream s_pvpp;
     s_pvpp.open(st.data);
-    s_pvpp.is_big_endian = st.header.use_big_endian;
+    s_pvpp.big_endian = big_endian;
 
     s_pvpp.read_uint32_t_reverse_endianness();
     int8_t chara_count = s_pvpp.read_int8_t();
@@ -356,4 +362,5 @@ static void pvpp_read_inner(pvpp* pp, stream& s) {
     }
 
     pp->ready = true;
+    pp->big_endian = true;
 }

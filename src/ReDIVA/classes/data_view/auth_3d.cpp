@@ -4,6 +4,7 @@
 */
 
 #include "auth_3d.hpp"
+#include "../../../KKdLib/database/item_table.hpp"
 #include "../../../CRE/auth_3d.hpp"
 #include "../../imgui_helper.hpp"
 #include "../../input.hpp"
@@ -66,8 +67,8 @@ void data_view_auth_3d_imgui(class_data* data) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
 
-    float_t w = min((float_t)width, 480.0f);
-    float_t h = min((float_t)height, 540.0f);
+    float_t w = min_def((float_t)width, 480.0f);
+    float_t h = min_def((float_t)height, 540.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
@@ -98,7 +99,7 @@ void data_view_auth_3d_imgui(class_data* data) {
         if (auth->id == -1)
             continue;
 
-        size_t str_len = min(sizeof(buf) - 1, auth->file_name.size());
+        size_t str_len = min_def(sizeof(buf) - 1, auth->file_name.size());
         memcpy(buf, auth->file_name.c_str(), str_len);
         buf[str_len] = 0;
 
@@ -121,6 +122,16 @@ void data_view_auth_3d_imgui(class_data* data) {
 
         tree_node_flags = tree_node_base_flags;
         tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+        if (auth->chara_id != -1)
+            ImGui::Text("Chara: %d", auth->chara_id);
+        else
+            ImGui::Text("Chara: None");
+
+        if (auth->src_chara != auth->dst_chara)
+            ImGui::Text("Chara Replace: %s/%s",
+                chara_index_get_auth_3d_name((chara_index)auth->src_chara),
+                chara_index_get_auth_3d_name((chara_index)auth->dst_chara));
 
         if (auth->ambient.size() > 0
             && ImGui::TreeNodeEx("Ambient", tree_node_flags)) {

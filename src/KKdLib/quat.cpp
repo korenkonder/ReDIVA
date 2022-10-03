@@ -16,8 +16,8 @@ inline void quat_mult(const quat* x, const quat* y, quat* z) {
     __m128 zt2;
     __m128 zt3;
 
-    xt = x->data;
-    yt = y->data;
+    xt = _mm_loadu_ps((const float*)x);
+    yt = _mm_loadu_ps((const float*)y);
     zt0 = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0x1B));
     zt1 = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0x4E));
     zt2 = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0xB1));
@@ -35,45 +35,6 @@ inline void quat_mult(const quat* x, const quat* y, quat* z) {
     zt.z = _mm_cvtss_f32(_mm_hadd_ps(zt2, zt2));
     zt.w = _mm_cvtss_f32(_mm_hadd_ps(zt3, zt3));
     *z = zt;
-}
-
-void quat_slerp(const quat* x, const quat* y, quat* z, const float_t blend) {
-    quat x_t;
-    quat y_t;
-    quat z_t;
-    quat zt0;
-    quat zt1;
-    vec4_normalize(*x, x_t);
-    vec4_normalize(*y, y_t);
-
-    float_t dot;
-    vec4_dot(x_t, y_t, dot);
-    if (dot < 0.0f) {
-        vec4_negate(y_t, z_t);
-        dot = -dot;
-    }
-    else
-        z_t = y_t;
-
-    const float_t DOT_THRESHOLD = 0.9995f;
-    float_t s0, s1;
-    if (dot <= DOT_THRESHOLD) {
-        float_t theta_0 = acosf(dot);
-        float_t theta = theta_0 * blend;
-        float_t sin_theta = sinf(theta);
-        float_t sin_theta_0 = sinf(theta_0);
-
-        s0 = cosf(theta) - dot * sin_theta / sin_theta_0;
-        s1 = sin_theta / sin_theta_0;
-    }
-    else {
-        s0 = (1.0f - blend);
-        s1 = blend;
-    }
-    vec4_mult_scalar(*x, s0, zt0);
-    vec4_mult_scalar(z_t, s0, zt1);
-    vec4_add(zt0, zt1, z_t);
-    vec4_normalize(z_t, *z);
 }
 
 void quat_from_mat3(float_t m00, float_t m01, float_t m02, float_t m10,
@@ -115,13 +76,6 @@ void quat_from_mat3(float_t m00, float_t m01, float_t m02, float_t m10,
 }
 
 inline void quat_from_axis_angle(const vec3* axis, const float_t angle, quat* quat) {
-    float_t angle_sin;
-    float_t angle_cos;
-    vec3 _axis;
-
-    angle_sin = sinf(angle * 0.5f);
-    angle_cos = cosf(angle * 0.5f);
-    vec3_normalize(*axis, _axis);
-    quat->w = angle_cos;
-    vec3_mult_scalar(_axis, angle_sin, *(vec3*)quat);
+    *(vec3*)quat = vec3::normalize(*axis) * sinf(angle * 0.5f);
+    quat->w = cosf(angle * 0.5f);
 }

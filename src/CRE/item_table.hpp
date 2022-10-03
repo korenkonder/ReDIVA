@@ -24,17 +24,23 @@ struct item_table_item_data_ofs {
     vec3 position;
     vec3 rotation;
     vec3 scale;
+
+    item_table_item_data_ofs();
 };
 
 struct item_table_item_data_tex {
     uint32_t org;
     uint32_t chg;
+
+    item_table_item_data_tex();
 };
 
 struct item_table_item_data_col {
     uint32_t tex_id;
     int32_t flag;
     color_tone col_tone;
+
+    item_table_item_data_col();
 };
 
 struct item_table_item_data {

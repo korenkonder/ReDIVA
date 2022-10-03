@@ -15,17 +15,17 @@ RandState::~RandState() {
 
 }
 
-inline void rand_state_array_init() {
+void rand_state_array_init() {
     rand_state_array = new RandState[5];
 }
 
-inline RandState* rand_state_array_get(int32_t id) {
+RandState* rand_state_array_get(int32_t id) {
     if (id > -1 && id < 5)
         return &rand_state_array[id];
     return 0;
 }
 
-inline float_t rand_state_array_get_float(int32_t id) {
+float_t rand_state_array_get_float(int32_t id) {
     RandState* rand_state = rand_state_array_get(id);
     if (rand_state) {
         std::uniform_int_distribution<uint32_t> dis;
@@ -34,7 +34,7 @@ inline float_t rand_state_array_get_float(int32_t id) {
     return 0.0f;
 }
 
-inline uint32_t rand_state_array_get_int(int32_t id) {
+uint32_t rand_state_array_get_int(int32_t id) {
     RandState* rand_state = rand_state_array_get(id);
     if (rand_state) {
         std::uniform_int_distribution<uint32_t> dis;
@@ -43,7 +43,7 @@ inline uint32_t rand_state_array_get_int(int32_t id) {
     return 0;
 }
 
-inline uint32_t rand_state_array_get_int(uint32_t min, uint32_t max, int32_t id) {
+uint32_t rand_state_array_get_int(uint32_t min, uint32_t max, int32_t id) {
     uint64_t _min = min;
     uint64_t _max = max;
     RandState* rand_state = rand_state_array_get(id);
@@ -54,6 +54,6 @@ inline uint32_t rand_state_array_get_int(uint32_t min, uint32_t max, int32_t id)
     return 0;
 }
 
-inline void rand_state_array_free() {
+void rand_state_array_free() {
     delete[] rand_state_array;
 }

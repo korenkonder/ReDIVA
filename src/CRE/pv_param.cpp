@@ -6,6 +6,7 @@
 #include "pv_param.hpp"
 #include "post_process.hpp"
 #include "render_context.hpp"
+#include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/str_utils.hpp"
 
 extern render_context* rctx_ptr;
@@ -100,13 +101,13 @@ namespace pv_param {
         char* buf;
         char** lines;
         size_t count;
-        if (!str_utils_text_file_parse(data.c_str(), data.size(), &buf, &lines, &count))
+        if (!str_utils_text_file_parse(data.c_str(), data.size(), buf, lines, count))
             return false;
 
         if (count <= 1 || str_utils_compare(lines[0],
             "ID,ColorR,ColorG,ColorB,BrightpassR,BrightpassG,BrightpassB,Range")) {
-            free(buf);
-            free(lines);
+            free_def(buf);
+            free_def(lines);
             return false;
         }
 
@@ -128,8 +129,8 @@ namespace pv_param {
 
         lines--;
 
-        free(buf);
-        free(lines);
+        free_def(buf);
+        free_def(lines);
         return true;
     }
 
@@ -141,13 +142,13 @@ namespace pv_param {
         char* buf;
         char** lines;
         size_t count;
-        if (!str_utils_text_file_parse(data.c_str(), data.size(), &buf, &lines, &count))
+        if (!str_utils_text_file_parse(data.c_str(), data.size(), buf, lines, count))
             return false;
 
         if (count <= 1 || str_utils_compare(lines[0],
             "ID,Hue,Saturation,Lightness,Exposure,GammaR,GammaG,GammaB,Contrast")) {
-            free(buf);
-            free(lines);
+            free_def(buf);
+            free_def(lines);
             return false;
         }
 
@@ -169,8 +170,8 @@ namespace pv_param {
 
         lines--;
 
-        free(buf);
-        free(lines);
+        free_def(buf);
+        free_def(lines);
         return true;
     }
 
@@ -182,13 +183,13 @@ namespace pv_param {
         char* buf;
         char** lines;
         size_t count;
-        if (!str_utils_text_file_parse(data.c_str(), data.size(), &buf, &lines, &count))
+        if (!str_utils_text_file_parse(data.c_str(), data.size(), buf, lines, count))
             return false;
 
         if (count <= 1 || str_utils_compare(lines[0],
             "ID,Focus,FocusRange,FuzzingRange,Ratio,Quality")) {
-            free(buf);
-            free(lines);
+            free_def(buf);
+            free_def(lines);
             return false;
         }
 
@@ -210,8 +211,8 @@ namespace pv_param {
 
         lines--;
 
-        free(buf);
-        free(lines);
+        free_def(buf);
+        free_def(lines);
         return true;
     }
 
@@ -410,14 +411,14 @@ namespace pv_param {
     }
 
     static bool load_text_file(void* data, const char* path, const char* file, uint32_t hash) {
-        stream s;
+        file_stream s;
         s.open((std::string(path) + file).c_str(), "rb");
-        if (!s.io.stream)
-            return false;
-
-        *(std::string*)data = s.read_string(s.length);
-        s.close();
-        return true;
+        if (s.check_not_null()) {
+            *(std::string*)data = s.read_string(s.length);
+            s.close();
+            return true;
+        }
+        return false;
     }
 }
 
@@ -459,7 +460,7 @@ namespace pv_param_task {
         else if (duration < 0.0f)
             value = data.data_prev.color;
         else
-            vec3_lerp_scalar(data.data_prev.color, data.data.color, value, frame / duration);
+            value = vec3::lerp(data.data_prev.color, data.data.color, frame / duration);
 
         rctx_ptr->post_process.blur->set_intensity(value);
 
@@ -509,10 +510,10 @@ namespace pv_param_task {
         }
         else {
             float_t t = frame / duration;
-            saturation = lerp(data.data_prev.saturation, data.data.saturation, t);
-            exposure = lerp(data.data_prev.exposure, data.data.exposure, t);
-            vec3_lerp_scalar(data.data_prev.gamma, data.data.gamma, gamma, t);
-            contrast = lerp(data.data_prev.contrast, data.data.contrast, t);
+            saturation = lerp_def(data.data_prev.saturation, data.data.saturation, t);
+            exposure = lerp_def(data.data_prev.exposure, data.data.exposure, t);
+            gamma = vec3::lerp(data.data_prev.gamma, data.data.gamma, t);
+            contrast = lerp_def(data.data_prev.contrast, data.data.contrast, t);
         }
 
         post_process_tone_map* tone_map = rctx_ptr->post_process.tone_map;
@@ -536,7 +537,7 @@ namespace pv_param_task {
     }
 
     void PostProcessCtrlCC::CalcToneTrans(float_t value, float_t& tone_trans_start, float_t& tone_trans_end) {
-        float_t pow = max(value, 0.125f) * 0.5f;
+        float_t pow = max_def(value, 0.125f) * 0.5f;
         if (fabsf(value - 2.0f) < 0.000001f) {
             tone_trans_start = 0.0f;
             tone_trans_end = 1.0f;
@@ -582,7 +583,7 @@ namespace pv_param_task {
             else if (i.duration <= 0.0)
                 value = i.prev_alpha;
             else
-                value = lerp(i.prev_alpha, i.alpha, i.frame / i.duration);
+                value = lerp_def(i.prev_alpha, i.alpha, i.frame / i.duration);
 
             draw_task_flags draw_task_flags;
             switch (i.type) {
@@ -642,7 +643,7 @@ namespace pv_param_task {
             else if (i.duration <= 0.0)
                 value = i.prev_alpha;
             else
-                value = lerp(i.prev_alpha, i.alpha, i.frame / i.duration);
+                value = lerp_def(i.prev_alpha, i.alpha, i.frame / i.duration);
 
             if (callback)
                 callback[index](callback_data[index], index, i.type, value);
@@ -707,7 +708,7 @@ namespace pv_param_task {
             cam->get_view_point(view_point);
             float_t fov = (float_t)cam->get_fov();
 
-            vec3_distance(trans, view_point, focus);
+            focus = vec3::distance(trans, view_point);
 
             float_t v5 = tanf(fov * DEG_TO_RAD_FLOAT * 0.5f);
             float_t v6 = focus * 1000.0f;
@@ -773,10 +774,10 @@ namespace pv_param_task {
         }
         else {
             float_t t = frame / duration;
-            focus = lerp(data.data_prev.focus, data.data.focus, t);
-            focus_range = lerp(data.data_prev.focus_range, data.data.focus_range, t);
-            fuzzing_range = lerp(data.data_prev.fuzzing_range, data.data.fuzzing_range, t);
-            ratio = lerp(data.data_prev.ratio, data.data.ratio, t);
+            focus = lerp_def(data.data_prev.focus, data.data.focus, t);
+            focus_range = lerp_def(data.data_prev.focus_range, data.data.focus_range, t);
+            fuzzing_range = lerp_def(data.data_prev.fuzzing_range, data.data.fuzzing_range, t);
+            ratio = lerp_def(data.data_prev.ratio, data.data.ratio, t);
         }
 
 #if DOF_FIX

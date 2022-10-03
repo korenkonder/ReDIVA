@@ -42,8 +42,8 @@ namespace Glitter {
         this->hash = GLT_VAL != Glitter::FT
             ? hash_utf8_murmurhash(file_temp)
             : hash_utf8_fnv1a64m(file_temp);
-        free(path_temp);
-        free(file_temp);
+        free_def(path_temp);
+        free_def(file_temp);
     }
 
     FileReader::~FileReader() {
@@ -760,10 +760,10 @@ namespace Glitter {
         }
 
         if (!texture_txp_set_load(&eff_group->resources_tex, &eff_group->resources, ids)) {
-            free(ids);
+            free_def(ids);
             return false;
         }
-        free(ids);
+        free_def(ids);
 
         for (Effect*& i : eff_group->effects) {
             if (!i)
@@ -1853,9 +1853,9 @@ namespace Glitter {
         ptcl->data.split_u = split_u;
         ptcl->data.split_v = split_v;
         ptcl->data.uv_index_type = uv_index_type;
-        ptcl->data.uv_index = max(uv_index, 0);
+        ptcl->data.uv_index = max_def(uv_index, 0);
         ptcl->data.frame_step_uv = frame_step_uv;
-        ptcl->data.uv_index_start = max(uv_index_start, 0);
+        ptcl->data.uv_index_start = max_def(uv_index_start, 0);
         ptcl->data.uv_index_end = uv_index_end;
         ptcl->data.split_uv.x = (float_t)split_u;
         ptcl->data.split_uv.y = (float_t)split_v;
@@ -1885,7 +1885,7 @@ namespace Glitter {
             else if (uv_index_end >= 0 && uv_index > uv_index_end)
                 ptcl->data.uv_index = uv_index_end;
 
-            ptcl->data.uv_index = min(ptcl->data.uv_index, uv_max_count);
+            ptcl->data.uv_index = min_def(ptcl->data.uv_index, uv_max_count);
             break;
         }
 

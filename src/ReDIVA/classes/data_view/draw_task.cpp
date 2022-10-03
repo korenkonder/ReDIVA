@@ -55,11 +55,11 @@ static const char* draw_task_type_name[] = {
     "Object Translucent",
 };
 
-typedef std::pair<draw_task*, std::pair<uint32_t, uint32_t>> draw_task_sort;
+typedef std::pair<draw_task*, uint32_t> draw_task_sort;
 
 struct data_view_draw_task {
     render_context* rctx;
-    std::vector<std::pair<draw_task*, std::pair<uint32_t, uint32_t>>> draw_tasks;
+    std::vector<draw_task_sort> draw_tasks;
 
     data_view_draw_task();
     virtual ~data_view_draw_task();
@@ -70,14 +70,13 @@ extern int32_t height;
 
 const char* data_view_draw_task_window_title = "Draw Task##Data Viewer";
 
-static int draw_task_sort_sort(void const* src1, void const* src2);
 static void data_view_draw_task_imgui_draw_object(draw_object* object);
 
 bool data_view_draw_task_init(class_data* data, render_context* rctx) {
-    data->data = new data_view_draw_task;
-    data_view_draw_task* data_view = (data_view_draw_task*)data->data;
+    data_view_draw_task* data_view = new data_view_draw_task;
     if (data_view)
         data_view->rctx = rctx;
+    data->data = data_view;
     return true;
 }
 
@@ -86,8 +85,8 @@ void data_view_draw_task_imgui(class_data* data) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
 
-    float_t w = min((float_t)width, 480.0f);
-    float_t h = min((float_t)height, 542.0f);
+    float_t w = min_def((float_t)width, 480.0f);
+    float_t h = min_def((float_t)height, 542.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
@@ -113,7 +112,7 @@ void data_view_draw_task_imgui(class_data* data) {
 
     render_context* rctx = data_view->rctx;
     std::vector<draw_task*>* draw_task_array = rctx->object_data.draw_task_array;
-    std::vector<std::pair<draw_task*, std::pair<uint32_t, uint32_t>>>& draw_tasks_sort = data_view->draw_tasks;
+    std::vector<draw_task_sort>& draw_tasks_sort = data_view->draw_tasks;
 
     ImGuiTreeNodeFlags tree_node_base_flags = 0;
     tree_node_base_flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -142,15 +141,11 @@ void data_view_draw_task_imgui(class_data* data) {
         for (draw_task*& j : draw_tasks) {
             draw_task_sort draw_task;
             draw_task.first = j;
-            draw_task.second.first = hash_murmurhash(&j, 8, 0, true);
-            draw_task.second.second = (uint32_t)(&j - draw_tasks.data());
+            draw_task.second = hash_murmurhash(&j, 8, 0, true);
             draw_tasks_sort.push_back(draw_task);
         }
 
-        quicksort_custom(draw_tasks_sort.data(), draw_tasks_sort.size(),
-            sizeof(draw_task_sort), draw_task_sort_sort);
-
-        ImGui::Text("       Hash;    Index; Type");
+        ImGui::Text("       Hash; Type");
 
         for (draw_task_sort& j : draw_tasks_sort) {
             draw_task* task = j.first;
@@ -158,8 +153,8 @@ void data_view_draw_task_imgui(class_data* data) {
                 continue;
 
             ImGui::PushID(task);
-            if (!ImGui::TreeNodeEx("", tree_node_flags, "%08x; %8u; %s",
-                j.second.first, j.second.second, draw_task_type_name[task->type])) {
+            if (!ImGui::TreeNodeEx("", tree_node_flags, "%08x; %s",
+                j.second, draw_task_type_name[task->type])) {
                 ImGui::PopID();
                 continue;
             }
@@ -169,7 +164,7 @@ void data_view_draw_task_imgui(class_data* data) {
 
             vec3 rot;
             mat4_get_rotation(&task->mat, &rot);
-            vec3_mult_scalar(rot, RAD_TO_DEG_FLOAT, rot);
+            rot *= RAD_TO_DEG_FLOAT;
 
             vec3 scale;
             mat4_get_scale(&task->mat, &scale);
@@ -220,8 +215,10 @@ void data_view_draw_task_imgui(class_data* data) {
 
 bool data_view_draw_task_dispose(class_data* data) {
     data_view_draw_task* data_view = (data_view_draw_task*)data->data;
-    delete data_view;
-    data->data = 0;
+    if (data_view) {
+        delete data_view;
+        data->data = 0;
+    }
     return true;
 }
 
@@ -231,12 +228,6 @@ data_view_draw_task::data_view_draw_task() : rctx() {
 
 data_view_draw_task::~data_view_draw_task() {
 
-}
-
-static int draw_task_sort_sort(void const* src1, void const* src2) {
-    float_t d1 = ((draw_task_sort*)src1)->first->depth;
-    float_t d2 = ((draw_task_sort*)src2)->first->depth;
-    return d1 > d2 ? -1 : (d1 < d2 ? 1 : 0);
 }
 
 static void data_view_draw_task_imgui_draw_object(draw_object* object) {

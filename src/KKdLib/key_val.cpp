@@ -4,6 +4,7 @@
 */
 
 #include "key_val.hpp"
+#include "io/file_stream.hpp"
 #include "io/path.hpp"
 #include "hash.hpp"
 #include "str_utils.hpp"
@@ -47,7 +48,7 @@ key_val::key_val() : curr_scope(), buf(), scope_size() {
 }
 
 key_val::~key_val() {
-    free(buf);
+    free_def(buf);
 }
 
 void key_val::close_scope() {
@@ -67,13 +68,13 @@ void key_val::file_read(const char* path) {
     if (!path || !path_check_file_exists(path))
         return;
 
-    stream s;
+    file_stream s;
     s.open(path, "rb");
-    if (s.io.stream) {
+    if (s.check_not_null()) {
         char* d = force_malloc_s(char, s.length);
         s.read(d, s.length);
         parse((uint8_t*)d, s.length);
-        free(d);
+        free_def(d);
     }
 }
 
@@ -81,13 +82,13 @@ void key_val::file_read(const wchar_t* path) {
     if (!path || !path_check_file_exists(path))
         return;
 
-    stream s;
+    file_stream s;
     s.open(path, L"rb");
-    if (s.io.stream) {
+    if (s.check_not_null()) {
         char* d = force_malloc_s(char, s.length);
         s.read(d, s.length);
         parse((uint8_t*)d, s.length);
-        free(d);
+        free_def(d);
     }
 }
 
@@ -120,8 +121,8 @@ bool key_val::has_key(std::string& str) {
 bool key_val::open_scope(const char* str) {
     if (!str || !*str) {
         scope_size++;
-        if ((size_t)scope_size > scope.size())
-            scope.resize(scope_size + (scope_size >> 1) + 1);;
+        if ((size_t)scope_size >= scope.size())
+            scope.resize(scope_size + (scope_size >> 1) + 1);
 
         curr_scope = &scope[scope_size];
         key_val_scope* prev_scope = curr_scope - 1;
@@ -153,7 +154,7 @@ bool key_val::open_scope(const char* str) {
 
     scope_size++;
     if ((size_t)scope_size >= scope.size())
-        scope.resize(scope_size + (scope_size >> 1) + 1);;
+        scope.resize(scope_size + (scope_size >> 1) + 1);
 
     curr_scope = &scope[scope_size];
     if (curr_scope[-1].key.size()) {
@@ -178,7 +179,7 @@ bool key_val::open_scope(std::string& str) {
     if (!str.size()) {
         scope_size++;
         if ((size_t)scope_size >= scope.size())
-            scope.resize(scope_size + (scope_size >> 1) + 1);;
+            scope.resize(scope_size + (scope_size >> 1) + 1);
 
         curr_scope = &scope[scope_size];
         key_val_scope* prev_scope = curr_scope - 1;
@@ -210,7 +211,7 @@ bool key_val::open_scope(std::string& str) {
 
     scope_size++;
     if ((size_t)scope_size >= scope.size())
-        scope.resize(scope_size + (scope_size >> 1) + 1);;
+        scope.resize(scope_size + (scope_size >> 1) + 1);
 
     curr_scope = &scope[scope_size];
     if (curr_scope[-1].key.size()) {
@@ -261,7 +262,7 @@ void key_val::parse(const void* data, size_t size) {
 
     char** lines;
     size_t count;
-    if (!str_utils_text_file_parse(data, size, &buf, &lines, &count))
+    if (!str_utils_text_file_parse(data, size, buf, lines, count))
         return;
 
     key.reserve(count);
@@ -299,7 +300,7 @@ void key_val::parse(const void* data, size_t size) {
     curr_scope->count = key.size();
 
     key_val_sort(this);
-    free(lines)
+    free_def(lines)
 }
 
 bool key_val::read(bool& value) {
@@ -1080,10 +1081,14 @@ static int64_t key_val_find_first_key(key_val* kv, int64_t low, int64_t high,
         key_val_pair* l = &k[mid = (low + high) / 2];
         if (l->length > offset && s_len <= l->length - offset) {
             res = memcmp(s, l->str + offset, s_len);
+            if (!res && l->str[offset + s_len] && l->str[offset + s_len] != '.')
+                res = -1;
             full = true;
         }
         else {
             res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
+            if (!res && s[l->length - offset])
+                res = 1;
             full = false;
         }
 
@@ -1112,10 +1117,14 @@ static int64_t key_val_find_last_key(key_val* kv, int64_t low, int64_t high,
         key_val_pair* l = &k[mid = (low + high) / 2];
         if (l->length > offset && s_len <= l->length - offset) {
             res = memcmp(s, l->str + offset, s_len);
+            if (!res && l->str[offset + s_len] && l->str[offset + s_len] != '.')
+                res = -1;
             full = true;
         }
         else {
             res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
+            if (!res && s[l->length - offset])
+                res = 1;
             full = false;
         }
 

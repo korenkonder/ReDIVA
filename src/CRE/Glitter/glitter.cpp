@@ -268,7 +268,7 @@ namespace Glitter {
         vec3_cross(*vec1, *vec2, *axis);
         vec3_length(*axis, *angle);
         if (*angle >= 0.000001f)
-            *angle = asinf(min(*angle, 1.0f));
+            *angle = asinf(min_def(*angle, 1.0f));
         else {
             *angle = 0.0f;
             axis->x = vec1->z;

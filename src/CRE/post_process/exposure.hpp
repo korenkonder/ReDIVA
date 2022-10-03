@@ -16,6 +16,8 @@ struct post_process_exposure_chara_data {
     float_t field_80;
     GLuint query[3];
     GLuint query_data[3];
+
+    post_process_exposure_chara_data();
 };
 
 struct post_process_exposure {

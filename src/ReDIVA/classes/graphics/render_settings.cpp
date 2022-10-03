@@ -14,7 +14,6 @@ extern int32_t width;
 extern int32_t height;
 
 extern timer* render_timer;
-extern timer* sound_timer;
 
 const char* graphics_render_settings_window_title = "Render Settings##Graphics";
 
@@ -41,7 +40,7 @@ void graphics_render_settings_imgui(class_data* data) {
 
     float_t w = 280.0f;
 #if defined(ReDIVA_DEV)
-    float_t h = 196.0f;
+    float_t h = 140.0f;
 #else
     float_t h = 86.0f;
 #endif
@@ -77,37 +76,21 @@ void graphics_render_settings_imgui(class_data* data) {
     ImGui::Separator();
 
     double_t render_freq = render_timer->get_freq();
-    double_t sound_freq = sound_timer->get_freq();
     double_t render_freq_hist = render_timer->get_freq_hist();
-    double_t sound_freq_hist = sound_timer->get_freq_hist();
 
     char render_freq_str[0x20];
-    char sound_freq_str[0x20];
     char render_ms_str[0x20];
-    char sound_ms_str[0x20];
     render_settings_freq_to_string(render_freq, render_freq_str,
         sizeof(render_freq_str), render_ms_str, sizeof(render_ms_str));
-    render_settings_freq_to_string(sound_freq, sound_freq_str,
-        sizeof(sound_freq_str), sound_ms_str, sizeof(sound_ms_str));
 
     char render_freq_hist_str[0x20];
-    char sound_freq_hist_str[0x20];
     char render_ms_hist_str[0x20];
-    char sound_ms_hist_str[0x20];
     render_settings_freq_to_string(render_freq_hist, render_freq_hist_str,
         sizeof(render_freq_hist_str), render_ms_hist_str, sizeof(render_ms_hist_str));
-    render_settings_freq_to_string(sound_freq_hist, sound_freq_hist_str,
-        sizeof(sound_freq_hist_str), sound_ms_hist_str, sizeof(sound_ms_hist_str));
 
-    ImGui::Text("Targ:   Render /    Sound");
-    ImGui::Text("freq: %s / %s", render_freq_str, sound_freq_str);
-    ImGui::Text("  ms: %s / %s", render_ms_str, sound_ms_str);
-
-    ImGui::Separator();
-
-    ImGui::Text("Curr:   Render /    Sound");
-    ImGui::Text("freq: %s / %s", render_freq_hist_str, sound_freq_hist_str);
-    ImGui::Text("  ms: %s / %s", render_ms_hist_str, sound_ms_hist_str);
+    ImGui::Text("Render:   Target /  Current");
+    ImGui::Text("  freq: %s / %s", render_freq_str, render_freq_hist_str);
+    ImGui::Text("    ms: %s / %s", render_ms_str, render_ms_hist_str);
 #endif
 
     ImGui::Separator();

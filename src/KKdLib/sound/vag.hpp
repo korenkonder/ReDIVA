@@ -22,11 +22,12 @@ struct vag {
     uint32_t sample_rate;
     uint32_t channels;
     size_t size;
-};
 
-extern vag* vag_init();
-extern void vag_read(vag* v, const char* path);
-extern void vag_read(vag* v, const wchar_t* path);
-extern void vag_write(vag* v, const char* path, vag_option option);
-extern void vag_write(vag* v, const wchar_t* path, vag_option option);
-extern void vag_dispose(vag* f);
+    vag();
+    virtual ~vag();
+
+    void read(const char* path);
+    void read(const wchar_t* path);
+    void write(const char* path, vag_option option);
+    void write(const wchar_t* path, vag_option option);
+};

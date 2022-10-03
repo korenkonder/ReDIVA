@@ -770,8 +770,7 @@ bool SubGameState::Selector::Init() {
 
 bool SubGameState::Selector::Ctrl() {
     if (x_pv_game_selector.exit) {
-        if (x_pv_game_selector.start) {
-            x_pv_game_init();
+        if (x_pv_game_selector.start && x_pv_game_init()) {
             XPVGameSelector& sel = x_pv_game_selector;
             app::TaskWork::AppendTask(x_pv_game_ptr, "X PVGAME", 0);
             x_pv_game_ptr->Load(sel.pv_id, sel.stage_id, sel.charas, sel.modules);
@@ -800,8 +799,7 @@ bool SubGameState::GameMain::Ctrl() {
 }
 
 bool SubGameState::GameMain::Dest() {
-    x_pv_game_free();
-    return true;
+    return x_pv_game_free();
 }
 
 bool SubGameState::GameSel::Init() {

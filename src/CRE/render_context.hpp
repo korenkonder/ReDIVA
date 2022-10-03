@@ -441,6 +441,8 @@ struct object_data_vertex_array {
     GLuint morph_array_buffer;
     int32_t alive_time;
     GLuint vertex_array;
+    bool vertex_attrib_array[16];
+    int32_t texcoord_array[2];
 };
 
 struct object_data {
@@ -480,7 +482,7 @@ struct object_data {
 
     void add_vertex_array(draw_object* draw);
     void check_vertex_arrays();
-    GLuint get_vertex_array(GLuint array_buffer, GLuint morph_array_buffer);
+    GLuint get_vertex_array(draw_object* draw);
     bool get_chara_color();
     ::draw_task_flags get_draw_task_flags();
     void get_material_list(int32_t& count, material_list_struct*& value);

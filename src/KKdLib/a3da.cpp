@@ -5,8 +5,9 @@
 
 #include "a3da.hpp"
 #include "f2/struct.hpp"
+#include "io/file_stream.hpp"
+#include "io/memory_stream.hpp"
 #include "io/path.hpp"
-#include "io/stream.hpp"
 #include "half_t.hpp"
 #include "hash.hpp"
 #include "key_val.hpp"
@@ -104,12 +105,12 @@ void a3da::read(const char* path) {
 
     char* path_a3da = str_utils_add(path, (char*)".a3da");
     if (path_check_file_exists(path_a3da)) {
-        stream s;
+        file_stream s;
         s.open(path_a3da, "rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             a3da_read_inner(this, s);
     }
-    free(path_a3da);
+    free_def(path_a3da);
 }
 
 void a3da::read(const wchar_t* path) {
@@ -118,19 +119,19 @@ void a3da::read(const wchar_t* path) {
 
     wchar_t* path_a3da = str_utils_add(path, (wchar_t*)L".a3da");
     if (path_check_file_exists(path_a3da)) {
-        stream s;
+        file_stream s;
         s.open(path_a3da, L"rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             a3da_read_inner(this, s);
     }
-    free(path_a3da);
+    free_def(path_a3da);
 }
 
 void a3da::read(const void* data, size_t size) {
     if (!data || !size)
         return;
 
-    stream s;
+    memory_stream s;
     s.open(data, size);
     a3da_read_inner(this, s);
 }
@@ -140,11 +141,11 @@ void a3da::write(const char* path) {
         return;
 
     char* path_a3da = str_utils_add(path, ".a3da");
-    stream s;
+    file_stream s;
     s.open(path_a3da, "wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         a3da_write_inner(this, s);
-    free(path_a3da);
+    free_def(path_a3da);
 }
 
 void a3da::write(const wchar_t* path) {
@@ -152,19 +153,18 @@ void a3da::write(const wchar_t* path) {
         return;
 
     wchar_t* path_a3da = str_utils_add(path, L".a3da");
-    stream s;
+    file_stream s;
     s.open(path_a3da, L"wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         a3da_write_inner(this, s);
-    free(path_a3da);
+    free_def(path_a3da);
 }
 
 void a3da::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
-    stream s;
-    s.open();
+    memory_stream s;
     a3da_write_inner(this, s);
     s.copy(data, size);
 }
@@ -394,7 +394,7 @@ static void a3da_read_inner(a3da* a, stream& s) {
     uint32_t signature = s.read_uint32_t();
     s.set_position(0x00, SEEK_SET);
 
-    stream _s;
+    memory_stream _s;
     if (signature == reverse_endianness_int32_t('A3DA')) {
         f2_struct st;
         st.read(s);
@@ -406,7 +406,7 @@ static void a3da_read_inner(a3da* a, stream& s) {
         void* data = force_malloc(length);
         s.read(data, length);
         _s.open(data, length);
-        free(data);
+        free_def(data);
     }
 
     void* a3da_data;
@@ -451,7 +451,7 @@ static void a3da_read_inner(a3da* a, stream& s) {
     _s.read(a3da_data, header.string_length);
     ((uint8_t*)a3da_data)[header.string_length] = 0;
     a3da_read_text(a, a3da_data, header.string_length);
-    free(a3da_data);
+    free_def(a3da_data);
 
     if (signature == reverse_endianness_int32_t('C___')) {
         a->compressed = true;
@@ -459,7 +459,7 @@ static void a3da_read_inner(a3da* a, stream& s) {
         void* a3dc_data = force_malloc(header.binary_length);
         _s.read(a3dc_data, header.binary_length);
         a3da_read_data(a, a3dc_data, header.binary_length);
-        free(a3dc_data);
+        free_def(a3dc_data);
     }
     a->ready = true;
 }
@@ -479,7 +479,7 @@ static void a3da_write_inner(a3da* a, stream& s) {
     size_t a3da_data_length = 0;
     a3da_write_text(a, &a3da_data, &a3da_data_length, a3dc);
 
-    stream s_a3da;
+    memory_stream s_a3da;
     stream& _s = s;
     if (a->format > A3DA_FORMAT_AFT) {
         s_a3da.open();
@@ -515,11 +515,11 @@ static void a3da_write_inner(a3da* a, stream& s) {
         _s.write(a3da_data, a3da_data_length);
         _s.align_write(0x20);
         _s.write(a3dc_data, a3dc_data_length);
-        free(a3dc_data);
+        free_def(a3dc_data);
     }
     else
         _s.write(a3da_data, a3da_data_length);
-    free(a3da_data);
+    free_def(a3da_data);
 
     if (a->format > A3DA_FORMAT_AFT) {
         f2_struct st;
@@ -1115,7 +1115,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     char a3da_timestamp[0x100];
     a3da_get_time_stamp(a3da_timestamp, 0x100);
 
-    stream s;
+    memory_stream s;
     s.open();
 
     if (a3dc) {
@@ -1985,7 +1985,7 @@ static void a3da_read_data(a3da* a, void* data, size_t size) {
 static void a3da_write_data(a3da* a, void** data, size_t* size) {
     a3da_compress_f16& _compress_f16 = a->_compress_f16;
 
-    stream s;
+    memory_stream s;
     s.open();
 
     for (a3da_camera_root& i : a->camera_root) {
@@ -2539,10 +2539,10 @@ static bool key_val_read_raw_data(key_val* kv,
         fs -= c * 4;
     } break;
     default:
-        free(fs);
+        free_def(fs);
         return false;
     }
-    free(fs);
+    free_def(fs);
 
     value.raw_data = true;
     return true;

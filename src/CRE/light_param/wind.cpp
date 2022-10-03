@@ -95,7 +95,7 @@ static void wind_ctrl(wind* w) {
     vec3 wind_direction = vec3_null;
     wind_direction.x = value;
     mat4_mult_vec3(&mat, &wind_direction, &wind_direction);
-    vec3_mult_scalar(wind_direction, w->strength, w->wind_direction);
+    w->wind_direction = wind_direction * w->strength;
     if (w->strength >= 1.0f)
         w->strength = 1.0f;
     else

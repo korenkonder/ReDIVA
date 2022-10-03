@@ -39,7 +39,7 @@ classes_data graphics_classes[] = {
         "Light##Graphics",
         CLASSES_IN_CONTEXT_MENU,
         graphics_light_init,
-        CLASSES_DATA_NO_FUNC,
+        graphics_light_ctrl,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,

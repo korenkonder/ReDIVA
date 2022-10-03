@@ -6,6 +6,7 @@
 #include "data_initialize.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/object.hpp"
+#include "../CRE/sound.hpp"
 #include "game_state.hpp"
 
 extern uint32_t dbg_set_id;
@@ -89,14 +90,14 @@ bool TaskDataInit::Ctrl() {
         object_storage_load_set(aft_data, aft_obj_db, dbg_set_id);
         //bone_database_read();
         //item_table_handler_array_read();
-        //sub_14061F7E0("rom/sound/se.farc");
-        //sub_14061F7E0("rom/sound/button.farc");
-        //sub_14061F7E0("rom/sound/se_cmn.farc");
-        //sub_14061F7E0("rom/sound/se_sel.farc");
-        //sub_14061F7E0("rom/sound/se_aime.farc");
-        //sub_14061F7E0("rom/sound/pvchange.farc");
-        //sub_14061F7E0("rom/sound/slide_se.farc");
-        //sub_14061F7E0("rom/sound/slide_long.farc");
+        sound_work_read_farc("rom/sound/se.farc");
+        sound_work_read_farc("rom/sound/button.farc");
+        sound_work_read_farc("rom/sound/se_cmn.farc");
+        sound_work_read_farc("rom/sound/se_sel.farc");
+        sound_work_read_farc("rom/sound/se_aime.farc");
+        sound_work_read_farc("rom/sound/pvchange.farc");
+        sound_work_read_farc("rom/sound/slide_se.farc");
+        sound_work_read_farc("rom/sound/slide_long.farc");
         //sub_14037EF30();
         //sub_14037F180();
         //sub_140377A10();
@@ -124,14 +125,14 @@ bool TaskDataInit::Ctrl() {
         if (!object_storage_load_obj_set_check_not_read(dbg_set_id)
             //&& !bone_database_load()
             //&& !item_table_handler_array_load()
-            //&& !sub_140620E20("rom/sound/se.farc")
-            //&& !sub_140620E20("rom/sound/button.farc")
-            //&& !sub_140620E20("rom/sound/se_cmn.farc")
-            //&& !sub_140620E20("rom/sound/se_sel.farc")
-            //&& !sub_140620E20("rom/sound/se_aime.farc")
-            //&& !sub_140620E20("rom/sound/pvchange.farc")
-            //&& !sub_140620E20("rom/sound/slide_se.farc")
-            //&& !sub_140620E20("rom/sound/slide_long.farc")
+            && !sound_work_load_farc("rom/sound/se.farc")
+            && !sound_work_load_farc("rom/sound/button.farc")
+            && !sound_work_load_farc("rom/sound/se_cmn.farc")
+            && !sound_work_load_farc("rom/sound/se_sel.farc")
+            && !sound_work_load_farc("rom/sound/se_aime.farc")
+            && !sound_work_load_farc("rom/sound/pvchange.farc")
+            && !sound_work_load_farc("rom/sound/slide_se.farc")
+            && !sound_work_load_farc("rom/sound/slide_long.farc")
             //&& !sub_14037FE80()
             //&& !sub_1403785C0()
             //&& !sub_1403933B0()

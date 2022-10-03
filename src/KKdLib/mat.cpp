@@ -655,7 +655,7 @@ inline void mat3_from_quat(const quat* quat, mat3* mat) {
     y = quat->y;
     z = quat->z;
     w = quat->w;
-    vec4_length_squared(*quat, len);
+    len = quat::length_squared(*quat);
     len = len > 0.0f ? 2.0f / len : 0.0f;
     xx = x * x * len;
     xy = x * y * len;
@@ -719,9 +719,9 @@ inline void mat3_get_rotation(const mat3* x, vec3* z) {
 }
 
 inline void mat3_get_scale(const mat3* x, vec3* z) {
-    vec3_length(x->row0, z->x);
-    vec3_length(x->row1, z->y);
-    vec3_length(x->row2, z->z);
+    z->x = vec3::length(x->row0);
+    z->y = vec3::length(x->row1);
+    z->z = vec3::length(x->row2);
 }
 
 inline float_t mat3_get_max_scale(const mat3* x) {
@@ -730,13 +730,13 @@ inline float_t mat3_get_max_scale(const mat3* x) {
 
     float_t length;
     float_t max = 0.0f;
-    vec3_length(mat.row0, length);
+    length = vec3::length(mat.row0);
     if (max < length)
         max = length;
-    vec3_length(mat.row1, length);
+    length = vec3::length(mat.row1);
     if (max < length)
         max = length;
-    vec3_length(mat.row2, length);
+    length = vec3::length(mat.row2);
     if (max < length)
         max = length;
     return max;
@@ -1030,12 +1030,12 @@ inline void mat4_inverse_normalized(const mat4* x, mat4* z) {
     mat3 yt;
     mat3_from_mat4(x, &yt);
     vec3 row3;
-    vec3_dot(*(vec3*)&x->row0, *(vec3*)&x->row3, row3.x);
-    vec3_dot(*(vec3*)&x->row1, *(vec3*)&x->row3, row3.y);
-    vec3_dot(*(vec3*)&x->row2, *(vec3*)&x->row3, row3.z);
+    row3.x = vec3::dot(*(vec3*)&x->row0, *(vec3*)&x->row3);
+    row3.y = vec3::dot(*(vec3*)&x->row1, *(vec3*)&x->row3);
+    row3.z = vec3::dot(*(vec3*)&x->row2, *(vec3*)&x->row3);
     mat3_transpose(&yt, &yt);
     mat4_from_mat3(&yt, z);
-    vec3_negate(row3, *(vec3*)&z->row3);
+    *(vec3*)&z->row3 = -row3;
     z->row0.w = 0.0f;
     z->row1.w = 0.0f;
     z->row2.w = 0.0f;
@@ -1686,7 +1686,7 @@ inline void mat4_from_quat(const quat* quat, mat4* mat) {
     y = quat->y;
     z = quat->z;
     w = quat->w;
-    vec4_length_squared(*quat, len);
+    len = quat::length_squared(*quat);
     len = len > 0.0f ? 2.0f / len : 0.0f;
     xx = x * x * len;
     xy = x * y * len;
@@ -1713,12 +1713,9 @@ inline void mat4_from_quat(const quat* quat, mat4* mat) {
 }
 
 float_t vec3_angle_between_two_vectors(const vec3* x, const vec3* y) {
-    vec3 z_t;
-    vec3_cross(*x, *y, z_t);
-    float_t v2;
-    vec3_length(z_t, v2);
-    float_t v3;
-    vec3_dot(*x, *y, v3);
+    vec3 z_t = vec3::cross(*x, *y);
+    float_t v2 = vec3::length(z_t);
+    float_t v3 = vec3::dot(*x, *y);
     return fabsf(atan2f(v2, v3));
 }
 
@@ -1727,19 +1724,15 @@ void mat4_from_two_vectors(const vec3* x, const vec3* y, mat4* mat) {
     if (x->x == y->x && y->y == x->y && y->z == x->z)
         return;
 
-    float_t v5;
-    vec3_dot(*x, *y, v5);
-    if (fabsf(1.0f - v5) <= 0.000001f)
+    if (fabsf(1.0f - vec3::dot(*x, *y)) <= 0.000001f)
         return;
 
-    vec3 axis;
-    vec3_cross(*x, *y, axis);
-    float_t axis_length;
-    vec3_length(axis, axis_length);
+    vec3 axis = vec3::cross(*x, *y);
+    float_t axis_length = vec3::length(axis);
     if (axis_length > 0.000001f) {
         float_t angle = vec3_angle_between_two_vectors(x, y);
         if (axis_length != 0.0)
-            vec3_mult_scalar(axis, 1.0f / axis_length, axis);
+            axis *= 1.0f / axis_length;
         mat4_from_axis_angle(&axis, angle, mat);
     }
 }
@@ -1756,18 +1749,18 @@ inline void mat4_from_axis_angle(const vec3* axis, float_t angle, mat4* mat) {
     angle_cos = cosf(angle);
     angle_cos_1 = 1.0f - angle_cos;
 
-    vec3_normalize(*axis, _axis);
+    _axis = vec3::normalize(*axis);
 
-    vec3_mult_scalar(_axis, angle_sin, _axis_sin);
-    vec3_mult_scalar(_axis, _axis.x * angle_cos_1, temp);
+    _axis_sin = _axis * angle_sin;
+    temp = _axis * (_axis.x * angle_cos_1);
     mat->row0.x = temp.x + angle_cos;
     mat->row1.x = temp.y - _axis_sin.z;
     mat->row2.x = temp.z + _axis_sin.y;
-    vec3_mult_scalar(_axis, _axis.y * angle_cos_1, temp);
+    temp = _axis * (_axis.y * angle_cos_1);
     mat->row0.y = temp.x + _axis_sin.z;
     mat->row1.y = temp.y + angle_cos;
     mat->row2.y = temp.z - _axis_sin.x;
-    vec3_mult_scalar(_axis, _axis.z * angle_cos_1, temp);
+    temp = _axis * (_axis.z * angle_cos_1);
     mat->row0.z = temp.x - _axis_sin.y;
     mat->row1.z = temp.y + _axis_sin.x;
     mat->row2.z = temp.z + angle_cos;
@@ -1837,9 +1830,9 @@ inline void mat4_get_rotation(const mat4* x, vec3* z) {
 }
 
 inline void mat4_get_scale(const mat4* x, vec3* z) {
-    vec4_length(x->row0, z->x);
-    vec4_length(x->row1, z->y);
-    vec4_length(x->row2, z->z);
+    z->x = vec4::length(x->row0);
+    z->y = vec4::length(x->row1);
+    z->z = vec4::length(x->row2);
 }
 
 inline void mat4_get_translation(const mat4* x, vec3* z) {
@@ -1851,12 +1844,12 @@ inline void mat4_set_translation(mat4* x, vec3* z) {
 }
 
 inline void mat4_blend(const mat4* x, const mat4* y, mat4* z, float_t blend) {
+    quat q0;
     quat q1;
     quat q2;
-    quat q3;
 
     quat_from_mat3(x->row0.x, x->row1.x, x->row2.x, x->row0.y,
-        x->row1.y, x->row2.y, x->row0.z, x->row1.z, x->row2.z, &q1);
+        x->row1.y, x->row2.y, x->row0.z, x->row1.z, x->row2.z, &q0);
     quat_from_mat3(y->row0.x, y->row1.x, y->row2.x, y->row0.y,
         y->row1.y, y->row2.y, y->row0.z, y->row1.z, y->row2.z, &q1);
 
@@ -1866,10 +1859,10 @@ inline void mat4_blend(const mat4* x, const mat4* y, mat4* z, float_t blend) {
     mat4_get_translation(x, &t1);
     mat4_get_translation(y, &t2);
 
-    quat_slerp(&q3, &q1, &q2, blend);
-    vec3_lerp_scalar(t1, t2, t3, blend);
+    q2 = quat::slerp(q0, q1, blend);
+    t3 = vec3::lerp(t1, t2, blend);
 
-    mat4_from_quat(&q3, z);
+    mat4_from_quat(&q2, z);
     mat4_set_translation(z, &t3);
 }
 
@@ -1882,20 +1875,18 @@ inline void mat4_blend_rotation(const mat4* x, const mat4* y, mat4* z, float_t b
         x->row1.y, x->row2.y, x->row0.z, x->row1.z, x->row2.z, &q1);
     quat_from_mat3(y->row0.x, y->row1.x, y->row2.x, y->row0.y,
         y->row1.y, y->row2.y, y->row0.z, y->row1.z, y->row2.z, &q1);
-    quat_slerp(&q0, &q1, &q2, blend);
+    q2 = quat::slerp(q0, q1, blend);
     mat4_from_quat(&q2, z);
 }
 
 void mat4_lerp_rotation(mat4* dst, const mat4* src0, const mat4* src1, float_t blend) {
     vec3 m0;
     vec3 m1;
-    vec3_lerp_scalar(*(vec3*)&src0->row0, *(vec3*)&src1->row0, m0, blend);
-    vec3_lerp_scalar(*(vec3*)&src0->row1, *(vec3*)&src1->row1, m1, blend);
+    m0 = vec3::lerp(*(vec3*)&src0->row0, *(vec3*)&src1->row0, blend);
+    m1 = vec3::lerp(*(vec3*)&src0->row1, *(vec3*)&src1->row1, blend);
 
-    float_t m0_len_sq;
-    float_t m1_len_sq;
-    vec3_length_squared(m0, m0_len_sq);
-    vec3_length_squared(m1, m1_len_sq);
+    float_t m0_len_sq = vec3::length_squared(m0);
+    float_t m1_len_sq = vec3::length_squared(m1);
 
     if (m0_len_sq <= 0.000001f || m1_len_sq <= 0.000001f) {
         *dst = *src1;
@@ -1903,12 +1894,12 @@ void mat4_lerp_rotation(mat4* dst, const mat4* src0, const mat4* src1, float_t b
     }
 
     vec3 m2;
-    vec3_cross(m0, m1, m2);
-    vec3_cross(m2, m0, m1);
+    m2 = vec3::cross(m0, m1);
+    m1 = vec3::cross(m2, m0);
 
     float_t m2_len_sq;
-    vec3_length_squared(m1, m1_len_sq);
-    vec3_length_squared(m2, m2_len_sq);
+    m1_len_sq = vec3::length_squared(m1);
+    m2_len_sq = vec3::length_squared(m2);
     if (m2_len_sq <= 0.000001f || m1_len_sq <= 0.000001) {
         *dst = *src1;
         return;
@@ -1916,15 +1907,15 @@ void mat4_lerp_rotation(mat4* dst, const mat4* src0, const mat4* src1, float_t b
 
     float_t m0_len = sqrtf(m0_len_sq);
     if (m0_len != 0.0f)
-        vec3_div_scalar(m0, 1.0f / m0_len, m0);
+        m0 *= 1.0f / m0_len;
 
     float_t m1_len = sqrtf(m1_len_sq);
     if (m1_len != 0.0f)
-        vec3_div_scalar(m1, 1.0f / m1_len, m1);
+        m1 *= 1.0f / m1_len;
 
     float_t m2_len = sqrtf(m2_len_sq);
     if (m2_len != 0.0f)
-        vec3_div_scalar(m2, 1.0f / m2_len, m2);
+        m2 *= 1.0f / m2_len;
 
     *dst = mat4_identity;
     *(vec3*)&dst->row0 = m0;
@@ -1938,13 +1929,13 @@ inline float_t mat4_get_max_scale(const mat4* x) {
 
     float_t length;
     float_t max = 0.0f;
-    vec3_length(*(vec3*)&mat.row0, length);
+    length = vec3::length(*(vec3*)&mat.row0);
     if (max < length)
         max = length;
-    vec3_length(*(vec3*)&mat.row1, length);
+    length = vec3::length(*(vec3*)&mat.row1);
     if (max < length)
         max = length;
-    vec3_length(*(vec3*)&mat.row2, length);
+    length = vec3::length(*(vec3*)&mat.row2);
     if (max < length)
         max = length;
     return max;
@@ -2010,39 +2001,32 @@ inline void mat4_persp(double_t fov_y, double_t aspect, double_t z_near, double_
 
 inline void mat4_look_at(const vec3* eye, const vec3* target, const vec3* up, mat4* mat) {
     vec3 x_axis, y_axis, z_axis;
-    float_t t;
     vec3 xyz;
 
-    vec3_sub(*eye, *target, z_axis);
-    vec3_normalize(z_axis, z_axis);
+    z_axis = vec3::normalize(*eye - *target);
 
-    vec3_cross(*up, z_axis, x_axis);
-    vec3_normalize(x_axis, x_axis);
-    vec3_length(x_axis, t);
-    if (t == 0.0f)
+    x_axis = vec3::normalize(vec3::cross(*up, z_axis));
+    if (vec3::length(x_axis) == 0.0f)
         x_axis = { 1.0f, 0.0f, 0.0f };
-    vec3_cross(z_axis, x_axis, y_axis);
-    vec3_normalize(y_axis, y_axis);
 
-    vec3_dot(x_axis, *eye, xyz.x);
-    vec3_dot(y_axis, *eye, xyz.y);
-    vec3_dot(z_axis, *eye, xyz.z);
+    y_axis = vec3::normalize(vec3::cross(z_axis, x_axis));
+
+    xyz.x = vec3::dot(x_axis, *eye);
+    xyz.y = vec3::dot(y_axis, *eye);
+    xyz.z = vec3::dot(z_axis, *eye);
 
     mat->row0 = { x_axis.x, y_axis.x, z_axis.x, 0.0f };
     mat->row1 = { x_axis.y, y_axis.y, z_axis.y, 0.0f };
     mat->row2 = { x_axis.z, y_axis.z, z_axis.z, 0.0f };
-    vec3_negate(xyz, xyz);
-    *(vec3*)&mat->row3 = xyz;
+    *(vec3*)&mat->row3 = -xyz;
     mat->row3.w = 1.0f;
 }
 
 inline void mat4_look_at(const vec3* eye, const vec3* target, mat4* mat) {
     vec3 up = { 0.0f, 1.0f, 0.0f };
     vec3 dir;
-    float_t length;
-    vec3_sub(*target, *eye, dir);
-    vec3_length_squared(dir, length);
-    if (length <= 0.000001f) {
+    dir = *target - *eye;
+    if (vec3::length_squared(dir) <= 0.000001f) {
         up.x = 0.0f;
         up.y = 0.0f;
         if (dir.z < 0.0f)

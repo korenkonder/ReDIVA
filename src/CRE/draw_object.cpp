@@ -66,8 +66,7 @@ void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
 
 
     if (!show_vector) {
-        gl_state_bind_vertex_array(rctx->object_data.get_vertex_array(
-            draw->array_buffer, draw->morph_array_buffer));
+        gl_state_bind_vertex_array(rctx->object_data.get_vertex_array(draw));
         draw_object_func(rctx, draw);
     }
     uniform_value[U_BONE_MAT] = 0;
@@ -315,20 +314,17 @@ inline void model_mat_face_camera_position(mat4* view, mat4* src, mat4* dst) {
     vec3 trans;
     mat4_get_translation(view, &trans);
     mat4_mult_vec3_inv_trans(view, &trans, &trans);
-    vec3_negate(trans, trans);
+    trans = -trans;
 
-    vec3 dir;
-    vec3_sub(trans, *(vec3*)&src->row3, dir);
-    vec3_normalize(dir, dir);
+    vec3 dir = vec3::normalize(trans - *(vec3*)&src->row3);
 
     vec3 x_rot;
     vec3 y_rot;
     vec3 z_rot;
 
     y_rot = *(vec3*)&src->row1;
-    vec3_cross(y_rot, dir, x_rot);
-    vec3_normalize(x_rot, x_rot);
-    vec3_cross(x_rot, y_rot, z_rot);
+    x_rot = vec3::normalize(vec3::cross(y_rot, dir));
+    z_rot = vec3::cross(x_rot, y_rot);
 
     *(vec3*)&dst->row0 = x_rot;
     *(vec3*)&dst->row1 = y_rot;
@@ -552,22 +548,23 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
         else {
             gl_state_active_bind_texture_2d(tex_index, tex_id);
 
-            GLenum wrap_s = 0;
+            GLenum wrap_s;
             if (texdata->attrib.m.mirror_u)
                 wrap_s = GL_MIRRORED_REPEAT;
             else if (texdata->attrib.m.repeat_u)
                 wrap_s = GL_REPEAT;
+            else
+                wrap_s = GL_CLAMP_TO_EDGE;
 
-            GLenum wrap_t = 0;
+            GLenum wrap_t;
             if (texdata->attrib.m.mirror_v)
                 wrap_t = GL_MIRRORED_REPEAT;
             else if (texdata->attrib.m.repeat_v)
                 wrap_t = GL_REPEAT;
+            else
+                wrap_t = GL_CLAMP_TO_EDGE;
 
-            if (wrap_s)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_s);
-            if (wrap_t)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_t);
+            texture_storage_set_texture_wrap(tex_id, wrap_s, wrap_t);
         }
 
         if (material->material.shader.index == SHADER_FT_SKY) {
@@ -615,9 +612,8 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
         vec4 specular = material->material.color.specular;
         shaders_ft.state_material_set_specular(false, specular);
 
-        float_t luma;
         vec3 luma_coeff = { 0.30f, 0.59f, 0.11f };
-        vec3_dot(*(vec3*)&specular, luma_coeff, luma);
+        float_t luma = vec3::dot(*(vec3*)&specular, luma_coeff);
         if (luma >= 0.0099999998f || draw->texture_color_coeff.w >= 0.1f)
             uniform_value[U_SPECULAR_IBL] = 1;
         else
@@ -654,7 +650,7 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
             shininess = 10.0f;
         else {
             shininess = (material->material.color.shininess - 16.0f) * (float_t)(1.0 / 112.0);
-            shininess = max(shininess, 0.0f);
+            shininess = max_def(shininess, 0.0f);
         }
         shaders_ft.state_material_set_shininess(false, shininess, 0.0f, 0.0f, 1.0f);
 
@@ -668,7 +664,7 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
         shaders_ft.local_vert_set(0, fresnel, 0.18f, line_light, 0.0f);
         shaders_ft.local_frag_set(9, fresnel, 0.18f, line_light, 0.0f);
 
-        shininess = max(material->material.color.shininess, 1.0f);
+        shininess = max_def(material->material.color.shininess, 1.0f);
         shaders_ft.local_vert_set(1, shininess, 0.0f, 0.0f, 0.0f);
         shaders_ft.local_frag_set(3, shininess, 0.0f, 0.0f, 0.0f);
 
@@ -724,7 +720,7 @@ static void draw_object_material_set_parameter(render_context* rctx, obj_materia
         inv_bump_depth = (1.0f - bump_depth) * 256.0f + 1.0f;
     }
 
-    intensity = max(intensity, 1.0f);
+    intensity = max_def(intensity, 1.0f);
 
     shaders_ft.local_vert_set(2, inv_bump_depth, bump_depth, 0.0f, 0.0f);
     shaders_ft.local_frag_set(0, inv_bump_depth, bump_depth, 0.0f, 0.0f);
@@ -735,7 +731,7 @@ static void draw_object_material_set_parameter(render_context* rctx, obj_materia
 
     vec4 specular;
     shaders_ft.env_vert_get(17, specular);
-    vec3_mult(*(vec3*)&specular, *(vec3*)&mat_data->material.color.specular, *(vec3*)&specular);
+    *(vec3*)&specular = *(vec3*)&specular * *(vec3*)&mat_data->material.color.specular;
     shaders_ft.env_vert_set(18, specular);
 }
 
@@ -768,22 +764,23 @@ static void draw_object_material_set_reflect(render_context* rctx, draw_object* 
 
         gl_state_active_bind_texture_2d(i, tex_id);
 
-        GLenum wrap_s = 0;
+        GLenum wrap_s;
         if (texdata->attrib.m.mirror_u)
             wrap_s = GL_MIRRORED_REPEAT;
         else if (texdata->attrib.m.repeat_u)
             wrap_s = GL_REPEAT;
+        else
+            wrap_s = GL_CLAMP_TO_EDGE;
 
-        GLenum wrap_t = 0;
+        GLenum wrap_t;
         if (texdata->attrib.m.mirror_v)
             wrap_t = GL_MIRRORED_REPEAT;
         else if (texdata->attrib.m.repeat_v)
             wrap_t = GL_REPEAT;
+        else
+            wrap_t = GL_CLAMP_TO_EDGE;
 
-        if (wrap_s)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_s);
-        if (wrap_t)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_t);
+        texture_storage_set_texture_wrap(tex_id, wrap_s, wrap_t);
     }
 
     vec4 ambient;
@@ -940,18 +937,30 @@ static void draw_object_vertex_attrib_set_default(draw_object* draw) {
 
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 1;
+    else
+        uniform_value[U_BONE_MAT] = 0;
 
     if (draw->morph_array_buffer) {
         uniform_value[U_MORPH] = 1;
 
         if (vertex_format & OBJ_VERTEX_COLOR0)
             uniform_value[U_MORPH_COLOR] = 1;
+        else
+            uniform_value[U_MORPH_COLOR] = 0;
 
         shaders_ft.env_vert_set(13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
+    }
+    else {
+        uniform_value[U_MORPH] = 0;
+        uniform_value[U_MORPH_COLOR] = 0;
+
+        shaders_ft.env_vert_set(13, 0.0f, 1.0f, 0.0f, 0.0f);
     }
 
     if (draw->instances_count)
         uniform_value[U_INSTANCE] = 1;
+    else
+        uniform_value[U_INSTANCE] = 0;
 }
 
 static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
@@ -977,13 +986,23 @@ static void draw_object_vertex_attrib_set_reflect(draw_object* draw) {
 
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 1;
+    else
+        uniform_value[U_BONE_MAT] = 0;
 
     if (draw->morph_array_buffer) {
         uniform_value[U_MORPH] = 1;
 
         if (vertex_format & OBJ_VERTEX_COLOR0)
             uniform_value[U_MORPH_COLOR] = 1;
+        else
+            uniform_value[U_MORPH_COLOR] = 0;
 
         shaders_ft.env_vert_set(13, draw->morph_value, 1.0f - draw->morph_value, 0.0f, 0.0f);
+    }
+    else {
+        uniform_value[U_MORPH] = 0;
+        uniform_value[U_MORPH_COLOR] = 0;
+
+        shaders_ft.env_vert_set(13, 0.0f, 1.0f, 0.0f, 0.0f);
     }
 }

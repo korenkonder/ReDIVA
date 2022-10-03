@@ -29,6 +29,7 @@ struct dof_data {
 
 struct dof {
     bool ready;
+    bool big_endian;
     bool is_x;
 
     uint32_t murmurhash;

@@ -170,7 +170,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
             switch (task->type) {
             case DRAW_TASK_OBJECT: {
                 int32_t a = (int32_t)(task->data.object.blend_color.w * 255.0f);
-                a = clamp(a, 0, 255);
+                a = clamp_def(a, 0, 255);
                 if (a == alpha) {
                     draw_object_draw(rctx, &task->data.object,
                         &task->mat, draw_object_func, show_vector);
@@ -180,7 +180,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
                 for (int32_t j = 0; j < task->data.object_translucent.count; j++) {
                     draw_object* object = task->data.object_translucent.objects[j];
                     int32_t a = (int32_t)(object->blend_color.w * 255.0f);
-                    a = clamp(a, 0, 255);
+                    a = clamp_def(a, 0, 255);
                     if (a == alpha)
                         draw_object_draw(rctx, object,
                             &task->mat, draw_object_func, show_vector);
@@ -228,15 +228,16 @@ void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaqu
         && draw_task_get_count(rctx, translucent) < 1)
         return;
 
+    post_process* pp = &rctx->post_process;
+
     int32_t alpha_array[256];
     int32_t count = draw_task_translucent_sort_count_layers(rctx,
         alpha_array, opaque, transparent, translucent);
     for (int32_t i = 0; i < count; i++) {
         int32_t alpha = alpha_array[i];
-        fbo::blit(rctx->post_process.rend_texture.fbos[0],
-            rctx->post_process.alpha_layer_texture.fbos[0],
-            0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
-            0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
+        fbo::blit(pp->rend_texture.fbos[0], pp->alpha_layer_texture.fbos[0],
+            0, 0, pp->render_width, pp->render_height,
+            0, 0, pp->render_width, pp->render_height,
             GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
         if (opaque_enable && draw_task_get_count(rctx, opaque))
@@ -249,17 +250,16 @@ void draw_task_draw_objects_by_type_translucent(render_context* rctx, bool opaqu
             gl_state_disable_blend();
         }
 
-        rctx->post_process.buf_texture.bind();
-        render_texture::shader_set_glsl(&rctx->post_process.alpha_layer_shader);
-        gl_state_active_bind_texture_2d(0, rctx->post_process.alpha_layer_texture.color_texture->tex);
-        gl_state_active_bind_texture_2d(1, rctx->post_process.rend_texture.color_texture->tex);
+        pp->buf_texture.bind();
+        render_texture::shader_set_glsl(&pp->alpha_layer_shader);
+        gl_state_active_bind_texture_2d(0, pp->alpha_layer_texture.color_texture->tex);
+        gl_state_active_bind_texture_2d(1, pp->rend_texture.color_texture->tex);
         glUniform1f(0, (float_t)(alpha * (1.0 / 255.0)));
         render_texture::draw_custom_glsl();
 
-        fbo::blit(rctx->post_process.buf_texture.fbos[0],
-            rctx->post_process.rend_texture.fbos[0],
-            0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
-            0, 0, rctx->post_process.render_width, rctx->post_process.render_height,
+        fbo::blit(pp->buf_texture.fbos[0], pp->rend_texture.fbos[0],
+            0, 0, pp->render_width, pp->render_height,
+            0, 0, pp->render_width, pp->render_height,
             GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
 }
@@ -430,7 +430,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
                     if (!has_blend_color)
                         _blend_color = *blend_color;
                     else
-                        vec4_mult(_blend_color, *blend_color, _blend_color);
+                        _blend_color *= *blend_color;
                 }
 
                 bool has_emission = false;
@@ -711,7 +711,7 @@ void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, 
     if (texture_data && !texture_data->field_0) {
         vec4 value;
         object_data->get_texture_color_coeff(texture_color_coeff);
-        vec3_mult(texture_data->texture_color_coeff, *(vec3*)&texture_color_coeff, *(vec3*)&value);
+        *(vec3*)&value = texture_data->texture_color_coeff * *(vec3*)&texture_color_coeff;
         value.w = 0.0f;
         object_data->set_texture_color_coeff(value);
 
@@ -721,7 +721,7 @@ void draw_task_add_draw_object_by_object_info_object_skin(render_context* rctx, 
         object_data->set_texture_color_offset(value);
 
         object_data->get_texture_specular_coeff(texture_specular_coeff);
-        vec3_mult(texture_data->texture_specular_coeff, *(vec3*)&texture_specular_coeff, *(vec3*)&value);
+        *(vec3*)&value = texture_data->texture_specular_coeff * *(vec3*)&texture_specular_coeff;
         value.w = 0.0f;
         object_data->set_texture_specular_coeff(value);
 
@@ -778,9 +778,9 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
                 for (uint32_t j = 0; j < sub_mesh->bone_indices_count; j++) {
                     center = sub_mesh->bounding_sphere.center;
                     mat4_mult_vec3_trans(&task->data.object.mats[j], &center, &center);
-                    vec3_add(center_sum, center, center_sum);
+                    center_sum += center;
                 }
-                vec3_mult_scalar(center_sum, 1.0f / (float_t)sub_mesh->bone_indices_count, center);
+                center_sum *= 1.0f / (float_t)sub_mesh->bone_indices_count;
             }
             task->bounding_radius = task->data.object.mesh->bounding_sphere.radius;
         }
@@ -807,33 +807,15 @@ void draw_task_sort(render_context* rctx, draw_object_type type, int32_t compare
 
 int32_t obj_axis_aligned_bounding_box_check_visibility(
     obj_axis_aligned_bounding_box* aabb, camera* cam, mat4* mat) {
-    vec3 size;
     vec3 points[8];
-    vec3 neg;
-    neg = { 0.0f, 0.0f, 0.0f };
-    vec3_xor(aabb->size, neg, size);
-    vec3_add(aabb->center, size, points[0]);
-    neg = { -0.0f, -0.0f, -0.0f };
-    vec3_xor(aabb->size, neg, size);
-    vec3_add(aabb->center, size, points[1]);
-    neg = { -0.0f, 0.0f, 0.0f };
-    vec3_xor(aabb->size, neg, size);
-    vec3_add(aabb->center, size, points[2]);
-    neg = { 0.0f, -0.0f, -0.0f };
-    vec3_xor(aabb->size, neg, size);
-    vec3_add(aabb->center, size, points[3]);
-    neg = { 0.0f, -0.0f, 0.0f };
-    vec3_xor(aabb->size, neg, size);
-    vec3_add(aabb->center, size, points[4]);
-    neg = { -0.0f, 0.0f, -0.0f };
-    vec3_xor(aabb->size, neg, size);
-    vec3_add(aabb->center, size, points[5]);
-    neg = { 0.0f, 0.0f, -0.0f };
-    vec3_xor(aabb->size, neg, size);
-    vec3_add(aabb->center, size, points[6]);
-    neg = { -0.0f, -0.0f, 0.0f };
-    vec3_xor(aabb->size, neg, size);
-    vec3_add(aabb->center, size, points[7]);
+    points[0] = aabb->center + (aabb->size ^ vec3( 0.0f,  0.0f,  0.0f));
+    points[1] = aabb->center + (aabb->size ^ vec3(-0.0f, -0.0f, -0.0f));
+    points[2] = aabb->center + (aabb->size ^ vec3(-0.0f,  0.0f,  0.0f));
+    points[3] = aabb->center + (aabb->size ^ vec3( 0.0f, -0.0f, -0.0f));
+    points[4] = aabb->center + (aabb->size ^ vec3( 0.0f, -0.0f,  0.0f));
+    points[5] = aabb->center + (aabb->size ^ vec3(-0.0f,  0.0f, -0.0f));
+    points[6] = aabb->center + (aabb->size ^ vec3( 0.0f,  0.0f, -0.0f));
+    points[7] = aabb->center + (aabb->size ^ vec3(-0.0f, -0.0f,  0.0f));
 
     mat4 view_mat;
     mat4_mult(mat, &cam->view, &view_mat);
@@ -856,9 +838,7 @@ int32_t obj_axis_aligned_bounding_box_check_visibility(
 
     for (int32_t i = 0; i < 6; i++)
         for (int32_t j = 0; j < 8; j++) {
-            float_t v34 = 0.0f;
-            vec3_dot(*(vec3*)&v2[i], points[j], v34);
-            v34 += v2[i].w;
+            float_t v34 = vec3::dot(*(vec3*)&v2[i], points[j]) + v2[i].w;
             if (v34 > 0.0f)
                 break;
 
@@ -883,23 +863,19 @@ int32_t object_bounding_sphere_check_visibility(obj_bounding_sphere* sphere,
     if (-cam->min_distance < min_depth || -cam->max_distance > max_depth)
         return 0;
 
-    float_t v5;
-    vec3_dot(cam->field_1E4, center, v5);
+    float_t v5 = vec3::dot(cam->field_1E4, center);
     if (v5 < -radius)
         return 0;
 
-    float_t v6;
-    vec3_dot(cam->field_1F0, center, v6);
+    float_t v6 = vec3::dot(cam->field_1F0, center);
     if (v6 < -radius)
         return 0;
 
-    float_t v7;
-    vec3_dot(cam->field_1FC, center, v7);
+    float_t v7 = vec3::dot(cam->field_1FC, center);
     if (v7 < -radius)
         return 0;
 
-    float_t v8;
-    vec3_dot(cam->field_208, center, v8);
+    float_t v8 = vec3::dot(cam->field_208, center);
     if (v8 < -radius)
         return 0;
 
@@ -1018,7 +994,7 @@ inline static void draw_task_translucent_sort_has_objects(render_context* rctx, 
             continue;
 
         int32_t alpha = (int32_t)(task->data.object.blend_color.w * 255.0f);
-        alpha = clamp(alpha, 0, 255);
+        alpha = clamp_def(alpha, 0, 255);
         arr[alpha] = true;
     }
 }

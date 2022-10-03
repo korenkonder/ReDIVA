@@ -237,7 +237,7 @@ static void stage_detail::TaskStage_CtrlInner(stage_detail::TaskStage* a1) {
         if (!a1->state) {
             a1->state = 3;
             int32_t stage_count = (int32_t)a1->load_stage_indices.size();
-            stage_count = min(stage_count, TASK_STAGE_STAGE_COUNT);
+            stage_count = min_def(stage_count, TASK_STAGE_STAGE_COUNT);
             for (int32_t i = 0; i < stage_count; i++)
                 if (a1->stages[i].index == -1)
                     stage_set_by_stage_index(&a1->stages[i], a1->load_stage_indices[i], stage_counter++);

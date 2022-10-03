@@ -24,8 +24,8 @@ void graphics_post_process_imgui(class_data* data) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
 
-    float_t w = min((float_t)width, 400.0f);
-    float_t h = min((float_t)height, 790.0f);
+    float_t w = min_def((float_t)width, 400.0f);
+    float_t h = min_def((float_t)height, 790.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
@@ -44,6 +44,11 @@ void graphics_post_process_imgui(class_data* data) {
     }
 
     render_context* rctx = (render_context*)data->data;
+    if (!rctx) {
+        ImGui::End();
+        return;
+    }
+
     post_process* pp = &rctx->post_process;
 
     post_process_blur* blur = pp->blur;

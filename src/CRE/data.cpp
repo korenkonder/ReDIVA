@@ -4,8 +4,9 @@
 */
 
 #include "data.hpp"
+#include "../KKdLib/io/file_stream.hpp"
+#include "../KKdLib/io/memory_stream.hpp"
 #include "../KKdLib/io/path.hpp"
-#include "../KKdLib/io/stream.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "mdata_manager.hpp"
@@ -27,26 +28,30 @@ void data_struct_init() {
 }
 
 void data_struct_load(const char* path) {
-    stream s;
+    file_stream s;
     s.open(path, "rb");
-    if (s.io.stream)
+    if (s.check_not_null())
         data_load_inner(s);
     else {
         s.close();
-        s.open(default_config, 7);
-        data_load_inner(s);
+
+        memory_stream ms;
+        ms.open(default_config, 7);
+        data_load_inner(ms);
     }
 }
 
 void data_struct_load(const wchar_t* path) {
-    stream s;
+    file_stream s;
     s.open(path, L"rb");
-    if (s.io.stream)
+    if (s.check_not_null())
         data_load_inner(s);
     else {
         s.close();
-        s.open(default_config, 7);
-        data_load_inner(s);
+
+        memory_stream ms;
+        ms.open(default_config, 7);
+        data_load_inner(ms);
     }
 }
 
@@ -91,6 +96,16 @@ void data_struct_load_db() {
             ds->load_file(&obj_db_file, "rom/objset/", file.c_str(),
                 object_database_file::load_file);
             d->obj_db.add(&obj_db_file);
+        }
+
+        for (std::string& i : prefixes) {
+            std::string file = i + "spr_db.bin";
+
+            sprite_database_file spr_db_file;
+            spr_db_file.modern = false;
+            ds->load_file(&spr_db_file, "rom/2d/", file.c_str(),
+                sprite_database_file::load_file);
+            d->spr_db.add(&spr_db_file);
         }
 
         for (std::string& i : prefixes) {
@@ -247,39 +262,22 @@ bool data_struct::check_directory_exists(const char* dir) {
         dir_len--;
     }
 
-    size_t max_len = 0;
-    for (data_struct_path& i : data_paths)
-        for (data_struct_directory& j : i.data)
-            if (max_len < j.path.size())
-                max_len = j.path.size();
+    std::string dir_temp(dir, dir_len);
 
-    char* dir_temp = force_malloc_s(char, dir_len + 1);
-    memcpy(dir_temp, dir, dir_len + 1);
-
-    char* t = dir_temp;
+    char* t = (char*)dir_temp.c_str();
     while (t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc_s(char, max_len + dir_len + 2);
+    std::string temp;
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
-            const char* path = j.path.c_str();
-            size_t path_len = j.path.size();
+            temp.assign(j.path);
+            temp += '\\';
+            temp.append(dir_temp);
 
-            memcpy(temp, path, path_len);
-            memcpy(&temp[path_len], "\\", 2);
-            if (dir_len)
-                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
-
-            if (path_check_directory_exists(temp)) {
-                free(dir_temp);
-                free(temp);
+            if (path_check_directory_exists(temp.c_str()))
                 return true;
-            }
         }
-
-    free(dir_temp);
-    free(temp);
     return false;
 }
 
@@ -339,43 +337,23 @@ bool data_struct::check_file_exists(const char* dir, const char* file) {
         dir_len--;
     }
 
-    size_t max_len = 0;
-    for (data_struct_path& i : data_paths)
-        for (data_struct_directory& j : i.data)
-            if (max_len < j.path.size())
-                max_len = j.path.size();
+    std::string dir_temp(dir, dir_len);
 
-    char* dir_temp = force_malloc_s(char, dir_len + 1);
-    memcpy(dir_temp, dir, dir_len + 1);
-
-    char* t = dir_temp;
+    char* t = (char*)dir_temp.c_str();
     while (t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc_s(char, max_len + dir_len + file_len + 2);
+    std::string temp;
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
-            const char* path = j.path.c_str();
-            size_t path_len = j.path.size();
+            temp.assign(j.path);
+            temp += '\\';
+            temp.append(dir_temp);
+            temp.append(file, file_len);
 
-            memcpy(temp, path, path_len);
-            memcpy(&temp[path_len], "\\", 2);
-            if (dir_len) {
-                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
-                memcpy(&temp[path_len + dir_len + 1], file, file_len + 1);
-            }
-            else
-                memcpy(&temp[path_len + 1], file, file_len + 1);
-
-            if (path_check_file_exists(temp)) {
-                free(dir_temp);
-                free(temp);
+            if (path_check_file_exists(temp.c_str()))
                 return true;
-            }
         }
-
-    free(dir_temp);
-    free(temp);
 
     if (f2)
         return check_file_exists("rom/data/", file);
@@ -407,32 +385,20 @@ bool data_struct::check_file_exists(const char* dir, uint32_t hash) {
         dir_len--;
     }
 
-    size_t max_len = 0;
-    for (data_struct_path& i : data_paths)
-        for (data_struct_directory& j : i.data)
-            if (max_len < j.path.size())
-                max_len = j.path.size();
+    std::string dir_temp(dir, dir_len);
 
-    char* dir_temp = force_malloc_s(char, dir_len + 1);
-    memcpy(dir_temp, dir, dir_len + 1);
-
-    char* t = dir_temp;
+    char* t = (char*)dir_temp.c_str();
     while (t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc_s(char, max_len + dir_len + 2);
+    std::string temp;
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
-            const char* path = j.path.c_str();
-            size_t path_len = j.path.size();
+            temp.assign(j.path);
+            temp += '\\';
+            temp.append(dir_temp);
 
-            memcpy(temp, path, path_len);
-            memcpy(&temp[path_len], "\\", 2);
-            if (dir_len)
-                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
-
-            std::vector<std::string> files;
-            path_get_files(&files, temp);
+            std::vector<std::string> files = path_get_files(temp.c_str());
             if (!files.size())
                 continue;
 
@@ -449,15 +415,9 @@ bool data_struct::check_file_exists(const char* dir, uint32_t hash) {
             }
 
             for (uint32_t& l : files_murmurhash)
-                if (l == hash) {
-                    free(dir_temp);
-                    free(temp);
+                if (l == hash)
                     return true;
-                }
         }
-
-    free(dir_temp);
-    free(temp);
 
     if (f2)
         return check_file_exists("rom/data/", hash);
@@ -492,32 +452,20 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
         dir_len--;
     }
 
-    size_t max_len = 0;
-    for (data_struct_path& i : data_paths)
-        for (data_struct_directory& j : i.data)
-            if (max_len < j.path.size())
-                max_len = j.path.size();
+    std::string dir_temp(dir, dir_len);
 
-    char* dir_temp = force_malloc_s(char, dir_len + 1);
-    memcpy(dir_temp, dir, dir_len + 1);
-
-    char* t = dir_temp;
+    char* t = (char*)dir_temp.c_str();
     while (t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc_s(char, max_len + dir_len + 2);
+    std::string temp;
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
-            const char* path = j.path.c_str();
-            size_t path_len = j.path.size();
+            temp.assign(j.path);
+            temp += '\\';
+            temp.append(dir_temp);
 
-            memcpy(temp, path, path_len);
-            memcpy(&temp[path_len], "\\", 2);
-            if (dir_len)
-                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
-
-            std::vector<std::string> files;
-            path_get_files(&files, temp);
+            std::vector<std::string> files = path_get_files(temp.c_str());
             if (!files.size())
                 continue;
 
@@ -533,14 +481,11 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
                     continue;
 
                 data_struct_file f;
-                f.path = temp;
-                f.name = k;
+                f.path.assign(temp);
+                f.name.assign(k);
                 data_files.push_back(f);
             }
         }
-
-    free(dir_temp);
-    free(temp);
 }
 
 bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std::string& file) {
@@ -568,32 +513,20 @@ bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std:
         dir_len--;
     }
 
-    size_t max_len = 0;
-    for (data_struct_path& i : data_paths)
-        for (data_struct_directory& j : i.data)
-            if (max_len < j.path.size())
-                max_len = j.path.size();
+    std::string dir_temp(dir, dir_len);
 
-    char* dir_temp = force_malloc_s(char, dir_len + 1);
-    memcpy(dir_temp, dir, dir_len + 1);
-
-    char* t = dir_temp;
+    char* t = (char*)dir_temp.c_str();
     while (t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc_s(char, max_len + dir_len + 2);
+    std::string temp;
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
-            const char* path = j.path.c_str();
-            size_t path_len = j.path.size();
+            temp.assign(j.path);
+            temp += '\\';
+            temp.append(dir_temp);
 
-            memcpy(temp, path, path_len);
-            memcpy(&temp[path_len], "\\", 2);
-            if (dir_len)
-                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
-
-            std::vector<std::string> files;
-            path_get_files(&files, temp);
+            std::vector<std::string> files = path_get_files(temp.c_str());
             if (!files.size())
                 continue;
 
@@ -608,16 +541,11 @@ bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std:
                 t = l.c_str();
 
                 if (hash_murmurhash(t, t_len) == hash) {
-                    file = l;
-                    free(dir_temp);
-                    free(temp);
+                    file.assign(l);
                     return true;
                 }
             }
         }
-
-    free(dir_temp);
-    free(temp);
 
     if (f2)
         return get_file("rom/data/", hash, ext, file);
@@ -682,39 +610,22 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
         dir_len--;
     }
 
-    size_t max_len = 0;
-    for (data_struct_path& i : data_paths)
-        for (data_struct_directory& j : i.data)
-            if (max_len < j.path.size())
-                max_len = j.path.size();
+    std::string dir_temp(dir, dir_len);
 
-    char* dir_temp = force_malloc_s(char, dir_len + 1);
-    memcpy(dir_temp, dir, dir_len + 1);
-
-    char* t = dir_temp;
+    char* t = (char*)dir_temp.c_str();
     while(t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc_s(char, max_len + dir_len + file_len + 2);
+    std::string temp;
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
-            const char* path = j.path.c_str();
-            size_t path_len = j.path.size();
+            temp.assign(j.path);
+            temp += '\\';
+            temp.append(dir_temp);
+            temp.append(file, file_len);
 
-            memcpy(temp, path, path_len);
-            memcpy(&temp[path_len], "\\", 2);
-            if (dir_len) {
-                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
-                memcpy(&temp[path_len + dir_len + 1], file, file_len + 1);
-            }
-            else
-                memcpy(&temp[path_len + 1], file, file_len + 1);
-
-            if (path_check_file_exists(temp)) {
-                if (dir_len)
-                    temp[path_len + dir_len + 1] = 0;
-                else
-                    temp[path_len + 1] = 0;
+            if (path_check_file_exists(temp.c_str())) {
+                temp.resize(temp.size() - file_len);
 
                 const char* l_str = file;
                 const char* t = strrchr(l_str, '.');
@@ -725,16 +636,10 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
                     l_len = file_len;
 
                 uint32_t h = hash_murmurhash(l_str, l_len);
-                if (load_func(data, temp, l_str, h)) {
-                    free(dir_temp);
-                    free(temp);
+                if (load_func(data, temp.c_str(), l_str, h))
                     return true;
-                }
             }
         }
-
-    free(dir_temp);
-    free(temp);
 
     if (f2)
         return load_file(data, "rom/data/", file, load_func);
@@ -767,32 +672,20 @@ bool data_struct::load_file(void* data, const char* dir, uint32_t hash, const ch
         dir_len--;
     }
 
-    size_t max_len = 0;
-    for (data_struct_path& i : data_paths)
-        for (data_struct_directory& j : i.data)
-            if (max_len < j.path.size())
-                max_len = j.path.size();
+    std::string dir_temp(dir, dir_len);
 
-    char* dir_temp = force_malloc_s(char, dir_len + 1);
-    memcpy(dir_temp, dir, dir_len + 1);
-
-    char* t = dir_temp;
+    char* t = (char*)dir_temp.c_str();
     while (t = strchr(t, '/'))
         *t = '\\';
 
-    char* temp = force_malloc_s(char, max_len + dir_len + 2);
+    std::string temp;
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
-            const char* path = j.path.c_str();
-            size_t path_len = j.path.size();
+            temp.assign(j.path);
+            temp += '\\';
+            temp.append(dir_temp);
 
-            memcpy(temp, path, path_len);
-            memcpy(&temp[path_len], "\\", 2);
-            if (dir_len)
-                memcpy(&temp[path_len + 1], dir_temp, dir_len + 1);
-
-            std::vector<std::string> files;
-            path_get_files(&files, temp);
+            std::vector<std::string> files = path_get_files(temp.c_str());
             if (!files.size())
                 continue;
 
@@ -807,16 +700,10 @@ bool data_struct::load_file(void* data, const char* dir, uint32_t hash, const ch
                 t = l.c_str();
 
                 if (hash_murmurhash(t, t_len) == hash
-                    && load_func(data, temp, l.c_str(), hash)) {
-                    free(dir_temp);
-                    free(temp);
+                    && load_func(data, temp.c_str(), l.c_str(), hash))
                     return true;
-                }
             }
         }
-
-    free(dir_temp);
-    free(temp);
 
     if (f2)
         return load_file(data, "rom/data/", hash, ext, load_func);
@@ -918,11 +805,11 @@ static void data_load_inner(stream& s) {
     char* buf;
     char** lines;
     size_t count;
-    if (!str_utils_text_file_parse(data, length, &buf, &lines, &count)) {
-        free(data);
+    if (!str_utils_text_file_parse(data, length, buf, lines, count)) {
+        free_def(data);
         return;
     }
-    free(data);
+    free_def(data);
 
     for (size_t i = 0; i < count; i++) {
         char* s = lines[i];
@@ -1002,36 +889,15 @@ static void data_load_inner(stream& s) {
             count++;
         }
 
-        size_t max_len = 0;
-        t = data_paths;
-        for (size_t j = 0; j < count; j++) {
-            size_t len = utf8_length(t);
-            if (max_len < len)
-                max_len = len;
-            t += len + 1;
-        }
-
         size_t main_rom_len = utf8_length(main_rom);
         size_t add_data_len = utf8_length(add_data);
         size_t add_data_rom_len = utf8_length(add_data_rom);
 
-        char* main_rom_path = force_malloc_s(char, max_len + main_rom_len + 3);
-        if (!main_rom_path) {
-            data_free_inner(ds);
-            continue;
-        }
-
-        char* add_data_rom_path = force_malloc_s(char, max_len + add_data_len + 3);
-        if (!add_data_rom_path) {
-            free(main_rom_path);
-            data_free_inner(ds);
-            continue;
-        }
+        std::string main_rom_path;
+        std::string add_data_rom_path;
 
         ssize_t* t_len = force_malloc_s(ssize_t, count);
         if (!t_len) {
-            free(main_rom_path);
-            free(add_data_rom_path);
             data_free_inner(ds);
             continue;
         }
@@ -1048,94 +914,77 @@ static void data_load_inner(stream& s) {
             data_path.data = {};
             ds->data_paths.push_back(data_path);
         }
-        free(t_len);
+        free_def(t_len);
 
         for (data_struct_path& j : ds->data_paths) {
             const char* data_path = j.path.c_str();
             size_t data_path_length = j.path.size();
             if (!main_rom_len)
-                memcpy(main_rom_path, data_path, data_path_length);
+                main_rom_path.assign(j.path);
             else if (data_path_length) {
-                memcpy(main_rom_path, data_path, data_path_length);
-                main_rom_path[data_path_length] = '\\';
-                memcpy(&main_rom_path[data_path_length + 1], main_rom, main_rom_len + 1);
+                main_rom_path.assign(j.path);
+                main_rom_path += '\\';
+                main_rom_path.append(main_rom, main_rom_len);
             }
             else
-                memcpy(main_rom_path, main_rom, main_rom_len + 1);
+                main_rom_path.assign(main_rom, main_rom_len);
 
             if (!add_data_len)
-                memcpy(add_data_rom_path, data_path, data_path_length);
+                add_data_rom_path.assign(j.path);
             else if (data_path_length) {
-                memcpy(add_data_rom_path, data_path, data_path_length);
-                add_data_rom_path[data_path_length] = '\\';
-                memcpy(&add_data_rom_path[data_path_length + 1], add_data, add_data_len + 1);
+                add_data_rom_path.assign(j.path);
+                add_data_rom_path += '\\';
+                add_data_rom_path.append(add_data, add_data_len);
             }
             else
-                memcpy(add_data_rom_path, add_data, add_data_len + 1);
+                add_data_rom_path.assign(add_data, add_data_len);
 
-            size_t main_rom_path_len = utf8_length(main_rom_path);
-            if (main_rom_path_len && main_rom_path[main_rom_path_len - 1] == '\\') {
-                main_rom_path[main_rom_path_len - 1] = 0;
-                main_rom_path_len--;
-            }
+            if (main_rom_path.size() && main_rom_path.back() == '\\')
+                main_rom_path.pop_back();
 
-            size_t add_data_rom_path_len = utf8_length(add_data_rom_path);
-            if (add_data_rom_path_len && add_data_rom_path[add_data_rom_path_len - 1] == '\\') {
-                add_data_rom_path[add_data_rom_path_len - 1] = 0;
-                add_data_rom_path_len--;
-            }
+            if (add_data_rom_path.size() && add_data_rom_path.back() == '\\')
+                add_data_rom_path.pop_back();
 
-            std::vector<std::string> data_directories;
-            path_get_directories(&data_directories, add_data_rom_path, &main_rom_path, 1);
+            const char* exclude_list[1];
+            exclude_list[0] = main_rom_path.c_str();
+            std::vector<std::string> data_directories
+                = path_get_directories(add_data_rom_path.c_str(), exclude_list, 1);
 
-            max_len = 0;
-            for (std::string& k : data_directories) {
-                size_t len = k.size();
-                if (max_len < len)
-                    max_len = len;
-            }
-
-            char* data_dir_path_temp = force_malloc_s(char, add_data_rom_path_len + max_len + add_data_rom_len + 3);
-            if (data_dir_path_temp) {
+            std::string data_dir_path;
+            if (data_directories.size()) {
                 j.data.reserve(data_directories.size() + 1);
-                memcpy(data_dir_path_temp, add_data_rom_path, add_data_rom_path_len);
-                data_dir_path_temp[add_data_rom_path_len] = '\\';
+                data_dir_path.assign(add_data_rom_path);
+                data_dir_path += '\\';
                 for (std::vector<std::string>::reverse_iterator k = data_directories.rbegin();
                     k != data_directories.rend(); k++) {
-                    memcpy(&data_dir_path_temp[add_data_rom_path_len + 1], k->c_str(), k->size() + 1);
-                    if (add_data_rom_len) {
-                        data_dir_path_temp[add_data_rom_path_len + 1 + k->size()] = '\\';
-                        memcpy(&data_dir_path_temp[add_data_rom_path_len + 1 + k->size() + 1],
-                            add_data_rom, add_data_rom_len + 1);
-                    }
-
                     data_struct_directory data_dir;
-                    data_dir.path = data_dir_path_temp;
-                    data_dir.name = *k;
+                    data_dir.path.assign(data_dir_path);
+                    data_dir.path.append(*k);
+                    if (add_data_rom_len) {
+                        data_dir.path += '\\';
+                        data_dir.path.append(add_data_rom, add_data_rom_len);
+                    }
+                    data_dir.name.assign(*k);
                     j.data.push_back(data_dir);
                 }
             }
             else
                 j.data.reserve(1);
-            free(data_dir_path_temp);
 
             data_struct_directory data_dir;
             data_dir.path = main_rom_path;
             data_dir.name = {};
             j.data.push_back(data_dir);
-            free(data_dir_path_temp);
         }
-        free(main_rom_path);
-        free(add_data_rom_path);
         ds->ready = true;
     }
-    free(buf);
-    free(lines);
+    free_def(buf);
+    free_def(lines);
 }
 
 #if defined(CRE_DEV)
 static void data_load_glitter_list(data_struct* ds, const char* path) {
-    stream s;
+    file_stream s;
     s.open(path, "rb");
     size_t length = s.length;
     uint8_t* data = force_malloc_s(uint8_t, length);
@@ -1145,7 +994,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
     char* buf;
     char** lines;
     size_t count;
-    if (str_utils_text_file_parse(data, length, &buf, &lines, &count)) {
+    if (str_utils_text_file_parse(data, length, buf, lines, count)) {
         for (size_t i = 0; i < count; i++) {
             char* t = strstr(lines[i], "#(?)");
             if (t)
@@ -1156,7 +1005,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
         glitter_list_names.reserve(count);
         for (size_t i = 0; i < count; i++) {
             size_t len = utf8_length(lines[i]);
-            std::string name = std::string(lines[i], min(len, 0x7F));
+            std::string name = std::string(lines[i], min_def(len, 0x7F));
             glitter_list_names.push_back(name);
         }
 
@@ -1183,9 +1032,9 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
             break;
         }
 
-        free(buf);
-        free(lines);
+        free_def(buf);
+        free_def(lines);
     }
-    free(data);
+    free_def(data);
 }
 #endif

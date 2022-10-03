@@ -29,6 +29,7 @@ struct texture_info {
 struct texture_database_file {
     bool ready;
     bool modern;
+    bool big_endian;
     bool is_x;
 
     std::vector<texture_info_file> texture;

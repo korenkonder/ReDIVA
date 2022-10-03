@@ -100,8 +100,8 @@ namespace Glitter {
 
             glGenBuffers(1, &ebo);
             gl_state_bind_element_array_buffer(ebo);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);;
-            free(ebo_data);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);
+            free_def(ebo_data);
         }
 
         static const GLsizei buffer_size = sizeof(Buffer);
@@ -214,16 +214,13 @@ namespace Glitter {
 
         particle->AccelerateParticle(GLT_VAL, rend_elem,
             rend_elem->frame * (float_t)(1.0 / 60.0), delta_frame, random_ptr);
-        if (particle->data.data.draw_type == DIRECTION_PARTICLE_ROTATION) {
-            rend_elem->rotation.x += rend_elem->rotation_add.x * delta_frame;
-            rend_elem->rotation.y += rend_elem->rotation_add.y * delta_frame;
-        }
-        rend_elem->rotation.z += rend_elem->rotation_add.z * delta_frame;
+        if (particle->data.data.draw_type == DIRECTION_PARTICLE_ROTATION)
+            rend_elem->rotation += rend_elem->rotation_add * delta_frame;
+        else
+            rend_elem->rotation.z += rend_elem->rotation_add.z * delta_frame;
 
-        vec2 uv_scroll;
-        vec2_mult_scalar(particle->data.data.uv_scroll_add,
-            particle->data.data.uv_scroll_add_scale * delta_frame, uv_scroll);
-        vec2_add(rend_elem->uv_scroll, uv_scroll, rend_elem->uv_scroll);
+        rend_elem->uv_scroll += particle->data.data.uv_scroll_add
+            * (particle->data.data.uv_scroll_add_scale * delta_frame);
 
         particle->StepUVParticle(GLT_VAL, rend_elem, delta_frame, random_ptr);
         rend_elem->disp = true;
@@ -453,8 +450,8 @@ namespace Glitter {
 
             glGenBuffers(1, &ebo);
             gl_state_bind_element_array_buffer(ebo);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);;
-            free(ebo_data);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);
+            free_def(ebo_data);
         }
 
         if (!is_mesh) {
@@ -574,11 +571,10 @@ namespace Glitter {
         particle->AccelerateParticle(rend_elem, delta_frame, random_ptr);
 
         if (particle->data.data.draw_type == DIRECTION_PARTICLE_ROTATION
-            || particle->data.data.type == PARTICLE_MESH) {
-            rend_elem->rotation.x += rend_elem->rotation_add.x * delta_frame;
-            rend_elem->rotation.y += rend_elem->rotation_add.y * delta_frame;
-        }
-        rend_elem->rotation.z += rend_elem->rotation_add.z * delta_frame;
+            || particle->data.data.type == PARTICLE_MESH)
+            rend_elem->rotation += rend_elem->rotation_add * delta_frame;
+        else
+            rend_elem->rotation.z += rend_elem->rotation_add.z * delta_frame;
 
         vec2 uv_scroll;
         vec2_mult_scalar(particle->data.data.uv_scroll_add,
@@ -642,7 +638,7 @@ namespace Glitter {
 
         if (!a2 && elements) {
             Free();
-            free(elements);
+            free_def(elements);
         }
     }
     void XRenderGroup::Emit(XParticleInst::Data* ptcl_inst_data,

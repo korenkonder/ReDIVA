@@ -4,8 +4,9 @@
 */
 
 #include "item_table.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../key_val.hpp"
 #include "../sort.hpp"
 #include "../str_utils.hpp"
@@ -85,12 +86,12 @@ void itm_table::read(const char* path) {
 
     char* path_bin = str_utils_add(path, ".txt");
     if (path_check_file_exists(path_bin)) {
-        stream s;
+        file_stream s;
         s.open(path_bin, "rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             itm_table_read_inner(this, s);
     }
-    free(path_bin);
+    free_def(path_bin);
 }
 
 void itm_table::read(const wchar_t* path) {
@@ -99,19 +100,19 @@ void itm_table::read(const wchar_t* path) {
 
     wchar_t* path_bin = str_utils_add(path, L".txt");
     if (path_check_file_exists(path_bin)) {
-        stream s;
+        file_stream s;
         s.open(path_bin, L"rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             itm_table_read_inner(this, s);
     }
-    free(path_bin);
+    free_def(path_bin);
 }
 
 void itm_table::read(const void* data, size_t size) {
     if (!data || !size)
         return;
 
-    stream s;
+    memory_stream s;
     s.open(data, size);
     itm_table_read_inner(this, s);
 }
@@ -121,11 +122,11 @@ void itm_table::write(const char* path) {
         return;
 
     char* path_bin = str_utils_add(path, ".txt");
-    stream s;
+    file_stream s;
     s.open(path_bin, "wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         itm_table_write_inner(this, s);
-    free(path_bin);
+    free_def(path_bin);
 }
 
 void itm_table::write(const wchar_t* path) {
@@ -133,18 +134,18 @@ void itm_table::write(const wchar_t* path) {
         return;
 
     wchar_t* path_bin = str_utils_add(path, L".txt");
-    stream s;
+    file_stream s;
     s.open(path_bin, L"wb");
-    if (s.io.stream)
+    if (s.check_not_null())
         itm_table_write_inner(this, s);
-    free(path_bin);
+    free_def(path_bin);
 }
 
 void itm_table::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     itm_table_write_inner(this, s);
     s.copy(data, size);
@@ -264,7 +265,7 @@ static void itm_table_read_inner(itm_table* itm_tbl, stream& s) {
     void* itm_tbl_data = force_malloc(s.length);
     s.read(itm_tbl_data, s.length);
     itm_table_read_text(itm_tbl, itm_tbl_data, s.length);
-    free(itm_tbl_data);
+    free_def(itm_tbl_data);
 
     itm_tbl->ready = true;
 }
@@ -274,7 +275,7 @@ static void itm_table_write_inner(itm_table* itm_tbl, stream& s) {
     size_t itm_tbl_data_length = 0;
     itm_table_write_text(itm_tbl, &itm_tbl_data, &itm_tbl_data_length);
     s.write(itm_tbl_data, itm_tbl_data_length);
-    free(itm_tbl_data);
+    free_def(itm_tbl_data);
 }
 
 static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
@@ -518,7 +519,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
 }
 
 static void itm_table_write_text(itm_table* itm_tbl, void** data, size_t* size) {
-    stream s;
+    memory_stream s;
     s.open();
 
     key_val_out kv;

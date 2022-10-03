@@ -4,6 +4,7 @@
 */
 
 #include "shader.hpp"
+#include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
@@ -100,7 +101,7 @@ env_update_data(), buffer_update_data(), state_ubo(), state_matrix_ubo(), env_ub
 
 }
 
-int32_t shader::bind(uint32_t sub_index) {
+int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
     int32_t sub_shader_index = 0;
     if (num_sub < 1)
         return -1;
@@ -125,12 +126,12 @@ int32_t shader::bind(uint32_t sub_index) {
         int32_t i = 0;
         for (i = 0; i < num_uniform && i < 16; i++) {
             int32_t unival_max = use_permut[i]
-                ? max(vp_unival_max[i], fp_unival_max[i]) : 0;
-            unival += unival_curr * min(uniform_value[(int32_t)use_uniform[i]], unival_max);
+                ? max_def(vp_unival_max[i], fp_unival_max[i]) : 0;
+            unival += unival_curr * min_def(uniform_value[(int32_t)use_uniform[i]], unival_max);
             unival_curr *= unival_max + 1;
 
-            int32_t unival_max_glsl = max(vp_unival_max[i], fp_unival_max[i]);
-            uniform_val[i] = min(uniform_value[use_uniform[i]], unival_max_glsl);
+            int32_t unival_max_glsl = max_def(vp_unival_max[i], fp_unival_max[i]);
+            uniform_val[i] = min_def(uniform_value[use_uniform[i]], unival_max_glsl);
         }
 
         for (; i < 16; i++)
@@ -260,8 +261,8 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
             }
 
             if (!vert_data || !frag_data) {
-                free(vert_data);
-                free(frag_data);
+                free_def(vert_data);
+                free_def(frag_data);
                 continue;
             }
 
@@ -308,7 +309,7 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
                 const int32_t* fp_unival_max = sub_table->fp_unival_max;
                 for (size_t k = 0; k < num_uniform; k++) {
                     size_t unival_max = shader->use_permut[k]
-                        ? max(vp_unival_max[k], fp_unival_max[k]) : 0;
+                        ? max_def(vp_unival_max[k], fp_unival_max[k]) : 0;
                     unival_count += unival_curr * unival_max;
                     unival_curr *= unival_max + 1;
                 }
@@ -339,16 +340,16 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
                     for (size_t k = 0; k < unival_count; k++) {
                         for (size_t l = 0, m = k; l < num_uniform; l++) {
                             size_t unival_max = (size_t)(shader->use_permut[l]
-                                ? max(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
-                            vec_vert[l] = (uint32_t)(min(m % unival_max, vp_unival_max[l]));
+                                ? max_def(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
+                            vec_vert[l] = (uint32_t)(min_def(m % unival_max, vp_unival_max[l]));
                             m /= unival_max;
                             vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert[l]);
                         }
 
                         for (size_t l = 0, m = k; l < num_uniform; l++) {
                             size_t unival_max = (size_t)(shader->use_permut[l]
-                                ? max(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
-                            vec_frag[l] = (uint32_t)(min(m % unival_max, fp_unival_max[l]));
+                                ? max_def(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
+                            vec_frag[l] = (uint32_t)(min_def(m % unival_max, fp_unival_max[l]));
                             m /= unival_max;
                             frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag[l]);
                         }
@@ -436,7 +437,7 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
                     shader_cache_file = &shader_cache_farc.files.back();
                 }
                 else
-                    free(shader_cache_file->data);
+                    free_def(shader_cache_file->data);
 
                 size_t bin_count = program_data_binary.size();
                 size_t bin_size = sizeof(uint64_t) * 2 + bin_count * sizeof(program_binary);
@@ -459,14 +460,14 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
                     bin_data_base += sizeof(program_binary);
                     bin_data += k.length;
                     void* binary = (void*)k.binary;
-                    free(binary);
+                    free_def(binary);
                     k.binary = 0;
                     bin++;
                 }
             }
 
-            free(vert_data);
-            free(frag_data);
+            free_def(vert_data);
+            free_def(frag_data);
             program_data_binary.clear();
         }
         vec_vert.clear();
@@ -478,9 +479,9 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
                 break;
             }
     }
-    free(binary);
-    free(temp_vert);
-    free(temp_frag);
+    free_def(binary);
+    free_def(temp_vert);
+    free_def(temp_frag);
 
     if (shader_cache_changed)
         shader_cache_farc.write(temp_buf, FARC_COMPRESS_FArC, false);
@@ -514,7 +515,7 @@ void shader_set_data::set(uint32_t index) {
         if (shader->bind_func)
             shader->bind_func(this, shader);
         else
-            shader->bind(shader->sub[0].sub_index);
+            shader->bind(this, shader->sub[0].sub_index);
         gl_state_bind_uniform_buffer_range(0, data.state_ubo, 0, sizeof(data.state));
         gl_state_bind_uniform_buffer_range(1, data.state_matrix_ubo, 0, sizeof(data.state_matrix));
         gl_state_bind_uniform_buffer_range(2, data.env_ubo, 0, sizeof(data.env));
@@ -544,7 +545,7 @@ void shader_set_data::unload() {
                 const int32_t* fp_unival_max = sub->fp_unival_max;
                 for (size_t k = 0; k < num_uniform; k++) {
                     size_t unival_max = shader->use_permut[k]
-                        ? max(vp_unival_max[k], fp_unival_max[k]) : 0;
+                        ? max_def(vp_unival_max[k], fp_unival_max[k]) : 0;
                     unival_count += unival_curr * unival_max;
                     unival_curr *= unival_max + 1;
                 }
@@ -552,17 +553,17 @@ void shader_set_data::unload() {
                 if (sub->program)
                     for (size_t k = 0; k < unival_count; k++)
                         glDeleteProgram(sub->program[k]);
-                free(sub->program);
+                free_def(sub->program);
             }
             else {
                 if (sub->program)
                     glDeleteProgram(sub->program[0]);
-                free(sub->program);
+                free_def(sub->program);
             }
         }
-        free(shader->sub);
+        free_def(shader->sub);
     }
-    free(shaders);
+    free_def(shaders);
 }
 
 void shader_set_data::buffer_get(size_t index, vec4& data) {
@@ -1187,12 +1188,8 @@ void shader_set_data::state_light_set_ambient(size_t index, float_t x, float_t y
     this->data.state.light[index].ambient = data;
     this->data.state_update_data = true;
 
-    vec4 lightprod_front;
-    vec4 lightprod_back;
-    vec4_mult(this->data.state.light[index].ambient,
-        this->data.state.material[0].ambient, lightprod_front);
-    vec4_mult(this->data.state.light[index].ambient,
-        this->data.state.material[1].ambient, lightprod_back);
+    vec4 lightprod_front = this->data.state.light[index].ambient * this->data.state.material[0].ambient;
+    vec4 lightprod_back = this->data.state.light[index].ambient * this->data.state.material[1].ambient;
     state_lightprod_set_ambient(false, index, lightprod_front);
     state_lightprod_set_ambient(true, index, lightprod_back);
 }
@@ -1207,12 +1204,8 @@ void shader_set_data::state_light_set_ambient(size_t index, const vec4& data) {
     this->data.state.light[index].ambient = data;
     this->data.state_update_data = true;
 
-    vec4 lightprod_front;
-    vec4 lightprod_back;
-    vec4_mult(this->data.state.light[index].ambient,
-        this->data.state.material[0].ambient, lightprod_front);
-    vec4_mult(this->data.state.light[index].ambient,
-        this->data.state.material[1].ambient, lightprod_back);
+    vec4 lightprod_front = this->data.state.light[index].ambient * this->data.state.material[0].ambient;
+    vec4 lightprod_back = this->data.state.light[index].ambient * this->data.state.material[1].ambient;
     state_lightprod_set_ambient(false, index, lightprod_front);
     state_lightprod_set_ambient(true, index, lightprod_back);
 }
@@ -1228,12 +1221,8 @@ void shader_set_data::state_light_set_diffuse(size_t index, float_t x, float_t y
     this->data.state.light[index].diffuse = data;
     this->data.state_update_data = true;
 
-    vec4 lightprod_front;
-    vec4 lightprod_back;
-    vec4_mult(this->data.state.light[index].diffuse,
-        this->data.state.material[0].diffuse, lightprod_front);
-    vec4_mult(this->data.state.light[index].diffuse,
-        this->data.state.material[1].diffuse, lightprod_back);
+    vec4 lightprod_front = this->data.state.light[index].diffuse * this->data.state.material[0].diffuse;
+    vec4 lightprod_back = this->data.state.light[index].diffuse * this->data.state.material[1].diffuse;
     state_lightprod_set_diffuse(false, index, lightprod_front);
     state_lightprod_set_diffuse(true, index, lightprod_back);
 }
@@ -1248,12 +1237,8 @@ void shader_set_data::state_light_set_diffuse(size_t index, const vec4& data) {
     this->data.state.light[index].diffuse = data;
     this->data.state_update_data = true;
 
-    vec4 lightprod_front;
-    vec4 lightprod_back;
-    vec4_mult(this->data.state.light[index].diffuse,
-        this->data.state.material[0].diffuse, lightprod_front);
-    vec4_mult(this->data.state.light[index].diffuse,
-        this->data.state.material[1].diffuse, lightprod_back);
+    vec4 lightprod_front = this->data.state.light[index].diffuse * this->data.state.material[0].diffuse;
+    vec4 lightprod_back = this->data.state.light[index].diffuse * this->data.state.material[1].diffuse;
     state_lightprod_set_diffuse(false, index, lightprod_front);
     state_lightprod_set_diffuse(true, index, lightprod_back);
 }
@@ -1269,12 +1254,8 @@ void shader_set_data::state_light_set_specular(size_t index, float_t x, float_t 
     this->data.state.light[index].specular = data;
     this->data.state_update_data = true;
 
-    vec4 lightprod_front;
-    vec4 lightprod_back;
-    vec4_mult(this->data.state.light[index].specular,
-        this->data.state.material[0].specular, lightprod_front);
-    vec4_mult(this->data.state.light[index].specular,
-        this->data.state.material[1].specular, lightprod_back);
+    vec4 lightprod_front = this->data.state.light[index].specular * this->data.state.material[0].diffuse;
+    vec4 lightprod_back = this->data.state.light[index].specular * this->data.state.material[1].diffuse;
     state_lightprod_set_specular(false, index, lightprod_front);
     state_lightprod_set_specular(true, index, lightprod_back);
 }
@@ -1289,12 +1270,8 @@ void shader_set_data::state_light_set_specular(size_t index, const vec4& data) {
     this->data.state.light[index].specular = data;
     this->data.state_update_data = true;
 
-    vec4 lightprod_front;
-    vec4 lightprod_back;
-    vec4_mult(this->data.state.light[index].specular,
-        this->data.state.material[0].specular, lightprod_front);
-    vec4_mult(this->data.state.light[index].specular,
-        this->data.state.material[1].specular, lightprod_back);
+    vec4 lightprod_front = this->data.state.light[index].specular * this->data.state.material[0].diffuse;
+    vec4 lightprod_back = this->data.state.light[index].specular * this->data.state.material[1].diffuse;
     state_lightprod_set_specular(false, index, lightprod_front);
     state_lightprod_set_specular(true, index, lightprod_back);
 }
@@ -1540,9 +1517,8 @@ void shader_set_data::state_material_set_ambient(bool back, float_t x, float_t y
     this->data.state_update_data = true;
 
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4 lightprod;
-        vec4_mult(this->data.state.light[index].ambient,
-            this->data.state.material[back ? 1 : 0].ambient, lightprod);
+        vec4 lightprod = this->data.state.light[index].ambient
+            * this->data.state.material[back ? 1 : 0].ambient;
         state_lightprod_set_ambient(back, index, lightprod);
     }
 }
@@ -1558,9 +1534,8 @@ void shader_set_data::state_material_set_ambient(bool back, const vec4& data) {
     this->data.state_update_data = true;
 
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4 lightprod;
-        vec4_mult(this->data.state.light[index].ambient,
-            this->data.state.material[back ? 1 : 0].ambient, lightprod);
+        vec4 lightprod = this->data.state.light[index].ambient
+            * this->data.state.material[back ? 1 : 0].ambient;
         state_lightprod_set_ambient(back, index, lightprod);
     }
 }
@@ -1575,11 +1550,10 @@ void shader_set_data::state_material_set_diffuse(bool back, float_t x, float_t y
 
     this->data.state.material[back ? 1 : 0].diffuse = data;
     this->data.state_update_data = true;
-    vec4 lightprod;
 
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4_mult(this->data.state.light[index].diffuse,
-            this->data.state.material[back ? 1 : 0].diffuse, lightprod);
+        vec4 lightprod = this->data.state.light[index].diffuse
+            * this->data.state.material[back ? 1 : 0].diffuse;
         state_lightprod_set_diffuse(back, index, lightprod);
     }
 }
@@ -1595,9 +1569,8 @@ void shader_set_data::state_material_set_diffuse(bool back, const vec4& data) {
     this->data.state_update_data = true;
 
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4 lightprod;
-        vec4_mult(this->data.state.light[index].diffuse,
-            this->data.state.material[back ? 1 : 0].diffuse, lightprod);
+        vec4 lightprod = this->data.state.light[index].diffuse
+            * this->data.state.material[back ? 1 : 0].diffuse;
         state_lightprod_set_diffuse(back, index, lightprod);
     }
 }
@@ -1614,9 +1587,8 @@ void shader_set_data::state_material_set_specular(bool back, float_t x, float_t 
     this->data.state_update_data = true;
 
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4 lightprod;
-        vec4_mult(this->data.state.light[index].specular,
-            this->data.state.material[back ? 1 : 0].specular, lightprod);
+        vec4 lightprod = this->data.state.light[index].specular
+            * this->data.state.material[back ? 1 : 0].specular;
         state_lightprod_set_specular(back, index, lightprod);
     }
 }
@@ -1632,9 +1604,8 @@ void shader_set_data::state_material_set_specular(bool back, const vec4& data) {
     this->data.state_update_data = true;
 
     for (int32_t index = 0; index < SHADER_MAX_LIGHTS; index++) {
-        vec4 lightprod;
-        vec4_mult(this->data.state.light[index].specular,
-            this->data.state.material[back ? 1 : 0].specular, lightprod);
+        vec4 lightprod = this->data.state.light[index].specular
+            * this->data.state.material[back ? 1 : 0].specular;
         state_lightprod_set_specular(back, index, lightprod);
     }
 }
@@ -2118,7 +2089,7 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
         printf("file: %s\n", file);
         printf(info_log);
         putchar('\n');
-        free(info_log);
+        free_def(info_log);
         glDeleteShader(shader);
 
 #if defined(CRE_DEV)
@@ -2138,7 +2109,7 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
                 L"%ls\\shader_error\\%hs", temp_buf, file);
             buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
 
-            stream s;
+            file_stream s;
             s.open(buf, L"wb");
             s.write(data, utf8_length(data));
         }
@@ -2173,7 +2144,7 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
         printf("vp: %s; fp: %s\n", vp, fp);
         printf(info_log);
         putchar('\n');
-        free(info_log);
+        free_def(info_log);
         glDeleteProgram(program);
         return 0;
     }
@@ -2211,7 +2182,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
         printf("vp: %s; fp: %s\n", vp, fp);
         printf(info_log);
         putchar('\n');
-        free(info_log);
+        free_def(info_log);
         glDeleteProgram(program);
         return 0;
     }
@@ -2225,7 +2196,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
             if (!glGetError())
                 break;
 
-            free(*binary);
+            free_def(*binary);
             *buffer_size <<= 1;
             *binary = force_malloc(*buffer_size);
         }
@@ -2274,7 +2245,7 @@ static bool shader_parse_define(const char* data, int32_t num_uniform,
         len += len_a + len_b;
 
         if (len + 1 > *temp_size) {
-            free(*temp);
+            free_def(*temp);
             *temp_size = len + 1;
             *temp = force_malloc_s(char, *temp_size);
         }
@@ -2288,7 +2259,7 @@ static bool shader_parse_define(const char* data, int32_t num_uniform,
         return true;
     }
 
-    const int32_t s = min(0x100, num_uniform);
+    const int32_t s = min_def(0x100, num_uniform);
 
     size_t t_len[0x100];
     char t[0x100];
@@ -2310,7 +2281,7 @@ static bool shader_parse_define(const char* data, int32_t num_uniform,
     len += len_a + len_b;
 
     if (len + 1 > *temp_size) {
-        free(*temp);
+        free_def(*temp);
         *temp_size = len + 1;
         *temp = force_malloc_s(char, *temp_size);
     }
@@ -2353,10 +2324,10 @@ static char* shader_parse_include(char* data, farc* f) {
     char** temp_ptr0 = force_malloc_s(char*, count);
     char** temp_ptr1 = force_malloc_s(char*, count);
     if (!temp || !temp_len || !temp_ptr0 || !temp_ptr1) {
-        free(temp);
-        free(temp_len);
-        free(temp_ptr0);
-        free(temp_ptr1);
+        free_def(temp);
+        free_def(temp_len);
+        free_def(temp_ptr0);
+        free_def(temp_ptr1);
         return data;
     }
 
@@ -2381,7 +2352,7 @@ static char* shader_parse_include(char* data, farc* f) {
         t[s] = 0;
 
         farc_file* ff = f->read_file(t);
-        free(t);
+        free_def(t);
         if (!ff)
             continue;
 
@@ -2430,13 +2401,13 @@ static char* shader_parse_include(char* data, farc* f) {
     }
     temp_data[pos] = 0;
 
-    free(data);
+    free_def(data);
     for (size_t i = 0; i < count; i++)
-        free(temp[i]);
-    free(temp);
-    free(temp_len);
-    free(temp_ptr0);
-    free(temp_ptr1);
+        free_def(temp[i]);
+    free_def(temp);
+    free_def(temp_len);
+    free_def(temp_ptr0);
+    free_def(temp_ptr1);
     return temp_data;
 }
 

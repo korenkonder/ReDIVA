@@ -63,8 +63,6 @@ public:
     virtual void Field_A8(int32_t a2, int8_t* a3);
 };
 
-;
-
 struct struc_621 {
     int32_t stage_index;
     std::vector<int32_t> auth_3d_ids;

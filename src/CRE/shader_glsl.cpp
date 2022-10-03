@@ -4,6 +4,7 @@
 */
 
 #include "shader_glsl.hpp"
+#include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "gl_state.hpp"
@@ -73,9 +74,9 @@ void shader_glsl::load(const char* vert, const char* frag,
     GLuint vert_shad = shader_compile(GL_VERTEX_SHADER, vert_data);
     GLuint geom_shad = shader_compile(GL_GEOMETRY_SHADER, geom_data);
 
-    free(frag_data);
-    free(vert_data);
-    free(geom_data);
+    free_def(frag_data);
+    free_def(vert_data);
+    free_def(geom_data);
 
     program = glCreateProgram();
     if (frag_shad)
@@ -91,10 +92,10 @@ void shader_glsl::load(const char* vert, const char* frag,
     if (!success) {
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
-        printf("Program FBO Shader linking error: %s\n", param->name);
+        printf("Program linking error: %s\n", param->name);
         printf(info_log);
         putchar('\n');
-        free(info_log);
+        free_def(info_log);
     }
 
     if (frag_shad)
@@ -113,7 +114,7 @@ void shader_glsl::load_file(const char* vert_path, const char* frag_path,
     uniform.clear();
     uniform_block.clear();
 
-    stream st;
+    file_stream st;
     size_t l;
 
     char* vert = 0;
@@ -121,7 +122,7 @@ void shader_glsl::load_file(const char* vert_path, const char* frag_path,
     char* geom = 0;
 
     st.open(vert_path, "rb");
-    if (st.io.stream) {
+    if (st.check_not_null()) {
         l = st.length;
         vert = force_malloc_s(char, l + 1);
         st.read(vert, l);
@@ -130,7 +131,7 @@ void shader_glsl::load_file(const char* vert_path, const char* frag_path,
     st.close();
 
     st.open(frag_path, "rb");
-    if (st.io.stream) {
+    if (st.check_not_null()) {
         l = st.length;
         frag = force_malloc_s(char, l + 1);
         st.read(frag, l);
@@ -139,7 +140,7 @@ void shader_glsl::load_file(const char* vert_path, const char* frag_path,
     st.close();
 
     st.open(geom_path, "rb");
-    if (st.io.stream) {
+    if (st.check_not_null()) {
         l = st.length;
         geom = force_malloc_s(char, l + 1);
         st.read(geom, l);
@@ -148,8 +149,8 @@ void shader_glsl::load_file(const char* vert_path, const char* frag_path,
     st.close();
 
     load(vert, frag, geom, param);
-    free(vert);
-    free(frag);
+    free_def(vert);
+    free_def(frag);
 }
 
 void shader_glsl::load_file(const wchar_t* vert_path, const wchar_t* frag_path,
@@ -160,7 +161,7 @@ void shader_glsl::load_file(const wchar_t* vert_path, const wchar_t* frag_path,
     uniform.clear();
     uniform_block.clear();
 
-    stream st;
+    file_stream st;
     size_t l;
 
     char* vert = 0;
@@ -168,7 +169,7 @@ void shader_glsl::load_file(const wchar_t* vert_path, const wchar_t* frag_path,
     char* geom = 0;
 
     st.open(vert_path, L"rb");
-    if (st.io.stream) {
+    if (st.check_not_null()) {
         l = st.length;
         vert = force_malloc_s(char, l + 1);
         st.read(vert, l);
@@ -177,7 +178,7 @@ void shader_glsl::load_file(const wchar_t* vert_path, const wchar_t* frag_path,
     st.close();
 
     st.open(frag_path, L"rb");
-    if (st.io.stream) {
+    if (st.check_not_null()) {
         l = st.length;
         frag = force_malloc_s(char, l + 1);
         st.read(frag, l);
@@ -186,7 +187,7 @@ void shader_glsl::load_file(const wchar_t* vert_path, const wchar_t* frag_path,
     st.close();
 
     st.open(geom_path, L"rb");
-    if (st.io.stream) {
+    if (st.check_not_null()) {
         l = st.length;
         geom = force_malloc_s(char, l + 1);
         st.read(geom, l);
@@ -195,8 +196,8 @@ void shader_glsl::load_file(const wchar_t* vert_path, const wchar_t* frag_path,
     st.close();
 
     load(vert, frag, geom, param);
-    free(vert);
-    free(frag);
+    free_def(vert);
+    free_def(frag);
 }
 
 void shader_glsl::set(const char* name, bool value) {
@@ -448,7 +449,7 @@ static GLuint shader_compile(GLenum type, const char* data) {
         printf("Shader compile error: ");
         printf(info_log);
         putchar('\n');
-        free(info_log);
+        free_def(info_log);
     }
     return shader;
 }
@@ -513,7 +514,7 @@ static char* shader_parse(char* data, const char* parse_string, const char* repl
     memcpy(temp_data + pos, replace_string, len_b);
     pos += len_b;
     memcpy(temp_data + pos, def, len_c);
-    free(data);
+    free_def(data);
     return temp_data;
 }
 
@@ -561,6 +562,6 @@ static char* shader_parse_define(char* data, shader_glsl_param* param) {
         pos += temp_len[i];
     }
     memcpy(temp_data + pos, def, len_b);
-    free(data);
+    free_def(data);
     return temp_data;
 }

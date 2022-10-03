@@ -275,7 +275,7 @@ namespace Glitter {
                     bool has_error = false;
                     bool has_error_lerp = false;
                     for (size_t j = 1; j < left_count; j++) {
-                        float_t val = lerp(a[0], a[left_count - 1], (float_t)j / (float_t)left_count);
+                        float_t val = lerp_def(a[0], a[left_count - 1], (float_t)j / (float_t)left_count);
                         if (fabsf(val - a[0]) > reverse_bias[0]) {
                             has_error = true;
                             if (fabsf(val - a[j]) > reverse_bias[1]) {
@@ -312,7 +312,7 @@ namespace Glitter {
                 for (size_t j = 1; j < i - 1; j++) {
                     float_t _t1 = 0.0f;
                     float_t _t2 = 0.0f;
-                    interpolate_chs_reverse_step_value(a, left_count, &_t1, &_t2, 0, i, j, step);
+                    interpolate_chs_reverse_step_value(a, left_count, _t1, _t2, 0, i, j, step);
                     tt1 += _t1;
                     tt2 += _t2;
                 }
@@ -326,7 +326,7 @@ namespace Glitter {
                 for (size_t j = 1; j < i; j++) {
                     float_t val = interpolate_chs_value(a[0], a[i], t1, t2, 0.0f,
                         (float_t)(i * step), (float_t)(j * step));
-                    float_t val_lerp = lerp(a[0], a[i], (float_t)j / (float_t)i);
+                    float_t val_lerp = lerp_def(a[0], a[i], (float_t)j / (float_t)i);
                     if (fabsf(val - a[0]) > reverse_bias[0]) {
                         has_error = true;
                         constant = false;
@@ -342,7 +342,7 @@ namespace Glitter {
                         constant = true;
                 }
 
-                if (fabsf(t1) > 1.0f || fabsf(t2) > 1.0f)
+                if (fabsf(t1) > 0.5f || fabsf(t2) > 0.5f)
                     has_error_hermite = true;
 
                 if (!has_error_hermite) {
@@ -401,8 +401,8 @@ namespace Glitter {
         key.tangent2 = 0.0f;
         key.random_range = arr_b[count - 1];
         keys_rev.push_back(key);
-        free(arr_a);
-        free(arr_b);
+        free_def(arr_a);
+        free_def(arr_b);
 
         Recalculate(GLT_VAL);
     }

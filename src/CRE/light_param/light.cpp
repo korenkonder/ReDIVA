@@ -13,8 +13,8 @@ extern vec4 npr_spec_color;
 static void light_get_direction_from_position(vec4* pos_dir, light_data* light, bool force);
 
 light_data::light_data() : type(), ambient(), diffuse(), specular(), position(),
-spot_direction(), spot_exponent(), spot_cutoff(), constant(), linear(), quadratic(),
-ibl_specular(), ibl_back(), ibl_direction(), tone_curve(),clip_plane() {
+spot_direction(), spot_exponent(), spot_cutoff(), attenuation(),
+ibl_specular(), ibl_back(), ibl_direction(), tone_curve(), clip_plane() {
     set_type(LIGHT_OFF);
     set_ambient({ 0.0f, 0.0, 0.0f, 1.0f });
     set_diffuse({ 1.0f, 1.0, 1.0f, 0.0f });
@@ -207,45 +207,39 @@ void light_data::set_spot_cutoff(float_t value) {
 }
 
 float_t light_data::get_constant() {
-    return constant;
+    return attenuation.constant;
 }
 
 void light_data::set_constant(float_t value) {
-    constant = value;
+    attenuation.constant = value;
 }
 
 float_t light_data::get_linear() {
-    return linear;
+    return attenuation.linear;
 }
 
 void light_data::set_linear(float_t value) {
-    linear = value;
+    attenuation.linear = value;
 }
 
 float_t light_data::get_quadratic() {
-    return quadratic;
+    return attenuation.quadratic;
 }
 
 void light_data::set_quadratic(float_t value) {
-    quadratic = value;
+    attenuation.quadratic = value;
 }
 
-void light_data::get_attenuation(vec3& value) {
-    value.x = constant;
-    value.y = linear;
-    value.z = quadratic;
+void light_data::get_attenuation(light_attenuation& value) {
+    value = attenuation;
 }
 
-void light_data::set_attenuation(const vec3& value) {
-    constant = value.x;
-    linear = value.y;
-    quadratic = value.z;
+void light_data::set_attenuation(const light_attenuation& value) {
+    attenuation = value;
 }
 
-void light_data::set_attenuation(const vec3&& value) {
-    constant = value.x;
-    linear = value.y;
-    quadratic = value.z;
+void light_data::set_attenuation(const light_attenuation&& value) {
+    attenuation = value;
 }
 
 void light_data::get_ibl_specular(vec4& value) {
@@ -284,30 +278,28 @@ void light_data::set_ibl_direction(const vec4&& value) {
     ibl_direction = value;
 }
 
-void light_data::get_tone_curve(vec3& value) {
+void light_data::get_tone_curve(light_tone_curve& value) {
     value = tone_curve;
 }
 
-void light_data::set_tone_curve(const vec3& value) {
+void light_data::set_tone_curve(const light_tone_curve& value) {
     tone_curve = value;
 }
 
-void light_data::set_tone_curve(const vec3&& value) {
+void light_data::set_tone_curve(const light_tone_curve&& value) {
     tone_curve = value;
 }
 
-void light_data::get_clip_plane(bool value[4]) {
-    value[0] = clip_plane[0];
-    value[1] = clip_plane[1];
-    value[2] = clip_plane[2];
-    value[3] = clip_plane[3];
+void light_data::get_clip_plane(light_clip_plane& value) {
+    value = clip_plane;
 }
 
-void light_data::set_clip_plane(const bool value[4]) {
-    clip_plane[0] = value[0];
-    clip_plane[1] = value[1];
-    clip_plane[2] = value[2];
-    clip_plane[3] = value[3];
+void light_data::set_clip_plane(const light_clip_plane& value) {
+    clip_plane = value;
+}
+
+void light_data::set_clip_plane(const light_clip_plane&& value) {
+    clip_plane = value;
 }
 
 void light_set::get_ambient_intensity(vec4& value) {
@@ -364,8 +356,9 @@ void light_set::data_set(face& face, light_set_id id) {
             light_get_direction_from_position(&light_position, 0, true);
         shaders_ft.state_light_set_position(i, light_position);
 
+        light_attenuation attenuation = light->attenuation;
         shaders_ft.state_light_set_attenuation(i,
-            light->constant, light->linear, light->quadratic, light->spot_exponent);
+            attenuation.constant, attenuation.linear, attenuation.quadratic, light->spot_exponent);
 
         vec3 spot_direction = light->spot_direction;
         shaders_ft.state_light_set_spot_direction(i,
@@ -393,21 +386,19 @@ void light_set::data_set(face& face, light_set_id id) {
     shaders_ft.env_vert_set(5, position);
     shaders_ft.env_frag_set(5, position);
 
-    vec4_mult(diffuse, ibl_specular, temp);
+    temp = diffuse * ibl_specular;
     shaders_ft.env_vert_set(6, temp);
     shaders_ft.env_frag_set(6, temp);
 
-    vec4_mult(specular, ibl_specular, temp);
-    vec4_mult_scalar(temp, spec_coef, temp);
+    temp = specular * ibl_specular * spec_coef;
     shaders_ft.env_vert_set(7, temp);
     shaders_ft.env_frag_set(7, temp);
 
-    vec4_mult_scalar(ibl_specular, luce_coef, temp);
+    temp = ibl_specular * luce_coef;
     shaders_ft.env_vert_set(8, temp);
     shaders_ft.env_frag_set(8, temp);
 
-    vec4_mult(specular, ibl_back, temp);
-    vec4_mult_scalar(temp, spec_coef, temp);
+    temp = specular * ibl_back * spec_coef;
     shaders_ft.env_vert_set(9, temp);
     shaders_ft.env_frag_set(9, temp);
 
@@ -420,12 +411,11 @@ void light_set::data_set(face& face, light_set_id id) {
     shaders_ft.env_vert_set(10, position);
     shaders_ft.env_frag_set(14, position);
 
-    vec4_mult(diffuse, ibl_specular, temp);
+    temp = diffuse * ibl_specular;
     shaders_ft.env_vert_set(11, temp);
     shaders_ft.env_frag_set(16, temp);
 
-    vec4_mult(specular, ibl_specular, temp);
-    vec4_mult_scalar(temp, spec_coef, temp);
+    temp = specular * ibl_specular * spec_coef;
     shaders_ft.env_vert_set(12, temp);
     shaders_ft.env_frag_set(17, temp);
 
@@ -439,7 +429,7 @@ void light_set::data_set(face& face, light_set_id id) {
 
     float_t offset = face.get_offset();
     float_t v28 = (float_t)(1.0 - exp(offset * -0.44999999)) * 2.0f;
-    offset = max(offset, 0.0f);
+    offset = max_def(offset, 0.0f);
     shaders_ft.env_vert_set(0x11, v28 * 0.1f, offset * 0.06f, 1.0, 1.0);
 
     if (lights[LIGHT_CHARA_COLOR].get_type() == LIGHT_PARALLEL) {
@@ -466,19 +456,20 @@ void light_set::data_set(face& face, light_set_id id) {
         lights[LIGHT_TONE_CURVE].get_diffuse(diffuse);
         lights[LIGHT_TONE_CURVE].get_specular(specular);
 
-        vec3 tone_curve;
+        light_tone_curve tone_curve;
         lights[LIGHT_TONE_CURVE].get_tone_curve(tone_curve);
-        tone_curve.y = min(tone_curve.y, 1.0f) - tone_curve.x;
-        if (tone_curve.y > 0.0f)
-            tone_curve.y = 1.0f / tone_curve.y;
+        tone_curve.end_point = min_def(tone_curve.end_point, 1.0f) - tone_curve.start_point;
+        if (tone_curve.end_point > 0.0f)
+            tone_curve.end_point = 1.0f / tone_curve.end_point;
         else
-            tone_curve.y = 0.0f;
+            tone_curve.end_point = 0.0f;
 
         shaders_ft.env_frag_set(36, position);
         shaders_ft.env_frag_set(37, ambient);
         shaders_ft.env_frag_set(38, diffuse);
         shaders_ft.env_frag_set(39, specular);
-        shaders_ft.env_frag_set(40, tone_curve.x, tone_curve.y, tone_curve.z, 0.0f);
+        shaders_ft.env_frag_set(40, tone_curve.start_point,
+            tone_curve.end_point, tone_curve.coefficient, 0.0f);
     }
     else {
         uniform_value[U_TONE_CURVE] = 0;
@@ -493,10 +484,9 @@ void light_set::data_set(face& face, light_set_id id) {
     if (fabs(position.x) <= 0.000001f && fabs(position.z) <= 0.000001f && fabs(position.z) <= 0.000001f)
         position = { 0.0f, 1.0f, 0.0f, 1.0f };
     else {
-        float_t length;
-        vec3_length(*(vec3*)&position, length);
+        float_t length = vec3::length(*(vec3*)&position);
         if (length != 0.0f)
-            vec3_mult_scalar(*(vec3*)&position, 1.0f / length, *(vec3*)&position);
+            *(vec3*)&position = *(vec3*)&position * (1.0f / length);
     }
 
     shaders_ft.env_vert_set(15, position.x, position.y, position.z, 1.0f);
@@ -505,11 +495,10 @@ void light_set::data_set(face& face, light_set_id id) {
     if (lights[LIGHT_REFLECT].get_type() == LIGHT_SPOT) {
         vec4 spot_direction;
         lights[LIGHT_REFLECT].get_spot_direction(*(vec3*)&spot_direction);
-        vec3_negate(*(vec3*)&spot_direction, *(vec3*)&spot_direction);
+        *(vec3*)&spot_direction =  -*(vec3*)&spot_direction;
         light_get_direction_from_position(&spot_direction, &lights[LIGHT_REFLECT], true);
         lights[LIGHT_REFLECT].get_position(position);
-        vec3_dot(*(vec3*)&position, *(vec3*)&spot_direction, spot_direction.w);
-        spot_direction.w = -spot_direction.w;
+        spot_direction.w = -vec3::dot(*(vec3*)&position, *(vec3*)&spot_direction);
 
         shaders_ft.env_vert_set(28, spot_direction);
         shaders_ft.env_frag_set(22, spot_direction);
@@ -529,27 +518,22 @@ void light_set::data_set(face& face, light_set_id id) {
     lights[LIGHT_CHARA].get_ibl_direction(ibl_direction);
     lights[LIGHT_CHARA].get_position(position);
 
-    float_t length;
-    vec3_length(*(vec3*)&ibl_direction, length);
+    float_t length = vec3::length(*(vec3*)&ibl_direction);
     if (length >= 0.000001f) {
-        vec3_mult_scalar(*(vec3*)&ibl_direction, 1.0f / length, *(vec3*)&ibl_direction);
+        *(vec3*)&ibl_direction = *(vec3*)&ibl_direction * (1.0f / length);
 
-        vec3_length(*(vec3*)&position, length);
+        length = vec3::length(*(vec3*)&position);
         if (length >= 0.000001f) {
-            vec3_mult_scalar(*(vec3*)&position, 1.0f / length, *(vec3*)&position);
+            *(vec3*)&position = *(vec3*)&position * (1.0f / length);
 
-            vec3 axis;
-            vec3_cross(*(vec3*)&ibl_direction, *(vec3*)&position, axis)
+            vec3 axis = vec3::cross(*(vec3*)&ibl_direction, *(vec3*)&position);
+            length = vec3::length(axis);
 
-            vec3_length(axis, length);
-
-            float_t v52;
-            vec3_dot(*(vec3*)&position, *(vec3*)&ibl_direction, v52);
-
+            float_t v52 = vec3::dot(*(vec3*)&position, *(vec3*)&ibl_direction);
             float_t angle = fabsf(atan2f(length, v52));
             if (angle >= 0.01f && angle <= 3.131592653589793f) {
                 if (length != 0.0f)
-                    vec3_mult_scalar(axis, 1.0f / length, axis);
+                    axis *= 1.0f / length;
 
                 mat4_from_axis_angle(&axis, -angle, &v63);
                 mat4_from_axis_angle(&axis, -angle, &v64);
@@ -566,12 +550,11 @@ void light_set::data_set(face& face, light_set_id id) {
 
 static void light_get_direction_from_position(vec4* pos_dir, light_data* light, bool force) {
     if (force || light->get_type() == LIGHT_PARALLEL) {
-        float_t length;
-        vec3_length(*(vec3*)pos_dir, length);
+        float_t length = vec3::length(*(vec3*)pos_dir);
         if (length <= 0.000001)
             *(vec3*)pos_dir = { 0.0f, 1.0f, 0.0f };
         else
-            vec3_mult_scalar(*(vec3*)pos_dir, 1.0f / length, *(vec3*)pos_dir);
+            *(vec3*)pos_dir = *(vec3*)pos_dir * (1.0f / length);
         pos_dir->w = 0.0f;
     }
 }

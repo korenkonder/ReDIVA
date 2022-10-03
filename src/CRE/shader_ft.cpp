@@ -7,75 +7,78 @@
 #include "gl_state.hpp"
 
 enum shader_ft_sub_enum {
-    SHADER_FT_SUB_SHADER_FFP           = 0x00,
-    SHADER_FT_SUB_BLINN_VERT           = 0x01,
-    SHADER_FT_SUB_BLINN_FRAG           = 0x02,
-    SHADER_FT_SUB_ITEM_BLINN           = 0x03,
-    SHADER_FT_SUB_STAGE_BLINN          = 0x04,
-    SHADER_FT_SUB_SKIN_DEFAULT         = 0x05,
-    SHADER_FT_SUB_SSS_SKIN             = 0x06,
-    SHADER_FT_SUB_SSS_FILTER           = 0x07,
-    SHADER_FT_SUB_HAIR_DEFAULT         = 0x08,
-    SHADER_FT_SUB_HAIR_ANISO           = 0x09,
-    SHADER_FT_SUB_HAIR_NPR1            = 0x0A,
-    SHADER_FT_SUB_CLOTH_DEFAULT        = 0x0B,
-    SHADER_FT_SUB_CLOTH_ANISO          = 0x0C,
-    SHADER_FT_SUB_CLOTH_NPR1           = 0x0D,
-    SHADER_FT_SUB_TIGHTS               = 0x0E,
-    SHADER_FT_SUB_SKY_DEFAULT          = 0x0F,
-    SHADER_FT_SUB_EYE_BALL             = 0x10,
-    SHADER_FT_SUB_EYE_LENS             = 0x11,
-    SHADER_FT_SUB_GLASS_EYE            = 0x12,
-    SHADER_FT_SUB_MEMBRANE             = 0x13,
-    SHADER_FT_SUB_SHADOWMAP            = 0x14,
-    SHADER_FT_SUB_ESM                  = 0x15,
-    SHADER_FT_SUB_ESM_GAUSS            = 0x16,
-    SHADER_FT_SUB_ESM_FILTER           = 0x17,
-    SHADER_FT_SUB_LIT_PROJ             = 0x18,
-    SHADER_FT_SUB_SIMPLE               = 0x19,
-    SHADER_FT_SUB_SILHOUETTE           = 0x1A,
-    SHADER_FT_SUB_LAMBERT              = 0x1B,
-    SHADER_FT_SUB_CONSTANT             = 0x1C,
-    SHADER_FT_SUB_PEEL                 = 0x1D,
-    SHADER_FT_SUB_TONEMAP              = 0x1E,
-    SHADER_FT_SUB_TONEMAP_NPR1         = 0x1F,
-    SHADER_FT_SUB_REDUCE_TEX           = 0x20,
-    SHADER_FT_SUB_MAGNIFY              = 0x21,
-    SHADER_FT_SUB_MLAA                 = 0x22,
-    SHADER_FT_SUB_CONTOUR              = 0x23,
-    SHADER_FT_SUB_EXPOSURE             = 0x24,
-    SHADER_FT_SUB_PP_GAUSS             = 0x25,
-    SHADER_FT_SUB_SUN                  = 0x26,
-    SHADER_FT_SUB_FADE                 = 0x27,
-    SHADER_FT_SUB_WATER01              = 0x28,
-    SHADER_FT_SUB_WATER02              = 0x29,
-    SHADER_FT_SUB_WATER_RING           = 0x2A,
-    SHADER_FT_SUB_WATER_PARTICLE       = 0x2B,
-    SHADER_FT_SUB_SNOW_PARTICLE        = 0x2C,
-    SHADER_FT_SUB_LEAF_PARTICLE        = 0x2D,
-    SHADER_FT_SUB_STAR                 = 0x2E,
-    SHADER_FT_SUB_SNOW_RING            = 0x2F,
-    SHADER_FT_SUB_SNOW_FOOTPRINT       = 0x30,
-    SHADER_FT_SUB_SNOW_TEX_SPACE_LIGHT = 0x31,
-    SHADER_FT_SUB_SNOW_CALC_NORMAL     = 0x32,
-    SHADER_FT_SUB_FLOOR                = 0x33,
-    SHADER_FT_SUB_PUDDLE               = 0x34,
-    SHADER_FT_SUB_SIMPLE_REFLECT       = 0x35,
-    SHADER_FT_SUB_SIMPLE_REFRACT       = 0x36,
-    SHADER_FT_SUB_RIPPLE_EMIT          = 0x37,
-    SHADER_FT_SUB_RAIN                 = 0x38,
-    SHADER_FT_SUB_VOLUME_LIGHT         = 0x39,
-    SHADER_FT_SUB_FENCE_ALPHA          = 0x3A,
-    SHADER_FT_SUB_RIPPLE               = 0x3B,
-    SHADER_FT_SUB_FOG_PTCL             = 0x3C,
-    SHADER_FT_SUB_PARTICLE             = 0x3D,
-    SHADER_FT_SUB_GLITTER_PARTICLE     = 0x3E,
-    SHADER_FT_SUB_SHOW_VECTOR          = 0x3F,
-    SHADER_FT_SUB_FONT                 = 0x40,
-    SHADER_FT_SUB_MOVIE                = 0x41,
-    SHADER_FT_SUB_IMGFILTER            = 0x42,
-    SHADER_FT_SUB_SPRITE               = 0x43,
-    SHADER_FT_SUB_SHADER_END           = 0x44,
+    SHADER_FT_SUB_SHADER_FFP = 0,
+    SHADER_FT_SUB_BLINN_VERT,
+    SHADER_FT_SUB_BLINN_FRAG,
+    SHADER_FT_SUB_ITEM_BLINN,
+    SHADER_FT_SUB_STAGE_BLINN,
+    SHADER_FT_SUB_SKIN_DEFAULT,
+    SHADER_FT_SUB_SSS_SKIN,
+    SHADER_FT_SUB_SSS_FILTER,
+    SHADER_FT_SUB_HAIR_DEFAULT,
+    SHADER_FT_SUB_HAIR_ANISO,
+    SHADER_FT_SUB_HAIR_NPR1,
+    SHADER_FT_SUB_CLOTH_DEFAULT,
+    SHADER_FT_SUB_CLOTH_ANISO,
+    SHADER_FT_SUB_CLOTH_NPR1,
+    SHADER_FT_SUB_TIGHTS,
+    SHADER_FT_SUB_SKY_DEFAULT,
+    SHADER_FT_SUB_EYE_BALL,
+    SHADER_FT_SUB_EYE_LENS,
+    SHADER_FT_SUB_GLASS_EYE,
+    SHADER_FT_SUB_MEMBRANE,
+    SHADER_FT_SUB_SHADOWMAP,
+    SHADER_FT_SUB_ESM,
+    SHADER_FT_SUB_ESM_GAUSS,
+    SHADER_FT_SUB_ESM_FILTER,
+    SHADER_FT_SUB_LIT_PROJ,
+    SHADER_FT_SUB_SIMPLE,
+    SHADER_FT_SUB_SILHOUETTE,
+    SHADER_FT_SUB_LAMBERT,
+    SHADER_FT_SUB_CONSTANT,
+    SHADER_FT_SUB_PEEL,
+    SHADER_FT_SUB_TONEMAP,
+    SHADER_FT_SUB_TONEMAP_NPR1,
+    SHADER_FT_SUB_REDUCE_TEX,
+    SHADER_FT_SUB_MAGNIFY,
+    //SHADER_FT_SUB_MLAA,
+    SHADER_FT_SUB_MLAA_EDGE,
+    SHADER_FT_SUB_MLAA_AREA,
+    SHADER_FT_SUB_MLAA_BLEND,
+    SHADER_FT_SUB_CONTOUR,
+    SHADER_FT_SUB_EXPOSURE,
+    SHADER_FT_SUB_PP_GAUSS,
+    SHADER_FT_SUB_SUN,
+    SHADER_FT_SUB_FADE,
+    SHADER_FT_SUB_WATER01,
+    SHADER_FT_SUB_WATER02,
+    SHADER_FT_SUB_WATER_RING,
+    SHADER_FT_SUB_WATER_PARTICLE,
+    SHADER_FT_SUB_SNOW_PARTICLE,
+    SHADER_FT_SUB_LEAF_PARTICLE,
+    SHADER_FT_SUB_STAR,
+    SHADER_FT_SUB_SNOW_RING,
+    SHADER_FT_SUB_SNOW_FOOTPRINT,
+    SHADER_FT_SUB_SNOW_TEX_SPACE_LIGHT,
+    SHADER_FT_SUB_SNOW_CALC_NORMAL,
+    SHADER_FT_SUB_FLOOR,
+    SHADER_FT_SUB_PUDDLE,
+    SHADER_FT_SUB_SIMPLE_REFLECT,
+    SHADER_FT_SUB_SIMPLE_REFRACT,
+    SHADER_FT_SUB_RIPPLE_EMIT,
+    SHADER_FT_SUB_RAIN,
+    SHADER_FT_SUB_VOLUME_LIGHT,
+    SHADER_FT_SUB_FENCE_ALPHA,
+    SHADER_FT_SUB_RIPPLE,
+    SHADER_FT_SUB_FOG_PTCL,
+    SHADER_FT_SUB_PARTICLE,
+    SHADER_FT_SUB_GLITTER_PARTICLE,
+    SHADER_FT_SUB_SHOW_VECTOR,
+    SHADER_FT_SUB_FONT,
+    SHADER_FT_SUB_MOVIE,
+    SHADER_FT_SUB_IMGFILTER,
+    SHADER_FT_SUB_SPRITE,
+    SHADER_FT_SUB_SHADER_END,
 };
 
 static const int32_t blinn_vert_vpt_unival_max[] = {
@@ -342,12 +345,38 @@ static const int32_t magnify_fpt_unival_max[] = {
     7,
 };
 
-static const int32_t mlaa_vpt_unival_max[] = {
-    0, 0, 2, 0,
+/*static const int32_t mlaa_vpt_unival_max[] = {
+    //0, 0, 2, 0,
+    0, 2, 0, // 1st removed
 };
 
 static const int32_t mlaa_fpt_unival_max[] = {
-    1, 1, 2, 2,
+    //1, 1, 2, 2,
+    1, 2, 2, // 1st removed
+};*/
+
+static const int32_t mlaa_edge_vpt_unival_max[] = {
+    0,
+};
+
+static const int32_t mlaa_edge_fpt_unival_max[] = {
+    1,
+};
+
+static const int32_t mlaa_area_vpt_unival_max[] = {
+    0,
+};
+
+static const int32_t mlaa_area_fpt_unival_max[] = {
+    2,
+};
+
+static const int32_t mlaa_blend_vpt_unival_max[] = {
+    0,
+};
+
+static const int32_t mlaa_blend_fpt_unival_max[] = {
+    1,
 };
 
 static const int32_t contour_vpt_unival_max[] = {
@@ -926,13 +955,43 @@ static const shader_sub_table MAGNIFY_table[] = {
     },
 };
 
-static const shader_sub_table MLAA_table[] = {
+/*static const shader_sub_table MLAA_table[] = {
     {
         SHADER_FT_SUB_MLAA,
         mlaa_vpt_unival_max,
         mlaa_fpt_unival_max,
         "mlaa",
         "mlaa",
+    },
+};*/
+
+static const shader_sub_table MLAA_EDGE_table[] = {
+    {
+        SHADER_FT_SUB_MLAA_EDGE,
+        mlaa_edge_vpt_unival_max,
+        mlaa_edge_fpt_unival_max,
+        "mlaa_edge",
+        "mlaa_edge",
+    },
+};
+
+static const shader_sub_table MLAA_AREA_table[] = {
+    {
+        SHADER_FT_SUB_MLAA_AREA,
+        mlaa_area_vpt_unival_max,
+        mlaa_area_fpt_unival_max,
+        "mlaa_area",
+        "mlaa_area",
+    },
+};
+
+static const shader_sub_table MLAA_BLEND_table[] = {
+    {
+        SHADER_FT_SUB_MLAA_BLEND,
+        mlaa_blend_vpt_unival_max,
+        mlaa_blend_fpt_unival_max,
+        "mlaa_blend",
+        "mlaa_blend",
     },
 };
 
@@ -1524,18 +1583,30 @@ static const uniform_name TONEMAP_uniform[] = {
 
 static const uniform_name REDUCE_uniform[] = {
     U_REDUCE,
-    U01,
+    U_ALPHA_MASK,
 };
 
 static const uniform_name MAGNIFY_uniform[] = {
     U_MAGNIFY,
 };
 
-static const uniform_name MLAA_uniform[] = {
-    U16,
-    U01,
+/*static const uniform_name MLAA_uniform[] = {
+    //U16, // 1st removed
+    U_ALPHA_MASK,
     U_MLAA,
-    U20,
+    U_MLAA_SEARCH,
+};*/
+
+static const uniform_name MLAA_EDGE_uniform[] = {
+    U_ALPHA_MASK,
+};
+
+static const uniform_name MLAA_AREA_uniform[] = {
+    U_MLAA_SEARCH,
+};
+
+static const uniform_name MLAA_BLEND_uniform[] = {
+    U_ALPHA_MASK,
 };
 
 static const uniform_name CONTOUR_uniform[] = {
@@ -1786,8 +1857,8 @@ static const bool SSS_SKIN_permut[] = {
 
 static const bool SSS_FILT_permut[] = {
     true,
-    false,
-    false,
+    true,
+    true,
 };
 
 static const bool HAIR_permut[] = {
@@ -1969,32 +2040,44 @@ static const bool TONEMAP_permut[] = {
 };
 
 static const bool REDUCE_permut[] = {
-    false,
-    false,
+    true,
+    true,
 };
 
 static const bool MAGNIFY_permut[] = {
-    false,
+    true,
 };
 
-static const bool MLAA_permut[] = {
-    false,
-    false,
+/*static const bool MLAA_permut[] = {
+    //true, // 1st removed
     true,
+    true,
+    true,
+};*/
+
+static const bool MLAA_EDGE_permut[] = {
+    true,
+};
+
+static const bool MLAA_AREA_permut[] = {
+    true,
+};
+
+static const bool MLAA_BLEND_permut[] = {
     true,
 };
 
 static const bool CONTOUR_permut[] = {
-    false,
+    true,
     false,
 };
 
 static const bool EXPOSURE_permut[] = {
-    false,
+    true,
 };
 
 static const bool GAUSS_permut[] = {
-    false,
+    true,
 };
 
 static const bool SUN_permut[] = {
@@ -2150,7 +2233,7 @@ static const bool MOVIE_permut[] = {
 };
 
 static const bool IMGFILT_permut[] = {
-    false,
+    true,
 };
 
 static const bool SPRITE_permut[] = {
@@ -2236,7 +2319,10 @@ static const shader_table shader_ft_table[] = {
     shader_table_struct(TONEMAP),
     shader_table_struct(REDUCE),
     shader_table_struct(MAGNIFY),
-    shader_table_struct(MLAA),
+    //shader_table_struct(MLAA),
+    shader_table_struct(MLAA_EDGE),
+    shader_table_struct(MLAA_AREA),
+    shader_table_struct(MLAA_BLEND),
     shader_table_struct(CONTOUR),
     shader_table_struct(EXPOSURE),
     shader_table_struct(GAUSS),
@@ -2356,9 +2442,9 @@ static void glass_eye_calc(glass_eye_struct* glass_eye) {
     float_t v2 = glass_eye->field_28;
     glass_eye->field_64 = glass_eye->field_2C / v2;
     glass_eye->field_90 = glass_eye->field_58;
-    vec3_mult_scalar(glass_eye->field_30, v2, glass_eye->field_68);
-    vec3_mult_scalar(glass_eye->field_3C, v2, glass_eye->field_74);
-    vec3_mult_scalar(glass_eye->field_48, v2, glass_eye->field_80);
+    glass_eye->field_68 = glass_eye->field_30 * v2;
+    glass_eye->field_74 = glass_eye->field_3C * v2;
+    glass_eye->field_80 = glass_eye->field_48 * v2;
     glass_eye->field_8C = glass_eye->field_54 * v2;
     if (glass_eye->field_B0 == 0) {
         glass_eye->field_A0 = vec4_null;
@@ -2386,9 +2472,9 @@ static void glass_eye_calc(glass_eye_struct* glass_eye) {
 
 static void glass_eye_set(glass_eye_struct* glass_eye, shader_set_data* set) {
     vec4 temp;
-    vec3_mult(glass_eye->field_68, glass_eye->field_68, *(vec3*)&temp);
+    *(vec3*)&temp = glass_eye->field_68 * glass_eye->field_68;
     temp.w = temp.z;
-    vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
+    *(vec3*)&temp = vec3::rcp(*(vec3*)&temp);
     set->local_vert_set(0x0A, temp);
     set->local_frag_set(0x0A, temp);
 
@@ -2402,17 +2488,17 @@ static void glass_eye_set(glass_eye_struct* glass_eye, shader_set_data* set) {
     temp = glass_eye->field_A0;
     set->local_vert_set(0x0D, temp);
 
-    vec3_mult(glass_eye->field_90, glass_eye->field_90, *(vec3*)&temp);
+    *(vec3*)&temp = glass_eye->field_90 * glass_eye->field_90;
     temp.w = temp.z;
-    vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
+    *(vec3*)&temp = vec3::rcp(*(vec3*)&temp);
     set->local_vert_set(0x0E, temp);
 
     temp = glass_eye->field_10;
     set->local_vert_set(0x0F, temp);
 
-    vec3_mult(glass_eye->field_68, glass_eye->field_68, *(vec3*)&temp);
+    *(vec3*)&temp = glass_eye->field_68 * glass_eye->field_68;
     temp.w = temp.z;
-    vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
+    *(vec3*)&temp = vec3::rcp(*(vec3*)&temp);
     set->local_vert_set(0x0E, temp);
 
     float_t v2 = (glass_eye->field_20 - glass_eye->field_24) / (glass_eye->field_20 + glass_eye->field_24);
@@ -2425,46 +2511,46 @@ static void glass_eye_set(glass_eye_struct* glass_eye, shader_set_data* set) {
     float_t v4 = (glass_eye->field_24 * glass_eye->field_24) / (glass_eye->field_20 * glass_eye->field_20);
     set->local_frag_set(0x0E, v4, 1.0f - v4, glass_eye->field_24 / glass_eye->field_20, 0.0f);
 
-    vec3_mult(glass_eye->field_74, glass_eye->field_74, *(vec3*)&temp);
+    *(vec3*)&temp = glass_eye->field_74 * glass_eye->field_74;
     temp.w = -1.0f;
-    vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
+    *(vec3*)&temp = vec3::rcp(*(vec3*)&temp);
     set->local_frag_set(0x0F, temp);
 
-    vec3_mult(glass_eye->field_68, glass_eye->field_68, *(vec3*)&temp);
+    *(vec3*)&temp = glass_eye->field_68 * glass_eye->field_68;
     temp.w = -1.0f;
-    vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
+    *(vec3*)&temp = vec3::rcp(*(vec3*)&temp);
     set->local_frag_set(0x10, temp);
 
-    vec3_mult(glass_eye->field_80, glass_eye->field_80, *(vec3*)&temp);
+    *(vec3*)&temp = glass_eye->field_80 * glass_eye->field_80;
     temp.w = -1.0f;
-    vec3_div(vec3_identity, *(vec3*)&temp, *(vec3*)&temp);
+    *(vec3*)&temp = vec3::rcp(*(vec3*)&temp);
     set->local_frag_set(0x11, temp);
 
-    vec2_mult(*(vec2*)&glass_eye->field_0, *(vec2*)&glass_eye->field_74, *(vec2*)&temp);
+    *(vec2*)&temp = *(vec2*)&glass_eye->field_0 * *(vec2*)&glass_eye->field_74;
     temp.z = glass_eye->field_64 * 1.442695f;
     temp.w = glass_eye->field_8C;
-    vec2_div(vec2_identity, *(vec2*)&temp, *(vec2*)&temp);
+    *(vec2*)&temp = vec2::rcp(*(vec2*)&temp);
     set->local_frag_set(0x12, temp);
 }
 
 static void shader_bind_blinn(shader_set_data* set, shader* shad) {
-    shad->bind(uniform_value[U_NORMAL]
+    shad->bind(set, uniform_value[U_NORMAL]
         ? SHADER_FT_SUB_BLINN_FRAG : SHADER_FT_SUB_BLINN_VERT);
 }
 
 static void shader_bind_cloth(shader_set_data* set, shader* shad) {
-    shad->bind(uniform_value[U_NPR] ? SHADER_FT_SUB_CLOTH_NPR1
+    shad->bind(set, uniform_value[U_NPR] ? SHADER_FT_SUB_CLOTH_NPR1
         : (uniform_value[U_ANISO] ? SHADER_FT_SUB_CLOTH_ANISO : SHADER_FT_SUB_CLOTH_DEFAULT));
 }
 
 static void shader_bind_hair(shader_set_data* set, shader* shad) {
-    shad->bind(uniform_value[U_NPR] ? SHADER_FT_SUB_HAIR_NPR1
+    shad->bind(set, uniform_value[U_NPR] ? SHADER_FT_SUB_HAIR_NPR1
         : (uniform_value[U_ANISO] ? SHADER_FT_SUB_HAIR_ANISO : SHADER_FT_SUB_HAIR_DEFAULT));
 }
 
 static void shader_bind_membrane(shader_set_data* set, shader* shad) {
     uniform_value[U_MEMBRANE] = 3;
-    if (shad->bind(SHADER_FT_SUB_MEMBRANE) < 0)
+    if (shad->bind(set, SHADER_FT_SUB_MEMBRANE) < 0)
         return;
 
     /*uint32_t(* sub_140192E00)() = (void*)0x0000000140192E00;
@@ -2481,13 +2567,13 @@ static void shader_bind_membrane(shader_set_data* set, shader* shad) {
 
 static void shader_bind_eye_ball(shader_set_data* set, shader* shad) {
     uniform_value[U18] = 0;
-    if (set->shaders[SHADER_FT_GLASEYE].bind(SHADER_FT_SUB_GLASS_EYE) >= 0) {
+    if (set->shaders[SHADER_FT_GLASEYE].bind(set, SHADER_FT_SUB_GLASS_EYE) >= 0) {
         glass_eye_calc(&glass_eye);
         glass_eye_set(&glass_eye, set);
     }
 }
 
 static void shader_bind_tone_map(shader_set_data* set, shader* shad) {
-    shad->bind(uniform_value[U_NPR] == 1
+    shad->bind(set, uniform_value[U_NPR] == 1
         ? SHADER_FT_SUB_TONEMAP_NPR1 : SHADER_FT_SUB_TONEMAP);
 }

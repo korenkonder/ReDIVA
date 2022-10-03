@@ -10,6 +10,7 @@
 #include "data.hpp"
 #include "gl_state.hpp"
 #include "shader_ft.hpp"
+#include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/json.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/dds.hpp"
@@ -97,7 +98,7 @@ bool obj_mesh_index_buffer::load(obj_mesh& mesh) {
     }
 
     bool ret = load_data((size_t)indices_count * sizeof(uint16_t), indices);
-    free(indices);
+    free_def(indices);
     return ret;
 }
 
@@ -145,54 +146,6 @@ GLsizeiptr obj_mesh_vertex_buffer::get_size() {
 bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
     if (!mesh.num_vertex || !mesh.vertex)
         return false;
-
-    {
-        const vec4 attib_default = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-        obj_vertex_format vertex_format = mesh.vertex_format;
-        obj_vertex_data* vertex_file = mesh.vertex;
-        int32_t num_vertex = mesh.num_vertex;
-        obj_vertex_format _vertex_format = vertex_format;
-        enum_and(_vertex_format, ~(OBJ_VERTEX_TEXCOORD0 | OBJ_VERTEX_TEXCOORD1 | OBJ_VERTEX_TEXCOORD2
-            | OBJ_VERTEX_TEXCOORD3 | OBJ_VERTEX_COLOR0 | OBJ_VERTEX_COLOR1 | OBJ_VERTEX_BONE_DATA | OBJ_VERTEX_UNKNOWN));
-        for (int32_t i = 0; i < num_vertex && _vertex_format != vertex_format; i++) {
-            if (~_vertex_format & OBJ_VERTEX_TEXCOORD0 && vertex_format & OBJ_VERTEX_TEXCOORD0
-                && memcmp(&vertex_file[i].texcoord0, &vec2_null, sizeof(vec2)))
-                enum_or(_vertex_format, OBJ_VERTEX_TEXCOORD0);
-
-            if (~_vertex_format & OBJ_VERTEX_TEXCOORD1 && vertex_format & OBJ_VERTEX_TEXCOORD1
-                && memcmp(&vertex_file[i].texcoord1, &vec2_null, sizeof(vec2)))
-                enum_or(_vertex_format, OBJ_VERTEX_TEXCOORD1);
-
-            if (~_vertex_format & OBJ_VERTEX_TEXCOORD2 && vertex_format & OBJ_VERTEX_TEXCOORD2
-                && memcmp(&vertex_file[i].texcoord2, &vec2_null, sizeof(vec2)))
-                enum_or(_vertex_format, OBJ_VERTEX_TEXCOORD2);
-
-            if (~_vertex_format & OBJ_VERTEX_TEXCOORD3 && vertex_format & OBJ_VERTEX_TEXCOORD3
-                && memcmp(&vertex_file[i].texcoord3, &vec2_null, sizeof(vec2)))
-                enum_or(_vertex_format, OBJ_VERTEX_TEXCOORD3);
-
-            if (~_vertex_format & OBJ_VERTEX_COLOR0 && vertex_format & OBJ_VERTEX_COLOR0
-                && memcmp(&vertex_file[i].color0, &vec4_identity, sizeof(vec4)))
-                enum_or(_vertex_format, OBJ_VERTEX_COLOR0);
-
-            if (~_vertex_format & OBJ_VERTEX_COLOR1 && vertex_format & OBJ_VERTEX_COLOR1
-                && memcmp(&vertex_file[i].color1, &vec4_identity, sizeof(vec4)))
-                enum_or(_vertex_format, OBJ_VERTEX_COLOR1);
-
-            if (~_vertex_format & OBJ_VERTEX_BONE_DATA && vertex_format & OBJ_VERTEX_BONE_DATA
-                && memcmp(&vertex_file[i].bone_index, &vec4i_null, sizeof(vec4i))
-                && memcmp(&vertex_file[i].bone_weight, &vec4_null, sizeof(vec4)))
-                enum_or(_vertex_format, OBJ_VERTEX_BONE_DATA);
-
-            if (~_vertex_format & OBJ_VERTEX_UNKNOWN && vertex_format & OBJ_VERTEX_UNKNOWN
-                && memcmp(&vertex_file[i].unknown, &attib_default, sizeof(vec4)))
-                enum_or(_vertex_format, OBJ_VERTEX_UNKNOWN);
-        }
-
-        if (mesh.vertex_format != _vertex_format)
-            mesh.vertex_format = _vertex_format;
-    }
 
     size_t size_vertex;
     if (!mesh.attrib.m.compressed)
@@ -279,16 +232,14 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
                 }
 
                 if (vertex_format & OBJ_VERTEX_NORMAL) {
-                    vec3 normal;
-                    vec3_mult_scalar(vertex_file[i].normal, 32727.0f, normal);
+                    vec3 normal = vertex_file[i].normal * 32727.0f;
                     vec3_to_vec3i16(normal, *(vec3i16*)d);
                     *(int16_t*)(d + 6) = 0;
                     d += 8;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TANGENT) {
-                    vec4 tangent = vertex_file[i].tangent;
-                    vec4_mult_scalar(tangent, 32727.0f, tangent);
+                    vec4 tangent = vertex_file[i].tangent * 32727.0f;
                     vec4_to_vec4i16(tangent, *(vec4i16*)d);
                     d += 8;
                 }
@@ -320,8 +271,7 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
                 }
 
                 if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-                    vec4 bone_weight = vertex_file[i].bone_weight;
-                    vec4_mult_scalar(bone_weight, 65535.0f, bone_weight);
+                    vec4 bone_weight = vertex_file[i].bone_weight * 65535.0f;
                     vec4_to_vec4u16(bone_weight, *(vec4u16*)d);
                     d += 8;
 
@@ -335,7 +285,7 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
     mesh.size_vertex = (int32_t)size_vertex;
 
     bool ret = load_data(size_vertex * mesh.num_vertex, vertex, mesh.attrib.m.double_buffer ? 2 : 1);
-    free(vertex);
+    free_def(vertex);
     return ret;
 }
 
@@ -426,7 +376,7 @@ index_buffer_num(), index_buffer_data(), load_count(), modern() {
 obj_set_handler::~obj_set_handler() {
     for (uint32_t i = 0; i < tex_num; i++)
         texture_free(tex_data[i]);
-    free(tex_data);
+    free_def(tex_data);
 
     obj_set_handler_index_buffer_free(this);
     obj_set_handler_vertex_buffer_free(this);
@@ -534,7 +484,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
     msgpack msg;
 
-    stream s;
+    file_stream s;
     s.open(buf, "rb");
     io_json_read(s, &msg);
     s.close();
@@ -542,7 +492,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
     if (msg.type != MSGPACK_ARRAY)
         return;
 
-    msgpack_array* ptr = MSGPACK_SELECT(msgpack_array, msg);
+    msgpack_array* ptr = msg.data.arr;
     for (msgpack& i : *ptr) {
         msgpack& object = i;
 
@@ -555,9 +505,9 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             if (name_hash != hash_string_murmurhash(obj.name))
                 continue;
 
-            msgpack* materials = object.read("material");
+            msgpack* materials = object.read_array("material");
             if (materials) {
-                msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, materials);
+                msgpack_array* ptr = materials->data.arr;
                 for (msgpack& j : *ptr) {
                     msgpack& material = j;
 
@@ -594,7 +544,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                         msgpack* _shader_name = material.read("shader_name");
                         if (_shader_name) {
                             std::string shader_name = _shader_name->read_string();
-                            size_t name_length = min(sizeof(mat.shader.name) - 1, shader_name.size());
+                            size_t name_length = min_def(sizeof(mat.shader.name) - 1, shader_name.size());
                             memcpy_s(mat.shader.name, sizeof(mat.shader.name) - 1, shader_name.c_str(), name_length);
                             mat.shader.name[name_length] = 0;
                         }
@@ -669,7 +619,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                                 msgpack* _ex_shader = material.read("ex_shader");
                                 if (_ex_shader) {
                                     std::string shader_name = _ex_shader->read_string();
-                                    size_t name_length = min(sizeof(l.ex_shader) - 1, shader_name.size());
+                                    size_t name_length = min_def(sizeof(l.ex_shader) - 1, shader_name.size());
                                     memcpy_s(l.ex_shader, sizeof(l.ex_shader) - 1, shader_name.c_str(), name_length);
                                     l.ex_shader[name_length] = 0;
                                 }
@@ -678,13 +628,13 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                                 if (weight)
                                     l.weight = weight->read_float_t();
 
-                                msgpack* tex_coord_mat = tex->read("tex_coord_mat");
+                                msgpack* tex_coord_mat = tex->read_array("tex_coord_mat");
                                 if (tex_coord_mat) {
-                                    msgpack_array* tex_coord_mat_ptr = MSGPACK_SELECT_PTR(msgpack_array, tex_coord_mat);
+                                    msgpack_array* tex_coord_mat_ptr = tex_coord_mat->data.arr;
 
                                     {
                                         msgpack& row0 = tex_coord_mat_ptr->data()[0];
-                                        msgpack_array* row0_ptr = MSGPACK_SELECT(msgpack_array, row0);
+                                        msgpack_array* row0_ptr = row0.data.arr;
                                         l.tex_coord_mat.row0.x = row0_ptr->data()[0].read_float_t();
                                         l.tex_coord_mat.row0.y = row0_ptr->data()[1].read_float_t();
                                         l.tex_coord_mat.row0.z = row0_ptr->data()[2].read_float_t();
@@ -693,7 +643,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                                     {
                                         msgpack& row1 = tex_coord_mat_ptr->data()[1];
-                                        msgpack_array* row1_ptr = MSGPACK_SELECT(msgpack_array, row1);
+                                        msgpack_array* row1_ptr = row1.data.arr;
                                         l.tex_coord_mat.row1.x = row1_ptr->data()[0].read_float_t();
                                         l.tex_coord_mat.row1.y = row1_ptr->data()[1].read_float_t();
                                         l.tex_coord_mat.row1.z = row1_ptr->data()[2].read_float_t();
@@ -702,7 +652,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                                     {
                                         msgpack& row2 = tex_coord_mat_ptr->data()[2];
-                                        msgpack_array* row2_ptr = MSGPACK_SELECT(msgpack_array, row2);
+                                        msgpack_array* row2_ptr = row2.data.arr;
                                         l.tex_coord_mat.row2.x = row2_ptr->data()[0].read_float_t();
                                         l.tex_coord_mat.row2.y = row2_ptr->data()[1].read_float_t();
                                         l.tex_coord_mat.row2.z = row2_ptr->data()[2].read_float_t();
@@ -711,7 +661,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                                     {
                                         msgpack& row3 = tex_coord_mat_ptr->data()[3];
-                                        msgpack_array* row3_ptr = MSGPACK_SELECT(msgpack_array, row3);
+                                        msgpack_array* row3_ptr = row3.data.arr;
                                         l.tex_coord_mat.row3.x = row3_ptr->data()[0].read_float_t();
                                         l.tex_coord_mat.row3.y = row3_ptr->data()[1].read_float_t();
                                         l.tex_coord_mat.row3.z = row3_ptr->data()[2].read_float_t();
@@ -719,9 +669,9 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                                     }
                                 }
 
-                                msgpack* reserved = tex->read("reserved");
+                                msgpack* reserved = tex->read_array("reserved");
                                 if (reserved) {
-                                    msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, reserved);
+                                    msgpack_array* ptr = reserved->data.arr;
                                     for (int32_t m = 0; m < 8; m++)
                                         l.reserved[m] = ptr->data()[m].read_uint32_t();
                                 }
@@ -811,9 +761,9 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                         if (bump_depth)
                             mat.radius = bump_depth->read_float_t();
 
-                        msgpack* reserved = material.read("reserved");
+                        msgpack* reserved = material.read_array("reserved");
                         if (reserved) {
-                            msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, reserved);
+                            msgpack_array* ptr = reserved->data.arr;
                             for (int32_t m = 0; m < 15; m++)
                                 mat.reserved[m] = ptr->data()[m].read_uint32_t();
                         }
@@ -822,9 +772,9 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                 }
             }
 
-            msgpack* meshes = object.read("mesh");
+            msgpack* meshes = object.read_array("mesh");
             if (meshes) {
-                msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, meshes);
+                msgpack_array* ptr = meshes->data.arr;
                 for (msgpack& j : *ptr) {
                     msgpack& _mesh = j;
 
@@ -837,8 +787,11 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                         if (name_hash != hash_string_murmurhash(mesh.name))
                             continue;
 
-                        msgpack* sub_meshes = _mesh.read("sub_mesh");
-                        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, sub_meshes);
+                        msgpack* sub_meshes = _mesh.read_array("sub_mesh");
+                        if (!sub_meshes)
+                            continue;
+
+                        msgpack_array* ptr = sub_meshes->data.arr;
                         for (size_t l = 0; l < mesh.num_submesh; l++) {
                             obj_sub_mesh& sub_mesh = mesh.submesh_array[l];
                             msgpack& _sub_mesh = ptr->data()[l];
@@ -884,10 +837,10 @@ void object_material_msgpack_read(const char* path, const char* set_name,
     sprintf_s(buf, sizeof(buf), "%s\\%s\\config_tex.json", path, set_name_buf);
     if (!path_check_file_exists(buf))
         return;
-    
+
     msgpack msg;
 
-    stream s;
+    file_stream s;
     s.open(buf, "rb");
     io_json_read(s, &msg);
     s.close();
@@ -895,10 +848,10 @@ void object_material_msgpack_read(const char* path, const char* set_name,
     if (msg.type != MSGPACK_MAP)
         return;
 
-    msgpack* add = msg.read("Add");
+    msgpack* add = msg.read_array("Add");
     if (add) {
         std::vector<uint32_t> ids;
-        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, add);
+        msgpack_array* ptr = add->data.arr;
         for (msgpack& i : *ptr) {
             std::string name = i.read_string();
             if (!name.size())
@@ -934,8 +887,8 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             do
                 for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
                     txp_mipmap tex_mip;
-                    tex_mip.width = max(d.width >> i, 1);
-                    tex_mip.height = max(d.height >> i, 1);
+                    tex_mip.width = max_def(d.width >> i, 1);
+                    tex_mip.height = max_def(d.height >> i, 1);
                     tex_mip.format = d.format;
 
                     uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
@@ -954,7 +907,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
         if (set->tex_id_num != tex_id_num) {
             uint32_t* tex_id_data = force_malloc_s(uint32_t, tex_id_num);
             memmove(tex_id_data, set->tex_id_data, sizeof(uint32_t) * set->tex_id_num);
-            free(set->tex_id_data);
+            free_def(set->tex_id_data);
 
             memmove(&tex_id_data[set->tex_id_num], ids.data(), sizeof(uint32_t) * (tex_id_num - set->tex_id_num));
 
@@ -965,9 +918,9 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
     }
 
-    msgpack* replace = msg.read("Replace");
+    msgpack* replace = msg.read_array("Replace");
     if (replace) {
-        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, replace);
+        msgpack_array* ptr = replace->data.arr;
         for (msgpack& i : *ptr) {
             std::string name = i.read_string();
             if (!name.size())
@@ -1005,8 +958,8 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             do
                 for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
                     txp_mipmap tex_mip;
-                    tex_mip.width = max(d.width >> i, 1);
-                    tex_mip.height = max(d.height >> i, 1);
+                    tex_mip.width = max_def(d.width >> i, 1);
+                    tex_mip.height = max_def(d.height >> i, 1);
                     tex_mip.format = d.format;
 
                     uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
@@ -1031,290 +984,282 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
     if (!path_check_directory_exists(buf) && !CreateDirectoryA(buf, 0))
         return;
 
-    msgpack_array objects;
-    objects.resize(obj_set->obj_num);
+    msgpack_array objects(obj_set->obj_num);
     for (uint32_t i = 0; i < obj_set->obj_num; i++) {
         obj& obj = obj_set->obj_data[i];
 
         msgpack& object = objects.data()[i];
-        object = msgpack(0, false, 0);
-        object.append(msgpack("name", obj.name));
-        object.append(msgpack("material", true, obj.num_material));
-        object.append(msgpack("mesh", true, obj.num_mesh));
+        object = msgpack(msgpack_map());
+        object.append("name", obj.name);
 
-        msgpack* materials = object.get_by_name("material");
-        msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, materials);
-        for (size_t j = 0; j < obj.num_material; j++) {
-            obj_material& mat = obj.material_array[j].material;
-            msgpack& material = ptr->data()[j];
-            material = msgpack(0, false, 0);
+        msgpack* materials = object.append("material", msgpack_array());
+        if (materials) {
+            msgpack_array* ptr = materials->data.arr;
+            ptr->resize(obj.num_material);
+            for (size_t j = 0; j < obj.num_material; j++) {
+                obj_material& mat = obj.material_array[j].material;
+                msgpack& material = ptr->data()[j];
+                material = msgpack_map();
 
-            {
-                msgpack shader_compo = msgpack("shader_compo", false, 0);
-                shader_compo.append({ "color", (bool)mat.shader_compo.m.color });
-                shader_compo.append({ "color_a", (bool)mat.shader_compo.m.color_a });
-                shader_compo.append({ "color_l1", (bool)mat.shader_compo.m.color_l1 });
-                shader_compo.append({ "color_l1_a", (bool)mat.shader_compo.m.color_l1_a });
-                shader_compo.append({ "color_l2", (bool)mat.shader_compo.m.color_l2 });
-                shader_compo.append({ "color_l2_a", (bool)mat.shader_compo.m.color_l2_a });
-                shader_compo.append({ "transparency", (bool)mat.shader_compo.m.transparency });
-                shader_compo.append({ "specular", (bool)mat.shader_compo.m.specular });
-                shader_compo.append({ "normal_01", (bool)mat.shader_compo.m.normal_01 });
-                shader_compo.append({ "normal_02", (bool)mat.shader_compo.m.normal_02 });
-                shader_compo.append({ "envmap", (bool)mat.shader_compo.m.envmap });
-                shader_compo.append({ "color_l3", (bool)mat.shader_compo.m.color_l3 });
-                shader_compo.append({ "color_l3_a", (bool)mat.shader_compo.m.color_l3_a });
-                shader_compo.append({ "translucency", (bool)mat.shader_compo.m.translucency });
-                shader_compo.append({ "flag_14", (bool)mat.shader_compo.m.flag_14 });
-                shader_compo.append({ "override_ibl", (bool)mat.shader_compo.m.override_ibl });
-                shader_compo.append({ "dummy", mat.shader_compo.m.dummy });
-                material.append(shader_compo);
-            }
+                msgpack* shader_compo = material.append("shader_compo", msgpack_map());
+                if (shader_compo) {
+                    shader_compo->append("color", (bool)mat.shader_compo.m.color);
+                    shader_compo->append("color_a", (bool)mat.shader_compo.m.color_a);
+                    shader_compo->append("color_l1", (bool)mat.shader_compo.m.color_l1);
+                    shader_compo->append("color_l1_a", (bool)mat.shader_compo.m.color_l1_a);
+                    shader_compo->append("color_l2", (bool)mat.shader_compo.m.color_l2);
+                    shader_compo->append("color_l2_a", (bool)mat.shader_compo.m.color_l2_a);
+                    shader_compo->append("transparency", (bool)mat.shader_compo.m.transparency);
+                    shader_compo->append("specular", (bool)mat.shader_compo.m.specular);
+                    shader_compo->append("normal_01", (bool)mat.shader_compo.m.normal_01);
+                    shader_compo->append("normal_02", (bool)mat.shader_compo.m.normal_02);
+                    shader_compo->append("envmap", (bool)mat.shader_compo.m.envmap);
+                    shader_compo->append("color_l3", (bool)mat.shader_compo.m.color_l3);
+                    shader_compo->append("color_l3_a", (bool)mat.shader_compo.m.color_l3_a);
+                    shader_compo->append("translucency", (bool)mat.shader_compo.m.translucency);
+                    shader_compo->append("flag_14", (bool)mat.shader_compo.m.flag_14);
+                    shader_compo->append("override_ibl", (bool)mat.shader_compo.m.override_ibl);
+                    shader_compo->append("dummy", mat.shader_compo.m.dummy);
+                }
 
-            material.append({ "shader_name", mat.shader.name });
+                material.append("shader_name", mat.shader.name);
 
-            {
-                msgpack shader_info = msgpack("shader_info", false, 0);
-                shader_info.append({ "vtx_trans_type", mat.shader_info.m.vtx_trans_type });
-                shader_info.append({ "col_src", mat.shader_info.m.col_src });
-                shader_info.append({ "is_lgt_diffuse", (bool)mat.shader_info.m.is_lgt_diffuse });
-                shader_info.append({ "is_lgt_specular", (bool)mat.shader_info.m.is_lgt_specular });
-                shader_info.append({ "is_lgt_per_pixel",(bool)mat.shader_info.m.is_lgt_per_pixel });
-                shader_info.append({ "is_lgt_double", (bool)mat.shader_info.m.is_lgt_double });
-                shader_info.append({ "bump_map_type", mat.shader_info.m.bump_map_type });
-                shader_info.append({ "fresnel_type", mat.shader_info.m.fresnel_type });
-                shader_info.append({ "line_light", mat.shader_info.m.line_light });
-                shader_info.append({ "recieve_shadow", (bool)mat.shader_info.m.recieve_shadow });
-                shader_info.append({ "cast_shadow", (bool)mat.shader_info.m.cast_shadow });
-                shader_info.append({ "specular_quality", mat.shader_info.m.specular_quality });
-                shader_info.append({ "aniso_direction", mat.shader_info.m.aniso_direction });
-                shader_info.append({ "dummy", mat.shader_info.m.dummy });
-                material.append(shader_info);
-            }
+                msgpack* shader_info = material.append("shader_info", msgpack_map());
+                if (shader_info) {
+                    shader_info->append("vtx_trans_type", mat.shader_info.m.vtx_trans_type);
+                    shader_info->append("col_src", mat.shader_info.m.col_src);
+                    shader_info->append("is_lgt_diffuse", (bool)mat.shader_info.m.is_lgt_diffuse);
+                    shader_info->append("is_lgt_specular", (bool)mat.shader_info.m.is_lgt_specular);
+                    shader_info->append("is_lgt_per_pixel", (bool)mat.shader_info.m.is_lgt_per_pixel);
+                    shader_info->append("is_lgt_double", (bool)mat.shader_info.m.is_lgt_double);
+                    shader_info->append("bump_map_type", mat.shader_info.m.bump_map_type);
+                    shader_info->append("fresnel_type", mat.shader_info.m.fresnel_type);
+                    shader_info->append("line_light", mat.shader_info.m.line_light);
+                    shader_info->append("recieve_shadow", (bool)mat.shader_info.m.recieve_shadow);
+                    shader_info->append("cast_shadow", (bool)mat.shader_info.m.cast_shadow);
+                    shader_info->append("specular_quality", mat.shader_info.m.specular_quality);
+                    shader_info->append("aniso_direction", mat.shader_info.m.aniso_direction);
+                    shader_info->append("dummy", mat.shader_info.m.dummy);
+                }
 
-            {
-                msgpack texdata = msgpack("texdata", false, 0);
-                for (obj_material_texture_data& k : mat.texdata) {
-                    if (!k.tex_index || k.tex_index == -1
-                        || k.tex_index == hash_murmurhash_empty || k.tex_index == hash_murmurhash_null)
-                        continue;
+                msgpack* texdata = material.append("texdata", msgpack_map());
+                if (texdata) {
+                    for (obj_material_texture_data& k : mat.texdata) {
+                        if (!k.tex_index || k.tex_index == -1
+                            || k.tex_index == hash_murmurhash_empty || k.tex_index == hash_murmurhash_null)
+                            continue;
 
-                    sprintf_s(buf, sizeof(buf), "%d", (int32_t)(&k - mat.texdata));
-                    msgpack tex = msgpack(buf, false, 0);
+                        sprintf_s(buf, sizeof(buf), "%d", (int32_t)(&k - mat.texdata));
+                        msgpack& tex = *texdata->append(buf, msgpack_map());
 
-                    {
-                        msgpack attrib = msgpack("attrib", false, 0);
-                        attrib.append({ "repeat_u", (bool)k.attrib.m.repeat_u });
-                        attrib.append({ "repeat_v", (bool)k.attrib.m.repeat_v });
-                        attrib.append({ "mirror_u", (bool)k.attrib.m.mirror_u });
-                        attrib.append({ "mirror_v", (bool)k.attrib.m.mirror_v });
-                        attrib.append({ "ignore_alpha", (bool)k.attrib.m.ignore_alpha });
-                        attrib.append({ "blend", k.attrib.m.blend });
-                        attrib.append({ "alpha_blend", k.attrib.m.alpha_blend });
-                        attrib.append({ "border", (bool)k.attrib.m.border });
-                        attrib.append({ "clamp2edge", (bool)k.attrib.m.clamp2edge });
-                        attrib.append({ "filter", k.attrib.m.filter });
-                        attrib.append({ "mipmap", k.attrib.m.mipmap });
-                        attrib.append({ "mipmap_bias", k.attrib.m.mipmap_bias });
-                        attrib.append({ "flag_29", (bool)k.attrib.m.flag_29 });
-                        attrib.append({ "anisotropic_filter", k.attrib.m.anisotropic_filter });
-                        tex.append(attrib);
-                    }
-
-                    tex.append({ "tex_name", tex_db->get_texture_name(k.tex_index) });
-
-                    {
-                        msgpack shader_info = msgpack("shader_info", false, 0);
-                        shader_info.append({ "tex_type", k.shader_info.m.tex_type });
-                        shader_info.append({ "uv_idx", k.shader_info.m.uv_idx });
-                        shader_info.append({ "texcoord_trans", k.shader_info.m.texcoord_trans });
-                        shader_info.append({ "dummy", k.shader_info.m.dummy });
-                        tex.append(shader_info);
-                    }
-
-                    tex.append({ "ex_shader", k.ex_shader });
-                    tex.append({ "weight", k.weight });
-
-                    {
-                        msgpack tex_coord_mat = msgpack("tex_coord_mat", true, 4);
-                        msgpack_array* tex_coord_mat_ptr = MSGPACK_SELECT(msgpack_array, tex_coord_mat);
-
-                        {
-                            msgpack& row0 = tex_coord_mat_ptr->data()[0];
-                            row0 = msgpack(0, true, 4);
-                            msgpack_array* row0_ptr = MSGPACK_SELECT(msgpack_array, row0);
-                            row0_ptr->data()[0] = { 0, k.tex_coord_mat.row0.x };
-                            row0_ptr->data()[1] = { 0, k.tex_coord_mat.row0.y };
-                            row0_ptr->data()[2] = { 0, k.tex_coord_mat.row0.z };
-                            row0_ptr->data()[3] = { 0, k.tex_coord_mat.row0.w };
+                        msgpack* attrib = tex.append("attrib", msgpack_map());
+                        if (attrib) {
+                            attrib->append("repeat_u", (bool)k.attrib.m.repeat_u);
+                            attrib->append("repeat_v", (bool)k.attrib.m.repeat_v);
+                            attrib->append("mirror_u", (bool)k.attrib.m.mirror_u);
+                            attrib->append("mirror_v", (bool)k.attrib.m.mirror_v);
+                            attrib->append("ignore_alpha", (bool)k.attrib.m.ignore_alpha);
+                            attrib->append("blend", k.attrib.m.blend);
+                            attrib->append("alpha_blend", k.attrib.m.alpha_blend);
+                            attrib->append("border", (bool)k.attrib.m.border);
+                            attrib->append("clamp2edge", (bool)k.attrib.m.clamp2edge);
+                            attrib->append("filter", k.attrib.m.filter);
+                            attrib->append("mipmap", k.attrib.m.mipmap);
+                            attrib->append("mipmap_bias", k.attrib.m.mipmap_bias);
+                            attrib->append("flag_29", (bool)k.attrib.m.flag_29);
+                            attrib->append("anisotropic_filter", k.attrib.m.anisotropic_filter);
                         }
 
-                        {
-                            msgpack& row1 = tex_coord_mat_ptr->data()[1];
-                            row1 = msgpack(0, true, 4);
-                            msgpack_array* row1_ptr = MSGPACK_SELECT(msgpack_array, row1);
-                            row1_ptr->data()[0] = { 0, k.tex_coord_mat.row1.x };
-                            row1_ptr->data()[1] = { 0, k.tex_coord_mat.row1.y };
-                            row1_ptr->data()[2] = { 0, k.tex_coord_mat.row1.z };
-                            row1_ptr->data()[3] = { 0, k.tex_coord_mat.row1.w };
+                        tex.append("tex_name", tex_db->get_texture_name(k.tex_index));
+
+                        msgpack* shader_info = tex.append("shader_info", msgpack_map());
+                        if (shader_info) {
+                            shader_info->append("tex_type", k.shader_info.m.tex_type);
+                            shader_info->append("uv_idx", k.shader_info.m.uv_idx);
+                            shader_info->append("texcoord_trans", k.shader_info.m.texcoord_trans);
+                            shader_info->append("dummy", k.shader_info.m.dummy);
                         }
 
-                        {
-                            msgpack& row2 = tex_coord_mat_ptr->data()[2];
-                            row2 = msgpack(0, true, 4);
-                            msgpack_array* row2_ptr = MSGPACK_SELECT(msgpack_array, row2);
-                            row2_ptr->data()[0] = { 0, k.tex_coord_mat.row2.x };
-                            row2_ptr->data()[1] = { 0, k.tex_coord_mat.row2.y };
-                            row2_ptr->data()[2] = { 0, k.tex_coord_mat.row2.z };
-                            row2_ptr->data()[3] = { 0, k.tex_coord_mat.row2.w };
+                        tex.append("ex_shader", k.ex_shader);
+                        tex.append("weight", k.weight);
+
+                        msgpack* tex_coord_mat = tex.append("tex_coord_mat", msgpack_array());
+                        if (tex_coord_mat) {
+                            msgpack_array* tex_coord_mat_ptr = tex_coord_mat->data.arr;
+                            tex_coord_mat_ptr->resize(4);
+
+                            {
+                                msgpack& row0 = tex_coord_mat_ptr->data()[0];
+                                row0 = msgpack_array();
+                                msgpack_array* row0_ptr = row0.data.arr;
+                                row0_ptr->resize(4);
+                                row0_ptr->data()[0] = k.tex_coord_mat.row0.x;
+                                row0_ptr->data()[1] = k.tex_coord_mat.row0.y;
+                                row0_ptr->data()[2] = k.tex_coord_mat.row0.z;
+                                row0_ptr->data()[3] = k.tex_coord_mat.row0.w;
+                            }
+
+                            {
+                                msgpack& row1 = tex_coord_mat_ptr->data()[1];
+                                row1 = msgpack_array();
+                                msgpack_array* row1_ptr = row1.data.arr;
+                                row1_ptr->resize(4);
+                                row1_ptr->data()[0] = k.tex_coord_mat.row1.x;
+                                row1_ptr->data()[1] = k.tex_coord_mat.row1.y;
+                                row1_ptr->data()[2] = k.tex_coord_mat.row1.z;
+                                row1_ptr->data()[3] = k.tex_coord_mat.row1.w;
+                            }
+
+                            {
+                                msgpack& row2 = tex_coord_mat_ptr->data()[2];
+                                row2 = msgpack_array();
+                                msgpack_array* row2_ptr = row2.data.arr;
+                                row2_ptr->resize(4);
+                                row2_ptr->data()[0] = k.tex_coord_mat.row2.x;
+                                row2_ptr->data()[1] = k.tex_coord_mat.row2.y;
+                                row2_ptr->data()[2] = k.tex_coord_mat.row2.z;
+                                row2_ptr->data()[3] = k.tex_coord_mat.row2.w;
+                            }
+
+                            {
+                                msgpack& row3 = tex_coord_mat_ptr->data()[3];
+                                row3 = msgpack_array();
+                                msgpack_array* row3_ptr = row3.data.arr;
+                                row3_ptr->resize(4);
+                                row3_ptr->data()[0] = k.tex_coord_mat.row3.x;
+                                row3_ptr->data()[1] = k.tex_coord_mat.row3.y;
+                                row3_ptr->data()[2] = k.tex_coord_mat.row3.z;
+                                row3_ptr->data()[3] = k.tex_coord_mat.row3.w;
+                            }
                         }
 
-                        {
-                            msgpack& row3 = tex_coord_mat_ptr->data()[3];
-                            row3 = msgpack(0, true, 4);
-                            msgpack_array* row3_ptr = MSGPACK_SELECT(msgpack_array, row3);
-                            row3_ptr->data()[0] = { 0, k.tex_coord_mat.row3.x };
-                            row3_ptr->data()[1] = { 0, k.tex_coord_mat.row3.y };
-                            row3_ptr->data()[2] = { 0, k.tex_coord_mat.row3.z };
-                            row3_ptr->data()[3] = { 0, k.tex_coord_mat.row3.w };
+                        msgpack* reserved = tex.append("reserved", msgpack_array());
+                        if (reserved) {
+                            msgpack_array* ptr = reserved->data.arr;
+                            ptr->resize(8);
+                            for (int32_t l = 0; l < 8; l++)
+                                ptr->data()[l] = k.reserved[l];
                         }
+                    }
+                }
 
-                        tex.append(tex_coord_mat);
+                msgpack* attrib = material.append("attrib", msgpack_map());
+                if (attrib) {
+                    attrib->append("alpha_texture", (bool)mat.attrib.m.alpha_texture);
+                    attrib->append("alpha_material", (bool)mat.attrib.m.alpha_material);
+                    attrib->append("punch_through", (bool)mat.attrib.m.punch_through);
+                    attrib->append("double_sided", (bool)mat.attrib.m.double_sided);
+                    attrib->append("normal_dir_light", (bool)mat.attrib.m.normal_dir_light);
+                    attrib->append("src_blend_factor", mat.attrib.m.src_blend_factor);
+                    attrib->append("dst_blend_factor", mat.attrib.m.dst_blend_factor);
+                    attrib->append("blend_operation", mat.attrib.m.blend_operation);
+                    attrib->append("zbias", mat.attrib.m.zbias);
+                    attrib->append("no_fog", (bool)mat.attrib.m.no_fog);
+                    attrib->append("translucent_priority", mat.attrib.m.translucent_priority);
+                    attrib->append("has_fog_height", (bool)mat.attrib.m.has_fog_height);
+                    attrib->append("flag_28", (bool)mat.attrib.m.flag_28);
+                    attrib->append("fog_height", (bool)mat.attrib.m.fog_height);
+                    attrib->append("flag_30", (bool)mat.attrib.m.flag_30);
+                    attrib->append("flag_31", (bool)mat.attrib.m.flag_31);
+                }
+
+                msgpack* color = material.append("color", msgpack_map());
+                if (color) {
+                    msgpack* diffuse = color->append("diffuse", msgpack_map());
+                    if (diffuse) {
+                        diffuse->append("r", mat.color.diffuse.x);
+                        diffuse->append("g", mat.color.diffuse.y);
+                        diffuse->append("b", mat.color.diffuse.z);
+                        diffuse->append("a", mat.color.diffuse.w);
                     }
 
-                    {
-                        msgpack reserved = msgpack("reserved", true, 8);
-                        msgpack_array* ptr = MSGPACK_SELECT(msgpack_array, reserved);
-                        for (int32_t l = 0; l < 8; l++)
-                            ptr->data()[l] = { 0, k.reserved[l] };
-                        tex.append(reserved);
+                    msgpack* ambient = color->append("ambient", msgpack_map());
+                    if (ambient) {
+                        ambient->append("r", mat.color.ambient.x);
+                        ambient->append("g", mat.color.ambient.y);
+                        ambient->append("b", mat.color.ambient.z);
+                        ambient->append("a", mat.color.ambient.w);
                     }
 
-                    texdata.append(tex);
+                    msgpack* specular = color->append("specular", msgpack_map());
+                    if (specular) {
+                        specular->append("r", mat.color.specular.x);
+                        specular->append("g", mat.color.specular.y);
+                        specular->append("b", mat.color.specular.z);
+                        specular->append("a", mat.color.specular.w);
+                    }
+
+                    msgpack* emission = color->append("emission", msgpack_map());
+                    if (emission) {
+                        emission->append("r", mat.color.emission.x);
+                        emission->append("g", mat.color.emission.y);
+                        emission->append("b", mat.color.emission.z);
+                        emission->append("a", mat.color.emission.w);
+                    }
+
+                    color->append("shininess", mat.color.shininess);
+                    color->append("intensity", mat.color.intensity);
+
                 }
 
-                material.append(texdata);
-            }
-
-            {
-                msgpack attrib = msgpack("attrib", false, 0);
-                attrib.append({ "alpha_texture", (bool)mat.attrib.m.alpha_texture });
-                attrib.append({ "alpha_material", (bool)mat.attrib.m.alpha_material });
-                attrib.append({ "punch_through", (bool)mat.attrib.m.punch_through });
-                attrib.append({ "double_sided", (bool)mat.attrib.m.double_sided });
-                attrib.append({ "normal_dir_light", (bool)mat.attrib.m.normal_dir_light });
-                attrib.append({ "src_blend_factor", mat.attrib.m.src_blend_factor });
-                attrib.append({ "dst_blend_factor", mat.attrib.m.dst_blend_factor });
-                attrib.append({ "blend_operation", mat.attrib.m.blend_operation });
-                attrib.append({ "zbias", mat.attrib.m.zbias });
-                attrib.append({ "no_fog", (bool)mat.attrib.m.no_fog });
-                attrib.append({ "translucent_priority", mat.attrib.m.translucent_priority });
-                attrib.append({ "has_fog_height", (bool)mat.attrib.m.has_fog_height });
-                attrib.append({ "flag_28", (bool)mat.attrib.m.flag_28 });
-                attrib.append({ "fog_height", (bool)mat.attrib.m.fog_height });
-                attrib.append({ "flag_30", (bool)mat.attrib.m.flag_30 });
-                attrib.append({ "flag_31", (bool)mat.attrib.m.flag_31 });
-                material.append(attrib);
-            }
-
-            {
-                msgpack color = msgpack("color", false, 0);
-
-                {
-                    msgpack diffuse = msgpack("diffuse", false, 0);
-                    diffuse.append({ "r", mat.color.diffuse.x });
-                    diffuse.append({ "g", mat.color.diffuse.y });
-                    diffuse.append({ "b", mat.color.diffuse.z });
-                    diffuse.append({ "a", mat.color.diffuse.w });
-                    color.append(diffuse);
+                msgpack* center = material.append("center", msgpack_map());
+                if (center) {
+                    center->append("x", mat.center.x);
+                    center->append("y", mat.center.y);
+                    center->append("z", mat.center.z);
                 }
 
-                {
-                    msgpack ambient = msgpack("ambient", false, 0);
-                    ambient.append({ "r", mat.color.ambient.x });
-                    ambient.append({ "g", mat.color.ambient.y });
-                    ambient.append({ "b", mat.color.ambient.z });
-                    ambient.append({ "a", mat.color.ambient.w });
-                    color.append(ambient);
+                material.append("radius", mat.radius);
+                material.append("name", mat.name);
+                material.append("bump_depth", mat.bump_depth);
+
+                msgpack* reserved = material.append("reserved", msgpack_array());
+                if (reserved) {
+                    msgpack_array* ptr = reserved->data.arr;
+                    ptr->resize(15);
+                    for (int32_t k = 0; k < 15; k++)
+                        ptr->data()[k] = mat.reserved[k];
                 }
-
-                {
-                    msgpack specular = msgpack("specular", false, 0);
-                    specular.append({ "r", mat.color.specular.x });
-                    specular.append({ "g", mat.color.specular.y });
-                    specular.append({ "b", mat.color.specular.z });
-                    specular.append({ "a", mat.color.specular.w });
-                    color.append(specular);
-                }
-
-                {
-                    msgpack emission = msgpack("emission", false, 0);
-                    emission.append({ "r", mat.color.emission.x });
-                    emission.append({ "g", mat.color.emission.y });
-                    emission.append({ "b", mat.color.emission.z });
-                    emission.append({ "a", mat.color.emission.w });
-                    color.append(emission);
-                }
-
-                color.append({ "shininess", mat.color.shininess });
-                color.append({ "intensity", mat.color.intensity });
-
-                material.append(color);
-            }
-
-            {
-                msgpack center = msgpack("center", false, 0);
-                center.append({ "x", mat.center.x });
-                center.append({ "y", mat.center.y });
-                center.append({ "z", mat.center.z });
-                material.append(center);
-            }
-
-            material.append({ "radius", mat.radius });
-            material.append({ "name", mat.name });
-            material.append({ "bump_depth", mat.bump_depth });
-
-            {
-                msgpack reserved = msgpack("reserved", true, 15);
-                msgpack_array* ptr = MSGPACK_SELECT(msgpack_array, reserved);
-                for (int32_t k = 0; k < 15; k++)
-                    ptr->data()[k] = { 0, mat.reserved[k] };
-                material.append(reserved);
             }
         }
 
-        msgpack* meshes = object.get_by_name("mesh");
-        ptr = MSGPACK_SELECT_PTR(msgpack_array, meshes);
-        for (size_t j = 0; j < obj.num_mesh; j++) {
-            obj_mesh& mesh = obj.mesh_array[j];
-            msgpack& _mesh = ptr->data()[j];
-            _mesh = msgpack(0, false, 0);
+        msgpack* meshes = object.append("mesh", msgpack_array());
+        if (meshes) {
+            msgpack_array* ptr = meshes->data.arr;
+            ptr->resize(obj.num_mesh);
+            for (size_t j = 0; j < obj.num_mesh; j++) {
+                obj_mesh& mesh = obj.mesh_array[j];
+                msgpack& _mesh = ptr->data()[j];
+                _mesh = msgpack_map();
 
-            _mesh.append(msgpack("name", mesh.name));
-            _mesh.append(msgpack("sub_mesh", true, mesh.num_submesh));
+                _mesh.append("name", mesh.name);
 
-            msgpack* sub_meshes = _mesh.get_by_name("sub_mesh");
-            msgpack_array* ptr = MSGPACK_SELECT_PTR(msgpack_array, sub_meshes);
-            for (size_t k = 0; k < mesh.num_submesh; k++) {
-                obj_sub_mesh& sub_mesh = mesh.submesh_array[k];
-                msgpack& _sub_mesh = ptr->data()[k];
-                _sub_mesh = msgpack(0, false, 0);
+                msgpack* sub_meshes = _mesh.append("sub_mesh", msgpack_array());
+                if (sub_meshes) {
+                    msgpack_array* ptr = sub_meshes->data.arr;
+                    ptr->resize(mesh.num_submesh);
+                    for (size_t k = 0; k < mesh.num_submesh; k++) {
+                        obj_sub_mesh& sub_mesh = mesh.submesh_array[k];
+                        msgpack& _sub_mesh = ptr->data()[k];
+                        _sub_mesh = msgpack_map();
 
-                {
-                    msgpack attrib = msgpack("attrib", false, 0);
-                    attrib.append({ "recieve_shadow", (bool)sub_mesh.attrib.m.recieve_shadow });
-                    attrib.append({ "cast_shadow", (bool)sub_mesh.attrib.m.cast_shadow });
-                    _sub_mesh.append(attrib);
+                        {
+                            msgpack attrib = msgpack_map();
+                            attrib.append("recieve_shadow", (bool)sub_mesh.attrib.m.recieve_shadow);
+                            attrib.append("cast_shadow", (bool)sub_mesh.attrib.m.cast_shadow);
+                            _sub_mesh.append("attrib", attrib);
+                        }
+                    }
                 }
             }
         }
     }
 
-    msgpack msg = msgpack(0, true, objects);
+    msgpack msg = objects;
 
     sprintf_s(buf, sizeof(buf), "%s\\%s\\config.json", path, set_name);
 
-    stream s;
+    file_stream s;
     s.open(buf, "wb");
     io_json_write(s, &msg);
     s.close();
@@ -1338,7 +1283,7 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
         uint32_t index = 0;
         do
             for (uint32_t j = 0; j < tex.mipmaps_count; j++) {
-                uint32_t size = txp::get_size(format, max(width >> j, 1), max(height >> j, 1));
+                uint32_t size = txp::get_size(format, max_def(width >> j, 1), max_def(height >> j, 1));
                 void* data = force_malloc(size);
                 memcpy(data, tex.mipmaps[index].data.data(), size);
                 d.data.push_back(data);
@@ -2048,7 +1993,7 @@ inline void object_storage_unload_set(object_database* obj_db, const char* name)
     int32_t tex_num = handler->tex_num;
     for (int32_t i = 0; i < tex_num; i++)
         texture_free(tex_data[i]);
-    free(tex_data);
+    free_def(tex_data);
     handler->tex_data = 0;
     handler->tex_num = 0;
 
@@ -2080,7 +2025,7 @@ inline void object_storage_unload_set(uint32_t set_id) {
     int32_t tex_num = handler->tex_num;
     for (int32_t i = 0; i < tex_num; i++)
         texture_free(tex_data[i]);
-    free(tex_data);
+    free_def(tex_data);
     handler->tex_data = 0;
     handler->tex_num = 0;
 
@@ -2128,21 +2073,18 @@ static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* hand
                             continue;
 
                         vec3 pos = vertex[indices[l]].position;
-                        vec3_min(_min, pos, _min);
-                        vec3_max(_max, pos, _max);
+                        _min = vec3::min(_min, pos);
+                        _max = vec3::max(_max, pos);
                     }
                 else
                     for (uint32_t l = 0; l < indices_count; l++) {
                         vec3 pos = vertex[indices[l]].position;
-                        vec3_min(_min, pos, _min);
-                        vec3_max(_max, pos, _max);
+                        _min = vec3::min(_min, pos);
+                        _max = vec3::max(_max, pos);
                     }
 
-                vec3 center;
-                vec3 size;
-                vec3_add(_max, _min, center);
-                vec3_mult_scalar(center, 0.5f, center);
-                vec3_sub(_max, center, size);
+                vec3 center = (_max + _min) * 0.5f;
+                vec3 size = _max - center;
                 sub_mesh.axis_aligned_bounding_box.center = center;
                 sub_mesh.axis_aligned_bounding_box.size = size;
             }
@@ -2320,7 +2262,7 @@ inline static void obj_skin_block_node_load(obj_skin_block_node* node,
 }
 
 inline static void obj_skin_block_node_free(obj_skin_block_node* node) {
-    free(node->parent_name);
+    free_def(node->parent_name);
 }
 
 inline static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format) {

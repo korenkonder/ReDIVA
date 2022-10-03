@@ -76,7 +76,7 @@ namespace Glitter {
                 continue;
 
             EffectInst* eff = i.ptr;
-            
+
             bool v13 = false;
             bool v14 = false;
             if (v14)
@@ -259,7 +259,7 @@ namespace Glitter {
                 return false;
         return true;
     }
-    
+
     bool Scene::HasEnded(size_t id, bool a3) {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp && i.ptr->id == id && !i.ptr->HasEnded(a3))
@@ -320,7 +320,7 @@ namespace Glitter {
             return false;
         }
 #endif
-        
+
         if (type == Glitter::FT && effect_hash == hash_fnv1a64m_empty
             || type != Glitter::FT && effect_hash == hash_murmurhash_empty) {
             for (SceneEffect& i : effects)

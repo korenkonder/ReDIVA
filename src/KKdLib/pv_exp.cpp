@@ -5,8 +5,9 @@
 
 #include "pv_exp.hpp"
 #include "f2/struct.hpp"
+#include "io/file_stream.hpp"
+#include "io/memory_stream.hpp"
 #include "io/path.hpp"
-#include "io/stream.hpp"
 #include "str_utils.hpp"
 
 static void pv_exp_classic_read_inner(pv_exp* exp, stream& s);
@@ -30,7 +31,7 @@ pv_exp_mot::~pv_exp_mot() {
     }
 }
 
-pv_exp::pv_exp() : ready(), modern(), is_x() {
+pv_exp::pv_exp() : ready(), modern(), big_endian(), is_x() {
 
 }
 
@@ -45,18 +46,18 @@ void pv_exp::read(const char* path, bool modern) {
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
         if (path_check_file_exists(path_bin)) {
-            stream s;
+            file_stream s;
             s.open(path_bin, "rb");
-            if (s.io.stream) {
+            if (s.check_not_null()) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 s.read(data, s.length);
-                stream s_bin;
+                memory_stream s_bin;
                 s_bin.open(data, s.length);
                 pv_exp_classic_read_inner(this, s_bin);
-                free(data);
+                free_def(data);
             }
         }
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         char* path_dex = str_utils_add(path, ".dex");
@@ -64,13 +65,13 @@ void pv_exp::read(const char* path, bool modern) {
             f2_struct st;
             st.read(path_dex);
             if (st.header.signature == reverse_endianness_uint32_t('EXPC')) {
-                stream s_expc;
+                memory_stream s_expc;
                 s_expc.open(st.data);
-                s_expc.is_big_endian = st.header.use_big_endian;
+                s_expc.big_endian = st.header.use_big_endian;
                 pv_exp_modern_read_inner(this, s_expc, st.header.length);
             }
         }
-        free(path_dex);
+        free_def(path_dex);
     }
 }
 
@@ -81,18 +82,18 @@ void pv_exp::read(const wchar_t* path, bool modern) {
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
         if (path_check_file_exists(path_bin)) {
-            stream s;
+            file_stream s;
             s.open(path_bin, L"rb");
-            if (s.io.stream) {
+            if (s.check_not_null()) {
                 uint8_t* data = force_malloc_s(uint8_t, s.length);
                 s.read(data, s.length);
-                stream s_bin;
+                memory_stream s_bin;
                 s_bin.open(data, s.length);
                 pv_exp_classic_read_inner(this, s_bin);
-                free(data);
+                free_def(data);
             }
         }
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         wchar_t* path_dex = str_utils_add(path, L".dex");
@@ -100,13 +101,13 @@ void pv_exp::read(const wchar_t* path, bool modern) {
             f2_struct st;
             st.read(path_dex);
             if (st.header.signature == reverse_endianness_uint32_t('EXPC')) {
-                stream s_expc;
+                memory_stream s_expc;
                 s_expc.open(st.data);
-                s_expc.is_big_endian = st.header.use_big_endian;
+                s_expc.big_endian = st.header.use_big_endian;
                 pv_exp_modern_read_inner(this, s_expc, st.header.length);
             }
         }
-        free(path_dex);
+        free_def(path_dex);
     }
 }
 
@@ -115,7 +116,7 @@ void pv_exp::read(const void* data, size_t size, bool modern) {
         return;
 
     if (!modern) {
-        stream s;
+        memory_stream s;
         s.open(data, size);
         pv_exp_classic_read_inner(this, s);
     }
@@ -123,9 +124,9 @@ void pv_exp::read(const void* data, size_t size, bool modern) {
         f2_struct st;
         st.read(data, size);
         if (st.header.signature == reverse_endianness_uint32_t('EXPC')) {
-            stream s_expc;
+            memory_stream s_expc;
             s_expc.open(st.data);
-            s_expc.is_big_endian = st.header.use_big_endian;
+            s_expc.big_endian = st.header.use_big_endian;
             pv_exp_modern_read_inner(this, s_expc, st.header.length);
         }
     }
@@ -137,19 +138,19 @@ void pv_exp::write(const char* path) {
 
     if (!modern) {
         char* path_bin = str_utils_add(path, ".bin");
-        stream s;
+        file_stream s;
         s.open(path_bin, "wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             pv_exp_classic_write_inner(this, s);
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         char* path_dex = str_utils_add(path, ".dex");
-        stream s;
+        file_stream s;
         s.open(path_dex, "wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             pv_exp_modern_write_inner(this, s);
-        free(path_dex);
+        free_def(path_dex);
     }
 }
 
@@ -159,19 +160,19 @@ void pv_exp::write(const wchar_t* path) {
 
     if (!modern) {
         wchar_t* path_bin = str_utils_add(path, L".bin");
-        stream s;
+        file_stream s;
         s.open(path_bin, L"wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             pv_exp_classic_write_inner(this, s);
-        free(path_bin);
+        free_def(path_bin);
     }
     else {
         wchar_t* path_dex = str_utils_add(path, L".dex");
-        stream s;
+        file_stream s;
         s.open(path_dex, L"wb");
-        if (s.io.stream)
+        if (s.check_not_null())
             pv_exp_modern_write_inner(this, s);
-        free(path_dex);
+        free_def(path_dex);
     }
 }
 
@@ -179,7 +180,7 @@ void pv_exp::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     if (!modern)
         pv_exp_classic_write_inner(this, s);
@@ -208,6 +209,7 @@ static void pv_exp_classic_read_inner(pv_exp* exp, stream& s) {
     if (s.read_uint32_t() != 0x64) {
         exp->ready = false;
         exp->modern = false;
+        exp->big_endian = false;
         exp->is_x = false;
         return;
     }
@@ -247,8 +249,15 @@ static void pv_exp_classic_read_inner(pv_exp* exp, stream& s) {
             s.position_pop();
 
             i.face_data = new pv_exp_data[face_count];
+            pv_exp_data* face_data = i.face_data;
             s.position_push(face_offset[&i - exp->motion_data.data()], SEEK_SET);
-            s.read(i.face_data, sizeof(pv_exp_data) * face_count);
+            for (size_t j = face_count; j; j--, face_data++) {
+                face_data->frame = s.read_float_t();
+                face_data->type = s.read_int16_t();
+                face_data->id = s.read_int16_t();
+                face_data->value = s.read_float_t();
+                face_data->trans = s.read_float_t();
+            }
             s.position_pop();
         }
 
@@ -264,8 +273,15 @@ static void pv_exp_classic_read_inner(pv_exp* exp, stream& s) {
             s.position_pop();
 
             i.face_cl_data = new pv_exp_data[face_cl_count];
+            pv_exp_data* face_cl_data = i.face_cl_data;
             s.position_push(face_cl_offset[&i - exp->motion_data.data()], SEEK_SET);
-            s.read(i.face_cl_data, sizeof(pv_exp_data) * face_cl_count);
+            for (size_t j = face_cl_count; j; j--, face_cl_data++) {
+                face_cl_data->frame = s.read_float_t();
+                face_cl_data->type = s.read_int16_t();
+                face_cl_data->id = s.read_int16_t();
+                face_cl_data->value = s.read_float_t();
+                face_cl_data->trans = s.read_float_t();
+            }
             s.position_pop();
         }
 
@@ -273,12 +289,13 @@ static void pv_exp_classic_read_inner(pv_exp* exp, stream& s) {
             i.name = s.read_string_null_terminated_offset(name_offset[&i - exp->motion_data.data()]);
     }
 
-    free(face_offset);
-    free(face_cl_offset);
-    free(name_offset);
+    free_def(face_offset);
+    free_def(face_cl_offset);
+    free_def(name_offset);
 
     exp->ready = true;
     exp->modern = false;
+    exp->big_endian = false;
     exp->is_x = false;
 }
 
@@ -308,12 +325,16 @@ static void pv_exp_classic_write_inner(pv_exp* exp, stream& s) {
         face_offset[&i - exp->motion_data.data()] = s.get_position();
 
         pv_exp_data* face_data = i.face_data;
-        while (face_data->type != -1) {
+        while (true) {
             s.write_float_t(face_data->frame);
             s.write_int16_t(face_data->type);
             s.write_int16_t(face_data->id);
             s.write_float_t(face_data->value);
             s.write_float_t(face_data->trans);
+
+            if (face_data->type == -1)
+                break;
+
             face_data++;
         }
         s.align_write(0x20);
@@ -321,12 +342,16 @@ static void pv_exp_classic_write_inner(pv_exp* exp, stream& s) {
         face_cl_offset[&i - exp->motion_data.data()] = s.get_position();
 
         pv_exp_data* face_cl_data = i.face_cl_data;
-        while (face_cl_data->type != -1) {
+        while (true) {
             s.write_float_t(face_cl_data->frame);
             s.write_int16_t(face_cl_data->type);
             s.write_int16_t(face_cl_data->id);
             s.write_float_t(face_cl_data->value);
             s.write_float_t(face_cl_data->trans);
+
+            if (face_cl_data->type == -1)
+                break;
+
             face_cl_data++;
         }
         s.align_write(0x20);
@@ -348,9 +373,9 @@ static void pv_exp_classic_write_inner(pv_exp* exp, stream& s) {
     for (pv_exp_mot& i : exp->motion_data)
         s.write_uint32_t((uint32_t)name_offset[&i - exp->motion_data.data()]);
 
-    free(face_offset);
-    free(face_cl_offset);
-    free(name_offset);
+    free_def(face_offset);
+    free_def(face_cl_offset);
+    free_def(name_offset);
     s.position_pop();
 
     s.write_uint32_t((uint32_t)name_offsets_offset);
@@ -360,10 +385,12 @@ static void pv_exp_modern_read_inner(pv_exp* exp, stream& s, uint32_t header_len
     if (s.read_uint32_t() != 0x64) {
         exp->ready = false;
         exp->modern = false;
+        exp->big_endian = false;
         exp->is_x = false;
         return;
     }
 
+    bool big_endian = s.big_endian;
     bool is_x = false;
 
     exp->motion_data.resize(0);
@@ -415,8 +442,15 @@ static void pv_exp_modern_read_inner(pv_exp* exp, stream& s, uint32_t header_len
             s.position_pop();
 
             i.face_data = new pv_exp_data[face_count];
+            pv_exp_data* face_data = i.face_data;
             s.position_push(face_offset[&i - exp->motion_data.data()], SEEK_SET);
-            s.read(i.face_data, sizeof(pv_exp_data) * face_count);
+            for (size_t j = face_count; j; j--, face_data++) {
+                face_data->frame = s.read_float_t_reverse_endianness();
+                face_data->type = s.read_int16_t_reverse_endianness();
+                face_data->id = s.read_int16_t_reverse_endianness();
+                face_data->value = s.read_float_t_reverse_endianness();
+                face_data->trans = s.read_float_t_reverse_endianness();
+            }
             s.position_pop();
         }
 
@@ -432,8 +466,15 @@ static void pv_exp_modern_read_inner(pv_exp* exp, stream& s, uint32_t header_len
             s.position_pop();
 
             i.face_cl_data = new pv_exp_data[face_cl_count];
+            pv_exp_data* face_cl_data = i.face_cl_data;
             s.position_push(face_cl_offset[&i - exp->motion_data.data()], SEEK_SET);
-            s.read(i.face_cl_data, sizeof(pv_exp_data) * face_cl_count);
+            for (size_t j = face_cl_count; j; j--, face_cl_data++) {
+                face_cl_data->frame = s.read_float_t_reverse_endianness();
+                face_cl_data->type = s.read_int16_t_reverse_endianness();
+                face_cl_data->id = s.read_int16_t_reverse_endianness();
+                face_cl_data->value = s.read_float_t_reverse_endianness();
+                face_cl_data->trans = s.read_float_t_reverse_endianness();
+            }
             s.position_pop();
         }
 
@@ -441,23 +482,26 @@ static void pv_exp_modern_read_inner(pv_exp* exp, stream& s, uint32_t header_len
             i.name = s.read_string_null_terminated_offset(name_offset[&i - exp->motion_data.data()]);
     }
 
-    free(face_offset);
-    free(face_cl_offset);
-    free(name_offset);
+    free_def(face_offset);
+    free_def(face_cl_offset);
+    free_def(name_offset);
 
     exp->ready = true;
     exp->modern = true;
+    exp->big_endian = big_endian;
     exp->is_x = is_x;
 }
 
 static void pv_exp_modern_write_inner(pv_exp* exp, stream& s) {
-    stream s_expc;
-    s_expc.open();
-
+    bool big_endian = exp->big_endian;
     bool is_x = exp->is_x;
 
-    s_expc.write_uint32_t(0x64);
-    s_expc.write_int32_t((int32_t)exp->motion_data.size());
+    memory_stream s_expc;
+    s_expc.open();
+    s_expc.big_endian = big_endian;
+
+    s_expc.write_uint32_t_reverse_endianness(0x64);
+    s_expc.write_int32_t_reverse_endianness((int32_t)exp->motion_data.size());
     s_expc.write_offset(is_x ? 0x28 : 0x20, 0x20, is_x);
 
     s_expc.position_push(s_expc.get_position(), SEEK_SET);
@@ -488,12 +532,16 @@ static void pv_exp_modern_write_inner(pv_exp* exp, stream& s) {
         face_offset[&i - exp->motion_data.data()] = s_expc.get_position();
 
         pv_exp_data* face_data = i.face_data;
-        while (face_data->type != -1) {
-            s_expc.write_float_t(face_data->frame);
-            s_expc.write_int16_t(face_data->type);
-            s_expc.write_int16_t(face_data->id);
-            s_expc.write_float_t(face_data->value);
-            s_expc.write_float_t(face_data->trans);
+        while (true) {
+            s_expc.write_float_t_reverse_endianness(face_data->frame);
+            s_expc.write_int16_t_reverse_endianness(face_data->type);
+            s_expc.write_int16_t_reverse_endianness(face_data->id);
+            s_expc.write_float_t_reverse_endianness(face_data->value);
+            s_expc.write_float_t_reverse_endianness(face_data->trans);
+
+            if (face_data->type == -1)
+                break;
+
             face_data++;
         }
         s_expc.align_write(0x20);
@@ -501,12 +549,16 @@ static void pv_exp_modern_write_inner(pv_exp* exp, stream& s) {
         face_cl_offset[&i - exp->motion_data.data()] = s_expc.get_position();
 
         pv_exp_data* face_cl_data = i.face_cl_data;
-        while (face_cl_data->type != -1) {
-            s_expc.write_float_t(face_cl_data->frame);
-            s_expc.write_int16_t(face_cl_data->type);
-            s_expc.write_int16_t(face_cl_data->id);
-            s_expc.write_float_t(face_cl_data->value);
-            s_expc.write_float_t(face_cl_data->trans);
+        while (true) {
+            s_expc.write_float_t_reverse_endianness(face_cl_data->frame);
+            s_expc.write_int16_t_reverse_endianness(face_cl_data->type);
+            s_expc.write_int16_t_reverse_endianness(face_cl_data->id);
+            s_expc.write_float_t_reverse_endianness(face_cl_data->value);
+            s_expc.write_float_t_reverse_endianness(face_cl_data->trans);
+
+            if (face_cl_data->type == -1)
+                break;
+
             face_cl_data++;
         }
         s_expc.align_write(0x20);
@@ -538,9 +590,9 @@ static void pv_exp_modern_write_inner(pv_exp* exp, stream& s) {
         for (pv_exp_mot& i : exp->motion_data)
             s_expc.write_offset_x(name_offset[&i - exp->motion_data.data()]);
 
-    free(face_offset);
-    free(face_cl_offset);
-    free(name_offset);
+    free_def(face_offset);
+    free_def(face_cl_offset);
+    free_def(name_offset);
 
     s_expc.position_pop();
 
@@ -553,7 +605,7 @@ static void pv_exp_modern_write_inner(pv_exp* exp, stream& s) {
 
     st.header.signature = reverse_endianness_uint32_t('EXPC');
     st.header.length = 0x20;
-    st.header.use_big_endian = false;
+    st.header.use_big_endian = big_endian;
     st.header.use_section_size = true;
 
     st.write(s, true, exp->is_x);

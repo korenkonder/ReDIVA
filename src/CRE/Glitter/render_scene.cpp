@@ -485,7 +485,7 @@ namespace Glitter {
         RenderElement* elem = rend_group->elements;
         size_t disp = 0;
         for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
-            j_max = min(i, j_max);
+            j_max = min_def(i, j_max);
             for (size_t j = j_max; j > 0; elem++) {
                 if (!elem->alive)
                     continue;
@@ -639,7 +639,7 @@ namespace Glitter {
         size_t disp = 0;
         if (rend_group->draw_type == DIRECTION_PARTICLE_ROTATION)
             for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
-                j_max = min(i, j_max);
+                j_max = min_def(i, j_max);
                 for (size_t j = j_max; j > 0; elem++) {
                     if (!elem->alive)
                         continue;
@@ -722,7 +722,7 @@ namespace Glitter {
             }
         else
             for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
-                j_max = min(i, j_max);
+                j_max = min_def(i, j_max);
                 for (size_t j = j_max; j > 0; elem++) {
                     if (!elem->alive)
                         continue;
@@ -1020,7 +1020,6 @@ namespace Glitter {
         case PARTICLE_QUAD: {
             gl_state_bind_vertex_array(rend_group->vao);
             shaders_ft.draw_elements(GL_TRIANGLES, (GLsizei)(6 * rend_group->disp), GL_UNSIGNED_INT, 0);
-            gl_state_bind_vertex_array(0);
 
         } break;
         case PARTICLE_LINE:
@@ -1029,7 +1028,6 @@ namespace Glitter {
             const GLenum mode = rend_group->type == PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
             for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
                 shaders_ft.draw_arrays(mode, i.first, i.second);
-            gl_state_bind_vertex_array(0);
 
         } break;
         }
@@ -1457,7 +1455,7 @@ namespace Glitter {
         RenderElement* elem = rend_group->elements;
         size_t disp = 0;
         for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
-            j_max = min(i, j_max);
+            j_max = min_def(i, j_max);
             for (size_t j = j_max; j > 0; elem++) {
                 if (!elem->alive)
                     continue;
@@ -1628,7 +1626,7 @@ namespace Glitter {
         RenderElement* elem = rend_group->elements;
         size_t disp = 0;
         for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
-            j_max = min(i, j_max);
+            j_max = min_def(i, j_max);
             for (size_t j = j_max; j > 0; elem++) {
                 if (!elem->alive)
                     continue;
@@ -1778,7 +1776,7 @@ namespace Glitter {
         size_t disp = 0;
         if (rend_group->draw_type == DIRECTION_PARTICLE_ROTATION)
             for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
-                j_max = min(i, j_max);
+                j_max = min_def(i, j_max);
                 for (size_t j = j_max; j > 0; elem++) {
                     if (!elem->alive)
                         continue;
@@ -1856,7 +1854,7 @@ namespace Glitter {
             }
         else
             for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
-                j_max = min(i, j_max);
+                j_max = min_def(i, j_max);
                 for (size_t j = j_max; j > 0; elem++) {
                     if (!elem->alive)
                         continue;

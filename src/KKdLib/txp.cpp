@@ -5,7 +5,7 @@
 
 #include "txp.hpp"
 #include "f2/struct.hpp"
-#include "io/stream.hpp"
+#include "io/memory_stream.hpp"
 
 txp_mipmap::txp_mipmap() : width(), height(), format(), size() {
 
@@ -116,9 +116,9 @@ bool txp_set::pack_file(void** data, size_t* size, bool big_endian) {
         }
     }
 
-    stream s;
+    memory_stream s;
     s.open(0, l);
-    s.is_big_endian = big_endian;
+    s.big_endian = big_endian;
     s.write_uint32_t_reverse_endianness(0x03505854);
     s.write_uint32_t_reverse_endianness((uint32_t)count);
     s.write_uint32_t_reverse_endianness((uint8_t)count | 0x01010100);
@@ -157,9 +157,9 @@ bool txp_set::pack_file(void** data, size_t* size, bool big_endian) {
     s.copy(data, size);
 
     for (size_t i = 0; i < count; i++)
-        free(txp2_offset[i]);
-    free(txp2_offset);
-    free(txp4_offset);
+        free_def(txp2_offset[i]);
+    free_def(txp2_offset);
+    free_def(txp4_offset);
     return true;
 }
 
@@ -198,9 +198,9 @@ bool txp_set::pack_file(std::vector<uint8_t>& data, bool big_endian) {
         }
     }
 
-    stream s;
+    memory_stream s;
     s.open(0, l);
-    s.is_big_endian = big_endian;
+    s.big_endian = big_endian;
     s.write_uint32_t_reverse_endianness(0x03505854);
     s.write_uint32_t_reverse_endianness((uint32_t)count);
     s.write_uint32_t_reverse_endianness((uint8_t)count | 0x01010100);
@@ -239,9 +239,9 @@ bool txp_set::pack_file(std::vector<uint8_t>& data, bool big_endian) {
     s.copy(data);
 
     for (size_t i = 0; i < count; i++)
-        free(txp2_offset[i]);
-    free(txp2_offset);
-    free(txp4_offset);
+        free_def(txp2_offset[i]);
+    free_def(txp2_offset);
+    free_def(txp4_offset);
     return true;
 }
 
@@ -405,7 +405,7 @@ bool txp_set::unpack_file(const void* data, bool big_endian) {
                 }
 
                 ssize_t size = txp::get_size(tex_mipmap->format, tex_mipmap->width, tex_mipmap->height);
-                tex_mipmap->data.resize(max(size, tex_mipmap->size));
+                tex_mipmap->data.resize(max_def(size, tex_mipmap->size));
                 memcpy(tex_mipmap->data.data(), (void*)(mipmap_d + 24), tex_mipmap->size);
                 size -= tex_mipmap->size;
                 if (size > 0)

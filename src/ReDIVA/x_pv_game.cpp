@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 
@@ -15,6 +15,7 @@
 #include "../CRE/object.hpp"
 #include "../CRE/pv_expression.hpp"
 #include "../CRE/pv_param.hpp"
+#include "../CRE/sound.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/interpolation.hpp"
 #include "../KKdLib/sort.hpp"
@@ -560,6 +561,19 @@ x_pv_play_data::~x_pv_play_data() {
 }
 
 void x_pv_play_data::reset() {
+    if (rob_chr) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+        int32_t mottbl_index = hand_anim_id_to_mottbl_index(2);
+
+        rob_chr->reset_data(&rob_chr->pv_data, aft_bone_data, aft_mot_db);
+        rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, 1.0f, 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, 1.0f, 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chr->set_visibility(false);
+    }
+
     motion.clear();
     motion.shrink_to_fit();
     rob_chr = 0;
@@ -713,7 +727,8 @@ x_pv_game_song_effect_glitter::x_pv_game_song_effect_glitter() : scene_counter()
 void x_pv_game_song_effect_glitter::reset() {
     name.str.clear();
     name.str.shrink_to_fit();
-    name.hash = hash_murmurhash_empty;
+    name.hash_fnv1a64m = hash_fnv1a64m_empty;
+    name.hash_murmurhash = hash_murmurhash_empty;
     scene_counter = 0;
     field_8 = false;
     for (bool& i : field_9)
@@ -749,10 +764,10 @@ x_pv_game_camera::~x_pv_game_camera() {
 void x_pv_game_camera::ctrl(float_t curr_time) {
     switch (state) {
     case 10: {
-        if (!auth_3d_data_check_category_loaded(category.hash))
+        if (!auth_3d_data_check_category_loaded(category.hash_murmurhash))
             break;
 
-        int32_t id = auth_3d_data_load_hash(file.hash, &data_list[DATA_X], 0, 0);
+        int32_t id = auth_3d_data_load_hash(file.hash_murmurhash, &data_list[DATA_X], 0, 0);
         if (auth_3d_data_check_id_not_empty(&id)) {
             auth_3d_data_read_file_modern(&id);
             auth_3d_data_set_enable(&id, false);
@@ -799,7 +814,7 @@ void x_pv_game_camera::load_data() {
     if (state || !category.str.size())
         return;
 
-    auth_3d_data_load_category(&data_list[DATA_X], category.c_str(), category.hash);
+    auth_3d_data_load_category(&data_list[DATA_X], category.c_str(), category.hash_murmurhash);
     state = 10;
 }
 
@@ -807,10 +822,12 @@ void x_pv_game_camera::reset() {
     state = 0;
     category.str.clear();
     category.str.shrink_to_fit();
-    category.hash = hash_murmurhash_empty;
+    category.hash_fnv1a64m = hash_fnv1a64m_empty;
+    category.hash_murmurhash = hash_murmurhash_empty;
     file.str.clear();
     file.str.shrink_to_fit();
-    file.hash = hash_murmurhash_empty;
+    file.hash_fnv1a64m = hash_fnv1a64m_empty;
+    file.hash_murmurhash = hash_murmurhash_empty;
     auth_3d_id = -1;
 }
 
@@ -824,7 +841,7 @@ void x_pv_game_camera::unload() {
         return;
 
     auth_3d_data_unload_id(auth_3d_id, rctx_ptr);
-    auth_3d_data_unload_category(category.hash);
+    auth_3d_data_unload_category(category.hash_murmurhash);
     state = 0;
 }
 
@@ -843,12 +860,12 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
         bool wait_load = false;
 
         for (string_hash& i : pv_auth_3d)
-            if (!auth_3d_data_check_category_loaded(i.hash))
+            if (!auth_3d_data_check_category_loaded(i.hash_murmurhash))
                 wait_load |= true;
 
         for (string_hash& i : pv_obj_set)
-            if (object_storage_get_obj_set_handler(i.hash)
-                && object_storage_load_obj_set_check_not_read(i.hash, obj_db, tex_db))
+            if (object_storage_get_obj_set_handler(i.hash_murmurhash)
+                && object_storage_load_obj_set_check_not_read(i.hash_murmurhash, obj_db, tex_db))
                 wait_load |= true;
 
         if (wait_load)
@@ -863,7 +880,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
             x_pv_game_song_effect& song_effect = this->song_effect[i];
             pvpp_effect& effect = play_param->effect[i];
             for (string_hash& j : effect.auth_3d) {
-                int32_t id = auth_3d_data_load_hash(j.hash, x_data, obj_db, tex_db);
+                int32_t id = auth_3d_data_load_hash(j.hash_murmurhash, x_data, obj_db, tex_db);
                 if (!auth_3d_data_check_id_not_empty(&id)) {
                     continue;
                 }
@@ -890,7 +907,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
                     wait_load |= true;
 
         for (string_hash& i : pv_glitter)
-            if (!Glitter::glt_particle_manager->CheckNoFileReaders(i.hash))
+            if (!Glitter::glt_particle_manager->CheckNoFileReaders(i.hash_murmurhash))
                 wait_load |= true;
 
         if (wait_load)
@@ -917,7 +934,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
                     if (k < play_param->chara.size()) {
                         pvpp_chara& chara = play_param->chara[k];
                         for (pvpp_glitter& l : chara.glitter)
-                            if (j.name.hash == l.name.hash) {
+                            if (j.name.hash_murmurhash == l.name.hash_murmurhash) {
                                 v121 = true;
                                 break;
                             }
@@ -931,7 +948,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
         data_struct* x_data = &data_list[DATA_X];
 
         for (string_hash& i : pv_glitter) {
-            Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i.hash);
+            Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i.hash_murmurhash);
             if (eff_group && eff_group->CheckModel())
                 eff_group->LoadModel(x_data);
         }
@@ -943,7 +960,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
         bool wait_load = false;
 
         for (string_hash& i : pv_glitter) {
-            Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i.hash);
+            Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i.hash_murmurhash);
             if (eff_group && eff_group->CheckLoadModel())
                 wait_load |= true;
         }
@@ -979,10 +996,10 @@ void x_pv_game_effect::load(int32_t pv_id, pvpp* play_param, FrameRateControl* f
 
         char buf[0x100];
         size_t len = sprintf_s(buf, sizeof(buf), "A3D_EFFPV%03d", pv_id);
-        pv_auth_3d.push_back({ std::string(buf, len), hash_murmurhash(buf, len) });
+        pv_auth_3d.push_back(std::string(buf, len));
 
         len = sprintf_s(buf, sizeof(buf), "effpv%03d", 800 + (pv_id % 100));
-        pv_obj_set.push_back({ std::string(buf, len), hash_murmurhash(buf, len) });
+        pv_obj_set.push_back(std::string(buf, len));
         break;
     }
 }
@@ -994,10 +1011,10 @@ void x_pv_game_effect::load_data(int32_t pv_id) {
     data_struct* x_data = &data_list[DATA_X];
 
     for (string_hash& i : pv_obj_set)
-        object_storage_load_set_hash(x_data, i.hash);
+        object_storage_load_set_hash(x_data, i.hash_murmurhash);
 
     for (string_hash& i : pv_auth_3d)
-        auth_3d_data_load_category(x_data, i.c_str(), i.hash);
+        auth_3d_data_load_category(x_data, i.c_str(), i.hash_murmurhash);
 
     size_t effect_count = play_param->effect.size();
     for (size_t i = 0; i < effect_count; i++) {
@@ -1010,7 +1027,7 @@ void x_pv_game_effect::load_data(int32_t pv_id) {
         uint32_t hash = (uint32_t)Glitter::glt_particle_manager->LoadFile(Glitter::X,
             x_data, buf, 0, -1.0f, false, 0);
         if (hash != hash_murmurhash_empty)
-            pv_glitter.push_back({ buf, hash });
+            pv_glitter.push_back(std::string(buf, len));
         break;
     }
 
@@ -1075,7 +1092,7 @@ void x_pv_game_effect::set_song_effect(int32_t index, int64_t time) {
     }
 
     for (x_pv_game_song_effect_glitter& i : song_effect.glitter) {
-        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(i.name.hash, i.name.c_str());
+        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(i.name.hash_murmurhash, i.name.c_str());
         if (!i.scene_counter)
             continue;
 
@@ -1143,7 +1160,7 @@ void x_pv_game_effect::stop() {
         stop_song_effect((int32_t)i, false);
 
     for (string_hash& i : pv_glitter)
-        Glitter::glt_particle_manager->FreeScene(i.hash);
+        Glitter::glt_particle_manager->FreeScene(i.hash_murmurhash);
 }
 
 void x_pv_game_effect::stop_song_effect(int32_t index, bool free_glitter) {
@@ -1178,7 +1195,7 @@ void x_pv_game_effect::unload() {
         stop_song_effect((int32_t)i, false);
 
     for (string_hash& i : pv_glitter)
-        Glitter::glt_particle_manager->FreeScene(i.hash);
+        Glitter::glt_particle_manager->FreeScene(i.hash_murmurhash);
 
     for (x_pv_game_song_effect& i : song_effect)
         for (x_pv_game_song_effect_auth_3d& j : i.auth_3d) {
@@ -1187,17 +1204,17 @@ void x_pv_game_effect::unload() {
         }
 
     for (string_hash& i : pv_auth_3d)
-        auth_3d_data_unload_category(i.hash);
+        auth_3d_data_unload_category(i.hash_murmurhash);
 
     for (string_hash& i : pv_obj_set)
-        object_storage_unload_set(i.hash);
+        object_storage_unload_set(i.hash_murmurhash);
 
     for (string_hash& i : pv_glitter) {
-        Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i.hash);
+        Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i.hash_murmurhash);
         if (eff_group)
             eff_group->FreeModel();
 
-        Glitter::glt_particle_manager->UnloadEffectGroup(i.hash);
+        Glitter::glt_particle_manager->UnloadEffectGroup(i.hash_murmurhash);
     }
 
     song_effect.clear();
@@ -1221,13 +1238,16 @@ void x_pv_game_chara_effect_auth_3d::reset() {
     dst_chara = CHARA_MAX;
     file.str.clear();
     file.str.shrink_to_fit();
-    file.hash = hash_murmurhash_empty;
+    file.hash_fnv1a64m = hash_fnv1a64m_empty;
+    file.hash_murmurhash = hash_murmurhash_empty;
     category.str.clear();
     category.str.shrink_to_fit();
-    category.hash = hash_murmurhash_empty;
+    category.hash_fnv1a64m = hash_fnv1a64m_empty;
+    category.hash_murmurhash = hash_murmurhash_empty;
     object_set.str.clear();
     object_set.str.shrink_to_fit();
-    object_set.hash = hash_murmurhash_empty;
+    object_set.hash_fnv1a64m = hash_fnv1a64m_empty;
+    object_set.hash_murmurhash = hash_murmurhash_empty;
     id = -1;
     time = -1;
 }
@@ -1250,11 +1270,11 @@ void x_pv_game_chara_effect::ctrl(object_database* obj_db, texture_database* tex
                 if (!j.category.str.size())
                     continue;
 
-                if (!auth_3d_data_check_category_loaded(j.category.hash))
+                if (!auth_3d_data_check_category_loaded(j.category.hash_murmurhash))
                     wait_load |= true;
 
-                if (object_storage_get_obj_set_handler(j.object_set.hash)
-                    && object_storage_load_obj_set_check_not_read(j.object_set.hash, obj_db, tex_db))
+                if (object_storage_get_obj_set_handler(j.object_set.hash_murmurhash)
+                    && object_storage_load_obj_set_check_not_read(j.object_set.hash_murmurhash, obj_db, tex_db))
                     wait_load |= true;
             }
 
@@ -1264,11 +1284,11 @@ void x_pv_game_chara_effect::ctrl(object_database* obj_db, texture_database* tex
         data_struct* x_data = &data_list[DATA_X];
 
         for (std::vector<x_pv_game_chara_effect_auth_3d>& i : auth_3d)
-            for (x_pv_game_chara_effect_auth_3d j : i) {
+            for (x_pv_game_chara_effect_auth_3d& j : i) {
                 if (!j.category.str.size())
                     continue;
 
-                int32_t id = auth_3d_data_load_hash(j.file.hash, x_data, obj_db, tex_db);
+                int32_t id = auth_3d_data_load_hash(j.file.hash_murmurhash, x_data, obj_db, tex_db);
                 if (!auth_3d_data_check_id_not_empty(&id)) {
                     j.id = -1;
                     continue;
@@ -1352,15 +1372,14 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
 
 
             if (src_chara != dst_chara) {
-                size_t pos = 0;
-                    pos = object_set.find(src_chara_str);
+                size_t pos = object_set.find(dst_chara_str);
                 if (pos && pos != -1)
-                    object_set.replace(pos, src_chara_str.size(), dst_chara_str);
+                    object_set.replace(pos, dst_chara_str.size(), src_chara_str);
 
                 if (!auth_3d.field_0) {
-                    size_t pos = file.find(src_chara_str);
+                    size_t pos = file.find(dst_chara_str);
                     if (pos != -1)
-                        file = file.replace(pos, src_chara_str.size(), dst_chara_str);
+                        file = file.replace(pos, dst_chara_str.size(), src_chara_str);
                 }
             }
 
@@ -1392,11 +1411,11 @@ void x_pv_game_chara_effect::load_data() {
             if (!j.category.str.size())
                 continue;
 
-            auth_3d_data_load_category(x_data, j.category.c_str(), j.category.hash);
-            object_storage_load_set_hash(x_data, j.object_set.hash);
+            auth_3d_data_load_category(x_data, j.category.c_str(), j.category.hash_murmurhash);
+            object_storage_load_set_hash(x_data, j.object_set.hash_murmurhash);
         }
 
-    state = 10;
+    state = 20;
 }
 
 void x_pv_game_chara_effect::reset() {
@@ -1501,8 +1520,8 @@ void x_pv_game_chara_effect::unload() {
                     continue;
 
                 auth_3d_data_unload_id(j.id, rctx_ptr);
-                auth_3d_data_unload_category(j.category.hash);
-                object_storage_unload_set(j.object_set.hash);
+                auth_3d_data_unload_category(j.category.hash_murmurhash);
+                object_storage_unload_set(j.object_set.hash_murmurhash);
             }
         state = 10;
     }
@@ -1626,7 +1645,7 @@ int64_t x_pv_game_dsc_data::find_pv_end() {
     i = dsc.data.data();
     i_end = dsc.data.data() + dsc.data.size();
     find(DSC_X_END, &end_time, &pv_branch_mode, i, i_end);
-    return max(pv_end_time, end_time);
+    return max_def(pv_end_time, end_time);
 }
 
 void x_pv_game_dsc_data::find_stage_effects(std::vector<std::pair<int64_t, int32_t>>& stage_effects) {
@@ -1711,7 +1730,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
     case 20: {
         effect.load_data(pv_id);
         chara_effect.load_data();
-        pv_expression_file_load(&data_list[DATA_X], "root+/pv_expression/", exp_file.hash);
+        pv_expression_file_load(&data_list[DATA_X], "root+/pv_expression/", exp_file.hash_murmurhash);
         state = 21;
     } break;
     case 21: {
@@ -1725,7 +1744,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
     case 22: {
         bool wait_load = false;
 
-        wait_load |= pv_expression_file_check_not_ready(exp_file.hash);
+        wait_load |= pv_expression_file_check_not_ready(exp_file.hash_murmurhash);
         wait_load |= camera.state && camera.state != 20;
         wait_load |= effect.state && effect.state != 20;
         wait_load |= chara_effect.state && chara_effect.state != 10 && chara_effect.state != 30;
@@ -1809,8 +1828,8 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
     chara_effect.load(pv_id, play_param, frame_rate_control, charas);
 
     char buf[0x100];
-    sprintf_s(buf, sizeof(buf), "exp_PV%03d", pv_id);
-    exp_file = { buf,  hash_utf8_murmurhash(buf) };
+    size_t len = sprintf_s(buf, sizeof(buf), "exp_PV%03d", pv_id);
+    exp_file = std::string(buf, len);
 
     camera.load(pv_id, stage->stage_id, frame_rate_control);
 
@@ -1819,6 +1838,7 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
 
 void x_pv_game_data::reset() {
     pv_id = 0;
+    play_param_file_handler.free_data();
     if (play_param) {
         delete play_param;
         play_param = 0;
@@ -1837,11 +1857,14 @@ void x_pv_game_data::reset() {
     next_stage_effect_bar = 0;
     stage_effects.clear();
     stage_effects.shrink_to_fit();
+    camera.reset();
     effect.reset();
+    chara_effect.reset();
     dsc_data.reset();
     exp_file.str.clear();
     exp_file.str.shrink_to_fit();
-    exp_file.hash = hash_murmurhash_empty;
+    exp_file.hash_fnv1a64m = hash_fnv1a64m_empty;
+    exp_file.hash_murmurhash = hash_murmurhash_empty;
     //dof = {};
     stage = 0;
     obj_db.object_set.clear();
@@ -1869,7 +1892,7 @@ void x_pv_game_data::unload() {
     chara_effect.unload();
     //dof = {};
     dsc_data.unload();
-    pv_expression_file_unload(exp_file.hash);
+    pv_expression_file_unload(exp_file.hash_murmurhash);
     obj_db.object_set.clear();
     obj_db.object_set.shrink_to_fit();
     tex_db.texture.clear();
@@ -1900,7 +1923,8 @@ x_pv_game_stage_effect_glitter::x_pv_game_stage_effect_glitter() :
 void x_pv_game_stage_effect_glitter::reset() {
     name.str.clear();
     name.str.shrink_to_fit();
-    name.hash = hash_murmurhash_empty;
+    name.hash_fnv1a64m = hash_fnv1a64m_empty;
+    name.hash_murmurhash = hash_murmurhash_empty;
     scene_counter = 0;
     fade_time = 0.0f;
     fade_time_left = 0.0f;
@@ -2174,7 +2198,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         }
 
         for (string_hash& i : stage_auth_3d)
-            auth_3d_data_load_category(x_data, i.c_str(), i.hash);
+            auth_3d_data_load_category(x_data, i.c_str(), i.hash_murmurhash);
 
         state = 11;
     } break;
@@ -2185,7 +2209,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         bool wait_load = false;
 
         for (string_hash& i : stage_auth_3d)
-            if (!auth_3d_data_check_category_loaded(i.hash))
+            if (!auth_3d_data_check_category_loaded(i.hash_murmurhash))
                 wait_load |= true;
 
         for (uint32_t& i : stage_glitter)
@@ -2225,20 +2249,27 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
 
                 int32_t stage_effect = i + 1;
 
-                int32_t id = auth_3d_data_load_hash(stg_eff_auth_3d.name.hash, x_data, &obj_db, &tex_db);
-                if (!auth_3d_data_check_id_not_empty(&id)) {
-                    eff_auth_3d.id = -1;
-                    continue;
+                auto elem = auth_3d_ids.find(stg_eff_auth_3d.name.hash_murmurhash);
+                if (elem == auth_3d_ids.end()) {
+                    int32_t id = auth_3d_data_load_hash(stg_eff_auth_3d.name.hash_murmurhash, x_data, &obj_db, &tex_db);
+                    if (!auth_3d_data_check_id_not_empty(&id)) {
+                        eff_auth_3d.id = -1;
+                        continue;
+                    }
+
+                    auth_3d_data_read_file_modern(&id);
+                    auth_3d_data_set_enable(&id, false);
+                    auth_3d_data_set_repeat(&id, true);
+                    auth_3d_data_set_paused(&id, false);
+                    auth_3d_data_set_visibility(&id, false);
+                    auth_3d_data_set_frame_rate(&id, &bpm_frame_rate_control);
+                    eff_auth_3d.id = id;
+
+                    auth_3d_ids.insert({ stg_eff_auth_3d.name.hash_murmurhash, id });
                 }
+                else
+                    eff_auth_3d.id = elem->second;
 
-                auth_3d_data_read_file_modern(&id);
-                auth_3d_data_set_enable(&id, false);
-                auth_3d_data_set_repeat(&id, true);
-                auth_3d_data_set_paused(&id, false);
-                auth_3d_data_set_visibility(&id, false);
-                auth_3d_data_set_frame_rate(&id, &bpm_frame_rate_control);
-
-                eff_auth_3d.id = id;
                 if (stage_effect >= 8 && stage_effect <= 9)
                     eff_auth_3d.repeat = false;
                 else if (stage_effect == 7)
@@ -2336,10 +2367,12 @@ void x_pv_game_stage::ctrl_inner() {
         switch (stage_effect_transition_state) {
         case 0: {
             if (v6) {
-                if (set_change_effect_frame(bar_beat->get_bar_current_frame())) {
+                if (set_change_effect_frame_part_1()) {
                     chg_eff.bars_left = chg_eff.bar_count;
                     stage_effect_transition_state = 1;
                     stop_stage_effect_auth_3d(curr_stage_effect);
+
+                    set_change_effect_frame_part_2(bar_beat->get_bar_current_frame());
                 }
                 else {
                     stop_stage_effect_auth_3d(curr_stage_effect);
@@ -2491,24 +2524,31 @@ void x_pv_game_stage::load_change_effect(int32_t curr_stage_effect, int32_t next
 
         chg_eff_auth_3d.reset();
 
-        int32_t id = auth_3d_data_load_hash(stg_chg_eff_auth_3d.name.hash, x_data, &obj_db, &tex_db);
-        if (!auth_3d_data_check_id_not_empty(&id)) {
-            chg_eff_auth_3d.id = -1;
-            continue;
+        auto elem = auth_3d_ids.find(stg_chg_eff_auth_3d.name.hash_murmurhash);
+        if (elem == auth_3d_ids.end()) {
+            int32_t id = auth_3d_data_load_hash(stg_chg_eff_auth_3d.name.hash_murmurhash, x_data, &obj_db, &tex_db);
+            if (!auth_3d_data_check_id_not_empty(&id)) {
+                chg_eff_auth_3d.id = -1;
+                continue;
+            }
+
+            auth_3d_data_read_file_modern(&id);
+            auth_3d_data_set_enable(&id, false);
+            auth_3d_data_set_repeat(&id, false);
+            auth_3d_data_set_paused(&id, false);
+            auth_3d_data_set_visibility(&id, false);
+            auth_3d_data_set_frame_rate(&id, &bpm_frame_rate_control);
+            chg_eff_auth_3d.id = id;
+
+            auth_3d_ids.insert({ stg_chg_eff_auth_3d.name.hash_murmurhash, id });
         }
+        else
+            chg_eff_auth_3d.id = elem->second;
 
-        auth_3d_data_read_file_modern(&id);
-        auth_3d_data_set_enable(&id, false);
-        auth_3d_data_set_repeat(&id, false);
-        auth_3d_data_set_paused(&id, false);
-        auth_3d_data_set_visibility(&id, false);
-        auth_3d_data_set_frame_rate(&id, &bpm_frame_rate_control);
-
-        chg_eff_auth_3d.id = id;
         chg_eff_auth_3d.field_1 = true;
         chg_eff_auth_3d.repeat = !!(stg_chg_eff_auth_3d.flags & PVSR_AUTH_3D_REPEAT);
     }
-    
+
     for (size_t i = 0; i < glitter_count; i++) {
         pvsr_glitter& stg_chg_eff_glt = stg_chg_eff.glitter[i];
         x_pv_game_stage_effect_glitter& chg_eff_glt = chg_eff.glitter[i];
@@ -2524,6 +2564,7 @@ void x_pv_game_stage::reset() {
     stage_id = 0;
     field_8 = 0;
     state = 0;
+    stage_resource_file_handler.free_data();
     if (stage_resource) {
         delete stage_resource;
         stage_resource = 0;
@@ -2548,6 +2589,7 @@ void x_pv_game_stage::reset() {
     obj_db.object_set.shrink_to_fit();
     tex_db.texture.clear();
     tex_db.texture.shrink_to_fit();
+    auth_3d_ids.clear();
 }
 
 void x_pv_game_stage::reset_stage_effect() {
@@ -2565,7 +2607,7 @@ void x_pv_game_stage::reset_stage_effect() {
         Glitter::glt_particle_manager->FreeScene(i);
 }
 
-bool x_pv_game_stage::set_change_effect_frame(float_t frame) {
+bool x_pv_game_stage::set_change_effect_frame_part_1() {
     if (!curr_stage_effect || !next_stage_effect)
         return false;
 
@@ -2584,6 +2626,28 @@ bool x_pv_game_stage::set_change_effect_frame(float_t frame) {
     x_pv_game_stage_change_effect& chg_eff = change_effect[curr_stg_eff][next_sta_eff];
     if (!chg_eff.enable)
         return false;
+    return true;
+}
+
+void x_pv_game_stage::set_change_effect_frame_part_2(float_t frame) {
+    if (!curr_stage_effect || !next_stage_effect)
+        return;
+
+    int32_t curr_stg_eff = curr_stage_effect;
+    if (curr_stg_eff >= 1 && curr_stg_eff <= 12)
+        curr_stg_eff--;
+    else
+        curr_stg_eff = 0;
+
+    int32_t next_sta_eff = next_stage_effect;
+    if (next_sta_eff >= 1 && next_sta_eff <= 12)
+        next_sta_eff--;
+    else
+        next_sta_eff = 0;
+
+    x_pv_game_stage_change_effect& chg_eff = change_effect[curr_stg_eff][next_sta_eff];
+    if (!chg_eff.enable)
+        return;
 
     for (x_pv_game_stage_effect_auth_3d& i : chg_eff.auth_3d) {
         int32_t& id = i.id;
@@ -2598,17 +2662,16 @@ bool x_pv_game_stage::set_change_effect_frame(float_t frame) {
     }
 
     for (x_pv_game_stage_effect_glitter& i : chg_eff.glitter) {
-        if (i.name.hash == hash_murmurhash_empty)
+        if (i.name.hash_murmurhash == hash_murmurhash_empty)
             continue;
 
-        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(i.name.hash, i.name.c_str());
+        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(i.name.hash_murmurhash, i.name.c_str());
         if (!i.scene_counter)
             continue;
 
         Glitter::glt_particle_manager->SetSceneFrameRate(i.scene_counter, &bpm_frame_rate_control);
         Glitter::glt_particle_manager->SetSceneEffectReqFrame(i.scene_counter, frame);
     }
-    return true;
 }
 
 void x_pv_game_stage::set_stage_effect(int32_t stage_effect) {
@@ -2685,7 +2748,7 @@ void x_pv_game_stage::set_stage_effect_glitter_frame(int32_t stage_effect, float
 
     std::vector<x_pv_game_stage_effect_glitter>& glitter = effect[stage_effect - 1ULL].glitter;
     for (x_pv_game_stage_effect_glitter& i : glitter) {
-        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(i.name.hash, i.name.c_str());
+        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(i.name.hash_murmurhash, i.name.c_str());
         if (!i.scene_counter)
             continue;
 
@@ -2797,18 +2860,17 @@ void x_pv_game_stage::unload() {
     if (!stage_resource || !stage_id)
         return;
 
-    for (x_pv_game_stage_effect& i : effect) {
-        for (x_pv_game_stage_effect_auth_3d& j : i.auth_3d) {
-            auth_3d_data_unload_id(j.id, rctx_ptr);
-            j.id = -1;
-        }
+    for (std::pair<uint32_t, int32_t> i : auth_3d_ids)
+        auth_3d_data_unload_id(i.second, rctx_ptr);
 
+    auth_3d_ids.clear();
+
+    for (x_pv_game_stage_effect& i : effect)
         for (x_pv_game_stage_effect_glitter& j : i.glitter)
             if (j.scene_counter) {
                 Glitter::glt_particle_manager->FreeSceneEffect(j.scene_counter, false);
                 j.scene_counter = 0;
             }
-    }
 
     if (stage_effect_transition_state == 1)
         stop_stage_change_effect();
@@ -2816,11 +2878,6 @@ void x_pv_game_stage::unload() {
     for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
         for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
             x_pv_game_stage_change_effect& chg_eff = change_effect[i][j];
-            for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d) {
-                auth_3d_data_unload_id(k.id, rctx_ptr);
-                k.id = -1;
-            }
-
             for (x_pv_game_stage_effect_glitter& k : chg_eff.glitter)
                 if (k.scene_counter) {
                     Glitter::glt_particle_manager->FreeSceneEffect(k.scene_counter, false);
@@ -2843,9 +2900,9 @@ void x_pv_game_stage::unload() {
 
         Glitter::glt_particle_manager->UnloadEffectGroup(i);
     }
-    
+
     for (string_hash& i : stage_auth_3d)
-        auth_3d_data_unload_category(i.hash);
+        auth_3d_data_unload_category(i.hash_murmurhash);
 
     delete stage_resource;
     stage_resource = 0;
@@ -2884,6 +2941,31 @@ static bool img_write = false;
 FILE* pipe;
 #endif
 
+#if DOF_BAKE
+static void a3da_key_rev(a3da_key& k, std::vector<float_t>& values_src) {
+    std::vector<kft3> value;
+    int32_t type = interpolate_chs_reverse_sequence(values_src, value);
+
+    k = {};
+    switch (type) {
+    case 0:
+    default:
+        k.type = A3DA_KEY_NONE;
+        return;
+    case 1:
+        k.value = value[0].value;
+        k.type = A3DA_KEY_STATIC;
+        break;
+    case 2:
+        break;
+    }
+
+    k.type = A3DA_KEY_HERMITE;
+    k.keys = value;
+    k.max_frame = (float_t)(values_src.size() + 1);
+}
+#endif
+
 bool x_pv_game::Ctrl() {
     if (state_old == 20)
         ctrl((float_t)((frame_float + get_delta_frame()) * (1.0 / 60.0)), get_delta_frame() * (float_t)(1.0 / 60.0));
@@ -2919,6 +3001,8 @@ bool x_pv_game::Ctrl() {
         if (wait_load)
             break;
 
+        stage_data.load(stage_id, &field_71994, false);
+
         for (int32_t i = 0; i < pv_count; i++) {
             x_pv_game_data& pv_data = this->pv_data[i];
 
@@ -2945,8 +3029,6 @@ bool x_pv_game::Ctrl() {
                     break;
             }
         }
-
-        stage_data.load(stage_id, &field_71994, false);
 
         state_old = 3;
     } break;
@@ -3020,7 +3102,7 @@ bool x_pv_game::Ctrl() {
         {
             data_struct* x_data = &data_list[DATA_X];
 
-            dsc dscouth;
+            dsc dsc_mouth;
             dsc dsc_scene;
             dsc dsc_system;
             dsc dsc_easy;
@@ -3034,9 +3116,9 @@ bool x_pv_game::Ctrl() {
             x_data->load_file(&dsc_common_farc, path_buf, file_buf, farc::load_file);
 
             sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_mouth.dsc", pv_data[pv_index].pv_id);
-            farc_file* dscouth_ff = dsc_common_farc.read_file(file_buf);
-            if (dscouth_ff)
-                dscouth.parse(dscouth_ff->data, dscouth_ff->size, DSC_X);
+            farc_file* dsc_mouth_ff = dsc_common_farc.read_file(file_buf);
+            if (dsc_mouth_ff)
+                dsc_mouth.parse(dsc_mouth_ff->data, dsc_mouth_ff->size, DSC_X);
 
             sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_scene.dsc", pv_data[pv_index].pv_id);
             farc_file* dsc_scene_ff = dsc_common_farc.read_file(file_buf);
@@ -3052,7 +3134,74 @@ bool x_pv_game::Ctrl() {
             dsc_easy.type = DSC_X;
             x_data->load_file(&dsc_easy, path_buf, file_buf, dsc::load_file);
 
-            dsc_data.dsc.merge(4, &dscouth, &dsc_scene, &dsc_system, &dsc_easy);
+            /*if (pv_id == 826) {
+                dsc dsc_hand_keys[5];
+
+                char file_buf[0x200];
+                for (int32_t i = 2; i <= 6; i++) {
+                    stream s;
+                    sprintf_s(file_buf, sizeof(file_buf), "pv_826_hand_%d.txt", i);
+                    s.open(file_buf, "rb");
+                    size_t length = s.length;
+                    uint8_t* data = force_malloc_s(uint8_t, length);
+                    s.read(data, length);
+                    s.close();
+
+                    dsc& d = dsc_hand_keys[i - 2];
+                    d.parse_text(data, length, DSC_X);
+                    d.signature = 0x13120420;
+                    free_def(data);
+
+                    {
+                        int32_t hand_l_time = -1;
+                        int32_t hand_l_id = -1;
+                        int32_t hand_l_duration = -1;
+                        ::dsc_data* hand_l_data = 0;
+                        int32_t hand_r_time = -1;
+                        int32_t hand_r_id = -1;
+                        int32_t hand_r_duration = -1;
+                        ::dsc_data* hand_r_data = 0;
+                        int32_t time = -1;
+                        for (::dsc_data& j : d.data) {
+                            if (j.func == DSC_X_END)
+                                break;
+
+                            uint32_t* data = d.get_func_data(&j);
+                            switch (j.func) {
+                            case DSC_X_TIME:
+                                time = (int32_t)data[0];
+                                break;
+                            case DSC_X_HAND_ANIM: {
+                                if (data[1] == 0) {
+                                    if (hand_l_time > -1 && hand_l_duration > time - hand_l_time)
+                                        data[3] = (time - hand_l_time) / 100;
+
+                                    hand_l_time = time;
+                                    hand_l_id = (int32_t)data[2];
+                                    hand_l_duration = (int32_t)data[3] * 100;
+                                    hand_l_data = &j;
+                                }
+                                if (data[1] == 1) {
+                                    if (hand_r_time > -1 && hand_r_duration > time - hand_r_time)
+                                        data[3] = (time - hand_r_time) / 100;
+
+                                    hand_r_time = time;
+                                    hand_r_id = (int32_t)data[2];
+                                    hand_r_duration = (int32_t)data[3] * 100;
+                                    hand_r_data = &j;
+                                }
+                            } break;
+                            }
+                        }
+                    }
+                }
+
+                dsc_data.dsc.merge(9, &dsc_mouth, &dsc_scene, &dsc_system, &dsc_easy,
+                    &dsc_hand_keys[0], &dsc_hand_keys[1], &dsc_hand_keys[2], &dsc_hand_keys[3], dsc_hand_keys[4]);
+            }
+            else
+                dsc_data.dsc.merge(4, &dsc_mouth, &dsc_scene, &dsc_system, &dsc_easy);*/
+            dsc_data.dsc.merge(4, &dsc_mouth, &dsc_scene, &dsc_system, &dsc_easy);
 
             struct miku_state {
                 bool disp;
@@ -3072,6 +3221,10 @@ bool x_pv_game::Ctrl() {
 
             x_pv_bar_beat_data* bar_beat_data = 0;
             int32_t beat_counter = 0;
+
+            /*std::vector<std::pair<int32_t, uint32_t>> miku_disp;
+            std::vector<std::pair<int32_t, uint32_t>> set_motion;
+            std::vector<std::pair<int32_t, uint32_t>> set_playdata;*/
 
             int32_t time = -1;
             int32_t frame = -1;
@@ -3093,16 +3246,21 @@ bool x_pv_game::Ctrl() {
                     state[chara_id].disp = (int32_t)data[1] == 1;
                     if (state[chara_id].disp)
                         state[chara_id].disp_time = time;
+                    //miku_disp.push_back({ time, i.data_offset });
                 } break;
                 case DSC_X_SET_MOTION: {
                     int32_t chara_id = (int32_t)data[0];
                     state[chara_id].set_motion_time = time;
                     state[chara_id].set_motion_data_offset = i.data_offset;
+                    //set_motion.push_back({ time, i.data_offset });
                 } break;
+                /*case DSC_X_SET_PLAYDATA: {
+                    set_playdata.push_back({ time, i.data_offset });
+                } break;*/
                 }
             }
 
-            if (state_vec.size()) {
+            if (state_vec.size()/* || miku_disp.size() || set_motion.size() || set_playdata.size()*/) {
                 int32_t time = -1;
                 for (miku_state& i : state_vec) {
                     if (i.disp_time != time) {
@@ -3117,6 +3275,61 @@ bool x_pv_game::Ctrl() {
                     uint32_t* data = dsc_data.dsc.data_buffer.data() + i.set_motion_data_offset;
                     memcpy(new_data, data, sizeof(uint32_t) * dsc_x_get_func_length(DSC_X_SET_MOTION));
                 }
+
+                /*time = -1;
+                for (std::pair<int32_t, uint32_t>& i : miku_disp) {
+                    if (i.first != time) {
+                        uint32_t* data = dsc_m.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                            DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
+                        data[0] = i.first;
+                        time = i.first;
+                    }
+
+                    for (int32_t j = 1; j < 6; j++) {
+                        uint32_t* new_data = dsc_m.add_func(dsc_x_get_func_name(DSC_X_MIKU_DISP),
+                            DSC_X_MIKU_DISP, dsc_x_get_func_length(DSC_X_MIKU_DISP));
+                        uint32_t* data = dsc_m.data_buffer.data() + i.second;
+                        memcpy(new_data, data, sizeof(uint32_t) * dsc_x_get_func_length(DSC_X_MIKU_DISP));
+                        new_data[0] = j;
+                    }
+                }
+
+                time = -1;
+                for (std::pair<int32_t, uint32_t>& i : set_motion) {
+                    if (i.first != time) {
+                        uint32_t* data = dsc_m.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                            DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
+                        data[0] = i.first;
+                        time = i.first;
+                    }
+
+                    for (int32_t j = 1; j < 6; j++) {
+                        uint32_t* new_data = dsc_m.add_func(dsc_x_get_func_name(DSC_X_SET_MOTION),
+                            DSC_X_SET_MOTION, dsc_x_get_func_length(DSC_X_SET_MOTION));
+                        uint32_t* data = dsc_m.data_buffer.data() + i.second;
+                        memcpy(new_data, data, sizeof(uint32_t) * dsc_x_get_func_length(DSC_X_SET_MOTION));
+                        new_data[0] = j;
+                    }
+                }
+
+                time = -1;
+                for (std::pair<int32_t, uint32_t>& i : set_playdata) {
+                    if (i.first != time) {
+                        uint32_t* data = dsc_m.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                            DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
+                        data[0] = i.first;
+                        time = i.first;
+                    }
+
+                    for (int32_t j = 1; j < 6; j++) {
+                        uint32_t* new_data = dsc_m.add_func(dsc_x_get_func_name(DSC_X_SET_PLAYDATA),
+                            DSC_X_SET_PLAYDATA, dsc_x_get_func_length(DSC_X_SET_PLAYDATA));
+                        uint32_t* data = dsc_m.data_buffer.data() + i.second;
+                        memcpy(new_data, data, sizeof(uint32_t) * dsc_x_get_func_length(DSC_X_SET_PLAYDATA));
+                        new_data[0] = j;
+                    }
+                }*/
+
                 dsc_data.dsc.rebuild();
             }
 
@@ -3127,7 +3340,7 @@ bool x_pv_game::Ctrl() {
             stream s;
             s.open(file_buf, "wb");
             s.write(data, size);
-            free(data);*/
+            free_def(data);*/
         }
 
         pv_expression_array_reset();
@@ -3240,6 +3453,7 @@ bool x_pv_game::Ctrl() {
         pause = true;
 
         state_old = 20;
+        //sound_work_release_se("load01_2", false);
     } break;
     case 20: {
         float_t delta_frame = get_delta_frame();
@@ -3264,6 +3478,75 @@ bool x_pv_game::Ctrl() {
         fflush(pipe);
         _pclose(pipe);
 #endif
+
+        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+            pv_expression_array_reset_motion(i);
+
+#if DOF_BAKE
+        {
+            x_pv_game_data& pv_data = this->pv_data[pv_index];
+
+            data_struct* x_data = &data_list[DATA_X];
+
+            char buf[0x200];
+            sprintf_s(buf, sizeof(buf), "CAMPV%03d", pv_data.pv_id);
+
+            farc* f = new farc;
+            x_data->load_file(f, "root+/auth_3d/", hash_utf8_murmurhash(buf), ".farc", farc::load_file);
+
+            if ((pv_data.pv_id % 100) >= 25 && (pv_data.pv_id % 100) <= 30
+                && stage_data.stage_id >= 25 && stage_data.stage_id <= 30)
+                sprintf_s(buf, sizeof(buf), "CAMPV%03d_100.a3da", pv_data.pv_id);
+            else
+                sprintf_s(buf, sizeof(buf), "CAMPV%03d_BASE.a3da", pv_data.pv_id);
+
+            a3da a;
+            farc_file* ff = f->read_file(buf);
+            if (ff)
+                a.read(ff->data, ff->size);
+            delete f;
+
+            if ((pv_data.pv_id % 100) >= 25 && (pv_data.pv_id % 100) <= 30
+                && stage_data.stage_id >= 25 && stage_data.stage_id <= 30)
+                sprintf_s(buf, sizeof(buf), "DOF\\auth_3d\\CAMPV%03d_100", pv_data.pv_id);
+            else
+                sprintf_s(buf, sizeof(buf), "DOF\\auth_3d\\CAMPV%03d_BASE", pv_data.pv_id);
+
+            a.ready = true;
+            a.compressed = true;
+            a.format = A3DA_FORMAT_AFT;
+            a.dof = {};
+            a.dof.has_dof = true;
+
+            a3da_key_rev(a.dof.model_transform.translation.x, dof_cam_data.position_x);
+            a3da_key_rev(a.dof.model_transform.translation.y, dof_cam_data.position_y);
+            a3da_key_rev(a.dof.model_transform.translation.z, dof_cam_data.position_z);
+            a.dof.model_transform.translation.x.raw_data = true;
+            a.dof.model_transform.translation.y.raw_data = true;
+            a.dof.model_transform.translation.z.raw_data = true;
+            a3da_key_rev(a.dof.model_transform.scale.x, dof_cam_data.focus_range);
+            a3da_key_rev(a.dof.model_transform.rotation.x, dof_cam_data.fuzzing_range);
+            a3da_key_rev(a.dof.model_transform.rotation.y, dof_cam_data.ratio);
+
+            a3da_key& rot_z = a.dof.model_transform.rotation.z;
+            if (dof_cam_data.enable_frame.size() > 1) {
+                rot_z.type = A3DA_KEY_HOLD;
+                rot_z.keys.reserve(dof_cam_data.enable_frame.size());
+                for (std::pair<int32_t, bool>& i : dof_cam_data.enable_frame)
+                    rot_z.keys.push_back({ (float_t)i.first, i.second ? 1.00051f : 0.0f });
+                rot_z.max_frame = a.play_control.size;
+            }
+            else if (dof_cam_data.enable_frame.size()) {
+                rot_z.type = A3DA_KEY_STATIC;
+                rot_z.value = dof_cam_data.enable_frame[0].second ? 1.00051f : 0.0f;
+            }
+            else
+                rot_z.type = A3DA_KEY_NONE;
+
+            a.write(buf);
+        }
+#endif
+
         unload();
         state_old = 22;
     } break;
@@ -3278,94 +3561,10 @@ bool x_pv_game::Ctrl() {
     return false;
 }
 
-#if DOF_BAKE
-static void a3da_key_rev(a3da_key& k, std::vector<float_t>& values_src) {
-    std::vector<kft3> value;
-    int32_t type = interpolate_chs_reverse_sequence(values_src, value);
-
-    k = {};
-    switch (type) {
-    case 0:
-    default:
-        k.type = A3DA_KEY_NONE;
-        return;
-    case 1:
-        k.value = value[0].value;
-        k.type = A3DA_KEY_STATIC;
-        break;
-    case 2:
-        break;
-    }
-
-    k.type = A3DA_KEY_HERMITE;
-    k.keys = value;
-    k.max_frame = (float_t)(values_src.size() + 1);
-}
-#endif
-
 bool x_pv_game::Dest() {
-#if DOF_BAKE
-    {
-        data_struct* x_data = &data_list[DATA_X];
+    if (!Unload())
+        return false;
 
-        char buf[0x200];
-        sprintf_s(buf, sizeof(buf), "CAMPV%03d", pv_data.pv_id);
-
-        farc* f = new farc;
-        x_data->load_file(f, "root+/auth_3d/", hash_utf8_murmurhash(buf), ".farc", farc::load_file);
-
-        if ((pv_data.pv_id % 100) >= 25 && (pv_data.pv_id % 100) <= 30 && stage_data.stage_id >= 25 && stage_data.stage_id <= 30)
-            sprintf_s(buf, sizeof(buf), "CAMPV%03d_100.a3da", pv_data.pv_id);
-        else
-            sprintf_s(buf, sizeof(buf), "CAMPV%03d_BASE.a3da", pv_data.pv_id);
-
-        a3da a;
-        farc_file* ff = f->read_file(buf);
-        if (ff)
-            a.read(ff->data, ff->size);
-        delete f;
-
-        if ((pv_data.pv_id % 100) >= 25 && (pv_data.pv_id % 100) <= 30 && stage_data.stage_id >= 25 && stage_data.stage_id <= 30)
-            sprintf_s(buf, sizeof(buf), "DOF\\auth_3d\\CAMPV%03d_100", pv_data.pv_id);
-        else
-            sprintf_s(buf, sizeof(buf), "DOF\\auth_3d\\CAMPV%03d_BASE", pv_data.pv_id);
-
-        a.ready = true;
-        a.compressed = true;
-        a.format = A3DA_FORMAT_AFT;
-        a.dof = {};
-        a.dof.has_dof = true;
-
-        a3da_key_rev(a.dof.model_transform.translation.x, dof_cam_data.position_x);
-        a3da_key_rev(a.dof.model_transform.translation.y, dof_cam_data.position_y);
-        a3da_key_rev(a.dof.model_transform.translation.z, dof_cam_data.position_z);
-        a.dof.model_transform.translation.x.raw_data = true;
-        a.dof.model_transform.translation.y.raw_data = true;
-        a.dof.model_transform.translation.z.raw_data = true;
-        a3da_key_rev(a.dof.model_transform.scale.x, dof_cam_data.focus_range);
-        a3da_key_rev(a.dof.model_transform.rotation.x, dof_cam_data.fuzzing_range);
-        a3da_key_rev(a.dof.model_transform.rotation.y, dof_cam_data.ratio);
-
-        a3da_key& rot_z = a.dof.model_transform.rotation.z;
-        if (dof_cam_data.enable_frame.size() > 1) {
-            rot_z.type = A3DA_KEY_HOLD;
-            rot_z.keys.reserve(dof_cam_data.enable_frame.size());
-            for (std::pair<int32_t, bool>& i : dof_cam_data.enable_frame)
-                rot_z.keys.push_back({ (float_t)i.first, i.second ? 1.00051f : 0.0f });
-            rot_z.max_frame = a.play_control.size;
-        }
-        else if (dof_cam_data.enable_frame.size()) {
-            rot_z.type = A3DA_KEY_STATIC;
-            rot_z.value = dof_cam_data.enable_frame[0].second ? 1.00051f : 0.0f;
-        }
-        else
-            rot_z.type = A3DA_KEY_NONE;
-
-        a.write(buf);
-    }
-#endif
-
-    Unload();
     task_rob_manager_free_task();
 
     light_param_data_storage_data_reset();
@@ -3452,6 +3651,45 @@ void x_pv_game::Basic() {
     Glitter::glt_particle_manager->SetPause(pause);
     extern float_t frame_speed;
     frame_speed = pause ? 0.0f : 1.0f;
+
+    /*if (get_delta_frame() != 0.0f && frame > 0)
+        for (auto& i : effchrpv_auth_3d_rob_mot_ids) {
+            rob_chara* rob_chr = rob_chara_array_get(rob_chara_ids[i.first]);
+            x_pv_game_a3da_to_mot& a2m = i.second;
+
+            rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
+
+            bone_database_skeleton_type skeleton_type = rob_bone_data->base_skeleton_type;
+            motion_blend_mot* mot = rob_bone_data->motion_loaded.front();
+            std::vector<bone_data>* bones = &mot->bone_data.bones;
+            std::vector<uint16_t>* bone_indices = &mot->bone_data.bone_indices;
+
+            bone_data* bones_data = bones->data();
+            for (uint16_t& i : *bone_indices) {
+                bone_data* data = &bones_data[i];
+                ::motion_bone_index motion_bone_index = (::motion_bone_index)data->motion_bone_index;
+                if (motion_bone_index >= MOTION_BONE_N_HITO_L_EX
+                    && motion_bone_index <= MOTION_BONE_NL_OYA_C_L_WJ) {
+                    auto elem = a2m.bone_keys.find(motion_bone_index);
+                    if (elem == a2m.bone_keys.end())
+                        elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
+
+                    elem->second.x.push_back(data->rotation.x);
+                    elem->second.y.push_back(data->rotation.y);
+                    elem->second.z.push_back(data->rotation.z);
+                }
+                else if (motion_bone_index >= MOTION_BONE_N_HITO_R_EX
+                    && motion_bone_index <= MOTION_BONE_NL_OYA_C_R_WJ) {
+                    auto elem = a2m.bone_keys.find(motion_bone_index);
+                    if (elem == a2m.bone_keys.end())
+                        elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
+
+                    elem->second.x.push_back(data->rotation.x);
+                    elem->second.y.push_back(data->rotation.y);
+                    elem->second.z.push_back(data->rotation.z);
+                }
+            }
+        }*/
 
 #if BAKE_VIDEO
     if (img_write && frame_prev != frame) {
@@ -3678,9 +3916,8 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, ::chara_index charas[6], i
         i.shrink_to_fit();
     }
 
-    //pv_auth_3d_chara_count.clear();
-
     Glitter::glt_particle_manager->draw_all = false;
+    //sound_work_play_se(1, "load01_2", 1.0f);
 }
 
 mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
@@ -3754,7 +3991,35 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
     }
 }
 
-/*bool mot_write_motion(void* data, const char* path, const char* file, uint32_t hash) {
+/*static void fix_rotation(std::vector<float_t>& vec) {
+    if (vec.size() < 2)
+        return;
+
+    const float_t half_pi = (float_t)(M_PI / 2.0);
+
+    int32_t curr_rot = 0;
+    float_t rot_fix = 0.0f;
+    float_t rot_prev = vec.data()[0];
+    float_t* i_begin = vec.data() + 1;
+    float_t* i_end = vec.data() + vec.size();
+    for (float_t* i = i_begin; i != i_end; i++) {
+        float_t rot = *i;
+        if (rot < -half_pi && rot_prev > half_pi && fabsf(rot - rot_prev) > half_pi) {
+            curr_rot++;
+            rot_fix = (float_t)(M_PI * 2.0 * (double_t)curr_rot);
+        }
+        else if (rot > half_pi && rot_prev < -half_pi && fabsf(rot - rot_prev) > half_pi) {
+            curr_rot--;
+            rot_fix = (float_t)(M_PI * 2.0 * (double_t)curr_rot);
+        }
+
+        if (curr_rot)
+            *i = rot + rot_fix;
+        rot_prev = rot;
+    }
+}
+
+bool mot_write_motion(void* data, const char* path, const char* file, uint32_t hash) {
     x_pv_game* xpvgm = (x_pv_game*)data;
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -3762,7 +4027,7 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     char buf[0x200];
-    sprintf_s(buf, sizeof(buf), "PV%03d", xpvgm->pv_data[xpvgm->pv_index].pv_id);
+    sprintf_s(buf, sizeof(buf), "PV%03d", xpvgm->pv_id);
     motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
     if (!set_info)
         return true;
@@ -3789,7 +4054,7 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
     }
 
     for (auto& i : xpvgm->effchrpv_auth_3d_rob_mot_ids) {
-        char buf[0x200];
+        char buf[0x100];
         sprintf_s(buf, sizeof(buf), "PV826_OST_P%d_00", i.first + 1);
 
         int32_t motion_id = aft_mot_db->get_motion_id(buf);
@@ -3832,10 +4097,16 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
             if (elem != a2m.bone_keys.end()) {
                 x_pv_game_a3da_to_mot_keys& keys = elem->second;
 
+                if (bone->type == BONE_DATABASE_BONE_ROTATION) {
+                    fix_rotation(keys.x);
+                    fix_rotation(keys.y);
+                    fix_rotation(keys.z);
+                }
+
                 mot_key_set_data& key_set_data_x = mot_data->key_set[key_set_offset];
                 key_set_data_x.frames.clear();
                 key_set_data_x.values.clear();
-                key_set_data_x.type = mot_fit_keys_into_curve(keys.x,
+                key_set_data_x.type = mot_set::fit_keys_into_curve(keys.x,
                     key_set_data_x.frames, key_set_data_x.values);
                 key_set_data_x.keys_count = (uint16_t)key_set_data_x.frames.size();
                 key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
@@ -3843,7 +4114,7 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
                 mot_key_set_data& key_set_data_y = mot_data->key_set[key_set_offset + 1];
                 key_set_data_y.frames.clear();
                 key_set_data_y.values.clear();
-                key_set_data_y.type = mot_fit_keys_into_curve(keys.y,
+                key_set_data_y.type = mot_set::fit_keys_into_curve(keys.y,
                     key_set_data_y.frames, key_set_data_y.values);
                 key_set_data_y.keys_count = (uint16_t)key_set_data_y.frames.size();
                 key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
@@ -3851,7 +4122,7 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
                 mot_key_set_data& key_set_data_z = mot_data->key_set[key_set_offset + 2];
                 key_set_data_z.frames.clear();
                 key_set_data_z.values.clear();
-                key_set_data_z.type = mot_fit_keys_into_curve(keys.z,
+                key_set_data_z.type = mot_set::fit_keys_into_curve(keys.z,
                     key_set_data_z.frames, key_set_data_z.values);
                 key_set_data_z.keys_count = (uint16_t)key_set_data_z.frames.size();
                 key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
@@ -3861,10 +4132,14 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
             if (elem != a2m.sec_bone_keys.end()) {
                 x_pv_game_a3da_to_mot_keys& keys = elem->second;
 
+                fix_rotation(keys.x);
+                fix_rotation(keys.y);
+                fix_rotation(keys.z);
+
                 mot_key_set_data& key_set_data_x = mot_data->key_set[key_set_offset + 3];
                 key_set_data_x.frames.clear();
                 key_set_data_x.values.clear();
-                key_set_data_x.type = mot_fit_keys_into_curve(keys.x,
+                key_set_data_x.type = mot_set::fit_keys_into_curve(keys.x,
                     key_set_data_x.frames, key_set_data_x.values);
                 key_set_data_x.keys_count = (uint16_t)key_set_data_x.frames.size();
                 key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
@@ -3872,7 +4147,7 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
                 mot_key_set_data& key_set_data_y = mot_data->key_set[key_set_offset + 4];
                 key_set_data_y.frames.clear();
                 key_set_data_y.values.clear();
-                key_set_data_y.type = mot_fit_keys_into_curve(keys.y,
+                key_set_data_y.type = mot_set::fit_keys_into_curve(keys.y,
                     key_set_data_y.frames, key_set_data_y.values);
                 key_set_data_y.keys_count = (uint16_t)key_set_data_y.frames.size();
                 key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
@@ -3880,7 +4155,7 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
                 mot_key_set_data& key_set_data_z = mot_data->key_set[key_set_offset + 5];
                 key_set_data_z.frames.clear();
                 key_set_data_z.values.clear();
-                key_set_data_z.type = mot_fit_keys_into_curve(keys.z,
+                key_set_data_z.type = mot_set::fit_keys_into_curve(keys.z,
                     key_set_data_z.frames, key_set_data_z.values);
                 key_set_data_z.keys_count = (uint16_t)key_set_data_z.frames.size();
                 key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
@@ -3955,8 +4230,45 @@ mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
     return true;
 }*/
 
-void x_pv_game::Unload() {
-    /*{
+bool x_pv_game::Unload() {
+    pv_osage_manager_array_set_not_reset_true();
+    if (pv_osage_manager_array_get_disp())
+        return false;
+
+    /*if (pv_data[pv_index].pv_id == 826) {
+        for (auto& i : effchrpv_auth_3d_rob_mot_ids) {
+            rob_chara* rob_chr = rob_chara_array_get(rob_chara_ids[i.first]);
+            x_pv_game_a3da_to_mot& a2m = i.second;
+
+            bone_node* node = rob_chr->bone_data->nodes.data();
+
+            for (int32_t j = MOTION_BONE_N_HITO_L_EX; j <= MOTION_BONE_NL_OYA_C_L_WJ; j++) {
+                ::motion_bone_index motion_bone_index = (::motion_bone_index)j;
+
+                auto elem = a2m.bone_keys.find(motion_bone_index);
+                if (elem == a2m.bone_keys.end())
+                    elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
+
+                vec3& rotation = node[j - MOTION_BONE_N_HITO_L_EX + ROB_BONE_N_HITO_L_EX].exp_data.rotation;
+                elem->second.x.push_back(rotation.x);
+                elem->second.y.push_back(rotation.y);
+                elem->second.z.push_back(rotation.z);
+            }
+
+            for (int32_t j = MOTION_BONE_N_HITO_R_EX; j <= MOTION_BONE_NL_OYA_C_R_WJ; j++) {
+                ::motion_bone_index motion_bone_index = (::motion_bone_index)j;
+
+                auto elem = a2m.bone_keys.find(motion_bone_index);
+                if (elem == a2m.bone_keys.end())
+                    elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
+
+                vec3& rotation = node[j - MOTION_BONE_N_HITO_R_EX + ROB_BONE_N_HITO_R_EX].exp_data.rotation;
+                elem->second.x.push_back(rotation.x);
+                elem->second.y.push_back(rotation.y);
+                elem->second.z.push_back(rotation.z);
+            }
+        }
+
         data_struct* aft_data = &data_list[DATA_AFT];
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -3971,9 +4283,6 @@ void x_pv_game::Unload() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-        pv_expression_array_reset_motion(i);
 
     pv_param::post_process_data_clear_data();
 
@@ -4003,12 +4312,6 @@ void x_pv_game::Unload() {
     light_category.clear();
     light_category.shrink_to_fit();
 
-    /*for (uint32_t& i : objset_load)
-        object_storage_unload_set(i);*/
-
-    /*objset_load.clear();
-    objset_load.shrink_to_fit();*/
-
     for (int32_t i = 0; i < pv_count; i++)
         pv_data[i].reset();
     stage_data.reset();
@@ -4023,8 +4326,6 @@ void x_pv_game::Unload() {
     pv_data[pv_index].stage_effects.clear();
     pv_data[pv_index].stage_effects.shrink_to_fit();
     pv_data[pv_index].stage_effect_index = 0;
-
-    //pv_auth_3d_chara_count.clear();
 
     play = true;
     success = true;
@@ -4047,6 +4348,7 @@ void x_pv_game::Unload() {
 
     Glitter::glt_particle_manager->draw_all = true;
     pv_param_task::post_process_task.SetDest();
+    return true;
 }
 
 void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
@@ -4151,7 +4453,7 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
 
     for (chara_index& i : charas)
         i = CHARA_MIKU;
-    
+
     for (int32_t& i : modules)
         i = 0;
 }
@@ -4185,73 +4487,73 @@ bool XPVGameSelector::Dest() {
 
 void XPVGameSelector::Window() {
     static const char* pv_names[] = {
-        "801. Strangers",
-        "802. Ai Dee",
-        "803. Streaming Heart",
-        "804. Babylon",
-        "805. The Lost One's Weeping",
-        "806. Slow Motion",
-        "807. Tale of the Deep-sea Lily",
-        "808. Love Trial",
-        "809. Love Song",
-        "810. The First Sound",
-        "811. LOL - lots of laugh -",
-        "812. Patchwork Staccato",
-        "813. Even a Kunoichi Needs Love",
-        "814. Calc.",
-        "815. A Single Red Leaf",
-        "816. Holy Lance Explosion Boy",
-        "817. Urotander, Underhanded Rangers",
-        "818. Humorous Dream of Mrs. Pumpkin",
-        "819. Solitary Envy",
-        "820. Raspberry ＊ Monster",
-        "821. Brain Revolution Girl",
-        "822. Amazing Dolce",
-        "823. Name of the Sin",
-        "824. Satisfaction",
-        "825. Cute Medley - Idol Sounds",
-        "826. Beginning Medley - Primary Colors",
-        "827. Cool Medley - Cyber Rock Jam",
-        "828. Elegant Medley - Glossy Mixture",
-        "829. Quirky Medley - Giga-Remix",
-        "830. Ending Medley - Ultimate Exquisite Rampage",
-        "831. Sharing The World",
-        "832. Hand in Hand",
+        u8"801. Strangers",
+        u8"802. Ai Dee",
+        u8"803. Streaming Heart",
+        u8"804. Babylon",
+        u8"805. The Lost One's Weeping",
+        u8"806. Slow Motion",
+        u8"807. Tale of the Deep-sea Lily",
+        u8"808. Love Trial",
+        u8"809. Love Song",
+        u8"810. The First Sound",
+        u8"811. LOL - lots of laugh -",
+        u8"812. Patchwork Staccato",
+        u8"813. Even a Kunoichi Needs Love",
+        u8"814. Calc.",
+        u8"815. A Single Red Leaf",
+        u8"816. Holy Lance Explosion Boy",
+        u8"817. Urotander, Underhanded Rangers",
+        u8"818. Humorous Dream of Mrs. Pumpkin",
+        u8"819. Solitary Envy",
+        u8"820. Raspberry ＊ Monster",
+        u8"821. Brain Revolution Girl",
+        u8"822. Amazing Dolce",
+        u8"823. Name of the Sin",
+        u8"824. Satisfaction",
+        u8"825. Cute Medley - Idol Sounds",
+        u8"826. Beginning Medley - Primary Colors",
+        u8"827. Cool Medley - Cyber Rock Jam",
+        u8"828. Elegant Medley - Glossy Mixture",
+        u8"829. Quirky Medley - Giga-Remix",
+        u8"830. Ending Medley - Ultimate Exquisite Rampage",
+        u8"831. Sharing The World",
+        u8"832. Hand in Hand",
     };
 
     static const char* stage_names[] = {
-        "001. Nighttime Curb Stage",
-        "002. Digital Concert Stage",
-        "003. Secret Ruins Stage",
-        "004. Utopia Stage",
-        "005. Classroom Concert Stage",
-        "006. Capsule Room Stage",
-        "007. Deep Sea Stage",
-        "008. Verdict Stage",
-        "009. Sky Garden Stage",
-        "010. Musical Dawn Stage",
-        "011. Sweet Dreams Stage",
-        "012. Heart's Playroom Stage",
-        "013. Ninja Village Stage",
-        "014. Park of Promises Stage",
-        "015. Autumn Sakura Stage",
-        "016. Classy Lounge Stage",
-        "017. Secret Base Stage",
-        "018. Halloween Party Stage",
-        "019. Twilight Shrine Stage",
-        "020. Raspberry Stage",
-        "021. Cabaret Stage",
-        "022. Witch's House Stage",
-        "023. Lilies & Shadows Stage",
-        "024. Techno Club Stage",
-        "025. Cute Concert Hall",
-        "026. First Concert Hall",
-        "027. Cool Concert Hall",
-        "028. Elegant Concert Hall",
-        "029. Quirky Concert Hall",
-        "030. Ultimate Concert Hall",
-        "031. Highrise Stage",
-        "032. Mirai Concert Stage",
+        u8"001. Nighttime Curb Stage",
+        u8"002. Digital Concert Stage",
+        u8"003. Secret Ruins Stage",
+        u8"004. Utopia Stage",
+        u8"005. Classroom Concert Stage",
+        u8"006. Capsule Room Stage",
+        u8"007. Deep Sea Stage",
+        u8"008. Verdict Stage",
+        u8"009. Sky Garden Stage",
+        u8"010. Musical Dawn Stage",
+        u8"011. Sweet Dreams Stage",
+        u8"012. Heart's Playroom Stage",
+        u8"013. Ninja Village Stage",
+        u8"014. Park of Promises Stage",
+        u8"015. Autumn Sakura Stage",
+        u8"016. Classy Lounge Stage",
+        u8"017. Secret Base Stage",
+        u8"018. Halloween Party Stage",
+        u8"019. Twilight Shrine Stage",
+        u8"020. Raspberry Stage",
+        u8"021. Cabaret Stage",
+        u8"022. Witch's House Stage",
+        u8"023. Lilies & Shadows Stage",
+        u8"024. Techno Club Stage",
+        u8"025. Cute Concert Hall",
+        u8"026. First Concert Hall",
+        u8"027. Cool Concert Hall",
+        u8"028. Elegant Concert Hall",
+        u8"029. Quirky Concert Hall",
+        u8"030. Ultimate Concert Hall",
+        u8"031. Highrise Stage",
+        u8"032. Mirai Concert Stage",
     };
 
     ImGuiIO& io = ImGui::GetIO();
@@ -4262,7 +4564,7 @@ void XPVGameSelector::Window() {
 
     float_t w = 400.0f;
     float_t h = (float_t)height;
-    h = min(h, 432.0f);
+    h = min_def(h, 432.0f);
 
     extern int32_t width;
     ImGui::SetNextWindowPos({ (float_t)width - w, 0.0f }, ImGuiCond_Always);
@@ -4285,12 +4587,12 @@ void XPVGameSelector::Window() {
     }
 
     pv_id -= 801;
-    pv_id = max(pv_id, 0);
+    pv_id = max_def(pv_id, 0);
     ImGui::ColumnComboBox("PV", pv_names, 32, &pv_id, 0, false, &window_focus);
     pv_id += 801;
 
     stage_id--;
-    stage_id = max(stage_id, 0);
+    stage_id = max_def(stage_id, 0);
     ImGui::ColumnComboBox("Stage", stage_names, 32, &stage_id, 0, false, &window_focus);
     stage_id++;
 
@@ -4344,15 +4646,28 @@ void XPVGameSelector::Window() {
     ImGui::End();
 }
 
-extern void x_pv_game_init() {
+extern bool x_pv_game_init() {
     x_pv_game_ptr = new x_pv_game;
+    return true;
 }
 
-extern void x_pv_game_free() {
+extern bool x_pv_game_free() {
     if (x_pv_game_ptr) {
+        switch (x_pv_game_ptr->state_old) {
+        case 0:
+            break;
+        case 21:
+        case 22:
+            return false;
+        default:
+            x_pv_game_ptr->state_old = 21;
+            return false;
+        }
+
         delete x_pv_game_ptr;
         x_pv_game_ptr = 0;
     }
+    return true;
 }
 
 #if DOF_BAKE
@@ -4526,7 +4841,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
                 rob_chr->bone_data->disable_eye_motion = i.disable_eye_motion;
                 rob_chr->data.motion.step_data.step = i.frame_speed;
                 if (v45)
-                   pv_expression_array_set_motion(pv_data.exp_file.hash, a1->chara_id, i.motion_id);
+                   pv_expression_array_set_motion(pv_data.exp_file.hash_murmurhash, a1->chara_id, i.motion_id);
                 //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
                     sub_140122B60(a1, a1->chara_id, i.motion_index, i.dsc_time);
             }
@@ -4674,7 +4989,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             rob_chr->bone_data->disable_eye_motion = true;
             rob_chr->data.motion.step_data.step = set_motion.frame_speed;
             if (v84)
-                pv_expression_array_set_motion(pv_data.exp_file.hash, a1->chara_id, motion_id);
+                pv_expression_array_set_motion(pv_data.exp_file.hash_murmurhash, a1->chara_id, motion_id);
             //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
                 sub_140122B60(a1, a1->chara_id, motion_index, v56 ? v56->time : 0);
         }
@@ -5159,7 +5474,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        rob_chr->item_equip->wet = clamp(value, 0.0f, 1.0f);
+        rob_chr->item_equip->wet = clamp_def(value, 0.0f, 1.0f);
     } break;
     case DSC_X_LIGHT_ROT: {
 
@@ -5784,21 +6099,13 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         auth_3d* auth = auth_3d_data_get_auth_3d(a2m.auth_3d_id);
         auth_3d_object_hrc* oh = &auth->object_hrc[0];
 
-
-        if (rob_chr->data.motion.motion_id == 0xC3) {
-            data_struct* aft_data = &data_list[DATA_AFT];
-            bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-            motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
-            char buf[0x200];
-            sprintf_s(buf, sizeof(buf), "PV826_OST_P%d_00", i.first + 1);
-            int32_t motion_id = aft_mot_db->get_motion_id(buf);
-
-            rob_chr->set_motion_id(motion_id, 0.0f,
-                0.0f, false, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
-            rob_chr->set_motion_reset_data(motion_id, 0.0f);
-            rob_chr->set_motion_skin_param(motion_id, 0.0f);
-        }
+        float_t auth_frame = auth->frame;
+        bool auth_frame_changed = auth->frame_changed;
+        bool auth_paused = auth->paused;
+        auth->frame = (float_t)xpvgm->frame_float;
+        auth->frame_changed = false;
+        auth->paused = true;
+        auth->ctrl(rctx_ptr);
 
         rob_chr->set_visibility(oh->node[0].model_transform.visible);
 
@@ -5807,10 +6114,8 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         mot_key_set* key_set = mot->mot_key_data.mot.key_sets;
 
         vec3 data[2];
-        mat4 mat;
-        data[0].x = oh->node[a2m.gblctr].model_transform.translation_value.x;
+        data[0] = oh->node[a2m.gblctr].model_transform.translation_value;
         data[0].y = oh->node[a2m.n_hara].model_transform.translation_value.y;
-        data[0].z = oh->node[a2m.gblctr].model_transform.translation_value.z;
         data[1] = vec3_null;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_N_HARA_CP, key_set, data, 2);
@@ -5827,10 +6132,9 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_N_HARA, key_set, data);
 
-        mat = oh->node[a2m.j_mune_wj].model_transform.mat;
         data[0] = { 0.0f, 0.945f, 0.0f };
-        mat4_mult_vec3(&mat, &data[0], &data[1]);
-        mat4_get_translation(&mat, &data[0]);
+        mat4_mult_vec3(&oh->node[a2m.j_mune_wj].model_transform.mat, &data[0], &data[1]);
+        mat4_get_translation(&oh->node[a2m.j_mune_wj].model_transform.mat, &data[0]);
         vec3_add(data[0], data[1], data[0]);
         data[1] = vec3_null;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
@@ -5844,17 +6148,17 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_KL_KUBI, key_set, data);
 
-        data[0] = oh->node[a2m.n_kao].model_transform.rotation_value;
-        data[0].z -= (float_t)M_PI;
+        data[0] = { (float_t)(M_PI / 2.0), 0.0f, -(float_t)M_PI };
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_N_KAO, key_set, data);
 
-        mat = oh->node[a2m.j_kao_wj].model_transform.mat;
         data[0] = { 0.0f, 0.40f, 0.0f };
-        mat4_mult_vec3(&mat, &data[0], &data[1]);
-        mat4_get_translation(&mat, &data[0]);
+        mat4_mult_vec3(&oh->node[a2m.j_kao_wj].model_transform.mat, &data[0], &data[1]);
+        mat4_get_translation(&oh->node[a2m.j_kao_wj].model_transform.mat, &data[0]);
         vec3_add(data[0], data[1], data[0]);
-        data[1] = vec3_null;
+        data[1] = oh->node[a2m.j_kao_wj].model_transform.rotation_value;
+        data[1].x = -data[1].x;
+        data[1].z = -data[1].z;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_CL_KAO, key_set, data, 2);
 
@@ -5876,10 +6180,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_N_WAKI_L, key_set, data);
 
-        data[1] = oh->node[a2m.j_waki_l_wj].model_transform.rotation_value;
-        data[0].x = data[1].x;
-        data[0].y = data[1].z;
-        data[0].z = -data[1].y;
+        data[0] = oh->node[a2m.j_waki_l_wj].model_transform.rotation_value;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_KL_WAKI_L_WJ, key_set, data);
 
@@ -5900,7 +6201,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             float_t pos_middle_dist;
             vec3_length(tl_up_kata_dir, pos_middle_dist);
             if (pos_middle_dist == 0.0f) {
-                mat = oh->node[a2m.j_kata_l_wj].model_transform.mat;
+                mat4& mat = oh->node[a2m.j_kata_l_wj].model_transform.mat;
                 data[0] = { 0.0f, 0.3f, 0.0f };
                 mat4_mult_vec3(&mat, &data[0], &tl_up_kata_dir);
             }
@@ -5910,16 +6211,14 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             vec3 tl_up_kata_pos;
             vec3_add(tl_up_kata_dir, pos_j_ude_l_wj, tl_up_kata_pos);
 
-            mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
+            mat4& mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
             mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
             set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
                 MOTION_BONE_TL_UP_KATA_L, key_set, data);
         }
 
         mat4_get_translation(&oh->node[a2m.j_te_l_wj].model_transform.mat, &data[0]);
-        data[1].x = -(float_t)(M_PI / 2.0);
-        data[1].y = -(float_t)(M_PI / 2.0);
-        data[1].z = -(float_t)(M_PI / 2.0);
+        data[1] = { -(float_t)(M_PI / 2.0), -(float_t)(M_PI / 2.0), -(float_t)(M_PI / 2.0) };
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_C_KATA_L, key_set, data, 2);
 
@@ -5931,10 +6230,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_N_WAKI_R, key_set, data);
 
-        data[1] = oh->node[a2m.j_waki_l_wj].model_transform.rotation_value;
-        data[0].x = data[1].x;
-        data[0].y = data[1].z;
-        data[0].z = data[1].y;
+        data[0] = oh->node[a2m.j_waki_l_wj].model_transform.rotation_value;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_KL_WAKI_R_WJ, key_set, data);
 
@@ -5955,7 +6251,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             float_t pos_middle_dist;
             vec3_length(tl_up_kata_dir, pos_middle_dist);
             if (pos_middle_dist == 0.0f) {
-                mat = oh->node[a2m.j_kata_r_wj].model_transform.mat;
+                mat4& mat = oh->node[a2m.j_kata_r_wj].model_transform.mat;
                 data[0] = { 0.0f, 0.3f, 0.0f };
                 mat4_mult_vec3(&mat, &data[0], &tl_up_kata_dir);
             }
@@ -5965,16 +6261,14 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             vec3 tl_up_kata_pos;
             vec3_add(tl_up_kata_dir, pos_j_ude_r_wj, tl_up_kata_pos);
 
-            mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
+            mat4& mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
             mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
             set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
                 MOTION_BONE_TL_UP_KATA_R, key_set, data);
         }
 
         mat4_get_translation(&oh->node[a2m.j_te_r_wj].model_transform.mat, &data[0]);
-        data[1].x = -(float_t)(M_PI / 2.0);
-        data[1].y = (float_t)(M_PI / 2.0);
-        data[1].z = (float_t)(M_PI / 2.0);
+        data[1] = { -(float_t)(M_PI / 2.0), (float_t)(M_PI / 2.0), (float_t)(M_PI / 2.0) };
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_C_KATA_R, key_set, data, 2);
 
@@ -5983,14 +6277,30 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             MOTION_BONE_KL_TE_R_WJ, key_set, data);
 
         mat4_get_translation(&oh->node[a2m.j_asi_l_wj].model_transform.mat, &data[0]);
-        data[1] = vec3_null;
+        data[0].y -= 0.033f;
+        if (data[0].y < 0.103f)
+            data[0].y = 0.103f;
+        data[1] = oh->node[a2m.j_momo_l_wj].model_transform.rotation_value;
+        data[1].z -= (float_t)(M_PI / 2.0);
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_CL_MOMO_L, key_set, data, 2);
 
         mat4_get_translation(&oh->node[a2m.j_asi_r_wj].model_transform.mat, &data[0]);
-        data[1] = vec3_null;
+        data[0].y -= 0.033f;
+        if (data[0].y < 0.103f)
+            data[0].y = 0.103f;
+        data[1] = oh->node[a2m.j_momo_r_wj].model_transform.rotation_value;
+        data[1].z -= (float_t)(M_PI / 2.0);
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_CL_MOMO_R, key_set, data, 2);
+
+        data[0] = oh->node[a2m.j_asi_l_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_ASI_L_WJ_CO, key_set, data);
+
+        data[0] = oh->node[a2m.j_asi_r_wj].model_transform.rotation_value;
+        set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
+            MOTION_BONE_KL_ASI_R_WJ_CO, key_set, data);
 
         data[0] = { 0.0491406508f, 0.0f, 0.0f };
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
@@ -5999,6 +6309,10 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         data[0] = { 0.0f, 0.0331281610f, 0.0f };
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_N_KUBI_WJ_EX, key_set, data);
+
+        auth->frame = auth_frame;
+        auth->frame_changed = auth_frame_changed;
+        auth->paused = auth_paused;
     }
 }*/
 
@@ -6012,7 +6326,7 @@ static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t c
     if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
         return;
 
-    x_pv_play_data* playdata = &xpvgm->playdata[chara_id]; 
+    x_pv_play_data* playdata = &xpvgm->playdata[chara_id];
     playdata->motion_data.set_item.clear();
 
     int32_t pv_branch_mode = 0;

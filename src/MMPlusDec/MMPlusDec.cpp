@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/path.hpp"
-#include "../KKdLib/io/stream.hpp"
 #include "../KKdLib/aes.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include <intrin.h>
@@ -71,20 +71,19 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     aes256_init_ctx(&ctx, mmplus_key);
 
     {
-        std::vector<std::wstring> files;
-        path_get_files(&files, indir.c_str());
+        std::vector<std::wstring> files = path_get_files(indir.c_str());
 
         for (std::wstring& i : files) {
             std::wstring infile = indir + i;
             std::wstring outfile = outdir + i;
 
 
-            stream in_file;
-            stream out_file;
+            file_stream in_file;
+            file_stream out_file;
             in_file.open(infile.c_str(), L"rb");
             out_file.open(outfile.c_str(), L"wb");
 
-            if (in_file.io.stream && out_file.io.stream) {
+            if (in_file.check_not_null() && out_file.check_not_null()) {
                 printf(encrypt ? "Encrypting %ls\n" : "Decrypting %ls\n", i.c_str());
 
                 aes256_ctx_set_iv(&ctx, mmplus_iv);
@@ -124,8 +123,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
         }
     }
 
-    std::vector<std::wstring> directories;
-    path_get_directories_recursive(&directories, indir.c_str(), 0, 0);
+    std::vector<std::wstring> directories = path_get_directories_recursive(indir.c_str(), 0, 0);
     for (std::wstring& i : directories) {
         std::wstring _indir = indir + i + L'\\';
         std::wstring _outdir = outdir + i + L'\\';
@@ -134,19 +132,18 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
             && !CreateDirectoryW(_outdir.c_str(), 0))
             continue;
 
-        std::vector<std::wstring> files;
-        path_get_files(&files, _indir.c_str());
+        std::vector<std::wstring> files = path_get_files(_indir.c_str());
 
         for (std::wstring& j : files) {
             std::wstring infile = _indir + j;
             std::wstring outfile = _outdir + j;
 
-            stream in_file;
-            stream out_file;
+            file_stream in_file;
+            file_stream out_file;
             in_file.open(infile.c_str(), L"rb");
             out_file.open(outfile.c_str(), L"wb");
 
-            if (in_file.io.stream && out_file.io.stream) {
+            if (in_file.check_not_null() && out_file.check_not_null()) {
                 printf(encrypt ? "Encrypting %ls\\%ls\n" : "Decrypting %ls\\%ls\n", i.c_str(), j.c_str());
 
                 aes256_ctx_set_iv(&ctx, mmplus_iv);

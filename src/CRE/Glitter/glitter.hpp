@@ -941,7 +941,7 @@ namespace Glitter {
         void GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a);
         FogType GetFog();
         void GetValue();
-        void SetExtAnim(mat4* a2, mat4* a3, vec3* trans, bool set_flags);
+        void SetExtAnim(const mat4* a2, const mat4* a3, const vec3* trans, bool set_flags);
     };
 
     class Emitter : public Node {
@@ -1130,24 +1130,28 @@ namespace Glitter {
 
         FileWriter();
 
-        void PackCurve(f2_struct* st, Curve* c);
-        bool PackDivaList(EffectGroup* eff_group, f2_struct* st);
+        void PackCurve(f2_struct* st, Curve* c, bool big_endian);
+        bool PackDivaList(EffectGroup* eff_group, f2_struct* st, bool big_endian);
         bool PackDivaResource(EffectGroup* eff_group, f2_struct* st);
-        bool PackDivaResourceHashes(EffectGroup* eff_group, f2_struct* st);
-        bool PackEffect(f2_struct* st, Effect* eff);
-        bool PackEmitter(f2_struct* st, Emitter* emit);
-        bool PackParticle(EffectGroup* eff_group, f2_struct* st, Particle* ptcl, Effect* eff);
-        bool UnparseAnimation(f2_struct* st, Animation* anim, CurveTypeFlags flags);
-        bool UnparseCurve(f2_struct* st, Curve* c);
-        bool UnparseDivaEffect(EffectGroup* eff_group, f2_struct* st);
-        bool UnparseDivaList(EffectGroup* eff_group, f2_struct* st);
+        bool PackDivaResourceHashes(EffectGroup* eff_group, f2_struct* st, bool big_endian);
+        bool PackEffect(f2_struct* st, Effect* eff, bool big_endian);
+        bool PackEmitter(f2_struct* st, Emitter* emit, bool big_endian);
+        bool PackParticle(EffectGroup* eff_group,
+            f2_struct* st, Particle* ptcl, Effect* eff, bool big_endian);
+        bool UnparseAnimation(f2_struct* st, Animation* anim, CurveTypeFlags flags, bool big_endian);
+        bool UnparseCurve(f2_struct* st, Curve* c, bool big_endian);
+        bool UnparseDivaEffect(EffectGroup* eff_group, f2_struct* st, bool big_endian);
+        bool UnparseDivaList(EffectGroup* eff_group, f2_struct* st, bool big_endian);
         bool UnparseDivaResource(EffectGroup* eff_group, f2_struct* st);
-        bool UnparseEffect(EffectGroup* eff_group, f2_struct* st, Effect* eff);
-        void UnparseEffectGroup(EffectGroup* eff_group, f2_struct* st);
-        bool UnparseEmitter(EffectGroup* eff_group, f2_struct* st, Emitter* emit, Effect* eff);
-        bool UnparseParticle(EffectGroup* eff_group, f2_struct* st, Particle* ptcl, Effect* eff);
+        bool UnparseEffect(EffectGroup* eff_group, f2_struct* st, Effect* eff, bool big_endian);
+        void UnparseEffectGroup(EffectGroup* eff_group, f2_struct* st, bool big_endian);
+        bool UnparseEmitter(EffectGroup* eff_group,
+            f2_struct* st, Emitter* emit, Effect* eff, bool big_endian);
+        bool UnparseParticle(EffectGroup* eff_group,
+            f2_struct* st, Particle* ptcl, Effect* eff, bool big_endian);
 
-        static void Write(GLT, EffectGroup* eff_group, const char* path, const char* file, bool compress);
+        static void Write(GLT, EffectGroup* eff_group,
+            const char* path, const char* file, bool compress, bool big_endian = false);
     };
 
     struct LocusHistory {
@@ -1155,6 +1159,8 @@ namespace Glitter {
             vec4 color;
             vec3 translation;
             float_t scale;
+
+            Data();
         };
 
         std::vector<Data> data;
@@ -1234,6 +1240,8 @@ namespace Glitter {
             int32_t unk0;
             int32_t unk1;
             Particle::Mesh mesh;
+
+            Data();
         };
 
         Particle::Data data;

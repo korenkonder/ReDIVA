@@ -4,7 +4,7 @@
 */
 
 #include "dds.hpp"
-#include "io/stream.hpp"
+#include "io/file_stream.hpp"
 #include "str_utils.hpp"
 
 #pragma pack(push, 1)
@@ -154,7 +154,7 @@ dds::dds() : format(), width(), height(), mipmaps_count(), has_cube_map() {
 
 dds::~dds() {
     for (void*& i : data) {
-        free(i);
+        free_def(i);
         i = 0;
     }
 }
@@ -165,7 +165,7 @@ void dds::read( const char* path) {
 
     wchar_t* path_buf = utf8_to_utf16(path);
     read(path_buf);
-    free(path_buf);
+    free_def(path_buf);
 }
 
 void dds::read(const wchar_t* path) {
@@ -181,9 +181,9 @@ void dds::read(const wchar_t* path) {
     data.shrink_to_fit();
 
     wchar_t* path_dds = str_utils_add(path, L".dds");
-    stream s;
+    file_stream s;
     s.open(path_dds, L"rb");
-    if (s.io.stream) {
+    if (s.check_not_null()) {
         if (s.read_uint32_t_reverse_endianness(true) != DDS_MAGIC)
             goto End;
 
@@ -268,10 +268,10 @@ void dds::read(const wchar_t* path) {
 
         do
             for (uint32_t i = 0; i < mipmaps_count; i++) {
-                uint32_t width = max(this->width >> i, 1);
-                uint32_t height = max(this->height >> i, 1);
+                uint32_t width = max_def(this->width >> i, 1);
+                uint32_t height = max_def(this->height >> i, 1);
                 uint32_t size = txp::get_size(format,
-                    max(this->width >> i, 1), max(this->height >> i, 1));
+                    max_def(this->width >> i, 1), max_def(this->height >> i, 1));
                 void* data = force_malloc(size);
                 s.read(data, size);
                 if (reverse)
@@ -283,7 +283,7 @@ void dds::read(const wchar_t* path) {
         while (has_cube_map && data.size() / mipmaps_count < 6);
     }
 End:
-    free(path_dds);
+    free_def(path_dds);
 }
 
 void dds::write(const char* path) {
@@ -292,7 +292,7 @@ void dds::write(const char* path) {
 
     wchar_t* path_buf = utf8_to_utf16(path);
     write( path_buf);
-    free(path_buf);
+    free_def(path_buf);
 }
 
 void dds::write(const wchar_t* path) {
@@ -300,9 +300,9 @@ void dds::write(const wchar_t* path) {
         return;
 
     wchar_t* path_dds = str_utils_add(path, L".dds");
-    stream s;
+    file_stream s;
     s.open(path_dds, L"wb");
-    if (s.io.stream) {
+    if (s.check_not_null()) {
         DDS_HEADER dds_h;
         memset(&dds_h, 0, sizeof(DDS_HEADER));
         dds_h.size = sizeof(DDS_HEADER);
@@ -373,17 +373,17 @@ void dds::write(const wchar_t* path) {
         do
             for (uint32_t i = 0; i < mipmaps_count; i++) {
                 uint32_t size = txp::get_size(format,
-                    max(width >> i, 1), max(height >> i, 1));
+                    max_def(width >> i, 1), max_def(height >> i, 1));
                 void* data = force_malloc(size);
                 memcpy(data, this->data[index], size);
                 dds_reverse_rgb(format, size, (uint8_t*)data);
                 s.write(data, size);
-                free(data);
+                free_def(data);
                 index++;
             }
         while (has_cube_map && index / mipmaps_count < 6);
     }
-    free(path_dds);
+    free_def(path_dds);
 }
 
 static void dds_reverse_rgb(txp_format format, int64_t size, uint8_t* data) {

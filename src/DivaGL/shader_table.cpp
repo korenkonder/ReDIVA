@@ -197,8 +197,8 @@ int32_t FASTCALL shader_bind(shader* shader, shader_sub_enum name) {
         int32_t* fp_unival_max = subshader->fp_unival_max;
         for (size_t i = 0; i < use_unis_count; i++) {
             int32_t unival = uniform->array[shader->use_uniform[i]];
-            unival_vp += unival_vp_curr * min(unival, vp_unival_max[i]);
-            unival_fp += unival_fp_curr * min(unival, fp_unival_max[i]);
+            unival_vp += unival_vp_curr * min_def(unival, vp_unival_max[i]);
+            unival_fp += unival_fp_curr * min_def(unival, fp_unival_max[i]);
             unival_vp_curr *= vp_unival_max[i] + 1;
             unival_fp_curr *= fp_unival_max[i] + 1;
         }

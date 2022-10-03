@@ -4,8 +4,9 @@
 */
 
 #include "ibl.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../str_utils.hpp"
 
 static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s);
@@ -24,27 +25,27 @@ light_param_ibl::~light_param_ibl() {
 void light_param_ibl::read(const char* path) {
     char* path_ibl = str_utils_add(path, ".ibl");
     if (path_check_file_exists(path_ibl)) {
-        stream s;
+        file_stream s;
         s.open(path_ibl, "rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             light_param_ibl_read_inner(this, s);
     }
-    free(path_ibl);
+    free_def(path_ibl);
 }
 
 void light_param_ibl::read(const wchar_t* path) {
     wchar_t* path_ibl = str_utils_add(path, L".ibl");
     if (path_check_file_exists(path_ibl)) {
-        stream s;
+        file_stream s;
         s.open(path_ibl, L"rb");
-        if (s.io.stream)
+        if (s.check_not_null())
             light_param_ibl_read_inner(this, s);
     }
-    free(path_ibl);
+    free_def(path_ibl);
 }
 
 void light_param_ibl::read(const void* data, size_t size) {
-    stream s;
+    memory_stream s;
     s.open(data, size);
     light_param_ibl_read_inner(this, s);
 }
@@ -220,12 +221,12 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
             goto End;
     }
 
-    free(data);
+    free_def(data);
     ibl->ready = true;
     return;
 
 End:
-    free(data);
+    free_def(data);
 }
 
 static const char* light_param_ibl_read_line(char* buf, int32_t size, const char* src) {
@@ -284,8 +285,8 @@ static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* 
         for (size_t j = 0; j < data_size_2; j++)
             data[j] = float_to_half(temp[j]);
     }
-    free(data_f32[0]);
-    free(data_f32[1]);
+    free_def(data_f32[0]);
+    free_def(data_f32[1]);
 }
 
 static void light_param_ibl_specular_generate_mipmap(float_t* src, float_t* dst, size_t size) {

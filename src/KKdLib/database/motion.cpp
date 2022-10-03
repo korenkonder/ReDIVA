@@ -4,8 +4,9 @@
 */
 
 #include "motion.hpp"
+#include "../io/file_stream.hpp"
+#include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
-#include "../io/stream.hpp"
 #include "../farc.hpp"
 #include "../hash.hpp"
 #include "../str_utils.hpp"
@@ -32,12 +33,12 @@ void motion_database_file::read(const char* path) {
 
         farc_file* ff = f.read_file("mot_db.bin");
         if (ff) {
-            stream s;
+            memory_stream s;
             s.open(ff->data, ff->size);
             motion_database_file_read_inner(this, s);
         }
     }
-    free(path_farc);
+    free_def(path_farc);
 }
 
 void motion_database_file::read(const wchar_t* path) {
@@ -51,19 +52,19 @@ void motion_database_file::read(const wchar_t* path) {
 
         farc_file* ff = f.read_file("mot_db.bin");
         if (ff) {
-            stream s;
+            memory_stream s;
             s.open(ff->data, ff->size);
             motion_database_file_read_inner(this, s);
         }
     }
-    free(path_farc);
+    free_def(path_farc);
 }
 
 void motion_database_file::read(const void* data, size_t size) {
     if (!data || !size)
         return;
 
-    stream s;
+    memory_stream s;
     s.open(data, size);
     motion_database_file_read_inner(this, s);
 }
@@ -77,7 +78,7 @@ void motion_database_file::write(const char* path) {
     f.add_file("mot_db.bin");
     farc_file* ff = &f.files.back();
 
-    stream s;
+    memory_stream s;
     s.open();
     motion_database_file_write_inner(this, s);
     s.copy(&ff->data, &ff->size);
@@ -94,7 +95,7 @@ void motion_database_file::write(const wchar_t* path) {
     f.add_file("mot_db.bin");
     farc_file* ff = &f.files.back();
 
-    stream s;
+    memory_stream s;
     s.open();
     motion_database_file_write_inner(this, s);
     s.copy(&ff->data, &ff->size);
@@ -106,7 +107,7 @@ void motion_database_file::write(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
 
-    stream s;
+    memory_stream s;
     s.open();
     motion_database_file_write_inner(this, s);
     s.copy(data, size);
