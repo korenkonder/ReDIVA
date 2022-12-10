@@ -106,30 +106,24 @@ namespace Glitter {
         float_t delta_time = delta_frame * (float_t)(1.0 / 60.0);
         float_t diff_time = time - rend_elem->rebound_time - delta_time;
 
-        vec3 acceleration;
-        vec3_mult_scalar(rend_elem->acceleration, delta_time * (delta_time * 0.5f + diff_time), acceleration);
-        float_t speed = rend_elem->deceleration * delta_time * (delta_time * 0.5f - diff_time) + rend_elem->speed;
-        if (speed >= 0.01f) {
-            vec3 direction;
-            vec3_mult_scalar(rend_elem->direction, speed * delta_time, direction);
-            vec3_add(acceleration, direction, acceleration);
-        }
+        vec3 acceleration = rend_elem->acceleration * (delta_time * (delta_time * 0.5f + diff_time));
+        float_t speed = rend_elem->deceleration * (delta_time * (delta_time * 0.5f - diff_time)) + rend_elem->speed;
+        if (speed >= 0.01f)
+            acceleration += rend_elem->direction * (speed * delta_time);
 
-        vec3_add(rend_elem->translation, acceleration, rend_elem->translation);
-        vec3_add(rend_elem->base_translation, acceleration, rend_elem->base_translation);
+        rend_elem->translation += acceleration;
+        rend_elem->base_translation += acceleration;
 
         if (data.data.flags & PARTICLE_REBOUND_PLANE
             && rend_elem->translation_prev.y > data.data.rebound_plane_y
             && rend_elem->translation.y <= data.data.rebound_plane_y) {
-            float_t reflection_coeff = random->F2GetFloat(GLT_VAL,
-                data.data.reflection_coeff_random) + data.data.reflection_coeff;
+            float_t reflection_coeff = (random->F2GetFloat(GLT_VAL,
+                data.data.reflection_coeff_random) + data.data.reflection_coeff) * 60.0f;
             rend_elem->rebound_time = time;
 
-            vec3 direction;
-            vec3_sub(rend_elem->translation, rend_elem->translation_prev, direction);
-            vec3_mult_scalar(direction, reflection_coeff * 60.0f, direction);
+            vec3 direction = rend_elem->translation - rend_elem->translation_prev;
             const vec3 reverse_y_dir = { 0.0f, -0.0f, 0.0f };
-            vec3_xor(direction, reverse_y_dir, rend_elem->direction);
+            rend_elem->direction = (direction * reflection_coeff) ^ reverse_y_dir;
 
             rend_elem->translation.y = rend_elem->translation_prev.y;
         }
@@ -184,7 +178,7 @@ namespace Glitter {
         rend_elem->random = random->F2GetInt(GLT_VAL, Random::F2GetMax(GLT_VAL));
         rend_elem->frame = 0.0f;
         rend_elem->rebound_time = 0.0f;
-        rend_elem->uv = vec2_null;
+        rend_elem->uv = 0.0f;
         rend_elem->uv_index = ptcl_inst_data->data.uv_index;
 
         rend_elem->fade_in_frames = 0.0f;
@@ -208,13 +202,15 @@ namespace Glitter {
             rend_elem->rotation_add.x = 0.0f;
             rend_elem->rotation_add.y = 0.0f;
         }
+        rend_elem->rot_z_cos = 1.0f;
+        rend_elem->rot_z_sin = 0.0f;
         rend_elem->rotation.z = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.rotation_random.z)
             + ptcl_inst_data->data.rotation.z;
         rend_elem->rotation_add.z = random->F2GetFloat(GLT_VAL,
             ptcl_inst_data->data.rotation_add_random.z) + ptcl_inst_data->data.rotation_add.z;
-        rend_elem->uv_scroll = vec2_null;
-        rend_elem->uv_scroll_2nd = vec2_null;
-        rend_elem->scale = vec3_identity;
+        rend_elem->uv_scroll = 0.0f;
+        rend_elem->uv_scroll_2nd = 0.0f;
+        rend_elem->scale = 1.0f;
         rend_elem->scale_all = 1.0f;
         rend_elem->frame_step_uv = (float_t)ptcl_inst_data->data.frame_step_uv;
 
@@ -250,20 +246,14 @@ namespace Glitter {
             || ptcl_inst_data->data.draw_type == DIRECTION_EMITTER_ROTATION) {
             switch (emit_inst->data.type) {
             case EMITTER_CYLINDER:
-                if (emit_inst->data.cylinder.direction != EMITTER_EMISSION_DIRECTION_NONE) {
-                    float_t length;
-                    vec3_length(rend_elem->direction, length);
-                    copy_mat = length <= 0.000001f;
-                }
+                if (emit_inst->data.cylinder.direction != EMITTER_EMISSION_DIRECTION_NONE)
+                    copy_mat = vec3::length(rend_elem->direction) <= 0.000001f;
                 else
                     copy_mat = true;
                 break;
             case EMITTER_SPHERE:
-                if (emit_inst->data.sphere.direction != EMITTER_EMISSION_DIRECTION_NONE) {
-                    float_t length;
-                    vec3_length(rend_elem->direction, length);
-                    copy_mat = length <= 0.000001f;
-                }
+                if (emit_inst->data.sphere.direction != EMITTER_EMISSION_DIRECTION_NONE)
+                    copy_mat = vec3::length(rend_elem->direction) <= 0.000001f;
                 else
                     copy_mat = true;
                 break;
@@ -322,6 +312,15 @@ namespace Glitter {
             rend_elem->disp = false;
     }
 
+    bool F2ParticleInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
+        if (data.effect)
+            return data.effect->GetExtAnimScale(ext_anim_scale, some_scale);
+        else if (data.parent && data.parent->data.effect)
+            return data.parent->data.effect->GetExtAnimScale(ext_anim_scale, some_scale);
+        else
+            return false;
+    }
+
     void F2ParticleInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
         if (data.effect)
             data.effect->GetExtColor(r, g, b, a);
@@ -332,7 +331,7 @@ namespace Glitter {
     bool F2ParticleInst::GetValue(GLT, RenderElement* rend_elem, float_t frame, Random* random) {
         float_t value = 0.0f;
         bool has_translation = false;
-        vec3 translation = vec3_null;
+        vec3 translation = 0.0f;
 
         Animation* anim = &particle->animation;
         size_t length = anim->curves.size();
@@ -402,7 +401,7 @@ namespace Glitter {
         }
 
         if (data.data.flags & PARTICLE_ROTATE_BY_EMITTER || has_translation) {
-            vec3_add(translation, rend_elem->base_translation, translation);
+            translation += rend_elem->base_translation;
             if (data.data.flags & PARTICLE_ROTATE_BY_EMITTER)
                 mat4_mult_vec3_trans(&rend_elem->mat, &translation, &translation);
             rend_elem->translation = translation;
@@ -561,32 +560,25 @@ namespace Glitter {
         float_t speed = rend_elem->speed * delta_frame;
         diff_time = max_def(diff_time, 0.0f) * (float_t)(1.0 / 60.0);
 
-        vec3 acceleration;
-        vec3_mult_scalar(rend_elem->acceleration,
-            (diff_time + (float_t)(1.0 / 7200.0)) * delta_frame, acceleration);
-        if (speed > 0.0f) {
-            vec3 direction;
-            vec3_mult_scalar(rend_elem->direction, speed, direction);
-            vec3_add(acceleration, direction, acceleration);
-        }
+        vec3 acceleration = rend_elem->acceleration * ((diff_time + (float_t)(1.0 / 7200.0)) * delta_frame);
+        if (speed > 0.0f)
+            acceleration += rend_elem->direction * speed;
 
-        vec3_add(rend_elem->translation, acceleration, rend_elem->translation);
-        vec3_add(rend_elem->base_translation, acceleration, rend_elem->base_translation);
+        rend_elem->translation += acceleration;
+        rend_elem->base_translation += acceleration;
 
         if (data.data.flags & PARTICLE_REBOUND_PLANE
             && rend_elem->translation_prev.y > data.data.rebound_plane_y
             && rend_elem->translation.y <= data.data.rebound_plane_y) {
-            float_t reflection_coeff = random->XGetFloat(
-                data.data.reflection_coeff_random) + data.data.reflection_coeff;
+            float_t reflection_coeff = (random->XGetFloat(
+                data.data.reflection_coeff_random) + data.data.reflection_coeff) / rend_elem->speed;
             rend_elem->rebound_time = time;
 
-            vec3 direction;
-            vec3_sub(rend_elem->translation, rend_elem->translation_prev, direction);
+            vec3 direction = rend_elem->translation - rend_elem->translation_prev;
             if (delta_frame > 0.0f)
-                vec3_div_scalar(direction, delta_frame, direction);
-            vec3_mult_scalar(direction, reflection_coeff / rend_elem->speed, direction);
+                direction /= delta_frame;
             const vec3 reverse_y_dir = { 0.0f, -0.0f, 0.0f };
-            vec3_xor(direction, reverse_y_dir, rend_elem->direction);
+            rend_elem->direction = (direction * reflection_coeff) ^ reverse_y_dir;
 
             rend_elem->translation.y = rend_elem->translation_prev.y;
         }
@@ -642,7 +634,7 @@ namespace Glitter {
         rend_elem->random = random->GetValue();
         rend_elem->frame = 0.0f;
         rend_elem->rebound_time = 0.0f;
-        rend_elem->uv = vec2_null;
+        rend_elem->uv = 0.0f;
         rend_elem->uv_index = ptcl_inst_data->data.uv_index;
 
         rend_elem->step = step;
@@ -681,13 +673,15 @@ namespace Glitter {
             rend_elem->rotation_add.x = 0.0f;
             rend_elem->rotation_add.y = 0.0f;
         }
+        rend_elem->rot_z_cos = 1.0f;
+        rend_elem->rot_z_sin = 0.0f;
         rend_elem->rotation.z = random->XGetFloat(ptcl_inst_data->data.rotation_random.z)
             + ptcl_inst_data->data.rotation.z;
         rend_elem->rotation_add.z = random->XGetFloat(ptcl_inst_data->data.rotation_add_random.z)
             + ptcl_inst_data->data.rotation_add.z;
-        rend_elem->uv_scroll = vec2_null;
-        rend_elem->uv_scroll_2nd = vec2_null;
-        rend_elem->scale = vec3_identity;
+        rend_elem->uv_scroll = 0.0f;
+        rend_elem->uv_scroll_2nd = 0.0f;
+        rend_elem->scale = 1.0f;
         rend_elem->scale_all = 1.0f;
         rend_elem->frame_step_uv = (float_t)ptcl_inst_data->data.frame_step_uv;
 
@@ -725,20 +719,14 @@ namespace Glitter {
             || ptcl_inst_data->data.draw_type == DIRECTION_EMITTER_ROTATION) {
             switch (emit_inst->data.type) {
             case EMITTER_CYLINDER:
-                if (emit_inst->data.cylinder.direction != EMITTER_EMISSION_DIRECTION_NONE) {
-                    float_t length;
-                    vec3_length(rend_elem->direction, length);
-                    copy_mat = length <= 0.000001f;
-                }
+                if (emit_inst->data.cylinder.direction != EMITTER_EMISSION_DIRECTION_NONE)
+                    copy_mat = vec3::length(rend_elem->direction) <= 0.000001f;
                 else
                     copy_mat = true;
                 break;
             case EMITTER_SPHERE:
-                if (emit_inst->data.sphere.direction != EMITTER_EMISSION_DIRECTION_NONE) {
-                    float_t length;
-                    vec3_length(rend_elem->direction, length);
-                    copy_mat = length <= 0.000001f;
-                }
+                if (emit_inst->data.sphere.direction != EMITTER_EMISSION_DIRECTION_NONE)
+                    copy_mat = vec3::length(rend_elem->direction) <= 0.000001f;
                 else
                     copy_mat = true;
                 break;
@@ -806,6 +794,15 @@ namespace Glitter {
             rend_elem->disp = false;
     }
 
+    bool XParticleInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
+        if (data.effect)
+            return data.effect->GetExtAnimScale(ext_anim_scale, some_scale);
+        else if (data.parent && data.parent->data.effect)
+            return data.parent->data.effect->GetExtAnimScale(ext_anim_scale, some_scale);
+        else
+            return false;
+    }
+
     void XParticleInst::GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a) {
         if (data.effect)
             data.effect->GetExtColor(r, g, b, a);
@@ -815,7 +812,7 @@ namespace Glitter {
 
     bool XParticleInst::GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale) {
         float_t value = 0.0f;
-        vec3 translation = vec3_null;
+        vec3 translation = 0.0f;
         bool has_translation = false;
 
         Animation* anim = &particle->animation;
@@ -910,7 +907,7 @@ namespace Glitter {
         }
 
         if (data.data.flags & PARTICLE_ROTATE_BY_EMITTER || has_translation) {
-            vec3_add(translation, rend_elem->base_translation, translation);
+            translation += rend_elem->base_translation;
             if (data.data.flags & PARTICLE_ROTATE_BY_EMITTER)
                 mat4_mult_vec3_trans(&rend_elem->mat, &translation, &translation);
             rend_elem->translation = translation;

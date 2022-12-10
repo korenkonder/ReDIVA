@@ -11,6 +11,7 @@
 #include "draw_task.hpp"
 #include "light_param.hpp"
 #include "render_context.hpp"
+#include "task_effect.hpp"
 
 namespace stage_detail {
     static void TaskStageModern_CtrlInner(stage_detail::TaskStageModern* a1);
@@ -23,7 +24,8 @@ namespace stage_detail {
         task_stage_modern_info* stg_info);
     static void TaskStageModern_GetLoadedStageInfos(stage_detail::TaskStageModern* a1,
         std::vector<task_stage_modern_info>* vec);
-    static bool TaskStageModern_Load(stage_detail::TaskStageModern* a1, const char* name);
+    static void TaskStageModern_Load(stage_detail::TaskStageModern* a1);
+    static bool TaskStageModern_LoadTask(stage_detail::TaskStageModern* a1, const char* name);
     static void TaskStageModern_Reset(stage_detail::TaskStageModern* a1);
     static void TaskStageModern_SetStage(stage_detail::TaskStageModern* a1, task_stage_modern_info stg_info);
     static void TaskStageModern_TaskWindAppend(stage_detail::TaskStageModern* a1);
@@ -63,6 +65,10 @@ bool task_stage_modern_check_not_loaded() {
     return task_stage_modern->load_stage_hashes.size() || task_stage_modern->state != 6;
 }
 
+bool task_stage_modern_check_task_ready() {
+    return app::TaskWork::CheckTaskReady(task_stage_modern);
+}
+
 void task_stage_modern_current_set_effect_display(bool value) {
     task_stage_modern_info stg_info;
     task_stage_modern_get_current_stage_info(&stg_info);
@@ -84,11 +90,11 @@ void task_stage_modern_current_set_sky(bool value) {
         task_stage_modern_set_sky(&stg_info, value);
 }
 
-void task_stage_modern_current_set_stage_display(bool value) {
+void task_stage_modern_current_set_stage_display(bool value, bool effect_enable) {
     task_stage_modern_info stg_info;
     task_stage_modern_get_current_stage_info(&stg_info);
     if (task_stage_modern_has_stage_info(&stg_info))
-        task_stage_modern_set_stage_display(&stg_info, value);
+        task_stage_modern_set_stage_display(&stg_info, value, effect_enable);
 }
 
 void task_stage_modern_disp_shadow() {
@@ -130,9 +136,9 @@ bool task_stage_modern_has_stage_info(task_stage_modern_info* stg_info) {
     return task_stage_modern_get_stage(*stg_info) != 0;
 }
 
-bool task_stage_modern_load(const char* name) {
+bool task_stage_modern_load_task(const char* name) {
     task_stage_is_modern = true;
-    return stage_detail::TaskStageModern_Load(task_stage_modern, name);
+    return stage_detail::TaskStageModern_LoadTask(task_stage_modern, name);
 }
 
 void task_stage_modern_set_data(void* data,
@@ -169,10 +175,13 @@ void task_stage_modern_set_stage(task_stage_modern_info* stg_info) {
     stage_detail::TaskStageModern_SetStage(task_stage_modern, *stg_info);
 }
 
-void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value) {
+void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value, bool effect_enable) {
     stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg)
+    if (stg) {
         stg->stage_display = value;
+        if (effect_enable)
+            task_effect_parent_set_enable(value);
+    }
 }
 
 void task_stage_modern_set_stage_hash(uint32_t stage_hash, stage_data_modern* stg_data) {
@@ -187,15 +196,15 @@ void task_stage_modern_set_stage_hash(uint32_t stage_hash, stage_data_modern* st
         stages_data.begin(), stages_data.end());
 }
 
-void task_stage_modern_set_stage_hashes(std::vector<uint32_t>* stage_hashes,
-    std::vector<stage_data_modern*>* load_stage_data) {
+void task_stage_modern_set_stage_hashes(std::vector<uint32_t>& stage_hashes,
+    std::vector<stage_data_modern*>& load_stage_data) {
     task_stage_modern->load_stage_hashes.insert(task_stage_modern->load_stage_hashes.end(),
-        stage_hashes->begin(), stage_hashes->end());
+        stage_hashes.begin(), stage_hashes.end());
     task_stage_modern->load_stages_data.insert(task_stage_modern->load_stages_data.end(),
-        load_stage_data->begin(), load_stage_data->end());
+        load_stage_data.begin(), load_stage_data.end());
 }
 
-bool task_stage_modern_unload() {
+bool task_stage_modern_unload_task() {
     return task_stage_modern->SetDest();
 }
 
@@ -222,51 +231,10 @@ static void stage_detail::TaskStageModern_CtrlInner(stage_detail::TaskStageModer
             return;
         }
 
-    if (a1->state == 3) {
-        //sub_140229F30("rom/STGTST_COLI.000.bin");
-        light_param_data_storage_data_load_stages(&a1->stage_hashes, a1->stage_data);
-        a1->state = 4;
-    }
-    else if (a1->state == 4 && !light_param_data_storage_data_load_file()/* && !sub_14022A380()*/) {
-        bool v5 = 0;
-        for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
-            if (a1->stages[i].hash != -1 && a1->stages[i].hash != hash_murmurhash_empty
-                && a1->stages[i].state != 6) {
-                v5 = 1;
-                break;
-            }
-
-        if (!v5) {
-            //sub_140343B20(&a1->stage_hashes);
-            //task_stage_modern_current_set_effect_display(a1->stage_display);
-            a1->state = 5;
-            //sub_14064DC10();
-        }
-    }
-    else if (a1->state == 5/* && !sub_1403446E0()*/) {
-        std::vector<task_stage_modern_info> vec;
-        stage_detail::TaskStageModern_GetLoadedStageInfos(a1, &vec);
-        if (vec.size()) {
-            stage_detail::TaskStageModern_SetStage(a1, vec[0]);
-
-            stage_modern* s = stage_detail::TaskStageModern_GetStage(a1, vec[0]);
-            for (uint32_t& i : s->stage_data->auth_3d_ids) {
-                int32_t id = auth_3d_data_load_hash(i, a1->data, a1->obj_db, a1->tex_db);
-                if (id == -1)
-                    continue;
-
-                auth_3d_data_read_file_modern(&id);
-                auth_3d_data_set_enable(&id, true);
-                auth_3d_data_set_paused(&id, false);
-                auth_3d_data_set_frame_rate(&id, 0);
-                s->auth_3d_ids.push_back(id);
-            }
-        }
-        a1->state = 6;
-    }
-    else if (a1->state >= 7 && a1->state <= 9) {
+    if (a1->state >= 3 && a1->state <= 5)
+        stage_detail::TaskStageModern_Load(a1);
+    else if (a1->state >= 7 && a1->state <= 9)
         stage_detail::TaskStageModern_Unload(a1);
-    }
 }
 
 static void stage_detail::TaskStageModern_DispShadow(stage_detail::TaskStageModern* a1) {
@@ -317,7 +285,46 @@ static void stage_detail::TaskStageModern_GetLoadedStageInfos(stage_detail::Task
         }
 }
 
-static bool stage_detail::TaskStageModern_Load(stage_detail::TaskStageModern* a1, const char* name) {
+static void stage_detail::TaskStageModern_Load(stage_detail::TaskStageModern* a1) {
+    switch (a1->state) {
+    case 3: {
+        //sub_140229F30("rom/STGTST_COLI.000.bin");
+        light_param_data_storage_data_load_stages(a1->stage_hashes, a1->stage_data);
+        a1->state = 4;
+    } break;
+    case 4: {
+        if (light_param_data_storage_data_load_file()/* || sub_14022A380()*/)
+            break;
+
+        bool wait_load = false;
+        for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
+            if (a1->stages[i].hash != -1 && a1->stages[i].hash != hash_murmurhash_empty
+                && a1->stages[i].state != 6) {
+                wait_load = true;
+                break;
+            }
+
+        if (!wait_load) {
+            task_effect_parent_set_stage_hashes(a1->stage_hashes);
+            task_effect_parent_set_enable(a1->stage_display);
+            a1->state = 5;
+            //sub_14064DC10();
+        }
+    } break;
+    case 5: {
+        if (task_effect_parent_load())
+            break;
+
+        std::vector<task_stage_modern_info> vec;
+        stage_detail::TaskStageModern_GetLoadedStageInfos(a1, &vec);
+        if (vec.size())
+            stage_detail::TaskStageModern_SetStage(a1, vec[0]);
+        a1->state = 6;
+    } break;
+    }
+}
+
+static bool stage_detail::TaskStageModern_LoadTask(stage_detail::TaskStageModern* a1, const char* name) {
     if (app::TaskWork::AppendTask(a1, name)) {
         stage_detail::TaskStageModern_Reset(a1);
         stage_detail::TaskStageModern_TaskWindAppend(a1);
@@ -378,11 +385,11 @@ static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* 
     }
 
     if (a1->state == 7) {
-        //sub_140343C30();
+        task_effect_parent_dest();
         a1->state = 8;
     }
     else if (a1->state == 8) {
-        //if (!sub_140344700())
+        if (!task_effect_parent_unload())
             a1->state = 9;
     }
     else if (a1->state == 9) {
@@ -463,11 +470,11 @@ static void stage_modern_disp(stage_modern* s) {
     mat4 mat;
     mat4_rotate_y(s->rot_y, &mat);
 
-    if (s->stage_data->object_ground.not_null() && s->ground)
+    if (s->stage_data->object_ground.not_null_modern() && s->ground)
         draw_task_add_draw_object_by_object_info(rctx_ptr,
             &mat, s->stage_data->object_ground, 0, 0, 0, 0, 0, 0);
 
-    if (s->stage_data->object_reflect.not_null()) {
+    if (s->stage_data->object_reflect.not_null_modern()) {
         object_data->set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
         draw_task_add_draw_object_by_object_info(rctx_ptr,
@@ -475,7 +482,7 @@ static void stage_modern_disp(stage_modern* s) {
         object_data->set_draw_task_flags();
     }
 
-    if (s->stage_data->object_refract.not_null()) {
+    if (s->stage_data->object_refract.not_null_modern()) {
         object_data->set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
         draw_task_add_draw_object_by_object_info(rctx_ptr,
@@ -483,7 +490,7 @@ static void stage_modern_disp(stage_modern* s) {
         object_data->set_draw_task_flags();
     }
 
-    if (s->stage_data->object_sky.not_null() && s->sky) {
+    if (s->stage_data->object_sky.not_null_modern() && s->sky) {
         mat4 t = s->mat;
         mat4_mult(&t, &mat, &t);
         draw_task_add_draw_object_by_object_info(rctx_ptr,
@@ -497,7 +504,7 @@ static void stage_modern_disp_shadow(stage_modern* s) {
 
     mat4 mat;
     mat4_rotate_y(s->rot_y, &mat);
-    if (s->stage_data->object_shadow.not_null())
+    if (s->stage_data->object_shadow.not_null_modern())
         stage_modern_disp_shadow_object(s->stage_data->object_shadow, &mat);
 }
 
@@ -538,7 +545,7 @@ static void stage_modern_free(stage_modern* s) {
         rctx_ptr->post_process.movie_texture_free(
             texture_storage_get_texture(s->stage_data->movie_texture));
 
-    draw_pass->shadow = true;
+    draw_pass->set_shadow_true();
     //rctx_ptr->post_process.field_14 = 0;
     //rctx_ptr->post_process.field_ED8 = 1;
     npr_spec_color.w = 1.0f;
@@ -625,19 +632,19 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
     if (s) {
         //flt_14CC925C0 = 0.0;
         //flt_140CB3704 = -1001.0;
-        draw_pass->enable[DRAW_PASS_REFLECT] = false;
-        draw_pass->reflect = false;
-        draw_pass->enable[DRAW_PASS_REFRACT] = false;
-        draw_pass->refract = true;
-        draw_pass->field_31D = 0;
-        draw_pass->field_31E = 0;
+        draw_pass->set_enable(DRAW_PASS_REFLECT, false);
+        draw_pass->set_reflect(false);
+        draw_pass->set_enable(DRAW_PASS_REFRACT, false);
+        draw_pass->set_refract(true);
+        draw_pass->field_31D = false;
+        draw_pass->field_31E = false;
         draw_pass->field_31F = false;
-        draw_pass->field_320 = 0;
-        draw_pass->shadow = true;
+        draw_pass->field_320 = false;
+        draw_pass->set_shadow_true();
         //rctx_ptr->post_process.field_14 = 0;
         //rctx_ptr->post_process.field_ED8 = 1;
         npr_spec_color.w = 1.0f;
-        draw_pass->npr_param = 0;
+        draw_pass->set_npr_param(0);
         light_chara_ambient = false;
     }
 
@@ -645,23 +652,17 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
         //if (stru_14CC92630.pv_id == 421)
             //draw_pass->field_31F = true;
         //sub_14064DC10();
-        //sub_140344160(other->index);
+        task_effect_parent_set_current_stage_hash(other->hash);
     }
-    //else
-        //sub_140344160(-1);
+    else
+        task_effect_parent_set_current_stage_hash(hash_murmurhash_empty);
 
     if (other)
         light_param_data_storage_data_set_stage(other->hash);
     else
         light_param_data_storage_data_set_default_light_param();
 
-    if (s)
-        for (int32_t& i : s->auth_3d_ids)
-            auth_3d_data_set_req_frame(&i, 0.0f);
-
-    if (other)
-        for (int32_t& i : other->auth_3d_ids)
-            auth_3d_data_set_req_frame(&i, 0.0f);
+    task_effect_parent_set_frame(0);
 
     //sub_140344180(0);
 
@@ -669,7 +670,7 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
             rob_chara* rob_chr = rob_chara_array_get(i);
             //if (rob_chr)
-                //sub_1405559D0(rob_chr, &other->index);
+                //rob_chara_set_stage_data_ring(rob_chr, &other->index);
         }
 }
 

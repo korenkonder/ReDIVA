@@ -267,8 +267,8 @@ inline quat quat::mult_min_max(const quat& left, const quat& min, const quat& ma
     quat w;
     xt = _mm_loadu_ps((const float*)&left);
     yt = _mm_xor_ps(_mm_loadu_ps((const float*)&(min)), vec4_neg);
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((const float*)&(vec4_null)))),
-        _mm_and_ps(_mm_loadu_ps((const float*)&(max)), _mm_cmpge_ps(xt, _mm_loadu_ps((const float*)&(vec4_null)))));
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4::load_xmm(0.0f))),
+        _mm_and_ps(_mm_loadu_ps((const float*)&(max)), _mm_cmpge_ps(xt, vec4::load_xmm(0.0f))));
     _mm_storeu_ps((float*)&w, _mm_mul_ps(xt, wt));
     return w;
 }
@@ -285,8 +285,8 @@ inline quat quat::mult_min_max(const quat& left, const float_t min, const float_
     zt = _mm_set_ss(max);
     zt = _mm_shuffle_ps(zt, zt, 0);
     yt = _mm_xor_ps(yt, vec4_neg);
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((const float*)&(vec4_null)))),
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((const float*)&(vec4_null)))));
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4::load_xmm(0.0f))),
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4::load_xmm(0.0f))));
     _mm_storeu_ps((float*)&w, _mm_mul_ps(xt, wt));
     return w;
 }
@@ -298,8 +298,8 @@ inline quat quat::div_min_max(const quat& left, const quat& min, const quat& max
     quat w;
     xt = _mm_loadu_ps((const float*)&left);
     yt = _mm_xor_ps(_mm_loadu_ps((const float*)&(min)), vec4_neg);
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((const float*)&(vec4_null)))),
-        _mm_and_ps(_mm_loadu_ps((const float*)&(max)), _mm_cmpge_ps(xt, _mm_loadu_ps((const float*)&(vec4_null)))));
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4::load_xmm(0.0f))),
+        _mm_and_ps(_mm_loadu_ps((const float*)&(max)), _mm_cmpge_ps(xt, vec4::load_xmm(0.0f))));
     _mm_storeu_ps((float*)&w, _mm_div_ps(xt, wt));
     return w;
 }
@@ -316,8 +316,8 @@ inline quat quat::div_min_max(const quat& left, const float_t min, const float_t
     zt = _mm_set_ss(max);
     zt = _mm_shuffle_ps(zt, zt, 0);
     yt = _mm_xor_ps(yt, vec4_neg);
-    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, _mm_loadu_ps((const float*)&(vec4_null)))),
-        _mm_and_ps(zt, _mm_cmpge_ps(xt, _mm_loadu_ps((const float*)&(vec4_null)))));
+    wt = _mm_or_ps(_mm_and_ps(yt, _mm_cmplt_ps(xt, vec4::load_xmm(0.0f))),
+        _mm_and_ps(zt, _mm_cmpge_ps(xt, vec4::load_xmm(0.0f))));
     _mm_storeu_ps((float*)&w, _mm_div_ps(xt, wt));
     return w;
 }

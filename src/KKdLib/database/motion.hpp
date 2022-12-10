@@ -52,7 +52,7 @@ struct motion_database_file {
     std::vector<motion_set_info_file> motion_set;
 
     motion_database_file();
-    virtual ~motion_database_file();
+    ~motion_database_file();
 
     void read(const char* path);
     void read(const wchar_t* path);
@@ -69,7 +69,7 @@ struct motion_database {
     std::vector<motion_set_info> motion_set;
 
     motion_database();
-    virtual ~motion_database();
+    ~motion_database();
 
     void add(motion_database_file* mot_db_file);
 

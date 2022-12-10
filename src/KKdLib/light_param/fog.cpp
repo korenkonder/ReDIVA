@@ -92,7 +92,9 @@ bool light_param_fog::load_file(void* data, const char* path, const char* file, 
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     light_param_fog* fog = (light_param_fog*)data;
     fog->read(s.c_str());
@@ -105,16 +107,12 @@ density(), has_linear(), linear_start(), linear_end(), has_color(), color() {
 
 }
 
-light_param_fog_group::~light_param_fog_group() {
-
-}
-
 static void light_param_fog_read_inner(light_param_fog* fog, stream& s) {
     char* data = force_malloc_s(char, s.length + 1);
     s.read(data, s.length);
     data[s.length] = 0;
 
-    char buf[0x100];
+    char buf[0x200];
     const char* d = data;
 
     int32_t group_id = -1;
@@ -187,7 +185,7 @@ End:
 }
 
 static void light_param_fog_write_inner(light_param_fog* fog, stream& s) {
-    char buf[0x100];
+    char buf[0x200];
 
     for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++) {
         light_param_fog_group* group = &fog->group[i];

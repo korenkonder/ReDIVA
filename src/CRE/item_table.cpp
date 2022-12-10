@@ -60,7 +60,9 @@ bool item_table_array_load_file(void* data, const char* path, const char* file, 
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     return item_table_array_read((data_struct*)data, s.c_str());
 }

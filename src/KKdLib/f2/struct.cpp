@@ -220,8 +220,7 @@ static void f2_struct_write_inner(stream& s, f2_struct* st, uint32_t depth, bool
 
 static void f2_struct_write_pof(stream& s, pof* pof, uint32_t depth, bool shift_x) {
     size_t len = pof->length(shift_x);
-    f2_header h;
-    memset(&h, 0, sizeof(f2_header));
+    f2_header h = {};
     h.signature = shift_x ? reverse_endianness_uint32_t('POF1') : reverse_endianness_uint32_t('POF0');
     h.length = 0x20;
     h.depth = depth;
@@ -233,8 +232,7 @@ static void f2_struct_write_pof(stream& s, pof* pof, uint32_t depth, bool shift_
 
 static void f2_struct_write_enrs(stream& s, enrs* enrs, uint32_t depth) {
     size_t len = enrs->length();
-    f2_header h;
-    memset(&h, 0, sizeof(f2_header));
+    f2_header h = {};
     h.signature = reverse_endianness_uint32_t('ENRS');
     h.length = 0x20;
     h.depth = depth;

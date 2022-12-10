@@ -39,8 +39,17 @@ struct farc_file {
     farc_flags flags;
     bool data_changed;
 
-    farc_file();
-    ~farc_file();
+    inline farc_file() : offset(), size(), size_compressed(),
+        data(), data_compressed(), flags(), data_changed() {
+
+    }
+
+    inline ~farc_file() {
+        if (data)
+            free(data);
+        if (data_compressed)
+            free(data_compressed);
+    }
 };
 
 struct farc {
@@ -56,11 +65,12 @@ struct farc {
     farc();
     virtual ~farc();
 
-    void add_file(const char* name = 0);
-    void add_file(const wchar_t* name);
+    farc_file* add_file(const char* name);
+    farc_file* add_file(const wchar_t* name);
     const char* get_file_name(uint32_t hash);
     size_t get_file_size(const char* name);
     size_t get_file_size(const wchar_t* name);
+    size_t get_file_size(uint32_t hash);
     bool has_file(const char* name);
     bool has_file(const wchar_t* name);
     bool has_file(uint32_t hash);

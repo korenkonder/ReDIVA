@@ -113,7 +113,7 @@ static void sub_14047C750(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
 static void sub_14047C770(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, float_t step, bool a5);
 static void sub_14047D620(RobOsage* rob_osg, float_t step);
 static void sub_14047ECA0(RobOsage* rob_osg, float_t step);
-static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* a3, bool a4);
+static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* parent_scale, bool a4);
 static void sub_140480260(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, float_t step, bool v5);
 static void sub_140482100(struc_476* a1, opd_blend_data* a2, struc_477* a3);
 static void sub_140482DF0(struc_477* dst, struc_477* src0, struc_477* src1, float_t blend);
@@ -201,7 +201,7 @@ void ExNodeBlock::Field_58() {
     field_59 = false;
 }
 
-void ExNodeBlock::InitData(bone_node* bone_node, ex_node_type type,
+void ExNodeBlock::InitData(bone_node* bone_node, ExNodeType type,
     const char* name, rob_chara_item_equip_object* itm_eq_obj) {
     bone_node_ptr = bone_node;
     this->type = type;
@@ -324,17 +324,6 @@ void RobOsageNodeDataNormalRef::GetMat() {
     }
 }
 
-skin_param_hinge::skin_param_hinge() {
-    ymin = -90.0f;
-    ymax = 90.0f;
-    zmin = -90.0f;
-    zmax = 90.0f;
-}
-
-skin_param_hinge::~skin_param_hinge() {
-
-}
-
 void skin_param_hinge::limit() {
     ymin = max_def(ymin, -179.0f) * DEG_TO_RAD_FLOAT;
     ymax = min_def(ymax, 179.0f) * DEG_TO_RAD_FLOAT;
@@ -342,12 +331,9 @@ void skin_param_hinge::limit() {
     zmax = min_def(zmax, 179.0f) * DEG_TO_RAD_FLOAT;
 }
 
-skin_param_osage_node::skin_param_osage_node() : coli_r(0.0f), weight(1.0f), inertial_cancel(0.0f) {
+skin_param_osage_node::skin_param_osage_node() : coli_r(), inertial_cancel() {
+    weight = 1.0f;
     hinge.limit();
-}
-
-skin_param_osage_node::~skin_param_osage_node() {
-
 }
 
 RobOsageNodeResetData::RobOsageNodeResetData() : length() {
@@ -400,23 +386,23 @@ RobOsageNode::~RobOsageNode() {
 
 void RobOsageNode::Reset() {
     length = 0.0f;
-    trans = vec3_null;
-    trans_orig = vec3_null;
-    trans_diff = vec3_null;
-    field_28 = vec3_null;
+    trans = 0.0f;
+    trans_orig = 0.0f;
+    trans_diff = 0.0f;
+    field_28 = 0.0f;
     child_length = 0.0f;
     bone_node_ptr = 0;
     bone_node_mat = 0;
     sibling_node = 0;
     max_distance = 0.0f;
-    field_94 = vec3_null;
-    reset_data.trans = vec3_null;
-    reset_data.trans_diff = vec3_null;
-    reset_data.rotation = vec3_null;
+    field_94 = 0.0f;
+    reset_data.trans = 0.0f;
+    reset_data.trans_diff = 0.0f;
+    reset_data.rotation = 0.0f;
     reset_data.length = 0.0f;
     field_C8 = 0.0f;
     field_CC = 1.0f;
-    external_force = vec3_null;
+    external_force = 0.0f;
     force = 1.0f;
     data.Reset();
     data_ptr = &data;
@@ -460,31 +446,13 @@ skin_param_osage_root::~skin_param_osage_root() {
 
 }
 
-skin_param::skin_param() : friction(1.0f), wind_afc(), air_res(1.0f), rot(), init_rot(),
-coli_type(), stiffness(), move_cancel(-0.01f), coli_r(), force(), force_gain(), colli_tgt_osg() {
-    hinge.limit();
+skin_param::skin_param() : friction(), wind_afc(), air_res(), rot(), init_rot(),
+coli_type(), stiffness(), move_cancel(), coli_r(), force(), force_gain(), colli_tgt_osg() {
+    reset();
 }
 
 skin_param::~skin_param() {
 
-}
-
-void skin_param::reset() {
-    coli.clear();
-    friction = 1.0f;
-    wind_afc = 0.0f;
-    air_res = 1.0f;
-    rot = vec3_null;
-    init_rot = vec3_null;
-    coli_type = 0;
-    stiffness = 0.0f;
-    move_cancel = -0.01f;
-    coli_r = 0.0f;
-    hinge = skin_param_hinge();
-    hinge.limit();
-    force = 0.0f;
-    force_gain = 0.0f;
-    colli_tgt_osg = 0;
 }
 
 osage_coli::osage_coli() : type(), radius(), bone0_pos(), bone1_pos(),
@@ -528,9 +496,9 @@ void osage_coli::ring_set(osage_coli* coli,
     if (!vec_skp_root_coli.size()) {
         coli->type = (skin_param_osage_root_coli_type)0;
         coli->radius = 0.0f;
-        coli->bone0_pos = vec3_null;
-        coli->bone1_pos = vec3_null;
-        coli->bone_pos_diff = vec3_null;
+        coli->bone0_pos = 0.0f;
+        coli->bone1_pos = 0.0f;
+        coli->bone_pos_diff = 0.0f;
         coli->bone_pos_diff_length = 0.0f;
         coli->bone_pos_diff_length_squared = 0.0f;
         coli->field_34 = 1.0f;
@@ -637,10 +605,10 @@ void CLOTH::Reset() {
     root_count = 0;
     nodes_count = 0;
     nodes.clear();
-    wind_direction = vec3_null;
+    wind_direction = 0.0f;
     field_44 = 0.0f;
     set_external_force = false;
-    external_force = vec3_null;
+    external_force = 0.0f;
     skin_param.reset();
     skin_param_ptr = &skin_param;
 }
@@ -762,7 +730,7 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
             mesh[i].submesh_array[j].attrib.m.cloth = 1;
             v27.attrib.m.cloth = 0;
             v27.bounding_sphere.radius = 1000.0f;
-            v27.axis_aligned_bounding_box.center = vec3_null;
+            v27.axis_aligned_bounding_box.center = 0.0f;
             v27.axis_aligned_bounding_box.size = { 1000.0f, 1000.0f, 1000.0f };
         }
         mesh[i].submesh_array = submesh.arr;
@@ -770,14 +738,14 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
     }
 
     this->index_buffer[0] = index_buffer[mesh_name_index];
-    if (!vertex_buffer[0].load(mesh[0]))
+    if (!vertex_buffer[0].load(mesh[0], true))
         return;
 
     this->index_buffer[1] = {};
     if (cls_data->backface_mesh_name && backface_mesh_name_index != -1)
         this->index_buffer[1] = index_buffer[backface_mesh_name_index];
 
-    if (cls_data->backface_mesh_name && !vertex_buffer[1].load(mesh[1]))
+    if (cls_data->backface_mesh_name && !vertex_buffer[1].load(mesh[1], true))
         return;
 
     field_8 = (((field_8 ^ (4 * a7)) & 0x04) ^ field_8) | 0x03;
@@ -819,14 +787,20 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
         v55.trans_orig = root[i].trans;
     }
 
-    uint16_t* mesh_indices = cls_data->mesh_indices;
+    uint16_t* mesh_index_array = cls_data->mesh_index_array;
 
     obj_mesh* mesh = object_storage_get_obj_mesh(itm_eq_obj->obj_info, cls_data->mesh_name);
-    if (mesh && mesh->vertex_format
+    obj_vertex_format vertex_format = (obj_vertex_format)0;
+    obj_vertex_data* vertex_array = 0;
+    if (mesh) {
+        vertex_format = mesh->vertex_format;
+        vertex_array = mesh->vertex_array;
+    }
+
+    if (mesh && vertex_format
         & (OBJ_VERTEX_TEXCOORD0 | OBJ_VERTEX_TANGENT | OBJ_VERTEX_NORMAL | OBJ_VERTEX_POSITION)) {
-        obj_vertex_data* vertex = mesh->vertex;
         for (size_t i = 0; i < root_count; ++i)
-            this->root.data()[i].tangent = vertex[mesh_indices[i]].tangent;
+            this->root.data()[i].tangent = vertex_array[mesh_index_array[i]].tangent;
     }
 
     for (size_t i = 1; i < nodes_count; i++)
@@ -858,8 +832,8 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
                 flags |= 0x08;
             v72.flags = flags;
 
-            if (mesh && mesh->vertex_format & OBJ_VERTEX_TEXCOORD0)
-                v72.texcoord = mesh->vertex[mesh_indices[i * root_count + j]].texcoord0;
+            if (mesh && vertex_format & OBJ_VERTEX_TEXCOORD0)
+                v72.texcoord = vertex_array[mesh_index_array[i * root_count + j]].texcoord0;
         }
 
     Init();
@@ -869,8 +843,8 @@ void RobCloth::InitDataParent(obj_skin_block_cloth* cls_data,
     rob_chara_item_equip_object* itm_eq_obj, bone_database* bone_data) {
     ResetData();
     this->cls_data = cls_data;
-    InitData(cls_data->root_count, cls_data->nodes_count, cls_data->root,
-        cls_data->nodes, cls_data->mats, cls_data->field_14, itm_eq_obj, bone_data);
+    InitData(cls_data->num_root, cls_data->num_node, cls_data->root_array,
+        cls_data->node_array, cls_data->mat_array, cls_data->field_14, itm_eq_obj, bone_data);
 }
 
 float_t* RobCloth::LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count) {
@@ -900,7 +874,7 @@ void RobCloth::LoadSkinParam(void* kv, const char* name, bone_database* bone_dat
 
 void RobCloth::ResetExtrenalForce() {
     set_external_force = false;
-    external_force = vec3_null;
+    external_force = 0.0f;
 }
 
 void RobCloth::SetForceAirRes(float_t force, float_t force_gain, float_t air_res) {
@@ -951,8 +925,7 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
             CLOTHNode& root_node = nodes.data()[j];
             vec3 v26 = root_node.trans;
             mat4 mat = root.data()[j].field_98;
-            mat4_translate_mult(&mat, root_node.trans_orig.x,
-                root_node.trans_orig.y, root_node.trans_orig.z, &mat);
+            mat4_translate_mult(&mat, &root_node.trans_orig, &mat);
 
             CLOTHNode* v29 = &nodes.data()[j + root_count];
 
@@ -992,7 +965,7 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
                 vec3 v85;
                 mat4_mult_vec3_inv_trans(&mat, &v57, &v85);
 
-                vec3 rotation = vec3_null;
+                vec3 rotation = 0.0f;
                 int32_t yz_order = 0;
                 sub_140482FF0(mat, v85, 0, &rotation, yz_order);
 
@@ -1013,8 +986,7 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
     for (size_t i = 0; i < root_count; i++) {
         CLOTHNode& root_node = nodes.data()[i];
         mat4 mat = root.data()[0].field_98;
-        mat4_translate_mult(&mat, root_node.trans_orig.x,
-            root_node.trans_orig.y, root_node.trans_orig.z, &mat);
+        mat4_translate_mult(&mat, &root_node.trans_orig, &mat);
 
         CLOTHNode* v50 = &nodes.data()[i + root_count];
 
@@ -1068,13 +1040,13 @@ void RobCloth::UpdateDisp() {
         obj_mesh* backface_mesh = object_storage_get_obj_mesh(itm_eq_obj->obj_info, cls_data->backface_mesh_name);
         if (cls_data->backface_mesh_name) {
             UpdateVertexBuffer(mesh, &vertex_buffer[0], nodes.data(),
-                1.0f, cls_data->mesh_indices_count, cls_data->mesh_indices, false);
+                1.0f, cls_data->num_mesh_index, cls_data->mesh_index_array, false);
             UpdateVertexBuffer(backface_mesh, &vertex_buffer[1], nodes.data(),
-                -1.0f, cls_data->backface_mesh_indices_count, cls_data->backface_mesh_indices, false);
+                -1.0f, cls_data->num_backface_mesh_index, cls_data->backface_mesh_index_array, false);
         }
         else
             UpdateVertexBuffer(mesh, &vertex_buffer[0], nodes.data(),
-                1.0, cls_data->backface_mesh_indices_count, cls_data->mesh_indices, true);
+                1.0, cls_data->num_mesh_index, cls_data->mesh_index_array, true);
     }
 }
 
@@ -1120,11 +1092,21 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
         return;
 
     vertex_buffer->cycle_index();
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer->get_buffer());
-    size_t data = (size_t)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-    if (!data) {
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        return;
+    size_t data;
+    if (GLAD_GL_VERSION_4_5) {
+        data = (size_t)glMapNamedBuffer(vertex_buffer->get_buffer(), GL_WRITE_ONLY);
+        if (!data) {
+            glUnmapNamedBuffer(vertex_buffer->get_buffer());
+            return;
+        }
+    }
+    else {
+        gl_state_bind_array_buffer(vertex_buffer->get_buffer());
+        data = (size_t)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        if (!data) {
+            gl_state_bind_array_buffer(0);
+            return;
+        }
     }
 
     if (double_sided)
@@ -1139,7 +1121,7 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
                     CLOTHNode* node = &nodes[*indices];
 
                     *(vec3*)data = node->trans;
-                    vec3_mult_scalar(node->normal, facing, *(vec3*)(data + 0x0C));
+                    *(vec3*)(data + 0x0C) = node->normal * facing;
                     *(vec3*)(data + 0x18) = node->tangent;
                     *(float_t*)(data + 0x24) = node->tangent_sign;
 
@@ -1155,7 +1137,7 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
                     CLOTHNode* node = &nodes[*indices];
 
                     *(vec3*)data = node->trans;
-                    vec3_mult_scalar(node->normal, facing, *(vec3*)(data + 0x0C));
+                    *(vec3*)(data + 0x0C) = node->normal * facing;
 
                     data += mesh->size_vertex;
                 }
@@ -1172,15 +1154,14 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
 
                     *(vec3*)data = node->trans;
 
-                    vec3 normal;
-                    vec3_mult_scalar(node->normal, 32727.0f * facing, normal);
+                    vec3 normal = node->normal * (32727.0f * facing);
                     vec3_to_vec3i16(normal, *(vec3i16*)(data + 0x0C));
                     *(int16_t*)(data + 0x12) = 0;
 
                     vec4 tangent;
                     *(vec3*)&tangent = node->tangent;
                     tangent.w = node->tangent_sign;
-                    vec4_mult_scalar(tangent, 32727.0f, tangent);
+                    tangent *= 32727.0f;
                     vec4_to_vec4i16(tangent, *(vec4i16*)(data + 0x14));
 
                     data += mesh->size_vertex;
@@ -1196,8 +1177,7 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
 
                     *(vec3*)data = node->trans;
 
-                    vec3 normal;
-                    vec3_mult_scalar(node->normal, 32727.0f * facing, normal);
+                    vec3 normal = node->normal * (32727.0f * facing);
                     vec3_to_vec3i16(normal, *(vec3i16*)(data + 0x0C));
                     *(int16_t*)(data + 0x12) = 0;
 
@@ -1209,8 +1189,12 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
             }
     }
 
-    glUnmapBuffer(GL_ARRAY_BUFFER);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    if (GLAD_GL_VERSION_4_5)
+        glUnmapNamedBuffer(vertex_buffer->get_buffer());
+    else {
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        gl_state_bind_array_buffer(0);
+    }
 }
 
 ExClothBlock::ExClothBlock() {
@@ -1388,7 +1372,7 @@ RobOsageNode* RobOsage::GetNode(size_t index) {
 void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
     bone_node* ex_data_bone_nodes, obj_skin* skin) {
     Reset();
-    exp_data.set_position_rotation(osg_data->base.position, osg_data->base.rotation);
+    exp_data.set_position_rotation(osg_data->node.position, osg_data->node.rotation);
     nodes.clear();
     nodes.resize(osg_data->count + 1ULL);
 
@@ -1425,35 +1409,34 @@ void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg
     *node.bone_node_ptr->ex_data_mat = mat4_identity;
 
     if (osg_data->count) {
-        obj_skin_osage_node* v23 = osg_data->nodes;
+        obj_skin_osage_node* node_array = osg_data->node_array;
         size_t v24 = 0;
         RobOsageNode* v26 = &nodes.data()[1];
         for (size_t i = 0; i < osg_data->count; i++) {
-            vec3 v27 = vec3_null;
-            if (v23)
-                v27 = v23[i].rotation;
+            vec3 v27 = 0.0f;
+            if (node_array)
+                v27 = node_array[i].rotation;
 
             mat4 mat;
-            mat4_rotate(v27.x, v27.y, v27.z, &mat);
+            mat4_rotate(&v27, &mat);
 
             vec3 v49;
-            v49 = vec3_null;
+            v49 = 0.0f;
             v49.x = v26[i].length;
             mat4_mult_vec3(&mat, &v49, &v26[i].field_94);
         }
     }
 
     if (osg_data->count) {
-        obj_skin_osage_node* v23 = osg_data->nodes;
         RobOsageNode* v26 = &nodes.data()[1];
         size_t v33 = 0;
         for (uint32_t i = 0; i < osg_data->count; i++) {
             v26[i].mat = mat4_null;
 
-            obj_skin_bone* v36 = skin->bones;
-            for (uint32_t j = 0; j < skin->bones_count; j++, v36++)
-                if (v36->id == osg_nodes->name_index) {
-                    mat4_inverse_normalized(&skin->bones[j].inv_bind_pose_mat, &v26[i].mat);
+            obj_skin_bone* bone = skin->bone_array;
+            for (uint32_t j = 0; j < skin->num_bone; j++, bone++)
+                if (bone->id == osg_nodes->name_index) {
+                    mat4_inverse_normalized(&bone->inv_bind_pose_mat, &v26[i].mat);
                     break;
                 }
 
@@ -1507,7 +1490,7 @@ void RobOsage::LoadSkinParam(void* kv, const char* name,
 void RobOsage::Reset() {
     nodes.clear();
     node.Reset();
-    wind_direction = vec3_null;
+    wind_direction = 0.0f;
     field_1EB4 = 0.0f;
     yz_order = 0;
     field_2A0 = true;
@@ -1525,14 +1508,14 @@ void RobOsage::Reset() {
     field_2A4 = 0.0f;
     field_2A1 = false;
     set_external_force = false;
-    external_force = vec3_null;
+    external_force = 0.0f;
     parent_mat_ptr = 0;
     parent_mat = mat4_null;
 }
 
 void RobOsage::ResetExtrenalForce() {
     set_external_force = false;
-    external_force = vec3_null;
+    external_force = 0.0f;
 }
 
 void RobOsage::SetAirRes(float_t air_res) {
@@ -1590,7 +1573,7 @@ void RobOsage::SetNodesExternalForce(vec3* external_force, float_t strength) {
     if (external_force)
         v4 = *external_force;
     else
-        v4 = vec3_null;
+        v4 = 0.0f;
 
     size_t exf = osage_setting.exf;
     size_t v8 = 0;
@@ -1598,18 +1581,18 @@ void RobOsage::SetNodesExternalForce(vec3* external_force, float_t strength) {
         float_t strength4 = strength * strength * strength * strength;
         v8 = ((exf - 4) / 4 + 1) * 4;
         for (size_t v10 = v8 / 4; v10; v10--)
-            vec3_mult_scalar(v4, strength4, v4);
+            v4 *= strength4;
     }
 
     if (v8 < exf)
         for (size_t v12 = exf - v8; v12; v12--)
-            vec3_mult_scalar(v4, strength, v4);
+            v4 *= strength;
 
     RobOsageNode* i_begin = nodes.data() + 1;
     RobOsageNode* i_end = nodes.data() + nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++) {
         i->external_force = v4;
-        vec3_mult_scalar(v4, strength, v4);
+        v4 *= strength;
     }
 }
 
@@ -1690,7 +1673,7 @@ void RobOsage::SetOsagePlayData(mat4* parent_mat,
             vec3 v86;
             mat4_mult_vec3_inv_trans(&v87, &v82, &v86);
 
-            vec3 rotation = vec3_null;
+            vec3 rotation = 0.0f;
             sub_140482FF0(v87, v86, 0, &rotation, yz_order);
             mat4_set_translation(&v87, &v82);
 
@@ -1723,7 +1706,7 @@ void RobOsage::SetOsagePlayData(mat4* parent_mat,
         *j->bone_node_ptr->ex_data_mat = v85;
         if (j->bone_node_mat) {
             mat4 mat = v85;
-            mat4_scale_rot(&mat, parent_scale.x, parent_scale.y, parent_scale.z, &mat);
+            mat4_scale_rot(&mat, &parent_scale, &mat);
             *j->bone_node_mat = mat;
         }
         mat4_translate_mult(&v85, j->field_1B0.field_0.length, 0.0f, 0.0f, &v85);
@@ -1736,7 +1719,7 @@ void RobOsage::SetOsagePlayData(mat4* parent_mat,
         mat4_translate_mult(&v87, node.length * parent_scale.x, 0.0f, 0.0f, &v87);
         *node.bone_node_ptr->ex_data_mat = v87;
 
-        mat4_scale_rot(&v87, parent_scale.x, parent_scale.y, parent_scale.z, &v87);
+        mat4_scale_rot(&v87, &parent_scale, &v87);
         *node.bone_node_mat = v87;
         node.bone_node_ptr->exp_data.parent_scale = parent_scale;
     }
@@ -1868,8 +1851,8 @@ void ExOsageBlock::Field_20() {
 
     mat4 mat = *parent_bone_node->ex_data_mat;
     if (scale.x != 1.0f || scale.y != 1.0f || scale.z != 1.0f) {
-        vec3_div(vec3_identity, scale, scale);
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+        vec3_div(1.0f, scale, scale);
+        mat4_scale_rot(&mat, &scale, &mat);
     }
     SetWindDirection();
     rob.ColiSet(mats);
@@ -2020,9 +2003,9 @@ void ExConstraintBlock::Init() {
 void ExConstraintBlock::Field_10() {
     if (bone_node_ptr) {
         bone_node_expression_data* node_exp_data = &bone_node_ptr->exp_data;
-        node_exp_data->position = cns_data->base.position;
-        node_exp_data->rotation = cns_data->base.rotation;
-        node_exp_data->scale = cns_data->base.scale;
+        node_exp_data->position = cns_data->node.position;
+        node_exp_data->rotation = cns_data->node.rotation;
+        node_exp_data->scale = cns_data->node.scale;
     }
     field_59 = false;
 }
@@ -2086,26 +2069,27 @@ void ExConstraintBlock::Calc() {
     vec3_mult(parent_bone_node->exp_data.parent_scale, node->exp_data.position, pos);
 
     mat4 mat;
-    mat4_translate_mult(parent_bone_node->ex_data_mat, pos.x, pos.y, pos.z, &mat);
+    mat4_translate_mult(parent_bone_node->ex_data_mat, &pos, &mat);
 
     switch (constraint_type) {
     case OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION: {
+        obj_skin_block_constraint_orientation* orientation = cns_data->orientation;
+
         vec3 trans;
         mat4_get_translation(&mat, &trans);
 
         mat3 rot;
         mat3_from_mat4(source_node_bone_node->mat, &rot);
         mat3_normalize_rotation(&rot, &rot);
-
-        vec3 offset = cns_data->orientation.offset;
-        mat3_rotate_mult(&rot, offset.x, offset.y, offset.z, &rot);
-
+        mat3_rotate_mult(&rot, &orientation->offset, &rot);
         mat4_from_mat3(&rot, node->mat);
         mat4_set_translation(node->mat, &trans);
     } break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION: {
-        vec3 align_axis = cns_data->direction.align_axis;
-        vec3 target_offset = cns_data->direction.target_offset;
+        obj_skin_block_constraint_direction* direction = cns_data->direction;
+
+        vec3 align_axis = direction->align_axis;
+        vec3 target_offset = direction->target_offset;
         mat4_mult_vec3_trans(source_node_bone_node->mat, &target_offset, &target_offset);
         mat4_mult_vec3_inv_trans(&mat, &target_offset, &target_offset);
         float_t target_offset_length;
@@ -2116,7 +2100,7 @@ void ExConstraintBlock::Calc() {
         mat4 v59;
         sub_1401EB410(&v59, &align_axis, &target_offset);
         if (direction_up_vector_bone_node) {
-            vec3 affected_axis = cns_data->direction.up_vector.affected_axis;
+            vec3 affected_axis = direction->up_vector.affected_axis;
             mat4 v56;
             mat4_mult(&v59, &mat, &v56);
             mat4_mult_vec3(&v56, &affected_axis, &affected_axis);
@@ -2157,9 +2141,11 @@ void ExConstraintBlock::Calc() {
         mat4_mult(&v59, &mat, node->mat);
     } break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_POSITION: {
-        vec3 constraining_offset = cns_data->position.constraining_object.offset;
-        vec3 constrained_offset = cns_data->position.constrained_object.offset;
-        if (cns_data->position.constraining_object.affected_by_orientation)
+        obj_skin_block_constraint_position* position = cns_data->position;
+
+        vec3 constraining_offset = position->constraining_object.offset;
+        vec3 constrained_offset = position->constrained_object.offset;
+        if (position->constraining_object.affected_by_orientation)
             mat4_mult_vec3(source_node_bone_node->mat, &constraining_offset, &constraining_offset);
 
         vec3 source_node_trans;
@@ -2172,15 +2158,14 @@ void ExConstraintBlock::Calc() {
             mat4_mult_vec3_inv_trans(&mat, &up_vector_trans, &up_vector_trans);
 
             mat4 v26;
-            sub_1401EB410(&v26, &cns_data->position.up_vector.affected_axis, &up_vector_trans);
+            sub_1401EB410(&v26, &position->up_vector.affected_axis, &up_vector_trans);
             mat4_mult(&v26, &mat, &mat);
         }
-        if (cns_data->position.constrained_object.affected_by_orientation)
+        if (position->constrained_object.affected_by_orientation)
             mat4_mult_vec3(&mat, &constrained_offset, &constrained_offset);
 
         mat4 constrained_offset_mat;
-        mat4_translate(constrained_offset.x, constrained_offset.y,
-            constrained_offset.z, &constrained_offset_mat);
+        mat4_translate(&constrained_offset, &constrained_offset_mat);
         mat4_mult(&mat, &constrained_offset_mat, node->mat);
     } break;
     case OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE:
@@ -2209,7 +2194,7 @@ void ExConstraintBlock::DataSet() {
     if (fabsf(parent_scale.z) > 0.000001f)
         exp_data->position.z /= parent_scale.z;
     *bone_node_ptr->ex_data_mat = *bone_node_ptr->mat;
-    mat4_scale_rot(bone_node_ptr->mat, parent_scale.x, parent_scale.y, parent_scale.z, bone_node_ptr->mat);
+    mat4_scale_rot(bone_node_ptr->mat, &parent_scale, bone_node_ptr->mat);
     vec3_mult(exp_data->scale, parent_scale, exp_data->parent_scale);
 }
 
@@ -2228,15 +2213,15 @@ void ExConstraintBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     const char* up_vector_name;
     if (type == OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION) {
         constraint_type = OBJ_SKIN_BLOCK_CONSTRAINT_DIRECTION;
-        up_vector_name = cns_data->direction.up_vector.name;
+        up_vector_name = cns_data->direction->up_vector.name;
     }
     else if (type == OBJ_SKIN_BLOCK_CONSTRAINT_POSITION) {
         constraint_type = OBJ_SKIN_BLOCK_CONSTRAINT_POSITION;
-        up_vector_name = cns_data->position.up_vector.name;
+        up_vector_name = cns_data->position->up_vector.name;
     }
     else if (type == OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE) {
         constraint_type = OBJ_SKIN_BLOCK_CONSTRAINT_DISTANCE;
-        up_vector_name = cns_data->distance.up_vector.name;
+        up_vector_name = cns_data->distance->up_vector.name;
     }
     else if (type == OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION) {
         constraint_type = OBJ_SKIN_BLOCK_CONSTRAINT_ORIENTATION;
@@ -2311,9 +2296,9 @@ void ExExpressionBlock::Init() {
 
 void ExExpressionBlock::Field_10() {
     bone_node_expression_data* node_exp_data = &bone_node_ptr->exp_data;
-    node_exp_data->position = exp_data->base.position;
-    node_exp_data->rotation = exp_data->base.rotation;
-    node_exp_data->scale = exp_data->base.scale;
+    node_exp_data->position = exp_data->node.position;
+    node_exp_data->rotation = exp_data->node.rotation;
+    node_exp_data->scale = exp_data->node.scale;
     field_59 = false;
 }
 
@@ -2413,9 +2398,9 @@ void ExExpressionBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     name = node->name;
     item_equip_object = itm_eq_obj;
 
-    node->exp_data.position = exp_data->base.position;
-    node->exp_data.rotation = exp_data->base.rotation;
-    node->exp_data.scale = exp_data->base.scale;
+    node->exp_data.position = exp_data->node.position;
+    node->exp_data.rotation = exp_data->node.rotation;
+    node->exp_data.scale = exp_data->node.scale;
     field_3D28 = 0;
 
     ex_expression_block_stack* stack_val = stack_data;
@@ -2425,7 +2410,7 @@ void ExExpressionBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     }
 
     for (int32_t i = 0; i < 9; i++) {
-        const char* expression = exp_data->expressions[i];
+        const char* expression = exp_data->expression_array[i];
         if (!expression || str_utils_compare_length(expression, utf8_length(expression), "= ", 2))
             break;
 
@@ -2700,7 +2685,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
             c->bone0_index = bone_data->get_skeleton_object_bone_index(
                 bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone0_name);
 
-            vec3 bone0_pos = vec3_null;
+            vec3 bone0_pos = 0.0f;
             if (!_kv->read("bone.0.posx", bone0_pos.x)
                 || !_kv->read("bone.0.posy", bone0_pos.y)
                 || !_kv->read("bone.0.posz", bone0_pos.z)) {
@@ -2715,7 +2700,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
                 c->bone1_index = bone_data->get_skeleton_object_bone_index(
                     bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
 
-                vec3 bone1_pos = vec3_null;
+                vec3 bone1_pos = 0.0f;
                 if (!_kv->read("bone.1.posx", bone1_pos.x)
                     || !_kv->read("bone.1.posy", bone1_pos.y)
                     || !_kv->read("bone.1.posz", bone1_pos.z)) {
@@ -3118,7 +3103,7 @@ static void sub_140218560(RobCloth* rob_cls, float_t step, bool a3) {
 
         if (!a3) {
             rob_cls->set_external_force = false;
-            rob_cls->external_force = vec3_null;
+            rob_cls->external_force = 0.0f;
         }
     }
 }
@@ -3224,7 +3209,7 @@ static void sub_140219940(RobCloth* rob_cls) {
         root_node.tangent_sign = root.tangent.w;
         root_node.field_1C = root_node.trans;
 
-        mat4_translate_mult(&m, root_node.trans_orig.x, root_node.trans_orig.y, root_node.trans_orig.z, &m);
+        mat4_translate_mult(&m, &root_node.trans_orig, &m);
         root.field_D8 = m;
         mat4_inverse(&m, &m);
         root.field_118 = m;
@@ -3444,7 +3429,7 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
 
             if (v19 > node->trans.y && v19 < 1001.0) {
                 node->trans.y = v19;
-                node->trans_diff = vec3_null;
+                node->trans_diff = 0.0f;
             }
 
             mat4 mat = root->field_98;
@@ -3518,7 +3503,7 @@ static void sub_14021D480(RobCloth* rob_cls) {
             if (v10 > node->trans.y && v10 < 1001.0f)
                 node->trans.y = v10;
 
-            node->trans_diff = vec3_null;
+            node->trans_diff = 0.0f;
             node->field_1C = node->trans;
         }
     }
@@ -3529,7 +3514,7 @@ static void sub_14021D480(RobCloth* rob_cls) {
     node = &rob_cls->nodes.data()[root_count];
     for (size_t i = 1; i < nodes_count; i++)
         for (ssize_t j = 0; j < root_count; j++, node++)
-            node->trans_diff = vec3_null;
+            node->trans_diff = 0.0f;
 }
 
 static void sub_14021DC60(RobCloth* rob_cls, float_t step) {
@@ -3691,7 +3676,7 @@ static void sub_14047C800(RobOsage* rob_osg, mat4* mat, vec3* parent_scale,
         float_t v96 = ring_height + coli_r;
         RobOsageNode* v98_begin = rob_osg->nodes.data() + 1;
         RobOsageNode* v98_end = rob_osg->nodes.data() + rob_osg->nodes.size();
-        for (auto v98 = v98_begin; v98 != v98_end; v98++) {
+        for (RobOsageNode* v98 = v98_begin; v98 != v98_end; v98++) {
             sub_140482490(v98, step, v25);
             sub_140482180(v98, v96);
         }
@@ -3741,7 +3726,7 @@ static void sub_14047E1C0(RobOsage* rob_osg, vec3* scale) {
     for (RobOsageNode* i = i_begin; i != i_end; i++)
         if (i->data_ptr->normal_ref.field_0) {
             sub_14053CE30(&i->data_ptr->normal_ref, i->bone_node_mat);
-            mat4_scale_rot(i->bone_node_mat, scale->x, scale->y, scale->z, i->bone_node_mat);
+            mat4_scale_rot(i->bone_node_mat, scale, i->bone_node_mat);
         }
 }
 
@@ -3765,18 +3750,15 @@ static void sub_14047EE90(RobOsage* rob_osg, mat4* mat) {
 }
 
 static void sub_14047F110(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, bool init_rot) {
-    vec3 position;
-    vec3_mult(rob_osg->exp_data.position, *parent_scale, position);
-    mat4_translate_mult(mat, position.x, position.y, position.z, mat);
-
-    vec3 rotation = rob_osg->exp_data.rotation;
-    mat4_rotate_mult(mat, rotation.x, rotation.y, rotation.z, mat);
+    vec3 position = rob_osg->exp_data.position * *parent_scale;
+    mat4_translate_mult(mat, &position, mat);
+    mat4_rotate_mult(mat, &rob_osg->exp_data.rotation, mat);
 
     skin_param* skin_param = rob_osg->skin_param_ptr;
     vec3 rot = skin_param->rot;
     if (init_rot)
-        vec3_add(rot, skin_param->init_rot, rot);
-    mat4_rotate_mult(mat, rot.x, rot.y, rot.z, mat);
+        rot = skin_param->init_rot + rot;
+    mat4_rotate_mult(mat, &rot, mat);
 }
 
 static void sub_1404803B0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, bool has_children_node) {
@@ -3861,7 +3843,7 @@ static void sub_140482180(RobOsageNode* node, float_t a2) {
     vec3_normalize(v3, v3);
     vec3_mult_scalar(v3, node->length, v3);
     vec3_add(node[-1].trans, v3, node->trans);
-    node->trans_diff = vec3_null;
+    node->trans_diff = 0.0f;
     node->field_C8 += 1.0f;
 }
 
@@ -3929,9 +3911,9 @@ static int32_t sub_140483B30(vec3* a1, vec3* a2, osage_coli* a3, float_t radius)
             return 0;
     }
 
-    vec3 v28 = vec3_null;
-    vec3 v32 = vec3_null;
-    vec3 v27 = vec3_identity;
+    vec3 v28 = 0.0f;
+    vec3 v32 = 0.0f;
+    vec3 v27 = 1.0f;
 
     float_t v16 = 0.0f;
     for (int32_t i = 0; i < 3; i++) {
@@ -4113,7 +4095,7 @@ static int32_t sub_140485220(vec3* a1, float_t& coli_r, osage_coli* a3, float_t*
     int32_t v8 = 0;
     while (a3->type) {
         int32_t v11 = 0;
-        vec3 v31 = vec3_null;
+        vec3 v31 = 0.0f;
         switch (a3->type) {
         case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL:
             v11 = sub_140483DE0(&v31, a1, &a3->bone0_pos, a3->radius + coli_r);
@@ -4192,7 +4174,7 @@ static void sub_14047D8C0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
         RobOsageNode* v27_begin = rob_osg->nodes.data() + 1;
         RobOsageNode* v27_end = rob_osg->nodes.data() + rob_osg->nodes.size();
         for (RobOsageNode* v27 = v27_begin; v27 != v27_end; v27++) {
-            vec3 v62 = vec3_null;
+            vec3 v62 = 0.0f;
 
             RobOsageNode* v30_begin = v24->data() + 1;
             RobOsageNode* v30_end = v24->data() + v24->size();
@@ -4230,7 +4212,7 @@ static void sub_14047D8C0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
 
         if (v35->bone_node_mat) {
             mat4* v41 = v35->bone_node_mat;
-            mat4_scale_rot(&v64, parent_scale->x, parent_scale->y, parent_scale->z, v41);
+            mat4_scale_rot(&v64, parent_scale, v41);
         }
 
         float_t v42 = v35->length * parent_scale->x;
@@ -4272,7 +4254,7 @@ static void sub_14047D8C0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
         mat4 v65 = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
         mat4_translate_mult(&v65, rob_osg->node.length * parent_scale->x, 0.0f, 0.0f, &v65);
         *rob_osg->node.bone_node_ptr->ex_data_mat = v65;
-        mat4_scale_rot(&v65, parent_scale->x, parent_scale->y, parent_scale->z, &v65);
+        mat4_scale_rot(&v65, parent_scale, &v65);
         *rob_osg->node.bone_node_mat = v65;
         rob_osg->node.bone_node_ptr->exp_data.parent_scale = *parent_scale;
     }
@@ -4292,12 +4274,13 @@ static void sub_14047D620(RobOsage* rob_osg, float_t step) {
     if (step < 0.0f && rob_osg->field_1F0F)
         return;
 
-    vec3 v7 = rob_osg->nodes.data()[0].trans;
+    std::vector<RobOsageNode>& nodes = rob_osg->nodes;
+    vec3 v7 = nodes.data()[0].trans;
     osage_coli* coli = rob_osg->coli;
     osage_coli* coli_ring = rob_osg->coli_ring;
     int32_t coli_type = rob_osg->skin_param_ptr->coli_type;
-    RobOsageNode* i_begin = rob_osg->nodes.data() + 1;
-    RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
+    RobOsageNode* i_begin = nodes.data() + 1;
+    RobOsageNode* i_end = nodes.data() + nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++) {
         RobOsageNodeData* data = i->data_ptr;
         for (RobOsageNode*& j : data->boc) {
@@ -4316,7 +4299,7 @@ static void sub_14047D620(RobOsage* rob_osg, float_t step) {
             i[-1].field_C8 += v20;
         }
     }
-    rob_osg->nodes.data()[0].trans = v7;
+    nodes.data()[0].trans = v7;
 }
 
 static void sub_14047ECA0(RobOsage* rob_osg, float_t step) {
@@ -4345,18 +4328,18 @@ static void sub_14047ECA0(RobOsage* rob_osg, float_t step) {
     }
 }
 
-static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* a3, bool a4) {
+static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* parent_scale, bool a4) {
     if (!rob_osg->nodes.size())
         return;
 
     vec3 v76;
-    vec3_mult(rob_osg->exp_data.position, *a3, v76);
+    vec3_mult(rob_osg->exp_data.position, *parent_scale, v76);
     mat4_mult_vec3_trans(a2, &v76, &v76);
     vec3 v74 = v76;
     RobOsageNode* v12 = &rob_osg->nodes.data()[0];
     v12->trans = v76;
     v12->trans_orig = v76;
-    v12->trans_diff = vec3_null;
+    v12->trans_diff = 0.0f;
 
     float_t ring_height;
     RobOsageNode* v14 = &rob_osg->nodes.data()[0];
@@ -4370,14 +4353,14 @@ static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* a3, bool a4) {
         ring_height = rob_osg->ring.ring_height;
 
     mat4 v78 = *a2;
-    sub_14047F110(rob_osg, &v78, a3, true);
+    sub_14047F110(rob_osg, &v78, parent_scale, true);
     vec3 v60 = { 1.0f, 0.0f, 0.0f };
     mat4_mult_vec3(&v78, &v60, &v60);
 
     osage_coli* coli_ring = rob_osg->coli_ring;
     osage_coli* coli = rob_osg->coli;
     float_t v25 = ring_height + coli_r;
-    float_t v16 = a3->x;
+    float_t v16 = parent_scale->x;
     RobOsageNode* i = rob_osg->nodes.data();
     RobOsageNode* j_begin = rob_osg->nodes.data() + 1;
     RobOsageNode* j_end = rob_osg->nodes.data() + rob_osg->nodes.size();
@@ -4401,15 +4384,15 @@ static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* a3, bool a4) {
             vec3_add(v74, i->trans, v74);
         }
         j->trans = v74;
-        j->trans_diff = vec3_null;
+        j->trans_diff = 0.0f;
         vec3 v77;
         mat4_mult_vec3_inv_trans(&v78, &j->trans, &v77);
         sub_140482FF0(v78, v77, &j->data_ptr->skp_osg_node.hinge,
             &j->reset_data.rotation, rob_osg->yz_order);
-        j->bone_node_ptr->exp_data.parent_scale = *a3;
+        j->bone_node_ptr->exp_data.parent_scale = *parent_scale;
         *j->bone_node_ptr->ex_data_mat = v78;
         if (j->bone_node_mat)
-            mat4_scale_rot(&v78, a3->x, a3->y, a3->z, j->bone_node_mat);
+            mat4_scale_rot(&v78, parent_scale, j->bone_node_mat);
 
         float_t v55;
         vec3_distance(j->trans, i->trans, v55);
@@ -4425,9 +4408,9 @@ static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* a3, bool a4) {
         mat4 v79 = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
         mat4_translate_mult(&v79, v16 * rob_osg->node.length, 0.0f, 0.0f, &v79);
         *rob_osg->node.bone_node_ptr->ex_data_mat = v79;
-        mat4_scale_rot(&v79, a3->x, a3->y, a3->z, &v79);
+        mat4_scale_rot(&v79, parent_scale, &v79);
         *rob_osg->node.bone_node_mat = v79;
-        rob_osg->node.bone_node_ptr->exp_data.parent_scale = *a3;
+        rob_osg->node.bone_node_ptr->exp_data.parent_scale = *parent_scale;
     }
 }
 
@@ -4436,7 +4419,7 @@ static void sub_140480260(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
         rob_osg->SetNodesExternalForce(0, 1.0f);
         rob_osg->SetNodesForce(1.0f);
         rob_osg->set_external_force = false;
-        rob_osg->external_force = vec3_null;
+        rob_osg->external_force = 0.0f;
     }
 
     rob_osg->field_2A0 = true;
@@ -4446,9 +4429,9 @@ static void sub_140480260(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
     rob_osg->osage_reset = false;
     rob_osg->field_1F0E = false;
 
-    for (auto i = rob_osg->nodes.begin(); i != rob_osg->nodes.end(); i++) {
-        i->field_C8 = 0.0f;
-        i->field_CC = 1.0f;
+    for (RobOsageNode& i : rob_osg->nodes) {
+        i.field_C8 = 0.0f;
+        i.field_CC = 1.0f;
     }
 
     rob_osg->parent_mat = *rob_osg->parent_mat_ptr;
@@ -4660,7 +4643,7 @@ static int32_t sub_140485000(vec3* a1, vec3* a2, skin_param_osage_node* a3, osag
     int32_t v8 = 0;
     while (a4->type) {
         int32_t type = a4->type;
-        vec3 v21 = vec3_null;
+        vec3 v21 = 0.0f;
         switch (a4->type) {
         case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL:
             v8 += sub_140484450(&v21, a1, a2, &a4->bone0_pos, a3->coli_r + a4->radius);

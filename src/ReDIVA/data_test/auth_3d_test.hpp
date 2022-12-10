@@ -38,6 +38,8 @@ public:
     bool frame_changed;
     float_t last_frame;
     bool paused;
+    bool stg_auth_display;
+    bool stg_display;
 
     std::vector<const char*> stage;
     std::vector<auth_3d_test_window_category> category;

@@ -16,10 +16,23 @@ static void stage_database_file_classic_write_inner(stage_database_file* stage_d
 static void stage_database_file_modern_read_inner(stage_database_file* stage_data, stream& s, uint32_t header_length);
 static void stage_database_file_modern_write_inner(stage_database_file* stage_data, stream& s);
 
+const stage_effects stage_effects_default;
+const stage_effects_modern stage_effects_modern_default;
+
+stage_effects::stage_effects() : field_0(), field_20() {
+    field_0[0] = -1;
+    field_20[0] = -1;
+}
+
+stage_effects_modern::stage_effects_modern() {
+    field_0[0] = -1;
+    field_20[0] = -1;
+}
+
 stage_data_file::stage_data_file() : id(), object_set_id(), lens_flare_texture(), lens_shaft_texture(),
 lens_ghost_texture(), unknown(), render_texture(), movie_texture(), reflect_type(), refract_enable(),
 reflect(), reflect_data(), refract(), refract_data(), flags(), ring_rectangle_x(), ring_rectangle_y(),
-ring_rectangle_width(), ring_rectangle_height(), ring_height(), ring_out_height(), effects() {
+ring_rectangle_width(), ring_rectangle_height(), ring_height(), ring_out_height(), effects_init() {
     lens_shaft_inv_scale = 1.0f;
 }
 
@@ -31,7 +44,7 @@ stage_data_modern_file::stage_data_modern_file() : unknown(), render_texture(),
 render_texture_flag(), movie_texture(), movie_texture_flag(), field_04(), field_04_flag(), field_05(),
 field_05_flag(), field_06(), field_06_flag(), field_07(), field_07_flag(), field_08(), field_09(),
 field_10(), field_11(), field_12(), ring_rectangle_x(), ring_rectangle_y(), ring_rectangle_width(),
-ring_rectangle_height(), ring_height(), ring_out_height(), field_13(), effects() {
+ring_rectangle_height(), ring_height(), ring_out_height(), field_13(), effects_init() {
     hash = hash_murmurhash_empty;
     lens_shaft_inv_scale = 1.0f;
 }
@@ -43,7 +56,7 @@ stage_data_modern_file::~stage_data_modern_file() {
 stage_data::stage_data() : id(), object_set_id(), lens_flare_texture(), lens_shaft_texture(),
 lens_ghost_texture(), unknown(), render_texture(), movie_texture(), reflect_type(), refract_enable(),
 reflect(), reflect_data(), refract(), refract_data(), flags(), ring_rectangle_x(), ring_rectangle_y(),
-ring_rectangle_width(), ring_rectangle_height(), ring_height(), ring_out_height(), effects() {
+ring_rectangle_width(), ring_rectangle_height(), ring_height(), ring_out_height(), effects_init() {
     name_hash = hash_murmurhash_empty;
     lens_shaft_inv_scale = 1.0f;
 }
@@ -56,7 +69,7 @@ stage_data_modern::stage_data_modern() : unknown(), render_texture(),
 render_texture_flag(), movie_texture(), movie_texture_flag(), field_04(), field_04_flag(), field_05(),
 field_05_flag(), field_06(), field_06_flag(), field_07(), field_07_flag(), field_08(), field_09(),
 field_10(), field_11(), field_12(), ring_rectangle_x(), ring_rectangle_y(), ring_rectangle_width(),
-ring_rectangle_height(), ring_height(), ring_out_height(), field_13(), effects() {
+ring_rectangle_height(), ring_height(), ring_out_height(), field_13(), effects_init() {
     hash = hash_murmurhash_empty;
     auth_3d_name_hash = hash_murmurhash_empty;
     lens_shaft_inv_scale = 1.0f;
@@ -232,7 +245,9 @@ bool stage_database_file::load_file(void* data, const char* path, const char* fi
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     stage_database_file* stage_data = (stage_database_file*)data;
     stage_data->read(s.c_str(), stage_data->modern);
@@ -271,9 +286,9 @@ void stage_database::add(stage_database_file* stage_data_file) {
         }
 
         data->id = i.id;
-        data->name = i.name;
+        data->name.assign(i.name);
         data->name_hash = hash_string_murmurhash(data->name);
-        data->auth_3d_name = i.auth_3d_name;
+        data->auth_3d_name.assign(i.auth_3d_name);
         data->object_set_id = i.object_set_id;
         data->object_ground = i.object_ground;
         data->object_ring = i.object_ring;
@@ -303,7 +318,8 @@ void stage_database::add(stage_database_file* stage_data_file) {
         data->ring_height = i.ring_height;
         data->ring_out_height = i.ring_out_height;
         data->effects = i.effects;
-        data->auth_3d_ids = i.auth_3d_ids;
+        data->effects_init = i.effects_init;
+        data->auth_3d_ids.assign(i.auth_3d_ids.begin(), i.auth_3d_ids.end());
     }
 
     for (stage_data_modern_file& i : stage_data_file->stage_modern) {
@@ -322,8 +338,8 @@ void stage_database::add(stage_database_file* stage_data_file) {
         }
 
         data->hash = i.hash;
-        data->name = i.name;
-        data->auth_3d_name = i.auth_3d_name;
+        data->name.assign(i.name);
+        data->auth_3d_name.assign(i.auth_3d_name);
         data->auth_3d_name_hash = hash_string_murmurhash(data->auth_3d_name);
         data->object_ground = i.object_ground;
         data->object_sky = i.object_sky;
@@ -355,8 +371,6 @@ void stage_database::add(stage_database_file* stage_data_file) {
         data->ring_rectangle_height = i.ring_rectangle_height;
         data->ring_height = i.ring_height;
         data->ring_out_height = i.ring_out_height;
-        data->effects = i.effects;
-        data->auth_3d_ids = i.auth_3d_ids;
         data->render_texture = i.render_texture;
         data->render_texture_flag = i.render_texture_flag;
         data->movie_texture = i.movie_texture;
@@ -369,7 +383,8 @@ void stage_database::add(stage_database_file* stage_data_file) {
         data->ring_out_height = i.ring_out_height;
         data->field_13 = i.field_13;
         data->effects = i.effects;
-        data->auth_3d_ids = i.auth_3d_ids;
+        data->effects_init = i.effects_init;
+        data->auth_3d_ids.assign(i.auth_3d_ids.begin(), i.auth_3d_ids.end());
     }
 }
 
@@ -381,7 +396,7 @@ void stage_database::add(stage_database_file* stage_data_file) {
 
 ::stage_data_modern* stage_database::get_stage_data_modern(uint32_t stage_hash) {
     for (::stage_data_modern& i : stage_modern)
-        if (stage_hash == i.hash)
+        if (i.hash == stage_hash)
             return &i;
     return 0;
 }
@@ -394,12 +409,25 @@ int32_t stage_database::get_stage_index(const char* name) {
     return -1;
 }
 
+const char* stage_database::get_stage_name(int32_t stage_index) {
+    if (stage_index >= 0 && stage_index < stage_data.size())
+        return stage_data[stage_index].name.c_str();
+    return 0;
+}
+
+const char* stage_database::get_stage_name_modern(uint32_t stage_hash) {
+    for (::stage_data_modern& i : stage_modern)
+        if (i.hash == stage_hash)
+            return i.name.c_str();
+    return 0;
+}
+
 static void stage_database_file_classic_read_inner(stage_database_file* stage_data, stream& s) {
     int32_t count = s.read_int32_t();
     int32_t stages_offset = s.read_int32_t();
     int32_t stage_effects_offset = s.read_int32_t();
     int32_t auth3d_id_counts_offset = s.read_int32_t();
-    int32_t auth3d_ids_offsets_offset = s.read_int32_t();
+    int32_t auth_3d_ids_offsets_offset = s.read_int32_t();
 
     int32_t size = (stage_effects_offset - stages_offset) / count;
     stage_data->format = size == 104 ? STAGE_DATA_AC
@@ -522,6 +550,7 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
     for (int32_t i = 0; i < count; i++) {
         stage_data_file* stage = &stage_data->stage_data[i];
         stage_effects* effects = &stage->effects;
+        stage->effects_init = true;
 
         for (int32_t j = 0; j < 8; j++)
             effects->field_0[j] = s.read_uint32_t();
@@ -539,7 +568,7 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
     }
     s.position_pop();
 
-    s.position_push(auth3d_ids_offsets_offset, SEEK_SET);
+    s.position_push(auth_3d_ids_offsets_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
         stage_data_file* stage = &stage_data->stage_data[i];
 
@@ -647,7 +676,8 @@ static void stage_database_file_modern_read_inner(stage_database_file* stage_dat
         if (is_x)
             stage->field_13 = s.read_uint32_t_reverse_endianness();
 
-        stage_effects* effects = &stage->effects;
+        stage_effects_modern* effects = &stage->effects;
+        stage->effects_init = true;
 
         for (int32_t j = 0; j < 8; j++)
             effects->field_0[j] = s.read_uint32_t_reverse_endianness();
@@ -658,20 +688,20 @@ static void stage_database_file_modern_read_inner(stage_database_file* stage_dat
         if (is_x)
             s.read_uint32_t_reverse_endianness();
 
-        int32_t auth3d_ids_count = s.read_int32_t_reverse_endianness();
-        int64_t auth3d_ids_offset = s.read_offset(header_length, is_x);
+        int32_t auth_3d_ids_count = s.read_int32_t_reverse_endianness();
+        int64_t auth_3d_ids_offset = s.read_offset(header_length, is_x);
 
         if (is_x)
             s.read_uint32_t_reverse_endianness();
 
-        if (!auth3d_ids_offset) {
+        if (!auth_3d_ids_offset) {
             stage->auth_3d_ids.clear();
             stage->auth_3d_ids.shrink_to_fit();
             continue;
         }
 
-        s.position_push(auth3d_ids_offset, SEEK_SET);
-        for (int32_t j = 0; j < auth3d_ids_count; j++)
+        s.position_push(auth_3d_ids_offset, SEEK_SET);
+        for (int32_t j = 0; j < auth_3d_ids_count; j++)
             if (s.read_uint32_t() == hash_murmurhash_empty) {
                 stage->auth_3d_ids.resize(j);
                 stage->auth_3d_ids.shrink_to_fit();
@@ -680,7 +710,7 @@ static void stage_database_file_modern_read_inner(stage_database_file* stage_dat
         s.position_pop();
 
         if (stage->auth_3d_ids.size()) {
-            s.position_push(auth3d_ids_offset, SEEK_SET);
+            s.position_push(auth_3d_ids_offset, SEEK_SET);
             for (uint32_t& j : stage->auth_3d_ids)
                 j = s.read_int32_t();
             s.position_pop();

@@ -8,9 +8,12 @@
 #include "../KKdLib/io/memory_stream.hpp"
 #include "../KKdLib/f2/struct.hpp"
 #include "../KKdLib/a3da.hpp"
+#include "../KKdLib/aes.hpp"
+#include "../KKdLib/deflate.hpp"
 #include "../KKdLib/dsc.hpp"
 #include "../KKdLib/interpolation.hpp"
 #include "../CRE/auth_3d.hpp"
+#include "../CRE/shader_ft.hpp"
 #include "main.hpp"
 #include "shared.hpp"
 #include <intrin.h>
@@ -117,7 +120,7 @@ static bool a3da_to_dof_data(const char* a3da_path, dft_dsc_data& data) {
 }
 
 static void a3da_to_dft_dsc(int32_t pv_id) {
-    char buf[0x100];
+    char buf[0x200];
 
     sprintf_s(buf, sizeof(buf), "DOF\\script\\pv_%03d_hard.dsc", pv_id);
     file_stream s_src_dsc;
@@ -307,12 +310,387 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     st.write(buf, true, false);
 }
 
-bool close;
+#if defined(ReDIVA_DEV)
+void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const size_t size,
+    const shader_bind_func* bind_func_table, const size_t bind_func_table_size) {
+    if (!f || !shaders_table || !size)
+        return;
+
+    wchar_t temp_path[MAX_PATH];
+    GetTempPathW(MAX_PATH, temp_path);
+
+    wchar_t glsl_vert_file_buf[MAX_PATH];
+    swprintf_s(glsl_vert_file_buf, sizeof(glsl_vert_file_buf)
+        / sizeof(wchar_t), L"%sReDIVA.vert", temp_path);
+
+    wchar_t glsl_frag_file_buf[MAX_PATH];
+    swprintf_s(glsl_frag_file_buf, sizeof(glsl_frag_file_buf)
+        / sizeof(wchar_t), L"%sReDIVA.frag", temp_path);
+
+    wchar_t spv_vert_file_buf[MAX_PATH];
+    swprintf_s(spv_vert_file_buf, sizeof(spv_vert_file_buf)
+        / sizeof(wchar_t), L"%sReDIVA.vert.spv", temp_path);
+
+    wchar_t spv_frag_file_buf[MAX_PATH];
+    swprintf_s(spv_frag_file_buf, sizeof(spv_frag_file_buf)
+        / sizeof(wchar_t), L"%sReDIVA.frag.spv", temp_path);
+
+    GLsizei buffer_size = 0x20000;
+    void* binary = force_malloc(buffer_size);
+    size_t temp_vert_size = 0x10000;
+    char* temp_vert = force_malloc_s(char, temp_vert_size);
+    size_t temp_frag_size = 0x10000;
+    char* temp_frag = force_malloc_s(char, temp_frag_size);
+    std::vector<int32_t> vec_vert;
+    std::vector<int32_t> vec_frag;
+    for (size_t i = 0; i < size; i++) {
+        const shader_table* shader_table = &shaders_table[i];
+
+        int32_t num_sub = shader_table->num_sub;
+        const shader_sub_table* sub_table = shaders_table[i].sub;
+        vec_vert.resize(shader_table->num_uniform);
+        vec_frag.resize(shader_table->num_uniform);
+        for (size_t j = 0; j < num_sub; j++, sub_table++) {
+            char vert_file_buf[MAX_PATH];
+            strcpy_s(vert_file_buf, sizeof(vert_file_buf), sub_table->vp);
+            strcat_s(vert_file_buf, sizeof(vert_file_buf), ".vert");
+            farc_file* vert_ff = f->read_file(vert_file_buf);
+
+            char* vert_data = 0;
+            if (vert_ff && vert_ff->data) {
+                vert_data = force_malloc_s(char, vert_ff->size + 1);
+                if (vert_data) {
+                    memcpy(vert_data, vert_ff->data, vert_ff->size);
+                    vert_data[vert_ff->size] = 0;
+                }
+            }
+
+            char frag_file_buf[MAX_PATH];
+            strcpy_s(frag_file_buf, sizeof(frag_file_buf), sub_table->fp);
+            strcat_s(frag_file_buf, sizeof(frag_file_buf), ".frag");
+            farc_file* frag_ff = f->read_file(frag_file_buf);
+
+            char* frag_data = 0;
+            if (frag_ff && frag_ff->data) {
+                frag_data = force_malloc_s(char, frag_ff->size + 1);
+                if (frag_data) {
+                    memcpy(frag_data, frag_ff->data, frag_ff->size);
+                    frag_data[frag_ff->size] = 0;
+                }
+            }
+
+            if (!vert_data || !frag_data) {
+                free_def(vert_data);
+                free_def(frag_data);
+                continue;
+            }
+
+            vert_data = shader::parse_include(vert_data, f);
+            frag_data = shader::parse_include(frag_data, f);
+
+            wchar_t cmd_temp[0x800];
+            if (shader_table->num_uniform > 0) {
+                int32_t num_uniform = shader_table->num_uniform;
+                size_t unival_curr = 1;
+                size_t unival_count = 1;
+                const int32_t* vp_unival_max = sub_table->vp_unival_max;
+                const int32_t* fp_unival_max = sub_table->fp_unival_max;
+                for (size_t k = 0; k < num_uniform; k++) {
+                    size_t unival_max = shader_table->use_permut[k]
+                        ? max_def(vp_unival_max[k], fp_unival_max[k]) : 0;
+                    unival_count += unival_curr * unival_max;
+                    unival_curr *= unival_max + 1;
+                }
+
+                char vert_buf[MAX_PATH];
+                char frag_buf[MAX_PATH];
+
+                strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
+                size_t vert_buf_pos = utf8_length(vert_buf);
+                vert_buf[vert_buf_pos++] = '.';
+                vert_buf[vert_buf_pos] = 0;
+                memset(&vert_buf[vert_buf_pos], '0', num_uniform);
+                vert_buf[vert_buf_pos + num_uniform] = 0;
+                strcat_s(vert_buf, sizeof(vert_buf), ".vert.spv");
+
+                strcpy_s(frag_buf, sizeof(frag_buf), sub_table->fp);
+                size_t frag_buf_pos = utf8_length(frag_buf);
+                frag_buf[frag_buf_pos++] = '.';
+                frag_buf[frag_buf_pos] = 0;
+                memset(&frag_buf[frag_buf_pos], '0', num_uniform);
+                frag_buf[frag_buf_pos + num_uniform] = 0;
+                strcat_s(frag_buf, sizeof(frag_buf), ".frag.spv");
+
+                for (size_t k = 0; k < unival_count; k++) {
+                    for (size_t l = 0, m = k; l < num_uniform; l++) {
+                        size_t unival_max = (size_t)(shader_table->use_permut[l]
+                            ? max_def(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
+                        vec_vert[l] = (uint32_t)(min_def(m % unival_max, vp_unival_max[l]));
+                        m /= unival_max;
+                        vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert[l]);
+                    }
+
+                    for (size_t l = 0, m = k; l < num_uniform; l++) {
+                        size_t unival_max = (size_t)(shader_table->use_permut[l]
+                            ? max_def(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
+                        vec_frag[l] = (uint32_t)(min_def(m % unival_max, fp_unival_max[l]));
+                        m /= unival_max;
+                        frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag[l]);
+                    }
+
+                    if (!of->has_file(vert_buf)) {
+                        shader::parse_define(vert_data,
+                            num_uniform, vp_unival_max, fp_unival_max,
+                            vec_vert.data(), &temp_vert, &temp_vert_size);
+
+                        file_stream fs;
+                        fs.open(glsl_vert_file_buf, L"wb");
+                        fs.write_utf8_string(temp_vert);
+                        fs.close();
+
+                        swprintf_s(cmd_temp, sizeof(cmd_temp) / sizeof(wchar_t),
+                            L"E:\\C\\VulkanSDK\\1.3.231.1\\Bin\\glslc.exe -DSPIRV"
+                            " -O --target-spv=spv1.0 -o \"%s\" \"%s\"",
+                            spv_vert_file_buf, glsl_vert_file_buf);
+
+                        STARTUPINFO si;
+                        PROCESS_INFORMATION pi;
+
+                        ZeroMemory(&si, sizeof(si));
+                        si.cb = sizeof(si);
+                        ZeroMemory(&pi, sizeof(pi));
+                        CreateProcessW(0, cmd_temp, 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0, &si, &pi);
+                        WaitForSingleObject(pi.hProcess, INFINITE);
+                        CloseHandle(pi.hProcess);
+                        CloseHandle(pi.hThread);
+
+                        farc_file* ff = of->add_file(vert_buf);
+                        fs.open(spv_vert_file_buf, L"rb");
+                        ff->size = fs.get_length();
+                        ff->data = force_malloc(ff->size);
+                        fs.read(ff->data, ff->size);
+                        fs.close();
+                    }
+
+                    if (!of->has_file(frag_buf)) {
+                        shader::parse_define(frag_data,
+                            num_uniform, vp_unival_max, fp_unival_max,
+                            vec_frag.data(), &temp_frag, &temp_frag_size);
+
+                        file_stream fs;
+                        fs.open(glsl_frag_file_buf, L"wb");
+                        fs.write_utf8_string(temp_frag);
+                        fs.close();
+
+                        swprintf_s(cmd_temp, sizeof(cmd_temp) / sizeof(wchar_t),
+                            L"E:\\C\\VulkanSDK\\1.3.231.1\\Bin\\glslc.exe -DSPIRV"
+                            " -O --target-spv=spv1.0 -o \"%s\" \"%s\"",
+                            spv_frag_file_buf, glsl_frag_file_buf);
+
+                        STARTUPINFO si;
+                        PROCESS_INFORMATION pi;
+
+                        ZeroMemory(&si, sizeof(si));
+                        si.cb = sizeof(si);
+                        ZeroMemory(&pi, sizeof(pi));
+                        CreateProcessW(0, cmd_temp, 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0, &si, &pi);
+                        WaitForSingleObject(pi.hProcess, INFINITE);
+                        CloseHandle(pi.hProcess);
+                        CloseHandle(pi.hThread);
+
+                        farc_file* ff = of->add_file(frag_buf);
+                        fs.open(spv_frag_file_buf, L"rb");
+                        ff->size = fs.get_length();
+                        ff->data = force_malloc(ff->size);
+                        fs.read(ff->data, ff->size);
+                        fs.close();
+                    }
+                }
+            }
+            else {
+                char vert_buf[MAX_PATH];
+                char frag_buf[MAX_PATH];
+                strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
+                strcpy_s(frag_buf, sizeof(vert_buf), sub_table->fp);
+                strcat_s(vert_buf, sizeof(vert_buf), "..vert");
+                strcat_s(frag_buf, sizeof(vert_buf), "..frag");
+
+                if (!of->has_file(vert_buf)) {
+                    shader::parse_define(vert_data,
+                        0, 0, 0, 0, &temp_vert, &temp_vert_size);
+
+                    file_stream fs;
+                    fs.open(glsl_vert_file_buf, L"wb");
+                    fs.write_utf8_string(temp_vert);
+                    fs.close();
+
+                    swprintf_s(cmd_temp, sizeof(cmd_temp) / sizeof(wchar_t),
+                        L"E:\\C\\VulkanSDK\\1.3.231.1\\Bin\\glslc.exe -DSPIRV"
+                        " -O --target-spv=spv1.0 -o \"%s\" \"%s\"",
+                        spv_vert_file_buf, glsl_vert_file_buf);
+
+                    STARTUPINFO si;
+                    PROCESS_INFORMATION pi;
+
+                    ZeroMemory(&si, sizeof(si));
+                    si.cb = sizeof(si);
+                    ZeroMemory(&pi, sizeof(pi));
+                    CreateProcessW(0, cmd_temp, 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0, &si, &pi);
+                    WaitForSingleObject(pi.hProcess, INFINITE);
+                    CloseHandle(pi.hProcess);
+                    CloseHandle(pi.hThread);
+
+                    farc_file* ff = of->add_file(vert_buf);
+                    fs.open(spv_vert_file_buf, L"rb");
+                    ff->size = fs.get_length();
+                    ff->data = force_malloc(ff->size);
+                    fs.read(ff->data, ff->size);
+                    fs.close();
+                }
+
+                if (!of->has_file(frag_buf)) {
+                    shader::parse_define(frag_data,
+                        0, 0, 0, 0, &temp_frag, &temp_frag_size);
+
+                    file_stream fs;
+                    fs.open(glsl_frag_file_buf, L"wb");
+                    fs.write_utf8_string(temp_frag);
+                    fs.close();
+
+                    swprintf_s(cmd_temp, sizeof(cmd_temp) / sizeof(wchar_t),
+                        L"E:\\C\\VulkanSDK\\1.3.231.1\\Bin\\glslc.exe -DSPIRV"
+                        " -O --target-spv=spv1.0 -o \"%s\" \"%s\"",
+                        spv_frag_file_buf, glsl_frag_file_buf);
+
+                    STARTUPINFO si;
+                    PROCESS_INFORMATION pi;
+
+                    ZeroMemory(&si, sizeof(si));
+                    si.cb = sizeof(si);
+                    ZeroMemory(&pi, sizeof(pi));
+                    CreateProcessW(0, cmd_temp, 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0, &si, &pi);
+                    WaitForSingleObject(pi.hProcess, INFINITE);
+                    CloseHandle(pi.hProcess);
+                    CloseHandle(pi.hThread);
+
+                    farc_file* ff = of->add_file(frag_buf);
+                    fs.open(spv_frag_file_buf, L"rb");
+                    ff->size = fs.get_length();
+                    ff->data = force_malloc(ff->size);
+                    fs.read(ff->data, ff->size);
+                    fs.close();
+                }
+            }
+
+            free_def(vert_data);
+            free_def(frag_data);
+        }
+        vec_vert.clear();
+        vec_frag.clear();
+    }
+    free_def(binary);
+    free_def(temp_vert);
+    free_def(temp_frag);
+
+    DeleteFileW(glsl_vert_file_buf);
+    DeleteFileW(glsl_frag_file_buf);
+    DeleteFileW(spv_vert_file_buf);
+    DeleteFileW(spv_frag_file_buf);
+}
+
+void compile_all_shaders() {
+    farc f;
+    f.read("rom\\ft_shaders.farc", true, false);
+
+    farc of;
+    compile_shaders(&f, &of, shader_ft_table, shader_ft_table_size,
+        shader_ft_bind_func_table, shader_ft_bind_func_table_size);
+    of.write("rom\\ft_shaders_spirv", FARC_COMPRESS_FArC, false);
+}
+#endif
 
 int32_t wmain(int32_t argc, wchar_t** argv) {
     //ShowWindow(GetConsoleWindow(), SW_HIDE);
     timeBeginPeriod(1);
     SetProcessDPIAware();
+
+#if defined(ReDIVA_DEV)
+    if (argc >= 2 && !wcscmp(argv[1], L"--compile-spir-v"))
+        compile_all_shaders();
+#endif
+
+    /*
+    uint8_t key[] = {
+        0xA4, 0xB7, 0x31, 0xD0, 0x33, 0xFB, 0x4A, 0x63, 0x9D, 0xD2, 0x46, 0xA5, 0x05, 0xCD, 0x4B, 0xE5,
+        0xF2, 0x10, 0xEE, 0x05, 0xC3, 0x56, 0x45, 0x3A, 0xAF, 0x22, 0x5C, 0x88, 0xA0, 0x9F, 0xB6, 0x8A,
+    };
+
+    aes256_ctx aes;
+    aes256_init_ctx(&aes, key);
+
+    file_stream ifs;
+    ifs.open("SECURE.BIN", "rb");
+
+    std::vector<uint8_t> data;
+    data.resize(ifs.get_length());
+
+    ifs.read(data.data(), data.size());
+    ifs.close();
+
+    struct savedata_header {
+        uint32_t signature;
+        uint32_t data_size;
+        uint32_t length;
+        uint32_t flags;
+        uint8_t unk10;
+        uint8_t crc8;
+        uint16_t crc16;
+        uint32_t section_size;
+        uint32_t unk18;
+        uint32_t unk1C;
+        uint8_t data[];
+    };
+
+    savedata_header* head = (savedata_header*)data.data();
+
+    uint8_t* a1 = data.data();
+    uint8_t* v5 = a1 + head->length;
+    uint8_t* v8 = a1;
+    uint8_t* v9 = v5 + head->section_size;
+
+    uint8_t v10 = 0xA5;
+    while (v8 != a1 + 8)
+        v10 ^= *v8++;
+
+    if (!v10 || v10 == 0xFF)
+        v10 = 1;
+
+    while (v5 != v9) {
+        uint8_t v12 = *v5;
+        *v5 ^= v10;
+        v10 = v12;
+        v5++;
+    }
+
+    aes256_ecb_decrypt_buffer(&aes, data.data() + head->length, data.size() - head->length);
+
+    file_stream ofs;
+    ofs.open("SECURE.BIN_DEC", "wb");
+    ofs.write(data.data(), data.size());
+    ofs.close();
+
+    void* dst = 0;
+    size_t dst_len = head->unk1C;
+    deflate::decompress(data.data() + head->length, data.size() - head->length,
+        &dst, &dst_len, deflate::MODE_GZIP);
+
+    file_stream ufs;
+    ufs.open("SECURE.BIN_DEC_DEFLATE", "wb");
+    ufs.write(dst, dst_len);
+    ufs.close();
+
+    if (dst)
+        free(dst);*/
 
     int32_t cpuid_data[4] = {};
     __cpuid(cpuid_data, 1);

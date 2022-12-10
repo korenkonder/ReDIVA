@@ -229,7 +229,9 @@ bool object_database_file::load_file(void* data, const char* path, const char* f
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     object_database_file* obj_db = (object_database_file*)data;
     obj_db->read(s.c_str(), obj_db->modern);

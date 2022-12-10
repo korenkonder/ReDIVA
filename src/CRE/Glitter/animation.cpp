@@ -29,4 +29,18 @@ namespace Glitter {
         }
     }
 #endif
+
+    Animation& Animation::operator=(const Animation& anim) {
+        for (Curve*& i : curves)
+            delete i;
+        curves.clear();
+
+        curves.reserve(anim.curves.size());
+        for (Curve* i : anim.curves) {
+            Curve* curv = new Curve(i->version > 0x01 ? Glitter::X : Glitter::F2);
+            *curv = *i;
+            curves.push_back(curv);
+        }
+        return *this;
+    }
 }

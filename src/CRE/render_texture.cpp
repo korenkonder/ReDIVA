@@ -8,7 +8,8 @@
 #include "texture.hpp"
 
 static shader_glsl render_texture_shader;
-static GLuint render_texture_vao, render_texture_vbo;
+static GLuint render_texture_vao;
+static GLuint render_texture_vbo;
 static bool render_texture_data_initialized;
 static uint32_t render_texture_counter;
 
@@ -22,7 +23,7 @@ depth_texture(), binding(), max_level(), fbos(), rbo(), field_2C() {
 }
 
 render_texture::~render_texture() {
-    free_data();
+    free();
 }
 
 int32_t render_texture::bind(int32_t index) {
@@ -32,6 +33,7 @@ int32_t render_texture::bind(int32_t index) {
     gl_state_bind_framebuffer(fbos[index]);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         return -1;
+
     glGetError();
     return 0;
 }
@@ -45,7 +47,7 @@ void render_texture::draw(bool depth) {
     gl_state_bind_vertex_array(0);
 }
 
-void render_texture::free_data() {
+void render_texture::free() {
     if (depth_texture) {
         texture_free(depth_texture);
         depth_texture = 0;
@@ -81,7 +83,7 @@ int32_t render_texture::init(int32_t width, int32_t height,
     max_level = min_def(max_level, 15);
     if (max_level < 0)
         return 0;
-    free_data();
+    free();
 
     GLuint color_texture;
     if (color_format) {
@@ -143,7 +145,6 @@ int32_t render_texture::set_color_depth_textures(GLuint color_texture,
     return error;
 }
 
-
 void render_texture::draw_custom(shader_set_data* set) {
     gl_state_bind_vertex_array(render_texture_vao);
     set->draw_arrays(GL_TRIANGLE_STRIP, 0, 3);
@@ -170,14 +171,7 @@ void render_texture::draw_params(shader_set_data* set, int32_t width, int32_t he
     gl_state_bind_vertex_array(0);
 }
 
-void render_texture::shader_set(shader_set_data* set, uint32_t index) {
-    if (set && index)
-        set->set(index);
-    else
-        render_texture_shader.use();
-}
-
-void render_texture::shader_set_glsl(shader_glsl* shader) {
+void render_texture::shader_set(shader_glsl* shader) {
     if (shader)
         shader->use();
     else
@@ -185,80 +179,88 @@ void render_texture::shader_set_glsl(shader_glsl* shader) {
 }
 
 void render_texture_data_init() {
-    if (!render_texture_data_initialized) {
-        static const char* render_texture_vert_shader =
-            "#version 430 core\n"
-            "out VertexData {\n"
-            "    vec2 texcoord;\n"
-            "} result;\n"
-            "\n"
-            "void main() {\n"
-            "    gl_Position.x = -1.0 + float(gl_VertexID / 2) * 4.0;\n"
-            "    gl_Position.y = 1.0 - float(gl_VertexID % 2) * 4.0;\n"
-            "    gl_Position.z = 0.0;\n"
-            "    gl_Position.w = 1.0;\n"
-            "    result.texcoord = gl_Position.xy * 0.5 + 0.5;\n"
-            "}\n";
+    if (render_texture_data_initialized)
+        return;
 
-        static const char* render_texture_frag_shader =
-            "#version 430 core\n"
-            "layout(location = 0) out vec4 result;\n"
-            "\n"
-            "in VertexData {\n"
-            "    vec2 texcoord;\n"
-            "} frg;\n"
-            "\n"
-            "layout(binding = 0) uniform sampler2D g_color;\n"
-            "\n"
-            "void main() {\n"
-            "    result = texture(g_color, frg.texcoord);\n"
-            "}\n";
+    static const char* render_texture_vert_shader =
+        "#version 430 core\n"
+        "out VertexData {\n"
+        "    vec2 texcoord;\n"
+        "} result;\n"
+        "\n"
+        "void main() {\n"
+        "    gl_Position.x = -1.0 + float(gl_VertexID / 2) * 4.0;\n"
+        "    gl_Position.y = 1.0 - float(gl_VertexID % 2) * 4.0;\n"
+        "    gl_Position.z = 0.0;\n"
+        "    gl_Position.w = 1.0;\n"
+        "    result.texcoord = gl_Position.xy * 0.5 + 0.5;\n"
+        "}\n";
 
-        shader_glsl_param param = {};
-        param.name = "Render Texture";
-        render_texture_shader.load(render_texture_vert_shader,
-            render_texture_frag_shader, 0, &param);
+    static const char* render_texture_frag_shader =
+        "#version 430 core\n"
+        "layout(location = 0) out vec4 result;\n"
+        "\n"
+        "in VertexData {\n"
+        "    vec2 texcoord;\n"
+        "} frg;\n"
+        "\n"
+        "layout(binding = 0) uniform sampler2D g_color;\n"
+        "\n"
+        "void main() {\n"
+        "    result = texture(g_color, frg.texcoord);\n"
+        "}\n";
 
-        const float_t verts_quad[] = {
-            -1.0f,  1.0f,  0.0f,  1.0f,
-            -1.0f, -3.0f,  0.0f, -1.0f,
-             3.0f,  1.0f,  2.0f,  1.0f,
-        };
+    shader_glsl_param param = {};
+    param.name = "Render Texture";
+    render_texture_shader.load(render_texture_vert_shader,
+        render_texture_frag_shader, 0, &param);
 
-        glGenVertexArrays(1, &render_texture_vao);
-        glGenBuffers(1, &render_texture_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, render_texture_vbo);
+    const float_t verts_quad[] = {
+        -1.0f,  1.0f,  0.0f,  1.0f,
+        -1.0f, -3.0f,  0.0f, -1.0f,
+         3.0f,  1.0f,  2.0f,  1.0f,
+    };
+
+    glGenVertexArrays(1, &render_texture_vao);
+    gl_state_bind_vertex_array(render_texture_vao, true);
+
+    glGenBuffers(1, &render_texture_vbo);
+    gl_state_bind_array_buffer(render_texture_vbo, true);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ARRAY_BUFFER, sizeof(verts_quad), verts_quad, 0);
+    else
         glBufferData(GL_ARRAY_BUFFER, sizeof(verts_quad), verts_quad, GL_STATIC_DRAW);
 
-        gl_state_bind_vertex_array(render_texture_vao);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 16, (void*)0);  // Pos
-        glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color0
-        glVertexAttrib4f(4, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color1
-        glEnableVertexAttribArray(8);
-        glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);  // TexCoord0
-        glEnableVertexAttribArray(9);
-        glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);  // TexCoord1
-        glEnableVertexAttribArray(10);
-        glVertexAttribPointer(10, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord2
-        glEnableVertexAttribArray(11);
-        glVertexAttribPointer(11, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord3
-        glEnableVertexAttribArray(12);
-        glVertexAttribPointer(12, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord4
-        glEnableVertexAttribArray(13);
-        glVertexAttribPointer(13, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord5
-        glEnableVertexAttribArray(14);
-        glVertexAttribPointer(14, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord6
-        glEnableVertexAttribArray(15);
-        glVertexAttribPointer(15, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord7
-        gl_state_bind_vertex_array(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 16, (void*)0);  // Pos
+    glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color0
+    glVertexAttrib4f(4, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color1
+    glEnableVertexAttribArray(8);
+    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);  // TexCoord0
+    glEnableVertexAttribArray(9);
+    glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);  // TexCoord1
+    glEnableVertexAttribArray(10);
+    glVertexAttribPointer(10, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord2
+    glEnableVertexAttribArray(11);
+    glVertexAttribPointer(11, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord3
+    glEnableVertexAttribArray(12);
+    glVertexAttribPointer(12, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord4
+    glEnableVertexAttribArray(13);
+    glVertexAttribPointer(13, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord5
+    glEnableVertexAttribArray(14);
+    glVertexAttribPointer(14, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord6
+    glEnableVertexAttribArray(15);
+    glVertexAttribPointer(15, 2, GL_FLOAT, GL_FALSE, 16, (void*)8); // TexCoord7
+    gl_state_bind_array_buffer(0);
+    gl_state_bind_vertex_array(0);
 
-        render_texture_data_initialized = true;
-    }
+    render_texture_data_initialized = true;
 }
 
 void render_texture_data_free() {
+    if (!render_texture_data_initialized)
+        return;
+
     render_texture_shader.unload();
 
     glDeleteBuffers(1, &render_texture_vbo);

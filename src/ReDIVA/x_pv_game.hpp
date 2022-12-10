@@ -90,7 +90,7 @@ struct x_pv_play_data_set_motion {
     float_t frame_speed;
     int32_t motion_id;
     float_t frame;
-    float_t duration;
+    float_t blend_duration;
     bool field_10;
     MotionBlendType blend_type;
     bool disable_eye_motion;
@@ -287,7 +287,7 @@ struct x_pv_game_effect {
     void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control);
     void load_data(int32_t pv_id);
     void reset();
-    void set_chara_id(int32_t index, int32_t chara_id, bool a4);
+    void set_chara_id(int32_t index, int32_t chara_id, bool chara_scale);
     void set_song_effect(int32_t index, int64_t time);
     void set_song_effect_time(int32_t index, int64_t time, bool glitter);
     void set_song_effect_time_inner(int32_t index, int64_t time, bool glitter);
@@ -465,6 +465,7 @@ struct x_pv_game_stage_data {
     void set_default_stage();
     void set_stage(uint32_t hash);
     void unload();
+    void unload_stage_database();
 };
 
 struct x_pv_game_stage {
@@ -554,6 +555,7 @@ public:
     float_t scene_rot_y;
     mat4 scene_rot_mat;
     int32_t branch_mode;
+    bool task_effect_init;
 
     bool pause;
     bool step_frame;

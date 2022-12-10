@@ -16,7 +16,7 @@ struct data_view_light {
     int32_t stage_index_prev;
 
     data_view_light();
-    virtual ~data_view_light();
+    ~data_view_light();
 
     static void column_slider_float_button(const char* label, float_t* val);
 };
@@ -208,7 +208,7 @@ void graphics_light_imgui(class_data* data) {
         ImGui::ColumnSliderFloatButton("R", &specular.x, 0.01f, 0.0f, 2.0f, 0.1f, "%4.3f", 0);
         ImGui::ColumnSliderFloatButton("G", &specular.y, 0.01f, 0.0f, 2.0f, 0.1f, "%4.3f", 0);
         ImGui::ColumnSliderFloatButton("B", &specular.z, 0.01f, 0.0f, 2.0f, 0.1f, "%4.3f", 0);
-        ImGui::ColumnSliderFloatButton("A", &specular.z, 0.02f, 0.0f, 4.0f, 0.2f, "%4.3f", 0);
+        ImGui::ColumnSliderFloatButton("A", &specular.w, 0.02f, 0.0f, 4.0f, 0.2f, "%4.3f", 0);
         light_data->set_specular(specular);
         ImGui::PopID();
 

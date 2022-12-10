@@ -176,7 +176,9 @@ bool a3da::load_file(void* data, const char* path, const char* file, uint32_t ha
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     a3da* a = (a3da*)data;
     a->read(s.c_str());
@@ -387,8 +389,7 @@ a3da_post_process::~a3da_post_process() {
 }
 
 static void a3da_read_inner(a3da* a, stream& s) {
-    a3dc_header header;
-    memset(&header, 0, sizeof(a3dc_header));
+    a3dc_header header = {};
 
     a->format = A3DA_FORMAT_F;
     uint32_t signature = s.read_uint32_t();
@@ -487,8 +488,7 @@ static void a3da_write_inner(a3da* a, stream& s) {
     }
 
     if (a3dc) {
-        a3dc_header header;
-        memset(&header, 0, sizeof(a3dc_header));
+        a3dc_header header = {};
 
         header.string_offset = (uint32_t)0x40;
         header.string_length = (uint32_t)a3da_data_length;
@@ -740,7 +740,7 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
             kv.read("clip_end", e->clip_end);
             kv.read("end", e->end);
             kv.read("name", e->name);
-            kv.read("param1", e->param_1);
+            kv.read("param1", e->param1);
             kv.read("ref", e->ref);
             kv.read("time_ref_scale", e->time_ref_scale);
 
@@ -1321,7 +1321,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
             kv.write(s, "clip_en", e->clip_end);
             kv.write(s, "end", e->end);
             kv.write(s, "name", e->name);
-            kv.write(s, "param1", e->param_1);
+            kv.write(s, "param1", e->param1);
             kv.write(s, "ref", e->ref);
             kv.write(s, "time_ref_scale", e->time_ref_scale);
             kv.write(s, "type", e->type);
@@ -2883,8 +2883,7 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
 
     uint32_t len = (uint32_t)value.keys.size();
 
-    a3dc_key_header head;
-    memset(&head, 0, sizeof(a3dc_key_header));
+    a3dc_key_header head = {};
     head.type = value.type;
     head.ep_type_pre = value.ep_type_pre;
     head.ep_type_post = value.ep_type_post;

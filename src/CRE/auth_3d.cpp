@@ -17,6 +17,8 @@
 #include "draw_task.hpp"
 #include "object.hpp"
 #include "pv_db.hpp"
+#include "task_effect.hpp"
+#include "sound.hpp"
 #include "stage.hpp"
 
 namespace auth_3d_detail {
@@ -28,6 +30,14 @@ namespace auth_3d_detail {
         virtual bool Init() override;
         virtual bool Ctrl() override;
         virtual void Disp() override;
+    };
+
+    class FrameRateTimeStop : public FrameRateControl {
+    public:
+        FrameRateTimeStop();
+        virtual ~FrameRateTimeStop() override;
+
+        virtual float_t GetDeltaFrame() override;
     };
 }
 
@@ -68,7 +78,6 @@ static void auth_3d_key_load(auth_3d* auth, auth_3d_key* k, auth_3d_key_file* kf
 static void auth_3d_rgba_load(auth_3d* auth, auth_3d_rgba* rgba, auth_3d_rgba_file* rgbaf);
 static void auth_3d_vec3_load(auth_3d* auth, auth_3d_vec3* vec, auth_3d_vec3_file* vecf);
 static void auth_3d_model_transform_load(auth_3d* auth, auth_3d_model_transform* mt, auth_3d_model_transform_file* mtf);
-static void auth_3d_model_transform_set_mat(auth_3d_model_transform* mt, const mat4* parent_mat);
 
 static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth,
     object_info obj_info, int32_t instance);
@@ -83,82 +92,59 @@ static void auth_3d_read_file(auth_3d* auth, auth_3d_database* auth_3d_db);
 static void auth_3d_read_file_modern(auth_3d* auth);
 static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx);
 
-static void auth_3d_ambient_ctrl(auth_3d_ambient* a, float_t frame);
 static void auth_3d_ambient_load(auth_3d* auth, auth_3d_ambient* a, auth_3d_ambient_file* af);
 static void auth_3d_ambient_set(auth_3d_ambient* a, render_context* rctx);
-static void auth_3d_camera_auxiliary_ctrl(auth_3d_camera_auxiliary* ca, float_t frame);
 static void auth_3d_camera_auxiliary_load(auth_3d* auth, auth_3d_camera_auxiliary_file* caf);
 static void auth_3d_camera_auxiliary_restore_prev_value(auth_3d_camera_auxiliary* ca, render_context* rctx);
 static void auth_3d_camera_auxiliary_set(auth_3d_camera_auxiliary* ca, render_context* rctx);
-static void auth_3d_camera_root_ctrl(auth_3d_camera_root* cr, float_t frame, mat4* mat, render_context* rctx);
+static float_t auth_3d_camera_root_calc_frame(auth_3d_camera_root* cr, float_t frame, render_context* rctx);
 static void auth_3d_camera_root_load(auth_3d* auth, auth_3d_camera_root* cr, auth_3d_camera_root_file* crf);
 static void auth_3d_camera_root_view_point_load(auth_3d* auth, auth_3d_camera_root_view_point* crvp,
     auth_3d_camera_root_view_point_file* crvpf);
-static void auth_3d_chara_ctrl(auth_3d_chara* c, float_t frame);
 static void auth_3d_chara_disp(auth_3d_chara* c, mat4* parent_mat, render_context* rctx);
 static void auth_3d_chara_load(auth_3d* auth, auth_3d_chara* c, auth_3d_chara_file* cf);
-static void auth_3d_curve_ctrl(auth_3d_curve* c, float_t frame);
 static void auth_3d_curve_load(auth_3d* auth, auth_3d_curve* c, auth_3d_curve_file* cf);
-static void auth_3d_dof_ctrl(auth_3d_dof* d, float_t frame);
 static void auth_3d_dof_load(auth_3d* auth, auth_3d_dof* d, auth_3d_dof_file* df);
 static void auth_3d_dof_restore_prev_value(auth_3d_dof* d, render_context* rctx);
 static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx);
-static void auth_3d_event_load(auth_3d* auth, auth_3d_event* e, auth_3d_event_file* ef);
-static void auth_3d_fog_ctrl(auth_3d_fog* f, float_t frame);
+static auth_3d_detail::Event* auth_3d_event_load(auth_3d * auth, auth_3d_event_file * ef);
+static const char* auth_3d_event_type_string(auth_3d_detail::Event::Type type);
 static void auth_3d_fog_load(auth_3d* auth, auth_3d_fog* e, auth_3d_fog_file* ff);
 static void auth_3d_fog_restore_prev_value(auth_3d_fog* f, render_context* rctx);
 static void auth_3d_fog_set(auth_3d_fog* f, render_context* rctx);
-static void auth_3d_light_ctrl(auth_3d_light* l, float_t frame);
 static void auth_3d_light_load(auth_3d* auth, auth_3d_light* a, auth_3d_light_file* lf);
 static void auth_3d_light_restore_prev_value(auth_3d_light* l, render_context* rctx);
 static void auth_3d_light_set(auth_3d_light* l, render_context* rctx);
-static void auth_3d_m_object_hrc_ctrl(auth_3d_m_object_hrc* moh, float_t frame);
 static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, render_context* rctx);
 static void auth_3d_m_object_hrc_get_mat(auth_3d_m_object_hrc* moh, mat4* mat);
 static void auth_3d_m_object_hrc_load(auth_3d* auth, auth_3d_m_object_hrc* moh,
     auth_3d_m_object_hrc_file* mohf, object_database* obj_db);
-static void auth_3d_m_object_hrc_list_ctrl(auth_3d_m_object_hrc* moh, mat4* parent_mat);
 static void auth_3d_m_object_hrc_nodes_mat_mult(auth_3d_m_object_hrc* moh);
-static void auth_3d_material_list_ctrl(auth_3d_material_list* ml, float_t frame);
 static void auth_3d_material_list_load(auth_3d* auth, auth_3d_material_list* ml, auth_3d_material_list_file* mlf);
-static void auth_3d_object_ctrl(auth_3d_object* o, float_t frame);
 static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context* rctx);
 static void auth_3d_object_load(auth_3d* auth, auth_3d_object* o,
     auth_3d_object_file* of, object_database* obj_db, texture_database* tex_db);
-static void auth_3d_object_curve_ctrl(auth_3d_object_curve* oc, float_t frame);
 static void auth_3d_object_curve_load(auth_3d* auth, auth_3d_object_curve* curve,
     std::string& name, float_t frame_offset);
-static void auth_3d_object_list_ctrl(auth_3d_object* o, mat4* parent_mat);
-static void auth_3d_object_hrc_ctrl(auth_3d_object_hrc* oh, float_t frame);
 static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, render_context* rctx);
 static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
     auth_3d_object_hrc_file* ohf, object_database* obj_db);
 static bool auth_3d_object_hrc_replace_chara(auth_3d_object_hrc* oh,
     chara_index src_chara, chara_index dst_chara, object_database* obj_db);
-static void auth_3d_object_hrc_list_ctrl(auth_3d_object_hrc* oh, mat4* mat);
-static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, mat4* mat);
+static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, const mat4* mat);
 static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance* oi,
     auth_3d_object_instance_file* oif, auth_3d_m_object_hrc* moh, object_database* obj_db);
-static void auth_3d_object_model_transform_ctrl(auth_3d_object_model_transform* obj_mt, float_t frame);
 static void auth_3d_object_model_transform_load(auth_3d* auth,
     auth_3d_object_model_transform* omt, auth_3d_model_transform_file* mtf);
-static void auth_3d_object_model_transform_mat_mult(auth_3d_object_model_transform* obj_mt, mat4* mat);
-static void auth_3d_object_model_transform_set_mat_inner(auth_3d_object_model_transform* obj_mt);
 static void auth_3d_object_node_load(auth_3d* auth,
     auth_3d_object_node* on, auth_3d_object_node_file* onf);
-static void auth_3d_object_texture_pattern_ctrl(
-    auth_3d_object_texture_pattern* otp, float_t frame);
 static void auth_3d_object_texture_pattern_load(auth_3d* auth, auth_3d_object_texture_pattern* otp,
     auth_3d_object_texture_pattern_file* otpf, texture_database* tex_db);
-static void auth_3d_object_texture_transform_ctrl(
-    auth_3d_object_texture_transform* ott, float_t frame);
 static void auth_3d_object_texture_transform_load(auth_3d* auth, auth_3d_object_texture_transform* ott,
     auth_3d_object_texture_transform_file* ottf, texture_database* tex_db);
 static void auth_3d_play_control_load(auth_3d* auth, auth_3d_play_control_file* pcf);
-static void auth_3d_point_ctrl(auth_3d_point* p, float_t frame);
 static void auth_3d_point_disp(auth_3d_point* p, mat4* parent_mat, render_context* rctx);
 static void auth_3d_point_load(auth_3d* auth, auth_3d_point* p, auth_3d_point_file* pf);
-static void auth_3d_post_process_ctrl(auth_3d_post_process* pp, float_t frame);
 static void auth_3d_post_process_load(auth_3d* auth, auth_3d_post_process* pp, auth_3d_post_process_file* ppf);
 static void auth_3d_post_process_restore_prev_value(auth_3d_post_process* pp, render_context* rctx);
 static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* rctx);
@@ -197,6 +183,8 @@ static void auth_3d_uid_file_modern_unload(auth_3d_uid_file_modern* uid_file);
 static void auth_3d_uid_file_unload_file(auth_3d_uid_file* uid_file);
 static void auth_3d_uid_file_modern_unload_file(auth_3d_uid_file_modern* uid_file);
 
+static size_t auth_3d_time_event_radix_index_func_time(auth_3d_time_event* data, size_t index);
+
 static void Auth3dTestTask__SetAuth3dId(Auth3dTestTask* tt);
 static void Auth3dTestTask__SetStage(Auth3dTestTask* tt);
 
@@ -205,12 +193,13 @@ auth_3d_detail::TaskAuth3d* task_auth_3d;
 Auth3dTestTask* auth_3d_test_task;
 
 static int16_t auth_3d_load_counter;
+static auth_3d_detail::FrameRateTimeStop frame_rate_time_stop;
 
 extern render_context* rctx_ptr;
 
-auth_3d::auth_3d() : uid(), id(), mat(), enable(), camera_root_update(), visible(), repeat(),
-ended(), left_right_reverse(), once(), alpha(), chara_id(), shadow(), frame_rate(), frame(),
-req_frame(), max_frame(), frame_changed(), frame_offset(), last_frame(), paused() {
+auth_3d::auth_3d() : uid(), id(), mat(), enable(), camera_root_update(), visible(), repeat(), ended(),
+left_right_reverse(), once(), alpha(), chara_id(), chara_item(), shadow(), frame_rate(), frame(),
+req_frame(), max_frame(), frame_changed(), frame_offset(), last_frame(), paused(), event_time_next() {
     hash = hash_murmurhash_empty;
     src_chara = CHARA_MAX;
     dst_chara = CHARA_MAX;
@@ -265,8 +254,9 @@ void auth_3d::ctrl(render_context* rctx) {
                     if (t)
                         l_len = t - l_str;
 
-                    uid_file->name = ff->name.substr(0, l_len);
-                    uid_file->file_name = ff->name;
+                    uid_file->name.assign(ff->name.c_str(), l_len);
+                    uid_file->file_name.assign(ff->name);
+                    file_name.assign(ff->name);
                     load(&a, uid_file->obj_db, uid_file->tex_db);
                     hash = uid_file->hash;
                     frame = 0.0f;
@@ -277,75 +267,109 @@ void auth_3d::ctrl(render_context* rctx) {
     if (state != 2 || !enable)
         return;
 
+    int32_t event_flags = 0;
     bool set = false;
     while (true) {
         if (frame_changed) {
             frame_changed = false;
+            if (req_frame < frame) {
+                event_time_next = event_time.data();
+                event_flags |= 0x02;
+            }
+            else
+                event_flags |= 0x04;
             frame = req_frame;
             ended = false;
             if (max_frame >= 0.0f && frame >= max_frame)
                 max_frame = -1.0f;
         }
         else if (!paused) {
+            event_flags |= 0x01;
             frame += frame_rate->GetDeltaFrame();
             if (max_frame >= 0.0f && frame > max_frame)
                 frame = max_frame;
         }
 
+        float_t frame = this->frame;
         for (auth_3d_point& i : point)
-            auth_3d_point_ctrl(&i, frame);
+            i.interpolate(frame);
 
         for (auth_3d_curve& i : curve)
-            auth_3d_curve_ctrl(&i, frame);
+            i.interpolate(frame);
 
         for (auth_3d_chara& i : chara)
-            auth_3d_chara_ctrl(&i, frame);
+            i.interpolate(frame);
 
         for (auth_3d_material_list& i : material_list)
-            auth_3d_material_list_ctrl(&i, frame);
+            i.interpolate(frame);
 
         for (auth_3d_object& i : object)
-            auth_3d_object_ctrl(&i, frame);
+            i.interpolate(frame);
 
         for (auth_3d_object*& i : object_list)
-            auth_3d_object_list_ctrl(i, &mat);
+            i->list_ctrl(&mat);
 
         for (auth_3d_object_hrc& i : object_hrc)
-            auth_3d_object_hrc_ctrl(&i, frame);
+            i.interpolate(frame);
 
         for (auth_3d_object_hrc*& i : object_hrc_list)
-            auth_3d_object_hrc_list_ctrl(i, &mat);
+            i->list_ctrl(&mat);
 
         for (auth_3d_m_object_hrc& i : m_object_hrc)
-            auth_3d_m_object_hrc_ctrl(&i, frame);
+            i.interpolate(frame);
 
         for (auth_3d_m_object_hrc*& i : m_object_hrc_list)
-            auth_3d_m_object_hrc_list_ctrl(i, &mat);
+            i->list_ctrl(&mat);
 
         for (auth_3d_ambient& i : ambient) {
-            auth_3d_ambient_ctrl(&i, frame);
+            i.interpolate(frame);
             auth_3d_ambient_set(&i, rctx);
         }
 
         for (auth_3d_light& i : light) {
-            auth_3d_light_ctrl(&i, frame);
+            i.interpolate(frame);
             auth_3d_light_set(&i, rctx);
         }
 
         for (auth_3d_fog& i : fog) {
-            auth_3d_fog_ctrl(&i, frame);
+            i.interpolate(frame);
             auth_3d_fog_set(&i, rctx);
         }
 
-        auth_3d_post_process_ctrl(&post_process, frame);
+        post_process.interpolate(frame);
         auth_3d_post_process_set(&post_process, rctx);
 
-        auth_3d_camera_auxiliary_ctrl(&camera_auxiliary, frame);
+        auth_3d_time_event* i_event = event_time_next;
+        auth_3d_time_event* i_event_end = event_time.data() + event_time.size();
+        for (; i_event != i_event_end && frame >= i_event->frame; i_event++) {
+            auth_3d_detail::Event* e = event[i_event->event_index];
+            if (!i_event->type) {
+                printf_debug("  [%s]: [%s][%s]\n",
+                    auth_3d_event_type_string(e->type), e->ref.c_str(), e->param1.c_str());
+                e->Begin(this, event_flags, rctx);
+                e->active = true;
+            }
+            else if (i_event->type) {
+                printf_debug("  [%s]: [%s][%s]\n",
+                    auth_3d_event_type_string(e->type), e->ref.c_str(), e->param1.c_str());
+                if (e->active) {
+                    e->active = false;
+                    e->End(this, event_flags, rctx);
+                }
+            }
+        }
+        event_time_next = i_event;
+
+        for (auth_3d_detail::Event*& i : event)
+            if (i->active)
+                i->Ctrl(this, event_flags, rctx);
+
+        camera_auxiliary.interpolate(frame);
         auth_3d_camera_auxiliary_set(&camera_auxiliary, rctx);
 
         if (camera_root_update)
             for (auth_3d_camera_root& i : camera_root) {
-                auth_3d_camera_root_ctrl(&i, frame, &mat, rctx);
+                i.interpolate(auth_3d_camera_root_calc_frame(&i, frame, rctx));
 
                 vec3 interest = i.interest_value;
                 vec3 view_point = i.view_point_value;
@@ -369,7 +393,7 @@ void auth_3d::ctrl(render_context* rctx) {
                 break;
             }
 
-        auth_3d_dof_ctrl(&dof, frame);
+        dof.interpolate(frame);
         auth_3d_dof_set(&dof, rctx);
 
         if (set || !repeat || last_frame > frame)
@@ -410,6 +434,10 @@ void auth_3d::disp(render_context* rctx) {
     for (auth_3d_m_object_hrc*& i : m_object_hrc_list)
         auth_3d_m_object_hrc_disp(i, this, rctx);
 
+    for (auth_3d_detail::Event*& i : event)
+        if (i->active)
+            i->Disp(this, &mat, rctx);
+
     rctx->object_data.set_material_list(0, 0);
 }
 
@@ -432,91 +460,93 @@ void auth_3d::load(a3da* auth_file,
     auth_3d_dof_load(this, &dof, &auth_file->dof);
     auth_3d_post_process_load(this, &post_process, &auth_file->post_process);
 
-    if (auth_file->ambient.size() > 0) {
+    if (auth_file->ambient.size()) {
         size_t ambient_index = 0;
         ambient.resize(auth_file->ambient.size());
         for (auth_3d_ambient_file& i : auth_file->ambient)
             auth_3d_ambient_load(this, &ambient[ambient_index++], &i);
     }
 
-    if (auth_file->auth_2d.size() > 0) {
+    if (auth_file->auth_2d.size()) {
         size_t auth_2d_index = 0;
         auth_2d.resize(auth_file->auth_2d.size());
         for (std::string& i : auth_file->auth_2d)
             auth_2d[auth_2d_index++] = i;
     }
 
-    if (auth_file->camera_root.size() > 0) {
+    if (auth_file->camera_root.size()) {
         size_t camera_root_index = 0;
         camera_root.resize(auth_file->camera_root.size());
         for (auth_3d_camera_root_file& i : auth_file->camera_root)
             auth_3d_camera_root_load(this, &camera_root[camera_root_index++], &i);
     }
 
-    if (auth_file->chara.size() > 0) {
+    if (auth_file->chara.size()) {
         size_t chara_index = 0;
         chara.resize(auth_file->chara.size());
         for (auth_3d_chara_file& i : auth_file->chara)
             auth_3d_chara_load(this, &chara[chara_index++], &i);
     }
 
-    if (auth_file->curve.size() > 0) {
+    if (auth_file->curve.size()) {
         size_t curve_index = 0;
         curve.resize(auth_file->curve.size());
         for (auth_3d_curve_file& i : auth_file->curve)
             auth_3d_curve_load(this, &curve[curve_index++], &i);
     }
 
-    if (auth_file->event.size() > 0) {
-        size_t event_index = 0;
-        event.resize(auth_file->event.size());
-        for (auth_3d_event_file& i : auth_file->event)
-            auth_3d_event_load(this, &event[event_index++], &i);
+    if (auth_file->event.size()) {
+        event.reserve(auth_file->event.size());
+        for (auth_3d_event_file& i : auth_file->event) {
+            auth_3d_detail::Event* e = auth_3d_event_load(this, &i);
+            if (e)
+                event.push_back(e);
+        }
     }
 
-    if (auth_file->fog.size() > 0) {
+    if (auth_file->fog.size()) {
         size_t fog_index = 0;
         fog.resize(auth_file->fog.size());
         for (auth_3d_fog_file& i : auth_file->fog)
             auth_3d_fog_load(this, &fog[fog_index++], &i);
     }
 
-    if (auth_file->light.size() > 0) {
+    if (auth_file->light.size()) {
         size_t light_index = 0;
         light.resize(auth_file->light.size());
         for (auth_3d_light_file& i : auth_file->light)
             auth_3d_light_load(this, &light[light_index++], &i);
     }
 
-    if (auth_file->m_object_hrc.size() > 0) {
+    if (auth_file->m_object_hrc.size()) {
         size_t m_object_hrc_index = 0;
         m_object_hrc.resize(auth_file->m_object_hrc.size());
         for (auth_3d_m_object_hrc_file& i : auth_file->m_object_hrc)
             auth_3d_m_object_hrc_load(this, &m_object_hrc[m_object_hrc_index++], &i, obj_db);
     }
 
-    if (auth_file->material_list.size() > 0) {
+    if (auth_file->material_list.size()) {
         size_t material_list_index = 0;
         material_list.resize(auth_file->material_list.size());
         for (auth_3d_material_list_file& i : auth_file->material_list)
             auth_3d_material_list_load(this, &material_list[material_list_index++], &i);
     }
 
-    if (auth_file->motion.size() > 0) {
+    if (auth_file->motion.size()) {
         size_t motion_index = 0;
         motion.resize(auth_file->motion.size());
         for (std::string& i : auth_file->motion)
             motion[motion_index++] = i;
     }
 
-    if (auth_file->object.size() > 0) {
+    if (auth_file->object.size()) {
         size_t object_index = 0;
         object.resize(auth_file->object.size());
         for (auth_3d_object_file& i : auth_file->object)
             auth_3d_object_load(this, &object[object_index++], &i, obj_db, tex_db);
     }
 
-    if (auth_file->object_hrc.size() > 0) {
+    if (auth_file->object_hrc.size()) {
         size_t object_hrc_index = 0;
         object_hrc.resize(auth_file->object_hrc.size());
         for (auth_3d_object_hrc_file& i : auth_file->object_hrc)
@@ -526,14 +556,14 @@ void auth_3d::load(a3da* auth_file,
             auth_3d_object_hrc_replace_chara(&i, (chara_index)src_chara, (chara_index)dst_chara, obj_db);
     }
 
-    if (auth_file->point.size() > 0) {
+    if (auth_file->point.size()) {
         size_t point_index = 0;
         point.resize(auth_file->point.size());
         for (auth_3d_point_file& i : auth_file->point)
             auth_3d_point_load(this, &point[point_index++], &i);
     }
 
-    if (auth_file->m_object_hrc_list.size() > 0) {
+    if (auth_file->m_object_hrc_list.size()) {
         size_t m_object_hrc_list_index = 0;
         m_object_hrc_list.resize(auth_file->m_object_hrc_list.size());
         for (std::string& i : auth_file->m_object_hrc_list)
@@ -545,7 +575,7 @@ void auth_3d::load(a3da* auth_file,
         m_object_hrc_list.resize(m_object_hrc_list_index);
     }
 
-    if (auth_file->object_list.size() > 0) {
+    if (auth_file->object_list.size()) {
         size_t object_list_index = 0;
         object_list.resize(auth_file->object_list.size());
         for (std::string& i : auth_file->object_list)
@@ -557,7 +587,7 @@ void auth_3d::load(a3da* auth_file,
         object_list.resize(object_list_index);
     }
 
-    if (auth_file->object_hrc_list.size() > 0) {
+    if (auth_file->object_hrc_list.size()) {
         size_t object_hrc_list_index = 0;
         object_hrc_list.resize(auth_file->object_hrc_list.size());
         for (std::string& i : auth_file->object_hrc_list)
@@ -569,9 +599,7 @@ void auth_3d::load(a3da* auth_file,
         object_hrc_list.resize(object_hrc_list_index);
     }
 
-    if (object.size() > 0) {
-        std::vector<auth_3d_object>* vo = &object;
-        std::vector<auth_3d_object_hrc>* voh = &object_hrc;
+    if (object.size()) {
         for (auth_3d_object& i : object) {
             if (!i.parent_name.size())
                 continue;
@@ -581,14 +609,10 @@ void auth_3d::load(a3da* auth_file,
                     if (i.parent_name.compare(j.name))
                         continue;
 
-                    for (auth_3d_object_node& k : j.node) {
-                        if (i.parent_node.compare(k.name))
-                            continue;
-
-                        int32_t node_index = (int32_t)(&k - j.node.data());
-                        j.childer_object_parent_node.push_back(node_index);
+                    int32_t node_index = j.get_node_index(i.parent_node.c_str());
+                    if (node_index > -1) {
+                        j.children_object_parent_node.push_back(node_index);
                         j.children_object.push_back(&i);
-                        break;
                     }
                     break;
                 }
@@ -603,7 +627,7 @@ void auth_3d::load(a3da* auth_file,
         }
     }
 
-    if (object_hrc.size() > 0) {
+    if (object_hrc.size()) {
         for (auth_3d_object_hrc& i : object_hrc) {
             if (!i.parent_name.size())
                 continue;
@@ -613,14 +637,10 @@ void auth_3d::load(a3da* auth_file,
                     if (i.parent_name.compare(j.name))
                         continue;
 
-                    for (auth_3d_object_node& k : j.node) {
-                        if (i.parent_node.compare(k.name))
-                            continue;
-
-                        int32_t node_index = (int32_t)(&k - j.node.data());
-                        j.childer_object_hrc_parent_node.push_back(node_index);
+                    int32_t node_index = j.get_node_index(i.parent_node.c_str());
+                    if (node_index > -1) {
+                        j.children_object_hrc_parent_node.push_back(node_index);
                         j.children_object_hrc.push_back(&i);
-                        break;
                     }
                     break;
                 }
@@ -635,7 +655,28 @@ void auth_3d::load(a3da* auth_file,
         }
     }
 
-    file_name = auth_file->_file_name;
+    if (event.size()) {
+        for (auth_3d_detail::Event*& i : event)
+            if (i)
+                i->Load(this);
+
+        size_t event_index = 0;
+        event_time.clear();
+        event_time.shrink_to_fit();
+        event_time.reserve(event.size() * 2);
+        for (auth_3d_detail::Event*& i : event) {
+            event_time.push_back({ i->begin, 0, event_index });
+            event_time.push_back({ i->end  , 1, event_index });
+            event_index++;
+        }
+
+        radix_sort_custom(event_time.data(), event_time.size(), sizeof(auth_3d_time_event),
+            sizeof(float_t), (radix_index_func)auth_3d_time_event_radix_index_func_time);
+
+        event_time_next = event_time.data();
+    }
+
+    file_name.assign(auth_file->_file_name);
 }
 
 void auth_3d::load_from_farc(farc* f, const char* file,
@@ -672,6 +713,7 @@ void auth_3d::reset() {
     alpha = 1.0f;
     draw_task_flags = DRAW_TASK_ALPHA_ORDER_1;
     chara_id = -1;
+    chara_item = false;
     shadow = false;
     src_chara = CHARA_MAX;
     dst_chara = CHARA_MAX;
@@ -695,8 +737,16 @@ void auth_3d::reset() {
     curve.clear();
     curve.shrink_to_fit();
     dof.reset();
+    for (auth_3d_detail::Event*& i : event)
+        if (i) {
+            delete i;
+            i = 0;
+        }
     event.clear();
     event.shrink_to_fit();
+    event_time.clear();
+    event_time.shrink_to_fit();
+    event_time_next = 0;
     fog.clear();
     fog.shrink_to_fit();
     light.clear();
@@ -754,6 +804,314 @@ void auth_3d::unload(render_context* rctx) {
                 auth_3d_uid_file_modern_unload(uid_file);
         }
     reset();
+}
+
+namespace auth_3d_detail {
+    Event::Event(a3da_event* e) {
+        active = false;
+        switch (e->type) {
+        case A3DA_EVENT_MISC:
+        default:
+            type = Event::Type::MISC;
+        case A3DA_EVENT_FILT:
+            type = Event::Type::FILT;
+        case A3DA_EVENT_FX:
+            type = Event::Type::FX;
+        case A3DA_EVENT_SND:
+            type = Event::Type::SND;
+        case A3DA_EVENT_MOT:
+            type = Event::Type::MOT;
+        case A3DA_EVENT_A2D:
+            type = Event::Type::A2D;
+        }
+        name.assign(e->name);
+        begin = e->begin;
+        end = e->end;
+        param1.assign(e->param1);
+        ref.assign(e->ref);
+        index = -1;
+    }
+
+    Event::~Event() {
+
+    }
+
+    void Event::Load(auth_3d* auth) {
+
+    }
+
+    void Event::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void Event::End(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void Event::Ctrl(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void Event::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
+
+    }
+
+    EventA2d::EventA2d(a3da_event* e) : Event(e) {
+
+    }
+
+    EventA2d::~EventA2d() {
+
+    }
+
+    void EventA2d::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void EventA2d::End(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void EventA2d::Ctrl(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void EventA2d::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
+
+    }
+
+    EventFX::EventFX(a3da_event* e) : Event(e) {
+
+    }
+
+    EventFX::~EventFX() {
+
+    }
+
+    void EventFX::Load(auth_3d* auth) {
+        if (param1.compare("DOWN") && param1.compare("KABEHIT1") && param1.compare("PAPER1"))
+            return;
+
+        index = -1;
+        for (auth_3d_point& i : auth->point)
+            if (!i.name.compare(ref)) {
+                index = &i - auth->point.data();
+                break;
+            }
+    }
+
+    void EventFX::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
+        printf_debug("  [FX]: %s\n", param1.c_str());
+    }
+
+    void EventFX::Ctrl(auth_3d* auth, int32_t flags, render_context* rctx) {
+        if (index >= auth->point.size() || auth->frame < begin || auth->frame >= end || param1.compare("PAPER1"))
+            return;
+
+        auth_3d_point& point = auth->point[index];
+        vec3 trans = point.model_transform.translation_value;
+        if (auth->left_right_reverse)
+            trans.x = -trans.x;
+
+        mat4_mult_vec3_trans(&auth->mat, &trans, &trans);
+        particle_event_data event;
+        event.type = 1.0f;
+        event.count = point.model_transform.scale_value.x * 100.0f;
+        event.size = point.model_transform.scale_value.z;
+        event.trans = trans;
+        event.force = point.model_transform.scale_value.y;
+        task_effect_parent_event(TASK_EFFECT_PARTICLE, 1, &event);
+    }
+
+    EventFXSmoothCut::EventFXSmoothCut(a3da_event* e) : Event(e), cam() {
+
+    }
+
+    EventFXSmoothCut::~EventFXSmoothCut() {
+
+    }
+
+    void EventFXSmoothCut::Load(auth_3d* auth) {
+        if (!ref.compare("CAM")) {
+            cam = true;
+            return;
+        }
+
+        index = -1;
+        for (auth_3d_point& i : auth->point)
+            if (!i.name.compare(ref)) {
+                index = &i - auth->point.data();
+                break;
+            }
+    }
+
+    void EventFXSmoothCut::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
+        if (cam || !auth->chara.size() || index >= auth->chara.size())
+            return;
+
+        int32_t chr_index = auth->chara[index].index;
+        rob_chara* rob_chr = rob_chara_array_get(chr_index);
+        if (rob_chr)
+            rob_chr->field_C = true;
+    }
+
+    void EventFXSmoothCut::End(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void EventFXSmoothCut::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
+
+    }
+
+    EventFilterFade::EventFilterFade(a3da_event* e) : Event(e) {
+        type = Type::FADE_NONE;
+    }
+
+    EventFilterFade::~EventFilterFade() {
+
+    }
+
+    void EventFilterFade::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void EventFilterFade::End(auth_3d* auth, int32_t flags, render_context* rctx) {
+        switch (type) {
+        case EventFilterFade::Type::FADE_OUT:
+        case EventFilterFade::Type::FADE_IN:
+            break;
+        default:
+            return;
+        }
+
+        rctx->post_process.tone_map->set_scene_fade_color(0.0f);
+        rctx->post_process.tone_map->set_scene_fade_alpha(0.0f);
+        rctx->post_process.tone_map->set_scene_fade_blend_func(0);
+    }
+
+    void EventFilterFade::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
+        switch (type) {
+        case EventFilterFade::Type::FADE_OUT:
+        case EventFilterFade::Type::FADE_IN:
+            break;
+        default:
+            return;
+        }
+
+        float_t t = (auth->frame - begin) / (end - begin);
+
+        float_t alpha;
+        if (type == EventFilterFade::Type::FADE_IN)
+            alpha = t;
+        else
+            alpha = 1.0f - t;
+
+        rctx->post_process.tone_map->set_scene_fade_color(color);
+        rctx->post_process.tone_map->set_scene_fade_alpha(alpha);
+    }
+
+    EventFilterTimeStop::EventFilterTimeStop(a3da_event* e) : Event(e) {
+
+    }
+
+    EventFilterTimeStop::~EventFilterTimeStop() {
+
+    }
+
+    void EventFilterTimeStop::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
+        for (auth_3d_chara& i : auth->chara) {
+            rob_chara* rob_chr = rob_chara_array_get(i.index);
+            if (rob_chr)
+                rob_chr->item_equip->disable_update = true;
+        }
+        task_effect_parent_set_frame_rate_control(&frame_rate_time_stop);
+    }
+
+    void EventFilterTimeStop::End(auth_3d* auth, int32_t flags, render_context* rctx) {
+        for (auth_3d_chara& i : auth->chara) {
+            rob_chara* rob_chr = rob_chara_array_get(i.index);
+            if (rob_chr)
+                rob_chr->item_equip->disable_update = true;
+        }
+        task_effect_parent_set_frame_rate_control(&sys_frame_rate);
+    }
+
+    void EventFilterTimeStop::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
+
+    }
+
+    EventMot::EventMot(a3da_event* e) : Event(e) {
+
+    }
+
+    EventMot::~EventMot() {
+
+    }
+
+    void EventMot::Load(auth_3d* auth) {
+        index = -1;
+        for (auth_3d_chara& i : auth->chara)
+            if (!i.name.compare(ref)) {
+                index = &i - auth->chara.data();
+                break;
+            }
+    }
+
+    void EventMot::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void EventMot::End(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void EventMot::Ctrl(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void EventMot::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
+
+    }
+
+    EventSnd::EventSnd(a3da_event* e) : Event(e) {
+        field_190 = param1.find("zz", 0, 2) == 0;
+    }
+
+    EventSnd::~EventSnd() {
+
+    }
+
+    void EventSnd::Load(auth_3d* auth) {
+
+    }
+
+    static void sub_140532980(int32_t chara_id, const char* name) {
+
+    }
+
+    void EventSnd::Begin(auth_3d* auth, int32_t flags, render_context* rctx) {
+        float_t frame = auth->frame;
+        if (begin > frame || frame >= end || ((flags & 0x02) && fabsf(frame - begin) > 0.1f))
+            return;
+
+        int32_t index = -1;
+        if (auth->chara.size())
+            index = auth->chara.front().index;
+
+        if (index >= 0 && index < ROB_CHARA_COUNT)
+            sub_140532980(index, param1.c_str());
+        else if (sound_work_has_property(param1.c_str()))
+            sound_work_play_se(1, param1.c_str(), 1.0f);
+    }
+
+    void EventSnd::End(auth_3d* auth, int32_t flags, render_context* rctx) {
+
+    }
+
+    void EventSnd::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
+
+    }
+
 }
 
 auth_3d_key::auth_3d_key() : type(), value(), max_frame(), ep_type_pre(), ep_type_post(),
@@ -842,6 +1200,24 @@ inline void auth_3d_key::reset() {
     value_init = 0.0f;
 }
 
+auth_3d_key& auth_3d_key::operator=(const auth_3d_key& k) {
+    type = k.type;
+    value = k.value;
+    max_frame = k.max_frame;
+    ep_type_pre = k.ep_type_pre;
+    ep_type_post = k.ep_type_post;
+    frame_delta = k.frame_delta;
+    value_delta = k.value_delta;
+    keys_vec.assign(k.keys_vec.begin(), k.keys_vec.end());
+    length = k.length;
+    keys = keys_vec.data();
+
+    frame = k.frame;
+    value_interp = k.value_interp;
+    value_init = k.value_init;
+    return *this;
+}
+
 auth_3d_rgba::auth_3d_rgba() : flags(), value() {
     reset();
 }
@@ -870,7 +1246,7 @@ void auth_3d_rgba::reset() {
     g.reset();
     b.reset();
     a.reset();
-    value = vec4_null;
+    value = 0.0f;
 }
 
 auth_3d_vec3::auth_3d_vec3() {
@@ -919,10 +1295,17 @@ void auth_3d_model_transform::reset() {
     rotation.reset();
     translation.reset();
     visibility.reset();
-    scale_value = vec3_null;
-    rotation_value = vec3_null;
-    translation_value = vec3_null;
+    scale_value = 0.0f;
+    rotation_value = 0.0f;
+    translation_value = 0.0f;
     visible = false;
+}
+
+void auth_3d_model_transform::set_mat(const mat4* parent_mat) {
+    mat4 mat;
+    mat4_translate_mult(parent_mat, &translation_value, &mat);
+    mat4_rotate_mult(&mat, &rotation_value, &mat);
+    mat4_scale_rot(&mat, &scale_value, &this->mat);
 }
 
 auth_3d_ambient::auth_3d_ambient() : flags() {
@@ -931,6 +1314,14 @@ auth_3d_ambient::auth_3d_ambient() : flags() {
 
 auth_3d_ambient::~auth_3d_ambient() {
     reset();
+}
+
+void auth_3d_ambient::interpolate(float_t frame) {
+    if (flags & AUTH_3D_AMBIENT_LIGHT_DIFFUSE)
+        light_diffuse.interpolate(frame);
+
+    if (flags & AUTH_3D_AMBIENT_LIGHT_DIFFUSE)
+        rim_light_diffuse.interpolate(frame);
 }
 
 void auth_3d_ambient::reset() {
@@ -948,6 +1339,21 @@ exposure_value(), exposure_rate_value(), gamma_value(), gamma_rate_value(), satu
 
 auth_3d_camera_auxiliary::~auth_3d_camera_auxiliary() {
     reset();
+}
+
+void auth_3d_camera_auxiliary::interpolate(float_t frame) {
+    if (flags & AUTH_3D_CAMERA_AUXILIARY_AUTO_EXPOSURE)
+        auto_exposure_value = auto_exposure.interpolate(frame);
+    if (flags & AUTH_3D_CAMERA_AUXILIARY_EXPOSURE)
+        exposure_value = exposure.interpolate(frame);
+    if (flags & AUTH_3D_CAMERA_AUXILIARY_EXPOSURE_RATE)
+        exposure_rate_value = exposure_rate.interpolate(frame);
+    if (flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA)
+        gamma_value = gamma.interpolate(frame);
+    if (flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA_RATE)
+        gamma_rate_value = gamma_rate.interpolate(frame);
+    if (flags & AUTH_3D_CAMERA_AUXILIARY_SATURATE)
+        saturate_value = saturate.interpolate(frame);
 }
 
 void auth_3d_camera_auxiliary::reset() {
@@ -971,14 +1377,43 @@ interest_value(), roll_value(), view_point_value() {
     reset();
 }
 
+void auth_3d_camera_root::interpolate(float_t frame) {
+    model_transform.interpolate(frame);
+    model_transform.set_mat(&mat4_identity);
+
+    mat4& cr_mat = model_transform.mat;
+
+    vec3 _view_point = view_point.model_transform.translation.interpolate(frame);
+    mat4_mult_vec3_trans(&cr_mat, &_view_point, &view_point_value);
+
+    vec3 _interest = interest.translation.interpolate(frame);
+    mat4_mult_vec3_trans(&cr_mat, &_interest, &interest_value);
+
+    float_t fov;
+    if (view_point.flags & AUTH_3D_CAMERA_ROOT_VIEW_POINT_FOV) {
+        fov = view_point.fov.interpolate(frame);
+        if (view_point.fov_is_horizontal)
+            fov = atanf(tanf(fov * 0.5f) / view_point.aspect) * 2.0f;
+    }
+    else {
+        float_t camera_aperture_h = view_point.camera_aperture_h;
+        float_t focal_lenth = view_point.focal_length.interpolate(frame);
+        fov = atanf((camera_aperture_h * 25.4f) * 0.5f / focal_lenth) * 2.0f;
+    }
+    fov_value = fov;
+
+    if (view_point.flags & AUTH_3D_CAMERA_ROOT_VIEW_POINT_ROLL)
+        roll_value = view_point.roll.interpolate(frame);
+}
+
 void auth_3d_camera_root::reset() {
     interest.reset();
     model_transform.reset();
     view_point.reset();
     fov_value = 0.0f;
-    interest_value = vec3_null;
+    interest_value = 0.0f;
     roll_value = 0.0f;
-    view_point_value = vec3_null;
+    view_point_value = 0.0f;
 }
 
 auth_3d_camera_root::~auth_3d_camera_root() {
@@ -1006,7 +1441,7 @@ void auth_3d_camera_root_view_point::reset() {
     roll.reset();
 }
 
-auth_3d_chara::auth_3d_chara() {
+auth_3d_chara::auth_3d_chara() : index() {
     reset();
 }
 
@@ -1014,10 +1449,15 @@ auth_3d_chara::~auth_3d_chara() {
     reset();
 }
 
+void auth_3d_chara::interpolate(float_t frame) {
+    model_transform.interpolate(frame);
+}
+
 void auth_3d_chara::reset() {
     model_transform.reset();
     name.clear();
     name.shrink_to_fit();
+    index = -1;
 }
 
 auth_3d_curve::auth_3d_curve() : value() {
@@ -1026,6 +1466,10 @@ auth_3d_curve::auth_3d_curve() : value() {
 
 auth_3d_curve::~auth_3d_curve() {
     reset();
+}
+
+void auth_3d_curve::interpolate(float_t frame) {
+    value = curve.interpolate(frame);
 }
 
 void auth_3d_curve::reset() {
@@ -1043,33 +1487,16 @@ auth_3d_dof::~auth_3d_dof() {
     reset();
 }
 
+void auth_3d_dof::interpolate(float_t frame) {
+    if (!has_dof)
+        return;
+
+    model_transform.interpolate(frame);
+}
+
 void auth_3d_dof::reset() {
     has_dof = false;
     model_transform.reset();
-}
-
-auth_3d_event::auth_3d_event() : begin(), clip_begin(),
-clip_end(), end(), time_ref_scale(), type() {
-    reset();
-}
-
-auth_3d_event::~auth_3d_event() {
-    reset();
-}
-
-void auth_3d_event::reset() {
-    begin = 0.0f;
-    clip_begin = 0.0f;
-    clip_end = 0.0f;
-    end = 0.0f;
-    name.clear();
-    name.shrink_to_fit();
-    param_1.clear();
-    param_1.shrink_to_fit();
-    ref.clear();
-    ref.shrink_to_fit();
-    time_ref_scale = 0.0f;
-    type = (auth_3d_event_type)0;
 }
 
 auth_3d_fog::auth_3d_fog() : flags(), flags_init(), id(), density_value(),
@@ -1079,6 +1506,17 @@ end_value(), start_value(), color_init(), density_init(), end_init(), start_init
 
 auth_3d_fog::~auth_3d_fog() {
     reset();
+}
+
+void auth_3d_fog::interpolate(float_t frame) {
+    if (flags & AUTH_3D_FOG_DENSITY)
+        density_value = density.interpolate(frame);
+    if (flags & AUTH_3D_FOG_START)
+        start_value = start.interpolate(frame);
+    if (flags & AUTH_3D_FOG_END)
+        end_value = end.interpolate(frame);
+    if (flags & AUTH_3D_FOG_COLOR)
+        color.interpolate(frame);
 }
 
 void auth_3d_fog::reset() {
@@ -1094,7 +1532,7 @@ void auth_3d_fog::reset() {
     end_value = 0.0f;
     start_value = 0.0f;
 
-    color_init = vec4_null;
+    color_init = 0.0f;
     density_init = 0.0f;
     end_init = 0.0f;
     start_init = 0.0f;
@@ -1109,6 +1547,35 @@ far_init(), intensity_init(), linear_init(), quadratic_init(), specular_init(), 
 
 auth_3d_light::~auth_3d_light() {
     reset();
+}
+
+void auth_3d_light::interpolate(float_t frame) {
+    if (flags & AUTH_3D_LIGHT_AMBIENT)
+        ambient.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_CONE_ANGLE)
+        cone_angle_value = cone_angle.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_CONSTANT)
+        constant_value = constant.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_DIFFUSE)
+        diffuse.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_DROP_OFF)
+        drop_off_value = drop_off.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_FAR)
+        far_value = _far.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_INTENSITY)
+        intensity_value = intensity.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_LINEAR)
+        linear_value = linear.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_POSITION)
+        position.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_QUADRATIC)
+        quadratic_value = quadratic.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_SPECULAR)
+        specular.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_SPOT_DIRECTION)
+        spot_direction.interpolate(frame);
+    if (flags & AUTH_3D_LIGHT_TONE_CURVE)
+        tone_curve.interpolate(frame);
 }
 
 void auth_3d_light::reset() {
@@ -1137,16 +1604,16 @@ void auth_3d_light::reset() {
     intensity_value = 0.0f;
     linear_value = 0.0f;
     quadratic_value = 0.0f;
-    ambient_init = vec4_null;
+    ambient_init = 0.0f;
     cone_angle_init = 0.0f;
     constant_init = 0.0f;
-    diffuse_init = vec4_null;
+    diffuse_init = 0.0f;
     drop_off_init = 0.0f;
     far_init = 0.0f;
     intensity_init = 0.0f;
     linear_init = 0.0f;
     quadratic_init = 0.0f;
-    specular_init = vec4_null;
+    specular_init = 0.0f;
     tone_curve_init = {};
 }
 
@@ -1156,6 +1623,39 @@ auth_3d_m_object_hrc::auth_3d_m_object_hrc() {
 
 auth_3d_m_object_hrc::~auth_3d_m_object_hrc() {
     reset();
+}
+
+void auth_3d_m_object_hrc::interpolate(float_t frame) {
+    model_transform.interpolate(frame);
+    for (auth_3d_object_instance& i : instance)
+        i.interpolate(frame);
+    for (auth_3d_object_node& i : node)
+        i.interpolate(frame);
+}
+
+void auth_3d_m_object_hrc::list_ctrl(const mat4* parent_mat) {
+    //if (!model_transform.visible)
+    //    return;
+
+    auth_3d_object_node* node = this->node.data();
+
+    auth_3d_m_object_hrc_nodes_mat_mult(this);
+
+    this->model_transform.mat_mult(parent_mat);
+
+    mat4& mat = this->model_transform.mat;
+
+    for (auth_3d_object_instance& i : this->instance) {
+        //if (!i.model_transform.visible)
+        //    continue;
+
+        i.model_transform.mat_mult(&mat);
+        int32_t* object_bone_indices = i.object_bone_indices.data();
+        size_t object_bone_indices_count = i.object_bone_indices.size();
+        mat4* mats = i.mats.data();
+        for (size_t j = 0; j < object_bone_indices_count; j++)
+            mats[j] = node[object_bone_indices[j]].model_transform.mat;
+    }
 }
 
 void auth_3d_m_object_hrc::reset() {
@@ -1180,6 +1680,15 @@ auth_3d_material_list::~auth_3d_material_list() {
     reset();
 }
 
+void auth_3d_material_list::interpolate(float_t frame) {
+    if (flags & AUTH_3D_MATERIAL_LIST_BLEND_COLOR)
+        blend_color.interpolate(frame);
+    if (flags & AUTH_3D_MATERIAL_LIST_GLOW_INTENSITY)
+        glow_intensity_value = glow_intensity.interpolate(frame);
+    if (flags & AUTH_3D_MATERIAL_LIST_INCANDESCENCE)
+        incandescence.interpolate(frame);
+}
+
 void auth_3d_material_list::reset() {
     flags = (auth_3d_material_list_flags)0;
     blend_color.reset();
@@ -1198,13 +1707,33 @@ auth_3d_object::~auth_3d_object() {
     reset();
 }
 
-void auth_3d_object::reset() {
+void auth_3d_object::interpolate(float_t frame) {
+    model_transform.interpolate(frame);
+    pattern.interpolate(frame);
+    morph.interpolate(frame);
+    for (auth_3d_object_texture_pattern& i : texture_pattern)
+        i.interpolate(frame);
+    for (auth_3d_object_texture_transform& i : texture_transform)
+        i.interpolate(frame);
+}
+
+void auth_3d_object::list_ctrl(const mat4* parent_mat) {
+    //if (!model_transform.visible)
+    //    return;
+
+    model_transform.set_mat(parent_mat);
+
+    mat4& mat = model_transform.mat;
+
     for (auth_3d_object*& i : children_object)
-        i = 0;
+        i->list_ctrl(&mat);
+    for (auth_3d_object_hrc*& i : children_object_hrc)
+        i->list_ctrl(&mat);
+}
+
+void auth_3d_object::reset() {
     children_object.clear();
     children_object.shrink_to_fit();
-    for (auth_3d_object_hrc*& i : children_object_hrc)
-        i = 0;
     children_object_hrc.clear();
     children_object_hrc.shrink_to_fit();
     model_transform.reset();
@@ -1240,6 +1769,19 @@ auth_3d_object_curve::~auth_3d_object_curve() {
     reset();
 }
 
+void auth_3d_object_curve::interpolate(float_t frame) {
+    auth_3d_curve* c = curve;
+    if (!c)
+        return;
+
+    if (frame_offset != 0.0f) {
+        frame += frame_offset;
+        if (frame >= c->curve.max_frame)
+            frame -= c->curve.max_frame;
+    }
+    value = c->curve.interpolate(frame);
+}
+
 void auth_3d_object_curve::reset() {
     curve = 0;
     name.clear();
@@ -1257,19 +1799,50 @@ auth_3d_object_hrc::~auth_3d_object_hrc() {
     reset();
 }
 
+int32_t auth_3d_object_hrc::get_node_index(const char* node) {
+    for (auth_3d_object_node& i : this->node)
+        if (!i.name.compare(node))
+            return (int32_t)(&i - this->node.data());
+    return -1;
+}
+
+void auth_3d_object_hrc::interpolate(float_t frame) {
+    for (auth_3d_object_node& i : node)
+        i.interpolate(frame);
+}
+
+void auth_3d_object_hrc::list_ctrl(const mat4* mat) {
+    //if (node.size() < 1 || !node.front().model_transform.visible)
+    //    return;
+
+    auth_3d_object_hrc_nodes_mat_mult(this, mat);
+
+    auth_3d_object_node* node = this->node.data();
+
+    int32_t* children_object_parent_node = this->children_object_parent_node.data();
+    auth_3d_object** children_object = this->children_object.data();
+    size_t children_object_count = this->children_object.size();
+    for (size_t i = 0; i < children_object_count; i++)
+        children_object[i]->list_ctrl(
+            &node[children_object_parent_node[i]].model_transform.mat);
+
+    int32_t* children_object_hrc_parent_node = this->children_object_hrc_parent_node.data();
+    auth_3d_object_hrc** children_object_hrc = this->children_object_hrc.data();
+    size_t children_object_hrc_count = this->children_object_hrc.size();
+    for (size_t i = 0; i < children_object_hrc_count; i++)
+        children_object_hrc[i]->list_ctrl(
+            &node[children_object_hrc_parent_node[i]].model_transform.mat);
+}
+
 void auth_3d_object_hrc::reset() {
-    for (auth_3d_object*& i : children_object)
-        i = 0;
     children_object.clear();
     children_object.shrink_to_fit();
-    for (auth_3d_object_hrc*& i : children_object_hrc)
-        i = 0;
     children_object_hrc.clear();
     children_object_hrc.shrink_to_fit();
-    childer_object_hrc_parent_node.clear();
-    childer_object_hrc_parent_node.shrink_to_fit();
-    childer_object_parent_node.clear();
-    childer_object_parent_node .shrink_to_fit();
+    children_object_parent_node.clear();
+    children_object_parent_node .shrink_to_fit();
+    children_object_hrc_parent_node.clear();
+    children_object_hrc_parent_node.shrink_to_fit();
     mats.clear();
     mats.shrink_to_fit();
     name.clear();
@@ -1299,6 +1872,10 @@ auth_3d_object_instance::~auth_3d_object_instance() {
     reset();
 }
 
+void auth_3d_object_instance::interpolate(float_t frame) {
+    model_transform.interpolate(frame);
+}
+
 void auth_3d_object_instance::reset() {
     mats.clear();
     mats.shrink_to_fit();
@@ -1324,6 +1901,36 @@ auth_3d_object_model_transform::~auth_3d_object_model_transform() {
     reset();
 }
 
+void auth_3d_object_model_transform::interpolate(float_t frame) {
+    if (frame != this->frame || has_rotation) {
+        translation_value = translation.interpolate(frame);
+        rotation_value = rotation.interpolate(frame);
+
+        if (has_scale)
+            scale_value = scale.interpolate(frame);
+
+        if (has_visibility)
+            visible = visibility.interpolate(frame) >= 0.99900001f;
+
+        mat4_rotate(&rotation_value, &mat_rot);
+        this->frame = frame;
+        has_rotation = false;
+        has_translation = false;
+    }
+
+    if (has_translation && !has_rotation)
+        return;
+
+    mat4 mat;
+    mat4_translate(&translation_value, &mat);
+
+    mat4_mult(&mat_rot, &mat, &mat);
+    if (has_scale)
+        mat4_scale_rot(&mat, &scale_value, &mat);
+    mat_inner = mat;
+    has_translation = true;
+}
+
 void auth_3d_object_model_transform::reset() {
     mat = mat4_identity;
     mat_inner = mat4_identity;
@@ -1332,9 +1939,9 @@ void auth_3d_object_model_transform::reset() {
     rotation.reset();
     scale.reset();
     visibility.reset();
-    translation_value = vec3_null;
-    rotation_value = vec3_null;
-    scale_value = vec3_identity;
+    translation_value = 0.0f;
+    rotation_value = 0.0f;
+    scale_value = 1.0f;
     visible = true;
     frame = -1.0f;
     has_rotation = false;
@@ -1352,10 +1959,14 @@ auth_3d_object_node::~auth_3d_object_node() {
     reset();
 }
 
+void auth_3d_object_node::interpolate(float_t frame) {
+    model_transform.interpolate(frame);
+}
+
 void auth_3d_object_node::reset() {
     flags = (auth_3d_object_node_flags)0;
     bone_id = -1;
-    joint_orient = vec3_null;
+    joint_orient = 0.0f;
     joint_orient_mat = mat4_identity;
     mat = 0;
     model_transform.reset();
@@ -1372,6 +1983,10 @@ auth_3d_object_texture_pattern::~auth_3d_object_texture_pattern() {
     reset();
 }
 
+void auth_3d_object_texture_pattern::interpolate(float_t frame) {
+    pattern.interpolate(frame);
+}
+
 void auth_3d_object_texture_pattern::reset() {
     name.clear();
     name.shrink_to_fit();
@@ -1385,6 +2000,86 @@ auth_3d_object_texture_transform::auth_3d_object_texture_transform() : flags(), 
 
 auth_3d_object_texture_transform::~auth_3d_object_texture_transform() {
     reset();
+}
+
+void auth_3d_object_texture_transform::interpolate(float_t frame) {
+    int32_t flags = this->flags;
+
+    vec3 scale = 1.0f;
+    vec3 repeat = 1.0f;
+    vec3 rotate = 0.0f;
+    vec3 translate_frame = 0.0f;
+
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_COVERAGE_U && this->coverage_u.max_frame > 0.0f) {
+        float_t coverage_u = this->coverage_u.interpolate(frame);
+        if (fabsf(coverage_u) > 0.000001f)
+            scale.x = 1.0f / coverage_u;
+    }
+
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_COVERAGE_V && this->coverage_v.max_frame > 0.0f) {
+        float_t coverage_v = this->coverage_v.interpolate(frame);
+        if (fabsf(coverage_v) > 0.000001f)
+            scale.y = 1.0f / coverage_v;
+    }
+
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_REPEAT_U && this->repeat_u.max_frame > 0.0f) {
+        float_t value = this->repeat_u.interpolate(frame);
+        if (fabsf(value) > 0.000001f)
+            repeat.x = value;
+    }
+
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_REPEAT_V && this->repeat_v.max_frame > 0.0f) {
+        float_t value = this->repeat_v.interpolate(frame);
+        if (fabsf(value) > 0.000001f)
+            repeat.y = value;
+    }
+
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_ROTATE_FRAME)
+        rotate.z = this->rotate_frame.interpolate(frame);
+
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_ROTATE)
+        rotate.z += this->rotate.interpolate(frame);
+
+    float_t translate_frame_u;
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_U)
+        translate_frame_u = -this->translate_frame_u.interpolate(frame);
+    else
+        translate_frame_u = 0.0f;
+
+    float_t offset_u;
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_OFFSET_U)
+        offset_u = this->offset_u.interpolate(frame);
+    else
+        offset_u = 0.0f;
+
+    translate_frame.x = (translate_frame_u + offset_u) * repeat.x;
+
+    float_t translate_frame_v;
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_V)
+        translate_frame_v = -this->translate_frame_v.interpolate(frame);
+    else
+        translate_frame_v = 0.0f;
+
+    float_t offset_v;
+    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_OFFSET_V)
+        offset_v = this->offset_v.interpolate(frame);
+    else
+        offset_v = 0.0f;
+
+    translate_frame.y = (translate_frame_v + offset_v) * repeat.y;
+
+    mat4 mat;
+    mat4_translate(&translate_frame, &mat);
+    mat4_scale_rot(&mat, &scale, &mat);
+
+    mat4_translate_mult(&mat, 1.0f, 1.0f, 0.0f, &mat);
+    mat4_scale_rot(&mat, &repeat, &mat);
+    mat4_translate_mult(&mat, -1.0f, -1.0f, 0.0f, &mat);
+
+    mat4_translate_mult(&mat, 0.5f, 0.5f, 0.0f, &mat);
+    mat4_rotate_z_mult(&mat, rotate.z, &mat);
+    mat4_translate_mult(&mat, -0.5f, -0.5f, 0.0f, &mat);
+    this->mat = mat;
 }
 
 void auth_3d_object_texture_transform::reset() {
@@ -1431,6 +2126,10 @@ auth_3d_point::~auth_3d_point() {
     reset();
 }
 
+void auth_3d_point::interpolate(float_t frame) {
+    model_transform.interpolate(frame);
+}
+
 void auth_3d_point::reset() {
     model_transform.reset();
     name.clear();
@@ -1447,6 +2146,21 @@ auth_3d_post_process::~auth_3d_post_process() {
     reset();
 }
 
+void auth_3d_post_process::interpolate(float_t frame) {
+    if (flags & AUTH_3D_POST_PROCESS_INTENSITY)
+        intensity.interpolate(frame);
+    if (flags & AUTH_3D_POST_PROCESS_LENS_FLARE)
+        lens_flare_value = lens_flare.interpolate(frame);
+    if (flags & AUTH_3D_POST_PROCESS_LENS_SHAFT)
+        lens_shaft_value = lens_shaft.interpolate(frame);
+    if (flags & AUTH_3D_POST_PROCESS_LENS_GHOST)
+        lens_ghost_value = lens_ghost.interpolate(frame);
+    if (flags & AUTH_3D_POST_PROCESS_RADIUS)
+        radius.interpolate(frame);
+    if (flags & AUTH_3D_POST_PROCESS_SCENE_FADE)
+        scene_fade.interpolate(frame);
+}
+
 void auth_3d_post_process::reset() {
     flags = (auth_3d_post_process_flags)0;
     flags_init = (auth_3d_post_process_flags)0;
@@ -1459,12 +2173,12 @@ void auth_3d_post_process::reset() {
     lens_flare_value = 1.0f;
     lens_ghost_value = 1.0f;
     lens_shaft_value = 1.0f;
-    intensity_init = vec3_null;
+    intensity_init = 0.0f;
     lens_flare_init = 1.0f;
     lens_ghost_init = 1.0f;
     lens_shaft_init = 1.0f;
-    radius_init = vec3_null;
-    scene_fade_init = vec4_null;
+    radius_init = 0.0f;
+    scene_fade_init = 0.0f;
 }
 
 auth_3d_farc::auth_3d_farc() : load_count(), name(), state(), farc(), data(), size() {
@@ -1530,7 +2244,7 @@ Auth3dTestTask::Auth3dTestTask() {
     field_32A = true;
     stage_index = -1;
     load_stage_index = 0;
-    trans_value = vec3_null;
+    trans_value = 0.0f;
     rot_y_value = 0.0f;
     field_388 = false;
     field_38C = 0;
@@ -1565,17 +2279,20 @@ bool Auth3dTestTask::Init() {
     field_32A = true;
     stage_index = -1;
     load_stage_index = 0;
-    trans_value = vec3_null;
+    trans_value = 0.0f;
     rot_y_value = 0.0f;
     field_390 = true;
     field_394 = 0;
-    category = {};
-    load_category = {};
-    obj_sets = {};
+    category.clear();
+    category.shrink_to_fit();
+    load_category.clear();
+    load_category.shrink_to_fit();
+    obj_sets.clear();
+    obj_sets.shrink_to_fit();
 
     rctx_ptr->draw_pass.shadow_ptr->self_shadow = true;
     clear_color = { 0x99, 0x99, 0x99, 0x00 };
-    task_stage_load("A3D_STAGE");
+    task_stage_load_task("A3D_STAGE");
     object_storage_load_set(aft_data, aft_obj_db, effcmn_obj_set);
     return true;
 }
@@ -1600,7 +2317,7 @@ bool Auth3dTestTask::Ctrl() {
 
     if (auth_3d_data_check_id_not_empty(&auth_3d_id)) {
         mat4 mat;
-        mat4_translate(trans_value.x, trans_value.y, trans_value.z, &mat);
+        mat4_translate(&trans_value, &mat);
         mat4_rotate_y_mult(&mat, rot_y_value * DEG_TO_RAD_FLOAT, &mat);
         auth_3d_data_set_mat(&auth_3d_id, &mat);
     }
@@ -1610,15 +2327,19 @@ bool Auth3dTestTask::Ctrl() {
 bool Auth3dTestTask::Dest() {
     auth_3d_data_unload_id(auth_3d_id, rctx_ptr);
     object_storage_unload_set(effcmn_obj_set);
-    task_stage_unload();
+    task_stage_unload_task();
     clear_color = color_black;
     rctx_ptr->draw_pass.shadow_ptr->self_shadow = true;
     if (category.size())
         auth_3d_data_unload_category(category.c_str());
-    category = {};
-    load_category = {};
+    category.clear();
+    category.shrink_to_fit();
+    load_category.clear();
+    load_category.shrink_to_fit();
     for (uint32_t& i : obj_sets)
         object_storage_unload_set(i);
+    obj_sets.clear();
+    obj_sets.shrink_to_fit();
     return true;
 }
 
@@ -1980,7 +2701,7 @@ void auth_3d_data_load_auth_3d_db(auth_3d_database* auth_3d_db) {
 
     size_t cat_index = 0;
     for (auth_3d_farc& i : auth_3d_data->farcs)
-        i.name = auth_3d_db->category[cat_index++].name;
+        i.name.assign(auth_3d_db->category[cat_index++].name);
 
     auth_3d_data->uid_files.clear();
     auth_3d_data->uid_files.resize(auth_3d_db->uid.size());
@@ -2006,10 +2727,12 @@ int32_t auth_3d_data_load_hash(uint32_t hash, void* data, object_database* obj_d
     auth_3d_uid_file_modern* uid_file = &elem->second;
     uid_file->load_count = 0;
     uid_file->hash = hash;
-    uid_file->file_name = {};
+    uid_file->file_name.clear();
+    uid_file->file_name.shrink_to_fit();
     uid_file->state = 0;
-    uid_file->name = {};
-    uid_file->farc = {};
+    uid_file->name.clear();
+    uid_file->name.shrink_to_fit();
+    uid_file->farc = 0;
     uid_file->data = data;
     uid_file->obj_db = obj_db;
     uid_file->tex_db = tex_db;
@@ -2086,6 +2809,14 @@ void auth_3d_data_set_chara_id(int32_t* id, int32_t value) {
     }
 }
 
+void auth_3d_data_set_chara_item(int32_t* id, bool value) {
+    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
+        if (auth->id == *id)
+            auth->chara_item = value;
+    }
+}
+
 void auth_3d_data_set_draw_task_flags_alpha(int32_t* id, draw_task_flags draw_task_flags, float_t alpha) {
     if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
         auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
@@ -2131,7 +2862,7 @@ void auth_3d_data_set_left_right_reverse(int32_t* id, bool value) {
     }
 }
 
-void auth_3d_data_set_mat(int32_t* id, mat4* value) {
+void auth_3d_data_set_mat(int32_t* id, const mat4* value) {
     if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
         auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
         if (auth->id == *id)
@@ -2265,28 +2996,41 @@ void task_auth_3d_free() {
     }
 }
 
-auth_3d_detail::TaskAuth3d::TaskAuth3d() {
+namespace auth_3d_detail  {
+    TaskAuth3d::TaskAuth3d() {
 
-}
+    }
 
-auth_3d_detail::TaskAuth3d:: ~TaskAuth3d() {
+    TaskAuth3d:: ~TaskAuth3d() {
 
-}
+    }
 
-bool auth_3d_detail::TaskAuth3d::Init() {
-    return auth_3d_data_struct_init(auth_3d_data, rctx_ptr);
-}
+    bool TaskAuth3d::Init() {
+        return auth_3d_data_struct_init(auth_3d_data, rctx_ptr);
+    }
 
-bool auth_3d_detail::TaskAuth3d::Ctrl() {
-    return auth_3d_data_struct_ctrl(auth_3d_data, rctx_ptr);
-}
+    bool TaskAuth3d::Ctrl() {
+        return auth_3d_data_struct_ctrl(auth_3d_data, rctx_ptr);
+    }
 
-void auth_3d_detail::TaskAuth3d::Disp() {
-    auth_3d_data_struct_disp(auth_3d_data, rctx_ptr);
+    void TaskAuth3d::Disp() {
+        auth_3d_data_struct_disp(auth_3d_data, rctx_ptr);
+    }
+
+    FrameRateTimeStop::FrameRateTimeStop() {
+
+    }
+
+    FrameRateTimeStop::~FrameRateTimeStop() {
+
+    }
+
+    float_t FrameRateTimeStop::GetDeltaFrame() {
+        return 0.0f;
+    }
 }
 
 static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_file) {
-
     if (!path_check_directory_exists(path))
         return;
 
@@ -2450,12 +3194,10 @@ static float_t auth_3d_interpolate_value(auth_3d_key_type type,
         else
             return curr_key->value;
     case AUTH_3D_KEY_HERMITE:
-        if (curr_key->frame < next_key->frame) {
-            float_t df = next_key->frame - curr_key->frame;
+        if (curr_key->frame < next_key->frame)
             return interpolate_chs_value(curr_key->value, next_key->value,
                 curr_key->tangent2, next_key->tangent1,
                 curr_key->frame, next_key->frame, frame);
-        }
         else
             return curr_key->value;
     case AUTH_3D_KEY_HOLD:
@@ -2522,7 +3264,7 @@ static void auth_3d_key_load(auth_3d* auth, auth_3d_key* k, auth_3d_key_file* kf
     }
 
     if (length > 1) {
-        k->keys_vec = kf->keys;
+        k->keys_vec.assign(kf->keys.begin(), kf->keys.end());
         k->length = length;
         k->keys = k->keys_vec.data();
 
@@ -2537,7 +3279,7 @@ static void auth_3d_key_load(auth_3d* auth, auth_3d_key* k, auth_3d_key_file* kf
         }
     }
     else if (length == 1) {
-        float_t value = kf->keys[0].value;
+        float_t value = kf->keys.front().value;
         k->type = value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
         k->value = value;
     }
@@ -2580,15 +3322,6 @@ static void auth_3d_model_transform_load(auth_3d* auth, auth_3d_model_transform*
     auth_3d_vec3_load(auth, &mt->scale, &mtf->scale);
     auth_3d_vec3_load(auth, &mt->translation, &mtf->translation);
     auth_3d_key_load(auth, &mt->visibility, &mtf->visibility);
-}
-
-static void auth_3d_model_transform_set_mat(auth_3d_model_transform* mt, const mat4* parent_mat) {
-    mat4 mat;
-    mat4_translate_mult(parent_mat, mt->translation_value.x,
-        mt->translation_value.y, mt->translation_value.z, &mat);
-    mat4_rotate_mult(&mat, mt->rotation_value.x, mt->rotation_value.y, mt->rotation_value.z, &mat);
-    mat4_scale_rot(&mat, mt->scale_value.x, mt->scale_value.y, mt->scale_value.z, &mat);
-    mt->mat = mat;
 }
 
 static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth,
@@ -2731,21 +3464,13 @@ static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx) {
     object_data->set_material_list(mat_list_count, mat_list);
 }
 
-static void auth_3d_ambient_ctrl(auth_3d_ambient* a, float_t frame) {
-    if (a->flags & AUTH_3D_AMBIENT_LIGHT_DIFFUSE)
-        a->light_diffuse.interpolate(frame);
-
-    if (a->flags & AUTH_3D_AMBIENT_LIGHT_DIFFUSE)
-        a->rim_light_diffuse.interpolate(frame);
-}
-
 static void auth_3d_ambient_load(auth_3d* auth, auth_3d_ambient* a, auth_3d_ambient_file* af) {
     if (af->flags & A3DA_AMBIENT_LIGHT_DIFFUSE) {
         auth_3d_rgba_load(auth, &a->light_diffuse, &af->light_diffuse);
         enum_or(a->flags, AUTH_3D_AMBIENT_LIGHT_DIFFUSE);
     }
 
-    a->name = af->name;
+    a->name.assign(af->name);
 
     if (af->flags & A3DA_AMBIENT_LIGHT_DIFFUSE) {
         auth_3d_rgba_load(auth, &a->rim_light_diffuse, &af->rim_light_diffuse);
@@ -2755,21 +3480,6 @@ static void auth_3d_ambient_load(auth_3d* auth, auth_3d_ambient* a, auth_3d_ambi
 
 static void auth_3d_ambient_set(auth_3d_ambient* a, render_context* rctx) {
 
-}
-
-void auth_3d_camera_auxiliary_ctrl(auth_3d_camera_auxiliary* ca, float_t frame) {
-    if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_AUTO_EXPOSURE)
-        ca->auto_exposure_value = ca->auto_exposure.interpolate(frame);
-    if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_EXPOSURE)
-        ca->exposure_value = ca->exposure.interpolate(frame);
-    if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_EXPOSURE_RATE)
-        ca->exposure_rate_value = ca->exposure_rate.interpolate(frame);
-    if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA)
-        ca->gamma_value = ca->gamma.interpolate(frame);
-    if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA_RATE)
-        ca->gamma_rate_value = ca->gamma_rate.interpolate(frame);
-    if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_SATURATE)
-        ca->saturate_value = ca->saturate.interpolate(frame);
 }
 
 static void auth_3d_camera_auxiliary_load(auth_3d* auth, auth_3d_camera_auxiliary_file* caf) {
@@ -2836,8 +3546,7 @@ static void auth_3d_camera_auxiliary_set(auth_3d_camera_auxiliary* ca, render_co
         tm->set_saturate_coeff(ca->saturate_value);
 }
 
-static void auth_3d_camera_root_ctrl(auth_3d_camera_root* cr,
-    float_t frame, mat4* mat, render_context* rctx) {
+static float_t auth_3d_camera_root_calc_frame(auth_3d_camera_root* cr, float_t frame, render_context* rctx) {
     camera* cam = rctx->camera;
     if (auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.x, frame, 0.3f)
         || auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.y, frame, 0.3f)
@@ -2861,33 +3570,7 @@ static void auth_3d_camera_root_ctrl(auth_3d_camera_root* cr,
                 cam->set_fast_change_hist0(true);
         }
     }
-
-    cr->model_transform.interpolate(frame);
-    auth_3d_model_transform_set_mat(&cr->model_transform, &mat4_identity);
-
-    mat4& cr_mat = cr->model_transform.mat;
-
-    vec3 view_point = cr->view_point.model_transform.translation.interpolate(frame);
-    mat4_mult_vec3_trans(&cr_mat, &view_point, &cr->view_point_value);
-
-    vec3 interest = cr->interest.translation.interpolate(frame);
-    mat4_mult_vec3_trans(&cr_mat, &interest, &cr->interest_value);
-
-    float_t fov;
-    if (cr->view_point.flags & AUTH_3D_CAMERA_ROOT_VIEW_POINT_FOV) {
-        fov = cr->view_point.fov.interpolate(frame);
-        if (cr->view_point.fov_is_horizontal)
-            fov = atanf(tanf(fov * 0.5f) / cr->view_point.aspect) * 2.0f;
-    }
-    else {
-        float_t camera_aperture_h = cr->view_point.camera_aperture_h;
-        float_t focal_lenth = cr->view_point.focal_length.interpolate(frame);
-        fov = atanf((camera_aperture_h * 25.4f) * 0.5f / focal_lenth) * 2.0f;
-    }
-    cr->fov_value = fov;
-
-    if (cr->view_point.flags & AUTH_3D_CAMERA_ROOT_VIEW_POINT_ROLL)
-        cr->roll_value = cr->view_point.roll.interpolate(frame);
+    return frame;
 }
 
 static void auth_3d_camera_root_load(auth_3d* auth, auth_3d_camera_root* cr, auth_3d_camera_root_file* crf) {
@@ -2919,33 +3602,18 @@ static void auth_3d_camera_root_view_point_load(auth_3d* auth, auth_3d_camera_ro
     }
 }
 
-static void auth_3d_chara_ctrl(auth_3d_chara* c, float_t frame) {
-    c->model_transform.interpolate(frame);
-}
-
 static void auth_3d_chara_disp(auth_3d_chara* c, mat4* parent_mat, render_context* rctx) {
 
 }
 
 static void auth_3d_chara_load(auth_3d* auth, auth_3d_chara* c, auth_3d_chara_file* cf) {
     auth_3d_model_transform_load(auth, &c->model_transform, &cf->model_transform);
-    c->name = cf->name;
-}
-
-static void auth_3d_curve_ctrl(auth_3d_curve* c, float_t frame) {
-    c->value = c->curve.interpolate(frame);
+    c->name.assign(cf->name);
 }
 
 static void auth_3d_curve_load(auth_3d* auth, auth_3d_curve* c, auth_3d_curve_file* cf) {
     auth_3d_key_load(auth, &c->curve, &cf->curve);
-    c->name = cf->name;
-}
-
-static void auth_3d_dof_ctrl(auth_3d_dof* d, float_t frame) {
-    if (!d->has_dof)
-        return;
-
-    d->model_transform.interpolate(frame);
+    c->name.assign(cf->name);
 }
 
 static void auth_3d_dof_load(auth_3d* auth, auth_3d_dof* d, auth_3d_dof_file* df) {
@@ -2980,41 +3648,59 @@ static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx) {
     rctx->post_process.dof->set_dof_pv(&pv);
 }
 
-static void auth_3d_event_load(auth_3d* auth, auth_3d_event* e, auth_3d_event_file* ef) {
-    e->begin = ef->begin;
-    e->clip_begin = ef->clip_begin;
-    e->clip_end = ef->clip_end;
-    e->end = ef->end;
-    e->name = ef->name;
-    e->param_1 = ef->param_1;
-    e->ref = ef->ref;
-    e->time_ref_scale = ef->time_ref_scale;
+static auth_3d_detail::Event* auth_3d_event_load(auth_3d* auth, auth_3d_event_file* ef) {
+    auth_3d_detail::Event* e = 0;
     switch (ef->type) {
     case A3DA_EVENT_MISC:
     default:
-        e->type = AUTH_3D_EVENT_MISC;
-    case A3DA_EVENT_FILT:
-        e->type = AUTH_3D_EVENT_FILT;
-    case A3DA_EVENT_FX:
-        e->type = AUTH_3D_EVENT_FX;
-    case A3DA_EVENT_SND:
-        e->type = AUTH_3D_EVENT_SND;
-    case A3DA_EVENT_MOT:
-        e->type = AUTH_3D_EVENT_MOT;
-    case A3DA_EVENT_A2D:
-        e->type = AUTH_3D_EVENT_A2D;
+        e = new auth_3d_detail::Event(ef);
+        break;
+    case A3DA_EVENT_FILT: {
+        if (!ef->param1.compare("WHITEIN") || !ef->param1.compare("WHITEOUT")
+            || !ef->param1.compare("FADEIN") || !ef->param1.compare("FADEOUT"))
+            e = new auth_3d_detail::EventFilterFade(ef);
+        else if (!ef->param1.compare("TIMESTOP"))
+            e = new auth_3d_detail::EventFilterTimeStop(ef);
+        else
+            e = new auth_3d_detail::Event(ef);
+        break;
     }
+    case A3DA_EVENT_FX:
+        if (!ef->param1.compare("SMOOTH"))
+            e = new auth_3d_detail::EventFXSmoothCut(ef);
+        else
+            e = new auth_3d_detail::EventFX(ef);
+        break;
+    case A3DA_EVENT_SND:
+        e = new auth_3d_detail::EventSnd(ef);
+        break;
+    case A3DA_EVENT_MOT:
+        e = new auth_3d_detail::EventMot(ef);
+        break;
+    case A3DA_EVENT_A2D:
+        e = new auth_3d_detail::EventA2d(ef);
+        break;
+    }
+    return e;
 }
 
-static void auth_3d_fog_ctrl(auth_3d_fog* f, float_t frame) {
-    if (f->flags & AUTH_3D_FOG_DENSITY)
-        f->density_value = f->density.interpolate(frame);
-    if (f->flags & AUTH_3D_FOG_START)
-        f->start_value = f->start.interpolate(frame);
-    if (f->flags & AUTH_3D_FOG_END)
-        f->end_value = f->end.interpolate(frame);
-    if (f->flags & AUTH_3D_FOG_COLOR)
-        f->color.interpolate(frame);
+static const char* auth_3d_event_type_string(auth_3d_detail::Event::Type type) {
+    switch (type) {
+    case auth_3d_detail::Event::Type::MISC:
+        return "MISC";
+    case auth_3d_detail::Event::Type::FILT:
+        return "FLT";
+    case auth_3d_detail::Event::Type::FX:
+        return "FX";
+    case auth_3d_detail::Event::Type::SND:
+        return "SND";
+    case auth_3d_detail::Event::Type::MOT:
+        return "MOT";
+    case auth_3d_detail::Event::Type::A2D:
+        return "A2D";
+    default:
+        return "(unknown)";
+    }
 }
 
 static void auth_3d_fog_load(auth_3d* auth, auth_3d_fog* f, auth_3d_fog_file* ff) {
@@ -3105,36 +3791,6 @@ static void auth_3d_fog_set(auth_3d_fog* f, render_context* rctx) {
     }
 }
 
-static void auth_3d_light_ctrl(auth_3d_light* l, float_t frame) {
-    if (l->flags & AUTH_3D_LIGHT_AMBIENT)
-        l->ambient.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_CONE_ANGLE)
-        l->cone_angle_value = l->cone_angle.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_CONSTANT)
-        l->constant_value = l->constant.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_DIFFUSE)
-        l->diffuse.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_DROP_OFF)
-        l->drop_off_value = l->drop_off.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_FAR)
-        l->far_value = l->_far.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_INTENSITY)
-        l->intensity_value = l->intensity.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_LINEAR)
-        l->linear_value = l->linear.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_POSITION)
-        l->position.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_QUADRATIC)
-        l->quadratic_value = l->quadratic.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_SPECULAR)
-        l->specular.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_SPOT_DIRECTION)
-        l->spot_direction.interpolate(frame);
-    if (l->flags & AUTH_3D_LIGHT_TONE_CURVE)
-        l->tone_curve.interpolate(frame);
-
-}
-
 static void auth_3d_light_load(auth_3d* auth, auth_3d_light* l, auth_3d_light_file* lf) {
     if (lf->flags & A3DA_LIGHT_AMBIENT) {
         auth_3d_rgba_load(auth, &l->ambient, &lf->ambient);
@@ -3203,7 +3859,7 @@ static void auth_3d_light_load(auth_3d* auth, auth_3d_light* l, auth_3d_light_fi
         enum_or(l->flags, AUTH_3D_LIGHT_TONE_CURVE);
     }
 
-    l->type = lf->type;
+    l->type.assign(lf->type);
 }
 
 static void auth_3d_light_restore_prev_value(auth_3d_light* l, render_context* rctx) {
@@ -3310,22 +3966,7 @@ static void auth_3d_m_object_hrc_get_mat(auth_3d_m_object_hrc* moh, mat4* mat) {
             return;
         }
 
-    *mat = moh->node[0].model_transform.mat;
-}
-
-static void auth_3d_m_object_hrc_ctrl(auth_3d_m_object_hrc* moh, float_t frame) {
-    auth_3d_object_model_transform_ctrl(&moh->model_transform, frame);
-    auth_3d_object_model_transform_set_mat_inner(&moh->model_transform);
-
-    for (auth_3d_object_instance& i : moh->instance) {
-        auth_3d_object_model_transform_ctrl(&i.model_transform, frame);
-        auth_3d_object_model_transform_set_mat_inner(&i.model_transform);
-    }
-
-    for (auth_3d_object_node& i : moh->node) {
-        auth_3d_object_model_transform_ctrl(&i.model_transform, frame);
-        auth_3d_object_model_transform_set_mat_inner(&i.model_transform);
-    }
+    *mat = moh->node.front().model_transform.mat;
 }
 
 static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, render_context* rctx) {
@@ -3370,7 +4011,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
             shad->field_1D0[shadow_type].push_back(pos);
         }
 
-        if (i.mats.size() > 0)
+        if (i.mats.size())
             draw_task_add_draw_object_by_object_info_object_skin(rctx,
                 i.object_info, 0, 0, auth->alpha, i.mats.data(), 0, 0, &i.model_transform.mat);
     }
@@ -3388,7 +4029,7 @@ static void auth_3d_m_object_hrc_load(auth_3d* auth, auth_3d_m_object_hrc* moh,
             &moh->node[node_index++], &i);
 
     auth_3d_object_model_transform_load(auth, &moh->model_transform, &mohf->model_transform);
-    moh->name = mohf->name;
+    moh->name.assign(mohf->name);
 
     size_t instance_index = 0;
     moh->instance.resize(mohf->instance.size());
@@ -3397,56 +4038,740 @@ static void auth_3d_m_object_hrc_load(auth_3d* auth, auth_3d_m_object_hrc* moh,
             &moh->instance[instance_index++], &i, moh, obj_db);
 }
 
-static void auth_3d_m_object_hrc_list_ctrl(auth_3d_m_object_hrc* moh, mat4* parent_mat) {
-    //if (!moh->model_transform.visible)
-    //    return;
-
-    auth_3d_object_node* node = moh->node.data();
-    size_t instance_count = moh->instance.size();
-
-    auth_3d_m_object_hrc_nodes_mat_mult(moh);
-
-    auth_3d_object_model_transform_mat_mult(&moh->model_transform, parent_mat);
-
-    mat4& mat = moh->model_transform.mat;
-
-    for (auth_3d_object_instance& i : moh->instance) {
-        //if (!i.model_transform.visible)
-        //    continue;
-
-        auth_3d_object_model_transform_mat_mult(&i.model_transform, &mat);
-        int32_t* object_bone_indices = i.object_bone_indices.data();
-        size_t object_bone_indices_count = i.object_bone_indices.size();
-        mat4* mats = i.mats.data();
-        for (size_t j = 0; j < object_bone_indices_count; j++)
-            mats[j] = node[object_bone_indices[j]].model_transform.mat;
-    }
-}
-
 static void auth_3d_m_object_hrc_nodes_mat_mult(auth_3d_m_object_hrc* moh) {
     auth_3d_object_node* node = moh->node.data();
 
     for (auth_3d_object_node& i : moh->node)
         if (i.parent >= 0)
-            auth_3d_object_model_transform_mat_mult(
-                &i.model_transform, &node[i.parent].model_transform.mat);
+            i.model_transform.mat_mult(&node[i.parent].model_transform.mat);
         else
             i.model_transform.mat = i.model_transform.mat_inner;
 }
 
-static void auth_3d_material_list_ctrl(auth_3d_material_list* ml, float_t frame) {
-    if (ml->flags & AUTH_3D_MATERIAL_LIST_BLEND_COLOR)
-        ml->blend_color.interpolate(frame);
-    if (ml->flags & AUTH_3D_MATERIAL_LIST_GLOW_INTENSITY)
-        ml->glow_intensity_value = ml->glow_intensity.interpolate(frame);
-    if (ml->flags & AUTH_3D_MATERIAL_LIST_INCANDESCENCE)
-        ml->incandescence.interpolate(frame);
-}
-
 static void auth_3d_material_list_load(auth_3d* auth, auth_3d_material_list* ml, auth_3d_material_list_file* mlf) {
+    //int32_t ident[24] = {};
     if (mlf->flags & A3DA_MATERIAL_LIST_BLEND_COLOR) {
         auth_3d_rgba_load(auth, &ml->blend_color, &mlf->blend_color);
         enum_or(ml->flags, AUTH_3D_MATERIAL_LIST_BLEND_COLOR);
+
+        /*auth_3d_key& r = ml->blend_color.r;
+        auth_3d_key& g = ml->blend_color.g;
+        auth_3d_key& b = ml->blend_color.b;
+        auth_3d_key& a = ml->blend_color.a;
+
+        switch (r.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (g.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[0] = 1;
+                ident[6] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (g.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[0] = 1;
+                ident[6] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (r.length == g.length) {
+                    ident[0] = 1;
+
+                    kft3* keys1 = r.keys;
+                    kft3* keys2 = g.keys;
+                    size_t length = r.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[0] = 0;
+                            break;
+                        }
+
+                    if (ident[0]) {
+                        ident[6] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[6] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (r.length > g.length) {
+                    if (g.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = r.keys;
+                        kft3* keys2 = g.keys;
+                        size_t keys1_length = r.length;
+                        size_t keys2_length = g.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[0] = 1;
+                                    ident[6] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[0] = 1;
+                                                ident[6] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (r.length < g.length) {
+                    if (r.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = g.keys;
+                        kft3* keys2 = r.keys;
+                        size_t keys1_length = g.length;
+                        size_t keys2_length = r.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[0] = 1;
+                                    ident[6] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[0] = 1;
+                                                ident[6] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (r.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (b.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[1] = 1;
+                ident[7] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (b.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[1] = 1;
+                ident[7] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (r.length == b.length) {
+                    ident[1] = 1;
+
+                    kft3* keys1 = r.keys;
+                    kft3* keys2 = b.keys;
+                    size_t length = r.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[1] = 0;
+                            break;
+                        }
+
+                    if (ident[1]) {
+                        ident[7] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[7] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (r.length > b.length) {
+                    if (b.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = r.keys;
+                        kft3* keys2 = b.keys;
+                        size_t keys1_length = r.length;
+                        size_t keys2_length = b.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[1] = 1;
+                                    ident[7] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[1] = 1;
+                                                ident[7] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (r.length < b.length) {
+                    if (r.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = b.keys;
+                        kft3* keys2 = r.keys;
+                        size_t keys1_length = b.length;
+                        size_t keys2_length = r.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[1] = 1;
+                                    ident[7] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[1] = 1;
+                                                ident[7] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (r.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[2] = 1;
+                ident[8] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[2] = 1;
+                ident[8] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (r.length == a.length) {
+                    ident[2] = 1;
+
+                    kft3* keys1 = r.keys;
+                    kft3* keys2 = a.keys;
+                    size_t length = r.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[2] = 0;
+                            break;
+                        }
+
+                    if (ident[2]) {
+                        ident[8] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[8] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (r.length > a.length) {
+                    if (a.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = r.keys;
+                        kft3* keys2 = a.keys;
+                        size_t keys1_length = r.length;
+                        size_t keys2_length = a.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[2] = 1;
+                                    ident[8] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[2] = 1;
+                                                ident[8] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (r.length < a.length) {
+                    if (r.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = a.keys;
+                        kft3* keys2 = r.keys;
+                        size_t keys1_length = a.length;
+                        size_t keys2_length = r.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[2] = 1;
+                                    ident[8] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[2] = 1;
+                                                ident[8] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (g.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (b.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[3] = 1;
+                ident[9] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (b.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[3] = 1;
+                ident[9] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (g.length == b.length) {
+                    ident[3] = 1;
+
+                    kft3* keys1 = g.keys;
+                    kft3* keys2 = b.keys;
+                    size_t length = g.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[3] = 0;
+                            break;
+                        }
+
+                    if (ident[3]) {
+                        ident[9] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[9] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (g.length > b.length) {
+                    if (b.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = g.keys;
+                        kft3* keys2 = b.keys;
+                        size_t keys1_length = g.length;
+                        size_t keys2_length = b.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[3] = 1;
+                                    ident[9] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[3] = 1;
+                                                ident[9] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (g.length < b.length) {
+                    if (g.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = b.keys;
+                        kft3* keys2 = g.keys;
+                        size_t keys1_length = b.length;
+                        size_t keys2_length = g.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[3] = 1;
+                                    ident[9] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[3] = 1;
+                                                ident[9] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (g.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[4] = 1;
+                ident[10] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[4] = 1;
+                ident[10] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (g.length == a.length) {
+                    ident[4] = 1;
+
+                    kft3* keys1 = g.keys;
+                    kft3* keys2 = a.keys;
+                    size_t length = g.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[4] = 0;
+                            break;
+                        }
+
+                    if (ident[4]) {
+                        ident[10] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[10] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (g.length > a.length) {
+                    if (a.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = g.keys;
+                        kft3* keys2 = a.keys;
+                        size_t keys1_length = g.length;
+                        size_t keys2_length = a.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[4] = 1;
+                                    ident[10] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[4] = 1;
+                                                ident[10] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (g.length < a.length) {
+                    if (g.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = a.keys;
+                        kft3* keys2 = g.keys;
+                        size_t keys1_length = a.length;
+                        size_t keys2_length = g.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[4] = 1;
+                                    ident[10] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[4] = 1;
+                                                ident[10] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (b.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[5] = 1;
+                ident[11] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[5] = 1;
+                ident[11] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (b.length == a.length) {
+                    ident[5] = 1;
+
+                    kft3* keys1 = b.keys;
+                    kft3* keys2 = a.keys;
+                    size_t length = b.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[5] = 0;
+                            break;
+                        }
+
+                    if (ident[5]) {
+                        ident[11] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[11] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (b.length > a.length) {
+                    if (a.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = b.keys;
+                        kft3* keys2 = a.keys;
+                        size_t keys1_length = b.length;
+                        size_t keys2_length = a.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[5] = 1;
+                                    ident[11] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[5] = 1;
+                                                ident[11] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (b.length < a.length) {
+                    if (b.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = a.keys;
+                        kft3* keys2 = b.keys;
+                        size_t keys1_length = a.length;
+                        size_t keys2_length = b.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[5] = 1;
+                                    ident[11] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[5] = 1;
+                                                ident[11] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }*/
     }
 
     if (mlf->flags & A3DA_MATERIAL_LIST_GLOW_INTENSITY) {
@@ -3457,50 +4782,771 @@ static void auth_3d_material_list_load(auth_3d* auth, auth_3d_material_list* ml,
     if (mlf->flags & A3DA_MATERIAL_LIST_INCANDESCENCE) {
         auth_3d_rgba_load(auth, &ml->incandescence, &mlf->incandescence);
         enum_or(ml->flags, AUTH_3D_MATERIAL_LIST_INCANDESCENCE);
+
+        /*auth_3d_key& r = ml->incandescence.r;
+        auth_3d_key& g = ml->incandescence.g;
+        auth_3d_key& b = ml->incandescence.b;
+        auth_3d_key& a = ml->incandescence.a;
+
+        switch (r.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (g.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[12] = 1;
+                ident[18] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (g.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[12] = 1;
+                ident[18] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (r.length == g.length) {
+                    ident[12] = 1;
+
+                    kft3* keys1 = r.keys;
+                    kft3* keys2 = g.keys;
+                    size_t length = r.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[12] = 0;
+                            break;
+                        }
+
+                    if (ident[12]) {
+                        ident[18] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[18] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (b.length > a.length) {
+                    if (a.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = b.keys;
+                        kft3* keys2 = a.keys;
+                        size_t keys1_length = b.length;
+                        size_t keys2_length = a.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[12] = 1;
+                                    ident[18] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[12] = 1;
+                                                ident[18] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (b.length < a.length) {
+                    if (b.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = a.keys;
+                        kft3* keys2 = b.keys;
+                        size_t keys1_length = a.length;
+                        size_t keys2_length = b.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[12] = 1;
+                                    ident[18] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[12] = 1;
+                                                ident[18] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (r.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (b.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[13] = 1;
+                ident[19] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (b.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[13] = 1;
+                ident[19] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (r.length == b.length) {
+                    ident[13] = 1;
+
+                    kft3* keys1 = r.keys;
+                    kft3* keys2 = b.keys;
+                    size_t length = r.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[13] = 0;
+                            break;
+                        }
+
+                    if (ident[13]) {
+                        ident[19] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[19] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (r.length > b.length) {
+                    if (b.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = r.keys;
+                        kft3* keys2 = b.keys;
+                        size_t keys1_length = r.length;
+                        size_t keys2_length = b.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[13] = 1;
+                                    ident[19] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[13] = 1;
+                                                ident[19] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (r.length < b.length) {
+                    if (r.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = b.keys;
+                        kft3* keys2 = r.keys;
+                        size_t keys1_length = b.length;
+                        size_t keys2_length = r.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[13] = 1;
+                                    ident[19] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[13] = 1;
+                                                ident[19] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (r.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[14] = 1;
+                ident[20] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[14] = 1;
+                ident[20] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (r.length == a.length) {
+                    ident[14] = 1;
+
+                    kft3* keys1 = r.keys;
+                    kft3* keys2 = a.keys;
+                    size_t length = r.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[14] = 0;
+                            break;
+                        }
+
+                    if (ident[14]) {
+                        ident[20] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[20] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (r.length > a.length) {
+                    if (a.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = r.keys;
+                        kft3* keys2 = a.keys;
+                        size_t keys1_length = r.length;
+                        size_t keys2_length = a.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[14] = 1;
+                                    ident[20] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[14] = 1;
+                                                ident[20] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (r.length < a.length) {
+                    if (b.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = a.keys;
+                        kft3* keys2 = r.keys;
+                        size_t keys1_length = a.length;
+                        size_t keys2_length = r.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[14] = 1;
+                                    ident[20] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[14] = 1;
+                                                ident[20] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (g.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (b.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[15] = 1;
+                ident[21] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (b.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[15] = 1;
+                ident[21] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (g.length == b.length) {
+                    ident[15] = 1;
+
+                    kft3* keys1 = g.keys;
+                    kft3* keys2 = b.keys;
+                    size_t length = g.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[15] = 0;
+                            break;
+                        }
+
+                    if (ident[15]) {
+                        ident[21] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[21] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (g.length > b.length) {
+                    if (b.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = g.keys;
+                        kft3* keys2 = b.keys;
+                        size_t keys1_length = g.length;
+                        size_t keys2_length = b.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[15] = 1;
+                                    ident[21] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[15] = 1;
+                                                ident[21] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (g.length < b.length) {
+                    if (g.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = b.keys;
+                        kft3* keys2 = g.keys;
+                        size_t keys1_length = b.length;
+                        size_t keys2_length = g.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[15] = 1;
+                                    ident[21] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[15] = 1;
+                                                ident[21] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (g.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[16] = 1;
+                ident[22] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[16] = 1;
+                ident[22] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (g.length == a.length) {
+                    ident[16] = 1;
+
+                    kft3* keys1 = g.keys;
+                    kft3* keys2 = a.keys;
+                    size_t length = g.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[16] = 0;
+                            break;
+                        }
+
+                    if (ident[16]) {
+                        ident[22] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[22] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (g.length > a.length) {
+                    if (a.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = g.keys;
+                        kft3* keys2 = a.keys;
+                        size_t keys1_length = g.length;
+                        size_t keys2_length = a.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[16] = 1;
+                                    ident[22] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[16] = 1;
+                                                ident[22] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (g.length < a.length) {
+                    if (g.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = a.keys;
+                        kft3* keys2 = g.keys;
+                        size_t keys1_length = a.length;
+                        size_t keys2_length = g.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[16] = 1;
+                                    ident[22] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[16] = 1;
+                                                ident[22] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }
+
+        switch (b.type) {
+        case AUTH_3D_KEY_NONE:
+        case AUTH_3D_KEY_STATIC:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                ident[17] = 1;
+                ident[23] = 1;
+                break;
+            }
+            break;
+        case AUTH_3D_KEY_LINEAR:
+        case AUTH_3D_KEY_HERMITE:
+        case AUTH_3D_KEY_HOLD:
+            switch (a.type) {
+            case AUTH_3D_KEY_NONE:
+            case AUTH_3D_KEY_STATIC:
+                ident[17] = 1;
+                ident[23] = 1;
+                break;
+            case AUTH_3D_KEY_LINEAR:
+            case AUTH_3D_KEY_HERMITE:
+            case AUTH_3D_KEY_HOLD:
+                if (b.length == a.length) {
+                    ident[17] = 1;
+
+                    kft3* keys1 = b.keys;
+                    kft3* keys2 = a.keys;
+                    size_t length = b.length;
+                    for (size_t i = 0; i < length; i++)
+                        if (*(uint32_t*)&keys1[i].frame != *(uint32_t*)&keys2[i].frame) {
+                            ident[17] = 0;
+                            break;
+                        }
+
+                    if (ident[17]) {
+                        ident[23] = 1;
+
+                        for (size_t i = 0; i < length; i++)
+                            if (*(uint64_t*)&keys1[i].tangent1 != *(uint64_t*)&keys2[i].tangent1) {
+                                ident[23] = 0;
+                                break;
+                            }
+                    }
+                }
+                else if (b.length > a.length) {
+                    if (a.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = b.keys;
+                        kft3* keys2 = a.keys;
+                        size_t keys1_length = b.length;
+                        size_t keys2_length = a.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[17] = 1;
+                                    ident[23] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[17] = 1;
+                                                ident[23] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                else if (b.length < a.length) {
+                    if (b.type == AUTH_3D_KEY_LINEAR) {
+                        kft3* keys1 = a.keys;
+                        kft3* keys2 = b.keys;
+                        size_t keys1_length = a.length;
+                        size_t keys2_length = b.length;
+
+                        for (size_t i = 0; i < keys1_length; i++) {
+                            float_t frame = keys1[i].frame;
+                            bool found = false;
+                            for (size_t j = 0; j < keys2_length && i < keys1_length; j++)
+                                if (frame == keys2[j].frame) {
+                                    found = true;
+                                    break;
+                                }
+
+                            if (!found)
+                                if (frame <= keys2[0].frame || frame >= keys2[keys2_length - 1].frame) {
+                                    ident[17] = 1;
+                                    ident[23] = 1;
+                                }
+                                else
+                                    for (size_t j = 0; j + 1 < keys2_length && i < keys1_length; j++)
+                                        if (frame >= keys2[j].frame && keys2[j + 1].frame) {
+                                            if (*(uint32_t*)&keys2[j].value == *(uint32_t*)&keys2[j + 1].value) {
+                                                ident[17] = 1;
+                                                ident[23] = 1;
+                                            }
+                                            break;
+                                        }
+                        }
+                    }
+                }
+                break;
+            }
+            break;
+        }*/
     }
 
-    ml->name = mlf->name;
-    ml->hash = hash_string_murmurhash(ml->name);
-}
+    /*OutputDebugStringA(auth->file_name.c_str());
+    OutputDebugStringA("\n");
+    OutputDebugStringA(mlf->name.c_str());
+    OutputDebugStringA("\n");
 
-static void auth_3d_material_list_set(auth_3d_material_list* ml) {
-    vec4 blend_color = vec4_identity;
     if (ml->flags & AUTH_3D_MATERIAL_LIST_BLEND_COLOR) {
-        if (ml->blend_color.flags & AUTH_3D_RGBA_R)
-            blend_color.x = ml->blend_color.value.x;
-        if (ml->blend_color.flags & AUTH_3D_RGBA_G)
-            blend_color.y = ml->blend_color.value.y;
-        if (ml->blend_color.flags & AUTH_3D_RGBA_B)
-            blend_color.z = ml->blend_color.value.z;
-        if (ml->blend_color.flags & AUTH_3D_RGBA_A)
-            blend_color.w = ml->blend_color.value.w;
+        if ((ident[0] || ident[1] || ident[2] || ident[4] || ident[5] || ident[6])
+            && (!ident[0] || !ident[1] || !ident[2] || !ident[4] || !ident[5] || !ident[6]))
+            OutputDebugStringA("A\n");
+        if (!(ident[0] || ident[1] || ident[2] || ident[3] || ident[4] || ident[5]))
+            OutputDebugStringA("B\n");
+        if (ident[0] || ident[1] || ident[2] || ident[3] || ident[4] || ident[5]) {
+            if ((ident[6] || ident[7] || ident[8] || ident[9] || ident[10] || ident[11])
+                && (!ident[6] || !ident[7] || !ident[8] || !ident[9] || !ident[10] || !ident[11]))
+                OutputDebugStringA("C\n");
+            if (!(ident[6] || ident[7] || ident[8] || ident[9] || ident[10] || ident[11]))
+                OutputDebugStringA("D\n");
+        }
     }
 
-    float_t glow_intensity = 1.0f;
-    if (ml->flags & AUTH_3D_MATERIAL_LIST_GLOW_INTENSITY)
-        glow_intensity = ml->glow_intensity_value;
-
-    vec4 incandescence = vec4_identity;
     if (ml->flags & AUTH_3D_MATERIAL_LIST_INCANDESCENCE) {
-        if (ml->incandescence.flags & AUTH_3D_RGBA_R)
-            incandescence.x = ml->incandescence.value.x;
-        if (ml->incandescence.flags & AUTH_3D_RGBA_G)
-            incandescence.y = ml->incandescence.value.y;
-        if (ml->incandescence.flags & AUTH_3D_RGBA_B)
-            incandescence.z = ml->incandescence.value.z;
-        if (ml->incandescence.flags & AUTH_3D_RGBA_A)
-            incandescence.w = ml->incandescence.value.w;
-    }
-}
+        if ((ident[12] || ident[13] || ident[14] || ident[15] || ident[16] || ident[17])
+            && (!ident[12] || !ident[13] || !ident[14] || !ident[15] || !ident[16] || !ident[17]))
+            OutputDebugStringA("E\n");
+        if (!(ident[12] || ident[13] || ident[14] || ident[15] || ident[16] || ident[17]))
+            OutputDebugStringA("F\n");
+        if (ident[12] || ident[13] || ident[14] || ident[15] || ident[16] || ident[17]) {
+            if ((ident[18] || ident[19] || ident[20] || ident[21] || ident[22] || ident[23])
+                && (!ident[18] || !ident[19] || !ident[20] || !ident[21] || !ident[22] || !ident[23]))
+                OutputDebugStringA("G\n");
+            if (!(ident[18] || ident[19] || ident[20] || ident[21] || ident[22] || ident[23]))
+                OutputDebugStringA("H\n");
+        }
+    }*/
 
-static void auth_3d_object_ctrl(auth_3d_object* o, float_t frame) {
-    o->model_transform.interpolate(frame);
-    auth_3d_object_curve_ctrl(&o->pattern, frame);
-    auth_3d_object_curve_ctrl(&o->morph, frame);
-    for (auth_3d_object_texture_pattern& i : o->texture_pattern)
-        auth_3d_object_texture_pattern_ctrl(&i, frame);
-    for (auth_3d_object_texture_transform& i : o->texture_transform)
-        auth_3d_object_texture_transform_ctrl(&i, frame);
+    ml->name.assign(mlf->name);
+    ml->hash = hash_string_murmurhash(ml->name);
+
+    /*char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "\n%d %d %d %d %d %d %d %d %d %d %d %d\n"
+        "%d %d %d %d %d %d %d %d %d %d %d %d\n\n",
+        ident[0], ident[1], ident[2],
+        ident[3], ident[4], ident[5],
+        ident[6], ident[7], ident[8],
+        ident[9], ident[10], ident[11],
+        ident[12], ident[13], ident[14],
+        ident[15], ident[16], ident[17],
+        ident[18], ident[19], ident[20],
+        ident[21], ident[22], ident[23]);
+    OutputDebugStringA(buf);*/
 }
 
 static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context* rctx) {
@@ -3526,7 +5572,9 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
             mat4 m;
             mat4_mult(&rob_chr->data.miku_rot.field_6C,
-                &rob_chr->data.adjust_data.mat, &m);
+                auth->chara_item
+                    ? &rob_chr->data.adjust_data.item_mat
+                    : &rob_chr->data.adjust_data.mat, &m);
             mat4_mult(&m, &mat, &mat);
             object_data->set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
         }
@@ -3643,9 +5691,9 @@ static void auth_3d_object_load(auth_3d* auth, auth_3d_object* o,
     auth_3d_object_file* of, object_database* obj_db, texture_database* tex_db) {
     auth_3d_model_transform_load(auth, &o->model_transform, &of->model_transform);
     auth_3d_object_curve_load(auth, &o->morph, of->morph, of->morph_offset);
-    o->name = of->name;
-    o->parent_name = of->parent_name;
-    o->parent_node = of->parent_node;
+    o->name.assign(of->name);
+    o->parent_name.assign(of->parent_name);
+    o->parent_node.assign(of->parent_node);
     auth_3d_object_curve_load(auth, &o->pattern, of->pattern, of->pattern_offset);
 
     size_t texture_pattern_index = 0;
@@ -3660,7 +5708,7 @@ static void auth_3d_object_load(auth_3d* auth, auth_3d_object* o,
         auth_3d_object_texture_transform_load(auth,
             &o->texture_transform[texture_transform_index++], &i, tex_db);
 
-    o->uid_name = of->uid_name;
+    o->uid_name.assign(of->uid_name);
 
     o->reflect = strstr(o->uid_name.c_str(), "_REFLECT") ? true : false;
     o->refract = strstr(o->uid_name.c_str(), "_REFRACT") ? true : false;
@@ -3669,23 +5717,10 @@ static void auth_3d_object_load(auth_3d* auth, auth_3d_object* o,
     o->object_hash = hash_string_murmurhash(o->uid_name);
 }
 
-static void auth_3d_object_curve_ctrl(auth_3d_object_curve* oc, float_t frame) {
-    auth_3d_curve* c = oc->curve;
-    if (!c)
-        return;
-
-    if (oc->frame_offset != 0.0f) {
-        frame += oc->frame_offset;
-        if (frame >= c->curve.max_frame)
-            frame -= c->curve.max_frame;
-    }
-    oc->value = c->curve.interpolate(frame);
-}
-
 static void auth_3d_object_curve_load(auth_3d* auth, auth_3d_object_curve* oc,
     std::string& name, float_t frame_offset) {
     oc->curve = 0;
-    oc->name = name;
+    oc->name.assign(name);
     oc->frame_offset = 0.0f;
     oc->value = 0.0f;
 
@@ -3697,27 +5732,8 @@ static void auth_3d_object_curve_load(auth_3d* auth, auth_3d_object_curve* oc,
         }
 }
 
-static void auth_3d_object_list_ctrl(auth_3d_object* o, mat4* parent_mat) {
-    //if (!o->model_transform.visible)
-    //    return;
-
-    auth_3d_model_transform_set_mat(&o->model_transform, parent_mat);
-
-    mat4& mat = o->model_transform.mat;
-
-    for (auth_3d_object*& i : o->children_object)
-        auth_3d_object_list_ctrl(i, &mat);
-    for (auth_3d_object_hrc*& i : o->children_object_hrc)
-        auth_3d_object_hrc_list_ctrl(i, &mat);
-}
-
-static void auth_3d_object_hrc_ctrl(auth_3d_object_hrc* oh, float_t frame) {
-    for (auth_3d_object_node& i : oh->node)
-        auth_3d_object_model_transform_ctrl(&i.model_transform, frame);
-}
-
 static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, render_context* rctx) {
-    if (!auth->visible || !oh->node[0].model_transform.visible)
+    if (!auth->visible || !oh->node.front().model_transform.visible)
         return;
 
     object_data* object_data = &rctx->object_data;
@@ -3742,7 +5758,9 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
         if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
             mat4_mult(&rob_chr->data.miku_rot.field_6C,
-                &rob_chr->data.adjust_data.mat, &mat);
+                auth->chara_item
+                    ? &rob_chr->data.adjust_data.item_mat
+                    : &rob_chr->data.adjust_data.mat, &mat);
             if (auth->chara_id)
                 object_data->set_shadow_type(SHADOW_STAGE);
         }
@@ -3750,7 +5768,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
     else if (flags & DRAW_TASK_SHADOW) {
         object_data->set_shadow_type(SHADOW_STAGE);
 
-        mat4* m = &oh->node[0].model_transform.mat;
+        mat4* m = &oh->node.front().model_transform.mat;
         for (auth_3d_object_node& i : oh->node)
             if (i.mat) {
                 m = i.mat;
@@ -3765,7 +5783,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
         }
     }
 
-    if (oh->mats.size() > 0)
+    if (oh->mats.size())
         draw_task_add_draw_object_by_object_info_object_skin(rctx,
             oh->object_info, 0, 0, auth->alpha, oh->mats.data(), 0, 0, &mat);
 
@@ -3781,7 +5799,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
 
 static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
     auth_3d_object_hrc_file* ohf, object_database* obj_db) {
-    oh->name = ohf->name;
+    oh->name.assign(ohf->name);
 
     size_t node_index = 0;
     oh->node.resize(ohf->node.size());
@@ -3789,10 +5807,10 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
         auth_3d_object_node_load(auth,
             &oh->node[node_index++], &i);
 
-    oh->parent_name = ohf->parent_name;
-    oh->parent_node = ohf->parent_node;
+    oh->parent_name.assign(ohf->parent_name);
+    oh->parent_node.assign(ohf->parent_node);
     oh->shadow = ohf->shadow;
-    oh->uid_name = ohf->uid_name;
+    oh->uid_name.assign(ohf->uid_name);
 
     oh->reflect = strstr(oh->uid_name.c_str(), "_REFLECT") ? true : false;
     oh->refract = strstr(oh->uid_name.c_str(), "_REFRACT") ? true : false;
@@ -3804,15 +5822,15 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
     if (!skin)
         return;
 
-    oh->mats.resize(skin->bones_count);
+    oh->mats.resize(skin->num_bone);
     mat4* mats = oh->mats.data();
 
     for (auth_3d_object_node& i : oh->node) {
         i.bone_id = -1;
         uint64_t name_hash = hash_string_fnv1a64m(i.name);
-        for (uint32_t j = 0; j < skin->bones_count; j++)
-            if (hash_utf8_fnv1a64m(skin->bones[j].name) == name_hash) {
-                i.bone_id = skin->bones[j].id;
+        for (uint32_t j = 0; j < skin->num_bone; j++)
+            if (hash_utf8_fnv1a64m(skin->bone_array[j].name) == name_hash) {
+                i.bone_id = skin->bone_array[j].id;
                 break;
             }
 
@@ -3832,7 +5850,7 @@ static bool auth_3d_object_hrc_replace_chara(auth_3d_object_hrc* oh,
     std::string uid_name = oh->uid_name;
     size_t pos = uid_name.find(src_chara_str);
     if (pos != -1)
-        uid_name = uid_name.replace(pos, src_chara_str.size(), dst_chara_str);
+        uid_name.assign(uid_name.replace(pos, src_chara_str.size(), dst_chara_str));
 
     object_info obj_info = obj_db->get_object_info(uid_name.c_str());
     if (obj_info.not_null()) {
@@ -3842,29 +5860,8 @@ static bool auth_3d_object_hrc_replace_chara(auth_3d_object_hrc* oh,
     return false;
 }
 
-static void auth_3d_object_hrc_list_ctrl(auth_3d_object_hrc* oh, mat4* mat) {
-    //if (oh->node.size() < 1 || !oh->node[0].model_transform.visible)
-    //    return;
-
-    auth_3d_object_hrc_nodes_mat_mult(oh, mat);
-
-    int32_t* childer_object_parent_node = oh->childer_object_parent_node.data();
-    size_t children_object_count = oh->children_object.size();
-    for (size_t i = 0; i < children_object_count; i++)
-        auth_3d_object_list_ctrl(oh->children_object[i],
-            &oh->node[childer_object_parent_node[i]].model_transform.mat);
-
-    int32_t* childer_object_hrc_parent_node = oh->childer_object_hrc_parent_node.data();
-    size_t children_object_hrc_count = oh->children_object_hrc.size();
-    for (size_t i = 0; i < children_object_hrc_count; i++)
-        auth_3d_object_hrc_list_ctrl(oh->children_object_hrc[i],
-            &oh->node[childer_object_hrc_parent_node[i]].model_transform.mat);
-}
-
-static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, mat4* mat) {
+static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, const mat4* mat) {
     for (auth_3d_object_node& i : oh->node) {
-        auth_3d_object_model_transform_set_mat_inner(&i.model_transform);
-
         mat4 m;
         if (i.parent >= 0)
             m = oh->node[i.parent].model_transform.mat;
@@ -3872,7 +5869,7 @@ static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, mat4* mat)
             m = *mat;
 
         mat4_mult(&i.joint_orient_mat, &m, &m);
-        auth_3d_object_model_transform_mat_mult(&i.model_transform, &m);
+        i.model_transform.mat_mult(&m);
 
         if (i.mat)
             *i.mat = i.model_transform.mat;
@@ -3882,9 +5879,9 @@ static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, mat4* mat)
 static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance* oi,
     auth_3d_object_instance_file* oif, auth_3d_m_object_hrc* moh, object_database* obj_db) {
     auth_3d_object_model_transform_load(auth, &oi->model_transform, &oif->model_transform);
-    oi->name = oif->name;
+    oi->name.assign(oif->name);
     oi->shadow = oif->shadow;
-    oi->uid_name = oif->uid_name;
+    oi->uid_name.assign(oif->uid_name);
 
     oi->object_info = obj_db->get_object_info(oi->uid_name.c_str());
     oi->object_hash = hash_string_murmurhash(oi->uid_name);
@@ -3893,17 +5890,17 @@ static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance*
     if (!skin)
         return;
 
-    oi->object_bone_indices.resize(skin->bones_count);
+    oi->object_bone_indices.resize(skin->num_bone);
     int32_t* object_bone_indices = oi->object_bone_indices.data();
 
-    oi->mats.resize(skin->bones_count);
+    oi->mats.resize(skin->num_bone);
     mat4* mats = oi->mats.data();
 
-    for (uint32_t i = 0; i < skin->bones_count; i++) {
-        uint64_t name_hash = hash_utf8_fnv1a64m(skin->bones[i].name);
+    for (uint32_t i = 0; i < skin->num_bone; i++) {
+        uint64_t name_hash = hash_utf8_fnv1a64m(skin->bone_array[i].name);
         for (auth_3d_object_node& j : moh->node)
             if (hash_string_fnv1a64m(j.name) == name_hash) {
-                int32_t bone_id = skin->bones[i].id;
+                int32_t bone_id = skin->bone_array[i].id;
                 if (~bone_id & 0x8000)
                     object_bone_indices[bone_id] = (int32_t)(&j - moh->node.data());
                 break;
@@ -3911,34 +5908,14 @@ static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance*
     }
 }
 
-static void auth_3d_object_model_transform_ctrl(auth_3d_object_model_transform* obj_mt, float_t frame) {
-    if (frame == obj_mt->frame && !obj_mt->has_rotation)
-        return;
-
-    obj_mt->translation_value = obj_mt->translation.interpolate(frame);
-    obj_mt->rotation_value = obj_mt->rotation.interpolate(frame);
-
-    if (obj_mt->has_scale)
-        obj_mt->scale_value = obj_mt->scale.interpolate(frame);
-
-    if (obj_mt->has_visibility)
-        obj_mt->visible = obj_mt->visibility.interpolate(frame) >= 0.99900001f;
-
-    vec3& rotation = obj_mt->rotation_value;
-    mat4_rotate(rotation.x, rotation.y, rotation.z, &obj_mt->mat_rot);
-    obj_mt->frame = frame;
-    obj_mt->has_rotation = false;
-    obj_mt->has_translation = false;
-}
-
 static void auth_3d_object_model_transform_load(auth_3d* auth,
     auth_3d_object_model_transform* omt, auth_3d_model_transform_file* mtf) {
     omt->mat = mat4_identity;
     omt->mat_inner = mat4_identity;
     omt->mat_rot = mat4_identity;
-    omt->translation_value = vec3_null;
-    omt->rotation_value = vec3_null;
-    omt->scale_value = vec3_identity;
+    omt->translation_value = 0.0f;
+    omt->rotation_value = 0.0f;
+    omt->scale_value = 1.0f;
     omt->visible = false;
     omt->frame = -1.0f;
     omt->has_rotation = false;
@@ -3955,7 +5932,7 @@ static void auth_3d_object_model_transform_load(auth_3d* auth,
         && omt->scale.y.type == AUTH_3D_KEY_STATIC && fabsf(1.0f - omt->scale.y.value) <= 0.000001f
         && omt->scale.z.type == AUTH_3D_KEY_STATIC && fabsf(1.0f - omt->scale.z.value) <= 0.000001f) {
         omt->has_scale = false;
-        omt->scale_value = vec3_identity;
+        omt->scale_value = 1.0f;
     }
     else
         omt->has_scale = true;
@@ -3968,137 +5945,32 @@ static void auth_3d_object_model_transform_load(auth_3d* auth,
         omt->has_visibility = true;
 }
 
-static void auth_3d_object_model_transform_mat_mult(auth_3d_object_model_transform* obj_mt, mat4* mat) {
-    mat4_mult(&obj_mt->mat_inner, mat, &obj_mt->mat);
-}
-
-static void auth_3d_object_model_transform_set_mat_inner(auth_3d_object_model_transform* obj_mt) {
-    if (obj_mt->has_translation && !obj_mt->has_rotation)
-        return;
-
-    mat4 mat;
-    vec3& translation = obj_mt->translation_value;
-    mat4_translate(translation.x, translation.y, translation.z, &mat);
-
-    mat4_mult(&obj_mt->mat_rot, &mat, &mat);
-    if (obj_mt->has_scale) {
-        vec3 scale = obj_mt->scale_value;
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
-    }
-    obj_mt->mat_inner = mat;
-    obj_mt->has_translation = true;
+void auth_3d_object_model_transform::mat_mult(const mat4* mat) {
+    mat4_mult(&this->mat_inner, mat, &this->mat);
 }
 
 static void auth_3d_object_node_load(auth_3d* auth,
     auth_3d_object_node* on, auth_3d_object_node_file* onf) {
     if (onf->flags & A3DA_OBJECT_NODE_JOINT_ORIENT) {
-        vec3& rot = onf->joint_orient;
-        on->joint_orient = rot;
-        mat4 mat;
-        mat4_rotate(rot.x, rot.y, rot.z, &on->joint_orient_mat);
+        on->joint_orient = onf->joint_orient;
+        mat4_rotate(&on->joint_orient, &on->joint_orient_mat);
         enum_or(on->flags, AUTH_3D_OBJECT_NODE_JOINT_ORIENT);
     }
     else {
-        on->joint_orient = vec3_null;
+        on->joint_orient = 0.0f;
         on->joint_orient_mat = mat4_identity;
     }
 
     auth_3d_object_model_transform_load(auth, &on->model_transform, &onf->model_transform);
-    on->name = onf->name;
+    on->name.assign(onf->name);
     on->parent = onf->parent;
-}
-
-static void auth_3d_object_texture_pattern_ctrl(
-    auth_3d_object_texture_pattern* otp, float_t frame) {
-    auth_3d_object_curve_ctrl(&otp->pattern, frame);
 }
 
 static void auth_3d_object_texture_pattern_load(auth_3d* auth, auth_3d_object_texture_pattern* otp,
     auth_3d_object_texture_pattern_file* otpf, texture_database* tex_db) {
-    otp->name = otpf->name;
+    otp->name.assign(otpf->name);
     auth_3d_object_curve_load(auth, &otp->pattern, otpf->pattern, otpf->pattern_offset);
     otp->texture_id = tex_db->get_texture_id(otp->name.c_str());
-}
-
-static void auth_3d_object_texture_transform_ctrl(
-    auth_3d_object_texture_transform* ott, float_t frame) {
-    int32_t flags = ott->flags;
-
-    vec3 scale = vec3_identity;
-    vec3 repeat = vec3_identity;
-    vec3 rotate = vec3_null;
-    vec3 translate_frame = vec3_null;
-
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_COVERAGE_U && ott->coverage_u.max_frame > 0.0f) {
-        float_t coverage_u = ott->coverage_u.interpolate(frame);
-        if (fabsf(coverage_u) > 0.000001f)
-            scale.x = 1.0f / coverage_u;
-    }
-
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_COVERAGE_V && ott->coverage_v.max_frame > 0.0f) {
-        float_t coverage_v = ott->coverage_v.interpolate(frame);
-        if (fabsf(coverage_v) > 0.000001f)
-            scale.y = 1.0f / coverage_v;
-    }
-
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_REPEAT_U && ott->repeat_u.max_frame > 0.0f) {
-        float_t value = ott->repeat_u.interpolate(frame);
-        if (fabsf(value) > 0.000001f)
-            repeat.x = value;
-    }
-
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_REPEAT_V && ott->repeat_v.max_frame > 0.0f) {
-        float_t value = ott->repeat_v.interpolate(frame);
-        if (fabsf(value) > 0.000001f)
-            repeat.y = value;
-    }
-
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_ROTATE_FRAME)
-        rotate.z = ott->rotate_frame.interpolate(frame);
-
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_ROTATE)
-        rotate.z += ott->rotate.interpolate(frame);
-
-    float_t translate_frame_u;
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_U)
-        translate_frame_u = -ott->translate_frame_u.interpolate(frame);
-    else
-        translate_frame_u = 0.0f;
-
-    float_t offset_u;
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_OFFSET_U)
-        offset_u = ott->offset_u.interpolate(frame);
-    else
-        offset_u = 0.0f;
-
-    translate_frame.x = (translate_frame_u + offset_u) * repeat.x;
-
-    float_t translate_frame_v;
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_V)
-        translate_frame_v = -ott->translate_frame_v.interpolate(frame);
-    else
-        translate_frame_v = 0.0f;
-
-    float_t offset_v;
-    if (flags & AUTH_3D_OBJECT_TEXTURE_TRANSFORM_OFFSET_V)
-        offset_v = ott->offset_v.interpolate(frame);
-    else
-        offset_v = 0.0f;
-
-    translate_frame.y = (translate_frame_v + offset_v) * repeat.y;
-
-    mat4 mat;
-    mat4_translate(translate_frame.x, translate_frame.y, translate_frame.z, &mat);
-    mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
-
-    mat4_translate_mult(&mat, 1.0f, 1.0f, 0.0f, &mat);
-    mat4_scale_rot(&mat, repeat.x, repeat.y, repeat.z, &mat);
-    mat4_translate_mult(&mat, -1.0f, -1.0f, 0.0f, &mat);
-
-    mat4_translate_mult(&mat, 0.5f, 0.5f, 0.0f, &mat);
-    mat4_rotate_z_mult(&mat, rotate.z, &mat);
-    mat4_translate_mult(&mat, -0.5f, -0.5f, 0.0f, &mat);
-    ott->mat = mat;
 }
 
 static void auth_3d_object_texture_transform_load(auth_3d* auth, auth_3d_object_texture_transform* ott,
@@ -4113,7 +5985,7 @@ static void auth_3d_object_texture_transform_load(auth_3d* auth, auth_3d_object_
         enum_or(ott->flags, AUTH_3D_OBJECT_TEXTURE_TRANSFORM_COVERAGE_V);
     }
 
-    ott->name = ottf->name;
+    ott->name.assign(ottf->name);
 
     if (ottf->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_OFFSET_U) {
         auth_3d_key_load(auth, &ott->offset_u, &ottf->offset_u);
@@ -4178,32 +6050,13 @@ static void auth_3d_play_control_load(auth_3d* auth, auth_3d_play_control_file* 
     pc->size = pcf->size;
 }
 
-static void auth_3d_point_ctrl(auth_3d_point* p, float_t frame) {
-    p->model_transform.interpolate(frame);
-}
-
 static void auth_3d_point_disp(auth_3d_point* p, mat4* parent_mat, render_context* rctx) {
 
 }
 
 static void auth_3d_point_load(auth_3d* auth, auth_3d_point* p, auth_3d_point_file* pf) {
     auth_3d_model_transform_load(auth, &p->model_transform, &pf->model_transform);
-    p->name = pf->name;
-}
-
-static void auth_3d_post_process_ctrl(auth_3d_post_process* pp, float_t frame) {
-    if (pp->flags & AUTH_3D_POST_PROCESS_INTENSITY)
-        pp->intensity.interpolate(frame);
-    if (pp->flags & AUTH_3D_POST_PROCESS_LENS_FLARE)
-        pp->lens_flare_value = pp->lens_flare.interpolate(frame);
-    if (pp->flags & AUTH_3D_POST_PROCESS_LENS_SHAFT)
-        pp->lens_shaft_value = pp->lens_shaft.interpolate(frame);
-    if (pp->flags & AUTH_3D_POST_PROCESS_LENS_GHOST)
-        pp->lens_ghost_value = pp->lens_ghost.interpolate(frame);
-    if (pp->flags & AUTH_3D_POST_PROCESS_RADIUS)
-        pp->radius.interpolate(frame);
-    if (pp->flags & AUTH_3D_POST_PROCESS_SCENE_FADE)
-        pp->scene_fade.interpolate(frame);
+    p->name.assign(pf->name);
 }
 
 static void auth_3d_post_process_load(auth_3d* auth, auth_3d_post_process* pp, auth_3d_post_process_file* ppf) {
@@ -4399,7 +6252,7 @@ static void auth_3d_data_struct_load_category(auth_3d_data_struct* auth_3d_data,
     if (elem == auth_3d_data->farcs_modern.end()) {
         elem = auth_3d_data->farcs_modern.insert({ category_hash, {} }).first;
         auth_3d_farc* a3da_farc = &elem->second;
-        a3da_farc->name = category_name;
+        a3da_farc->name.assign(category_name);
     }
 
     auth_3d_farc* a3da_farc = &elem->second;
@@ -4476,10 +6329,15 @@ static void auth_3d_farc_read_file(auth_3d_farc* a3da_farc, const char* mdata_di
     }
 
     a3da_farc->state = 1;
-    a3da_farc->path = "rom/auth_3d/";
-    if (mdata_dir && *mdata_dir)
-        a3da_farc->path += mdata_dir;
-    a3da_farc->file = a3da_farc->name + ".farc";
+
+    if (mdata_dir && *mdata_dir) {
+        a3da_farc->path.assign(mdata_dir);
+        a3da_farc->path.append("rom/auth_3d/");
+    }
+    else
+        a3da_farc->path.assign("rom/auth_3d/");
+    a3da_farc->file.assign(a3da_farc->name);
+    a3da_farc->file.append(".farc");
 
     if (a3da_farc->file_handler.read_file(&data_list[DATA_AFT],
         a3da_farc->path.c_str(), a3da_farc->file.c_str()))
@@ -4496,8 +6354,9 @@ static void auth_3d_farc_read_file_modern(auth_3d_farc* a3da_farc, void* data) {
     }
 
     a3da_farc->state = 1;
-    a3da_farc->path = "root+/auth_3d/";
-    a3da_farc->file = a3da_farc->name + ".farc";
+    a3da_farc->path.assign("root+/auth_3d/");
+    a3da_farc->file.assign(a3da_farc->name);
+    a3da_farc->file.append(".farc");
 
     if (a3da_farc->file_handler.read_file(data, a3da_farc->path.c_str(),
         hash_string_murmurhash(a3da_farc->name), ".farc"))
@@ -4556,7 +6415,8 @@ static void auth_3d_uid_file_load_file(auth_3d_uid_file* uid_file, auth_3d_datab
         return;
 
     uid_file->name = db_uid->name.c_str();
-    uid_file->file_name = db_uid->name + ".a3da";
+    uid_file->file_name.assign(db_uid->name);
+    uid_file->file_name.append(".a3da");
     auth_3d_farc* farc = auth_3d_data_struct_get_farc(auth_3d_data, db_uid->category.c_str());
     uid_file->farc = farc;
     if (farc) {
@@ -4583,7 +6443,7 @@ static void auth_3d_uid_file_modern_load_file(auth_3d_uid_file_modern* uid_file)
     if (!farc)
         return;
 
-    uid_file->file_name = farc->farc->get_file_name(uid_file->hash);
+    uid_file->file_name.assign(farc->farc->get_file_name(uid_file->hash));
 
     uid_file->farc = farc;
     if (farc) {
@@ -4617,10 +6477,15 @@ static void auth_3d_uid_file_unload_file(auth_3d_uid_file* uid_file) {
 static void auth_3d_uid_file_modern_unload_file(auth_3d_uid_file_modern* uid_file) {
     if (uid_file->state == 1 || uid_file->state == 2)
         auth_3d_farc_unload(uid_file->farc);
-    uid_file->name = {};
+    uid_file->name.clear();
+    uid_file->name.shrink_to_fit();
     uid_file->farc = 0;
     uid_file->state = 0;
     auth_3d_data->uid_files_modern.erase(uid_file->hash);
+}
+
+static size_t auth_3d_time_event_radix_index_func_time(auth_3d_time_event* data, size_t index) {
+    return *(uint32_t*)&data[index].frame;
 }
 
 static void Auth3dTestTask__SetAuth3dId(Auth3dTestTask* tt) {
@@ -4636,7 +6501,7 @@ static void Auth3dTestTask__SetAuth3dId(Auth3dTestTask* tt) {
             tt->obj_sets.clear();
         }
         auth_3d_data_load_category(tt->load_category.c_str());
-        tt->category = tt->load_category;
+        tt->category.assign(tt->load_category);
         if (tt->window.obj_link)
             tt->field_394 = 1;
     }

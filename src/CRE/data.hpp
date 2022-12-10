@@ -104,7 +104,7 @@ struct data_struct {
 #endif
 
     data_struct();
-    virtual ~data_struct();
+    ~data_struct();
 
     bool check_directory_exists(const char* dir);
     bool check_file_exists(const char* path);

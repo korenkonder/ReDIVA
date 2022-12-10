@@ -233,13 +233,13 @@ bool key_val::open_scope(std::string& str) {
 }
 
 bool key_val::open_scope_fmt(int32_t i) {
-    char buf[0x100];
+    char buf[0x200];
     sprintf_s(buf, sizeof(buf), "%d", i);
     return open_scope(buf);
 }
 
 bool key_val::open_scope_fmt(uint32_t i) {
-    char buf[0x100];
+    char buf[0x200];
     sprintf_s(buf, sizeof(buf), "%u", i);
     return open_scope(buf);
 }
@@ -498,7 +498,7 @@ bool key_val::read(const char* key, vec3& value) {
         close_scope();
         return true;
     }
-    value = vec3_null;
+    value = 0.0f;
     return false;
 }
 
@@ -510,7 +510,7 @@ bool key_val::read(std::string& key, vec3& value) {
         close_scope();
         return true;
     }
-    value = vec3_null;
+    value = 0.0f;
     return false;
 }
 
@@ -672,7 +672,7 @@ bool key_val::read(const char* key0, const char* key1, std::string& value) {
 
 bool key_val::read(std::string& key0, std::string& key1, vec3& value) {
     if (!open_scope(key0)) {
-        value = vec3_null;
+        value = 0.0f;
         return false;
     }
 
@@ -685,7 +685,7 @@ bool key_val::read(std::string& key0, std::string& key1, vec3& value) {
 
 bool key_val::read(const char* key0, const char* key1, vec3& value) {
     if (!open_scope(key0)) {
-        value = vec3_null;
+        value = 0.0f;
         return false;
     }
 
@@ -697,7 +697,9 @@ bool key_val::read(const char* key0, const char* key1, vec3& value) {
 }
 
 bool key_val::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    std::string s = path + std::string(file);
+    std::string s;
+    s.assign(path);
+    s.append(file);
 
     key_val* kv = (key_val*)data;
     kv->file_read(s.c_str());

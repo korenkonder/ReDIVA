@@ -1298,26 +1298,22 @@ namespace Glitter {
         return val % (max - min) + min;
     }
 
-    void Random::F2GetVec3(GLT, vec3& src, vec3& dst) {
+    vec3 Random::F2GetVec3(GLT, const vec3& value) {
         vec3 val;
         switch (GLT_VAL) {
         default:
         case Glitter::FT:
-            val.x = *(float_t*)&full_float_table[value++ % 0x1000];
-            val.y = *(float_t*)&full_float_table[value++ % 0x1000];
-            val.z = *(float_t*)&full_float_table[value++ % 0x1000];
+            val.x = *(float_t*)&full_float_table[this->value++ % 0x1000];
+            val.y = *(float_t*)&full_float_table[this->value++ % 0x1000];
+            val.z = *(float_t*)&full_float_table[this->value++ % 0x1000];
             break;
         case Glitter::F2:
-            val.x = *(float_t*)&short_float_table[value++ % 0x100];
-            val.y = *(float_t*)&short_float_table[value++ % 0x100];
-            val.z = *(float_t*)&short_float_table[value++ % 0x100];
+            val.x = *(float_t*)&short_float_table[this->value++ % 0x100];
+            val.y = *(float_t*)&short_float_table[this->value++ % 0x100];
+            val.z = *(float_t*)&short_float_table[this->value++ % 0x100];
             break;
         }
-
-        vec3 t;
-        vec3_add(src, src, t);
-        vec3_mult(val, t, val);
-        vec3_sub(val, src, dst);
+        return val * (value + value) - value;
     }
 
     void Random::F2StepValue() {
@@ -1358,19 +1354,15 @@ namespace Glitter {
         return val % (max - min) + min;
     }
 
-    void Random::XGetVec3(vec3& src, vec3& dst) {
+    vec3 Random::XGetVec3(const vec3& value) {
         vec3 val;
-        val.x = *(float_t*)&x_float_table[value % 0x169];
-        value += step;
-        val.y = *(float_t*)&x_float_table[value % 0x169];
-        value += step;
-        val.z = *(float_t*)&x_float_table[value % 0x169];
-        value += step;
-
-        vec3 t;
-        vec3_add(src, src, t);
-        vec3_mult(val, t, val);
-        vec3_sub(val, src, dst);
+        val.x = *(float_t*)&x_float_table[this->value % 0x169];
+        this->value += step;
+        val.y = *(float_t*)&x_float_table[this->value % 0x169];
+        this->value += step;
+        val.z = *(float_t*)&x_float_table[this->value % 0x169];
+        this->value += step;
+        return val * (value + value) - value;
     }
 
     void Random::XReset() {

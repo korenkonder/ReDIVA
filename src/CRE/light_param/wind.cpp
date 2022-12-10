@@ -73,7 +73,7 @@ void wind::set_bias(float_t value) {
 void wind::reset() {
     strength = 0.0f;
     frame = 0.0f;
-    wind_direction = vec3_null;
+    wind_direction = 0.0f;
 }
 
 static float_t wind_apply_spc(wind* w, float_t frame) {
@@ -92,7 +92,7 @@ static void wind_ctrl(wind* w) {
     mat4 mat = mat4_identity;
     mat4_rotate_y_mult(&mat, w->rot_y * DEG_TO_RAD_FLOAT, &mat);
     mat4_rotate_z_mult(&mat, w->rot_z * DEG_TO_RAD_FLOAT, &mat);
-    vec3 wind_direction = vec3_null;
+    vec3 wind_direction = 0.0f;
     wind_direction.x = value;
     mat4_mult_vec3(&mat, &wind_direction, &wind_direction);
     w->wind_direction = wind_direction * w->strength;

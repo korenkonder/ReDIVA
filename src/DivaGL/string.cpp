@@ -129,8 +129,7 @@ inline void string_replace_wstring(wstring* src, string* dst) {
 inline bool string_compare(string* str0, string* str1) {
     if (str0->length != str1->length)
         return false;
-    return !memcmp(string_data(str0), string_data(str1),
-        str0->length) ? true : false;
+    return !memcmp(string_data(str0), string_data(str1), str0->length);
 }
 
 inline void string_free(string* s) {
@@ -238,8 +237,7 @@ inline void wstring_replace_string(string* src, wstring* dst) {
 inline bool wstring_compare(wstring* str0, wstring* str1) {
     if (str0->length != str1->length)
         return false;
-    return !memcmp(wstring_data(str0), wstring_data(str1),
-        sizeof(wchar_t) * str0->length) ? true : false;
+    return !memcmp(wstring_data(str0), wstring_data(str1), sizeof(wchar_t) * str0->length);
 }
 
 inline void wstring_free(wstring* s) {

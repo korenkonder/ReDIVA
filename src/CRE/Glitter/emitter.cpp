@@ -39,4 +39,21 @@ namespace Glitter {
         for (Particle*& i : particles)
             delete i;
     }
+
+    Emitter& Emitter::operator=(const Emitter& emit) {
+        data = emit.data;
+        version = emit.version;
+
+        for (Particle*& i : particles)
+            delete i;
+        particles.clear();
+
+        particles.reserve(emit.particles.size());
+        for (Particle* i : emit.particles) {
+            Particle* ptcl = new Particle(i->version > 0x03 ? Glitter::X : Glitter::F2);
+            *ptcl = *i;
+            particles.push_back(ptcl);
+        }
+        return *this;
+    }
 }

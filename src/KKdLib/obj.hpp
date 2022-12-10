@@ -6,6 +6,8 @@
 #pragma once
 
 #include "default.hpp"
+#include "prj/shared_ptr.hpp"
+#include "alloc_data.hpp"
 #include "mat.hpp"
 #include "vec.hpp"
 
@@ -148,11 +150,15 @@ enum obj_vertex_format : uint32_t {
 struct obj_axis_aligned_bounding_box {
     vec3 center;
     vec3 size;
+
+    obj_axis_aligned_bounding_box();
 };
 
 struct obj_bounding_box {
     vec3 center;
     vec3 size;
+
+    obj_bounding_box();
 };
 
 struct obj_bounding_sphere {
@@ -341,13 +347,13 @@ struct obj_sub_mesh {
     obj_bounding_sphere bounding_sphere;
     uint32_t material_index;
     uint8_t uv_index[8];
-    uint16_t* bone_indices;
-    uint32_t bone_indices_count;
+    uint16_t* bone_index_array;
+    uint32_t num_bone_index;
     uint32_t bones_per_vertex;
     obj_primitive_type primitive_type;
     obj_index_format index_format;
-    uint32_t* indices;
-    uint32_t indices_count;
+    uint32_t* index_array;
+    uint32_t num_index;
     obj_sub_mesh_attrib attrib;
     union {
         obj_axis_aligned_bounding_box axis_aligned_bounding_box;
@@ -355,7 +361,7 @@ struct obj_sub_mesh {
     };
     uint16_t first_index;
     uint16_t last_index;
-    uint32_t indices_offset;
+    uint32_t index_offset;
 
     obj_sub_mesh();
 };
@@ -374,6 +380,8 @@ struct obj_vertex_data {
     vec4 bone_weight;
     vec4i bone_index;
     vec4 unknown;
+
+    obj_vertex_data();
 };
 
 struct obj_mesh_attrib_member {
@@ -398,44 +406,21 @@ struct obj_mesh {
     obj_vertex_format vertex_format;
     uint32_t size_vertex;
     uint32_t num_vertex;
-    obj_vertex_data* vertex;
+    obj_vertex_data* vertex_array;
     obj_mesh_attrib attrib;
     uint32_t reserved[6];
     char name[0x40];
-};
 
-struct obj_skin_block_cloth_root_bone_weight {
-    char* bone_name;
-    float_t weight;
-    int32_t matrix_index;
-    int32_t reserved;
-};
-
-struct obj_skin_block_cloth_root {
-    vec3 trans;
-    vec3 normal;
-    float_t field_18;
-    int32_t field_1C;
-    int32_t field_20;
-    int32_t field_24;
-    obj_skin_block_cloth_root_bone_weight bone_weights[4];
-};
-
-struct obj_skin_block_cloth_node {
-    uint32_t flags;
-    vec3 trans;
-    vec3 trans_diff;
-    float_t dist_top;
-    float_t dist_bottom;
-    float_t dist_right;
-    float_t dist_left;
+    obj_mesh();
 };
 
 struct obj_skin_block_node {
-    char* parent_name;
+    const char* parent_name;
     vec3 position;
     vec3 rotation;
     vec3 scale;
+
+    obj_skin_block_node();
 };
 
 struct obj_skin_skin_param_coli {
@@ -445,6 +430,8 @@ struct obj_skin_skin_param_coli {
     float_t radius;
     vec3 bone0_pos;
     vec3 bone1_pos;
+
+    obj_skin_skin_param_coli();
 };
 
 struct obj_skin_skin_param {
@@ -456,38 +443,77 @@ struct obj_skin_skin_param {
     float_t rot_z;
     float_t hinge_y;
     float_t hinge_z;
-    char* name;
+    const char* name;
     obj_skin_skin_param_coli* coli;
     int32_t coli_count;
     float_t coli_r;
     float_t friction;
     float_t wind_afc;
     int32_t unk44;
+
+    obj_skin_skin_param();
 };
+
+struct obj_skin_block_cloth_root_bone_weight {
+    const char* bone_name;
+    float_t weight;
+    int32_t matrix_index;
+    int32_t reserved;
+
+    obj_skin_block_cloth_root_bone_weight();
+};
+
+struct obj_skin_block_cloth_root {
+    vec3 trans;
+    vec3 normal;
+    float_t field_18;
+    int32_t field_1C;
+    int32_t field_20;
+    int32_t field_24;
+    obj_skin_block_cloth_root_bone_weight bone_weights[4];
+
+    obj_skin_block_cloth_root();
+};
+
+struct obj_skin_block_cloth_node {
+    uint32_t flags;
+    vec3 trans;
+    vec3 trans_diff;
+    float_t dist_top;
+    float_t dist_bottom;
+    float_t dist_right;
+    float_t dist_left;
+
+    obj_skin_block_cloth_node();
+};
+
 struct obj_skin_block_cloth {
-    char* mesh_name;
-    char* backface_mesh_name;
+    const char* mesh_name;
+    const char* backface_mesh_name;
     uint32_t field_8;
-    uint32_t root_count;
-    uint32_t nodes_count;
+    uint32_t num_root;
+    uint32_t num_node;
     uint32_t field_14;
-    mat4* mats;
-    uint32_t mats_count;
-    obj_skin_block_cloth_root* root;
-    obj_skin_block_cloth_node* nodes;
-    uint16_t* mesh_indices;
-    int32_t mesh_indices_count;
-    uint16_t* backface_mesh_indices;
-    int32_t backface_mesh_indices_count;
-    obj_skin_skin_param skin_param;
-    bool skin_param_init;
+    mat4* mat_array;
+    uint32_t num_mat;
+    obj_skin_block_cloth_root* root_array;
+    obj_skin_block_cloth_node* node_array;
+    uint16_t* mesh_index_array;
+    int32_t num_mesh_index;
+    uint16_t* backface_mesh_index_array;
+    int32_t num_backface_mesh_index;
+    obj_skin_skin_param* skin_param;
     uint32_t reserved;
+
+    obj_skin_block_cloth();
 };
 
 struct obj_skin_block_constraint_attach_point {
     bool affected_by_orientation;
     bool affected_by_scaling;
     vec3 offset;
+
+    obj_skin_block_constraint_attach_point();
 };
 
 struct obj_skin_block_constraint_up_vector {
@@ -495,13 +521,17 @@ struct obj_skin_block_constraint_up_vector {
     float_t roll;
     vec3 affected_axis;
     vec3 point_at;
-    char* name;
+    const char* name;
+
+    obj_skin_block_constraint_up_vector();
 };
 
 struct obj_skin_block_constraint_direction {
     obj_skin_block_constraint_up_vector up_vector;
     vec3 align_axis;
     vec3 target_offset;
+
+    obj_skin_block_constraint_direction();
 };
 
 struct obj_skin_block_constraint_distance {
@@ -509,116 +539,142 @@ struct obj_skin_block_constraint_distance {
     float_t distance;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
+
+    obj_skin_block_constraint_distance();
 };
 
 struct obj_skin_block_constraint_orientation {
     vec3 offset;
+
+    obj_skin_block_constraint_orientation();
 };
 
 struct obj_skin_block_constraint_position {
     obj_skin_block_constraint_up_vector up_vector;
     obj_skin_block_constraint_attach_point constrained_object;
     obj_skin_block_constraint_attach_point constraining_object;
+
+    obj_skin_block_constraint_position();
 };
 
 struct obj_skin_block_constraint {
-    obj_skin_block_node base;
+    obj_skin_block_node node;
     uint32_t name_index;
-    char* source_node_name;
+    const char* source_node_name;
     obj_skin_block_constraint_coupling coupling;
     obj_skin_block_constraint_type type;
     union {
-        obj_skin_block_constraint_direction direction;
-        obj_skin_block_constraint_distance distance;
-        obj_skin_block_constraint_orientation orientation;
-        obj_skin_block_constraint_position position;
+        void* data;
+        obj_skin_block_constraint_direction* direction;
+        obj_skin_block_constraint_distance* distance;
+        obj_skin_block_constraint_orientation* orientation;
+        obj_skin_block_constraint_position* position;
     };
+
+    obj_skin_block_constraint();
 };
 
 struct obj_skin_block_expression {
-    obj_skin_block_node base;
+    obj_skin_block_node node;
     uint32_t name_index;
-    uint32_t expressions_count;
-    char* expressions[9];
+    uint32_t num_expression;
+    const char* expression_array[9];
+
+    obj_skin_block_expression();
 };
 
 struct obj_skin_motion_node {
     uint32_t name_index;
     mat4 inv_bind_pose_mat;
+
+    obj_skin_motion_node();
 };
 
 struct obj_skin_block_motion {
-    obj_skin_block_node base;
+    obj_skin_block_node node;
     union {
-        char* name;
+        const char* name;
         uint32_t name_index;
     };
-    obj_skin_motion_node* nodes;
-    uint32_t nodes_count;
+    obj_skin_motion_node* node_array;
+    uint32_t num_node;
+
+    obj_skin_block_motion();
 };
 
 struct obj_skin_osage_node {
     uint32_t name_index;
     float_t length;
     vec3 rotation;
+
+    obj_skin_osage_node();
 };
 
 struct obj_skin_block_osage {
-    obj_skin_block_node base;
+    obj_skin_block_node node;
     uint32_t start_index;
     uint32_t count;
-    obj_skin_osage_node* nodes;
-    uint32_t nodes_count;
-    obj_skin_skin_param skin_param;
-    bool skin_param_init;
+    obj_skin_osage_node* node_array;
+    uint32_t num_node;
+    obj_skin_skin_param* skin_param;
     uint32_t external_name_index;
     uint32_t name_index;
-    char* motion_node_name;
+    const char* motion_node_name;
+
+    obj_skin_block_osage();
 };
 
 struct obj_skin_block {
     obj_skin_block_type type;
     union {
-        obj_skin_block_node base;
-        obj_skin_block_cloth cloth;
-        obj_skin_block_constraint constraint;
-        obj_skin_block_expression expression;
-        obj_skin_block_motion motion;
-        obj_skin_block_osage osage;
+        obj_skin_block_node* node;
+        obj_skin_block_cloth* cloth;
+        obj_skin_block_constraint* constraint;
+        obj_skin_block_expression* expression;
+        obj_skin_block_motion* motion;
+        obj_skin_block_osage* osage;
     };
+
+    obj_skin_block();
 };
 
 struct obj_skin_osage_sibling_info {
     uint32_t name_index;
     uint32_t sibling_name_index;
     float_t max_distance;
+
+    obj_skin_osage_sibling_info();
 };
 
 struct obj_skin_ex_data {
-    obj_skin_osage_node* osage_nodes;
-    uint32_t osage_nodes_count;
-    obj_skin_block* blocks;
-    uint32_t blocks_count;
-    char* bone_names_buf;
-    char** bone_names;
-    uint32_t bone_names_count;
-    obj_skin_osage_sibling_info* osage_sibling_infos;
-    uint32_t osage_sibling_infos_count;
+    obj_skin_osage_node* osage_node_array;
+    uint32_t num_osage_node;
+    obj_skin_block* block_array;
+    uint32_t num_block;
+    const char** bone_name_array;
+    uint32_t num_bone_name;
+    obj_skin_osage_sibling_info* osage_sibling_info_array;
+    uint32_t num_osage_sibling_info;
     int64_t reserved[7];
+
+    obj_skin_ex_data();
 };
 
 struct obj_skin_bone {
     uint32_t id;
     uint32_t parent;
     mat4 inv_bind_pose_mat;
-    char* name;
+    const char* name;
+
+    obj_skin_bone();
 };
 
 struct obj_skin {
-    obj_skin_bone* bones;
-    uint32_t bones_count;
-    obj_skin_ex_data ex_data;
-    bool ex_data_init;
+    obj_skin_bone* bone_array;
+    uint32_t num_bone;
+    obj_skin_ex_data* ex_data;
+
+    obj_skin();
 };
 
 struct obj {
@@ -629,11 +685,12 @@ struct obj {
     uint32_t num_material;
     uint8_t flags;
     uint32_t reserved[10];
-    obj_skin skin;
-    bool skin_init;
-    char* name;
+    obj_skin* skin;
+    const char* name;
     uint32_t id;
     uint32_t hash;
+
+    obj();
 
     obj_mesh* get_obj_mesh(const char* name);
     uint32_t get_obj_mesh_index(const char* name);
@@ -652,8 +709,7 @@ struct obj_set {
     uint32_t reserved[2];
 
     obj_set();
-    virtual ~obj_set();
 
     void pack_file(void** data, size_t* size);
-    void unpack_file(const void* data, size_t size, bool modern);
+    void unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern);
 };

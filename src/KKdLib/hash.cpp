@@ -80,6 +80,30 @@ const char* string_hash::c_str() {
     return str.c_str();
 }
 
+void string_hash::assign(const char* str) {
+    this->str.assign(str);
+    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
+    this->hash_murmurhash = hash_string_murmurhash(this->str);
+}
+
+void string_hash::assign(std::string& str) {
+    this->str.assign(str);
+    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
+    this->hash_murmurhash = hash_string_murmurhash(this->str);
+}
+
+void string_hash::assign(std::string&& str) {
+    this->str.assign(str);
+    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
+    this->hash_murmurhash = hash_string_murmurhash(this->str);
+}
+
+void string_hash::assign(string_hash& str) {
+    this->str.assign(str.str);
+    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
+    this->hash_murmurhash = hash_string_murmurhash(this->str);
+}
+
 // FNV 1a 64-bit Modified
 // 0x1403B04D0 in SBZV_7.10
 uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper) {
@@ -87,10 +111,19 @@ uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper) {
 
     uint64_t hash = 0xCBF29CE484222325;
     if (data)
-        for (size_t i = size; i; i--) {
-            hash ^= *d++;
-            hash *= 0x100000001B3;
-        }
+        if (make_upper) // Hash text UPPERCASE
+            for (size_t i = size; i; i--) {
+                uint8_t c = *d++;
+                if (c > 0x60 && c < 0x7B)
+                    c -= 0x20;
+                hash ^= c;
+                hash *= 0x100000001B3;
+            }
+        else
+            for (size_t i = size; i; i--) {
+                hash ^= *d++;
+                hash *= 0x100000001B3;
+            }
     return (hash >> 32) ^ hash; // Actual Modification
 }
 

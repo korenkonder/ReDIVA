@@ -62,148 +62,141 @@ void stream::write_uint8_t(uint8_t val) {
 }
 
 std::string stream::read_string(size_t length) {
-    char* temp = force_malloc_s(char, length + 1);
-    read(temp, length);
-    temp[length] = 0;
-    std::string str = std::string(temp, length);
-    free_def(temp);
+    std::string str = std::string(length, 0);
+    read(&str.front(), sizeof(char) * length);
     return str;
 }
 
 std::wstring stream::read_wstring(size_t length) {
-    wchar_t* temp = force_malloc_s(wchar_t, length + 1);
-    read(temp, sizeof(wchar_t) * length);
-    temp[length] = 0;
-    std::wstring str = std::wstring(temp, length);
-    free_def(temp);
+    std::wstring str = std::wstring(length, 0);
+    read(&str.front(), sizeof(wchar_t) * length);
     return str;
 }
 
 std::string stream::read_string_null_terminated() {
     int64_t offset = get_position();
-    int64_t length = 0;
-    char* temp = read_utf8_string_null_terminated_offset_length(offset, &length);
-    std::string str = std::string(temp, length);
-    free_def(temp);
+
+    size_t length = read_utf8_string_null_terminated_offset_length(offset);
+    if (length)
+        return read_string(length);
+
+    std::string str = {};
     return str;
 }
 
 std::wstring stream::read_wstring_null_terminated() {
     int64_t offset = get_position();
-    int64_t length = 0;
-    wchar_t* temp = read_utf16_string_null_terminated_offset_length(offset, &length);
-    std::wstring str = std::wstring(temp, length);
-    free_def(temp);
+
+    size_t length = read_utf16_string_null_terminated_offset_length(offset);
+    if (length)
+        return read_wstring(length);
+
+    std::wstring str = {};
     return str;
 }
 
 std::string stream::read_string_null_terminated_offset(int64_t offset) {
     if (offset) {
-        int64_t length = 0;
-        char* temp = read_utf8_string_null_terminated_offset_length(offset, &length);
-        std::string str = std::string(temp, length);
-        free_def(temp);
-        return str;
+        size_t length = read_utf8_string_null_terminated_offset_length(offset);
+        if (length) {
+            position_push(offset, SEEK_SET);
+            std::string str = read_string(length);
+            position_pop();
+            return str;
+        }
     }
-    else {
-        std::string str = {};
-        return str;
-    }
+
+    std::string str = {};
+    return str;
 }
 
 std::wstring stream::read_wstring_null_terminated_offset(int64_t offset) {
     if (offset) {
-        int64_t length = 0;
-        wchar_t* temp = read_utf16_string_null_terminated_offset_length(offset, &length);
-        std::wstring str = std::wstring(temp, length);
-        free_def(temp);
-        return str;
+        size_t length = read_utf16_string_null_terminated_offset_length(offset);
+        if (length) {
+            position_push(offset, SEEK_SET);
+            std::wstring str = read_wstring(length);
+            position_pop();
+            return str;
+        }
     }
-    else {
-        std::wstring str = {};
-        return str;
-    }
+
+    std::wstring str = {};
+    return str;
 }
 
 char* stream::read_utf8_string_null_terminated() {
     int64_t offset = get_position();
-    int64_t length = 0;
-    return read_utf8_string_null_terminated_offset_length(offset, &length);
+    return read_utf8_string_null_terminated_offset(offset);
 }
 
 wchar_t* stream::read_utf16_string_null_terminated() {
     int64_t offset = get_position();
-    int64_t length = 0;
-    return read_utf16_string_null_terminated_offset_length( offset, &length);
-}
-
-char* stream::read_utf8_string_null_terminated_length(int64_t* length) {
-    int64_t offset = get_position();
-    return read_utf8_string_null_terminated_offset_length(offset, length);
-}
-
-wchar_t* stream::read_utf16_string_null_terminated_length(int64_t* length) {
-    int64_t offset = get_position();
-    return read_utf16_string_null_terminated_offset_length(offset, length);
+    return read_utf16_string_null_terminated_offset(offset);
 }
 
 char* stream::read_utf8_string_null_terminated_offset(int64_t offset) {
-    int64_t length = 0;
-    return read_utf8_string_null_terminated_offset_length(offset, &length);
+    size_t len = read_utf8_string_null_terminated_offset_length(offset);
+    if (!len) {
+        return 0;
+    }
+
+    char* str = force_malloc_s(char, len + 1);
+    position_push(offset, SEEK_SET);
+    read(str, len);
+    str[len] = 0;
+    position_pop();
+    return str;
 }
 
 wchar_t* stream::read_utf16_string_null_terminated_offset(int64_t offset) {
-    int64_t length = 0;
-    return read_utf16_string_null_terminated_offset_length(offset, &length);
-}
-
-char* stream::read_utf8_string_null_terminated_offset_length(int64_t offset, int64_t* length) {
-    position_push(offset, SEEK_SET);
-
-    size_t name_length = 0;
-    int32_t c;
-    while ((c = read_char()) != EOF && c != 0)
-        name_length++;
-
-    if (name_length == 0) {
+    size_t len = read_utf16_string_null_terminated_offset_length(offset);
+    if (!len) {
         position_pop();
-        *length = 0;
         return 0;
     }
 
-    char* str = force_malloc_s(char, name_length + 1);
-    set_position(offset, SEEK_SET);
-    read(str, name_length);
-    str[name_length] = 0;
-
+    wchar_t* str = force_malloc_s(wchar_t, len + 1);
+    position_push(offset, SEEK_SET);
+    read(str, sizeof(wchar_t) * len);
+    str[len] = 0;
     position_pop();
-    *length = name_length;
     return str;
 }
 
-wchar_t* stream::read_utf16_string_null_terminated_offset_length(int64_t offset, int64_t* length) {
+size_t stream::read_utf8_string_null_terminated_length() {
+    int64_t offset = get_position();
+    return read_utf8_string_null_terminated_offset_length(offset);
+}
+
+size_t stream::read_utf16_string_null_terminated_length() {
+    int64_t offset = get_position();
+    return read_utf16_string_null_terminated_offset_length(offset);
+}
+
+size_t stream::read_utf8_string_null_terminated_offset_length(int64_t offset) {
     position_push(offset, SEEK_SET);
 
-    size_t name_length = 0;
+    size_t len = 0;
+    int32_t c;
+    while ((c = read_char()) != EOF && c != 0)
+        len++;
+
+    position_pop();
+    return len;
+}
+
+size_t stream::read_utf16_string_null_terminated_offset_length(int64_t offset) {
+    position_push(offset, SEEK_SET);
+
+    size_t len = 0;
     int32_t c0, c1;
     while ((c0 = read_char()) != EOF && (c1 = read_char()) != EOF
         && (((c0 & 0xFF) | ((c1 & 0xFF) << 8)) != 0))
-        name_length++;
-
-    if (name_length == 0) {
-        position_pop();
-        *length = 0;
-        return 0;
-    }
-
-    wchar_t* str = force_malloc_s(wchar_t, name_length + 1);
-    set_position(offset, SEEK_SET);
-    read(str, sizeof(wchar_t) * name_length);
-    str[name_length] = 0;
+        len++;
 
     position_pop();
-    *length = name_length;
-    return str;
+    return len;
 }
 
 int16_t stream::read_int16_t() {

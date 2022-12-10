@@ -285,7 +285,7 @@ struct WaveAudio {
 };
 
 #define SOUND_WORK_SE_QUEUE_COUNT 5
-#define SOUND_WORK_STREAMING_COUNT 3
+#define SOUND_WORK_STREAM_COUNT 3
 
 struct SoundWork {
     std::map<std::string, sound_db_property> properties;
@@ -294,7 +294,7 @@ struct SoundWork {
     int32_t counter;
     std::vector<std::string> names_list;
     bool se_queue_enable[SOUND_WORK_SE_QUEUE_COUNT];
-    bool streaming_enable[SOUND_WORK_STREAMING_COUNT];
+    bool stream_enable[SOUND_WORK_STREAM_COUNT];
     float_t speakers_volume;
     bool speakers_volume_changed;
     float_t headphones_volume;
@@ -310,8 +310,18 @@ struct SoundWork {
     bool UnloadProperty(const char* file_path);
 };
 
+struct sound_stream_info {
+    float_t duration;
+    float_t time;
+    std::string path;
+
+    sound_stream_info();
+    ~sound_stream_info();
+};
+
 extern float_t get_min_headphones_volume();
 extern float_t get_max_headphones_volume();
+extern float_t get_min_speakers_volume();
 extern float_t get_max_speakers_volume();
 
 extern float_t db_to_ratio(int32_t value);
@@ -324,24 +334,33 @@ extern void sound_free();
 extern float_t sound_cue_queue_volume_array_get_max(int32_t queue_index);
 extern float_t sound_cue_queue_volume_array_get_min(int32_t queue_index);
 
+extern bool sound_work_check_stream_state(int32_t index);
 extern bool sound_work_cue_release(int32_t queue_index, const char* name, bool force_release = true);
 extern SoundCue* sound_work_get_cue(int32_t queue_index, const char* name);
 extern bool sound_work_get_cue_can_play(int32_t queue_index, const char* name);
 extern sound_db_farc* sound_work_get_farc(const char* file_path);
+extern bool sound_work_get_stream_info(sound_stream_info& info, int32_t index);
+extern float_t sound_work_get_stream_volume(int32_t index);
 extern float_t sound_work_get_headphones_volume();
 extern float_t sound_work_get_speakers_volume();
 extern bool sound_work_has_property(const char* name);
 extern bool sound_work_load_farc(const char* file_path);
 extern int32_t sound_work_play_se(int32_t queue_index, const char* name, float_t volume);
+extern bool sound_work_play_stream(int32_t index, const char* path, bool pause = false);
+extern bool sound_work_play_stream(int32_t index, const char* path, float_t time, bool pause = false);
 extern bool sound_work_read_farc(const char* file_path);
 extern void sound_work_release_farc_se(const char* file_path);
 extern bool sound_work_release_se(const char* name, bool force_release = true);
+extern bool sound_work_release_stream(int32_t index);
+extern bool sound_work_stream_set_pause(int32_t index, bool value);
 extern float_t sound_cue_queue_volume_array_get_max(int32_t queue_index);
 extern float_t sound_cue_queue_volume_array_get_min(int32_t queue_index);
 extern sound::wasapi::System* sound_wasapi_system_data_get();
 extern void sound_work_set_headphones_volume(float_t value);
 extern void sound_work_set_se_queue_volume(int32_t queue_index, float_t value);
 extern void sound_work_set_speakers_volume(float_t value);
+extern bool sound_work_set_stream_current_volume(int32_t index, float_t value);
+extern bool sound_work_set_stream_target_volume(int32_t index, float_t value, int32_t frames);
 extern bool sound_work_unload_farc(const char* file_path);
 
 extern void wave_audio_storage_init();

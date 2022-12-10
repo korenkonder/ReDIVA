@@ -235,7 +235,9 @@ bool sprite_database_file::load_file(void* data, const char* path, const char* f
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     sprite_database_file* spr_db = (sprite_database_file*)data;
     spr_db->read(s.c_str(), spr_db->modern);

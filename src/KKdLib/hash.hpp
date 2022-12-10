@@ -29,6 +29,10 @@ struct string_hash {
     ~string_hash();
 
     const char* c_str();
+    void assign(const char* str);
+    void assign(std::string& str);
+    void assign(std::string&& str);
+    void assign(string_hash& str);
 };
 
 extern uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper = false);

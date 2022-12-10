@@ -44,8 +44,8 @@ struct obj_mesh_vertex_buffer {
     void cycle_index();
     GLuint get_buffer();
     GLsizeiptr get_size();
-    bool load(obj_mesh& mesh);
-    bool load_data(size_t size, const void* data, int32_t count);
+    bool load(obj_mesh& mesh, bool dynamic = false);
+    bool load_data(size_t size, const void* data, int32_t count, bool dynamic);
     void unload();
 };
 
@@ -74,6 +74,7 @@ struct obj_set_handler {
     bool obj_loaded;
     p_file_handler tex_file_handler;
     bool tex_loaded;
+    prj::shared_ptr<alloc_data> alloc_handler;
     obj_set* obj_set;
     std::vector<std::pair<uint32_t, uint32_t>> obj_id_data;
     uint32_t tex_num;
@@ -99,7 +100,7 @@ extern int32_t obj_material_texture_type_get_texcoord_index(
 extern int32_t obj_material_texture_type_get_texture_index(
     obj_material_texture_type type, int32_t base_index);
 extern void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
-    mat4* ex_data_matrices, mat4* matrix_buffer, mat4* global_mat, mat4* mat);
+    mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4* global_mat);
 
 extern void object_material_msgpack_read(const char* path, const char* set_name,
     obj_set* obj_set, object_database* obj_db);

@@ -6,7 +6,6 @@
 #pragma once
 
 #include <map>
-#include <map>
 #include <vector>
 #include "../../KKdLib/database/object.hpp"
 #include "../../KKdLib/f2/header.hpp"
@@ -482,6 +481,8 @@ namespace Glitter {
 #if defined(CRE_DEV) || defined(ReDIVA_DEV)
         void AddValue(GLT, float_t val, CurveTypeFlags flags);
 #endif
+
+        Animation& operator=(const Animation& anim);
     };
 
     struct Buffer {
@@ -560,6 +561,8 @@ namespace Glitter {
 
         ItemBase();
         virtual ~ItemBase();
+
+        ItemBase& operator=(const ItemBase& item_base);
     };
 
     class Node : public ItemBase {
@@ -571,6 +574,8 @@ namespace Glitter {
 
         Node();
         virtual ~Node() override;
+
+        Node& operator=(const Node& node);
     };
 
     class Effect : public Node {
@@ -614,6 +619,7 @@ namespace Glitter {
             int32_t life_time;
             int32_t start_time;
             vec4u8 color;
+            bool ext_anim_is_x;
             union {
                 Effect::ExtAnim * ext_anim;
                 Effect::ExtAnimX* ext_anim_x;
@@ -631,6 +637,8 @@ namespace Glitter {
 
         Effect(GLT);
         virtual ~Effect() override;
+
+        Effect& operator=(const Effect& eff);
     };
 
     struct EffectGroup {
@@ -673,7 +681,7 @@ namespace Glitter {
         float_t F2GetFloat(GLT, float_t min, float_t max);
         int32_t F2GetInt(GLT, int32_t value);
         int32_t F2GetInt(GLT, int32_t min, int32_t max);
-        void F2GetVec3(GLT, vec3& src, vec3& dst);
+        vec3 F2GetVec3(GLT, const vec3& value);
         void F2StepValue();
         int32_t GetValue();
         void SetValue(int32_t value);
@@ -681,7 +689,7 @@ namespace Glitter {
         float_t XGetFloat(float_t min, float_t max);
         int32_t XGetInt(int32_t value);
         int32_t XGetInt(int32_t min, int32_t max);
-        void XGetVec3(vec3& src, vec3& dst);
+        vec3 XGetVec3(const vec3& value);
         void XReset();
         void XSetStep(uint8_t step);
         void XStepValue();
@@ -746,9 +754,9 @@ namespace Glitter {
         size_t GetDispCount(ParticleType type);
 
         static void CalcDispLocusSetPivot(Pivot pivot,
-            float_t w, float_t* v00, float_t* v01);
+            float_t w, float_t& v00, float_t& v01);
         static void CalcDispQuadSetPivot(Pivot pivot,
-            float_t w, float_t h, float_t* v00, float_t* v01, float_t* v10, float_t* v11);
+            float_t w, float_t h, float_t& v00, float_t& v01, float_t& v10, float_t& v11);
     };
 
     class F2RenderScene : public RenderScene {
@@ -831,6 +839,7 @@ namespace Glitter {
         virtual bool HasEnded(bool a2) = 0;
         virtual void Reset(GPM, GLT, float_t emission) = 0;
 
+        bool GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale);
         void SetExtColor(bool set, float_t r, float_t g, float_t b, float_t a);
 
         static int32_t GetExtAnimBoneIndex(GPM, EffectExtAnimCharaNode node);
@@ -1009,6 +1018,8 @@ namespace Glitter {
 
         Emitter(GLT);
         virtual ~Emitter() override;
+
+        Emitter& operator=(const Emitter& emit);
     };
 
     class EmitterInst {
@@ -1051,7 +1062,7 @@ namespace Glitter {
         void Free(GPM, GLT, float_t emission, bool free);
         void GetValue(GLT);
         bool HasEnded(bool a2);
-        void InitMesh(GLT, int32_t index, vec3& scale,
+        void InitMesh(GLT, int32_t index, const vec3& scale,
             vec3& position, vec3& direction, Random* random);
         void Reset();
     };
@@ -1074,7 +1085,7 @@ namespace Glitter {
         void Free(float_t emission, bool free);
         void GetValue();
         bool HasEnded(bool a2);
-        void InitMesh(int32_t index, vec3& scale,
+        void InitMesh(int32_t index, const vec3& scale,
             vec3& position, vec3& direction, Random* random);
         uint8_t RandomGetStep();
         void RandomStepValue();
@@ -1288,6 +1299,7 @@ namespace Glitter {
         void EmitParticle(GPM, GLT, RenderElement* rend_elem, F2EmitterInst* emit_inst,
             F2ParticleInst::Data* ptcl_inst_data, int32_t index, Random* random);
         void GetColor(RenderElement* rend_elem);
+        bool GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale);
         void GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a);
         bool GetValue(GLT, RenderElement* rend_elem, float_t frame, Random* random);
         void Free(bool free);
@@ -1325,6 +1337,7 @@ namespace Glitter {
         void EmitParticle(RenderElement* rend_elem, XEmitterInst* emit_inst,
             XParticleInst::Data* ptcl_inst_data, int32_t index, uint8_t step, Random* random);
         void GetColor(RenderElement* rend_elem, float_t color_scale);
+        bool GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale);
         void GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a);
         bool GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale);
         void Free(bool free);
@@ -1412,6 +1425,8 @@ namespace Glitter {
         vec3 scale;
         vec3 rotation;
         vec3 rotation_add;
+        float_t rot_z_cos;
+        float_t rot_z_sin;
         float_t scale_all;
         vec2 uv_scroll;
         vec2 uv_scroll_2nd;
@@ -1595,4 +1610,3 @@ namespace Glitter {
     extern bool glt_particle_manager_free_task();
     extern void glt_particle_manager_free();
 }
-

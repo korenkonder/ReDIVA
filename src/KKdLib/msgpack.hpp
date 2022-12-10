@@ -21,8 +21,8 @@ enum msgpack_type : uint32_t {
     MSGPACK_UINT32,
     MSGPACK_INT64,
     MSGPACK_UINT64,
-    MSGPACK_FLOAT,
-    MSGPACK_DOUBLE,
+    MSGPACK_FLOAT32,
+    MSGPACK_FLOAT64,
     MSGPACK_STRING,
     MSGPACK_ARRAY,
     MSGPACK_MAP,
@@ -89,9 +89,6 @@ struct msgpack {
     }
 
     inline msgpack(const msgpack& m) : type(), data() {
-        if (this == &m)
-            return;
-
         switch (m.type) {
         case MSGPACK_BOOL:
         case MSGPACK_INT8:
@@ -102,8 +99,8 @@ struct msgpack {
         case MSGPACK_UINT32:
         case MSGPACK_INT64:
         case MSGPACK_UINT64:
-        case MSGPACK_FLOAT:
-        case MSGPACK_DOUBLE:
+        case MSGPACK_FLOAT32:
+        case MSGPACK_FLOAT64:
             switch (type) {
             case MSGPACK_STRING:
                 delete data.str;
@@ -173,7 +170,7 @@ struct msgpack {
             data.map->assign(m.data.map->begin(), m.data.map->end());
             break;
         default:
-            memset(&data, 0, sizeof(data));
+            data = {};
             break;
         }
         type = m.type;
@@ -256,12 +253,12 @@ struct msgpack {
     }
 
     inline msgpack(float_t val) : data() {
-        type = MSGPACK_FLOAT;
+        type = MSGPACK_FLOAT32;
         data.f32 = val;
     }
 
     inline msgpack(double_t val) : data() {
-        type = MSGPACK_DOUBLE;
+        type = MSGPACK_FLOAT64;
         data.f64 = val;
     }
 
@@ -359,6 +356,6 @@ struct msgpack {
             break;
         }
         type = MSGPACK_NONE;
-        memset(&data, 0, sizeof(data));
+        data = {};
     }
 };

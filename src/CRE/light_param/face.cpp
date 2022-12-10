@@ -8,8 +8,8 @@
 face::face() {
     offset = 1.0f;
     scale = 0.35f;
-    position = vec3_null;
-    direction = vec3_null;
+    position = 0.0f;
+    direction = 0.0f;
 }
 
 float_t face::get_offset() {

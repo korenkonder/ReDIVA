@@ -441,17 +441,17 @@ static int quicksort_wchar_t_ptr_compare(void const* src1, void const* src2) {
 static int quicksort_std_string_compare(void const* src1, void const* src2) {
     std::string* str1 = (std::string*)src1;
     std::string* str2 = (std::string*)src2;
-    return str_utils_compare(str1->c_str(), str2->c_str());
+    return str1->compare(*str2);
 }
 
 static int quicksort_std_wstring_compare(void const* src1, void const* src2) {
     std::wstring* str1 = (std::wstring*)src1;
     std::wstring* str2 = (std::wstring*)src2;
-    return str_utils_compare(str1->c_str(), str2->c_str());
+    return str1->compare(*str2);
 }
 
 static int quicksort_string_hash_compare(void const* src1, void const* src2) {
     string_hash* str1 = (string_hash*)src1;
     string_hash* str2 = (string_hash*)src2;
-    return str_utils_compare(str1->c_str(), str2->c_str());
+    return str1->str.compare(str2->str);
 }

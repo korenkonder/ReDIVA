@@ -38,7 +38,7 @@ struct light_param_ibl {
     light_param_ibl_specular specular[4];
 
     light_param_ibl();
-    virtual ~light_param_ibl();
+    ~light_param_ibl();
 
     void read(const char* path);
     void read(const wchar_t* path);

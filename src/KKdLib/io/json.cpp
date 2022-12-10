@@ -525,10 +525,10 @@ inline static void io_json_write_inner(stream& s, msgpack* msg, size_t tabs) {
     case MSGPACK_UINT64:
         io_json_write_uint64_t(s, msg->data.u64);
         break;
-    case MSGPACK_FLOAT:
+    case MSGPACK_FLOAT32:
         io_json_write_float_t(s, msg->data.f32);
         break;
-    case MSGPACK_DOUBLE:
+    case MSGPACK_FLOAT64:
         io_json_write_double_t(s, msg->data.f64);
         break;
     case MSGPACK_STRING:

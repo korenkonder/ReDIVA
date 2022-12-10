@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "../default.hpp"
+#include "../hash.hpp"
 
 struct object_info {
     uint32_t id;
@@ -17,6 +18,8 @@ struct object_info {
     object_info(uint32_t id, uint32_t set_id);
     bool is_null();
     bool not_null();
+    bool is_null_modern();
+    bool not_null_modern();
 };
 
 inline bool object_info::is_null() {
@@ -25,6 +28,18 @@ inline bool object_info::is_null() {
 
 inline bool object_info::not_null() {
     return id != (uint32_t)-1 || set_id != (uint32_t)-1;
+}
+
+inline bool object_info::is_null_modern() {
+    return id == (uint32_t)-1 && set_id == (uint32_t)-1
+        || id == hash_murmurhash_empty || id == hash_murmurhash_null
+        || set_id == hash_murmurhash_empty || set_id == hash_murmurhash_null;
+}
+
+inline bool object_info::not_null_modern() {
+    return id != (uint32_t)-1 || set_id != (uint32_t)-1
+        || (id != hash_murmurhash_empty && id != hash_murmurhash_null
+        && set_id != hash_murmurhash_empty && set_id != hash_murmurhash_null);
 }
 
 inline bool operator >(const object_info& left, const object_info& right) {
@@ -104,7 +119,7 @@ struct object_database_file {
     std::vector<object_set_info_file> object_set;
 
     object_database_file();
-    virtual ~object_database_file();
+    ~object_database_file();
 
     void read(const char* path, bool modern);
     void read(const wchar_t* path, bool modern);
@@ -120,7 +135,7 @@ struct object_database {
     std::vector<object_set_info> object_set;
 
     object_database();
-    virtual ~object_database();
+    ~object_database();
 
     void add(object_database_file* obj_db_file);
 

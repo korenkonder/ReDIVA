@@ -123,8 +123,8 @@ namespace Glitter {
         if (key_type == KEY_CONSTANT)
             return F2RandomizeKey(GLT_VAL, curr, random);
 
-        float_t df = frame - (float_t)curr->frame;
-        float_t t = df / (float_t)(next->frame - curr->frame);
+        float_t df = (float_t)(next->frame - curr->frame);
+        float_t t = (frame - (float_t)curr->frame) / df;
         float_t val;
         if (key_type == KEY_HERMITE) {
             float_t t_1 = t - 1.0f;
@@ -132,7 +132,7 @@ namespace Glitter {
             float_t curr_val = F2RandomizeKey(GLT_VAL, curr, random);
             val = F2RandomizeKey(GLT_VAL, curr, random);
             val += t * t * (3.0f - 2.0f * t) * (next_val - curr_val)
-                + (t_1 * curr->tangent2 + t * next->tangent1) * df * t_1;
+                + (t_1 * curr->tangent2 + t * next->tangent1) * t_1 * df;
         }
         else {
             float_t curr_val = F2RandomizeKey(GLT_VAL, curr, random);
@@ -597,7 +597,7 @@ namespace Glitter {
             float_t curr_val = XRandomizeKey(curr, random);
             val = XRandomizeKey(curr, random);
             val += t * t * (3.0f - 2.0f * t) * (next_val - curr_val)
-                + (t_1 * curr->tangent2 + t * next->tangent1) * df * t_1;
+                + (t_1 * curr->tangent2 + t * next->tangent1) * t_1 * df;
         }
         else {
             float_t curr_val = XRandomizeKey(curr, random);

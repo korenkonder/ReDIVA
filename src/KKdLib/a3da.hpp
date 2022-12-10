@@ -301,7 +301,7 @@ struct a3da_event {
     float_t clip_end;
     float_t end;
     std::string name;
-    std::string param_1;
+    std::string param1;
     std::string ref;
     float_t time_ref_scale;
     a3da_event_type type;

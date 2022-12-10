@@ -104,9 +104,7 @@ namespace Glitter {
                     frame -= data.loop_end_time - data.loop_start_time;
 
         GetValue(GLT_VAL);
-        vec3 rotation_add;
-        vec3_mult_scalar(data.rotation_add, delta_frame, rotation_add);
-        vec3_add(rotation, rotation_add, rotation);
+        rotation += data.rotation_add * delta_frame;
         CtrlMat(GPM_VAL, GLT_VAL, eff_inst);
     }
 
@@ -127,17 +125,14 @@ namespace Glitter {
             return;
 
         GetValue(GLT_VAL);
-        vec3 rotation_add;
-        vec3_mult_scalar(data.rotation_add, delta_frame, rotation_add);
-        vec3_add(rotation, rotation_add, rotation);
+        rotation += data.rotation_add * delta_frame;
         CtrlMat(GPM_VAL, GLT_VAL, eff_inst);
     }
 
     void F2EmitterInst::CtrlMat(GPM, GLT, F2EffectInst* eff_inst) {
         vec3 trans = translation;
         vec3 rot = rotation;
-        vec3 scale;
-        vec3_mult_scalar(this->scale, scale_all, scale);
+        vec3 scale = this->scale * scale_all;
 
         bool mult = true;
         mat4 dir_mat;
@@ -165,13 +160,14 @@ namespace Glitter {
         }
 
         mat4 mat;
-        mat4_translate_mult(&eff_inst->mat, trans.x, trans.y, trans.z, &mat);
+        mat4_translate_mult(&eff_inst->mat, &trans, &mat);
         mat4_normalize_rotation(&mat, &mat);
         if (mult)
             mat4_mult(&dir_mat, &mat, &mat);
-        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
+        mat4_rotate_mult(&mat, &rot, &mat);
         mat4_clear_trans(&mat, &mat_rot);
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &this->mat);
+        mat4_scale_rot(&mat, &scale, &mat);
+        this->mat = mat;
     }
 
     void F2EmitterInst::Emit(GPM, GLT, float_t delta_frame, float_t emission) {
@@ -304,14 +300,11 @@ namespace Glitter {
         return true;
     }
 
-    void F2EmitterInst::InitMesh(GLT, int32_t index, vec3& scale,
+    void F2EmitterInst::InitMesh(GLT, int32_t index, const vec3& scale,
         vec3& position, vec3& direction, Random* random) {
         switch (data.type) {
         case EMITTER_BOX: {
-            vec3 dir;
-            vec3_mult(data.box.size, scale, dir);
-            vec3_mult_scalar(dir, 0.5f, dir);
-            random->F2GetVec3(GLT_VAL, dir, position);
+            position = random->F2GetVec3(GLT_VAL, data.box.size * scale * 0.5f);
         } break;
         case EMITTER_CYLINDER: {
             float_t radius = data.cylinder.radius * scale.x;
@@ -333,7 +326,7 @@ namespace Glitter {
                 direction = dir;
             else if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_INWARD) {
                 const vec3 reverse_xz_dir = { -0.0f, 0.0f, -0.0f };
-                vec3_xor(dir, reverse_xz_dir, direction);
+                direction = dir ^ reverse_xz_dir;
             }
         } break;
         case EMITTER_SPHERE: {
@@ -349,11 +342,11 @@ namespace Glitter {
             dir.y = sinf(latitude);
             dir.z = cosf(longitude) * cosf(latitude);
 
-            vec3_mult_scalar(dir, radius, position);
+            position = dir * radius;
             if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
                 direction = dir;
             else if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_INWARD)
-                vec3_negate(dir, direction);
+                direction = -dir;
         } break;
         case EMITTER_POLYGON: {
             float_t radius = data.polygon.size * scale.x;
@@ -379,76 +372,6 @@ namespace Glitter {
 
         for (F2ParticleInst*& i : particles)
             i->Reset();
-    }
-
-    void XEmitterInst::InitMesh(int32_t index, vec3& scale,
-        vec3& position, vec3& direction, Random* random) {
-        switch (emitter->data.type) {
-        case EMITTER_BOX: {
-            vec3 dir;
-            vec3_mult(data.box.size, scale, dir);
-            vec3_mult_scalar(dir, 0.5f, dir);
-            random->XGetVec3(dir, position);
-        } break;
-        case EMITTER_CYLINDER: {
-            float_t radius = data.cylinder.radius * scale.x;
-            if (!data.cylinder.on_edge)
-                radius = random->XGetFloat(0.0f, radius);
-
-            float_t angle = random->XGetFloat(data.cylinder.start_angle, data.cylinder.end_angle);
-
-            vec3 dir;
-            dir.x = cosf(angle);
-            dir.y = 0.0f;
-            dir.z = sinf(angle);
-
-            position.x = dir.x * radius;
-            position.y = random->XGetFloat(data.cylinder.height * scale.y * 0.5f);
-            position.z = dir.z * radius;
-
-            if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
-                direction = dir;
-            else if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_INWARD) {
-                const vec3 reverse_xz_dir = { -0.0f, 0.0f, -0.0f };
-                vec3_xor(dir, reverse_xz_dir, direction);
-            }
-        } break;
-        case EMITTER_SPHERE: {
-            float_t radius = data.sphere.radius * scale.x;
-            if (!data.sphere.on_edge)
-                radius = random->XGetFloat(0.0f, radius);
-
-            float_t longitude = random->XGetFloat(data.sphere.longitude * 0.5f);
-            float_t latitude = (float_t)M_PI_2 - random->XGetFloat(0.0f, data.sphere.latitude);
-
-            vec3 dir;
-            dir.x = sinf(longitude) * cosf(latitude);
-            dir.y = sinf(latitude);
-            dir.z = cosf(longitude) * cosf(latitude);
-
-            vec3_mult_scalar(dir, radius, position);
-            if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
-                direction = dir;
-            else if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_INWARD)
-                vec3_negate(dir, direction);
-        } break;
-        case EMITTER_POLYGON: {
-            float_t radius = data.polygon.size * scale.x;
-            float_t angle = ((float_t)index * 360.0f
-                / (float_t)data.polygon.count + 90.0f) * DEG_TO_RAD_FLOAT;
-
-            vec3 dir;
-            dir.x = cosf(angle);
-            dir.y = 0.0f;
-            dir.z = sinf(angle);
-
-            vec3_mult_scalar(dir, radius, position);
-            if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
-                direction = dir;
-            else if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_INWARD)
-                vec3_negate(dir, direction);
-        } break;
-        }
     }
 
     XEmitterInst::XEmitterInst(Emitter* emit,
@@ -548,11 +471,9 @@ namespace Glitter {
 
         GetValue();
 
-        vec3 rotation_add;
-        vec3_mult_scalar(data.rotation_add, delta_frame, rotation_add);
-        vec3_add(rotation, rotation_add, rotation);
+        rotation += data.rotation_add * delta_frame;
 
-        vec3 trans_prev = vec3_null;
+        vec3 trans_prev = {};
         bool has_dist = false;
         if (data.timer == EMITTER_TIMER_BY_DISTANCE && flags & EMITTER_INST_HAS_DISTANCE) {
             mat4_get_translation(&mat, &trans_prev);
@@ -561,11 +482,10 @@ namespace Glitter {
 
         vec3 trans = translation;
         vec3 rot = rotation;
-        vec3 scale;
-        vec3_mult_scalar(this->scale, scale_all, scale);
+        vec3 scale = this->scale * scale_all;
 
         mat4 mat = eff_inst->mat;
-        mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
+        mat4_translate_mult(&mat, &trans, &mat);
         mat4 mat_rot;
         if (data.direction == DIRECTION_EFFECT_ROTATION) {
             mat4_normalize_rotation(&mat, &mat);
@@ -610,19 +530,16 @@ namespace Glitter {
             mat4_mult(&dir_mat, &mat_rot, &mat_rot);
         }
 
-        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_rotate_mult(&mat_rot, &rot, &mat_rot);
+        mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
         this->mat_rot = mat_rot;
 
         if (has_dist) {
             vec3 trans;
             mat4_get_translation(&mat, &trans);
-
-            float_t trans_dist;
-            vec3_distance(trans, trans_prev, trans_dist);
-            emission_timer -= trans_dist;
+            emission_timer -= vec3::distance(trans, trans_prev);
         }
 
         if (~flags & EMITTER_INST_HAS_DISTANCE)
@@ -660,9 +577,8 @@ namespace Glitter {
 
         GetValue();
 
-        vec3 rotation_add;
-        vec3_mult_scalar(data.rotation_add, delta_frame, rotation_add);
-        vec3_add(rotation, rotation_add, rotation);
+        rotation += data.rotation_add * delta_frame;
+
         if (data.timer == EMITTER_TIMER_BY_DISTANCE && flags & EMITTER_INST_HAS_DISTANCE) {
             vec3 trans_prev;
             mat4 mat;
@@ -677,16 +593,14 @@ namespace Glitter {
             vec3 trans = translation;
             vec3 rot = rotation;
             mat = eff_inst->mat;
-            mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
-            mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-            mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
+            mat4_translate_mult(&mat, &trans, &mat);
+            mat4_rotate_mult(&mat, &rot, &mat);
+            mat4_rotate_mult(&mat_rot, &rot, &mat_rot);
             this->mat = mat;
             this->mat_rot = mat_rot;
 
-            float_t trans_dist;
             mat4_get_translation(&mat, &trans);
-            vec3_distance(trans, trans_prev, trans_dist);
-            emission_timer -= trans_dist;
+            emission_timer -= vec3::distance(trans, trans_prev);
         }
         enum_or(flags, EMITTER_INST_HAS_DISTANCE);
     }
@@ -694,11 +608,10 @@ namespace Glitter {
     void XEmitterInst::CtrlMat(GPM, XEffectInst* eff_inst) {
         vec3 trans = translation;
         vec3 rot = rotation;
-        vec3 scale;
-        vec3_mult_scalar(this->scale, scale_all, scale);
+        vec3 scale = this->scale * scale_all;
 
         mat4 mat = eff_inst->mat;
-        mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
+        mat4_translate_mult(&mat, &trans, &mat);
         mat4 mat_rot;
         if (data.direction == DIRECTION_EFFECT_ROTATION) {
             mat4_normalize_rotation(&mat, &mat);
@@ -734,9 +647,9 @@ namespace Glitter {
             mat4_mult(&dir_mat, &mat_rot, &mat_rot);
         }
 
-        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_rotate_mult(&mat_rot, &rot, &mat_rot);
+        mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
         this->mat_rot = mat_rot;
     }
@@ -885,6 +798,73 @@ namespace Glitter {
             if (!i->HasEnded(a2))
                 return false;
         return true;
+    }
+
+    void XEmitterInst::InitMesh(int32_t index, const vec3& scale,
+        vec3& position, vec3& direction, Random* random) {
+        switch (emitter->data.type) {
+        case EMITTER_BOX: {
+            position = random->XGetVec3(data.box.size * scale * 0.5f);
+        } break;
+        case EMITTER_CYLINDER: {
+            float_t radius = data.cylinder.radius * scale.x;
+            if (!data.cylinder.on_edge)
+                radius = random->XGetFloat(0.0f, radius);
+
+            float_t angle = random->XGetFloat(data.cylinder.start_angle, data.cylinder.end_angle);
+
+            vec3 dir;
+            dir.x = cosf(angle);
+            dir.y = 0.0f;
+            dir.z = sinf(angle);
+
+            position.x = dir.x * radius;
+            position.y = random->XGetFloat(data.cylinder.height * scale.y * 0.5f);
+            position.z = dir.z * radius;
+
+            if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
+                direction = dir;
+            else if (data.cylinder.direction == EMITTER_EMISSION_DIRECTION_INWARD) {
+                const vec3 reverse_xz_dir = { -0.0f, 0.0f, -0.0f };
+                direction = dir ^ reverse_xz_dir;
+            }
+        } break;
+        case EMITTER_SPHERE: {
+            float_t radius = data.sphere.radius * scale.x;
+            if (!data.sphere.on_edge)
+                radius = random->XGetFloat(0.0f, radius);
+
+            float_t longitude = random->XGetFloat(data.sphere.longitude * 0.5f);
+            float_t latitude = (float_t)M_PI_2 - random->XGetFloat(0.0f, data.sphere.latitude);
+
+            vec3 dir;
+            dir.x = sinf(longitude) * cosf(latitude);
+            dir.y = sinf(latitude);
+            dir.z = cosf(longitude) * cosf(latitude);
+
+            position = dir * radius;
+            if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
+                direction = dir;
+            else if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_INWARD)
+                direction = -dir;
+        } break;
+        case EMITTER_POLYGON: {
+            float_t radius = data.polygon.size * scale.x;
+            float_t angle = ((float_t)index * 360.0f
+                / (float_t)data.polygon.count + 90.0f) * DEG_TO_RAD_FLOAT;
+
+            vec3 dir;
+            dir.x = cosf(angle);
+            dir.y = 0.0f;
+            dir.z = sinf(angle);
+
+            position = dir * radius;
+            if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_OUTWARD)
+                direction = dir;
+            else if (data.sphere.direction == EMITTER_EMISSION_DIRECTION_INWARD)
+                direction = -dir;
+        } break;
+        }
     }
 
     uint8_t XEmitterInst::RandomGetStep() {

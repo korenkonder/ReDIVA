@@ -362,7 +362,9 @@ bool bone_database::load_file(void* data, const char* path, const char* file, ui
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     bone_database* bone_data = (bone_database*)data;
     bone_data->read(s.c_str(), bone_data->modern);

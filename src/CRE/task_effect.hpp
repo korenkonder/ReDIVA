@@ -10,6 +10,7 @@
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/vec.hpp"
+#include "rob/rob.hpp"
 #include "frame_rate_control.hpp"
 #include "render_texture.hpp"
 #include "stage.hpp"
@@ -40,21 +41,32 @@ enum TaskEffectType {
     TASK_EFFECT_STAR     = 0x14,
 };
 
+struct particle_init_data {
+    float_t field_0;
+    float_t field_4;
+    float_t field_8;
+    vec3 trans;
+    float_t scale_y;
+};
+
 class TaskEffect : public app::Task {
 public:
     TaskEffect();
     virtual ~TaskEffect() override;
 
     virtual void PreInit(int32_t stage_index);
+    virtual void SetStageHashes(std::vector<uint32_t>& stage_hashes, void* data,
+        object_database* obj_db, texture_database* tex_db, stage_database* stage_data); // Added
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices);
     virtual void SetFrame(int32_t value);
     virtual void Field_48();
-    virtual void SetEnable(bool);
-    virtual void SetStageIndex(int32_t value);
+    virtual void SetEnable(bool value);
+    virtual void SetCurrentStageHash(uint32_t value); // Added
+    virtual void SetCurrentStageIndex(int32_t value);
     virtual void SetFrameRateControl(FrameRateControl* value);
     virtual void Field_68();
     virtual void Reset();
-    virtual void Field_78();
+    virtual void Event(int32_t event_type, void* data);
     virtual void Field_80();
     virtual void Field_88();
     virtual void Field_90();
@@ -64,11 +76,16 @@ public:
 };
 
 struct struc_621 {
+    uint32_t stage_hash; // Added
     int32_t stage_index;
     std::vector<int32_t> auth_3d_ids;
+
+    struc_621();
+    ~struc_621();
 };
 
 struct TaskEffectAuth3D : public TaskEffect {
+public:
     struct Stage {
         size_t count;
         size_t max_count;
@@ -79,8 +96,10 @@ struct TaskEffectAuth3D : public TaskEffect {
     } stage;
     bool enable;
     std::vector<struc_621> field_120;
-    int32_t stage_index;
+    uint32_t current_stage_hash; // Added
+    int32_t current_stage_index;
     int32_t field_13C;
+    std::vector<uint32_t> stage_hashes;
     std::vector<int32_t> stage_indices;
     int8_t field_158;
     int8_t field_159;
@@ -96,10 +115,13 @@ struct TaskEffectAuth3D : public TaskEffect {
     virtual void Disp() override;
 
     virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageHashes(std::vector<uint32_t>& stage_hashes, void* data,
+        object_database* obj_db, texture_database* tex_db, stage_database* stage_data) override; // Added
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
     virtual void SetFrame(int32_t value) override;
     virtual void SetEnable(bool value) override;
-    virtual void SetStageIndex(int32_t value) override;
+    virtual void SetCurrentStageHash(uint32_t value) override; // Added
+    virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void SetFrameRateControl(FrameRateControl* value) override;
     virtual void Reset() override;
 
@@ -108,6 +130,7 @@ struct TaskEffectAuth3D : public TaskEffect {
 };
 
 struct TaskEffectFogAnim : public TaskEffect {
+public:
     struct Data {
         bool field_0;
         int32_t field_4;
@@ -133,203 +156,106 @@ struct TaskEffectFogAnim : public TaskEffect {
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
-    virtual void Basic() override;
 
     virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
-    virtual void Field_68() override;
     virtual void Reset() override;
-    virtual void Field_78() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
+};
+
+struct fog_ring_data {
+    vec3 position;
+    vec3 direction;
+    vec3 field_18;
+    float_t size;
+    float_t density;
+
+    fog_ring_data();
+};
+
+struct particle_event_data {
+    float_t type;
+    float_t count;
+    float_t size;
+    vec3 trans;
+    float_t force;
+
+    particle_event_data();
 };
 
 struct point_particle_data {
-    vec3 position;
+    vec2 position;
     vec4 color;
-    float_t size;
 };
 
 struct struc_371 {
-    vec3 field_0;
-    float_t field_C;
-    int32_t field_10;
-    int32_t field_14;
-    int32_t field_18;
-    int32_t field_1C;
-    int32_t field_20;
-    int32_t field_24;
+    int32_t field_0;
+    vec3 position;
+    float_t field_10;
+    float_t field_14;
+    vec3 direction;
+    float_t field_24;
+
+    struc_371();
 };
 
+struct struc_573 {
+    int32_t chara_index;
+    rob_bone_index bone_index;
+    vec3 position;
+
+    struc_573();
+};
+
+
 struct TaskEffectFogRing : public TaskEffect {
+public:
     struct Data {
         bool enable;
         float_t delta_frame;
-        int8_t field_8;
+        bool field_8;
         float_t ring_size;
         vec3 wind_dir;
         int32_t tex_id;
         vec4 color;
-        float_t point_size;
+        float_t ptcl_size;
         int32_t max_ptcls;
         int32_t num_ptcls;
         float_t density;
         float_t density_offset;
-        int32_t field_44;
-        int64_t field_48;
-        point_particle_data* data;
-        int32_t count;
-        int32_t field_5C;
-        int32_t field_60;
-        int32_t field_64;
-        int32_t field_68;
-        int32_t field_6C;
-        int32_t field_70;
-        int32_t field_74;
-        int32_t field_78;
-        int32_t field_7C;
-        int32_t field_80;
-        int32_t field_84;
-        int32_t field_88;
-        int32_t field_8C;
-        int32_t field_90;
-        int32_t field_94;
-        int32_t field_98;
-        int32_t field_9C;
-        int32_t field_A0;
-        int32_t field_A4;
-        int32_t field_A8;
-        int32_t field_AC;
-        int32_t field_B0;
-        int32_t field_B4;
-        int32_t field_B8;
-        int32_t field_BC;
-        int32_t field_C0;
-        int32_t field_C4;
-        int32_t field_C8;
-        int32_t field_CC;
-        int32_t field_D0;
-        int32_t field_D4;
-        int32_t field_D8;
-        int32_t field_DC;
-        int32_t field_E0;
-        int32_t field_E4;
-        int32_t field_E8;
-        int32_t field_EC;
-        int32_t field_F0;
-        int32_t field_F4;
-        int32_t field_F8;
-        int32_t field_FC;
-        int32_t field_100;
-        int32_t field_104;
-        int32_t field_108;
-        int32_t field_10C;
-        int32_t field_110;
-        int32_t field_114;
-        int32_t field_118;
-        int32_t field_11C;
-        int32_t field_120;
+        fog_ring_data* ptcl_data;
+        int32_t num_vtx;
+        struc_573 field_5C[2][5];
         int32_t field_124;
-        int8_t field_128[4];
-        float_t field_12C[2];
-        int32_t field_134;
-        float_t field_138[2];
-        struc_371 field_140[2];
-        int32_t field_190;
-        int32_t field_194;
-        int32_t field_198;
-        int32_t field_19C;
-        int32_t field_1A0;
-        int32_t field_1A4;
-        int32_t field_1A8;
-        int32_t field_1AC;
-        int32_t field_1B0;
-        int32_t field_1B4;
-        int32_t field_1B8;
-        int32_t field_1BC;
-        int32_t field_1C0;
-        int32_t field_1C4;
-        int32_t field_1C8;
-        int32_t field_1CC;
-        int32_t field_1D0;
-        int32_t field_1D4;
-        int32_t field_1D8;
-        int32_t field_1DC;
-        int32_t field_1E0;
-        int32_t field_1E4;
-        int32_t field_1E8;
-        int32_t field_1EC;
-        int32_t field_1F0;
-        int32_t field_1F4;
-        int32_t field_1F8;
-        int32_t field_1FC;
-        int32_t field_200;
-        int32_t field_204;
-        int32_t field_208;
-        int32_t field_20C;
-        int32_t field_210;
-        int32_t field_214;
-        int32_t field_218;
-        int32_t field_21C;
-        int32_t field_220;
-        int32_t field_224;
-        int32_t field_228;
-        int32_t field_22C;
-        int32_t field_230;
-        int32_t field_234;
-        int32_t field_238;
-        int32_t field_23C;
-        int32_t field_240;
-        int32_t field_244;
-        int32_t field_248;
-        int32_t field_24C;
-        int32_t field_250;
-        int32_t field_254;
-        int32_t field_258;
-        int32_t field_25C;
-        int32_t field_260;
-        int32_t field_264;
-        int32_t field_268;
-        int32_t field_26C;
-        int32_t field_270;
-        int32_t field_274;
-        int32_t field_278;
-        int32_t field_27C;
-        int32_t field_280;
-        int32_t field_284;
-        int32_t field_288;
-        int32_t field_28C;
-        int32_t field_290;
-        int32_t field_294;
-        int32_t field_298;
-        int32_t field_29C;
-        int32_t field_2A0;
-        int32_t field_2A4;
-        int64_t field_2A8;
-        int32_t field_2B0;
-        int32_t field_2B4;
+        struc_371 field_128[10];
         int8_t field_2B8;
         int8_t field_2B9;
         bool disp;
-        int32_t stage_index;
+        int32_t current_stage_index;
         std::vector<int32_t> stage_indices;
         FrameRateControl* frame_rate_control;
-        int64_t field_2E0;
+        GLuint vao;
+        GLuint vbo;
+        GLuint ebo;
 
         Data();
         ~Data();
 
+        void CalcPtcl(float_t delta_time);
+        void CalcVert();
         void Ctrl();
+        void CtrlInner(float_t delta_time);
+        void Dest();
+        void Disp();
+        void Draw();
+        void InitParticleData();
+        void Reset();
         void SetStageIndices(std::vector<int32_t>& stage_indices);
+
+        static void DrawStatic(void* data);
+        static float_t PtclRandom(float_t value);
+
+        void sub_140347B40(float_t delta_time);
+
+        static void sub_140347860(fog_ring_data* a1, int32_t a2, struc_371* a3, float_t a4);
     } data;
 
     TaskEffectFogRing();
@@ -342,19 +268,18 @@ struct TaskEffectFogRing : public TaskEffect {
 
     virtual void PreInit(int32_t stage_index) override;
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void SetFrameRateControl(FrameRateControl* value) override;
     virtual void Reset() override;
 };
 
 struct TaskEffectLeaf : public TaskEffect {
+public:
     FrameRateControl* frame_rate_control;
-    int32_t stage_index;
+    int32_t current_stage_index;
     std::vector<int32_t> stage_indices;
-    int32_t field_90;
-    int32_t field_94;
-    int64_t field_98;
+    int32_t wait_frames;
 
     TaskEffectLeaf();
     virtual ~TaskEffectLeaf() override;
@@ -363,33 +288,23 @@ struct TaskEffectLeaf : public TaskEffect {
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
-    virtual void Basic() override;
 
     virtual void PreInit(int32_t stage_index) override;
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void SetFrameRateControl(FrameRateControl* value) override;
-    virtual void Field_68() override;
     virtual void Reset() override;
-    virtual void Field_78() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
 };
 
 struct TaskEffectLitproj : public TaskEffect {
-    int32_t stage_index;
+public:
+    int32_t current_stage_index;
     std::vector<int32_t> stage_indices;
-    int32_t field_88;
+    int32_t wait_frames;
     vec4 diffuse;
     vec4 specular;
-    int32_t field_AC;
+    int32_t frame;
 
     TaskEffectLitproj();
     virtual ~TaskEffectLitproj() override;
@@ -398,31 +313,18 @@ struct TaskEffectLitproj : public TaskEffect {
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
-    virtual void Basic() override;
 
     virtual void PreInit(int32_t stage_index) override;
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
-    virtual void Field_68() override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void Reset() override;
-    virtual void Field_78() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
 };
 
 struct TaskEffectParticle : public TaskEffect {
+public:
     FrameRateControl* frame_rate_control;
-    int32_t field_70;
-    int32_t field_74;
-    int64_t field_78;
+    int32_t current_stage_index;
 
     TaskEffectParticle();
     virtual ~TaskEffectParticle() override;
@@ -431,29 +333,18 @@ struct TaskEffectParticle : public TaskEffect {
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
-    virtual void Basic() override;
 
     virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
+    virtual void SetEnable(bool value) override;
     virtual void SetFrameRateControl(FrameRateControl* value) override;
-    virtual void Field_68() override;
     virtual void Reset() override;
-    virtual void Field_78() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
+    virtual void Event(int32_t event_type, void* data) override;
 };
 
 struct TaskEffectRain : public TaskEffect {
+public:
     FrameRateControl* frame_rate_control;
-    int32_t stage_index;
+    int32_t current_stage_index;
     std::vector<int32_t> stage_indices;
 
     TaskEffectRain();
@@ -463,24 +354,13 @@ struct TaskEffectRain : public TaskEffect {
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
-    virtual void Basic() override;
 
     virtual void PreInit(int32_t stage_index) override;
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void SetFrameRateControl(FrameRateControl* value) override;
-    virtual void Field_68() override;
     virtual void Reset() override;
-    virtual void Field_78() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
 };
 
 struct color4u8 {
@@ -490,20 +370,14 @@ struct color4u8 {
     uint8_t a;
 };
 
-struct  struc_101 {
+struct struc_101 {
     int32_t ripple_uniform;
     int32_t ripple_emit_uniform;
     int32_t count;
-    int32_t field_C;
     vec3* vertex;
     color4u8* color;
     float_t size;
     int32_t field_24;
-};
-
-struct struc_202 {
-    vec2 field_0;
-    float_t field_8;
 };
 
 struct ripple_emit_draw_data {
@@ -537,7 +411,7 @@ struct ripple_emit {
     int32_t field_30;
     float_t rob_emitter_size;
     size_t emitter_num;
-    struc_202* emitter_list;
+    vec3* emitter_list;
     float_t emitter_size;
     int32_t field_4C;
     ripple_emit_draw_data field_50;
@@ -551,18 +425,19 @@ struct ripple_emit {
     int32_t field_BE8;
     int8_t field_BEC;
     float_t wake_attn;
-    float speed;
-    float field_BF8;
-    float field_BFC;
+    float_t speed;
+    float_t field_BF8;
+    float_t field_BFC;
     int8_t field_C00;
-    int32_t stage_index;
+    int32_t current_stage_index;
     std::vector<int32_t> stage_indices;
 };
 
 struct TaskEffectRipple : public TaskEffect {
+public:
     int64_t field_68;
     FrameRateControl* frame_rate_control;
-    ripple_emit* emit_struct;
+    ripple_emit* emit;
 
     TaskEffectRipple();
     virtual ~TaskEffectRipple() override;
@@ -571,29 +446,18 @@ struct TaskEffectRipple : public TaskEffect {
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
-    virtual void Basic() override;
 
     virtual void PreInit(int32_t stage_index) override;
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void SetFrameRateControl(FrameRateControl* value) override;
-    virtual void Field_68() override;
     virtual void Reset() override;
-    virtual void Field_78() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
 };
 
 struct TaskEffectSnow : public TaskEffect {
+public:
     FrameRateControl* frame_rate_control;
-    int32_t stage_index;
+    int32_t current_stage_index;
     std::vector<int32_t> stage_indices;
 
     TaskEffectSnow();
@@ -609,12 +473,11 @@ struct TaskEffectSnow : public TaskEffect {
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
     virtual void SetFrame(int32_t value) override;
     virtual void Field_48() override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void SetFrameRateControl(FrameRateControl* value) override;
     virtual void Field_68() override;
     virtual void Reset() override;
-    virtual void Field_78() override;
     virtual void Field_80() override;
     virtual void Field_88() override;
     virtual void Field_90() override;
@@ -697,6 +560,7 @@ struct ParticleDispObj {
 };
 
 struct TaskEffectSplash : public TaskEffect {
+public:
     struct Data {
         struct Sub {
             int32_t field_0;
@@ -730,7 +594,7 @@ struct TaskEffectSplash : public TaskEffect {
         int8_t field_8;
         Sub field_10;
         int8_t field_110;
-        int32_t stage_index;
+        int32_t current_stage_index;
         std::vector<int32_t> stage_indices;
         FrameRateControl* frame_rate_control;
         int64_t field_138;
@@ -752,12 +616,11 @@ struct TaskEffectSplash : public TaskEffect {
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
     virtual void SetFrame(int32_t value) override;
     virtual void Field_48() override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void SetFrameRateControl(FrameRateControl* value) override;
     virtual void Field_68() override;
     virtual void Reset() override;
-    virtual void Field_78() override;
     virtual void Field_80() override;
     virtual void Field_88() override;
     virtual void Field_90() override;
@@ -767,8 +630,9 @@ struct TaskEffectSplash : public TaskEffect {
 };
 
 struct TaskEffectStar : public TaskEffect {
+public:
     FrameRateControl* frame_rate_control;
-    int32_t stage_index;
+    int32_t current_stage_index;
     float_t delta_frame;
     std::vector<int32_t> stage_indices;
 
@@ -785,12 +649,11 @@ struct TaskEffectStar : public TaskEffect {
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
     virtual void SetFrame(int32_t value) override;
     virtual void Field_48() override;
-    virtual void SetEnable(bool) override;
-    virtual void SetStageIndex(int32_t value) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void SetFrameRateControl(FrameRateControl* value) override;
     virtual void Field_68() override;
     virtual void Reset() override;
-    virtual void Field_78() override;
     virtual void Field_80() override;
     virtual void Field_88() override;
     virtual void Field_90() override;
@@ -798,3 +661,26 @@ struct TaskEffectStar : public TaskEffect {
     virtual void Field_A0(int32_t a2, int32_t* a3) override;
     virtual void Field_A8(int32_t a2, int8_t* a3) override;
 };
+
+extern void leaf_particle_draw();
+extern void rain_particle_draw();
+extern void particle_draw();
+extern void snow_particle_draw();
+
+extern void task_effect_init();
+extern void task_effect_free();
+
+extern void task_effect_parent_event(TaskEffectType type, int32_t event_type, void* data);
+extern void task_effect_parent_dest();
+extern bool task_effect_parent_load();
+extern void task_effect_parent_reset();
+extern void task_effect_parent_set_current_stage_hash(uint32_t stage_hash);
+extern void task_effect_parent_set_current_stage_index(int32_t stage_index);
+extern void task_effect_parent_set_data(void* data,
+    object_database* obj_db, texture_database* tex_db, stage_database* stage_data);
+extern void task_effect_parent_set_enable(bool value);
+extern void task_effect_parent_set_frame(int32_t value);
+extern void task_effect_parent_set_frame_rate_control(FrameRateControl* value);
+extern void task_effect_parent_set_stage_hashes(std::vector<uint32_t>& stage_hashes);
+extern void task_effect_parent_set_stage_indices(std::vector<int32_t>& stage_indices);
+extern bool task_effect_parent_unload();

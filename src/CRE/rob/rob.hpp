@@ -25,14 +25,6 @@ enum ex_expression_block_stack_type {
     EX_EXPRESSION_BLOCK_STACK_OP3             = 0x05,
 };
 
-enum ex_node_type {
-    EX_NONE       = 0x00,
-    EX_OSAGE      = 0x01,
-    EX_EXPRESSION = 0x02,
-    EX_CONSTRAINT = 0x03,
-    EX_CLOTH      = 0x04,
-};
-
 enum eyes_base_adjust_type {
     EYES_BASE_ADJUST_NONE      = -1,
     EYES_BASE_ADJUST_DIRECTION = 0x00,
@@ -244,6 +236,24 @@ enum mot_bone_index {
     MOT_BONE_N_HARA_B_WJ_EX          = 0xC7,
     MOT_BONE_N_HARA_C_WJ_EX          = 0xC8,
     MOT_BONE_MAX                     = 0xC9,
+};
+
+enum mot_play_frame_data_loop_state {
+    MOT_PLAY_FRAME_DATA_LOOP_NONE       = -1,
+    MOT_PLAY_FRAME_DATA_LOOP_ONCE       = 0x00,
+    MOT_PLAY_FRAME_DATA_LOOP_CONTINUOUS = 0x01,
+    MOT_PLAY_FRAME_DATA_LOOP_RESET      = 0x02,
+    MOT_PLAY_FRAME_DATA_LOOP_REVERSE    = 0x03,
+    MOT_PLAY_FRAME_DATA_LOOP_MAX        = 0x04,
+};
+
+enum mot_play_frame_data_playback_state {
+    MOT_PLAY_FRAME_DATA_PLAYBACK_NONE     = -1,
+    MOT_PLAY_FRAME_DATA_PLAYBACK_STOP     = 0x00,
+    MOT_PLAY_FRAME_DATA_PLAYBACK_FORWARD  = 0x01,
+    MOT_PLAY_FRAME_DATA_PLAYBACK_BACKWARD = 0x02,
+    MOT_PLAY_FRAME_DATA_PLAYBACK_EXTERNAL = 0x03,
+    MOT_PLAY_FRAME_DATA_PLAYBACK_MAX      = 0x04,
 };
 
 enum mothead_data_type {
@@ -748,6 +758,11 @@ enum rob_chara_data_hand_adjust_type : uint16_t {
     ROB_CHARA_DATA_HAND_ADJUST_2P             = 0x08,
     ROB_CHARA_DATA_HAND_ADJUST_3P             = 0x09,
     ROB_CHARA_DATA_HAND_ADJUST_4P             = 0x0A,
+    ROB_CHARA_DATA_HAND_ADJUST_TYPE_11        = 0x0B, // X
+    ROB_CHARA_DATA_HAND_ADJUST_TYPE_12        = 0x0C,
+    ROB_CHARA_DATA_HAND_ADJUST_TYPE_13        = 0x0D,
+    ROB_CHARA_DATA_HAND_ADJUST_TYPE_14        = 0x0E,
+    ROB_CHARA_DATA_HAND_ADJUST_ITEM           = 0x0F,
 };
 
 enum rob_osage_parts {
@@ -791,6 +806,14 @@ enum skin_param_osage_root_coli_type {
     SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_PLANE    = 0x03,
     SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_ELLIPSE  = 0x04,
     SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_5        = 0x05,
+};
+
+enum ExNodeType {
+    EX_NONE       = 0x00,
+    EX_OSAGE      = 0x01,
+    EX_EXPRESSION = 0x02,
+    EX_CONSTRAINT = 0x03,
+    EX_CLOTH      = 0x04,
 };
 
 enum SubActExecType {
@@ -947,24 +970,25 @@ struct mot_play_frame_data {
     float_t step_prev;
     float_t frame_count;
     float_t last_frame;
-    float_t field_14;
-    int32_t field_18;
-    int32_t field_1C;
-    float_t field_20;
-    float_t field_24;
-    bool field_28;
-    int32_t field_2C;
+    float_t max_frame;
+    mot_play_frame_data_playback_state playback_state;
+    mot_play_frame_data_loop_state loop_state;
+    float_t loop_begin;
+    float_t loop_end;
+    bool looped;
+    int32_t loop_count;
 
     void reset();
+    void set_frame(float_t frame);
 };
 
 struct mot_play_data {
     mot_play_frame_data frame_data;
-    int32_t field_30;
-    bool field_34;
-    float_t field_38;
-    float_t* field_40;
-    float_t* field_48;
+    int32_t loop_index;
+    bool loop_frames_enabled;
+    float_t loop_frames;
+    float_t* ext_frame;
+    float_t* ext_step;
 
     void reset();
 };
@@ -1003,7 +1027,7 @@ struct struc_400 {
 
 class MotionBlend {
 public:
-    bool field_8;
+    bool enable;
     bool rot_y;
     float_t duration;
     float_t frame;
@@ -1013,6 +1037,7 @@ public:
 
     MotionBlend();
     virtual ~MotionBlend();
+
     virtual void Reset();
     virtual void Field_10(float_t a2, float_t a3, int32_t a4) = 0;
     virtual void Step(struc_400*) = 0;
@@ -1034,6 +1059,7 @@ public:
 
     MotionBlendCross();
     virtual ~MotionBlendCross() override;
+
     virtual void Reset() override;
     virtual void Field_10(float_t a2, float_t a3, int32_t a4) override;
     virtual void Step(struc_400*) override;
@@ -1045,6 +1071,7 @@ class MotionBlendCombine : public MotionBlendCross {
 public:
     MotionBlendCombine();
     virtual ~MotionBlendCombine() override;
+
     virtual void Step(struc_400*) override;
     virtual bool Field_30() override;
 };
@@ -1064,6 +1091,7 @@ public:
 
     MotionBlendFreeze();
     virtual ~MotionBlendFreeze() override;
+
     virtual void Reset() override;
     virtual void Field_10(float_t a2, float_t a3, int32_t a4) override;
     virtual void Step(struc_400*) override;
@@ -1075,6 +1103,7 @@ class PartialMotionBlendFreeze : public MotionBlendFreeze {
 public:
     PartialMotionBlendFreeze();
     virtual ~PartialMotionBlendFreeze() override;
+
     virtual void Reset() override;
     virtual void Field_10(float_t a2, float_t a3, int32_t a4) override;
     virtual void Step(struc_400*) override;
@@ -1116,6 +1145,7 @@ struct motion_blend_mot {
     motion_blend_mot();
     virtual ~motion_blend_mot();
 
+    MotionBlendType get_type();
     void reset();
 };
 
@@ -1295,8 +1325,14 @@ struct rob_chara_bone_data {
 
     float_t get_frame();
     float_t get_frame_count();
+    bool get_motion_has_looped();
     void reset();
     void set_frame(float_t frame);
+    void set_motion_frame(float_t frame, float_t step, float_t frame_count);
+    void set_motion_loop(float_t loop_begin, int32_t loop_count, float_t loop_end);
+    void set_motion_loop_state(mot_play_frame_data_loop_state value);
+    void set_motion_max_frame(float_t value);
+    void set_motion_playback_state(mot_play_frame_data_playback_state value);
 };
 
 union rob_chara_pv_data_item {
@@ -1364,7 +1400,7 @@ struct rob_chara_item_equip_object;
 class ExNodeBlock {
 public:
     bone_node* bone_node_ptr;
-    ex_node_type type;
+    ExNodeType type;
     const char* name;
     bone_node* parent_bone_node;
     std::string parent_name;
@@ -1376,6 +1412,7 @@ public:
 
     ExNodeBlock();
     virtual ~ExNodeBlock();
+
     virtual void Init() = 0;
     virtual void Field_10() = 0;
     virtual void Field_18(int32_t stage, bool a3) = 0;
@@ -1388,7 +1425,7 @@ public:
     virtual void Field_50() = 0;
     virtual void Field_58();
 
-    void InitData(bone_node* bone_node, ex_node_type type,
+    void InitData(bone_node* bone_node, ExNodeType type,
         const char* name, rob_chara_item_equip_object* itm_eq_obj);
 };
 
@@ -1398,6 +1435,7 @@ public:
 
     ExNullBlock();
     virtual ~ExNullBlock() override;
+
     virtual void Init() override;
     virtual void Field_10();
     virtual void Field_18(int32_t stage, bool a3) override;
@@ -1434,8 +1472,12 @@ struct skin_param_hinge {
     float_t zmin;
     float_t zmax;
 
-    skin_param_hinge();
-    ~skin_param_hinge();
+    inline skin_param_hinge() {
+        ymin = -90.0f;
+        ymax = 90.0f;
+        zmin = -90.0f;
+        zmax = 90.0f;
+    }
 
     void limit();
 };
@@ -1447,7 +1489,6 @@ struct skin_param_osage_node {
     skin_param_hinge hinge;
 
     skin_param_osage_node();
-    ~skin_param_osage_node();
 };
 
 struct RobOsageNodeResetData {
@@ -1599,7 +1640,23 @@ struct skin_param {
     skin_param();
     ~skin_param();
 
-    void reset();
+    inline void reset() {
+        coli.clear();
+        friction = 1.0f;
+        wind_afc = 0.0f;
+        air_res = 1.0f;
+        rot = 0.0f;
+        init_rot = 0.0f;
+        coli_type = 0;
+        stiffness = 0.0f;
+        move_cancel = -0.01f;
+        coli_r = 0.0f;
+        hinge = skin_param_hinge();
+        hinge.limit();
+        force = 0.0f;
+        force_gain = 0.0f;
+        colli_tgt_osg = 0;
+    }
 };
 
 struct osage_coli {
@@ -1772,7 +1829,7 @@ struct RobCloth : public CLOTH {
         CLOTHNode* node, float_t facing, int32_t indices_count, uint16_t* indices, bool double_faced);
 };
 
-struct ExClothBlock : public ExNodeBlock {
+class ExClothBlock : public ExNodeBlock {
 public:
     RobCloth rob;
     obj_skin_block_cloth* cls_data;
@@ -1890,6 +1947,7 @@ public:
 
     ExOsageBlock();
     virtual ~ExOsageBlock() override;
+
     virtual void Init() override;
     virtual void Field_10();
     virtual void Field_18(int32_t stage, bool a3) override;
@@ -1927,6 +1985,7 @@ public:
 
     ExConstraintBlock();
     virtual ~ExConstraintBlock() override;
+
     virtual void Init() override;
     virtual void Field_10() override;
     virtual void Field_18(int32_t stage, bool a3) override;
@@ -2004,6 +2063,7 @@ public:
 
     ExExpressionBlock();
     virtual ~ExExpressionBlock() override;
+
     virtual void Init() override;
     virtual void Field_10() override;
     virtual void Field_18(int32_t stage, bool a3) override;
@@ -2022,7 +2082,7 @@ public:
 
 struct ex_data_name_bone_index {
     const char* name;
-    int32_t bone_index;
+    uint32_t bone_index;
 };
 
 struct rob_chara_item_equip;
@@ -2363,6 +2423,7 @@ public:
 
     SubActExec(SubActExecType type);
     virtual ~SubActExec();
+
     virtual void Field_8() = 0;
     virtual void Field_10(SubActParam* param) = 0;
     virtual void Field_18(rob_chara* rob_chr) = 0;
@@ -2373,6 +2434,7 @@ class SubActExecAngry : public SubActExec {
 public:
     SubActExecAngry();
     virtual ~SubActExecAngry() override;
+
     virtual void Field_8() override;
     virtual void Field_10(SubActParam* param) override;
     virtual void Field_18(rob_chara* rob_chr) override;
@@ -2387,6 +2449,7 @@ public:
 
     SubActExecCountNum();
     virtual ~SubActExecCountNum() override;
+
     virtual void Field_8() override;
     virtual void Field_10(SubActParam* param) override;
     virtual void Field_18(rob_chara* rob_chr) override;
@@ -2397,6 +2460,7 @@ class SubActExecCry : public SubActExec {
 public:
     SubActExecCry();
     virtual ~SubActExecCry() override;
+
     virtual void Field_8() override;
     virtual void Field_10(SubActParam* param) override;
     virtual void Field_18(rob_chara* rob_chr) override;
@@ -2408,6 +2472,7 @@ public:
     int8_t field_10;
     SubActExecEmbarrassed();
     virtual ~SubActExecEmbarrassed() override;
+
     virtual void Field_8() override;
     virtual void Field_10(SubActParam* param) override;
     virtual void Field_18(rob_chara* rob_chr) override;
@@ -2418,6 +2483,7 @@ class SubActExecLaugh : public SubActExec {
 public:
     SubActExecLaugh();
     virtual ~SubActExecLaugh() override;
+
     virtual void Field_8() override;
     virtual void Field_10(SubActParam* param) override;
     virtual void Field_18(rob_chara* rob_chr) override;
@@ -2429,8 +2495,10 @@ public:
     int32_t field_10;
     int32_t field_14;
     int8_t field_18;
+
     SubActExecShakeHand();
     virtual ~SubActExecShakeHand() override;
+
     virtual void Field_8() override;
     virtual void Field_10(SubActParam* param) override;
     virtual void Field_18(rob_chara* rob_chr) override;
@@ -2481,20 +2549,44 @@ public:
         float_t frame;
         float_t play_frame_step;
         float_t frame_count;
-        float_t duration;
-        float_t step;
-        float_t offset;
+        float_t blend_duration;
+        float_t blend_step;
+        float_t blend_offset;
         float_t field_24;
         struc_389* frame_data;
         struc_406* step_data;
         int32_t field_38;
 
-        Data();
-        ~Data();
+        inline Data() : motion_id(), mottbl_index(), state(), frame(),
+            play_frame_step(), frame_count(), blend_duration(), blend_step(),
+            blend_offset(), field_24(), frame_data(), step_data(), field_38() {
+            Reset();
+        }
+
+        inline ~Data() {
+
+        }
+
+        inline void Reset() {
+            motion_id = -1;
+            mottbl_index = 6;
+            state = -1;
+            frame = 0.0f;
+            play_frame_step = 1.0f;
+            frame_count = 0.0f;
+            blend_duration = 0.0f;
+            blend_step = 1.0f;
+            blend_offset = 1.0f;
+            field_24 = 0.0f;
+            frame_data = 0;
+            step_data = 0;
+            field_38 = -1;
+        }
     } data;
 
     RobPartialMotion();
     virtual ~RobPartialMotion();
+
     virtual void Reset() = 0;
 };
 
@@ -2502,6 +2594,7 @@ class RobFaceMotion : public RobPartialMotion {
 public:
     RobFaceMotion();
     virtual ~RobFaceMotion() override;
+
     virtual void Reset() override;
 };
 
@@ -2509,6 +2602,7 @@ class RobHandMotion : public RobPartialMotion {
 public:
     RobHandMotion();
     virtual ~RobHandMotion() override;
+
     virtual void Reset() override;
 };
 
@@ -2516,6 +2610,7 @@ class RobMouthMotion : public RobPartialMotion {
 public:
     RobMouthMotion();
     virtual ~RobMouthMotion() override;
+
     virtual void Reset() override;
 };
 
@@ -2523,6 +2618,7 @@ class RobEyesMotion : public RobPartialMotion {
 public:
     RobEyesMotion();
     virtual ~RobEyesMotion() override;
+
     virtual void Reset() override;
 };
 
@@ -2530,6 +2626,7 @@ class RobEyelidMotion : public RobPartialMotion {
 public:
     RobEyelidMotion();
     virtual ~RobEyelidMotion() override;
+
     virtual void Reset() override;
 };
 
@@ -2538,7 +2635,7 @@ struct struc_405 {
     RobHandMotion hand_l;
     RobHandMotion hand_r;
     RobMouthMotion mouth;
-    RobEyesMotion eye;
+    RobEyesMotion eyes;
     RobEyelidMotion eyelid;
     object_info head_object;
     object_info hand_l_object;
@@ -2625,7 +2722,7 @@ struct rob_chara_motion {
     int8_t field_28;
     int8_t field_29;
     int8_t field_2A;
-    int32_t field_2C;
+    int32_t loop_index;
     uint32_t field_30;
     int16_t field_34;
     int16_t field_36;
@@ -2687,6 +2784,7 @@ struct mothead_mot {
     std::vector<mothead_data2> field_18;
     std::vector<mothead_data> data;
     std::vector<int64_t> field_28;
+    bool is_x;
 
     mothead_mot();
     virtual ~mothead_mot();
@@ -2697,6 +2795,7 @@ struct mothead {
     int32_t first_mot_id;
     int32_t last_mot_id;
     std::vector<mothead_mot*> mots;
+    void* data_x;
 
     mothead();
     virtual ~mothead();
@@ -2729,8 +2828,9 @@ struct mothead_mot_file {
 };
 
 struct struc_377 {
-    const mothead_data* field_0;
-    const mothead_data* field_8;
+    const mothead_data* current;
+    const mothead_data* data;
+    bool is_x; // X
 };
 
 struct struc_226 {
@@ -2782,9 +2882,9 @@ struct struc_652 {
     int32_t field_60;
     int32_t field_64;
     int32_t field_68;
-    int32_t field_6C;
-    float_t field_70;
-    float_t field_74;
+    int32_t loop_count;
+    float_t loop_begin;
+    float_t loop_end;
     float_t field_78;
     float_t field_7C;
     float_t field_80;
@@ -2870,6 +2970,10 @@ struct struc_652 {
 
     struc_652();
     ~struc_652();
+
+    void reset();
+
+    void sub_140536DD0();
 };
 
 struct struc_651 {
@@ -2883,6 +2987,10 @@ struct struc_651 {
     struc_225 field_80[3];
     struc_224 field_1C4[3];
     int64_t field_308;
+    float_t arm_adjust_next_value;  // X
+    float_t arm_adjust_prev_value;  // X
+    int32_t arm_adjust_start_frame; // X
+    float_t arm_adjust_duration;    // X
     float_t field_310;
     float_t field_314;
     int8_t field_318;
@@ -2897,6 +3005,8 @@ struct struc_651 {
     struc_306 field_33C[4];
 
     struc_651();
+
+    void reset();
 };
 
 struct struc_223 {
@@ -2907,6 +3017,8 @@ struct struc_223 {
 
     struc_223();
     ~struc_223();
+
+    void reset();
 };
 
 struct rob_chara_data_miku_rot {
@@ -2950,6 +3062,9 @@ struct rob_chara_adjust_data {
     float_t right_hand_scale;
     float_t left_hand_scale_default;
     float_t right_hand_scale_default;
+    mat4 item_mat;      // X
+    vec3 item_trans;    // X
+    float_t item_scale; // X
 
     rob_chara_adjust_data();
 
@@ -3141,6 +3256,7 @@ struct rob_chara_data {
     int32_t field_3DD8;
     float_t field_3DDC;
     uint8_t field_3DE0;
+    float_t arm_adjust_scale; // X
 
     rob_chara_data();
     ~rob_chara_data();
@@ -3188,6 +3304,7 @@ struct rob_chara {
     float_t get_frame_count();
     float_t get_max_face_depth();
     int32_t get_rob_cmn_mottbl_motion_id(int32_t id);
+    bool get_visibility();
     void load_motion(int32_t motion_id, bool a3, float_t frame,
         MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
     void reset_data(rob_chara_pv_data* pv_data,
@@ -3199,31 +3316,31 @@ struct rob_chara {
     void set_chara_pos_adjust_y(float_t value);
     void set_chara_size(float_t value);
     void set_eyelid_mottbl_motion_from_face(int32_t a2,
-        float_t duration, float_t value, float_t offset, motion_database* mot_db);
+        float_t blend_duration, float_t value, float_t blend_offset, motion_database* mot_db);
     void set_eyelid_mottbl_motion(int32_t type,
-        int32_t mottbl_index, float_t value, int32_t state, float_t duration,
-        float_t a7, float_t step, int32_t a9, float_t offset, motion_database* mot_db);
+        int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
+        float_t a7, float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
     void set_eyes_mottbl_motion(int32_t type,
-        int32_t mottbl_index, float_t value, int32_t state, float_t duration,
-        float_t a7, float_t step, int32_t a9, float_t offset, motion_database* mot_db);
+        int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
+        float_t a7, float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
     void set_face_mottbl_motion(int32_t type, int32_t mottbl_index,
-        float_t value, int32_t state, float_t duration, float_t a7,
-        float_t step, int32_t a9, float_t offset, bool a11, motion_database* mot_db);
+        float_t value, int32_t state, float_t blend_duration, float_t a7,
+        float_t step, int32_t a9, float_t blend_offset, bool a11, motion_database* mot_db);
     void set_frame(float_t frame);
     void set_hand_l_mottbl_motion(int32_t type, int32_t mottbl_index,
-        float_t value, int32_t state, float_t duration, float_t a7,
-        float_t step, int32_t a9, float_t offset, motion_database* mot_db);
+        float_t value, int32_t state, float_t blend_duration, float_t a7,
+        float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
     void set_hand_r_mottbl_motion(int32_t type, int32_t mottbl_index,
-        float_t value, int32_t state, float_t duration, float_t a7,
-        float_t step, int32_t a9, float_t offset, motion_database* mot_db);
+        float_t value, int32_t state, float_t blend_duration, float_t a7,
+        float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
     bool set_motion_id(int32_t motion_id, float_t frame,
-        float_t duration, bool a5, bool set_motion_reset_data,
+        float_t blend_duration, bool a5, bool set_motion_reset_data,
         MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
     void set_motion_reset_data(int32_t motion_id, float_t frame);
     void set_motion_skin_param(int32_t motion_id, float_t frame);
     void set_mouth_mottbl_motion(int32_t type, int32_t mottbl_index,
-        float_t value, int32_t state, float_t duration, float_t a7,
-        float_t step, int32_t a9, float_t offset, motion_database* mot_db);
+        float_t value, int32_t state, float_t blend_duration, float_t a7,
+        float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
     void set_osage_move_cancel(uint8_t id, float_t value);
     void set_osage_reset();
     void set_osage_step(float_t value);
@@ -3263,7 +3380,10 @@ extern void rob_free();
 
 extern mat4* rob_chara_bone_data_get_mats_mat(rob_chara_bone_data* rob_bone_data, size_t index);
 
+extern bool rob_chara_array_check_visibility(int32_t chara_id);
 extern rob_chara* rob_chara_array_get(int32_t chara_id);
+extern rob_chara_bone_data* rob_chara_array_get_bone_data(int32_t chara_id);
+extern float_t rob_chara_array_get_data_adjust_scale(int32_t chara_id);
 extern rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id);
 extern int32_t rob_chara_array_init_chara_index(chara_index chara_index,
     rob_chara_pv_data* pv_data, int32_t module_index, bool can_set_default);

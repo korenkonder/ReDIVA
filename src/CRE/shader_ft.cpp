@@ -14,7 +14,10 @@ enum shader_ft_sub_enum {
     SHADER_FT_SUB_STAGE_BLINN,
     SHADER_FT_SUB_SKIN_DEFAULT,
     SHADER_FT_SUB_SSS_SKIN,
-    SHADER_FT_SUB_SSS_FILTER,
+    //SHADER_FT_SUB_SSS_FILTER,
+    SHADER_FT_SUB_SSS_FILTER_MIN,
+    SHADER_FT_SUB_SSS_FILTER_MIN_NPR,
+    SHADER_FT_SUB_SSS_FILTER_GAUSS_2D,
     SHADER_FT_SUB_HAIR_DEFAULT,
     SHADER_FT_SUB_HAIR_ANISO,
     SHADER_FT_SUB_HAIR_NPR1,
@@ -30,7 +33,9 @@ enum shader_ft_sub_enum {
     SHADER_FT_SUB_SHADOWMAP,
     SHADER_FT_SUB_ESM,
     SHADER_FT_SUB_ESM_GAUSS,
-    SHADER_FT_SUB_ESM_FILTER,
+    //SHADER_FT_SUB_ESM_FILTER,
+    SHADER_FT_SUB_ESM_FILTER_MIN,
+    SHADER_FT_SUB_ESM_FILTER_EROSION,
     SHADER_FT_SUB_LIT_PROJ,
     SHADER_FT_SUB_SIMPLE,
     SHADER_FT_SUB_SILHOUETTE,
@@ -46,8 +51,14 @@ enum shader_ft_sub_enum {
     SHADER_FT_SUB_MLAA_AREA,
     SHADER_FT_SUB_MLAA_BLEND,
     SHADER_FT_SUB_CONTOUR,
-    SHADER_FT_SUB_EXPOSURE,
-    SHADER_FT_SUB_PP_GAUSS,
+    SHADER_FT_SUB_CONTOUR_NPR,
+    //SHADER_FT_SUB_EXPOSURE,
+    SHADER_FT_SUB_EXPOSURE_AVERAGE,
+    SHADER_FT_SUB_EXPOSURE_MEASURE,
+    SHADER_FT_SUB_EXPOSURE_MINIFY,
+    //SHADER_FT_SUB_PP_GAUSS,
+    SHADER_FT_SUB_PP_GAUSS_USUAL,
+    SHADER_FT_SUB_PP_GAUSS_CONE,
     SHADER_FT_SUB_SUN,
     SHADER_FT_SUB_FADE,
     SHADER_FT_SUB_WATER01,
@@ -57,6 +68,7 @@ enum shader_ft_sub_enum {
     SHADER_FT_SUB_SNOW_PARTICLE,
     SHADER_FT_SUB_LEAF_PARTICLE,
     SHADER_FT_SUB_STAR,
+    SHADER_FT_SUB_STAR_MILKY_WAY,
     SHADER_FT_SUB_SNOW_RING,
     SHADER_FT_SUB_SNOW_FOOTPRINT,
     SHADER_FT_SUB_SNOW_TEX_SPACE_LIGHT,
@@ -129,36 +141,60 @@ static const int32_t sss_skin_fpt_unival_max[] = {
     1, 0, 1, 1, 1, 0, 1, 1,
 };
 
-static const int32_t sss_filter_vpt_unival_max[] = {
+/*static const int32_t sss_filter_vpt_unival_max[] = {
     0, 3, 0,
 };
 
 static const int32_t sss_filter_fpt_unival_max[] = {
     1, 3, 1,
+};*/
+
+static const int32_t sss_filter_min_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t sss_filter_min_fpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t sss_filter_min_npr_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t sss_filter_min_npr_fpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t sss_filter_gauss_2d_vpt_unival_max[] = {
+    0,
+};
+
+static const int32_t sss_filter_gauss_2d_fpt_unival_max[] = {
+    1,
 };
 
 static const int32_t hair_default_vpt_unival_max[] = {
-    1, 1, 0, 0, 1, 0, 0, 3, 0, 2, 1, 0, 0, 0, 0, // 14th Added
+    1, 1, 0, 0, 1, 0, 0, 3, 0, 2, 1, 0, 0, 0, 0, // 14th added
 };
 
 static const int32_t hair_default_fpt_unival_max[] = {
-    1, 0, 2, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, // 14th Added
+    1, 0, 2, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, // 14th added
 };
 
 static const int32_t hair_aniso_vpt_unival_max[] = {
-    1, 1, 0, 0, 1, 0, 0, 3, 0, 2, 1, 0, 0, 0, 0, // 14th Added
+    1, 1, 0, 0, 1, 0, 0, 3, 0, 2, 1, 0, 0, 0, 0, // 14th added
 };
 
 static const int32_t hair_aniso_fpt_unival_max[] = {
-    1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, // 14th Added
+    1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, // 14th added
 };
 
 static const int32_t hair_npr1_vpt_unival_max[] = {
-    1, 1, 0, 0, 1, 0, 0, 3, 0, 2, 1, 0, 0, 0, 0, // 14th Added
+    1, 1, 0, 0, 1, 0, 0, 3, 0, 2, 1, 0, 0, 0, 0, // 14th added
 };
 
 static const int32_t hair_npr1_fpt_unival_max[] = {
-    1, 0, 0, 0, 0, 1, 0, 3, 1, 0, 0, 0, 0, 0, 1, // 14th Added
+    1, 0, 0, 0, 0, 1, 0, 3, 1, 0, 0, 0, 0, 0, 1, // 14th added
 };
 
 static const int32_t cloth_default_vpt_unival_max[] = {
@@ -257,12 +293,28 @@ static const int32_t esm_gauss_fpt_unival_max[] = {
     1,
 };
 
-static const int32_t esm_filter_vpt_unival_max[] = {
+/*static const int32_t esm_filter_vpt_unival_max[] = {
     0,
 };
 
 static const int32_t esm_filter_fpt_unival_max[] = {
     1,
+};*/
+
+static const int32_t esm_filter_min_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t esm_filter_min_fpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t esm_filter_erosion_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t esm_filter_erosion_fpt_unival_max[] = {
+    -1,
 };
 
 static const int32_t lit_proj_vpt_unival_max[] = {
@@ -314,19 +366,23 @@ static const int32_t peel_fpt_unival_max[] = {
 };
 
 static const int32_t tonemap_vpt_unival_max[] = {
-    0, 0, 0, 0, 1, 0, 0, 0,
+    //0, 0, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 0, 1, 0, 0, // 7th removed
 };
 
 static const int32_t tonemap_fpt_unival_max[] = {
-    0, 2, 2, 1, 1, 1, 0, 0,
+    //0, 2, 2, 1, 1, 1, 0, 0,
+    0, 2, 2, 1, 1, 1, 0, // 7th removed
 };
 
 static const int32_t tonemap_npr1_vpt_unival_max[] = {
-    0, 0, 0, 0, 1, 0, 0, 0,
+    //0, 0, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 0, 1, 0, 0, // 7th removed
 };
 
 static const int32_t tonemap_npr1_fpt_unival_max[] = {
-    1, 0, 0, 1, 1, 0, 0, 1,
+    //1, 0, 0, 1, 1, 0, 0, 1,
+    1, 0, 0, 1, 1, 0, 0, // 7th removed
 };
 
 static const int32_t reduce_tex_vpt_unival_max[] = {
@@ -347,12 +403,12 @@ static const int32_t magnify_fpt_unival_max[] = {
 
 /*static const int32_t mlaa_vpt_unival_max[] = {
     //0, 0, 2, 0,
-    0, 2, 0, // 1st removed
+    0, 2, 0, // 0th removed
 };
 
 static const int32_t mlaa_fpt_unival_max[] = {
     //1, 1, 2, 2,
-    1, 2, 2, // 1st removed
+    1, 2, 2, // 0th removed
 };*/
 
 static const int32_t mlaa_edge_vpt_unival_max[] = {
@@ -387,20 +443,68 @@ static const int32_t contour_fpt_unival_max[] = {
     1, 1,
 };
 
-static const int32_t exposure_vpt_unival_max[] = {
+static const int32_t contour_npr_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t contour_npr_fpt_unival_max[] = {
+    -1,
+};
+
+/*static const int32_t exposure_vpt_unival_max[] = {
     2,
 };
 
 static const int32_t exposure_fpt_unival_max[] = {
     2,
+};*/
+
+static const int32_t exposure_minify_vpt_unival_max[] = {
+    -1,
 };
 
-static const int32_t pp_gauss_vpt_unival_max[] = {
+static const int32_t exposure_minify_fpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t exposure_measure_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t exposure_measure_fpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t exposure_average_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t exposure_average_fpt_unival_max[] = {
+    -1,
+};
+
+/*static const int32_t pp_gauss_vpt_unival_max[] = {
     1,
 };
 
 static const int32_t pp_gauss_fpt_unival_max[] = {
     1,
+};*/
+
+static const int32_t pp_gauss_usual_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t pp_gauss_usual_fpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t pp_gauss_cone_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t pp_gauss_cone_fpt_unival_max[] = {
+    -1,
 };
 
 static const int32_t sun_vpt_unival_max[] = {
@@ -467,12 +571,28 @@ static const int32_t leaf_particle_fpt_unival_max[] = {
     -1,
 };
 
-static const int32_t star_vpt_unival_max[] = {
+/*static const int32_t star_vpt_unival_max[] = {
     1,
 };
 
 static const int32_t star_fpt_unival_max[] = {
     1,
+};*/
+
+static const int32_t star_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t star_fpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t star_milky_way_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t star_milky_way_fpt_unival_max[] = {
+    -1,
 };
 
 static const int32_t snow_ring_vpt_unival_max[] = {
@@ -512,7 +632,7 @@ static const int32_t floor_vpt_unival_max[] = {
 };
 
 static const int32_t floor_fpt_unival_max[] = {
-    2, 1, 1, 1, 3, 0, 0, 1, // 7th Added
+    2, 1, 1, 1, 3, 0, 0, 1, // 7th added
 };
 
 static const int32_t puddle_vpt_unival_max[] = {
@@ -700,13 +820,40 @@ static const shader_sub_table SSS_SKIN_table[] = {
     },
 };
 
-static const shader_sub_table SSS_FILT_table[] = {
+/*static const shader_sub_table SSS_FILT_table[] = {
     {
         SHADER_FT_SUB_SSS_FILTER,
         sss_filter_vpt_unival_max,
         sss_filter_fpt_unival_max,
         "sss_filter",
         "sss_filter",
+    },
+};*/
+
+static const shader_sub_table SSS_FILT_MIN_table[] = {
+    {
+        SHADER_FT_SUB_SSS_FILTER_MIN,
+        sss_filter_min_vpt_unival_max,
+        sss_filter_min_fpt_unival_max,
+        "sss_filter_min",
+        "sss_filter_min",
+    },
+    {
+        SHADER_FT_SUB_SSS_FILTER_MIN_NPR,
+        sss_filter_min_npr_vpt_unival_max,
+        sss_filter_min_npr_fpt_unival_max,
+        "sss_filter_min",
+        "sss_filter_min_npr",
+    },
+};
+
+static const shader_sub_table SSS_FILT_GAUSS_2D_table[] = {
+    {
+        SHADER_FT_SUB_SSS_FILTER_GAUSS_2D,
+        sss_filter_gauss_2d_vpt_unival_max,
+        sss_filter_gauss_2d_fpt_unival_max,
+        "sss_filter_gauss_2d",
+        "sss_filter_gauss_2d",
     },
 };
 
@@ -848,13 +995,33 @@ static const shader_sub_table ESMGAUSS_table[] = {
     },
 };
 
-static const shader_sub_table ESMFILT_table[] = {
+/*static const shader_sub_table ESMFILT_table[] = {
     {
         SHADER_FT_SUB_ESM_FILTER,
         esm_filter_vpt_unival_max,
         esm_filter_fpt_unival_max,
         "esm_filter",
         "esm_filter",
+    },
+};*/
+
+static const shader_sub_table ESMFILT_MIN_table[] = {
+    {
+        SHADER_FT_SUB_ESM_FILTER_MIN,
+        esm_filter_min_vpt_unival_max,
+        esm_filter_min_fpt_unival_max,
+        "esm_filter_min",
+        "esm_filter_min",
+    },
+};
+
+static const shader_sub_table ESMFILT_EROSION_table[] = {
+    {
+        SHADER_FT_SUB_ESM_FILTER_EROSION,
+        esm_filter_erosion_vpt_unival_max,
+        esm_filter_erosion_fpt_unival_max,
+        "esm_filter_erosion",
+        "esm_filter_erosion",
     },
 };
 
@@ -1005,7 +1172,17 @@ static const shader_sub_table CONTOUR_table[] = {
     },
 };
 
-static const shader_sub_table EXPOSURE_table[] = {
+static const shader_sub_table CONTOUR_NPR_table[] = {
+    {
+        SHADER_FT_SUB_CONTOUR_NPR,
+        contour_npr_vpt_unival_max,
+        contour_npr_fpt_unival_max,
+        "contour_npr",
+        "contour_npr",
+    },
+};
+
+/*static const shader_sub_table EXPOSURE_table[] = {
     {
         SHADER_FT_SUB_EXPOSURE,
         exposure_vpt_unival_max,
@@ -1013,15 +1190,65 @@ static const shader_sub_table EXPOSURE_table[] = {
         "exposure",
         "exposure",
     },
+};*/
+
+static const shader_sub_table EXPOSURE_MINIFY_table[] = {
+    {
+        SHADER_FT_SUB_EXPOSURE_MINIFY,
+        exposure_minify_vpt_unival_max,
+        exposure_minify_fpt_unival_max,
+        "exposure_minify",
+        "exposure_minify",
+    },
 };
 
-static const shader_sub_table GAUSS_table[] = {
+static const shader_sub_table EXPOSURE_MEASURE_table[] = {
+    {
+        SHADER_FT_SUB_EXPOSURE_MEASURE,
+        exposure_measure_vpt_unival_max,
+        exposure_measure_fpt_unival_max,
+        "exposure_measure",
+        "exposure_measure",
+    },
+};
+
+static const shader_sub_table EXPOSURE_AVERAGE_table[] = {
+    {
+        SHADER_FT_SUB_EXPOSURE_AVERAGE,
+        exposure_average_vpt_unival_max,
+        exposure_average_fpt_unival_max,
+        "exposure_average",
+        "exposure_average",
+    },
+};
+
+/*static const shader_sub_table GAUSS_table[] = {
     {
         SHADER_FT_SUB_PP_GAUSS,
         pp_gauss_vpt_unival_max,
         pp_gauss_fpt_unival_max,
         "pp_gauss",
         "pp_gauss",
+    },
+};*/
+
+static const shader_sub_table GAUSS_USUAL_table[] = {
+    {
+        SHADER_FT_SUB_PP_GAUSS_USUAL,
+        pp_gauss_usual_vpt_unival_max,
+        pp_gauss_usual_fpt_unival_max,
+        "pp_gauss_usual",
+        "pp_gauss_usual",
+    },
+};
+
+static const shader_sub_table GAUSS_CONE_table[] = {
+    {
+        SHADER_FT_SUB_PP_GAUSS_CONE,
+        pp_gauss_cone_vpt_unival_max,
+        pp_gauss_cone_fpt_unival_max,
+        "pp_gauss_cone",
+        "pp_gauss_cone",
     },
 };
 
@@ -1112,6 +1339,16 @@ static const shader_sub_table STAR_table[] = {
         star_fpt_unival_max,
         "star",
         "star",
+    },
+};
+
+static const shader_sub_table STAR_MILKY_WAY_table[] = {
+    {
+        SHADER_FT_SUB_STAR_MILKY_WAY,
+        star_milky_way_vpt_unival_max,
+        star_milky_way_fpt_unival_max,
+        "star_milky_way",
+        "star_milky_way",
     },
 };
 
@@ -1396,10 +1633,18 @@ static const uniform_name SSS_SKIN_uniform[] = {
     U26,
 };
 
-static const uniform_name SSS_FILT_uniform[] = {
+/*static const uniform_name SSS_FILT_uniform[] = {
     U16,
     U_SSS_FILTER,
     U_NPR,
+};*/
+
+static const uniform_name SSS_FILT_MIN_uniform[] = {
+    U_INVALID,
+};
+
+static const uniform_name SSS_FILT_GAUSS_2D_uniform[] = {
+    U16,
 };
 
 static const uniform_name HAIR_uniform[] = {
@@ -1417,7 +1662,7 @@ static const uniform_name HAIR_uniform[] = {
     U_NPR,
     U_CHARA_COLOR,
     U_TONE_CURVE,
-    U_ALPHA_TEST, // 14th Added
+    U_ALPHA_TEST, // 14th added
 };
 
 static const uniform_name CLOTH_uniform[] = {
@@ -1509,8 +1754,16 @@ static const uniform_name ESMGAUSS_uniform[] = {
     U_LIGHT_PROJ,
 };
 
-static const uniform_name ESMFILT_uniform[] = {
+/*static const uniform_name ESMFILT_uniform[] = {
     U_ESM_FILTER,
+};*/
+
+static const uniform_name ESMFILT_MIN_uniform[] = {
+    U_INVALID,
+};
+
+static const uniform_name ESMFILT_EROSION_uniform[] = {
+    U_INVALID,
 };
 
 static const uniform_name LITPROJ_uniform[] = {
@@ -1578,7 +1831,7 @@ static const uniform_name TONEMAP_uniform[] = {
     U_AET_BACK,
     U_LIGHT_PROJ,
     U_NPR,
-    U25,
+    //U25, 7th removed
 };
 
 static const uniform_name REDUCE_uniform[] = {
@@ -1591,7 +1844,7 @@ static const uniform_name MAGNIFY_uniform[] = {
 };
 
 /*static const uniform_name MLAA_uniform[] = {
-    //U16, // 1st removed
+    //U16, // 0th removed
     U_ALPHA_MASK,
     U_MLAA,
     U_MLAA_SEARCH,
@@ -1614,12 +1867,36 @@ static const uniform_name CONTOUR_uniform[] = {
     U24,
 };
 
-static const uniform_name EXPOSURE_uniform[] = {
-    U_EXPOSURE,
+static const uniform_name CONTOUR_NPR_uniform[] = {
+    U_INVALID,
 };
 
-static const uniform_name GAUSS_uniform[] = {
+/*static const uniform_name EXPOSURE_uniform[] = {
+    U_EXPOSURE,
+};*/
+
+static const uniform_name EXPOSURE_MINIFY_uniform[] = {
+    U_INVALID,
+};
+
+static const uniform_name EXPOSURE_MEASURE_uniform[] = {
+    U_INVALID,
+};
+
+static const uniform_name EXPOSURE_AVERAGE_uniform[] = {
+    U_INVALID,
+};
+
+/*static const uniform_name GAUSS_uniform[] = {
     U_GAUSS,
+};*/
+
+static const uniform_name GAUSS_USUAL_uniform[] = {
+    U_INVALID,
+};
+
+static const uniform_name GAUSS_CONE_uniform[] = {
+    U_INVALID,
 };
 
 static const uniform_name SUN_uniform[] = {
@@ -1663,8 +1940,16 @@ static const uniform_name LEAF_PT_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name STAR_uniform[] = {
+/*static const uniform_name STAR_uniform[] = {
     U_STAR,
+};*/
+
+static const uniform_name STAR_uniform[] = {
+    U_INVALID,
+};
+
+static const uniform_name STAR_MILKY_WAY_uniform[] = {
+    U_INVALID,
 };
 
 static const uniform_name SNORING_uniform[] = {
@@ -1695,7 +1980,7 @@ static const uniform_name FLOOR_uniform[] = {
     U_FOG_HEIGHT,
     U_MORPH,
     U_MORPH_COLOR,
-    U_ALPHA_TEST, // 7th Added
+    U_ALPHA_TEST, // 7th added
 };
 
 static const uniform_name PUDDLE_uniform[] = {
@@ -1796,7 +2081,7 @@ static const bool BLINN_permut[] = {
     false,
     false,
     false,
-    false, // 11th Added
+    false, // 11th added
 };
 
 static const bool ITEM_permut[] = {
@@ -1855,9 +2140,17 @@ static const bool SSS_SKIN_permut[] = {
     false,
 };
 
-static const bool SSS_FILT_permut[] = {
+/*static const bool SSS_FILT_permut[] = {
     true,
     true,
+    true,
+};*/
+
+static const bool SSS_FILT_MIN_permut[] = {
+    false,
+};
+
+static const bool SSS_FILT_GAUSS_2D_permut[] = {
     true,
 };
 
@@ -1876,7 +2169,7 @@ static const bool HAIR_permut[] = {
     false,
     false,
     false,
-    false, // 14th Added
+    false, // 14th added
 };
 
 static const bool CLOTH_permut[] = {
@@ -1965,10 +2258,18 @@ static const bool ESM_permut[] = {
 };
 
 static const bool ESMGAUSS_permut[] = {
+    true,
+};
+
+/*static const bool ESMFILT_permut[] = {
+    true,
+};*/
+
+static const bool ESMFILT_MIN_permut[] = {
     false,
 };
 
-static const bool ESMFILT_permut[] = {
+static const bool ESMFILT_EROSION_permut[] = {
     false,
 };
 
@@ -2029,7 +2330,7 @@ static const bool PEEL_permut[] = {
 };
 
 static const bool TONEMAP_permut[] = {
-    false,
+    true,
     false,
     false,
     false,
@@ -2049,7 +2350,7 @@ static const bool MAGNIFY_permut[] = {
 };
 
 /*static const bool MLAA_permut[] = {
-    //true, // 1st removed
+    //true, // 0th removed
     true,
     true,
     true,
@@ -2072,12 +2373,36 @@ static const bool CONTOUR_permut[] = {
     false,
 };
 
-static const bool EXPOSURE_permut[] = {
-    true,
+static const bool CONTOUR_NPR_permut[] = {
+    false,
 };
 
-static const bool GAUSS_permut[] = {
+/*static const bool EXPOSURE_permut[] = {
     true,
+};*/
+
+static const bool EXPOSURE_MINIFY_permut[] = {
+    false,
+};
+
+static const bool EXPOSURE_MEASURE_permut[] = {
+    false,
+};
+
+static const bool EXPOSURE_AVERAGE_permut[] = {
+    false,
+};
+
+/*static const bool GAUSS_permut[] = {
+    true,
+};*/
+
+static const bool GAUSS_USUAL_permut[] = {
+    false,
+};
+
+static const bool GAUSS_CONE_permut[] = {
+    false,
 };
 
 static const bool SUN_permut[] = {
@@ -2114,14 +2439,22 @@ static const bool W_PTCL_permut[] = {
 };
 
 static const bool SNOW_PT_permut[] = {
-    false,
+    true,
 };
 
 static const bool LEAF_PT_permut[] = {
     false,
 };
 
+/*static const bool STAR_permut[] = {
+    false,
+};*/
+
 static const bool STAR_permut[] = {
+    false,
+};
+
+static const bool STAR_MILKY_WAY_permut[] = {
     false,
 };
 
@@ -2153,7 +2486,7 @@ static const bool FLOOR_permut[] = {
     false,
     false,
     false,
-    false, // 7th Added
+    false, // 7th added
 };
 
 static const bool PUDDLE_permut[] = {
@@ -2225,7 +2558,7 @@ static const bool SHOWVEC_permut[] = {
 };
 
 static const bool FONT_permut[] = {
-    false,
+    true,
 };
 
 static const bool MOVIE_permut[] = {
@@ -2282,7 +2615,7 @@ struct glass_eye_struct {
     n##_permut, \
 }
 
-static const shader_table shader_ft_table[] = {
+const shader_table shader_ft_table[] = {
     {
         "SHADER_FFP",
         SHADER_FT_FFP,
@@ -2297,7 +2630,9 @@ static const shader_table shader_ft_table[] = {
     shader_table_struct(STAGE),
     shader_table_struct(SKIN),
     shader_table_struct(SSS_SKIN),
-    shader_table_struct(SSS_FILT),
+    //shader_table_struct(SSS_FILT),
+    shader_table_struct(SSS_FILT_MIN),
+    shader_table_struct(SSS_FILT_GAUSS_2D),
     shader_table_struct(HAIR),
     shader_table_struct(CLOTH),
     shader_table_struct(TIGHTS),
@@ -2309,7 +2644,9 @@ static const shader_table shader_ft_table[] = {
     shader_table_struct(SHDMAP),
     shader_table_struct(ESM),
     shader_table_struct(ESMGAUSS),
-    shader_table_struct(ESMFILT),
+    //shader_table_struct(ESMFILT),
+    shader_table_struct(ESMFILT_MIN),
+    shader_table_struct(ESMFILT_EROSION),
     shader_table_struct(LITPROJ),
     shader_table_struct(SIMPLE),
     shader_table_struct(SIL),
@@ -2324,8 +2661,14 @@ static const shader_table shader_ft_table[] = {
     shader_table_struct(MLAA_AREA),
     shader_table_struct(MLAA_BLEND),
     shader_table_struct(CONTOUR),
-    shader_table_struct(EXPOSURE),
-    shader_table_struct(GAUSS),
+    shader_table_struct(CONTOUR_NPR),
+    //shader_table_struct(EXPOSURE),
+    shader_table_struct(EXPOSURE_MINIFY),
+    shader_table_struct(EXPOSURE_MEASURE),
+    shader_table_struct(EXPOSURE_AVERAGE),
+    //shader_table_struct(GAUSS),
+    shader_table_struct(GAUSS_USUAL),
+    shader_table_struct(GAUSS_CONE),
     shader_table_struct(SUN),
     shader_table_struct(FADE),
     shader_table_struct(WATER01),
@@ -2335,6 +2678,7 @@ static const shader_table shader_ft_table[] = {
     shader_table_struct(SNOW_PT),
     shader_table_struct(LEAF_PT),
     shader_table_struct(STAR),
+    shader_table_struct(STAR_MILKY_WAY),
     shader_table_struct(SNORING),
     shader_table_struct(SN_FOOT),
     shader_table_struct(SN_TSL),
@@ -2360,7 +2704,7 @@ static const shader_table shader_ft_table[] = {
 
 #undef shader_table_struct
 
-static const size_t shader_ft_table_size =
+const size_t shader_ft_table_size =
     sizeof(shader_ft_table) / sizeof(shader_table);
 
 static void glass_eye_calc(glass_eye_struct* glass_eye);
@@ -2371,8 +2715,9 @@ static void shader_bind_hair(shader_set_data* set, shader* shad);
 static void shader_bind_membrane(shader_set_data* set, shader* shad);
 static void shader_bind_eye_ball(shader_set_data* set, shader* shad);
 static void shader_bind_tone_map(shader_set_data* set, shader* shad);
+static void shader_bind_sss_filter_min(shader_set_data* set, shader* shad);
 
-static const shader_bind_func shader_ft_bind_func_table[] = {
+const shader_bind_func shader_ft_bind_func_table[] = {
     {
         SHADER_FT_BLINN,
         shader_bind_blinn,
@@ -2397,9 +2742,13 @@ static const shader_bind_func shader_ft_bind_func_table[] = {
         SHADER_FT_TONEMAP,
         shader_bind_tone_map,
     },
+    {
+        SHADER_FT_SSS_FILT_MIN,
+        shader_bind_sss_filter_min,
+    },
 };
 
-static const size_t shader_ft_bind_func_table_size =
+const size_t shader_ft_bind_func_table_size =
     sizeof(shader_ft_bind_func_table) / sizeof(shader_bind_func);
 
 shader_set_data shaders_ft;
@@ -2433,11 +2782,6 @@ glass_eye_struct glass_eye = {
     0,
 };
 
-void shader_ft_load(shader_set_data* set, farc* f, bool ignore_cache) {
-    set->load(f, false, false, "ft", shader_ft_table, shader_ft_table_size,
-        shader_ft_bind_func_table, shader_ft_bind_func_table_size);
-}
-
 static void glass_eye_calc(glass_eye_struct* glass_eye) {
     float_t v2 = glass_eye->field_28;
     glass_eye->field_64 = glass_eye->field_2C / v2;
@@ -2447,7 +2791,7 @@ static void glass_eye_calc(glass_eye_struct* glass_eye) {
     glass_eye->field_80 = glass_eye->field_48 * v2;
     glass_eye->field_8C = glass_eye->field_54 * v2;
     if (glass_eye->field_B0 == 0) {
-        glass_eye->field_A0 = vec4_null;
+        glass_eye->field_A0 = 0.0f;
         return;
     }
 
@@ -2576,4 +2920,9 @@ static void shader_bind_eye_ball(shader_set_data* set, shader* shad) {
 static void shader_bind_tone_map(shader_set_data* set, shader* shad) {
     shad->bind(set, uniform_value[U_NPR] == 1
         ? SHADER_FT_SUB_TONEMAP_NPR1 : SHADER_FT_SUB_TONEMAP);
+}
+
+static void shader_bind_sss_filter_min(shader_set_data* set, shader* shad) {
+    shad->bind(set, uniform_value[U_NPR]
+        ? SHADER_FT_SUB_SSS_FILTER_MIN_NPR : SHADER_FT_SUB_SSS_FILTER_MIN);
 }

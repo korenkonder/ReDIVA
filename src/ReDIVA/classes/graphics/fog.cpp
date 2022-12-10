@@ -11,7 +11,7 @@ struct data_view_fog {
     int32_t group;
 
     data_view_fog();
-    virtual ~data_view_fog();
+    ~data_view_fog();
 };
 
 extern int32_t width;

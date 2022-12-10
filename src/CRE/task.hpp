@@ -50,7 +50,7 @@ namespace app {
         uint32_t disp_time_max;
 
         Task();
-        virtual ~Task();
+        virtual ~Task() override;
 
         uint32_t GetCalcTime();
         uint32_t GetCalcTimeMax();
@@ -80,9 +80,10 @@ namespace app {
 
         static bool AppendTask(Task* t,
             const char* name = "(unknown)", int32_t priority = 1);
-        static bool AppendTask(Task* t, Task* parent_task = task_work->current,
+        static bool AppendTask(Task* t, Task* parent_task,
             const char* name = "(unknown)", int32_t priority = 1);
         static void Basic();
+        static bool CheckTaskCtrl(Task* t);
         static bool CheckTaskReady(Task* t);
         static void Ctrl();
         static void Dest();

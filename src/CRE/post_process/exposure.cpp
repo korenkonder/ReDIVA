@@ -46,7 +46,7 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
         float_t v20 = powf(tanf((float_t)(cam->fov_rad * 0.5f)) * 3.4f, 2.0f);
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, v6++) {
             rob_chara* rob_chr = rob_chara_array_get(i);
-            if (!rob_chr || ~rob_chr->data.field_0 & 1)
+            if (!rob_chr || !rob_chr->get_visibility())
                 continue;
 
             vec4 v34 = { 0.05f, 0.0f, -0.04f, 1.0f };
@@ -142,8 +142,9 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
     }
 
     if (!v2 || reset_exposure) {
-        uniform_value[U_EXPOSURE] = 1;
-        render_texture::shader_set(&shaders_ft, SHADER_FT_EXPOSURE);
+        //uniform_value[U_EXPOSURE] = 1;
+        //shaders_ft.set(SHADER_FT_EXPOSURE);
+        shaders_ft.set(SHADER_FT_EXPOSURE_MEASURE);
         shaders_ft.local_frag_set(1,
             chara_data[0].field_80,
             chara_data[1].field_80,
@@ -161,8 +162,7 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
         exposure_history.bind();
         gl_state_active_bind_texture_2d(0, in_tex_0);
         gl_state_active_bind_texture_2d(1, in_tex_1);
-        render_texture::draw_params(&shaders_ft,
-            reset_exposure ? 32 : 1, 1, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+        render_texture::draw_params(&shaders_ft, reset_exposure ? 32 : 1, 1);
         exposure_history_counter++;
         exposure_history_counter %= 32;
     }
@@ -170,7 +170,10 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
     glViewport(0, 0, 1, 1);
     exposure.bind();
     gl_state_active_bind_texture_2d(0, exposure_history.color_texture->tex);
-    render_texture::draw_params(&shaders_ft, 1, 1, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    //uniform_value[U_EXPOSURE] = 2;
+    //shaders_ft.set(SHADER_FT_EXPOSURE);
+    shaders_ft.set(SHADER_FT_EXPOSURE_AVERAGE);
+    render_texture::draw_params(&shaders_ft, 1, 1);
 }
 
 void post_process_exposure::get_exposure_chara_data(void* pp, camera* cam) {
@@ -178,13 +181,15 @@ void post_process_exposure::get_exposure_chara_data(void* pp, camera* cam) {
 
     gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     gl_state_set_depth_mask(GL_FALSE);
+    gl_state_disable_cull_face();
 
     post_process_exposure_chara_data* v3 = chara_data;
-    int32_t v4 = query_index++ % 3;
+    int32_t v4 = (query_index + 1) % 3;
+    query_index = v4;
     int32_t v7 = (v4 + 2) % 3;
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, v3++) {
         rob_chara* rob_chr = rob_chara_array_get(i);
-        if (!rob_chr || ~rob_chr->data.field_0 & 1)
+        if (!rob_chr || !rob_chr->get_visibility())
             continue;
 
         float_t max_face_depth = rob_chr->get_max_face_depth();
@@ -213,6 +218,7 @@ void post_process_exposure::get_exposure_chara_data(void* pp, camera* cam) {
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     gl_state_set_depth_mask(GL_TRUE);
+    gl_state_enable_cull_face();
 }
 
 void post_process_exposure::init_fbo() {
@@ -224,7 +230,7 @@ void post_process_exposure::init_fbo() {
     if (!exposure_history.color_texture)
         exposure_history.init(32, 1, 0, GL_R32F, 0);
     if (!exposure.color_texture)
-        exposure.init(1, 1, 0, GL_R32F, 0);
+        exposure.init(2, 2, 0, GL_R32F, 0);
 
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         if (!chara_data[i].query[0])

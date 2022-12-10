@@ -37,11 +37,12 @@ public:
     bool stage_test;
 
     TaskDataTestGlitterParticle();
-    virtual ~TaskDataTestGlitterParticle();
-    virtual bool Init();
-    virtual bool Ctrl();
-    virtual bool Dest();
-    virtual void Window();
+    virtual ~TaskDataTestGlitterParticle() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Window() override;
 
     void LoadFile(const char* file);
 };

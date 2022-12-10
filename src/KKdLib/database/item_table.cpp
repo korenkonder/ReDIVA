@@ -158,7 +158,9 @@ bool itm_table::load_file(void* data, const char* path, const char* file, uint32
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     itm_table* itm_tbl = (itm_table*)data;
     itm_tbl->read(s.c_str());

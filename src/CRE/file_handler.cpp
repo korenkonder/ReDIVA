@@ -16,7 +16,7 @@ struct farc_read_handler {
     farc* farc;
 
     farc_read_handler();
-    virtual ~farc_read_handler();
+    ~farc_read_handler();
 
     size_t get_file_size(std::string& file);
     bool read(std::string& file_path, bool cache);
@@ -41,7 +41,7 @@ struct file_handler_storage {
     int32_t field_74;
 
     file_handler_storage();
-    virtual ~file_handler_storage();
+    ~file_handler_storage();
 };
 
 file_handler_storage* file_handler_storage_data;
@@ -203,17 +203,19 @@ void file_handler_storage_ctrl() {
 
     {
         std::unique_lock<std::mutex> u_lock(file_handler_storage_data->mtx);
-        if (!file_handler_storage_data->deque.size()) {
-            for (file_handler*& i : file_handler_storage_data->list)
+        std::list<file_handler*>& list = file_handler_storage_data->list;
+        std::deque<file_handler*>& deque = file_handler_storage_data->deque;
+        if (!deque.size()) {
+            for (file_handler*& i : list)
                 if (i->not_ready && !i->reading) {
                     {
                         std::unique_lock<std::mutex> u_lock(i->mtx);
                         i->count++;
                     }
-                    file_handler_storage_data->deque.push_back(i);
+                    deque.push_back(i);
                 }
 
-            if (file_handler_storage_data->deque.size())
+            if (deque.size())
                 file_handler_storage_data->cnd.notify_all();
         }
     }
@@ -293,12 +295,12 @@ static bool file_handler_load_farc_file(void* data, const char* dir, const char*
 }
 
 static void file_handler_storage_ctrl_list() {
-    for (std::list<file_handler*>::iterator i = file_handler_storage_data->list.begin();
-        i != file_handler_storage_data->list.end();) {
-        file_handler* pfhndl = i._Ptr->_Myval;
+    std::list<file_handler*>& list = file_handler_storage_data->list;
+    for (std::list<file_handler*>::iterator i = list.begin(); i != list.end();) {
+        file_handler* pfhndl = *i;
         if (pfhndl->count == 1) {
             pfhndl->free_data_lock();
-            i = file_handler_storage_data->list.erase(i);
+            i = list.erase(i);
         }
         else {
             if (!pfhndl->not_ready && !pfhndl->callback[0].ready)

@@ -115,7 +115,9 @@ bool dof::load_file(void* data, const char* path, const char* file, uint32_t has
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     dof* d = (dof*)data;
     d->read(s.c_str());

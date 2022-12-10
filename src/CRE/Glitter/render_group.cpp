@@ -12,7 +12,7 @@ namespace Glitter {
         elements(), max_count(), random_ptr(), disp_type(), fog_type(), vao(), vbo(), ebo() {
         split_u = 1;
         split_v = 1;
-        split_uv = vec2_identity;
+        split_uv = 1.0f;
         mat = mat4_identity;
         mat_rot = mat4_identity;
         mat_draw = mat4_identity;
@@ -80,38 +80,49 @@ namespace Glitter {
         bool is_quad = a1->data.data.type == PARTICLE_QUAD;
 
         glGenVertexArrays(1, &vao);
-        gl_state_bind_vertex_array(vao);
+        gl_state_bind_vertex_array(vao, true);
 
         glGenBuffers(1, &vbo);
-        gl_state_bind_array_buffer(vbo);
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(Buffer) * max_count), 0, GL_DYNAMIC_DRAW);
+        gl_state_bind_array_buffer(vbo, true);
+
+        static const GLsizei buffer_size = sizeof(Buffer);
+
+        if (GLAD_GL_VERSION_4_4)
+            glBufferStorage(GL_ARRAY_BUFFER,
+                (GLsizeiptr)(buffer_size * max_count), 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+        else
+            glBufferData(GL_ARRAY_BUFFER,
+                (GLsizeiptr)(buffer_size * max_count), 0, GL_DYNAMIC_DRAW);
 
         if (is_quad) {
-            size_t count = max_count / 4 * 6;
-            int32_t* ebo_data = force_malloc_s(int32_t, count);
-            for (size_t i = 0, j = 0; i < count; i += 6, j += 4) {
-                ebo_data[i] = (int32_t)j;
-                ebo_data[i + 1] = (int32_t)(j + 1);
-                ebo_data[i + 2] = (int32_t)(j + 2);
-                ebo_data[i + 3] = (int32_t)(j + 0);
-                ebo_data[i + 4] = (int32_t)(j + 2);
-                ebo_data[i + 5] = (int32_t)(j + 3);
+            size_t count = max_count / 4 * 5;
+            uint32_t* ebo_data = force_malloc_s(uint32_t, count - 1);
+            for (size_t i = 0, j = 0, k = count / 5 - 1; i < count; i += 5, j += 4, k--) {
+                ebo_data[i + 0] = (uint32_t)(j + 0);
+                ebo_data[i + 1] = (uint32_t)(j + 1);
+                ebo_data[i + 2] = (uint32_t)(j + 3);
+                ebo_data[i + 3] = (uint32_t)(j + 2);
+                if (k)
+                    ebo_data[i + 4] = 0xFFFFFFFF;
             }
 
             glGenBuffers(1, &ebo);
-            gl_state_bind_element_array_buffer(ebo);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);
+            gl_state_bind_element_array_buffer(ebo, true);
+            if (GLAD_GL_VERSION_4_4)
+                glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
+                    (GLsizeiptr)(sizeof(uint32_t) * (count - 1)), ebo_data, 0);
+            else
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                    (GLsizeiptr)(sizeof(uint32_t) * (count - 1)), ebo_data, GL_STATIC_DRAW);
             free_def(ebo_data);
         }
-
-        static const GLsizei buffer_size = sizeof(Buffer);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
             (void*)offsetof(Buffer, position)); // Pos
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, color));    // Color
+            (void*)offsetof(Buffer, color));    // Color0
         glEnableVertexAttribArray(8);
         glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
             (void*)offsetof(Buffer, uv));       // TexCoord0
@@ -230,6 +241,16 @@ namespace Glitter {
         if (particle->data.data.sub_flags & PARTICLE_SUB_USE_CURVE)
             disp = particle->GetValue(GLT_VAL, rend_elem, rend_elem->frame, random_ptr);
 
+        if (particle->data.data.draw_type == DIRECTION_PARTICLE_ROTATION
+            || fabsf(rend_elem->rotation.z) <= 0.000001f) {
+            rend_elem->rot_z_cos = 1.0f;
+            rend_elem->rot_z_sin = 0.0f;
+        }
+        else {
+            rend_elem->rot_z_cos = cosf(rend_elem->rotation.z);
+            rend_elem->rot_z_sin = sinf(rend_elem->rotation.z);
+        }
+
         if (disp)
             particle->GetColor(rend_elem);
 
@@ -306,29 +327,9 @@ namespace Glitter {
     }
 
     bool F2RenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
-        if (!particle)
-            return false;
-
-        F2EffectInst* effect_inst;
-        if (particle->data.effect)
-            effect_inst = particle->data.effect;
-        else {
-            if (!particle->data.parent)
-                return false;
-
-            effect_inst = particle->data.parent->data.effect;
-            if (!effect_inst)
-                return false;
-        }
-
-        if (~effect_inst->flags & EFFECT_INST_HAS_EXT_ANIM_SCALE)
-            return false;
-
-        if (ext_anim_scale)
-            *ext_anim_scale = effect_inst->ext_anim_scale;
-        if (some_scale)
-            *some_scale = effect_inst->some_scale;
-        return true;
+        if (particle)
+            particle->GetExtAnimScale(ext_anim_scale, some_scale);
+        return false;
     }
 
     mat4 F2RenderGroup::RotateToEmitPosition(F2RenderGroup* rend_group,
@@ -338,9 +339,9 @@ namespace Glitter {
             vec2 = rend_elem->translation;
         else {
             mat4_get_translation(&rend_group->mat, &vec2);
-            vec3_sub(vec2, rend_elem->translation, vec2);
+            vec2 -= rend_elem->translation;
         }
-        vec3_normalize(vec2, vec2);
+        vec2 = vec3::normalize(vec2);
 
         mat4 mat;
         if (fabsf(vec2.y) >= 0.000001f) {
@@ -359,14 +360,12 @@ namespace Glitter {
 
     mat4 F2RenderGroup::RotateToPrevPosition(F2RenderGroup* rend_group,
         RenderElement* rend_elem, vec3* vec) {
-        vec3 vec2;
-        vec3_sub(rend_elem->translation, rend_elem->translation_prev, vec2);
+        vec3 vec2 = rend_elem->translation - rend_elem->translation_prev;
 
-        float_t length;
-        vec3_length_squared(vec2, length);
-        if (length < 0.000001f)
-            vec2 = rend_elem->translation;
-        vec3_normalize(vec2, vec2);
+        if (vec3::length_squared(vec2) < 0.000001f)
+            vec2 = vec3::normalize(rend_elem->translation);
+        else
+            vec2 = vec3::normalize(vec2);
 
         mat4 mat;
         mat4_rotate_z((float_t)M_PI, &mat);
@@ -421,60 +420,66 @@ namespace Glitter {
         }
 
         memset(elements, 0, sizeof(RenderElement) * count);
-        if (!max_count)
+        if (!max_count || a1->data.data.type == PARTICLE_MESH)
             return;
 
         bool is_quad = a1->data.data.type == PARTICLE_QUAD;
-        bool is_mesh = a1->data.data.type == PARTICLE_MESH;
 
-        if (!is_mesh) {
-            glGenVertexArrays(1, &vao);
-            gl_state_bind_vertex_array(vao);
+        glGenVertexArrays(1, &vao);
+        gl_state_bind_vertex_array(vao, true);
 
-            glGenBuffers(1, &vbo);
-            gl_state_bind_array_buffer(vbo);
-            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(Buffer) * max_count), 0, GL_DYNAMIC_DRAW);
-        }
+        glGenBuffers(1, &vbo);
+        gl_state_bind_array_buffer(vbo, true);
+
+        static const GLsizei buffer_size = sizeof(Buffer);
+
+        if (GLAD_GL_VERSION_4_4)
+            glBufferStorage(GL_ARRAY_BUFFER,
+                (GLsizeiptr)(buffer_size * max_count), 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+        else
+            glBufferData(GL_ARRAY_BUFFER,
+                (GLsizeiptr)(buffer_size * max_count), 0, GL_DYNAMIC_DRAW);
 
         if (is_quad) {
-            size_t count = max_count / 4 * 6;
-            int32_t* ebo_data = force_malloc_s(int32_t, count);
-            for (size_t i = 0, j = 0; i < count; i += 6, j += 4) {
-                ebo_data[i] = (int32_t)j;
-                ebo_data[i + 1] = (int32_t)(j + 1);
-                ebo_data[i + 2] = (int32_t)(j + 2);
-                ebo_data[i + 3] = (int32_t)(j + 0);
-                ebo_data[i + 4] = (int32_t)(j + 2);
-                ebo_data[i + 5] = (int32_t)(j + 3);
+            size_t count = max_count / 4 * 5;
+            uint32_t* ebo_data = force_malloc_s(uint32_t, count - 1);
+            for (size_t i = 0, j = 0, k = count / 5 - 1; i < count; i += 5, j += 4, k--) {
+                ebo_data[i + 0] = (uint32_t)(j + 0);
+                ebo_data[i + 1] = (uint32_t)(j + 1);
+                ebo_data[i + 2] = (uint32_t)(j + 3);
+                ebo_data[i + 3] = (uint32_t)(j + 2);
+                if (k)
+                    ebo_data[i + 4] = 0xFFFFFFFF;
             }
 
             glGenBuffers(1, &ebo);
-            gl_state_bind_element_array_buffer(ebo);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int32_t) * count, ebo_data, GL_STATIC_DRAW);
+            gl_state_bind_element_array_buffer(ebo, true);
+            if (GLAD_GL_VERSION_4_4)
+                glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
+                    (GLsizeiptr)(sizeof(uint32_t) * (count - 1)), ebo_data, 0);
+            else
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                    (GLsizeiptr)(sizeof(uint32_t) * (count - 1)), ebo_data, GL_STATIC_DRAW);
             free_def(ebo_data);
         }
 
-        if (!is_mesh) {
-            static const GLsizei buffer_size = sizeof(Buffer);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, position)); // Pos
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, color));    // Color0
+        glEnableVertexAttribArray(8);
+        glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv));       // TexCoord0
+        glEnableVertexAttribArray(9);
+        glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv));       // TexCoord1
 
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, position)); // Pos
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, color));    // Color
-            glEnableVertexAttribArray(8);
-            glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord0
-            glEnableVertexAttribArray(9);
-            glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(Buffer, uv));       // TexCoord1
-
-            gl_state_bind_array_buffer(0);
-            gl_state_bind_vertex_array(0);
-            if (is_quad)
-                gl_state_bind_element_array_buffer(0);
-        }
+        gl_state_bind_array_buffer(0);
+        gl_state_bind_vertex_array(0);
+        if (is_quad)
+            gl_state_bind_element_array_buffer(0);
 
         if (!is_quad)
             draw_list.reserve(count);
@@ -603,6 +608,16 @@ namespace Glitter {
         if (particle->data.data.sub_flags & PARTICLE_SUB_USE_CURVE)
             disp = particle->GetValue(rend_elem, rend_elem->frame, random_ptr, &color_scale);
 
+        if (particle->data.data.draw_type == DIRECTION_PARTICLE_ROTATION
+            || fabsf(rend_elem->rotation.z) <= 0.000001f) {
+            rend_elem->rot_z_cos = 1.0f;
+            rend_elem->rot_z_sin = 0.0f;
+        }
+        else {
+            rend_elem->rot_z_cos = cosf(rend_elem->rotation.z);
+            rend_elem->rot_z_sin = sinf(rend_elem->rotation.z);
+        }
+
         if (disp)
             particle->GetColor(rend_elem, color_scale);
 
@@ -686,39 +701,19 @@ namespace Glitter {
         if (particle) {
             Glitter::EmitterInst* emit_inst = particle->data.emitter;
             if (emit_inst) {
-                vec3_mult_scalar(emit_inst->scale, emit_inst->scale_all, emitter_scale);
+                emitter_scale = emit_inst->scale * emit_inst->scale_all;
                 return emitter_scale.x > 0.000001f || emitter_scale.y > 0.000001f || emitter_scale.z > 0.000001f;
             }
         }
 
-        emitter_scale = vec3_identity;
+        emitter_scale = 1.0f;
         return false;
     }
 
     bool XRenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
-        if (!particle)
-            return false;
-
-        XEffectInst* effect_inst;
-        if (particle->data.effect)
-            effect_inst = particle->data.effect;
-        else {
-            if (!particle->data.parent)
-                return false;
-
-            effect_inst = particle->data.parent->data.effect;
-            if (!effect_inst)
-                return false;
-        }
-
-        if (~effect_inst->flags & EFFECT_INST_HAS_EXT_ANIM_SCALE)
-            return false;
-
-        if (ext_anim_scale)
-            *ext_anim_scale = effect_inst->ext_anim_scale;
-        if (some_scale)
-            *some_scale = effect_inst->some_scale;
-        return true;
+        if (particle)
+            particle->GetExtAnimScale(ext_anim_scale, some_scale);
+        return false;
     }
 
     bool XRenderGroup::HasEnded() {
@@ -731,13 +726,12 @@ namespace Glitter {
         RenderElement* rend_elem, vec3* vec, vec3* trans) {
         vec3 vec2;
         mat4_get_translation(&rend_group->mat, &vec2);
-        vec3_sub(vec2, *trans, vec2);
+        vec2 -= *trans;
 
-        float_t length;
-        vec3_length_squared(vec2, length);
-        if (length < 0.000001f)
+        if (vec3::length_squared(vec2) < 0.000001f)
             vec2 = { 0.0f, 1.0f, 0.0f };
-        vec3_normalize(vec2, vec2);
+        else
+            vec2 = vec3::normalize(vec2);
 
         vec3 vec1 = *vec;
 
@@ -752,14 +746,12 @@ namespace Glitter {
 
     mat4 XRenderGroup::RotateMeshToPrevPosition(XRenderGroup* rend_group,
         RenderElement* rend_elem, vec3* vec, vec3* trans) {
-        vec3 vec2;
-        vec3_sub(rend_elem->translation, rend_elem->translation_prev, vec2);
+        vec3 vec2 = rend_elem->translation - rend_elem->translation_prev;
 
-        float_t length;
-        vec3_length_squared(vec2, length);
-        if (length < 0.000001f)
-            vec2 = rend_elem->base_direction;
-        vec3_normalize(vec2, vec2);
+        if (vec3::length_squared(vec2) < 0.000001f)
+            vec2 = vec3::normalize(rend_elem->base_direction);
+        else
+            vec2 = vec3::normalize(vec2);
 
         vec3 vec1 = *vec;
 
@@ -776,13 +768,12 @@ namespace Glitter {
         RenderElement* rend_elem, vec3* vec) {
         vec3 vec2;
         mat4_get_translation(&rend_elem->mat, &vec2);
-        vec3_sub(vec2, rend_elem->translation, vec2);
+        vec2 -= rend_elem->translation;
 
-        float_t length;
-        vec3_length_squared(vec2, length);
-        if (length < 0.000001f)
+        if (vec3::length_squared(vec2) < 0.000001f)
             vec2 = { 0.0f, 1.0f, 0.0f };
-        vec3_normalize(vec2, vec2);
+        else
+            vec3::normalize(vec2);
 
         vec3 vec1 = *vec;
 
@@ -797,14 +788,12 @@ namespace Glitter {
 
     mat4 XRenderGroup::RotateToPrevPosition(XRenderGroup* rend_group,
         RenderElement* rend_elem, vec3* vec) {
-        vec3 vec2;
-        vec3_sub(rend_elem->translation, rend_elem->translation_prev, vec2);
+        vec3 vec2 = rend_elem->translation - rend_elem->translation_prev;
 
-        float_t length;
-        vec3_length_squared(vec2, length);
-        if (length < 0.000001f)
-            vec2 = rend_elem->base_direction;
-        vec3_normalize(vec2, vec2);
+        if (vec3::length_squared(vec2) < 0.000001f)
+            vec2 = vec3::normalize(rend_elem->base_direction);
+        else
+            vec2 = vec3::normalize(vec2);
 
         vec3 vec1 = *vec;
 

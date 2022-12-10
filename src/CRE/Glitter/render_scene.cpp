@@ -54,87 +54,87 @@ namespace Glitter {
     }
 
     void RenderScene::CalcDispLocusSetPivot(Pivot pivot,
-        float_t w, float_t* v00, float_t* v01) {
+        float_t w, float_t& v00, float_t& v01) {
         switch (pivot) {
         case PIVOT_TOP_LEFT:
         case PIVOT_MIDDLE_LEFT:
         case PIVOT_BOTTOM_LEFT:
-            *v00 = 0.0f;
-            *v01 = w;
+            v00 = 0.0f;
+            v01 = w;
             break;
         case PIVOT_TOP_CENTER:
         case PIVOT_MIDDLE_CENTER:
         case PIVOT_BOTTOM_CENTER:
         default:
-            *v00 = w * -0.5f;
-            *v01 = w * 0.5f;
+            v00 = w * -0.5f;
+            v01 = w * 0.5f;
             break;
         case PIVOT_TOP_RIGHT:
         case PIVOT_MIDDLE_RIGHT:
         case PIVOT_BOTTOM_RIGHT:
-            *v00 = -w;
-            *v01 = 0.0f;
+            v00 = -w;
+            v01 = 0.0f;
             break;
         }
     }
 
     void RenderScene::CalcDispQuadSetPivot(Pivot pivot,
-        float_t w, float_t h, float_t* v00, float_t* v01, float_t* v10, float_t* v11) {
+        float_t w, float_t h, float_t& v00, float_t& v01, float_t& v10, float_t& v11) {
         switch (pivot) {
         case PIVOT_TOP_LEFT:
-            *v00 = 0.0f;
-            *v01 = w;
-            *v10 = -h;
-            *v11 = 0.0f;
+            v00 = 0.0f;
+            v01 = w;
+            v10 = -h;
+            v11 = 0.0f;
             break;
         case PIVOT_TOP_CENTER:
-            *v00 = w * -0.5f;
-            *v01 = w * 0.5f;
-            *v10 = -h;
-            *v11 = 0.0f;
+            v00 = w * -0.5f;
+            v01 = w * 0.5f;
+            v10 = -h;
+            v11 = 0.0f;
             break;
         case PIVOT_TOP_RIGHT:
-            *v00 = -w;
-            *v01 = 0.0f;
-            *v10 = -h;
-            *v11 = 0.0f;
+            v00 = -w;
+            v01 = 0.0f;
+            v10 = -h;
+            v11 = 0.0f;
             break;
         case PIVOT_MIDDLE_LEFT:
-            *v00 = 0.0f;
-            *v01 = w;
-            *v10 = h * -0.5f;
-            *v11 = h * 0.5f;
+            v00 = 0.0f;
+            v01 = w;
+            v10 = h * -0.5f;
+            v11 = h * 0.5f;
             break;
         case PIVOT_MIDDLE_CENTER:
         default:
-            *v00 = w * -0.5f;
-            *v01 = w * 0.5f;
-            *v10 = h * -0.5f;
-            *v11 = h * 0.5f;
+            v00 = w * -0.5f;
+            v01 = w * 0.5f;
+            v10 = h * -0.5f;
+            v11 = h * 0.5f;
             break;
         case PIVOT_MIDDLE_RIGHT:
-            *v00 = -w;
-            *v01 = 0.0f;
-            *v10 = h * -0.5f;
-            *v11 = h * 0.5f;
+            v00 = -w;
+            v01 = 0.0f;
+            v10 = h * -0.5f;
+            v11 = h * 0.5f;
             break;
         case PIVOT_BOTTOM_LEFT:
-            *v00 = 0.0f;
-            *v01 = w;
-            *v10 = 0.0f;
-            *v11 = h;
+            v00 = 0.0f;
+            v01 = w;
+            v10 = 0.0f;
+            v11 = h;
             break;
         case PIVOT_BOTTOM_CENTER:
-            *v00 = w * -0.5f;
-            *v01 = w * 0.5f;
-            *v10 = 0.0f;
-            *v11 = h;
+            v00 = w * -0.5f;
+            v01 = w * 0.5f;
+            v10 = 0.0f;
+            v11 = h;
             break;
         case PIVOT_BOTTOM_RIGHT:
-            *v00 = -w;
-            *v01 = 0.0f;
-            *v10 = 0.0f;
-            *v11 = h;
+            v00 = -w;
+            v01 = 0.0f;
+            v10 = 0.0f;
+            v11 = h;
             break;
         }
     }
@@ -173,10 +173,10 @@ namespace Glitter {
             return;
 
         bool has_scale = false;
-        vec3 scale = vec3_null;
+        vec3 scale = 0.0f;
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             mat4_get_scale(&rend_group->mat, &scale);
-            vec3_sub(scale, vec3_identity, scale);
+            scale -= 1.0f;
             if (!(has_scale |= fabsf(scale.x) > 0.000001f ? true : false))
                 scale.x = 0.0f;
             if (!(has_scale |= fabsf(scale.y) > 0.000001f ? true : false))
@@ -188,8 +188,20 @@ namespace Glitter {
         else
             rend_group->mat_draw = mat4_identity;
 
-        gl_state_bind_array_buffer(rend_group->vbo);
-        Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        Buffer* buf;
+        if (GLAD_GL_VERSION_4_5)
+            buf = (Buffer*)glMapNamedBuffer(rend_group->vbo, GL_WRITE_ONLY);
+        else {
+            gl_state_bind_array_buffer(rend_group->vbo);
+            buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (!buf) {
+            if (!GLAD_GL_VERSION_4_5)
+                gl_state_bind_array_buffer(0);
+            return;
+        }
+
         elem = rend_group->elements;
         size_t disp = 0;
         rend_group->draw_list.clear();
@@ -205,12 +217,9 @@ namespace Glitter {
             size_t j = 0;
             if (has_scale)
                 for (LocusHistory::Data& hist_data : hist->data) {
-                    vec3 pos = hist_data.translation;
-                    vec3 pos_diff;
-                    vec3_sub(pos, elem->base_translation, pos_diff);
-                    vec3_mult(pos_diff, scale, pos_diff);
-                    vec3_add(pos, pos_diff, buf->position);
-                    buf->uv = vec2_null;
+                    vec3& pos = hist_data.translation;
+                    buf->position = pos + (pos - elem->base_translation) * scale;
+                    buf->uv = 0.0f;
                     buf->color = hist_data.color;
                     j++;
                     buf++;
@@ -218,7 +227,7 @@ namespace Glitter {
             else
                 for (LocusHistory::Data& hist_data : hist->data) {
                     buf->position = hist_data.translation;
-                    buf->uv = vec2_null;
+                    buf->uv = 0.0f;
                     buf->color = hist_data.color;
                     j++;
                     buf++;
@@ -231,8 +240,13 @@ namespace Glitter {
             }
         }
         rend_group->disp = disp;
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
+
+        if (GLAD_GL_VERSION_4_5)
+            glUnmapNamedBuffer(rend_group->vbo);
+        else {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            gl_state_bind_array_buffer(0);
+        }
     }
 
     void F2RenderScene::CalcDispLocus(GPM, F2RenderGroup* rend_group) {
@@ -267,13 +281,13 @@ namespace Glitter {
             rend_group->mat_draw = mat4_identity;
 
         bool has_scale = false;
-        vec3 scale = vec3_null;
+        vec3 scale = 0.0f;
         mat3 model_mat;
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             mat4_get_scale(&rend_group->mat, &scale);
             if (rend_group->flags & PARTICLE_SCALE)
                 x_vec.x = scale.x;
-            vec3_sub(scale, vec3_identity, scale);
+            scale -= 1.0f;
             if (!(has_scale |= fabsf(scale.x) > 0.000001f ? true : false))
                 scale.x = 0.0f;
             if (!(has_scale |= fabsf(scale.y) > 0.000001f ? true : false))
@@ -282,18 +296,31 @@ namespace Glitter {
                 scale.z = 0.0f;
             mat4_mult_vec3(&rend_group->mat_rot, &scale, &scale);
 
-            mat4 mat;
-            mat4_normalize_rotation(&rend_group->mat, &mat);
-            mat3_from_mat4(&mat, &model_mat);
+            mat3_from_mat4(&rend_group->mat, &model_mat);
+            mat3_normalize_rotation(&model_mat, &model_mat);
         }
         else
             model_mat = mat3_identity;
 
         mat3_mult_vec(&GPM_VAL->cam.inv_view_mat3, &x_vec, &x_vec);
 
-        gl_state_bind_array_buffer(rend_group->vbo);
-        Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        Buffer* buf;
+        if (GLAD_GL_VERSION_4_5)
+            buf = (Buffer*)glMapNamedBuffer(rend_group->vbo, GL_WRITE_ONLY);
+        else {
+            gl_state_bind_array_buffer(rend_group->vbo);
+            buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (!buf) {
+            if (!GLAD_GL_VERSION_4_5)
+                gl_state_bind_array_buffer(0);
+            return;
+        }
+
         elem = rend_group->elements;
+        vec2 split_uv = rend_group->split_uv;
+        Pivot pivot = rend_group->pivot;
         size_t disp = 0;
         rend_group->draw_list.clear();
         for (size_t i = rend_group->ctrl, index = 0; i > 0; elem++) {
@@ -306,37 +333,32 @@ namespace Glitter {
                 continue;
 
             float_t uv_u = elem->uv.x + elem->uv_scroll.x;
-            float_t uv_u_2nd = elem->uv.x + elem->uv_scroll.x + rend_group->split_uv.x;
-            float_t uv_v_2nd = elem->uv.y + elem->uv_scroll.y + rend_group->split_uv.y;
-            float_t uv_v_scale = rend_group->split_uv.y / (float_t)(hist->data.size() - 1);
+            float_t uv_u_2nd = elem->uv.x + elem->uv_scroll.x + split_uv.x;
+            float_t uv_v_2nd = elem->uv.y + elem->uv_scroll.y + split_uv.y;
+            float_t uv_v_scale = split_uv.y / (float_t)(hist->data.size() - 1);
 
             uv_v_2nd = 1.0f - uv_v_2nd;
 
-            size_t len = elem->locus_history->data.size();
             size_t j = 0;
             if (has_scale)
                 for (LocusHistory::Data& hist_data : hist->data) {
                     vec3 pos = hist_data.translation;
-                    vec3 pos_diff;
-                    vec3_sub(pos, elem->base_translation, pos_diff);
-                    vec3_mult(pos_diff, scale, pos_diff);
+                    vec3 pos_diff = (pos - elem->base_translation) * scale;
                     mat3_mult_vec(&model_mat, &pos_diff, &pos_diff);
-                    vec3_add(pos, pos_diff, pos);
+                    pos += pos_diff;
 
                     float_t v00;
                     float_t v01;
-                    CalcDispLocusSetPivot(rend_group->pivot,
+                    CalcDispLocusSetPivot(pivot,
                         hist_data.scale * elem->scale.x * elem->scale_all,
-                        &v00, &v01);
+                        v00, v01);
 
-                    vec3_mult_scalar(x_vec, v00, buf[0].position);
-                    vec3_add(buf[0].position, pos, buf[0].position);
+                    buf[0].position = pos + x_vec * v00;
                     buf[0].uv.x = uv_u;
                     buf[0].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
                     buf[0].color = hist_data.color;
 
-                    vec3_mult_scalar(x_vec, v01, buf[1].position);
-                    vec3_add(buf[1].position, pos, buf[1].position);
+                    buf[1].position = pos + x_vec * v01;
                     buf[1].uv.x = uv_u_2nd;
                     buf[1].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
                     buf[1].color = hist_data.color;
@@ -349,18 +371,16 @@ namespace Glitter {
 
                     float_t v00;
                     float_t v01;
-                    CalcDispLocusSetPivot(rend_group->pivot,
+                    CalcDispLocusSetPivot(pivot,
                         hist_data.scale * elem->scale.x * elem->scale_all,
-                        &v00, &v01);
+                        v00, v01);
 
-                    vec3_mult_scalar(x_vec, v00, buf[0].position);
-                    vec3_add(buf[0].position, pos, buf[0].position);
+                    buf[0].position = pos + x_vec * v00;
                     buf[0].uv.x = uv_u;
                     buf[0].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
                     buf[0].color = hist_data.color;
 
-                    vec3_mult_scalar(x_vec, v01, buf[1].position);
-                    vec3_add(buf[1].position, pos, buf[1].position);
+                    buf[1].position = pos + x_vec * v01;
                     buf[1].uv.x = uv_u_2nd;
                     buf[1].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
                     buf[1].color = hist_data.color;
@@ -375,8 +395,13 @@ namespace Glitter {
             }
         }
         rend_group->disp = disp;
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
+
+        if (GLAD_GL_VERSION_4_5)
+            glUnmapNamedBuffer(rend_group->vbo);
+        else {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            gl_state_bind_array_buffer(0);
+        }
     }
 
     void F2RenderScene::CalcDispQuad(GPM, F2RenderGroup* rend_group) {
@@ -479,10 +504,24 @@ namespace Glitter {
         vec3 scale;
         mat4_get_scale(model_mat, &scale);
 
-        gl_state_bind_array_buffer(rend_group->vbo);
-        Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        Buffer* buf;
+        if (GLAD_GL_VERSION_4_5)
+            buf = (Buffer*)glMapNamedBuffer(rend_group->vbo, GL_WRITE_ONLY);
+        else {
+            gl_state_bind_array_buffer(rend_group->vbo);
+            buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (!buf) {
+            if (!GLAD_GL_VERSION_4_5)
+                gl_state_bind_array_buffer(0);
+            return;
+        }
+
         bool use_scale = rend_group->flags & PARTICLE_SCALE ? true : false;
         RenderElement* elem = rend_group->elements;
+        vec2 split_uv = rend_group->split_uv;
+        Pivot pivot = rend_group->pivot;
         size_t disp = 0;
         for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
             j_max = min_def(i, j_max);
@@ -494,10 +533,7 @@ namespace Glitter {
                 if (!elem->disp)
                     continue;
 
-                vec2 scale_particle;
-                vec2_mult(*(vec2*)&elem->scale, elem->scale_particle, scale_particle);
-                vec2_mult_scalar(scale_particle, elem->scale_all, scale_particle);
-
+                vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
                 if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                     continue;
 
@@ -507,9 +543,9 @@ namespace Glitter {
                 float_t v01;
                 float_t v10;
                 float_t v11;
-                CalcDispQuadSetPivot(rend_group->pivot,
+                CalcDispQuadSetPivot(pivot,
                     scale_particle.x, scale_particle.y,
-                    &v00, &v01, &v10, &v11);
+                    v00, v01, v10, v11);
 
                 vec2 pos_add[4];
                 vec2 uv_add[4];
@@ -520,18 +556,17 @@ namespace Glitter {
                 pos_add[1].x = v00;
                 pos_add[1].y = v10;
                 uv_add[1].x = 0.0f;
-                uv_add[1].y = rend_group->split_uv.y;
+                uv_add[1].y = split_uv.y;
                 pos_add[2].x = v01;
                 pos_add[2].y = v10;
-                uv_add[2].x = rend_group->split_uv.x;
-                uv_add[2].y = rend_group->split_uv.y;
+                uv_add[2].x = split_uv.x;
+                uv_add[2].y = split_uv.y;
                 pos_add[3].x = v01;
                 pos_add[3].y = v11;
-                uv_add[3].x = rend_group->split_uv.x;
+                uv_add[3].x = split_uv.x;
                 uv_add[3].y = 0.0f;
 
-                vec2 base_uv;
-                vec2_add(elem->uv_scroll, elem->uv, base_uv);
+                vec2 uv = elem->uv + elem->uv_scroll;
 
                 mat4 mat = rotate_func(rend_group, elem, &up_vec);
                 mat4_clear_trans(&mat, &mat);
@@ -544,31 +579,30 @@ namespace Glitter {
                 mat4_mult_vec3(&mat, &y_vec_base, &y_vec);
 
                 if (use_scale) {
-                    vec3_mult(x_vec, scale, x_vec);
-                    vec3_mult(y_vec, scale, y_vec);
+                    x_vec *= scale;
+                    y_vec *= scale;
                 }
 
-                float_t rot_z_cos = cosf(elem->rotation.z);
-                float_t rot_z_sin = sinf(elem->rotation.z);
+                float_t rot_z_cos = elem->rot_z_cos;
+                float_t rot_z_sin = elem->rot_z_sin;
                 for (int32_t k = 0; k < 4; k++, buf++) {
-                    vec3 x_vec_rot;
-                    vec3_mult_scalar(x_vec, pos_add[k].x * rot_z_cos - pos_add[k].y * rot_z_sin, x_vec_rot);
-                    vec3 y_vec_rot;
-                    vec3_mult_scalar(y_vec, pos_add[k].x * rot_z_sin + pos_add[k].y * rot_z_cos, y_vec_rot);
-
-                    vec3 pos_add_rot;
-                    vec3_add(x_vec_rot, y_vec_rot, pos_add_rot);
-                    vec3_add(pos, pos_add_rot, buf->position);
-
-                    vec2_add(base_uv, uv_add[k], buf->uv);
+                    vec3 x_vec_rot = x_vec * (pos_add[k].x * rot_z_cos - pos_add[k].y * rot_z_sin);
+                    vec3 y_vec_rot = y_vec * (pos_add[k].x * rot_z_sin + pos_add[k].y * rot_z_cos);
+                    buf->position = pos + (x_vec_rot + y_vec_rot);
+                    buf->uv = uv + uv_add[k];
                     buf->color = elem->color;
                 }
                 disp++;
             }
         }
         rend_group->disp = disp;
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
+
+        if (GLAD_GL_VERSION_4_5)
+            glUnmapNamedBuffer(rend_group->vbo);
+        else {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            gl_state_bind_array_buffer(0);
+        }
     }
 
     void F2RenderScene::CalcDispQuadNormal(GPM,
@@ -580,12 +614,12 @@ namespace Glitter {
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         vec3 y_vec = { 0.0f, 1.0f, 0.0f };
         bool use_z_offset = false;
-        vec3 dist_to_cam = vec3_null;
+        vec3 dist_to_cam = 0.0f;
         mat4 z_offset_inv_mat = mat4_identity;
         if (fabsf(rend_group->z_offset) > 0.000001f) {
             use_z_offset = true;
             mat4_get_translation(model_mat, &dist_to_cam);
-            vec3_sub(GPM_VAL->cam.view_point, dist_to_cam, dist_to_cam);
+            dist_to_cam = GPM_VAL->cam.view_point - dist_to_cam;
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
                 mat4_inverse(&z_offset_inv_mat, &z_offset_inv_mat);
@@ -594,14 +628,14 @@ namespace Glitter {
 
         bool has_scale = false;
         bool emitter_local = false;
-        vec3 scale = vec3_null;
+        vec3 scale = 0.0f;
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             mat4_get_scale(model_mat, &scale);
             if (rend_group->flags & PARTICLE_SCALE) {
                 x_vec.x = scale.x;
                 y_vec.y = scale.y;
             }
-            vec3_sub(scale, vec3_identity, scale);
+            scale -= 1.0f;
             if (!(has_scale |= fabsf(scale.x) > 0.000001f ? true : false))
                 scale.x = 0.0f;
             if (!(has_scale |= fabsf(scale.y) > 0.000001f ? true : false))
@@ -618,7 +652,7 @@ namespace Glitter {
             if (some_scale <= 0.0f)
                 some_scale = 1.0f;
 
-            vec2_add_scalar(*(vec2*)&ext_anim_scale, some_scale, *(vec2*)&ext_anim_scale);
+            ext_anim_scale += some_scale;
             x_vec.x *= ext_anim_scale.x;
             y_vec.y *= ext_anim_scale.y;
         }
@@ -633,9 +667,24 @@ namespace Glitter {
         mat4_mult_vec3(&inv_model_mat, &x_vec, &x_vec);
         mat4_mult_vec3(&inv_model_mat, &y_vec, &y_vec);
 
-        gl_state_bind_array_buffer(rend_group->vbo);
-        Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        Buffer* buf;
+        if (GLAD_GL_VERSION_4_5)
+            buf = (Buffer*)glMapNamedBuffer(rend_group->vbo, GL_WRITE_ONLY);
+        else {
+            gl_state_bind_array_buffer(rend_group->vbo);
+            buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (!buf) {
+            if (!GLAD_GL_VERSION_4_5)
+                gl_state_bind_array_buffer(0);
+            return;
+        }
+
         RenderElement* elem = rend_group->elements;
+        vec2 split_uv = rend_group->split_uv;
+        Pivot pivot = rend_group->pivot;
+        float_t z_offset = rend_group->z_offset;
         size_t disp = 0;
         if (rend_group->draw_type == DIRECTION_PARTICLE_ROTATION)
             for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
@@ -648,29 +697,24 @@ namespace Glitter {
                     if (!elem->disp)
                         continue;
 
-                    vec2 scale_particle;
-                    vec2_mult(*(vec2*)&elem->scale, elem->scale_particle, scale_particle);
-                    vec2_mult_scalar(scale_particle, elem->scale_all, scale_particle);
-
+                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
                     if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                         continue;
 
                     vec3 pos = elem->translation;
                     if (has_scale) {
-                        vec3 pos_diff;
-                        vec3_sub(pos, elem->base_translation, pos_diff);
-                        vec3_mult(pos_diff, scale, pos_diff);
+                        vec3 pos_diff = (pos - elem->base_translation) * scale;
                         mat4_mult_vec3(&inv_model_mat, &pos_diff, &pos_diff);
-                        vec3_add(pos, pos_diff, pos);
+                        pos += pos_diff;
                     }
 
                     float_t v00;
                     float_t v01;
                     float_t v11;
                     float_t v10;
-                    CalcDispQuadSetPivot(rend_group->pivot,
+                    CalcDispQuadSetPivot(pivot,
                         scale_particle.x, scale_particle.y,
-                        &v00, &v01, &v10, &v11);
+                        v00, v01, v10, v11);
 
                     vec2 pos_add[4];
                     vec2 uv_add[4];
@@ -681,40 +725,35 @@ namespace Glitter {
                     pos_add[1].x = v00;
                     pos_add[1].y = v10;
                     uv_add[1].x = 0.0f;
-                    uv_add[1].y = rend_group->split_uv.y;
+                    uv_add[1].y = split_uv.y;
                     pos_add[2].x = v01;
                     pos_add[2].y = v10;
-                    uv_add[2].x = rend_group->split_uv.x;
-                    uv_add[2].y = rend_group->split_uv.y;
+                    uv_add[2].x = split_uv.x;
+                    uv_add[2].y = split_uv.y;
                     pos_add[3].x = v01;
                     pos_add[3].y = v11;
-                    uv_add[3].x = rend_group->split_uv.x;
+                    uv_add[3].x = split_uv.x;
                     uv_add[3].y = 0.0f;
 
-                    vec2 base_uv;
-                    vec2_add(elem->uv_scroll, elem->uv, base_uv);
-                    if (use_z_offset) {
-                        vec3 z_offset_dir;
-                        vec3_sub(dist_to_cam, pos, z_offset_dir);
-                        vec3_normalize(z_offset_dir, z_offset_dir);
+                    vec2 uv = elem->uv + elem->uv_scroll;
 
+                    if (use_z_offset) {
+                        vec3 z_offset_dir = vec3::normalize(dist_to_cam - pos);
                         if (emitter_local)
                             mat4_mult_vec3(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
-
-                        vec3_mult_scalar(z_offset_dir, rend_group->z_offset, z_offset_dir);
-                        vec3_add(pos, z_offset_dir, pos);
+                        pos += z_offset_dir * z_offset;
                     }
 
                     mat3 ptc_rot;
                     mat3_rotate(elem->rotation.x, elem->rotation.y, elem->rotation.z, &ptc_rot);
                     for (int32_t k = 0; k < 4; k++, buf++) {
-                        vec3 x_vec_rot;
-                        x_vec_rot.x = x_vec.x * pos_add[k].x;
-                        x_vec_rot.y = y_vec.y * pos_add[k].y;
-                        x_vec_rot.z = 0.0f;
-                        mat3_mult_vec(&ptc_rot, &x_vec_rot, &x_vec_rot);
-                        vec3_add(x_vec_rot, pos, buf->position);
-                        vec2_add(base_uv, uv_add[k], buf->uv);
+                        vec3 xy_vec_rot;
+                        xy_vec_rot.x = x_vec.x * pos_add[k].x;
+                        xy_vec_rot.y = y_vec.y * pos_add[k].y;
+                        xy_vec_rot.z = 0.0f;
+                        mat3_mult_vec(&ptc_rot, &xy_vec_rot, &xy_vec_rot);
+                        buf->position = pos + xy_vec_rot;
+                        buf->uv = uv + uv_add[k];
                         buf->color = elem->color;
                     }
                     disp++;
@@ -731,10 +770,7 @@ namespace Glitter {
                     if (!elem->disp)
                         continue;
 
-                    vec2 scale_particle;
-                    vec2_mult(*(vec2*)&elem->scale, elem->scale_particle, scale_particle);
-                    vec2_mult_scalar(scale_particle, elem->scale_all, scale_particle);
-
+                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
                     if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                         continue;
 
@@ -751,9 +787,9 @@ namespace Glitter {
                     float_t v01;
                     float_t v11;
                     float_t v10;
-                    CalcDispQuadSetPivot(rend_group->pivot,
+                    CalcDispQuadSetPivot(pivot,
                         scale_particle.x, scale_particle.y,
-                        &v00, &v01, &v10, &v11);
+                        v00, v01, v10, v11);
 
                     vec2 pos_add[4];
                     vec2 uv_add[4];
@@ -764,48 +800,45 @@ namespace Glitter {
                     pos_add[1].x = v00;
                     pos_add[1].y = v10;
                     uv_add[1].x = 0.0f;
-                    uv_add[1].y = rend_group->split_uv.y;
+                    uv_add[1].y = split_uv.y;
                     pos_add[2].x = v01;
                     pos_add[2].y = v10;
-                    uv_add[2].x = rend_group->split_uv.x;
-                    uv_add[2].y = rend_group->split_uv.y;
+                    uv_add[2].x = split_uv.x;
+                    uv_add[2].y = split_uv.y;
                     pos_add[3].x = v01;
                     pos_add[3].y = v11;
-                    uv_add[3].x = rend_group->split_uv.x;
+                    uv_add[3].x = split_uv.x;
                     uv_add[3].y = 0.0f;
 
-                    vec2 base_uv;
-                    vec2_add(elem->uv_scroll, elem->uv, base_uv);
-                    if (use_z_offset) {
-                        vec3 z_offset_dir;
-                        vec3_sub(dist_to_cam, pos, z_offset_dir);
-                        vec3_normalize(z_offset_dir, z_offset_dir);
+                    vec2 uv = elem->uv + elem->uv_scroll;
 
+                    if (use_z_offset) {
+                        vec3 z_offset_dir = vec3::normalize(dist_to_cam - pos);
                         if (emitter_local)
                             mat4_mult_vec3(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
-
-                        vec3_mult_scalar(z_offset_dir, rend_group->z_offset, z_offset_dir);
-                        vec3_add(pos, z_offset_dir, pos);
+                        pos += z_offset_dir * z_offset;
                     }
 
-                    float_t rot_z_cos = cosf(elem->rotation.z);
-                    float_t rot_z_sin = sinf(elem->rotation.z);
+                    float_t rot_z_cos = elem->rot_z_cos;
+                    float_t rot_z_sin = elem->rot_z_sin;
                     for (int32_t k = 0; k < 4; k++, buf++) {
-                        vec3 x_vec_rot;
-                        vec3_mult_scalar(x_vec, rot_z_cos * pos_add[k].x - rot_z_sin * pos_add[k].y, x_vec_rot);
-                        vec3 y_vec_rot;
-                        vec3_mult_scalar(y_vec, rot_z_sin * pos_add[k].x + rot_z_cos * pos_add[k].y, y_vec_rot);
-                        vec3_add(x_vec_rot, y_vec_rot, x_vec_rot);
-                        vec3_add(x_vec_rot, pos, buf->position);
-                        vec2_add(base_uv, uv_add[k], buf->uv);
+                        vec3 x_vec_rot = x_vec * (rot_z_cos * pos_add[k].x - rot_z_sin * pos_add[k].y);
+                        vec3 y_vec_rot = y_vec * (rot_z_sin * pos_add[k].x + rot_z_cos * pos_add[k].y);
+                        buf->position = pos + (x_vec_rot + y_vec_rot);
+                        buf->uv = uv + uv_add[k];
                         buf->color = elem->color;
                     }
                     disp++;
                 }
             }
         rend_group->disp = disp;
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
+
+        if (GLAD_GL_VERSION_4_5)
+            glUnmapNamedBuffer(rend_group->vbo);
+        else {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            gl_state_bind_array_buffer(0);
+        }
     }
 
     void F2RenderScene::Ctrl(GLT, float_t delta_frame) {
@@ -888,6 +921,9 @@ namespace Glitter {
         default:
             return;
         }
+
+        if (!rend_group->vao)
+            return;
 
         rend_group->disp = 0;
         switch (rend_group->type) {
@@ -1013,13 +1049,17 @@ namespace Glitter {
         shaders_ft.state_matrix_set_mvp(rend_group->mat_draw, GPM_VAL->cam.view, GPM_VAL->cam.projection);
         shaders_ft.state_matrix_set_texture(0, mat4_identity);
         shaders_ft.state_matrix_set_texture(1, mat4_identity);
-        shaders_ft.env_vert_set(3, vec4_identity);
+        shaders_ft.env_vert_set(3, 1.0f);
 
         shaders_ft.set(SHADER_FT_GLITTER_PT);
         switch (rend_group->type) {
         case PARTICLE_QUAD: {
             gl_state_bind_vertex_array(rend_group->vao);
-            shaders_ft.draw_elements(GL_TRIANGLES, (GLsizei)(6 * rend_group->disp), GL_UNSIGNED_INT, 0);
+            shaders_ft.enable_primitive_restart();
+            shaders_ft.set_primitive_restart_index(0xFFFFFFFF);
+            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
+            shaders_ft.disable_primitive_restart();
+            gl_state_bind_vertex_array(0);
 
         } break;
         case PARTICLE_LINE:
@@ -1128,7 +1168,7 @@ namespace Glitter {
             return;
 
         bool has_scale = false;
-        vec3 scale = vec3_null;
+        vec3 scale = 0.0f;
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             rend_group->GetEmitterScale(scale);
             if (!(has_scale |= fabsf(scale.x) > 0.000001f ? true : false))
@@ -1142,8 +1182,20 @@ namespace Glitter {
         else
             rend_group->mat_draw = mat4_identity;
 
-        gl_state_bind_array_buffer(rend_group->vbo);
-        Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        Buffer* buf;
+        if (GLAD_GL_VERSION_4_5)
+            buf = (Buffer*)glMapNamedBuffer(rend_group->vbo, GL_WRITE_ONLY);
+        else {
+            gl_state_bind_array_buffer(rend_group->vbo);
+            buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (!buf) {
+            if (!GLAD_GL_VERSION_4_5)
+                gl_state_bind_array_buffer(0);
+            return;
+        }
+
         elem = rend_group->elements;
         size_t disp = 0;
         rend_group->draw_list.clear();
@@ -1159,12 +1211,9 @@ namespace Glitter {
             size_t j = 0;
             if (has_scale)
                 for (LocusHistory::Data& hist_data : hist->data) {
-                    vec3 pos = hist_data.translation;
-                    vec3 pos_diff;
-                    vec3_sub(pos, elem->base_translation, pos_diff);
-                    vec3_mult(pos_diff, scale, pos_diff);
-                    vec3_add(pos, pos_diff, buf->position);
-                    buf->uv = vec2_null;
+                    vec3& pos = hist_data.translation;
+                    buf->position = pos + (pos - elem->base_translation) * scale;
+                    buf->uv = 0.0f;
                     buf->color = hist_data.color;
                     j++;
                     buf++;
@@ -1172,7 +1221,7 @@ namespace Glitter {
             else
                 for (LocusHistory::Data& hist_data : hist->data) {
                     buf->position = hist_data.translation;
-                    buf->uv = vec2_null;
+                    buf->uv = 0.0f;
                     buf->color = hist_data.color;
                     j++;
                     buf++;
@@ -1185,8 +1234,13 @@ namespace Glitter {
             }
         }
         rend_group->disp = disp;
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
+
+        if (GLAD_GL_VERSION_4_5)
+            glUnmapNamedBuffer(rend_group->vbo);
+        else {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            gl_state_bind_array_buffer(0);
+        }
     }
 
     void XRenderScene::CalcDispLocus(GPM, XRenderGroup* rend_group) {
@@ -1221,12 +1275,12 @@ namespace Glitter {
 
         mat3 model_mat;
         bool has_scale = false;
-        vec3 scale = vec3_null;
+        vec3 scale = 0.0f;
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             mat4_get_scale(&rend_group->mat, &scale);
             if (rend_group->flags & PARTICLE_SCALE)
                 x_vec.x = scale.x;
-            vec3_sub(scale, vec3_identity, scale);
+            scale -= 1.0f;
             if (!(has_scale |= fabsf(scale.x) > 0.000001f ? true : false))
                 scale.x = 0.0f;
             if (!(has_scale |= fabsf(scale.y) > 0.000001f ? true : false))
@@ -1242,9 +1296,23 @@ namespace Glitter {
 
         mat3_mult_vec(&GPM_VAL->cam.inv_view_mat3, &x_vec, &x_vec);
 
-        gl_state_bind_array_buffer(rend_group->vbo);
-        Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        Buffer* buf;
+        if (GLAD_GL_VERSION_4_5)
+            buf = (Buffer*)glMapNamedBuffer(rend_group->vbo, GL_WRITE_ONLY);
+        else {
+            gl_state_bind_array_buffer(rend_group->vbo);
+            buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (!buf) {
+            if (!GLAD_GL_VERSION_4_5)
+                gl_state_bind_array_buffer(0);
+            return;
+        }
+
         elem = rend_group->elements;
+        vec2 split_uv = rend_group->split_uv;
+        Pivot pivot = rend_group->pivot;
         size_t disp = 0;
         rend_group->draw_list.clear();
         for (size_t i = rend_group->ctrl, index = 0; i > 0; elem++) {
@@ -1257,9 +1325,9 @@ namespace Glitter {
                 continue;
 
             float_t uv_u = elem->uv.x + elem->uv_scroll.x;
-            float_t uv_u_2nd = elem->uv.x + elem->uv_scroll.x + rend_group->split_uv.x;
-            float_t uv_v_2nd = elem->uv.y + elem->uv_scroll.y + rend_group->split_uv.y;
-            float_t uv_v_scale = rend_group->split_uv.y / (float_t)(hist->data.size() - 1);
+            float_t uv_u_2nd = elem->uv.x + elem->uv_scroll.x + split_uv.x;
+            float_t uv_v_2nd = elem->uv.y + elem->uv_scroll.y + split_uv.y;
+            float_t uv_v_scale = split_uv.y / (float_t)(hist->data.size() - 1);
 
             uv_v_2nd = 1.0f - uv_v_2nd;
 
@@ -1267,26 +1335,22 @@ namespace Glitter {
             if (has_scale)
                 for (LocusHistory::Data& hist_data : hist->data) {
                     vec3 pos = hist_data.translation;
-                    vec3 pos_diff;
-                    vec3_sub(pos, elem->base_translation, pos_diff);
-                    vec3_mult(pos_diff, scale, pos_diff);
+                    vec3 pos_diff = (pos - elem->base_translation) * scale;
                     mat3_mult_vec(&model_mat, &pos_diff, &pos_diff);
-                    vec3_add(pos, pos_diff, pos);
+                    pos += pos_diff;
 
                     float_t v00;
                     float_t v01;
-                    CalcDispLocusSetPivot(rend_group->pivot,
+                    CalcDispLocusSetPivot(pivot,
                         hist_data.scale * elem->scale.x * elem->scale_all,
-                        &v00, &v01);
+                        v00, v01);
 
-                    vec3_mult_scalar(x_vec, v00, buf[0].position);
-                    vec3_add(buf[0].position, pos, buf[0].position);
+                    buf[0].position = pos + x_vec * v00;
                     buf[0].uv.x = uv_u;
                     buf[0].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
                     buf[0].color = hist_data.color;
 
-                    vec3_mult_scalar(x_vec, v01, buf[1].position);
-                    vec3_add(buf[1].position, pos, buf[1].position);
+                    buf[1].position = pos + x_vec * v01;
                     buf[1].uv.x = uv_u_2nd;
                     buf[1].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
                     buf[1].color = hist_data.color;
@@ -1299,18 +1363,16 @@ namespace Glitter {
 
                     float_t v00;
                     float_t v01;
-                    CalcDispLocusSetPivot(rend_group->pivot,
+                    CalcDispLocusSetPivot(pivot,
                         hist_data.scale * elem->scale.x * elem->scale_all,
-                        &v00, &v01);
+                        v00, v01);
 
-                    vec3_mult_scalar(x_vec, v00, buf[0].position);
-                    vec3_add(buf[0].position, pos, buf[0].position);
+                    buf[0].position = pos + x_vec * v00;
                     buf[0].uv.x = uv_u;
                     buf[0].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
                     buf[0].color = hist_data.color;
 
-                    vec3_mult_scalar(x_vec, v01, buf[1].position);
-                    vec3_add(buf[1].position, pos, buf[1].position);
+                    buf[1].position = pos + x_vec * v01;
                     buf[1].uv.x = uv_u_2nd;
                     buf[1].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
                     buf[1].color = hist_data.color;
@@ -1325,8 +1387,13 @@ namespace Glitter {
             }
         }
         rend_group->disp = disp;
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
+
+        if (GLAD_GL_VERSION_4_5)
+            glUnmapNamedBuffer(rend_group->vbo);
+        else {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            gl_state_bind_array_buffer(0);
+        }
     }
 
     void XRenderScene::CalcDispMesh(GPM, XRenderGroup* rend_group) {
@@ -1336,7 +1403,7 @@ namespace Glitter {
 
         bool has_scale = false;
         bool emitter_local = false;
-        vec3 emit_scale = vec3_null;
+        vec3 emit_scale = 0.0f;
         mat4 model_mat;
         mat4 view_mat;
         mat4 inv_view_mat;
@@ -1437,16 +1504,14 @@ namespace Glitter {
         float_t some_scale = 0.0f;
         if (rend_group->GetExtAnimScale(&ext_anim_scale, &some_scale)) {
             if (!has_scale) {
-                emit_scale = vec3_identity;
+                emit_scale = 1.0f;
                 has_scale = true;
             }
 
-            if (some_scale >= 0.0f) {
-                vec3_add_scalar(ext_anim_scale, some_scale, ext_anim_scale);
-                vec3_mult(emit_scale, ext_anim_scale, emit_scale);
-            }
+            if (some_scale >= 0.0f)
+                emit_scale *= ext_anim_scale + some_scale;
             else
-                vec3_add(emit_scale, ext_anim_scale, emit_scale);
+                emit_scale += ext_anim_scale;
         }
 
         object_data* object_data = &rctx_ptr->object_data;
@@ -1466,10 +1531,9 @@ namespace Glitter {
 
                 vec3 trans = elem->translation;
                 vec3 rot = elem->rotation;
-                vec3 scale;
-                vec3_mult_scalar(elem->scale, elem->scale_all, scale);
+                vec3 scale = elem->scale * elem->scale_all;
                 if (has_scale)
-                    vec3_mult(scale, emit_scale, scale);
+                    scale *= emit_scale;
 
                 if (emitter_local)
                     mat4_mult_vec3_trans(&model_mat, &trans, &trans);
@@ -1490,8 +1554,8 @@ namespace Glitter {
                     mat = dir_mat;
 
                 mat4_set_translation(&mat, &trans);
-                mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-                mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+                mat4_rotate_mult(&mat, &rot, &mat);
+                mat4_scale_rot(&mat, &scale, &mat);
 
 
                 vec3 uv_scroll;
@@ -1616,14 +1680,28 @@ namespace Glitter {
         }
 
         bool use_scale = false;
-        vec3 scale = vec3_identity;
+        vec3 scale = 1.0f;
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL
             && rend_group->GetEmitterScale(scale))
             use_scale = rend_group->flags & PARTICLE_SCALE ? true : false;
 
-        gl_state_bind_array_buffer(rend_group->vbo);
-        Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        Buffer* buf;
+        if (GLAD_GL_VERSION_4_5)
+            buf = (Buffer*)glMapNamedBuffer(rend_group->vbo, GL_WRITE_ONLY);
+        else {
+            gl_state_bind_array_buffer(rend_group->vbo);
+            buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (!buf) {
+            if (!GLAD_GL_VERSION_4_5)
+                gl_state_bind_array_buffer(0);
+            return;
+        }
+
         RenderElement* elem = rend_group->elements;
+        vec2 split_uv = rend_group->split_uv;
+        Pivot pivot = rend_group->pivot;
         size_t disp = 0;
         for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
             j_max = min_def(i, j_max);
@@ -1635,25 +1713,21 @@ namespace Glitter {
                 if (!elem->disp)
                     continue;
 
-                vec2 scale_particle;
-                vec2_mult(*(vec2*)&elem->scale, elem->scale_particle, scale_particle);
-                vec2_mult_scalar(scale_particle, elem->scale_all, scale_particle);
-
+                vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
                 if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                     continue;
 
                 vec3 pos = elem->translation;
-
                 if (use_scale)
-                    vec3_mult(pos, scale, pos);
+                    pos *= scale;
 
                 float_t v00;
                 float_t v01;
                 float_t v10;
                 float_t v11;
-                CalcDispQuadSetPivot(rend_group->pivot,
+                CalcDispQuadSetPivot(pivot,
                     scale_particle.x, scale_particle.y,
-                    &v00, &v01, &v10, &v11);
+                    v00, v01, v10, v11);
 
                 vec2 pos_add[4];
                 vec2 uv_add[4];
@@ -1664,18 +1738,17 @@ namespace Glitter {
                 pos_add[1].x = v00;
                 pos_add[1].y = v10;
                 uv_add[1].x = 0.0f;
-                uv_add[1].y = rend_group->split_uv.y;
+                uv_add[1].y = split_uv.y;
                 pos_add[2].x = v01;
                 pos_add[2].y = v10;
-                uv_add[2].x = rend_group->split_uv.x;
-                uv_add[2].y = rend_group->split_uv.y;
+                uv_add[2].x = split_uv.x;
+                uv_add[2].y = split_uv.y;
                 pos_add[3].x = v01;
                 pos_add[3].y = v11;
-                uv_add[3].x = rend_group->split_uv.x;
+                uv_add[3].x = split_uv.x;
                 uv_add[3].y = 0.0f;
 
-                vec2 base_uv;
-                vec2_add(elem->uv_scroll, elem->uv, base_uv);
+                vec2 uv = elem->uv + elem->uv_scroll;
 
                 mat4 mat = rotate_func(rend_group, elem, &up_vec);
                 vec3 x_vec;
@@ -1684,31 +1757,30 @@ namespace Glitter {
                 mat4_mult_vec3(&mat, &y_vec_base, &y_vec);
 
                 if (use_scale) {
-                    vec3_mult(x_vec, scale, x_vec);
-                    vec3_mult(y_vec, scale, y_vec);
+                    x_vec *= scale;
+                    y_vec *= scale;
                 }
 
-                float_t rot_z_cos = cosf(elem->rotation.z);
-                float_t rot_z_sin = sinf(elem->rotation.z);
+                float_t rot_z_cos = elem->rot_z_cos;
+                float_t rot_z_sin = elem->rot_z_sin;
                 for (int32_t k = 0; k < 4; k++, buf++) {
-                    vec3 x_vec_rot;
-                    vec3_mult_scalar(x_vec, pos_add[k].x * rot_z_cos - pos_add[k].y * rot_z_sin, x_vec_rot);
-                    vec3 y_vec_rot;
-                    vec3_mult_scalar(y_vec, pos_add[k].x * rot_z_sin + pos_add[k].y * rot_z_cos, y_vec_rot);
-
-                    vec3 pos_add_rot;
-                    vec3_add(x_vec_rot, y_vec_rot, pos_add_rot);
-                    vec3_add(pos, pos_add_rot, buf->position);
-
-                    vec2_add(base_uv, uv_add[k], buf->uv);
+                    vec3 x_vec_rot = x_vec * (pos_add[k].x * rot_z_cos - pos_add[k].y * rot_z_sin);
+                    vec3 y_vec_rot = y_vec * (pos_add[k].x * rot_z_sin + pos_add[k].y * rot_z_cos);
+                    buf->position = pos + (x_vec_rot + y_vec_rot);
+                    buf->uv = uv + uv_add[k];
                     buf->color = elem->color;
                 }
                 disp++;
             }
         }
         rend_group->disp = disp;
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
+
+        if (GLAD_GL_VERSION_4_5)
+            glUnmapNamedBuffer(rend_group->vbo);
+        else {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            gl_state_bind_array_buffer(0);
+        }
     }
 
     void XRenderScene::CalcDispQuadNormal(XRenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
@@ -1719,12 +1791,12 @@ namespace Glitter {
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         vec3 y_vec = { 0.0f, 1.0f, 0.0f };
         bool use_z_offset = false;
-        vec3 dist_to_cam = vec3_null;
+        vec3 dist_to_cam = 0.0f;
         mat4 z_offset_inv_mat = mat4_identity;
         if (fabsf(rend_group->z_offset) > 0.000001f) {
             use_z_offset = true;
             mat4_get_translation(model_mat, &dist_to_cam);
-            vec3_sub(GPM_VAL->cam.view_point, dist_to_cam, dist_to_cam);
+            dist_to_cam = GPM_VAL->cam.view_point - dist_to_cam;
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
                 mat4_inverse(&z_offset_inv_mat, &z_offset_inv_mat);
@@ -1733,7 +1805,7 @@ namespace Glitter {
 
         bool has_scale = false;
         bool emitter_local = false;
-        vec3 scale = vec3_null;
+        vec3 scale = 0.0f;
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             rend_group->GetEmitterScale(scale);
             if (rend_group->flags & PARTICLE_SCALE) {
@@ -1755,7 +1827,7 @@ namespace Glitter {
             if (some_scale <= 0.0f)
                 some_scale = 1.0f;
 
-            vec2_add_scalar(*(vec2*)&ext_anim_scale, some_scale, *(vec2*)&ext_anim_scale);
+            ext_anim_scale += some_scale;
             x_vec.x *= ext_anim_scale.x;
             y_vec.y *= ext_anim_scale.y;
         }
@@ -1770,9 +1842,24 @@ namespace Glitter {
         mat4_mult_vec3(&inv_model_mat, &x_vec, &x_vec);
         mat4_mult_vec3(&inv_model_mat, &y_vec, &y_vec);
 
-        gl_state_bind_array_buffer(rend_group->vbo);
-        Buffer* buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        Buffer* buf;
+        if (GLAD_GL_VERSION_4_5)
+            buf = (Buffer*)glMapNamedBuffer(rend_group->vbo, GL_WRITE_ONLY);
+        else {
+            gl_state_bind_array_buffer(rend_group->vbo);
+            buf = (Buffer*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        }
+
+        if (!buf) {
+            if (!GLAD_GL_VERSION_4_5)
+                gl_state_bind_array_buffer(0);
+            return;
+        }
+
         RenderElement* elem = rend_group->elements;
+        vec2 split_uv = rend_group->split_uv;
+        Pivot pivot = rend_group->pivot;
+        float_t z_offset = rend_group->z_offset;
         size_t disp = 0;
         if (rend_group->draw_type == DIRECTION_PARTICLE_ROTATION)
             for (size_t i = rend_group->ctrl, j_max = 1024; i > 0; i -= j_max) {
@@ -1785,24 +1872,21 @@ namespace Glitter {
                     if (!elem->disp)
                         continue;
 
-                    vec2 scale_particle;
-                    vec2_mult(*(vec2*)&elem->scale, elem->scale_particle, scale_particle);
-                    vec2_mult_scalar(scale_particle, elem->scale_all, scale_particle);
-
+                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
                     if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                         continue;
 
                     vec3 pos = elem->translation;
                     if (has_scale)
-                        vec3_mult(pos, scale, pos);
+                        pos *= scale;
 
                     float_t v00;
                     float_t v01;
                     float_t v11;
                     float_t v10;
-                    CalcDispQuadSetPivot(rend_group->pivot,
+                    CalcDispQuadSetPivot(pivot,
                         scale_particle.x, scale_particle.y,
-                        &v00, &v01, &v10, &v11);
+                        v00, v01, v10, v11);
 
                     vec2 pos_add[4];
                     vec2 uv_add[4];
@@ -1813,40 +1897,35 @@ namespace Glitter {
                     pos_add[1].x = v00;
                     pos_add[1].y = v10;
                     uv_add[1].x = 0.0f;
-                    uv_add[1].y = rend_group->split_uv.y;
+                    uv_add[1].y = split_uv.y;
                     pos_add[2].x = v01;
                     pos_add[2].y = v10;
-                    uv_add[2].x = rend_group->split_uv.x;
-                    uv_add[2].y = rend_group->split_uv.y;
+                    uv_add[2].x = split_uv.x;
+                    uv_add[2].y = split_uv.y;
                     pos_add[3].x = v01;
                     pos_add[3].y = v11;
-                    uv_add[3].x = rend_group->split_uv.x;
+                    uv_add[3].x = split_uv.x;
                     uv_add[3].y = 0.0f;
 
-                    vec2 base_uv;
-                    vec2_add(elem->uv_scroll, elem->uv, base_uv);
-                    if (use_z_offset) {
-                        vec3 z_offset_dir;
-                        vec3_sub(dist_to_cam, pos, z_offset_dir);
-                        vec3_normalize(z_offset_dir, z_offset_dir);
+                    vec2 uv = elem->uv + elem->uv_scroll;
 
+                    if (use_z_offset) {
+                        vec3 z_offset_dir = vec3::normalize(dist_to_cam - pos);
                         if (emitter_local)
                             mat4_mult_vec3(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
-
-                        vec3_mult_scalar(z_offset_dir, rend_group->z_offset, z_offset_dir);
-                        vec3_add(pos, z_offset_dir, pos);
+                        pos += z_offset_dir * z_offset;
                     }
 
                     mat3 ptc_rot;
                     mat3_rotate(elem->rotation.x, elem->rotation.y, elem->rotation.z, &ptc_rot);
                     for (int32_t k = 0; k < 4; k++, buf++) {
-                        vec3 x_vec_rot;
-                        x_vec_rot.x = x_vec.x * pos_add[k].x;
-                        x_vec_rot.y = y_vec.y * pos_add[k].y;
-                        x_vec_rot.z = 0.0f;
-                        mat3_mult_vec(&ptc_rot, &x_vec_rot, &x_vec_rot);
-                        vec3_add(x_vec_rot, pos, buf->position);
-                        vec2_add(base_uv, uv_add[k], buf->uv);
+                        vec3 xy_vec_rot;
+                        xy_vec_rot.x = x_vec.x * pos_add[k].x;
+                        xy_vec_rot.y = y_vec.y * pos_add[k].y;
+                        xy_vec_rot.z = 0.0f;
+                        mat3_mult_vec(&ptc_rot, &xy_vec_rot, &xy_vec_rot);
+                        buf->position = pos + xy_vec_rot;
+                        buf->uv = uv + uv_add[k];
                         buf->color = elem->color;
                     }
                     disp++;
@@ -1863,24 +1942,21 @@ namespace Glitter {
                     if (!elem->disp)
                         continue;
 
-                    vec2 scale_particle;
-                    vec2_mult(*(vec2*)&elem->scale, elem->scale_particle, scale_particle);
-                    vec2_mult_scalar(scale_particle, elem->scale_all, scale_particle);
-
+                    vec2 scale_particle = *(vec2*)&elem->scale * elem->scale_particle * elem->scale_all;
                     if (fabsf(scale_particle.x) < 0.000001f || fabsf(scale_particle.y) < 0.000001f)
                         continue;
 
                     vec3 pos = elem->translation;
                     if (has_scale)
-                        vec3_mult(pos, scale, pos);
+                        pos *= scale;
 
                     float_t v00;
                     float_t v01;
                     float_t v11;
                     float_t v10;
-                    CalcDispQuadSetPivot(rend_group->pivot,
+                    CalcDispQuadSetPivot(pivot,
                         scale_particle.x, scale_particle.y,
-                        &v00, &v01, &v10, &v11);
+                        v00, v01, v10, v11);
 
                     vec2 pos_add[4];
                     vec2 uv_add[4];
@@ -1891,48 +1967,45 @@ namespace Glitter {
                     pos_add[1].x = v00;
                     pos_add[1].y = v10;
                     uv_add[1].x = 0.0f;
-                    uv_add[1].y = rend_group->split_uv.y;
+                    uv_add[1].y = split_uv.y;
                     pos_add[2].x = v01;
                     pos_add[2].y = v10;
-                    uv_add[2].x = rend_group->split_uv.x;
-                    uv_add[2].y = rend_group->split_uv.y;
+                    uv_add[2].x = split_uv.x;
+                    uv_add[2].y = split_uv.y;
                     pos_add[3].x = v01;
                     pos_add[3].y = v11;
-                    uv_add[3].x = rend_group->split_uv.x;
+                    uv_add[3].x = split_uv.x;
                     uv_add[3].y = 0.0f;
 
-                    vec2 base_uv;
-                    vec2_add(elem->uv_scroll, elem->uv, base_uv);
-                    if (use_z_offset) {
-                        vec3 z_offset_dir;
-                        vec3_sub(dist_to_cam, pos, z_offset_dir);
-                        vec3_normalize(z_offset_dir, z_offset_dir);
+                    vec2 uv = elem->uv + elem->uv_scroll;
 
+                    if (use_z_offset) {
+                        vec3 z_offset_dir = vec3::normalize(dist_to_cam - pos);
                         if (emitter_local)
                             mat4_mult_vec3(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
-
-                        vec3_mult_scalar(z_offset_dir, rend_group->z_offset, z_offset_dir);
-                        vec3_add(pos, z_offset_dir, pos);
+                        pos += z_offset_dir * z_offset;
                     }
 
-                    float_t rot_z_cos = cosf(elem->rotation.z);
-                    float_t rot_z_sin = sinf(elem->rotation.z);
+                    float_t rot_z_cos = elem->rot_z_cos;
+                    float_t rot_z_sin = elem->rot_z_sin;
                     for (int32_t k = 0; k < 4; k++, buf++) {
-                        vec3 x_vec_rot;
-                        vec3_mult_scalar(x_vec, rot_z_cos * pos_add[k].x - rot_z_sin * pos_add[k].y, x_vec_rot);
-                        vec3 y_vec_rot;
-                        vec3_mult_scalar(y_vec, rot_z_sin * pos_add[k].x + rot_z_cos * pos_add[k].y, y_vec_rot);
-                        vec3_add(x_vec_rot, y_vec_rot, x_vec_rot);
-                        vec3_add(x_vec_rot, pos, buf->position);
-                        vec2_add(base_uv, uv_add[k], buf->uv);
+                        vec3 x_vec_rot = x_vec * (rot_z_cos * pos_add[k].x - rot_z_sin * pos_add[k].y);
+                        vec3 y_vec_rot = y_vec * (rot_z_sin * pos_add[k].x + rot_z_cos * pos_add[k].y);
+                        buf->position = pos + (x_vec_rot + y_vec_rot);
+                        buf->uv = uv + uv_add[k];
                         buf->color = elem->color;
                     }
                     disp++;
                 }
             }
         rend_group->disp = disp;
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
+
+        if (GLAD_GL_VERSION_4_5)
+            glUnmapNamedBuffer(rend_group->vbo);
+        else {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            gl_state_bind_array_buffer(0);
+        }
     }
 
     bool XRenderScene::CanDisp(DispType disp_type, bool a3) {
@@ -2023,6 +2096,9 @@ namespace Glitter {
         default:
             return;
         }
+
+        if (!rend_group->vao)
+            return;
 
         rend_group->disp = 0;
         switch (rend_group->type) {
@@ -2130,13 +2206,16 @@ namespace Glitter {
         shaders_ft.state_matrix_set_mvp(rend_group->mat_draw, GPM_VAL->cam.view, GPM_VAL->cam.projection);
         shaders_ft.state_matrix_set_texture(0, mat4_identity);
         shaders_ft.state_matrix_set_texture(1, mat4_identity);
-        shaders_ft.env_vert_set(3, vec4_identity);
+        shaders_ft.env_vert_set(3, 1.0f);
 
         shaders_ft.set(SHADER_FT_GLITTER_PT);
         switch (rend_group->type) {
         case PARTICLE_QUAD: {
             gl_state_bind_vertex_array(rend_group->vao);
-            shaders_ft.draw_elements(GL_TRIANGLES, (GLsizei)(6 * rend_group->disp), GL_UNSIGNED_INT, 0);
+            shaders_ft.enable_primitive_restart();
+            shaders_ft.set_primitive_restart_index(0xFFFFFFFF);
+            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
+            shaders_ft.disable_primitive_restart();
             gl_state_bind_vertex_array(0);
         } break;
         case PARTICLE_LINE:

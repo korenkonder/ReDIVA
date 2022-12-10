@@ -82,7 +82,7 @@ struct sprite_database_file {
     std::vector<sprite_set_file> sprite_set;
 
     sprite_database_file();
-    virtual ~sprite_database_file();
+    ~sprite_database_file();
 
     void read(const char* path, bool modern);
     void read(const wchar_t* path, bool modern);
@@ -98,7 +98,7 @@ struct sprite_database {
     std::vector<sprite_set> sprite_set;
 
     sprite_database();
-    virtual ~sprite_database();
+    ~sprite_database();
 
     void add(sprite_database_file* spr_db_file);
 };

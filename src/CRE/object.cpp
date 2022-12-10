@@ -5,6 +5,7 @@
 
 #include <list>
 #include <map>
+#include <new>
 #include <vector>
 #include "object.hpp"
 #include "data.hpp"
@@ -27,15 +28,6 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
     const void* data, size_t size, const char* file, texture_database* tex_db);
 static bool obj_set_handler_vertex_buffer_load(obj_set_handler* handler);
 static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler);
-static void obj_skin_block_constraint_attach_point_load(
-    obj_skin_block_constraint_attach_point* attach_point,
-    obj_skin_block_constraint_attach_point* attach_point_file);
-static void obj_skin_block_constraint_up_vector_load(
-    obj_skin_block_constraint_up_vector* up_vector,
-    obj_skin_block_constraint_up_vector* up_vector_file);
-static void obj_skin_block_node_load(obj_skin_block_node* node,
-    obj_skin_block_node* node_file);
-static void obj_skin_block_node_free(obj_skin_block_node* node);
 static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
 static size_t obj_vertex_format_get_vertex_size_comp(obj_vertex_format format);
 
@@ -47,23 +39,23 @@ obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer(), size() {
 }
 
 bool obj_mesh_index_buffer::load(obj_mesh& mesh) {
-    int32_t indices_count = 0;
+    int32_t num_index = 0;
     for (uint32_t i = 0; i < mesh.num_submesh; i++)
-        indices_count += mesh.submesh_array[i].indices_count;
+        num_index += mesh.submesh_array[i].num_index;
 
-    if (!indices_count) {
+    if (!num_index) {
         buffer = 0;
         return true;
     }
 
-    uint16_t* indices = force_malloc_s(uint16_t, indices_count);
+    uint16_t* indices = force_malloc_s(uint16_t, num_index);
     uint16_t* _indices = indices;
     for (uint32_t k = 0; k < mesh.num_submesh; k++) {
         obj_sub_mesh& sub_mesh = mesh.submesh_array[k];
-        int32_t indices_count = sub_mesh.indices_count;
-        uint32_t* sub_mesh_indices = sub_mesh.indices;
-        for (int32_t l = 0; l < indices_count; l++)
-            *_indices++ = (uint16_t)sub_mesh_indices[l];
+        uint32_t num_index = sub_mesh.num_index;
+        uint32_t* index = sub_mesh.index_array;
+        for (uint32_t l = 0; l < num_index; l++, index++)
+            *_indices++ = (uint16_t)*index;
     }
 
     _indices = indices;
@@ -72,32 +64,31 @@ bool obj_mesh_index_buffer::load(obj_mesh& mesh) {
 
         sub_mesh.first_index = 0;
         sub_mesh.last_index = 0;
-        sub_mesh.indices_offset = 0;
+        sub_mesh.index_offset = 0;
         if (sub_mesh.index_format != OBJ_INDEX_U16)
             continue;
 
         uint16_t first_index = 0xFFFF;
         uint16_t last_index = 0;
-        int32_t indices_count = sub_mesh.indices_count;
-        uint32_t* sub_mesh_indices = sub_mesh.indices;
-        for (int32_t j = 0; j < indices_count; j++) {
+        uint32_t num_index = sub_mesh.num_index;
+        for (uint32_t j = 0; j < num_index; j++) {
             uint16_t index = *_indices++;
             if (index == 0xFFFF)
                 continue;
 
-            if (index < first_index)
+            if (first_index > index)
                 first_index = index;
-            if (index > last_index)
+            if (last_index < index)
                 last_index = index;
         }
 
         sub_mesh.first_index = first_index;
         sub_mesh.last_index = last_index;
-        sub_mesh.indices_offset = (int32_t)(sizeof(uint16_t) * offset);
-        offset += sub_mesh.indices_count;
+        sub_mesh.index_offset = (int32_t)(sizeof(uint16_t) * offset);
+        offset += sub_mesh.num_index;
     }
 
-    bool ret = load_data((size_t)indices_count * sizeof(uint16_t), indices);
+    bool ret = load_data((size_t)num_index * sizeof(uint16_t), indices);
     free_def(indices);
     return ret;
 }
@@ -108,8 +99,11 @@ bool obj_mesh_index_buffer::load_data(size_t size, const void* data) {
 
     this->size = (GLsizeiptr)size;
     glGenBuffers(1, &buffer);
-    gl_state_bind_element_array_buffer(buffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, GL_STATIC_DRAW);
+    gl_state_bind_element_array_buffer(buffer, true);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, 0);
+    else
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, GL_STATIC_DRAW);
     gl_state_bind_element_array_buffer(0);
     return true;
 }
@@ -143,8 +137,8 @@ GLsizeiptr obj_mesh_vertex_buffer::get_size() {
     return 0;
 }
 
-bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
-    if (!mesh.num_vertex || !mesh.vertex)
+bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, bool dynamic) {
+    if (!mesh.num_vertex || !mesh.vertex_array)
         return false;
 
     size_t size_vertex;
@@ -156,126 +150,126 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
     void* vertex = force_malloc(size_vertex * mesh.num_vertex);
     if (vertex) {
         obj_vertex_format vertex_format = mesh.vertex_format;
-        obj_vertex_data* vertex_file = mesh.vertex;
+        obj_vertex_data* vtx = mesh.vertex_array;
         int32_t num_vertex = mesh.num_vertex;
         size_t d = (size_t)vertex;
         if (!mesh.attrib.m.compressed) {
-            for (int32_t i = 0; i < num_vertex; i++) {
+            for (int32_t i = 0; i < num_vertex; i++, vtx++) {
                 if (vertex_format & OBJ_VERTEX_POSITION) {
-                    *(vec3*)d = vertex_file[i].position;
+                    *(vec3*)d = vtx->position;
                     d += 12;
                 }
 
                 if (vertex_format & OBJ_VERTEX_NORMAL) {
-                    *(vec3*)d = vertex_file[i].normal;
+                    *(vec3*)d = vtx->normal;
                     d += 12;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TANGENT) {
-                    *(vec4*)d = vertex_file[i].tangent;
+                    *(vec4*)d = vtx->tangent;
                     d += 16;
                 }
 
                 if (vertex_format & OBJ_VERTEX_BINORMAL) {
-                    *(vec3*)d = vertex_file[i].binormal;
+                    *(vec3*)d = vtx->binormal;
                     d += 12;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-                    *(vec2*)d = vertex_file[i].texcoord0;
+                    *(vec2*)d = vtx->texcoord0;
                     d += 8;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-                    *(vec2*)d = vertex_file[i].texcoord1;
+                    *(vec2*)d = vtx->texcoord1;
                     d += 8;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
-                    *(vec2*)d = vertex_file[i].texcoord2;
+                    *(vec2*)d = vtx->texcoord2;
                     d += 8;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
-                    *(vec2*)d = vertex_file[i].texcoord3;
+                    *(vec2*)d = vtx->texcoord3;
                     d += 8;
                 }
 
                 if (vertex_format & OBJ_VERTEX_COLOR0) {
-                    *(vec4*)d = vertex_file[i].color0;
+                    *(vec4*)d = vtx->color0;
                     d += 16;
                 }
 
                 if (vertex_format & OBJ_VERTEX_COLOR1) {
-                    *(vec4*)d = vertex_file[i].color1;
+                    *(vec4*)d = vtx->color1;
                     d += 16;
                 }
 
                 if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-                    *(vec4*)d = vertex_file[i].bone_weight;
+                    *(vec4*)d = vtx->bone_weight;
                     d += 16;
-                    *(vec4i*)d = vertex_file[i].bone_index;
+                    *(vec4i*)d = vtx->bone_index;
                     d += 16;
                 }
 
                 if (vertex_format & OBJ_VERTEX_UNKNOWN) {
-                    *(vec4*)d = vertex_file[i].unknown;
+                    *(vec4*)d = vtx->unknown;
                     d += 16;
                 }
             }
         }
         else {
-            for (int32_t i = 0; i < num_vertex; i++) {
+            for (int32_t i = 0; i < num_vertex; i++, vtx++) {
                 if (vertex_format & OBJ_VERTEX_POSITION) {
-                    *(vec3*)d = vertex_file[i].position;
+                    *(vec3*)d = vtx->position;
                     d += 12;
                 }
 
                 if (vertex_format & OBJ_VERTEX_NORMAL) {
-                    vec3 normal = vertex_file[i].normal * 32727.0f;
+                    vec3 normal = vtx->normal * 32727.0f;
                     vec3_to_vec3i16(normal, *(vec3i16*)d);
                     *(int16_t*)(d + 6) = 0;
                     d += 8;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TANGENT) {
-                    vec4 tangent = vertex_file[i].tangent * 32727.0f;
+                    vec4 tangent = vtx->tangent * 32727.0f;
                     vec4_to_vec4i16(tangent, *(vec4i16*)d);
                     d += 8;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-                    vec2_to_vec2h(vertex_file[i].texcoord0, *(vec2h*)d);
+                    vec2_to_vec2h(vtx->texcoord0, *(vec2h*)d);
                     d += 4;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-                    vec2_to_vec2h(vertex_file[i].texcoord1, *(vec2h*)d);
+                    vec2_to_vec2h(vtx->texcoord1, *(vec2h*)d);
                     d += 4;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
-                    vec2_to_vec2h(vertex_file[i].texcoord2, *(vec2h*)d);
+                    vec2_to_vec2h(vtx->texcoord2, *(vec2h*)d);
                     d += 4;
                 }
 
                 if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
-                    vec2_to_vec2h(vertex_file[i].texcoord3, *(vec2h*)d);
+                    vec2_to_vec2h(vtx->texcoord3, *(vec2h*)d);
                     d += 4;
                 }
 
                 if (vertex_format & OBJ_VERTEX_COLOR0) {
-                    vec4 color0 = vertex_file[i].color0;
+                    vec4 color0 = vtx->color0;
                     vec4_to_vec4h(color0, *(vec4h*)d);
                     d += 8;
                 }
 
                 if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-                    vec4 bone_weight = vertex_file[i].bone_weight * 65535.0f;
+                    vec4 bone_weight = vtx->bone_weight * 65535.0f;
                     vec4_to_vec4u16(bone_weight, *(vec4u16*)d);
                     d += 8;
 
-                    vec4i bone_index = vertex_file[i].bone_index;
+                    vec4i bone_index = vtx->bone_index;
                     vec4i_to_vec4u16(bone_index, *(vec4u16*)d);
                     d += 8;
                 }
@@ -284,12 +278,12 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh) {
     }
     mesh.size_vertex = (int32_t)size_vertex;
 
-    bool ret = load_data(size_vertex * mesh.num_vertex, vertex, mesh.attrib.m.double_buffer ? 2 : 1);
+    bool ret = load_data(size_vertex * mesh.num_vertex, vertex, mesh.attrib.m.double_buffer ? 2 : 1, dynamic);
     free_def(vertex);
     return ret;
 }
 
-bool obj_mesh_vertex_buffer::load_data(size_t size, const void* data, int32_t count) {
+bool obj_mesh_vertex_buffer::load_data(size_t size, const void* data, int32_t count, bool dynamic) {
     if (!size || count > 3)
         return false;
 
@@ -298,8 +292,13 @@ bool obj_mesh_vertex_buffer::load_data(size_t size, const void* data, int32_t co
 
     glGenBuffers(count, buffers);
     for (int32_t i = 0; i < count; i++) {
-        gl_state_bind_array_buffer(buffers[i]);
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, GL_STATIC_DRAW);
+        gl_state_bind_array_buffer(buffers[i], true);
+        if (GLAD_GL_VERSION_4_4)
+            glBufferStorage(GL_ARRAY_BUFFER,
+                (GLsizeiptr)size, data, dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
+        else
+            glBufferData(GL_ARRAY_BUFFER,
+                (GLsizeiptr)size, data, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
     }
     gl_state_bind_array_buffer(0);
     return true;
@@ -380,7 +379,7 @@ obj_set_handler::~obj_set_handler() {
 
     obj_set_handler_index_buffer_free(this);
     obj_set_handler_vertex_buffer_free(this);
-    delete obj_set;
+    alloc_handler.reset();
     while (tex_file_handler.ptr && tex_file_handler.ptr->count)
         tex_file_handler.free_data();
     while (obj_file_handler.ptr && obj_file_handler.ptr->count)
@@ -429,33 +428,33 @@ inline int32_t obj_material_texture_type_get_texture_index(
 }
 
 void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
-    mat4* ex_data_matrices, mat4* matrix_buffer, mat4* mat, mat4* global_mat) {
-    if (!s->bones_count)
+    mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4* global_mat) {
+    if (!s->num_bone)
         return;
 
     if (mat)
-        for (uint32_t i = 0; i < s->bones_count; i++) {
+        for (uint32_t i = 0; i < s->num_bone; i++) {
             mat4 temp;
-            int32_t bone_id = s->bones[i].id;
+            int32_t bone_id = s->bone_array[i].id;
             if (bone_id & 0x8000)
                 mat4_mult(mat, &ex_data_matrices[bone_id & 0x7FFF], &temp);
             else
                 mat4_mult(mat, &matrices[bone_id], &temp);
 
             mat4_mult(&temp, global_mat, &temp);
-            mat4_mult(&s->bones[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
+            mat4_mult(&s->bone_array[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
         }
     else
-        for (uint32_t i = 0; i < s->bones_count; i++) {
+        for (uint32_t i = 0; i < s->num_bone; i++) {
             mat4 temp;
-            int32_t bone_id = s->bones[i].id;
+            int32_t bone_id = s->bone_array[i].id;
             if (bone_id & 0x8000)
                 temp = ex_data_matrices[bone_id & 0x7FFF];
             else
                 temp = matrices[bone_id];
 
             mat4_mult(&temp, global_mat, &temp);
-            mat4_mult(&s->bones[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
+            mat4_mult(&s->bone_array[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
         }
 }
 
@@ -905,17 +904,14 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
         size_t tex_id_num = txp_set->textures.size();
         if (set->tex_id_num != tex_id_num) {
-            uint32_t* tex_id_data = force_malloc_s(uint32_t, tex_id_num);
+            uint32_t* tex_id_data = handler->alloc_handler->allocate<uint32_t>(tex_id_num);
             memmove(tex_id_data, set->tex_id_data, sizeof(uint32_t) * set->tex_id_num);
-            free_def(set->tex_id_data);
-
-            memmove(&tex_id_data[set->tex_id_num], ids.data(), sizeof(uint32_t) * (tex_id_num - set->tex_id_num));
-
+            memmove(&tex_id_data[set->tex_id_num], ids.data(),
+                sizeof(uint32_t) * (tex_id_num - set->tex_id_num));
             set->tex_id_data = tex_id_data;
             set->tex_id_num = (uint32_t)tex_id_num;
             handler->tex_num = (uint32_t)tex_id_num;
         }
-
     }
 
     msgpack* replace = msg.read_array("Replace");
@@ -1622,7 +1618,7 @@ inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
 
         for (uint32_t j = 0; j < set->obj_num; j++)
             if (set->obj_data[j].id == obj_info.id)
-                return set->obj_data[j].skin_init ? &set->obj_data[j].skin : 0;
+                return set->obj_data[j].skin;
         return 0;
     }
 
@@ -1636,7 +1632,7 @@ inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
 
         for (uint32_t j = 0; j < set->obj_num; j++)
             if (set->obj_data[j].id == obj_info.id)
-                return set->obj_data[j].skin_init ? &set->obj_data[j].skin : 0;
+                return set->obj_data[j].skin;
         return 0;
     }
     return 0;
@@ -1829,9 +1825,12 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             if (!data || !size)
                 return false;
 
-            obj_set* set = new obj_set;
+            prj::shared_ptr<alloc_data>& alloc = handler->alloc_handler;
+            alloc = prj::shared_ptr<alloc_data>(new alloc_data);
+
+            obj_set* set = alloc->allocate<obj_set>();
             handler->obj_set = set;
-            set->unpack_file(data, size, false);
+            set->unpack_file(alloc, data, size, false);
             if (!set->ready)
                 return false;
 
@@ -1940,9 +1939,12 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
 
         handler->name = name;
 
-        obj_set* set = new obj_set;
+        prj::shared_ptr<alloc_data>& alloc = handler->alloc_handler;
+        alloc = prj::shared_ptr<alloc_data>(new alloc_data);
+
+        obj_set* set = alloc->allocate<obj_set>();
         handler->obj_set = set;
-        set->unpack_file(osd->data, osd->size, true);
+        set->unpack_file(alloc, osd->data, osd->size, true);
         if (!set->ready)
             return false;
 
@@ -2002,7 +2004,7 @@ inline void object_storage_unload_set(object_database* obj_db, const char* name)
     handler->load_count = 0;
     handler->tex_loaded = false;
     handler->obj_loaded = false;
-    delete handler->obj_set;
+    handler->alloc_handler.reset();
     handler->obj_set = 0;
     handler->tex_file_handler.free_data();
     handler->obj_file_handler.free_data();
@@ -2034,14 +2036,14 @@ inline void object_storage_unload_set(uint32_t set_id) {
     handler->load_count = 0;
     handler->tex_loaded = false;
     handler->obj_loaded = false;
-    delete handler->obj_set;
+    handler->alloc_handler.reset();
     handler->obj_set = 0;
     handler->tex_file_handler.free_data();
     handler->obj_file_handler.free_data();
     handler->farc_file_handler.free_data();
     if (handler->modern)
         for (auto i = object_storage_data_modern.begin(); i != object_storage_data_modern.end(); i++)
-            if (i->set_id = set_id) {
+            if (i->set_id == set_id) {
                 i = object_storage_data_modern.erase(i);
                 break;
             }
@@ -2060,25 +2062,25 @@ static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* hand
         for (uint32_t j = 0; j < obj.num_mesh; j++) {
             obj_mesh& mesh = obj.mesh_array[j];
             for (uint32_t k = 0; k < mesh.num_submesh; k++) {
-                vec3 _min = { 9999999.0f, 9999999.0f, 9999999.0f };
-                vec3 _max = { -100000000.0f, -100000000.0f, -100000000.0f };
+                vec3 _min = vec3(   9999999.0f,    9999999.0f,    9999999.0f);
+                vec3 _max = vec3(-100000000.0f, -100000000.0f, -100000000.0f);
 
                 obj_sub_mesh& sub_mesh = mesh.submesh_array[k];
-                uint32_t* indices = (uint32_t*)sub_mesh.indices;
-                uint32_t indices_count = sub_mesh.indices_count;
-                obj_vertex_data* vertex = mesh.vertex;
+                uint32_t* index = sub_mesh.index_array;
+                uint32_t num_index = sub_mesh.num_index;
+                obj_vertex_data* vertex_array = mesh.vertex_array;
                 if (sub_mesh.index_format == OBJ_INDEX_U16)
-                    for (uint32_t l = 0; l < indices_count; l++) {
-                        if (indices[l] == 0xFFFFFFFF)
+                    for (uint32_t l = 0; l < num_index; l++, index++) {
+                        if (*index == 0xFFFFFFFF)
                             continue;
 
-                        vec3 pos = vertex[indices[l]].position;
+                        vec3 pos = vertex_array[*index].position;
                         _min = vec3::min(_min, pos);
                         _max = vec3::max(_max, pos);
                     }
                 else
-                    for (uint32_t l = 0; l < indices_count; l++) {
-                        vec3 pos = vertex[indices[l]].position;
+                    for (uint32_t l = 0; l < num_index; l++, index++) {
+                        vec3 pos = vertex_array[*index].position;
                         _min = vec3::min(_min, pos);
                         _max = vec3::max(_max, pos);
                     }
@@ -2234,35 +2236,6 @@ static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler) {
 
     handler->vertex_buffer_data = 0;
     handler->vertex_buffer_num = 0;
-}
-
-inline static void obj_skin_block_constraint_attach_point_load(
-    obj_skin_block_constraint_attach_point* attach_point,
-    obj_skin_block_constraint_attach_point* attach_point_file) {
-    attach_point->affected_by_orientation = attach_point_file->affected_by_orientation;
-    attach_point->affected_by_scaling = attach_point_file->affected_by_scaling;
-    attach_point->offset = attach_point_file->offset;
-}
-inline static void obj_skin_block_constraint_up_vector_load(
-    obj_skin_block_constraint_up_vector* up_vector,
-    obj_skin_block_constraint_up_vector* up_vector_file) {
-    up_vector->active = up_vector_file->active;
-    up_vector->roll = up_vector_file->roll;
-    up_vector->affected_axis = up_vector_file->affected_axis;
-    up_vector->point_at = up_vector_file->point_at;
-    up_vector->name = str_utils_copy(up_vector_file->name);
-}
-
-inline static void obj_skin_block_node_load(obj_skin_block_node* node,
-    obj_skin_block_node* node_file) {
-    node->parent_name = str_utils_copy(node_file->parent_name);
-    node->position = node_file->position;
-    node->rotation = node_file->rotation;
-    node->scale = node_file->scale;
-}
-
-inline static void obj_skin_block_node_free(obj_skin_block_node* node) {
-    free_def(node->parent_name);
 }
 
 inline static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format) {

@@ -92,7 +92,9 @@ bool light_param_light::load_file(void* data, const char* path, const char* file
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     light_param_light* light = (light_param_light*)data;
     light->read(s.c_str());
@@ -107,15 +109,7 @@ spot_cutoff(), attenuation(), has_clip_plane(), clip_plane(), has_tone_curve(), 
 
 }
 
-light_param_light_data::~light_param_light_data() {
-
-}
-
 light_param_light_group::light_param_light_group() {
-
-}
-
-light_param_light_group::~light_param_light_group() {
 
 }
 
@@ -124,7 +118,7 @@ static void light_param_light_read_inner(light_param_light* light, stream& s) {
     s.read(data, s.length);
     data[s.length] = 0;
 
-    char buf[0x100];
+    char buf[0x200];
     const char* d = data;
 
     int32_t group_id = -1;
@@ -284,7 +278,7 @@ End:
 }
 
 static void light_param_light_write_inner(light_param_light* light, stream& s) {
-    char buf[0x100];
+    char buf[0x200];
 
     for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++) {
         light_param_light_group* group = &light->group[i];

@@ -6,7 +6,6 @@
 #pragma once
 
 #include <map>
-#include <map>
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/mat.hpp"
@@ -74,9 +73,9 @@ extern int32_t light_param_data_storage_data_get_stage_index();
 extern int32_t light_param_data_storage_data_load_file();
 extern void light_param_data_storage_data_load_stage(int32_t stage_index);
 extern void light_param_data_storage_data_load_stage(uint32_t stage_hash, stage_database* stage_data);
-extern void light_param_data_storage_data_load_stages(std::vector<int32_t>* stage_indices);
+extern void light_param_data_storage_data_load_stages(std::vector<int32_t>& stage_indices);
 extern void light_param_data_storage_data_load_stages(
-    std::vector<uint32_t>* stage_hashes, stage_database* stage_data);
+    std::vector<uint32_t>& stage_hashes, stage_database* stage_data);
 extern void light_param_data_storage_data_reset();
 extern void light_param_data_storage_data_set_default_light_param(
     light_param_data_storage_flags flags = LIGHT_PARAM_DATA_STORAGE_ALL);

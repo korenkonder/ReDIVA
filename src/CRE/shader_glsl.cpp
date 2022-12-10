@@ -92,9 +92,7 @@ void shader_glsl::load(const char* vert, const char* frag,
     if (!success) {
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
-        printf("Program linking error: %s\n", param->name);
-        printf(info_log);
-        putchar('\n');
+        printf_debug("Program linking error: %s\n%s\n", param->name, info_log);
         free_def(info_log);
     }
 
@@ -446,9 +444,7 @@ static GLuint shader_compile(GLenum type, const char* data) {
     if (!success) {
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetShaderInfoLog(shader, 0x10000, 0, info_log);
-        printf("Shader compile error: ");
-        printf(info_log);
-        putchar('\n');
+        printf_debug("Shader compile error:\n%s\n", info_log);
         free_def(info_log);
     }
     return shader;
@@ -464,10 +460,10 @@ static GLint shader_get_uniform_block_index(GLint program, GLchar* name,
     GLint index = glGetUniformBlockIndex(program, name);
     if (index == GL_INVALID_INDEX) {
         if (program_log != program) {
-            printf("Program %d:\n", program);
+            printf_debug("Program %d:\n", program);
             program_log = program;
         }
-        printf("    Block Index for \"%s\" not found\n", name);
+        printf_debug("    Block Index for \"%s\" not found\n", name);
     }
     uniform_block->push_back({ hash, index });
     return index;
@@ -483,10 +479,10 @@ static GLint shader_get_uniform_location(GLint program, GLchar* name,
     GLint location = glGetUniformLocation(program, name);
     if (location == GL_INVALID_INDEX) {
         if (program_log != program) {
-            printf("Program %d:\n", program);
+            printf_debug("Program %d:\n", program);
             program_log = program;
         }
-        printf("    Location for \"%s\" not found\n", name);
+        printf_debug("    Location for \"%s\" not found\n", name);
     }
     uniform->push_back({ hash, location });
     return location;
@@ -529,8 +525,7 @@ static char* shader_parse_define(char* data, shader_glsl_param* param) {
     const size_t s = SHADER_PARAM_NUM_PARAMS;
 
     size_t temp_len[SHADER_PARAM_NUM_PARAMS];
-    char temp[0x100];
-    memset(temp, 0, 0x100);
+    char temp[0x100] = {};
 
     for (size_t i = 0; i < s; i++)
         if (param->param[i]) {

@@ -292,6 +292,15 @@ inline double_t reverse_endianness_double_t(double_t value) {
     return *(double_t*)&v;
 }
 
+inline void printf_debug(const char* fmt, ...) {
+#ifdef DEBUG
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+#endif
+}
+
 inline constexpr size_t utf8_length(const char* s) {
     if (!s)
         return 0;

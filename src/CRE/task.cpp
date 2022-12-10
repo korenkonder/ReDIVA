@@ -13,19 +13,17 @@ extern float_t delta_frame_history;
 extern int32_t delta_frame_history_int;
 
 namespace app {
-    static void Task_add_base_calc_time(Task* t, uint32_t calc_time);
+    static void Task_add_base_calc_time(Task* t, uint32_t value);
     static void Task_do_basic(Task* t);
     static void Task_do_ctrl(Task* t);
     static void Task_do_ctrl_frames(int32_t frames, bool frame_skip);
     static void Task_do_disp(Task* t);
-    static void Task_set_base_calc_time(Task* t, uint32_t base_calc_time);
+    static void Task_set_base_calc_time(Task* t, uint32_t value);
     static void Task_set_calc_time(Task* t);
-    static void Task_set_disp_time(Task* t, uint32_t disp_time);
+    static void Task_set_disp_time(Task* t, uint32_t value);
     static bool Task_sub_14019B810(Task* t, int32_t a2);
     static void Task_sub_14019C480(Task* t, uint32_t a2);
     static void Task_sub_14019C5A0(Task* t);
-
-    static bool TaskWork_has_task_dest(Task* t);
 
     TaskWork* task_work;
 
@@ -126,7 +124,7 @@ namespace app {
     }
 
     bool Task::sub_14019C3B0() {
-        if (!app::TaskWork::HasTask(this) || !Task_sub_14019B810(this, 5))
+        if (!TaskWork::HasTask(this) || !Task_sub_14019B810(this, 5))
             return false;
 
         Task_sub_14019C480(this, 5);
@@ -134,7 +132,7 @@ namespace app {
     }
 
     bool Task::sub_14019C540() {
-        if (!app::TaskWork::HasTask(this) || !Task_sub_14019B810(this, 4))
+        if (!TaskWork::HasTask(this) || !Task_sub_14019B810(this, 4))
             return false;
 
         Task_sub_14019C480(this, 4);
@@ -184,6 +182,10 @@ namespace app {
                     Task_do_basic(j);
     }
 
+    bool TaskWork::CheckTaskCtrl(Task* t) {
+        return app::TaskWork::HasTask(t) && t->field_1C == 1 && t->field_18 == Task::Enum::Ctrl;
+    }
+
     bool TaskWork::CheckTaskReady(Task* t) {
         return TaskWork::HasTask(t) && (t->field_18 == Task::Enum::None || t->field_1C);
     }
@@ -198,7 +200,7 @@ namespace app {
             for (std::list<Task*>::iterator j = task_work->tasks.end(); j != task_work->tasks.begin(); ) {
                 --j;
                 Task* tsk = *j;
-                if (tsk->priority != i || !TaskWork_has_task_dest(tsk))
+                if (tsk->priority != i || !HasTaskDest(tsk))
                     continue;
 
                 time_struct t;
@@ -301,8 +303,8 @@ namespace app {
         delete task_work;
     }
 
-    static void Task_add_base_calc_time(Task* t, uint32_t calc_time) {
-        t->base_calc_time += calc_time;
+    static void Task_add_base_calc_time(Task* t, uint32_t value) {
+        t->base_calc_time += value;
     }
 
     static void Task_do_basic(Task* t) {
@@ -337,7 +339,7 @@ namespace app {
         for (int32_t i = 0; i < 3; i++)
             for (Task*& j : task_work->tasks) {
                 Task* tsk = j;
-                if (tsk->priority != i || TaskWork_has_task_dest(tsk))
+                if (tsk->priority != i || TaskWork::HasTaskDest(tsk))
                     continue;
                 else if (tsk->is_frame_dependent) {
                     if (frames <= 0)
@@ -360,8 +362,8 @@ namespace app {
             t->Disp();
     }
 
-    static void Task_set_base_calc_time(Task* t, uint32_t base_calc_time) {
-        t->base_calc_time = base_calc_time;
+    static void Task_set_base_calc_time(Task* t, uint32_t value) {
+        t->base_calc_time = value;
     }
 
     static void Task_set_calc_time(Task* t) {
@@ -372,8 +374,8 @@ namespace app {
         t->calc_time = max_def(t->calc_time, t->calc_time_max);
     }
 
-    static void Task_set_disp_time(Task* t, uint32_t disp_time) {
-        t->disp_time = disp_time;
+    static void Task_set_disp_time(Task* t, uint32_t value) {
+        t->disp_time = value;
         uint32_t frame_counter = get_frame_counter();
         if (frame_counter == (frame_counter / 300) * 300)
             t->disp_time_max = 0;
@@ -432,11 +434,5 @@ namespace app {
 
         t->field_18 = t->field_24;
         t->field_1C = t->field_28;
-    }
-
-    static bool TaskWork_has_task_dest(Task* t) {
-        if (TaskWork::HasTask(t))
-            return t->field_18 == Task::Enum::Dest;
-        return false;
     }
 }

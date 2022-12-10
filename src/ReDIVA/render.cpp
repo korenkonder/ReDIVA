@@ -6,14 +6,6 @@
 */
 
 #include "render.hpp"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/camera.hpp"
@@ -28,14 +20,17 @@
 #include "../CRE/object.hpp"
 #include "../CRE/ogg_vorbis.hpp"
 #include "../CRE/pv_db.hpp"
+#include "../CRE/pv_expression.hpp"
 #include "../CRE/random.hpp"
 #include "../CRE/shader.hpp"
 #include "../CRE/shader_ft.hpp"
 #include "../CRE/shader_glsl.hpp"
 #include "../CRE/stage.hpp"
 #include "../CRE/stage_modern.hpp"
+#include "../CRE/stage_param.hpp"
 #include "../CRE/static_var.hpp"
 #include "../CRE/task.hpp"
+#include "../CRE/task_effect.hpp"
 #include "../CRE/texture.hpp"
 #include "../CRE/timer.hpp"
 #include "../CRE/post_process.hpp"
@@ -51,10 +46,18 @@
 #include "task_window.hpp"
 #include "pv_game.hpp"
 #include "x_pv_game.hpp"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
 #include <timeapi.h>
 
 #if defined(DEBUG)
-#define OPENGL_DEBUG 0
+#define OPENGL_DEBUG 1
 #endif
 
 #define CUBE_LINE_SIZE (0.0025f)
@@ -76,6 +79,7 @@ GLuint cube_line_vao;
 GLuint cube_line_vbo;
 GLuint cube_line_point_vao;
 GLuint cube_line_point_instance_vbo;
+GLuint grid_vao;
 GLuint grid_vbo;
 static GLuint common_data_ubo = 0;
 
@@ -150,7 +154,7 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
     GLenum severity, GLsizei length, const char* message, const void* userParam);
 #endif
 
-extern bool close;
+bool close;
 bool reload_render;
 lock* render_lock;
 HWND window_handle;
@@ -194,9 +198,6 @@ int32_t render_main(render_init_struct* ris) {
     width = 1920;
     height = 1080;
 #endif
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
@@ -208,21 +209,7 @@ int32_t render_main(render_init_struct* ris) {
     glfwWindowHint(GLFW_RED_BITS, mode->redBits);
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
-
-    const char* glfw_titlelabel;
-#if defined(DEBUG)
-#if defined(ReDIVA_DEV)
-    glfw_titlelabel = "ReDIVADev Debug";
-#else
-    glfw_titlelabel = "ReDIVA Debug";
-#endif
-#else
-#if defined(ReDIVA_DEV)
-    glfw_titlelabel = "ReDIVADev";
-#else
-    glfw_titlelabel = "ReDIVA";
-#endif
-#endif
+    glfwWindowHint(GLFW_DEPTH_BITS, 0);
 
 #if BAKE_PNG || BAKE_VIDEO
     bool maximized = false;
@@ -231,7 +218,29 @@ int32_t render_main(render_init_struct* ris) {
 #endif
     glfwWindowHint(GLFW_MAXIMIZED, maximized ? GLFW_TRUE : GLFW_FALSE);
 
-    window = glfwCreateWindow(width, height, glfw_titlelabel, maximized ? monitor : 0, 0);
+    int32_t minor = 6;
+    window = 0;
+    while (!window || minor < 3) {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor--);
+
+        const char* glfw_titlelabel;
+#if defined(DEBUG)
+#if defined(ReDIVA_DEV)
+        glfw_titlelabel = "ReDIVADev Debug";
+#else
+        glfw_titlelabel = "ReDIVA Debug";
+#endif
+#else
+#if defined(ReDIVA_DEV)
+        glfw_titlelabel = "ReDIVADev";
+#else
+        glfw_titlelabel = "ReDIVA";
+#endif
+#endif
+        window = glfwCreateWindow(width, height, glfw_titlelabel, maximized ? monitor : 0, 0);
+    }
+
     if (!window) {
         glfwTerminate();
         return -2;
@@ -240,6 +249,7 @@ int32_t render_main(render_init_struct* ris) {
     glfwMakeContextCurrent(window);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        glfwDestroyWindow(window);
         glfwTerminate();
         return -3;
     }
@@ -286,6 +296,7 @@ int32_t render_main(render_init_struct* ris) {
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 #if DRAW_PASS_TIME_DISP
     for (std::vector<float_t>& i : draw_pass_cpu_time)
@@ -304,11 +315,7 @@ int32_t render_main(render_init_struct* ris) {
         rctx = render_load();
         lock_unlock(render_lock);
 
-        data_struct* aft_data = &data_list[DATA_AFT];
-
-        //OggFileHandler ofh;
-        //aft_data->load_file(&ofh, "rom/sound/bgm/",
-        //    "selector_verB_a_lp.ogg", OggFileHandler::LoadFile);
+        //sound_work_play_stream(1, "rom/sound/bgm/selector_verB_a_lp.ogg");
 
         frame_counter = 0;
 
@@ -317,7 +324,7 @@ int32_t render_main(render_init_struct* ris) {
         glfwGetFramebufferSize(window, &width, &height);
 #endif
         glViewport(0, 0, width, height);
-        glfwSwapInterval(1);
+        glfwSwapInterval(0);
 
         gl_state_disable_blend();
         gl_state_disable_depth_test();
@@ -340,11 +347,11 @@ int32_t render_main(render_init_struct* ris) {
             close |= !!glfwWindowShouldClose(window);
             frame_counter++;
             Input::EndFrame();
-            render_timer->end_of_cycle();
             glfwSwapBuffers(window);
+            render_timer->end_of_cycle();
         }
 
-        //ofh.~OggFileHandler();
+        //sound_work_release_stream(1);
 
         lock_lock(render_lock);
         render_dispose(rctx);
@@ -383,7 +390,7 @@ int32_t render_get_scale_index() {
 }
 
 void render_set_scale_index(int32_t index) {
-     scale_index = index >= 0 && index < RENDER_SCALE_MAX ? index : RENDER_SCALE_100;
+    scale_index = index >= 0 && index < RENDER_SCALE_MAX ? index : RENDER_SCALE_100;
 }
 
 float_t rob_frame = 0.0f;
@@ -419,13 +426,18 @@ static render_context* render_load() {
 
     for (std::string& i : mdata_manager_get()->prefixes) {
         std::string osage_setting_file = i + "osage_setting.txt";
-        aft_data->load_file(aft_data, "rom/skin_param/", osage_setting_file.c_str(), osage_setting_data_load_file);
+        aft_data->load_file(aft_data, "rom/skin_param/",
+            osage_setting_file.c_str(), osage_setting_data_load_file);
     }
 
     render_shaders_load();
     sound_init();
     wave_audio_storage_init();
+    ogg_file_handler_storage_init();
+    ogg_playback_data_init();
     object_storage_init(aft_obj_db);
+    stage_param_data_storage_init();
+    pv_expression_file_storage_init();
     item_table_array_init();
     rand_state_array_init();
 
@@ -440,6 +452,7 @@ static render_context* render_load() {
     dtm_stg_init();
     task_stage_modern_init();
     light_param_data_storage_data_init();
+    task_effect_init();
     task_pv_db_init();
     Glitter::glt_particle_manager_init();
 
@@ -502,8 +515,10 @@ static render_context* render_load() {
                 if (!tex_ff)
                     continue;
 
+                prj::shared_ptr<alloc_data> alloc(new alloc_data);
+
                 obj_set obj_set;
-                obj_set.unpack_file(obj_ff->data, obj_ff->size, false);
+                obj_set.unpack_file(alloc, obj_ff->data, obj_ff->size, false);
                 if (!obj_set.ready)
                     continue;
 
@@ -577,8 +592,10 @@ static render_context* render_load() {
                 if (!txi)
                     continue;
 
+                prj::shared_ptr<alloc_data> alloc(new alloc_data);
+
                 obj_set obj_set;
-                obj_set.unpack_file(osd->data, osd->size, true);
+                obj_set.unpack_file(alloc, osd->data, osd->size, true);
                 if (!obj_set.ready)
                     continue;
 
@@ -668,8 +685,10 @@ static render_context* render_load() {
                 if (!txi)
                     continue;
 
+                prj::shared_ptr<alloc_data> alloc(new alloc_data);
+
                 obj_set obj_set;
-                obj_set.unpack_file(osd->data, osd->size, true);
+                obj_set.unpack_file(alloc, osd->data, osd->size, true);
                 if (!obj_set.ready)
                     continue;
 
@@ -705,7 +724,10 @@ static render_context* render_load() {
     glGenBuffers(1, &common_data_ubo);
 
     gl_state_bind_uniform_buffer(common_data_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, COMMON_DATA_SIZE, 0, GL_STREAM_DRAW);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_UNIFORM_BUFFER, COMMON_DATA_SIZE, 0, GL_DYNAMIC_STORAGE_BIT);
+    else
+        glBufferData(GL_UNIFORM_BUFFER, COMMON_DATA_SIZE, 0, GL_STREAM_DRAW);
     glBindBufferRange(GL_UNIFORM_BUFFER, 0, common_data_ubo, 0, COMMON_DATA_SIZE);
     gl_state_bind_uniform_buffer(0);
 
@@ -791,7 +813,7 @@ static render_context* render_load() {
         "\n"
         "uniform mat4 vp;\n"
         "\n"
-        "vec4 colors[] = {\n"
+        "const vec4 colors[] = {\n"
         "    vec4(1.0, 0.0, 0.0, 1.0),\n"
         "    vec4(0.0, 1.0, 0.0, 1.0),\n"
         "    vec4(0.2, 0.2, 0.2, 1.0),\n"
@@ -864,6 +886,7 @@ static render_context* render_load() {
 
     rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
         internal_2d_res.x, internal_2d_res.y, width, height);
+    rctx->draw_pass.resize(internal_2d_res.x, internal_2d_res.y);
 
     render_resize_fb(rctx, true);
 
@@ -900,7 +923,10 @@ static render_context* render_load() {
     glGenBuffers(1, &cube_line_vbo);
     gl_state_bind_vertex_array(cube_line_vao);
     gl_state_bind_array_buffer(cube_line_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * 4, 0, GL_STREAM_DRAW);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ARRAY_BUFFER, sizeof(vec3) * 4, 0, 0);
+    else
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * 4, 0, GL_STREAM_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), 0);
     gl_state_bind_array_buffer(0);
@@ -947,11 +973,30 @@ static render_context* render_load() {
         *(int32_t*)&grid_verts[v++] = z_color_index;
     }
 
+    glGenVertexArrays(1, &grid_vao);
+    gl_state_bind_vertex_array(grid_vao);
+
     glGenBuffers(1, &grid_vbo);
     gl_state_bind_array_buffer(grid_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 3
-        * grid_vertex_count, grid_verts, GL_STATIC_DRAW);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ARRAY_BUFFER, sizeof(float_t) * 3
+            * grid_vertex_count, grid_verts, 0);
+    else
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 3
+            * grid_vertex_count, grid_verts, GL_STATIC_DRAW);
+
+    glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
+    glVertexAttribI1i(1, 2);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
+        sizeof(float_t) * 3, (void*)0);                     // Pos
+    glEnableVertexAttribArray(1);
+    glVertexAttribIPointer(1, 1, GL_INT,
+        sizeof(float_t) * 3, (void*)(sizeof(float_t) * 2)); // Color
+
     gl_state_bind_array_buffer(0);
+    gl_state_bind_vertex_array(0);
 
     free(grid_verts);
 
@@ -1004,8 +1049,8 @@ static render_context* render_load() {
     modules[5] = 0;//31;
     //pv_game_data.Load(739, charas, modules);
 
-    shaders_ft.env_vert_set(3, vec4_identity);
-    shaders_ft.env_vert_set(4, vec4_null);
+    shaders_ft.env_vert_set(3, 1.0f);
+    shaders_ft.env_vert_set(4, 0.0f);
     classes_process_init(classes, classes_count, rctx);
     return rctx;
 }
@@ -1163,7 +1208,7 @@ static void render_ctrl(render_context* rctx) {
     game_state_ctrl();
     rctx->ctrl();
 
-    char buf[0x100];
+    char buf[0x200];
     game_state_print(buf, sizeof(buf));
     glfwSetWindowTitle(window, buf);
 
@@ -1196,8 +1241,8 @@ static void render_ctrl(render_context* rctx) {
 
 static void cube_line_disp(shader_glsl* shader, camera* cam, vec3* trans, float_t line_size, vec4* color) {
     mat4 mat[2];
-    mat4_translate(trans[0].x, trans[0].y, trans[0].z, &mat[0]);
-    mat4_translate(trans[1].x, trans[1].y, trans[1].z, &mat[1]);
+    mat4_translate(&trans[0], &mat[0]);
+    mat4_translate(&trans[1], &mat[1]);
     mat4_mult(&cam->view, &mat[0], &mat[0]);
     mat4_mult(&cam->view, &mat[1], &mat[1]);
 
@@ -1292,7 +1337,7 @@ static void render_disp(render_context* rctx) {
                 continue;
 
             rob_chara* rob_chr = &rob_chara_array[i];
-            if (~rob_chr->data.field_0 & 1)
+            if (!rob_chr->get_visibility())
                 continue;
 
             gl_state_bind_vertex_array(cube_line_vao);
@@ -1310,7 +1355,7 @@ static void render_disp(render_context* rctx) {
                 mat4_get_translation(j.parent->mat, &trans[0]);
                 mat4_get_translation(j.mat, &trans[1]);
 
-                if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                if (trans[0] != trans[1])
                     cube_line_disp(cube_line_shader, cam, trans, CUBE_LINE_SIZE, &bone_color);
             }
             gl_state_bind_array_buffer(0);
@@ -1378,7 +1423,7 @@ static void render_disp(render_context* rctx) {
                     mat4_get_translation(&j.node[k.parent].model_transform.mat, &trans[0]);
                     mat4_get_translation(&k.model_transform.mat, &trans[1]);
 
-                    if (memcmp(&trans[0], &trans[1], sizeof(vec3)))
+                    if (trans[0] != trans[1])
                         cube_line_disp(cube_line_shader, cam, trans, CUBE_LINE_SIZE, &osg_color);
                 }
                 gl_state_bind_array_buffer(0);
@@ -1433,7 +1478,7 @@ static void render_disp(render_context* rctx) {
                 continue;
 
             rob_chara* rob_chr = &rob_chara_array[i];
-            if (~rob_chr->data.field_0 & 1)
+            if (!rob_chr->get_visibility())
                 continue;
 
             std::vector<std::pair<vec3, float_t>> cube_line_points;
@@ -1528,6 +1573,17 @@ static void render_dispose(render_context* rctx) {
 
     app::TaskWork::Dest();
 
+    sound_work_unload_farc("rom/sound/se.farc");
+    sound_work_unload_farc("rom/sound/button.farc");
+    sound_work_unload_farc("rom/sound/se_cmn.farc");
+    sound_work_unload_farc("rom/sound/se_sel.farc");
+    sound_work_unload_farc("rom/sound/se_aime.farc");
+    sound_work_unload_farc("rom/sound/pvchange.farc");
+    sound_work_unload_farc("rom/sound/slide_se.farc");
+    sound_work_unload_farc("rom/sound/slide_long.farc");
+
+    object_storage_unload_set(dbg_set_id);
+
     //rob_chara_array_free_chara_id(0);
     render_timer->reset();
     while (app::task_work->tasks.size()) {
@@ -1559,23 +1615,13 @@ static void render_dispose(render_context* rctx) {
         cube_line_shader = 0;
     }
 
-    sound_work_unload_farc("rom/sound/se.farc");
-    sound_work_unload_farc("rom/sound/button.farc");
-    sound_work_unload_farc("rom/sound/se_cmn.farc");
-    sound_work_unload_farc("rom/sound/se_sel.farc");
-    sound_work_unload_farc("rom/sound/se_aime.farc");
-    sound_work_unload_farc("rom/sound/pvchange.farc");
-    sound_work_unload_farc("rom/sound/slide_se.farc");
-    sound_work_unload_farc("rom/sound/slide_long.farc");
-
-    object_storage_unload_set(dbg_set_id);
-
     task_data_test_glitter_particle_free();
     dtw_stg_free();
     auth_3d_test_window_free();
 
     Glitter::glt_particle_manager_free();
     task_pv_db_free();
+    task_effect_free();
     light_param_data_storage_data_free();
     task_stage_modern_free();
     dtm_stg_free();
@@ -1588,6 +1634,7 @@ static void render_dispose(render_context* rctx) {
 
     glDeleteBuffers(1, &common_data_ubo);
     glDeleteBuffers(1, &grid_vbo);
+    glDeleteVertexArrays(1, &grid_vao);
     glDeleteBuffers(1, &cube_line_point_instance_vbo);
     glDeleteVertexArrays(1, &cube_line_point_vao);
     glDeleteBuffers(1, &cube_line_vbo);
@@ -1597,12 +1644,14 @@ static void render_dispose(render_context* rctx) {
 
     rand_state_array_free();
     item_table_array_free();
+    pv_expression_file_storage_free();
+    stage_param_data_storage_free();
     object_storage_free();
+    ogg_playback_data_free();
+    ogg_file_handler_storage_free();
     wave_audio_storage_free();
     sound_free();
     render_shaders_free();
-
-    osage_setting_data_free();
 
     data_struct_free();
 
@@ -1624,11 +1673,15 @@ static void render_imgui(render_context* rctx) {
 }
 
 static bool render_load_shaders(void* data, const char* path, const char* file, uint32_t hash) {
-    std::string s = path + std::string(file);
+    shader_set_data* set = (shader_set_data*)data;
+    std::string s;
+    s.assign(path);
+    s.append(file);
 
     farc f;
     f.read(s.c_str(), true, false);
-    shader_ft_load((shader_set_data*)data, &f, false);
+    set->load(&f, false, "ft", shader_ft_table, shader_ft_table_size,
+        shader_ft_bind_func_table, shader_ft_bind_func_table_size);
 
     return true;
 }
@@ -1672,8 +1725,7 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     internal_res.x = (int32_t)res_width;
     internal_res.y = (int32_t)res_height;
 
-    internal_2d_res.x = clamp_def(internal_res.x, 1, sv_max_texture_size);
-    internal_2d_res.y = clamp_def(internal_res.y, 1, sv_max_texture_size);
+    internal_2d_res = vec2i::clamp(internal_res, 1, sv_max_texture_size);
 #if BAKE_PNG || BAKE_VIDEO
     internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * 2));
     internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * 2));
@@ -1681,8 +1733,7 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * render_scale_table[scale_index]));
     internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * render_scale_table[scale_index]));
 #endif
-    internal_3d_res.x = clamp_def(internal_3d_res.x, 1, sv_max_texture_size);
-    internal_3d_res.y = clamp_def(internal_3d_res.y, 1, sv_max_texture_size);
+    internal_3d_res = vec2i::clamp(internal_3d_res, 1, sv_max_texture_size);
 
     bool fb_changed = old_internal_2d_res.x != internal_2d_res.x
         || old_internal_2d_res.y != internal_2d_res.y
@@ -1695,6 +1746,7 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     if (fb_changed && change_fb) {
         rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
             internal_2d_res.x, internal_2d_res.y, width, height);
+        rctx->draw_pass.resize(internal_2d_res.x, internal_2d_res.y);
         rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
     }
 }
@@ -1710,8 +1762,7 @@ static void render_imgui_context_menu(classes_data* classes,
 
         if (c->sub_classes && c->sub_classes_count) {
             if (ImGui::BeginMenu(c->name, ~c->data.flags & CLASS_HIDDEN)) {
-                render_imgui_context_menu(c->sub_classes,
-                    c->sub_classes_count, rctx);
+                render_imgui_context_menu(c->sub_classes, c->sub_classes_count, rctx);
                 ImGui::EndMenu();
             }
         }
@@ -1740,11 +1791,11 @@ static void render_imgui_context_menu(classes_data* classes,
     }
 }
 
-inline static void render_shaders_load() {
+static void render_shaders_load() {
     data_list[DATA_AFT].load_file(&shaders_ft, "rom/", "ft_shaders.farc", render_load_shaders);
 }
 
-inline static void render_shaders_free() {
+static void render_shaders_free() {
     shaders_ft.unload();
 }
 
@@ -1754,74 +1805,74 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
     if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
         return;
 
-    printf("########################################\n");
+    printf_debug("########################################\n");
     switch (type) {
     case GL_DEBUG_TYPE_ERROR:
-        printf("Type: Error;                ");
+        printf_debug("Type: Error;                ");
         break;
     case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-        printf("Type: Deprecated Behaviour; ");
+        printf_debug("Type: Deprecated Behaviour; ");
         break;
     case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-        printf("Type: Undefined Behaviour;  ");
+        printf_debug("Type: Undefined Behaviour;  ");
         break;
     case GL_DEBUG_TYPE_PORTABILITY:
-        printf("Type: Portability;          ");
+        printf_debug("Type: Portability;          ");
         break;
     case GL_DEBUG_TYPE_PERFORMANCE:
-        printf("Type: Performance;          ");
+        printf_debug("Type: Performance;          ");
         break;
     case GL_DEBUG_TYPE_MARKER:
-        printf("Type: Marker;               ");
+        printf_debug("Type: Marker;               ");
         break;
     case GL_DEBUG_TYPE_PUSH_GROUP:
-        printf("Type: Push Group;           ");
+        printf_debug("Type: Push Group;           ");
         break;
     case GL_DEBUG_TYPE_POP_GROUP:
-        printf("Type: Pop Group;            ");
+        printf_debug("Type: Pop Group;            ");
         break;
     case GL_DEBUG_TYPE_OTHER:
-        printf("Type: Other;                ");
+        printf_debug("Type: Other;                ");
         break;
     }
 
     switch (severity) {
     case GL_DEBUG_SEVERITY_HIGH:
-        printf("Severity: high;   ");
+        printf_debug("Severity: high;   ");
         break;
     case GL_DEBUG_SEVERITY_MEDIUM:
-        printf("Severity: medium; ");
+        printf_debug("Severity: medium; ");
         break;
     case GL_DEBUG_SEVERITY_LOW:
-        printf("Severity: low;    ");
+        printf_debug("Severity: low;    ");
         break;
     case GL_DEBUG_SEVERITY_NOTIFICATION:
-        printf("Severity: notif;  ");
+        printf_debug("Severity: notif;  ");
         break;
     }
 
     switch (source) {
     case GL_DEBUG_SOURCE_API:
-        printf("Source: API\n");
+        printf_debug("Source: API\n");
         break;
     case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-        printf("Source: Window System\n");
+        printf_debug("Source: Window System\n");
         break;
     case GL_DEBUG_SOURCE_SHADER_COMPILER:
-        printf("Source: Shader Compiler\n");
+        printf_debug("Source: Shader Compiler\n");
         break;
     case GL_DEBUG_SOURCE_THIRD_PARTY:
-        printf("Source: Third Party\n");
+        printf_debug("Source: Third Party\n");
         break;
     case GL_DEBUG_SOURCE_APPLICATION:
-        printf("Source: Application\n");
+        printf_debug("Source: Application\n");
         break;
     case GL_DEBUG_SOURCE_OTHER:
-        printf("Source: Other\n");
+        printf_debug("Source: Other\n");
         break;
     }
 
-    printf("Debug message (%d): %s\n", id, message);
-    printf("########################################\n\n");
+    printf_debug("Debug message (%d): %s\n", id, message);
+    printf_debug("########################################\n\n");
 }
 #endif

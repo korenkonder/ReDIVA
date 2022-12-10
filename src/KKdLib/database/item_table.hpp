@@ -183,7 +183,7 @@ struct itm_table {
     std::vector<itm_table_dbgset> dbgset;
 
     itm_table();
-    virtual ~itm_table();
+    ~itm_table();
 
     void read(const char* path);
     void read(const wchar_t* path);

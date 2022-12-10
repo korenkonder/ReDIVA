@@ -85,12 +85,12 @@ void data_view_glitter_imgui(class_data* data) {
             }
 
             int32_t eff_index = 0;
-            for (Glitter::SceneEffect& j : i->effects) {
-                if (!j.disp || !j.ptr)
-                    continue;
+            if (i->type != Glitter::X)
+                for (Glitter::SceneEffect& j : i->effects) {
+                    if (!j.disp || !j.ptr)
+                        continue;
 
-                Glitter::F2EffectInst* eff_f2 = dynamic_cast<Glitter::F2EffectInst*>(j.ptr);
-                if (eff_f2) {
+                    Glitter::F2EffectInst* eff_f2 = (Glitter::F2EffectInst*)j.ptr;
                     tree_node_flags = tree_node_base_flags;
 
                     ImGui::PushStyleColor(ImGuiCol_Text,
@@ -140,11 +140,14 @@ void data_view_glitter_imgui(class_data* data) {
                     ImGui::PopStyleColor();
                     ImGui::PopID();
                     eff_index++;
-                    continue;
-                }
 
-                Glitter::XEffectInst* eff_x = dynamic_cast<Glitter::XEffectInst*>(j.ptr);
-                if (eff_x) {
+                }
+            else
+                for (Glitter::SceneEffect& j : i->effects) {
+                    if (!j.disp || !j.ptr)
+                        continue;
+
+                    Glitter::XEffectInst* eff_x = (Glitter::XEffectInst*)j.ptr;
                     tree_node_flags = tree_node_base_flags;
 
                     ImGui::PushStyleColor(ImGuiCol_Text,
@@ -194,11 +197,7 @@ void data_view_glitter_imgui(class_data* data) {
                     ImGui::PopStyleColor();
                     ImGui::PopID();
                     eff_index++;
-                    continue;
                 }
-
-                eff_index++;
-            }
             ImGui::TreePop();
             ImGui::PopID();
             sc_index++;

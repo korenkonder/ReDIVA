@@ -15,7 +15,9 @@ enum shader_ft_enum {
     SHADER_FT_STAGE,
     SHADER_FT_SKIN,
     SHADER_FT_SSS_SKIN,
-    SHADER_FT_SSS_FILT,
+    //SHADER_FT_SSS_FILT,
+    SHADER_FT_SSS_FILT_MIN,
+    SHADER_FT_SSS_FILT_GAUSS_2D,
     SHADER_FT_HAIR,
     SHADER_FT_CLOTH,
     SHADER_FT_TIGHTS,
@@ -27,7 +29,9 @@ enum shader_ft_enum {
     SHADER_FT_SHDMAP,
     SHADER_FT_ESM,
     SHADER_FT_ESMGAUSS,
-    SHADER_FT_ESMFILT,
+    //SHADER_FT_ESMFILT,
+    SHADER_FT_ESMFILT_MIN,
+    SHADER_FT_ESMFILT_EROSION,
     SHADER_FT_LITPROJ,
     SHADER_FT_SIMPLE,
     SHADER_FT_SIL,
@@ -42,8 +46,14 @@ enum shader_ft_enum {
     SHADER_FT_MLAA_AREA,
     SHADER_FT_MLAA_BLEND,
     SHADER_FT_CONTOUR,
-    SHADER_FT_EXPOSURE,
-    SHADER_FT_GAUSS,
+    SHADER_FT_CONTOUR_NPR,
+    //SHADER_FT_EXPOSURE,
+    SHADER_FT_EXPOSURE_MINIFY,
+    SHADER_FT_EXPOSURE_MEASURE,
+    SHADER_FT_EXPOSURE_AVERAGE,
+    //SHADER_FT_GAUSS,
+    SHADER_FT_GAUSS_USUAL,
+    SHADER_FT_GAUSS_CONE,
     SHADER_FT_SUN,
     SHADER_FT_FADE,
     SHADER_FT_WATER01,
@@ -53,6 +63,7 @@ enum shader_ft_enum {
     SHADER_FT_SNOW_PT,
     SHADER_FT_LEAF_PT,
     SHADER_FT_STAR,
+    SHADER_FT_STAR_MILKY_WAY,
     SHADER_FT_SNORING,
     SHADER_FT_SN_FOOT,
     SHADER_FT_SN_TSL,
@@ -77,6 +88,9 @@ enum shader_ft_enum {
     SHADER_FT_END,
 };
 
-extern shader_set_data shaders_ft;
+extern const shader_table shader_ft_table[];
+extern const size_t shader_ft_table_size;
+extern const shader_bind_func shader_ft_bind_func_table[];
+extern const size_t shader_ft_bind_func_table_size;
 
-extern void shader_ft_load(shader_set_data* set, farc* f, bool ignore_cache);
+extern shader_set_data shaders_ft;

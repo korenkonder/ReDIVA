@@ -35,7 +35,7 @@ struct texture_database_file {
     std::vector<texture_info_file> texture;
 
     texture_database_file();
-    virtual ~texture_database_file();
+    ~texture_database_file();
 
     void read(const char* path, bool modern);
     void read(const wchar_t* path, bool modern);
@@ -51,7 +51,7 @@ struct texture_database {
     std::vector<texture_info> texture;
 
     texture_database();
-    virtual ~texture_database();
+    ~texture_database();
 
     void add(texture_database_file* tex_db_file);
 

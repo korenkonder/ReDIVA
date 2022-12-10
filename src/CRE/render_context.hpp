@@ -27,6 +27,13 @@
 #define TEXTURE_PATTERN_COUNT 24
 #define TEXTURE_TRANSFORM_COUNT 24
 
+enum blur_filter_mode {
+    BLUR_FILTER_4  = 0x00,
+    BLUR_FILTER_9  = 0x01,
+    BLUR_FILTER_16 = 0x02,
+    BLUR_FILTER_32 = 0x03,
+};
+
 enum draw_object_type {
     DRAW_OBJECT_OPAQUE                          = 0x00,
     DRAW_OBJECT_TRANSLUCENT                     = 0x01,
@@ -57,7 +64,7 @@ enum draw_object_type {
     DRAW_OBJECT_OPAQUE_ALPHA_ORDER_3            = 0x1A,
     DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_3       = 0x1B,
     DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3       = 0x1C,
-    DRAW_OBJECT_PREPROCESS                      = 0x1D,
+    DRAW_OBJECT_PREPROCESS                     = 0x1D,
     DRAW_OBJECT_OPAQUE_LOCAL                    = 0x1E, // X
     DRAW_OBJECT_TRANSLUCENT_LOCAL               = 0x1F,
     DRAW_OBJECT_TRANSPARENT_LOCAL               = 0x20,
@@ -109,7 +116,7 @@ enum draw_task_flags : uint32_t {
     DRAW_TASK_200000                = 0x00200000,
     DRAW_TASK_400000                = 0x00400000,
     DRAW_TASK_800000                = 0x00800000,
-    DRAW_TASK_PREPROCESS            = 0x01000000,
+    DRAW_TASK_PREPROCESS           = 0x01000000,
     DRAW_TASK_2000000               = 0x02000000,
     DRAW_TASK_4000000               = 0x04000000,
     DRAW_TASK_8000000               = 0x08000000,
@@ -122,7 +129,7 @@ enum draw_task_flags : uint32_t {
 enum draw_task_type {
     DRAW_TASK_OBJECT             = 0x00,
     DRAW_TASK_OBJECT_PRIMITIVE   = 0x01,
-    DRAW_TASK_OBJECT_PREPROCESS  = 0x02,
+    DRAW_TASK_OBJECT_PREPROCESS = 0x02,
     DRAW_TASK_OBJECT_TRANSLUCENT = 0x03,
 };
 
@@ -130,13 +137,6 @@ enum reflect_refract_resolution_mode {
     REFLECT_REFRACT_RESOLUTION_256x256 = 0x00,
     REFLECT_REFRACT_RESOLUTION_512x256 = 0x01,
     REFLECT_REFRACT_RESOLUTION_512x512 = 0x02,
-};
-
-enum blur_filter_mode {
-    BLUR_FILTER_4  = 0x00,
-    BLUR_FILTER_9  = 0x01,
-    BLUR_FILTER_16 = 0x02,
-    BLUR_FILTER_32 = 0x03,
 };
 
 enum shadow_type_enum {
@@ -157,6 +157,10 @@ struct draw_state_stats {
     int32_t draw_count;
     int32_t draw_triangle_count;
     int32_t field_1C;
+
+    draw_state_stats();
+
+    void reset();
 };
 
 struct sss_data {
@@ -168,6 +172,12 @@ struct sss_data {
 
     sss_data();
     ~sss_data();
+};
+
+struct draw_preprocess {
+    int32_t type;
+    void(*func)(void*);
+    void* data;
 };
 
 struct draw_pass {
@@ -186,14 +196,17 @@ struct draw_pass {
     bool alpha_z_sort;
     bool draw_pass_3d[DRAW_PASS_3D_MAX];
     stage_data_reflect_type reflect_type;
-    render_texture reflect_texture;
-    render_texture refract_texture;
+    int32_t tex_index[11];
+    render_texture render_textures[8];
+    GLuint multisample_framebuffer;
+    GLuint multisample_renderbuffer;
+    bool multisample;
     int32_t show_vector_flags;
     float_t show_vector_length;
     float_t show_vector_z_offset;
     bool field_2F8;
-    //std::vector<draw_preprocess> preprocess;
-    texture* sss_texture;
+    std::list<draw_preprocess> preprocess;
+    texture* effect_texture;
     int32_t npr_param;
     bool field_31C;
     bool field_31D;
@@ -202,9 +215,27 @@ struct draw_pass {
     bool field_320;
     bool npr;
     sss_data sss_data;
+    GLuint samplers[18];
 
     draw_pass();
     ~draw_pass();
+
+    void add_preprocess(int32_t type, void(*func)(void*), void* data);
+    void clear_preprocess(int32_t type);
+    render_texture& get_render_texture(int32_t index);
+    void resize(int32_t width, int32_t height);
+    void set_enable(draw_pass_type type, bool value);
+    void set_effect_texture(texture* value);
+    void set_multisample(bool value);
+    void set_npr_param(int32_t value);
+    void set_reflect(bool value);
+    void set_reflect_blur(int32_t reflect_blur_num, blur_filter_mode reflect_blur_filter);
+    void set_reflect_resolution_mode(reflect_refract_resolution_mode mode);
+    void set_reflect_type(stage_data_reflect_type type);
+    void set_refract(bool value);
+    void set_refract_resolution_mode(reflect_refract_resolution_mode mode);
+    void set_shadow_false();
+    void set_shadow_true();
 };
 
 struct draw_state {
@@ -230,6 +261,8 @@ struct draw_state {
     float_t fresnel;
 
     draw_state();
+
+    void set_fog_height(bool value);
 };
 
 struct material_list_struct {
@@ -439,9 +472,14 @@ struct object_data_culling_info {
 struct object_data_vertex_array {
     GLuint array_buffer;
     GLuint morph_array_buffer;
+    GLuint element_array_buffer;
     int32_t alive_time;
     GLuint vertex_array;
     bool vertex_attrib_array[16];
+    obj_vertex_format vertex_format;
+    GLsizei size_vertex;
+    bool compressed;
+    GLuint vertex_attrib_buffer_binding[16];
     int32_t texcoord_array[2];
 };
 

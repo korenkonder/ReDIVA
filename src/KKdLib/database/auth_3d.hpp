@@ -55,7 +55,7 @@ struct auth_3d_database_file {
     int32_t uid_max;
 
     auth_3d_database_file();
-    virtual ~auth_3d_database_file();
+    ~auth_3d_database_file();
 
     void read(const char* path);
     void read(const wchar_t* path);
@@ -72,7 +72,7 @@ struct auth_3d_database {
     std::vector<auth_3d_database_uid> uid;
 
     auth_3d_database();
-    virtual ~auth_3d_database();
+    ~auth_3d_database();
 
     void add(auth_3d_database_file* auth_3d_db_file, bool mdata);
     int32_t get_category_index(const char* name);

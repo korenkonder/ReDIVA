@@ -19,8 +19,8 @@ namespace pv_param {
 
     bloom::bloom() {
         id = -1;
-        color = vec3_null;
-        brightpass = vec3_null;
+        color = 0.0f;
+        brightpass = 0.0f;
         range = 0.0f;
     }
 
@@ -48,7 +48,7 @@ namespace pv_param {
         saturation = 1.0f;
         lightness = 1.0f;
         exposure = 1.0f;
-        gamma = vec3_identity;
+        gamma = 1.0f;
         contrast = 1.0f;
     }
 
@@ -282,26 +282,26 @@ namespace pv_param {
         if (!aft_data->check_directory_exists(path.c_str()))
             return false;
 
-        if (aft_data->check_file_exists(path.c_str(), "dof.txt"))
-            dof_file = path + "dof.txt";
-        else {
+        if (aft_data->check_file_exists(path.c_str(), "dof.txt")) {
+            dof_file.assign(path);
+            dof_file.append("dof.txt");
+        }
+        else
             dof_file.clear();
-            dof_file.shrink_to_fit();
-        }
 
-        if (aft_data->check_file_exists(path.c_str(), "cc.txt"))
-            cc_file = path + "cc.txt";
-        else {
+        if (aft_data->check_file_exists(path.c_str(), "cc.txt")) {
+            dof_file.assign(path);
+            dof_file.append("cc.txt");
+        }
+        else
             cc_file.clear();
-            cc_file.shrink_to_fit();
-        }
 
-        if (aft_data->check_file_exists(path.c_str(), "bloom.txt"))
-            bloom_file = path + "bloom.txt";
-        else {
-            bloom_file.clear();
-            bloom_file.shrink_to_fit();
+        if (aft_data->check_file_exists(path.c_str(), "bloom.txt")) {
+            dof_file.assign(path);
+            dof_file.append("bloom.txt");
         }
+        else
+            bloom_file.clear();
 
         if ((!dof_file.size() || file_data.load_dof_file(dof_file))
             && (!cc_file.size() || file_data.load_color_correction_file(cc_file))
@@ -411,11 +411,15 @@ namespace pv_param {
     }
 
     static bool load_text_file(void* data, const char* path, const char* file, uint32_t hash) {
-        file_stream s;
-        s.open((std::string(path) + file).c_str(), "rb");
-        if (s.check_not_null()) {
-            *(std::string*)data = s.read_string(s.length);
-            s.close();
+        std::string s;
+        s.assign(path);
+        s.append(file);
+
+        file_stream fs;
+        fs.open(s.c_str(), "rb");
+        if (fs.check_not_null()) {
+            *(std::string*)data = fs.read_string(fs.get_length());
+            fs.close();
             return true;
         }
         return false;
@@ -676,6 +680,47 @@ namespace pv_param_task {
         frame = -1.0f;
     }
 
+    static void get_autofocus_data(float_t distance, float_t fov, float_t& focus,
+        float_t& focus_range, float_t& fuzzing_range, float_t& ratio) {
+        float_t v5 = tanf(fov * DEG_TO_RAD_FLOAT * 0.5f);
+        float_t v6 = distance * 1000.0f;
+        float_t v7 = 36.0f / (v5 * 2.0f);
+        v7 *= v7;
+
+        float_t _focus_range = (v6 * 0.36608f * v6) / (v7 - v6 * 0.36608f) * 0.001f;
+        if (_focus_range >= 0.0f) {
+            float_t _ratio = (v7 * 20000.0f) / (v6 * 220000.0f + v6 * 11.0f * v6) * 3.0048077f;
+
+            float_t range;
+            if (_ratio >= 1.0f) {
+                range = (v6 * 3.6608f * v6) / (v7 - v6 * 3.6608f) * 0.001f;
+                if (range < 0.2f)
+                    range = 0.2f;
+                _ratio = 1.0f;
+            }
+            else
+                range = 20.0f;
+
+            if (_focus_range < 0.2f)
+                _focus_range = 0.2f;
+
+            float_t _fuzzing_range = range - _focus_range;
+            if (_fuzzing_range < 0.01f)
+                _fuzzing_range = 0.01f;
+
+            focus = distance;
+            focus_range = _focus_range;
+            fuzzing_range = _fuzzing_range;
+            ratio = _ratio;
+        }
+        else {
+            focus = 0.0f;
+            focus_range = 0.0f;
+            fuzzing_range = 0.0f;
+            ratio = 0.0f;
+        }
+    }
+
 #define DOF_FIX 1
 
     void PostProcessCtrlDof::Set() {
@@ -693,7 +738,7 @@ namespace pv_param_task {
 #else
         if (autofocus) {
 #endif
-            vec3 trans = vec3_null;
+            vec3 trans = 0.0f;
             rob_chara* rob_chr = rob_chara_array_get(autofocus ? data.data.chara_id : 0);
             if (rob_chr) {
                 motion_blend_mot* mot = rob_chr->bone_data->motion_loaded.front();
@@ -708,40 +753,9 @@ namespace pv_param_task {
             cam->get_view_point(view_point);
             float_t fov = (float_t)cam->get_fov();
 
-            focus = vec3::distance(trans, view_point);
+            float_t distance = vec3::distance(trans, view_point);
 
-            float_t v5 = tanf(fov * DEG_TO_RAD_FLOAT * 0.5f);
-            float_t v6 = focus * 1000.0f;
-            float_t v7 = 36.0f / (v5 * 2.0f);
-            v7 *= v7;
-            float_t v8 = v6 * 0.36608f * v6 / (v7 - v6 * 0.36608f) * 0.001f;
-            if (v8 >= 0.0f) {
-                float_t v9 = v7 - (v6 * 3.6608f);
-                float_t v10 = 20.0f;
-                float_t v11 = (v7 * 20000.0f) / (v6 * 220000.0f + v6 * 11.0f * v6);
-                focus_range = (v8 + v8) * 0.5f;
-                float_t v13 = (v6 * 3.6608f * v6) / v9 * 0.001f;
-                if (v11 >= 0.3328f)
-                    v10 = v13;
-                if (v10 <= 0.2f)
-                    v10 = 0.2f;
-                if (focus_range <= 0.2f)
-                    focus_range = 0.2f;
-                if (v11 >= 0.3328f)
-                    ratio = 1.0f;
-                else
-                    ratio = v11 * 3.004807711f;
-
-                fuzzing_range = v10 - focus_range;
-                if (fuzzing_range <= 0.01f)
-                    fuzzing_range = 0.01f;
-            }
-            else {
-                focus = 0.0f;
-                focus_range = 0.0f;
-                fuzzing_range = 0.0f;
-                ratio = 0.0f;
-            }
+            get_autofocus_data(distance, fov, focus, focus_range, fuzzing_range, ratio);
 
             if (autofocus) {
                 data.data.focus = focus;

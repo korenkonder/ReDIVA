@@ -15,10 +15,13 @@
 #include "../CRE/object.hpp"
 #include "../CRE/pv_expression.hpp"
 #include "../CRE/pv_param.hpp"
+#include "../CRE/random.hpp"
 #include "../CRE/sound.hpp"
+#include "../CRE/task_effect.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/interpolation.hpp"
 #include "../KKdLib/sort.hpp"
+#include "../KKdLib/str_utils.hpp"
 #if BAKE_PNG
 #include <lodepng/lodepng.h>
 #endif
@@ -208,6 +211,8 @@ struct dof_cam {
 
     dof_cam();
     ~dof_cam();
+
+    void reset();
 };
 #endif
 
@@ -225,10 +230,14 @@ static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_
 static bool x_pv_game_dsc_process(x_pv_game* xpvgm, int64_t curr_time);
 //static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys);
 static void x_pv_game_reset_field(x_pv_game* xpvgm);
+static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
+    std::set<object_info>& object_hrc, std::set<std::string>& material_list);
 
 static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t chara_id);
 static void pv_game_dsc_data_find_playdata_set_motion(x_pv_game* xpvgm, int32_t chara_id);
 static void pv_game_dsc_data_find_set_motion(x_pv_game* xpvgm);
+static void pv_game_dsc_data_set_motion_max_frame(x_pv_game* xpvgm,
+    int32_t chara_id, int32_t motion_index, int64_t disp_time);
 
 bool x_pv_bar_beat_data::compare_bar_time_less(float_t time) {
     return (time + 0.0001f) < bar_time;
@@ -541,8 +550,8 @@ void x_pv_play_data_motion_data::reset() {
     rob_chr = 0;
     current_time = 0.0f;
     duration = 0.0f;
-    start_pos = vec3_null;
-    end_pos = vec3_null;
+    start_pos = 0.0f;
+    end_pos = 0.0f;
     start_rot = 0.0f;
     end_rot = 0.0f;
     mot_smooth_len = 12.0f;
@@ -799,13 +808,13 @@ void x_pv_game_camera::ctrl(float_t curr_time) {
 void x_pv_game_camera::load(int32_t pv_id, int32_t stage_id, FrameRateControl* frame_rate_control) {
     char buf[0x200];
     sprintf_s(buf, sizeof(buf), "CAMPV%03d", pv_id);
-    category = buf;
+    category.assign(buf);
 
     if ((pv_id % 100) >= 25 && (pv_id % 100) <= 30 && stage_id >= 25 && stage_id <= 30)
         sprintf_s(buf, sizeof(buf), "CAMPV%03d_100", pv_id);
     else
         sprintf_s(buf, sizeof(buf), "CAMPV%03d_BASE", pv_id);
-    file = buf;
+    file.assign(buf);
 
     this->frame_rate_control = frame_rate_control;
 }
@@ -923,7 +932,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
             pvpp_effect& effect = play_param->effect[i];
             for (pvpp_glitter& j : effect.glitter) {
                 x_pv_game_song_effect_glitter v132;
-                v132.name = j.name;
+                v132.name.assign(j.name);
                 v132.scene_counter = 0;
                 v132.field_8 = !!(j.unk2 & 0x01);
                 for (bool& i : v132.field_9)
@@ -994,7 +1003,7 @@ void x_pv_game_effect::load(int32_t pv_id, pvpp* play_param, FrameRateControl* f
         if (!eff.auth_3d.size())
             continue;
 
-        char buf[0x100];
+        char buf[0x200];
         size_t len = sprintf_s(buf, sizeof(buf), "A3D_EFFPV%03d", pv_id);
         pv_auth_3d.push_back(std::string(buf, len));
 
@@ -1022,7 +1031,7 @@ void x_pv_game_effect::load_data(int32_t pv_id) {
         if (!eff.glitter.size())
             continue;
 
-        char buf[0x100];
+        char buf[0x200];
         size_t len = sprintf_s(buf, sizeof(buf), "eff_pv%03d_main", pv_id);
         uint32_t hash = (uint32_t)Glitter::glt_particle_manager->LoadFile(Glitter::X,
             x_data, buf, 0, -1.0f, false, 0);
@@ -1050,14 +1059,16 @@ void x_pv_game_effect::reset() {
     frame_rate_control = 0;
 }
 
-void x_pv_game_effect::set_chara_id(int32_t index, int32_t chara_id, bool a4) {
+void x_pv_game_effect::set_chara_id(int32_t index, int32_t chara_id, bool chara_item) {
     if (index < 0 || index >= song_effect.size())
         return;
 
     x_pv_game_song_effect& song_effect = this->song_effect[index];
 
-    for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d)
+    for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d) {
         auth_3d_data_set_chara_id(&i.id, chara_id);
+        auth_3d_data_set_chara_item(&i.id, chara_item);
+    }
 
     song_effect.chara_id = chara_id;
 }
@@ -1827,7 +1838,7 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
     effect.load(pv_id, play_param, frame_rate_control);
     chara_effect.load(pv_id, play_param, frame_rate_control, charas);
 
-    char buf[0x100];
+    char buf[0x200];
     size_t len = sprintf_s(buf, sizeof(buf), "exp_PV%03d", pv_id);
     exp_file = std::string(buf, len);
 
@@ -1871,6 +1882,8 @@ void x_pv_game_data::reset() {
     obj_db.object_set.shrink_to_fit();
     tex_db.texture.clear();
     tex_db.texture.shrink_to_fit();
+
+    sound_work_release_stream(0);
 }
 
 void x_pv_game_data::stop() {
@@ -2007,11 +2020,11 @@ void x_pv_game_stage_data::load(int32_t stage_id, FrameRateControl* frame_rate_c
 
     this->frame_rate_control = frame_rate_control;
 
-    char buf[0x100];
+    char buf[0x200];
     sprintf_s(buf, sizeof(buf), "pv_stgpv%03d.stg", stage_id);
     file_handler.read_file(&data_list[DATA_X], "root+/stage/", buf);
 
-    task_stage_modern_load("X_PV_STAGE");
+    task_stage_modern_load_task("X_PV_STAGE");
 
     size_t len = sprintf_s(buf, sizeof(buf), "STGPV%03d.stg", stage_id);
     obj_hash.push_back(hash_murmurhash(buf, len));
@@ -2045,7 +2058,8 @@ void x_pv_game_stage_data::load_objects(object_database* obj_db, texture_databas
     data_struct* x_data = &data_list[DATA_X];
 
     task_stage_modern_set_data(x_data, obj_db, tex_db, &stg_db);
-    task_stage_modern_set_stage_hashes(&obj_hash, &stage_data);
+    task_stage_modern_set_stage_hashes(obj_hash, stage_data);
+    task_effect_parent_set_data(x_data, obj_db, tex_db, &stg_db);
 
     for (uint32_t& i : objhrc_hash)
         object_storage_load_set_hash(x_data, i);
@@ -2096,24 +2110,20 @@ void x_pv_game_stage_data::set_stage(uint32_t hash) {
 
     task_stage_modern_set_stage(&stage_info);
     if (task_stage_modern_has_stage_info(&stage_info))
-        task_stage_modern_set_stage_display(&stage_info, !!(flags & 0x04));
+        task_stage_modern_set_stage_display(&stage_info, !!(flags & 0x04), true);
     else
-        task_stage_modern_current_set_stage_display(false);
+        task_stage_modern_current_set_stage_display(false, true);
 }
 
 void x_pv_game_stage_data::unload() {
     for (uint32_t& i : objhrc_hash)
         object_storage_unload_set(i);
 
-    task_stage_modern_unload();
+    task_stage_modern_unload_task();
 
     flags &= ~0x02;
     state = 0;
     file_handler.free_data();
-    stg_db.stage_data.clear();
-    stg_db.stage_data.shrink_to_fit();
-    stg_db.stage_modern.clear();
-    stg_db.stage_modern.shrink_to_fit();
     frame_rate_control = 0;
     obj_hash.clear();
     obj_hash.shrink_to_fit();
@@ -2121,6 +2131,13 @@ void x_pv_game_stage_data::unload() {
     stage_info.shrink_to_fit();
     objhrc_hash.clear();
     objhrc_hash.shrink_to_fit();
+}
+
+void x_pv_game_stage_data::unload_stage_database() {
+    stg_db.stage_data.clear();
+    stg_db.stage_data.shrink_to_fit();
+    stg_db.stage_modern.clear();
+    stg_db.stage_modern.shrink_to_fit();
 }
 
 x_pv_game_stage::x_pv_game_stage() : flags(), stage_id(), field_8(), state(), stage_resource(),
@@ -2183,7 +2200,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
             }
 
         if (has_auth_3d) {
-            char buf[0x100];
+            char buf[0x200];
             size_t len = sprintf_s(buf, sizeof(buf), "EFFSTGPV%03d", stage_id);
             stage_auth_3d.push_back(std::string(buf, len));
         }
@@ -2251,7 +2268,8 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
 
                 auto elem = auth_3d_ids.find(stg_eff_auth_3d.name.hash_murmurhash);
                 if (elem == auth_3d_ids.end()) {
-                    int32_t id = auth_3d_data_load_hash(stg_eff_auth_3d.name.hash_murmurhash, x_data, &obj_db, &tex_db);
+                    int32_t id = auth_3d_data_load_hash(stg_eff_auth_3d
+                        .name.hash_murmurhash, x_data, &obj_db, &tex_db);
                     if (!auth_3d_data_check_id_not_empty(&id)) {
                         eff_auth_3d.id = -1;
                         continue;
@@ -2286,7 +2304,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
                 x_pv_game_stage_effect_glitter& eff_glt = eff.glitter[i];
 
                 eff_glt.reset();
-                eff_glt.name = stg_eff_glt.name;
+                eff_glt.name.assign(stg_eff_glt.name);
                 eff_glt.fade_time = (float_t)stg_eff_glt.fade_time;
                 eff_glt.force_disp = !!(stg_eff_glt.flags & PVSR_GLITTER_FORCE_DISP);
             }
@@ -2333,7 +2351,10 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         ctrl_inner();
         break;
     case 30:
-        state = 0;
+        if (!task_stage_modern_check_task_ready()) {
+            stage_data.unload_stage_database();
+            state = 0;
+        }
         break;
     }
 
@@ -2480,7 +2501,7 @@ void x_pv_game_stage::load(int32_t stage_id, FrameRateControl* frame_rate_contro
 
     stage_data.load(stage_id, frame_rate_control);
 
-    char buf[0x100];
+    char buf[0x200];
     sprintf_s(buf, sizeof(buf), "stgpv%03d_param.pvsr", stage_id);
     stage_resource_file_handler.read_file(&data_list[DATA_X], "root+/pv_stage_rsrc/", buf);
     state = 10;
@@ -2526,7 +2547,8 @@ void x_pv_game_stage::load_change_effect(int32_t curr_stage_effect, int32_t next
 
         auto elem = auth_3d_ids.find(stg_chg_eff_auth_3d.name.hash_murmurhash);
         if (elem == auth_3d_ids.end()) {
-            int32_t id = auth_3d_data_load_hash(stg_chg_eff_auth_3d.name.hash_murmurhash, x_data, &obj_db, &tex_db);
+            int32_t id = auth_3d_data_load_hash(stg_chg_eff_auth_3d
+                .name.hash_murmurhash, x_data, &obj_db, &tex_db);
             if (!auth_3d_data_check_id_not_empty(&id)) {
                 chg_eff_auth_3d.id = -1;
                 continue;
@@ -2554,7 +2576,7 @@ void x_pv_game_stage::load_change_effect(int32_t curr_stage_effect, int32_t next
         x_pv_game_stage_effect_glitter& chg_eff_glt = chg_eff.glitter[i];
 
         chg_eff_glt.reset();
-        chg_eff_glt.name = stg_chg_eff_glt.name;
+        chg_eff_glt.name.assign(stg_chg_eff_glt.name);
         chg_eff_glt.force_disp = !!(stg_chg_eff_glt.flags & PVSR_GLITTER_FORCE_DISP);
     }
 }
@@ -2906,6 +2928,9 @@ void x_pv_game_stage::unload() {
 
     delete stage_resource;
     stage_resource = 0;
+
+    stage_data.unload();
+
     stage_id = 0;
 
     state = 30;
@@ -2913,7 +2938,7 @@ void x_pv_game_stage::unload() {
 
 x_pv_game::x_pv_game() : state(), pv_count(),  pv_index(), state_old(), frame(), frame_float(),
 time(), rob_chara_ids(), play(), success(), chara_id(), pv_end(), playdata(), scene_rot_y(),
-branch_mode(), pause(), step_frame(), pv_id(), stage_id(), charas(), modules() {
+branch_mode(), task_effect_init(), pause(), step_frame(), pv_id(), stage_id(), charas(), modules() {
     light_auth_3d_id = -1;
     target_anim_fps = 60.0f;
     anim_frame_speed = 1.0f;
@@ -2981,7 +3006,7 @@ bool x_pv_game::Ctrl() {
 
         pv_data[pv_index].pv_id = pv_id;
 
-        char buf[0x100];
+        char buf[0x200];
         for (int32_t i = 0; i < pv_count; i++) {
             x_pv_game_data& pv_data = this->pv_data[i];
 
@@ -3066,7 +3091,8 @@ bool x_pv_game::Ctrl() {
             auth_3d_database* auth_3d_db = &aft_data->data_ft.auth_3d_db;
 
             char buf[0x200];
-            sprintf_s(buf, sizeof(buf), "STGPV%03d_EFF_LT_000", pv_data[pv_index].pv_id);
+            sprintf_s(buf, sizeof(buf), "STGPV%03d_EFF_LT_000",
+                pv_data[pv_index].pv_id == 832 ? 800 : pv_data[pv_index].pv_id);
             uint32_t light_auth_3d_hash = hash_utf8_murmurhash(buf);
             for (auth_3d_database_uid& i : auth_3d_db->uid)
                 if (hash_string_murmurhash(i.name) == light_auth_3d_hash) {
@@ -3254,9 +3280,9 @@ bool x_pv_game::Ctrl() {
                     state[chara_id].set_motion_data_offset = i.data_offset;
                     //set_motion.push_back({ time, i.data_offset });
                 } break;
-                /*case DSC_X_SET_PLAYDATA: {
-                    set_playdata.push_back({ time, i.data_offset });
-                } break;*/
+                    /*case DSC_X_SET_PLAYDATA: {
+                        set_playdata.push_back({ time, i.data_offset });
+                    } break;*/
                 }
             }
 
@@ -3414,6 +3440,54 @@ bool x_pv_game::Ctrl() {
         if (wait_load)
             break;
 
+        state_old = 18;
+    } break;
+    case 18: {
+        std::set<object_info> object_hrc;
+        std::set<std::string> material_list;
+        for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
+            x_pv_game_stage_effect& eff = stage_data.effect[i];
+            for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d) {
+                if (!auth_3d_data_check_id_not_empty(&j.id)
+                    || !auth_3d_data_check_id_loaded(&j.id))
+                    continue;
+
+                auth_3d* auth = auth_3d_data_get_auth_3d(j.id);
+                if (!auth || !auth->material_list.size() || !auth->object_hrc.size())
+                    continue;
+
+                for (auth_3d_material_list& k : auth->material_list)
+                    if (k.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_INCANDESCENCE))
+                        material_list.insert(k.name);
+
+                for (auth_3d_object_hrc& k : auth->object_hrc)
+                    object_hrc.insert(k.object_info);
+            }
+        }
+
+        for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
+            for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
+                x_pv_game_stage_change_effect& chg_eff = stage_data.change_effect[i][j];
+                for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d) {
+                    if (!auth_3d_data_check_id_not_empty(&k.id)
+                        || !auth_3d_data_check_id_loaded(&k.id))
+                        continue;
+
+                    auth_3d* auth = auth_3d_data_get_auth_3d(k.id);
+                    if (!auth || !auth->material_list.size() || !auth->object_hrc.size())
+                        continue;
+
+                    for (auth_3d_material_list& l : auth->material_list)
+                        if (l.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_INCANDESCENCE))
+                            material_list.insert(l.name);
+
+                    for (auth_3d_object_hrc& l : auth->object_hrc)
+                        object_hrc.insert(l.object_info);
+                }
+            }
+
+        if (material_list.size())
+            x_pv_game_split_auth_3d_hrc_material_list(this, object_hrc, material_list);
         state_old = 19;
     } break;
     case 19: {
@@ -3443,8 +3517,8 @@ bool x_pv_game::Ctrl() {
 
 #if BAKE_VIDEO
         char buf[0x400];
-        sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb24 -s %dx%d"
-            " -r 60 -i - -c:v h264_nvenc -profile:v high -qp 22 -i_qfactor 1.00 -b_qfactor 1.00"
+        sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb24 -s %dx%d -r 60"
+            " -i - -c:v h264_nvenc -gpu 0 -profile:v high -qp 22 -i_qfactor 1.00 -b_qfactor 1.00"
             " -bf 4 -me_range 24 -color_range 2 -colorspace bt709 -pix_fmt yuv420p"
             " H:\\C\\Videos\\ReDIVA_pv%03d.264", 3840, 2160, pv_data[pv_index].pv_id);
         pipe = _popen(buf, "wb");
@@ -3464,6 +3538,8 @@ bool x_pv_game::Ctrl() {
         while (pv_data[pv_index].dsc_data.dsc_data_ptr != pv_data[pv_index].dsc_data.dsc_data_ptr_end
             && x_pv_game_dsc_process(this, time))
             pv_data[pv_index].dsc_data.dsc_data_ptr++;
+
+        sound_work_stream_set_pause(0, pause);
 
         //x_pv_game_map_auth_3d_to_mot(this, delta_frame != 0.0f && frame > 0);
 #if BAKE_PNG || BAKE_VIDEO
@@ -3544,6 +3620,8 @@ bool x_pv_game::Ctrl() {
                 rot_z.type = A3DA_KEY_NONE;
 
             a.write(buf);
+
+            dof_cam_data.reset();
         }
 #endif
 
@@ -3569,7 +3647,7 @@ bool x_pv_game::Dest() {
 
     light_param_data_storage_data_reset();
     rctx_ptr->post_process.tone_map->set_saturate_coeff(1.0f);
-    rctx_ptr->post_process.tone_map->set_scene_fade(vec4_null);
+    rctx_ptr->post_process.tone_map->set_scene_fade(0.0f);
     rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(0);
     rctx_ptr->post_process.dof->data.pv.enable = false;
     rctx_ptr->object_data.object_culling = true;
@@ -3898,6 +3976,7 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, ::chara_index charas[6], i
     scene_rot_y = 0.0f;
     scene_rot_mat = mat4_identity;
     branch_mode = 0;
+    task_effect_init = false;
 
     pause = false;
     step_frame = false;
@@ -4054,7 +4133,7 @@ bool mot_write_motion(void* data, const char* path, const char* file, uint32_t h
     }
 
     for (auto& i : xpvgm->effchrpv_auth_3d_rob_mot_ids) {
-        char buf[0x100];
+        char buf[0x200];
         sprintf_s(buf, sizeof(buf), "PV826_OST_P%d_00", i.first + 1);
 
         int32_t motion_id = aft_mot_db->get_motion_id(buf);
@@ -4338,6 +4417,7 @@ bool x_pv_game::Unload() {
     scene_rot_y = 0.0f;
     scene_rot_mat = mat4_identity;
     branch_mode = 0;
+    task_effect_init = false;
 
     pv_id = 0;
     stage_id = 0;
@@ -4463,15 +4543,6 @@ XPVGameSelector::~XPVGameSelector() {
 }
 
 bool XPVGameSelector::Init() {
-    pv_id = 0;
-    stage_id = 0;
-
-    for (chara_index& i : charas)
-        i = CHARA_MIKU;
-
-    for (int32_t& i : modules)
-        i = 0;
-
     start = false;
     exit = false;
     return true;
@@ -4561,12 +4632,12 @@ void XPVGameSelector::Window() {
     ImFont* font = ImGui::GetFont();
 
     extern int32_t height;
+    extern int32_t width;
 
     float_t w = 400.0f;
     float_t h = (float_t)height;
     h = min_def(h, 432.0f);
 
-    extern int32_t width;
     ImGui::SetNextWindowPos({ (float_t)width - w, 0.0f }, ImGuiCond_Always);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
 
@@ -4596,7 +4667,7 @@ void XPVGameSelector::Window() {
     ImGui::ColumnComboBox("Stage", stage_names, 32, &stage_id, 0, false, &window_focus);
     stage_id++;
 
-    char buf[0x100];
+    char buf[0x200];
     char buf1[0x100];
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
         chara_index chara_old = charas[i];
@@ -4664,6 +4735,9 @@ extern bool x_pv_game_free() {
             return false;
         }
 
+        if (app::TaskWork::HasTask(x_pv_game_ptr))
+            return false;
+
         delete x_pv_game_ptr;
         x_pv_game_ptr = 0;
     }
@@ -4678,6 +4752,19 @@ dof_cam::dof_cam() {
 
 dof_cam::~dof_cam() {
 
+}
+
+void dof_cam::reset() {
+    position_x.clear();
+    position_y.clear();
+    position_z.clear();
+    focus.clear();
+    focus_range.clear();
+    fuzzing_range.clear();
+    ratio.clear();
+    enable_frame.clear();
+    frame = -999999;
+    enable = false;
 }
 #endif
 
@@ -4723,25 +4810,13 @@ static void x_pv_game_chara_item_alpha_callback(void* data, int32_t chara_id, in
     }
 }
 
-static void sub_140122B60(x_pv_game* a1, int32_t chara_id, int32_t motion_index, int64_t disp_time) {
-    if (chara_id < 0 || chara_id > ROB_CHARA_COUNT || motion_index < 0)
-        return;
-
-    x_pv_play_data* playdata = &a1->playdata[chara_id];
-    int64_t dsc_time = a1->pv_data[a1->pv_index].dsc_data.time;
-    for (x_dsc_set_motion& i : playdata->motion_data.set_motion) {
-        int64_t time = (int64_t)i.time * 10000;
-        if (time > dsc_time && i.motion_index == motion_index
-            && (!a1->branch_mode || a1->branch_mode == i.pv_branch_mode)) {
-            rob_chara_bone_data* rob_bone_data = playdata->rob_chr->bone_data;
-            rob_bone_data->motion_loaded.front()->mot_play_data.frame_data.field_14 =
-                roundf(dsc_time_to_frame(time - disp_time)) - 1.0f;
-            break;
-        }
-    }
-}
-
 static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_time, int64_t curr_time) {
+    if (!xpvgm->task_effect_init && (dsc_time > -1 || curr_time > -1)) {
+        rand_state_array_4_set_seed_1393939();
+        task_effect_parent_reset();
+        xpvgm->task_effect_init = true;
+    }
+
     light_param_data_storage_data_set_pv_cut(field);
 }
 
@@ -4836,14 +4911,14 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             //pv_game::set_data_itmpv_visibility(a1->pv_game, a1->chara_id, true);
             for (x_pv_play_data_set_motion& i : playdata->set_motion) {
                 bool v45 = rob_chr->set_motion_id(i.motion_id, i.frame,
-                    i.duration, i.field_10, 0, i.blend_type, aft_bone_data, aft_mot_db);
+                    i.blend_duration, i.field_10, false, i.blend_type, aft_bone_data, aft_mot_db);
                 rob_chr->set_motion_reset_data(i.motion_id, i.dsc_frame);
                 rob_chr->bone_data->disable_eye_motion = i.disable_eye_motion;
                 rob_chr->data.motion.step_data.step = i.frame_speed;
                 if (v45)
                    pv_expression_array_set_motion(pv_data.exp_file.hash_murmurhash, a1->chara_id, i.motion_id);
                 //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
-                    sub_140122B60(a1, a1->chara_id, i.motion_index, i.dsc_time);
+                    pv_game_dsc_data_set_motion_max_frame(a1, a1->chara_id, i.motion_index, i.dsc_time);
             }
             playdata->set_motion.clear();
         }
@@ -4871,17 +4946,17 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
 
         int32_t motion_index = (int32_t)data[1];
-        int32_t duration_int = (int32_t)data[2];
+        int32_t blend_duration_int = (int32_t)data[2];
         int32_t frame_speed_int = (int32_t)data[3];
 
-        float_t duration;
-        if (duration_int != -1){
-            duration = (float_t)duration_int * 0.001f * 60.0f;
-            if (duration < 0.0f)
-                duration = 0.0f;
+        float_t blend_duration;
+        if (blend_duration_int != -1){
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
         }
         else
-            duration = 0.0f;
+            blend_duration = 0.0f;
 
         float_t frame_speed;
         if (frame_speed_int != -1) {
@@ -4950,7 +5025,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t motion_id = vector_pv_db_pv_motion_get_element_by_index_or_null(&v64->motion[a1->chara_id], v52)->id;
         if (pv_game_data_get()->data.pv) {
             pv_db_pv_motion* v76 = vector_pv_db_pv_motion_get_element_by_index_or_null(&v64->motion[a1->chara_id], v52);
-            motion_id = sub_1404EFA20(pv_game_data_get()->data.pv, rob_chr->chara_id, rob_chr->chara_index, v76);
+            motion_id = pv_game_data_get()->data.pv->get_chrmot_motion_id(rob_chr->chara_id, rob_chr->chara_index, v76);
         }*/
 
         if (motion_index) {
@@ -4963,15 +5038,16 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
                 motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
         }
 
-        duration /= a1->anim_frame_speed;
         if (v11)
-            duration = 0.0f;
+            blend_duration = 0.0f;
+        else
+            blend_duration /= a1->anim_frame_speed;
 
         x_pv_play_data_set_motion set_motion;
         set_motion.frame_speed = frame_speed * a1->anim_frame_speed;
         set_motion.motion_id = motion_id;
         set_motion.frame = frame;
-        set_motion.duration = duration;
+        set_motion.blend_duration = blend_duration;
         set_motion.field_10 = v11;
         set_motion.blend_type = MOTION_BLEND_CROSS;
         set_motion.disable_eye_motion = true;
@@ -4982,7 +5058,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         //a1->field_2C560[a1->chara_id] = true;
         //a1->field_2C568[a1->chara_id] = set_motion;
         if (playdata->disp) {
-            bool v84 = rob_chr->set_motion_id(motion_id, frame, duration,
+            bool v84 = rob_chr->set_motion_id(motion_id, frame, blend_duration,
                 v11, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
             rob_chr->set_motion_reset_data(motion_id, dsc_frame);
             rob_chr->set_motion_skin_param(motion_id, dsc_frame);
@@ -4991,7 +5067,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             if (v84)
                 pv_expression_array_set_motion(pv_data.exp_file.hash_murmurhash, a1->chara_id, motion_id);
             //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
-                sub_140122B60(a1, a1->chara_id, motion_index, v56 ? v56->time : 0);
+                pv_game_dsc_data_set_motion_max_frame(a1, a1->chara_id, motion_index, v56 ? v56->time : 0);
         }
         else {
             playdata->set_motion.clear();
@@ -5068,25 +5144,25 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t v115 = (int32_t)data[1];
-        int32_t duration_int = (int32_t)data[2];
+        int32_t blend_duration_int = (int32_t)data[2];
 
-        float_t duration;
-        if (duration_int != -1)
-            duration = (float_t)duration_int * 0.001f * 60.0f;
+        float_t blend_duration;
+        if (blend_duration_int != -1)
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
         else
-            duration = 6.0f;
+            blend_duration = 6.0f;
 
         rob_chara* rob_chr = playdata->rob_chr;
         if (!rob_chr)
             break;
 
-        duration /= a1->anim_frame_speed;
+        blend_duration /= a1->anim_frame_speed;
 
-        float_t offset = 0.0f;
+        float_t blend_offset = 0.0f;
         //if (a1->pv_game->data.pv->is_old_pv)
-        //    offset = 1.0f;
+        //    blend_offset = 1.0f;
 
-        rob_chr->set_eyelid_mottbl_motion_from_face(v115, duration, -1.0f, offset, aft_mot_db);
+        rob_chr->set_eyelid_mottbl_motion_from_face(v115, blend_duration, -1.0f, blend_offset, aft_mot_db);
     } break;
     case DSC_X_MOUTH_ANIM: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -5096,17 +5172,17 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t mouth_anim_id = (int32_t)data[2];
-        int32_t duration_int = (int32_t)data[3];
+        int32_t blend_duration_int = (int32_t)data[3];
         int32_t value_int = (int32_t)data[4];
 
-        float_t duration;
-        if (duration_int != -1) {
-            duration = (float_t)duration_int * 0.001f * 60.0f;
-            if (duration < 0.0f)
-                duration = 0.0f;
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
         }
         else
-            duration = 6.0f;
+            blend_duration = 6.0f;
 
         float_t value;
         if (value_int != -1) {
@@ -5150,21 +5226,20 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             case 29: mouth_anim_id = 40; break;
             case 30: mouth_anim_id = 41; break;
             case 31: mouth_anim_id = 42; break;
-            default: printf(""); break;
         }
 
         int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
-        duration /= a1->anim_frame_speed;
+        blend_duration /= a1->anim_frame_speed;
 
         //if (a1->pv_game->data.field_2D090 && mottbl_index != 144)
         //    value = 0.0f;
 
-        float_t offset = 0.0f;
+        float_t blend_offset = 0.0f;
         //if (a1->pv_game->data.pv->is_old_pv)
-        //    offset = 1.0f;
+        //    blend_offset = 1.0f;
 
         rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
-            0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+            0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
     } break;
     case DSC_X_HAND_ANIM: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -5175,17 +5250,17 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
         int32_t hand_index = (int32_t)data[1];
         int32_t hand_anim_id = (int32_t)data[2];
-        int32_t duration_int = (int32_t)data[3];
+        int32_t blend_duration_int = (int32_t)data[3];
         int32_t value_int = (int32_t)data[4];
 
-        float_t duration;
-        if (duration_int != -1) {
-            duration = (float_t)duration_int * 0.001f * 60.0f;
-            if (duration < 0.0f)
-                duration = 0.0f;
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
         }
         else
-            duration = 0.0f;
+            blend_duration = 0.0f;
 
         float_t value;
         if (value_int != -1) {
@@ -5201,20 +5276,20 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
 
         int32_t mottbl_index = hand_anim_id_to_mottbl_index(hand_anim_id);
-        duration /= a1->anim_frame_speed;
+        blend_duration /= a1->anim_frame_speed;
 
-        float_t offset = 0.0f;
+        float_t blend_offset = 0.0f;
         //if (a1->pv_game->data.pv->is_old_pv)
-        //    offset = 1.0f;
+        //    blend_offset = 1.0f;
 
         switch (hand_index) {
         case 0:
             rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, value,
-                0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+                0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
             break;
         case 1:
             rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, value,
-                0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+                0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
             break;
         }
     } break;
@@ -5226,17 +5301,17 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t look_anim_id = (int32_t)data[1];
-        int32_t duration_int = (int32_t)data[2];
+        int32_t blend_duration_int = (int32_t)data[2];
         int32_t value_int = (int32_t)data[3];
 
-        float_t duration;
-        if (duration_int != -1) {
-            duration = (float_t)duration_int * 0.001f * 60.0f;
-            if (duration < 0.0f)
-                duration = 0.0f;
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
         }
         else
-            duration = 6.0f;
+            blend_duration = 6.0f;
 
         float_t value;
         if (value_int != -1) {
@@ -5252,14 +5327,14 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
 
         int32_t mottbl_index = look_anim_id_to_mottbl_index(look_anim_id);
-        duration /= a1->anim_frame_speed;
+        blend_duration /= a1->anim_frame_speed;
 
-        float_t offset = 0.0f;
+        float_t blend_offset = 0.0f;
         //if (a1->pv_game->data.pv->is_old_pv)
-        //    offset = 1.0f;
+        //    blend_offset = 1.0f;
 
         rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value,
-            mottbl_index == 224 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+            mottbl_index == 224 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
         return 1;
     } break;
     case DSC_X_EXPRESSION: {
@@ -5270,17 +5345,17 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t expression_id = (int32_t)data[1];
-        int32_t duration_int = (int32_t)data[2];
+        int32_t blend_duration_int = (int32_t)data[2];
         int32_t value_int = (int32_t)data[3];
 
-        float_t duration;
-        if (duration_int != -1) {
-            duration = (float_t)duration_int * 0.001f * 60.0f;
-            if (duration < 0.0f)
-                duration = 0.0f;
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
         }
         else
-            duration = 0.0f;
+            blend_duration = 0.0f;
 
         float_t value;
         if (value_int != -1) {
@@ -5296,18 +5371,18 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
 
         int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
-        duration /= a1->anim_frame_speed;
+        blend_duration /= a1->anim_frame_speed;
 
         bool v168 = true;
         //if (a1->has_perf_id && (a1->pv_game->data.pv->edit - 1) <= 1)
         //    v168 = false;
 
-        float_t offset = 0.0f;
+        float_t blend_offset = 0.0f;
         //if (a1->pv_game->data.pv->is_old_pv)
-        //    offset = 1.0f;
+        //    blend_offset = 1.0f;
 
         rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214
-            && mottbl_index <= 223 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, v168, aft_mot_db);
+            && mottbl_index <= 223 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, blend_offset, v168, aft_mot_db);
 
     } break;
     case DSC_X_LOOK_CAMERA: {
@@ -5317,7 +5392,10 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_MUSIC_PLAY: {
-
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg",
+            a1->pv_data[a1->pv_index].pv_id == 832 ? 800 : a1->pv_data[a1->pv_index].pv_id);
+        sound_work_play_stream(0, buf, true);
     } break;
     case DSC_X_MODE_SELECT: {
 
@@ -5339,9 +5417,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
         int32_t expression_id = (int32_t)data[0];
 
-        float_t duration = 0.0f;
+        float_t blend_duration = 0.0f;
         //if (func == DSC_EDIT_EXPRESSION)
-        //    duration = (float_t)(int32_t)data[1] * 0.001f * 60.0f;
+        //    blend_duration = (float_t)(int32_t)data[1] * 0.001f * 60.0f;
 
         int32_t v234 = -1;
         //if (!a1->has_perf_id)
@@ -5352,18 +5430,18 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
 
         int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
-        duration /= a1->anim_frame_speed;
+        blend_duration /= a1->anim_frame_speed;
 
         bool v237 = true;
         //if (a1->has_perf_id)
         //    v237 = (a1->pv_game->data.pv->edit - 1) > 1;
 
-        float_t offset = 0.0f;
+        float_t blend_offset = 0.0f;
         //if (a1->pv_game->data.pv->is_old_pv)
-        //    offset = 1.0f;
+        //    blend_offset = 1.0f;
 
         rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, mottbl_index >= 214
-            && mottbl_index <= 223 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, v237, aft_mot_db);
+            && mottbl_index <= 223 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, blend_offset, v237, aft_mot_db);
 
         /*if (!a1->has_perf_id) {
             int32_t mottbl_index = mouth_anim_id_to_mottbl_index(v234);
@@ -5400,27 +5478,27 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t mouth_anim_id = (int32_t)data[1];
-        float_t duration = 0.1f;
+        float_t blend_duration = 0.1f;
         //if (func == DSC_EDIT_MOUTH_ANIM)
-        //    duration = (float_t)(int32_t)data[2] * 0.001f;
+        //    blend_duration = (float_t)(int32_t)data[2] * 0.001f;
 
         rob_chara* rob_chr = playdata->rob_chr;
         if (!rob_chr)
             break;
 
         int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
-        duration *= a1->target_anim_fps;
+        blend_duration *= a1->target_anim_fps;
 
         float_t value = 1.0f;
         //if (a1->pv_game->data.field_2D090 && mottbl_index != 144)
         //    value = 0.0f;
 
-        float_t offset = 0.0f;
+        float_t blend_offset = 0.0f;
         //if (a1->pv_game->data.pv->is_old_pv)
-        //    offset = 1.0f;
+        //    blend_offset = 1.0f;
 
         rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
-            0, duration, 0.0f, 1.0f, -1, offset, aft_mot_db);
+            0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
     } break;
     case DSC_X_SET_CHARA: {
         a1->chara_id = (int32_t)data[0];
@@ -5573,7 +5651,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             rob_chr->set_chara_height_adjust(height_adjust != 0);
     } break;
     case DSC_X_ITEM_ANIM: {
-        printf("");
+        printf_debug("");
     } break;
     case DSC_X_CHARA_POS_ADJUST: {
         a1->chara_id = (int32_t)data[0];
@@ -5881,9 +5959,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     case DSC_X_SONG_EFFECT_ATTACH: {
         int32_t index = (int32_t)data[0];
         int32_t chara_id = (int32_t)data[1];
-        int32_t unk2 = (int32_t)data[2];
+        int32_t chara_item = (int32_t)data[2];
 
-        pv_data.effect.set_chara_id(index, chara_id, !!unk2);
+        pv_data.effect.set_chara_id(index, chara_id, !!chara_item);
     } break;
     case DSC_X_LIGHT_AUTH: {
 
@@ -6116,7 +6194,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         vec3 data[2];
         data[0] = oh->node[a2m.gblctr].model_transform.translation_value;
         data[0].y = oh->node[a2m.n_hara].model_transform.translation_value.y;
-        data[1] = vec3_null;
+        data[1] = 0.0f;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_N_HARA_CP, key_set, data, 2);
 
@@ -6136,7 +6214,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         mat4_mult_vec3(&oh->node[a2m.j_mune_wj].model_transform.mat, &data[0], &data[1]);
         mat4_get_translation(&oh->node[a2m.j_mune_wj].model_transform.mat, &data[0]);
         vec3_add(data[0], data[1], data[0]);
-        data[1] = vec3_null;
+        data[1] = 0.0f;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_CL_MUNE, key_set, data, 2);
 
@@ -6322,6 +6400,671 @@ static void x_pv_game_reset_field(x_pv_game* xpvgm) {
     Glitter::glt_particle_manager->FreeScenes();
 }
 
+struct x_pv_game_split_auth_3d_hrc_obj_sub_mesh {
+    std::vector<uint32_t> indices;
+
+    x_pv_game_split_auth_3d_hrc_obj_sub_mesh() {
+
+    }
+
+    ~x_pv_game_split_auth_3d_hrc_obj_sub_mesh() {
+
+    }
+};
+
+struct x_pv_game_split_auth_3d_hrc_obj_mesh {
+    std::vector<x_pv_game_split_auth_3d_hrc_obj_sub_mesh> sub_meshes;
+    std::vector<uint32_t> vertex_indices;
+    std::vector<obj_vertex_data> vertices;
+
+    x_pv_game_split_auth_3d_hrc_obj_mesh() {
+
+    }
+
+    ~x_pv_game_split_auth_3d_hrc_obj_mesh() {
+
+    }
+};
+
+struct x_pv_game_split_auth_3d_hrc_obj_bone {
+    uint32_t src_id;
+    std::string dst_name;
+    int32_t index;
+    std::vector<x_pv_game_split_auth_3d_hrc_obj_mesh> meshes;
+
+    x_pv_game_split_auth_3d_hrc_obj_bone() {
+        src_id = -1;
+        index = -1;
+    }
+
+    ~x_pv_game_split_auth_3d_hrc_obj_bone() {
+
+    }
+};
+
+static int x_pv_game_split_auth_3d_hrc_obj_bone_compare_func(void const* src1, void const* src2) {
+    x_pv_game_split_auth_3d_hrc_obj_bone* bone1 = (x_pv_game_split_auth_3d_hrc_obj_bone*)src1;
+    x_pv_game_split_auth_3d_hrc_obj_bone* bone2 = (x_pv_game_split_auth_3d_hrc_obj_bone*)src2;
+    return bone1->dst_name.compare(bone2->dst_name);
+}
+
+static std::string x_pv_game_split_auth_3d_get_object_name(
+    std::string& str1, const char* str2, object_database& obj_db, bool uid_name = false) {
+    if (!str1.size())
+        return {};
+
+    std::string str;
+    size_t str_len;
+    if (!str_utils_compare_length(str1.c_str(), str1.size(), "OBJHRC_", 7)) {
+        str_len = 0;
+        str.assign(str1.c_str() + 7, str1.size() - 7);
+    }
+    else if (!str_utils_compare_length(str1.c_str(), str1.size(), "gblctr", 6)) {
+        str.assign(str2, utf8_length(str2) - 7);
+        str_len = str.size();
+        str.append(str1);
+    }
+    else {
+        str.assign(str2, utf8_length(str2) - 7);
+        str_len = str.size();
+        str.append(str1.c_str() + 2, str1.size() - 5);
+    }
+
+    size_t str_len_new = str.size();
+    for (size_t i = str_len; i < str_len_new; i++) {
+        char c = str[i];
+        if (c >= 'a' && c <= 'z')
+            str[i] -= 0x20;
+    }
+
+    bool null = obj_db.get_object_info(str.c_str()).is_null();
+    if (!uid_name)
+        str.insert(0, null ? "|OBJ_NULL__" : "|OBJ_");
+    else if (null)
+        return "NULL";
+    return str;
+}
+
+static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
+    std::set<object_info>& object_hrc, std::set<std::string>& material_list) {
+    object_database& obj_db = xpvgm->stage_data.obj_db;
+    std::map<object_info, std::vector<std::string>> object_hrc_material_list;
+    for (object_info i : object_hrc) {
+        obj* obj = object_storage_get_obj(i);
+        if (!obj)
+            continue;
+
+        uint32_t num_material = obj->num_material;
+        for (uint32_t j = 0; j < num_material; j++) {
+            obj_material* material = &obj->material_array[j].material;
+            for (std::string k : material_list) {
+                if (k.compare(material->name))
+                    continue;
+
+                auto elem = object_hrc_material_list.find(i);
+                if (elem == object_hrc_material_list.end())
+                    elem = object_hrc_material_list.insert({ i, {} }).first;
+                elem->second.push_back(k);
+            }
+        }
+    }
+
+    for (auto i : object_hrc_material_list) {
+        obj_set_handler* handler = object_storage_get_obj_set_handler(i.first.set_id);
+        if (!handler)
+            continue;
+
+        obj_set* set = handler->obj_set;
+
+        std::vector<x_pv_game_split_auth_3d_hrc_obj_bone> bones_vertices;
+
+        uint32_t obj_num = set->obj_num;
+        for (uint32_t j = 0; j < obj_num; j++) {
+            obj* obj = &set->obj_data[j];
+            if (obj->id != i.first.id)
+                continue;
+
+            obj_skin* skin = obj->skin;
+            if (!skin)
+                continue;
+
+            std::set<int32_t> bone_indices;
+
+            obj_mesh* mesh = obj->mesh_array;
+            uint32_t num_mesh = obj->num_mesh;
+            for (uint32_t k = 0; k < num_mesh; k++, mesh++) {
+                uint32_t num_vertex = mesh->num_vertex;
+                obj_vertex_data* vertex = mesh->vertex_array;
+                for (uint32_t l = 0; l < num_vertex; l++, vertex++) {
+                    if (vertex->bone_index.x != -1)
+                        bone_indices.insert(vertex->bone_index.x / 3);
+
+                    if (vertex->bone_index.y != -1)
+                        bone_indices.insert(vertex->bone_index.y / 3);
+
+                    if (vertex->bone_index.z != -1)
+                        bone_indices.insert(vertex->bone_index.z / 3);
+
+                    if (vertex->bone_index.w != -1)
+                        bone_indices.insert(vertex->bone_index.w / 3);
+                }
+            }
+
+            obj_skin_bone* bone_array = skin->bone_array;
+            uint32_t num_bone = skin->num_bone;
+
+            bones_vertices.resize(skin->num_bone);
+            for (uint32_t k = 0; k < num_bone; k++) {
+                std::string dst_name;
+                dst_name.assign(obj->name, utf8_length(obj->name) - 7);
+                size_t dst_name_len = dst_name.size();
+                dst_name.append(bone_array[k].name + 2, utf8_length(bone_array[k].name) - 5);
+                size_t dst_name_len_new = dst_name.size();
+                for (size_t i = dst_name_len; i < dst_name_len_new; i++) {
+                    char c = dst_name[i];
+                    if (c >= 'a' && c <= 'z')
+                        dst_name[i] -= 0x20;
+                }
+
+                x_pv_game_split_auth_3d_hrc_obj_bone& bone_vertices = bones_vertices[k];
+                bone_vertices.src_id = i.first.id;
+                bone_vertices.index = k;
+                bone_vertices.dst_name.assign(dst_name);
+                bone_vertices.meshes.resize(num_mesh);
+
+                obj_mesh* mesh = obj->mesh_array;
+                for (uint32_t l = 0; l < num_mesh; l++, mesh++) {
+                    x_pv_game_split_auth_3d_hrc_obj_mesh& bone_vertices_mesh = bone_vertices.meshes[l];
+                    bone_vertices_mesh.sub_meshes.resize(mesh->num_submesh);
+
+                    obj_sub_mesh* sub_mesh = mesh->submesh_array;
+                    uint32_t num_submesh = mesh->num_submesh;
+                    for (uint32_t m = 0; m < num_submesh; m++, sub_mesh++) {
+                        x_pv_game_split_auth_3d_hrc_obj_sub_mesh& bone_vertices_sub_mesh
+                            = bone_vertices_mesh.sub_meshes[m];
+                    }
+                    bone_vertices_mesh.vertices.reserve(sub_mesh->num_index);
+                }
+            }
+
+            mesh = obj->mesh_array;
+            for (uint32_t k = 0; k < num_mesh; k++, mesh++) {
+                obj_vertex_data* vertex_array = mesh->vertex_array;
+                uint32_t num_vertex = mesh->num_vertex;
+
+                std::vector<uint32_t> vtx_idx(skin->num_bone);
+                obj_sub_mesh* sub_mesh = mesh->submesh_array;
+                uint32_t num_submesh = mesh->num_submesh;
+                for (uint32_t l = 0; l < num_submesh; l++, sub_mesh++) {
+                    uint16_t* bone_index_array = sub_mesh->bone_index_array;
+                    uint32_t* index = sub_mesh->index_array;
+                    uint32_t num_index = sub_mesh->num_index;
+                    for (uint32_t m = 0; m < num_index; m++, index++) {
+                        obj_vertex_data vertex = vertex_array[*index];
+                        int32_t bone_index = bone_index_array[vertex.bone_index.x / 3];
+                        x_pv_game_split_auth_3d_hrc_obj_mesh& bone_vertices_mesh
+                            = bones_vertices[bone_index].meshes[k];
+                        x_pv_game_split_auth_3d_hrc_obj_sub_mesh& bone_vertices_sub_mesh
+                            = bone_vertices_mesh.sub_meshes[l];
+
+                        bool found = false;
+                        uint32_t idx = *index;
+                        for (uint32_t& n : bone_vertices_mesh.vertex_indices)
+                            if (n == idx) {
+                                bone_vertices_sub_mesh.indices.push_back(
+                                    (uint32_t)(&n - bone_vertices_mesh.vertex_indices.data()));
+                                found = true;
+                                break;
+                            }
+
+                        if (found)
+                            continue;
+
+                        mat4& mat = bone_array[bone_index].inv_bind_pose_mat;
+                        vertex.bone_index = -1;
+                        vertex.bone_weight = 0;
+                        vec3 normal = vertex.normal;
+                        vec3 tangent = *(vec3*)&vertex.tangent;
+                        vec3 binormal = vec3::cross(normal, tangent) * vertex.tangent.w;
+                        mat4_mult_vec3_trans(&mat, &vertex.position, &vertex.position);
+                        mat4_mult_vec3(&mat, &normal, &normal);
+                        mat4_mult_vec3(&mat, &tangent, &tangent);
+                        mat4_mult_vec3(&mat, &binormal, &binormal);
+                        tangent = vec3::normalize(tangent - normal * vec3::dot(normal, tangent));
+                        vertex.normal = normal;
+                        *(vec3*)&vertex.tangent = tangent;
+                        vertex.tangent.w = vec3::dot(vec3::cross(normal, tangent), binormal) < 0.0f ? -1.0f : 1.0f;
+                        bone_vertices_mesh.vertex_indices.push_back(*index);
+                        bone_vertices_mesh.vertices.push_back(vertex);
+                        bone_vertices_sub_mesh.indices.push_back(vtx_idx[bone_index]++);
+                    }
+                }
+            }
+
+            quicksort_custom(bones_vertices.data(), bones_vertices.size(),
+                sizeof(x_pv_game_split_auth_3d_hrc_obj_bone), x_pv_game_split_auth_3d_hrc_obj_bone_compare_func);
+        }
+
+        prj::shared_ptr<alloc_data>& alloc = handler->alloc_handler;
+
+        uint32_t obj_num_new = (uint32_t)(obj_num + bones_vertices.size());
+        obj* obj_data_new = alloc->allocate<::obj>(obj_num_new);
+        memcpy(obj_data_new, set->obj_data, sizeof(obj) * obj_num);
+        set->obj_data = obj_data_new;
+        set->obj_num = obj_num_new;
+        obj_data_new += obj_num;
+        obj_num_new -= obj_num;
+
+        for (uint32_t j = 0; j < obj_num_new; j++) {
+            x_pv_game_split_auth_3d_hrc_obj_bone& bone_vertices = bones_vertices[j];
+            uint32_t src_id = bone_vertices.src_id;
+
+            obj* src_obj = 0;
+            obj* dst_obj = &obj_data_new[j];
+            for (uint32_t k = 0; k < obj_num; k++)
+                if (set->obj_data[k].id == src_id) {
+                    src_obj = &set->obj_data[k];
+                    break;
+                }
+
+            dst_obj->id = hash_murmurhash_empty;
+            dst_obj->hash = hash_murmurhash_empty;
+
+            if (!src_obj)
+                continue;
+
+            vec3 aabb_min_obj = vec3(   9999999.0f,    9999999.0f,    9999999.0f);
+            vec3 aabb_max_obj = vec3(-100000000.0f, -100000000.0f, -100000000.0f);
+
+            obj_mesh* mesh_array = src_obj->mesh_array;
+            uint32_t num_mesh = src_obj->num_mesh;
+            obj_mesh* mesh_array_new = alloc->allocate<obj_mesh>(num_mesh);
+            for (uint32_t k = 0; k < num_mesh; k++) {
+                x_pv_game_split_auth_3d_hrc_obj_mesh& bone_vertices_mesh
+                    = bone_vertices.meshes[k];
+
+                obj_mesh* src_mesh = &mesh_array[k];
+                obj_mesh* dst_mesh = &mesh_array_new[k];
+
+                dst_mesh->flags = src_mesh->flags;
+
+                vec3 aabb_min_mesh = vec3(   9999999.0f,    9999999.0f,    9999999.0f);
+                vec3 aabb_max_mesh = vec3(-100000000.0f, -100000000.0f, -100000000.0f);
+
+                obj_sub_mesh* submesh_array = src_mesh->submesh_array;
+                uint32_t num_submesh = src_mesh->num_submesh;
+                obj_sub_mesh* submesh_array_new = alloc->allocate<obj_sub_mesh>(num_submesh);
+                for (uint32_t l = 0; l < num_submesh; l++) {
+                    x_pv_game_split_auth_3d_hrc_obj_sub_mesh& bone_vertices_sub_mesh
+                        = bone_vertices_mesh.sub_meshes[l];
+
+                    obj_sub_mesh* src_submesh = &submesh_array[l];
+                    obj_sub_mesh* dst_submesh = &submesh_array_new[l];
+
+                    dst_submesh->flags = src_submesh->flags;
+                    dst_submesh->material_index = src_submesh->material_index;
+                    memcpy(dst_submesh->uv_index, src_submesh->uv_index, 0x08);
+                    dst_submesh->bone_index_array = 0;
+                    dst_submesh->num_bone_index = 0;
+                    dst_submesh->bones_per_vertex = src_submesh->bones_per_vertex;
+                    dst_submesh->primitive_type = src_submesh->primitive_type;
+                    dst_submesh->index_format = src_submesh->index_format;
+
+                    uint32_t num_index = (uint32_t)bone_vertices_sub_mesh.indices.size();
+                    uint32_t* index_array_new = alloc->allocate<uint32_t>(num_index);
+                    memcpy(index_array_new, bone_vertices_sub_mesh.indices.data(), sizeof(uint32_t) * num_index);
+                    dst_submesh->index_array = index_array_new;
+                    dst_submesh->num_index = num_index;
+
+                    dst_submesh->attrib = src_submesh->attrib;
+
+                    vec3 aabb_min_submesh = vec3(   9999999.0f,    9999999.0f,    9999999.0f);
+                    vec3 aabb_max_submesh = vec3(-100000000.0f, -100000000.0f, -100000000.0f);
+
+                    uint32_t* index = index_array_new;
+                    obj_vertex_data* vertex_array = bone_vertices_mesh.vertices.data();
+                    for (uint32_t l = 0; l < num_index; l++, index++) {
+                        vec3 pos = vertex_array[*index].position;
+                        aabb_min_submesh = vec3::min(aabb_min_submesh, pos);
+                        aabb_max_submesh = vec3::max(aabb_max_submesh, pos);
+                    }
+
+                    aabb_min_mesh = vec3::min(aabb_min_mesh, aabb_min_submesh);
+                    aabb_max_mesh = vec3::max(aabb_max_mesh, aabb_max_submesh);
+
+                    vec3 center = (aabb_max_submesh + aabb_min_submesh) * 0.5f;
+                    vec3 size = aabb_max_submesh - center;
+
+                    dst_submesh->bounding_sphere.center = center;
+                    dst_submesh->bounding_sphere.radius = max_def(size.x, max_def(size.y, size.z)) * (float_t)(M_SQRT2 / 2.0);
+                    dst_submesh->axis_aligned_bounding_box.center = center;
+                    dst_submesh->axis_aligned_bounding_box.size = size;
+
+
+                    dst_submesh->first_index = 0;
+                    dst_submesh->last_index = 0;
+                    dst_submesh->index_offset = 0;
+                }
+                dst_mesh->submesh_array = submesh_array_new;
+                dst_mesh->num_submesh = num_submesh;
+
+                aabb_min_obj = vec3::min(aabb_min_obj, aabb_min_mesh);
+                aabb_max_obj = vec3::max(aabb_max_obj, aabb_max_mesh);
+
+                vec3 center = (aabb_max_mesh + aabb_min_mesh) * 0.5f;
+                vec3 size = aabb_max_mesh - center;
+
+                dst_mesh->bounding_sphere.center = center;
+                dst_mesh->bounding_sphere.radius = max_def(size.x, max_def(size.y, size.z)) * (float_t)(M_SQRT2 / 2.0);
+
+                dst_mesh->vertex_format = src_mesh->vertex_format;
+                if (src_mesh->vertex_format & OBJ_VERTEX_BONE_DATA) {
+                    enum_and(dst_mesh->vertex_format, ~OBJ_VERTEX_BONE_DATA);
+                    dst_mesh->size_vertex = src_mesh->size_vertex - 0x20;
+                }
+                else
+                    dst_mesh->size_vertex = src_mesh->size_vertex;
+
+                uint32_t num_vertex = (uint32_t)bone_vertices_mesh.vertices.size();
+                obj_vertex_data* vertex_array_new = alloc->allocate<obj_vertex_data>(num_vertex);
+                memcpy(vertex_array_new, bone_vertices_mesh.vertices.data(), sizeof(obj_vertex_data) * num_vertex);
+                dst_mesh->vertex_array = vertex_array_new;
+                dst_mesh->num_vertex = num_vertex;
+
+                dst_mesh->attrib = src_mesh->attrib;
+                memcpy(dst_mesh->reserved, src_mesh->reserved, sizeof(uint32_t) * 6);
+                memcpy(dst_mesh->name, src_mesh->name, 0x40);
+            }
+            dst_obj->mesh_array = mesh_array_new;
+            dst_obj->num_mesh = num_mesh;
+
+            vec3 center = (aabb_max_obj + aabb_min_obj) * 0.5f;
+            vec3 size = aabb_max_obj - center;
+
+            dst_obj->bounding_sphere.center = center;
+            dst_obj->bounding_sphere.radius = max_def(size.x, max_def(size.y, size.z)) * (float_t)(M_SQRT2 / 2.0);
+
+            obj_material_data* material_array = src_obj->material_array;
+            uint32_t num_material = src_obj->num_material;
+            obj_material_data* material_array_new = alloc->allocate<obj_material_data>(num_material);
+            memcpy(material_array_new, material_array, sizeof(obj_material_data) * num_material);
+            dst_obj->material_array = material_array_new;
+            dst_obj->num_material = num_material;
+
+            dst_obj->flags = src_obj->flags;
+            memcpy(dst_obj->reserved, src_obj->reserved, sizeof(uint32_t) * 10);
+            dst_obj->skin = 0;
+
+            std::string& dst_name = bone_vertices.dst_name;
+            char* name = alloc->allocate<char>(dst_name.size() + 1);
+            memcpy(name, dst_name.c_str(), dst_name.size());
+            name[dst_name.size()] = 0;
+            dst_obj->name = name;
+
+            uint32_t hash = hash_string_murmurhash(dst_name);
+            dst_obj->id = hash;
+            dst_obj->hash = hash;
+
+            object_set_info* set_info;
+            if (obj_db.get_object_set_info(i.first.set_id, &set_info)) {
+                object_info_data* info;
+                if (!obj_db.get_object_info_data_by_murmurhash(hash, &info)) {
+                    set_info->object.push_back({});
+                    info = &set_info->object.back();
+                    info->id = hash;
+                    info->name.assign(name);
+                    info->name_hash_fnv1a64m = hash_string_fnv1a64m(info->name);
+                    info->name_hash_fnv1a64m_upper = hash_string_fnv1a64m(info->name, true);
+                    info->name_hash_murmurhash = hash_string_murmurhash(info->name);
+                }
+            }
+        }
+
+        handler->obj_id_data.reserve(set->obj_num);
+        for (uint32_t j = 0; j < obj_num_new; j++)
+            handler->obj_id_data.push_back({ obj_data_new[j].id, obj_num + j });
+
+        uint32_t _obj_num = obj_num + obj_num_new;
+        handler->vertex_buffer_num = _obj_num;
+        obj_vertex_buffer* vertex_buffer_data = new obj_vertex_buffer[_obj_num];
+        handler->index_buffer_num = _obj_num;
+        obj_index_buffer* index_buffer_data = new obj_index_buffer[_obj_num];
+
+        memcpy(vertex_buffer_data, handler->vertex_buffer_data, sizeof(obj_vertex_buffer) * obj_num);
+        memcpy(index_buffer_data, handler->index_buffer_data, sizeof(obj_index_buffer) * obj_num);
+
+        delete[] handler->vertex_buffer_data;
+        delete[] handler->index_buffer_data;
+
+        handler->vertex_buffer_data = vertex_buffer_data;
+        handler->index_buffer_data = index_buffer_data;
+
+        for (uint32_t j = 0; j < obj_num_new; j++) {
+            vertex_buffer_data[obj_num + j].load(obj_data_new[j]);
+            index_buffer_data[obj_num + j].load(obj_data_new[j]);
+        }
+
+        for (uint32_t j = 0; j < obj_num; j++) {
+            obj* obj = &set->obj_data[j];
+            if (obj->id != i.first.id)
+                continue;
+
+            obj_skin* skin = obj->skin;
+            if (!skin)
+                continue;
+
+            std::map<int32_t, std::string> hrc_nodes;
+
+            obj_skin_bone* bone_array = skin->bone_array;
+            uint32_t num_bone = skin->num_bone;
+            for (std::pair<uint32_t, int32_t> k : xpvgm->stage_data.auth_3d_ids) {
+                auth_3d* auth = auth_3d_data_get_auth_3d(k.second);
+                if (!auth || !auth->object_hrc.size())
+                    continue;
+
+                auth_3d_object_hrc* obj_hrc = 0;
+                for (auth_3d_object_hrc& n : auth->object_hrc)
+                    if (n.object_info == i.first) {
+                        obj_hrc = &n;
+                        break;
+                    }
+
+                if (!obj_hrc)
+                    continue;
+
+                for (auth_3d_object_hrc*& l : auth->object_hrc_list)
+                    if (l->object_info == i.first) {
+                        auth->object_hrc_list.erase(auth->object_hrc_list.begin()
+                            + (&l - auth->object_hrc_list.data()));
+                        break;
+                    }
+
+                for (uint32_t l = 0; l < num_bone; l++) {
+                    x_pv_game_split_auth_3d_hrc_obj_bone& bone_vertices = bones_vertices[l];
+                    const char* bone_name = bone_array[bone_vertices.index].name;
+
+                    int32_t node_index = obj_hrc->get_node_index(bone_name);
+                    while (node_index >= 0) {
+                        auth_3d_object_node* node = &obj_hrc->node[node_index];
+                        int32_t _node_index = node_index;
+                        node_index = node->parent;
+                        if (!node->name.compare("BONE"))
+                            continue;
+
+                        hrc_nodes.insert({ _node_index, node->name });
+                    }
+                }
+            }
+
+            for (std::pair<uint32_t, int32_t> k : xpvgm->stage_data.auth_3d_ids) {
+                auth_3d* auth = auth_3d_data_get_auth_3d(k.second);
+                if (!auth || !auth->object_hrc.size())
+                    continue;
+
+                auth_3d_object_hrc* obj_hrc = 0;
+                for (auth_3d_object_hrc& n : auth->object_hrc)
+                    if (n.object_info == i.first) {
+                        obj_hrc = &n;
+                        break;
+                    }
+
+                if (!obj_hrc)
+                    continue;
+
+                size_t object_base = (size_t)auth->object.data();
+
+                for (std::pair<int32_t, std::string> l : hrc_nodes) {
+                    auth->object.push_back({});
+                    auth_3d_object& object = auth->object.back();
+                    object.name.assign(l.second);
+                }
+
+                size_t object_new_base = (size_t)auth->object.data();
+
+                for (auth_3d_object*& l : auth->object_list)
+                    l = (auth_3d_object*)((size_t)l - object_base + object_new_base);
+            }
+
+            for (std::pair<uint32_t, int32_t> l : xpvgm->stage_data.auth_3d_ids) {
+                auth_3d* auth = auth_3d_data_get_auth_3d(l.second);
+                if (!auth || !auth->object_hrc.size())
+                    continue;
+
+                auth_3d_object_hrc* obj_hrc = 0;
+                for (auth_3d_object_hrc& m : auth->object_hrc)
+                    if (m.object_info == i.first) {
+                        obj_hrc = &m;
+                        break;
+                    }
+
+                if (!obj_hrc)
+                    continue;
+
+                for (std::pair<int32_t, std::string> m : hrc_nodes)
+                    for (auth_3d_object& n : auth->object) {
+                        if (n.name.compare(m.second) || m.first < 0)
+                            continue;
+
+                        auth_3d_object_node* node = &obj_hrc->node[m.first];
+
+                        if (!str_utils_compare_length(m.second.c_str(), m.second.size(), "OBJHRC_", 7))
+                            auth->object_list.push_back(&n);
+
+                        std::string name = x_pv_game_split_auth_3d_get_object_name(
+                            m.second, obj->name, obj_db);
+                        std::string parent_name;
+                        std::string uid_name = x_pv_game_split_auth_3d_get_object_name(
+                            m.second, obj->name, obj_db, true);
+
+                        auth_3d_object_node* _node = node;
+                        int32_t parent = _node->parent;
+                        while (parent >= 0) {
+                            parent = _node->parent;
+                            if (parent < 0)
+                                break;
+
+                            _node = &obj_hrc->node[parent];
+                            if (!_node->name.compare("BONE"))
+                                continue;
+
+                            std::string _parent_name = x_pv_game_split_auth_3d_get_object_name(
+                                _node->name, obj->name, obj_db);
+                            name.insert(0, _parent_name);
+                            parent_name.insert(0, _parent_name);
+                        }
+
+                        n.model_transform.translation = node->model_transform.translation;
+                        n.model_transform.rotation = node->model_transform.rotation;
+                        n.model_transform.scale = node->model_transform.scale;
+                        n.model_transform.visibility = node->model_transform.visibility;
+                        n.name.assign(name);
+                        n.parent_name.assign(parent_name);
+                        n.uid_name.assign(uid_name);
+                        n.object_info = obj_db.get_object_info(n.uid_name.c_str());
+                        n.object_hash = hash_string_murmurhash(n.uid_name);
+                        break;
+                    }
+            }
+        }
+    }
+
+    for (std::pair<uint32_t, int32_t> i : xpvgm->stage_data.auth_3d_ids) {
+        auth_3d* auth = auth_3d_data_get_auth_3d(i.second);
+        if (!auth || !auth->object_hrc.size())
+            continue;
+
+        for (auth_3d_object& j : auth->object) {
+            j.children_object.clear();
+            j.children_object.shrink_to_fit();
+            j.children_object_hrc.clear();
+            j.children_object_hrc.shrink_to_fit();
+        }
+        
+        for (auth_3d_object_hrc& j : auth->object_hrc) {
+            j.children_object.clear();
+            j.children_object.shrink_to_fit();
+            j.children_object_hrc.clear();
+            j.children_object_hrc.shrink_to_fit();
+            j.children_object_parent_node.clear();
+            j.children_object_parent_node.shrink_to_fit();
+            j.children_object_hrc_parent_node.clear();
+            j.children_object_hrc_parent_node.shrink_to_fit();
+        }
+
+        for (auth_3d_object& j : auth->object) {
+            if (!j.parent_name.size())
+                continue;
+
+            if (j.parent_node.size())
+                for (auth_3d_object_hrc& k : auth->object_hrc) {
+                    if (j.parent_name.compare(k.name))
+                        continue;
+
+                    int32_t node_index = k.get_node_index(j.parent_node.c_str());
+                    if (node_index > -1) {
+                        k.children_object_parent_node.push_back(node_index);
+                        k.children_object.push_back(&j);
+                    }
+                    break;
+                }
+            else
+                for (auth_3d_object& k : auth->object) {
+                    if (j.parent_name.compare(k.name))
+                        continue;
+
+                    k.children_object.push_back(&j);
+                    break;
+                }
+        }
+
+        for (auth_3d_object_hrc& j : auth->object_hrc) {
+            if (!j.parent_name.size())
+                continue;
+
+            if (j.parent_node.size())
+                for (auth_3d_object_hrc& k : auth->object_hrc) {
+                    if (j.parent_name.compare(k.name))
+                        continue;
+
+                    int32_t node_index = k.get_node_index(j.parent_node.c_str());
+                    if (node_index > -1) {
+                        k.children_object_hrc_parent_node.push_back(node_index);
+                        k.children_object_hrc.push_back(&j);
+                    }
+                    break;
+                }
+            else
+                for (auth_3d_object& k : auth->object) {
+                    if (j.parent_name.compare(k.name))
+                        continue;
+
+                    k.children_object_hrc.push_back(&j);
+                    break;
+                }
+        }
+    }
+}
+
 static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t chara_id) {
     if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
         return;
@@ -6498,6 +7241,24 @@ static void pv_game_dsc_data_find_set_motion(x_pv_game* xpvgm) {
 
             if (motion_id != -1)
                 set_motion.push_back({ motion_id, { v61, -1 } });
+        }
+    }
+}
+
+static void pv_game_dsc_data_set_motion_max_frame(x_pv_game* xpvgm,
+    int32_t chara_id, int32_t motion_index, int64_t disp_time) {
+    if (chara_id < 0 || chara_id > ROB_CHARA_COUNT || motion_index < 0)
+        return;
+
+    x_pv_play_data* playdata = &xpvgm->playdata[chara_id];
+    int64_t dsc_time = xpvgm->pv_data[xpvgm->pv_index].dsc_data.time;
+    for (x_dsc_set_motion& i : playdata->motion_data.set_motion) {
+        int64_t time = (int64_t)i.time * 10000;
+        if (time > dsc_time && i.motion_index == motion_index
+            && (!xpvgm->branch_mode || xpvgm->branch_mode == i.pv_branch_mode)) {
+            playdata->rob_chr->bone_data->set_motion_max_frame(
+                roundf(dsc_time_to_frame(time - disp_time)) - 1.0f);
+            break;
         }
     }
 }

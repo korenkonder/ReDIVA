@@ -19,15 +19,15 @@ namespace Glitter {
     Particle::Particle(GLT) : data() {
         version = GLT_VAL == Glitter::X ? 0x05 : 0x03;
         data.pivot = PIVOT_MIDDLE_CENTER;
-        data.scale = vec3_identity;
+        data.scale = 1.0f;
         data.reflection_coeff = 1.0f;
-        data.color = vec4_identity;
+        data.color = 1.0f;
         data.uv_index = 0;
         data.uv_index_start = 0;
         data.uv_index_end = 1;
         data.uv_scroll_add_scale = 1.0f;
         data.uv_scroll_2nd_add_scale = 1.0f;
-        data.split_uv = vec2_identity;
+        data.split_uv = 1.0f;
         data.split_u = 1;
         data.split_v = 1;
         data.sub_flags = PARTICLE_SUB_USE_CURVE;

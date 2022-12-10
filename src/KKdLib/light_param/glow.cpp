@@ -96,7 +96,9 @@ bool light_param_glow::load_file(void* data, const char* path, const char* file,
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     light_param_glow* glow = (light_param_glow*)data;
     glow->read(s.c_str());
@@ -109,7 +111,7 @@ static void light_param_glow_read_inner(light_param_glow* glow, stream& s) {
     s.read(data, s.length);
     data[s.length] = 0;
 
-    char buf[0x100];
+    char buf[0x200];
     const char* d = data;
 
     while (d = light_param_glow_read_line(buf, sizeof(buf), d)) {
@@ -204,7 +206,7 @@ End:
 }
 
 static void light_param_glow_write_inner(light_param_glow* glow, stream& s) {
-    char buf[0x100];
+    char buf[0x200];
 
     if (glow->has_exposure) {
         s.write("exposure", 8);

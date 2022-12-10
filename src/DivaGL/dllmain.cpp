@@ -17,12 +17,6 @@ bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserve
         printf_divagl("Patching memory");
         inject_patches();
         break;
-
-    case DLL_PROCESS_DETACH:
-        printf_divagl("Detach");
-        printf_divagl("Restore memory");
-        inject_restore();
-        break;
     }
     return true;
 }

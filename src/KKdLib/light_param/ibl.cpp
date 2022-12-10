@@ -57,7 +57,9 @@ bool light_param_ibl::load_file(void* data, const char* path, const char* file, 
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     light_param_ibl* ibl = (light_param_ibl*)data;
     ibl->read(s.c_str());
@@ -86,7 +88,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
     s.read(data, s.length);
     data[s.length] = 0;
 
-    char buf[0x100];
+    char buf[0x200];
     const char* d = light_param_ibl_read_line(buf, sizeof(buf), data);
     if (str_utils_compare(buf, "VF5_IBL"))
         return;

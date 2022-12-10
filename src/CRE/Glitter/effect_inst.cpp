@@ -13,7 +13,7 @@ namespace Glitter {
         size_t id, float_t emission, bool appear_now) : data(GLT_VAL) {
         effect = eff;
         data = eff->data;
-        color = vec4_identity;
+        color = 1.0f;
         scale_all = 1.0f;
         this->id = id;
         translation = eff->translation;
@@ -25,8 +25,8 @@ namespace Glitter {
         flags = (EffectInstFlag)0;
         random = 0;
         req_frame = 0.0f;
-        ext_color = vec4_null;
-        ext_anim_scale = vec3_null;
+        ext_color = 0.0f;
+        ext_anim_scale = 0.0f;
         some_scale = -1.0f;
 
         if (appear_now)
@@ -37,6 +37,17 @@ namespace Glitter {
 
     EffectInst::~EffectInst() {
 
+    }
+
+    bool EffectInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
+        if (!(flags & EFFECT_INST_HAS_EXT_ANIM_SCALE))
+            return false;
+
+        if (ext_anim_scale)
+            *ext_anim_scale = this->ext_anim_scale;
+        if (some_scale)
+            *some_scale = this->some_scale;
+        return true;
     }
 
     void EffectInst::SetExtColor(bool set, float_t r, float_t g, float_t b, float_t a) {
@@ -97,7 +108,7 @@ namespace Glitter {
         object_is_hrc = false;
         mesh_name = 0;
         mat = mat4_identity;
-        translation = vec3_null;
+        translation = 0.0f;
     }
 
     F2EffectInst::ExtAnim::~ExtAnim() {
@@ -185,21 +196,16 @@ namespace Glitter {
         GetValue(GLT_VAL);
 
         mat4 mat;
-        if (GetExtAnimMat(&mat)) {
-            vec3 trans = translation;
-            mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
-        }
-        else {
-            vec3 trans = translation;
-            mat4_translate(trans.x, trans.y, trans.z, &mat);
-        }
+        if (GetExtAnimMat(&mat))
+            mat4_translate_mult(&mat, &translation, &mat);
+        else
+            mat4_translate(&translation, &mat);
 
         vec3 rot = rotation;
-        vec3 scale;
-        vec3_mult_scalar(this->scale, scale_all, scale);
+        vec3 scale = this->scale * scale_all;
 
-        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &this->mat);
+        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_scale_rot(&mat, &scale, &this->mat);
 
         for (F2EmitterInst*& i : emitters)
             if (i)
@@ -293,15 +299,13 @@ namespace Glitter {
                 GetValue(GLT_VAL);
 
                 mat4 mat;
-                vec3 trans = translation;
-                mat4_translate(trans.x, trans.y, trans.z, &mat);
+                mat4_translate(&translation, &mat);
 
                 vec3 rot = rotation;
-                vec3 scale;
-                vec3_mult_scalar(this->scale, scale_all, scale);
+                vec3 scale = this->scale * scale_all;
 
-                mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-                mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+                mat4_rotate_mult(&mat, &rot, &mat);
+                mat4_scale_rot(&mat, &scale, &mat);
                 for (F2EmitterInst*& i : emitters)
                     if (i)
                         i->CtrlInit(GPM_VAL, GLT_VAL, this, delta_frame);
@@ -333,13 +337,12 @@ namespace Glitter {
 
         vec3 trans = translation;
         vec3 rot = rotation;
-        vec3 scale;
-        vec3_mult_scalar(this->scale, scale_all, scale);
+        vec3 scale = this->scale * scale_all;
 
         mat4 mat;
-        mat4_translate(trans.x, trans.y, trans.z, &mat);
-        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+        mat4_translate(&trans, &mat);
+        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
 
         for (F2EmitterInst*& i : emitters)
@@ -375,7 +378,7 @@ namespace Glitter {
 
             vec3 scale;
             mat4_get_scale(&mat, &scale);
-            vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
+            ext_anim_scale = scale - 1.0f;
             ext_anim_scale.z = 0.0f;
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
 
@@ -425,7 +428,7 @@ namespace Glitter {
 
                     vec3 scale;
                     mat4_get_scale(&mat, &scale);
-                    vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
+                    ext_anim_scale = scale - 1.0f;
                     ext_anim_scale.z = 0.0f;
                     enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
                 }
@@ -489,8 +492,7 @@ namespace Glitter {
         if (!(flags & EFFECT_INST_HAS_EXT_ANIM_TRANS) || !ext_anim)
             return false;
 
-        vec3 trans = ext_anim->translation;
-        mat4_translate_mult(&ext_anim->mat, trans.x, trans.y, trans.z, mat);
+        mat4_translate_mult(&ext_anim->mat, &ext_anim->translation, mat);
         return true;
     }
 
@@ -600,7 +602,7 @@ namespace Glitter {
         instance_id = 0;
         mesh_name = 0;
         mat = mat4_identity;
-        translation = vec3_null;
+        translation = 0.0f;
     }
 
     XEffectInst::ExtAnim::~ExtAnim() {
@@ -709,7 +711,7 @@ namespace Glitter {
 
         GetValue();
 
-        vec3 rot = rotation;
+        vec3& rot = rotation;
 
         mat4 mat;
         if (GetExtAnimMat(&mat)) {
@@ -717,25 +719,22 @@ namespace Glitter {
             mat4_clear_trans(&mat_rot, &mat_rot);
 
             mat_rot_eff_rot = mat_rot;
-            mat4_rotate_mult(&mat_rot, rot.x, rot.y, rot.z, &mat_rot);
+            mat4_rotate_mult(&mat_rot, &rot, &mat_rot);
 
-            vec3 trans = translation;
-            mat4_translate_mult(&mat, trans.x, trans.y, trans.z, &mat);
+            mat4_translate_mult(&mat, &translation, &mat);
         }
         else {
             mat_rot = mat4_identity;
             mat_rot_eff_rot = mat4_identity;
-            mat4_rotate(rot.x, rot.y, rot.z, &mat_rot);
+            mat4_rotate(&rot, &mat_rot);
 
-            vec3 trans = translation;
-            mat4_translate(trans.x, trans.y, trans.z, &mat);
+            mat4_translate(&translation, &mat);
         }
 
-        vec3 scale;
-        vec3_mult_scalar(this->scale, scale_all, scale);
+        vec3 scale = this->scale * scale_all;
 
-        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &this->mat);
+        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_scale_rot(&mat, &scale, &this->mat);
 
         for (XEmitterInst*& i : emitters)
             if (i)
@@ -842,13 +841,12 @@ namespace Glitter {
 
                 vec3 trans = translation;
                 vec3 rot = rotation;
-                vec3 scale;
-                vec3_mult_scalar(this->scale, scale_all, scale);
+                vec3 scale = this->scale * scale_all;
 
                 mat4 mat;
-                mat4_translate(trans.x, trans.y, trans.z, &mat);
-                mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-                mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+                mat4_translate(&trans, &mat);
+                mat4_rotate_mult(&mat, &rot, &mat);
+                mat4_scale_rot(&mat, &scale, &mat);
                 for (XEmitterInst*& i : emitters)
                     if (i)
                         i->CtrlInit(this, delta_frame);
@@ -880,13 +878,12 @@ namespace Glitter {
 
         vec3 trans = translation;
         vec3 rot = rotation;
-        vec3 scale;
-        vec3_mult_scalar(this->scale, scale_all, scale);
+        vec3 scale = this->scale * scale_all;
 
         mat4 mat;
-        mat4_translate(trans.x, trans.y, trans.z, &mat);
-        mat4_rotate_mult(&mat, rot.x, rot.y, rot.z, &mat);
-        mat4_scale_rot(&mat, scale.x, scale.y, scale.z, &mat);
+        mat4_translate(&trans, &mat);
+        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
 
         for (XEmitterInst*& i : emitters)
@@ -928,11 +925,11 @@ namespace Glitter {
 
             vec3 scale;
             mat4_get_scale(mat, &scale);
-            vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
+            ext_anim_scale = scale - 1.0f;
             ext_anim_scale.z = 0.0f;
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
 
-            if (rob_chr->data.field_0 & 0x01 || ~data.ext_anim_x->flags & EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA)
+            if (rob_chr->get_visibility() || !(data.ext_anim_x->flags & EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA))
                 set_flags = true;
             else
                 set_flags = false;
@@ -977,7 +974,7 @@ namespace Glitter {
 
                     vec3 scale;
                     mat4_get_scale(mat, &scale);
-                    vec3_sub_scalar(scale, 1.0f, ext_anim_scale);
+                    ext_anim_scale = scale - 1.0f;
                     ext_anim_scale.z = 0.0f;
                     enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
                 }
@@ -1025,8 +1022,7 @@ namespace Glitter {
         if (!(flags & EFFECT_INST_HAS_EXT_ANIM_TRANS) || !ext_anim)
             return false;
 
-        vec3 trans = ext_anim->translation;
-        mat4_translate_mult(&ext_anim->mat, trans.x, trans.y, trans.z, mat);
+        mat4_translate_mult(&ext_anim->mat, &ext_anim->translation, mat);
         return true;
     }
 

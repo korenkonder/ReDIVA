@@ -13,7 +13,7 @@
 #include "str_utils.hpp"
 
 struct mot_header_classic {
-    uint32_t key_set_count_offset;
+    uint32_t key_set_info_offset;
     uint32_t key_set_types_offset;
     uint32_t key_set_offset;
     uint32_t bone_info_offset;
@@ -22,7 +22,7 @@ struct mot_header_classic {
 struct mot_header_modern {
     uint32_t hash;
     int64_t name_offset;
-    int64_t key_set_count_offset;
+    int64_t key_set_info_offset;
     int64_t key_set_types_offset;
     int64_t key_set_offset;
     int64_t bone_info_offset;
@@ -333,7 +333,7 @@ static void mot_classic_read_inner(mot_set* ms, stream& s) {
     ms->vec.resize(count);
     mot_header_classic* mh = force_malloc_s(mot_header_classic, count);
     for (size_t i = 0; i < count; i++) {
-        mh[i].key_set_count_offset = s.read_uint32_t();
+        mh[i].key_set_info_offset = s.read_uint32_t();
         mh[i].key_set_types_offset = s.read_uint32_t();
         mh[i].key_set_offset = s.read_uint32_t();
         mh[i].bone_info_offset = s.read_uint32_t();
@@ -354,7 +354,7 @@ static void mot_classic_read_inner(mot_set* ms, stream& s) {
         for (size_t j = 0; j < m->bone_info_count; j++)
             m->bone_info[j].index = s.read_uint16_t();
 
-        s.set_position(mh[i].key_set_count_offset, SEEK_SET);
+        s.set_position(mh[i].key_set_info_offset, SEEK_SET);
         m->info = s.read_uint16_t();
         m->frame_count = s.read_uint16_t();
 
@@ -421,7 +421,7 @@ static void mot_classic_write_inner(mot_set* ms, stream& s) {
     for (size_t i = 0; i < count; i++) {
         mot_data* m = &ms->vec[i];
 
-        mh[i].key_set_count_offset = (uint32_t)s.get_position();
+        mh[i].key_set_info_offset = (uint32_t)s.get_position();
         s.write_uint16_t(m->info);
         s.write_uint16_t(m->frame_count);
 
@@ -481,7 +481,7 @@ static void mot_classic_write_inner(mot_set* ms, stream& s) {
 
     s.set_position(0x00, SEEK_SET);
     for (size_t i = 0; i < count; i++) {
-        s.write_uint32_t(mh[i].key_set_count_offset);
+        s.write_uint32_t(mh[i].key_set_info_offset);
         s.write_uint32_t(mh[i].key_set_types_offset);
         s.write_uint32_t(mh[i].key_set_offset);
         s.write_uint32_t(mh[i].bone_info_offset);
@@ -511,12 +511,11 @@ static void mot_modern_read_inner(mot_set* ms, stream& s) {
 
     s_motc.set_position(0x00, SEEK_SET);
     ms->vec.resize(1);
-    mot_header_modern mh;
-    memset(&mh, 0, sizeof(mot_header_modern));
+    mot_header_modern mh = {};
     if (!is_x) {
         mh.hash = (uint32_t)s_motc.read_uint64_t_reverse_endianness();
         mh.name_offset = s_motc.read_offset_f2(st.header.length);
-        mh.key_set_count_offset = s_motc.read_offset_f2(st.header.length);
+        mh.key_set_info_offset = s_motc.read_offset_f2(st.header.length);
         mh.key_set_types_offset = s_motc.read_offset_f2(st.header.length);
         mh.key_set_offset = s_motc.read_offset_f2(st.header.length);
         mh.bone_info_offset = s_motc.read_offset_f2(st.header.length);
@@ -526,7 +525,7 @@ static void mot_modern_read_inner(mot_set* ms, stream& s) {
     else {
         mh.hash = (uint32_t)s_motc.read_uint64_t_reverse_endianness();
         mh.name_offset = s_motc.read_offset_x();
-        mh.key_set_count_offset = s_motc.read_offset_x();
+        mh.key_set_info_offset = s_motc.read_offset_x();
         mh.key_set_types_offset = s_motc.read_offset_x();
         mh.key_set_offset = s_motc.read_offset_x();
         mh.bone_info_offset = s_motc.read_offset_x();
@@ -556,7 +555,7 @@ static void mot_modern_read_inner(mot_set* ms, stream& s) {
     for (size_t j = 0; j < mh.bone_info_count; j++)
         s_motc.read_uint64_t_reverse_endianness();
 
-    s_motc.set_position(mh.key_set_count_offset, SEEK_SET);
+    s_motc.set_position(mh.key_set_info_offset, SEEK_SET);
     m->info = s_motc.read_uint16_t_reverse_endianness();
     m->frame_count = s_motc.read_uint16_t_reverse_endianness();
 
@@ -639,8 +638,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
     pof pof;
     uint32_t murmurhash = 0;
     if (ms->vec.size() > 0) {
-        mot_header_modern mh;
-        memset(&mh, 0, sizeof(mot_header_modern));
+        mot_header_modern mh = {};
         mot_data* m = &ms->vec[0];
 
         if (!is_x) {
@@ -764,7 +762,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
 
         mh.hash = hash_string_murmurhash(m->name);
 
-        mh.key_set_count_offset = s_motc.get_position();
+        mh.key_set_info_offset = s_motc.get_position();
         s_motc.write_uint16_t_reverse_endianness(m->info);
         s_motc.write_uint16_t_reverse_endianness(m->frame_count);
 
@@ -863,7 +861,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
         if (!is_x) {
             s_motc.write_uint64_t_reverse_endianness((uint64_t)mh.hash);
             s_motc.write_offset_f2(mh.name_offset, 0x40);
-            s_motc.write_offset_f2(mh.key_set_count_offset, 0x40);
+            s_motc.write_offset_f2(mh.key_set_info_offset, 0x40);
             s_motc.write_offset_f2(mh.key_set_types_offset, 0x40);
             s_motc.write_offset_f2(mh.key_set_offset, 0x40);
             s_motc.write_offset_f2(mh.bone_info_offset, 0x40);
@@ -873,7 +871,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
         else {
             s_motc.write_uint64_t_reverse_endianness((uint64_t)mh.hash);
             s_motc.write_offset_x(mh.name_offset);
-            s_motc.write_offset_x(mh.key_set_count_offset);
+            s_motc.write_offset_x(mh.key_set_info_offset);
             s_motc.write_offset_x(mh.key_set_types_offset);
             s_motc.write_offset_x(mh.key_set_offset);
             s_motc.write_offset_x(mh.bone_info_offset);

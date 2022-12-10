@@ -59,6 +59,9 @@ struct texture {
     int32_t size;
 
     texture();
+
+    uint32_t get_height_align_mip_level(uint8_t mip_level = 0);
+    uint32_t get_width_align_mip_level(uint8_t mip_level = 0);
 };
 
 extern texture* texture_init(texture_id id);
@@ -82,9 +85,4 @@ extern texture* texture_storage_get_texture(texture_id id);
 extern size_t texture_storage_get_texture_count();
 extern texture* texture_storage_get_texture_by_index(size_t index);
 extern void texture_storage_delete_texture(texture_id id);
-extern void texture_storage_set_texture_wrap(GLuint texture, GLint wrap_s, GLint wrap_t);
-extern void texture_storage_set_texture_wrap(GLuint texture, GLint wrap_s, GLint wrap_t, GLint wrap_r);
-extern void texture_storage_set_texture_wrap_s(GLuint texture, GLint wrap);
-extern void texture_storage_set_texture_wrap_t(GLuint texture, GLint wrap);
-extern void texture_storage_set_texture_wrap_r(GLuint texture, GLint wrap);
 extern void texture_storage_free();

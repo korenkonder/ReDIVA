@@ -1375,17 +1375,25 @@ namespace pv_db {
 
                                 std::string key;
                                 std::string val;
-                                if (kv.read("0.key", key) && kv.read("0.val", val))
-                                    ex_info[0] = { key, val };
+                                if (kv.read("0.key", key) && kv.read("0.val", val)) {
+                                    ex_info[0].first.assign(key);
+                                    ex_info[0].second.assign(val);
+                                }
 
-                                if (kv.read("1.key", key) && kv.read("1.val", val))
-                                    ex_info[1] = { key, val };
+                                if (kv.read("1.key", key) && kv.read("1.val", val)) {
+                                    ex_info[1].first.assign(key);
+                                    ex_info[1].second.assign(val);
+                                }
 
-                                if (kv.read("2.key", key) && kv.read("2.val", val))
-                                    ex_info[2] = { key, val };
+                                if (kv.read("2.key", key) && kv.read("2.val", val)) {
+                                    ex_info[2].first.assign(key);
+                                    ex_info[2].second.assign(val);
+                                }
 
-                                if (kv.read("3.key", key) && kv.read("3.val", val))
-                                    ex_info[3] = { key, val };
+                                if (kv.read("3.key", key) && kv.read("3.val", val)) {
+                                    ex_info[3].first.assign(key);
+                                    ex_info[3].second.assign(val);
+                                }
 
                                 kv.close_scope();
                             }

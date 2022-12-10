@@ -30,7 +30,7 @@ post_process_tone_map::~post_process_tone_map() {
 }
 
 void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_tex, texture* back_2d_tex,
-    render_texture* rt, render_texture* buf_rt, render_texture* contour_rt,
+    render_texture* rt, render_texture* buf_rt,/* render_texture* contour_rt,*/
     GLuint in_tex_0, GLuint in_tex_1, int32_t npr_param) {
     if (!this)
         return;
@@ -43,16 +43,15 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
     if (data.update_tex) {
         post_process_tone_map_calculate_tex(this);
 
-        glBindTexture(GL_TEXTURE_1D, tone_map);
-        glTexImage1D(GL_TEXTURE_1D, 0, GL_RG16F,
-            16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 0, GL_RG, GL_FLOAT, data.tex);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-
-        GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteriv(GL_TEXTURE_1D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-        glBindTexture(GL_TEXTURE_1D, 0);
+        if (GLAD_GL_VERSION_4_5)
+            glTextureSubImage2D(tone_map, 0, 0, 0,
+                16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, data.tex);
+        else {
+            gl_state_bind_texture_2d(tone_map);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+                16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, data.tex);
+            gl_state_bind_texture_2d(0);
+        }
         data.update_tex = false;
     }
 
@@ -63,14 +62,12 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
     mat4_scale(1.0f, (float_t)rt->color_texture->height
         / (float_t)rt->color_texture->width, 1.0f, &lens_shaft_mat);
 
-    uniform_value[U16] = 0;
     uniform_value[U_TONE_MAP] = (int32_t)data.tone_map_method;
     uniform_value[U_FLARE] = 0;
     uniform_value[U_SCENE_FADE] = data.scene_fade.w > 0.009999999f ? 1 : 0;
     uniform_value[U_AET_BACK] = 0;
     uniform_value[U_LIGHT_PROJ] = 0;
-    uniform_value[U_NPR] = 0;
-    uniform_value[U25] = 0;
+    //uniform_value[U25] = 0;
 
     glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
     buf_rt->bind();
@@ -86,29 +83,32 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
     shaders_ft.local_frag_set(7, shader_data.p_inv_tone);
     gl_state_active_bind_texture_2d(0, in_tex->color_texture->tex);
     gl_state_active_bind_texture_2d(1, in_tex_0);
-    gl_state_active_bind_texture_2d(2, 0);
-    gl_state_active_texture(2);
-    glBindTexture(GL_TEXTURE_1D, tone_map);
+    gl_state_active_bind_texture_2d(2, tone_map);
     gl_state_active_bind_texture_2d(3, in_tex_1);
-    if (uniform_value[U_LIGHT_PROJ] && light_proj_tex)
-        gl_state_active_bind_texture_2d(6, light_proj_tex->tex);
-    else if (uniform_value[U_AET_BACK] && back_2d_tex)
+
+    if (back_2d_tex) {
         gl_state_active_bind_texture_2d(6, back_2d_tex->tex);
+        uniform_value[U_AET_BACK] = 1;
+    }
+
+    if (light_proj_tex) {
+        gl_state_active_bind_texture_2d(6, light_proj_tex->tex);
+        uniform_value[U_LIGHT_PROJ] = 1;
+    }
+
     if (npr_param == 1) {
-        gl_state_active_bind_texture_2d(16, contour_rt->color_texture->tex);
+        /*gl_state_active_bind_texture_2d(16, contour_rt->color_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         gl_state_active_bind_texture_2d(17, contour_rt->depth_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);*/
         gl_state_active_bind_texture_2d(14, rt->depth_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
     render_texture::draw_custom(&shaders_ft);
-    gl_state_active_texture(2);
-    glBindTexture(GL_TEXTURE_1D, 0);
-    uniform_value[U16] = 1;
+    gl_state_active_bind_texture_2d(2, 0);
 
     fbo::blit(buf_rt->fbos[0], rt->fbos[0],
         0, 0, buf_rt->color_texture->width, buf_rt->color_texture->height,
@@ -119,8 +119,34 @@ void post_process_tone_map::init_fbo() {
     if (!this)
         return;
 
-    if (!tone_map)
-        glGenTextures(1, &tone_map);
+    if (!tone_map) {
+        if (GLAD_GL_VERSION_4_5) {
+            glCreateTextures(GL_TEXTURE_2D, 1, &tone_map);
+
+            glTextureStorage2D(tone_map, 1, GL_RG16F, 16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 1);
+            glTextureParameteri(tone_map, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(tone_map, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            const GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
+            glTextureParameteri(tone_map, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTextureParameteri(tone_map, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTextureParameteriv(tone_map, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+        }
+        else {
+            glGenTextures(1, &tone_map);
+
+            gl_state_bind_texture_2d(tone_map);
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, 16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 1);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            const GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+            gl_state_bind_texture_2d(0);
+        }
+    }
 }
 
 void post_process_tone_map::initialize_data(float_t exposure, bool auto_exposure,
@@ -142,17 +168,11 @@ void post_process_tone_map::initialize_data(float_t exposure, bool auto_exposure
     data.gamma_rate = clamp_def(gamma_rate, 0.5f, 2.0f);
     data.saturate_power = clamp_def(saturate_power, 1, 6);
     data.saturate_coeff = clamp_def(saturate_coeff, 0.0f, 1.0f);
-    data.scene_fade.x = clamp_def(scene_fade_color.x, 0.0f, 1.0f);
-    data.scene_fade.y = clamp_def(scene_fade_color.y, 0.0f, 1.0f);
-    data.scene_fade.z = clamp_def(scene_fade_color.z, 0.0f, 1.0f);
+    *(vec3*)&data.scene_fade.x = vec3::clamp(scene_fade_color, 0.0f, 1.0f);
     data.scene_fade.w = clamp_def(scene_fade_alpha, 0.0f, 1.0f);
     data.scene_fade_blend_func = clamp_def(scene_fade_blend_func, 0, 2);
-    data.tone_trans_start.x = clamp_def(tone_trans_start.x, 0.0f, 1.0f);
-    data.tone_trans_start.y = clamp_def(tone_trans_start.y, 0.0f, 1.0f);
-    data.tone_trans_start.z = clamp_def(tone_trans_start.z, 0.0f, 1.0f);
-    data.tone_trans_end.x = clamp_def(tone_trans_end.x, 0.0f, 1.0f);
-    data.tone_trans_end.y = clamp_def(tone_trans_end.y, 0.0f, 1.0f);
-    data.tone_trans_end.z = clamp_def(tone_trans_end.z, 0.0f, 1.0f);
+    data.tone_trans_start = vec3::clamp(tone_trans_start, 0.0f, 1.0f);
+    data.tone_trans_end = vec3::clamp(tone_trans_end, 0.0f, 1.0f);
     data.tone_map_method = clamp_def(tone_map_method, TONE_MAP_YCC_EXPONENT, TONE_MAP_RGB_LINEAR2);
     data.update_tex = false;
     data.update = true;
@@ -270,12 +290,8 @@ vec4 post_process_tone_map::get_scene_fade() {
 }
 
 void post_process_tone_map::set_scene_fade(const vec4& value) {
-    vec4 temp;
-    temp.x = clamp_def(value.x, 0.0f, 1.0f);
-    temp.y = clamp_def(value.y, 0.0f, 1.0f);
-    temp.z = clamp_def(value.z, 0.0f, 1.0f);
-    temp.z = clamp_def(value.w, 0.0f, 1.0f);
-    if (memcmp(&temp, &data.scene_fade, sizeof(vec4))) {
+    vec4 temp = vec4::clamp(value, 0.0f, 1.0f);
+    if (temp != data.scene_fade) {
         data.scene_fade = temp;
         data.update = true;
     }
@@ -310,11 +326,8 @@ vec3 post_process_tone_map::get_scene_fade_color() {
 }
 
 void post_process_tone_map::set_scene_fade_color(const vec3& value) {
-    vec3 temp;
-    temp.x = clamp_def(value.x, 0.0f, 1.0f);
-    temp.y = clamp_def(value.y, 0.0f, 1.0f);
-    temp.z = clamp_def(value.z, 0.0f, 1.0f);
-    if (memcmp(&temp, &data.scene_fade, sizeof(vec3))) {
+    vec3 temp = vec3::clamp(value, 0.0f, 1.0f);
+    if (temp != *(vec3*)&data.scene_fade) {
         *(vec3*)&data.scene_fade = temp;
         data.update = true;
     }
@@ -347,11 +360,8 @@ vec3 post_process_tone_map::get_tone_trans_end() {
 }
 
 void post_process_tone_map::set_tone_trans_end(const vec3& value) {
-    vec3 temp;
-    temp.x = clamp_def(value.x, 0.0f, 1.0f);
-    temp.y = clamp_def(value.y, 0.0f, 1.0f);
-    temp.z = clamp_def(value.z, 0.0f, 1.0f);
-    if (memcmp(&temp, &data.tone_trans_end, sizeof(vec3))) {
+    vec3 temp = vec3::clamp(value, 0.0f, 1.0f);
+    if (temp != data.tone_trans_end) {
         data.tone_trans_end = temp;
         data.update = true;
     }
@@ -362,11 +372,8 @@ vec3 post_process_tone_map::get_tone_trans_start() {
 }
 
 void post_process_tone_map::set_tone_trans_start(const vec3& value) {
-    vec3 temp;
-    temp.x = clamp_def(value.x, 0.0f, 1.0f);
-    temp.y = clamp_def(value.y, 0.0f, 1.0f);
-    temp.z = clamp_def(value.z, 0.0f, 1.0f);
-    if (memcmp(&temp, &data.tone_trans_start, sizeof(vec3))) {
+    vec3 temp = vec3::clamp(value, 0.0f, 1.0f);
+    if (temp != data.tone_trans_start) {
         data.tone_trans_start = temp;
         data.update = true;
     }

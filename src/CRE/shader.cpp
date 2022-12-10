@@ -22,10 +22,6 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
 static GLuint shader_compile_binary(const char* vert, const char* frag, const char* vp, const char* fp,
     program_binary* bin, GLsizei* buffer_size, void** binary);
 static bool shader_load_binary_shader(program_binary* bin, GLuint* program);
-static bool shader_parse_define(const char* data, int32_t num_uniform,
-    const int32_t* vp_unival_max, const int32_t* fp_unival_max,
-    int32_t* uniform_value, char** temp, size_t* temp_size);
-static char* shader_parse_include(char* data, farc* f);
 static void shader_update_data(shader_set_data* set);
 
 shader_state_clip::shader_state_clip() {
@@ -96,35 +92,51 @@ shader_state::shader_state() {
 
 }
 
-shader_data::shader_data() : state_update_data(), state_matrix_update_data(),
-env_update_data(), buffer_update_data(), state_ubo(), state_matrix_ubo(), env_ubo(), buffer_ubo() {
+shader_data::shader_data() : local(), local_uniform(), state_update_data(),
+state_matrix_update_data(), env_update_data(), buffer_update_data(), local_update_data(),
+local_uniform_update_data(), state_ubo(), state_matrix_ubo(), env_ubo(), buffer_ubo() {
 
 }
 
 int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
     int32_t sub_shader_index = 0;
-    if (num_sub < 1)
+    if (num_sub < 1) {
+        set->data.local = 0;
+        set->data.local_uniform = 0;
+        set->data.local_update_data = 0;
+        set->data.local_uniform_update_data = 0;
         return -1;
+    }
 
     for (shader_sub* i = sub; i->sub_index != sub_index; i++) {
         sub_shader_index++;
-        if (sub_shader_index >= num_sub)
+        if (sub_shader_index >= num_sub) {
+            set->data.local = 0;
+            set->data.local_uniform = 0;
+            set->data.local_update_data = 0;
+            set->data.local_uniform_update_data = 0;
             return -1;
+        }
     }
 
     shader_sub* sub_shader = &sub[sub_shader_index];
-    if (!sub_shader)
+    if (!sub_shader) {
+        set->data.local = 0;
+        set->data.local_uniform = 0;
+        set->data.local_update_data = 0;
+        set->data.local_uniform_update_data = 0;
         return -1;
+    }
 
     int32_t unival_curr = 1;
     int32_t unival = 0;
-    GLint uniform_val[16];
+    int32_t uniform_val[SHADER_MAX_UNIFORM_VALUES] = {};
     if (num_uniform > 0) {
         const int32_t* vp_unival_max = sub_shader->vp_unival_max;
         const int32_t* fp_unival_max = sub_shader->fp_unival_max;
 
         int32_t i = 0;
-        for (i = 0; i < num_uniform && i < 16; i++) {
+        for (i = 0; i < num_uniform && i < sizeof(uniform_val) / sizeof(int32_t); i++) {
             int32_t unival_max = use_permut[i]
                 ? max_def(vp_unival_max[i], fp_unival_max[i]) : 0;
             unival += unival_curr * min_def(uniform_value[(int32_t)use_uniform[i]], unival_max);
@@ -133,14 +145,217 @@ int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
             int32_t unival_max_glsl = max_def(vp_unival_max[i], fp_unival_max[i]);
             uniform_val[i] = min_def(uniform_value[use_uniform[i]], unival_max_glsl);
         }
-
-        for (; i < 16; i++)
-            uniform_val[i] = 0;
     }
 
-    gl_state_use_program(sub_shader->program[unival]);
-    glUniform1iv(SHADER_MAX_PROGRAM_LOCAL_PARAMETERS * 2, 16, uniform_val);
+    shader_sub_shader& shader = sub_shader->shaders[unival];
+
+    set->data.local = &shader.data;
+    set->data.local_uniform = &shader.data_uniform;
+    set->data.local_update_data = shader.data_update;
+    set->data.local_uniform_update_data = &shader.data_uniform_update;
+
+    gl_state_use_program(shader.program);
+    if (memcmp(set->data.local_uniform->uniform_val, uniform_val, sizeof(uniform_val))) {
+        memcpy(set->data.local_uniform->uniform_val, uniform_val, sizeof(uniform_val));
+        *set->data.local_uniform_update_data = true;
+    }
     return 0;
+}
+
+bool shader::parse_define(const char* data, int32_t num_uniform,
+    const int32_t* vp_unival_max, const int32_t* fp_unival_max,
+    int32_t* uniform_value, char** temp, size_t* temp_size) {
+    if (!data)
+        return false;
+
+    const char* def = strstr(data, "//DEF\n");
+    if (!def) {
+        size_t len = utf8_length(data);
+        if (len + 1 > *temp_size) {
+            free_def(*temp);
+            *temp_size = len + 1;
+            *temp = force_malloc_s(char, *temp_size);
+        }
+
+        memcpy(*temp, data, len);
+        (*temp)[len] = 0;
+        return true;
+    }
+
+    if (!num_uniform || !vp_unival_max || !fp_unival_max || !uniform_value) {
+        size_t len_a = def - data;
+        def += 5;
+        if (*def == '\n')
+            def++;
+
+        size_t len_b = utf8_length(def);
+        size_t len = 0;
+        len += len_a + len_b;
+
+        if (len + 1 > *temp_size) {
+            free_def(*temp);
+            *temp_size = len + 1;
+            *temp = force_malloc_s(char, *temp_size);
+        }
+
+        size_t pos = 0;
+        memcpy(*temp + pos, data, len_a);
+        pos += len_a;
+        memcpy(*temp + pos, def, len_b);
+        pos += len_b;
+        (*temp)[pos] = 0;
+        return true;
+    }
+
+    const int32_t s = min_def(0x100, num_uniform);
+
+    size_t t_len[0x100];
+    char t[0x100] = {};
+
+    for (int32_t i = 0; i < s; i++) {
+        sprintf_s(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
+        t_len[i] = utf8_length(t);
+    }
+
+    size_t len_a = def - data;
+    def += 5;
+    size_t len_b = utf8_length(def);
+    size_t len = 0;
+    for (int32_t i = 0; i < s; i++)
+        len += t_len[i];
+    if (!len)
+        def++;
+    len += len_a + len_b;
+
+    if (len + 1 > *temp_size) {
+        free_def(*temp);
+        *temp_size = len + 1;
+        *temp = force_malloc_s(char, *temp_size);
+    }
+
+    size_t pos = 0;
+    memcpy(*temp + pos, data, len_a);
+    pos += len_a;
+    for (int32_t i = 0; i < s; i++) {
+        sprintf_s(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
+        memcpy(*temp + pos, t, t_len[i]);
+        pos += t_len[i];
+    }
+    memcpy(*temp + pos, def, len_b);
+    pos += len_b;
+    (*temp)[pos] = 0;
+    return true;
+}
+
+char* shader::parse_include(char* data, farc* f) {
+    if (!data || !f)
+        return data;
+
+    char* data_end = data + utf8_length(data);
+    char* i0 = strstr(data, "#include \"");
+    char* i1 = i0 ? strstr(i0, "\"\n") : 0;
+    if (!i0 || !i1)
+        return data;
+
+    size_t count = 1;
+    while (i1 && (i0 = strstr(i1, "#include \""))) {
+        i0 += 10;
+        i1 = strstr(i0, "\"\n");
+        if (i1)
+            i1 += 1;
+        count++;
+    }
+
+    char** temp = force_malloc_s(char*, count);
+    size_t* temp_len = force_malloc_s(size_t, count);
+    char** temp_ptr0 = force_malloc_s(char*, count);
+    char** temp_ptr1 = force_malloc_s(char*, count);
+    if (!temp || !temp_len || !temp_ptr0 || !temp_ptr1) {
+        free_def(temp);
+        free_def(temp_len);
+        free_def(temp_ptr0);
+        free_def(temp_ptr1);
+        return data;
+    }
+
+    i1 = data;
+    for (size_t i = 0; i < count; i++) {
+        temp[i] = 0;
+        i0 = i1 ? strstr(i1, "#include \"") : 0;
+        i1 = i0 ? strstr(i0, "\"\n") : 0;
+        if (!i0 || !i1)
+            continue;
+
+        temp_ptr0[i] = i0;
+        temp_ptr1[i] = i1 + 1;
+        i0 += 10;
+        size_t s = i1 - i0;
+        i1 += 2;
+        char* t = force_malloc_s(char, s + 1);
+        if (!t)
+            continue;
+
+        memcpy(t, i0, s);
+        t[s] = 0;
+
+        farc_file* ff = f->read_file(t);
+        free_def(t);
+        if (!ff)
+            continue;
+
+        t = force_malloc_s(char, ff->size + 1);
+        if (t) {
+            memcpy(t, ff->data, ff->size);
+            t[ff->size] = 0;
+        }
+        temp[i] = t;
+        temp_len[i] = ff->size;
+    }
+
+    size_t len = data_end - data;
+    i1 = data;
+    for (size_t i = 0; i < count; i++) {
+        i0 = temp_ptr0[i];
+        i1 = temp_ptr1[i];
+        if (!i0 || !i1)
+            continue;
+
+        len -= i1 - i0;
+        len += temp_len[i];
+    }
+
+    char* temp_data = force_malloc_s(char, len + 1);
+    size_t pos = 0;
+    memcpy(temp_data + pos, data, temp_ptr0[0] - data);
+    pos += temp_ptr0[0] - data;
+    for (int32_t i = 0; i < count; i++) {
+        if (temp[i]) {
+            size_t s = temp_len[i];
+            memcpy(temp_data + pos, temp[i], s);
+            pos += s;
+        }
+
+        if (i < count - 1 && temp_ptr1[i]) {
+            size_t s = temp_ptr0[i + 1] - temp_ptr1[i];
+            memcpy(temp_data + pos, temp_ptr1[i], s);
+            pos += s;
+        }
+        else if (temp_ptr1[i]) {
+            size_t s = data_end - temp_ptr1[i];
+            memcpy(temp_data + pos, temp_ptr1[i], s);
+            pos += s;
+        }
+    }
+    temp_data[pos] = 0;
+
+    free_def(data);
+    for (size_t i = 0; i < count; i++)
+        free_def(temp[i]);
+    free_def(temp);
+    free_def(temp_len);
+    free_def(temp_ptr0);
+    free_def(temp_ptr1);
+    return temp_data;
 }
 
 void shader::unbind() {
@@ -151,8 +366,13 @@ void shader::unbind() {
     gl_state_bind_uniform_buffer_base(3, 0);
 }
 
-shader_set_data::shader_set_data() : shaders(), size(), data() {
+shader_set_data::shader_set_data() : shaders(),
+    size(), data(), primitive_restart(), primitive_restart_index() {
 
+}
+
+void shader_set_data::disable_primitive_restart() {
+    primitive_restart = false;
 }
 
 void shader_set_data::draw_arrays(GLenum mode, GLint first, GLsizei count) {
@@ -172,6 +392,10 @@ void shader_set_data::draw_range_elements(GLenum mode,
     glDrawRangeElements(mode, start, end, count, type, indices);
 }
 
+void shader_set_data::enable_primitive_restart() {
+    primitive_restart = true;
+}
+
 int32_t shader_set_data::get_index_by_name(const char* name) {
     for (size_t i = 0; i < size; i++)
         if (!str_utils_compare(shaders[i].name, name))
@@ -179,27 +403,28 @@ int32_t shader_set_data::get_index_by_name(const char* name) {
     return -1;
 }
 
-void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
+void shader_set_data::load(farc* f, bool ignore_cache,
     const char* name, const shader_table* shaders_table, const size_t size,
     const shader_bind_func* bind_func_table, const size_t bind_func_table_size) {
     if (!this || !f || !shaders_table || !size)
         return;
 
+    wchar_t temp_buf[MAX_PATH];
+    if (FAILED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf)))
+        return;
+
+    wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
+    CreateDirectoryW(temp_buf, 0);
+
+    wchar_t buf[MAX_PATH];
+    swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"\\%hs_shader_cache", name);
+    wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), buf);
+
     bool shader_cache_changed = false;
     farc shader_cache_farc;
-    wchar_t temp_buf[MAX_PATH];
-    if (!ignore_cache && SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
-        wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
-        CreateDirectoryW(temp_buf, 0);
-
-        wchar_t buf[MAX_PATH];
-        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"\\%hs_shader_cache", name);
-        wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), buf);
-
-        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"%ls.farc", temp_buf);
-        if (path_check_file_exists(buf) && !not_load_cache)
-            shader_cache_farc.read(buf, true, false);
-    }
+    swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"%ls.farc", temp_buf);
+    if (!ignore_cache && path_check_file_exists(buf))
+        shader_cache_farc.read(buf, true, false);
 
     GLsizei buffer_size = 0x20000;
     void* binary = force_malloc(buffer_size);
@@ -284,8 +509,8 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
             }
             strcat_s(shader_cache_file_name, sizeof(shader_cache_file_name), ".bin");
 
-            vert_data = shader_parse_include(vert_data, f);
-            frag_data = shader_parse_include(frag_data, f);
+            vert_data = shader::parse_include(vert_data, f);
+            frag_data = shader::parse_include(frag_data, f);
             uint64_t vert_data_hash = hash_utf8_fnv1a64m(vert_data);
             uint64_t frag_data_hash = hash_utf8_fnv1a64m(frag_data);
 
@@ -293,10 +518,10 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
             program_binary* bin = 0;
             if (!ignore_cache) {
                 if (!shader_cache_file || !shader_cache_file->data)
-                    /*printf("data error: %s %s\n", vert_file_buf, frag_file_buf)*/;
+                    printf_debug("Shader not compiled: %s %s\n", vert_file_buf, frag_file_buf);
                 else if (vert_data_hash != ((uint64_t*)shader_cache_file->data)[0]
                     || frag_data_hash != ((uint64_t*)shader_cache_file->data)[1])
-                    /*printf("hash error: %s %s\n", vert_file_buf, frag_file_buf)*/;
+                    printf_debug("Shader hash not equal: %s %s\n", vert_file_buf, frag_file_buf);
                 else
                     bin = (program_binary*)&((uint64_t*)shader_cache_file->data)[2];
             }
@@ -316,8 +541,8 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
 
                 if (!ignore_cache)
                     program_data_binary.reserve(unival_count);
-                sub->program = force_malloc_s(GLuint, unival_count);
-                if (sub->program) {
+                sub->shaders = force_malloc_s(shader_sub_shader, unival_count);
+                if (sub->shaders) {
                     char vert_buf[MAX_PATH];
                     char frag_buf[MAX_PATH];
 
@@ -354,25 +579,24 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
                             frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag[l]);
                         }
 
-                        if (!bin || !shader_load_binary_shader(bin, &sub->program[k])) {
-                            bool vert_succ = shader_parse_define(vert_data,
+                        if (!bin || !shader_load_binary_shader(bin, &sub->shaders[k].program)) {
+                            bool vert_succ = shader::parse_define(vert_data,
                                 num_uniform, vp_unival_max, fp_unival_max,
                                 vec_vert.data(), &temp_vert, &temp_vert_size);
-                            bool frag_succ = shader_parse_define(frag_data,
+                            bool frag_succ = shader::parse_define(frag_data,
                                 num_uniform, vp_unival_max, fp_unival_max,
                                 vec_frag.data(), &temp_frag, &temp_frag_size);
 
-                            //printf("%s %s\n", vert_buf, frag_buf);
                             if (ignore_cache)
-                                sub->program[k] = shader_compile(vert_succ ? temp_vert : 0,
+                                sub->shaders[k].program = shader_compile(vert_succ ? temp_vert : 0,
                                     frag_succ ? temp_frag : 0, vert_buf, frag_buf);
                             else {
                                 program_data_binary.push_back({});
-                                sub->program[k] = shader_compile_binary(vert_succ ? temp_vert : 0,
+                                sub->shaders[k].program = shader_compile_binary(vert_succ ? temp_vert : 0,
                                     frag_succ ? temp_frag : 0, vert_buf, frag_buf,
                                     &program_data_binary.back(), &buffer_size, &binary);
                             }
-                            shader_cache_changed |= sub->program[k] ? true : false;
+                            shader_cache_changed |= sub->shaders[k].program ? true : false;
                         }
                         else {
                             program_data_binary.push_back({});
@@ -390,8 +614,8 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
             }
             else {
                 program_data_binary.reserve(1);
-                sub->program = force_malloc_s(GLuint, 1);
-                if (sub->program) {
+                sub->shaders = force_malloc_s(shader_sub_shader, 1);
+                if (sub->shaders) {
                     char vert_buf[MAX_PATH];
                     char frag_buf[MAX_PATH];
                     strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
@@ -399,23 +623,22 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
                     strcat_s(vert_buf, sizeof(vert_buf), "..vert");
                     strcat_s(frag_buf, sizeof(vert_buf), "..frag");
 
-                    if (!bin || !shader_load_binary_shader(bin, &sub->program[0])) {
-                        bool vert_succ = shader_parse_define(vert_data,
+                    if (!bin || !shader_load_binary_shader(bin, &sub->shaders[0].program)) {
+                        bool vert_succ = shader::parse_define(vert_data,
                             0, 0, 0, 0, &temp_vert, &temp_vert_size);
-                        bool frag_succ = shader_parse_define(frag_data,
+                        bool frag_succ = shader::parse_define(frag_data,
                             0, 0, 0, 0, &temp_frag, &temp_frag_size);
 
-                        //printf("%s %s\n", vert_buf, frag_buf);
                         if (ignore_cache)
-                            sub->program[0] = shader_compile(vert_succ ? temp_vert : 0,
+                            sub->shaders[0].program = shader_compile(vert_succ ? temp_vert : 0,
                                 frag_succ ? temp_frag : 0, vert_buf, frag_buf);
                         else {
                             program_data_binary.push_back({});
-                            sub->program[0] = shader_compile_binary(vert_succ ? temp_vert : 0,
+                            sub->shaders[0].program = shader_compile_binary(vert_succ ? temp_vert : 0,
                                 frag_succ ? temp_frag : 0, vert_buf, frag_buf,
                                 &program_data_binary.back(), &buffer_size, &binary);
                         }
-                        shader_cache_changed |= sub->program[0] ? true : false;
+                        shader_cache_changed |= sub->shaders[0].program ? true : false;
                     }
                     else {
                         program_data_binary.push_back({});
@@ -432,10 +655,8 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
             }
 
             if (!ignore_cache) {
-                if (!shader_cache_file) {
-                    shader_cache_farc.add_file(shader_cache_file_name);
-                    shader_cache_file = &shader_cache_farc.files.back();
-                }
+                if (!shader_cache_file)
+                    shader_cache_file = shader_cache_farc.add_file(shader_cache_file_name);
                 else
                     free_def(shader_cache_file->data);
 
@@ -474,7 +695,7 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
         vec_frag.clear();
 
         for (size_t j = 0; j < bind_func_table_size; j++)
-            if (shader->name_index == bind_func_table[j].index) {
+            if (shader->name_index == bind_func_table[j].name_index) {
                 shader->bind_func = bind_func_table[j].bind_func;
                 break;
             }
@@ -487,25 +708,40 @@ void shader_set_data::load(farc* f, bool ignore_cache, bool not_load_cache,
         shader_cache_farc.write(temp_buf, FARC_COMPRESS_FArC, false);
 
     memset(&data, 0, sizeof(data));
-    glGenBuffers(1, &data.state_ubo);
-    gl_state_bind_uniform_buffer(data.state_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(data.state), (void*)&data.state, GL_DYNAMIC_DRAW);
-    gl_state_bind_uniform_buffer(0);
+    if (GLAD_GL_VERSION_4_4) {
+        glGenBuffers(4, &data.state_ubo);
 
-    glGenBuffers(1, &data.state_matrix_ubo);
-    gl_state_bind_uniform_buffer(data.state_matrix_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(data.state_matrix), (void*)&data.state_matrix, GL_DYNAMIC_DRAW);
-    gl_state_bind_uniform_buffer(0);
+        gl_state_bind_uniform_buffer(data.state_ubo, true);
+        glBufferStorage(GL_UNIFORM_BUFFER, sizeof(data.state), 0, GL_DYNAMIC_STORAGE_BIT);
 
-    glGenBuffers(1, &data.env_ubo);
-    gl_state_bind_uniform_buffer(data.env_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(data.env), (void*)&data.env, GL_DYNAMIC_DRAW);
-    gl_state_bind_uniform_buffer(0);
+        gl_state_bind_uniform_buffer(data.state_matrix_ubo, true);
+        glBufferStorage(GL_UNIFORM_BUFFER, sizeof(data.state_matrix), 0, GL_DYNAMIC_STORAGE_BIT);
 
-    glGenBuffers(1, &data.buffer_ubo);
-    gl_state_bind_uniform_buffer(data.buffer_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(data.buffer), (void*)&data.buffer, GL_DYNAMIC_DRAW);
-    gl_state_bind_uniform_buffer(0);
+        gl_state_bind_uniform_buffer(data.env_ubo, true);
+        glBufferStorage(GL_UNIFORM_BUFFER, sizeof(data.env), 0, GL_DYNAMIC_STORAGE_BIT);
+
+        gl_state_bind_uniform_buffer(data.buffer_ubo, true);
+        glBufferStorage(GL_UNIFORM_BUFFER, sizeof(data.buffer), 0, GL_DYNAMIC_STORAGE_BIT);
+
+        gl_state_bind_uniform_buffer(0);
+    }
+    else {
+        glGenBuffers(4, &data.state_ubo);
+
+        gl_state_bind_uniform_buffer(data.state_ubo, true);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(data.state), 0, GL_DYNAMIC_DRAW);
+
+        gl_state_bind_uniform_buffer(data.state_matrix_ubo, true);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(data.state_matrix), 0, GL_DYNAMIC_DRAW);
+
+        gl_state_bind_uniform_buffer(data.env_ubo, true);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(data.env), 0, GL_DYNAMIC_DRAW);
+
+        gl_state_bind_uniform_buffer(data.buffer_ubo, true);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(data.buffer), 0, GL_DYNAMIC_DRAW);
+
+        gl_state_bind_uniform_buffer(0);
+    }
 }
 
 void shader_set_data::set(uint32_t index) {
@@ -525,11 +761,13 @@ void shader_set_data::set(uint32_t index) {
         shader::unbind();
 }
 
+void shader_set_data::set_primitive_restart_index(GLuint index) {
+    if (primitive_restart_index != index)
+        primitive_restart_index = index;
+}
+
 void shader_set_data::unload() {
-    glDeleteBuffers(1, &data.state_ubo);
-    glDeleteBuffers(1, &data.state_matrix_ubo);
-    glDeleteBuffers(1, &data.env_ubo);
-    glDeleteBuffers(1, &data.buffer_ubo);
+    glDeleteBuffers(4, &data.state_ubo);
     memset(&data, 0, sizeof(data));
 
     for (size_t i = 0; i < size; i++) {
@@ -550,15 +788,15 @@ void shader_set_data::unload() {
                     unival_curr *= unival_max + 1;
                 }
 
-                if (sub->program)
+                if (sub->shaders)
                     for (size_t k = 0; k < unival_count; k++)
-                        glDeleteProgram(sub->program[k]);
-                free_def(sub->program);
+                        glDeleteProgram(sub->shaders[k].program);
+                free_def(sub->shaders);
             }
             else {
-                if (sub->program)
-                    glDeleteProgram(sub->program[0]);
-                free_def(sub->program);
+                if (sub->shaders)
+                    glDeleteProgram(sub->shaders[0].program);
+                free_def(sub->shaders);
             }
         }
         free_def(shader->sub);
@@ -971,48 +1209,79 @@ void shader_set_data::buffer_set(size_t index, size_t count, const vec4* data) {
 }
 
 void shader_set_data::local_frag_set(size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
+    if (!this || !this->data.local || !this->data.local_update_data
+        || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
-    glUniform4f((GLint)(index + SHADER_MAX_PROGRAM_LOCAL_PARAMETERS), x, y, z, w);
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.local->frag[index], &data, sizeof(vec4)))
+        return;
+
+    this->data.local->frag[index] = data;
+    this->data.local_update_data[1] = true;
 }
 
 void shader_set_data::local_frag_set(size_t index, const vec4& data) {
-    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
+    if (!this || !this->data.local || !this->data.local_update_data
+        || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
-    glUniform4f((GLint)(index + SHADER_MAX_PROGRAM_LOCAL_PARAMETERS), data.x, data.y, data.z, data.w);
+    if (!memcmp(&this->data.local->frag[index], &data, sizeof(vec4)))
+        return;
+
+    this->data.local->frag[index] = data;
+    this->data.local_update_data[1] = true;
 }
 
 void shader_set_data::local_frag_set(size_t index, size_t count, const vec4* data) {
-    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS
+    if (!this || !this->data.local || !this->data.local_update_data
+        || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS
         || index + count > SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
         return;
 
-    glUniform4fv((GLint)(index + SHADER_MAX_PROGRAM_LOCAL_PARAMETERS),
-        (GLsizei)count, (const GLfloat*)data);
+    if (!memcmp(&this->data.local->frag[index], data, sizeof(vec4) * count))
+        return;
+
+    memcpy(&this->data.local->frag[index], data, sizeof(vec4) * count);
+    this->data.local_update_data[1] = true;
 }
 
 void shader_set_data::local_vert_set(size_t index, float_t x, float_t y, float_t z, float_t w) {
-    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
+    if (!this || !this->data.local || !this->data.local_update_data
+        || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
-    glUniform4f((GLint)index, x, y, z, w);
+    vec4 data = { x, y, z, w };
+    if (!memcmp(&this->data.local->vert[index], &data, sizeof(vec4)))
+        return;
+
+    this->data.local->vert[index] = data;
+    this->data.local_update_data[0] = true;
 }
 
 void shader_set_data::local_vert_set(size_t index, const vec4& data) {
-    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
+    if (!this || !this->data.local || !this->data.local_update_data
+        || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS)
         return;
 
-    glUniform4f((GLint)index, data.x, data.y, data.z, data.w);
+    if (!memcmp(&this->data.local->vert[index], &data, sizeof(vec4)))
+        return;
+
+    this->data.local->vert[index] = data;
+    this->data.local_update_data[0] = true;
 }
 
 void shader_set_data::local_vert_set(size_t index, size_t count, const vec4* data) {
-    if (!this || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS
+    if (!this || !this->data.local || !this->data.local_update_data
+        || index >= SHADER_MAX_PROGRAM_LOCAL_PARAMETERS
         || index + count > SHADER_MAX_PROGRAM_LOCAL_PARAMETERS || !data)
         return;
 
-    glUniform4fv((GLint)index, (GLsizei)count, (const GLfloat*)data);
+    if (!memcmp(&this->data.local->vert[index], data, sizeof(vec4) * count))
+        return;
+
+    memcpy(&this->data.local->vert[index], data, sizeof(vec4) * count);
+    this->data.local_update_data[0] = true;
 }
 
 void shader_set_data::env_frag_set(size_t index, float_t x, float_t y, float_t z, float_t w) {
@@ -1656,6 +1925,10 @@ void shader_set_data::state_material_set_shininess(bool back, const vec4& data) 
     this->data.state_update_data = true;
 }
 
+void shader_set_data::state_matrix_set_modelview(const mat4& data, bool mult) {
+    state_matrix_set_modelview(0, data, mult);
+}
+
 void shader_set_data::state_matrix_set_modelview(size_t index, const mat4& data, bool mult) {
     if (!this || index >= SHADER_MAX_VERTEX_UNITS)
         return;
@@ -1715,7 +1988,7 @@ void shader_set_data::state_matrix_set_projection(const mat4& data, bool mult) {
 }
 
 void shader_set_data::state_matrix_set_mvp(const mat4& data) {
-    if (!this )
+    if (!this)
         return;
 
     if (!memcmp(&this->data.state_matrix.mvp.mat, &data, sizeof(mat4)))
@@ -1737,10 +2010,19 @@ void shader_set_data::state_matrix_set_mvp(const mat4& data) {
     this->data.state_matrix_update_data = true;
 }
 
+void shader_set_data::state_matrix_set_modelview(const mat4& model, const mat4& view, bool mult) {
+    state_matrix_set_modelview(0, model, view, mult);
+}
+
 void shader_set_data::state_matrix_set_modelview(size_t index, const mat4& model, const mat4& view, bool mult) {
     mat4 mv;
     mat4_mult(&model, &view, &mv);
     state_matrix_set_modelview(index, mv, true);
+}
+
+void shader_set_data::state_matrix_set_mvp(const mat4& modelview, const mat4& projection) {
+    state_matrix_set_modelview(modelview, false);
+    state_matrix_set_projection(projection, true);
 }
 
 void shader_set_data::state_matrix_set_mvp(const mat4& model, const mat4& view, const mat4& projection) {
@@ -2085,10 +2367,7 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
     if (!success) {
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetShaderInfoLog(shader, 0x10000, 0, info_log);
-        printf("Shader compile error:\n");
-        printf("file: %s\n", file);
-        printf(info_log);
-        putchar('\n');
+        printf_debug("Shader compile error:\nfile: %s\n%s\n", file, info_log);
         free_def(info_log);
         glDeleteShader(shader);
 
@@ -2140,10 +2419,7 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
     if (!success) {
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
-        printf("Program Shader Permut linking error:\n");
-        printf("vp: %s; fp: %s\n", vp, fp);
-        printf(info_log);
-        putchar('\n');
+        printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
         free_def(info_log);
         glDeleteProgram(program);
         return 0;
@@ -2178,10 +2454,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
     if (!success) {
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
-        printf("Program Shader Permut linking error:\n");
-        printf("vp: %s; fp: %s\n", vp, fp);
-        printf(info_log);
-        putchar('\n');
+        printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
         free_def(info_log);
         glDeleteProgram(program);
         return 0;
@@ -2218,249 +2491,86 @@ static bool shader_load_binary_shader(program_binary* bin, GLuint* program) {
     if (!success) {
         glDeleteProgram(*program);
         *program = 0;
-        //printf("load error: ");
         return false;
     }
     return true;
-}
-
-static bool shader_parse_define(const char* data, int32_t num_uniform,
-    const int32_t* vp_unival_max, const int32_t* fp_unival_max,
-    int32_t* uniform_value, char** temp, size_t* temp_size) {
-    if (!data)
-        return false;
-
-    const char* def = strstr(data, "//DEF\n");
-    if (!def)
-        return str_utils_copy(data);
-
-    if (!num_uniform || !vp_unival_max || !fp_unival_max || !uniform_value) {
-        size_t len_a = def - data;
-        def += 5;
-        if (*def == '\n')
-            def++;
-
-        size_t len_b = utf8_length(def);
-        size_t len = 0;
-        len += len_a + len_b;
-
-        if (len + 1 > *temp_size) {
-            free_def(*temp);
-            *temp_size = len + 1;
-            *temp = force_malloc_s(char, *temp_size);
-        }
-
-        size_t pos = 0;
-        memcpy(*temp + pos, data, len_a);
-        pos += len_a;
-        memcpy(*temp + pos, def, len_b);
-        pos += len_b;
-        (*temp)[pos] = 0;
-        return true;
-    }
-
-    const int32_t s = min_def(0x100, num_uniform);
-
-    size_t t_len[0x100];
-    char t[0x100];
-    memset(t, 0, 0x100);
-
-    for (int32_t i = 0; i < s; i++) {
-        sprintf_s(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
-        t_len[i] = utf8_length(t);
-    }
-
-    size_t len_a = def - data;
-    def += 5;
-    size_t len_b = utf8_length(def);
-    size_t len = 0;
-    for (int32_t i = 0; i < s; i++)
-        len += t_len[i];
-    if (!len)
-        def++;
-    len += len_a + len_b;
-
-    if (len + 1 > *temp_size) {
-        free_def(*temp);
-        *temp_size = len + 1;
-        *temp = force_malloc_s(char, *temp_size);
-    }
-
-    size_t pos = 0;
-    memcpy(*temp + pos, data, len_a);
-    pos += len_a;
-    for (int32_t i = 0; i < s; i++) {
-        sprintf_s(t, sizeof(t), "#define _%d %d\n", i, uniform_value[i]);
-        memcpy(*temp + pos, t, t_len[i]);
-        pos += t_len[i];
-    }
-    memcpy(*temp + pos, def, len_b);
-    pos += len_b;
-    (*temp)[pos] = 0;
-    return true;
-}
-
-static char* shader_parse_include(char* data, farc* f) {
-    if (!data || !f)
-        return data;
-
-    char* data_end = data + utf8_length(data);
-    char* i0 = strstr(data, "#include \"");
-    char* i1 = i0 ? strstr(i0, "\"\n") : 0;
-    if (!i0 || !i1)
-        return data;
-
-    size_t count = 1;
-    while (i1 && (i0 = strstr(i1, "#include \""))) {
-        i0 += 10;
-        i1 = strstr(i0, "\"\n");
-        if (i1)
-            i1 += 1;
-        count++;
-    }
-
-    char** temp = force_malloc_s(char*, count);
-    size_t* temp_len = force_malloc_s(size_t, count);
-    char** temp_ptr0 = force_malloc_s(char*, count);
-    char** temp_ptr1 = force_malloc_s(char*, count);
-    if (!temp || !temp_len || !temp_ptr0 || !temp_ptr1) {
-        free_def(temp);
-        free_def(temp_len);
-        free_def(temp_ptr0);
-        free_def(temp_ptr1);
-        return data;
-    }
-
-    i1 = data;
-    for (size_t i = 0; i < count; i++) {
-        temp[i] = 0;
-        i0 = i1 ? strstr(i1, "#include \"") : 0;
-        i1 = i0 ? strstr(i0, "\"\n") : 0;
-        if (!i0 || !i1)
-            continue;
-
-        temp_ptr0[i] = i0;
-        temp_ptr1[i] = i1 + 1;
-        i0 += 10;
-        size_t s = i1 - i0;
-        i1 += 2;
-        char* t = force_malloc_s(char, s + 1);
-        if (!t)
-            continue;
-
-        memcpy(t, i0, s);
-        t[s] = 0;
-
-        farc_file* ff = f->read_file(t);
-        free_def(t);
-        if (!ff)
-            continue;
-
-        t = force_malloc_s(char, ff->size + 1);
-        if (t) {
-            memcpy(t, ff->data, ff->size);
-            t[ff->size] = 0;
-        }
-        temp[i] = t;
-        temp_len[i] = ff->size;
-    }
-
-    size_t len = data_end - data;
-    i1 = data;
-    for (size_t i = 0; i < count; i++) {
-        i0 = temp_ptr0[i];
-        i1 = temp_ptr1[i];
-        if (!i0 || !i1)
-            continue;
-
-        len -= i1 - i0;
-        len += temp_len[i];
-    }
-
-    char* temp_data = force_malloc_s(char, len + 1);
-    size_t pos = 0;
-    memcpy(temp_data + pos, data, temp_ptr0[0] - data);
-    pos += temp_ptr0[0] - data;
-    for (int32_t i = 0; i < count; i++) {
-        if (temp[i]) {
-            size_t s = temp_len[i];
-            memcpy(temp_data + pos, temp[i], s);
-            pos += s;
-        }
-
-        if (i < count - 1 && temp_ptr1[i]) {
-            size_t s = temp_ptr0[i + 1] - temp_ptr1[i];
-            memcpy(temp_data + pos, temp_ptr1[i], s);
-            pos += s;
-        }
-        else if (temp_ptr1[i]) {
-            size_t s = data_end - temp_ptr1[i];
-            memcpy(temp_data + pos, temp_ptr1[i], s);
-            pos += s;
-        }
-    }
-    temp_data[pos] = 0;
-
-    free_def(data);
-    for (size_t i = 0; i < count; i++)
-        free_def(temp[i]);
-    free_def(temp);
-    free_def(temp_len);
-    free_def(temp_ptr0);
-    free_def(temp_ptr1);
-    return temp_data;
 }
 
 static void shader_update_data(shader_set_data* set) {
     if (!set)
         return;
 
-    shader_data* data = &set->data;
-    if (!data->state_update_data && !data->state_matrix_update_data
-        && !data->env_update_data && !data->buffer_update_data)
-        return;
-
+    shader_data& data = set->data;
     GLuint current_uniform_index = gl_state.uniform_buffer_index;
     GLuint current_uniform = gl_state.uniform_buffer_binding[current_uniform_index];
 
     bool reset = false;
-    if (data->state_update_data && data->state_ubo) {
-        gl_state_bind_uniform_buffer(data->state_ubo);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(data->state), &data->state);
-        data->state_update_data = false;
-        reset = true;
+    if (data.state_update_data && data.state_ubo) {
+        if (GLAD_GL_VERSION_4_5)
+            glNamedBufferSubData(data.state_ubo, 0, sizeof(data.state), &data.state);
+        else {
+            gl_state_bind_uniform_buffer(data.state_ubo);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(data.state), &data.state);
+            reset = true;
+        }
+        data.state_update_data = false;
     }
 
-    if (data->state_matrix_update_data && data->state_matrix_ubo) {
-        gl_state_bind_uniform_buffer(data->state_matrix_ubo);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(data->state_matrix), &data->state_matrix);
-        data->state_matrix_update_data = false;
-        reset = true;
+    if (data.state_matrix_update_data && data.state_matrix_ubo) {
+        if (GLAD_GL_VERSION_4_5)
+            glNamedBufferSubData(data.state_matrix_ubo, 0, sizeof(data.state_matrix), &data.state_matrix);
+        else {
+            gl_state_bind_uniform_buffer(data.state_matrix_ubo);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(data.state_matrix), &data.state_matrix);
+            reset = true;
+        }
+        data.state_matrix_update_data = false;
     }
 
-    if (data->env_update_data && data->env_ubo) {
-        gl_state_bind_uniform_buffer(data->env_ubo);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(data->env), &data->env);
-        data->env_update_data = false;
-        reset = true;
+    if (data.env_update_data && data.env_ubo) {
+        if (GLAD_GL_VERSION_4_5)
+            glNamedBufferSubData(data.env_ubo, 0, sizeof(data.env), &data.env);
+        else {
+            gl_state_bind_uniform_buffer(data.env_ubo);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(data.env), &data.env);
+            reset = true;
+        }
+        data.env_update_data = false;
     }
 
-    if (data->buffer_update_data && data->buffer_ubo) {
-        gl_state_bind_uniform_buffer(data->buffer_ubo);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(data->buffer.buffer), &data->buffer.buffer);
-        data->buffer_update_data = false;
-        reset = true;
+    if (data.buffer_update_data && data.buffer_ubo) {
+        if (GLAD_GL_VERSION_4_5)
+            glNamedBufferSubData(data.buffer_ubo, 0, sizeof(data.buffer.buffer), &data.buffer.buffer);
+        else {
+            gl_state_bind_uniform_buffer(data.buffer_ubo);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(data.buffer.buffer), &data.buffer.buffer);
+            reset = true;
+        }
+        data.buffer_update_data = false;
+    }
+
+    if (data.local_update_data && data.local_update_data[0] && data.local) {
+        glUniform4fv(0, sizeof(data.local->vert) / (sizeof(GLfloat) * 4), (GLfloat*)data.local->vert);
+        data.local_update_data[0] = false;
+    }
+
+    if (data.local_update_data && data.local_update_data[1] && data.local) {
+        glUniform4fv(256, sizeof(data.local->frag) / (sizeof(GLfloat) * 4), (GLfloat*)data.local->frag);
+        data.local_update_data[1] = false;
+    }
+
+    if (data.local_uniform_update_data && *data.local_uniform_update_data && data.local_uniform) {
+        glUniform1iv(512, sizeof(*data.local_uniform) / sizeof(int32_t), (GLint*)data.local_uniform);
+        *data.local_uniform_update_data = false;
     }
 
     if (reset)
         gl_state_bind_uniform_buffer_base(current_uniform_index, current_uniform);
-}
 
-#undef shader_update_state_data_buffer
-#undef shader_update_state_data_buffer_array
-#undef shader_update_state_data_buffer_array_of_array
-#undef shader_update_state_data_buffer_array_array
-#undef shader_update_state_matrix_data_buffer
-#undef shader_update_env_vert_data_buffer
-#undef shader_update_env_frag_data_buffer
-#undef shader_update_buffer_data_buffer
+    if (set->primitive_restart)
+        gl_state_enable_primitive_restart();
+    else
+        gl_state_disable_primitive_restart();
+
+    gl_state_set_primitive_restart_index(set->primitive_restart_index);
+}

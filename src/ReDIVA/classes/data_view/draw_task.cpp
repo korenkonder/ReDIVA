@@ -62,7 +62,7 @@ struct data_view_draw_task {
     std::vector<draw_task_sort> draw_tasks;
 
     data_view_draw_task();
-    virtual ~data_view_draw_task();
+    ~data_view_draw_task();
 };
 
 extern int32_t width;

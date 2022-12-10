@@ -3001,7 +3001,9 @@ int32_t dsc::calculate_target_flying_time(int32_t bpm, int32_t time_signature) {
 }
 
 bool dsc::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    std::string s = path + std::string(file);
+    std::string s;
+    s.assign(path);
+    s.append(file);
 
     file_stream dsc_s;
     dsc_s.open(s.c_str(), "rb");

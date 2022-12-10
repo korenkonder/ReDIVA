@@ -834,7 +834,7 @@ namespace Glitter {
         int32_t efct_version, bool big_endian, object_database* obj_db) {
         eff->version = efct_version;
         if (type == Glitter::X) {
-            eff->scale = vec3_identity;
+            eff->scale = 1.0f;
             eff->data.start_time = 0;
             eff->data.ext_anim_x = 0;
             eff->data.flags = (EffectFlag)0;
@@ -1010,7 +1010,7 @@ namespace Glitter {
             }
         }
         else {
-            eff->scale = vec3_identity;
+            eff->scale = 1.0f;
             eff->data.start_time = 0;
             eff->data.ext_anim = 0;
             eff->data.flags = (EffectFlag)0;
@@ -1532,8 +1532,8 @@ namespace Glitter {
             d += 256;
 
             if (ptcl->version == 4) {
-                vec3_mult_scalar(ptcl->data.direction, 10.0f, ptcl->data.direction);
-                vec3_mult_scalar(ptcl->data.direction_random, 10.0f, ptcl->data.direction_random);
+                ptcl->data.direction *= 10.0f;
+                ptcl->data.direction_random *= 10.0f;
             }
 
             if (ptcl->data.emission >= min_emission)

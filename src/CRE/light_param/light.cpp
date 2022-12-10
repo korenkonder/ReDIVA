@@ -443,9 +443,9 @@ void light_set::data_set(face& face, light_set_id id) {
         shaders_ft.env_frag_set(35, specular);
     }
     else {
-        shaders_ft.env_frag_set(33, vec4_null);
-        shaders_ft.env_frag_set(34, vec4_null);
-        shaders_ft.env_frag_set(35, vec4_null);
+        shaders_ft.env_frag_set(33, 0.0f);
+        shaders_ft.env_frag_set(34, 0.0f);
+        shaders_ft.env_frag_set(35, 0.0f);
     }
 
     if (lights[LIGHT_TONE_CURVE].get_type() == LIGHT_PARALLEL) {

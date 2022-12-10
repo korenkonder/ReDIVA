@@ -266,9 +266,10 @@ static bool vag_read_inner(vag* v, stream& s, float_t*& data, size_t& num_blocks
     s.read_uint32_t();
     s.read_uint32_t();
     s.read_uint16_t();
-    v->channels = s.read_uint16_t();
+    v->channels = s.read_uint8_t();
     if (v->channels < 2)
         v->channels = 1;
+    s.read_uint8_t();
     s.read_uint64_t();
     s.read_uint64_t();
 
@@ -339,6 +340,11 @@ static bool vag_read_inner(vag* v, stream& s, float_t*& data, size_t& num_blocks
 static void vag_write_inner(vag* v, stream& s, const float_t* data, const uint8_t* flags, vag_option option) {
     int32_t coef_index_count;
     switch (option) {
+    case VAG_OPTION_VAG:
+    case VAG_OPTION_HEVAG_FASTEST:
+    default:
+        coef_index_count = 5;
+        break;
     case VAG_OPTION_HEVAG_FAST:
         coef_index_count = 16;
         break;
@@ -354,9 +360,6 @@ static void vag_write_inner(vag* v, stream& s, const float_t* data, const uint8_
     case VAG_OPTION_HEVAG_SLOWASHELL:
         coef_index_count = 128;
         break;
-    default:
-        coef_index_count = 5;
-        break;
     }
 
     bool hevag = option != VAG_OPTION_VAG;
@@ -368,7 +371,8 @@ static void vag_write_inner(vag* v, stream& s, const float_t* data, const uint8_
     s.write_uint32_t(0);
     s.write_uint32_t(0);
     s.write_uint16_t(0);
-    s.write_uint16_t(hevag ? v->channels : 1);
+    s.write_uint8_t(hevag ? (uint8_t)v->channels : 1);
+    s.write_uint8_t(0);
     s.write_uint64_t(0);
     s.write_uint64_t(0);
 

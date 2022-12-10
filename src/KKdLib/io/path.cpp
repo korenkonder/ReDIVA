@@ -73,8 +73,7 @@ std::vector<std::string> path_get_files(const char* path) {
     dir.push_back(L'*');
     free_def(dir_temp);
 
-    WIN32_FIND_DATAW fdata;
-    memset(&fdata, 0, sizeof(WIN32_FIND_DATAW));
+    WIN32_FIND_DATAW fdata = {};
     HANDLE h = FindFirstFileW(dir.c_str(), &fdata);
     if (h == INVALID_HANDLE_VALUE)
         return {};
@@ -103,8 +102,7 @@ std::vector<std::wstring> path_get_files(const wchar_t* path) {
         dir.push_back(L'\\');
     dir.push_back(L'*');
 
-    WIN32_FIND_DATAW fdata;
-    memset(&fdata, 0, sizeof(WIN32_FIND_DATAW));
+    WIN32_FIND_DATAW fdata = {};
     HANDLE h = FindFirstFileW(dir.c_str(), &fdata);
     if (h == INVALID_HANDLE_VALUE)
         return {};
@@ -136,8 +134,7 @@ std::vector<std::string> path_get_directories(
     dir.push_back(L'*');
     free_def(dir_temp);
 
-    WIN32_FIND_DATAW fdata;
-    memset(&fdata, 0, sizeof(WIN32_FIND_DATAW));
+    WIN32_FIND_DATAW fdata = {};
     HANDLE h = FindFirstFileW(dir.c_str(), &fdata);
     if (h == INVALID_HANDLE_VALUE)
         return {};
@@ -188,8 +185,7 @@ std::vector<std::wstring> path_get_directories(
     temp.assign(dir);
     dir.push_back(L'*');
 
-    WIN32_FIND_DATAW fdata;
-    memset(&fdata, 0, sizeof(WIN32_FIND_DATAW));
+    WIN32_FIND_DATAW fdata = {};
     HANDLE h = FindFirstFileW(dir.c_str(), &fdata);
     if (h == INVALID_HANDLE_VALUE)
         return {};
@@ -240,8 +236,7 @@ std::vector<std::string> path_get_directories_recursive(
     dir.push_back(L'*');
     free_def(dir_temp);
 
-    WIN32_FIND_DATAW fdata;
-    memset(&fdata, 0, sizeof(WIN32_FIND_DATAW));
+    WIN32_FIND_DATAW fdata = {};
     HANDLE h = FindFirstFileW(dir.c_str(), &fdata);
     if (h == INVALID_HANDLE_VALUE)
         return {};
@@ -329,8 +324,7 @@ std::vector<std::wstring> path_get_directories_recursive(
     temp.assign(dir);
     dir.push_back(L'*');
 
-    WIN32_FIND_DATAW fdata;
-    memset(&fdata, 0, sizeof(WIN32_FIND_DATAW));
+    WIN32_FIND_DATAW fdata = {};
     HANDLE h = FindFirstFileW(dir.c_str(), &fdata);
     if (h == INVALID_HANDLE_VALUE)
         return {};

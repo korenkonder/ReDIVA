@@ -13,7 +13,7 @@ system_startup_detail::TaskSystemStartup task_system_startup;
 struct system_startup_struct {
     int32_t state;
     int32_t wait;
-    bool field_1D;
+    bool ready;
 };
 
 extern render_context* rctx_ptr;
@@ -22,9 +22,9 @@ system_startup_struct system_startup;
 
 int32_t system_startup_ready;
 
-static void task_pv_game_init_test_pv();
+static bool system_startup_check_ready();
 
-static bool sub_140672AD0();
+static void task_pv_game_init_test_pv();
 
 namespace system_startup_detail {
     TaskSystemStartup::TaskSystemStartup() {
@@ -38,7 +38,7 @@ namespace system_startup_detail {
     bool TaskSystemStartup::Init() {
         system_startup.state = 0;
         system_startup.wait = 0;
-        system_startup.field_1D = false;
+        system_startup.ready = false;
         return true;
     }
 
@@ -59,12 +59,12 @@ namespace system_startup_detail {
                 system_startup.state = 4;
             break;
         case 4:
-            //rctx_ptr->draw_pass.enable[DRAW_PASS_3D] = false;
+            rctx_ptr->draw_pass.set_enable(DRAW_PASS_3D, false);
             task_pv_game_init_test_pv();
             system_startup.state = 5;
             break;
         case 5:
-            if (!task_pv_game_check_task_ready() && sub_140672AD0())
+            if (!task_pv_game_check_task_ready() && system_startup_check_ready())
                 system_startup.state = 6;
             break;
         case 6:
@@ -76,7 +76,7 @@ namespace system_startup_detail {
                 system_startup.state = 8;
             break;
         case 8:
-            //rctx_ptr->draw_pass.enable[DRAW_PASS_3D] = true;
+            rctx_ptr->draw_pass.set_enable(DRAW_PASS_3D, true);
             system_startup_ready = 1;
             break;
         }
@@ -84,7 +84,7 @@ namespace system_startup_detail {
     }
 
     bool TaskSystemStartup::Dest() {
-        if (task_pv_game_check_task_ready() && !sub_140672AD0())
+        if (task_pv_game_check_task_ready() && !system_startup_check_ready())
             return false;
 
         opd_make_manager_task_free();
@@ -99,6 +99,16 @@ bool task_system_startup_append_task() {
 
 bool task_system_startup_free_task() {
     return task_system_startup.SetDest();
+}
+
+static bool system_startup_check_ready() {
+    if (test_mode_get() || system_startup.ready)
+        return true;
+
+    task_pv_game_free_task();
+    if (!task_pv_game_check_task_ready() && task_rob_manager_free_task())
+        system_startup.ready = true;
+    return system_startup.ready;
 }
 
 static void task_pv_game_init_test_pv() {
@@ -121,14 +131,4 @@ static void task_pv_game_init_test_pv() {
     init_data.field_195 = true;
     init_data.field_198 = true;
     task_pv_game_append_task(&init_data);
-}
-
-static bool sub_140672AD0() {
-    if (test_mode_get() || system_startup.field_1D)
-        return true;
-
-    task_pv_game_free_task();
-    if (!task_pv_game_check_task_ready() && task_rob_manager_free_task())
-        system_startup.field_1D = true;
-    return system_startup.field_1D;
 }

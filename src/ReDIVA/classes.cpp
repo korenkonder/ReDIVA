@@ -75,6 +75,7 @@ void classes_process_ctrl(classes_data* classes, const size_t classes_count) {
                 }
                 lock_unlock(c->data.lock);
                 delete c->data.lock;
+                c->data.lock = 0;
             }
 
             if (c->data.flags & CLASS_INIT && c->ctrl) {

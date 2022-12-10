@@ -142,8 +142,6 @@ GameStateData game_state_data_array[] = {
         GAME_STATE_ADVERTISE,
         SUB_GAME_STATE_MAX,
     },
-    {
-    },
 };
 
 SubGameStateData sub_game_state_data_array[] = {

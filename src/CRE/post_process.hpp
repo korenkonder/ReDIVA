@@ -31,6 +31,8 @@ struct post_process {
     render_texture rend_texture;
     render_texture buf_texture;
     render_texture sss_contour_texture;
+    texture* aet_back_tex;
+    render_texture aet_back_texture;
     render_texture pre_texture;
     render_texture post_texture;
     render_texture fbo_texture;
@@ -40,6 +42,7 @@ struct post_process {
     render_texture render_textures[16];
     texture* movie_textures_data[1];
     render_texture movie_textures[1];
+    int32_t aet_back;
     post_process_aa* aa;
     post_process_blur* blur;
     post_process_dof* dof;
@@ -50,6 +53,7 @@ struct post_process {
     GLuint query_vao;
     GLuint query_vbo;
     shader_glsl alpha_layer_shader;
+    int32_t texture_counter;
     GLuint lens_flare_texture;
     GLuint lens_shaft_texture;
     GLuint lens_ghost_texture;
@@ -90,5 +94,6 @@ struct post_process {
     int32_t render_texture_set(texture* render_texture, bool task_photo);
     void render_texture_free(texture* render_texture, bool task_photo);
     void reset();
+    void set_render_texture(bool aet_back = false);
 };
 

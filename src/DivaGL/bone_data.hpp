@@ -2708,7 +2708,7 @@ struct /*VFT*/ MotionBlend_vtbl {
 
 struct MotionBlend {
     MotionBlend_vtbl* __vftable;
-    bool field_8;
+    bool enable;
     bool rot_y;
     float_t duration;
     float_t frame;

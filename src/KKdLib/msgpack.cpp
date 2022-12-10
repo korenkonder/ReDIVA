@@ -115,8 +115,13 @@ msgpack* msgpack::read(const char* name, msgpack_type type) {
         return 0;
 
     msgpack* m = name ? get_by_name(name) : this;
-    if (m && m->type == type)
+    if (m) {
+        if (m->type == type)
+            return m;
+        else if (m->type >= MSGPACK_INT8 && m->type <= MSGPACK_FLOAT64 && m->type <= type)
+            return m;
         return m;
+    }
     return 0;
 }
 
@@ -158,10 +163,12 @@ int8_t msgpack::read_int8_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return (int8_t)m->data.u8;
+    }
     return 0;
 }
 
@@ -173,10 +180,12 @@ uint8_t msgpack::read_uint8_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return (uint8_t)m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return m->data.u8;
+    }
     return 0;
 }
 
@@ -188,14 +197,16 @@ int16_t msgpack::read_int16_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return m->data.u8;
-    else if (m->type == MSGPACK_INT16)
+    case MSGPACK_INT16:
         return m->data.i16;
-    else if (m->type == MSGPACK_UINT16)
+    case MSGPACK_UINT16:
         return (int16_t)m->data.u16;
+    }
     return 0;
 }
 
@@ -207,14 +218,16 @@ uint16_t msgpack::read_uint16_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return (uint16_t)(int16_t)m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return m->data.u8;
-    else if (m->type == MSGPACK_INT16)
-        return (uint16_t)(int16_t)m->data.i16;
-    else if (m->type == MSGPACK_UINT16)
+    case MSGPACK_INT16:
+        return (uint16_t)m->data.i16;
+    case MSGPACK_UINT16:
         return m->data.u16;
+    }
     return 0;
 }
 
@@ -226,18 +239,20 @@ int32_t msgpack::read_int32_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return m->data.u8;
-    else if (m->type == MSGPACK_INT16)
+    case MSGPACK_INT16:
         return m->data.i16;
-    else if (m->type == MSGPACK_UINT16)
+    case MSGPACK_UINT16:
         return m->data.u16;
-    else if (m->type == MSGPACK_INT32)
+    case MSGPACK_INT32:
         return m->data.i32;
-    else if (m->type == MSGPACK_UINT32)
+    case MSGPACK_UINT32:
         return (int32_t)m->data.u32;
+    }
     return 0;
 }
 
@@ -249,18 +264,20 @@ uint32_t msgpack::read_uint32_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return (uint32_t)(int32_t)m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return m->data.u8;
-    else if (m->type == MSGPACK_INT16)
+    case MSGPACK_INT16:
         return (uint32_t)(int32_t)m->data.i16;
-    else if (m->type == MSGPACK_UINT16)
+    case MSGPACK_UINT16:
         return m->data.u16;
-    else if (m->type == MSGPACK_INT32)
+    case MSGPACK_INT32:
         return (uint32_t)(int32_t)m->data.i32;
-    else if (m->type == MSGPACK_UINT32)
+    case MSGPACK_UINT32:
         return m->data.u32;
+    }
     return 0;
 }
 
@@ -272,22 +289,24 @@ int64_t msgpack::read_int64_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return m->data.u8;
-    else if (m->type == MSGPACK_INT16)
+    case MSGPACK_INT16:
         return m->data.i16;
-    else if (m->type == MSGPACK_UINT16)
+    case MSGPACK_UINT16:
         return m->data.u16;
-    else if (m->type == MSGPACK_INT32)
+    case MSGPACK_INT32:
         return m->data.i32;
-    else if (m->type == MSGPACK_UINT32)
+    case MSGPACK_UINT32:
         return m->data.u32;
-    else if (m->type == MSGPACK_INT64)
+    case MSGPACK_INT64:
         return m->data.i64;
-    else if (m->type == MSGPACK_UINT64)
+    case MSGPACK_UINT64:
         return (int64_t)m->data.u64;
+    }
     return 0;
 }
 
@@ -299,22 +318,24 @@ uint64_t msgpack::read_uint64_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return (uint64_t)(int64_t)m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return m->data.u8;
-    else if (m->type == MSGPACK_INT16)
+    case MSGPACK_INT16:
         return (uint64_t)(int64_t)m->data.i16;
-    else if (m->type == MSGPACK_UINT16)
+    case MSGPACK_UINT16:
         return m->data.u16;
-    else if (m->type == MSGPACK_INT32)
+    case MSGPACK_INT32:
         return (uint64_t)(int64_t)m->data.i32;
-    else if (m->type == MSGPACK_UINT32)
+    case MSGPACK_UINT32:
         return m->data.u32;
-    else if (m->type == MSGPACK_INT32)
+    case MSGPACK_INT64:
         return (uint64_t)m->data.i64;
-    else if (m->type == MSGPACK_UINT32)
+    case MSGPACK_UINT64:
         return m->data.u64;
+    }
     return 0;
 }
 
@@ -326,26 +347,28 @@ float_t msgpack::read_float_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return m->data.u8;
-    else if (m->type == MSGPACK_INT16)
+    case MSGPACK_INT16:
         return m->data.i16;
-    else if (m->type == MSGPACK_UINT16)
+    case MSGPACK_UINT16:
         return m->data.u16;
-    else if (m->type == MSGPACK_INT32)
+    case MSGPACK_INT32:
         return (float_t)m->data.i32;
-    else if (m->type == MSGPACK_UINT32)
+    case MSGPACK_UINT32:
         return (float_t)m->data.u32;
-    else if (m->type == MSGPACK_INT64)
+    case MSGPACK_INT64:
         return (float_t)m->data.i64;
-    else if (m->type == MSGPACK_UINT64)
+    case MSGPACK_UINT64:
         return (float_t)m->data.u64;
-    else if (m->type == MSGPACK_FLOAT)
+    case MSGPACK_FLOAT32:
         return m->data.f32;
-    else if (m->type == MSGPACK_DOUBLE)
-        return (float_t)m->data.f64;
+    case MSGPACK_FLOAT64:
+        return (float_t)m->data.f64;;
+    }
     return 0;
 }
 
@@ -357,26 +380,28 @@ double_t msgpack::read_double_t(const char* name) {
     if (!m)
         return 0;
 
-    if (m->type == MSGPACK_INT8)
+    switch (m->type) {
+    case MSGPACK_INT8:
         return m->data.i8;
-    else if (m->type == MSGPACK_UINT8)
+    case MSGPACK_UINT8:
         return m->data.u8;
-    else if (m->type == MSGPACK_INT16)
+    case MSGPACK_INT16:
         return m->data.i16;
-    else if (m->type == MSGPACK_UINT16)
+    case MSGPACK_UINT16:
         return m->data.u16;
-    else if (m->type == MSGPACK_INT32)
+    case MSGPACK_INT32:
         return m->data.i32;
-    else if (m->type == MSGPACK_UINT32)
+    case MSGPACK_UINT32:
         return m->data.u32;
-    else if (m->type == MSGPACK_INT64)
+    case MSGPACK_INT64:
         return (double_t)m->data.i64;
-    else if (m->type == MSGPACK_UINT64)
+    case MSGPACK_UINT64:
         return (double_t)m->data.u64;
-    else if (m->type == MSGPACK_FLOAT)
+    case MSGPACK_FLOAT32:
         return m->data.f32;
-    else if (m->type == MSGPACK_DOUBLE)
-        return m->data.f64;
+    case MSGPACK_FLOAT64:
+        return m->data.f64;;
+    }
     return 0;
 }
 
@@ -426,9 +451,6 @@ std::wstring msgpack::read_wstring(const char* name) {
 }
 
 msgpack& msgpack::operator=(const msgpack& m) {
-    if (this == &m)
-        return *this;
-
     switch (m.type) {
     case MSGPACK_BOOL:
     case MSGPACK_INT8:
@@ -439,8 +461,8 @@ msgpack& msgpack::operator=(const msgpack& m) {
     case MSGPACK_UINT32:
     case MSGPACK_INT64:
     case MSGPACK_UINT64:
-    case MSGPACK_FLOAT:
-    case MSGPACK_DOUBLE:
+    case MSGPACK_FLOAT32:
+    case MSGPACK_FLOAT64:
         switch (type) {
         case MSGPACK_STRING:
             delete data.str;
@@ -510,7 +532,7 @@ msgpack& msgpack::operator=(const msgpack& m) {
         data.map->assign(m.data.map->begin(), m.data.map->end());
         break;
     default:
-        memset(&data, 0, sizeof(data));
+        data = {};
         break;
     }
     type = m.type;

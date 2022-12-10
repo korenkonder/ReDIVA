@@ -37,6 +37,10 @@ texture_data_struct::texture_data_struct() : field_0() {
 
 void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
     void(*draw_object_func)(render_context* rctx, draw_object* draw), int32_t show_vector) {
+    GLuint vao = rctx->object_data.get_vertex_array(draw);
+    if (!vao)
+        return;
+
     if (draw->mats) {
         mat4* mats = draw->mats;
         if (draw->mat_count == 2)
@@ -66,7 +70,7 @@ void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
 
 
     if (!show_vector) {
-        gl_state_bind_vertex_array(rctx->object_data.get_vertex_array(draw));
+        gl_state_bind_vertex_array(vao);
         draw_object_func(rctx, draw);
     }
     uniform_value[U_BONE_MAT] = 0;
@@ -75,21 +79,23 @@ void draw_object_draw(render_context* rctx, draw_object* draw, mat4* model,
 void draw_object_draw_default(render_context* rctx, draw_object* draw) {
     if (draw->set_blend_color) {
         shaders_ft.env_vert_set(3, draw->blend_color);
-        shaders_ft.env_vert_set(4, vec4_null);
+        shaders_ft.env_vert_set(4, 0.0f);
     }
 
     if (!draw->draw_object_func)
         draw_object_vertex_attrib_set_default(draw);
 
     draw_object_material_set_default(rctx, draw, rctx->draw_state.shader);
+
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
     if (!draw->instances_count)
         obj_sub_mesh_draw(rctx,
-            draw->sub_mesh->primitive_type,
-            draw->sub_mesh->indices_count,
-            draw->sub_mesh->first_index,
-            draw->sub_mesh->last_index,
-            draw->sub_mesh->index_format,
-            draw->sub_mesh->indices_offset);
+            sub_mesh->primitive_type,
+            sub_mesh->num_index,
+            sub_mesh->first_index,
+            sub_mesh->last_index,
+            sub_mesh->index_format,
+            sub_mesh->index_offset);
     else {
         mat4 mat;
         for (int32_t i = 0; i < draw->instances_count; i++) {
@@ -99,12 +105,12 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
             glVertexAttrib4fv(14, (const GLfloat*)&mat.row2);
             glVertexAttrib4fv(15, (const GLfloat*)&mat.row3);
             obj_sub_mesh_draw(rctx,
-                draw->sub_mesh->primitive_type,
-                draw->sub_mesh->indices_count,
-                draw->sub_mesh->first_index,
-                draw->sub_mesh->last_index,
-                draw->sub_mesh->index_format,
-                draw->sub_mesh->indices_offset);
+                sub_mesh->primitive_type,
+                sub_mesh->num_index,
+                sub_mesh->first_index,
+                sub_mesh->last_index,
+                sub_mesh->index_format,
+                sub_mesh->index_offset);
         }
     }
 
@@ -113,8 +119,8 @@ void draw_object_draw_default(render_context* rctx, draw_object* draw) {
         draw_object_vertex_attrib_reset_default(draw);
 
     if (draw->set_blend_color) {
-        shaders_ft.env_vert_set(3, vec4_identity);
-        shaders_ft.env_vert_set(4, vec4_null);
+        shaders_ft.env_vert_set(3, 1.0f);
+        shaders_ft.env_vert_set(4, 0.0f);
     }
 
     rctx->draw_state.stats.object_draw_count++;
@@ -174,11 +180,11 @@ void draw_object_draw_reflect(render_context* rctx, draw_object* draw) {
     if (sub_mesh->index_format != OBJ_INDEX_U8)
         obj_sub_mesh_draw(rctx,
             sub_mesh->primitive_type,
-            sub_mesh->indices_count,
+            sub_mesh->num_index,
             sub_mesh->first_index,
             sub_mesh->last_index,
             sub_mesh->index_format,
-            sub_mesh->indices_offset);
+            sub_mesh->index_offset);
 
     draw_object_material_reset_reflect();
     draw_object_vertex_attrib_reset_reflect(draw);
@@ -195,11 +201,11 @@ void draw_object_draw_reflect_reflect_map(render_context* rctx, draw_object* dra
     if (sub_mesh->index_format != OBJ_INDEX_U8)
         obj_sub_mesh_draw(rctx,
             sub_mesh->primitive_type,
-            sub_mesh->indices_count,
+            sub_mesh->num_index,
             sub_mesh->first_index,
             sub_mesh->last_index,
             sub_mesh->index_format,
-            sub_mesh->indices_offset);
+            sub_mesh->index_offset);
 
     draw_object_material_reset_reflect();
     draw_object_vertex_attrib_reset_reflect(draw);
@@ -287,11 +293,11 @@ void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
     if (sub_mesh->index_format != OBJ_INDEX_U8)
         obj_sub_mesh_draw(rctx,
             sub_mesh->primitive_type,
-            sub_mesh->indices_count,
+            sub_mesh->num_index,
             sub_mesh->first_index,
             sub_mesh->last_index,
             sub_mesh->index_format,
-            sub_mesh->indices_offset);
+            sub_mesh->index_offset);
 
     if (tex_id != -1)
         gl_state_active_bind_texture_2d(tex_index, 0);
@@ -362,11 +368,11 @@ void obj_sub_mesh_draw(render_context* rctx, obj_primitive_type primitive_type,
     };
 
     if (primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP && index_format == OBJ_INDEX_U16) {
-        gl_state_enable_primitive_restart();
-        glPrimitiveRestartIndex(0xFFFF);
+        shaders_ft.enable_primitive_restart();
+        shaders_ft.set_primitive_restart_index(0xFFFF);
         shaders_ft.draw_range_elements(GL_TRIANGLE_STRIP,
             start, end, count, GL_UNSIGNED_SHORT, (void*)indices);
-        gl_state_disable_primitive_restart();
+        shaders_ft.disable_primitive_restart();
     }
     else
         shaders_ft.draw_elements(mesh_draw_mode[primitive_type],
@@ -543,28 +549,32 @@ static void draw_object_material_set_default(render_context* rctx, draw_object* 
             continue;
         }
 
-        if (tex_type == OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE)
+        if (tex_type == OBJ_MATERIAL_TEXTURE_ENVIRONMENT_CUBE) {
             gl_state_active_bind_texture_cube_map(tex_index, tex_id);
+            gl_state_bind_sampler(tex_index, 0);
+        }
         else {
             gl_state_active_bind_texture_2d(tex_index, tex_id);
 
-            GLenum wrap_s;
+            int32_t wrap_s;
             if (texdata->attrib.m.mirror_u)
-                wrap_s = GL_MIRRORED_REPEAT;
+                wrap_s = 2;
             else if (texdata->attrib.m.repeat_u)
-                wrap_s = GL_REPEAT;
+                wrap_s = 1;
             else
-                wrap_s = GL_CLAMP_TO_EDGE;
+                wrap_s = 0;
 
-            GLenum wrap_t;
+            int32_t wrap_t;
             if (texdata->attrib.m.mirror_v)
-                wrap_t = GL_MIRRORED_REPEAT;
+                wrap_t = 2;
             else if (texdata->attrib.m.repeat_v)
-                wrap_t = GL_REPEAT;
+                wrap_t = 1;
             else
-                wrap_t = GL_CLAMP_TO_EDGE;
+                wrap_t = 0;
 
-            texture_storage_set_texture_wrap(tex_id, wrap_s, wrap_t);
+            texture* tex = texture_storage_get_texture(::texture_id(0, texture_id));
+            gl_state_bind_sampler(tex_index, rctx->draw_pass.samplers[(wrap_t * 3
+                + wrap_s) * 2 + (tex->max_mipmap_level > 0 ? 1 : 0)]);
         }
 
         if (material->material.shader.index == SHADER_FT_SKY) {
@@ -764,23 +774,25 @@ static void draw_object_material_set_reflect(render_context* rctx, draw_object* 
 
         gl_state_active_bind_texture_2d(i, tex_id);
 
-        GLenum wrap_s;
+        int32_t wrap_s;
         if (texdata->attrib.m.mirror_u)
-            wrap_s = GL_MIRRORED_REPEAT;
+            wrap_s = 2;
         else if (texdata->attrib.m.repeat_u)
-            wrap_s = GL_REPEAT;
+            wrap_s = 1;
         else
-            wrap_s = GL_CLAMP_TO_EDGE;
+            wrap_s = 0;
 
-        GLenum wrap_t;
+        int32_t wrap_t;
         if (texdata->attrib.m.mirror_v)
-            wrap_t = GL_MIRRORED_REPEAT;
+            wrap_t = 2;
         else if (texdata->attrib.m.repeat_v)
-            wrap_t = GL_REPEAT;
+            wrap_t = 1;
         else
-            wrap_t = GL_CLAMP_TO_EDGE;
+            wrap_t = 0;
 
-        texture_storage_set_texture_wrap(tex_id, wrap_s, wrap_t);
+        texture* tex = texture_storage_get_texture(::texture_id(0, texture_id));
+        gl_state_bind_sampler(i, rctx->draw_pass.samplers[(wrap_t * 3
+            + wrap_s) * 2 + (tex->max_mipmap_level > 0 ? 1 : 0)]);
     }
 
     vec4 ambient;
@@ -788,9 +800,9 @@ static void draw_object_material_set_reflect(render_context* rctx, draw_object* 
     vec4 emission;
     vec4 specular;
     if (material->material.shader.index == -1) {
-        ambient = vec4_identity;
+        ambient = 1.0f;
         diffuse = material->material.color.diffuse;
-        emission = vec4_identity;
+        emission = 1.0f;
         specular = material->material.color.specular;
     }
     else {

@@ -73,14 +73,12 @@ struct light_param_light_data {
     light_tone_curve tone_curve;
 
     light_param_light_data();
-    ~light_param_light_data();
 };
 
 struct light_param_light_group {
     light_param_light_data data[LIGHT_MAX];
 
     light_param_light_group();
-    ~light_param_light_group();
 };
 
 struct light_param_light {
@@ -89,7 +87,7 @@ struct light_param_light {
     light_param_light_group group[LIGHT_SET_MAX];
 
     light_param_light();
-    virtual ~light_param_light();
+    ~light_param_light();
 
     void read(const char* path);
     void read(const wchar_t* path);

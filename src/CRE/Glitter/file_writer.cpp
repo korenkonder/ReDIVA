@@ -1249,37 +1249,52 @@ namespace Glitter {
 
         farc f;
         {
-            f2_struct st;
-            if (fr.UnparseDivaEffect(eff_group, &st, big_endian)) {
-                f.add_file();
-                farc_file& ff_drs = f.files.back();
-                st.write(&ff_drs.data, &ff_drs.size);
-                ff_drs.name = std::string(file) + ".dve";
-            }
-        }
-
-        {
-            f2_struct st;
-            if (fr.UnparseDivaResource(eff_group, &st)) {
-                f.add_file();
-                farc_file& ff_dve = f.files.back();
-                st.write(&ff_dve.data, &ff_dve.size);
-                ff_dve.name = std::string(file) + ".drs";
-            }
-            else
+            size_t file_len = utf8_length(file);
+            char* temp = force_malloc_s(char, file_len + 5);
+            if (!temp)
                 return;
-        }
 
-        if (fr.type == Glitter::FT) {
-            f2_struct st;
-            if (fr.UnparseDivaList(eff_group, &st, big_endian)) {
-                f.add_file();
-                farc_file& ff_lst = f.files.back();
-                st.write(&ff_lst.data, &ff_lst.size);
-                ff_lst.name = std::string(file) + ".lst";
+            memcpy(temp, file, file_len);
+            temp[file_len] = 0;
+
+            {
+                f2_struct dve_st;
+                if (fr.UnparseDivaEffect(eff_group, &dve_st, big_endian)) {
+                    memcpy(&temp[file_len], ".dve", 4);
+                    temp[file_len + 4] = 0;
+                    farc_file* ff_dve = f.add_file(temp);
+                    dve_st.write(&ff_dve->data, &ff_dve->size);
+                }
+                else {
+                    free(temp);
+                    return;
+                }
             }
-            else
-                return;
+
+            {
+                f2_struct drs_st;
+                if (fr.UnparseDivaResource(eff_group, &drs_st)) {
+                    memcpy(&temp[file_len], ".drs", 4);
+                    temp[file_len + 4] = 0;
+                    farc_file* ff_drs = f.add_file(temp);
+                    drs_st.write(&ff_drs->data, &ff_drs->size);
+                }
+            }
+
+            if (fr.type == Glitter::FT) {
+                f2_struct lst_st;
+                if (fr.UnparseDivaList(eff_group, &lst_st, big_endian)) {
+                    memcpy(&temp[file_len], ".lst", 4);
+                    temp[file_len + 4] = 0;
+                    farc_file* ff_lst = f.add_file(temp);
+                    lst_st.write(&ff_lst->data, &ff_lst->size);
+                }
+                else {
+                    free(temp);
+                    return;
+                }
+            }
+            free(temp);
         }
 
         farc_compress_mode mode;

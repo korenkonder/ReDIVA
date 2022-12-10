@@ -7,6 +7,7 @@
 #include <vector>
 #include "pv_expression.hpp"
 #include "../KKdLib/hash.hpp"
+#include "../KKdLib/str_utils.hpp"
 #include "rob/rob.hpp"
 #include "render_context.hpp"
 
@@ -52,7 +53,10 @@ pv_expression_file::~pv_expression_file() {
 }
 
 void pv_expression_file::load_file(pv_expression_file* exp_file, const void* data, size_t size) {
-    exp_file->data->read(data, size, exp_file->data->modern);
+    prj::shared_ptr<alloc_data>& alloc = exp_file->alloc_handler;
+    alloc = prj::shared_ptr<alloc_data>(new alloc_data);
+
+    exp_file->data->unpack_file(alloc, data, size, exp_file->data->modern);
 }
 
 void pv_expression_array_ctrl(void* rob_chr) {
@@ -177,6 +181,7 @@ void pv_expression_file_unload(const char* file) {
             }
 
             i->file_handler.free_data();
+            i->alloc_handler.reset();
         }
         delete i;
 
@@ -200,6 +205,7 @@ void pv_expression_file_unload(uint32_t hash) {
             }
 
             i->file_handler.free_data();
+            i->alloc_handler.reset();
         }
 
         pv_expression_file_storage.erase(pv_expression_file_storage.begin()
@@ -247,8 +253,8 @@ bool pv_expression::ctrl() {
 }
 
 void pv_expression::face_cl_set_data(float_t frame) {
-    pv_exp_data* v2 = face_cl_data_curr;
-    pv_exp_data* v3 = face_cl_data_prev;
+    pv_exp_data* curr = face_cl_data_curr;
+    pv_exp_data* prev = face_cl_data_prev;
 
     int32_t id = 4;
     float_t duration = 0.0f;
@@ -258,45 +264,45 @@ void pv_expression::face_cl_set_data(float_t frame) {
     if (face_cl_data_update) {
         face_cl_data_update = false;
 
-        if (v2->type == 1) {
-            value = v2->value;
-            id = v2->id;
+        if (curr->type == 1) {
+            value = curr->value;
+            id = curr->id;
         }
 
-        if (v2->type == 1 && frame - v2->frame >= v2->trans)
-            v3 = v2++;
-        else if (v3->type == 1) {
-            id = v3->id;
+        if (curr->type == 1 && frame - curr->frame >= curr->trans)
+            prev = curr++;
+        else if (prev->type == 1) {
+            id = prev->id;
             duration = 0.0f;
-            value = v3->value;
+            value = prev->value;
             offset = 0.0f;
         }
     }
     else {
-        float_t v9 = 1.0f;
-        if (v3->trans + v3->frame + 1.0f < v2->frame || v2->trans <= 0.0f)
-            v9 = 0.0f;
+        float_t _offset = 1.0f;
+        if (prev->trans + prev->frame + 1.0f < curr->frame || curr->trans <= 0.0f)
+            _offset = 0.0f;
 
-        if (v2->frame + v9 > frame || v2->type != 1) {
-            face_cl_data_curr = v2;
-            face_cl_data_prev = v3;
+        if (curr->frame + _offset > frame || curr->type != 1) {
+            face_cl_data_curr = curr;
+            face_cl_data_prev = prev;
             return;
         }
 
-        value = v2->value;
-        id = v2->id;
+        value = curr->value;
+        id = curr->id;
 
-        float_t v10 = frame - v2->frame;
-        float_t v11 = v2->trans - v10;
-        if (v11 < 0.0f) {
-            v11 = 0.0f;
-            v10 = 0.0f;
+        offset = frame - curr->frame;
+        duration = curr->trans - offset;
+        if (duration < 0.0f) {
+            duration = 0.0f;
+            offset = 0.0f;
         }
 
-        duration = (1.0f / frame_speed) * v11;
+        duration = (1.0f / frame_speed) * duration;
         if (duration > 0.0f)
-            offset = (1.0f / frame_speed) * v10;
-        v3 = v2++;
+            offset = (1.0f / frame_speed) * offset;
+        prev = curr++;
     }
 
     if (id != 4 && rob_chr) {
@@ -306,37 +312,37 @@ void pv_expression::face_cl_set_data(float_t frame) {
         rob_chr->set_eyelid_mottbl_motion_from_face(id, duration, value, offset, aft_mot_db);
     }
 
-    face_cl_data_curr = v2;
-    face_cl_data_prev = v3;
+    face_cl_data_curr = curr;
+    face_cl_data_prev = prev;
 }
 
 void pv_expression::face_cl_set_frame(float_t frame) {
-    pv_exp_data* v2 = face_cl_data_prev;
-    pv_exp_data* v3 = face_cl_data_curr;
+    pv_exp_data* curr = face_cl_data_curr;
+    pv_exp_data* prev = face_cl_data_prev;
 
-    if (frame < v2->frame) {
-        v2 = face_cl_data;
-        v3 = face_cl_data;
+    if (frame < prev->frame) {
+        curr = face_cl_data;
+        prev = face_cl_data;
     }
 
     bool update = false;
-    if (frame > v3->frame && v3->type != -1) {
-        pv_exp_data* v5 = v3 + 1;
-        while (v5->type != -1 && frame > v5->frame) {
-            v2 = v3;
-            v3 = v5++;
+    if (curr->type != -1 && frame > curr->frame) {
+        pv_exp_data* next = curr + 1;
+        while (next->type != -1 && frame > next->frame) {
+            prev = curr;
+            curr = next++;
             update = true;
         }
     }
 
-    face_cl_data_curr = v3;
-    face_cl_data_prev = v2;
+    face_cl_data_curr = curr;
+    face_cl_data_prev = prev;
     face_cl_data_update = update;
 }
 
 void pv_expression::face_set_data(float_t frame) {
-    pv_exp_data* v2 = face_data_curr;
-    pv_exp_data* v3 = face_data_prev;
+    pv_exp_data* curr = face_data_curr;
+    pv_exp_data* prev = face_data_prev;
 
     int32_t expression_id = 78;
     float_t value = 0.0f;
@@ -345,45 +351,45 @@ void pv_expression::face_set_data(float_t frame) {
 
     if (face_data_update) {
         face_data_update = false;
-        if (!v2->type) {
-            expression_id = v2->id;
-            value = v2->value;
+        if (!curr->type) {
+            expression_id = curr->id;
+            value = curr->value;
         }
 
-        if (!v2->type && frame - v2->frame >= v2->trans || v3->type)
-            v3 = v2++;
+        if (!curr->type && frame - curr->frame >= curr->trans || prev->type)
+            prev = curr++;
         else {
-            expression_id = v3->id;
-            value = v3->value;
+            expression_id = prev->id;
+            value = prev->value;
             duration = 0.0f;
             offset = 0.0f;
         }
     }
     else {
-        float_t v10 = 1.0f;
-        if (v3->trans + v3->frame + 1.0f < v2->frame || v2->trans <= 0.0f)
-            v10 = 0.0f;
+        float_t _offset = 1.0f;
+        if (prev->trans + prev->frame + 1.0f < curr->frame || curr->trans <= 0.0f)
+            _offset = 0.0f;
 
-        if (v2->frame + v10 > frame || v2->type) {
-            face_data_prev = v3;
-            face_data_curr = v2;
+        if (curr->frame + _offset > frame || curr->type) {
+            face_data_prev = prev;
+            face_data_curr = curr;
             return;
         }
 
-        expression_id = v2->id;
-        value = v2->value;
+        expression_id = curr->id;
+        value = curr->value;
 
-        float_t v11 = frame - v2->frame;
-        float_t v12 = v2->trans - v11;
-        if (v12 < 0.0f) {
-            v12 = 0.0f;
-            v11 = 0.0f;
+        offset = frame - curr->frame;
+        duration = curr->trans - offset;
+        if (duration < 0.0f) {
+            duration = 0.0f;
+            offset = 0.0f;
         }
 
-        duration = (1.0f / frame_speed) * v12;
+        duration = (1.0f / frame_speed) * duration;
         if (duration > 0.0f)
-            offset = (1.0f / frame_speed) * v11;
-        v3 = v2++;
+            offset = (1.0f / frame_speed) * offset;
+        prev = curr++;
     }
 
     if (expression_id != 78 && rob_chr) {
@@ -395,31 +401,31 @@ void pv_expression::face_set_data(float_t frame) {
             duration, 0.0f, 1.0f, -1, offset, false, aft_mot_db);
     }
 
-    face_data_prev = v3;
-    face_data_curr = v2;
+    face_data_prev = prev;
+    face_data_curr = curr;
 }
 
 void pv_expression::face_set_frame(float_t frame) {
-    pv_exp_data* v2 = face_data_prev;
-    pv_exp_data* v3 = face_data_curr;
+    pv_exp_data* curr = face_data_curr;
+    pv_exp_data* prev = face_data_prev;
 
-    if (frame < v2->frame) {
-        v2 = face_data;
-        v3 = face_data;
+    if (frame < prev->frame) {
+        curr = face_data;
+        prev = face_data;
     }
 
     bool update = false;
-    if (frame > v3->frame && v3->type != -1) {
-        pv_exp_data* v5 = v3 + 1;
-        while (v5->type != -1 && frame > v5->frame) {
-            v2 = v3;
-            v3 = v5++;
+    if (curr->type != -1 && frame > curr->frame) {
+        pv_exp_data* next = curr + 1;
+        while (next->type != -1 && frame > next->frame) {
+            prev = curr;
+            curr = next++;
             update = true;
         }
     }
 
-    face_data_curr = v3;
-    face_data_prev = v2;
+    face_data_curr = curr;
+    face_data_prev = prev;
     face_data_update = update;
 }
 
@@ -465,7 +471,7 @@ bool pv_expression::set_motion(uint32_t hash, int32_t motion_id) {
         return false;
 
     pv_exp* exp = pv_exp_file->data;
-    if (!exp->motion_data.size()) {
+    if (!exp->motion_num) {
         reset_data();
         return false;
     }
@@ -475,32 +481,35 @@ bool pv_expression::set_motion(uint32_t hash, int32_t motion_id) {
 
     const char* motion_name = aft_mot_db->get_motion_name(motion_id);
 
-    size_t motion_index = -1;
-    for (pv_exp_mot& i : exp->motion_data)
-        if (!i.name.compare(motion_name)) {
-            motion_index = (&i - exp->motion_data.data());
+    pv_exp_mot* mot = 0;
+
+    pv_exp_mot* motion_data = exp->motion_data;
+    uint32_t motion_num = exp->motion_num;
+    for (uint32_t i = 0; i < motion_num; i++)
+        if (!str_utils_compare(motion_data[i].name, motion_name)) {
+            mot = &motion_data[i];
             break;
         }
 
-    if (motion_index == -1) {
+    if (!mot) {
         reset_data();
         return false;
     }
 
     this->motion_id = motion_id;
 
-    pv_exp_data* face_data = exp->motion_data[motion_index].face_data;
+    pv_exp_data* face_data = mot->face_data;
     if (this->face_data != face_data) {
         this->face_data = face_data;
-        this->face_data_prev = face_data;
         this->face_data_curr = face_data;
+        this->face_data_prev = face_data;
     }
 
-    pv_exp_data* face_cl_data = exp->motion_data[motion_index].face_cl_data;
+    pv_exp_data* face_cl_data = mot->face_cl_data;
     if (this->face_cl_data != face_cl_data) {
         this->face_cl_data = face_cl_data;
-        this->face_cl_data_prev = face_cl_data;
         this->face_cl_data_curr = face_cl_data;
+        this->face_cl_data_prev = face_cl_data;
         if (rob_chr)
             rob_chr->autoblink_disable();
     }

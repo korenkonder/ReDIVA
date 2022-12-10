@@ -21,7 +21,7 @@ public:
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
-    virtual void Disp();
+    virtual void Disp() override;
 };
 
 extern bool task_data_init_append_task();

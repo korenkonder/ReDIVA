@@ -54,6 +54,16 @@ uint32_t rand_state_array_get_int(uint32_t min, uint32_t max, int32_t id) {
     return 0;
 }
 
+void rand_state_array_set_seed(uint32_t seed, int32_t id) {
+    RandState* rand_state = rand_state_array_get(id);
+    if (rand_state)
+        rand_state->mt.seed(seed);
+}
+
+void rand_state_array_4_set_seed_1393939() {
+    rand_state_array_set_seed(1393939, 4);
+}
+
 void rand_state_array_free() {
     delete[] rand_state_array;
 }

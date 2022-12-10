@@ -203,7 +203,9 @@ bool texture_database_file::load_file(void* data, const char* path, const char* 
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     texture_database_file* tex_db = (texture_database_file*)data;
     tex_db->read(s.c_str(), tex_db->modern);

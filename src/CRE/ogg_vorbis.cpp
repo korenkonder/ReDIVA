@@ -6,10 +6,30 @@
 #include "ogg_vorbis.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "../KKdLib/vec.hpp"
+#include "data.hpp"
 #include <intrin.h>
+
+struct ogg_file_handler_storage {
+    std::mutex mtx;
+    bool clear;
+    std::list<p_OggFileHandler*> list;
+
+    ogg_file_handler_storage();
+    ~ogg_file_handler_storage();
+
+    void free_data();
+};
 
 static int32_t ogg_file_counter = 0;
 static int32_t ogg_file_handler_counter = 0;
+
+#define OGG_PLAYBACK_DATA_COUNT 6
+static OggPlayback* ogg_playback_data[OGG_PLAYBACK_DATA_COUNT];
+
+static int32_t ogg_file_handler_storage_init_count = 0;
+static ogg_file_handler_storage* ogg_file_handler_storage_ptr;
+
+static p_OggFileHandler* ogg_file_handler_storage_get_ogg_file_handler(size_t index);
 
 OggFileBufferChannelData::OggFileBufferChannelData() : left(), right() {
 
@@ -379,33 +399,6 @@ void OggFileHandler::Ctrl() {
         duration_dup = _duration;
         time_dup = _time;
     }
-
-    int32_t value = ratio_to_db(1.0);
-    if (!_channel_pairs_count)
-        _channel_pairs_count = 2;
-
-    if (_channel_pairs_count >= 3 && _channel_pairs_count <= 4) {
-        for (int32_t i = 0; i < 2; i++) {
-            SetChannelPairVolumePan(i, 0, 0, value);
-            SetChannelPairVolumePan(i, 1, 1, value);
-            SetChannelPairVolumePan(i, 0, 2, -10000);
-            SetChannelPairVolumePan(i, 1, 3, -10000);
-        }
-
-        for (int32_t i = _channel_pairs_count - 2; i < _channel_pairs_count; i++) {
-            SetChannelPairVolumePan(i, 0, 0, -10000);
-            SetChannelPairVolumePan(i, 1, 1, -10000);
-            SetChannelPairVolumePan(i, 0, 2, value);
-            SetChannelPairVolumePan(i, 1, 3, value);
-        }
-    }
-    else
-        for (int32_t i = 0; i < _channel_pairs_count; i++) {
-            SetChannelPairVolumePan(i, 0, 0, value);
-            SetChannelPairVolumePan(i, 1, 1, value);
-            SetChannelPairVolumePan(i, 0, 2, value);
-            SetChannelPairVolumePan(i, 1, 3, value);
-        }
 }
 
 void OggFileHandler::FillBuffer(sound_buffer_data* buffer, size_t samples_count) {
@@ -420,6 +413,29 @@ void OggFileHandler::FillBuffer(sound_buffer_data* buffer, size_t samples_count)
         std::unique_lock<std::mutex> u_lock(mtx);
         ReadBufferProt(buffer, samples_count);
     }
+}
+
+int32_t OggFileHandler::GetChannelPairsCount() {
+    std::unique_lock<std::mutex> u_lock(dup_mtx);
+    return channel_pairs_count_dup;
+}
+
+float_t OggFileHandler::GetDuration() {
+    std::unique_lock<std::mutex> u_lock(dup_mtx);
+    return (float_t)duration_dup;
+}
+
+OggFileHandlerFileState OggFileHandler::GetFileState() {
+    return (OggFileHandlerFileState)file_state.get();
+}
+
+OggFileHandlerPauseState OggFileHandler::GetPauseState() {
+    return (OggFileHandlerPauseState)pause_state.get();
+}
+
+float_t OggFileHandler::GetTime() {
+    std::unique_lock<std::mutex> u_lock(dup_mtx);
+    return (float_t)time_dup;
 }
 
 void OggFileHandler::OpenFile() {
@@ -446,7 +462,7 @@ void OggFileHandler::ReadBuffer(sound_buffer_data* buffer, size_t samples_count)
             for (int32_t j = 0; j < 2; j++)
                 for (int32_t k = 0; k < 4; k++)
                     ((float_t*)&channel_pair_volume_pan[i][j])[k]
-                    = db_to_ratio(this->channel_pair_volume_pan[i][j][k]);
+                        = db_to_ratio(this->channel_pair_volume_pan[i][j][k]);
             channel_pair_volume[i] = db_to_ratio(this->channel_pair_volume[i]) * master_volume;
         }
     }
@@ -475,7 +491,7 @@ void OggFileHandler::ReadBuffer(sound_buffer_data* buffer, size_t samples_count)
     if (_samples_count) {
         for (size_t i = _samples_count; i; i--, buffer++, _buffer_data++) {
             OggFileBufferChannelData* channel_pair = _buffer_data->channel_pair;
-            vec4 value = vec4_null;
+            vec4 value = 0.0f;
             for (size_t j = 0; j < 4; j++, channel_pair++) {
                 value += (channel_pair_volume_pan[j][0] * (channel_pair_volume[j] * channel_pair->left));
                 value += (channel_pair_volume_pan[j][1] * (channel_pair_volume[j] * channel_pair->right));
@@ -539,9 +555,15 @@ void OggFileHandler::SetFileState(OggFileHandlerFileState state) {
         Reset(false);
 }
 
+void OggFileHandler::SetMasterVolume(int32_t value) {
+    value = clamp_def(value, -10000, 0);
+    std::unique_lock<std::mutex> u_lock(volume_mtx);
+    master_volume = value;
+}
+
 void OggFileHandler::SetPath(std::string& path) {
     std::unique_lock<std::mutex> u_lock(mtx);
-    file_state.set(1);
+    file_state.set(OGG_FILE_HANDLER_FILE_STATE_LOADING);
     playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_PLAY);
 
     {
@@ -557,6 +579,19 @@ void OggFileHandler::SetPath(std::string&& path) {
     SetPath(*(std::string*)&path);
 }
 
+void OggFileHandler::SetPauseState(OggFileHandlerPauseState value) {
+    pause_state.set(value);
+}
+
+void OggFileHandler::SetPlaybackState(OggFileHandlerPlaybackState value) {
+    playback_state.set(value);
+}
+
+void OggFileHandler::SetTimeSeek(float_t value) {
+    std::unique_lock<std::mutex> u_lock(file_mtx);
+    time_seek = value;
+}
+
 void OggFileHandler::FillBufferStatic(sound_buffer_data* buffer, size_t samples_count, void* data) {
     if (data)
         ((OggFileHandler*)data)->FillBuffer(buffer, samples_count);
@@ -564,7 +599,12 @@ void OggFileHandler::FillBufferStatic(sound_buffer_data* buffer, size_t samples_
 
 bool OggFileHandler::LoadFile(void* data, const char* path, const char* file, uint32_t hash) {
     OggFileHandler* ofh = (OggFileHandler*)data;
-    ofh->SetPath(std::string(path) + file);
+
+    std::string _path;
+    _path.assign(path);
+    _path.append(file);
+
+    ofh->SetPath(_path.c_str());
     return true;
 }
 
@@ -580,4 +620,322 @@ void OggFileHandler::ThreadMain(OggFileHandler* ofh) {
     ofh->playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_STOP);
     ofh->Ctrl();
     ofh->thread_state.set(0);
+}
+
+
+p_OggFileHandler::p_OggFileHandler(OggFileHandler* ptr) {
+    this->ptr = ptr;
+}
+
+p_OggFileHandler::~p_OggFileHandler() {
+    if (ptr) {
+        delete ptr;
+        ptr = 0;
+    }
+
+    std::list<p_OggFileHandler*>& list = ogg_file_handler_storage_ptr->list;
+    for (std::list<p_OggFileHandler*>::iterator i = list.begin(); i != list.end();)
+        if (*i == this) {
+            list.erase(i);
+            break;
+        }
+        else
+            i++;
+}
+
+int32_t p_OggFileHandler::GetChannelPairsCount() {
+    if (ptr)
+        return ptr->GetChannelPairsCount();
+    return 0;
+}
+
+float_t p_OggFileHandler::GetDuration() {
+    if (ptr)
+        return ptr->GetDuration();
+    return 0.0f;
+}
+
+OggFileHandlerFileState p_OggFileHandler::GetFileState() {
+    if (ptr)
+        return ptr->GetFileState();
+    return OGG_FILE_HANDLER_FILE_STATE_MAX;
+}
+
+OggFileHandlerPauseState p_OggFileHandler::GetPauseState() {
+    if (ptr)
+        return ptr->GetPauseState();
+    return OGG_FILE_HANDLER_PAUSE_STATE_MAX;
+}
+
+float_t p_OggFileHandler::GetTime() {
+    if (ptr)
+        return ptr->GetTime();
+    return 0.0f;
+}
+
+void p_OggFileHandler::SetChannelPairVolumePan(size_t src_channel_pair,
+    int32_t src_channel, int32_t dst_channel, int32_t value) {
+    if (ptr)
+        ptr->SetChannelPairVolumePan(src_channel_pair, src_channel, dst_channel, value);
+}
+
+void p_OggFileHandler::SetMasterVolume(int32_t value) {
+    if (ptr)
+        ptr->SetMasterVolume(value);
+}
+
+void p_OggFileHandler::SetPath(std::string& path) {
+    if (ptr)
+        ptr->SetPath(path);
+}
+
+void p_OggFileHandler::SetPath(std::string&& path) {
+    if (ptr)
+        ptr->SetPath(path);
+}
+
+void p_OggFileHandler::SetPauseState(OggFileHandlerPauseState value) {
+    if (ptr)
+        ptr->SetPauseState(value);
+}
+
+void p_OggFileHandler::SetPlaybackState(OggFileHandlerPlaybackState value) {
+    if (ptr)
+        ptr->SetPlaybackState(value);
+}
+
+void p_OggFileHandler::SetTimeSeek(float_t value) {
+    if (ptr)
+        ptr->SetTimeSeek(value);
+}
+
+OggPlayback::OggPlayback(size_t index) : state(), ogg_file_handler(), time_seek() {
+    this->index = index;
+}
+
+OggPlayback::~OggPlayback() {
+    Reset();
+}
+
+int32_t OggPlayback::GetChannelPairsCount() {
+    if (state == 1 && ogg_file_handler)
+        return ogg_file_handler->GetChannelPairsCount();
+    return 0;
+}
+
+float_t OggPlayback::GetDuration() {
+    if (state == 1 && ogg_file_handler)
+        return ogg_file_handler->GetDuration();
+    return 0.0f;
+}
+
+OggFileHandlerFileState OggPlayback::GetFileState() {
+    if (state == 1 && ogg_file_handler)
+        return ogg_file_handler->GetFileState();
+    return OGG_FILE_HANDLER_FILE_STATE_MAX;
+}
+
+OggFileHandlerPauseState OggPlayback::GetPauseState() {
+    if (state == 1 && ogg_file_handler)
+        return ogg_file_handler->GetPauseState();
+    return OGG_FILE_HANDLER_PAUSE_STATE_MAX;
+}
+
+float_t OggPlayback::GetTime() {
+    if (state == 1 && ogg_file_handler)
+        return ogg_file_handler->GetTime();
+    return 0.0f;
+}
+
+void OggPlayback::Reset() {
+    if (state == 1)
+        delete ogg_file_handler;
+    state = 0;
+    ogg_file_handler = 0;
+}
+
+void OggPlayback::SetChannelPairVolumePan(size_t src_channel_pair,
+    int32_t src_channel, int32_t dst_channel, int32_t value) {
+    if (state != 1 || !ogg_file_handler)
+        return;
+
+    switch (src_channel) {
+    case 0:
+    case 1:
+        break;
+    default:
+        src_channel = 2;
+        break;
+    }
+
+    switch (dst_channel) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+        break;
+    default:
+        dst_channel = 4;
+        break;
+    }
+    ogg_file_handler->SetChannelPairVolumePan(src_channel_pair, src_channel, dst_channel, value);
+}
+
+void OggPlayback::SetMasterVolume(int32_t value) {
+    if (state == 1 && ogg_file_handler)
+        ogg_file_handler->SetMasterVolume(value);
+}
+
+void OggPlayback::SetPath(std::string& path) {
+    data_list[DATA_AFT].load_file(this, path.c_str(), OggPlayback::LoadFile);
+}
+
+void OggPlayback::SetPath(std::string&& path) {
+    SetPath(*(std::string*)&path);
+}
+
+void OggPlayback::SetPauseState(OggFileHandlerPauseState value) {
+    if (state == 1 && ogg_file_handler)
+        ogg_file_handler->SetPauseState(value);
+}
+
+void OggPlayback::SetPlaybackState(OggFileHandlerPlaybackState value) {
+    if (state == 1 && ogg_file_handler)
+        ogg_file_handler->SetPlaybackState(value);
+}
+
+void OggPlayback::SetTimeSeek(float_t value) {
+    time_seek = value;
+}
+
+bool OggPlayback::LoadFile(void* data, const char* path, const char* file, uint32_t hash) {
+    OggPlayback* op = (OggPlayback*)data;
+
+    std::string _path;
+    _path.assign(path);
+    _path.append(file);
+
+    if (_path.size() < 4)
+        return false;
+
+    std::string ext;
+    ext.assign(_path.c_str() + (_path.size() - 4), 4);
+    for (char& c : ext)
+        if (c >= 'A' && c <= 'Z')
+            c += 0x20;
+
+    if (ext.compare(".ogg"))
+        return false;
+
+    if (op->state != 1) {
+        op->Reset();
+        op->ogg_file_handler = ogg_file_handler_storage_get_ogg_file_handler(op->index);
+    }
+
+    if (op->ogg_file_handler) {
+        op->ogg_file_handler->SetTimeSeek(op->time_seek);
+        op->ogg_file_handler->SetPath(_path);
+        op->state = 1;
+    }
+    return true;
+}
+
+void OggPlayback::SetChannelPairVolumePan(OggPlayback* op) {
+    if (!op)
+        return;
+
+    int32_t value = ratio_to_db(1.0);
+
+    int32_t _channel_pairs_count = op->GetChannelPairsCount();
+    if (!_channel_pairs_count)
+        _channel_pairs_count = 2;
+
+    if (_channel_pairs_count >= 3 && _channel_pairs_count <= 4) {
+        for (int32_t i = 0; i < 2; i++) {
+            op->SetChannelPairVolumePan(i, 0, 0, value);
+            op->SetChannelPairVolumePan(i, 1, 1, value);
+            op->SetChannelPairVolumePan(i, 0, 2, -10000);
+            op->SetChannelPairVolumePan(i, 1, 3, -10000);
+        }
+
+        for (int32_t i = _channel_pairs_count - 2; i < _channel_pairs_count; i++) {
+            op->SetChannelPairVolumePan(i, 0, 0, -10000);
+            op->SetChannelPairVolumePan(i, 1, 1, -10000);
+            op->SetChannelPairVolumePan(i, 0, 2, value);
+            op->SetChannelPairVolumePan(i, 1, 3, value);
+        }
+    }
+    else
+        for (int32_t i = 0; i < _channel_pairs_count; i++) {
+            op->SetChannelPairVolumePan(i, 0, 0, value);
+            op->SetChannelPairVolumePan(i, 1, 1, value);
+            op->SetChannelPairVolumePan(i, 0, 2, value);
+            op->SetChannelPairVolumePan(i, 1, 3, value);
+        }
+}
+
+void ogg_playback_data_init() {
+    for (size_t i = 0; i < OGG_PLAYBACK_DATA_COUNT; i++)
+        ogg_playback_data[i] = new OggPlayback(i);
+}
+
+void ogg_playback_data_free() {
+    for (size_t i = 0; i < OGG_PLAYBACK_DATA_COUNT; i++)
+        if (ogg_playback_data[i]) {
+            delete ogg_playback_data[i];
+            ogg_playback_data[i] = 0;
+        }
+
+    if (ogg_file_handler_storage_ptr)
+        ogg_file_handler_storage_ptr->free_data();
+}
+
+OggPlayback* ogg_playback_data_get(size_t index) {
+    if (index >= 0 && index < OGG_PLAYBACK_DATA_COUNT)
+        return ogg_playback_data[index];
+    return 0;
+}
+
+void ogg_file_handler_storage_init() {
+    if (!ogg_file_handler_storage_init_count)
+        ogg_file_handler_storage_ptr = new ogg_file_handler_storage;
+    ogg_file_handler_storage_init_count++;
+}
+
+void ogg_file_handler_storage_free() {
+    if (!--ogg_file_handler_storage_init_count) {
+        delete ogg_file_handler_storage_ptr;
+        ogg_file_handler_storage_ptr = 0;
+    }
+}
+
+ogg_file_handler_storage::ogg_file_handler_storage() : clear() {
+
+}
+
+ogg_file_handler_storage::~ogg_file_handler_storage() {
+    free_data();
+}
+
+void ogg_file_handler_storage::free_data() {
+    if (clear)
+        return;
+
+    for (p_OggFileHandler*& i : list)
+        delete i;
+    clear = true;
+}
+
+static p_OggFileHandler* ogg_file_handler_storage_get_ogg_file_handler(size_t index) {
+    OggFileHandler* ofh = new OggFileHandler(index);
+    if (ofh) {
+        p_OggFileHandler* pofh = new p_OggFileHandler(ofh);
+        if (pofh) {
+            std::unique_lock<std::mutex> u_lock(ogg_file_handler_storage_ptr->mtx);
+            ogg_file_handler_storage_ptr->list.push_back(pofh);
+            return pofh;
+        }
+        delete ofh;
+    }
+    return 0;
 }

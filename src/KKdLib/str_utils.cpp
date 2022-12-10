@@ -627,6 +627,8 @@ bool str_utils_text_file_parse(const void* data, size_t size,
 
         if (ch != '\r' && ch != '\n')
             buf_len++;
+        else
+            c--;
 
         lf = false;
         t = d;

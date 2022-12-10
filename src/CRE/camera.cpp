@@ -54,7 +54,7 @@ void camera::initialize(double_t aspect, int32_t render_width,
     set_roll(0.0);
     set_fov(32.2673416137695);
     camera_calculate_forward(this);
-    set_position(vec3_null);
+    set_position(0.0f);
     update();
 }
 
@@ -147,14 +147,14 @@ void camera::get_view_point(vec3& value) {
 }
 
 void camera::set_view_point(const vec3& value) {
-    if (memcmp(&value, &view_point, sizeof(vec3))) {
+    if (value != view_point) {
         view_point = value;
         changed_view = true;
     }
 }
 
 void camera::set_view_point(const vec3&& value) {
-    if (memcmp(&value, &view_point, sizeof(vec3))) {
+    if (value != view_point) {
         view_point = value;
         changed_view = true;
     }
@@ -165,14 +165,14 @@ void camera::get_interest(vec3& value) {
 }
 
 void camera::set_interest(const vec3& value) {
-    if (memcmp(&value, &interest, sizeof(vec3))) {
+    if (value != interest) {
         interest = value;
         changed_view = true;
     }
 }
 
 void camera::set_interest(const vec3&& value) {
-    if (memcmp(&value, &interest, sizeof(vec3))) {
+    if (value != interest) {
         interest = value;
         changed_view = true;
     }
@@ -222,7 +222,7 @@ void camera::reset() {
     fast_change_hist0 = false;
     fast_change_hist1 = false;
     camera_calculate_forward(this);
-    set_position(vec3_null);
+    set_position(0.0f);
     update_data();
 }
 
@@ -264,9 +264,9 @@ void camera::set(const vec3& view_point, const vec3& interest,
     _fov = fov;
 
     mat4 cam;
-    mat4_translate(trans.x, trans.y, trans.z, &cam);
-    mat4_rotate_mult(&cam, rot.x, rot.y, rot.z, &cam);
-    mat4_scale_rot(&cam, scale.x, scale.y, scale.z, &cam);
+    mat4_translate(&trans, &cam);
+    mat4_rotate_mult(&cam, &rot, &cam);
+    mat4_scale_rot(&cam, &scale, &cam);
     mat4_mult_vec3_trans(&cam, &_vp, &_vp);
     mat4_mult_vec3_trans(&cam, &_int, &_int);
 
@@ -404,7 +404,7 @@ static void camera_calculate_view(camera* c) {
     mat4_rotate_z(rotation.z, &c->view);
     mat4_rotate_x_mult(&c->view, rotation.x, &c->view);
     mat4_rotate_y_mult(&c->view, rotation.y, &c->view);
-    mat4_translate_mult(&c->view, view_point.x, view_point.y, view_point.z, &c->view);
+    mat4_translate_mult(&c->view, &view_point, &c->view);
 
     mat4_inverse(&c->view, &c->inv_view);
     mat3_from_mat4(&c->view, &c->view_mat3);

@@ -12,6 +12,7 @@
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
+#include "../../CRE/task_effect.hpp"
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
 
@@ -91,6 +92,9 @@ Auth3dTestWindow::Auth3dTestWindow() {
     frame_changed = false;
     last_frame = 0.0f;
     paused = false;
+
+    stg_auth_display = true;
+    stg_display = true;
 }
 
 Auth3dTestWindow::~Auth3dTestWindow() {
@@ -110,6 +114,9 @@ bool Auth3dTestWindow::Init() {
     frame_changed = false;
     last_frame = 0.0f;
     paused = false;
+
+    stg_auth_display = true;
+    stg_display = true;
     return true;
 }
 
@@ -125,6 +132,8 @@ bool Auth3dTestWindow::Ctrl() {
             auth_3d_uid_load = false;
         }
     }
+    task_stage_current_set_stage_display(stg_display, false);
+    task_effect_parent_set_enable(stg_auth_display);
     return false;
 }
 
@@ -323,18 +332,8 @@ void Auth3dTestWindow::Window() {
     window_flags |= ImGuiWindowFlags_NoCollapse;
 
     if (ImGui::Begin("A3D STAGE", 0, window_flags)) {
-        ::stage* stg = task_stage_get_current_stage();
-
-        if (stg) {
-            ImGui::Checkbox("stage", &stg->stage_display);
-            ImGui::Checkbox("stg auth display", &stg->effect_display);
-        }
-        else {
-            bool stage = true;
-            ImGui::Checkbox("stage", &stage);
-            bool effects = true;
-            ImGui::Checkbox("stg auth display", &effects);
-        }
+        ImGui::Checkbox("stage", &stg_display);
+        ImGui::Checkbox("stg auth display", &stg_auth_display);
 
         int32_t stage_index = auth_3d_test_task->stage_index;
 
@@ -364,7 +363,7 @@ void Auth3dTestWindow::Window() {
         window_focus |= ImGui::IsWindowFocused();
     }
 
-    ImGui::Checkbox("Stage Link Change", &auth_3d_test_task->window.stage_link_change);
+    ImGui::Checkbox("Link Stage Change", &auth_3d_test_task->window.stage_link_change);
 
     if (auth_3d_data_check_id_not_empty(&auth_3d_test_task->auth_3d_id)) {
         auth_3d_data_set_enable(&auth_3d_test_task->auth_3d_id, enable);

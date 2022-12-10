@@ -199,13 +199,13 @@ extern shader_bind_func* shader_name_bind_func_table;
 extern int32_t* current_vp;
 extern int32_t* current_fp;
 
-extern void FASTCALL shader_set(shader_enum name);                             // 0x00000001405E4CE0
-extern void FASTCALL shader_bind_blinn(shader* shader);                        // 0x00000001405E4320
-extern void FASTCALL shader_bind_cloth(shader* shader);                        // 0x00000001405E4340
-extern void FASTCALL shader_bind_hair(shader* shader);                         // 0x00000001405E4370
-extern void FASTCALL shader_bind_membrane(shader* shader);                     // 0x00000001405E43A0
-extern void FASTCALL shader_bind_eye_ball(shader* shader);                     // 0x00000001405E4530
-extern void FASTCALL shader_bind_tone_map(shader* shader);                     // 0x00000001405E4580
-extern int32_t FASTCALL shader_bind(shader* shader, shader_sub_enum name); // 0x00000001405E4B50
-extern void FASTCALL shader_unbind();                                              // 0x00000001405E5660
-extern void FASTCALL shader_load_all_shaders();                                    // 0x00000001405E4FC0
+extern void FASTCALL shader_set(shader_enum name);                          // 0x00000001405E4CE0
+extern void FASTCALL shader_bind_blinn(shader* shader);                     // 0x00000001405E4320
+extern void FASTCALL shader_bind_cloth(shader* shader);                     // 0x00000001405E4340
+extern void FASTCALL shader_bind_hair(shader* shader);                      // 0x00000001405E4370
+extern void FASTCALL shader_bind_membrane(shader* shader);                  // 0x00000001405E43A0
+extern void FASTCALL shader_bind_eye_ball(shader* shader);                  // 0x00000001405E4530
+extern void FASTCALL shader_bind_tone_map(shader* shader);                  // 0x00000001405E4580
+extern int32_t FASTCALL shader_bind(shader* shader, shader_sub_enum name);  // 0x00000001405E4B50
+extern void FASTCALL shader_unbind();                                       // 0x00000001405E5660
+extern void FASTCALL shader_load_all_shaders();                             // 0x00000001405E4FC0

@@ -458,18 +458,6 @@ extern const __m128 vec4_neg;
 extern const vec4i vec4_mask_vec2;
 extern const vec4i vec4_mask_vec3;
 
-extern const vec2 vec2_identity;
-extern const vec3 vec3_identity;
-extern const vec4 vec4_identity;
-
-extern const vec2 vec2_null;
-extern const vec3 vec3_null;
-extern const vec4 vec4_null;
-
-extern const vec2i vec2i_null;
-extern const vec3i vec3i_null;
-extern const vec4i vec4i_null;
-
 inline vec2::vec2() : x(), y() {
 
 }
@@ -484,15 +472,18 @@ inline vec2::vec2(float_t x, float_t y) : x(x), y(y) {
 
 inline __m128 vec2::load_xmm(const float_t data) {
     __m128 _data = _mm_set_ss(data);
-    return _mm_shuffle_ps(_data, _data, 0);
+    _data = _mm_shuffle_ps(_data, _data, 0);
+    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec2)));
 }
 
 inline __m128 vec2::load_xmm(const vec2& data) {
-    return _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
+    __m128 _data = _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
+    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec2)));
 }
 
 inline __m128 vec2::load_xmm(const vec2&& data) {
-    return _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
+    __m128 _data = _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
+    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec2)));
 }
 
 inline vec2 vec2::store_xmm(const __m128& data) {
@@ -509,15 +500,18 @@ inline vec2 vec2::store_xmm(const __m128&& data) {
 
 inline __m128 vec3::load_xmm(const float_t data) {
     __m128 _data = _mm_set_ss(data);
-    return _mm_shuffle_ps(_data, _data, 0);
+    _data = _mm_shuffle_ps(_data, _data, 0);
+    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
 }
 
 inline __m128 vec3::load_xmm(const vec3& data) {
-    return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
+    __m128 _data = _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
+    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
 }
 
 inline __m128 vec3::load_xmm(const vec3&& data) {
-    return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
+    __m128 _data = _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
+    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
 }
 
 inline vec3 vec3::store_xmm(const __m128& data) {
@@ -760,6 +754,14 @@ inline vec2 operator -(const vec2& left) {
     return vec2::store_xmm(_mm_xor_ps(vec2::load_xmm(left), vec2_neg));
 }
 
+inline bool operator ==(const vec2& left, const vec2& right) {
+    return !memcmp(&left, &right, sizeof(vec2));
+}
+
+inline bool operator !=(const vec2& left, const vec2& right) {
+    return !!memcmp(&left, &right, sizeof(vec2));
+}
+
 inline float_t vec2::angle(const vec2& left, const vec2& right) {
     return acosf(vec2::dot(left, right) / (vec2::length(left) * vec2::length(right)));
 }
@@ -824,8 +826,8 @@ inline vec2 vec2::normalize(const vec2& left) {
     xt = vec2::load_xmm(left);
     zt = _mm_mul_ps(xt, xt);
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt));
-    if (zt.m128_f32[0] != 0.0f)
-        zt.m128_f32[0] = 1.0f / zt.m128_f32[0];
+    if (_mm_cvtss_f32(zt) != 0.0f)
+        zt = _mm_div_ss(_mm_set_ss(1.0f), zt);
     return vec2::store_xmm(_mm_mul_ps(xt, _mm_shuffle_ps(zt, zt, 0)));
 }
 
@@ -856,8 +858,8 @@ inline vec2 vec2::mult_min_max(const vec2& left, const vec2& min, const vec2& ma
     __m128 yt;
     __m128 zt;
     xt = vec2::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec2::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec2::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec2::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec2::load_xmm(max));
     return vec2::store_xmm(_mm_mul_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -866,8 +868,8 @@ inline vec2 vec2::mult_min_max(const vec2& left, const float_t min, const float_
     __m128 yt;
     __m128 zt;
     xt = vec2::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec2::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec2::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec2::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec2::load_xmm(max));
     return vec2::store_xmm(_mm_mul_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -876,8 +878,8 @@ inline vec2 vec2::div_min_max(const vec2& left, const vec2& min, const vec2& max
     __m128 yt;
     __m128 zt;
     xt = vec2::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec2::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec2::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec2::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec2::load_xmm(max));
     return vec2::store_xmm(_mm_div_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -886,8 +888,8 @@ inline vec2 vec2::div_min_max(const vec2& left, const float_t min, const float_t
     __m128 yt;
     __m128 zt;
     xt = vec2::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec2::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec2::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec2::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec2::load_xmm(max));
     return vec2::store_xmm(_mm_div_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -1027,6 +1029,14 @@ inline vec3 operator -(const vec3& left) {
     return vec3::store_xmm(_mm_xor_ps(vec3::load_xmm(left), vec3_neg));
 }
 
+inline bool operator ==(const vec3& left, const vec3& right) {
+    return !memcmp(&left, &right, sizeof(vec3));
+}
+
+inline bool operator !=(const vec3& left, const vec3& right) {
+    return !!memcmp(&left, &right, sizeof(vec3));
+}
+
 inline float_t vec3::angle(const vec3& left, const vec3& right) {
     return acosf(vec3::dot(left, right) / (vec3::length(left) * vec3::length(right)));
 }
@@ -1036,9 +1046,7 @@ inline float_t vec3::dot(const vec3& left, const vec3& right) {
     __m128 yt;
     __m128 zt;
     xt = vec3::load_xmm(left);
-    xt = _mm_and_ps(xt, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
     yt = vec3::load_xmm(right);
-    yt = _mm_and_ps(yt, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
     zt = _mm_mul_ps(xt, yt);
     zt = _mm_hadd_ps(zt, zt);
     return _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
@@ -1047,7 +1055,7 @@ inline float_t vec3::dot(const vec3& left, const vec3& right) {
 inline float_t vec3::length(const vec3& left) {
     __m128 xt;
     __m128 zt;
-    xt = _mm_and_ps(vec3::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
+    xt = vec3::load_xmm(left);
     zt = _mm_mul_ps(xt, xt);
     zt = _mm_hadd_ps(zt, zt);
     return _mm_cvtss_f32(_mm_sqrt_ss(_mm_hadd_ps(zt, zt)));
@@ -1056,7 +1064,7 @@ inline float_t vec3::length(const vec3& left) {
 inline float_t vec3::length_squared(const vec3& left) {
     __m128 xt;
     __m128 zt;
-    xt = _mm_and_ps(vec3::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
+    xt = vec3::load_xmm(left);
     zt = _mm_mul_ps(xt, xt);
     zt = _mm_hadd_ps(zt, zt);
     return _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
@@ -1066,8 +1074,8 @@ inline float_t vec3::distance(const vec3& left, const vec3& right) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
-    xt = _mm_and_ps(vec3::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
-    yt = _mm_and_ps(vec3::load_xmm(right), _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
+    xt = vec3::load_xmm(left);
+    yt = vec3::load_xmm(right);
     zt = _mm_sub_ps(xt, yt);
     zt = _mm_mul_ps(zt, zt);
     zt = _mm_hadd_ps(zt, zt);
@@ -1078,8 +1086,8 @@ inline float_t vec3::distance_squared(const vec3& left, const vec3& right) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
-    xt = _mm_and_ps(vec3::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
-    yt = _mm_and_ps(vec3::load_xmm(right), _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
+    xt = vec3::load_xmm(left);
+    yt = vec3::load_xmm(right);
     zt = _mm_sub_ps(xt, yt);
     zt = _mm_mul_ps(zt, zt);
     zt = _mm_hadd_ps(zt, zt);
@@ -1108,12 +1116,11 @@ inline vec3 vec3::normalize(const vec3& left) {
     __m128 xt;
     __m128 zt;
     xt = vec3::load_xmm(left);
-    xt = _mm_and_ps(xt, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
     zt = _mm_mul_ps(xt, xt);
     zt = _mm_hadd_ps(zt, zt);
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt));
-    if (zt.m128_f32[0] != 0.0f)
-        zt.m128_f32[0] = 1.0f / zt.m128_f32[0];
+    if (_mm_cvtss_f32(zt) != 0.0f)
+        zt = _mm_div_ss(_mm_set_ss(1.0f), zt);
     return vec3::store_xmm(_mm_mul_ps(xt, _mm_shuffle_ps(zt, zt, 0)));
 }
 
@@ -1144,8 +1151,8 @@ inline vec3 vec3::mult_min_max(const vec3& left, const vec3& min, const vec3& ma
     __m128 yt;
     __m128 zt;
     xt = vec3::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec3::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec3::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec3::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec3::load_xmm(max));
     return vec3::store_xmm(_mm_mul_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -1154,8 +1161,8 @@ inline vec3 vec3::mult_min_max(const vec3& left, const float_t min, const float_
     __m128 yt;
     __m128 zt;
     xt = vec3::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec3::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec3::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec3::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec3::load_xmm(max));
     return vec3::store_xmm(_mm_mul_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -1164,8 +1171,8 @@ inline vec3 vec3::div_min_max(const vec3& left, const vec3& min, const vec3& max
     __m128 yt;
     __m128 zt;
     xt = vec3::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec3::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec3::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec3::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec3::load_xmm(max));
     return vec3::store_xmm(_mm_div_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -1174,8 +1181,8 @@ inline vec3 vec3::div_min_max(const vec3& left, const float_t min, const float_t
     __m128 yt;
     __m128 zt;
     xt = vec3::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec3::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec3::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec3::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec3::load_xmm(max));
     return vec3::store_xmm(_mm_div_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -1328,6 +1335,14 @@ inline vec4 operator -(const vec4& left) {
     return vec4::store_xmm(_mm_xor_ps(vec4::load_xmm(left), vec4_neg));
 }
 
+inline bool operator ==(const vec4& left, const vec4& right) {
+    return !memcmp(&left, &right, sizeof(vec4));
+}
+
+inline bool operator !=(const vec4& left, const vec4& right) {
+    return !!memcmp(&left, &right, sizeof(vec4));
+}
+
 inline float_t vec4::angle(const vec4& left, const vec4& right) {
     return acosf(vec4::dot(left, right) / (vec4::length(left) * vec4::length(right)));
 }
@@ -1377,8 +1392,7 @@ inline vec4 vec4::lerp(const vec4& left, const vec4& right, const vec4& blend) {
     __m128 b1;
     __m128 b2;
     b1 = vec4::load_xmm(blend);
-    b2 = vec4::load_xmm(1.0f);
-    b2 = _mm_sub_ps(b2, b1);
+    b2 = _mm_sub_ps(vec4::load_xmm(1.0f), b1);
     return vec4::store_xmm(_mm_add_ps(_mm_mul_ps(vec4::load_xmm(left), b2),
         _mm_mul_ps(vec4::load_xmm(right), b1)));
 }
@@ -1387,8 +1401,7 @@ inline vec4 vec4::lerp(const vec4& left, const vec4& right, const float_t blend)
     __m128 b1;
     __m128 b2;
     b1 = vec4::load_xmm(blend);
-    b2 = vec4::load_xmm(1.0f);
-    b2 = _mm_sub_ps(b2, b1);
+    b2 = _mm_sub_ps(vec4::load_xmm(1.0f), b1);
     return vec4::store_xmm(_mm_add_ps(_mm_mul_ps(vec4::load_xmm(left), b2),
         _mm_mul_ps(vec4::load_xmm(right), b1)));
 }
@@ -1400,8 +1413,8 @@ inline vec4 vec4::normalize(const vec4& left) {
     zt = _mm_mul_ps(xt, xt);
     zt = _mm_hadd_ps(zt, zt);
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt));
-    if (zt.m128_f32[0] != 0.0f)
-        zt.m128_f32[0] = 1.0f / zt.m128_f32[0];
+    if (_mm_cvtss_f32(zt) != 0.0f)
+        zt = _mm_div_ss(_mm_set_ss(1.0f), zt);
     return vec4::store_xmm(_mm_mul_ps(xt, _mm_shuffle_ps(zt, zt, 0)));
 }
 
@@ -1432,8 +1445,8 @@ inline vec4 vec4::mult_min_max(const vec4& left, const vec4& min, const vec4& ma
     __m128 yt;
     __m128 zt;
     xt = vec4::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec4::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec4::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec4::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec4::load_xmm(max));
     return vec4::store_xmm(_mm_mul_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -1442,8 +1455,8 @@ inline vec4 vec4::mult_min_max(const vec4& left, const float_t min, const float_
     __m128 yt;
     __m128 zt;
     xt = vec4::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec4::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec4::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec4::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec4::load_xmm(max));
     return vec4::store_xmm(_mm_mul_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -1452,8 +1465,8 @@ inline vec4 vec4::div_min_max(const vec4& left, const vec4& min, const vec4& max
     __m128 yt;
     __m128 zt;
     xt = vec4::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec4::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec4::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec4::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec4::load_xmm(max));
     return vec4::store_xmm(_mm_div_ps(xt, _mm_or_ps(yt, zt)));
 }
 
@@ -1462,8 +1475,8 @@ inline vec4 vec4::div_min_max(const vec4& left, const float_t min, const float_t
     __m128 yt;
     __m128 zt;
     xt = vec4::load_xmm(left);
-    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(vec4_null)), vec4::load_xmm(-min));
-    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(vec4_null)), vec4::load_xmm(max));
+    yt = _mm_and_ps(_mm_cmplt_ps(xt, vec4::load_xmm(0.0f)), vec4::load_xmm(-min));
+    zt = _mm_and_ps(_mm_cmpge_ps(xt, vec4::load_xmm(0.0f)), vec4::load_xmm(max));
     return vec4::store_xmm(_mm_div_ps(xt, _mm_or_ps(yt, zt)));
 }
 

@@ -25,6 +25,7 @@
 #define SHADER_MAX_TEXTURE_IMAGE_UNITS 32
 #define SHADER_MAX_TEXTURE_UNITS 4
 #define SHADER_MAX_UNIFORM_BLOCK_SIZE 65536
+#define SHADER_MAX_UNIFORM_VALUES 16
 #define SHADER_MAX_VERTEX_UNITS 4
 
 struct shader_state_clip {
@@ -167,15 +168,22 @@ struct shader_state {
     shader_state();
 };
 
+struct shader_local;
+struct shader_local_uniform;
+
 struct shader_data {
     shader_state state;
     shader_state_matrix state_matrix;
     shader_env env;
     shader_buffer buffer;
+    shader_local* local;
+    shader_local_uniform* local_uniform;
     bool state_update_data;
     bool state_matrix_update_data;
     bool env_update_data;
     bool buffer_update_data;
+    bool* local_update_data;
+    bool* local_uniform_update_data;
     GLuint state_ubo;
     GLuint state_matrix_ubo;
     GLuint env_ubo;
@@ -190,15 +198,32 @@ struct shader_set_data;
 typedef void (*PFNSHADERBINDFUNCPROC)(shader_set_data* set, shader* shad);
 
 struct shader_bind_func {
-    uint32_t index;
+    uint32_t name_index;
     PFNSHADERBINDFUNCPROC bind_func;
+};
+
+struct shader_local {
+    vec4 vert[SHADER_MAX_PROGRAM_LOCAL_PARAMETERS];
+    vec4 frag[SHADER_MAX_PROGRAM_LOCAL_PARAMETERS];
+};
+
+struct shader_local_uniform {
+    int32_t uniform_val[SHADER_MAX_UNIFORM_VALUES];
+};
+
+struct shader_sub_shader {
+    GLuint program;
+    shader_local data;
+    shader_local_uniform data_uniform;
+    bool data_update[2];
+    bool data_uniform_update;
 };
 
 struct shader_sub {
     uint32_t sub_index;
     const int32_t* vp_unival_max;
     const int32_t* fp_unival_max;
-    GLuint* program;
+    shader_sub_shader* shaders;
 };
 
 struct shader_sub_table {
@@ -230,6 +255,11 @@ struct shader {
     PFNSHADERBINDFUNCPROC bind_func;
 
     int32_t bind(shader_set_data* set, uint32_t sub_index);
+
+    static bool parse_define(const char* data, int32_t num_uniform,
+        const int32_t* vp_unival_max, const int32_t* fp_unival_max,
+        int32_t* uniform_value, char** temp, size_t* temp_size);
+    static char* parse_include(char* data, farc* f);
     static void unbind();
 };
 
@@ -237,19 +267,24 @@ struct shader_set_data {
     shader* shaders;
     size_t size;
     shader_data data;
+    GLboolean primitive_restart;
+    GLuint primitive_restart_index;
 
     shader_set_data();
 
+    void disable_primitive_restart();
     void draw_arrays(GLenum mode, GLint first, GLsizei count);
     void draw_elements(GLenum mode,
         GLsizei count, GLenum type, const void* indices);
     void draw_range_elements(GLenum mode,
         GLuint start, GLuint end, GLsizei count, GLenum type, const void* indices);
+    void enable_primitive_restart();
     int32_t get_index_by_name(const char* name);
-    void load(farc* f, bool ignore_cache, bool not_load_cache,
-        const char* name, const shader_table* shaders_table, const size_t size,
+    void load(farc* f, bool ignore_cache, const char* name,
+        const shader_table* shaders_table, const size_t size,
         const shader_bind_func* bind_func_table, const size_t bind_func_table_size);
     void set(uint32_t index);
+    void set_primitive_restart_index(GLuint index);
     void unload();
 
     void buffer_get(size_t index, vec4& data);
@@ -359,10 +394,13 @@ struct shader_set_data {
     void state_material_set_emission(bool back, const vec4& data);
     void state_material_set_shininess(bool back, float_t x, float_t y, float_t z, float_t w);
     void state_material_set_shininess(bool back, const vec4& data);
+    void state_matrix_set_modelview(const mat4& data, bool mult);
     void state_matrix_set_modelview(size_t index, const mat4& data, bool mult);
     void state_matrix_set_projection(const mat4& data, bool mult);
     void state_matrix_set_mvp(const mat4& data);
+    void state_matrix_set_modelview(const mat4& model, const mat4& view, bool mult);
     void state_matrix_set_modelview(size_t index, const mat4& model, const mat4& view, bool mult);
+    void state_matrix_set_mvp(const mat4& modelview, const mat4& projection);
     void state_matrix_set_mvp(const mat4& model, const mat4& view, const mat4& projection);
     void state_matrix_set_texture(size_t index, const mat4& data);
     void state_matrix_set_palette(size_t index, const mat4& data);

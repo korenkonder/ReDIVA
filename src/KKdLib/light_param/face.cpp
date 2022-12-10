@@ -92,7 +92,9 @@ bool light_param_face::load_file(void* data, const char* path, const char* file,
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     light_param_face* face = (light_param_face*)data;
     face->read(s.c_str());
@@ -105,7 +107,7 @@ static void light_param_face_read_inner(light_param_face* face, stream& s) {
     s.read(data, s.length);
     data[s.length] = 0;
 
-    char buf[0x100];
+    char buf[0x200];
     const char* d = data;
 
     while (d = light_param_face_read_line(buf, sizeof(buf), d)) {
@@ -118,15 +120,15 @@ static void light_param_face_read_inner(light_param_face* face, stream& s) {
                 goto End;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "position", 8)) {
-            vec3* position = &face->position;
+            vec3& position = face->position;
             if (buf[8] != ' ' || sscanf_s(buf + 9, "%f %f %f",
-                &position->x, &position->y, &position->z) != 3)
+                &position.x, &position.y, &position.z) != 3)
                 goto End;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "direction", 10)) {
-            vec3* direction = &face->direction;
+            vec3& direction = face->direction;
             if (buf[9] != ' ' || sscanf_s(buf + 10, "%f %f %f",
-                &direction->x, &direction->y, &direction->z) != 3)
+                &direction.x, &direction.y, &direction.z) != 3)
                 goto End;
         }
     }
@@ -140,7 +142,7 @@ End:
 }
 
 static void light_param_face_write_inner(light_param_face* face, stream& s) {
-    char buf[0x100];
+    char buf[0x200];
 
     s.write("offset", 6);
     light_param_face_write_float_t(s, buf, sizeof(buf), face->offset);
@@ -150,18 +152,18 @@ static void light_param_face_write_inner(light_param_face* face, stream& s) {
     light_param_face_write_float_t(s, buf, sizeof(buf), face->scale);
     s.write_char('\n');
 
-    vec3* position = &face->position;
+    vec3& position = face->position;
     s.write("position", 8);
-    light_param_face_write_float_t(s, buf, sizeof(buf), position->x);
-    light_param_face_write_float_t(s, buf, sizeof(buf), position->y);
-    light_param_face_write_float_t(s, buf, sizeof(buf), position->z);
+    light_param_face_write_float_t(s, buf, sizeof(buf), position.x);
+    light_param_face_write_float_t(s, buf, sizeof(buf), position.y);
+    light_param_face_write_float_t(s, buf, sizeof(buf), position.z);
     s.write_char('\n');
 
-    vec3* direction = &face->direction;
+    vec3& direction = face->direction;
     s.write("direction", 9);
-    light_param_face_write_float_t(s, buf, sizeof(buf), direction->x);
-    light_param_face_write_float_t(s, buf, sizeof(buf), direction->y);
-    light_param_face_write_float_t(s, buf, sizeof(buf), direction->z);
+    light_param_face_write_float_t(s, buf, sizeof(buf), direction.x);
+    light_param_face_write_float_t(s, buf, sizeof(buf), direction.y);
+    light_param_face_write_float_t(s, buf, sizeof(buf), direction.z);
     s.write_char('\n');
 
     s.write("EOF", 3);
@@ -201,6 +203,6 @@ inline static void light_param_face_write_int32_t(stream& s, char* buf, size_t b
 }
 
 inline static void light_param_face_write_float_t(stream& s, char* buf, size_t buf_size, float_t value) {
-    sprintf_s(buf, buf_size, " %g", value);
+    sprintf_s(buf, buf_size, " %#.6g", value);
     s.write_utf8_string(buf);
 }

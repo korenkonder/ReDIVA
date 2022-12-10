@@ -48,21 +48,6 @@ enum auth_3d_ep_type {
     AUTH_3D_EP_CYCLE_OFFSET = 3,
 }; // Pre/Post Infinity
 
-enum auth_3d_event_type {
-    AUTH_3D_EVENT_MISC = 0x00,
-    AUTH_3D_EVENT_FILT = 0x01,
-    AUTH_3D_EVENT_FX   = 0x02,
-    AUTH_3D_EVENT_SND  = 0x03,
-    AUTH_3D_EVENT_MOT  = 0x04,
-    AUTH_3D_EVENT_A2D  = 0x05,
-};
-
-enum auth_3d_event_filter_fade_type {
-    AUTH_3D_EVENT_FILTER_FADE_NONE = -1,
-    AUTH_3D_EVENT_FILTER_FADE_OUT  = 0,
-    AUTH_3D_EVENT_FILTER_FADE_IN   = 1,
-};
-
 enum auth_3d_fog_flags {
     AUTH_3D_FOG_COLOR   = 0x01,
     AUTH_3D_FOG_DENSITY = 0x02,
@@ -156,6 +141,7 @@ enum auth_3d_rgba_flags {
     AUTH_3D_RGBA_A = 0x08,
 };
 
+struct auth_3d;
 struct auth_3d_ambient;
 struct auth_3d_camera_auxiliary;
 struct auth_3d_camera_root;
@@ -184,6 +170,128 @@ struct auth_3d_post_process;
 struct auth_3d_rgba;
 struct auth_3d_vec3;
 
+namespace auth_3d_detail {
+    class Event {
+    public:
+        enum Type {
+            MISC = 0x00,
+            FILT = 0x01,
+            FX   = 0x02,
+            SND  = 0x03,
+            MOT  = 0x04,
+            A2D  = 0x05,
+        };
+
+        bool active;
+        Type type;
+        std::string name;
+        float_t begin;
+        float_t end;
+        std::string param1;
+        std::string ref;
+        size_t index;
+
+        Event(a3da_event* e);
+        virtual ~Event();
+
+        virtual void Load(auth_3d* auth);
+        virtual void Begin(auth_3d* auth, int32_t flags, render_context* rctx);
+        virtual void End(auth_3d* auth, int32_t flags, render_context* rctx);
+        virtual void Ctrl(auth_3d* auth, int32_t flags, render_context* rctx);
+        virtual void Disp(auth_3d* auth, const mat4* mat, render_context* rctx);
+    };
+
+    struct EventA2d : public Event {
+    public:
+        //std::pair<AetObjInitData, int32_t> aet_init_data;
+
+        EventA2d(a3da_event* e);
+        virtual ~EventA2d();
+
+        virtual void Begin(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void End(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void Ctrl(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void Disp(auth_3d* auth, const mat4* mat, render_context* rctx) override;
+    };
+
+    struct EventFX : public Event {
+    public:
+        EventFX(a3da_event* e);
+        virtual ~EventFX();
+
+        virtual void Load(auth_3d* auth) override;
+        virtual void Begin(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void Ctrl(auth_3d* auth, int32_t flags, render_context* rctx) override;
+    };
+
+    struct EventFXSmoothCut : public Event {
+    public:
+        bool cam;
+
+        EventFXSmoothCut(a3da_event* e);
+        virtual ~EventFXSmoothCut();
+
+        virtual void Load(auth_3d* auth) override;
+        virtual void Begin(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void End(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void Disp(auth_3d* auth, const mat4* mat, render_context* rctx) override;
+    };
+
+    struct EventFilterFade : public Event {
+    public:
+        enum Type {
+            FADE_NONE = -1,
+            FADE_OUT  = 0,
+            FADE_IN   = 1,
+        };
+
+        Type type;
+        vec3 color;
+
+        EventFilterFade(a3da_event* e);
+        virtual ~EventFilterFade();
+
+        virtual void Begin(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void End(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void Disp(auth_3d* auth, const mat4* mat, render_context* rctx) override;
+    };
+
+    struct EventFilterTimeStop : public Event {
+    public:
+        EventFilterTimeStop(a3da_event* e);
+        virtual ~EventFilterTimeStop();
+
+        virtual void Begin(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void End(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void Disp(auth_3d* auth, const mat4* mat, render_context* rctx) override;
+    };
+
+    struct EventMot : public Event {
+    public:
+        EventMot(a3da_event* e);
+        virtual ~EventMot();
+
+        virtual void Load(auth_3d* auth) override;
+        virtual void Begin(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void End(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void Ctrl(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void Disp(auth_3d* auth, const mat4* mat, render_context* rctx) override;
+    };
+
+    struct EventSnd : public Event {
+    public:
+        bool field_190;
+
+        EventSnd(a3da_event* e);
+        virtual ~EventSnd();
+
+        virtual void Load(auth_3d* auth) override;
+        virtual void Begin(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void End(auth_3d* auth, int32_t flags, render_context* rctx) override;
+        virtual void Disp(auth_3d* auth, const mat4* mat, render_context* rctx) override;
+    };
+}
+
 struct auth_3d_key {
     auth_3d_key_type type;
     float_t value;
@@ -205,6 +313,8 @@ struct auth_3d_key {
 
     float_t interpolate(float_t frame);
     void reset();
+
+    auth_3d_key& operator=(const auth_3d_key& k);
 };
 
 struct auth_3d_rgba {
@@ -252,6 +362,7 @@ struct auth_3d_model_transform {
 
     void interpolate(float_t frame);
     void reset();
+    void set_mat(const mat4* parent_mat);
 };
 
 struct auth_3d_ambient {
@@ -263,6 +374,7 @@ struct auth_3d_ambient {
     auth_3d_ambient();
     ~auth_3d_ambient();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -285,6 +397,7 @@ struct auth_3d_camera_auxiliary {
     auth_3d_camera_auxiliary();
     ~auth_3d_camera_auxiliary();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -318,16 +431,19 @@ struct auth_3d_camera_root {
     auth_3d_camera_root();
     ~auth_3d_camera_root();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
 struct auth_3d_chara {
     auth_3d_model_transform model_transform;
     std::string name;
+    int32_t index;
 
     auth_3d_chara();
     ~auth_3d_chara();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -339,6 +455,7 @@ struct auth_3d_curve {
     auth_3d_curve();
     ~auth_3d_curve();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -349,23 +466,7 @@ struct auth_3d_dof {
     auth_3d_dof();
     ~auth_3d_dof();
 
-    void reset();
-};
-
-struct auth_3d_event {
-    float_t begin;
-    float_t clip_begin;
-    float_t clip_end;
-    float_t end;
-    std::string name;
-    std::string param_1;
-    std::string ref;
-    float_t time_ref_scale;
-    auth_3d_event_type type;
-
-    auth_3d_event();
-    ~auth_3d_event();
-
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -390,6 +491,7 @@ struct auth_3d_fog {
     auth_3d_fog();
     ~auth_3d_fog();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -435,6 +537,7 @@ struct auth_3d_light {
     auth_3d_light();
     ~auth_3d_light();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -460,6 +563,8 @@ struct auth_3d_object_model_transform {
     auth_3d_object_model_transform();
     ~auth_3d_object_model_transform();
 
+    void interpolate(float_t frame);
+    void mat_mult(const mat4* mat);
     void reset();
 };
 
@@ -472,6 +577,8 @@ struct auth_3d_m_object_hrc {
     auth_3d_m_object_hrc();
     ~auth_3d_m_object_hrc();
 
+    void interpolate(float_t frame);
+    void list_ctrl(const mat4* parent_mat);
     void reset();
 };
 
@@ -488,6 +595,7 @@ struct auth_3d_material_list {
     auth_3d_material_list();
     ~auth_3d_material_list();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -500,6 +608,7 @@ struct auth_3d_object_curve {
     auth_3d_object_curve();
     ~auth_3d_object_curve();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -523,14 +632,16 @@ struct auth_3d_object {
     auth_3d_object();
     ~auth_3d_object();
 
+    void interpolate(float_t frame);
+    void list_ctrl(const mat4* parent_mat);
     void reset();
 };
 
 struct auth_3d_object_hrc {
     std::vector<auth_3d_object*> children_object;
     std::vector<auth_3d_object_hrc*> children_object_hrc;
-    std::vector<int32_t> childer_object_hrc_parent_node;
-    std::vector<int32_t> childer_object_parent_node;
+    std::vector<int32_t> children_object_parent_node;
+    std::vector<int32_t> children_object_hrc_parent_node;
     std::vector<mat4> mats;
     std::string name;
     std::vector<auth_3d_object_node> node;
@@ -546,6 +657,9 @@ struct auth_3d_object_hrc {
     auth_3d_object_hrc();
     ~auth_3d_object_hrc();
 
+    int32_t get_node_index(const char* node);
+    void interpolate(float_t frame);
+    void list_ctrl(const mat4* parent_mat);
     void reset();
 };
 
@@ -562,6 +676,7 @@ struct auth_3d_object_instance {
     auth_3d_object_instance();
     ~auth_3d_object_instance();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -578,6 +693,7 @@ struct auth_3d_object_node {
     auth_3d_object_node();
     ~auth_3d_object_node();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -589,6 +705,7 @@ struct auth_3d_object_texture_pattern {
     auth_3d_object_texture_pattern();
     ~auth_3d_object_texture_pattern();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -611,6 +728,7 @@ struct auth_3d_object_texture_transform {
     auth_3d_object_texture_transform();
     ~auth_3d_object_texture_transform();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -635,6 +753,7 @@ struct auth_3d_point {
     auth_3d_point();
     ~auth_3d_point();
 
+    void interpolate(float_t frame);
     void reset();
 };
 
@@ -662,7 +781,14 @@ struct auth_3d_post_process {
     auth_3d_post_process();
     ~auth_3d_post_process();
 
+    void interpolate(float_t frame);
     void reset();
+};
+
+struct auth_3d_time_event {
+    float_t frame;
+    int32_t type;
+    size_t event_index;
 };
 
 struct auth_3d {
@@ -679,6 +805,7 @@ struct auth_3d {
     float_t alpha;
     draw_task_flags draw_task_flags;
     int32_t chara_id;
+    bool chara_item;
     bool shadow;
     int32_t src_chara;
     int32_t dst_chara;
@@ -698,7 +825,9 @@ struct auth_3d {
     std::vector<auth_3d_chara> chara;
     std::vector<auth_3d_curve> curve;
     auth_3d_dof dof;
-    std::vector<auth_3d_event> event;
+    std::vector<auth_3d_detail::Event*> event;
+    std::vector<auth_3d_time_event> event_time;
+    auth_3d_time_event* event_time_next;
     std::vector<auth_3d_fog> fog;
     std::vector<auth_3d_light> light;
     std::vector<auth_3d_m_object_hrc> m_object_hrc;
@@ -833,11 +962,11 @@ public:
     } window;
 
     Auth3dTestTask();
-    virtual ~Auth3dTestTask();
+    virtual ~Auth3dTestTask() override;
 
-    virtual bool Init();
-    virtual bool Ctrl();
-    virtual bool Dest();
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
 };
 
 extern auth_3d_data_struct* auth_3d_data;
@@ -880,12 +1009,13 @@ extern void auth_3d_data_read_file(int32_t* id, auth_3d_database* auth_3d_db);
 extern void auth_3d_data_read_file_modern(int32_t* id);
 extern void auth_3d_data_set_camera_root_update(int32_t* id, bool value);
 extern void auth_3d_data_set_chara_id(int32_t* id, int32_t value);
+extern void auth_3d_data_set_chara_item(int32_t* id, bool value);
 extern void auth_3d_data_set_draw_task_flags_alpha(int32_t* id, draw_task_flags draw_task_flags, float_t alpha);
 extern void auth_3d_data_set_enable(int32_t* id, bool value);
 extern void auth_3d_data_set_frame_rate(int32_t* id, FrameRateControl* value);
 extern void auth_3d_data_set_last_frame(int32_t* id, float_t value);
 extern void auth_3d_data_set_left_right_reverse(int32_t* id, bool value);
-extern void auth_3d_data_set_mat(int32_t* id, mat4* value);
+extern void auth_3d_data_set_mat(int32_t* id, const mat4* value);
 extern void auth_3d_data_set_max_frame(int32_t* id, float_t value);
 extern void auth_3d_data_set_paused(int32_t* id, bool value);
 extern void auth_3d_data_set_repeat(int32_t* id, bool value);

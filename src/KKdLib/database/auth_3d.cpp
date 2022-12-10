@@ -108,7 +108,9 @@ bool auth_3d_database_file::load_file(void* data, const char* path, const char* 
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     auth_3d_database_file* auth_3d_db = (auth_3d_database_file*)data;
     auth_3d_db->read(s.c_str());

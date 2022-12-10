@@ -43,7 +43,7 @@ struct light_param_glow {
     vec3 tone_transform_end;
 
     light_param_glow();
-    virtual ~light_param_glow();
+    ~light_param_glow();
 
     void read(const char* path);
     void read(const wchar_t* path);

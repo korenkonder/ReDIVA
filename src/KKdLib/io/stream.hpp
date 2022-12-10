@@ -118,12 +118,12 @@ public:
     std::wstring read_wstring_null_terminated_offset(int64_t offset);
     char* read_utf8_string_null_terminated();
     wchar_t* read_utf16_string_null_terminated();
-    char* read_utf8_string_null_terminated_length(int64_t* length);
-    wchar_t* read_utf16_string_null_terminated_length(int64_t* length);
     char* read_utf8_string_null_terminated_offset(int64_t offset);
     wchar_t* read_utf16_string_null_terminated_offset(int64_t offset);
-    char* read_utf8_string_null_terminated_offset_length(int64_t offset, int64_t* length);
-    wchar_t* read_utf16_string_null_terminated_offset_length(int64_t offset, int64_t* length);
+    size_t read_utf8_string_null_terminated_length();
+    size_t read_utf16_string_null_terminated_length();
+    size_t read_utf8_string_null_terminated_offset_length(int64_t offset);
+    size_t read_utf16_string_null_terminated_offset_length(int64_t offset);
 
     void write_string(std::string& str);
     void write_string(std::string&& str);

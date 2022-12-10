@@ -17,7 +17,7 @@ struct light_param_face {
     vec3 direction;
 
     light_param_face();
-    virtual ~light_param_face();
+    ~light_param_face();
 
     void read(const char* path);
     void read(const wchar_t* path);

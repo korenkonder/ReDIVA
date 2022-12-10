@@ -55,11 +55,11 @@ struct DDS_PIXELFORMAT {
 #define DDS_SURFACE_FLAGS_MIPMAP  0x00400008 // DDSCAPS_COMPLEX | DDSCAPS_MIPMAP
 #define DDS_SURFACE_FLAGS_cube_map 0x00000008 // DDSCAPS_COMPLEX
 
-#define DDS_cube_map_ALLFACES ( 0x00000400 | 0x00000800 |\
+#define DDS_CUBE_MAP_ALLFACES ( 0x00000400 | 0x00000800 |\
                                0x00001000 | 0x00002000 |\
                                0x00004000 | 0x00008000 | 0x00000200 )
 
-#define DDS_cube_map 0x00000200 // DDSCAPS2_cube_map
+#define DDS_CUBE_MAP 0x00000200 // DDSCAPS2_cube_map
 
 #define DDS_FLAGS_VOLUME 0x00200000 // DDSCAPS2_VOLUME
 
@@ -187,19 +187,18 @@ void dds::read(const wchar_t* path) {
         if (s.read_uint32_t_reverse_endianness(true) != DDS_MAGIC)
             goto End;
 
-        DDS_HEADER dds_h;
-        memset(&dds_h, 0, sizeof(DDS_HEADER));
+        DDS_HEADER dds_h = {};
         if (s.read(&dds_h, sizeof(DDS_HEADER)) != sizeof(DDS_HEADER))
             goto End;
 
         if (!((dds_h.flags & DDSD_CAPS) && (dds_h.flags & DDSD_HEIGHT)
             && (dds_h.flags & DDSD_WIDTH) && (dds_h.flags & DDSD_PIXELFORMAT)))
             goto End;
-        else if ((dds_h.flags & DDSD_PITCH) || (dds_h.flags & DDSD_DEPTH))
+        else if (/*(dds_h.flags & DDSD_PITCH) || */(dds_h.flags & DDSD_DEPTH))
             goto End;
         else if (!(dds_h.caps & DDS_SURFACE_FLAGS_TEXTURE))
             goto End;
-        else if ((dds_h.caps2 & DDS_cube_map) && (~dds_h.caps2 & DDS_cube_map_ALLFACES) || (dds_h.flags & DDS_FLAGS_VOLUME))
+        else if ((dds_h.caps2 & DDS_CUBE_MAP) && (~dds_h.caps2 & DDS_CUBE_MAP_ALLFACES) || (dds_h.flags & DDS_FLAGS_VOLUME))
             goto End;
 
         bool reverse = false;
@@ -263,7 +262,7 @@ void dds::read(const wchar_t* path) {
         width = dds_h.width;
         height = dds_h.height;
         mipmaps_count = dds_h.flags & DDSD_MIPMAPCOUNT ? dds_h.mipMapCount : 1;
-        has_cube_map = dds_h.caps2 & DDS_cube_map ? true : false;
+        has_cube_map = dds_h.caps2 & DDS_CUBE_MAP ? true : false;
         data.reserve(has_cube_map ? mipmaps_count * 6ULL : mipmaps_count);
 
         do
@@ -303,8 +302,7 @@ void dds::write(const wchar_t* path) {
     file_stream s;
     s.open(path_dds, L"wb");
     if (s.check_not_null()) {
-        DDS_HEADER dds_h;
-        memset(&dds_h, 0, sizeof(DDS_HEADER));
+        DDS_HEADER dds_h = {};
         dds_h.size = sizeof(DDS_HEADER);
         dds_h.flags = DDS_HEADER_FLAGS_TEXTURE | DDSD_LINEARSIZE;
         if (mipmaps_count > 1)
@@ -321,7 +319,7 @@ void dds::write(const wchar_t* path) {
             dds_h.caps |= DDS_SURFACE_FLAGS_MIPMAP;
 
         if (has_cube_map)
-            dds_h.caps2 |= DDS_cube_map_ALLFACES;
+            dds_h.caps2 |= DDS_CUBE_MAP_ALLFACES;
 
         switch (format) {
         case TXP_A8:

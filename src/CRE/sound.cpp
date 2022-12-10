@@ -9,6 +9,7 @@
 #include "../KKdLib/str_utils.hpp"
 #include "../KKdLib/vec.hpp"
 #include "data.hpp"
+#include "ogg_vorbis.hpp"
 #include "timer.hpp"
 #include <functiondiscoverykeys_devpkey.h>
 #include <timeapi.h>
@@ -27,12 +28,53 @@ struct SoundCueQueueVolume {
     float_t max;
 };
 
+struct sound_stream {
+    std::string path;
+    OggPlayback* ogg_playback;
+    float_t current_volume;
+    float_t duration;
+    float_t time;
+    bool pause;
+    uint32_t file_loading_frames;
+    uint32_t file_ready_frames;
+    float_t time_seek;
+    int32_t volume_trans;
+    float_t target_volume;
+    int32_t state;
+    int32_t play_state;
+
+    sound_stream();
+    ~sound_stream();
+
+    bool check_state();
+    void ctrl();
+    void ctrl_playback();
+    void reset();
+    void set_current_volume(float_t value);
+    bool set_path(const char* path, bool pause = false);
+    bool set_path(const char* path, float_t time, bool pause = false);
+    bool set_path_playback();
+    bool set_pause(bool value);
+    void set_target_volume(float_t value, int32_t frames);
+    bool stop();
+    bool stop_playback();
+};
+
+static void sound_stream_array_init();
+static void sound_stream_array_ctrl();
+static sound_stream* sound_stream_array_get(int32_t index);
+static void sound_stream_array_reset();
+static void sound_stream_array_free();
+
 SoundWork* sound_work;
 sound::wasapi::System* sound_wasapi_system_data;
-std::map<std::string, WaveAudio> wave_audio_storage;
+std::map<std::string, WaveAudio> wave_audio_storage_data;
 
 static int32_t sound_cue_counter = 0;
 static int32_t sound_wasapi_system_counter = 0;
+
+static sound_stream* sound_stream_array;
+static float_t sound_stream_volume = 1.0f;
 
 static const int8_t ima_index_table[] = {
     -1, -1, -1, -1, 2, 4, 6, 8,
@@ -106,7 +148,7 @@ namespace sound {
             }
 
             if (mix_format->Format.wFormatTag == WAVE_FORMAT_EXTENSIBLE
-                && !memcmp(&wave_format.SubFormat, &KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, sizeof(GUID))) {
+                && wave_format.SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT) {
                 bit_depth = 32;
                 format = AUDIO_FORMAT_F32;
                 wave_format.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
@@ -159,7 +201,8 @@ namespace sound {
                 return;
 
             if (pAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
-                AUDCLNT_STREAMFLAGS_RATEADJUST | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+                AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY
+                | AUDCLNT_STREAMFLAGS_RATEADJUST | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
                 hnsPeriod, 0, &wave_format.Format, 0) == AUDCLNT_ERR(0x019)) {
                 if (FAILED(pAudioClient->GetBufferSize(&samples_count)))
                     return;
@@ -173,7 +216,8 @@ namespace sound {
                     * 10000000.0 / (double_t)sample_rate + 0.5);
 
                 if (FAILED(pAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
-                    AUDCLNT_STREAMFLAGS_RATEADJUST | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+                    AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY
+                    | AUDCLNT_STREAMFLAGS_RATEADJUST | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
                     hnsPeriod, 0, &wave_format.Format, 0)))
                     return;
             }
@@ -182,22 +226,17 @@ namespace sound {
                 return;
 
             // Rounding to prev base 2
-            while (true) {
-                uint32_t _samples_count = samples_count;
-                _samples_count--;
-                _samples_count |= _samples_count >> 1;
-                _samples_count |= _samples_count >> 2;
-                _samples_count |= _samples_count >> 4;
-                _samples_count |= _samples_count >> 8;
-                _samples_count |= _samples_count >> 16;
-                _samples_count++;
+            uint32_t _samples_count = samples_count;
+            _samples_count--;
+            _samples_count |= _samples_count >> 1;
+            _samples_count |= _samples_count >> 2;
+            _samples_count |= _samples_count >> 4;
+            _samples_count |= _samples_count >> 8;
+            _samples_count |= _samples_count >> 16;
+            _samples_count++;
+            while (_samples_count + (_samples_count >> 1) >= samples_count)
                 _samples_count >>= 1;
-                if (_samples_count + (_samples_count >> 1) < samples_count) {
-                    samples_count = _samples_count;
-                    break;
-                }
-                samples_count = _samples_count;
-            }
+            samples_count = _samples_count;
 
             if (!mixer->Init(se_channels_count, streaming_channels_count, samples_count))
                 return;
@@ -245,7 +284,7 @@ namespace sound {
                 pClockAdjustment->Release();
                 pClockAdjustment = 0;
             }
-            
+
             if (pRenderClient) {
                 pRenderClient->Release();
                 pRenderClient = 0;
@@ -315,30 +354,17 @@ namespace sound {
             if (!system)
                 return;
 
-            float_t spk_l_volume = 0.0f;
-            float_t spk_r_volume = 0.0f;
-            float_t hph_l_volume = 0.0f;
-            float_t hph_r_volume = 0.0f;
+            vec4 spk_hph_volume = 0.0f;
 
             {
                 std::unique_lock<std::mutex> u_lock(volume_mtx);
-                float_t master_volume = this->master_volume;
-                spk_l_volume = master_volume * channels_volume[0];
-                spk_r_volume = master_volume * channels_volume[1];
-                hph_l_volume = master_volume * channels_volume[2];
-                hph_r_volume = master_volume * channels_volume[3];
+                spk_hph_volume = master_volume * *(vec4*)channels_volume;
             }
 
-            if (disable_headphones_volume) {
-                hph_l_volume = spk_l_volume;
-                hph_r_volume = spk_r_volume;
-            }
-            else if (invert_phase) {
-                spk_l_volume = -spk_l_volume;
-                spk_l_volume = -spk_l_volume;
-                hph_l_volume = -hph_l_volume;
-                hph_r_volume = -hph_r_volume;
-            }
+            if (disable_headphones_volume)
+                *(vec2*)&spk_hph_volume.z = *(vec2*)&spk_hph_volume.x;
+            else if (invert_phase)
+                spk_hph_volume = -spk_hph_volume;
 
             memset(mix_buffer, 0, mix_buffer_size);
             if (streaming_channels)
@@ -356,22 +382,20 @@ namespace sound {
                 switch (system->channels) {
                 case 2:
                     for (size_t i = samples_count; i; i--, _mix_buffer++) {
-                        int32_t hph_l = (int32_t)(_mix_buffer->hph_l * hph_l_volume * (float_t)0x7FFF);
-                        int32_t hph_r = (int32_t)(_mix_buffer->hph_r * hph_r_volume * (float_t)0x7FFF);
-                        *_buffer++ = (int16_t)clamp_def(hph_l, -0x8000, 0x7FFF);
-                        *_buffer++ = (int16_t)clamp_def(hph_r, -0x8000, 0x7FFF);
+                        vec2 hph = *(vec2*)&_mix_buffer->hph_l * *(vec2*)&spk_hph_volume.z * (float_t)0x7FFF;
+                        vec2i hph_i32;
+                        vec2_to_vec2i(hph, hph_i32);
+                        *(vec2i*)_buffer = vec2i::clamp(hph_i32, -0x8000, 0x7FFF);
+                        _buffer += 2;
                     }
                     break;
                 case 4:
                     for (size_t i = samples_count; i; i--, _mix_buffer++) {
-                        int32_t spk_l = (int32_t)(_mix_buffer->spk_l * spk_l_volume * (float_t)0x7FFF);
-                        int32_t spk_r = (int32_t)(_mix_buffer->spk_r * spk_r_volume * (float_t)0x7FFF);
-                        int32_t hph_l = (int32_t)(_mix_buffer->hph_l * hph_l_volume * (float_t)0x7FFF);
-                        int32_t hph_r = (int32_t)(_mix_buffer->hph_r * hph_r_volume * (float_t)0x7FFF);
-                        *_buffer++ = (int16_t)clamp_def(spk_l, -0x8000, 0x7FFF);
-                        *_buffer++ = (int16_t)clamp_def(spk_r, -0x8000, 0x7FFF);
-                        *_buffer++ = (int16_t)clamp_def(hph_l, -0x8000, 0x7FFF);
-                        *_buffer++ = (int16_t)clamp_def(hph_r, -0x8000, 0x7FFF);
+                        vec4 spk_hph = *(vec4*)_mix_buffer * spk_hph_volume * (float_t)0x7FFF;
+                        vec4i spk_hph_i32;
+                        vec4_to_vec4i(spk_hph, spk_hph_i32);
+                        *(vec4i*)_buffer = vec4i::clamp(spk_hph_i32, -0x8000, 0x7FFF);
+                        _buffer += 4;
                     }
                     break;
                 }
@@ -381,35 +405,31 @@ namespace sound {
                 switch (system->channels) {
                 case 2:
                     for (size_t i = samples_count; i; i--, _mix_buffer++) {
-                        int32_t hph_l = (int32_t)(_mix_buffer->hph_l * hph_l_volume * (float_t)0x7FFFFF);
-                        int32_t hph_r = (int32_t)(_mix_buffer->hph_r * hph_r_volume * (float_t)0x7FFFFF);
-                        hph_l = clamp_def(hph_l, -0x800000, 0x7FFFFF);
-                        hph_r = clamp_def(hph_r, -0x800000, 0x7FFFFF);
-                        *(uint16_t*)&_buffer[0] = (uint16_t)hph_l;
-                        *(uint8_t*)&_buffer[2] = (uint8_t)(hph_l >> 16);
-                        *(uint16_t*)&_buffer[3] = (uint16_t)hph_r;
-                        *(uint8_t*)&_buffer[5] = (uint8_t)(hph_r >> 16);
+                        vec2 hph = *(vec2*)&_mix_buffer->hph_l * *(vec2*)&spk_hph_volume.z * (float_t)0x7FFFFF;
+                        vec2i hph_i32;
+                        vec2_to_vec2i(hph, hph_i32);
+                        hph_i32 = vec2i::clamp(hph_i32, -0x800000, 0x7FFFFF);
+                        *(uint16_t*)&_buffer[0] = (uint16_t)hph_i32.x;
+                        *(uint8_t*)&_buffer[2] = (uint8_t)(hph_i32.x >> 16);
+                        *(uint16_t*)&_buffer[3] = (uint16_t)hph_i32.y;
+                        *(uint8_t*)&_buffer[5] = (uint8_t)(hph_i32.y >> 16);
                         _buffer += 6;
                     }
                     break;
                 case 4:
                     for (size_t i = samples_count; i; i--, _mix_buffer++) {
-                        int32_t spk_l = (int32_t)(_mix_buffer->spk_l * spk_l_volume * (float_t)0x7FFFFF);
-                        int32_t spk_r = (int32_t)(_mix_buffer->spk_r * spk_r_volume * (float_t)0x7FFFFF);
-                        int32_t hph_l = (int32_t)(_mix_buffer->hph_l * hph_l_volume * (float_t)0x7FFFFF);
-                        int32_t hph_r = (int32_t)(_mix_buffer->hph_r * hph_r_volume * (float_t)0x7FFFFF);
-                        spk_l = clamp_def(spk_l, -0x800000, 0x7FFFFF);
-                        spk_r = clamp_def(spk_r, -0x800000, 0x7FFFFF);
-                        hph_l = clamp_def(hph_l, -0x800000, 0x7FFFFF);
-                        hph_r = clamp_def(hph_r, -0x800000, 0x7FFFFF);
-                        *(uint16_t*)&_buffer[0] = (uint16_t)spk_l;
-                        *(uint8_t*)&_buffer[2] = (uint8_t)(spk_l >> 16);
-                        *(uint16_t*)&_buffer[3] = (uint16_t)spk_r;
-                        *(uint8_t*)&_buffer[5] = (uint8_t)(spk_r >> 16);
-                        *(uint16_t*)&_buffer[6] = (uint16_t)hph_l;
-                        *(uint8_t*)&_buffer[8] = (uint8_t)(hph_l >> 16);
-                        *(uint16_t*)&_buffer[9] = (uint16_t)hph_r;
-                        *(uint8_t*)&_buffer[11] = (uint8_t)(hph_r >> 16);
+                        vec4 spk_hph = *(vec4*)_mix_buffer * spk_hph_volume * (float_t)0x7FFFFF;
+                        vec4i spk_hph_i32;
+                        vec4_to_vec4i(spk_hph, spk_hph_i32);
+                        spk_hph_i32 = vec4i::clamp(spk_hph_i32, -0x800000, 0x7FFFFF);
+                        *(uint16_t*)&_buffer[0] = (uint16_t)spk_hph_i32.x;
+                        *(uint8_t*)&_buffer[2] = (uint8_t)(spk_hph_i32.x >> 16);
+                        *(uint16_t*)&_buffer[3] = (uint16_t)spk_hph_i32.y;
+                        *(uint8_t*)&_buffer[5] = (uint8_t)(spk_hph_i32.y >> 16);
+                        *(uint16_t*)&_buffer[6] = (uint16_t)spk_hph_i32.z;
+                        *(uint8_t*)&_buffer[8] = (uint8_t)(spk_hph_i32.z >> 16);
+                        *(uint16_t*)&_buffer[9] = (uint16_t)spk_hph_i32.w;
+                        *(uint8_t*)&_buffer[11] = (uint8_t)(spk_hph_i32.w >> 16);
                         _buffer += 12;
                     }
                     break;
@@ -420,18 +440,20 @@ namespace sound {
                 switch (system->channels) {
                 case 2:
                     for (size_t i = samples_count; i; i--, _mix_buffer++) {
-                        int64_t hph_l = (int64_t)((double_t)_mix_buffer->hph_l * hph_l_volume * (double_t)0x7FFFFFFF);
-                        int64_t hph_r = (int64_t)((double_t)_mix_buffer->hph_r * hph_r_volume * (double_t)0x7FFFFFFF);
+                        vec2 hph = *(vec2*)&_mix_buffer->hph_l * *(vec2*)&spk_hph_volume.z;
+                        int64_t hph_l = (int64_t)((double_t)hph.x * (double_t)0x7FFFFFFF);
+                        int64_t hph_r = (int64_t)((double_t)hph.y * (double_t)0x7FFFFFFF);
                         *_buffer++ = (int32_t)clamp_def(hph_l, -0x80000000LL, 0x7FFFFFFFLL);
                         *_buffer++ = (int32_t)clamp_def(hph_r, -0x80000000LL, 0x7FFFFFFFLL);
                     }
                     break;
                 case 4:
                     for (size_t i = samples_count; i; i--, _mix_buffer++) {
-                        int64_t spk_l = (int64_t)((double_t)_mix_buffer->spk_l * spk_l_volume * (double_t)0x7FFFFFFF);
-                        int64_t spk_r = (int64_t)((double_t)_mix_buffer->spk_r * spk_r_volume * (double_t)0x7FFFFFFF);
-                        int64_t hph_l = (int64_t)((double_t)_mix_buffer->hph_l * hph_l_volume * (double_t)0x7FFFFFFF);
-                        int64_t hph_r = (int64_t)((double_t)_mix_buffer->hph_r * hph_r_volume * (double_t)0x7FFFFFFF);
+                        vec4 spk_hph = *(vec4*)_mix_buffer * spk_hph_volume;
+                        int64_t spk_l = (int64_t)((double_t)spk_hph.x * (double_t)0x7FFFFFFF);
+                        int64_t spk_r = (int64_t)((double_t)spk_hph.y * (double_t)0x7FFFFFFF);
+                        int64_t hph_l = (int64_t)((double_t)spk_hph.z * (double_t)0x7FFFFFFF);
+                        int64_t hph_r = (int64_t)((double_t)spk_hph.w * (double_t)0x7FFFFFFF);
                         *_buffer++ = (int32_t)clamp_def(spk_l, -0x80000000LL, 0x7FFFFFFFLL);
                         *_buffer++ = (int32_t)clamp_def(spk_r, -0x80000000LL, 0x7FFFFFFFLL);
                         *_buffer++ = (int32_t)clamp_def(hph_l, -0x80000000LL, 0x7FFFFFFFLL);
@@ -444,18 +466,12 @@ namespace sound {
                 float_t* _buffer = (float_t*)buffer;
                 switch (system->channels) {
                 case 2:
-                    for (size_t i = samples_count; i; i--, _mix_buffer++) {
-                        *_buffer++ = _mix_buffer->hph_l * hph_l_volume;
-                        *_buffer++ = _mix_buffer->hph_r * hph_r_volume;
-                    }
+                    for (size_t i = samples_count; i; i--, _mix_buffer++, _buffer += 2)
+                        *(vec2*)_buffer = *(vec2*)&_mix_buffer->hph_l * *(vec2*)&spk_hph_volume.z;
                     break;
                 case 4:
-                    for (size_t i = samples_count; i; i--, _mix_buffer++) {
-                        *_buffer++ = _mix_buffer->spk_l * spk_l_volume;
-                        *_buffer++ = _mix_buffer->spk_r * spk_r_volume;
-                        *_buffer++ = _mix_buffer->hph_l * hph_l_volume;
-                        *_buffer++ = _mix_buffer->hph_r * hph_r_volume;
-                    }
+                    for (size_t i = samples_count; i; i--, _mix_buffer++, _buffer += 4)
+                        *(vec4*)_buffer = *(vec4*)&_mix_buffer * spk_hph_volume;
                     break;
                 }
             } break;
@@ -578,35 +594,42 @@ namespace sound {
 
             vec4 channels_volume(spk_l_volume, spk_r_volume, hph_l_volume, hph_r_volume);
 
+            float_t* se_buffer = this->buffer;
             size_t _samples_count = this->samples_count;
+            size_t loop_start = this->loop_start;
+            size_t loop_end = this->loop_end;
+            size_t current_sample = this->current_sample;
+            bool loop = !!(loop_start || loop_end);
             if (channels == 1)
                 for (size_t i = samples_count; i && current_sample < _samples_count; i--, buffer++) {
-                    float_t* _buffer = this->buffer + current_sample;
+                    float_t* _buffer = se_buffer + current_sample;
                     *(vec4*)buffer = channels_volume * _buffer[0] + *(vec4*)buffer;
 
                     current_sample++;
-                    if ((loop_start || loop_end) && current_sample > loop_end)
+                    if (loop && current_sample > loop_end)
                         current_sample = loop_start;
                 }
-            if (channels == 2)
+            else if (channels == 2)
                 for (size_t i = samples_count; i && current_sample < _samples_count; i--, buffer++) {
-                    float_t* _buffer = this->buffer + current_sample * 2;
+                    float_t* _buffer = se_buffer + current_sample * 2;
                     *(vec4*)buffer = channels_volume * vec4(_buffer[0], _buffer[1],
                         _buffer[0], _buffer[1]) + *(vec4*)buffer;
 
                     current_sample++;
-                    if ((loop_start || loop_end) && current_sample > loop_end)
+                    if (loop && current_sample > loop_end)
                         current_sample = loop_start;
                 }
             else if (channels == 4)
                 for (size_t i = samples_count; i && current_sample < _samples_count; i--, buffer++) {
-                    float_t* _buffer = this->buffer + current_sample * 4;
+                    float_t* _buffer = se_buffer + current_sample * 4;
                     *(vec4*)buffer = channels_volume * *(vec4*)_buffer + *(vec4*)buffer;
 
                     current_sample++;
-                    if ((loop_start || loop_end) && current_sample > loop_end)
+                    if (loop && current_sample > loop_end)
                         current_sample = loop_start;
                 }
+
+            this->current_sample = current_sample;
 
             if (current_sample >= _samples_count)
                 ResetData();
@@ -677,7 +700,7 @@ namespace sound {
             loop_end = 0;
             current_sample = 0;
         }
-        
+
         void SEChannel::ResetDataProt() {
             if (!play_state.get())
                 return;
@@ -743,7 +766,14 @@ namespace sound {
             vec4 channels_volume(spk_l_volume, spk_r_volume, hph_l_volume, hph_r_volume);
 
             sound_buffer_data* _buffer = this->buffer;
-            for (size_t i = samples_count; i; i--, buffer++, _buffer++)
+            for (size_t i = samples_count / 4; i; i--, buffer += 4, _buffer += 4) {
+                ((vec4*)buffer)[0] = channels_volume * ((vec4*)_buffer)[0] + ((vec4*)buffer)[0];
+                ((vec4*)buffer)[1] = channels_volume * ((vec4*)_buffer)[1] + ((vec4*)buffer)[1];
+                ((vec4*)buffer)[2] = channels_volume * ((vec4*)_buffer)[2] + ((vec4*)buffer)[2];
+                ((vec4*)buffer)[3] = channels_volume * ((vec4*)_buffer)[3] + ((vec4*)buffer)[3];
+            }
+
+            for (size_t i = samples_count % 4; i; i--, buffer++, _buffer++)
                 *(vec4*)buffer = channels_volume * *(vec4*)_buffer + *(vec4*)buffer;
         }
 
@@ -1192,9 +1222,25 @@ bool WaveAudio::Read(sound_db_farc* farc, const char* file_name) {
         float_t* buffer = this->buffer;
         size_t channels = data.channels;
         size_t samples_count = data.samples_count;
-        for (size_t i = samples_count; i; i--)
-            for (size_t j = channels; j; j--)
-                *buffer++ = (float_t)*_buf++ * (float_t)(1.0 / (double_t)0x7FFF);
+        if (channels == 1)
+            for (size_t i = samples_count; i; i--, buffer++, _buf++)
+                *buffer = (float_t)*_buf * (float_t)(1.0 / (double_t)0x7FFF);
+        else if (channels == 2)
+            for (size_t i = samples_count; i; i--, buffer += 2, _buf += 2) {
+                vec2 value;
+                vec2i16_to_vec2(*(vec2i16*)_buf, value);
+                *(vec2*)buffer = value * (float_t)(1.0 / (double_t)0x7FFF);
+            }
+        else if (channels == 4)
+            for (size_t i = samples_count; i; i--, buffer += 4, _buf += 4) {
+                vec4 value;
+                vec4i16_to_vec4(*(vec4i16*)_buf, value);
+                *(vec4*)buffer = value * (float_t)(1.0 / (double_t)0x7FFF);
+            }
+        else
+            for (size_t i = samples_count; i; i--)
+                for (size_t j = channels; j; j--, buffer++, _buf++)
+                    *buffer++ = (float_t)*_buf++ * (float_t)(1.0 / (double_t)0x7FFF);
 
         free(buf);
         ret = true;
@@ -1216,7 +1262,7 @@ void WaveAudio::Reset() {
     data.Reset();
 }
 
-SoundWork::SoundWork() : se_queue_enable(), streaming_enable(), se_queue_volume() {
+SoundWork::SoundWork() : se_queue_enable(), stream_enable(), se_queue_volume() {
     counter = 1;
     speakers_volume = get_max_speakers_volume();
     speakers_volume_changed = true;
@@ -1227,7 +1273,7 @@ SoundWork::SoundWork() : se_queue_enable(), streaming_enable(), se_queue_volume(
     for (bool& i : se_queue_enable)
         i = true;
 
-    for (bool& i : streaming_enable)
+    for (bool& i : stream_enable)
         i = true;
 
     for (int32_t i = 0; i < SOUND_WORK_SE_QUEUE_COUNT; i++)
@@ -1319,19 +1365,27 @@ bool SoundWork::UnloadProperty(const char* file_path) {
     return true;
 }
 
-extern float_t get_min_headphones_volume() {
+sound_stream_info::sound_stream_info() : duration(), time() {
+
+}
+
+sound_stream_info::~sound_stream_info() {
+
+}
+
+float_t get_min_headphones_volume() {
     return 1.0f;//0.02f;
 }
 
-extern float_t get_max_headphones_volume() {
+float_t get_max_headphones_volume() {
     return 0.45f;
 }
 
-extern float_t get_min_speakers_volume() {
+float_t get_min_speakers_volume() {
     return 0.0f;
 }
 
-extern float_t get_max_speakers_volume() {
+float_t get_max_speakers_volume() {
     return 0.8f;
 }
 
@@ -1374,7 +1428,7 @@ void sound_init() {
 
                             PropVariantInit(&pv);
                             if (SUCCEEDED(store->GetValue(PKEY_Device_FriendlyName, &pv)))
-                                printf("%ls\n", pv.pwszVal);
+                                printf_debug("%ls\n", pv.pwszVal);
                             PropVariantClear(&pv);
 
                             store->Release();
@@ -1391,7 +1445,7 @@ void sound_init() {
 
     if (!sound_work)
         sound_work = new SoundWork;
-    
+
     if (!sound_wasapi_system_data)
         sound_wasapi_system_data = new sound::wasapi::System;
 
@@ -1426,7 +1480,7 @@ void sound_init() {
         }
     }
 
-    //sub_140622E00();
+    sound_stream_array_init();
 }
 
 void sound_ctrl() {
@@ -1462,12 +1516,14 @@ void sound_ctrl() {
             i.ReleaseProt(true);
     }
 
-    //sub_140622AD0();
+    sound_stream_array_ctrl();
 
     sound_work->names_list.clear();
 }
 
 void sound_free() {
+    sound_stream_array_free();
+
     if (sound_work) {
         delete sound_work;
         sound_work = 0;
@@ -1479,25 +1535,18 @@ void sound_free() {
     }
 }
 
-bool sound_work_cue_can_play(int32_t queue_index, const char* name) {
-    if (!name)
+bool sound_work_check_stream_state(int32_t index) {
+    if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
         return false;
 
-    SoundCue* cue = sound_work_get_cue(queue_index, name);
-    if (cue)
-        return cue->CanPlay();
-    return false;
+    sound_stream* stream = sound_stream_array_get(index);
+    if (!stream)
+        return false;
+
+    return stream->check_state();
 }
 
-SoundCue* sound_work_get_cue(int32_t queue_index, const char* name) {
-    for (SoundCue& i : sound_work->cues)
-        if ((!i.se_channel || i.property) && i.queue_index == queue_index
-            && !i.name.compare(name))
-            return &i;
-    return 0;
-}
-
-bool sound_work_get_cue_release(int32_t queue_index, const char* name, bool force_release) {
+bool sound_work_cue_release(int32_t queue_index, const char* name, bool force_release) {
     if (!name)
         return false;
 
@@ -1509,11 +1558,54 @@ bool sound_work_get_cue_release(int32_t queue_index, const char* name, bool forc
     return false;
 }
 
+SoundCue* sound_work_get_cue(int32_t queue_index, const char* name) {
+    for (SoundCue& i : sound_work->cues)
+        if ((!i.se_channel || i.property) && i.queue_index == queue_index
+            && !i.name.compare(name))
+            return &i;
+    return 0;
+}
+
+bool sound_work_get_cue_can_play(int32_t queue_index, const char* name) {
+    if (!name)
+        return false;
+
+    SoundCue* cue = sound_work_get_cue(queue_index, name);
+    if (cue)
+        return cue->CanPlay();
+    return false;
+}
+
 sound_db_farc* sound_work_get_farc(const char* file_path) {
     for (sound_db_farc& i : sound_work->farcs)
         if (!i.file_path.compare(file_path))
             return &i;
     return 0;
+}
+
+bool sound_work_get_stream_info(sound_stream_info& info, int32_t index) {
+    if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
+        return false;
+
+    sound_stream* stream = sound_stream_array_get(index);
+    if (!stream)
+        return false;
+
+    info.duration = stream->duration;
+    info.time = stream->time;
+    info.path.assign(stream->path);
+    return true;
+}
+
+float_t sound_work_get_stream_volume(int32_t index) {
+    if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
+        return false;
+
+    sound_stream* stream = sound_stream_array_get(index);
+    if (!stream)
+        return 1.0f;
+
+    return stream->current_volume;
 }
 
 float_t sound_work_get_headphones_volume() {
@@ -1592,6 +1684,28 @@ int32_t sound_work_play_se(int32_t queue_index, const char* name, float_t volume
     return counter;
 }
 
+bool sound_work_play_stream(int32_t index, const char* path, bool pause) {
+    if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
+        return false;
+
+    sound_stream* stream = sound_stream_array_get(index);
+    if (!stream)
+        return false;
+
+    return stream->set_path(path, pause);
+}
+
+bool sound_work_play_stream(int32_t index, const char* path, float_t time, bool pause) {
+    if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
+        return false;
+
+    sound_stream* stream = sound_stream_array_get(index);
+    if (!stream)
+        return false;
+
+    return stream->set_path(path, time, pause);
+}
+
 bool sound_work_read_farc(const char* file_path) {
     if (!file_path || sound_work_get_farc(file_path))
         return false;
@@ -1638,6 +1752,28 @@ bool sound_work_release_se(const char* name, bool release) {
     return found;
 }
 
+bool sound_work_release_stream(int32_t index) {
+    if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
+        return false;
+
+    sound_stream* stream = sound_stream_array_get(index);
+    if (!stream)
+        return false;
+
+    return stream->stop();
+}
+
+bool sound_work_stream_set_pause(int32_t index, bool value) {
+    if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
+        return false;
+
+    sound_stream* stream = sound_stream_array_get(index);
+    if (!stream)
+        return false;
+
+    return stream->set_pause(value);
+}
+
 float_t sound_cue_queue_volume_array_get_max(int32_t queue_index) {
     if (queue_index >= 0 && queue_index < SOUND_WORK_SE_QUEUE_COUNT)
         return sound_cue_queue_volume_array[queue_index].max;
@@ -1682,6 +1818,30 @@ void sound_work_set_speakers_volume(float_t value) {
     }
 }
 
+bool sound_work_set_stream_current_volume(int32_t index, float_t value) {
+    if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
+        return false;
+
+    sound_stream* stream = sound_stream_array_get(index);
+    if (!stream)
+        return false;
+
+    stream->set_current_volume(value);
+    return true;
+}
+
+bool sound_work_set_stream_target_volume(int32_t index, float_t value, int32_t frames) {
+    if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
+        return false;
+
+    sound_stream* stream = sound_stream_array_get(index);
+    if (!stream)
+        return false;
+
+    stream->set_target_volume(value, frames);
+    return true;
+}
+
 bool sound_work_unload_farc(const char* file_path) {
     if (!file_path)
         return false;
@@ -1693,16 +1853,16 @@ bool sound_work_unload_farc(const char* file_path) {
 }
 
 void wave_audio_storage_init() {
-    wave_audio_storage = {};
+    wave_audio_storage_data = {};
 }
 
 void wave_audio_storage_clear() {
-    wave_audio_storage.clear();
+    wave_audio_storage_data.clear();
 }
 
 WaveAudio* wave_audio_storage_get_wave_audio(std::string& name) {
-    auto elem = wave_audio_storage.find(name);
-    if (elem != wave_audio_storage.end())
+    auto elem = wave_audio_storage_data.find(name);
+    if (elem != wave_audio_storage_data.end())
         return &elem->second;
     return 0;
 }
@@ -1716,22 +1876,22 @@ bool wave_audio_storage_load_wave_audio(std::string& name) {
 
     WaveAudio wave_audio;
     if (wave_audio.Read(property->farc, property->file_name.c_str())) {
-        wave_audio_storage.insert({ name, wave_audio });
+        wave_audio_storage_data.insert({ name, wave_audio });
         return true;
     }
     return false;
 }
 
 void wave_audio_storage_unload_wave_audio(std::string& name) {
-    auto elem = wave_audio_storage.find(name);
-    if (elem != wave_audio_storage.end()) {
+    auto elem = wave_audio_storage_data.find(name);
+    if (elem != wave_audio_storage_data.end()) {
         elem->second.Reset();
-        wave_audio_storage.erase(elem);
+        wave_audio_storage_data.erase(elem);
     }
 }
 
 void wave_audio_storage_free() {
-    wave_audio_storage.clear();
+    wave_audio_storage_data.clear();
 }
 
 static size_t ima_decode(int16_t* dst, size_t dst_size, uint8_t* data, size_t samples_count,
@@ -1772,4 +1932,220 @@ static size_t ima_decode(int16_t* dst, size_t dst_size, uint8_t* data, size_t sa
         }
     }
     return act_samp_count;
+}
+
+sound_stream::sound_stream() : ogg_playback(), duration(), pause(), file_loading_frames(),
+file_ready_frames(), time_seek(), volume_trans(), state(), play_state(), time() {
+    current_volume = 1.0f;
+    target_volume = 1.0f;
+}
+
+sound_stream::~sound_stream() {
+
+}
+
+bool sound_stream::check_state() {
+    if (play_state == 1)
+        return true;
+    return state == 1;
+}
+
+void sound_stream::ctrl() {
+    if (!check_state())
+        return;
+
+    if (play_state == 1 && volume_trans > 0) {
+        current_volume += (target_volume - current_volume) / (float_t)volume_trans;
+        volume_trans--;
+    }
+
+    if (path.size() < 4)
+        return;
+
+    std::string ext;
+    ext.assign(path.c_str() + (path.size() - 4), 4);
+    for (char& c : ext)
+        if (c >= 'A' && c <= 'Z')
+            c += 0x20;
+
+    if (ext.compare(".ogg"))
+        return;
+
+    if (!ogg_playback) {
+        size_t index = 0;
+        for (size_t i = 0; i < SOUND_WORK_STREAM_COUNT; i++)
+            if (&sound_stream_array[i] == this) {
+                index = i;
+                break;
+            }
+
+        ogg_playback = ogg_playback_data_get(index);
+    }
+
+    if (ogg_playback)
+        ctrl_playback();
+}
+
+void sound_stream::ctrl_playback() {
+    OggFileHandlerFileState file_state = OGG_FILE_HANDLER_FILE_STATE_NONE;
+    if (ogg_playback) {
+        file_state = ogg_playback->GetFileState();
+        ogg_playback->SetMasterVolume(ratio_to_db(current_volume));
+    }
+
+    duration = 0.0f;
+    time = 0.0f;
+    play_state = 0;
+
+    if (file_state == OGG_FILE_HANDLER_FILE_STATE_NONE
+        || (file_state >= OGG_FILE_HANDLER_FILE_STATE_STOPPED
+        && file_state <= OGG_FILE_HANDLER_FILE_STATE_MAX)) {
+        play_state = 0;
+        file_loading_frames = 0;
+        file_ready_frames = 0;
+        duration = 0.0f;
+        time = 0.0f;
+        if (state != 1) {
+            state = 0;
+            stop_playback();
+        }
+        else if (set_path_playback()) {
+            play_state = 1;
+            state = 0;
+        }
+        else
+            stop_playback();
+    }
+    else if (file_state >= OGG_FILE_HANDLER_FILE_STATE_LOADING
+        && file_state <= OGG_FILE_HANDLER_FILE_STATE_STOPPING) {
+        play_state = 1;
+        if (ogg_playback) {
+            if (ogg_playback->GetPauseState() == OGG_FILE_HANDLER_PAUSE_STATE_PLAY) {
+                file_loading_frames += file_state == OGG_FILE_HANDLER_FILE_STATE_LOADING;
+                file_ready_frames += file_state == OGG_FILE_HANDLER_FILE_STATE_READY;
+            }
+            float_t _duration = ogg_playback->GetDuration();
+            float_t _time = ogg_playback->GetTime();
+            duration = _duration;
+            if (_duration > 0.0f && _time > _duration)
+                do
+                    _time -= _duration;
+            while (_time > _duration);
+            time = _time;
+        }
+
+        if (state)
+            stop_playback();
+    }
+
+    OggPlayback::SetChannelPairVolumePan(ogg_playback);
+}
+
+void sound_stream::reset() {
+    state = 0;
+    play_state = 0;
+}
+
+void sound_stream::set_current_volume(float_t value) {
+    current_volume = clamp_def(value, 0.0f, 1.0f);
+    volume_trans = 0;
+}
+
+bool sound_stream::set_path(const char* path, bool pause) {
+    if (!pause) {
+        bool paused = false;
+        if (ogg_playback)
+            paused = ogg_playback->GetPauseState() == OGG_FILE_HANDLER_PAUSE_STATE_PAUSE;
+
+        if (!(this->path.compare(path) || !check_state() || !paused)) {
+            if (ogg_playback)
+                ogg_playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
+            pause = 0;
+            return true;
+        }
+    }
+
+    this->path.assign(path);
+    state = 1;
+    this->pause = pause;
+    current_volume = sound_stream_volume;
+    time_seek = 0.0f;
+    volume_trans = 0;
+    target_volume = sound_stream_volume;
+    return true;
+}
+
+bool sound_stream::set_path(const char* path, float_t time, bool pause) {
+    bool res = set_path(path, pause);
+    if (res)
+        time_seek = time;
+    return res;
+}
+
+bool sound_stream::set_path_playback() {
+    if (!ogg_playback)
+        return false;
+
+    ogg_playback->SetPauseState(pause
+        ? OGG_FILE_HANDLER_PAUSE_STATE_PAUSE : OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
+    ogg_playback->SetTimeSeek(time_seek);
+    ogg_playback->SetPath(path);
+    return true;
+}
+
+bool sound_stream::set_pause(bool value) {
+    if (!ogg_playback)
+        return false;
+
+    pause = value;
+    ogg_playback->SetPauseState(value
+        ? OGG_FILE_HANDLER_PAUSE_STATE_PAUSE : OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
+    return true;
+}
+
+void sound_stream::set_target_volume(float_t value, int32_t frames) {
+    target_volume = value;
+    volume_trans = max_def(frames, 1);
+}
+
+bool sound_stream::stop() {
+    state = 2;
+    return true;
+}
+
+bool sound_stream::stop_playback() {
+    if (!ogg_playback)
+        return false;
+
+    ogg_playback->SetPlaybackState(OGG_FILE_HANDLER_PLAYBACK_STATE_STOP);
+    ogg_playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
+    return true;
+}
+
+static void sound_stream_array_init() {
+    if (!sound_stream_array)
+        sound_stream_array = new sound_stream[SOUND_WORK_STREAM_COUNT];
+}
+
+static void sound_stream_array_ctrl() {
+    for (size_t i = 0; i < SOUND_WORK_STREAM_COUNT; i++)
+        sound_stream_array[i].ctrl();
+}
+
+static sound_stream* sound_stream_array_get(int32_t index) {
+    if (index >= 0 && index < SOUND_WORK_STREAM_COUNT)
+        return &sound_stream_array[index];
+    return 0;
+}
+
+static void sound_stream_array_reset() {
+    for (size_t i = 0; i < SOUND_WORK_STREAM_COUNT; i++)
+        sound_stream_array[i].reset();
+}
+
+static void sound_stream_array_free() {
+    if (sound_stream_array) {
+        delete[] sound_stream_array;
+        sound_stream_array = 0;
+    }
 }

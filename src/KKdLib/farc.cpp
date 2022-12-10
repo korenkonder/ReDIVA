@@ -41,45 +41,71 @@ farc::~farc() {
 
 }
 
-farc_file::farc_file() : offset(), size(), size_compressed(),
-data(), data_compressed(), flags(), data_changed() {
+farc_file* farc::add_file(const char* name) {
+    if (!name)
+        return 0;
 
-}
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
+    for (farc_file& i : files)
+        if (hash_string_fnv1a64m(i.name, true) == name_hash)
+            return &i;
 
-farc_file::~farc_file() {
-    free_def(data);
-    free_def(data_compressed);
-}
-
-void farc::add_file(const char* name) {
     size_t files_count = files.size();
-    void** data_temp = force_malloc_s(void*, files_count * 2);
+    void** data_temp = new void* [files_count];
+    void** data_comp_temp = new void* [files_count];
+    if (!data_temp || !data_comp_temp) {
+        if (data_temp)
+            delete[] data_temp;
+        if (data_comp_temp)
+            delete[] data_comp_temp;
+        return 0;
+    }
+
     for (size_t i = 0; i < files_count; i++) {
-        data_temp[i * 2 + 0] = files[i].data;
-        data_temp[i * 2 + 1] = files[i].data_compressed;
+        data_temp[i] = files[i].data;
+        data_comp_temp[i] = files[i].data_compressed;
         files[i].data = 0;
         files[i].data_compressed = 0;
     }
 
     files.push_back({});
-    if (name)
-        files.back().name = name;
+    files.back().name.assign(name);
 
     for (size_t i = 0; i < files_count; i++) {
-        files[i].data = data_temp[i * 2 + 0];
-        files[i].data_compressed = data_temp[i * 2 + 1];
-        data_temp[i * 2 + 0] = 0;
-        data_temp[i * 2 + 1] = 0;
+        files[i].data = data_temp[i];
+        files[i].data_compressed = data_comp_temp[i];
+        data_temp[i] = 0;
+        data_comp_temp[i] = 0;
     }
-    free_def(data_temp);
+
+    delete[] data_temp;
+    delete[] data_comp_temp;
+
+    return &files.back();
 }
 
-void farc::add_file(const wchar_t* name) {
+farc_file* farc::add_file(const wchar_t* name) {
+    if (!name)
+        return 0;
+
+    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
+    for (farc_file& i : files)
+        if (hash_string_fnv1a64m(i.name, true) == name_hash)
+            return &i;
+
     size_t files_count = files.size();
-    void** data_temp = force_malloc_s(void*, files_count * 2);
+    void** data_temp = new void* [files_count];
+    void** data_comp_temp = new void* [files_count];
+    if (!data_temp || !data_comp_temp) {
+        if (data_temp)
+            delete[] data_temp;
+        if (data_comp_temp)
+            delete[] data_comp_temp;
+    }
+
     for (size_t i = 0; i < files_count; i++) {
-        data_temp[i * 2 + 0] = files[i].data;
-        data_temp[i * 2 + 1] = files[i].data_compressed;
+        data_temp[i] = files[i].data;
+        data_comp_temp[i] = files[i].data_compressed;
         files[i].data = 0;
         files[i].data_compressed = 0;
     }
@@ -87,17 +113,21 @@ void farc::add_file(const wchar_t* name) {
     files.push_back({});
     if (name) {
         char* name_temp = utf16_to_utf8(name);
-        files.back().name = name_temp;
+        files.back().name.assign(name_temp);
         free_def(name_temp);
     }
 
     for (size_t i = 0; i < files_count; i++) {
-        files[i].data = data_temp[i * 2 + 0];
-        files[i].data_compressed = data_temp[i * 2 + 1];
-        data_temp[i * 2 + 0] = 0;
-        data_temp[i * 2 + 1] = 0;
+        files[i].data = data_temp[i];
+        files[i].data_compressed = data_comp_temp[i];
+        data_temp[i] = 0;
+        data_comp_temp[i] = 0;
     }
-    free_def(data_temp);
+
+    delete[] data_temp;
+    delete[] data_comp_temp;
+
+    return &files.back();
 }
 
 const char* farc::get_file_name(uint32_t hash) {
@@ -121,9 +151,9 @@ size_t farc::get_file_size(const char* name) {
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
     for (farc_file& i : files)
-        if (hash_string_murmurhash(i.name) == name_hash)
+        if (hash_string_fnv1a64m(i.name, true) == name_hash)
             return i.size;
     return 0;
 }
@@ -132,10 +162,27 @@ size_t farc::get_file_size(const wchar_t* name) {
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf16_murmurhash(name);
+    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
     for (farc_file& i : files)
-        if (hash_string_murmurhash(i.name) == name_hash)
+        if (hash_string_fnv1a64m(i.name, true) == name_hash)
             return i.size;
+    return 0;
+}
+
+size_t farc::get_file_size(uint32_t hash) {
+    if (!hash || hash == hash_murmurhash_empty)
+        return 0;
+
+    for (farc_file& i : files) {
+        const char* l_str = i.name.c_str();
+        const char* t = strrchr(l_str, '.');
+        size_t l_len = i.name.size();
+        if (t)
+            l_len = t - l_str;
+
+        if (hash_murmurhash(l_str, l_len) == hash)
+            return i.size;
+    }
     return 0;
 }
 
@@ -143,9 +190,9 @@ bool farc::has_file(const char* name) {
     if (!name)
         return false;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
     for (farc_file& i : files)
-        if (hash_string_murmurhash(i.name) == name_hash)
+        if (hash_string_fnv1a64m(i.name, true) == name_hash)
             return true;
     return false;
 }
@@ -154,9 +201,9 @@ bool farc::has_file(const wchar_t* name) {
     if (!name)
         return false;
 
-    uint32_t name_hash = hash_utf16_murmurhash(name);
+    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
     for (farc_file& i : files)
-        if (hash_string_murmurhash(i.name) == name_hash)
+        if (hash_string_fnv1a64m(i.name, true) == name_hash)
             return true;
     return false;
 }
@@ -192,7 +239,6 @@ void farc::read(const wchar_t* path, bool unpack, bool save) {
         return;
 
     files.clear();
-    files.shrink_to_fit();
 
     wchar_t full_path_buf[MAX_PATH];
     wchar_t* full_path = _wfullpath(full_path_buf, path, MAX_PATH);
@@ -204,8 +250,8 @@ void farc::read(const wchar_t* path, bool unpack, bool save) {
 
     char* dir_temp = utf16_to_utf8(full_path_buf);
     size_t dir_temp_len = utf8_length(dir_temp);
-    file_path = std::string(dir_temp, dir_temp_len);
-    directory_path = std::string(dir_temp, dir_temp_len);
+    file_path.assign(dir_temp, dir_temp_len);
+    directory_path.assign(dir_temp, dir_temp_len);
     free_def(dir_temp);
 
     const char* dot = strrchr(directory_path.c_str(), '.');
@@ -223,10 +269,9 @@ void farc::read(const void* data, size_t size, bool unpack) {
         return;
 
     files.clear();
-    files.shrink_to_fit();
+    file_path.clear();
 
-    file_path = {};
-    directory_path = {};
+    directory_path.clear();
 
     memory_stream s;
     s.open(data, size);
@@ -238,9 +283,9 @@ farc_file* farc::read_file(const char* name) {
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
+    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
     for (farc_file& i : files)
-        if (hash_string_murmurhash(i.name) == name_hash) {
+        if (hash_string_fnv1a64m(i.name, true) == name_hash) {
             farc_unpack_file(this, &i);
             return &i;
         }
@@ -251,9 +296,9 @@ farc_file* farc::read_file(const wchar_t* name) {
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf16_murmurhash(name);
+    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
     for (farc_file& i : files)
-        if (hash_string_murmurhash(i.name) == name_hash) {
+        if (hash_string_fnv1a64m(i.name, true) == name_hash) {
             farc_unpack_file(this, &i);
             return &i;
         }
@@ -294,7 +339,6 @@ void farc::write(const wchar_t* path, farc_compress_mode mode, bool get_files) {
 
     if (get_files) {
         files.clear();
-        files.shrink_to_fit();
     }
 
     wchar_t full_path_buf[MAX_PATH];
@@ -307,9 +351,9 @@ void farc::write(const wchar_t* path, farc_compress_mode mode, bool get_files) {
 
     char* dir_temp = utf16_to_utf8(full_path_buf);
     size_t dir_temp_len = utf8_length(dir_temp);
-    directory_path = std::string(dir_temp, dir_temp_len);
-    file_path = std::string(dir_temp, dir_temp_len);
-    file_path += ".farc", 6;
+    directory_path.assign(dir_temp, dir_temp_len);
+    file_path.assign(dir_temp, dir_temp_len);
+    file_path.append(".farc", 5);
     free_def(dir_temp);
 
     if (!get_files || (get_files && !farc_get_files(this))) {
@@ -324,8 +368,8 @@ void farc::write(void** data, size_t* size, farc_compress_mode mode) {
     if (!data || !size)
         return;
 
-    directory_path = {};
-    file_path = {};
+    directory_path.clear();
+    file_path.clear();
 
     memory_stream s;
     s.open();
@@ -334,7 +378,7 @@ void farc::write(void** data, size_t* size, farc_compress_mode mode) {
 
 bool farc::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
-    if (file_len >= 5 && memcmp(&file[file_len - 5], ".farc", 6))
+    if (file_len < 5 || memcmp(&file[file_len - 5], ".farc", 6))
         return false;
 
     size_t path_len = utf8_length(path);
@@ -652,7 +696,6 @@ static errno_t farc_read_header(farc* f, stream& s) {
     }
 
     f->files.clear();
-    f->files.shrink_to_fit();
 
     uint8_t* d_t;
     uint8_t* dt;

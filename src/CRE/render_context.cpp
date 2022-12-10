@@ -16,13 +16,82 @@
 float_t delta_frame_history = 0;
 int32_t delta_frame_history_int = 0;
 
+static void object_data_get_vertex_attrib_buffer_bindings(draw_object* draw,
+    int32_t texcoord_array[2], GLuint vertex_attrib_buffer_binding[16]);
+
 static void render_context_light_param_data_ibl_set_diffuse(light_param_ibl_diffuse* diffuse, int32_t level);
 static void render_context_light_param_data_ibl_set_specular(light_param_ibl_specular* specular);
+
+static const GLuint        POSITION_INDEX =  0;
+static const GLuint     BONE_WEIGHT_INDEX =  1;
+static const GLuint          NORMAL_INDEX =  2;
+static const GLuint          COLOR0_INDEX =  3;
+static const GLuint          COLOR1_INDEX =  4;
+static const GLuint     MORPH_COLOR_INDEX =  5;
+static const GLuint         TANGENT_INDEX =  6;
+static const GLuint         UNKNOWN_INDEX =  7;
+static const GLuint       TEXCOORD0_INDEX =  8;
+static const GLuint       TEXCOORD1_INDEX =  9;
+static const GLuint  MORPH_POSITION_INDEX = 10;
+static const GLuint    MORPH_NORMAL_INDEX = 11;
+static const GLuint   MORPH_TANGENT_INDEX = 12;
+static const GLuint MORPH_TEXCOORD0_INDEX = 13;
+static const GLuint MORPH_TEXCOORD1_INDEX = 14;
+static const GLuint      BONE_INDEX_INDEX = 15;
+
+struct struc_189 {
+    GLenum type;
+    int32_t width;
+    int32_t height;
+    int32_t max_level;
+    GLenum color_format;
+    GLenum depth_format;
+};
+
+static const struc_189 stru_140A24420[] = {
+    { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA8, GL_DEPTH_COMPONENT24 },
+    { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24 },
+    { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8, GL_ZERO },
+    { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8, GL_ZERO },
+    { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8, GL_ZERO },
+    { GL_TEXTURE_2D, 0x100, 0x100, 0, GL_RGBA8, GL_ZERO },
+    { GL_TEXTURE_2D, 0x100, 0x100, 0, GL_RGBA32F, GL_ZERO },
+    { GL_TEXTURE_2D, 0x100, 0x100, 0, GL_RGBA8, GL_ZERO },
+};
+
+static const int32_t stru_140A244E0[][3] = {
+    { 1, 1, 1 },
+    { 0, 0, 0 },
+    { 6, 6, 6 },
+    { 6, 6, 6 },
+    { 6, 6, 6 },
+    { 2, 2, 2 },
+    { 3, 3, 3 },
+    { 4, 4, 4 },
+    { 5, 5, 5 },
+    { 6, 6, 6 },
+    { 7, 7, 7 },
+};
+
+draw_state_stats::draw_state_stats() : object_draw_count(), object_translucent_draw_count(),
+object_reflect_draw_count(), field_C(), field_10(), draw_count(), draw_triangle_count(), field_1C() {
+
+}
+
+void draw_state_stats::reset() {
+    object_draw_count = 0;
+    object_translucent_draw_count = 0;
+    object_reflect_draw_count = 0;
+    field_C = 0;
+    field_10 = 0;
+    draw_count = 0;
+    draw_triangle_count = 0;
+    field_1C = 0;
+}
 
 sss_data::sss_data() : init(), enable(), npr_contour(), param() {
     init = true;
     enable = true;
-    npr_contour = true;
     param = { 0.0f, 0.0f, 0.0f, 1.0f };
 
     textures[0].init(640, 360, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
@@ -35,9 +104,11 @@ sss_data::~sss_data() {
 
 }
 
-draw_pass::draw_pass() :enable(), reflect_blur_num(), reflect_blur_filter(), wait_for_gpu(), cpu_time(), gpu_time(),
-time(), draw_pass_3d(), reflect_type(), show_vector_flags(), show_vector_length(), show_vector_z_offset(),
-field_2F8(), sss_texture(), npr_param(), field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr() {
+draw_pass::draw_pass() : enable(), reflect_blur_num(), reflect_blur_filter(),
+wait_for_gpu(), cpu_time(), gpu_time(), time(), draw_pass_3d(), reflect_type(), tex_index(),
+multisample_framebuffer(), multisample_renderbuffer(), multisample(), show_vector_flags(),
+show_vector_length(), show_vector_z_offset(), field_2F8(), effect_texture(), npr_param(),
+field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr(), samplers() {
     for (bool& i : enable)
         i = true;
     reflect = true;
@@ -47,19 +118,162 @@ field_2F8(), sss_texture(), npr_param(), field_31C(), field_31D(), field_31E(), 
     alpha_z_sort = true;
     for (bool& i : draw_pass_3d)
         i = true;
-    reflect_texture.init(512, 256, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
-    refract_texture.init(512, 256, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
+
     shadow_ptr = new ::shadow;
     if (shadow_ptr)
         shadow_ptr->init_data();
+
+    for (int32_t i = 0; i < 8; i++) {
+        const struc_189* v2 = &stru_140A24420[i];
+        if (v2->type != GL_TEXTURE_2D)
+            continue;
+
+        render_texture& rt = render_textures[i];
+        rt.init(v2->width, v2->height, v2->max_level, v2->color_format, v2->depth_format);
+        rt.bind();
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+    gl_state_bind_framebuffer(0);
+
+    glCreateSamplers(18, samplers);
+    for (int32_t i = 0; i < 18; i++) {
+        GLuint sampler = samplers[i];
+
+        static const vec4 border_color = 0.0f;
+        glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+        glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER,
+            i % 2 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        GLuint wrap_s;
+        switch (i / 2 % 3) {
+        case 0:
+            wrap_s = GL_CLAMP_TO_EDGE;
+            break;
+        case 1:
+            wrap_s = GL_REPEAT;
+            break;
+        case 2:
+            wrap_s = GL_MIRRORED_REPEAT;
+            break;
+        }
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, wrap_s);
+
+        GLenum wrap_t;
+        switch (i / 6 % 3) {
+        case 0:
+            wrap_t = GL_CLAMP_TO_EDGE;
+            break;
+        case 1:
+            wrap_t = GL_REPEAT;
+            break;
+        case 2:
+            wrap_t = GL_MIRRORED_REPEAT;
+            break;
+        }
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, wrap_t);
+    }
 }
 
 draw_pass::~draw_pass() {
     delete shadow_ptr;
+
+    if (multisample_renderbuffer) {
+        glDeleteRenderbuffers(1, &multisample_renderbuffer);
+        multisample_renderbuffer = 0;
+    }
+
+    if (multisample_framebuffer) {
+        glDeleteFramebuffers(1, &multisample_framebuffer);
+        multisample_framebuffer = 0;
+    }
 }
 
-draw_state::draw_state() : stats(), stats_prev(), wireframe(), wireframe_overlay(), light(),
-self_shadow(), field_45(), use_global_material(), fog_height(), ex_data_mat(), field_68() {
+void draw_pass::add_preprocess(int32_t type, void(*func)(void*), void* data) {
+    preprocess.push_back({ type, func, data });
+}
+
+void draw_pass::clear_preprocess(int32_t type) {
+    for (std::list<draw_preprocess>::iterator i = preprocess.begin(); i != preprocess.end(); i++)
+        if (i->type == type) {
+            preprocess.erase(i);
+            break;
+        }
+}
+
+render_texture& draw_pass::get_render_texture(int32_t index) {
+    return render_textures[stru_140A244E0[index][tex_index[index]]];
+}
+
+void draw_pass::resize(int32_t width, int32_t height) {
+    if (!multisample_framebuffer)
+        glGenFramebuffers(1, &multisample_framebuffer);
+
+    if (!multisample_renderbuffer)
+        glGenRenderbuffers(1, &multisample_renderbuffer);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, multisample_framebuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, multisample_renderbuffer);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 8, GL_RGBA8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, multisample_renderbuffer);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+void draw_pass::set_enable(draw_pass_type type, bool value) {
+    enable[type] = value;
+}
+
+void draw_pass::set_effect_texture(texture* value) {
+    effect_texture = value;
+}
+
+void draw_pass::set_multisample(bool value) {
+    multisample = value;
+}
+
+void draw_pass::set_npr_param(int32_t value) {
+    npr_param = value;
+}
+
+void draw_pass::set_reflect(bool value) {
+    reflect = value;
+}
+
+void draw_pass::set_reflect_blur(int32_t reflect_blur_num, blur_filter_mode reflect_blur_filter) {
+    this->reflect_blur_num = reflect_blur_num;
+    this->reflect_blur_filter = reflect_blur_filter;
+}
+
+void draw_pass::set_reflect_resolution_mode(reflect_refract_resolution_mode mode) {
+    tex_index[0] = mode;
+}
+
+void draw_pass::set_reflect_type(stage_data_reflect_type type) {
+    reflect_type = type;
+}
+
+void draw_pass::set_refract(bool value) {
+    refract = value;
+}
+
+void draw_pass::set_refract_resolution_mode(reflect_refract_resolution_mode mode) {
+    tex_index[1] = mode;
+}
+
+void draw_pass::set_shadow_false() {
+    shadow = false;
+}
+
+void draw_pass::set_shadow_true() {
+    shadow = true;
+}
+
+draw_state::draw_state() : wireframe(), wireframe_overlay(), light(), self_shadow(),
+field_45(), use_global_material(), fog_height(), ex_data_mat(), field_68() {
     shader = true;
     shader_index = -1;
     field_50 = -1;
@@ -69,6 +283,10 @@ self_shadow(), field_45(), use_global_material(), fog_height(), ex_data_mat(), f
     reflect_uv_scale = 0.1f;
     refract_uv_scale = 0.1f;
     fresnel = 7.0f;
+}
+
+void draw_state::set_fog_height(bool value) {
+    fog_height = value;
 }
 
 material_list_struct::material_list_struct() : blend_color(),
@@ -120,13 +338,14 @@ bool light_proj::set(render_context* rctx) {
     if (!this)
         return false;
 
+    static const vec4 color_clear = 1.0f;
     static const GLfloat depth_clear = 1.0f;
 
     shadow_texture[0].bind();
     glViewport(0, 0, 2048, 512);
     gl_state_enable_depth_test();
     gl_state_set_depth_mask(GL_TRUE);
-    glClearBufferfv(GL_COLOR, 0, (float_t*)&vec4_identity);
+    glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);
 
     if (set_mat(rctx, false)) {
@@ -140,7 +359,7 @@ bool light_proj::set(render_context* rctx) {
             draw_texture.color_texture->height);
         gl_state_enable_depth_test();
         gl_state_set_depth_mask(GL_TRUE);
-        glClearBufferfv(GL_COLOR, 0, (float_t*)&vec4_identity);
+        glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
         glClearBufferfv(GL_DEPTH, 0, &depth_clear);
     }
     return false;
@@ -164,12 +383,12 @@ void light_proj::get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat
     else {
         mat4 proj;
         mat4_persp(fov, 4.0, 0.1000000014901161, 10.0, &proj);
-        shaders_ft.state_matrix_set_projection(proj, false);
 
         mat4 view;
         vec3 up = { 0.0f, 1.0f, 0.0f };
         mat4_look_at(view_point, interest, &up, &view);
-        shaders_ft.state_matrix_set_modelview(0, view, true);
+
+        shaders_ft.state_matrix_set_mvp(view, proj);
     }
 }
 
@@ -275,10 +494,10 @@ material_list_count(), material_list_array(), object_bounding_sphere_check_func(
     object_culling = true;
     object_sort = true;
     chara_color = true;
-    texture_color_coeff = vec4_identity;
-    texture_color_offset = vec4_null;
-    texture_specular_coeff = vec4_identity;
-    texture_specular_offset = vec4_null;
+    texture_color_coeff = 1.0f;
+    texture_color_offset = 0.0f;
+    texture_specular_coeff = 1.0f;
+    texture_specular_offset = 0.0f;
 }
 
 object_data::~object_data() {
@@ -294,6 +513,7 @@ void object_data::add_vertex_array(draw_object* draw) {
 
     GLuint array_buffer = draw->array_buffer;
     GLuint morph_array_buffer = draw->morph_array_buffer;
+    GLuint element_array_buffer = draw->element_array_buffer;
 
     int32_t texcoord_array[2] = { -1, -1 };
     int32_t color_tex_index = 0;
@@ -312,104 +532,135 @@ void object_data::add_vertex_array(draw_object* draw) {
             color_tex_index++;
     }
 
-    object_data_vertex_array* vertex_array_data = 0;
-    for (object_data_vertex_array& i : vertex_array_cache)
-        if (i.alive_time >= 0 && i.array_buffer == array_buffer && i.morph_array_buffer == morph_array_buffer
-            && !memcmp(i.texcoord_array, texcoord_array, sizeof(texcoord_array))) {
-            if (!i.vertex_array) {
-                vertex_array_data = &i;
-                break;
-            }
-
-            i.alive_time = 2;
-            return;
-        }
-
-    if (!vertex_array_data)
-        for (object_data_vertex_array& i : vertex_array_cache)
-            if (i.alive_time <= 0) {
-                vertex_array_data = &i;
-                break;
-            }
-
-    if (!vertex_array_data) {
-        vertex_array_cache.push_back({});
-        vertex_array_data = &vertex_array_cache.back();
-        *vertex_array_data = {};
-    }
-
-    if (!vertex_array_data->vertex_array)
-        glGenVertexArrays(1, &vertex_array_data->vertex_array);
-
-    vertex_array_data->array_buffer = array_buffer;
-    vertex_array_data->morph_array_buffer = morph_array_buffer;
-    vertex_array_data->alive_time = 2;
-    memcpy(&vertex_array_data->texcoord_array, texcoord_array, sizeof(texcoord_array));
+    GLuint vertex_attrib_buffer_binding[16] = {};
+    object_data_get_vertex_attrib_buffer_bindings(draw,
+        texcoord_array, vertex_attrib_buffer_binding);
 
     bool compressed = mesh->attrib.m.compressed;
     GLsizei size_vertex = (GLsizei)mesh->size_vertex;
     obj_vertex_format vertex_format = mesh->vertex_format;
 
-    gl_state_bind_vertex_array(vertex_array_data->vertex_array);
-    gl_state_bind_array_buffer(draw->array_buffer);
-    gl_state_bind_element_array_buffer(draw->element_array_buffer);
+    object_data_vertex_array* vertex_array = 0;
+    for (object_data_vertex_array& i : vertex_array_cache)
+        if (i.alive_time >= 0 && i.array_buffer == array_buffer && i.morph_array_buffer == morph_array_buffer
+            && i.element_array_buffer == element_array_buffer && i.vertex_format == vertex_format
+            && i.size_vertex == size_vertex && i.compressed == compressed
+            && !memcmp(i.vertex_attrib_buffer_binding,
+                vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding))
+            && !memcmp(i.texcoord_array, texcoord_array, sizeof(texcoord_array)))
+            if (i.vertex_array) {
+                i.alive_time = 60;
+                return;
+            }
+            else {
+                vertex_array = &i;
+                break;
+            }
+
+
+    if (!vertex_array)
+        for (object_data_vertex_array& i : vertex_array_cache)
+            if (i.alive_time <= 0) {
+                vertex_array = &i;
+                break;
+            }
+
+    if (!vertex_array) {
+        vertex_array_cache.push_back({});
+        vertex_array = &vertex_array_cache.back();
+    }
+
+    if (!vertex_array->vertex_array) {
+        glGenVertexArrays(1, &vertex_array->vertex_array);
+
+        gl_state_bind_vertex_array(vertex_array->vertex_array);
+        glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
+        glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(         COLOR0_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
+        glVertexAttrib4f(         COLOR1_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
+        glVertexAttrib4f(    MORPH_COLOR_INDEX, 1.0f, 1.0f, 1.0f, 1.0f);
+        glVertexAttrib4f(        TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(        UNKNOWN_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(      TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(      TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f( MORPH_POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(   MORPH_NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(  MORPH_TANGENT_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(MORPH_TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(MORPH_TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
+        glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
+    }
+
+    vertex_array->array_buffer = array_buffer;
+    vertex_array->morph_array_buffer = morph_array_buffer;
+    vertex_array->element_array_buffer = element_array_buffer;
+    vertex_array->alive_time = 60;
+    vertex_array->vertex_format = vertex_format;
+    vertex_array->size_vertex = size_vertex;
+    vertex_array->compressed = compressed;
+    memcpy(&vertex_array->texcoord_array, texcoord_array, sizeof(texcoord_array));
+    memcpy(&vertex_array->vertex_attrib_buffer_binding,
+        vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding));
+
+    gl_state_bind_vertex_array(vertex_array->vertex_array);
+    gl_state_bind_array_buffer(array_buffer);
+    if (element_array_buffer)
+        gl_state_bind_element_array_buffer(element_array_buffer, true);
 
     size_t offset = 0;
     if (vertex_format & OBJ_VERTEX_POSITION) {
-        if (!vertex_array_data->vertex_attrib_array[0]) {
-            glEnableVertexAttribArray(0);
-            vertex_array_data->vertex_attrib_array[0] = true;
+        if (!vertex_array->vertex_attrib_array[POSITION_INDEX]) {
+            glEnableVertexAttribArray(POSITION_INDEX);
+            vertex_array->vertex_attrib_array[POSITION_INDEX] = true;
         }
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+        glVertexAttribPointer(POSITION_INDEX, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
         offset += 12;
     }
-    else if (vertex_array_data->vertex_attrib_array[0]) {
-        glDisableVertexAttribArray(0);
-        glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
-        vertex_array_data->vertex_attrib_array[0] = false;
+    else if (vertex_array->vertex_attrib_array[POSITION_INDEX]) {
+        glDisableVertexAttribArray(POSITION_INDEX);
+        vertex_array->vertex_attrib_array[POSITION_INDEX] = false;
     }
 
     if (vertex_format & OBJ_VERTEX_NORMAL) {
-        if (!vertex_array_data->vertex_attrib_array[2]) {
-            glEnableVertexAttribArray(2);
-            vertex_array_data->vertex_attrib_array[2] = true;
+        if (!vertex_array->vertex_attrib_array[NORMAL_INDEX]) {
+            glEnableVertexAttribArray(NORMAL_INDEX);
+            vertex_array->vertex_attrib_array[NORMAL_INDEX] = true;
         }
 
         if (!compressed) {
-            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            glVertexAttribPointer(NORMAL_INDEX, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
             offset += 12;
         }
         else {
-            glVertexAttribPointer(2, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
+            glVertexAttribPointer(NORMAL_INDEX, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
             offset += 8;
         }
     }
-    else if (vertex_array_data->vertex_attrib_array[2]) {
-        glDisableVertexAttribArray(2);
-        glVertexAttrib4f(2, 0.0f, 0.0f, 0.0f, 1.0f);
-        vertex_array_data->vertex_attrib_array[2] = false;
+    else if (vertex_array->vertex_attrib_array[NORMAL_INDEX]) {
+        glDisableVertexAttribArray(NORMAL_INDEX);
+        vertex_array->vertex_attrib_array[NORMAL_INDEX] = false;
     }
 
     if (vertex_format & OBJ_VERTEX_TANGENT) {
-        if (!vertex_array_data->vertex_attrib_array[6]) {
-            glEnableVertexAttribArray(6);
-            vertex_array_data->vertex_attrib_array[6] = true;
+        if (!vertex_array->vertex_attrib_array[TANGENT_INDEX]) {
+            glEnableVertexAttribArray(TANGENT_INDEX);
+            vertex_array->vertex_attrib_array[TANGENT_INDEX] = true;
         }
 
         if (!compressed) {
-            glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            glVertexAttribPointer(TANGENT_INDEX, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
             offset += 16;
         }
         else {
-            glVertexAttribPointer(6, 4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
+            glVertexAttribPointer(TANGENT_INDEX, 4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
             offset += 8;
         }
     }
-    else if (vertex_array_data->vertex_attrib_array[6]) {
-        glDisableVertexAttribArray(6);
-        glVertexAttrib4f(6, 0.0f, 0.0f, 0.0f, 1.0f);
-        vertex_array_data->vertex_attrib_array[6] = false;
+    else if (vertex_array->vertex_attrib_array[TANGENT_INDEX]) {
+        glDisableVertexAttribArray(TANGENT_INDEX);
+        vertex_array->vertex_attrib_array[TANGENT_INDEX] = false;
     }
 
     if (!compressed && vertex_format & OBJ_VERTEX_BINORMAL)
@@ -418,25 +669,24 @@ void object_data::add_vertex_array(draw_object* draw) {
     for (int32_t i = 0; i < 2; i++) {
         int32_t texcoord_index = texcoord_array[i];
         if (texcoord_index < 0) {
-            if (vertex_array_data->vertex_attrib_array[8 + i]) {
-                glDisableVertexAttribArray(8 + i);
-                glVertexAttrib4f(8 + i, 0.0f, 0.0f, 0.0f, 1.0f);
-                vertex_array_data->vertex_attrib_array[8 + i] = false;
+            if (vertex_array->vertex_attrib_array[TEXCOORD0_INDEX + i]) {
+                glDisableVertexAttribArray(TEXCOORD0_INDEX + i);
+                vertex_array->vertex_attrib_array[TEXCOORD0_INDEX + i] = false;
             }
             continue;
         }
 
-        if (vertex_format & (OBJ_VERTEX_TEXCOORD0 << i)) {
-            if (!vertex_array_data->vertex_attrib_array[8 + i]) {
-                glEnableVertexAttribArray(8 + i);
-                vertex_array_data->vertex_attrib_array[8 + i] = true;
+        if (vertex_format & (OBJ_VERTEX_TEXCOORD0 << texcoord_index)) {
+            if (!vertex_array->vertex_attrib_array[TEXCOORD0_INDEX + i]) {
+                glEnableVertexAttribArray(TEXCOORD0_INDEX + i);
+                vertex_array->vertex_attrib_array[TEXCOORD0_INDEX + i] = true;
             }
 
             if (!compressed)
-                glVertexAttribPointer(8 + i, 2, GL_FLOAT, GL_FALSE,
+                glVertexAttribPointer(TEXCOORD0_INDEX + i, 2, GL_FLOAT, GL_FALSE,
                     size_vertex, (void*)(offset + 8ULL * texcoord_index));
             else
-                glVertexAttribPointer(8 + i, 2, GL_HALF_FLOAT, GL_FALSE,
+                glVertexAttribPointer(TEXCOORD0_INDEX + i, 2, GL_HALF_FLOAT, GL_FALSE,
                     size_vertex, (void*)(offset + 4ULL * texcoord_index));
         }
     }
@@ -463,191 +713,182 @@ void object_data::add_vertex_array(draw_object* draw) {
     }
 
     if (vertex_format & OBJ_VERTEX_COLOR0) {
-        if (!vertex_array_data->vertex_attrib_array[3]) {
-            glEnableVertexAttribArray(3);
-            vertex_array_data->vertex_attrib_array[3] = true;
+        if (!vertex_array->vertex_attrib_array[COLOR0_INDEX]) {
+            glEnableVertexAttribArray(COLOR0_INDEX);
+            vertex_array->vertex_attrib_array[COLOR0_INDEX] = true;
         }
 
         if (!compressed) {
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            glVertexAttribPointer(COLOR0_INDEX, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
             offset += 16;
         }
         else {
-            glVertexAttribPointer(3, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            glVertexAttribPointer(COLOR0_INDEX, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
             offset += 8;
         }
     }
-    else if (vertex_array_data->vertex_attrib_array[3]) {
-        glDisableVertexAttribArray(3);
-        glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);
-        vertex_array_data->vertex_attrib_array[3] = false;
+    else if (vertex_array->vertex_attrib_array[COLOR0_INDEX]) {
+        glDisableVertexAttribArray(COLOR0_INDEX);
+        vertex_array->vertex_attrib_array[COLOR0_INDEX] = false;
     }
 
     if (vertex_format & OBJ_VERTEX_COLOR1)
         offset += 16;
 
     if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-        if (!vertex_array_data->vertex_attrib_array[1]) {
-            glEnableVertexAttribArray(1);
-            vertex_array_data->vertex_attrib_array[1] = true;
+        if (!vertex_array->vertex_attrib_array[BONE_WEIGHT_INDEX]) {
+            glEnableVertexAttribArray(BONE_WEIGHT_INDEX);
+            vertex_array->vertex_attrib_array[BONE_WEIGHT_INDEX] = true;
         }
 
         if (!compressed) {
-            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            glVertexAttribPointer(BONE_WEIGHT_INDEX, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
             offset += 16;
         }
         else {
-            glVertexAttribPointer(1, 4, GL_UNSIGNED_SHORT, GL_TRUE, size_vertex, (void*)offset);
+            glVertexAttribPointer(BONE_WEIGHT_INDEX, 4, GL_UNSIGNED_SHORT, GL_TRUE, size_vertex, (void*)offset);
             offset += 8;
         }
 
-        if (!vertex_array_data->vertex_attrib_array[15]) {
-            glEnableVertexAttribArray(15);
-            vertex_array_data->vertex_attrib_array[15] = true;
+        if (!vertex_array->vertex_attrib_array[BONE_INDEX_INDEX]) {
+            glEnableVertexAttribArray(BONE_INDEX_INDEX);
+            vertex_array->vertex_attrib_array[BONE_INDEX_INDEX] = true;
         }
 
         if (!compressed) {
-            glVertexAttribPointer(15, 4, GL_INT, GL_FALSE, size_vertex, (void*)offset);
+            glVertexAttribPointer(BONE_INDEX_INDEX, 4, GL_INT, GL_FALSE, size_vertex, (void*)offset);
             offset += 16;
         }
         else {
-            glVertexAttribPointer(15, 4, GL_UNSIGNED_SHORT, GL_FALSE, size_vertex, (void*)offset);
+            glVertexAttribPointer(BONE_INDEX_INDEX, 4, GL_UNSIGNED_SHORT, GL_FALSE, size_vertex, (void*)offset);
             offset += 8;
         }
     }
     else {
-        if (vertex_array_data->vertex_attrib_array[1]) {
-            glDisableVertexAttribArray(1);
-            glVertexAttrib4f(1, 0.0f, 0.0f, 0.0f, 0.0f);
-            vertex_array_data->vertex_attrib_array[1] = false;
+        if (vertex_array->vertex_attrib_array[BONE_WEIGHT_INDEX]) {
+            glDisableVertexAttribArray(BONE_WEIGHT_INDEX);
+            vertex_array->vertex_attrib_array[BONE_WEIGHT_INDEX] = false;
         }
 
-        if (vertex_array_data->vertex_attrib_array[15]) {
-            glDisableVertexAttribArray(15);
-            glVertexAttrib4f(15, 0.0f, 0.0f, 0.0f, 0.0f);
-            vertex_array_data->vertex_attrib_array[15] = false;
+        if (vertex_array->vertex_attrib_array[BONE_INDEX_INDEX]) {
+            glDisableVertexAttribArray(BONE_INDEX_INDEX);
+            vertex_array->vertex_attrib_array[BONE_INDEX_INDEX] = false;
         }
     }
 
     if (!compressed && vertex_format & OBJ_VERTEX_UNKNOWN) {
-        if (!vertex_array_data->vertex_attrib_array[7]) {
-            glEnableVertexAttribArray(7);
-            vertex_array_data->vertex_attrib_array[7] = true;
+        if (!vertex_array->vertex_attrib_array[UNKNOWN_INDEX]) {
+            glEnableVertexAttribArray(UNKNOWN_INDEX);
+            vertex_array->vertex_attrib_array[UNKNOWN_INDEX] = true;
         }
 
-        glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+        glVertexAttribPointer(UNKNOWN_INDEX, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
         offset += 16;
     }
-    else if (vertex_array_data->vertex_attrib_array[7]) {
-        glDisableVertexAttribArray(7);
-        glVertexAttrib4f(7, 0.0f, 0.0f, 0.0f, 1.0f);
-        vertex_array_data->vertex_attrib_array[7] = false;
+    else if (vertex_array->vertex_attrib_array[UNKNOWN_INDEX]) {
+        glDisableVertexAttribArray(UNKNOWN_INDEX);
+        vertex_array->vertex_attrib_array[UNKNOWN_INDEX] = false;
     }
 
-    if (draw->morph_array_buffer) {
-        gl_state_bind_array_buffer(draw->morph_array_buffer);
+    if (morph_array_buffer) {
+        gl_state_bind_array_buffer(morph_array_buffer);
 
         offset = 0;
         if (vertex_format & OBJ_VERTEX_POSITION) {
-            if (!vertex_array_data->vertex_attrib_array[10]) {
-                glEnableVertexAttribArray(10);
-                vertex_array_data->vertex_attrib_array[10] = true;
+            if (!vertex_array->vertex_attrib_array[MORPH_POSITION_INDEX]) {
+                glEnableVertexAttribArray(MORPH_POSITION_INDEX);
+                vertex_array->vertex_attrib_array[MORPH_POSITION_INDEX] = true;
             }
 
-            glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+            glVertexAttribPointer(MORPH_POSITION_INDEX, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
             offset += 12;
         }
-        else if (vertex_array_data->vertex_attrib_array[10]) {
-            glDisableVertexAttribArray(10);
-            glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[10] = false;
+        else if (vertex_array->vertex_attrib_array[MORPH_POSITION_INDEX]) {
+            glDisableVertexAttribArray(MORPH_POSITION_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_POSITION_INDEX] = false;
         }
 
         if (vertex_format & OBJ_VERTEX_NORMAL) {
-            if (!vertex_array_data->vertex_attrib_array[11]) {
-                glEnableVertexAttribArray(11);
-                vertex_array_data->vertex_attrib_array[11] = true;
+            if (!vertex_array->vertex_attrib_array[MORPH_NORMAL_INDEX]) {
+                glEnableVertexAttribArray(MORPH_NORMAL_INDEX);
+                vertex_array->vertex_attrib_array[MORPH_NORMAL_INDEX] = true;
             }
 
             if (!compressed) {
-                glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_NORMAL_INDEX, 3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 12;
             }
             else {
-                glVertexAttribPointer(11, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_NORMAL_INDEX, 3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
                 offset += 8;
             }
         }
-        else if (vertex_array_data->vertex_attrib_array[11]) {
-            glDisableVertexAttribArray(11);
-            glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[11] = false;
+        else if (vertex_array->vertex_attrib_array[MORPH_NORMAL_INDEX]) {
+            glDisableVertexAttribArray(MORPH_NORMAL_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_NORMAL_INDEX] = false;
         }
 
         if (vertex_format & OBJ_VERTEX_TANGENT) {
-            if (!vertex_array_data->vertex_attrib_array[12]) {
-                glEnableVertexAttribArray(12);
-                vertex_array_data->vertex_attrib_array[12] = true;
+            if (!vertex_array->vertex_attrib_array[MORPH_TANGENT_INDEX]) {
+                glEnableVertexAttribArray(MORPH_TANGENT_INDEX);
+                vertex_array->vertex_attrib_array[MORPH_TANGENT_INDEX] = true;
             }
 
             if (!compressed) {
-                glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_TANGENT_INDEX, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 16;
             }
             else {
-                glVertexAttribPointer(12, 4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_TANGENT_INDEX, 4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
                 offset += 8;
             }
         }
-        else if (vertex_array_data->vertex_attrib_array[12]) {
-            glDisableVertexAttribArray(12);
-            glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[12] = false;
+        else if (vertex_array->vertex_attrib_array[MORPH_TANGENT_INDEX]) {
+            glDisableVertexAttribArray(MORPH_TANGENT_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_TANGENT_INDEX] = false;
         }
 
         if (!compressed && vertex_format & OBJ_VERTEX_BINORMAL)
             offset += 12;
 
         if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-            if (!vertex_array_data->vertex_attrib_array[13]) {
-                glEnableVertexAttribArray(13);
-                vertex_array_data->vertex_attrib_array[13] = true;
+            if (!vertex_array->vertex_attrib_array[MORPH_TEXCOORD0_INDEX]) {
+                glEnableVertexAttribArray(MORPH_TEXCOORD0_INDEX);
+                vertex_array->vertex_attrib_array[MORPH_TEXCOORD0_INDEX] = true;
             }
 
             if (!compressed) {
-                glVertexAttribPointer(13, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_TEXCOORD0_INDEX, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 8;
             }
             else {
-                glVertexAttribPointer(13, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_TEXCOORD0_INDEX, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 4;
             }
         }
-        else if (vertex_array_data->vertex_attrib_array[13]) {
-            glDisableVertexAttribArray(13);
-            glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[13] = false;
+        else if (vertex_array->vertex_attrib_array[MORPH_TEXCOORD0_INDEX]) {
+            glDisableVertexAttribArray(MORPH_TEXCOORD0_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_TEXCOORD0_INDEX] = false;
         }
 
         if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-            if (!vertex_array_data->vertex_attrib_array[14]) {
-                glEnableVertexAttribArray(14);
-                vertex_array_data->vertex_attrib_array[14] = true;
+            if (!vertex_array->vertex_attrib_array[MORPH_TEXCOORD1_INDEX]) {
+                glEnableVertexAttribArray(MORPH_TEXCOORD1_INDEX);
+                vertex_array->vertex_attrib_array[MORPH_TEXCOORD1_INDEX] = true;
             }
 
             if (!compressed) {
-                glVertexAttribPointer(14, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_TEXCOORD1_INDEX, 2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 8;
             }
             else {
-                glVertexAttribPointer(14, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_TEXCOORD1_INDEX, 2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 4;
             }
         }
-        else if (vertex_array_data->vertex_attrib_array[14]) {
-            glDisableVertexAttribArray(14);
-            glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[14] = false;
+        else if (vertex_array->vertex_attrib_array[MORPH_TEXCOORD1_INDEX]) {
+            glDisableVertexAttribArray(MORPH_TEXCOORD1_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_TEXCOORD1_INDEX] = false;
         }
 
         if (!compressed) {
@@ -666,24 +907,23 @@ void object_data::add_vertex_array(draw_object* draw) {
         if (vertex_format & OBJ_VERTEX_COLOR0) {
             uniform_value[U_MORPH_COLOR] = 1;
 
-            if (!vertex_array_data->vertex_attrib_array[5]) {
-                glEnableVertexAttribArray(5);
-                vertex_array_data->vertex_attrib_array[5] = true;
+            if (!vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX]) {
+                glEnableVertexAttribArray(MORPH_COLOR_INDEX);
+                vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX] = true;
             }
 
             if (!compressed) {
-                glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_COLOR_INDEX, 4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 16;
             }
             else {
-                glVertexAttribPointer(5, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
+                glVertexAttribPointer(MORPH_COLOR_INDEX, 4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 8;
             }
         }
-        else if (vertex_array_data->vertex_attrib_array[5]) {
-            glDisableVertexAttribArray(5);
-            glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[5] = false;
+        else if (vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX]) {
+            glDisableVertexAttribArray(MORPH_COLOR_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX] = false;
         }
 
         if (!compressed) {
@@ -702,47 +942,41 @@ void object_data::add_vertex_array(draw_object* draw) {
         }
     }
     else {
-        if (vertex_array_data->vertex_attrib_array[10]) {
-            glDisableVertexAttribArray(10);
-            glVertexAttrib4f(10, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[10] = false;
+        if (vertex_array->vertex_attrib_array[MORPH_POSITION_INDEX]) {
+            glDisableVertexAttribArray(MORPH_POSITION_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_POSITION_INDEX] = false;
         }
 
-        if (vertex_array_data->vertex_attrib_array[11]) {
-            glDisableVertexAttribArray(11);
-            glVertexAttrib4f(11, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[11] = false;
+        if (vertex_array->vertex_attrib_array[MORPH_NORMAL_INDEX]) {
+            glDisableVertexAttribArray(MORPH_NORMAL_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_NORMAL_INDEX] = false;
         }
 
-        if (vertex_array_data->vertex_attrib_array[12]) {
-            glDisableVertexAttribArray(12);
-            glVertexAttrib4f(12, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[12] = false;
+        if (vertex_array->vertex_attrib_array[MORPH_TANGENT_INDEX]) {
+            glDisableVertexAttribArray(MORPH_TANGENT_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_TANGENT_INDEX] = false;
         }
 
-        if (vertex_array_data->vertex_attrib_array[13]) {
-            glDisableVertexAttribArray(13);
-            glVertexAttrib4f(13, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[13] = false;
+        if (vertex_array->vertex_attrib_array[MORPH_TEXCOORD0_INDEX]) {
+            glDisableVertexAttribArray(MORPH_TEXCOORD0_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_TEXCOORD0_INDEX] = false;
         }
 
-        if (vertex_array_data->vertex_attrib_array[14]) {
-            glDisableVertexAttribArray(14);
-            glVertexAttrib4f(14, 0.0f, 0.0f, 0.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[14] = false;
+        if (vertex_array->vertex_attrib_array[MORPH_TEXCOORD1_INDEX]) {
+            glDisableVertexAttribArray(MORPH_TEXCOORD1_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_TEXCOORD1_INDEX] = false;
         }
 
-        if (vertex_array_data->vertex_attrib_array[5]) {
-            glDisableVertexAttribArray(5);
-            glVertexAttrib4f(5, 1.0f, 1.0f, 1.0f, 1.0f);
-            vertex_array_data->vertex_attrib_array[5] = false;
+        if (vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX]) {
+            glDisableVertexAttribArray(MORPH_COLOR_INDEX);
+            vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX] = false;
         }
     }
 
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
-    gl_state_bind_element_array_buffer(0);
-
+    if (element_array_buffer)
+        gl_state_bind_element_array_buffer(0);
 }
 
 void object_data::check_vertex_arrays() {
@@ -760,6 +994,7 @@ GLuint object_data::get_vertex_array(draw_object* draw) {
 
     GLuint array_buffer = draw->array_buffer;
     GLuint morph_array_buffer = draw->morph_array_buffer;
+    GLuint element_array_buffer = draw->element_array_buffer;
 
     int32_t texcoord_array[2] = { -1, -1 };
     int32_t color_tex_index = 0;
@@ -778,9 +1013,21 @@ GLuint object_data::get_vertex_array(draw_object* draw) {
             color_tex_index++;
     }
 
-    object_data_vertex_array* vertex_array_data = 0;
+    GLuint vertex_attrib_buffer_binding[16] = {};
+    object_data_get_vertex_attrib_buffer_bindings(draw,
+        texcoord_array, vertex_attrib_buffer_binding);
+
+    bool compressed = mesh->attrib.m.compressed;
+    GLsizei size_vertex = (GLsizei)mesh->size_vertex;
+    obj_vertex_format vertex_format = mesh->vertex_format;
+
+    object_data_vertex_array* vertex_array = 0;
     for (object_data_vertex_array& i : vertex_array_cache)
         if (i.alive_time > 0 && i.array_buffer == array_buffer && i.morph_array_buffer == morph_array_buffer
+            && i.element_array_buffer == element_array_buffer && i.vertex_format == vertex_format
+            && i.size_vertex == size_vertex && i.compressed == compressed
+            && !memcmp(i.vertex_attrib_buffer_binding,
+                vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding))
             && !memcmp(i.texcoord_array, texcoord_array, sizeof(texcoord_array)))
             return i.vertex_array;
     return 0;
@@ -850,17 +1097,17 @@ void object_data::reset() {
     draw_task_flags = (::draw_task_flags)0;
     field_8 = 0;
     field_C = 0;
-    memset(&passed, 0, sizeof(object_data_culling_info));
-    memset(&culled, 0, sizeof(object_data_culling_info));
+    passed = {};
+    culled = {};
 
     texture_pattern_count = 0;
     memset(texture_pattern_array, 0, sizeof(texture_pattern_array));
     texture_transform_count = 0;
     memset(texture_transform_array, 0, sizeof(texture_transform_array));
-    texture_color_coeff = vec4_identity;
-    texture_color_offset = vec4_null;
-    texture_specular_coeff = vec4_identity;
-    texture_specular_offset = vec4_null;
+    texture_color_coeff = 1.0f;
+    texture_color_offset = 0.0f;
+    texture_specular_coeff = 1.0f;
+    texture_specular_offset = 0.0f;
 
     for (std::vector<draw_task*>& i : draw_task_array)
         i.clear();
@@ -1006,17 +1253,15 @@ void render_context::ctrl() {
     app::TaskWork::Ctrl();
     sound_ctrl();
     file_handler_storage_ctrl();
-
-    draw_pass.shadow_ptr->ctrl(this);
-    draw_state.stats_prev = draw_state.stats;
-    draw_state.stats = {};
-    object_data.reset();
 }
 
 void render_context::disp() {
     rctx_ptr = this;
+    object_data.reset();
+    draw_state.stats_prev = draw_state.stats;
+    draw_state.stats.reset();
     app::TaskWork::Disp();
-
+    draw_pass.shadow_ptr->ctrl(this);
     post_process.ctrl(camera);
     draw_pass_main(this);
     app::TaskWork::Basic();
@@ -1094,10 +1339,10 @@ void render_context::light_param_data_glow_set(light_param_glow* glow) {
     tone_map->set_auto_exposure(true);
     tone_map->set_tone_map_method(TONE_MAP_YCC_EXPONENT);
     tone_map->set_saturate_coeff(1.0f);
-    tone_map->set_scene_fade(vec4_null);
+    tone_map->set_scene_fade(0.0f);
     tone_map->set_scene_fade_blend_func(0);
-    tone_map->set_tone_trans_start(vec3_null);
-    tone_map->set_tone_trans_end(vec3_identity);
+    tone_map->set_tone_trans_start(0.0f);
+    tone_map->set_tone_trans_end(1.0f);
 
     if (glow->has_exposure)
         tone_map->set_exposure(glow->exposure);
@@ -1227,7 +1472,7 @@ field_1A8(), view_point_shared(), interest_shared(), field_2F0() {
     view_region = 1.2f;
     range = 1.0f;
     for (int32_t i = 0; i < 2; i++) {
-        view_point[i] = vec3_identity;
+        view_point[i] = 1.0f;
         field_1C0[i] = 0.0f;
         field_1C8[i] = 0.0f;
         field_200[i] = i;
@@ -1298,12 +1543,12 @@ void shadow::ctrl(render_context* rctx) {
 
     if (count < 3) {
         for (int32_t i = 0; i < 2; i++) {
-            field_1A8[i] = vec3_null;
+            field_1A8[i] = 0.0f;
             field_1C8[i] = 0.0f;
             if (!field_2F0[i] || field_1D0[i].size() < 1)
                 continue;
 
-            vec3 v7 = vec3_null;
+            vec3 v7 = 0.0f;
             for (vec3& j : field_1D0[i])
                 v7 += j;
 
@@ -1328,8 +1573,8 @@ void shadow::ctrl(render_context* rctx) {
         }
 
         if (field_2EC > 0) {
-            vec3 view_point = vec3_null;
-            vec3 interest = vec3_null;
+            vec3 view_point = 0.0f;
+            vec3 interest = 0.0f;
             for (int32_t i = 0; i < 2; i++) {
                 if (!field_2F0[i])
                     continue;
@@ -1346,8 +1591,8 @@ void shadow::ctrl(render_context* rctx) {
                 interest += this->interest[i];
             }
 
-            view_point_shared = view_point * (1.0f / field_2EC);
-            interest_shared = interest * (1.0f / field_2EC);
+            view_point_shared = view_point * (1.0f / (float_t)field_2EC);
+            interest_shared = interest * (1.0f / (float_t)field_2EC);
         }
 
         float_t v2 = max_def(field_1C8[0], field_1C8[1]);
@@ -1393,12 +1638,12 @@ void shadow::ctrl(render_context* rctx) {
         }
 
         for (int32_t i = 0; i < 2; i++) {
-            field_1A8[i] = vec3_null;
+            field_1A8[i] = 0.0f;
             field_1C8[i] = 0.0;
             if (!field_2F0[i] || field_1D0[i].size() < 1)
                 continue;
 
-            vec3 v22 = vec3_null;
+            vec3 v22 = 0.0f;
             for (vec3& j : field_1D0[i])
                 v22 += j;
 
@@ -1437,8 +1682,8 @@ void shadow::ctrl(render_context* rctx) {
                 }
             }
 
-            vec3 view_point = vec3_null;
-            vec3 interest = vec3_null;
+            vec3 view_point = 0.0f;
+            vec3 interest = 0.0f;
             int32_t count = 0;
             for (int32_t i = 0; i < 2; i++) {
                 int32_t c = (int32_t)field_1D0[i].size();
@@ -1536,11 +1781,65 @@ int32_t shadow::init_data() {
         gl_state_bind_texture_2d(field_8[i].color_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&vec4_identity);
+        static const vec4 border_color = 1.0f;
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
     }
     gl_state_bind_texture_2d(0);
     glGetError();
     return 0;
+}
+
+static void object_data_get_vertex_attrib_buffer_bindings(draw_object* draw,
+    int32_t texcoord_array[2], GLuint vertex_attrib_buffer_binding[16]) {
+    obj_mesh* mesh = draw->mesh;
+    obj_sub_mesh* sub_mesh = draw->sub_mesh;
+
+    GLuint array_buffer = draw->array_buffer;
+    GLuint morph_array_buffer = draw->morph_array_buffer;
+
+    bool compressed = mesh->attrib.m.compressed;
+    GLsizei size_vertex = (GLsizei)mesh->size_vertex;
+    obj_vertex_format vertex_format = mesh->vertex_format;
+
+    if (vertex_format & OBJ_VERTEX_POSITION)
+        vertex_attrib_buffer_binding[POSITION_INDEX] = array_buffer;
+    if (vertex_format & OBJ_VERTEX_NORMAL)
+        vertex_attrib_buffer_binding[NORMAL_INDEX] = array_buffer;
+    if (vertex_format & OBJ_VERTEX_TANGENT)
+        vertex_attrib_buffer_binding[TANGENT_INDEX] = array_buffer;
+
+    for (int32_t i = 0; i < 2; i++) {
+        int32_t texcoord_index = texcoord_array[i];
+        if (texcoord_index >= 0)
+            if (vertex_format & (OBJ_VERTEX_TEXCOORD0 << texcoord_index))
+                vertex_attrib_buffer_binding[TEXCOORD0_INDEX + i] = array_buffer;
+    }
+
+    if (vertex_format & OBJ_VERTEX_COLOR0)
+        vertex_attrib_buffer_binding[COLOR0_INDEX] = array_buffer;
+
+    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+        vertex_attrib_buffer_binding[BONE_WEIGHT_INDEX] = array_buffer;
+        vertex_attrib_buffer_binding[BONE_INDEX_INDEX] = array_buffer;
+    }
+
+    if (!compressed && vertex_format & OBJ_VERTEX_UNKNOWN)
+        vertex_attrib_buffer_binding[UNKNOWN_INDEX] = array_buffer;
+
+    if (draw->morph_array_buffer) {
+        if (vertex_format & OBJ_VERTEX_POSITION)
+            vertex_attrib_buffer_binding[MORPH_POSITION_INDEX] = morph_array_buffer;
+        if (vertex_format & OBJ_VERTEX_NORMAL)
+            vertex_attrib_buffer_binding[MORPH_NORMAL_INDEX] = morph_array_buffer;
+        if (vertex_format & OBJ_VERTEX_TANGENT)
+            vertex_attrib_buffer_binding[MORPH_TANGENT_INDEX] = morph_array_buffer;
+        if (vertex_format & OBJ_VERTEX_TEXCOORD0)
+            vertex_attrib_buffer_binding[MORPH_TEXCOORD0_INDEX] = morph_array_buffer;
+        if (vertex_format & OBJ_VERTEX_TEXCOORD1)
+            vertex_attrib_buffer_binding[MORPH_TEXCOORD1_INDEX] = morph_array_buffer;
+        if (vertex_format & OBJ_VERTEX_COLOR0)
+            vertex_attrib_buffer_binding[MORPH_COLOR_INDEX] = morph_array_buffer;
+    }
 }
 
 static void render_context_light_param_data_ibl_set_diffuse(light_param_ibl_diffuse* diffuse, int32_t level) {

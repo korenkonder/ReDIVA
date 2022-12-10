@@ -62,6 +62,15 @@ struct stage_data_refract {
 struct stage_effects {
     int32_t field_0[8];
     int32_t field_20[16];
+
+    stage_effects();
+};
+
+struct stage_effects_modern {
+    uint32_t field_0[8];
+    int32_t field_20[16];
+
+    stage_effects_modern();
 };
 
 struct stage_data_file {
@@ -97,6 +106,7 @@ struct stage_data_file {
     float_t ring_height;
     float_t ring_out_height;
     stage_effects effects;
+    bool effects_init;
     std::vector<int32_t> auth_3d_ids;
 
     stage_data_file();
@@ -138,7 +148,8 @@ struct stage_data_modern_file {
     float_t ring_height;
     float_t ring_out_height;
     uint32_t field_13;
-    stage_effects effects;
+    stage_effects_modern effects;
+    bool effects_init;
     std::vector<uint32_t> auth_3d_ids;
 
     stage_data_modern_file();
@@ -179,6 +190,7 @@ struct stage_data {
     float_t ring_height;
     float_t ring_out_height;
     stage_effects effects;
+    bool effects_init;
     std::vector<int32_t> auth_3d_ids;
 
     stage_data();
@@ -221,7 +233,8 @@ struct stage_data_modern {
     float_t ring_height;
     float_t ring_out_height;
     uint32_t field_13;
-    stage_effects effects;
+    stage_effects_modern effects;
+    bool effects_init;
     std::vector<uint32_t> auth_3d_ids;
 
     stage_data_modern();
@@ -239,7 +252,7 @@ struct stage_database_file {
     std::vector<stage_data_modern_file> stage_modern;
 
     stage_database_file();
-    virtual ~stage_database_file();
+    ~stage_database_file();
 
     void read(const char* path, bool modern);
     void read(const wchar_t* path, bool modern);
@@ -256,11 +269,16 @@ struct stage_database {
     std::vector<stage_data_modern> stage_modern;
 
     stage_database();
-    virtual ~stage_database();
+    ~stage_database();
 
     void add(stage_database_file* stage_data_file);
 
     ::stage_data* get_stage_data(int32_t stage_index);
     ::stage_data_modern* get_stage_data_modern(uint32_t stage_hash);
     int32_t get_stage_index(const char* name);
+    const char* get_stage_name(int32_t stage_index);
+    const char* get_stage_name_modern(uint32_t stage_hash);
 };
+
+extern const stage_effects stage_effects_default;
+extern const stage_effects_modern stage_effects_modern_default;

@@ -11,6 +11,7 @@
 #include "draw_task.hpp"
 #include "light_param.hpp"
 #include "render_context.hpp"
+#include "task_effect.hpp"
 
 namespace stage_detail {
     static void TaskStage_CtrlInner(stage_detail::TaskStage* a1);
@@ -23,7 +24,8 @@ namespace stage_detail {
         task_stage_info* stg_info);
     static void TaskStage_GetLoadedStageInfos(stage_detail::TaskStage* a1,
         std::vector<task_stage_info>* vec);
-    static bool TaskStage_Load(stage_detail::TaskStage* a1, const char* name);
+    static void TaskStage_Load(stage_detail::TaskStage* a1);
+    static bool TaskStage_LoadTask(stage_detail::TaskStage* a1, const char* name);
     static void TaskStage_Reset(stage_detail::TaskStage* a1);
     static void TaskStage_SetStage(stage_detail::TaskStage* a1, task_stage_info stg_info);
     static void TaskStage_TaskWindAppend(stage_detail::TaskStage* a1);
@@ -117,11 +119,11 @@ void task_stage_current_set_sky(bool value) {
         task_stage_set_sky(&stg_info, value);
 }
 
-void task_stage_current_set_stage_display(bool value) {
+void task_stage_current_set_stage_display(bool value, bool effect_enable) {
     task_stage_info stg_info;
     task_stage_get_current_stage_info(&stg_info);
     if (task_stage_has_stage_info(&stg_info))
-        task_stage_set_stage_display(&stg_info, value);
+        task_stage_set_stage_display(&stg_info, value, effect_enable);
 }
 
 void task_stage_disp_shadow() {
@@ -163,9 +165,9 @@ bool task_stage_has_stage_info(task_stage_info* stg_info) {
     return task_stage_get_stage(*stg_info) != 0;
 }
 
-bool task_stage_load(const char* name) {
+bool task_stage_load_task(const char* name) {
     task_stage_is_modern = false;
-    return stage_detail::TaskStage_Load(task_stage, name);
+    return stage_detail::TaskStage_LoadTask(task_stage, name);
 }
 
 void task_stage_set_effect_display(task_stage_info* stg_info, bool value) {
@@ -200,10 +202,13 @@ void task_stage_set_stage(task_stage_info* stg_info) {
     stage_detail::TaskStage_SetStage(task_stage, *stg_info);
 }
 
-void task_stage_set_stage_display(task_stage_info* stg_info, bool value) {
+void task_stage_set_stage_display(task_stage_info* stg_info, bool value, bool effect_enable) {
     stage* stg = task_stage_get_stage(*stg_info);
-    if (stg)
+    if (stg) {
         stg->stage_display = value;
+        if (effect_enable)
+            task_effect_parent_set_enable(value);
+    }
 }
 
 void task_stage_set_stage_index(int32_t stage_index) {
@@ -219,12 +224,12 @@ void task_stage_set_stage_index(int32_t stage_index) {
         stage_indices.begin(), stage_indices.end());
 }
 
-void task_stage_set_stage_indices(std::vector<int32_t>* stage_indices) {
+void task_stage_set_stage_indices(std::vector<int32_t>& stage_indices) {
     task_stage->load_stage_indices.insert(task_stage->load_stage_indices.end(),
-        stage_indices->begin(), stage_indices->end());
+        stage_indices.begin(), stage_indices.end());
 }
 
-bool task_stage_unload() {
+bool task_stage_unload_task() {
     return task_stage->SetDest();
 }
 
@@ -249,49 +254,10 @@ static void stage_detail::TaskStage_CtrlInner(stage_detail::TaskStage* a1) {
             return;
         }
 
-    if (a1->state == 3) {
-        //sub_140229F30("rom/STGTST_COLI.000.bin");
-        light_param_data_storage_data_load_stages(&a1->stage_indices);
-        a1->state = 4;
-    }
-    else if (a1->state == 4 && !light_param_data_storage_data_load_file()/* && !sub_14022A380()*/) {
-        bool v5 = 0;
-        for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
-            if (a1->stages[i].index != -1 && a1->stages[i].state != 6) {
-                v5 = 1;
-                break;
-            }
-
-        if (!v5) {
-            //sub_140343B20(&a1->stage_indices);
-            //task_stage_current_set_effect_display(a1->stage_display);
-            a1->state = 5;
-            //sub_14064DC10();
-        }
-    }
-    else if (a1->state == 5/* && !sub_1403446E0()*/) {
-        std::vector<task_stage_info> vec;
-        stage_detail::TaskStage_GetLoadedStageInfos(a1, &vec);
-        if (vec.size()) {
-            stage_detail::TaskStage_SetStage(a1, vec[0]);
-
-            stage* s = stage_detail::TaskStage_GetStage(a1, vec[0]);
-            data_struct* aft_data = &data_list[DATA_AFT];
-            auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
-            for (int32_t& i : s->stage_data->auth_3d_ids) {
-                int32_t id = auth_3d_data_load_uid(i, aft_auth_3d_db);
-                if (id == -1)
-                    continue;
-
-                auth_3d_data_read_file(&id, aft_auth_3d_db);
-                s->auth_3d_ids.push_back(id);
-            }
-        }
-        a1->state = 6;
-    }
-    else if (a1->state >= 7 && a1->state <= 9) {
+    if (a1->state >= 3 && a1->state <= 5)
+        stage_detail::TaskStage_Load(a1);
+    else if (a1->state >= 7 && a1->state <= 9)
         stage_detail::TaskStage_Unload(a1);
-    }
 }
 
 static void stage_detail::TaskStage_DispShadow(stage_detail::TaskStage* a1) {
@@ -341,7 +307,45 @@ static void stage_detail::TaskStage_GetLoadedStageInfos(stage_detail::TaskStage*
         }
 }
 
-static bool stage_detail::TaskStage_Load(stage_detail::TaskStage* a1, const char* name) {
+static void stage_detail::TaskStage_Load(stage_detail::TaskStage* a1) {
+    switch (a1->state) {
+    case 3: {
+        //sub_140229F30("rom/STGTST_COLI.000.bin");
+        light_param_data_storage_data_load_stages(a1->stage_indices);
+        a1->state = 4;
+    } break;
+    case 4: {
+        if (light_param_data_storage_data_load_file()/* || sub_14022A380()*/)
+            break;
+
+        bool wait_load = false;
+        for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
+            if (a1->stages[i].index != -1 && a1->stages[i].state != 6) {
+                wait_load = true;
+                break;
+            }
+
+        if (!wait_load) {
+            task_effect_parent_set_stage_indices(a1->stage_indices);
+            task_effect_parent_set_enable(a1->stage_display);
+            a1->state = 5;
+            //sub_14064DC10();
+        }
+    } break;
+    case 5: {
+        if (task_effect_parent_load())
+            break;
+
+            std::vector<task_stage_info> vec;
+            stage_detail::TaskStage_GetLoadedStageInfos(a1, &vec);
+            if (vec.size())
+                stage_detail::TaskStage_SetStage(a1, vec[0]);
+            a1->state = 6;
+    } break;
+    }
+}
+
+static bool stage_detail::TaskStage_LoadTask(stage_detail::TaskStage* a1, const char* name) {
     if (app::TaskWork::AppendTask(a1, name)) {
         stage_detail::TaskStage_Reset(a1);
         stage_detail::TaskStage_TaskWindAppend(a1);
@@ -401,11 +405,11 @@ static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {
     }
 
     if (a1->state == 7) {
-        //sub_140343C30();
+        task_effect_parent_dest();
         a1->state = 8;
     }
     else if (a1->state == 8) {
-        //if (!sub_140344700())
+        if (!task_effect_parent_unload())
             a1->state = 9;
     }
     else if (a1->state == 9) {
@@ -578,7 +582,7 @@ static void stage_free(stage* s) {
         rctx_ptr->post_process.movie_texture_free(
             texture_storage_get_texture(s->stage_data->movie_texture));
 
-    draw_pass->shadow = true;
+    draw_pass->set_shadow_true();
     //rctx_ptr->post_process.field_14 = 0;
     //rctx_ptr->post_process.field_ED8 = 1;
     npr_spec_color.w = 1.0f;
@@ -672,44 +676,43 @@ static void stage_set(stage* s, stage* other) {
     if (s) {
         //flt_14CC925C0 = 0.0;
         //flt_140CB3704 = -1001.0;
-        draw_pass->enable[DRAW_PASS_REFLECT] = false;
-        draw_pass->reflect = false;
-        draw_pass->enable[DRAW_PASS_REFRACT] = false;
-        draw_pass->refract = true;
-        draw_pass->field_31D = 0;
-        draw_pass->field_31E = 0;
+        draw_pass->set_enable(DRAW_PASS_REFLECT, false);
+        draw_pass->set_reflect(false);
+        draw_pass->set_enable(DRAW_PASS_REFRACT, false);
+        draw_pass->set_refract(true);
+        draw_pass->field_31D = false;
+        draw_pass->field_31E = false;
         draw_pass->field_31F = false;
-        draw_pass->field_320 = 0;
-        draw_pass->shadow = true;
+        draw_pass->field_320 = false;
+        draw_pass->set_shadow_true();
         //rctx_ptr->post_process.field_14 = 0;
         //rctx_ptr->post_process.field_ED8 = 1;
         npr_spec_color.w = 1.0f;
-        draw_pass->npr_param = 0;
+        draw_pass->set_npr_param(0);
         light_chara_ambient = false;
     }
 
     if (other) {
         rctx_ptr->chara_reflect = other->stage_data->reflect_type != STAGE_DATA_REFLECT_DISABLE;
-        draw_pass->reflect_type = other->stage_data->reflect_type;
+        draw_pass->set_reflect_type(other->stage_data->reflect_type);
         rctx_ptr->chara_refract = other->stage_data->refract_enable;
 
         if (other->stage_data->reflect) {
             stage_data_reflect* reflect = &other->stage_data->reflect_data;
-            draw_pass->enable[DRAW_PASS_REFLECT] = true;
-            draw_pass->reflect_blur_num = reflect->blur_num;
-            draw_pass->reflect_blur_filter = (blur_filter_mode)reflect->blur_filter;
-            draw_pass->reflect = true;
-            /*reflect_refract_resolution_mode reflect_resolution_mode = REFLECT_REFRACT_RESOLUTION_512x512;
+            draw_pass->set_enable(DRAW_PASS_REFLECT, true);
+            draw_pass->set_reflect_blur(reflect->blur_num, (blur_filter_mode)reflect->blur_filter);
+            draw_pass->set_reflect(true);
+            reflect_refract_resolution_mode reflect_resolution_mode = REFLECT_REFRACT_RESOLUTION_512x512;
             if (other->stage_data->reflect_type != STAGE_DATA_REFLECT_REFLECT_MAP)
                 reflect_resolution_mode = (reflect_refract_resolution_mode)reflect->mode;
-            draw_pass_data_set_reflect_resolution_mode(reflect_resolution_mode);*/
+            draw_pass->set_refract_resolution_mode(reflect_resolution_mode);
         }
 
         if (other->stage_data->refract) {
             stage_data_refract* refract = &other->stage_data->refract_data;
-            draw_pass->enable[DRAW_PASS_REFRACT] = true;
-            //draw_pass_data_set_refract_resolution_mode(refract->mode);
-            draw_pass->refract = true;
+            draw_pass->set_enable(DRAW_PASS_REFRACT, true);
+            draw_pass->set_refract_resolution_mode((reflect_refract_resolution_mode)refract->mode);
+            draw_pass->set_refract(true);
         }
 
         if (other->stage_data->flags & STAGE_DATA_FLAG_1)
@@ -723,23 +726,17 @@ static void stage_set(stage* s, stage* other) {
         //if (stru_14CC92630.pv_id == 421)
             //draw_pass->field_31F = true;
         //sub_14064DC10();
-        //sub_140344160(other->index);
+        task_effect_parent_set_current_stage_index(other->index);
     }
-    //else
-        //sub_140344160(-1);
+    else
+        task_effect_parent_set_current_stage_index(-1);
 
     if (other)
         light_param_data_storage_data_set_stage(other->index);
     else
         light_param_data_storage_data_set_default_light_param();
 
-    if (s)
-        for (int32_t& i : s->auth_3d_ids)
-            auth_3d_data_set_req_frame(&i, 0.0f);
-
-    if (other)
-        for (int32_t& i : other->auth_3d_ids)
-            auth_3d_data_set_req_frame(&i, 0.0f);
+    task_effect_parent_set_frame(0);
 
     //sub_140344180(0);
 
@@ -747,7 +744,7 @@ static void stage_set(stage* s, stage* other) {
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
             rob_chara* rob_chr = rob_chara_array_get(i);
             //if (rob_chr)
-                //sub_1405559D0(rob_chr, &other->index);
+                //rob_chara_set_stage_data_ring(rob_chr, &other->index);
         }
 }
 
@@ -849,7 +846,7 @@ DtmStg::~DtmStg() {
 }
 
 bool DtmStg::Init() {
-    task_stage_load("DATA_TEST_STG_STAGE");
+    task_stage_load_task("DATA_TEST_STG_STAGE");
     task_stage_set_stage_index(stage_index);
     return true;
 }
@@ -867,6 +864,6 @@ bool DtmStg::Ctrl() {
 }
 
 bool DtmStg::Dest() {
-    task_stage_unload();
+    task_stage_unload_task();
     return true;
 }

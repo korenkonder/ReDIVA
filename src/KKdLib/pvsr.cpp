@@ -139,7 +139,9 @@ bool pvsr::load_file(void* data, const char* path, const char* file, uint32_t ha
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     pvsr* sr = (pvsr*)data;
     sr->read(s.c_str());

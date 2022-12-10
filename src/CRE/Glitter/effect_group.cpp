@@ -59,9 +59,8 @@ namespace Glitter {
                     obj* obj = &set->obj_data[i];
                     for (uint32_t j = 0; j < obj->num_material; j++) {
                         obj_material* mat = &obj->material_array[j].material;
-                        if (!memcmp(&mat->color.emission, &vec3_null, sizeof(vec3))
-                            && mat->color.emission.w == 1.0f)
-                            mat->color.emission = vec4_identity;
+                        if (*(vec3*)&mat->color.emission == 0.0f && mat->color.emission.w == 1.0f)
+                            mat->color.emission = 1.0f;
                     }
                 }
             }
@@ -124,34 +123,3 @@ namespace Glitter {
     }
 #endif
 }
-
-/*
-#include "effect_group.hpp"
-#include "../../KKdLib/database/object.h"
-#include "../../KKdLib/database/texture.h"
-#include "../../KKdLib/io/path.hpp"
-#include "../../KKdLib/obj.h"
-#include "../../KKdLib/farc.h"
-#include "../../KKdLib/obj.h"
-#include "../../KKdLib/str_utils.hpp"
-#include "../data.h"
-#include "../object.h"
-#include "effect.hpp"
-#include "scene.hpp"
-#include "texture.hpp"
-
-bool EffectGroup::ParseFile(f2_struct* st, object_database* obj_db) {
-    for (f2_struct& i : st->sub_structs) {
-        if (!i.header.data_size)
-            continue;
-
-        if (i.header.signature == reverse_endianness_uint32_t('EFCT')
-            && !glitter_effect_parse_file(this, &i, &effects, obj_db))
-            return false;
-        else if (i.header.signature == reverse_endianness_uint32_t('DVRS')
-            && !glitter_texture_hashes_unpack_file(this, &i))
-            return false;
-    }
-    return true;
-}
-*/

@@ -120,7 +120,9 @@ bool motion_database_file::load_file(void* data, const char* path, const char* f
     if (t)
         file_len = t - file;
 
-    std::string s = path + std::string(file, file_len);
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
 
     motion_database_file* mot_db = (motion_database_file*)data;
     mot_db->read(s.c_str());
