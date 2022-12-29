@@ -156,7 +156,7 @@ static bool diva_read_inner(diva* d, stream& s, float_t*& data) {
     float_t* temp_data = data;
     for (size_t i = 0; i < samples_count; i++)
         for (size_t c = 0; c < ch; c++, current_sample++) {
-            if (~current_sample & 0x01)
+            if (!(current_sample & 0x01))
                 value = s.read_uint8_t();
 
             nibble = (current_sample & 1 ? value : value >> 4) & 0x0F;

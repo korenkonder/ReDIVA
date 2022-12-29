@@ -29,7 +29,7 @@ struct post_process_blur {
     int32_t count_down;
 
     post_process_blur();
-    virtual ~post_process_blur();
+    ~post_process_blur();
 
     void get_blur(render_texture* rt);
     void init_fbo(int32_t width, int32_t height);

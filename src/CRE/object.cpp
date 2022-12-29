@@ -381,11 +381,11 @@ obj_set_handler::~obj_set_handler() {
     obj_set_handler_vertex_buffer_free(this);
     alloc_handler.reset();
     while (tex_file_handler.ptr && tex_file_handler.ptr->count)
-        tex_file_handler.free_data();
+        tex_file_handler.reset();
     while (obj_file_handler.ptr && obj_file_handler.ptr->count)
-        obj_file_handler.free_data();
+        obj_file_handler.reset();
     while (farc_file_handler.ptr && farc_file_handler.ptr->count)
-        farc_file_handler.free_data();
+        farc_file_handler.reset();
 }
 
 inline int32_t obj_material_texture_type_get_texcoord_index(
@@ -1834,7 +1834,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             if (!set->ready)
                 return false;
 
-            handler->obj_file_handler.free_data();
+            handler->obj_file_handler.reset();
             handler->obj_id_data.reserve(set->obj_num);
             for (uint32_t i = 0; i < set->obj_num; i++)
                 handler->obj_id_data.push_back({ set->obj_data[i].id, i });
@@ -1858,7 +1858,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
                 return false;
 
             obj_set_handler_get_shader_index_texture_index(handler);
-            handler->tex_file_handler.free_data();
+            handler->tex_file_handler.reset();
             handler->tex_loaded = true;
         }
     }
@@ -1950,7 +1950,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
 
         object_material_msgpack_read("patch\\AFT\\objset", file.c_str(), set, &local_obj_db);
 
-        handler->obj_file_handler.free_data();
+        handler->obj_file_handler.reset();
         handler->obj_id_data.reserve(set->obj_num);
         for (uint32_t i = 0; i < set->obj_num; i++)
             handler->obj_id_data.push_back({ set->obj_data[i].id, i });
@@ -1967,7 +1967,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
 
         obj_set_handler_get_shader_index_texture_index(handler);
         handler->tex_loaded = true;
-        handler->farc_file_handler.free_data();
+        handler->farc_file_handler.reset();
     }
 
     if (handler->obj_loaded && handler->tex_loaded)
@@ -2006,9 +2006,9 @@ inline void object_storage_unload_set(object_database* obj_db, const char* name)
     handler->obj_loaded = false;
     handler->alloc_handler.reset();
     handler->obj_set = 0;
-    handler->tex_file_handler.free_data();
-    handler->obj_file_handler.free_data();
-    handler->farc_file_handler.free_data();
+    handler->tex_file_handler.reset();
+    handler->obj_file_handler.reset();
+    handler->farc_file_handler.reset();
 }
 
 inline void object_storage_unload_set(uint32_t set_id) {
@@ -2038,9 +2038,9 @@ inline void object_storage_unload_set(uint32_t set_id) {
     handler->obj_loaded = false;
     handler->alloc_handler.reset();
     handler->obj_set = 0;
-    handler->tex_file_handler.free_data();
-    handler->obj_file_handler.free_data();
-    handler->farc_file_handler.free_data();
+    handler->tex_file_handler.reset();
+    handler->obj_file_handler.reset();
+    handler->farc_file_handler.reset();
     if (handler->modern)
         for (auto i = object_storage_data_modern.begin(); i != object_storage_data_modern.end(); i++)
             if (i->set_id == set_id) {

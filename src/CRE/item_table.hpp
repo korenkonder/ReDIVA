@@ -116,7 +116,7 @@ struct item_table {
     std::map<uint32_t, item_table_dbgset> dbgset;
 
     item_table();
-    virtual ~item_table();
+    ~item_table();
 };
 
 extern void item_table_array_init();

@@ -17,7 +17,7 @@ struct post_process_aa {
     GLuint mlaa_area_texture;
 
     post_process_aa();
-    virtual ~post_process_aa();
+    ~post_process_aa();
 
     void apply_mlaa(render_texture* rt,
         render_texture* buf_rt, GLuint* samplers, int32_t ss_alpha_mask);

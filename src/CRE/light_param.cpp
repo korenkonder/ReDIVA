@@ -155,7 +155,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
         int32_t load_error = light_param_data_load_file(&a1->stage_light_param_iterator->second, a1->file_handlers);
 
         for (int32_t i = 0; i < 6; i++)
-            a1->file_handlers[i].free_data();
+            a1->file_handlers[i].reset();
 
         a1->stage_light_param_iterator++;
 
@@ -178,7 +178,7 @@ static int32_t light_param_storage_load_file(light_param_data_storage* a1, bool 
         if (a1->farc_file_handler.read_file(&data_list[DATA_AFT], "rom/light_param/", buf))
             a1->state = 4;
         else {
-            a1->farc_file_handler.free_data();
+            a1->farc_file_handler.reset();
             a1->state = 0;
             return 0;
         }
@@ -506,8 +506,8 @@ static void light_param_data_set(light_param_data* a1, light_param_data_storage*
 
 static void light_param_storage_free_file_handlers(light_param_data_storage* a1) {
     for (int32_t i = 0; i < 6; ++i)
-        a1->file_handlers[i].free_data();
-    a1->farc_file_handler.free_data();
+        a1->file_handlers[i].reset();
+    a1->farc_file_handler.reset();
 }
 
 static void light_param_storage_load_stages(light_param_data_storage* a1, std::vector<int32_t>& stage_indices) {
@@ -578,8 +578,8 @@ static void light_param_storage_reset(light_param_data_storage* a1) {
     a1->pv_cut.clear();
     a1->pv_id = 0;
     for (p_file_handler& i : a1->file_handlers)
-        i.free_data();
-    a1->farc_file_handler.free_data();
+        i.reset();
+    a1->farc_file_handler.reset();
 }
 
 static void light_param_storage_set_default_light_param(light_param_data_storage* a1, int32_t stage_index) {

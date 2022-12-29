@@ -141,9 +141,8 @@ std::vector<std::string> path_get_directories(
 
     std::vector<std::string> directories;
     do {
-        if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-            continue;
-        else if (!str_utils_compare(fdata.cFileName, L".")
+        if (!(fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            || !str_utils_compare(fdata.cFileName, L".")
             || !str_utils_compare(fdata.cFileName, L".."))
             continue;
 
@@ -192,9 +191,8 @@ std::vector<std::wstring> path_get_directories(
 
     std::vector<std::wstring> directories;
     do {
-        if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-            continue;
-        else if (!str_utils_compare(fdata.cFileName, L".")
+        if (!(fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            || !str_utils_compare(fdata.cFileName, L".")
             || !str_utils_compare(fdata.cFileName, L".."))
             continue;
 
@@ -243,9 +241,8 @@ std::vector<std::string> path_get_directories_recursive(
 
     std::vector<std::string> temp_vec;
     do {
-        if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-            continue;
-        else if (!str_utils_compare(fdata.cFileName, L".")
+        if (!(fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            || !str_utils_compare(fdata.cFileName, L".")
             || !str_utils_compare(fdata.cFileName, L".."))
             continue;
 
@@ -331,9 +328,8 @@ std::vector<std::wstring> path_get_directories_recursive(
 
     std::vector<std::wstring> temp_vec;
     do {
-        if (~fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-            continue;
-        else if (!str_utils_compare(fdata.cFileName, L".")
+        if (!(fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            || !str_utils_compare(fdata.cFileName, L".")
             || !str_utils_compare(fdata.cFileName, L".."))
             continue;
 

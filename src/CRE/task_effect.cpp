@@ -388,15 +388,15 @@ bool TaskEffectAuth3D::Init() {
 
     if (stage.count) {
         for (int32_t i = 0; i < stage.count; i++)
-            if (!auth_3d_data_check_id_loaded(&stage.auth_3d_ids_ptr[i]))
+            if (!auth_3d_data_check_id_loaded(stage.auth_3d_ids_ptr[i]))
                 return false;
     }
 
     for (int32_t i = 0; i < stage.count; i++) {
         int32_t& id = stage.auth_3d_ids_ptr[i];
-        auth_3d_data_set_repeat(&id, true);
-        auth_3d_data_set_paused(&id, false);
-        auth_3d_data_set_enable(&id, true);
+        auth_3d_data_set_repeat(id, true);
+        auth_3d_data_set_paused(id, false);
+        auth_3d_data_set_enable(id, true);
     }
 
     //if (field_158)
@@ -465,13 +465,13 @@ void TaskEffectAuth3D::SetStageHashes(std::vector<uint32_t>& stage_hashes, void*
                     break;
 
                 id = auth_3d_data_load_hash(j, data, obj_db, tex_db);
-                if (auth_3d_data_check_id_not_empty(&id))
+                if (auth_3d_data_check_id_not_empty(id))
                     break;
             }
 
             if (id != -1) {
-                auth_3d_data_read_file_modern(&id);
-                auth_3d_data_set_visibility(&id, false);
+                auth_3d_data_read_file_modern(id);
+                auth_3d_data_set_visibility(id, false);
                 if (stage.count + 1 <= stage.max_count)
                     stage.auth_3d_ids_ptr[stage.count++] = id;
                 v30.auth_3d_ids.push_back(id);
@@ -505,13 +505,13 @@ void TaskEffectAuth3D::SetStageIndices(std::vector<int32_t>& stage_indices) {
                     break;
 
                 id = auth_3d_data_load_uid(j, aft_auth_3d_db);
-                if (auth_3d_data_check_id_not_empty(&id))
+                if (auth_3d_data_check_id_not_empty(id))
                     break;
             }
 
             if (id != -1) {
-                auth_3d_data_read_file(&id, aft_auth_3d_db);
-                auth_3d_data_set_visibility(&id, false);
+                auth_3d_data_read_file(id, aft_auth_3d_db);
+                auth_3d_data_set_visibility(id, false);
                 if (stage.count + 1 <= stage.max_count)
                     stage.auth_3d_ids_ptr[stage.count++] = id;
                 v30.auth_3d_ids.push_back(id);
@@ -526,13 +526,13 @@ void TaskEffectAuth3D::SetFrame(int32_t value) {
     double_t frame = (double_t)value;
     for (int32_t i = 0; i < stage.count; i++) {
         int32_t& id = stage.auth_3d_ids_ptr[i];
-        float_t play_control_size = auth_3d_data_get_play_control_size(&id);
+        float_t play_control_size = auth_3d_data_get_play_control_size(id);
         float_t req_frame;
         if (play_control_size != 0.0f)
             req_frame = (float_t)fmod(frame, play_control_size);
         else
             req_frame = 0.0f;
-        auth_3d_data_set_req_frame(&id, req_frame);
+        auth_3d_data_set_req_frame(id, req_frame);
     }
 }
 
@@ -557,16 +557,16 @@ void TaskEffectAuth3D::SetCurrentStageIndex(int32_t value) {
 void TaskEffectAuth3D::SetFrameRateControl(FrameRateControl* value) {
     for (int32_t i = 0; i < stage.count; i++) {
         int32_t& id = stage.auth_3d_ids_ptr[i];
-        auth_3d_data_set_frame_rate(&id, value);
+        auth_3d_data_set_frame_rate(id, value);
     }
 }
 
 void TaskEffectAuth3D::Reset() {
     for (int32_t i = 0; i < stage.count; i++) {
         int32_t& id = stage.auth_3d_ids_ptr[i];
-        auth_3d_data_set_enable(&id, true);
-        auth_3d_data_set_paused(&id, false);
-        auth_3d_data_set_req_frame(&id, 0.0f);
+        auth_3d_data_set_enable(id, true);
+        auth_3d_data_set_paused(id, false);
+        auth_3d_data_set_req_frame(id, 0.0f);
     }
 }
 
@@ -595,7 +595,7 @@ void TaskEffectAuth3D::SetVisibility(bool value) {
                 continue;
 
             for (int32_t& j : i.auth_3d_ids)
-                auth_3d_data_set_visibility(&j, value);
+                auth_3d_data_set_visibility(j, value);
             break;
         }
     else if (current_stage_hash != -1 && current_stage_hash
@@ -605,7 +605,7 @@ void TaskEffectAuth3D::SetVisibility(bool value) {
                 continue;
 
             for (int32_t& j : i.auth_3d_ids)
-                auth_3d_data_set_visibility(&j, value);
+                auth_3d_data_set_visibility(j, value);
             break;
         }
 }

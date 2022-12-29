@@ -24,7 +24,7 @@ struct timer {
     waitable_timer wait_timer;
 
     timer(double_t freq);
-    virtual ~timer();
+    ~timer();
 
     void start_of_cycle();
     void end_of_cycle();

@@ -477,7 +477,7 @@ static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size) {
                         kv.read("tex", col.tex);
                         kv.read("flag", col.flag);
 
-                        if (~col.flag & 0x01) {
+                        if (!(col.flag & 0x01)) {
                             vidc.push_back(col);
                             kv.close_scope();
                             continue;

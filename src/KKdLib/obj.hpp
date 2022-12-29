@@ -118,7 +118,6 @@ enum obj_skin_block_type : uint32_t {
     OBJ_SKIN_BLOCK_CLOTH,
     OBJ_SKIN_BLOCK_CONSTRAINT,
     OBJ_SKIN_BLOCK_EXPRESSION,
-    OBJ_SKIN_BLOCK_ITEM,
     OBJ_SKIN_BLOCK_MOTION,
     OBJ_SKIN_BLOCK_OSAGE,
 };
@@ -499,9 +498,9 @@ struct obj_skin_block_cloth {
     obj_skin_block_cloth_root* root_array;
     obj_skin_block_cloth_node* node_array;
     uint16_t* mesh_index_array;
-    int32_t num_mesh_index;
+    uint32_t num_mesh_index;
     uint16_t* backface_mesh_index_array;
-    int32_t num_backface_mesh_index;
+    uint32_t num_backface_mesh_index;
     obj_skin_skin_param* skin_param;
     uint32_t reserved;
 
@@ -710,6 +709,7 @@ struct obj_set {
 
     obj_set();
 
+    void move_data(obj_set* set_src, prj::shared_ptr<alloc_data> alloc);
     void pack_file(void** data, size_t* size);
     void unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern);
 };

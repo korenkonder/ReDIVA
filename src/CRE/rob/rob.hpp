@@ -1143,7 +1143,7 @@ struct motion_blend_mot {
     MotionBlend* blend;
 
     motion_blend_mot();
-    virtual ~motion_blend_mot();
+    ~motion_blend_mot();
 
     MotionBlendType get_type();
     void reset();
@@ -1321,7 +1321,7 @@ struct rob_chara_bone_data {
     rob_chara_bone_data_sleeve_adjust sleeve_adjust;
 
     rob_chara_bone_data();
-    virtual ~rob_chara_bone_data();
+    ~rob_chara_bone_data();
 
     float_t get_frame();
     float_t get_frame_count();
@@ -1363,7 +1363,7 @@ struct rob_chara_pv_data {
     eyes_adjust eyes_adjust;
 
     rob_chara_pv_data();
-    virtual ~rob_chara_pv_data();
+    ~rob_chara_pv_data();
 };
 
 struct struc_218 {
@@ -2122,7 +2122,7 @@ struct rob_chara_item_equip_object {
     rob_chara_item_equip* item_equip;
 
     rob_chara_item_equip_object();
-    virtual ~rob_chara_item_equip_object();
+    ~rob_chara_item_equip_object();
 
     void add_motion_reset_data(int32_t motion_id, float_t frame, int32_t osage_iterations);
     void check_no_opd(std::vector<opd_blend_data>& opd_blend_data);
@@ -2211,7 +2211,7 @@ struct rob_chara_item_equip {
     bool parts_white_one_l;
 
     rob_chara_item_equip();
-    virtual ~rob_chara_item_equip();
+    ~rob_chara_item_equip();
 
     rob_chara_item_equip_object* get_item_equip_object(item_id id);
     void reset();
@@ -2787,7 +2787,7 @@ struct mothead_mot {
     bool is_x;
 
     mothead_mot();
-    virtual ~mothead_mot();
+    ~mothead_mot();
 };
 
 struct mothead {
@@ -2798,7 +2798,7 @@ struct mothead {
     void* data_x;
 
     mothead();
-    virtual ~mothead();
+    ~mothead();
 };
 
 struct mothead_file {
@@ -3295,7 +3295,7 @@ struct rob_chara {
     rob_chara_pv_data pv_data;
 
     rob_chara();
-    virtual ~rob_chara();
+    ~rob_chara();
 
     void autoblink_disable();
     void autoblink_enable();
@@ -3400,6 +3400,7 @@ extern void pv_osage_manager_array_set_pv_set_motion(
 
 extern bool task_rob_manager_append_task();
 extern bool task_rob_manager_check_chara_loaded(int32_t chara_id);
+extern bool task_rob_manager_check_task_ready();
 extern bool task_rob_manager_free_task();
 
 extern void motion_storage_init();

@@ -53,7 +53,7 @@ struct post_process_tone_map {
     GLuint tone_map;
 
     post_process_tone_map();
-    virtual ~post_process_tone_map();
+    ~post_process_tone_map();
 
     void apply(render_texture* in_tex, texture* light_proj_tex, texture* back_2d_tex,
         render_texture* rt, render_texture* buf_rt,/* render_texture* contour_rt,*/

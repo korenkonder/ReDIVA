@@ -490,9 +490,9 @@ bool pv_game_old::Ctrl() {
             uint32_t light_auth_3d_uid = auth_3d_db->get_uid(buf);
             if (light_auth_3d_uid != -1) {
                 light_auth_3d_id = auth_3d_data_load_uid(light_auth_3d_uid, auth_3d_db);
-                auth_3d_data_read_file(&light_auth_3d_id, auth_3d_db);
-                auth_3d_data_set_enable(&light_auth_3d_id, false);
-                auth_3d_data_set_visibility(&light_auth_3d_id, false);
+                auth_3d_data_read_file(light_auth_3d_id, auth_3d_db);
+                auth_3d_data_set_enable(light_auth_3d_id, false);
+                auth_3d_data_set_visibility(light_auth_3d_id, false);
                 break;
             }
         }
@@ -503,9 +503,9 @@ bool pv_game_old::Ctrl() {
             sprintf_s(buf, sizeof(buf), "CAMPV%03d_BASE", pv_id);
             uint32_t camera_auth_3d_uid = auth_3d_db->get_uid(buf);
             camera_auth_3d_id = auth_3d_data_load_uid(camera_auth_3d_uid, auth_3d_db);
-            auth_3d_data_read_file_modern(&camera_auth_3d_id);
-            auth_3d_data_set_enable(&camera_auth_3d_id, false);
-            auth_3d_data_set_visibility(&camera_auth_3d_id, false);
+            auth_3d_data_read_file_modern(camera_auth_3d_id);
+            auth_3d_data_set_enable(camera_auth_3d_id, false);
+            auth_3d_data_set_visibility(camera_auth_3d_id, false);
         }
 
         state = 7;
@@ -514,13 +514,13 @@ bool pv_game_old::Ctrl() {
         bool wait_load = false;
 
         for (auto i : pv_auth_3d_ids)
-            if (!auth_3d_data_check_id_loaded(&i.second))
+            if (!auth_3d_data_check_id_loaded(i.second))
                 wait_load = true;
 
-        if (!auth_3d_data_check_id_loaded(&light_auth_3d_id))
+        if (!auth_3d_data_check_id_loaded(light_auth_3d_id))
             wait_load = true;
 
-        if (!auth_3d_data_check_id_loaded(&camera_auth_3d_id))
+        if (!auth_3d_data_check_id_loaded(camera_auth_3d_id))
             wait_load = true;
 
         if (!wait_load)
@@ -621,17 +621,17 @@ bool pv_game_old::Ctrl() {
             && pv_game_dsc_process(this, this->time))
             dsc_data_ptr++;
 
-        auth_3d_data_set_enable(&light_auth_3d_id, true);
-        auth_3d_data_set_camera_root_update(&light_auth_3d_id, false);
-        auth_3d_data_set_paused(&light_auth_3d_id, false);
-        auth_3d_data_set_repeat(&camera_auth_3d_id, false);
-        auth_3d_data_set_visibility(&light_auth_3d_id, true);
+        auth_3d_data_set_enable(light_auth_3d_id, true);
+        auth_3d_data_set_camera_root_update(light_auth_3d_id, false);
+        auth_3d_data_set_paused(light_auth_3d_id, false);
+        auth_3d_data_set_repeat(light_auth_3d_id, false);
+        auth_3d_data_set_visibility(light_auth_3d_id, true);
 
-        auth_3d_data_set_enable(&camera_auth_3d_id, true);
-        auth_3d_data_set_camera_root_update(&light_auth_3d_id, true);
-        auth_3d_data_set_paused(&camera_auth_3d_id, false);
-        auth_3d_data_set_repeat(&camera_auth_3d_id, false);
-        auth_3d_data_set_visibility(&camera_auth_3d_id, true);
+        auth_3d_data_set_enable(camera_auth_3d_id, true);
+        auth_3d_data_set_camera_root_update(camera_auth_3d_id, true);
+        auth_3d_data_set_paused(camera_auth_3d_id, false);
+        auth_3d_data_set_repeat(camera_auth_3d_id, false);
+        auth_3d_data_set_visibility(camera_auth_3d_id, true);
 
         pause = true;
     } break;

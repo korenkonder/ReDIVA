@@ -21,6 +21,7 @@
 
 struct MotFile {
     motion_set_info* mot_set_info;
+    prj::shared_ptr<alloc_data> alloc_handler;
     mot_set* mot_set;
     p_file_handler file_handler;
     int32_t load_count;
@@ -2180,7 +2181,7 @@ void rob_init() {
         rob_mot_tbl_file_handler.read_file(&data_list[DATA_AFT], "rom/rob/", "rob_mot_tbl.bin");
         rob_mot_tbl_file_handler.set_callback_data(0, (PFNFILEHANDLERCALLBACK*)rob_cmn_mottbl_read, 0);
         rob_mot_tbl_file_handler.read_now();
-        rob_mot_tbl_file_handler.free_data();
+        rob_mot_tbl_file_handler.reset();
     }
 
     if (!rob_thread_handler)
@@ -2423,7 +2424,7 @@ float_t rob_chara::get_max_face_depth() {
 
 static int16_t sub_14054FE90(rob_chara* rob_chr, bool a3) {
     int16_t v3 = rob_chr->data.miku_rot.rot_y_int16;
-    if (!a3 || ~rob_chr->data.field_0 & 0x10) {
+    if (!a3 || !(rob_chr->data.field_0 & 0x10)) {
         int16_t v4 = rob_chr->data.field_8.field_B8.field_8;
         if (v4)
             return v3 + v4;
@@ -2503,7 +2504,7 @@ static float_t sub_14054FDE0(rob_chara* rob_chr) {
     }
     else {
         if (!(rob_chr->data.field_1588.field_0.field_20.field_0 & 0x8000)
-            || ~rob_chr->data.field_1588.field_0.field_20.field_0 & 0x01)
+            || !(rob_chr->data.field_1588.field_0.field_20.field_0 & 0x01))
             return 7.0f;
     }
     return 3.0f;
@@ -2593,8 +2594,8 @@ static void sub_140555B00(rob_chara* rob_chr, bool a2) {
     else if (rob_chr->data.motion.prev_motion_id == -1)
         v3 = 0;
     else {
-        v3 = ~rob_chr->data.field_1588.field_0.field_20.field_0 & 0x400
-            || ~rob_chr->data.field_1588.field_0.field_10.field_0 & 0x40
+        v3 = !(rob_chr->data.field_1588.field_0.field_20.field_0 & 0x400)
+            || !(rob_chr->data.field_1588.field_0.field_10.field_0 & 0x40)
             || rob_chr->data.field_1588.field_0.field_20.field_0 & 0x100000;
     }
 
@@ -5872,11 +5873,11 @@ static void mothead_mot_msgpack_read(const char* path, const char* set_name, mot
         if (!mot_id || !arr)
             continue;
 
-        uint32_t motion_id = mot_id->read_uint32_t();
-        if ((int32_t)motion_id < mhd->first_mot_id || (int32_t)motion_id > mhd->last_mot_id)
+        int32_t motion_id = mot_id->read_int32_t();
+        if (motion_id < mhd->first_mot_id || motion_id > mhd->last_mot_id)
             continue;
 
-        mothead_mot* mhdm = mhd->mots[(ssize_t)(int32_t)motion_id - mhd->first_mot_id];
+        mothead_mot* mhdm = mhd->mots[(ssize_t)motion_id - mhd->first_mot_id];
 
         msgpack_array* ptr = arr->data.arr;
         for (msgpack& j : *ptr) {
@@ -6519,8 +6520,8 @@ void rob_chara_data_adjust_ctrl(rob_chara* rob_chr, rob_chara_data_adjust* adjus
         && fabsf(adjust->force_duration - adjust->transition_frame) > 0.000001f) {
         transition_frame_step = true;
         float_t blend = (adjust->transition_frame + 1.0f) / (adjust->force_duration + 1.0f);
-        vec3_lerp_scalar(adjust_prev->curr_external_force,
-            adjust->curr_external_force, adjust->curr_external_force, blend);
+        adjust->curr_external_force = vec3::lerp(adjust_prev->curr_external_force,
+            adjust->curr_external_force, blend);
         adjust->curr_force = lerp_def(adjust_prev->curr_force, adjust->curr_force, blend);
     }
 
@@ -8145,7 +8146,7 @@ static void sub_140407280(struc_258* a1, std::vector<bone_data>* a2, mat4* mat, 
     vec3_mult_scalar(v71, 0.5f, v71);
 
     mat4 v72 = *v7[MOTION_BONE_CL_KAO].node[1].mat;
-    mat4_mult_axis_angle(&v72, &v72, &v71, v51);
+    mat4_mult_axis_angle(&v72, &v71, v51, &v72);
     mat4_mult_vec3_inv_trans(&v72, &a1->field_184, &v67);
 
     float_t v52;
@@ -8597,10 +8598,8 @@ static void sub_140406A70(vec3* a1, std::vector<bone_data>* bones, mat4* a3, vec
         mat4_clear_trans(v25->node->mat, &v39);
         mat4_transpose(&v38, &v38);
         mat4_mult(&v39, &v38, &v38);
-        if (rotation_blend < 1.0f) {
-            mat4 rot_mat = v25->rot_mat[0];
-            mat4_lerp_rotation(&rot_mat, &v38, &v38, rotation_blend);
-        }
+        if (rotation_blend < 1.0f)
+            mat4_lerp_rotation(&v25->rot_mat[0], &v38, &v38, rotation_blend);
         v25->rot_mat[0] = v38;
     }
 
@@ -8817,12 +8816,10 @@ static bool sub_14053B580(rob_chara* rob_chr, int32_t a2) {
 
     int32_t v33 = v0.field_0;
     vec3 v48 = 0.0f;
-    if (v33 == 0) {
-        vec3_lerp_scalar(v45, v13, v48, v31);
-    }
-    else if (v33 == 1) {
-        vec3_lerp_scalar(v13, v45, v48, v31);
-    }
+    if (v33 == 0)
+        v48 = vec3::lerp(v45, v13, v31);
+    else if (v33 == 1)
+        v48 = vec3::lerp(v13, v45, v31);
 
     switch (v0.field_E) {
     case 1:
@@ -12110,6 +12107,10 @@ bool task_rob_manager_check_chara_loaded(int32_t chara_id) {
     return task_rob_manager->CheckCharaLoaded(&rob_chara_array[chara_id]);
 }
 
+bool task_rob_manager_check_task_ready() {
+    return app::TaskWork::CheckTaskReady(task_rob_manager);
+}
+
 bool task_rob_manager_free_task() {
     if (!app::TaskWork::CheckTaskReady(task_rob_manager))
         return true;
@@ -12371,7 +12372,7 @@ void MotionBlendCross::Blend(bone_data* a2, bone_data* a3) {
     switch (a2->type) {
     case BONE_DATABASE_BONE_TYPE_1:
     case BONE_DATABASE_BONE_POSITION:
-        vec3_lerp_scalar(a3->trans, a2->trans, a2->trans, blend);
+        a2->trans = vec3::lerp(a3->trans, a2->trans, blend);
         break;
     case BONE_DATABASE_BONE_POSITION_ROTATION:
         if (field_21) {
@@ -12541,7 +12542,7 @@ void MotionBlendFreeze::Blend(bone_data* a2, bone_data* a3) {
     switch (a2->type) {
     case BONE_DATABASE_BONE_TYPE_1:
     case BONE_DATABASE_BONE_POSITION:
-        vec3_lerp_scalar(a2->trans_prev[field_24], a2->trans, a2->trans, blend);
+        a2->trans = vec3::lerp(a2->trans_prev[field_24], a2->trans, blend);
         break;
     case BONE_DATABASE_BONE_POSITION_ROTATION:
         if (field_21) {
@@ -12630,15 +12631,15 @@ void PartialMotionBlendFreeze::Blend(bone_data* a2, bone_data* a3) {
     switch (a2->type) {
     case BONE_DATABASE_BONE_POSITION:
     case BONE_DATABASE_BONE_TYPE_1:
-        vec3_lerp_scalar(a2->trans_prev[0], a2->trans, a2->trans, blend);
+        a2->trans = vec3::lerp(a2->trans_prev[0], a2->trans, blend);
         break;
     case BONE_DATABASE_BONE_POSITION_ROTATION:
         mat4_lerp_rotation(&a2->rot_mat_prev[0][0], &a2->rot_mat[0], &a2->rot_mat[0], blend);
-        vec3_lerp_scalar(a2->trans_prev[0], a2->trans, a2->trans, blend);
+        a2->trans = vec3::lerp(a2->trans_prev[0], a2->trans, blend);
         break;
     case BONE_DATABASE_BONE_ARM_IK_ROTATION:
     case BONE_DATABASE_BONE_LEGS_IK_ROTATION:
-        mat4_lerp_rotation(&a2->rot_mat[2], &a2->rot_mat_prev[2][0], &a2->rot_mat[2], blend);
+        mat4_lerp_rotation(&a2->rot_mat_prev[2][0], &a2->rot_mat[2], &a2->rot_mat[2], blend);
     case BONE_DATABASE_BONE_HEAD_IK_ROTATION: {
         mat4 v15;
         mat4 v16;
@@ -14692,7 +14693,7 @@ void MotFile::FreeData() {
         delete mot_set;
         mot_set = 0;
     }
-    file_handler.free_data();
+    file_handler.reset();
     load_count = 0;
 }
 
@@ -14767,7 +14768,7 @@ void MhdFile::FreeData() {
     }
     set = -1;
     file_path.clear();
-    file_handler.free_data();
+    file_handler.reset();
     load_count = 0;
 }
 
@@ -14953,7 +14954,7 @@ bool OpdMaker::Data::IsValidOpdiFile(rob_chara* rob_chr, int32_t motion_id) {
 void OpdMaker::Data::Reset() {
     for (auto i : opdi_files)
         if (i.second) {
-            i.second->free_data();
+            i.second->reset();
             delete i.second;
             i.second = 0;
         }

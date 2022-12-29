@@ -24,7 +24,7 @@ struct vag {
     size_t size;
 
     vag();
-    virtual ~vag();
+    ~vag();
 
     void read(const char* path);
     void read(const wchar_t* path);

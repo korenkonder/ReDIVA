@@ -339,7 +339,7 @@ inline constexpr size_t utf8_to_utf16_length(const char* s) {
 
     while (*s) {
         char t = *s++;
-        if (~t & 0x80) {
+        if (!(t & 0x80)) {
             l = 0;
             length++;
             c = 0;

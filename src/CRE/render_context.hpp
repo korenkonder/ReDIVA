@@ -433,7 +433,7 @@ struct light_proj {
     uint32_t texture_id;
 
     light_proj(int32_t width, int32_t height);
-    virtual ~light_proj();
+    ~light_proj();
 
     void resize(int32_t width, int32_t height);
     bool set(render_context* rctx);
@@ -568,7 +568,7 @@ struct render_context {
     mat4 matrix_buffer[MATRIX_BUFFER_COUNT];
 
     render_context();
-    virtual ~render_context();
+    ~render_context();
 
     void ctrl();
     void disp();
@@ -619,7 +619,7 @@ struct shadow {
     bool field_2F5;
 
     shadow();
-    virtual ~shadow();
+    ~shadow();
 
     void ctrl(render_context* rctx);
     int32_t init_data();

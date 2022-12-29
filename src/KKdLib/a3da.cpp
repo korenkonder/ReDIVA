@@ -2769,7 +2769,7 @@ static void a3dc_read_a3da_key_f16(void* data, size_t size, a3da_key* value, a3d
         }
         return;
     }
-    else if (~value->flags & A3DA_KEY_BIN_OFFSET)
+    else if (!(value->flags & A3DA_KEY_BIN_OFFSET))
         return;
 
     a3dc_key_header* head = (a3dc_key_header*)((size_t)data + value->bin_offset);
@@ -2924,7 +2924,7 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
 
 static void a3dc_read_a3da_model_transform(void* data, size_t size,
     a3da_model_transform* value, a3da_compress_f16 f16) {
-    if (~value->flags & A3DA_MODEL_TRANSFORM_BIN_OFFSET)
+    if (!(value->flags & A3DA_MODEL_TRANSFORM_BIN_OFFSET))
         return;
 
     a3da_model_transform_header* head = (a3da_model_transform_header*)((size_t)data + value->bin_offset);

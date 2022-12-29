@@ -180,7 +180,7 @@ void pv_expression_file_unload(const char* file) {
                 i->data = 0;
             }
 
-            i->file_handler.free_data();
+            i->file_handler.reset();
             i->alloc_handler.reset();
         }
         delete i;
@@ -204,7 +204,7 @@ void pv_expression_file_unload(uint32_t hash) {
                 i->data = 0;
             }
 
-            i->file_handler.free_data();
+            i->file_handler.reset();
             i->alloc_handler.reset();
         }
 

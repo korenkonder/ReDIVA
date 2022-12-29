@@ -92,7 +92,7 @@ struct obj_set_handler {
     bool modern;
 
     obj_set_handler();
-    virtual ~obj_set_handler();
+    ~obj_set_handler();
 };
 
 extern int32_t obj_material_texture_type_get_texcoord_index(

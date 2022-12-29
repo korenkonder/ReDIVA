@@ -63,7 +63,10 @@ namespace Glitter {
         end_time = (float_t)this->end_time;
         if (repeat && (start_time > frame || frame >= end_time)) {
             float_t t = (frame - start_time) / (end_time - start_time);
-            t = t <= 0.0f ? (float_t)(int32_t)t - 1.0f : (float_t)(int32_t)t;
+            if (t > 0.0f)
+                t = (float_t)(int32_t)t;
+            else if (t < 0.0f)
+                t = (float_t)(int32_t)t - 1.0f;
             frame -= t * (end_time - start_time);
         }
 
@@ -145,7 +148,7 @@ namespace Glitter {
     float_t Curve::F2Randomize(GLT, float_t value, Random* random) {
         float_t rand;
 
-        if (~flags & CURVE_RANDOM_RANGE)
+        if (!(flags & CURVE_RANDOM_RANGE))
             return value;
 
         rand = random->F2GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
@@ -160,7 +163,7 @@ namespace Glitter {
     }
 
     float_t Curve::F2RandomizeKey(GLT, Curve::Key* key, Random* random) {
-        if (~flags & CURVE_KEY_RANDOM_RANGE)
+        if (!(flags & CURVE_KEY_RANDOM_RANGE))
             return key->value;
 
         float_t rand = random->F2GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
@@ -208,7 +211,7 @@ namespace Glitter {
     void Curve::FitKeysIntoCurve(GLT) {
         size_t count = keys.size();
         keys_rev = {};
-        if (~flags & CURVE_BAKED) {
+        if (!(flags & CURVE_BAKED)) {
             keys_rev.insert(keys_rev.end(), keys.begin(), keys.end());
             return;
         }
@@ -219,7 +222,7 @@ namespace Glitter {
         }
 
         bool curve_baked_half = false;
-        if (type == Glitter::F2 || (type == Glitter::X && ~flags & CURVE_BAKED_FULL))
+        if (type == Glitter::F2 || (type == Glitter::X && !(flags & CURVE_BAKED_FULL)))
             curve_baked_half = true;
 
         const uint8_t step = curve_baked_half ? 2 : 1;
@@ -413,13 +416,13 @@ namespace Glitter {
             keys.push_back(keys_rev.data()[0]);
         else if (keys_rev.size() < 1)
             return;
-        else if (~flags & CURVE_BAKED) {
+        else if (!(flags & CURVE_BAKED)) {
             keys.insert(keys.end(), keys_rev.begin(), keys_rev.end());
             return;
         }
 
         bool curve_baked_half = false;
-        if (GLT_VAL == Glitter::F2 || (GLT_VAL == Glitter::X && ~flags & CURVE_BAKED_FULL))
+        if (GLT_VAL == Glitter::F2 || (GLT_VAL == Glitter::X && !(flags & CURVE_BAKED_FULL)))
             curve_baked_half = true;
 
         ssize_t keys_count = keys_rev.size();
@@ -528,7 +531,10 @@ namespace Glitter {
         end_time = (float_t)this->end_time;
         if (repeat && (start_time > frame || frame >= end_time)) {
             float_t t = (frame - start_time) / (end_time - start_time);
-            t = t <= 0.0f ? (float_t)(int32_t)t - 1.0f : (float_t)(int32_t)t;
+            if (t > 0.0f)
+                t = (float_t)(int32_t)t;
+            else if (t < 0.0f)
+                t = (float_t)(int32_t)t - 1.0f;
             frame -= t * (end_time - start_time);
         }
 
@@ -546,7 +552,7 @@ namespace Glitter {
                 key_index = keys_count - 1;
             else if (frame > start_time) {
                 key_index = (size_t)frame - this->start_time;
-                if (~flags & CURVE_BAKED_FULL)
+                if (!(flags & CURVE_BAKED_FULL))
                     key_index /= 2;
 
                 if (key_index >= keys_count)
@@ -608,7 +614,7 @@ namespace Glitter {
     }
 
     float_t Curve::XRandomize(float_t value, Random* random) {
-        if (~flags & CURVE_RANDOM_RANGE)
+        if (!(flags & CURVE_RANDOM_RANGE))
             return value;
 
         float_t rand = random->XGetFloat(flags & CURVE_RANDOM_RANGE_NEGATE
@@ -620,7 +626,7 @@ namespace Glitter {
     }
 
     float_t Curve::XRandomizeKey(Curve::Key* key, Random* random) {
-        if (~flags & CURVE_KEY_RANDOM_RANGE)
+        if (!(flags & CURVE_KEY_RANDOM_RANGE))
             return key->value;
 
         float_t rand = random->XGetFloat(flags & CURVE_RANDOM_RANGE_NEGATE

@@ -60,7 +60,7 @@ struct light_param_data_storage {
     int32_t pv_id;
 
     light_param_data_storage();
-    virtual ~light_param_data_storage();
+    ~light_param_data_storage();
 
     static void load(data_struct* data);
     static void unload();

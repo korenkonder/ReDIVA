@@ -176,7 +176,7 @@ namespace Glitter {
             return;
         }
 
-        if (~flags & EMITTER_INST_ENDED)
+        if (!(flags & EMITTER_INST_ENDED))
             if (this->emission == EMITTER_EMISSION_ON_TIMER) {
                 if (emission_timer >= 0.0f || emission_interval >= 0.0f) {
                     emission_timer -= delta_frame;
@@ -289,7 +289,7 @@ namespace Glitter {
     }
 
     bool F2EmitterInst::HasEnded(bool a2) {
-        if (~flags & EMITTER_INST_ENDED)
+        if (!(flags & EMITTER_INST_ENDED))
             return false;
         else if (!a2)
             return true;
@@ -542,7 +542,7 @@ namespace Glitter {
             emission_timer -= vec3::distance(trans, trans_prev);
         }
 
-        if (~flags & EMITTER_INST_HAS_DISTANCE)
+        if (!(flags & EMITTER_INST_HAS_DISTANCE))
             enum_or(flags, EMITTER_INST_HAS_DISTANCE);
     }
 
@@ -660,7 +660,7 @@ namespace Glitter {
             return;
         }
 
-        if (~flags & EMITTER_INST_ENDED)
+        if (!(flags & EMITTER_INST_ENDED))
             if (this->emission == EMITTER_EMISSION_ON_TIMER) {
                 if (data.timer == EMITTER_TIMER_BY_DISTANCE) {
                     if (emission_timer <= 0.0f || emission_interval >= 0.0f)
@@ -789,7 +789,7 @@ namespace Glitter {
     }
 
     bool XEmitterInst::HasEnded(bool a2) {
-        if (~flags & EMITTER_INST_ENDED)
+        if (!(flags & EMITTER_INST_ENDED))
             return false;
         else if (!a2)
             return true;

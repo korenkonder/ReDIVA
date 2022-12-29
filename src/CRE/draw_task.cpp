@@ -480,7 +480,7 @@ bool draw_task_add_draw_object(render_context* rctx, obj* object,
             obj_material_attrib_member attrib = material->material.attrib.m;
             if (draw_task_flags & (DRAW_TASK_ALPHA_ORDER_1 | DRAW_TASK_ALPHA_ORDER_2 | DRAW_TASK_ALPHA_ORDER_3)
                 && task->data.object.blend_color.w < 1.0f) {
-                if (~draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY) {
+                if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY)) {
                     if (attrib.flag_28 || (attrib.punch_through
                         || !(attrib.alpha_texture | attrib.alpha_material))
                         && !sub_mesh->attrib.m.transparent) {

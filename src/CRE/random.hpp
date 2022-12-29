@@ -12,7 +12,7 @@ struct RandState {
     std::mt19937 mt;
 
     RandState();
-    virtual ~RandState();
+    ~RandState();
 };
 
 extern void rand_state_array_init();

@@ -49,61 +49,6 @@ const uint32_t hash_murmurhash_null = 0x5A009B23;
 // Empty string
 const uint32_t hash_crc16_ccitt_empty = 0xFFFF;
 
-string_hash::string_hash() {
-    hash_fnv1a64m = hash_fnv1a64m_empty;
-    hash_murmurhash = hash_murmurhash_empty;
-}
-
-string_hash::string_hash(const char* str) {
-    this->str.assign(str);
-    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
-    this->hash_murmurhash = hash_string_murmurhash(this->str);
-}
-
-string_hash::string_hash(std::string& str) {
-    this->str.assign(str);
-    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
-    this->hash_murmurhash = hash_string_murmurhash(this->str);
-}
-
-string_hash::string_hash(std::string&& str) {
-    this->str.assign(str);
-    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
-    this->hash_murmurhash = hash_string_murmurhash(this->str);
-}
-
-string_hash::~string_hash() {
-
-}
-
-const char* string_hash::c_str() {
-    return str.c_str();
-}
-
-void string_hash::assign(const char* str) {
-    this->str.assign(str);
-    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
-    this->hash_murmurhash = hash_string_murmurhash(this->str);
-}
-
-void string_hash::assign(std::string& str) {
-    this->str.assign(str);
-    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
-    this->hash_murmurhash = hash_string_murmurhash(this->str);
-}
-
-void string_hash::assign(std::string&& str) {
-    this->str.assign(str);
-    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
-    this->hash_murmurhash = hash_string_murmurhash(this->str);
-}
-
-void string_hash::assign(string_hash& str) {
-    this->str.assign(str.str);
-    this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
-    this->hash_murmurhash = hash_string_murmurhash(this->str);
-}
-
 // FNV 1a 64-bit Modified
 // 0x1403B04D0 in SBZV_7.10
 uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper) {

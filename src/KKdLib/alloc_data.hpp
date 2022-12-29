@@ -32,6 +32,28 @@ struct alloc_data {
 
     template <typename T>
     inline T* allocate(size_t size) {
+        if (!size)
+            return 0;
+
         return new((T*)allocate(sizeof(T) * size)) T;
+    }
+
+    template <typename T>
+    inline T* allocate(const T* src) {
+        if (!src)
+            return 0;
+
+        return new((T*)allocate(sizeof(T))) T(*src);
+    }
+
+    template <typename T>
+    inline T* allocate(const T* src, size_t size) {
+        if (!src || !size)
+            return 0;
+
+        T* dst = (T*)allocate(sizeof(T) * size);
+        for (size_t i = 0; i < size; i++)
+            new(&dst[i]) T(src[i]);
+        return dst;
     }
 };

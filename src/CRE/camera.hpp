@@ -52,7 +52,7 @@ struct camera {
     bool fast_change_hist1;
 
     camera();
-    virtual ~camera();
+    ~camera();
 
     void initialize(double_t aspect, int32_t render_width, int32_t render_height,
         int32_t sprite_width, int32_t sprite_height);

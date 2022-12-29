@@ -166,12 +166,12 @@ static void auth_3d_data_struct_unload_category(auth_3d_data_struct* auth_3d_dat
 static void auth_3d_data_struct_unload_category(
     auth_3d_data_struct* auth_3d_data, uint32_t category_hash);
 
-static void auth_3d_farc_free_data(auth_3d_farc* a3da_farc);
 static void auth_3d_farc_load(auth_3d_farc* a3da_farc, const char* mdata_dir);
 static void auth_3d_farc_load_modern(auth_3d_farc* a3da_farc, void* data);
 static void auth_3d_farc_read_file(auth_3d_farc* a3da_farc, const char* mdata_dir);
 static void auth_3d_farc_read_file_modern(auth_3d_farc* a3da_farc, void* data);
 static bool auth_3d_farc_read_func(auth_3d_farc* a3da_farc, const void* data, size_t size);
+static void auth_3d_farc_reset(auth_3d_farc* a3da_farc);
 static void auth_3d_farc_unload(auth_3d_farc* a3da_farc);
 
 static void auth_3d_uid_file_load(auth_3d_uid_file* uid_file);
@@ -1183,12 +1183,12 @@ float_t auth_3d_key::interpolate(float_t frame) {
     return value_interp;
 }
 
-inline void auth_3d_key::reset() {
-    type = (auth_3d_key_type)0;
+void auth_3d_key::reset() {
+    type = AUTH_3D_KEY_NONE;
     value = 0.0f;
     max_frame = 0.0f;
-    ep_type_pre = (auth_3d_ep_type)0;
-    ep_type_post = (auth_3d_ep_type)0;
+    ep_type_pre = AUTH_3D_EP_NONE;
+    ep_type_post = AUTH_3D_EP_NONE;
     frame_delta = 0.0f;
     value_delta = 0.0f;
     keys_vec.clear();
@@ -2304,22 +2304,22 @@ bool Auth3dTestTask::Ctrl() {
     if (field_1EC == 1 && !object_storage_load_obj_set_check_not_read(effcmn_obj_set))
         field_1EC = 4;
 
-    if (field_1D4 == 1 && auth_3d_data_check_id_loaded(&auth_3d_id))
+    if (field_1D4 == 1 && auth_3d_data_check_id_loaded(auth_3d_id))
         field_1D4 = 2;
 
     if (field_1D4 == 2) {
-        auth_3d_data_set_enable(&auth_3d_id, true);
-        auth_3d_data_set_paused(&auth_3d_id, false);
-        auth_3d_data_set_repeat(&auth_3d_id, repeat);
-        auth_3d_data_set_left_right_reverse(&auth_3d_id, left_right_reverse);
+        auth_3d_data_set_enable(auth_3d_id, true);
+        auth_3d_data_set_paused(auth_3d_id, false);
+        auth_3d_data_set_repeat(auth_3d_id, repeat);
+        auth_3d_data_set_left_right_reverse(auth_3d_id, left_right_reverse);
         field_1D4 = 4;
     }
 
-    if (auth_3d_data_check_id_not_empty(&auth_3d_id)) {
+    if (auth_3d_data_check_id_not_empty(auth_3d_id)) {
         mat4 mat;
         mat4_translate(&trans_value, &mat);
         mat4_rotate_y_mult(&mat, rot_y_value * DEG_TO_RAD_FLOAT, &mat);
-        auth_3d_data_set_mat(&auth_3d_id, &mat);
+        auth_3d_data_set_mat(auth_3d_id, &mat);
     }
     return false;
 }
@@ -2347,10 +2347,10 @@ void auth_3d_data_init() {
     auth_3d_data = new auth_3d_data_struct;
 }
 
-bool auth_3d_data_check_id_not_empty(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+bool auth_3d_data_check_id_not_empty(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->id != -1;
     }
     return false;
@@ -2364,25 +2364,25 @@ bool auth_3d_data_check_category_loaded(uint32_t category_hash) {
     return auth_3d_data_struct_check_category_loaded(auth_3d_data, category_hash);
 }
 
-bool auth_3d_data_check_id_loading(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+bool auth_3d_data_check_id_loading(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->state == 1;
     }
     return false;
 }
 
-bool auth_3d_data_check_id_loaded(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+bool auth_3d_data_check_id_loaded(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->state == 2;
     }
     return true;
 }
 
-auth_3d* auth_3d_data_get_auth_3d(int32_t id) {
+auth_3d* auth_3d_data_get_auth_3d(const int32_t& id) {
     int32_t index = 0;
     while (auth_3d_data->data[index].id != id)
         if (++index >= AUTH_3D_DATA_COUNT)
@@ -2487,14 +2487,14 @@ int32_t auth_3d_data_get_auth_3d_id(uint32_t file_name_hash, uint32_t object_has
     return -1;
 }
 
-int32_t auth_3d_data_get_chara_id(int32_t id) {
+int32_t auth_3d_data_get_chara_id(const int32_t& id) {
     auth_3d* auth = auth_3d_data_get_auth_3d(id);
     if (auth)
         return auth->chara_id;
     return -1;
 }
 
-mat4* auth_3d_data_get_auth_3d_object_mat(int32_t id, size_t index, bool hrc, mat4* mat) {
+mat4* auth_3d_data_get_auth_3d_object_mat(const int32_t& id, size_t index, bool hrc, mat4* mat) {
     if (id < 0 || (id & 0x7FFF) >= AUTH_3D_DATA_COUNT)
         return 0;
 
@@ -2512,91 +2512,91 @@ mat4* auth_3d_data_get_auth_3d_object_mat(int32_t id, size_t index, bool hrc, ma
     return mat;
 }
 
-bool auth_3d_data_get_enable(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+bool auth_3d_data_get_enable(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->enable;
     }
     return false;
 }
 
-bool auth_3d_data_get_ended(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+bool auth_3d_data_get_ended(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->ended;
     }
     return true;
 }
 
-float_t auth_3d_data_get_frame(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+float_t auth_3d_data_get_frame(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->frame;
     }
     return 0.0f;
 }
 
-float_t auth_3d_data_get_frame_offset(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+float_t auth_3d_data_get_frame_offset(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->frame_offset;
     }
     return 0.0f;
 }
 
-float_t auth_3d_data_get_last_frame(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+float_t auth_3d_data_get_last_frame(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->last_frame;
     }
     return 0.0f;
 }
 
-bool auth_3d_data_get_left_right_reverse(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+bool auth_3d_data_get_left_right_reverse(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->left_right_reverse;
     }
     return false;
 }
 
-float_t auth_3d_data_get_play_control_begin(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+float_t auth_3d_data_get_play_control_begin(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->play_control.begin;
     }
     return 0.0f;
 }
 
-float_t auth_3d_data_get_play_control_size(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+float_t auth_3d_data_get_play_control_size(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->play_control.size;
     }
     return 0.0f;
 }
 
-bool auth_3d_data_get_paused(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+bool auth_3d_data_get_paused(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->paused;
     }
     return false;
 }
 
-bool auth_3d_data_get_repeat(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+bool auth_3d_data_get_repeat(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->repeat;
     }
     return false;
@@ -2676,10 +2676,10 @@ void auth_3d_data_get_obj_sets_from_category(std::string& name, std::vector<uint
         obj_sets.push_back(obj_set);
 }
 
-int32_t auth_3d_data_get_uid(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+int32_t auth_3d_data_get_uid(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             return auth->uid;
     }
     return -1;
@@ -2777,68 +2777,68 @@ int32_t auth_3d_data_load_uid(int32_t uid, auth_3d_database* auth_3d_db) {
     return id;
 }
 
-void auth_3d_data_read_file(int32_t* id, auth_3d_database* auth_3d_db) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth && auth->id == *id)
+void auth_3d_data_read_file(const int32_t& id, auth_3d_database* auth_3d_db) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth && auth->id == id)
             auth_3d_read_file(auth, auth_3d_db);
     }
 }
 
-void auth_3d_data_read_file_modern(int32_t* id) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth && auth->id == *id)
+void auth_3d_data_read_file_modern(const int32_t& id) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth && auth->id == id)
             auth_3d_read_file_modern(auth);
     }
 }
 
-void auth_3d_data_set_camera_root_update(int32_t* id, bool value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_camera_root_update(const int32_t& id, bool value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->camera_root_update = value;
     }
 }
 
-void auth_3d_data_set_chara_id(int32_t* id, int32_t value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_chara_id(const int32_t& id, int32_t value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->chara_id = value;
     }
 }
 
-void auth_3d_data_set_chara_item(int32_t* id, bool value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_chara_item(const int32_t& id, bool value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->chara_item = value;
     }
 }
 
-void auth_3d_data_set_draw_task_flags_alpha(int32_t* id, draw_task_flags draw_task_flags, float_t alpha) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id) {
+void auth_3d_data_set_draw_task_flags_alpha(const int32_t& id, draw_task_flags draw_task_flags, float_t alpha) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id) {
             auth->draw_task_flags = draw_task_flags;
             auth->alpha = alpha;
         }
     }
 }
 
-void auth_3d_data_set_enable(int32_t* id, bool value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_enable(const int32_t& id, bool value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->enable = value;
     }
 }
 
-void auth_3d_data_set_frame_rate(int32_t* id, FrameRateControl* value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_frame_rate(const int32_t& id, FrameRateControl* value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             if (value)
                 auth->frame_rate = value;
             else
@@ -2846,86 +2846,86 @@ void auth_3d_data_set_frame_rate(int32_t* id, FrameRateControl* value) {
     }
 }
 
-void auth_3d_data_set_last_frame(int32_t* id, float_t value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_last_frame(const int32_t& id, float_t value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->last_frame = value;
     }
 }
 
-void auth_3d_data_set_left_right_reverse(int32_t* id, bool value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_left_right_reverse(const int32_t& id, bool value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->left_right_reverse = value;
     }
 }
 
-void auth_3d_data_set_mat(int32_t* id, const mat4* value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_mat(const int32_t& id, const mat4* value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->mat = *value;
     }
 }
 
-void auth_3d_data_set_max_frame(int32_t* id, float_t value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_max_frame(const int32_t& id, float_t value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->max_frame = value;
     }
 }
 
-void auth_3d_data_set_paused(int32_t* id, bool value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_paused(const int32_t& id, bool value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->paused = value;
     }
 }
 
-void auth_3d_data_set_repeat(int32_t* id, bool value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_repeat(const int32_t& id, bool value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->repeat = value;
     }
 }
 
-void auth_3d_data_set_req_frame(int32_t* id, float_t value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id) {
+void auth_3d_data_set_req_frame(const int32_t& id, float_t value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id) {
             auth->req_frame = value;
             auth->frame_changed = true;
         }
     }
 }
 
-void auth_3d_data_set_shadow(int32_t* id, bool value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_shadow(const int32_t& id, bool value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->shadow = value;
     }
 }
 
-void auth_3d_data_set_src_dst_chara(int32_t* id, int32_t src_chara, int32_t dst_chara) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id) {
+void auth_3d_data_set_src_dst_chara(const int32_t& id, int32_t src_chara, int32_t dst_chara) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id) {
             auth->src_chara = src_chara;
             auth->dst_chara = dst_chara;
         }
     }
 }
 
-void auth_3d_data_set_visibility(int32_t* id, bool value) {
-    if (*id >= 0 && ((*id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[*id & 0x7FFF];
-        if (auth->id == *id)
+void auth_3d_data_set_visibility(const int32_t& id, bool value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
             auth->visible = value;
     }
 }
@@ -2938,7 +2938,7 @@ void auth_3d_data_unload_category(uint32_t category_hash) {
     auth_3d_data_struct_unload_category(auth_3d_data, category_hash);
 }
 
-void auth_3d_data_unload_id(int32_t id, render_context* rctx) {
+void auth_3d_data_unload_id(const int32_t& id, render_context* rctx) {
     if (id < 0 || (id & 0x7FFF) >= AUTH_3D_DATA_COUNT)
         return;
 
@@ -3753,7 +3753,7 @@ static void auth_3d_fog_set(auth_3d_fog* f, render_context* rctx) {
 
     fog* data = &rctx->fog[id];
     if (f->flags & AUTH_3D_FOG_COLOR) {
-        if (~f->flags_init & AUTH_3D_FOG_COLOR) {
+        if (!(f->flags_init & AUTH_3D_FOG_COLOR)) {
             vec4 color_init;
             data->get_color(color_init);
             f->color_init = color_init;
@@ -3764,7 +3764,7 @@ static void auth_3d_fog_set(auth_3d_fog* f, render_context* rctx) {
     }
 
     if (f->flags & AUTH_3D_FOG_DENSITY) {
-        if (~f->flags_init & AUTH_3D_FOG_DENSITY) {
+        if (!(f->flags_init & AUTH_3D_FOG_DENSITY)) {
             f->density_init = data->get_density();
             enum_or(f->flags_init, AUTH_3D_FOG_DENSITY);
         }
@@ -3773,7 +3773,7 @@ static void auth_3d_fog_set(auth_3d_fog* f, render_context* rctx) {
     }
 
     if (f->flags & AUTH_3D_FOG_END) {
-        if (~f->flags_init & AUTH_3D_FOG_END) {
+        if (!(f->flags_init & AUTH_3D_FOG_END)) {
             f->end_init = data->get_end();
             enum_or(f->flags_init, AUTH_3D_FOG_END);
         }
@@ -3782,7 +3782,7 @@ static void auth_3d_fog_set(auth_3d_fog* f, render_context* rctx) {
     }
 
     if (f->flags & AUTH_3D_FOG_START) {
-        if (~f->flags_init & AUTH_3D_FOG_START) {
+        if (!(f->flags_init & AUTH_3D_FOG_START)) {
             f->start_init = data->get_start();
             enum_or(f->flags_init, AUTH_3D_FOG_START);
         }
@@ -3892,7 +3892,7 @@ static void auth_3d_light_set(auth_3d_light* l, render_context* rctx) {
 
     light_data* data = &set_data->lights[id];
     if (l->flags & AUTH_3D_LIGHT_AMBIENT) {
-        if (~l->flags_init & AUTH_3D_LIGHT_AMBIENT) {
+        if (!(l->flags_init & AUTH_3D_LIGHT_AMBIENT)) {
             vec4 ambient_init;
             data->get_ambient(ambient_init);
             l->ambient_init = ambient_init;
@@ -3908,7 +3908,7 @@ static void auth_3d_light_set(auth_3d_light* l, render_context* rctx) {
     }
 
     if (l->flags & AUTH_3D_LIGHT_DIFFUSE) {
-        if (~l->flags_init & AUTH_3D_LIGHT_DIFFUSE) {
+        if (!(l->flags_init & AUTH_3D_LIGHT_DIFFUSE)) {
             vec4 diffuse_init;
             data->get_diffuse(diffuse_init);
             l->diffuse_init = diffuse_init;
@@ -3927,7 +3927,7 @@ static void auth_3d_light_set(auth_3d_light* l, render_context* rctx) {
         data->set_position(l->position.translation_value);
 
     if (l->flags & AUTH_3D_LIGHT_SPECULAR) {
-        if (~l->flags_init & AUTH_3D_LIGHT_SPECULAR) {
+        if (!(l->flags_init & AUTH_3D_LIGHT_SPECULAR)) {
             vec4 specular_init;
             data->get_specular(specular_init);
             l->specular_init = specular_init;
@@ -3946,7 +3946,7 @@ static void auth_3d_light_set(auth_3d_light* l, render_context* rctx) {
         data->set_spot_direction(l->spot_direction.translation_value);
 
     if (l->flags & AUTH_3D_LIGHT_TONE_CURVE) {
-        if (~l->flags_init & AUTH_3D_LIGHT_TONE_CURVE) {
+        if (!(l->flags_init & AUTH_3D_LIGHT_TONE_CURVE)) {
             data->get_tone_curve(l->tone_curve_init);
             enum_or(l->flags_init, AUTH_3D_LIGHT_TONE_CURVE);
         }
@@ -5834,7 +5834,7 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
                 break;
             }
 
-        if (i.bone_id > -1 && ~i.bone_id & 0x8000)
+        if (i.bone_id > -1 && !(i.bone_id & 0x8000))
             i.mat = &mats[i.bone_id];
     }
 }
@@ -5901,7 +5901,7 @@ static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance*
         for (auth_3d_object_node& j : moh->node)
             if (hash_string_fnv1a64m(j.name) == name_hash) {
                 int32_t bone_id = skin->bone_array[i].id;
-                if (~bone_id & 0x8000)
+                if (!(bone_id & 0x8000))
                     object_bone_indices[bone_id] = (int32_t)(&j - moh->node.data());
                 break;
             }
@@ -6119,7 +6119,7 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
     post_process_tone_map* tm = rctx->post_process.tone_map;
 
     if (pp->flags & AUTH_3D_POST_PROCESS_INTENSITY) {
-        if (~pp->flags_init & AUTH_3D_POST_PROCESS_INTENSITY) {
+        if (!(pp->flags_init & AUTH_3D_POST_PROCESS_INTENSITY)) {
             pp->intensity_init = blur->get_intensity();
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_INTENSITY);
         }
@@ -6128,7 +6128,7 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_LENS_FLARE) {
-        if (~pp->flags_init & AUTH_3D_POST_PROCESS_LENS_FLARE) {
+        if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_FLARE)) {
             pp->lens_flare_init = tm->get_lens_flare();
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_LENS_FLARE);
         }
@@ -6137,7 +6137,7 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_LENS_GHOST) {
-        if (~pp->flags_init & AUTH_3D_POST_PROCESS_LENS_GHOST) {
+        if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_GHOST)) {
             pp->lens_ghost_init = tm->get_lens_ghost();
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_LENS_GHOST);
         }
@@ -6146,7 +6146,7 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_LENS_SHAFT) {
-        if (~pp->flags_init & AUTH_3D_POST_PROCESS_LENS_SHAFT) {
+        if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_SHAFT)) {
             pp->lens_shaft_init = tm->get_lens_shaft();
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_LENS_SHAFT);
         }
@@ -6155,7 +6155,7 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_RADIUS) {
-        if (~pp->flags_init & AUTH_3D_POST_PROCESS_RADIUS) {
+        if (!(pp->flags_init & AUTH_3D_POST_PROCESS_RADIUS)) {
             pp->radius_init = blur->get_radius();
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_RADIUS);
         }
@@ -6164,7 +6164,7 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_SCENE_FADE) {
-        if (~pp->flags_init & AUTH_3D_POST_PROCESS_SCENE_FADE) {
+        if (!(pp->flags_init & AUTH_3D_POST_PROCESS_SCENE_FADE)) {
             pp->scene_fade_init = tm->get_scene_fade();
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_SCENE_FADE);
         }
@@ -6284,24 +6284,6 @@ static void auth_3d_data_struct_unload_category(
         auth_3d_data->farcs_modern.erase(elem);
 }
 
-static void auth_3d_farc_free_data(auth_3d_farc* a3da_farc) {
-    if (a3da_farc->state == 1)
-        a3da_farc->file_handler.call_free_callback();
-    else if (a3da_farc->state == 2) {
-        delete a3da_farc->farc;
-        a3da_farc->farc = 0;
-        a3da_farc->file_handler.free_data();
-    }
-
-    a3da_farc->path.clear();
-    a3da_farc->path.shrink_to_fit();
-    a3da_farc->file.clear();
-    a3da_farc->file.shrink_to_fit();
-    a3da_farc->data = 0;
-    a3da_farc->size = 0;
-    a3da_farc->state = 0;
-}
-
 static void auth_3d_farc_load(auth_3d_farc* a3da_farc, const char* mdata_dir) {
     if (a3da_farc->load_count) {
         a3da_farc->load_count++;
@@ -6382,11 +6364,29 @@ static bool auth_3d_farc_read_func(auth_3d_farc* a3da_farc, const void* data, si
     return true;
 }
 
+static void auth_3d_farc_reset(auth_3d_farc* a3da_farc) {
+    if (a3da_farc->state == 1)
+        a3da_farc->file_handler.call_free_callback();
+    else if (a3da_farc->state == 2) {
+        delete a3da_farc->farc;
+        a3da_farc->farc = 0;
+        a3da_farc->file_handler.reset();
+    }
+
+    a3da_farc->path.clear();
+    a3da_farc->path.shrink_to_fit();
+    a3da_farc->file.clear();
+    a3da_farc->file.shrink_to_fit();
+    a3da_farc->data = 0;
+    a3da_farc->size = 0;
+    a3da_farc->state = 0;
+}
+
 static void auth_3d_farc_unload(auth_3d_farc* a3da_farc) {
     if (--a3da_farc->load_count < 0)
         a3da_farc->load_count = 0;
     else if (!a3da_farc->load_count)
-        auth_3d_farc_free_data(a3da_farc);
+        auth_3d_farc_reset(a3da_farc);
 }
 
 static void auth_3d_uid_file_load(auth_3d_uid_file* uid_file) {
@@ -6490,7 +6490,7 @@ static size_t auth_3d_time_event_radix_index_func_time(auth_3d_time_event* data,
 
 static void Auth3dTestTask__SetAuth3dId(Auth3dTestTask* tt) {
     if (task_stage_check_not_loaded() || tt->auth_3d_uid == -1
-        || !tt->load_category.size() || tt->auth_3d_uid == auth_3d_data_get_uid(&tt->auth_3d_id))
+        || !tt->load_category.size() || tt->auth_3d_uid == auth_3d_data_get_uid(tt->auth_3d_id))
         return;
 
     if (tt->load_category.compare(tt->category)) {
@@ -6536,9 +6536,9 @@ static void Auth3dTestTask__SetAuth3dId(Auth3dTestTask* tt) {
 
         auth_3d_data_unload_id(tt->auth_3d_id, rctx_ptr);
         tt->auth_3d_id = auth_3d_data_load_uid(tt->auth_3d_uid, aft_auth_3d_db);
-        if (auth_3d_data_check_id_not_empty(&tt->auth_3d_id)) {
-            auth_3d_data_set_enable(&tt->auth_3d_id, false);
-            auth_3d_data_read_file(&tt->auth_3d_id, aft_auth_3d_db);
+        if (auth_3d_data_check_id_not_empty(tt->auth_3d_id)) {
+            auth_3d_data_set_enable(tt->auth_3d_id, false);
+            auth_3d_data_read_file(tt->auth_3d_id, aft_auth_3d_db);
             tt->field_1D4 = 1;
         }
         tt->auth_3d_uid = -1;

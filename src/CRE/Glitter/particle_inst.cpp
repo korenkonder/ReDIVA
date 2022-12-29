@@ -410,12 +410,12 @@ namespace Glitter {
     }
 
     bool F2ParticleInst::HasEnded(bool a2) {
-        if (~data.flags & PARTICLE_INST_ENDED)
+        if (!(data.flags & PARTICLE_INST_ENDED))
             return false;
         else if (!a2)
             return true;
 
-        if (~data.flags & PARTICLE_INST_NO_CHILD || data.parent) {
+        if (!(data.flags & PARTICLE_INST_NO_CHILD) || data.parent) {
             if (data.render_group && data.render_group->ctrl > 0)
                 return false;
             return true;
@@ -925,12 +925,12 @@ namespace Glitter {
     }
 
     bool XParticleInst::HasEnded(bool a2) {
-        if (~data.flags & PARTICLE_INST_ENDED)
+        if (!(data.flags & PARTICLE_INST_ENDED))
             return false;
         else if (!a2)
             return true;
 
-        if (~data.flags & PARTICLE_INST_NO_CHILD || data.parent) {
+        if (!(data.flags & PARTICLE_INST_NO_CHILD) || data.parent) {
             if (data.render_group && data.render_group->ctrl > 0)
                 return false;
             return true;

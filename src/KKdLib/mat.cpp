@@ -657,15 +657,15 @@ inline float_t mat3_get_max_scale(const mat3* x) {
     return max;
 }
 
-inline void mat3_mult_axis_angle(const mat3* src, mat3* dst, const vec3* axis, const float_t angle) {
+inline void mat3_mult_axis_angle(const mat3* x, const vec3* axis, const float_t angle, mat3* z) {
     quat q1;
     quat q2;
     quat q3;
-    quat_from_mat3(src->row0.x, src->row1.x, src->row2.x, src->row0.y,
-        src->row1.y, src->row2.y, src->row0.z, src->row1.z, src->row2.z, &q1);
+    quat_from_mat3(x->row0.x, x->row1.x, x->row2.x, x->row0.y,
+        x->row1.y, x->row2.y, x->row0.z, x->row1.z, x->row2.z, &q1);
     quat_from_axis_angle(axis, angle, &q2);
     quat_mult(&q2, &q1, &q3);
-    mat3_from_quat(&q3, dst);
+    mat3_from_quat(&q3, z);
 }
 
 inline void mat4_add(const mat4* x, const mat4* y, mat4* z) {
@@ -1722,17 +1722,17 @@ inline void mat4_blend_rotation(const mat4* x, const mat4* y, mat4* z, float_t b
     mat4_from_quat(&q2, z);
 }
 
-void mat4_lerp_rotation(mat4* dst, const mat4* src0, const mat4* src1, float_t blend) {
+void mat4_lerp_rotation(const mat4* x, const mat4* y, mat4* z, float_t blend) {
     vec3 m0;
     vec3 m1;
-    m0 = vec3::lerp(*(vec3*)&src0->row0, *(vec3*)&src1->row0, blend);
-    m1 = vec3::lerp(*(vec3*)&src0->row1, *(vec3*)&src1->row1, blend);
+    m0 = vec3::lerp(*(vec3*)&x->row0, *(vec3*)&y->row0, blend);
+    m1 = vec3::lerp(*(vec3*)&x->row1, *(vec3*)&y->row1, blend);
 
     float_t m0_len_sq = vec3::length_squared(m0);
     float_t m1_len_sq = vec3::length_squared(m1);
 
     if (m0_len_sq <= 0.000001f || m1_len_sq <= 0.000001f) {
-        *dst = *src1;
+        *z = *y;
         return;
     }
 
@@ -1744,7 +1744,7 @@ void mat4_lerp_rotation(mat4* dst, const mat4* src0, const mat4* src1, float_t b
     m1_len_sq = vec3::length_squared(m1);
     m2_len_sq = vec3::length_squared(m2);
     if (m2_len_sq <= 0.000001f || m1_len_sq <= 0.000001) {
-        *dst = *src1;
+        *z = *y;
         return;
     }
 
@@ -1760,10 +1760,10 @@ void mat4_lerp_rotation(mat4* dst, const mat4* src0, const mat4* src1, float_t b
     if (m2_len != 0.0f)
         m2 *= 1.0f / m2_len;
 
-    *dst = mat4_identity;
-    *(vec3*)&dst->row0 = m0;
-    *(vec3*)&dst->row1 = m1;
-    *(vec3*)&dst->row2 = m2;
+    *z = mat4_identity;
+    *(vec3*)&z->row0 = m0;
+    *(vec3*)&z->row1 = m1;
+    *(vec3*)&z->row2 = m2;
 }
 
 inline float_t mat4_get_max_scale(const mat4* x) {
@@ -1784,7 +1784,7 @@ inline float_t mat4_get_max_scale(const mat4* x) {
     return max;
 }
 
-inline void mat4_mult_axis_angle(const mat4* src, mat4* dst, const vec3* axis, const float_t angle) {
+inline void mat4_mult_axis_angle(const mat4* x, const vec3* axis, const float_t angle, mat4* z) {
     quat q1;
     quat q2;
     quat q3;
@@ -1793,19 +1793,19 @@ inline void mat4_mult_axis_angle(const mat4* src, mat4* dst, const vec3* axis, c
     float_t t2;
     vec4 t3;
 
-    t0 = src->row0.w;
-    t1 = src->row1.w;
-    t2 = src->row2.w;
-    t3 = src->row3;
-    quat_from_mat3(src->row0.x, src->row1.x, src->row2.x, src->row0.y,
-        src->row1.y, src->row2.y, src->row0.z, src->row1.z, src->row2.z, &q1);
+    t0 = x->row0.w;
+    t1 = x->row1.w;
+    t2 = x->row2.w;
+    t3 = x->row3;
+    quat_from_mat3(x->row0.x, x->row1.x, x->row2.x, x->row0.y,
+        x->row1.y, x->row2.y, x->row0.z, x->row1.z, x->row2.z, &q1);
     quat_from_axis_angle(axis, angle, &q2);
     quat_mult(&q2, &q1, &q3);
-    mat4_from_quat(&q3, dst);
-    dst->row0.w = t0;
-    dst->row1.w = t1;
-    dst->row2.w = t2;
-    dst->row3 = t3;
+    mat4_from_quat(&q3, z);
+    z->row0.w = t0;
+    z->row1.w = t1;
+    z->row2.w = t2;
+    z->row3 = t3;
 }
 
 inline void mat4_frustrum(double_t left, double_t right,

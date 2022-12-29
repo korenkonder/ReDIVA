@@ -28,7 +28,7 @@ struct post_process_exposure {
     int32_t query_index;
 
     post_process_exposure();
-    virtual ~post_process_exposure();
+    ~post_process_exposure();
 
     void get_exposure(camera* cam, int32_t render_width, int32_t render_height,
         bool reset_exposure, GLuint in_tex_0, GLuint in_tex_1);

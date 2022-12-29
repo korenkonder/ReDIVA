@@ -249,7 +249,7 @@ void draw_object_draw_translucent(render_context* rctx, draw_object* draw) {
         obj_material_texture_data* texdata = material->material.texdata;
         uint32_t texture_id = -1;
         uint32_t texture_index = -1;
-        if (~material->material.shader_compo.m.transparency) {
+        if (!material->material.shader_compo.m.transparency) {
             for (int32_t i = 0; i < 8; i++, texdata++)
                 if (texdata->shader_info.m.tex_type == OBJ_MATERIAL_TEXTURE_COLOR) {
                     texture_id = texdata->tex_index;

@@ -29,7 +29,7 @@ struct wind {
     float_t strength;
 
     wind();
-    virtual ~wind();
+    ~wind();
 
     float_t get_scale();
     void set_scale(float_t value);

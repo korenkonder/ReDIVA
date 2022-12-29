@@ -34,7 +34,7 @@ namespace Glitter {
     }
 
     bool Scene::Copy(Glitter::EffectInst* eff_inst, Glitter::Scene* dst) {
-        if (~flags & SCENE_FLAG_3)
+        if (!(flags & SCENE_FLAG_3))
             return flags;
 
         for (SceneEffect& i : effects)

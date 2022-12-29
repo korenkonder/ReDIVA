@@ -426,7 +426,7 @@ namespace Glitter {
         e.vec.push_back(ee);
         l += o = 4;
 
-        if (~eff->data.flags & EFFECT_LOCAL && ext_anim)
+        if (!(eff->data.flags & EFFECT_LOCAL && ext_anim))
             if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA_ANIM) {
                 ee = { 0, 1, 12, 1 };
                 ee.append(0, 3, ENRS_DWORD);
@@ -1019,7 +1019,7 @@ namespace Glitter {
         };
 
         for (int32_t i = CURVE_TRANSLATION_X; i <= CURVE_V_SCROLL_ALPHA_2ND; i++) {
-            if (~flags & (1 << (size_t)order[i]))
+            if (!(flags & (1 << (size_t)order[i])))
                 continue;
 
             for (Curve*& j : anim->curves) {

@@ -53,7 +53,7 @@ struct txp_set {
     std::vector<txp> textures;
 
     txp_set();
-    virtual ~txp_set();
+    ~txp_set();
 
     bool pack_file(void** data, size_t* size, bool big_endian);
     bool pack_file(std::vector<uint8_t>& data, bool big_endian);

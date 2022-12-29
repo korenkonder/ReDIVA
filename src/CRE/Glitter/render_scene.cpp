@@ -2181,7 +2181,7 @@ namespace Glitter {
         else
             uniform_value[U_ALPHA_BLEND] = rend_group->disp_type ? 2 : 0;
 
-        if (~rend_group->flags & PARTICLE_DEPTH_TEST)
+        if (!(rend_group->flags & PARTICLE_DEPTH_TEST))
             gl_state_enable_depth_test();
         else
             gl_state_disable_depth_test();

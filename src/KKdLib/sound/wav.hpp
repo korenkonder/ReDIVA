@@ -18,7 +18,7 @@ struct wav {
     uint16_t channels;
 
     wav();
-    virtual ~wav();
+    ~wav();
 
     void read(const char* path, float_t*& data, size_t& samples);
     void read(const wchar_t* path, float_t*& data, size_t& samples);

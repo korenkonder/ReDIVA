@@ -37,7 +37,7 @@ struct sound_stream {
     bool pause;
     uint32_t file_loading_frames;
     uint32_t file_ready_frames;
-    float_t time_seek;
+    float_t load_time_seek;
     int32_t volume_trans;
     float_t target_volume;
     int32_t state;
@@ -873,7 +873,7 @@ bool sound_db_farc::unload() {
 
     file_path.clear();
     loaded = false;
-    file_handler.free_data();
+    file_handler.reset();
     return true;
 }
 
@@ -1935,7 +1935,7 @@ static size_t ima_decode(int16_t* dst, size_t dst_size, uint8_t* data, size_t sa
 }
 
 sound_stream::sound_stream() : ogg_playback(), duration(), pause(), file_loading_frames(),
-file_ready_frames(), time_seek(), volume_trans(), state(), play_state(), time() {
+file_ready_frames(), load_time_seek(), volume_trans(), state(), play_state(), time() {
     current_volume = 1.0f;
     target_volume = 1.0f;
 }
@@ -2060,7 +2060,7 @@ bool sound_stream::set_path(const char* path, bool pause) {
         if (!(this->path.compare(path) || !check_state() || !paused)) {
             if (ogg_playback)
                 ogg_playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
-            pause = 0;
+            pause = false;
             return true;
         }
     }
@@ -2069,7 +2069,7 @@ bool sound_stream::set_path(const char* path, bool pause) {
     state = 1;
     this->pause = pause;
     current_volume = sound_stream_volume;
-    time_seek = 0.0f;
+    load_time_seek = 0.0f;
     volume_trans = 0;
     target_volume = sound_stream_volume;
     return true;
@@ -2078,7 +2078,7 @@ bool sound_stream::set_path(const char* path, bool pause) {
 bool sound_stream::set_path(const char* path, float_t time, bool pause) {
     bool res = set_path(path, pause);
     if (res)
-        time_seek = time;
+        load_time_seek = time;
     return res;
 }
 
@@ -2088,7 +2088,7 @@ bool sound_stream::set_path_playback() {
 
     ogg_playback->SetPauseState(pause
         ? OGG_FILE_HANDLER_PAUSE_STATE_PAUSE : OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
-    ogg_playback->SetTimeSeek(time_seek);
+    ogg_playback->SetLoadTimeSeek(load_time_seek);
     ogg_playback->SetPath(path);
     return true;
 }
@@ -2117,7 +2117,7 @@ bool sound_stream::stop_playback() {
     if (!ogg_playback)
         return false;
 
-    ogg_playback->SetPlaybackState(OGG_FILE_HANDLER_PLAYBACK_STATE_STOP);
+    ogg_playback->SetPlaybackState(OGG_FILE_HANDLER_PLAYBACK_STATE_UNLOAD);
     ogg_playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
     return true;
 }

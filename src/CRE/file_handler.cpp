@@ -112,7 +112,7 @@ void file_handler::set_callback_data(int32_t index, PFNFILEHANDLERCALLBACK* func
     }
 }
 
-void file_handler::free_data_lock() {
+void file_handler::reset() {
     bool free_fhndl = false;
 
     {
@@ -299,7 +299,7 @@ static void file_handler_storage_ctrl_list() {
     for (std::list<file_handler*>::iterator i = list.begin(); i != list.end();) {
         file_handler* pfhndl = *i;
         if (pfhndl->count == 1) {
-            pfhndl->free_data_lock();
+            pfhndl->reset();
             i = list.erase(i);
         }
         else {
@@ -331,7 +331,7 @@ static void file_handler_storage_thread_ctrl() {
                 }
                 i->reading = false;
             }
-            i->free_data_lock();
+            i->reset();
         }
         file_handler_storage_data->deque.clear();
     }
@@ -347,14 +347,14 @@ p_file_handler::~p_file_handler() {
         if (check_not_ready())
             call_free_callback();
         else
-            free_data();
+            reset();
     }
 }
 
 void p_file_handler::call_free_callback() {
     if (ptr)
         ptr->call_callback(1);
-    free_data();
+    reset();
 }
 
 bool p_file_handler::check_not_ready() {
@@ -364,20 +364,6 @@ bool p_file_handler::check_not_ready() {
         return true;
     else
         return !ptr->callback[0].ready;
-}
-
-void p_file_handler::free_data() {
-    if (!ptr)
-        return;
-
-    {
-        std::unique_lock<std::mutex> u_lock(ptr->mtx);
-        for (int32_t i = 0; i < 2; i++)
-            ptr->callback[i] = {};
-    }
-
-    ptr->free_data_lock();
-    ptr = 0;
 }
 
 const void* p_file_handler::get_data() {
@@ -415,7 +401,7 @@ bool p_file_handler::read_file(void* data, const char* dir,
     if (ptr) {
         if (ptr->not_ready)
             return false;
-        free_data();
+        reset();
     }
 
     if (!((data_struct*)data)->check_file_exists(dir, farc_file ? farc_file : file))
@@ -457,7 +443,7 @@ bool p_file_handler::read_file(void* data, const char* dir, uint32_t hash, const
     if (ptr) {
         if (ptr->not_ready)
             return false;
-        free_data();
+        reset();
     }
 
     std::string file;
@@ -512,6 +498,20 @@ void p_file_handler::read_now() {
 
         file_handler_storage_ctrl_list();
     }
+}
+
+void p_file_handler::reset() {
+    if (!ptr)
+        return;
+
+    {
+        std::unique_lock<std::mutex> u_lock(ptr->mtx);
+        for (int32_t i = 0; i < 2; i++)
+            ptr->callback[i] = {};
+    }
+
+    ptr->reset();
+    ptr = 0;
 }
 
 void p_file_handler::set_callback_data(int32_t index, PFNFILEHANDLERCALLBACK* func, void* data) {

@@ -10,6 +10,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 #include "../CRE/Glitter/glitter.hpp"
@@ -26,6 +27,7 @@
 
 #define BAKE_PNG 0
 #define BAKE_VIDEO 0
+#define BAKE_PV826 0
 
 struct x_pv_bar_beat_data {
     int32_t bar;
@@ -148,7 +150,8 @@ struct x_pv_play_data {
     void reset();
 };
 
-/*struct x_pv_game_a3da_to_mot_keys {
+#if BAKE_PV826
+struct x_pv_game_a3da_to_mot_keys {
     std::vector<float_t> x;
     std::vector<float_t> y;
     std::vector<float_t> z;
@@ -216,7 +219,8 @@ struct x_pv_game_a3da_to_mot {
     ~x_pv_game_a3da_to_mot();
 
     void get_bone_indices(auth_3d_object_hrc* oh);
-};*/
+};
+#endif
 
 struct x_pv_game_song_effect_auth_3d {
     int32_t id;
@@ -322,8 +326,15 @@ struct x_pv_game_chara_effect {
     x_pv_game_chara_effect();
     ~x_pv_game_chara_effect();
 
+#if BAKE_PV826
+    void ctrl(object_database* obj_db, texture_database* tex_db,
+        int32_t pv_id = -1, std::map<uint32_t, int32_t>* effchrpv_auth_3d_mot_ids = 0);
+    void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, chara_index charas[6],
+        std::unordered_map<std::string, string_hash>* effchrpv_auth_3d_mot_names = 0);
+#else
     void ctrl(object_database* obj_db, texture_database* tex_db);
     void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, chara_index charas[6]);
+#endif
     void load_data();
     void reset();
     void set_chara_effect(int32_t chara_id, int32_t index, int64_t time);
@@ -385,9 +396,19 @@ struct x_pv_game_data {
     x_pv_game_data();
     ~x_pv_game_data();
 
+#if BAKE_PV826
+    void ctrl(float_t curr_time, float_t delta_time,
+        std::map<uint32_t, int32_t>* effchrpv_auth_3d_mot_ids = 0);
+#else
     void ctrl(float_t curr_time, float_t delta_time);
+#endif
     void ctrl_stage_effect_index();
+#if BAKE_PV826
+    void load(int32_t pv_id, FrameRateControl* frame_rate_control, chara_index charas[6],
+        std::unordered_map<std::string, string_hash>* effchrpv_auth_3d_mot_names = 0);
+#else
     void load(int32_t pv_id, FrameRateControl* frame_rate_control, chara_index charas[6]);
+#endif
     void reset();
     void stop();
     void unload();
@@ -536,12 +557,18 @@ public:
 
     std::string light_category;
 
-    //std::unordered_set<std::string> effchrpv_auth_3d_mot_names;
+#if BAKE_PV826
+    std::unordered_map<std::string, string_hash> effchrpv_auth_3d_mot_names;
+#endif
 
     int32_t light_auth_3d_id;
-    //std::map<uint32_t, int32_t> effchrpv_auth_3d_ids;
 
-    //std::map<uint32_t, uint32_t> effchrpv_auth_3d_hashes;
+#if BAKE_PV826
+    std::map<uint32_t, int32_t> effchrpv_auth_3d_mot_ids;
+
+    std::vector<int32_t> effchrpv_rob_mot_ids;
+    std::map<int32_t, x_pv_game_a3da_to_mot> effchrpv_auth_3d_rob_mot_ids;
+#endif
 
     std::vector<pv_data_set_motion> set_motion[ROB_CHARA_COUNT];
 

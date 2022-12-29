@@ -307,7 +307,7 @@ void OggFile::ThreadMain(OggFile* of) {
     of->thread_state.set(0);
 }
 
-OggFileHandler::OggFileHandler(size_t index) :  time_seek(), channel_pairs_count(),
+OggFileHandler::OggFileHandler(size_t index) : load_time_seek(), channel_pairs_count(),
 duration(), time(), channel_pairs_count_dup(), duration_dup(), time_dup(),
 channel_pair_volume_pan(), master_volume(), channel_pair_volume(),  req_time(), loop() {
     this->index = index;
@@ -346,7 +346,7 @@ void OggFileHandler::Ctrl() {
         _playback_state = playback_state.get();
         playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_NONE);
         switch (_playback_state) {
-        case OGG_FILE_HANDLER_PLAYBACK_STATE_PLAY:
+        case OGG_FILE_HANDLER_PLAYBACK_STATE_LOAD:
             Reset(false);
             file_state.set(OGG_FILE_HANDLER_FILE_STATE_LOADING);
             OpenFile();
@@ -354,7 +354,7 @@ void OggFileHandler::Ctrl() {
             req_time = 0.0;
             ReadBufferProt(0, 0);
             break;
-        case OGG_FILE_HANDLER_PLAYBACK_STATE_STOP:
+        case OGG_FILE_HANDLER_PLAYBACK_STATE_UNLOAD:
             Reset(true);
             break;
         }
@@ -367,14 +367,14 @@ void OggFileHandler::Ctrl() {
             sound::wasapi::StreamingChannel* streaming_channel = mixer->GetStreamingChannel(index);
             if (streaming_channel) {
                 switch (_playback_state) {
-                case OGG_FILE_HANDLER_PLAYBACK_STATE_PLAY:
+                case OGG_FILE_HANDLER_PLAYBACK_STATE_LOAD:
                     if (sound_wasapi_system->pClockAdjustment)
                         sound_wasapi_system->pClockAdjustment->SetSampleRate((float_t)rate);
 
                     streaming_channel->SetMasterVolume(1.0f);
                     streaming_channel->SetCallback(OggFileHandler::FillBufferStatic, this);
                     break;
-                case OGG_FILE_HANDLER_PLAYBACK_STATE_STOP:
+                case OGG_FILE_HANDLER_PLAYBACK_STATE_UNLOAD:
                     streaming_channel->reset_state.set(1);
                     break;
                 }
@@ -406,10 +406,10 @@ void OggFileHandler::FillBuffer(sound_buffer_data* buffer, size_t samples_count)
     file_state.set(OGG_FILE_HANDLER_FILE_STATE_NONE);
 
     int32_t _playback_state = playback_state.get();
-    playback_state.set(0);
+    playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_NONE);
 
     if (_file_state == OGG_FILE_HANDLER_FILE_STATE_PLAYING
-        && _playback_state != OGG_FILE_HANDLER_PLAYBACK_STATE_STOP) {
+        && _playback_state != OGG_FILE_HANDLER_PLAYBACK_STATE_UNLOAD) {
         std::unique_lock<std::mutex> u_lock(mtx);
         ReadBufferProt(buffer, samples_count);
     }
@@ -426,11 +426,11 @@ float_t OggFileHandler::GetDuration() {
 }
 
 OggFileHandlerFileState OggFileHandler::GetFileState() {
-    return (OggFileHandlerFileState)file_state.get();
+    return file_state.get();
 }
 
 OggFileHandlerPauseState OggFileHandler::GetPauseState() {
-    return (OggFileHandlerPauseState)pause_state.get();
+    return pause_state.get();
 }
 
 float_t OggFileHandler::GetTime() {
@@ -440,7 +440,7 @@ float_t OggFileHandler::GetTime() {
 
 void OggFileHandler::OpenFile() {
     std::unique_lock<std::mutex> u_lock(file_mtx);
-    if (file.OpenFile(path.c_str(), time_seek)) {
+    if (file.OpenFile(path.c_str(), load_time_seek)) {
         channel_pairs_count = file.GetChannelPairsCount();
         duration = file.GetDuration();
         time = 0.0;
@@ -518,7 +518,7 @@ void OggFileHandler::ReadBufferProt(sound_buffer_data* buffer, size_t samples_co
     if (process || loop)
         ReadBuffer(buffer, samples_count);
     else
-        playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_STOP);
+        playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_UNLOAD);
 }
 
 void OggFileHandler::Reset(bool reset) {
@@ -555,6 +555,11 @@ void OggFileHandler::SetFileState(OggFileHandlerFileState state) {
         Reset(false);
 }
 
+void OggFileHandler::SetLoadTimeSeek(float_t value) {
+    std::unique_lock<std::mutex> u_lock(file_mtx);
+    load_time_seek = value;
+}
+
 void OggFileHandler::SetMasterVolume(int32_t value) {
     value = clamp_def(value, -10000, 0);
     std::unique_lock<std::mutex> u_lock(volume_mtx);
@@ -564,7 +569,7 @@ void OggFileHandler::SetMasterVolume(int32_t value) {
 void OggFileHandler::SetPath(std::string& path) {
     std::unique_lock<std::mutex> u_lock(mtx);
     file_state.set(OGG_FILE_HANDLER_FILE_STATE_LOADING);
-    playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_PLAY);
+    playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_LOAD);
 
     {
         std::unique_lock<std::mutex> u_lock(file_mtx);
@@ -585,11 +590,6 @@ void OggFileHandler::SetPauseState(OggFileHandlerPauseState value) {
 
 void OggFileHandler::SetPlaybackState(OggFileHandlerPlaybackState value) {
     playback_state.set(value);
-}
-
-void OggFileHandler::SetTimeSeek(float_t value) {
-    std::unique_lock<std::mutex> u_lock(file_mtx);
-    time_seek = value;
 }
 
 void OggFileHandler::FillBufferStatic(sound_buffer_data* buffer, size_t samples_count, void* data) {
@@ -617,7 +617,7 @@ void OggFileHandler::ThreadMain(OggFileHandler* ofh) {
         ofh->Ctrl();
         timer.sleep(8);
     }
-    ofh->playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_STOP);
+    ofh->playback_state.set(OGG_FILE_HANDLER_PLAYBACK_STATE_UNLOAD);
     ofh->Ctrl();
     ofh->thread_state.set(0);
 }
@@ -679,6 +679,11 @@ void p_OggFileHandler::SetChannelPairVolumePan(size_t src_channel_pair,
         ptr->SetChannelPairVolumePan(src_channel_pair, src_channel, dst_channel, value);
 }
 
+void p_OggFileHandler::SetLoadTimeSeek(float_t value) {
+    if (ptr)
+        ptr->SetLoadTimeSeek(value);
+}
+
 void p_OggFileHandler::SetMasterVolume(int32_t value) {
     if (ptr)
         ptr->SetMasterVolume(value);
@@ -704,12 +709,7 @@ void p_OggFileHandler::SetPlaybackState(OggFileHandlerPlaybackState value) {
         ptr->SetPlaybackState(value);
 }
 
-void p_OggFileHandler::SetTimeSeek(float_t value) {
-    if (ptr)
-        ptr->SetTimeSeek(value);
-}
-
-OggPlayback::OggPlayback(size_t index) : state(), ogg_file_handler(), time_seek() {
+OggPlayback::OggPlayback(size_t index) : state(), ogg_file_handler(), load_time_seek() {
     this->index = index;
 }
 
@@ -781,6 +781,10 @@ void OggPlayback::SetChannelPairVolumePan(size_t src_channel_pair,
     ogg_file_handler->SetChannelPairVolumePan(src_channel_pair, src_channel, dst_channel, value);
 }
 
+void OggPlayback::SetLoadTimeSeek(float_t value) {
+    load_time_seek = value;
+}
+
 void OggPlayback::SetMasterVolume(int32_t value) {
     if (state == 1 && ogg_file_handler)
         ogg_file_handler->SetMasterVolume(value);
@@ -802,10 +806,6 @@ void OggPlayback::SetPauseState(OggFileHandlerPauseState value) {
 void OggPlayback::SetPlaybackState(OggFileHandlerPlaybackState value) {
     if (state == 1 && ogg_file_handler)
         ogg_file_handler->SetPlaybackState(value);
-}
-
-void OggPlayback::SetTimeSeek(float_t value) {
-    time_seek = value;
 }
 
 bool OggPlayback::LoadFile(void* data, const char* path, const char* file, uint32_t hash) {
@@ -833,7 +833,7 @@ bool OggPlayback::LoadFile(void* data, const char* path, const char* file, uint3
     }
 
     if (op->ogg_file_handler) {
-        op->ogg_file_handler->SetTimeSeek(op->time_seek);
+        op->ogg_file_handler->SetLoadTimeSeek(op->load_time_seek);
         op->ogg_file_handler->SetPath(_path);
         op->state = 1;
     }

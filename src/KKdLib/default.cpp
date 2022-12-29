@@ -31,7 +31,7 @@ wchar_t* utf8_to_utf16(const char* s) {
     size_t l = 0;
     while (*s) {
         char t = *s++;
-        if (~t & 0x80) {
+        if (!(t & 0x80)) {
             l = 0;
             str[j++] = t;
             c = 0;
@@ -139,7 +139,7 @@ std::wstring utf8_to_utf16(const std::string& s) {
     size_t l = 0;
     while (*_s) {
         char t = *_s++;
-        if (~t & 0x80) {
+        if (!(t & 0x80)) {
             l = 0;
             *_str++ = t;
             c = 0;

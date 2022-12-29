@@ -63,7 +63,7 @@ struct farc {
     bool ft;
 
     farc();
-    virtual ~farc();
+    ~farc();
 
     farc_file* add_file(const char* name);
     farc_file* add_file(const wchar_t* name);

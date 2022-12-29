@@ -49,7 +49,7 @@ namespace Glitter {
                 enum_and(flags, ~PARTICLE_MANAGER_READ_FILES);
         }
 
-        if (~flags & PARTICLE_MANAGER_PAUSE) {
+        if (!(flags & PARTICLE_MANAGER_PAUSE)) {
             if (frame_rate)
                 delta_frame = frame_rate->GetDeltaFrame();
             else
@@ -120,7 +120,7 @@ namespace Glitter {
         bool local = false;
         for (std::vector<Scene*>::iterator i = scenes.begin(); i != scenes.end();) {
             Scene* scene = *i;
-            if (~scene->flags & SCENE_ENDED) {
+            if (!(scene->flags & SCENE_ENDED)) {
                 if (!local && scene->CanDisp(DISP_LOCAL, true))
                     local = true;
                 i++;
@@ -244,7 +244,7 @@ namespace Glitter {
                 i = scenes.erase(i);
             }
             else if (scene->type == Glitter::X && scene->flags & SCENE_ENDED
-                || ~scene->flags & SCENE_EDITOR) {
+                || !(scene->flags & SCENE_EDITOR)) {
                 float_t delta_frame;
                 if (scene->frame_rate)
                     delta_frame = scene->frame_rate->GetDeltaFrame();
@@ -317,7 +317,7 @@ namespace Glitter {
 
             if (free) {
 #if defined(CRE_DEV)
-                if (~scene->flags & SCENE_ENDED) {
+                if (!(scene->flags & SCENE_ENDED)) {
                     enum_or(scene->flags, SCENE_ENDED);
                     scene->fade_frame_left = scene->fade_frame;
                 }
@@ -454,7 +454,7 @@ namespace Glitter {
     }
 
     SceneCounter GltParticleManager::GetSceneCounter(uint8_t index) {
-        if (scene_load_counter + 1 < 0xFFFFFF && (~flags & PARTICLE_MANAGER_RESET_SCENE_COUNTER)) {
+        if (scene_load_counter + 1 < 0xFFFFFF && !(flags & PARTICLE_MANAGER_RESET_SCENE_COUNTER)) {
             scene_load_counter++;
             return SceneCounter(index, scene_load_counter);
         }

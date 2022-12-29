@@ -114,7 +114,7 @@ struct pvpp {
     std::vector<pvpp_effect> effect;
 
     pvpp();
-    virtual ~pvpp();
+    ~pvpp();
 
     void read(const char* path);
     void read(const wchar_t* path);

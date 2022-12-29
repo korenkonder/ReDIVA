@@ -50,7 +50,7 @@ struct key_val {
     char* buf;
 
     key_val();
-    virtual ~key_val();
+    ~key_val();
 
     void close_scope();
     void file_read(const char* path);

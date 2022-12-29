@@ -86,7 +86,7 @@ extern void mat3_from_mat4_inverse(const mat4* x, mat3* z);
 extern void mat3_get_rotation(const mat3* x, vec3* z);
 extern void mat3_get_scale(const mat3* x, vec3* z);
 extern float_t mat3_get_max_scale(const mat3* x);
-extern void mat3_mult_axis_angle(const mat3* src, mat3* dst, const vec3* axis, const float_t angle);
+extern void mat3_mult_axis_angle(const mat3* x, const vec3* axis, const float_t angle, mat3* z);
 
 extern void mat4_add(const mat4* x, const mat4* y, mat4* z);
 extern void mat4_sub(const mat4* x, const mat4* y, mat4* z);
@@ -157,9 +157,9 @@ extern void mat4_get_translation(const mat4* x, vec3* z);
 extern void mat4_set_translation(mat4* x, vec3* z);
 extern void mat4_blend(const mat4* x, const mat4* y, mat4* z, float_t blend);
 extern void mat4_blend_rotation(const mat4* x, const mat4* y, mat4* z, float_t blend);
-extern void mat4_lerp_rotation(mat4* dst, const mat4* src0, const mat4* src1, float_t blend);
+extern void mat4_lerp_rotation(const mat4* x, const mat4* y, mat4* z, float_t blend);
 extern float_t mat4_get_max_scale(const mat4* x);
-extern void mat4_mult_axis_angle(const mat4* src, mat4* dst, const vec3* axis, const float_t angle);
+extern void mat4_mult_axis_angle(const mat4* x, const vec3* axis, const float_t angle, mat4* z);
 extern void mat4_frustrum(double_t left, double_t right,
     double_t bottom, double_t top, double_t z_near, double_t z_far, mat4* mat);
 extern void mat4_ortho(double_t left, double_t right,

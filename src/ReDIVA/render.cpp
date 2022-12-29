@@ -156,11 +156,11 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
 
 bool close;
 bool reload_render;
-lock* render_lock;
+lock_cs* render_lock;
 HWND window_handle;
 GLFWwindow* window;
 ImGuiContext* imgui_context;
-lock* imgui_context_lock;
+lock_cs* imgui_context_lock;
 bool global_context_menu;
 extern size_t frame_counter;
 render_context* rctx_ptr;
@@ -174,7 +174,7 @@ int32_t render_main(render_init_struct* ris) {
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
     timeBeginPeriod(1);
 
-    render_lock = new lock;
+    render_lock = new lock_cs;
     if (!render_lock)
         return 0;
 
@@ -1015,7 +1015,7 @@ static render_context* render_load() {
     cam->set_interest({ 0.0f, 1.375f, 0.0f });
 
     imgui_context = ImGui::CreateContext();
-    imgui_context_lock = new lock;
+    imgui_context_lock = new lock_cs;
 
     lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
@@ -1770,7 +1770,7 @@ static void render_imgui_context_menu(classes_data* classes,
             ImGui::MenuItem(c->name, 0, false, false);
         else if (ImGui::MenuItem(c->name, 0)) {
             if (~c->data.flags & CLASS_INIT) {
-                c->data.lock = new lock;
+                c->data.lock = new lock_cs;
                 if (c->data.lock->check_init() && c->init) {
                     lock_lock(c->data.lock);
                     if (c->init(&c->data, rctx))

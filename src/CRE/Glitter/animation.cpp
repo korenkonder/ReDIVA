@@ -16,9 +16,8 @@ namespace Glitter {
 
 #if defined(CRE_DEV)
     void Animation::AddValue(GLT, float_t val, CurveTypeFlags flags) {
-        for (int32_t i = CURVE_TRANSLATION_X;
-            i <= CURVE_V_SCROLL_ALPHA_2ND; i++) {
-            if (~flags & (1 << (size_t)i))
+        for (int32_t i = CURVE_TRANSLATION_X; i <= CURVE_V_SCROLL_ALPHA_2ND; i++) {
+            if (!(flags & (1 << (size_t)i)))
                 continue;
 
             for (Curve*& j : curves) {

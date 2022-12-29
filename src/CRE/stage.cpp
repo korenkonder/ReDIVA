@@ -472,11 +472,11 @@ static bool stage_ctrl(stage* s) {
     }
 
     for (int32_t& i : s->auth_3d_ids) {
-        auth_3d_data_set_repeat(&i, true);
-        auth_3d_data_set_paused(&i, false);
-        auth_3d_data_set_enable(&i, true);
-        auth_3d_data_set_visibility(&i, s->effect_display);
-        auth_3d_data_set_frame_rate(&i, 0);
+        auth_3d_data_set_repeat(i, true);
+        auth_3d_data_set_paused(i, false);
+        auth_3d_data_set_enable(i, true);
+        auth_3d_data_set_visibility(i, s->effect_display);
+        auth_3d_data_set_frame_rate(i, 0);
     }
     return false;
 }

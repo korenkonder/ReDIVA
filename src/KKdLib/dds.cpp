@@ -198,7 +198,7 @@ void dds::read(const wchar_t* path) {
             goto End;
         else if (!(dds_h.caps & DDS_SURFACE_FLAGS_TEXTURE))
             goto End;
-        else if ((dds_h.caps2 & DDS_CUBE_MAP) && (~dds_h.caps2 & DDS_CUBE_MAP_ALLFACES) || (dds_h.flags & DDS_FLAGS_VOLUME))
+        else if ((dds_h.caps2 & DDS_CUBE_MAP) && !(dds_h.caps2 & DDS_CUBE_MAP_ALLFACES) || (dds_h.flags & DDS_FLAGS_VOLUME))
             goto End;
 
         bool reverse = false;

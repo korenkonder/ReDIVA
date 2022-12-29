@@ -39,6 +39,7 @@ struct pv_exp {
 
     pv_exp();
 
+    void move_data(pv_exp* exp_src, prj::shared_ptr<alloc_data> alloc);
     void pack_file(void** data, size_t* size);
     void unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern);
 };

@@ -24,11 +24,11 @@ bool input_reset_mouse_position;
 bool input_locked;
 
 extern bool close;
-extern lock render_lock;
+extern lock_cs render_lock;
 extern timer* render_timer;
 extern HWND window_handle;
 extern ImGuiContext* imgui_context;
-extern lock imgui_context_lock;
+extern lock_cs imgui_context_lock;
 
 namespace Input {
     struct Key {

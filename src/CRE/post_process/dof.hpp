@@ -55,7 +55,7 @@ struct post_process_dof {
     GLuint ubo[2];
 
     post_process_dof();
-    virtual ~post_process_dof();
+    ~post_process_dof();
 
     void apply(render_texture* rt, render_texture* buf, GLuint* samplers, camera* cam);
     void init_fbo(int32_t width, int32_t height);

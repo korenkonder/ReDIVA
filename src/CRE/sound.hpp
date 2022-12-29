@@ -54,7 +54,7 @@ namespace sound {
             int32_t bit_depth;
             Mixer* mixer;
             std::thread* thread;
-            lock_uint32_t thread_state;
+            lock<uint32_t> thread_state;
             AudioFormat format;
 
             System();
@@ -94,7 +94,7 @@ namespace sound {
 
         struct SEChannel {
             Mixer* mixer;
-            lock_uint32_t play_state;
+            lock<uint32_t> play_state;
             std::mutex mtx;
             float_t master_volume;
             float_t channels_volume[4];
@@ -125,8 +125,8 @@ namespace sound {
             Mixer* mixer;
             sound_buffer_data* buffer;
             size_t buffer_size;
-            lock_uint32_t playing_state;
-            lock_uint32_t reset_state;
+            lock<uint32_t> playing_state;
+            lock<uint32_t> reset_state;
             std::mutex mtx;
             float_t master_volume;
             float_t channels_volume[4];
@@ -207,8 +207,8 @@ struct SoundCueVolume {
 };
 
 struct SoundCue {
-    lock_uint32_t thread_state;
-    lock_uint32_t data_state;
+    lock<uint32_t> thread_state;
+    lock<uint32_t> data_state;
     std::thread* thread;
     std::mutex mtx;
     std::condition_variable cnd;
@@ -219,7 +219,7 @@ struct SoundCue {
     int32_t counter;
     float_t release_time;
     time_struct time;
-    lock_uint32_t load_state;
+    lock<uint32_t> load_state;
     sound::wasapi::SEChannel* se_channel;
 
     SoundCue();

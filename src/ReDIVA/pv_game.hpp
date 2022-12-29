@@ -98,7 +98,7 @@ struct pv_disp2d {
     std::string title_2d_layer;
 
     pv_disp2d();
-    virtual ~pv_disp2d();
+    ~pv_disp2d();
 };
 
 struct pv_data_camera {

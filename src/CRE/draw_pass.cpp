@@ -1204,7 +1204,7 @@ static void draw_pass_show_vector(render_context* rctx, draw_pass* a1) {
 
     shaders_ft.env_vert_set(20, a1->show_vector_length, a1->show_vector_z_offset, 0.0f, 0.0f);
     for (int32_t i = 1; i < 4; i++) {
-        if (~a1->show_vector_flags & (1 << (i - 1)))
+        if (!(a1->show_vector_flags & (1 << (i - 1))))
             continue;
 
         if (a1->draw_pass_3d[DRAW_PASS_3D_OPAQUE])

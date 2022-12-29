@@ -2529,7 +2529,7 @@ static void mot_key_data_interpolate(mot_key_data* a1, float_t frame,
 }
 
 static bool motion_blend_mot_interpolate_get_reverse(int32_t* a1) {
-    return *a1 & 0x01 && ~*a1 & 0x08 || ~*a1 & 0x01 && *a1 & 0x08;
+    return *a1 & 0x01 && !(*a1 & 0x08) || !(*a1 & 0x01) && *a1 & 0x08;
 }
 
 static void sub_140415430(motion_blend_mot* a1) {
@@ -2938,7 +2938,7 @@ void rob_chara_bone_data_interpolate(rob_chara_bone_data* rob_bone_data) {
 static void sub_140412E10(motion_blend_mot* a1, int32_t a2) {
     for (bone_data* i = a1->bone_data.bones.begin; i != a1->bone_data.bones.end; i++) {
         motion_bone_index v5 = i->motion_bone_index;
-        if (~a1->field_0.field_8.bitfield.begin[v5 >> 5] & (1 << (v5 & 0x1F)))
+        if (!(a1->field_0.field_8.bitfield.begin[v5 >> 5] & (1 << (v5 & 0x1F))))
             continue;
 
         sub_1401EB1D0(i, a2);

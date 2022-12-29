@@ -16,7 +16,7 @@ struct diva {
     uint32_t channels;
 
     diva();
-    virtual ~diva();
+    ~diva();
 
     void read(const char* path);
     void read(const wchar_t* path);

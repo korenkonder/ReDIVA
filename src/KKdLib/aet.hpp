@@ -269,7 +269,7 @@ struct aet_set {
     std::vector<aet_scene> scenes;
 
     aet_set();
-    virtual ~aet_set();
+    ~aet_set();
 
     void pack_file(void** data, size_t* size);
     void unpack_file(const void* data, size_t size, bool modern);

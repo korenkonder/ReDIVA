@@ -74,7 +74,7 @@ struct mot_set {
     std::vector<mot_data> vec;
 
     mot_set();
-    virtual ~mot_set();
+    ~mot_set();
 
     void pack_file(void** data, size_t* size);
     void unpack_file(const void* data, size_t size, bool modern);

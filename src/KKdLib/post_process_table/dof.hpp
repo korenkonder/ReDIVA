@@ -36,7 +36,7 @@ struct dof {
     std::vector<dof_data> data;
 
     dof();
-    virtual ~dof();
+    ~dof();
 
     void read(const char* path);
     void read(const wchar_t* path);

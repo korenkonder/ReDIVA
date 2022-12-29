@@ -53,7 +53,7 @@ namespace Glitter {
         vec3 position = 0.0f;
         emit_inst->InitMesh(GLT_VAL, index, scale, position, direction, random);
 
-        if (~ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL)
+        if (!(ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL))
             mat4_mult_vec3(&emit_inst->mat_rot, &position, &position);
 
         base_translation += position;
@@ -63,7 +63,7 @@ namespace Glitter {
         direction = vec3::normalize(direction
             + random->F2GetVec3(GLT_VAL, ptcl_inst_data->data.direction_random));
 
-        if (~ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL)
+        if (!(ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL))
             mat4_mult_vec3(&emit_inst->mat_rot, &direction, &direction);
         base_direction = direction;
         this->direction = direction;
@@ -96,7 +96,7 @@ namespace Glitter {
         vec3 position = 0.0f;
         emit_inst->InitMesh(index, scale, position, direction, random);
 
-        if (~ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL)
+        if (!(ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL))
             mat4_mult_vec3(&emit_inst->mat_rot, &position, &position);
 
         base_translation += position;
@@ -106,7 +106,7 @@ namespace Glitter {
         direction = vec3::normalize(direction
             + random->XGetVec3(ptcl_inst_data->data.direction_random));
 
-        if (~ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL)
+        if (!(ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL))
             mat4_mult_vec3(&emit_inst->mat_rot, &direction, &direction);
         base_direction = direction;
         this->direction = direction;

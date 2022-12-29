@@ -714,7 +714,7 @@ namespace pv_db {
             state = 4;
         } break;
         case 4: {
-            file_handler.free_data();
+            file_handler.reset();
             paths.pop_front();
             state = 1;
         } break;

@@ -139,7 +139,7 @@ struct pvsr {
     std::vector<pvsr_stage_effect_env> stage_effect_env;
 
     pvsr();
-    virtual ~pvsr();
+    ~pvsr();
 
     void read(const char* path);
     void read(const wchar_t* path);

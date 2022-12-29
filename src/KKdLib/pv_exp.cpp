@@ -39,6 +39,51 @@ pv_exp::pv_exp() : ready(), modern(), big_endian(), is_x(), motion_data(), motio
 
 }
 
+void pv_exp::move_data(pv_exp* exp_src, prj::shared_ptr<alloc_data> alloc) {
+    if (!exp_src->ready) {
+        ready = false;
+        modern = false;
+        big_endian = false;
+        is_x = false;
+        return;
+    }
+
+    ready = true;
+    modern = exp_src->modern;
+    big_endian = exp_src->big_endian;
+    is_x = exp_src->is_x;
+
+    uint32_t motion_num = exp_src->motion_num;
+    pv_exp_mot* motion_data_src = exp_src->motion_data;
+    pv_exp_mot* motion_data_dst = alloc->allocate<pv_exp_mot>(motion_num);
+    this->motion_data = motion_data_dst;
+    this->motion_num = motion_num;
+
+    for (uint32_t i = 0; i < motion_num; i++) {
+        pv_exp_mot& mot_src = motion_data_src[i];
+        pv_exp_mot& mot_dst = motion_data_dst[i];
+
+        size_t face_count = 0;
+        pv_exp_data* face_data_src = mot_src.face_data;
+        while (face_data_src->type != -1)
+            face_count++;
+        face_count++;
+
+        size_t face_cl_count = 0;
+        pv_exp_data* face_cl_data_src = mot_src.face_cl_data;
+        while (face_cl_data_src->type != -1)
+            face_cl_count++;
+        face_cl_count++;
+
+        mot_dst.face_data = alloc->allocate<pv_exp_data>(mot_src.face_data, face_count);
+        mot_dst.face_cl_data = alloc->allocate<pv_exp_data>(mot_src.face_cl_data, face_cl_count);
+        if (mot_src.name)
+            mot_dst.name = alloc->allocate<char>(mot_src.name, utf8_length(mot_src.name) + 1);
+        else
+            mot_src.name = 0;
+    }
+}
+
 void pv_exp::pack_file(void** data, size_t* size) {
     if (!data || !size || !ready)
         return;
